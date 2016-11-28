@@ -14,15 +14,15 @@ This document describes the serialization format for the data structures used in
 
 ### Block
 
-   |Size|Field      |DataType   |Description|
-   |--- |---        |---        |---|
-   | |Blockheader     |[Blockheader]     |[Blockheader](#Blockheader) include the block's attributes. |
-   | |Transactions|[Transaction]  |  List of individual [transactions](#transaction).
+      |Size|Field|DataType|Description|
+      |---|---|---|---|
+      ||Blockheader|[Blockheader]|[Blockheader](#Blockheader) include the block's attributes.|
+      ||Transactions|[Transaction]|List of individual [transactions](#transaction).|
 
 ### Blockheader
 
-   |Size|Field          |DataType   |Description|
-   |--- |---            |---        |---|
+   |Size|Field|DataType   |Description|
+   |--- |---|---        |---|
    | |Version        |uint32     |version of the block which is 0 for now|
    | |Height     |uint32     |height of block|
    | |PrevBlockHash  |uint256 [Hash]   |hash value of the previous block|
