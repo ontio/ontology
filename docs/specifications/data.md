@@ -14,22 +14,18 @@ This document describes the serialization format for the data structures used in
 
 ### Block
 
-      |Size|Field|DataType|Description|
-      |---|---|---|---|
-      ||Blockheader|[Blockheader]|[Blockheader](#Blockheader) include the block's attributes.|
-      ||Transactions|[Transaction]|List of individual [transactions](#transaction).|
+Field               | Type              | Description
+--------------------|-------------------|----------------------------------------------------------
+Serialization Flags | byte              | See [Block Serialization Flags](#block-serialization-flags).
+Version             | varint63          | Block version, equals 1.
+Height              | varint63          | Block serial number.
+Previous Block ID   | sha3-256          | [Hash](#block-id) of the previous block or all-zero string.
+Timestamp           | varint63          | Time of the block in milliseconds since 00:00:00 UTC Jan 1, 1970.
+Block Commitment    | Extensible string | Extensible commitment string. See [Block Commitment](#block-commitment).
+Block Witness       | Extensible string | Extensible witness string. See [Block Witness](#block-witness).
+Transaction Count   | varint31          | Number of transactions that follow.
+Transactions        | [Transaction]     | List of individual [transactions](#transaction).
 
-### Blockheader
-
-   |Size|Field|DataType   |Description|
-   |--- |---|---        |---|
-   | |Version        |uint32     |version of the block which is 0 for now|
-   | |Height     |uint32     |height of block|
-   | |PrevBlockHash  |uint256 [Hash]   |hash value of the previous block|
-   | |Timestamp  |uint32     |time stamp|
-   | |TransactionsRoot     |[Hash]    |root hash of a transaction list|
-   | |Nonce      |uint64     |random number|
-   | |Witness     |[][]byte     |Script used to validate the block|
      
 ### Transaction
 
