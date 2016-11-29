@@ -1,7 +1,7 @@
 package main
 
 import (
-	"GoOnchain/core/net/httpjsonrpc"
+	"GoOnchain/net/httpjsonrpc"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
