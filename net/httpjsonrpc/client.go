@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"GoOnchain/common"
 )
 
 func Call(address string, method string, id interface{}, params []interface{}) (map[string]interface{}, error) {
@@ -38,4 +39,27 @@ func Call(address string, method string, id interface{}, params []interface{}) (
 	}
 	//log.Println(result)
 	return result, nil
+}
+
+func StartClient() {
+	var res map[string]interface{}
+	var err error
+
+	common.Trace()
+
+	// Call the get info
+	res, err = Call("http://127.0.0.1:20332", "getinfo", 1, []interface{}{})
+	if err != nil {
+		log.Fatalf("Err: %v", err)
+	}
+	log.Println(res)
+
+	// call send to address
+	params := []interface{}{"asset_id", "address", 56}
+	res, err = Call("http://127.0.0.1:20332", "sendtoaddress", 2, params)
+	if err != nil {
+		log.Fatalf("Err: %v", err)
+	}
+	log.Println(res)
+
 }
