@@ -1,5 +1,9 @@
 package ledger
 
+import (
+	tx "GoOnchain/core/transaction"
+)
+
 
 // Store provides storage for State data
 type BlockchainStore interface {
@@ -8,9 +12,9 @@ type BlockchainStore interface {
 }
 
 
-
-
 type Blockchain struct {
 	Store BlockchainStore
-	TxPool TranscationPool
+	TxPool tx.TransactionPool
+	Transactions []*tx.Transaction
 }
+

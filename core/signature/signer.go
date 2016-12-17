@@ -1,7 +1,7 @@
 package signature
 
 import (
-	"GoOnchain/common"
+	"GoOnchain/crypto"
 )
 
 //Signer is the abstract interface of user's information(Keys) for signing data.
@@ -11,7 +11,7 @@ type Signer interface {
 	PrivKey() []byte
 
 	//get signer's public key
-	PubKey() common.ECPoint
+	PubKey() crypto.PubKey
 
 }
 

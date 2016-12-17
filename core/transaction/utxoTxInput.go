@@ -3,6 +3,8 @@ package transaction
 
 import (
 	"GoOnchain/common"
+	"io"
+	"GoOnchain/common/serialization"
 )
 
 type UTXOTxInput struct {
@@ -13,3 +15,11 @@ type UTXOTxInput struct {
 	//The index of output in the referTx output list
 	ReferTxOutputIndex uint16
 }
+
+
+func (ui *UTXOTxInput) Serialize(w io.Writer)  {
+	ui.ReferTxID.Serialize(w)
+	serialization.WriteVarInt(w,ui.ReferTxOutputIndex)
+}
+
+

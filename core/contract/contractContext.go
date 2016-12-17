@@ -3,6 +3,8 @@ package contract
 import (
 	"GoOnchain/common"
 	sig "GoOnchain/core/signature"
+	"GoOnchain/crypto"
+	"GoOnchain/core/contract/program"
 )
 
 type ContractContext struct {
@@ -15,6 +17,33 @@ type ContractContext struct {
 
 
 func NewContractContext(data sig.SignableData) *ContractContext {
-	//TODO: implement NewContractContext
-	return nil
+
+	programHashes,_ := data.GetProgramHashes() //TODO: check error
+	hashLen := len(programHashes)
+
+	return &ContractContext{
+		Data: data,
+		ProgramHashes: programHashes,
+		Programs: make([][]byte,hashLen),
+		Parameters: make([][][]byte,hashLen),
+	}
 }
+
+func (cxt *ContractContext) AddContract(contract *Contract, pubkey crypto.PubKey,paramenter []byte ) error {
+	//TODO: implement AddContract()
+
+	//TODO: check contract type for diff building
+
+	return  nil
+
+}
+
+
+func (cxt *ContractContext) GetPrograms() ([]*program.Program,error) {
+	//TODO: implement GetProgram()
+
+	return  []*program.Program{},nil
+
+}
+
+
