@@ -1,6 +1,6 @@
 # GoOnchain
 
-GoAnteshares is the Go lauguage implementation of blockchain which compatible with antsahares, it aims to be more open source community friendly and better performance
+GoOnchain is the Go lauguage implementation of blockchain which compatible with antsahares, it aims to be more open source community friendly and better performance
 
 # Antshares
 Antshares is a decentralized and distributed network protocol which is based on blockchain technology.

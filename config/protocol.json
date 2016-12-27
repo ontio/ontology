@@ -12,11 +12,12 @@
       "02486fd15702c4490a26703112a5cc1d0923fd697a33406bd5a1c00e0013b09a70"
     ],
     "SeedList": [
-      "seed1.antshares.org:10333",
-      "seed2.antshares.org:10333",
-      "seed3.antshares.org:10333",
-      "seed4.antshares.org:10333",
-      "seed5.antshares.org:10333"
+      "139.196.113.101:20333",
+      "seed1.antshares.org:20333",
+      "seed2.antshares.org:20333",
+      "seed3.antshares.org:20333",
+      "seed4.antshares.org:20333",
+      "seed5.antshares.org:20333"
     ]
   }
 }
