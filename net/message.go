@@ -14,14 +14,15 @@ import (
 
 const (
 	MSGCMDLEN = 12
+	CHECKSUMLEN = 4
 )
 
 // The network and module communication message buffer
 type Msg struct {
 	Magic	 uint32
-	CMD	 [MSGCMDLEN]byte 	// the message command (message type)
+	CMD	 [MSGCMDLEN]byte 	// The message type
 	Length   uint32
-	Checksum uint32
+	Checksum [CHECKSUMLEN]byte
 	//payloader interface{}
 }
 
@@ -52,70 +53,53 @@ type headersReq struct {
 	hashEnd		[32]byte
 }
 
-// Sample function, shoule be called from ledger module
-func ledgerGetHeader() [32]byte {
-	var t [32]byte
-	return t
+// TODO Sample function, shoule be called from ledger module
+func ledgerGetHeader() ([]byte, error) {
+	genesisHeader := "38c41224b9d791d382d896a426d94bb68ef0a0208eca1156cb9e6d52287a12dd"
+
+	h, err := hex.DecodeString(genesisHeader)
+	if err != nil {
+		log.Printf("Decode Header hash error")
+		return nil, err
+	}
+	return h, nil
 }
 
+
 // TODO combine all of message alloc in one function via interface
-func newMsg(p interface{}) (*Msg, error) {
-	msg := new(Msg)
-	switch t := p.(type) {
-	case version:
-		log.Printf("Port is %d", t.port)
-	case verACK:
-	case headersReq:
-		t.hashStart = ledgerGetHeader()
+func newMsg(t string) ([]byte, error) {
+	switch t {
+	case "version":
+		return newVersion()
+	case "verack":
+		return newVerack()
+	case "getheaders":
+		return newHeadersReq()
 	default:
 		return nil, errors.New("Unknown message type")
 	}
-
-	//msg.payloader = p
-	return msg, nil
 }
 
-func newVersionMsg() (*Msg, error) {
-	var v version
-
-	// TODO Need Node read lock or channel
-	v.version = nodes.node.version
-	v.services = nodes.node.services
-	v.timeStamp = uint32(time.Now().UTC().UnixNano())
-	v.port = nodes.node.port
-	v.nonce = nodes.node.nonce
-	//v.userAgent =
-	// Fixme Get the block height from ledger
-	v.startHeight = 0
-	if nodes.node.relay {
-		v.relay = 1
-	} else {
-		v.relay = 0
-	}
-
+func newMsgHeader(cmd string, checksum []byte, length  uint32) ([]byte, error) {
 	msg := new(Msg)
 	msg.Magic = NETMAGIC
-	ver := "version"
-	copy(msg.CMD[0:7], ver)
-	msg.Length = uint32(unsafe.Sizeof(v))
-	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.LittleEndian, &v)
-	if err != nil {
-		log.Println("Binary Write failed at new Msg")
+	copy(msg.CMD[0:len(cmd)], cmd)
+	copy(msg.Checksum[:], checksum[:CHECKSUMLEN])
+	//binary.Read(buf, binary.LittleEndian, &(msg.Checksum))
+	msg.Length = length
+
+	log.Printf("The message payload length is %d", msg.Length)
+	log.Printf("The message header length is %d", uint32(unsafe.Sizeof(*msg)))
+
+	m, err := msg.serialization()
+	if (err != nil) {
+		log.Println("Error Convert net message ", err.Error())
 		return nil, err
 	}
-
-	//msg.Checksum = rc32.ChecksumIEEE(buf.Bytes())
-	//msg.payloader = &ver
-
-	s := sha256.Sum256(buf.Bytes())
-	buf = bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(msg.Checksum))
-
-	return msg, nil
+	return m, nil
 }
 
-func newVersionBuf() ([]byte, error) {
+func newVersion() ([]byte, error) {
 	common.Trace()
 	var v version
 
@@ -167,7 +151,7 @@ func newVersionBuf() ([]byte, error) {
 	return m, nil
 }
 
-func newVerackBuf() []byte {
+func newVerack() ([]byte, error) {
 	//var verACK verACK
 	msg := new(Msg)
 
@@ -175,55 +159,76 @@ func newVerackBuf() []byte {
 	v := "verack"
 	copy(msg.CMD[0:6], v)
 	msg.Length = 0
-	msg.Checksum = 0
+	//msg.Checksum = 0
 	//msg.payloader = &verACK
 
 	buf, err := msg.serialization()
 	if (err != nil) {
-		log.Println("Error Convert net message ", err.Error())
-		return nil
+		return nil, err
 	}
 
-	return buf
+	return buf, err
 }
 
-func newHeadersReqBuf() []byte {
-	//var headersReq headersReq
-	msg := new(Msg)
-	//msg.payloader = &headersReq
+func checkSum(p []byte) []byte {
+	t := sha256.Sum256(p)
+	s := sha256.Sum256(t[:])
 
-	buf, err := msg.serialization()
+	// Currently we only need the front 4 bytes as checksum
+	return s[:CHECKSUMLEN]
+}
+
+func newHeadersReq() ([]byte, error) {
+	var h headersReq
+
+	buf, err := ledgerGetHeader()
 	if (err != nil) {
-		log.Println("Error Convert net message ", err.Error())
-		return nil
+		return nil, err
+	}
+	copy(h.hashStart[:], buf[:32])
+
+	p := new(bytes.Buffer)
+	err = binary.Write(p, binary.LittleEndian, &h)
+	if err != nil {
+		log.Println("Binary Write failed at new headersReq")
+		return nil, err
 	}
 
-	return buf
+	s := checkSum(p.Bytes())
+	m, err := newMsgHeader("getheaders", s, uint32(len(p.Bytes())))
+	m = append(m, p.Bytes()...)
+
+	str := hex.EncodeToString(m)
+	log.Printf("The message length is %d, %s", len(m), str)
+	return m, nil
 }
 
-func newVerackMsg() *Msg {
-	//var verACK verACK
-	msg := new(Msg)
-
-	msg.Magic = NETMAGIC
-	v := "verack"
-	copy(msg.CMD[0:6], v)
-	msg.Length = 0
-	msg.Checksum = 0
-	//msg.payloader = &verACK
-	return msg
+func (msg Msg) preVerify() error {
+	// TODO verify the message header
+	// checksum,version magic number
+	return nil
 }
 
-func newHeadersReqMsg() *Msg {
-	//var headersReq headersReq
-	msg := new(Msg)
-	//msg.payloader = &headersReq
-	return msg
+func (msg Msg) verify(t string) error {
+	// TODO verify the message Content
+	switch t {
+	case "version":
+	case "verACK":
+	case "inventory":
+	default:
+		log.Println("Unknow message type to parse")
+		return errors.New("Unknown message type to parse")
+	}
+	return nil
 }
 
 func (msg Msg) serialization() ([]byte, error) {
 	var buf bytes.Buffer
 	err := binary.Write(&buf, binary.LittleEndian, msg)
+	if err != nil {
+		return nil, err
+	}
+
 	return buf.Bytes(), err
 }
 

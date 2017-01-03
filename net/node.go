@@ -4,6 +4,7 @@ import (
 	"log"
 	"strconv"
 	"net"
+	"io"
 	"sync"
 	"time"
 	"runtime"
@@ -81,19 +82,23 @@ func (node *node) backend() {
 	}
 }
 
-func (node *node) getID() string {
+func (node node) getID() string {
 	return node.id
 }
 
-func (node *node) getState() uint {
+func (node node) getState() uint {
 	return node.state
+}
+
+func (node node) getConn() net.Conn {
+	return node.conn
 }
 
 func (node *node) setState(state uint) {
 	node.state = state
 }
 
-func (node *node) getHandshakeTime() (time.Time) {
+func (node node) getHandshakeTime() (time.Time) {
 	return node.handshakeTime
 }
 
@@ -101,7 +106,7 @@ func (node *node) setHandshakeTime(t time.Time) {
 	node.handshakeTime = t
 }
 
-func (node *node) getHandshakeRetry() uint32 {
+func (node node) getHandshakeRetry() uint32 {
 	return atomic.LoadUint32(&(node.handshakeRetry))
 }
 
@@ -110,30 +115,50 @@ func (node *node) setHandshakeRetry(r uint32) {
 	atomic.StoreUint32(&(node.handshakeRetry), r)
 }
 
+func (node node) getHeight() uint64 {
+	return node.height
+}
+
 func (node *node) updateTime(t time.Time) {
 	node.time = t
 }
 
-func (node *node) rx() {
+func (node *node) rx() error {
+	conn := node.getConn()
+	from := conn.RemoteAddr().String()
 	// TODO using select instead of for loop
 	for {
 		buf := make([]byte, MAXBUFLEN)
-		len, err := node.conn.Read(buf)
-		if err != nil {
-			log.Println("Error reading", err.Error())
-			return
-		}
+		len, err := conn.Read(buf[0:(MAXBUFLEN - 1)])
+		buf[MAXBUFLEN - 1] = 0 //Prevent overflow
 
-		msg := new(Msg)
-		log.Printf("Message len %d", unsafe.Sizeof(*msg))
-		err = msg.deserialization(buf[0:len])
-		if err != nil {
-			log.Println("Deserilization buf to message failure")
-			return
+		switch err {
+		case nil:
+			msg := new(Msg)
+			log.Printf("Message len %d", unsafe.Sizeof(*msg))
+			err = msg.deserialization(buf[0:len])
+			if err != nil {
+				log.Println("Deserilization buf to message failure")
+				return err
+			}
+
+			log.Printf("Received data: %v", string(buf[:len]))
+			go handleNodeMsg(node, msg)
+			break
+		case io.EOF:
+			//log.Println("Reading EOF of network conn")
+			break
+		default:
+			log.Printf("read error", err)
+			goto DISCONNECT
 		}
-		log.Printf("Received data: %v", string(buf[:len]))
-		go handleNodeMsg(node, msg)
 	}
+
+DISCONNECT:
+	err := conn.Close()
+	node.setState(INACTIVITY)
+	log.Printf("Close connection", from)
+	return err
 }
 
 // Init the server port, should be run in another thread
@@ -178,6 +203,8 @@ func (node *node) connect(nodeAddr string)  {
 		node.conn = conn
 		node.id = conn.RemoteAddr().String()
 		node.addr = conn.RemoteAddr().String()
+		// FixMe Only for testing
+		node.height = 1000
 
 		log.Printf("Connect node %s connect with %s with %s",
 			conn.LocalAddr().String(), conn.RemoteAddr().String(),

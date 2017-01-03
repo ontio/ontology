@@ -5,6 +5,7 @@ import (
 	"time"
 	"os"
 	"bytes"
+	"encoding/hex"
 	"GoOnchain/common"
 	"GoOnchain/config"
 )
@@ -12,12 +13,14 @@ import (
 const (
 	HELLOTIMEOUT	 = 3	// Seconds
 	MAXHELLORETYR	 = 3
-	MAXBUFLEN	 = 1024
+	MAXBUFLEN	 = 1024 * 300 // Fixme The maximum buffer to receive message
 	MAXCHANBUF	 = 512
-	NETMAGIC	 = 0x74746e41 // Keep the same as antshares only for testing
+	//NETMAGIC	 = 0x74746e41 // Keep the same as antshares only for testing
+	NETMAGIC	 = 0x414d5446 // Keep the same as antshares only for testing
 	PROTOCOLVERSION  = 0
 
-	NODETESTPORT	= 20333	// TODO get from config file
+	NODETESTPORT	 = 20333	// TODO get from config file
+	PERIODUPDATETIME = 15		// Time to update and sync information with other nodes
 )
 
 // The unconfirmed transaction queue
@@ -111,19 +114,30 @@ func handleModuleMsg() {
 // TODO The process should be adjusted based on above table
 func rxVersion(node *node, msg *Msg) {
 	common.Trace()
+
+	m, err := msg.serialization()
+	if (err != nil) {
+		log.Println("Error Convert rx version msg ", err.Error())
+	}
+
+	str := hex.EncodeToString(m)
+	log.Printf("The RX version message length is %d, %s", len(m), str)
+
 	t := time.Now()
 	// TODO check version compatible or not
 	s := node.getState()
 	if (s == HANDSHAKEING) {
 		node.setState(HANDSHAKED)
-		buf := newVerackBuf()
+		buf, _ := newVerack()
 		go node.tx(buf)
 	} else if (s != ESTABLISH) {
 		node.setHandshakeTime(t)
 		node.setState(HANDSHAKEING)
-		buf, _ := newVersionBuf()
+		buf, _ := newVersion()
 		go node.tx(buf)
 	}
+
+	// TODO Update other node information
 
 	log.Printf("Node %s state is %d", node.getID(), s)
 	node.updateTime(t)
@@ -141,7 +155,7 @@ func rxVerack(node *node, msg *Msg) {
 	if (tDelta.Seconds() < HELLOTIMEOUT) {
 		if (s == HANDSHAKEING) {
 			node.setState(ESTABLISH)
-			buf := newVerackBuf()
+			buf, _ := newVerack()
 			go node.tx(buf)
 		} else if (s == HANDSHAKED) {
 			node.setState(ESTABLISH)
@@ -260,7 +274,7 @@ func handleNodeMsg(node *node, msg *Msg) {
 // Trigger handshake
 func handshake(node *node) error {
 	node.setHandshakeTime(time.Now())
-	buf, _ := newVersionBuf()
+	buf, _ := newVersion()
 	go node.tx(buf)
 
 	timer := time.NewTimer(time.Second * HELLOTIMEOUT)
@@ -286,7 +300,7 @@ func txBlockHeadersReq(node *node) {
 		return
 	}
 
-	buf := newHeadersReqBuf()
+	buf, _ := newHeadersReq()
 	go node.tx(buf)
 }
 
@@ -297,6 +311,31 @@ func txInventory(node *node) {
 
 func keepAlive(from *node, dst *node) {
 	// Need move to node function or keep here?
+}
+
+func periodUpdate() {
+	ticker := time.NewTicker(time.Second * PERIODUPDATETIME)
+	quit := make(chan struct{})
+
+	for {
+		select {
+		case <- ticker.C:
+			common.Trace()
+			for _, node := range nodes.list {
+				h1 := node.getHeight()
+				h2 := nodes.node.getHeight()
+				if (node.getState() == ESTABLISH) && (h1 > h2) {
+					buf, _ := newMsg("getheaders")
+					go node.tx(buf)
+				}
+			}
+		case <- quit:
+			ticker.Stop()
+			return
+		}
+	}
+	// TODO when to close the timer
+	//close(quit)
 }
 
 func StartProtocol() {
@@ -311,5 +350,8 @@ func StartProtocol() {
 	for _, nodeAddr := range seedNodes {
 		nodes.node.connect(nodeAddr)
 	}
+
+	log.Println("Run after go through seed nodes")
 	// TODO Housekeeping routine to keep node status update
+	periodUpdate()
 }
