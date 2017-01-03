@@ -2,46 +2,48 @@ package ledger
 
 import (
 	tx "GoOnchain/core/transaction"
-	"GoOnchain/common"
-	"GoOnchain/core/contract/program"
 	"io"
+	"GoOnchain/common/serialization"
+	"GoOnchain/common"
 )
 
 type Block struct {
-	Blockheader *Blockheader
+	Blockdata *Blockdata
 	Transcations []*tx.Transaction
+
+	hash *common.Uint256
 }
 
-type Blockheader struct {
-	//TODO: define the Blockheader struct(define new uinttype)
-	Version uint
-	PrevBlockHash  common.Uint256
-	TransactionsRoot common.Uint256
-	Timestamp uint
-	Height uint
-	nonce uint64
-	Program *program.Program
-
-	hash common.Uint256
+func (b *Block) Serialize(w io.Writer)  {
+	b.Blockdata.Serialize(w)
 }
 
-//Serialize the blockheader
-func (bh *Blockheader) Serialize(w io.Writer)  {
-	bh.SerializeUnsigned(w)
-	w.Write([]byte{byte(1)})
-	bh.Program.Serialize(w)
-}
+func (b *Block) Deserialize(r io.Reader) error  {
+	b.Blockdata.Deserialize(r)
 
-//Serialize the blockheader data without program
-func (bh *Blockheader) SerializeUnsigned(w io.Writer) error  {
-	//TODO: implement blockheader SerializeUnsigned
+	//Transactions
+	Len := serialization.ReadVarInt(r)
+	for i := 0; i < Len; i++ {
+		transaction := new(tx.Transaction)
+		err := transaction.Deserialize(r)
+		if err != nil {
+			return err
+		}
+		b.Transcations = append(b.Transcations,transaction)
+	}
+
+	//TODO: merkleTree Compute Root
 
 	return nil
 }
 
+func (b *Block) GetHash() common.Uint256  {
 
-func (tx *Blockheader) GetProgramHashes() ([]common.Uint160, error){
-	//TODO: implement blockheader GetProgramHashes
+	if(b.hash == nil){
+		//TODO: generate block hash
+	}
 
-	return nil, nil
+	return *b.hash
 }
+
+

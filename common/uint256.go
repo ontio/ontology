@@ -9,5 +9,11 @@ type Uint256  struct {
 }
 
 func (u *Uint256) Serialize(w io.Writer) {
-	//TODO: implement Uint160.serialize
+	//TODO: implement Uint256.serialize
+}
+
+func (u *Uint256) Deserialize(r io.Reader) error {
+	//TODO：Uint256 Deserialize
+
+	return nil
 }

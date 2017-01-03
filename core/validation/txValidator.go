@@ -13,14 +13,14 @@ import (
 //- No duplicated inputs
 //- inputs/outputs balance
 //- Transcation contracts pass
-func VerifyTransaction(Tx *tx.Transaction,bc *ledger.Blockchain,TxPool *tx.TransactionPool) error  {
+func VerifyTransaction(Tx *tx.Transaction,ledger *ledger.Ledger,TxPool []*tx.Transaction) error  {
 
 	Tx.GenerateAssetMaps()
 
 	err := CheckDuplicateInput(Tx)
 	if(err != nil){return err}
 
-	err = IsDoubleSpend(Tx,bc)
+	err = IsDoubleSpend(Tx,ledger)
 	if(err != nil){return err}
 
 	//TODO: check mem pool transaction
@@ -34,13 +34,12 @@ func VerifyTransaction(Tx *tx.Transaction,bc *ledger.Blockchain,TxPool *tx.Trans
 	err = CheckAttributeProgram(Tx)
 	if(err != nil){return err}
 
+
 	err = CheckTransactionContracts(Tx)
 	if(err != nil){return err}
 
 	return nil
 }
-
-
 
 func CheckDuplicateInput(tx *tx.Transaction)  error {
 	for i, utxoin := range tx.UTXOInputs {
@@ -53,11 +52,8 @@ func CheckDuplicateInput(tx *tx.Transaction)  error {
 	return nil
 }
 
-func IsDoubleSpend(tx *tx.Transaction,bc *ledger.Blockchain) error {
-	//TODO: implement IsDoubleSpend
-
-
-	return nil
+func IsDoubleSpend(tx *tx.Transaction,ledger *ledger.Ledger) error {
+	return ledger.IsDoubleSpend(tx)
 }
 
 func CheckAssetPrecision(Tx *tx.Transaction) error  {
@@ -91,7 +87,5 @@ func CheckAttributeProgram(Tx *tx.Transaction)  error{
 }
 
 func CheckTransactionContracts(Tx *tx.Transaction) error {
-	//TODO: implement VerfiyTransactionContracts
-
-	return nil
+	return VerifySignableData(Tx)
 }

@@ -1,11 +1,13 @@
 package crypto
 
-import (
-	"io"
-)
+func Sha256(value []byte) []byte{
+	//TODO: implement Sha256
 
-type PubKey ECPoint
+	return nil
+}
 
-func (e *PubKey) Serialize(w io.Writer) {
-	//TODO: implement PubKey.serialize
+func RIPEMD160(value []byte) []byte{
+	//TODO: implement RIPEMD160
+
+	return nil
 }

@@ -3,6 +3,7 @@ package program
 import (
 	"io"
 	"GoOnchain/common/serialization"
+	"GoOnchain/common"
 )
 type Program struct {
 
@@ -17,4 +18,13 @@ type Program struct {
 func (p *Program) Serialize(w io.Writer)  {
 	serialization.WriteVarBytes(w,p.Parameter);
 	serialization.WriteVarBytes(w,p.Code);
+}
+
+
+func (p *Program) CodeHash() common.Uint160{
+	//TODO: implement to code hash
+	//new UInt160(script.Sha256().RIPEMD160());
+
+	return common.Uint160{}
+
 }

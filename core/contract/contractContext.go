@@ -33,9 +33,7 @@ func (cxt *ContractContext) AddContract(contract *Contract, pubkey crypto.PubKey
 	//TODO: implement AddContract()
 
 	//TODO: check contract type for diff building
-
 	return  nil
-
 }
 
 

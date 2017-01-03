@@ -9,3 +9,5 @@ func CreateSignatureContract(ownerPubKey crypto.PubKey) (*Contract,error){
 	//TODO: implement func CreateSignatureContract
 	return nil,nil
 }
+
+

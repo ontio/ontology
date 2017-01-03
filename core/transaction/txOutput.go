@@ -17,3 +17,8 @@ func (o *TxOutput) Serialize(w io.Writer)  {
 	o.Value.Serialize(w)
 	o.ProgramHash.Serialize(w)
 }
+
+func (tx *TxOutput) Deserialize(r io.Reader)  {
+	//TODO；TxOutput Deserialize
+
+}

@@ -10,7 +10,7 @@ import (
 )
 
 //initial a new transaction with asset registration payload
-func NewAssetRegistrationTransaction(asset asset.Asset,amount common.Fixed64,precision byte,issuer crypto.PubKey,conroller common.Uint160) (*Transaction, error){
+func NewAssetRegistrationTransaction(asset *asset.Asset,amount *common.Fixed64,precision byte,issuer crypto.PubKey,conroller *common.Uint160) (*Transaction, error){
 
 	//TODO: check arguments
 
@@ -22,9 +22,8 @@ func NewAssetRegistrationTransaction(asset asset.Asset,amount common.Fixed64,pre
 		Controller: conroller,
 	}
 
-	//TODO: implement NewAssetRegistrationTransaction
 	return &Transaction{
-		//nonce uint64
+		//nonce uint64 //TODO: genenrate nonce
 		UTXOInputs: []*UTXOTxInput{},
 		BalanceInputs: []*BalanceTxInput{},
 		Attributes: []*TxAttribute{},

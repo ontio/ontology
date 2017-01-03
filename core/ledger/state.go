@@ -11,3 +11,4 @@ type StateStore interface {
 type State struct {
 	//TODO: define the state struct
 }
+

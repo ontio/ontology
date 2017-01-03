@@ -17,3 +17,16 @@ func (bi *BalanceTxInput) Serialize(w io.Writer)  {
 	bi.Value.Serialize(w)
 	bi.ProgramHash.Serialize(w)
 }
+
+func (bi *BalanceTxInput) Deserialize(r io.Reader) error  {
+	err := bi.AssetID.Deserialize(r)
+	if err != nil {return err}
+
+	err = bi.Value.Deserialize(r)
+	if err != nil {return err}
+
+	err = bi.ProgramHash.Deserialize(r)
+	if err != nil {return err}
+
+	return nil
+}

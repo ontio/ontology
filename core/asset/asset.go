@@ -42,7 +42,11 @@ func (a *Asset) Serialize(w io.Writer) {
 	w.Write([]byte{byte(a.AssetType)})
 	w.Write([]byte{byte(a.RecordType)})
 	w.Write([]byte{byte(a.Precision)})
+}
 
+func (a *Asset) Deserialize(r io.Reader) error {
+	//TODO；Asset Deserialize
+	return nil
 }
 
 func GetAsset(assetId common.Uint256)  *Asset{

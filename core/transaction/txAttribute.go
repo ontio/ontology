@@ -10,6 +10,15 @@ type TxAttribute struct {
 
 }
 
+
+
 func (u *TxAttribute) Serialize(w io.Writer)  {
 	//TODO: implement TxAttribute.Serialize()
+
+}
+
+func (tx *TxAttribute) Deserialize(r io.Reader) error  {
+	//TODO；TxAttribute Deserialize
+
+	return nil
 }

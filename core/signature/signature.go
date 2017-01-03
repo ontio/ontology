@@ -12,6 +12,8 @@ type SignableData interface {
 	GetProgramHashes() ([]common.Uint160, error)
 
 	SetPrograms([]*program.Program)
+
+	GetPrograms()  []*program.Program
 }
 
 

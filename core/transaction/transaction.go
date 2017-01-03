@@ -5,6 +5,7 @@ import (
 	"GoOnchain/common/serialization"
 	"GoOnchain/core/contract/program"
 	"GoOnchain/common"
+	"errors"
 )
 
 //for different transaction types with different payload format
@@ -26,6 +27,8 @@ type Payload interface {
 
 	//Serialize payload data
 	Serialize(w io.Writer)
+
+	Deserialize(r io.Reader) error
 }
 
 //Transaction is used for carry information or action to Ledger
@@ -99,6 +102,71 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error  {
 	return nil
 }
 
+//deserialize the Transaction
+func (tx *Transaction) Deserialize(r io.Reader)  error {
+	return tx.DeserializeUnsigned(r)
+	//TODO；Read Program
+}
+
+
+func (tx *Transaction) DeserializeUnsigned(r io.Reader) error  {
+	var txType [1]byte
+	_, err := io.ReadFull(r, txType[:])
+	if err != nil {
+		return err
+	}
+
+	if(txType[0] != byte(tx.TxType)){
+		return errors.New("Transaction Type is different.")
+	}
+
+	return  tx.DeserializeUnsignedWithoutType(r)
+}
+
+func (tx *Transaction) DeserializeUnsignedWithoutType(r io.Reader) error  {
+	var payloadVersion [1]byte
+	_, err := io.ReadFull(r, payloadVersion[:])
+	if err != nil {
+		return err
+	}
+
+	//payload
+	tx.Payload.Deserialize(r)
+
+	//attributes
+	Len := serialization.ReadVarInt(r)
+	for i := 0; i < Len; i++ {
+		attr := new(TxAttribute)
+		err = attr.Deserialize(r)
+		if err != nil {
+			return err
+		}
+		tx.Attributes = append(tx.Attributes,attr)
+	}
+
+	//UTXOInputs
+	Len = serialization.ReadVarInt(r)
+	for i := 0; i < Len; i++ {
+		utxo := new(UTXOTxInput)
+		err = utxo.Deserialize(r)
+		if err != nil {
+			return err
+		}
+		tx.UTXOInputs = append(tx.UTXOInputs,utxo)
+	}
+
+	//balanceInputs
+	Len = serialization.ReadVarInt(r)
+	for i := 0; i < Len; i++ {
+		balanceInput := new(BalanceTxInput)
+		err = balanceInput.Deserialize(r)
+		if err != nil {
+			return err
+		}
+		tx.BalanceInputs = append(tx.BalanceInputs,balanceInput)
+	}
+	return nil
+}
 
 func (tx *Transaction) GetProgramHashes() ([]common.Uint160, error){
 
@@ -110,9 +178,12 @@ func (tx *Transaction) GetProgramHashes() ([]common.Uint160, error){
 	return programHashes, nil
 }
 
-
 func (tx *Transaction) SetPrograms(programs []*program.Program){
 	tx.Programs = programs
+}
+
+func (tx *Transaction) GetPrograms() []*program.Program{
+	return  tx.Programs
 }
 
 func  (tx *Transaction) GetOutputHashes()  ([]common.Uint160, error){

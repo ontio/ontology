@@ -14,6 +14,12 @@ func (f *Fixed64) Serialize(w io.Writer) {
 	//TODO: implement Fixed64.serialize
 }
 
+func (f *Fixed64) Deserialize(r io.Reader) error {
+	//TODO：Fixed64 Deserialize
+
+	return nil
+}
+
 func (f *Fixed64) GetData() int64 {
 	//TODO: implement Fixed64.GetData
 
