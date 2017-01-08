@@ -126,7 +126,7 @@ func (node *node) updateTime(t time.Time) {
 func (node *node) rx() error {
 	conn := node.getConn()
 	from := conn.RemoteAddr().String()
-	// TODO using select instead of for loop
+
 	for {
 		buf := make([]byte, MAXBUFLEN)
 		len, err := conn.Read(buf[0:(MAXBUFLEN - 1)])
@@ -215,6 +215,7 @@ func (node *node) connect(nodeAddr string)  {
 	}
 }
 
+// TODO construct a TX channel and other application just drop the message to the channel
 func (node node) tx(buf []byte) {
 	node.chF <- func() {
 		common.Trace()

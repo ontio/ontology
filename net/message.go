@@ -49,6 +49,7 @@ type version struct {
 }
 
 type headersReq struct {
+	len		uint8
 	hashStart	[32]byte
 	hashEnd		[32]byte
 }
@@ -75,6 +76,9 @@ func newMsg(t string) ([]byte, error) {
 		return newVerack()
 	case "getheaders":
 		return newHeadersReq()
+	case "getaddr":
+		return newGetAddr()
+
 	default:
 		return nil, errors.New("Unknown message type")
 	}
@@ -106,6 +110,7 @@ func newVersion() ([]byte, error) {
 	// TODO Need Node read lock or channel
 	v.version = nodes.node.version
 	v.services = nodes.node.services
+	// FIXME Time overflow
 	v.timeStamp = uint32(time.Now().UTC().UnixNano())
 	v.port = nodes.node.port
 	v.nonce = nodes.node.nonce
@@ -153,11 +158,36 @@ func newVersion() ([]byte, error) {
 
 func newVerack() ([]byte, error) {
 	//var verACK verACK
+	var sum []byte
+	sum = []byte{0x5d, 0xf6, 0xe0, 0xe2}
 	msg := new(Msg)
 
 	msg.Magic = NETMAGIC
 	v := "verack"
 	copy(msg.CMD[0:6], v)
+	msg.Length = 0
+	log.Printf("The checksum should be 0 or not in this case")
+	copy(msg.Checksum[0:4], sum)
+	//msg.payloader = &verACK
+
+	buf, err := msg.serialization()
+	if (err != nil) {
+		return nil, err
+	}
+
+	str := hex.EncodeToString(buf)
+	log.Printf("The message tx verack length is %d, %s", len(buf), str)
+
+	return buf, err
+}
+
+func newGetAddr() ([]byte, error) {
+	//var verACK verACK
+	msg := new(Msg)
+
+	msg.Magic = NETMAGIC
+	v := "getaddr"
+	copy(msg.CMD[0:7], v)
 	msg.Length = 0
 	//msg.Checksum = 0
 	//msg.payloader = &verACK
@@ -181,6 +211,8 @@ func checkSum(p []byte) []byte {
 func newHeadersReq() ([]byte, error) {
 	var h headersReq
 
+	// Fixme correct with the exactly request length
+	h.len = 1
 	buf, err := ledgerGetHeader()
 	if (err != nil) {
 		return nil, err
