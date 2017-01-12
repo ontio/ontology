@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 	"runtime"
-	"unsafe"
 	"math/rand"
 	"sync/atomic"
 	"GoOnchain/common"
@@ -134,16 +133,7 @@ func (node *node) rx() error {
 
 		switch err {
 		case nil:
-			msg := new(Msg)
-			log.Printf("Message len %d", unsafe.Sizeof(*msg))
-			err = msg.deserialization(buf[0:len])
-			if err != nil {
-				log.Println("Deserilization buf to message failure")
-				return err
-			}
-
-			log.Printf("Received data: %v", string(buf[:len]))
-			go handleNodeMsg(node, msg)
+			go handleNodeMsg(node, buf, len)
 			break
 		case io.EOF:
 			//log.Println("Reading EOF of network conn")

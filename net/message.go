@@ -13,17 +13,32 @@ import (
 )
 
 const (
-	MSGCMDLEN = 12
-	CHECKSUMLEN = 4
+	MSGCMDLEN	= 12
+	CMDOFFSET	= 4
+	CHECKSUMLEN	= 4
+	HASHLEN		= 32	// hash length in byte
+	MSGHDRLEN	= 24
 )
 
-// The network and module communication message buffer
-type Msg struct {
+type messager interface {
+	verify() error
+	serialization() ([]byte, error)
+	deserialization([]byte) error
+	handle(*node) error
+}
+
+// The network communication message header
+type msgHdr struct {
 	Magic	 uint32
 	CMD	 [MSGCMDLEN]byte 	// The message type
 	Length   uint32
 	Checksum [CHECKSUMLEN]byte
-	//payloader interface{}
+}
+
+// The message body and header
+type msgCont struct {
+	msgHdr
+	p   interface{}
 }
 
 type varStr struct {
@@ -32,26 +47,38 @@ type varStr struct {
 }
 
 type verACK struct {
+	msgHdr
 	// No payload
 }
 
 type version struct {
-	version		uint32
-	services	uint64
-	timeStamp	uint32
-	port		uint16
-	nonce		uint32
-	// TODO remove tempory to get serilization function passed
-	userAgent	uint8
-	startHeight	uint32
-	// FIXME check with the specify relay type length
-	relay		uint8
+	msgHdr
+	p struct {
+		version		uint32
+		services	uint64
+		timeStamp	uint32
+		port		uint16
+		nonce		uint32
+		// TODO remove tempory to get serilization function passed
+		userAgent	uint8
+		startHeight	uint32
+		// FIXME check with the specify relay type length
+		relay		uint8
+	}
 }
 
 type headersReq struct {
-	len		uint8
-	hashStart	[32]byte
-	hashEnd		[32]byte
+	msgHdr
+	p struct {
+		len		uint8
+		hashStart	[HASHLEN]byte
+		hashEnd		[HASHLEN]byte
+	}
+}
+
+type addrReq struct {
+	msgHdr
+	// No payload
 }
 
 // TODO Sample function, shoule be called from ledger module
@@ -64,6 +91,25 @@ func ledgerGetHeader() ([]byte, error) {
 		return nil, err
 	}
 	return h, nil
+}
+
+func allocMsg(t string) (messager, error) {
+	switch t {
+	case "version":
+		var msg version
+		return &msg, nil
+	case "verack":
+		var msg verACK
+		return &msg, nil
+	case "getheaders":
+		var msg headersReq
+		return &msg, nil
+	case "getaddr":
+		var msg addrReq
+		return &msg, nil
+	default:
+		return nil, errors.New("Unknown message type")
+	}
 }
 
 
@@ -84,23 +130,19 @@ func newMsg(t string) ([]byte, error) {
 	}
 }
 
-func newMsgHeader(cmd string, checksum []byte, length  uint32) ([]byte, error) {
-	msg := new(Msg)
-	msg.Magic = NETMAGIC
-	copy(msg.CMD[0:len(cmd)], cmd)
-	copy(msg.Checksum[:], checksum[:CHECKSUMLEN])
-	//binary.Read(buf, binary.LittleEndian, &(msg.Checksum))
-	msg.Length = length
+func (hdr *msgHdr) init(cmd string, checksum []byte, length uint32) {
+	hdr.Magic = NETMAGIC
+	copy(hdr.CMD[0: uint32(len(cmd))], cmd)
+	copy(hdr.Checksum[:], checksum[:CHECKSUMLEN])
+	hdr.Length = length
 
-	log.Printf("The message payload length is %d", msg.Length)
-	log.Printf("The message header length is %d", uint32(unsafe.Sizeof(*msg)))
+	log.Printf("The message payload length is %d", hdr.Length)
+	log.Printf("The message header length is %d", uint32(unsafe.Sizeof(*hdr)))
+}
 
-	m, err := msg.serialization()
-	if (err != nil) {
-		log.Println("Error Convert net message ", err.Error())
-		return nil, err
-	}
-	return m, nil
+
+func (msg *version) init(n node) {
+	// Do the init
 }
 
 func newVersion() ([]byte, error) {
@@ -108,28 +150,27 @@ func newVersion() ([]byte, error) {
 	var v version
 
 	// TODO Need Node read lock or channel
-	v.version = nodes.node.version
-	v.services = nodes.node.services
+	v.p.version = nodes.node.version
+	v.p.services = nodes.node.services
 	// FIXME Time overflow
-	v.timeStamp = uint32(time.Now().UTC().UnixNano())
-	v.port = nodes.node.port
-	v.nonce = nodes.node.nonce
-	log.Printf("The nonce is 0x%x", v.nonce)
-	v.userAgent = 0x00
+	v.p.timeStamp = uint32(time.Now().UTC().UnixNano())
+	v.p.port = nodes.node.port
+	v.p.nonce = nodes.node.nonce
+	log.Printf("The nonce is 0x%x", v.p.nonce)
+	v.p.userAgent = 0x00
 	// Fixme Get the block height from ledger
-	v.startHeight = 1
+	v.p.startHeight = 1
 	if nodes.node.relay {
-		v.relay = 1
+		v.p.relay = 1
 	} else {
-		v.relay = 0
+		v.p.relay = 0
 	}
 
-	msg := new(Msg)
-	msg.Magic = NETMAGIC
+	v.Magic = NETMAGIC
 	ver := "version"
-	copy(msg.CMD[0:7], ver)
+	copy(v.CMD[0:7], ver)
 	p := new(bytes.Buffer)
-	err := binary.Write(p, binary.LittleEndian, &v)
+	err := binary.Write(p, binary.LittleEndian, &(v.p))
 	if err != nil {
 		log.Println("Binary Write failed at new Msg")
 		return nil, err
@@ -138,18 +179,15 @@ func newVersion() ([]byte, error) {
 	s2 := s[:]
 	s = sha256.Sum256(s2)
 	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(msg.Checksum))
-	msg.Length = uint32(len(p.Bytes()))
-	log.Printf("The message payload length is %d", msg.Length)
-	log.Printf("The message header len is %d", uint32(unsafe.Sizeof(*msg)))
+	binary.Read(buf, binary.LittleEndian, &(v.Checksum))
+	v.Length = uint32(len(p.Bytes()))
+	log.Printf("The message payload length is %d", v.Length)
 
-	m, err := msg.serialization()
+	m, err := v.serialization()
 	if (err != nil) {
 		log.Println("Error Convert net message ", err.Error())
 		return nil, err
 	}
-
-	m = append(m, p.Bytes()...)
 
 	str := hex.EncodeToString(m)
 	log.Printf("The message length is %d, %s", len(m), str)
@@ -157,18 +195,11 @@ func newVersion() ([]byte, error) {
 }
 
 func newVerack() ([]byte, error) {
-	//var verACK verACK
+	var msg verACK
+	// Fixme the check is the []byte{0} instead of 0
 	var sum []byte
 	sum = []byte{0x5d, 0xf6, 0xe0, 0xe2}
-	msg := new(Msg)
-
-	msg.Magic = NETMAGIC
-	v := "verack"
-	copy(msg.CMD[0:6], v)
-	msg.Length = 0
-	log.Printf("The checksum should be 0 or not in this case")
-	copy(msg.Checksum[0:4], sum)
-	//msg.payloader = &verACK
+	msg.msgHdr.init("verack", sum, 0)
 
 	buf, err := msg.serialization()
 	if (err != nil) {
@@ -182,22 +213,29 @@ func newVerack() ([]byte, error) {
 }
 
 func newGetAddr() ([]byte, error) {
-	//var verACK verACK
-	msg := new(Msg)
-
-	msg.Magic = NETMAGIC
-	v := "getaddr"
-	copy(msg.CMD[0:7], v)
-	msg.Length = 0
-	//msg.Checksum = 0
-	//msg.payloader = &verACK
+	var msg addrReq
+	// Fixme the check is the []byte{0} instead of 0
+	var sum []byte
+	sum = []byte{0x5d, 0xf6, 0xe0, 0xe2}
+	msg.msgHdr.init("getaddr", sum, 0)
 
 	buf, err := msg.serialization()
 	if (err != nil) {
 		return nil, err
 	}
 
+	str := hex.EncodeToString(buf)
+	log.Printf("The message get addr length is %d, %s", len(buf), str)
+
 	return buf, err
+}
+
+func msgType(buf []byte) string {
+	cmd := buf[CMDOFFSET : CMDOFFSET + MSGCMDLEN]
+	n := bytes.IndexByte(cmd, 0)
+	s := string(cmd[:n])
+
+	return s
 }
 
 func checkSum(p []byte) []byte {
@@ -212,51 +250,63 @@ func newHeadersReq() ([]byte, error) {
 	var h headersReq
 
 	// Fixme correct with the exactly request length
-	h.len = 1
+	h.p.len = 1
 	buf, err := ledgerGetHeader()
 	if (err != nil) {
 		return nil, err
 	}
-	copy(h.hashStart[:], buf[:32])
+	copy(h.p.hashStart[:], buf[:32])
 
 	p := new(bytes.Buffer)
-	err = binary.Write(p, binary.LittleEndian, &h)
+	err = binary.Write(p, binary.LittleEndian, &(h.p))
 	if err != nil {
 		log.Println("Binary Write failed at new headersReq")
 		return nil, err
 	}
 
 	s := checkSum(p.Bytes())
-	m, err := newMsgHeader("getheaders", s, uint32(len(p.Bytes())))
-	m = append(m, p.Bytes()...)
+	h.msgHdr.init("getheaders", s, uint32(len(p.Bytes())))
 
+	m, err := h.serialization()
 	str := hex.EncodeToString(m)
 	log.Printf("The message length is %d, %s", len(m), str)
-	return m, nil
+	return m, err
 }
 
-func (msg Msg) preVerify() error {
+// Verify the message header information
+// @p payload of the message
+func (hdr msgHdr) verify(buf []byte) error {
 	// TODO verify the message header
 	// checksum,version magic number
 	return nil
 }
 
-func (msg Msg) verify(t string) error {
+func (v version) verify() error {
 	// TODO verify the message Content
-	switch t {
-	case "version":
-	case "verACK":
-	case "inventory":
-	default:
-		log.Println("Unknow message type to parse")
-		return errors.New("Unknown message type to parse")
-	}
 	return nil
 }
 
-func (msg Msg) serialization() ([]byte, error) {
+func (v verACK) verify() error {
+	// TODO verify the message Content
+	return nil
+}
+
+func (v headersReq) verify() error {
+	// TODO verify the message Content
+	return nil
+}
+
+func (v addrReq) verify() error {
+	// TODO verify the message Content
+	return nil
+}
+
+func (hdr msgHdr) serialization() ([]byte, error) {
 	var buf bytes.Buffer
-	err := binary.Write(&buf, binary.LittleEndian, msg)
+
+	log.Printf("The size of messge is %d in serialization",
+		uint32(unsafe.Sizeof(hdr)))
+	err := binary.Write(&buf, binary.LittleEndian, hdr)
 	if err != nil {
 		return nil, err
 	}
@@ -264,8 +314,39 @@ func (msg Msg) serialization() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
-func (msg *Msg) deserialization(p []byte) error {
+func (hdr *msgHdr) deserialization(p []byte) error {
+//func (hdr *msgHdr) deserialization() error {
+	log.Printf("The size of messge is %d in deserialization",
+		uint32(unsafe.Sizeof(*hdr)))
+
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, msg)
+	err := binary.Read(buf, binary.LittleEndian, hdr)
 	return err
+}
+
+func (v version) serialization() ([]byte, error) {
+	var buf bytes.Buffer
+
+	log.Printf("The size of messge is %d in serialization",
+		uint32(unsafe.Sizeof(v)))
+	err := binary.Write(&buf, binary.LittleEndian, v)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), err
+}
+
+
+func (h headersReq) serialization() ([]byte, error) {
+	var buf bytes.Buffer
+
+	log.Printf("The size of messge is %d in serialization",
+		uint32(unsafe.Sizeof(h)))
+	err := binary.Write(&buf, binary.LittleEndian, h)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), err
 }
