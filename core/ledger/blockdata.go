@@ -5,16 +5,16 @@ import (
 	"GoOnchain/core/contract/program"
 	"io"
 	"GoOnchain/common/serialization"
+	sig "GoOnchain/core/signature"
 )
 
 
 type Blockdata struct {
-	//TODO: define the Blockheader struct(define new uinttype)
-	Version uint
+	Version uint32
 	PrevBlockHash  common.Uint256
 	TransactionsRoot common.Uint256
-	Timestamp uint
-	Height uint
+	Timestamp uint32
+	Height uint32
 	consensusData uint64
 	Program *program.Program
 
@@ -94,3 +94,7 @@ func (bd *Blockdata) Hash() common.Uint256 {
 	return common.Uint256{}
 }
 
+func  (bd *Blockdata) GetMessage() ([]byte){
+	//TODO: implement GetMessage()
+	return  sig.GetHashData(bd)
+}

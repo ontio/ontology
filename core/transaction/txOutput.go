@@ -18,7 +18,8 @@ func (o *TxOutput) Serialize(w io.Writer)  {
 	o.ProgramHash.Serialize(w)
 }
 
-func (tx *TxOutput) Deserialize(r io.Reader)  {
-	//TODO；TxOutput Deserialize
-
+func (o *TxOutput) Deserialize(r io.Reader)  {
+	o.AssetID.Deserialize(r)
+	o.Value.Deserialize(r)
+	o.ProgramHash.Deserialize(r)
 }

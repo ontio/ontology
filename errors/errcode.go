@@ -11,6 +11,7 @@ type ErrCoder interface {
 type ErrCode int16
 
 const (
+	ErrNoCode			ErrCode = -2
 	ErrNoError                      ErrCode = 0
 	ErrUnknown                      ErrCode = -1
 	ErrDuplicatedTx 		ErrCode = 1
@@ -18,6 +19,8 @@ const (
 
 func (err ErrCode) Error() string {
 	switch err {
+	case ErrNoCode:
+		return "No error code"
 	case ErrNoError:
 		return "Not an error"
 	case ErrUnknown:

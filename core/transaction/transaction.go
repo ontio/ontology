@@ -4,8 +4,9 @@ import (
 	"io"
 	"GoOnchain/common/serialization"
 	"GoOnchain/core/contract/program"
-	"GoOnchain/common"
+	. "GoOnchain/common"
 	"errors"
+	sig "GoOnchain/core/signature"
 )
 
 //for different transaction types with different payload format
@@ -46,11 +47,11 @@ type Transaction struct {
 
 
 	//Inputs/Outputs map base on Asset (needn't serialize)
-	AssetUTXOInputs map[common.Uint256]*UTXOTxInput
-	AssetOutputs map[common.Uint256]*TxOutput
+	AssetUTXOInputs map[Uint256]*UTXOTxInput
+	AssetOutputs map[Uint256]*TxOutput
 
-	AssetInputAmount map[common.Uint256]*common.Fixed64
-	AssetOutputAmount map[common.Uint256]*common.Fixed64
+	AssetInputAmount map[Uint256]*Fixed64
+	AssetOutputAmount map[Uint256]*Fixed64
 
 	AssetInputOutputs map[*UTXOTxInput]*TxOutput
 
@@ -168,10 +169,10 @@ func (tx *Transaction) DeserializeUnsignedWithoutType(r io.Reader) error  {
 	return nil
 }
 
-func (tx *Transaction) GetProgramHashes() ([]common.Uint160, error){
+func (tx *Transaction) GetProgramHashes() ([]Uint160, error){
 
 	//Set Utxo Inputs' hashes
-	programHashes := []common.Uint160{}
+	programHashes := []Uint160{}
 	outputHashes,_ := tx.GetOutputHashes() //check error
 	programHashes = append(programHashes,outputHashes[:]...)
 
@@ -186,14 +187,17 @@ func (tx *Transaction) GetPrograms() []*program.Program{
 	return  tx.Programs
 }
 
-func  (tx *Transaction) GetOutputHashes()  ([]common.Uint160, error){
+func  (tx *Transaction) GetOutputHashes()  ([]Uint160, error){
 	//TODO: implement Transaction.GetOutputHashes()
 
 
-	return []common.Uint160{}, nil
+	return []Uint160{}, nil
 }
 
 func  (tx *Transaction) GenerateAssetMaps() {
 	//TODO: implement Transaction.GenerateAssetMaps()
 }
 
+func  (tx *Transaction) GetMessage() ([]byte){
+	return  sig.GetHashData(tx)
+}

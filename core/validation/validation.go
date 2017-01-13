@@ -3,6 +3,8 @@ package validation
 import (
 	"GoOnchain/core/signature"
 	"errors"
+	"GoOnchain/vm"
+	. "GoOnchain/errors"
 )
 
 
@@ -24,10 +26,18 @@ func VerifySignableData(signableData signature.SignableData) error {
 			return errors.New("The data hashes is different with corresponding program code.")
 		}
 
-		//TODO: VM integration
-		//new scriptEngine
-		//engine.ExecuteScript (program.parameter)
-		//engine.ExecuteScript (program.code)
+		//execute program on VM
+		se := vm.NewExecutionEngine(nil, nil, nil, signableData )
+		if se.ExecuteProgram(signableData.GetPrograms()[i].Parameter,false){
+			return NewDetailErr(errors.New("Execute Program Parameter failed."),ErrNoCode,"")
+		}
+		if se.ExecuteProgram(signableData.GetPrograms()[i].Code,false) {
+			return NewDetailErr(errors.New("Execute Program Code failed."),ErrNoCode,"")
+		}
+
+		if (se.Stack.Count() != 1 || se.Stack.Pop() == nil) {
+			return NewDetailErr(errors.New("Execute Engine Stack Count Error."),ErrNoCode,"")
+		}
 	}
 
 	return nil

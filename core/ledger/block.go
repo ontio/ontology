@@ -4,14 +4,17 @@ import (
 	tx "GoOnchain/core/transaction"
 	"io"
 	"GoOnchain/common/serialization"
-	"GoOnchain/common"
+	. "GoOnchain/common"
+	. "GoOnchain/errors"
+	"errors"
+	"GoOnchain/crypto"
 )
 
 type Block struct {
 	Blockdata *Blockdata
 	Transcations []*tx.Transaction
 
-	hash *common.Uint256
+	hash *Uint256
 }
 
 func (b *Block) Serialize(w io.Writer)  {
@@ -32,12 +35,24 @@ func (b *Block) Deserialize(r io.Reader) error  {
 		b.Transcations = append(b.Transcations,transaction)
 	}
 
-	//TODO: merkleTree Compute Root
+	txRoot,err := crypto.ComputeRoot(b.GetTransactionHashes());
+	if err != nil{
+		return err
+	}
+
+	if txRoot != b.Blockdata.TransactionsRoot { //TODO: change to compare
+		return NewDetailErr(errors.New("Transaction Root is incorrect."),ErrNoCode,"")
+	}
 
 	return nil
 }
 
-func (b *Block) GetHash() common.Uint256  {
+func (b *Block) GetTransactionHashes() []Uint256 {
+	//TODO: implement GetTransactionHashes
+	return nil
+}
+
+func (b *Block) GetHash() Uint256  {
 
 	if(b.hash == nil){
 		//TODO: generate block hash
