@@ -4,9 +4,7 @@ import (
 	"io"
 )
 
-type Uint256  struct {
-	//TODO: implement Uint256 type
-}
+type Uint256 [32]uint8
 
 func (u *Uint256) Serialize(w io.Writer) {
 	//TODO: implement Uint256.serialize

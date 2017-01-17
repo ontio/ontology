@@ -4,11 +4,7 @@ import (
 	"io"
 )
 
-type Uint160  struct {
-	//TODO: implement Uint160 type
-
-}
-
+type Uint160 [20]uint8
 
 func (u *Uint160) Serialize(w io.Writer) {
 	//TODO: implement Uint160.serialize
