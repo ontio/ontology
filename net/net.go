@@ -4,8 +4,8 @@ import (
 	"log"
 	"time"
 	"os"
+	"fmt"
 	"errors"
-	"unsafe"
 	"encoding/hex"
 	"GoOnchain/common"
 	"GoOnchain/config"
@@ -72,6 +72,12 @@ func handleModuleMsg() {
 	}
 }
 
+func (hdr msgHdr) handle(node *node) error {
+	common.Trace()
+	// TBD
+	return nil
+}
+
 /*
  * The node state switch table after rx message, there is time limitation for each action
  * The Hanshark status will switch to INIT after TIMEOUT if not received the VerACK
@@ -100,13 +106,6 @@ func handleModuleMsg() {
 // TODO The process should be adjusted based on above table
 func (msg version) handle(node *node) error {
 	common.Trace()
-
-	err := msg.verify()
-	if err != nil {
-		log.Println("Message version verify failure")
-		return err
-	}
-
 	t := time.Now()
 	// TODO check version compatible or not
 	s := node.getState()
@@ -132,12 +131,6 @@ func (msg version) handle(node *node) error {
 func (msg verACK) handle(node *node) error {
 	common.Trace()
 
-	err := msg.verify()
-	if err != nil {
-		log.Println("Message verACK verify failure")
-		return err
-	}
-
 	t := time.Now()
 	// TODO we loading the state&time without consider race case
 	th := node.getHandshakeTime()
@@ -147,15 +140,12 @@ func (msg verACK) handle(node *node) error {
 	str := hex.EncodeToString(m)
 	log.Printf("The message rx verack length is %d, %s", len(m), str)
 
-
 	// TODO take care about the time duration overflow
 	tDelta := t.Sub(th)
 	if (tDelta.Seconds() < HELLOTIMEOUT) {
 		if (s == HANDSHAKEING) {
 			node.setState(ESTABLISH)
-			//buf, _ := newHeadersReq()
 			buf, _ := newVerack()
-			log.Println("Run to here 2")
 			go node.tx(buf)
 		} else if (s == HANDSHAKED) {
 			node.setState(ESTABLISH)
@@ -170,16 +160,32 @@ func (msg verACK) handle(node *node) error {
 
 func (msg headersReq) handle(node *node) error {
 	common.Trace()
-	//NetToLedgerCh <- msg
+	// TBD
+	return nil
+}
+
+func (msg blkHeader) handle(node *node) error {
+	common.Trace()
+	// TBD
 	return nil
 }
 
 func (msg addrReq) handle(node *node) error {
 	common.Trace()
-	//NetToLedgerCh <- msg
+	// TBD
 	return nil
 }
 
+
+
+func (msg inv) handle(node *node) error {
+	common.Trace()
+	str := hex.EncodeToString(msg.p.blk)
+	log.Printf("The inv type: 0x%x block len: %d, %s",
+		msg.p.invType, len(msg.p.blk), str)
+
+	return nil
+}
 
 // func rxHeaders(node *node, msg *headerMsg) {
 // 	common.Trace()
@@ -269,35 +275,33 @@ func (msg addrReq) handle(node *node) error {
 // 	common.Trace()
 // }
 
-func handleNodeMsg(node *node, buf []byte, len int) error {
-	log.Printf("Received data: %v", string(buf[:len]))
+func handleNodeMsg(node *node, buf []byte, len uint64) error {
 	if (len < MSGHDRLEN) {
 		log.Println("Unexpected size of received message")
 		return errors.New("Unexpected size of received message")
 	}
 
-	hdr := new(msgHdr)
-	log.Printf("Message len %d", unsafe.Sizeof(*hdr))
-	err := hdr.deserialization(buf[0 : MSGHDRLEN])
+	//str := hex.EncodeToString(buf[:len])
+	//log.Printf("Received data len %d : %s \"%v\" ",
+	//	len, str, string(buf[:len]))
+
+	//log.Printf("Received data len %d : \"%v\" ", len, string(buf[:len]))
+
+	s, err := msgType(buf)
 	if err != nil {
-		log.Println("Deserilization buf to message failure")
-		return err
-	}
-	err = hdr.verify(buf[MSGHDRLEN - 1 : len])
-	if (err != nil) {
-		log.Println("Message pre checking error")
+		fmt.Println(err.Error())
 		return err
 	}
 
-	s := msgType(buf)
-	p, err := allocMsg(s)
+	msg, err := allocMsg(s, len)
 	if err != nil {
-		log.Printf("Unknow node message recevied %s", s)
+		fmt.Println(err.Error())
+		return err
 	}
 
-	p.deserialization(buf[MSGHDRLEN - 1 : len])
-	p.verify()
-	return p.handle(node)
+	msg.deserialization(buf[0 : len])
+	msg.verify(buf[MSGHDRLEN : len])
+	return msg.handle(node)
 }
 
 // Trigger handshake
@@ -382,7 +386,5 @@ func StartProtocol() {
 		nodes.node.connect(nodeAddr)
 	}
 
-	log.Println("Run after go through seed nodes")
-	// TODO Housekeeping routine to keep node status update
 	updateNodeInfo()
 }

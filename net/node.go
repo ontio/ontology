@@ -133,7 +133,7 @@ func (node *node) rx() error {
 
 		switch err {
 		case nil:
-			go handleNodeMsg(node, buf, len)
+			go handleNodeMsg(node, buf, uint64(len))
 			break
 		case io.EOF:
 			//log.Println("Reading EOF of network conn")

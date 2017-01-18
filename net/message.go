@@ -20,8 +20,15 @@ const (
 	MSGHDRLEN	= 24
 )
 
+// The Inventory type
+const (
+	TX	= 0x01
+	BLOCK	= 0x02
+	CONSENSUS = 0xe0
+)
+
 type messager interface {
-	verify() error
+	verify([]byte) error
 	serialization() ([]byte, error)
 	deserialization([]byte) error
 	handle(*node) error
@@ -37,7 +44,7 @@ type msgHdr struct {
 
 // The message body and header
 type msgCont struct {
-	msgHdr
+	hdr msgHdr
 	p   interface{}
 }
 
@@ -52,23 +59,23 @@ type verACK struct {
 }
 
 type version struct {
-	msgHdr
-	p struct {
-		version		uint32
-		services	uint64
-		timeStamp	uint32
-		port		uint16
-		nonce		uint32
+	Hdr msgHdr
+	P  struct {
+		Version		uint32
+		Services	uint64
+		TimeStamp	uint32
+		Port		uint16
+		Nonce		uint32
 		// TODO remove tempory to get serilization function passed
-		userAgent	uint8
-		startHeight	uint32
+		UserAgent	uint8
+		StartHeight	uint32
 		// FIXME check with the specify relay type length
-		relay		uint8
+		Relay		uint8
 	}
 }
 
 type headersReq struct {
-	msgHdr
+	hdr msgHdr
 	p struct {
 		len		uint8
 		hashStart	[HASHLEN]byte
@@ -77,13 +84,46 @@ type headersReq struct {
 }
 
 type addrReq struct {
-	msgHdr
+	Hdr msgHdr
 	// No payload
+}
+
+type blkHeader struct {
+	hdr msgHdr
+	blkHdr []byte
+}
+
+type addr struct {
+	msgHdr
+	// TBD
+}
+
+type inv struct {
+	hdr msgHdr
+	p struct {
+		invType uint8
+		blk     []byte
+	}
+}
+
+type dataReq struct {
+	msgHdr
+	// TBD
+}
+
+type block struct {
+	msgHdr
+	// TBD
+}
+
+type transaction struct {
+	msgHdr
+	// TBD
 }
 
 // TODO Sample function, shoule be called from ledger module
 func ledgerGetHeader() ([]byte, error) {
-	genesisHeader := "38c41224b9d791d382d896a426d94bb68ef0a0208eca1156cb9e6d52287a12dd"
+	genesisHeader := "b3181718ef6167105b70920e4a8fbbd0a0a56aacf460d70e10ba6fa1668f1fef"
 
 	h, err := hex.DecodeString(genesisHeader)
 	if err != nil {
@@ -93,7 +133,15 @@ func ledgerGetHeader() ([]byte, error) {
 	return h, nil
 }
 
-func allocMsg(t string) (messager, error) {
+// Alloc different message stucture
+// @t the message name or type
+// @len the message length only valid for varible length structure
+//
+// Return:
+// @messager the messager structure
+// @error  error code
+// FixMe fix the ugly multiple return.
+func allocMsg(t string, length uint64) (messager, error) {
 	switch t {
 	case "version":
 		var msg version
@@ -104,8 +152,28 @@ func allocMsg(t string) (messager, error) {
 	case "getheaders":
 		var msg headersReq
 		return &msg, nil
+	case "headers":
+		var msg blkHeader
+		return &msg, nil
 	case "getaddr":
 		var msg addrReq
+		return &msg, nil
+	case "addr":
+		var msg addr
+		return &msg, nil
+	case "inv":
+		var msg inv
+		// the 1 is the inv type lenght
+		msg.p.blk = make([]byte, length - MSGHDRLEN - 1)
+		return &msg, nil
+	case "getdata":
+		var msg dataReq
+		return &msg, nil
+	case "block":
+		var msg block
+		return &msg, nil
+	case "tx":
+		var msg transaction
 		return &msg, nil
 	default:
 		return nil, errors.New("Unknown message type")
@@ -147,30 +215,30 @@ func (msg *version) init(n node) {
 
 func newVersion() ([]byte, error) {
 	common.Trace()
-	var v version
+	var msg version
 
 	// TODO Need Node read lock or channel
-	v.p.version = nodes.node.version
-	v.p.services = nodes.node.services
+	msg.P.Version = nodes.node.version
+	msg.P.Services = nodes.node.services
 	// FIXME Time overflow
-	v.p.timeStamp = uint32(time.Now().UTC().UnixNano())
-	v.p.port = nodes.node.port
-	v.p.nonce = nodes.node.nonce
-	log.Printf("The nonce is 0x%x", v.p.nonce)
-	v.p.userAgent = 0x00
+	msg.P.TimeStamp = uint32(time.Now().UTC().UnixNano())
+	msg.P.Port = nodes.node.port
+	msg.P.Nonce = nodes.node.nonce
+	log.Printf("The nonce is 0x%x", msg.P.Nonce)
+	msg.P.UserAgent = 0x00
 	// Fixme Get the block height from ledger
-	v.p.startHeight = 1
+	msg.P.StartHeight = 1
 	if nodes.node.relay {
-		v.p.relay = 1
+		msg.P.Relay = 1
 	} else {
-		v.p.relay = 0
+		msg.P.Relay = 0
 	}
 
-	v.Magic = NETMAGIC
+	msg.Hdr.Magic = NETMAGIC
 	ver := "version"
-	copy(v.CMD[0:7], ver)
+	copy(msg.Hdr.CMD[0:7], ver)
 	p := new(bytes.Buffer)
-	err := binary.Write(p, binary.LittleEndian, &(v.p))
+	err := binary.Write(p, binary.LittleEndian, &(msg.P))
 	if err != nil {
 		log.Println("Binary Write failed at new Msg")
 		return nil, err
@@ -179,11 +247,11 @@ func newVersion() ([]byte, error) {
 	s2 := s[:]
 	s = sha256.Sum256(s2)
 	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(v.Checksum))
-	v.Length = uint32(len(p.Bytes()))
-	log.Printf("The message payload length is %d", v.Length)
+	binary.Read(buf, binary.LittleEndian, &(msg.Hdr.Checksum))
+	msg.Hdr.Length = uint32(len(p.Bytes()))
+	log.Printf("The message payload length is %d", msg.Hdr.Length)
 
-	m, err := v.serialization()
+	m, err := msg.serialization()
 	if (err != nil) {
 		log.Println("Error Convert net message ", err.Error())
 		return nil, err
@@ -217,7 +285,7 @@ func newGetAddr() ([]byte, error) {
 	// Fixme the check is the []byte{0} instead of 0
 	var sum []byte
 	sum = []byte{0x5d, 0xf6, 0xe0, 0xe2}
-	msg.msgHdr.init("getaddr", sum, 0)
+	msg.Hdr.init("getaddr", sum, 0)
 
 	buf, err := msg.serialization()
 	if (err != nil) {
@@ -230,12 +298,14 @@ func newGetAddr() ([]byte, error) {
 	return buf, err
 }
 
-func msgType(buf []byte) string {
+func msgType(buf []byte) (string, error) {
 	cmd := buf[CMDOFFSET : CMDOFFSET + MSGCMDLEN]
 	n := bytes.IndexByte(cmd, 0)
+	if (n < 0 || n >= MSGCMDLEN) {
+		return "", errors.New("Unexpected length of CMD command")
+	}
 	s := string(cmd[:n])
-
-	return s
+	return s,  nil
 }
 
 func checkSum(p []byte) []byte {
@@ -244,6 +314,13 @@ func checkSum(p []byte) []byte {
 
 	// Currently we only need the front 4 bytes as checksum
 	return s[:CHECKSUMLEN]
+}
+
+func reverse(input []byte) []byte {
+    if len(input) == 0 {
+        return input
+    }
+    return append(reverse(input[1:]), input[0])
 }
 
 func newHeadersReq() ([]byte, error) {
@@ -255,7 +332,7 @@ func newHeadersReq() ([]byte, error) {
 	if (err != nil) {
 		return nil, err
 	}
-	copy(h.p.hashStart[:], buf[:32])
+	copy(h.p.hashStart[:], reverse(buf))
 
 	p := new(bytes.Buffer)
 	err = binary.Write(p, binary.LittleEndian, &(h.p))
@@ -265,7 +342,7 @@ func newHeadersReq() ([]byte, error) {
 	}
 
 	s := checkSum(p.Bytes())
-	h.msgHdr.init("getheaders", s, uint32(len(p.Bytes())))
+	h.hdr.init("getheaders", s, uint32(len(p.Bytes())))
 
 	m, err := h.serialization()
 	str := hex.EncodeToString(m)
@@ -281,26 +358,38 @@ func (hdr msgHdr) verify(buf []byte) error {
 	return nil
 }
 
-func (v version) verify() error {
+func (msg version) verify(buf []byte) error {
+	err := msg.Hdr.verify(buf)
 	// TODO verify the message Content
-	return nil
+	return err
 }
 
-func (v verACK) verify() error {
+func (msg headersReq) verify(buf []byte) error {
 	// TODO verify the message Content
-	return nil
+	err := msg.hdr.verify(buf)
+	return err
 }
 
-func (v headersReq) verify() error {
+func (msg blkHeader) verify(buf []byte) error {
 	// TODO verify the message Content
-	return nil
+	err := msg.hdr.verify(buf)
+	return err
 }
 
-func (v addrReq) verify() error {
+func (msg addrReq) verify(buf []byte) error {
 	// TODO verify the message Content
-	return nil
+	err := msg.Hdr.verify(buf)
+	return err
 }
 
+func (msg inv) verify(buf []byte) error {
+	// TODO verify the message Content
+	err := msg.hdr.verify(buf)
+	return err
+}
+
+// FIXME how to avoid duplicate serial/deserial function as
+// most of them are the same
 func (hdr msgHdr) serialization() ([]byte, error) {
 	var buf bytes.Buffer
 
@@ -314,22 +403,21 @@ func (hdr msgHdr) serialization() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
-func (hdr *msgHdr) deserialization(p []byte) error {
-//func (hdr *msgHdr) deserialization() error {
+func (msg *msgHdr) deserialization(p []byte) error {
 	log.Printf("The size of messge is %d in deserialization",
-		uint32(unsafe.Sizeof(*hdr)))
+		uint32(unsafe.Sizeof(*msg)))
 
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, hdr)
+	err := binary.Read(buf, binary.LittleEndian, msg)
 	return err
 }
 
-func (v version) serialization() ([]byte, error) {
+func (msg version) serialization() ([]byte, error) {
 	var buf bytes.Buffer
 
 	log.Printf("The size of messge is %d in serialization",
-		uint32(unsafe.Sizeof(v)))
-	err := binary.Write(&buf, binary.LittleEndian, v)
+		uint32(unsafe.Sizeof(msg)))
+	err := binary.Write(&buf, binary.LittleEndian, msg)
 	if err != nil {
 		return nil, err
 	}
@@ -337,16 +425,129 @@ func (v version) serialization() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
+func (msg *version) deserialization(p []byte) error {
+	log.Printf("The size of messge is %d in deserialization",
+		uint32(unsafe.Sizeof(*msg)))
 
-func (h headersReq) serialization() ([]byte, error) {
+	buf := bytes.NewBuffer(p)
+	err := binary.Read(buf, binary.LittleEndian, msg)
+	return err
+}
+
+func (msg headersReq) serialization() ([]byte, error) {
 	var buf bytes.Buffer
 
 	log.Printf("The size of messge is %d in serialization",
-		uint32(unsafe.Sizeof(h)))
-	err := binary.Write(&buf, binary.LittleEndian, h)
+		uint32(unsafe.Sizeof(msg)))
+	err := binary.Write(&buf, binary.LittleEndian, msg)
 	if err != nil {
 		return nil, err
 	}
 
 	return buf.Bytes(), err
+}
+
+func (msg *headersReq) deserialization(p []byte) error {
+	log.Printf("The size of messge is %d in deserialization",
+		uint32(unsafe.Sizeof(*msg)))
+
+	buf := bytes.NewBuffer(p)
+	err := binary.Read(buf, binary.LittleEndian, msg)
+	return err
+}
+
+func (msg blkHeader) serialization() ([]byte, error) {
+	var buf bytes.Buffer
+
+	log.Printf("The size of messge is %d in serialization",
+		uint32(unsafe.Sizeof(msg)))
+	err := binary.Write(&buf, binary.LittleEndian, msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), err
+}
+
+func (msg *blkHeader) deserialization(p []byte) error {
+	log.Printf("The size of messge is %d in deserialization",
+		uint32(unsafe.Sizeof(*msg)))
+
+	buf := bytes.NewBuffer(p)
+	err := binary.Read(buf, binary.LittleEndian, msg)
+	return err
+}
+
+func (msg addrReq) serialization() ([]byte, error) {
+	var buf bytes.Buffer
+
+	log.Printf("The size of messge is %d in serialization",
+		uint32(unsafe.Sizeof(msg)))
+	err := binary.Write(&buf, binary.LittleEndian, msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), err
+}
+
+func (msg *addrReq) deserialization(p []byte) error {
+	log.Printf("The size of messge is %d in deserialization",
+		uint32(unsafe.Sizeof(*msg)))
+
+	buf := bytes.NewBuffer(p)
+	err := binary.Read(buf, binary.LittleEndian, msg)
+	return err
+}
+
+func (msg inv) serialization() ([]byte, error) {
+	var buf bytes.Buffer
+
+	log.Printf("The size of messge is %d in serialization",
+		uint32(unsafe.Sizeof(msg)))
+	err := binary.Write(&buf, binary.LittleEndian, msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), err
+}
+
+func (msg *inv) deserialization(p []byte) error {
+	log.Printf("The size of messge is %d in deserialization",
+		uint32(unsafe.Sizeof(*msg)))
+
+	buf := bytes.NewBuffer(p[0 : MSGHDRLEN])
+	err := binary.Read(buf, binary.LittleEndian, msg.hdr)
+
+	msg.p.invType = p[MSGHDRLEN]
+	msg.p.blk = p[MSGHDRLEN + 1 :]
+	return err
+}
+
+func (msg inv) invType() byte {
+	return msg.p.invType
+}
+
+//func (msg inv) invLen() (uint64, uint8) {
+func (msg inv) invLen() (uint64, uint8) {
+	var val uint64
+	var size uint8
+
+	len := binary.LittleEndian.Uint64(msg.p.blk[0:1])
+	if (len < 0xfd) {
+		val = len
+		size = 1
+	} else if (len == 0xfd) {
+		val = binary.LittleEndian.Uint64(msg.p.blk[1 : 3])
+		size = 3
+	} else if (len == 0xfe) {
+		val = binary.LittleEndian.Uint64(msg.p.blk[1 : 5])
+		size = 5
+	} else if (len == 0xff) {
+		val = binary.LittleEndian.Uint64(msg.p.blk[1 : 9])
+		size = 9
+	}
+
+	return val, size
 }
