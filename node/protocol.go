@@ -255,3 +255,8 @@ func InitNodes() {
 	nodes.node = n
 	nodes.list = make(map[string]*node)
 }
+
+func Relay(msgType string, msg interface{}) {
+	// TODO Unicast or broadcast the message based on the type
+	//node.tx()
+}
