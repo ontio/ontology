@@ -3,8 +3,8 @@ package main
 import (
 	"time"
 	"runtime"
-	"GoOnchain/net"
-	"GoOnchain/net/httpjsonrpc"
+	"GoOnchain/node"
+	"GoOnchain/node/httpjsonrpc"
 )
 
 const (
