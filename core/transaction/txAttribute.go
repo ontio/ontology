@@ -29,10 +29,12 @@ func (u *TxAttribute) GetSize() uint32 {
 }
 
 func (tx *TxAttribute) Serialize(w io.Writer) error {
+	//Usage
 	err := serialization.WriteVarBytes(w, []byte{byte(tx.Usage)})
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "txAttribute serialize Usage error.")
 	}
+	//Date
 	if tx.Usage == DescriptionUrl {
 		err := serialization.WriteVarBytes(w, tx.Date)
 		if err != nil {
@@ -43,10 +45,12 @@ func (tx *TxAttribute) Serialize(w io.Writer) error {
 }
 
 func (tx *TxAttribute) Deserialize(r io.Reader) error {
-	val, err := serialization.ReadVarBytes(r)
+	//Usage
+	val, err := serialization.ReadBytes(r, 1)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "txAttribute Deserialize Usage error.")
 	}
+	//Date
 	tx.Usage = TransactionAttributeUsage(val[0])
 	if tx.Usage == DescriptionUrl {
 		tx.Date, err = serialization.ReadVarBytes(r)

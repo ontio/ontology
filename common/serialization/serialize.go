@@ -53,11 +53,12 @@ func WriteDataList(w io.Writer, list []SerializableData) error {
  * 4. WriteVarString func, this func will output two item as serialization.
  *      length of string(uint8/uint16/uint32/uint64)  +  bytes(string)
  * 5. ReadVarBytes func, this func will first read a uint to identify the
- *    length of bytes, and use it to get the next bytes as a bytes.
+ *    length of bytes, and use it to get the next length's bytes to return.
  * 6. ReadVarString func, this func will first read a uint to identify the
  *    length of string, and use it to get the next bytes as a string.
- * 7. GetVarUintSize func, this func will return the length of a uint when it 
+ * 7. GetVarUintSize func, this func will return the length of a uint when it
  *    serialized by the WriteVarUint func.
+ * 8. ReadBytes func, this func will read the specify lenth's bytes and retun.
  ******************************************************************************
  */
 func WriteVarUint(writer io.Writer, value uint64) error {
@@ -208,6 +209,14 @@ func GetVarUintSize(value uint64) int {
 	}
 }
 
+func ReadBytes(reader io.Reader, length uint64) ([]byte, error) {
+	str, err := byteXReader(reader, length)
+	if err != nil {
+		return nil, err
+	}
+	return str, nil
+}
+
 //**************************************************************************
 //**    internal func                                                    ***
 //**************************************************************************
@@ -282,4 +291,14 @@ func readerUint64(reader io.Reader) (uint64, error) {
 		return 0, err
 	}
 	return x, nil
+}
+
+func ReadDataList(reader io.Reader) ([]SerializableData, error) {
+
+	return nil,nil
+}
+
+func ToArray(data SerializableData) []byte {
+	//TODO: ToArray()
+	return nil
 }

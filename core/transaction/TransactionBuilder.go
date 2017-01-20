@@ -10,7 +10,7 @@ import (
 )
 
 //initial a new transaction with asset registration payload
-func NewAssetRegistrationTransaction(asset *asset.Asset,amount *common.Fixed64,precision byte,issuer crypto.PubKey,conroller *common.Uint160) (*Transaction, error){
+func NewAssetRegistrationTransaction(asset *asset.Asset,amount *common.Fixed64,precision byte,issuer *crypto.PubKey,conroller *common.Uint160) (*Transaction, error){
 
 	//TODO: check arguments
 

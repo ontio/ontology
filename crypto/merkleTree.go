@@ -4,7 +4,7 @@ import (
 	. "GoOnchain/common"
 )
 
-func ComputeRoot(hashes []Uint256) (Uint256, error) {
+func ComputeRoot(hashes []Uint256) (Uint256) {
 	//TODO: implement ComputeRoot
-	return Uint256{},nil
+	return Uint256{}
 }

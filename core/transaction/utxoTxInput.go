@@ -1,10 +1,9 @@
 package transaction
 
-
 import (
 	"GoOnchain/common"
-	"io"
 	"GoOnchain/common/serialization"
+	"io"
 )
 
 type UTXOTxInput struct {
@@ -16,21 +15,23 @@ type UTXOTxInput struct {
 	ReferTxOutputIndex uint16
 }
 
-
-func (ui *UTXOTxInput) Serialize(w io.Writer)  {
+func (ui *UTXOTxInput) Serialize(w io.Writer) {
 	ui.ReferTxID.Serialize(w)
-	serialization.WriteVarInt(w,ui.ReferTxOutputIndex)
+	serialization.WriteVarUint(w, uint64(ui.ReferTxOutputIndex))
 }
 
 func (ui *UTXOTxInput) Deserialize(r io.Reader) error {
 	//referTxID
 	err := ui.ReferTxID.Deserialize(r)
-	if err != nil {return err}
+	if err != nil {
+		return err
+	}
 
 	//Output Index
 	err = ui.ReferTxID.Deserialize(r)
-	if err != nil {return err}
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
-

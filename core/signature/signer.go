@@ -11,7 +11,7 @@ type Signer interface {
 	PrivKey() []byte
 
 	//get signer's public key
-	PubKey() crypto.PubKey
+	PubKey() *crypto.PubKey
 
 }
 

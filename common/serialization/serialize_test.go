@@ -75,9 +75,13 @@ func TestSerialize(t *testing.T) {
 	fmt.Println(ReadVarBytes(b))
 	fmt.Println(ReadVarString(b))
 
-	fmt.Println(GetVarSize(uint64(100)))
-	fmt.Println(GetVarSize(uint64(65535)))
-	fmt.Println(GetVarSize(uint64(4294967295)))
-	fmt.Println(GetVarSize(uint64(18446744073709551615)))
+	fmt.Println(GetVarUintSize(uint64(100)))
+	fmt.Println(GetVarUintSize(uint64(65535)))
+	fmt.Println(GetVarUintSize(uint64(4294967295)))
+	fmt.Println(GetVarUintSize(uint64(18446744073709551615)))
 
+	b.WriteByte(20)
+	b.WriteByte(21)
+	b.WriteByte(22)
+	fmt.Println(ReadBytes(b, uint64(3)))
 }

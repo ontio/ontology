@@ -4,6 +4,8 @@ import (
 	tx "GoOnchain/core/transaction"
 	"GoOnchain/common"
 	"sync"
+	"GoOnchain/events"
+	"GoOnchain/crypto"
 )
 
 
@@ -13,6 +15,9 @@ type BlockchainStore interface {
 	SaveBlock(*Block) error
 }
 
+const (
+	EventBlockPersistCompleted events.EventType = iota
+)
 
 type Blockchain struct {
 	Store BlockchainStore
@@ -21,8 +26,9 @@ type Blockchain struct {
 
 	BlockCache map[common.Uint256]*Block
 
-	BlockHeight uint
+	BlockHeight uint32
 
+	BCEvents *events.Event
 	mutex sync.Mutex
 
 }
@@ -30,6 +36,7 @@ type Blockchain struct {
 func NewBlockchain() *Blockchain {
 	return &Blockchain{
 		BlockCache: make(map[common.Uint256]*Block),
+		BCEvents: events.NewEvent(),
 	}
 }
 
@@ -75,5 +82,27 @@ func (bc *Blockchain) SaveBlock(block *Block) error {
 	err := bc.Store.SaveBlock(block)
 	if err != nil {return err}
 
+	bc.BCEvents.Notify(EventBlockPersistCompleted,block)
+
 	return nil
+}
+
+func (bc *Blockchain) ContainsTransaction(hash common.Uint256) bool {
+	//TODO: implement ContainsTransaction
+	return false
+}
+
+func (bc *Blockchain) GetMinersByTXs(others []*tx.Transaction) []*crypto.PubKey{
+	//TODO: GetMiners()
+	return nil
+}
+
+func (bc *Blockchain) GetMiners() []*crypto.PubKey{
+	//TODO: GetMiners()
+	return nil
+}
+
+func (bc *Blockchain) CurrentBlockHash() common.Uint256{
+	//TODO: CurrentBlockHash()
+	return common.Uint256{}
 }
