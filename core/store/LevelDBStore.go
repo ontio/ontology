@@ -4,16 +4,19 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/errors"
-	"GoOnchain/core/ledger"
+	"github.com/GoOnchain/core/ledger"
 	"GoOnchain/core/contract/program"
 	"bytes"
 	"fmt"
+	tx "GoOnchain/core/transaction"
+	"GoOnchain/common"
 )
 
 type LevelDBStore struct {
 	db *leveldb.DB // LevelDB instance
 	b  *leveldb.Batch
 	it *Iterator
+	header_index *[]common.Uint256
 }
 
 func NewLevelDBStore(file string) (*LevelDBStore, error) {
@@ -33,10 +36,13 @@ func NewLevelDBStore(file string) (*LevelDBStore, error) {
 		return nil, err
 	}
 
+	var headerindex = make ([]common.Uint256,0)
+
 	return &LevelDBStore{
 		db: db,
 		b: nil,
 		it: nil,
+		header_index: &headerindex,
 	}, nil
 }
 
@@ -110,12 +116,60 @@ func (self *LevelDBStore) BatchWrite() error {
 	return self.db.Write(self.b, nil)
 }
 
+func (bd *LevelDBStore) IsDoubleSpend( tx tx.Transaction ) bool {
+	// TODO: IsDoubleSpend Check
+
+	return false
+}
+/*
+func (bd *LevelDBStore) GetBlockHash(height uint32) common.Uint256 {
+	// TODO: GetBlockHash
+
+	return
+}
+*/
+func (bd *LevelDBStore) GetContract(hash []byte) ([]byte, error) {
+	prefix := []byte { byte(DATA_Contract) }
+	bData,err_get := bd.Get( append(prefix,hash...) )
+	if ( err_get != nil ) {
+		//TODO: implement error process
+		return nil, err_get
+	}
+
+	fmt.Println("GetContract Data: ", bData)
+
+	return bData,nil
+}
+
+func (bd *LevelDBStore) GetHeader(hash []byte) (*ledger.Header, error) {
+	// TODO: GET HEADER
+	var h * ledger.Header = new (ledger.Header)
+
+	return h,nil
+}
+/*
+func (bd *LevelDBStore) GetNextBlockHash(hash []byte) common.Uint256 {
+	h,_ := bd.GetHeader( hash )
+
+	if ( h == nil ) {
+		return nil
+	}
+
+	if ( h.Blockdata.Height + 1 >= uint32(len(*bd.header_index)) ) {
+		return nil
+	}
+
+	return (*bd.header_index)[h.Blockdata.Height + 1];
+}
+*/
+
 func (bd *LevelDBStore) GetBlock(hash []byte) (*ledger.Block, error) {
 	var b *ledger.Block = new (ledger.Block)
 	b.Blockdata = new (ledger.Blockdata)
 	b.Blockdata.Program = new (program.Program)
 
-	bHash,err_get := bd.Get( hash )
+	prefix := []byte{ byte(DATA_Header) }
+	bHash,err_get := bd.Get( append(prefix,hash...) )
 	fmt.Println("GetBlock Data: ", bHash)
 	if ( err_get != nil ) {
 		//TODO: implement error process
@@ -148,8 +202,9 @@ func (bd *LevelDBStore) SaveBlock(b *ledger.Block) error {
 	blockhash := b.GetHash()
 	blockhash.Serialize(bhhash)
 
+
 	// PUT VALUE
-	bd.Put( bhhash, w )
+	//bd.Put( bhhash, w )
 
 	//fmt.Println("SaveBlock Data: ", w.Bytes())
 	//fmt.Println("SaveBlock Data: ", w.Bytes())
