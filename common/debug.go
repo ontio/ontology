@@ -1,7 +1,7 @@
 package common
 
 import (
-	"log"
+	"fmt"
 	"runtime"
 )
 
@@ -10,5 +10,5 @@ func Trace() {
 	runtime.Callers(2, pc)
 	f := runtime.FuncForPC(pc[0])
 	file, line := f.FileLine(pc[0])
-	log.Printf("%s:%d %s\n", file, line, f.Name())
+	fmt.Printf("%s:%d %s\n", file, line, f.Name())
 }
