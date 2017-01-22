@@ -317,7 +317,7 @@ func checkSum(p []byte) []byte {
 	s := sha256.Sum256(t[:])
 
 	// Currently we only need the front 4 bytes as checksum
-	return s[:CHECKSUMLEN]
+	return s[: CHECKSUMLEN]
 }
 
 func reverse(input []byte) []byte {
@@ -357,8 +357,20 @@ func newHeadersReq() ([]byte, error) {
 // Verify the message header information
 // @p payload of the message
 func (hdr msgHdr) verify(buf []byte) error {
-	// TODO verify the message header
-	// checksum,version magic number
+	if (hdr.Magic != NETMAGIC) {
+		fmt.Printf("Unmatched magic number 0x%d\n", hdr.Magic)
+		return errors.New("Unmatched magic number")
+	}
+
+	checkSum := checkSum(buf)
+	if (bytes.Equal(hdr.Checksum[:], checkSum[:]) == false) {
+		str1 := hex.EncodeToString(hdr.Checksum[:])
+		str2 := hex.EncodeToString(checkSum[:])
+		fmt.Printf("Message Checksum error, Received checksum %s Wanted checksum: %s\n",
+			str1, str2)
+		return errors.New("Message Checksum error")
+	}
+
 	return nil
 }
 
@@ -465,6 +477,7 @@ func (msg blkHeader) serialization() ([]byte, error) {
 		return nil, err
 	}
 
+	// TODO serilization the header, then the payload
 	return buf.Bytes(), err
 }
 
@@ -472,8 +485,10 @@ func (msg *blkHeader) deserialization(p []byte) error {
 	fmt.Printf("The size of messge is %d in deserialization\n",
 		uint32(unsafe.Sizeof(*msg)))
 
-	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, msg)
+	err := msg.hdr.deserialization(p)
+	msg.blkHdr = p[MSGHDRLEN : ]
+	//buf := bytes.NewBuffer(p)
+	//err := binary.Read(buf, binary.LittleEndian, msg)
 	return err
 }
 
