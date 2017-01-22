@@ -140,13 +140,13 @@ func unpackNodeBuf(node *node, buf []byte) {
 			return
 		}
 		// FIXME Check the payload < 0 error case
-		fmt.Printf("The msg payload is %d\n", payloadLen(buf))
+		fmt.Printf("The Rx msg payload is %d\n", payloadLen(buf))
 		msgLen = payloadLen(buf) + MSGHDRLEN
 	} else {
 		msgLen = node.rxBuf.len
 	}
 
-	fmt.Printf("The msg length is %d, buf len is %d\n", msgLen, len(buf))
+	//fmt.Printf("The msg length is %d, buf len is %d\n", msgLen, len(buf))
 	if len(buf) == msgLen {
 		msgBuf = append(node.rxBuf.p, buf[:]...)
 		go handleNodeMsg(node, msgBuf, len(msgBuf))
@@ -175,7 +175,6 @@ func (node *node) rx() error {
 		buf := make([]byte, MAXBUFLEN)
 		len, err := conn.Read(buf[0:(MAXBUFLEN - 1)])
 		buf[MAXBUFLEN - 1] = 0 //Prevent overflow
-		fmt.Printf("Read message length is %d\n", len)
 		switch err {
 		case nil:
 			unpackNodeBuf(node, buf[0 : len])

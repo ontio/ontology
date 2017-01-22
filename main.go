@@ -33,6 +33,6 @@ func main() {
 	//consensus.Start(net.NetToConsensusCh <-chan *Msg, net.ConsensusToNetCh chan<- *Msg)
 
 	for {
-
+		time.Sleep(2 * time.Second)
 	}
 }

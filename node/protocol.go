@@ -8,6 +8,8 @@ import (
 	"encoding/hex"
 	"GoOnchain/common"
 	"GoOnchain/config"
+	"GoOnchain/events"
+	"GoOnchain/core/transaction"
 )
 
 var cnt int = 0
@@ -25,6 +27,21 @@ const (
 	PERIODUPDATETIME = 3		// Time to update and sync information with other nodes
 )
 
+type protocoler interface {
+	init()
+	GetMemoryPool() map[common.Uint256]*transaction.Transaction
+	SynchronizeMemoryPool()
+	Relay(inv invPayload) error
+}
+
+type protocol struct {
+	ConsensusEvent  *events.Event
+	BlockEvent	*events.Event
+	// Other Event register
+}
+
+var Protocol protocol
+
 // The unconfirmed transaction queue
 var UnconfTrsCh = make(chan *msgCont, MAXCHANBUF)
 // Channel used to commnucate with ledger module
@@ -40,7 +57,9 @@ var ConsensusToNetCh = make(chan *msgCont, MAXCHANBUF)
 // Copntrol channel to send some module control command
 var LedgerToNetCtlCh = make(chan string, MAXCHANBUF)
 
-func Init() {
+func (prot *protocol) init() {
+	prot.ConsensusEvent = events.NewEvent()
+	prot.BlockEvent = events.NewEvent()
 }
 
 func rxLedgerMsg(msg *msgCont) {
@@ -183,6 +202,18 @@ func (msg inv) handle(node *node) error {
 	fmt.Printf("The inv type: 0x%x block len: %d, %s\n",
 		msg.p.invType, len(msg.p.blk), str)
 
+	switch msg.p.invType {
+	case TXN:
+		fmt.Printf("RX TRX message\n")
+	case BLOCK:
+		fmt.Printf("RX block message\n")
+	case CONSENSUS:
+		fmt.Printf("RX consensus message\n")
+	default:
+		fmt.Printf("RX unknown inventory message\n")
+		// Warning:
+	}
+	// notice event inventory
 	return nil
 }
 

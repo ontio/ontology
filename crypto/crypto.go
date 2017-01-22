@@ -18,6 +18,13 @@ func RIPEMD160(value []byte) []byte{
 
 // Generate the "real" random number which can be used for crypto algorithm
 func RandomNum(n int) ([]byte, error) {
-	// Get the random number from System urandom
-	return rand.GenerateRandomBytes(n)
+	// TODO Get the random number from System urandom
+	b := make([]byte, n)
+	_, err := rand.Read(b)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return b, nil
 }

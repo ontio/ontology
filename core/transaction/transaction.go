@@ -5,9 +5,9 @@ import (
 	"GoOnchain/common/serialization"
 	"GoOnchain/core/contract/program"
 	sig "GoOnchain/core/signature"
+	msg "GoOnchain/node/message"
 	"GoOnchain/core/transaction/payload"
 	. "GoOnchain/errors"
-	pl "GoOnchain/net/payload"
 	"crypto/sha256"
 	"errors"
 	"io"
@@ -282,8 +282,8 @@ func (tx *Transaction) SetHash(hash Uint256) {
 	tx.hash = &hash
 }
 
-func (tx *Transaction) InvertoryType() pl.InventoryType {
-	return pl.Transaction
+func (tx *Transaction) InvertoryType() msg.InventoryType{
+	return msg.Transaction
 }
 func (tx *Transaction) Verify() error {
 	//TODO: Verify()

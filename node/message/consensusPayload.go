@@ -1,4 +1,4 @@
-package payload
+package message
 
 import (
 	. "GoOnchain/common"
