@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"GoOnchain/node"
 	"GoOnchain/node/httpjsonrpc"
+	"GoOnchain/common/log"
 )
 
 const (
@@ -14,6 +15,8 @@ const (
 
 func init() {
 	runtime.GOMAXPROCS(NCPU)
+	var path string = "./Log/"
+	log.CreatePrintLog(path)
 	go httpjsonrpc.StartServer()
 }
 
