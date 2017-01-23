@@ -15,15 +15,17 @@ import (
 //- Transcation contracts pass
 func VerifyTransaction(Tx *tx.Transaction,ledger *ledger.Ledger,TxPool []*tx.Transaction) error  {
 
-	Tx.GenerateAssetMaps()
-
 	err := CheckDuplicateInput(Tx)
 	if(err != nil){return err}
 
 	err = IsDoubleSpend(Tx,ledger)
 	if(err != nil){return err}
 
-	//TODO: check mem pool transaction
+	if TxPool != nil{
+		err = CheckMemPool(Tx,TxPool)
+		if(err != nil){return err}
+	}
+
 
 	err = CheckAssetPrecision(Tx)
 	if(err != nil){return err}
@@ -34,10 +36,23 @@ func VerifyTransaction(Tx *tx.Transaction,ledger *ledger.Ledger,TxPool []*tx.Tra
 	err = CheckAttributeProgram(Tx)
 	if(err != nil){return err}
 
-
 	err = CheckTransactionContracts(Tx)
 	if(err != nil){return err}
 
+	return nil
+}
+
+func CheckMemPool(tx *tx.Transaction,TxPool []*tx.Transaction) error{
+
+	for _, poolTx := range TxPool {
+		for _, poolInput := range poolTx.UTXOInputs {
+			for _, txInput := range tx.UTXOInputs {
+				if poolInput.Equals(txInput){
+					return errors.New("There is duplicated Tx Input with Tx Pool.")
+				}
+			}
+		}
+	}
 	return nil
 }
 
@@ -57,10 +72,12 @@ func IsDoubleSpend(tx *tx.Transaction,ledger *ledger.Ledger) error {
 }
 
 func CheckAssetPrecision(Tx *tx.Transaction) error  {
-	for k, v := range Tx.AssetOutputs{
+	for k, outputs := range Tx.AssetOutputs{
 		precision := asset.GetAsset(k).Precision
-		if (v.Value.GetData() % int64(math.Pow(10,8-float64(precision))) != 0){
-			return  errors.New("The precision of asset is incorrect.")
+		for _, output := range outputs {
+			if (output.Value.GetData() % int64(math.Pow(10,8-float64(precision))) != 0){
+				return  errors.New("The precision of asset is incorrect.")
+			}
 		}
 	}
 	return nil
@@ -82,7 +99,6 @@ func CheckTransactionBalance(Tx *tx.Transaction) error {
 
 func CheckAttributeProgram(Tx *tx.Transaction)  error{
 	//TODO: implement CheckAttributeProgram
-
 	return nil
 }
 

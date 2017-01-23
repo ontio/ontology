@@ -5,6 +5,7 @@ import (
 	"GoOnchain/core/contract/program"
 	"GoOnchain/vm"
 	"bytes"
+	"GoOnchain/crypto"
 	_ "io"
 )
 
@@ -19,14 +20,15 @@ type SignableData interface {
 
 	GetPrograms() []*program.Program
 
+
+
 	//TODO: add SerializeUnsigned
 	//SerializeUnsigned(io.Writer) error
 }
 
-func Sign(data SignableData, signer Signer) ([]byte, error) {
+func SignBySigner(data SignableData, signer Signer) []byte {
 
-	//TODO: implement Sign()
-	return []byte{}, nil
+	return Sign(data,signer.PrivKey(),signer.PubKey().EncodePoint(false)[1:])
 }
 
 func GetHashData(data SignableData) []byte {
@@ -35,3 +37,15 @@ func GetHashData(data SignableData) []byte {
 	//data.SerializeUnsigned(b_buf) //TODO: add SerializeUnsigned method
 	return b_buf.Bytes()
 }
+
+func GetHashForSigning(data SignableData) []byte {
+	//TODO: GetHashForSigning
+
+	return nil
+}
+
+
+func Sign(data SignableData,prikey []byte, pubkey []byte) []byte{
+	return crypto.Sign(GetHashForSigning(data),prikey,pubkey)
+}
+

@@ -15,7 +15,7 @@ func VerifyBlock(block *ledger.Block,ledger *ledger.Ledger,completely bool) erro
 	//verfiy block's transactions
 	if(completely){
 		for _, Tx := range block.Transcations{
-			err := VerifyTransaction(Tx,ledger,nil) //TODO: confirm tx pool
+			err := VerifyTransaction(Tx,ledger,nil)
 			if(err != nil){
 				return err
 			}

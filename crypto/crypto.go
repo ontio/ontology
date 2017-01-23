@@ -1,7 +1,7 @@
 package crypto
 
 import (
-	"crypto/rand"
+	_ "crypto/rand"
 )
 
 func Sha256(value []byte) []byte{
@@ -19,5 +19,6 @@ func RIPEMD160(value []byte) []byte{
 // Generate the "real" random number which can be used for crypto algorithm
 func RandomNum(n int) ([]byte, error) {
 	// Get the random number from System urandom
-	return rand.GenerateRandomBytes(n)
+	//return rand.GenerateRandomBytes(n)
+	return nil,nil
 }

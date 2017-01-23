@@ -21,6 +21,6 @@ func TestHash(t *testing.T) {
 	data = append(data, a4)
 	data = append(data, a5)
 	x, _ := ComputeRoot(data)
-	fmt.Printf("[Root Hash]:%x\n", *x)
+	fmt.Printf("[Root Hash]:%x\n", x)
 
 }

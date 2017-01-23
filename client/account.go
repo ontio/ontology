@@ -22,6 +22,8 @@ func NewAccount(privateKey []byte) (*Account, error){
 	priKey := make([]byte,32)
 	pubKey := &crypto.PubKey{}
 
+	//TODO: copy private Key
+
 	//TODO: set public key
 
 	return &Account{
@@ -33,12 +35,10 @@ func NewAccount(privateKey []byte) (*Account, error){
 
 //get signer's private key
 func (ac *Account) PrivKey() []byte{
-	//TODO: PrivKey()
-	return nil
+	return ac.PrivateKey
 }
 
 //get signer's public key
 func (ac *Account) PubKey() *crypto.PubKey {
-	//TODO: PubKey()
-	return nil
+	return ac.PublicKey
 }

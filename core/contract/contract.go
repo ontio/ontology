@@ -2,6 +2,7 @@ package contract
 
 import (
 	"GoOnchain/common"
+	"GoOnchain/vm"
 )
 
 //Contract address is the hash of contract program .
@@ -26,4 +27,28 @@ type Contract struct {
 
 }
 
+func (c *Contract) IsStandard() bool {
+	if len(c.Code) != 35 {
+		return false
+	}
+	if c.Code[0] != 33 || c.Code[34] != byte(vm.OP_CHECKSIG) {
+		return false
+	}
+	return true
+}
+
+func (c *Contract) IsMultiSigContract() bool {
+	//TODO: IsMultiSigContract
+	return false
+}
+
+func (c *Contract) GetType() ContractType{
+	if c.IsStandard() {
+		return SignatureContract
+	}
+	if c.IsMultiSigContract() {
+		return MultiSigContract
+	}
+	return CustomContract
+}
 
