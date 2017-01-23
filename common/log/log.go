@@ -9,6 +9,7 @@ import(
 	"io"
 	"bytes"
 	"time"
+	"sync"
 )
 
 const (
@@ -36,6 +37,7 @@ const (
 )
 
 var Log *Logger
+var lock = sync.Mutex{}
 
 func LevelName(level int) string {
 	if name, ok := levels[level]; ok {
@@ -89,22 +91,32 @@ func (l *Logger) Output(level int, a ...interface{}) error {
 }
 
 func (l *Logger) Debug(a ...interface{}) {
+	lock.Lock()
+	defer lock.Unlock()
 	l.Output(debugLog, a...)
 }
 
 func (l *Logger) Info(a ...interface{}) {
+	lock.Lock()
+	defer lock.Unlock()
 	l.Output(infoLog, a...)
 }
 
 func (l *Logger) Warning(a ...interface{}) {
+	lock.Lock()
+	defer lock.Unlock()
 	l.Output(warningLog, a...)
 }
 
 func (l *Logger) Error(a ...interface{}) {
+	lock.Lock()
+	defer lock.Unlock()
 	l.Output(errorLog, a...)
 }
 
 func (l *Logger) Fatal(a ...interface{}) {
+	lock.Lock()
+	defer lock.Unlock()
 	l.Output(fatalLog, a...)
 	os.Exit(1)
 }
@@ -130,7 +142,7 @@ func FileOpen(path string) (*os.File, error) {
 		os.Exit(-1)
 	}
 
-	//defer logfile.Close()		
+	//defer logfile.Close()	
 
 	return logfile, nil
 }
@@ -141,6 +153,6 @@ func CreatePrintLog(path string){
 		fmt.Printf("%s\n", err.Error)
 	}
 	var printlevel int = 1
-	Log = New(logfile, "\r\n", log.Ldate|log.Ltime|log.Llongfile, printlevel)	
+	Log = New(logfile, "\r\n", log.Ldate|log.Ltime|log.Llongfile, printlevel)
 }
 
