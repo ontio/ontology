@@ -6,7 +6,7 @@ import (
 	. "GoOnchain/common"
 	pg "GoOnchain/core/contract/program"
 	"math/big"
-	_ "sort"
+	"sort"
 )
 
 //create a Single Singature contract for owner  。
@@ -49,14 +49,12 @@ func CreateMultiSigRedeemScript(m int,pubkeys []*crypto.PubKey) []byte{
 	sb := pg.NewProgramBuilder()
 	sb.PushNumber(big.NewInt(int64(m)))
 
-	//TODO: sort pubkey
-	//var keys *crypto.PubKeys = pubkeys
-	//sort.Sort(keys)
+	//sort pubkey
+	sort.Sort(crypto.PubKeySlice(pubkeys))
+
 	for _,pubkey := range pubkeys{
 		sb.PushData(pubkey.EncodePoint(true))
 	}
-
-
 
 	sb.PushNumber(big.NewInt(int64(len(pubkeys))))
 	sb.AddOp(vm.OP_CHECKMULTISIG)

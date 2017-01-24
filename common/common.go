@@ -22,6 +22,13 @@ func IntToBytes(n int) []byte {
 	return bytesBuffer.Bytes()
 }
 
+func BytesToInt16(b []byte) int16 {
+	bytesBuffer := bytes.NewBuffer(b)
+	var tmp int16
+	binary.Read(bytesBuffer, binary.BigEndian, &tmp)
+	return int16(tmp)
+}
+
 func IsEqualBytes(b1 []byte,b2 []byte) bool {
 	len1 := len(b1)
 	len2 := len(b2)

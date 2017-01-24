@@ -6,6 +6,7 @@ import (
 	. "GoOnchain/errors"
 	"GoOnchain/vm"
 	"errors"
+	. "GoOnchain/common"
 )
 
 func VerifySignableData(signableData sig.SignableData) error {
@@ -22,7 +23,7 @@ func VerifySignableData(signableData sig.SignableData) error {
 	}
 
 	for i := 0; i < Length; i++ {
-		if hashes[i] != programs[i].CodeHash() {
+		if hashes[i] != ToCodeHash(programs[i].Code) {
 			return errors.New("The data hashes is different with corresponding program code.")
 		}
 

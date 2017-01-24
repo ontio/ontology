@@ -1,7 +1,6 @@
 package program
 
 import (
-	"GoOnchain/common"
 	"GoOnchain/common/serialization"
 	. "GoOnchain/errors"
 	"io"
@@ -43,10 +42,4 @@ func (p *Program) Deserialize(w io.Reader) error {
 	return nil
 }
 
-func (p *Program) CodeHash() common.Uint160 {
-	//TODO: implement to code hash
-	//new UInt160(script.Sha256().RIPEMD160());
 
-	return common.Uint160{}
-
-}
