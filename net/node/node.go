@@ -5,22 +5,13 @@ import (
 	"strconv"
 	"net"
 	"io"
-	"sync"
 	"time"
 	"errors"
 	"runtime"
-	"math/rand"
 	"sync/atomic"
 	"GoOnchain/common"
-)
-
-// The node state
-const (
-	INIT = 0
-	HANDSHAKEING = 1
-	HANDSHAKED = 2
-	ESTABLISH = 3
-	INACTIVITY = 4
+	. "GoOnchain/net/protocol"
+	. "GoOnchain/net/message"
 )
 
 // The node capability flag
@@ -51,16 +42,9 @@ type node struct {
 		p   []byte
 		len int
 	}
+	local		*node		// The pointer to local node
 	private		*uint		// Reserver for future using
 }
-
-type nodeMap struct {
-	node *node
-	lock sync.RWMutex
-	list map[string]*node
-}
-
-var nodes nodeMap
 
 func newNode() (*node) {
 	node := node{
@@ -86,11 +70,11 @@ func (node *node) backend() {
 	}
 }
 
-func (node node) getID() string {
+func (node node) GetID() string {
 	return node.id
 }
 
-func (node node) getState() uint {
+func (node node) GetState() uint {
 	return node.state
 }
 
@@ -98,32 +82,56 @@ func (node node) getConn() net.Conn {
 	return node.conn
 }
 
-func (node *node) setState(state uint) {
+func (node node) GetPort() uint16 {
+	return node.port
+}
+
+func (node node) GetNonce() uint32 {
+	return node.nonce
+}
+
+func (node node) GetRelay() bool {
+	return node.relay
+}
+
+func (node node) Version() uint32 {
+	return node.version
+}
+
+func (node node) Services() uint64 {
+	return node.services
+}
+
+func (node *node) SetState(state uint) {
 	node.state = state
 }
 
-func (node node) getHandshakeTime() (time.Time) {
+func (node node) GetHandshakeTime() (time.Time) {
 	return node.handshakeTime
 }
 
-func (node *node) setHandshakeTime(t time.Time) {
+func (node *node) SetHandshakeTime(t time.Time) {
 	node.handshakeTime = t
 }
 
-func (node node) getHandshakeRetry() uint32 {
+func (node *node) LocalNode() Noder {
+	return node.local
+}
+
+func (node node) GetHandshakeRetry() uint32 {
 	return atomic.LoadUint32(&(node.handshakeRetry))
 }
 
-func (node *node) setHandshakeRetry(r uint32) {
+func (node *node) SetHandshakeRetry(r uint32) {
 	node.handshakeRetry = r
 	atomic.StoreUint32(&(node.handshakeRetry), r)
 }
 
-func (node node) getHeight() uint64 {
+func (node node) GetHeight() uint64 {
 	return node.height
 }
 
-func (node *node) updateTime(t time.Time) {
+func (node *node) UpdateTime(t time.Time) {
 	node.time = t
 }
 
@@ -140,8 +148,8 @@ func unpackNodeBuf(node *node, buf []byte) {
 			return
 		}
 		// FIXME Check the payload < 0 error case
-		fmt.Printf("The Rx msg payload is %d\n", payloadLen(buf))
-		msgLen = payloadLen(buf) + MSGHDRLEN
+		fmt.Printf("The Rx msg payload is %d\n", PayloadLen(buf))
+		msgLen = PayloadLen(buf) + MSGHDRLEN
 	} else {
 		msgLen = node.rxBuf.len
 	}
@@ -149,7 +157,7 @@ func unpackNodeBuf(node *node, buf []byte) {
 	//fmt.Printf("The msg length is %d, buf len is %d\n", msgLen, len(buf))
 	if len(buf) == msgLen {
 		msgBuf = append(node.rxBuf.p, buf[:]...)
-		go handleNodeMsg(node, msgBuf, len(msgBuf))
+		go HandleNodeMsg(node, msgBuf, len(msgBuf))
 		node.rxBuf.p = nil
 		node.rxBuf.len = 0
 	} else if len(buf) < msgLen {
@@ -157,7 +165,7 @@ func unpackNodeBuf(node *node, buf []byte) {
 		node.rxBuf.len = msgLen - len(buf)
 	} else {
 		msgBuf = append(node.rxBuf.p, buf[0 : msgLen]...)
-		go handleNodeMsg(node, msgBuf, len(msgBuf))
+		go HandleNodeMsg(node, msgBuf, len(msgBuf))
 		node.rxBuf.p = nil
 		node.rxBuf.len = 0
 
@@ -191,7 +199,7 @@ func (node *node) rx() error {
 
 DISCONNECT:
 	err := conn.Close()
-	node.setState(INACTIVITY)
+	node.SetState(INACTIVITY)
 	fmt.Printf("Close connection\n", from)
 	return err
 }
@@ -219,13 +227,13 @@ func (node *node) initRx () {
 		node.conn = conn
 		// TOOD close the conn when erro happened
 		// TODO lock the node and assign the connection to Node.
-		nodes.add(node)
+		Nodes.add(node)
 		go node.rx()
 	}
 	//TODO When to free the net listen resouce?
 }
 
-func (node *node) connect(nodeAddr string)  {
+func (node *node) Connect(nodeAddr string)  {
 	node.chF <- func() {
 		common.Trace()
 		conn, err := net.Dial("tcp", nodeAddr)
@@ -234,24 +242,25 @@ func (node *node) connect(nodeAddr string)  {
 			return
 		}
 
-		node := newNode()
-		node.conn = conn
-		node.id = conn.RemoteAddr().String()
-		node.addr = conn.RemoteAddr().String()
+		n := newNode()
+		n.conn = conn
+		n.id = conn.RemoteAddr().String()
+		n.addr = conn.RemoteAddr().String()
 		// FixMe Only for testing
-		node.height = 1000
+		n.height = 1000
+		n.local = node
 
 		fmt.Printf("Connect node %s connect with %s with %s\n",
 			conn.LocalAddr().String(), conn.RemoteAddr().String(),
 			conn.RemoteAddr().Network())
 		// TODO Need lock
-		nodes.add(node)
-		go node.rx()
+		Nodes.add(n)
+		go n.rx()
 	}
 }
 
 // TODO construct a TX channel and other application just drop the message to the channel
-func (node node) tx(buf []byte) {
+func (node node) Tx(buf []byte) {
 	node.chF <- func() {
 		common.Trace()
 		_, err := node.conn.Write(buf)
@@ -260,48 +269,4 @@ func (node node) tx(buf []byte) {
 		}
 		return
 	}
-}
-
-func (nodes *nodeMap) broadcast(buf []byte) {
-	// TODO lock the map
-	// TODO Check whether the node existed or not
-	for _, node := range nodes.list {
-		if node.state == ESTABLISH {
-			go node.tx(buf)
-		}
-	}
-}
-
-func (nodes *nodeMap) add(node *node) {
-	//TODO lock the node Map
-	// TODO check whether the node existed or not
-	// TODO dupicate IP address nodes issue
-	nodes.list[node.id] = node
-	// Unlock the map
-}
-
-func (nodes *nodeMap) delNode(node *node) {
-	//TODO lock the node Map
-	delete(nodes.list, node.id)
-	// Unlock the map
-}
-
-func InitNodes() {
-	// TODO write lock
-	n := newNode()
-
-	n.version = PROTOCOLVERSION
-	n.services = NODESERVICES
-	n.port = NODETESTPORT
-	n.relay = true
-	rand.Seed(time.Now().UTC().UnixNano())
-	n.nonce = rand.Uint32()
-
-	nodes.node = n
-	nodes.list = make(map[string]*node)
-}
-
-func Relay(msgType string, msg interface{}) {
-	// TODO Unicast or broadcast the message based on the type
-	//node.tx()
 }

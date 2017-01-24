@@ -1,9 +1,9 @@
 package crypto
 
+import (
+	"math/big"
+)
 
-
-type ECPoint  struct {
-	//TODO: implement ECPoint type
-
+type ECPoint struct {
+    X, Y *big.Int
 }
-

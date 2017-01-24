@@ -3,8 +3,9 @@ package main
 import (
 	"time"
 	"runtime"
-	"GoOnchain/node"
-	"GoOnchain/node/httpjsonrpc"
+	"GoOnchain/net"
+	"GoOnchain/net/node"
+	"GoOnchain/net/httpjsonrpc"
 	"GoOnchain/common/log"
 )
 
@@ -25,7 +26,7 @@ func main() {
 	time.Sleep(2 * time.Second)
 
 	node.InitNodes()
-	node.StartProtocol()
+	net.StartProtocol()
 	httpjsonrpc.StartClient()
 
 	// Modules start sample
