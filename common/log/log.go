@@ -118,7 +118,26 @@ func (l *Logger) Fatal(a ...interface{}) {
 	lock.Lock()
 	defer lock.Unlock()
 	l.Output(fatalLog, a...)
-	os.Exit(1)
+}
+
+func Debug(a ...interface{}) {
+	Log.Debug(fmt.Sprint(a...))
+}
+
+func Info(a ...interface{}) {
+	Log.Info(fmt.Sprint(a...))
+}
+
+func Warning(a ...interface{}) {
+	Log.Warning(fmt.Sprint(a...))
+}
+
+func Error(a ...interface{}) {
+	Log.Error(fmt.Sprint(a...))
+}
+
+func Fatal(a ...interface{}) {
+	Log.Fatal(fmt.Sprint(a...))
 }
 
 func FileOpen(path string) (*os.File, error) {
@@ -139,7 +158,7 @@ func FileOpen(path string) (*os.File, error) {
 	logfile,err := os.OpenFile(path + currenttime + "_LOG.log", os.O_RDWR| os.O_CREATE, 0666)
 	if err != nil{
 		fmt.Printf("%s\n", err.Error())
-		os.Exit(-1)
+		//os.Exit(-1)
 	}
 
 	//defer logfile.Close()	
@@ -154,5 +173,9 @@ func CreatePrintLog(path string){
 	}
 	var printlevel int = 1
 	Log = New(logfile, "\r\n", log.Ldate|log.Ltime|log.Llongfile, printlevel)
+}
+
+func ClosePrintLog(){
+	//TODO
 }
 
