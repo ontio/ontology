@@ -27,19 +27,16 @@ func DecodePoint(encoded []byte) *PubKey{
 }
 
 
-type PubKeys []*PubKey
+type PubKeySlice []*PubKey
 
-// Len is the number of elements in the collection.
-func (ep *PubKeys) Len() int{
-	return -1
-}
-// Less reports whether the element with
-// index i should sort before the element with index j.
-func (ep *PubKeys) Less(i, j int) bool {
+func (p PubKeySlice) Len() int           { return len(p) }
+func (p PubKeySlice) Less(i, j int) bool {
+	//TODO:PubKeySlice Less
 	return false
 }
-// Swap swaps the elements with indexes i and j.
-func (ep *PubKeys) Swap(i, j int){
-
+func (p PubKeySlice) Swap(i, j int) {
+	//TODO:PubKeySlice Swap
 }
+
+
 
