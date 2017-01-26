@@ -3,11 +3,12 @@ package ledger
 import (
 	. "GoOnchain/common"
 	"GoOnchain/common/serialization"
-	tx "GoOnchain/core/transaction"
-	. "GoOnchain/errors"
-	"io"
 	"GoOnchain/core/contract/program"
+	tx "GoOnchain/core/transaction"
+	"GoOnchain/crypto"
+	. "GoOnchain/errors"
 	pl "GoOnchain/net/payload"
+	"io"
 )
 
 type Block struct {
@@ -19,76 +20,86 @@ type Block struct {
 
 func (b *Block) Serialize(w io.Writer) error {
 	b.Blockdata.Serialize(w)
-	err := serialization.WriteVarUint(w, uint64(len(b.Transcations)))
+	err := serialization.WriteUint8(w, uint8(len(b.Transcations)))
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "Block item Transcations length serialization failed.")
 	}
 	for _, transaction := range b.Transcations {
-		transaction.Serialize(w)
+		temp := *transaction
+		hash := temp.Hash()
+		hash.Serialize(w)
 	}
 	return nil
 }
 
 func (b *Block) Deserialize(r io.Reader) error {
-	//b.Blockdata.Deserialize(r)
-	b.Blockdata.DeserializeUnsigned(r)
+	if b.Blockdata == nil {
+		b.Blockdata = new(Blockdata)
+	}
+	b.Blockdata.Deserialize(r)
 
 	//Transactions
-	var i uint64
-	Len, err := serialization.ReadVarUint(r, 0)
+	var i uint8
+	Len, err := serialization.ReadUint8(r)
 	if err != nil {
 		return err
 	}
+	var txhash Uint256
+	var tharray []Uint256
 	for i = 0; i < Len; i++ {
+		txhash.Deserialize(r)
 		transaction := new(tx.Transaction)
-		err = transaction.Deserialize(r)
-		if err != nil {
-			return err
-		}
+		transaction.SetHash(txhash)
 		b.Transcations = append(b.Transcations, transaction)
+		tharray = append(tharray, txhash)
 	}
 
-	//TODO: merkleTree Compute Root
-	//Wjj:  crypto/ComputeRoot ?
+	b.Blockdata.TransactionsRoot, err = crypto.ComputeRoot(tharray)
+	if err != nil {
+		return NewDetailErr(err, ErrNoCode, "Block Deserialize merkleTree compute failed")
+	}
 
 	return nil
 }
 
-func (b *Block) GetHash() Uint256 {
+func (b *Block) GetMessage() []byte {
+	//TODO: GetMessage
+	return []byte{}
+}
 
+func (b *Block) GetProgramHashes() ([]Uint160, error) {
+	return nil, nil
+}
+
+func (b *Block) SetPrograms([]*program.Program) {
+
+}
+
+func (b *Block) GetPrograms() []*program.Program {
+	return nil
+}
+
+func (b *Block) Hash() Uint256 {
 	if b.hash == nil {
-		//TODO: generate block hash
+		b.hash = new(Uint256)
+		*b.hash = b.Blockdata.Hash()
 	}
-
 	return *b.hash
 }
 
-func  (b *Block) GetMessage() ([]byte){
-	//TODO: GetMessage
-	return  []byte{}
-}
-
-func (b *Block) GetProgramHashes() ([]Uint160, error){
-	return nil,nil
-}
-
-func (b *Block) SetPrograms([]*program.Program){
-
-}
-
-func (b *Block) GetPrograms()  []*program.Program{
+func (b *Block) Verify() error {
 	return nil
 }
 
-func (b *Block) Hash() Uint256{
-	//TODO:  Hash()
-	return Uint256{}
-}
-
-func (b *Block) Verify() error{
-	return nil
-}
-
-func (b *Block) InvertoryType() pl.InventoryType{
+func (b *Block) InvertoryType() pl.InventoryType {
 	return pl.Block
+}
+
+func (bc *Blockchain) GetBlock(height uint32) (*Block, error) {
+	temp := DefaultLedger.Store.GetBlockHash(height)
+	bk, err := DefaultLedger.Store.GetBlock(temp.ToArray())
+	if err != nil {
+		return nil, err
+	}
+	return bk, nil
 }

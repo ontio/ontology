@@ -1,11 +1,10 @@
 package ledger
 
 import (
-	"GoOnchain/common"
+	. "GoOnchain/common"
 	"GoOnchain/common/serialization"
 	"GoOnchain/core/contract/program"
 	sig "GoOnchain/core/signature"
-	//store "GoOnchain/core/store"
 	. "GoOnchain/errors"
 	"crypto/sha256"
 	"errors"
@@ -14,15 +13,15 @@ import (
 
 type Blockdata struct {
 	Version          uint32
-	PrevBlockHash    common.Uint256
-	TransactionsRoot common.Uint256
+	PrevBlockHash    Uint256
+	TransactionsRoot Uint256
 	Timestamp        uint32
 	Height           uint32
-	ConsensusData uint64
-	NextMiner common.Uint160
-	Program *program.Program
+	ConsensusData    uint64
+	NextMiner        Uint160
+	Program          *program.Program
 
-	hash common.Uint256
+	hash Uint256
 }
 
 //Serialize the blockheader
@@ -35,12 +34,13 @@ func (bd *Blockdata) Serialize(w io.Writer) {
 //Serialize the blockheader data without program
 func (bd *Blockdata) SerializeUnsigned(w io.Writer) error {
 	//REVD: implement blockheader SerializeUnsigned
-	serialization.WriteVarUint(w, uint64(bd.Version))
+	serialization.WriteUint32(w, bd.Version)
 	bd.PrevBlockHash.Serialize(w)
 	bd.TransactionsRoot.Serialize(w)
-	serialization.WriteVarUint(w, uint64(bd.Timestamp))
-	serialization.WriteVarUint(w, uint64(bd.Height))
-	serialization.WriteVarUint(w, uint64(bd.ConsensusData))
+	serialization.WriteUint32(w, bd.Timestamp)
+	serialization.WriteUint32(w, bd.Height)
+	serialization.WriteUint64(w, bd.ConsensusData)
+	bd.NextMiner.Serialize(w)
 	return nil
 }
 
@@ -58,6 +58,7 @@ func (bd *Blockdata) Deserialize(r io.Reader) error {
 	} else {
 		return NewDetailErr(errors.New("Blockdata Deserialize get format error."), ErrNoCode, "")
 	}
+
 	pg := new(program.Program)
 	err = pg.Deserialize(r)
 	if err != nil {
@@ -69,14 +70,14 @@ func (bd *Blockdata) Deserialize(r io.Reader) error {
 
 func (bd *Blockdata) DeserializeUnsigned(r io.Reader) error {
 	//Version
-	temp, err := serialization.ReadVarUint(r, 0)
+	temp, err := serialization.ReadUint32(r)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "Blockdata item Version Deserialize failed.")
 	}
-	bd.Version = uint32(temp)
+	bd.Version = temp
 
 	//PrevBlockHash
-	preBlock := new(common.Uint256)
+	preBlock := new(Uint256)
 	err = preBlock.Deserialize(r)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "Blockdata item preBlock Deserialize failed.")
@@ -84,7 +85,7 @@ func (bd *Blockdata) DeserializeUnsigned(r io.Reader) error {
 	bd.PrevBlockHash = *preBlock
 
 	//TransactionsRoot
-	txRoot := new(common.Uint256)
+	txRoot := new(Uint256)
 	err = txRoot.Deserialize(r)
 	if err != nil {
 		return err
@@ -92,38 +93,40 @@ func (bd *Blockdata) DeserializeUnsigned(r io.Reader) error {
 	bd.TransactionsRoot = *txRoot
 
 	//Timestamp
-	temp, _ = serialization.ReadVarUint(r, 0)
+	temp, _ = serialization.ReadUint32(r)
 	bd.Timestamp = uint32(temp)
 
 	//Height
-	temp, _ = serialization.ReadVarUint(r, 0)
+	temp, _ = serialization.ReadUint32(r)
 	bd.Height = uint32(temp)
 
 	//consensusData
-	bd.ConsensusData, _ = serialization.ReadVarUint(r, 0)
+	bd.ConsensusData, _ = serialization.ReadUint64(r)
+
+	//NextMiner
+	bd.NextMiner.Deserialize(r)
 
 	return nil
 }
 
-func (bd *Blockdata) GetProgramHashes() ([]common.Uint160, error) {
+func (bd *Blockdata) GetProgramHashes() ([]Uint160, error) {
 	//TODO: implement blockheader GetProgramHashes
+	programHashes := []Uint160{}
+	zero := Uint256{}
+	if bd.PrevBlockHash == zero {
+		pg := *bd.Program
+		outputHashes := ToCodeHash(pg.Code)
+		programHashes = append(programHashes, outputHashes)
+		return programHashes, nil
+	} else {
+		prev_header, err := DefaultLedger.Store.GetHeader(bd.PrevBlockHash)
+		if err != nil {
+			return programHashes, err
+		}
+		programHashes = append(programHashes, prev_header.Blockdata.NextMiner)
+		return programHashes, nil
+	}
 
-	//	if PrevBlockHash == new UInt256(){
-	//		return bd.Program.CodeHash(),nil
-	//	}
-	//	prev_header, _:= store.ldbs.GetBlock(bd.PrevBlockHash)
-	//	return new UInt160[] { prev_header.NextMiner };
-
-	//	Blockchain.Default.GetHeader(PrevBlock);
-	//	programHashes := []common.Uint160{}
-	//	outputHashes, _ := bd.GetOutputHashes() //check error
-	//	programHashes = append(programHashes, outputHashes[:]...)
-
-	//	return programHashes, nil
-	programHashes := []common.Uint160{}
-	outputHashes := bd.Program.CodeHash()
-	programHashes = append(programHashes, outputHashes)
-	return programHashes, nil
 }
 
 func (bd *Blockdata) SetPrograms(programs []*program.Program) {
@@ -137,16 +140,16 @@ func (bd *Blockdata) GetPrograms() []*program.Program {
 	return []*program.Program{bd.Program}
 }
 
-func (bd *Blockdata) Hash() common.Uint256 {
-	//TODO: implement Blockdata Hash
+func (bd *Blockdata) Hash() Uint256 {
+
 	d := sig.GetHashData(bd)
 	temp := sha256.Sum256([]byte(d))
 	f := sha256.Sum256(temp[:])
-	hash := common.Uint256(f)
+	hash := Uint256(f)
 	return hash
 }
 
-func  (bd *Blockdata) GetMessage() ([]byte){
+func (bd *Blockdata) GetMessage() []byte {
 	//TODO: implement GetMessage()
-	return  sig.GetHashData(bd)
+	return sig.GetHashData(bd)
 }

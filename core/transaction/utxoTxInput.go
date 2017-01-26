@@ -4,6 +4,7 @@ import (
 	"GoOnchain/common"
 	"GoOnchain/common/serialization"
 	"io"
+	"math"
 )
 
 type UTXOTxInput struct {
@@ -28,10 +29,25 @@ func (ui *UTXOTxInput) Deserialize(r io.Reader) error {
 	}
 
 	//Output Index
-	err = ui.ReferTxID.Deserialize(r)
+	temp, err := serialization.ReadVarUint(r, math.MaxUint16)
+	ui.ReferTxOutputIndex = uint16(temp)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (ui *UTXOTxInput) Equals(other *UTXOTxInput) bool {
+	if ui == other {
+		return true
+	}
+	if other == nil {
+		return false
+	}
+	if ui.ReferTxID == other.ReferTxID && ui.ReferTxOutputIndex == other.ReferTxOutputIndex {
+		return true
+	} else {
+		return false
+	}
 }

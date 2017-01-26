@@ -25,6 +25,7 @@ func (p *Program) Serialize(w io.Writer) error {
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "Execute Program Serialize Parameter failed.")
 	}
+
 	return nil
 }
 
@@ -32,14 +33,12 @@ func (p *Program) Serialize(w io.Writer) error {
 func (p *Program) Deserialize(w io.Reader) error {
 	val, err := serialization.ReadVarBytes(w)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Execute Program Deserialize Code failed.")
-	}
-	p.Code = val
-	p.Parameter, err = serialization.ReadVarBytes(w)
-	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "Execute Program Deserialize Parameter failed.")
+	}
+	p.Parameter = val
+	p.Code, err = serialization.ReadVarBytes(w)
+	if err != nil {
+		return NewDetailErr(err, ErrNoCode, "Execute Program Deserialize Code failed.")
 	}
 	return nil
 }
-
-
