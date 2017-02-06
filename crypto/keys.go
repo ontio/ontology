@@ -43,3 +43,19 @@ func GenKeyPair() ([]byte, PubKey, error) {
 	pubkey.Y = privatekey.PublicKey.Y
 	return privkey, *pubkey, nil
 }
+
+func DecodePoint(encoded []byte) *PubKey{
+	//TODO: DecodePoint
+	return nil
+}
+
+type PubKeySlice []*PubKey
+
+func (p PubKeySlice) Len() int           { return len(p) }
+func (p PubKeySlice) Less(i, j int) bool {
+	//TODO:PubKeySlice Less
+	return false
+}
+func (p PubKeySlice) Swap(i, j int) {
+	//TODO:PubKeySlice Swap
+}
