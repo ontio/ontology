@@ -1,4 +1,4 @@
-package store
+package LevelDBStore
 
 import (
 	"fmt"
@@ -109,13 +109,18 @@ func TestNewLevelDBStore( t *testing.T ) {
 	fmt.Println( "ST_QuantityIssued:", asqi )
 
 	// GETBLOCK
-	bb,_ := ldbs.GetBlock( []byte("\x01\xbf\x44\x21\xc8\x87\x76\xc5\x3b\x43\xce\x1d\xc4\x54\x63\xbf\xd2\x02\x8e\x32\x2f\xdf\xb6\x00\x64\xbe\x15\x0e\xd3\xe3\x61\x25\xd4") )
-	fmt.Println( "Blockdata:", bb.Blockdata )
-	fmt.Println( "Transcations:", bb.Transcations )
+	//bb,_ := ldbs.GetBlock( []byte("\xbf\x44\x21\xc8\x87\x76\xc5\x3b\x43\xce\x1d\xc4\x54\x63\xbf\xd2\x02\x8e\x32\x2f\xdf\xb6\x00\x64\xbe\x15\x0e\xd3\xe3\x61\x25\xd4") )
+	bb,_ := ldbs.GetBlock( []byte("\x80\x2c\xfc\xfa\x7f\x83\xe0\xc2\xda\xdb\x73\x46\x36\xc7\x58\xd3\x08\x1c\x9b\x05\x7f\xbb\x98\x14\xb3\xa8\xf4\xcb\xa3\x10\x06\xa8") )
+	fmt.Printf( "Blockdata: %x\n",  bb.Blockdata )
+
+	// GetTransaction
+	//th,_ := ldbs.GetTransaction( []byte("\x9b\x7c\xff\xda\xa6\x74\xbe\xae\x0f\x93\x0e\xbe\x60\x85\xaf\x90\x93\xe5\xfe\x56\xb3\x4a\x5c\x22\x0c\xcd\xcf\x6e\xfc\x33\x6f\xc5") )
+	//fmt.Printf( "Transaction: %x\n",  th )
 
 	// SAVEBLOCK
-	//err := ldbs.SaveBlock(bb)
-	//fmt.Println( "SaveBlock ERR:", err )
+	bb.Blockdata.Version = uint32(0xfffffffe)
+	err := ldbs.SaveBlock(bb)
+	fmt.Println( "SaveBlock ERR:", err )
 
 	ldbs.Close()
 }

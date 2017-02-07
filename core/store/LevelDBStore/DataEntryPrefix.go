@@ -1,4 +1,4 @@
-package store
+package LevelDBStore
 
 // DataEntryPrefix
 type DataEntryPrefix byte

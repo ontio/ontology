@@ -9,6 +9,31 @@ import (
 
 type Uint256 [32]uint8
 
+func (u *Uint256) CompareTo( o Uint256 ) int {
+	x := u.ToArray()
+	y := o.ToArray()
+
+	for i:=len(x)-1; i>=0; i-- {
+		if ( x[i] > y[i] ) {
+			return 1
+		}
+		if ( x[i] < y[i] ) {
+			return -1
+		}
+	}
+
+	return 0
+}
+
+func (u *Uint256) ToArray() []byte {
+	var x []byte = make([]byte,32)
+	for i:=0; i<32; i++ {
+		x[i] = byte(u[i])
+	}
+
+	return x
+}
+
 func (u *Uint256) Serialize(w io.Writer) (int,error) {
 	b_buf := bytes.NewBuffer([]byte{})
 	binary.Write(b_buf, binary.LittleEndian, u)

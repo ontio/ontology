@@ -1,4 +1,4 @@
-package store
+package LevelDBStore
 
 import (
 	"github.com/syndtr/goleveldb/leveldb/iterator"
