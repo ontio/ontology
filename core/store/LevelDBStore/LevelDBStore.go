@@ -6,6 +6,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	. "GoOnchain/core/ledger"
 	"GoOnchain/core/contract/program"
+	. "GoOnchain/core/asset"
 	"GoOnchain/common/serialization"
 	"bytes"
 	"fmt"
@@ -148,12 +149,100 @@ func (bd *LevelDBStore) GetContract(hash []byte) ([]byte, error) {
 	return bData,nil
 }
 
+func (bd *LevelDBStore) SaveHeader(header *Header) error {
+	w := bytes.NewBuffer(nil)
+	header.Serialize(w)
+
+	// generate key
+	headerkey := bytes.NewBuffer(nil)
+	// add header prefix.
+	headerkey.WriteByte( byte(DATA_Header) )
+	// contact asset id
+	blockhash := header.Blockdata.Hash()
+	blockhash.Serialize(headerkey)
+
+	fmt.Printf( "header key: %x\n",  headerkey )
+	fmt.Printf( "header data: %x\n",  w )
+
+	// PUT VALUE
+	err := bd.Put( headerkey.Bytes(), w.Bytes() )
+	if ( err != nil ){
+		return err
+	}
+
+	return nil
+}
+
 func (bd *LevelDBStore) GetHeader(hash Uint256) (*Header, error) {
 	// TODO: GET HEADER
-	var h * Header = new (Header)
+	var h * Header = new(Header)
 
-	return h,nil
+	h.Blockdata = new(Blockdata)
+	h.Blockdata.Program = new(program.Program)
+
+	prefix := []byte{ byte(DATA_Header) }
+	data,err_get := bd.Get( append(prefix,hash.ToArray()...) )
+	fmt.Printf( "Get Header Data: %x\n",  data )
+	if ( err_get != nil ) {
+		//TODO: implement error process
+		return nil, err_get
+	}
+
+	r := bytes.NewReader(data)
+
+	// first 8 bytes is sys_fee
+	sysfee,err := serialization.ReadUint64(r)
+	fmt.Printf( "sysfee: %d\n",  sysfee )
+
+	// Deserialize block data
+	err = h.Deserialize( r )
+
+	return h,err
 }
+
+func (bd *LevelDBStore) SaveAsset(asset *Asset) error {
+	w := bytes.NewBuffer(nil)
+
+	asset.Serialize(w)
+
+	// generate key
+	assetkey := bytes.NewBuffer(nil)
+	// add asset prefix.
+	assetkey.WriteByte( byte(ST_QuantityIssued) )
+	// contact asset id
+	asset.ID.Serialize(assetkey)
+
+	fmt.Printf( "asset key: %x\n",  assetkey )
+
+	// PUT VALUE
+	err := bd.Put( assetkey.Bytes(), w.Bytes() )
+	if ( err != nil ){
+		return err
+	}
+
+	return nil
+}
+
+func (bd *LevelDBStore) GetAsset(hash Uint256) (*Asset, error) {
+	fmt.Printf( "GetAsset Hash: %x\n",  hash )
+
+	asset := new(Asset)
+
+	prefix := []byte{ byte(ST_QuantityIssued) }
+	data,err_get := bd.Get( append(prefix,hash.ToArray()...) )
+
+	fmt.Printf( "GetAsset Data: %x\n",  data )
+	if ( err_get != nil ) {
+		//TODO: implement error process
+		return nil, err_get
+	}
+
+	r := bytes.NewReader(data)
+	asset.Deserialize(r)
+
+	return asset,nil
+}
+
 /*
 func (bd *LevelDBStore) GetNextBlockHash(hash []byte) common.Uint256 {
 	h,_ := bd.GetHeader( hash )
@@ -221,13 +310,14 @@ func (bd *LevelDBStore) SaveTransaction(tx *tx.Transaction,height uint32) error 
 }
 
 
-func (bd *LevelDBStore) GetBlock(hash []byte) (*Block, error) {
+func (bd *LevelDBStore) GetBlock(hash Uint256) (*Block, error) {
 	var b *Block = new (Block)
+
 	b.Blockdata = new (Blockdata)
 	b.Blockdata.Program = new (program.Program)
 
 	prefix := []byte{ byte(DATA_Header) }
-	bHash,err_get := bd.Get( append(prefix,hash...) )
+	bHash,err_get := bd.Get( append(prefix,hash.ToArray()...) )
 	fmt.Printf( "GetBlock Data: %x\n",  bHash )
 	if ( err_get != nil ) {
 		//TODO: implement error process
@@ -245,11 +335,10 @@ func (bd *LevelDBStore) GetBlock(hash []byte) (*Block, error) {
 
 	// Deserialize transaction
 	for i:=0; i<len(b.Transcations); i++ {
-		hash := b.Transcations[i].Hash()
-		bd.GetTransaction(b.Transcations[i],hash.ToArray())
+		bd.GetTransaction(b.Transcations[i],b.Transcations[i].Hash().ToArray())
 	}
 
-	return b,err
+	return b, err
 }
 
 func (bd *LevelDBStore) SaveBlock(b *Block) error {
