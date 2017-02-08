@@ -148,7 +148,7 @@ func (bd *LevelDBStore) GetContract(hash []byte) ([]byte, error) {
 	return bData,nil
 }
 
-func (bd *LevelDBStore) GetHeader(hash []byte) (*Header, error) {
+func (bd *LevelDBStore) GetHeader(hash Uint256) (*Header, error) {
 	// TODO: GET HEADER
 	var h * Header = new (Header)
 
@@ -205,7 +205,7 @@ func (bd *LevelDBStore) SaveTransaction(tx *tx.Transaction,height uint32) error 
 	// add transaction header prefix.
 	txhash.WriteByte( byte(DATA_Transaction) )
 	// get transaction hash
-	txHashValue := tx.Hash
+	txHashValue := tx.Hash()
 	txHashValue.Serialize(txhash)
 
 	fmt.Printf( "transaction header + hash: %x\n",  txhash )
@@ -245,7 +245,8 @@ func (bd *LevelDBStore) GetBlock(hash []byte) (*Block, error) {
 
 	// Deserialize transaction
 	for i:=0; i<len(b.Transcations); i++ {
-		bd.GetTransaction(b.Transcations[i],b.Transcations[i].Hash.ToArray())
+		hash := b.Transcations[i].Hash()
+		bd.GetTransaction(b.Transcations[i],hash.ToArray())
 	}
 
 	return b,err

@@ -7,7 +7,7 @@ import (
 	tx "GoOnchain/core/transaction"
 	"GoOnchain/crypto"
 	. "GoOnchain/errors"
-	pl "GoOnchain/net/payload"
+	msg "GoOnchain/net/message"
 	"io"
 )
 
@@ -91,8 +91,8 @@ func (b *Block) Verify() error {
 	return nil
 }
 
-func (b *Block) InvertoryType() pl.InventoryType {
-	return pl.Block
+func (b *Block) InvertoryType() msg.InventoryType {
+	return msg.BLOCK
 }
 
 func (bc *Blockchain) GetBlock(height uint32) (*Block, error) {
