@@ -1,12 +1,12 @@
 package crypto
 
 import (
-	"fmt"
-	"errors"
-	"crypto/rand"
-	"crypto/sha256"
 	"crypto/elliptic"
 	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"errors"
+	"fmt"
 	"math/big"
 	//"crypto/subtle"		// normal crypto operation like compare, assign etc avoid timing attack
 	"crypto/ecdsa"
@@ -14,26 +14,26 @@ import (
 )
 
 const (
-	HASHLEN		= 32
-	PRIVATEKEYLEN	= 32
-	PUBLICKEYLEN	= 32
-	SIGNATURELEN	= 64
+	HASHLEN       = 32
+	PRIVATEKEYLEN = 32
+	PUBLICKEYLEN  = 32
+	SIGNATURELEN  = 64
 )
 
 type crypto struct {
 	eccParams elliptic.CurveParams
-	curve elliptic.Curve
+	curve     elliptic.Curve
 }
 
 var Crypto crypto
 
-func Sha256(value []byte) []byte{
+func Sha256(value []byte) []byte {
 	//TODO: implement Sha256
 
 	return nil
 }
 
-func RIPEMD160(value []byte) []byte{
+func RIPEMD160(value []byte) []byte {
 	//TODO: implement RIPEMD160
 
 	return nil
@@ -63,9 +63,9 @@ func CheckMAC(message, messageMAC, key []byte) bool {
 	return hmac.Equal(messageMAC, expectedMAC)
 }
 
-func (c *crypto) init() {
-	// FixMe init the ECC parameters based on curve type, like Secp256k1
- 	c.curve = elliptic.P256()
+func init() {
+	// FixMe init the ECC parameters based on curve type, like secp256k1
+	Crypto.curve = elliptic.P256()
 }
 
 // @prikey, the private key for sign, the length should be 32 bytes currently
@@ -84,23 +84,23 @@ func Sign(prikey []byte, data []byte) ([]byte, error) {
 	privateKey.D.UnmarshalText(prikey)
 
 	r := big.NewInt(0)
- 	s := big.NewInt(0)
+	s := big.NewInt(0)
 	//ecdsa.Sign(rand io.Reader, priv *PrivateKey, hash []byte) (r, s *big.Int, err error)
 	r, s, err := ecdsa.Sign(rand.Reader, privateKey, digest[:])
- 	if err != nil {
-		fmt.Printf("Sign error\n");
+	if err != nil {
+		fmt.Printf("Sign error\n")
 		return nil, err
- 	}
+	}
 
- 	signature := r.Bytes()
- 	signature = append(signature, s.Bytes()...)
- 	fmt.Printf("Signature : %x, len of signature is %d\n", signature, len(signature))
+	signature := r.Bytes()
+	signature = append(signature, s.Bytes()...)
+	fmt.Printf("Signature : %x, len of signature is %d\n", signature, len(signature))
 
 	return signature, nil
 }
 
 type ecdsaSignature struct {
-       R, S big.Int
+	R, S big.Int
 }
 
 // Fixme: the signature length TBD
@@ -108,12 +108,12 @@ func Verify(pubkey PubKey, data []byte, signature []byte) (bool, error) {
 	ecdsaSig := new(ecdsaSignature)
 
 	len := len(signature)
-	if (len != SIGNATURELEN) {
+	if len != SIGNATURELEN {
 		fmt.Printf("Unknown signature length %d\n", len)
 		return false, errors.New("Unknown signature length")
 	}
-	ecdsaSig.R.UnmarshalText(signature[: len/2])
-	ecdsaSig.S.UnmarshalText(signature[len/2 :])
+	ecdsaSig.R.UnmarshalText(signature[:len/2])
+	ecdsaSig.S.UnmarshalText(signature[len/2:])
 	//if ecdsaSig.R.Sign() <= 0 || ecdsaSig.S.Sign() <= 0 {
 	//	return false, errors.New("ECDSA signature contained zero or negative values")
 	//}
