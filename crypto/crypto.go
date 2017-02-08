@@ -112,8 +112,8 @@ func Verify(pubkey PubKey, data []byte, signature []byte) (bool, error) {
 		fmt.Printf("Unknown signature length %d\n", len)
 		return false, errors.New("Unknown signature length")
 	}
-	ecdsaSig.R.UnmarshalText(signature[:len/2])
-	ecdsaSig.S.UnmarshalText(signature[len/2:])
+	ecdsaSig.R.SetBytes(signature[:len/2])
+	ecdsaSig.S.SetBytes(signature[len/2:])
 	//if ecdsaSig.R.Sign() <= 0 || ecdsaSig.S.Sign() <= 0 {
 	//	return false, errors.New("ECDSA signature contained zero or negative values")
 	//}
