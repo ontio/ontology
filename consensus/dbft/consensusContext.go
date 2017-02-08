@@ -5,7 +5,7 @@ import (
 	"GoOnchain/crypto"
 	tx "GoOnchain/core/transaction"
 	 "GoOnchain/core/ledger"
-	pl "GoOnchain/net/payload"
+	msg "GoOnchain/net/message"
 	ser "GoOnchain/common/serialization"
 	cl "GoOnchain/client"
 )
@@ -69,7 +69,7 @@ func (cxt *ConsensusContext)  HasTxHash(txHash Uint256) bool {
 	return false
 }
 
-func (cxt *ConsensusContext)  MakeChangeView() *pl.ConsensusPayload {
+func (cxt *ConsensusContext)  MakeChangeView() *msg.ConsensusPayload {
 	cv := &ChangeView{
 		NewViewNumber: cxt.ExpectedView[cxt.MinerIndex],
 	}
@@ -81,11 +81,14 @@ func (cxt *ConsensusContext)  MakeHeader() *ledger.Block {
 		return nil
 	}
 
+	txRoot,_ := crypto.ComputeRoot(cxt.TransactionHashes)
+
+
 	if cxt.header == nil{
 		blockData := &ledger.Blockdata{
 			Version: ContextVersion,
 			PrevBlockHash: cxt.PrevHash,
-			TransactionsRoot: crypto.ComputeRoot(cxt.TransactionHashes),
+			TransactionsRoot: txRoot,
 			Timestamp: cxt.Timestamp,
 			Height: cxt.Height,
 			ConsensusData: cxt.Nonce,
@@ -99,9 +102,9 @@ func (cxt *ConsensusContext)  MakeHeader() *ledger.Block {
 	return cxt.header
 }
 
-func (cxt *ConsensusContext)  MakePayload(message ConsensusMessage) *pl.ConsensusPayload{
+func (cxt *ConsensusContext)  MakePayload(message ConsensusMessage) *msg.ConsensusPayload{
 	message.ConsensusMessageData().ViewNumber = cxt.ViewNumber
-	return &pl.ConsensusPayload{
+	return &msg.ConsensusPayload{
 		Version: ContextVersion,
 		PrevHash: cxt.PrevHash,
 		Height: cxt.Height,
@@ -111,7 +114,7 @@ func (cxt *ConsensusContext)  MakePayload(message ConsensusMessage) *pl.Consensu
 	}
 }
 
-func (cxt *ConsensusContext)  MakePerpareRequest() *pl.ConsensusPayload{
+func (cxt *ConsensusContext)  MakePerpareRequest() *msg.ConsensusPayload{
 	preReq := &PrepareRequest{
 		Nonce: cxt.Nonce,
 		NextMiner: cxt.NextMiner,
@@ -122,7 +125,7 @@ func (cxt *ConsensusContext)  MakePerpareRequest() *pl.ConsensusPayload{
 	return cxt.MakePayload(preReq	)
 }
 
-func (cxt *ConsensusContext)  MakePerpareResponse(signature []byte) *pl.ConsensusPayload{
+func (cxt *ConsensusContext)  MakePerpareResponse(signature []byte) *msg.ConsensusPayload{
 	preRes := &PrepareResponse{
 		Signature: signature,
 	}

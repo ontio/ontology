@@ -267,14 +267,14 @@ func (tx *Transaction) GetMessage() []byte {
 	return sig.GetHashData(tx)
 }
 
-func (tx *Transaction) Hash() *Uint256 {
+func (tx *Transaction) Hash() Uint256 {
 	if tx.hash == nil {
 		d := sig.GetHashData(tx)
 		temp := sha256.Sum256([]byte(d))
 		f := Uint256(sha256.Sum256(temp[:]))
 		tx.hash = &f
 	}
-	return tx.hash
+	return *tx.hash
 
 }
 

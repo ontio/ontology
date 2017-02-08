@@ -8,10 +8,6 @@ import (
 	"sync"
 )
 
-const (
-	EventBlockPersistCompleted events.EventType = iota
-)
-
 type Blockchain struct {
 	BlockCache  map[Uint256]*Block
 	BlockHeight uint32
@@ -67,7 +63,7 @@ func (bc *Blockchain) SaveBlock(block *Block) error {
 	if err != nil {
 		return err
 	}
-	bc.BCEvents.Notify(EventBlockPersistCompleted, block)
+	bc.BCEvents.Notify(events.EventBlockPersistCompleted, block)
 
 	return nil
 }

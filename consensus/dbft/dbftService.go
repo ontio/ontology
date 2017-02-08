@@ -7,8 +7,7 @@ import (
 	. "GoOnchain/common"
 	"errors"
 	"GoOnchain/net"
-	pl "GoOnchain/net/payload"
-	inv "GoOnchain/net/inventory"
+	msg "GoOnchain/net/message"
 	tx "GoOnchain/core/transaction"
 	va "GoOnchain/core/validation"
 	sig "GoOnchain/core/signature"
@@ -33,15 +32,15 @@ type DbftService struct {
 	blockReceivedTime time.Time
 	logDictionary string
 	started bool
-	localNode *net.Node
+	localNet *net.Net
 
 	newInventorySubscriber events.Subscriber
 	blockPersistCompletedSubscriber events.Subscriber
 }
 
-func NewDbftService(localNode *net.Node,client *cl.Client,logDictionary string) *DbftService {
+func NewDbftService(client *cl.Client,logDictionary string) *DbftService {
 	return &DbftService{
-		localNode: localNode,
+		//localNode: localNode,
 		Client: client,
 		timer: time.NewTimer(time.Second*15),
 		started: false,
@@ -86,7 +85,7 @@ func (ds *DbftService) BlockPersistCompleted(v interface{}){
 	ds.InitializeConsensus(0)
 }
 
-func (ds *DbftService) ChangeViewReceived(payload *pl.ConsensusPayload,message *ChangeView){
+func (ds *DbftService) ChangeViewReceived(payload *msg.ConsensusPayload,message *ChangeView){
 	//TODO: add log
 
 	if message.NewViewNumber <= ds.context.ExpectedView[payload.MinerIndex] {
@@ -136,7 +135,7 @@ func (ds *DbftService) CheckSignatures() error{
 
 		//TODO: add log "relay block"
 
-		if err := ds.localNode.Relay(block); err != nil{
+		if err := ds.localNet.Relay(block); err != nil{
 			//TODO: add log "reject block"
 		}
 
@@ -152,8 +151,8 @@ func (ds *DbftService) Halt() error  {
 	}
 
 	if ds.started {
-		ledger.DefaultLedger.Blockchain.BCEvents.UnSubscribe(ledger.EventBlockPersistCompleted,ds.blockPersistCompletedSubscriber)
-		ds.localNode.NodeEvent.UnSubscribe(net.EventNewInventory,ds.newInventorySubscriber)
+		ledger.DefaultLedger.Blockchain.BCEvents.UnSubscribe(events.EventBlockPersistCompleted,ds.blockPersistCompletedSubscriber)
+		ds.localNet.ConsensusEvent.UnSubscribe(events.EventNewInventory,ds.newInventorySubscriber)
 	}
 	return nil
 }
@@ -194,13 +193,13 @@ func (ds *DbftService) InitializeConsensus(viewNum byte) error  {
 }
 
 func (ds *DbftService) LocalNodeNewInventory(v interface{}){
-	if inventory,ok := v.(inv.Inventory);ok {
-		if inventory.InvertoryType() == inv.Consensus {
-			payload, isConsensusPayload := inventory.(*pl.ConsensusPayload)
+	if inventory,ok := v.(msg.Inventory);ok {
+		if inventory.InvertoryType() == msg.Consensus {
+			payload, isConsensusPayload := inventory.(*msg.ConsensusPayload)
 			if isConsensusPayload {
 				ds.NewConsensusPayload(payload)
 			}
-		} else if inventory.InvertoryType() == inv.Transaction  {
+		} else if inventory.InvertoryType() == msg.Transaction  {
 			transaction, isTransaction := inventory.(*tx.Transaction)
 			if isTransaction{
 				ds.NewTransactionPayload(transaction)
@@ -209,7 +208,7 @@ func (ds *DbftService) LocalNodeNewInventory(v interface{}){
 	}
 }
 
-func (ds *DbftService) NewConsensusPayload(payload *pl.ConsensusPayload){
+func (ds *DbftService) NewConsensusPayload(payload *msg.ConsensusPayload){
 	ds.mu.Lock()
 	defer ds.mu.Unlock()
 
@@ -264,7 +263,7 @@ func (ds *DbftService) NewTransactionPayload(transaction *tx.Transaction) error{
 	return ds.AddTransaction(transaction)
 }
 
-func (ds *DbftService) PrepareRequestReceived(payload *pl.ConsensusPayload,message *PrepareRequest) {
+func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload,message *PrepareRequest) {
 	//TODO: add log
 
 	if ds.context.State.HasFlag(Backup) || ds.context.State.HasFlag(RequestReceived) {
@@ -296,7 +295,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *pl.ConsensusPayload,messa
 
 	if err := ds.AddTransaction(message.MinerTransaction); err != nil {return }
 
-	mempool := ds.localNode.GetMemoryPool()
+	mempool :=  ds.localNet.GetMemoryPool()
 	for _, hash := range ds.context.TransactionHashes[1:] {
 		if transaction,ok := mempool[hash]; ok{
 			if err := ds.AddTransaction(transaction); err != nil {
@@ -309,11 +308,11 @@ func (ds *DbftService) PrepareRequestReceived(payload *pl.ConsensusPayload,messa
 	//AllowHashes(ds.context.TransactionHashes)
 
 	if len(ds.context.Transactions) < len(ds.context.TransactionHashes){
-		ds.localNode.SynchronizeMemoryPool()
+		ds.localNet.SynchronizeMemoryPool()
 	}
 }
 
-func (ds *DbftService) PrepareResponseReceived(payload *pl.ConsensusPayload,message *PrepareResponse){
+func (ds *DbftService) PrepareResponseReceived(payload *msg.ConsensusPayload,message *PrepareResponse){
 	//TODO: add log
 
 	if ds.context.State.HasFlag(BlockSent)  {return}
@@ -342,21 +341,21 @@ func  (ds *DbftService)  RequestChangeView() {
 	ds.CheckExpectedView(ds.context.ExpectedView[ds.context.MinerIndex])
 }
 
-func (ds *DbftService) SignAndRelay(payload *pl.ConsensusPayload){
+func (ds *DbftService) SignAndRelay(payload *msg.ConsensusPayload){
 
 	ctCxt := ct.NewContractContext(payload)
 
 	ds.Client.Sign(ctCxt)
 	ctCxt.Data.SetPrograms(ctCxt.GetPrograms())
-	ds.localNode.Relay(payload)
+	ds.localNet.Relay(payload)
 }
 
 func (ds *DbftService) Start() error  {
 
 	ds.started = true
 
-	ds.newInventorySubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(ledger.EventBlockPersistCompleted,ds.BlockPersistCompleted)
-	ds.blockPersistCompletedSubscriber = ds.localNode.NodeEvent.Subscribe(net.EventNewInventory,ds.LocalNodeNewInventory)
+	ds.newInventorySubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted,ds.BlockPersistCompleted)
+	ds.blockPersistCompletedSubscriber = ds.localNet.ConsensusEvent.Subscribe(events.EventNewInventory,ds.LocalNodeNewInventory)
 
 	ds.InitializeConsensus(0)
 	return nil
@@ -389,7 +388,7 @@ func (ds *DbftService) Timeout() {
 			}
 
 			ds.context.Nonce = GetNonce()
-			transactions := ds.localNode.GetMemoryPool() //TODO: add policy
+			transactions := ds.localNet.GetMemoryPool() //TODO: add policy
 			//Insert miner transaction
 			if ds.context.TransactionHashes == nil {
 				ds.context.TransactionHashes = []Uint256{}
