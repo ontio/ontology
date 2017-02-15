@@ -161,7 +161,7 @@ func (ds *DbftService) Halt() error  {
 
 	if ds.started {
 		ledger.DefaultLedger.Blockchain.BCEvents.UnSubscribe(events.EventBlockPersistCompleted,ds.blockPersistCompletedSubscriber)
-		ds.localNet.ConsensusEvent.UnSubscribe(events.EventNewInventory,ds.newInventorySubscriber)
+		ds.localNet.GetEvent("consensus").UnSubscribe(events.EventNewInventory,ds.newInventorySubscriber)
 	}
 	return nil
 }
@@ -364,7 +364,7 @@ func (ds *DbftService) Start() error  {
 	ds.started = true
 
 	ds.newInventorySubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted,ds.BlockPersistCompleted)
-	ds.blockPersistCompletedSubscriber = ds.localNet.ConsensusEvent.Subscribe(events.EventNewInventory,ds.LocalNodeNewInventory)
+	ds.blockPersistCompletedSubscriber = ds.localNet.GetEvent("consensus").Subscribe(events.EventNewInventory,ds.LocalNodeNewInventory)
 
 	ds.InitializeConsensus(0)
 	return nil
