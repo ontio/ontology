@@ -7,3 +7,7 @@ idea/
 .idea/
 GoOnchain.iml
 .log
+.DS_Store
+*.orig
+*.rej
+Log
