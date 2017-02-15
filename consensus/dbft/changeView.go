@@ -2,11 +2,11 @@ package dbft
 
 import (
 	"io"
+	ser "GoOnchain/common/serialization"
 )
 
 type ChangeView struct {
 	msgData *ConsensusMessageData
-
 	NewViewNumber byte
 }
 
@@ -17,13 +17,18 @@ func (cv *ChangeView) Serialize(w io.Writer){
 }
 
 //read data to reader
-func (cv *ChangeView) Deserialize(r io.Reader){
-	cv.msgData.Deserialize(r)
-	//TODO: NewViewNumber (readByte)
+func (cv *ChangeView) Deserialize(r io.Reader) error{
+	 cv.msgData.Deserialize(r)
+	viewNum,err := ser.ReadBytes(r,1)
+	if err != nil {
+		return err
+	}
+	cv.NewViewNumber = viewNum[0]
+	return nil
 }
 
 func (cv *ChangeView) Type() ConsensusMessageType{
-	return ChangeViewMsg
+	return cv.ConsensusMessageData().Type
 }
 
 func (cv *ChangeView) ViewNumber() byte{

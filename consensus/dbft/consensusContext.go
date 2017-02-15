@@ -71,6 +71,9 @@ func (cxt *ConsensusContext)  HasTxHash(txHash Uint256) bool {
 
 func (cxt *ConsensusContext)  MakeChangeView() *msg.ConsensusPayload {
 	cv := &ChangeView{
+		msgData: &ConsensusMessageData{
+			Type: ChangeViewMsg,
+		},
 		NewViewNumber: cxt.ExpectedView[cxt.MinerIndex],
 	}
 	return cxt.MakePayload(cv)
@@ -114,19 +117,25 @@ func (cxt *ConsensusContext)  MakePayload(message ConsensusMessage) *msg.Consens
 	}
 }
 
-func (cxt *ConsensusContext)  MakePerpareRequest() *msg.ConsensusPayload{
+func (cxt *ConsensusContext)  MakePrepareRequest() *msg.ConsensusPayload{
 	preReq := &PrepareRequest{
+		msgData: &ConsensusMessageData{
+			Type: PrepareRequestMsg,
+		},
 		Nonce: cxt.Nonce,
 		NextMiner: cxt.NextMiner,
 		TransactionHashes: cxt.TransactionHashes,
-		//TODO: MinerTransaction:
+		BookkeepingTransaction: cxt.Transactions[cxt.TransactionHashes[0]],
 		Signature: cxt.Signatures[cxt.MinerIndex],
 	}
-	return cxt.MakePayload(preReq	)
+	return cxt.MakePayload(preReq)
 }
 
 func (cxt *ConsensusContext)  MakePerpareResponse(signature []byte) *msg.ConsensusPayload{
 	preRes := &PrepareResponse{
+		msgData: &ConsensusMessageData{
+			Type: PrepareResponseMsg,
+		},
 		Signature: signature,
 	}
 	return cxt.MakePayload(preRes)

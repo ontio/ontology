@@ -16,14 +16,21 @@ func (pres *PrepareResponse) Serialize(w io.Writer){
 }
 
 //read data to reader
-func (pres *PrepareResponse) Deserialize(r io.Reader){
-	pres.msgData.Deserialize(r)
-	pres.Signature,_ = ser.ReadBytes(r,64)
+func (pres *PrepareResponse) Deserialize(r io.Reader) error{
+	err := pres.msgData.Deserialize(r)
+	if err != nil {
+		return err
+	}
+	pres.Signature,err = ser.ReadBytes(r,64)
+	if err != nil {
+		return err
+	}
+	return nil
 
 }
 
 func (pres *PrepareResponse) Type() ConsensusMessageType{
-	return PrepareResponseMsg
+	return pres.ConsensusMessageData().Type
 }
 
 func (pres *PrepareResponse) ViewNumber() byte{
