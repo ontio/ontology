@@ -1,11 +1,11 @@
 package message
 
 import (
-	"fmt"
-	"time"
-	"encoding/hex"
 	"GoOnchain/common"
 	. "GoOnchain/net/protocol"
+	"encoding/hex"
+	"fmt"
+	"time"
 )
 
 type verACK struct {
@@ -21,7 +21,7 @@ func newVerack() ([]byte, error) {
 	msg.msgHdr.init("verack", sum, 0)
 
 	buf, err := msg.Serialization()
-	if (err != nil) {
+	if err != nil {
 		return nil, err
 	}
 
@@ -57,14 +57,13 @@ func newVerack() ([]byte, error) {
  * |------------------------------------------------------------|
  */
 // TODO The process should be adjusted based on above table
-func (msg verACK) Handle(node *Noder) error {
+func (msg verACK) Handle(node Noder) error {
 	common.Trace()
 
-	n := *node
 	t := time.Now()
 	// TODO we loading the state&time without consider race case
-	th := n.GetHandshakeTime()
-	s := n.GetState()
+	th := node.GetHandshakeTime()
+	s := node.GetState()
 
 	m, _ := msg.Serialization()
 	str := hex.EncodeToString(m)
@@ -72,18 +71,23 @@ func (msg verACK) Handle(node *Noder) error {
 
 	// TODO take care about the time duration overflow
 	tDelta := t.Sub(th)
-	if (tDelta.Seconds() < HELLOTIMEOUT) {
-		if (s == HANDSHAKEING) {
-			n.SetState(ESTABLISH)
+	if tDelta.Seconds() < HELLOTIMEOUT {
+		if s == HANDSHAKEING {
+			node.SetState(ESTABLISH)
 			buf, _ := newVerack()
-			go n.Tx(buf)
-		} else if (s == HANDSHAKED) {
-			n.SetState(ESTABLISH)
+			go node.Tx(buf)
+		} else if s == HANDSHAKED {
+			node.SetState(ESTABLISH)
 		}
 	}
 
-	fmt.Printf("Node %s state is %d", n.GetID(), n.GetState())
-	n.UpdateTime(t)
+	fmt.Printf("Node %s state is %d", node.GetID(), node.GetState())
+	// TODO update other node info
+	node.UpdateTime(t)
+
+	if node.GetState() == ESTABLISH {
+		node.ReqNeighborList()
+	}
 
 	return nil
 }

@@ -1,33 +1,23 @@
 package net
 
 import (
-	"time"
-	"os"
-	"fmt"
 	"GoOnchain/common"
 	"GoOnchain/config"
 	"GoOnchain/events"
 	"GoOnchain/core/transaction"
-	. "GoOnchain/net/protocol"
 	. "GoOnchain/net/message"
-	. "GoOnchain/net/node"
+	"GoOnchain/net/node"
+	. "GoOnchain/net/protocol"
+	"fmt"
+	"os"
+	"time"
 )
 
-type neter interface {
+type Neter interface {
 	GetMemoryPool() map[common.Uint256]*transaction.Transaction
 	SynchronizeMemoryPool()
-	Xmit(inv Inventory) error // The transmit interface
-}
-
-type net struct {
-	ConsensusEvent  *events.Event
-	BlockEvent	*events.Event
-	// Other Event register
-}
-
-func (net *net) init() {
-	net.ConsensusEvent = events.NewEvent()
-	net.BlockEvent = events.NewEvent()
+	Xmit(common.Inventory) error // The transmit interface
+	GetEvent(eventName string) *events.Event
 }
 
 // Trigger handshake
@@ -41,13 +31,13 @@ func handshake(n *Noder) error {
 	go func() {
 		<-timer.C
 		r := node.GetHandshakeRetry()
-		if ((r < MAXHELLORETYR) && (node.GetState() != ESTABLISH)) {
+		if (r < MAXHELLORETYR) && (node.GetState() != ESTABLISH) {
 			r++
 			node.SetHandshakeRetry(r)
 			fmt.Println("Handshake with %s timeout", node.GetID())
 			handshake(n)
 		}
-	} ()
+	}()
 
 	// TODO Does the timer should be recollected?
 	return nil
@@ -56,7 +46,7 @@ func handshake(n *Noder) error {
 func txBlockHeadersReq(n *Noder) {
 	// TODO Need Lock
 	node := *n
-	if (node.GetState() != ESTABLISH) {
+	if node.GetState() != ESTABLISH {
 		fmt.Println("Incorrectly node state to send get Header message")
 		return
 	}
@@ -65,56 +55,18 @@ func txBlockHeadersReq(n *Noder) {
 	go node.Tx(buf)
 }
 
-func txInventory(node *Noder) {
-	// TODO get transaction entity TX/Block/Consensus
-
-}
-
-func keepAlive(from *Noder, dst *Noder) {
-	// Need move to node function or keep here?
-}
-
-// Fixme the Nodes should be a parameter
-func updateNodeInfo() {
-	ticker := time.NewTicker(time.Second * PERIODUPDATETIME)
-	quit := make(chan struct{})
-
-	for {
-		select {
-		case <- ticker.C:
-			common.Trace()
-			for _, node := range Nodes.List {
-				h1 := node.GetHeight()
-				h2 := Nodes.Node.GetHeight()
-				if (node.GetState() == ESTABLISH) && (h1 > h2) {
-					//buf, _ := newMsg("version")
-					buf, _ := NewMsg("getheaders", node)
-					//buf, _ := newMsg("getaddr")
-					go node.Tx(buf)
-				}
-			}
-		case <- quit:
-			ticker.Stop()
-			return
-		}
-	}
-	// TODO when to close the timer
-	//close(quit)
-}
-
-// Fixme the Nodes should be a parameter
-func StartProtocol() {
+func StartProtocol() Neter {
 	seedNodes, err := config.SeedNodes()
-
+	// TODO alloc the local node, init the nodeMap, EventQueue, TXn pool and idcache
 	if err != nil {
 		fmt.Println("Access the config file failure")
 		os.Exit(1)
 		// TODO should we kick off a blind connection in this case
 	}
 
+	net := node.InitNode()
 	for _, nodeAddr := range seedNodes {
-		Nodes.Node.Connect(nodeAddr)
+		net.Connect(nodeAddr)
 	}
-
-	updateNodeInfo()
+	return net
 }

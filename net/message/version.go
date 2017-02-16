@@ -1,30 +1,30 @@
 package message
 
 import (
-	"fmt"
-	"bytes"
-	"time"
-	"unsafe"
-	"encoding/binary"
-	"crypto/sha256"
-	"encoding/hex"
 	"GoOnchain/common"
 	. "GoOnchain/net/protocol"
+	"bytes"
+	"crypto/sha256"
+	"encoding/binary"
+	"encoding/hex"
+	"fmt"
+	"time"
+	"unsafe"
 )
 
 type version struct {
 	Hdr msgHdr
-	P  struct {
-		Version		uint32
-		Services	uint64
-		TimeStamp	uint32
-		Port		uint16
-		Nonce		uint32
+	P   struct {
+		Version   uint32
+		Services  uint64
+		TimeStamp uint32
+		Port      uint16
+		Nonce     uint32
 		// TODO remove tempory to get serilization function passed
-		UserAgent	uint8
-		StartHeight	uint32
+		UserAgent   uint8
+		StartHeight uint32
 		// FIXME check with the specify relay type length
-		Relay		uint8
+		Relay uint8
 	}
 }
 
@@ -70,7 +70,7 @@ func NewVersion(n Noder) ([]byte, error) {
 	fmt.Printf("The message payload length is %d\n", msg.Hdr.Length)
 
 	m, err := msg.Serialization()
-	if (err != nil) {
+	if err != nil {
 		fmt.Println("Error Convert net message ", err.Error())
 		return nil, err
 	}
@@ -134,27 +134,26 @@ func (msg *version) Deserialization(p []byte) error {
  * |------------------------------------------------------------|
  */
 // TODO The process should be adjusted based on above table
-func (msg version) Handle(node *Noder) error {
+func (msg version) Handle(node Noder) error {
 	common.Trace()
 	t := time.Now()
-	n := *node
 	// TODO check version compatible or not
-	s := n.GetState()
-	if (s == HANDSHAKEING) {
-		n.SetState(HANDSHAKED)
+	s := node.GetState()
+	if s == HANDSHAKEING {
+		node.SetState(HANDSHAKED)
 		buf, _ := newVerack()
 		fmt.Println("TX verack")
-		go n.Tx(buf)
-	} else if (s != ESTABLISH) {
-		n.SetHandshakeTime(t)
-		n.SetState(HANDSHAKEING)
-		buf, _ := NewVersion(n.LocalNode())
-		go n.Tx(buf)
+		go node.Tx(buf)
+	} else if s != ESTABLISH {
+		node.SetHandshakeTime(t)
+		node.SetState(HANDSHAKEING)
+		buf, _ := NewVersion(node.LocalNode())
+		go node.Tx(buf)
 	}
 
 	// TODO Update other node information
-	fmt.Printf("Node %s state is %d", n.GetID(), n.GetState())
-	n.UpdateTime(t)
+	fmt.Printf("Node %s state is %d", node.GetID(), node.GetState())
+	node.UpdateTime(t)
 
 	return nil
 }
