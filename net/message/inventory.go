@@ -24,7 +24,7 @@ type Inventory interface {
 	sig.SignableData
 	Hash() common.Uint256
 	Verify() error
-	InvertoryType() InventoryType
+	Type() InventoryType
 }
 
 

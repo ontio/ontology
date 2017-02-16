@@ -25,7 +25,7 @@ func (cp *ConsensusPayload) Verify() error{
 	return nil
 }
 
-func (cp *ConsensusPayload) InvertoryType() InventoryType{
+func (cp *ConsensusPayload) Type() InventoryType{
 	return Consensus
 }
 

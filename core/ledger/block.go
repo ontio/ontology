@@ -91,7 +91,7 @@ func (b *Block) Verify() error {
 	return nil
 }
 
-func (b *Block) InvertoryType() msg.InventoryType {
+func (b *Block) Type() msg.InventoryType {
 	return msg.BLOCK
 }
 

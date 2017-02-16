@@ -202,12 +202,12 @@ func (ds *DbftService) InitializeConsensus(viewNum byte) error  {
 
 func (ds *DbftService) LocalNodeNewInventory(v interface{}){
 	if inventory,ok := v.(msg.Inventory);ok {
-		if inventory.InvertoryType() == msg.Consensus {
+		if inventory.Type() == msg.Consensus {
 			payload, isConsensusPayload := inventory.(*msg.ConsensusPayload)
 			if isConsensusPayload {
 				ds.NewConsensusPayload(payload)
 			}
-		} else if inventory.InvertoryType() == msg.Transaction  {
+		} else if inventory.Type() == msg.Transaction  {
 			transaction, isTransaction := inventory.(*tx.Transaction)
 			if isTransaction{
 				ds.NewTransactionPayload(transaction)
