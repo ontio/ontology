@@ -70,3 +70,10 @@ type Tmper interface {
 	GetEvent(eventName string) *events.Event
 	Connect(nodeAddr string)
 }
+
+type JsonNoder interface {
+	GetConnectionCnt() uint
+	GetTxnPool() map[common.Uint256]*transaction.Transaction
+	Xmit(common.Inventory) error
+	GetTransaction(hash common.Uint256) *transaction.Transaction	
+}
