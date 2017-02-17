@@ -1,17 +1,17 @@
 package httpjsonrpc
 
 import (
-	"encoding/json"
-	"io/ioutil"
-	"log"
-	"net/http"
 	. "GoOnchain/common"
 	"GoOnchain/core/ledger"
 	tx "GoOnchain/core/transaction"
-	"GoOnchain/net/protocol"	
-	"encoding/hex"
-	"fmt"
+	"GoOnchain/net/protocol"
 	"bytes"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
 )
 
 //multiplexer that keeps track of every function to be called on specific rpc call
@@ -21,7 +21,7 @@ type ServeMux struct {
 }
 
 type BlockInfo struct {
-	Hash string
+	Hash  string
 	Block *ledger.Block
 }
 
@@ -29,13 +29,14 @@ type NoderInfo struct {
 	Noder protocol.JsonNoder
 }
 
-type TxInfo struct{
+type TxInfo struct {
 	Hash string
-	Hex	string
-	Tx *tx.Transaction
+	Hex  string
+	Tx   *tx.Transaction
 }
 
-var NodeInfo NoderInfo
+var nodeInfo NoderInfo
+
 //an instance of the multiplexer
 var mainMux ServeMux
 
@@ -53,11 +54,14 @@ func SetDefaultFunc(def func(http.ResponseWriter, *http.Request)) {
 	mainMux.defaultFunction = def
 }
 
-func InitNoderInfo() *NoderInfo{
+func InitNoderInfo(jsonNode protocol.JsonNoder) {
 	//TODO
 	//return NodeInfo
-	return nil
+	if nodeInfo.Noder == nil {
+		nodeInfo.Noder = jsonNode
+	}
 }
+
 //this is the funciton that should be called in order to answer an rpc call
 //should be registered like "http.HandleFunc("/", httpjsonrpc.Handle)"
 func Handle(w http.ResponseWriter, r *http.Request) {
@@ -143,156 +147,129 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getBestBlock(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
-	id := cmd["id"]
-	hash := ledger.DefaultLedger.Blockchain.CurrentBlockHash()
-	response := map[string]interface{}{
-		"Jsonrpc":"2.0",
-		"Id":id,
-		"Result":ToHexString(hash.ToArray()),
+func responsePacking(result interface{}, id uint) map[string]interface{} {
+	resp := map[string]interface{}{
+		"Jsonrpc": "2.0",
+		"Result":  result,
+		"Id":      id,
 	}
+	return resp
+}
+
+func getBestBlock(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
+	id := cmd["id"].(uint)
+	hash := ledger.DefaultLedger.Blockchain.CurrentBlockHash()
+	response := responsePacking(ToHexString(hash.ToArray()), id)
 	return response
 }
 
 func getBlock(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
-	id := cmd["id"]
+	id := cmd["id"].(uint)
 	params := cmd["params"]
 	var block *ledger.Block
 	var err error
 	var b BlockInfo
-	switch  (params.([]interface{})[0]).(type){
+	switch (params.([]interface{})[0]).(type) {
 	case int:
 		index := params.([]interface{})[0].(uint32)
 		hash := ledger.DefaultLedger.Store.GetBlockHash(index)
 		block, err = ledger.DefaultLedger.Store.GetBlock(hash)
 		b = BlockInfo{
-			Hash: ToHexString(hash.ToArray()),
+			Hash:  ToHexString(hash.ToArray()),
 			Block: block,
 		}
 	case string:
-		hash := params.([]interface{})[0].(string)	
-		hashslice, _ := hex.DecodeString(hash)	
+		hash := params.([]interface{})[0].(string)
+		hashslice, _ := hex.DecodeString(hash)
 		var hasharr Uint256
-		hasharr.Deserialize(bytes.NewReader(hashslice[0:32]))				
-		block, err = ledger.DefaultLedger.Store.GetBlock(hasharr)  
+		hasharr.Deserialize(bytes.NewReader(hashslice[0:32]))
+		block, err = ledger.DefaultLedger.Store.GetBlock(hasharr)
 		b = BlockInfo{
-			Hash: hash,
+			Hash:  hash,
 			Block: block,
-		}	
-	}		
-	
-    if err != nil {
-		var erro []interface{} = []interface{}{-100, "Unknown block"}
-		response := map[string]interface{}{
-			"Jsonrpc": "2.0",
-			"Id": id,
-			"Result": erro,
 		}
+	}
+
+	if err != nil {
+		var erro []interface{} = []interface{}{-100, "Unknown block"}
+		response := responsePacking(erro, id)
 		return response
 	}
 
 	raw, _ := json.Marshal(&b)
-	response := map[string]interface{}{
-		"jsonrpc": "2.0",
-		"id": id,
-		"result": string(raw),
-	}
+	response := responsePacking(string(raw), id)
 	return response
 }
 
 func getBlockCount(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
-	id := cmd["id"]
+	id := cmd["id"].(uint)
 	count := ledger.DefaultLedger.Blockchain.BlockHeight + 1
-	response := map[string]interface{}{
-		"jsonrpc": "2.0",
-		"id": id,
-		"result": count,
-	}
+	response := responsePacking(count, id)
 	return response
 }
 
 func getBlockHash(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
-	id := cmd["id"]
+	id := cmd["id"].(uint)
 	index := cmd["params"]
-	var hash Uint256 
+	var hash Uint256
 	height, ok := index.(uint32)
-	if (ok == true){
-		hash = ledger.DefaultLedger.Store.GetBlockHash(height)		
+	if ok == true {
+		hash = ledger.DefaultLedger.Store.GetBlockHash(height)
 	}
 	hashhex := fmt.Sprintf("%016x", hash)
-	response := map[string]interface{}{
-		"jsonrpc": "2.0",
-		"id": id,
-		"result": hashhex,
-	}
-	return response	
+	response := responsePacking(hashhex, id)
+	return response
 }
 
 func getConnectionCount(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
-	id := cmd["id"]
-	count := NodeInfo.Noder.GetConnectionCnt()
-	response := map[string]interface{}{
-		"jsonrpc":"2.0",
-		"id":id,
-		"result":count,
-	}
+	id := cmd["id"].(uint)
+	count := nodeInfo.Noder.GetConnectionCnt()
+	response := responsePacking(count, id)
 	return response
 }
 
 func getRawMemPool(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
-	id := cmd["id"]
-	mempoollist := NodeInfo.Noder.GetTxnPool()
+	id := cmd["id"].(uint)
+	mempoollist := nodeInfo.Noder.GetTxnPool()
 	raw, _ := json.Marshal(mempoollist)
-	response := map[string]interface{}{
-			"jsonrpc": "2.0",
-			"id": id,
-			"result": string(raw),
-	}
+	response := responsePacking(string(raw), id)
 	return response
 }
 
 func getRawTransaction(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
-	id := cmd["id"]
+	id := cmd["id"].(uint)
 	params := cmd["params"]
 	txid := params.([]interface{})[0].(string)
 	txidSlice, _ := hex.DecodeString(txid)
 	var txidArr Uint256
-	txidArr.Deserialize(bytes.NewReader(txidSlice[0:32]))		
-	verbose :=  params.([]interface{})[1].(bool)
-	tx :=  NodeInfo.Noder.GetTransaction(txidArr)
+	txidArr.Deserialize(bytes.NewReader(txidSlice[0:32]))
+	verbose := params.([]interface{})[1].(bool)
+	tx := nodeInfo.Noder.GetTransaction(txidArr)
 	txBuffer := bytes.NewBuffer([]byte{})
-	tx.Serialize(txBuffer)	
-	if (verbose == true){		
+	tx.Serialize(txBuffer)
+	if verbose == true {
 		t := TxInfo{
 			Hash: txid,
-			Hex: hex.EncodeToString(txBuffer.Bytes()),
-			Tx: tx,
+			Hex:  hex.EncodeToString(txBuffer.Bytes()),
+			Tx:   tx,
 		}
 		raw, _ := json.Marshal(&t)
-		response := map[string]interface{}{
-		"jsonrpc": "2.0",
-		"id": id,
-		"result": string(raw),
-		}
+		response := responsePacking(string(raw), id)
 		return response
 	}
 
-	response := map[string]interface{}{
-		"jsonrpc": "2.0",
-		"id": id,
-		"result": hex.EncodeToString(txBuffer.Bytes()),
-	}
+	response := responsePacking(txBuffer.Bytes(), id)
 	return response
 }
 
-type TxoutInfo struct{
-	High uint32
-	Low	uint32
+type TxoutInfo struct {
+	High  uint32
+	Low   uint32
 	Txout tx.TxOutput
 }
 
 func getTxout(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
-	id := cmd["id"]
+	id := cmd["id"].(uint)
 	//params := cmd["params"]
 	//txid := params.([]interface{})[0].(string)
 	//var n int = params.([]interface{})[1].(int)
@@ -300,47 +277,35 @@ func getTxout(req *http.Request, cmd map[string]interface{}) map[string]interfac
 	high := uint32(txout.Value >> 32)
 	low := uint32(txout.Value)
 	to := TxoutInfo{
-		High: high,
-		Low: low,
+		High:  high,
+		Low:   low,
 		Txout: txout,
 	}
 	raw, _ := json.Marshal(&to)
-	response := map[string]interface{}{
-		"jsonrpc": "2.0",
-		"id": id,
-		"result": string(raw),
-	}
+	response := responsePacking(string(raw), id)
 	return response
 
 }
 
 func sendRawTransaction(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
-	id := cmd["id"]
+	id := cmd["id"].(uint)
 	hexValue := cmd["params"].(string)
 	hexSlice, _ := hex.DecodeString(hexValue)
-	var txTransaction tx.Transaction 
-	txTransaction.Deserialize(bytes.NewReader(hexSlice[:]))	
-	err := NodeInfo.Noder.Xmit(&txTransaction)
-	response := map[string]interface{}{
-		"jsonrpc": "2.0",
-		"id": id,
-		"result": err,
-	}
+	var txTransaction tx.Transaction
+	txTransaction.Deserialize(bytes.NewReader(hexSlice[:]))
+	err := nodeInfo.Noder.Xmit(&txTransaction)
+	response := responsePacking(err, id)
 	return response
 }
 
 func submitBlock(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
-	id := cmd["id"]
+	id := cmd["id"].(uint)
 	hexValue := cmd["params"].(string)
 	hexSlice, _ := hex.DecodeString(hexValue)
-	var txTransaction tx.Transaction 
-	txTransaction.Deserialize(bytes.NewReader(hexSlice[:]))	
-	err := NodeInfo.Noder.Xmit(&txTransaction)
-	response := map[string]interface{}{
-		"jsonrpc": "2.0",
-		"id": id,
-		"result": err,
-	}
+	var txTransaction tx.Transaction
+	txTransaction.Deserialize(bytes.NewReader(hexSlice[:]))
+	err := nodeInfo.Noder.Xmit(&txTransaction)
+	response := responsePacking(err, id)
 	return response
 }
 
