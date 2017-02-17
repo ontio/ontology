@@ -6,6 +6,9 @@ import (
 	"GoOnchain/crypto"
 	"GoOnchain/events"
 	"sync"
+	"GoOnchain/core/asset"
+	. "GoOnchain/errors"
+	"errors"
 )
 
 type Blockchain struct {
@@ -20,6 +23,13 @@ func NewBlockchain() *Blockchain {
 		BlockCache: make(map[Uint256]*Block),
 		BCEvents:   events.NewEvent(),
 	}
+}
+
+func NewBlockchainWithGenesisBlock() *Blockchain {
+	blockchain := NewBlockchain()
+	blockchain.AddBlock(GenesisBlockInit())
+
+	return blockchain
 }
 
 func (bc *Blockchain) AddBlock(block *Block) error {
@@ -86,4 +96,26 @@ func (bc *Blockchain) GetMiners() []*crypto.PubKey {
 func (bc *Blockchain) CurrentBlockHash() Uint256 {
 	//TODO: CurrentBlockHash()
 	return Uint256{}
+}
+
+func (bc *Blockchain) GetAsset(assetId Uint256) *asset.Asset {
+	asset, _:= DefaultLedger.Store.GetAsset(assetId)
+	return asset
+}
+
+func (bc *Blockchain) GetBlockWithHeight(height uint32) (*Block, error) {
+	temp := DefaultLedger.Store.GetBlockHash(height)
+	bk, err := DefaultLedger.Store.GetBlock(temp)
+	if err != nil{
+		return nil, NewDetailErr(errors.New("[Blockchain], GetBlockWithHeight failed."), ErrNoCode, "")
+	}
+	return bk, nil
+}
+
+func (bc *Blockchain) GetBlockWithHash(hash Uint256) (*Block, error) {
+	bk, err := DefaultLedger.Store.GetBlock(hash)
+	if err != nil{
+		return nil, NewDetailErr(errors.New("[Blockchain], GetBlockWithHash failed."), ErrNoCode, "")
+	}
+	return bk, nil
 }

@@ -156,7 +156,7 @@ func (cl *Client) ProcessBlocks() {
 
 			cl.mu.Lock()
 
-			block := ledger.DefaultLedger.Blockchain.GetBlock(cl.currentHeight)
+			block ,_:= ledger.DefaultLedger.Blockchain.GetBlockWithHeight(cl.currentHeight)
 			if block != nil{
 				cl.ProcessNewBlock(block)
 			}

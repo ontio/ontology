@@ -63,7 +63,7 @@ func CheckMAC(message, messageMAC, key []byte) bool {
 	return hmac.Equal(messageMAC, expectedMAC)
 }
 
-func init() {
+func Init() {
 	// FixMe init the ECC parameters based on curve type, like secp256k1
 	Crypto.curve = elliptic.P256()
 }

@@ -18,7 +18,7 @@ import (
 type TransactionType byte
 
 const (
-	Miner         TransactionType = 0x00
+	BookKeeping   TransactionType = 0x00
 	RegisterAsset TransactionType = 0x40
 	IssueAsset    TransactionType = 0x01
 	TransferAsset TransactionType = 0x10

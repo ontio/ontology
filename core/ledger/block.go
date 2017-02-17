@@ -8,6 +8,8 @@ import (
 	"GoOnchain/crypto"
 	. "GoOnchain/errors"
 	"io"
+	"time"
+	"GoOnchain/vm"
 )
 
 type Block struct {
@@ -94,11 +96,51 @@ func (b *Block) Type() InventoryType {
 	return BLOCK
 }
 
-func (bc *Blockchain) GetBlock(height uint32) (*Block, error) {
-	temp := DefaultLedger.Store.GetBlockHash(height)
-	bk, err := DefaultLedger.Store.GetBlock(temp.ToArray())
-	if err != nil {
-		return nil, err
+func GenesisBlockInit() *Block{
+	genesisBlock := new(Block)
+	//blockdata
+	genesisBlockdata := new(Blockdata)
+	genesisBlockdata.Version = uint32(0x00)
+	genesisBlockdata.PrevBlockHash = Uint256{}
+	genesisBlockdata.TransactionsRoot = Uint256{}
+	tm := time.Now()
+	genesisBlockdata.Timestamp = uint32(tm.Unix())
+	genesisBlockdata.Height = uint32(0)
+	genesisBlockdata.ConsensusData = uint64(2083236893)
+
+	pg := new(program.Program)
+	pg.Code = []byte{'0'}
+	pg.Parameter = []byte{byte(vm.OP_TRUE)}
+	genesisBlockdata.Program = pg
+
+	//transaction
+	trans := new(tx.Transaction)
+	{
+		trans.TxType = tx.BookKeeping
+		trans.PayloadVersion = byte(0)
+		trans.Payload = nil
+		trans.Nonce = uint64(0)
+		trans.Attributes = nil
+		trans.UTXOInputs = nil
+		trans.BalanceInputs = nil
+		trans.Outputs = nil
+		{
+			programHashes := []*program.Program{}
+			pg := new(program.Program)
+			pg.Code = []byte{'0'}
+			pg.Parameter = []byte{byte(vm.OP_TRUE)}
+			programHashes = append(programHashes, pg)
+			trans.Programs = programHashes
+		}
 	}
-	return bk, nil
+	genesisBlock.Blockdata = genesisBlockdata
+
+	Transcations := []*tx.Transaction{}
+	Transcations = append(Transcations, trans)
+	genesisBlock.Transcations = Transcations
+
+	hashx := genesisBlock.Hash()
+	genesisBlock.hash = &hashx
+
+	return genesisBlock
 }

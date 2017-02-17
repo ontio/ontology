@@ -335,7 +335,8 @@ func (bd *LevelDBStore) GetBlock(hash Uint256) (*Block, error) {
 
 	// Deserialize transaction
 	for i:=0; i<len(b.Transcations); i++ {
-		bd.GetTransaction(b.Transcations[i],b.Transcations[i].Hash().ToArray())
+		temp := b.Transcations[i].Hash()
+		bd.GetTransaction(b.Transcations[i],temp.ToArray())
 	}
 
 	return b, err
