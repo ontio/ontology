@@ -16,10 +16,10 @@ type addrReq struct {
 }
 
 type nodeAddr struct {
-	time     uint32
-	services uint64
-	ipAddr   [16]byte
-	port     uint16
+	Time     uint32
+	Services uint64
+	IpAddr   [16]byte
+	Port     uint16
 }
 
 type addr struct {
@@ -111,7 +111,7 @@ func (msg *addr) Deserialization(p []byte) error {
 	// Fixme Call the serilization package
 	cnt, i := common.GetCompactUint(p[MSGHDRLEN:])
 	msg.nodeCnt = cnt
-	fmt.Printf("The address count is %d\n", cnt)
+	fmt.Printf("The address count is %d i is %d\n", cnt, i)
 	buf := p[MSGHDRLEN+i:]
 	msg.nodeAddrs = make([]nodeAddr, msg.nodeCnt)
 	for i := 0; i < int(msg.nodeCnt); i++ {
@@ -134,9 +134,11 @@ func (msg addr) Verify(buf []byte) error {
 func (msg addr) Handle(node Noder) error {
 	common.Trace()
 	for _, v := range msg.nodeAddrs {
-		if v.port != 0 {
+		ipAddr := hex.EncodeToString(v.IpAddr[:])
+		fmt.Printf("The IP address is %s, port is %d\n", ipAddr, v.Port)
+		if v.Port != 0 {
 			// TODO Convert the ipaddress to string
-			node.Connect(hex.EncodeToString(v.ipAddr[:]))
+			node.Connect(ipAddr)
 		}
 	}
 	return nil

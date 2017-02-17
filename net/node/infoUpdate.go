@@ -1,6 +1,7 @@
 package node
 
 import (
+	"fmt"
 	"GoOnchain/common"
 	. "GoOnchain/net/message"
 	. "GoOnchain/net/protocol"
@@ -15,6 +16,7 @@ func (node node) GetBlkHdrs() {
 	for _, n := range node.local.neighb.List {
 		h1 := n.GetHeight()
 		h2 := node.local.GetHeight()
+		fmt.Printf("The neighbor height is %d, local height is %d\n", h1, h2)
 		if (node.GetState() == ESTABLISH) && (h1 > h2) {
 			//buf, _ := newMsg("version")
 			buf, _ := NewMsg("getheaders", node.local)

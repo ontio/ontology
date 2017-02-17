@@ -145,6 +145,10 @@ func (node *node) Connect(nodeAddr string) {
 		// TODO Need lock
 		node.neighb.add(n)
 		go n.rx()
+
+		// FIXME is there any timing race with rx
+		buf, _ := NewVersion(node)
+		go n.Tx(buf)
 		return nil
 	}
 }

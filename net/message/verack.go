@@ -67,7 +67,7 @@ func (msg verACK) Handle(node Noder) error {
 
 	m, _ := msg.Serialization()
 	str := hex.EncodeToString(m)
-	fmt.Printf("The message rx verack length is %d, %s", len(m), str)
+	fmt.Printf("The message rx verack length is %d, %s\n", len(m), str)
 
 	// TODO take care about the time duration overflow
 	tDelta := t.Sub(th)
@@ -81,7 +81,7 @@ func (msg verACK) Handle(node Noder) error {
 		}
 	}
 
-	fmt.Printf("Node %s state is %d", node.GetID(), node.GetState())
+	fmt.Printf("Node %s state is %d\n", node.GetID(), node.GetState())
 	// TODO update other node info
 	node.UpdateTime(t)
 

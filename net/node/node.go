@@ -76,6 +76,7 @@ func InitNode() Tmper {
 	n.eventQueue.init()
 
 	go n.backend()
+	go n.updateNodeInfo()
 	return &n
 }
 
