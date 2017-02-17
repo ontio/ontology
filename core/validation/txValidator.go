@@ -4,7 +4,6 @@ import (
 	"GoOnchain/core/ledger"
 	tx "GoOnchain/core/transaction"
 	"errors"
-	"GoOnchain/core/asset"
 	"math"
 )
 
@@ -13,7 +12,7 @@ import (
 //- No duplicated inputs
 //- inputs/outputs balance
 //- Transcation contracts pass
-func VerifyTransaction(Tx *tx.Transaction,ledger *ledger.Ledger,TxPool []*tx.Transaction) error  {
+func VerifyTransaction(Tx *tx.Transaction, ledger *ledger.Ledger, TxPool []*tx.Transaction) error {
 
 	err := CheckDuplicateInput(Tx)
 	if(err != nil){return err}
@@ -42,12 +41,12 @@ func VerifyTransaction(Tx *tx.Transaction,ledger *ledger.Ledger,TxPool []*tx.Tra
 	return nil
 }
 
-func CheckMemPool(tx *tx.Transaction,TxPool []*tx.Transaction) error{
+func CheckMemPool(tx *tx.Transaction, TxPool []*tx.Transaction) error {
 
 	for _, poolTx := range TxPool {
 		for _, poolInput := range poolTx.UTXOInputs {
 			for _, txInput := range tx.UTXOInputs {
-				if poolInput.Equals(txInput){
+				if poolInput.Equals(txInput) {
 					return errors.New("There is duplicated Tx Input with Tx Pool.")
 				}
 			}
@@ -56,7 +55,7 @@ func CheckMemPool(tx *tx.Transaction,TxPool []*tx.Transaction) error{
 	return nil
 }
 
-func CheckDuplicateInput(tx *tx.Transaction)  error {
+func CheckDuplicateInput(tx *tx.Transaction) error {
 	for i, utxoin := range tx.UTXOInputs {
 		for j := 0; j < i; j++ {
 			if utxoin.ReferTxID == tx.UTXOInputs[j].ReferTxID && utxoin.ReferTxOutputIndex == tx.UTXOInputs[j].ReferTxOutputIndex {
@@ -67,16 +66,16 @@ func CheckDuplicateInput(tx *tx.Transaction)  error {
 	return nil
 }
 
-func IsDoubleSpend(tx *tx.Transaction,ledger *ledger.Ledger) error {
+func IsDoubleSpend(tx *tx.Transaction, ledger *ledger.Ledger) error {
 	return ledger.IsDoubleSpend(tx)
 }
 
-func CheckAssetPrecision(Tx *tx.Transaction) error  {
-	for k, outputs := range Tx.AssetOutputs{
-		precision := asset.GetAsset(k).Precision
+func CheckAssetPrecision(Tx *tx.Transaction) error {
+	for k, outputs := range Tx.AssetOutputs {
+		precision := ledger.DefaultLedger.Blockchain.GetAsset(k).Precision
 		for _, output := range outputs {
-			if (output.Value.GetData() % int64(math.Pow(10,8-float64(precision))) != 0){
-				return  errors.New("The precision of asset is incorrect.")
+			if output.Value.GetData()%int64(math.Pow(10, 8-float64(precision))) != 0 {
+				return errors.New("The precision of asset is incorrect.")
 			}
 		}
 	}
@@ -97,7 +96,7 @@ func CheckTransactionBalance(Tx *tx.Transaction) error {
 	return nil
 }
 
-func CheckAttributeProgram(Tx *tx.Transaction)  error{
+func CheckAttributeProgram(Tx *tx.Transaction) error {
 	//TODO: implement CheckAttributeProgram
 	return nil
 }

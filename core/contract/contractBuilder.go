@@ -6,24 +6,37 @@ import (
 	. "GoOnchain/common"
 	pg "GoOnchain/core/contract/program"
 	"math/big"
+	. "GoOnchain/errors"
 	"sort"
 )
 
 //create a Single Singature contract for owner  。
 func CreateSignatureContract(ownerPubKey *crypto.PubKey) (*Contract,error){
 
+	temp,err := ownerPubKey.EncodePoint(true)
+	if err !=nil{
+		return nil,NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
+	}
+	signatureRedeemScript,err := CreateSignatureRedeemScript(ownerPubKey)
+	if err !=nil{
+		return nil,NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
+	}
 	return &Contract{
-		Code: CreateSignatureRedeemScript(ownerPubKey),
+		Code: signatureRedeemScript,
 		Parameters: []ContractParameterType{Signature},
-		OwnerPubkeyHash: ToCodeHash(ownerPubKey.EncodePoint(true)),
+		OwnerPubkeyHash: ToCodeHash(temp),
 	},nil
 }
 
-func CreateSignatureRedeemScript(pubkey *crypto.PubKey) []byte{
+func CreateSignatureRedeemScript(pubkey *crypto.PubKey) ([]byte,error){
+	temp,err := pubkey.EncodePoint(true)
+	if err !=nil{
+		return nil,NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureRedeemScript failed.")
+	}
 	sb := pg.NewProgramBuilder()
-	sb.PushData(pubkey.EncodePoint(true))
+	sb.PushData(temp)
 	sb.AddOp(vm.OP_CHECKSIG)
-	return sb.ToArray()
+	return sb.ToArray(),nil
 }
 
 //create a Multi Singature contract for owner  。
@@ -33,17 +46,20 @@ func CreateMultiSigContract(publicKeyHash Uint160,m int, publicKeys []*crypto.Pu
 	for i,_ := range params{
 		params[i] = Signature
 	}
-
+	MultiSigRedeemScript, err := CreateMultiSigRedeemScript(m,publicKeys)
+	if err !=nil{
+		return nil,NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureRedeemScript failed.")
+	}
 	return &Contract{
-		Code: CreateMultiSigRedeemScript(m,publicKeys),
+		Code: MultiSigRedeemScript,
 		Parameters: params,
 		OwnerPubkeyHash: publicKeyHash,
 	},nil
 }
 
-func CreateMultiSigRedeemScript(m int,pubkeys []*crypto.PubKey) []byte{
+func CreateMultiSigRedeemScript(m int,pubkeys []*crypto.PubKey) ([]byte,error){
 	if ! (m >= 1 && m <= len(pubkeys) && len(pubkeys) <= 24) {
-		return nil //TODO: add panic
+		return nil,nil //TODO: add panic
 	}
 
 	sb := pg.NewProgramBuilder()
@@ -53,10 +69,14 @@ func CreateMultiSigRedeemScript(m int,pubkeys []*crypto.PubKey) []byte{
 	sort.Sort(crypto.PubKeySlice(pubkeys))
 
 	for _,pubkey := range pubkeys{
-		sb.PushData(pubkey.EncodePoint(true))
+		temp,err := pubkey.EncodePoint(true)
+		if err !=nil{
+			return nil,NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
+		}
+		sb.PushData(temp)
 	}
 
 	sb.PushNumber(big.NewInt(int64(len(pubkeys))))
 	sb.AddOp(vm.OP_CHECKMULTISIG)
-	return sb.ToArray()
+	return sb.ToArray(),nil
 }

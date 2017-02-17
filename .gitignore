@@ -11,3 +11,5 @@ GoOnchain.iml
 *.orig
 *.rej
 Log
+/core/*/*_test.go
+/core/*/*/*_test.go

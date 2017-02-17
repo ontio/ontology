@@ -129,11 +129,15 @@ func (bd *LevelDBStore) IsDoubleSpend( tx tx.Transaction ) bool {
 	return false
 }
 
-func (bd *LevelDBStore) GetBlockHash(height uint32) Uint256 {
+func (bd *LevelDBStore) GetBlockHash(height uint32) (Uint256, error) {
 	// TODO: GetBlockHash
 	x := new(Uint256)
 
-	return *x
+	return *x, nil
+}
+
+func (bd *LevelDBStore) GetCurrentBlockHash() Uint256 {
+	return Uint256{}
 }
 
 func (bd *LevelDBStore) GetContract(hash []byte) ([]byte, error) {
@@ -259,15 +263,17 @@ func (bd *LevelDBStore) GetNextBlockHash(hash []byte) common.Uint256 {
 }
 */
 
-func (bd *LevelDBStore) GetTransaction(t *tx.Transaction,hash []byte) error {
+func (bd *LevelDBStore) GetTransaction(hash Uint256) (*tx.Transaction, error) {
 	fmt.Printf( "GetTransaction Hash: %x\n",  hash )
 
+	t := new(tx.Transaction)
+
 	prefix := []byte{ byte(DATA_Transaction) }
-	tHash,err_get := bd.Get( append(prefix,hash...) )
+	tHash,err_get := bd.Get( append(prefix,hash.ToArray()...) )
 	fmt.Printf( "GetTransaction Data: %x\n",  tHash )
 	if ( err_get != nil ) {
 		//TODO: implement error process
-		return err_get
+		return nil,err_get
 	}
 
 	r := bytes.NewReader(tHash)
@@ -279,7 +285,7 @@ func (bd *LevelDBStore) GetTransaction(t *tx.Transaction,hash []byte) error {
 	// Deserialize Transaction
 	t.Deserialize(r)
 
-	return err
+	return t,err
 }
 
 func (bd *LevelDBStore) SaveTransaction(tx *tx.Transaction,height uint32) error {
@@ -335,8 +341,7 @@ func (bd *LevelDBStore) GetBlock(hash Uint256) (*Block, error) {
 
 	// Deserialize transaction
 	for i:=0; i<len(b.Transcations); i++ {
-		temp := b.Transcations[i].Hash()
-		bd.GetTransaction(b.Transcations[i],temp.ToArray())
+		bd.GetTransaction(b.Transcations[i].Hash())
 	}
 
 	return b, err

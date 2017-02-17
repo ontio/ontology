@@ -1,12 +1,12 @@
 package validation
 
 import (
+	. "GoOnchain/common"
 	sig "GoOnchain/core/signature"
 	"GoOnchain/crypto"
 	. "GoOnchain/errors"
 	"GoOnchain/vm"
 	"errors"
-	. "GoOnchain/common"
 )
 
 func VerifySignableData(signableData sig.SignableData) error {
@@ -44,7 +44,11 @@ func VerifySignableData(signableData sig.SignableData) error {
 	return nil
 }
 
-func VerifySignature(signableData sig.SignableData,pubkey *crypto.PubKey,signature []byte) error {
-	//TODO: VerifySignature
-	return nil
+func VerifySignature(signableData sig.SignableData, pubkey *crypto.PubKey, signature []byte) error {
+	temp, _ := crypto.Verify(*pubkey, sig.GetHashForSigning(signableData), signature)
+	if temp {
+		return NewDetailErr(errors.New("[validation], VerifySignature failed."), ErrNoCode, "")
+	} else {
+		return nil
+	}
 }

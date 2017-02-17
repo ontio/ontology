@@ -3,16 +3,26 @@ package common
 import (
 	"bytes"
 	"encoding/binary"
+	_ "io"
+
+	_ "golang.org/x/crypto/ripemd160"
 )
 
-func ToCodeHash(code []byte) Uint160{
+func ToCodeHash(code []byte) Uint160 {
 	//TODO: ToCodeHash
+	//temp := sha256.Sum256(code)
+	//f := ripemd160.Sum(temp[:])
+	//	md := ripemd160.New()
+	//	io.WriteString(md, string(code))
+	//	f := md.Sum(nil)
+	//	hash := Uint160(f)
+	//	return hash
 	return Uint160{}
 }
 
-func  GetNonce() uint64{
+func GetNonce() uint64 {
 	//TODO: GetNonce()
-	return 0;
+	return 0
 }
 
 func IntToBytes(n int) []byte {
@@ -29,7 +39,7 @@ func BytesToInt16(b []byte) int16 {
 	return int16(tmp)
 }
 
-func IsEqualBytes(b1 []byte,b2 []byte) bool {
+func IsEqualBytes(b1 []byte, b2 []byte) bool {
 	len1 := len(b1)
 	len2 := len(b2)
 	if len1 != len2 {return false}
@@ -41,12 +51,12 @@ func IsEqualBytes(b1 []byte,b2 []byte) bool {
 	return true
 }
 
-func ToHexString(data []byte) string{
+func ToHexString(data []byte) string {
 	//TODO: ToHexString
 	return string(data)
 }
 
-func HexToBytes(value string) []byte{
+func HexToBytes(value string) []byte {
 	//TODO: HexToBytes
 	return nil
 }

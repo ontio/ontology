@@ -172,7 +172,7 @@ func getBlock(req *http.Request, cmd map[string]interface{}) map[string]interfac
 	switch (params.([]interface{})[0]).(type) {
 	case int:
 		index := params.([]interface{})[0].(uint32)
-		hash := ledger.DefaultLedger.Store.GetBlockHash(index)
+		hash,_:= ledger.DefaultLedger.Store.GetBlockHash(index)
 		block, err = ledger.DefaultLedger.Store.GetBlock(hash)
 		b = BlockInfo{
 			Hash:  ToHexString(hash.ToArray()),
@@ -214,7 +214,7 @@ func getBlockHash(req *http.Request, cmd map[string]interface{}) map[string]inte
 	var hash Uint256
 	height, ok := index.(uint32)
 	if ok == true {
-		hash = ledger.DefaultLedger.Store.GetBlockHash(height)
+		hash,_= ledger.DefaultLedger.Store.GetBlockHash(height)
 	}
 	hashhex := fmt.Sprintf("%016x", hash)
 	response := responsePacking(hashhex, id)

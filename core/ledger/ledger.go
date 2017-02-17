@@ -25,7 +25,7 @@ func (l *Ledger) IsDoubleSpend(Tx *tx.Transaction) error {
 
 func GetDefaultLedger() (*Ledger, error) {
 	if DefaultLedger == nil {
-		return nil, NewDetailErr(errors.New("DefaultLedger GetDefaultLedger failed,DefaultLedger not Exist."), ErrNoCode, "")
+		return nil, NewDetailErr(errors.New("[Ledger], GetDefaultLedger failed, DefaultLedger not Exist."), ErrNoCode, "")
 	}
 	return DefaultLedger, nil
 }

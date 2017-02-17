@@ -3,10 +3,11 @@ package signature
 import (
 	"GoOnchain/common"
 	"GoOnchain/core/contract/program"
+	"GoOnchain/crypto"
 	"GoOnchain/vm"
 	"bytes"
-	"GoOnchain/crypto"
-	_ "io"
+	"crypto/sha256"
+	"io"
 )
 
 //SignableData describe the data need be signed.
@@ -20,35 +21,29 @@ type SignableData interface {
 
 	GetPrograms() []*program.Program
 
-
-
 	//TODO: add SerializeUnsigned
-	//SerializeUnsigned(io.Writer) error
+	SerializeUnsigned(io.Writer) error
 }
 
 func SignBySigner(data SignableData, signer Signer) []byte {
 
-	return Sign(data,signer.PrivKey(),signer.PubKey().EncodePoint(false)[1:])
+	return Sign(data, signer.PrivKey())
 }
 
 func GetHashData(data SignableData) []byte {
-	//Wjj upd
 	b_buf := new(bytes.Buffer)
-	//data.SerializeUnsigned(b_buf) //TODO: add SerializeUnsigned method
+	data.SerializeUnsigned(b_buf)
 	return b_buf.Bytes()
 }
 
 func GetHashForSigning(data SignableData) []byte {
 	//TODO: GetHashForSigning
-
-	return nil
+	temp := sha256.Sum256(GetHashData(data))
+	return temp[:]
 }
 
-
-func Sign(data SignableData,prikey []byte, pubkey []byte) []byte{
-
+func Sign(data SignableData, prikey []byte) []byte {
 	// FIXME ignore the return error value
 	signature, _ := crypto.Sign(prikey, GetHashForSigning(data))
 	return signature
 }
-

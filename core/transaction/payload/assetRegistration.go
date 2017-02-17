@@ -12,7 +12,7 @@ import (
 type AssetRegistration struct {
 	Asset      *asset.Asset
 	Amount     *common.Fixed64
-	Precision  byte
+	//Precision  byte
 	Issuer     *crypto.PubKey
 	Controller *common.Uint160
 }
@@ -26,7 +26,7 @@ func (a *AssetRegistration) Data() []byte {
 func (a *AssetRegistration) Serialize(w io.Writer) {
 	a.Asset.Serialize(w)
 	a.Amount.Serialize(w)
-	w.Write([]byte{a.Precision})
+	//w.Write([]byte{a.Precision})
 	a.Issuer.Serialize(w)
 	a.Controller.Serialize(w)
 }
@@ -47,14 +47,14 @@ func (a *AssetRegistration) Deserialize(r io.Reader) error {
 		return NewDetailErr(err, ErrNoCode, "[AssetRegistration], Ammount Deserialize failed.")
 	}
 
-	//Precision  byte
-	p := make([]byte, 1)
-	n, err := r.Read(p)
-	if n > 0 {
-		a.Precision = p[0]
-	} else {
-		return NewDetailErr(err, ErrNoCode, "[AssetRegistration], Precision Deserialize failed.")
-	}
+	//Precision  byte 02/10 comment out by wjj
+	//p := make([]byte, 1)
+	//n, err := r.Read(p)
+	//if n > 0 {
+	//	a.Precision = p[0]
+	//} else {
+	//	return NewDetailErr(err, ErrNoCode, "[AssetRegistration], Precision Deserialize failed.")
+	//}
 
 	//Issuer     *crypto.PubKey
 	a.Issuer = new(crypto.PubKey)

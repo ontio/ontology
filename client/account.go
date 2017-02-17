@@ -3,6 +3,7 @@ package client
 import (
 	"GoOnchain/crypto"
 	. "GoOnchain/common"
+	. "GoOnchain/errors"
 	_ "errors"
 )
 
@@ -26,10 +27,14 @@ func NewAccount(privateKey []byte) (*Account, error){
 
 	//TODO: set public key
 	priKey,pubKey,_ := crypto.GenKeyPair()
+	temp,err := pubKey.EncodePoint(true)
+	if err !=nil{
+		return nil,NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
+	}
 	return &Account{
 		PrivateKey: priKey,
 		PublicKey: &pubKey,
-		PublicKeyHash: ToCodeHash(pubKey.EncodePoint(true)),
+		PublicKeyHash: ToCodeHash(temp),
 	},nil
 }
 
