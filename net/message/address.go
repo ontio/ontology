@@ -6,8 +6,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"net"
 	"fmt"
 	"unsafe"
+	"strconv"
 )
 
 type addrReq struct {
@@ -134,11 +136,13 @@ func (msg addr) Verify(buf []byte) error {
 func (msg addr) Handle(node Noder) error {
 	common.Trace()
 	for _, v := range msg.nodeAddrs {
-		ipAddr := hex.EncodeToString(v.IpAddr[:])
-		fmt.Printf("The IP address is %s, port is %d\n", ipAddr, v.Port)
 		if v.Port != 0 {
-			// TODO Convert the ipaddress to string
-			node.Connect(ipAddr)
+			var ip net.IP
+			ip = v.IpAddr[:]
+			// Fixme consider the IPv6 case
+			address := ip.To4().String() + ":" + strconv.Itoa(int(v.Port))
+			fmt.Printf("The ip address is %s\n", address)
+			go node.Connect(address)
 		}
 	}
 	return nil

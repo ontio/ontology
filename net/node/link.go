@@ -150,8 +150,8 @@ func (node *node) Connect(nodeAddr string) {
 		go n.rx()
 
 		// FIXME is there any timing race with rx
-		buf, _ := NewVersion(node)
-		go n.Tx(buf)
+//		buf, _ := NewVersion(node)
+//		go n.Tx(buf)
 		return nil
 	}
 }
