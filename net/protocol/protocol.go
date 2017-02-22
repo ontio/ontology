@@ -3,6 +3,7 @@ package protocol
 import (
 	"GoOnchain/common"
 	"GoOnchain/core/transaction"
+	"GoOnchain/core/ledger"
 	"GoOnchain/events"
 	"time"
 )
@@ -53,6 +54,7 @@ type Noder interface {
 	LocalNode() Noder
 	GetHeight() uint64
 	GetConnectionCnt() uint
+	GetLedger() *ledger.Ledger
 	GetTxnPool() map[common.Uint256]*transaction.Transaction
 	AppendTxnPool(*transaction.Transaction) bool
 	ExistedID(id common.Uint256) bool
