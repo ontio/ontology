@@ -31,15 +31,6 @@ func (e *PubKey) DeSerialize(r io.Reader) error {
 	return nil
 }
 
-func reverse(data []byte) {
-	len1 := len(data)
-	for i := 0; i < len1/2; i++ {
-		tmp := data[i]
-		data[i] = data[len1-i-1]
-		data[len1-i-1] = tmp
-	}
-}
-
 func isEven(k *big.Int) bool {
 	z := big.NewInt(0)
 	z.Mod(k, big.NewInt(2))
@@ -65,24 +56,11 @@ func (e *PubKey) EncodePoint(isCommpressed bool) ([]byte, error) {
 
 		yBytes := e.Y.Bytes()
 		copy(encodedData[NOCOMPRESSEDLEN-len(yBytes):], yBytes)
-		reverse(encodedData[XORYVALUELEN+FLAGLEN:])
-
-		/*	tmpY := make([]byte, len(yBytes))
-			copy(tmpY, yBytes)
-			reverse(tmpY)
-			copy(encodedData[NCOMPRESSEDLEN-len(yBytes):], tmpY)
-		*/
 	}
 
 	xBytes := e.X.Bytes()
 	copy(encodedData[FLAGLEN:COMPRESSEDLEN], xBytes)
-	reverse(encodedData[FLAGLEN : FLAGLEN+XORYVALUELEN])
 
-	/*	tmpX := make([]byte, len(xBytes))
-		copy(tmpX, xBytes)
-		reverse(tmpX)
-		copy(encodedData[COMPRESSEDLEN-len(tmpX):], tmpX)
-	*/
 	if isCommpressed {
 		if isEven(e.Y) {
 			encodedData[0] = COMPEVENFLAG
