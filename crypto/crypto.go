@@ -63,9 +63,10 @@ func CheckMAC(message, messageMAC, key []byte) bool {
 	return hmac.Equal(messageMAC, expectedMAC)
 }
 
-func Init() {
+func init() {
 	// FixMe init the ECC parameters based on curve type, like secp256k1
 	Crypto.curve = elliptic.P256()
+	Crypto.eccParams = *(Crypto.curve.Params())
 }
 
 // @prikey, the private key for sign, the length should be 32 bytes currently
