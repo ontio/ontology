@@ -31,7 +31,10 @@ func VerifyBlockData(bd *ledger.Blockdata, ledger *ledger.Ledger) error {
 		return errors.New("this block has already exist in blockChain")
 	}
 
-	prevHeader := ledger.Blockchain.GetHeader(bd.PrevBlockHash)
+	prevHeader,err:= ledger.Blockchain.GetHeader(bd.PrevBlockHash)
+	if err!= nil{
+		return  errors.New("Cannnot find prevHeader.")
+	}
 	if(prevHeader == nil){
 		return  errors.New("Cannnot find previous block.")
 	}

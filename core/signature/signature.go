@@ -4,6 +4,7 @@ import (
 	"GoOnchain/common"
 	"GoOnchain/core/contract/program"
 	"GoOnchain/crypto"
+	. "GoOnchain/errors"
 	"GoOnchain/vm"
 	"bytes"
 	"crypto/sha256"
@@ -25,9 +26,13 @@ type SignableData interface {
 	SerializeUnsigned(io.Writer) error
 }
 
-func SignBySigner(data SignableData, signer Signer) []byte {
+func SignBySigner(data SignableData, signer Signer) ([]byte, error) {
 
-	return Sign(data, signer.PrivKey())
+	rtx, err := Sign(data, signer.PrivKey())
+	if err != nil {
+		return nil, NewDetailErr(err, ErrNoCode, "[Signature],SignBySigner failed.")
+	}
+	return rtx, nil
 }
 
 func GetHashData(data SignableData) []byte {
@@ -42,8 +47,11 @@ func GetHashForSigning(data SignableData) []byte {
 	return temp[:]
 }
 
-func Sign(data SignableData, prikey []byte) []byte {
+func Sign(data SignableData, prikey []byte) ([]byte, error) {
 	// FIXME ignore the return error value
-	signature, _ := crypto.Sign(prikey, GetHashForSigning(data))
-	return signature
+	signature, err := crypto.Sign(prikey, GetHashForSigning(data))
+	if err != nil {
+		return nil, NewDetailErr(err, ErrNoCode, "[Signature],Sign failed.")
+	}
+	return signature, nil
 }

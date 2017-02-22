@@ -21,10 +21,19 @@ func CreateSignatureContract(ownerPubKey *crypto.PubKey) (*Contract,error){
 	if err !=nil{
 		return nil,NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
 	}
+	hash,err:= ToCodeHash(temp)
+	if err !=nil{
+		return nil,NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
+	}
+	signatureRedeemScriptHashToCodeHash,err:= ToCodeHash(signatureRedeemScript)
+	if err !=nil{
+		return nil,NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
+	}
 	return &Contract{
 		Code: signatureRedeemScript,
 		Parameters: []ContractParameterType{Signature},
-		OwnerPubkeyHash: ToCodeHash(temp),
+		ProgramHash:signatureRedeemScriptHashToCodeHash,
+		OwnerPubkeyHash: hash,
 	},nil
 }
 

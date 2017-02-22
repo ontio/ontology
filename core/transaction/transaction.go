@@ -3,6 +3,7 @@ package transaction
 import (
 	. "GoOnchain/common"
 	"GoOnchain/common/serialization"
+	"GoOnchain/core/contract"
 	"GoOnchain/core/contract/program"
 	sig "GoOnchain/core/signature"
 	msg "GoOnchain/node/message"
@@ -11,6 +12,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"io"
+	"sort"
 )
 
 //for different transaction types with different payload format
@@ -39,6 +41,9 @@ type Payload interface {
 
 //Transaction is used for carry information or action to Ledger
 //validated transaction will be added to block and updates state correspondingly
+
+var TxStore ILedgerStore
+
 type Transaction struct {
 	TxType         TransactionType
 	PayloadVersion byte
@@ -239,12 +244,45 @@ func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 	if tx == nil {
 		return []Uint160{}, errors.New("[Transaction],GetProgramHashes transaction is nil.")
 	}
-	//Set Utxo Inputs' hashes
-	programHashes := []Uint160{}
-	outputHashes, _ := tx.GetOutputHashes() //check error
-	programHashes = append(programHashes, outputHashes[:]...)
+	hashs := []Uint160{}
+	// add inputUTXO's transaction
+	referenceWithUTXO_Output, err := tx.GetReference()
+	if err != nil {
+		return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetProgramHashes failed.")
+	}
+	for _, output := range referenceWithUTXO_Output {
+		programHash := output.ProgramHash
+		hashs = append(hashs, programHash)
+	}
+	for _, attribute := range tx.Attributes {
+		if attribute.Usage == Script {
+			dataHash, err := Uint160ParseFromBytes(attribute.Date)
+			if err != nil {
+				return nil, NewDetailErr(errors.New("[Transaction], GetProgramHashes err."), ErrNoCode, "")
+			}
+			hashs = append(hashs, Uint160(dataHash))
+		}
+	}
+	switch tx.TxType {
+	case RegisterAsset:
+		issuer := tx.Payload.(*payload.AssetRegistration).Issuer
+		signatureRedeemScript, err := contract.CreateSignatureRedeemScript(issuer)
+		if err != nil {
+			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetProgramHashes CreateSignatureRedeemScript failed.")
+		}
 
-	return programHashes, nil
+		astHash, err := ToCodeHash(signatureRedeemScript)
+		if err != nil {
+			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetProgramHashes ToCodeHash failed.")
+		}
+		hashs = append(hashs, astHash)
+	case IssueAsset:
+		ast := *(tx.Payload.(*payload.AssetRegistration).Controller)
+		hashs = append(hashs, ast)
+	default:
+	}
+	sort.Sort(byProgramHashes(hashs))
+	return hashs, nil
 }
 
 func (tx *Transaction) SetPrograms(programs []*program.Program) {
@@ -284,7 +322,7 @@ func (tx *Transaction) SetHash(hash Uint256) {
 	tx.hash = &hash
 }
 
-func (tx *Transaction) Type() InventoryType{
+func (tx *Transaction) Type() InventoryType {
 	return TRANSACTION
 }
 func (tx *Transaction) Verify() error {
@@ -292,12 +330,32 @@ func (tx *Transaction) Verify() error {
 	return nil
 }
 
-//func (tx *Transaction) GetReference() error {
-//	reference := make(map[UTXOTxInput]TxOutput)
-//	for k, v := range tx.UTXOInputs {
-//		k,err := ledger.DefaultLedger.Store.GetTransaction(k)
-//
-//	}
-//
-//
-//}
+func (tx *Transaction) GetReference() (map[UTXOTxInput]TxOutput, error) {
+	if tx.TxType == RegisterAsset {
+		return nil, nil
+	}
+	//UTXO input /  Outputs
+	reference := make(map[UTXOTxInput]TxOutput)
+	// key 顺序，v UTXOInput
+	for _, utxo := range tx.UTXOInputs {
+		transaction, err := TxStore.GetTransaction(utxo.ReferTxID)
+		if err != nil {
+			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetReference failed.")
+		}
+		index := utxo.ReferTxOutputIndex
+		reference[*utxo] = *transaction.Outputs[index]
+	}
+	return reference, nil
+}
+
+type byProgramHashes []Uint160
+
+func (a byProgramHashes) Len() int      { return len(a) }
+func (a byProgramHashes) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a byProgramHashes) Less(i, j int) bool {
+	if a[i].CompareTo(a[j]) > 0 {
+		return false
+	} else {
+		return true
+	}
+}

@@ -23,10 +23,13 @@ func VerifySignableData(signableData sig.SignableData) error {
 	}
 
 	for i := 0; i < Length; i++ {
-		if hashes[i] != ToCodeHash(programs[i].Code) {
+		hash, err := ToCodeHash(programs[i].Code)
+		if err != nil {
+			return errors.New("[Validation],VerifySignableData failed.")
+		}
+		if hashes[i] != hash {
 			return errors.New("The data hashes is different with corresponding program code.")
 		}
-
 		//execute program on VM
 		se := vm.NewExecutionEngine(nil, nil, nil, signableData)
 		if se.ExecuteProgram(signableData.GetPrograms()[i].Parameter, false) {
@@ -46,7 +49,7 @@ func VerifySignableData(signableData sig.SignableData) error {
 
 func VerifySignature(signableData sig.SignableData, pubkey *crypto.PubKey, signature []byte) error {
 	temp, _ := crypto.Verify(*pubkey, sig.GetHashForSigning(signableData), signature)
-	if temp {
+	if !temp {
 		return NewDetailErr(errors.New("[validation], VerifySignature failed."), ErrNoCode, "")
 	} else {
 		return nil

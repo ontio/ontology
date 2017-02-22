@@ -2,7 +2,6 @@ package ledger
 
 import (
 	. "GoOnchain/common"
-	"GoOnchain/core/asset"
 	tx "GoOnchain/core/transaction"
 	"GoOnchain/crypto"
 	. "GoOnchain/errors"
@@ -66,13 +65,15 @@ func (bc *Blockchain) ContainsBlock(hash Uint256) bool {
 	return false
 }
 
-func (bc *Blockchain) GetHeader(hash Uint256) *Header {
-	//TODO: implement GetHeader
-	return nil
+func (bc *Blockchain) GetHeader(hash Uint256) (*Header,error) {
+	 header,err:=DefaultLedger.Store.GetHeader(hash)
+	if err != nil{
+		return nil, NewDetailErr(errors.New("[Blockchain], GetHeader failed."), ErrNoCode, "")
+	}
+	return header,nil
 }
 
 func (bc *Blockchain) SaveBlock(block *Block) error {
-	//TODO: implement PersistBlock
 	err := DefaultLedger.Store.SaveBlock(block)
 	if err != nil {
 		return err
@@ -83,7 +84,11 @@ func (bc *Blockchain) SaveBlock(block *Block) error {
 }
 
 func (bc *Blockchain) ContainsTransaction(hash Uint256) bool {
-	//TODO: implement ContainsTransaction
+	//TODO: implement error catch
+	tx ,_ := DefaultLedger.Store.GetTransaction(hash)
+	if tx != nil{
+		return true
+	}
 	return false
 }
 
@@ -101,35 +106,3 @@ func (bc *Blockchain) CurrentBlockHash() Uint256 {
 	return DefaultLedger.Store.GetCurrentBlockHash()
 }
 
-func (bc *Blockchain) GetAsset(assetId Uint256) *asset.Asset {
-	asset, _ := DefaultLedger.Store.GetAsset(assetId)
-	return asset
-}
-
-func (bc *Blockchain) GetBlockWithHeight(height uint32) (*Block, error) {
-	temp, err := DefaultLedger.Store.GetBlockHash(height)
-	if err != nil{
-		return nil,NewDetailErr(err, ErrNoCode, "[Blockchain],GetBlockWithHeight failed")
-	}
-	bk, err := DefaultLedger.Store.GetBlock(temp)
-	if err != nil {
-		return nil,NewDetailErr(err, ErrNoCode, "[Blockchain],GetBlockWithHeight failed")
-	}
-	return bk, nil
-}
-
-func (bc *Blockchain) GetBlockWithHash(hash Uint256) (*Block, error) {
-	bk, err := DefaultLedger.Store.GetBlock(hash)
-	if err != nil {
-		return nil, NewDetailErr(errors.New("[Blockchain], GetBlockWithHash failed."), ErrNoCode, "")
-	}
-	return bk, nil
-}
-
-func GetTransactionWithHash(hash Uint256) (*tx.Transaction, error) {
-	tx, err := DefaultLedger.Store.GetTransaction(hash)
-	if err != nil{
-	return nil,NewDetailErr(err, ErrNoCode, "[Blockchain],GetTransactionWithHash failed")
-	}
-	return tx, nil
-}

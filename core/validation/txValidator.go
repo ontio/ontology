@@ -72,7 +72,11 @@ func IsDoubleSpend(tx *tx.Transaction, ledger *ledger.Ledger) error {
 
 func CheckAssetPrecision(Tx *tx.Transaction) error {
 	for k, outputs := range Tx.AssetOutputs {
-		precision := ledger.DefaultLedger.Blockchain.GetAsset(k).Precision
+		asset,err:= ledger.DefaultLedger.GetAsset(k)
+		if err!= nil{
+			return errors.New("The asset not exist in local blockchain.")
+		}
+		precision := asset.Precision
 		for _, output := range outputs {
 			if output.Value.GetData()%int64(math.Pow(10, 8-float64(precision))) != 0 {
 				return errors.New("The precision of asset is incorrect.")

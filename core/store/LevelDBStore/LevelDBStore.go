@@ -391,3 +391,7 @@ func (bd *LevelDBStore) SaveBlock(b *Block) error {
 
 	return nil
 }
+
+func (bd *LevelDBStore) GetLocalBlockChainHeight() (uint32,error) {
+	return 0,nil
+}

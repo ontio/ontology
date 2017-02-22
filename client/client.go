@@ -83,7 +83,11 @@ func (cl *Client) GetAccount(pubKey *crypto.PubKey) (*Account,error){
 	if err !=nil{
 		return nil,NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
 	}
-	return cl.GetAccountByKeyHash(ToCodeHash(temp)),nil
+	hash,err :=ToCodeHash(temp)
+	if err !=nil{
+		return nil,NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
+	}
+	return cl.GetAccountByKeyHash(hash),nil
 }
 
 func (cl *Client) GetAccountByKeyHash(publicKeyHash Uint160) *Account{
@@ -161,7 +165,7 @@ func (cl *Client) ProcessBlocks() {
 
 			cl.mu.Lock()
 
-			block ,_:= ledger.DefaultLedger.Blockchain.GetBlockWithHeight(cl.currentHeight)
+			block ,_:= ledger.DefaultLedger.GetBlockWithHeight(cl.currentHeight)
 			if block != nil{
 				cl.ProcessNewBlock(block)
 			}
@@ -189,7 +193,10 @@ func (cl *Client) Sign(context *ct.ContractContext) bool{
 		account := cl.GetAccountByProgramHash(hash)
 		if account == nil {continue}
 
-		signature := sig.SignBySigner(context.Data,account)
+		signature,errx:= sig.SignBySigner(context.Data,account)
+		if errx != nil{
+			return false
+		}
 		err := context.AddContract(contract,account.PublicKey,signature)
 
 		if err != nil {

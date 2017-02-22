@@ -110,12 +110,15 @@ func (bd *Blockdata) DeserializeUnsigned(r io.Reader) error {
 }
 
 func (bd *Blockdata) GetProgramHashes() ([]Uint160, error) {
-	//TODO: implement blockheader GetProgramHashes
 	programHashes := []Uint160{}
 	zero := Uint256{}
+
 	if bd.PrevBlockHash == zero {
 		pg := *bd.Program
-		outputHashes := ToCodeHash(pg.Code)
+		outputHashes,err:=ToCodeHash(pg.Code)
+		if err !=nil{
+			return nil,NewDetailErr(err, ErrNoCode, "[Blockdata], GetProgramHashes failed.")
+		}
 		programHashes = append(programHashes, outputHashes)
 		return programHashes, nil
 	} else {
@@ -150,6 +153,5 @@ func (bd *Blockdata) Hash() Uint256 {
 }
 
 func (bd *Blockdata) GetMessage() []byte {
-	//TODO: implement GetMessage()
 	return sig.GetHashData(bd)
 }

@@ -69,11 +69,13 @@ func (b *Block) GetMessage() []byte {
 }
 
 func (b *Block) GetProgramHashes() ([]Uint160, error) {
-	return nil, nil
+
+	return b.Blockdata.GetProgramHashes()
 }
 
 func (b *Block) SetPrograms([]*program.Program) {
-
+	b.Blockdata.GetPrograms()
+	return
 }
 
 func (b *Block) GetPrograms() []*program.Program {

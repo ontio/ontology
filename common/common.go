@@ -5,19 +5,25 @@ import (
 	"encoding/binary"
 	_ "io"
 
-	_ "golang.org/x/crypto/ripemd160"
+	 "golang.org/x/crypto/ripemd160"
+	"crypto/sha256"
+	. "GoOnchain/errors"
+	"errors"
+	"io"
 )
 
-func ToCodeHash(code []byte) Uint160 {
+func ToCodeHash(code []byte) (Uint160,error){
 	//TODO: ToCodeHash
-	//temp := sha256.Sum256(code)
-	//f := ripemd160.Sum(temp[:])
-	//	md := ripemd160.New()
-	//	io.WriteString(md, string(code))
-	//	f := md.Sum(nil)
-	//	hash := Uint160(f)
-	//	return hash
-	return Uint160{}
+	temp := sha256.Sum256(code)
+	md := ripemd160.New()
+	io.WriteString(md, string(temp[:]))
+	f := md.Sum(nil)
+
+	hash,err := Uint160ParseFromBytes(f)
+	if err != nil{
+		return Uint160{},NewDetailErr(errors.New("[Common] , ToCodeHash err."), ErrNoCode, "");
+	}
+	return hash,nil
 }
 
 func GetNonce() uint64 {
