@@ -76,6 +76,7 @@ func InitNode() Tmper {
 	n.eventQueue.init()
 
 	go n.backend()
+	go n.initConnection()
 	go n.updateNodeInfo()
 	return &n
 }
@@ -184,4 +185,22 @@ func (node node) Xmit(inv common.Inventory) error {
 	node.neighb.Broadcast(buf)
 	// FIXME currenly we have no error check
 	return nil
+}
+
+func (node node) GetAddr() string {
+	return node.addr
+}
+
+func (node *node) GetAddrs() ([]string, uint) {
+	var addrstr []string
+	var i uint = 0
+	// TODO write lock
+	for _, node := range node.neighb.List {
+		s := node.GetState()
+		if s == ESTABLISH {
+			addrstr[i] = node.addr
+			i++
+		}
+	}
+	return addrstr, i
 }

@@ -2,8 +2,8 @@ package protocol
 
 import (
 	"GoOnchain/common"
-	"GoOnchain/events"
 	"GoOnchain/core/transaction"
+	"GoOnchain/events"
 	"time"
 )
 
@@ -61,6 +61,7 @@ type Noder interface {
 	Connect(nodeAddr string)
 	//Xmit(inv Inventory) error // The transmit interface
 	Tx(buf []byte)
+	GetAddrs() ([]string, uint)
 }
 
 type Tmper interface {
@@ -75,5 +76,5 @@ type JsonNoder interface {
 	GetConnectionCnt() uint
 	GetTxnPool() map[common.Uint256]*transaction.Transaction
 	Xmit(common.Inventory) error
-	GetTransaction(hash common.Uint256) *transaction.Transaction	
+	GetTransaction(hash common.Uint256) *transaction.Transaction
 }
