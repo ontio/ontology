@@ -115,7 +115,7 @@ func GenKeyPair() ([]byte, PubKey, error) {
 		return nil, *pubkey, errors.New("Generate key pair error")
 	}
 
-	privkey, err := privatekey.D.MarshalText()
+	privkey := privatekey.D.Bytes()
 	pubkey.X = privatekey.PublicKey.X
 	pubkey.Y = privatekey.PublicKey.Y
 	return privkey, *pubkey, nil

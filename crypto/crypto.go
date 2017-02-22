@@ -81,7 +81,7 @@ func Sign(prikey []byte, data []byte) ([]byte, error) {
 	privateKey.Curve = Crypto.curve
 	// TODO check the return value
 	privateKey.D = big.NewInt(0)
-	privateKey.D.UnmarshalText(prikey)
+	privateKey.D.SetBytes(prikey)
 
 	r := big.NewInt(0)
 	s := big.NewInt(0)
