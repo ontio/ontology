@@ -3,6 +3,8 @@ package node
 import (
 	"GoOnchain/common"
 	"GoOnchain/core/transaction"
+	"GoOnchain/core/ledger"
+	"math/rand"
 	. "GoOnchain/net/message"
 	. "GoOnchain/net/protocol"
 	"fmt"
@@ -10,6 +12,7 @@ import (
 	"runtime"
 	"sync/atomic"
 	"time"
+	"errors"
 )
 
 // The node capability flag
@@ -47,7 +50,7 @@ type node struct {
 	eventQueue // The event queue to notice notice other modules
 	TXNPool    // Unconfirmed transaction pool
 	idCache    // The buffer to store the id of the items which already be processed
-
+	ledger  *ledger.Ledger	// The Local ledger 
 	private *uint // Reserver for future using
 }
 
@@ -77,22 +80,30 @@ func NewNode() *node {
 }
 
 func InitNode() Tmper {
-	n := node{
-		state: INIT,
-		chF:   make(chan func() error),
-	}
-	// Update nonce
-	runtime.SetFinalizer(&n, rmNode)
+	var err error
+	n := NewNode()
+
+	n.version = PROTOCOLVERSION
+	n.services = NODESERVICES
+	n.port = NODETESTPORT
+	n.relay = true
+	rand.Seed(time.Now().UTC().UnixNano())
+	// Fixme replace with the real random number
+	n.nonce = rand.Uint32()
 
 	n.neighb.init()
-	n.local = &n
+	n.local = n
 	n.TXNPool.init()
 	n.eventQueue.init()
+	n.ledger, err = ledger.GetDefaultLedger()
+	if err != nil {
+		errors.New("Get Default Ledger error")
+		// FIXME report the error
+	}
 
-	go n.backend()
 	go n.initConnection()
 	go n.updateNodeInfo()
-	return &n
+	return n
 }
 
 func rmNode(node *node) {
@@ -166,6 +177,10 @@ func (node *node) SetHandshakeRetry(r uint32) {
 
 func (node node) GetHeight() uint64 {
 	return node.height
+}
+
+func (node node) GetLedger() *ledger.Ledger {
+	return node.ledger
 }
 
 func (node *node) UpdateTime(t time.Time) {

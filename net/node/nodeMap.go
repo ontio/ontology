@@ -2,9 +2,7 @@ package node
 
 import (
 	. "GoOnchain/net/protocol"
-	"math/rand"
 	"sync"
-	"time"
 )
 
 type nodeMap struct {
@@ -55,15 +53,3 @@ func (node node) GetConnectionCnt() uint {
 	return node.neighb.getConnection()
 }
 
-func InitNodes() {
-	// TODO write lock
-	n := NewNode()
-
-	n.version = PROTOCOLVERSION
-	n.services = NODESERVICES
-	n.port = NODETESTPORT
-	n.relay = true
-	rand.Seed(time.Now().UTC().UnixNano())
-	// Fixme replace with the real random number
-	n.nonce = rand.Uint32()
-}

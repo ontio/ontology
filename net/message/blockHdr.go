@@ -24,19 +24,16 @@ type blkHeader struct {
 	blkHdr []byte
 }
 
-func NewHeadersReq() ([]byte, error) {
+func NewHeadersReq(n Noder) ([]byte, error) {
 	var h headersReq
 
 	// Fixme correct with the exactly request length
 	h.p.len = 1
-	buf, err := LedgerGetHeader()
-	if err != nil {
-		return nil, err
-	}
-	copy(h.p.hashStart[:], reverse(buf))
+	buf := n.GetLedger().Blockchain.CurrentBlockHash()
+	copy(h.p.hashStart[:], reverse(buf[:]))
 
 	p := new(bytes.Buffer)
-	err = binary.Write(p, binary.LittleEndian, &(h.p))
+	err := binary.Write(p, binary.LittleEndian, &(h.p))
 	if err != nil {
 		fmt.Println("Binary Write failed at new headersReq")
 		return nil, err

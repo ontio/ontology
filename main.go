@@ -4,7 +4,6 @@ import (
 	"time"
 	"runtime"
 	"GoOnchain/net"
-	"GoOnchain/net/node"
 	"GoOnchain/net/httpjsonrpc"
 	"GoOnchain/common/log"
 )
@@ -18,15 +17,17 @@ func init() {
 	runtime.GOMAXPROCS(NCPU)
 	var path string = "./Log/"
 	log.CreatePrintLog(path)
-	go httpjsonrpc.StartServer()
 }
 
 
 func main() {
 	time.Sleep(2 * time.Second)
-
-	node.InitNodes()
 	net.StartProtocol()
+
+
+	go httpjsonrpc.StartServer()
+
+	time.Sleep(2 * time.Second)
 	httpjsonrpc.StartClient()
 
 	// Modules start sample

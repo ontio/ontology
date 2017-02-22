@@ -51,7 +51,7 @@ func txBlockHeadersReq(n *Noder) {
 		return
 	}
 
-	buf, _ := NewHeadersReq()
+	buf, _ := NewHeadersReq(node)
 	go node.Tx(buf)
 }
 

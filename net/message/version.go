@@ -45,7 +45,7 @@ func NewVersion(n Noder) ([]byte, error) {
 	fmt.Printf("The nonce is 0x%x", msg.P.Nonce)
 	msg.P.UserAgent = 0x00
 	// Fixme Get the block height from ledger
-	msg.P.StartHeight = 1
+	msg.P.StartHeight, _ = n.GetLedger().Blockchain.GetHeight()
 	if n.GetRelay() {
 		msg.P.Relay = 1
 	} else {
@@ -53,8 +53,7 @@ func NewVersion(n Noder) ([]byte, error) {
 	}
 
 	msg.Hdr.Magic = NETMAGIC
-	ver := "version"
-	copy(msg.Hdr.CMD[0:7], ver)
+	copy(msg.Hdr.CMD[0:7], "version")
 	p := new(bytes.Buffer)
 	err := binary.Write(p, binary.LittleEndian, &(msg.P))
 	if err != nil {
