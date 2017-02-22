@@ -51,6 +51,20 @@ type node struct {
 	private *uint // Reserver for future using
 }
 
+func (node node) dumpInfo() {
+	fmt.Printf("Node info:\n")
+	fmt.Printf("\t state = %d\n", node.state)
+	fmt.Printf("\t id = %s\n", node.id)
+	fmt.Printf("\t addr = %s\n", node.addr)
+	fmt.Printf("\t conn = %v\n", node.conn)
+	fmt.Printf("\t nonce = %d\n", node.nonce)
+	fmt.Printf("\t cap = %d\n", node.cap)
+	fmt.Printf("\t version = %d\n", node.version)
+	fmt.Printf("\t services = %d\n", node.services)
+	fmt.Printf("\t port = %d\n", node.port)
+	fmt.Printf("\t relay = %v\n", node.relay)
+}
+
 func NewNode() *node {
 	n := node{
 		state: INIT,
