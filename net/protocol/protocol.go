@@ -24,7 +24,8 @@ const (
 	//NETMAGIC	 = 0x414d5446 // Keep the same as antshares only for testing
 	PROTOCOLVERSION = 0
 
-	NODETESTPORT     = 20333 // TODO get from config file
+	NODETESTPORT     = 20338 // TODO get from config file
+	HTTPJSONPORT	 = 20337
 	PERIODUPDATETIME = 3     // Time to update and sync information with other nodes
 )
 
