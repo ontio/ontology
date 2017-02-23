@@ -5,5 +5,5 @@ type ICrypto interface {
 
 	Hash256(message []byte) ([]byte)
 
-	VerifySignature(message []byte,signature []byte, pubkey []byte)  (bool)
+	VerifySignature(message []byte,signature []byte, pubkey []byte) (bool,error)
 }

@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	_ "fmt"
+	."GoOnchain/errors"
+	"errors"
 )
 
 type Uint256 [32]uint8
@@ -65,3 +67,14 @@ func (u *Uint256) ToString() string {
 	return string(u.ToArray())
 }
 
+func Uint256ParseFromBytes(f []byte) (Uint256,error){
+	if ( len(f) != 32 ) {
+		return Uint256{},NewDetailErr(errors.New("[Common]: Uint256ParseFromBytes err, len != 32"), ErrNoCode, "");
+	}
+
+	var hash [32]uint8
+	for i:=0; i<32; i++ {
+		hash[i] = f[i]
+	}
+	return Uint256(hash),nil
+}

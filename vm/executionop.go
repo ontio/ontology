@@ -2,8 +2,15 @@ package vm
 
 type OpCode byte
 
-type ScriptOp struct {
-	 OpCode     OpCode 
+type OpItem struct {
+	 Opcode   OpCode
+	 Len  uint32
+	 Data []byte
+}
+
+func getOpItem(code []byte,pos uint32) (opitem OpItem,err error){
+	//TODO: getOpItem
+	return
 }
 
 const (
@@ -11,6 +18,8 @@ const (
 	OP_0   OpCode  = 0x00 // An empty array of bytes is pushed onto the stack. (This is not a no-op: an item is added to the stack.)
 	OP_FALSE   OpCode   = OP_0
 	OP_PUSHBYTES1  OpCode  = 0x01 // 0x01-0x4B The next  OpCode  bytes is data to be pushed onto the stack
+	OP_PUSHBYTES33  OpCode  = 0x21
+	OP_PUSHBYTES64  OpCode  = 0x40
 	OP_PUSHBYTES75  OpCode  = 0x4B
 	OP_PUSHDATA1  OpCode  = 0x4C // The next byte contains the number of bytes to be pushed onto the stack.
 	OP_PUSHDATA2  OpCode  = 0x4D // The next two bytes contain the number of bytes to be pushed onto the stack.
@@ -155,4 +164,150 @@ const (
 	OP_MINITEM  OpCode  = 0xD2
 )
 
+
+type OpExec struct {
+	Opcode   OpCode
+	Name  string
+	Exec  func(*ExecutionEngine) (VMState,error)
+}
+
+var (
+	opExecList = [256]OpExec{
+		// control flow
+		OP_PUSHBYTES1: {OP_PUSHBYTES1, "OP_PUSHBYTES1", opPushData},
+		OP_PUSHBYTES33: {OP_PUSHBYTES33, "OP_PUSHBYTES33", opPushData},
+		OP_PUSHBYTES64: {OP_PUSHBYTES64, "OP_PUSHBYTES64", opPushData},
+		OP_PUSHBYTES75:{OP_PUSHBYTES75, "OP_PUSHBYTES75", opPushData},
+		OP_1NEGATE:   	{OP_1NEGATE, "OP_1NEGATE", opPushData},
+		OP_0:   	{OP_0, "0", opPushData},
+		OP_1:   	{OP_1, "1", opPushData},
+		OP_2:   	{OP_2, "2", opPushData},
+		OP_3:   	{OP_3, "3", opPushData},
+		OP_4:   	{OP_4, "4", opPushData},
+		OP_5:   	{OP_5, "5", opPushData},
+		OP_6:   	{OP_6, "6", opPushData},
+		OP_7:   	{OP_7, "7", opPushData},
+		OP_8:   	{OP_8, "8", opPushData},
+		OP_9:   	{OP_9, "9", opPushData},
+		OP_10:   	{OP_10, "10", opPushData},
+		OP_11:   	{OP_11, "11", opPushData},
+		OP_12:   	{OP_12, "12", opPushData},
+		OP_13:   	{OP_13, "13", opPushData},
+		OP_14:   	{OP_14, "14", opPushData},
+		OP_15:   	{OP_15, "15", opPushData},
+		OP_16:   	{OP_16, "16", opPushData},
+		OP_PUSHDATA1: 	{OP_PUSHDATA1, "OP_PUSHDATA1", opPushData},
+		OP_PUSHDATA2: 	{OP_PUSHDATA2, "OP_PUSHDATA2", opPushData},
+		OP_PUSHDATA4: 	{OP_PUSHDATA4, "OP_PUSHDATA4", opPushData},
+
+
+		//Control
+		OP_NOP: 	{OP_NOP, "OP_NOP", opNop},
+		OP_JMP: 	{OP_JMP, "OP_JMP", opJmp},
+		OP_JMPIF: 	{OP_JMPIF, "OP_JMPIF", opJmp},
+		OP_JMPIFNOT: 	{OP_JMPIFNOT, "OP_JMPIFNOT", opJmp},
+		OP_CALL: 	{OP_CALL, "OP_CALL", opCall},
+		OP_RET: 	{OP_RET, "OP_RET", opRet},
+		//OP_APPCALL: 	{OP_APPCALL, "OP_APPCALL", opAppCall},
+		//OP_SYSCALL: 	{OP_SYSCALL, "OP_SYSCALL", opSysCall},
+		OP_HALTIFNOT: 	{OP_HALTIFNOT, "OP_HALTIFNOT", opHaltIfNot},
+		OP_HALT: 	{OP_HALT, "OP_HALT", opHalts},
+
+
+		//Stack ops
+		OP_TOALTSTACK: 	{OP_TOALTSTACK, "OP_TOALTSTACK", opToAltStack},
+		OP_FROMALTSTACK: 	{OP_FROMALTSTACK, "OP_FROMALTSTACK", opFromAltStack},
+		OP_2DROP: 		{OP_2DROP, "OP_2DROP", op2Drop},
+		OP_2DUP: 		{OP_2DUP, "OP_2DUP", op2Dup},
+		OP_3DUP: 		{OP_3DUP, "OP_3DUP", op3Dup},
+		OP_2OVER: 		{OP_2OVER, "OP_2OVER", op2Over},
+		OP_2ROT: 		{OP_2ROT, "OP_2ROT", op2Rot},
+		OP_2SWAP: 		{OP_2SWAP, "OP_2SWAP", op2Swap},
+		OP_IFDUP: 		{OP_IFDUP, "OP_IFDUP", opIfDup},
+		OP_DEPTH: 		{OP_DEPTH, "OP_DEPTH", opDepth},
+		OP_DROP: 		{OP_DROP, "OP_DROP", opDrop},
+		OP_DUP: 		{OP_DUP, "OP_DUP", opDup},
+		OP_NIP: 		{OP_NIP, "OP_NIP", opNip},
+		OP_OVER: 		{OP_OVER, "OP_OVER", opOver},
+		OP_PICK: 		{OP_PICK, "OP_PICK", opPick},
+		OP_ROLL: 		{OP_ROLL, "OP_ROLL", opRoll},
+		OP_ROT: 		{OP_ROT, "OP_ROT", opRot},
+		OP_SWAP: 		{OP_SWAP, "OP_SWAP", opSwap},
+		OP_TUCK: 		{OP_TUCK, "OP_TUCK", opTuck},
+		OP_CAT: 		{OP_CAT, "OP_CAT", opCat},
+		OP_SUBSTR: 		{OP_SUBSTR, "OP_SUBSTR", opSubStr},
+		OP_LEFT: 		{OP_LEFT, "OP_LEFT", opLeft},
+		OP_RIGHT: 		{OP_RIGHT, "OP_RIGHT", opRight},
+		OP_SIZE: 		{OP_SIZE, "OP_SIZE", opSize},
+
+
+		//Bitwiase logic
+		OP_INVERT: 		{OP_INVERT, "OP_INVERT", opInvert},
+		OP_AND: 		{OP_AND, "OP_AND", opAnd},
+		OP_OR: 			{OP_OR, "OP_OR", opOr},
+		OP_XOR: 		{OP_XOR, "OP_XOR", opXor},
+		OP_EQUAL: 		{OP_EQUAL, "OP_EQUAL", opEqual},
+
+
+		//Arithmetic
+		OP_1ADD: 		{OP_1ADD, "OP_1ADD", op1Add},
+		OP_1SUB: 		{OP_1SUB, "OP_1SUB", op1Sub},
+		OP_2MUL: 		{OP_2MUL, "OP_2MUL", op2Mul},
+		OP_2DIV: 		{OP_2DIV, "OP_2DIV", op2Div},
+		OP_NEGATE: 		{OP_NEGATE, "OP_NEGATE", opNegate},
+		OP_ABS: 		{OP_ABS, "OP_ABS", opAbs},
+		OP_NOT: 		{OP_NOT, "OP_NOT", opNot},
+		OP_0NOTEQUAL: 		{OP_0NOTEQUAL, "OP_0NOTEQUAL", op0NotEqual},
+		OP_ADD: 		{OP_ADD, "OP_ADD", opAdd},
+		OP_SUB: 		{OP_SUB, "OP_SUB", opSub},
+		OP_MUL: 		{OP_MUL, "OP_MUL", opMul},
+		OP_DIV: 		{OP_DIV, "OP_DIV", opDiv},
+		OP_MOD: 		{OP_MOD, "OP_MOD", opMod},
+		OP_LSHIFT: 		{OP_LSHIFT, "OP_LSHIFT", opLShift},
+		OP_RSHIFT: 		{OP_RSHIFT, "OP_RSHIFT", opRShift},
+		OP_BOOLAND: 		{OP_BOOLAND, "OP_BOOLAND", opBoolAnd},
+		OP_BOOLOR: 		{OP_BOOLOR, "OP_BOOLOR", opBoolOr},
+		OP_NUMEQUAL: 		{OP_NUMEQUAL, "OP_NUMEQUAL", opNumEqual},
+		OP_NUMNOTEQUAL: 	{OP_NUMNOTEQUAL, "OP_NUMNOTEQUAL", opNumNotEqual},
+		OP_LESSTHAN: 		{OP_LESSTHAN, "OP_LESSTHAN", opLessThan},
+		OP_GREATERTHAN:	{OP_GREATERTHAN, "OP_GREATERTHAN", opGreaterThan},
+		OP_LESSTHANOREQUAL: 	{OP_LESSTHANOREQUAL, "OP_LESSTHANOREQUAL", opLessThanOrEqual},
+		OP_GREATERTHANOREQUAL:{OP_GREATERTHANOREQUAL, "OP_GREATERTHANOREQUAL", opGreaterThanOrEqual},
+		OP_MIN:			{OP_MIN, "OP_MIN", opMin},
+		OP_MAX:			{OP_MAX, "OP_MAX", opMax},
+		OP_WITHIN:		{OP_WITHIN, "OP_WITHIN", opWithIn},
+
+
+		//Crypto
+		OP_SHA1:		{OP_SHA1, "OP_SHA1", opSha1},
+		OP_SHA256:		{OP_SHA256, "OP_SHA256", opSha256},
+		OP_HASH160:		{OP_HASH160, "OP_HASH160", opHash160},
+		OP_HASH256:		{OP_HASH256, "OP_HASH256", opHash256},
+		OP_CHECKSIG:		{OP_CHECKSIG, "OP_CHECKSIG", opCheckSig},
+		OP_CHECKMULTISIG:	{OP_CHECKMULTISIG, "OP_CHECKMULTISIG", opCheckMultiSig},
+
+
+		//Array
+		OP_ARRAYSIZE:		{OP_ARRAYSIZE, "OP_ARRAYSIZE", opArraySize},
+		OP_PACK:		{OP_PACK, "OP_PACK", opPack},
+		OP_UNPACK:		{OP_UNPACK, "OP_UNPACK", opUnpack},
+		OP_DISTINCT:		{OP_DISTINCT, "OP_DISTINCT", opDistinct},
+		OP_SORT:		{OP_SORT, "OP_SORT", opSort},
+		OP_REVERSE:		{OP_REVERSE, "OP_REVERSE", opReverse},
+		OP_CONCAT:		{OP_CONCAT, "OP_CONCAT", opConcat},
+		OP_UNION:		{OP_UNION, "OP_UNION", opUnion},
+		OP_INTERSECT:		{OP_INTERSECT, "OP_INTERSECT", opIntersect},
+		OP_EXCEPT:		{OP_EXCEPT, "OP_EXCEPT", opExcept},
+		OP_TAKE:		{OP_TAKE, "OP_TAKE", opTake},
+		OP_SKIP:		{OP_SKIP, "OP_SKIP", opSkip},
+		OP_PICKITEM:		{OP_PICKITEM, "OP_PICKITEM", opPickItem},
+		OP_ALL:			{OP_ALL, "OP_ALL", opAll},
+		OP_ANY:			{OP_ANY, "OP_ANY", opAny},
+		OP_SUM:			{OP_SUM, "OP_SUM", opSum},
+		OP_AVERAGE:		{OP_AVERAGE, "OP_AVERAGE", opAverage},
+		OP_MAXITEM:		{OP_MAXITEM, "OP_MAXITEM", opMaxItem},
+		OP_MINITEM:		{OP_MINITEM, "OP_MINITEM", opMinItem},
+
+	}
+)
 

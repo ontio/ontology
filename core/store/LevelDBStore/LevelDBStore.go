@@ -12,6 +12,7 @@ import (
 	"fmt"
 	tx "GoOnchain/core/transaction"
 	. "GoOnchain/common"
+	. "GoOnchain/errors"
 )
 
 type LevelDBStore struct {
@@ -130,10 +131,32 @@ func (bd *LevelDBStore) IsDoubleSpend( tx tx.Transaction ) bool {
 }
 
 func (bd *LevelDBStore) GetBlockHash(height uint32) (Uint256, error) {
-	// TODO: GetBlockHash
-	x := new(Uint256)
 
-	return *x, nil
+	if ( height >= 0 ) {
+		querykey := bytes.NewBuffer(nil)
+		querykey.WriteByte(byte(DATA_BlockHash))
+		err := serialization.WriteUint32(querykey, height)
+
+		if err == nil {
+			blockhash, err_get := bd.Get(querykey.Bytes())
+			if ( err_get != nil ) {
+				//TODO: implement error process
+				return Uint256{}, err_get
+			} else {
+				blockhash256, err_parse := Uint256ParseFromBytes(blockhash)
+				if err_parse == nil {
+					return blockhash256, nil
+				} else {
+					return Uint256{}, err_parse
+				}
+
+			}
+		} else {
+			return Uint256{}, err
+		}
+	} else {
+		return Uint256{}, NewDetailErr(errors.New("[LevelDB]: GetBlockHash error param height < 0."), ErrNoCode, "")
+	}
 }
 
 func (bd *LevelDBStore) GetCurrentBlockHash() Uint256 {
@@ -154,22 +177,44 @@ func (bd *LevelDBStore) GetContract(hash []byte) ([]byte, error) {
 }
 
 func (bd *LevelDBStore) SaveHeader(header *Header) error {
-	w := bytes.NewBuffer(nil)
-	header.Serialize(w)
 
-	// generate key
+	//////////////////////////////////////////////////////////////
+	// generate key with DATA_Header prefix
 	headerkey := bytes.NewBuffer(nil)
 	// add header prefix.
 	headerkey.WriteByte( byte(DATA_Header) )
-	// contact asset id
+	// contact block hash
 	blockhash := header.Blockdata.Hash()
 	blockhash.Serialize(headerkey)
 
 	fmt.Printf( "header key: %x\n",  headerkey )
+
+	// generate value
+	w := bytes.NewBuffer(nil)
+	header.Serialize(w)
 	fmt.Printf( "header data: %x\n",  w )
 
 	// PUT VALUE
 	err := bd.Put( headerkey.Bytes(), w.Bytes() )
+	if ( err != nil ){
+		return err
+	}
+
+	//////////////////////////////////////////////////////////////
+	// generate key with DATA_BlockHash prefix
+	bhash := bytes.NewBuffer(nil)
+	bhash.WriteByte( byte(DATA_BlockHash) )
+	err = serialization.WriteUint32( bhash, header.Blockdata.Height )
+	fmt.Printf( "DATA_BlockHash table key: %x\n",  bhash )
+
+	// generate value
+	hashwriter := bytes.NewBuffer(nil)
+	hashvalue := header.Blockdata.Hash()
+	hashvalue.Serialize(hashwriter)
+	fmt.Printf( "DATA_BlockHash table value: %x\n",  hashvalue )
+
+	// PUT VALUE
+	err = bd.Put( bhash.Bytes(), hashwriter.Bytes() )
 	if ( err != nil ){
 		return err
 	}
@@ -264,16 +309,24 @@ func (bd *LevelDBStore) GetNextBlockHash(hash []byte) common.Uint256 {
 */
 
 func (bd *LevelDBStore) GetTransaction(hash Uint256) (*tx.Transaction, error) {
+
 	fmt.Printf( "GetTransaction Hash: %x\n",  hash )
 
 	t := new(tx.Transaction)
+	err := bd.getTx( t, hash )
+
+	return t,err
+}
+
+func (bd *LevelDBStore) getTx(tx *tx.Transaction, hash Uint256) error {
+	fmt.Printf( "getTx Hash: %x\n",  hash )
 
 	prefix := []byte{ byte(DATA_Transaction) }
 	tHash,err_get := bd.Get( append(prefix,hash.ToArray()...) )
-	fmt.Printf( "GetTransaction Data: %x\n",  tHash )
+	fmt.Printf( "getTx Data: %x\n",  tHash )
 	if ( err_get != nil ) {
 		//TODO: implement error process
-		return nil,err_get
+		return err_get
 	}
 
 	r := bytes.NewReader(tHash)
@@ -283,27 +336,27 @@ func (bd *LevelDBStore) GetTransaction(hash Uint256) (*tx.Transaction, error) {
 	fmt.Printf( "tx height: %d\n",  height )
 
 	// Deserialize Transaction
-	t.Deserialize(r)
+	tx.Deserialize(r)
 
-	return t,err
+	return err
 }
 
 func (bd *LevelDBStore) SaveTransaction(tx *tx.Transaction,height uint32) error {
-	w := bytes.NewBuffer(nil)
 
-	// generate value
-	serialization.WriteUint32(w, height)
-	tx.Serialize(w)
-
-	// generate key
+	//////////////////////////////////////////////////////////////
+	// generate key with DATA_Transaction prefix
 	txhash := bytes.NewBuffer(nil)
 	// add transaction header prefix.
 	txhash.WriteByte( byte(DATA_Transaction) )
 	// get transaction hash
 	txHashValue := tx.Hash()
 	txHashValue.Serialize(txhash)
-
 	fmt.Printf( "transaction header + hash: %x\n",  txhash )
+
+	// generate value
+	w := bytes.NewBuffer(nil)
+	serialization.WriteUint32(w, height)
+	tx.Serialize(w)
 	fmt.Printf( "transaction tx data: %x\n",  w )
 
 	// put value
@@ -341,29 +394,29 @@ func (bd *LevelDBStore) GetBlock(hash Uint256) (*Block, error) {
 
 	// Deserialize transaction
 	for i:=0; i<len(b.Transcations); i++ {
-		bd.GetTransaction(b.Transcations[i].Hash())
+		bd.getTx(b.Transcations[i], b.Transcations[i].Hash())
 	}
 
 	return b, err
 }
 
 func (bd *LevelDBStore) SaveBlock(b *Block) error {
-	w := bytes.NewBuffer(nil)
 
-	// generate value
-	var sysfee uint64 = 0xFFFFFFFFFFFFFFFF
-	serialization.WriteUint64(w, sysfee)
-	b.Serialize(w)
-
-	// generate key
+	//////////////////////////////////////////////////////////////
+	// generate key with DATA_Header prefix
 	bhhash := bytes.NewBuffer(nil)
 	// add block header prefix.
 	bhhash.WriteByte( byte(DATA_Header) )
 	// calc block hash
 	blockhash := b.Hash()
 	blockhash.Serialize(bhhash)
-
 	fmt.Printf( "block header + hash: %x\n",  bhhash )
+
+	// generate value
+	w := bytes.NewBuffer(nil)
+	var sysfee uint64 = 0xFFFFFFFFFFFFFFFF
+	serialization.WriteUint64(w, sysfee)
+	b.Serialize(w)
 
 	// PUT VALUE
 	err := bd.Put( bhhash.Bytes(), w.Bytes() )
@@ -371,6 +424,26 @@ func (bd *LevelDBStore) SaveBlock(b *Block) error {
 		return err
 	}
 
+	//////////////////////////////////////////////////////////////
+	// generate key with DATA_BlockHash prefix
+	bhash := bytes.NewBuffer(nil)
+	bhash.WriteByte( byte(DATA_BlockHash) )
+	err = serialization.WriteUint32( bhash, b.Blockdata.Height )
+	fmt.Printf( "DATA_BlockHash table key: %x\n",  bhash )
+
+	// generate value
+	hashwriter := bytes.NewBuffer(nil)
+	hashvalue := b.Blockdata.Hash()
+	hashvalue.Serialize(hashwriter)
+	fmt.Printf( "DATA_BlockHash table value: %x\n",  hashvalue )
+
+	// PUT VALUE
+	err = bd.Put( bhash.Bytes(), hashwriter.Bytes() )
+	if ( err != nil ){
+		return err
+	}
+
+	//////////////////////////////////////////////////////////////
 	// save transcations to leveldb
 	nLen := len(b.Transcations)
 	for i:=0; i<nLen; i++{
@@ -390,8 +463,4 @@ func (bd *LevelDBStore) SaveBlock(b *Block) error {
 	}
 
 	return nil
-}
-
-func (bd *LevelDBStore) GetLocalBlockChainHeight() (uint32,error) {
-	return 0,nil
 }

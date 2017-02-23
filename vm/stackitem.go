@@ -227,6 +227,11 @@ func (si *StackItem) GetBoolArray() []bool {
 	return bools
 }
 
+func (si *StackItem) GetBool() bool {
+	flag := si.array[0].(bool)
+	return flag
+}
+
 func (si *StackItem) ToBool() bool {
 	return AsBool(si.array[0])
 }

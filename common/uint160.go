@@ -7,8 +7,8 @@ import (
 	"crypto/sha256"
 	"math/big"
 	"golang.org/x/crypto/base58"
+	."GoOnchain/errors"
 	"errors"
-	. "GoOnchain/errors"
 )
 
 type Uint160 [20]uint8
@@ -30,8 +30,8 @@ func (u *Uint160) CompareTo( o Uint160 ) int {
 }
 
 func (u *Uint160) ToArray() []byte {
-	var x []byte = make([]byte,32)
-	for i:=0; i<32; i++ {
+	var x []byte = make([]byte,20)
+	for i:=0; i<20; i++ {
 		x[i] = byte(u[i])
 	}
 
@@ -82,8 +82,9 @@ func (f *Uint160) ToAddress() string {
 
 func Uint160ParseFromBytes(f []byte) (Uint160,error){
 	if ( len(f) != 20 ) {
-		return Uint160{},NewDetailErr(errors.New("[Uint160] , tryParseFromBytes err."), ErrNoCode, "");
+		return Uint160{},NewDetailErr(errors.New("[Common]: Uint160ParseFromBytes err, len != 20"), ErrNoCode, "");
 	}
+
 	var hash [20]uint8
 	for i:=0; i<20; i++ {
 		hash[i] = f[i]

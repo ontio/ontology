@@ -5,6 +5,7 @@ type DataEntryPrefix byte
 
 const (
 	// DATA
+	DATA_BlockHash		DataEntryPrefix = 0x00
 	DATA_Header 		DataEntryPrefix = 0x01
 	DATA_Transaction 	DataEntryPrefix = 0x02
 	DATA_Contract 		DataEntryPrefix = 0x03

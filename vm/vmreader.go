@@ -17,15 +17,16 @@ func NewVmReader(b []byte) *VmReader {
 	return &vmreader
 }
 
-func (r *VmReader) ReadByte() byte {
-	byte, _ := r.reader.ReadByte()
-	return byte
+func (r *VmReader) ReadByte() (byte,error) {
+	byte, err := r.reader.ReadByte()
+	return byte,err
 }
 
 func (r *VmReader) ReadBytes(count int) []byte {
 	var bytes []byte
 	for i := 0; i < count; i++ {
-		bytes = append(bytes, r.ReadByte())
+		d,_ := r.ReadByte()
+		bytes = append(bytes, d)
 	}
 	return bytes
 }
@@ -84,7 +85,7 @@ func (r *VmReader) ReadVarBytes(max int) []byte {
 
 func (r *VmReader) ReadVarInt(max uint64) uint64 {
 
-	fb := r.ReadByte()
+	fb,_ := r.ReadByte()
 	var value uint64
 
 	switch fb {
