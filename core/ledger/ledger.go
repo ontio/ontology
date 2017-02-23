@@ -72,10 +72,6 @@ func (l *Ledger) GetTransactionWithHash(hash Uint256) (*tx.Transaction, error) {
 	return tx, nil
 }
 
-func (l *Ledger) GetLocalBlockChainHeight() ( uint32, error) {
-	height,err := l.Store.GetLocalBlockChainHeight()
-	if err !=nil{
-		return 0,NewDetailErr(err, ErrNoCode, "[Ledger],GetLocalBlockChainHeight failed")
-	}
-	return  height,nil
+func (l *Ledger) GetLocalBlockChainHeight() uint32{
+	return l.Blockchain.BlockHeight
 }

@@ -45,7 +45,7 @@ func NewVersion(n Noder) ([]byte, error) {
 	fmt.Printf("The nonce is 0x%x", msg.P.Nonce)
 	msg.P.UserAgent = 0x00
 	// Fixme Get the block height from ledger
-	msg.P.StartHeight, _ = n.GetLedger().GetLocalBlockChainHeight()
+	msg.P.StartHeight = n.GetLedger().GetLocalBlockChainHeight()
 	if n.GetRelay() {
 		msg.P.Relay = 1
 	} else {

@@ -13,7 +13,6 @@ type ILedgerStore interface {
 	GetBlock(hash Uint256) (*Block, error)
 	GetBlockHash(height uint32) (Uint256, error)
 	InitLedgerStore(ledger *Ledger) error
-	GetLocalBlockChainHeight() (uint32,error)
 
 	SaveHeader(header *Header) error
 	GetHeader(hash Uint256) (*Header, error)

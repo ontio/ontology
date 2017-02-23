@@ -47,5 +47,10 @@ func VerifyBlockData(bd *ledger.Blockdata, ledger *ledger.Ledger) error {
 		return  errors.New("block timestamp is incorrect.")
 	}
 
-	return VerifySignableData(bd)
+	flag,err := VerifySignableData(bd)
+	if ( flag && err == nil ) {
+		return nil
+	} else {
+		return err
+	}
 }

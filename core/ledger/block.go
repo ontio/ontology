@@ -105,7 +105,7 @@ func GenesisBlockInit() *Block{
 	genesisBlockdata.Version = uint32(0x00)
 	genesisBlockdata.PrevBlockHash = Uint256{}
 	genesisBlockdata.TransactionsRoot = Uint256{}
-	tm := time.Now()
+	tm:=time.Date(2017, time.February, 23, 0, 0, 0, 0, time.UTC)
 	genesisBlockdata.Timestamp = uint32(tm.Unix())
 	genesisBlockdata.Height = uint32(0)
 	genesisBlockdata.ConsensusData = uint64(2083236893)
