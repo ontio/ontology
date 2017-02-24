@@ -50,11 +50,11 @@ type node struct {
 	eventQueue // The event queue to notice notice other modules
 	TXNPool    // Unconfirmed transaction pool
 	idCache    // The buffer to store the id of the items which already be processed
-	ledger  *ledger.Ledger	// The Local ledger 
+	ledger  *ledger.Ledger	// The Local ledger
 	private *uint // Reserver for future using
 }
 
-func (node node) dumpInfo() {
+func (node node) DumpInfo() {
 	fmt.Printf("Node info:\n")
 	fmt.Printf("\t state = %d\n", node.state)
 	fmt.Printf("\t id = %s\n", node.id)
@@ -66,6 +66,23 @@ func (node node) dumpInfo() {
 	fmt.Printf("\t services = %d\n", node.services)
 	fmt.Printf("\t port = %d\n", node.port)
 	fmt.Printf("\t relay = %v\n", node.relay)
+	fmt.Printf("\t height = %v\n", node.height)
+}
+
+func (node *node) UpdateInfo(t time.Time, version uint32, services uint64,
+	port uint16, nonce uint32, relay uint8, height uint32) {
+	// TODO need lock
+	node.UpdateTime(t)
+	node.nonce = nonce
+	node.version = version
+	node.services = services
+	node.port = port
+	if (relay == 0) {
+		node.relay = false
+	} else {
+		node.relay = true
+	}
+	node.height = uint64(height)
 }
 
 func NewNode() *node {

@@ -60,6 +60,10 @@ type Noder interface {
 	AppendTxnPool(*transaction.Transaction) bool
 	ExistedID(id common.Uint256) bool
 	ReqNeighborList()
+	DumpInfo()
+	UpdateInfo(t time.Time, version uint32, services uint64,
+	port uint16, nonce uint32, relay uint8, height uint32)
+
 	//GetTxn(common.Uint256) transaction.Transaction
 	Connect(nodeAddr string)
 	//Xmit(inv Inventory) error // The transmit interface

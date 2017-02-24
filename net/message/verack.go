@@ -80,11 +80,9 @@ func (msg verACK) Handle(node Noder) error {
 			node.SetState(ESTABLISH)
 		}
 	}
-
-	fmt.Printf("Node %s state is %d\n", node.GetID(), node.GetState())
 	// TODO update other node info
 	node.UpdateTime(t)
-
+	node.DumpInfo()
 	if node.GetState() == ESTABLISH {
 		node.ReqNeighborList()
 	}

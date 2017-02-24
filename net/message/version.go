@@ -152,7 +152,8 @@ func (msg version) Handle(node Noder) error {
 
 	// TODO Update other node information
 	fmt.Printf("Node %s state is %d", node.GetID(), node.GetState())
-	node.UpdateTime(t)
+	node.UpdateInfo(t, msg.P.Version, msg.P.Services, msg.P.Port, msg.P.Nonce,
+		msg.P.Relay, msg.P.StartHeight)
 
 	return nil
 }
