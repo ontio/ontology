@@ -249,7 +249,6 @@ func deCompress(yTilde int, xValue []byte, curve *elliptic.CurveParams) (*PubKey
 }
 
 // DecodePoint is used for restoring the PublicKey
-// fix me: when the value of encodeData[0] is 0x00, should it return an err?
 func DecodePoint(encodeData []byte) (*PubKey, error) {
 	if nil == encodeData {
 		return nil, NewDetailErr(errors.New("The encodeData cann't be nil"), ErrNoCode, "")
@@ -259,7 +258,7 @@ func DecodePoint(encodeData []byte) (*PubKey, error) {
 
 	switch encodeData[0] {
 	case 0x00:
-		return nil, NewDetailErr(errors.New("The encodeData format is error"), ErrNoCode, "")
+		return &PubKey{nil, nil}, nil
 
 	case 0x02, 0x03: //compressed
 		if len(encodeData) != expectedLength+1 {
@@ -285,11 +284,11 @@ func DecodePoint(encodeData []byte) (*PubKey, error) {
 }
 
 // EncodePoint is used for compressing PublicKey for less space used as same as which in bitcoin.
-// fix me: when the point is Infinity, should it return an err?
 func (e *PubKey) EncodePoint(isCommpressed bool) ([]byte, error) {
 	//if X is infinity, then Y cann't be computed, so here used "||"
 	if nil == e.X || nil == e.Y {
-		return nil, NewDetailErr(errors.New("The PubKey is an infinity point"), ErrNoCode, "")
+		infinity := make([]byte, 1)
+		return infinity, nil
 	}
 
 	var encodedData []byte
