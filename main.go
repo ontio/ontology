@@ -10,7 +10,6 @@ import (
 	"GoOnchain/core/ledger"
 	"GoOnchain/core/transaction"
 	"GoOnchain/core/store"
-	"GoOnchain/crypto"
 	"GoOnchain/client"
 )
 
@@ -34,7 +33,6 @@ func main() {
 	ledger.DefaultLedger.Store = store.NewLedgerStore()
 	ledger.DefaultLedger.Store.InitLedgerStore(ledger.DefaultLedger)
 	transaction.TxStore =ledger.DefaultLedger.Store
-	crypto.Init()
 	fmt.Println("  Client set completed. Test Start...")
 
 	fmt.Println("//**************************************************************************")
