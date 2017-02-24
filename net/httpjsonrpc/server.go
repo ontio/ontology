@@ -324,7 +324,7 @@ func StartServer() {
 	HandleFunc("getrawtransaction", getRawTransaction)
 	HandleFunc("submitblock", submitBlock)
 
-	err := http.ListenAndServe("localhost:" + strconv.Itoa(HTTPJSONPORT), nil)
+	err := http.ListenAndServe(":" + strconv.Itoa(HTTPJSONPORT), nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err.Error())
 	}

@@ -48,7 +48,7 @@ func StartClient() {
 	common.Trace()
 
 	// Call the get info
-	res, err = Call("http://127.0.0.1:20332", "getinfo", 1, []interface{}{})
+	res, err = Call("http://127.0.0.1:20337", "getinfo", 1, []interface{}{})
 	if err != nil {
 		log.Fatalf("Err: %v", err)
 	}
@@ -56,10 +56,9 @@ func StartClient() {
 
 	// call send to address
 	params := []interface{}{"asset_id", "address", 56}
-	res, err = Call("http://127.0.0.1:20332", "sendtoaddress", 2, params)
+	res, err = Call("http://127.0.0.1:20337", "sendtoaddress", 2, params)
 	if err != nil {
 		log.Fatalf("Err: %v", err)
 	}
 	log.Println(res)
-
 }
