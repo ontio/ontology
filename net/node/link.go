@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"strconv"
 	"time"
 )
@@ -92,9 +93,20 @@ disconnect:
 	return err
 }
 
+func printIPAddr() {
+	host, _ := os.Hostname()
+	addrs, _ := net.LookupIP(host)
+	for _, addr := range addrs {
+		if ipv4 := addr.To4(); ipv4 != nil {
+			fmt.Println("IPv4: ", ipv4)
+		}
+	}
+}
+
 // Init the server port, should be run in another thread
 func (n *node) initConnection() {
-	listener, err := net.Listen("tcp", "localhost:"+strconv.Itoa(NODETESTPORT))
+	common.Trace()
+	listener, err := net.Listen("tcp", ":"+strconv.Itoa(NODETESTPORT))
 	if err != nil {
 		fmt.Println("Error listening\n", err.Error())
 		return
