@@ -153,5 +153,6 @@ func (bd *Blockdata) Hash() Uint256 {
 }
 
 func (bd *Blockdata) GetMessage() []byte {
-	return sig.GetHashData(bd)
+	//return sig.GetHashData(bd)
+	return  sig.GetHashForSigning(bd)
 }

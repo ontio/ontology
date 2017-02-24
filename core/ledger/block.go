@@ -98,7 +98,7 @@ func (b *Block) Type() InventoryType {
 	return BLOCK
 }
 
-func GenesisBlockInit() *Block{
+func GenesisBlockInit() (*Block,error){
 	genesisBlock := new(Block)
 	//blockdata
 	genesisBlockdata := new(Blockdata)
@@ -109,6 +109,11 @@ func GenesisBlockInit() *Block{
 	genesisBlockdata.Timestamp = uint32(tm.Unix())
 	genesisBlockdata.Height = uint32(0)
 	genesisBlockdata.ConsensusData = uint64(2083236893)
+	nextMiner,err :=GetMinerAddress(StandbyMiners)
+	if err != nil{
+		return nil,NewDetailErr(err, ErrNoCode, "[Block],GenesisBlockInit err with GetMinerAddress")
+	}
+	genesisBlockdata.NextMiner = nextMiner
 
 	pg := new(program.Program)
 	pg.Code = []byte{'0'}
@@ -141,8 +146,21 @@ func GenesisBlockInit() *Block{
 	Transcations = append(Transcations, trans)
 	genesisBlock.Transcations = Transcations
 
-	hashx := genesisBlock.Hash()
-	genesisBlock.hash = &hashx
+	//hashx := genesisBlock.Hash()
 
-	return genesisBlock
+	return genesisBlock,nil
+}
+func (b *Block)RebuildMerkleRoot()(error){
+	txs := b.Transcations
+	transactionHashes := []Uint256{}
+	for _, tx :=  range txs{
+		transactionHashes = append(transactionHashes,tx.Hash())
+	}
+	hash,err := crypto.ComputeRoot(transactionHashes)
+	if err!=nil{
+		return NewDetailErr(err, ErrNoCode, "[Block] , RebuildMerkleRoot ComputeRoot failed.")
+	}
+	b.Blockdata.TransactionsRoot =hash
+	return nil
+
 }

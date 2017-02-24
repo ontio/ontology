@@ -28,11 +28,17 @@ func NewBlockchain() *Blockchain {
 	}
 }
 
-func NewBlockchainWithGenesisBlock() *Blockchain {
+func NewBlockchainWithGenesisBlock() (*Blockchain,error) {
 	blockchain := NewBlockchain()
-	blockchain.AddBlock(GenesisBlockInit())
-
-	return blockchain
+	genesisBlock,err:=GenesisBlockInit()
+	if err != nil{
+		return nil,NewDetailErr(err, ErrNoCode, "[Blockchain], NewBlockchainWithGenesisBlock failed.")
+	}
+	genesisBlock.RebuildMerkleRoot()
+	hashx :=genesisBlock.Hash()
+	genesisBlock.hash = &hashx
+	blockchain.AddBlock(genesisBlock)
+	return blockchain,nil
 }
 
 func (bc *Blockchain) AddBlock(block *Block) error {

@@ -7,9 +7,12 @@ import (
 	. "GoOnchain/errors"
 	"errors"
 	"GoOnchain/core/asset"
+	"GoOnchain/core/contract"
+	"GoOnchain/common"
 )
 
 var DefaultLedger *Ledger
+var StandbyMiners []*crypto.PubKey
 
 // Ledger - the struct for onchainDNA ledger
 type Ledger struct {
@@ -31,9 +34,32 @@ func GetDefaultLedger() (*Ledger, error) {
 	return DefaultLedger, nil
 }
 
-func GetMinerAddress(miners []*crypto.PubKey) Uint160 {
+func GetMinerAddress(miners []*crypto.PubKey) (Uint160,error) {
 	//TODO: GetMinerAddress()
-	return Uint160{}
+	//return Uint160{}
+	//CreateSignatureRedeemScript
+	if len(miners) < 1 {
+		return Uint160{}, NewDetailErr(errors.New("[Ledger] , GetMinerAddress with no miner"), ErrNoCode, "")
+	}
+	var temp []byte
+	var err error
+	if len(miners) > 1 {
+		temp, err = contract.CreateMultiSigRedeemScript(len(miners) - (len(miners) - 1) / 3, miners)
+		if err != nil {
+			return Uint160{}, NewDetailErr(err, ErrNoCode, "[Ledger],GetMinerAddress failed with CreateMultiSigRedeemScript.")
+		}
+	} else {
+		temp, err = contract.CreateSignatureRedeemScript(miners[0])
+		if err != nil {
+			return Uint160{}, NewDetailErr(err, ErrNoCode, "[Ledger],GetMinerAddress failed with CreateMultiSigRedeemScript.")
+		}
+	}
+	codehash ,err:=common.ToCodeHash(temp)
+	if err != nil{
+		return Uint160{},NewDetailErr(err, ErrNoCode, "[Ledger],GetMinerAddress failed with ToCodeHash.")
+	}
+	return codehash,nil
+	//return Contract.CreateMultiSigRedeemScript(miners.Length - (miners.Length - 1) / 3, miners).ToScriptHash();
 }
 
 func (l *Ledger) GetAsset(assetId Uint256) (*asset.Asset,error) {
