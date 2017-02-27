@@ -249,20 +249,31 @@ func (node node) GetTime() int64 {
 	return t.UnixNano()
 }
 
+func (node node) getNbrNum() uint {
+	var i uint
+	for _, n := range node.local.neighb.List {
+		if n.GetState() == ESTABLISH {
+			i++
+		}
+	}
+	return i
+}
+
 func (node node) GetNeighborAddrs() ([]NodeAddr, uint64) {
-	var addrstr []NodeAddr
-	var i uint64 = 0
+	var i uint64
+
+	cnt := node.getNbrNum()
+	addrs := make([]NodeAddr, cnt)
 	// TODO read lock
 	for _, n := range node.local.neighb.List {
-		s := node.GetState()
-		if s == ESTABLISH {
-			addrstr[i].IpAddr = n.GetAddress()
-			addrstr[i].Time = n.GetTime()
-			addrstr[i].Services = n.Services()
-			addrstr[i].Port = n.GetPort()
+		if n.GetState() == ESTABLISH {
+			addrs[i].IpAddr = n.GetAddress()
+			addrs[i].Time = n.GetTime()
+			addrs[i].Services = n.Services()
+			addrs[i].Port = n.GetPort()
 
 			i++
 		}
 	}
-	return addrstr, i
+	return addrs, i
 }
