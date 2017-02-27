@@ -33,7 +33,7 @@ type DbftService struct {
 	blockReceivedTime time.Time
 	logDictionary string
 	started bool
-	localNet *net.Net
+	localNet net.Neter
 
 	newInventorySubscriber events.Subscriber
 	blockPersistCompletedSubscriber events.Subscriber
@@ -66,12 +66,19 @@ func (ds *DbftService) AddTransaction(TX *tx.Transaction) error{
 
 		//Get Miner list
 		txlist := ds.context.GetTransactionList()
-		minerAddress := ledger.GetMinerAddress(ledger.DefaultLedger.Blockchain.GetMinersByTXs(txlist))
+		minerAddress,err := ledger.GetMinerAddress(ledger.DefaultLedger.Blockchain.GetMinersByTXs(txlist))
+		if err != nil {
+			return NewDetailErr(err,ErrNoCode,"[DbftService] ,GetMinerAddress failed")
+		}
 
 		if minerAddress == ds.context.NextMiner{
 			con.Log("send perpare response")
 			ds.context.State |= SignatureSent
-			sig.SignBySigner(ds.context.MakeHeader(),ds.Client.GetAccount(ds.context.Miners[ds.context.MinerIndex]))
+			miner,err:=ds.Client.GetAccount(ds.context.Miners[ds.context.MinerIndex])
+			if err != nil {
+				return NewDetailErr(err,ErrNoCode,"[DbftService] ,GetAccount failed.")
+			}
+			sig.SignBySigner(ds.context.MakeHeader(),miner)
 			ds.SignAndRelay(ds.context.MakePerpareResponse(ds.context.Signatures[ds.context.MinerIndex]))
 			ds.CheckSignatures()
 		} else {
@@ -90,7 +97,15 @@ func (ds *DbftService) BlockPersistCompleted(v interface{}){
 func (ds *DbftService) CheckSignatures() error{
 
 	if ds.context.GetSignaturesCount() >= ds.context.M() && ds.context.CheckTxHashesExist() {
-		contract,err := ct.CreateMultiSigContract(ToCodeHash(ds.context.Miners[ds.context.MinerIndex].EncodePoint(true)),ds.context.M(),ds.context.Miners)
+		ep , err := ds.context.Miners[ds.context.MinerIndex].EncodePoint(true)
+		if err != nil {
+			return NewDetailErr(err,ErrNoCode,"[DbftService] ,EncodePoint failed")
+		}
+		codehash ,err := ToCodeHash(ep)
+		if err != nil {
+			return NewDetailErr(err,ErrNoCode,"[DbftService] ,ToCodeHash failed")
+		}
+		contract,err := ct.CreateMultiSigContract(codehash,ds.context.M(),ds.context.Miners)
 		if err != nil{
 			return err
 		}
@@ -110,7 +125,7 @@ func (ds *DbftService) CheckSignatures() error{
 
 		con.Log(fmt.Sprintf("relay block: %s", block.Hash()))
 
-		if err := ds.localNet.Relay(block); err != nil{
+		if err := ds.localNet.Xmit(block); err != nil{
 			con.Log(fmt.Sprintf("reject block: %s", block.Hash()))
 		}
 
@@ -122,7 +137,7 @@ func (ds *DbftService) CheckSignatures() error{
 
 func (ds *DbftService) CreateBookkeepingTransaction(txs map[Uint256]*tx.Transaction,nonce uint64) *tx.Transaction {
 	return &tx.Transaction{
-		TxType: tx.Bookkeeping,
+		TxType: tx.BookKeeping,
 	}
 }
 
@@ -152,7 +167,6 @@ func (ds *DbftService) CheckPolicy(transaction *tx.Transaction) error{
 
 	return nil
 }
-
 
 func (ds *DbftService) Halt() error  {
 	if ds.timer != nil {
@@ -201,13 +215,13 @@ func (ds *DbftService) InitializeConsensus(viewNum byte) error  {
 }
 
 func (ds *DbftService) LocalNodeNewInventory(v interface{}){
-	if inventory,ok := v.(msg.Inventory);ok {
-		if inventory.Type() == msg.Consensus {
+	if inventory,ok := v.(Inventory);ok {
+		if inventory.Type() == CONSENSUS {
 			payload, isConsensusPayload := inventory.(*msg.ConsensusPayload)
 			if isConsensusPayload {
 				ds.NewConsensusPayload(payload)
 			}
-		} else if inventory.Type() == msg.Transaction  {
+		} else if inventory.Type() == TRANSACTION  {
 			transaction, isTransaction := inventory.(*tx.Transaction)
 			if isTransaction{
 				ds.NewTransactionPayload(transaction)
@@ -279,8 +293,12 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload,mess
 	}
 
 	if uint32(payload.MinerIndex) != ds.context.PrimaryIndex {return }
-
-	prevBlockTimestamp := ledger.DefaultLedger.Blockchain.GetHeader(ds.context.PrevHash).Blockdata.Timestamp
+	header,_ := ledger.DefaultLedger.Blockchain.GetHeader(ds.context.PrevHash)
+	/*
+	* TODO Add Error Catch
+	* 2017/2/27 luodanwg
+	* */
+	prevBlockTimestamp := header.Blockdata.Timestamp
 	if payload.Timestamp <= prevBlockTimestamp || payload.Timestamp > uint32(time.Now().Add(time.Minute*10).Unix()){
 		con.Log(fmt.Sprintf("Timestamp incorrect: %d",payload.Timestamp))
 		return
@@ -356,7 +374,7 @@ func (ds *DbftService) SignAndRelay(payload *msg.ConsensusPayload){
 
 	ds.Client.Sign(ctCxt)
 	ctCxt.Data.SetPrograms(ctCxt.GetPrograms())
-	ds.localNet.Relay(payload)
+	ds.localNet.Xmit(payload)
 }
 
 func (ds *DbftService) Start() error  {
@@ -388,7 +406,12 @@ func (ds *DbftService) Timeout() {
 
 			//set context Timestamp
 			now := uint32(time.Now().Unix())
-			blockTime := ledger.DefaultLedger.Blockchain.GetHeader(ds.context.PrevHash).Blockdata.Timestamp
+			header,_:= ledger.DefaultLedger.Blockchain.GetHeader(ds.context.PrevHash)
+			/*
+			* TODO Error Catch
+			* 2017/2/27 luodanwg
+			* */
+			blockTime := header.Blockdata.Timestamp
 
 			if blockTime > now {
 				ds.context.Timestamp = blockTime
@@ -411,11 +434,22 @@ func (ds *DbftService) Timeout() {
 			ds.context.Transactions = transactions
 
 			txlist := ds.context.GetTransactionList()
-			ds.context.NextMiner = ledger.GetMinerAddress(ledger.DefaultLedger.Blockchain.GetMinersByTXs(txlist))
-
+			ds.context.NextMiner,_= ledger.GetMinerAddress(ledger.DefaultLedger.Blockchain.GetMinersByTXs(txlist))
+			/*
+			* TODO  add error catch
+			* 2017/2/27 luodanwg
+			* */
 			block := ds.context.MakeHeader()
-			account := ds.Client.GetAccount(ds.context.Miners[ds.context.MinerIndex])
-			ds.context.Signatures[ds.context.MinerIndex] = sig.SignBySigner(block,account)
+			account,_:= ds.Client.GetAccount(ds.context.Miners[ds.context.MinerIndex])
+			/*
+			* TODO add error catch
+			* 2017/2/27 luodanwg
+			* */
+			ds.context.Signatures[ds.context.MinerIndex],_ = sig.SignBySigner(block,account)
+			/*
+			* TODO add error catch
+			* 2017/2/27 luodanwg
+			* */
 		}
 		ds.SignAndRelay(ds.context.MakePrepareRequest())
 		time.AfterFunc(SecondsPerBlock << (ds.timeView + 1), ds.Timeout)

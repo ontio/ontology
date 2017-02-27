@@ -18,7 +18,7 @@ type SerializableData interface {
 	Serialize(w io.Writer)
 
 	//read data to reader
-	Deserialize(r io.Reader)
+	Deserialize(r io.Reader) error
 }
 
 func WriteDataList(w io.Writer, list []SerializableData) error {
