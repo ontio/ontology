@@ -249,7 +249,7 @@ func (node node) GetTime() int64 {
 	return t.UnixNano()
 }
 
-func (node node) GetAddrs() ([]NodeAddr, uint64) {
+func (node node) GetNeighborAddrs() ([]NodeAddr, uint64) {
 	var addrstr []NodeAddr
 	var i uint64 = 0
 	// TODO read lock

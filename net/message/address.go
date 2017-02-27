@@ -89,7 +89,7 @@ func (msg addrReq) Handle(node Noder) error {
 	// lock
 	var addrstr []NodeAddr
 	var count uint64
-	addrstr, count = node.GetAddrs()
+	addrstr, count = node.LocalNode().GetNeighborAddrs()
 	buf, _ := NewAddrs(addrstr, count)
 	go node.Tx(buf)
 	return nil

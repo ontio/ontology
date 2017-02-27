@@ -11,6 +11,7 @@ import (
 	"GoOnchain/core/transaction"
 	"GoOnchain/core/store"
 	"GoOnchain/client"
+	//"GoOnchain/consensus/dbft"
 )
 
 const (
@@ -63,6 +64,7 @@ func main() {
 	// Modules start sample
 	//ledger.Start(net.NetToLedgerCh <-chan *Msg, net.LedgerToNetCh chan<- *Msg)
 	//consensus.Start(net.NetToConsensusCh <-chan *Msg, net.ConsensusToNetCh chan<- *Msg)
+	//consensus := new(dbft.DbftService)
 
 	for {
 		time.Sleep(2 * time.Second)

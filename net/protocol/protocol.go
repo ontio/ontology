@@ -81,7 +81,7 @@ type Noder interface {
 	Tx(buf []byte)
 	GetAddress() [16]byte
 	GetTime() int64
-	GetAddrs() ([]NodeAddr, uint64)
+	GetNeighborAddrs() ([]NodeAddr, uint64)
 }
 
 type Tmper interface {
