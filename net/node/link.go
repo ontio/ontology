@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -119,9 +120,9 @@ func (n *node) initConnection() {
 			return
 		}
 		node := NewNode()
-		// Currently we use the address as the ID
-		node.id = conn.RemoteAddr().String()
-		node.addr = conn.RemoteAddr().String()
+		id, _ := parseIPaddr(conn.RemoteAddr().String())
+		node.id = id
+		node.addr = id
 		node.local = n
 		fmt.Println("Remote node %s connect with %s\n",
 			conn.RemoteAddr(), conn.LocalAddr())
@@ -137,6 +138,16 @@ func (n *node) initConnection() {
 	//TODO When to free the net listen resouce?
 }
 
+
+func parseIPaddr(s string) (string, error) {
+	i := strings.Index(s, ":")
+	if (i < 0) {
+		fmt.Printf("Split IP address&port  error\n")
+		return s, errors.New("Split IP address&port error")
+	}
+	return s[:i], nil
+}
+
 func (node *node) Connect(nodeAddr string) {
 	node.chF <- func() error {
 		common.Trace()
@@ -148,8 +159,10 @@ func (node *node) Connect(nodeAddr string) {
 
 		n := NewNode()
 		n.conn = conn
-		n.id = conn.RemoteAddr().String()
-		n.addr = conn.RemoteAddr().String()
+
+		id, _ := parseIPaddr(conn.RemoteAddr().String())
+		n.id = id
+		n.addr = id
 		// FixMe Only for testing
 		n.height = 1000
 		n.local = node
