@@ -2,17 +2,17 @@ package node
 
 import (
 	"GoOnchain/common"
-	"GoOnchain/core/transaction"
 	"GoOnchain/core/ledger"
-	"math/rand"
+	"GoOnchain/core/transaction"
 	. "GoOnchain/net/message"
 	. "GoOnchain/net/protocol"
+	"errors"
 	"fmt"
+	"math/rand"
 	"net"
 	"runtime"
 	"sync/atomic"
 	"time"
-	"errors"
 )
 
 // The node capability flag
@@ -47,11 +47,11 @@ type node struct {
 	local  *node   // The pointer to local node
 	neighb nodeMap // The neighbor node connect with currently node except itself
 	//neighborNodes	*nodeMAP	// The node connect with it except the local node
-	eventQueue // The event queue to notice notice other modules
-	TXNPool    // Unconfirmed transaction pool
-	idCache    // The buffer to store the id of the items which already be processed
-	ledger  *ledger.Ledger	// The Local ledger
-	private *uint // Reserver for future using
+	eventQueue                // The event queue to notice notice other modules
+	TXNPool                   // Unconfirmed transaction pool
+	idCache                   // The buffer to store the id of the items which already be processed
+	ledger     *ledger.Ledger // The Local ledger
+	private    *uint          // Reserver for future using
 }
 
 func (node node) DumpInfo() {
@@ -77,7 +77,7 @@ func (node *node) UpdateInfo(t time.Time, version uint32, services uint64,
 	node.version = version
 	node.services = services
 	node.port = port
-	if (relay == 0) {
+	if relay == 0 {
 		node.relay = false
 	} else {
 		node.relay = true
@@ -237,14 +237,30 @@ func (node node) GetAddr() string {
 	return node.addr
 }
 
-func (node *node) GetAddrs() ([]string, uint) {
-	var addrstr []string
-	var i uint = 0
-	// TODO write lock
-	for _, node := range node.neighb.List {
+func (node node) GetAddress() [16]byte {
+	var result [16]byte
+	ip := net.ParseIP(node.addr).To16()
+	copy(result[:], ip[:16])
+	return result
+}
+
+func (node node) GetTime() int64 {
+	t := time.Now()
+	return t.UnixNano()
+}
+
+func (node node) GetAddrs() ([]NodeAddr, uint64) {
+	var addrstr []NodeAddr
+	var i uint64 = 0
+	// TODO read lock
+	for _, n := range node.local.neighb.List {
 		s := node.GetState()
 		if s == ESTABLISH {
-			addrstr[i] = node.addr
+			addrstr[i].IpAddr = n.GetAddress()
+			addrstr[i].Time = n.GetTime()
+			addrstr[i].Services = n.Services()
+			addrstr[i].Port = n.GetPort()
+
 			i++
 		}
 	}

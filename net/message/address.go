@@ -4,12 +4,13 @@ import (
 	"GoOnchain/common"
 	. "GoOnchain/net/protocol"
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
-	"net"
 	"fmt"
-	"unsafe"
+	"net"
 	"strconv"
+	"unsafe"
 )
 
 type addrReq struct {
@@ -17,17 +18,10 @@ type addrReq struct {
 	// No payload
 }
 
-type nodeAddr struct {
-	Time     uint32
-	Services uint64
-	IpAddr   [16]byte
-	Port     uint16
-}
-
 type addr struct {
 	hdr       msgHdr
 	nodeCnt   uint64
-	nodeAddrs []nodeAddr
+	nodeAddrs []NodeAddr
 }
 
 const (
@@ -52,6 +46,38 @@ func newGetAddr() ([]byte, error) {
 	return buf, err
 }
 
+func NewAddrs(nodeaddrs []NodeAddr, count uint64) ([]byte, error) {
+	var msg addr
+	msg.nodeAddrs = nodeaddrs
+	msg.nodeCnt = count
+	msg.hdr.Magic = NETMAGIC
+	cmd := "addr"
+	copy(msg.hdr.CMD[0:7], cmd)
+	p := new(bytes.Buffer)
+	err := binary.Write(p, binary.LittleEndian, &(msg.nodeAddrs))
+	if err != nil {
+		fmt.Println("Binary Write failed at new Msg")
+		return nil, err
+	}
+	s := sha256.Sum256(p.Bytes())
+	s2 := s[:]
+	s = sha256.Sum256(s2)
+	buf := bytes.NewBuffer(s[:4])
+	binary.Read(buf, binary.LittleEndian, &(msg.hdr.Checksum))
+	msg.hdr.Length = uint32(len(p.Bytes()))
+	fmt.Printf("The message payload length is %d\n", msg.hdr.Length)
+
+	m, err := msg.Serialization()
+	if err != nil {
+		fmt.Println("Error Convert net message ", err.Error())
+		return nil, err
+	}
+
+	str := hex.EncodeToString(m)
+	fmt.Printf("The message length is %d, %s\n", len(m), str)
+	return m, nil
+}
+
 func (msg addrReq) Verify(buf []byte) error {
 	// TODO Verify the message Content
 	err := msg.Hdr.Verify(buf)
@@ -60,8 +86,12 @@ func (msg addrReq) Verify(buf []byte) error {
 
 func (msg addrReq) Handle(node Noder) error {
 	common.Trace()
-	// TBD
-
+	// lock
+	var addrstr []NodeAddr
+	var count uint64
+	addrstr, count = node.GetAddrs()
+	buf, _ := NewAddrs(addrstr, count)
+	go node.Tx(buf)
 	return nil
 }
 
@@ -88,19 +118,15 @@ func (msg *addrReq) Deserialization(p []byte) error {
 }
 
 func (msg addr) Serialization() ([]byte, error) {
+	var buf bytes.Buffer
+	fmt.Printf("The size of messge is %d in serialization\n",
+		uint32(unsafe.Sizeof(msg)))
+	err := binary.Write(&buf, binary.LittleEndian, msg)
+	if err != nil {
+		return nil, err
+	}
 
-	// TBD
-	//return buf.Bytes(), err
-	return nil, nil
-}
-
-func (msg *nodeAddr) deserialization(p []byte) error {
-	fmt.Printf("The size of messge is %d in deserialization\n",
-		uint32(unsafe.Sizeof(*msg)))
-
-	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, msg)
-	return err
+	return buf.Bytes(), err
 }
 
 func (msg *addr) Deserialization(p []byte) error {
@@ -115,10 +141,10 @@ func (msg *addr) Deserialization(p []byte) error {
 	msg.nodeCnt = cnt
 	fmt.Printf("The address count is %d i is %d\n", cnt, i)
 	buf := p[MSGHDRLEN+i:]
-	msg.nodeAddrs = make([]nodeAddr, msg.nodeCnt)
+	msg.nodeAddrs = make([]NodeAddr, msg.nodeCnt)
 	for i := 0; i < int(msg.nodeCnt); i++ {
 		nodeAddr := &msg.nodeAddrs[i]
-		err = nodeAddr.deserialization(buf[i*NODEADDRSIZE : (i+1)*NODEADDRSIZE])
+		err = nodeAddr.Deserialization(buf[i*NODEADDRSIZE : (i+1)*NODEADDRSIZE])
 		if err != nil {
 			goto err
 		}

@@ -2,11 +2,22 @@ package protocol
 
 import (
 	"GoOnchain/common"
-	"GoOnchain/core/transaction"
 	"GoOnchain/core/ledger"
+	"GoOnchain/core/transaction"
 	"GoOnchain/events"
+	"bytes"
+	"encoding/binary"
+	"fmt"
 	"time"
+	"unsafe"
 )
+
+type NodeAddr struct {
+	Time     int64
+	Services uint64
+	IpAddr   [16]byte
+	Port     uint16
+}
 
 const (
 	MSGCMDLEN   = 12
@@ -25,8 +36,8 @@ const (
 	PROTOCOLVERSION = 0
 
 	NODETESTPORT     = 20338 // TODO get from config file
-	HTTPJSONPORT	 = 20337
-	PERIODUPDATETIME = 3     // Time to update and sync information with other nodes
+	HTTPJSONPORT     = 20337
+	PERIODUPDATETIME = 3 // Time to update and sync information with other nodes
 )
 
 // The node state
@@ -62,13 +73,15 @@ type Noder interface {
 	ReqNeighborList()
 	DumpInfo()
 	UpdateInfo(t time.Time, version uint32, services uint64,
-	port uint16, nonce uint32, relay uint8, height uint32)
+		port uint16, nonce uint32, relay uint8, height uint32)
 
 	//GetTxn(common.Uint256) transaction.Transaction
 	Connect(nodeAddr string)
 	//Xmit(inv Inventory) error // The transmit interface
 	Tx(buf []byte)
-	GetAddrs() ([]string, uint)
+	GetAddress() [16]byte
+	GetTime() int64
+	GetAddrs() ([]NodeAddr, uint64)
 }
 
 type Tmper interface {
@@ -84,4 +97,13 @@ type JsonNoder interface {
 	GetTxnPool() map[common.Uint256]*transaction.Transaction
 	Xmit(common.Inventory) error
 	GetTransaction(hash common.Uint256) *transaction.Transaction
+}
+
+func (msg *NodeAddr) Deserialization(p []byte) error {
+	fmt.Printf("The size of messge is %d in deserialization\n",
+		uint32(unsafe.Sizeof(*msg)))
+
+	buf := bytes.NewBuffer(p)
+	err := binary.Read(buf, binary.LittleEndian, msg)
+	return err
 }
