@@ -2,6 +2,7 @@ package node
 
 import (
 	. "GoOnchain/net/protocol"
+	"fmt"
 	"sync"
 )
 
@@ -10,34 +11,44 @@ type nodeMap struct {
 	List map[string]*node
 }
 
-func (Nodes *nodeMap) Broadcast(buf []byte) {
+func (nm *nodeMap) Broadcast(buf []byte) {
 	// TODO lock the map
 	// TODO Check whether the node existed or not
-	for _, node := range Nodes.List {
+	for _, node := range nm.List {
 		if node.state == ESTABLISH && node.relay == true {
 			go node.Tx(buf)
 		}
 	}
 }
 
-func (Nodes *nodeMap) add(node *node) {
-	//TODO lock the node Map
-	// TODO check whether the node existed or not
-	// TODO dupicate IP address Nodes issue
-	Nodes.List[node.id] = node
-	// Unlock the map
+func (nm nodeMap) containNode(node node) bool {
+       _, ok := nm.List[node.id]
+       return ok
 }
 
-func (Nodes *nodeMap) delNode(node *node) {
+func (nm *nodeMap) add(node *node) {
 	//TODO lock the node Map
-	delete(Nodes.List, node.id)
-	// Unlock the map
+	// TODO multi client from the same IP address issue
+       if (nm.containNode(*node)) {
+               fmt.Printf("Insert a existed node\n")
+       } else {
+               nm.List[node.id] = node
+       }
 }
 
-func (Nodes *nodeMap) getConnection() uint {
+func (nm *nodeMap) delNode(node *node) {
+	//TODO lock the node Map
+       if (nm.containNode(*node)) {
+               delete(nm.List, node.id)
+       } else {
+               fmt.Printf("Delete unexisted node\n")
+       }
+}
+
+func (nm *nodeMap) getConnection() uint {
 	//TODO lock the node Map
 	var cnt uint
-	for _, node := range Nodes.List {
+	for _, node := range nm.List {
 		if node.state == ESTABLISH {
 			cnt++
 		}
@@ -45,11 +56,10 @@ func (Nodes *nodeMap) getConnection() uint {
 	return cnt
 }
 
-func (Nodes *nodeMap) init() {
-	Nodes.List = make(map[string]*node)
+func (nm *nodeMap) init() {
+	nm.List = make(map[string]*node)
 }
 
 func (node node) GetConnectionCnt() uint {
 	return node.neighb.getConnection()
 }
-
