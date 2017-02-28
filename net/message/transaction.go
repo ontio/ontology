@@ -11,7 +11,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"unsafe"
-	//"crypto/sha256"
 )
 
 type dataReq struct {
@@ -112,7 +111,6 @@ func NewTx(hash common.Uint256) ([]byte, error) {
 }
 
 func (msg trn) Serialization() ([]byte, error) {
-<<<<<<< HEAD
 	var buf bytes.Buffer
 
 	fmt.Printf("The size of messge is %d in serialization\n",
