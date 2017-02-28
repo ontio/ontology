@@ -2,7 +2,6 @@ package node
 
 import (
 	"fmt"
-	"GoOnchain/common"
 	. "GoOnchain/net/message"
 	. "GoOnchain/net/protocol"
 	"time"
@@ -37,7 +36,7 @@ func (node node) updateNodeInfo() {
 	for {
 		select {
 		case <-ticker.C:
-			common.Trace()
+			//common.Trace()
 			node.GetBlkHdrs()
 		case <-quit:
 			ticker.Stop()

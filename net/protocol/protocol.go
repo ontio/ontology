@@ -107,3 +107,15 @@ func (msg *NodeAddr) Deserialization(p []byte) error {
 	err := binary.Read(buf, binary.LittleEndian, msg)
 	return err
 }
+
+func (msg NodeAddr) Serialization() ([]byte, error) {
+	var buf bytes.Buffer
+	fmt.Printf("The size of messge is %d in serialization\n",
+		uint32(unsafe.Sizeof(msg)))
+	err := binary.Write(&buf, binary.LittleEndian, msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), err
+}

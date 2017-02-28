@@ -54,7 +54,13 @@ func NewAddrs(nodeaddrs []NodeAddr, count uint64) ([]byte, error) {
 	cmd := "addr"
 	copy(msg.hdr.CMD[0:7], cmd)
 	p := new(bytes.Buffer)
-	err := binary.Write(p, binary.LittleEndian, &(msg.nodeAddrs))
+	err := binary.Write(p, binary.LittleEndian, msg.nodeCnt)
+	if err != nil {
+		fmt.Println("Binary Write failed at new Msg")
+		return nil, err
+	}
+
+	err = binary.Write(p, binary.LittleEndian, msg.nodeAddrs)
 	if err != nil {
 		fmt.Println("Binary Write failed at new Msg")
 		return nil, err
@@ -119,11 +125,21 @@ func (msg *addrReq) Deserialization(p []byte) error {
 
 func (msg addr) Serialization() ([]byte, error) {
 	var buf bytes.Buffer
-	fmt.Printf("The size of messge is %d in serialization\n",
-		uint32(unsafe.Sizeof(msg)))
-	err := binary.Write(&buf, binary.LittleEndian, msg)
+	err := binary.Write(&buf, binary.LittleEndian, msg.hdr)
+
 	if err != nil {
 		return nil, err
+	}
+	err = binary.Write(&buf, binary.LittleEndian, msg.nodeCnt)
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range msg.nodeAddrs {
+		//err = binary.Write(&buf, binary.LittleEndian, v.Serialization)
+		err = binary.Write(&buf, binary.LittleEndian, v)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return buf.Bytes(), err
@@ -133,18 +149,15 @@ func (msg *addr) Deserialization(p []byte) error {
 	fmt.Printf("The size of messge is %d in deserialization\n",
 		uint32(unsafe.Sizeof(*msg)))
 
-	err := msg.hdr.Deserialization(p)
-
-	fmt.Printf("The address buffer len is %d\n", len(p))
-	// Fixme Call the serilization package
-	cnt, i := common.GetCompactUint(p[MSGHDRLEN:])
-	msg.nodeCnt = cnt
-	fmt.Printf("The address count is %d i is %d\n", cnt, i)
-	buf := p[MSGHDRLEN+i:]
+	buf := bytes.NewBuffer(p)
+	err := binary.Read(buf, binary.LittleEndian, &(msg.hdr))
+	//err := msg.hdr.Deserialization(p)
+	err = binary.Read(buf, binary.LittleEndian, &(msg.nodeCnt))
+	//err = binary.Read(p[MSGHDRLEN:p[MSGHDRLEN + 8], binary.LittleEndian, &cnt)
+	fmt.Printf("The address count is %d \n", msg.nodeCnt)
 	msg.nodeAddrs = make([]NodeAddr, msg.nodeCnt)
 	for i := 0; i < int(msg.nodeCnt); i++ {
-		nodeAddr := &msg.nodeAddrs[i]
-		err = nodeAddr.Deserialization(buf[i*NODEADDRSIZE : (i+1)*NODEADDRSIZE])
+		err := binary.Read(buf, binary.LittleEndian, &(msg.nodeAddrs[i]))
 		if err != nil {
 			goto err
 		}
