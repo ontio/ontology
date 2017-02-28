@@ -2,14 +2,15 @@ package message
 
 import (
 	"GoOnchain/common"
-	"GoOnchain/core/transaction"
+	//"GoOnchain/core/transaction"
 	. "GoOnchain/net/protocol"
+	//"GoOnchain/core/ledger"
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"unsafe"
-	//"crypto/sha256"
 )
 
 type dataReq struct {
@@ -22,17 +23,19 @@ type dataReq struct {
 type trn struct {
 	msgHdr
 	// TBD
-	txn  transaction.Transaction
-	hash common.Uint256
+	txn []byte
+	//txn  transaction.Transaction
+	//hash common.Uint256
 }
 
 func (msg trn) Handle(node Noder) error {
 	common.Trace()
 	fmt.Printf("RX TRX message\n")
-
-	if !node.ExistedID(msg.hash) {
-		node.AppendTxnPool(&(msg.txn))
-	}
+	/*
+		if !node.ExistedID(msg.hash) {
+			node.AppendTxnPool(&(msg.txn))
+		}
+	*/
 	return nil
 }
 
@@ -40,7 +43,7 @@ func reqTxnData(node Noder, hash common.Uint256) error {
 	var msg dataReq
 	msg.dataType = common.TRANSACTION
 	// TODO handle the hash array case
-	msg.hash = hash
+	//msg.hash = hash
 
 	buf, _ := msg.Serialization()
 	go node.Tx(buf)
@@ -73,25 +76,28 @@ func NewTx(hash common.Uint256) ([]byte, error) {
 	common.Trace()
 	var msg trn
 	//Wait for junjie commit GetTransactionWithHash!!!!
-	/*trx, err := ledger.DefaultLedger.Blockchain.GetTransactionWithHash(hash)
-	if err != nil {
-		//FIXME need add some logs
-		return nil,err
-	}
-	txBuffer := bytes.NewBuffer([]byte{})
-	trx.Serialize(txBuffer)
-	msg.txn = trx
+	/*
+		trx, _ := ledger.DefaultLedger.Blockchain.GetTransactionWithHash(hash)
+		txBuffer := bytes.NewBuffer([]byte{})
+		trx.Serialize(txBuffer)
+		msg.txn = txBuffer.Bytes()
+	*/
 	msg.msgHdr.Magic = NETMAGIC
 	cmd := "tx"
 	copy(msg.msgHdr.CMD[0:7], cmd)
-	s := sha256.Sum256(txBuffer.Bytes())
+	b := new(bytes.Buffer)
+	err := binary.Write(b, binary.LittleEndian, &(msg.txn))
+	if err != nil {
+		fmt.Println("Binary Write failed at new Msg")
+		return nil, err
+	}
+	s := sha256.Sum256(b.Bytes())
 	s2 := s[:]
 	s = sha256.Sum256(s2)
 	buf := bytes.NewBuffer(s[:4])
 	binary.Read(buf, binary.LittleEndian, &(msg.msgHdr.Checksum))
-	msg.msgHdr.Length = uint32(len(txBuffer.Bytes()))
+	msg.msgHdr.Length = uint32(len(b.Bytes()))
 	fmt.Printf("The message payload length is %d\n", msg.msgHdr.Length)
-	*/
 
 	m, err := msg.Serialization()
 	if err != nil {
@@ -105,17 +111,15 @@ func NewTx(hash common.Uint256) ([]byte, error) {
 }
 
 func (msg trn) Serialization() ([]byte, error) {
-	buf := bytes.NewBuffer([]byte{})
+	var buf bytes.Buffer
+
 	fmt.Printf("The size of messge is %d in serialization\n",
 		uint32(unsafe.Sizeof(msg)))
-
-	err := binary.Write(buf, binary.LittleEndian, msg.msgHdr)
+	err := binary.Write(&buf, binary.LittleEndian, msg)
 
 	if err != nil {
-		fmt.Println("Error Convert net message ", err.Error())
 		return nil, err
 	}
-	msg.txn.Serialize(buf)
 
 	return buf.Bytes(), err
 }
