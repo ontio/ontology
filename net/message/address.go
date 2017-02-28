@@ -181,7 +181,7 @@ func (msg addr) Handle(node Noder) error {
 			// Fixme consider the IPv6 case
 			address := ip.To4().String() + ":" + strconv.Itoa(int(v.Port))
 			fmt.Printf("The ip address is %s\n", address)
-			go node.Connect(address)
+			go node.LocalNode().Connect(address)
 		}
 	}
 	return nil
