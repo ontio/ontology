@@ -1,131 +1,136 @@
 package crypto
 
 import (
-	"crypto/elliptic"
-	"crypto/hmac"
-	"crypto/rand"
+	"GoOnchain/crypto/p256r1"
+	"GoOnchain/crypto/sm2"
+	"GoOnchain/crypto/util"
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
-	//"crypto/subtle"		// normal crypto operation like compare, assign etc avoid timing attack
-	"crypto/ecdsa"
-	//"crypto/x509"
 )
 
 const (
-	HASHLEN       = 32
-	PRIVATEKEYLEN = 32
-	PUBLICKEYLEN  = 32
-	SIGNATURELEN  = 64
+	P256R1 = 0
+	SM2    = 1
 )
 
-type crypto struct {
-	eccParams elliptic.CurveParams
-	curve     elliptic.Curve
-}
+// AlgChoice the alg choice, it can be P256R1 or SM2
+var AlgChoice int
 
-var Crypto crypto
+// Crypto ---
+var Crypto util.InterfaceCrypto
 
-func Sha256(value []byte) []byte {
-	//TODO: implement Sha256
-
-	return nil
-}
-
-func RIPEMD160(value []byte) []byte {
-	//TODO: implement RIPEMD160
-
-	return nil
-}
-
-// Generate the "real" random number which can be used for crypto algorithm
-func RandomNum(n int) ([]byte, error) {
-	// TODO Get the random number from System urandom
-	b := make([]byte, n)
-	_, err := rand.Read(b)
-
-	if err != nil {
-		return nil, err
-	}
-	return b, nil
-}
-
-func Hash(data []byte) [HASHLEN]byte {
-	return sha256.Sum256(data)
-}
-
-// CheckMAC reports whether messageMAC is a valid HMAC tag for message.
-func CheckMAC(message, messageMAC, key []byte) bool {
-	mac := hmac.New(sha256.New, key)
-	mac.Write(message)
-	expectedMAC := mac.Sum(nil)
-	return hmac.Equal(messageMAC, expectedMAC)
+// PubKey ---
+type PubKey struct {
+	X, Y *big.Int
 }
 
 func init() {
-	// FixMe init the ECC parameters based on curve type, like secp256k1
-	Crypto.curve = elliptic.P256()
-	Crypto.eccParams = *(Crypto.curve.Params())
+	AlgChoice = 0
 }
 
-// @prikey, the private key for sign, the length should be 32 bytes currently
+func SetAlg(algChoice int) {
+	AlgChoice = algChoice
+	Crypto.EccParamA = new(big.Int)
+	if SM2 == algChoice {
+		sm2.Init(&Crypto)
+	} else {
+		p256r1.Init(&Crypto)
+	}
+	return
+}
+
+//GenKeyPair FIXME, does the privkey need base58 encoding?
+func GenKeyPair() ([]byte, PubKey, error) {
+	mPubKey := new(PubKey)
+	var privD []byte
+	var X *big.Int
+	var Y *big.Int
+	var err error
+
+	if SM2 == AlgChoice {
+		privD, X, Y, err = sm2.GenKeyPair(&Crypto)
+	} else {
+		privD, X, Y, err = p256r1.GenKeyPair(&Crypto)
+	}
+
+	if nil != err {
+		return nil, *mPubKey, err
+	}
+
+	mPubKey.X = new(big.Int).Set(X)
+	mPubKey.Y = new(big.Int).Set(Y)
+	return privD, *mPubKey, nil
+}
+
+// Sign @prikey, the private key for sign, the length should be 32 bytes currently
 func Sign(prikey []byte, data []byte) ([]byte, error) {
-	// if (len(prikey) != PRIVATEKEYLEN) {
-	// 	fmt.Printf("Unexpected private key length %d\n", len(prikey))
-	// 	return nil, errors.New("Unexpected private key length")
-	// }
+	var r *big.Int
+	var s *big.Int
+	var err error
 
-	digest := Hash(data)
-
-	privateKey := new(ecdsa.PrivateKey)
-	privateKey.Curve = Crypto.curve
-	// TODO check the return value
-	privateKey.D = big.NewInt(0)
-	privateKey.D.SetBytes(prikey)
-
-	r := big.NewInt(0)
-	s := big.NewInt(0)
-	//ecdsa.Sign(rand io.Reader, priv *PrivateKey, hash []byte) (r, s *big.Int, err error)
-	r, s, err := ecdsa.Sign(rand.Reader, privateKey, digest[:])
+	if SM2 == AlgChoice {
+		r, s, err = sm2.Sign(&Crypto, prikey, data)
+	} else {
+		r, s, err = p256r1.Sign(&Crypto, prikey, data)
+	}
 	if err != nil {
-		fmt.Printf("Sign error\n")
 		return nil, err
 	}
 
-	signature := r.Bytes()
-	signature = append(signature, s.Bytes()...)
-	fmt.Printf("Signature : %x, len of signature is %d\n", signature, len(signature))
+	signature := make([]byte, util.SIGNATURELEN)
 
+	lenR := len(r.Bytes())
+	lenS := len(s.Bytes())
+	copy(signature[util.SIGNRLEN-lenR:], r.Bytes())
+	copy(signature[util.SIGNATURELEN-lenS:], s.Bytes())
 	return signature, nil
 }
 
-type ecdsaSignature struct {
-	R, S big.Int
-}
-
-// Fixme: the signature length TBD
+// Verify Fixme: the signature length TBD
 func Verify(pubkey PubKey, data []byte, signature []byte) (bool, error) {
-	ecdsaSig := new(ecdsaSignature)
-
 	len := len(signature)
-	if len != SIGNATURELEN {
+	if len != util.SIGNATURELEN {
 		fmt.Printf("Unknown signature length %d\n", len)
 		return false, errors.New("Unknown signature length")
 	}
-	ecdsaSig.R.SetBytes(signature[:len/2])
-	ecdsaSig.S.SetBytes(signature[len/2:])
-	//if ecdsaSig.R.Sign() <= 0 || ecdsaSig.S.Sign() <= 0 {
-	//	return false, errors.New("ECDSA signature contained zero or negative values")
-	//}
 
-	digest := Hash(data)
+	r := new(big.Int).SetBytes(signature[:len/2])
+	s := new(big.Int).SetBytes(signature[len/2:])
 
-	pub := new(ecdsa.PublicKey)
-	pub.Curve = Crypto.curve
-	pub.X = pubkey.X
-	pub.Y = pubkey.Y
+	if SM2 == AlgChoice {
+		return sm2.Verify(&Crypto, pubkey.X, pubkey.Y, data, r, s)
+	}
+	return p256r1.Verify(&Crypto, pubkey.X, pubkey.Y, data, r, s)
+}
 
-	//ecdsa.Verify(pub *PublicKey, hash []byte, r, s *big.Int) bool
-	return ecdsa.Verify(pub, digest[:], &ecdsaSig.R, &ecdsaSig.S), nil
+// Serialize ---
+func (e *PubKey) Serialize(w io.Writer) {
+	//TODO: implement PubKey.serialize
+}
+
+// DeSerialize ---
+func (e *PubKey) DeSerialize(r io.Reader) error {
+	//TODO
+	return nil
+}
+
+type PubKeySlice []*PubKey
+
+func (p PubKeySlice) Len() int { return len(p) }
+func (p PubKeySlice) Less(i, j int) bool {
+	//TODO:PubKeySlice Less
+	return false
+}
+func (p PubKeySlice) Swap(i, j int) {
+	//TODO:PubKeySlice Swap
+}
+
+func Sha256(value []byte) []byte {
+	data := make([]byte, 32)
+	digest := sha256.Sum256(value)
+	copy(data, digest[0:32])
+	return data
 }
