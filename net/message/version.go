@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"time"
+	"errors"
 	"unsafe"
 )
 
@@ -42,7 +43,6 @@ func NewVersion(n Noder) ([]byte, error) {
 	msg.P.TimeStamp = uint32(time.Now().UTC().UnixNano())
 	msg.P.Port = n.GetPort()
 	msg.P.Nonce = n.GetNonce()
-	fmt.Printf("The nonce is 0x%x", msg.P.Nonce)
 	msg.P.UserAgent = 0x00
 	// Fixme Get the block height from ledger
 	msg.P.StartHeight = n.GetLedger().GetLocalBlockChainHeight()
@@ -135,6 +135,12 @@ func (msg *version) Deserialization(p []byte) error {
 // TODO The process should be adjusted based on above table
 func (msg version) Handle(node Noder) error {
 	common.Trace()
+
+	// Exclude the node itself
+	if (msg.P.Nonce == node.LocalNode().GetNonce()) {
+		fmt.Printf("The node handshark with itself\n")
+		return errors.New("The node handshark with itself")
+	}
 	t := time.Now()
 	// TODO check version compatible or not
 	s := node.GetState()
@@ -151,7 +157,7 @@ func (msg version) Handle(node Noder) error {
 	}
 
 	// TODO Update other node information
-	fmt.Printf("Node %s state is %d", node.GetID(), node.GetState())
+	fmt.Printf("Node %s state is %d\n", node.GetID(), node.GetState())
 	node.UpdateInfo(t, msg.P.Version, msg.P.Services, msg.P.Port, msg.P.Nonce,
 		msg.P.Relay, msg.P.StartHeight)
 

@@ -181,7 +181,10 @@ func (msg addr) Handle(node Noder) error {
 			// Fixme consider the IPv6 case
 			address := ip.To4().String() + ":" + strconv.Itoa(int(v.Port))
 			fmt.Printf("The ip address is %s\n", address)
-			go node.LocalNode().Connect(address)
+			// TODO  the ID may not the same as ip address in future
+			if (node.LocalNode().GetID() != ip.To4().String()) {
+				go node.LocalNode().Connect(address)
+			}
 		}
 	}
 	return nil

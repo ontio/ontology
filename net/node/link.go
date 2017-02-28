@@ -124,8 +124,7 @@ func (n *node) initConnection() {
 		node.id = id
 		node.addr = id
 		node.local = n
-		fmt.Println("Remote node %s connect with %s\n",
-			conn.RemoteAddr(), conn.LocalAddr())
+		fmt.Println("Remote node connect with ", conn.RemoteAddr(), conn.LocalAddr())
 		node.conn = conn
 		// TOOD close the conn when erro happened
 		// TODO lock the node and assign the connection to Node.
