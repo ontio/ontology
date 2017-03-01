@@ -17,13 +17,18 @@ type ProtocolConfiguration struct {
 	CoinVersion   int      `json:"CoinVersion"`
 	StandbyMiners []string `json:"StandbyMiners"`
 	SeedList      []string `json:"SeedList"`
+	HttpJsonPort  int	`json:"HttpJsonPort"`
+	NodePort      int	`json:"NodePort"`
+	WebSocketPort int	`json:"WebSocketPort"`
 }
 
 type ProtocolFile struct {
 	ProtocolConfig ProtocolConfiguration `json:"ProtocolConfiguration"`
 }
 
-func SeedNodes() ([]string, error) {
+var Parameters *ProtocolConfiguration
+
+func init() {
 	file, e := ioutil.ReadFile("./config/protocol.json")
 	if e != nil {
 		log.Fatalf("File error: %v\n", e)
@@ -36,9 +41,9 @@ func SeedNodes() ([]string, error) {
 	e = json.Unmarshal(file, &config)
 	if e != nil {
 		log.Fatalf("Unmarshal json file erro %v", e)
+		os.Exit(1)
 	}
-	log.Printf("Protocol configuration: %v\n", config)
-	return config.ProtocolConfig.SeedList, e
+	Parameters = &(config.ProtocolConfig)
 }
 
 // filesExists reports whether the named file or directory exists.

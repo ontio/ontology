@@ -2,6 +2,7 @@ package node
 
 import (
 	"GoOnchain/common"
+	. "GoOnchain/config"
 	"GoOnchain/core/ledger"
 	"GoOnchain/core/transaction"
 	. "GoOnchain/net/message"
@@ -105,7 +106,7 @@ func InitNode() Tmper {
 
 	n.version = PROTOCOLVERSION
 	n.services = NODESERVICES
-	n.port = NODETESTPORT
+	n.port = uint16(Parameters.NodePort)
 	n.relay = true
 	rand.Seed(time.Now().UTC().UnixNano())
 	// Fixme replace with the real random number

@@ -9,7 +9,6 @@ import (
 	"GoOnchain/net/node"
 	. "GoOnchain/net/protocol"
 	"fmt"
-	"os"
 	"time"
 )
 
@@ -56,13 +55,7 @@ func txBlockHeadersReq(n *Noder) {
 }
 
 func StartProtocol() Neter {
-	seedNodes, err := config.SeedNodes()
-	// TODO alloc the local node, init the nodeMap, EventQueue, TXn pool and idcache
-	if err != nil {
-		fmt.Println("Access the config file failure")
-		os.Exit(1)
-		// TODO should we kick off a blind connection in this case
-	}
+	seedNodes := config.Parameters.SeedList
 
 	net := node.InitNode()
 	for _, nodeAddr := range seedNodes {
