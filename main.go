@@ -1,7 +1,6 @@
 package main
 
 import (
-	"GoOnchain/client"
 	"GoOnchain/common/log"
 	"GoOnchain/core/ledger"
 	"GoOnchain/core/store"
@@ -47,12 +46,6 @@ func main() {
 	fmt.Println("//**************************************************************************")
 	fmt.Println("//*** 2. Generate Account                                                ***")
 	fmt.Println("//**************************************************************************")
-	user, _ := client.NewAccount([]byte{})
-	admin, _ := client.NewAccount([]byte{})
-	userpubkey, _ := user.PublicKey.EncodePoint(true)
-	fmt.Printf("user.PrivateKey: %x user.PrivateKey Len: %d\n", user.PrivateKey, len(user.PrivateKey))
-	fmt.Printf("user.PublicKey: %x user.PublicKey Len: %d\n", userpubkey, len(userpubkey))
-	fmt.Printf("admin.PrivateKey: %x admin.PrivateKey Len: %d\n", admin.PrivateKey, len(admin.PrivateKey))
 
 	time.Sleep(2 * time.Second)
 	net.StartProtocol()

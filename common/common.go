@@ -66,3 +66,9 @@ func HexToBytes(value string) []byte {
 	//TODO: HexToBytes
 	return nil
 }
+
+func ClearBytes( arr []byte, len int ) {
+       for i:=0; i<len ;i++  {
+              arr[i] = 0
+       }
+}
