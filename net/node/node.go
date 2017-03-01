@@ -6,6 +6,9 @@ import (
 	"GoOnchain/core/transaction"
 	. "GoOnchain/net/message"
 	. "GoOnchain/net/protocol"
+	"bytes"
+	"crypto/sha256"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -219,17 +222,54 @@ func (node node) SynchronizeMemoryPool() {
 }
 
 func (node node) Xmit(inv common.Inventory) error {
+
 	// Fixme here we only consider 1 inventory case
 	var msg Inv
+	msg.Hdr.Magic = NETMAGIC
 	t := "inv"
 	copy(msg.Hdr.CMD[0:len(t)], t)
 	msg.P.InvType = uint8(inv.Type())
-	// FIXME filling the inventory header
-	hash := inv.Hash()
-	msg.P.Blk = hash[:]
-	buf, _ := msg.Serialization()
-	node.neighb.Broadcast(buf)
-	// FIXME currenly we have no error check
+	tmpBuffer := bytes.NewBuffer([]byte{})
+	if inv.Type() == common.TRANSACTION {
+		fmt.Printf("TX transaction message\n")
+		transaction, isTransaction := inv.(*transaction.Transaction)
+		if isTransaction {
+			transaction.Serialize(tmpBuffer)
+		}
+		msg.P.Blk = tmpBuffer.Bytes()
+	} else if inv.Type() == common.BLOCK {
+		fmt.Printf("TX block message\n")
+		block, isBlock := inv.(*ledger.Block)
+		if isBlock {
+			block.Serialize(tmpBuffer)
+		}
+		msg.P.Blk = tmpBuffer.Bytes()
+	} else if inv.Type() == common.CONSENSUS {
+		fmt.Printf("TX consensus message\n")
+		payload, isConsensusPayload := inv.(*ConsensusPayload)
+		if isConsensusPayload {
+			payload.Serialize(tmpBuffer)
+		}
+		msg.P.Blk = tmpBuffer.Bytes()
+	}
+
+	b := new(bytes.Buffer)
+	err := binary.Write(b, binary.LittleEndian, &(msg.P))
+	if err != nil {
+		fmt.Println("Binary Write failed at new Msg")
+		return nil
+	}
+	s := sha256.Sum256(b.Bytes())
+	s2 := s[:]
+	s = sha256.Sum256(s2)
+	buf := bytes.NewBuffer(s[:4])
+	binary.Read(buf, binary.LittleEndian, &(msg.Hdr.Checksum))
+	msg.Hdr.Length = uint32(len(buf.Bytes()))
+	fmt.Printf("The message payload length is %d\n", msg.Hdr.Length)
+
+	buffer, _ := msg.Serialization()
+	go node.LocalNode().Tx(buffer)
+
 	return nil
 }
 
@@ -241,7 +281,7 @@ func (node node) GetAddress() ([16]byte, error) {
 	common.Trace()
 	var result [16]byte
 	ip := net.ParseIP(node.addr).To16()
-	if (ip == nil) {
+	if ip == nil {
 		fmt.Printf("Parse IP address error\n")
 		return result, errors.New("Parse IP address error")
 	}

@@ -14,12 +14,6 @@ import (
 
 type InventoryType byte
 
-const (
-	TRANSACTION InventoryType = 0x01
-	BLOCK       InventoryType = 0x02
-	CONSENSUS   InventoryType = 0xe0
-)
-
 type blocksReq struct {
 	Hdr             msgHdr
 	HeaderHashCount []byte
@@ -200,7 +194,6 @@ func NewInv(starthash common.Uint256, stophash common.Uint256) ([]byte, error) {
 		hash.Serialize(tmpBuffer)
 	}
 	msg.P.Blk = tmpBuffer.Bytes()
-
 	msg.P.InvType = 0x02
 	msg.Hdr.Magic = NETMAGIC
 	cmd := "inv"
