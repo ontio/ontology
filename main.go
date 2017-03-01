@@ -19,6 +19,8 @@ const (
 	NCPU = 4
 )
 
+var Version string
+
 func init() {
 	runtime.GOMAXPROCS(NCPU)
 	var path string = "./Log/"
@@ -26,6 +28,7 @@ func init() {
 }
 
 func main() {
+	fmt.Printf("Node version: %s\n", Version)
 	fmt.Println("//**************************************************************************")
 	fmt.Println("//*** 0. Client Set                                                      ***")
 	fmt.Println("//**************************************************************************")
