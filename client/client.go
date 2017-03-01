@@ -15,7 +15,6 @@ import (
 	"math/rand"
 	"bytes"
 	"GoOnchain/common/serialization"
-	"GoOnchain/core/contract"
 )
 
 type Version struct {
@@ -314,7 +313,7 @@ func (cl *Client) ProcessBlocks() {
 
 			cl.mu.Lock()
 
-			block ,_:= ledger.DefaultLedger.Blockchain.GetBlockWithHeight(cl.currentHeight)
+			block ,_:= ledger.DefaultLedger.GetBlockWithHeight(cl.currentHeight)
 			if block != nil{
 				cl.ProcessNewBlock(block)
 			}
@@ -342,8 +341,11 @@ func (cl *Client) Sign(context *ct.ContractContext) bool{
 		account := cl.GetAccountByProgramHash(hash)
 		if account == nil {continue}
 
-		signature := sig.SignBySigner(context.Data,account)
-		err := context.AddContract(contract,account.PublicKey,signature)
+		signature,err:= sig.SignBySigner(context.Data,account)
+		if err != nil {
+			return fSuccess
+		}
+		err = context.AddContract(contract,account.PublicKey,signature)
 
 		if err != nil {
 			fSuccess = false

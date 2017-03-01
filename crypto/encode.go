@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"math/big"
+	"crypto/ecdsa"
 )
 
 const (
@@ -301,4 +302,20 @@ func (e *PubKey) EncodePoint(isCommpressed bool) ([]byte, error) {
 	}
 
 	return encodedData, nil
+}
+
+func NewPubKey(prikey []byte) *PubKey {
+	privatekey := new(ecdsa.PrivateKey)
+	privatekey.PublicKey.Curve = Crypto.Curve
+
+	k := new(big.Int)
+	k.SetBytes(prikey)
+	privatekey.D = k
+
+	privatekey.PublicKey.X, privatekey.PublicKey.Y = Crypto.Curve.ScalarBaseMult(k.Bytes())
+
+	pubkey := new(PubKey)
+	pubkey.X = privatekey.PublicKey.X
+	pubkey.Y = privatekey.PublicKey.Y
+	return pubkey
 }

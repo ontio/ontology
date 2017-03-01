@@ -1,7 +1,6 @@
 package ledger
 
 import (
-	"errors"
 	"io"
 )
 
@@ -23,10 +22,6 @@ func (h *Header) Deserialize(r io.Reader) error {
 	_, err := io.ReadFull(r, headerFlag[:])
 	if err != nil {
 		return err
-	}
-
-	if headerFlag[0] != 0 {
-		return errors.New("Format error")
 	}
 
 	return nil

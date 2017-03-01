@@ -23,6 +23,7 @@ type Blockchain struct {
 
 func NewBlockchain() *Blockchain {
 	return &Blockchain{
+		BlockHeight: 0,
 		BlockCache: make(map[Uint256]*Block),
 		BCEvents:   events.NewEvent(),
 	}
@@ -100,12 +101,16 @@ func (bc *Blockchain) ContainsTransaction(hash Uint256) bool {
 
 func (bc *Blockchain) GetMinersByTXs(others []*tx.Transaction) []*crypto.PubKey {
 	//TODO: GetMiners()
-	return nil
+	//TODO: Just for TestUse
+
+	return StandbyMiners
 }
 
 func (bc *Blockchain) GetMiners() []*crypto.PubKey {
 	//TODO: GetMiners()
-	return nil
+	//TODO: Just for TestUse
+
+	return StandbyMiners
 }
 
 func (bc *Blockchain) CurrentBlockHash() Uint256 {
