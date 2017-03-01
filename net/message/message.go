@@ -197,7 +197,6 @@ func HandleNodeMsg(node Noder, buf []byte, len int) error {
 	//str := hex.EncodeToString(buf[:len])
 	//fmt.Printf("Received data len %d\n: %s \n  Received string: %v \n",
 	//	len, str, string(buf[:len]))
-
 	//fmt.Printf("Received data len %d : \"%v\" ", len, string(buf[:len]))
 
 	s, err := MsgType(buf)
@@ -212,7 +211,6 @@ func HandleNodeMsg(node Noder, buf []byte, len int) error {
 		return err
 	}
 	// Todo attach a ndoe pointer to each message
-	fmt.Printf("Todo attach a node pointer to each message\n")
 	msg.Deserialization(buf[0:len])
 	msg.Verify(buf[MSGHDRLEN:len])
 	return msg.Handle(node)
