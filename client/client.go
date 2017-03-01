@@ -7,75 +7,198 @@ import (
 	"sync"
 	sig "GoOnchain/core/signature"
 	. "GoOnchain/errors"
+	"errors"
 	"GoOnchain/core/ledger"
 	"time"
+	"fmt"
+	"crypto/sha256"
+	"math/rand"
+	"bytes"
+	"GoOnchain/common/serialization"
+	"GoOnchain/core/contract"
 )
 
+type Version struct {
+	Major uint32
+	Minor uint32
+	Build uint32
+	Revision uint32
+}
+
+func (v *Version) ToArray() []byte {
+	vbuf := bytes.NewBuffer(nil)
+	serialization.WriteUint32( vbuf, v.Major )
+	serialization.WriteUint32( vbuf, v.Minor )
+	serialization.WriteUint32( vbuf, v.Build )
+	serialization.WriteUint32( vbuf, v.Revision )
+
+	//fmt.Printf("ToArray: %x\n", vbuf.Bytes())
+
+	return vbuf.Bytes()
+}
 
 type Client struct {
-	mu           sync.Mutex
-	path string
-	iv []byte
-	masterKey []byte
+	mu		sync.Mutex
 
-	accounts map[Uint160]*Account
-	contracts map[Uint160]*ct.Contract
+	path 		string
+	iv 		[]byte
+	masterKey 	[]byte
 
-	watchOnly []Uint160
-	currentHeight uint32
+	accounts 	map[Uint160]*Account
+	contracts 	map[Uint160]*ct.Contract
 
-	store ClientStore
-	isrunning bool
+	watchOnly 	[]Uint160
+	currentHeight 	uint32
 
+	store 		ClientStore
+	isrunning 	bool
 }
 
 //TODO: adjust contract folder structure
 
+func CreateClient( path string, passwordKey []byte ) *Client {
+	cl := NewClient( path, passwordKey, true )
 
-func NewClient(path string,passwordKey []byte,store ClientStore,create bool) *Client {
+	_,err := cl.CreateAccount()
+	if err != nil {
+		fmt.Println( err )
+	}
+
+	return cl
+}
+
+func OpenClient( path string, passwordKey []byte ) *Client {
+	return NewClient( path, passwordKey, false )
+}
+
+func NewClient( path string, passwordKey []byte, create bool ) *Client {
+
 	newClient := &Client{
 		path: path,
+		accounts:map[Uint160]*Account{},
+		store: ClientStore{path: path},
 		isrunning: true,
 	}
+
+	// passwordkey to AESKey first
+	passwordKey = crypto.ToAesKey(passwordKey)
 
 	if create {
 		//create new client
 		newClient.iv = make([]byte,16)
 		newClient.masterKey = make([]byte,32)
 		newClient.watchOnly = []Uint160{}
-		if ledger.DefaultLedger.Blockchain == nil{
-			newClient.currentHeight = 0
-		} else { newClient.currentHeight = 1}
+		newClient.currentHeight = 0
 
-		//TODO: generate random number for iv/masterkey
-
-		//TODO: new client store (build DB)
-
-		newClient.store.SaveStoredData("PasswordHash",crypto.Sha256(passwordKey))
-		newClient.store.SaveStoredData("IV",newClient.iv)
-		newClient.store.SaveStoredData("MasterKey",newClient.masterKey) //TODO: AES Encrypt
-		newClient.store.SaveStoredData("Version",[]byte{1}) //TODO: Version setting
-		newClient.store.SaveStoredData("Height",IntToBytes(int(newClient.currentHeight)))
-	} else {
-		//load client
-		passwordHash := newClient.store.LoadStoredData("PasswordHash")
-		if passwordHash != nil && !IsEqualBytes(passwordHash,crypto.Sha256(passwordKey)){
-			return nil //TODO: add panic
+		//generate random number for iv/masterkey
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		for i:=0; i<16; i++ {
+			newClient.iv[i] = byte(r.Intn(256))
+		}
+		for i:=0; i<32; i++ {
+			newClient.masterKey[i] = byte(r.Intn(256))
 		}
 
-		newClient.iv = newClient.store.LoadStoredData("IV")
-		newClient.masterKey = newClient.store.LoadStoredData("MasterKey") //TODO: AES Dncrypt
+		//new client store (build DB)
+		newClient.store.BuildDatabase( path )
+
+		// SaveStoredData
+		pwdhash := sha256.Sum256(passwordKey)
+		err := newClient.store.SaveStoredData("PasswordHash",pwdhash[:])
+		if err != nil {
+			fmt.Println( err )
+			return nil
+		}
+		err = newClient.store.SaveStoredData("IV",newClient.iv[:])
+		if err != nil {
+			fmt.Println( err )
+			return nil
+		}
+
+		aesmk,err := crypto.AesEncrypt( newClient.masterKey[:], passwordKey, newClient.iv  )
+		if err == nil {
+			err = newClient.store.SaveStoredData("MasterKey",aesmk)
+			if err != nil {
+				fmt.Println( err )
+				return nil
+			}
+		} else {
+			fmt.Println( err )
+			return nil
+		}
+
+		v := Version{0,0,0,1}
+		err = newClient.store.SaveStoredData("Version",v.ToArray())
+		if err != nil {
+			fmt.Println( err )
+			return nil
+		}
+		err = newClient.store.SaveStoredData("Height",IntToBytes(int(newClient.currentHeight)))
+		if err != nil {
+			fmt.Println( err )
+			return nil
+		}
+
+	} else {
+
+		//load client
+		passwordHash,err := newClient.store.LoadStoredData("PasswordHash")
+		if err != nil {
+			fmt.Println( err )
+			return nil
+		}
+
+		pwdhash := sha256.Sum256(passwordKey)
+		if passwordHash != nil && !IsEqualBytes(passwordHash,pwdhash[:]){
+			//TODO: add panic
+			fmt.Println( "passwordHash = nil or password wrong!" )
+			return nil
+		}
+
+		fmt.Println( "[OpenClient] Password Verify." )
+
+		newClient.iv,err = newClient.store.LoadStoredData("IV")
+		if err != nil {
+			fmt.Println( err )
+			return nil
+		}
+
+		masterKey, err := newClient.store.LoadStoredData("MasterKey")
+		if err != nil {
+			fmt.Println( err )
+			return nil
+		}
+
+		newClient.masterKey,err = crypto.AesDecrypt( masterKey, passwordKey, newClient.iv )
+		if err != nil {
+			fmt.Println( err )
+			return nil
+		}
+
+		newClient.accounts = newClient.LoadAccount()
+
+
+		/*
 		newClient.accounts = newClient.store.LoadAccount()
 		newClient.contracts = newClient.store.LoadContracts()
 
 		//TODO: watch only
-		ClearBytes(passwordKey)
-
 		go newClient.ProcessBlocks()
+		*/
 
 	}
 
+	ClearBytes(passwordKey,len(passwordKey))
+
 	return newClient
+}
+
+func (cl *Client) GetDefaultAccount() (*Account,error){
+	for k, _ := range cl.accounts {
+		return cl.GetAccountByKeyHash(k),nil
+	}
+
+	return nil,NewDetailErr(errors.New("Can't load default account."), ErrNoCode, "")
 }
 
 func (cl *Client) GetAccount(pubKey *crypto.PubKey) (*Account,error){
@@ -135,24 +258,50 @@ func (cl *Client) ContainsAccount(pubKey *crypto.PubKey) bool{
 	return false
 }
 
-func (cl *Client) CreateAccount() *Account{
-	privateKey := make([]byte,32)
-
-	//TODO: Generate Private Key
-
-	account := cl.CreateAccountByPrivateKey(privateKey)
-	ClearBytes(privateKey)
-
-	return account
-}
-
-func (cl *Client) CreateAccountByPrivateKey(privateKey []byte) *Account {
-	account,_ := NewAccount(privateKey)
+func (cl *Client) CreateAccount() (*Account,error){
+	ac,err := NewAccount()
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
-	cl.accounts[account.PublicKeyHash] = account
 
-	return account
+	if err == nil {
+		cl.accounts[ac.PublicKeyHash] = ac
+		err := cl.SaveAccount(ac)
+		if err != nil {
+			return nil,err
+		}
+
+		fmt.Printf("[CreateAccount] PrivateKey: %x\n", ac.PrivateKey)
+		fmt.Printf("[CreateAccount] PublicKeyHash: %x\n", ac.PublicKeyHash)
+		fmt.Printf("[CreateAccount] PublicKeyAddress: %s\n", ac.PublicKeyHash.ToAddress())
+
+		//cl.AddContract( contract.CreateSignatureContract( ac.PublicKey ) )
+
+		return ac,nil
+	} else {
+		return nil,err
+	}
+}
+
+func (cl *Client) CreateAccountByPrivateKey(privateKey []byte) (*Account, error) {
+	ac,err := NewAccountWithPrivatekey(privateKey)
+	cl.mu.Lock()
+	defer cl.mu.Unlock()
+
+	if err == nil {
+		cl.accounts[ac.PublicKeyHash] = ac
+		err := cl.SaveAccount(ac)
+		if err != nil {
+			return nil,err
+		}
+
+		fmt.Printf("[CreateAccountByPrivateKey] PrivateKey: %x\n", ac.PrivateKey)
+		fmt.Printf("[CreateAccountByPrivateKey] PublicKeyHash: %x\n", ac.PublicKeyHash)
+		fmt.Printf("[CreateAccountByPrivateKey] PublicKeyAddress: %s\n", ac.PublicKeyHash.ToAddress())
+
+		return ac,nil
+	} else {
+		return nil,err
+	}
 }
 
 func (cl *Client) ProcessBlocks() {
@@ -165,7 +314,7 @@ func (cl *Client) ProcessBlocks() {
 
 			cl.mu.Lock()
 
-			block ,_:= ledger.DefaultLedger.GetBlockWithHeight(cl.currentHeight)
+			block ,_:= ledger.DefaultLedger.Blockchain.GetBlockWithHeight(cl.currentHeight)
 			if block != nil{
 				cl.ProcessNewBlock(block)
 			}
@@ -193,10 +342,7 @@ func (cl *Client) Sign(context *ct.ContractContext) bool{
 		account := cl.GetAccountByProgramHash(hash)
 		if account == nil {continue}
 
-		signature,errx:= sig.SignBySigner(context.Data,account)
-		if errx != nil{
-			return false
-		}
+		signature := sig.SignBySigner(context.Data,account)
 		err := context.AddContract(contract,account.PublicKey,signature)
 
 		if err != nil {
@@ -210,13 +356,104 @@ func (cl *Client) Sign(context *ct.ContractContext) bool{
 	return fSuccess
 }
 
-func ClearBytes(bytes []byte){
-	for i:=0; i<len(bytes) ;i++  {
-		bytes[i] = 0
-	}
-}
-
 func (cl *Client) VerifyPassword(password string) bool{
 	//TODO: VerifyPassword
 	return true
 }
+
+func (cl *Client) EncryptPrivateKey( prikey []byte) ([]byte,error) {
+	enc,err := crypto.AesEncrypt( prikey, cl.masterKey, cl.iv  )
+	if err != nil {
+		return nil,err
+	}
+
+	return enc,nil
+}
+
+func (cl *Client) DecryptPrivateKey( prikey []byte) ([]byte,error) {
+	if prikey == nil {
+		return nil, NewDetailErr(errors.New("The PriKey is nil"), ErrNoCode, "")
+	}
+	if len(prikey) != 96  {
+		return nil, NewDetailErr(errors.New("The len of PriKeyEnc is not 96bytes"), ErrNoCode, "")
+	}
+
+	dec,err := crypto.AesDecrypt( prikey, cl.masterKey, cl.iv  )
+	if err != nil {
+		return nil,err
+	}
+
+	return dec,nil
+}
+
+func (cl *Client) SaveAccount(ac *Account) error {
+
+	decryptedPrivateKey := make([]byte, 96)
+	temp,err := ac.PublicKey.EncodePoint(false)
+	if err != nil {
+		return  err
+	}
+	for i:=1; i<=64; i++ {
+		decryptedPrivateKey[i-1] = temp[i]
+	}
+
+	for i:=0; i<32; i++ {
+		decryptedPrivateKey[64+i] = ac.PrivateKey[i]
+	}
+
+	//fmt.Printf("decryptedPrivateKey: %x\n", decryptedPrivateKey)
+	encryptedPrivateKey,err := cl.EncryptPrivateKey(decryptedPrivateKey)
+	if err != nil {
+		return err
+	}
+
+	ClearBytes(decryptedPrivateKey, 96)
+
+	err = cl.store.SaveAccountData( ac.PublicKeyHash.ToArray(), encryptedPrivateKey )
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (cl *Client) LoadAccount()  map[Uint160]*Account {
+
+	i := 0
+	accounts := map[Uint160]*Account{}
+	for true {
+		pubkeyhash,prikeyenc,err := cl.store.LoadAccountData(i)
+		if err != nil {
+			//fmt.Println( err )
+			//return nil
+			break
+		}
+
+		decryptedPrivateKey,err := cl.DecryptPrivateKey(prikeyenc)
+		if err != nil {
+			fmt.Println( err )
+		}
+		//fmt.Printf("decryptedPrivateKey: %x\n", decryptedPrivateKey)
+
+		prikey := decryptedPrivateKey[64:96]
+		ac,err := NewAccountWithPrivatekey(prikey)
+
+		//ClearBytes( decryptedPrivateKey, 96 )
+		//ClearBytes( prikey, 32 )
+
+		fmt.Printf("[LoadAccount] PrivateKey: %x\n", ac.PrivateKey)
+		fmt.Printf("[LoadAccount] PublicKeyHash: %x\n", ac.PublicKeyHash.ToArray())
+		fmt.Printf("[LoadAccount] PublicKeyAddress: %s\n", ac.PublicKeyHash.ToAddress())
+
+		pkhash,_ := Uint160ParseFromBytes(pubkeyhash)
+		accounts[pkhash] = ac
+
+		i ++
+	}
+
+	return accounts
+}
+
+//func (cl *Client) AddContract(ct * contract.Contract) {
+//
+//}

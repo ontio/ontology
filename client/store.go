@@ -5,7 +5,8 @@ import (
 	. "GoOnchain/common"
 )
 
-type ClientStore interface {
+type IClientStore interface {
+	BuildDatabase(path string)
 
 	SaveStoredData(name string,value []byte)
 
