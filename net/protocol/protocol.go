@@ -17,6 +17,7 @@ type NodeAddr struct {
 	Services uint64
 	IpAddr   [16]byte
 	Port     uint16
+	Uid	 uint32		// Unique ID
 }
 
 const (
@@ -80,6 +81,7 @@ type Noder interface {
 	//Xmit(inv Inventory) error // The transmit interface
 	Tx(buf []byte)
 	GetTime() int64
+	NodeEstablished(uid uint32) bool
 	GetNeighborAddrs() ([]NodeAddr, uint64)
 }
 

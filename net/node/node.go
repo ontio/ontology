@@ -308,20 +308,22 @@ func (node node) getNbrNum() uint {
 
 func (node node) GetNeighborAddrs() ([]NodeAddr, uint64) {
 	var i uint64
-
-	cnt := node.getNbrNum()
-	fmt.Printf("Currently establish neighbor num is %d\n", cnt)
-	addrs := make([]NodeAddr, cnt)
+	var addrs []NodeAddr
 	// TODO read lock
 	for _, n := range node.local.neighb.List {
-		if n.GetState() == ESTABLISH {
-			addrs[i].IpAddr, _ = n.GetAddr16()
-			addrs[i].Time = n.GetTime()
-			addrs[i].Services = n.Services()
-			addrs[i].Port = n.GetPort()
-
-			i++
+		if n.GetState() != ESTABLISH {
+			continue
 		}
+		var addr NodeAddr
+		addr.IpAddr, _ = n.GetAddr16()
+		addr.Time = n.GetTime()
+		addr.Services = n.Services()
+		addr.Port = n.GetPort()
+		addr.Uid = n.GetNonce()
+		addrs = append(addrs, addr)
+
+		i++
 	}
+
 	return addrs, i
 }

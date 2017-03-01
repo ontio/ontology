@@ -63,3 +63,13 @@ func (nm *nodeMap) init() {
 func (node node) GetConnectionCnt() uint {
 	return node.neighb.getConnection()
 }
+
+// FIXME using nonce/uid replace ip address as id
+func (node node) NodeEstablished(uid uint32) bool {
+	for _, n := range node.neighb.List {
+		if (n.state == ESTABLISH) && (n.nonce == uid) {
+			return true
+		}
+	}
+	return false
+}
