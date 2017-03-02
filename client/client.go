@@ -254,7 +254,8 @@ func (cl *Client) ChangePassword(oldPassword string,newPassword string) bool{
 
 func (cl *Client) ContainsAccount(pubKey *crypto.PubKey) bool{
 	//TODO: ContainsAccount
-	return false
+	//return false
+	return true
 }
 
 func (cl *Client) CreateAccount() (*Account,error){

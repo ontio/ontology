@@ -19,6 +19,7 @@ type PrepareRequest struct {
 }
 
 func (pr *PrepareRequest) Serialize(w io.Writer){
+	Trace()
 	pr.msgData.Serialize(w)
 	ser.WriteVarUint(w,pr.Nonce)
 	pr.NextMiner.Serialize(w)
@@ -36,7 +37,7 @@ func (pr *PrepareRequest) Serialize(w io.Writer){
 
 //read data to reader
 func (pr *PrepareRequest) Deserialize(r io.Reader) error{
-
+	Trace()
 	pr.msgData.Deserialize(r)
 	pr.Nonce,_ = ser.ReadVarUint(r,0)
 	pr.NextMiner.Deserialize(r)
@@ -69,13 +70,16 @@ func (pr *PrepareRequest) Deserialize(r io.Reader) error{
 }
 
 func (pr *PrepareRequest) Type() ConsensusMessageType{
+	Trace()
 	return pr.ConsensusMessageData().Type
 }
 
 func (pr *PrepareRequest) ViewNumber() byte{
+	Trace()
 	return pr.msgData.ViewNumber
 }
 
 func (pr *PrepareRequest) ConsensusMessageData() *ConsensusMessageData{
+	Trace()
 	return pr.msgData
 }

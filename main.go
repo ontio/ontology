@@ -18,8 +18,8 @@ import (
 	. "GoOnchain/core/asset"
 	"GoOnchain/core/contract"
 	"GoOnchain/core/signature"
-	"crypto/sha256"
 	"GoOnchain/core/validation"
+	"crypto/sha256"
 	"os"
 )
 
@@ -28,7 +28,7 @@ const (
 	NCPU = 4
 )
 
-var Version string
+var XVersion string
 
 func init() {
 	runtime.GOMAXPROCS(NCPU)
@@ -37,9 +37,9 @@ func init() {
 }
 
 func main() {
-	fmt.Printf("Node version: %s\n", Version)
+	fmt.Printf("Node version: %s\n", XVersion)
 	fmt.Println("//**************************************************************************")
-	fmt.Println("//*** 0. Client Set                                                      ***")
+	fmt.Println("//*** 0. Client open                                                     ***")
 	fmt.Println("//**************************************************************************")
 	ledger.DefaultLedger = new(ledger.Ledger)
 	ledger.DefaultLedger.Store = store.NewLedgerStore()
@@ -51,11 +51,11 @@ func main() {
 	fmt.Println("//*** 1. Generate [Account]                                              ***")
 	fmt.Println("//**************************************************************************")
 	localclient := OpenClientAndGetAccount()
-	if localclient == nil{
+	if localclient == nil {
 		fmt.Println("Can't get local client.")
 		os.Exit(1)
 	}
-	issuer,err:= localclient.GetDefaultAccount()
+	issuer, err := localclient.GetDefaultAccount()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -66,6 +66,7 @@ func main() {
 	fmt.Println("//**************************************************************************")
 	miner := []*crypto.PubKey{}
 	miner = append(miner, getMiner().PublicKey)
+	fmt.Println("getMiner().PublicKey)",getMiner().PublicKey)
 	ledger.StandbyMiners = miner
 	fmt.Println("miner1.PublicKey", issuer.PublicKey)
 
@@ -82,15 +83,10 @@ func main() {
 	fmt.Println("//**************************************************************************")
 	fmt.Println("//*** 5. Start DBFT Services                                             ***")
 	fmt.Println("//**************************************************************************")
-	dbftServices := dbft.NewDbftService(localclient, "/opt/dbft", neter)
-	dbftServices.Start()
-
-	fmt.Println("//**************************************************************************")
-	fmt.Println("//*** 6. Create Transaction by client.Account                            ***")
-	fmt.Println("//**************************************************************************")
-
-
-
+	dbftServices := dbft.NewDbftService(localclient, "logdbft", neter)
+	go dbftServices.Start()
+	time.Sleep(5 * time.Second)
+	fmt.Println("DBFT Services start completed.")
 	fmt.Println("//**************************************************************************")
 	fmt.Println("//*** Init Complete                                                      ***")
 	fmt.Println("//**************************************************************************")
@@ -103,8 +99,25 @@ func main() {
 	//consensus.Start(net.NetToConsensusCh <-chan *Msg, net.ConsensusToNetCh chan<- *Msg)
 
 	if os.Getenv("CLIENT_NAME") == "c4" {
+		time.Sleep(2 * time.Second)
 		tx := sampleTransaction(issuer, admin)
+		fmt.Println("//**************************************************************************")
+		fmt.Println("//*** transaction gen complete, neter Xmit start                         ***")
+		fmt.Println("//**************************************************************************")
 		neter.Xmit(tx)
+		time.Sleep(10 * time.Second)
+		fmt.Println("//**************************************************************************")
+		fmt.Println("//*** neter Xmit completed                                               ***")
+		fmt.Println("//**************************************************************************")
+		for {
+			fmt.Println("ledger.DefaultLedger.Blockchain.BlockHeight", ledger.DefaultLedger.Blockchain.BlockHeight)
+			genesisBlockHash, _ := ledger.DefaultLedger.Store.GetBlockHash(0)
+			fmt.Println("gensisBlockGet =", genesisBlockHash)
+			firstblock, _ := ledger.DefaultLedger.Store.GetBlockHash(1)
+			fmt.Println("FirstBlockGet =", firstblock)
+			time.Sleep(10 * time.Second)
+		}
+
 	}
 
 	for {
@@ -122,22 +135,22 @@ func InitBlockChain() ledger.Blockchain {
 
 func sampleTransaction(issuer *Account, admin *Account) *transaction.Transaction {
 	fmt.Println("//**************************************************************************")
-	fmt.Println("//*** 3. Generate [Asset] Test                                           ***")
+	fmt.Println("//*** A-1. Generate [Asset] Test                                           ***")
 	fmt.Println("//**************************************************************************")
 	a1 := SampleAsset()
 
 	fmt.Println("//**************************************************************************")
-	fmt.Println("//*** 4. [controllerPGM] Generate Test                                   ***")
+	fmt.Println("//*** A-2. [controllerPGM] Generate Test                                   ***")
 	fmt.Println("//**************************************************************************")
 	controllerPGM, _ := contract.CreateSignatureContract(admin.PubKey())
 
 	fmt.Println("//**************************************************************************")
-	fmt.Println("//*** 6. Generate [Transaction] Test                                     ***")
+	fmt.Println("//*** A-3. Generate [Transaction] Test                                     ***")
 	fmt.Println("//**************************************************************************")
 	ammount := Fixed64(10)
 	tx, _ := transaction.NewAssetRegistrationTransaction(a1, &ammount, issuer.PubKey(), &controllerPGM.ProgramHash)
 	fmt.Println("//**************************************************************************")
-	fmt.Println("//*** 7. Generate [signature],[sign],set transaction [Program]           ***")
+	fmt.Println("//*** A-4. Generate [signature],[sign],set transaction [Program]           ***")
 	fmt.Println("//**************************************************************************")
 
 	//1.Transaction [Contract]
@@ -161,7 +174,7 @@ func sampleTransaction(issuer *Account, admin *Account) *transaction.Transaction
 	tx.SetPrograms(transactionContractContext.GetPrograms())
 
 	fmt.Println("//**************************************************************************")
-	fmt.Println("//*** 8. Transaction [Validation]                                       ***")
+	fmt.Println("//*** A-5. Transaction [Validation]                                       ***")
 	fmt.Println("//**************************************************************************")
 	//1.validate transaction content
 	err = validation.VerifyTransaction(tx, ledger.DefaultLedger, nil)
@@ -171,7 +184,7 @@ func sampleTransaction(issuer *Account, admin *Account) *transaction.Transaction
 		fmt.Println("Transaction Verify Normal Completed.")
 	}
 	//2.validate transaction signdate
-	_,err = validation.VerifySignature(tx, issuer.PubKey(), signdate)
+	_, err = validation.VerifySignature(tx, issuer.PubKey(), signdate)
 	if err != nil {
 		fmt.Println("Transaction Signature Verify error.", err)
 	} else {
@@ -190,8 +203,8 @@ func OpenClientAndGetAccount() *Client {
 	//CreateClient( "wallet.db3", []byte("\x12\x34\x56") )
 	//cl := OpenClient( "wallet.db3", []byte("\x12\x34\x56") )
 	clientName := os.Getenv("CLIENT_NAME")
-	if  clientName== ""{
-		fmt.Printf("Please Check your client's ENV SET, which schould be c1,c2,c3,c4. Now is %s\n",clientName)
+	if clientName == "" {
+		fmt.Printf("Please Check your client's ENV SET, which schould be c1,c2,c3,c4. Now is %s\n", clientName)
 		return nil
 	}
 	//c1 := CreateClient("wallet1.db3", []byte("\x12\x34\x56"))
@@ -227,9 +240,9 @@ func Exist(filename string) bool {
 	return err == nil || os.IsExist(err)
 }
 
-func getMiner()*Account{
+func getMiner() *Account {
 	c4 := OpenClient("wallet4.db3", []byte("\x12\x34\x56"))
-	account,err:= c4.GetDefaultAccount()
+	account, err := c4.GetDefaultAccount()
 	if err != nil {
 		fmt.Println("GetDefaultAccount failed.")
 	}
