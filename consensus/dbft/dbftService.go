@@ -198,7 +198,7 @@ func (ds *DbftService) InitializeConsensus(viewNum byte) error  {
 	} else {
 		ds.context.ChangeView(viewNum)
 	}
-
+	fmt.Println("ds.context.MinerIndex= ",ds.context.MinerIndex)
 	if ds.context.MinerIndex < 0 {
 		return NewDetailErr(errors.New("Miner Index incorrect"),ErrNoCode,"")
 	}
@@ -442,7 +442,7 @@ func (ds *DbftService) Timeout() {
 
 			ds.context.Nonce = GetNonce()
 			transactions := ds.localNet.GetMemoryPool() //TODO: add policy
-			
+
 			txBookkeeping := ds.CreateBookkeepingTransaction(transactions,ds.context.Nonce)
 			transactions[txBookkeeping.Hash()] = txBookkeeping
 

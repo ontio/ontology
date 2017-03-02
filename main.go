@@ -28,7 +28,7 @@ const (
 	NCPU = 4
 )
 
-var Version string
+var XVersion string
 
 func init() {
 	runtime.GOMAXPROCS(NCPU)
@@ -37,9 +37,9 @@ func init() {
 }
 
 func main() {
-	fmt.Printf("Node version: %s\n", Version)
+	fmt.Printf("Node version: %s\n", XVersion)
 	fmt.Println("//**************************************************************************")
-	fmt.Println("//*** 0. Client Set                                                      ***")
+	fmt.Println("//*** 0. Client open                                                     ***")
 	fmt.Println("//**************************************************************************")
 	ledger.DefaultLedger = new(ledger.Ledger)
 	ledger.DefaultLedger.Store = store.NewLedgerStore()

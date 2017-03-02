@@ -164,7 +164,6 @@ func (bd *LevelDBStore) GetBlockHash(height uint32) (Uint256, error) {
 }
 
 func (bd *LevelDBStore) GetCurrentBlockHash() Uint256 {
-
 	return *bd.header_index[bd.current_block_height]
 }
 
