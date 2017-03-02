@@ -17,14 +17,14 @@ import (
 	"GoOnchain/common/serialization"
 )
 
-type Version struct {
+type ClientVersion struct {
 	Major uint32
 	Minor uint32
 	Build uint32
 	Revision uint32
 }
 
-func (v *Version) ToArray() []byte {
+func (v *ClientVersion) ToArray() []byte {
 	vbuf := bytes.NewBuffer(nil)
 	serialization.WriteUint32( vbuf, v.Major )
 	serialization.WriteUint32( vbuf, v.Minor )
@@ -126,8 +126,8 @@ func NewClient( path string, passwordKey []byte, create bool ) *Client {
 			return nil
 		}
 
-		v := Version{0,0,0,1}
-		err = newClient.store.SaveStoredData("Version",v.ToArray())
+		v := ClientVersion{0,0,0,1}
+		err = newClient.store.SaveStoredData("ClientVersion",v.ToArray())
 		if err != nil {
 			fmt.Println( err )
 			return nil
