@@ -261,7 +261,6 @@ func (node node) Xmit(inv common.Inventory) error {
 			}
 		}
 	}
-
 	node.neighb.Broadcast(buffer)
 
 	return nil
