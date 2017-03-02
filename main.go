@@ -97,7 +97,7 @@ func main() {
 	go httpjsonrpc.StartServer()
 
 	time.Sleep(2 * time.Second)
-	httpjsonrpc.StartClient()
+	//httpjsonrpc.StartClient()
 	// Modules start sample
 	//ledger.Start(net.NetToLedgerCh <-chan *Msg, net.LedgerToNetCh chan<- *Msg)
 	//consensus.Start(net.NetToConsensusCh <-chan *Msg, net.ConsensusToNetCh chan<- *Msg)
