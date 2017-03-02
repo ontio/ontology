@@ -2,6 +2,7 @@ package message
 
 import (
 	"GoOnchain/common"
+	"GoOnchain/common/serialization"
 	"GoOnchain/core/ledger"
 	. "GoOnchain/net/protocol"
 	"bytes"
@@ -9,6 +10,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"unsafe"
 )
 
@@ -47,7 +49,7 @@ func (msg blocksReq) Handle(node Noder) error {
 	stophash = msg.HashStop
 	//FIXME if HeaderHashCount > 1
 	buf, _ := NewInv(starthash[0], stophash)
-	go node.LocalNode().Tx(buf)
+	go node.Tx(buf)
 	return nil
 }
 
@@ -114,12 +116,14 @@ func (msg Inv) Handle(node Noder) error {
 }
 
 func (msg Inv) Serialization() ([]byte, error) {
-	var buf bytes.Buffer
+	buf := bytes.NewBuffer([]byte{})
 
 	fmt.Printf("The size of messge is %d in serialization\n",
 		uint32(unsafe.Sizeof(msg)))
 
-	err := binary.Write(&buf, binary.LittleEndian, msg)
+	err := binary.Write(buf, binary.LittleEndian, msg.Hdr)
+	msg.P.Serialization(buf)
+
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +201,7 @@ func NewInv(starthash common.Uint256, stophash common.Uint256) ([]byte, error) {
 	msg.P.InvType = 0x02
 	msg.Hdr.Magic = NETMAGIC
 	cmd := "inv"
-	copy(msg.Hdr.CMD[0:7], cmd)
+	copy(msg.Hdr.CMD[0:len(cmd)], cmd)
 	b := new(bytes.Buffer)
 	err := binary.Write(b, binary.LittleEndian, &(msg.P))
 	if err != nil {
@@ -221,4 +225,9 @@ func NewInv(starthash common.Uint256, stophash common.Uint256) ([]byte, error) {
 	str := hex.EncodeToString(m)
 	fmt.Printf("The message length is %d, %s\n", len(m), str)
 	return m, nil
+}
+
+func (msg *invPayload) Serialization(w io.Writer) {
+	serialization.WriteUint8(w, msg.InvType)
+	serialization.WriteVarBytes(w, msg.Blk)
 }

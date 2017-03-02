@@ -116,7 +116,7 @@ func (msg headersReq) Handle(node Noder) error {
 	stophash = msg.p.hashEnd
 	//FIXME if HeaderHashCount > 1
 	buf, _ := NewHeaders(starthash, stophash) //(starthash[0], stophash)
-	go node.LocalNode().Tx(buf)
+	go node.Tx(buf)
 	return nil
 }
 
@@ -161,7 +161,7 @@ func NewHeaders(starthash common.Uint256, stophash common.Uint256) ([]byte, erro
 	*/
 	msg.hdr.Magic = NETMAGIC
 	cmd := "headers"
-	copy(msg.hdr.CMD[0:7], cmd)
+	copy(msg.hdr.CMD[0:len(cmd)], cmd)
 	b := new(bytes.Buffer)
 	err := binary.Write(b, binary.LittleEndian, &(msg.blkHdr))
 	if err != nil {

@@ -20,7 +20,7 @@ type blockReq struct {
 
 type block struct {
 	msgHdr
-	blk []byte
+	blk ledger.Block
 	// TBD
 	//event *events.Event
 }
@@ -49,27 +49,34 @@ func (msg dataReq) Handle(node Noder) error {
 	hash := msg.hash
 	switch reqtype {
 	case 0x01:
-		buf, _ := NewBlock(hash)
-		go node.LocalNode().Tx(buf)
+		block := NewBlockFromHash(hash)
+		buf, _ := NewBlock(block)
+		go node.Tx(buf)
+
 	case 0x02:
-		buf, _ := NewTx(hash)
-		go node.LocalNode().Tx(buf)
+		tx := NewTxFromHash(hash)
+		buf, _ := NewTx(tx)
+		go node.Tx(buf)
 	}
 	return nil
 }
-func NewBlock(hash common.Uint256) ([]byte, error) {
+
+func NewBlockFromHash(hash common.Uint256) *ledger.Block {
+	bk, _ := ledger.DefaultLedger.Store.GetBlock(hash)
+	return bk
+}
+
+func NewBlock(bk *ledger.Block) ([]byte, error) {
 	common.Trace()
 	var msg block
-	//FIXME no error
-	bk, _ := ledger.DefaultLedger.Store.GetBlock(hash)
+	msg.blk = *bk
 	msg.msgHdr.Magic = NETMAGIC
-	ver := "block"
-	copy(msg.msgHdr.CMD[0:7], ver)
+	cmd := "block"
+	copy(msg.msgHdr.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	bk.Serialize(tmpBuffer)
-	msg.blk = tmpBuffer.Bytes()
 	p := new(bytes.Buffer)
-	err := binary.Write(p, binary.LittleEndian, &(msg.blk))
+	err := binary.Write(p, binary.LittleEndian, tmpBuffer.Bytes())
 	if err != nil {
 		fmt.Println("Binary Write failed at new Msg")
 		return nil, err
@@ -112,14 +119,15 @@ func (msg block) Verify(buf []byte) error {
 }
 
 func (msg block) Serialization() ([]byte, error) {
-	var buf bytes.Buffer
 
 	fmt.Printf("The size of messge is %d in serialization\n",
 		uint32(unsafe.Sizeof(msg)))
-	err := binary.Write(&buf, binary.LittleEndian, msg)
+	hdrBuf, err := msg.msgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
+	buf := bytes.NewBuffer(hdrBuf)
+	msg.blk.Serialize(buf)
 
 	return buf.Bytes(), err
 }

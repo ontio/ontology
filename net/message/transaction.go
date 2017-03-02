@@ -2,7 +2,7 @@ package message
 
 import (
 	"GoOnchain/common"
-	//"GoOnchain/core/transaction"
+	"GoOnchain/core/transaction"
 	. "GoOnchain/net/protocol"
 	//"GoOnchain/core/ledger"
 	"bytes"
@@ -23,19 +23,19 @@ type dataReq struct {
 type trn struct {
 	msgHdr
 	// TBD
-	txn []byte
-	//txn  transaction.Transaction
+	//txn []byte
+	txn transaction.Transaction
 	//hash common.Uint256
 }
 
 func (msg trn) Handle(node Noder) error {
 	common.Trace()
 	fmt.Printf("RX TRX message\n")
-	/*
-		if !node.ExistedID(msg.hash) {
-			node.AppendTxnPool(&(msg.txn))
-		}
-	*/
+	
+	if !node.LocalNode().ExistedID(msg.txn.Hash()) {
+		node.LocalNode().AppendTxnPool(&(msg.txn))
+	}
+
 	return nil
 }
 
@@ -72,21 +72,28 @@ func (msg *dataReq) Deserialization(p []byte) error {
 	return nil
 }
 
-func NewTx(hash common.Uint256) ([]byte, error) {
-	common.Trace()
-	var msg trn
-	//Wait for junjie commit GetTransactionWithHash!!!!
+func NewTxFromHash(hash common.Uint256) *transaction.Transaction {
 	/*
 		trx, _ := ledger.DefaultLedger.Blockchain.GetTransactionWithHash(hash)
 		txBuffer := bytes.NewBuffer([]byte{})
 		trx.Serialize(txBuffer)
 		msg.txn = txBuffer.Bytes()
 	*/
+	var trx *transaction.Transaction
+	return trx
+}
+func NewTx(trx *transaction.Transaction) ([]byte, error) {
+	common.Trace()
+	var msg trn
+
 	msg.msgHdr.Magic = NETMAGIC
 	cmd := "tx"
-	copy(msg.msgHdr.CMD[0:7], cmd)
+	copy(msg.msgHdr.CMD[0:len(cmd)], cmd)
+	tmpBuffer := bytes.NewBuffer([]byte{})
+	trx.Serialize(tmpBuffer)
+	msg.txn = *trx
 	b := new(bytes.Buffer)
-	err := binary.Write(b, binary.LittleEndian, &(msg.txn))
+	err := binary.Write(b, binary.LittleEndian, tmpBuffer.Bytes())
 	if err != nil {
 		fmt.Println("Binary Write failed at new Msg")
 		return nil, err
@@ -107,19 +114,34 @@ func NewTx(hash common.Uint256) ([]byte, error) {
 
 	str := hex.EncodeToString(m)
 	fmt.Printf("The message length is %d, %s\n", len(m), str)
+
 	return m, nil
 }
 
 func (msg trn) Serialization() ([]byte, error) {
-	var buf bytes.Buffer
+	//buf := bytes.NewBuffer([]byte{})
 
 	fmt.Printf("The size of messge is %d in serialization\n",
 		uint32(unsafe.Sizeof(msg)))
-	err := binary.Write(&buf, binary.LittleEndian, msg)
-
+	hdrBuf, err := msg.msgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
+	buf := bytes.NewBuffer(hdrBuf)
+	msg.txn.Serialize(buf)
 
 	return buf.Bytes(), err
 }
+
+
+func (msg trn) DeSerialization(p []byte) error {
+	buf := bytes.NewBuffer(p)
+	err := binary.Read(buf, binary.LittleEndian, &(msg.msgHdr))
+	err = msg.txn.Deserialize(buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
