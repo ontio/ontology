@@ -2,6 +2,7 @@ package message
 
 import (
 	"GoOnchain/common"
+	"GoOnchain/common/serialization"
 	"GoOnchain/core/ledger"
 	. "GoOnchain/net/protocol"
 	"bytes"
@@ -23,7 +24,8 @@ type headersReq struct {
 
 type blkHeader struct {
 	hdr    msgHdr
-	blkHdr []byte
+	cnt    uint32
+	blkHdr []ledger.Blockdata
 }
 
 func NewHeadersReq(n Noder) ([]byte, error) {
@@ -85,16 +87,18 @@ func (msg *headersReq) Deserialization(p []byte) error {
 }
 
 func (msg blkHeader) Serialization() ([]byte, error) {
-	var buf bytes.Buffer
 
 	fmt.Printf("The size of messge is %d in serialization\n",
 		uint32(unsafe.Sizeof(msg)))
-	err := binary.Write(&buf, binary.LittleEndian, msg)
-
+	hdrBuf, err := msg.hdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
-
+	buf := bytes.NewBuffer(hdrBuf)
+	serialization.WriteUint32(buf, msg.cnt)
+	for _, header := range msg.blkHdr {
+		header.Serialize(buf)
+	}
 	return buf.Bytes(), err
 }
 
@@ -103,7 +107,7 @@ func (msg *blkHeader) Deserialization(p []byte) error {
 		uint32(unsafe.Sizeof(*msg)))
 
 	err := msg.hdr.Deserialization(p)
-	msg.blkHdr = p[MSGHDRLEN:]
+	//msg.blkHdr = p[MSGHDRLEN:]
 	return err
 }
 
@@ -115,7 +119,8 @@ func (msg headersReq) Handle(node Noder) error {
 	starthash = msg.p.hashStart
 	stophash = msg.p.hashEnd
 	//FIXME if HeaderHashCount > 1
-	buf, _ := NewHeaders(starthash, stophash) //(starthash[0], stophash)
+	headers, cnt := GetHeadersFromHash(starthash, stophash) //(starthash[0], stophash)
+	buf, _ := NewHeaders(headers, cnt)
 	go node.Tx(buf)
 	return nil
 }
@@ -125,13 +130,10 @@ func (msg blkHeader) Handle(node Noder) error {
 	// TBD
 	return nil
 }
-
-func NewHeaders(starthash common.Uint256, stophash common.Uint256) ([]byte, error) {
-	var msg blkHeader
+func GetHeadersFromHash(starthash common.Uint256, stophash common.Uint256) ([]ledger.Blockdata, uint32) {
 	var count uint32 = 0
 	var empty [HASHLEN]byte
-	//FIXME need add error handle for GetBlockWithHash
-
+	var headers []ledger.Blockdata
 	bkstart, _ := ledger.DefaultLedger.Store.GetBlock(starthash)
 	startheight := bkstart.Blockdata.Height
 	var stopheight uint32
@@ -145,25 +147,36 @@ func NewHeaders(starthash common.Uint256, stophash common.Uint256) ([]byte, erro
 	} else {
 		count = 2000
 	}
+
 	// waiting for GetBlockWithHeight commit
 	/*
-		var blkheaders *ledger.Blockdata
 		var i uint32
-		tmpBuffer := bytes.NewBuffer([]byte{})
+
 		for i = 1; i <= count; i++ {
 			//FIXME need add error handle for GetBlockWithHeight
 			bk, _ := ledger.DefaultLedger.Blockchain.GetBlockWithHeight(stopheight + i)
-			blkheaders = bk.Blockdata
-			blkheaders.Serialize(tmpBuffer)
+			headers = append(headers, bk.Blockdata)
 			i++
 		}
-		msg.blkHdr = tmpBuffer.Bytes()
 	*/
+	return headers, count
+}
+
+func NewHeaders(headers []ledger.Blockdata, count uint32) ([]byte, error) {
+	var msg blkHeader
+	msg.cnt = count
+	msg.blkHdr = headers
 	msg.hdr.Magic = NETMAGIC
 	cmd := "headers"
 	copy(msg.hdr.CMD[0:len(cmd)], cmd)
+
+	tmpBuffer := bytes.NewBuffer([]byte{})
+	serialization.WriteUint32(tmpBuffer, msg.cnt)
+	for _, header := range headers {
+		header.Serialize(tmpBuffer)
+	}
 	b := new(bytes.Buffer)
-	err := binary.Write(b, binary.LittleEndian, &(msg.blkHdr))
+	err := binary.Write(b, binary.LittleEndian, tmpBuffer.Bytes())
 	if err != nil {
 		fmt.Println("Binary Write failed at new Msg")
 		return nil, err

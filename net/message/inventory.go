@@ -48,7 +48,8 @@ func (msg blocksReq) Handle(node Noder) error {
 	starthash = msg.HashStart
 	stophash = msg.HashStop
 	//FIXME if HeaderHashCount > 1
-	buf, _ := NewInv(starthash[0], stophash)
+	inv := GetInvFromBlockHash(starthash[0], stophash)
+	buf, _ := NewInv(inv)
 	go node.Tx(buf)
 	return nil
 }
@@ -116,17 +117,14 @@ func (msg Inv) Handle(node Noder) error {
 }
 
 func (msg Inv) Serialization() ([]byte, error) {
-	buf := bytes.NewBuffer([]byte{})
-
 	fmt.Printf("The size of messge is %d in serialization\n",
 		uint32(unsafe.Sizeof(msg)))
-
-	err := binary.Write(buf, binary.LittleEndian, msg.Hdr)
-	msg.P.Serialization(buf)
-
+	hdrBuf, err := msg.Hdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
+	buf := bytes.NewBuffer(hdrBuf)
+	msg.P.Serialization(buf)
 
 	return buf.Bytes(), err
 }
@@ -169,12 +167,11 @@ func (msg Inv) invLen() (uint64, uint8) {
 	return val, size
 }
 
-func NewInv(starthash common.Uint256, stophash common.Uint256) ([]byte, error) {
-	var msg Inv
-	var count uint32 = 0
-
+func GetInvFromBlockHash(starthash common.Uint256, stophash common.Uint256) invPayload {
 	//FIXME need add error handle for GetBlockWithHash
 	var stopheight uint32
+	var count uint32 = 0
+	var i uint32
 	/*wait for GetBlockWithHash commit
 	var empty common.Uint256
 	bkstart, _ := ledger.DefaultLedger.Blockchain.GetBlockWithHash(starthash)
@@ -190,20 +187,32 @@ func NewInv(starthash common.Uint256, stophash common.Uint256) ([]byte, error) {
 		count = 500
 	}
 	*/
-	var i uint32
+
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	for i = 1; i <= count; i++ {
 		//FIXME need add error handle for GetBlockWithHash
 		hash, _ := ledger.DefaultLedger.Store.GetBlockHash(stopheight + i)
 		hash.Serialize(tmpBuffer)
 	}
-	msg.P.Blk = tmpBuffer.Bytes()
-	msg.P.InvType = 0x02
+	var inv invPayload
+	inv.Blk = tmpBuffer.Bytes()
+	inv.InvType = 0x02
+	return inv
+}
+
+func NewInv(inv invPayload) ([]byte, error) {
+	var msg Inv
+
+	msg.P.Blk = inv.Blk
+	msg.P.InvType = inv.InvType
 	msg.Hdr.Magic = NETMAGIC
 	cmd := "inv"
 	copy(msg.Hdr.CMD[0:len(cmd)], cmd)
+	tmpBuffer := bytes.NewBuffer([]byte{})
+	inv.Serialization(tmpBuffer)
+
 	b := new(bytes.Buffer)
-	err := binary.Write(b, binary.LittleEndian, &(msg.P))
+	err := binary.Write(b, binary.LittleEndian, tmpBuffer.Bytes())
 	if err != nil {
 		fmt.Println("Binary Write failed at new Msg")
 		return nil, err
