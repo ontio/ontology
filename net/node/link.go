@@ -170,7 +170,6 @@ func (node *node) Connect(nodeAddr string) {
 		// FIXME is there any timing race with rx
 		buf, _ := NewVersion(node)
 		n.Tx(buf)
-
 		return nil
 	}
 }
