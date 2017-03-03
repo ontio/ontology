@@ -176,8 +176,8 @@ func (cxt *ConsensusContext)  GetTransactionList()  []*tx.Transaction{
 		cxt.txlist = []*tx.Transaction{}
 		fmt.Println("cxt.Transactions=",cxt.Transactions)
 		for _,TX := range cxt.Transactions {
-			fmt.Println("transaction added to cxt.Transactions.",TX)
 			cxt.txlist = append(cxt.txlist,TX)
+			fmt.Println("transaction added to cxt.Transactions.",TX)
 		}
 		fmt.Println("len cxt.transacionts",len(cxt.Transactions))
 	}
@@ -215,7 +215,6 @@ func (cxt *ConsensusContext) Reset(client *cl.Client){
 	cxt.MinerIndex = -1
 
 	minerLen := len(cxt.Miners)
-
 	cxt.PrimaryIndex = cxt.Height % uint32(minerLen)
 	cxt.TransactionHashes = nil
 	cxt.Signatures = make([][]byte,minerLen)

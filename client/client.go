@@ -15,6 +15,7 @@ import (
 	"math/rand"
 	"bytes"
 	"GoOnchain/common/serialization"
+	"GoOnchain/core/contract"
 )
 
 type ClientVersion struct {
@@ -253,9 +254,25 @@ func (cl *Client) ChangePassword(oldPassword string,newPassword string) bool{
 }
 
 func (cl *Client) ContainsAccount(pubKey *crypto.PubKey) bool{
-	//TODO: ContainsAccount
-	//return false
-	return true
+
+	acpubkey,err := pubKey.EncodePoint(true)
+	if err == nil {
+		Publickey, err := ToCodeHash( acpubkey )
+		if err == nil {
+			if cl.GetAccountByKeyHash(Publickey) != nil {
+				return true
+			} else {
+				return false
+			}
+
+		} else {
+			fmt.Println( err )
+			return false
+		}
+	} else {
+		fmt.Println( err )
+		return false
+	}
 }
 
 func (cl *Client) CreateAccount() (*Account,error){
@@ -275,6 +292,10 @@ func (cl *Client) CreateAccount() (*Account,error){
 		fmt.Printf("[CreateAccount] PublicKeyAddress: %s\n", ac.PublicKeyHash.ToAddress())
 
 		//cl.AddContract( contract.CreateSignatureContract( ac.PublicKey ) )
+		ct,err := contract.CreateSignatureContract( ac.PublicKey )
+		if err == nil {
+			cl.AddContract( ct )
+		}
 
 		return ac,nil
 	} else {
@@ -457,6 +478,7 @@ func (cl *Client) LoadAccount()  map[Uint160]*Account {
 	return accounts
 }
 
-//func (cl *Client) AddContract(ct * contract.Contract) {
+func (cl *Client) AddContract(ct * contract.Contract) {
 //
-//}
+//	//cl.store.SaveContractData(ct)
+}

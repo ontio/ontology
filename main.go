@@ -28,7 +28,7 @@ const (
 	NCPU = 4
 )
 
-var XVersion string
+var Version string
 
 func init() {
 	runtime.GOMAXPROCS(NCPU)
@@ -37,7 +37,7 @@ func init() {
 }
 
 func main() {
-	fmt.Printf("Node version: %s\n", XVersion)
+	fmt.Printf("Node version: %s\n", Version)
 	fmt.Println("//**************************************************************************")
 	fmt.Println("//*** 0. Client open                                                     ***")
 	fmt.Println("//**************************************************************************")
@@ -65,8 +65,10 @@ func main() {
 	fmt.Println("//*** 2. Set Miner                                                     ***")
 	fmt.Println("//**************************************************************************")
 	miner := []*crypto.PubKey{}
-	miner = append(miner, getMiner().PublicKey)
-	fmt.Println("getMiner().PublicKey)",getMiner().PublicKey)
+	miner = append(miner, getMiner1().PublicKey)
+	miner = append(miner, getMiner4().PublicKey)
+	miner = append(miner, getMiner3().PublicKey)
+	miner = append(miner, getMiner2().PublicKey)
 	ledger.StandbyMiners = miner
 	fmt.Println("miner1.PublicKey", issuer.PublicKey)
 
@@ -240,7 +242,34 @@ func Exist(filename string) bool {
 	return err == nil || os.IsExist(err)
 }
 
-func getMiner() *Account {
+func getMiner1() *Account {
+	c4 := OpenClient("wallet1.db3", []byte("\x12\x34\x56"))
+	account, err := c4.GetDefaultAccount()
+	if err != nil {
+		fmt.Println("GetDefaultAccount failed.")
+	}
+	return account
+
+}
+func getMiner2() *Account {
+	c4 := OpenClient("wallet2.db3", []byte("\x12\x34\x56"))
+	account, err := c4.GetDefaultAccount()
+	if err != nil {
+		fmt.Println("GetDefaultAccount failed.")
+	}
+	return account
+
+}
+func getMiner3() *Account {
+	c4 := OpenClient("wallet3.db3", []byte("\x12\x34\x56"))
+	account, err := c4.GetDefaultAccount()
+	if err != nil {
+		fmt.Println("GetDefaultAccount failed.")
+	}
+	return account
+
+}
+func getMiner4() *Account {
 	c4 := OpenClient("wallet4.db3", []byte("\x12\x34\x56"))
 	account, err := c4.GetDefaultAccount()
 	if err != nil {

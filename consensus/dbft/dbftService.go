@@ -202,12 +202,17 @@ func (ds *DbftService) InitializeConsensus(viewNum byte) error  {
 	if ds.context.MinerIndex < 0 {
 		return NewDetailErr(errors.New("Miner Index incorrect"),ErrNoCode,"")
 	}
+	fmt.Println("ds.context.MinerIndex",ds.context.MinerIndex)
+	fmt.Println("ds.context.PrimaryIndex",ds.context.PrimaryIndex)
 	if ds.context.MinerIndex == int(ds.context.PrimaryIndex) {
+		Trace()
 		ds.context.State |= Primary
 		ds.timerHeight = ds.context.Height
 		ds.timeView = viewNum
 		span := time.Now().Sub(ds.blockReceivedTime)
+		Trace()
 		if span > TimePerBlock {
+			Trace()
 			ds.Timeout()
 		} else {
 			time.AfterFunc(TimePerBlock-span,ds.Timeout)
@@ -410,7 +415,7 @@ func (ds *DbftService) Timeout() {
 	}
 	fmt.Sprintf("Timeout: height=%d View=%d state=%d",ds.timerHeight,ds.timeView,ds.context.State)
 	con.Log(fmt.Sprintf("Timeout: height=%d View=%d state=%d",ds.timerHeight,ds.timeView,ds.context.State))
-
+	fmt.Printf(" ds.context.State %x\n", ds.context.State)
 	fmt.Println("ds.context.State.HasFlag(Primary)=",ds.context.State.HasFlag(Primary))
 	fmt.Println("ds.context.State.HasFlag(RequestSent)=",ds.context.State.HasFlag(RequestSent))
 	fmt.Println("ds.context.State.HasFlag(Backup)=",ds.context.State.HasFlag(Backup))
@@ -439,13 +444,15 @@ func (ds *DbftService) Timeout() {
 
 			ds.context.Nonce = GetNonce()
 			transactions := ds.localNet.GetMemoryPool() //TODO: add policy
-
-			ds.CreateBookkeepingTransaction(transactions,ds.context.Nonce)
+			
+			txBookkeeping := ds.CreateBookkeepingTransaction(transactions,ds.context.Nonce)
+			transactions[txBookkeeping.Hash()] = txBookkeeping
 
 			if ds.context.TransactionHashes == nil {
 				ds.context.TransactionHashes = []Uint256{}
 			}
 
+			ds.context.TransactionHashes = append(ds.context.TransactionHashes,txBookkeeping.Hash())
 			for _,TX := range transactions {
 				ds.context.TransactionHashes = append(ds.context.TransactionHashes,TX.Hash())
 			}
