@@ -163,7 +163,7 @@ func (msg *consensus) Deserialization(p []byte) error {
 		uint32(unsafe.Sizeof(*msg)))
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.msgHdr))
-
+	msg.cons.Deserialize(buf)
 	return err
 }
 
