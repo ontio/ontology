@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"unsafe"
 )
 
 type Messager interface {
@@ -22,6 +21,7 @@ type Messager interface {
 // The network communication message header
 type msgHdr struct {
 	Magic    uint32
+	//ID	 uint64
 	CMD      [MSGCMDLEN]byte // The message type
 	Length   uint32
 	Checksum [CHECKSUMLEN]byte
@@ -176,7 +176,7 @@ func NewMsg(t string, n Noder) ([]byte, error) {
 	case "version":
 		return NewVersion(n)
 	case "verack":
-		return newVerack()
+		return NewVerack()
 	case "getheaders":
 		return NewHeadersReq(n)
 	case "getaddr":
@@ -249,9 +249,7 @@ func (hdr *msgHdr) init(cmd string, checksum []byte, length uint32) {
 	copy(hdr.CMD[0:uint32(len(cmd))], cmd)
 	copy(hdr.Checksum[:], checksum[:CHECKSUMLEN])
 	hdr.Length = length
-
-	fmt.Printf("The message payload length is %d\n", hdr.Length)
-	fmt.Printf("The message header length is %d\n", uint32(unsafe.Sizeof(*hdr)))
+	//hdr.ID = id
 }
 
 // Verify the message header information

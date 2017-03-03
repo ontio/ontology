@@ -13,7 +13,7 @@ type verACK struct {
 	// No payload
 }
 
-func newVerack() ([]byte, error) {
+func NewVerack() ([]byte, error) {
 	var msg verACK
 	// Fixme the check is the []byte{0} instead of 0
 	var sum []byte
@@ -33,7 +33,7 @@ func newVerack() ([]byte, error) {
 
 /*
  * The node state switch table after rx message, there is time limitation for each action
- * The Hanshark status will switch to INIT after TIMEOUT if not received the VerACK
+ * The Hanshake status will switch to INIT after TIMEOUT if not received the VerACK
  * in this time window
  *  _______________________________________________________________________
  * |          |    INIT         | HANDSHAKE |  ESTABLISH | INACTIVITY      |
@@ -47,14 +47,6 @@ func newVerack() ([]byte, error) {
  * |          |   No Action     |           | No Action  | No Action       |
  * |------------------------------------------------------------------------
  *
- * The node state switch table after TX message, there is time limitation for each action
- *  ____________________________________________________________
- * |          |    INIT   | HANDSHAKE  | ESTABLISH | INACTIVITY |
- * |------------------------------------------------------------|
- * | version  |           |  INIT      | None      |            |
- * |          | Update    |  Update    |           | Update     |
- * |          | helloTime |  helloTime |           | helloTime  |
- * |------------------------------------------------------------|
  */
 // TODO The process should be adjusted based on above table
 func (msg verACK) Handle(node Noder) error {
@@ -62,23 +54,11 @@ func (msg verACK) Handle(node Noder) error {
 
 	t := time.Now()
 	// TODO we loading the state&time without consider race case
-	th := node.GetHandshakeTime()
 	s := node.GetState()
-
-	m, _ := msg.Serialization()
-	str := hex.EncodeToString(m)
-	fmt.Printf("The message rx verack length is %d, %s\n", len(m), str)
-
-	// TODO take care about the time duration overflow
-	tDelta := t.Sub(th)
-	if tDelta.Seconds() < HELLOTIMEOUT {
-		if s == HANDSHAKEING {
-			node.SetState(ESTABLISH)
-			buf, _ := newVerack()
-			go node.Tx(buf)
-		} else if s == HANDSHAKED {
-			node.SetState(ESTABLISH)
-		}
+	if s == HANDSHAKE {
+		node.SetState(ESTABLISH)
+	} else {
+		fmt.Println("Unkown status when get the verack")
 	}
 	// TODO update other node info
 	node.UpdateTime(t)

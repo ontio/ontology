@@ -17,7 +17,7 @@ type NodeAddr struct {
 	Services uint64
 	IpAddr   [16]byte
 	Port     uint16
-	Uid	 uint32		// Unique ID
+	Uid	 uint64		// Unique ID
 }
 
 const (
@@ -42,27 +42,24 @@ const (
 // The node state
 const (
 	INIT         = 0
-	HANDSHAKEING = 1
-	HANDSHAKED   = 2
-	ESTABLISH    = 3
-	INACTIVITY   = 4
+	HANDSHAKE    = 1
+	ESTABLISH    = 2
+	INACTIVITY   = 3
 )
 
 type Noder interface {
 	Version() uint32
-	GetID() string
+	GetID()   uint64
 	Services() uint64
 	GetPort() uint16
 	GetState() uint
-	GetNonce() uint32
 	GetRelay() bool
 	SetState(state uint)
-	GetHandshakeTime() time.Time
-	SetHandshakeTime(t time.Time)
-	GetHandshakeRetry() uint32
-	SetHandshakeRetry(r uint32)
 	UpdateTime(t time.Time)
 	LocalNode() Noder
+	DelNbrNode(id uint64) (Noder, bool)
+	AddNbrNode(Noder)
+	CloseConn()
 	GetHeight() uint64
 	GetConnectionCnt() uint
 	GetLedger() *ledger.Ledger
@@ -72,14 +69,11 @@ type Noder interface {
 	ReqNeighborList()
 	DumpInfo()
 	UpdateInfo(t time.Time, version uint32, services uint64,
-		port uint16, nonce uint32, relay uint8, height uint32)
-
-	//GetTxn(common.Uint256) transaction.Transaction
+		port uint16, nonce uint64, relay uint8, height uint64)
 	Connect(nodeAddr string)
-	//Xmit(inv Inventory) error // The transmit interface
 	Tx(buf []byte)
 	GetTime() int64
-	NodeEstablished(uid uint32) bool
+	NodeEstablished(uid uint64) bool
 	GetEvent(eventName string) *events.Event
 	GetNeighborAddrs() ([]NodeAddr, uint64)
 }

@@ -20,10 +20,10 @@ type version struct {
 		Services  uint64
 		TimeStamp uint32
 		Port      uint16
-		Nonce     uint32
+		Nonce	  uint64
 		// TODO remove tempory to get serilization function passed
 		UserAgent   uint8
-		StartHeight uint32
+		StartHeight uint64
 		// FIXME check with the specify relay type length
 		Relay uint8
 	}
@@ -42,15 +42,18 @@ func NewVersion(n Noder) ([]byte, error) {
 	// FIXME Time overflow
 	msg.P.TimeStamp = uint32(time.Now().UTC().UnixNano())
 	msg.P.Port = n.GetPort()
-	msg.P.Nonce = n.GetNonce()
+	msg.P.Nonce = n.GetID()
 	msg.P.UserAgent = 0x00
 	// Fixme Get the block height from ledger
-	msg.P.StartHeight = n.GetLedger().GetLocalBlockChainHeight()
+	msg.P.StartHeight = uint64(n.GetLedger().GetLocalBlockChainHeight())
 	if n.GetRelay() {
 		msg.P.Relay = 1
 	} else {
 		msg.P.Relay = 0
 	}
+
+	// TODO the function to wrap below process
+	// msg.HDR.init("version", n.GetID(), uint32(len(p.Bytes())))
 
 	msg.Hdr.Magic = NETMAGIC
 	copy(msg.Hdr.CMD[0:7], "version")
@@ -82,6 +85,7 @@ func NewVersion(n Noder) ([]byte, error) {
 func (msg version) Verify(buf []byte) error {
 	err := msg.Hdr.Verify(buf)
 	// TODO verify the message Content
+	// TODO check version compatible or not
 	return err
 }
 
@@ -109,7 +113,7 @@ func (msg *version) Deserialization(p []byte) error {
 
 /*
  * The node state switch table after rx message, there is time limitation for each action
- * The Hanshark status will switch to INIT after TIMEOUT if not received the VerACK
+ * The Handshake status will switch to INIT after TIMEOUT if not received the VerACK
  * in this time window
  *  _______________________________________________________________________
  * |          |    INIT         | HANDSHAKE |  ESTABLISH | INACTIVITY      |
@@ -122,44 +126,44 @@ func (msg *version) Deserialization(p []byte) error {
  * | verack   |                 | ESTABLISH |            |                 |
  * |          |   No Action     |           | No Action  | No Action       |
  * |------------------------------------------------------------------------
- *
- * The node state switch table after TX message, there is time limitation for each action
- *  ____________________________________________________________
- * |          |    INIT   | HANDSHAKE  | ESTABLISH | INACTIVITY |
- * |------------------------------------------------------------|
- * | version  |           |  INIT      | None      |            |
- * |          | Update    |  Update    |           | Update     |
- * |          | helloTime |  helloTime |           | helloTime  |
- * |------------------------------------------------------------|
  */
-// TODO The process should be adjusted based on above table
 func (msg version) Handle(node Noder) error {
 	common.Trace()
+	localNode := node.LocalNode()
 
 	// Exclude the node itself
-	if (msg.P.Nonce == node.LocalNode().GetNonce()) {
+	if (msg.P.Nonce == localNode.GetID()) {
 		fmt.Printf("The node handshark with itself\n")
 		return errors.New("The node handshark with itself")
 	}
-	t := time.Now()
-	// TODO check version compatible or not
+
 	s := node.GetState()
-	if s == HANDSHAKEING {
-		node.SetState(HANDSHAKED)
-		buf, _ := newVerack()
-		fmt.Println("TX verack")
-		go node.Tx(buf)
-	} else if s != ESTABLISH {
-		node.SetHandshakeTime(t)
-		node.SetState(HANDSHAKEING)
-		buf, _ := NewVersion(node.LocalNode())
-		go node.Tx(buf)
+	if (s != INIT) && (s != HANDSHAKE) {
+		fmt.Printf("Unknow status to received \n")
+		return errors.New("Unknow status to received")
 	}
 
-	// TODO Update other node information
-	fmt.Printf("Node %s state is %d\n", node.GetID(), node.GetState())
-	node.UpdateInfo(t, msg.P.Version, msg.P.Services, msg.P.Port, msg.P.Nonce,
-		msg.P.Relay, msg.P.StartHeight)
+	// Obsolete node
+	n, ret := localNode.DelNbrNode(msg.P.Nonce)
+	if ret == true {
+		fmt.Printf("Remove a eixted Node\n")
+		// Close the connection and release the node soure
+		n.SetState(INACTIVITY)
+		n.CloseConn()
+	}
+
+	node.UpdateInfo(time.Now(), msg.P.Version, msg.P.Services,
+		msg.P.Port, msg.P.Nonce, msg.P.Relay, msg.P.StartHeight)
+	localNode.AddNbrNode(node)
+
+	if (s == INIT) {
+		buf, _ := NewVersion(localNode)
+		go node.Tx(buf)
+		node.SetState(HANDSHAKE)
+	}
+
+	buf, _ := NewVerack()
+	go node.Tx(buf)
 
 	return nil
 }

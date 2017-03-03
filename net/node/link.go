@@ -24,6 +24,7 @@ type link struct {
 		p   []byte
 		len int
 	}
+	connCnt	uint64		// The connection count
 }
 
 // Shrinking the buf to the exactly reading in byte length
@@ -105,6 +106,10 @@ func printIPAddr() {
 	}
 }
 
+func (link link) CloseConn() {
+	link.conn.Close()
+}
+
 // Init the server port, should be run in another thread
 func (n *node) initConnection() {
 	common.Trace()
@@ -120,20 +125,15 @@ func (n *node) initConnection() {
 			fmt.Println("Error accepting\n", err.Error())
 			return
 		}
-		node := NewNode()
-		id, _ := parseIPaddr(conn.RemoteAddr().String())
-		node.id = id
-		node.addr = id
-		node.local = n
 		fmt.Println("Remote node connect with ", conn.RemoteAddr(), conn.LocalAddr())
+
+		n.link.connCnt++
+
+		node := NewNode()
+		node.addr, err = parseIPaddr(conn.RemoteAddr().String())
+		node.local = n
 		node.conn = conn
-		// TOOD close the conn when erro happened
-		// TODO lock the node and assign the connection to Node.
-		n.neighb.add(node)
 		go node.rx()
-		// FIXME is there any timing race with rx
-		buf, _ := NewVersion(n)
-		go node.Tx(buf)
 	}
 	//TODO When to free the net listen resouce?
 }
@@ -156,27 +156,23 @@ func (node *node) Connect(nodeAddr string) {
 			fmt.Println("Error dialing\n", err.Error())
 			return err
 		}
+		node.link.connCnt++
 
 		n := NewNode()
 		n.conn = conn
-
-		id, _ := parseIPaddr(conn.RemoteAddr().String())
-		n.id = id
-		n.addr = id
-		// FixMe Only for testing
-		n.height = 1000
+		n.addr, err = parseIPaddr(conn.RemoteAddr().String())
 		n.local = node
 
 		fmt.Printf("Connect node %s connect with %s with %s\n",
 			conn.LocalAddr().String(), conn.RemoteAddr().String(),
 			conn.RemoteAddr().Network())
-		// TODO Need lock
-		node.neighb.add(n)
 		go n.rx()
 
 		// FIXME is there any timing race with rx
-//		buf, _ := NewVersion(node)
-//		go n.Tx(buf)
+		buf, _ := NewVersion(node)
+		go n.Tx(buf)
+		node.SetState(HANDSHAKE)
+
 		return nil
 	}
 }
