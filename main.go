@@ -28,7 +28,7 @@ const (
 	NCPU = 4
 )
 
-var XVersion string
+var Version string
 
 func init() {
 	runtime.GOMAXPROCS(NCPU)
@@ -37,7 +37,7 @@ func init() {
 }
 
 func main() {
-	fmt.Printf("Node version: %s\n", XVersion)
+	fmt.Printf("Node version: %s\n", Version)
 	fmt.Println("//**************************************************************************")
 	fmt.Println("//*** 0. Client open                                                     ***")
 	fmt.Println("//**************************************************************************")
@@ -262,6 +262,15 @@ func getMiner2() *Account {
 }
 func getMiner3() *Account {
 	c4 := OpenClient("wallet3.db3", []byte("\x12\x34\x56"))
+	account, err := c4.GetDefaultAccount()
+	if err != nil {
+		fmt.Println("GetDefaultAccount failed.")
+	}
+	return account
+
+}
+func getMiner4() *Account {
+	c4 := OpenClient("wallet4.db3", []byte("\x12\x34\x56"))
 	account, err := c4.GetDefaultAccount()
 	if err != nil {
 		fmt.Println("GetDefaultAccount failed.")
