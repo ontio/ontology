@@ -2,9 +2,9 @@ package message
 
 import (
 	"GoOnchain/common"
+	"GoOnchain/core/ledger"
 	"GoOnchain/core/transaction"
 	. "GoOnchain/net/protocol"
-	//"GoOnchain/core/ledger"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
@@ -31,7 +31,7 @@ type trn struct {
 func (msg trn) Handle(node Noder) error {
 	common.Trace()
 	fmt.Printf("RX TRX message\n")
-	
+
 	if !node.LocalNode().ExistedID(msg.txn.Hash()) {
 		node.LocalNode().AppendTxnPool(&(msg.txn))
 	}
@@ -73,13 +73,10 @@ func (msg *dataReq) Deserialization(p []byte) error {
 }
 
 func NewTxFromHash(hash common.Uint256) *transaction.Transaction {
-	/*
-		trx, _ := ledger.DefaultLedger.Blockchain.GetTransactionWithHash(hash)
-		txBuffer := bytes.NewBuffer([]byte{})
-		trx.Serialize(txBuffer)
-		msg.txn = txBuffer.Bytes()
-	*/
-	var trx *transaction.Transaction
+
+	trx, _ := ledger.DefaultLedger.GetTransactionWithHash(hash)
+
+	//var trx *transaction.Transaction
 	return trx
 }
 func NewTx(trx *transaction.Transaction) ([]byte, error) {
@@ -133,7 +130,6 @@ func (msg trn) Serialization() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
-
 func (msg trn) DeSerialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.msgHdr))
@@ -144,4 +140,3 @@ func (msg trn) DeSerialization(p []byte) error {
 
 	return nil
 }
-

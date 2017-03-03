@@ -134,31 +134,32 @@ func GetHeadersFromHash(starthash common.Uint256, stophash common.Uint256) ([]le
 	var count uint32 = 0
 	var empty [HASHLEN]byte
 	var headers []ledger.Blockdata
-	bkstart, _ := ledger.DefaultLedger.Store.GetBlock(starthash)
+	bkstart, _ := ledger.DefaultLedger.GetBlockWithHash(starthash)
 	startheight := bkstart.Blockdata.Height
 	var stopheight uint32
 	if stophash != empty {
-		bkstop, _ := ledger.DefaultLedger.Store.GetBlock(starthash)
+		bkstop, _ := ledger.DefaultLedger.GetBlockWithHash(stophash)
 		stopheight = bkstop.Blockdata.Height
 		count = startheight - stopheight
 		if count >= 2000 {
 			count = 2000
+			stopheight = startheight - 20000
 		}
 	} else {
 		count = 2000
 	}
 
 	// waiting for GetBlockWithHeight commit
-	/*
-		var i uint32
 
-		for i = 1; i <= count; i++ {
-			//FIXME need add error handle for GetBlockWithHeight
-			bk, _ := ledger.DefaultLedger.Blockchain.GetBlockWithHeight(stopheight + i)
-			headers = append(headers, bk.Blockdata)
-			i++
-		}
-	*/
+	var i uint32
+
+	for i = 1; i <= count; i++ {
+		//FIXME need add error handle for GetBlockWithHeight
+		bk, _ := ledger.DefaultLedger.GetBlockWithHeight(stopheight + i)
+		headers = append(headers, *bk.Blockdata)
+		i++
+	}
+
 	return headers, count
 }
 
