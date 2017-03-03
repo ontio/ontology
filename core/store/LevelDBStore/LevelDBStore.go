@@ -20,7 +20,7 @@ type LevelDBStore struct {
 	b  *leveldb.Batch
 	it *Iterator
 
-	header_index *[]Uint256
+	header_index map[uint32]*Uint256
 	current_block_height uint32
 }
 
@@ -44,13 +44,11 @@ func NewLevelDBStore(file string) (*LevelDBStore, error) {
 		return nil, err
 	}
 
-	var headerindex = make ([]Uint256,0)
-
 	return &LevelDBStore{
 		db: db,
 		b: nil,
 		it: nil,
-		header_index: &headerindex,
+		header_index: map[uint32]*Uint256{},
 		current_block_height: 0,
 	}, nil
 }
@@ -167,7 +165,7 @@ func (bd *LevelDBStore) GetBlockHash(height uint32) (Uint256, error) {
 
 func (bd *LevelDBStore) GetCurrentBlockHash() Uint256 {
 
-	return (*bd.header_index)[bd.current_block_height]
+	return *bd.header_index[bd.current_block_height]
 }
 
 func (bd *LevelDBStore) GetContract(hash []byte) ([]byte, error) {
@@ -471,11 +469,8 @@ func (bd *LevelDBStore) SaveBlock(b *Block) error {
 
 	// save hash with height
 	bd.current_block_height = b.Blockdata.Height
-	group := *bd.header_index
-	group = append(group,b.Blockdata.Hash())
-	bd.header_index = &group
-	//(*bd.header_index)[b.Blockdata.Height]=b.Blockdata.Hash()
-
+	bh := b.Blockdata.Hash()
+	bd.header_index[b.Blockdata.Height] = &bh
 
 	return nil
 }

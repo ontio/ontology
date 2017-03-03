@@ -127,12 +127,6 @@ func (cxt *ConsensusContext)  MakePayload(message ConsensusMessage) *msg.Consens
 
 func (cxt *ConsensusContext)  MakePrepareRequest() *msg.ConsensusPayload{
 	Trace()
-	fmt.Println("len(cxt.Transactions)=",len(cxt.Transactions))
-	    for k, v := range cxt.Transactions {
-		    fmt.Println("cxt.Transactions=",k)
-		    fmt.Println("cxt.Transactions=",v)
-	        }
-
 	fmt.Println("cxt.TransactionHashes[0]",cxt.TransactionHashes[0])
 	preReq := &PrepareRequest{
 		msgData: &ConsensusMessageData{
@@ -171,10 +165,8 @@ func (cxt *ConsensusContext)  GetSignaturesCount() (count int){
 
 func (cxt *ConsensusContext)  GetTransactionList()  []*tx.Transaction{
 	Trace()
-	fmt.Println("len(cxt.txlist)=",len(cxt.txlist))
 	if cxt.txlist == nil{
 		cxt.txlist = []*tx.Transaction{}
-		fmt.Println("cxt.Transactions=",cxt.Transactions)
 		for _,TX := range cxt.Transactions {
 			cxt.txlist = append(cxt.txlist,TX)
 			fmt.Println("transaction added to cxt.Transactions.",TX)
@@ -225,10 +217,8 @@ func (cxt *ConsensusContext) Reset(client *cl.Client){
 		    pubkey, _ := v.EncodePoint(true)
 	           fmt.Println("Miners pub key =",pubkey)
 	        }
-
 	for i:=0;i<minerLen ;i++  {
 		if client.ContainsAccount(cxt.Miners[i]){
-			fmt.Println("Runed.")
 			cxt.MinerIndex = i
 			break
 		}

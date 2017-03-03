@@ -39,7 +39,7 @@ func init() {
 func main() {
 	fmt.Printf("Node version: %s\n", Version)
 	fmt.Println("//**************************************************************************")
-	fmt.Println("//*** 0. Client open                                                     ***")
+	fmt.Println("//*** 0. Client Set                                                      ***")
 	fmt.Println("//**************************************************************************")
 	ledger.DefaultLedger = new(ledger.Ledger)
 	ledger.DefaultLedger.Store = store.NewLedgerStore()
