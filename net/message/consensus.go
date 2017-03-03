@@ -99,10 +99,16 @@ func (cp *ConsensusPayload) SerializeUnsigned(w io.Writer) error {
 
 }
 
-func (cp *ConsensusPayload) Serialize(w io.Writer) {
-	cp.SerializeUnsigned(w)
-	serialization.WriteVarBytes(w, cp.Data)
-	cp.Program.Serialize(w)
+func (cp *ConsensusPayload) Serialize(w io.Writer) error {
+	err := cp.SerializeUnsigned(w)
+	err = serialization.WriteVarBytes(w, cp.Data)
+	if cp.Program == nil {
+		common.Trace()
+		fmt.Println("Program is NULL")
+		return errors.New("Program in consensus is NULL")
+	}
+	err = cp.Program.Serialize(w)
+	return err
 }
 
 func (msg *consensus) Serialization() ([]byte, error) {
@@ -111,7 +117,7 @@ func (msg *consensus) Serialization() ([]byte, error) {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	msg.cons.Serialize(buf)
+	err = msg.cons.Serialize(buf)
 
 	return buf.Bytes(), err
 }
@@ -152,10 +158,15 @@ func (cp *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
 	return nil
 }
 
-func (cp *ConsensusPayload) Deserialize(r io.Reader) {
-	cp.DeserializeUnsigned(r)
-
-	cp.Program.Deserialize(r)
+func (cp *ConsensusPayload) Deserialize(r io.Reader) error {
+	err := cp.DeserializeUnsigned(r)
+	if cp.Program == nil {
+		common.Trace()
+		fmt.Println("Program is NULL")
+		return errors.New("Program in consensus is NULL")
+	}
+	err = cp.Program.Deserialize(r)
+	return err
 }
 
 func (msg *consensus) Deserialization(p []byte) error {
@@ -163,7 +174,7 @@ func (msg *consensus) Deserialization(p []byte) error {
 		uint32(unsafe.Sizeof(*msg)))
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.msgHdr))
-	msg.cons.Deserialize(buf)
+	err = msg.cons.Deserialize(buf)
 	return err
 }
 

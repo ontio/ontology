@@ -256,7 +256,7 @@ func (node node) Xmit(inv common.Inventory) error {
 		if isConsensusPayload {
 			buffer, err = NewConsensus(payload)
 			if err != nil {
-				fmt.Println("Error New Block message ", err.Error())
+				fmt.Println("Error New consensus message ", err.Error())
 				return err
 			}
 		}
