@@ -7,6 +7,7 @@ import (
 	//"GoOnchain/events"
 	. "GoOnchain/net/protocol"
 	"bytes"
+	"GoOnchain/events"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
@@ -64,13 +65,8 @@ func (cp *ConsensusPayload) GetMessage() []byte {
 func (msg consensus) Handle(node Noder) error {
 	common.Trace()
 	fmt.Printf("RX Consensus message\n")
-	/*
-		if !node.ExistedID(msg.cons.hash) {
-			if msg.event != nil {
-				msg.event.Notify(events.EventNewInventory, msg.cons)
-			}
-		}
-	*/
+
+	node.LocalNode().GetEvent("consensus").Notify(events.EventNewInventory, &msg.cons)
 	return nil
 }
 
@@ -86,10 +82,8 @@ func reqConsensusData(node Noder, hash common.Uint256) error {
 	return nil
 }
 func (cp *ConsensusPayload) Type() common.InventoryType {
-	/*
-	* TODO:Temporary add for Interface signature.SignableData use.
-	* 2017/2/27 luodanwg
-	* */
+
+	//TODO:Temporary add for Interface signature.SignableData use.
 	return common.CONSENSUS
 }
 

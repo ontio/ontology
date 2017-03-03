@@ -30,5 +30,4 @@ func (eq *eventQueue) GetEvent(eventName string) *events.Event {
 		fmt.Printf("Unknow event registe")
 		return nil
 	}
-	//TODO
 }

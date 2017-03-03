@@ -2,6 +2,7 @@ package message
 
 import (
 	"GoOnchain/common"
+	"GoOnchain/events"
 	"GoOnchain/core/ledger"
 	//"GoOnchain/events"
 	. "GoOnchain/net/protocol"
@@ -29,17 +30,7 @@ func (msg block) Handle(node Noder) error {
 	common.Trace()
 
 	fmt.Printf("RX block message\n")
-	/*
-		if !node.ExistedID(msg.blk.Hash()) {
-			// TODO Update the currently ledger
-			// FIXME the relative event should be attached to the message
-
-			if msg.event != nil {
-				msg.event.Notify(events.EventSaveBlock, msg.blk)
-			}
-
-		}
-	*/
+	node.LocalNode().GetEvent("block").Notify(events.EventNewInventory, &msg.blk)
 	return nil
 }
 

@@ -80,6 +80,7 @@ type Noder interface {
 	Tx(buf []byte)
 	GetTime() int64
 	NodeEstablished(uid uint32) bool
+	GetEvent(eventName string) *events.Event
 	GetNeighborAddrs() ([]NodeAddr, uint64)
 }
 
