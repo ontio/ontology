@@ -2,7 +2,7 @@ package client
 
 import (
 	ct "GoOnchain/core/contract"
-	. "GoOnchain/common"
+	//. "GoOnchain/common"
 	"fmt"
 	"database/sql"
 	"github.com/mattn/go-sqlite3"
@@ -264,6 +264,67 @@ func (cs * ClientStore) LoadAccountData(index int) ([]byte,[]byte,error) {
 	return nil,nil,NewDetailErr(errors.New("[LoadAccountData] Index not found"), ErrNoCode, "")
 }
 
-func (cs * ClientStore) LoadContracts() map[Uint160]*ct.Contract {
+func (cs * ClientStore) LoadContractData( index int ) ([]byte,[]byte,[]byte,error) {
+
+	err := cs.OpenDB(cs.path)
+	defer cs.CloseDB()
+	if err != nil {
+		return nil,nil,nil,err
+	}
+
+	rows, _ := cs.db.Query("SELECT * FROM Contract")
+	i := 0
+	for rows.Next() {
+		var sh []byte
+		var ph []byte
+		var rd []byte
+
+		rows.Scan(&sh, &ph, &rd)
+
+		if index == i {
+			return sh, ph, rd, nil
+		}
+
+		i ++
+	}
+
+	return nil,nil,nil,NewDetailErr(errors.New("[LoadContractData] Index not found"), ErrNoCode, "")
+}
+
+func (cs * ClientStore) SaveContractData( ct * ct.Contract) error {
+
+	err := cs.OpenDB(cs.path)
+	defer cs.CloseDB()
+	if err != nil {
+		return err
+	}
+
+	// insert
+	stmt, err := cs.db.Prepare("INSERT INTO Contract(ScriptHash,PublicKeyHash,RawData) values(?,?,?)")
+	if err != nil {
+		return err
+	}
+
+	sh := ct.ProgramHash.ToArray()
+	ph := ct.OwnerPubkeyHash.ToArray()
+	rd := ct.ToArray()
+
+	res, err := stmt.Exec(sh, ph, rd )
+	if err != nil {
+		return err
+	}
+
+	_, err = res.LastInsertId()
+	if err != nil {
+		return err
+	}
+
+	//fmt.Printf("INSERT Contract: %x %x %x\n",  sh, ph, rd )
+	fmt.Printf("[SaveContractData] ScriptHash: %x\n", sh)
+	fmt.Printf("[SaveContractData] PublicKeyHash: %x\n", ph)
+	fmt.Printf("[SaveContractData] RawData: %x\n", rd)
+	fmt.Printf("[SaveContractData] Code: %x\n", ct.Code)
+	fmt.Printf("[SaveContractData] Parameters: %x\n", ct.Parameters)
+
 	return nil
 }

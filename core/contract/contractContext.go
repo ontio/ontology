@@ -23,7 +23,7 @@ type ContractContext struct {
 }
 
 func NewContractContext(data sig.SignableData) *ContractContext {
-
+	Trace()
 	programHashes, _ := data.GetProgramHashes() //TODO: check error
 	fmt.Println("programHashes=",programHashes)
 	fmt.Println("hashLen := len(programHashes)",len(programHashes))

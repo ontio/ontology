@@ -68,7 +68,12 @@ func CreateClient( path string, passwordKey []byte ) *Client {
 }
 
 func OpenClient( path string, passwordKey []byte ) *Client {
-	return NewClient( path, passwordKey, false )
+	cl := NewClient( path, passwordKey, false )
+
+	cl.accounts = cl.LoadAccount()
+	cl.contracts = cl.LoadContracts()
+
+	return cl
 }
 
 func NewClient( path string, passwordKey []byte, create bool ) *Client {
@@ -76,6 +81,7 @@ func NewClient( path string, passwordKey []byte, create bool ) *Client {
 	newClient := &Client{
 		path: path,
 		accounts:map[Uint160]*Account{},
+		contracts:map[Uint160]*ct.Contract{},
 		store: ClientStore{path: path},
 		isrunning: true,
 	}
@@ -175,12 +181,9 @@ func NewClient( path string, passwordKey []byte, create bool ) *Client {
 			return nil
 		}
 
-		newClient.accounts = newClient.LoadAccount()
-
-
 		/*
-		newClient.accounts = newClient.store.LoadAccount()
-		newClient.contracts = newClient.store.LoadContracts()
+		newClient.accounts = newClient.LoadAccount()
+		newClient.contracts = newClient.LoadContracts()
 
 		//TODO: watch only
 		go newClient.ProcessBlocks()
@@ -224,6 +227,7 @@ func (cl *Client) GetAccountByKeyHash(publicKeyHash Uint160) *Account{
 }
 
 func (cl *Client) GetAccountByProgramHash(programHash Uint160) *Account{
+	Trace()
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
 
@@ -237,6 +241,10 @@ func (cl *Client) GetContract(codeHash Uint160) *ct.Contract{
 	Trace()
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
+	fmt.Println("codeHash",codeHash)
+	    for _, v := range cl.contracts {
+	            fmt.Println("cl.contracts = ",v)
+	        }
 
 	if contract,ok := cl.contracts[codeHash]; ok{
 		return contract
@@ -279,19 +287,20 @@ func (cl *Client) ContainsAccount(pubKey *crypto.PubKey) bool{
 
 func (cl *Client) CreateAccount() (*Account,error){
 	ac,err := NewAccount()
-	cl.mu.Lock()
-	defer cl.mu.Unlock()
 
 	if err == nil {
+		cl.mu.Lock()
 		cl.accounts[ac.PublicKeyHash] = ac
+		cl.mu.Unlock()
+
 		err := cl.SaveAccount(ac)
 		if err != nil {
 			return nil,err
 		}
 
-		fmt.Printf("[CreateAccount] PrivateKey: %x\n", ac.PrivateKey)
-		fmt.Printf("[CreateAccount] PublicKeyHash: %x\n", ac.PublicKeyHash)
-		fmt.Printf("[CreateAccount] PublicKeyAddress: %s\n", ac.PublicKeyHash.ToAddress())
+		//fmt.Printf("[CreateAccount] PrivateKey: %x\n", ac.PrivateKey)
+		//fmt.Printf("[CreateAccount] PublicKeyHash: %x\n", ac.PublicKeyHash)
+		//fmt.Printf("[CreateAccount] PublicKeyAddress: %s\n", ac.PublicKeyHash.ToAddress())
 
 		//cl.AddContract( contract.CreateSignatureContract( ac.PublicKey ) )
 		ct,err := contract.CreateSignatureContract( ac.PublicKey )
@@ -317,9 +326,9 @@ func (cl *Client) CreateAccountByPrivateKey(privateKey []byte) (*Account, error)
 			return nil,err
 		}
 
-		fmt.Printf("[CreateAccountByPrivateKey] PrivateKey: %x\n", ac.PrivateKey)
-		fmt.Printf("[CreateAccountByPrivateKey] PublicKeyHash: %x\n", ac.PublicKeyHash)
-		fmt.Printf("[CreateAccountByPrivateKey] PublicKeyAddress: %s\n", ac.PublicKeyHash.ToAddress())
+		//fmt.Printf("[CreateAccountByPrivateKey] PrivateKey: %x\n", ac.PrivateKey)
+		//fmt.Printf("[CreateAccountByPrivateKey] PublicKeyHash: %x\n", ac.PublicKeyHash)
+		//fmt.Printf("[CreateAccountByPrivateKey] PublicKeyAddress: %s\n", ac.PublicKeyHash.ToAddress())
 
 		return ac,nil
 	} else {
@@ -470,9 +479,9 @@ func (cl *Client) LoadAccount()  map[Uint160]*Account {
 		//ClearBytes( decryptedPrivateKey, 96 )
 		//ClearBytes( prikey, 32 )
 
-		fmt.Printf("[LoadAccount] PrivateKey: %x\n", ac.PrivateKey)
-		fmt.Printf("[LoadAccount] PublicKeyHash: %x\n", ac.PublicKeyHash.ToArray())
-		fmt.Printf("[LoadAccount] PublicKeyAddress: %s\n", ac.PublicKeyHash.ToAddress())
+		//fmt.Printf("[LoadAccount] PrivateKey: %x\n", ac.PrivateKey)
+		//fmt.Printf("[LoadAccount] PublicKeyHash: %x\n", ac.PublicKeyHash.ToArray())
+		//fmt.Printf("[LoadAccount] PublicKeyAddress: %s\n", ac.PublicKeyHash.ToAddress())
 
 		pkhash,_ := Uint160ParseFromBytes(pubkeyhash)
 		accounts[pkhash] = ac
@@ -483,7 +492,53 @@ func (cl *Client) LoadAccount()  map[Uint160]*Account {
 	return accounts
 }
 
-func (cl *Client) AddContract(ct * contract.Contract) {
-//
-//	//cl.store.SaveContractData(ct)
+func (cl *Client) LoadContracts()  map[Uint160]*ct.Contract{
+
+	i := 0
+	contracts := map[Uint160]*ct.Contract{}
+
+	for true {
+		ph,_,rd,err := cl.store.LoadContractData(i)
+		if err != nil {
+			//fmt.Println( err )
+			break
+		}
+
+		rdreader := bytes.NewReader(rd)
+		ct := new(ct.Contract)
+		ct.Deserialize(rdreader)
+
+		programhash,err := Uint160ParseFromBytes(ph)
+		ct.ProgramHash = programhash
+
+		contracts[ct.ProgramHash] = ct
+
+		//fmt.Printf("[LoadContracts] ScriptHash: %x\n", ct.ProgramHash)
+		//fmt.Printf("[LoadContracts] PublicKeyHash: %x\n", ct.OwnerPubkeyHash.ToArray())
+		//fmt.Printf("[LoadContracts] Code: %x\n", ct.Code)
+		//fmt.Printf("[LoadContracts] Parameters: %x\n", ct.Parameters)
+
+		i ++
+	}
+
+	return contracts
+}
+func (cl *Client) AddContract(ct * contract.Contract) error {
+	cl.mu.Lock()
+	defer cl.mu.Unlock()
+
+	if cl.accounts[ct.OwnerPubkeyHash] != nil {
+		cl.contracts[ct.ProgramHash] = ct;
+		// TODO; watchonly
+
+	} else {
+		return NewDetailErr(errors.New("AddContract(): contract.OwnerPubkeyHash not in []accounts"), ErrNoCode, "")
+	}
+
+	err := cl.store.SaveContractData(ct)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
