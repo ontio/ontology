@@ -5,14 +5,16 @@ import (
 	"GoOnchain/common/serialization"
 	"GoOnchain/core/contract/program"
 	//"GoOnchain/events"
+	"GoOnchain/events"
 	. "GoOnchain/net/protocol"
 	"bytes"
-	"GoOnchain/events"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
+	"unsafe"
 )
 
 type ConsensusPayload struct {
@@ -103,7 +105,7 @@ func (cp *ConsensusPayload) Serialize(w io.Writer) {
 	cp.Program.Serialize(w)
 }
 
-func (msg consensus) Serialization() ([]byte, error) {
+func (msg *consensus) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.msgHdr.Serialization()
 	if err != nil {
 		return nil, err
@@ -112,6 +114,57 @@ func (msg consensus) Serialization() ([]byte, error) {
 	msg.cons.Serialize(buf)
 
 	return buf.Bytes(), err
+}
+
+func (cp *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
+	var err error
+	cp.Version, err = serialization.ReadUint32(r)
+	if err != nil {
+		return errors.New("consensus item Version Deserialize failed.")
+	}
+
+	preBlock := new(common.Uint256)
+	err = preBlock.Deserialize(r)
+	if err != nil {
+		return errors.New("consensus item preHash Deserialize failed.")
+	}
+	cp.PrevHash = *preBlock
+
+	cp.Height, err = serialization.ReadUint32(r)
+	if err != nil {
+		return errors.New("consensus item Height Deserialize failed.")
+	}
+
+	cp.MinerIndex, err = serialization.ReadUint16(r)
+	if err != nil {
+		return errors.New("consensus item MinerIndex Deserialize failed.")
+	}
+
+	cp.Timestamp, err = serialization.ReadUint32(r)
+	if err != nil {
+		return errors.New("consensus item Timestamp Deserialize failed.")
+	}
+
+	cp.Data, err = serialization.ReadVarBytes(r)
+	if err != nil {
+		return errors.New("consensus item Data Deserialize failed.")
+	}
+	return nil
+}
+
+func (cp *ConsensusPayload) Deserialize(r io.Reader) {
+	cp.DeserializeUnsigned(r)
+
+	cp.Program.Deserialize(r)
+}
+
+func (msg *consensus) Deserialization(p []byte) error {
+	fmt.Printf("The size of messge is %d in deserialization\n",
+		uint32(unsafe.Sizeof(*msg)))
+	buf := bytes.NewBuffer(p)
+	err := binary.Read(buf, binary.LittleEndian, &(msg.msgHdr))
+
+	return err
 }
 
 func NewConsensus(cp *ConsensusPayload) ([]byte, error) {
