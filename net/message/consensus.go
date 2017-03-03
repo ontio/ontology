@@ -5,15 +5,20 @@ import (
 	"GoOnchain/common/serialization"
 	"GoOnchain/core/contract/program"
 	//"GoOnchain/events"
-	"GoOnchain/events"
 	. "GoOnchain/net/protocol"
 	"bytes"
+	"GoOnchain/events"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
+	"GoOnchain/core/contract"
+	"GoOnchain/core/ledger"
+	"strconv"
+	. "GoOnchain/errors"
+	sig "GoOnchain/core/signature"
 	"unsafe"
 )
 
@@ -49,19 +54,49 @@ func (cp *ConsensusPayload) InvertoryType() common.InventoryType {
 }
 
 func (cp *ConsensusPayload) GetProgramHashes() ([]common.Uint160, error) {
-	return nil, nil
+	common.Trace()
+	if ledger.DefaultLedger == nil{
+		return nil,errors.New("The Default ledger not exists.")
+	}
+	if cp.PrevHash != ledger.DefaultLedger.Store.GetCurrentBlockHash(){
+		return nil,errors.New("The PreHash Not matched.")
+	}
+	miners := ledger.DefaultLedger.Blockchain.GetMiners()
+	if uint16(len(miners)) <= cp.MinerIndex{
+		return nil,errors.New("MinerIndex invalidate. miners lengths="+ strconv.Itoa(len(miners))+ "MinerIndex ="+strconv.Itoa(int(cp.MinerIndex)))
+	}
+	contract,err:= contract.CreateSignatureContract(miners[cp.MinerIndex])
+	hash := contract.ProgramHash
+	fmt.Println("program hash== ",hash)
+
+	//signatureRedeemScript, err := contract.CreateSignatureRedeemScript(miners[cp.MinerIndex])
+	if err != nil {
+		return  nil, NewDetailErr(err, ErrNoCode, "[Consensus], CreateSignatureContract failed.")
+	}
+
+	//hash, err:=common.ToCodeHash(signatureRedeemScript)
+	//if err != nil {
+	//	return  nil, NewDetailErr(err, ErrNoCode, "[Consensus], ToCodeHash failed.")
+	//}
+	programhashes := []common.Uint160{}
+	programhashes = append(programhashes,hash)
+	return programhashes, nil
 }
 
-func (cp *ConsensusPayload) SetPrograms([]*program.Program) {
+func (cp *ConsensusPayload) SetPrograms(programs []*program.Program) {
+	cp.Program = programs[0]
 }
 
 func (cp *ConsensusPayload) GetPrograms() []*program.Program {
-	return nil
+	cpg := []*program.Program{}
+	cpg = append(cpg,cp.Program)
+	return cpg
 }
 
 func (cp *ConsensusPayload) GetMessage() []byte {
 	//TODO: GetMessage
-	return []byte{}
+	return sig.GetHashForSigning(cp)
+	//return []byte{}
 }
 
 func (msg consensus) Handle(node Noder) error {

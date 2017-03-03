@@ -10,6 +10,7 @@ import (
 	_ "fmt"
 	"math/big"
 	"sort"
+	"fmt"
 )
 
 type ContractContext struct {
@@ -24,6 +25,8 @@ type ContractContext struct {
 func NewContractContext(data sig.SignableData) *ContractContext {
 
 	programHashes, _ := data.GetProgramHashes() //TODO: check error
+	fmt.Println("programHashes=",programHashes)
+	fmt.Println("hashLen := len(programHashes)",len(programHashes))
 	hashLen := len(programHashes)
 	return &ContractContext{
 		Data:            data,
@@ -35,6 +38,7 @@ func NewContractContext(data sig.SignableData) *ContractContext {
 }
 
 func (cxt *ContractContext) Add(contract *Contract, index int, parameter []byte) error {
+	Trace()
 	i := cxt.GetIndex(contract.ProgramHash)
 	if i < 0 {
 		return errors.New("Program Hash is not exist.")
@@ -50,8 +54,9 @@ func (cxt *ContractContext) Add(contract *Contract, index int, parameter []byte)
 }
 
 func (cxt *ContractContext) AddContract(contract *Contract, pubkey *crypto.PubKey, parameter []byte) error {
-
+	Trace()
 	if contract.GetType() == MultiSigContract {
+		Trace()
 		// add multi sig contract
 
 		index := cxt.GetIndex(contract.ProgramHash)
@@ -77,6 +82,7 @@ func (cxt *ContractContext) AddContract(contract *Contract, pubkey *crypto.PubKe
 		pkParaArray = append(pkParaArray, pubkeyPara)
 
 		if len(pkParaArray) == len(contract.Parameters) {
+			Trace()
 			i := 0
 			pubkeys := []*crypto.PubKey{}
 			switch contract.Code[i] {
@@ -137,6 +143,7 @@ func (cxt *ContractContext) AddContract(contract *Contract, pubkey *crypto.PubKe
 		} //pkParaArray
 	} else {
 		//add non multi sig contract
+		Trace()
 		index := -1
 		for i := 0; i < len(contract.Parameters); i++ {
 			if contract.Parameters[i] == Signature {
@@ -162,10 +169,17 @@ func (cxt *ContractContext) GetIndex(programHash Uint160) int {
 }
 
 func (cxt *ContractContext) GetPrograms() []*pg.Program {
+	Trace()
+	fmt.Println("!cxt.IsCompleted()=",!cxt.IsCompleted())
+	fmt.Println(cxt.Codes)
+	fmt.Println(cxt.Parameters)
 	if !cxt.IsCompleted() {
 		return nil
 	}
 	programs := make([]*pg.Program, len(cxt.Parameters))
+
+	fmt.Println(" len(cxt.Codes)", len(cxt.Codes))
+
 	for i := 0; i < len(cxt.Codes); i++ {
 		sb := pg.NewProgramBuilder()
 
@@ -176,6 +190,8 @@ func (cxt *ContractContext) GetPrograms() []*pg.Program {
 				sb.PushData(parameter)
 			}
 		}
+		fmt.Println(" cxt.Codes[i])", cxt.Codes[i])
+		fmt.Println(" sb.ToArray()", sb.ToArray())
 		programs[i] = &pg.Program{
 			Code:      cxt.Codes[i],
 			Parameter: sb.ToArray(),
