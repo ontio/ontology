@@ -2,10 +2,10 @@ package httpjsonrpc
 
 import (
 	. "GoOnchain/common"
+	. "GoOnchain/config"
 	"GoOnchain/core/ledger"
 	tx "GoOnchain/core/transaction"
 	. "GoOnchain/net/protocol"
-	. "GoOnchain/config"
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
@@ -149,7 +149,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func responsePacking(result interface{}, id uint) map[string]interface{} {
+func responsePacking(result interface{}, id interface{}) map[string]interface{} {
 	resp := map[string]interface{}{
 		"Jsonrpc": "2.0",
 		"Result":  result,
@@ -159,14 +159,14 @@ func responsePacking(result interface{}, id uint) map[string]interface{} {
 }
 
 func getBestBlock(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
-	id := cmd["id"].(uint)
+	id := cmd["id"]
 	hash := ledger.DefaultLedger.Blockchain.CurrentBlockHash()
 	response := responsePacking(ToHexString(hash.ToArray()), id)
 	return response
 }
 
 func getBlock(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
-	id := cmd["id"].(uint)
+	id := cmd["id"]
 	params := cmd["params"]
 	var block *ledger.Block
 	var err error
@@ -174,7 +174,7 @@ func getBlock(req *http.Request, cmd map[string]interface{}) map[string]interfac
 	switch (params.([]interface{})[0]).(type) {
 	case int:
 		index := params.([]interface{})[0].(uint32)
-		hash,_:= ledger.DefaultLedger.Store.GetBlockHash(index)
+		hash, _ := ledger.DefaultLedger.Store.GetBlockHash(index)
 		block, err = ledger.DefaultLedger.Store.GetBlock(hash)
 		b = BlockInfo{
 			Hash:  ToHexString(hash.ToArray()),
@@ -204,19 +204,19 @@ func getBlock(req *http.Request, cmd map[string]interface{}) map[string]interfac
 }
 
 func getBlockCount(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
-	id := cmd["id"].(uint)
+	id := cmd["id"]
 	count := ledger.DefaultLedger.Blockchain.BlockHeight + 1
 	response := responsePacking(count, id)
 	return response
 }
 
 func getBlockHash(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
-	id := cmd["id"].(uint)
+	id := cmd["id"]
 	index := cmd["params"]
 	var hash Uint256
 	height, ok := index.(uint32)
 	if ok == true {
-		hash,_= ledger.DefaultLedger.Store.GetBlockHash(height)
+		hash, _ = ledger.DefaultLedger.Store.GetBlockHash(height)
 	}
 	hashhex := fmt.Sprintf("%016x", hash)
 	response := responsePacking(hashhex, id)
@@ -224,14 +224,14 @@ func getBlockHash(req *http.Request, cmd map[string]interface{}) map[string]inte
 }
 
 func getConnectionCount(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
-	id := cmd["id"].(uint)
+	id := cmd["id"]
 	count := nodeInfo.Noder.GetConnectionCnt()
 	response := responsePacking(count, id)
 	return response
 }
 
 func getRawMemPool(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
-	id := cmd["id"].(uint)
+	id := cmd["id"]
 	mempoollist := nodeInfo.Noder.GetTxnPool()
 	raw, _ := json.Marshal(mempoollist)
 	response := responsePacking(string(raw), id)
@@ -239,7 +239,7 @@ func getRawMemPool(req *http.Request, cmd map[string]interface{}) map[string]int
 }
 
 func getRawTransaction(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
-	id := cmd["id"].(uint)
+	id := cmd["id"]
 	params := cmd["params"]
 	txid := params.([]interface{})[0].(string)
 	txidSlice, _ := hex.DecodeString(txid)
@@ -271,7 +271,7 @@ type TxoutInfo struct {
 }
 
 func getTxout(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
-	id := cmd["id"].(uint)
+	id := cmd["id"]
 	//params := cmd["params"]
 	//txid := params.([]interface{})[0].(string)
 	//var n int = params.([]interface{})[1].(int)
@@ -290,7 +290,7 @@ func getTxout(req *http.Request, cmd map[string]interface{}) map[string]interfac
 }
 
 func sendRawTransaction(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
-	id := cmd["id"].(uint)
+	id := cmd["id"]
 	hexValue := cmd["params"].(string)
 	hexSlice, _ := hex.DecodeString(hexValue)
 	var txTransaction tx.Transaction
@@ -301,7 +301,7 @@ func sendRawTransaction(req *http.Request, cmd map[string]interface{}) map[strin
 }
 
 func submitBlock(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
-	id := cmd["id"].(uint)
+	id := cmd["id"]
 	hexValue := cmd["params"].(string)
 	hexSlice, _ := hex.DecodeString(hexValue)
 	var txTransaction tx.Transaction
@@ -325,7 +325,7 @@ func StartServer() {
 	HandleFunc("getrawtransaction", getRawTransaction)
 	HandleFunc("submitblock", submitBlock)
 
-	err := http.ListenAndServe(":" + strconv.Itoa(Parameters.HttpJsonPort), nil)
+	err := http.ListenAndServe(":"+strconv.Itoa(Parameters.HttpJsonPort), nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err.Error())
 	}
