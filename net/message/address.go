@@ -179,12 +179,12 @@ func (msg addr) Handle(node Noder) error {
 		ip = v.IpAddr[:]
 		// Fixme consider the IPv6 case
 		address := ip.To4().String() + ":" + strconv.Itoa(int(v.Port))
-		fmt.Printf("The ip address is %s id is %d\n", address, v.Uid)
+		fmt.Printf("The ip address is %s id is 0x%x\n", address, v.ID)
 
-		if (v.Uid == node.LocalNode().GetID()) {
+		if (v.ID == node.LocalNode().GetID()) {
 			continue
 		}
-		if node.LocalNode().NodeEstablished(v.Uid) {
+		if node.LocalNode().NodeEstablished(v.ID) {
 			continue
 		}
 

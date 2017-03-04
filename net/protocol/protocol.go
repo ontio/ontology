@@ -17,7 +17,7 @@ type NodeAddr struct {
 	Services uint64
 	IpAddr   [16]byte
 	Port     uint16
-	Uid	 uint64		// Unique ID
+	ID	 uint64		// Unique ID
 }
 
 const (

@@ -116,7 +116,6 @@ func rmNode(node *node) {
 
 // TODO pass pointer to method only need modify it
 func (node *node) backend() {
-	common.Trace()
 	for f := range node.chF {
 		f()
 	}
@@ -263,7 +262,7 @@ func (node node) GetNeighborAddrs() ([]NodeAddr, uint64) {
 		addr.Time = n.GetTime()
 		addr.Services = n.Services()
 		addr.Port = n.GetPort()
-		addr.Uid = n.GetID()
+		addr.ID = n.GetID()
 		addrs = append(addrs, addr)
 
 		i++

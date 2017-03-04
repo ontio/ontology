@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"time"
 	"errors"
-	"unsafe"
 )
 
 type version struct {
@@ -92,8 +91,6 @@ func (msg version) Verify(buf []byte) error {
 func (msg version) Serialization() ([]byte, error) {
 	var buf bytes.Buffer
 
-	fmt.Printf("The size of messge is %d in serialization\n",
-		uint32(unsafe.Sizeof(msg)))
 	err := binary.Write(&buf, binary.LittleEndian, msg)
 	if err != nil {
 		return nil, err
@@ -103,9 +100,6 @@ func (msg version) Serialization() ([]byte, error) {
 }
 
 func (msg *version) Deserialization(p []byte) error {
-	fmt.Printf("The size of messge is %d in deserialization\n",
-		uint32(unsafe.Sizeof(*msg)))
-
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, msg)
 	return err
@@ -138,9 +132,9 @@ func (msg version) Handle(node Noder) error {
 	}
 
 	s := node.GetState()
-	if (s != INIT) && (s != HANDSHAKE) {
-		fmt.Printf("Unknow status to received \n")
-		return errors.New("Unknow status to received")
+	if (s != INIT) {
+		fmt.Printf("Unknow status to received version\n")
+		return errors.New("Unknow status to received version")
 	}
 
 	// Obsolete node
@@ -152,18 +146,16 @@ func (msg version) Handle(node Noder) error {
 		n.CloseConn()
 	}
 
+	node.SetState(HANDSHAKE)
 	node.UpdateInfo(time.Now(), msg.P.Version, msg.P.Services,
 		msg.P.Port, msg.P.Nonce, msg.P.Relay, msg.P.StartHeight)
 	localNode.AddNbrNode(node)
 
-	if (s == INIT) {
-		buf, _ := NewVersion(localNode)
-		go node.Tx(buf)
-		node.SetState(HANDSHAKE)
-	}
+	buf, _ := NewVersion(localNode)
+	node.Tx(buf)
 
-	buf, _ := NewVerack()
-	go node.Tx(buf)
+	buf, _ = NewVerack()
+	node.Tx(buf)
 
 	return nil
 }

@@ -32,7 +32,6 @@ type link struct {
 func unpackNodeBuf(node *node, buf []byte) {
 	var msgLen int
 	var msgBuf []byte
-	common.Trace()
 	if node.rxBuf.p == nil {
 		if len(buf) < MSGHDRLEN {
 			fmt.Println("Unexpected size of received message")
@@ -40,13 +39,13 @@ func unpackNodeBuf(node *node, buf []byte) {
 			return
 		}
 		// FIXME Check the payload < 0 error case
-		fmt.Printf("The Rx msg payload is %d\n", PayloadLen(buf))
+		//fmt.Printf("The Rx msg payload is %d\n", PayloadLen(buf))
 		msgLen = PayloadLen(buf) + MSGHDRLEN
 	} else {
 		msgLen = node.rxBuf.len
 	}
 
-	fmt.Printf("The msg length is %d, buf len is %d\n", msgLen, len(buf))
+	//fmt.Printf("The msg length is %d, buf len is %d\n", msgLen, len(buf))
 	if len(buf) == msgLen {
 		msgBuf = append(node.rxBuf.p, buf[:]...)
 		go HandleNodeMsg(node, msgBuf, len(msgBuf))
@@ -170,8 +169,7 @@ func (node *node) Connect(nodeAddr string) {
 
 		// FIXME is there any timing race with rx
 		buf, _ := NewVersion(node)
-		go n.Tx(buf)
-		node.SetState(HANDSHAKE)
+		n.Tx(buf)
 
 		return nil
 	}
