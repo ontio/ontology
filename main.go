@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"runtime"
 	"time"
-	//"GoOnchain/consensus/dbft"
+	"GoOnchain/config"
 	. "GoOnchain/client"
 	. "GoOnchain/common"
 	"GoOnchain/consensus/dbft"
@@ -100,7 +100,7 @@ func main() {
 	//ledger.Start(net.NetToLedgerCh <-chan *Msg, net.LedgerToNetCh chan<- *Msg)
 	//consensus.Start(net.NetToConsensusCh <-chan *Msg, net.ConsensusToNetCh chan<- *Msg)
 
-	if os.Getenv("CLIENT_NAME") == "c4" {
+	if config.Parameters.MinerName == "c4" {
 		time.Sleep(2 * time.Second)
 		tx := sampleTransaction(issuer, admin)
 		fmt.Println("//**************************************************************************")
@@ -202,21 +202,40 @@ func SampleAsset() *Asset {
 }
 
 func OpenClientAndGetAccount() *Client {
-	//CreateClient( "wallet.db3", []byte("\x12\x34\x56") )
-	//cl := OpenClient( "wallet.db3", []byte("\x12\x34\x56") )
-	clientName := os.Getenv("CLIENT_NAME")
+	clientName := config.Parameters.MinerName
+	fmt.Printf("The Miner name is %s\n", clientName)
 	if clientName == "" {
-		fmt.Printf("Please Check your client's ENV SET, which schould be c1,c2,c3,c4. Now is %s\n", clientName)
+		fmt.Printf("Miner name not be set at config file protocol.json, which schould be c1,c2,c3,c4. Now is %s\n", clientName)
 		return nil
 	}
-	//c1 := CreateClient("wallet1.db3", []byte("\x12\x34\x56"))
-	//c2 := CreateClient("wallet2.db3", []byte("\x12\x34\x56"))
-	//c3 := CreateClient("wallet3.db3", []byte("\x12\x34\x56"))
-	//c4 := CreateClient("wallet4.db3", []byte("\x12\x34\x56"))
-	c1 := OpenClient("wallet1.db3", []byte("\x12\x34\x56"))
-	c2 := OpenClient("wallet2.db3", []byte("\x12\x34\x56"))
-	c3 := OpenClient("wallet3.db3", []byte("\x12\x34\x56"))
-	c4 := OpenClient("wallet4.db3", []byte("\x12\x34\x56"))
+	var c1 *Client
+	var c2 *Client
+	var c3 *Client
+	var c4 *Client
+
+	if fileExisted("wallet1.db3") {
+		c1 = OpenClient("wallet1.db3", []byte("\x12\x34\x56"))
+	} else {
+		c1 = CreateClient("wallet1.db3", []byte("\x12\x34\x56"))
+	}
+
+	if fileExisted("wallet2.db3") {
+		c2 = OpenClient("wallet2.db3", []byte("\x12\x34\x56"))
+	} else {
+		c2 = CreateClient("wallet2.db3", []byte("\x12\x34\x56"))
+	}
+
+	if fileExisted("wallet3.db3") {
+		c3 = OpenClient("wallet3.db3", []byte("\x12\x34\x56"))
+	} else {
+		c3 = CreateClient("wallet3.db3", []byte("\x12\x34\x56"))
+	}
+
+	if fileExisted("wallet4.db3") {
+		c4 = OpenClient("wallet4.db3", []byte("\x12\x34\x56"))
+	} else {
+		c4 = CreateClient("wallet4.db3", []byte("\x12\x34\x56"))
+	}
 
 	//ac,_ := cl.GetDefaultAccount()
 	//fmt.Printf("PrivateKey: %x\n", ac.PrivateKey)
@@ -237,7 +256,7 @@ func OpenClientAndGetAccount() *Client {
 	}
 }
 
-func Exist(filename string) bool {
+func fileExisted(filename string) bool {
 	_, err := os.Stat(filename)
 	return err == nil || os.IsExist(err)
 }
@@ -262,15 +281,6 @@ func getMiner2() *Account {
 }
 func getMiner3() *Account {
 	c4 := OpenClient("wallet3.db3", []byte("\x12\x34\x56"))
-	account, err := c4.GetDefaultAccount()
-	if err != nil {
-		fmt.Println("GetDefaultAccount failed.")
-	}
-	return account
-
-}
-func getMiner4() *Account {
-	c4 := OpenClient("wallet4.db3", []byte("\x12\x34\x56"))
 	account, err := c4.GetDefaultAccount()
 	if err != nil {
 		fmt.Println("GetDefaultAccount failed.")

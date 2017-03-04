@@ -20,6 +20,7 @@ type ProtocolConfiguration struct {
 	HttpJsonPort  int	`json:"HttpJsonPort"`
 	NodePort      int	`json:"NodePort"`
 	WebSocketPort int	`json:"WebSocketPort"`
+	MinerName     string	`json:"MinerName"`
 }
 
 type ProtocolFile struct {
