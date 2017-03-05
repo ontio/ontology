@@ -7,7 +7,7 @@ import (
 )
 
 type PrepareResponse struct {
-	msgData *ConsensusMessageData
+	msgData ConsensusMessageData
 	Signature []byte
 }
 
@@ -44,5 +44,5 @@ func (pres *PrepareResponse) ViewNumber() byte{
 
 func (pres *PrepareResponse) ConsensusMessageData() *ConsensusMessageData{
 	Trace()
-	return pres.msgData
+	return &(pres.msgData)
 }

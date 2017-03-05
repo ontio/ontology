@@ -2,6 +2,7 @@ package dbft
 
 import (
 	ser "GoOnchain/common/serialization"
+	tx "GoOnchain/core/transaction"
 	"io"
 	"bytes"
 	"errors"
@@ -28,7 +29,9 @@ func DeserializeMessage(data []byte) (ConsensusMessage, error){
 	r := bytes.NewReader(data)
 	switch msgType {
 	case PrepareRequestMsg:
-		prMsg := &PrepareRequest{}
+		prMsg := &PrepareRequest{
+			BookkeepingTransaction: new(tx.Transaction),
+		}
 		err := prMsg.Deserialize(r)
 		if err != nil {
 			return nil,err
@@ -71,18 +74,18 @@ func (cd *ConsensusMessageData) Deserialize(r io.Reader) error{
 	//ConsensusMessageType
 	var msgType [1]byte
 	_, err := io.ReadFull(r, msgType[:])
-	cd.Type = ConsensusMessageType(msgType[0])
 	if err != nil {
 		return err
 	}
+	cd.Type = ConsensusMessageType(msgType[0])
 
 	//ViewNumber
 	var vNumber [1]byte
 	_, err = io.ReadFull(r, vNumber[:])
-	cd.ViewNumber = vNumber[0]
 	if err != nil {
 		return err
 	}
+	cd.ViewNumber = vNumber[0]
+
 	return nil
 }
-

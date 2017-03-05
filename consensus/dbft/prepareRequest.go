@@ -6,10 +6,11 @@ import (
 	. "GoOnchain/errors"
 	ser "GoOnchain/common/serialization"
 	tx "GoOnchain/core/transaction"
+	"fmt"
 )
 
 type PrepareRequest struct {
-	msgData *ConsensusMessageData
+	msgData ConsensusMessageData
 
 	Nonce uint64
 	NextMiner Uint160
@@ -48,21 +49,28 @@ func (pr *PrepareRequest) Deserialize(r io.Reader) error{
 	if err != nil {
 		return err
 	}
-	for i := uint64(0); i < Len; i++ {
-		hash := new(Uint256)
-		err = hash.Deserialize(r)
-		if err != nil {
+
+	if (Len == 0) {
+		fmt.Printf("The hash len at consensus payload is 0\n")
+	} else {
+		pr.TransactionHashes = make([]Uint256, Len)
+		for i := uint64(0); i < Len; i++ {
+			hash := new(Uint256)
+			err = hash.Deserialize(r)
+			if err != nil {
 			return err
+			}
+			pr.TransactionHashes[i] = *hash
 		}
-		pr.TransactionHashes = append(pr.TransactionHashes, *hash)
+		if pr.BookkeepingTransaction.Hash() != pr.TransactionHashes[0] {
+			return  NewDetailErr(nil,ErrNoCode,"The Bookkeeping Transaction data is incorrect.")
+
+		}
 	}
 
-	if pr.BookkeepingTransaction.Hash() != pr.TransactionHashes[0]{
-		return  NewDetailErr(nil,ErrNoCode,"The Bookkeeping Transaction data is incorrect.")
-
-	}
 	pr.Signature,err = ser.ReadBytes(r,64)
 	if err != nil {
+		fmt.Printf("Parse the Signature error\n")
 		return err
 	}
 
@@ -81,5 +89,5 @@ func (pr *PrepareRequest) ViewNumber() byte{
 
 func (pr *PrepareRequest) ConsensusMessageData() *ConsensusMessageData{
 	Trace()
-	return pr.msgData
+	return &(pr.msgData)
 }

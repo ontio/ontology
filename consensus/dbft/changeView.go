@@ -6,7 +6,7 @@ import (
 )
 
 type ChangeView struct {
-	msgData *ConsensusMessageData
+	msgData ConsensusMessageData
 	NewViewNumber byte
 }
 
@@ -36,6 +36,6 @@ func (cv *ChangeView) ViewNumber() byte{
 }
 
 func (cv *ChangeView) ConsensusMessageData() *ConsensusMessageData{
-	return cv.msgData
+	return &(cv.msgData)
 }
 

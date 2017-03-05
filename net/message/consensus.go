@@ -101,7 +101,6 @@ func (cp *ConsensusPayload) GetMessage() []byte {
 
 func (msg consensus) Handle(node Noder) error {
 	common.Trace()
-	fmt.Printf("RX Consensus message\n")
 
 	node.LocalNode().GetEvent("consensus").Notify(events.EventNewInventory, &msg.cons)
 	return nil
@@ -187,6 +186,7 @@ func (cp *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
 	}
 
 	cp.Data, err = serialization.ReadVarBytes(r)
+	fmt.Printf("The consensus payload data len is %d\n", len(cp.Data))
 	if err != nil {
 		return errors.New("consensus item Data Deserialize failed.")
 	}
