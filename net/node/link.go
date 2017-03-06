@@ -167,6 +167,7 @@ func (node *node) Connect(nodeAddr string) {
 			conn.RemoteAddr().Network())
 		go n.rx()
 
+		time.Sleep(2 * time.Second)
 		// FIXME is there any timing race with rx
 		buf, _ := NewVersion(node)
 		n.Tx(buf)

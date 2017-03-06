@@ -154,6 +154,7 @@ func (msg version) Handle(node Noder) error {
 	buf, _ := NewVersion(localNode)
 	node.Tx(buf)
 
+	time.Sleep(2 * time.Second)
 	buf, _ = NewVerack()
 	node.Tx(buf)
 
