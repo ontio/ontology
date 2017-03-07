@@ -1,15 +1,15 @@
 package log
 
-import(
+import (
+	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strconv"
 	"strings"
-	"io"
-	"bytes"
-	"time"
 	"sync"
+	"time"
 )
 
 const (
@@ -23,17 +23,17 @@ const (
 
 var (
 	levels = map[int]string{
-		debugLog:    "DEBUG",
-		infoLog:     "INFO",
-		warningLog:  "WARNING",
-		errorLog:    "ERROR",
-		fatalLog:	 "FATAL",
+		debugLog:   "DEBUG",
+		infoLog:    "INFO",
+		warningLog: "WARNING",
+		errorLog:   "ERROR",
+		fatalLog:   "FATAL",
 	}
 )
 
 const (
 	namePrefix = "LEVEL"
-	callDepth = 2
+	callDepth  = 2
 )
 
 var Log *Logger
@@ -59,12 +59,12 @@ func NameLevel(name string) int {
 	return level
 }
 
-func AddBracket(s string) string{
+func AddBracket(s string) string {
 	b := bytes.Buffer{}
-    b.WriteString("[")
-    b.WriteString(s)
-    b.WriteString("]")
-    return b.String()
+	b.WriteString("[")
+	b.WriteString(s)
+	b.WriteString("]")
+	return b.String()
 }
 
 type Logger struct {
@@ -155,27 +155,32 @@ func FileOpen(path string) (*os.File, error) {
 
 	var currenttime string = time.Now().Format("2006-01-02")
 
-	logfile,err := os.OpenFile(path + currenttime + "_LOG.log", os.O_RDWR| os.O_CREATE, 0666)
-	if err != nil{
+	logfile, err := os.OpenFile(path+currenttime+"_LOG.log", os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
 		fmt.Printf("%s\n", err.Error())
 		//os.Exit(-1)
 	}
 
-	//defer logfile.Close()	
+	//defer logfile.Close()
 
 	return logfile, nil
 }
 
-func CreatePrintLog(path string){
+func CreatePrintLog(path string) {
 	logfile, err := FileOpen(path)
 	if err != nil {
 		fmt.Printf("%s\n", err.Error)
 	}
 	var printlevel int = 1
-	Log = New(logfile, "\r\n", log.Ldate|log.Ltime|log.Llongfile, printlevel)
+	writers := []io.Writer{
+		logfile,
+		os.Stdout,
+	}
+	fileAndStdoutWrite := io.MultiWriter(writers...)
+
+	Log = New(fileAndStdoutWrite, "\r\n", log.Ldate|log.Lmicroseconds, printlevel)
 }
 
-func ClosePrintLog(){
+func ClosePrintLog() {
 	//TODO
 }
-

@@ -37,6 +37,8 @@ func init() {
 }
 
 func main() {
+	var path string = "./Log/"
+	log.CreatePrintLog(path)
 	fmt.Printf("Node version: %s\n", Version)
 	fmt.Println("//**************************************************************************")
 	fmt.Println("//*** 0. Client open                                                     ***")
