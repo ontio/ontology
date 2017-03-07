@@ -32,7 +32,7 @@ func (pr *PrepareRequest) Serialize(w io.Writer){
 		txHash.Serialize(w)
 	}
 
-	pr.BookkeepingTransaction.Serialize(w)
+	//pr.BookkeepingTransaction.Serialize(w)
 	ser.WriteVarBytes(w,pr.Signature)
 }
 
@@ -42,7 +42,6 @@ func (pr *PrepareRequest) Deserialize(r io.Reader) error{
 	pr.msgData.Deserialize(r)
 	pr.Nonce,_ = ser.ReadVarUint(r,0)
 	pr.NextMiner.Deserialize(r)
-	pr.BookkeepingTransaction.Deserialize(r)
 
 	//TransactionHashes
 	Len, err := ser.ReadVarUint(r, 0)
@@ -67,12 +66,13 @@ func (pr *PrepareRequest) Deserialize(r io.Reader) error{
 
 		}
 	}
-
-	pr.Signature,err = ser.ReadBytes(r,64)
+	//pr.BookkeepingTransaction.Deserialize(r)
+	pr.Signature,err = ser.ReadVarBytes(r)
 	if err != nil {
 		fmt.Printf("Parse the Signature error\n")
 		return err
 	}
+	fmt.Println("Signature deserialize complete")
 
 	return nil
 }

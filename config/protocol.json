@@ -12,10 +12,10 @@
       "02486fd15702c4490a26703112a5cc1d0923fd697a33406bd5a1c00e0013b09a70"
     ],
     "SeedList": [
-      "10.0.1.8:20338"
+      "192.168.33.11:20338"
     ],
     "HttpJsonPort": 20337,
     "NodePort": 20338,
-    "MinerName": "c1"
+    "MinerName": "c4"
   }
 }

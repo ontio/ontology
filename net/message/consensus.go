@@ -19,7 +19,6 @@ import (
 	"strconv"
 	. "GoOnchain/errors"
 	sig "GoOnchain/core/signature"
-	"unsafe"
 )
 
 type ConsensusPayload struct {
@@ -129,13 +128,16 @@ func (cp *ConsensusPayload) SerializeUnsigned(w io.Writer) error {
 	serialization.WriteUint32(w, cp.Height)
 	serialization.WriteUint16(w, cp.MinerIndex)
 	serialization.WriteUint32(w, cp.Timestamp)
+	err := serialization.WriteVarBytes(w, cp.Data)
+	if err != nil {
+		return err
+	}
 	return nil
 
 }
 
 func (cp *ConsensusPayload) Serialize(w io.Writer) error {
 	err := cp.SerializeUnsigned(w)
-	err = serialization.WriteVarBytes(w, cp.Data)
 	if cp.Program == nil {
 		common.Trace()
 		fmt.Println("Program is NULL")
@@ -157,6 +159,7 @@ func (msg *consensus) Serialization() ([]byte, error) {
 }
 
 func (cp *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
+	common.Trace()
 	var err error
 	cp.Version, err = serialization.ReadUint32(r)
 	if err != nil {
@@ -194,19 +197,20 @@ func (cp *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
 }
 
 func (cp *ConsensusPayload) Deserialize(r io.Reader) error {
+	common.Trace()
 	err := cp.DeserializeUnsigned(r)
-	if cp.Program == nil {
-		common.Trace()
-		fmt.Println("Program is NULL")
-		return errors.New("Program in consensus is NULL")
+
+	pg := new(program.Program)
+	err = pg.Deserialize(r)
+	if err != nil {
+		return NewDetailErr(err, ErrNoCode, "Blockdata item Program Deserialize failed.")
 	}
-	err = cp.Program.Deserialize(r)
+	cp.Program = pg
 	return err
 }
 
 func (msg *consensus) Deserialization(p []byte) error {
-	fmt.Printf("The size of messge is %d in deserialization\n",
-		uint32(unsafe.Sizeof(*msg)))
+	common.Trace()
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.msgHdr))
 	err = msg.cons.Deserialize(buf)
@@ -234,7 +238,7 @@ func NewConsensus(cp *ConsensusPayload) ([]byte, error) {
 	buf := bytes.NewBuffer(s[:4])
 	binary.Read(buf, binary.LittleEndian, &(msg.msgHdr.Checksum))
 	msg.msgHdr.Length = uint32(len(b.Bytes()))
-	fmt.Printf("The message payload length is %d\n", msg.msgHdr.Length)
+	fmt.Printf("NewConsensus The message payload length is %d\n", msg.msgHdr.Length)
 
 	m, err := msg.Serialization()
 	if err != nil {
