@@ -1,26 +1,26 @@
 package main
 
 import (
-	"GoOnchain/common/log"
-	"GoOnchain/core/ledger"
-	"GoOnchain/core/store"
-	"GoOnchain/core/transaction"
-	"GoOnchain/crypto"
-	"GoOnchain/net"
-	"GoOnchain/net/httpjsonrpc"
-	"fmt"
-	"runtime"
-	"time"
-	"GoOnchain/config"
 	. "GoOnchain/client"
 	. "GoOnchain/common"
+	"GoOnchain/common/log"
+	"GoOnchain/config"
 	"GoOnchain/consensus/dbft"
 	. "GoOnchain/core/asset"
 	"GoOnchain/core/contract"
+	"GoOnchain/core/ledger"
 	"GoOnchain/core/signature"
+	"GoOnchain/core/store"
+	"GoOnchain/core/transaction"
 	"GoOnchain/core/validation"
+	"GoOnchain/crypto"
+	"GoOnchain/net"
+	"GoOnchain/net/httpjsonrpc"
 	"crypto/sha256"
+	"fmt"
 	"os"
+	"runtime"
+	"time"
 )
 
 const (
@@ -61,7 +61,7 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	admin := issuer
+	//admin := issuer
 
 	fmt.Println("//**************************************************************************")
 	fmt.Println("//*** 2. Set Miner                                                     ***")
@@ -82,7 +82,7 @@ func main() {
 
 	time.Sleep(2 * time.Second)
 	neter := net.StartProtocol()
-	time.Sleep(2 * time.Second)
+	time.Sleep(1 * time.Minute)
 
 	fmt.Println("//**************************************************************************")
 	fmt.Println("//*** 5. Start DBFT Services                                             ***")
@@ -102,27 +102,27 @@ func main() {
 	//ledger.Start(net.NetToLedgerCh <-chan *Msg, net.LedgerToNetCh chan<- *Msg)
 	//consensus.Start(net.NetToConsensusCh <-chan *Msg, net.ConsensusToNetCh chan<- *Msg)
 
-	if config.Parameters.MinerName == "c4" {
-		time.Sleep(2 * time.Second)
-		tx := sampleTransaction(issuer, admin)
-		fmt.Println("//**************************************************************************")
-		fmt.Println("//*** transaction gen complete, neter Xmit start                         ***")
-		fmt.Println("//**************************************************************************")
-		neter.Xmit(tx)
-		time.Sleep(10 * time.Second)
-		fmt.Println("//**************************************************************************")
-		fmt.Println("//*** neter Xmit completed                                               ***")
-		fmt.Println("//**************************************************************************")
-		//for {
-			fmt.Println("ledger.DefaultLedger.Blockchain.BlockHeight", ledger.DefaultLedger.Blockchain.BlockHeight)
-			genesisBlockHash, _ := ledger.DefaultLedger.Store.GetBlockHash(0)
-			fmt.Println("gensisBlockGet =", genesisBlockHash)
-			firstblock, _ := ledger.DefaultLedger.Store.GetBlockHash(1)
-			fmt.Println("FirstBlockGet =", firstblock)
-			time.Sleep(10 * time.Second)
-		//}
+	// if config.Parameters.MinerName == "c4" {
+	// 	time.Sleep(2 * time.Second)
+	// 	tx := sampleTransaction(issuer, admin)
+	// 	fmt.Println("//**************************************************************************")
+	// 	fmt.Println("//*** transaction gen complete, neter Xmit start                         ***")
+	// 	fmt.Println("//**************************************************************************")
+	// 	neter.Xmit(tx)
+	// 	time.Sleep(10 * time.Second)
+	// 	fmt.Println("//**************************************************************************")
+	// 	fmt.Println("//*** neter Xmit completed                                               ***")
+	// 	fmt.Println("//**************************************************************************")
+	// 	//for {
+	// 		fmt.Println("ledger.DefaultLedger.Blockchain.BlockHeight", ledger.DefaultLedger.Blockchain.BlockHeight)
+	// 		genesisBlockHash, _ := ledger.DefaultLedger.Store.GetBlockHash(0)
+	// 		fmt.Println("gensisBlockGet =", genesisBlockHash)
+	// 		firstblock, _ := ledger.DefaultLedger.Store.GetBlockHash(1)
+	// 		fmt.Println("FirstBlockGet =", firstblock)
+	// 		time.Sleep(10 * time.Second)
+	// 	//}
 
-	}
+	// }
 
 	for {
 		time.Sleep(2 * time.Second)

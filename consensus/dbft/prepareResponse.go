@@ -11,10 +11,11 @@ type PrepareResponse struct {
 	Signature []byte
 }
 
-func (pres *PrepareResponse) Serialize(w io.Writer){
+func (pres *PrepareResponse) Serialize(w io.Writer)error{
 	Trace()
 	pres.msgData.Serialize(w)
 	w.Write(pres.Signature)
+	return nil
 }
 
 //read data to reader

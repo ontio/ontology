@@ -11,9 +11,10 @@ type ChangeView struct {
 }
 
 
-func (cv *ChangeView) Serialize(w io.Writer){
+func (cv *ChangeView) Serialize(w io.Writer)error{
 	cv.msgData.Serialize(w)
 	w.Write([]byte{cv.NewViewNumber})
+	return nil
 }
 
 //read data to reader

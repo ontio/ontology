@@ -18,6 +18,8 @@ import (
 	cl "GoOnchain/client"
 	"GoOnchain/events"
 	"fmt"
+	"GoOnchain/core/transaction/payload"
+	"GoOnchain/core/contract/program"
 )
 
 const TimePerBlock = 15
@@ -143,6 +145,14 @@ func (ds *DbftService) CreateBookkeepingTransaction(txs map[Uint256]*tx.Transact
 	Trace()
 	return &tx.Transaction{
 		TxType: tx.BookKeeping,
+		PayloadVersion: 0x2,
+		Payload: &payload.MinerPayload{},
+		Nonce:uint64(0),
+		Attributes: []*tx.TxAttribute{},
+		UTXOInputs:[]*tx.UTXOTxInput{},
+		BalanceInputs:[]*tx.BalanceTxInput{},
+		Outputs:[]*tx.TxOutput{},
+		Programs:[]*program.Program{},
 	}
 }
 
@@ -255,9 +265,18 @@ func (ds *DbftService) NewConsensusPayload(payload *msg.ConsensusPayload){
 
 	if int(payload.MinerIndex) >= len(ds.context.Miners) {return }
 
-	message,_ := DeserializeMessage(payload.Data)
+	message,err := DeserializeMessage(payload.Data)
+	if err != nil {
+		con.Log(fmt.Sprintf("DeserializeMessage failed!!!: %s\n",err))
+		fmt.Printf("DeserializeMessage failed!!!: %s\n",err)
+		return
+	}
 
 	if message.ViewNumber() != ds.context.ViewNumber && message.Type() != ChangeViewMsg {
+		fmt.Printf("message.ViewNumber()=%d\n",message.ViewNumber())
+		fmt.Printf("ds.context.ViewNumber=%d\n",ds.context.ViewNumber)
+		fmt.Printf("message.Type()=%d\n",message.Type())
+		fmt.Printf("ChangeViewMsg=%d\n",ChangeViewMsg)
 		return
 	}
 
@@ -303,19 +322,31 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload,mess
 	Trace()
 	con.Log(fmt.Sprintf("Prepare Request Received: height=%d View=%d index=%d tx=%d",payload.Height,message.ViewNumber(),payload.MinerIndex,len(message.TransactionHashes)))
 
-	if ds.context.State.HasFlag(Backup) || ds.context.State.HasFlag(RequestReceived) {
+	if !ds.context.State.HasFlag(Backup) || ds.context.State.HasFlag(RequestReceived) {
+		fmt.Println("PrepareRequestReceived ds.context.State.HasFlag(Backup)=",ds.context.State.HasFlag(Backup))
+		fmt.Println("PrepareRequestReceived ds.context.State.HasFlag(RequestReceived)=",ds.context.State.HasFlag(RequestReceived))
 		return
 	}
-
-	if uint32(payload.MinerIndex) != ds.context.PrimaryIndex {return }
-	header,_ := ledger.DefaultLedger.Blockchain.GetHeader(ds.context.PrevHash)
+	Trace()
+	if uint32(payload.MinerIndex) != ds.context.PrimaryIndex {
+		fmt.Println("PrepareRequestReceived uint32(payload.MinerIndex)=",uint32(payload.MinerIndex))
+		fmt.Println("PrepareRequestReceived ds.context.PrimaryIndex=",ds.context.PrimaryIndex)
+		return }
+	header,err := ledger.DefaultLedger.Blockchain.GetHeader(ds.context.PrevHash)
+	if err != nil {
+		fmt.Println("PrepareRequestReceived GetHeader failed with ds.context.PrevHash",ds.context.PrevHash)
+	}
 	/*
 	* TODO Add Error Catch
 	* 2017/2/27 luodanwg
 	* */
+	Trace()
 	prevBlockTimestamp := header.Blockdata.Timestamp
 	if payload.Timestamp <= prevBlockTimestamp || payload.Timestamp > uint32(time.Now().Add(time.Minute*10).Unix()){
-		con.Log(fmt.Sprintf("Timestamp incorrect: %d",payload.Timestamp))
+		con.Log(fmt.Sprintf("PrepareRequestReceived Timestamp incorrect: %d",payload.Timestamp))
+		fmt.Println("PrepareRequestReceived payload.Timestamp=",payload.Timestamp,)
+		fmt.Println("PrepareRequestReceived prevBlockTimestamp=",prevBlockTimestamp)
+		fmt.Println("PrepareRequestReceived uint32(time.Now().Add(time.Minute*10).Unix()=",uint32(time.Now().Add(time.Minute*10).Unix()))
 		return
 	}
 
@@ -326,20 +357,25 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload,mess
 	ds.context.TransactionHashes = message.TransactionHashes
 	ds.context.Transactions = make(map[Uint256]*tx.Transaction)
 
+	Trace()
 	if _,err := va.VerifySignature(ds.context.MakeHeader(),ds.context.Miners[payload.MinerIndex],message.Signature); err != nil {
+		fmt.Println("PrepareRequestReceived VerifySignature failed.",err)
 		return
 	}
 
 	minerLen := len(ds.context.Miners)
 	ds.context.Signatures = make([][]byte,minerLen)
 	ds.context.Signatures[payload.MinerIndex] = message.Signature
-
-	if err := ds.AddTransaction(message.BookkeepingTransaction); err != nil {return }
-
+	Trace()
+	if err := ds.AddTransaction(message.BookkeepingTransaction); err != nil {
+		fmt.Println("PrepareRequestReceived AddTransaction failed",err)
+		return }
+	Trace()
 	mempool :=  ds.localNet.GetMemoryPool()
 	for _, hash := range ds.context.TransactionHashes[1:] {
 		if transaction,ok := mempool[hash]; ok{
 			if err := ds.AddTransaction(transaction); err != nil {
+				fmt.Println("PrepareRequestReceived AddTransaction failed.")
 				return
 			}
 		}
@@ -347,7 +383,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload,mess
 
 	//TODO: LocalNode allow hashes (add Except method)
 	//AllowHashes(ds.context.TransactionHashes)
-
+	Trace()
 	if len(ds.context.Transactions) < len(ds.context.TransactionHashes){
 		ds.localNet.SynchronizeMemoryPool()
 	}
@@ -450,8 +486,12 @@ func (ds *DbftService) Timeout() {
 			if ds.context.TransactionHashes == nil {
 				ds.context.TransactionHashes = []Uint256{}
 			}
-
-			ds.context.TransactionHashes = append(ds.context.TransactionHashes,txBookkeeping.Hash())
+			trxhashes :=  []Uint256{}
+			trxhashes = append(trxhashes,txBookkeeping.Hash())
+			    for _, v := range ds.context.TransactionHashes {
+				    trxhashes = append(trxhashes,v)
+			        }
+			ds.context.TransactionHashes= trxhashes
 			for _,TX := range transactions {
 				ds.context.TransactionHashes = append(ds.context.TransactionHashes,TX.Hash())
 			}
@@ -459,21 +499,12 @@ func (ds *DbftService) Timeout() {
 
 			txlist := ds.context.GetTransactionList()
 			ds.context.NextMiner,_= ledger.GetMinerAddress(ledger.DefaultLedger.Blockchain.GetMinersByTXs(txlist))
-			/*
-			* TODO  add error catch
-			* 2017/2/27 luodanwg
-			* */
+			//TODO: add error catch
 			block := ds.context.MakeHeader()
 			account,_:= ds.Client.GetAccount(ds.context.Miners[ds.context.MinerIndex])
-			/*
-			* TODO add error catch
-			* 2017/2/27 luodanwg
-			* */
+			//TODO: add error catch
 			ds.context.Signatures[ds.context.MinerIndex],_ = sig.SignBySigner(block,account)
-			/*
-			* TODO add error catch
-			* 2017/2/27 luodanwg
-			* */
+			//TODO: add error catch
 		}
 		ds.SignAndRelay(ds.context.MakePrepareRequest())
 		time.AfterFunc(SecondsPerBlock << (ds.timeView + 1), ds.Timeout)

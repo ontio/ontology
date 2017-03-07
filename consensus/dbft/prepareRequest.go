@@ -7,6 +7,7 @@ import (
 	ser "GoOnchain/common/serialization"
 	tx "GoOnchain/core/transaction"
 	"fmt"
+	"bytes"
 )
 
 type PrepareRequest struct {
@@ -19,28 +20,74 @@ type PrepareRequest struct {
 	Signature []byte
 }
 
-func (pr *PrepareRequest) Serialize(w io.Writer){
+func (pr *PrepareRequest) Serialize(w io.Writer)error{
 	Trace()
 	pr.msgData.Serialize(w)
-	ser.WriteVarUint(w,pr.Nonce)
-	pr.NextMiner.Serialize(w)
-
+	err:= ser.WriteVarUint(w,pr.Nonce)
+	if err != nil {
+		return NewDetailErr(err, ErrNoCode, "PrepareRequest Execute WriteVarUint failed.")
+	}
+	_,err=pr.NextMiner.Serialize(w)
+	if err != nil {
+		return NewDetailErr(err, ErrNoCode, "PrepareRequest Execute NextMiner.Serialize failed.")
+	}
 	//Serialize  Transaction's hashes
-	len := uint64(len(pr.TransactionHashes))
-	ser.WriteVarUint(w, len)
+	length := uint64(len(pr.TransactionHashes))
+	err = ser.WriteVarUint(w, length)
+	if err != nil {
+		return NewDetailErr(err, ErrNoCode, "PrepareRequest Execute WriteVarUint. failed.")
+	}
 	for _, txHash := range pr.TransactionHashes {
-		txHash.Serialize(w)
+		_,err=txHash.Serialize(w)
+		if err != nil {
+			return NewDetailErr(err, ErrNoCode, "PrepareRequest Execute txHash.Serialize. failed.")
+		}
 	}
 
-	//pr.BookkeepingTransaction.Serialize(w)
-	ser.WriteVarBytes(w,pr.Signature)
+	err =pr.BookkeepingTransaction.Serialize(w)
+	if err != nil {
+		return NewDetailErr(err, ErrNoCode, "PrepareRequest Execute BookkeepingTransaction Serialize failed.")
+	}
+	//* test use
+	//buf :=bytes.NewBuffer([]byte{})
+	//err =pr.BookkeepingTransaction.Serialize(buf)
+	//if err != nil {
+	//	return NewDetailErr(err, ErrNoCode, "PrepareRequest Execute BookkeepingTransaction Serialize failed.")
+	//}
+	//fmt.Println("PrepareRequest Serialize BookkeepingTransaction=",buf.Bytes() )
+	//fmt.Println("TxType",pr.BookkeepingTransaction.TxType         )
+	//fmt.Println("PayloadVersion",pr.BookkeepingTransaction.PayloadVersion)
+	//fmt.Println(pr.BookkeepingTransaction.Payload        )
+	//fmt.Println(pr.BookkeepingTransaction.Nonce          )
+	//for _, v := range pr.BookkeepingTransaction.Attributes {
+	//	fmt.Println("Attributes",v)
+	//}
+	//for _, v := range pr.BookkeepingTransaction.UTXOInputs {
+	//	fmt.Println("UTXOInputs",v)
+	//}
+	//for _, v := range pr.BookkeepingTransaction.BalanceInputs {
+	//	fmt.Println("BalanceInputs",v)
+	//}
+	//for _, v := range pr.BookkeepingTransaction.Outputs {
+	//	fmt.Println("Outputs",v)
+	//}
+	//for _, v := range pr.BookkeepingTransaction.Programs {
+	//	fmt.Println("Programs",v)
+	//}
+	err=ser.WriteVarBytes(w,pr.Signature)
+	if err != nil {
+		return NewDetailErr(err, ErrNoCode, "PrepareRequest Execute ser.WriteVarBytes failed.")
+	}
+	return nil
 }
 
 //read data to reader
 func (pr *PrepareRequest) Deserialize(r io.Reader) error{
 	Trace()
+	pr.msgData = ConsensusMessageData{}
 	pr.msgData.Deserialize(r)
 	pr.Nonce,_ = ser.ReadVarUint(r,0)
+	pr.NextMiner = Uint160{}
 	pr.NextMiner.Deserialize(r)
 
 	//TransactionHashes
@@ -61,18 +108,42 @@ func (pr *PrepareRequest) Deserialize(r io.Reader) error{
 			}
 			pr.TransactionHashes[i] = *hash
 		}
-		if pr.BookkeepingTransaction.Hash() != pr.TransactionHashes[0] {
-			return  NewDetailErr(nil,ErrNoCode,"The Bookkeeping Transaction data is incorrect.")
-
-		}
 	}
-	//pr.BookkeepingTransaction.Deserialize(r)
+	pr.BookkeepingTransaction.Deserialize(r)
+	if pr.BookkeepingTransaction.Hash() != pr.TransactionHashes[0] {
+		fmt.Println("pr.BookkeepingTransaction.Hash()=",pr.BookkeepingTransaction.Hash())
+		fmt.Println("pr.TransactionHashes[0]=",pr.TransactionHashes[0])
+		//buf :=bytes.NewBuffer([]byte{})
+		//pr.BookkeepingTransaction.Serialize(buf)
+		//fmt.Println("PrepareRequest Deserialize cxt.Transactions[cxt.TransactionHashes[0]=",buf.Bytes() )
+		//fmt.Println("TxType",pr.BookkeepingTransaction.TxType         )
+		//fmt.Println("PayloadVersion",pr.BookkeepingTransaction.PayloadVersion)
+		//fmt.Println(pr.BookkeepingTransaction.Payload        )
+		//fmt.Println(pr.BookkeepingTransaction.Nonce          )
+		//for _, v := range pr.BookkeepingTransaction.Attributes {
+		//	fmt.Println("Attributes",v)
+		//}
+		//for _, v := range pr.BookkeepingTransaction.UTXOInputs {
+		//	fmt.Println("UTXOInputs",v)
+		//}
+		//for _, v := range pr.BookkeepingTransaction.BalanceInputs {
+		//	fmt.Println("BalanceInputs",v)
+		//}
+		//for _, v := range pr.BookkeepingTransaction.Outputs {
+		//	fmt.Println("Outputs",v)
+		//}
+		//for _, v := range pr.BookkeepingTransaction.Programs {
+		//	fmt.Println("Programs",v)
+		//}
+
+		return  NewDetailErr(nil,ErrNoCode,"The Bookkeeping Transaction data is incorrect.")
+
+	}
 	pr.Signature,err = ser.ReadVarBytes(r)
 	if err != nil {
 		fmt.Printf("Parse the Signature error\n")
 		return err
 	}
-	fmt.Println("Signature deserialize complete")
 
 	return nil
 }

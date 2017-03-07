@@ -9,6 +9,7 @@ import (
 	ser "GoOnchain/common/serialization"
 	cl "GoOnchain/client"
 	"fmt"
+	"bytes"
 )
 
 const ContextVersion uint32 = 0
