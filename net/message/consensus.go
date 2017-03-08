@@ -2,15 +2,14 @@ package message
 
 import (
 	"GoOnchain/common"
+	"GoOnchain/common/log"
 	"GoOnchain/common/serialization"
 	"GoOnchain/core/contract/program"
-	//"GoOnchain/events"
 	. "GoOnchain/net/protocol"
 	"bytes"
 	"GoOnchain/events"
 	"crypto/sha256"
 	"encoding/binary"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -139,8 +138,7 @@ func (cp *ConsensusPayload) SerializeUnsigned(w io.Writer) error {
 func (cp *ConsensusPayload) Serialize(w io.Writer) error {
 	err := cp.SerializeUnsigned(w)
 	if cp.Program == nil {
-		common.Trace()
-		fmt.Println("Program is NULL")
+		log.Error("Program is NULL")
 		return errors.New("Program in consensus is NULL")
 	}
 	err = cp.Program.Serialize(w)
@@ -163,36 +161,43 @@ func (cp *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
 	var err error
 	cp.Version, err = serialization.ReadUint32(r)
 	if err != nil {
+		log.Info("consensus item Version Deserialize failed.")
 		return errors.New("consensus item Version Deserialize failed.")
 	}
 
 	preBlock := new(common.Uint256)
 	err = preBlock.Deserialize(r)
 	if err != nil {
+		log.Info("consensus item preHash Deserialize failed.")
 		return errors.New("consensus item preHash Deserialize failed.")
 	}
 	cp.PrevHash = *preBlock
 
 	cp.Height, err = serialization.ReadUint32(r)
 	if err != nil {
+		log.Info("consensus item Height Deserialize failed.")
 		return errors.New("consensus item Height Deserialize failed.")
 	}
 
 	cp.MinerIndex, err = serialization.ReadUint16(r)
 	if err != nil {
+		log.Info("consensus item MinerIndex Deserialize failed.")
 		return errors.New("consensus item MinerIndex Deserialize failed.")
 	}
 
 	cp.Timestamp, err = serialization.ReadUint32(r)
 	if err != nil {
+		log.Info("consensus item Timestamp Deserialize failed.")
 		return errors.New("consensus item Timestamp Deserialize failed.")
 	}
 
 	cp.Data, err = serialization.ReadVarBytes(r)
-	fmt.Printf("The consensus payload data len is %d\n", len(cp.Data))
+	log.Info("The consensus payload data len is ", len(cp.Data))
 	if err != nil {
+		log.Info("consensus item Data Deserialize failed.")
 		return errors.New("consensus item Data Deserialize failed.")
 	}
+	common.Trace()
 	return nil
 }
 
@@ -203,6 +208,7 @@ func (cp *ConsensusPayload) Deserialize(r io.Reader) error {
 	pg := new(program.Program)
 	err = pg.Deserialize(r)
 	if err != nil {
+		log.Error("Blockdata item Program Deserialize failed")
 		return NewDetailErr(err, ErrNoCode, "Blockdata item Program Deserialize failed.")
 	}
 	cp.Program = pg
@@ -245,9 +251,5 @@ func NewConsensus(cp *ConsensusPayload) ([]byte, error) {
 		fmt.Println("Error Convert net message ", err.Error())
 		return nil, err
 	}
-
-	str := hex.EncodeToString(m)
-	fmt.Printf("The message length is %d, %s\n", len(m), str)
-
 	return m, nil
 }

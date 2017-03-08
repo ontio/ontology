@@ -84,7 +84,7 @@ func main() {
 	neter := net.StartProtocol()
 
 
-	time.Sleep(12 * time.Second)
+	time.Sleep(20 * time.Second)
 
 	fmt.Println("//**************************************************************************")
 	fmt.Println("//*** 5. Start DBFT Services                                             ***")

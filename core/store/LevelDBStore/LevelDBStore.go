@@ -235,7 +235,7 @@ func (bd *LevelDBStore) GetHeader(hash Uint256) (*Header, error) {
 
 	prefix := []byte{ byte(DATA_Header) }
 	data,err_get := bd.Get( append(prefix,hash.ToArray()...) )
-	fmt.Printf( "Get Header Data: %x\n",  data )
+	//fmt.Printf( "Get Header Data: %x\n",  data )
 	if ( err_get != nil ) {
 		//TODO: implement error process
 		return nil, err_get

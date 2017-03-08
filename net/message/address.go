@@ -79,8 +79,6 @@ func NewAddrs(nodeaddrs []NodeAddr, count uint64) ([]byte, error) {
 		return nil, err
 	}
 
-	str := hex.EncodeToString(m)
-	fmt.Printf("The message length is %d, %s\n", len(m), str)
 	return m, nil
 }
 

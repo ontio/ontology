@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	"unsafe"
 )
@@ -47,8 +46,6 @@ func NewHeadersReq(n Noder) ([]byte, error) {
 	h.hdr.init("getheaders", s, uint32(len(p.Bytes())))
 
 	m, err := h.Serialization()
-	str := hex.EncodeToString(m)
-	fmt.Printf("The message length is %d, %s\n", len(m), str)
 	return m, err
 }
 
@@ -195,8 +192,5 @@ func NewHeaders(headers []ledger.Blockdata, count uint32) ([]byte, error) {
 		fmt.Println("Error Convert net message ", err.Error())
 		return nil, err
 	}
-
-	str := hex.EncodeToString(m)
-	fmt.Printf("The message length is %d, %s\n", len(m), str)
 	return m, nil
 }

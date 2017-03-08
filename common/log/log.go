@@ -102,7 +102,7 @@ func (l *Logger) Info(a ...interface{}) {
 	l.Output(infoLog, a...)
 }
 
-func (l *Logger) Warning(a ...interface{}) {
+func (l *Logger) Warn(a ...interface{}) {
 	lock.Lock()
 	defer lock.Unlock()
 	l.Output(warningLog, a...)
@@ -128,8 +128,8 @@ func Info(a ...interface{}) {
 	Log.Info(fmt.Sprint(a...))
 }
 
-func Warning(a ...interface{}) {
-	Log.Warning(fmt.Sprint(a...))
+func Warn(a ...interface{}) {
+	Log.Warn(fmt.Sprint(a...))
 }
 
 func Error(a ...interface{}) {

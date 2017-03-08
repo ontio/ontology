@@ -170,9 +170,9 @@ func (cxt *ContractContext) GetIndex(programHash Uint160) int {
 
 func (cxt *ContractContext) GetPrograms() []*pg.Program {
 	Trace()
-	fmt.Println("!cxt.IsCompleted()=",!cxt.IsCompleted())
-	fmt.Println(cxt.Codes)
-	fmt.Println(cxt.Parameters)
+	//fmt.Println("!cxt.IsCompleted()=",!cxt.IsCompleted())
+	//fmt.Println(cxt.Codes)
+	//fmt.Println(cxt.Parameters)
 	if !cxt.IsCompleted() {
 		return nil
 	}
@@ -190,8 +190,8 @@ func (cxt *ContractContext) GetPrograms() []*pg.Program {
 				sb.PushData(parameter)
 			}
 		}
-		fmt.Println(" cxt.Codes[i])", cxt.Codes[i])
-		fmt.Println(" sb.ToArray()", sb.ToArray())
+		//fmt.Println(" cxt.Codes[i])", cxt.Codes[i])
+		//fmt.Println(" sb.ToArray()", sb.ToArray())
 		programs[i] = &pg.Program{
 			Code:      cxt.Codes[i],
 			Parameter: sb.ToArray(),

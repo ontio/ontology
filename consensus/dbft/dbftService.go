@@ -201,8 +201,9 @@ func (ds *DbftService) Halt() error  {
 
 func (ds *DbftService) InitializeConsensus(viewNum byte) error  {
 	Trace()
-	ds.mu.Lock()
-	defer ds.mu.Unlock()
+	// Remove to avoid deadlock when be called at makepayload->changeViewReceived->CheckExpectView
+	//ds.mu.Lock()
+	//defer ds.mu.Unlock()
 
 	if viewNum == 0 {
 		ds.context.Reset(ds.Client)
@@ -240,8 +241,8 @@ func (ds *DbftService) LocalNodeNewInventory(v interface{}){
 	Trace()
 	if inventory,ok := v.(Inventory);ok {
 		if inventory.Type() == CONSENSUS {
-			payload, isConsensusPayload := inventory.(*msg.ConsensusPayload)
-			if isConsensusPayload {
+			payload, ret := inventory.(*msg.ConsensusPayload)
+			if (ret == true) {
 				ds.NewConsensusPayload(payload)
 			}
 		} else if inventory.Type() == TRANSACTION  {
@@ -258,21 +259,24 @@ func (ds *DbftService) NewConsensusPayload(payload *msg.ConsensusPayload){
 	ds.mu.Lock()
 	defer ds.mu.Unlock()
 
+	Trace()
 	if int(payload.MinerIndex) == ds.context.MinerIndex {return }
 
 	if payload.Version != ContextVersion || payload.PrevHash != ds.context.PrevHash || payload.Height != ds.context.Height {
 		return
 	}
 
+	Trace()
 	if int(payload.MinerIndex) >= len(ds.context.Miners) {return }
 
 	message,err := DeserializeMessage(payload.Data)
 	if err != nil {
-		con.Log(fmt.Sprintf("DeserializeMessage failed!!!: %s\n",err))
+		log.Error(fmt.Sprintf("DeserializeMessage failed!!!: %s\n",err))
 		fmt.Printf("DeserializeMessage failed!!!: %s\n",err)
 		return
 	}
 
+	Trace()
 	if message.ViewNumber() != ds.context.ViewNumber && message.Type() != ChangeViewMsg {
 		fmt.Printf("message.ViewNumber()=%d\n",message.ViewNumber())
 		fmt.Printf("ds.context.ViewNumber=%d\n",ds.context.ViewNumber)
@@ -281,6 +285,7 @@ func (ds *DbftService) NewConsensusPayload(payload *msg.ConsensusPayload){
 		return
 	}
 
+	Trace()
 	switch message.Type() {
 	case ChangeViewMsg:
 		log.Info("==========Recieved Change view")
@@ -324,7 +329,7 @@ func (ds *DbftService) NewTransactionPayload(transaction *tx.Transaction) error{
 
 func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload,message *PrepareRequest) {
 	Trace()
-	con.Log(fmt.Sprintf("Prepare Request Received: height=%d View=%d index=%d tx=%d",payload.Height,message.ViewNumber(),payload.MinerIndex,len(message.TransactionHashes)))
+	log.Info(fmt.Sprintf("Prepare Request Received: height=%d View=%d index=%d tx=%d",payload.Height,message.ViewNumber(),payload.MinerIndex,len(message.TransactionHashes)))
 
 	if !ds.context.State.HasFlag(Backup) || ds.context.State.HasFlag(RequestReceived) {
 		fmt.Println("PrepareRequestReceived ds.context.State.HasFlag(Backup)=",ds.context.State.HasFlag(Backup))
@@ -387,7 +392,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload,mess
 
 	//TODO: LocalNode allow hashes (add Except method)
 	//AllowHashes(ds.context.TransactionHashes)
-	Trace()
+	log.Info("Prepare Requst finished")
 	if len(ds.context.Transactions) < len(ds.context.TransactionHashes){
 		ds.localNet.SynchronizeMemoryPool()
 	}
@@ -396,7 +401,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload,mess
 func (ds *DbftService) PrepareResponseReceived(payload *msg.ConsensusPayload,message *PrepareResponse){
 	Trace()
 
-	con.Log(fmt.Sprintf("Prepare Response Received: height=%d View=%d index=%d",payload.Height,message.ViewNumber(),payload.MinerIndex))
+	log.Info(fmt.Sprintf("Prepare Response Received: height=%d View=%d index=%d",payload.Height,message.ViewNumber(),payload.MinerIndex))
 
 	if ds.context.State.HasFlag(BlockSent)  {return}
 	if ds.context.Signatures[payload.MinerIndex] != nil {return }
@@ -409,6 +414,7 @@ func (ds *DbftService) PrepareResponseReceived(payload *msg.ConsensusPayload,mes
 
 	ds.context.Signatures[payload.MinerIndex] = message.Signature
 	ds.CheckSignatures()
+	log.Info("Prepare Response finished")
 }
 
 func  (ds *DbftService)  RefreshPolicy(){
@@ -453,14 +459,14 @@ func (ds *DbftService) Timeout() {
 	if ds.timerHeight != ds.context.Height || ds.timeView != ds.context.ViewNumber {
 		return
 	}
-	fmt.Sprintf("Timeout: height=%d View=%d state=%d",ds.timerHeight,ds.timeView,ds.context.State)
+	log.Info("Timeout: height: ", ds.timerHeight, "View: ", ds.timeView, "State: ", ds.context.State)
 	con.Log(fmt.Sprintf("Timeout: height=%d View=%d state=%d",ds.timerHeight,ds.timeView,ds.context.State))
 	fmt.Println("ds.context.State.HasFlag(Primary)=",ds.context.State.HasFlag(Primary))
 	fmt.Println("ds.context.State.HasFlag(RequestSent)=",ds.context.State.HasFlag(RequestSent))
 	fmt.Println("ds.context.State.HasFlag(Backup)=",ds.context.State.HasFlag(Backup))
 
 	if ds.context.State.HasFlag(Primary) && !ds.context.State.HasFlag(RequestSent) {
-		con.Log(fmt.Sprintf("Send prepare request: height=%d View=%d",ds.timerHeight,ds.timeView,ds.context.State))
+		log.Info("Send prepare request: height: ", ds.timerHeight, "View: ", ds.timeView, "State: ", ds.context.State)
 		ds.context.State |= RequestSent
 		if !ds.context.State.HasFlag(SignatureSent) {
 

@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	"unsafe"
 )
@@ -108,9 +107,6 @@ func NewTx(trx *transaction.Transaction) ([]byte, error) {
 		fmt.Println("Error Convert net message ", err.Error())
 		return nil, err
 	}
-
-	str := hex.EncodeToString(m)
-	fmt.Printf("The message length is %d, %s\n", len(m), str)
 
 	return m, nil
 }

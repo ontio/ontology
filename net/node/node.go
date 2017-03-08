@@ -185,13 +185,12 @@ func (node node) SynchronizeMemoryPool() {
 }
 
 func (node node) Xmit(inv common.Inventory) error {
-
-	fmt.Println("****** node Xmit ********")
+	common.Trace()
 	var buffer []byte
 	var err error
 
 	if inv.Type() == common.TRANSACTION {
-		fmt.Printf("****TX transaction message*****\n")
+		log.Info("****TX transaction message*****\n")
 		transaction, isTransaction := inv.(*transaction.Transaction)
 		if isTransaction {
 			//transaction.Serialize(tmpBuffer)
@@ -203,7 +202,7 @@ func (node node) Xmit(inv common.Inventory) error {
 		}
 
 	} else if inv.Type() == common.BLOCK {
-		fmt.Printf("****TX block message****\n")
+		log.Info("****TX block message****\n")
 		block, isBlock := inv.(*ledger.Block)
 		if isBlock {
 			buffer, err = NewBlock(block)
@@ -213,7 +212,7 @@ func (node node) Xmit(inv common.Inventory) error {
 			}
 		}
 	} else if inv.Type() == common.CONSENSUS {
-		fmt.Printf("*****TX consensus message****\n")
+		log.Info("*****TX consensus message****\n")
 		payload, isConsensusPayload := inv.(*ConsensusPayload)
 		if isConsensusPayload {
 			buffer, err = NewConsensus(payload)

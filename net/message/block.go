@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	"unsafe"
 )
@@ -86,8 +85,6 @@ func NewBlock(bk *ledger.Block) ([]byte, error) {
 		return nil, err
 	}
 
-	str := hex.EncodeToString(m)
-	fmt.Printf("The message length is %d, %s\n", len(m), str)
 	return m, nil
 }
 

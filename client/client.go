@@ -241,15 +241,15 @@ func (cl *Client) GetContract(codeHash Uint160) *ct.Contract{
 	Trace()
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
-	fmt.Println("codeHash",codeHash)
-	    for _, v := range cl.contracts {
-	            fmt.Println("cl.contracts = ",v)
-	        }
+	//fmt.Println("codeHash",codeHash)
+	//for _, v := range cl.contracts {
+	//	fmt.Println("cl.contracts = ",v)
+	//}
 
 	if contract,ok := cl.contracts[codeHash]; ok{
 		return contract
 	}
-	fmt.Println("contract",cl.contracts[codeHash])
+	//fmt.Println("contract",cl.contracts[codeHash])
 	return nil
 }
 
@@ -369,12 +369,12 @@ func (cl *Client) Sign(context *ct.ContractContext) bool{
 	Trace()
 	fSuccess := false
 	for i,hash := range context.ProgramHashes{
-		fmt.Println("Sign hash=",hash)
+		//fmt.Println("Sign hash=",hash)
 		contract := cl.GetContract(hash)
 		if contract == nil {continue}
-		fmt.Println("cl.GetContract(hash)=",cl.GetContract(hash))
+		//fmt.Println("cl.GetContract(hash)=",cl.GetContract(hash))
 		account := cl.GetAccountByProgramHash(hash)
-		fmt.Println("account",account)
+		//fmt.Println("account",account)
 		if account == nil {continue}
 
 		signature,err:= sig.SignBySigner(context.Data,account)
