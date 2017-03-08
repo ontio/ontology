@@ -2,6 +2,7 @@ package dbft
 
 import (
 	. "GoOnchain/common"
+	"GoOnchain/common/log"
 	"GoOnchain/crypto"
 	tx "GoOnchain/core/transaction"
 	 "GoOnchain/core/ledger"
@@ -9,7 +10,6 @@ import (
 	ser "GoOnchain/common/serialization"
 	cl "GoOnchain/client"
 	"fmt"
-	"bytes"
 )
 
 const ContextVersion uint32 = 0
@@ -111,7 +111,7 @@ func (cxt *ConsensusContext)  MakeHeader() *ledger.Block {
 	return cxt.header
 }
 
-func (cxt *ConsensusContext)  MakePayload(message ConsensusMessage) *msg.ConsensusPayload{
+func (cxt *ConsensusContext) MakePayload(message ConsensusMessage) *msg.ConsensusPayload{
 	Trace()
 	message.ConsensusMessageData().ViewNumber = cxt.ViewNumber
 	return &msg.ConsensusPayload{
@@ -124,9 +124,8 @@ func (cxt *ConsensusContext)  MakePayload(message ConsensusMessage) *msg.Consens
 	}
 }
 
-func (cxt *ConsensusContext)  MakePrepareRequest() *msg.ConsensusPayload{
+func (cxt *ConsensusContext) MakePrepareRequest() *msg.ConsensusPayload{
 	Trace()
-	fmt.Println("cxt.TransactionHashes[0]",cxt.TransactionHashes[0])
 	preReq := &PrepareRequest{
 		Nonce: cxt.Nonce,
 		NextMiner: cxt.NextMiner,
@@ -138,7 +137,7 @@ func (cxt *ConsensusContext)  MakePrepareRequest() *msg.ConsensusPayload{
 	return cxt.MakePayload(preReq)
 }
 
-func (cxt *ConsensusContext)  MakePerpareResponse(signature []byte) *msg.ConsensusPayload{
+func (cxt *ConsensusContext) MakePerpareResponse(signature []byte) *msg.ConsensusPayload{
 	Trace()
 	preRes := &PrepareResponse{
 		Signature: signature,
@@ -147,7 +146,7 @@ func (cxt *ConsensusContext)  MakePerpareResponse(signature []byte) *msg.Consens
 	return cxt.MakePayload(preRes)
 }
 
-func (cxt *ConsensusContext)  GetSignaturesCount() (count int){
+func (cxt *ConsensusContext) GetSignaturesCount() (count int){
 	Trace()
 	count = 0
 	for _,sig := range cxt.Signatures {
@@ -158,7 +157,7 @@ func (cxt *ConsensusContext)  GetSignaturesCount() (count int){
 	return count
 }
 
-func (cxt *ConsensusContext)  GetTransactionList()  []*tx.Transaction{
+func (cxt *ConsensusContext) GetTransactionList() []*tx.Transaction{
 	Trace()
 	if cxt.txlist == nil{
 		cxt.txlist = []*tx.Transaction{}

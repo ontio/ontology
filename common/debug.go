@@ -27,5 +27,5 @@ func Trace() {
 	f := runtime.FuncForPC(pc[0])
 	file, line := f.FileLine(pc[0])
 	fileName := filepath.Base(file)
-	fmt.Printf("%s [TRACE] GID %4d, %s@%s:%d\n", t, id, f.Name(), fileName, line)
+	fmt.Printf("%s [TRACE] GID %3d, %s %s:%d\n", t, id, f.Name(), fileName, line)
 }

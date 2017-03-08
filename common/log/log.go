@@ -15,7 +15,7 @@ import (
 const (
 	debugLog = iota
 	infoLog
-	warningLog
+	warnLog
 	errorLog
 	fatalLog
 	numSeverity = 5
@@ -25,7 +25,7 @@ var (
 	levels = map[int]string{
 		debugLog:   "DEBUG",
 		infoLog:    "INFO",
-		warningLog: "WARNING",
+		warnLog: "WARN",
 		errorLog:   "ERROR",
 		fatalLog:   "FATAL",
 	}
@@ -105,7 +105,7 @@ func (l *Logger) Info(a ...interface{}) {
 func (l *Logger) Warn(a ...interface{}) {
 	lock.Lock()
 	defer lock.Unlock()
-	l.Output(warningLog, a...)
+	l.Output(warnLog, a...)
 }
 
 func (l *Logger) Error(a ...interface{}) {
