@@ -7,7 +7,6 @@ import (
 	ser "GoOnchain/common/serialization"
 	tx "GoOnchain/core/transaction"
 	"fmt"
-	"bytes"
 )
 
 type PrepareRequest struct {

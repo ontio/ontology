@@ -5,6 +5,7 @@ import (
 	"sync"
 	. "GoOnchain/errors"
 	. "GoOnchain/common"
+	"GoOnchain/common/log"
 	"errors"
 	"GoOnchain/net"
 	msg "GoOnchain/net/message"
@@ -282,16 +283,19 @@ func (ds *DbftService) NewConsensusPayload(payload *msg.ConsensusPayload){
 
 	switch message.Type() {
 	case ChangeViewMsg:
+		log.Info("==========Recieved Change view")
 		if cv, ok := message.(*ChangeView); ok {
 			ds.ChangeViewReceived(payload,cv)
 		}
 		break
 	case PrepareRequestMsg:
+		log.Info("==========Recieved PrepareRequest")
 		if pr, ok := message.(*PrepareRequest); ok {
 			ds.PrepareRequestReceived(payload,pr)
 		}
 		break
 	case PrepareResponseMsg:
+		log.Info("==========Recieved PrepareResponse")
 		if pres, ok := message.(*PrepareResponse); ok {
 			ds.PrepareResponseReceived(payload,pres)
 		}

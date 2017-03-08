@@ -154,7 +154,7 @@ func (tx *Transaction) Deserialize(r io.Reader) error {
 
 	programHashes := []*program.Program{}
 	if lens>0 {
-		for i := 0; i < int(len); i++ {
+		for i := 0; i < int(lens); i++ {
 			outputHashes := new(program.Program)
 			outputHashes.Deserialize(r)
 			programHashes = append(programHashes, outputHashes)

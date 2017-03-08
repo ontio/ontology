@@ -2,6 +2,7 @@ package message
 
 import (
 	"GoOnchain/common"
+	"GoOnchain/common/log"
 	. "GoOnchain/net/protocol"
 	"bytes"
 	"crypto/sha256"
@@ -140,7 +141,7 @@ func (msg version) Handle(node Noder) error {
 	// Obsolete node
 	n, ret := localNode.DelNbrNode(msg.P.Nonce)
 	if ret == true {
-		fmt.Printf("Remove a eixted Node\n")
+		log.Info("Node reconnect 0x%x\n", msg.P.Nonce)
 		// Close the connection and release the node soure
 		n.SetState(INACTIVITY)
 		n.CloseConn()

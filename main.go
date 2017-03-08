@@ -82,7 +82,9 @@ func main() {
 
 	time.Sleep(2 * time.Second)
 	neter := net.StartProtocol()
-	time.Sleep(1 * time.Minute)
+
+
+	time.Sleep(12 * time.Second)
 
 	fmt.Println("//**************************************************************************")
 	fmt.Println("//*** 5. Start DBFT Services                                             ***")
@@ -97,11 +99,6 @@ func main() {
 	go httpjsonrpc.StartServer()
 
 	time.Sleep(2 * time.Second)
-	//httpjsonrpc.StartClient()
-	// Modules start sample
-	//ledger.Start(net.NetToLedgerCh <-chan *Msg, net.LedgerToNetCh chan<- *Msg)
-	//consensus.Start(net.NetToConsensusCh <-chan *Msg, net.ConsensusToNetCh chan<- *Msg)
-
 	// if config.Parameters.MinerName == "c4" {
 	// 	time.Sleep(2 * time.Second)
 	// 	tx := sampleTransaction(issuer, admin)

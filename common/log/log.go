@@ -178,7 +178,7 @@ func CreatePrintLog(path string) {
 	}
 	fileAndStdoutWrite := io.MultiWriter(writers...)
 
-	Log = New(fileAndStdoutWrite, "\r\n", log.Ldate|log.Lmicroseconds, printlevel)
+	Log = New(fileAndStdoutWrite, "\r\n", log.Lmicroseconds, printlevel)
 }
 
 func ClosePrintLog() {
