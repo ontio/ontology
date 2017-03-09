@@ -60,7 +60,7 @@ func (cxt *ContractContext) AddContract(contract *Contract, pubkey *crypto.PubKe
 		// add multi sig contract
 
 		index := cxt.GetIndex(contract.ProgramHash)
-		if index <= 0 {
+		if index < 0 {
 			return errors.New("The program hash is not exist.")
 		}
 		if cxt.Codes[index] == nil {
@@ -69,7 +69,6 @@ func (cxt *ContractContext) AddContract(contract *Contract, pubkey *crypto.PubKe
 		if cxt.Parameters[index] == nil {
 			cxt.Parameters[index] = make([][]byte, len(contract.Parameters))
 		}
-
 		pkParaArray := cxt.MultiPubkeyPara[index]
 		temp, err := pubkey.EncodePoint(true)
 		if err != nil {
@@ -104,6 +103,7 @@ func (cxt *ContractContext) AddContract(contract *Contract, pubkey *crypto.PubKe
 			}
 
 			//generate Pubkey/Index map by pubkey array
+			Trace()
 			pkIndexMap := make(map[crypto.PubKey]int)
 			for i, pk := range pubkeys {
 				pkIndexMap[*pk] = i
@@ -122,7 +122,7 @@ func (cxt *ContractContext) AddContract(contract *Contract, pubkey *crypto.PubKe
 				}
 				paraIndexs = append(paraIndexs, paraIndex)
 			}
-
+			Trace()
 			//sort parameter by Index
 			sort.Sort(sort.Reverse(ParameterIndexSlice(paraIndexs)))
 
@@ -170,9 +170,9 @@ func (cxt *ContractContext) GetIndex(programHash Uint160) int {
 
 func (cxt *ContractContext) GetPrograms() []*pg.Program {
 	Trace()
-	//fmt.Println("!cxt.IsCompleted()=",!cxt.IsCompleted())
-	//fmt.Println(cxt.Codes)
-	//fmt.Println(cxt.Parameters)
+	fmt.Println("!cxt.IsCompleted()=",!cxt.IsCompleted())
+	fmt.Println(cxt.Codes)
+	fmt.Println(cxt.Parameters)
 	if !cxt.IsCompleted() {
 		return nil
 	}

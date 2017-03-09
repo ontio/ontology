@@ -92,11 +92,11 @@ func (bc *Blockchain) SaveBlock(block *Block) error {
 
 func (bc *Blockchain) ContainsTransaction(hash Uint256) bool {
 	//TODO: implement error catch
-	tx, _ := DefaultLedger.Store.GetTransaction(hash)
-	if tx != nil{
-		return true
+	_ ,err := DefaultLedger.Store.GetTransaction(hash)
+	if (err!= nil){
+		return false
 	}
-	return false
+	return true
 }
 
 func (bc *Blockchain) GetMinersByTXs(others []*tx.Transaction) []*crypto.PubKey {

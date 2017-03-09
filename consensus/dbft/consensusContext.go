@@ -191,7 +191,7 @@ func (cxt *ConsensusContext)  CheckTxHashesExist() bool {
 	return true
 }
 
-func (cxt *ConsensusContext) Reset(client *cl.Client){
+func (cxt *ConsensusContext) Reset(client cl.Client){
 	Trace()
 	cxt.State = Initial
 	cxt.PrevHash = ledger.DefaultLedger.Blockchain.CurrentBlockHash()

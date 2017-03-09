@@ -31,7 +31,7 @@ const (
 type DbftService struct {
 	context ConsensusContext
 	mu           sync.Mutex
-	Client *cl.Client
+	Client cl.Client
 	timer *time.Timer
 	timerHeight uint32
 	timeView byte
@@ -44,7 +44,7 @@ type DbftService struct {
 	blockPersistCompletedSubscriber events.Subscriber
 }
 
-func NewDbftService(client *cl.Client,logDictionary string,localNet net.Neter) *DbftService {
+func NewDbftService(client cl.Client,logDictionary string,localNet net.Neter) *DbftService {
 	Trace()
 	return &DbftService{
 		//localNode: localNode,
@@ -56,7 +56,7 @@ func NewDbftService(client *cl.Client,logDictionary string,localNet net.Neter) *
 	}
 }
 
-func (ds *DbftService) AddTransaction(TX *tx.Transaction) error {
+func (ds *DbftService) AddTransaction(TX *tx.Transaction) error{
 	Trace()
 
 	hasTx := ledger.DefaultLedger.Blockchain.ContainsTransaction(TX.Hash())
@@ -95,10 +95,14 @@ func (ds *DbftService) AddTransaction(TX *tx.Transaction) error {
 			}
 			payload := ds.context.MakePrepareResponse(ds.context.Signatures[ds.context.MinerIndex])
 			ds.SignAndRelay(payload)
-			ds.CheckSignatures()
+			err =ds.CheckSignatures()
+			if err != nil {
+				return NewDetailErr(err,ErrNoCode,"[DbftService] ,CheckSignatures failed.")
+			}
 		} else {
 			ds.RequestChangeView()
 			return errors.New("No valid Next Miner.")
+
 		}
 	}
 	return nil
@@ -131,7 +135,10 @@ func (ds *DbftService) CheckSignatures() error{
 
 		for i,j :=0,0; i < len(ds.context.Miners) && j < ds.context.M() ; i++ {
 			if ds.context.Signatures[i] != nil{
-				cxt.AddContract(contract,ds.context.Miners[i], ds.context.Signatures[i])
+				err:=cxt.AddContract(contract,ds.context.Miners[i],ds.context.Signatures[i])
+				if err != nil {
+					return NewDetailErr(err, ErrNoCode, "[DbftService], CheckSignatures AddContract failed.")
+				}
 				j++
 			}
 		}
@@ -139,7 +146,9 @@ func (ds *DbftService) CheckSignatures() error{
 		cxt.Data.SetPrograms(cxt.GetPrograms())
 		block.Transcations = ds.context.GetTXByHashes()
 
-		log.Debug(fmt.Sprintf("relay block: %s", block.Hash()))
+		con.Log(fmt.Sprintf("cxt.GetPrograms(): %d", cxt.GetPrograms()))
+		con.Log(fmt.Sprintf("cxt.Data.GetPrograms(): %d", cxt.Data.GetPrograms()))
+		con.Log(fmt.Sprintf("relay block: %d", block.Hash()))
 
 		if err := ds.localNet.Xmit(block); err != nil{
 			con.Log(fmt.Sprintf("reject block: %s", block.Hash()))
@@ -495,11 +504,12 @@ func (ds *DbftService) Timeout() {
 			if ds.context.TransactionHashes == nil {
 				ds.context.TransactionHashes = []Uint256{}
 			}
-
-			for _, TX := range transactions {
-				ds.context.TransactionHashes = append(ds.context.TransactionHashes, TX.Hash())
+			trxhashes :=  []Uint256{}
+			trxhashes = append(trxhashes,txBookkeeping.Hash())
+			for _, v := range ds.context.TransactionHashes {
+				trxhashes = append(trxhashes,v)
 			}
-
+			ds.context.TransactionHashes= trxhashes
 			ds.context.Transactions = transactions
 
 			txlist := ds.context.GetTransactionList()

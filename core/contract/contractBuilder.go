@@ -59,9 +59,14 @@ func CreateMultiSigContract(publicKeyHash Uint160,m int, publicKeys []*crypto.Pu
 	if err !=nil{
 		return nil,NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureRedeemScript failed.")
 	}
+	signatureRedeemScriptHashToCodeHash,err:= ToCodeHash(MultiSigRedeemScript)
+	if err !=nil{
+		return nil,NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
+	}
 	return &Contract{
 		Code: MultiSigRedeemScript,
 		Parameters: params,
+		ProgramHash:signatureRedeemScriptHashToCodeHash,
 		OwnerPubkeyHash: publicKeyHash,
 	},nil
 }

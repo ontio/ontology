@@ -12,6 +12,7 @@ import (
 	//"GoOnchain/common/log"
 	"errors"
 	"io"
+	"encoding/hex"
 )
 
 func ToCodeHash(code []byte) (Uint160,error){
@@ -65,12 +66,12 @@ func IsEqualBytes(b1 []byte, b2 []byte) bool {
 
 func ToHexString(data []byte) string {
 	//TODO: ToHexString
-	return string(data)
+	return hex.EncodeToString(data)
 }
 
 func HexToBytes(value string) []byte {
 	//TODO: HexToBytes
-	return nil
+	return bytes.NewBufferString(value).Bytes()
 }
 
 func ClearBytes( arr []byte, len int ) {

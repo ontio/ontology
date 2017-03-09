@@ -73,13 +73,13 @@ func (b *Block) GetProgramHashes() ([]Uint160, error) {
 	return b.Blockdata.GetProgramHashes()
 }
 
-func (b *Block) SetPrograms([]*program.Program) {
-	b.Blockdata.GetPrograms()
+func (b *Block) SetPrograms(prog []*program.Program) {
+	b.Blockdata.SetPrograms(prog)
 	return
 }
 
 func (b *Block) GetPrograms() []*program.Program {
-	return nil
+	return b.Blockdata.GetPrograms()
 }
 
 func (b *Block) Hash() Uint256 {
