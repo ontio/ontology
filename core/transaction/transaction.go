@@ -99,13 +99,13 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 	}
 	tx.Payload.Serialize(w)
 	//nonce
-	//serialization.WriteVarUint(w, tx.Nonce)
+	serialization.WriteVarUint(w, tx.Nonce)
 	//[]*txAttribute
 	err := serialization.WriteVarUint(w, uint64(len(tx.Attributes)))
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "Transaction item txAttribute length serialization failed.")
 	}
-	if len(tx.Attributes)>0 {
+	if len(tx.Attributes) > 0 {
 		for _, attr := range tx.Attributes {
 			attr.Serialize(w)
 		}
@@ -115,7 +115,7 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "Transaction item UTXOInputs length serialization failed.")
 	}
-	if len(tx.UTXOInputs)>0 {
+	if len(tx.UTXOInputs) > 0 {
 		for _, utxo := range tx.UTXOInputs {
 			utxo.Serialize(w)
 		}
@@ -135,7 +135,7 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "Transaction item Outputs length serialization failed.")
 	}
-	if len(tx.Outputs)>0 {
+	if len(tx.Outputs) > 0 {
 		for _, output := range tx.Outputs {
 			output.Serialize(w)
 		}
@@ -205,6 +205,13 @@ func (tx *Transaction) DeserializeUnsignedWithoutType(r io.Reader) error {
 	//		tx.Payload.Deserialize(r)
 	//	}
 	//attributes
+
+	nonce, err := serialization.ReadVarUint(r, 0)
+	if err != nil {
+		return errors.New("Parse nonce error")
+	}
+	tx.Nonce = nonce
+
 	Len, err := serialization.ReadVarUint(r, 0)
 	if err != nil {
 		return err

@@ -92,7 +92,7 @@ func (bc *Blockchain) SaveBlock(block *Block) error {
 
 func (bc *Blockchain) ContainsTransaction(hash Uint256) bool {
 	//TODO: implement error catch
-	tx ,_ := DefaultLedger.Store.GetTransaction(hash)
+	tx, _ := DefaultLedger.Store.GetTransaction(hash)
 	if tx != nil{
 		return true
 	}

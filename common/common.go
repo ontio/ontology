@@ -2,12 +2,14 @@ package common
 
 import (
 	"bytes"
+	"fmt"
 	"encoding/binary"
 	_ "io"
-
+	"math/rand"
 	 "golang.org/x/crypto/ripemd160"
 	"crypto/sha256"
 	. "GoOnchain/errors"
+	"GoOnchain/common/log"
 	"errors"
 	"io"
 )
@@ -27,8 +29,11 @@ func ToCodeHash(code []byte) (Uint160,error){
 }
 
 func GetNonce() uint64 {
-	//TODO: GetNonce()
-	return 0
+	Trace()
+	// Fixme replace with the real random number generator
+	nonce := uint64(rand.Uint32())<<32 + uint64(rand.Uint32())
+	log.Debug(fmt.Sprintf("The new nonce is: 0x%x", nonce))
+	return nonce
 }
 
 func IntToBytes(n int) []byte {

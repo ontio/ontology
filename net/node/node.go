@@ -112,7 +112,7 @@ func InitNode() Tmper {
 }
 
 func rmNode(node *node) {
-	fmt.Printf("Remove node %s\n", node.addr)
+	log.Debug(fmt.Sprintf("Remove unused/deuplicate node: 0x%0x", node.id))
 }
 
 // TODO pass pointer to method only need modify it

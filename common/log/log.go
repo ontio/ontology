@@ -13,6 +13,10 @@ import (
 )
 
 const (
+	PRINTLEVEL = 0
+)
+
+const (
 	debugLog = iota
 	infoLog
 	warnLog
@@ -25,7 +29,7 @@ var (
 	levels = map[int]string{
 		debugLog:   "DEBUG",
 		infoLog:    "INFO",
-		warnLog: "WARN",
+		warnLog:    "WARN",
 		errorLog:   "ERROR",
 		fatalLog:   "FATAL",
 	}
@@ -171,7 +175,7 @@ func CreatePrintLog(path string) {
 	if err != nil {
 		fmt.Printf("%s\n", err.Error)
 	}
-	var printlevel int = 1
+	var printlevel int = PRINTLEVEL
 	writers := []io.Writer{
 		logfile,
 		os.Stdout,
