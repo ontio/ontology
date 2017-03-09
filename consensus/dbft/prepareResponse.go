@@ -25,7 +25,8 @@ func (pres *PrepareResponse) Deserialize(r io.Reader) error{
 	if err != nil {
 		return err
 	}
-	pres.Signature,err = ser.ReadBytes(r,64)
+	// Fixme the 64 should be defined as a unified const
+	pres.Signature,err = ser.ReadBytes(r, 64)
 	if err != nil {
 		return err
 	}
