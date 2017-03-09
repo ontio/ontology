@@ -9,7 +9,7 @@ import (
 	 "golang.org/x/crypto/ripemd160"
 	"crypto/sha256"
 	. "GoOnchain/errors"
-	"GoOnchain/common/log"
+	//"GoOnchain/common/log"
 	"errors"
 	"io"
 )
@@ -32,7 +32,8 @@ func GetNonce() uint64 {
 	Trace()
 	// Fixme replace with the real random number generator
 	nonce := uint64(rand.Uint32())<<32 + uint64(rand.Uint32())
-	log.Debug(fmt.Sprintf("The new nonce is: 0x%x", nonce))
+	Trace()
+	fmt.Println(fmt.Sprintf("The new nonce is: 0x%x", nonce))
 	return nonce
 }
 

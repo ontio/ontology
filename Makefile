@@ -6,6 +6,8 @@ BUILD_PAR = -ldflags "-X main.Version=$(VERSION)"
 
 all:
 	$(GC)  $(BUILD_PAR) main.go
+	$(GC)  $(BUILD_PAR) nodectl.go
+
 format:
 	$(GOFMT) -w main.go
 

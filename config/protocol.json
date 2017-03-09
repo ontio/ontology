@@ -15,7 +15,9 @@
       "192.168.33.11:20338"
     ],
     "HttpJsonPort": 20337,
+    "HttpLocalPort": 20336,
     "NodePort": 20338,
-    "MinerName": "c4"
+    "MinerName": "c4",
+    "PrintLevel": 0
   }
 }

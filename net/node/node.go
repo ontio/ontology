@@ -24,22 +24,22 @@ const (
 )
 
 type node struct {
-	state          uint      // node status
-	id             uint64    // The nodes's id
-	cap            uint32    // The node capability set
-	version        uint32    // The network protocol the node used
-	services       uint64    // The services the node supplied
-	relay          bool      // The relay capability of the node (merge into capbility flag)
-	height         uint64    // The node latest block height
+	state    uint   // node status
+	id       uint64 // The nodes's id
+	cap      uint32 // The node capability set
+	version  uint32 // The network protocol the node used
+	services uint64 // The services the node supplied
+	relay    bool   // The relay capability of the node (merge into capbility flag)
+	height   uint64 // The node latest block height
 	// TODO does this channel should be a buffer channel
-	chF   chan func() error // Channel used to operate the node without lock
-	link			// The link status and infomation
-	local  *node		// The pointer to local node
-	nbrNodes		// The neighbor node connect with currently node except itself
-	eventQueue                // The event queue to notice notice other modules
-	TXNPool                   // Unconfirmed transaction pool
-	idCache                   // The buffer to store the id of the items which already be processed
-	ledger     *ledger.Ledger // The Local ledger
+	chF        chan func() error // Channel used to operate the node without lock
+	link                         // The link status and infomation
+	local      *node             // The pointer to local node
+	nbrNodes                     // The neighbor node connect with currently node except itself
+	eventQueue                   // The event queue to notice notice other modules
+	TXNPool                      // Unconfirmed transaction pool
+	idCache                      // The buffer to store the id of the items which already be processed
+	ledger     *ledger.Ledger    // The Local ledger
 }
 
 func (node node) DumpInfo() {
@@ -84,7 +84,7 @@ func NewNode() *node {
 	return &n
 }
 
-func InitNode() Tmper {
+func InitNode() Noder {
 	var err error
 	n := NewNode()
 
@@ -108,6 +108,7 @@ func InitNode() Tmper {
 
 	go n.initConnection()
 	go n.updateNodeInfo()
+
 	return n
 }
 

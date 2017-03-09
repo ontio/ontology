@@ -17,7 +17,7 @@ type NodeAddr struct {
 	Services uint64
 	IpAddr   [16]byte
 	Port     uint16
-	ID	 uint64		// Unique ID
+	ID       uint64 // Unique ID
 }
 
 const (
@@ -41,15 +41,15 @@ const (
 
 // The node state
 const (
-	INIT         = 0
-	HANDSHAKE    = 1
-	ESTABLISH    = 2
-	INACTIVITY   = 3
+	INIT       = 0
+	HANDSHAKE  = 1
+	ESTABLISH  = 2
+	INACTIVITY = 3
 )
 
 type Noder interface {
 	Version() uint32
-	GetID()   uint64
+	GetID() uint64
 	Services() uint64
 	GetPort() uint16
 	GetState() uint
@@ -76,14 +76,10 @@ type Noder interface {
 	NodeEstablished(uid uint64) bool
 	GetEvent(eventName string) *events.Event
 	GetNeighborAddrs() ([]NodeAddr, uint64)
-}
-
-type Tmper interface {
+	GetTransaction(hash common.Uint256) *transaction.Transaction
+	Xmit(common.Inventory) error
 	GetMemoryPool() map[common.Uint256]*transaction.Transaction
 	SynchronizeMemoryPool()
-	Xmit(common.Inventory) error // The transmit interface
-	GetEvent(eventName string) *events.Event
-	Connect(nodeAddr string)
 }
 
 type JsonNoder interface {
