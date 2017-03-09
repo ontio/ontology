@@ -56,7 +56,7 @@ func NewDbftService(client cl.Client,logDictionary string,localNet net.Neter) *D
 	}
 }
 
-func (ds *DbftService) AddTransaction(TX *tx.Transaction) error {
+func (ds *DbftService) AddTransaction(TX *tx.Transaction) error{
 	Trace()
 
 	hasTx := ledger.DefaultLedger.Blockchain.ContainsTransaction(TX.Hash())
@@ -142,7 +142,6 @@ func (ds *DbftService) CheckSignatures() error{
 				j++
 			}
 		}
-
 		cxt.Data.SetPrograms(cxt.GetPrograms())
 		block.Transcations = ds.context.GetTXByHashes()
 
@@ -153,7 +152,7 @@ func (ds *DbftService) CheckSignatures() error{
 		if err := ds.localNet.Xmit(block); err != nil{
 			con.Log(fmt.Sprintf("reject block: %s", block.Hash()))
 		}
-
+		Trace()
 		ds.context.State |= BlockSent
 
 	}
