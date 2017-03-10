@@ -210,8 +210,11 @@ func HandleNodeMsg(node Noder, buf []byte, len int) error {
 		return err
 	}
 	// Todo attach a ndoe pointer to each message
-	msg.Deserialization(buf[0:len])
-	msg.Verify(buf[MSGHDRLEN:len])
+	// Todo drop the message when verify/deseria packet error
+	msg.Deserialization(buf[:len])
+	msg.Verify(buf[:len])
+	str := hex.EncodeToString(buf[:len])
+	log.Debug("Received data len: ", len, "\n", str)
 	return msg.Handle(node)
 }
 
