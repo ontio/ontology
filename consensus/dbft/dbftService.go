@@ -56,7 +56,7 @@ func NewDbftService(client cl.Client,logDictionary string,localNet net.Neter) *D
 	}
 }
 
-func (ds *DbftService) AddTransaction(TX *tx.Transaction) error{
+func (ds *DbftService) AddTransaction(TX *tx.Transaction) error {
 	Trace()
 
 	hasTx := ledger.DefaultLedger.Blockchain.ContainsTransaction(TX.Hash())
