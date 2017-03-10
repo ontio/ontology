@@ -2,6 +2,7 @@ package node
 
 import (
 	"GoOnchain/common"
+	"GoOnchain/common/log"
 	. "GoOnchain/net/message"
 	. "GoOnchain/net/protocol"
 	. "GoOnchain/config"
@@ -35,7 +36,7 @@ func unpackNodeBuf(node *node, buf []byte) {
 	var msgBuf []byte
 	if node.rxBuf.p == nil {
 		if len(buf) < MSGHDRLEN {
-			fmt.Println("Unexpected size of received message")
+			log.Warn("Unexpected size of received message")
 			errors.New("Unexpected size of received message")
 			return
 		}
@@ -84,7 +85,7 @@ func (node *node) rx() error {
 			//fmt.Println("Reading EOF of network conn")
 			break
 		default:
-			fmt.Printf("read error\n", err)
+			log.Error("Read connetion error ", err)
 			goto disconnect
 		}
 	}
@@ -92,7 +93,7 @@ func (node *node) rx() error {
 disconnect:
 	err := conn.Close()
 	node.SetState(INACTIVITY)
-	fmt.Printf("Close connection\n", from)
+	log.Debug("Close connection ", from)
 	return err
 }
 
@@ -101,7 +102,7 @@ func printIPAddr() {
 	addrs, _ := net.LookupIP(host)
 	for _, addr := range addrs {
 		if ipv4 := addr.To4(); ipv4 != nil {
-			fmt.Println("IPv4: ", ipv4)
+			log.Info("IPv4: ", ipv4)
 		}
 	}
 }
@@ -115,17 +116,17 @@ func (n *node) initConnection() {
 	common.Trace()
 	listener, err := net.Listen("tcp", ":"+strconv.Itoa(Parameters.NodePort))
 	if err != nil {
-		fmt.Println("Error listening\n", err.Error())
+		log.Error("Error listening connection ", err.Error())
 		return
 	}
 
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			fmt.Println("Error accepting\n", err.Error())
+			log.Error("Error accepting ", err.Error())
 			return
 		}
-		fmt.Println("Remote node connect with ", conn.RemoteAddr(), conn.LocalAddr())
+		log.Info("Remote node connect with ", conn.RemoteAddr(), conn.LocalAddr())
 
 		n.link.connCnt++
 
@@ -142,7 +143,7 @@ func (n *node) initConnection() {
 func parseIPaddr(s string) (string, error) {
 	i := strings.Index(s, ":")
 	if (i < 0) {
-		fmt.Printf("Split IP address&port  error\n")
+		log.Warn("Split IP address&port error")
 		return s, errors.New("Split IP address&port error")
 	}
 	return s[:i], nil
@@ -153,7 +154,7 @@ func (node *node) Connect(nodeAddr string) {
 		common.Trace()
 		conn, err := net.Dial("tcp", nodeAddr)
 		if err != nil {
-			fmt.Println("Error dialing\n", err.Error())
+			log.Error("Error dialing ", err.Error())
 			return err
 		}
 		node.link.connCnt++
@@ -163,9 +164,9 @@ func (node *node) Connect(nodeAddr string) {
 		n.addr, err = parseIPaddr(conn.RemoteAddr().String())
 		n.local = node
 
-		fmt.Printf("Connect node %s connect with %s with %s\n",
+		log.Info(fmt.Sprintf("Connect node %s connect with %s with %s",
 			conn.LocalAddr().String(), conn.RemoteAddr().String(),
-			conn.RemoteAddr().Network())
+			conn.RemoteAddr().Network()))
 		go n.rx()
 
 		time.Sleep(2 * time.Second)
@@ -181,11 +182,11 @@ func (node node) Tx(buf []byte) {
 	//node.chF <- func() error {
 	common.Trace()
 	str := hex.EncodeToString(buf)
-	fmt.Printf("TX buf length: %d\n%s\n", len(buf), str)
+	log.Debug(fmt.Sprintf("TX buf length: %d\n%s", len(buf), str))
 
 	_, err := node.conn.Write(buf)
 	if err != nil {
-		fmt.Println("Error sending messge to peer node\n", err.Error())
+		log.Error("Error sending messge to peer node ", err.Error())
 	}
 	//return err
 	//}

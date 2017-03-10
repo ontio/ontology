@@ -5,14 +5,12 @@ import (
 	"GoOnchain/common/log"
 	"GoOnchain/core/ledger"
 	"GoOnchain/events"
-	//"GoOnchain/events"
 	. "GoOnchain/net/protocol"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"unsafe"
 )
 
 type blockReq struct {
@@ -114,9 +112,6 @@ func (msg block) Verify(buf []byte) error {
 }
 
 func (msg block) Serialization() ([]byte, error) {
-
-	fmt.Printf("The size of messge is %d in serialization\n",
-		uint32(unsafe.Sizeof(msg)))
 	hdrBuf, err := msg.msgHdr.Serialization()
 	if err != nil {
 		return nil, err
@@ -128,9 +123,6 @@ func (msg block) Serialization() ([]byte, error) {
 }
 
 func (msg *block) Deserialization(p []byte) error {
-	fmt.Printf("The size of messge is %d in deserialization\n",
-		uint32(unsafe.Sizeof(*msg)))
-
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, msg.msgHdr)
 	msg.blk.Deserialize(buf)

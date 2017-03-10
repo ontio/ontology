@@ -59,7 +59,7 @@ func NewVersion(n Noder) ([]byte, error) {
 	p := new(bytes.Buffer)
 	err := binary.Write(p, binary.LittleEndian, &(msg.P))
 	if err != nil {
-		fmt.Println("Binary Write failed at new Msg")
+		log.Error("Binary Write failed at new Msg")
 		return nil, err
 	}
 	s := sha256.Sum256(p.Bytes())
@@ -68,11 +68,11 @@ func NewVersion(n Noder) ([]byte, error) {
 	buf := bytes.NewBuffer(s[:4])
 	binary.Read(buf, binary.LittleEndian, &(msg.Hdr.Checksum))
 	msg.Hdr.Length = uint32(len(p.Bytes()))
-	fmt.Printf("The message payload length is %d\n", msg.Hdr.Length)
+	log.Debug("The message payload length is ", msg.Hdr.Length)
 
 	m, err := msg.Serialization()
 	if err != nil {
-		fmt.Println("Error Convert net message ", err.Error())
+		log.Error("Error Convert net message ", err.Error())
 		return nil, err
 	}
 
@@ -125,20 +125,20 @@ func (msg version) Handle(node Noder) error {
 
 	// Exclude the node itself
 	if (msg.P.Nonce == localNode.GetID()) {
-		fmt.Printf("The node handshark with itself\n")
+		log.Warn("The node handshark with itself")
 		return errors.New("The node handshark with itself")
 	}
 
 	s := node.GetState()
 	if (s != INIT) {
-		fmt.Printf("Unknow status to received version\n")
+		log.Warn("Unknow status to received version")
 		return errors.New("Unknow status to received version")
 	}
 
 	// Obsolete node
 	n, ret := localNode.DelNbrNode(msg.P.Nonce)
 	if ret == true {
-		log.Info("Node reconnect 0x%x\n", msg.P.Nonce)
+		log.Info(fmt.Sprintf("Node reconnect 0x%x", msg.P.Nonce))
 		// Close the connection and release the node soure
 		n.SetState(INACTIVITY)
 		n.CloseConn()

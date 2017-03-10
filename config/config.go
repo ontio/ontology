@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	defaultConfigFilename = "./config.json"
+	DefaultConfigFilename = "./config.json"
 )
 
 type ProtocolConfiguration struct {
@@ -32,7 +32,7 @@ type ProtocolFile struct {
 var Parameters *ProtocolConfiguration
 
 func init() {
-	file, e := ioutil.ReadFile("./config/protocol.json")
+	file, e := ioutil.ReadFile(DefaultConfigFilename)
 	if e != nil {
 		log.Fatalf("File error: %v\n", e)
 		os.Exit(1)

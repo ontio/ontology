@@ -2,14 +2,13 @@ package message
 
 import (
 	"GoOnchain/common"
+	"GoOnchain/common/log"
 	"GoOnchain/common/serialization"
 	"GoOnchain/core/ledger"
 	. "GoOnchain/net/protocol"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"fmt"
-	"unsafe"
 )
 
 type headersReq struct {
@@ -38,7 +37,7 @@ func NewHeadersReq(n Noder) ([]byte, error) {
 	p := new(bytes.Buffer)
 	err := binary.Write(p, binary.LittleEndian, &(h.p))
 	if err != nil {
-		fmt.Println("Binary Write failed at new headersReq")
+		log.Error("Binary Write failed at new headersReq")
 		return nil, err
 	}
 
@@ -64,8 +63,6 @@ func (msg blkHeader) Verify(buf []byte) error {
 func (msg headersReq) Serialization() ([]byte, error) {
 	var buf bytes.Buffer
 
-	fmt.Printf("The size of messge is %d in serialization\n",
-		uint32(unsafe.Sizeof(msg)))
 	err := binary.Write(&buf, binary.LittleEndian, msg)
 	if err != nil {
 		return nil, err
@@ -75,18 +72,12 @@ func (msg headersReq) Serialization() ([]byte, error) {
 }
 
 func (msg *headersReq) Deserialization(p []byte) error {
-	fmt.Printf("The size of messge is %d in deserialization\n",
-		uint32(unsafe.Sizeof(*msg)))
-
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, msg)
 	return err
 }
 
 func (msg blkHeader) Serialization() ([]byte, error) {
-
-	fmt.Printf("The size of messge is %d in serialization\n",
-		uint32(unsafe.Sizeof(msg)))
 	hdrBuf, err := msg.hdr.Serialization()
 	if err != nil {
 		return nil, err
@@ -100,9 +91,6 @@ func (msg blkHeader) Serialization() ([]byte, error) {
 }
 
 func (msg *blkHeader) Deserialization(p []byte) error {
-	fmt.Printf("The size of messge is %d in deserialization\n",
-		uint32(unsafe.Sizeof(*msg)))
-
 	err := msg.hdr.Deserialization(p)
 	//msg.blkHdr = p[MSGHDRLEN:]
 	return err
@@ -176,7 +164,7 @@ func NewHeaders(headers []ledger.Blockdata, count uint32) ([]byte, error) {
 	b := new(bytes.Buffer)
 	err := binary.Write(b, binary.LittleEndian, tmpBuffer.Bytes())
 	if err != nil {
-		fmt.Println("Binary Write failed at new Msg")
+		log.Error("Binary Write failed at new Msg")
 		return nil, err
 	}
 	s := sha256.Sum256(b.Bytes())
@@ -185,11 +173,10 @@ func NewHeaders(headers []ledger.Blockdata, count uint32) ([]byte, error) {
 	buf := bytes.NewBuffer(s[:4])
 	binary.Read(buf, binary.LittleEndian, &(msg.hdr.Checksum))
 	msg.hdr.Length = uint32(len(b.Bytes()))
-	fmt.Printf("The message payload length is %d\n", msg.hdr.Length)
 
 	m, err := msg.Serialization()
 	if err != nil {
-		fmt.Println("Error Convert net message ", err.Error())
+		log.Error("Error Convert net message ", err.Error())
 		return nil, err
 	}
 	return m, nil

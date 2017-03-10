@@ -7,9 +7,7 @@ import (
 	"GoOnchain/events"
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"time"
-	"unsafe"
 )
 
 type NodeAddr struct {
@@ -26,16 +24,14 @@ const (
 	CHECKSUMLEN = 4
 	HASHLEN     = 32 // hash length in byte
 	MSGHDRLEN   = 24
-	NETMAGIC    = 0x74746e41 // Keep the same as antshares only for testing
+	NETMAGIC    = 0x74746e41
 )
 const (
 	HELLOTIMEOUT  = 3 // Seconds
 	MAXHELLORETYR = 3
 	MAXBUFLEN     = 1024 * 1024 * 5 // Fixme The maximum buffer to receive message
 	MAXCHANBUF    = 512
-	//NETMAGIC	 = 0x414d5446 // Keep the same as antshares only for testing
 	PROTOCOLVERSION = 0
-
 	PERIODUPDATETIME = 3 // Time to update and sync information with other nodes
 )
 
@@ -90,9 +86,6 @@ type JsonNoder interface {
 }
 
 func (msg *NodeAddr) Deserialization(p []byte) error {
-	fmt.Printf("The size of messge is %d in deserialization\n",
-		uint32(unsafe.Sizeof(*msg)))
-
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, msg)
 	return err
@@ -100,8 +93,6 @@ func (msg *NodeAddr) Deserialization(p []byte) error {
 
 func (msg NodeAddr) Serialization() ([]byte, error) {
 	var buf bytes.Buffer
-	fmt.Printf("The size of messge is %d in serialization\n",
-		uint32(unsafe.Sizeof(msg)))
 	err := binary.Write(&buf, binary.LittleEndian, msg)
 	if err != nil {
 		return nil, err
