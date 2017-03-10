@@ -7,10 +7,10 @@ import (
 	"GoOnchain/crypto"
 	_ "GoOnchain/errors"
 	"errors"
+	"fmt"
 	_ "fmt"
 	"math/big"
 	"sort"
-	"fmt"
 )
 
 type ContractContext struct {
@@ -28,8 +28,8 @@ type ContractContext struct {
 func NewContractContext(data sig.SignableData) *ContractContext {
 	Trace()
 	programHashes, _ := data.GetProgramHashes() //TODO: check error
-	fmt.Println("programHashes=",programHashes)
-	fmt.Println("hashLen := len(programHashes)",len(programHashes))
+	fmt.Println("programHashes=", programHashes)
+	fmt.Println("hashLen := len(programHashes)", len(programHashes))
 	hashLen := len(programHashes)
 	return &ContractContext{
 		Data:            data,
@@ -37,7 +37,7 @@ func NewContractContext(data sig.SignableData) *ContractContext {
 		Codes:           make([][]byte, hashLen),
 		Parameters:      make([][][]byte, hashLen),
 		MultiPubkeyPara: make([][]PubkeyParameter, hashLen),
-		tempParaIndex: 0,
+		tempParaIndex:   0,
 	}
 }
 
@@ -63,28 +63,28 @@ func (cxt *ContractContext) AddContract(contract *Contract, pubkey *crypto.PubKe
 		Trace()
 		// add multi sig contract
 
-		fmt.Println("Multi Sig: contract.ProgramHash:",contract.ProgramHash)
-		fmt.Println("Multi Sig: cxt.ProgramHashes:",cxt.ProgramHashes)
+		fmt.Println("Multi Sig: contract.ProgramHash:", contract.ProgramHash)
+		fmt.Println("Multi Sig: cxt.ProgramHashes:", cxt.ProgramHashes)
 
 		index := cxt.GetIndex(contract.ProgramHash)
 
-		fmt.Println("Multi Sig: GetIndex:" ,index)
+		fmt.Println("Multi Sig: GetIndex:", index)
 
 		if index < 0 {
 			return errors.New("The program hash is not exist.")
 		}
 
-		fmt.Println("Multi Sig: contract.Code:" ,cxt.Codes[index])
+		fmt.Println("Multi Sig: contract.Code:", cxt.Codes[index])
 
 		if cxt.Codes[index] == nil {
 			cxt.Codes[index] = contract.Code
 		}
-		fmt.Println("Multi Sig: cxt.Codes[index]:" ,cxt.Codes[index])
+		fmt.Println("Multi Sig: cxt.Codes[index]:", cxt.Codes[index])
 
 		if cxt.Parameters[index] == nil {
 			cxt.Parameters[index] = make([][]byte, len(contract.Parameters))
 		}
-		fmt.Println("Multi Sig: cxt.Parameters[index]:" ,cxt.Parameters[index])
+		fmt.Println("Multi Sig: cxt.Parameters[index]:", cxt.Parameters[index])
 
 		if err := cxt.Add(contract, cxt.tempParaIndex, parameter); err != nil {
 			return err
@@ -93,7 +93,7 @@ func (cxt *ContractContext) AddContract(contract *Contract, pubkey *crypto.PubKe
 		cxt.tempParaIndex++
 
 		//all paramenters added, sort the parameters
-		if(cxt.tempParaIndex == len(contract.Parameters)){
+		if cxt.tempParaIndex == len(contract.Parameters) {
 			cxt.tempParaIndex = 0
 		}
 
@@ -127,7 +127,7 @@ func (cxt *ContractContext) AddContract(contract *Contract, pubkey *crypto.PubKe
 	return nil
 }
 
-func (cxt *ContractContext) AddSignatureToMultiList(contractIndex int, contract *Contract, pubkey*crypto.PubKey, parameter []byte) error {
+func (cxt *ContractContext) AddSignatureToMultiList(contractIndex int, contract *Contract, pubkey *crypto.PubKey, parameter []byte) error {
 	if cxt.MultiPubkeyPara[contractIndex] == nil {
 		cxt.MultiPubkeyPara[contractIndex] = make([]PubkeyParameter, len(contract.Parameters))
 	}
@@ -145,17 +145,22 @@ func (cxt *ContractContext) AddSignatureToMultiList(contractIndex int, contract 
 	return nil
 }
 
-func (cxt *ContractContext) AddMultiSignatures(index int,contract *Contract, pubkey *crypto.PubKey, parameter []byte) error{
-	pkIndexs,err := cxt.ParseContractPubKeys(contract)
+func (cxt *ContractContext) AddMultiSignatures(index int, contract *Contract, pubkey *crypto.PubKey, parameter []byte) error {
+	pkIndexs, err := cxt.ParseContractPubKeys(contract)
 	if err != nil {
-		return  errors.New("Contract Parameters are not supported.")
+		return errors.New("Contract Parameters are not supported.")
 	}
 
 	paraIndexs := []ParameterIndex{}
 	for _, pubkeyPara := range cxt.MultiPubkeyPara[index] {
+		pubKeyBytes, err := HexToBytes(pubkeyPara.Parameter)
+		if err != nil {
+			return errors.New("Contract AddContract pubKeyBytes HexToBytes failed.")
+		}
+
 		paraIndex := ParameterIndex{
-			Parameter: HexToBytes(pubkeyPara.Parameter),
-			Index:    pkIndexs[pubkeyPara.PubKey],
+			Parameter: pubKeyBytes,
+			Index:     pkIndexs[pubkeyPara.PubKey],
 		}
 		paraIndexs = append(paraIndexs, paraIndex)
 	}
@@ -175,8 +180,7 @@ func (cxt *ContractContext) AddMultiSignatures(index int,contract *Contract, pub
 	return nil
 }
 
-
-func (cxt *ContractContext) ParseContractPubKeys(contract *Contract) (map[string]int,error) {
+func (cxt *ContractContext) ParseContractPubKeys(contract *Contract) (map[string]int, error) {
 
 	pubkeyIndex := make(map[string]int)
 
@@ -205,7 +209,7 @@ func (cxt *ContractContext) ParseContractPubKeys(contract *Contract) (map[string
 		Index++
 	}
 
-	return pubkeyIndex,nil
+	return pubkeyIndex, nil
 }
 
 func (cxt *ContractContext) GetIndex(programHash Uint160) int {
