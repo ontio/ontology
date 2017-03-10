@@ -205,12 +205,21 @@ func (node node) Xmit(inv common.Inventory) error {
 	} else if inv.Type() == common.BLOCK {
 		log.Info("****TX block message****\n")
 		block, isBlock := inv.(*ledger.Block)
-		if isBlock {
-			buffer, err = NewBlock(block)
-			if err != nil {
-				fmt.Println("Error New Block message ", err.Error())
-				return err
-			}
+		// FiXME, should be moved to higher layer
+		if isBlock == false {
+			log.Warn("Wrong block be Xmit")
+			return errors.New("Wrong block be Xmit")
+		}
+
+		err := ledger.DefaultLedger.Blockchain.AddBlock(block)
+		if (err != nil) {
+			log.Warn("Add block error")
+			return errors.New("Add block error before Xmit")
+		}
+		buffer, err = NewBlock(block)
+		if err != nil {
+			fmt.Println("Error New Block message ", err.Error())
+			return err
 		}
 	} else if inv.Type() == common.CONSENSUS {
 		log.Info("*****TX consensus message****\n")

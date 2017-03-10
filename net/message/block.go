@@ -2,6 +2,7 @@ package message
 
 import (
 	"GoOnchain/common"
+	"GoOnchain/common/log"
 	"GoOnchain/core/ledger"
 	"GoOnchain/events"
 	//"GoOnchain/events"
@@ -9,6 +10,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"unsafe"
 )
@@ -28,7 +30,12 @@ type block struct {
 func (msg block) Handle(node Noder) error {
 	common.Trace()
 
-	fmt.Printf("RX block message\n")
+	log.Debug("RX block message")
+	err := ledger.DefaultLedger.Blockchain.AddBlock(&msg.blk)
+	if (err != nil) {
+		log.Warn("Add block error")
+		return errors.New("Add block error before Xmit\n")
+	}
 	node.LocalNode().GetEvent("block").Notify(events.EventNewInventory, &msg.blk)
 	return nil
 }
