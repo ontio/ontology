@@ -213,7 +213,8 @@ func HandleNodeMsg(node Noder, buf []byte, len int) error {
 	// Todo drop the message when verify/deseria packet error
 	msg.Deserialization(buf[:len])
 	msg.Verify(buf[:len])
-
+	str := hex.EncodeToString(buf[:len])
+	log.Debug("Received data len: ", len, "\n", str)
 	return msg.Handle(node)
 }
 
