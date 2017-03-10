@@ -124,7 +124,18 @@ func (msg block) Serialization() ([]byte, error) {
 
 func (msg *block) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, msg.msgHdr)
-	msg.blk.Deserialize(buf)
+
+	err := binary.Read(buf, binary.LittleEndian, &(msg.msgHdr))
+	if err != nil {
+		log.Warn("Parse block message hdr error")
+		return errors.New("Parse block message hdr error")
+	}
+
+	err = msg.blk.Deserialize(buf)
+	if err != nil {
+		log.Warn("Parse block message error")
+		return errors.New("Parse block message error")
+	}
+
 	return err
 }

@@ -213,8 +213,7 @@ func HandleNodeMsg(node Noder, buf []byte, len int) error {
 	// Todo drop the message when verify/deseria packet error
 	msg.Deserialization(buf[:len])
 	msg.Verify(buf[:len])
-	str := hex.EncodeToString(buf[:len])
-	log.Debug("Received data len: ", len, "\n", str)
+
 	return msg.Handle(node)
 }
 
@@ -257,11 +256,11 @@ func (hdr *msgHdr) init(cmd string, checksum []byte, length uint32) {
 // Verify the message header information
 // @p payload of the message
 func (hdr msgHdr) Verify(buf []byte) error {
-	if hdr.Magic != NETMAGIC {
+	if magicVerify(hdr.Magic) == false {
 		log.Warn(fmt.Sprintf("Unmatched magic number 0x%0x", hdr.Magic))
 		return errors.New("Unmatched magic number")
 	}
-
+	log.Debug(fmt.Sprintf("Magic number 0x%0x", hdr.Magic))
 	checkSum := checkSum(buf)
 	if bytes.Equal(hdr.Checksum[:], checkSum[:]) == false {
 		str1 := hex.EncodeToString(hdr.Checksum[:])

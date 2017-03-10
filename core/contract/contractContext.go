@@ -2,6 +2,7 @@ package contract
 
 import (
 	. "GoOnchain/common"
+	"GoOnchain/common/log"
 	pg "GoOnchain/core/contract/program"
 	sig "GoOnchain/core/signature"
 	"GoOnchain/crypto"
@@ -28,8 +29,8 @@ type ContractContext struct {
 func NewContractContext(data sig.SignableData) *ContractContext {
 	Trace()
 	programHashes, _ := data.GetProgramHashes() //TODO: check error
-	fmt.Println("programHashes=", programHashes)
-	fmt.Println("hashLen := len(programHashes)", len(programHashes))
+	log.Debug("programHashes= ", programHashes)
+	log.Debug("hashLen := len(programHashes) ", len(programHashes))
 	hashLen := len(programHashes)
 	return &ContractContext{
 		Data:            data,

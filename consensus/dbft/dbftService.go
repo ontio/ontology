@@ -145,12 +145,12 @@ func (ds *DbftService) CheckSignatures() error{
 		cxt.Data.SetPrograms(cxt.GetPrograms())
 		block.Transcations = ds.context.GetTXByHashes()
 
-		con.Log(fmt.Sprintf("cxt.GetPrograms(): %d", cxt.GetPrograms()))
-		con.Log(fmt.Sprintf("cxt.Data.GetPrograms(): %d", cxt.Data.GetPrograms()))
-		con.Log(fmt.Sprintf("relay block: %d", block.Hash()))
+		log.Info(fmt.Sprintf("cxt.GetPrograms(): %d", cxt.GetPrograms()))
+		log.Info(fmt.Sprintf("cxt.Data.GetPrograms(): %d", cxt.Data.GetPrograms()))
+		log.Info(fmt.Sprintf("relay block: %d", block.Hash()))
 
 		if err := ds.localNet.Xmit(block); err != nil{
-			con.Log(fmt.Sprintf("reject block: %s", block.Hash()))
+			log.Warn(fmt.Sprintf("Reject block: %s", block.Hash()))
 		}
 		Trace()
 		ds.context.State |= BlockSent

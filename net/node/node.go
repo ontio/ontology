@@ -192,12 +192,12 @@ func (node node) Xmit(inv common.Inventory) error {
 
 	if inv.Type() == common.TRANSACTION {
 		log.Info("****TX transaction message*****\n")
-		transaction, isTransaction := inv.(*transaction.Transaction)
-		if isTransaction {
+		transaction, ret := inv.(*transaction.Transaction)
+		if ret {
 			//transaction.Serialize(tmpBuffer)
 			buffer, err = NewTx(transaction)
 			if err != nil {
-				fmt.Println("Error New Tx message ", err.Error())
+				log.Warn("Error New Tx message ", err.Error())
 				return err
 			}
 		}
@@ -218,21 +218,21 @@ func (node node) Xmit(inv common.Inventory) error {
 		}
 		buffer, err = NewBlock(block)
 		if err != nil {
-			fmt.Println("Error New Block message ", err.Error())
+			log.Warn("Error New Block message ", err.Error())
 			return err
 		}
 	} else if inv.Type() == common.CONSENSUS {
 		log.Info("*****TX consensus message****\n")
-		payload, isConsensusPayload := inv.(*ConsensusPayload)
-		if isConsensusPayload {
+		payload, ret := inv.(*ConsensusPayload)
+		if ret {
 			buffer, err = NewConsensus(payload)
 			if err != nil {
-				fmt.Println("Error New consensus message ", err.Error())
+				log.Warn("Error New consensus message ", err.Error())
 				return err
 			}
 		}
 	}  else {
-		log.Info("Unknow Xmit message type")
+		log.Info("Unknown Xmit message type")
 		return errors.New("Unknow Xmit message type\n")
  	}
 
