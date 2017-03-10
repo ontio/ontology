@@ -2,16 +2,13 @@ package ledger
 
 import (
 	. "GoOnchain/common"
+	"GoOnchain/common/log"
 	tx "GoOnchain/core/transaction"
 	"GoOnchain/crypto"
 	. "GoOnchain/errors"
 	"GoOnchain/events"
 	"errors"
 	"sync"
-)
-
-const (
-	EventBlockPersistCompleted events.EventType = iota
 )
 
 type Blockchain struct {
@@ -43,7 +40,7 @@ func NewBlockchainWithGenesisBlock() (*Blockchain,error) {
 }
 
 func (bc *Blockchain) AddBlock(block *Block) error {
-	//TODO: implement AddBlock
+	Trace()
 
 	//set block cache
 	bc.AddBlockCache(block)
@@ -81,11 +78,13 @@ func (bc *Blockchain) GetHeader(hash Uint256) (*Header,error) {
 }
 
 func (bc *Blockchain) SaveBlock(block *Block) error {
+	Trace()
 	err := DefaultLedger.Store.SaveBlock(block)
 	if err != nil {
+		log.Error("Save block failure")
 		return err
 	}
-	bc.BCEvents.Notify(EventBlockPersistCompleted, block)
+	bc.BCEvents.Notify(events.EventBlockPersistCompleted, block)
 
 	return nil
 }

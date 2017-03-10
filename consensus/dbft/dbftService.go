@@ -210,8 +210,8 @@ func (ds *DbftService) Halt() error  {
 	}
 
 	if ds.started {
-		ledger.DefaultLedger.Blockchain.BCEvents.UnSubscribe(events.EventBlockPersistCompleted,ds.blockPersistCompletedSubscriber)
-		ds.localNet.GetEvent("consensus").UnSubscribe(events.EventNewInventory,ds.newInventorySubscriber)
+		ledger.DefaultLedger.Blockchain.BCEvents.UnSubscribe(events.EventBlockPersistCompleted, ds.blockPersistCompletedSubscriber)
+		ds.localNet.GetEvent("consensus").UnSubscribe(events.EventNewInventory, ds.newInventorySubscriber)
 	}
 	return nil
 }
@@ -434,6 +434,7 @@ func  (ds *DbftService) RefreshPolicy(){
 
 func  (ds *DbftService) RequestChangeView() {
 	Trace()
+	// FIXME if there is no save block notifcation, when the timeout call this function it will crash
 	ds.context.ExpectedView[ds.context.MinerIndex]++
 	log.Info(fmt.Sprintf("Request change view: height=%d View=%d nv=%d state=%d",ds.context.Height,ds.context.ViewNumber,ds.context.MinerIndex,ds.context.State))
 
