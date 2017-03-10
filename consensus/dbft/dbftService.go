@@ -501,9 +501,9 @@ func (ds *DbftService) Timeout() {
 			txBookkeeping := ds.CreateBookkeepingTransaction(ds.context.Nonce)
 			transactions[txBookkeeping.Hash()] = txBookkeeping
 
-			if ds.context.TransactionHashes == nil {
-				ds.context.TransactionHashes = []Uint256{}
-			}
+			//if ds.context.TransactionHashes == nil {
+			//	ds.context.TransactionHashes = []Uint256{}
+			//}
 			trxhashes :=  []Uint256{}
 			trxhashes = append(trxhashes,txBookkeeping.Hash())
 			for _, v := range ds.context.TransactionHashes {

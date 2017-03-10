@@ -124,6 +124,7 @@ func main() {
 	// }
 
 	for {
+		fmt.Println("ledger.DefaultLedger.Blockchain.BlockHeight= ", ledger.DefaultLedger.Blockchain.BlockHeight)
 		time.Sleep(2 * time.Second)
 	}
 }
