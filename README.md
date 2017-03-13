@@ -11,3 +11,9 @@ make transactions, settlement and payment. https://www.antshares.org
 
 For tech discussing or patch submit, please subscribe to OnchainDNA@googlegroups.com
 by send email to OnchainDNA+subscribe@googlegroups.com or access the google group directly at https://groups.google.com/forum/#!forum/OnchainDNA
+
+
+
+
+[![Go Report Card](https://goreportcard.com/badge/github.com/dreamfly281/GoOnchain)](https://goreportcard.com/report/github.com/dreamfly281/GoOnchain)
+[![Build Status](https://travis-ci.org/dreamfly281/GoOnchain.png)](https://travis-ci.org/dreamfly281/GoOnchain)
