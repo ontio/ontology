@@ -53,6 +53,8 @@ func (bc *Blockchain) AddBlock(block *Block) error {
 		return err
 	}
 
+	// Need atomic oepratoion
+	bc.BlockHeight++
 	return nil
 }
 

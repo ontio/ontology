@@ -260,7 +260,6 @@ func (hdr msgHdr) Verify(buf []byte) error {
 		log.Warn(fmt.Sprintf("Unmatched magic number 0x%0x", hdr.Magic))
 		return errors.New("Unmatched magic number")
 	}
-	log.Debug(fmt.Sprintf("Magic number 0x%0x", hdr.Magic))
 	checkSum := checkSum(buf)
 	if bytes.Equal(hdr.Checksum[:], checkSum[:]) == false {
 		str1 := hex.EncodeToString(hdr.Checksum[:])

@@ -82,7 +82,16 @@ func (cp *ConsensusPayload) GetProgramHashes() ([]common.Uint160, error) {
 }
 
 func (cp *ConsensusPayload) SetPrograms(programs []*program.Program) {
-	cp.Program = programs[0]
+	if (programs == nil) {
+		log.Warn("Set programs with NULL parameters")
+		return
+	}
+
+	if len(programs) > 0 {
+		cp.Program = programs[0]
+	} else {
+		log.Warn("Set programs with 0 program")
+	}
 }
 
 func (cp *ConsensusPayload) GetPrograms() []*program.Program {

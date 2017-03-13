@@ -84,7 +84,7 @@ func main() {
 	time.Sleep(2 * time.Second)
 	neter, noder := net.StartProtocol()
 	httpjsonrpc.RegistRpcNode(noder)
-	time.Sleep(20 * time.Second)
+	time.Sleep(1 * time.Minute)
 
 	fmt.Println("//**************************************************************************")
 	fmt.Println("//*** 5. Start DBFT Services                                             ***")
@@ -97,8 +97,8 @@ func main() {
 	fmt.Println("//**************************************************************************")
 	fmt.Println("//*** Init Complete                                                      ***")
 	fmt.Println("//**************************************************************************")
-	go httpjsonrpc.StartRPCServer()
-	go httpjsonrpc.StartLocalServer()
+	//go httpjsonrpc.StartRPCServer()
+	//go httpjsonrpc.StartLocalServer()
 
 	time.Sleep(2 * time.Second)
 	// if config.Parameters.MinerName == "c4" {
@@ -124,8 +124,8 @@ func main() {
 	// }
 
 	for {
-		fmt.Println("ledger.DefaultLedger.Blockchain.BlockHeight= ", ledger.DefaultLedger.Blockchain.BlockHeight)
-		time.Sleep(2 * time.Second)
+		log.Debug("ledger.DefaultLedger.Blockchain.BlockHeight= ", ledger.DefaultLedger.Blockchain.BlockHeight)
+		time.Sleep(15 * time.Second)
 	}
 }
 func InitBlockChain() ledger.Blockchain {
