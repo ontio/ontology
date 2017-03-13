@@ -23,6 +23,10 @@ type ProtocolConfiguration struct {
 	WebSocketPort int      `json:"WebSocketPort"`
 	MinerName     string   `json:"MinerName"`
 	PrintLevel    int      `json:"PrintLevel"`
+	IsTLS         bool     `json:"IsTLS"`
+	CertPath      string   `json:"CertPath"`
+	KeyPath       string   `json:"KeyPath"`
+	CAPath        string   `json:"CAPath"`
 }
 
 type ProtocolFile struct {

@@ -3,13 +3,16 @@ package node
 import (
 	"GoOnchain/common"
 	"GoOnchain/common/log"
+	. "GoOnchain/config"
 	. "GoOnchain/net/message"
 	. "GoOnchain/net/protocol"
-	. "GoOnchain/config"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"os"
 	"strconv"
@@ -26,7 +29,7 @@ type link struct {
 		p   []byte
 		len int
 	}
-	connCnt	uint64		// The connection count
+	connCnt uint64 // The connection count
 }
 
 // Shrinking the buf to the exactly reading in byte length
@@ -113,13 +116,22 @@ func (link link) CloseConn() {
 
 // Init the server port, should be run in another thread
 func (n *node) initConnection() {
-	common.Trace()
-	listener, err := net.Listen("tcp", ":"+strconv.Itoa(Parameters.NodePort))
-	if err != nil {
-		log.Error("Error listening connection ", err.Error())
-		return
+	isTls := Parameters.IsTLS
+	var listener net.Listener
+	var err error
+	if isTls {
+		listener, err = initTlsListen()
+		if err != nil {
+			log.Error("TLS listen failed")
+			return
+		}
+	} else {
+		listener, err = initNonTlsListen()
+		if err != nil {
+			log.Error("non TLS listen failed")
+			return
+		}
 	}
-
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -138,11 +150,64 @@ func (n *node) initConnection() {
 	}
 	//TODO When to free the net listen resouce?
 }
+func initNonTlsListen() (net.Listener, error) {
+	common.Trace()
+	listener, err := net.Listen("tcp", ":"+strconv.Itoa(Parameters.NodePort))
+	if err != nil {
+		fmt.Println("Error listening\n", err.Error())
+		return nil, err
+	}
+	return listener, nil
+}
 
+func initTlsListen() (net.Listener, error) {
+	/*
+		CertPath := "./user1-cert.pem"
+		KeyPath := "./user1-cert-key.pem"
+		CAPath := "./ca.pem"
+	*/
+
+	CertPath := Parameters.CertPath
+	KeyPath := Parameters.KeyPath
+	CAPath := Parameters.CAPath
+
+	// load cert
+	cert, err := tls.LoadX509KeyPair(CertPath, KeyPath)
+	if err != nil {
+		log.Error("load keys fail", err)
+		return nil, err
+	}
+	// load root ca
+	caData, err := ioutil.ReadFile(CAPath)
+	if err != nil {
+		log.Error("read ca fail", err)
+		return nil, err
+	}
+	pool := x509.NewCertPool()
+	ok := pool.AppendCertsFromPEM(caData)
+	if !ok {
+		return nil, errors.New("failed to parse root certificate")
+	}
+	var _tlsConfig *tls.Config
+	_tlsConfig = &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		RootCAs:      pool,
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		ClientCAs:    pool,
+	}
+
+	log.Info("TLS listen port is ", strconv.Itoa(Parameters.NodePort))
+	listener, err := tls.Listen("tcp", ":"+strconv.Itoa(Parameters.NodePort), _tlsConfig)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	return listener, nil
+}
 
 func parseIPaddr(s string) (string, error) {
 	i := strings.Index(s, ":")
-	if (i < 0) {
+	if i < 0 {
 		log.Warn("Split IP address&port error")
 		return s, errors.New("Split IP address&port error")
 	}
@@ -152,10 +217,21 @@ func parseIPaddr(s string) (string, error) {
 func (node *node) Connect(nodeAddr string) {
 	node.chF <- func() error {
 		common.Trace()
-		conn, err := net.Dial("tcp", nodeAddr)
-		if err != nil {
-			log.Error("Error dialing ", err.Error())
-			return err
+		isTls := Parameters.IsTLS
+		var conn net.Conn
+		var err error
+		if isTls {
+			conn, err = TLSDial(nodeAddr)
+			if err != nil {
+				log.Error("TLS connect failed: ", err)
+				return nil
+			}
+		} else {
+			conn, err = NonTLSDial(nodeAddr)
+			if err != nil {
+				log.Error("non TLS connect failed:", err)
+				return nil
+			}
 		}
 		node.link.connCnt++
 
@@ -175,6 +251,53 @@ func (node *node) Connect(nodeAddr string) {
 		n.Tx(buf)
 		return nil
 	}
+}
+
+func NonTLSDial(nodeAddr string) (net.Conn, error) {
+	common.Trace()
+	conn, err := net.Dial("tcp", nodeAddr)
+	if err != nil {
+		fmt.Println("Error dialing\n", err.Error())
+		return nil, err
+	}
+	return conn, nil
+}
+
+func TLSDial(nodeAddr string) (net.Conn, error) {
+	/*
+		CertPath := "./user2-cert.pem"
+		KeyPath := "./user2-cert-key.pem"
+		CAPath := "./ca.pem"
+	*/
+	CertPath := Parameters.CertPath
+	KeyPath := Parameters.KeyPath
+	CAPath := Parameters.CAPath
+
+	clientCertPool := x509.NewCertPool()
+
+	cacert, err := ioutil.ReadFile(CAPath)
+	cert, err := tls.LoadX509KeyPair(CertPath, KeyPath)
+	if err != nil {
+		fmt.Println("ReadFile err: ", err)
+		return nil, err
+	}
+
+	ok := clientCertPool.AppendCertsFromPEM(cacert)
+	if !ok {
+		return nil, errors.New("failed to parse root certificate")
+	}
+
+	conf := &tls.Config{
+		RootCAs:      clientCertPool,
+		Certificates: []tls.Certificate{cert},
+	}
+
+	conn, err := tls.Dial("tcp", nodeAddr, conf)
+	if err != nil {
+		fmt.Println("Dial failed: ", err)
+		return nil, err
+	}
+	return conn, nil
 }
 
 // TODO construct a TX channel and other application just drop the message to the channel
