@@ -20,8 +20,8 @@
     "MinerName": "c1",
     "PrintLevel": 0,
     "IsTLS": false,
-    "CertPath": "./user4-cet.pem",
-    "KeyPath": "./user4-cert-key.pem",
-    "CAPath": "./ca.pem"
+    "CertPath": "./sample-cert.pem",
+    "KeyPath": "./sample-cert-key.pem",
+    "CAPath": "./sample-ca.pem"
   }
 }
