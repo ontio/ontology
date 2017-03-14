@@ -14,12 +14,7 @@ var flags = []string{"ip", "port", "rpcid", "start", "stop"}
 
 func main(args []string, p utility.Param) (err error) {
 	var resp []byte
-	addr, err := utility.Address(p.Ip, p.Port)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return err
-	}
-
+	addr := utility.Address(p.Ip, p.Port)
 	id := p.RPCID
 	if p.Start && p.Stop {
 		fmt.Fprintln(os.Stdout, "Which option do you want? (start or stop)")

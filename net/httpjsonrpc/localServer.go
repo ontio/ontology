@@ -10,11 +10,12 @@ import (
 
 const (
 	localHost string = "127.0.0.1"
+	LocalDir  string = "/local"
 )
 
 func StartLocalServer() {
 	Trace()
-	http.HandleFunc("/local", Handle)
+	http.HandleFunc(LocalDir, Handle)
 
 	HandleFunc("getbestblockhash", getBestBlockHash)
 	HandleFunc("getblock", getBlock)

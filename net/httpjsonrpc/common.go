@@ -28,8 +28,8 @@ type ServeMux struct {
 }
 
 type BlockInfo struct {
-	Hash  string
-	Block *ledger.Block
+	Hash      string
+	BlockData *ledger.Blockdata
 }
 
 type TxInfo struct {

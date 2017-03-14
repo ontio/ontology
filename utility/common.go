@@ -1,12 +1,15 @@
 package utility
 
 import (
+	"GoOnchain/config"
+	"GoOnchain/net/httpjsonrpc"
 	"bytes"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 )
 
 var p Param
@@ -99,15 +102,19 @@ func Start(cmds map[string]*Command) error {
 	return nil
 }
 
-func Address(ip, port string) (string, error) {
-	if ip == "" || port == "" {
-		fmt.Fprintln(os.Stderr, "IP address or port number can't be blank")
-		return "", errors.New("Invaild IP address or port number")
+func Address(ip, portnum string) string {
+	// default address
+	addr := "localhost"
+	port := strconv.Itoa(config.Parameters.HttpLocalPort)
+	if ip != "" {
+		addr = ip
 	}
-
-	addr := "http://" + ip + ":" + port
-
-	return addr, nil
+	if portnum != "" {
+		port = portnum
+	}
+	address := "http://" + addr + ":" + port + httpjsonrpc.LocalDir
+	fmt.Printf("Connecting to %s ...\n", address)
+	return address
 }
 
 func FormatOutput(o []byte) error {

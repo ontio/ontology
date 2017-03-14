@@ -29,8 +29,8 @@ func getBlock(req *http.Request, cmd map[string]interface{}) map[string]interfac
 		hash, _ := ledger.DefaultLedger.Store.GetBlockHash(index)
 		block, err = ledger.DefaultLedger.Store.GetBlock(hash)
 		b = BlockInfo{
-			Hash:  ToHexString(hash.ToArray()),
-			Block: block,
+			Hash:      ToHexString(hash.ToArray()),
+			BlockData: block.Blockdata,
 		}
 	case string:
 		hash := params.([]interface{})[0].(string)
@@ -39,8 +39,8 @@ func getBlock(req *http.Request, cmd map[string]interface{}) map[string]interfac
 		hasharr.Deserialize(bytes.NewReader(hashslice[0:32]))
 		block, err = ledger.DefaultLedger.Store.GetBlock(hasharr)
 		b = BlockInfo{
-			Hash:  hash,
-			Block: block,
+			Hash:      hash,
+			BlockData: block.Blockdata,
 		}
 	}
 

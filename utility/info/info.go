@@ -15,12 +15,7 @@ var flags = []string{"ip", "port", "rpcid", "height", "bestblockhash", "blockhas
 func main(args []string, p utility.Param) (err error) {
 	var resp []byte
 	var output [][]byte
-	addr, err := utility.Address(p.Ip, p.Port)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return err
-	}
-
+	addr := utility.Address(p.Ip, p.Port)
 	id := p.RPCID
 	if height := p.Height; height >= 0 {
 		resp, err = httpjsonrpc.Call(addr, "getblock", id, []interface{}{height, 1})
