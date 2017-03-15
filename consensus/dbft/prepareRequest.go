@@ -7,6 +7,7 @@ import (
 	ser "GoOnchain/common/serialization"
 	tx "GoOnchain/core/transaction"
 	"fmt"
+	"GoOnchain/common/log"
 )
 
 type PrepareRequest struct {
@@ -110,8 +111,8 @@ func (pr *PrepareRequest) Deserialize(r io.Reader) error{
 	}
 	pr.BookkeepingTransaction.Deserialize(r)
 	if pr.BookkeepingTransaction.Hash() != pr.TransactionHashes[0] {
-		fmt.Println("pr.BookkeepingTransaction.Hash()=",pr.BookkeepingTransaction.Hash())
-		fmt.Println("pr.TransactionHashes[0]=",pr.TransactionHashes[0])
+		log.Debug("pr.BookkeepingTransaction.Hash()=",pr.BookkeepingTransaction.Hash())
+		log.Debug("pr.TransactionHashes[0]=",pr.TransactionHashes[0])
 		//buf :=bytes.NewBuffer([]byte{})
 		//pr.BookkeepingTransaction.Serialize(buf)
 		//fmt.Println("PrepareRequest Deserialize cxt.Transactions[cxt.TransactionHashes[0]=",buf.Bytes() )

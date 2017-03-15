@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	. "GoOnchain/common"
+	"GoOnchain/common/log"
 )
 
 
@@ -34,6 +35,7 @@ func DeserializeMessage(data []byte) (ConsensusMessage, error){
 		}
 		err := prMsg.Deserialize(r)
 		if err != nil {
+			log.Error("[DeserializeMessage] PrepareRequestMsg Deserialize Error: ",err.Error())
 			return nil,err
 		}
 		return prMsg,nil
@@ -42,6 +44,7 @@ func DeserializeMessage(data []byte) (ConsensusMessage, error){
 		presMsg := &PrepareResponse{}
 		err := presMsg.Deserialize(r)
 		if err != nil {
+			log.Error("[DeserializeMessage] PrepareResponseMsg Deserialize Error: ",err.Error())
 			return nil,err
 		}
 		return presMsg,nil
@@ -49,6 +52,7 @@ func DeserializeMessage(data []byte) (ConsensusMessage, error){
 		cv := &ChangeView{}
 		err := cv.Deserialize(r)
 		if err != nil {
+			log.Error("[DeserializeMessage] ChangeViewMsg Deserialize Error: ",err.Error())
 			return nil,err
 		}
 		return cv,nil
