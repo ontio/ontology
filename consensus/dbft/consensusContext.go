@@ -173,7 +173,7 @@ func (cxt *ConsensusContext) GetTransactionList() []*tx.Transaction{
 
 func  (cxt *ConsensusContext) GetStateDetail() string{
 
-	return  fmt.Sprintf("Initial: %s, Primary: %s, Backup: %s, RequestSent: %s, RequestReceived: %s, SignatureSent: %s, BlockSent: %s, ",
+	return  fmt.Sprintf("Initial: %t, Primary: %t, Backup: %t, RequestSent: %t, RequestReceived: %t, SignatureSent: %t, BlockSent: %t, ",
 		cxt.State.HasFlag(Initial),
 		cxt.State.HasFlag(Backup),
 		cxt.State.HasFlag(Primary),

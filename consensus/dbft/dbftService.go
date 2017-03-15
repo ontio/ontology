@@ -23,8 +23,8 @@ import (
 )
 
 const (
-	TimePerBlock = (15 * time.Second)
-	SecondsPerBlock = (15 * time.Second)
+	TimePerBlock = (5 * time.Second)
+	SecondsPerBlock = (5 * time.Second)
 )
 
 type DbftService struct {
@@ -493,7 +493,7 @@ func  (ds *DbftService) RequestChangeView() {
 	Trace()
 	// FIXME if there is no save block notifcation, when the timeout call this function it will crash
 	ds.context.ExpectedView[ds.context.MinerIndex] = ds.context.ExpectedView[ds.context.MinerIndex] + 1
-	log.Info(fmt.Sprintf("Request change view: height=%d View=%d nv=%d state=%d",ds.context.Height,ds.context.ViewNumber, ds.context.ExpectedView[ds.context.MinerIndex],ds.context.State))
+	log.Info(fmt.Sprintf("Request change view: height=%d View=%d nv=%d state=%s",ds.context.Height,ds.context.ViewNumber, ds.context.ExpectedView[ds.context.MinerIndex],ds.context.GetStateDetail()))
 
 	ds.timer.Stop()
 	ds.timer.Reset(SecondsPerBlock << (ds.context.ExpectedView[ds.context.MinerIndex]+1))
@@ -504,6 +504,11 @@ func  (ds *DbftService) RequestChangeView() {
 
 func (ds *DbftService) SignAndRelay(payload *msg.ConsensusPayload){
 	Trace()
+
+
+	prohash,_ := payload.GetProgramHashes()
+	log.Debug("[SignAndRelay] ConsensusPayload Program Hashes: ",prohash)
+
 	ctCxt := ct.NewContractContext(payload)
 
 	ret := ds.Client.Sign(ctCxt)
@@ -539,7 +544,7 @@ func (ds *DbftService) Timeout() {
 
 	log.Info("Timeout: height: ", ds.timerHeight, " View: ", ds.timeView, " State: ", ds.context.GetStateDetail())
 
-	if ds.context.State.HasFlag(Primary) && !ds.context.State.HasFlag(RequestSent) {
+	if (ds.context.State.HasFlag(Primary) && !ds.context.State.HasFlag(RequestSent)) {
 
 		//parimary peer send the prepare request
 		log.Info("Send prepare request: height: ", ds.timerHeight, " View: ", ds.timeView, " State: ", ds.context.State)
@@ -547,7 +552,6 @@ func (ds *DbftService) Timeout() {
 		if !ds.context.State.HasFlag(SignatureSent) {
 
 			//do signature
-
 
 			now := uint32(time.Now().Unix())
 			fmt.Println("ds.context.PrevHash",ds.context.PrevHash)
