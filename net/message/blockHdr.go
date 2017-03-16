@@ -150,7 +150,11 @@ func GetHeadersFromHash(starthash common.Uint256, stophash common.Uint256) ([]le
 			stopheight = startheight - 20000
 		}
 	} else {
-		count = 2000
+		if startheight > 2000 {
+			count = 2000
+		} else {
+			count = startheight
+		}
 	}
 
 	// waiting for GetBlockWithHeight commit

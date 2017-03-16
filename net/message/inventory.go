@@ -161,21 +161,25 @@ func GetInvFromBlockHash(starthash common.Uint256, stophash common.Uint256) invP
 	var stopheight uint32
 	var count uint32 = 0
 	var i uint32
-	/*wait for GetBlockWithHash commit
+
 	var empty common.Uint256
-	bkstart, _ := ledger.DefaultLedger.Blockchain.GetBlockWithHash(starthash)
+	bkstart, _ := ledger.DefaultLedger.GetBlockWithHash(starthash)
 	startheight := bkstart.Blockdata.Height
-	if (stophash != empty){
-		bkstop, _ := ledger.DefaultLedger.Blockchain.GetBlockWithHash(starthash)
+	if stophash != empty {
+		bkstop, _ := ledger.DefaultLedger.GetBlockWithHash(starthash)
 		stopheight = bkstop.Blockdata.Height
 		count = startheight - stopheight
-		if (count >= 500) {
+		if count >= 500 {
 			count = 500
+			stopheight = startheight - 500
 		}
-	}else{
-		count = 500
+	} else {
+		if startheight > 500 {
+			count = 500
+		} else {
+			count = startheight
+		}
 	}
-	*/
 
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	for i = 1; i <= count; i++ {
