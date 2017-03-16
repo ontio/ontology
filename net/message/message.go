@@ -21,7 +21,7 @@ type Messager interface {
 
 // The network communication message header
 type msgHdr struct {
-	Magic    uint32
+	Magic uint32
 	//ID	 uint64
 	CMD      [MSGCMDLEN]byte // The message type
 	Length   uint32
@@ -212,7 +212,7 @@ func HandleNodeMsg(node Noder, buf []byte, len int) error {
 	// Todo attach a ndoe pointer to each message
 	// Todo drop the message when verify/deseria packet error
 	msg.Deserialization(buf[:len])
-	msg.Verify(buf[MSGHDRLEN : len])
+	msg.Verify(buf[MSGHDRLEN:len])
 
 	return msg.Handle(node)
 }

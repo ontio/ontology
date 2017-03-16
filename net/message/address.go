@@ -56,13 +56,13 @@ func NewAddrs(nodeaddrs []NodeAddr, count uint64) ([]byte, error) {
 	p := new(bytes.Buffer)
 	err := binary.Write(p, binary.LittleEndian, msg.nodeCnt)
 	if err != nil {
-		log.Error("Binary Write failed at new Msg")
+		log.Error("Binary Write failed at new Msg: ", err.Error())
 		return nil, err
 	}
 
 	err = binary.Write(p, binary.LittleEndian, msg.nodeAddrs)
 	if err != nil {
-		log.Error("Binary Write failed at new Msg")
+		log.Error("Binary Write failed at new Msg: ", err.Error())
 		return nil, err
 	}
 	s := sha256.Sum256(p.Bytes())
@@ -94,7 +94,10 @@ func (msg addrReq) Handle(node Noder) error {
 	var addrstr []NodeAddr
 	var count uint64
 	addrstr, count = node.LocalNode().GetNeighborAddrs()
-	buf, _ := NewAddrs(addrstr, count)
+	buf, err := NewAddrs(addrstr, count)
+	if err != nil {
+		return err
+	}
 	go node.Tx(buf)
 	return nil
 }
@@ -170,7 +173,7 @@ func (msg addr) Handle(node Noder) error {
 		address := ip.To4().String() + ":" + strconv.Itoa(int(v.Port))
 		log.Info(fmt.Sprintf("The ip address is %s id is 0x%x", address, v.ID))
 
-		if (v.ID == node.LocalNode().GetID()) {
+		if v.ID == node.LocalNode().GetID() {
 			continue
 		}
 		if node.LocalNode().NodeEstablished(v.ID) {

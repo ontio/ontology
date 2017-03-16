@@ -30,7 +30,7 @@ func (msg block) Handle(node Noder) error {
 
 	log.Debug("RX block message")
 	err := ledger.DefaultLedger.Blockchain.AddBlock(&msg.blk)
-	if (err != nil) {
+	if err != nil {
 		log.Warn("Add block error")
 		return errors.New("Add block error before Xmit\n")
 	}
@@ -44,21 +44,37 @@ func (msg dataReq) Handle(node Noder) error {
 	hash := msg.hash
 	switch reqtype {
 	case 0x01:
-		block := NewBlockFromHash(hash)
-		buf, _ := NewBlock(block)
+		block, err := NewBlockFromHash(hash)
+		if err != nil {
+			return err
+		}
+		buf, err := NewBlock(block)
+		if err != nil {
+			return err
+		}
 		go node.Tx(buf)
 
 	case 0x02:
-		tx := NewTxFromHash(hash)
-		buf, _ := NewTx(tx)
+		tx, err := NewTxFromHash(hash)
+		if err != nil {
+			return err
+		}
+		buf, err := NewTx(tx)
+		if err != nil {
+			return err
+		}
 		go node.Tx(buf)
 	}
 	return nil
 }
 
-func NewBlockFromHash(hash common.Uint256) *ledger.Block {
-	bk, _ := ledger.DefaultLedger.Store.GetBlock(hash)
-	return bk
+func NewBlockFromHash(hash common.Uint256) (*ledger.Block, error) {
+	bk, err := ledger.DefaultLedger.Store.GetBlock(hash)
+	if err != nil {
+		log.Error("Get Block error: ", err.Error())
+		return nil, err
+	}
+	return bk, nil
 }
 
 func NewBlock(bk *ledger.Block) ([]byte, error) {
@@ -73,7 +89,7 @@ func NewBlock(bk *ledger.Block) ([]byte, error) {
 	p := new(bytes.Buffer)
 	err := binary.Write(p, binary.LittleEndian, tmpBuffer.Bytes())
 	if err != nil {
-		fmt.Println("Binary Write failed at new Msg")
+		log.Error("Binary Write failed at new Msg")
 		return nil, err
 	}
 	s := sha256.Sum256(p.Bytes())
@@ -86,7 +102,7 @@ func NewBlock(bk *ledger.Block) ([]byte, error) {
 
 	m, err := msg.Serialization()
 	if err != nil {
-		fmt.Println("Error Convert net message ", err.Error())
+		log.Error("Error Convert net message ", err.Error())
 		return nil, err
 	}
 

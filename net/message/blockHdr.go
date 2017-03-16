@@ -157,10 +157,7 @@ func GetHeadersFromHash(starthash common.Uint256, stophash common.Uint256) ([]le
 		}
 	}
 
-	// waiting for GetBlockWithHeight commit
-
 	var i uint32
-
 	for i = 1; i <= count; i++ {
 		//FIXME need add error handle for GetBlockWithHeight
 		bk, _ := ledger.DefaultLedger.GetBlockWithHeight(stopheight + i)

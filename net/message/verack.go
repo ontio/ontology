@@ -2,9 +2,9 @@ package message
 
 import (
 	"GoOnchain/common"
+	"GoOnchain/common/log"
 	. "GoOnchain/net/protocol"
 	"encoding/hex"
-	"fmt"
 	"time"
 )
 
@@ -26,7 +26,7 @@ func NewVerack() ([]byte, error) {
 	}
 
 	str := hex.EncodeToString(buf)
-	fmt.Printf("The message tx verack length is %d, %s\n", len(buf), str)
+	log.Info("The message tx verack length is %d, %s\n", len(buf), str)
 
 	return buf, err
 }
@@ -58,7 +58,7 @@ func (msg verACK) Handle(node Noder) error {
 	if s == HANDSHAKE {
 		node.SetState(ESTABLISH)
 	} else {
-		fmt.Println("Unkown status when get the verack")
+		log.Error("Unkown status when get the verack")
 	}
 	// TODO update other node info
 	node.UpdateTime(t)

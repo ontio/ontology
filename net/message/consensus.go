@@ -4,20 +4,20 @@ import (
 	"GoOnchain/common"
 	"GoOnchain/common/log"
 	"GoOnchain/common/serialization"
+	"GoOnchain/core/contract"
 	"GoOnchain/core/contract/program"
+	"GoOnchain/core/ledger"
+	sig "GoOnchain/core/signature"
+	. "GoOnchain/errors"
+	"GoOnchain/events"
 	. "GoOnchain/net/protocol"
 	"bytes"
-	"GoOnchain/events"
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
-	"GoOnchain/core/contract"
-	"GoOnchain/core/ledger"
 	"strconv"
-	. "GoOnchain/errors"
-	sig "GoOnchain/core/signature"
 )
 
 type ConsensusPayload struct {
@@ -53,23 +53,23 @@ func (cp *ConsensusPayload) InvertoryType() common.InventoryType {
 
 func (cp *ConsensusPayload) GetProgramHashes() ([]common.Uint160, error) {
 	common.Trace()
-	if ledger.DefaultLedger == nil{
-		return nil,errors.New("The Default ledger not exists.")
+	if ledger.DefaultLedger == nil {
+		return nil, errors.New("The Default ledger not exists.")
 	}
-	if cp.PrevHash != ledger.DefaultLedger.Store.GetCurrentBlockHash(){
-		return nil,errors.New("The PreHash Not matched.")
+	if cp.PrevHash != ledger.DefaultLedger.Store.GetCurrentBlockHash() {
+		return nil, errors.New("The PreHash Not matched.")
 	}
 	miners := ledger.DefaultLedger.Blockchain.GetMiners()
-	if uint16(len(miners)) <= cp.MinerIndex{
-		return nil,errors.New("MinerIndex invalidate. miners lengths="+ strconv.Itoa(len(miners))+ "MinerIndex ="+strconv.Itoa(int(cp.MinerIndex)))
+	if uint16(len(miners)) <= cp.MinerIndex {
+		return nil, errors.New("MinerIndex invalidate. miners lengths=" + strconv.Itoa(len(miners)) + "MinerIndex =" + strconv.Itoa(int(cp.MinerIndex)))
 	}
-	contract,err:= contract.CreateSignatureContract(miners[cp.MinerIndex])
+	contract, err := contract.CreateSignatureContract(miners[cp.MinerIndex])
 	hash := contract.ProgramHash
-	fmt.Println("program hash== ",hash)
+	fmt.Println("program hash== ", hash)
 
 	//signatureRedeemScript, err := contract.CreateSignatureRedeemScript(miners[cp.MinerIndex])
 	if err != nil {
-		return  nil, NewDetailErr(err, ErrNoCode, "[Consensus], CreateSignatureContract failed.")
+		return nil, NewDetailErr(err, ErrNoCode, "[Consensus], CreateSignatureContract failed.")
 	}
 
 	//hash, err:=common.ToCodeHash(signatureRedeemScript)
@@ -77,12 +77,12 @@ func (cp *ConsensusPayload) GetProgramHashes() ([]common.Uint160, error) {
 	//	return  nil, NewDetailErr(err, ErrNoCode, "[Consensus], ToCodeHash failed.")
 	//}
 	programhashes := []common.Uint160{}
-	programhashes = append(programhashes,hash)
+	programhashes = append(programhashes, hash)
 	return programhashes, nil
 }
 
 func (cp *ConsensusPayload) SetPrograms(programs []*program.Program) {
-	if (programs == nil) {
+	if programs == nil {
 		log.Warn("Set programs with NULL parameters")
 		return
 	}
@@ -96,7 +96,7 @@ func (cp *ConsensusPayload) SetPrograms(programs []*program.Program) {
 
 func (cp *ConsensusPayload) GetPrograms() []*program.Program {
 	cpg := []*program.Program{}
-	cpg = append(cpg,cp.Program)
+	cpg = append(cpg, cp.Program)
 	return cpg
 }
 

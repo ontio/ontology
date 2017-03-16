@@ -49,7 +49,10 @@ func (msg blocksReq) Handle(node Noder) error {
 	stophash = msg.HashStop
 	//FIXME if HeaderHashCount > 1
 	inv := GetInvFromBlockHash(starthash[0], stophash)
-	buf, _ := NewInv(inv)
+	buf, err := NewInv(inv)
+	if err != nil {
+		return err
+	}
 	go node.Tx(buf)
 	return nil
 }
@@ -207,7 +210,7 @@ func NewInv(inv invPayload) ([]byte, error) {
 	b := new(bytes.Buffer)
 	err := binary.Write(b, binary.LittleEndian, tmpBuffer.Bytes())
 	if err != nil {
-		log.Error("Binary Write failed at new Msg")
+		log.Error("Binary Write failed at new Msg", err.Error())
 		return nil, err
 	}
 	s := sha256.Sum256(b.Bytes())
