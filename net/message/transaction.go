@@ -84,17 +84,16 @@ func (msg *dataReq) Deserialization(p []byte) error {
 	return nil
 }
 
-func NewTxFromHash(hash common.Uint256) (*transaction.Transaction, error) {
-
-	trx, err := ledger.DefaultLedger.GetTransactionWithHash(hash)
+func NewTxnFromHash(hash common.Uint256) (*transaction.Transaction, error) {
+	txn, err := ledger.DefaultLedger.GetTransactionWithHash(hash)
 	if err != nil {
 		log.Error("Get transaction with hash error: ", err.Error())
 		return nil, err
 	}
 
-	return trx, nil
+	return txn, nil
 }
-func NewTx(trx *transaction.Transaction) ([]byte, error) {
+func NewTxn(txn *transaction.Transaction) ([]byte, error) {
 	common.Trace()
 	var msg trn
 
@@ -102,8 +101,8 @@ func NewTx(trx *transaction.Transaction) ([]byte, error) {
 	cmd := "tx"
 	copy(msg.msgHdr.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})
-	trx.Serialize(tmpBuffer)
-	msg.txn = *trx
+	txn.Serialize(tmpBuffer)
+	msg.txn = *txn
 	b := new(bytes.Buffer)
 	err := binary.Write(b, binary.LittleEndian, tmpBuffer.Bytes())
 	if err != nil {

@@ -172,13 +172,13 @@ func GetInvFromBlockHash(starthash common.Uint256, stophash common.Uint256) invP
 		bkstop, _ := ledger.DefaultLedger.GetBlockWithHash(starthash)
 		stopheight = bkstop.Blockdata.Height
 		count = startheight - stopheight
-		if count >= 500 {
-			count = 500
-			stopheight = startheight - 500
+		if count >= MAXINVHDRCNT {
+			count = MAXINVHDRCNT
+			stopheight = startheight - MAXINVHDRCNT
 		}
 	} else {
-		if startheight > 500 {
-			count = 500
+		if startheight > MAXINVHDRCNT {
+			count = MAXINVHDRCNT
 		} else {
 			count = startheight
 		}

@@ -3,6 +3,7 @@ package message
 import (
 	"GoOnchain/common"
 	"GoOnchain/common/log"
+	"GoOnchain/core/ledger"
 	. "GoOnchain/net/protocol"
 	"encoding/hex"
 	"time"
@@ -65,7 +66,15 @@ func (msg verACK) Handle(node Noder) error {
 	node.DumpInfo()
 	if node.GetState() == ESTABLISH {
 		node.ReqNeighborList()
-	}
 
+		if uint64(ledger.DefaultLedger.Blockchain.BlockHeight) < node.GetHeight() {
+			buf, err := NewHeadersReq(node)
+			if err != nil {
+				log.Error("failed build a new headersReq")
+			} else {
+				node.Tx(buf)
+			}
+		}
+	}
 	return nil
 }

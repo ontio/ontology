@@ -19,19 +19,21 @@ type NodeAddr struct {
 }
 
 const (
-	MSGCMDLEN   = 12
-	CMDOFFSET   = 4
-	CHECKSUMLEN = 4
-	HASHLEN     = 32 // hash length in byte
-	MSGHDRLEN   = 24
-	NETMAGIC    = 0x74746e41
+	MSGCMDLEN    = 12
+	CMDOFFSET    = 4
+	CHECKSUMLEN  = 4
+	HASHLEN      = 32 // hash length in byte
+	MSGHDRLEN    = 24
+	NETMAGIC     = 0x74746e41
+	MAXBLKHDRCNT = 2000
+	MAXINVHDRCNT = 500
 )
 const (
-	HELLOTIMEOUT  = 3 // Seconds
-	MAXHELLORETYR = 3
-	MAXBUFLEN     = 1024 * 1024 * 5 // Fixme The maximum buffer to receive message
-	MAXCHANBUF    = 512
-	PROTOCOLVERSION = 0
+	HELLOTIMEOUT     = 3 // Seconds
+	MAXHELLORETYR    = 3
+	MAXBUFLEN        = 1024 * 1024 * 5 // Fixme The maximum buffer to receive message
+	MAXCHANBUF       = 512
+	PROTOCOLVERSION  = 0
 	PERIODUPDATETIME = 3 // Time to update and sync information with other nodes
 )
 

@@ -40,10 +40,10 @@ func (msg block) Handle(node Noder) error {
 
 func (msg dataReq) Handle(node Noder) error {
 	common.Trace()
-	reqtype := msg.dataType
+	reqtype := common.InventoryType(msg.dataType)
 	hash := msg.hash
 	switch reqtype {
-	case 0x01:
+	case common.BLOCK:
 		block, err := NewBlockFromHash(hash)
 		if err != nil {
 			return err
@@ -54,12 +54,12 @@ func (msg dataReq) Handle(node Noder) error {
 		}
 		go node.Tx(buf)
 
-	case 0x02:
-		tx, err := NewTxFromHash(hash)
+	case common.TRANSACTION:
+		txn, err := NewTxnFromHash(hash)
 		if err != nil {
 			return err
 		}
-		buf, err := NewTx(tx)
+		buf, err := NewTxn(txn)
 		if err != nil {
 			return err
 		}
