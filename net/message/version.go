@@ -3,7 +3,6 @@ package message
 import (
 	"GoOnchain/common"
 	"GoOnchain/common/log"
-	"GoOnchain/core/ledger"
 	. "GoOnchain/net/protocol"
 	"bytes"
 	"crypto/sha256"
@@ -157,9 +156,5 @@ func (msg version) Handle(node Noder) error {
 	buf, _ = NewVerack()
 	node.Tx(buf)
 
-	if ledger.DefaultLedger.Blockchain.BlockHeight < uint32(msg.P.StartHeight) {
-		buf, _ := NewHeadersReq(node)
-		node.Tx(buf)
-	}
 	return nil
 }
