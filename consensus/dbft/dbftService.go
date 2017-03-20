@@ -147,14 +147,14 @@ func (ds *DbftService) CheckExpectedView(viewNumber byte) {
 	//check the count for same view number
 	count := 0
 	for i, expectedViewNumber := range ds.context.ExpectedView {
-		log.Debug(fmt.Sprintf("[CheckExpectedView] ExpectedView #%d: %d",i,expectedViewNumber))
+		log.Debug(fmt.Sprintf("[CheckExpectedView] ExpectedView #%d: %d", i, expectedViewNumber))
 		if expectedViewNumber == viewNumber {
 			count++
 		}
 	}
 
-	log.Debug("[CheckExpectedView] same view number count: ",count)
-	log.Debug("[CheckExpectedView] ds.context.M(): ",ds.context.M())
+	log.Debug("[CheckExpectedView] same view number count: ", count)
+	log.Debug("[CheckExpectedView] ds.context.M(): ", ds.context.M())
 
 	M := ds.context.M()
 	if count >= M {
@@ -272,7 +272,7 @@ func (ds *DbftService) InitializeConsensus(viewNum byte) error {
 	ds.context.contextMu.Lock()
 	defer ds.context.contextMu.Unlock()
 
-	log.Debug("[InitializeConsensus] viewNum: ",viewNum)
+	log.Debug("[InitializeConsensus] viewNum: ", viewNum)
 
 	if viewNum == 0 {
 		ds.context.Reset(ds.Client)
@@ -548,8 +548,8 @@ func (ds *DbftService) Start() error {
 	Trace()
 	ds.started = true
 
-	ds.newInventorySubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, ds.BlockPersistCompleted)
-	ds.blockPersistCompletedSubscriber = ds.localNet.GetEvent("consensus").Subscribe(events.EventNewInventory, ds.LocalNodeNewInventory)
+	ds.blockPersistCompletedSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, ds.BlockPersistCompleted)
+	ds.newInventorySubscriber = ds.localNet.GetEvent("consensus").Subscribe(events.EventNewInventory, ds.LocalNodeNewInventory)
 
 	go ds.InitializeConsensus(0)
 	//ds.InitializeConsensus(0)
@@ -572,7 +572,7 @@ func (ds *DbftService) Timeout() {
 	//	return
 	//}
 
-	if (ds.context.State.HasFlag(Primary) && !ds.context.State.HasFlag(RequestSent)) {
+	if ds.context.State.HasFlag(Primary) && !ds.context.State.HasFlag(RequestSent) {
 
 		//parimary peer send the prepare request
 		log.Info("Send prepare request: height: ", ds.timerHeight, " View: ", ds.timeView, " State: ", ds.context.GetStateDetail())
@@ -637,7 +637,6 @@ func (ds *DbftService) Timeout() {
 	} else if (ds.context.State.HasFlag(Primary) && ds.context.State.HasFlag(RequestSent)) || ds.context.State.HasFlag(Backup) {
 		ds.RequestChangeView()
 	}
-
 
 }
 
