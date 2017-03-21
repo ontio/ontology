@@ -3,6 +3,7 @@ package message
 import (
 	"GoOnchain/common"
 	"GoOnchain/common/log"
+	"GoOnchain/core/ledger"
 	. "GoOnchain/net/protocol"
 	"bytes"
 	"crypto/sha256"
@@ -43,8 +44,7 @@ func NewVersion(n Noder) ([]byte, error) {
 	msg.P.Port = n.GetPort()
 	msg.P.Nonce = n.GetID()
 	msg.P.UserAgent = 0x00
-	// Fixme Get the block height from ledger
-	msg.P.StartHeight = uint64(n.GetLedger().GetLocalBlockChainHeight())
+	msg.P.StartHeight = uint64(ledger.DefaultLedger.GetLocalBlockChainHeight())
 	if n.GetRelay() {
 		msg.P.Relay = 1
 	} else {

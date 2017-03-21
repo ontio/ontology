@@ -97,8 +97,8 @@ func main() {
 	fmt.Println("//**************************************************************************")
 	fmt.Println("//*** Init Complete                                                      ***")
 	fmt.Println("//**************************************************************************")
-	//go httpjsonrpc.StartRPCServer()
-	//go httpjsonrpc.StartLocalServer()
+	go httpjsonrpc.StartRPCServer()
+	go httpjsonrpc.StartLocalServer()
 
 	time.Sleep(2 * time.Second)
 	// if config.Parameters.MinerName == "c4" {

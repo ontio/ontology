@@ -5,11 +5,9 @@ import (
 	"GoOnchain/config"
 	"bytes"
 	"fmt"
-	"path/filepath"
 	"io"
 	"log"
 	"os"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -93,15 +91,8 @@ func (l *Logger) output(level int, s string) error {
 		gid := common.GetGID()
 		gidStr := strconv.FormatUint(gid, 10)
 
-		// Get file information only
-		pc := make([]uintptr, 10)
-		runtime.Callers(2, pc)
-		f := runtime.FuncForPC(pc[0])
-		file, line := f.FileLine(pc[0])
-		fileName := filepath.Base(file)
-		lineStr := strconv.FormatUint(uint64(line), 10)
 		return l.logger.Output(callDepth, AddBracket(LevelName(level))+" "+"GID"+
-			" "+gidStr+", "+s+" "+fileName+":"+lineStr)
+			" "+gidStr+", "+s)
 	} else {
 		return l.logger.Output(callDepth, AddBracket(LevelName(level))+" "+s)
 	}

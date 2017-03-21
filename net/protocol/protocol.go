@@ -2,7 +2,6 @@ package protocol
 
 import (
 	"GoOnchain/common"
-	"GoOnchain/core/ledger"
 	"GoOnchain/core/transaction"
 	"GoOnchain/events"
 	"bytes"
@@ -50,9 +49,10 @@ type Noder interface {
 	GetID() uint64
 	Services() uint64
 	GetPort() uint16
-	GetState() uint
+	GetState() uint32
 	GetRelay() bool
-	SetState(state uint)
+	SetState(state uint32)
+	CompareAndSetState(old, new uint32) bool
 	UpdateTime(t time.Time)
 	LocalNode() Noder
 	DelNbrNode(id uint64) (Noder, bool)
@@ -60,7 +60,6 @@ type Noder interface {
 	CloseConn()
 	GetHeight() uint64
 	GetConnectionCnt() uint
-	GetLedger() *ledger.Ledger
 	GetTxnPool(bool) map[common.Uint256]*transaction.Transaction
 	AppendTxnPool(*transaction.Transaction) bool
 	ExistedID(id common.Uint256) bool

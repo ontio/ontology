@@ -45,13 +45,11 @@ func unpackNodeBuf(node *node, buf []byte) {
 			return
 		}
 		// FIXME Check the payload < 0 error case
-		//fmt.Printf("The Rx msg payload is %d\n", PayloadLen(buf))
 		msgLen = PayloadLen(buf) + MSGHDRLEN
 	} else {
 		msgLen = node.rxBuf.len
 	}
 
-	//fmt.Printf("The msg length is %d, buf len is %d\n", msgLen, len(buf))
 	if len(buf) == msgLen {
 		msgBuf = append(node.rxBuf.p, buf[:]...)
 		go HandleNodeMsg(node, msgBuf, len(msgBuf))

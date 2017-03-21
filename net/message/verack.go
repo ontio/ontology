@@ -54,19 +54,19 @@ func (msg verACK) Handle(node Noder) error {
 	common.Trace()
 
 	t := time.Now()
-	// TODO we loading the state&time without consider race case
-	s := node.GetState()
-	if s == HANDSHAKE {
-		node.SetState(ESTABLISH)
-	} else {
-		log.Error("Unkown status when get the verack")
+	ret := node.CompareAndSetState(HANDSHAKE, ESTABLISH)
+	if ret != true {
+		log.Warn("Unkown status when get the verack")
 	}
 	// TODO update other node info
 	node.UpdateTime(t)
 	node.DumpInfo()
-	if node.GetState() == ESTABLISH {
+	// Fixme, there is a race condition here,
+	// but it doesn't matter to access the invalid
+	// node which will trigger a warning
+	state := node.GetState()
+	if state == ESTABLISH {
 		node.ReqNeighborList()
-
 		if uint64(ledger.DefaultLedger.Blockchain.BlockHeight) < node.GetHeight() {
 			buf, err := NewHeadersReq(node)
 			if err != nil {

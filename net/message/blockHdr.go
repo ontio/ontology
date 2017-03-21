@@ -32,7 +32,8 @@ func NewHeadersReq(n Noder) ([]byte, error) {
 
 	// Fixme correct with the exactly request length
 	h.p.len = 1
-	buf := n.GetLedger().Blockchain.CurrentBlockHash()
+	//Fixme! Should get the remote Node height.
+	buf := ledger.DefaultLedger.Blockchain.CurrentBlockHash()
 	copy(h.p.hashStart[:], reverse(buf[:]))
 
 	p := new(bytes.Buffer)
@@ -110,12 +111,12 @@ blkHdrErr:
 func (msg headersReq) Handle(node Noder) error {
 	common.Trace()
 	// lock
-	var starthash [HASHLEN]byte //[]common.Uint256
-	var stophash [HASHLEN]byte  //common.Uint256
+	var starthash [HASHLEN]byte
+	var stophash [HASHLEN]byte
 	starthash = msg.p.hashStart
 	stophash = msg.p.hashEnd
 	//FIXME if HeaderHashCount > 1
-	headers, cnt := GetHeadersFromHash(starthash, stophash) //(starthash[0], stophash)
+	headers, cnt := GetHeadersFromHash(starthash, stophash)
 	buf, _ := NewHeaders(headers, cnt)
 	go node.Tx(buf)
 	return nil

@@ -13,6 +13,7 @@ import (
 	"math/rand"
 	"net"
 	"runtime"
+	"sync/atomic"
 	"time"
 )
 
@@ -25,7 +26,7 @@ const (
 
 type node struct {
 	//sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
-	state    uint   // node status
+	state    uint32 // node state
 	id       uint64 // The nodes's id
 	cap      uint32 // The node capability set
 	version  uint32 // The network protocol the node used
@@ -40,7 +41,6 @@ type node struct {
 	eventQueue                   // The event queue to notice notice other modules
 	TXNPool                      // Unconfirmed transaction pool
 	idCache                      // The buffer to store the id of the items which already be processed
-	ledger     *ledger.Ledger    // The Local ledger
 }
 
 func (node node) DumpInfo() {
@@ -61,20 +61,18 @@ func (node node) DumpInfo() {
 
 func (node *node) UpdateInfo(t time.Time, version uint32, services uint64,
 	port uint16, nonce uint64, relay uint8, height uint64) {
-//	node.chF <- func() error {
-		node.UpdateTime(t)
-		node.id = nonce
-		node.version = version
-		node.services = services
-		node.port = port
-		if relay == 0 {
-			node.relay = false
-		} else {
-			node.relay = true
-		}
-		node.height = uint64(height)
-//		return nil
-//       }
+
+	node.UpdateTime(t)
+	node.id = nonce
+	node.version = version
+	node.services = services
+	node.port = port
+	if relay == 0 {
+		node.relay = false
+	} else {
+		node.relay = true
+	}
+	node.height = uint64(height)
 }
 
 func NewNode() *node {
@@ -88,7 +86,6 @@ func NewNode() *node {
 }
 
 func InitNode() Noder {
-	var err error
 	n := NewNode()
 
 	n.version = PROTOCOLVERSION
@@ -103,11 +100,6 @@ func InitNode() Noder {
 	n.local = n
 	n.TXNPool.init()
 	n.eventQueue.init()
-	n.ledger, err = ledger.GetDefaultLedger()
-	if err != nil {
-		fmt.Printf("Get Default Ledger error\n")
-		errors.New("Get Default Ledger error")
-	}
 
 	go n.initConnection()
 	go n.updateNodeInfo()
@@ -130,8 +122,8 @@ func (node node) GetID() uint64 {
 	return node.id
 }
 
-func (node node) GetState() uint {
-	return node.state
+func (node node) GetState() uint32 {
+	return atomic.LoadUint32(&(node.state))
 }
 
 func (node node) getConn() net.Conn {
@@ -154,9 +146,14 @@ func (node node) Services() uint64 {
 	return node.services
 }
 
-func (node *node) SetState(state uint) {
-	node.state = state
+func (node *node) SetState(state uint32) {
+	atomic.StoreUint32(&(node.state), state)
 }
+
+func (node *node) CompareAndSetState(old, new uint32) bool {
+	return atomic.CompareAndSwapUint32(&(node.state), old, new)
+}
+
 
 func (node *node) LocalNode() Noder {
 	return node.local
@@ -164,10 +161,6 @@ func (node *node) LocalNode() Noder {
 
 func (node node) GetHeight() uint64 {
 	return node.height
-}
-
-func (node node) GetLedger() *ledger.Ledger {
-	return node.ledger
 }
 
 func (node *node) UpdateTime(t time.Time) {

@@ -153,8 +153,8 @@ func getNeighbor(req *http.Request, cmd map[string]interface{}) map[string]inter
 
 func getNodeState(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
 	id := cmd["id"]
-	n := NodeInfo{
-		State:    node.GetState(),
+	n := NodeInfo {
+		State:    uint(node.GetState()),
 		Time:     node.GetTime(),
 		Port:     node.GetPort(),
 		ID:       node.GetID(),
