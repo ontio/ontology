@@ -21,6 +21,7 @@ import (
 )
 
 type link struct {
+	//Todo Add lock here
 	addr  string    // The address of the node
 	conn  net.Conn  // Connect socket with the peer node
 	port  uint16    // The server port of the node
@@ -240,6 +241,7 @@ func (node *node) Connect(nodeAddr string) {
 			conn.RemoteAddr().Network()))
 		go n.rx()
 
+		// FIXME too long waiting time
 		time.Sleep(2 * time.Second)
 		// FIXME is there any timing race with rx
 		buf, _ := NewVersion(node)
@@ -290,9 +292,7 @@ func TLSDial(nodeAddr string) (net.Conn, error) {
 	return conn, nil
 }
 
-// TODO construct a TX channel and other application just drop the message to the channel
 func (node node) Tx(buf []byte) {
-	//node.chF <- func() error {
 	common.Trace()
 	str := hex.EncodeToString(buf)
 	log.Debug(fmt.Sprintf("TX buf length: %d\n%s", len(buf), str))
@@ -301,8 +301,6 @@ func (node node) Tx(buf []byte) {
 	if err != nil {
 		log.Error("Error sending messge to peer node ", err.Error())
 	}
-	//return err
-	//}
 }
 
 // func (net net) Xmit(inv Inventory) error {

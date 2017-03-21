@@ -133,8 +133,8 @@ func AllocMsg(t string, length int) Messager {
 		var msg blockReq
 		copy(msg.msgHdr.CMD[0:len(t)], t)
 		return &msg
-	case "mempool":
-		var msg memPool
+	case "txnpool":
+		var msg txnPool
 		copy(msg.msgHdr.CMD[0:len(t)], t)
 		return &msg
 	case "alert":

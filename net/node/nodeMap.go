@@ -8,15 +8,17 @@ import (
 
 // The neigbor node list
 type nbrNodes struct {
-	Lock sync.RWMutex
+	sync.RWMutex
+	// Todo using the Pool structure
 	List map[uint64]*node
 }
 
 func (nm *nbrNodes) Broadcast(buf []byte) {
-	// TODO lock the map
-	// TODO Check whether the node existed or not
+	nm.RLock()
+	defer nm.RUnlock()
 	for _, node := range nm.List {
 		if node.state == ESTABLISH && node.relay == true {
+			// The routie need lock too
 			go node.Tx(buf)
 		}
 	}
@@ -28,8 +30,9 @@ func (nm *nbrNodes) NodeExisted(uid uint64) bool {
 }
 
 func (nm *nbrNodes) AddNbrNode(n Noder) {
-	//TODO lock the node Map
-	// TODO multi client from the same IP address issue
+	nm.Lock()
+	defer nm.Unlock()
+
 	if (nm.NodeExisted(n.GetID())) {
                fmt.Printf("Insert a existed node\n")
 	} else {
@@ -43,7 +46,9 @@ func (nm *nbrNodes) AddNbrNode(n Noder) {
 }
 
 func (nm *nbrNodes) DelNbrNode(id uint64) (Noder, bool) {
-	//TODO lock the node Map
+	nm.Lock()
+	defer nm.Unlock()
+
 	n, ok := nm.List[id]
 	if (ok == false) {
 		return nil, false
@@ -52,8 +57,10 @@ func (nm *nbrNodes) DelNbrNode(id uint64) (Noder, bool) {
 	return n, true
 }
 
-func (nm nbrNodes) GetConnectionCnt() uint {
-	//TODO lock the node Map
+func (nm *nbrNodes) GetConnectionCnt() uint {
+	nm.RLock()
+	defer nm.RUnlock()
+
 	var cnt uint
 	for _, node := range nm.List {
 		if node.state == ESTABLISH {
@@ -67,7 +74,10 @@ func (nm *nbrNodes) init() {
 	nm.List = make(map[uint64]*node)
 }
 
-func (nm nbrNodes) NodeEstablished(id uint64) bool {
+func (nm *nbrNodes) NodeEstablished(id uint64) bool {
+	nm.RLock()
+	defer nm.RUnlock()
+
 	n, ok := nm.List[id]
 	if (ok == false) {
 		return false
@@ -78,4 +88,28 @@ func (nm nbrNodes) NodeEstablished(id uint64) bool {
 	}
 
 	return true
+}
+
+func (node *node) GetNeighborAddrs() ([]NodeAddr, uint64) {
+	node.nbrNodes.RLock()
+	defer node.nbrNodes.RUnlock()
+
+	var i uint64
+	var addrs []NodeAddr
+	for _, n := range node.nbrNodes.List {
+		if n.GetState() != ESTABLISH {
+			continue
+		}
+		var addr NodeAddr
+		addr.IpAddr, _ = n.GetAddr16()
+		addr.Time = n.GetTime()
+		addr.Services = n.Services()
+		addr.Port = n.GetPort()
+		addr.ID = n.GetID()
+		addrs = append(addrs, addr)
+
+		i++
+	}
+
+	return addrs, i
 }

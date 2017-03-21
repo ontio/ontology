@@ -10,8 +10,8 @@ import (
 )
 
 type Neter interface {
-	GetMemoryPool() map[common.Uint256]*transaction.Transaction
-	SynchronizeMemoryPool()
+	GetTxnPool(cleanPool bool) map[common.Uint256]*transaction.Transaction
+	SynchronizeTxnPool()
 	Xmit(common.Inventory) error // The transmit interface
 	GetEvent(eventName string) *events.Event
 }

@@ -452,7 +452,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, mes
 	ds.context.Signatures = make([][]byte, len(ds.context.Miners))
 	ds.context.Signatures[payload.MinerIndex] = message.Signature
 
-	mempool := ds.localNet.GetMemoryPool()
+	mempool := ds.localNet.GetTxnPool(true)
 	for _, hash := range ds.context.TransactionHashes[1:] {
 		if transaction, ok := mempool[hash]; ok {
 			if err := ds.AddTransaction(transaction, false); err != nil {
@@ -471,7 +471,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, mes
 	//AllowHashes(ds.context.TransactionHashes)
 	log.Info("Prepare Requst finished")
 	if len(ds.context.Transactions) < len(ds.context.TransactionHashes) {
-		ds.localNet.SynchronizeMemoryPool()
+		ds.localNet.SynchronizeTxnPool()
 	}
 }
 
@@ -595,7 +595,7 @@ func (ds *DbftService) Timeout() {
 			}
 
 			ds.context.Nonce = GetNonce()
-			transactionsPool := ds.localNet.GetMemoryPool() //TODO: add policy
+			transactionsPool := ds.localNet.GetTxnPool(true) //TODO: add policy
 
 			//TODO: add max TX limitation
 

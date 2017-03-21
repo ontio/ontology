@@ -125,7 +125,7 @@ func main() {
 
 	for {
 		log.Debug("ledger.DefaultLedger.Blockchain.BlockHeight= ", ledger.DefaultLedger.Blockchain.BlockHeight)
-		time.Sleep(15 * time.Second)
+		time.Sleep(2 * time.Second)
 	}
 }
 func InitBlockChain() ledger.Blockchain {

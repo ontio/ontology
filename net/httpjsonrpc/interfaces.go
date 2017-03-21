@@ -79,7 +79,7 @@ func getConnectionCount(req *http.Request, cmd map[string]interface{}) map[strin
 
 func getRawMemPool(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
 	id := cmd["id"]
-	mempoollist := node.GetTxnPool()
+	mempoollist := node.GetTxnPool(false)
 	return responsePacking(mempoollist, id)
 }
 
@@ -92,6 +92,7 @@ func getRawTransaction(req *http.Request, cmd map[string]interface{}) map[string
 	txidArr.Deserialize(bytes.NewReader(txidSlice[0:32]))
 	verbose := params.([]interface{})[1].(bool)
 	tx := node.GetTransaction(txidArr)
+	// FIXME Get transaction from ledger
 	txBuffer := bytes.NewBuffer([]byte{})
 	tx.Serialize(txBuffer)
 	if verbose == true {

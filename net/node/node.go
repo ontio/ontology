@@ -24,6 +24,7 @@ const (
 )
 
 type node struct {
+	//sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
 	state    uint   // node status
 	id       uint64 // The nodes's id
 	cap      uint32 // The node capability set
@@ -60,18 +61,20 @@ func (node node) DumpInfo() {
 
 func (node *node) UpdateInfo(t time.Time, version uint32, services uint64,
 	port uint16, nonce uint64, relay uint8, height uint64) {
-	// TODO need lock
-	node.UpdateTime(t)
-	node.id = nonce
-	node.version = version
-	node.services = services
-	node.port = port
-	if relay == 0 {
-		node.relay = false
-	} else {
-		node.relay = true
-	}
-	node.height = uint64(height)
+//	node.chF <- func() error {
+		node.UpdateTime(t)
+		node.id = nonce
+		node.version = version
+		node.services = services
+		node.port = port
+		if relay == 0 {
+			node.relay = false
+		} else {
+			node.relay = true
+		}
+		node.height = uint64(height)
+//		return nil
+//       }
 }
 
 func NewNode() *node {
@@ -171,20 +174,6 @@ func (node *node) UpdateTime(t time.Time) {
 	node.time = t
 }
 
-func (node node) GetMemoryPool() map[common.Uint256]*transaction.Transaction {
-	return node.GetTxnPool()
-	// TODO refresh the pending transaction pool
-}
-
-func (node node) SynchronizeMemoryPool() {
-	// Fixme need lock
-	for _, n := range node.nbrNodes.List {
-		if n.state == ESTABLISH {
-			ReqMemoryPool(n)
-		}
-	}
-}
-
 func (node node) Xmit(inv common.Inventory) error {
 	common.Trace()
 	var buffer []byte
@@ -260,26 +249,4 @@ func (node node) GetAddr16() ([16]byte, error) {
 func (node node) GetTime() int64 {
 	t := time.Now()
 	return t.UnixNano()
-}
-
-func (node node) GetNeighborAddrs() ([]NodeAddr, uint64) {
-	var i uint64
-	var addrs []NodeAddr
-	// TODO read lock
-	for _, n := range node.nbrNodes.List {
-		if n.GetState() != ESTABLISH {
-			continue
-		}
-		var addr NodeAddr
-		addr.IpAddr, _ = n.GetAddr16()
-		addr.Time = n.GetTime()
-		addr.Services = n.Services()
-		addr.Port = n.GetPort()
-		addr.ID = n.GetID()
-		addrs = append(addrs, addr)
-
-		i++
-	}
-
-	return addrs, i
 }

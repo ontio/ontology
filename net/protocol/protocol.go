@@ -61,7 +61,7 @@ type Noder interface {
 	GetHeight() uint64
 	GetConnectionCnt() uint
 	GetLedger() *ledger.Ledger
-	GetTxnPool() map[common.Uint256]*transaction.Transaction
+	GetTxnPool(bool) map[common.Uint256]*transaction.Transaction
 	AppendTxnPool(*transaction.Transaction) bool
 	ExistedID(id common.Uint256) bool
 	ReqNeighborList()
@@ -76,13 +76,12 @@ type Noder interface {
 	GetNeighborAddrs() ([]NodeAddr, uint64)
 	GetTransaction(hash common.Uint256) *transaction.Transaction
 	Xmit(common.Inventory) error
-	GetMemoryPool() map[common.Uint256]*transaction.Transaction
-	SynchronizeMemoryPool()
+	SynchronizeTxnPool()
 }
 
 type JsonNoder interface {
 	GetConnectionCnt() uint
-	GetTxnPool() map[common.Uint256]*transaction.Transaction
+	GetTxnPool(bool) map[common.Uint256]*transaction.Transaction
 	Xmit(common.Inventory) error
 	GetTransaction(hash common.Uint256) *transaction.Transaction
 }

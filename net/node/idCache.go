@@ -2,9 +2,13 @@ package node
 
 import (
 	"GoOnchain/common"
+	"sync"
 )
 
-type idCache map[common.Uint256]bool
+type idCache struct {
+	sync.RWMutex
+	list map[common.Uint256]bool
+}
 
 func (c *idCache) init() {
 }
