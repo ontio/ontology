@@ -38,10 +38,12 @@ const (
 
 // The node state
 const (
-	INIT       = 0
-	HANDSHAKE  = 1
-	ESTABLISH  = 2
-	INACTIVITY = 3
+	INIT        = 0
+	HAND	    = 1
+	HANDSHAKE   = 2
+	HANDSHAKED  = 3
+	ESTABLISH   = 4
+	INACTIVITY  = 5
 )
 
 type Noder interface {
@@ -67,7 +69,7 @@ type Noder interface {
 	DumpInfo()
 	UpdateInfo(t time.Time, version uint32, services uint64,
 		port uint16, nonce uint64, relay uint8, height uint64)
-	Connect(nodeAddr string)
+	Connect(nodeAddr string) error
 	Tx(buf []byte)
 	GetTime() int64
 	NodeEstablished(uid uint64) bool

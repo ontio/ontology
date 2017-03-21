@@ -21,7 +21,7 @@ func StartProtocol() (Neter, protocol.Noder) {
 
 	net := node.InitNode()
 	for _, nodeAddr := range seedNodes {
-		net.Connect(nodeAddr)
+		go net.Connect(nodeAddr)
 	}
 	return net, net
 }

@@ -84,7 +84,7 @@ func main() {
 	time.Sleep(2 * time.Second)
 	neter, noder := net.StartProtocol()
 	httpjsonrpc.RegistRpcNode(noder)
-	time.Sleep(1 * time.Minute)
+	time.Sleep(20 * time.Second)
 
 	fmt.Println("//**************************************************************************")
 	fmt.Println("//*** 5. Start DBFT Services                                             ***")
@@ -98,7 +98,7 @@ func main() {
 	fmt.Println("//*** Init Complete                                                      ***")
 	fmt.Println("//**************************************************************************")
 	go httpjsonrpc.StartRPCServer()
-	go httpjsonrpc.StartLocalServer()
+	//go httpjsonrpc.StartLocalServer()
 
 	time.Sleep(2 * time.Second)
 	// if config.Parameters.MinerName == "c4" {

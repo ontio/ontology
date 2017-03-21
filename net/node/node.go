@@ -55,7 +55,6 @@ func (node node) DumpInfo() {
 	fmt.Printf("\t port = %d\n", node.port)
 	fmt.Printf("\t relay = %v\n", node.relay)
 	fmt.Printf("\t height = %v\n", node.height)
-
 	fmt.Printf("\t conn cnt = %v\n", node.link.connCnt)
 }
 

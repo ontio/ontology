@@ -84,7 +84,7 @@ func (node *node) rx() error {
 			//go handleNodeMsg(node, buf, len)
 			break
 		case io.EOF:
-			//fmt.Println("Reading EOF of network conn")
+			//log.Debug("Reading EOF of network conn")
 			break
 		default:
 			log.Error("Read connetion error ", err)
@@ -208,44 +208,41 @@ func parseIPaddr(s string) (string, error) {
 	return s[:i], nil
 }
 
-func (node *node) Connect(nodeAddr string) {
-	node.chF <- func() error {
-		common.Trace()
-		isTls := Parameters.IsTLS
-		var conn net.Conn
-		var err error
-		if isTls {
-			conn, err = TLSDial(nodeAddr)
-			if err != nil {
-				log.Error("TLS connect failed: ", err)
-				return nil
-			}
-		} else {
-			conn, err = NonTLSDial(nodeAddr)
-			if err != nil {
-				log.Error("non TLS connect failed:", err)
-				return nil
-			}
+func (node *node) Connect(nodeAddr string) error {
+	common.Trace()
+	isTls := Parameters.IsTLS
+	var conn net.Conn
+	var err error
+	if isTls {
+		conn, err = TLSDial(nodeAddr)
+		if err != nil {
+			log.Error("TLS connect failed: ", err)
+			return nil
 		}
-		node.link.connCnt++
-
-		n := NewNode()
-		n.conn = conn
-		n.addr, err = parseIPaddr(conn.RemoteAddr().String())
-		n.local = node
-
-		log.Info(fmt.Sprintf("Connect node %s connect with %s with %s",
-			conn.LocalAddr().String(), conn.RemoteAddr().String(),
-			conn.RemoteAddr().Network()))
-		go n.rx()
-
-		// FIXME too long waiting time
-		time.Sleep(2 * time.Second)
-		// FIXME is there any timing race with rx
-		buf, _ := NewVersion(node)
-		n.Tx(buf)
-		return nil
+	} else {
+		conn, err = NonTLSDial(nodeAddr)
+		if err != nil {
+			log.Error("non TLS connect failed:", err)
+			return nil
+		}
 	}
+	node.link.connCnt++
+
+	n := NewNode()
+	n.conn = conn
+	n.addr, err = parseIPaddr(conn.RemoteAddr().String())
+	n.local = node
+
+	log.Info(fmt.Sprintf("Connect node %s connect with %s with %s",
+		conn.LocalAddr().String(), conn.RemoteAddr().String(),
+		conn.RemoteAddr().Network()))
+	go n.rx()
+
+	n.SetState(HAND)
+	buf, _ := NewVersion(node)
+	n.Tx(buf)
+
+	return nil
 }
 
 func NonTLSDial(nodeAddr string) (net.Conn, error) {

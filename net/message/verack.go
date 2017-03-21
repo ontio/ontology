@@ -6,6 +6,7 @@ import (
 	"GoOnchain/core/ledger"
 	. "GoOnchain/net/protocol"
 	"encoding/hex"
+	"errors"
 	"time"
 )
 
@@ -54,26 +55,33 @@ func (msg verACK) Handle(node Noder) error {
 	common.Trace()
 
 	t := time.Now()
-	ret := node.CompareAndSetState(HANDSHAKE, ESTABLISH)
-	if ret != true {
-		log.Warn("Unkown status when get the verack")
+	s := node.GetState()
+	if s != HANDSHAKE && s != HANDSHAKED {
+		log.Warn("Unknow status to received verack")
+		return errors.New("Unknow status to received verack")
 	}
+
+	node.SetState(ESTABLISH)
+	if (s == HANDSHAKE) {
+		buf, _ := NewVerack()
+		node.Tx(buf)
+	}
+
 	// TODO update other node info
 	node.UpdateTime(t)
 	node.DumpInfo()
 	// Fixme, there is a race condition here,
 	// but it doesn't matter to access the invalid
 	// node which will trigger a warning
-	state := node.GetState()
-	if state == ESTABLISH {
-		node.ReqNeighborList()
-		if uint64(ledger.DefaultLedger.Blockchain.BlockHeight) < node.GetHeight() {
-			buf, err := NewHeadersReq(node)
-			if err != nil {
-				log.Error("failed build a new headersReq")
-			} else {
-				node.Tx(buf)
-			}
+	node.ReqNeighborList()
+
+	// FIXME compact to a seperate function
+	if uint64(ledger.DefaultLedger.Blockchain.BlockHeight) < node.GetHeight() {
+		buf, err := NewHeadersReq(node)
+		if err != nil {
+			log.Error("failed build a new headersReq")
+		} else {
+			node.Tx(buf)
 		}
 	}
 	return nil
