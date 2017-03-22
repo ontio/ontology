@@ -4,6 +4,7 @@ import (
 	cl "GoOnchain/client"
 	. "GoOnchain/common"
 	"GoOnchain/common/log"
+	"GoOnchain/config"
 	con "GoOnchain/consensus"
 	ct "GoOnchain/core/contract"
 	"GoOnchain/core/contract/program"
@@ -22,10 +23,7 @@ import (
 	"time"
 )
 
-const (
-	TimePerBlock    = (2 * time.Second)
-	SecondsPerBlock = (2 * time.Second)
-)
+var GenBlockTime = (2 * time.Second)
 
 type DbftService struct {
 	context           ConsensusContext
@@ -296,14 +294,14 @@ func (ds *DbftService) InitializeConsensus(viewNum byte) error {
 		ds.timerHeight = ds.context.Height
 		ds.timeView = viewNum
 		span := time.Now().Sub(ds.blockReceivedTime)
-		if span > TimePerBlock {
+		if span > GenBlockTime {
 			//TODO: double check the is the stop necessary
 			ds.timer.Stop()
 			ds.timer.Reset(0)
 			//go ds.Timeout()
 		} else {
 			ds.timer.Stop()
-			ds.timer.Reset(TimePerBlock - span)
+			ds.timer.Reset(GenBlockTime - span)
 		}
 	} else {
 
@@ -313,7 +311,7 @@ func (ds *DbftService) InitializeConsensus(viewNum byte) error {
 		ds.timeView = viewNum
 
 		ds.timer.Stop()
-		ds.timer.Reset(SecondsPerBlock << (viewNum + 1))
+		ds.timer.Reset(GenBlockTime << (viewNum + 1))
 	}
 	return nil
 }
@@ -514,7 +512,7 @@ func (ds *DbftService) RequestChangeView() {
 	log.Info(fmt.Sprintf("Request change view: height=%d View=%d nv=%d state=%s", ds.context.Height, ds.context.ViewNumber, ds.context.ExpectedView[ds.context.MinerIndex], ds.context.GetStateDetail()))
 
 	ds.timer.Stop()
-	ds.timer.Reset(SecondsPerBlock << (ds.context.ExpectedView[ds.context.MinerIndex] + 1))
+	ds.timer.Reset(GenBlockTime << (ds.context.ExpectedView[ds.context.MinerIndex] + 1))
 
 	ds.SignAndRelay(ds.context.MakeChangeView())
 	ds.CheckExpectedView(ds.context.ExpectedView[ds.context.MinerIndex])
@@ -547,6 +545,10 @@ func (ds *DbftService) SignAndRelay(payload *msg.ConsensusPayload) {
 func (ds *DbftService) Start() error {
 	Trace()
 	ds.started = true
+
+	if config.Parameters.GenBlockTime > 0 {
+		GenBlockTime = time.Duration(config.Parameters.GenBlockTime) * time.Second
+	}
 
 	ds.blockPersistCompletedSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, ds.BlockPersistCompleted)
 	ds.newInventorySubscriber = ds.localNet.GetEvent("consensus").Subscribe(events.EventNewInventory, ds.LocalNodeNewInventory)
@@ -633,7 +635,7 @@ func (ds *DbftService) Timeout() {
 		payload := ds.context.MakePrepareRequest()
 		ds.SignAndRelay(payload)
 		ds.timer.Stop()
-		ds.timer.Reset(SecondsPerBlock << (ds.timeView + 1))
+		ds.timer.Reset(GenBlockTime << (ds.timeView + 1))
 	} else if (ds.context.State.HasFlag(Primary) && ds.context.State.HasFlag(RequestSent)) || ds.context.State.HasFlag(Backup) {
 		ds.RequestChangeView()
 	}
