@@ -1,9 +1,8 @@
 package log
 
 import (
-	"GoOnchain/common"
+	. "GoOnchain/common"
 	"GoOnchain/config"
-	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -29,11 +28,11 @@ const (
 
 var (
 	levels = map[int]string{
-		debugLog: "DEBUG",
-		infoLog:  "INFO ",
-		warnLog:  "WARN ",
-		errorLog: "ERROR",
-		fatalLog: "FATAL",
+		debugLog: Color(Green, "[DEBUG]"),
+		infoLog:  Color(Green, "[INFO ]"),
+		warnLog:  Color(Yellow, "[WARN ]"),
+		errorLog: Color(Red, "[ERROR]"),
+		fatalLog: Color(Red, "[FATAL]"),
 	}
 )
 
@@ -65,14 +64,6 @@ func NameLevel(name string) int {
 	return level
 }
 
-func AddBracket(s string) string {
-	b := bytes.Buffer{}
-	b.WriteString("[")
-	b.WriteString(s)
-	b.WriteString("]")
-	return b.String()
-}
-
 type Logger struct {
 	level  int
 	logger *log.Logger
@@ -88,13 +79,13 @@ func New(out io.Writer, prefix string, flag, level int) *Logger {
 func (l *Logger) output(level int, s string) error {
 	// FIXME enable print GID for all log, should be disable as it effect performance
 	if (level == 0) || (level == 1) || (level == 2) || (level == 3) {
-		gid := common.GetGID()
+		gid := GetGID()
 		gidStr := strconv.FormatUint(gid, 10)
 
-		return l.logger.Output(callDepth, AddBracket(LevelName(level))+" "+"GID"+
+		return l.logger.Output(callDepth, LevelName(level)+" "+"GID"+
 			" "+gidStr+", "+s)
 	} else {
-		return l.logger.Output(callDepth, AddBracket(LevelName(level))+" "+s)
+		return l.logger.Output(callDepth, LevelName(level)+" "+s)
 	}
 }
 
