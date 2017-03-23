@@ -86,7 +86,7 @@ func NewNode() *node {
 	return &n
 }
 
-func InitNode() Noder {
+func InitNode(pubKey *crypto.PubKey) Noder {
 	n := NewNode()
 
 	n.version = PROTOCOLVERSION
@@ -99,6 +99,7 @@ func InitNode() Noder {
 	fmt.Printf("Init node ID to 0x%0x \n", n.id)
 	n.nbrNodes.init()
 	n.local = n
+	n.publicKey = pubKey
 	n.TXNPool.init()
 	n.eventQueue.init()
 

@@ -4,7 +4,6 @@ import (
 	. "GoOnchain/client"
 	"GoOnchain/common/log"
 	"GoOnchain/consensus/dbft"
-	. "GoOnchain/core/asset"
 	"GoOnchain/core/ledger"
 	"GoOnchain/core/store"
 	"GoOnchain/core/transaction"
@@ -97,7 +96,7 @@ func main() {
 	fmt.Println("//*** Init Complete                                                      ***")
 	fmt.Println("//**************************************************************************")
 	go httpjsonrpc.StartRPCServer()
-	go httpjsonrpc.StartLocalServer()
+	//go httpjsonrpc.StartLocalServer()
 
 	time.Sleep(2 * time.Second)
 

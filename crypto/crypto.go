@@ -140,11 +140,14 @@ type PubKeySlice []*PubKey
 
 func (p PubKeySlice) Len() int { return len(p) }
 func (p PubKeySlice) Less(i, j int) bool {
-	//TODO:PubKeySlice Less
+	r := p[i].X.Cmp(p[j].X)
+	if r <= 0 {
+		return true
+	}
 	return false
 }
 func (p PubKeySlice) Swap(i, j int) {
-	//TODO:PubKeySlice Swap
+	p[i], p[j] = p[j], p[i]
 }
 
 func Sha256(value []byte) []byte {

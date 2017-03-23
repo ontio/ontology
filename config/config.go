@@ -15,13 +15,11 @@ const (
 type ProtocolConfiguration struct {
 	Magic         int64    `json:"Magic"`
 	CoinVersion   int      `json:"CoinVersion"`
-	StandbyMiners []string `json:"StandbyMiners"`
 	SeedList      []string `json:"SeedList"`
 	HttpJsonPort  int      `json:"HttpJsonPort"`
 	HttpLocalPort int      `json:"HttpLocalPort"`
 	NodePort      int      `json:"NodePort"`
 	WebSocketPort int      `json:"WebSocketPort"`
-	MinerName     string   `json:"MinerName"`
 	PrintLevel    int      `json:"PrintLevel"`
 	IsTLS         bool     `json:"IsTLS"`
 	CertPath      string   `json:"CertPath"`

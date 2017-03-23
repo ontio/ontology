@@ -44,7 +44,6 @@ func NewDbftService(client cl.Client, logDictionary string, localNet net.Neter) 
 	Trace()
 
 	ds := &DbftService{
-		//localNode: localNode,
 		Client:        client,
 		timer:         time.NewTimer(time.Second * 15),
 		started:       false,
@@ -89,9 +88,7 @@ func (ds *DbftService) AddTransaction(TX *tx.Transaction, needVerify bool) error
 	//if enough TXs already added to context, build block and sign/relay
 	if len(ds.context.TransactionHashes) == len(ds.context.Transactions) {
 
-		//Get Miner list
-		txlist := ds.context.GetTransactionList()
-		minerAddress, err := ledger.GetMinerAddress(ledger.DefaultLedger.Blockchain.GetMinersByTXs(txlist))
+		minerAddress, err := ledger.GetMinerAddress(ds.context.Miners)
 		if err != nil {
 			return NewDetailErr(err, ErrNoCode, "[DbftService] ,GetMinerAddress failed")
 		}
@@ -133,7 +130,6 @@ func (ds *DbftService) BlockPersistCompleted(v interface{}) {
 	ds.blockReceivedTime = time.Now()
 
 	go ds.InitializeConsensus(0)
-	//ds.InitializeConsensus(0)
 }
 
 func (ds *DbftService) CheckExpectedView(viewNumber byte) {
@@ -273,7 +269,7 @@ func (ds *DbftService) InitializeConsensus(viewNum byte) error {
 	log.Debug("[InitializeConsensus] viewNum: ", viewNum)
 
 	if viewNum == 0 {
-		ds.context.Reset(ds.Client)
+		ds.context.Reset(ds.Client, ds.localNet)
 	} else {
 		ds.context.ChangeView(viewNum)
 	}
@@ -554,7 +550,6 @@ func (ds *DbftService) Start() error {
 	ds.newInventorySubscriber = ds.localNet.GetEvent("consensus").Subscribe(events.EventNewInventory, ds.LocalNodeNewInventory)
 
 	go ds.InitializeConsensus(0)
-	//ds.InitializeConsensus(0)
 	return nil
 }
 
@@ -626,7 +621,7 @@ func (ds *DbftService) Timeout() {
 			ds.context.Transactions = txMap
 
 			//build block and sign
-			ds.context.NextMiner, _ = ledger.GetMinerAddress(ledger.DefaultLedger.Blockchain.GetMinersByTXs(transactions))
+			ds.context.NextMiner, _ = ledger.GetMinerAddress(ds.context.Miners)
 			block := ds.context.MakeHeader()
 			account, _ := ds.Client.GetAccount(ds.context.Miners[ds.context.MinerIndex]) //TODO: handle error
 			ds.context.Signatures[ds.context.MinerIndex], _ = sig.SignBySigner(block, account)
