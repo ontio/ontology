@@ -1,6 +1,7 @@
 package crypto
 
 import (
+	"GoOnchain/common/serialization"
 	"GoOnchain/crypto/p256r1"
 	"GoOnchain/crypto/sm2"
 	"GoOnchain/crypto/util"
@@ -107,13 +108,31 @@ func Verify(pubkey PubKey, data []byte, signature []byte) (bool, error) {
 }
 
 // Serialize ---
-func (e *PubKey) Serialize(w io.Writer) {
-	//TODO: implement PubKey.serialize
+func (e *PubKey) Serialize(w io.Writer) error {
+	buf := e.X.Bytes()
+	err := serialization.WriteVarBytes(w, buf)
+	if err != nil {
+		return err
+	}
+	buf = e.Y.Bytes()
+	err = serialization.WriteVarBytes(w, buf)
+	return err
 }
 
 // DeSerialize ---
 func (e *PubKey) DeSerialize(r io.Reader) error {
-	//TODO
+	bufx, err := serialization.ReadVarBytes(r)
+	if err != nil {
+		return err
+	}
+	e.X = big.NewInt(0)
+	e.X = e.X.SetBytes(bufx)
+	bufy, err := serialization.ReadVarBytes(r)
+	if err != nil {
+		return err
+	}
+	e.Y = big.NewInt(0)
+	e.Y = e.Y.SetBytes(bufy)
 	return nil
 }
 

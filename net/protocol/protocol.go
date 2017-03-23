@@ -3,6 +3,7 @@ package protocol
 import (
 	"GoOnchain/common"
 	"GoOnchain/core/transaction"
+	"GoOnchain/crypto"
 	"GoOnchain/events"
 	"bytes"
 	"encoding/binary"
@@ -38,12 +39,12 @@ const (
 
 // The node state
 const (
-	INIT        = 0
-	HAND	    = 1
-	HANDSHAKE   = 2
-	HANDSHAKED  = 3
-	ESTABLISH   = 4
-	INACTIVITY  = 5
+	INIT       = 0
+	HAND       = 1
+	HANDSHAKE  = 2
+	HANDSHAKED = 3
+	ESTABLISH  = 4
+	INACTIVITY = 5
 )
 
 type Noder interface {
@@ -78,6 +79,9 @@ type Noder interface {
 	GetTransaction(hash common.Uint256) *transaction.Transaction
 	Xmit(common.Inventory) error
 	SynchronizeTxnPool()
+	GetMinerAddr() *crypto.PubKey
+	GetMinersAddrs() ([]*crypto.PubKey, uint64)
+	SetMinerAddr(pk *crypto.PubKey)
 }
 
 type JsonNoder interface {

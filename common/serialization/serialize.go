@@ -166,10 +166,7 @@ func WriteVarBytes(writer io.Writer, value []byte) error {
 		return err
 	}
 	_, err = writer.Write(value)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func WriteVarString(writer io.Writer, value string) error {
