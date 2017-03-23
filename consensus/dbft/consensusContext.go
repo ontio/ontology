@@ -229,9 +229,10 @@ func (cxt *ConsensusContext) Reset(client cl.Client, localNode net.Neter) {
 	cxt.Signatures = make([][]byte, minerLen)
 	cxt.ExpectedView = make([]byte, minerLen)
 
-	log.Debug("[Consensus Miners] ", cxt.Miners)
+	log.Debug("[Consensus Miners Length] = ", minerLen)
 	for _, v := range cxt.Miners {
 		pubkey, _ := v.EncodePoint(true)
+		log.Debug("[Consensus Miners] = ", pubkey)
 	}
 
 	for i := 0; i < minerLen; i++ {
