@@ -149,10 +149,10 @@ func (msg version) Handle(node Noder) error {
 	localNode.AddNbrNode(node)
 
 	var buf []byte
-	if (s == INIT) {
+	if s == INIT {
 		node.SetState(HANDSHAKE)
 		buf, _ = NewVersion(localNode)
-	} else if (s == HAND) {
+	} else if s == HAND {
 		node.SetState(HANDSHAKED)
 		buf, _ = NewVerack()
 	}

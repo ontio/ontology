@@ -153,7 +153,6 @@ func (node *node) CompareAndSetState(old, new uint32) bool {
 	return atomic.CompareAndSwapUint32(&(node.state), old, new)
 }
 
-
 func (node *node) LocalNode() Noder {
 	return node.local
 }
