@@ -6,7 +6,7 @@ import (
 	"encoding/binary"
 	"crypto/sha256"
 	"math/big"
-	"golang.org/x/crypto/base58"
+	"github.com/tv42/base58"
 	."GoOnchain/errors"
 	"errors"
 )

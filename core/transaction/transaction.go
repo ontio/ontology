@@ -6,7 +6,6 @@ import (
 	"GoOnchain/core/contract"
 	"GoOnchain/core/contract/program"
 	sig "GoOnchain/core/signature"
-	msg "GoOnchain/node/message"
 	"GoOnchain/core/transaction/payload"
 	. "GoOnchain/errors"
 	"crypto/sha256"

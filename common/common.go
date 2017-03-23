@@ -8,9 +8,7 @@ import (
 	"fmt"
 	_ "io"
 	"math/rand"
-
-	"golang.org/x/crypto/ripemd160"
-	//"GoOnchain/common/log"
+	"github.com/golang/crypto/ripemd160"
 	"encoding/hex"
 	"errors"
 	"io"

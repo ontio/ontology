@@ -1,0 +1,27 @@
+hash: 4240fb61a05482ff3f31f9726cc69aaf288fe658c5e31db30d27e4e6bc74210c
+updated: 2017-03-22T19:10:43.050363339+08:00
+imports:
+- name: github.com/golang/crypto
+  version: 459e26527287adbc2adcc5d0d49abff9a5f315a7
+  subpackages:
+  - ripemd160
+- name: github.com/golang/snappy
+  version: 553a641470496b2327abcac10b36396bd98e45c9
+- name: github.com/syndtr/goleveldb
+  version: 3c5717caf1475fd25964109a0fc640bd150fce43
+  subpackages:
+  - leveldb
+  - leveldb/cache
+  - leveldb/comparer
+  - leveldb/errors
+  - leveldb/filter
+  - leveldb/iterator
+  - leveldb/journal
+  - leveldb/memdb
+  - leveldb/opt
+  - leveldb/storage
+  - leveldb/table
+  - leveldb/util
+- name: github.com/tv42/base58
+  version: b6649477bfe6276322b4eeaae8f5e947b49cec92
+testImports: []

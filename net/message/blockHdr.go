@@ -30,9 +30,7 @@ type blkHeader struct {
 func NewHeadersReq(n Noder) ([]byte, error) {
 	var h headersReq
 
-	// Fixme correct with the exactly request length
 	h.p.len = 1
-	//Fixme! Should get the remote Node height.
 	buf := ledger.DefaultLedger.Blockchain.CurrentBlockHash()
 	copy(h.p.hashStart[:], reverse(buf[:]))
 

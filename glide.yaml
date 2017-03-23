@@ -1,0 +1,12 @@
+package: GoOnchain
+import:
+- package: github.com/golang/crypto
+  subpackages:
+  - ripemd160
+- package: github.com/syndtr/goleveldb
+  subpackages:
+  - leveldb
+  - leveldb/errors
+  - leveldb/iterator
+  - leveldb/opt
+- package: github.com/tv42/base58
