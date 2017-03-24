@@ -22,36 +22,29 @@ func getBestBlockHash(req *http.Request, cmd map[string]interface{}) map[string]
 func getBlock(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
 	id := cmd["id"]
 	params := cmd["params"]
-	var block *ledger.Block
 	var err error
-	var b BlockInfo
+	var hash Uint256
 	switch (params.([]interface{})[0]).(type) {
-	case int:
-		index := params.([]interface{})[0].(uint32)
-		hash, _ := ledger.DefaultLedger.Store.GetBlockHash(index)
-		block, err = ledger.DefaultLedger.Store.GetBlock(hash)
-		b = BlockInfo{
-			Hash:      ToHexString(hash.ToArray()),
-			BlockData: block.Blockdata,
+	// the value type is float64 after unmarshal JSON number into an interface value
+	case float64:
+		index := uint32(params.([]interface{})[0].(float64))
+		hash, err = ledger.DefaultLedger.Store.GetBlockHash(index)
+		if err != nil {
+			return responsePacking([]interface{}{-100, "Unknown block hash"}, id)
 		}
 	case string:
-		hash := params.([]interface{})[0].(string)
-		hashslice, _ := hex.DecodeString(hash)
-		var hasharr Uint256
-		hasharr.Deserialize(bytes.NewReader(hashslice[0:32]))
-		block, err = ledger.DefaultLedger.Store.GetBlock(hasharr)
-		b = BlockInfo{
-			Hash:      hash,
-			BlockData: block.Blockdata,
-		}
+		hashstr := params.([]interface{})[0].(string)
+		hashslice, _ := hex.DecodeString(hashstr)
+		hash.Deserialize(bytes.NewReader(hashslice[0:32]))
 	}
-
+	block, err := ledger.DefaultLedger.Store.GetBlock(hash)
 	if err != nil {
-		var erro []interface{} = []interface{}{-100, "Unknown block"}
-		response := responsePacking(erro, id)
-		return response
+		return responsePacking([]interface{}{-100, "Unknown block"}, id)
 	}
-
+	b := BlockInfo{
+		Hash:      ToHexString(hash.ToArray()),
+		BlockData: block.Blockdata,
+	}
 	return responsePacking(b, id)
 }
 

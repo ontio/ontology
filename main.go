@@ -96,7 +96,7 @@ func main() {
 	fmt.Println("//*** Init Complete                                                      ***")
 	fmt.Println("//**************************************************************************")
 	go httpjsonrpc.StartRPCServer()
-	//go httpjsonrpc.StartLocalServer()
+	go httpjsonrpc.StartLocalServer()
 
 	time.Sleep(2 * time.Second)
 
