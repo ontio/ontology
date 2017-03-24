@@ -7,6 +7,7 @@ import (
 	. "GoOnchain/net/protocol"
 	"encoding/json"
 	"io/ioutil"
+	"sync"
 	"log"
 	"net/http"
 	"strings"
@@ -23,6 +24,7 @@ var dBFT *dbft.DbftService
 
 //multiplexer that keeps track of every function to be called on specific rpc call
 type ServeMux struct {
+	sync.RWMutex
 	m               map[string]func(*http.Request, map[string]interface{}) map[string]interface{}
 	defaultFunction func(http.ResponseWriter, *http.Request)
 }
@@ -73,6 +75,8 @@ func RegistDbftService(d *dbft.DbftService) {
 
 //a function to register functions to be called for specific rpc calls
 func HandleFunc(pattern string, handler func(*http.Request, map[string]interface{}) map[string]interface{}) {
+	mainMux.Lock()
+	defer mainMux.Unlock()
 	mainMux.m[pattern] = handler
 }
 
@@ -84,6 +88,8 @@ func SetDefaultFunc(def func(http.ResponseWriter, *http.Request)) {
 //this is the funciton that should be called in order to answer an rpc call
 //should be registered like "http.HandleFunc("/", httpjsonrpc.Handle)"
 func Handle(w http.ResponseWriter, r *http.Request) {
+	mainMux.RLock()
+	defer mainMux.RUnlock()
 	//JSON RPC commands should be POSTs
 	if r.Method != "POST" {
 		if mainMux.defaultFunction != nil {
