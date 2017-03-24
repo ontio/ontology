@@ -9,7 +9,6 @@ import (
 	"GoOnchain/core/asset"
 	"GoOnchain/core/contract"
 	"GoOnchain/common"
-	"GoOnchain/common/log"
 )
 
 var DefaultLedger *Ledger
@@ -20,23 +19,6 @@ type Ledger struct {
 	Blockchain *Blockchain
 	State      *State
 	Store      ILedgerStore
-}
-
-//Start the Ledger with GenesisBlock.
-func (l *Ledger)NewBlockchainWithGenesisBlock() (*Blockchain,error) {
-	var err error
-	l.Blockchain = NewBlockchain()
-
-	l.Blockchain.GenesisBlock,err=GenesisBlockInit()
-	if err != nil{
-		return nil,NewDetailErr(err, ErrNoCode, "[Blockchain], NewBlockchainWithGenesisBlock failed.")
-	}
-	l.Blockchain.GenesisBlock.RebuildMerkleRoot()
-	hashx :=l.Blockchain.GenesisBlock.Hash()
-	l.Blockchain.GenesisBlock.hash = &hashx
-	log.Info("BlockChain.GenesisBlock",hashx)
-	l.Store.InitLevelDBStoreWithGenesisBlock(l.Blockchain.GenesisBlock)
-	return l.Blockchain,nil
 }
 
 //check weather the transaction contains the doubleSpend.

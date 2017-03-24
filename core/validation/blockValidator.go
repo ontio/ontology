@@ -9,7 +9,7 @@ import (
 )
 
 func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error {
-	if ld.Blockchain.ContainsBlock(block.Hash()) {
+	if block.Blockdata.Height ==0 {
 		return nil
 	}
 	err := VerifyBlockData(block.Blockdata,ld)
@@ -56,7 +56,7 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 }
 
 func VerifyBlockData(bd *ledger.Blockdata, ledger *ledger.Ledger) error {
-	if ledger.Blockchain.ContainsBlock(bd.Hash()) {
+	if bd.Height == 0 {
 		return nil
 	}
 
