@@ -163,7 +163,7 @@ func CreateGenesisBlock(miners []*crypto.PubKey) error {
 	}
 	hashx := genesisBlock.Hash()
 	genesisBlock.hash = &hashx
-	err = DefaultLedger.Blockchain.AddBlock(genesisBlock)
+	DefaultLedger.Store.InitLevelDBStoreWithGenesisBlock(genesisBlock)
 	if err != nil {
 		return err
 	}
