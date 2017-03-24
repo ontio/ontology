@@ -37,6 +37,7 @@ type Param struct {
 	Start           bool   // start service
 	Stop            bool   // stop service
 	NodeState       bool   // node state
+	Tx              bool   // Transaction test case
 	RPCID           int64  // RPC ID, use int64 by default
 }
 
@@ -52,6 +53,7 @@ func registerFlags(f *flag.FlagSet) {
 	f.BoolVar(&p.Neighbor, "neighbor", false, "neighbor nodes information")
 	f.BoolVar(&p.NodeState, "state", false, "node state")
 	f.BoolVar(&p.Start, "start", false, "start service")
+	f.BoolVar(&p.Tx, "tx", false, "send a sample transaction")
 	f.BoolVar(&p.Stop, "stop", false, "stop service")
 }
 

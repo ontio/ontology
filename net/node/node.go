@@ -6,6 +6,7 @@ import (
 	. "GoOnchain/config"
 	"GoOnchain/core/ledger"
 	"GoOnchain/core/transaction"
+	"GoOnchain/crypto"
 	. "GoOnchain/net/message"
 	. "GoOnchain/net/protocol"
 	"errors"
@@ -26,13 +27,14 @@ const (
 
 type node struct {
 	//sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
-	state    uint32 // node state
-	id       uint64 // The nodes's id
-	cap      uint32 // The node capability set
-	version  uint32 // The network protocol the node used
-	services uint64 // The services the node supplied
-	relay    bool   // The relay capability of the node (merge into capbility flag)
-	height   uint64 // The node latest block height
+	state     uint32 // node state
+	id        uint64 // The nodes's id
+	cap       uint32 // The node capability set
+	version   uint32 // The network protocol the node used
+	services  uint64 // The services the node supplied
+	relay     bool   // The relay capability of the node (merge into capbility flag)
+	height    uint64 // The node latest block height
+	publicKey *crypto.PubKey
 	// TODO does this channel should be a buffer channel
 	chF        chan func() error // Channel used to operate the node without lock
 	link                         // The link status and infomation
@@ -84,7 +86,7 @@ func NewNode() *node {
 	return &n
 }
 
-func InitNode() Noder {
+func InitNode(pubKey *crypto.PubKey) Noder {
 	n := NewNode()
 
 	n.version = PROTOCOLVERSION
@@ -97,6 +99,7 @@ func InitNode() Noder {
 	fmt.Printf("Init node ID to 0x%0x \n", n.id)
 	n.nbrNodes.init()
 	n.local = n
+	n.publicKey = pubKey
 	n.TXNPool.init()
 	n.eventQueue.init()
 
@@ -229,7 +232,7 @@ func (node node) GetAddr16() ([16]byte, error) {
 	var result [16]byte
 	ip := net.ParseIP(node.addr).To16()
 	if ip == nil {
-		fmt.Printf("Parse IP address error\n")
+		log.Error("Parse IP address error\n")
 		return result, errors.New("Parse IP address error")
 	}
 
@@ -240,4 +243,28 @@ func (node node) GetAddr16() ([16]byte, error) {
 func (node node) GetTime() int64 {
 	t := time.Now()
 	return t.UnixNano()
+}
+
+func (node node) GetMinerAddr() *crypto.PubKey {
+	return node.publicKey
+}
+
+func (node node) GetMinersAddrs() ([]*crypto.PubKey, uint64) {
+	pks := make([]*crypto.PubKey, 1)
+	pks[0] = node.publicKey
+	var i uint64
+	i = 1
+	//TODO read lock
+	for _, n := range node.nbrNodes.List {
+		if n.GetState() == ESTABLISH {
+			pktmp := n.GetMinerAddr()
+			pks = append(pks, pktmp)
+			i++
+		}
+	}
+	return pks, i
+}
+
+func (node *node) SetMinerAddr(pk *crypto.PubKey) {
+	node.publicKey = pk
 }

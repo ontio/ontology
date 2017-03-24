@@ -8,6 +8,7 @@ import (
 	"GoOnchain/core/contract/program"
 	"GoOnchain/core/ledger"
 	sig "GoOnchain/core/signature"
+	"GoOnchain/crypto"
 	. "GoOnchain/errors"
 	"GoOnchain/events"
 	. "GoOnchain/net/protocol"
@@ -17,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strconv"
 )
 
 type ConsensusPayload struct {
@@ -27,6 +27,7 @@ type ConsensusPayload struct {
 	MinerIndex uint16
 	Timestamp  uint32
 	Data       []byte
+	Owner      *crypto.PubKey
 	Program    *program.Program
 
 	hash common.Uint256
@@ -53,17 +54,15 @@ func (cp *ConsensusPayload) InvertoryType() common.InventoryType {
 
 func (cp *ConsensusPayload) GetProgramHashes() ([]common.Uint160, error) {
 	common.Trace()
+
 	if ledger.DefaultLedger == nil {
 		return nil, errors.New("The Default ledger not exists.")
 	}
 	if cp.PrevHash != ledger.DefaultLedger.Store.GetCurrentBlockHash() {
 		return nil, errors.New("The PreHash Not matched.")
 	}
-	miners := ledger.DefaultLedger.Blockchain.GetMiners()
-	if uint16(len(miners)) <= cp.MinerIndex {
-		return nil, errors.New("MinerIndex invalidate. miners lengths=" + strconv.Itoa(len(miners)) + "MinerIndex =" + strconv.Itoa(int(cp.MinerIndex)))
-	}
-	contract, err := contract.CreateSignatureContract(miners[cp.MinerIndex])
+
+	contract, err := contract.CreateSignatureContract(cp.Owner)
 	hash := contract.ProgramHash
 	fmt.Println("program hash== ", hash)
 
@@ -136,7 +135,8 @@ func (cp *ConsensusPayload) SerializeUnsigned(w io.Writer) error {
 	serialization.WriteUint32(w, cp.Height)
 	serialization.WriteUint16(w, cp.MinerIndex)
 	serialization.WriteUint32(w, cp.Timestamp)
-	err := serialization.WriteVarBytes(w, cp.Data)
+	serialization.WriteVarBytes(w, cp.Data)
+	err := cp.Owner.Serialize(w)
 	if err != nil {
 		return err
 	}
@@ -206,6 +206,14 @@ func (cp *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
 		log.Info("consensus item Data Deserialize failed.")
 		return errors.New("consensus item Data Deserialize failed.")
 	}
+	pk := new(crypto.PubKey)
+	err = pk.DeSerialize(r)
+	if err != nil {
+		log.Info("consensus item Owner deserialize failed.")
+		return errors.New("consensus item Owner deserialize failed.")
+	}
+	cp.Owner = pk
+
 	common.Trace()
 	return nil
 }

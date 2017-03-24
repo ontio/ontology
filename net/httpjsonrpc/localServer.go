@@ -17,15 +17,11 @@ func StartLocalServer() {
 	Trace()
 	http.HandleFunc(LocalDir, Handle)
 
-	HandleFunc("getbestblockhash", getBestBlockHash)
-	HandleFunc("getblock", getBlock)
-	HandleFunc("getblockcount", getBlockCount)
-	HandleFunc("getblockhash", getBlockHash)
-	HandleFunc("getconnectioncount", getConnectionCount)
 	HandleFunc("getneighbor", getNeighbor)
 	HandleFunc("getnodestate", getNodeState)
 	HandleFunc("startconsensus", startConsensus)
 	HandleFunc("stopconsensus", stopConsensus)
+	HandleFunc("sendsampletransaction", sendSampleTransaction)
 
 	// TODO: only listen to local host
 	err := http.ListenAndServe(":"+strconv.Itoa(Parameters.HttpLocalPort), nil)

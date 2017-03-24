@@ -2,9 +2,11 @@ package httpjsonrpc
 
 import (
 	. "GoOnchain/common"
+	"GoOnchain/common/log"
 	"GoOnchain/core/ledger"
 	tx "GoOnchain/core/transaction"
 	"bytes"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"net/http"
@@ -153,7 +155,7 @@ func getNeighbor(req *http.Request, cmd map[string]interface{}) map[string]inter
 
 func getNodeState(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
 	id := cmd["id"]
-	n := NodeInfo {
+	n := NodeInfo{
 		State:    uint(node.GetState()),
 		Time:     node.GetTime(),
 		Port:     node.GetPort(),
@@ -188,4 +190,32 @@ func stopConsensus(req *http.Request, cmd map[string]interface{}) map[string]int
 		response = responsePacking("Consensus Stopped", id)
 	}
 	return response
+}
+
+func sendSampleTransaction(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
+	var response map[string]interface{}
+	id := cmd["id"]
+	params, err := base64.StdEncoding.DecodeString(cmd["params"].([]interface{})[0].(string))
+	buf := bytes.NewBuffer(params)
+	var t tx.Transaction
+	if err = t.Deserialize(buf); err != nil {
+		response = responsePacking("Unmarshal Sample TX error", id)
+		return response
+	}
+
+	log.Debug("---------------------------")
+	log.Debug("Transaction:")
+	log.Debug("Transaction Type:", t.TxType)
+	log.Debug("Transaction Nonce:", t.Nonce)
+	for _, v := range t.Programs {
+		log.Debug("Transaction Program Code:", v.Code)
+		log.Debug("Transaction Program Parameter:", v.Parameter)
+	}
+	log.Debug("---------------------------")
+
+	if err = node.Xmit(&t); err != nil {
+		response = responsePacking("Xmit Sample TX error", id)
+		return response
+	}
+	return responsePacking("Transaction Sended", id)
 }
