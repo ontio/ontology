@@ -2,15 +2,15 @@ package ledger
 
 import (
 	. "GoOnchain/common"
-	"GoOnchain/common/log"
 	"GoOnchain/common/serialization"
 	"GoOnchain/core/contract/program"
 	tx "GoOnchain/core/transaction"
 	"GoOnchain/crypto"
 	. "GoOnchain/errors"
-	"GoOnchain/vm"
 	"io"
 	"time"
+	"GoOnchain/vm"
+	"GoOnchain/common/log"
 )
 
 type Block struct {
@@ -92,6 +92,7 @@ func (b *Block) Hash() Uint256 {
 }
 
 func (b *Block) Verify() error {
+	log.Info("This function is expired.please use Validation/blockValidator to Verify Block.")
 	return nil
 }
 
@@ -99,21 +100,20 @@ func (b *Block) Type() InventoryType {
 	return BLOCK
 }
 
-func GenesisBlockInit(miners []*crypto.PubKey) (*Block, error) {
+func GenesisBlockInit() (*Block,error){
 	genesisBlock := new(Block)
 	//blockdata
 	genesisBlockdata := new(Blockdata)
 	genesisBlockdata.Version = uint32(0x00)
 	genesisBlockdata.PrevBlockHash = Uint256{}
 	genesisBlockdata.TransactionsRoot = Uint256{}
-	tm := time.Date(2017, time.February, 23, 0, 0, 0, 0, time.UTC)
+	tm:=time.Date(2017, time.February, 23, 0, 0, 0, 0, time.UTC)
 	genesisBlockdata.Timestamp = uint32(tm.Unix())
 	genesisBlockdata.Height = uint32(0)
 	genesisBlockdata.ConsensusData = uint64(2083236893)
-
-	nextMiner, err := GetMinerAddress(miners)
-	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Block],GenesisBlockInit err with GetMinerAddress")
+	nextMiner,err :=GetMinerAddress(StandbyMiners)
+	if err != nil{
+		return nil,NewDetailErr(err, ErrNoCode, "[Block],GenesisBlockInit err with GetMinerAddress")
 	}
 	genesisBlockdata.NextMiner = nextMiner
 
@@ -144,45 +144,23 @@ func GenesisBlockInit(miners []*crypto.PubKey) (*Block, error) {
 	}
 	genesisBlock.Blockdata = genesisBlockdata
 
-	Transcations := []*tx.Transaction{}
-	Transcations = append(Transcations, trans)
-	genesisBlock.Transcations = Transcations
+	genesisBlock.Transcations = append(genesisBlock.Transcations,trans)
 
 	//hashx := genesisBlock.Hash()
 
-	return genesisBlock, nil
+	return genesisBlock,nil
 }
-
-func CreateGenesisBlock(miners []*crypto.PubKey) error {
-	genesisBlock, err := GenesisBlockInit(miners)
-	if err != nil {
-		log.Error("Init Genesis Block Error")
-		return err
-	}
-	err = genesisBlock.RebuildMerkleRoot()
-	if err != nil {
-		return err
-	}
-	hashx := genesisBlock.Hash()
-	genesisBlock.hash = &hashx
-	err = DefaultLedger.Blockchain.AddBlock(genesisBlock)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (b *Block) RebuildMerkleRoot() error {
+func (b *Block)RebuildMerkleRoot()(error){
 	txs := b.Transcations
 	transactionHashes := []Uint256{}
-	for _, tx := range txs {
-		transactionHashes = append(transactionHashes, tx.Hash())
+	for _, tx :=  range txs{
+		transactionHashes = append(transactionHashes,tx.Hash())
 	}
-	hash, err := crypto.ComputeRoot(transactionHashes)
-	if err != nil {
+	hash,err := crypto.ComputeRoot(transactionHashes)
+	if err!=nil{
 		return NewDetailErr(err, ErrNoCode, "[Block] , RebuildMerkleRoot ComputeRoot failed.")
 	}
-	b.Blockdata.TransactionsRoot = hash
+	b.Blockdata.TransactionsRoot =hash
 	return nil
 
 }

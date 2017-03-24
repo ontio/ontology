@@ -9,6 +9,7 @@ import (
 	"io"
 )
 
+//AssetType
 type AssetType byte
 
 const (
@@ -20,6 +21,7 @@ const (
 
 type AssetRecordType byte
 
+//onchain DNA is planed to support UTXO and Balance
 const (
 	UTXO    AssetRecordType = 0x00
 	Balance AssetRecordType = 0x01
@@ -35,6 +37,7 @@ type Asset struct {
 	RecordType AssetRecordType
 }
 
+// Serialize is the implement of SignableData interface.
 func (a *Asset) Serialize(w io.Writer) error {
 	a.ID.Serialize(w)
 	err := serialization.WriteVarString(w, a.Name)
@@ -56,6 +59,7 @@ func (a *Asset) Serialize(w io.Writer) error {
 	return nil
 }
 
+// Deserialize is the implement of SignableData interface.
 func (a *Asset) Deserialize(r io.Reader) error {
 	a.ID.Deserialize(r)
 	vars, err := serialization.ReadVarString(r)
