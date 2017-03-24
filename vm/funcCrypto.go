@@ -64,7 +64,7 @@ func opCheckMultiSig(e *ExecutionEngine) (VMState,error) {
 	if e.Stack.Count() < m {return FAULT,nil}
 
 	signatures := make([][] byte,m)
-	for i := 0; i < n; i++ {signatures[i] = e.Stack.Pop().GetBytes()}
+	for i := 0; i < m; i++ {signatures[i] = e.Stack.Pop().GetBytes()}
 
 	message := e.signable.GetMessage()
 	fSuccess := true
