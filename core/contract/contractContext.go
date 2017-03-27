@@ -1,12 +1,12 @@
 package contract
 
 import (
-	. "GoOnchain/common"
-	"GoOnchain/common/log"
-	pg "GoOnchain/core/contract/program"
-	sig "GoOnchain/core/signature"
-	"GoOnchain/crypto"
-	_ "GoOnchain/errors"
+	. "DNA/common"
+	"DNA/common/log"
+	pg "DNA/core/contract/program"
+	sig "DNA/core/signature"
+	"DNA/crypto"
+	_ "DNA/errors"
 	"errors"
 	"fmt"
 	_ "fmt"

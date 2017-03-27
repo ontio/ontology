@@ -1,8 +1,8 @@
 package crypto
 
 import (
-	. "GoOnchain/common"
-	. "GoOnchain/errors"
+	. "DNA/common"
+	. "DNA/errors"
 	"bytes"
 	"crypto/sha256"
 	"errors"

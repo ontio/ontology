@@ -1,7 +1,7 @@
 package consensus
 
 import (
-	. "GoOnchain/common"
+	. "DNA/common"
 )
 type Policy struct {
 	PolicyLevel PolicyLevel

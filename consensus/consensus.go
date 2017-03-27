@@ -2,7 +2,7 @@ package consensus
 
 import (
 	"fmt"
-	"GoOnchain/common/log"
+	"DNA/common/log"
 	"time"
 )
 

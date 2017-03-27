@@ -1,10 +1,10 @@
 package ledger
 
 import (
-	. "GoOnchain/common"
-	"GoOnchain/common/log"
-	. "GoOnchain/errors"
-	"GoOnchain/events"
+	. "DNA/common"
+	"DNA/common/log"
+	. "DNA/errors"
+	"DNA/events"
 	"sync"
 )
 

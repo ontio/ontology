@@ -2,9 +2,9 @@ package program
 
 import (
 	"bytes"
-	"GoOnchain/vm"
+	"DNA/vm"
 	"math/big"
-	. "GoOnchain/common"
+	. "DNA/common"
 )
 
 type ProgramBuilder struct {

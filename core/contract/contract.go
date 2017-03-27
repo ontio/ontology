@@ -1,12 +1,12 @@
 package contract
 
 import (
-	. "GoOnchain/common"
-	"GoOnchain/vm"
+	. "DNA/common"
+	"DNA/vm"
 	"io"
 	"bytes"
-	"GoOnchain/common/serialization"
-	. "GoOnchain/errors"
+	"DNA/common/serialization"
+	. "DNA/errors"
 	"errors"
 )
 

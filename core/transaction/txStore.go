@@ -1,7 +1,7 @@
 package transaction
 
 import (
-. "GoOnchain/common"
+. "DNA/common"
 )
 
 // ILedgerStore provides func with store package.

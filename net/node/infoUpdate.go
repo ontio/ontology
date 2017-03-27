@@ -1,9 +1,9 @@
 package node
 
 import (
-	"GoOnchain/core/ledger"
-	. "GoOnchain/net/message"
-	. "GoOnchain/net/protocol"
+	"DNA/core/ledger"
+	. "DNA/net/message"
+	. "DNA/net/protocol"
 	"time"
 )
 

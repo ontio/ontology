@@ -1,7 +1,7 @@
 package node
 
 import (
-	"GoOnchain/common"
+	"DNA/common"
 	"sync"
 )
 

@@ -1,12 +1,12 @@
 package main
 
 import (
-	"GoOnchain/common/log"
-	"GoOnchain/crypto"
-	"GoOnchain/utility"
-	"GoOnchain/utility/consensus"
-	"GoOnchain/utility/info"
-	"GoOnchain/utility/test"
+	"DNA/common/log"
+	"DNA/crypto"
+	"DNA/utility"
+	"DNA/utility/consensus"
+	"DNA/utility/info"
+	"DNA/utility/test"
 	"os"
 )
 

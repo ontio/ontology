@@ -1,11 +1,11 @@
 package validation
 
 import (
-	. "GoOnchain/common"
-	sig "GoOnchain/core/signature"
-	"GoOnchain/crypto"
-	. "GoOnchain/errors"
-	"GoOnchain/vm"
+	. "DNA/common"
+	sig "DNA/core/signature"
+	"DNA/crypto"
+	. "DNA/errors"
+	"DNA/vm"
 	"errors"
 )
 

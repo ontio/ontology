@@ -1,10 +1,10 @@
 package httpjsonrpc
 
 import (
-	"GoOnchain/consensus/dbft"
-	"GoOnchain/core/ledger"
-	tx "GoOnchain/core/transaction"
-	. "GoOnchain/net/protocol"
+	"DNA/consensus/dbft"
+	"DNA/core/ledger"
+	tx "DNA/core/transaction"
+	. "DNA/net/protocol"
 	"encoding/json"
 	"io/ioutil"
 	"sync"

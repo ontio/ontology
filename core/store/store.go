@@ -1,8 +1,8 @@
 package store
 
 import(
-	. "GoOnchain/core/ledger"
-	. "GoOnchain/core/store/LevelDBStore"
+	. "DNA/core/ledger"
+	. "DNA/core/store/LevelDBStore"
 )
 
 func NewLedgerStore() ILedgerStore {

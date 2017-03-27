@@ -1,9 +1,9 @@
 package ledger
 
 import (
-	. "GoOnchain/common"
-	. "GoOnchain/core/asset"
-	tx "GoOnchain/core/transaction"
+	. "DNA/common"
+	. "DNA/core/asset"
+	tx "DNA/core/transaction"
 )
 
 // ILedgerStore provides func with store package.

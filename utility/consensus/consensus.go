@@ -1,8 +1,8 @@
 package consensus
 
 import (
-	"GoOnchain/net/httpjsonrpc"
-	"GoOnchain/utility"
+	"DNA/net/httpjsonrpc"
+	"DNA/utility"
 	"errors"
 	"fmt"
 	"os"

@@ -1,7 +1,7 @@
 package common
 
 import (
-	. "GoOnchain/errors"
+	. "DNA/errors"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"

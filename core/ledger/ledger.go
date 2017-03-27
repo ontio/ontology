@@ -1,14 +1,14 @@
 package ledger
 
 import (
-	. "GoOnchain/common"
-	tx "GoOnchain/core/transaction"
-	"GoOnchain/crypto"
-	. "GoOnchain/errors"
+	. "DNA/common"
+	tx "DNA/core/transaction"
+	"DNA/crypto"
+	. "DNA/errors"
 	"errors"
-	"GoOnchain/core/asset"
-	"GoOnchain/core/contract"
-	"GoOnchain/common"
+	"DNA/core/asset"
+	"DNA/core/contract"
+	"DNA/common"
 )
 
 var DefaultLedger *Ledger

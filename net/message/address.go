@@ -1,9 +1,9 @@
 package message
 
 import (
-	"GoOnchain/common"
-	"GoOnchain/common/log"
-	. "GoOnchain/net/protocol"
+	"DNA/common"
+	"DNA/common/log"
+	. "DNA/net/protocol"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"

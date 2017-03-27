@@ -1,5 +1,5 @@
-hash: 4240fb61a05482ff3f31f9726cc69aaf288fe658c5e31db30d27e4e6bc74210c
-updated: 2017-03-22T19:10:43.050363339+08:00
+hash: 86d80ea3fe335b0cdd73049f9f3e329a3240ebee90e0cfe6f300fe2591dcd7b9
+updated: 2017-03-27T18:51:41.898303878+08:00
 imports:
 - name: github.com/golang/crypto
   version: 459e26527287adbc2adcc5d0d49abff9a5f315a7

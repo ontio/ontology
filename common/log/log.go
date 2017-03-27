@@ -1,8 +1,8 @@
 package log
 
 import (
-	. "GoOnchain/common"
-	"GoOnchain/config"
+	. "DNA/common"
+	"DNA/config"
 	"fmt"
 	"io"
 	"log"

@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The onchain DNA core team
+Copyright 2016 The DNA Dev team
 
 The go-vm library is free software: you can redistribute it and/or modify
 it under the terms of the APACHA License

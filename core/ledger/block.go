@@ -1,16 +1,16 @@
 package ledger
 
 import (
-	. "GoOnchain/common"
-	"GoOnchain/common/serialization"
-	"GoOnchain/core/contract/program"
-	tx "GoOnchain/core/transaction"
-	"GoOnchain/crypto"
-	. "GoOnchain/errors"
+	. "DNA/common"
+	"DNA/common/serialization"
+	"DNA/core/contract/program"
+	tx "DNA/core/transaction"
+	"DNA/crypto"
+	. "DNA/errors"
 	"io"
 	"time"
-	"GoOnchain/vm"
-	"GoOnchain/common/log"
+	"DNA/vm"
+	"DNA/common/log"
 )
 
 type Block struct {

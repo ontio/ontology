@@ -1,10 +1,10 @@
 package httpjsonrpc
 
 import (
-	. "GoOnchain/common"
-	"GoOnchain/common/log"
-	"GoOnchain/core/ledger"
-	tx "GoOnchain/core/transaction"
+	. "DNA/common"
+	"DNA/common/log"
+	"DNA/core/ledger"
+	tx "DNA/core/transaction"
 	"bytes"
 	"encoding/base64"
 	"encoding/hex"

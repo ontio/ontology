@@ -1,10 +1,9 @@
 package asset
 
 import (
-	"GoOnchain/common"
-	"GoOnchain/common/serialization"
-	. "GoOnchain/errors"
-	//"GoOnchain/core/ledger"
+	"DNA/common"
+	"DNA/common/serialization"
+	. "DNA/errors"
 	"errors"
 	"io"
 )

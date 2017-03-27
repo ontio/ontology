@@ -1,7 +1,7 @@
 package node
 
 import (
-	"GoOnchain/events"
+	"DNA/events"
 	"fmt"
 )
 

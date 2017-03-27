@@ -1,8 +1,8 @@
 package vm
 
 import (
-	"GoOnchain/crypto"
-	. "GoOnchain/errors"
+	"DNA/crypto"
+	. "DNA/errors"
 	"errors"
 	"fmt"
 )

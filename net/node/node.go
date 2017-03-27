@@ -1,14 +1,14 @@
 package node
 
 import (
-	"GoOnchain/common"
-	"GoOnchain/common/log"
-	. "GoOnchain/config"
-	"GoOnchain/core/ledger"
-	"GoOnchain/core/transaction"
-	"GoOnchain/crypto"
-	. "GoOnchain/net/message"
-	. "GoOnchain/net/protocol"
+	"DNA/common"
+	"DNA/common/log"
+	. "DNA/config"
+	"DNA/core/ledger"
+	"DNA/core/transaction"
+	"DNA/crypto"
+	. "DNA/net/message"
+	. "DNA/net/protocol"
 	"errors"
 	"fmt"
 	"math/rand"

@@ -1,10 +1,10 @@
 package protocol
 
 import (
-	"GoOnchain/common"
-	"GoOnchain/core/transaction"
-	"GoOnchain/crypto"
-	"GoOnchain/events"
+	"DNA/common"
+	"DNA/core/transaction"
+	"DNA/crypto"
+	"DNA/events"
 	"bytes"
 	"encoding/binary"
 	"time"

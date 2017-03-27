@@ -1,8 +1,8 @@
 package info
 
 import (
-	"GoOnchain/net/httpjsonrpc"
-	"GoOnchain/utility"
+	"DNA/net/httpjsonrpc"
+	"DNA/utility"
 	"fmt"
 	"os"
 )

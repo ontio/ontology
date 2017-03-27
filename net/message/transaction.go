@@ -1,11 +1,11 @@
 package message
 
 import (
-	"GoOnchain/common"
-	"GoOnchain/common/log"
-	"GoOnchain/core/ledger"
-	"GoOnchain/core/transaction"
-	. "GoOnchain/net/protocol"
+	"DNA/common"
+	"DNA/common/log"
+	"DNA/core/ledger"
+	"DNA/core/transaction"
+	. "DNA/net/protocol"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"

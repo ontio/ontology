@@ -1,9 +1,9 @@
 package client
 
 import (
-	"GoOnchain/crypto"
-	. "GoOnchain/common"
-	. "GoOnchain/errors"
+	"DNA/crypto"
+	. "DNA/common"
+	. "DNA/errors"
 	"errors"
 )
 

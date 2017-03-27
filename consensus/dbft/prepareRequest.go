@@ -2,12 +2,12 @@ package dbft
 
 import (
 	"io"
-	. "GoOnchain/common"
-	. "GoOnchain/errors"
-	ser "GoOnchain/common/serialization"
-	tx "GoOnchain/core/transaction"
+	. "DNA/common"
+	. "DNA/errors"
+	ser "DNA/common/serialization"
+	tx "DNA/core/transaction"
 	"fmt"
-	"GoOnchain/common/log"
+	"DNA/common/log"
 )
 
 type PrepareRequest struct {

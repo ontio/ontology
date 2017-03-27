@@ -1,8 +1,8 @@
 package httpjsonrpc
 
 import (
-	. "GoOnchain/common"
-	. "GoOnchain/config"
+	. "DNA/common"
+	. "DNA/config"
 	"log"
 	"net/http"
 	"strconv"

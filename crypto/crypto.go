@@ -1,10 +1,10 @@
 package crypto
 
 import (
-	"GoOnchain/common/serialization"
-	"GoOnchain/crypto/p256r1"
-	"GoOnchain/crypto/sm2"
-	"GoOnchain/crypto/util"
+	"DNA/common/serialization"
+	"DNA/crypto/p256r1"
+	"DNA/crypto/sm2"
+	"DNA/crypto/util"
 	"crypto/sha256"
 	"errors"
 	"fmt"

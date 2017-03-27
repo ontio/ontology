@@ -1,11 +1,10 @@
 package client
 
 import (
-	ct "GoOnchain/core/contract"
-	//. "GoOnchain/common"
+	ct "DNA/core/contract"
 	"fmt"
 	"os"
-	. "GoOnchain/errors"
+	. "DNA/errors"
 	"errors"
 	"encoding/json"
 	"io/ioutil"

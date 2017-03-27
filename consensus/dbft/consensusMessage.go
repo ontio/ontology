@@ -1,13 +1,13 @@
 package dbft
 
 import (
-	ser "GoOnchain/common/serialization"
-	tx "GoOnchain/core/transaction"
+	ser "DNA/common/serialization"
+	tx "DNA/core/transaction"
 	"io"
 	"bytes"
 	"errors"
-	. "GoOnchain/common"
-	"GoOnchain/common/log"
+	. "DNA/common"
+	"DNA/common/log"
 )
 
 type ConsensusMessage interface {

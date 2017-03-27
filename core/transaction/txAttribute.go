@@ -1,8 +1,8 @@
 package transaction
 
 import (
-	"GoOnchain/common/serialization"
-	. "GoOnchain/errors"
+	"DNA/common/serialization"
+	. "DNA/errors"
 	"io"
 )
 

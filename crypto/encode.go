@@ -1,7 +1,7 @@
 package crypto
 
 import (
-	. "GoOnchain/errors"
+	. "DNA/errors"
 	"crypto/elliptic"
 	"crypto/rand"
 	"errors"

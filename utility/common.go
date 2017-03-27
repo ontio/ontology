@@ -1,8 +1,8 @@
 package utility
 
 import (
-	"GoOnchain/config"
-	"GoOnchain/net/httpjsonrpc"
+	"DNA/config"
+	"DNA/net/httpjsonrpc"
 	"bytes"
 	"encoding/json"
 	"errors"

@@ -1,9 +1,9 @@
 package validation
 
 import (
-	"GoOnchain/core/ledger"
-	tx "GoOnchain/core/transaction"
-	. "GoOnchain/errors"
+	"DNA/core/ledger"
+	tx "DNA/core/transaction"
+	. "DNA/errors"
 	"errors"
 	"fmt"
 )

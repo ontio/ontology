@@ -1,12 +1,12 @@
 package contract
 
 import (
-	"GoOnchain/crypto"
-	"GoOnchain/vm"
-	. "GoOnchain/common"
-	pg "GoOnchain/core/contract/program"
+	"DNA/crypto"
+	"DNA/vm"
+	. "DNA/common"
+	pg "DNA/core/contract/program"
 	"math/big"
-	. "GoOnchain/errors"
+	. "DNA/errors"
 	"sort"
 )
 

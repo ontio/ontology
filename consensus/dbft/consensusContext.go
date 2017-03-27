@@ -1,14 +1,14 @@
 package dbft
 
 import (
-	cl "GoOnchain/client"
-	. "GoOnchain/common"
-	ser "GoOnchain/common/serialization"
-	"GoOnchain/core/ledger"
-	tx "GoOnchain/core/transaction"
-	"GoOnchain/crypto"
-	"GoOnchain/net"
-	msg "GoOnchain/net/message"
+	cl "DNA/client"
+	. "DNA/common"
+	ser "DNA/common/serialization"
+	"DNA/core/ledger"
+	tx "DNA/core/transaction"
+	"DNA/crypto"
+	"DNA/net"
+	msg "DNA/net/message"
 	"fmt"
 	"sort"
 	"sync"

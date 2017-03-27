@@ -1,4 +1,4 @@
-package: GoOnchain
+package: DNA
 import:
 - package: github.com/golang/crypto
   subpackages:

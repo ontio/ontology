@@ -5,8 +5,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"testing"
-	//"github.com/syndtr/goleveldb/leveldb/opt"
-	. "GoOnchain/common"
+	. "DNA/common"
 )
 
 var ldbs * LevelDBStore

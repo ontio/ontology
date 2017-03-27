@@ -1,7 +1,7 @@
 package sm2
 
 import (
-	"GoOnchain/crypto/util"
+	"DNA/crypto/util"
 	"crypto/elliptic"
 	"crypto/rand"
 	"errors"

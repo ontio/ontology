@@ -1,13 +1,13 @@
 package net
 
 import (
-	"GoOnchain/common"
-	"GoOnchain/config"
-	"GoOnchain/core/transaction"
-	"GoOnchain/crypto"
-	"GoOnchain/events"
-	"GoOnchain/net/node"
-	"GoOnchain/net/protocol"
+	"DNA/common"
+	"DNA/config"
+	"DNA/core/transaction"
+	"DNA/crypto"
+	"DNA/events"
+	"DNA/net/node"
+	"DNA/net/protocol"
 )
 
 type Neter interface {

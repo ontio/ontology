@@ -1,7 +1,7 @@
 package node
 
 import (
-	. "GoOnchain/net/protocol"
+	. "DNA/net/protocol"
 	"fmt"
 	"sync"
 )

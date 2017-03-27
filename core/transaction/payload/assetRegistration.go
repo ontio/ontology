@@ -1,11 +1,11 @@
 package payload
 
 import (
-	"GoOnchain/common"
-	"GoOnchain/core/asset"
-	"GoOnchain/crypto"
+	"DNA/common"
+	"DNA/core/asset"
+	"DNA/crypto"
 	"io"
-	. "GoOnchain/errors"
+	. "DNA/errors"
 
 )
 

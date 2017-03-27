@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	_ "fmt"
-	."GoOnchain/errors"
+	."DNA/errors"
 	"errors"
 )
 

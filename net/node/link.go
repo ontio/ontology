@@ -1,11 +1,11 @@
 package node
 
 import (
-	"GoOnchain/common"
-	"GoOnchain/common/log"
-	. "GoOnchain/config"
-	. "GoOnchain/net/message"
-	. "GoOnchain/net/protocol"
+	"DNA/common"
+	"DNA/common/log"
+	. "DNA/config"
+	. "DNA/net/message"
+	. "DNA/net/protocol"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
@@ -297,37 +297,3 @@ func (node node) Tx(buf []byte) {
 		log.Error("Error sending messge to peer node ", err.Error())
 	}
 }
-
-// func (net net) Xmit(inv Inventory) error {
-// 	//if (!KnownHashes.Add(inventory.Hash)) return false;
-// 	t := inv.Type()
-// 	switch t {
-// 	case BLOCK:
-//                 if (Blockchain.Default == null) {
-// 			return false
-// 		}
-//                 Block block = (Block)inventory;
-//                 if (Blockchain.Default.ContainsBlock(block.Hash)) {
-// 			return false;
-// 		}
-//                 if (!Blockchain.Default.AddBlock(block)) {
-// 			return false;
-// 		}
-// 	case TRANSACTION:
-// 		if (!AddTransaction((Transaction)inventory)) {
-// 			return false
-// 		}
-// 	case CONSENSUS:
-//                 if (!inventory.Verify()) {
-// 			return false
-// 		}
-// 	default:
-// 		fmt.Print("Unknow inventory type/n")
-// 		return errors.New("Unknow inventory type/n")
-// 	}
-
-// 	RelayCache.Add(inventory);
-// 	foreach (RemoteNode node in connectedPeers)
-// 	relayed |= node.Relay(inventory);
-// 	NewInventory.Invoke(this, inventory);
-// }

@@ -1,7 +1,7 @@
 package signature
 
 import (
-	"GoOnchain/crypto"
+	"DNA/crypto"
 )
 
 //Signer is the abstract interface of user's information(Keys) for signing data.

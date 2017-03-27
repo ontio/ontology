@@ -1,13 +1,13 @@
 package transaction
 
 import (
-	. "GoOnchain/common"
-	"GoOnchain/common/serialization"
-	"GoOnchain/core/contract"
-	"GoOnchain/core/contract/program"
-	sig "GoOnchain/core/signature"
-	"GoOnchain/core/transaction/payload"
-	. "GoOnchain/errors"
+	. "DNA/common"
+	"DNA/common/serialization"
+	"DNA/core/contract"
+	"DNA/core/contract/program"
+	sig "DNA/core/signature"
+	"DNA/core/transaction/payload"
+	. "DNA/errors"
 	"crypto/sha256"
 	"errors"
 	"io"

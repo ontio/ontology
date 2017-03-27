@@ -1,7 +1,7 @@
 package crypto
 
 import (
-	. "GoOnchain/common"
+	. "DNA/common"
 	"crypto/sha256"
 	"fmt"
 	"testing"

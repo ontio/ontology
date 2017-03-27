@@ -6,7 +6,7 @@ import (
 	"crypto/cipher"
 	"bytes"
 	"crypto/sha256"
-	. "GoOnchain/common"
+	. "DNA/common"
 )
 
 func ToAesKey( pwd []byte ) []byte {
