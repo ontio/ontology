@@ -125,7 +125,7 @@ func (msg blkHeader) Handle(node Noder) error {
 	for i := 0; i < int(msg.cnt); i++ {
 		var header ledger.Header
 		header.Blockdata = &msg.blkHdr[i]
-		err := ledger.DefaultLedger.Store.SaveHeader(&header)
+		err := ledger.DefaultLedger.Store.SaveHeader(&header, ledger.DefaultLedger)
 		if err != nil {
 			log.Warn("Add block Header error")
 			return errors.New("Add block Header error\n")
