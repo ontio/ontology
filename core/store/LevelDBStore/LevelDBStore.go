@@ -23,7 +23,7 @@ type LevelDBStore struct {
 	b  *leveldb.Batch
 	it *Iterator
 
-	header_index map[uint32]*Uint256
+	header_index map[uint32]Uint256
 	//header_cache map[Uint256]*Blockdata
 	block_cache map[Uint256]*Block
 
@@ -57,7 +57,7 @@ func NewLevelDBStore(file string) (*LevelDBStore, error) {
 		db: db,
 		b: nil,
 		it: nil,
-		header_index: map[uint32]*Uint256{},
+		header_index: map[uint32]Uint256{},
 		//header_cache: map[Uint256]*Blockdata{},
 		block_cache: map[Uint256]*Block{},
 		current_block_height: 0,
@@ -66,7 +66,7 @@ func NewLevelDBStore(file string) (*LevelDBStore, error) {
 
 func (bd *LevelDBStore) InitLevelDBStoreWithGenesisBlock( genesisblock * Block  ) {
 	hash := genesisblock.Hash()
-	bd.header_index[0] = &hash
+	bd.header_index[0] = hash
 	bd.persist( genesisblock )
 }
 
@@ -182,7 +182,7 @@ func (bd *LevelDBStore) GetBlockHash(height uint32) (Uint256, error) {
 
 func (bd *LevelDBStore) GetCurrentBlockHash() Uint256 {
 
-	return *bd.header_index[bd.current_block_height]
+	return bd.header_index[bd.current_block_height]
 }
 
 func (bd *LevelDBStore) GetContract(hash []byte) ([]byte, error) {
@@ -545,7 +545,7 @@ func (bd *LevelDBStore) onAddHeader(header *Blockdata, batch *leveldb.Batch) {
 	fmt.Printf( "onAddHeader(), Height=%d\n", header.Height )
 
 	hash := header.Hash()
-	bd.header_index[header.Height] = &hash
+	bd.header_index[header.Height] = hash
 	for (header.Height - bd.stored_header_count >= 2000) {
 		hashbuffer := new(bytes.Buffer)
 		serialization.WriteVarUint(hashbuffer,uint64(2000))
@@ -553,7 +553,8 @@ func (bd *LevelDBStore) onAddHeader(header *Blockdata, batch *leveldb.Batch) {
 		for i:=0; i<2000; i++ {
 			index := bd.stored_header_count + uint32(i)
 			//fmt.Println("index:",index)
-			thehash := bd.header_index[index].ToArray()
+			thash := bd.header_index[index]
+			thehash := thash.ToArray()
 			hasharray = append(hasharray,thehash...)
 			//fmt.Printf("%x\n",thehash)
 		}
@@ -616,10 +617,10 @@ func (bd *LevelDBStore) persistBlocks() {
 
 	hash := bd.header_index[bd.current_block_height + 1]
 
-	block,ok := bd.block_cache[*hash]
+	block,ok := bd.block_cache[hash]
 	if ok {
 		bd.persist(block)
-		delete( bd.block_cache, *hash )
+		delete( bd.block_cache, hash )
 
 		//TODO: PersistCompleted
 	}
@@ -642,19 +643,17 @@ func (bd *LevelDBStore) SaveBlock(b *Block,ledger *Ledger) error {
 
 	if b.Blockdata.Height == uint32(len(bd.header_index)) {
 		//Block verify
-		/*
 		// TO TEST Verify func
 		err := validation.VerifyBlock(b,ledger,true)
 		if err != nil {
 			fmt.Println("VerifyBlock() error!")
 			return err
 		}
-		*/
 
 		batch := new(leveldb.Batch)
 		bd.onAddHeader(b.Blockdata,batch)
 		fmt.Println( "batch dump: ", batch.Dump() )
-		err := bd.db.Write(batch, nil)
+		err = bd.db.Write(batch, nil)
 		if err != nil {
 			return err
 		}
