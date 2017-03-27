@@ -140,19 +140,14 @@ func (ds *DbftService) CheckExpectedView(viewNumber byte) {
 
 	//check the count for same view number
 	count := 0
-	for i, expectedViewNumber := range ds.context.ExpectedView {
-		log.Debug(fmt.Sprintf("[CheckExpectedView] ExpectedView #%d: %d", i, expectedViewNumber))
+	for _, expectedViewNumber := range ds.context.ExpectedView {
 		if expectedViewNumber == viewNumber {
 			count++
 		}
 	}
 
-	log.Debug("[CheckExpectedView] same view number count: ", count)
-	log.Debug("[CheckExpectedView] ds.context.M(): ", ds.context.M())
-
 	M := ds.context.M()
 	if count >= M {
-
 		log.Debug("[CheckExpectedView] Begin InitializeConsensus.")
 		go ds.InitializeConsensus(viewNumber)
 		//ds.InitializeConsensus(viewNumber)
@@ -279,9 +274,6 @@ func (ds *DbftService) InitializeConsensus(viewNum byte) error {
 		return NewDetailErr(errors.New("Miner Index incorrect"), ErrNoCode, "")
 	}
 
-	log.Debug("ds.context.MinerIndex ", ds.context.MinerIndex)
-	log.Debug("ds.context.PrimaryIndex ", ds.context.PrimaryIndex)
-
 	if ds.context.MinerIndex == int(ds.context.PrimaryIndex) {
 
 		//primary peer
@@ -357,10 +349,6 @@ func (ds *DbftService) NewConsensusPayload(payload *msg.ConsensusPayload) {
 	}
 
 	if message.ViewNumber() != ds.context.ViewNumber && message.Type() != ChangeViewMsg {
-		fmt.Printf("message.ViewNumber()=%d\n", message.ViewNumber())
-		fmt.Printf("ds.context.ViewNumber=%d\n", ds.context.ViewNumber)
-		fmt.Printf("message.Type()=%d\n", message.Type())
-		fmt.Printf("ChangeViewMsg=%d\n", ChangeViewMsg)
 		return
 	}
 
@@ -407,19 +395,15 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, mes
 	log.Info(fmt.Sprintf("Prepare Request Received: height=%d View=%d index=%d tx=%d", payload.Height, message.ViewNumber(), payload.MinerIndex, len(message.TransactionHashes)))
 
 	if !ds.context.State.HasFlag(Backup) || ds.context.State.HasFlag(RequestReceived) {
-		log.Debug("PrepareRequestReceived ds.context.State.HasFlag(Backup)=", ds.context.State.HasFlag(Backup))
-		log.Debug("PrepareRequestReceived ds.context.State.HasFlag(RequestReceived)=", ds.context.State.HasFlag(RequestReceived))
 		return
 	}
 
 	if uint32(payload.MinerIndex) != ds.context.PrimaryIndex {
-		log.Debug("PrepareRequestReceived uint32(payload.MinerIndex)=", uint32(payload.MinerIndex))
-		log.Debug("PrepareRequestReceived ds.context.PrimaryIndex=", ds.context.PrimaryIndex)
 		return
 	}
 	header, err := ledger.DefaultLedger.Blockchain.GetHeader(ds.context.PrevHash)
 	if err != nil {
-		fmt.Println("PrepareRequestReceived GetHeader failed with ds.context.PrevHash", ds.context.PrevHash)
+		log.Info("PrepareRequestReceived GetHeader failed with ds.context.PrevHash", ds.context.PrevHash)
 	}
 
 	Trace()
@@ -450,7 +434,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, mes
 	for _, hash := range ds.context.TransactionHashes[1:] {
 		if transaction, ok := mempool[hash]; ok {
 			if err := ds.AddTransaction(transaction, false); err != nil {
-				fmt.Println("PrepareRequestReceived AddTransaction failed.")
+				log.Info("PrepareRequestReceived AddTransaction failed.")
 				return
 			}
 		}
@@ -577,11 +561,8 @@ func (ds *DbftService) Timeout() {
 		if !ds.context.State.HasFlag(SignatureSent) {
 
 			//do signature
-
 			now := uint32(time.Now().Unix())
-			fmt.Println("ds.context.PrevHash", ds.context.PrevHash)
 			header, _ := ledger.DefaultLedger.Blockchain.GetHeader(ds.context.PrevHash)
-			fmt.Println(" ledger.DefaultLedger.Blockchain.GetHeader(ds.context.PrevHash)", header)
 
 			//set context Timestamp
 			blockTime := header.Blockdata.Timestamp + 1

@@ -3,7 +3,6 @@ package dbft
 import (
 	cl "GoOnchain/client"
 	. "GoOnchain/common"
-	"GoOnchain/common/log"
 	ser "GoOnchain/common/serialization"
 	"GoOnchain/core/ledger"
 	tx "GoOnchain/core/transaction"
@@ -162,15 +161,11 @@ func (cxt *ConsensusContext) GetSignaturesCount() (count int) {
 
 func (cxt *ConsensusContext) GetTransactionList() []*tx.Transaction {
 	Trace()
-	log.Info("len(cxt.txlist)=", len(cxt.txlist))
 	if cxt.txlist == nil {
 		cxt.txlist = []*tx.Transaction{}
-		fmt.Println("cxt.Transactions=", cxt.Transactions)
 		for _, TX := range cxt.Transactions {
 			cxt.txlist = append(cxt.txlist, TX)
-			fmt.Println("transaction added to cxt.Transactions.", TX)
 		}
-		fmt.Println("len cxt.transacionts", len(cxt.Transactions))
 	}
 	return cxt.txlist
 }
@@ -219,7 +214,6 @@ func (cxt *ConsensusContext) Reset(client cl.Client, localNode net.Neter) {
 
 	miners, _ := localNode.GetMinersAddrs()
 	cxt.Owner = miners[0]
-	log.Debug("[Public Key] =", cxt.Owner)
 	sort.Sort(crypto.PubKeySlice(miners))
 	cxt.Miners = miners
 
@@ -229,12 +223,6 @@ func (cxt *ConsensusContext) Reset(client cl.Client, localNode net.Neter) {
 	cxt.Signatures = make([][]byte, minerLen)
 	cxt.ExpectedView = make([]byte, minerLen)
 
-	log.Debug("[Consensus Miners Length] = ", minerLen)
-	for _, v := range cxt.Miners {
-		pubkey, _ := v.EncodePoint(true)
-		log.Debug("[Consensus Miners] = ", pubkey)
-	}
-
 	for i := 0; i < minerLen; i++ {
 		ac, _ := client.GetDefaultAccount()
 		if ac.PublicKey.X.Cmp(cxt.Miners[i].X) == 0 {
@@ -243,6 +231,5 @@ func (cxt *ConsensusContext) Reset(client cl.Client, localNode net.Neter) {
 		}
 	}
 
-	log.Debug("cxt.MinerIndex = ", cxt.MinerIndex)
 	cxt.header = nil
 }

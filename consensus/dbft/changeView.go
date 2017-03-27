@@ -10,7 +10,6 @@ type ChangeView struct {
 	NewViewNumber byte
 }
 
-
 func (cv *ChangeView) Serialize(w io.Writer)error{
 	cv.msgData.Serialize(w)
 	w.Write([]byte{cv.NewViewNumber})

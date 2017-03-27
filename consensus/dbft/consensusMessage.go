@@ -10,7 +10,6 @@ import (
 	"GoOnchain/common/log"
 )
 
-
 type ConsensusMessage interface {
 	ser.SerializableData
 	Type() ConsensusMessageType
