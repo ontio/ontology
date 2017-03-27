@@ -193,7 +193,7 @@ func (bd *LevelDBStore) GetContract(hash []byte) ([]byte, error) {
 		return nil, err_get
 	}
 
-	fmt.Println("GetContract Data: ", bData)
+	log.Debug("GetContract Data: ", bData)
 
 	return bData,nil
 }
@@ -279,9 +279,9 @@ func (bd *LevelDBStore) GetHeader(hash Uint256) (*Header, error) {
 	h.Blockdata.Program = new(program.Program)
 
 	prefix := []byte{ byte(DATA_Header) }
-	fmt.Println( "GetHeader Data:", hash.ToArray() )
+	log.Debug( "GetHeader Data:", hash.ToArray() )
 	data,err_get := bd.Get( append(prefix,hash.ToArray()...) )
-	//fmt.Printf( "Get Header Data: %x\n",  data )
+	//log.Debug( "Get Header Data: %x\n",  data )
 	if ( err_get != nil ) {
 		//TODO: implement error process
 		return nil, err_get
@@ -291,10 +291,16 @@ func (bd *LevelDBStore) GetHeader(hash Uint256) (*Header, error) {
 
 	// first 8 bytes is sys_fee
 	sysfee,err := serialization.ReadUint64(r)
-	fmt.Printf( "sysfee: %d\n",  sysfee )
+	if err != nil {
+		return nil, err
+	}
+	log.Debug( fmt.Sprintf("sysfee: %d\n",  sysfee) )
 
 	// Deserialize block data
 	err = h.Deserialize( r )
+	if err != nil {
+		return nil, err
+	}
 
 	return h,err
 }
@@ -311,7 +317,7 @@ func (bd *LevelDBStore) SaveAsset(asset *Asset) error {
 	// contact asset id
 	asset.ID.Serialize(assetkey)
 
-	fmt.Printf( "asset key: %x\n",  assetkey )
+	log.Debug( fmt.Sprintf("asset key: %x\n",  assetkey) )
 
 	// PUT VALUE
 	err := bd.Put( assetkey.Bytes(), w.Bytes() )
@@ -323,14 +329,14 @@ func (bd *LevelDBStore) SaveAsset(asset *Asset) error {
 }
 
 func (bd *LevelDBStore) GetAsset(hash Uint256) (*Asset, error) {
-	fmt.Printf( "GetAsset Hash: %x\n",  hash )
+	log.Debug( fmt.Sprintf("GetAsset Hash: %x\n",  hash) )
 
 	asset := new(Asset)
 
 	prefix := []byte{ byte(ST_QuantityIssued) }
 	data,err_get := bd.Get( append(prefix,hash.ToArray()...) )
 
-	fmt.Printf( "GetAsset Data: %x\n",  data )
+	log.Debug( fmt.Sprintf("GetAsset Data: %x\n",  data) )
 	if ( err_get != nil ) {
 		//TODO: implement error process
 		return nil, err_get
@@ -374,7 +380,7 @@ func (bd *LevelDBStore) GetTransaction(hash Uint256) (*tx.Transaction, error) {
 func (bd *LevelDBStore) getTx(tx *tx.Transaction, hash Uint256) error {
 	prefix := []byte{ byte(DATA_Transaction) }
 	tHash, err_get := bd.Get( append(prefix,hash.ToArray()...) )
-	//log.Debug("getTx Data: %x\n", tHash)
+	//log.Debug(fmt.Sprintf("getTx Data: %x\n", tHash))
 	if ( err_get != nil ) {
 		//TODO: implement error process
 		log.Warn("Get TX from DB error")
@@ -384,12 +390,15 @@ func (bd *LevelDBStore) getTx(tx *tx.Transaction, hash Uint256) error {
 	r := bytes.NewReader(tHash)
 
 	// get height
-	_, err := serialization.ReadUint32(r)
-	//height, err := serialization.ReadUint32(r)
-	//log.Debug("tx height: %d\n",  height)
+	//_, err := serialization.ReadUint32(r)
+	height, err := serialization.ReadUint32(r)
+	if err != nil {
+		return err
+	}
+	log.Debug(fmt.Sprintf("tx height: %d\n",  height))
 
 	// Deserialize Transaction
-	tx.Deserialize(r)
+	err = tx.Deserialize(r)
 
 	return err
 }
@@ -404,13 +413,13 @@ func (bd *LevelDBStore) SaveTransaction(tx *tx.Transaction,height uint32) error 
 	// get transaction hash
 	txHashValue := tx.Hash()
 	txHashValue.Serialize(txhash)
-	fmt.Printf( "transaction header + hash: %x\n",  txhash )
+	log.Debug( fmt.Sprintf("transaction header + hash: %x\n",  txhash) )
 
 	// generate value
 	w := bytes.NewBuffer(nil)
 	serialization.WriteUint32(w, height)
 	tx.Serialize(w)
-	fmt.Printf( "transaction tx data: %x\n",  w )
+	log.Debug( fmt.Sprintf("transaction tx data: %x\n",  w) )
 
 	// put value
 	err := bd.Put( txhash.Bytes(), w.Bytes() )
@@ -430,29 +439,37 @@ func (bd *LevelDBStore) GetBlock(hash Uint256) (*Block, error) {
 
 	prefix := []byte{ byte(DATA_Header) }
 	bHash,err_get := bd.Get( append(prefix,hash.ToArray()...) )
-	fmt.Printf("GetBlock Data: %x\n",  bHash)
-	//log.Debug("GetBlock Data: %x\n",  bHash)
 	if ( err_get != nil ) {
 		//TODO: implement error process
 		return nil, err_get
 	}
+	log.Debug(fmt.Sprintf("GetBlock Data: %x\n",  bHash))
 
 	r := bytes.NewReader(bHash)
 
 	// first 8 bytes is sys_fee
-	_,err := serialization.ReadUint64(r)
-	//sysfee,err := serialization.ReadUint64(r)
-	//log.Debug("sysfee: %d\n",  sysfee)
+	//_,err := serialization.ReadUint64(r)
+	sysfee,err := serialization.ReadUint64(r)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug(fmt.Sprintf("sysfee: %d\n",  sysfee))
 
 	// Deserialize block data
 	err = b.Deserialize( r )
+	if err != nil {
+		return nil, err
+	}
 
 	// Deserialize transaction
 	for i:=0; i<len(b.Transcations); i++ {
-		bd.getTx(b.Transcations[i], b.Transcations[i].Hash())
+		err = bd.getTx(b.Transcations[i], b.Transcations[i].Hash())
+		if err != nil {
+			return nil,err
+		}
 	}
 
-	return b, err
+	return b, nil
 }
 
 func (bd *LevelDBStore) persist(b *Block) error {
@@ -465,7 +482,7 @@ func (bd *LevelDBStore) persist(b *Block) error {
 	// calc block hash
 	blockhash := b.Hash()
 	blockhash.Serialize(bhhash)
-	fmt.Printf( "block header + hash: %x\n",  bhhash )
+	log.Debug( fmt.Sprintf("block header + hash: %x\n",  bhhash) )
 
 	// generate value
 	w := bytes.NewBuffer(nil)
@@ -484,13 +501,16 @@ func (bd *LevelDBStore) persist(b *Block) error {
 	bhash := bytes.NewBuffer(nil)
 	bhash.WriteByte( byte(DATA_BlockHash) )
 	err = serialization.WriteUint32( bhash, b.Blockdata.Height )
-	fmt.Printf( "DATA_BlockHash table key: %x\n",  bhash )
+	if err != nil {
+		return err
+	}
+	log.Debug( fmt.Sprintf("DATA_BlockHash table key: %x\n",  bhash) )
 
 	// generate value
 	hashwriter := bytes.NewBuffer(nil)
 	hashvalue := b.Blockdata.Hash()
 	hashvalue.Serialize(hashwriter)
-	fmt.Printf( "DATA_BlockHash table value: %x\n",  hashvalue )
+	log.Debug( fmt.Sprintf("DATA_BlockHash table value: %x\n",  hashvalue) )
 
 	// PUT VALUE
 	err = bd.Put( bhash.Bytes(), hashwriter.Bytes() )
@@ -542,7 +562,7 @@ func (bd *LevelDBStore) persist(b *Block) error {
 }
 
 func (bd *LevelDBStore) onAddHeader(header *Blockdata, batch *leveldb.Batch) {
-	fmt.Printf( "onAddHeader(), Height=%d\n", header.Height )
+	log.Debug( fmt.Sprintf("onAddHeader(), Height=%d\n", header.Height) )
 
 	hash := header.Hash()
 	bd.header_index[header.Height] = hash
@@ -580,13 +600,13 @@ func (bd *LevelDBStore) onAddHeader(header *Blockdata, batch *leveldb.Batch) {
 	// contact block hash
 	blockhash := header.Hash()
 	blockhash.Serialize(headerkey)
-	fmt.Printf( "header key: %x\n",  headerkey )
+	log.Debug( fmt.Sprintf("header key: %x\n",  headerkey) )
 	//fmt.Println( "header key:",  headerkey.Bytes() )
 
 	// generate value
 	w := bytes.NewBuffer(nil)
 	header.Serialize(w)
-	fmt.Printf( "header data: %x\n",  w )
+	log.Debug( fmt.Sprintf("header data: %x\n",  w) )
 	//fmt.Println( "header data:",  w.Bytes() )
 
 	// PUT VALUE
@@ -608,7 +628,7 @@ func (bd *LevelDBStore) onAddHeader(header *Blockdata, batch *leveldb.Batch) {
 }
 
 func (bd *LevelDBStore) persistBlocks() {
-	fmt.Println( "persistBlocks()" )
+	log.Debug( "persistBlocks()" )
 
 	if (uint32(len(bd.header_index)) <= bd.current_block_height + 1) {
 		fmt.Printf( "[persistBlocks]: error, header_index.count < current_block_height + 1" )
@@ -627,7 +647,7 @@ func (bd *LevelDBStore) persistBlocks() {
 }
 
 func (bd *LevelDBStore) SaveBlock(b *Block,ledger *Ledger) error {
-	fmt.Println( "SaveBlock()" )
+	log.Debug( "SaveBlock()" )
 
 	bd.mutex.Lock()
 	defer bd.mutex.Unlock()
@@ -646,13 +666,13 @@ func (bd *LevelDBStore) SaveBlock(b *Block,ledger *Ledger) error {
 		// TO TEST Verify func
 		err := validation.VerifyBlock(b,ledger,true)
 		if err != nil {
-			fmt.Println("VerifyBlock() error!")
+			log.Debug("VerifyBlock() error!")
 			return err
 		}
 
 		batch := new(leveldb.Batch)
 		bd.onAddHeader(b.Blockdata,batch)
-		fmt.Println( "batch dump: ", batch.Dump() )
+		log.Debug( "batch dump: ", batch.Dump() )
 		err = bd.db.Write(batch, nil)
 		if err != nil {
 			return err
