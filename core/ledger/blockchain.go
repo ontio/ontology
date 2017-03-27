@@ -19,7 +19,7 @@ type Blockchain struct {
 func NewBlockchain() *Blockchain {
 	return &Blockchain{
 		BlockHeight: 0,
-		BCEvents:   events.NewEvent(),
+		BCEvents:    events.NewEvent(),
 	}
 }
 
@@ -34,7 +34,7 @@ func (bc *Blockchain) AddBlock(block *Block) error {
 	}
 
 	// Need atomic oepratoion
-	bc.BlockHeight = bc.BlockHeight +1
+	bc.BlockHeight = bc.BlockHeight + 1
 
 	return nil
 }
@@ -48,19 +48,19 @@ func (bc *Blockchain) AddBlock(block *Block) error {
 //	return false
 //}
 
-func (bc *Blockchain) GetHeader(hash Uint256) (*Header,error) {
-	 header,err:=DefaultLedger.Store.GetHeader(hash)
-	if err != nil{
+func (bc *Blockchain) GetHeader(hash Uint256) (*Header, error) {
+	header, err := DefaultLedger.Store.GetHeader(hash)
+	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[Blockchain], GetHeader failed.")
 	}
-	return header,nil
+	return header, nil
 }
 
 func (bc *Blockchain) SaveBlock(block *Block) error {
 	Trace()
-	err := DefaultLedger.Store.SaveBlock(block,DefaultLedger)
+	err := DefaultLedger.Store.SaveBlock(block, DefaultLedger)
 	if err != nil {
-		log.Error("Save block failure ,err=",err)
+		log.Error("Save block failure ,err=", err)
 		return err
 	}
 	bc.BCEvents.Notify(events.EventBlockPersistCompleted, block)
@@ -70,8 +70,8 @@ func (bc *Blockchain) SaveBlock(block *Block) error {
 
 func (bc *Blockchain) ContainsTransaction(hash Uint256) bool {
 	//TODO: implement error catch
-	_ ,err := DefaultLedger.Store.GetTransaction(hash)
-	if (err!= nil){
+	_, err := DefaultLedger.Store.GetTransaction(hash)
+	if err != nil {
 		return false
 	}
 	return true
