@@ -3,8 +3,6 @@ package ledger
 import (
 	. "GoOnchain/common"
 	"GoOnchain/common/log"
-	tx "GoOnchain/core/transaction"
-	"GoOnchain/crypto"
 	. "GoOnchain/errors"
 	"GoOnchain/events"
 	"sync"
@@ -75,14 +73,6 @@ func (bc *Blockchain) ContainsTransaction(hash Uint256) bool {
 		return false
 	}
 	return true
-}
-
-func (bc *Blockchain) GetMinersByTXs(others []*tx.Transaction) []*crypto.PubKey {
-	return StandbyMiners
-}
-
-func (bc *Blockchain) GetMiners() []*crypto.PubKey {
-	return StandbyMiners
 }
 
 func (bc *Blockchain) CurrentBlockHash() Uint256 {

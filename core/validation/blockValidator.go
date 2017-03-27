@@ -31,6 +31,7 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 
 	//verfiy block's transactions
 	if completely {
+	/*
 		mineraddress, err := ledger.GetMinerAddress(ld.Blockchain.GetMinersByTXs(block.Transcations))
 		if err != nil {
 			return errors.New(fmt.Sprintf("GetMinerAddress Failed."))
@@ -38,6 +39,7 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 		if block.Blockdata.NextMiner != mineraddress {
 			return errors.New(fmt.Sprintf("Miner is not validate."))
 		}
+	*/
 		for _, txVerify := range block.Transcations {
 			transpool := []*tx.Transaction{}
 			for _, tx := range block.Transcations {
