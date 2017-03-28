@@ -654,7 +654,6 @@ func (bd *LevelDBStore) SaveBlock(b *Block, ledger *Ledger) error {
 	if bd.block_cache[b.Hash()] == nil {
 		bd.block_cache[b.Hash()] = b
 	}
-	bd.persistBlocks()
 
 	if b.Blockdata.Height-uint32(len(bd.header_index)) >= 1 {
 		//return false,NewDetailErr(errors.New(fmt.Sprintf("WARNING: [SaveBlock] block height - header_index.count >= 1, block height:%d, header_index.count:%d",b.Blockdata.Height, uint32(len(bd.header_index)) )),ErrDuplicatedBlock,"")
