@@ -6,15 +6,13 @@ DNA is the golang implementation of a decentralized and distributed network prot
 
 ## Features
 
-The target of DNA is supporting following features：
-
 * 可扩展通用智能合约平台 / Extendable Generalduty Lightweight Smart Contract
 * 跨链协议 / Crosschain Interactive Protocol
-* 抗量子攻击 / Quantum-Resistant Cryptography
-* 国密算法支持SM系列支持 / China National Crypto Standard
-* 零配置组网出块 / Zero Configuration Kickoff Networks
+* 抗量子攻击 / Quantum-Resistant Cryptography (optional module)
+* 国密算法支持SM系列支持 / China National Crypto Standard (optional module)
+* 零配置组网出块 / Zero Configuration Kickoff Networks (Ongoing)
 * 高度优化交易处理速度 ／ High Optimization of TPS
-* 分布式数据存储IPFS集成方案 ／ IPFS Dentralizaed Storing & Sharing files solution integration
+* 分布式数据存储IPFS集成方案 ／ IPFS Dentralizaed Storing & Sharing files solution integration (TBD)
 * 链接通道加密，CA节点认证可控 / P2P link layer encryption, node access privilege controlling
 * 可插拔共识模块 / Multiple Consensus Algorithm(DBFT/RBFT/SBFT) support
 * 动态区块生成时间 / Telescopic Block Generation Time
@@ -221,9 +219,7 @@ We provide two ways to subscribe:
 # Community
 Most technical topics could be found at our forum
 
-
-* https://www.DNAdevel.org
-
+* https://forum.DNAproject.org
 
 # License
 
