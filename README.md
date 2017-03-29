@@ -223,4 +223,4 @@ Most technical topics could be found at our forum
 
 # License
 
-Apache License Version 2.0
+DNA is licensed under the Apache License, Version 2.0. See LICENSE for the full license text.
