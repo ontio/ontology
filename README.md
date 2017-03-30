@@ -1,7 +1,7 @@
-# DNA
+[![Build Status](https://travis-ci.org/DNAProject/DNA.svg?branch=master)](https://travis-ci.org/DNAProject/DNA)
 
+# DNA (Distributed Networks Architecture)
 
-## Distributed Networks Architecture
 DNA is the golang implementation of a decentralized and distributed network protocol which is based on blockchain technology. It can be used for digitalize assets or shares and accomplish some financial business through peer-to-peer network such as registration, issuing, making transactions, settlement, payment and notary, etc.
 
 ## Features
@@ -20,9 +20,6 @@ DNA is the golang implementation of a decentralized and distributed network prot
 * 可配置化经济激励模型 / Configurable Economic Incentive
 * 可配置分区共识机制 / Configable sharding Consensus
 * 可配置策略控制 / Configable Policy Management
-
-## Status
-[![Build Status](https://travis-ci.org/DNAProject/DNA.svg?branch=master)](https://travis-ci.org/DNAProject/DNA)
 
 # Building
 The requirements to build DNA are:
