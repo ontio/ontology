@@ -22,9 +22,7 @@ DNA is the golang implementation of a decentralized and distributed network prot
 * 可配置策略控制 / Configable Policy Management
 
 ## Status
-[![Go Report Card](https://goreportcard.com/badge/github.com/dreamfly281/GoOnchain)](https://goreportcard.com/report/github.com/dreamfly281/GoOnchain)
-[![Build Status](https://travis-ci.org/dreamfly281/GoOnchain.png)](https://travis-ci.org/dreamfly281/GoOnchain)
-
+[![Build Status](https://travis-ci.org/DNAProject/DNA.svg?branch=master)](https://travis-ci.org/DNAProject/DNA)
 
 # Building
 The requirements to build DNA are:

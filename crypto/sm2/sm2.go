@@ -1,7 +1,7 @@
 package sm2
 
 import (
-	"DNA/crypto/util"
+	"github.com/DNAProject/DNA/crypto/util"
 	"crypto/elliptic"
 	"crypto/rand"
 	"errors"

@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	_ "fmt"
-	."DNA/errors"
+	."github.com/DNAProject/DNA/errors"
 	"errors"
 )
 

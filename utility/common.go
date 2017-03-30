@@ -1,8 +1,8 @@
 package utility
 
 import (
-	"DNA/config"
-	"DNA/net/httpjsonrpc"
+	"github.com/DNAProject/DNA/config"
+	"github.com/DNAProject/DNA/net/httpjsonrpc"
 	"bytes"
 	"encoding/json"
 	"errors"

@@ -1,14 +1,14 @@
 package ledger
 
 import (
-	. "DNA/common"
-	tx "DNA/core/transaction"
-	"DNA/crypto"
-	. "DNA/errors"
+	. "github.com/DNAProject/DNA/common"
+	tx "github.com/DNAProject/DNA/core/transaction"
+	"github.com/DNAProject/DNA/crypto"
+	. "github.com/DNAProject/DNA/errors"
 	"errors"
-	"DNA/core/asset"
-	"DNA/core/contract"
-	"DNA/common"
+	"github.com/DNAProject/DNA/core/asset"
+	"github.com/DNAProject/DNA/core/contract"
+	"github.com/DNAProject/DNA/common"
 )
 
 var DefaultLedger *Ledger

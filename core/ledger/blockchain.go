@@ -1,10 +1,10 @@
 package ledger
 
 import (
-	. "DNA/common"
-	"DNA/common/log"
-	. "DNA/errors"
-	"DNA/events"
+	. "github.com/DNAProject/DNA/common"
+	"github.com/DNAProject/DNA/common/log"
+	. "github.com/DNAProject/DNA/errors"
+	"github.com/DNAProject/DNA/events"
 	"sync"
 )
 

@@ -1,8 +1,8 @@
 package vm
 
 import (
-	"DNA/crypto"
-	. "DNA/errors"
+	"github.com/DNAProject/DNA/crypto"
+	. "github.com/DNAProject/DNA/errors"
 	"errors"
 	"fmt"
 )

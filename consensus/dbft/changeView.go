@@ -2,7 +2,7 @@ package dbft
 
 import (
 	"io"
-	ser "DNA/common/serialization"
+	ser "github.com/DNAProject/DNA/common/serialization"
 )
 
 type ChangeView struct {

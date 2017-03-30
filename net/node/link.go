@@ -1,11 +1,11 @@
 package node
 
 import (
-	"DNA/common"
-	"DNA/common/log"
-	. "DNA/config"
-	. "DNA/net/message"
-	. "DNA/net/protocol"
+	"github.com/DNAProject/DNA/common"
+	"github.com/DNAProject/DNA/common/log"
+	. "github.com/DNAProject/DNA/config"
+	. "github.com/DNAProject/DNA/net/message"
+	. "github.com/DNAProject/DNA/net/protocol"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"

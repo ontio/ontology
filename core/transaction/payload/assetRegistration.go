@@ -1,11 +1,11 @@
 package payload
 
 import (
-	"DNA/common"
-	"DNA/core/asset"
-	"DNA/crypto"
+	"github.com/DNAProject/DNA/common"
+	"github.com/DNAProject/DNA/core/asset"
+	"github.com/DNAProject/DNA/crypto"
 	"io"
-	. "DNA/errors"
+	. "github.com/DNAProject/DNA/errors"
 
 )
 

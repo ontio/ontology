@@ -1,11 +1,11 @@
 package validation
 
 import (
-	. "DNA/common"
-	sig "DNA/core/signature"
-	"DNA/crypto"
-	. "DNA/errors"
-	"DNA/vm"
+	. "github.com/DNAProject/DNA/common"
+	sig "github.com/DNAProject/DNA/core/signature"
+	"github.com/DNAProject/DNA/crypto"
+	. "github.com/DNAProject/DNA/errors"
+	"github.com/DNAProject/DNA/vm"
 	"errors"
 )
 

@@ -1,10 +1,10 @@
 package httpjsonrpc
 
 import (
-	"DNA/consensus/dbft"
-	"DNA/core/ledger"
-	tx "DNA/core/transaction"
-	. "DNA/net/protocol"
+	"github.com/DNAProject/DNA/consensus/dbft"
+	"github.com/DNAProject/DNA/core/ledger"
+	tx "github.com/DNAProject/DNA/core/transaction"
+	. "github.com/DNAProject/DNA/net/protocol"
 	"encoding/json"
 	"io/ioutil"
 	"sync"

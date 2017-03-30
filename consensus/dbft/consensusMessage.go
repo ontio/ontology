@@ -1,13 +1,13 @@
 package dbft
 
 import (
-	ser "DNA/common/serialization"
-	tx "DNA/core/transaction"
+	ser "github.com/DNAProject/DNA/common/serialization"
+	tx "github.com/DNAProject/DNA/core/transaction"
 	"io"
 	"bytes"
 	"errors"
-	. "DNA/common"
-	"DNA/common/log"
+	. "github.com/DNAProject/DNA/common"
+	"github.com/DNAProject/DNA/common/log"
 )
 
 type ConsensusMessage interface {

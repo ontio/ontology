@@ -7,7 +7,7 @@ import (
 	"crypto/sha256"
 	"math/big"
 	"github.com/tv42/base58"
-	."DNA/errors"
+	."github.com/DNAProject/DNA/errors"
 	"errors"
 )
 

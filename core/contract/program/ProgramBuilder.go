@@ -2,9 +2,9 @@ package program
 
 import (
 	"bytes"
-	"DNA/vm"
+	"github.com/DNAProject/DNA/vm"
 	"math/big"
-	. "DNA/common"
+	. "github.com/DNAProject/DNA/common"
 )
 
 type ProgramBuilder struct {

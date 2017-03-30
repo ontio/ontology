@@ -1,14 +1,14 @@
 package node
 
 import (
-	"DNA/common"
-	"DNA/common/log"
-	. "DNA/config"
-	"DNA/core/ledger"
-	"DNA/core/transaction"
-	"DNA/crypto"
-	. "DNA/net/message"
-	. "DNA/net/protocol"
+	"github.com/DNAProject/DNA/common"
+	"github.com/DNAProject/DNA/common/log"
+	. "github.com/DNAProject/DNA/config"
+	"github.com/DNAProject/DNA/core/ledger"
+	"github.com/DNAProject/DNA/core/transaction"
+	"github.com/DNAProject/DNA/crypto"
+	. "github.com/DNAProject/DNA/net/message"
+	. "github.com/DNAProject/DNA/net/protocol"
 	"errors"
 	"fmt"
 	"math/rand"
