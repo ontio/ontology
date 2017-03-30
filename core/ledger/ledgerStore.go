@@ -1,9 +1,9 @@
 package ledger
 
 import (
-	. "DNA/common"
-	. "DNA/core/asset"
-	tx "DNA/core/transaction"
+	. "github.com/DNAProject/DNA/common"
+	. "github.com/DNAProject/DNA/core/asset"
+	tx "github.com/DNAProject/DNA/core/transaction"
 )
 
 // ILedgerStore provides func with store package.

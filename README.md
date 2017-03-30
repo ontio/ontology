@@ -1,56 +1,177 @@
-# DNA (Distributed Networks Architecture)
+# DNA
 
-DNA (Distributed Networks Architecture) is the Golang implementation of a decentralized and distributed network protocol which is based on blockchain technology.
-It can be used for digitalize assets or shares, and accomplish some financial business through peer-to-peer network such as registration and issuing,
-Make transactions, settlement and payment. notary etc
 
-It compatibles with antsahares[link] and targets to be more open source community friendly and better performance
+## Distributed Networks Architecture
+DNA is the golang implementation of a decentralized and distributed network protocol which is based on blockchain technology. It can be used for digitalize assets or shares and accomplish some financial business through peer-to-peer network such as registration, issuing, making transactions, settlement, payment and notary, etc.
 
-DNA blockchain can be found at https://www.DNAdev.org
+## Features
 
-# HighLight Features
-
-* 可扩展通用智能合约编写运行平台［链接］
-* 跨链协议 / Crosschain Interactive Protocol support) ［link］
-* 抗量子攻击 / Quantum-Resistant Crypto solution (optional module)
-* 国密算法支持SM系列支持 / China National Crypto Standard support（optional module）
-* 零配置组网出块 / Zero Configuration Kickoff Networks  （Ongoing）
-* 高度优化交易处理速度 ／ Optimization High Performance TPS
-* 分布式数据存储IPFS集成方案 ／ IPFS Dentralizaed Storing&Sharing files Solution integration   (TBD)
+* 可扩展通用智能合约平台 / Extendable Generalduty Lightweight Smart Contract
+* 跨链协议 / Crosschain Interactive Protocol
+* 抗量子攻击 / Quantum-Resistant Cryptography (optional module)
+* 国密算法支持SM系列支持 / China National Crypto Standard (optional module)
+* 零配置组网出块 / Zero Configuration Kickoff Networks (Ongoing)
+* 高度优化交易处理速度 ／ High Optimization of TPS
+* 分布式数据存储IPFS集成方案 ／ IPFS Dentralizaed Storing & Sharing files solution integration (TBD)
 * 链接通道加密，CA节点认证可控 / P2P link layer encryption, node access privilege controlling
-* 可插拔共识模块 / Multiple Consensus Algorithm support, IE: DBFT/RBFT/SBFT etc
-* 动态区块生成时间 / Telescopic block generate time
-* 数字资产管理模块 / Digtal Asset Management
-* 可配置化经济激励模型 / Configurable Economic incentive
-* 可配置分区共识机制 / Configable sharding consensus
+* 可插拔共识模块 / Multiple Consensus Algorithm(DBFT/RBFT/SBFT) support
+* 动态区块生成时间 / Telescopic Block Generation Time
+* 数字资产管理 / Digtal Asset Management
+* 可配置化经济激励模型 / Configurable Economic Incentive
+* 可配置分区共识机制 / Configable sharding Consensus
 * 可配置策略控制 / Configable Policy Management
+
+## Status
+[![Build Status](https://travis-ci.org/DNAProject/DNA.svg?branch=master)](https://travis-ci.org/DNAProject/DNA)
+
+# Building
+The requirements to build DNA are:
+
+* Go version 1.7 and later is required.
+* glide (third-party package management tool) is required.
+* A properly configured go environment.
+
+Clone the DNA repo into appropriate GOPATH/src directory
+
+```shell
+$ git clone https://github.com/DNAProject/DNA.git
+
+```
+
+Fetch the dependent third-party packages with glide.
+
+
+````shell
+$ cd DNA; glide up;
+````
+
+Build the source with make
+
+```shell
+$ make
+```
+
+After building the source code, you could see two executable programs you may need:
+
+* `node` : the node program
+* `nodectl` : command line tool for node control
+
+Follow the precedures in Depolyment section to give them a shot!
+
+
+# Depolyment
+
+To run DNA node regularly, at least 4 nodes are necessary. We provides two ways to deploy the 4 nodes on:
+
+* multi-host
+* single-host
+
+## Configurations for multi-host depolyment
+
+We can do a quick multi-host deployment by changing default configuration file `config/config.json`. Change the IP address in `SeedList` section to the seed node's IP address, then copy the changed file to hosts that you will run on.
+
+On each host, put the executable program `node` and the configuration file `config.json` into same directory. Like :
+
+```shell
+$ ls
+config.json node
+
+```
+
+Here's an snippet for configuration, note that 10.0.0.100 is seed node's address:
+
+```shell
+$ cat config.json
+	...
+"SeedList": [
+      "10.0.1.100:20338"
+    ],
+	...
+    "NodePort": 20338,
+	...
+```
+
+## Configurations for single-host depolyment
+
+Copy the executable file `node` and configuration file `config.json` to 4 different directories on single host. Then change each `config.json` file as following. 
+
+* The `SeedList` section should be same in all `config.json`. 
+* For the seed node, the `NodePort` is same with the port in `SeedList` part.
+* For each non-seed node, the `NodePort` should have different port.
+* Also need to make sure the `HttpJsonPort` and `HttpLocalPort` for each node is not conflict on current host.
+
+Here's an example:
+
+```shell
+# directory structure #
+$ tree
+├── node1
+│   ├── config.json
+│   └── node
+├── node2
+│   ├── config.json
+│   └── node
+├── node3
+│   ├── config.json
+│   └── node
+└── node4
+    ├── config.json
+    └── node
+```
+
+```shell
+# configuration snippets #
+$ cat node[1234]/config.json
+"SeedList": [
+      "10.0.1.1:10338"
+    ],
+    "HttpJsonPort": 10336,
+    "HttpLocalPort": 10337,
+    "NodePort": 10338,
+    ...
+
+"SeedList": [
+      "10.0.1.1:10338"
+    ],
+    "HttpJsonPort": 20336,
+    "HttpLocalPort": 20337,
+    "NodePort": 20338,
+    ...
+
+"SeedList": [
+      "10.0.1.1:10338"
+    ],
+    "HttpJsonPort": 30336,
+    "HttpLocalPort": 30337,
+    "NodePort": 30338,
+    ...
+
+"SeedList": [
+      "10.0.1.1:10338"
+    ],
+    "HttpJsonPort": 40336,
+    "HttpLocalPort": 40337,
+    "NodePort": 40338,
+    ...
+```
+
+## Run
+
+Execute the seed node program first then other nodes. Just run:
+
+```shell
+$ ./node
+```
+
 
 # Contributing
 
-Can I contribute patches to DNA project?
+>Can I contribute patches to DNA project?
 
-Yes! Please join the DNA mail list or forum and talk to us about it.
+>Yes! Please open a pull request with signed-off commits. We appreciate your help!
 
-## Mailing list
-
-There is a mailing list for developers: OnchainDNA@googlegroups.com
-
-How to Subscribe：
-
-    * Send email to OnchainDNA+subscribe@googlegroups.com with any content or
-    * Go to https://groups.google.com/forum/#!forum/OnchainDNA to subscribe
-
-## Dev Forum
-    * Forum https://www.DNAdevelopers.org
-    * Google group at https://groups.google.com/forum/#!forum/OnchainDNA
-    * Our user forum is at http://DNAdev.org/user-forum/
-## IRC Channel
-    * dnadev on chat.freenode.net
-
-If you want to contribute code, please open a pull request with signed-off
-commits at https://github.com/DNAdev/DNAChain/pulls
-(alternatively, you can also send your patches as emails to the developer
-mailing list).
+You can also send your patches as emails to the developer mailing list.
+Please join the DNA mailing list or forum and talk to us about it.
 
 Either way, if you don't sign off your patches, we will not accept them.
 This means adding a line that says "Signed-off-by: Name <email>" at the
@@ -81,86 +202,23 @@ looks like this:
 	Reported-by: whoever-reported-it
 	Signed-off-by: Your Name <youremail@yourhost.com>
 
-where that header line really should be meaningful, and really should be
-just one line.  That header line is what is shown by tools like gitk and
-shortlog, and should summarize the change in one readable line of text,
-independently of the longer explanation. Please use verbs in the
-imperative in the commit message, as in "Fix bug that...", "Add
-file/feature ...", or "Make Subsurface..."
+## Mailing list
 
+We have a mailing list for developers: 
 
-# Basic Usage
+* OnchainDNA@googlegroups.com
 
-Install and start from the desktop, or you can run it locally from the
-build directory:
+We provide two ways to subscribe:
 
-$ ./node
+* By sending any contents to email OnchainDNA+subscribe@googlegroups.com with any contents
 
-The official Windows installers are both cross-built on Linux & Mac.
+* By signing in https://groups.google.com/forum/#!forum/OnchainDNA
 
-Much more detailed end user instructions can be found from user guider
-[Link]. When building from source this is also available as
-Documentation/user-manual.md. The documentation for the latest release
-is also available on-line http://www.DNAdev.org/documentation/
+# Community
+Most technical topics could be found at our forum
 
-## Setup testbed at one host
-
-You can get the sources to the latest development version from the git
-repository:
-
-git clone git://github.com/DNAdev/DNAChain
-
-You can also fork the repository and browse the sources at the same site,
-simply using https://github.com/DNAdev/DNAChain
-
-If you want the latest release (instead of the bleeding edge
-development version) you can either get this via git or the release tar
-ball. After cloning run the following command:
-
-git checkout v0.1  (or whatever the last release is)
-
-or download a tar ball from:
-
-http://DNAdev.org/downloads/DNAchain-0.1tgz
-
-Detailed build instructions can be found in the INSTALL file.
-
-
-	单机建四节点测试简要步骤：
-	1: 创建四个不同的目录 IE：
-	./test1
-	./test2
-	./test3
-	./test3
-
-	2: 在各自目录下面拷贝缺省配置文件config.json IE:
-	./test1/config.json
-
-	3: 修改各自的config.json文件中的种子节点端口号 IE:
-	"SeedList": [
-             "10.0.1.26:20338"
-             ],
-	"HttpJsonPort": 20342,
-	“HttpLocalPort": 20343,
-	"NodePort": 20344,
-
-	＊ 种子节点端口号必须为四个节点中的一个
-	＊ 如果节点运行在同一台机器上，端口号必须不同
-
-	4: 在各自目录下运行 node 程序
-
-	5: 用nodectl去查看各个节点运行状态和发送测试用例 IE：
-	$ ./nodectl test -tx
-
-
-### Setup nodes on different hosts
-
-The same steps as above without modify the port number
+* https://forum.DNAproject.org
 
 # License
 
-Apache License Version 2.0
-
-
-[![Go Report Card](https://goreportcard.com/badge/github.com/dreamfly281/GoOnchain)](https://goreportcard.com/report/github.com/dreamfly281/GoOnchain)
-[![Build Status](https://travis-ci.org/dreamfly281/GoOnchain.png)](https://travis-ci.org/dreamfly281/GoOnchain)
+DNA is licensed under the Apache License, Version 2.0. See LICENSE for the full license text.

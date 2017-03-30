@@ -1,12 +1,12 @@
 package contract
 
 import (
-	. "DNA/common"
-	"DNA/common/log"
-	pg "DNA/core/contract/program"
-	sig "DNA/core/signature"
-	"DNA/crypto"
-	_ "DNA/errors"
+	. "github.com/DNAProject/DNA/common"
+	"github.com/DNAProject/DNA/common/log"
+	pg "github.com/DNAProject/DNA/core/contract/program"
+	sig "github.com/DNAProject/DNA/core/signature"
+	"github.com/DNAProject/DNA/crypto"
+	_ "github.com/DNAProject/DNA/errors"
 	"errors"
 	"fmt"
 	_ "fmt"

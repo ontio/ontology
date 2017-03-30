@@ -1,9 +1,9 @@
 package node
 
 import (
-	"DNA/core/ledger"
-	. "DNA/net/message"
-	. "DNA/net/protocol"
+	"github.com/DNAProject/DNA/core/ledger"
+	. "github.com/DNAProject/DNA/net/message"
+	. "github.com/DNAProject/DNA/net/protocol"
 	"time"
 )
 

@@ -1,5 +1,9 @@
 language: go
 
+install:
+  - go get github.com/Masterminds/glide
+  - glide up
+
 go:
   - 1.7.x
   - master

@@ -1,12 +1,12 @@
 package contract
 
 import (
-	. "DNA/common"
-	"DNA/vm"
+	. "github.com/DNAProject/DNA/common"
+	"github.com/DNAProject/DNA/vm"
 	"io"
 	"bytes"
-	"DNA/common/serialization"
-	. "DNA/errors"
+	"github.com/DNAProject/DNA/common/serialization"
+	. "github.com/DNAProject/DNA/errors"
 	"errors"
 )
 

@@ -2,8 +2,8 @@ package dbft
 
 import (
 	"io"
-	ser "DNA/common/serialization"
-	. "DNA/common"
+	ser "github.com/DNAProject/DNA/common/serialization"
+	. "github.com/DNAProject/DNA/common"
 )
 
 type PrepareResponse struct {

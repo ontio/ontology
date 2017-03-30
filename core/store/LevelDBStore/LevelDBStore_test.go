@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"testing"
-	. "DNA/common"
+	. "github.com/DNAProject/DNA/common"
 )
 
 var ldbs * LevelDBStore

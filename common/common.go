@@ -1,7 +1,7 @@
 package common
 
 import (
-	. "DNA/errors"
+	. "github.com/DNAProject/DNA/errors"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"

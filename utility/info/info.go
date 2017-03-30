@@ -1,8 +1,8 @@
 package info
 
 import (
-	"DNA/net/httpjsonrpc"
-	"DNA/utility"
+	"github.com/DNAProject/DNA/net/httpjsonrpc"
+	"github.com/DNAProject/DNA/utility"
 	"fmt"
 	"os"
 )

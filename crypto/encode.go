@@ -1,7 +1,7 @@
 package crypto
 
 import (
-	. "DNA/errors"
+	. "github.com/DNAProject/DNA/errors"
 	"crypto/elliptic"
 	"crypto/rand"
 	"errors"
