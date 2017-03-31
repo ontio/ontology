@@ -4,7 +4,7 @@
 
 DNA is the golang implementation of a decentralized and distributed network protocol which is based on blockchain technology. It can be used for digitalize assets or shares and accomplish some financial business through peer-to-peer network such as registration, issuing, making transactions, settlement, payment and notary, etc.
 
-## Features
+## Highlight Features
 
 * 可扩展通用智能合约平台 / Extendable Generalduty Lightweight Smart Contract
 * 跨链协议 / Crosschain Interactive Protocol
@@ -24,11 +24,10 @@ DNA is the golang implementation of a decentralized and distributed network prot
 # Building
 The requirements to build DNA are:
 
-* Go version 1.7 and later is required.
-* glide (third-party package management tool) is required.
-* A properly configured go environment.
-
-Clone the DNA repo into appropriate GOPATH/src directory
+* Go version 1.7 or later is required
+* glide (third-party package management tool) is required
+* A properly configured go environment
+* Clone the DNA repo into appropriate $GOPATH/src directory
 
 ```shell
 $ git clone https://github.com/DNAProject/DNA.git
@@ -39,7 +38,8 @@ Fetch the dependent third-party packages with glide.
 
 
 ````shell
-$ cd DNA; glide install;
+$ cd DNA
+$ glide install
 ````
 
 Build the source with make
@@ -50,8 +50,8 @@ $ make
 
 After building the source code, you could see two executable programs you may need:
 
-* `node` : the node program
-* `nodectl` : command line tool for node control
+* `node`: the node program
+* `nodectl`: command line tool for node control
 
 Follow the precedures in Depolyment section to give them a shot!
 
@@ -60,12 +60,12 @@ Follow the precedures in Depolyment section to give them a shot!
 
 To run DNA node regularly, at least 4 nodes are necessary. We provides two ways to deploy the 4 nodes on:
 
-* multi-host
+* multi-hosts
 * single-host
 
-## Configurations for multi-host depolyment
+## Configurations for multi-hosts depolyment
 
-We can do a quick multi-host deployment by changing default configuration file `config/config.json`. Change the IP address in `SeedList` section to the seed node's IP address, then copy the changed file to hosts that you will run on.
+We can do a quick multi-hosts deployment by changing default configuration file `config/config.json`. Change the IP address in `SeedList` section to the seed node's IP address, then copy the changed file to hosts that you will run on.
 
 On each host, put the executable program `node` and the configuration file `config.json` into same directory. Like :
 
@@ -152,7 +152,7 @@ $ cat node[1234]/config.json
     ...
 ```
 
-## Run
+## Getting Started
 
 Execute the seed node program first then other nodes. Just run:
 
@@ -163,9 +163,9 @@ $ ./node
 
 # Contributing
 
->Can I contribute patches to DNA project?
+Can I contribute patches to DNA project?
 
->Yes! Please open a pull request with signed-off commits. We appreciate your help!
+Yes! Please open a pull request with signed-off commits. We appreciate your help!
 
 You can also send your patches as emails to the developer mailing list.
 Please join the DNA mailing list or forum and talk to us about it.
@@ -199,9 +199,11 @@ looks like this:
 	Reported-by: whoever-reported-it
 	Signed-off-by: Your Name <youremail@yourhost.com>
 
+# Community
+
 ## Mailing list
 
-We have a mailing list for developers: 
+We have a mailing list for developers:
 
 * OnchainDNA@googlegroups.com
 
@@ -211,8 +213,8 @@ We provide two ways to subscribe:
 
 * By signing in https://groups.google.com/forum/#!forum/OnchainDNA
 
-# Community
-Most technical topics could be found at our forum
+
+## Forum
 
 * https://forum.DNAproject.org
 
