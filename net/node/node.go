@@ -1,6 +1,8 @@
 package node
 
 import (
+	"errors"
+	"fmt"
 	"github.com/DNAProject/DNA/common"
 	"github.com/DNAProject/DNA/common/log"
 	. "github.com/DNAProject/DNA/config"
@@ -9,8 +11,6 @@ import (
 	"github.com/DNAProject/DNA/crypto"
 	. "github.com/DNAProject/DNA/net/message"
 	. "github.com/DNAProject/DNA/net/protocol"
-	"errors"
-	"fmt"
 	"math/rand"
 	"net"
 	"runtime"
@@ -267,4 +267,15 @@ func (node node) GetMinersAddrs() ([]*crypto.PubKey, uint64) {
 
 func (node *node) SetMinerAddr(pk *crypto.PubKey) {
 	node.publicKey = pk
+}
+
+func (node node) SyncNodeHeight() {
+	for {
+		heights, _ := node.GetNeighborHeights()
+		if common.CompareHeight(uint64(ledger.DefaultLedger.Blockchain.BlockHeight), heights) {
+			break
+		}
+		<-time.After(5 * time.Second)
+	}
+
 }
