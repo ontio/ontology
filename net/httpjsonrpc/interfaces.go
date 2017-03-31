@@ -205,7 +205,7 @@ func sendSampleTransaction(req *http.Request, cmd map[string]interface{}) map[st
 	log.Debug("---------------------------")
 
 	if !node.AppendTxnPool(&t) {
-		return responsePacking("Add Transaction to TxnPool error", id)
+		log.Warn("Can NOT add the transaction to TxnPool")
 	}
 	if err = node.Xmit(&t); err != nil {
 		return responsePacking("Xmit Sample TX error", id)
