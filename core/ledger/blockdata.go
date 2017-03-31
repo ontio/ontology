@@ -28,7 +28,9 @@ type Blockdata struct {
 func (bd *Blockdata) Serialize(w io.Writer) {
 	bd.SerializeUnsigned(w)
 	w.Write([]byte{byte(1)})
-	bd.Program.Serialize(w)
+	if bd.Program != nil {
+		bd.Program.Serialize(w)
+	}
 }
 
 //Serialize the blockheader data without program

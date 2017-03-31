@@ -17,10 +17,12 @@ import (
 type InventoryType byte
 
 type blocksReq struct {
-	Hdr             msgHdr
-	HeaderHashCount []byte
-	HashStart       []common.Uint256
-	HashStop        common.Uint256
+	msgHdr
+	p struct {
+		HeaderHashCount uint8
+		hashStart       [HASHLEN]byte
+		hashStop        [HASHLEN]byte
+	}
 }
 
 type invPayload struct {
@@ -33,22 +35,50 @@ type Inv struct {
 	P   invPayload
 }
 
+func NewBlocksReq(n Noder) ([]byte, error) {
+	var h blocksReq
+	log.Debug("request block hash")
+	// Fixme correct with the exactly request length
+	h.p.HeaderHashCount = 1
+	//Fixme! Should get the remote Node height.
+	buf := ledger.DefaultLedger.Blockchain.CurrentBlockHash()
+
+	copy(h.p.hashStart[:], reverse(buf[:]))
+
+	p := new(bytes.Buffer)
+	err := binary.Write(p, binary.LittleEndian, &(h.p))
+	if err != nil {
+		log.Error("Binary Write failed at new blocksReq")
+		return nil, err
+	}
+
+	s := checkSum(p.Bytes())
+	h.msgHdr.init("getblocks", s, uint32(len(p.Bytes())))
+
+	m, err := h.Serialization()
+
+	return m, err
+}
+
 func (msg blocksReq) Verify(buf []byte) error {
 
 	// TODO verify the message Content
-	err := msg.Hdr.Verify(buf)
+	err := msg.msgHdr.Verify(buf)
 	return err
 }
 
 func (msg blocksReq) Handle(node Noder) error {
 	common.Trace()
-
-	var starthash []common.Uint256
+	log.Debug("handle blocks request")
+	var starthash common.Uint256
 	var stophash common.Uint256
-	starthash = msg.HashStart
-	stophash = msg.HashStop
+	starthash = msg.p.hashStart
+	stophash = msg.p.hashStop
 	//FIXME if HeaderHashCount > 1
-	inv := GetInvFromBlockHash(starthash[0], stophash)
+	inv, err := GetInvFromBlockHash(starthash, stophash)
+	if err != nil {
+		return err
+	}
 	buf, err := NewInv(inv)
 	if err != nil {
 		return err
@@ -70,7 +100,7 @@ func (msg blocksReq) Serialization() ([]byte, error) {
 
 func (msg *blocksReq) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, msg)
+	err := binary.Read(buf, binary.LittleEndian, &msg)
 	return err
 }
 
@@ -98,10 +128,16 @@ func (msg Inv) Handle(node Noder) error {
 		}
 	case common.BLOCK:
 		log.Debug("RX block message")
-		id.Deserialize(bytes.NewReader(msg.P.Blk[:32]))
-		if !node.ExistedID(id) {
-			// send the block request
-			reqBlkData(node, id)
+		var i int
+		count := len(msg.P.Blk) >> DIVHASHLEN
+		for i = 0; i < count; i++ {
+			id.Deserialize(bytes.NewReader(msg.P.Blk[HASHLEN*i+1:]))
+			if !node.ExistedID(id) {
+				// send the block request
+				log.Info("inv request block hash: ", id)
+				reqBlkData(node, id)
+			}
+
 		}
 	case common.CONSENSUS:
 		log.Debug("RX consensus message")
@@ -159,41 +195,57 @@ func (msg Inv) invLen() (uint64, uint8) {
 	return val, size
 }
 
-func GetInvFromBlockHash(starthash common.Uint256, stophash common.Uint256) invPayload {
-	//FIXME need add error handle for GetBlockWithHash
-	var stopheight uint32
+func GetInvFromBlockHash(starthash common.Uint256, stophash common.Uint256) (invPayload, error) {
+	var inv invPayload
 	var count uint32 = 0
 	var i uint32
 
 	var empty common.Uint256
-	bkstart, _ := ledger.DefaultLedger.GetBlockWithHash(starthash)
-	startheight := bkstart.Blockdata.Height
-	if stophash != empty {
-		bkstop, _ := ledger.DefaultLedger.GetBlockWithHash(starthash)
-		stopheight = bkstop.Blockdata.Height
-		count = startheight - stopheight
-		if count >= MAXINVHDRCNT {
-			count = MAXINVHDRCNT
-			stopheight = startheight - MAXINVHDRCNT
+	var startheight uint32
+	var stopheight uint32
+	curHeight := ledger.DefaultLedger.GetLocalBlockChainHeight()
+	if starthash == empty {
+		if curHeight > MAXBLKHDRCNT {
+			count = MAXBLKHDRCNT
+		} else {
+			count = curHeight
 		}
 	} else {
-		if startheight > MAXINVHDRCNT {
-			count = MAXINVHDRCNT
+		bkstart, err := ledger.DefaultLedger.GetBlockWithHash(starthash)
+		if err != nil {
+			return inv, err
+		}
+		startheight = bkstart.Blockdata.Height
+		if stophash != empty {
+			bkstop, err := ledger.DefaultLedger.GetBlockWithHash(stophash)
+			if err != nil {
+				return inv, err
+			}
+			stopheight = bkstop.Blockdata.Height
+			count = startheight - stopheight
+			if count >= MAXINVHDRCNT {
+				count = MAXINVHDRCNT
+				stopheight = startheight + MAXINVHDRCNT
+			}
 		} else {
-			count = startheight
+
+			if startheight > MAXINVHDRCNT {
+				count = MAXINVHDRCNT
+			} else {
+				count = startheight
+			}
 		}
 	}
-
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	for i = 1; i <= count; i++ {
 		//FIXME need add error handle for GetBlockWithHash
 		hash, _ := ledger.DefaultLedger.Store.GetBlockHash(stopheight + i)
 		hash.Serialize(tmpBuffer)
 	}
-	var inv invPayload
+
 	inv.Blk = tmpBuffer.Bytes()
 	inv.InvType = 0x02
-	return inv
+	return inv, nil
 }
 
 func NewInv(inv invPayload) ([]byte, error) {
@@ -218,7 +270,7 @@ func NewInv(inv invPayload) ([]byte, error) {
 	s = sha256.Sum256(s2)
 	buf := bytes.NewBuffer(s[:4])
 	binary.Read(buf, binary.LittleEndian, &(msg.Hdr.Checksum))
-	msg.Hdr.Length = uint32(len(buf.Bytes()))
+	msg.Hdr.Length = uint32(len(b.Bytes()))
 
 	m, err := msg.Serialization()
 	if err != nil {

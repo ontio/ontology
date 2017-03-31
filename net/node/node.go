@@ -268,3 +268,14 @@ func (node node) GetMinersAddrs() ([]*crypto.PubKey, uint64) {
 func (node *node) SetMinerAddr(pk *crypto.PubKey) {
 	node.publicKey = pk
 }
+
+func (node node) SyncNodeHeight() {
+	for {
+		heights, _ := node.GetNeighborHeights()
+		if common.CompareHeight(uint64(ledger.DefaultLedger.Blockchain.BlockHeight), heights) {
+			break
+		}
+		<-time.After(5 * time.Second)
+	}
+
+}

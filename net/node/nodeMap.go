@@ -33,11 +33,11 @@ func (nm *nbrNodes) AddNbrNode(n Noder) {
 	nm.Lock()
 	defer nm.Unlock()
 
-	if (nm.NodeExisted(n.GetID())) {
-               fmt.Printf("Insert a existed node\n")
+	if nm.NodeExisted(n.GetID()) {
+		fmt.Printf("Insert a existed node\n")
 	} else {
 		node, err := n.(*node)
-		if (err == false) {
+		if err == false {
 			fmt.Println("Convert the noder error when add node")
 			return
 		}
@@ -50,7 +50,7 @@ func (nm *nbrNodes) DelNbrNode(id uint64) (Noder, bool) {
 	defer nm.Unlock()
 
 	n, ok := nm.List[id]
-	if (ok == false) {
+	if ok == false {
 		return nil, false
 	}
 	delete(nm.List, id)
@@ -79,11 +79,11 @@ func (nm *nbrNodes) NodeEstablished(id uint64) bool {
 	defer nm.RUnlock()
 
 	n, ok := nm.List[id]
-	if (ok == false) {
+	if ok == false {
 		return false
 	}
 
-	if (n.state != ESTABLISH) {
+	if n.state != ESTABLISH {
 		return false
 	}
 
@@ -112,4 +112,21 @@ func (node *node) GetNeighborAddrs() ([]NodeAddr, uint64) {
 	}
 
 	return addrs, i
+}
+
+func (node *node) GetNeighborHeights() ([]uint64, uint64) {
+	node.nbrNodes.RLock()
+	defer node.nbrNodes.RUnlock()
+
+	var i uint64
+	var heights []uint64
+	heights = make([]uint64, 1)
+	for _, n := range node.nbrNodes.List {
+		if n.GetState() == ESTABLISH {
+			height := n.GetHeight()
+			heights = append(heights, height)
+			i++
+		}
+	}
+	return heights, i
 }

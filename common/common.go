@@ -5,13 +5,13 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"fmt"
-	_ "io"
-	"math/rand"
-	"github.com/golang/crypto/ripemd160"
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"github.com/golang/crypto/ripemd160"
 	"io"
+	_ "io"
+	"math/rand"
 )
 
 func ToCodeHash(code []byte) (Uint160, error) {
@@ -79,4 +79,13 @@ func ClearBytes(arr []byte, len int) {
 	for i := 0; i < len; i++ {
 		arr[i] = 0
 	}
+}
+
+func CompareHeight(blockHeight uint64, heights []uint64) bool {
+	for _, height := range heights {
+		if blockHeight < height {
+			return false
+		}
+	}
+	return true
 }

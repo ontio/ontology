@@ -82,6 +82,8 @@ func main() {
 	httpjsonrpc.RegistRpcNode(noder)
 	time.Sleep(20 * time.Second)
 	miners, _ := neter.GetMinersAddrs()
+	noder.LocalNode().SyncNodeHeight()
+
 	ledger.CreateGenesisBlock(miners)
 
 	fmt.Println("//**************************************************************************")
