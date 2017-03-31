@@ -1,8 +1,8 @@
 package log
 
 import (
-	. "github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/config"
+	. "DNA/common"
+	"DNA/config"
 	"fmt"
 	"io"
 	"log"

@@ -1,10 +1,10 @@
 package node
 
 import (
-	"github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/core/transaction"
-	msg "github.com/DNAProject/DNA/net/message"
-	. "github.com/DNAProject/DNA/net/protocol"
+	"DNA/common"
+	"DNA/core/transaction"
+	msg "DNA/net/message"
+	. "DNA/net/protocol"
 	"sync"
 )
 

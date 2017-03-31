@@ -1,9 +1,9 @@
 package client
 
 import (
-	"github.com/DNAProject/DNA/crypto"
-	. "github.com/DNAProject/DNA/common"
-	. "github.com/DNAProject/DNA/errors"
+	"DNA/crypto"
+	. "DNA/common"
+	. "DNA/errors"
 	"errors"
 )
 

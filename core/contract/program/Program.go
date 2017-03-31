@@ -1,8 +1,8 @@
 package program
 
 import (
-	"github.com/DNAProject/DNA/common/serialization"
-	. "github.com/DNAProject/DNA/errors"
+	"DNA/common/serialization"
+	. "DNA/errors"
 	"io"
 )
 

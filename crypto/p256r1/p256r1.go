@@ -1,7 +1,7 @@
 package p256r1
 
 import (
-	"github.com/DNAProject/DNA/crypto/util"
+	"DNA/crypto/util"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"

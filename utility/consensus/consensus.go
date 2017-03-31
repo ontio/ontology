@@ -1,8 +1,8 @@
 package consensus
 
 import (
-	"github.com/DNAProject/DNA/net/httpjsonrpc"
-	"github.com/DNAProject/DNA/utility"
+	"DNA/net/httpjsonrpc"
+	"DNA/utility"
 	"errors"
 	"fmt"
 	"os"

@@ -39,7 +39,7 @@ Fetch the dependent third-party packages with glide.
 
 
 ````shell
-$ cd DNA; glide up;
+$ cd DNA; glide install;
 ````
 
 Build the source with make

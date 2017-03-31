@@ -1,11 +1,11 @@
 package message
 
 import (
-	"github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/common/log"
-	"github.com/DNAProject/DNA/common/serialization"
-	"github.com/DNAProject/DNA/core/ledger"
-	. "github.com/DNAProject/DNA/net/protocol"
+	"DNA/common"
+	"DNA/common/log"
+	"DNA/common/serialization"
+	"DNA/core/ledger"
+	. "DNA/net/protocol"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
