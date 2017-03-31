@@ -7,7 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	. "github.com/DNAProject/DNA/errors"
+	. "DNA/errors"
 	"github.com/golang/crypto/ripemd160"
 	"io"
 	_ "io"

@@ -2,7 +2,7 @@ package consensus
 
 import (
 	"fmt"
-	"github.com/DNAProject/DNA/common/log"
+	"DNA/common/log"
 	"time"
 )
 

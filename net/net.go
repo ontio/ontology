@@ -1,13 +1,13 @@
 package net
 
 import (
-	"github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/config"
-	"github.com/DNAProject/DNA/core/transaction"
-	"github.com/DNAProject/DNA/crypto"
-	"github.com/DNAProject/DNA/events"
-	"github.com/DNAProject/DNA/net/node"
-	"github.com/DNAProject/DNA/net/protocol"
+	"DNA/common"
+	"DNA/config"
+	"DNA/core/transaction"
+	"DNA/crypto"
+	"DNA/events"
+	"DNA/net/node"
+	"DNA/net/protocol"
 )
 
 type Neter interface {

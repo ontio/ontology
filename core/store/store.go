@@ -1,8 +1,8 @@
 package store
 
 import(
-	. "github.com/DNAProject/DNA/core/ledger"
-	. "github.com/DNAProject/DNA/core/store/LevelDBStore"
+	. "DNA/core/ledger"
+	. "DNA/core/store/LevelDBStore"
 )
 
 func NewLedgerStore() ILedgerStore {

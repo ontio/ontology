@@ -7,9 +7,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/common/log"
-	. "github.com/DNAProject/DNA/net/protocol"
+	"DNA/common"
+	"DNA/common/log"
+	. "DNA/net/protocol"
 )
 
 type Messager interface {

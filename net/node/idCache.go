@@ -1,7 +1,7 @@
 package node
 
 import (
-	"github.com/DNAProject/DNA/common"
+	"DNA/common"
 	"sync"
 )
 

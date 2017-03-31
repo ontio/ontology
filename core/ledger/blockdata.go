@@ -1,11 +1,11 @@
 package ledger
 
 import (
-	. "github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/common/serialization"
-	"github.com/DNAProject/DNA/core/contract/program"
-	sig "github.com/DNAProject/DNA/core/signature"
-	. "github.com/DNAProject/DNA/errors"
+	. "DNA/common"
+	"DNA/common/serialization"
+	"DNA/core/contract/program"
+	sig "DNA/core/signature"
+	. "DNA/errors"
 	"crypto/sha256"
 	"errors"
 	"io"

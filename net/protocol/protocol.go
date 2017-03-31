@@ -3,10 +3,10 @@ package protocol
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/core/transaction"
-	"github.com/DNAProject/DNA/crypto"
-	"github.com/DNAProject/DNA/events"
+	"DNA/common"
+	"DNA/core/transaction"
+	"DNA/crypto"
+	"DNA/events"
 	"time"
 )
 

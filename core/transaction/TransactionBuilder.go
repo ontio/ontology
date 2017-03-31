@@ -2,11 +2,11 @@ package transaction
 
 
 import (
-	"github.com/DNAProject/DNA/core/asset"
-	"github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/crypto"
-	"github.com/DNAProject/DNA/core/transaction/payload"
-	"github.com/DNAProject/DNA/core/contract/program"
+	"DNA/core/asset"
+	"DNA/common"
+	"DNA/crypto"
+	"DNA/core/transaction/payload"
+	"DNA/core/contract/program"
 )
 
 //initial a new transaction with asset registration payload

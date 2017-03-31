@@ -1,8 +1,8 @@
 package crypto
 
 import (
-	. "github.com/DNAProject/DNA/common"
-	. "github.com/DNAProject/DNA/errors"
+	. "DNA/common"
+	. "DNA/errors"
 	"bytes"
 	"crypto/sha256"
 	"errors"

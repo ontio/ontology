@@ -1,11 +1,11 @@
 package signature
 
 import (
-	"github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/core/contract/program"
-	"github.com/DNAProject/DNA/crypto"
-	. "github.com/DNAProject/DNA/errors"
-	"github.com/DNAProject/DNA/vm"
+	"DNA/common"
+	"DNA/core/contract/program"
+	"DNA/crypto"
+	. "DNA/errors"
+	"DNA/vm"
 	"bytes"
 	"crypto/sha256"
 	"io"

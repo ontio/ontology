@@ -1,7 +1,7 @@
 package node
 
 import (
-	"github.com/DNAProject/DNA/events"
+	"DNA/events"
 	"fmt"
 )
 

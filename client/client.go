@@ -1,21 +1,21 @@
 package client
 
 import (
-	"github.com/DNAProject/DNA/crypto"
-	ct "github.com/DNAProject/DNA/core/contract"
-	. "github.com/DNAProject/DNA/common"
+	"DNA/crypto"
+	ct "DNA/core/contract"
+	. "DNA/common"
 	"sync"
-	sig "github.com/DNAProject/DNA/core/signature"
-	. "github.com/DNAProject/DNA/errors"
+	sig "DNA/core/signature"
+	. "DNA/errors"
 	"errors"
-	"github.com/DNAProject/DNA/core/ledger"
+	"DNA/core/ledger"
 	"time"
 	"fmt"
 	"crypto/sha256"
 	"math/rand"
 	"bytes"
-	"github.com/DNAProject/DNA/common/serialization"
-	"github.com/DNAProject/DNA/core/contract"
+	"DNA/common/serialization"
+	"DNA/core/contract"
 )
 
 type ClientVersion struct {

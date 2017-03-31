@@ -2,7 +2,7 @@ package node
 
 import (
 	"fmt"
-	. "github.com/DNAProject/DNA/net/protocol"
+	. "DNA/net/protocol"
 	"sync"
 )
 

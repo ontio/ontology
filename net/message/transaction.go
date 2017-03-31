@@ -6,11 +6,11 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/common/log"
-	"github.com/DNAProject/DNA/core/ledger"
-	"github.com/DNAProject/DNA/core/transaction"
-	. "github.com/DNAProject/DNA/net/protocol"
+	"DNA/common"
+	"DNA/common/log"
+	"DNA/core/ledger"
+	"DNA/core/transaction"
+	. "DNA/net/protocol"
 )
 
 type dataReq struct {

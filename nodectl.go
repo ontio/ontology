@@ -3,12 +3,12 @@ package main
 import (
 	"os"
 
-	"github.com/DNAProject/DNA/common/log"
-	"github.com/DNAProject/DNA/crypto"
-	"github.com/DNAProject/DNA/utility"
-	"github.com/DNAProject/DNA/utility/consensus"
-	"github.com/DNAProject/DNA/utility/info"
-	"github.com/DNAProject/DNA/utility/test"
+	"DNA/common/log"
+	"DNA/crypto"
+	"DNA/utility"
+	"DNA/utility/consensus"
+	"DNA/utility/info"
+	"DNA/utility/test"
 )
 
 const (
