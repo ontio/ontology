@@ -1,8 +1,8 @@
 package transaction
 
 import (
-	"github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/common/serialization"
+	"DNA/common"
+	"DNA/common/serialization"
 	"io"
 	"math"
 )

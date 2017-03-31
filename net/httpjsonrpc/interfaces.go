@@ -1,10 +1,10 @@
 package httpjsonrpc
 
 import (
-	. "github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/common/log"
-	"github.com/DNAProject/DNA/core/ledger"
-	tx "github.com/DNAProject/DNA/core/transaction"
+	. "DNA/common"
+	"DNA/common/log"
+	"DNA/core/ledger"
+	tx "DNA/core/transaction"
 	"bytes"
 	"encoding/base64"
 	"encoding/hex"

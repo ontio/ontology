@@ -2,12 +2,12 @@ package dbft
 
 import (
 	"io"
-	. "github.com/DNAProject/DNA/common"
-	. "github.com/DNAProject/DNA/errors"
-	ser "github.com/DNAProject/DNA/common/serialization"
-	tx "github.com/DNAProject/DNA/core/transaction"
+	. "DNA/common"
+	. "DNA/errors"
+	ser "DNA/common/serialization"
+	tx "DNA/core/transaction"
 	"fmt"
-	"github.com/DNAProject/DNA/common/log"
+	"DNA/common/log"
 )
 
 type PrepareRequest struct {

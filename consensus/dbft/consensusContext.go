@@ -1,14 +1,14 @@
 package dbft
 
 import (
-	cl "github.com/DNAProject/DNA/client"
-	. "github.com/DNAProject/DNA/common"
-	ser "github.com/DNAProject/DNA/common/serialization"
-	"github.com/DNAProject/DNA/core/ledger"
-	tx "github.com/DNAProject/DNA/core/transaction"
-	"github.com/DNAProject/DNA/crypto"
-	"github.com/DNAProject/DNA/net"
-	msg "github.com/DNAProject/DNA/net/message"
+	cl "DNA/client"
+	. "DNA/common"
+	ser "DNA/common/serialization"
+	"DNA/core/ledger"
+	tx "DNA/core/transaction"
+	"DNA/crypto"
+	"DNA/net"
+	msg "DNA/net/message"
 	"fmt"
 	"sort"
 	"sync"

@@ -1,9 +1,9 @@
 package validation
 
 import (
-	"github.com/DNAProject/DNA/core/ledger"
-	tx "github.com/DNAProject/DNA/core/transaction"
-	. "github.com/DNAProject/DNA/errors"
+	"DNA/core/ledger"
+	tx "DNA/core/transaction"
+	. "DNA/errors"
 	"errors"
 	"fmt"
 )
@@ -14,6 +14,13 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 	}
 	err := VerifyBlockData(block.Blockdata, ld)
 	if err != nil {
+		return err
+	}
+
+	flag, err := VerifySignableData(block)
+	if flag && err == nil {
+		return nil
+	} else {
 		return err
 	}
 
@@ -78,10 +85,5 @@ func VerifyBlockData(bd *ledger.Blockdata, ledger *ledger.Ledger) error {
 		return NewDetailErr(err, ErrNoCode, "[BlockValidator], block timestamp is incorrect.")
 	}
 
-	flag, err := VerifySignableData(bd)
-	if flag && err == nil {
-		return nil
-	} else {
-		return err
-	}
+	return nil
 }

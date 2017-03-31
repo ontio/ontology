@@ -1,7 +1,7 @@
 package crypto
 
 import (
-	. "github.com/DNAProject/DNA/common"
+	. "DNA/common"
 	"crypto/sha256"
 	"fmt"
 	"testing"

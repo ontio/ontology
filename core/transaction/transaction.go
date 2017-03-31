@@ -1,13 +1,13 @@
 package transaction
 
 import (
-	. "github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/common/serialization"
-	"github.com/DNAProject/DNA/core/contract"
-	"github.com/DNAProject/DNA/core/contract/program"
-	sig "github.com/DNAProject/DNA/core/signature"
-	"github.com/DNAProject/DNA/core/transaction/payload"
-	. "github.com/DNAProject/DNA/errors"
+	. "DNA/common"
+	"DNA/common/serialization"
+	"DNA/core/contract"
+	"DNA/core/contract/program"
+	sig "DNA/core/signature"
+	"DNA/core/transaction/payload"
+	. "DNA/errors"
 	"crypto/sha256"
 	"errors"
 	"io"
@@ -23,7 +23,8 @@ const (
 	RegisterAsset TransactionType = 0x40
 	IssueAsset    TransactionType = 0x01
 	TransferAsset TransactionType = 0x10
-	Record        TransactionType = 0x11
+	Record         TransactionType = 0x11
+	DeployCode	TransactionType = 0xd0
 )
 
 //Payload define the func for loading the payload data
@@ -195,7 +196,7 @@ func (tx *Transaction) DeserializeUnsignedWithoutType(r io.Reader) error {
 	} else if tx.TxType == IssueAsset {
 		// Asset Issue
 	}else if tx.TxType == BookKeeping{
-		tx.Payload = new(payload.MinerPayload)
+		tx.Payload = new(payload.BookKeeping)
 		tx.Payload.Deserialize(r)
 	}
 	//	else if tx.TxType == 0x00 {

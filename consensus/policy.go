@@ -1,7 +1,7 @@
 package consensus
 
 import (
-	. "github.com/DNAProject/DNA/common"
+	. "DNA/common"
 )
 type Policy struct {
 	PolicyLevel PolicyLevel

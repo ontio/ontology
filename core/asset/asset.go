@@ -1,9 +1,9 @@
 package asset
 
 import (
-	"github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/common/serialization"
-	. "github.com/DNAProject/DNA/errors"
+	"DNA/common"
+	"DNA/common/serialization"
+	. "DNA/errors"
 	"errors"
 	"io"
 )

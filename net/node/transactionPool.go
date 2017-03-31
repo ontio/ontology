@@ -1,10 +1,10 @@
 package node
 
 import (
-	"github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/core/transaction"
-	msg "github.com/DNAProject/DNA/net/message"
-	. "github.com/DNAProject/DNA/net/protocol"
+	"DNA/common"
+	"DNA/core/transaction"
+	msg "DNA/net/message"
+	. "DNA/net/protocol"
 	"sync"
 )
 
@@ -37,7 +37,7 @@ func (txnPool *TXNPool) GetTxnPool(cleanPool bool) map[common.Uint256]*transacti
 	defer txnPool.Unlock()
 
 	list := txnPool.list
-	if (cleanPool == true) {
+	if cleanPool == true {
 		txnPool.list = make(map[common.Uint256]*transaction.Transaction)
 	}
 	return list

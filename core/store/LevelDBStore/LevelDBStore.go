@@ -1,15 +1,15 @@
 package LevelDBStore
 
 import (
-	. "github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/common/log"
-	"github.com/DNAProject/DNA/common/serialization"
-	. "github.com/DNAProject/DNA/core/asset"
-	"github.com/DNAProject/DNA/core/contract/program"
-	. "github.com/DNAProject/DNA/core/ledger"
-	tx "github.com/DNAProject/DNA/core/transaction"
-	"github.com/DNAProject/DNA/core/validation"
-	. "github.com/DNAProject/DNA/errors"
+	. "DNA/common"
+	"DNA/common/log"
+	"DNA/common/serialization"
+	. "DNA/core/asset"
+	"DNA/core/contract/program"
+	. "DNA/core/ledger"
+	tx "DNA/core/transaction"
+	"DNA/core/validation"
+	. "DNA/errors"
 	"bytes"
 	"fmt"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -654,8 +654,7 @@ func (bd *LevelDBStore) SaveBlock(b *Block, ledger *Ledger) error {
 	if bd.block_cache[b.Hash()] == nil {
 		bd.block_cache[b.Hash()] = b
 	}
-	bd.persistBlocks()
-/*
+
 	if b.Blockdata.Height-uint32(len(bd.header_index)) >= 1 {
 		//return false,NewDetailErr(errors.New(fmt.Sprintf("WARNING: [SaveBlock] block height - header_index.count >= 1, block height:%d, header_index.count:%d",b.Blockdata.Height, uint32(len(bd.header_index)) )),ErrDuplicatedBlock,"")
 		return errors.New(fmt.Sprintf("WARNING: [SaveBlock] block height - header_index.count >= 1, block height:%d, header_index.count:%d", b.Blockdata.Height, uint32(len(bd.header_index))))
@@ -663,7 +662,6 @@ func (bd *LevelDBStore) SaveBlock(b *Block, ledger *Ledger) error {
 
 	if b.Blockdata.Height == uint32(len(bd.header_index)) {
 		//Block verify
-		// TO TEST Verify func
 		err := validation.VerifyBlock(b, ledger, true)
 		if err != nil {
 			log.Debug("VerifyBlock() error!")
@@ -688,7 +686,7 @@ func (bd *LevelDBStore) SaveBlock(b *Block, ledger *Ledger) error {
 	} else {
 		return errors.New("[SaveBlock] block height < header_index")
 	}
-*/
+
 
 	return nil
 }
