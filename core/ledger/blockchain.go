@@ -67,9 +67,8 @@ func (bc *Blockchain) SaveBlock(block *Block) error {
 }
 
 func (bc *Blockchain) ContainsTransaction(hash Uint256) bool {
-	//TODO: implement error catch
 	_, err := DefaultLedger.Store.GetTransaction(hash)
-	if err != nil {
+	if err.Error() == "leveldb: not found" {
 		return false
 	}
 	return true
