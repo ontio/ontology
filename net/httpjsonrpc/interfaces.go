@@ -197,18 +197,18 @@ func sendSampleTransaction(req *http.Request, cmd map[string]interface{}) map[st
 	}
 
 	log.Debug("---------------------------")
-	log.Debug("Transaction:")
-	log.Debug("Transaction Type:", t.TxType)
-	log.Debug("Transaction Nonce:", t.Nonce)
+	log.Debug("Transaction Hash:", t.Hash())
 	for _, v := range t.Programs {
 		log.Debug("Transaction Program Code:", v.Code)
 		log.Debug("Transaction Program Parameter:", v.Parameter)
 	}
 	log.Debug("---------------------------")
 
+	if !node.AppendTxnPool(&t) {
+		return responsePacking("Add Transaction to TxnPool error", id)
+	}
 	if err = node.Xmit(&t); err != nil {
-		response = responsePacking("Xmit Sample TX error", id)
-		return response
+		return responsePacking("Xmit Sample TX error", id)
 	}
 	return responsePacking("Transaction Sended", id)
 }
