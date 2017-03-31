@@ -5,6 +5,7 @@ import (
 	"github.com/DNAProject/DNA/common/serialization"
 	"github.com/DNAProject/DNA/core/contract/program"
 	tx "github.com/DNAProject/DNA/core/transaction"
+	sig "github.com/DNAProject/DNA/core/signature"
 	"github.com/DNAProject/DNA/crypto"
 	. "github.com/DNAProject/DNA/errors"
 	"io"
@@ -65,8 +66,7 @@ func (b *Block) Deserialize(r io.Reader) error {
 }
 
 func (b *Block) GetMessage() []byte {
-	//TODO: GetMessage
-	return []byte{}
+	return  sig.GetHashForSigning(b)
 }
 
 func (b *Block) GetProgramHashes() ([]Uint160, error) {

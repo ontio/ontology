@@ -17,6 +17,13 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 		return err
 	}
 
+	flag, err := VerifySignableData(block)
+	if flag && err == nil {
+		return nil
+	} else {
+		return err
+	}
+
 	if block.Transcations == nil {
 		return errors.New(fmt.Sprintf("No Transcations Exist in Block."))
 	}
@@ -78,10 +85,5 @@ func VerifyBlockData(bd *ledger.Blockdata, ledger *ledger.Ledger) error {
 		return NewDetailErr(err, ErrNoCode, "[BlockValidator], block timestamp is incorrect.")
 	}
 
-	flag, err := VerifySignableData(bd)
-	if flag && err == nil {
-		return nil
-	} else {
-		return err
-	}
+	return nil
 }
