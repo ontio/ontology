@@ -1,10 +1,10 @@
 package code
 
 import (
-	"github.com/DNAProject/DNA/common/log"
-	."github.com/DNAProject/DNA/common"
-	."github.com/DNAProject/DNA/core/contract"
-	"github.com/DNAProject/DNA/common/serialization"
+	"DNA/common/log"
+	. "DNA/common"
+	. "DNA/core/contract"
+	"DNA/common/serialization"
 	"fmt"
 	"io"
 )

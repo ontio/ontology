@@ -1,8 +1,8 @@
 package payload
 
 import (
-	."github.com/DNAProject/DNA/core/code"
-	"github.com/DNAProject/DNA/common/serialization"
+	. "DNA/core/code"
+	"DNA/common/serialization"
 	"io"
 )
 
