@@ -7,7 +7,7 @@ import (
 )
 
 type DeployCode struct {
-	Code 		FunctionCode
+	Code 		*FunctionCode
 	Name 		string
 	CodeVersion 	string
 	Author		string
