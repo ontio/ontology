@@ -5,6 +5,7 @@ import (
 	"github.com/DNAProject/DNA/common/serialization"
 	"github.com/DNAProject/DNA/core/contract/program"
 	tx "github.com/DNAProject/DNA/core/transaction"
+	sig "github.com/DNAProject/DNA/core/signature"
 	"github.com/DNAProject/DNA/crypto"
 	. "github.com/DNAProject/DNA/errors"
 	"io"
