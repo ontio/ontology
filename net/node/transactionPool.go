@@ -37,7 +37,7 @@ func (txnPool *TXNPool) GetTxnPool(cleanPool bool) map[common.Uint256]*transacti
 	defer txnPool.Unlock()
 
 	list := txnPool.list
-	if (cleanPool == true) {
+	if cleanPool == true {
 		txnPool.list = make(map[common.Uint256]*transaction.Transaction)
 	}
 	return list

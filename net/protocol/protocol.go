@@ -1,12 +1,12 @@
 package protocol
 
 import (
-	"bytes"
-	"encoding/binary"
 	"DNA/common"
 	"DNA/core/transaction"
 	"DNA/crypto"
 	"DNA/events"
+	"bytes"
+	"encoding/binary"
 	"time"
 )
 

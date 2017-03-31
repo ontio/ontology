@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	. "DNA/client"
 	"DNA/common/log"
 	"DNA/consensus/dbft"
@@ -11,6 +10,7 @@ import (
 	"DNA/crypto"
 	"DNA/net"
 	"DNA/net/httpjsonrpc"
+	"fmt"
 	"os"
 	"runtime"
 	"time"

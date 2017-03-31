@@ -1,12 +1,12 @@
 package message
 
 import (
-	"encoding/hex"
-	"errors"
 	"DNA/common"
 	"DNA/common/log"
 	"DNA/core/ledger"
 	. "DNA/net/protocol"
+	"encoding/hex"
+	"errors"
 	"time"
 )
 

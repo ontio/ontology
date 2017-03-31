@@ -1,16 +1,16 @@
 package message
 
 import (
-	"bytes"
-	"crypto/sha256"
-	"encoding/binary"
-	"encoding/hex"
-	"fmt"
 	"DNA/common"
 	"DNA/common/log"
 	"DNA/common/serialization"
 	"DNA/core/ledger"
 	. "DNA/net/protocol"
+	"bytes"
+	"crypto/sha256"
+	"encoding/binary"
+	"encoding/hex"
+	"fmt"
 	"io"
 )
 

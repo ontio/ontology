@@ -1,15 +1,15 @@
 package message
 
 import (
-	"bytes"
-	"crypto/sha256"
-	"encoding/binary"
-	"errors"
 	"DNA/common"
 	"DNA/common/log"
 	"DNA/common/serialization"
 	"DNA/core/ledger"
 	. "DNA/net/protocol"
+	"bytes"
+	"crypto/sha256"
+	"encoding/binary"
+	"errors"
 )
 
 type headersReq struct {

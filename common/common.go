@@ -1,13 +1,13 @@
 package common
 
 import (
+	. "DNA/errors"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
-	. "DNA/errors"
 	"github.com/golang/crypto/ripemd160"
 	"io"
 	_ "io"

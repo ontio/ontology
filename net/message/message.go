@@ -1,15 +1,15 @@
 package message
 
 import (
+	"DNA/common"
+	"DNA/common/log"
+	. "DNA/net/protocol"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"DNA/common"
-	"DNA/common/log"
-	. "DNA/net/protocol"
 )
 
 type Messager interface {

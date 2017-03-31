@@ -1,16 +1,16 @@
 package message
 
 import (
-	"bytes"
-	"crypto/sha256"
-	"encoding/binary"
-	"errors"
-	"fmt"
 	"DNA/common"
 	"DNA/common/log"
 	"DNA/core/ledger"
 	"DNA/core/transaction"
 	. "DNA/net/protocol"
+	"bytes"
+	"crypto/sha256"
+	"encoding/binary"
+	"errors"
+	"fmt"
 )
 
 type dataReq struct {
