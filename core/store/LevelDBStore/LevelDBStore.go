@@ -182,7 +182,9 @@ func (bd *LevelDBStore) GetBlockHash(height uint32) (Uint256, error) {
 }
 
 func (bd *LevelDBStore) GetCurrentBlockHash() Uint256 {
-
+	bd.mutex.Lock()
+	defer bd.mutex.Unlock()
+	
 	return bd.header_index[bd.current_block_height]
 }
 
