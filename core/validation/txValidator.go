@@ -5,6 +5,8 @@ import (
 	tx "DNA/core/transaction"
 	"errors"
 	"math"
+	"DNA/core/transaction/payload"
+	"DNA/common"
 )
 
 //Verfiy the transcation for following points
@@ -37,6 +39,54 @@ func VerifyTransaction(Tx *tx.Transaction, ledger *ledger.Ledger, TxPool []*tx.T
 
 	err = CheckTransactionContracts(Tx)
 	if(err != nil){return err}
+
+	if Tx.TxType == tx.IssueAsset{
+		results, err := Tx.GetTransactionResults()
+		if err != nil {
+			return errors.New("[VerifyTransaction], GetTransactionResults failed.")
+		}
+
+		for _, v := range results {
+			//Quantity  has been issued before.
+			var quantity_issued *common.Fixed64
+			trx,err := tx.TxStore.GetTransaction(v.AssetId)
+			if err != nil {
+				return errors.New("[VerifyTransaction], AssetId does exist.")
+			}
+			if trx.TxType != tx.RegisterAsset{
+				return errors.New("[VerifyTransaction], TxType is illegal.")
+			}
+
+			//Get the assetReg transaction
+			AssetReg := trx.Payload.(*payload.RegisterAsset)
+			if *AssetReg.Amount < common.Fixed64(0){
+				continue
+			}else{
+				quantity_issued,err = tx.TxStore.GetQuantityIssued(v.AssetId)
+				if err != nil {
+					return errors.New("[VerifyTransaction], GetQuantityIssued failed.")
+				}
+			}
+
+			//calc the amounts in txPool
+			var txPoolAmounts common.Fixed64
+			if TxPool != nil{
+				for _, t := range TxPool {
+					for _, outputs := range t.Outputs {
+						if outputs.AssetID == v.AssetId{
+							txPoolAmounts = txPoolAmounts + v.Amount
+						}
+					}
+				}
+			}
+
+			//calc weather out off the amount when Registed.
+			if *AssetReg.Amount - *quantity_issued < -v.Amount{
+				return errors.New("[VerifyTransaction], Amount check error.")
+			}
+
+		}
+	}
 
 	return nil
 }

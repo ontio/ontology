@@ -60,7 +60,7 @@ func sampleTransaction(issuer, admin *client.Account) *transaction.Transaction {
 	fmt.Println("//*** A-3. Generate [Transaction] Test                                   ***")
 	fmt.Println("//**************************************************************************")
 	ammount := Fixed64(10)
-	tx, _ := transaction.NewAssetRegistrationTransaction(a, &ammount, issuer.PubKey(), &controllerPGM.ProgramHash)
+	tx, _ := transaction.NewRegisterAssetTransaction(a, &ammount, issuer.PubKey(), &controllerPGM.ProgramHash)
 	fmt.Println("//**************************************************************************")
 	fmt.Println("//*** A-4. Generate [signature],[sign],set transaction [Program]         ***")
 	fmt.Println("//**************************************************************************")

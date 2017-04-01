@@ -47,6 +47,7 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 			return errors.New(fmt.Sprintf("Miner is not validate."))
 		}
 	*/
+		//TODO: NextMiner Check.
 		for _, txVerify := range block.Transcations {
 			transpool := []*tx.Transaction{}
 			for _, tx := range block.Transcations {

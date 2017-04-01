@@ -12,6 +12,7 @@ import (
 	"errors"
 	"io"
 	"sort"
+	"fmt"
 )
 
 //for different transaction types with different payload format
@@ -191,19 +192,20 @@ func (tx *Transaction) DeserializeUnsignedWithoutType(r io.Reader) error {
 	//tx.Payload.Deserialize(r)
 	if tx.TxType == RegisterAsset {
 		// Asset Registration
-		tx.Payload = new(payload.AssetRegistration)
+		tx.Payload = new(payload.RegisterAsset)
 		tx.Payload.Deserialize(r)
 	} else if tx.TxType == IssueAsset {
-		// Asset Issue
+		// Issue Asset
+		tx.Payload = new(payload.IssueAsset)
+		tx.Payload.Deserialize(r)
+	} else if tx.TxType == TransferAsset {
+		// Transfer Asset
+		tx.Payload = new(payload.TransferAsset)
+		tx.Payload.Deserialize(r)
 	}else if tx.TxType == BookKeeping{
 		tx.Payload = new(payload.BookKeeping)
 		tx.Payload.Deserialize(r)
 	}
-	//	else if tx.TxType == 0x00 {
-	//		// Miner
-	//		tx.Payload = new(payload.Miner)
-	//		tx.Payload.Deserialize(r)
-	//	}
 	//attributes
 
 	nonce, err := serialization.ReadVarUint(r, 0)
@@ -297,7 +299,7 @@ func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 	}
 	switch tx.TxType {
 	case RegisterAsset:
-		issuer := tx.Payload.(*payload.AssetRegistration).Issuer
+		issuer := tx.Payload.(*payload.RegisterAsset).Issuer
 		signatureRedeemScript, err := contract.CreateSignatureRedeemScript(issuer)
 		if err != nil {
 			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetProgramHashes CreateSignatureRedeemScript failed.")
@@ -309,8 +311,28 @@ func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 		}
 		hashs = append(hashs, astHash)
 	case IssueAsset:
-		ast := *(tx.Payload.(*payload.AssetRegistration).Controller)
-		hashs = append(hashs, ast)
+		result, err := tx.GetTransactionResults()
+		if err != nil {
+			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetTransactionResults failed.")
+		}
+		for _, v := range result {
+			tx,err := TxStore.GetTransaction(v.AssetId)
+			if err != nil {
+				return nil, NewDetailErr(err, ErrNoCode, fmt.Sprintf("[Transaction], GetTransaction failed With AssetID:=%x",v.AssetId))
+			}
+			if tx.TxType != RegisterAsset{
+				return nil, NewDetailErr(err, ErrNoCode, fmt.Sprintf("[Transaction], Transaction Type ileage With AssetID:=%x",v.AssetId))
+			}
+
+			switch v1 := tx.Payload.(type){
+				case *payload.RegisterAsset:
+					hashs = append(hashs,*v1.Controller)
+				default:
+					return nil, NewDetailErr(err, ErrNoCode, fmt.Sprintf("[Transaction], payload is illegal",v.AssetId))
+			}
+		}
+
+	case TransferAsset:
 	default:
 	}
 	sort.Sort(byProgramHashes(hashs))
@@ -362,12 +384,12 @@ func (tx *Transaction) Verify() error {
 	return nil
 }
 
-func (tx *Transaction) GetReference() (map[UTXOTxInput]TxOutput, error) {
+func (tx *Transaction) GetReference() (map[*UTXOTxInput]*TxOutput, error) {
 	if tx.TxType == RegisterAsset {
 		return nil, nil
 	}
 	//UTXO input /  Outputs
-	reference := make(map[UTXOTxInput]TxOutput)
+	reference := make(map[*UTXOTxInput]*TxOutput)
 	// key 顺序，v UTXOInput
 	for _, utxo := range tx.UTXOInputs {
 		transaction, err := TxStore.GetTransaction(utxo.ReferTxID)
@@ -375,9 +397,34 @@ func (tx *Transaction) GetReference() (map[UTXOTxInput]TxOutput, error) {
 			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetReference failed.")
 		}
 		index := utxo.ReferTxOutputIndex
-		reference[*utxo] = *transaction.Outputs[index]
+		reference[utxo] = transaction.Outputs[index]
 	}
 	return reference, nil
+}
+func (tx *Transaction) GetTransactionResults() ([]*TransactionResult, error) {
+	reference, err := tx.GetReference()
+	if err != nil {
+		return nil, err
+	}
+	result := []*TransactionResult{}
+	var finded bool
+	for _, o := range tx.Outputs {
+		finded = false
+		res := new(TransactionResult)
+		for _, r := range reference {
+			if r.AssetID == o.AssetID {
+				finded = true
+				res.AssetId = r.AssetID
+				res.Amount = r.Value - o.Value
+			}
+		}
+		if finded == true {
+			res.AssetId = o.AssetID
+			res.Amount = o.Value * Fixed64(-1)
+		}
+		result = append(result, res)
+	}
+	return result, nil
 }
 
 type byProgramHashes []Uint160
