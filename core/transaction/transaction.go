@@ -387,7 +387,7 @@ func (tx *Transaction) GetReference() (map[*UTXOTxInput]*TxOutput, error) {
 	}
 	//UTXO input /  Outputs
 	reference := make(map[*UTXOTxInput]*TxOutput)
-	// key 顺序，v UTXOInput
+	// Key index，v UTXOInput
 	for _, utxo := range tx.UTXOInputs {
 		transaction, err := TxStore.GetTransaction(utxo.ReferTxID)
 		if err != nil {
