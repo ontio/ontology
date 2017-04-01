@@ -8,6 +8,7 @@ import (
 	"DNA/core/contract/program"
 	. "DNA/core/ledger"
 	tx "DNA/core/transaction"
+	"DNA/core/transaction/payload"
 	"DNA/core/validation"
 	. "DNA/errors"
 	"bytes"
@@ -305,7 +306,7 @@ func (bd *LevelDBStore) GetHeader(hash Uint256) (*Header, error) {
 	return h, err
 }
 
-func (bd *LevelDBStore) SaveAsset(asset *Asset) error {
+func (bd *LevelDBStore) SaveAsset(assetid Uint256, asset *Asset) error {
 	w := bytes.NewBuffer(nil)
 
 	asset.Serialize(w)
@@ -315,7 +316,7 @@ func (bd *LevelDBStore) SaveAsset(asset *Asset) error {
 	// add asset prefix.
 	assetkey.WriteByte(byte(ST_QuantityIssued))
 	// contact asset id
-	asset.ID.Serialize(assetkey)
+	assetid.Serialize(assetkey)
 
 	log.Debug(fmt.Sprintf("asset key: %x\n", assetkey))
 
@@ -365,8 +366,8 @@ func (bd *LevelDBStore) GetNextBlockHash(hash []byte) common.Uint256 {
 */
 
 func (bd *LevelDBStore) GetTransaction(hash Uint256) (*tx.Transaction, error) {
-	log.Trace()
-	log.Debug(fmt.Sprintf("GetTransaction Hash: %x\n", hash))
+	//Trace()
+	//log.Debug(fmt.Sprintf("GetTransaction Hash: %x\n", hash))
 	t := new(tx.Transaction)
 	err := bd.getTx(t, hash)
 
@@ -390,12 +391,12 @@ func (bd *LevelDBStore) getTx(tx *tx.Transaction, hash Uint256) error {
 	r := bytes.NewReader(tHash)
 
 	// get height
-	//_, err := serialization.ReadUint32(r)
-	height, err := serialization.ReadUint32(r)
+	_, err := serialization.ReadUint32(r)
+	//height, err := serialization.ReadUint32(r)
 	if err != nil {
 		return err
 	}
-	log.Debug(fmt.Sprintf("tx height: %d\n", height))
+	//log.Debug(fmt.Sprintf("tx height: %d\n", height))
 
 	// Deserialize Transaction
 	err = tx.Deserialize(r)
@@ -442,17 +443,17 @@ func (bd *LevelDBStore) GetBlock(hash Uint256) (*Block, error) {
 		//TODO: implement error process
 		return nil, err_get
 	}
-	log.Debug(fmt.Sprintf("GetBlock Data: %x\n", bHash))
+	//log.Debug(fmt.Sprintf("GetBlock Data: %x\n", bHash))
 
 	r := bytes.NewReader(bHash)
 
 	// first 8 bytes is sys_fee
-	//_,err := serialization.ReadUint64(r)
-	sysfee, err := serialization.ReadUint64(r)
+	_,err := serialization.ReadUint64(r)
+	//sysfee, err := serialization.ReadUint64(r)
 	if err != nil {
 		return nil, err
 	}
-	log.Debug(fmt.Sprintf("sysfee: %d\n", sysfee))
+	//log.Debug(fmt.Sprintf("sysfee: %d\n", sysfee))
 
 	// Deserialize block data
 	err = b.Deserialize(r)
@@ -532,7 +533,17 @@ func (bd *LevelDBStore) persist(b *Block) error {
 
 		// now support RegisterAsset and Miner tx ONLY.
 		if b.Transcations[i].TxType == 0x40 || b.Transcations[i].TxType == 0x00 {
-			bd.SaveTransaction(b.Transcations[i], b.Blockdata.Height)
+			err = bd.SaveTransaction(b.Transcations[i], b.Blockdata.Height)
+			if err != nil {
+				return err
+			}
+		}
+		if b.Transcations[i].TxType == 0x40 {
+			ar := b.Transcations[i].Payload.(*payload.RegisterAsset)
+			err = bd.SaveAsset(b.Transcations[i].Hash(),ar.Asset)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
