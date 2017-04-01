@@ -47,8 +47,7 @@ func VerifyTransaction(Tx *tx.Transaction, ledger *ledger.Ledger, TxPool []*tx.T
 		}
 
 		for _, v := range results {
-			//Quantity  has been issued before.
-			var quantity_issued *common.Fixed64
+			//Get the Asset amount when RegisterAsseted.
 			trx,err := tx.TxStore.GetTransaction(v.AssetId)
 			if err != nil {
 				return errors.New("[VerifyTransaction], AssetId does exist.")
@@ -56,9 +55,11 @@ func VerifyTransaction(Tx *tx.Transaction, ledger *ledger.Ledger, TxPool []*tx.T
 			if trx.TxType != tx.RegisterAsset{
 				return errors.New("[VerifyTransaction], TxType is illegal.")
 			}
-
-			//Get the assetReg transaction
 			AssetReg := trx.Payload.(*payload.RegisterAsset)
+
+
+			//Get the amount has been issued of this assetID
+			var quantity_issued *common.Fixed64
 			if *AssetReg.Amount < common.Fixed64(0){
 				continue
 			}else{
@@ -81,7 +82,10 @@ func VerifyTransaction(Tx *tx.Transaction, ledger *ledger.Ledger, TxPool []*tx.T
 			}
 
 			//calc weather out off the amount when Registed.
-			if *AssetReg.Amount - *quantity_issued < -v.Amount{
+			//AssetReg.Amount : amount when RegisterAsset of this assedID
+			//quantity_issued : amount has been issued of this assedID
+			//txPoolAmounts   : amount in transactionPool of this assedID
+			if *AssetReg.Amount - *quantity_issued < - txPoolAmounts{
 				return errors.New("[VerifyTransaction], Amount check error.")
 			}
 

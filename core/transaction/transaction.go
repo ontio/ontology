@@ -193,19 +193,16 @@ func (tx *Transaction) DeserializeUnsignedWithoutType(r io.Reader) error {
 	if tx.TxType == RegisterAsset {
 		// Asset Registration
 		tx.Payload = new(payload.RegisterAsset)
-		tx.Payload.Deserialize(r)
 	} else if tx.TxType == IssueAsset {
 		// Issue Asset
 		tx.Payload = new(payload.IssueAsset)
-		tx.Payload.Deserialize(r)
 	} else if tx.TxType == TransferAsset {
 		// Transfer Asset
 		tx.Payload = new(payload.TransferAsset)
-		tx.Payload.Deserialize(r)
 	}else if tx.TxType == BookKeeping{
 		tx.Payload = new(payload.BookKeeping)
-		tx.Payload.Deserialize(r)
 	}
+	tx.Payload.Deserialize(r)
 	//attributes
 
 	nonce, err := serialization.ReadVarUint(r, 0)
