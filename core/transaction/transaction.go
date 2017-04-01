@@ -323,7 +323,7 @@ func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 
 			switch v1 := tx.Payload.(type){
 				case *payload.RegisterAsset:
-					hashs = append(hashs,*v1.Controller)
+					hashs = append(hashs,v1.Controller)
 				default:
 					return nil, NewDetailErr(err, ErrNoCode, fmt.Sprintf("[Transaction], payload is illegal",v.AssetId))
 			}

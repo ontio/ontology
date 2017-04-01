@@ -11,10 +11,10 @@ import (
 
 type RegisterAsset struct {
 	Asset      *asset.Asset
-	Amount     *common.Fixed64
+	Amount     common.Fixed64
 	//Precision  byte
 	Issuer     *crypto.PubKey
-	Controller *common.Uint160
+	Controller common.Uint160
 }
 
 func (a *RegisterAsset) Data() []byte {
@@ -41,7 +41,7 @@ func (a *RegisterAsset) Deserialize(r io.Reader) error {
 	}
 
 	//Amount
-	a.Amount = new(common.Fixed64)
+	a.Amount = *new(common.Fixed64)
 	err = a.Amount.Deserialize(r)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "[RegisterAsset], Ammount Deserialize failed.")
@@ -64,7 +64,7 @@ func (a *RegisterAsset) Deserialize(r io.Reader) error {
 	}
 
 	//Controller *common.Uint160
-	a.Controller = new(common.Uint160)
+	a.Controller = *new(common.Uint160)
 	err = a.Controller.Deserialize(r)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "[RegisterAsset], Ammount Deserialize failed.")
