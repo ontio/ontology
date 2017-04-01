@@ -418,7 +418,7 @@ func (tx *Transaction) GetTransactionResults() ([]*TransactionResult, error) {
 				res.Amount = r.Value - o.Value
 			}
 		}
-		if finded == true {
+		if finded == false {
 			res.AssetId = o.AssetID
 			res.Amount = o.Value * Fixed64(-1)
 		}
