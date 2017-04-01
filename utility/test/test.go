@@ -61,12 +61,12 @@ func main(args []string, p utility.Param) (err error) {
 
 func sampleTransaction(issuer, admin *client.Account, assetid Uint256, index int64, nosign bool) *transaction.Transaction {
 	// generate asset
-	a := SampleAsset(assetid, index)
+	a := SampleAsset(index)
 	// generate controllerPGM
 	controllerPGM, _ := contract.CreateSignatureContract(admin.PubKey())
 	// generate transaction
 	ammount := Fixed64(10)
-	tx, _ := transaction.NewAssetRegistrationTransaction(a, ammount, issuer.PubKey(), controllerPGM.ProgramHash)
+	tx, _ := transaction.NewRegisterAssetTransaction(a, ammount, issuer.PubKey(), controllerPGM.ProgramHash)
 	if nosign {
 		return tx
 	}
@@ -84,9 +84,9 @@ func sampleTransaction(issuer, admin *client.Account, assetid Uint256, index int
 	return tx
 }
 
-func SampleAsset(id Uint256, index int64) *Asset {
+func SampleAsset(index int64) *Asset {
 	name := ASSETPREFIX + strconv.FormatInt(index, 10)
-	asset := Asset{id, name, byte(0x00), AssetType(Share), UTXO}
+	asset := Asset{name, byte(0x00), AssetType(Share), UTXO}
 	return &asset
 }
 
