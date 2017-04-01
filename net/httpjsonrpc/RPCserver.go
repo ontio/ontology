@@ -1,15 +1,14 @@
 package httpjsonrpc
 
 import (
-	. "DNA/common"
+	"DNA/common/log"
 	. "DNA/config"
-	"log"
 	"net/http"
 	"strconv"
 )
 
 func StartRPCServer() {
-	Trace()
+	log.Trace()
 	http.HandleFunc("/", Handle)
 
 	HandleFunc("getbestblockhash", getBestBlockHash)

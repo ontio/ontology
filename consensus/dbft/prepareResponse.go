@@ -1,32 +1,32 @@
 package dbft
 
 import (
-	"io"
+	"DNA/common/log"
 	ser "DNA/common/serialization"
-	. "DNA/common"
+	"io"
 )
 
 type PrepareResponse struct {
-	msgData ConsensusMessageData
+	msgData   ConsensusMessageData
 	Signature []byte
 }
 
-func (pres *PrepareResponse) Serialize(w io.Writer)error{
-	Trace()
+func (pres *PrepareResponse) Serialize(w io.Writer) error {
+	log.Trace()
 	pres.msgData.Serialize(w)
 	w.Write(pres.Signature)
 	return nil
 }
 
 //read data to reader
-func (pres *PrepareResponse) Deserialize(r io.Reader) error{
-	Trace()
+func (pres *PrepareResponse) Deserialize(r io.Reader) error {
+	log.Trace()
 	err := pres.msgData.Deserialize(r)
 	if err != nil {
 		return err
 	}
 	// Fixme the 64 should be defined as a unified const
-	pres.Signature,err = ser.ReadBytes(r, 64)
+	pres.Signature, err = ser.ReadBytes(r, 64)
 	if err != nil {
 		return err
 	}
@@ -34,17 +34,17 @@ func (pres *PrepareResponse) Deserialize(r io.Reader) error{
 
 }
 
-func (pres *PrepareResponse) Type() ConsensusMessageType{
-	Trace()
+func (pres *PrepareResponse) Type() ConsensusMessageType {
+	log.Trace()
 	return pres.ConsensusMessageData().Type
 }
 
-func (pres *PrepareResponse) ViewNumber() byte{
-	Trace()
+func (pres *PrepareResponse) ViewNumber() byte {
+	log.Trace()
 	return pres.msgData.ViewNumber
 }
 
-func (pres *PrepareResponse) ConsensusMessageData() *ConsensusMessageData{
-	Trace()
+func (pres *PrepareResponse) ConsensusMessageData() *ConsensusMessageData {
+	log.Trace()
 	return &(pres.msgData)
 }

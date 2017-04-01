@@ -22,7 +22,7 @@ func NewBlockchain() *Blockchain {
 }
 
 func (bc *Blockchain) AddBlock(block *Block) error {
-	Trace()
+	log.Trace()
 	bc.mutex.Lock()
 	defer bc.mutex.Unlock()
 
@@ -55,7 +55,7 @@ func (bc *Blockchain) GetHeader(hash Uint256) (*Header, error) {
 }
 
 func (bc *Blockchain) SaveBlock(block *Block) error {
-	Trace()
+	log.Trace()
 	err := DefaultLedger.Store.SaveBlock(block, DefaultLedger)
 	if err != nil {
 		log.Error("Save block failure ,err=", err)
