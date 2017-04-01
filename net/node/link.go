@@ -1,7 +1,6 @@
 package node
 
 import (
-	"DNA/common"
 	"DNA/common/log"
 	. "DNA/config"
 	. "DNA/net/message"
@@ -151,7 +150,7 @@ func (n *node) initConnection() {
 }
 
 func initNonTlsListen() (net.Listener, error) {
-	common.Trace()
+	log.Trace()
 	listener, err := net.Listen("tcp", ":"+strconv.Itoa(Parameters.NodePort))
 	if err != nil {
 		log.Error("Error listening\n", err.Error())
@@ -209,7 +208,7 @@ func parseIPaddr(s string) (string, error) {
 }
 
 func (node *node) Connect(nodeAddr string) error {
-	common.Trace()
+	log.Trace()
 	isTls := Parameters.IsTLS
 	var conn net.Conn
 	var err error
@@ -246,7 +245,7 @@ func (node *node) Connect(nodeAddr string) error {
 }
 
 func NonTLSDial(nodeAddr string) (net.Conn, error) {
-	common.Trace()
+	log.Trace()
 	conn, err := net.Dial("tcp", nodeAddr)
 	if err != nil {
 		log.Error("Error dialing\n", err.Error())
@@ -288,7 +287,7 @@ func TLSDial(nodeAddr string) (net.Conn, error) {
 }
 
 func (node node) Tx(buf []byte) {
-	common.Trace()
+	log.Trace()
 	str := hex.EncodeToString(buf)
 	log.Debug(fmt.Sprintf("TX buf length: %d\n%s", len(buf), str))
 

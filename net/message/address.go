@@ -1,7 +1,6 @@
 package message
 
 import (
-	"DNA/common"
 	"DNA/common/log"
 	. "DNA/net/protocol"
 	"bytes"
@@ -89,7 +88,7 @@ func (msg addrReq) Verify(buf []byte) error {
 }
 
 func (msg addrReq) Handle(node Noder) error {
-	common.Trace()
+	log.Trace()
 	// lock
 	var addrstr []NodeAddr
 	var count uint64
@@ -162,7 +161,7 @@ func (msg addr) Verify(buf []byte) error {
 }
 
 func (msg addr) Handle(node Noder) error {
-	common.Trace()
+	log.Trace()
 	for _, v := range msg.nodeAddrs {
 		var ip net.IP
 		ip = v.IpAddr[:]

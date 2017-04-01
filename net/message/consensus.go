@@ -53,7 +53,7 @@ func (cp *ConsensusPayload) InvertoryType() common.InventoryType {
 }
 
 func (cp *ConsensusPayload) GetProgramHashes() ([]common.Uint160, error) {
-	common.Trace()
+	log.Trace()
 
 	if ledger.DefaultLedger == nil {
 		return nil, errors.New("The Default ledger not exists.")
@@ -106,7 +106,7 @@ func (cp *ConsensusPayload) GetMessage() []byte {
 }
 
 func (msg consensus) Handle(node Noder) error {
-	common.Trace()
+	log.Trace()
 
 	node.LocalNode().GetEvent("consensus").Notify(events.EventNewInventory, &msg.cons)
 	return nil
@@ -166,7 +166,7 @@ func (msg *consensus) Serialization() ([]byte, error) {
 }
 
 func (cp *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
-	common.Trace()
+	log.Trace()
 	var err error
 	cp.Version, err = serialization.ReadUint32(r)
 	if err != nil {
@@ -214,12 +214,12 @@ func (cp *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
 	}
 	cp.Owner = pk
 
-	common.Trace()
+	log.Trace()
 	return nil
 }
 
 func (cp *ConsensusPayload) Deserialize(r io.Reader) error {
-	common.Trace()
+	log.Trace()
 	err := cp.DeserializeUnsigned(r)
 
 	pg := new(program.Program)
@@ -233,7 +233,7 @@ func (cp *ConsensusPayload) Deserialize(r io.Reader) error {
 }
 
 func (msg *consensus) Deserialization(p []byte) error {
-	common.Trace()
+	log.Trace()
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.msgHdr))
 	err = msg.cons.Deserialize(buf)
@@ -241,7 +241,7 @@ func (msg *consensus) Deserialization(p []byte) error {
 }
 
 func NewConsensus(cp *ConsensusPayload) ([]byte, error) {
-	common.Trace()
+	log.Trace()
 	var msg consensus
 	msg.msgHdr.Magic = NETMAGIC
 	cmd := "consensus"
