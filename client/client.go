@@ -2,6 +2,7 @@ package client
 
 import (
 	. "DNA/common"
+	"DNA/common/log"
 	"DNA/common/serialization"
 	"DNA/core/contract"
 	ct "DNA/core/contract"
@@ -235,7 +236,7 @@ func (cl *ClientImpl) GetAccountByKeyHash(publicKeyHash Uint160) *Account {
 }
 
 func (cl *ClientImpl) GetAccountByProgramHash(programHash Uint160) *Account {
-	Trace()
+	log.Trace()
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
 
@@ -246,7 +247,7 @@ func (cl *ClientImpl) GetAccountByProgramHash(programHash Uint160) *Account {
 }
 
 func (cl *ClientImpl) GetContract(codeHash Uint160) *ct.Contract {
-	Trace()
+	log.Trace()
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
 	//fmt.Println("codeHash",codeHash)
@@ -380,7 +381,7 @@ func (cl *ClientImpl) ProcessNewBlock(block *ledger.Block) {
 }
 
 func (cl *ClientImpl) Sign(context *ct.ContractContext) bool {
-	Trace()
+	log.Trace()
 	fSuccess := false
 	for i, hash := range context.ProgramHashes {
 		//fmt.Println("Sign hash=",hash)

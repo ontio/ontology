@@ -365,7 +365,7 @@ func (bd *LevelDBStore) GetNextBlockHash(hash []byte) common.Uint256 {
 */
 
 func (bd *LevelDBStore) GetTransaction(hash Uint256) (*tx.Transaction, error) {
-	Trace()
+	log.Trace()
 	log.Debug(fmt.Sprintf("GetTransaction Hash: %x\n", hash))
 	t := new(tx.Transaction)
 	err := bd.getTx(t, hash)
@@ -686,7 +686,6 @@ func (bd *LevelDBStore) SaveBlock(b *Block, ledger *Ledger) error {
 	} else {
 		return errors.New("[SaveBlock] block height < header_index")
 	}
-
 
 	return nil
 }

@@ -29,7 +29,7 @@ type trn struct {
 }
 
 func (msg trn) Handle(node Noder) error {
-	common.Trace()
+	log.Trace()
 	log.Debug("RX Transaction message")
 
 	if !node.LocalNode().ExistedID(msg.txn.Hash()) {
@@ -99,7 +99,7 @@ func NewTxnFromHash(hash common.Uint256) (*transaction.Transaction, error) {
 	return txn, nil
 }
 func NewTxn(txn *transaction.Transaction) ([]byte, error) {
-	common.Trace()
+	log.Trace()
 	var msg trn
 
 	msg.msgHdr.Magic = NETMAGIC

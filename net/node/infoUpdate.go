@@ -37,7 +37,7 @@ func (node node) updateNodeInfo() {
 	for {
 		select {
 		case <-ticker.C:
-			//common.Trace()
+			//log.Trace()
 			node.GetBlkHdrs()
 		case <-quit:
 			ticker.Stop()
