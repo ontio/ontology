@@ -2,6 +2,7 @@ package signature
 
 import (
 	"DNA/common"
+	"DNA/common/log"
 	"DNA/core/contract/program"
 	"DNA/crypto"
 	. "DNA/errors"
@@ -27,7 +28,7 @@ type SignableData interface {
 }
 
 func SignBySigner(data SignableData, signer Signer) ([]byte, error) {
-	common.Trace()
+	log.Trace()
 	//fmt.Println("data",data)
 	rtx, err := Sign(data, signer.PrivKey())
 	if err != nil {

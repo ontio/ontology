@@ -1,33 +1,33 @@
 package dbft
 
 import (
-	"io"
 	. "DNA/common"
-	. "DNA/errors"
+	"DNA/common/log"
 	ser "DNA/common/serialization"
 	tx "DNA/core/transaction"
+	. "DNA/errors"
 	"fmt"
-	"DNA/common/log"
+	"io"
 )
 
 type PrepareRequest struct {
 	msgData ConsensusMessageData
 
-	Nonce uint64
-	NextMiner Uint160
-	TransactionHashes []Uint256
+	Nonce                  uint64
+	NextMiner              Uint160
+	TransactionHashes      []Uint256
 	BookkeepingTransaction *tx.Transaction
-	Signature []byte
+	Signature              []byte
 }
 
-func (pr *PrepareRequest) Serialize(w io.Writer)error{
-	Trace()
+func (pr *PrepareRequest) Serialize(w io.Writer) error {
+	log.Trace()
 	pr.msgData.Serialize(w)
-	err:= ser.WriteVarUint(w,pr.Nonce)
+	err := ser.WriteVarUint(w, pr.Nonce)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "PrepareRequest Execute WriteVarUint failed.")
 	}
-	_,err=pr.NextMiner.Serialize(w)
+	_, err = pr.NextMiner.Serialize(w)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "PrepareRequest Execute NextMiner.Serialize failed.")
 	}
@@ -38,13 +38,13 @@ func (pr *PrepareRequest) Serialize(w io.Writer)error{
 		return NewDetailErr(err, ErrNoCode, "PrepareRequest Execute WriteVarUint. failed.")
 	}
 	for _, txHash := range pr.TransactionHashes {
-		_,err=txHash.Serialize(w)
+		_, err = txHash.Serialize(w)
 		if err != nil {
 			return NewDetailErr(err, ErrNoCode, "PrepareRequest Execute txHash.Serialize. failed.")
 		}
 	}
 
-	err =pr.BookkeepingTransaction.Serialize(w)
+	err = pr.BookkeepingTransaction.Serialize(w)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "PrepareRequest Execute BookkeepingTransaction Serialize failed.")
 	}
@@ -74,7 +74,7 @@ func (pr *PrepareRequest) Serialize(w io.Writer)error{
 	//for _, v := range pr.BookkeepingTransaction.Programs {
 	//	fmt.Println("Programs",v)
 	//}
-	err=ser.WriteVarBytes(w,pr.Signature)
+	err = ser.WriteVarBytes(w, pr.Signature)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "PrepareRequest Execute ser.WriteVarBytes failed.")
 	}
@@ -82,11 +82,11 @@ func (pr *PrepareRequest) Serialize(w io.Writer)error{
 }
 
 //read data to reader
-func (pr *PrepareRequest) Deserialize(r io.Reader) error{
-	Trace()
+func (pr *PrepareRequest) Deserialize(r io.Reader) error {
+	log.Trace()
 	pr.msgData = ConsensusMessageData{}
 	pr.msgData.Deserialize(r)
-	pr.Nonce,_ = ser.ReadVarUint(r,0)
+	pr.Nonce, _ = ser.ReadVarUint(r, 0)
 	pr.NextMiner = Uint160{}
 	pr.NextMiner.Deserialize(r)
 
@@ -96,7 +96,7 @@ func (pr *PrepareRequest) Deserialize(r io.Reader) error{
 		return err
 	}
 
-	if (Len == 0) {
+	if Len == 0 {
 		fmt.Printf("The hash len at consensus payload is 0\n")
 	} else {
 		pr.TransactionHashes = make([]Uint256, Len)
@@ -104,15 +104,15 @@ func (pr *PrepareRequest) Deserialize(r io.Reader) error{
 			hash := new(Uint256)
 			err = hash.Deserialize(r)
 			if err != nil {
-			return err
+				return err
 			}
 			pr.TransactionHashes[i] = *hash
 		}
 	}
 	pr.BookkeepingTransaction.Deserialize(r)
 	if pr.BookkeepingTransaction.Hash() != pr.TransactionHashes[0] {
-		log.Debug("pr.BookkeepingTransaction.Hash()=",pr.BookkeepingTransaction.Hash())
-		log.Debug("pr.TransactionHashes[0]=",pr.TransactionHashes[0])
+		log.Debug("pr.BookkeepingTransaction.Hash()=", pr.BookkeepingTransaction.Hash())
+		log.Debug("pr.TransactionHashes[0]=", pr.TransactionHashes[0])
 		//buf :=bytes.NewBuffer([]byte{})
 		//pr.BookkeepingTransaction.Serialize(buf)
 		//fmt.Println("PrepareRequest Deserialize cxt.Transactions[cxt.TransactionHashes[0]=",buf.Bytes() )
@@ -136,10 +136,10 @@ func (pr *PrepareRequest) Deserialize(r io.Reader) error{
 		//	fmt.Println("Programs",v)
 		//}
 
-		return  NewDetailErr(nil,ErrNoCode,"The Bookkeeping Transaction data is incorrect.")
+		return NewDetailErr(nil, ErrNoCode, "The Bookkeeping Transaction data is incorrect.")
 
 	}
-	pr.Signature,err = ser.ReadVarBytes(r)
+	pr.Signature, err = ser.ReadVarBytes(r)
 	if err != nil {
 		fmt.Printf("Parse the Signature error\n")
 		return err
@@ -148,17 +148,17 @@ func (pr *PrepareRequest) Deserialize(r io.Reader) error{
 	return nil
 }
 
-func (pr *PrepareRequest) Type() ConsensusMessageType{
-	Trace()
+func (pr *PrepareRequest) Type() ConsensusMessageType {
+	log.Trace()
 	return pr.ConsensusMessageData().Type
 }
 
-func (pr *PrepareRequest) ViewNumber() byte{
-	Trace()
+func (pr *PrepareRequest) ViewNumber() byte {
+	log.Trace()
 	return pr.msgData.ViewNumber
 }
 
-func (pr *PrepareRequest) ConsensusMessageData() *ConsensusMessageData{
-	Trace()
+func (pr *PrepareRequest) ConsensusMessageData() *ConsensusMessageData {
+	log.Trace()
 	return &(pr.msgData)
 }
