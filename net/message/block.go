@@ -10,7 +10,6 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
-	"fmt"
 )
 
 type blockReq struct {
@@ -98,7 +97,7 @@ func NewBlock(bk *ledger.Block) ([]byte, error) {
 	buf := bytes.NewBuffer(s[:4])
 	binary.Read(buf, binary.LittleEndian, &(msg.msgHdr.Checksum))
 	msg.msgHdr.Length = uint32(len(p.Bytes()))
-	fmt.Printf("The message payload length is %d\n", msg.msgHdr.Length)
+	log.Debug("The message payload length is %d\n", msg.msgHdr.Length)
 
 	m, err := msg.Serialization()
 	if err != nil {
