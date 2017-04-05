@@ -1,7 +1,7 @@
 package transaction
 
 import (
-. "github.com/DNAProject/DNA/common"
+. "DNA/common"
 )
 
 // ILedgerStore provides func with store package.

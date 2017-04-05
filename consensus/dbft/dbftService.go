@@ -1,23 +1,23 @@
 package dbft
 
 import (
-	cl "github.com/DNAProject/DNA/client"
-	. "github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/common/log"
-	"github.com/DNAProject/DNA/config"
-	con "github.com/DNAProject/DNA/consensus"
-	ct "github.com/DNAProject/DNA/core/contract"
-	"github.com/DNAProject/DNA/core/contract/program"
-	"github.com/DNAProject/DNA/core/ledger"
-	_ "github.com/DNAProject/DNA/core/signature"
-	sig "github.com/DNAProject/DNA/core/signature"
-	tx "github.com/DNAProject/DNA/core/transaction"
-	"github.com/DNAProject/DNA/core/transaction/payload"
-	va "github.com/DNAProject/DNA/core/validation"
-	. "github.com/DNAProject/DNA/errors"
-	"github.com/DNAProject/DNA/events"
-	"github.com/DNAProject/DNA/net"
-	msg "github.com/DNAProject/DNA/net/message"
+	cl "DNA/client"
+	. "DNA/common"
+	"DNA/common/log"
+	"DNA/config"
+	con "DNA/consensus"
+	ct "DNA/core/contract"
+	"DNA/core/contract/program"
+	"DNA/core/ledger"
+	_ "DNA/core/signature"
+	sig "DNA/core/signature"
+	tx "DNA/core/transaction"
+	"DNA/core/transaction/payload"
+	va "DNA/core/validation"
+	. "DNA/errors"
+	"DNA/events"
+	"DNA/net"
+	msg "DNA/net/message"
 	"errors"
 	"fmt"
 	"time"
@@ -41,7 +41,7 @@ type DbftService struct {
 }
 
 func NewDbftService(client cl.Client, logDictionary string, localNet net.Neter) *DbftService {
-	Trace()
+	log.Trace()
 
 	ds := &DbftService{
 		Client:        client,
@@ -54,13 +54,13 @@ func NewDbftService(client cl.Client, logDictionary string, localNet net.Neter) 
 	if !ds.timer.Stop() {
 		<-ds.timer.C
 	}
-	Trace()
+	log.Trace()
 	go ds.timerRoutine()
 	return ds
 }
 
 func (ds *DbftService) AddTransaction(TX *tx.Transaction, needVerify bool) error {
-	Trace()
+	log.Trace()
 
 	//check whether the new TX already exist in ledger
 	if ledger.DefaultLedger.Blockchain.ContainsTransaction(TX.Hash()) {
@@ -122,7 +122,7 @@ func (ds *DbftService) AddTransaction(TX *tx.Transaction, needVerify bool) error
 }
 
 func (ds *DbftService) BlockPersistCompleted(v interface{}) {
-	Trace()
+	log.Trace()
 	if block, ok := v.(*ledger.Block); ok {
 		log.Info(fmt.Sprintf("persist block: %d", block.Hash()))
 	}
@@ -133,7 +133,7 @@ func (ds *DbftService) BlockPersistCompleted(v interface{}) {
 }
 
 func (ds *DbftService) CheckExpectedView(viewNumber byte) {
-	Trace()
+	log.Trace()
 	if ds.context.ViewNumber == viewNumber {
 		return
 	}
@@ -161,7 +161,7 @@ func (ds *DbftService) CheckPolicy(transaction *tx.Transaction) error {
 }
 
 func (ds *DbftService) CheckSignatures() error {
-	Trace()
+	log.Trace()
 
 	//check have enought signatures and all required TXs already in context
 	if ds.context.GetSignaturesCount() >= ds.context.M() && ds.context.CheckTxHashesExist() {
@@ -211,14 +211,14 @@ func (ds *DbftService) CheckSignatures() error {
 }
 
 func (ds *DbftService) CreateBookkeepingTransaction(nonce uint64) *tx.Transaction {
-	Trace()
+	log.Trace()
 
 	//TODO: sysfee
 
 	return &tx.Transaction{
 		TxType:         tx.BookKeeping,
 		PayloadVersion: 0x2,
-		Payload:        &payload.MinerPayload{},
+		Payload:        &payload.BookKeeping{},
 		Nonce:          nonce, //TODO: update the nonce
 		Attributes:     []*tx.TxAttribute{},
 		UTXOInputs:     []*tx.UTXOTxInput{},
@@ -229,7 +229,7 @@ func (ds *DbftService) CreateBookkeepingTransaction(nonce uint64) *tx.Transactio
 }
 
 func (ds *DbftService) ChangeViewReceived(payload *msg.ConsensusPayload, message *ChangeView) {
-	Trace()
+	log.Trace()
 	log.Info(fmt.Sprintf("Change View Received: height=%d View=%d index=%d nv=%d", payload.Height, message.ViewNumber(), payload.MinerIndex, message.NewViewNumber))
 
 	if message.NewViewNumber <= ds.context.ExpectedView[payload.MinerIndex] {
@@ -242,7 +242,7 @@ func (ds *DbftService) ChangeViewReceived(payload *msg.ConsensusPayload, message
 }
 
 func (ds *DbftService) Halt() error {
-	Trace()
+	log.Trace()
 	log.Info("DBFT Stop")
 	if ds.timer != nil {
 		ds.timer.Stop()
@@ -257,7 +257,7 @@ func (ds *DbftService) Halt() error {
 
 func (ds *DbftService) InitializeConsensus(viewNum byte) error {
 	log.Debug("[InitializeConsensus] Start InitializeConsensus.")
-	Trace()
+	log.Trace()
 	ds.context.contextMu.Lock()
 	defer ds.context.contextMu.Unlock()
 
@@ -277,7 +277,7 @@ func (ds *DbftService) InitializeConsensus(viewNum byte) error {
 	if ds.context.MinerIndex == int(ds.context.PrimaryIndex) {
 
 		//primary peer
-		Trace()
+		log.Trace()
 		ds.context.State |= Primary
 		ds.timerHeight = ds.context.Height
 		ds.timeView = viewNum
@@ -305,7 +305,7 @@ func (ds *DbftService) InitializeConsensus(viewNum byte) error {
 }
 
 func (ds *DbftService) LocalNodeNewInventory(v interface{}) {
-	Trace()
+	log.Trace()
 	if inventory, ok := v.(Inventory); ok {
 		if inventory.Type() == CONSENSUS {
 			payload, ret := inventory.(*msg.ConsensusPayload)
@@ -324,7 +324,7 @@ func (ds *DbftService) LocalNodeNewInventory(v interface{}) {
 //TODO: add invenory receiving
 
 func (ds *DbftService) NewConsensusPayload(payload *msg.ConsensusPayload) {
-	Trace()
+	log.Trace()
 	ds.context.contextMu.Lock()
 	defer ds.context.contextMu.Unlock()
 
@@ -372,7 +372,7 @@ func (ds *DbftService) NewConsensusPayload(payload *msg.ConsensusPayload) {
 }
 
 func (ds *DbftService) NewTransactionPayload(transaction *tx.Transaction) error {
-	Trace()
+	log.Trace()
 	ds.context.contextMu.Lock()
 	defer ds.context.contextMu.Unlock()
 
@@ -391,7 +391,7 @@ func (ds *DbftService) NewTransactionPayload(transaction *tx.Transaction) error 
 }
 
 func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, message *PrepareRequest) {
-	Trace()
+	log.Trace()
 	log.Info(fmt.Sprintf("Prepare Request Received: height=%d View=%d index=%d tx=%d", payload.Height, message.ViewNumber(), payload.MinerIndex, len(message.TransactionHashes)))
 
 	if !ds.context.State.HasFlag(Backup) || ds.context.State.HasFlag(RequestReceived) {
@@ -406,7 +406,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, mes
 		log.Info("PrepareRequestReceived GetHeader failed with ds.context.PrevHash", ds.context.PrevHash)
 	}
 
-	Trace()
+	log.Trace()
 	//TODO Add Error Catch
 	prevBlockTimestamp := header.Blockdata.Timestamp
 	if payload.Timestamp <= prevBlockTimestamp || payload.Timestamp > uint32(time.Now().Add(time.Minute*10).Unix()) {
@@ -454,7 +454,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, mes
 }
 
 func (ds *DbftService) PrepareResponseReceived(payload *msg.ConsensusPayload, message *PrepareResponse) {
-	Trace()
+	log.Trace()
 
 	log.Info(fmt.Sprintf("Prepare Response Received: height=%d View=%d index=%d", payload.Height, message.ViewNumber(), payload.MinerIndex))
 
@@ -481,12 +481,12 @@ func (ds *DbftService) PrepareResponseReceived(payload *msg.ConsensusPayload, me
 }
 
 func (ds *DbftService) RefreshPolicy() {
-	Trace()
+	log.Trace()
 	con.DefaultPolicy.Refresh()
 }
 
 func (ds *DbftService) RequestChangeView() {
-	Trace()
+	log.Trace()
 	// FIXME if there is no save block notifcation, when the timeout call this function it will crash
 	ds.context.ExpectedView[ds.context.MinerIndex] = ds.context.ExpectedView[ds.context.MinerIndex] + 1
 	log.Info(fmt.Sprintf("Request change view: height=%d View=%d nv=%d state=%s", ds.context.Height, ds.context.ViewNumber, ds.context.ExpectedView[ds.context.MinerIndex], ds.context.GetStateDetail()))
@@ -499,7 +499,7 @@ func (ds *DbftService) RequestChangeView() {
 }
 
 func (ds *DbftService) SignAndRelay(payload *msg.ConsensusPayload) {
-	Trace()
+	log.Trace()
 
 	prohash, err := payload.GetProgramHashes()
 	if err != nil {
@@ -523,7 +523,7 @@ func (ds *DbftService) SignAndRelay(payload *msg.ConsensusPayload) {
 }
 
 func (ds *DbftService) Start() error {
-	Trace()
+	log.Trace()
 	ds.started = true
 
 	if config.Parameters.GenBlockTime > 0 {
@@ -538,7 +538,7 @@ func (ds *DbftService) Start() error {
 }
 
 func (ds *DbftService) Timeout() {
-	Trace()
+	log.Trace()
 	ds.context.contextMu.Lock()
 	defer ds.context.contextMu.Unlock()
 	if ds.timerHeight != ds.context.Height || ds.timeView != ds.context.ViewNumber {
@@ -619,7 +619,7 @@ func (ds *DbftService) Timeout() {
 }
 
 func (ds *DbftService) timerRoutine() {
-	Trace()
+	log.Trace()
 	for {
 		select {
 		case <-ds.timer.C:

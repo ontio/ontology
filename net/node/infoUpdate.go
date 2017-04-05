@@ -1,9 +1,9 @@
 package node
 
 import (
-	"github.com/DNAProject/DNA/core/ledger"
-	. "github.com/DNAProject/DNA/net/message"
-	. "github.com/DNAProject/DNA/net/protocol"
+	"DNA/core/ledger"
+	. "DNA/net/message"
+	. "DNA/net/protocol"
 	"time"
 )
 
@@ -37,7 +37,7 @@ func (node node) updateNodeInfo() {
 	for {
 		select {
 		case <-ticker.C:
-			//common.Trace()
+			//log.Trace()
 			node.GetBlkHdrs()
 		case <-quit:
 			ticker.Stop()

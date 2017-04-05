@@ -1,11 +1,11 @@
 package message
 
 import (
-	"github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/common/log"
-	"github.com/DNAProject/DNA/core/ledger"
-	"github.com/DNAProject/DNA/core/transaction"
-	. "github.com/DNAProject/DNA/net/protocol"
+	"DNA/common"
+	"DNA/common/log"
+	"DNA/core/ledger"
+	"DNA/core/transaction"
+	. "DNA/net/protocol"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
@@ -29,11 +29,13 @@ type trn struct {
 }
 
 func (msg trn) Handle(node Noder) error {
-	common.Trace()
+	log.Trace()
 	log.Debug("RX Transaction message")
 
 	if !node.LocalNode().ExistedID(msg.txn.Hash()) {
 		node.LocalNode().AppendTxnPool(&(msg.txn))
+		log.Debug("RX Transaction message hash", msg.txn.Hash())
+		log.Debug("RX Transaction message type", msg.txn.TxType)
 	}
 
 	return nil
@@ -51,13 +53,16 @@ func reqTxnData(node Noder, hash common.Uint256) error {
 }
 
 func (msg dataReq) Serialization() ([]byte, error) {
-	var buf bytes.Buffer
-
-	//using serilization function
-	err := binary.Write(&buf, binary.LittleEndian, msg)
+	hdrBuf, err := msg.msgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
+	buf := bytes.NewBuffer(hdrBuf)
+	err = binary.Write(buf, binary.LittleEndian, msg.dataType)
+	if err != nil {
+		return nil, err
+	}
+	msg.hash.Serialize(buf)
 
 	return buf.Bytes(), err
 }
@@ -94,7 +99,7 @@ func NewTxnFromHash(hash common.Uint256) (*transaction.Transaction, error) {
 	return txn, nil
 }
 func NewTxn(txn *transaction.Transaction) ([]byte, error) {
-	common.Trace()
+	log.Trace()
 	var msg trn
 
 	msg.msgHdr.Magic = NETMAGIC
@@ -137,7 +142,7 @@ func (msg trn) Serialization() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
-func (msg trn) DeSerialization(p []byte) error {
+func (msg *trn) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.msgHdr))
 	err = msg.txn.Deserialize(buf)
@@ -147,7 +152,6 @@ func (msg trn) DeSerialization(p []byte) error {
 
 	return nil
 }
-
 
 type txnPool struct {
 	msgHdr

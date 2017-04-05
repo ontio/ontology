@@ -1,10 +1,10 @@
 package protocol
 
 import (
-	"github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/core/transaction"
-	"github.com/DNAProject/DNA/crypto"
-	"github.com/DNAProject/DNA/events"
+	"DNA/common"
+	"DNA/core/transaction"
+	"DNA/crypto"
+	"DNA/events"
 	"bytes"
 	"encoding/binary"
 	"time"
@@ -27,6 +27,7 @@ const (
 	NETMAGIC     = 0x74746e41
 	MAXBLKHDRCNT = 2000
 	MAXINVHDRCNT = 500
+	DIVHASHLEN   = 5
 )
 const (
 	HELLOTIMEOUT     = 3 // Seconds
@@ -82,6 +83,8 @@ type Noder interface {
 	GetMinerAddr() *crypto.PubKey
 	GetMinersAddrs() ([]*crypto.PubKey, uint64)
 	SetMinerAddr(pk *crypto.PubKey)
+	GetNeighborHeights() ([]uint64, uint64)
+	SyncNodeHeight()
 }
 
 type JsonNoder interface {

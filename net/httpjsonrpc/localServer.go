@@ -1,9 +1,8 @@
 package httpjsonrpc
 
 import (
-	. "github.com/DNAProject/DNA/common"
-	. "github.com/DNAProject/DNA/config"
-	"log"
+	"DNA/common/log"
+	. "DNA/config"
 	"net/http"
 	"strconv"
 )
@@ -14,7 +13,7 @@ const (
 )
 
 func StartLocalServer() {
-	Trace()
+	log.Trace()
 	http.HandleFunc(LocalDir, Handle)
 
 	HandleFunc("getneighbor", getNeighbor)

@@ -1,17 +1,17 @@
 package ledger
 
 import (
-	. "github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/common/serialization"
-	"github.com/DNAProject/DNA/core/contract/program"
-	tx "github.com/DNAProject/DNA/core/transaction"
-	sig "github.com/DNAProject/DNA/core/signature"
-	"github.com/DNAProject/DNA/crypto"
-	. "github.com/DNAProject/DNA/errors"
+	. "DNA/common"
+	"DNA/common/serialization"
+	"DNA/core/contract/program"
+	tx "DNA/core/transaction"
+	sig "DNA/core/signature"
+	"DNA/crypto"
+	. "DNA/errors"
 	"io"
 	"time"
-	"github.com/DNAProject/DNA/vm"
-	"github.com/DNAProject/DNA/common/log"
+	"DNA/vm"
+	"DNA/common/log"
 )
 
 type Block struct {

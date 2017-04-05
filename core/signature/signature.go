@@ -1,11 +1,12 @@
 package signature
 
 import (
-	"github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/core/contract/program"
-	"github.com/DNAProject/DNA/crypto"
-	. "github.com/DNAProject/DNA/errors"
-	"github.com/DNAProject/DNA/vm"
+	"DNA/common"
+	"DNA/common/log"
+	"DNA/core/contract/program"
+	"DNA/crypto"
+	. "DNA/errors"
+	"DNA/vm"
 	"bytes"
 	"crypto/sha256"
 	"io"
@@ -27,7 +28,7 @@ type SignableData interface {
 }
 
 func SignBySigner(data SignableData, signer Signer) ([]byte, error) {
-	common.Trace()
+	log.Trace()
 	//fmt.Println("data",data)
 	rtx, err := Sign(data, signer.PrivKey())
 	if err != nil {

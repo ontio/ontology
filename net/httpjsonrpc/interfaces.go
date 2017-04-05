@@ -1,10 +1,10 @@
 package httpjsonrpc
 
 import (
-	. "github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/common/log"
-	"github.com/DNAProject/DNA/core/ledger"
-	tx "github.com/DNAProject/DNA/core/transaction"
+	. "DNA/common"
+	"DNA/common/log"
+	"DNA/core/ledger"
+	tx "DNA/core/transaction"
 	"bytes"
 	"encoding/base64"
 	"encoding/hex"
@@ -196,19 +196,22 @@ func sendSampleTransaction(req *http.Request, cmd map[string]interface{}) map[st
 		return response
 	}
 
+	txhash := t.Hash()
+	txHashArray := txhash.ToArray()
+	txHashHex := ToHexString(txHashArray)
 	log.Debug("---------------------------")
-	log.Debug("Transaction:")
-	log.Debug("Transaction Type:", t.TxType)
-	log.Debug("Transaction Nonce:", t.Nonce)
+	log.Debug("Transaction Hash:", txHashHex)
 	for _, v := range t.Programs {
 		log.Debug("Transaction Program Code:", v.Code)
 		log.Debug("Transaction Program Parameter:", v.Parameter)
 	}
 	log.Debug("---------------------------")
 
-	if err = node.Xmit(&t); err != nil {
-		response = responsePacking("Xmit Sample TX error", id)
-		return response
+	if !node.AppendTxnPool(&t) {
+		log.Warn("Can NOT add the transaction to TxnPool")
 	}
-	return responsePacking("Transaction Sended", id)
+	if err = node.Xmit(&t); err != nil {
+		return responsePacking("Xmit Sample TX error", id)
+	}
+	return responsePacking(txHashHex, id)
 }

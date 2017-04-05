@@ -1,12 +1,14 @@
 package log
 
 import (
-	. "github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/config"
+	"DNA/config"
+	"bytes"
 	"fmt"
 	"io"
 	"log"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -14,11 +16,25 @@ import (
 )
 
 const (
+	Blue   = "0;34"
+	Red    = "0;31"
+	Green  = "0;32"
+	Yellow = "0;33"
+	Cyan   = "0;36"
+	Pink   = "1;35"
+)
+
+func Color(code, msg string) string {
+	return fmt.Sprintf("\033[%sm%s\033[m", code, msg)
+}
+
+const (
 	PRINTLEVEL = 0
 )
 
 const (
-	debugLog = iota
+	traceLog = iota
+	debugLog
 	infoLog
 	warnLog
 	errorLog
@@ -28,6 +44,7 @@ const (
 
 var (
 	levels = map[int]string{
+		traceLog: Color(Pink, "[TRACE]"),
 		debugLog: Color(Green, "[DEBUG]"),
 		infoLog:  Color(Green, "[INFO ]"),
 		warnLog:  Color(Yellow, "[WARN ]"),
@@ -40,6 +57,15 @@ const (
 	namePrefix = "LEVEL"
 	callDepth  = 2
 )
+
+func GetGID() uint64 {
+	b := make([]byte, 64)
+	b = b[:runtime.Stack(b, false)]
+	b = bytes.TrimPrefix(b, []byte("goroutine "))
+	b = b[:bytes.IndexByte(b, ' ')]
+	n, _ := strconv.ParseUint(string(b), 10, 64)
+	return n
+}
 
 var Log *Logger
 var lock = sync.Mutex{}
@@ -78,7 +104,7 @@ func New(out io.Writer, prefix string, flag, level int) *Logger {
 
 func (l *Logger) output(level int, s string) error {
 	// FIXME enable print GID for all log, should be disable as it effect performance
-	if (level == 0) || (level == 1) || (level == 2) || (level == 3) {
+	if (level == 0) || (level == 1) || (level == 2) || (level == 3) || (level == 4) {
 		gid := GetGID()
 		gidStr := strconv.FormatUint(gid, 10)
 
@@ -94,6 +120,12 @@ func (l *Logger) Output(level int, a ...interface{}) error {
 		return l.output(level, fmt.Sprintln(a...))
 	}
 	return nil
+}
+
+func (l *Logger) Trace(a ...interface{}) {
+	lock.Lock()
+	defer lock.Unlock()
+	l.Output(traceLog, a...)
 }
 
 func (l *Logger) Debug(a ...interface{}) {
@@ -124,6 +156,17 @@ func (l *Logger) Fatal(a ...interface{}) {
 	lock.Lock()
 	defer lock.Unlock()
 	l.Output(fatalLog, a...)
+}
+
+func Trace(a ...interface{}) {
+	pc := make([]uintptr, 10)
+	runtime.Callers(2, pc)
+	f := runtime.FuncForPC(pc[0])
+	file, line := f.FileLine(pc[0])
+	fileName := filepath.Base(file)
+
+	Log.Trace(fmt.Sprint(f.Name(), " ", fileName, ":", line))
+
 }
 
 func Debug(a ...interface{}) {

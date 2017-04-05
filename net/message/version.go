@@ -1,11 +1,10 @@
 package message
 
 import (
-	"github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/common/log"
-	"github.com/DNAProject/DNA/core/ledger"
-	"github.com/DNAProject/DNA/crypto"
-	. "github.com/DNAProject/DNA/net/protocol"
+	"DNA/common/log"
+	"DNA/core/ledger"
+	"DNA/crypto"
+	. "DNA/net/protocol"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
@@ -36,7 +35,7 @@ func (msg *version) init(n Noder) {
 }
 
 func NewVersion(n Noder) ([]byte, error) {
-	common.Trace()
+	log.Trace()
 	var msg version
 
 	msg.P.Version = n.Version()
@@ -147,7 +146,7 @@ func (msg *version) Deserialization(p []byte) error {
  * |------------------------------------------------------------------------
  */
 func (msg version) Handle(node Noder) error {
-	common.Trace()
+	log.Trace()
 	localNode := node.LocalNode()
 
 	// Exclude the node itself

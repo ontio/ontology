@@ -1,14 +1,15 @@
 package dbft
 
 import (
-	cl "github.com/DNAProject/DNA/client"
-	. "github.com/DNAProject/DNA/common"
-	ser "github.com/DNAProject/DNA/common/serialization"
-	"github.com/DNAProject/DNA/core/ledger"
-	tx "github.com/DNAProject/DNA/core/transaction"
-	"github.com/DNAProject/DNA/crypto"
-	"github.com/DNAProject/DNA/net"
-	msg "github.com/DNAProject/DNA/net/message"
+	cl "DNA/client"
+	. "DNA/common"
+	"DNA/common/log"
+	ser "DNA/common/serialization"
+	"DNA/core/ledger"
+	tx "DNA/core/transaction"
+	"DNA/crypto"
+	"DNA/net"
+	msg "DNA/net/message"
 	"fmt"
 	"sort"
 	"sync"
@@ -40,17 +41,17 @@ type ConsensusContext struct {
 }
 
 func (cxt *ConsensusContext) M() int {
-	Trace()
+	log.Trace()
 	return len(cxt.Miners) - (len(cxt.Miners)-1)/3
 }
 
 func NewConsensusContext() *ConsensusContext {
-	Trace()
+	log.Trace()
 	return &ConsensusContext{}
 }
 
 func (cxt *ConsensusContext) ChangeView(viewNum byte) {
-	Trace()
+	log.Trace()
 	p := (cxt.Height - uint32(viewNum)) % uint32(len(cxt.Miners))
 	cxt.State &= SignatureSent
 	cxt.ViewNumber = viewNum
@@ -68,7 +69,7 @@ func (cxt *ConsensusContext) ChangeView(viewNum byte) {
 }
 
 func (cxt *ConsensusContext) HasTxHash(txHash Uint256) bool {
-	Trace()
+	log.Trace()
 	for _, hash := range cxt.TransactionHashes {
 		if hash == txHash {
 			return true
@@ -78,7 +79,7 @@ func (cxt *ConsensusContext) HasTxHash(txHash Uint256) bool {
 }
 
 func (cxt *ConsensusContext) MakeChangeView() *msg.ConsensusPayload {
-	Trace()
+	log.Trace()
 	cv := &ChangeView{
 		NewViewNumber: cxt.ExpectedView[cxt.MinerIndex],
 	}
@@ -87,7 +88,7 @@ func (cxt *ConsensusContext) MakeChangeView() *msg.ConsensusPayload {
 }
 
 func (cxt *ConsensusContext) MakeHeader() *ledger.Block {
-	Trace()
+	log.Trace()
 	if cxt.TransactionHashes == nil {
 		return nil
 	}
@@ -113,7 +114,7 @@ func (cxt *ConsensusContext) MakeHeader() *ledger.Block {
 }
 
 func (cxt *ConsensusContext) MakePayload(message ConsensusMessage) *msg.ConsensusPayload {
-	Trace()
+	log.Trace()
 	message.ConsensusMessageData().ViewNumber = cxt.ViewNumber
 	return &msg.ConsensusPayload{
 		Version:    ContextVersion,
@@ -127,7 +128,7 @@ func (cxt *ConsensusContext) MakePayload(message ConsensusMessage) *msg.Consensu
 }
 
 func (cxt *ConsensusContext) MakePrepareRequest() *msg.ConsensusPayload {
-	Trace()
+	log.Trace()
 	preReq := &PrepareRequest{
 		Nonce:                  cxt.Nonce,
 		NextMiner:              cxt.NextMiner,
@@ -140,7 +141,7 @@ func (cxt *ConsensusContext) MakePrepareRequest() *msg.ConsensusPayload {
 }
 
 func (cxt *ConsensusContext) MakePrepareResponse(signature []byte) *msg.ConsensusPayload {
-	Trace()
+	log.Trace()
 	preRes := &PrepareResponse{
 		Signature: signature,
 	}
@@ -149,7 +150,7 @@ func (cxt *ConsensusContext) MakePrepareResponse(signature []byte) *msg.Consensu
 }
 
 func (cxt *ConsensusContext) GetSignaturesCount() (count int) {
-	Trace()
+	log.Trace()
 	count = 0
 	for _, sig := range cxt.Signatures {
 		if sig != nil {
@@ -160,7 +161,7 @@ func (cxt *ConsensusContext) GetSignaturesCount() (count int) {
 }
 
 func (cxt *ConsensusContext) GetTransactionList() []*tx.Transaction {
-	Trace()
+	log.Trace()
 	if cxt.txlist == nil {
 		cxt.txlist = []*tx.Transaction{}
 		for _, TX := range cxt.Transactions {
@@ -184,7 +185,7 @@ func (cxt *ConsensusContext) GetStateDetail() string {
 }
 
 func (cxt *ConsensusContext) GetTXByHashes() []*tx.Transaction {
-	Trace()
+	log.Trace()
 	TXs := []*tx.Transaction{}
 	for _, hash := range cxt.TransactionHashes {
 		if TX, ok := cxt.Transactions[hash]; ok {
@@ -195,7 +196,7 @@ func (cxt *ConsensusContext) GetTXByHashes() []*tx.Transaction {
 }
 
 func (cxt *ConsensusContext) CheckTxHashesExist() bool {
-	Trace()
+	log.Trace()
 	for _, hash := range cxt.TransactionHashes {
 		if _, ok := cxt.Transactions[hash]; !ok {
 			return false
@@ -205,7 +206,7 @@ func (cxt *ConsensusContext) CheckTxHashesExist() bool {
 }
 
 func (cxt *ConsensusContext) Reset(client cl.Client, localNode net.Neter) {
-	Trace()
+	log.Trace()
 	cxt.State = Initial
 	cxt.PrevHash = ledger.DefaultLedger.Blockchain.CurrentBlockHash()
 	cxt.Height = ledger.DefaultLedger.Blockchain.BlockHeight + 1

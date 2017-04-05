@@ -1,11 +1,11 @@
 package message
 
 import (
-	"github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/common/log"
-	"github.com/DNAProject/DNA/core/ledger"
-	"github.com/DNAProject/DNA/events"
-	. "github.com/DNAProject/DNA/net/protocol"
+	"DNA/common"
+	"DNA/common/log"
+	"DNA/core/ledger"
+	"DNA/events"
+	. "DNA/net/protocol"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
@@ -26,7 +26,7 @@ type block struct {
 }
 
 func (msg block) Handle(node Noder) error {
-	common.Trace()
+	log.Trace()
 
 	log.Debug("RX block message")
 	err := ledger.DefaultLedger.Blockchain.AddBlock(&msg.blk)
@@ -39,7 +39,7 @@ func (msg block) Handle(node Noder) error {
 }
 
 func (msg dataReq) Handle(node Noder) error {
-	common.Trace()
+	log.Trace()
 	reqtype := common.InventoryType(msg.dataType)
 	hash := msg.hash
 	switch reqtype {
@@ -78,7 +78,7 @@ func NewBlockFromHash(hash common.Uint256) (*ledger.Block, error) {
 }
 
 func NewBlock(bk *ledger.Block) ([]byte, error) {
-	common.Trace()
+	log.Trace()
 	var msg block
 	msg.blk = *bk
 	msg.msgHdr.Magic = NETMAGIC
@@ -112,11 +112,32 @@ func NewBlock(bk *ledger.Block) ([]byte, error) {
 func reqBlkData(node Noder, hash common.Uint256) error {
 	var msg dataReq
 	msg.dataType = common.BLOCK
-	// TODO handle the hash array case
 	msg.hash = hash
 
-	buf, _ := msg.Serialization()
-	go node.Tx(buf)
+	msg.msgHdr.Magic = NETMAGIC
+	copy(msg.msgHdr.CMD[0:7], "getdata")
+	p := bytes.NewBuffer([]byte{})
+	err := binary.Write(p, binary.LittleEndian, &(msg.dataType))
+	msg.hash.Serialize(p)
+	if err != nil {
+		log.Error("Binary Write failed at new getdata Msg")
+		return err
+	}
+	s := sha256.Sum256(p.Bytes())
+	s2 := s[:]
+	s = sha256.Sum256(s2)
+	buf := bytes.NewBuffer(s[:4])
+	binary.Read(buf, binary.LittleEndian, &(msg.msgHdr.Checksum))
+	msg.msgHdr.Length = uint32(len(p.Bytes()))
+	log.Debug("The message payload length is ", msg.msgHdr.Length)
+
+	sendBuf, err := msg.Serialization()
+	if err != nil {
+		log.Error("Error Convert net message ", err.Error())
+		return err
+	}
+
+	go node.Tx(sendBuf)
 
 	return nil
 }

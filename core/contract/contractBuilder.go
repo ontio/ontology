@@ -1,12 +1,12 @@
 package contract
 
 import (
-	"github.com/DNAProject/DNA/crypto"
-	"github.com/DNAProject/DNA/vm"
-	. "github.com/DNAProject/DNA/common"
-	pg "github.com/DNAProject/DNA/core/contract/program"
+	"DNA/crypto"
+	"DNA/vm"
+	. "DNA/common"
+	pg "DNA/core/contract/program"
 	"math/big"
-	. "github.com/DNAProject/DNA/errors"
+	. "DNA/errors"
 	"sort"
 )
 

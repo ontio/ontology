@@ -1,8 +1,8 @@
 package validation
 
 import (
-	"github.com/DNAProject/DNA/core/ledger"
-	tx "github.com/DNAProject/DNA/core/transaction"
+	"DNA/core/ledger"
+	tx "DNA/core/transaction"
 	"errors"
 	"math"
 )

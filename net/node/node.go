@@ -1,14 +1,14 @@
 package node
 
 import (
-	"github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/common/log"
-	. "github.com/DNAProject/DNA/config"
-	"github.com/DNAProject/DNA/core/ledger"
-	"github.com/DNAProject/DNA/core/transaction"
-	"github.com/DNAProject/DNA/crypto"
-	. "github.com/DNAProject/DNA/net/message"
-	. "github.com/DNAProject/DNA/net/protocol"
+	"DNA/common"
+	"DNA/common/log"
+	. "DNA/config"
+	"DNA/core/ledger"
+	"DNA/core/transaction"
+	"DNA/crypto"
+	. "DNA/net/message"
+	. "DNA/net/protocol"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -169,7 +169,7 @@ func (node *node) UpdateTime(t time.Time) {
 }
 
 func (node node) Xmit(inv common.Inventory) error {
-	common.Trace()
+	log.Trace()
 	var buffer []byte
 	var err error
 
@@ -267,4 +267,15 @@ func (node node) GetMinersAddrs() ([]*crypto.PubKey, uint64) {
 
 func (node *node) SetMinerAddr(pk *crypto.PubKey) {
 	node.publicKey = pk
+}
+
+func (node node) SyncNodeHeight() {
+	for {
+		heights, _ := node.GetNeighborHeights()
+		if common.CompareHeight(uint64(ledger.DefaultLedger.Blockchain.BlockHeight), heights) {
+			break
+		}
+		<-time.After(5 * time.Second)
+	}
+
 }

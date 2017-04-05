@@ -1,10 +1,9 @@
 package message
 
 import (
-	"github.com/DNAProject/DNA/common"
-	"github.com/DNAProject/DNA/common/log"
-	"github.com/DNAProject/DNA/core/ledger"
-	. "github.com/DNAProject/DNA/net/protocol"
+	"DNA/common/log"
+	"DNA/core/ledger"
+	. "DNA/net/protocol"
 	"encoding/hex"
 	"errors"
 	"time"
@@ -52,7 +51,7 @@ func NewVerack() ([]byte, error) {
  */
 // TODO The process should be adjusted based on above table
 func (msg verACK) Handle(node Noder) error {
-	common.Trace()
+	log.Trace()
 
 	t := time.Now()
 	s := node.GetState()
@@ -62,7 +61,7 @@ func (msg verACK) Handle(node Noder) error {
 	}
 
 	node.SetState(ESTABLISH)
-	if (s == HANDSHAKE) {
+	if s == HANDSHAKE {
 		buf, _ := NewVerack()
 		node.Tx(buf)
 	}
@@ -77,12 +76,22 @@ func (msg verACK) Handle(node Noder) error {
 
 	// FIXME compact to a seperate function
 	if uint64(ledger.DefaultLedger.Blockchain.BlockHeight) < node.GetHeight() {
-		buf, err := NewHeadersReq(node)
-		if err != nil {
-			log.Error("failed build a new headersReq")
-		} else {
-			node.Tx(buf)
-		}
+		/*
+			log.Info("request header")
+			buf, err := NewHeadersReq(node)
+			if err != nil {
+				log.Error("failed build a new headersReq")
+			} else {
+				node.Tx(buf)
+			}
+				log.Info("request blocks header hash")
+				buf, err = NewBlocksReq(node)
+				if err != nil {
+					log.Error("failed build a new blockReq")
+				} else {
+					node.Tx(buf)
+				}
+		*/
 	}
 	return nil
 }

@@ -1,17 +1,18 @@
 package common
 
 import (
-	. "github.com/DNAProject/DNA/errors"
+	"DNA/common/log"
+	. "DNA/errors"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"fmt"
-	_ "io"
-	"math/rand"
-	"github.com/golang/crypto/ripemd160"
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"github.com/golang/crypto/ripemd160"
 	"io"
+	_ "io"
+	"math/rand"
 )
 
 func ToCodeHash(code []byte) (Uint160, error) {
@@ -29,10 +30,10 @@ func ToCodeHash(code []byte) (Uint160, error) {
 }
 
 func GetNonce() uint64 {
-	Trace()
+	log.Trace()
 	// Fixme replace with the real random number generator
 	nonce := uint64(rand.Uint32())<<32 + uint64(rand.Uint32())
-	Trace()
+	log.Trace()
 	fmt.Println(fmt.Sprintf("The new nonce is: 0x%x", nonce))
 	return nonce
 }
@@ -79,4 +80,13 @@ func ClearBytes(arr []byte, len int) {
 	for i := 0; i < len; i++ {
 		arr[i] = 0
 	}
+}
+
+func CompareHeight(blockHeight uint64, heights []uint64) bool {
+	for _, height := range heights {
+		if blockHeight < height {
+			return false
+		}
+	}
+	return true
 }
