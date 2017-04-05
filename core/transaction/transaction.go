@@ -63,34 +63,6 @@ type Transaction struct {
 	hash *Uint256
 }
 
-type TxOutputInfo struct {
-	Key Uint256
-	Txout []*TxOutput
-}
-
-type AmountInfo struct {
-	Key Uint256
-	Value Fixed64
-}
-
-type Transactions struct {
-	TxType         TransactionType
-	PayloadVersion byte
-	Payload        Payload
-	Nonce          uint64
-	Attributes     []*TxAttribute
-	UTXOInputs     []*UTXOTxInput
-	BalanceInputs  []*BalanceTxInput
-	Outputs        []*TxOutput
-	Programs       []*program.Program
-	
-	AssetOutputs      []TxOutputInfo
-	AssetInputAmount  []AmountInfo
-	AssetOutputAmount []AmountInfo
-	
-	Hash  string
-}
-
 //Serialize the Transaction
 func (tx *Transaction) Serialize(w io.Writer) error{
 

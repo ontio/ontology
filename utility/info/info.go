@@ -34,8 +34,8 @@ func main(args []string, p utility.Param) (err error) {
 		}
 		output = append(output, resp)
 	}
-	if txhash := p.TxHash; txhash !="" {
-		resp, err = httpjsonrpc.Call(addr, "gettx", id, []interface{}{txhash, 1})
+	if txHash := p.TxHash; txHash !="" {
+		resp, err = httpjsonrpc.Call(addr, "getTxn", id, []interface{}{txHash, 1})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return err
@@ -44,7 +44,7 @@ func main(args []string, p utility.Param) (err error) {
 	}
 
 	if address := p.Address; address != "" {
-		resp, err = httpjsonrpc.Call(addr, "gettxn", id, []interface{}{address, 1})
+		resp, err = httpjsonrpc.Call(addr, "getAddrTxn", id, []interface{}{address, 1})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return err

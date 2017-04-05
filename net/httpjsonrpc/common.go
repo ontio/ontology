@@ -2,8 +2,8 @@ package httpjsonrpc
 
 import (
 	"DNA/consensus/dbft"
-	"DNA/core/ledger"
-	"DNA/core/transaction"
+	. "DNA/common"
+	. "DNA/core/transaction"
 	tx "DNA/core/transaction"
 	. "DNA/net/protocol"
 	"encoding/json"
@@ -30,11 +30,56 @@ type ServeMux struct {
 	defaultFunction func(http.ResponseWriter, *http.Request)
 }
 
+type TxOutputInfo struct {
+	Key Uint256
+	Txout []* TxOutput
+}
+
+type AmountInfo struct {
+	Key Uint256
+	Value Fixed64
+}
+
+type ProgramInfo struct {
+	Code string
+	Parameter string
+}
+
+type Transactions struct {
+	TxType         TransactionType
+	PayloadVersion byte
+	Payload        Payload
+	Nonce          uint64
+	Attributes     []*TxAttribute
+	UTXOInputs     []*UTXOTxInput
+	BalanceInputs  []*BalanceTxInput
+	Outputs        []*TxOutput
+	Programs       []*ProgramInfo
+	
+	AssetOutputs      []TxOutputInfo
+	AssetInputAmount  []AmountInfo
+	AssetOutputAmount []AmountInfo
+	
+	Hash  string
+}
+
+type BlockHead struct {
+	Version          uint32
+	PrevBlockHash    string
+	TransactionsRoot string
+	Timestamp        uint32
+	Height           uint32
+	ConsensusData    uint64
+	NextMiner        string
+	Program          ProgramInfo
+	
+	Hash             string
+}
+
 type BlockInfo struct {
 	Hash      string
-	BlockData *ledger.Blockhead
-	TxN        uint32
-	Transactions []transaction.Transactions
+	BlockData *BlockHead
+	Transactions []Transactions
 }
 
 type TxInfo struct {
