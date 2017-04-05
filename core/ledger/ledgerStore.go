@@ -1,9 +1,9 @@
 package ledger
 
 import (
-	. "github.com/DNAProject/DNA/common"
-	. "github.com/DNAProject/DNA/core/asset"
-	tx "github.com/DNAProject/DNA/core/transaction"
+	. "DNA/common"
+	. "DNA/core/asset"
+	tx "DNA/core/transaction"
 )
 
 // ILedgerStore provides func with store package.
@@ -19,7 +19,7 @@ type ILedgerStore interface {
 
 	GetTransaction(hash Uint256) (*tx.Transaction,error)
 
-	SaveAsset(asset *Asset) error
+	SaveAsset(assetid Uint256,asset *Asset) error
 	GetAsset(hash Uint256) (*Asset, error)
 
 	GetCurrentBlockHash() Uint256
