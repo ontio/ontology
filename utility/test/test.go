@@ -43,55 +43,60 @@ func main(args []string, p utility.Param) (err error) {
 		var issueHash Uint256
 		var index int64
 		for index = 0; index < p.TxNum; index++ {
-			tx := sampleTransaction(issuer, admin, index, rbuf, p.NoSign)
-			buf := new(bytes.Buffer)
-			err = tx.Serialize(buf)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				return err
-			}
-			regHash = tx.Hash()
-			resp, err := httpjsonrpc.Call(utility.Address(p.Ip, p.Port), "sendsampletransaction", p.RPCID, []interface{}{buf.Bytes()})
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				return err
-			}
+			// RegisterAsset
+			{
+				tx := sampleTransaction(issuer, admin, index, rbuf, p.NoSign)
+				buf := new(bytes.Buffer)
+				err = tx.Serialize(buf)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					return err
+				}
+				regHash = tx.Hash()
+				resp, err := httpjsonrpc.Call(utility.Address(p.Ip, p.Port), "sendsampletransaction", p.RPCID, []interface{}{buf.Bytes()})
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					return err
+				}
 
-			utility.FormatOutput(resp)
-		}
-		time.Sleep(15 * time.Second)
-		{
-			tx := sampleTransactionIssue(admin, regHash)
-			buf := new(bytes.Buffer)
-			err = tx.Serialize(buf)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				return err
+				utility.FormatOutput(resp)
 			}
-			issueHash = tx.Hash()
-			resp, err := httpjsonrpc.Call(utility.Address(p.Ip, p.Port), "sendsampletransaction", p.RPCID, []interface{}{buf.Bytes()})
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				return err
-			}
-			utility.FormatOutput(resp)
+			time.Sleep(5 * time.Second)
+			//IssueAsset
+			{
+				tx := sampleTransactionIssue(admin, regHash)
+				buf := new(bytes.Buffer)
+				err = tx.Serialize(buf)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					return err
+				}
+				issueHash = tx.Hash()
+				resp, err := httpjsonrpc.Call(utility.Address(p.Ip, p.Port), "sendsampletransaction", p.RPCID, []interface{}{buf.Bytes()})
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					return err
+				}
+				utility.FormatOutput(resp)
 
-		}
-		time.Sleep(15 * time.Second)
-		{
-			tx := sampleTransactionTransfer(issuer,admin, regHash,issueHash)
-			buf := new(bytes.Buffer)
-			err = tx.Serialize(buf)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				return err
 			}
-			resp, err := httpjsonrpc.Call(utility.Address(p.Ip, p.Port), "sendsampletransaction", p.RPCID, []interface{}{buf.Bytes()})
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				return err
+			time.Sleep(5 * time.Second)
+			//TransferAsset
+			{
+				tx := sampleTransactionTransfer(issuer, admin, regHash, issueHash)
+				buf := new(bytes.Buffer)
+				err = tx.Serialize(buf)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					return err
+				}
+				resp, err := httpjsonrpc.Call(utility.Address(p.Ip, p.Port), "sendsampletransaction", p.RPCID, []interface{}{buf.Bytes()})
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					return err
+				}
+				utility.FormatOutput(resp)
 			}
-			utility.FormatOutput(resp)
 		}
 		var out bytes.Buffer
 		out.Write([]byte(fmt.Sprintf("hash issue:%x\n",regHash)))
