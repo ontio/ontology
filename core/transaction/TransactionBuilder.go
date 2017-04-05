@@ -32,7 +32,8 @@ func NewRegisterAssetTransaction(asset *asset.Asset,amount common.Fixed64,issuer
         Programs: []*program.Program{},
     }, nil
 }
-func NewIssueAssetTransaction(asset *asset.Asset,amount *common.Fixed64,issuer *crypto.PubKey,conroller *common.Uint160) (*Transaction, error){
+
+func NewIssueAssetTransaction() (*Transaction, error){
 
     assetRegPayload := &payload.IssueAsset {
     }
@@ -47,7 +48,7 @@ func NewIssueAssetTransaction(asset *asset.Asset,amount *common.Fixed64,issuer *
     }, nil
 }
 
-func NewTransferAssetTransaction(asset *asset.Asset,amount *common.Fixed64,issuer *crypto.PubKey,conroller *common.Uint160) (*Transaction, error){
+func NewTransferAssetTransaction() (*Transaction, error){
 
     //TODO: check arguments
 
