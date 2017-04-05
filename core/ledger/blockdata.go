@@ -24,6 +24,20 @@ type Blockdata struct {
 	hash Uint256
 }
 
+type Blockhead struct {
+	Version          uint32
+	PrevBlockHash    string
+	TransactionsRoot string
+	Timestamp        uint32
+	Height           uint32
+	ConsensusData    uint64
+	NextMiner        string
+	Program          program.ProgramInfo
+	
+	Hash             string
+}
+
+
 //Serialize the blockheader
 func (bd *Blockdata) Serialize(w io.Writer) {
 	bd.SerializeUnsigned(w)

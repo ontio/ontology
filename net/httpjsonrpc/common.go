@@ -3,6 +3,7 @@ package httpjsonrpc
 import (
 	"DNA/consensus/dbft"
 	"DNA/core/ledger"
+	"DNA/core/transaction"
 	tx "DNA/core/transaction"
 	. "DNA/net/protocol"
 	"encoding/json"
@@ -31,7 +32,9 @@ type ServeMux struct {
 
 type BlockInfo struct {
 	Hash      string
-	BlockData *ledger.Blockdata
+	BlockData *ledger.Blockhead
+	TxN        uint32
+	Transactions []transaction.Transactions
 }
 
 type TxInfo struct {

@@ -13,6 +13,8 @@ func StartRPCServer() {
 
 	HandleFunc("getbestblockhash", getBestBlockHash)
 	HandleFunc("getblock", getBlock)
+	HandleFunc("gettx", gettx)
+	HandleFunc("gettxn", gettxn)
 	HandleFunc("getblockcount", getBlockCount)
 	HandleFunc("getblockhash", getBlockHash)
 	HandleFunc("getconnectioncount", getConnectionCount)

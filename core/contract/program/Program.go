@@ -15,6 +15,10 @@ type Program struct {
 	Parameter []byte
 }
 
+type ProgramInfo struct {
+	Code string
+	Parameter string
+}
 //Serialize the Program
 func (p *Program) Serialize(w io.Writer) error {
 	err := serialization.WriteVarBytes(w, p.Parameter)
