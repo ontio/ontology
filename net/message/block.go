@@ -28,10 +28,11 @@ func (msg block) Handle(node Noder) error {
 	log.Trace()
 
 	log.Debug("RX block message")
+
 	err := ledger.DefaultLedger.Blockchain.AddBlock(&msg.blk)
 	if err != nil {
-		log.Warn("Add block error")
-		return errors.New("Add block error before Xmit\n")
+		log.Error("Add block error after Received")
+		return errors.New("Add block error after reveived\n")
 	}
 	node.LocalNode().GetEvent("block").Notify(events.EventNewInventory, &msg.blk)
 	return nil

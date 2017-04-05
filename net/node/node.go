@@ -210,7 +210,7 @@ func (node *node) Xmit(inv common.Inventory) error {
 
 		err := ledger.DefaultLedger.Blockchain.AddBlock(block)
 		if err != nil {
-			log.Warn("Add block error")
+			log.Error("Add block error before Xmit")
 			return errors.New("Add block error before Xmit")
 		}
 		buffer, err = NewBlock(block)
