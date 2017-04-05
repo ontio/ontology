@@ -78,6 +78,10 @@ type Noder interface {
 	GetEvent(eventName string) *events.Event
 	GetNeighborAddrs() ([]NodeAddr, uint64)
 	GetTransaction(hash common.Uint256) *transaction.Transaction
+	IncRxTxnCnt()
+	GetTxnCnt() uint64
+	GetRxTxnCnt() uint64
+
 	Xmit(common.Inventory) error
 	SynchronizeTxnPool()
 	GetMinerAddr() *crypto.PubKey

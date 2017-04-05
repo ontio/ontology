@@ -157,6 +157,8 @@ func getNodeState(req *http.Request, cmd map[string]interface{}) map[string]inte
 		Services: node.Services(),
 		Relay:    node.GetRelay(),
 		Height:   node.GetHeight(),
+		TxnCnt:	  node.GetTxnCnt(),
+		RxTxnCnt: node.GetRxTxnCnt(),
 	}
 	return responsePacking(n, id)
 }

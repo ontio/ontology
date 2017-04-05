@@ -34,6 +34,8 @@ type node struct {
 	services  uint64 // The services the node supplied
 	relay     bool   // The relay capability of the node (merge into capbility flag)
 	height    uint64 // The node latest block height
+	txnCnt	  uint64 // The transactions be transmit by this node
+	rxTxnCnt  uint64 // The transaction received by this node
 	publicKey *crypto.PubKey
 	// TODO does this channel should be a buffer channel
 	chF        chan func() error // Channel used to operate the node without lock
@@ -148,6 +150,18 @@ func (node node) Services() uint64 {
 	return node.services
 }
 
+func (node *node) IncRxTxnCnt() {
+	node.rxTxnCnt++
+}
+
+func (node node) GetTxnCnt() uint64 {
+	return node.txnCnt
+}
+
+func (node node) GetRxTxnCnt() uint64 {
+	return node.rxTxnCnt
+}
+
 func (node *node) SetState(state uint32) {
 	atomic.StoreUint32(&(node.state), state)
 }
@@ -168,7 +182,7 @@ func (node *node) UpdateTime(t time.Time) {
 	node.time = t
 }
 
-func (node node) Xmit(inv common.Inventory) error {
+func (node *node) Xmit(inv common.Inventory) error {
 	log.Trace()
 	var buffer []byte
 	var err error
@@ -184,7 +198,7 @@ func (node node) Xmit(inv common.Inventory) error {
 				return err
 			}
 		}
-
+		node.txnCnt++
 	} else if inv.Type() == common.BLOCK {
 		log.Info("****TX block message****\n")
 		block, isBlock := inv.(*ledger.Block)
