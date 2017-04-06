@@ -12,7 +12,7 @@ var usage = `switch of consensus function`
 
 var flags = []string{"ip", "port", "rpcid", "start", "stop"}
 
-func main(args []string, p utility.Param) (err error) {
+func consensusMain(args []string, p utility.Param) (err error) {
 	var resp []byte
 	addr := utility.Address(p.Ip, p.Port)
 	id := p.RPCID
@@ -45,4 +45,4 @@ func main(args []string, p utility.Param) (err error) {
 	return nil
 }
 
-var Command = &utility.Command{UsageText: usage, Flags: flags, Main: main}
+var Command = &utility.Command{UsageText: usage, Flags: flags, Main: consensusMain}

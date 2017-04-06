@@ -284,7 +284,7 @@ func getNodeState(req *http.Request, cmd map[string]interface{}) map[string]inte
 		Services: node.Services(),
 		Relay:    node.GetRelay(),
 		Height:   node.GetHeight(),
-		TxnCnt:	  node.GetTxnCnt(),
+		TxnCnt:   node.GetTxnCnt(),
 		RxTxnCnt: node.GetRxTxnCnt(),
 	}
 	return responsePacking(n, id)
@@ -343,4 +343,15 @@ func sendSampleTransaction(req *http.Request, cmd map[string]interface{}) map[st
 		return responsePacking("Xmit Sample TX error", id)
 	}
 	return responsePacking(txHashHex, id)
+}
+
+func setDebugInfo(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
+	id := cmd["id"]
+	param := cmd["params"].([]interface{})[0].(float64)
+	level := int(param)
+	err := log.Log.SetDebugLevel(level)
+	if err != nil {
+		return responsePacking("Invaild Debug Level", id)
+	}
+	return responsePacking("debug level is set successfully", id)
 }
