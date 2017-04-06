@@ -39,6 +39,7 @@ const (
 	warnLog
 	errorLog
 	fatalLog
+	printLog
 	numSeverity = 5
 )
 
@@ -50,6 +51,7 @@ var (
 		warnLog:  Color(Yellow, "[WARN ]"),
 		errorLog: Color(Red, "[ERROR]"),
 		fatalLog: Color(Red, "[FATAL]"),
+		printLog: Color(Cyan, "[ForcePrint]"),
 	}
 )
 
@@ -128,6 +130,12 @@ func (l *Logger) Trace(a ...interface{}) {
 	l.Output(traceLog, a...)
 }
 
+func (l *Logger) Print(a ...interface{}) {
+	lock.Lock()
+	defer lock.Unlock()
+	l.Output(printLog, a...)
+}
+
 func (l *Logger) Debug(a ...interface{}) {
 	lock.Lock()
 	defer lock.Unlock()
@@ -187,6 +195,10 @@ func Error(a ...interface{}) {
 
 func Fatal(a ...interface{}) {
 	Log.Fatal(fmt.Sprint(a...))
+}
+
+func Print(a ...interface{}) {
+	Log.Print(fmt.Sprint(a...))
 }
 
 func FileOpen(path string) (*os.File, error) {

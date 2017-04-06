@@ -4,7 +4,7 @@ import (
 	"io"
 	_ "sort"
 	_ "math/big"
-	"fmt"
+	"DNA/common/log"
 )
 
 const MAXSTEPS  int = 1200
@@ -77,7 +77,7 @@ func (e *ExecutionEngine) ExecuteStep() {
 	if ( e.State & HALT == HALT || e.State & FAULT == FAULT ) { return }
 	//data := e.invocationStack.Peek().GetBytes()
 	data := e.invocationStack.Pop().GetBytes()
-	fmt.Printf( "script_stack peek: %x\n", data )
+	log.Debug( "script_stack peek: %x\n", data )
 
 	e.opReader = NewVmReader( data )
 

@@ -107,7 +107,7 @@ func (cxt *ConsensusContext) MakeHeader() *ledger.Block {
 		}
 		cxt.header = &ledger.Block{
 			Blockdata:    blockData,
-			Transcations: []*tx.Transaction{},
+			Transactions: []*tx.Transaction{},
 		}
 	}
 	return cxt.header
@@ -187,9 +187,13 @@ func (cxt *ConsensusContext) GetStateDetail() string {
 func (cxt *ConsensusContext) GetTXByHashes() []*tx.Transaction {
 	log.Trace()
 	TXs := []*tx.Transaction{}
+	var i int
+	var j int
 	for _, hash := range cxt.TransactionHashes {
+		i++
 		if TX, ok := cxt.Transactions[hash]; ok {
 			TXs = append(TXs, TX)
+			j++
 		}
 	}
 	return TXs

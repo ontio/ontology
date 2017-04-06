@@ -18,8 +18,7 @@ func (nm *nbrNodes) Broadcast(buf []byte) {
 	defer nm.RUnlock()
 	for _, node := range nm.List {
 		if node.state == ESTABLISH && node.relay == true {
-			// The routie need lock too
-			go node.Tx(buf)
+			node.Tx(buf)
 		}
 	}
 }
