@@ -1,14 +1,14 @@
 package main
 
 import (
-	"os"
-
 	"DNA/common/log"
 	"DNA/crypto"
 	"DNA/utility"
 	"DNA/utility/consensus"
+	"DNA/utility/debug"
 	"DNA/utility/info"
 	"DNA/utility/test"
+	"os"
 )
 
 const (
@@ -23,6 +23,7 @@ func main() {
 		"info":      info.Command,
 		"consensus": consensus.Command,
 		"test":      test.Command,
+		"debug":     debug.Command,
 	}
 
 	err := utility.Start(cmds)

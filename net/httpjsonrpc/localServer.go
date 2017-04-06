@@ -21,6 +21,7 @@ func StartLocalServer() {
 	HandleFunc("startconsensus", startConsensus)
 	HandleFunc("stopconsensus", stopConsensus)
 	HandleFunc("sendsampletransaction", sendSampleTransaction)
+	HandleFunc("setdebuginfo", setDebugInfo)
 
 	// TODO: only listen to local host
 	err := http.ListenAndServe(":"+strconv.Itoa(Parameters.HttpLocalPort), nil)

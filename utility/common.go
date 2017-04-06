@@ -38,8 +38,9 @@ type Param struct {
 	Stop            bool   // stop service
 	NodeState       bool   // node state
 	Tx              bool   // Transaction test case
-	TxNum		int64  // count of transaction
-	NoSign		bool   // transaction is not signed
+	TxNum           int64  // count of transaction
+	NoSign          bool   // transaction is not signed
+	DebugLevel      int    // transaction is not signed
 	RPCID           int64  // RPC ID, use int64 by default
 }
 
@@ -47,6 +48,7 @@ func registerFlags(f *flag.FlagSet) {
 	f.StringVar(&p.Ip, "ip", "", "IP address")
 	f.StringVar(&p.Port, "port", "", "port number")
 	f.Int64Var(&p.RPCID, "rpcid", 0, "JSON-RPC ID")
+	f.IntVar(&p.DebugLevel, "level", -1, "debug level")
 	f.BoolVar(&p.BestBlockHash, "bestblockhash", false, "hash of current block")
 	f.Int64Var(&p.Height, "height", -1, "height of blockchain")
 	f.StringVar(&p.BlockHash, "blockhash", "", "block hash")
