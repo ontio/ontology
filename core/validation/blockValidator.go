@@ -48,7 +48,7 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 		}
 	*/
 		//TODO: NextMiner Check.
-		for _, txVerify := range block.Transcations {
+		for _, txVerify := range block.Transactions {
 			transpool := []*tx.Transaction{}
 			for _, tx := range block.Transactions {
 				if tx.Hash() != txVerify.Hash() {
