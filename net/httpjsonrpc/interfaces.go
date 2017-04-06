@@ -4,6 +4,7 @@ import (
 	. "DNA/common"
 	"DNA/common/log"
 	"DNA/core/ledger"
+	_"DNA/core/contract/program"
 	tx "DNA/core/transaction"
 	"bytes"
 	"encoding/base64"
@@ -41,9 +42,70 @@ func getBlock(req *http.Request, cmd map[string]interface{}) map[string]interfac
 	if err != nil {
 		return responsePacking([]interface{}{-100, "Unknown block"}, id)
 	}
+
+	blockhead := &BlockHead{
+		Version:           block.Blockdata.Version,
+		PrevBlockHash:    ToHexString(block.Blockdata.PrevBlockHash.ToArray()),
+		TransactionsRoot: ToHexString(block.Blockdata.TransactionsRoot.ToArray()),
+		Timestamp:         block.Blockdata.Timestamp,
+		Height:            block.Blockdata.Height,
+		ConsensusData:    block.Blockdata.ConsensusData,
+		NextMiner:        ToHexString(block.Blockdata.NextMiner.ToArray()),
+		Program:          ProgramInfo{
+			Code:       ToHexString(block.Blockdata.Program.Code),
+			Parameter:  ToHexString(block.Blockdata.Program.Parameter),
+		},
+		Hash:             ToHexString(hash.ToArray()),
+	}
+
+	trans := make([]Transactions, len(block.Transactions))
+	for i := 0; i < len(block.Transactions); i++ {
+		trans[i].TxType           = block.Transactions[i].TxType
+		trans[i].PayloadVersion   = block.Transactions[i].PayloadVersion
+		trans[i].Payload          = block.Transactions[i].Payload
+		trans[i].Nonce            = block.Transactions[i].Nonce
+		trans[i].Attributes       = block.Transactions[i].Attributes
+		trans[i].UTXOInputs       = block.Transactions[i].UTXOInputs
+		trans[i].BalanceInputs    = block.Transactions[i].BalanceInputs
+		trans[i].Outputs          = block.Transactions[i].Outputs
+		for n := 0; n < len(block.Transactions[i].Programs); n++ {
+		    trans[i].Programs[n].Code =  ToHexString(block.Transactions[i].Programs[n].Code)
+		    trans[i].Programs[n].Parameter =  ToHexString(block.Transactions[i].Programs[n].Parameter)			
+		}
+		
+		trans[i].AssetOutputs = make([]TxOutputInfo, len(block.Transactions[i].AssetOutputs))
+		n := 0
+		for k, v := range block.Transactions[i].AssetOutputs {
+			trans[i].AssetOutputs[n].Key = k
+			for m := 0; m < len(v); m++ {
+				trans[i].AssetOutputs[n].Txout[m] = v[m]
+			}
+			n++
+		}
+
+		trans[i].AssetInputAmount = make([]AmountInfo, len(block.Transactions[i].AssetInputAmount))
+		n = 0
+		for k, v := range block.Transactions[i].AssetInputAmount {
+			trans[i].AssetInputAmount[n].Key   = k
+			trans[i].AssetInputAmount[n].Value = v
+			n++
+		}
+		
+		trans[i].AssetOutputAmount = make([]AmountInfo, len(block.Transactions[i].AssetOutputAmount))
+		n = 0
+		for k, v := range block.Transactions[i].AssetOutputAmount {
+			trans[i].AssetInputAmount[n].Key   = k
+			trans[i].AssetInputAmount[n].Value = v
+			n++
+		}	
+		
+		mhash := block.Transactions[i].Hash()
+		trans[i].Hash = ToHexString(mhash.ToArray())
+	}
 	b := BlockInfo{
 		Hash:      ToHexString(hash.ToArray()),
-		BlockData: block.Blockdata,
+		BlockData:  blockhead,
+		Transactions: trans,
 	}
 	return responsePacking(b, id)
 }
@@ -64,6 +126,71 @@ func getBlockHash(req *http.Request, cmd map[string]interface{}) map[string]inte
 	}
 	hashhex := fmt.Sprintf("%016x", hash)
 	return responsePacking(hashhex, id)
+}
+
+func getTxn(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
+	id := cmd["id"]
+	params := cmd["params"]
+	var hash Uint256
+
+	txid := params.([]interface{})[0].(string)
+	hashslice, _ := hex.DecodeString(txid)
+	hash.Deserialize(bytes.NewReader(hashslice[0:32]))
+
+	tx, err := ledger.DefaultLedger.Store.GetTransaction(hash)
+	if err != nil {
+		return responsePacking([]interface{}{-100, "Unknown block"}, id)
+	}
+
+	var tran Transactions
+	tran.TxType 			= tx.TxType
+	tran.PayloadVersion		= tx.PayloadVersion
+	tran.Payload			= tx.Payload
+	tran.Nonce			= tx.Nonce
+	tran.Attributes			= tx.Attributes
+	tran.UTXOInputs			= tx.UTXOInputs
+	tran.BalanceInputs		= tx.BalanceInputs
+	tran.Outputs			= tx.Outputs
+	
+	for n := 0; n < len(tx.Programs); n++ {
+	    tran.Programs[n].Code =  ToHexString(tx.Programs[n].Code)
+	    tran.Programs[n].Parameter =  ToHexString(tx.Programs[n].Parameter)			
+	}
+			
+	tran.AssetOutputs     = make([]TxOutputInfo, len(tx.AssetOutputs))
+	n := 0
+	for k, v := range tx.AssetOutputs {
+		tran.AssetOutputs[n].Key = k
+		for m := 0; m < len(v); m++ {
+			tran.AssetOutputs[n].Txout[m] = v[m]
+		}
+		n += 1
+	}
+
+	tran.AssetInputAmount = make([]AmountInfo, len(tx.AssetInputAmount))
+	n = 0
+	for k, v := range tx.AssetInputAmount {
+		tran.AssetInputAmount[n].Key   = k
+		tran.AssetInputAmount[n].Value = v
+		n += 1
+	}
+	
+	tran.AssetOutputAmount = make([]AmountInfo, len(tx.AssetOutputAmount))
+	n = 0
+	for k, v := range tx.AssetOutputAmount {
+		tran.AssetInputAmount[n].Key   = k
+		tran.AssetInputAmount[n].Value = v
+		n += 1
+	}	
+	
+	mhash := tx.Hash()
+	tran.Hash = ToHexString(mhash.ToArray())
+	return responsePacking(tran, id)
+}
+
+
+func getAddrTxn(req *http.Request, cnd map[string]interface{}) map[string]interface{} {
+	return nil
 }
 
 func getConnectionCount(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
@@ -157,7 +284,7 @@ func getNodeState(req *http.Request, cmd map[string]interface{}) map[string]inte
 		Services: node.Services(),
 		Relay:    node.GetRelay(),
 		Height:   node.GetHeight(),
-		TxnCnt:	  node.GetTxnCnt(),
+		TxnCnt:   node.GetTxnCnt(),
 		RxTxnCnt: node.GetRxTxnCnt(),
 	}
 	return responsePacking(n, id)
@@ -216,4 +343,15 @@ func sendSampleTransaction(req *http.Request, cmd map[string]interface{}) map[st
 		return responsePacking("Xmit Sample TX error", id)
 	}
 	return responsePacking(txHashHex, id)
+}
+
+func setDebugInfo(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
+	id := cmd["id"]
+	param := cmd["params"].([]interface{})[0].(float64)
+	level := int(param)
+	err := log.Log.SetDebugLevel(level)
+	if err != nil {
+		return responsePacking("Invaild Debug Level", id)
+	}
+	return responsePacking("debug level is set successfully", id)
 }
