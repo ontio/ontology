@@ -31,6 +31,8 @@ type Param struct {
 	BestBlockHash   bool   // hash of current block
 	Height          int64  // block height
 	BlockHash       string // block hash
+	TxHash          string // Transaction hash
+	Address         string // user blockchain of address
 	BlockCount      bool   // block count
 	ConnectionCount bool   // connected node number
 	Neighbor        bool   // neighbor nodes
@@ -52,6 +54,8 @@ func registerFlags(f *flag.FlagSet) {
 	f.BoolVar(&p.BestBlockHash, "bestblockhash", false, "hash of current block")
 	f.Int64Var(&p.Height, "height", -1, "height of blockchain")
 	f.StringVar(&p.BlockHash, "blockhash", "", "block hash")
+	f.StringVar(&p.TxHash, "txhash", "", "transaction hash")
+	f.StringVar(&p.Address, "address", "", "user blockchain of address")
 	f.BoolVar(&p.BlockCount, "blockcount", false, "block numbers")
 	f.BoolVar(&p.ConnectionCount, "connections", false, "connection counnt")
 	f.BoolVar(&p.Neighbor, "neighbor", false, "neighbor nodes information")
