@@ -34,6 +34,7 @@ func (msg trn) Handle(node Noder) error {
 
 	if !node.LocalNode().ExistedID(msg.txn.Hash()) {
 		node.LocalNode().AppendTxnPool(&(msg.txn))
+		node.LocalNode().IncRxTxnCnt()
 		log.Debug("RX Transaction message hash", msg.txn.Hash())
 		log.Debug("RX Transaction message type", msg.txn.TxType)
 	}

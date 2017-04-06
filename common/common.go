@@ -8,7 +8,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"github.com/golang/crypto/ripemd160"
 	"io"
 	_ "io"
@@ -33,8 +32,6 @@ func GetNonce() uint64 {
 	log.Trace()
 	// Fixme replace with the real random number generator
 	nonce := uint64(rand.Uint32())<<32 + uint64(rand.Uint32())
-	log.Trace()
-	fmt.Println(fmt.Sprintf("The new nonce is: 0x%x", nonce))
 	return nonce
 }
 

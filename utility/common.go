@@ -38,6 +38,8 @@ type Param struct {
 	Stop            bool   // stop service
 	NodeState       bool   // node state
 	Tx              bool   // Transaction test case
+	TxNum		int64  // count of transaction
+	NoSign		bool   // transaction is not signed
 	RPCID           int64  // RPC ID, use int64 by default
 }
 
@@ -54,6 +56,8 @@ func registerFlags(f *flag.FlagSet) {
 	f.BoolVar(&p.NodeState, "state", false, "node state")
 	f.BoolVar(&p.Start, "start", false, "start service")
 	f.BoolVar(&p.Tx, "tx", false, "send a sample transaction")
+	f.Int64Var(&p.TxNum, "num", 1, "transaction number")
+	f.BoolVar(&p.NoSign, "nosign", false, "send unsigned transaction")
 	f.BoolVar(&p.Stop, "stop", false, "stop service")
 }
 
