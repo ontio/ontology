@@ -19,7 +19,7 @@ type ILedgerStore interface {
 
 	GetTransaction(hash Uint256) (*tx.Transaction,error)
 
-	SaveAsset(asset *Asset) error
+	SaveAsset(assetid Uint256,asset *Asset) error
 	GetAsset(hash Uint256) (*Asset, error)
 
 	GetCurrentBlockHash() Uint256
@@ -27,4 +27,5 @@ type ILedgerStore interface {
 	Close() error
 
 	InitLevelDBStoreWithGenesisBlock( genesisblock * Block  )
+	GetQuantityIssued (AssetId Uint256) (*Fixed64, error)
 }
