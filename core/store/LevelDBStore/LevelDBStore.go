@@ -698,3 +698,7 @@ func (bd *LevelDBStore) SaveBlock(b *Block, ledger *Ledger) error {
 
 	return nil
 }
+
+func (bd *LevelDBStore) GetQuantityIssued(AssetId Uint256) (*Fixed64, error) {
+	return nil,nil
+}
