@@ -9,7 +9,8 @@ import (
 	"errors"
 )
 
-type Uint256 [32]uint8
+const UINT256SIZE int = 32
+type Uint256 [UINT256SIZE]uint8
 
 func (u *Uint256) CompareTo( o Uint256 ) int {
 	x := u.ToArray()
@@ -28,7 +29,7 @@ func (u *Uint256) CompareTo( o Uint256 ) int {
 }
 
 func (u *Uint256) ToArray() []byte {
-	var x []byte = make([]byte,32)
+	var x []byte = make([]byte, UINT256SIZE)
 	for i:=0; i<32; i++ {
 		x[i] = byte(u[i])
 	}
@@ -50,7 +51,7 @@ func (u *Uint256) Serialize(w io.Writer) (int,error) {
 }
 
 func (u *Uint256) Deserialize(r io.Reader) error {
-	p := make([]byte, 32)
+	p := make([]byte, UINT256SIZE)
 	n, err := r.Read(p)
 
 	if n <= 0 || err != nil {
@@ -68,7 +69,7 @@ func (u *Uint256) ToString() string {
 }
 
 func Uint256ParseFromBytes(f []byte) (Uint256,error){
-	if ( len(f) != 32 ) {
+	if ( len(f) != UINT256SIZE ) {
 		return Uint256{},NewDetailErr(errors.New("[Common]: Uint256ParseFromBytes err, len != 32"), ErrNoCode, "");
 	}
 

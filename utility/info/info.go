@@ -10,7 +10,7 @@ import (
 var usage = `show info about blockchain`
 
 var flags = []string{"ip", "port", "rpcid", "height", "bestblockhash", "blockhash",
-	"blockcount", "connections", "neighbor", "state"}
+	"txhash", "address", "blockcount", "connections", "neighbor", "state"}
 
 func main(args []string, p utility.Param) (err error) {
 	var resp []byte
@@ -34,7 +34,23 @@ func main(args []string, p utility.Param) (err error) {
 		}
 		output = append(output, resp)
 	}
+	if txHash := p.TxHash; txHash !="" {
+		resp, err = httpjsonrpc.Call(addr, "getTxn", id, []interface{}{txHash, 1})
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return err
+		}
+		output = append(output, resp)
+	}
 
+	if address := p.Address; address != "" {
+		resp, err = httpjsonrpc.Call(addr, "getAddrTxn", id, []interface{}{address, 1})
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return err
+		}
+		output = append(output, resp)
+	}
 	if p.BestBlockHash {
 		resp, err = httpjsonrpc.Call(addr, "getbestblockhash", id, []interface{}{})
 		if err != nil {
