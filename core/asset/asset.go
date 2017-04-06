@@ -1,7 +1,6 @@
 package asset
 
 import (
-	"DNA/common"
 	"DNA/common/serialization"
 	. "DNA/errors"
 	"errors"
@@ -29,7 +28,6 @@ const (
 //define the asset stucture in onchain DNA
 //registered asset will be assigned to contract address
 type Asset struct {
-	ID         common.Uint256
 	Name       string
 	Precision  byte
 	AssetType  AssetType
@@ -38,7 +36,6 @@ type Asset struct {
 
 // Serialize is the implement of SignableData interface.
 func (a *Asset) Serialize(w io.Writer) error {
-	a.ID.Serialize(w)
 	err := serialization.WriteVarString(w, a.Name)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "[Asset], Name serialize failed.")
@@ -60,7 +57,6 @@ func (a *Asset) Serialize(w io.Writer) error {
 
 // Deserialize is the implement of SignableData interface.
 func (a *Asset) Deserialize(r io.Reader) error {
-	a.ID.Deserialize(r)
 	vars, err := serialization.ReadVarString(r)
 	if err != nil {
 		return NewDetailErr(errors.New("[Asset], Name deserialize failed."), ErrNoCode, "")

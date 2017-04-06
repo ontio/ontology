@@ -9,21 +9,21 @@ import (
 
 )
 
-type AssetRegistration struct {
+type RegisterAsset struct {
 	Asset      *asset.Asset
-	Amount     *common.Fixed64
+	Amount     common.Fixed64
 	//Precision  byte
 	Issuer     *crypto.PubKey
-	Controller *common.Uint160
+	Controller common.Uint160
 }
 
-func (a *AssetRegistration) Data() []byte {
-	//TODO: implement AssetRegistration.Data()
+func (a *RegisterAsset) Data() []byte {
+	//TODO: implement RegisterAsset.Data()
 	return []byte{0}
 
 }
 
-func (a *AssetRegistration) Serialize(w io.Writer) {
+func (a *RegisterAsset) Serialize(w io.Writer) {
 	a.Asset.Serialize(w)
 	a.Amount.Serialize(w)
 	//w.Write([]byte{a.Precision})
@@ -31,20 +31,20 @@ func (a *AssetRegistration) Serialize(w io.Writer) {
 	a.Controller.Serialize(w)
 }
 
-func (a *AssetRegistration) Deserialize(r io.Reader) error {
+func (a *RegisterAsset) Deserialize(r io.Reader) error {
 
 	//asset
 	a.Asset = new(asset.Asset)
 	err := a.Asset.Deserialize(r)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "[AssetRegistration], Asset Deserialize failed.")
+		return NewDetailErr(err, ErrNoCode, "[RegisterAsset], Asset Deserialize failed.")
 	}
 
 	//Amount
-	a.Amount = new(common.Fixed64)
+	a.Amount = *new(common.Fixed64)
 	err = a.Amount.Deserialize(r)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "[AssetRegistration], Ammount Deserialize failed.")
+		return NewDetailErr(err, ErrNoCode, "[RegisterAsset], Ammount Deserialize failed.")
 	}
 
 	//Precision  byte 02/10 comment out by wjj
@@ -53,21 +53,21 @@ func (a *AssetRegistration) Deserialize(r io.Reader) error {
 	//if n > 0 {
 	//	a.Precision = p[0]
 	//} else {
-	//	return NewDetailErr(err, ErrNoCode, "[AssetRegistration], Precision Deserialize failed.")
+	//	return NewDetailErr(err, ErrNoCode, "[RegisterAsset], Precision Deserialize failed.")
 	//}
 
 	//Issuer     *crypto.PubKey
 	a.Issuer = new(crypto.PubKey)
 	err = a.Issuer.DeSerialize(r)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "[AssetRegistration], Ammount Deserialize failed.")
+		return NewDetailErr(err, ErrNoCode, "[RegisterAsset], Ammount Deserialize failed.")
 	}
 
 	//Controller *common.Uint160
-	a.Controller = new(common.Uint160)
+	a.Controller = *new(common.Uint160)
 	err = a.Controller.Deserialize(r)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "[AssetRegistration], Ammount Deserialize failed.")
+		return NewDetailErr(err, ErrNoCode, "[RegisterAsset], Ammount Deserialize failed.")
 	}
 	return nil
 }
