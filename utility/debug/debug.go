@@ -11,7 +11,7 @@ var usage = `set debugging function`
 
 var flags = []string{"level"}
 
-func main(args []string, p utility.Param) (err error) {
+func debugMain(args []string, p utility.Param) (err error) {
 	var output [][]byte
 	addr := utility.Address(p.Ip, p.Port)
 	id := p.RPCID
@@ -27,4 +27,4 @@ func main(args []string, p utility.Param) (err error) {
 	return nil
 }
 
-var Command = &utility.Command{UsageText: usage, Flags: flags, Main: main}
+var Command = &utility.Command{UsageText: usage, Flags: flags, Main: debugMain}

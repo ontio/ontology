@@ -26,7 +26,7 @@ var usage = `run sample routines`
 
 var flags = []string{"tx", "num", "nosign"}
 
-func main(args []string, p utility.Param) (err error) {
+func testMain(args []string, p utility.Param) (err error) {
 	if p.Tx {
 		issuer, err := client.NewAccount()
 		if err != nil {
@@ -90,4 +90,4 @@ func SampleAsset(id Uint256, index int64) *Asset {
 	return &asset
 }
 
-var Command = &utility.Command{UsageText: usage, Flags: flags, Main: main}
+var Command = &utility.Command{UsageText: usage, Flags: flags, Main: testMain}
