@@ -10,6 +10,7 @@ import (
 
 type TXNPool struct {
 	sync.RWMutex
+	txnCnt	uint64
 	list map[common.Uint256]*transaction.Transaction
 }
 
@@ -25,8 +26,13 @@ func (txnPool *TXNPool) AppendTxnPool(txn *transaction.Transaction) bool {
 	txnPool.Lock()
 	defer txnPool.Unlock()
 
-	// TODO Check the TXN already existed case
-	txnPool.list[txn.Hash()] = txn
+	hash := txn.Hash()
+	if _, ret := txnPool.list[hash]; ret {
+		return false
+	} else {
+		txnPool.list[hash] = txn
+		txnPool.txnCnt++
+	}
 
 	return true
 }
@@ -38,13 +44,14 @@ func (txnPool *TXNPool) GetTxnPool(cleanPool bool) map[common.Uint256]*transacti
 
 	list := txnPool.list
 	if cleanPool == true {
-		txnPool.list = make(map[common.Uint256]*transaction.Transaction)
+		txnPool.init()
 	}
 	return list
 }
 
 func (txnPool *TXNPool) init() {
 	txnPool.list = make(map[common.Uint256]*transaction.Transaction)
+	txnPool.txnCnt = 0
 }
 
 func (node *node) SynchronizeTxnPool() {

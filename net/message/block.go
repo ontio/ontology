@@ -10,7 +10,6 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
-	"fmt"
 )
 
 type blockReq struct {
@@ -29,10 +28,11 @@ func (msg block) Handle(node Noder) error {
 	log.Trace()
 
 	log.Debug("RX block message")
+
 	err := ledger.DefaultLedger.Blockchain.AddBlock(&msg.blk)
 	if err != nil {
-		log.Warn("Add block error")
-		return errors.New("Add block error before Xmit\n")
+		log.Error("Add block error after Received")
+		return errors.New("Add block error after reveived\n")
 	}
 	node.LocalNode().GetEvent("block").Notify(events.EventNewInventory, &msg.blk)
 	return nil
@@ -98,7 +98,7 @@ func NewBlock(bk *ledger.Block) ([]byte, error) {
 	buf := bytes.NewBuffer(s[:4])
 	binary.Read(buf, binary.LittleEndian, &(msg.msgHdr.Checksum))
 	msg.msgHdr.Length = uint32(len(p.Bytes()))
-	fmt.Printf("The message payload length is %d\n", msg.msgHdr.Length)
+	log.Debug("The message payload length is %d\n", msg.msgHdr.Length)
 
 	m, err := msg.Serialization()
 	if err != nil {

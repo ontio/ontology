@@ -44,11 +44,11 @@ func getBlock(req *http.Request, cmd map[string]interface{}) map[string]interfac
 	}
 
 	blockhead := &BlockHead{
-		Version:          block.Blockdata.Version,
+		Version:           block.Blockdata.Version,
 		PrevBlockHash:    ToHexString(block.Blockdata.PrevBlockHash.ToArray()),
 		TransactionsRoot: ToHexString(block.Blockdata.TransactionsRoot.ToArray()),
-		Timestamp:        block.Blockdata.Timestamp,
-		Height:           block.Blockdata.Height,
+		Timestamp:         block.Blockdata.Timestamp,
+		Height:            block.Blockdata.Height,
 		ConsensusData:    block.Blockdata.ConsensusData,
 		NextMiner:        ToHexString(block.Blockdata.NextMiner.ToArray()),
 		Program:          ProgramInfo{
@@ -58,24 +58,24 @@ func getBlock(req *http.Request, cmd map[string]interface{}) map[string]interfac
 		Hash:             ToHexString(hash.ToArray()),
 	}
 
-	trans := make([]Transactions, len(block.Transcations))
-	for i := 0; i < len(block.Transcations); i++ {
-		trans[i].TxType           = block.Transcations[i].TxType
-		trans[i].PayloadVersion   = block.Transcations[i].PayloadVersion
-		trans[i].Payload          = block.Transcations[i].Payload
-		trans[i].Nonce            = block.Transcations[i].Nonce
-		trans[i].Attributes       = block.Transcations[i].Attributes
-		trans[i].UTXOInputs       = block.Transcations[i].UTXOInputs
-		trans[i].BalanceInputs    = block.Transcations[i].BalanceInputs
-		trans[i].Outputs          = block.Transcations[i].Outputs
-		for n := 0; n < len(block.Transcations[i].Programs); n++ {
-		    trans[i].Programs[n].Code =  ToHexString(block.Transcations[i].Programs[n].Code)
-		    trans[i].Programs[n].Parameter =  ToHexString(block.Transcations[i].Programs[n].Parameter)			
+	trans := make([]Transactions, len(block.Transactions))
+	for i := 0; i < len(block.Transactions); i++ {
+		trans[i].TxType           = block.Transactions[i].TxType
+		trans[i].PayloadVersion   = block.Transactions[i].PayloadVersion
+		trans[i].Payload          = block.Transactions[i].Payload
+		trans[i].Nonce            = block.Transactions[i].Nonce
+		trans[i].Attributes       = block.Transactions[i].Attributes
+		trans[i].UTXOInputs       = block.Transactions[i].UTXOInputs
+		trans[i].BalanceInputs    = block.Transactions[i].BalanceInputs
+		trans[i].Outputs          = block.Transactions[i].Outputs
+		for n := 0; n < len(block.Transactions[i].Programs); n++ {
+		    trans[i].Programs[n].Code =  ToHexString(block.Transactions[i].Programs[n].Code)
+		    trans[i].Programs[n].Parameter =  ToHexString(block.Transactions[i].Programs[n].Parameter)			
 		}
 		
-		trans[i].AssetOutputs = make([]TxOutputInfo, len(block.Transcations[i].AssetOutputs))
+		trans[i].AssetOutputs = make([]TxOutputInfo, len(block.Transactions[i].AssetOutputs))
 		n := 0
-		for k, v := range block.Transcations[i].AssetOutputs {
+		for k, v := range block.Transactions[i].AssetOutputs {
 			trans[i].AssetOutputs[n].Key = k
 			for m := 0; m < len(v); m++ {
 				trans[i].AssetOutputs[n].Txout[m] = v[m]
@@ -83,23 +83,23 @@ func getBlock(req *http.Request, cmd map[string]interface{}) map[string]interfac
 			n++
 		}
 
-		trans[i].AssetInputAmount = make([]AmountInfo, len(block.Transcations[i].AssetInputAmount))
+		trans[i].AssetInputAmount = make([]AmountInfo, len(block.Transactions[i].AssetInputAmount))
 		n = 0
-		for k, v := range block.Transcations[i].AssetInputAmount {
+		for k, v := range block.Transactions[i].AssetInputAmount {
 			trans[i].AssetInputAmount[n].Key   = k
 			trans[i].AssetInputAmount[n].Value = v
 			n++
 		}
 		
-		trans[i].AssetOutputAmount = make([]AmountInfo, len(block.Transcations[i].AssetOutputAmount))
+		trans[i].AssetOutputAmount = make([]AmountInfo, len(block.Transactions[i].AssetOutputAmount))
 		n = 0
-		for k, v := range block.Transcations[i].AssetOutputAmount {
+		for k, v := range block.Transactions[i].AssetOutputAmount {
 			trans[i].AssetInputAmount[n].Key   = k
 			trans[i].AssetInputAmount[n].Value = v
 			n++
 		}	
 		
-		mhash := block.Transcations[i].Hash()
+		mhash := block.Transactions[i].Hash()
 		trans[i].Hash = ToHexString(mhash.ToArray())
 	}
 	b := BlockInfo{
@@ -284,6 +284,8 @@ func getNodeState(req *http.Request, cmd map[string]interface{}) map[string]inte
 		Services: node.Services(),
 		Relay:    node.GetRelay(),
 		Height:   node.GetHeight(),
+		TxnCnt:	  node.GetTxnCnt(),
+		RxTxnCnt: node.GetRxTxnCnt(),
 	}
 	return responsePacking(n, id)
 }

@@ -461,8 +461,8 @@ func (bd *LevelDBStore) GetBlock(hash Uint256) (*Block, error) {
 	}
 
 	// Deserialize transaction
-	for i := 0; i < len(b.Transcations); i++ {
-		err = bd.getTx(b.Transcations[i], b.Transcations[i].Hash())
+	for i := 0; i < len(b.Transactions); i++ {
+		err = bd.getTx(b.Transactions[i], b.Transactions[i].Hash())
 		if err != nil {
 			return nil, err
 		}
@@ -519,20 +519,20 @@ func (bd *LevelDBStore) persist(b *Block) error {
 
 	//////////////////////////////////////////////////////////////
 	// save transcations to leveldb
-	nLen := len(b.Transcations)
+	nLen := len(b.Transactions)
 	for i := 0; i < nLen; i++ {
 		/*
 			// for test
 			if i==1 {
-				b.Transcations[i].Hash = Uint256{0x00,0x01,0x02,0x03,0x00,0x01,0x02,0x03,0x00,0x01,0x02,0x03,0x00,0x01,0x02,0x03,0x00,0x01,0x02,0x03,0x00,0x01,0x02,0x03,0x00,0x01,0x02,0x03,0x00,0x01,0x02,0x03}
-				fmt.Printf( "txhash: %x\n",  b.Transcations[i].Hash )
-				bd.SaveTransaction(b.Transcations[i],b.Blockdata.Height)
+				b.Transactions[i].Hash = Uint256{0x00,0x01,0x02,0x03,0x00,0x01,0x02,0x03,0x00,0x01,0x02,0x03,0x00,0x01,0x02,0x03,0x00,0x01,0x02,0x03,0x00,0x01,0x02,0x03,0x00,0x01,0x02,0x03,0x00,0x01,0x02,0x03}
+				fmt.Printf( "txhash: %x\n",  b.Transactions[i].Hash )
+				bd.SaveTransaction(b.Transactions[i],b.Blockdata.Height)
 			}
 		*/
 
 		// now support RegisterAsset and Miner tx ONLY.
-		if b.Transcations[i].TxType == 0x40 || b.Transcations[i].TxType == 0x00 {
-			bd.SaveTransaction(b.Transcations[i], b.Blockdata.Height)
+		if b.Transactions[i].TxType == 0x40 || b.Transactions[i].TxType == 0x00 {
+			bd.SaveTransaction(b.Transactions[i], b.Blockdata.Height)
 		}
 	}
 
