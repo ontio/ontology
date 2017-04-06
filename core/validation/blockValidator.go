@@ -24,13 +24,13 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 		return err
 	}
 
-	if block.Transcations == nil {
-		return errors.New(fmt.Sprintf("No Transcations Exist in Block."))
+	if block.Transactions == nil {
+		return errors.New(fmt.Sprintf("No Transactions Exist in Block."))
 	}
-	if block.Transcations[0].TxType != tx.BookKeeping {
+	if block.Transactions[0].TxType != tx.BookKeeping {
 		return errors.New(fmt.Sprintf("Blockdata Verify failed first Transacion in block is not BookKeeping type."))
 	}
-	for index, v := range block.Transcations {
+	for index, v := range block.Transactions {
 		if v.TxType == tx.BookKeeping && index != 0 {
 			return errors.New(fmt.Sprintf("This Block Has BookKeeping transaction after first transaction in block."))
 		}
@@ -39,7 +39,7 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 	//verfiy block's transactions
 	if completely {
 	/*
-		mineraddress, err := ledger.GetMinerAddress(ld.Blockchain.GetMinersByTXs(block.Transcations))
+		mineraddress, err := ledger.GetMinerAddress(ld.Blockchain.GetMinersByTXs(block.Transactions))
 		if err != nil {
 			return errors.New(fmt.Sprintf("GetMinerAddress Failed."))
 		}
@@ -47,9 +47,10 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 			return errors.New(fmt.Sprintf("Miner is not validate."))
 		}
 	*/
-		for _, txVerify := range block.Transcations {
+		//TODO: NextMiner Check.
+		for _, txVerify := range block.Transactions {
 			transpool := []*tx.Transaction{}
-			for _, tx := range block.Transcations {
+			for _, tx := range block.Transactions {
 				if tx.Hash() != txVerify.Hash() {
 					transpool = append(transpool, tx)
 				}

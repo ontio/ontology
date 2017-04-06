@@ -16,18 +16,18 @@ import (
 
 type Block struct {
 	Blockdata    *Blockdata
-	Transcations []*tx.Transaction
+	Transactions []*tx.Transaction
 
 	hash *Uint256
 }
 
 func (b *Block) Serialize(w io.Writer) error {
 	b.Blockdata.Serialize(w)
-	err := serialization.WriteUint8(w, uint8(len(b.Transcations)))
+	err := serialization.WriteUint8(w, uint8(len(b.Transactions)))
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "Block item Transcations length serialization failed.")
 	}
-	for _, transaction := range b.Transcations {
+	for _, transaction := range b.Transactions {
 		temp := *transaction
 		hash := temp.Hash()
 		hash.Serialize(w)
@@ -53,7 +53,7 @@ func (b *Block) Deserialize(r io.Reader) error {
 		txhash.Deserialize(r)
 		transaction := new(tx.Transaction)
 		transaction.SetHash(txhash)
-		b.Transcations = append(b.Transcations, transaction)
+		b.Transactions = append(b.Transactions, transaction)
 		tharray = append(tharray, txhash)
 	}
 
@@ -144,7 +144,7 @@ func GenesisBlockInit(miners []*crypto.PubKey) (*Block,error){
 	}
 	genesisBlock.Blockdata = genesisBlockdata
 
-	genesisBlock.Transcations = append(genesisBlock.Transcations,trans)
+	genesisBlock.Transactions = append(genesisBlock.Transactions,trans)
 
 	//hashx := genesisBlock.Hash()
 
@@ -171,7 +171,7 @@ func CreateGenesisBlock(miners []*crypto.PubKey) error {
 }
 
 func (b *Block)RebuildMerkleRoot()(error){
-	txs := b.Transcations
+	txs := b.Transactions
 	transactionHashes := []Uint256{}
 	for _, tx :=  range txs{
 		transactionHashes = append(transactionHashes,tx.Hash())

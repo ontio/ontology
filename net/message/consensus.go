@@ -16,7 +16,6 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"io"
 )
 
@@ -64,7 +63,7 @@ func (cp *ConsensusPayload) GetProgramHashes() ([]common.Uint160, error) {
 
 	contract, err := contract.CreateSignatureContract(cp.Owner)
 	hash := contract.ProgramHash
-	fmt.Println("program hash== ", hash)
+	log.Debug("program hash == ", hash)
 
 	//signatureRedeemScript, err := contract.CreateSignatureRedeemScript(miners[cp.MinerIndex])
 	if err != nil {
@@ -252,7 +251,7 @@ func NewConsensus(cp *ConsensusPayload) ([]byte, error) {
 	b := new(bytes.Buffer)
 	err := binary.Write(b, binary.LittleEndian, tmpBuffer.Bytes())
 	if err != nil {
-		fmt.Println("Binary Write failed at new Msg")
+		log.Error("Binary Write failed at new Msg")
 		return nil, err
 	}
 	s := sha256.Sum256(b.Bytes())
@@ -261,11 +260,11 @@ func NewConsensus(cp *ConsensusPayload) ([]byte, error) {
 	buf := bytes.NewBuffer(s[:4])
 	binary.Read(buf, binary.LittleEndian, &(msg.msgHdr.Checksum))
 	msg.msgHdr.Length = uint32(len(b.Bytes()))
-	fmt.Printf("NewConsensus The message payload length is %d\n", msg.msgHdr.Length)
+	log.Debug("NewConsensus The message payload length is %d\n", msg.msgHdr.Length)
 
 	m, err := msg.Serialization()
 	if err != nil {
-		fmt.Println("Error Convert net message ", err.Error())
+		log.Error("Error Convert net message ", err.Error())
 		return nil, err
 	}
 	return m, nil

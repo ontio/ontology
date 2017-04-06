@@ -22,7 +22,7 @@ This document describes the serialization format for the data structures used in
 ### Ledger
 
 The ledger Contains the BlockChain, current state and the store interface of the ledger. which is maintained by each peer.
-GoOnchain is designed to support muti Ledger, but now is only allowed one ledger.
+DNA is designed to support muti Ledger, but now is only allowed one ledger.
 
 
 Field               | Type              | Description
@@ -91,10 +91,10 @@ AssetOutputAmount   | map[Uint256]Fixed64 | Outputs map base on Asset.
 #### Payload
 Payload is the specific transaction implementtion.
 
-* AssetRegistration
+* RegisterAsset
 
 ```
-AssetRegistration payload be used when register new asset with asset fields:
+RegisterAsset payload be used when register new asset with asset fields:
 
  "asset name"
  "percision"
