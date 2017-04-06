@@ -521,7 +521,7 @@ func (bd *LevelDBStore) persist(b *Block) error {
 	}
 
 	//////////////////////////////////////////////////////////////
-	// save transcations to leveldb
+	// save Transactions to leveldb
 	nLen := len(b.Transactions)
 	for i := 0; i < nLen; i++ {
 		/*
@@ -534,15 +534,15 @@ func (bd *LevelDBStore) persist(b *Block) error {
 		*/
 
 		// now support RegisterAsset and Miner tx ONLY.
-		if b.Transcations[i].TxType == 0x40 || b.Transcations[i].TxType == 0x00 {
-			err = bd.SaveTransaction(b.Transcations[i], b.Blockdata.Height)
+		if b.Transactions[i].TxType == 0x40 || b.Transactions[i].TxType == 0x00 {
+			err = bd.SaveTransaction(b.Transactions[i], b.Blockdata.Height)
 			if err != nil {
 				return err
 			}
 		}
-		if b.Transcations[i].TxType == 0x40 {
-			ar := b.Transcations[i].Payload.(*payload.RegisterAsset)
-			err = bd.SaveAsset(b.Transcations[i].Hash(),ar.Asset)
+		if b.Transactions[i].TxType == 0x40 {
+			ar := b.Transactions[i].Payload.(*payload.RegisterAsset)
+			err = bd.SaveAsset(b.Transactions[i].Hash(),ar.Asset)
 			if err != nil {
 				return err
 			}
