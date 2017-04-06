@@ -510,7 +510,7 @@ func (bd *LevelDBStore) persist(b *Block) error {
 	}*/
 
 	//////////////////////////////////////////////////////////////
-	// save transcations to leveldb
+	// save transactions to leveldb
 	nLen := len(b.Transactions)
 	for i := 0; i < nLen; i++ {
 		/*
