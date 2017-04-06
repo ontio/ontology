@@ -530,7 +530,7 @@ func (bd *LevelDBStore) persist(b *Block) error {
 			}
 		}
 		if b.Transactions[i].TxType == tx.RegisterAsset {
-			ar := b.Transactions[i].Payload.(*payload.AssetRegistration)
+			ar := b.Transactions[i].Payload.(*payload.RegisterAsset)
 			err = bd.SaveAsset(b.Transactions[i].Hash(),ar.Asset)
 			if err != nil {
 				return err
