@@ -37,6 +37,7 @@ const (
 	errorLog
 	fatalLog
 	printLog
+	maxLevelLog
 )
 
 var (
@@ -103,10 +104,9 @@ func New(out io.Writer, prefix string, flag, level int) *Logger {
 func (l *Logger) SetDebugLevel(level int) error {
 	l.Lock()
 	defer l.Unlock()
-	if level > printLog || level < traceLog {
+	if level >= maxLevelLog || level < 0 {
 		return errors.New("Invalid Debug Level")
 	}
-
 	l.level = level
 	return nil
 }
