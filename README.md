@@ -216,7 +216,11 @@ We provide two ways to subscribe:
 
 ## Forum
 
-* https://forum.DNAproject.org
+* https://www.DNAproject.org
+
+## Wiki
+
+* http://wiki.DNAproject.org
 
 # License
 
