@@ -13,11 +13,14 @@ func StartRPCServer() {
 
 	HandleFunc("getbestblockhash", getBestBlockHash)
 	HandleFunc("getblock", getBlock)
+	HandleFunc("getTxn", getTxn)
+	HandleFunc("getAddrTxn", getAddrTxn)
 	HandleFunc("getblockcount", getBlockCount)
 	HandleFunc("getblockhash", getBlockHash)
 	HandleFunc("getconnectioncount", getConnectionCount)
 	HandleFunc("getrawmempool", getRawMemPool)
 	HandleFunc("getrawtransaction", getRawTransaction)
+	HandleFunc("sendRawTransaction", sendRawTransaction)
 	HandleFunc("submitblock", submitBlock)
 
 	err := http.ListenAndServe(":"+strconv.Itoa(Parameters.HttpJsonPort), nil)
