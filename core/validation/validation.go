@@ -6,6 +6,7 @@ import (
 	"DNA/crypto"
 	. "DNA/errors"
 	"DNA/vm"
+	"DNA/vm/interfaces"
 	"errors"
 )
 
@@ -29,22 +30,22 @@ func VerifySignableData(signableData sig.SignableData) (bool,error) {
 			return false,errors.New("The data hashes is different with corresponding program code.")
 		}
 		//execute program on VM
-		var cryptos vm.ICrypto
+		var cryptos interfaces.ICrypto
 		cryptos = new(vm.ECDsaCrypto)
-		se := vm.NewExecutionEngine(nil, cryptos, nil, signableData)
-		se.LoadScript(programs[i].Code, true)
-		se.LoadScript(programs[i].Parameter, false)
-		se.ExecuteProgram()
+		se := vm.NewExecutionEngine(signableData, cryptos, 1200, nil, nil)
+		se.LoadScript(programs[i].Code, false)
+		se.LoadScript(programs[i].Parameter, true)
+		se.Execute()
 
-		if se.State != vm.HALT {
+		if se.GetState() != vm.HALT {
 			return false,NewDetailErr(errors.New("[VM] Finish State not equal to HALT."), ErrNoCode, "")
 		}
 
-		if se.Stack.Count() != 1 {
+		if se.GetEvaluationStack().Count() != 1 {
 			return false,NewDetailErr(errors.New("[VM] Execute Engine Stack Count Error."), ErrNoCode, "")
 		}
 
-		flag := se.Stack.Pop().GetBool()
+		flag := se.GetExecuteResult()
 		if !flag {
 			return false,NewDetailErr(errors.New("[VM] Check Sig FALSE."), ErrNoCode, "")
 		}

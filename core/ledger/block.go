@@ -119,7 +119,7 @@ func GenesisBlockInit(miners []*crypto.PubKey) (*Block,error){
 
 	pg := new(program.Program)
 	pg.Code = []byte{'0'}
-	pg.Parameter = []byte{byte(vm.OP_TRUE)}
+	pg.Parameter = []byte{byte(vm.PUSHT)}
 	genesisBlockdata.Program = pg
 
 	//transaction
@@ -137,7 +137,7 @@ func GenesisBlockInit(miners []*crypto.PubKey) (*Block,error){
 			programHashes := []*program.Program{}
 			pg := new(program.Program)
 			pg.Code = []byte{'0'}
-			pg.Parameter = []byte{byte(vm.OP_TRUE)}
+			pg.Parameter = []byte{byte(vm.PUSHT)}
 			programHashes = append(programHashes, pg)
 			trans.Programs = programHashes
 		}

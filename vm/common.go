@@ -1,8 +1,10 @@
 package vm
 
 import (
-	"math/big"
+	"DNA/vm/errors"
+	"DNA/vm/types"
 	"encoding/binary"
+	"math/big"
 	"reflect"
 )
 
@@ -12,30 +14,60 @@ func (c BigIntSorter) Len() int {
 	return len(c)
 }
 func (c BigIntSorter) Swap(i, j int) {
-	if ( i >= 0 && i < len(c) && j >= 0 && j < len(c) ){  // Unit Test modify
+	if i >= 0 && i < len(c) && j >= 0 && j < len(c) { // Unit Test modify
 		c[i], c[j] = c[j], c[i]
 	}
 }
 func (c BigIntSorter) Less(i, j int) bool {
-	if ( i >= 0 && i < len(c) && j >= 0 && j < len(c) ) {   // Unit Test modify
+	if i >= 0 && i < len(c) && j >= 0 && j < len(c) { // Unit Test modify
 		return c[i].Cmp(&c[j]) < 0
 	}
 
 	return false
 }
 
+func ToBigInt(data interface{}) *big.Int {
+	var bi big.Int
+	switch t := data.(type) {
+	case int64:
+		bi.SetInt64(int64(t))
+	case int32:
+		bi.SetInt64(int64(t))
+	case int16:
+		bi.SetInt64(int64(t))
+	case int8:
+		bi.SetInt64(int64(t))
+	case int:
+		bi.SetInt64(int64(t))
+	case uint64:
+		bi.SetUint64(uint64(t))
+	case uint32:
+		bi.SetUint64(uint64(t))
+	case uint16:
+		bi.SetUint64(uint64(t))
+	case uint8:
+		bi.SetUint64(uint64(t))
+	case uint:
+		bi.SetUint64(uint64(t))
+	case big.Int:
+		bi = t
+	case *big.Int:
+		bi = *t
+	}
+	return &bi
+}
 
 //common func
-func SumBigInt (ints []big.Int) big.Int{
+func SumBigInt(ints []big.Int) big.Int {
 	sum := big.NewInt(0)
-	for _,v := range ints {
-		sum = sum.Add(sum,&v)
+	for _, v := range ints {
+		sum = sum.Add(sum, &v)
 	}
 	return *sum
 }
 
 func MinBigInt(ints []big.Int) big.Int{
-	minimum :=  ints[0]
+	minimum := ints[0]
 
 	for _, d := range ints {
 		if d.Cmp(&minimum) < 0 {
@@ -47,7 +79,7 @@ func MinBigInt(ints []big.Int) big.Int{
 }
 
 func MaxBigInt(ints []big.Int) big.Int{
-	max :=  ints[0]
+	max := ints[0]
 
 	for _, d := range ints {
 		if d.Cmp(&max) > 0 {
@@ -61,7 +93,7 @@ func MaxBigInt(ints []big.Int) big.Int{
 func MinInt64(datas []int64) int64 {
 
 	var minimum int64
-	for i, d := range datas {  // Unit Test modify
+	for i, d := range datas { // Unit Test modify
 		if i == 0 {
 			minimum = d
 		}
@@ -77,7 +109,7 @@ func MaxInt64(datas []int64) int64 {
 
 	var maximum int64
 	//i := 0
-	for i, d := range datas {   // Unit Test modify
+	for i, d := range datas { // Unit Test modify
 		if i == 0 {
 			maximum = d
 			//i++
@@ -92,67 +124,32 @@ func MaxInt64(datas []int64) int64 {
 
 func Concat(array1 []byte, array2 []byte) []byte {
 	len := len(array2)
-	for i:=0; i<len; i++ {
-		array1 = append(array1, array2[i])   // Unit Test modify
+	for i := 0; i < len; i++ {
+		array1 = append(array1, array2[i]) // Unit Test modify
 	}
 
 	return array1
 }
 
-func BigIntsOp(bigints []big.Int, op OpCode) []big.Int{
-	newbigints := []big.Int{}
-	for _, b := range bigints {
-		var nb *big.Int
-
-		switch op{
-		case OP_1ADD:
-			nb = b.Add(&b, big.NewInt(int64(1)))
-		case OP_1SUB:
-			nb = b.Sub(&b, big.NewInt(int64(1)))
-		case OP_2MUL:
-			nb = b.Lsh(&b, 2)
-		case OP_2DIV:
-			nb = b.Rsh(&b, 2)
-		case OP_NEGATE:
-			nb = b.Neg(&b)
-		case OP_ABS:
-			nb = b.Abs(&b)
-		default:
-			nb = &b
-
-		}
-		newbigints = append(newbigints, *nb)
+func BigIntOp(bi *big.Int, op OpCode) *big.Int {
+	var nb *big.Int
+	switch op {
+	case INC:
+		nb = bi.Add(bi, big.NewInt(int64(1)))
+	case DEC:
+		nb = bi.Sub(bi, big.NewInt(int64(1)))
+	case SAL:
+		nb = bi.Lsh(bi, 1)
+	case SAR:
+		nb = bi.Rsh(bi, 1)
+	case NEGATE:
+		nb = bi.Neg(bi)
+	case ABS:
+		nb = bi.Abs(bi)
+	default:
+		nb = bi
 	}
-
-	return newbigints
-}
-
-func BigIntOp (bigints []big.Int, op OpCode) []big.Int{
-	newbigints := []big.Int{}
-	for _, b := range bigints {
-		var nb *big.Int
-
-		switch op{
-		case OP_1ADD:
-			nb = b.Add(&b, big.NewInt(int64(1)))
-		case OP_1SUB:
-			nb = b.Sub(&b, big.NewInt(int64(1)))
-		case OP_2MUL:
-			nb = b.Lsh(&b, 2)
-		case OP_2DIV:
-			nb = b.Rsh(&b, 2)
-		case OP_NEGATE:
-			nb = b.Neg(&b)
-		case OP_ABS:
-			nb = b.Abs(&b)
-		default:
-			nb = &b
-
-		}
-		newbigints = append(newbigints, *nb)
-	}
-
-	return newbigints
+	return nb
 }
 
 func AsBool(e interface{}) bool {
@@ -171,7 +168,7 @@ func AsInt64(b []byte) (int64, error) {
 		return 0, nil
 	}
 	if len(b) > 8 {
-		return 0, ErrBadValue
+		return 0, errors.ErrBadValue
 	}
 
 	var bs [8]byte
@@ -182,143 +179,102 @@ func AsInt64(b []byte) (int64, error) {
 	return int64(res), nil
 }
 
-func ByteArrZip (s1 [][]byte, s2 [][]byte, op OpCode) [][]byte{
-	len := len(s1)
-	ns := [][]byte{}
+func ByteArrZip(s1 []byte, s2 []byte, op OpCode) []byte{
+	var ns []byte
 	switch op {
-	case OP_CONCAT:
-		//for i:=1; i<len; i++ {
-		for i:=0; i<len; i++ {              // Unit Test modify
-			nsi := Concat(s1[i],s2[i])
-			ns = append(ns,nsi)
-		}
-
+	case CAT:
+		ns = append(s1, s2...)
 	}
 	return ns
 }
 
-func BigIntZip (ints1 []big.Int, ints2 []big.Int, op OpCode) []big.Int{
-	newbigints := []big.Int{}
-
-	len := len(ints1)
-	for i:=0; i<len; i++ {
-		var nb *big.Int
-
-		switch op{
-		case OP_AND:
-			nb = ints1[i].And(&ints1[i],&ints2[i])
-		case OP_OR:
-			nb = ints1[i].Or(&ints1[i],&ints2[i])
-		case OP_XOR:
-			nb = ints1[i].Xor(&ints1[i],&ints2[i])
-		case OP_ADD:
-			nb = ints1[i].Add(&ints1[i],&ints2[i])
-		case OP_SUB:
-			nb = ints1[i].Sub(&ints1[i],&ints2[i])
-		case OP_MUL:
-			nb = ints1[i].Mul(&ints1[i],&ints2[i])
-		case OP_DIV:
-			nb = ints1[i].Div(&ints1[i],&ints2[i])
-		case OP_MOD:
-			nb = ints1[i].Mod(&ints1[i],&ints2[i])
-		case OP_LSHIFT:
-			nb = ints1[i].Lsh(&ints1[i],uint(ints2[i].Int64()))
-		case OP_RSHIFT:
-			nb = ints1[i].Rsh(&ints1[i],uint(ints2[i].Int64()))
-		case OP_MIN:
-			c := ints1[i].Cmp(&ints2[i])
-			if c <= 0 {
-				nb = &ints1[i]
-			}else {nb = &ints2[i]}
-		case OP_MAX:
-			c := ints1[i].Cmp(&ints2[i])
-			if c <= 0 {
-				nb = &ints2[i]
-			}else {nb = &ints1[i]}
-
+func BigIntZip(ints1 *big.Int, ints2 *big.Int, op OpCode) *big.Int {
+	var nb *big.Int
+	switch op {
+	case AND:
+		nb = ints1.And(ints1, ints2)
+	case OR:
+		nb = ints1.Or(ints1, ints2)
+	case XOR:
+		nb = ints1.Xor(ints1, ints2)
+	case ADD:
+		nb = ints1.Add(ints1, ints2)
+	case SUB:
+		nb = ints1.Sub(ints1, ints2)
+	case MUL:
+		nb = ints1.Mul(ints1, ints2)
+	case DIV:
+		nb = ints1.Div(ints1, ints2)
+	case MOD:
+		nb = ints1.Mod(ints1, ints2)
+	case SHL:
+		nb = ints1.Lsh(ints1, uint(ints2.Int64()))
+	case SHR:
+		nb = ints1.Rsh(ints1, uint(ints2.Int64()))
+	case MIN:
+		c := ints1.Cmp(ints2)
+		if c <= 0 {
+			nb = ints1
+		} else {
+			nb = ints2
 		}
-
-		newbigints = append(newbigints, *nb)
-
+	case MAX:
+		c := ints1.Cmp(ints2)
+		if c <= 0 {
+			nb = ints2
+		} else {
+			nb = ints1
+		}
 	}
-
-	return newbigints
+	return nb
 }
 
-func BigIntsComp (bigints []big.Int, op OpCode) []bool{
-	compb := []bool{}
-	for _, b := range bigints {
-		var nb bool
-
-		switch op{
-		case OP_0NOTEQUAL:
-			nb = b.Cmp(big.NewInt(int64(0))) != 0
-		default:
-			nb = false
-		}
-		compb = append(compb, nb)
+func BigIntComp(bigint *big.Int, op OpCode) bool {
+	var nb bool
+	switch op {
+	case NZ:
+		nb = bigint.Cmp(big.NewInt(int64(0))) != 0
 	}
-
-	return compb
+	return nb
 }
 
-func BigIntsMultiComp (ints1 []big.Int, ints2 []big.Int,op OpCode) []bool{
-
-	compb := []bool{}
-
-	len := len(ints1)
-	for i:=0; i<len; i++ {
-		var nb bool
-
-		switch op{
-		case OP_NUMEQUAL:
-			nb = ints1[i].Cmp(&ints2[i]) == 0
-		case OP_NUMNOTEQUAL:
-			nb = ints1[i].Cmp(&ints2[i]) != 0
-		case OP_LESSTHAN:
-			nb = ints1[i].Cmp(&ints2[i]) < 0
-		case OP_GREATERTHAN:
-			nb = ints1[i].Cmp(&ints2[i]) > 0
-		case OP_LESSTHANOREQUAL:
-			nb = ints1[i].Cmp(&ints2[i]) <= 0
-		case OP_GREATERTHANOREQUAL:
-			nb = ints1[i].Cmp(&ints2[i]) >= 0
-		}
-
-
-		compb = append(compb, nb)
+func BigIntMultiComp(ints1 *big.Int, ints2 *big.Int, op OpCode) bool {
+	var nb bool
+	switch op {
+	case NUMEQUAL:
+		nb = ints1.Cmp(ints2) == 0
+	case NUMNOTEQUAL:
+		nb = ints1.Cmp(ints2) != 0
+	case LT:
+		nb = ints1.Cmp(ints2) < 0
+	case GT:
+		nb = ints1.Cmp(ints2) > 0
+	case LTE:
+		nb = ints1.Cmp(ints2) <= 0
+	case GTE:
+		nb = ints1.Cmp(ints2) >= 0
 	}
-
-	return compb
+	return nb
 }
 
-func BoolsZip (bi1 []bool, bi2 []bool, op OpCode) []bool{
-	compb := []bool{}
-
-	len := len(bi1)
-	for i:=0; i<len; i++ {
-		var nb bool
-
-		switch op{
-		case OP_BOOLAND:
-			nb = bi1[i] && bi2[i]
-		case OP_BOOLOR:
-			nb = bi1[i] || bi2[i]
-		}
-
-		compb = append(compb, nb)
+func BoolZip(bi1 bool, bi2 bool, op OpCode) bool {
+	var nb bool
+	switch op {
+	case BOOLAND:
+		nb = bi1 && bi2
+	case BOOLOR:
+		nb = bi1 || bi2
 	}
-
-	return compb
+	return nb
 }
 
-func BoolArrayOp (bools []bool, op OpCode) []bool{
+func BoolArrayOp(bools []bool, op OpCode) []bool {
 	bls := []bool{}
 	for _, b := range bools {
 		var nb bool
 
-		switch op{
-		case OP_NOT:
+		switch op {
+		case NOT:
 			nb = !b
 		default:
 			nb = b
@@ -329,36 +285,83 @@ func BoolArrayOp (bools []bool, op OpCode) []bool{
 	return bls
 }
 
-func IsEqualBytes(b1 []byte,b2 []byte) bool {
+func IsEqualBytes(b1 []byte, b2 []byte) bool {
 	len1 := len(b1)
 	len2 := len(b2)
-	if len1 != len2 {return false}
+	if len1 != len2 {
+		return false
+	}
 
-	for i:=0; i<len1; i++ {
-		if b1[i] != b2[i] {return false}
+	for i := 0; i < len1; i++ {
+		if b1[i] != b2[i] {
+			return false
+		}
 	}
 
 	return true
 }
 
-func IsEqual(v1 interface{},v2 interface{}) bool {
+func IsEqual(v1 interface{}, v2 interface{}) bool {
 
-
-	if reflect.TypeOf(v1) != reflect.TypeOf(v2) {return false}
-
-	switch t1 := v1.(type){
-
+	if reflect.TypeOf(v1) != reflect.TypeOf(v2) {
+		return false
+	}
+	switch t1 := v1.(type) {
 	case []byte:
 		switch t2 := v2.(type) {
 		case []byte:
-			return 	IsEqualBytes(t1,t2)
+			return IsEqualBytes(t1, t2)
 		}
+	case int8, int16, int32, int64:
+		if v1 == v2 {
+			return true
+		}
+		return false
 	default:
 		return false
 	}
 
-
 	return false
 }
 
+func WithInOp(int1 *big.Int, int2 *big.Int, int3 *big.Int) bool {
+	b1 := BigIntMultiComp(int1, int2, GTE)
+	b2 := BigIntMultiComp(int1, int3, LT)
+	return BoolZip(b1, b2, BOOLAND)
+}
 
+func NewStackItems() []types.StackItem {
+	return make([]types.StackItem, 0)
+}
+
+func NewStackItem(data interface{}) (types.StackItem, error) {
+	var stackItem types.StackItem
+	var err error
+	switch data.(type) {
+	case int8, int16, int32, int64, int, uint8, uint16, uint32, uint64, *big.Int, big.Int:
+		stackItem = types.NewInteger(ToBigInt(data))
+	case bool:
+		stackItem = types.NewBoolean(data.(bool))
+	case []byte:
+		stackItem = types.NewByteArray(data.([]byte))
+	case []types.StackItem:
+		stackItem = types.NewArray(data.([]types.StackItem))
+	default:
+		err = errors.ErrBadType
+	}
+	return stackItem, err
+}
+
+func AssertExecutionContext(context interface{}) *ExecutionContext {
+	if c, ok := context.(*ExecutionContext); ok {
+		return c
+	}
+	return nil
+}
+
+func AssertStackItem(stackItem interface{}) types.StackItem {
+	if s, ok := stackItem.(types.StackItem); ok {
+		return s
+	}
+	return nil
+}
