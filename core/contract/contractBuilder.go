@@ -44,7 +44,7 @@ func CreateSignatureRedeemScript(pubkey *crypto.PubKey) ([]byte,error){
 	}
 	sb := pg.NewProgramBuilder()
 	sb.PushData(temp)
-	sb.AddOp(vm.OP_CHECKSIG)
+	sb.AddOp(vm.CHECKSIG)
 	return sb.ToArray(),nil
 }
 
@@ -91,6 +91,6 @@ func CreateMultiSigRedeemScript(m int,pubkeys []*crypto.PubKey) ([]byte,error){
 	}
 
 	sb.PushNumber(big.NewInt(int64(len(pubkeys))))
-	sb.AddOp(vm.OP_CHECKMULTISIG)
+	sb.AddOp(vm.CHECKMULTISIG)
 	return sb.ToArray(),nil
 }
