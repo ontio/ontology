@@ -84,14 +84,15 @@ func (msg verACK) Handle(node Noder) error {
 			} else {
 				node.Tx(buf)
 			}
-				log.Info("request blocks header hash")
-				buf, err = NewBlocksReq(node)
-				if err != nil {
-					log.Error("failed build a new blockReq")
-				} else {
-					node.Tx(buf)
-				}
 		*/
+		log.Info("request blocks header hash")
+		buf, err := NewBlocksReq(node)
+		if err != nil {
+			log.Error("failed build a new blockReq")
+		} else {
+			node.Tx(buf)
+		}
+
 	}
 	return nil
 }

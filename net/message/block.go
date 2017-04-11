@@ -52,7 +52,7 @@ func (msg dataReq) Handle(node Noder) error {
 		if err != nil {
 			return err
 		}
-		go node.Tx(buf)
+		node.Tx(buf)
 
 	case common.TRANSACTION:
 		txn, err := NewTxnFromHash(hash)
@@ -137,7 +137,7 @@ func reqBlkData(node Noder, hash common.Uint256) error {
 		return err
 	}
 
-	go node.Tx(sendBuf)
+	node.Tx(sendBuf)
 
 	return nil
 }
