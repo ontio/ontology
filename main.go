@@ -159,10 +159,13 @@ func OpenClientAndGetAccount() Client {
 		c4 = CreateClient("wallet4.txt", []byte("\x12\x34\x56"))
 	}
 
-	//ac,_ := cl.GetDefaultAccount()
-	//fmt.Printf("PrivateKey: %x\n", ac.PrivateKey)
-	//fmt.Printf("PublicKeyHash: %x\n", ac.PublicKeyHash.ToArray())
-	//fmt.Printf("PublicKeyAddress: %s\n", ac.PublicKeyHash.ToAddress())
+	var c Client
+	if fileExisted("wallet.txt") {
+		c = OpenClient("wallet.txt", []byte("\x12\x34\x56"))
+	} else {
+		c4 = CreateClient("wallet.txt", []byte("\x12\x34\x56"))
+	}
+
 	switch clientName {
 	case "c1":
 		return c1
@@ -172,8 +175,10 @@ func OpenClientAndGetAccount() Client {
 		return c3
 	case "c4":
 		return c4
+	case "c":
+		return c
 	default:
-		fmt.Printf("Please Check your client's ENV SET, which schould be c1,c2,c3,c4. Now is %s.\n", clientName)
+		fmt.Printf("Please Check your client's ENV SET, if you are standby miners schould be c1,c2,c3,c4.If not, should be c. Now is %s.\n", clientName)
 		return nil
 	}
 }
