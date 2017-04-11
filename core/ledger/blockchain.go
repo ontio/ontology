@@ -3,6 +3,8 @@ package ledger
 import (
 	. "DNA/common"
 	"DNA/common/log"
+	tx "DNA/core/transaction"
+	"DNA/crypto"
 	. "DNA/errors"
 	"DNA/events"
 	"sync"
@@ -19,6 +21,20 @@ func NewBlockchain() *Blockchain {
 		BlockHeight: 0,
 		BCEvents:    events.NewEvent(),
 	}
+}
+
+func NewBlockchainWithGenesisBlock() (*Blockchain, error) {
+	blockchain := NewBlockchain()
+	genesisBlock, err := GenesisBlockInit()
+	if err != nil {
+		return nil, NewDetailErr(err, ErrNoCode, "[Blockchain], NewBlockchainWithGenesisBlock failed.")
+	}
+	genesisBlock.RebuildMerkleRoot()
+	hashx := genesisBlock.Hash()
+	genesisBlock.hash = &hashx
+	//blockchain.AddBlock(genesisBlock)
+	DefaultLedger.Store.InitLevelDBStoreWithGenesisBlock(genesisBlock)
+	return blockchain, nil
 }
 
 func (bc *Blockchain) AddBlock(block *Block) error {
@@ -56,6 +72,7 @@ func (bc *Blockchain) GetHeader(hash Uint256) (*Header, error) {
 
 func (bc *Blockchain) SaveBlock(block *Block) error {
 	log.Trace()
+	log.Info("block hash ", block.Hash())
 	err := DefaultLedger.Store.SaveBlock(block, DefaultLedger)
 	if err != nil {
 		log.Warn("Save block failure ,err= ", err)
@@ -73,6 +90,20 @@ func (bc *Blockchain) ContainsTransaction(hash Uint256) bool {
 		return false
 	}
 	return true
+}
+
+func (bc *Blockchain) GetMinersByTXs(others []*tx.Transaction) []*crypto.PubKey {
+	//TODO: GetMiners()
+	//TODO: Just for TestUse
+
+	return StandbyMiners
+}
+
+func (bc *Blockchain) GetMiners() []*crypto.PubKey {
+	//TODO: GetMiners()
+	//TODO: Just for TestUse
+
+	return StandbyMiners
 }
 
 func (bc *Blockchain) CurrentBlockHash() Uint256 {

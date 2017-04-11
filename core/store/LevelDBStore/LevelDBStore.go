@@ -352,7 +352,7 @@ func (bd *LevelDBStore) GetNextBlockHash(hash []byte) common.Uint256 {
 func (bd *LevelDBStore) GetTransaction(hash Uint256) (*tx.Transaction, error) {
 	log.Trace()
 	log.Debug(fmt.Sprintf("GetTransaction Hash: %x\n", hash))
-  
+
 	t := new(tx.Transaction)
 	err := bd.getTx(t, hash)
 
@@ -433,7 +433,7 @@ func (bd *LevelDBStore) GetBlock(hash Uint256) (*Block, error) {
 	r := bytes.NewReader(bHash)
 
 	// first 8 bytes is sys_fee
-	_,err := serialization.ReadUint64(r)
+	_, err := serialization.ReadUint64(r)
 	//sysfee, err := serialization.ReadUint64(r)
 	if err != nil {
 		return nil, err
@@ -480,10 +480,10 @@ func (bd *LevelDBStore) persist(b *Block) error {
 	// BATCH PUT VALUE
 	batch.Put(bhhash.Bytes(), w.Bytes())
 	/*
-	err := bd.Put(bhhash.Bytes(), w.Bytes())
-	if err != nil {
-		return err
-	}*/
+		err := bd.Put(bhhash.Bytes(), w.Bytes())
+		if err != nil {
+			return err
+		}*/
 
 	//////////////////////////////////////////////////////////////
 	// generate key with DATA_BlockHash prefix
@@ -504,10 +504,10 @@ func (bd *LevelDBStore) persist(b *Block) error {
 	// BATCH PUT VALUE
 	batch.Put(bhash.Bytes(), hashwriter.Bytes())
 	/*
-	err = bd.Put(bhash.Bytes(), hashwriter.Bytes())
-	if err != nil {
-		return err
-	}*/
+		err = bd.Put(bhash.Bytes(), hashwriter.Bytes())
+		if err != nil {
+			return err
+		}*/
 
 	//////////////////////////////////////////////////////////////
 	// save transactions to leveldb
@@ -531,7 +531,7 @@ func (bd *LevelDBStore) persist(b *Block) error {
 		}
 		if b.Transactions[i].TxType == tx.RegisterAsset {
 			ar := b.Transactions[i].Payload.(*payload.RegisterAsset)
-			err = bd.SaveAsset(b.Transactions[i].Hash(),ar.Asset)
+			err = bd.SaveAsset(b.Transactions[i].Hash(), ar.Asset)
 			if err != nil {
 				return err
 			}
@@ -553,10 +553,10 @@ func (bd *LevelDBStore) persist(b *Block) error {
 	// BATCH PUT VALUE
 	batch.Put(currentblockkey.Bytes(), currentblock.Bytes())
 	/*
-	err = bd.Put(currentblockkey.Bytes(), currentblock.Bytes())
-	if err != nil {
-		return err
-	}*/
+		err = bd.Put(currentblockkey.Bytes(), currentblock.Bytes())
+		if err != nil {
+			return err
+		}*/
 
 	//bh := b.Blockdata.Hash()
 	//bd.header_index[bd.current_block_height] = &bh
@@ -638,7 +638,7 @@ func (bd *LevelDBStore) onAddHeader(header *Blockdata, batch *leveldb.Batch) {
 func (bd *LevelDBStore) persistBlocks() {
 	log.Debug("persistBlocks()")
 
-	if uint32(len(bd.header_index)) <= bd.current_block_height+1 {
+	if uint32(len(bd.header_index)) < bd.current_block_height+1 {
 		fmt.Printf("[persistBlocks]: error, header_index.count < current_block_height + 1")
 		return
 	}
@@ -664,6 +664,7 @@ func (bd *LevelDBStore) SaveBlock(b *Block, ledger *Ledger) error {
 		bd.block_cache[b.Hash()] = b
 	}
 
+	log.Info("len(bd.header_index) is ", len(bd.header_index), " ,b.Blockdata.Height is ", b.Blockdata.Height)
 	if b.Blockdata.Height-uint32(len(bd.header_index)) >= 1 {
 		//return false,NewDetailErr(errors.New(fmt.Sprintf("WARNING: [SaveBlock] block height - header_index.count >= 1, block height:%d, header_index.count:%d",b.Blockdata.Height, uint32(len(bd.header_index)) )),ErrDuplicatedBlock,"")
 		return errors.New(fmt.Sprintf("WARNING: [SaveBlock] block height - header_index.count >= 1, block height:%d, header_index.count:%d", b.Blockdata.Height, uint32(len(bd.header_index))))
@@ -700,5 +701,5 @@ func (bd *LevelDBStore) SaveBlock(b *Block, ledger *Ledger) error {
 }
 
 func (bd *LevelDBStore) GetQuantityIssued(AssetId Uint256) (*Fixed64, error) {
-	return nil,nil
+	return nil, nil
 }

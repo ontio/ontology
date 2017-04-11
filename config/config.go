@@ -20,6 +20,7 @@ type ProtocolConfiguration struct {
 	HttpLocalPort int      `json:"HttpLocalPort"`
 	NodePort      int      `json:"NodePort"`
 	WebSocketPort int      `json:"WebSocketPort"`
+	MinerName     string   `json:"MinerName"`
 	PrintLevel    int      `json:"PrintLevel"`
 	IsTLS         bool     `json:"IsTLS"`
 	CertPath      string   `json:"CertPath"`

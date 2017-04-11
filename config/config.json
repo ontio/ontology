@@ -8,6 +8,7 @@
     "HttpJsonPort": 20336,
     "HttpLocalPort": 20337,
     "NodePort": 20338,
+    "MinerName": "c1",
     "PrintLevel": 0,
     "IsTLS": false,
     "CertPath": "./sample-cert.pem",
