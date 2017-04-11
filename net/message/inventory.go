@@ -130,6 +130,7 @@ func (msg Inv) Handle(node Noder) error {
 		log.Debug("RX block message")
 		var i int
 		count := len(msg.P.Blk) >> DIVHASHLEN
+		log.Debug("RX inv-block message, hash is ", msg.P.Blk)
 		for i = 0; i < count; i++ {
 			id.Deserialize(bytes.NewReader(msg.P.Blk[HASHLEN*i+1:]))
 			if !node.ExistedID(id) {
@@ -240,9 +241,10 @@ func GetInvFromBlockHash(starthash common.Uint256, stophash common.Uint256) (inv
 	for i = 1; i <= count; i++ {
 		//FIXME need add error handle for GetBlockWithHash
 		hash, _ := ledger.DefaultLedger.Store.GetBlockHash(stopheight + i)
+		log.Debug("GetInvFromBlockHash i is ", i, " , hash is ", hash)
 		hash.Serialize(tmpBuffer)
 	}
-
+	log.Debug("GetInvFromBlockHash hash is ", tmpBuffer.Bytes())
 	inv.Blk = tmpBuffer.Bytes()
 	inv.InvType = 0x02
 	return inv, nil

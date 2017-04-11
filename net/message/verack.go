@@ -77,7 +77,6 @@ func (msg verACK) Handle(node Noder) error {
 	// FIXME compact to a seperate function
 	if uint64(ledger.DefaultLedger.Blockchain.BlockHeight) < node.GetHeight() {
 		/*
-			log.Info("request header")
 			buf, err := NewHeadersReq(node)
 			if err != nil {
 				log.Error("failed build a new headersReq")
@@ -85,7 +84,7 @@ func (msg verACK) Handle(node Noder) error {
 				node.Tx(buf)
 			}
 		*/
-		log.Info("request blocks header hash")
+
 		buf, err := NewBlocksReq(node)
 		if err != nil {
 			log.Error("failed build a new blockReq")

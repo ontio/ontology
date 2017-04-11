@@ -209,7 +209,7 @@ func HandleNodeMsg(node Noder, buf []byte, len int) error {
 	heights, _ := node.LocalNode().GetNeighborHeights()
 	if common.CompareHeight(uint64(ledger.DefaultLedger.Blockchain.BlockHeight), heights) == false {
 		if strings.Compare(s, "consensus") == 0 {
-			log.Error("sync up block havn't finished, height is ", uint64(ledger.DefaultLedger.Blockchain.BlockHeight), " ,others height are: ", heights)
+			log.Info("sync up block havn't finished, height is ", uint64(ledger.DefaultLedger.Blockchain.BlockHeight), " ,others height are: ", heights)
 			return errors.New("sync up block havn't finished")
 		}
 	}
