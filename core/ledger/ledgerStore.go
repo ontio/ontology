@@ -14,7 +14,8 @@ type ILedgerStore interface {
 	GetBlockHash(height uint32) (Uint256, error)
 	InitLedgerStore(ledger *Ledger) error
 
-	SaveHeader(header *Header,ledger *Ledger) error
+	//SaveHeader(header *Header,ledger *Ledger) error
+	AddHeaders(headers []Blockdata, ledger *Ledger) error
 	GetHeader(hash Uint256) (*Header, error)
 
 	GetTransaction(hash Uint256) (*tx.Transaction,error)
@@ -27,5 +28,6 @@ type ILedgerStore interface {
 	Close() error
 
 	InitLevelDBStoreWithGenesisBlock( genesisblock * Block  )
-	GetQuantityIssued (AssetId Uint256) (*Fixed64, error)
+
+	GetQuantityIssued(AssetId Uint256) (*Fixed64, error)
 }

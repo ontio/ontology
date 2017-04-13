@@ -23,14 +23,13 @@ type Block struct {
 
 func (b *Block) Serialize(w io.Writer) error {
 	b.Blockdata.Serialize(w)
-	err := serialization.WriteUint8(w, uint8(len(b.Transactions)))
+	err := serialization.WriteUint32(w, uint32(len(b.Transactions)))
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Block item Transcations length serialization failed.")
+		return NewDetailErr(err, ErrNoCode, "Block item Transactions length serialization failed.")
 	}
+
 	for _, transaction := range b.Transactions {
-		temp := *transaction
-		hash := temp.Hash()
-		hash.Serialize(w)
+		transaction.Serialize(w)
 	}
 	return nil
 }
@@ -42,8 +41,52 @@ func (b *Block) Deserialize(r io.Reader) error {
 	b.Blockdata.Deserialize(r)
 
 	//Transactions
-	var i uint8
-	Len, err := serialization.ReadUint8(r)
+	var i uint32
+	Len, err := serialization.ReadUint32(r)
+	if err != nil {
+		return err
+	}
+	var txhash Uint256
+	var tharray []Uint256
+	for i = 0; i < Len; i++ {
+		transaction := new(tx.Transaction)
+		transaction.Deserialize(r)
+		txhash = transaction.Hash()
+		b.Transactions = append(b.Transactions, transaction)
+		tharray = append(tharray, txhash)
+	}
+
+	b.Blockdata.TransactionsRoot, err = crypto.ComputeRoot(tharray)
+	if err != nil {
+		return NewDetailErr(err, ErrNoCode, "Block Deserialize merkleTree compute failed")
+	}
+
+	return nil
+}
+
+func (b *Block) Trim(w io.Writer) error {
+	b.Blockdata.Serialize(w)
+	err := serialization.WriteUint32(w, uint32(len(b.Transactions)))
+	if err != nil {
+		return NewDetailErr(err, ErrNoCode, "Block item Transactions length serialization failed.")
+	}
+	for _, transaction := range b.Transactions {
+		temp := *transaction
+		hash := temp.Hash()
+		hash.Serialize(w)
+	}
+	return nil
+}
+
+func (b *Block) FromTrimmedData(r io.Reader) error {
+	if b.Blockdata == nil {
+		b.Blockdata = new(Blockdata)
+	}
+	b.Blockdata.Deserialize(r)
+
+	//Transactions
+	var i uint32
+	Len, err := serialization.ReadUint32(r)
 	if err != nil {
 		return err
 	}

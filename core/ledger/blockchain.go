@@ -78,7 +78,6 @@ func (bc *Blockchain) SaveBlock(block *Block) error {
 		log.Warn("Save block failure ,err= ", err)
 		return err
 	}
-	bc.BCEvents.Notify(events.EventBlockPersistCompleted, block)
 
 	return nil
 }

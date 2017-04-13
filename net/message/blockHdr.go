@@ -131,17 +131,16 @@ func (msg headersReq) Handle(node Noder) error {
 
 func (msg blkHeader) Handle(node Noder) error {
 	log.Trace()
-	for i := 0; i < int(msg.cnt); i++ {
-		var header ledger.Header
-		header.Blockdata = &msg.blkHdr[i]
-		err := ledger.DefaultLedger.Store.SaveHeader(&header, ledger.DefaultLedger)
-		if err != nil {
-			log.Warn("Add block Header error")
-			return errors.New("Add block Header error\n")
-		}
+
+	err := ledger.DefaultLedger.Store.AddHeaders(msg.blkHdr, ledger.DefaultLedger)
+	if err != nil {
+		log.Warn("Add block Header error")
+		return errors.New("Add block Header error\n")
 	}
+
 	return nil
 }
+
 func GetHeadersFromHash(starthash common.Uint256, stophash common.Uint256) ([]ledger.Blockdata, uint32, error) {
 	var count uint32 = 0
 	var empty [HASHLEN]byte
