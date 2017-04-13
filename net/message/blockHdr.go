@@ -24,7 +24,7 @@ type headersReq struct {
 type blkHeader struct {
 	hdr    msgHdr
 	cnt    uint32
-	blkHdr []ledger.Blockdata
+	blkHdr []ledger.Header
 }
 
 func NewHeadersReq(n Noder) ([]byte, error) {
@@ -97,7 +97,7 @@ func (msg *blkHeader) Deserialization(p []byte) error {
 	log.Debug("The block header count is ", msg.cnt)
 
 	for i := 0; i < int(msg.cnt); i++ {
-		var headers ledger.Blockdata
+		var headers ledger.Header
 		err := (&headers).Deserialize(buf)
 		msg.blkHdr = append(msg.blkHdr, headers)
 		if err != nil {
@@ -141,10 +141,10 @@ func (msg blkHeader) Handle(node Noder) error {
 	return nil
 }
 
-func GetHeadersFromHash(starthash common.Uint256, stophash common.Uint256) ([]ledger.Blockdata, uint32, error) {
+func GetHeadersFromHash(starthash common.Uint256, stophash common.Uint256) ([]ledger.Header, uint32, error) {
 	var count uint32 = 0
 	var empty [HASHLEN]byte
-	headers := []ledger.Blockdata{}
+	headers := []ledger.Header{}
 	var startheight uint32
 	var stopheight uint32
 	curHeight := ledger.DefaultLedger.GetLocalBlockChainHeight()
@@ -183,20 +183,22 @@ func GetHeadersFromHash(starthash common.Uint256, stophash common.Uint256) ([]le
 
 	var i uint32
 	for i = 1; i <= count; i++ {
-		bk, err := ledger.DefaultLedger.GetBlockWithHeight(stopheight + i)
+		//bk, err := ledger.DefaultLedger.GetBlockWithHeight(stopheight + i)
+		hash,err := ledger.DefaultLedger.Store.GetBlockHash(stopheight + i)
+		hd, err := ledger.DefaultLedger.Store.GetHeader(hash)
 		if err != nil {
 			log.Error("GetBlockWithHeight failed ", err.Error())
 			return nil, 0, err
 		}
 		//log.Debug("GetHeadersFromHash height is ", i)
 		//log.Debug("GetHeadersFromHash header is ", *bk.Blockdata)
-		headers = append(headers, *bk.Blockdata)
+		headers = append(headers, *hd)
 	}
 
 	return headers, count, nil
 }
 
-func NewHeaders(headers []ledger.Blockdata, count uint32) ([]byte, error) {
+func NewHeaders(headers []ledger.Header, count uint32) ([]byte, error) {
 	var msg blkHeader
 	msg.cnt = count
 	msg.blkHdr = headers

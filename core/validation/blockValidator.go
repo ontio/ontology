@@ -65,6 +65,10 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 	return nil
 }
 
+func VerifyHeader(bd *ledger.Header, ledger *ledger.Ledger) error {
+	return VerifyBlockData( bd.Blockdata, ledger )
+}
+
 func VerifyBlockData(bd *ledger.Blockdata, ledger *ledger.Ledger) error {
 	if bd.Height == 0 {
 		return nil

@@ -185,22 +185,22 @@ func (bd *LevelDBStore) GetContract(hash []byte) ([]byte, error) {
 	return bData, nil
 }
 
-func (bd *LevelDBStore) AddHeaders(headers []Blockdata, ledger *Ledger) error {
+func (bd *LevelDBStore) AddHeaders(headers []Header, ledger *Ledger) error {
 	bd.mutex.Lock()
 	defer bd.mutex.Unlock()
 
 	batch := new(leveldb.Batch)
 	for i:=0; i<len(headers); i++ {
-		if headers[i].Height-uint32(len(bd.header_index)) >= 1 {
+		if headers[i].Blockdata.Height-uint32(len(bd.header_index)) >= 1 {
 			break
 		}
 
-		if headers[i].Height < uint32(len(bd.header_index)) {
+		if headers[i].Blockdata.Height < uint32(len(bd.header_index)) {
 			continue
 		}
 
 		//header verify
-		err := validation.VerifyBlockData(&headers[i], ledger)
+		err := validation.VerifyHeader(&headers[i], ledger)
 		if err != nil {
 			break
 		}
@@ -484,7 +484,6 @@ func (bd *LevelDBStore) persist(b *Block) error {
 		}*/
 
 	//////////////////////////////////////////////////////////////
-	// save transcations to leveldb
 	nLen := len(b.Transactions)
 	for i := 0; i < nLen; i++ {
 		/*
@@ -543,12 +542,12 @@ func (bd *LevelDBStore) persist(b *Block) error {
 	return nil
 }
 
-func (bd *LevelDBStore) onAddHeader(header *Blockdata, batch *leveldb.Batch) {
-	log.Debug(fmt.Sprintf("onAddHeader(), Height=%d\n", header.Height))
+func (bd *LevelDBStore) onAddHeader(header *Header, batch *leveldb.Batch) {
+	log.Debug(fmt.Sprintf("onAddHeader(), Height=%d\n", header.Blockdata.Height))
 
-	hash := header.Hash()
-	bd.header_index[header.Height] = hash
-	for header.Height-bd.stored_header_count >= 2000 {
+	hash := header.Blockdata.Hash()
+	bd.header_index[header.Blockdata.Height] = hash
+	for header.Blockdata.Height-bd.stored_header_count >= 2000 {
 		hashbuffer := new(bytes.Buffer)
 		serialization.WriteVarUint(hashbuffer, uint64(2000))
 		var hasharray []byte
@@ -580,13 +579,15 @@ func (bd *LevelDBStore) onAddHeader(header *Blockdata, batch *leveldb.Batch) {
 	// add header prefix.
 	headerkey.WriteByte(byte(DATA_Header))
 	// contact block hash
-	blockhash := header.Hash()
+	blockhash := header.Blockdata.Hash()
 	blockhash.Serialize(headerkey)
 	log.Debug(fmt.Sprintf("header key: %x\n", headerkey))
 	//fmt.Println( "header key:",  headerkey.Bytes() )
 
 	// generate value
 	w := bytes.NewBuffer(nil)
+	var sysfee uint64 = 0xFFFFFFFFFFFFFFFF
+	serialization.WriteUint64(w, sysfee)
 	header.Serialize(w)
 	log.Debug(fmt.Sprintf("header data: %x\n", w))
 	//fmt.Println( "header data:",  w.Bytes() )
@@ -602,7 +603,7 @@ func (bd *LevelDBStore) onAddHeader(header *Blockdata, batch *leveldb.Batch) {
 
 	currentheader := bytes.NewBuffer(nil)
 	blockhash.Serialize(currentheader)
-	serialization.WriteUint32(currentheader, header.Height)
+	serialization.WriteUint32(currentheader, header.Blockdata.Height)
 	//fmt.Printf( "SYS_CurrentHeader data: %x\n",  currentheader )
 
 	// PUT VALUE
@@ -615,7 +616,7 @@ func (bd *LevelDBStore) persistBlocks(ledger *Ledger) {
 	defer bd.mutex.Unlock()
 
 	for !bd.disposed {
-		if uint32(len(bd.header_index)) <= bd.current_block_height+1 {
+		if uint32(len(bd.header_index)) < bd.current_block_height+1 {
 			log.Warn("[persistBlocks]: warn, header_index.count < current_block_height + 1")
 			break
 		}
@@ -637,26 +638,6 @@ func (bd *LevelDBStore) persistBlocks(ledger *Ledger) {
 
 }
 
-/*
-func (bd *LevelDBStore) persistBlocks() {
-	log.Debug("persistBlocks()")
-
-	if uint32(len(bd.header_index)) < bd.current_block_height+1 {
-		fmt.Printf("[persistBlocks]: error, header_index.count < current_block_height + 1")
-		return
-	}
-
-	hash := bd.header_index[bd.current_block_height+1]
-
-	block, ok := bd.block_cache[hash]
-	if ok {
-		bd.persist(block)
-		delete(bd.block_cache, hash)
-
-		//TODO: PersistCompleted
-	}
-}
-*/
 func (bd *LevelDBStore) SaveBlock(b *Block, ledger *Ledger) error {
 	log.Debug("SaveBlock()")
 
@@ -682,7 +663,9 @@ func (bd *LevelDBStore) SaveBlock(b *Block, ledger *Ledger) error {
 		}
 
 		batch := new(leveldb.Batch)
-		bd.onAddHeader(b.Blockdata, batch)
+		h := new(Header)
+		h.Blockdata = b.Blockdata
+		bd.onAddHeader(h, batch)
 		//log.Debug("batch dump: ", batch.Dump())
 		err = bd.db.Write(batch, nil)
 		if err != nil {

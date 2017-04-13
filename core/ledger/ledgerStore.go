@@ -15,7 +15,7 @@ type ILedgerStore interface {
 	InitLedgerStore(ledger *Ledger) error
 
 	//SaveHeader(header *Header,ledger *Ledger) error
-	AddHeaders(headers []Blockdata, ledger *Ledger) error
+	AddHeaders(headers []Header, ledger *Ledger) error
 	GetHeader(hash Uint256) (*Header, error)
 
 	GetTransaction(hash Uint256) (*tx.Transaction,error)
