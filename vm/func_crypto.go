@@ -62,7 +62,7 @@ func opCheckMultiSig(e *ExecutionEngine) (VMState, error) {
 	}
 
 	signatures := make([][]byte, m)
-	for i := 0; i < n; i++ {
+	for i := 0; i < m; i++ {
 		signatures[i] = AssertStackItem(e.evaluationStack.Pop()).GetByteArray()
 	}
 
@@ -70,10 +70,7 @@ func opCheckMultiSig(e *ExecutionEngine) (VMState, error) {
 	fSuccess := true
 
 	for i, j := 0, 0; fSuccess && i < m && j < n; {
-		ver, err := e.crypto.VerifySignature(message, signatures[i], pubkeys[j])
-		if err != nil {
-			return FAULT, err
-		}
+		ver, _ := e.crypto.VerifySignature(message, signatures[i], pubkeys[j])
 		if ver {
 			i++
 		}
