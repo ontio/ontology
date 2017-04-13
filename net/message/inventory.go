@@ -206,10 +206,22 @@ func GetInvFromBlockHash(starthash common.Uint256, stophash common.Uint256) (inv
 	var stopheight uint32
 	curHeight := ledger.DefaultLedger.GetLocalBlockChainHeight()
 	if starthash == empty {
-		if curHeight > MAXBLKHDRCNT {
-			count = MAXBLKHDRCNT
+		if stophash == empty {
+			if curHeight > MAXBLKHDRCNT {
+				count = MAXBLKHDRCNT
+			} else {
+				count = curHeight
+			}
 		} else {
-			count = curHeight
+			bkstop, err := ledger.DefaultLedger.GetBlockWithHash(stophash)
+			if err != nil {
+				return inv, err
+			}
+			stopheight = bkstop.Blockdata.Height
+			count = curHeight - stopheight
+			if curHeight > MAXINVHDRCNT {
+				count = MAXINVHDRCNT
+			}
 		}
 	} else {
 		bkstart, err := ledger.DefaultLedger.GetBlockWithHash(starthash)

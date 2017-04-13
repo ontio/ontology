@@ -149,10 +149,22 @@ func GetHeadersFromHash(starthash common.Uint256, stophash common.Uint256) ([]le
 	var stopheight uint32
 	curHeight := ledger.DefaultLedger.GetLocalBlockChainHeight()
 	if starthash == empty {
-		if curHeight > MAXBLKHDRCNT {
-			count = MAXBLKHDRCNT
+		if stophash == empty {
+			if curHeight > MAXBLKHDRCNT {
+				count = MAXBLKHDRCNT
+			} else {
+				count = curHeight
+			}
 		} else {
-			count = curHeight
+			bkstop, err := ledger.DefaultLedger.GetBlockWithHash(stophash)
+			if err != nil {
+				return nil, 0, err
+			}
+			stopheight = bkstop.Blockdata.Height
+			count = curHeight - stopheight
+			if curHeight > MAXBLKHDRCNT {
+				count = MAXBLKHDRCNT
+			}
 		}
 	} else {
 		bkstart, err := ledger.DefaultLedger.GetBlockWithHash(starthash)

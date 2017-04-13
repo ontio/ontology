@@ -81,15 +81,15 @@ func (msg verACK) Handle(node Noder) error {
 			if err != nil {
 				log.Error("failed build a new headersReq")
 			} else {
-				node.Tx(buf)
+				go node.Tx(buf)
 			}
-		*/
 
+		*/
 		buf, err := NewBlocksReq(node)
 		if err != nil {
 			log.Error("failed build a new blockReq")
 		} else {
-			node.Tx(buf)
+			go node.Tx(buf)
 		}
 
 	}
