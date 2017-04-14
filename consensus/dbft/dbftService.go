@@ -134,6 +134,9 @@ func (ds *DbftService) BlockPersistCompleted(v interface{}) {
 
 func (ds *DbftService) CheckExpectedView(viewNumber byte) {
 	log.Trace()
+	if ds.context.State.HasFlag(BlockSent){
+		return
+	}
 	if ds.context.ViewNumber == viewNumber {
 		return
 	}
