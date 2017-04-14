@@ -18,9 +18,7 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 	}
 
 	flag, err := VerifySignableData(block)
-	if flag && err == nil {
-		return nil
-	} else {
+	if flag == false || err != nil {
 		return err
 	}
 
@@ -38,23 +36,20 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 
 	//verfiy block's transactions
 	if completely {
-	/*
-		mineraddress, err := ledger.GetMinerAddress(ld.Blockchain.GetMinersByTXs(block.Transactions))
-		if err != nil {
-			return errors.New(fmt.Sprintf("GetMinerAddress Failed."))
-		}
-		if block.Blockdata.NextMiner != mineraddress {
-			return errors.New(fmt.Sprintf("Miner is not validate."))
-		}
-	*/
-		//TODO: NextMiner Check.
-		for _, txVerify := range block.Transactions {
-			transpool := []*tx.Transaction{}
-			for _, tx := range block.Transactions {
-				if tx.Hash() != txVerify.Hash() {
-					transpool = append(transpool, tx)
-				}
+		/*
+			mineraddress, err := ledger.GetMinerAddress(ld.Blockchain.GetMinersByTXs(block.Transactions))
+			if err != nil {
+				return errors.New(fmt.Sprintf("GetMinerAddress Failed."))
 			}
+			if block.Blockdata.NextMiner != mineraddress {
+				return errors.New(fmt.Sprintf("Miner is not validate."))
+			}
+		*/
+		//TODO: NextMiner Check.
+		for num, txVerify := range block.Transactions {
+			transpool := []*tx.Transaction{}
+			transpool = append(transpool, block.Transactions[:num]...)
+			transpool = append(transpool, block.Transactions[num+1:]...)
 			err := VerifyTransaction(txVerify, ld, transpool)
 			if err != nil {
 				return errors.New(fmt.Sprintf("The Input is exist in serval transaction in one block."))
@@ -66,7 +61,7 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 }
 
 func VerifyHeader(bd *ledger.Header, ledger *ledger.Ledger) error {
-	return VerifyBlockData( bd.Blockdata, ledger )
+	return VerifyBlockData(bd.Blockdata, ledger)
 }
 
 func VerifyBlockData(bd *ledger.Blockdata, ledger *ledger.Ledger) error {
