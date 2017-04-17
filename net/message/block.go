@@ -45,11 +45,11 @@ func (msg dataReq) Handle(node Noder) error {
 	switch reqtype {
 	case common.BLOCK:
 		block, err := NewBlockFromHash(hash)
-		log.Debug("block height is ", block.Blockdata.Height, " ,block hash is ", block.Hash())
 		if err != nil {
 			log.Error("Can't get block from hash: ", hash)
 			return err
 		}
+		log.Debug("block height is ", block.Blockdata.Height, " ,hash is ", hash)
 		buf, err := NewBlock(block)
 		if err != nil {
 			return err

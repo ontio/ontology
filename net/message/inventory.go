@@ -27,6 +27,7 @@ type blocksReq struct {
 
 type invPayload struct {
 	InvType uint8
+	Cnt     uint32
 	Blk     []byte
 }
 
@@ -128,11 +129,11 @@ func (msg Inv) Handle(node Noder) error {
 		}
 	case common.BLOCK:
 		log.Debug("RX block message")
-		var i int
-		count := len(msg.P.Blk) >> DIVHASHLEN
+		var i uint32
+		count := msg.P.Cnt
 		log.Debug("RX inv-block message, hash is ", msg.P.Blk)
 		for i = 0; i < count; i++ {
-			id.Deserialize(bytes.NewReader(msg.P.Blk[HASHLEN*i+1:]))
+			id.Deserialize(bytes.NewReader(msg.P.Blk[HASHLEN*i:]))
 			if !node.ExistedID(id) {
 				// send the block request
 				log.Info("inv request block hash: ", id)
@@ -163,37 +164,29 @@ func (msg Inv) Serialization() ([]byte, error) {
 
 func (msg *Inv) Deserialization(p []byte) error {
 	err := msg.Hdr.Deserialization(p)
+	if err != nil {
+		return err
+	}
 
-	msg.P.InvType = p[MSGHDRLEN]
-	msg.P.Blk = p[MSGHDRLEN+1:]
+	buf := bytes.NewBuffer(p[MSGHDRLEN:])
+	msg.P.InvType, err = serialization.ReadUint8(buf)
+	if err != nil {
+		return err
+	}
+
+	msg.P.Cnt, err = serialization.ReadUint32(buf)
+	if err != nil {
+		return err
+	}
+
+	msg.P.Blk = make([]byte, msg.P.Cnt*HASHLEN)
+	err = binary.Read(buf, binary.LittleEndian, &(msg.P.Blk))
+
 	return err
 }
 
 func (msg Inv) invType() byte {
 	return msg.P.InvType
-}
-
-//func (msg inv) invLen() (uint64, uint8) {
-func (msg Inv) invLen() (uint64, uint8) {
-	var val uint64
-	var size uint8
-
-	len := binary.LittleEndian.Uint64(msg.P.Blk[0:1])
-	if len < 0xfd {
-		val = len
-		size = 1
-	} else if len == 0xfd {
-		val = binary.LittleEndian.Uint64(msg.P.Blk[1:3])
-		size = 3
-	} else if len == 0xfe {
-		val = binary.LittleEndian.Uint64(msg.P.Blk[1:5])
-		size = 5
-	} else if len == 0xff {
-		val = binary.LittleEndian.Uint64(msg.P.Blk[1:9])
-		size = 9
-	}
-
-	return val, size
 }
 
 func GetInvFromBlockHash(starthash common.Uint256, stophash common.Uint256) (invPayload, error) {
@@ -259,6 +252,8 @@ func GetInvFromBlockHash(starthash common.Uint256, stophash common.Uint256) (inv
 	log.Debug("GetInvFromBlockHash hash is ", tmpBuffer.Bytes())
 	inv.Blk = tmpBuffer.Bytes()
 	inv.InvType = 0x02
+	inv.Cnt = count
+
 	return inv, nil
 }
 
@@ -267,6 +262,7 @@ func NewInv(inv invPayload) ([]byte, error) {
 
 	msg.P.Blk = inv.Blk
 	msg.P.InvType = inv.InvType
+	msg.P.Cnt = inv.Cnt
 	msg.Hdr.Magic = NETMAGIC
 	cmd := "inv"
 	copy(msg.Hdr.CMD[0:len(cmd)], cmd)
@@ -297,5 +293,7 @@ func NewInv(inv invPayload) ([]byte, error) {
 
 func (msg *invPayload) Serialization(w io.Writer) {
 	serialization.WriteUint8(w, msg.InvType)
-	serialization.WriteVarBytes(w, msg.Blk)
+	serialization.WriteUint32(w, msg.Cnt)
+
+	binary.Write(w, binary.LittleEndian, msg.Blk)
 }
