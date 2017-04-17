@@ -30,12 +30,35 @@ type ServeMux struct {
 	defaultFunction func(http.ResponseWriter, *http.Request)
 }
 
-type TxOutputInfo struct {
-	Key Uint256
-	Txout []* TxOutput
+type TxAttributeInfo struct {
+	Usage TransactionAttributeUsage
+	Date  string
+	Size  uint32
 }
 
-type AmountInfo struct {
+type UTXOTxInputInfo struct {
+	ReferTxID          string
+	ReferTxOutputIndex uint16
+}
+
+type BalanceTxInputInfo struct {
+	AssetID     string
+	Value       Fixed64
+	ProgramHash string
+}
+
+type TxoutputInfo struct {
+	AssetID     string
+	Value       Fixed64
+	ProgramHash string
+}
+
+type TxoutputMap struct {
+	Key   Uint256
+	Txout []TxoutputInfo
+}
+
+type AmountMap struct {
 	Key Uint256
 	Value Fixed64
 }
@@ -48,17 +71,17 @@ type ProgramInfo struct {
 type Transactions struct {
 	TxType         TransactionType
 	PayloadVersion byte
-	Payload        Payload
+	Payload        PayloadInfo
 	Nonce          uint64
-	Attributes     []*TxAttribute
-	UTXOInputs     []*UTXOTxInput
-	BalanceInputs  []*BalanceTxInput
-	Outputs        []*TxOutput
-	Programs       []*ProgramInfo
-	
-	AssetOutputs      []TxOutputInfo
-	AssetInputAmount  []AmountInfo
-	AssetOutputAmount []AmountInfo
+	Attributes     []TxAttributeInfo
+	UTXOInputs     []UTXOTxInputInfo
+	BalanceInputs  []BalanceTxInputInfo
+	Outputs        []TxoutputInfo
+	Programs       []ProgramInfo
+
+	AssetOutputs      []TxoutputMap
+	AssetInputAmount  []AmountMap
+	AssetOutputAmount []AmountMap
 	
 	Hash  string
 }
@@ -77,9 +100,9 @@ type BlockHead struct {
 }
 
 type BlockInfo struct {
-	Hash      string
-	BlockData *BlockHead
-	Transactions []Transactions
+	Hash         string
+	BlockData    *BlockHead
+	Transactions []*Transactions
 }
 
 type TxInfo struct {

@@ -12,8 +12,8 @@ func (a *IssueAsset) Data() []byte {
 
 }
 
-func (a *IssueAsset) Serialize(w io.Writer) {
-	return
+func (a *IssueAsset) Serialize(w io.Writer) error {
+	return nil
 }
 
 func (a *IssueAsset) Deserialize(r io.Reader) error {

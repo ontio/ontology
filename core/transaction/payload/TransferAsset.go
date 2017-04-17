@@ -11,8 +11,8 @@ func (a *TransferAsset) Data() []byte {
 
 }
 
-func (a *TransferAsset) Serialize(w io.Writer) {
-	return
+func (a *TransferAsset) Serialize(w io.Writer) error {
+	return nil
 }
 
 func (a *TransferAsset) Deserialize(r io.Reader) error {

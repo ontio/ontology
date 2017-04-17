@@ -13,6 +13,92 @@ import (
 	"net/http"
 )
 
+func TransArryByteToHexString(ptx *tx.Transaction) *Transactions {
+
+	trans := new(Transactions)
+	trans.TxType = ptx.TxType
+	trans.PayloadVersion = ptx.PayloadVersion
+	trans.Payload = TransPayloadToHex(ptx.Payload)
+	trans.Nonce = ptx.Nonce
+
+	n := 0
+	trans.Attributes = make([]TxAttributeInfo, len(ptx.Attributes))
+	for _, v := range ptx.Attributes {
+		trans.Attributes[n].Usage = v.Usage
+		trans.Attributes[n].Date = ToHexString(v.Date)
+		trans.Attributes[n].Size = v.Size
+		n++
+	}
+
+	n = 0
+	trans.UTXOInputs = make([]UTXOTxInputInfo, len(ptx.UTXOInputs))
+	for _, v := range ptx.UTXOInputs {
+		trans.UTXOInputs[n].ReferTxID = ToHexString(v.ReferTxID.ToArray())
+		trans.UTXOInputs[n].ReferTxOutputIndex = v.ReferTxOutputIndex
+		n++
+	}
+
+	n = 0
+	trans.BalanceInputs = make([]BalanceTxInputInfo, len(ptx.BalanceInputs))
+	for _, v := range ptx.BalanceInputs {
+		trans.BalanceInputs[n].AssetID = ToHexString(v.AssetID.ToArray())
+		trans.BalanceInputs[n].Value = v.Value
+		trans.BalanceInputs[n].ProgramHash = ToHexString(v.ProgramHash.ToArray())
+		n++
+	}
+
+	n = 0
+	trans.Outputs = make([]TxoutputInfo, len(ptx.Outputs))
+	for _, v := range ptx.Outputs {
+		trans.Outputs[n].AssetID = ToHexString(v.AssetID.ToArray())
+		trans.Outputs[n].Value = v.Value
+		trans.Outputs[n].ProgramHash = ToHexString(v.ProgramHash.ToArray())
+		n++
+	}
+
+	n = 0
+	trans.Programs = make([]ProgramInfo, len(ptx.Programs))
+	for _, v := range ptx.Programs {
+		trans.Programs[n].Code = ToHexString(v.Code)
+		trans.Programs[n].Parameter = ToHexString(v.Parameter)
+		n++
+	}
+	
+	n = 0
+	trans.AssetOutputs = make([]TxoutputMap, len(ptx.AssetOutputs))
+	for k, v := range ptx.AssetOutputs {
+		trans.AssetOutputs[n].Key = k
+		trans.AssetOutputs[n].Txout = make([]TxoutputInfo, len(v))
+		for m := 0; m < len(v); m++ {
+			trans.AssetOutputs[n].Txout[m].AssetID = ToHexString(v[m].AssetID.ToArray())
+			trans.AssetOutputs[n].Txout[m].Value = v[m].Value
+			trans.AssetOutputs[n].Txout[m].ProgramHash = ToHexString(v[m].ProgramHash.ToArray())
+		}
+		n += 1
+	}
+
+	n = 0
+	trans.AssetInputAmount = make([]AmountMap, len(ptx.AssetInputAmount))
+	for k, v := range ptx.AssetInputAmount {
+		trans.AssetInputAmount[n].Key = k
+		trans.AssetInputAmount[n].Value = v
+		n += 1
+	}
+
+	n = 0
+	trans.AssetOutputAmount = make([]AmountMap, len(ptx.AssetOutputAmount))
+	for k, v := range ptx.AssetOutputAmount {
+		trans.AssetInputAmount[n].Key = k
+		trans.AssetInputAmount[n].Value = v
+		n += 1
+	}
+
+	mhash := ptx.Hash()
+	trans.Hash = ToHexString(mhash.ToArray())
+
+	return trans
+}
+
 func getBestBlockHash(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
 	id := cmd["id"]
 	hash := ledger.DefaultLedger.Blockchain.CurrentBlockHash()
@@ -43,7 +129,7 @@ func getBlock(req *http.Request, cmd map[string]interface{}) map[string]interfac
 		return responsePacking([]interface{}{-100, "Unknown block"}, id)
 	}
 
-	blockhead := &BlockHead{
+	blockHead := &BlockHead{
 		Version:          block.Blockdata.Version,
 		PrevBlockHash:    ToHexString(block.Blockdata.PrevBlockHash.ToArray()),
 		TransactionsRoot: ToHexString(block.Blockdata.TransactionsRoot.ToArray()),
@@ -58,55 +144,14 @@ func getBlock(req *http.Request, cmd map[string]interface{}) map[string]interfac
 		Hash: ToHexString(hash.ToArray()),
 	}
 
-	trans := make([]Transactions, len(block.Transactions))
+	trans := make([]*Transactions, len(block.Transactions))
 	for i := 0; i < len(block.Transactions); i++ {
-		trans[i].TxType = block.Transactions[i].TxType
-		trans[i].PayloadVersion = block.Transactions[i].PayloadVersion
-		trans[i].Payload = block.Transactions[i].Payload
-		trans[i].Nonce = block.Transactions[i].Nonce
-		trans[i].Attributes = block.Transactions[i].Attributes
-		trans[i].UTXOInputs = block.Transactions[i].UTXOInputs
-		trans[i].BalanceInputs = block.Transactions[i].BalanceInputs
-		trans[i].Outputs = block.Transactions[i].Outputs
-		trans[i].Programs = make([]*ProgramInfo, len(block.Transactions[i].Programs))
-		for n := 0; n < len(block.Transactions[i].Programs); n++ {
-			trans[i].Programs[n] = new(ProgramInfo)
-			trans[i].Programs[n].Code = ToHexString(block.Transactions[i].Programs[n].Code)
-			trans[i].Programs[n].Parameter = ToHexString(block.Transactions[i].Programs[n].Parameter)
-		}
-
-		trans[i].AssetOutputs = make([]TxOutputInfo, len(block.Transactions[i].AssetOutputs))
-		n := 0
-		for k, v := range block.Transactions[i].AssetOutputs {
-			trans[i].AssetOutputs[n].Key = k
-			for m := 0; m < len(v); m++ {
-				trans[i].AssetOutputs[n].Txout[m] = v[m]
-			}
-			n++
-		}
-
-		trans[i].AssetInputAmount = make([]AmountInfo, len(block.Transactions[i].AssetInputAmount))
-		n = 0
-		for k, v := range block.Transactions[i].AssetInputAmount {
-			trans[i].AssetInputAmount[n].Key = k
-			trans[i].AssetInputAmount[n].Value = v
-			n++
-		}
-
-		trans[i].AssetOutputAmount = make([]AmountInfo, len(block.Transactions[i].AssetOutputAmount))
-		n = 0
-		for k, v := range block.Transactions[i].AssetOutputAmount {
-			trans[i].AssetInputAmount[n].Key = k
-			trans[i].AssetInputAmount[n].Value = v
-			n++
-		}
-
-		mhash := block.Transactions[i].Hash()
-		trans[i].Hash = ToHexString(mhash.ToArray())
+		trans[i] = TransArryByteToHexString(block.Transactions[i])
 	}
+
 	b := BlockInfo{
 		Hash:         ToHexString(hash.ToArray()),
-		BlockData:    blockhead,
+		BlockData:    blockHead,
 		Transactions: trans,
 	}
 	return responsePacking(b, id)
@@ -144,51 +189,7 @@ func getTxn(req *http.Request, cmd map[string]interface{}) map[string]interface{
 		return responsePacking([]interface{}{-100, "Unknown block"}, id)
 	}
 
-	var tran Transactions
-	tran.TxType = tx.TxType
-	tran.PayloadVersion = tx.PayloadVersion
-	tran.Payload = tx.Payload
-	tran.Nonce = tx.Nonce
-	tran.Attributes = tx.Attributes
-	tran.UTXOInputs = tx.UTXOInputs
-	tran.BalanceInputs = tx.BalanceInputs
-	tran.Outputs = tx.Outputs
-	tran.Programs = make([]*ProgramInfo, len(tx.Programs))
-
-	for n := 0; n < len(tx.Programs); n++ {
-		tran.Programs[n] = new(ProgramInfo)
-		tran.Programs[n].Code = ToHexString(tx.Programs[n].Code)
-		tran.Programs[n].Parameter = ToHexString(tx.Programs[n].Parameter)
-	}
-
-	tran.AssetOutputs = make([]TxOutputInfo, len(tx.AssetOutputs))
-	n := 0
-	for k, v := range tx.AssetOutputs {
-		tran.AssetOutputs[n].Key = k
-		for m := 0; m < len(v); m++ {
-			tran.AssetOutputs[n].Txout[m] = v[m]
-		}
-		n += 1
-	}
-
-	tran.AssetInputAmount = make([]AmountInfo, len(tx.AssetInputAmount))
-	n = 0
-	for k, v := range tx.AssetInputAmount {
-		tran.AssetInputAmount[n].Key = k
-		tran.AssetInputAmount[n].Value = v
-		n += 1
-	}
-
-	tran.AssetOutputAmount = make([]AmountInfo, len(tx.AssetOutputAmount))
-	n = 0
-	for k, v := range tx.AssetOutputAmount {
-		tran.AssetInputAmount[n].Key = k
-		tran.AssetInputAmount[n].Value = v
-		n += 1
-	}
-
-	mhash := tx.Hash()
-	tran.Hash = ToHexString(mhash.ToArray())
+	tran := TransArryByteToHexString(tx)
 	return responsePacking(tran, id)
 }
 

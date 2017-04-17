@@ -23,12 +23,13 @@ func (a *RegisterAsset) Data() []byte {
 
 }
 
-func (a *RegisterAsset) Serialize(w io.Writer) {
+func (a *RegisterAsset) Serialize(w io.Writer)  error {
 	a.Asset.Serialize(w)
 	a.Amount.Serialize(w)
 	//w.Write([]byte{a.Precision})
 	a.Issuer.Serialize(w)
 	a.Controller.Serialize(w)
+	return nil
 }
 
 func (a *RegisterAsset) Deserialize(r io.Reader) error {

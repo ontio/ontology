@@ -35,7 +35,7 @@ type Payload interface {
 	Data() []byte
 
 	//Serialize payload data
-	Serialize(w io.Writer)
+	Serialize(w io.Writer) error
 
 	Deserialize(r io.Reader) error
 }
