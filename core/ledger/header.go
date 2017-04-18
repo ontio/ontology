@@ -16,8 +16,9 @@ func (h *Header) Serialize(w io.Writer) {
 }
 
 func (h *Header) Deserialize(r io.Reader) error {
-	h.Blockdata.Deserialize(r)
-
+	header := new(Blockdata)
+	header.Deserialize(r)
+	h.Blockdata = header
 	var headerFlag [1]byte
 	_, err := io.ReadFull(r, headerFlag[:])
 	if err != nil {
