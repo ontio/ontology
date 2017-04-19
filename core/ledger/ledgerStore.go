@@ -24,6 +24,9 @@ type ILedgerStore interface {
 	GetAsset(hash Uint256) (*Asset, error)
 
 	GetCurrentBlockHash() Uint256
+	GetCurrentHeaderHash() Uint256
+	GetHeaderHeight() uint32
+	GetHeight() uint32
 
 	Close() error
 

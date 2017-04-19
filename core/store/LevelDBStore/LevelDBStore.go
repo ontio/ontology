@@ -658,3 +658,24 @@ func (bd *LevelDBStore) SaveBlock(b *Block, ledger *Ledger) error {
 func (bd *LevelDBStore) GetQuantityIssued(AssetId Uint256) (*Fixed64, error) {
 	return nil, nil
 }
+
+func (bd *LevelDBStore) GetCurrentHeaderHash() Uint256 {
+	bd.mutex.Lock()
+	defer bd.mutex.Unlock()
+
+	return bd.header_index[uint32(len(bd.header_index) - 1)]
+}
+
+func (bd *LevelDBStore) GetHeaderHeight() uint32 {
+	bd.mutex.Lock()
+	defer bd.mutex.Unlock()
+
+	return uint32(len(bd.header_index) - 1)
+}
+
+func (bd *LevelDBStore) GetHeight() uint32 {
+	bd.mutex.Lock()
+	defer bd.mutex.Unlock()
+
+	return bd.current_block_height
+}
