@@ -10,7 +10,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"net/http"
 )
 
 func TransArryByteToHexString(ptx *tx.Transaction) *Transactions {
@@ -63,7 +62,7 @@ func TransArryByteToHexString(ptx *tx.Transaction) *Transactions {
 		trans.Programs[n].Parameter = ToHexString(v.Parameter)
 		n++
 	}
-	
+
 	n = 0
 	trans.AssetOutputs = make([]TxoutputMap, len(ptx.AssetOutputs))
 	for k, v := range ptx.AssetOutputs {
@@ -99,14 +98,14 @@ func TransArryByteToHexString(ptx *tx.Transaction) *Transactions {
 	return trans
 }
 
-func getBestBlockHash(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
+func getBestBlockHash(cmd map[string]interface{}) map[string]interface{} {
 	id := cmd["id"]
 	hash := ledger.DefaultLedger.Blockchain.CurrentBlockHash()
 	response := responsePacking(ToHexString(hash.ToArray()), id)
 	return response
 }
 
-func getBlock(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
+func getBlock(cmd map[string]interface{}) map[string]interface{} {
 	id := cmd["id"]
 	params := cmd["params"]
 	var err error
@@ -157,13 +156,13 @@ func getBlock(req *http.Request, cmd map[string]interface{}) map[string]interfac
 	return responsePacking(b, id)
 }
 
-func getBlockCount(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
+func getBlockCount(cmd map[string]interface{}) map[string]interface{} {
 	id := cmd["id"]
 	count := ledger.DefaultLedger.Blockchain.BlockHeight + 1
 	return responsePacking(count, id)
 }
 
-func getBlockHash(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
+func getBlockHash(cmd map[string]interface{}) map[string]interface{} {
 	id := cmd["id"]
 	index := cmd["params"]
 	var hash Uint256
@@ -175,7 +174,7 @@ func getBlockHash(req *http.Request, cmd map[string]interface{}) map[string]inte
 	return responsePacking(hashhex, id)
 }
 
-func getTxn(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
+func getTxn(cmd map[string]interface{}) map[string]interface{} {
 	id := cmd["id"]
 	params := cmd["params"]
 	var hash Uint256
@@ -193,23 +192,23 @@ func getTxn(req *http.Request, cmd map[string]interface{}) map[string]interface{
 	return responsePacking(tran, id)
 }
 
-func getAddrTxn(req *http.Request, cnd map[string]interface{}) map[string]interface{} {
+func getAddrTxn(cmd map[string]interface{}) map[string]interface{} {
 	return nil
 }
 
-func getConnectionCount(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
+func getConnectionCount(cmd map[string]interface{}) map[string]interface{} {
 	id := cmd["id"]
 	count := node.GetConnectionCnt()
 	return responsePacking(count, id)
 }
 
-func getRawMemPool(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
+func getRawMemPool(cmd map[string]interface{}) map[string]interface{} {
 	id := cmd["id"]
 	mempoollist := node.GetTxnPool(false)
 	return responsePacking(mempoollist, id)
 }
 
-func getRawTransaction(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
+func getRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	id := cmd["id"]
 	params := cmd["params"]
 	txid := params.([]interface{})[0].(string)
@@ -234,7 +233,7 @@ func getRawTransaction(req *http.Request, cmd map[string]interface{}) map[string
 	return responsePacking(txBuffer.Bytes(), id)
 }
 
-func getTxout(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
+func getTxout(cmd map[string]interface{}) map[string]interface{} {
 	id := cmd["id"]
 	//params := cmd["params"]
 	//txid := params.([]interface{})[0].(string)
@@ -250,7 +249,7 @@ func getTxout(req *http.Request, cmd map[string]interface{}) map[string]interfac
 	return responsePacking(to, id)
 }
 
-func sendRawTransaction(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
+func sendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	id := cmd["id"]
 	hexValue := cmd["params"].(string)
 	hexSlice, _ := hex.DecodeString(hexValue)
@@ -260,7 +259,7 @@ func sendRawTransaction(req *http.Request, cmd map[string]interface{}) map[strin
 	return responsePacking(err, id)
 }
 
-func submitBlock(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
+func submitBlock(cmd map[string]interface{}) map[string]interface{} {
 	id := cmd["id"]
 	hexValue := cmd["params"].(string)
 	hexSlice, _ := hex.DecodeString(hexValue)
@@ -271,13 +270,13 @@ func submitBlock(req *http.Request, cmd map[string]interface{}) map[string]inter
 	return response
 }
 
-func getNeighbor(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
+func getNeighbor(cmd map[string]interface{}) map[string]interface{} {
 	id := cmd["id"]
 	addr, _ := node.GetNeighborAddrs()
 	return responsePacking(addr, id)
 }
 
-func getNodeState(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
+func getNodeState(cmd map[string]interface{}) map[string]interface{} {
 	id := cmd["id"]
 	n := NodeInfo{
 		State:    uint(node.GetState()),
@@ -294,7 +293,7 @@ func getNodeState(req *http.Request, cmd map[string]interface{}) map[string]inte
 	return responsePacking(n, id)
 }
 
-func startConsensus(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
+func startConsensus(cmd map[string]interface{}) map[string]interface{} {
 	var response map[string]interface{}
 	id := cmd["id"]
 	err := dBFT.Start()
@@ -306,7 +305,7 @@ func startConsensus(req *http.Request, cmd map[string]interface{}) map[string]in
 	return response
 }
 
-func stopConsensus(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
+func stopConsensus(cmd map[string]interface{}) map[string]interface{} {
 	var response map[string]interface{}
 	id := cmd["id"]
 	err := dBFT.Halt()
@@ -318,7 +317,7 @@ func stopConsensus(req *http.Request, cmd map[string]interface{}) map[string]int
 	return response
 }
 
-func sendSampleTransaction(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
+func sendSampleTransaction(cmd map[string]interface{}) map[string]interface{} {
 	var response map[string]interface{}
 	id := cmd["id"]
 	params, err := base64.StdEncoding.DecodeString(cmd["params"].([]interface{})[0].(string))
@@ -349,7 +348,7 @@ func sendSampleTransaction(req *http.Request, cmd map[string]interface{}) map[st
 	return responsePacking(txHashHex, id)
 }
 
-func setDebugInfo(req *http.Request, cmd map[string]interface{}) map[string]interface{} {
+func setDebugInfo(cmd map[string]interface{}) map[string]interface{} {
 	id := cmd["id"]
 	param := cmd["params"].([]interface{})[0].(float64)
 	level := int(param)
