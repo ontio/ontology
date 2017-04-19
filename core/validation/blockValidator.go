@@ -48,8 +48,7 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 		//TODO: NextMiner Check.
 		for num, txVerify := range block.Transactions {
 			transpool := []*tx.Transaction{}
-			transpool = append(transpool, block.Transactions[:num]...)
-			transpool = append(transpool, block.Transactions[num+1:]...)
+			transpool = append(block.Transactions[:num], block.Transactions[num+1:]...)
 			err := VerifyTransaction(txVerify, ld, transpool)
 			if err != nil {
 				return errors.New(fmt.Sprintf("The Input is exist in serval transaction in one block."))

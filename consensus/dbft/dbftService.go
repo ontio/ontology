@@ -125,6 +125,11 @@ func (ds *DbftService) BlockPersistCompleted(v interface{}) {
 	log.Trace()
 	if block, ok := v.(*ledger.Block); ok {
 		log.Info(fmt.Sprintf("persist block: %d", block.Hash()))
+		err := ds.localNet.CleanSubmittedTransactions(block)
+		if err != nil {
+			log.Warn(err)
+		}
+		//log.Debug(fmt.Sprintf("persist block: %d with %d transactions\n", block.Hash(),len(trxHashToBeDelete)))
 	}
 
 	ds.blockReceivedTime = time.Now()
@@ -134,7 +139,7 @@ func (ds *DbftService) BlockPersistCompleted(v interface{}) {
 
 func (ds *DbftService) CheckExpectedView(viewNumber byte) {
 	log.Trace()
-	if ds.context.State.HasFlag(BlockSent){
+	if ds.context.State.HasFlag(BlockSent) {
 		return
 	}
 	if ds.context.ViewNumber == viewNumber {
@@ -269,6 +274,9 @@ func (ds *DbftService) InitializeConsensus(viewNum byte) error {
 	if viewNum == 0 {
 		ds.context.Reset(ds.Client, ds.localNet)
 	} else {
+		if ds.context.State.HasFlag(BlockSent) {
+			return nil
+		}
 		ds.context.ChangeView(viewNum)
 	}
 
@@ -433,7 +441,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, mes
 	ds.context.Signatures = make([][]byte, len(ds.context.Miners))
 	ds.context.Signatures[payload.MinerIndex] = message.Signature
 
-	mempool := ds.localNet.GetTxnPool(true)
+	mempool := ds.localNet.GetTxnPool(false)
 	for _, hash := range ds.context.TransactionHashes[1:] {
 		if transaction, ok := mempool[hash]; ok {
 			if err := ds.AddTransaction(transaction, false); err != nil {
@@ -576,7 +584,7 @@ func (ds *DbftService) Timeout() {
 			}
 
 			ds.context.Nonce = GetNonce()
-			transactionsPool := ds.localNet.GetTxnPool(true) //TODO: add policy
+			transactionsPool := ds.localNet.GetTxnPool(false) //TODO: add policy
 
 			//TODO: add max TX limitation
 
