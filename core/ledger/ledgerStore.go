@@ -33,4 +33,7 @@ type ILedgerStore interface {
 	InitLevelDBStoreWithGenesisBlock( genesisblock * Block  )
 
 	GetQuantityIssued(AssetId Uint256) (*Fixed64, error)
+	
+	GetUnspent(txid Uint256, index uint16) (*tx.TxOutput, error)
+	ContainsUnspent(txid Uint256, index uint16) (bool,error)
 }
