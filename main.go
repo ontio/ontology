@@ -165,7 +165,7 @@ func OpenClientAndGetAccount() Client {
 	if fileExisted("wallet.txt") {
 		c = OpenClient("wallet.txt", []byte("\x12\x34\x56"))
 	} else {
-		c4 = CreateClient("wallet.txt", []byte("\x12\x34\x56"))
+		c = CreateClient("wallet.txt", []byte("\x12\x34\x56"))
 	}
 
 	switch clientName {
