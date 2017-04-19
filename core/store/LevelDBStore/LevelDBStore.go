@@ -191,7 +191,7 @@ func (bd *LevelDBStore) AddHeaders(headers []Header, ledger *Ledger) error {
 
 	batch := new(leveldb.Batch)
 	for i:=0; i<len(headers); i++ {
-		if headers[i].Blockdata.Height-uint32(len(bd.header_index)) >= 1 {
+		if headers[i].Blockdata.Height >= uint32(len(bd.header_index)) + 1 {
 			break
 		}
 
@@ -215,36 +215,6 @@ func (bd *LevelDBStore) AddHeaders(headers []Header, ledger *Ledger) error {
 
 	return nil
 }
-
-/*
-func (bd *LevelDBStore) SaveHeader(header *Header, ledger *Ledger) error {
-	bd.mutex.Lock()
-	defer bd.mutex.Unlock()
-
-	if header.Blockdata.Height-uint32(len(bd.header_index)) >= 1 {
-		return errors.New("[SaveHeader] block height - header_index >= 1")
-	}
-
-	if header.Blockdata.Height < uint32(len(bd.header_index)) {
-		return errors.New("[SaveHeader] block height < header_index")
-	}
-
-	//header verify
-	err := validation.VerifyBlockData(header.Blockdata, ledger)
-	if err != nil {
-		return err
-	}
-
-	batch := new(leveldb.Batch)
-	bd.onAddHeader(header.Blockdata, batch)
-	err = bd.db.Write(batch, nil)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-*/
 
 func (bd *LevelDBStore) GetHeader(hash Uint256) (*Header, error) {
 	// TODO: GET HEADER
@@ -649,7 +619,7 @@ func (bd *LevelDBStore) SaveBlock(b *Block, ledger *Ledger) error {
 	}
 
 	log.Info("len(bd.header_index) is ", len(bd.header_index), " ,b.Blockdata.Height is ", b.Blockdata.Height)
-	if b.Blockdata.Height-uint32(len(bd.header_index)) >= 1 {
+	if b.Blockdata.Height >= uint32(len(bd.header_index)) + 1 {
 		//return false,NewDetailErr(errors.New(fmt.Sprintf("WARNING: [SaveBlock] block height - header_index.count >= 1, block height:%d, header_index.count:%d",b.Blockdata.Height, uint32(len(bd.header_index)) )),ErrDuplicatedBlock,"")
 		return errors.New(fmt.Sprintf("WARNING: [SaveBlock] block height - header_index.count >= 1, block height:%d, header_index.count:%d", b.Blockdata.Height, uint32(len(bd.header_index))))
 	}
