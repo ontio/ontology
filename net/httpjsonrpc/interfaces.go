@@ -355,15 +355,15 @@ func sendSampleTransaction(cmd map[string]interface{}) map[string]interface{} {
 		SendTx(regTx)
 
 		// wait for the block
-		time.Sleep(3 * time.Second)
+		time.Sleep(5 * time.Second)
 		issueTx := NewIssueTx(admin, regHash)
 		issueHash = issueTx.Hash()
 		SignTx(admin, issueTx)
 		SendTx(issueTx)
 
 		// wait for the block
-		time.Sleep(3 * time.Second)
-		transferTx := NewTransferTx(regHash, issueHash, admin)
+		time.Sleep(5 * time.Second)
+		transferTx := NewTransferTx(regHash, issueHash, issuer)
 		transferHash = transferTx.Hash()
 		SignTx(admin, transferTx)
 		SendTx(transferTx)

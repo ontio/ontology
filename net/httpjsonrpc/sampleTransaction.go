@@ -25,12 +25,12 @@ func NewRegTx(rand string, index int, admin, issuer *client.Account) *transactio
 }
 
 func NewIssueTx(admin *client.Account, hash Uint256) *transaction.Transaction {
-	tx, _ := transaction.NewIssueAssetTransaction()
-	temp, err := admin.PublicKey.EncodePoint(true)
+	//UTXO　Output generate.
+	signatureRedeemScript, err := contract.CreateSignatureRedeemScript(admin.PublicKey)
 	if err != nil {
 		log.Error("EncodePoint error.")
 	}
-	hashx, err := ToCodeHash(temp)
+	hashx, err := ToCodeHash(signatureRedeemScript)
 	if err != nil {
 		log.Error("TocodeHash hash error.")
 	}
@@ -39,25 +39,29 @@ func NewIssueTx(admin *client.Account, hash Uint256) *transaction.Transaction {
 		Value:       Fixed64(100),
 		ProgramHash: hashx,
 	}
-	tx.Outputs = append(tx.Outputs, issueTxOutput)
+	outputs := []*transaction.TxOutput{}
+	outputs = append(outputs, issueTxOutput)
+
+	// generate transaction
+	tx, _ := transaction.NewIssueAssetTransaction(outputs)
 	return tx
 }
 
 func NewTransferTx(regHash, issueHash Uint256, toUser *client.Account) *transaction.Transaction {
-	tx, _ := transaction.NewTransferAssetTransaction()
-	// TODO: fill the UTXO inputs after TX inputs verification works
-	/*
-		transferUTXOInput := &transaction.UTXOTxInput{
-			ReferTxID:          issueHash,
-			ReferTxOutputIndex: uint16(0),
-		}
-		tx.UTXOInputs = append(tx.UTXOInputs, transferUTXOInput)
-	*/
-	temp, err := toUser.PublicKey.EncodePoint(true)
+	//UTXO  Input Generate.
+	transferUTXOInput := &transaction.UTXOTxInput{
+		ReferTxID:          issueHash,
+		ReferTxOutputIndex: uint16(0),
+	}
+	inputs := []*transaction.UTXOTxInput{}
+	inputs = append(inputs, transferUTXOInput)
+
+	//UTXO　Output generate.
+	signatureRedeemScript, err := contract.CreateSignatureRedeemScript(toUser.PublicKey)
 	if err != nil {
 		log.Error("EncodePoint error.")
 	}
-	hashx, err := ToCodeHash(temp)
+	hashx, err := ToCodeHash(signatureRedeemScript)
 	if err != nil {
 		log.Error("TocodeHash hash error.")
 	}
@@ -66,7 +70,11 @@ func NewTransferTx(regHash, issueHash Uint256, toUser *client.Account) *transact
 		Value:       Fixed64(100),
 		ProgramHash: hashx,
 	}
-	tx.Outputs = append(tx.Outputs, transferTxOutput)
+	outputs := []*transaction.TxOutput{}
+	outputs = append(outputs, transferTxOutput)
+
+	// generate transaction
+	tx, _ := transaction.NewTransferAssetTransaction(inputs, outputs)
 	return tx
 }
 
