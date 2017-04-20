@@ -45,11 +45,14 @@ func NewIssueTx(admin *client.Account, hash Uint256) *transaction.Transaction {
 
 func NewTransferTx(regHash, issueHash Uint256, toUser *client.Account) *transaction.Transaction {
 	tx, _ := transaction.NewTransferAssetTransaction()
-	transferUTXOInput := &transaction.UTXOTxInput{
-		ReferTxID:          issueHash,
-		ReferTxOutputIndex: uint16(0),
-	}
-	tx.UTXOInputs = append(tx.UTXOInputs, transferUTXOInput)
+	// TODO: fill the UTXO inputs after TX inputs verification works
+	/*
+		transferUTXOInput := &transaction.UTXOTxInput{
+			ReferTxID:          issueHash,
+			ReferTxOutputIndex: uint16(0),
+		}
+		tx.UTXOInputs = append(tx.UTXOInputs, transferUTXOInput)
+	*/
 	temp, err := toUser.PublicKey.EncodePoint(true)
 	if err != nil {
 		log.Error("EncodePoint error.")
