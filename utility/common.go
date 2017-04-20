@@ -39,7 +39,7 @@ type Param struct {
 	Start           bool   // start service
 	Stop            bool   // stop service
 	NodeState       bool   // node state
-	Tx              bool   // Transaction test case
+	Tx              string // Transaction test case
 	TxNum           int64  // count of transaction
 	NoSign          bool   // transaction is not signed
 	DebugLevel      int    // transaction is not signed
@@ -61,7 +61,7 @@ func registerFlags(f *flag.FlagSet) {
 	f.BoolVar(&p.Neighbor, "neighbor", false, "neighbor nodes information")
 	f.BoolVar(&p.NodeState, "state", false, "node state")
 	f.BoolVar(&p.Start, "start", false, "start service")
-	f.BoolVar(&p.Tx, "tx", false, "send a sample transaction")
+	f.StringVar(&p.Tx, "tx", "full", "send sample transaction with different type (full/perf)")
 	f.Int64Var(&p.TxNum, "num", 1, "transaction number")
 	f.BoolVar(&p.NoSign, "nosign", false, "send unsigned transaction")
 	f.BoolVar(&p.Stop, "stop", false, "stop service")

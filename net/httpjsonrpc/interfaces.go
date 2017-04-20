@@ -1,15 +1,20 @@
 package httpjsonrpc
 
 import (
+	"DNA/client"
 	. "DNA/common"
 	"DNA/common/log"
-	_ "DNA/core/contract/program"
 	"DNA/core/ledger"
 	tx "DNA/core/transaction"
 	"bytes"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"math/rand"
+	"time"
+)
+
+const (
+	RANDBYTELEN = 4
 )
 
 func TransArryByteToHexString(ptx *tx.Transaction) *Transactions {
@@ -185,7 +190,7 @@ func getTxn(cmd map[string]interface{}) map[string]interface{} {
 
 	tx, err := ledger.DefaultLedger.Store.GetTransaction(hash)
 	if err != nil {
-		return responsePacking([]interface{}{-100, "Unknown block"}, id)
+		return responsePacking([]interface{}{-100, "Unknown Transaction Hash"}, id)
 	}
 
 	tran := TransArryByteToHexString(tx)
@@ -318,34 +323,54 @@ func stopConsensus(cmd map[string]interface{}) map[string]interface{} {
 }
 
 func sendSampleTransaction(cmd map[string]interface{}) map[string]interface{} {
-	var response map[string]interface{}
 	id := cmd["id"]
-	params, err := base64.StdEncoding.DecodeString(cmd["params"].([]interface{})[0].(string))
-	buf := bytes.NewBuffer(params)
-	var t tx.Transaction
-	if err = t.Deserialize(buf); err != nil {
-		response = responsePacking("Unmarshal Sample TX error", id)
-		return response
+	txType := cmd["params"].([]interface{})[0].(string)
+	issuer, err := client.NewAccount()
+	if err != nil {
+		return responsePacking("Failed to create account", id)
 	}
+	admin := issuer
 
-	txhash := t.Hash()
-	txHashArray := txhash.ToArray()
-	txHashHex := ToHexString(txHashArray)
-	log.Debug("---------------------------")
-	log.Debug("Transaction Hash:", txHashHex)
-	for _, v := range t.Programs {
-		log.Debug("Transaction Program Code:", v.Code)
-		log.Debug("Transaction Program Parameter:", v.Parameter)
-	}
-	log.Debug("---------------------------")
+	var regHash, issueHash, transferHash Uint256
+	rbuf := make([]byte, RANDBYTELEN)
+	rand.Read(rbuf)
+	switch string(txType) {
+	case "perf":
+		txNum := cmd["params"].([]interface{})[1].(float64)
+		nosign := cmd["params"].([]interface{})[2].(bool)
+		num := int(txNum)
+		for i := 0; i < num; i++ {
+			regTx := NewRegTx(ToHexString(rbuf), i, admin, issuer)
+			regHash = regTx.Hash()
+			if !nosign {
+				SignTx(admin, regTx)
+			}
+			SendTx(regTx)
+		}
+		return responsePacking(fmt.Sprintf("%d transactions was sended", num), id)
+	case "full":
+		regTx := NewRegTx(ToHexString(rbuf), 0, admin, issuer)
+		regHash = regTx.Hash()
+		SignTx(admin, regTx)
+		SendTx(regTx)
 
-	if !node.AppendTxnPool(&t) {
-		log.Warn("Can NOT add the transaction to TxnPool")
+		// wait for the block
+		time.Sleep(3 * time.Second)
+		issueTx := NewIssueTx(admin, regHash)
+		issueHash = issueTx.Hash()
+		SignTx(admin, issueTx)
+		SendTx(issueTx)
+
+		// wait for the block
+		time.Sleep(3 * time.Second)
+		transferTx := NewTransferTx(regHash, issueHash, admin)
+		transferHash = transferTx.Hash()
+		SignTx(admin, transferTx)
+		SendTx(transferTx)
+		return responsePacking(fmt.Sprintf("regist: %x, issue: %x, transfer: %x", regHash, issueHash, transferHash), id)
+	default:
+		return responsePacking("Invalid transacion type", id)
 	}
-	if err = node.Xmit(&t); err != nil {
-		return responsePacking("Xmit Sample TX error", id)
-	}
-	return responsePacking(txHashHex, id)
 }
 
 func setDebugInfo(cmd map[string]interface{}) map[string]interface{} {
