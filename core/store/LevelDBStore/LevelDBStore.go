@@ -31,7 +31,7 @@ type LevelDBStore struct {
 	current_block_height uint32
 	stored_header_count  uint32
 
-	mutex sync.Mutex
+	mu sync.RWMutex
 
 	disposed bool
 }
@@ -166,8 +166,8 @@ func (bd *LevelDBStore) GetBlockHash(height uint32) (Uint256, error) {
 }
 
 func (bd *LevelDBStore) GetCurrentBlockHash() Uint256 {
-	bd.mutex.Lock()
-	defer bd.mutex.Unlock()
+	bd.mu.RLock()
+	defer bd.mu.RUnlock()
 
 	return bd.header_index[bd.current_block_height]
 }
@@ -186,8 +186,8 @@ func (bd *LevelDBStore) GetContract(hash []byte) ([]byte, error) {
 }
 
 func (bd *LevelDBStore) AddHeaders(headers []Header, ledger *Ledger) error {
-	bd.mutex.Lock()
-	defer bd.mutex.Unlock()
+	bd.mu.Lock()
+	defer bd.mu.Unlock()
 
 	batch := new(leveldb.Batch)
 	for i:=0; i<len(headers); i++ {
@@ -628,8 +628,8 @@ func (bd *LevelDBStore) onAddHeader(header *Header, batch *leveldb.Batch) {
 
 func (bd *LevelDBStore) persistBlocks(ledger *Ledger) {
 
-	bd.mutex.Lock()
-	defer bd.mutex.Unlock()
+	bd.mu.Lock()
+	defer bd.mu.Unlock()
 
 	for !bd.disposed {
 		if uint32(len(bd.header_index)) < bd.current_block_height+1 {
@@ -657,8 +657,8 @@ func (bd *LevelDBStore) persistBlocks(ledger *Ledger) {
 func (bd *LevelDBStore) SaveBlock(b *Block, ledger *Ledger) error {
 	log.Debug("SaveBlock()")
 
-	bd.mutex.Lock()
-	defer bd.mutex.Unlock()
+	bd.mu.Lock()
+	defer bd.mu.Unlock()
 
 	if bd.block_cache[b.Hash()] == nil {
 		bd.block_cache[b.Hash()] = b
@@ -745,22 +745,22 @@ func (bd *LevelDBStore) ContainsUnspent(txid Uint256, index uint16) (bool,error)
 }
 
 func (bd *LevelDBStore) GetCurrentHeaderHash() Uint256 {
-	bd.mutex.Lock()
-	defer bd.mutex.Unlock()
+	bd.mu.RLock()
+	defer bd.mu.RUnlock()
 
 	return bd.header_index[uint32(len(bd.header_index) - 1)]
 }
 
 func (bd *LevelDBStore) GetHeaderHeight() uint32 {
-	bd.mutex.Lock()
-	defer bd.mutex.Unlock()
+	bd.mu.RLock()
+	defer bd.mu.RUnlock()
 
 	return uint32(len(bd.header_index) - 1)
 }
 
 func (bd *LevelDBStore) GetHeight() uint32 {
-	bd.mutex.Lock()
-	defer bd.mutex.Unlock()
+	bd.mu.RLock()
+	defer bd.mu.RUnlock()
 
 	return bd.current_block_height
 }
