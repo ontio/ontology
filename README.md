@@ -27,7 +27,10 @@ The requirements to build DNA are:
 * Go version 1.7 or later is required
 * glide (third-party package management tool) is required
 * A properly configured go environment
-* Clone the DNA repo into appropriate $GOPATH/src directory
+
+
+Clone the DNA repo into appropriate $GOPATH/src directory
+
 
 ```shell
 $ git clone https://github.com/DNAProject/DNA.git
@@ -53,17 +56,17 @@ After building the source code, you could see two executable programs you may ne
 * `node`: the node program
 * `nodectl`: command line tool for node control
 
-Follow the precedures in Depolyment section to give them a shot!
+Follow the precedures in Deployment section to give them a shot!
 
 
-# Depolyment
+# Deployment
 
 To run DNA node regularly, at least 4 nodes are necessary. We provides two ways to deploy the 4 nodes on:
 
 * multi-hosts
 * single-host
 
-## Configurations for multi-hosts depolyment
+## Configurations for multi-hosts deployment
 
 We can do a quick multi-hosts deployment by changing default configuration file `config/config.json`. Change the IP address in `SeedList` section to the seed node's IP address, then copy the changed file to hosts that you will run on.
 
@@ -75,6 +78,8 @@ config.json node
 
 ```
 
+We need to do is change the `MinerName` field to "c1", "c2", "c3" and "c4" respectively on each host. The name sequence is not matter.
+
 Here's an snippet for configuration, note that 10.0.0.100 is seed node's address:
 
 ```shell
@@ -84,11 +89,15 @@ $ cat config.json
       "10.0.1.100:20338"
     ],
 	...
+    "MinerName" : "c1"
     "NodePort": 20338,
 	...
 ```
 
-## Configurations for single-host depolyment
+For each node, also needs a "wallet" to run. The quick way to generate wallets is trying to run the node program on a host, several wallets named with "wallet" prefix will be generated automatically. Then copy all of them to node program directory on other hosts.
+Congratulations, all configurations are completed.
+
+## Configurations for single-host deployment
 
 Copy the executable file `node` and configuration file `config.json` to 4 different directories on single host. Then change each `config.json` file as following. 
 
@@ -96,6 +105,9 @@ Copy the executable file `node` and configuration file `config.json` to 4 differ
 * For the seed node, the `NodePort` is same with the port in `SeedList` part.
 * For each non-seed node, the `NodePort` should have different port.
 * Also need to make sure the `HttpJsonPort` and `HttpLocalPort` for each node is not conflict on current host.
+* Each node should have different "MinerName" field, "c1", "c2", "c3" and "c4" respectively.
+
+After changed the configuration file, we also need to generate wallet for each node. Please follow the steps in multi-hosts deployment section above.
 
 Here's an example:
 
@@ -104,16 +116,20 @@ Here's an example:
 $ tree
 ├── node1
 │   ├── config.json
-│   └── node
+│   ├── node
+│   └── wallet*
 ├── node2
 │   ├── config.json
-│   └── node
+│   ├── node
+│   └── wallet*
 ├── node3
 │   ├── config.json
-│   └── node
+│   ├── node
+│   └── wallet*
 └── node4
     ├── config.json
-    └── node
+    ├── node
+    └── wallet*
 ```
 
 ```shell
@@ -122,6 +138,7 @@ $ cat node[1234]/config.json
 "SeedList": [
       "10.0.1.1:10338"
     ],
+    "MinerName" : "c1"
     "HttpJsonPort": 10336,
     "HttpLocalPort": 10337,
     "NodePort": 10338,
@@ -130,6 +147,7 @@ $ cat node[1234]/config.json
 "SeedList": [
       "10.0.1.1:10338"
     ],
+    "MinerName" : "c2"
     "HttpJsonPort": 20336,
     "HttpLocalPort": 20337,
     "NodePort": 20338,
@@ -138,6 +156,7 @@ $ cat node[1234]/config.json
 "SeedList": [
       "10.0.1.1:10338"
     ],
+    "MinerName" : "c3"
     "HttpJsonPort": 30336,
     "HttpLocalPort": 30337,
     "NodePort": 30338,
@@ -146,6 +165,7 @@ $ cat node[1234]/config.json
 "SeedList": [
       "10.0.1.1:10338"
     ],
+    "MinerName" : "c4"
     "HttpJsonPort": 40336,
     "HttpLocalPort": 40337,
     "NodePort": 40338,
@@ -159,7 +179,6 @@ Execute the seed node program first then other nodes. Just run:
 ```shell
 $ ./node
 ```
-
 
 # Contributing
 
