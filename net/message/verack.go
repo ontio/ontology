@@ -74,24 +74,24 @@ func (msg verACK) Handle(node Noder) error {
 	// node which will trigger a warning
 	node.ReqNeighborList()
 
-	// FIXME compact to a seperate function
-	if uint64(ledger.DefaultLedger.Blockchain.BlockHeight) < node.GetHeight() {
-		/*
-			buf, err := NewHeadersReq(node)
-			if err != nil {
-				log.Error("failed build a new headersReq")
-			} else {
-				go node.Tx(buf)
-			}
+	// The getheaders process haven't finished yet. So add comments now.
 
-		*/
+	/*
+		if uint64(ledger.DefaultLedger.Store.GetHeaderHeight()) < node.GetHeight() {
+			if node.LocalNode().IsSyncHeaders() == false {
+				SendMsgSyncHeaders(node)
+				node.StartRetryTimer()
+			}
+		}
+	*/
+	if uint64(ledger.DefaultLedger.Blockchain.BlockHeight) < node.GetHeight() {
 		buf, err := NewBlocksReq(node)
 		if err != nil {
 			log.Error("failed build a new blockReq")
 		} else {
 			go node.Tx(buf)
 		}
-
 	}
+
 	return nil
 }

@@ -181,7 +181,7 @@ func NewMsg(t string, n Noder) ([]byte, error) {
 	case "verack":
 		return NewVerack()
 	case "getheaders":
-		return NewHeadersReq(n)
+		return NewHeadersReq()
 	case "getaddr":
 		return newGetAddr()
 
