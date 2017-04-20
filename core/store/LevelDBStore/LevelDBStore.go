@@ -10,8 +10,8 @@ import (
 	tx "DNA/core/transaction"
 	"DNA/core/transaction/payload"
 	"DNA/core/validation"
-	"DNA/events"
 	. "DNA/errors"
+	"DNA/events"
 	"bytes"
 	"fmt"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -26,7 +26,7 @@ type LevelDBStore struct {
 	it *Iterator
 
 	header_index map[uint32]Uint256
-	block_cache map[Uint256]*Block
+	block_cache  map[Uint256]*Block
 
 	current_block_height uint32
 	stored_header_count  uint32
@@ -57,13 +57,13 @@ func NewLevelDBStore(file string) (*LevelDBStore, error) {
 	}
 
 	return &LevelDBStore{
-		db:           		db,
-		b:            		nil,
-		it:           		nil,
-		header_index: 		map[uint32]Uint256{},
-		block_cache:          	map[Uint256]*Block{},
-		current_block_height: 	0,
-		disposed:		false,
+		db:                   db,
+		b:                    nil,
+		it:                   nil,
+		header_index:         map[uint32]Uint256{},
+		block_cache:          map[Uint256]*Block{},
+		current_block_height: 0,
+		disposed:             false,
 	}, nil
 }
 
@@ -190,7 +190,7 @@ func (bd *LevelDBStore) AddHeaders(headers []Header, ledger *Ledger) error {
 	defer bd.mu.Unlock()
 
 	batch := new(leveldb.Batch)
-	for i:=0; i<len(headers); i++ {
+	for i := 0; i < len(headers); i++ {
 		if headers[i].Blockdata.Height >= (uint32(len(bd.header_index)) + 1) {
 			break
 		}
@@ -402,12 +402,11 @@ func (bd *LevelDBStore) GetBlock(hash Uint256) (*Block, error) {
 }
 
 func (bd *LevelDBStore) persist(b *Block) error {
-
 	unspents := make(map[Uint256][]uint16)
 	///////////////////////////////////////////////////////////////
 	// Get Unspents for every tx
 	unspentprefix := []byte{byte(IX_Unspent)}
-	for i:=0;i<len(b.Transactions); i++ {
+	for i := 0; i < len(b.Transactions); i++ {
 		txhash := b.Transactions[i].Hash()
 		unspentvalue, err_get := bd.Get(append(unspentprefix, txhash.ToArray()...))
 
@@ -415,7 +414,7 @@ func (bd *LevelDBStore) persist(b *Block) error {
 			unspentvalue = []byte{}
 		}
 
-		unspents[txhash],err_get = GetUint16Array(unspentvalue)
+		unspents[txhash], err_get = GetUint16Array(unspentvalue)
 		if err_get != nil {
 			return err_get
 		}
@@ -484,33 +483,33 @@ func (bd *LevelDBStore) persist(b *Block) error {
 		}
 
 		// init unspent in tx
-		for index := 0; index< len(b.Transactions[i].Outputs); index++ {
+		for index := 0; index < len(b.Transactions[i].Outputs); index++ {
 			txhash := b.Transactions[i].Hash()
-			unspents[txhash] = append( unspents[txhash], uint16(index) )
+			unspents[txhash] = append(unspents[txhash], uint16(index))
 		}
 
 		// delete unspent when spent in input
-		for index := 0; index< len(b.Transactions[i].UTXOInputs); index++ {
+		for index := 0; index < len(b.Transactions[i].UTXOInputs); index++ {
 			txhash := b.Transactions[i].UTXOInputs[index].ReferTxID
 
 			// if get unspent by utxo
-			if  _,ok := unspents[txhash]; !ok  {
+			if _, ok := unspents[txhash]; !ok {
 				unspentvalue, err_get := bd.Get(append(unspentprefix, txhash.ToArray()...))
 
 				if err_get != nil {
 					return err_get
 				}
 
-				unspents[txhash],err_get = GetUint16Array(unspentvalue)
+				unspents[txhash], err_get = GetUint16Array(unspentvalue)
 				if err_get != nil {
 					return err_get
 				}
 			}
 
 			// find Transactions[i].UTXOInputs[index].ReferTxOutputIndex and delete it
-			for k:=0; k<len(unspents[txhash]); k++ {
+			for k := 0; k < len(unspents[txhash]); k++ {
 				if unspents[txhash][k] == uint16(b.Transactions[i].UTXOInputs[index].ReferTxOutputIndex) {
-					unspents[txhash] = append( unspents[txhash][:k], unspents[txhash][k+1:]... )
+					unspents[txhash] = append(unspents[txhash][:k], unspents[txhash][k+1:]...)
 					break
 				}
 			}
@@ -527,7 +526,7 @@ func (bd *LevelDBStore) persist(b *Block) error {
 		if len(value) == 0 {
 			batch.Delete(unspentkey.Bytes())
 		} else {
-			unspentarray := ToByteArray( value )
+			unspentarray := ToByteArray(value)
 			batch.Put(unspentkey.Bytes(), unspentarray)
 		}
 	}
@@ -697,7 +696,6 @@ func (bd *LevelDBStore) SaveBlock(b *Block, ledger *Ledger) error {
 		return errors.New("[SaveBlock] block height < header_index")
 	}
 
-
 	return nil
 }
 
@@ -708,7 +706,7 @@ func (bd *LevelDBStore) GetQuantityIssued(AssetId Uint256) (*Fixed64, error) {
 func (bd *LevelDBStore) GetUnspent(txid Uint256, index uint16) (*tx.TxOutput, error) {
 	//fmt.Println( "GetUnspent()" )
 
-	if ok,_ := bd.ContainsUnspent(txid,index); ok {
+	if ok, _ := bd.ContainsUnspent(txid, index); ok {
 		tx, err := bd.GetTransaction(txid)
 		if err != nil {
 			return nil, err
@@ -720,35 +718,33 @@ func (bd *LevelDBStore) GetUnspent(txid Uint256, index uint16) (*tx.TxOutput, er
 	return nil, errors.New("[GetUnspent] NOT ContainsUnspent.")
 }
 
-func (bd *LevelDBStore) ContainsUnspent(txid Uint256, index uint16) (bool,error) {
+func (bd *LevelDBStore) ContainsUnspent(txid Uint256, index uint16) (bool, error) {
 	unspentprefix := []byte{byte(IX_Unspent)}
 	unspentvalue, err_get := bd.Get(append(unspentprefix, txid.ToArray()...))
 
 	if err_get != nil {
-		return false,err_get
+		return false, err_get
 	}
 
-	//fmt.Printf( "unspent: %x\n", unspentvalue)
-
-	unspentarray,err_get := GetUint16Array(unspentvalue)
+	unspentarray, err_get := GetUint16Array(unspentvalue)
 	if err_get != nil {
-		return false,err_get
+		return false, err_get
 	}
 
-	for i:=0; i<len(unspentarray); i++ {
+	for i := 0; i < len(unspentarray); i++ {
 		if unspentarray[i] == index {
-			return true,nil
+			return true, nil
 		}
 	}
 
-	return false,nil
+	return false, nil
 }
 
 func (bd *LevelDBStore) GetCurrentHeaderHash() Uint256 {
 	bd.mu.RLock()
 	defer bd.mu.RUnlock()
 
-	return bd.header_index[uint32(len(bd.header_index) - 1)]
+	return bd.header_index[uint32(len(bd.header_index)-1)]
 }
 
 func (bd *LevelDBStore) GetHeaderHeight() uint32 {
