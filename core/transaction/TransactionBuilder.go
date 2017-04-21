@@ -64,3 +64,22 @@ func NewTransferAssetTransaction() (*Transaction, error){
         Programs: []*program.Program{},
     }, nil
 }
+
+//initial a new transaction with record payload
+func NewRecordTransaction(recordType string, recordData []byte) (*Transaction, error) {
+
+	//TODO: check arguments
+	recordPayload := &payload.Record{
+		RecordType: recordType,
+		RecordData: recordData,
+	}
+
+	return &Transaction{
+		TxType:        Record,
+		Payload:       recordPayload,
+		Attributes:    []*TxAttribute{},
+		UTXOInputs:    []*UTXOTxInput{},
+		BalanceInputs: []*BalanceTxInput{},
+		Programs:      []*program.Program{},
+	}, nil
+}

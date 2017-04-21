@@ -70,6 +70,13 @@ func NewTransferTx(regHash, issueHash Uint256, toUser *client.Account) *transact
 	return tx
 }
 
+func NewRecordTx(rand string) *transaction.Transaction {
+	recordType := string("txt")
+	recordData := []byte("hello world " + rand)
+	tx, _ := transaction.NewRecordTransaction(recordType, recordData)
+	return tx
+}
+
 func SignTx(admin *client.Account, tx *transaction.Transaction) {
 	signdate, err := signature.SignBySigner(tx, admin)
 	if err != nil {
