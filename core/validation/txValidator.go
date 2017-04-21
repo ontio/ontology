@@ -95,12 +95,9 @@ func VerifyTransaction(Tx *tx.Transaction, ledger *ledger.Ledger, TxPool []*tx.T
 			//txPoolAmounts   : amount in transactionPool of this assedID
 
 			// TODO: check this after the function TxStore.GetQuantityIssued works
-			_ = quantity_issued
-			/*
-				if AssetReg.Amount-*quantity_issued < -txPoolAmounts {
-					return errors.New("[VerifyTransaction], Amount check error.")
-				}
-			*/
+			if AssetReg.Amount-quantity_issued < txPoolAmounts {
+				return errors.New("[VerifyTransaction], Amount check error.")
+			}
 		}
 	}
 
