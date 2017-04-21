@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"DNA/common"
+	"DNA/core/ledger"
 	"DNA/core/transaction"
 	"DNA/crypto"
 	"DNA/events"
@@ -89,6 +90,7 @@ type Noder interface {
 	SetMinerAddr(pk *crypto.PubKey)
 	GetNeighborHeights() ([]uint64, uint64)
 	SyncNodeHeight()
+	CleanSubmittedTransactions(block *ledger.Block) error
 }
 
 type JsonNoder interface {

@@ -1,21 +1,21 @@
 package httpjsonrpc
 
 import (
-	"DNA/consensus/dbft"
 	. "DNA/common"
+	"DNA/consensus/dbft"
 	. "DNA/core/transaction"
 	tx "DNA/core/transaction"
 	. "DNA/net/protocol"
 	"encoding/json"
 	"io/ioutil"
-	"sync"
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 )
 
 func init() {
-	mainMux.m = make(map[string]func(*http.Request, map[string]interface{}) map[string]interface{})
+	mainMux.m = make(map[string]func(map[string]interface{}) map[string]interface{})
 }
 
 //an instance of the multiplexer
@@ -26,7 +26,7 @@ var dBFT *dbft.DbftService
 //multiplexer that keeps track of every function to be called on specific rpc call
 type ServeMux struct {
 	sync.RWMutex
-	m               map[string]func(*http.Request, map[string]interface{}) map[string]interface{}
+	m               map[string]func(map[string]interface{}) map[string]interface{}
 	defaultFunction func(http.ResponseWriter, *http.Request)
 }
 
@@ -59,12 +59,12 @@ type TxoutputMap struct {
 }
 
 type AmountMap struct {
-	Key Uint256
+	Key   Uint256
 	Value Fixed64
 }
 
 type ProgramInfo struct {
-	Code string
+	Code      string
 	Parameter string
 }
 
@@ -82,8 +82,8 @@ type Transactions struct {
 	AssetOutputs      []TxoutputMap
 	AssetInputAmount  []AmountMap
 	AssetOutputAmount []AmountMap
-	
-	Hash  string
+
+	Hash string
 }
 
 type BlockHead struct {
@@ -95,8 +95,8 @@ type BlockHead struct {
 	ConsensusData    uint64
 	NextMiner        string
 	Program          ProgramInfo
-	
-	Hash             string
+
+	Hash string
 }
 
 type BlockInfo struct {
@@ -126,8 +126,8 @@ type NodeInfo struct {
 	Services uint64 // The services the node supplied
 	Relay    bool   // The relay capability of the node (merge into capbility flag)
 	Height   uint64 // The node latest block height
-	TxnCnt	  uint64 // The transactions be transmit by this node
-	RxTxnCnt  uint64 // The transaction received by this node
+	TxnCnt   uint64 // The transactions be transmit by this node
+	RxTxnCnt uint64 // The transaction received by this node
 }
 
 type ConsensusInfo struct {
@@ -147,7 +147,7 @@ func RegistDbftService(d *dbft.DbftService) {
 }
 
 //a function to register functions to be called for specific rpc calls
-func HandleFunc(pattern string, handler func(*http.Request, map[string]interface{}) map[string]interface{}) {
+func HandleFunc(pattern string, handler func(map[string]interface{}) map[string]interface{}) {
 	mainMux.Lock()
 	defer mainMux.Unlock()
 	mainMux.m[pattern] = handler
@@ -208,7 +208,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 	function, ok := mainMux.m[request["method"].(string)]
 
 	if ok {
-		response := function(r, request)
+		response := function(request)
 		//response from the program is encoded
 		data, err := json.Marshal(response)
 		if err != nil {

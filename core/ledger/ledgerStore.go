@@ -24,10 +24,16 @@ type ILedgerStore interface {
 	GetAsset(hash Uint256) (*Asset, error)
 
 	GetCurrentBlockHash() Uint256
+	GetCurrentHeaderHash() Uint256
+	GetHeaderHeight() uint32
+	GetHeight() uint32
 
 	Close() error
 
 	InitLevelDBStoreWithGenesisBlock( genesisblock * Block  )
 
 	GetQuantityIssued(AssetId Uint256) (*Fixed64, error)
+	
+	GetUnspent(txid Uint256, index uint16) (*tx.TxOutput, error)
+	ContainsUnspent(txid Uint256, index uint16) (bool,error)
 }

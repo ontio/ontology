@@ -3,6 +3,7 @@ package net
 import (
 	"DNA/common"
 	"DNA/config"
+	"DNA/core/ledger"
 	"DNA/core/transaction"
 	"DNA/crypto"
 	"DNA/events"
@@ -16,6 +17,7 @@ type Neter interface {
 	Xmit(common.Inventory) error // The transmit interface
 	GetEvent(eventName string) *events.Event
 	GetMinersAddrs() ([]*crypto.PubKey, uint64)
+	CleanSubmittedTransactions(block *ledger.Block) error
 }
 
 func StartProtocol(pubKey *crypto.PubKey) (Neter, protocol.Noder) {
