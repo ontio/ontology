@@ -34,7 +34,7 @@ type node struct {
 	services  uint64 // The services the node supplied
 	relay     bool   // The relay capability of the node (merge into capbility flag)
 	height    uint64 // The node latest block height
-	txnCnt	  uint64 // The transactions be transmit by this node
+	txnCnt    uint64 // The transactions be transmit by this node
 	rxTxnCnt  uint64 // The transaction received by this node
 	publicKey *crypto.PubKey
 	// TODO does this channel should be a buffer channel
@@ -45,6 +45,11 @@ type node struct {
 	eventQueue                   // The event queue to notice notice other modules
 	TXNPool                      // Unconfirmed transaction pool
 	idCache                      // The buffer to store the id of the items which already be processed
+	/*
+	 * |--|--|--|--|--|--|isSyncFailed|isSyncHeaders|
+	 */
+	syncFlag     uint8
+	TxNotifyChan chan int
 }
 
 func (node node) DumpInfo() {
@@ -291,5 +296,49 @@ func (node node) SyncNodeHeight() {
 		}
 		<-time.After(5 * time.Second)
 	}
+}
 
+func (node node) IsSyncHeaders() bool {
+	if (node.syncFlag & 0x01) == 0x01 {
+		return true
+	} else {
+		return false
+	}
+}
+
+func (node *node) SetSyncHeaders(b bool) {
+	if b == true {
+		node.syncFlag = node.syncFlag | 0x01
+	} else {
+		node.syncFlag = node.syncFlag & 0xFE
+	}
+}
+
+func (node node) IsSyncFailed() bool {
+	if (node.syncFlag & 0x02) == 0x02 {
+		return true
+	} else {
+		return false
+	}
+}
+
+func (node *node) SetSyncFailed() {
+	node.syncFlag = node.syncFlag | 0x02
+}
+
+func (node *node) StartRetryTimer() {
+	t := time.NewTimer(time.Second * 2)
+	node.TxNotifyChan = make(chan int, 1)
+	go func() {
+		select {
+		case <-t.C:
+			ReqBlkHdrFromOthers(node)
+		case <-node.TxNotifyChan:
+			t.Stop()
+		}
+	}()
+}
+
+func (node node) StopRetryTimer() {
+	node.TxNotifyChan <- 1
 }

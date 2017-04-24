@@ -258,7 +258,7 @@ func (bd *LevelDBStore) SaveAsset(assetid Uint256, asset *Asset) error {
 	// generate key
 	assetkey := bytes.NewBuffer(nil)
 	// add asset prefix.
-	assetkey.WriteByte(byte(ST_QuantityIssued))
+	assetkey.WriteByte(byte(ST_Info))
 	// contact asset id
 	assetid.Serialize(assetkey)
 
@@ -278,7 +278,7 @@ func (bd *LevelDBStore) GetAsset(hash Uint256) (*Asset, error) {
 
 	asset := new(Asset)
 
-	prefix := []byte{byte(ST_QuantityIssued)}
+	prefix := []byte{byte(ST_Info)}
 	data, err_get := bd.Get(append(prefix, hash.ToArray()...))
 
 	log.Debug(fmt.Sprintf("GetAsset Data: %x\n", data))
@@ -403,6 +403,7 @@ func (bd *LevelDBStore) GetBlock(hash Uint256) (*Block, error) {
 
 func (bd *LevelDBStore) persist(b *Block) error {
 	unspents := make(map[Uint256][]uint16)
+	quantities := make(map[Uint256]Fixed64)
 	///////////////////////////////////////////////////////////////
 	// Get Unspents for every tx
 	unspentprefix := []byte{byte(IX_Unspent)}
@@ -483,6 +484,21 @@ func (bd *LevelDBStore) persist(b *Block) error {
 			}
 		}
 
+		if b.Transactions[i].TxType == tx.IssueAsset {
+			results, err := b.Transactions[i].GetTransactionResults()
+			if err != nil {
+				return err
+			}
+
+			for _, result := range results {
+				if _, ok := quantities[result.AssetId]; !ok {
+					quantities[result.AssetId] -= result.Amount
+				} else {
+					quantities[result.AssetId] = -result.Amount
+				}
+			}
+		}
+
 		// init unspent in tx
 		for index := 0; index < len(b.Transactions[i].Outputs); index++ {
 			txhash := b.Transactions[i].Hash()
@@ -510,7 +526,8 @@ func (bd *LevelDBStore) persist(b *Block) error {
 			// find Transactions[i].UTXOInputs[index].ReferTxOutputIndex and delete it
 			for k := 0; k < len(unspents[txhash]); k++ {
 				if unspents[txhash][k] == uint16(b.Transactions[i].UTXOInputs[index].ReferTxOutputIndex) {
-					unspents[txhash] = append(unspents[txhash][:k], unspents[txhash][k+1:]...)
+					unspents[txhash] = append(unspents[txhash], unspents[txhash][:k]...)
+					unspents[txhash] = append(unspents[txhash], unspents[txhash][k+1:]...)
 					break
 				}
 			}
@@ -530,6 +547,27 @@ func (bd *LevelDBStore) persist(b *Block) error {
 			unspentarray := ToByteArray(value)
 			batch.Put(unspentkey.Bytes(), unspentarray)
 		}
+	}
+
+	// batch put quantities
+	for assetid, value := range quantities {
+		quantitykey := bytes.NewBuffer(nil)
+		quantitykey.WriteByte(byte(ST_QuantityIssued))
+		assetid.Serialize(quantitykey)
+
+		qt, err := bd.GetQuantityIssued(assetid)
+		if err != nil {
+			return err
+		}
+
+		qt = qt + value
+
+		quantityarray := bytes.NewBuffer(nil)
+		qt.Serialize(quantityarray)
+
+		batch.Put(quantitykey.Bytes(), quantityarray.Bytes())
+		log.Debug(fmt.Sprintf("quantitykey: %x\n", quantitykey.Bytes()))
+		log.Debug(fmt.Sprintf("quantityarray: %x\n", quantityarray.Bytes()))
 	}
 
 	// save hash with height
@@ -672,7 +710,7 @@ func (bd *LevelDBStore) SaveBlock(b *Block, ledger *Ledger) error {
 
 	if b.Blockdata.Height == uint32(len(bd.header_index)) {
 		//Block verify
-		err := validation.VerifyBlock(b, ledger, true)
+		err := validation.VerifyBlock(b, ledger, false)
 		if err != nil {
 			log.Debug("VerifyBlock() error!")
 			return err
@@ -700,8 +738,22 @@ func (bd *LevelDBStore) SaveBlock(b *Block, ledger *Ledger) error {
 	return nil
 }
 
-func (bd *LevelDBStore) GetQuantityIssued(AssetId Uint256) (*Fixed64, error) {
-	return nil, nil
+func (bd *LevelDBStore) GetQuantityIssued(assetid Uint256) (Fixed64, error) {
+	log.Debug(fmt.Sprintf("GetQuantityIssued Hash: %x\n", assetid))
+
+	prefix := []byte{byte(ST_QuantityIssued)}
+	data, err_get := bd.Get(append(prefix, assetid.ToArray()...))
+	log.Debug(fmt.Sprintf("GetQuantityIssued Data: %x\n", data))
+
+	var quantity Fixed64
+	if err_get != nil {
+		quantity = Fixed64(0)
+	} else {
+		r := bytes.NewReader(data)
+		quantity.Deserialize(r)
+	}
+
+	return quantity, nil
 }
 
 func (bd *LevelDBStore) GetUnspent(txid Uint256, index uint16) (*tx.TxOutput, error) {

@@ -18,6 +18,7 @@ const (
 	IX_Vote			DataEntryPrefix = 0x94
 
 	// ASSET
+	ST_Info			DataEntryPrefix = 0xc0
 	ST_QuantityIssued	DataEntryPrefix = 0xc1
 
 	//SYSTEM

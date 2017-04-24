@@ -5,6 +5,7 @@ import (
 	"DNA/common/serialization"
 	"io"
 	"math"
+	"fmt"
 )
 
 type UTXOTxInput struct {
@@ -36,6 +37,10 @@ func (ui *UTXOTxInput) Deserialize(r io.Reader) error {
 	}
 
 	return nil
+}
+
+func (ui *UTXOTxInput) ToString() string{
+	return fmt.Sprintf("%x%x", ui.ReferTxID.ToString(), ui.ReferTxOutputIndex)
 }
 
 func (ui *UTXOTxInput) Equals(other *UTXOTxInput) bool {
