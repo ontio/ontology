@@ -7,4 +7,3 @@ install:
 
 go:
   - 1.7.x
-  - master

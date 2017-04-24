@@ -161,13 +161,6 @@ func OpenClientAndGetAccount() Client {
 		c4 = CreateClient("wallet4.txt", []byte("\x12\x34\x56"))
 	}
 
-	var c Client
-	if fileExisted("wallet.txt") {
-		c = OpenClient("wallet.txt", []byte("\x12\x34\x56"))
-	} else {
-		c = CreateClient("wallet.txt", []byte("\x12\x34\x56"))
-	}
-
 	switch clientName {
 	case "c1":
 		return c1
@@ -178,6 +171,13 @@ func OpenClientAndGetAccount() Client {
 	case "c4":
 		return c4
 	case "c":
+		var c Client
+		if fileExisted("wallet.txt") {
+			c = OpenClient("wallet.txt", []byte("\x12\x34\x56"))
+		} else {
+			c = CreateClient("wallet.txt", []byte("\x12\x34\x56"))
+		}
+
 		return c
 	default:
 		fmt.Printf("Please Check your client's ENV SET, if you are standby miners schould be c1,c2,c3,c4.If not, should be c. Now is %s.\n", clientName)
