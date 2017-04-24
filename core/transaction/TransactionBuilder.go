@@ -64,7 +64,6 @@ func NewTransferAssetTransaction(inputs []*UTXOTxInput, outputs []*TxOutput) (*T
 
 //initial a new transaction with record payload
 func NewRecordTransaction(recordType string, recordData []byte) (*Transaction, error) {
-
 	//TODO: check arguments
 	recordPayload := &payload.Record{
 		RecordType: recordType,
