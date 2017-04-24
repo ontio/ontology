@@ -671,7 +671,7 @@ func (bd *LevelDBStore) SaveBlock(b *Block, ledger *Ledger) error {
 
 	if b.Blockdata.Height == uint32(len(bd.header_index)) {
 		//Block verify
-		err := validation.VerifyBlock(b, ledger, true)
+		err := validation.VerifyBlock(b, ledger, false)
 		if err != nil {
 			log.Debug("VerifyBlock() error!")
 			return err

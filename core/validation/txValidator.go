@@ -26,12 +26,10 @@ func VerifyTransaction(Tx *tx.Transaction, ledger *ledger.Ledger, TxPool []*tx.T
 		return err
 	}
 
-	if TxPool != nil {
-		err = CheckMemPool(Tx, TxPool)
-		if err != nil {
-			return err
-		}
-	}
+	//this func is changed to can process by Goroutine ,so move out this func individually in below.
+	//if CheckMemPool(Tx, TxPool) {
+	//	return fmt.Errorf("There is duplicated Tx Input with Tx Pool.")
+	//}
 
 	err = CheckAssetPrecision(Tx)
 	if err != nil {
@@ -83,12 +81,10 @@ func VerifyTransaction(Tx *tx.Transaction, ledger *ledger.Ledger, TxPool []*tx.T
 
 			//calc the amounts in txPool
 			var txPoolAmounts common.Fixed64
-			if TxPool != nil {
-				for _, t := range TxPool {
-					for _, outputs := range t.Outputs {
-						if outputs.AssetID == v.AssetId {
-							txPoolAmounts = txPoolAmounts + v.Amount
-						}
+			for _, t := range TxPool {
+				for _, outputs := range t.Outputs {
+					if outputs.AssetID == v.AssetId {
+						txPoolAmounts = txPoolAmounts + outputs.Value * -1
 					}
 				}
 			}
@@ -109,6 +105,55 @@ func VerifyTransaction(Tx *tx.Transaction, ledger *ledger.Ledger, TxPool []*tx.T
 	}
 
 	return nil
+}
+
+
+//Use for verify request, only response validate/invalidate.
+func VerifyTransactionPoolWhenResponse (txPool  []*tx.Transaction)bool{
+	if len(txPool) == 0 {
+		return true
+	}
+
+	utxoMap := make(map[string]bool, 0)
+	for _, t := range txPool{
+		for _, u := range t.UTXOInputs{
+			utxo := u.ToString()
+			if _, ok := utxoMap[utxo]; ok {
+				return false
+			}else{
+				utxoMap[utxo] = true
+			}
+		}
+	}
+
+	return true
+}
+
+//Use for request by miner.
+//remove the invalidate transaction from process context and tell the caller which should be removed.
+func VerifyTransactionPoolWhenRequest(txPool  map[common.Uint256]*tx.Transaction)(txs []common.Uint256,NewPool map[common.Uint256]*tx.Transaction){
+	if len(txPool) == 0 {
+		return nil,txPool
+	}
+
+	errorTxs :=  []common.Uint256{}
+	utxoMap := make(map[string]common.Uint256, 0)
+	for k, t := range txPool{
+		for _, u := range t.UTXOInputs{
+			utxo := u.ToString()
+			if v, ok := utxoMap[utxo]; ok {
+				delete(txPool,v)
+				delete(txPool,k)
+				errorTxs = append(errorTxs,k)
+				errorTxs = append(errorTxs,v)
+				continue
+			}else{
+				utxoMap[utxo] = k
+			}
+		}
+	}
+
+	return errorTxs,txPool
 }
 
 func CheckMemPool(tx *tx.Transaction, TxPool []*tx.Transaction) error {
