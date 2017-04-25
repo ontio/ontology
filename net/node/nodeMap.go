@@ -142,3 +142,15 @@ func (node *node) GetNeighborNoder() []Noder {
 	}
 	return nodes
 }
+
+func (node *node) GetNbrNodeCnt() uint32 {
+	node.nbrNodes.RLock()
+	defer node.nbrNodes.RUnlock()
+	var count uint32
+	for _, n := range node.nbrNodes.List {
+		if n.GetState() == ESTABLISH {
+			count++
+		}
+	}
+	return count
+}

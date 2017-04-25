@@ -29,6 +29,7 @@ const (
 	MAXBLKHDRCNT = 2000
 	MAXINVHDRCNT = 500
 	DIVHASHLEN   = 5
+	MINCONNCNT   = 4
 )
 const (
 	HELLOTIMEOUT     = 3 // Seconds
@@ -99,6 +100,7 @@ type Noder interface {
 	StartRetryTimer()
 	StopRetryTimer()
 	GetNeighborNoder() []Noder
+	GetNbrNodeCnt() uint32
 }
 
 type JsonNoder interface {

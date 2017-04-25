@@ -1,6 +1,7 @@
 package node
 
 import (
+	"DNA/common/log"
 	"DNA/core/ledger"
 	. "DNA/net/message"
 	. "DNA/net/protocol"
@@ -12,14 +13,19 @@ func keepAlive(from *Noder, dst *Noder) {
 }
 
 func (node *node) GetBlkHdrs() {
-	node.local.nbrNodes.RLock()
-	defer node.local.nbrNodes.RUnlock()
-	for _, n := range node.local.List {
-		h1 := n.GetHeight()
-		h2 := ledger.DefaultLedger.GetLocalBlockChainHeight()
-		if (node.GetState() == ESTABLISH) && (h1 > uint64(h2)) {
-			buf, _ := NewMsg("getheaders", node.local)
-			go node.Tx(buf)
+	if node.local.GetNbrNodeCnt() < MINCONNCNT {
+		return
+	}
+
+	noders := node.local.GetNeighborNoder()
+	for _, n := range noders {
+		log.Debug("local header height is ", ledger.DefaultLedger.Store.GetHeaderHeight(), " ,other's height is ", n.GetHeight())
+		if uint64(ledger.DefaultLedger.Store.GetHeaderHeight()) < n.GetHeight() {
+			if n.LocalNode().IsSyncFailed() == false {
+				SendMsgSyncHeaders(n)
+				n.StartRetryTimer()
+				break
+			}
 		}
 	}
 }
@@ -37,7 +43,7 @@ func (node node) updateNodeInfo() {
 	for {
 		select {
 		case <-ticker.C:
-			//log.Trace()
+			//GetHeaders process haven't finished yet. So comment it now.
 			node.GetBlkHdrs()
 		case <-quit:
 			ticker.Stop()

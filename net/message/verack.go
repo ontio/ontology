@@ -74,16 +74,6 @@ func (msg verACK) Handle(node Noder) error {
 	// node which will trigger a warning
 	node.ReqNeighborList()
 
-	// The getheaders process haven't finished yet. So add comments now.
-
-	/*
-		if uint64(ledger.DefaultLedger.Store.GetHeaderHeight()) < node.GetHeight() {
-			if node.LocalNode().IsSyncHeaders() == false {
-				SendMsgSyncHeaders(node)
-				node.StartRetryTimer()
-			}
-		}
-	*/
 	if uint64(ledger.DefaultLedger.Blockchain.BlockHeight) < node.GetHeight() {
 		buf, err := NewBlocksReq(node)
 		if err != nil {
