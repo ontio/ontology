@@ -52,13 +52,31 @@ func NewTransferAssetTransaction(inputs []*UTXOTxInput, outputs []*TxOutput) (*T
 
 	assetRegPayload := &payload.TransferAsset{}
 
+    return &Transaction{
+        UTXOInputs: []*UTXOTxInput{},
+        BalanceInputs: []*BalanceTxInput{},
+        Attributes: []*TxAttribute{},
+        TxType: TransferAsset,
+        Payload: assetRegPayload,
+        Programs: []*program.Program{},
+    }, nil
+}
+
+//initial a new transaction with record payload
+func NewRecordTransaction(recordType string, recordData []byte) (*Transaction, error) {
+	//TODO: check arguments
+	recordPayload := &payload.Record{
+		RecordType: recordType,
+		RecordData: recordData,
+	}
+
 	return &Transaction{
-		TxType:        TransferAsset,
-		Payload:       assetRegPayload,
+		TxType:        Record,
+		Payload:       recordPayload,
 		Attributes:    []*TxAttribute{},
-		UTXOInputs:    inputs,
+		UTXOInputs:    []*UTXOTxInput{},
 		BalanceInputs: []*BalanceTxInput{},
-		Outputs:       outputs,
 		Programs:      []*program.Program{},
 	}, nil
 }
+

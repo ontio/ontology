@@ -199,8 +199,10 @@ func (tx *Transaction) DeserializeUnsignedWithoutType(r io.Reader) error {
 	} else if tx.TxType == TransferAsset {
 		// Transfer Asset
 		tx.Payload = new(payload.TransferAsset)
-	}else if tx.TxType == BookKeeping{
+	}else if tx.TxType == BookKeeping {
 		tx.Payload = new(payload.BookKeeping)
+	} else if tx.TxType == Record {
+		tx.Payload = new(payload.Record)
 	}
 	tx.Payload.Deserialize(r)
 	//attributes
@@ -330,6 +332,7 @@ func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 		}
 
 	case TransferAsset:
+	case Record:
 	default:
 	}
 	sort.Sort(byProgramHashes(hashs))
