@@ -5,6 +5,7 @@ import (
 	"DNA/common/log"
 	"DNA/core/ledger"
 	"DNA/core/transaction"
+	va "DNA/core/validation"
 	"DNA/errors"
 	msg "DNA/net/message"
 	. "DNA/net/protocol"
@@ -27,17 +28,38 @@ func (txnPool *TXNPool) GetTransaction(hash common.Uint256) *transaction.Transac
 }
 
 func (txnPool *TXNPool) AppendTxnPool(txn *transaction.Transaction) bool {
-	txnPool.Lock()
-	defer txnPool.Unlock()
+	txnPool.RLock()
+	txs := []*transaction.Transaction{}
+	for _, v := range txnPool.list {
+		txs = append(txs, v)
 
-	hash := txn.Hash()
-	if _, ret := txnPool.list[hash]; ret {
+	}
+	var wg sync.WaitGroup
+	var se chan error = make(chan error, len(txs))
+	for _, txn := range txs {
+		wg.Add(1)
+		go func(t *transaction.Transaction, ts []*transaction.Transaction) {
+			err := va.VerifyTransaction(t, ledger.DefaultLedger, ts)
+			if err != nil {
+				log.Warn(fmt.Sprintf("VerifyTransaction failed: %v", txn.Hash()))
+				se <- err
+			}
+			wg.Done()
+		}(txn, txs)
+	}
+	wg.Wait()
+	txnPool.RUnlock()
+
+	if len(se) > 0 {
+		log.Error("Append tx to tx pool error")
 		return false
-	} else {
-		txnPool.list[hash] = txn
-		txnPool.txnCnt++
 	}
 
+	hash := txn.Hash()
+	txnPool.Lock()
+	txnPool.list[hash] = txn
+	txnPool.txnCnt++
+	txnPool.Unlock()
 	return true
 }
 
