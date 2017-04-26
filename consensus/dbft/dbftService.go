@@ -71,11 +71,22 @@ func (ds *DbftService) AddTransaction(TX *tx.Transaction, needVerify bool) error
 
 	//verify the TX
 	if needVerify {
-		err := va.VerifyTransaction(TX, ledger.DefaultLedger, ds.context.GetTransactionList())
-		if err != nil {
+		if err := va.VerifyTransaction(TX); err != nil {
 			log.Warn(fmt.Sprintf("[AddTransaction] TX Verfiy failed: %v", TX.Hash()))
 			ds.RequestChangeView()
 			return errors.New("TX Verfiy failed.")
+		}
+
+		if err := va.VerifyTransactionWithTxPool(TX, ds.context.GetTransactionList()); err != nil {
+			log.Warn(fmt.Sprintf("[AddTransaction] TX Verfiy with Txpool failed: %v", TX.Hash()))
+			ds.RequestChangeView()
+			return errors.New("TX Verfiy with txpool failed.")
+		}
+
+		if err := va.VerifyTransactionWithLedger(TX, ledger.DefaultLedger); err != nil {
+			log.Warn(fmt.Sprintf("[AddTransaction] TX Verfiy with Ledger failed: %v", TX.Hash()))
+			ds.RequestChangeView()
+			return errors.New("TX Verfiy with ledger failed.")
 		}
 	}
 

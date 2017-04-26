@@ -9,50 +9,35 @@ import (
 	"math"
 )
 
-//Verfiy the transcation for following points
-//- Well format
-//- No duplicated inputs
-//- inputs/outputs balance
-//- Transcation contracts pass
-func VerifyTransaction(Tx *tx.Transaction, ledger *ledger.Ledger, TxPool []*tx.Transaction) error {
+// VerifyTransaction verifys received single transaction
+func VerifyTransaction(Tx *tx.Transaction) error {
 
-	err := CheckDuplicateInput(Tx)
-	if err != nil {
+	if err := CheckDuplicateInput(Tx); err != nil {
 		return err
 	}
 
-	err = CheckDuplicateInputInTxPool(Tx, TxPool)
-	if err != nil {
+	if err := CheckAssetPrecision(Tx); err != nil {
 		return err
 	}
 
-	err = IsDoubleSpend(Tx, ledger)
-	if err != nil {
+	if err := CheckTransactionBalance(Tx); err != nil {
 		return err
 	}
 
-	//this func is changed to can process by Goroutine ,so move out this func individually in below.
-	//if CheckMemPool(Tx, TxPool) {
-	//	return fmt.Errorf("There is duplicated Tx Input with Tx Pool.")
-	//}
-
-	err = CheckAssetPrecision(Tx)
-	if err != nil {
+	if err := CheckAttributeProgram(Tx); err != nil {
 		return err
 	}
 
-	err = CheckTransactionBalance(Tx)
-	if err != nil {
+	if err := CheckTransactionContracts(Tx); err != nil {
 		return err
 	}
 
-	err = CheckAttributeProgram(Tx)
-	if err != nil {
-		return err
-	}
+	return nil
+}
 
-	err = CheckTransactionContracts(Tx)
-	if err != nil {
+// VerifyTransactionWithTxPool verifys a transaction with current transaction pool in memory
+func VerifyTransactionWithTxPool(Tx *tx.Transaction, TxPool []*tx.Transaction) error {
+	if err := CheckDuplicateInputInTxPool(Tx, TxPool); err != nil {
 		return err
 	}
 
@@ -105,7 +90,14 @@ func VerifyTransaction(Tx *tx.Transaction, ledger *ledger.Ledger, TxPool []*tx.T
 			}
 		}
 	}
+	return nil
+}
 
+// VerifyTransactionWithLedger verifys a transaction with history transaction in ledger
+func VerifyTransactionWithLedger(Tx *tx.Transaction, ledger *ledger.Ledger) error {
+	if err := IsDoubleSpend(Tx, ledger); err != nil {
+		return err
+	}
 	return nil
 }
 

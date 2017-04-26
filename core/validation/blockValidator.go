@@ -37,6 +37,7 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 	//verfiy block's transactions
 	if completely {
 		/*
+			//TODO: NextMiner Check.
 			mineraddress, err := ledger.GetMinerAddress(ld.Blockchain.GetMinersByTXs(block.Transactions))
 			if err != nil {
 				return errors.New(fmt.Sprintf("GetMinerAddress Failed."))
@@ -45,13 +46,12 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 				return errors.New(fmt.Sprintf("Miner is not validate."))
 			}
 		*/
-		//TODO: NextMiner Check.
-		for num, txVerify := range block.Transactions {
-			transpool := []*tx.Transaction{}
-			transpool = append(block.Transactions[:num], block.Transactions[num+1:]...)
-			err := VerifyTransaction(txVerify, ld, transpool)
-			if err != nil {
-				return errors.New(fmt.Sprintf("The Input is exist in serval transaction in one block."))
+		for _, txVerify := range block.Transactions {
+			if err := VerifyTransaction(txVerify); err != nil {
+				return errors.New(fmt.Sprintf("VerifyTransaction error when verifiy block"))
+			}
+			if err := VerifyTransactionWithLedger(txVerify, ledger.DefaultLedger); err != nil {
+				return errors.New(fmt.Sprintf("VerifyTransactionWithLedger error when verifiy block"))
 			}
 		}
 	}

@@ -28,34 +28,19 @@ func (txnPool *TXNPool) GetTransaction(hash common.Uint256) *transaction.Transac
 }
 
 func (txnPool *TXNPool) AppendTxnPool(txn *transaction.Transaction) bool {
-	txnPool.RLock()
 	txs := []*transaction.Transaction{}
+	hash := txn.Hash()
+	txnPool.RLock()
 	for _, v := range txnPool.list {
 		txs = append(txs, v)
-
 	}
-	var wg sync.WaitGroup
-	var se chan error = make(chan error, len(txs))
-	for _, txn := range txs {
-		wg.Add(1)
-		go func(t *transaction.Transaction, ts []*transaction.Transaction) {
-			err := va.VerifyTransaction(t, ledger.DefaultLedger, ts)
-			if err != nil {
-				log.Warn(fmt.Sprintf("VerifyTransaction failed: %v", txn.Hash()))
-				se <- err
-			}
-			wg.Done()
-		}(txn, txs)
-	}
-	wg.Wait()
 	txnPool.RUnlock()
-
-	if len(se) > 0 {
-		log.Error("Append tx to tx pool error")
+	if err := va.VerifyTransactionWithTxPool(txn, txs); err != nil {
+		log.Warn(fmt.Sprintf("The trasaction %s is not verified",
+			common.ToHexString(hash.ToArray())))
 		return false
 	}
 
-	hash := txn.Hash()
 	txnPool.Lock()
 	txnPool.list[hash] = txn
 	txnPool.txnCnt++
