@@ -72,9 +72,8 @@ func unpackNodeBuf(node *node, buf []byte) {
 func (node *node) rx() error {
 	conn := node.getConn()
 	from := conn.RemoteAddr().String()
-
+	buf := make([]byte, MAXBUFLEN)
 	for {
-		buf := make([]byte, MAXBUFLEN)
 		len, err := conn.Read(buf[0:(MAXBUFLEN - 1)])
 		buf[MAXBUFLEN-1] = 0 //Prevent overflow
 		switch err {
