@@ -183,6 +183,7 @@ func CheckDuplicateInput(tx *tx.Transaction) error {
 }
 
 func CheckDuplicateInputInTxPool(tx *tx.Transaction, txPool []*tx.Transaction) error {
+	// TODO: Optimize performance with incremental checking and deal with the duplicated tx
 	var txInputs, txPoolInputs []string
 	for _, t := range tx.UTXOInputs {
 		txInputs = append(txInputs, t.ToString())
