@@ -69,6 +69,15 @@ func (a *TransferAssetInfo) Data() []byte {
 	return []byte{0}
 }
 
+type RecordInfo struct {
+	RecordType string
+	RecordData string
+}
+
+func (a *RecordInfo) Data() []byte {
+	return []byte{0}
+}
+
 func TransPayloadToHex(p Payload) PayloadInfo {
 	switch object := p.(type) {
 	case *payload.BookKeeping:
@@ -91,6 +100,11 @@ func TransPayloadToHex(p Payload) PayloadInfo {
 		obj.Amount = object.Amount
 		obj.Issuer = object.Issuer
 		obj.Controller = ToHexString(object.Controller.ToArray())
+		return obj
+	case *payload.Record:
+		obj := new(RecordInfo)
+		obj.RecordType = object.RecordType
+		obj.RecordData = ToHexString(object.RecordData)
 		return obj
 	}
 	return nil

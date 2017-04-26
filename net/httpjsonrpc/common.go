@@ -108,7 +108,8 @@ type BlockInfo struct {
 type TxInfo struct {
 	Hash string
 	Hex  string
-	Tx   *tx.Transaction
+	//Tx   *tx.Transaction
+	Tx   *Transactions
 }
 
 type TxoutInfo struct {

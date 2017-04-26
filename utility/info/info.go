@@ -10,7 +10,7 @@ import (
 var usage = `show info about blockchain`
 
 var flags = []string{"ip", "port", "rpcid", "height", "bestblockhash", "blockhash",
-	"txhash", "address", "blockcount", "connections", "neighbor", "state"}
+	"txhash", "address", "blockcount", "connections", "neighbor", "state", "rawtxhash", "rawtx"}
 
 func infoMain(args []string, p utility.Param) (err error) {
 	var resp []byte
@@ -34,7 +34,7 @@ func infoMain(args []string, p utility.Param) (err error) {
 		}
 		output = append(output, resp)
 	}
-	if txHash := p.TxHash; txHash !="" {
+	if txHash := p.TxHash; txHash != "" {
 		resp, err = httpjsonrpc.Call(addr, "getTxn", id, []interface{}{txHash, 1})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -89,6 +89,24 @@ func infoMain(args []string, p utility.Param) (err error) {
 
 	if p.NodeState {
 		resp, err := httpjsonrpc.Call(addr, "getnodestate", id, []interface{}{})
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return err
+		}
+		output = append(output, resp)
+	}
+
+	if rawTxHash := p.RawTxHash; rawTxHash != "" {
+		resp, err = httpjsonrpc.Call(addr, "getrawtransaction", id, []interface{}{rawTxHash, p.Flag})
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return err
+		}
+		output = append(output, resp)
+	}
+
+	if rawTx := p.RawTx; rawTx != "" {
+		resp, err = httpjsonrpc.Call(addr, "sendrawtransaction", id, []interface{}{rawTx, 0})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return err

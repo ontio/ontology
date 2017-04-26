@@ -216,26 +216,32 @@ func getRawMemPool(cmd map[string]interface{}) map[string]interface{} {
 func getRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	id := cmd["id"]
 	params := cmd["params"]
+	var hash Uint256
+
 	txid := params.([]interface{})[0].(string)
-	txidSlice, _ := hex.DecodeString(txid)
-	var txidArr Uint256
-	txidArr.Deserialize(bytes.NewReader(txidSlice[0:32]))
 	verbose := params.([]interface{})[1].(bool)
-	tx := node.GetTransaction(txidArr)
-	// FIXME Get transaction from ledger
+	hashslice, _ := hex.DecodeString(txid)
+	hash.Deserialize(bytes.NewReader(hashslice[0:32]))
+
+	tx, err := ledger.DefaultLedger.Store.GetTransaction(hash)
+	if err != nil {
+		return responsePacking([]interface{}{-100, "Unknown Transaction Hash"}, id)
+	}
+
+	tran := TransArryByteToHexString(tx)
 	txBuffer := bytes.NewBuffer([]byte{})
 	tx.Serialize(txBuffer)
+
 	if verbose == true {
 		t := TxInfo{
 			Hash: txid,
-			Hex:  hex.EncodeToString(txBuffer.Bytes()),
-			Tx:   tx,
+			Hex:  ToHexString(hash.ToArray()),
+			Tx:   tran,
 		}
 		response := responsePacking(t, id)
 		return response
 	}
-
-	return responsePacking(txBuffer.Bytes(), id)
+	return responsePacking(ToHexString(txBuffer.Bytes()), id)
 }
 
 func getTxout(cmd map[string]interface{}) map[string]interface{} {
@@ -255,13 +261,20 @@ func getTxout(cmd map[string]interface{}) map[string]interface{} {
 }
 
 func sendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
+	retFlag := false
 	id := cmd["id"]
-	hexValue := cmd["params"].(string)
+	params := cmd["params"]
+	//hexValue := cmd["params"].(string)
+	hexValue := params.([]interface{})[0].(string)
+
 	hexSlice, _ := hex.DecodeString(hexValue)
 	var txTransaction tx.Transaction
 	txTransaction.Deserialize(bytes.NewReader(hexSlice[:]))
 	err := node.Xmit(&txTransaction)
-	return responsePacking(err, id)
+	if err == nil {
+		retFlag = true
+	}
+	return responsePacking(retFlag, id)
 }
 
 func submitBlock(cmd map[string]interface{}) map[string]interface{} {
@@ -375,7 +388,7 @@ func sendSampleTransaction(cmd map[string]interface{}) map[string]interface{} {
 		SignTx(admin, NewRecordTx)
 		SendTx(NewRecordTx)
 
-		return responsePacking(fmt.Sprintf("regist: %x, issue: %x, transfer: x%, record: %x", regHash, issueHash, transferHash,recordHash), id)
+		return responsePacking(fmt.Sprintf("regist: %x, issue: %x, transfer: x%, record: %x", regHash, issueHash, transferHash, recordHash), id)
 	default:
 		return responsePacking("Invalid transacion type", id)
 	}
