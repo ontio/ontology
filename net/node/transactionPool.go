@@ -5,7 +5,6 @@ import (
 	"DNA/common/log"
 	"DNA/core/ledger"
 	"DNA/core/transaction"
-	va "DNA/core/validation"
 	"DNA/errors"
 	msg "DNA/net/message"
 	. "DNA/net/protocol"
@@ -28,19 +27,8 @@ func (txnPool *TXNPool) GetTransaction(hash common.Uint256) *transaction.Transac
 }
 
 func (txnPool *TXNPool) AppendTxnPool(txn *transaction.Transaction) bool {
-	txs := []*transaction.Transaction{}
 	hash := txn.Hash()
-	txnPool.RLock()
-	for _, v := range txnPool.list {
-		txs = append(txs, v)
-	}
-	txnPool.RUnlock()
-	if err := va.VerifyTransactionWithTxPool(txn, txs); err != nil {
-		log.Warn(fmt.Sprintf("The trasaction %s is not verified",
-			common.ToHexString(hash.ToArray())))
-		return false
-	}
-
+	// TODO: Call VerifyTransactionWithTxPool to verify tx
 	txnPool.Lock()
 	txnPool.list[hash] = txn
 	txnPool.txnCnt++
