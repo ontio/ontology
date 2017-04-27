@@ -188,7 +188,7 @@ func (bd *LevelDBStore) GetContract(hash []byte) ([]byte, error) {
 	return bData, nil
 }
 
-func (bd *LevelDBStore) getHeader(hash Uint256) *Header {
+func (bd *LevelDBStore) GetHeaderWithCache(hash Uint256) *Header {
 	bd.mu.RLock()
 	defer bd.mu.RUnlock()
 
@@ -202,7 +202,7 @@ func (bd *LevelDBStore) getHeader(hash Uint256) *Header {
 }
 
 func (bd *LevelDBStore) containsBlock(hash Uint256) bool {
-	header := bd.getHeader(hash)
+	header := bd.GetHeaderWithCache(hash)
 	return header.Blockdata.Height <= bd.current_block_height
 }
 
@@ -211,7 +211,7 @@ func (bd *LevelDBStore) VerifyHeader(header *Header) bool {
 		return true
 	}
 
-	prev_header := bd.getHeader(header.Blockdata.PrevBlockHash)
+	prev_header := bd.GetHeaderWithCache(header.Blockdata.PrevBlockHash)
 
 	if prev_header == nil {
 		return false
@@ -248,8 +248,7 @@ func (bd *LevelDBStore) AddHeaders(headers []Header, ledger *Ledger) error {
 		}
 
 		//header verify
-		flag := bd.VerifyHeader(&headers[i])
-		if !flag {
+		if !bd.VerifyHeader(&headers[i]) {
 			break
 		}
 
