@@ -27,17 +27,12 @@ func (txnPool *TXNPool) GetTransaction(hash common.Uint256) *transaction.Transac
 }
 
 func (txnPool *TXNPool) AppendTxnPool(txn *transaction.Transaction) bool {
-	txnPool.Lock()
-	defer txnPool.Unlock()
-
 	hash := txn.Hash()
-	if _, ret := txnPool.list[hash]; ret {
-		return false
-	} else {
-		txnPool.list[hash] = txn
-		txnPool.txnCnt++
-	}
-
+	// TODO: Call VerifyTransactionWithTxPool to verify tx
+	txnPool.Lock()
+	txnPool.list[hash] = txn
+	txnPool.txnCnt++
+	txnPool.Unlock()
 	return true
 }
 

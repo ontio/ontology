@@ -210,9 +210,5 @@ func (b *Block) RebuildMerkleRoot() error {
 }
 
 func (bd *Block) SerializeUnsigned(w io.Writer) error {
-	/*
-	* TODO Just Add for interface of signableDate.
-	* 2017/2/27 luodanwg
-	* */
-	return nil
+	return bd.Blockdata.SerializeUnsigned(w)
 }
