@@ -2,10 +2,12 @@ package validation
 
 import (
 	"DNA/common"
+	"DNA/common/log"
 	"DNA/core/ledger"
 	tx "DNA/core/transaction"
 	"DNA/core/transaction/payload"
 	"errors"
+	"fmt"
 	"math"
 )
 
@@ -41,18 +43,13 @@ func VerifyTransactionWithTxPool(Tx *tx.Transaction, TxPool []*tx.Transaction) e
 		return err
 	}
 
-	if Tx.TxType == tx.IssueAsset {
-		results, err := Tx.GetTransactionResults()
-		if err != nil {
-			return errors.New("[VerifyTransaction], GetTransactionResults failed.")
-		}
-
-		for _, v := range results {
+	//check by payload.
+	switch Tx.TxType {
+	case tx.IssueAsset:
+		results := Tx.GetMergedAssetIDValueFromOutputs()
+		for k, _ := range results {
 			//Get the Asset amount when RegisterAsseted.
-			trx, err := tx.TxStore.GetTransaction(v.AssetId)
-			if err != nil {
-				return errors.New("[VerifyTransaction], AssetId does exist.")
-			}
+			trx, err := tx.TxStore.GetTransaction(k)
 			if trx.TxType != tx.RegisterAsset {
 				return errors.New("[VerifyTransaction], TxType is illegal.")
 			}
@@ -63,18 +60,21 @@ func VerifyTransactionWithTxPool(Tx *tx.Transaction, TxPool []*tx.Transaction) e
 			if AssetReg.Amount < common.Fixed64(0) {
 				continue
 			} else {
-				quantity_issued, err = tx.TxStore.GetQuantityIssued(v.AssetId)
+				quantity_issued, err = tx.TxStore.GetQuantityIssued(k)
 				if err != nil {
 					return errors.New("[VerifyTransaction], GetQuantityIssued failed.")
 				}
 			}
 
-			//calc the amounts in txPool
+			//calc the amounts in txPool which are also IssueAsset
 			var txPoolAmounts common.Fixed64
 			for _, t := range TxPool {
-				for _, outputs := range t.Outputs {
-					if outputs.AssetID == v.AssetId {
-						txPoolAmounts = txPoolAmounts + outputs.Value*-1
+				if t.TxType == tx.IssueAsset {
+					outputResult := t.GetMergedAssetIDValueFromOutputs()
+					for txidInPool, txValueInPool := range outputResult {
+						if txidInPool == k {
+							txPoolAmounts = txPoolAmounts + txValueInPool
+						}
 					}
 				}
 			}
@@ -82,13 +82,23 @@ func VerifyTransactionWithTxPool(Tx *tx.Transaction, TxPool []*tx.Transaction) e
 			//calc weather out off the amount when Registed.
 			//AssetReg.Amount : amount when RegisterAsset of this assedID
 			//quantity_issued : amount has been issued of this assedID
-			//txPoolAmounts   : amount in transactionPool of this assedID
-
-			// TODO: check this after the function TxStore.GetQuantityIssued works
+			//txPoolAmounts   : amount in transactionPool of this assedID of issue transaction.
 			if AssetReg.Amount-quantity_issued < txPoolAmounts {
 				return errors.New("[VerifyTransaction], Amount check error.")
 			}
 		}
+	case tx.TransferAsset:
+		results, err := Tx.GetTransactionResults()
+		if err != nil {
+			return err
+		}
+		for k, v := range results {
+			if v != 0 {
+				log.Debug(fmt.Sprintf("AssetID %x in Transfer transactions %x , Input/output UTXO not equal.", k, Tx.Hash()))
+				return errors.New(fmt.Sprintf("AssetID %x in Transfer transactions %x , Input/output UTXO not equal.", k, Tx.Hash()))
+			}
+		}
+	default:
 	}
 	return nil
 }

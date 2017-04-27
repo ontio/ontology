@@ -10,9 +10,9 @@ import (
 	. "DNA/errors"
 	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io"
 	"sort"
-	"fmt"
 )
 
 //for different transaction types with different payload format
@@ -24,8 +24,8 @@ const (
 	RegisterAsset TransactionType = 0x40
 	IssueAsset    TransactionType = 0x01
 	TransferAsset TransactionType = 0x10
-	Record         TransactionType = 0x11
-	DeployCode	TransactionType = 0xd0
+	Record        TransactionType = 0x11
+	DeployCode    TransactionType = 0xd0
 )
 
 //Payload define the func for loading the payload data
@@ -65,19 +65,19 @@ type Transaction struct {
 }
 
 //Serialize the Transaction
-func (tx *Transaction) Serialize(w io.Writer) error{
+func (tx *Transaction) Serialize(w io.Writer) error {
 
-	err :=tx.SerializeUnsigned(w)
+	err := tx.SerializeUnsigned(w)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "Transaction txSerializeUnsigned Serialize failed.")
 	}
 	//Serialize  Transaction's programs
 	lens := uint64(len(tx.Programs))
-	err =serialization.WriteVarUint(w, lens)
+	err = serialization.WriteVarUint(w, lens)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "Transaction WriteVarUint failed.")
 	}
-	if lens >0 {
+	if lens > 0 {
 		for _, p := range tx.Programs {
 			err = p.Serialize(w)
 			if err != nil {
@@ -154,7 +154,7 @@ func (tx *Transaction) Deserialize(r io.Reader) error {
 	lens, _ := serialization.ReadVarUint(r, 0)
 
 	programHashes := []*program.Program{}
-	if lens>0 {
+	if lens > 0 {
 		for i := 0; i < int(lens); i++ {
 			outputHashes := new(program.Program)
 			outputHashes.Deserialize(r)
@@ -199,7 +199,7 @@ func (tx *Transaction) DeserializeUnsignedWithoutType(r io.Reader) error {
 	} else if tx.TxType == TransferAsset {
 		// Transfer Asset
 		tx.Payload = new(payload.TransferAsset)
-	}else if tx.TxType == BookKeeping {
+	} else if tx.TxType == BookKeeping {
 		tx.Payload = new(payload.BookKeeping)
 	} else if tx.TxType == Record {
 		tx.Payload = new(payload.Record)
@@ -310,24 +310,24 @@ func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 		}
 		hashs = append(hashs, astHash)
 	case IssueAsset:
-		result, err := tx.GetTransactionResults()
+		result := tx.GetMergedAssetIDValueFromOutputs()
 		if err != nil {
 			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetTransactionResults failed.")
 		}
-		for _, v := range result {
-			tx,err := TxStore.GetTransaction(v.AssetId)
+		for k, _ := range result {
+			tx, err := TxStore.GetTransaction(k)
 			if err != nil {
-				return nil, NewDetailErr(err, ErrNoCode, fmt.Sprintf("[Transaction], GetTransaction failed With AssetID:=%x",v.AssetId))
+				return nil, NewDetailErr(err, ErrNoCode, fmt.Sprintf("[Transaction], GetTransaction failed With AssetID:=%x", k))
 			}
-			if tx.TxType != RegisterAsset{
-				return nil, NewDetailErr(err, ErrNoCode, fmt.Sprintf("[Transaction], Transaction Type ileage With AssetID:=%x",v.AssetId))
+			if tx.TxType != RegisterAsset {
+				return nil, NewDetailErr(err, ErrNoCode, fmt.Sprintf("[Transaction], Transaction Type ileage With AssetID:=%x", k))
 			}
 
-			switch v1 := tx.Payload.(type){
-				case *payload.RegisterAsset:
-					hashs = append(hashs,v1.Controller)
-				default:
-					return nil, NewDetailErr(err, ErrNoCode, fmt.Sprintf("[Transaction], payload is illegal",v.AssetId))
+			switch v1 := tx.Payload.(type) {
+			case *payload.RegisterAsset:
+				hashs = append(hashs, v1.Controller)
+			default:
+				return nil, NewDetailErr(err, ErrNoCode, fmt.Sprintf("[Transaction], payload is illegal", k))
 			}
 		}
 
@@ -401,28 +401,50 @@ func (tx *Transaction) GetReference() (map[*UTXOTxInput]*TxOutput, error) {
 	}
 	return reference, nil
 }
-func (tx *Transaction) GetTransactionResults() ([]*TransactionResult, error) {
+func (tx *Transaction) GetTransactionResults() (TransactionResult, error) {
+	var result TransactionResult
+	outputResult := tx.GetMergedAssetIDValueFromOutputs()
+	InputResult, err := tx.GetMergedAssetIDValueFromReference()
+	if err != nil {
+		return nil, err
+	}
+	//calc the balance of input vs output
+	for outputAssetid, outputValue := range outputResult {
+		if inputValue, ok := InputResult[outputAssetid]; ok {
+			result[outputAssetid] = inputValue - outputValue
+		} else {
+			result[outputAssetid] = outputValue * Fixed64(-1)
+		}
+	}
+	return result, nil
+}
+
+func (tx *Transaction) GetMergedAssetIDValueFromOutputs() TransactionResult {
+	var result = make(map[Uint256]Fixed64)
+	for _, v := range tx.Outputs {
+		amout, ok := result[v.AssetID]
+		if ok {
+			result[v.AssetID] = amout + v.Value
+		} else {
+			result[v.AssetID] = v.Value
+		}
+	}
+	return result
+}
+
+func (tx *Transaction) GetMergedAssetIDValueFromReference() (TransactionResult, error) {
 	reference, err := tx.GetReference()
 	if err != nil {
 		return nil, err
 	}
-	result := []*TransactionResult{}
-	var finded bool
-	for _, o := range tx.Outputs {
-		finded = false
-		res := new(TransactionResult)
-		for _, r := range reference {
-			if r.AssetID == o.AssetID {
-				finded = true
-				res.AssetId = r.AssetID
-				res.Amount = r.Value - o.Value
-			}
+	var result = make(map[Uint256]Fixed64)
+	for _, v := range reference {
+		amout, ok := result[v.AssetID]
+		if ok {
+			result[v.AssetID] = amout + v.Value
+		} else {
+			result[v.AssetID] = v.Value
 		}
-		if finded == false {
-			res.AssetId = o.AssetID
-			res.Amount = o.Value * Fixed64(-1)
-		}
-		result = append(result, res)
 	}
 	return result, nil
 }

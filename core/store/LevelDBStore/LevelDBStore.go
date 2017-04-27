@@ -488,16 +488,13 @@ func (bd *LevelDBStore) persist(b *Block) error {
 		}
 
 		if b.Transactions[i].TxType == tx.IssueAsset {
-			results, err := b.Transactions[i].GetTransactionResults()
-			if err != nil {
-				return err
-			}
+			results := b.Transactions[i].GetMergedAssetIDValueFromOutputs()
 
-			for _, result := range results {
-				if _, ok := quantities[result.AssetId]; !ok {
-					quantities[result.AssetId] -= result.Amount
+			for assetid, value := range results {
+				if _, ok := quantities[assetid]; !ok {
+					quantities[assetid] += value
 				} else {
-					quantities[result.AssetId] = -result.Amount
+					quantities[assetid] = value
 				}
 			}
 		}

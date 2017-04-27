@@ -388,7 +388,7 @@ func sendSampleTransaction(cmd map[string]interface{}) map[string]interface{} {
 		SignTx(admin, NewRecordTx)
 		SendTx(NewRecordTx)
 
-		return responsePacking(fmt.Sprintf("regist: %x, issue: %x, transfer: x%, record: %x", regHash, issueHash, transferHash, recordHash), id)
+		return responsePacking(fmt.Sprintf("regist: %x, issue: %x, transfer: %x, record: %x", regHash, issueHash, transferHash, recordHash), id)
 	default:
 		return responsePacking("Invalid transacion type", id)
 	}
