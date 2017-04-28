@@ -16,15 +16,14 @@ type Blockchain struct {
 	mutex       sync.Mutex
 }
 
-func NewBlockchain() *Blockchain {
+func NewBlockchain(height uint32) *Blockchain {
 	return &Blockchain{
-		BlockHeight: 0,
+		BlockHeight: height,
 		BCEvents:    events.NewEvent(),
 	}
 }
 
 func NewBlockchainWithGenesisBlock() (*Blockchain, error) {
-	blockchain := NewBlockchain()
 	genesisBlock, err := GenesisBlockInit()
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[Blockchain], NewBlockchainWithGenesisBlock failed.")
@@ -32,8 +31,12 @@ func NewBlockchainWithGenesisBlock() (*Blockchain, error) {
 	genesisBlock.RebuildMerkleRoot()
 	hashx := genesisBlock.Hash()
 	genesisBlock.hash = &hashx
-	//blockchain.AddBlock(genesisBlock)
-	DefaultLedger.Store.InitLevelDBStoreWithGenesisBlock(genesisBlock)
+
+	height, err := DefaultLedger.Store.InitLevelDBStoreWithGenesisBlock(genesisBlock)
+	if err != nil {
+		return nil, NewDetailErr(err, ErrNoCode, "[Blockchain], InitLevelDBStoreWithGenesisBlock failed.")
+	}
+	blockchain := NewBlockchain(height)
 	return blockchain, nil
 }
 
