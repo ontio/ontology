@@ -41,17 +41,17 @@ type ConsensusContext struct {
 }
 
 func (cxt *ConsensusContext) M() int {
-	log.Trace()
+	log.Debug()
 	return len(cxt.Miners) - (len(cxt.Miners)-1)/3
 }
 
 func NewConsensusContext() *ConsensusContext {
-	log.Trace()
+	log.Debug()
 	return &ConsensusContext{}
 }
 
 func (cxt *ConsensusContext) ChangeView(viewNum byte) {
-	log.Trace()
+	log.Debug()
 	p := (cxt.Height - uint32(viewNum)) % uint32(len(cxt.Miners))
 	cxt.State &= SignatureSent
 	cxt.ViewNumber = viewNum
@@ -69,7 +69,7 @@ func (cxt *ConsensusContext) ChangeView(viewNum byte) {
 }
 
 func (cxt *ConsensusContext) HasTxHash(txHash Uint256) bool {
-	log.Trace()
+	log.Debug()
 	for _, hash := range cxt.TransactionHashes {
 		if hash == txHash {
 			return true
@@ -79,7 +79,7 @@ func (cxt *ConsensusContext) HasTxHash(txHash Uint256) bool {
 }
 
 func (cxt *ConsensusContext) MakeChangeView() *msg.ConsensusPayload {
-	log.Trace()
+	log.Debug()
 	cv := &ChangeView{
 		NewViewNumber: cxt.ExpectedView[cxt.MinerIndex],
 	}
@@ -88,7 +88,7 @@ func (cxt *ConsensusContext) MakeChangeView() *msg.ConsensusPayload {
 }
 
 func (cxt *ConsensusContext) MakeHeader() *ledger.Block {
-	log.Trace()
+	log.Debug()
 	if cxt.TransactionHashes == nil {
 		return nil
 	}
@@ -114,7 +114,7 @@ func (cxt *ConsensusContext) MakeHeader() *ledger.Block {
 }
 
 func (cxt *ConsensusContext) MakePayload(message ConsensusMessage) *msg.ConsensusPayload {
-	log.Trace()
+	log.Debug()
 	message.ConsensusMessageData().ViewNumber = cxt.ViewNumber
 	return &msg.ConsensusPayload{
 		Version:    ContextVersion,
@@ -128,7 +128,7 @@ func (cxt *ConsensusContext) MakePayload(message ConsensusMessage) *msg.Consensu
 }
 
 func (cxt *ConsensusContext) MakePrepareRequest() *msg.ConsensusPayload {
-	log.Trace()
+	log.Debug()
 	preReq := &PrepareRequest{
 		Nonce:                  cxt.Nonce,
 		NextMiner:              cxt.NextMiner,
@@ -141,7 +141,7 @@ func (cxt *ConsensusContext) MakePrepareRequest() *msg.ConsensusPayload {
 }
 
 func (cxt *ConsensusContext) MakePrepareResponse(signature []byte) *msg.ConsensusPayload {
-	log.Trace()
+	log.Debug()
 	preRes := &PrepareResponse{
 		Signature: signature,
 	}
@@ -150,7 +150,7 @@ func (cxt *ConsensusContext) MakePrepareResponse(signature []byte) *msg.Consensu
 }
 
 func (cxt *ConsensusContext) GetSignaturesCount() (count int) {
-	log.Trace()
+	log.Debug()
 	count = 0
 	for _, sig := range cxt.Signatures {
 		if sig != nil {
@@ -161,7 +161,7 @@ func (cxt *ConsensusContext) GetSignaturesCount() (count int) {
 }
 
 func (cxt *ConsensusContext) GetTransactionList() []*tx.Transaction {
-	log.Trace()
+	log.Debug()
 	if cxt.txlist == nil {
 		cxt.txlist = []*tx.Transaction{}
 		for _, TX := range cxt.Transactions {
@@ -185,7 +185,7 @@ func (cxt *ConsensusContext) GetStateDetail() string {
 }
 
 func (cxt *ConsensusContext) GetTXByHashes() []*tx.Transaction {
-	log.Trace()
+	log.Debug()
 	TXs := []*tx.Transaction{}
 	var i int
 	var j int
@@ -200,7 +200,7 @@ func (cxt *ConsensusContext) GetTXByHashes() []*tx.Transaction {
 }
 
 func (cxt *ConsensusContext) CheckTxHashesExist() bool {
-	log.Trace()
+	log.Debug()
 	for _, hash := range cxt.TransactionHashes {
 		if _, ok := cxt.Transactions[hash]; !ok {
 			return false
@@ -210,7 +210,7 @@ func (cxt *ConsensusContext) CheckTxHashesExist() bool {
 }
 
 func (cxt *ConsensusContext) Reset(client cl.Client, localNode net.Neter) {
-	log.Trace()
+	log.Debug()
 	cxt.State = Initial
 	cxt.PrevHash = ledger.DefaultLedger.Blockchain.CurrentBlockHash()
 	cxt.Height = ledger.DefaultLedger.Blockchain.BlockHeight + 1

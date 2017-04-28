@@ -25,7 +25,7 @@ type block struct {
 }
 
 func (msg block) Handle(node Noder) error {
-	log.Trace()
+	log.Debug()
 
 	log.Debug("RX block message")
 
@@ -39,7 +39,7 @@ func (msg block) Handle(node Noder) error {
 }
 
 func (msg dataReq) Handle(node Noder) error {
-	log.Trace()
+	log.Debug()
 	reqtype := common.InventoryType(msg.dataType)
 	hash := msg.hash
 	switch reqtype {
@@ -80,7 +80,7 @@ func NewBlockFromHash(hash common.Uint256) (*ledger.Block, error) {
 }
 
 func NewBlock(bk *ledger.Block) ([]byte, error) {
-	log.Trace()
+	log.Debug()
 	var msg block
 	msg.blk = *bk
 	msg.msgHdr.Magic = NETMAGIC

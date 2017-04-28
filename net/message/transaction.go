@@ -30,7 +30,7 @@ type trn struct {
 }
 
 func (msg trn) Handle(node Noder) error {
-	log.Trace()
+	log.Debug()
 	log.Debug("RX Transaction message")
 	tx := &msg.txn
 	if !node.LocalNode().ExistedID(tx.Hash()) {
@@ -107,7 +107,7 @@ func NewTxnFromHash(hash common.Uint256) (*transaction.Transaction, error) {
 	return txn, nil
 }
 func NewTxn(txn *transaction.Transaction) ([]byte, error) {
-	log.Trace()
+	log.Debug()
 	var msg trn
 
 	msg.msgHdr.Magic = NETMAGIC

@@ -118,7 +118,7 @@ blkHdrErr:
 }
 
 func (msg headersReq) Handle(node Noder) error {
-	log.Trace()
+	log.Debug()
 	// lock
 	var startHash [HASHLEN]byte
 	var stopHash [HASHLEN]byte
@@ -169,7 +169,7 @@ func ReqBlkHdrFromOthers(node Noder) {
 }
 
 func (msg blkHeader) Handle(node Noder) error {
-	log.Trace()
+	log.Debug()
 	node.StopRetryTimer()
 	err := ledger.DefaultLedger.Store.AddHeaders(msg.blkHdr, ledger.DefaultLedger)
 	if err != nil {

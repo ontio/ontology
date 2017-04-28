@@ -13,7 +13,7 @@ const (
 )
 
 func StartLocalServer() {
-	log.Trace()
+	log.Debug()
 	http.HandleFunc(LocalDir, Handle)
 
 	HandleFunc("getneighbor", getNeighbor)

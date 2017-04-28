@@ -91,7 +91,7 @@ func (node *node) SynchronizeTxnPool() {
 func (txnPool *TXNPool) CleanSubmittedTransactions(block *ledger.Block) error {
 	txnPool.Lock()
 	defer txnPool.Unlock()
-	log.Trace()
+	log.Debug()
 
 	err := txnPool.CleanTxnPool(block.Transactions)
 	if err != nil {

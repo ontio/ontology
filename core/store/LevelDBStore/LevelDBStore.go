@@ -454,7 +454,7 @@ func (bd *LevelDBStore) GetAsset(hash Uint256) (*Asset, error) {
 }
 
 func (bd *LevelDBStore) GetTransaction(hash Uint256) (*tx.Transaction, error) {
-	log.Trace()
+	log.Debug()
 	log.Debug(fmt.Sprintf("GetTransaction Hash: %x\n", hash))
 
 	t := new(tx.Transaction)

@@ -188,7 +188,7 @@ func (node *node) UpdateTime(t time.Time) {
 }
 
 func (node *node) Xmit(inv common.Inventory) error {
-	log.Trace()
+	log.Debug()
 	var buffer []byte
 	var err error
 

@@ -41,12 +41,12 @@ const (
 
 var (
 	levels = map[int]string{
-		traceLog: Color(Pink, "[TRACE]"),
 		debugLog: Color(Green, "[DEBUG]"),
 		infoLog:  Color(Green, "[INFO ]"),
 		warnLog:  Color(Yellow, "[WARN ]"),
 		errorLog: Color(Red, "[ERROR]"),
 		fatalLog: Color(Red, "[FATAL]"),
+		traceLog: Color(Pink, "[TRACE]"),
 	}
 )
 
@@ -172,11 +172,15 @@ func Trace(a ...interface{}) {
 	file, line := f.FileLine(pc[0])
 	fileName := filepath.Base(file)
 	Log.Trace(fmt.Sprint(f.Name(), " ", fileName, ":", line, " ", fmt.Sprint(a...)))
-
 }
 
 func Debug(a ...interface{}) {
-	Log.Debug(fmt.Sprint(a...))
+	pc := make([]uintptr, 10)
+	runtime.Callers(2, pc)
+	f := runtime.FuncForPC(pc[0])
+	file, line := f.FileLine(pc[0])
+	fileName := filepath.Base(file)
+	Log.Debug(fmt.Sprint(f.Name(), " ", fileName, ":", line, " ", fmt.Sprint(a...)))
 }
 
 func Info(a ...interface{}) {

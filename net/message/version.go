@@ -35,7 +35,7 @@ func (msg *version) init(n Noder) {
 }
 
 func NewVersion(n Noder) ([]byte, error) {
-	log.Trace()
+	log.Debug()
 	var msg version
 
 	msg.P.Version = n.Version()
@@ -146,7 +146,7 @@ func (msg *version) Deserialization(p []byte) error {
  * |------------------------------------------------------------------------
  */
 func (msg version) Handle(node Noder) error {
-	log.Trace()
+	log.Debug()
 	localNode := node.LocalNode()
 
 	// Exclude the node itself

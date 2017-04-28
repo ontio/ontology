@@ -21,7 +21,7 @@ type PrepareRequest struct {
 }
 
 func (pr *PrepareRequest) Serialize(w io.Writer) error {
-	log.Trace()
+	log.Debug()
 	pr.msgData.Serialize(w)
 	err := ser.WriteVarUint(w, pr.Nonce)
 	if err != nil {
@@ -83,7 +83,7 @@ func (pr *PrepareRequest) Serialize(w io.Writer) error {
 
 //read data to reader
 func (pr *PrepareRequest) Deserialize(r io.Reader) error {
-	log.Trace()
+	log.Debug()
 	pr.msgData = ConsensusMessageData{}
 	pr.msgData.Deserialize(r)
 	pr.Nonce, _ = ser.ReadVarUint(r, 0)
@@ -149,16 +149,16 @@ func (pr *PrepareRequest) Deserialize(r io.Reader) error {
 }
 
 func (pr *PrepareRequest) Type() ConsensusMessageType {
-	log.Trace()
+	log.Debug()
 	return pr.ConsensusMessageData().Type
 }
 
 func (pr *PrepareRequest) ViewNumber() byte {
-	log.Trace()
+	log.Debug()
 	return pr.msgData.ViewNumber
 }
 
 func (pr *PrepareRequest) ConsensusMessageData() *ConsensusMessageData {
-	log.Trace()
+	log.Debug()
 	return &(pr.msgData)
 }

@@ -51,7 +51,7 @@ func NewVerack() ([]byte, error) {
  */
 // TODO The process should be adjusted based on above table
 func (msg verACK) Handle(node Noder) error {
-	log.Trace()
+	log.Debug()
 
 	t := time.Now()
 	s := node.GetState()

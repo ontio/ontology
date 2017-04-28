@@ -25,7 +25,7 @@ type ContractContext struct {
 }
 
 func NewContractContext(data sig.SignableData) *ContractContext {
-	log.Trace()
+	log.Debug()
 	programHashes, _ := data.GetProgramHashes() //TODO: check error
 	log.Debug("programHashes= ", programHashes)
 	log.Debug("hashLen := len(programHashes) ", len(programHashes))
@@ -41,7 +41,7 @@ func NewContractContext(data sig.SignableData) *ContractContext {
 }
 
 func (cxt *ContractContext) Add(contract *Contract, index int, parameter []byte) error {
-	log.Trace()
+	log.Debug()
 	i := cxt.GetIndex(contract.ProgramHash)
 	if i < 0 {
 		return errors.New("Program Hash is not exist.")
@@ -57,9 +57,9 @@ func (cxt *ContractContext) Add(contract *Contract, index int, parameter []byte)
 }
 
 func (cxt *ContractContext) AddContract(contract *Contract, pubkey *crypto.PubKey, parameter []byte) error {
-	log.Trace()
+	log.Debug()
 	if contract.GetType() == MultiSigContract {
-		log.Trace()
+		log.Debug()
 		// add multi sig contract
 
 		log.Debug("Multi Sig: contract.ProgramHash:", contract.ProgramHash)
@@ -110,7 +110,7 @@ func (cxt *ContractContext) AddContract(contract *Contract, pubkey *crypto.PubKe
 
 	} else {
 		//add non multi sig contract
-		log.Trace()
+		log.Debug()
 		index := -1
 		for i := 0; i < len(contract.Parameters); i++ {
 			if contract.Parameters[i] == Signature {
@@ -221,7 +221,7 @@ func (cxt *ContractContext) GetIndex(programHash Uint160) int {
 }
 
 func (cxt *ContractContext) GetPrograms() []*pg.Program {
-	log.Trace()
+	log.Debug()
 	//log.Debug("!cxt.IsCompleted()=",!cxt.IsCompleted())
 	//log.Debug(cxt.Codes)
 	//log.Debug(cxt.Parameters)

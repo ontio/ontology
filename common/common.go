@@ -29,7 +29,7 @@ func ToCodeHash(code []byte) (Uint160, error) {
 }
 
 func GetNonce() uint64 {
-	log.Trace()
+	log.Debug()
 	// Fixme replace with the real random number generator
 	nonce := uint64(rand.Uint32())<<32 + uint64(rand.Uint32())
 	return nonce
