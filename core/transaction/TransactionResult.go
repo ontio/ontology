@@ -2,7 +2,6 @@ package transaction
 
 import "DNA/common"
 
-type TransactionResult struct{
-	AssetId common.Uint256
-	Amount common.Fixed64
-}
+//	Key  : AssetId common.Uint256
+//	Value: Amount common.Fixed64
+type TransactionResult map[common.Uint256]common.Fixed64
