@@ -13,6 +13,7 @@ type ILedgerStore interface {
 	GetBlock(hash Uint256) (*Block, error)
 	GetBlockHash(height uint32) (Uint256, error)
 	InitLedgerStore(ledger *Ledger) error
+	IsDoubleSpend(tx *tx.Transaction) bool
 
 	//SaveHeader(header *Header,ledger *Ledger) error
 	AddHeaders(headers []Header, ledger *Ledger) error
@@ -30,7 +31,7 @@ type ILedgerStore interface {
 
 	Close() error
 
-	InitLevelDBStoreWithGenesisBlock( genesisblock * Block  )
+	InitLevelDBStoreWithGenesisBlock( genesisblock * Block  ) (uint32, error)
 
 	GetQuantityIssued(assetid Uint256) (Fixed64, error)
 

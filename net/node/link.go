@@ -149,7 +149,7 @@ func (n *node) initConnection() {
 }
 
 func initNonTlsListen() (net.Listener, error) {
-	log.Trace()
+	log.Debug()
 	listener, err := net.Listen("tcp", ":"+strconv.Itoa(Parameters.NodePort))
 	if err != nil {
 		log.Error("Error listening\n", err.Error())
@@ -207,7 +207,7 @@ func parseIPaddr(s string) (string, error) {
 }
 
 func (node *node) Connect(nodeAddr string) error {
-	log.Trace()
+	log.Debug()
 	isTls := Parameters.IsTLS
 	var conn net.Conn
 	var err error
@@ -244,7 +244,7 @@ func (node *node) Connect(nodeAddr string) error {
 }
 
 func NonTLSDial(nodeAddr string) (net.Conn, error) {
-	log.Trace()
+	log.Debug()
 	conn, err := net.Dial("tcp", nodeAddr)
 	if err != nil {
 		log.Error("Error dialing\n", err.Error())
@@ -286,7 +286,7 @@ func TLSDial(nodeAddr string) (net.Conn, error) {
 }
 
 func (node node) Tx(buf []byte) {
-	log.Trace()
+	log.Debug()
 	str := hex.EncodeToString(buf)
 	log.Debug(fmt.Sprintf("TX buf length: %d\n%s", len(buf), str))
 

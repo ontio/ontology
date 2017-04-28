@@ -8,7 +8,7 @@ import (
 )
 
 func StartRPCServer() {
-	log.Trace()
+	log.Debug()
 	http.HandleFunc("/", Handle)
 
 	HandleFunc("getbestblockhash", getBestBlockHash)

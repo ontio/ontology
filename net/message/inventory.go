@@ -69,7 +69,7 @@ func (msg blocksReq) Verify(buf []byte) error {
 }
 
 func (msg blocksReq) Handle(node Noder) error {
-	log.Trace()
+	log.Debug()
 	log.Debug("handle blocks request")
 	var starthash common.Uint256
 	var stophash common.Uint256
@@ -112,7 +112,7 @@ func (msg Inv) Verify(buf []byte) error {
 }
 
 func (msg Inv) Handle(node Noder) error {
-	log.Trace()
+	log.Debug()
 	var id common.Uint256
 	str := hex.EncodeToString(msg.P.Blk)
 	fmt.Printf("The inv type: 0x%x block len: %d, %s\n",

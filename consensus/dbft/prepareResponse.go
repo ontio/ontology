@@ -12,7 +12,7 @@ type PrepareResponse struct {
 }
 
 func (pres *PrepareResponse) Serialize(w io.Writer) error {
-	log.Trace()
+	log.Debug()
 	pres.msgData.Serialize(w)
 	w.Write(pres.Signature)
 	return nil
@@ -20,7 +20,7 @@ func (pres *PrepareResponse) Serialize(w io.Writer) error {
 
 //read data to reader
 func (pres *PrepareResponse) Deserialize(r io.Reader) error {
-	log.Trace()
+	log.Debug()
 	err := pres.msgData.Deserialize(r)
 	if err != nil {
 		return err
@@ -35,16 +35,16 @@ func (pres *PrepareResponse) Deserialize(r io.Reader) error {
 }
 
 func (pres *PrepareResponse) Type() ConsensusMessageType {
-	log.Trace()
+	log.Debug()
 	return pres.ConsensusMessageData().Type
 }
 
 func (pres *PrepareResponse) ViewNumber() byte {
-	log.Trace()
+	log.Debug()
 	return pres.msgData.ViewNumber
 }
 
 func (pres *PrepareResponse) ConsensusMessageData() *ConsensusMessageData {
-	log.Trace()
+	log.Debug()
 	return &(pres.msgData)
 }

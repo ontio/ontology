@@ -16,15 +16,14 @@ type Blockchain struct {
 	mutex       sync.Mutex
 }
 
-func NewBlockchain() *Blockchain {
+func NewBlockchain(height uint32) *Blockchain {
 	return &Blockchain{
-		BlockHeight: 0,
+		BlockHeight: height,
 		BCEvents:    events.NewEvent(),
 	}
 }
 
 func NewBlockchainWithGenesisBlock() (*Blockchain, error) {
-	blockchain := NewBlockchain()
 	genesisBlock, err := GenesisBlockInit()
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[Blockchain], NewBlockchainWithGenesisBlock failed.")
@@ -32,13 +31,17 @@ func NewBlockchainWithGenesisBlock() (*Blockchain, error) {
 	genesisBlock.RebuildMerkleRoot()
 	hashx := genesisBlock.Hash()
 	genesisBlock.hash = &hashx
-	//blockchain.AddBlock(genesisBlock)
-	DefaultLedger.Store.InitLevelDBStoreWithGenesisBlock(genesisBlock)
+
+	height, err := DefaultLedger.Store.InitLevelDBStoreWithGenesisBlock(genesisBlock)
+	if err != nil {
+		return nil, NewDetailErr(err, ErrNoCode, "[Blockchain], InitLevelDBStoreWithGenesisBlock failed.")
+	}
+	blockchain := NewBlockchain(height)
 	return blockchain, nil
 }
 
 func (bc *Blockchain) AddBlock(block *Block) error {
-	log.Trace()
+	log.Debug()
 	bc.mutex.Lock()
 	defer bc.mutex.Unlock()
 
@@ -71,7 +74,7 @@ func (bc *Blockchain) GetHeader(hash Uint256) (*Header, error) {
 }
 
 func (bc *Blockchain) SaveBlock(block *Block) error {
-	log.Trace()
+	log.Debug()
 	log.Info("block hash ", block.Hash())
 	err := DefaultLedger.Store.SaveBlock(block, DefaultLedger)
 	if err != nil {

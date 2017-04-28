@@ -236,7 +236,7 @@ func (cl *ClientImpl) GetAccountByKeyHash(publicKeyHash Uint160) *Account {
 }
 
 func (cl *ClientImpl) GetAccountByProgramHash(programHash Uint160) *Account {
-	log.Trace()
+	log.Debug()
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
 
@@ -247,7 +247,7 @@ func (cl *ClientImpl) GetAccountByProgramHash(programHash Uint160) *Account {
 }
 
 func (cl *ClientImpl) GetContract(codeHash Uint160) *ct.Contract {
-	log.Trace()
+	log.Debug()
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
 	//fmt.Println("codeHash",codeHash)
@@ -381,7 +381,7 @@ func (cl *ClientImpl) ProcessNewBlock(block *ledger.Block) {
 }
 
 func (cl *ClientImpl) Sign(context *ct.ContractContext) bool {
-	log.Trace()
+	log.Debug()
 	fSuccess := false
 	for i, hash := range context.ProgramHashes {
 		//fmt.Println("Sign hash=",hash)

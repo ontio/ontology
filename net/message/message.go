@@ -301,7 +301,7 @@ func (hdr msgHdr) Serialization() ([]byte, error) {
 }
 
 func (hdr msgHdr) Handle(n Noder) error {
-	log.Trace()
+	log.Debug()
 	// TBD
 	return nil
 }

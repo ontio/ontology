@@ -22,10 +22,8 @@ type Ledger struct {
 }
 
 //check weather the transaction contains the doubleSpend.
-func (l *Ledger) IsDoubleSpend(Tx *tx.Transaction) error {
-	//TODO: implement ledger IsDoubleSpend
-
-	return nil
+func (l *Ledger) IsDoubleSpend(Tx *tx.Transaction) bool {
+	return DefaultLedger.Store.IsDoubleSpend(Tx)
 }
 
 //Get the DefaultLedger.
