@@ -28,7 +28,7 @@ type LevelDBStore struct {
 
 	headerIndex map[uint32]Uint256
 	blockCache  map[Uint256]*Block
-  headeCache map[Uint256]*Header
+  	headerCache map[Uint256]*Header
 
 	currentBlockHeight uint32
 	storedHeaderCount  uint32
@@ -64,7 +64,7 @@ func NewLevelDBStore(file string) (*LevelDBStore, error) {
 		it:                 nil,
 		headerIndex:        map[uint32]Uint256{},
 		blockCache:         map[Uint256]*Block{},
-    headerCache:         map[Uint256]*Header{},
+    		headerCache:         map[Uint256]*Header{},
 		currentBlockHeight: 0,
 		storedHeaderCount:  0,
 		disposed:           false,
