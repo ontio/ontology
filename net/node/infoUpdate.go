@@ -1,7 +1,6 @@
 package node
 
 import (
-	"DNA/common/log"
 	"DNA/core/ledger"
 	. "DNA/net/message"
 	. "DNA/net/protocol"
@@ -19,13 +18,35 @@ func (node *node) GetBlkHdrs() {
 
 	noders := node.local.GetNeighborNoder()
 	for _, n := range noders {
-		log.Debug("local header height is ", ledger.DefaultLedger.Store.GetHeaderHeight(), " ,other's height is ", n.GetHeight())
 		if uint64(ledger.DefaultLedger.Store.GetHeaderHeight()) < n.GetHeight() {
 			if n.LocalNode().IsSyncFailed() == false {
 				SendMsgSyncHeaders(n)
 				n.StartRetryTimer()
 				break
 			}
+		}
+	}
+}
+
+func (node *node) SyncBlk() {
+	headerHeight := ledger.DefaultLedger.Store.GetHeaderHeight()
+	currentBlkHeight := ledger.DefaultLedger.Blockchain.BlockHeight
+	if currentBlkHeight >= headerHeight {
+		return
+	}
+	var dValue int32
+	var reqCnt uint32
+	var i uint32
+	noders := node.local.GetNeighborNoder()
+	for _, n := range noders {
+		count := MAXREQBLKONCE - uint32(n.GetFlightHeightCnt())
+		dValue = int32(headerHeight - currentBlkHeight - reqCnt)
+		for i = 1; i <= count && dValue >= 0; i++ {
+			hash := ledger.DefaultLedger.Store.GetHeaderHashByHeight(currentBlkHeight + reqCnt)
+			ReqBlkData(n, hash)
+			n.StoreFlightHeight(currentBlkHeight + reqCnt)
+			reqCnt++
+			dValue--
 		}
 	}
 }
@@ -45,6 +66,7 @@ func (node node) updateNodeInfo() {
 		case <-ticker.C:
 			//GetHeaders process haven't finished yet. So comment it now.
 			node.GetBlkHdrs()
+			node.SyncBlk()
 		case <-quit:
 			ticker.Stop()
 			return

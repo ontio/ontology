@@ -137,7 +137,7 @@ func (msg Inv) Handle(node Noder) error {
 			if !node.ExistedID(id) {
 				// send the block request
 				log.Info("inv request block hash: ", id)
-				reqBlkData(node, id)
+				ReqBlkData(node, id)
 			}
 
 		}

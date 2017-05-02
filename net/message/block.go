@@ -34,6 +34,7 @@ func (msg block) Handle(node Noder) error {
 		log.Error("Add block error after Received")
 		return errors.New("Add block error after reveived\n")
 	}
+	node.RemoveFlightHeight(msg.blk.Blockdata.Height)
 	node.LocalNode().GetEvent("block").Notify(events.EventNewInventory, &msg.blk)
 	return nil
 }
@@ -111,7 +112,7 @@ func NewBlock(bk *ledger.Block) ([]byte, error) {
 	return m, nil
 }
 
-func reqBlkData(node Noder, hash common.Uint256) error {
+func ReqBlkData(node Noder, hash common.Uint256) error {
 	var msg dataReq
 	msg.dataType = common.BLOCK
 	msg.hash = hash

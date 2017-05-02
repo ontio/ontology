@@ -20,16 +20,17 @@ type NodeAddr struct {
 }
 
 const (
-	MSGCMDLEN    = 12
-	CMDOFFSET    = 4
-	CHECKSUMLEN  = 4
-	HASHLEN      = 32 // hash length in byte
-	MSGHDRLEN    = 24
-	NETMAGIC     = 0x74746e41
-	MAXBLKHDRCNT = 2000
-	MAXINVHDRCNT = 500
-	DIVHASHLEN   = 5
-	MINCONNCNT   = 4
+	MSGCMDLEN     = 12
+	CMDOFFSET     = 4
+	CHECKSUMLEN   = 4
+	HASHLEN       = 32 // hash length in byte
+	MSGHDRLEN     = 24
+	NETMAGIC      = 0x74746e41
+	MAXBLKHDRCNT  = 2000
+	MAXINVHDRCNT  = 500
+	DIVHASHLEN    = 5
+	MINCONNCNT    = 4
+	MAXREQBLKONCE = 16
 )
 const (
 	HELLOTIMEOUT     = 3 // Seconds
@@ -101,6 +102,9 @@ type Noder interface {
 	StopRetryTimer()
 	GetNeighborNoder() []Noder
 	GetNbrNodeCnt() uint32
+	StoreFlightHeight(height uint32)
+	GetFlightHeightCnt() int
+	RemoveFlightHeight(height uint32)
 }
 
 type JsonNoder interface {

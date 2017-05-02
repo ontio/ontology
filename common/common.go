@@ -88,29 +88,38 @@ func CompareHeight(blockHeight uint64, heights []uint64) bool {
 	return true
 }
 
-func GetUint16Array( source []byte ) ([]uint16,error) {
+func GetUint16Array(source []byte) ([]uint16, error) {
 	if source == nil {
 		return nil, NewDetailErr(errors.New("[Common] , GetUint16Array err, source = nil"), ErrNoCode, "")
 	}
 
-	if len(source) % 2 != 0 {
+	if len(source)%2 != 0 {
 		return nil, NewDetailErr(errors.New("[Common] , GetUint16Array err, length of source is odd."), ErrNoCode, "")
 	}
 
-	dst := make([]uint16,len(source)/2)
-	for i:=0; i<len(source) / 2; i++ {
+	dst := make([]uint16, len(source)/2)
+	for i := 0; i < len(source)/2; i++ {
 		dst[i] = uint16(source[i*2]) + uint16(source[i*2+1])*256
 	}
 
 	return dst, nil
 }
 
-func ToByteArray( source []uint16 ) []byte {
-	dst := make([]byte,len(source)*2)
-	for i:=0; i<len(source); i++ {
+func ToByteArray(source []uint16) []byte {
+	dst := make([]byte, len(source)*2)
+	for i := 0; i < len(source); i++ {
 		dst[i*2] = byte(source[i] % 256)
 		dst[i*2+1] = byte(source[i] / 256)
 	}
 
 	return dst
+}
+
+func SliceRemove(slice []uint32, h uint32) []uint32 {
+	for i, v := range slice {
+		if v == h {
+			return append(slice[:i], slice[i+1:]...)
+		}
+	}
+	return slice
 }

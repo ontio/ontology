@@ -48,8 +48,9 @@ type node struct {
 	/*
 	 * |--|--|--|--|--|--|isSyncFailed|isSyncHeaders|
 	 */
-	syncFlag     uint8
-	TxNotifyChan chan int
+	syncFlag      uint8
+	TxNotifyChan  chan int
+	flightHeights []uint32
 }
 
 func (node node) DumpInfo() {
@@ -341,4 +342,23 @@ func (node *node) StartRetryTimer() {
 
 func (node node) StopRetryTimer() {
 	node.TxNotifyChan <- 1
+}
+
+func (node *node) StoreFlightHeight(height uint32) {
+	node.flightHeights = append(node.flightHeights, height)
+}
+
+func (node node) GetFlightHeightCnt() int {
+	return len(node.flightHeights)
+}
+
+func (node *node) RemoveFlightHeight(height uint32) {
+	log.Debug("height is ", height)
+	for _, h := range node.flightHeights {
+		log.Debug("flight height ", h)
+	}
+	node.flightHeights = common.SliceRemove(node.flightHeights, height)
+	for _, h := range node.flightHeights {
+		log.Debug("after flight height ", h)
+	}
 }
