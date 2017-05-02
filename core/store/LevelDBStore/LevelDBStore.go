@@ -1014,6 +1014,13 @@ func (bd *LevelDBStore) GetCurrentHeaderHash() Uint256 {
 	return bd.headerIndex[uint32(len(bd.headerIndex)-1)]
 }
 
+func (bd *LevelDBStore) GetHeaderHashByHeight(height uint32) Uint256 {
+	bd.mu.RLock()
+	defer bd.mu.RUnlock()
+
+	return bd.headerIndex[height]
+}
+
 func (bd *LevelDBStore) GetHeaderHeight() uint32 {
 	bd.mu.RLock()
 	defer bd.mu.RUnlock()

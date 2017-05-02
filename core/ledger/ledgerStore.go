@@ -28,6 +28,7 @@ type ILedgerStore interface {
 	GetCurrentHeaderHash() Uint256
 	GetHeaderHeight() uint32
 	GetHeight() uint32
+	GetHeaderHashByHeight(height uint32) Uint256
 
 	Close() error
 
