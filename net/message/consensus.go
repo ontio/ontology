@@ -106,6 +106,12 @@ func (cp *ConsensusPayload) GetMessage() []byte {
 
 func (msg consensus) Handle(node Noder) error {
 	log.Debug()
+	heights, _ := node.LocalNode().GetNeighborHeights()
+	if common.CompareHeight(uint64(ledger.DefaultLedger.Blockchain.BlockHeight), heights) == false {
+		log.Info("sync up block havn't finished, height is ", uint64(ledger.DefaultLedger.Blockchain.BlockHeight), " ,others height are: ", heights)
+		return errors.New("sync up block havn't finished")
+
+	}
 
 	node.LocalNode().GetEvent("consensus").Notify(events.EventNewInventory, &msg.cons)
 	return nil
