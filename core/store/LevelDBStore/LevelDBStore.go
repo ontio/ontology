@@ -28,6 +28,7 @@ type LevelDBStore struct {
 
 	headerIndex map[uint32]Uint256
 	blockCache  map[Uint256]*Block
+  	headerCache map[Uint256]*Header
 
 	currentBlockHeight uint32
 	storedHeaderCount  uint32
@@ -63,6 +64,7 @@ func NewLevelDBStore(file string) (*LevelDBStore, error) {
 		it:                 nil,
 		headerIndex:        map[uint32]Uint256{},
 		blockCache:         map[Uint256]*Block{},
+    		headerCache:         map[Uint256]*Header{},
 		currentBlockHeight: 0,
 		storedHeaderCount:  0,
 		disposed:           false,
@@ -345,6 +347,51 @@ func (bd *LevelDBStore) GetContract(hash []byte) ([]byte, error) {
 	return bData, nil
 }
 
+func (bd *LevelDBStore) GetHeaderWithCache(hash Uint256) *Header {
+	bd.mu.RLock()
+	defer bd.mu.RUnlock()
+
+	if _, ok := bd.headerCache[hash]; ok {
+		return bd.headerCache[hash]
+	}
+
+	header, _ := bd.GetHeader(hash)
+
+	return header
+}
+
+func (bd *LevelDBStore) containsBlock(hash Uint256) bool {
+	header := bd.GetHeaderWithCache(hash)
+	return header.Blockdata.Height <= bd.currentBlockHeight
+}
+
+func (bd *LevelDBStore) VerifyHeader(header *Header) bool {
+	if bd.containsBlock(header.Blockdata.Hash()) {
+		return true
+	}
+
+	prevHeader := bd.GetHeaderWithCache(header.Blockdata.PrevBlockHash)
+
+	if prevHeader == nil {
+		return false
+	}
+
+	if prevHeader.Blockdata.Height+1 != header.Blockdata.Height {
+		return false
+	}
+
+	if prevHeader.Blockdata.Timestamp >= header.Blockdata.Timestamp {
+		return false
+	}
+
+	flag, err := validation.VerifySignableData(header.Blockdata)
+	if flag == false || err != nil {
+		return false
+	}
+
+	return true
+}
+
 func (bd *LevelDBStore) AddHeaders(headers []Header, ledger *Ledger) error {
 	bd.mu.Lock()
 	defer bd.mu.Unlock()
@@ -360,17 +407,24 @@ func (bd *LevelDBStore) AddHeaders(headers []Header, ledger *Ledger) error {
 		}
 
 		//header verify
-		err := validation.VerifyHeader(&headers[i], ledger)
-		if err != nil {
+		if !bd.VerifyHeader(&headers[i]) {
 			break
 		}
 
 		bd.onAddHeader(&headers[i], batch)
+
+		// add hash to header_cache
+		bd.headerCache[headers[i].Blockdata.Hash()] = &headers[i]
 	}
 
 	err := bd.db.Write(batch, nil)
 	if err != nil {
 		return err
+	}
+
+	// clear header_cache
+	for k, _ := range bd.headerCache {
+		delete(bd.headerCache, k)
 	}
 
 	return nil
@@ -920,12 +974,12 @@ func (bd *LevelDBStore) GetUnspent(txid Uint256, index uint16) (*tx.TxOutput, er
 	//fmt.Println( "GetUnspent()" )
 
 	if ok, _ := bd.ContainsUnspent(txid, index); ok {
-		tx, err := bd.GetTransaction(txid)
+		Tx, err := bd.GetTransaction(txid)
 		if err != nil {
 			return nil, err
 		}
 
-		return tx.Outputs[index], nil
+		return Tx.Outputs[index], nil
 	}
 
 	return nil, errors.New("[GetUnspent] NOT ContainsUnspent.")
