@@ -47,7 +47,10 @@ func (msg dataReq) Handle(node Noder) error {
 	case common.BLOCK:
 		block, err := NewBlockFromHash(hash)
 		if err != nil {
-			log.Error("Can't get block from hash: ", hash)
+			log.Error("Can't get block from hash: ", hash, " ,send not found message")
+			//call notfound message
+			b, err := NewNotFound(hash)
+			node.Tx(b)
 			return err
 		}
 		log.Debug("block height is ", block.Blockdata.Height, " ,hash is ", hash)
