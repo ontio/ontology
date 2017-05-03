@@ -105,7 +105,7 @@ func VerifyTransactionWithTxPool(Tx *tx.Transaction, TxPool []*tx.Transaction) e
 
 // VerifyTransactionWithLedger verifys a transaction with history transaction in ledger
 func VerifyTransactionWithLedger(Tx *tx.Transaction, ledger *ledger.Ledger) error {
-	if !IsDoubleSpend(Tx, ledger) {
+	if IsDoubleSpend(Tx, ledger) {
 		return errors.New("[IsDoubleSpend] faild.")
 	}
 	return nil
