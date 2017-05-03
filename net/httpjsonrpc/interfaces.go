@@ -261,20 +261,24 @@ func getTxout(cmd map[string]interface{}) map[string]interface{} {
 }
 
 func sendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
-	retFlag := false
 	id := cmd["id"]
 	params := cmd["params"]
-	//hexValue := cmd["params"].(string)
 	hexValue := params.([]interface{})[0].(string)
 
-	hexSlice, _ := hex.DecodeString(hexValue)
-	var txTransaction tx.Transaction
-	txTransaction.Deserialize(bytes.NewReader(hexSlice[:]))
-	err := node.Xmit(&txTransaction)
-	if err == nil {
-		retFlag = true
+	hexSlice, err := hex.DecodeString(hexValue)
+	if err != nil {
+		log.Error("Decode raw transaction error")
+		return responsePacking(false, id)
 	}
-	return responsePacking(retFlag, id)
+	var txTransaction tx.Transaction
+	if err := txTransaction.Deserialize(bytes.NewReader(hexSlice[:])); err != nil {
+		log.Error("Deserialize raw transaction error")
+		return responsePacking(false, id)
+	}
+	if err := SendTx(&txTransaction); err != nil {
+		return responsePacking(false, id)
+	}
+	return responsePacking(true, id)
 }
 
 func submitBlock(cmd map[string]interface{}) map[string]interface{} {

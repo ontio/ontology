@@ -8,6 +8,7 @@ import (
 	"DNA/core/contract"
 	"DNA/core/signature"
 	"DNA/core/transaction"
+	"errors"
 	"strconv"
 )
 
@@ -96,11 +97,14 @@ func SignTx(admin *client.Account, tx *transaction.Transaction) {
 	tx.SetPrograms(transactionContractContext.GetPrograms())
 }
 
-func SendTx(tx *transaction.Transaction) {
+func SendTx(tx *transaction.Transaction) error {
 	if !node.AppendTxnPool(tx) {
 		log.Warn("Can NOT add the transaction to TxnPool")
+		return errors.New("Add to transaction pool failed")
 	}
 	if err := node.Xmit(tx); err != nil {
 		log.Error("Xmit Tx Error")
+		return errors.New("Xmit transaction failed")
 	}
+	return nil
 }
