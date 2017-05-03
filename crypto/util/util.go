@@ -15,6 +15,7 @@ const (
 	SIGNRLEN      = 32
 	SIGNSLEN      = 32
 	SIGNATURELEN  = 64
+	NEGBIGNUMLEN  = 33
 )
 
 // InterfaceCrypto ---
