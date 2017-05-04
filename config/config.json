@@ -3,16 +3,17 @@
     "Magic": 7630401,
     "CoinVersion": 23,
     "SeedList": [
-      "192.168.33.11:20338"
+      "10.0.1.100:20438"
     ],
-    "HttpJsonPort": 20336,
-    "HttpLocalPort": 20337,
-    "NodePort": 20338,
-    "MinerName": "c1",
-    "PrintLevel": 0,
+    "HttpJsonPort": 20436,
+    "HttpLocalPort": 20437,
+    "NodePort": 20438,
+    "MinerName": "c4",
+    "PrintLevel": 2,
     "IsTLS": false,
     "CertPath": "./sample-cert.pem",
     "KeyPath": "./sample-cert-key.pem",
-    "CAPath": "./sample-ca.pem"
+    "CAPath": "./sample-ca.pem",
+    "MinerCount": 4
   }
 }

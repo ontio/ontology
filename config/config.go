@@ -27,6 +27,7 @@ type ProtocolConfiguration struct {
 	KeyPath       string   `json:"KeyPath"`
 	CAPath        string   `json:"CAPath"`
 	GenBlockTime  uint     `json:"GenBlockTime"`
+	MinerCount    uint32   `json:"MinerCount"`
 }
 
 type ProtocolFile struct {

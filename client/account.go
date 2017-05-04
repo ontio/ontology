@@ -1,63 +1,62 @@
 package client
 
 import (
-	"DNA/crypto"
 	. "DNA/common"
+	"DNA/crypto"
 	. "DNA/errors"
 	"errors"
 )
 
 type Account struct {
-	PrivateKey []byte
-	PublicKey *crypto.PubKey
+	PrivateKey    []byte
+	PublicKey     *crypto.PubKey
 	PublicKeyHash Uint160
 }
 
-func NewAccount() (*Account, error){
-
-	priKey,pubKey,_ := crypto.GenKeyPair()
-	temp,err := pubKey.EncodePoint(true)
-	if err !=nil{
-		return nil,NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
+func NewAccount() (*Account, error) {
+	priKey, pubKey, _ := crypto.GenKeyPair()
+	temp, err := pubKey.EncodePoint(true)
+	if err != nil {
+		return nil, NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
 	}
-	hash ,err  := ToCodeHash(temp)
-	if err !=nil{
-		return nil,NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
+	hash, err := ToCodeHash(temp)
+	if err != nil {
+		return nil, NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
 	}
 	return &Account{
-		PrivateKey: priKey,
-		PublicKey: &pubKey,
+		PrivateKey:    priKey,
+		PublicKey:     &pubKey,
 		PublicKeyHash: hash,
-	},nil
+	}, nil
 }
 
-func NewAccountWithPrivatekey(privateKey []byte) (*Account, error){
+func NewAccountWithPrivatekey(privateKey []byte) (*Account, error) {
 	privKeyLen := len(privateKey)
 
 	if privKeyLen != 32 && privKeyLen != 96 && privKeyLen != 104 {
-		return nil,errors.New("Invalid private Key.")
+		return nil, errors.New("Invalid private Key.")
 	}
 
 	// set public key
 	pubKey := crypto.NewPubKey(privateKey)
 	//priKey,pubKey,_ := crypto.GenKeyPair()
-	temp,err := pubKey.EncodePoint(true)
-	if err !=nil{
-		return nil,NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
+	temp, err := pubKey.EncodePoint(true)
+	if err != nil {
+		return nil, NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
 	}
-	hash ,err  := ToCodeHash(temp)
-	if err !=nil{
-		return nil,NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
+	hash, err := ToCodeHash(temp)
+	if err != nil {
+		return nil, NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
 	}
 	return &Account{
-		PrivateKey: privateKey,
-		PublicKey: pubKey,
+		PrivateKey:    privateKey,
+		PublicKey:     pubKey,
 		PublicKeyHash: hash,
-	},nil
+	}, nil
 }
 
 //get signer's private key
-func (ac *Account) PrivKey() []byte{
+func (ac *Account) PrivKey() []byte {
 	return ac.PrivateKey
 }
 
@@ -65,6 +64,7 @@ func (ac *Account) PrivKey() []byte{
 func (ac *Account) PubKey() *crypto.PubKey {
 	return ac.PublicKey
 }
+
 /*
 func (ac *Account) ToAddress(scriptHash Uint160) string {
 	//fmt.Printf( "%x\n", scriptHash )

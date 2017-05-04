@@ -70,7 +70,8 @@ func main() {
 	fmt.Println("//**************************************************************************")
 	fmt.Println("//*** 1. Generate [Account]                                              ***")
 	fmt.Println("//**************************************************************************")
-	localclient := OpenClientAndGetAccount()
+	minerCount := config.Parameters.MinerCount
+	localclient := OpenClientAndGetAccount(minerCount)
 	if localclient == nil {
 		fmt.Println("Can't get local client.")
 		os.Exit(1)
@@ -84,10 +85,10 @@ func main() {
 	fmt.Println("//*** 2. Set Miner                                                     ***")
 	fmt.Println("//**************************************************************************")
 	miner := []*crypto.PubKey{}
-	miner = append(miner, getMiner1().PublicKey)
-	miner = append(miner, getMiner4().PublicKey)
-	miner = append(miner, getMiner3().PublicKey)
-	miner = append(miner, getMiner2().PublicKey)
+	var i uint32
+	for i = 0; i < minerCount; i++ {
+		miner = append(miner, getMiner(i+1).PublicKey)
+	}
 	ledger.StandbyMiners = miner
 	fmt.Println("miner1.PublicKey", issuer.PublicKey)
 
@@ -125,99 +126,35 @@ func main() {
 	}
 }
 
-func OpenClientAndGetAccount() Client {
+func OpenClientAndGetAccount(count uint32) Client {
 	clientName := config.Parameters.MinerName
 	fmt.Printf("The Miner name is %s\n", clientName)
 	if clientName == "" {
 		fmt.Printf("Miner name not be set at config file protocol.json, which schould be c1,c2,c3,c4. Now is %s\n", clientName)
 		return nil
 	}
-	var c1 Client
-	var c2 Client
-	var c3 Client
-	var c4 Client
-
-	if fileExisted("wallet1.txt") {
-		c1 = OpenClient("wallet1.txt", []byte("\x12\x34\x56"))
-	} else {
-		c1 = CreateClient("wallet1.txt", []byte("\x12\x34\x56"))
-	}
-
-	if fileExisted("wallet2.txt") {
-		c2 = OpenClient("wallet2.txt", []byte("\x12\x34\x56"))
-	} else {
-		c2 = CreateClient("wallet2.txt", []byte("\x12\x34\x56"))
-	}
-
-	if fileExisted("wallet3.txt") {
-		c3 = OpenClient("wallet3.txt", []byte("\x12\x34\x56"))
-	} else {
-		c3 = CreateClient("wallet3.txt", []byte("\x12\x34\x56"))
-	}
-
-	if fileExisted("wallet4.txt") {
-		c4 = OpenClient("wallet4.txt", []byte("\x12\x34\x56"))
-	} else {
-		c4 = CreateClient("wallet4.txt", []byte("\x12\x34\x56"))
-	}
-
-	switch clientName {
-	case "c1":
-		return c1
-	case "c2":
-		return c2
-	case "c3":
-		return c3
-	case "c4":
-		return c4
-	case "c":
-		var c Client
-		if fileExisted("wallet.txt") {
-			c = OpenClient("wallet.txt", []byte("\x12\x34\x56"))
+	var c []Client
+	c = make([]Client, count)
+	var i uint32
+	for i = 1; i <= count; i++ {
+		w := fmt.Sprintf("wallet%d.txt", i)
+		if fileExisted(w) {
+			c[i-1] = OpenClient(w, []byte("\x12\x34\x56"))
 		} else {
-			c = CreateClient("wallet.txt", []byte("\x12\x34\x56"))
+			c[i-1] = CreateClient(w, []byte("\x12\x34\x56"))
 		}
-
-		return c
-	default:
-		fmt.Printf("Please Check your client's ENV SET, if you are standby miners schould be c1,c2,c3,c4.If not, should be c. Now is %s.\n", clientName)
-		return nil
 	}
+	var n uint32
+	fmt.Sscanf(clientName, "c%d", &n)
+	return c[n-1]
 }
 
-func getMiner1() *Account {
-	c4 := OpenClient("wallet1.txt", []byte("\x12\x34\x56"))
-	account, err := c4.GetDefaultAccount()
+func getMiner(n uint32) *Account {
+	w := fmt.Sprintf("wallet%d.txt", n)
+	c := OpenClient(w, []byte("\x12\x34\x56"))
+	account, err := c.GetDefaultAccount()
 	if err != nil {
 		fmt.Println("GetDefaultAccount failed.")
 	}
 	return account
-
-}
-func getMiner2() *Account {
-	c4 := OpenClient("wallet2.txt", []byte("\x12\x34\x56"))
-	account, err := c4.GetDefaultAccount()
-	if err != nil {
-		fmt.Println("GetDefaultAccount failed.")
-	}
-	return account
-
-}
-func getMiner3() *Account {
-	c4 := OpenClient("wallet3.txt", []byte("\x12\x34\x56"))
-	account, err := c4.GetDefaultAccount()
-	if err != nil {
-		fmt.Println("GetDefaultAccount failed.")
-	}
-	return account
-
-}
-func getMiner4() *Account {
-	c4 := OpenClient("wallet4.txt", []byte("\x12\x34\x56"))
-	account, err := c4.GetDefaultAccount()
-	if err != nil {
-		fmt.Println("GetDefaultAccount failed.")
-	}
-	return account
-
 }
