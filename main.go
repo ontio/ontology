@@ -19,7 +19,8 @@ import (
 
 const (
 	// The number of the CPU cores for parallel optimization,TODO set from config file
-	NCPU = 4
+	NCPU              = 4
+	DefaultMinerCount = 4
 )
 
 var Version string
@@ -70,7 +71,10 @@ func main() {
 	fmt.Println("//**************************************************************************")
 	fmt.Println("//*** 1. Generate [Account]                                              ***")
 	fmt.Println("//**************************************************************************")
-	minerCount := config.Parameters.MinerCount
+	var minerCount uint32 = DefaultMinerCount
+	if config.Parameters.MinerCount != 0 {
+		minerCount = config.Parameters.MinerCount
+	}
 	localclient := OpenClientAndGetAccount(minerCount)
 	if localclient == nil {
 		fmt.Println("Can't get local client.")
