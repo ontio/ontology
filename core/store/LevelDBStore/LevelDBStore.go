@@ -28,7 +28,7 @@ type LevelDBStore struct {
 
 	headerIndex map[uint32]Uint256
 	blockCache  map[Uint256]*Block
-  	headerCache map[Uint256]*Header
+	headerCache map[Uint256]*Header
 
 	currentBlockHeight uint32
 	storedHeaderCount  uint32
@@ -64,7 +64,7 @@ func NewLevelDBStore(file string) (*LevelDBStore, error) {
 		it:                 nil,
 		headerIndex:        map[uint32]Uint256{},
 		blockCache:         map[Uint256]*Block{},
-    		headerCache:         map[Uint256]*Header{},
+		headerCache:        map[Uint256]*Header{},
 		currentBlockHeight: 0,
 		storedHeaderCount:  0,
 		disposed:           false,
@@ -348,9 +348,6 @@ func (bd *LevelDBStore) GetContract(hash []byte) ([]byte, error) {
 }
 
 func (bd *LevelDBStore) GetHeaderWithCache(hash Uint256) *Header {
-	bd.mu.RLock()
-	defer bd.mu.RUnlock()
-
 	if _, ok := bd.headerCache[hash]; ok {
 		return bd.headerCache[hash]
 	}
@@ -362,7 +359,11 @@ func (bd *LevelDBStore) GetHeaderWithCache(hash Uint256) *Header {
 
 func (bd *LevelDBStore) containsBlock(hash Uint256) bool {
 	header := bd.GetHeaderWithCache(hash)
-	return header.Blockdata.Height <= bd.currentBlockHeight
+	if header != nil {
+		return header.Blockdata.Height <= bd.currentBlockHeight
+	} else {
+		return false
+	}
 }
 
 func (bd *LevelDBStore) VerifyHeader(header *Header) bool {
@@ -408,6 +409,7 @@ func (bd *LevelDBStore) AddHeaders(headers []Header, ledger *Ledger) error {
 
 		//header verify
 		if !bd.VerifyHeader(&headers[i]) {
+			log.Error("Verify header failed")
 			break
 		}
 
