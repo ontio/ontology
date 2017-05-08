@@ -200,7 +200,7 @@ func (node *node) Xmit(inv common.Inventory) error {
 			//transaction.Serialize(tmpBuffer)
 			buffer, err = NewTxn(transaction)
 			if err != nil {
-				log.Warn("Error New Tx message ", err.Error())
+				log.Warn("Error New Tx message: ", err)
 				return err
 			}
 		}
@@ -214,14 +214,15 @@ func (node *node) Xmit(inv common.Inventory) error {
 			return errors.New("Wrong block be Xmit")
 		}
 
-		err := ledger.DefaultLedger.Blockchain.AddBlock(block)
-		if err != nil {
-			log.Error("Add block error before Xmit")
-			return errors.New("Add block error before Xmit")
+		if !ledger.DefaultLedger.ContainBlock(block.Hash()) {
+			if err := ledger.DefaultLedger.Blockchain.AddBlock(block); err != nil {
+				log.Error("Block adding error in Xmit")
+				return errors.New("Block adding error in Xmit")
+			}
 		}
 		buffer, err = NewBlock(block)
 		if err != nil {
-			log.Warn("Error New Block message ", err.Error())
+			log.Warn("Error New Block message: ", err)
 			return err
 		}
 	} else if inv.Type() == common.CONSENSUS {
@@ -230,7 +231,7 @@ func (node *node) Xmit(inv common.Inventory) error {
 		if ret {
 			buffer, err = NewConsensus(payload)
 			if err != nil {
-				log.Warn("Error New consensus message ", err.Error())
+				log.Warn("Error New consensus message: ", err)
 				return err
 			}
 		}

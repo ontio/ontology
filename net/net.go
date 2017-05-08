@@ -18,6 +18,8 @@ type Neter interface {
 	GetEvent(eventName string) *events.Event
 	GetMinersAddrs() ([]*crypto.PubKey, uint64)
 	CleanSubmittedTransactions(block *ledger.Block) error
+	GetNeighborNoder() []protocol.Noder
+	Tx(buf []byte)
 }
 
 func StartProtocol(pubKey *crypto.PubKey) (Neter, protocol.Noder) {

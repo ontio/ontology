@@ -266,7 +266,7 @@ func NewConsensus(cp *ConsensusPayload) ([]byte, error) {
 	buf := bytes.NewBuffer(s[:4])
 	binary.Read(buf, binary.LittleEndian, &(msg.msgHdr.Checksum))
 	msg.msgHdr.Length = uint32(len(b.Bytes()))
-	log.Debug("NewConsensus The message payload length is %d\n", msg.msgHdr.Length)
+	log.Debug("NewConsensus The message payload length is ", msg.msgHdr.Length)
 
 	m, err := msg.Serialization()
 	if err != nil {

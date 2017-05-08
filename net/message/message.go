@@ -137,25 +137,25 @@ func AllocMsg(t string, length int) Messager {
 		copy(msg.msgHdr.CMD[0:len(t)], t)
 		return &msg
 	case "alert":
-		errors.New("Not supported message type")
+		log.Warn("Not supported message type - alert")
 		return nil
 	case "merkleblock":
-		errors.New("Not supported message type")
+		log.Warn("Not supported message type - merkleblock")
 		return nil
 	case "notfound":
-		errors.New("Not supported message type")
+		log.Warn("Not supported message type - notfound")
 		return nil
 	case "ping":
-		errors.New("Not supported message type")
+		log.Warn("Not supported message type - ping")
 		return nil
 	case "pong":
-		errors.New("Not supported message type")
+		log.Warn("Not supported message type - pong")
 		return nil
 	case "reject":
-		errors.New("Not supported message type")
+		log.Warn("Not supported message type - reject")
 		return nil
 	default:
-		errors.New("Unknown message type")
+		log.Warn("Unknown message type")
 		return nil
 	}
 }
@@ -199,14 +199,14 @@ func HandleNodeMsg(node Noder, buf []byte, len int) error {
 
 	s, err := MsgType(buf)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Error("Message type parsing error")
 		return err
 	}
 
 	msg := AllocMsg(s, len)
 	if msg == nil {
-		fmt.Println(err.Error())
-		return err
+		log.Error(fmt.Sprintf("Allocation message %s failed", s))
+		return errors.New("Allocation message failed")
 	}
 	// Todo attach a ndoe pointer to each message
 	// Todo drop the message when verify/deseria packet error

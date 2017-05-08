@@ -1,14 +1,14 @@
 package ledger
 
 import (
+	"DNA/common"
 	. "DNA/common"
+	"DNA/core/asset"
+	"DNA/core/contract"
 	tx "DNA/core/transaction"
 	"DNA/crypto"
 	. "DNA/errors"
 	"errors"
-	"DNA/core/asset"
-	"DNA/core/contract"
-	"DNA/common"
 )
 
 var DefaultLedger *Ledger
@@ -36,7 +36,7 @@ func GetDefaultLedger() (*Ledger, error) {
 }
 
 //Calc the Miners address by miners pubkey.
-func GetMinerAddress(miners []*crypto.PubKey) (Uint160,error) {
+func GetMinerAddress(miners []*crypto.PubKey) (Uint160, error) {
 	//TODO: GetMinerAddress()
 	//return Uint160{}
 	//CreateSignatureRedeemScript
@@ -46,7 +46,7 @@ func GetMinerAddress(miners []*crypto.PubKey) (Uint160,error) {
 	var temp []byte
 	var err error
 	if len(miners) > 1 {
-		temp, err = contract.CreateMultiSigRedeemScript(len(miners) - (len(miners) - 1) / 3, miners)
+		temp, err = contract.CreateMultiSigRedeemScript(len(miners)-(len(miners)-1)/3, miners)
 		if err != nil {
 			return Uint160{}, NewDetailErr(err, ErrNoCode, "[Ledger],GetMinerAddress failed with CreateMultiSigRedeemScript.")
 		}
@@ -56,31 +56,31 @@ func GetMinerAddress(miners []*crypto.PubKey) (Uint160,error) {
 			return Uint160{}, NewDetailErr(err, ErrNoCode, "[Ledger],GetMinerAddress failed with CreateMultiSigRedeemScript.")
 		}
 	}
-	codehash ,err:=common.ToCodeHash(temp)
-	if err != nil{
-		return Uint160{},NewDetailErr(err, ErrNoCode, "[Ledger],GetMinerAddress failed with ToCodeHash.")
+	codehash, err := common.ToCodeHash(temp)
+	if err != nil {
+		return Uint160{}, NewDetailErr(err, ErrNoCode, "[Ledger],GetMinerAddress failed with ToCodeHash.")
 	}
-	return codehash,nil
+	return codehash, nil
 }
 
 //Get the Asset from store.
-func (l *Ledger) GetAsset(assetId Uint256) (*asset.Asset,error) {
+func (l *Ledger) GetAsset(assetId Uint256) (*asset.Asset, error) {
 	asset, err := l.Store.GetAsset(assetId)
-	if err != nil{
-		return nil,NewDetailErr(err, ErrNoCode, "[Ledger],GetAsset failed with assetId ="+ assetId.ToString())
+	if err != nil {
+		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetAsset failed with assetId ="+assetId.ToString())
 	}
-	return asset,nil
+	return asset, nil
 }
 
 //Get Block With Height.
 func (l *Ledger) GetBlockWithHeight(height uint32) (*Block, error) {
 	temp, err := l.Store.GetBlockHash(height)
-	if err != nil{
-		return nil,NewDetailErr(err, ErrNoCode, "[Ledger],GetBlockWithHeight failed with height="+ string(height))
+	if err != nil {
+		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetBlockWithHeight failed with height="+string(height))
 	}
 	bk, err := DefaultLedger.Store.GetBlock(temp)
 	if err != nil {
-		return nil,NewDetailErr(err, ErrNoCode, "[Ledger],GetBlockWithHeight failed with hash="+ temp.ToString())
+		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetBlockWithHeight failed with hash="+temp.ToString())
 	}
 	return bk, nil
 }
@@ -89,21 +89,30 @@ func (l *Ledger) GetBlockWithHeight(height uint32) (*Block, error) {
 func (l *Ledger) GetBlockWithHash(hash Uint256) (*Block, error) {
 	bk, err := l.Store.GetBlock(hash)
 	if err != nil {
-		return nil,NewDetailErr(err, ErrNoCode, "[Ledger],GetBlockWithHeight failed with hash="+ hash.ToString())
+		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetBlockWithHeight failed with hash="+hash.ToString())
 	}
 	return bk, nil
+}
+
+//ContainBlock checks if the block existed in ledger
+func (l *Ledger) ContainBlock(hash Uint256) bool {
+	bk, _ := l.Store.GetBlock(hash)
+	if bk == nil {
+		return false
+	}
+	return true
 }
 
 //Get transaction with hash.
 func (l *Ledger) GetTransactionWithHash(hash Uint256) (*tx.Transaction, error) {
 	tx, err := l.Store.GetTransaction(hash)
-	if err != nil{
-		return nil,NewDetailErr(err, ErrNoCode, "[Ledger],GetTransactionWithHash failed with hash="+ hash.ToString())
+	if err != nil {
+		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetTransactionWithHash failed with hash="+hash.ToString())
 	}
 	return tx, nil
 }
 
 //Get local block chain height.
-func (l *Ledger) GetLocalBlockChainHeight() uint32{
+func (l *Ledger) GetLocalBlockChainHeight() uint32 {
 	return l.Blockchain.BlockHeight
 }

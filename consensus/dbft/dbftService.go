@@ -18,6 +18,7 @@ import (
 	"DNA/events"
 	"DNA/net"
 	msg "DNA/net/message"
+	"bytes"
 	"errors"
 	"fmt"
 	"time"
@@ -217,10 +218,32 @@ func (ds *DbftService) CheckSignatures() error {
 
 		block.Transactions = ds.context.GetTXByHashes()
 
-		if err := ds.localNet.Xmit(block); err != nil {
-			log.Info(fmt.Sprintf("[CheckSignatures] Xmit block Error: %s, blockHash: %d", err.Error(), block.Hash()))
+		hash := block.Hash()
+		if !ledger.DefaultLedger.ContainBlock(hash) {
+			// save block
+			err = ledger.DefaultLedger.Blockchain.AddBlock(block)
+			if err != nil {
+				log.Warn("Block adding error")
+				return errors.New("Block adding error")
+			}
+
+			// construct inv message
+			buf := bytes.NewBuffer([]byte{})
+			hash.Serialize(buf)
+			invPayload := msg.NewInvPayload(BLOCK, 1, buf.Bytes())
+			inv, err := msg.NewInv(invPayload)
+			if err != nil {
+				log.Error("inv message construction error")
+				return errors.New("inv message construction error")
+			}
+
+			// broadcast inv message
+			noders := ds.localNet.GetNeighborNoder()
+			for _, n := range noders {
+				n.Tx(inv)
+			}
+			ds.context.State |= BlockSent
 		}
-		ds.context.State |= BlockSent
 	}
 	return nil
 }

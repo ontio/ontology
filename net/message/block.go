@@ -25,17 +25,15 @@ type block struct {
 }
 
 func (msg block) Handle(node Noder) error {
-	log.Debug()
-
 	log.Debug("RX block message")
-
-	err := ledger.DefaultLedger.Blockchain.AddBlock(&msg.blk)
-	if err != nil {
-		log.Error("Add block error after Received")
-		return errors.New("Add block error after reveived\n")
+	if !ledger.DefaultLedger.ContainBlock(msg.blk.Hash()) {
+		if err := ledger.DefaultLedger.Blockchain.AddBlock(&msg.blk); err != nil {
+			log.Error("Block adding error after Received")
+			return errors.New("Block adding error after reveived")
+		}
+		node.RemoveFlightHeight(msg.blk.Blockdata.Height)
+		node.LocalNode().GetEvent("block").Notify(events.EventNewInventory, &msg.blk)
 	}
-	node.RemoveFlightHeight(msg.blk.Blockdata.Height)
-	node.LocalNode().GetEvent("block").Notify(events.EventNewInventory, &msg.blk)
 	return nil
 }
 
