@@ -119,10 +119,6 @@ func (ds *DbftService) AddTransaction(TX *tx.Transaction, needVerify bool) error
 			}
 			payload := ds.context.MakePrepareResponse(ds.context.Signatures[ds.context.MinerIndex])
 			ds.SignAndRelay(payload)
-			err = ds.CheckSignatures()
-			if err != nil {
-				return NewDetailErr(err, ErrNoCode, "[DbftService] ,CheckSignatures failed.")
-			}
 		} else {
 			ds.RequestChangeView()
 			return errors.New("No valid Next Miner.")
