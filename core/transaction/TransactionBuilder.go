@@ -52,14 +52,15 @@ func NewTransferAssetTransaction(inputs []*UTXOTxInput, outputs []*TxOutput) (*T
 
 	assetRegPayload := &payload.TransferAsset{}
 
-    return &Transaction{
-        UTXOInputs: []*UTXOTxInput{},
-        BalanceInputs: []*BalanceTxInput{},
-        Attributes: []*TxAttribute{},
-        TxType: TransferAsset,
-        Payload: assetRegPayload,
-        Programs: []*program.Program{},
-    }, nil
+	return &Transaction{
+		TxType:        TransferAsset,
+		Payload:       assetRegPayload,
+		Attributes:    []*TxAttribute{},
+		UTXOInputs:    inputs,
+		BalanceInputs: []*BalanceTxInput{},
+		Outputs:       outputs,
+		Programs:      []*program.Program{},
+	}, nil
 }
 
 //initial a new transaction with record payload
