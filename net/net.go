@@ -1,7 +1,7 @@
 package net
 
 import (
-	"DNA/common"
+	. "DNA/common"
 	"DNA/config"
 	"DNA/core/ledger"
 	"DNA/core/transaction"
@@ -12,9 +12,9 @@ import (
 )
 
 type Neter interface {
-	GetTxnPool(cleanPool bool) map[common.Uint256]*transaction.Transaction
+	GetTxnPool(cleanPool bool) map[Uint256]*transaction.Transaction
 	SynchronizeTxnPool()
-	Xmit(common.Inventory) error // The transmit interface
+	Xmit(interface{}) error
 	GetEvent(eventName string) *events.Event
 	GetMinersAddrs() ([]*crypto.PubKey, uint64)
 	CleanSubmittedTransactions(block *ledger.Block) error

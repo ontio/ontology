@@ -1,7 +1,7 @@
 package node
 
 import (
-	"DNA/common"
+	. "DNA/common"
 	"DNA/common/log"
 	. "DNA/config"
 	"DNA/core/ledger"
@@ -9,6 +9,7 @@ import (
 	"DNA/crypto"
 	. "DNA/net/message"
 	. "DNA/net/protocol"
+	"bytes"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -188,56 +189,51 @@ func (node *node) UpdateTime(t time.Time) {
 	node.time = t
 }
 
-func (node *node) Xmit(inv common.Inventory) error {
+func (node *node) Xmit(message interface{}) error {
 	log.Debug()
 	var buffer []byte
 	var err error
-
-	if inv.Type() == common.TRANSACTION {
+	switch message.(type) {
+	case *transaction.Transaction:
 		log.Info("****TX transaction message*****\n")
-		transaction, ret := inv.(*transaction.Transaction)
-		if ret {
-			//transaction.Serialize(tmpBuffer)
-			buffer, err = NewTxn(transaction)
-			if err != nil {
-				log.Warn("Error New Tx message: ", err)
-				return err
-			}
-		}
-		node.txnCnt++
-	} else if inv.Type() == common.BLOCK {
-		log.Info("****TX block message****\n")
-		block, isBlock := inv.(*ledger.Block)
-		// FiXME, should be moved to higher layer
-		if isBlock == false {
-			log.Warn("Wrong block be Xmit")
-			return errors.New("Wrong block be Xmit")
-		}
-
-		if !ledger.DefaultLedger.ContainBlock(block.Hash()) {
-			if err := ledger.DefaultLedger.Blockchain.AddBlock(block); err != nil {
-				log.Error("Block adding error in Xmit")
-				return errors.New("Block adding error in Xmit")
-			}
-		}
-		buffer, err = NewBlock(block)
+		txn := message.(*transaction.Transaction)
+		buffer, err = NewTxn(txn)
 		if err != nil {
-			log.Warn("Error New Block message: ", err)
+			log.Error("Error New Tx message: ", err)
 			return err
 		}
-	} else if inv.Type() == common.CONSENSUS {
-		log.Info("*****TX consensus message****\n")
-		payload, ret := inv.(*ConsensusPayload)
-		if ret {
-			buffer, err = NewConsensus(payload)
-			if err != nil {
-				log.Warn("Error New consensus message: ", err)
-				return err
-			}
+		node.txnCnt++
+	case *ledger.Block:
+		log.Info("****TX block message****\n")
+		block := message.(*ledger.Block)
+		buffer, err = NewBlock(block)
+		if err != nil {
+			log.Error("Error New Block message: ", err)
+			return err
 		}
-	} else {
-		log.Info("Unknown Xmit message type")
-		return errors.New("Unknow Xmit message type\n")
+	case *ConsensusPayload:
+		log.Info("*****TX consensus message****\n")
+		consensusPayload := message.(*ConsensusPayload)
+		buffer, err = NewConsensus(consensusPayload)
+		if err != nil {
+			log.Error("Error New consensus message: ", err)
+			return err
+		}
+	case Uint256:
+		log.Info("*****TX block hash message****\n")
+		hash := message.(Uint256)
+		buf := bytes.NewBuffer([]byte{})
+		hash.Serialize(buf)
+		// construct inv message
+		invPayload := NewInvPayload(BLOCK, 1, buf.Bytes())
+		buffer, err = NewInv(invPayload)
+		if err != nil {
+			log.Error("Error New inv message")
+			return err
+		}
+	default:
+		log.Warn("Unknown Xmit message type")
+		return errors.New("Unknown Xmit message type")
 	}
 
 	node.nbrNodes.Broadcast(buffer)
@@ -293,7 +289,7 @@ func (node *node) SetMinerAddr(pk *crypto.PubKey) {
 func (node node) SyncNodeHeight() {
 	for {
 		heights, _ := node.GetNeighborHeights()
-		if common.CompareHeight(uint64(ledger.DefaultLedger.Blockchain.BlockHeight), heights) {
+		if CompareHeight(uint64(ledger.DefaultLedger.Blockchain.BlockHeight), heights) {
 			break
 		}
 		<-time.After(5 * time.Second)
@@ -358,7 +354,7 @@ func (node *node) RemoveFlightHeight(height uint32) {
 	for _, h := range node.flightHeights {
 		log.Debug("flight height ", h)
 	}
-	node.flightHeights = common.SliceRemove(node.flightHeights, height)
+	node.flightHeights = SliceRemove(node.flightHeights, height)
 	for _, h := range node.flightHeights {
 		log.Debug("after flight height ", h)
 	}

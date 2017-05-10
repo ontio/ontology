@@ -85,7 +85,7 @@ type Noder interface {
 	GetTxnCnt() uint64
 	GetRxTxnCnt() uint64
 
-	Xmit(common.Inventory) error
+	Xmit(interface{}) error
 	SynchronizeTxnPool()
 	GetMinerAddr() *crypto.PubKey
 	GetMinersAddrs() ([]*crypto.PubKey, uint64)
@@ -105,13 +105,6 @@ type Noder interface {
 	StoreFlightHeight(height uint32)
 	GetFlightHeightCnt() int
 	RemoveFlightHeight(height uint32)
-}
-
-type JsonNoder interface {
-	GetConnectionCnt() uint
-	GetTxnPool(bool) map[common.Uint256]*transaction.Transaction
-	Xmit(common.Inventory) error
-	GetTransaction(hash common.Uint256) *transaction.Transaction
 }
 
 func (msg *NodeAddr) Deserialization(p []byte) error {
