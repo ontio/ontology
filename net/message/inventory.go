@@ -132,7 +132,9 @@ func (msg Inv) Handle(node Noder) error {
 		log.Debug("RX inv-block message, hash is ", msg.P.Blk)
 		for i = 0; i < count; i++ {
 			id.Deserialize(bytes.NewReader(msg.P.Blk[HASHLEN*i:]))
-			if !node.ExistedID(id) {
+			// TODO check the ID queue
+			if !ledger.DefaultLedger.Store.BlockInCache(id) &&
+				!ledger.DefaultLedger.BlockInLedger(id) {
 				// send the block request
 				log.Info("inv request block hash: ", id)
 				ReqBlkData(node, id)

@@ -23,6 +23,10 @@ import (
 	"time"
 )
 
+const (
+	INVDELAYTIME = 20 * time.Millisecond
+)
+
 var GenBlockTime = (2 * time.Second)
 
 type DbftService struct {
@@ -218,16 +222,22 @@ func (ds *DbftService) CheckSignatures() error {
 		block.Transactions = ds.context.GetTXByHashes()
 
 		hash := block.Hash()
-		if !ledger.DefaultLedger.ContainBlock(hash) {
+		if !ledger.DefaultLedger.BlockInLedger(hash) {
 			// save block
 			if err := ledger.DefaultLedger.Blockchain.AddBlock(block); err != nil {
 				log.Warn("Block saving error: ", hash)
 				return err
 			}
-			// broadcast block hash
-			if err := ds.localNet.Xmit(hash); err != nil {
-				log.Warn("Block hash transmitting error: ", hash)
-				return err
+
+			// wait peers for saving block
+			t := time.NewTimer(INVDELAYTIME)
+			select {
+			case <-t.C:
+				// broadcast block hash
+				if err := ds.localNet.Xmit(hash); err != nil {
+					log.Warn("Block hash transmitting error: ", hash)
+					return err
+				}
 			}
 			ds.context.State |= BlockSent
 		}

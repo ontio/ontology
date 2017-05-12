@@ -27,7 +27,7 @@ type block struct {
 func (msg block) Handle(node Noder) error {
 	log.Debug("RX block message")
 	hash := msg.blk.Hash()
-	if ledger.DefaultLedger.ContainBlock(hash) {
+	if ledger.DefaultLedger.BlockInLedger(hash) {
 		log.Warn("Receive duplicated block: ", hash)
 		return errors.New("Received duplicate block")
 	}

@@ -94,8 +94,8 @@ func (l *Ledger) GetBlockWithHash(hash Uint256) (*Block, error) {
 	return bk, nil
 }
 
-//ContainBlock checks if the block existed in ledger
-func (l *Ledger) ContainBlock(hash Uint256) bool {
+//BlockInLedger checks if the block existed in ledger
+func (l *Ledger) BlockInLedger(hash Uint256) bool {
 	bk, _ := l.Store.GetBlock(hash)
 	if bk == nil {
 		return false

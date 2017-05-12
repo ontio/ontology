@@ -881,10 +881,8 @@ func (bd *LevelDBStore) onAddHeader(header *Header, batch *leveldb.Batch) {
 }
 
 func (bd *LevelDBStore) persistBlocks(ledger *Ledger) {
-
 	bd.mu.Lock()
 	defer bd.mu.Unlock()
-
 	for !bd.disposed {
 		if uint32(len(bd.headerIndex)) < bd.currentBlockHeight+1 {
 			log.Warn("[persistBlocks]: warn, headerIndex.count < currentBlockHeight + 1")
@@ -952,6 +950,15 @@ func (bd *LevelDBStore) SaveBlock(b *Block, ledger *Ledger) error {
 	}
 
 	return nil
+}
+
+func (db *LevelDBStore) BlockInCache(hash Uint256) bool {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+	if _, ok := db.blockCache[hash]; ok {
+		return true
+	}
+	return false
 }
 
 func (bd *LevelDBStore) GetQuantityIssued(assetId Uint256) (Fixed64, error) {

@@ -125,7 +125,7 @@ func main() {
 
 	time.Sleep(2 * time.Second)
 	for {
-		log.Debug("ledger.DefaultLedger.Blockchain.BlockHeight= ", ledger.DefaultLedger.Blockchain.BlockHeight)
+		fmt.Println("ledger.DefaultLedger.Blockchain.BlockHeight= ", ledger.DefaultLedger.Blockchain.BlockHeight)
 		time.Sleep(dbft.GenBlockTime)
 	}
 }

@@ -9,8 +9,9 @@ import (
 // ILedgerStore provides func with store package.
 type ILedgerStore interface {
 	//TODO: define the state store func
-	SaveBlock(b *Block,ledger *Ledger) error
+	SaveBlock(b *Block, ledger *Ledger) error
 	GetBlock(hash Uint256) (*Block, error)
+	BlockInCache(hash Uint256) bool
 	GetBlockHash(height uint32) (Uint256, error)
 	InitLedgerStore(ledger *Ledger) error
 	IsDoubleSpend(tx *tx.Transaction) bool
@@ -19,9 +20,9 @@ type ILedgerStore interface {
 	AddHeaders(headers []Header, ledger *Ledger) error
 	GetHeader(hash Uint256) (*Header, error)
 
-	GetTransaction(hash Uint256) (*tx.Transaction,error)
+	GetTransaction(hash Uint256) (*tx.Transaction, error)
 
-	SaveAsset(assetid Uint256,asset *Asset) error
+	SaveAsset(assetid Uint256, asset *Asset) error
 	GetAsset(hash Uint256) (*Asset, error)
 
 	GetCurrentBlockHash() Uint256
@@ -32,10 +33,10 @@ type ILedgerStore interface {
 
 	Close() error
 
-	InitLevelDBStoreWithGenesisBlock( genesisblock * Block  ) (uint32, error)
+	InitLevelDBStoreWithGenesisBlock(genesisblock *Block) (uint32, error)
 
 	GetQuantityIssued(assetid Uint256) (Fixed64, error)
 
 	GetUnspent(txid Uint256, index uint16) (*tx.TxOutput, error)
-	ContainsUnspent(txid Uint256, index uint16) (bool,error)
+	ContainsUnspent(txid Uint256, index uint16) (bool, error)
 }
