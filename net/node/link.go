@@ -65,13 +65,10 @@ func unpackNodeBuf(node *node, buf []byte) {
 
 		unpackNodeBuf(node, buf[msgLen:])
 	}
-
-	// TODO we need reset the node.rxBuf.p pointer and length if CheckSUM error happened?
 }
 
 func (node *node) rx() error {
 	conn := node.getConn()
-	from := conn.RemoteAddr().String()
 	buf := make([]byte, MAXBUFLEN)
 	for {
 		len, err := conn.Read(buf[0:(MAXBUFLEN - 1)])
@@ -79,10 +76,8 @@ func (node *node) rx() error {
 		switch err {
 		case nil:
 			unpackNodeBuf(node, buf[0:len])
-			//go handleNodeMsg(node, buf, len)
 			break
 		case io.EOF:
-			//log.Debug("Reading EOF of network conn")
 			break
 		default:
 			log.Error("Read connetion error ", err)
@@ -92,8 +87,6 @@ func (node *node) rx() error {
 
 disconnect:
 	err := conn.Close()
-	node.SetState(INACTIVITY)
-	log.Debug("Close connection ", from)
 	return err
 }
 
@@ -111,7 +104,6 @@ func (link link) CloseConn() {
 	link.conn.Close()
 }
 
-// Init the server port, should be run in another thread
 func (n *node) initConnection() {
 	isTls := Parameters.IsTLS
 	var listener net.Listener
@@ -145,7 +137,7 @@ func (n *node) initConnection() {
 		node.conn = conn
 		go node.rx()
 	}
-	//TODO When to free the net listen resouce?
+	//TODO Release the net listen resouce
 }
 
 func initNonTlsListen() (net.Listener, error) {
