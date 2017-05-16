@@ -1,50 +1,48 @@
 package program
 
 import (
-	"bytes"
-	"DNA/vm"
-	"math/big"
 	. "DNA/common"
+	"DNA/vm"
+	"bytes"
+	"math/big"
 )
 
 type ProgramBuilder struct {
 	buffer bytes.Buffer
-
 }
 
-func NewProgramBuilder() *ProgramBuilder{
+func NewProgramBuilder() *ProgramBuilder {
 	return &ProgramBuilder{
-		//TODO: add sync pool for create ProgramBuilder
+	//TODO: add sync pool for create ProgramBuilder
 	}
 }
 
-func (pb *ProgramBuilder) AddOp(op vm.OpCode){
+func (pb *ProgramBuilder) AddOp(op vm.OpCode) {
 	pb.buffer.WriteByte(byte(op))
 }
 
-func (pb *ProgramBuilder) AddCodes(codes []byte){
+func (pb *ProgramBuilder) AddCodes(codes []byte) {
 	pb.buffer.Write(codes)
 }
 
-func (pb *ProgramBuilder) PushNumber(number *big.Int){
+func (pb *ProgramBuilder) PushNumber(number *big.Int) {
 	if number.Cmp(big.NewInt(-1)) == 0 {
-		pb.AddOp(vm.NEGATE)
+		pb.AddOp(vm.PUSHM1)
 		return
 	}
-	if number.Cmp(big.NewInt(0)) == 0{
+	if number.Cmp(big.NewInt(0)) == 0 {
 		pb.AddOp(vm.PUSH0)
 		return
 	}
-	if number.Cmp(big.NewInt(0)) == 1 && number.Cmp(big.NewInt(16)) <= 0{
+	if number.Cmp(big.NewInt(0)) == 1 && number.Cmp(big.NewInt(16)) <= 0 {
 		pb.AddOp(vm.OpCode(byte(vm.PUSH1) - 1 + number.Bytes()[0]))
 		return
 	}
 	pb.PushData(number.Bytes())
 }
 
-
-func (pb *ProgramBuilder) PushData(data []byte){
-	if data == nil{
+func (pb *ProgramBuilder) PushData(data []byte) {
+	if data == nil {
 		return //TODO: add error
 	}
 
@@ -68,9 +66,6 @@ func (pb *ProgramBuilder) PushData(data []byte){
 	}
 }
 
-func (pb *ProgramBuilder) ToArray() []byte{
+func (pb *ProgramBuilder) ToArray() []byte {
 	return pb.buffer.Bytes()
 }
-
-
-
