@@ -6,7 +6,6 @@ import (
 	. "DNA/core/contract"
 	. "DNA/core/transaction"
 	"DNA/core/transaction/payload"
-	"DNA/crypto"
 )
 
 type PayloadInfo interface {
@@ -49,11 +48,15 @@ func (a *IssueAssetInfo) Data() []byte {
 	return []byte{0}
 }
 
+type IssuerInfo struct {
+	X, Y string
+}
+
 //implement PayloadInfo define RegisterAssetInfo
 type RegisterAssetInfo struct {
 	Asset      *asset.Asset
 	Amount     Fixed64
-	Issuer     *crypto.PubKey
+	Issuer     IssuerInfo
 	Controller string
 }
 
@@ -98,7 +101,8 @@ func TransPayloadToHex(p Payload) PayloadInfo {
 		obj := new(RegisterAssetInfo)
 		obj.Asset = object.Asset
 		obj.Amount = object.Amount
-		obj.Issuer = object.Issuer
+		obj.Issuer.X = object.Issuer.X.String()
+		obj.Issuer.Y = object.Issuer.Y.String()
 		obj.Controller = ToHexString(object.Controller.ToArray())
 		return obj
 	case *payload.Record:
@@ -109,4 +113,3 @@ func TransPayloadToHex(p Payload) PayloadInfo {
 	}
 	return nil
 }
-
