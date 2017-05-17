@@ -61,7 +61,8 @@ func (txnPool *TXNPool) CleanTxnPool(txs []*transaction.Transaction) error {
 	txsNum := len(txs)
 	txInPoolNum := len(txnPool.list)
 	cleaned := 0
-	for _, tx := range txs {
+	// skip the first bookkeeping transaction
+	for _, tx := range txs[1:] {
 		delete(txnPool.list, tx.Hash())
 		cleaned++
 	}

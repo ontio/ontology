@@ -101,12 +101,10 @@ func SignTx(admin *client.Account, tx *transaction.Transaction) {
 
 func SendTx(tx *transaction.Transaction) error {
 	if err := validation.VerifyTransaction(tx); err != nil {
-		log.Warn("Transaction verification failed")
-		return errors.New("Transaction verification failed")
+		log.Error("Transaction verification failed")
 	}
 	if err := validation.VerifyTransactionWithLedger(tx, ledger.DefaultLedger); err != nil {
-		log.Warn("Transaction verification with ledger failed")
-		return errors.New("Transaction verification with ledger failed")
+		log.Error("Transaction verification with ledger failed")
 	}
 	if !node.AppendTxnPool(tx) {
 		log.Warn("Can NOT add the transaction to TxnPool")

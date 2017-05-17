@@ -6,143 +6,69 @@ import (
 	ser "DNA/common/serialization"
 	tx "DNA/core/transaction"
 	. "DNA/errors"
-	"fmt"
 	"io"
 )
 
 type PrepareRequest struct {
-	msgData ConsensusMessageData
-
-	Nonce                  uint64
-	NextMiner              Uint160
-	TransactionHashes      []Uint256
-	BookkeepingTransaction *tx.Transaction
-	Signature              []byte
+	msgData      ConsensusMessageData
+	Nonce        uint64
+	NextMiner    Uint160
+	Transactions []*tx.Transaction
+	Signature    []byte
 }
 
 func (pr *PrepareRequest) Serialize(w io.Writer) error {
 	log.Debug()
+
 	pr.msgData.Serialize(w)
-	err := ser.WriteVarUint(w, pr.Nonce)
-	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "PrepareRequest Execute WriteVarUint failed.")
+	if err := ser.WriteVarUint(w, pr.Nonce); err != nil {
+		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] nonce serialization failed")
 	}
-	_, err = pr.NextMiner.Serialize(w)
-	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "PrepareRequest Execute NextMiner.Serialize failed.")
+	if _, err := pr.NextMiner.Serialize(w); err != nil {
+		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] nextminer serialization failed")
 	}
-	//Serialize  Transaction's hashes
-	length := uint64(len(pr.TransactionHashes))
-	err = ser.WriteVarUint(w, length)
-	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "PrepareRequest Execute WriteVarUint. failed.")
+	if err := ser.WriteVarUint(w, uint64(len(pr.Transactions))); err != nil {
+		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] length serialization failed")
 	}
-	for _, txHash := range pr.TransactionHashes {
-		_, err = txHash.Serialize(w)
-		if err != nil {
-			return NewDetailErr(err, ErrNoCode, "PrepareRequest Execute txHash.Serialize. failed.")
+	for _, t := range pr.Transactions {
+		if err := t.Serialize(w); err != nil {
+			return NewDetailErr(err, ErrNoCode, "[PrepareRequest] transactions serialization failed")
 		}
 	}
-
-	err = pr.BookkeepingTransaction.Serialize(w)
-	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "PrepareRequest Execute BookkeepingTransaction Serialize failed.")
-	}
-	//* test use
-	//buf :=bytes.NewBuffer([]byte{})
-	//err =pr.BookkeepingTransaction.Serialize(buf)
-	//if err != nil {
-	//	return NewDetailErr(err, ErrNoCode, "PrepareRequest Execute BookkeepingTransaction Serialize failed.")
-	//}
-	//fmt.Println("PrepareRequest Serialize BookkeepingTransaction=",buf.Bytes() )
-	//fmt.Println("TxType",pr.BookkeepingTransaction.TxType         )
-	//fmt.Println("PayloadVersion",pr.BookkeepingTransaction.PayloadVersion)
-	//fmt.Println(pr.BookkeepingTransaction.Payload        )
-	//fmt.Println(pr.BookkeepingTransaction.Nonce          )
-	//for _, v := range pr.BookkeepingTransaction.Attributes {
-	//	fmt.Println("Attributes",v)
-	//}
-	//for _, v := range pr.BookkeepingTransaction.UTXOInputs {
-	//	fmt.Println("UTXOInputs",v)
-	//}
-	//for _, v := range pr.BookkeepingTransaction.BalanceInputs {
-	//	fmt.Println("BalanceInputs",v)
-	//}
-	//for _, v := range pr.BookkeepingTransaction.Outputs {
-	//	fmt.Println("Outputs",v)
-	//}
-	//for _, v := range pr.BookkeepingTransaction.Programs {
-	//	fmt.Println("Programs",v)
-	//}
-	err = ser.WriteVarBytes(w, pr.Signature)
-	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "PrepareRequest Execute ser.WriteVarBytes failed.")
+	if err := ser.WriteVarBytes(w, pr.Signature); err != nil {
+		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] signature serialization failed")
 	}
 	return nil
 }
 
-//read data to reader
 func (pr *PrepareRequest) Deserialize(r io.Reader) error {
 	log.Debug()
 	pr.msgData = ConsensusMessageData{}
 	pr.msgData.Deserialize(r)
 	pr.Nonce, _ = ser.ReadVarUint(r, 0)
+
 	pr.NextMiner = Uint160{}
-	pr.NextMiner.Deserialize(r)
+	if err := pr.NextMiner.Deserialize(r); err != nil {
+		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] nextminer deserialization failed")
+	}
 
-	//TransactionHashes
-	Len, err := ser.ReadVarUint(r, 0)
+	length, err := ser.ReadVarUint(r, 0)
 	if err != nil {
-		return err
+		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] length deserialization failed")
 	}
 
-	if Len == 0 {
-		fmt.Printf("The hash len at consensus payload is 0\n")
-	} else {
-		pr.TransactionHashes = make([]Uint256, Len)
-		for i := uint64(0); i < Len; i++ {
-			hash := new(Uint256)
-			err = hash.Deserialize(r)
-			if err != nil {
-				return err
-			}
-			pr.TransactionHashes[i] = *hash
+	pr.Transactions = make([]*tx.Transaction, length)
+	for i := 0; i < len(pr.Transactions); i++ {
+		var t tx.Transaction
+		if err := t.Deserialize(r); err != nil {
+			return NewDetailErr(err, ErrNoCode, "[PrepareRequest] transactions deserialization failed")
 		}
+		pr.Transactions[i] = &t
 	}
-	pr.BookkeepingTransaction.Deserialize(r)
-	if pr.BookkeepingTransaction.Hash() != pr.TransactionHashes[0] {
-		log.Debug("pr.BookkeepingTransaction.Hash()=", pr.BookkeepingTransaction.Hash())
-		log.Debug("pr.TransactionHashes[0]=", pr.TransactionHashes[0])
-		//buf :=bytes.NewBuffer([]byte{})
-		//pr.BookkeepingTransaction.Serialize(buf)
-		//fmt.Println("PrepareRequest Deserialize cxt.Transactions[cxt.TransactionHashes[0]=",buf.Bytes() )
-		//fmt.Println("TxType",pr.BookkeepingTransaction.TxType         )
-		//fmt.Println("PayloadVersion",pr.BookkeepingTransaction.PayloadVersion)
-		//fmt.Println(pr.BookkeepingTransaction.Payload        )
-		//fmt.Println(pr.BookkeepingTransaction.Nonce          )
-		//for _, v := range pr.BookkeepingTransaction.Attributes {
-		//	fmt.Println("Attributes",v)
-		//}
-		//for _, v := range pr.BookkeepingTransaction.UTXOInputs {
-		//	fmt.Println("UTXOInputs",v)
-		//}
-		//for _, v := range pr.BookkeepingTransaction.BalanceInputs {
-		//	fmt.Println("BalanceInputs",v)
-		//}
-		//for _, v := range pr.BookkeepingTransaction.Outputs {
-		//	fmt.Println("Outputs",v)
-		//}
-		//for _, v := range pr.BookkeepingTransaction.Programs {
-		//	fmt.Println("Programs",v)
-		//}
 
-		return NewDetailErr(nil, ErrNoCode, "The Bookkeeping Transaction data is incorrect.")
-
-	}
 	pr.Signature, err = ser.ReadVarBytes(r)
 	if err != nil {
-		fmt.Printf("Parse the Signature error\n")
-		return err
+		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] signature deserialization failed")
 	}
 
 	return nil

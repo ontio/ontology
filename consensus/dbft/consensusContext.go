@@ -18,23 +18,21 @@ import (
 const ContextVersion uint32 = 0
 
 type ConsensusContext struct {
-	State             ConsensusState
-	PrevHash          Uint256
-	Height            uint32
-	ViewNumber        byte
-	Miners            []*crypto.PubKey
-	Owner             *crypto.PubKey
-	MinerIndex        int
-	PrimaryIndex      uint32
-	Timestamp         uint32
-	Nonce             uint64
-	NextMiner         Uint160
-	TransactionHashes []Uint256
-	Transactions      map[Uint256]*tx.Transaction
-	Signatures        [][]byte
-	ExpectedView      []byte
+	State        ConsensusState
+	PrevHash     Uint256
+	Height       uint32
+	ViewNumber   byte
+	Miners       []*crypto.PubKey
+	Owner        *crypto.PubKey
+	MinerIndex   int
+	PrimaryIndex uint32
+	Timestamp    uint32
+	Nonce        uint64
+	NextMiner    Uint160
+	Transactions []*tx.Transaction
+	Signatures   [][]byte
+	ExpectedView []byte
 
-	txlist []*tx.Transaction
 	header *ledger.Block
 
 	contextMu sync.Mutex
@@ -62,20 +60,10 @@ func (cxt *ConsensusContext) ChangeView(viewNum byte) {
 	}
 
 	if cxt.State == Initial {
-		cxt.TransactionHashes = nil
+		cxt.Transactions = nil
 		cxt.Signatures = make([][]byte, len(cxt.Miners))
 	}
 	cxt.header = nil
-}
-
-func (cxt *ConsensusContext) HasTxHash(txHash Uint256) bool {
-	log.Debug()
-	for _, hash := range cxt.TransactionHashes {
-		if hash == txHash {
-			return true
-		}
-	}
-	return false
 }
 
 func (cxt *ConsensusContext) MakeChangeView() *msg.ConsensusPayload {
@@ -89,12 +77,17 @@ func (cxt *ConsensusContext) MakeChangeView() *msg.ConsensusPayload {
 
 func (cxt *ConsensusContext) MakeHeader() *ledger.Block {
 	log.Debug()
-	if cxt.TransactionHashes == nil {
+	if cxt.Transactions == nil {
 		return nil
 	}
-
-	txRoot, _ := crypto.ComputeRoot(cxt.TransactionHashes)
-
+	txHash := []Uint256{}
+	for _, t := range cxt.Transactions {
+		txHash = append(txHash, t.Hash())
+	}
+	txRoot, err := crypto.ComputeRoot(txHash)
+	if err != nil {
+		return nil
+	}
 	if cxt.header == nil {
 		blockData := &ledger.Blockdata{
 			Version:          ContextVersion,
@@ -130,11 +123,10 @@ func (cxt *ConsensusContext) MakePayload(message ConsensusMessage) *msg.Consensu
 func (cxt *ConsensusContext) MakePrepareRequest() *msg.ConsensusPayload {
 	log.Debug()
 	preReq := &PrepareRequest{
-		Nonce:                  cxt.Nonce,
-		NextMiner:              cxt.NextMiner,
-		TransactionHashes:      cxt.TransactionHashes,
-		BookkeepingTransaction: cxt.Transactions[cxt.TransactionHashes[0]],
-		Signature:              cxt.Signatures[cxt.MinerIndex],
+		Nonce:        cxt.Nonce,
+		NextMiner:    cxt.NextMiner,
+		Transactions: cxt.Transactions,
+		Signature:    cxt.Signatures[cxt.MinerIndex],
 	}
 	preReq.msgData.Type = PrepareRequestMsg
 	return cxt.MakePayload(preReq)
@@ -160,17 +152,6 @@ func (cxt *ConsensusContext) GetSignaturesCount() (count int) {
 	return count
 }
 
-func (cxt *ConsensusContext) GetTransactionList() []*tx.Transaction {
-	log.Debug()
-	if cxt.txlist == nil {
-		cxt.txlist = []*tx.Transaction{}
-		for _, TX := range cxt.Transactions {
-			cxt.txlist = append(cxt.txlist, TX)
-		}
-	}
-	return cxt.txlist
-}
-
 func (cxt *ConsensusContext) GetStateDetail() string {
 
 	return fmt.Sprintf("Initial: %t, Primary: %t, Backup: %t, RequestSent: %t, RequestReceived: %t, SignatureSent: %t, BlockSent: %t, ",
@@ -182,31 +163,6 @@ func (cxt *ConsensusContext) GetStateDetail() string {
 		cxt.State.HasFlag(SignatureSent),
 		cxt.State.HasFlag(BlockSent))
 
-}
-
-func (cxt *ConsensusContext) GetTXByHashes() []*tx.Transaction {
-	log.Debug()
-	TXs := []*tx.Transaction{}
-	var i int
-	var j int
-	for _, hash := range cxt.TransactionHashes {
-		i++
-		if TX, ok := cxt.Transactions[hash]; ok {
-			TXs = append(TXs, TX)
-			j++
-		}
-	}
-	return TXs
-}
-
-func (cxt *ConsensusContext) CheckTxHashesExist() bool {
-	log.Debug()
-	for _, hash := range cxt.TransactionHashes {
-		if _, ok := cxt.Transactions[hash]; !ok {
-			return false
-		}
-	}
-	return true
 }
 
 func (cxt *ConsensusContext) Reset(client cl.Client, localNode net.Neter) {
@@ -224,7 +180,7 @@ func (cxt *ConsensusContext) Reset(client cl.Client, localNode net.Neter) {
 
 	minerLen := len(cxt.Miners)
 	cxt.PrimaryIndex = cxt.Height % uint32(minerLen)
-	cxt.TransactionHashes = nil
+	cxt.Transactions = nil
 	cxt.Signatures = make([][]byte, minerLen)
 	cxt.ExpectedView = make([]byte, minerLen)
 

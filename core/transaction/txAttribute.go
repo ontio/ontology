@@ -65,9 +65,9 @@ type TransactionAttributeUsage byte
 
 const (
 	ContractHash   TransactionAttributeUsage = 0x00
-	ECDH02         TransactionAttributeUsage = 0x02 //用于ECDH密钥交换的公钥，该公钥的第一个字节为0x02
-	ECDH03         TransactionAttributeUsage = 0x03 //用于ECDH密钥交换的公钥，该公钥的第一个字节为0x03
-	Script         TransactionAttributeUsage = 0x20 //用于对交易进行额外的验证
+	ECDH02         TransactionAttributeUsage = 0x02
+	ECDH03         TransactionAttributeUsage = 0x03
+	Script         TransactionAttributeUsage = 0x20
 	Vote           TransactionAttributeUsage = 0x30
 	DescriptionUrl TransactionAttributeUsage = 0x81
 	Description    TransactionAttributeUsage = 0x90
@@ -87,7 +87,7 @@ const (
 	Hash13 TransactionAttributeUsage = 0xad
 	Hash14 TransactionAttributeUsage = 0xae
 	Hash15 TransactionAttributeUsage = 0xaf
-	/// 备注
+
 	Remark   TransactionAttributeUsage = 0xf0
 	Remark1  TransactionAttributeUsage = 0xf1
 	Remark2  TransactionAttributeUsage = 0xf2
