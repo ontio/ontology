@@ -41,10 +41,9 @@ type Param struct {
 	NodeState       bool   // node state
 	Tx              string // Transaction test case
 	TxNum           int64  // count of transaction
-	NoSign          bool   // transaction is not signed
 	DebugLevel      int    // transaction is not signed
 	RPCID           int64  // RPC ID, use int64 by default
-	RawTxHash       string // get tx detail info by hash of raw transaction 
+	RawTxHash       string // get tx detail info by hash of raw transaction
 	RawTx           string // send tx to block chain,then transaction encode hex string
 	Flag            bool   // it control RawTxHash display format
 }
@@ -66,7 +65,6 @@ func registerFlags(f *flag.FlagSet) {
 	f.BoolVar(&p.Start, "start", false, "start service")
 	f.StringVar(&p.Tx, "tx", "full", "send sample transaction with different type (full/perf)")
 	f.Int64Var(&p.TxNum, "num", 1, "transaction number")
-	f.BoolVar(&p.NoSign, "nosign", false, "send unsigned transaction")
 	f.BoolVar(&p.Stop, "stop", false, "stop service")
 	f.StringVar(&p.RawTxHash, "rawtxhash", "", "get raw transaction info")
 	f.StringVar(&p.RawTx, "rawtx", "", "send raw transaction")

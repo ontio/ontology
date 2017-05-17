@@ -9,12 +9,12 @@ import (
 
 var usage = `run sample routines`
 
-var flags = []string{"tx", "num", "nosign"}
+var flags = []string{"tx", "num"}
 
 func testMain(args []string, p utility.Param) (err error) {
 	if txType := p.Tx; txType != "" {
 		resp, err := httpjsonrpc.Call(utility.Address(p.Ip, p.Port), "sendsampletransaction",
-			p.RPCID, []interface{}{p.Tx, p.TxNum, p.NoSign})
+			p.RPCID, []interface{}{p.Tx, p.TxNum})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return err
