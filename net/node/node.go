@@ -52,6 +52,7 @@ type node struct {
 	syncFlag      uint8
 	TxNotifyChan  chan int
 	flightHeights []uint32
+	lastContact   time.Time
 }
 
 func (node node) DumpInfo() {
@@ -105,7 +106,7 @@ func InitNode(pubKey *crypto.PubKey) Noder {
 	rand.Seed(time.Now().UTC().UnixNano())
 	// Fixme replace with the real random number
 	n.id = uint64(rand.Uint32())<<32 + uint64(rand.Uint32())
-	fmt.Printf("Init node ID to 0x%0x \n", n.id)
+	fmt.Printf("Init node ID to 0x%x \n", n.id)
 	n.nbrNodes.init()
 	n.local = n
 	n.publicKey = pubKey
@@ -358,4 +359,12 @@ func (node *node) RemoveFlightHeight(height uint32) {
 	for _, h := range node.flightHeights {
 		log.Debug("after flight height ", h)
 	}
+}
+
+func (node *node) SetLastContact() {
+	node.lastContact = time.Now()
+}
+
+func (node node) GetLastContact() time.Time {
+	return node.lastContact
 }

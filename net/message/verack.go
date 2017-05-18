@@ -60,6 +60,8 @@ func (msg verACK) Handle(node Noder) error {
 	}
 
 	node.SetState(ESTABLISH)
+	node.SetLastContact()
+
 	if s == HANDSHAKE {
 		buf, _ := NewVerack()
 		node.Tx(buf)

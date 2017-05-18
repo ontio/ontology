@@ -1,6 +1,7 @@
 package node
 
 import (
+	"DNA/common/log"
 	"DNA/core/ledger"
 	. "DNA/net/message"
 	. "DNA/net/protocol"
@@ -51,6 +52,35 @@ func (node *node) SyncBlk() {
 	}
 }
 
+func (node *node) SendPingToNbr() {
+	noders := node.local.GetNeighborNoder()
+	for _, n := range noders {
+		if n.GetState() == ESTABLISH {
+			buf, err := NewPingMsg()
+			if err != nil {
+				log.Error("failed build a new ping message")
+			} else {
+				go n.Tx(buf)
+			}
+		}
+	}
+}
+
+func (node *node) HeartBeatMonitor() {
+	log.Info("heart beat")
+	noders := node.local.GetNeighborNoder()
+	for _, n := range noders {
+		if n.GetState() == ESTABLISH {
+			t := n.GetLastContact()
+			if time.Since(t).Seconds() > KEEPALIVETIMEOUT {
+				log.Warn("keepalive timeout!!!")
+				n.SetState(INACTIVITY)
+				//n.CloseConn()
+			}
+		}
+	}
+}
+
 func (node node) ReqNeighborList() {
 	buf, _ := NewMsg("getaddr", node.local)
 	go node.Tx(buf)
@@ -60,16 +90,19 @@ func (node node) ReqNeighborList() {
 func (node node) updateNodeInfo() {
 	ticker := time.NewTicker(time.Second * PERIODUPDATETIME)
 	quit := make(chan struct{})
-
 	for {
+		timer := time.NewTimer(time.Second * HEARTBEAT)
 		select {
 		case <-ticker.C:
 			//GetHeaders process haven't finished yet. So comment it now.
+			node.SendPingToNbr()
 			node.GetBlkHdrs()
 			node.SyncBlk()
 		case <-quit:
 			ticker.Stop()
 			return
+		case <-timer.C:
+			node.HeartBeatMonitor()
 		}
 	}
 	// TODO when to close the timer
