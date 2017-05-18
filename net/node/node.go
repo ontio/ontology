@@ -104,8 +104,8 @@ func InitNode(pubKey *crypto.PubKey) Noder {
 	n.link.port = uint16(Parameters.NodePort)
 	n.relay = true
 	rand.Seed(time.Now().UTC().UnixNano())
-	// Fixme replace with the real random number
-	n.id = uint64(rand.Uint32())<<32 + uint64(rand.Uint32())
+	//id is the first 8 bytes of public key
+	n.id = ReadNodeID()
 	fmt.Printf("Init node ID to 0x%x \n", n.id)
 	n.nbrNodes.init()
 	n.local = n

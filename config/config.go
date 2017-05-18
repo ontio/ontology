@@ -3,9 +3,11 @@ package config
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"strconv"
 )
 
 const (
@@ -34,7 +36,34 @@ type ProtocolFile struct {
 	ProtocolConfig ProtocolConfiguration `json:"ProtocolConfiguration"`
 }
 
+type hashStruct struct {
+	PublicKeyHash string
+}
+
 var Parameters *ProtocolConfiguration
+
+func ReadNodeID() uint64 {
+	clientName := Parameters.BookKeeperName
+	var n uint32
+	fmt.Sscanf(clientName, "c%d", &n)
+	w := fmt.Sprintf("./wallet%d.txt", n)
+	file, e := ioutil.ReadFile(w)
+	if e != nil {
+		log.Fatalf("File error: %v\n", e)
+		os.Exit(1)
+	}
+	// Remove the UTF-8 Byte Order Mark
+	file = bytes.TrimPrefix(file, []byte("\xef\xbb\xbf"))
+
+	var hash hashStruct
+	e = json.Unmarshal(file, &hash)
+	s := hash.PublicKeyHash[:16]
+	id, err := strconv.ParseUint(s, 16, 64)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return id
+}
 
 func init() {
 	file, e := ioutil.ReadFile(DefaultConfigFilename)
