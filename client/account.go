@@ -4,7 +4,10 @@ import (
 	. "DNA/common"
 	"DNA/crypto"
 	. "DNA/errors"
+	"crypto/sha256"
 	"errors"
+	"github.com/tv42/base58"
+	"math/big"
 )
 
 type Account struct {
@@ -65,15 +68,14 @@ func (ac *Account) PubKey() *crypto.PubKey {
 	return ac.PublicKey
 }
 
-/*
-func (ac *Account) ToAddress(scriptHash Uint160) string {
+func ToAddress(scriptHash []byte) string {
 	//fmt.Printf( "%x\n", scriptHash )
-	data := append( []byte{23}, scriptHash.ToArray()... )
+	data := append([]byte{23}, scriptHash...)
 	temp := sha256.Sum256(data)
-	temps:= sha256.Sum256(temp[:])
-	data = append( data, temps[0:4]... )
+	temps := sha256.Sum256(temp[:])
+	data = append(data, temps[0:4]...)
 
-	data = append( []byte{0x00}, data... )
+	//data = append( []byte{0x00}, data... )
 	//fmt.Printf( "%x\n", data )
 
 	// Reverse
@@ -88,12 +90,11 @@ func (ac *Account) ToAddress(scriptHash Uint160) string {
 	//}
 	//fmt.Printf( "%x\n", data )
 
-	bi := new( big.Int )
-	bi.SetBytes( data )
+	bi := new(big.Int)
+	bi.SetBytes(data)
 	var dst []byte
-	dst = base58.EncodeBig( dst, bi )
+	dst = base58.EncodeBig(dst, bi)
 	//fmt.Printf( "%x\n", dst )
 
 	return string(dst[:])
 }
-*/

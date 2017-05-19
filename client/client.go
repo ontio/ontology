@@ -78,10 +78,14 @@ func CreateClient(path string, passwordKey []byte) *ClientImpl {
 func OpenClient(path string, passwordKey []byte) *ClientImpl {
 	cl := NewClient(path, passwordKey, false)
 
-	cl.accounts = cl.LoadAccount()
-	cl.contracts = cl.LoadContracts()
+	if cl != nil {
+		cl.accounts = cl.LoadAccount()
+		cl.contracts = cl.LoadContracts()
 
-	return cl
+		return cl
+	}
+
+	return nil
 }
 
 func NewClient(path string, passwordKey []byte, create bool) *ClientImpl {
@@ -164,9 +168,13 @@ func NewClient(path string, passwordKey []byte, create bool) *ClientImpl {
 		}
 
 		pwdhash := sha256.Sum256(passwordKey)
-		if passwordHash != nil && !IsEqualBytes(passwordHash, pwdhash[:]) {
-			//TODO: add panic
-			fmt.Println("passwordHash = nil or password wrong!")
+		if passwordHash == nil {
+			fmt.Println("ERROR: passwordHash = nil")
+			return nil
+		}
+
+		if !IsEqualBytes(passwordHash, pwdhash[:]) {
+			fmt.Println("ERROR: password wrong!")
 			return nil
 		}
 
@@ -308,13 +316,15 @@ func (cl *ClientImpl) CreateAccount() (*Account, error) {
 		}
 
 		fmt.Printf("[CreateAccount] PrivateKey: %x\n", ac.PrivateKey)
-		fmt.Printf("[CreateAccount] PublicKeyHash: %x\n", ac.PublicKeyHash)
-		fmt.Printf("[CreateAccount] PublicKeyAddress: %s\n", ac.PublicKeyHash.ToAddress())
+
+		pk, _ := ac.PublicKey.EncodePoint(true)
+		fmt.Printf("[CreateAccount] PublicKey: %x\n", pk)
 
 		//cl.AddContract( contract.CreateSignatureContract( ac.PublicKey ) )
 		ct, err := contract.CreateSignatureContract(ac.PublicKey)
 		if err == nil {
 			cl.AddContract(ct)
+			fmt.Printf("[CreateContract] Address: %s\n", ct.ProgramHash.ToAddress())
 		}
 
 		return ac, nil
@@ -499,8 +509,9 @@ func (cl *ClientImpl) LoadAccount() map[Uint160]*Account {
 		//ClearBytes( prikey, 32 )
 
 		fmt.Printf("[LoadAccount] PrivateKey: %x\n", ac.PrivateKey)
-		fmt.Printf("[LoadAccount] PublicKeyHash: %x\n", ac.PublicKeyHash.ToArray())
-		fmt.Printf("[LoadAccount] PublicKeyAddress: %s\n", ac.PublicKeyHash.ToAddress())
+
+		pk, _ := ac.PublicKey.EncodePoint(true)
+		fmt.Printf("[LoadAccount] PublicKey: %x\n", pk)
 
 		pkhash, _ := Uint160ParseFromBytes(pubkeyhash)
 		accounts[pkhash] = ac
@@ -533,6 +544,7 @@ func (cl *ClientImpl) LoadContracts() map[Uint160]*ct.Contract {
 
 		contracts[ct.ProgramHash] = ct
 
+		fmt.Printf("[LoadContract] Address: %s\n", ct.ProgramHash.ToAddress())
 		//fmt.Printf("[LoadContracts] ScriptHash: %x\n", ct.ProgramHash)
 		//fmt.Printf("[LoadContracts] PublicKeyHash: %x\n", ct.OwnerPubkeyHash.ToArray())
 		//fmt.Printf("[LoadContracts] Code: %x\n", ct.Code)
