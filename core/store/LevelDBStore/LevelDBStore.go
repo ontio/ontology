@@ -684,7 +684,7 @@ func (bd *LevelDBStore) persist(b *Block) error {
 	nLen := len(b.Transactions)
 	for i := 0; i < nLen; i++ {
 
-		// now support RegisterAsset / IssueAsset / TransferAsset and Miner TX ONLY.
+		// now support RegisterAsset / IssueAsset / TransferAsset and BookKeeper TX ONLY.
 		if b.Transactions[i].TxType == tx.RegisterAsset ||
 			b.Transactions[i].TxType == tx.IssueAsset ||
 			b.Transactions[i].TxType == tx.TransferAsset ||

@@ -37,13 +37,13 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 	//verfiy block's transactions
 	if completely {
 		/*
-			//TODO: NextMiner Check.
-			mineraddress, err := ledger.GetMinerAddress(ld.Blockchain.GetMinersByTXs(block.Transactions))
+			//TODO: NextBookKeeper Check.
+			bookKeeperaddress, err := ledger.GetBookKeeperAddress(ld.Blockchain.GetBookKeepersByTXs(block.Transactions))
 			if err != nil {
-				return errors.New(fmt.Sprintf("GetMinerAddress Failed."))
+				return errors.New(fmt.Sprintf("GetBookKeeperAddress Failed."))
 			}
-			if block.Blockdata.NextMiner != mineraddress {
-				return errors.New(fmt.Sprintf("Miner is not validate."))
+			if block.Blockdata.NextBookKeeper != bookKeeperaddress {
+				return errors.New(fmt.Sprintf("BookKeeper is not validate."))
 			}
 		*/
 		for _, txVerify := range block.Transactions {

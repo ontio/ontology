@@ -12,7 +12,7 @@ import (
 )
 
 var DefaultLedger *Ledger
-var StandbyMiners []*crypto.PubKey
+var StandbyBookKeepers []*crypto.PubKey
 
 // Ledger - the struct for onchainDNA ledger
 type Ledger struct {
@@ -35,30 +35,30 @@ func GetDefaultLedger() (*Ledger, error) {
 	return DefaultLedger, nil
 }
 
-//Calc the Miners address by miners pubkey.
-func GetMinerAddress(miners []*crypto.PubKey) (Uint160, error) {
-	//TODO: GetMinerAddress()
+//Calc the BookKeepers address by bookKeepers pubkey.
+func GetBookKeeperAddress(bookKeepers []*crypto.PubKey) (Uint160, error) {
+	//TODO: GetBookKeeperAddress()
 	//return Uint160{}
 	//CreateSignatureRedeemScript
-	if len(miners) < 1 {
-		return Uint160{}, NewDetailErr(errors.New("[Ledger] , GetMinerAddress with no miner"), ErrNoCode, "")
+	if len(bookKeepers) < 1 {
+		return Uint160{}, NewDetailErr(errors.New("[Ledger] , GetBookKeeperAddress with no bookKeeper"), ErrNoCode, "")
 	}
 	var temp []byte
 	var err error
-	if len(miners) > 1 {
-		temp, err = contract.CreateMultiSigRedeemScript(len(miners)-(len(miners)-1)/3, miners)
+	if len(bookKeepers) > 1 {
+		temp, err = contract.CreateMultiSigRedeemScript(len(bookKeepers)-(len(bookKeepers)-1)/3, bookKeepers)
 		if err != nil {
-			return Uint160{}, NewDetailErr(err, ErrNoCode, "[Ledger],GetMinerAddress failed with CreateMultiSigRedeemScript.")
+			return Uint160{}, NewDetailErr(err, ErrNoCode, "[Ledger],GetBookKeeperAddress failed with CreateMultiSigRedeemScript.")
 		}
 	} else {
-		temp, err = contract.CreateSignatureRedeemScript(miners[0])
+		temp, err = contract.CreateSignatureRedeemScript(bookKeepers[0])
 		if err != nil {
-			return Uint160{}, NewDetailErr(err, ErrNoCode, "[Ledger],GetMinerAddress failed with CreateMultiSigRedeemScript.")
+			return Uint160{}, NewDetailErr(err, ErrNoCode, "[Ledger],GetBookKeeperAddress failed with CreateMultiSigRedeemScript.")
 		}
 	}
 	codehash, err := common.ToCodeHash(temp)
 	if err != nil {
-		return Uint160{}, NewDetailErr(err, ErrNoCode, "[Ledger],GetMinerAddress failed with ToCodeHash.")
+		return Uint160{}, NewDetailErr(err, ErrNoCode, "[Ledger],GetBookKeeperAddress failed with ToCodeHash.")
 	}
 	return codehash, nil
 }

@@ -78,7 +78,7 @@ config.json node
 
 ```
 
-We need to do is change the `MinerName` field to "c1", "c2", "c3" and "c4" respectively on each host. The name sequence is not matter.
+We need to do is change the `BookKeeperName` field to "c1", "c2", "c3" and "c4" respectively on each host. The name sequence is not matter.
 
 Here's an snippet for configuration, note that 10.0.0.100 is seed node's address:
 
@@ -89,7 +89,7 @@ $ cat config.json
       "10.0.1.100:20338"
     ],
 	...
-    "MinerName" : "c1"
+    "BookKeeperName" : "c1"
     "NodePort": 20338,
 	...
 ```
@@ -105,7 +105,7 @@ Copy the executable file `node` and configuration file `config.json` to 4 differ
 * For the seed node, the `NodePort` is same with the port in `SeedList` part.
 * For each non-seed node, the `NodePort` should have different port.
 * Also need to make sure the `HttpJsonPort` and `HttpLocalPort` for each node is not conflict on current host.
-* Each node should have different "MinerName" field, "c1", "c2", "c3" and "c4" respectively.
+* Each node should have different "BookKeeperName" field, "c1", "c2", "c3" and "c4" respectively.
 
 After changed the configuration file, we also need to generate wallet for each node. Please follow the steps in multi-hosts deployment section above.
 
@@ -138,7 +138,7 @@ $ cat node[1234]/config.json
 "SeedList": [
       "10.0.1.1:10338"
     ],
-    "MinerName" : "c1"
+    "BookKeeperName" : "c1"
     "HttpJsonPort": 10336,
     "HttpLocalPort": 10337,
     "NodePort": 10338,
@@ -147,7 +147,7 @@ $ cat node[1234]/config.json
 "SeedList": [
       "10.0.1.1:10338"
     ],
-    "MinerName" : "c2"
+    "BookKeeperName" : "c2"
     "HttpJsonPort": 20336,
     "HttpLocalPort": 20337,
     "NodePort": 20338,
@@ -156,7 +156,7 @@ $ cat node[1234]/config.json
 "SeedList": [
       "10.0.1.1:10338"
     ],
-    "MinerName" : "c3"
+    "BookKeeperName" : "c3"
     "HttpJsonPort": 30336,
     "HttpLocalPort": 30337,
     "NodePort": 30338,
@@ -165,7 +165,7 @@ $ cat node[1234]/config.json
 "SeedList": [
       "10.0.1.1:10338"
     ],
-    "MinerName" : "c4"
+    "BookKeeperName" : "c4"
     "HttpJsonPort": 40336,
     "HttpLocalPort": 40337,
     "NodePort": 40338,

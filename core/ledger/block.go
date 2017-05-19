@@ -154,11 +154,11 @@ func GenesisBlockInit() (*Block, error) {
 	genesisBlockdata.Timestamp = uint32(tm.Unix())
 	genesisBlockdata.Height = uint32(0)
 	genesisBlockdata.ConsensusData = uint64(2083236893)
-	nextMiner, err := GetMinerAddress(StandbyMiners)
+	nextBookKeeper, err := GetBookKeeperAddress(StandbyBookKeepers)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Block],GenesisBlockInit err with GetMinerAddress")
+		return nil, NewDetailErr(err, ErrNoCode, "[Block],GenesisBlockInit err with GetBookKeeperAddress")
 	}
-	genesisBlockdata.NextMiner = nextMiner
+	genesisBlockdata.NextBookKeeper = nextBookKeeper
 
 	pg := new(program.Program)
 	pg.Code = []byte{'0'}

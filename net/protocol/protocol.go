@@ -87,9 +87,9 @@ type Noder interface {
 
 	Xmit(interface{}) error
 	SynchronizeTxnPool()
-	GetMinerAddr() *crypto.PubKey
-	GetMinersAddrs() ([]*crypto.PubKey, uint64)
-	SetMinerAddr(pk *crypto.PubKey)
+	GetBookKeeperAddr() *crypto.PubKey
+	GetBookKeepersAddrs() ([]*crypto.PubKey, uint64)
+	SetBookKeeperAddr(pk *crypto.PubKey)
 	GetNeighborHeights() ([]uint64, uint64)
 	SyncNodeHeight()
 	CleanSubmittedTransactions(block *ledger.Block) error

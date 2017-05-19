@@ -18,20 +18,20 @@ import (
 const ContextVersion uint32 = 0
 
 type ConsensusContext struct {
-	State        ConsensusState
-	PrevHash     Uint256
-	Height       uint32
-	ViewNumber   byte
-	Miners       []*crypto.PubKey
-	Owner        *crypto.PubKey
-	MinerIndex   int
-	PrimaryIndex uint32
-	Timestamp    uint32
-	Nonce        uint64
-	NextMiner    Uint160
-	Transactions []*tx.Transaction
-	Signatures   [][]byte
-	ExpectedView []byte
+	State           ConsensusState
+	PrevHash        Uint256
+	Height          uint32
+	ViewNumber      byte
+	BookKeepers     []*crypto.PubKey
+	Owner           *crypto.PubKey
+	BookKeeperIndex int
+	PrimaryIndex    uint32
+	Timestamp       uint32
+	Nonce           uint64
+	NextBookKeeper  Uint160
+	Transactions    []*tx.Transaction
+	Signatures      [][]byte
+	ExpectedView    []byte
 
 	header *ledger.Block
 
@@ -40,7 +40,7 @@ type ConsensusContext struct {
 
 func (cxt *ConsensusContext) M() int {
 	log.Debug()
-	return len(cxt.Miners) - (len(cxt.Miners)-1)/3
+	return len(cxt.BookKeepers) - (len(cxt.BookKeepers)-1)/3
 }
 
 func NewConsensusContext() *ConsensusContext {
@@ -50,18 +50,18 @@ func NewConsensusContext() *ConsensusContext {
 
 func (cxt *ConsensusContext) ChangeView(viewNum byte) {
 	log.Debug()
-	p := (cxt.Height - uint32(viewNum)) % uint32(len(cxt.Miners))
+	p := (cxt.Height - uint32(viewNum)) % uint32(len(cxt.BookKeepers))
 	cxt.State &= SignatureSent
 	cxt.ViewNumber = viewNum
 	if p >= 0 {
 		cxt.PrimaryIndex = uint32(p)
 	} else {
-		cxt.PrimaryIndex = uint32(p) + uint32(len(cxt.Miners))
+		cxt.PrimaryIndex = uint32(p) + uint32(len(cxt.BookKeepers))
 	}
 
 	if cxt.State == Initial {
 		cxt.Transactions = nil
-		cxt.Signatures = make([][]byte, len(cxt.Miners))
+		cxt.Signatures = make([][]byte, len(cxt.BookKeepers))
 	}
 	cxt.header = nil
 }
@@ -69,7 +69,7 @@ func (cxt *ConsensusContext) ChangeView(viewNum byte) {
 func (cxt *ConsensusContext) MakeChangeView() *msg.ConsensusPayload {
 	log.Debug()
 	cv := &ChangeView{
-		NewViewNumber: cxt.ExpectedView[cxt.MinerIndex],
+		NewViewNumber: cxt.ExpectedView[cxt.BookKeeperIndex],
 	}
 	cv.msgData.Type = ChangeViewMsg
 	return cxt.MakePayload(cv)
@@ -96,7 +96,7 @@ func (cxt *ConsensusContext) MakeHeader() *ledger.Block {
 			Timestamp:        cxt.Timestamp,
 			Height:           cxt.Height,
 			ConsensusData:    cxt.Nonce,
-			NextMiner:        cxt.NextMiner,
+			NextBookKeeper:   cxt.NextBookKeeper,
 		}
 		cxt.header = &ledger.Block{
 			Blockdata:    blockData,
@@ -110,23 +110,23 @@ func (cxt *ConsensusContext) MakePayload(message ConsensusMessage) *msg.Consensu
 	log.Debug()
 	message.ConsensusMessageData().ViewNumber = cxt.ViewNumber
 	return &msg.ConsensusPayload{
-		Version:    ContextVersion,
-		PrevHash:   cxt.PrevHash,
-		Height:     cxt.Height,
-		MinerIndex: uint16(cxt.MinerIndex),
-		Timestamp:  cxt.Timestamp,
-		Data:       ser.ToArray(message),
-		Owner:      cxt.Owner,
+		Version:         ContextVersion,
+		PrevHash:        cxt.PrevHash,
+		Height:          cxt.Height,
+		BookKeeperIndex: uint16(cxt.BookKeeperIndex),
+		Timestamp:       cxt.Timestamp,
+		Data:            ser.ToArray(message),
+		Owner:           cxt.Owner,
 	}
 }
 
 func (cxt *ConsensusContext) MakePrepareRequest() *msg.ConsensusPayload {
 	log.Debug()
 	preReq := &PrepareRequest{
-		Nonce:        cxt.Nonce,
-		NextMiner:    cxt.NextMiner,
-		Transactions: cxt.Transactions,
-		Signature:    cxt.Signatures[cxt.MinerIndex],
+		Nonce:          cxt.Nonce,
+		NextBookKeeper: cxt.NextBookKeeper,
+		Transactions:   cxt.Transactions,
+		Signature:      cxt.Signatures[cxt.BookKeeperIndex],
 	}
 	preReq.msgData.Type = PrepareRequestMsg
 	return cxt.MakePayload(preReq)
@@ -171,23 +171,23 @@ func (cxt *ConsensusContext) Reset(client cl.Client, localNode net.Neter) {
 	cxt.PrevHash = ledger.DefaultLedger.Blockchain.CurrentBlockHash()
 	cxt.Height = ledger.DefaultLedger.Blockchain.BlockHeight + 1
 	cxt.ViewNumber = 0
-	cxt.MinerIndex = -1
+	cxt.BookKeeperIndex = -1
 
-	miners, _ := localNode.GetMinersAddrs()
-	cxt.Owner = miners[0]
-	sort.Sort(crypto.PubKeySlice(miners))
-	cxt.Miners = miners
+	bookKeepers, _ := localNode.GetBookKeepersAddrs()
+	cxt.Owner = bookKeepers[0]
+	sort.Sort(crypto.PubKeySlice(bookKeepers))
+	cxt.BookKeepers = bookKeepers
 
-	minerLen := len(cxt.Miners)
-	cxt.PrimaryIndex = cxt.Height % uint32(minerLen)
+	bookKeeperLen := len(cxt.BookKeepers)
+	cxt.PrimaryIndex = cxt.Height % uint32(bookKeeperLen)
 	cxt.Transactions = nil
-	cxt.Signatures = make([][]byte, minerLen)
-	cxt.ExpectedView = make([]byte, minerLen)
+	cxt.Signatures = make([][]byte, bookKeeperLen)
+	cxt.ExpectedView = make([]byte, bookKeeperLen)
 
-	for i := 0; i < minerLen; i++ {
+	for i := 0; i < bookKeeperLen; i++ {
 		ac, _ := client.GetDefaultAccount()
-		if ac.PublicKey.X.Cmp(cxt.Miners[i].X) == 0 {
-			cxt.MinerIndex = i
+		if ac.PublicKey.X.Cmp(cxt.BookKeepers[i].X) == 0 {
+			cxt.BookKeeperIndex = i
 			break
 		}
 	}

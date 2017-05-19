@@ -18,7 +18,7 @@ type Blockdata struct {
 	Timestamp        uint32
 	Height           uint32
 	ConsensusData    uint64
-	NextMiner        Uint160
+	NextBookKeeper   Uint160
 	Program          *program.Program
 
 	hash Uint256
@@ -42,7 +42,7 @@ func (bd *Blockdata) SerializeUnsigned(w io.Writer) error {
 	serialization.WriteUint32(w, bd.Timestamp)
 	serialization.WriteUint32(w, bd.Height)
 	serialization.WriteUint64(w, bd.ConsensusData)
-	bd.NextMiner.Serialize(w)
+	bd.NextBookKeeper.Serialize(w)
 	return nil
 }
 
@@ -105,8 +105,8 @@ func (bd *Blockdata) DeserializeUnsigned(r io.Reader) error {
 	//consensusData
 	bd.ConsensusData, _ = serialization.ReadUint64(r)
 
-	//NextMiner
-	bd.NextMiner.Deserialize(r)
+	//NextBookKeeper
+	bd.NextBookKeeper.Deserialize(r)
 
 	return nil
 }
@@ -117,9 +117,9 @@ func (bd *Blockdata) GetProgramHashes() ([]Uint160, error) {
 
 	if bd.PrevBlockHash == zero {
 		pg := *bd.Program
-		outputHashes,err:=ToCodeHash(pg.Code)
-		if err !=nil{
-			return nil,NewDetailErr(err, ErrNoCode, "[Blockdata], GetProgramHashes failed.")
+		outputHashes, err := ToCodeHash(pg.Code)
+		if err != nil {
+			return nil, NewDetailErr(err, ErrNoCode, "[Blockdata], GetProgramHashes failed.")
 		}
 		programHashes = append(programHashes, outputHashes)
 		return programHashes, nil
@@ -128,7 +128,7 @@ func (bd *Blockdata) GetProgramHashes() ([]Uint160, error) {
 		if err != nil {
 			return programHashes, err
 		}
-		programHashes = append(programHashes, prev_header.Blockdata.NextMiner)
+		programHashes = append(programHashes, prev_header.Blockdata.NextBookKeeper)
 		return programHashes, nil
 	}
 
@@ -156,5 +156,5 @@ func (bd *Blockdata) Hash() Uint256 {
 
 func (bd *Blockdata) GetMessage() []byte {
 	//return sig.GetHashData(bd)
-	return  sig.GetHashForSigning(bd)
+	return sig.GetHashForSigning(bd)
 }

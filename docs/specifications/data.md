@@ -66,7 +66,7 @@ PrevBlockHash       | uint256           | hash value of the previous block.
 Timestamp           | uint32            | Time of the block in milliseconds since 00:00:00 UTC Jan 1, 1970.
 TransactionsRoot    | Uint256           | Extensible commitment string. See [Block Commitment](#block-commitment).
 Nonce               | uint64            | random number.
-NextMiner           | Uint160           | NextMiner
+NextBookKeeper           | Uint160           | NextBookKeeper
 Program             | *program.Program  | Program used to validate the block.
 
 ### Transaction

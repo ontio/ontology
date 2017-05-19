@@ -93,7 +93,7 @@ type BlockHead struct {
 	Timestamp        uint32
 	Height           uint32
 	ConsensusData    uint64
-	NextMiner        string
+	NextBookKeeper   string
 	Program          ProgramInfo
 
 	Hash string

@@ -134,7 +134,7 @@ func VerifyTransactionPoolWhenResponse(txPool []*tx.Transaction) bool {
 	return true
 }
 
-//Use for request by miner.
+//Use for request by bookKeeper.
 //remove the invalidate transaction from process context and tell the caller which should be removed.
 func VerifyTransactionPoolWhenRequest(txPool map[common.Uint256]*tx.Transaction) (txs []common.Uint256, NewPool map[common.Uint256]*tx.Transaction) {
 	if len(txPool) == 0 {

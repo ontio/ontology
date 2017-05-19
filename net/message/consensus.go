@@ -20,14 +20,14 @@ import (
 )
 
 type ConsensusPayload struct {
-	Version    uint32
-	PrevHash   common.Uint256
-	Height     uint32
-	MinerIndex uint16
-	Timestamp  uint32
-	Data       []byte
-	Owner      *crypto.PubKey
-	Program    *program.Program
+	Version         uint32
+	PrevHash        common.Uint256
+	Height          uint32
+	BookKeeperIndex uint16
+	Timestamp       uint32
+	Data            []byte
+	Owner           *crypto.PubKey
+	Program         *program.Program
 
 	hash common.Uint256
 }
@@ -65,7 +65,7 @@ func (cp *ConsensusPayload) GetProgramHashes() ([]common.Uint160, error) {
 	hash := contract.ProgramHash
 	log.Debug("program hash == ", hash)
 
-	//signatureRedeemScript, err := contract.CreateSignatureRedeemScript(miners[cp.MinerIndex])
+	//signatureRedeemScript, err := contract.CreateSignatureRedeemScript(bookKeepers[cp.BookKeeperIndex])
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[Consensus], CreateSignatureContract failed.")
 	}
@@ -138,7 +138,7 @@ func (cp *ConsensusPayload) SerializeUnsigned(w io.Writer) error {
 	serialization.WriteUint32(w, cp.Version)
 	cp.PrevHash.Serialize(w)
 	serialization.WriteUint32(w, cp.Height)
-	serialization.WriteUint16(w, cp.MinerIndex)
+	serialization.WriteUint16(w, cp.BookKeeperIndex)
 	serialization.WriteUint32(w, cp.Timestamp)
 	serialization.WriteVarBytes(w, cp.Data)
 	err := cp.Owner.Serialize(w)
@@ -193,10 +193,10 @@ func (cp *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
 		return errors.New("consensus item Height Deserialize failed.")
 	}
 
-	cp.MinerIndex, err = serialization.ReadUint16(r)
+	cp.BookKeeperIndex, err = serialization.ReadUint16(r)
 	if err != nil {
-		log.Info("consensus item MinerIndex Deserialize failed.")
-		return errors.New("consensus item MinerIndex Deserialize failed.")
+		log.Info("consensus item BookKeeperIndex Deserialize failed.")
+		return errors.New("consensus item BookKeeperIndex Deserialize failed.")
 	}
 
 	cp.Timestamp, err = serialization.ReadUint32(r)

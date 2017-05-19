@@ -10,11 +10,11 @@ import (
 )
 
 type PrepareRequest struct {
-	msgData      ConsensusMessageData
-	Nonce        uint64
-	NextMiner    Uint160
-	Transactions []*tx.Transaction
-	Signature    []byte
+	msgData        ConsensusMessageData
+	Nonce          uint64
+	NextBookKeeper Uint160
+	Transactions   []*tx.Transaction
+	Signature      []byte
 }
 
 func (pr *PrepareRequest) Serialize(w io.Writer) error {
@@ -24,8 +24,8 @@ func (pr *PrepareRequest) Serialize(w io.Writer) error {
 	if err := ser.WriteVarUint(w, pr.Nonce); err != nil {
 		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] nonce serialization failed")
 	}
-	if _, err := pr.NextMiner.Serialize(w); err != nil {
-		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] nextminer serialization failed")
+	if _, err := pr.NextBookKeeper.Serialize(w); err != nil {
+		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] nextbookKeeper serialization failed")
 	}
 	if err := ser.WriteVarUint(w, uint64(len(pr.Transactions))); err != nil {
 		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] length serialization failed")
@@ -47,9 +47,9 @@ func (pr *PrepareRequest) Deserialize(r io.Reader) error {
 	pr.msgData.Deserialize(r)
 	pr.Nonce, _ = ser.ReadVarUint(r, 0)
 
-	pr.NextMiner = Uint160{}
-	if err := pr.NextMiner.Deserialize(r); err != nil {
-		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] nextminer deserialization failed")
+	pr.NextBookKeeper = Uint160{}
+	if err := pr.NextBookKeeper.Deserialize(r); err != nil {
+		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] nextbookKeeper deserialization failed")
 	}
 
 	length, err := ser.ReadVarUint(r, 0)

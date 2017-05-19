@@ -151,7 +151,7 @@ func getBlock(params []interface{}) map[string]interface{} {
 		Timestamp:        block.Blockdata.Timestamp,
 		Height:           block.Blockdata.Height,
 		ConsensusData:    block.Blockdata.ConsensusData,
-		NextMiner:        ToHexString(block.Blockdata.NextMiner.ToArray()),
+		NextBookKeeper:   ToHexString(block.Blockdata.NextBookKeeper.ToArray()),
 		Program: ProgramInfo{
 			Code:      ToHexString(block.Blockdata.Program.Code),
 			Parameter: ToHexString(block.Blockdata.Program.Parameter),

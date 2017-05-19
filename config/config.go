@@ -13,21 +13,21 @@ const (
 )
 
 type ProtocolConfiguration struct {
-	Magic         int64    `json:"Magic"`
-	CoinVersion   int      `json:"CoinVersion"`
-	SeedList      []string `json:"SeedList"`
-	HttpJsonPort  int      `json:"HttpJsonPort"`
-	HttpLocalPort int      `json:"HttpLocalPort"`
-	NodePort      int      `json:"NodePort"`
-	WebSocketPort int      `json:"WebSocketPort"`
-	MinerName     string   `json:"MinerName"`
-	PrintLevel    int      `json:"PrintLevel"`
-	IsTLS         bool     `json:"IsTLS"`
-	CertPath      string   `json:"CertPath"`
-	KeyPath       string   `json:"KeyPath"`
-	CAPath        string   `json:"CAPath"`
-	GenBlockTime  uint     `json:"GenBlockTime"`
-	MinerCount    uint32   `json:"MinerCount"`
+	Magic           int64    `json:"Magic"`
+	CoinVersion     int      `json:"CoinVersion"`
+	SeedList        []string `json:"SeedList"`
+	HttpJsonPort    int      `json:"HttpJsonPort"`
+	HttpLocalPort   int      `json:"HttpLocalPort"`
+	NodePort        int      `json:"NodePort"`
+	WebSocketPort   int      `json:"WebSocketPort"`
+	BookKeeperName  string   `json:"BookKeeperName"`
+	PrintLevel      int      `json:"PrintLevel"`
+	IsTLS           bool     `json:"IsTLS"`
+	CertPath        string   `json:"CertPath"`
+	KeyPath         string   `json:"KeyPath"`
+	CAPath          string   `json:"CAPath"`
+	GenBlockTime    uint     `json:"GenBlockTime"`
+	BookKeeperCount uint32   `json:"BookKeeperCount"`
 }
 
 type ProtocolFile struct {

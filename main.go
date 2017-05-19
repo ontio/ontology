@@ -19,8 +19,8 @@ import (
 
 const (
 	// The number of the CPU cores for parallel optimization,TODO set from config file
-	NCPU              = 4
-	DefaultMinerCount = 4
+	NCPU                   = 4
+	DefaultBookKeeperCount = 4
 )
 
 var Version string
@@ -71,11 +71,11 @@ func main() {
 	fmt.Println("//**************************************************************************")
 	fmt.Println("//*** 1. Generate [Account]                                              ***")
 	fmt.Println("//**************************************************************************")
-	var minerCount uint32 = DefaultMinerCount
-	if config.Parameters.MinerCount != 0 {
-		minerCount = config.Parameters.MinerCount
+	var bookKeeperCount uint32 = DefaultBookKeeperCount
+	if config.Parameters.BookKeeperCount != 0 {
+		bookKeeperCount = config.Parameters.BookKeeperCount
 	}
-	localclient := OpenClientAndGetAccount(minerCount)
+	localclient := OpenClientAndGetAccount(bookKeeperCount)
 	if localclient == nil {
 		fmt.Println("Can't get local client.")
 		os.Exit(1)
@@ -86,15 +86,15 @@ func main() {
 		fmt.Println(err)
 	}
 	fmt.Println("//**************************************************************************")
-	fmt.Println("//*** 2. Set Miner                                                     ***")
+	fmt.Println("//*** 2. Set BookKeeper                                                     ***")
 	fmt.Println("//**************************************************************************")
-	miner := []*crypto.PubKey{}
+	bookKeeper := []*crypto.PubKey{}
 	var i uint32
-	for i = 0; i < minerCount; i++ {
-		miner = append(miner, getMiner(i+1).PublicKey)
+	for i = 0; i < bookKeeperCount; i++ {
+		bookKeeper = append(bookKeeper, getBookKeeper(i+1).PublicKey)
 	}
-	ledger.StandbyMiners = miner
-	fmt.Println("miner1.PublicKey", issuer.PublicKey)
+	ledger.StandbyBookKeepers = bookKeeper
+	fmt.Println("bookKeeper1.PublicKey", issuer.PublicKey)
 
 	fmt.Println("//**************************************************************************")
 	fmt.Println("//*** 3. BlockChain init                                                 ***")
@@ -131,10 +131,10 @@ func main() {
 }
 
 func OpenClientAndGetAccount(count uint32) Client {
-	clientName := config.Parameters.MinerName
-	fmt.Printf("The Miner name is %s\n", clientName)
+	clientName := config.Parameters.BookKeeperName
+	fmt.Printf("The BookKeeper name is %s\n", clientName)
 	if clientName == "" {
-		fmt.Printf("Miner name not be set at config file protocol.json, which schould be c1,c2,c3,c4. Now is %s\n", clientName)
+		fmt.Printf("BookKeeper name not be set at config file protocol.json, which schould be c1,c2,c3,c4. Now is %s\n", clientName)
 		return nil
 	}
 	var c []Client
@@ -153,7 +153,7 @@ func OpenClientAndGetAccount(count uint32) Client {
 	return c[n-1]
 }
 
-func getMiner(n uint32) *Account {
+func getBookKeeper(n uint32) *Account {
 	w := fmt.Sprintf("wallet%d.txt", n)
 	c := OpenClient(w, []byte("\x12\x34\x56"))
 	account, err := c.GetDefaultAccount()

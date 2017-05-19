@@ -94,18 +94,18 @@ func (bc *Blockchain) ContainsTransaction(hash Uint256) bool {
 	return true
 }
 
-func (bc *Blockchain) GetMinersByTXs(others []*tx.Transaction) []*crypto.PubKey {
-	//TODO: GetMiners()
+func (bc *Blockchain) GetBookKeepersByTXs(others []*tx.Transaction) []*crypto.PubKey {
+	//TODO: GetBookKeepers()
 	//TODO: Just for TestUse
 
-	return StandbyMiners
+	return StandbyBookKeepers
 }
 
-func (bc *Blockchain) GetMiners() []*crypto.PubKey {
-	//TODO: GetMiners()
+func (bc *Blockchain) GetBookKeepers() []*crypto.PubKey {
+	//TODO: GetBookKeepers()
 	//TODO: Just for TestUse
 
-	return StandbyMiners
+	return StandbyBookKeepers
 }
 
 func (bc *Blockchain) CurrentBlockHash() Uint256 {
