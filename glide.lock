@@ -1,5 +1,5 @@
-hash: 86d80ea3fe335b0cdd73049f9f3e329a3240ebee90e0cfe6f300fe2591dcd7b9
-updated: 2017-03-27T18:51:41.898303878+08:00
+hash: ffe31c7a0795c9ee7ba04234db2376018477bae2e354aeaa99e654d75dac983f
+updated: 2017-05-20T13:43:09.296930419+08:00
 imports:
 - name: github.com/golang/crypto
   version: 459e26527287adbc2adcc5d0d49abff9a5f315a7
@@ -24,4 +24,6 @@ imports:
   - leveldb/util
 - name: github.com/tv42/base58
   version: b6649477bfe6276322b4eeaae8f5e947b49cec92
+- name: github.com/urfave/cli
+  version: f6e8084112db1c3aa9c1e4144f024ab549ea08c1
 testImports: []

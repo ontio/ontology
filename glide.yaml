@@ -10,3 +10,4 @@ import:
   - leveldb/iterator
   - leveldb/opt
 - package: github.com/tv42/base58
+- package: github.com/urfave/cli
