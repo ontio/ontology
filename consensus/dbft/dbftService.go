@@ -14,6 +14,7 @@ import (
 	tx "DNA/core/transaction"
 	"DNA/core/transaction/payload"
 	va "DNA/core/validation"
+	"DNA/crypto"
 	. "DNA/errors"
 	"DNA/events"
 	"DNA/net"
@@ -129,6 +130,7 @@ func (ds *DbftService) CheckSignatures() error {
 		//create multi-sig contract with all bookKeepers
 		contract, err := ct.CreateMultiSigContract(codehash, ds.context.M(), ds.context.BookKeepers)
 		if err != nil {
+			log.Error("CheckSignatures CreateMultiSigContract error: ", err)
 			return err
 		}
 
@@ -155,8 +157,8 @@ func (ds *DbftService) CheckSignatures() error {
 		if !ledger.DefaultLedger.BlockInLedger(hash) {
 			// save block
 			if err := ledger.DefaultLedger.Blockchain.AddBlock(block); err != nil {
-				log.Warn("Block saving error: ", hash)
-				return err
+				log.Error(fmt.Sprintf("[CheckSignatures] Xmit block Error: %s, blockHash: %d", err.Error(), block.Hash()))
+				return NewDetailErr(err, ErrNoCode, "[DbftService], CheckSignatures AddContract failed.")
 			}
 
 			// wait peers for saving block
@@ -409,7 +411,10 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, mes
 		return
 	}
 
-	bookKeeperAddress, err := ledger.GetBookKeeperAddress(ds.context.BookKeepers)
+	bookKeepersLen := len(ds.context.NextBookKeepers)
+	bookKeepers := make([]*crypto.PubKey, bookKeepersLen)
+	copy(bookKeepers, ds.context.NextBookKeepers)
+	bookKeeperAddress, err := ledger.GetBookKeeperAddress(bookKeepers)
 	if err != nil {
 		log.Error("[DbftService] GetBookKeeperAddres failed")
 		return
@@ -460,7 +465,11 @@ func (ds *DbftService) PrepareResponseReceived(payload *msg.ConsensusPayload, me
 	}
 
 	ds.context.Signatures[payload.BookKeeperIndex] = message.Signature
-	ds.CheckSignatures()
+	err := ds.CheckSignatures()
+	if err != nil {
+		log.Error("CheckSignatures failed")
+		return
+	}
 	log.Info("Prepare Response finished")
 }
 
@@ -561,7 +570,10 @@ func (ds *DbftService) Timeout() {
 				ds.context.Transactions = append(ds.context.Transactions, tx)
 			}
 			//build block and sign
-			ds.context.NextBookKeeper, _ = ledger.GetBookKeeperAddress(ds.context.BookKeepers)
+			bookKeepersLen := len(ds.context.NextBookKeepers)
+			bookKeepers := make([]*crypto.PubKey, bookKeepersLen)
+			copy(bookKeepers, ds.context.NextBookKeepers)
+			ds.context.NextBookKeeper, _ = ledger.GetBookKeeperAddress(bookKeepers)
 			block := ds.context.MakeHeader()
 			account, _ := ds.Client.GetAccount(ds.context.BookKeepers[ds.context.BookKeeperIndex]) //TODO: handle error
 			ds.context.Signatures[ds.context.BookKeeperIndex], _ = sig.SignBySigner(block, account)

@@ -23,6 +23,8 @@ type ConsensusContext struct {
 	Height          uint32
 	ViewNumber      byte
 	BookKeepers     []*crypto.PubKey
+	NextBookKeepers []*crypto.PubKey
+	PreBookKeepers  []*crypto.PubKey
 	Owner           *crypto.PubKey
 	BookKeeperIndex int
 	PrimaryIndex    uint32
@@ -35,7 +37,35 @@ type ConsensusContext struct {
 
 	header *ledger.Block
 
-	contextMu sync.Mutex
+	contextMu           sync.Mutex
+	isBookKeeperChanged bool
+	nmChangedblkHeight  uint32
+}
+
+// compare the two slice, if the elements in a are the same as b.
+// The elements order may be not the same but value should be the same.
+func SliceNotEqual(a, b []*crypto.PubKey) bool {
+	if len(a) != len(b) {
+		return true
+	}
+
+	if (a == nil) != (b == nil) {
+		return true
+	}
+
+	for _, v := range a {
+		for ii, vv := range b {
+			if v == vv {
+				break
+			} else {
+				if (ii + 1) == len(b) {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
 }
 
 func (cxt *ConsensusContext) M() int {
@@ -173,7 +203,42 @@ func (cxt *ConsensusContext) Reset(client cl.Client, localNode net.Neter) {
 	cxt.ViewNumber = 0
 	cxt.BookKeeperIndex = -1
 
-	bookKeepers, _ := localNode.GetBookKeepersAddrs()
+	if (cxt.isBookKeeperChanged == true) && ((cxt.nmChangedblkHeight + 1) == cxt.Height) {
+		bookKeepersLen := len(cxt.NextBookKeepers)
+		cxt.BookKeepers = make([]*crypto.PubKey, bookKeepersLen)
+		cxt.PreBookKeepers = make([]*crypto.PubKey, bookKeepersLen)
+		copy(cxt.BookKeepers, cxt.NextBookKeepers)
+		copy(cxt.PreBookKeepers, cxt.NextBookKeepers)
+		cxt.isBookKeeperChanged = false
+	} else {
+		bookKeepersLen := len(cxt.PreBookKeepers)
+		cxt.BookKeepers = make([]*crypto.PubKey, bookKeepersLen)
+		copy(cxt.BookKeepers, cxt.PreBookKeepers)
+	}
+	bookKeepersLen := len(cxt.NextBookKeepers)
+	nextBookKeepers := make([]*crypto.PubKey, bookKeepersLen)
+	copy(nextBookKeepers, cxt.NextBookKeepers)
+	cxt.NextBookKeeper, _ = ledger.GetBookKeeperAddress(nextBookKeepers)
+
+	var bookKeepers []*crypto.PubKey
+
+	if len(cxt.BookKeepers) == 0 {
+		bookKeepers, _ = localNode.GetBookKeepersAddrs()
+		cxt.PreBookKeepers, _ = localNode.GetBookKeepersAddrs()
+	} else {
+		bookKeepers = cxt.BookKeepers
+	}
+
+	cxt.NextBookKeepers, _ = localNode.GetBookKeepersAddrs()
+
+	if cxt.Height > 1 {
+		cxt.isBookKeeperChanged = SliceNotEqual(cxt.NextBookKeepers, cxt.BookKeepers)
+		if cxt.isBookKeeperChanged == true {
+			cxt.nmChangedblkHeight = cxt.Height
+			log.Debug("isNextMinerChanged: ", cxt.isBookKeeperChanged, " , nmChangedblkHeight: ", cxt.nmChangedblkHeight)
+		}
+	}
+
 	cxt.Owner = bookKeepers[0]
 	sort.Sort(crypto.PubKeySlice(bookKeepers))
 	cxt.BookKeepers = bookKeepers
