@@ -40,7 +40,7 @@ func NewCommand() *cli.Command {
 	return &cli.Command{
 		Name:        "consensus",
 		Usage:       "switch of consensue function",
-		Description: "With nodectl consensue, you could start or stop consensus for a node.",
+		Description: "With nodectl consensus, you could start or stop consensus for a node.",
 		Flags: []cli.Flag{
 			cli.BoolFlag{
 				Name:  "start",
