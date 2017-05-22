@@ -2,17 +2,16 @@ package contract
 
 import (
 	. "DNA/common"
-	"DNA/vm"
-	"io"
-	"bytes"
 	"DNA/common/serialization"
 	. "DNA/errors"
+	"DNA/vm"
+	"bytes"
 	"errors"
+	"io"
 )
 
 //Contract address is the hash of contract program .
 //which be used to control asset or indicate the smart contract address �?
-
 
 //Contract include the program codes with parameters which can be executed on specific evnrioment
 type Contract struct {
@@ -29,7 +28,6 @@ type Contract struct {
 
 	//owner's pubkey hash indicate the owner of contract
 	OwnerPubkeyHash Uint160
-
 }
 
 func (c *Contract) IsStandard() bool {
@@ -47,8 +45,12 @@ func (c *Contract) IsMultiSigContract() bool {
 	var n int16 = 0
 	i := 0
 
-	if len(c.Code) < 37 {return false}
-	if c.Code[i] > byte(vm.PUSH16) {return false}
+	if len(c.Code) < 37 {
+		return false
+	}
+	if c.Code[i] > byte(vm.PUSH16) {
+		return false
+	}
 	if c.Code[i] < byte(vm.PUSH1) && c.Code[i] != 1 && c.Code[i] != 2 {
 		return false
 	}
@@ -70,40 +72,56 @@ func (c *Contract) IsMultiSigContract() bool {
 		break
 	}
 
-	if m < 1 || m > 1024 {return false}
+	if m < 1 || m > 1024 {
+		return false
+	}
 
 	for c.Code[i] == 33 {
 		i += 34
-		if len(c.Code) <= i {return false}
+		if len(c.Code) <= i {
+			return false
+		}
 		n++
 	}
-	if n < m || n > 1024 {return false}
+	if n < m || n > 1024 {
+		return false
+	}
 
 	switch c.Code[i] {
 	case 1:
 		i++
-		if n != int16(c.Code[i]) {return false}
+		if n != int16(c.Code[i]) {
+			return false
+		}
 		i++
 		break
 	case 2:
 		i++
-		if n != BytesToInt16(c.Code[i:]) {return false}
+		if n != BytesToInt16(c.Code[i:]) {
+			return false
+		}
 		i += 2
 		break
 	default:
-		if n != (int16(c.Code[i]) - 80) {return false}
+		if n != (int16(c.Code[i]) - 80) {
+			return false
+		}
 		i++
 		break
 	}
 
-	if c.Code[i] != byte(vm.CHECKMULTISIG) {return false}
+	if c.Code[i] != byte(vm.CHECKMULTISIG) {
+		return false
+	}
 	i++
-	if len(c.Code) != i {return false}
+	if len(c.Code) != i {
+		return false
+	}
 
 	return true
 }
 
-func (c *Contract) GetType() ContractType{
+func (c *Contract) GetType() ContractType {
 	if c.IsStandard() {
 		return SignatureContract
 	}
@@ -116,13 +134,13 @@ func (c *Contract) GetType() ContractType{
 func (c *Contract) Deserialize(r io.Reader) error {
 	c.OwnerPubkeyHash.Deserialize(r)
 
-	p,err := serialization.ReadVarBytes(r)
+	p, err := serialization.ReadVarBytes(r)
 	if err != nil {
 		return err
 	}
 	c.Parameters = ByteToContractParameterType(p)
 
-	c.Code,err = serialization.ReadVarBytes(r)
+	c.Code, err = serialization.ReadVarBytes(r)
 	if err != nil {
 		return err
 	}
@@ -131,7 +149,7 @@ func (c *Contract) Deserialize(r io.Reader) error {
 }
 
 func (c *Contract) Serialize(w io.Writer) error {
-	len,err := c.OwnerPubkeyHash.Serialize(w)
+	len, err := c.OwnerPubkeyHash.Serialize(w)
 	if err != nil {
 		return err
 	}
@@ -139,12 +157,12 @@ func (c *Contract) Serialize(w io.Writer) error {
 		return NewDetailErr(errors.New("PubkeyHash.Serialize(): len != len(Uint160)"), ErrNoCode, "")
 	}
 
-	err = serialization.WriteVarBytes(w,ContractParameterTypeToByte(c.Parameters))
+	err = serialization.WriteVarBytes(w, ContractParameterTypeToByte(c.Parameters))
 	if err != nil {
 		return err
 	}
 
-	err = serialization.WriteVarBytes(w,c.Code)
+	err = serialization.WriteVarBytes(w, c.Code)
 	if err != nil {
 		return err
 	}
@@ -159,24 +177,22 @@ func (c *Contract) ToArray() []byte {
 	return w.Bytes()
 }
 
-func ContractParameterTypeToByte( c [] ContractParameterType ) []byte {
-	b := make( []byte, len(c) )
+func ContractParameterTypeToByte(c []ContractParameterType) []byte {
+	b := make([]byte, len(c))
 
-	for i:=0; i<len(c); i++ {
+	for i := 0; i < len(c); i++ {
 		b[i] = byte(c[i])
 	}
 
 	return b
 }
 
-func ByteToContractParameterType( b []byte ) []ContractParameterType {
-	c := make( []ContractParameterType, len(b) )
+func ByteToContractParameterType(b []byte) []ContractParameterType {
+	c := make([]ContractParameterType, len(b))
 
-	for i:=0; i<len(b); i++ {
+	for i := 0; i < len(b); i++ {
 		c[i] = ContractParameterType(b[i])
 	}
 
 	return c
 }
-
-

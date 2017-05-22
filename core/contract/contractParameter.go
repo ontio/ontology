@@ -11,4 +11,3 @@ const (
 	Hash256
 	ByteArray
 )
-

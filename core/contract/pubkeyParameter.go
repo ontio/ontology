@@ -1,15 +1,13 @@
 package contract
 
 type PubkeyParameter struct {
-	PubKey string
+	PubKey    string
 	Parameter string
 }
 
-
-
 type ParameterIndex struct {
 	Parameter []byte
-	Index int
+	Index     int
 }
 
 type ParameterIndexSlice []ParameterIndex

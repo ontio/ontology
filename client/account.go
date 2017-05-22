@@ -37,9 +37,7 @@ func NewAccountWithPrivatekey(privateKey []byte) (*Account, error) {
 		return nil, errors.New("Invalid private Key.")
 	}
 
-	// set public key
 	pubKey := crypto.NewPubKey(privateKey)
-	//priKey,pubKey,_ := crypto.GenKeyPair()
 	temp, err := pubKey.EncodePoint(true)
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
@@ -55,12 +53,10 @@ func NewAccountWithPrivatekey(privateKey []byte) (*Account, error) {
 	}, nil
 }
 
-//get signer's private key
 func (ac *Account) PrivKey() []byte {
 	return ac.PrivateKey
 }
 
-//get signer's public key
 func (ac *Account) PubKey() *crypto.PubKey {
 	return ac.PublicKey
 }
