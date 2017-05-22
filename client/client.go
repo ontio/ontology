@@ -186,52 +186,41 @@ func NewClient(path string, passwordKey []byte, create bool) *ClientImpl {
 }
 
 func (cl *ClientImpl) GetDefaultAccount() (*Account, error) {
-	for k, _ := range cl.accounts {
-		return cl.GetAccountByKeyHash(k), nil
+	for programHash, _ := range cl.accounts {
+		return cl.GetAccountByProgramHash(programHash), nil
 	}
 
 	return nil, NewDetailErr(errors.New("Can't load default account."), ErrNoCode, "")
 }
 
 func (cl *ClientImpl) GetAccount(pubKey *crypto.PubKey) (*Account, error) {
-	temp, err := pubKey.EncodePoint(true)
+	signatureRedeemScript, err := contract.CreateSignatureRedeemScript(pubKey)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
+		return nil, NewDetailErr(err, ErrNoCode, "CreateSignatureRedeemScript failed")
 	}
-	hash, err := ToCodeHash(temp)
+	programHash, err := ToCodeHash(signatureRedeemScript)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
+		return nil, NewDetailErr(err, ErrNoCode, "ToCodeHash failed")
 	}
-	return cl.GetAccountByKeyHash(hash), nil
+	return cl.GetAccountByProgramHash(programHash), nil
 }
 
-func (cl *ClientImpl) GetAccountByKeyHash(publicKeyHash Uint160) *Account {
+func (cl *ClientImpl) GetAccountByProgramHash(programHash Uint160) *Account {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
 
-	if account, ok := cl.accounts[publicKeyHash]; ok {
+	if account, ok := cl.accounts[programHash]; ok {
 		return account
 	}
 	return nil
 }
 
-func (cl *ClientImpl) GetAccountByProgramHash(programHash Uint160) *Account {
+func (cl *ClientImpl) GetContract(programHash Uint160) *ct.Contract {
 	log.Debug()
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
 
 	if contract, ok := cl.contracts[programHash]; ok {
-		return cl.accounts[contract.OwnerPubkeyHash]
-	}
-	return nil
-}
-
-func (cl *ClientImpl) GetContract(codeHash Uint160) *ct.Contract {
-	log.Debug()
-	cl.mu.Lock()
-	defer cl.mu.Unlock()
-
-	if contract, ok := cl.contracts[codeHash]; ok {
 		return contract
 	}
 	return nil
@@ -248,22 +237,17 @@ func (cl *ClientImpl) ChangePassword(oldPassword string, newPassword string) boo
 }
 
 func (cl *ClientImpl) ContainsAccount(pubKey *crypto.PubKey) bool {
-	acpubkey, err := pubKey.EncodePoint(true)
-	if err == nil {
-		Publickey, err := ToCodeHash(acpubkey)
-		if err == nil {
-			if cl.GetAccountByKeyHash(Publickey) != nil {
-				return true
-			} else {
-				return false
-			}
-
-		} else {
-			log.Error(err)
-			return false
-		}
+	signatureRedeemScript, err := contract.CreateSignatureRedeemScript(pubKey)
+	if err != nil {
+		return false
+	}
+	programHash, err := ToCodeHash(signatureRedeemScript)
+	if err != nil {
+		return false
+	}
+	if cl.GetAccountByProgramHash(programHash) != nil {
+		return true
 	} else {
-		log.Error(err)
 		return false
 	}
 }
@@ -275,7 +259,7 @@ func (cl *ClientImpl) CreateAccount() (*Account, error) {
 	}
 
 	cl.mu.Lock()
-	cl.accounts[ac.PublicKeyHash] = ac
+	cl.accounts[ac.ProgramHash] = ac
 	cl.mu.Unlock()
 
 	err = cl.SaveAccount(ac)
@@ -302,7 +286,7 @@ func (cl *ClientImpl) CreateAccountByPrivateKey(privateKey []byte) (*Account, er
 		return nil, err
 	}
 
-	cl.accounts[ac.PublicKeyHash] = ac
+	cl.accounts[ac.ProgramHash] = ac
 	err = cl.SaveAccount(ac)
 	if err != nil {
 		return nil, err
@@ -427,7 +411,7 @@ func (cl *ClientImpl) SaveAccount(ac *Account) error {
 
 	ClearBytes(decryptedPrivateKey, 96)
 
-	err = cl.store.SaveAccountData(ac.PublicKeyHash.ToArray(), encryptedPrivateKey)
+	err = cl.store.SaveAccountData(ac.ProgramHash.ToArray(), encryptedPrivateKey)
 	if err != nil {
 		return err
 	}
@@ -440,7 +424,7 @@ func (cl *ClientImpl) LoadAccount() map[Uint160]*Account {
 	i := 0
 	accounts := map[Uint160]*Account{}
 	for true {
-		pubkeyhash, prikeyenc, err := cl.store.LoadAccountData(i)
+		_, prikeyenc, err := cl.store.LoadAccountData(i)
 		if err != nil {
 			// TODO: report the error
 		}
@@ -452,11 +436,7 @@ func (cl *ClientImpl) LoadAccount() map[Uint160]*Account {
 
 		prikey := decryptedPrivateKey[64:96]
 		ac, err := NewAccountWithPrivatekey(prikey)
-
-		pk, _ := ac.PublicKey.EncodePoint(true)
-		log.Debug("[LoadAccount] PublicKey: %x\n", pk)
-		pkhash, _ := Uint160ParseFromBytes(pubkeyhash)
-		accounts[pkhash] = ac
+		accounts[ac.ProgramHash] = ac
 		i++
 		break
 	}
@@ -472,7 +452,7 @@ func (cl *ClientImpl) LoadContracts() map[Uint160]*ct.Contract {
 	for true {
 		ph, _, rd, err := cl.store.LoadContractData(i)
 		if err != nil {
-			//fmt.Println( err )
+			fmt.Println(err)
 			break
 		}
 
@@ -482,10 +462,7 @@ func (cl *ClientImpl) LoadContracts() map[Uint160]*ct.Contract {
 
 		programhash, err := Uint160ParseFromBytes(ph)
 		ct.ProgramHash = programhash
-
 		contracts[ct.ProgramHash] = ct
-
-		log.Info("[LoadContract] Address: %s\n", ct.ProgramHash.ToAddress())
 		i++
 		break
 	}
@@ -496,7 +473,7 @@ func (cl *ClientImpl) AddContract(ct *contract.Contract) error {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
 
-	if cl.accounts[ct.OwnerPubkeyHash] == nil {
+	if cl.accounts[ct.ProgramHash] == nil {
 		return NewDetailErr(errors.New("AddContract(): contract.OwnerPubkeyHash not in []accounts"), ErrNoCode, "")
 	}
 

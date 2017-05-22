@@ -34,7 +34,7 @@ func NewCommand() *cli.Command {
 		ArgsUsage:   "[args]",
 		Flags: []cli.Flag{
 			cli.IntFlag{
-				Name:  "level",
+				Name:  "level, l",
 				Usage: "log level 0-6",
 				Value: -1,
 			},

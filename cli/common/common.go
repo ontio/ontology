@@ -7,9 +7,14 @@ import (
 	"os"
 	"strconv"
 
-	"DNA/config"
+	"DNA/common/config"
 
 	"github.com/urfave/cli"
+)
+
+const (
+	DefaultWalletName   = "wallet.db3"
+	DefaultWalletPasswd = "dnapw"
 )
 
 var (
@@ -37,7 +42,6 @@ func NewPortFlag() cli.Flag {
 
 func Address() string {
 	address := "http://" + Ip + ":" + Port
-	fmt.Printf("Connecting to %s ...\n", address)
 	return address
 }
 

@@ -10,7 +10,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand"
-	"time"
+	"strconv"
 )
 
 const (
@@ -206,7 +206,7 @@ func getRawMemPool(params []interface{}) map[string]interface{} {
 		txs = append(txs, TransArryByteToHexString(t))
 	}
 	if len(txs) == 0 {
-		return DnaRpc(nil)
+		return DnaRpcNil
 	}
 	return DnaRpc(txs)
 }
@@ -246,6 +246,7 @@ func sendRawTransaction(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil
 	}
+	var hash Uint256
 	switch params[0].(type) {
 	case string:
 		str := params[0].(string)
@@ -257,21 +258,113 @@ func sendRawTransaction(params []interface{}) map[string]interface{} {
 		if err := txn.Deserialize(bytes.NewReader(hex)); err != nil {
 			return DnaRpcInvalidTransaction
 		}
+		hash = txn.Hash()
 		if err := SendTx(&txn); err != nil {
 			return DnaRpcInternalError
 		}
 	default:
 		return DnaRpcInvalidParameter
 	}
-	return DnaRpcSuccess
+	return DnaRpc(ToHexString(hash.ToArray()))
+}
+
+func getUnspendOutput(params []interface{}) map[string]interface{} {
+	if len(params) < 2 {
+		return DnaRpcNil
+	}
+	var programHash Uint160
+	var assetHash Uint256
+	switch params[0].(type) {
+	case string:
+		str := params[0].(string)
+		hex, err := hex.DecodeString(str)
+		if err != nil {
+			return DnaRpcInvalidParameter
+		}
+		if err := programHash.Deserialize(bytes.NewReader(hex)); err != nil {
+			return DnaRpcInvalidHash
+		}
+	default:
+		return DnaRpcInvalidParameter
+	}
+
+	switch params[1].(type) {
+	case string:
+		str := params[1].(string)
+		hex, err := hex.DecodeString(str)
+		if err != nil {
+			return DnaRpcInvalidParameter
+		}
+		if err := assetHash.Deserialize(bytes.NewReader(hex)); err != nil {
+			return DnaRpcInvalidHash
+		}
+	default:
+		return DnaRpcInvalidParameter
+	}
+	type TxOutputInfo struct {
+		AssetID     string
+		Value       int64
+		ProgramHash string
+	}
+	outputs := make(map[string]*TxOutputInfo)
+	height := ledger.DefaultLedger.GetLocalBlockChainHeight()
+	var i uint32
+	// construct global UTXO table
+	for i = 0; i < height; i++ {
+		block, err := ledger.DefaultLedger.GetBlockWithHeight(i)
+		if err != nil {
+			return DnaRpcInternalError
+		}
+		// skip the bookkeeping transaction
+		for _, t := range block.Transactions[1:] {
+			// skip the register transaction
+			if t.TxType == tx.RegisterAsset {
+				continue
+			}
+			txHash := t.Hash()
+			txHashHex := ToHexString(txHash.ToArray())
+			for i, output := range t.Outputs {
+				if output.AssetID.CompareTo(assetHash) == 0 &&
+					output.ProgramHash.CompareTo(programHash) == 0 {
+					key := txHashHex + ":" + strconv.Itoa(i)
+					asset := ToHexString(output.AssetID.ToArray())
+					pHash := ToHexString(output.ProgramHash.ToArray())
+					value := int64(output.Value)
+					info := &TxOutputInfo{
+						asset,
+						value,
+						pHash,
+					}
+					outputs[key] = info
+				}
+			}
+		}
+	}
+	// delete spent output from global UTXO table
+	height = ledger.DefaultLedger.GetLocalBlockChainHeight()
+	for i = 0; i < height; i++ {
+		block, err := ledger.DefaultLedger.GetBlockWithHeight(i)
+		if err != nil {
+			return DnaRpcInternalError
+		}
+		// skip the bookkeeping transaction
+		for _, t := range block.Transactions[1:] {
+			// skip the register transaction
+			if t.TxType == tx.RegisterAsset {
+				continue
+			}
+			for _, input := range t.UTXOInputs {
+				refer := ToHexString(input.ReferTxID.ToArray())
+				index := strconv.Itoa(int(input.ReferTxOutputIndex))
+				key := refer + ":" + index
+				delete(outputs, key)
+			}
+		}
+	}
+	return DnaRpc(outputs)
 }
 
 func getTxout(params []interface{}) map[string]interface{} {
-	//TODO
-	return DnaRpcUnsupported
-}
-
-func getAddrTxn(params []interface{}) map[string]interface{} {
 	//TODO
 	return DnaRpcUnsupported
 }
@@ -355,7 +448,6 @@ func sendSampleTransaction(params []interface{}) map[string]interface{} {
 	}
 	admin := issuer
 
-	var regHash, issueHash, transferHash, recordHash Uint256
 	rbuf := make([]byte, RANDBYTELEN)
 	rand.Read(rbuf)
 	switch string(txType) {
@@ -369,39 +461,10 @@ func sendSampleTransaction(params []interface{}) map[string]interface{} {
 		}
 		for i := 0; i < num; i++ {
 			regTx := NewRegTx(ToHexString(rbuf), i, admin, issuer)
-			regHash = regTx.Hash()
 			SignTx(admin, regTx)
 			SendTx(regTx)
 		}
-		return DnaRpc(fmt.Sprintf("%d transactions was sended", num))
-	case "full":
-		regTx := NewRegTx(ToHexString(rbuf), 0, admin, issuer)
-		regHash = regTx.Hash()
-		SignTx(admin, regTx)
-		SendTx(regTx)
-
-		// wait for the block
-		time.Sleep(5 * time.Second)
-		issueTx := NewIssueTx(admin, regHash)
-		issueHash = issueTx.Hash()
-		SignTx(admin, issueTx)
-		SendTx(issueTx)
-
-		// wait for the block
-		time.Sleep(5 * time.Second)
-		transferTx := NewTransferTx(regHash, issueHash, issuer)
-		transferHash = transferTx.Hash()
-		SignTx(admin, transferTx)
-		SendTx(transferTx)
-
-		// wait for the block
-		time.Sleep(5 * time.Second)
-		NewRecordTx := NewRecordTx(ToHexString(rbuf))
-		recordHash = NewRecordTx.Hash()
-		SignTx(admin, NewRecordTx)
-		SendTx(NewRecordTx)
-
-		return DnaRpc(fmt.Sprintf("regist: %x, issue: %x, transfer: %x, record: %x", regHash, issueHash, transferHash, recordHash))
+		return DnaRpc(fmt.Sprintf("%d transaction(s) was sent", num))
 	default:
 		return DnaRpc("Invalid transacion type")
 	}

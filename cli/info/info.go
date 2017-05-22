@@ -112,11 +112,11 @@ func NewCommand() *cli.Command {
 		ArgsUsage:   "[args]",
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "blockhash, bh",
+				Name:  "blockhash, b",
 				Usage: "hash for querying a block",
 			},
 			cli.StringFlag{
-				Name:  "txhash, th",
+				Name:  "txhash, t",
 				Usage: "hash for querying a transaction",
 			},
 			cli.BoolFlag{
@@ -129,7 +129,7 @@ func NewCommand() *cli.Command {
 				Value: -1,
 			},
 			cli.BoolFlag{
-				Name:  "blockcount",
+				Name:  "blockcount, c",
 				Usage: "block number in blockchain",
 			},
 			cli.BoolFlag{
@@ -141,7 +141,7 @@ func NewCommand() *cli.Command {
 				Usage: "neighbor information of current node",
 			},
 			cli.BoolFlag{
-				Name:  "state",
+				Name:  "state, s",
 				Usage: "current node state",
 			},
 		},

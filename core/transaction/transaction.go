@@ -278,6 +278,7 @@ func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 		return []Uint160{}, errors.New("[Transaction],GetProgramHashes transaction is nil.")
 	}
 	hashs := []Uint160{}
+	uniqHashes := []Uint160{}
 	// add inputUTXO's transaction
 	referenceWithUTXO_Output, err := tx.GetReference()
 	if err != nil {
@@ -330,13 +331,20 @@ func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 				return nil, NewDetailErr(err, ErrNoCode, fmt.Sprintf("[Transaction], payload is illegal", k))
 			}
 		}
-
 	case TransferAsset:
 	case Record:
 	default:
 	}
-	sort.Sort(byProgramHashes(hashs))
-	return hashs, nil
+	//remove dupilicated hashes
+	uniq := make(map[Uint160]bool)
+	for _, v := range hashs {
+		uniq[v] = true
+	}
+	for k, _ := range uniq {
+		uniqHashes = append(uniqHashes, k)
+	}
+	sort.Sort(byProgramHashes(uniqHashes))
+	return uniqHashes, nil
 }
 
 func (tx *Transaction) SetPrograms(programs []*program.Program) {

@@ -27,67 +27,6 @@ func NewRegTx(rand string, index int, admin, issuer *client.Account) *transactio
 	return tx
 }
 
-func NewIssueTx(admin *client.Account, hash Uint256) *transaction.Transaction {
-	//UTXO　Output generate.
-	signatureRedeemScript, err := contract.CreateSignatureRedeemScript(admin.PublicKey)
-	if err != nil {
-		log.Error("EncodePoint error.")
-	}
-	hashx, err := ToCodeHash(signatureRedeemScript)
-	if err != nil {
-		log.Error("TocodeHash hash error.")
-	}
-	issueTxOutput := &transaction.TxOutput{
-		AssetID:     hash,
-		Value:       Fixed64(100),
-		ProgramHash: hashx,
-	}
-	outputs := []*transaction.TxOutput{}
-	outputs = append(outputs, issueTxOutput)
-
-	// generate transaction
-	tx, _ := transaction.NewIssueAssetTransaction(outputs)
-	return tx
-}
-
-func NewTransferTx(regHash, issueHash Uint256, toUser *client.Account) *transaction.Transaction {
-	//UTXO  Input Generate.
-	transferUTXOInput := &transaction.UTXOTxInput{
-		ReferTxID:          issueHash,
-		ReferTxOutputIndex: uint16(0),
-	}
-	inputs := []*transaction.UTXOTxInput{}
-	inputs = append(inputs, transferUTXOInput)
-
-	//UTXO　Output generate.
-	signatureRedeemScript, err := contract.CreateSignatureRedeemScript(toUser.PublicKey)
-	if err != nil {
-		log.Error("EncodePoint error.")
-	}
-	hashx, err := ToCodeHash(signatureRedeemScript)
-	if err != nil {
-		log.Error("TocodeHash hash error.")
-	}
-	transferTxOutput := &transaction.TxOutput{
-		AssetID:     regHash,
-		Value:       Fixed64(100),
-		ProgramHash: hashx,
-	}
-	outputs := []*transaction.TxOutput{}
-	outputs = append(outputs, transferTxOutput)
-
-	// generate transaction
-	tx, _ := transaction.NewTransferAssetTransaction(inputs, outputs)
-	return tx
-}
-
-func NewRecordTx(rand string) *transaction.Transaction {
-	recordType := string("txt")
-	recordData := []byte("hello world " + rand)
-	tx, _ := transaction.NewRecordTransaction(recordType, recordData)
-	return tx
-}
-
 func SignTx(admin *client.Account, tx *transaction.Transaction) {
 	signdate, err := signature.SignBySigner(tx, admin)
 	if err != nil {

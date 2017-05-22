@@ -1,8 +1,8 @@
 package httpjsonrpc
 
 import (
-	"DNA/common/log"
 	. "DNA/common/config"
+	"DNA/common/log"
 	"net/http"
 	"strconv"
 )
@@ -13,9 +13,9 @@ func StartRPCServer() {
 
 	HandleFunc("getbestblockhash", getBestBlockHash)
 	HandleFunc("getblock", getBlock)
-	HandleFunc("getAddrTxn", getAddrTxn)
 	HandleFunc("getblockcount", getBlockCount)
 	HandleFunc("getblockhash", getBlockHash)
+	HandleFunc("getunspendoutput", getUnspendOutput)
 	HandleFunc("getconnectioncount", getConnectionCount)
 	HandleFunc("getrawmempool", getRawMemPool)
 	HandleFunc("getrawtransaction", getRawTransaction)

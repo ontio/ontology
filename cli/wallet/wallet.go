@@ -1,34 +1,80 @@
 package wallet
 
 import (
-	//"fmt"
-	//	"os"
+	"bytes"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"os"
 
 	. "DNA/cli/common"
 	"DNA/client"
-	"DNA/crypto"
+	. "DNA/common"
+	"DNA/core/contract"
+	"DNA/net/httpjsonrpc"
 
 	"github.com/urfave/cli"
 )
 
 func walletAction(c *cli.Context) (err error) {
-	crypto.SetAlg(crypto.P256R1)
 	if c.NumFlags() == 0 {
 		cli.ShowSubcommandHelp(c)
 		return nil
 	}
 	create := c.Bool("create")
+	list := c.Bool("list")
 	name := c.String("name")
 	passwd := c.String("password")
-	if create {
-		if name != "" && passwd != "" {
-			wallet := client.CreateClient(name, []byte(passwd))
-			_ = wallet
-		}
-	} else {
-		if name != "" && passwd != "" {
-			wallet := client.OpenClient(name, []byte(passwd))
-			_ = wallet
+	if name != "" && passwd != "" {
+		if create {
+			//TODO error checking
+			client.CreateClient(name, []byte(passwd))
+		} else if list {
+			if name != "" && passwd != "" {
+				wallet := client.OpenClient(name, []byte(passwd))
+				if wallet == nil {
+					fmt.Println("Failed to open wallet: ", name)
+					os.Exit(1)
+				}
+				account, _ := wallet.GetDefaultAccount()
+				signatureRedeemScript, _ := contract.CreateSignatureRedeemScript(account.PubKey())
+				programHash, _ := ToCodeHash(signatureRedeemScript)
+				asset := c.String("asset")
+				if asset == "" {
+					fmt.Println("ProgramHash: ", ToHexString(programHash.ToArray()))
+				} else {
+					var buffer bytes.Buffer
+					_, err := programHash.Serialize(&buffer)
+					if err != nil {
+						return err
+					}
+					resp, err := httpjsonrpc.Call(Address(), "getunspendoutput", 0,
+						[]interface{}{hex.EncodeToString(buffer.Bytes()), asset})
+					if err != nil {
+						fmt.Fprintln(os.Stderr, err)
+						return err
+					}
+					r := make(map[string]interface{})
+					err = json.Unmarshal(resp, &r)
+					if err != nil {
+						fmt.Println("Unmarshal JSON failed")
+						return err
+					}
+					switch r["result"].(type) {
+					case map[string]interface{}:
+						ammount := 0
+						unspend := r["result"].(map[string]interface{})
+						for _, v := range unspend {
+							out := v.(map[string]interface{})
+							ammount += int(out["Value"].(float64))
+						}
+						fmt.Println("Ammount: ", ammount)
+					case string:
+						fmt.Println(r["result"].(string))
+						return nil
+					}
+				}
+			}
 		}
 	}
 	return nil
@@ -38,7 +84,7 @@ func NewCommand() *cli.Command {
 	return &cli.Command{
 		Name:        "wallet",
 		Usage:       "user wallet operation",
-		Description: "With nodectl wallet, you could do transaction.",
+		Description: "With nodectl wallet, you could control your asset.",
 		ArgsUsage:   "[args]",
 		Flags: []cli.Flag{
 			cli.BoolFlag{
@@ -50,14 +96,18 @@ func NewCommand() *cli.Command {
 				Usage: "list wallet information",
 			},
 			cli.StringFlag{
+				Name:  "asset, a",
+				Usage: "asset uniq ID",
+			},
+			cli.StringFlag{
 				Name:  "name, n",
 				Usage: "wallet name",
-				Value: "wallet.db3",
+				Value: DefaultWalletName,
 			},
 			cli.StringFlag{
 				Name:  "password, p",
 				Usage: "wallet password",
-				Value: "dnapw",
+				Value: DefaultWalletPasswd,
 			},
 		},
 		Action: walletAction,

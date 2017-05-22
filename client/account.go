@@ -2,31 +2,32 @@ package client
 
 import (
 	. "DNA/common"
+	"DNA/core/contract"
 	"DNA/crypto"
 	. "DNA/errors"
 	"errors"
 )
 
 type Account struct {
-	PrivateKey    []byte
-	PublicKey     *crypto.PubKey
-	PublicKeyHash Uint160
+	PrivateKey  []byte
+	PublicKey   *crypto.PubKey
+	ProgramHash Uint160
 }
 
 func NewAccount() (*Account, error) {
 	priKey, pubKey, _ := crypto.GenKeyPair()
-	temp, err := pubKey.EncodePoint(true)
+	signatureRedeemScript, err := contract.CreateSignatureRedeemScript(&pubKey)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
+		return nil, NewDetailErr(err, ErrNoCode, "CreateSignatureRedeemScript failed")
 	}
-	hash, err := ToCodeHash(temp)
+	programHash, err := ToCodeHash(signatureRedeemScript)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
+		return nil, NewDetailErr(err, ErrNoCode, "ToCodeHash failed")
 	}
 	return &Account{
-		PrivateKey:    priKey,
-		PublicKey:     &pubKey,
-		PublicKeyHash: hash,
+		PrivateKey:  priKey,
+		PublicKey:   &pubKey,
+		ProgramHash: programHash,
 	}, nil
 }
 
@@ -38,18 +39,18 @@ func NewAccountWithPrivatekey(privateKey []byte) (*Account, error) {
 	}
 
 	pubKey := crypto.NewPubKey(privateKey)
-	temp, err := pubKey.EncodePoint(true)
+	signatureRedeemScript, err := contract.CreateSignatureRedeemScript(pubKey)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
+		return nil, NewDetailErr(err, ErrNoCode, "CreateSignatureRedeemScript failed")
 	}
-	hash, err := ToCodeHash(temp)
+	programHash, err := ToCodeHash(signatureRedeemScript)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
+		return nil, NewDetailErr(err, ErrNoCode, "ToCodeHash failed")
 	}
 	return &Account{
-		PrivateKey:    privateKey,
-		PublicKey:     pubKey,
-		PublicKeyHash: hash,
+		PrivateKey:  privateKey,
+		PublicKey:   pubKey,
+		ProgramHash: programHash,
 	}, nil
 }
 

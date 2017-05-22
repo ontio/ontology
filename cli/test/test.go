@@ -15,7 +15,7 @@ func testAction(c *cli.Context) (err error) {
 		cli.ShowSubcommandHelp(c)
 		return nil
 	}
-	txnType := c.String("transaction")
+	txnType := c.String("tx")
 	txnNum := c.Int("num")
 	if txnType != "" {
 		resp, err := httpjsonrpc.Call(Address(), "sendsampletransaction", 0, []interface{}{txnType, txnNum})
@@ -36,7 +36,7 @@ func NewCommand() *cli.Command {
 		ArgsUsage:   "[args]",
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "transaction, tx",
+				Name:  "tx, t",
 				Usage: "send sample transaction",
 				Value: "perf",
 			},
