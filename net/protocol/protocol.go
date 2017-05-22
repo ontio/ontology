@@ -109,6 +109,7 @@ type Noder interface {
 	RemoveFlightHeight(height uint32)
 	SetLastContact()
 	GetLastContact() time.Time
+	SetHeight(height uint64)
 }
 
 func (msg *NodeAddr) Deserialization(p []byte) error {

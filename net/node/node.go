@@ -186,6 +186,11 @@ func (node node) GetHeight() uint64 {
 	return node.height
 }
 
+func (node *node) SetHeight(height uint64) {
+	//TODO read/write lock
+	node.height = height
+}
+
 func (node *node) UpdateTime(t time.Time) {
 	node.time = t
 }
