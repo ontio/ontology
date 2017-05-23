@@ -17,13 +17,11 @@ const (
 	SM2    = 1
 )
 
-// AlgChoice the alg choice, it can be P256R1 or SM2
+//It can be P256R1 or SM2
 var AlgChoice int
 
-// Crypto ---
-var Crypto util.InterfaceCrypto
+var algSet util.CryptoAlgSet
 
-// PubKey ---
 type PubKey struct {
 	X, Y *big.Int
 }
@@ -34,27 +32,25 @@ func init() {
 
 func SetAlg(algChoice int) {
 	AlgChoice = algChoice
-	Crypto.EccParamA = new(big.Int)
 	if SM2 == algChoice {
-		sm2.Init(&Crypto)
+		sm2.Init(&algSet)
 	} else {
-		p256r1.Init(&Crypto)
+		p256r1.Init(&algSet)
 	}
 	return
 }
 
-//GenKeyPair FIXME, does the privkey need base58 encoding?
 func GenKeyPair() ([]byte, PubKey, error) {
 	mPubKey := new(PubKey)
-	var privD []byte
+	var privateD []byte
 	var X *big.Int
 	var Y *big.Int
 	var err error
 
 	if SM2 == AlgChoice {
-		privD, X, Y, err = sm2.GenKeyPair(&Crypto)
+		privateD, X, Y, err = sm2.GenKeyPair(&algSet)
 	} else {
-		privD, X, Y, err = p256r1.GenKeyPair(&Crypto)
+		privateD, X, Y, err = p256r1.GenKeyPair(&algSet)
 	}
 
 	if nil != err {
@@ -63,19 +59,18 @@ func GenKeyPair() ([]byte, PubKey, error) {
 
 	mPubKey.X = new(big.Int).Set(X)
 	mPubKey.Y = new(big.Int).Set(Y)
-	return privD, *mPubKey, nil
+	return privateD, *mPubKey, nil
 }
 
-// Sign @prikey, the private key for sign, the length should be 32 bytes currently
-func Sign(prikey []byte, data []byte) ([]byte, error) {
+func Sign(privateKey []byte, data []byte) ([]byte, error) {
 	var r *big.Int
 	var s *big.Int
 	var err error
 
 	if SM2 == AlgChoice {
-		r, s, err = sm2.Sign(&Crypto, prikey, data)
+		r, s, err = sm2.Sign(&algSet, privateKey, data)
 	} else {
-		r, s, err = p256r1.Sign(&Crypto, prikey, data)
+		r, s, err = p256r1.Sign(&algSet, privateKey, data)
 	}
 	if err != nil {
 		return nil, err
@@ -90,8 +85,7 @@ func Sign(prikey []byte, data []byte) ([]byte, error) {
 	return signature, nil
 }
 
-// Verify Fixme: the signature length TBD
-func Verify(pubkey PubKey, data []byte, signature []byte) (bool, error) {
+func Verify(publicKey PubKey, data []byte, signature []byte) (bool, error) {
 	len := len(signature)
 	if len != util.SIGNATURELEN {
 		fmt.Printf("Unknown signature length %d\n", len)
@@ -102,12 +96,11 @@ func Verify(pubkey PubKey, data []byte, signature []byte) (bool, error) {
 	s := new(big.Int).SetBytes(signature[len/2:])
 
 	if SM2 == AlgChoice {
-		return sm2.Verify(&Crypto, pubkey.X, pubkey.Y, data, r, s)
+		return sm2.Verify(&algSet, publicKey.X, publicKey.Y, data, r, s)
 	}
-	return p256r1.Verify(&Crypto, pubkey.X, pubkey.Y, data, r, s)
+	return p256r1.Verify(&algSet, publicKey.X, publicKey.Y, data, r, s)
 }
 
-// Serialize ---
 func (e *PubKey) Serialize(w io.Writer) error {
 	bufX := []byte{}
 	if e.X.Sign() == -1 {
@@ -132,26 +125,23 @@ func (e *PubKey) Serialize(w io.Writer) error {
 	return nil
 }
 
-// DeSerialize ---
 func (e *PubKey) DeSerialize(r io.Reader) error {
-	bufx, err := serialization.ReadVarBytes(r)
+	bufX, err := serialization.ReadVarBytes(r)
 	if err != nil {
 		return err
 	}
 	e.X = big.NewInt(0)
-	e.X = e.X.SetBytes(bufx)
-	if len(bufx) == util.NEGBIGNUMLEN {
-		// make X to negative when the length is NEGBIGNUMLEN bytes
+	e.X = e.X.SetBytes(bufX)
+	if len(bufX) == util.NEGBIGNUMLEN {
 		e.X.Neg(e.X)
 	}
-	bufy, err := serialization.ReadVarBytes(r)
+	bufY, err := serialization.ReadVarBytes(r)
 	if err != nil {
 		return err
 	}
 	e.Y = big.NewInt(0)
-	e.Y = e.Y.SetBytes(bufy)
-	if len(bufy) == util.NEGBIGNUMLEN {
-		// make Y to negative when the length is NEGBIGNUMLEN bytes
+	e.Y = e.Y.SetBytes(bufY)
+	if len(bufY) == util.NEGBIGNUMLEN {
 		e.Y.Neg(e.Y)
 	}
 	return nil

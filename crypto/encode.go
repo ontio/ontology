@@ -2,11 +2,11 @@ package crypto
 
 import (
 	. "DNA/errors"
+	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"errors"
 	"math/big"
-	"crypto/ecdsa"
 )
 
 const (
@@ -69,7 +69,6 @@ func fastLucasSequence(curveP, lucasParamP, lucasParamQ, k *big.Int) (*big.Int, 
 			tmp.Lsh(qh, 1)
 			vh.Sub(vh, tmp)
 			vh.Mod(vh, curveP)
-
 		} else {
 			qh.Set(ql)
 
@@ -123,7 +122,7 @@ func fastLucasSequence(curveP, lucasParamP, lucasParamQ, k *big.Int) (*big.Int, 
 	return uh, vl
 }
 
-// curveSqrt - compute the coordinate of Y from Y**2
+// compute the coordinate of Y from Y**2
 func curveSqrt(ySquare *big.Int, curve *elliptic.CurveParams) *big.Int {
 	if curve.P.Bit(1) == 1 {
 		tmp1 := big.NewInt(0)
@@ -210,8 +209,7 @@ func deCompress(yTilde int, xValue []byte, curve *elliptic.CurveParams) (*PubKey
 	xCoord.SetBytes(xValue)
 
 	//y**2 = x**3 + A*x +B, A = -3, there is no A's clear definition in the realization of p256.
-	paramA := new(big.Int).Set(Crypto.EccParamA)
-	//paramA := big.NewInt(P256PARAMA)
+	paramA := big.NewInt(P256PARAMA)
 	//compute x**3 + A*x +B
 	ySqare := big.NewInt(0)
 	ySqare.Exp(xCoord, big.NewInt(2), curve.P)
@@ -236,13 +234,12 @@ func deCompress(yTilde int, xValue []byte, curve *elliptic.CurveParams) (*PubKey
 	return &PubKey{xCoord, yCoord}, nil
 }
 
-// DecodePoint is used for restoring the PublicKey
 func DecodePoint(encodeData []byte) (*PubKey, error) {
 	if nil == encodeData {
 		return nil, NewDetailErr(errors.New("The encodeData cann't be nil"), ErrNoCode, "")
 	}
 
-	expectedLength := (Crypto.EccParams.P.BitLen() + 7) / 8
+	expectedLength := (algSet.EccParams.P.BitLen() + 7) / 8
 
 	switch encodeData[0] {
 	case 0x00:
@@ -255,7 +252,7 @@ func DecodePoint(encodeData []byte) (*PubKey, error) {
 
 		yTilde := int(encodeData[0] & 1)
 		pubKey, err := deCompress(yTilde, encodeData[FLAGLEN:FLAGLEN+XORYVALUELEN],
-			&Crypto.EccParams)
+			&algSet.EccParams)
 		if nil != err {
 			return nil, NewDetailErr(err, ErrNoCode, "Invalid point encoding")
 		}
@@ -271,11 +268,10 @@ func DecodePoint(encodeData []byte) (*PubKey, error) {
 	}
 }
 
-// EncodePoint is used for compressing PublicKey for less space used as same as which in bitcoin.
 func (e *PubKey) EncodePoint(isCommpressed bool) ([]byte, error) {
 	//if X is infinity, then Y cann't be computed, so here used "||"
 	if nil == e.X || nil == e.Y {
-		infinity := make([]byte, 1)
+		infinity := make([]byte, INFINITYLEN)
 		return infinity, nil
 	}
 
@@ -304,18 +300,18 @@ func (e *PubKey) EncodePoint(isCommpressed bool) ([]byte, error) {
 	return encodedData, nil
 }
 
-func NewPubKey(prikey []byte) *PubKey {
-	privatekey := new(ecdsa.PrivateKey)
-	privatekey.PublicKey.Curve = Crypto.Curve
+func NewPubKey(priKey []byte) *PubKey {
+	privateKey := new(ecdsa.PrivateKey)
+	privateKey.PublicKey.Curve = algSet.Curve
 
 	k := new(big.Int)
-	k.SetBytes(prikey)
-	privatekey.D = k
+	k.SetBytes(priKey)
+	privateKey.D = k
 
-	privatekey.PublicKey.X, privatekey.PublicKey.Y = Crypto.Curve.ScalarBaseMult(k.Bytes())
+	privateKey.PublicKey.X, privateKey.PublicKey.Y = algSet.Curve.ScalarBaseMult(k.Bytes())
 
-	pubkey := new(PubKey)
-	pubkey.X = privatekey.PublicKey.X
-	pubkey.Y = privatekey.PublicKey.Y
-	return pubkey
+	pubKey := new(PubKey)
+	pubKey.X = privateKey.PublicKey.X
+	pubKey.Y = privateKey.PublicKey.Y
+	return pubKey
 }

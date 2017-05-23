@@ -2,187 +2,175 @@ package sm2
 
 import (
 	"DNA/crypto/util"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/sha512"
 	"errors"
-	"fmt"
+	"io"
 	"math/big"
 )
 
-// HASHLEN ---
+type zr struct {
+	io.Reader
+}
+
 const (
-	HASHLEN       = 32
-	PRIVATEKEYLEN = 32
-	PUBLICKEYLEN  = 32
-	SIGNATURELEN  = 64
+	aesIV = "IV for <SM2> CTR"
 )
 
-var Sm2ParamA *big.Int
-var BaseG *ECPoint
-var Infinity *ECPoint
-var EcParams *elliptic.CurveParams
+var zeroReader = &zr{}
+var p256_sm2 *elliptic.CurveParams
+var one = new(big.Int).SetInt64(1)
 
-// Init ---
-func Init(Crypto *util.InterfaceCrypto) {
-	EcParams = new(elliptic.CurveParams)
-	EcParams.P, _ = new(big.Int).SetString("8542D69E4C044F18E8B92435BF6FF7DE457283915C45517D722EDB8B08F1DFC3", 16)
-	EcParams.N, _ = new(big.Int).SetString("8542D69E4C044F18E8B92435BF6FF7DD297720630485628D5AE74EE7C32E79B7", 16)
-	Sm2ParamA, _ = new(big.Int).SetString("787968B4FA32C3FD2417842E73BBFEFF2F3C848B6831D7E0EC65228B3937E498", 16)
-	EcParams.B, _ = new(big.Int).SetString("63E4C6D3B23B0C849CF84241484BFE48F61D59A5B16BA06E6E12D1DA27C5249A", 16)
-
-	EcParams.Gx, _ = new(big.Int).SetString("421DEBD61B62EAB6746434EBC3CC315E32220B3BADD50BDC4C4E6C147FEDD43D", 16)
-	EcParams.Gy, _ = new(big.Int).SetString("0680512BCBB42C07D47349D2153B70C4E5D7FDFCBFA36EA1A85841B9E46E09A2", 16)
-	EcParams.BitSize = 256
-	EcParams.Name = "sm2"
-
-	Crypto.EccParamA.Set(Sm2ParamA)
-	Crypto.EccParams = *EcParams
-
-	Infinity = &ECPoint{nil, nil, EcParams}
-
-	GX := &ECFieldElement{EcParams.Gx, EcParams}
-	GY := &ECFieldElement{EcParams.Gy, EcParams}
-	BaseG = &ECPoint{GX, GY, EcParams}
-
-	return
+type combinedMult interface {
+	CombinedMult(bigX, bigY *big.Int, baseScalar, scalar []byte) (x, y *big.Int)
 }
 
-// GenKeyPair generates a public & private key pair
-func GenKeyPair(Crypto *util.InterfaceCrypto) ([]byte, *big.Int, *big.Int, error) {
-	pubKey := NewECPoint()
-
-	dBytes, _ := util.RandomNum(PRIVATEKEYLEN)
-	pubKey.Mul(BaseG, dBytes)
-
-	//PrintHex("prikey", dBytes, len(dBytes))
-	//PrintHex("pbkeyX", pubKey.X.value.Bytes(), len(pubKey.X.value.Bytes()))
-	//PrintHex("pbkeyY", pubKey.Y.value.Bytes(), len(pubKey.Y.value.Bytes()))
-
-	return dBytes, pubKey.X.value, pubKey.Y.value, nil
-}
-
-// CaculateE ---
-func CaculateE(curveN *big.Int, msg []byte) *big.Int {
-	msgBitLen := len(msg) * 8
-
-	trunc := new(big.Int).SetBytes(msg)
-
-	if curveN.BitLen() < msgBitLen {
-		trunc.Rsh(trunc, uint(msgBitLen-curveN.BitLen()))
+func (z *zr) Read(dst []byte) (n int, err error) {
+	for i := range dst {
+		dst[i] = 0
 	}
-	return trunc
+	return len(dst), nil
 }
 
-// Sign process:
-// 1. choose an integer num k between 1 and n - 1.
-// 2. compute point = k * BaseG.
-// 3. compute r = (e + point.X) mod n, if r or r + k is equal 0 goto step 1.
-// 4. compute ((1 + d)(-1) * (k - r*d))mod n, (-1) express modinverse operation
-//    if s is equal 0 goto step 1.
-//    e is the message, d is private key.
-func Sign(Crypto *util.InterfaceCrypto, priKey []byte, data []byte) (*big.Int, *big.Int, error) {
-	if nil == priKey {
-		fmt.Println("prikey is nil")
+func Init(algSet *util.CryptoAlgSet) {
+	p256_sm2 = &elliptic.CurveParams{Name: "SM2-P-256"}
+	p256_sm2.P, _ = new(big.Int).SetString("FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFF", 16)
+	p256_sm2.N, _ = new(big.Int).SetString("FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFF7203DF6B21C6052B53BBF40939D54123", 16)
+	p256_sm2.B, _ = new(big.Int).SetString("28E9FA9E9D9F5E344D5A9E4BCF6509A7F39789F515AB8F92DDBCBD414D940E93", 16)
+	p256_sm2.Gx, _ = new(big.Int).SetString("32C4AE2C1F1981195F9904466A39C9948FE30BBFF2660BE1715A4589334C74C7", 16)
+	p256_sm2.Gy, _ = new(big.Int).SetString("BC3736A2F4F6779C59BDCEE36B692153D0A9877CC62A474002DF32E52139F0A0", 16)
+	p256_sm2.BitSize = 256
+
+	algSet.EccParams = *p256_sm2
+	algSet.Curve = p256_sm2
+}
+
+func randFieldElement(c elliptic.Curve, rand io.Reader) (*big.Int, error) {
+	params := c.Params()
+	b := make([]byte, params.BitSize/8+8)
+	_, err := io.ReadFull(rand, b)
+	if err != nil {
+		return nil, err
 	}
 
-	e := big.NewInt(0)
-	e.SetBytes(data)
+	k := new(big.Int).SetBytes(b)
+	n := new(big.Int).Sub(params.N, one)
+	n = n.Sub(n, one) //n-2
 
-	priD := new(big.Int).SetBytes(priKey)
+	// 1 <= k <= n-2
+	k.Mod(k, n)
+	k.Add(k, one)
+	return k, nil
+}
 
-	k := big.NewInt(0)
-	r := big.NewInt(0)
-	s := big.NewInt(0)
-	rAddK := big.NewInt(0)
+func GenKeyPair(algSet *util.CryptoAlgSet) ([]byte, *big.Int, *big.Int, error) {
+	k, err := randFieldElement(algSet.Curve, rand.Reader)
+	if err != nil {
+		return nil, nil, nil, errors.New("Generate key pair error")
+	}
+
+	publicKeyX, publicKeyY := algSet.Curve.ScalarBaseMult(k.Bytes())
+	return k.Bytes(), publicKeyX, publicKeyY, nil
+}
+
+func Sign(algSet *util.CryptoAlgSet, priKey []byte, hash []byte) (r *big.Int, s *big.Int, err error) {
+	entropyLen := (algSet.EccParams.BitSize + 7) / 16
+	if entropyLen > 32 {
+		entropyLen = 32
+	}
+	entropy := make([]byte, entropyLen)
+	_, err = io.ReadFull(rand.Reader, entropy)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	md := sha512.New()
+	md.Write(priKey)
+	md.Write(entropy)
+	md.Write(hash)
+	key := md.Sum(nil)[:32]
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cspRng := cipher.StreamReader{
+		R: zeroReader,
+		S: cipher.NewCTR(block, []byte(aesIV)),
+	}
+
+	c := algSet.Curve
+	N := c.Params().N
+	if N.Sign() == 0 {
+		return nil, nil, errors.New("zero parameter")
+	}
+	var k *big.Int
+	e := new(big.Int).SetBytes(hash)
 	for {
 		for {
-			for {
-				randK := make([]byte, EcParams.BitSize/8)
-				_, err := rand.Read(randK)
-				if err != nil {
-					return nil, nil, err
-				}
-				//PrintHex("ranK", randK, len(randK))
-				k.SetBytes(randK)
-				if k.Sign() != 0 && k.Cmp(EcParams.N) < 0 {
-					break
-				}
+			k, err = randFieldElement(c, cspRng)
+			if err != nil {
+				r = nil
+				return nil, nil, errors.New("randFieldElement error")
 			}
 
-			kG := NewECPoint()
-			kG.Mul(BaseG, k.Bytes())
-			r.Add(e, kG.X.value)
-			r.Mod(r, EcParams.N)
-
+			r, _ = algSet.Curve.ScalarBaseMult(k.Bytes())
+			r.Add(r, e)
+			r.Mod(r, N)
 			if r.Sign() != 0 {
-				rAddK.Add(r, k)
-				if rAddK.Sign() != 0 {
-					break
-				}
+				break
+			}
+			if t := new(big.Int).Add(r, k); t.Cmp(N) == 0 {
+				break
 			}
 		}
-		//s = ((1 + dA)-1 * (k - r*dA))mod n
-		tmp := big.NewInt(0)
-		tmp.Add(priD, big.NewInt(1))
-		tmp.ModInverse(tmp, EcParams.N)
-
-		tmp1 := big.NewInt(0)
-		tmp1.Mul(r, priD)
-		tmp1.Sub(k, tmp1)
-		tmp1.Mod(tmp1, EcParams.N)
-
-		s.Mul(tmp, tmp1)
-		s.Mod(s, EcParams.N)
-
+		D := new(big.Int).SetBytes(priKey)
+		rD := new(big.Int).Mul(D, r)
+		s = new(big.Int).Sub(k, rD)
+		d1 := new(big.Int).Add(D, one)
+		d1Inv := new(big.Int).ModInverse(d1, N)
+		s.Mul(s, d1Inv)
+		s.Mod(s, N)
 		if s.Sign() != 0 {
 			break
 		}
 	}
-	retR := big.NewInt(0)
-	retS := big.NewInt(0)
 
-	// r and s must between 1 and N - 1
-	if r.Sign() < 1 {
-		retR.Add(EcParams.P, r)
-	} else {
-		retR.Set(r)
-	}
-
-	if s.Sign() < 1 {
-		retS.Add(EcParams.P, s)
-	} else {
-		retS.Set(s)
-	}
-
-	//PrintHex("r", sig[0].Bytes(), len(sig[0].Bytes()))
-	//PrintHex("s", sig[1].Bytes(), len(sig[1].Bytes()))
-	return retR, retS, nil
+	return
 }
 
-//Verify process:
-// 1. computer t = (r' + s')mod n, if t = 0, verfy failed
-// 2. computer (x1, y1) = [s']BaseG + [t]PubKey
-// 3. computer R = (e +x1)
-// 4. check that if R mod n == r, otherwise verify failed.
-func Verify(Crypto *util.InterfaceCrypto, X *big.Int, Y *big.Int, data []byte, r, s *big.Int) (bool, error) {
-	if r.Sign() < 1 || s.Sign() < 1 || r.Cmp(EcParams.N) >= 0 || s.Cmp(EcParams.N) >= 0 {
-		return false, errors.New("signature is invalid")
+func Verify(algSet *util.CryptoAlgSet, publicKeyX *big.Int, publicKeyY *big.Int, hash []byte, r, s *big.Int) (bool, error) {
+	c := algSet.Curve
+	N := c.Params().N
+
+	if r.Sign() <= 0 || s.Sign() <= 0 {
+		return false, errors.New("SM2 signature contained zero or negative values")
+	}
+	if r.Cmp(N) >= 0 || s.Cmp(N) >= 0 {
+		return false, errors.New("SM2 signature contained zero or negative values")
 	}
 
-	t := big.NewInt(0)
-	t.Add(r, s)
-	t.Mod(t, Crypto.EccParams.N)
+	t := new(big.Int).Add(r, s)
+	t.Mod(t, N)
+	if N.Sign() == 0 {
+		return false, errors.New("SM2 Params N contained zero or negative values")
+	}
 
-	pub := NewECPoint()
-	pub.X.value.Set(X)
-	pub.Y.value.Set(Y)
+	var x *big.Int
+	if opt, ok := c.(combinedMult); ok {
+		x, _ = opt.CombinedMult(publicKeyX, publicKeyY, s.Bytes(), t.Bytes())
+	} else {
+		x1, y1 := c.ScalarBaseMult(s.Bytes())
+		x2, y2 := c.ScalarMult(publicKeyX, publicKeyY, t.Bytes())
+		x, _ = c.Add(x1, y1, x2, y2)
+	}
 
-	point := SumOfTwoMultiplies(BaseG, s, pub, t)
-
-	e := new(big.Int).SetBytes(data)
-	R := big.NewInt(0)
-	R.Add(e, point.X.value)
-	R.Mod(R, Crypto.EccParams.N)
-
-	return (0 == R.Cmp(r)), nil
+	e := new(big.Int).SetBytes(hash)
+	x.Add(x, e)
+	x.Mod(x, N)
+	return x.Cmp(r) == 0, nil
 }

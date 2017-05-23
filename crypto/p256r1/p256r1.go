@@ -10,39 +10,27 @@ import (
 	"math/big"
 )
 
-// P256PARAMA is the param A in p256r1
-const P256PARAMA = -3
-
-// Init ---
-func Init(Crypto *util.InterfaceCrypto) {
-	Crypto.Curve = elliptic.P256()
-	Crypto.EccParams = *(Crypto.Curve.Params())
-	Crypto.EccParamA.Set(big.NewInt(P256PARAMA))
+func Init(algSet *util.CryptoAlgSet) {
+	algSet.Curve = elliptic.P256()
+	algSet.EccParams = *(algSet.Curve.Params())
 }
 
-// GenKeyPair FIXME, does the privkey need base58 encoding?
-func GenKeyPair(Crypto *util.InterfaceCrypto) ([]byte, *big.Int, *big.Int, error) {
-	privatekey := new(ecdsa.PrivateKey)
-	privatekey, err := ecdsa.GenerateKey(Crypto.Curve, rand.Reader)
+func GenKeyPair(algSet *util.CryptoAlgSet) ([]byte, *big.Int, *big.Int, error) {
+	privateKey := new(ecdsa.PrivateKey)
+	privateKey, err := ecdsa.GenerateKey(algSet.Curve, rand.Reader)
 	if err != nil {
 		return nil, nil, nil, errors.New("Generate key pair error")
 	}
 
-	privkey := privatekey.D.Bytes()
-	return privkey, privatekey.PublicKey.X, privatekey.PublicKey.Y, nil
+	priKey := privateKey.D.Bytes()
+	return priKey, privateKey.PublicKey.X, privateKey.PublicKey.Y, nil
 }
 
-// Sign @prikey, the private key for sign, the length should be 32 bytes currently
-func Sign(Crypto *util.InterfaceCrypto, priKey []byte, data []byte) (*big.Int, *big.Int, error) {
-	// if (len(priKey) != PRIVATEKEYLEN) {
-	// 	fmt.Printf("Unexpected private key length %d\n", len(prikey))
-	// 	return nil, errors.New("Unexpected private key length")
-	// }
-
+func Sign(algSet *util.CryptoAlgSet, priKey []byte, data []byte) (*big.Int, *big.Int, error) {
 	digest := util.Hash(data)
 
 	privateKey := new(ecdsa.PrivateKey)
-	privateKey.Curve = Crypto.Curve
+	privateKey.Curve = algSet.Curve
 	privateKey.D = big.NewInt(0)
 	privateKey.D.SetBytes(priKey)
 
@@ -55,19 +43,13 @@ func Sign(Crypto *util.InterfaceCrypto, priKey []byte, data []byte) (*big.Int, *
 		return nil, nil, err
 	}
 	return r, s, nil
-
 }
 
-// Verify Fixme: the signature length TBD
-func Verify(Crypto *util.InterfaceCrypto, X *big.Int, Y *big.Int, data []byte, r, s *big.Int) (bool, error) {
-	/*if r.Sign() <= 0 || s.Sign() <= 0 {
-		return false, errors.New("ECDSA signature contained zero or negative values")
-	}
-	*/
+func Verify(algSet *util.CryptoAlgSet, X *big.Int, Y *big.Int, data []byte, r, s *big.Int) (bool, error) {
 	digest := util.Hash(data)
 
 	pub := new(ecdsa.PublicKey)
-	pub.Curve = Crypto.Curve
+	pub.Curve = algSet.Curve
 
 	pub.X = new(big.Int).Set(X)
 	pub.Y = new(big.Int).Set(Y)

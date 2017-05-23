@@ -5,7 +5,7 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
-	"math/big"
+	//"math/big"
 )
 
 const (
@@ -18,10 +18,8 @@ const (
 	NEGBIGNUMLEN  = 33
 )
 
-// InterfaceCrypto ---
-type InterfaceCrypto struct {
+type CryptoAlgSet struct {
 	EccParams elliptic.CurveParams
-	EccParamA *big.Int
 	Curve     elliptic.Curve
 }
 
@@ -37,7 +35,6 @@ func RandomNum(n int) ([]byte, error) {
 	return b, nil
 }
 
-// Hash ---
 func Hash(data []byte) [HASHLEN]byte {
 	return sha256.Sum256(data)
 }
