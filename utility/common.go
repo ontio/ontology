@@ -1,7 +1,7 @@
 package utility
 
 import (
-	"DNA/config"
+	"DNA/common/config"
 	"DNA/net/httpjsonrpc"
 	"bytes"
 	"encoding/json"

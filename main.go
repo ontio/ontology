@@ -3,7 +3,7 @@ package main
 import (
 	. "DNA/client"
 	"DNA/common/log"
-	"DNA/config"
+	"DNA/common/config"
 	"DNA/consensus/dbft"
 	"DNA/core/ledger"
 	"DNA/core/store"
@@ -134,7 +134,7 @@ func OpenClientAndGetAccount(count uint32) Client {
 	clientName := config.Parameters.BookKeeperName
 	fmt.Printf("The BookKeeper name is %s\n", clientName)
 	if clientName == "" {
-		fmt.Printf("BookKeeper name not be set at config file protocol.json, which schould be c1,c2,c3,c4. Now is %s\n", clientName)
+		log.Error("BookKeeper name not be set at config.json")
 		return nil
 	}
 	var c []Client

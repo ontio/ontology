@@ -14,9 +14,9 @@ const (
 	DefaultConfigFilename = "./config.json"
 )
 
-type ProtocolConfiguration struct {
+type Configuration struct {
 	Magic           int64    `json:"Magic"`
-	CoinVersion     int      `json:"CoinVersion"`
+	Version		int      `json:"Version"`
 	SeedList        []string `json:"SeedList"`
 	HttpJsonPort    int      `json:"HttpJsonPort"`
 	HttpLocalPort   int      `json:"HttpLocalPort"`
@@ -32,15 +32,15 @@ type ProtocolConfiguration struct {
 	BookKeeperCount uint32   `json:"BookKeeperCount"`
 }
 
-type ProtocolFile struct {
-	ProtocolConfig ProtocolConfiguration `json:"ProtocolConfiguration"`
+type ConfigFile struct {
+	ConfigFile Configuration `json:"Configuration"`
 }
 
 type hashStruct struct {
 	PublicKeyHash string
 }
 
-var Parameters *ProtocolConfiguration
+var Parameters *Configuration
 
 func ReadNodeID() uint64 {
 	clientName := Parameters.BookKeeperName
@@ -74,13 +74,13 @@ func init() {
 	// Remove the UTF-8 Byte Order Mark
 	file = bytes.TrimPrefix(file, []byte("\xef\xbb\xbf"))
 
-	config := ProtocolFile{}
+	config := ConfigFile{}
 	e = json.Unmarshal(file, &config)
 	if e != nil {
 		log.Fatalf("Unmarshal json file erro %v", e)
 		os.Exit(1)
 	}
-	Parameters = &(config.ProtocolConfig)
+	Parameters = &(config.ConfigFile)
 }
 
 // filesExists reports whether the named file or directory exists.

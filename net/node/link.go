@@ -2,7 +2,7 @@ package node
 
 import (
 	"DNA/common/log"
-	. "DNA/config"
+	. "DNA/common/config"
 	. "DNA/net/message"
 	. "DNA/net/protocol"
 	"crypto/tls"

@@ -4,7 +4,7 @@ import (
 	cl "DNA/client"
 	. "DNA/common"
 	"DNA/common/log"
-	"DNA/config"
+	"DNA/common/config"
 	con "DNA/consensus"
 	ct "DNA/core/contract"
 	"DNA/core/contract/program"

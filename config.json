@@ -1,7 +1,7 @@
 ﻿{
-  "ProtocolConfiguration": {
+  "Configuration": {
     "Magic": 7630401,
-    "CoinVersion": 23,
+    "Version": 23,
     "SeedList": [
       "127.0.0.1:20338"
     ],

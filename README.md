@@ -68,7 +68,7 @@ To run DNA node regularly, at least 4 nodes are necessary. We provides two ways 
 
 ## Configurations for multi-hosts deployment
 
-We can do a quick multi-hosts deployment by changing default configuration file `config/config.json`. Change the IP address in `SeedList` section to the seed node's IP address, then copy the changed file to hosts that you will run on.
+We can do a quick multi-hosts deployment by changing default configuration file `config.json`. Change the IP address in `SeedList` section to the seed node's IP address, then copy the changed file to hosts that you will run on.
 
 On each host, put the executable program `node` and the configuration file `config.json` into same directory. Like :
 
@@ -99,9 +99,9 @@ Congratulations, all configurations are completed.
 
 ## Configurations for single-host deployment
 
-Copy the executable file `node` and configuration file `config.json` to 4 different directories on single host. Then change each `config.json` file as following. 
+Copy the executable file `node` and configuration file `config.json` to 4 different directories on single host. Then change each `config.json` file as following.
 
-* The `SeedList` section should be same in all `config.json`. 
+* The `SeedList` section should be same in all `config.json`.
 * For the seed node, the `NodePort` is same with the port in `SeedList` part.
 * For each non-seed node, the `NodePort` should have different port.
 * Also need to make sure the `HttpJsonPort` and `HttpLocalPort` for each node is not conflict on current host.

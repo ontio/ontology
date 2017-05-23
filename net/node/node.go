@@ -3,7 +3,7 @@ package node
 import (
 	. "DNA/common"
 	"DNA/common/log"
-	. "DNA/config"
+	. "DNA/common/config"
 	"DNA/core/ledger"
 	"DNA/core/transaction"
 	"DNA/crypto"
