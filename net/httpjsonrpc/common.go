@@ -2,14 +2,19 @@ package httpjsonrpc
 
 import (
 	. "DNA/common"
+	"DNA/common/log"
 	"DNA/consensus/dbft"
+	"DNA/core/ledger"
 	. "DNA/core/transaction"
 	tx "DNA/core/transaction"
+	"DNA/core/validation"
 	. "DNA/net/protocol"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 )
@@ -166,11 +171,11 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 	//JSON RPC commands should be POSTs
 	if r.Method != "POST" {
 		if mainMux.defaultFunction != nil {
-			log.Printf("HTTP JSON RPC Handle - Method!=\"POST\"")
+			log.Info("HTTP JSON RPC Handle - Method!=\"POST\"")
 			mainMux.defaultFunction(w, r)
 			return
 		} else {
-			log.Panicf("HTTP JSON RPC Handle - Method!=\"POST\"")
+			log.Warn("HTTP JSON RPC Handle - Method!=\"POST\"")
 			return
 		}
 	}
@@ -178,11 +183,11 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 	//check if there is Request Body to read
 	if r.Body == nil {
 		if mainMux.defaultFunction != nil {
-			log.Printf("HTTP JSON RPC Handle - Request body is nil")
+			log.Info("HTTP JSON RPC Handle - Request body is nil")
 			mainMux.defaultFunction(w, r)
 			return
 		} else {
-			log.Panicf("HTTP JSON RPC Handle - Request body is nil")
+			log.Warn("HTTP JSON RPC Handle - Request body is nil")
 			return
 		}
 	}
@@ -190,13 +195,13 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 	//read the body of the request
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Fatalf("HTTP JSON RPC Handle - ioutil.ReadAll: %v", err)
+		log.Error("HTTP JSON RPC Handle - ioutil.ReadAll: ", err)
 		return
 	}
 	request := make(map[string]interface{})
 	err = json.Unmarshal(body, &request)
 	if err != nil {
-		log.Fatalf("HTTP JSON RPC Handle - json.Unmarshal: %v", err)
+		log.Error("HTTP JSON RPC Handle - json.Unmarshal: ", err)
 		return
 	}
 
@@ -210,13 +215,13 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 			"id":     request["id"],
 		})
 		if err != nil {
-			log.Fatalf("HTTP JSON RPC Handle - json.Marshal: %v", err)
+			log.Error("HTTP JSON RPC Handle - json.Marshal: ", err)
 			return
 		}
 		w.Write(data)
 	} else {
 		//if the function does not exist
-		log.Printf("HTTP JSON RPC Handle - No function to call for", request["method"])
+		log.Warn("HTTP JSON RPC Handle - No function to call for ", request["method"])
 		data, err := json.Marshal(map[string]interface{}{
 			"result": nil,
 			"error": map[string]interface{}{
@@ -227,7 +232,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 			"id": request["id"],
 		})
 		if err != nil {
-			log.Fatalf("HTTP JSON RPC Handle - json.Marshal: %v", err)
+			log.Error("HTTP JSON RPC Handle - json.Marshal: ", err)
 			return
 		}
 		w.Write(data)
@@ -249,21 +254,43 @@ func Call(address string, method string, id interface{}, params []interface{}) (
 		"params": params,
 	})
 	if err != nil {
-		log.Fatalf("Marshal: %v", err)
+		fmt.Fprintf(os.Stderr, "Marshal JSON request: %v\n", err)
 		return nil, err
 	}
 	resp, err := http.Post(address, "application/json", strings.NewReader(string(data)))
 	if err != nil {
-		log.Fatalf("Post: %v", err)
+		fmt.Fprintf(os.Stderr, "POST request: %v\n", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalf("ReadAll: %v", err)
+		fmt.Fprintf(os.Stderr, "GET response: %v\n", err)
 		return nil, err
 	}
 
 	return body, nil
+}
+
+func VerifyAndSendTx(txn *tx.Transaction) error {
+	hash := txn.Hash()
+	hex := ToHexString(hash.ToArray())
+	// if transaction is verified unsucessfully then will not put it into transaction pool
+	if err := validation.VerifyTransaction(txn); err != nil {
+		log.Warn("Transaction verification failed", hex)
+		return errors.New("Transaction verification failed")
+	}
+	if err := validation.VerifyTransactionWithLedger(txn, ledger.DefaultLedger); err != nil {
+		log.Warn("Transaction verification with ledger failed", hex)
+		return errors.New("Transaction verification with ledger failed")
+	}
+	if !node.AppendTxnPool(txn) {
+		log.Warn("Can NOT add the transaction to TxnPool")
+	}
+	if err := node.Xmit(txn); err != nil {
+		log.Error("Xmit Tx Error")
+		return errors.New("Xmit transaction failed")
+	}
+	return nil
 }
