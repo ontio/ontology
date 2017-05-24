@@ -2,11 +2,11 @@ package main
 
 import (
 	. "DNA/client"
-	"DNA/common/log"
 	"DNA/common/config"
+	"DNA/common/log"
 	"DNA/consensus/dbft"
 	"DNA/core/ledger"
-	"DNA/core/store"
+	"DNA/core/store/ChainStore"
 	"DNA/core/transaction"
 	"DNA/crypto"
 	"DNA/net"
@@ -63,7 +63,7 @@ func main() {
 	fmt.Println("//*** 0. Client open                                                     ***")
 	fmt.Println("//**************************************************************************")
 	ledger.DefaultLedger = new(ledger.Ledger)
-	ledger.DefaultLedger.Store = store.NewLedgerStore()
+	ledger.DefaultLedger.Store = ChainStore.NewLedgerStore()
 	ledger.DefaultLedger.Store.InitLedgerStore(ledger.DefaultLedger)
 	transaction.TxStore = ledger.DefaultLedger.Store
 	crypto.SetAlg(crypto.P256R1)

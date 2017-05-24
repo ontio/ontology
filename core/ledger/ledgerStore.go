@@ -31,9 +31,7 @@ type ILedgerStore interface {
 	GetHeight() uint32
 	GetHeaderHashByHeight(height uint32) Uint256
 
-	Close() error
-
-	InitLevelDBStoreWithGenesisBlock(genesisblock *Block) (uint32, error)
+	InitLedgerStoreWithGenesisBlock(genesisblock *Block) (uint32, error)
 
 	GetQuantityIssued(assetid Uint256) (Fixed64, error)
 

@@ -35,3 +35,7 @@ func (it *Iterator) Key() []byte {
 func (it *Iterator) Value() []byte {
 	return it.iter.Value()
 }
+
+func (it *Iterator) Release() {
+	it.iter.Release()
+}

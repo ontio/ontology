@@ -32,7 +32,7 @@ func NewBlockchainWithGenesisBlock() (*Blockchain, error) {
 	hashx := genesisBlock.Hash()
 	genesisBlock.hash = &hashx
 
-	height, err := DefaultLedger.Store.InitLevelDBStoreWithGenesisBlock(genesisBlock)
+	height, err := DefaultLedger.Store.InitLedgerStoreWithGenesisBlock(genesisBlock)
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[Blockchain], InitLevelDBStoreWithGenesisBlock failed.")
 	}
@@ -49,9 +49,6 @@ func (bc *Blockchain) AddBlock(block *Block) error {
 	if err != nil {
 		return err
 	}
-
-	// Need atomic oepratoion
-	bc.BlockHeight = bc.BlockHeight + 1
 
 	return nil
 }
