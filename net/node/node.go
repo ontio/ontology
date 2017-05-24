@@ -19,12 +19,7 @@ import (
 	"time"
 )
 
-// The node capability flag
-const (
-	RELAY        = 0x01
-	SERVER       = 0x02
-	NODESERVICES = 0x01
-)
+
 
 type node struct {
 	//sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
@@ -96,11 +91,11 @@ func NewNode() *node {
 	return &n
 }
 
-func InitNode(pubKey *crypto.PubKey) Noder {
+func InitNode(pubKey *crypto.PubKey, nodeType int) Noder {
 	n := NewNode()
 
 	n.version = PROTOCOLVERSION
-	n.services = NODESERVICES
+	n.services = uint64(nodeType)
 	n.link.port = uint16(Parameters.NodePort)
 	n.relay = true
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -279,7 +274,7 @@ func (node node) GetBookKeepersAddrs() ([]*crypto.PubKey, uint64) {
 	i = 1
 	//TODO read lock
 	for _, n := range node.nbrNodes.List {
-		if n.GetState() == ESTABLISH {
+		if n.GetState() == ESTABLISH && n.services != SERVICE {
 			pktmp := n.GetBookKeeperAddr()
 			pks = append(pks, pktmp)
 			i++

@@ -22,10 +22,10 @@ type Neter interface {
 	Tx(buf []byte)
 }
 
-func StartProtocol(pubKey *crypto.PubKey) (Neter, protocol.Noder) {
+func StartProtocol(pubKey *crypto.PubKey, nodeType int) (Neter, protocol.Noder) {
 	seedNodes := config.Parameters.SeedList
 
-	net := node.InitNode(pubKey)
+	net := node.InitNode(pubKey, nodeType)
 	for _, nodeAddr := range seedNodes {
 		go net.Connect(nodeAddr)
 	}

@@ -21,6 +21,7 @@ type Configuration struct {
 	HttpJsonPort    int      `json:"HttpJsonPort"`
 	HttpLocalPort   int      `json:"HttpLocalPort"`
 	NodePort        int      `json:"NodePort"`
+	NodeType        string   `json:"NodeType"`
 	WebSocketPort   int      `json:"WebSocketPort"`
 	BookKeeperName  string   `json:"BookKeeperName"`
 	PrintLevel      int      `json:"PrintLevel"`

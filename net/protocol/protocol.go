@@ -19,6 +19,13 @@ type NodeAddr struct {
 	ID       uint64 // Unique ID
 }
 
+// The node capability type
+const (
+	VERIFY  = 0x01
+	SERVICE = 0x02
+	RELAY   = 0x03
+)
+
 const (
 	MSGCMDLEN     = 12
 	CMDOFFSET     = 4
@@ -126,4 +133,24 @@ func (msg NodeAddr) Serialization() ([]byte, error) {
 	}
 
 	return buf.Bytes(), err
+}
+
+func GetVerifyFlag() int {
+	return VERIFY
+}
+
+func GetServiceFlag() int {
+	return SERVICE
+}
+
+func GetRelayFlag() int {
+	return RELAY
+}
+
+func IsNodeTypeVerify(nodeType int) bool {
+	if nodeType == VERIFY {
+		return true
+	}  else {
+		return false
+	}
 }
