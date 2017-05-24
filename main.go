@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -71,11 +72,8 @@ func main() {
 	fmt.Println("//**************************************************************************")
 	fmt.Println("//*** 1. Generate [Account]                                              ***")
 	fmt.Println("//**************************************************************************")
-	var bookKeeperCount uint32 = DefaultBookKeeperCount
-	if config.Parameters.BookKeeperCount != 0 {
-		bookKeeperCount = config.Parameters.BookKeeperCount
-	}
-	localclient := OpenClientAndGetAccount(bookKeeperCount)
+
+	localclient := OpenClientAndGetAccount()
 	if localclient == nil {
 		fmt.Println("Can't get local client.")
 		os.Exit(1)
@@ -90,7 +88,7 @@ func main() {
 	fmt.Println("//**************************************************************************")
 	bookKeeper := []*crypto.PubKey{}
 	var i uint32
-	for i = 0; i < bookKeeperCount; i++ {
+	for i = 0; i < DefaultBookKeeperCount; i++ {
 		bookKeeper = append(bookKeeper, getBookKeeper(i+1).PublicKey)
 	}
 	ledger.StandbyBookKeepers = bookKeeper
@@ -130,17 +128,33 @@ func main() {
 	}
 }
 
-func OpenClientAndGetAccount(count uint32) Client {
+func clientIsDefaultBookKeeper(clientName string) bool {
+	var i uint32
+	for i = 0; i < DefaultBookKeeperCount; i++ {
+		c := fmt.Sprintf("c%d", i+1)
+		if strings.Compare(clientName, c) == 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func OpenClientAndGetAccount() Client {
 	clientName := config.Parameters.BookKeeperName
 	fmt.Printf("The BookKeeper name is %s\n", clientName)
 	if clientName == "" {
 		log.Error("BookKeeper name not be set at config.json")
 		return nil
 	}
+	isDefaultBookKeeper := clientIsDefaultBookKeeper(clientName)
 	var c []Client
-	c = make([]Client, count)
+	if isDefaultBookKeeper == true {
+		c = make([]Client, DefaultBookKeeperCount)
+	} else {
+		c = make([]Client, DefaultBookKeeperCount+1)
+	}
 	var i uint32
-	for i = 1; i <= count; i++ {
+	for i = 1; i <= DefaultBookKeeperCount; i++ {
 		w := fmt.Sprintf("wallet%d.txt", i)
 		if fileExisted(w) {
 			c[i-1] = OpenClient(w, []byte("\x12\x34\x56"))
@@ -150,7 +164,18 @@ func OpenClientAndGetAccount(count uint32) Client {
 	}
 	var n uint32
 	fmt.Sscanf(clientName, "c%d", &n)
-	return c[n-1]
+	if isDefaultBookKeeper == true {
+		return c[n-1]
+	}
+	if isDefaultBookKeeper == false {
+		w := fmt.Sprintf("wallet%d.txt", n)
+		if fileExisted(w) {
+			c[DefaultBookKeeperCount] = OpenClient(w, []byte("\x12\x34\x56"))
+		} else {
+			c[DefaultBookKeeperCount] = CreateClient(w, []byte("\x12\x34\x56"))
+		}
+	}
+	return c[DefaultBookKeeperCount]
 }
 
 func getBookKeeper(n uint32) *Account {
