@@ -3,8 +3,8 @@ package dbft
 import (
 	cl "DNA/client"
 	. "DNA/common"
-	"DNA/common/log"
 	"DNA/common/config"
+	"DNA/common/log"
 	con "DNA/consensus"
 	ct "DNA/core/contract"
 	"DNA/core/contract/program"
@@ -28,7 +28,7 @@ const (
 	INVDELAYTIME = 20 * time.Millisecond
 )
 
-var GenBlockTime = (2 * time.Second)
+var GenBlockTime = (6 * time.Second)
 
 type DbftService struct {
 	context           ConsensusContext
