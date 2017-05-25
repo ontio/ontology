@@ -14,6 +14,6 @@
     "CertPath": "./sample-cert.pem",
     "KeyPath": "./sample-cert-key.pem",
     "CAPath": "./sample-ca.pem",
-    "BookKeeperCount": 4
+    "MultiCoreNum": 4
   }
 }

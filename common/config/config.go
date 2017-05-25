@@ -30,7 +30,7 @@ type Configuration struct {
 	KeyPath         string   `json:"KeyPath"`
 	CAPath          string   `json:"CAPath"`
 	GenBlockTime    uint     `json:"GenBlockTime"`
-	BookKeeperCount uint32   `json:"BookKeeperCount"`
+	MultiCoreNum    uint     `json:"MultiCoreNum"`
 }
 
 type ConfigFile struct {

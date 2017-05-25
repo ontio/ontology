@@ -20,17 +20,24 @@ import (
 )
 
 const (
-	// The number of the CPU cores for parallel optimization,TODO set from config file
-	NCPU                   = 4
 	DefaultBookKeeperCount = 4
+	DefaultMultiCoreNum  = 4
 )
 
 var Version string
 
 func init() {
-	runtime.GOMAXPROCS(NCPU)
 	var path string = "./Log/"
 	log.CreatePrintLog(path)
+
+	var coreNum int
+	if (config.Parameters.MultiCoreNum > DefaultMultiCoreNum) {
+		coreNum = int(config.Parameters.MultiCoreNum)
+	} else {
+		coreNum = DefaultMultiCoreNum
+	}
+	log.Info("The Core number is ", coreNum)
+	runtime.GOMAXPROCS(coreNum)
 }
 
 func fileExisted(filename string) bool {
