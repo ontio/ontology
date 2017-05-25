@@ -24,8 +24,6 @@ const (
 	DefaultMultiCoreNum  = 4
 )
 
-var Version string
-
 func init() {
 	var path string = "./Log/"
 	log.CreatePrintLog(path)
@@ -67,7 +65,7 @@ func InitBlockChain() ledger.Blockchain {
 }
 
 func main() {
-	fmt.Printf("Node version: %s\n", Version)
+	fmt.Printf("Node version: %s\n", config.Version)
 	fmt.Println("//**************************************************************************")
 	fmt.Println("//*** 0. Client open                                                     ***")
 	fmt.Println("//**************************************************************************")

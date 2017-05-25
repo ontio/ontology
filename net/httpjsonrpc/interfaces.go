@@ -3,6 +3,7 @@ package httpjsonrpc
 import (
 	"DNA/client"
 	. "DNA/common"
+	"DNA/common/config"
 	"DNA/common/log"
 	"DNA/core/ledger"
 	tx "DNA/core/transaction"
@@ -484,4 +485,8 @@ func setDebugInfo(params []interface{}) map[string]interface{} {
 		return DnaRpcInvalidParameter
 	}
 	return DnaRpcSuccess
+}
+
+func getVersion(params []interface{}) map[string]interface{} {
+	return DnaRpc(config.Version)
 }

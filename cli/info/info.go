@@ -23,6 +23,7 @@ func infoAction(c *cli.Context) (err error) {
 	connections := c.Bool("connections")
 	neighbor := c.Bool("neighbor")
 	state := c.Bool("state")
+	version := c.Bool("nodeversion")
 
 	var resp []byte
 	var output [][]byte
@@ -97,6 +98,16 @@ func infoAction(c *cli.Context) (err error) {
 		}
 		output = append(output, resp)
 	}
+
+	if version {
+		resp, err = httpjsonrpc.Call(Address(), "getversion", 0, []interface{}{})
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return err
+		}
+		output = append(output, resp)
+
+	}
 	for _, v := range output {
 		FormatOutput(v)
 	}
@@ -143,6 +154,10 @@ func NewCommand() *cli.Command {
 			cli.BoolFlag{
 				Name:  "state, s",
 				Usage: "current node state",
+			},
+			cli.BoolFlag{
+				Name:  "nodeversion, v",
+				Usage: "version of connected remote node",
 			},
 		},
 		Action: infoAction,

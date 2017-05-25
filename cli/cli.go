@@ -19,6 +19,8 @@ import (
 	"github.com/urfave/cli"
 )
 
+var Version string
+
 func init() {
 	var path string = "./Log/"
 	log.CreatePrintLog(path)
@@ -28,7 +30,7 @@ func init() {
 
 	app := cli.NewApp()
 	app.Name = "nodectl"
-	app.Version = "1.0.1"
+	app.Version = Version
 	app.HelpName = "nodectl"
 	app.Usage = "command line tool for DNA blockchain"
 	app.UsageText = "nodectl [global options] command [command options] [args]"

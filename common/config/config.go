@@ -14,9 +14,11 @@ const (
 	DefaultConfigFilename = "./config.json"
 )
 
+var Version string
+
 type Configuration struct {
 	Magic           int64    `json:"Magic"`
-	Version		int      `json:"Version"`
+	Version         int      `json:"Version"`
 	SeedList        []string `json:"SeedList"`
 	HttpJsonPort    int      `json:"HttpJsonPort"`
 	HttpLocalPort   int      `json:"HttpLocalPort"`
