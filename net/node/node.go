@@ -2,8 +2,8 @@ package node
 
 import (
 	. "DNA/common"
-	"DNA/common/log"
 	. "DNA/common/config"
+	"DNA/common/log"
 	"DNA/core/ledger"
 	"DNA/core/transaction"
 	"DNA/crypto"
@@ -18,8 +18,6 @@ import (
 	"sync/atomic"
 	"time"
 )
-
-
 
 type node struct {
 	//sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
@@ -294,6 +292,17 @@ func (node node) SyncNodeHeight() {
 			break
 		}
 		<-time.After(5 * time.Second)
+	}
+}
+
+func (node node) WaitForFourPeersStart() {
+	for {
+		log.Debug("WaitForFourPeersStart...")
+		cnt := node.local.GetNbrNodeCnt()
+		if cnt >= MINCONNCNT {
+			break
+		}
+		<-time.After(2 * time.Second)
 	}
 }
 

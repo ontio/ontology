@@ -117,6 +117,7 @@ type Noder interface {
 	SetLastContact()
 	GetLastContact() time.Time
 	SetHeight(height uint64)
+	WaitForFourPeersStart()
 }
 
 func (msg *NodeAddr) Deserialization(p []byte) error {
@@ -150,7 +151,7 @@ func GetRelayFlag() int {
 func IsNodeTypeVerify(nodeType int) bool {
 	if nodeType == VERIFY {
 		return true
-	}  else {
+	} else {
 		return false
 	}
 }

@@ -67,7 +67,6 @@ func (node *node) SendPingToNbr() {
 }
 
 func (node *node) HeartBeatMonitor() {
-	log.Info("heart beat")
 	noders := node.local.GetNeighborNoder()
 	for _, n := range noders {
 		if n.GetState() == ESTABLISH {

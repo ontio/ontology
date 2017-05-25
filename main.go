@@ -113,6 +113,7 @@ func main() {
 	httpjsonrpc.RegistRpcNode(noder)
 	time.Sleep(20 * time.Second)
 	noder.LocalNode().SyncNodeHeight()
+	noder.LocalNode().WaitForFourPeersStart()
 	if protocol.IsNodeTypeVerify(nodeType) {
 		fmt.Println("//**************************************************************************")
 		fmt.Println("//*** 5. Start DBFT Services                                             ***")
