@@ -112,9 +112,8 @@ func main() {
 	neter, noder := net.StartProtocol(issuer.PublicKey, nodeType)
 	httpjsonrpc.RegistRpcNode(noder)
 	time.Sleep(20 * time.Second)
+	noder.LocalNode().SyncNodeHeight()
 	if protocol.IsNodeTypeVerify(nodeType) {
-		noder.LocalNode().SyncNodeHeight()
-
 		fmt.Println("//**************************************************************************")
 		fmt.Println("//*** 5. Start DBFT Services                                             ***")
 		fmt.Println("//**************************************************************************")
@@ -159,7 +158,7 @@ func OpenClientAndGetAccount() (clt Client, nodeType int) {
 		}
 		return sc, protocol.GetServiceFlag()
 	}
-	
+
 	clientName := config.Parameters.BookKeeperName
 	fmt.Printf("The BookKeeper name is %s\n", clientName)
 	if clientName == "" {
