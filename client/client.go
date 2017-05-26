@@ -390,7 +390,6 @@ func (cl *ClientImpl) DecryptPrivateKey(prikey []byte) ([]byte, error) {
 }
 
 func (cl *ClientImpl) SaveAccount(ac *Account) error {
-
 	decryptedPrivateKey := make([]byte, 96)
 	temp, err := ac.PublicKey.EncodePoint(false)
 	if err != nil {
@@ -401,7 +400,7 @@ func (cl *ClientImpl) SaveAccount(ac *Account) error {
 	}
 
 	for i := len(ac.PrivateKey) - 1; i >= 0; i-- {
-		decryptedPrivateKey[64+i] = ac.PrivateKey[i]
+		decryptedPrivateKey[96+i-len(ac.PrivateKey)] = ac.PrivateKey[i]
 	}
 
 	encryptedPrivateKey, err := cl.EncryptPrivateKey(decryptedPrivateKey)

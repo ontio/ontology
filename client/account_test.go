@@ -1,11 +1,11 @@
 package client
 
 import (
-	"testing"
 	"DNA/crypto"
+	"fmt"
 	"os"
 	"path"
-	"fmt"
+	"testing"
 )
 
 func TestClient(t *testing.T) {
@@ -15,12 +15,12 @@ func TestClient(t *testing.T) {
 	err := os.MkdirAll(dir, 0777)
 	if err != nil {
 		t.Log("create dir ", dir, " error: ", err)
-	}else {
+	} else {
 		t.Log("create dir ", dir, " success!")
 	}
-	for i:=0;i<10000;i++ {
+	for i := 0; i < 10000; i++ {
 		p := path.Join(dir, fmt.Sprintf("wallet%d.txt", i))
 		fmt.Println("client path", p)
-		CreateClient(p, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06})
+		CreateClient(p, []byte("\x12\x34\x56"))
 	}
 }
