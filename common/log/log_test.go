@@ -4,7 +4,6 @@ import (
 	"testing"
 )
 
-
 func TestDebugPrint(t *testing.T) {
 	CreatePrintLog("./")
 	Debug("debug testing")
@@ -17,7 +16,7 @@ func TestInfoPrint(t *testing.T) {
 
 func TestWarningPrint(t *testing.T) {
 	CreatePrintLog("./")
-	Warning("Warning testing")
+	Warn("Warning testing")
 }
 
 func TestErrorPrint(t *testing.T) {
