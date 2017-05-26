@@ -78,9 +78,10 @@ func (node *node) rx() error {
 			unpackNodeBuf(node, buf[0:len])
 			break
 		case io.EOF:
-			break
+			log.Error("Rx io.EOF ", err)
+			goto disconnect
 		default:
-			log.Error("Read connetion error ", err)
+			log.Error("Read connection error ", err)
 			goto disconnect
 		}
 	}
