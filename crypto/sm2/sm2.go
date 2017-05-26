@@ -2,6 +2,7 @@ package sm2
 
 import (
 	"DNA/crypto/util"
+	"DNA/crypto/sm3"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/elliptic"
@@ -76,7 +77,8 @@ func GenKeyPair(algSet *util.CryptoAlgSet) ([]byte, *big.Int, *big.Int, error) {
 	return k.Bytes(), publicKeyX, publicKeyY, nil
 }
 
-func Sign(algSet *util.CryptoAlgSet, priKey []byte, hash []byte) (r *big.Int, s *big.Int, err error) {
+func Sign(algSet *util.CryptoAlgSet, priKey []byte, data []byte) (r *big.Int, s *big.Int, err error) {
+	hash := sm3.Sum(data)
 	entropyLen := (algSet.EccParams.BitSize + 7) / 16
 	if entropyLen > 32 {
 		entropyLen = 32
@@ -90,7 +92,7 @@ func Sign(algSet *util.CryptoAlgSet, priKey []byte, hash []byte) (r *big.Int, s 
 	md := sha512.New()
 	md.Write(priKey)
 	md.Write(entropy)
-	md.Write(hash)
+	md.Write(hash[:])
 	key := md.Sum(nil)[:32]
 
 	block, err := aes.NewCipher(key)
@@ -109,7 +111,7 @@ func Sign(algSet *util.CryptoAlgSet, priKey []byte, hash []byte) (r *big.Int, s 
 		return nil, nil, errors.New("zero parameter")
 	}
 	var k *big.Int
-	e := new(big.Int).SetBytes(hash)
+	e := new(big.Int).SetBytes(hash[:])
 	for {
 		for {
 			k, err = randFieldElement(c, cspRng)
@@ -143,7 +145,7 @@ func Sign(algSet *util.CryptoAlgSet, priKey []byte, hash []byte) (r *big.Int, s 
 	return
 }
 
-func Verify(algSet *util.CryptoAlgSet, publicKeyX *big.Int, publicKeyY *big.Int, hash []byte, r, s *big.Int) (bool, error) {
+func Verify(algSet *util.CryptoAlgSet, publicKeyX *big.Int, publicKeyY *big.Int, data []byte, r, s *big.Int) (bool, error) {
 	c := algSet.Curve
 	N := c.Params().N
 
@@ -169,7 +171,8 @@ func Verify(algSet *util.CryptoAlgSet, publicKeyX *big.Int, publicKeyY *big.Int,
 		x, _ = c.Add(x1, y1, x2, y2)
 	}
 
-	e := new(big.Int).SetBytes(hash)
+	hash := sm3.Sum(data[:])
+	e := new(big.Int).SetBytes(hash[:])
 	x.Add(x, e)
 	x.Mod(x, N)
 	return x.Cmp(r) == 0, nil
