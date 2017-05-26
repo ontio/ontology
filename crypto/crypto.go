@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"strings"
 )
 
 const (
@@ -30,11 +31,12 @@ func init() {
 	AlgChoice = 0
 }
 
-func SetAlg(algChoice int) {
-	AlgChoice = algChoice
-	if SM2 == algChoice {
+func SetAlg(algChoice string) {
+	if strings.Compare("SM2", algChoice) == 0 {
+		AlgChoice = SM2
 		sm2.Init(&algSet)
 	} else {
+		AlgChoice = P256R1
 		p256r1.Init(&algSet)
 	}
 	return

@@ -73,7 +73,7 @@ func main() {
 	ledger.DefaultLedger.Store = ChainStore.NewLedgerStore()
 	ledger.DefaultLedger.Store.InitLedgerStore(ledger.DefaultLedger)
 	transaction.TxStore = ledger.DefaultLedger.Store
-	crypto.SetAlg(crypto.P256R1)
+	crypto.SetAlg(config.Parameters.EncryptAlg)
 	fmt.Println("  Client set completed. Test Start...")
 	fmt.Println("//**************************************************************************")
 	fmt.Println("//*** 1. Generate [Account]                                              ***")

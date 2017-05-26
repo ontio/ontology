@@ -33,6 +33,7 @@ type Configuration struct {
 	CAPath          string   `json:"CAPath"`
 	GenBlockTime    uint     `json:"GenBlockTime"`
 	MultiCoreNum    uint     `json:"MultiCoreNum"`
+	EncryptAlg      string   `json:"EncryptAlg"`
 }
 
 type ConfigFile struct {
