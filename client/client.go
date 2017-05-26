@@ -400,7 +400,7 @@ func (cl *ClientImpl) SaveAccount(ac *Account) error {
 		decryptedPrivateKey[i-1] = temp[i]
 	}
 
-	for i := 0; i < 32; i++ {
+	for i := len(ac.PrivateKey) - 1; i >= 0; i-- {
 		decryptedPrivateKey[64+i] = ac.PrivateKey[i]
 	}
 
