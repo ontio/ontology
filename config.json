@@ -9,7 +9,7 @@
     "HttpLocalPort": 20337,
     "NodePort": 20338,
     "BookKeeperName": "c1",
-    "PrintLevel": 0,
+    "PrintLevel": 1,
     "IsTLS": false,
     "CertPath": "./sample-cert.pem",
     "KeyPath": "./sample-cert-key.pem",

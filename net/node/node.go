@@ -49,7 +49,7 @@ type node struct {
 }
 
 func (node node) DumpInfo() {
-	fmt.Printf("Node info:\n")
+	log.Trace("Node info:\n")
 	fmt.Printf("\t state = %d\n", node.state)
 	fmt.Printf("\t id = 0x%x\n", node.id)
 	fmt.Printf("\t addr = %s\n", node.addr)
