@@ -1,21 +1,21 @@
 package common
 
 import (
-	"DNA/common/log"
-	. "DNA/errors"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
-	"github.com/golang/crypto/ripemd160"
 	"io"
-	_ "io"
 	"math/rand"
+
+	"DNA/common/log"
+	. "DNA/errors"
+
+	"github.com/golang/crypto/ripemd160"
 )
 
 func ToCodeHash(code []byte) (Uint160, error) {
-	//TODO: ToCodeHash
 	temp := sha256.Sum256(code)
 	md := ripemd160.New()
 	io.WriteString(md, string(temp[:]))

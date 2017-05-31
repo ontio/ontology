@@ -2,9 +2,9 @@ package common
 
 import (
 	"bytes"
+	"encoding/binary"
 	"io"
 	"strconv"
-	"encoding/binary"
 )
 
 //the 64 bit fixed-point number, precise 10^-8
@@ -31,19 +31,7 @@ func (f *Fixed64) Deserialize(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-
 	*f = Fixed64(x)
-
-	return nil
-/*
-	var x int64
-	err := binary.Read(r, binary.LittleEndian, &x)
-	if err != nil {
-		return err
-	}
-
-	*f = Fixed64(x)
-*/
 	return nil
 }
 

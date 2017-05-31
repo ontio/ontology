@@ -111,57 +111,6 @@ func VerifyTransactionWithLedger(Tx *tx.Transaction, ledger *ledger.Ledger) erro
 	return nil
 }
 
-// TODO: unused if do tx verification in txpool
-/*
-//Use for verify request, only response validate/invalidate.
-func VerifyTransactionPoolWhenResponse(txPool []*tx.Transaction) bool {
-	if len(txPool) == 0 {
-		return true
-	}
-
-	utxoMap := make(map[string]bool, 0)
-	for _, t := range txPool {
-		for _, u := range t.UTXOInputs {
-			utxo := u.ToString()
-			if _, ok := utxoMap[utxo]; ok {
-				return false
-			} else {
-				utxoMap[utxo] = true
-			}
-		}
-	}
-
-	return true
-}
-
-//Use for request by bookKeeper.
-//remove the invalidate transaction from process context and tell the caller which should be removed.
-func VerifyTransactionPoolWhenRequest(txPool map[common.Uint256]*tx.Transaction) (txs []common.Uint256, NewPool map[common.Uint256]*tx.Transaction) {
-	if len(txPool) == 0 {
-		return nil, txPool
-	}
-
-	errorTxs := []common.Uint256{}
-	utxoMap := make(map[string]common.Uint256, 0)
-	for k, t := range txPool {
-		for _, u := range t.UTXOInputs {
-			utxo := u.ToString()
-			if v, ok := utxoMap[utxo]; ok {
-				delete(txPool, v)
-				delete(txPool, k)
-				errorTxs = append(errorTxs, k)
-				errorTxs = append(errorTxs, v)
-				continue
-			} else {
-				utxoMap[utxo] = k
-			}
-		}
-	}
-
-	return errorTxs, txPool
-}
-*/
-
 func CheckMemPool(tx *tx.Transaction, TxPool []*tx.Transaction) error {
 	if len(tx.UTXOInputs) == 0 {
 		return nil

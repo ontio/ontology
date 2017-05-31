@@ -83,13 +83,3 @@ func (a *Asset) Deserialize(r io.Reader) error {
 	}
 	return nil
 }
-
-// as the import cycle move to ledger.go
-/*func GetAsset(assetId common.Uint256) *Asset {
-	fmt.Println("///asset/GetAsset")
-	asset, err:= ledger.DefaultLedger.Store.GetAsset(assetId)
-	if err != nil {
-		return nil,NewDetailErr(err, ErrNoCode, "[Asset], GetAsset failed.")
-	}
-	return asset, nil
-}*/
