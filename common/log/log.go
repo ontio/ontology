@@ -183,27 +183,19 @@ func Debug(a ...interface{}) {
 }
 
 func Info(a ...interface{}) {
-	if Log != nil {
-		Log.Info(fmt.Sprint(a...))
-	}
+	Log.Info(fmt.Sprint(a...))
 }
 
 func Warn(a ...interface{}) {
-	if Log != nil {
-		Log.Warn(fmt.Sprint(a...))
-	}
+	Log.Warn(fmt.Sprint(a...))
 }
 
 func Error(a ...interface{}) {
-	if Log != nil {
-		Log.Error(fmt.Sprint(a...))
-	}
+	Log.Error(fmt.Sprint(a...))
 }
 
 func Fatal(a ...interface{}) {
-	if Log != nil {
-		Log.Fatal(fmt.Sprint(a...))
-	}
+	Log.Fatal(fmt.Sprint(a...))
 }
 
 func FileOpen(path string) (*os.File, error) {
