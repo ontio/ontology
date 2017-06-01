@@ -110,16 +110,11 @@ func (l *Logger) SetDebugLevel(level int) error {
 }
 
 func (l *Logger) output(level int, s string) error {
-	// FIXME enable print GID for all log, should be disable as it effect performance
-	if (level == 0) || (level == 1) || (level == 2) || (level == 3) || (level == 4) {
-		gid := GetGID()
-		gidStr := strconv.FormatUint(gid, 10)
+	gid := GetGID()
+	gidStr := strconv.FormatUint(gid, 10)
 
-		return l.logger.Output(callDepth, LevelName(level)+" "+"GID"+
-			" "+gidStr+", "+s)
-	} else {
-		return l.logger.Output(callDepth, LevelName(level)+" "+s)
-	}
+	return l.logger.Output(callDepth, LevelName(level)+" "+"GID"+
+		" "+gidStr+", "+s)
 }
 
 func (l *Logger) Output(level int, a ...interface{}) error {
@@ -171,7 +166,11 @@ func Trace(a ...interface{}) {
 	f := runtime.FuncForPC(pc[0])
 	file, line := f.FileLine(pc[0])
 	fileName := filepath.Base(file)
-	Log.Trace(fmt.Sprint(f.Name(), " ", fileName, ":", line, " ", fmt.Sprint(a...)))
+
+	nameFull := f.Name()
+	nameEnd := filepath.Ext(nameFull)
+	funcName := strings.TrimPrefix(nameEnd, ".")
+	Log.Trace(fmt.Sprint(funcName, "() ", fileName, ":", line, " ", fmt.Sprint(a...)))
 }
 
 func Debug(a ...interface{}) {

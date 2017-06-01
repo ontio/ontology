@@ -49,18 +49,18 @@ type node struct {
 }
 
 func (node node) DumpInfo() {
-	log.Trace("Node info:\n")
-	fmt.Printf("\t state = %d\n", node.state)
-	fmt.Printf("\t id = 0x%x\n", node.id)
-	fmt.Printf("\t addr = %s\n", node.addr)
-	fmt.Printf("\t conn = %v\n", node.conn)
-	fmt.Printf("\t cap = %d\n", node.cap)
-	fmt.Printf("\t version = %d\n", node.version)
-	fmt.Printf("\t services = %d\n", node.services)
-	fmt.Printf("\t port = %d\n", node.port)
-	fmt.Printf("\t relay = %v\n", node.relay)
-	fmt.Printf("\t height = %v\n", node.height)
-	fmt.Printf("\t conn cnt = %v\n", node.link.connCnt)
+	log.Info("Node info:")
+	log.Info("\t state = ", node.state)
+	log.Info(fmt.Sprintf("\t id = 0x%x", node.id))
+	log.Info("\t addr = ", node.addr)
+	log.Info("\t conn = ", node.conn)
+	log.Info("\t cap = ", node.cap)
+	log.Info("\t version = ", node.version)
+	log.Info("\t services = ", node.services)
+	log.Info("\t port = ", node.port)
+	log.Info("\t relay = ", node.relay)
+	log.Info("\t height = ", node.height)
+	log.Info("\t conn cnt = ", node.link.connCnt)
 }
 
 func (node *node) UpdateInfo(t time.Time, version uint32, services uint64,
@@ -99,7 +99,7 @@ func InitNode(pubKey *crypto.PubKey, nodeType int) Noder {
 	rand.Seed(time.Now().UTC().UnixNano())
 	//id is the first 8 bytes of public key
 	n.id = ReadNodeID()
-	fmt.Printf("Init node ID to 0x%x \n", n.id)
+	log.Info(fmt.Sprintf("Init node ID to 0x%x", n.id))
 	n.nbrNodes.init()
 	n.local = n
 	n.publicKey = pubKey

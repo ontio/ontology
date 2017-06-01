@@ -44,7 +44,7 @@ func fileExisted(filename string) bool {
 }
 
 func main() {
-	fmt.Printf("Node version: %s\n", config.Version)
+	log.Trace("Node version: ", config.Version)
 	log.Info("0. Loading the Ledger")
 	ledger.DefaultLedger = new(ledger.Ledger)
 	ledger.DefaultLedger.Store = ChainStore.NewLedgerStore()

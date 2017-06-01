@@ -2,6 +2,7 @@ package node
 
 import (
 	"DNA/common/log"
+	"DNA/common/config"
 	"DNA/core/ledger"
 	. "DNA/net/message"
 	. "DNA/net/protocol"
@@ -88,6 +89,17 @@ func (node node) ReqNeighborList() {
 	go node.Tx(buf)
 }
 
+func (node node) ConnectSeeds() {
+	if (node.nbrNodes.GetConnectionCnt() == 0) {
+		seedNodes := config.Parameters.SeedList
+		for _, nodeAddr := range seedNodes {
+			go node.Connect(nodeAddr)
+		}
+	}
+}
+
+// FIXME part of node info update function could be a node method itself intead of
+// a node map method
 // Fixme the Nodes should be a parameter
 func (node node) updateNodeInfo() {
 	ticker := time.NewTicker(time.Second * PERIODUPDATETIME)
@@ -95,7 +107,7 @@ func (node node) updateNodeInfo() {
 	for {
 		select {
 		case <-ticker.C:
-			//GetHeaders process haven't finished yet. So comment it now.
+			node.ConnectSeeds()
 			node.SendPingToNbr()
 			node.GetBlkHdrs()
 			node.SyncBlk()

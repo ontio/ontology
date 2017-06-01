@@ -2,7 +2,6 @@ package net
 
 import (
 	. "DNA/common"
-	"DNA/common/config"
 	"DNA/core/ledger"
 	"DNA/core/transaction"
 	"DNA/crypto"
@@ -23,11 +22,8 @@ type Neter interface {
 }
 
 func StartProtocol(pubKey *crypto.PubKey, nodeType int) (Neter, protocol.Noder) {
-	seedNodes := config.Parameters.SeedList
-
 	net := node.InitNode(pubKey, nodeType)
-	for _, nodeAddr := range seedNodes {
-		go net.Connect(nodeAddr)
-	}
+	net.ConnectSeeds()
+
 	return net, net
 }

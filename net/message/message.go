@@ -210,7 +210,7 @@ func HandleNodeMsg(node Noder, buf []byte, len int) error {
 		log.Error(fmt.Sprintf("Allocation message %s failed", s))
 		return errors.New("Allocation message failed")
 	}
-	// Todo attach a ndoe pointer to each message
+	// Todo attach a node pointer to each message
 	// Todo drop the message when verify/deseria packet error
 	msg.Deserialization(buf[:len])
 	msg.Verify(buf[MSGHDRLEN:len])
