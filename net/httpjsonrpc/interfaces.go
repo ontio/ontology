@@ -311,7 +311,7 @@ func getUnspendOutput(params []interface{}) map[string]interface{} {
 	height := ledger.DefaultLedger.GetLocalBlockChainHeight()
 	var i uint32
 	// construct global UTXO table
-	for i = 0; i < height; i++ {
+	for i = 0; i <= height; i++ {
 		block, err := ledger.DefaultLedger.GetBlockWithHeight(i)
 		if err != nil {
 			return DnaRpcInternalError
@@ -343,7 +343,7 @@ func getUnspendOutput(params []interface{}) map[string]interface{} {
 	}
 	// delete spent output from global UTXO table
 	height = ledger.DefaultLedger.GetLocalBlockChainHeight()
-	for i = 0; i < height; i++ {
+	for i = 0; i <= height; i++ {
 		block, err := ledger.DefaultLedger.GetBlockWithHeight(i)
 		if err != nil {
 			return DnaRpcInternalError
