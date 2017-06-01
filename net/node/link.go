@@ -75,6 +75,8 @@ func (node *node) rx() error {
 		buf[MAXBUFLEN-1] = 0 //Prevent overflow
 		switch err {
 		case nil:
+			t := time.Now()
+			node.UpdateRXTime(t)
 			unpackNodeBuf(node, buf[0:len])
 			break
 		case io.EOF:

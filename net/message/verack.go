@@ -5,7 +5,6 @@ import (
 	. "DNA/net/protocol"
 	"encoding/hex"
 	"errors"
-	"time"
 )
 
 type verACK struct {
@@ -52,7 +51,6 @@ func NewVerack() ([]byte, error) {
 func (msg verACK) Handle(node Noder) error {
 	log.Debug()
 
-	t := time.Now()
 	s := node.GetState()
 	if s != HANDSHAKE && s != HANDSHAKED {
 		log.Warn("Unknow status to received verack")
@@ -60,15 +58,12 @@ func (msg verACK) Handle(node Noder) error {
 	}
 
 	node.SetState(ESTABLISH)
-	node.SetLastContact()
 
 	if s == HANDSHAKE {
 		buf, _ := NewVerack()
 		node.Tx(buf)
 	}
 
-	// TODO update other node info
-	node.UpdateTime(t)
 	node.DumpInfo()
 	// Fixme, there is a race condition here,
 	// but it doesn't matter to access the invalid

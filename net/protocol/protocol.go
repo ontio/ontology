@@ -69,7 +69,7 @@ type Noder interface {
 	GetRelay() bool
 	SetState(state uint32)
 	CompareAndSetState(old, new uint32) bool
-	UpdateTime(t time.Time)
+	UpdateRXTime(t time.Time)
 	LocalNode() Noder
 	DelNbrNode(id uint64) (Noder, bool)
 	AddNbrNode(Noder)
@@ -114,8 +114,7 @@ type Noder interface {
 	StoreFlightHeight(height uint32)
 	GetFlightHeightCnt() int
 	RemoveFlightHeight(height uint32)
-	SetLastContact()
-	GetLastContact() time.Time
+	GetLastRXTime() time.Time
 	SetHeight(height uint64)
 	WaitForFourPeersStart()
 }

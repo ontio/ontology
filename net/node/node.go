@@ -66,7 +66,7 @@ func (node node) DumpInfo() {
 func (node *node) UpdateInfo(t time.Time, version uint32, services uint64,
 	port uint16, nonce uint64, relay uint8, height uint64) {
 
-	node.UpdateTime(t)
+	node.UpdateRXTime(t)
 	node.id = nonce
 	node.version = version
 	node.services = services
@@ -184,7 +184,7 @@ func (node *node) SetHeight(height uint64) {
 	node.height = height
 }
 
-func (node *node) UpdateTime(t time.Time) {
+func (node *node) UpdateRXTime(t time.Time) {
 	node.time = t
 }
 
@@ -370,10 +370,6 @@ func (node *node) RemoveFlightHeight(height uint32) {
 	}
 }
 
-func (node *node) SetLastContact() {
-	node.lastContact = time.Now()
-}
-
-func (node node) GetLastContact() time.Time {
-	return node.lastContact
+func (node node) GetLastRXTime() time.Time {
+	return node.time
 }
