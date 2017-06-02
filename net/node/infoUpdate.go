@@ -1,8 +1,8 @@
 package node
 
 import (
-	"DNA/common/log"
 	"DNA/common/config"
+	"DNA/common/log"
 	"DNA/core/ledger"
 	. "DNA/net/message"
 	. "DNA/net/protocol"
@@ -41,6 +41,7 @@ func (node *node) SyncBlk() {
 	var i uint32
 	noders := node.local.GetNeighborNoder()
 	for _, n := range noders {
+		n.RemoveFlightHeightLessThan(currentBlkHeight)
 		count := MAXREQBLKONCE - uint32(n.GetFlightHeightCnt())
 		dValue = int32(headerHeight - currentBlkHeight - reqCnt)
 		for i = 1; i <= count && dValue >= 0; i++ {
@@ -90,7 +91,7 @@ func (node node) ReqNeighborList() {
 }
 
 func (node node) ConnectSeeds() {
-	if (node.nbrNodes.GetConnectionCnt() == 0) {
+	if node.nbrNodes.GetConnectionCnt() == 0 {
 		seedNodes := config.Parameters.SeedList
 		for _, nodeAddr := range seedNodes {
 			go node.Connect(nodeAddr)

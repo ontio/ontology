@@ -114,6 +114,7 @@ type Noder interface {
 	GetNbrNodeCnt() uint32
 	StoreFlightHeight(height uint32)
 	GetFlightHeightCnt() int
+	RemoveFlightHeightLessThan(height uint32)
 	RemoveFlightHeight(height uint32)
 	GetLastRXTime() time.Time
 	SetHeight(height uint64)

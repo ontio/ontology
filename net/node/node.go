@@ -359,6 +359,22 @@ func (node node) GetFlightHeightCnt() int {
 	return len(node.flightHeights)
 }
 
+func (node *node) RemoveFlightHeightLessThan(h uint32) {
+	heights := node.flightHeights
+	p := len(heights)
+	i := 0
+
+	for i < p {
+		if heights[i] < h {
+			p--
+			heights[p], heights[i] = heights[i], heights[p]
+		} else {
+			i++
+		}
+	}
+	node.flightHeights = heights[:p]
+}
+
 func (node *node) RemoveFlightHeight(height uint32) {
 	log.Debug("height is ", height)
 	for _, h := range node.flightHeights {
