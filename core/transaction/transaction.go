@@ -21,12 +21,13 @@ import (
 type TransactionType byte
 
 const (
-	BookKeeping   TransactionType = 0x00
-	RegisterAsset TransactionType = 0x40
-	IssueAsset    TransactionType = 0x01
-	TransferAsset TransactionType = 0x10
-	Record        TransactionType = 0x11
-	DeployCode    TransactionType = 0xd0
+	BookKeeping    TransactionType = 0x00
+	RegisterAsset  TransactionType = 0x40
+	IssueAsset     TransactionType = 0x01
+	TransferAsset  TransactionType = 0x10
+	Record         TransactionType = 0x11
+	DeployCode     TransactionType = 0xd0
+	PrivacyPayload TransactionType = 0x20
 )
 
 //Payload define the func for loading the payload data
@@ -190,7 +191,10 @@ func (tx *Transaction) DeserializeUnsignedWithoutType(r io.Reader) error {
 		tx.Payload = new(payload.BookKeeping)
 	} else if tx.TxType == Record {
 		tx.Payload = new(payload.Record)
+	} else if tx.TxType == PrivacyPayload {
+		tx.Payload = new(payload.PrivacyPayload)
 	}
+
 	tx.Payload.Deserialize(r)
 	//attributes
 
@@ -306,6 +310,18 @@ func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 		}
 	case TransferAsset:
 	case Record:
+	case PrivacyPayload:
+		issuer := tx.Payload.(*payload.PrivacyPayload).EncryptAttr.(*payload.EcdhAes256).FromPubkey
+		signatureRedeemScript, err := contract.CreateSignatureRedeemScript(issuer)
+		if err != nil {
+			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetProgramHashes CreateSignatureRedeemScript failed.")
+		}
+
+		astHash, err := ToCodeHash(signatureRedeemScript)
+		if err != nil {
+			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetProgramHashes ToCodeHash failed.")
+		}
+		hashs = append(hashs, astHash)
 	default:
 	}
 	//remove dupilicated hashes

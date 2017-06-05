@@ -634,6 +634,7 @@ func (bd *ChainStore) persist(b *Block) error {
 			b.Transactions[i].TxType == tx.IssueAsset ||
 			b.Transactions[i].TxType == tx.TransferAsset ||
 			b.Transactions[i].TxType == tx.Record ||
+			b.Transactions[i].TxType == tx.PrivacyPayload ||
 			b.Transactions[i].TxType == tx.BookKeeping {
 			err = bd.SaveTransaction(b.Transactions[i], b.Blockdata.Height)
 			if err != nil {

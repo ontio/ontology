@@ -6,6 +6,7 @@ import (
 	. "DNA/core/contract"
 	. "DNA/core/transaction"
 	"DNA/core/transaction/payload"
+	"bytes"
 )
 
 type PayloadInfo interface {
@@ -81,6 +82,17 @@ func (a *RecordInfo) Data() []byte {
 	return []byte{0}
 }
 
+type PrivacyPayloadInfo struct {
+	PayloadType uint8
+	Payload     string
+	EncryptType uint8
+	EncryptAttr string
+}
+
+func (a *PrivacyPayloadInfo) Data() []byte {
+	return []byte{0}
+}
+
 func TransPayloadToHex(p Payload) PayloadInfo {
 	switch object := p.(type) {
 	case *payload.BookKeeping:
@@ -110,6 +122,16 @@ func TransPayloadToHex(p Payload) PayloadInfo {
 		obj.RecordType = object.RecordType
 		obj.RecordData = ToHexString(object.RecordData)
 		return obj
+	case *payload.PrivacyPayload:
+		obj := new(PrivacyPayloadInfo)
+		obj.PayloadType = uint8(object.PayloadType)
+		obj.Payload = ToHexString(object.Payload)
+		obj.EncryptType = uint8(object.EncryptType)
+		bytesBuffer := bytes.NewBuffer([]byte{})
+		object.EncryptAttr.Serialize(bytesBuffer)
+		obj.EncryptAttr = ToHexString(bytesBuffer.Bytes())
+		return obj
+
 	}
 	return nil
 }

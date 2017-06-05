@@ -81,3 +81,23 @@ func NewRecordTransaction(recordType string, recordData []byte) (*Transaction, e
 	}, nil
 }
 
+func NewPrivacyPayloadTransaction(fromPrivKey []byte, fromPubkey *crypto.PubKey, toPubkey *crypto.PubKey, payloadType payload.EncryptedPayloadType, data []byte) (*Transaction, error) {
+	privacyPayload := &payload.PrivacyPayload{
+		PayloadType: payloadType,
+		EncryptType: payload.ECDH_AES256,
+		EncryptAttr: &payload.EcdhAes256{
+			FromPubkey: fromPubkey,
+			ToPubkey:   toPubkey,
+		},
+	}
+	privacyPayload.Payload, _ = privacyPayload.EncryptAttr.Encrypt(data, fromPrivKey)
+
+	return &Transaction{
+		TxType:        PrivacyPayload,
+		Payload:       privacyPayload,
+		Attributes:    []*TxAttribute{},
+		UTXOInputs:    []*UTXOTxInput{},
+		BalanceInputs: []*BalanceTxInput{},
+		Programs:      []*program.Program{},
+	}, nil
+}
