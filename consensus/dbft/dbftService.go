@@ -14,7 +14,6 @@ import (
 	tx "DNA/core/transaction"
 	"DNA/core/transaction/payload"
 	va "DNA/core/validation"
-	"DNA/crypto"
 	. "DNA/errors"
 	"DNA/events"
 	"DNA/net"
@@ -388,10 +387,15 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, mes
 		return
 	}
 
+	if ds.context.NextBookKeeper != message.NextBookKeeper {
+		log.Info("PrepareRequestReceived: Get mismatched NextBookKeeper, RequestChangeView")
+		ds.RequestChangeView()
+		return
+	}
+
 	ds.context.State |= RequestReceived
 	ds.context.Timestamp = payload.Timestamp
 	ds.context.Nonce = message.Nonce
-	ds.context.NextBookKeeper = message.NextBookKeeper
 	ds.context.Transactions = message.Transactions
 
 	//block header verification
@@ -412,34 +416,21 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, mes
 		return
 	}
 
-	bookKeepersLen := len(ds.context.NextBookKeepers)
-	bookKeepers := make([]*crypto.PubKey, bookKeepersLen)
-	copy(bookKeepers, ds.context.NextBookKeepers)
-	bookKeeperAddress, err := ledger.GetBookKeeperAddress(bookKeepers)
+	log.Info("send prepare response")
+	ds.context.State |= SignatureSent
+	bookKeeper, err := ds.Client.GetAccount(ds.context.BookKeepers[ds.context.BookKeeperIndex])
 	if err != nil {
-		log.Error("[DbftService] GetBookKeeperAddres failed")
+		log.Error("[DbftService] GetAccount failed")
 		return
 	}
-	if bookKeeperAddress == ds.context.NextBookKeeper {
-		log.Info("send prepare response")
-		ds.context.State |= SignatureSent
-		bookKeeper, err := ds.Client.GetAccount(ds.context.BookKeepers[ds.context.BookKeeperIndex])
-		if err != nil {
-			log.Error("[DbftService] GetAccount failed")
-			return
+	ds.context.Signatures[ds.context.BookKeeperIndex], err = sig.SignBySigner(ds.context.MakeHeader(), bookKeeper)
+	if err != nil {
+		log.Error("[DbftService] SignBySigner failed")
+		return
+	}
+	payload = ds.context.MakePrepareResponse(ds.context.Signatures[ds.context.BookKeeperIndex])
+	ds.SignAndRelay(payload)
 
-		}
-		ds.context.Signatures[ds.context.BookKeeperIndex], err = sig.SignBySigner(ds.context.MakeHeader(), bookKeeper)
-		if err != nil {
-			log.Error("[DbftService] SignBySigner failed")
-			return
-		}
-		payload := ds.context.MakePrepareResponse(ds.context.Signatures[ds.context.BookKeeperIndex])
-		ds.SignAndRelay(payload)
-	} else {
-		ds.RequestChangeView()
-		return
-	}
 	log.Info("Prepare Request finished")
 }
 
@@ -573,10 +564,6 @@ func (ds *DbftService) Timeout() {
 				ds.context.Transactions = append(ds.context.Transactions, tx)
 			}
 			//build block and sign
-			bookKeepersLen := len(ds.context.NextBookKeepers)
-			bookKeepers := make([]*crypto.PubKey, bookKeepersLen)
-			copy(bookKeepers, ds.context.NextBookKeepers)
-			ds.context.NextBookKeeper, _ = ledger.GetBookKeeperAddress(bookKeepers)
 			block := ds.context.MakeHeader()
 			account, _ := ds.Client.GetAccount(ds.context.BookKeepers[ds.context.BookKeeperIndex]) //TODO: handle error
 			ds.context.Signatures[ds.context.BookKeeperIndex], _ = sig.SignBySigner(block, account)
