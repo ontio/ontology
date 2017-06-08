@@ -49,7 +49,7 @@ type node struct {
 	lastContact   time.Time
 }
 
-func (node node) DumpInfo() {
+func (node *node) DumpInfo() {
 	log.Info("Node info:")
 	log.Info("\t state = ", node.state)
 	log.Info(fmt.Sprintf("\t id = 0x%x", node.id))
@@ -135,31 +135,31 @@ func (node *node) backend() {
 	}
 }
 
-func (node node) GetID() uint64 {
+func (node *node) GetID() uint64 {
 	return node.id
 }
 
-func (node node) GetState() uint32 {
+func (node *node) GetState() uint32 {
 	return atomic.LoadUint32(&(node.state))
 }
 
-func (node node) getConn() net.Conn {
+func (node *node) getConn() net.Conn {
 	return node.conn
 }
 
-func (node node) GetPort() uint16 {
+func (node *node) GetPort() uint16 {
 	return node.port
 }
 
-func (node node) GetRelay() bool {
+func (node *node) GetRelay() bool {
 	return node.relay
 }
 
-func (node node) Version() uint32 {
+func (node *node) Version() uint32 {
 	return node.version
 }
 
-func (node node) Services() uint64 {
+func (node *node) Services() uint64 {
 	return node.services
 }
 
@@ -167,11 +167,11 @@ func (node *node) IncRxTxnCnt() {
 	node.rxTxnCnt++
 }
 
-func (node node) GetTxnCnt() uint64 {
+func (node *node) GetTxnCnt() uint64 {
 	return node.txnCnt
 }
 
-func (node node) GetRxTxnCnt() uint64 {
+func (node *node) GetRxTxnCnt() uint64 {
 	return node.rxTxnCnt
 }
 
@@ -183,11 +183,12 @@ func (node *node) CompareAndSetState(old, new uint32) bool {
 	return atomic.CompareAndSwapUint32(&(node.state), old, new)
 }
 
+
 func (node *node) LocalNode() Noder {
 	return node.local
 }
 
-func (node node) GetHeight() uint64 {
+func (node *node) GetHeight() uint64 {
 	return node.height
 }
 
@@ -252,11 +253,11 @@ func (node *node) Xmit(message interface{}) error {
 	return nil
 }
 
-func (node node) GetAddr() string {
+func (node *node) GetAddr() string {
 	return node.addr
 }
 
-func (node node) GetAddr16() ([16]byte, error) {
+func (node *node) GetAddr16() ([16]byte, error) {
 	var result [16]byte
 	ip := net.ParseIP(node.addr).To16()
 	if ip == nil {
@@ -268,16 +269,16 @@ func (node node) GetAddr16() ([16]byte, error) {
 	return result, nil
 }
 
-func (node node) GetTime() int64 {
+func (node *node) GetTime() int64 {
 	t := time.Now()
 	return t.UnixNano()
 }
 
-func (node node) GetBookKeeperAddr() *crypto.PubKey {
+func (node *node) GetBookKeeperAddr() *crypto.PubKey {
 	return node.publicKey
 }
 
-func (node node) GetBookKeepersAddrs() ([]*crypto.PubKey, uint64) {
+func (node *node) GetBookKeepersAddrs() ([]*crypto.PubKey, uint64) {
 	pks := make([]*crypto.PubKey, 1)
 	pks[0] = node.publicKey
 	var i uint64
@@ -297,7 +298,7 @@ func (node *node) SetBookKeeperAddr(pk *crypto.PubKey) {
 	node.publicKey = pk
 }
 
-func (node node) SyncNodeHeight() {
+func (node *node) SyncNodeHeight() {
 	for {
 		heights, _ := node.GetNeighborHeights()
 		if CompareHeight(uint64(ledger.DefaultLedger.Blockchain.BlockHeight), heights) {
@@ -307,7 +308,7 @@ func (node node) SyncNodeHeight() {
 	}
 }
 
-func (node node) WaitForFourPeersStart() {
+func (node *node) WaitForFourPeersStart() {
 	for {
 		log.Debug("WaitForFourPeersStart...")
 		cnt := node.local.GetNbrNodeCnt()
@@ -318,7 +319,7 @@ func (node node) WaitForFourPeersStart() {
 	}
 }
 
-func (node node) IsSyncHeaders() bool {
+func (node *node) IsSyncHeaders() bool {
 	if (node.syncFlag & 0x01) == 0x01 {
 		return true
 	} else {
@@ -334,7 +335,7 @@ func (node *node) SetSyncHeaders(b bool) {
 	}
 }
 
-func (node node) IsSyncFailed() bool {
+func (node *node) IsSyncFailed() bool {
 	if (node.syncFlag & 0x02) == 0x02 {
 		return true
 	} else {
@@ -359,7 +360,7 @@ func (node *node) StartRetryTimer() {
 	}()
 }
 
-func (node node) StopRetryTimer() {
+func (node *node) StopRetryTimer() {
 	node.TxNotifyChan <- 1
 }
 
@@ -367,7 +368,7 @@ func (node *node) StoreFlightHeight(height uint32) {
 	node.flightHeights = append(node.flightHeights, height)
 }
 
-func (node node) GetFlightHeightCnt() int {
+func (node *node) GetFlightHeightCnt() int {
 	return len(node.flightHeights)
 }
 
@@ -398,6 +399,6 @@ func (node *node) RemoveFlightHeight(height uint32) {
 	}
 }
 
-func (node node) GetLastRXTime() time.Time {
+func (node *node) GetLastRXTime() time.Time {
 	return node.time
 }

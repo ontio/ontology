@@ -1,8 +1,8 @@
 package node
 
 import (
-	"DNA/common/log"
 	. "DNA/common/config"
+	"DNA/common/log"
 	. "DNA/net/message"
 	. "DNA/net/protocol"
 	"crypto/tls"
@@ -103,7 +103,7 @@ func printIPAddr() {
 	}
 }
 
-func (link link) CloseConn() {
+func (link *link) CloseConn() {
 	link.conn.Close()
 }
 
@@ -277,7 +277,7 @@ func TLSDial(nodeAddr string) (net.Conn, error) {
 	return conn, nil
 }
 
-func (node node) Tx(buf []byte) {
+func (node *node) Tx(buf []byte) {
 	log.Debug()
 	str := hex.EncodeToString(buf)
 	log.Debug(fmt.Sprintf("TX buf length: %d\n%s", len(buf), str))

@@ -85,12 +85,12 @@ func (node *node) HeartBeatMonitor() {
 	}
 }
 
-func (node node) ReqNeighborList() {
+func (node *node) ReqNeighborList() {
 	buf, _ := NewMsg("getaddr", node.local)
 	go node.Tx(buf)
 }
 
-func (node node) ConnectSeeds() {
+func (node *node) ConnectSeeds() {
 	if node.nbrNodes.GetConnectionCnt() == 0 {
 		seedNodes := config.Parameters.SeedList
 		for _, nodeAddr := range seedNodes {
@@ -102,7 +102,7 @@ func (node node) ConnectSeeds() {
 // FIXME part of node info update function could be a node method itself intead of
 // a node map method
 // Fixme the Nodes should be a parameter
-func (node node) updateNodeInfo() {
+func (node *node) updateNodeInfo() {
 	ticker := time.NewTicker(time.Second * PERIODUPDATETIME)
 	quit := make(chan struct{})
 	for {
