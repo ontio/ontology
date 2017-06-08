@@ -1,7 +1,7 @@
 package dbft
 
 import (
-	cl "DNA/client"
+	cl "DNA/account"
 	. "DNA/common"
 	"DNA/common/log"
 	ser "DNA/common/serialization"

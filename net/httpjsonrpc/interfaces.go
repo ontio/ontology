@@ -1,7 +1,7 @@
 package httpjsonrpc
 
 import (
-	"DNA/client"
+	"DNA/account"
 	. "DNA/common"
 	"DNA/common/config"
 	"DNA/common/log"
@@ -442,7 +442,7 @@ func sendSampleTransaction(params []interface{}) map[string]interface{} {
 		return DnaRpcInvalidParameter
 	}
 
-	issuer, err := client.NewAccount()
+	issuer, err := account.NewAccount()
 	if err != nil {
 		return DnaRpc("Failed to create account")
 	}

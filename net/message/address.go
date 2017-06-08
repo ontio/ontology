@@ -40,7 +40,7 @@ func newGetAddr() ([]byte, error) {
 	}
 
 	str := hex.EncodeToString(buf)
-	log.Info("The message get addr length is: ", len(buf), " ", str)
+	log.Debug("The message get addr length is: ", len(buf), " ", str)
 
 	return buf, err
 }

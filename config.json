@@ -6,10 +6,11 @@
       "127.0.0.1:20338",
       "127.0.0.1:30338"
     ],
+    "BookKeepers": [
+    ],
     "HttpJsonPort": 20336,
     "HttpLocalPort": 20337,
     "NodePort": 20338,
-    "BookKeeperName": "c1",
     "PrintLevel": 1,
     "IsTLS": false,
     "CertPath": "./sample-cert.pem",

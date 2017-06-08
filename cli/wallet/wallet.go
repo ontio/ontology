@@ -2,17 +2,15 @@ package wallet
 
 import (
 	"bytes"
-	"encoding/hex"
 	"encoding/json"
+	"encoding/hex"
 	"fmt"
 	"os"
-
+	"DNA/account"
 	. "DNA/cli/common"
-	"DNA/client"
 	. "DNA/common"
 	"DNA/core/contract"
 	"DNA/net/httpjsonrpc"
-
 	"github.com/urfave/cli"
 )
 
@@ -21,17 +19,17 @@ func walletAction(c *cli.Context) (err error) {
 		cli.ShowSubcommandHelp(c)
 		return nil
 	}
-	create := c.Bool("create")
+	createWallet := c.Bool("create")
 	list := c.Bool("list")
 	name := c.String("name")
 	passwd := c.String("password")
 	if name != "" && passwd != "" {
-		if create {
+		if createWallet {
 			//TODO error checking
-			client.CreateClient(name, []byte(passwd))
+			account.Create(name, []byte(passwd))
 		} else if list {
 			if name != "" && passwd != "" {
-				wallet := client.OpenClient(name, []byte(passwd))
+				wallet := account.Open(name, []byte(passwd))
 				if wallet == nil {
 					fmt.Println("Failed to open wallet: ", name)
 					os.Exit(1)
@@ -106,12 +104,12 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "name, n",
 				Usage: "wallet name",
-				Value: DefaultWalletName,
+				Value: account.WalletFileName,
 			},
 			cli.StringFlag{
 				Name:  "password, p",
 				Usage: "wallet password",
-				Value: DefaultWalletPasswd,
+				Value: 	account.DefaultPin,
 			},
 		},
 		Action: walletAction,

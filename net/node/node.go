@@ -9,6 +9,7 @@ import (
 	"DNA/crypto"
 	. "DNA/net/message"
 	. "DNA/net/protocol"
+	"encoding/binary"
 	"bytes"
 	"errors"
 	"fmt"
@@ -89,16 +90,27 @@ func NewNode() *node {
 	return &n
 }
 
-func InitNode(pubKey *crypto.PubKey, nodeType int) Noder {
+func InitNode(pubKey *crypto.PubKey) Noder {
 	n := NewNode()
-
 	n.version = PROTOCOLVERSION
-	n.services = uint64(nodeType)
+	if (Parameters.NodeType == SERVICENODENAME) {
+		n.services = uint64(SERVICENODE)
+	} else if (Parameters.NodeType == VERIFYNODENAME) {
+		n.services = uint64(VERIFYNODE)
+	}
 	n.link.port = uint16(Parameters.NodePort)
 	n.relay = true
+	// TODO is it neccessary to init the rand seed here?
 	rand.Seed(time.Now().UTC().UnixNano())
-	//id is the first 8 bytes of public key
-	n.id = ReadNodeID()
+
+	key, err := pubKey.EncodePoint(true)
+	if err != nil {
+		log.Error(err)
+	}
+	err = binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(n.id))
+	if err != nil {
+		log.Error(err)
+	}
 	log.Info(fmt.Sprintf("Init node ID to 0x%x", n.id))
 	n.nbrNodes.init()
 	n.local = n
@@ -194,7 +206,7 @@ func (node *node) Xmit(message interface{}) error {
 	var err error
 	switch message.(type) {
 	case *transaction.Transaction:
-		log.Info("****TX transaction message*****\n")
+		log.Debug("TX transaction message")
 		txn := message.(*transaction.Transaction)
 		buffer, err = NewTxn(txn)
 		if err != nil {
@@ -203,7 +215,7 @@ func (node *node) Xmit(message interface{}) error {
 		}
 		node.txnCnt++
 	case *ledger.Block:
-		log.Info("****TX block message****\n")
+		log.Debug("TX block message")
 		block := message.(*ledger.Block)
 		buffer, err = NewBlock(block)
 		if err != nil {
@@ -211,7 +223,7 @@ func (node *node) Xmit(message interface{}) error {
 			return err
 		}
 	case *ConsensusPayload:
-		log.Info("*****TX consensus message****\n")
+		log.Debug("TX consensus message")
 		consensusPayload := message.(*ConsensusPayload)
 		buffer, err = NewConsensus(consensusPayload)
 		if err != nil {
@@ -219,7 +231,7 @@ func (node *node) Xmit(message interface{}) error {
 			return err
 		}
 	case Uint256:
-		log.Info("*****TX block hash message****\n")
+		log.Debug("TX block hash message")
 		hash := message.(Uint256)
 		buf := bytes.NewBuffer([]byte{})
 		hash.Serialize(buf)
@@ -272,7 +284,7 @@ func (node node) GetBookKeepersAddrs() ([]*crypto.PubKey, uint64) {
 	i = 1
 	//TODO read lock
 	for _, n := range node.nbrNodes.List {
-		if n.GetState() == ESTABLISH && n.services != SERVICE {
+		if n.GetState() == ESTABLISH && n.services != SERVICENODE {
 			pktmp := n.GetBookKeeperAddr()
 			pks = append(pks, pktmp)
 			i++

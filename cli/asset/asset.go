@@ -9,9 +9,8 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
-
 	. "DNA/cli/common"
-	"DNA/client"
+	"DNA/account"
 	. "DNA/common"
 	. "DNA/core/asset"
 	"DNA/core/contract"
@@ -35,11 +34,11 @@ func newContractContextWithoutProgramHashes(data signature.SignableData) *contra
 	}
 }
 
-func openWallet(name string, passwd []byte) client.Client {
-	if name == DefaultWalletName {
-		fmt.Println("Using default wallet: ", DefaultWalletName)
+func openWallet(name string, passwd []byte) account.Client {
+	if name == account.WalletFileName {
+		fmt.Println("Using default wallet: ", account.WalletFileName)
 	}
-	wallet := client.OpenClient(name, passwd)
+	wallet := account.Open(name, passwd)
 	if wallet == nil {
 		fmt.Println("Failed to open wallet: ", name)
 		os.Exit(1)
@@ -71,7 +70,7 @@ func getUintHash(programHashStr, assetHashStr string) (Uint160, Uint256, error) 
 	return programHash, assetHash, nil
 }
 
-func signTransaction(signer *client.Account, tx *transaction.Transaction) error {
+func signTransaction(signer *account.Account, tx *transaction.Transaction) error {
 	signature, err := signature.SignBySigner(tx, signer)
 	if err != nil {
 		fmt.Println("SignBySigner failed")
@@ -91,7 +90,7 @@ func signTransaction(signer *client.Account, tx *transaction.Transaction) error 
 	return nil
 }
 
-func makeRegTransaction(admin, issuer *client.Account, name string, value Fixed64) (string, error) {
+func makeRegTransaction(admin, issuer *account.Account, name string, value Fixed64) (string, error) {
 	asset := &Asset{name, byte(0x00), AssetType(Share), UTXO}
 	transactionContract, err := contract.CreateSignatureContract(admin.PubKey())
 	if err != nil {
@@ -112,7 +111,7 @@ func makeRegTransaction(admin, issuer *client.Account, name string, value Fixed6
 	return hex.EncodeToString(buffer.Bytes()), nil
 }
 
-func makeIssueTransaction(issuer *client.Account, programHashStr, assetHashStr string, value Fixed64) (string, error) {
+func makeIssueTransaction(issuer *account.Account, programHashStr, assetHashStr string, value Fixed64) (string, error) {
 	programHash, assetHash, err := getUintHash(programHashStr, assetHashStr)
 	if err != nil {
 		return "", err
@@ -137,7 +136,7 @@ func makeIssueTransaction(issuer *client.Account, programHashStr, assetHashStr s
 	return hex.EncodeToString(buffer.Bytes()), nil
 }
 
-func makeTransferTransaction(signer *client.Account, programHashStr, assetHashStr string, value Fixed64) (string, error) {
+func makeTransferTransaction(signer *account.Account, programHashStr, assetHashStr string, value Fixed64) (string, error) {
 	programHash, assetHash, err := getUintHash(programHashStr, assetHashStr)
 	if err != nil {
 		return "", err
@@ -309,12 +308,12 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "wallet, w",
 				Usage: "wallet name",
-				Value: DefaultWalletName,
+				Value: account.WalletFileName,
 			},
 			cli.StringFlag{
 				Name:  "password, p",
 				Usage: "wallet password",
-				Value: DefaultWalletPasswd,
+				Value: account.DefaultPin,
 			},
 			cli.StringFlag{
 				Name:  "asset, a",

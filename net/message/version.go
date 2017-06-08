@@ -170,7 +170,7 @@ func (msg version) Handle(node Noder) error {
 		n.CloseConn()
 	}
 
-	log.Info("handle version msg.pk is ", msg.pk)
+	log.Debug("handle version msg.pk is ", msg.pk)
 	node.SetBookKeeperAddr(msg.pk)
 	node.UpdateInfo(time.Now(), msg.P.Version, msg.P.Services,
 		msg.P.Port, msg.P.Nonce, msg.P.Relay, msg.P.StartHeight)

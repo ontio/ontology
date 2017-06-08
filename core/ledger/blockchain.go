@@ -53,15 +53,6 @@ func (bc *Blockchain) AddBlock(block *Block) error {
 	return nil
 }
 
-//
-//func (bc *Blockchain) ContainsBlock(hash Uint256) bool {
-//	//TODO: implement ContainsBlock
-//	if hash == bc.GenesisBlock.Hash(){
-//		return true
-//	}
-//	return false
-//}
-
 func (bc *Blockchain) GetHeader(hash Uint256) (*Header, error) {
 	header, err := DefaultLedger.Store.GetHeader(hash)
 	if err != nil {

@@ -25,7 +25,7 @@ func NewVerack() ([]byte, error) {
 	}
 
 	str := hex.EncodeToString(buf)
-	log.Info("The message tx verack length is %d, %s\n", len(buf), str)
+	log.Debug("The message tx verack length is ", len(buf), ", ", str)
 
 	return buf, err
 }

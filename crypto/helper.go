@@ -13,7 +13,8 @@ func ToAesKey( pwd []byte ) []byte {
 	pwdhash := sha256.Sum256(pwd)
 	pwdhash2 := sha256.Sum256(pwdhash[:])
 
-	ClearBytes(pwd,len(pwd))
+	// Fixme clean the password buffer
+	// ClearBytes(pwd,len(pwd))
 	ClearBytes(pwdhash[:],32)
 
 	return pwdhash2[:]

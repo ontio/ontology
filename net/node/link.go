@@ -81,14 +81,14 @@ func (node *node) rx() error {
 			break
 		case io.EOF:
 			log.Error("Rx io.EOF ", err)
-			goto disconnect
+			goto DISCONNECT
 		default:
 			log.Error("Read connection error ", err)
-			goto disconnect
+			goto DISCONNECT
 		}
 	}
 
-disconnect:
+DISCONNECT:
 	err := conn.Close()
 	return err
 }
