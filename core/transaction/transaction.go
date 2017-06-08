@@ -263,7 +263,7 @@ func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 	}
 	for _, attribute := range tx.Attributes {
 		if attribute.Usage == Script {
-			dataHash, err := Uint160ParseFromBytes(attribute.Date)
+			dataHash, err := Uint160ParseFromBytes(attribute.Data)
 			if err != nil {
 				return nil, NewDetailErr(errors.New("[Transaction], GetProgramHashes err."), ErrNoCode, "")
 			}

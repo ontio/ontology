@@ -30,8 +30,7 @@ func TransArryByteToHexString(ptx *tx.Transaction) *Transactions {
 	trans.Attributes = make([]TxAttributeInfo, len(ptx.Attributes))
 	for _, v := range ptx.Attributes {
 		trans.Attributes[n].Usage = v.Usage
-		trans.Attributes[n].Date = ToHexString(v.Date)
-		trans.Attributes[n].Size = v.Size
+		trans.Attributes[n].Data = ToHexString(v.Data)
 		n++
 	}
 

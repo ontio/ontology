@@ -37,8 +37,7 @@ type ServeMux struct {
 
 type TxAttributeInfo struct {
 	Usage TransactionAttributeUsage
-	Date  string
-	Size  uint32
+	Data  string
 }
 
 type UTXOTxInputInfo struct {
