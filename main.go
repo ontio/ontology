@@ -65,7 +65,7 @@ func main() {
 	ledger.StandbyBookKeepers = account.GetBookKeepers()
 
 	log.Info("3. BlockChain init")
-	blockChain, err = ledger.NewBlockchainWithGenesisBlock()
+	blockChain, err = ledger.NewBlockchainWithGenesisBlock(ledger.StandbyBookKeepers)
 	if err != nil {
 		log.Error(err, "  BlockChain generate failed")
 		goto ERROR
