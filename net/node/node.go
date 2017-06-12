@@ -7,6 +7,7 @@ import (
 	"DNA/core/ledger"
 	"DNA/core/transaction"
 	"DNA/crypto"
+	"DNA/events"
 	. "DNA/net/message"
 	. "DNA/net/protocol"
 	"encoding/binary"
@@ -43,10 +44,11 @@ type node struct {
 	/*
 	 * |--|--|--|--|--|--|isSyncFailed|isSyncHeaders|
 	 */
-	syncFlag      uint8
-	TxNotifyChan  chan int
-	flightHeights []uint32
-	lastContact   time.Time
+	syncFlag                 uint8
+	TxNotifyChan             chan int
+	flightHeights            []uint32
+	lastContact              time.Time
+	nodeDisconnectSubscriber events.Subscriber
 }
 
 func (node *node) DumpInfo() {
@@ -117,11 +119,19 @@ func InitNode(pubKey *crypto.PubKey) Noder {
 	n.publicKey = pubKey
 	n.TXNPool.init()
 	n.eventQueue.init()
-
+	n.nodeDisconnectSubscriber = n.eventQueue.GetEvent("disconnect").Subscribe(events.EventNodeDisconnect, n.NodeDisconnect)
 	go n.initConnection()
 	go n.updateNodeInfo()
 
 	return n
+}
+
+func (n *node) NodeDisconnect(v interface{}) {
+	if node, ok := v.(*node); ok {
+		node.SetState(INACTIVITY)
+		conn := node.getConn()
+		conn.Close()
+	}
 }
 
 func rmNode(node *node) {

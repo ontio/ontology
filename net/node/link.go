@@ -3,6 +3,7 @@ package node
 import (
 	. "DNA/common/config"
 	"DNA/common/log"
+	"DNA/events"
 	. "DNA/net/message"
 	. "DNA/net/protocol"
 	"crypto/tls"
@@ -67,7 +68,7 @@ func unpackNodeBuf(node *node, buf []byte) {
 	}
 }
 
-func (node *node) rx() error {
+func (node *node) rx() {
 	conn := node.getConn()
 	buf := make([]byte, MAXBUFLEN)
 	for {
@@ -89,8 +90,7 @@ func (node *node) rx() error {
 	}
 
 DISCONNECT:
-	err := conn.Close()
-	return err
+	node.local.eventQueue.GetEvent("disconnect").Notify(events.EventNodeDisconnect, node)
 }
 
 func printIPAddr() {
