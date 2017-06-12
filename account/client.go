@@ -1,32 +1,37 @@
 package account
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
+	"errors"
+	"fmt"
+	"math/rand"
+	"os"
+	"sort"
+	"strings"
+	"sync"
+	"time"
+
 	. "DNA/common"
-	"DNA/common/log"
 	"DNA/common/config"
-	"DNA/net/protocol"
+	"DNA/common/log"
 	"DNA/core/contract"
 	ct "DNA/core/contract"
 	"DNA/core/ledger"
 	sig "DNA/core/signature"
 	"DNA/crypto"
 	. "DNA/errors"
-	"bytes"
-	"crypto/sha256"
-	"errors"
-	"fmt"
-	"math/rand"
-	"sync"
-	"strings"
-	"time"
-	"sort"
-	"encoding/hex"
+	"DNA/net/protocol"
+
+	"github.com/howeyc/gopass"
 )
 
 const (
 	DefaultBookKeeperCount = 4
-	WalletFileName	       = "wallet.dat"
+	WalletFileName         = "wallet.dat"
 )
+
 var DefaultPin = "passwordtest"
 
 type Client interface {
@@ -499,15 +504,21 @@ func GetClient() Client {
 		log.Error("At least ", DefaultBookKeeperCount, " BookKeepers should be set at config.json")
 		return nil
 	}
-
-	var sc Client
-	if FileExisted(WalletFileName) {
-		sc = Open(WalletFileName, []byte(DefaultPin))
-	} else {
-		sc = Create(WalletFileName, []byte(DefaultPin))
+	if !FileExisted(WalletFileName) {
+		log.Error(fmt.Sprintf("No %s detected, please create a wallet by using command line.", WalletFileName))
+		os.Exit(1)
 	}
-
-	return  sc
+	fmt.Println("Password:")
+	passwd, err := gopass.GetPasswd()
+	if err != nil {
+		log.Error("Get password error.")
+		os.Exit(1)
+	}
+	c := Open(WalletFileName, passwd)
+	if c == nil {
+		return nil
+	}
+	return c
 }
 
 func GetBookKeepers() []*crypto.PubKey {

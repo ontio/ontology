@@ -12,3 +12,4 @@ import:
 - package: github.com/tv42/base58
 - package: github.com/urfave/cli
 - package: github.com/bitly/go-simplejson
+- package: github.com/howeyc/gopass
