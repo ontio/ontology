@@ -8,8 +8,11 @@
     ],
     "BookKeepers": [
     ],
+    "HttpRestPort": 20334,
     "HttpJsonPort": 20336,
     "HttpLocalPort": 20337,
+    "NoticeServerAddr":"http://139.196.243.115:8080/block",
+    "OauthServerAddr":"http://139.196.243.115:18080/oauth-server/oc/v3/oauth2/check/token",
     "NodePort": 20338,
     "PrintLevel": 1,
     "IsTLS": false,

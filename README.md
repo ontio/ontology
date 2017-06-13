@@ -24,7 +24,7 @@ DNA is the golang implementation of a decentralized and distributed network prot
 # Building
 The requirements to build DNA are:
 
-* Go version 1.7 or later is required
+* Go version 1.8 or later is required
 * glide (third-party package management tool) is required
 * A properly configured go environment
 

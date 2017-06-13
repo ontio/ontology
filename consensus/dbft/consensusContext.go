@@ -11,7 +11,6 @@ import (
 	"DNA/net"
 	msg "DNA/net/message"
 	"fmt"
-	"sort"
 	"sync"
 )
 
@@ -40,32 +39,6 @@ type ConsensusContext struct {
 	contextMu           sync.Mutex
 	isBookKeeperChanged bool
 	nmChangedblkHeight  uint32
-}
-
-// compare the two slice, if the elements in a are the same as b.
-// The elements order may be not the same but value should be the same.
-func SliceNotEqual(a, b []*crypto.PubKey) bool {
-	if len(a) != len(b) {
-		return true
-	}
-
-	if (a == nil) != (b == nil) {
-		return true
-	}
-
-	for _, v := range a {
-		for ii, vv := range b {
-			if v == vv {
-				break
-			} else {
-				if (ii + 1) == len(b) {
-					return true
-				}
-			}
-		}
-	}
-
-	return false
 }
 
 func (cxt *ConsensusContext) M() int {
@@ -203,45 +176,17 @@ func (cxt *ConsensusContext) Reset(client cl.Client, localNode net.Neter) {
 	cxt.ViewNumber = 0
 	cxt.BookKeeperIndex = -1
 
-	if (cxt.isBookKeeperChanged == true) && ((cxt.nmChangedblkHeight + 1) == cxt.Height) {
-		bookKeepersLen := len(cxt.NextBookKeepers)
-		cxt.BookKeepers = make([]*crypto.PubKey, bookKeepersLen)
-		cxt.PreBookKeepers = make([]*crypto.PubKey, bookKeepersLen)
-		copy(cxt.BookKeepers, cxt.NextBookKeepers)
-		copy(cxt.PreBookKeepers, cxt.NextBookKeepers)
-		cxt.isBookKeeperChanged = false
-	} else {
-		bookKeepersLen := len(cxt.PreBookKeepers)
-		cxt.BookKeepers = make([]*crypto.PubKey, bookKeepersLen)
-		copy(cxt.BookKeepers, cxt.PreBookKeepers)
-	}
-	bookKeepersLen := len(cxt.NextBookKeepers)
-	nextBookKeepers := make([]*crypto.PubKey, bookKeepersLen)
-	copy(nextBookKeepers, cxt.NextBookKeepers)
-	cxt.NextBookKeeper, _ = ledger.GetBookKeeperAddress(nextBookKeepers)
+	cxt.BookKeepers, cxt.NextBookKeepers, _ = ledger.DefaultLedger.Store.GetBookKeeperList()
+	log.Info("curr bookkeeper, len:", len(cxt.BookKeepers))
+	log.Info("next bookkeeper, len:", len(cxt.NextBookKeepers))
 
-	var bookKeepers []*crypto.PubKey
-
-	if len(cxt.BookKeepers) == 0 {
-		bookKeepers, _ = localNode.GetBookKeepersAddrs()
-		cxt.PreBookKeepers, _ = localNode.GetBookKeepersAddrs()
-	} else {
-		bookKeepers = cxt.BookKeepers
+	var err error
+	cxt.NextBookKeeper, err = ledger.GetBookKeeperAddress(cxt.NextBookKeepers)
+	if err != nil {
+		log.Error("[ConsensusContext] GetBookKeeperAddres failed")
 	}
 
-	cxt.NextBookKeepers, _ = localNode.GetBookKeepersAddrs()
-
-	if cxt.Height > 1 {
-		cxt.isBookKeeperChanged = SliceNotEqual(cxt.NextBookKeepers, cxt.BookKeepers)
-		if cxt.isBookKeeperChanged == true {
-			cxt.nmChangedblkHeight = cxt.Height
-			log.Debug("isNextMinerChanged: ", cxt.isBookKeeperChanged, " , nmChangedblkHeight: ", cxt.nmChangedblkHeight)
-		}
-	}
-
-	cxt.Owner = bookKeepers[0]
-	sort.Sort(crypto.PubKeySlice(bookKeepers))
-	cxt.BookKeepers = bookKeepers
+	cxt.Owner = cxt.BookKeepers[0]
 
 	bookKeeperLen := len(cxt.BookKeepers)
 	cxt.PrimaryIndex = cxt.Height % uint32(bookKeeperLen)
@@ -253,6 +198,7 @@ func (cxt *ConsensusContext) Reset(client cl.Client, localNode net.Neter) {
 		ac, _ := client.GetDefaultAccount()
 		if ac.PublicKey.X.Cmp(cxt.BookKeepers[i].X) == 0 {
 			cxt.BookKeeperIndex = i
+			cxt.Owner = cxt.BookKeepers[i]
 			break
 		}
 	}

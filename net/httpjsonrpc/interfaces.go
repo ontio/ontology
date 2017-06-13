@@ -465,6 +465,49 @@ func sendSampleTransaction(params []interface{}) map[string]interface{} {
 			VerifyAndSendTx(regTx)
 		}
 		return DnaRpc(fmt.Sprintf("%d transaction(s) was sent", num))
+	case "bookkeeper":
+		// params:[type, ind, action]
+
+		if len(params) < 3 {
+			return DnaRpcNil
+		}
+		ind := 4
+		switch params[1].(type) {
+		case float64:
+			ind = int(params[1].(float64))
+		}
+		var isAdd bool
+		switch params[2].(type) {
+		case string:
+			action := params[2].(string)
+			if action == "add" {
+				isAdd = true
+			} else if action == "sub" {
+				isAdd = false
+			} else {
+				return DnaRpcInvalidParameter
+			}
+		default:
+			return DnaRpcInvalidParameter
+		}
+
+		walletFile := "wallet" + strconv.Itoa(ind) + ".dat"
+		c := account.Open(walletFile, []byte(account.DefaultPin))
+		if c == nil {
+			return DnaRpc("do not have wallet file:" + walletFile)
+		}
+
+		account, _ := c.GetDefaultAccount()
+		pubKey := account.PubKey()
+
+		cert := make([]byte, 100)
+		rand.Read(cert)
+
+		bkTx, _ := tx.NewBookKeeperTransaction(pubKey, isAdd, cert)
+		VerifyAndSendTx(bkTx)
+
+		return DnaRpc(fmt.Sprint("bookkeeper transaction was sent, select pubkey file:", walletFile))
+
 	default:
 		return DnaRpc("Invalid transacion type")
 	}
