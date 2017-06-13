@@ -19,6 +19,7 @@ import (
 
 	. "github.com/bitly/go-simplejson"
 	"github.com/urfave/cli"
+	"strconv"
 )
 
 func makePrivacyTx(admin *account.Account, toPubkeyStr string, pload string) (string, error) {
@@ -27,7 +28,9 @@ func makePrivacyTx(admin *account.Account, toPubkeyStr string, pload string) (st
 	toPubkey, _ := crypto.DecodePoint(toPk)
 
 	tx, _ := transaction.NewPrivacyPayloadTransaction(admin.PrivateKey, admin.PublicKey, toPubkey, payload.RawPayload, data)
-	tx.Nonce = uint64(rand.Int63())
+	txAttr := transaction.NewTxAttribute(transaction.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
+	tx.Attributes = make([]*transaction.TxAttribute, 0)
+	tx.Attributes = append(tx.Attributes, &txAttr)
 	if err := signTransaction(admin, tx); err != nil {
 		fmt.Println("sign regist transaction failed")
 		return "", err

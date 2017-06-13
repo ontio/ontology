@@ -74,7 +74,6 @@ type Transactions struct {
 	TxType         TransactionType
 	PayloadVersion byte
 	Payload        PayloadInfo
-	Nonce          uint64
 	Attributes     []TxAttributeInfo
 	UTXOInputs     []UTXOTxInputInfo
 	BalanceInputs  []BalanceTxInputInfo

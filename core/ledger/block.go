@@ -171,7 +171,6 @@ func GenesisBlockInit() (*Block, error) {
 		trans.TxType = tx.BookKeeping
 		trans.PayloadVersion = byte(0)
 		trans.Payload = nil
-		trans.Nonce = uint64(0)
 		trans.Attributes = nil
 		trans.UTXOInputs = nil
 		trans.BalanceInputs = nil
