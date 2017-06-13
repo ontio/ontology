@@ -178,6 +178,9 @@ func (ea *EcdhAes256) Decrypt(msg []byte, keys interface{}) ([]byte, error) {
 	copy(aesKey[32-len(x.Bytes()):], x.Bytes())
 
 	decryption, _ := crypto.AesDecrypt(msg, aesKey, ea.Nonce)
+	if len(decryption) < int(decryption[len(decryption)-1]) {
+		return []byte{}, errors.New("decryption error")
+	}
 	result := crypto.PKCS5UnPadding(decryption)
 
 	return result, nil
