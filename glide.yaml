@@ -13,6 +13,9 @@ import:
 - package: github.com/tv42/base58
 - package: github.com/urfave/cli
 - package: github.com/bitly/go-simplejson
+- package: github.com/whyrusleeping/tar-utils
 - package: github.com/dnaproject/gopass
 ignore:
   - golang.org/x/sys/unix
+
+

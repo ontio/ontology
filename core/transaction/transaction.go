@@ -29,6 +29,7 @@ const (
 	Record         TransactionType = 0x11
 	DeployCode     TransactionType = 0xd0
 	PrivacyPayload TransactionType = 0x20
+	DataFile       TransactionType = 0x12
 )
 
 //Payload define the func for loading the payload data
@@ -197,6 +198,8 @@ func (tx *Transaction) DeserializeUnsignedWithoutType(r io.Reader) error {
 		tx.Payload = new(payload.BookKeeper)
 	case PrivacyPayload:
 		tx.Payload = new(payload.PrivacyPayload)
+	case DataFile:
+		tx.Payload = new(payload.DataFile)
 	default:
 		return errors.New("[Transaction],invalide transaction type.")
 	}
@@ -294,7 +297,7 @@ func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 		if err != nil {
 			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetTransactionResults failed.")
 		}
-		for k, _ := range result {
+		for k := range result {
 			tx, err := TxStore.GetTransaction(k)
 			if err != nil {
 				return nil, NewDetailErr(err, ErrNoCode, fmt.Sprintf("[Transaction], GetTransaction failed With AssetID:=%x", k))
@@ -310,6 +313,18 @@ func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 				return nil, NewDetailErr(err, ErrNoCode, fmt.Sprintf("[Transaction], payload is illegal", k))
 			}
 		}
+	case DataFile:
+		issuer := tx.Payload.(*payload.DataFile).Issuer
+		signatureRedeemScript, err := contract.CreateSignatureRedeemScript(issuer)
+		if err != nil {
+			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetProgramHashes CreateSignatureRedeemScript failed.")
+		}
+
+		astHash, err := ToCodeHash(signatureRedeemScript)
+		if err != nil {
+			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetProgramHashes ToCodeHash failed.")
+		}
+		hashs = append(hashs, astHash)
 	case TransferAsset:
 	case Record:
 	case BookKeeper:
@@ -332,7 +347,7 @@ func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 	for _, v := range hashs {
 		uniq[v] = true
 	}
-	for k, _ := range uniq {
+	for k := range uniq {
 		uniqHashes = append(uniqHashes, k)
 	}
 	sort.Sort(byProgramHashes(uniqHashes))

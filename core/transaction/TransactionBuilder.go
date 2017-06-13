@@ -124,3 +124,21 @@ func NewPrivacyPayloadTransaction(fromPrivKey []byte, fromPubkey *crypto.PubKey,
 		Programs:      []*program.Program{},
 	}, nil
 }
+func NewDataFileTransaction(path string, fileName string, note string, issuer *crypto.PubKey) (*Transaction, error) {
+	//TODO: check arguments
+	DataFilePayload := &payload.DataFile{
+		IPFSPath: path,
+		Filename: fileName,
+		Note:     note,
+		Issuer:   issuer,
+	}
+
+	return &Transaction{
+		TxType:        DataFile,
+		Payload:       DataFilePayload,
+		Attributes:    []*TxAttribute{},
+		UTXOInputs:    []*UTXOTxInput{},
+		BalanceInputs: []*BalanceTxInput{},
+		Programs:      []*program.Program{},
+	}, nil
+}

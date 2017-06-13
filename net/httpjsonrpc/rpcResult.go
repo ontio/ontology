@@ -12,9 +12,10 @@ var (
 	DnaRpcNil           = responsePacking(nil)
 	DnaRpcUnsupported   = responsePacking("Unsupported")
 	DnaRpcInternalError = responsePacking("internal error")
-
-	DnaRpcSuccess = responsePacking(true)
-	DnaRpcFailed  = responsePacking(false)
+	DnaRpcIOError       = responsePacking("internal IO error")
+	DnaRpcAPIError      = responsePacking("internal API error")
+	DnaRpcSuccess       = responsePacking(true)
+	DnaRpcFailed        = responsePacking(false)
 
 	DnaRpc = responsePacking
 )

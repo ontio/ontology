@@ -8,9 +8,12 @@ import (
 	"DNA/core/ledger"
 	tx "DNA/core/transaction"
 	"bytes"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"strconv"
 )
 
@@ -101,7 +104,13 @@ func TransArryByteToHexString(ptx *tx.Transaction) *Transactions {
 
 	return trans
 }
-
+func getCurrentDirectory() string {
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		log.Fatal(err)
+	}
+	return dir
+}
 func getBestBlockHash(params []interface{}) map[string]interface{} {
 	hash := ledger.DefaultLedger.Blockchain.CurrentBlockHash()
 	return DnaRpc(ToHexString(hash.ToArray()))
@@ -530,4 +539,126 @@ func setDebugInfo(params []interface{}) map[string]interface{} {
 
 func getVersion(params []interface{}) map[string]interface{} {
 	return DnaRpc(config.Version)
+}
+
+func uploadDataFile(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return DnaRpcNil
+	}
+
+	rbuf := make([]byte, 4)
+	rand.Read(rbuf)
+	tmpname := hex.EncodeToString(rbuf)
+
+	str := params[0].(string)
+
+	data, err := base64.StdEncoding.DecodeString(str)
+	if err != nil {
+		return DnaRpcInvalidParameter
+	}
+	f, err := os.OpenFile(tmpname, os.O_WRONLY|os.O_CREATE, 0664)
+	if err != nil {
+		return DnaRpcIOError
+	}
+	defer f.Close()
+	f.Write(data)
+
+	refpath, err := AddFileIPFS(tmpname, true)
+	if err != nil {
+		return DnaRpcAPIError
+	}
+
+	return DnaRpc(refpath)
+
+}
+
+func regDataFile(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return DnaRpcNil
+	}
+	var hash Uint256
+	switch params[0].(type) {
+	case string:
+		str := params[0].(string)
+		hex, err := hex.DecodeString(str)
+		if err != nil {
+			return DnaRpcInvalidParameter
+		}
+		var txn tx.Transaction
+		if err := txn.Deserialize(bytes.NewReader(hex)); err != nil {
+			return DnaRpcInvalidTransaction
+		}
+
+		hash = txn.Hash()
+		if err := VerifyAndSendTx(&txn); err != nil {
+			return DnaRpcInternalError
+		}
+	default:
+		return DnaRpcInvalidParameter
+	}
+	return DnaRpc(ToHexString(hash.ToArray()))
+}
+
+func catDataRecord(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return DnaRpcNil
+	}
+	switch params[0].(type) {
+	case string:
+		str := params[0].(string)
+		b, err := hex.DecodeString(str)
+		if err != nil {
+			return DnaRpcInvalidParameter
+		}
+		var hash Uint256
+		err = hash.Deserialize(bytes.NewReader(b))
+		if err != nil {
+			return DnaRpcInvalidTransaction
+		}
+		tx, err := ledger.DefaultLedger.Store.GetTransaction(hash)
+		if err != nil {
+			return DnaRpcUnknownTransaction
+		}
+		tran := TransArryByteToHexString(tx)
+		info := tran.Payload.(*DataFileInfo)
+		//ref := string(record.RecordData[:])
+		return DnaRpc(info)
+	default:
+		return DnaRpcInvalidParameter
+	}
+}
+
+func getDataFile(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return DnaRpcNil
+	}
+	switch params[0].(type) {
+	case string:
+		str := params[0].(string)
+		hex, err := hex.DecodeString(str)
+		if err != nil {
+			return DnaRpcInvalidParameter
+		}
+		var hash Uint256
+		err = hash.Deserialize(bytes.NewReader(hex))
+		if err != nil {
+			return DnaRpcInvalidTransaction
+		}
+		tx, err := ledger.DefaultLedger.Store.GetTransaction(hash)
+		if err != nil {
+			return DnaRpcUnknownTransaction
+		}
+
+		tran := TransArryByteToHexString(tx)
+		info := tran.Payload.(*DataFileInfo)
+
+		err = GetFileIPFS(info.IPFSPath, info.Filename)
+		if err != nil {
+			return DnaRpcAPIError
+		}
+		//TODO: shoud return download address
+		return DnaRpcSuccess
+	default:
+		return DnaRpcInvalidParameter
+	}
 }

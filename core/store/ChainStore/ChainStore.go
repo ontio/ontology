@@ -412,7 +412,7 @@ func (bd *ChainStore) AddHeaders(headers []Header, ledger *Ledger) error {
 	}
 
 	// clear header_cache
-	for k, _ := range bd.headerCache {
+	for k := range bd.headerCache {
 		delete(bd.headerCache, k)
 	}
 
@@ -729,7 +729,8 @@ func (bd *ChainStore) persist(b *Block) error {
 			b.Transactions[i].TxType == tx.Record ||
 			b.Transactions[i].TxType == tx.BookKeeper ||
 			b.Transactions[i].TxType == tx.PrivacyPayload ||
-			b.Transactions[i].TxType == tx.BookKeeping {
+			b.Transactions[i].TxType == tx.BookKeeping ||
+			b.Transactions[i].TxType == tx.DataFile {
 			err = bd.SaveTransaction(b.Transactions[i], b.Blockdata.Height)
 			if err != nil {
 				return err

@@ -78,6 +78,17 @@ type RecordInfo struct {
 	RecordData string
 }
 
+func (a *DataFileInfo) Data() []byte {
+	return []byte{0}
+}
+
+type DataFileInfo struct {
+	IPFSPath string
+	Filename string
+	Note     string
+	Issuer   IssuerInfo
+}
+
 func (a *RecordInfo) Data() []byte {
 	return []byte{0}
 }
@@ -132,7 +143,14 @@ func TransPayloadToHex(p Payload) PayloadInfo {
 		object.EncryptAttr.Serialize(bytesBuffer)
 		obj.EncryptAttr = ToHexString(bytesBuffer.Bytes())
 		return obj
-
+	case *payload.DataFile:
+		obj := new(DataFileInfo)
+		obj.IPFSPath = object.IPFSPath
+		obj.Filename = object.Filename
+		obj.Note = object.Note
+		obj.Issuer.X = object.Issuer.X.String()
+		obj.Issuer.Y = object.Issuer.Y.String()
+		return obj
 	}
 	return nil
 }
