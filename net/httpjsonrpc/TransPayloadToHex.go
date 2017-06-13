@@ -96,6 +96,7 @@ func (a *PrivacyPayloadInfo) Data() []byte {
 func TransPayloadToHex(p Payload) PayloadInfo {
 	switch object := p.(type) {
 	case *payload.BookKeeping:
+	case *payload.BookKeeper:
 	case *payload.IssueAsset:
 	case *payload.TransferAsset:
 	case *payload.DeployCode:
