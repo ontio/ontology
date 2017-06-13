@@ -3,7 +3,7 @@ GC=go build
 VERSION := $(shell git describe --abbrev=4 --dirty --always --tags)
 Minversion := $(shell date)
 BUILD_NODE_PAR = -ldflags "-X DNA/common/config.Version=$(VERSION)" #-race
-BUILD_NODECTL_PAR = -ldflags "-X DNA/cli.Version=$(VERSION)"
+BUILD_NODECTL_PAR = -ldflags "-X main.Version=$(VERSION)"
 
 all:
 	$(GC)  $(BUILD_NODE_PAR) -o node main.go

@@ -2,26 +2,12 @@ package cli
 
 import (
 	"math/rand"
-	"os"
-	"sort"
 	"time"
 
-	"DNA/cli/asset"
-	. "DNA/cli/common"
-	"DNA/cli/consensus"
-	"DNA/cli/debug"
-	"DNA/cli/info"
-	"DNA/cli/privpayload"
-	"DNA/cli/test"
-	"DNA/cli/wallet"
+	"DNA/common/config"
 	"DNA/common/log"
 	"DNA/crypto"
-
-	"DNA/common/config"
-	"github.com/urfave/cli"
 )
-
-var Version string
 
 func init() {
 	var path string = "./Log/"
@@ -29,32 +15,4 @@ func init() {
 	crypto.SetAlg(config.Parameters.EncryptAlg)
 	//seed transaction nonce
 	rand.Seed(time.Now().UnixNano())
-
-	app := cli.NewApp()
-	app.Name = "nodectl"
-	app.Version = Version
-	app.HelpName = "nodectl"
-	app.Usage = "command line tool for DNA blockchain"
-	app.UsageText = "nodectl [global options] command [command options] [args]"
-	app.HideHelp = false
-	app.HideVersion = false
-	//global options
-	app.Flags = []cli.Flag{
-		NewIpFlag(),
-		NewPortFlag(),
-	}
-	//commands
-	app.Commands = []cli.Command{
-		*consensus.NewCommand(),
-		*debug.NewCommand(),
-		*info.NewCommand(),
-		*test.NewCommand(),
-		*wallet.NewCommand(),
-		*asset.NewCommand(),
-		*privpayload.NewCommand(),
-	}
-	sort.Sort(cli.CommandsByName(app.Commands))
-	sort.Sort(cli.FlagsByName(app.Flags))
-
-	app.Run(os.Args)
 }
