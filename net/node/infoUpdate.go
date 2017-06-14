@@ -132,8 +132,7 @@ func (node *node) reconnect(peer *node) error {
 			return nil
 		}
 	}
-	node.link.connCnt++
-
+	peer.tryTimes = 0
 	peer.conn = conn
 	peer.addr, err = parseIPaddr(conn.RemoteAddr().String())
 	peer.local = node
@@ -152,8 +151,8 @@ func (node *node) TryConnect() {
 	for _, n := range node.nbrNodes.List {
 		if n.GetState() == INACTIVITY && n.tryTimes < 3 {
 			//try to connect
-			node.reconnect(n)
 			n.tryTimes++
+			node.reconnect(n)
 		}
 	}
 
