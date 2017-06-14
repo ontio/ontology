@@ -23,8 +23,7 @@ const (
 )
 
 func init() {
-	var path string = "./Log/"
-	log.CreatePrintLog(path)
+	log.CreatePrintLog(log.Path)
 
 	var coreNum int
 	if config.Parameters.MultiCoreNum > DefaultMultiCoreNum {
@@ -95,6 +94,11 @@ func main() {
 	for {
 		time.Sleep(dbft.GenBlockTime)
 		log.Trace("BlockHeight = ", ledger.DefaultLedger.Blockchain.BlockHeight)
+		isNeedNewFile := log.CheckIfNeedNewFile()
+		if isNeedNewFile == true {
+			log.ClosePrintLog()
+			log.CreatePrintLog(log.Path)
+		}
 	}
 
 ERROR:
