@@ -34,6 +34,10 @@ func VerifyTransaction(Tx *tx.Transaction) error {
 		return err
 	}
 
+	if err := CheckTransactionPayload(Tx); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -207,4 +211,17 @@ func CheckTransactionContracts(Tx *tx.Transaction) error {
 	} else {
 		return err
 	}
+}
+
+func CheckTransactionPayload(Tx *tx.Transaction) error {
+
+	switch pld := Tx.Payload.(type) {
+	case *payload.BookKeeper:
+		//Todo: validate bookKeeper Cert
+		_ = pld.Cert
+		return nil
+	default:
+		return nil
+	}
+
 }

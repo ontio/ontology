@@ -1,12 +1,16 @@
-hash: ffe31c7a0795c9ee7ba04234db2376018477bae2e354aeaa99e654d75dac983f
-updated: 2017-05-20T13:43:09.296930419+08:00
+hash: 0b90b4c884b43bf1f1bf4881a5cb63ea2ef492e21a87b1f424771408447deeb2
+updated: 2017-06-12T22:19:57.941576249+08:00
 imports:
+- name: github.com/bitly/go-simplejson
+  version: da1a8928f709389522c8023062a3739f3b4af419
 - name: github.com/golang/crypto
   version: 459e26527287adbc2adcc5d0d49abff9a5f315a7
   subpackages:
   - ripemd160
 - name: github.com/golang/snappy
   version: 553a641470496b2327abcac10b36396bd98e45c9
+- name: github.com/howeyc/gopass
+  version: bf9dde6d0d2c004a008c27aaee91170c786f6db8
 - name: github.com/syndtr/goleveldb
   version: 3c5717caf1475fd25964109a0fc640bd150fce43
   subpackages:
@@ -26,6 +30,12 @@ imports:
   version: b6649477bfe6276322b4eeaae8f5e947b49cec92
 - name: github.com/urfave/cli
   version: f6e8084112db1c3aa9c1e4144f024ab549ea08c1
-- name: github.com/bitly/go-simplejson
-  version: da1a8928f709389522c8023062a3739f3b4af419
+- name: golang.org/x/crypto
+  version: e7ba82683099cae71475961448ab8f903ea77c26
+  subpackages:
+  - ssh/terminal
+- name: golang.org/x/sys
+  version: 0b25a408a50076fbbcae6b7ac0ea5fbb0b085e79
+  subpackages:
+  - unix
 testImports: []
