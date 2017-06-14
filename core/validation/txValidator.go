@@ -2,12 +2,10 @@ package validation
 
 import (
 	"DNA/common"
-	"DNA/common/log"
 	"DNA/core/ledger"
 	tx "DNA/core/transaction"
 	"DNA/core/transaction/payload"
 	"errors"
-	"fmt"
 	"math"
 )
 
@@ -41,9 +39,10 @@ func VerifyTransaction(Tx *tx.Transaction) error {
 	return nil
 }
 
-// VerifyTransactionWithTxPool verifys a transaction with current transaction pool in memory
-func VerifyTransactionWithTxPool(Tx *tx.Transaction, TxPool []*tx.Transaction) error {
-	if err := CheckDuplicateInputInTxPool(Tx, TxPool); err != nil {
+// VerifyTransactionWithBlock verifys a transaction with current transaction pool in memory
+func VerifyTransactionWithBlock(Tx *tx.Transaction, TxPool []*tx.Transaction) error {
+	//1.check duplicate transaction hash. 2.check utxo double spend.
+	if err := CheckDuplicateWithTxBlock(Tx, TxPool); err != nil {
 		return err
 	}
 
@@ -91,18 +90,6 @@ func VerifyTransactionWithTxPool(Tx *tx.Transaction, TxPool []*tx.Transaction) e
 				return errors.New("[VerifyTransaction], Amount check error.")
 			}
 		}
-	case tx.TransferAsset:
-		results, err := Tx.GetTransactionResults()
-		if err != nil {
-			return err
-		}
-		for k, v := range results {
-			if v != 0 {
-				log.Debug(fmt.Sprintf("AssetID %x in Transfer transactions %x , Input/output UTXO not equal.", k, Tx.Hash()))
-				return errors.New(fmt.Sprintf("AssetID %x in Transfer transactions %x , Input/output UTXO not equal.", k, Tx.Hash()))
-			}
-		}
-	default:
 	}
 	return nil
 }
@@ -115,22 +102,7 @@ func VerifyTransactionWithLedger(Tx *tx.Transaction, ledger *ledger.Ledger) erro
 	return nil
 }
 
-func CheckMemPool(tx *tx.Transaction, TxPool []*tx.Transaction) error {
-	if len(tx.UTXOInputs) == 0 {
-		return nil
-	}
-	for _, poolTx := range TxPool {
-		for _, poolInput := range poolTx.UTXOInputs {
-			for _, txInput := range tx.UTXOInputs {
-				if poolInput.Equals(txInput) {
-					return errors.New("There is duplicated Tx Input with Tx Pool.")
-				}
-			}
-		}
-	}
-	return nil
-}
-
+//validate the transaction of duplicate UTXO input
 func CheckDuplicateInput(tx *tx.Transaction) error {
 	if len(tx.UTXOInputs) == 0 {
 		return nil
@@ -145,7 +117,7 @@ func CheckDuplicateInput(tx *tx.Transaction) error {
 	return nil
 }
 
-func CheckDuplicateInputInTxPool(tx *tx.Transaction, txPool []*tx.Transaction) error {
+func CheckDuplicateWithTxBlock(tx *tx.Transaction, txPool []*tx.Transaction) error {
 	// TODO: Optimize performance with incremental checking and deal with the duplicated tx
 	var txInputs, txPoolInputs []string
 	for _, t := range tx.UTXOInputs {

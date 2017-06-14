@@ -344,20 +344,18 @@ func (ds *DbftService) GetUnverifiedTxs(txs []*tx.Transaction) []*tx.Transaction
 	ret := []*tx.Transaction{}
 	for _, t := range txs {
 		if _, ok := txpool[t.Hash()]; !ok {
-			ret = append(ret, t)
+			if t.TxType != tx.BookKeeping {
+				ret = append(ret, t)
+			}
 		}
 	}
 	return ret
 }
 
-func VerifyTxs(txs []*tx.Transaction) error {
+func (ds *DbftService) VerifyTxs(txs []*tx.Transaction) error {
 	for _, t := range txs {
-		//TODO verify tx with transaction pool
-		if err := va.VerifyTransaction(t); err != nil {
-			return errors.New("Transaction verification failed")
-		}
-		if err := va.VerifyTransactionWithLedger(t, ledger.DefaultLedger); err != nil {
-			return errors.New("Transaction verification with ledger failed")
+		if ok := ds.localNet.AppendTxnPool(t); !ok {
+			return errors.New("[dbftService] VerifyTxs failed when AppendTxnPool.")
 		}
 	}
 	return nil
@@ -411,7 +409,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, mes
 	//check if the transactions received are verified. If it already exists in transaction pool
 	//then no need to verify it again. Otherwise, verify it.
 	unverifyed := ds.GetUnverifiedTxs(ds.context.Transactions)
-	if err := VerifyTxs(unverifyed); err != nil {
+	if err := ds.VerifyTxs(unverifyed); err != nil {
 		log.Error("PrepareRequestReceived new transaction verification failed, will not sent Prepare Response", err)
 		return
 	}

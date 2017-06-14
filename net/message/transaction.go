@@ -5,7 +5,6 @@ import (
 	"DNA/common/log"
 	"DNA/core/ledger"
 	"DNA/core/transaction"
-	va "DNA/core/validation"
 	. "DNA/net/protocol"
 	"bytes"
 	"crypto/sha256"
@@ -33,13 +32,9 @@ func (msg trn) Handle(node Noder) error {
 	log.Debug("RX Transaction message")
 	tx := &msg.txn
 	if !node.LocalNode().ExistedID(tx.Hash()) {
-		if err := va.VerifyTransaction(tx); err != nil {
-			return errors.New("[VerifyTransaction] error")
+		if !node.LocalNode().AppendTxnPool(&(msg.txn)) {
+			return errors.New("[message] VerifyTransaction failed when AppendTxnPool.")
 		}
-		if err := va.VerifyTransactionWithLedger(tx, ledger.DefaultLedger); err != nil {
-			return errors.New("[VerifyTransactionWithLedger] error")
-		}
-		node.LocalNode().AppendTxnPool(&(msg.txn))
 		node.LocalNode().IncRxTxnCnt()
 		log.Debug("RX Transaction message hash", msg.txn.Hash())
 		log.Debug("RX Transaction message type", msg.txn.TxType)
