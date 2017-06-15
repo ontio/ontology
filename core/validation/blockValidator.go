@@ -53,9 +53,9 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 			if err := VerifyTransactionWithLedger(txVerify, ledger.DefaultLedger); err != nil {
 				return errors.New(fmt.Sprintf("VerifyTransactionWithLedger failed when verifiy block"))
 			}
-			if err := VerifyTransactionWithBlock(txVerify, block.Transactions); err != nil {
-				return errors.New(fmt.Sprintf("VerifyTransactionWithBlock failed when verifiy block"))
-			}
+		}
+		if err := VerifyTransactionWithBlock(block.Transactions); err != nil {
+			return errors.New(fmt.Sprintf("VerifyTransactionWithBlock failed when verifiy block"))
 		}
 	}
 
