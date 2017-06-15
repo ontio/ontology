@@ -28,6 +28,10 @@ const (
 	HeaderHashListCount = 2000
 )
 
+var (
+	ErrDBNotFound = errors.New("leveldb: not found")
+)
+
 type ChainStore struct {
 	st IStore
 
@@ -757,7 +761,8 @@ func (bd *ChainStore) persist(b *Block) error {
 			if value, ok := accounts[programHash]; ok {
 				value.Balances[assetId] += output.Value
 			} else {
-				accountState, _ := bd.GetAccount(programHash)
+				accountState, err := bd.GetAccount(programHash)
+				if err != nil && err.Error() != ErrDBNotFound.Error() { return err }
 				if accountState != nil {
 					accountState.Balances[assetId] += output.Value
 				} else {
@@ -1181,19 +1186,14 @@ func (bd *ChainStore) GetHeight() uint32 {
 }
 
 func (bd *ChainStore) GetAccount(programHash Uint160) (*account.AccountState, error) {
-
 	accountPrefix := []byte{byte(ST_ACCOUNT)}
 
 	state, err := bd.st.Get(append(accountPrefix, programHash.ToArray()...))
 
 	if err != nil { return nil, err }
 
-	var accountState *account.AccountState
-
-	if state != nil {
-		accountState = new(account.AccountState)
-		accountState.Deserialize(bytes.NewBuffer(state))
-	}
+	accountState := new(account.AccountState)
+	accountState.Deserialize(bytes.NewBuffer(state))
 
 	return accountState, nil
 }
