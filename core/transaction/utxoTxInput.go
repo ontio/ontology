@@ -3,9 +3,8 @@ package transaction
 import (
 	"DNA/common"
 	"DNA/common/serialization"
-	"io"
-	"math"
 	"fmt"
+	"io"
 )
 
 type UTXOTxInput struct {
@@ -39,7 +38,7 @@ func (ui *UTXOTxInput) Deserialize(r io.Reader) error {
 	return nil
 }
 
-func (ui *UTXOTxInput) ToString() string{
+func (ui *UTXOTxInput) ToString() string {
 	return fmt.Sprintf("%x%x", ui.ReferTxID.ToString(), ui.ReferTxOutputIndex)
 }
 
