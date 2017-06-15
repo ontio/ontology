@@ -359,12 +359,11 @@ func byteToUint8(bytex []byte) (uint8, error) {
 
 func WriteBool(writer io.Writer, val bool) error {
 	err := binary.Write(writer, binary.LittleEndian, val)
-	if err != nil { return err }
-	return nil
+	return err
 }
 
 func ReadBool(reader io.Reader) (bool, error) {
 	var x bool
-	binary.Read(reader, binary.LittleEndian, &x)
-	return x, nil
+	err := binary.Read(reader, binary.LittleEndian, &x)
+	return x, err
 }
