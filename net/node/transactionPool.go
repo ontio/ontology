@@ -33,11 +33,11 @@ func (this *TXNPool) init() {
 func (this *TXNPool) AppendTxnPool(txn *transaction.Transaction) bool {
 	//verify transaction with Concurrency
 	if err := va.VerifyTransaction(txn); err != nil {
-		log.Debug("Transaction verification failed", txn.Hash(), err)
+		log.Info("Transaction verification failed", txn.Hash(), err)
 		return false
 	}
 	if err := va.VerifyTransactionWithLedger(txn, ledger.DefaultLedger); err != nil {
-		log.Debug("Transaction verification with ledger failed", txn.Hash(), err)
+		log.Info("Transaction verification with ledger failed", txn.Hash(), err)
 		return false
 	}
 	//verify transaction by pool with lock
@@ -83,13 +83,15 @@ func (this *TXNPool) GetTransaction(hash common.Uint256) *transaction.Transactio
 
 //verify transaction with txnpool
 func (this *TXNPool) verifyTransactionWithTxnPool(txn *transaction.Transaction) bool {
-	//check weather have duplicate UTXO input
+	//check weather have duplicate UTXO input,if occurs duplicate, just keep the latest txn.
 	ok, duplicateTxn := this.apendToUTXOPool(txn)
 	if !ok && duplicateTxn != nil {
+		log.Info(fmt.Sprintf("txn=%x duplicateTxn UTXO occurs with txn in pool=%x,keep the latest one.",txn.Hash(),duplicateTxn.Hash()))
 		this.removeTransaction(duplicateTxn)
 	}
 	//check issue transaction weather occur exceed issue range.
 	if ok := this.summaryAssetIssueAmount(txn); !ok {
+		log.Info(fmt.Sprintf("Check summary Asset Issue Amount failed with txn=%x",txn.Hash()))
 		this.removeTransaction(txn)
 		return false
 	}
@@ -103,7 +105,7 @@ func (this *TXNPool) removeTransaction(txn *transaction.Transaction) {
 	//2.remove from UTXO list map
 	result, err := txn.GetReference()
 	if err != nil {
-		log.Warn(fmt.Sprintf("Transaction =%x not Exist in Pool when delete.", txn.Hash()))
+		log.Info(fmt.Sprintf("Transaction =%x not Exist in Pool when delete.", txn.Hash()))
 		return
 	}
 	for UTXOTxInput, _ := range result {
