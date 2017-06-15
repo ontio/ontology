@@ -22,6 +22,8 @@ const (
 	USERID = "1234567812345678"
 )
 
+var paramA *big.Int
+
 var zeroReader = &zr{}
 var p256_sm2 *elliptic.CurveParams
 var one = new(big.Int).SetInt64(1)
@@ -45,6 +47,8 @@ func Init(algSet *util.CryptoAlgSet) {
 	p256_sm2.Gx, _ = new(big.Int).SetString("32C4AE2C1F1981195F9904466A39C9948FE30BBFF2660BE1715A4589334C74C7", 16)
 	p256_sm2.Gy, _ = new(big.Int).SetString("BC3736A2F4F6779C59BDCEE36B692153D0A9877CC62A474002DF32E52139F0A0", 16)
 	p256_sm2.BitSize = 256
+
+	paramA, _ = new(big.Int).SetString("FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFC", 16)
 
 	algSet.EccParams = *p256_sm2
 	algSet.Curve = p256_sm2
@@ -191,7 +195,7 @@ func combineZ(raw []byte, publicKeyX, publicKeyY *big.Int, userID string) []byte
 
 	h.Write(blen)
 	h.Write(id)
-	h.Write([]byte("\xFF\xFF\xFF\xFE\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFC"))
+	h.Write(paramA.Bytes())
 	h.Write(p256_sm2.B.Bytes())
 	h.Write(p256_sm2.Gx.Bytes())
 	h.Write(p256_sm2.Gy.Bytes())
