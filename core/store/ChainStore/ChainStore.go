@@ -639,8 +639,9 @@ func (self *ChainStore) GetBookKeeperList() ([]*crypto.PubKey, []*crypto.PubKey,
 }
 
 func (bd *ChainStore) persist(b *Block) error {
-	var quantities map[Uint256]Fixed64
 	unspents := make(map[Uint256][]uint16)
+	quantities := make(map[Uint256]Fixed64)
+
 	///////////////////////////////////////////////////////////////
 	// Get Unspents for every tx
 	unspentPrefix := []byte{byte(IX_Unspent)}
@@ -739,30 +740,39 @@ func (bd *ChainStore) persist(b *Block) error {
 		}
 
 		if b.Transactions[i].TxType == tx.IssueAsset {
-			quantities = b.Transactions[i].GetMergedAssetIDValueFromOutputs()
+			results := b.Transactions[i].GetMergedAssetIDValueFromOutputs()
+			for assetId, value := range results {
+				if _, ok := quantities[assetId]; !ok {
+					quantities[assetId] += value
+				} else {
+					quantities[assetId] = value
+				}
+			}
 		}
-
+		
 		for index := 0; index < len(b.Transactions[i].Outputs); index++ {
 			output := b.Transactions[i].Outputs[index]
 			programHash := output.ProgramHash
 			assetId := output.AssetID
-			accountState, err := bd.GetAccount(programHash)
-			if err != nil {  }
-			if accountState != nil {
-				accountState.Balances[assetId] += output.Value
+			if value, ok := accounts[programHash]; ok {
+				value.Balances[assetId] += output.Value
 			} else {
-				balances := make(map[Uint256]Fixed64, 0)
-				balances[assetId] = output.Value
-				accountState = account.NewAccountState(programHash, balances)
+				accountState, _ := bd.GetAccount(programHash)
+				if accountState != nil {
+					accountState.Balances[assetId] += output.Value
+				} else {
+					balances := make(map[Uint256]Fixed64, 0)
+					balances[assetId] = output.Value
+					accountState = account.NewAccountState(programHash, balances)
+				}
+				accounts[programHash] = accountState
 			}
-
-			accounts[programHash] = accountState
 		}
 
 		for index := 0; index < len(b.Transactions[i].UTXOInputs); index++ {
 			input := b.Transactions[i].UTXOInputs[index]
 			transaction, err := bd.GetTransaction(input.ReferTxID)
-			if err != nil {  }
+			if err != nil { return err }
 			index := input.ReferTxOutputIndex
 			output := transaction.Outputs[index]
 			programHash := output.ProgramHash
@@ -771,8 +781,9 @@ func (bd *ChainStore) persist(b *Block) error {
 				value.Balances[assetId] -= output.Value
 			}else {
 				accountState, err := bd.GetAccount(programHash)
-				if err != nil { }
-				value.Balances[assetId] = accountState.Balances[assetId] - output.Value
+				if err != nil { return err }
+				accountState.Balances[assetId] -= output.Value
+				accounts[programHash] = accountState
 			}
 			if accounts[programHash].Balances[assetId] < 0 {
 				return errors.New(fmt.Sprintf("account programHash:%v, assetId:%v insufficient of balance", programHash, assetId))
