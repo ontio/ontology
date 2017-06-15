@@ -19,7 +19,7 @@ type UTXOTxInput struct {
 
 func (ui *UTXOTxInput) Serialize(w io.Writer) {
 	ui.ReferTxID.Serialize(w)
-	serialization.WriteVarUint(w, uint64(ui.ReferTxOutputIndex))
+	serialization.WriteUint16(w, ui.ReferTxOutputIndex)
 }
 
 func (ui *UTXOTxInput) Deserialize(r io.Reader) error {
@@ -30,7 +30,7 @@ func (ui *UTXOTxInput) Deserialize(r io.Reader) error {
 	}
 
 	//Output Index
-	temp, err := serialization.ReadVarUint(r, math.MaxUint16)
+	temp, err := serialization.ReadUint16(r)
 	ui.ReferTxOutputIndex = uint16(temp)
 	if err != nil {
 		return err
