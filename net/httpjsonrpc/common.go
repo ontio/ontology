@@ -4,10 +4,8 @@ import (
 	. "DNA/common"
 	"DNA/common/log"
 	"DNA/consensus/dbft"
-	"DNA/core/ledger"
 	. "DNA/core/transaction"
 	tx "DNA/core/transaction"
-	"DNA/core/validation"
 	. "DNA/net/protocol"
 	"encoding/json"
 	"errors"
@@ -273,19 +271,10 @@ func Call(address string, method string, id interface{}, params []interface{}) (
 }
 
 func VerifyAndSendTx(txn *tx.Transaction) error {
-	hash := txn.Hash()
-	hex := ToHexString(hash.ToArray())
 	// if transaction is verified unsucessfully then will not put it into transaction pool
-	if err := validation.VerifyTransaction(txn); err != nil {
-		log.Warn("Transaction verification failed", hex)
-		return errors.New("Transaction verification failed")
-	}
-	if err := validation.VerifyTransactionWithLedger(txn, ledger.DefaultLedger); err != nil {
-		log.Warn("Transaction verification with ledger failed", hex)
-		return errors.New("Transaction verification with ledger failed")
-	}
 	if !node.AppendTxnPool(txn) {
 		log.Warn("Can NOT add the transaction to TxnPool")
+		return errors.New("[httpjsonrpc] VerifyTransaction failed when AppendTxnPool.")
 	}
 	if err := node.Xmit(txn); err != nil {
 		log.Error("Xmit Tx Error")

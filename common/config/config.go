@@ -35,6 +35,7 @@ type Configuration struct {
 	GenBlockTime     uint     `json:"GenBlockTime"`
 	MultiCoreNum     uint     `json:"MultiCoreNum"`
 	EncryptAlg       string   `json:"EncryptAlg"`
+	MaxLogSize       int64    `json:"MaxLogSize"`
 }
 
 type ConfigFile struct {

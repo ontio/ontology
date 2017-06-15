@@ -4,12 +4,13 @@
 
 # init
 if [[ ! -f $CMD || ! -x $CMD ]]; then
-	rm -f $CMD
-	cp ../$CMD .
+	echo "$CMD is not exist"
+	exit 1
 fi
 
 if [[ ! -f $CONFIG ]]; then
-	cp ../$CONFIG .
+	echo "$CONFIG is not exist"
+	exit 1
 fi
 
 # create wallet

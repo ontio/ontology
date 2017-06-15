@@ -50,10 +50,15 @@ func GetBlockHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"] = ledger.DefaultLedger.Blockchain.BlockHeight
 	return resp
 }
-func getBlock(hash Uint256) (interface{}, int64) {
+func getBlock(hash Uint256, getTxBytes bool) (interface{}, int64) {
 	block, err := ledger.DefaultLedger.Store.GetBlock(hash)
 	if err != nil {
 		return "", Err.UNKNOWN_BLOCK
+	}
+	if getTxBytes {
+		w := bytes.NewBuffer(nil)
+		block.Serialize(w)
+		return hex.EncodeToString(w.Bytes()), Err.SUCCESS
 	}
 
 	blockHead := &BlockHead{
@@ -90,6 +95,10 @@ func GetBlockByHash(cmd map[string]interface{}) map[string]interface{} {
 		resp["Error"] = Err.INVALID_PARAMS
 		return resp
 	}
+	var getTxBytes bool = false
+	if cmd["Raw"].(string) == "1" {
+		getTxBytes = true
+	}
 	var hash Uint256
 	hex, err := hex.DecodeString(param)
 	if err != nil {
@@ -101,7 +110,7 @@ func GetBlockByHash(cmd map[string]interface{}) map[string]interface{} {
 		return resp
 	}
 
-	resp["Result"], resp["Error"] = getBlock(hash)
+	resp["Result"], resp["Error"] = getBlock(hash, getTxBytes)
 
 	return resp
 }
@@ -112,6 +121,10 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 	if len(param) == 0 {
 		resp["Error"] = Err.INVALID_PARAMS
 		return resp
+	}
+	var getTxBytes bool = false
+	if cmd["Raw"].(string) == "1" {
+		getTxBytes = true
 	}
 	height, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
@@ -124,7 +137,7 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 		resp["Error"] = Err.UNKNOWN_BLOCK
 		return resp
 	}
-	resp["Result"], resp["Error"] = getBlock(hash)
+	resp["Result"], resp["Error"] = getBlock(hash, getTxBytes)
 	return resp
 }
 
@@ -158,13 +171,13 @@ func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
 
 	str := cmd["Hash"].(string)
-	hex, err := hex.DecodeString(str)
+	bys, err := hex.DecodeString(str)
 	if err != nil {
 		resp["Error"] = Err.INVALID_PARAMS
 		return resp
 	}
 	var hash Uint256
-	err = hash.Deserialize(bytes.NewReader(hex))
+	err = hash.Deserialize(bytes.NewReader(bys))
 	if err != nil {
 		resp["Error"] = Err.INVALID_TRANSACTION
 		return resp
@@ -172,6 +185,12 @@ func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
 	tx, err := ledger.DefaultLedger.Store.GetTransaction(hash)
 	if err != nil {
 		resp["Error"] = Err.UNKNOWN_TRANSACTION
+		return resp
+	}
+	if cmd["Raw"].(string) == "1" {
+		w := bytes.NewBuffer(nil)
+		tx.Serialize(w)
+		resp["Result"] = hex.EncodeToString(w.Bytes())
 		return resp
 	}
 	tran := TransArryByteToHexString(tx)

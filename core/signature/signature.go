@@ -51,7 +51,7 @@ func GetHashForSigning(data SignableData) []byte {
 
 func Sign(data SignableData, prikey []byte) ([]byte, error) {
 	// FIXME ignore the return error value
-	signature, err := crypto.Sign(prikey, GetHashForSigning(data))
+	signature, err := crypto.Sign(prikey, GetHashData(data))
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[Signature],Sign failed.")
 	}

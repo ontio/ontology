@@ -51,8 +51,12 @@ var (
 )
 
 const (
-	namePrefix = "LEVEL"
-	callDepth  = 2
+	namePrefix        = "LEVEL"
+	callDepth         = 2
+	defaultMaxLogSize = 20
+	byteToMb          = 1024 * 1024
+	byteToKb          = 1024
+	Path              = "./Log/"
 )
 
 func GetGID() uint64 {
@@ -88,14 +92,16 @@ func NameLevel(name string) int {
 
 type Logger struct {
 	sync.Mutex
-	level  int
-	logger *log.Logger
+	level   int
+	logger  *log.Logger
+	logFile *os.File
 }
 
-func New(out io.Writer, prefix string, flag, level int) *Logger {
+func New(out io.Writer, prefix string, flag, level int, file *os.File) *Logger {
 	return &Logger{
-		level:  level,
-		logger: log.New(out, prefix, flag),
+		level:   level,
+		logger:  log.New(out, prefix, flag),
+		logFile: file,
 	}
 }
 
@@ -211,7 +217,7 @@ func FileOpen(path string) (*os.File, error) {
 		return nil, err
 	}
 
-	var currenttime string = time.Now().Format("2006-01-02")
+	var currenttime string = time.Now().Format("2006-01-02_15:04:05")
 
 	logfile, err := os.OpenFile(path+currenttime+"_LOG.log", os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
@@ -225,21 +231,54 @@ func FileOpen(path string) (*os.File, error) {
 }
 
 func CreatePrintLog(path string) {
-	logfile, err := FileOpen(path)
+	logFile, err := FileOpen(path)
 	if err != nil {
 		fmt.Printf("%s\n", err.Error)
 	}
 
 	var printlevel int = config.Parameters.PrintLevel
 	writers := []io.Writer{
-		logfile,
+		logFile,
 		os.Stdout,
 	}
 	fileAndStdoutWrite := io.MultiWriter(writers...)
 
-	Log = New(fileAndStdoutWrite, "", log.Lmicroseconds, printlevel)
+	Log = New(fileAndStdoutWrite, "", log.Lmicroseconds, printlevel, logFile)
 }
 
-func ClosePrintLog() {
-	//TODO
+func GetLogFileSize() (int64, error) {
+	f, e := Log.logFile.Stat()
+	if e != nil {
+		return 0, e
+	}
+	return f.Size(), nil
+}
+
+func GetMaxLogChangeInterval() int64 {
+	if config.Parameters.MaxLogSize != 0 {
+		return (config.Parameters.MaxLogSize * byteToMb)
+	} else {
+		return (defaultMaxLogSize * byteToMb)
+	}
+}
+
+func CheckIfNeedNewFile() bool {
+	logFileSize, err := GetLogFileSize()
+	maxLogFileSize := GetMaxLogChangeInterval()
+	if err != nil {
+		return false
+	}
+	if logFileSize > maxLogFileSize {
+		return true
+	} else {
+		return false
+	}
+}
+
+func ClosePrintLog() error {
+	var err error
+	if Log.logFile != nil {
+		err = Log.logFile.Close()
+	}
+	return err
 }

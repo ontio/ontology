@@ -144,6 +144,7 @@ func (rt *restServer) initGetHandler() {
 
 				reqMsg["Height"] = getParam(r, "height")
 				reqMsg["Hash"] = getParam(r, "hash")
+				reqMsg["Raw"] = r.FormValue("raw")
 				resp = h.handler(reqMsg)
 				resp["Action"] = h.name
 			} else {

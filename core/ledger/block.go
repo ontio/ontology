@@ -109,7 +109,7 @@ func (b *Block) FromTrimmedData(r io.Reader) error {
 }
 
 func (b *Block) GetMessage() []byte {
-	return sig.GetHashForSigning(b)
+	return sig.GetHashData(b)
 }
 
 func (b *Block) GetProgramHashes() ([]Uint160, error) {

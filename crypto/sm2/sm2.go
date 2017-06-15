@@ -1,8 +1,8 @@
 package sm2
 
 import (
-	"DNA/crypto/util"
 	"DNA/crypto/sm3"
+	"DNA/crypto/util"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/elliptic"
@@ -18,8 +18,11 @@ type zr struct {
 }
 
 const (
-	aesIV = "IV for <SM2> CTR"
+	aesIV  = "IV for <SM2> CTR"
+	USERID = "1234567812345678"
 )
+
+var paramA *big.Int
 
 var zeroReader = &zr{}
 var p256_sm2 *elliptic.CurveParams
@@ -44,6 +47,8 @@ func Init(algSet *util.CryptoAlgSet) {
 	p256_sm2.Gx, _ = new(big.Int).SetString("32C4AE2C1F1981195F9904466A39C9948FE30BBFF2660BE1715A4589334C74C7", 16)
 	p256_sm2.Gy, _ = new(big.Int).SetString("BC3736A2F4F6779C59BDCEE36B692153D0A9877CC62A474002DF32E52139F0A0", 16)
 	p256_sm2.BitSize = 256
+
+	paramA, _ = new(big.Int).SetString("FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFC", 16)
 
 	algSet.EccParams = *p256_sm2
 	algSet.Curve = p256_sm2
@@ -78,7 +83,8 @@ func GenKeyPair(algSet *util.CryptoAlgSet) ([]byte, *big.Int, *big.Int, error) {
 }
 
 func Sign(algSet *util.CryptoAlgSet, priKey []byte, data []byte) (r *big.Int, s *big.Int, err error) {
-	hash := sm3.Sum(data)
+	publicKeyX, publicKeyY := algSet.Curve.ScalarBaseMult(priKey)
+	hash := sm3.Sum(combineZ(data, publicKeyX, publicKeyY, USERID))
 	entropyLen := (algSet.EccParams.BitSize + 7) / 16
 	if entropyLen > 32 {
 		entropyLen = 32
@@ -171,9 +177,29 @@ func Verify(algSet *util.CryptoAlgSet, publicKeyX *big.Int, publicKeyY *big.Int,
 		x, _ = c.Add(x1, y1, x2, y2)
 	}
 
-	hash := sm3.Sum(data[:])
+	hash := sm3.Sum(combineZ(data, publicKeyX, publicKeyY, USERID))
 	e := new(big.Int).SetBytes(hash[:])
 	x.Add(x, e)
 	x.Mod(x, N)
 	return x.Cmp(r) == 0, nil
+}
+
+// Combine the raw data with user ID, curve parameters and public key
+// to generate the signed data used in Sign and Verify
+func combineZ(raw []byte, publicKeyX, publicKeyY *big.Int, userID string) []byte {
+	h := sm3.New()
+
+	id := []byte(userID)
+	len := len(id) * 8
+	blen := []byte{byte((len >> 8) & 0xff), byte(len & 0xff)}
+
+	h.Write(blen)
+	h.Write(id)
+	h.Write(paramA.Bytes())
+	h.Write(p256_sm2.B.Bytes())
+	h.Write(p256_sm2.Gx.Bytes())
+	h.Write(p256_sm2.Gy.Bytes())
+	h.Write(publicKeyX.Bytes())
+	h.Write(publicKeyY.Bytes())
+	return append(h.Sum(make([]byte, 0)), raw...)
 }

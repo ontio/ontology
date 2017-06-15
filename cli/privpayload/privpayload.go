@@ -79,9 +79,9 @@ func privpayloadAction(c *cli.Context) error {
 	}
 
 	if enc {
-		wallet := account.Open(c.String("name"), []byte(c.String("password")))
+		wallet := account.Open(c.String("wallet"), []byte(c.String("password")))
 		if wallet == nil {
-			fmt.Println("Failed to open wallet: ", c.String("name"))
+			fmt.Println("Failed to open wallet: ", c.String("wallet"))
 			os.Exit(1)
 		}
 
@@ -99,9 +99,9 @@ func privpayloadAction(c *cli.Context) error {
 	}
 
 	if dec {
-		wallet := account.Open(c.String("name"), []byte(c.String("password")))
+		wallet := account.Open(c.String("wallet"), []byte(c.String("password")))
 		if wallet == nil {
-			fmt.Println("Failed to open wallet: ", c.String("name"))
+			fmt.Println("Failed to open wallet: ", c.String("wallet"))
 			os.Exit(1)
 		}
 
@@ -132,6 +132,10 @@ func privpayloadAction(c *cli.Context) error {
 			encryptAttr := new(payload.EcdhAes256)
 			encryptAttr.Deserialize(bytesBuffer)
 
+			if admin.PublicKey.X.Cmp(encryptAttr.ToPubkey.X) != 0 {
+				fmt.Println("The wallet is wrong")
+				return errors.New("The wallet is wrong")
+			}
 			privkey := admin.PrivateKey
 			data, _ := encryptAttr.Decrypt(plData, privkey)
 
@@ -149,9 +153,9 @@ func privpayloadAction(c *cli.Context) error {
 
 func NewCommand() *cli.Command {
 	return &cli.Command{
-		Name:        "privpayload",
+		Name:        "privacy",
 		Usage:       "support encryption for payloads",
-		Description: "With nodectl privpayload, you could create privacy payload.",
+		Description: "With nodectl privacy, you could create privacy payload.",
 		ArgsUsage:   "[args]",
 		Flags: []cli.Flag{
 			cli.BoolFlag{
@@ -171,7 +175,7 @@ func NewCommand() *cli.Command {
 				Usage: "data to be encrypted",
 			},
 			cli.StringFlag{
-				Name:  "name, n",
+				Name:  "wallet, w",
 				Usage: "wallet name",
 			},
 			cli.StringFlag{
