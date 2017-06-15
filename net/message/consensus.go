@@ -100,7 +100,7 @@ func (cp *ConsensusPayload) GetPrograms() []*program.Program {
 
 func (cp *ConsensusPayload) GetMessage() []byte {
 	//TODO: GetMessage
-	return sig.GetHashForSigning(cp)
+	return sig.GetHashData(cp)
 	//return []byte{}
 }
 

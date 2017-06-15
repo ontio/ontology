@@ -10,24 +10,24 @@ import (
 	"errors"
 )
 
-func VerifySignableData(signableData sig.SignableData) (bool,error) {
+func VerifySignableData(signableData sig.SignableData) (bool, error) {
 
 	hashes, err := signableData.GetProgramHashes()
 	if err != nil {
-		return false,err
+		return false, err
 	}
 
 	programs := signableData.GetPrograms()
 	Length := len(hashes)
 	if Length != len(programs) {
-		return false,errors.New("The number of data hashes is different with number of programs.")
+		return false, errors.New("The number of data hashes is different with number of programs.")
 	}
 
 	programs = signableData.GetPrograms()
 	for i := 0; i < len(programs); i++ {
-		temp,_ := ToCodeHash(programs[i].Code)
+		temp, _ := ToCodeHash(programs[i].Code)
 		if hashes[i] != temp {
-			return false,errors.New("The data hashes is different with corresponding program code.")
+			return false, errors.New("The data hashes is different with corresponding program code.")
 		}
 		//execute program on VM
 		var cryptos interfaces.ICrypto
@@ -38,27 +38,27 @@ func VerifySignableData(signableData sig.SignableData) (bool,error) {
 		se.Execute()
 
 		if se.GetState() != vm.HALT {
-			return false,NewDetailErr(errors.New("[VM] Finish State not equal to HALT."), ErrNoCode, "")
+			return false, NewDetailErr(errors.New("[VM] Finish State not equal to HALT."), ErrNoCode, "")
 		}
 
 		if se.GetEvaluationStack().Count() != 1 {
-			return false,NewDetailErr(errors.New("[VM] Execute Engine Stack Count Error."), ErrNoCode, "")
+			return false, NewDetailErr(errors.New("[VM] Execute Engine Stack Count Error."), ErrNoCode, "")
 		}
 
 		flag := se.GetExecuteResult()
 		if !flag {
-			return false,NewDetailErr(errors.New("[VM] Check Sig FALSE."), ErrNoCode, "")
+			return false, NewDetailErr(errors.New("[VM] Check Sig FALSE."), ErrNoCode, "")
 		}
 	}
 
-	return true,nil
+	return true, nil
 }
 
-func VerifySignature(signableData sig.SignableData, pubkey *crypto.PubKey, signature []byte) (bool,error) {
-	ok, err := crypto.Verify(*pubkey, sig.GetHashForSigning(signableData), signature)
+func VerifySignature(signableData sig.SignableData, pubkey *crypto.PubKey, signature []byte) (bool, error) {
+	ok, err := crypto.Verify(*pubkey, sig.GetHashData(signableData), signature)
 	if !ok {
-		return false,NewDetailErr(err, ErrNoCode, "[Validation], VerifySignature failed.")
+		return false, NewDetailErr(err, ErrNoCode, "[Validation], VerifySignature failed.")
 	} else {
-		return true,nil
+		return true, nil
 	}
 }
