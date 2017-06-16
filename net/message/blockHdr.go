@@ -32,7 +32,7 @@ func NewHeadersReq() ([]byte, error) {
 
 	h.p.len = 1
 	buf := ledger.DefaultLedger.Store.GetCurrentHeaderHash()
-	copy(h.p.hashEnd[:], reverse(buf[:]))
+	copy(h.p.hashEnd[:], buf[:])
 
 	p := new(bytes.Buffer)
 	err := binary.Write(p, binary.LittleEndian, &(h.p))
@@ -61,9 +61,21 @@ func (msg blkHeader) Verify(buf []byte) error {
 }
 
 func (msg headersReq) Serialization() ([]byte, error) {
-	var buf bytes.Buffer
+	hdrBuf, err := msg.hdr.Serialization()
+	if err != nil {
+		return nil, err
+	}
+	buf := bytes.NewBuffer(hdrBuf)
+	err = binary.Write(buf, binary.LittleEndian, msg.p.len)
+	if err != nil {
+		return nil, err
+	}
+	err = binary.Write(buf, binary.LittleEndian, msg.p.hashStart)
+	if err != nil {
+		return nil, err
+	}
 
-	err := binary.Write(&buf, binary.LittleEndian, msg)
+	err = binary.Write(buf, binary.LittleEndian, msg.p.hashEnd)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +85,22 @@ func (msg headersReq) Serialization() ([]byte, error) {
 
 func (msg *headersReq) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &msg)
+	err := binary.Read(buf, binary.LittleEndian, &(msg.hdr))
+	if err != nil {
+		return err
+	}
+
+	err = binary.Read(buf, binary.LittleEndian, &(msg.p.len))
+	if err != nil {
+		return err
+	}
+
+	err = binary.Read(buf, binary.LittleEndian, &(msg.p.hashStart))
+	if err != nil {
+		return err
+	}
+
+	err = binary.Read(buf, binary.LittleEndian, &(msg.p.hashEnd))
 	return err
 }
 
@@ -83,7 +110,10 @@ func (msg blkHeader) Serialization() ([]byte, error) {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	binary.Write(buf, binary.LittleEndian, msg.cnt)
+	err = binary.Write(buf, binary.LittleEndian, msg.cnt)
+	if err != nil {
+		return nil, err
+	}
 
 	for _, header := range msg.blkHdr {
 		header.Serialize(buf)
