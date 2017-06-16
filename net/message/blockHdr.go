@@ -196,7 +196,7 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]le
 			}
 			stopHeight = bkstop.Blockdata.Height
 			count = curHeight - stopHeight
-			if curHeight > MAXBLKHDRCNT {
+			if count > MAXBLKHDRCNT {
 				count = MAXBLKHDRCNT
 			}
 		}
@@ -215,7 +215,7 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]le
 			count = startHeight - stopHeight
 			if count >= MAXBLKHDRCNT {
 				count = MAXBLKHDRCNT
-				stopHeight = startHeight + MAXBLKHDRCNT
+				stopHeight = startHeight - MAXBLKHDRCNT
 			}
 		} else {
 
