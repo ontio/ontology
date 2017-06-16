@@ -1,10 +1,10 @@
 package transaction
 
 import (
-	"io"
-
 	"DNA/common/serialization"
 	. "DNA/errors"
+	"errors"
+	"io"
 )
 
 type TransactionAttributeUsage byte
@@ -47,7 +47,7 @@ func (tx *TxAttribute) Serialize(w io.Writer) error {
 			return NewDetailErr(err, ErrNoCode, "Transaction attribute Data serialization error.")
 		}
 	} else {
-		return NewDetailErr(err, ErrNoCode, "Unsupported attribute Description.")
+		return NewDetailErr(errors.New("[TxAttribute] error"), ErrNoCode, "Unsupported attribute Description.")
 	}
 	return nil
 }
@@ -64,7 +64,7 @@ func (tx *TxAttribute) Deserialize(r io.Reader) error {
 			return NewDetailErr(err, ErrNoCode, "Transaction attribute Data deserialization error.")
 		}
 	} else {
-		return NewDetailErr(err, ErrNoCode, "Unsupported attribute description.")
+		return NewDetailErr(errors.New("[TxAttribute] error"), ErrNoCode, "Unsupported attribute description.")
 	}
 	return nil
 }
