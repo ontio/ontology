@@ -96,7 +96,7 @@ func GetBlockByHash(cmd map[string]interface{}) map[string]interface{} {
 		return resp
 	}
 	var getTxBytes bool = false
-	if cmd["Raw"].(string) == "1" {
+	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
 		getTxBytes = true
 	}
 	var hash Uint256
@@ -123,7 +123,7 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 		return resp
 	}
 	var getTxBytes bool = false
-	if cmd["Raw"].(string) == "1" {
+	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
 		getTxBytes = true
 	}
 	height, err := strconv.ParseInt(param, 10, 64)
@@ -187,7 +187,7 @@ func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
 		resp["Error"] = Err.UNKNOWN_TRANSACTION
 		return resp
 	}
-	if cmd["Raw"].(string) == "1" {
+	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
 		w := bytes.NewBuffer(nil)
 		tx.Serialize(w)
 		resp["Result"] = hex.EncodeToString(w.Bytes())

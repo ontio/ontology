@@ -24,7 +24,6 @@ func TransArryByteToHexString(ptx *tx.Transaction) *Transactions {
 	trans.TxType = ptx.TxType
 	trans.PayloadVersion = ptx.PayloadVersion
 	trans.Payload = TransPayloadToHex(ptx.Payload)
-	trans.Nonce = ptx.Nonce
 
 	n := 0
 	trans.Attributes = make([]TxAttributeInfo, len(ptx.Attributes))

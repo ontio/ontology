@@ -1,6 +1,14 @@
 package asset
 
 import (
+	"DNA/account"
+	. "DNA/cli/common"
+	. "DNA/common"
+	. "DNA/core/asset"
+	"DNA/core/contract"
+	"DNA/core/signature"
+	"DNA/core/transaction"
+	"DNA/net/httpjsonrpc"
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
@@ -9,14 +17,6 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
-	. "DNA/cli/common"
-	"DNA/account"
-	. "DNA/common"
-	. "DNA/core/asset"
-	"DNA/core/contract"
-	"DNA/core/signature"
-	"DNA/core/transaction"
-	"DNA/net/httpjsonrpc"
 
 	"github.com/urfave/cli"
 )
@@ -98,7 +98,9 @@ func makeRegTransaction(admin, issuer *account.Account, name string, value Fixed
 		return "", err
 	}
 	tx, _ := transaction.NewRegisterAssetTransaction(asset, value, issuer.PubKey(), transactionContract.ProgramHash)
-	tx.Nonce = uint64(rand.Int63())
+	txAttr := transaction.NewTxAttribute(transaction.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
+	tx.Attributes = make([]*transaction.TxAttribute, 0)
+	tx.Attributes = append(tx.Attributes, &txAttr)
 	if err := signTransaction(issuer, tx); err != nil {
 		fmt.Println("sign regist transaction failed")
 		return "", err
@@ -123,7 +125,9 @@ func makeIssueTransaction(issuer *account.Account, programHashStr, assetHashStr 
 	}
 	outputs := []*transaction.TxOutput{issueTxOutput}
 	tx, _ := transaction.NewIssueAssetTransaction(outputs)
-	tx.Nonce = uint64(rand.Int63())
+	txAttr := transaction.NewTxAttribute(transaction.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
+	tx.Attributes = make([]*transaction.TxAttribute, 0)
+	tx.Attributes = append(tx.Attributes, &txAttr)
 	if err := signTransaction(issuer, tx); err != nil {
 		fmt.Println("sign issue transaction failed")
 		return "", err
@@ -214,7 +218,9 @@ func makeTransferTransaction(signer *account.Account, programHashStr, assetHashS
 		return "", errors.New("transfer failed, ammount is not enough")
 	}
 	tx, _ := transaction.NewTransferAssetTransaction(inputs, outputs)
-	tx.Nonce = uint64(rand.Int63())
+	txAttr := transaction.NewTxAttribute(transaction.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
+	tx.Attributes = make([]*transaction.TxAttribute, 0)
+	tx.Attributes = append(tx.Attributes, &txAttr)
 	if err := signTransaction(signer, tx); err != nil {
 		fmt.Println("sign transfer transaction failed")
 		return "", err

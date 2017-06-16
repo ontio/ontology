@@ -52,7 +52,6 @@ type Transaction struct {
 	TxType         TransactionType
 	PayloadVersion byte
 	Payload        Payload
-	Nonce          uint64
 	Attributes     []*TxAttribute
 	UTXOInputs     []*UTXOTxInput
 	BalanceInputs  []*BalanceTxInput
@@ -102,8 +101,6 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 		return errors.New("Transaction Payload is nil.")
 	}
 	tx.Payload.Serialize(w)
-	//nonce
-	serialization.WriteVarUint(w, tx.Nonce)
 	//[]*txAttribute
 	err := serialization.WriteVarUint(w, uint64(len(tx.Attributes)))
 	if err != nil {
@@ -199,14 +196,8 @@ func (tx *Transaction) DeserializeUnsignedWithoutType(r io.Reader) error {
 	}
 
 	tx.Payload.Deserialize(r)
+
 	//attributes
-
-	nonce, err := serialization.ReadVarUint(r, 0)
-	if err != nil {
-		return errors.New("Parse nonce error")
-	}
-	tx.Nonce = nonce
-
 	Len, err := serialization.ReadVarUint(r, 0)
 	if err != nil {
 		return err

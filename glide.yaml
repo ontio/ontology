@@ -3,6 +3,7 @@ import:
 - package: github.com/golang/crypto
   subpackages:
   - ripemd160
+  - ssh/terminal
 - package: github.com/syndtr/goleveldb
   subpackages:
   - leveldb
@@ -12,7 +13,6 @@ import:
 - package: github.com/tv42/base58
 - package: github.com/urfave/cli
 - package: github.com/bitly/go-simplejson
-- package: github.com/howeyc/gopass
-- package: golang.org/x/crypto
-  subpackages:
-  - ssh/terminal
+- package: github.com/dnaproject/gopass
+ignore:
+  - golang.org/x/sys/unix
