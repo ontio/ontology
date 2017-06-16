@@ -3,9 +3,8 @@ package transaction
 import (
 	"DNA/common"
 	"DNA/common/serialization"
-	"io"
-	"math"
 	"fmt"
+	"io"
 )
 
 type UTXOTxInput struct {
@@ -19,7 +18,7 @@ type UTXOTxInput struct {
 
 func (ui *UTXOTxInput) Serialize(w io.Writer) {
 	ui.ReferTxID.Serialize(w)
-	serialization.WriteVarUint(w, uint64(ui.ReferTxOutputIndex))
+	serialization.WriteUint16(w, ui.ReferTxOutputIndex)
 }
 
 func (ui *UTXOTxInput) Deserialize(r io.Reader) error {
@@ -30,7 +29,7 @@ func (ui *UTXOTxInput) Deserialize(r io.Reader) error {
 	}
 
 	//Output Index
-	temp, err := serialization.ReadVarUint(r, math.MaxUint16)
+	temp, err := serialization.ReadUint16(r)
 	ui.ReferTxOutputIndex = uint16(temp)
 	if err != nil {
 		return err
@@ -39,7 +38,7 @@ func (ui *UTXOTxInput) Deserialize(r io.Reader) error {
 	return nil
 }
 
-func (ui *UTXOTxInput) ToString() string{
+func (ui *UTXOTxInput) ToString() string {
 	return fmt.Sprintf("%x%x", ui.ReferTxID.ToString(), ui.ReferTxOutputIndex)
 }
 
