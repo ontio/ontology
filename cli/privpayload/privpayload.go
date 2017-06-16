@@ -80,15 +80,13 @@ func privpayloadAction(c *cli.Context) error {
 		cli.ShowSubcommandHelp(c)
 		return nil
 	}
-
+	wallet := account.Open(c.String("wallet"), WalletPassword(c.String("password")))
+	if wallet == nil {
+		fmt.Println("Failed to open wallet: ", c.String("wallet"))
+		os.Exit(1)
+	}
+	admin, _ := wallet.GetDefaultAccount()
 	if enc {
-		wallet := account.Open(c.String("wallet"), []byte(c.String("password")))
-		if wallet == nil {
-			fmt.Println("Failed to open wallet: ", c.String("wallet"))
-			os.Exit(1)
-		}
-
-		admin, _ := wallet.GetDefaultAccount()
 		data := c.String("data")
 		to := c.String("to")
 
@@ -102,14 +100,6 @@ func privpayloadAction(c *cli.Context) error {
 	}
 
 	if dec {
-		wallet := account.Open(c.String("wallet"), []byte(c.String("password")))
-		if wallet == nil {
-			fmt.Println("Failed to open wallet: ", c.String("wallet"))
-			os.Exit(1)
-		}
-
-		admin, _ := wallet.GetDefaultAccount()
-
 		txhash := c.String("txhash")
 		resp, err := httpjsonrpc.Call(Address(), "getrawtransaction", 0, []interface{}{txhash})
 		if err != nil {
@@ -180,6 +170,7 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "wallet, w",
 				Usage: "wallet name",
+				Value: account.WalletFileName,
 			},
 			cli.StringFlag{
 				Name:  "password, p",

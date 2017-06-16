@@ -146,7 +146,7 @@ func dataAction(c *cli.Context) error {
 		//create transaction
 		var tx *transaction.Transaction
 
-		wallet := openWallet(c.String("wallet"), []byte(c.String("password")))
+		wallet := openWallet(c.String("wallet"), WalletPassword(c.String("password")))
 		admin, _ := wallet.GetDefaultAccount()
 
 		tx, _ = transaction.NewDataFileTransaction(address, name, "", admin.PubKey())
@@ -252,7 +252,6 @@ This command can be used to manage data on chain.
 			},
 			cli.StringFlag{
 				Name:  "password, p",
-				Value: account.DefaultPin,
 				Usage: "password",
 			},
 			cli.StringFlag{

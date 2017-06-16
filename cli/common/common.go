@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"DNA/common/config"
+	"DNA/common/password"
 
 	"github.com/urfave/cli"
 )
@@ -56,4 +57,15 @@ func FormatOutput(o []byte) error {
 	_, err = out.WriteTo(os.Stdout)
 
 	return err
+}
+
+// WalletPassword prompts user to input wallet password when password is not
+// specified from command line
+func WalletPassword(passwd string) []byte {
+	if passwd == "" {
+		tmppasswd, _ := password.GetPassword()
+		return tmppasswd
+	} else {
+		return []byte(passwd)
+	}
 }

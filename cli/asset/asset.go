@@ -246,7 +246,7 @@ func assetAction(c *cli.Context) error {
 		return nil
 	}
 
-	wallet := openWallet(c.String("wallet"), []byte(c.String("password")))
+	wallet := openWallet(c.String("wallet"), WalletPassword(c.String("password")))
 	admin, _ := wallet.GetDefaultAccount()
 	value := c.Int64("value")
 	if value == 0 {
@@ -319,7 +319,6 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "password, p",
 				Usage: "wallet password",
-				Value: account.DefaultPin,
 			},
 			cli.StringFlag{
 				Name:  "asset, a",

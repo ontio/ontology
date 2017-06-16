@@ -16,6 +16,7 @@ import (
 	. "DNA/common"
 	"DNA/common/config"
 	"DNA/common/log"
+	"DNA/common/password"
 	"DNA/core/contract"
 	ct "DNA/core/contract"
 	"DNA/core/ledger"
@@ -23,16 +24,12 @@ import (
 	"DNA/crypto"
 	. "DNA/errors"
 	"DNA/net/protocol"
-
-	"github.com/dnaproject/gopass"
 )
 
 const (
 	DefaultBookKeeperCount = 4
 	WalletFileName         = "wallet.dat"
 )
-
-var DefaultPin = "passwordtest"
 
 type Client interface {
 	Sign(context *ct.ContractContext) bool
@@ -508,8 +505,7 @@ func GetClient() Client {
 		log.Error(fmt.Sprintf("No %s detected, please create a wallet by using command line.", WalletFileName))
 		os.Exit(1)
 	}
-	fmt.Println("Password:")
-	passwd, err := gopass.GetPasswd()
+	passwd, err := password.GetAccountPassword()
 	if err != nil {
 		log.Error("Get password error.")
 		os.Exit(1)
