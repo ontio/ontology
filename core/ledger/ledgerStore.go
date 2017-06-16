@@ -4,6 +4,7 @@ import (
 	. "DNA/common"
 	. "DNA/core/asset"
 	tx "DNA/core/transaction"
+	"DNA/core/account"
 	"DNA/crypto"
 )
 
@@ -25,6 +26,8 @@ type ILedgerStore interface {
 
 	SaveAsset(assetid Uint256, asset *Asset) error
 	GetAsset(hash Uint256) (*Asset, error)
+
+	GetAccount(programHash Uint160) (*account.AccountState, error)
 
 	GetCurrentBlockHash() Uint256
 	GetCurrentHeaderHash() Uint256

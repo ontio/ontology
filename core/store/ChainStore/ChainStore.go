@@ -21,10 +21,15 @@ import (
 	"math/big"
 	"sort"
 	"sync"
+	"DNA/core/account"
 )
 
 const (
 	HeaderHashListCount = 2000
+)
+
+var (
+	ErrDBNotFound = errors.New("leveldb: not found")
 )
 
 type ChainStore struct {
@@ -640,22 +645,11 @@ func (self *ChainStore) GetBookKeeperList() ([]*crypto.PubKey, []*crypto.PubKey,
 func (bd *ChainStore) persist(b *Block) error {
 	unspents := make(map[Uint256][]uint16)
 	quantities := make(map[Uint256]Fixed64)
+
 	///////////////////////////////////////////////////////////////
 	// Get Unspents for every tx
 	unspentPrefix := []byte{byte(IX_Unspent)}
-	for i := 0; i < len(b.Transactions); i++ {
-		txhash := b.Transactions[i].Hash()
-		unspentValue, err_get := bd.st.Get(append(unspentPrefix, txhash.ToArray()...))
-
-		if err_get != nil {
-			unspentValue = []byte{}
-		}
-
-		unspents[txhash], err_get = GetUint16Array(unspentValue)
-		if err_get != nil {
-			return err_get
-		}
-	}
+	accounts := make(map[Uint160]*account.AccountState, 0)
 
 	///////////////////////////////////////////////////////////////
 	// batch write begin
@@ -725,6 +719,7 @@ func (bd *ChainStore) persist(b *Block) error {
 	//////////////////////////////////////////////////////////////
 	// save transactions to leveldb
 	nLen := len(b.Transactions)
+
 	for i := 0; i < nLen; i++ {
 
 		// now support RegisterAsset / IssueAsset / TransferAsset and Miner TX ONLY.
@@ -750,7 +745,6 @@ func (bd *ChainStore) persist(b *Block) error {
 
 		if b.Transactions[i].TxType == tx.IssueAsset {
 			results := b.Transactions[i].GetMergedAssetIDValueFromOutputs()
-
 			for assetId, value := range results {
 				if _, ok := quantities[assetId]; !ok {
 					quantities[assetId] += value
@@ -759,10 +753,51 @@ func (bd *ChainStore) persist(b *Block) error {
 				}
 			}
 		}
+		
+		for index := 0; index < len(b.Transactions[i].Outputs); index++ {
+			output := b.Transactions[i].Outputs[index]
+			programHash := output.ProgramHash
+			assetId := output.AssetID
+			if value, ok := accounts[programHash]; ok {
+				value.Balances[assetId] += output.Value
+			} else {
+				accountState, err := bd.GetAccount(programHash)
+				if err != nil && err.Error() != ErrDBNotFound.Error() { return err }
+				if accountState != nil {
+					accountState.Balances[assetId] += output.Value
+				} else {
+					balances := make(map[Uint256]Fixed64, 0)
+					balances[assetId] = output.Value
+					accountState = account.NewAccountState(programHash, balances)
+				}
+				accounts[programHash] = accountState
+			}
+		}
+
+		for index := 0; index < len(b.Transactions[i].UTXOInputs); index++ {
+			input := b.Transactions[i].UTXOInputs[index]
+			transaction, err := bd.GetTransaction(input.ReferTxID)
+			if err != nil { return err }
+			index := input.ReferTxOutputIndex
+			output := transaction.Outputs[index]
+			programHash := output.ProgramHash
+			assetId := output.AssetID
+			if value, ok := accounts[programHash]; ok {
+				value.Balances[assetId] -= output.Value
+			}else {
+				accountState, err := bd.GetAccount(programHash)
+				if err != nil { return err }
+				accountState.Balances[assetId] -= output.Value
+				accounts[programHash] = accountState
+			}
+			if accounts[programHash].Balances[assetId] < 0 {
+				return errors.New(fmt.Sprintf("account programHash:%v, assetId:%v insufficient of balance", programHash, assetId))
+			}
+		}
 
 		// init unspent in tx
+		txhash := b.Transactions[i].Hash()
 		for index := 0; index < len(b.Transactions[i].Outputs); index++ {
-			txhash := b.Transactions[i].Hash()
 			unspents[txhash] = append(unspents[txhash], uint16(index))
 		}
 
@@ -894,6 +929,18 @@ func (bd *ChainStore) persist(b *Block) error {
 		log.Debug(fmt.Sprintf("quantityArray: %x\n", quantityArray.Bytes()))
 	}
 
+	for programHash, value := range accounts {
+		accountKey := new(bytes.Buffer)
+		accountKey.WriteByte(byte(ST_ACCOUNT))
+		programHash.Serialize(accountKey)
+
+		accountValue := new(bytes.Buffer)
+		value.Serialize(accountValue)
+
+		bd.st.BatchPut(accountKey.Bytes(), accountValue.Bytes())
+	}
+
+
 	// save hash with height
 	bd.currentBlockHeight = b.Blockdata.Height
 
@@ -983,7 +1030,6 @@ func (bd *ChainStore) addHeader(header *Header) {
 func (bd *ChainStore) persistBlocks(ledger *Ledger) {
 	bd.mu.Lock()
 	defer bd.mu.Unlock()
-
 	for !bd.disposed {
 		if uint32(len(bd.headerIndex)) < bd.currentBlockHeight+1 {
 			log.Warn("[persistBlocks]: warn, headerIndex.count < currentBlockHeight + 1")
@@ -1019,7 +1065,6 @@ func (bd *ChainStore) SaveBlock(b *Block, ledger *Ledger) error {
 		bd.blockCache[b.Hash()] = b
 	}
 
-	log.Info("len(bd.headerIndex) is ", len(bd.headerIndex), " ,b.Blockdata.Height is ", b.Blockdata.Height)
 	if b.Blockdata.Height >= (uint32(len(bd.headerIndex)) + 1) {
 		//return false,NewDetailErr(errors.New(fmt.Sprintf("WARNING: [SaveBlock] block height - headerIndex.count >= 1, block height:%d, headerIndex.count:%d",b.Blockdata.Height, uint32(len(bd.headerIndex)) )),ErrDuplicatedBlock,"")
 		return errors.New(fmt.Sprintf("WARNING: [SaveBlock] block height - headerIndex.count >= 1, block height:%d, headerIndex.count:%d", b.Blockdata.Height, uint32(len(bd.headerIndex))))
@@ -1079,8 +1124,6 @@ func (bd *ChainStore) GetQuantityIssued(assetId Uint256) (Fixed64, error) {
 }
 
 func (bd *ChainStore) GetUnspent(txid Uint256, index uint16) (*tx.TxOutput, error) {
-	//fmt.Println( "GetUnspent()" )
-
 	if ok, _ := bd.ContainsUnspent(txid, index); ok {
 		Tx, err := bd.GetTransaction(txid)
 		if err != nil {
@@ -1118,7 +1161,6 @@ func (bd *ChainStore) ContainsUnspent(txid Uint256, index uint16) (bool, error) 
 func (bd *ChainStore) GetCurrentHeaderHash() Uint256 {
 	bd.mu.RLock()
 	defer bd.mu.RUnlock()
-
 	return bd.headerIndex[uint32(len(bd.headerIndex)-1)]
 }
 
@@ -1141,4 +1183,17 @@ func (bd *ChainStore) GetHeight() uint32 {
 	defer bd.mu.RUnlock()
 
 	return bd.currentBlockHeight
+}
+
+func (bd *ChainStore) GetAccount(programHash Uint160) (*account.AccountState, error) {
+	accountPrefix := []byte{byte(ST_ACCOUNT)}
+
+	state, err := bd.st.Get(append(accountPrefix, programHash.ToArray()...))
+
+	if err != nil { return nil, err }
+
+	accountState := new(account.AccountState)
+	accountState.Deserialize(bytes.NewBuffer(state))
+
+	return accountState, nil
 }
