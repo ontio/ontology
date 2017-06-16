@@ -24,7 +24,7 @@ import (
 	. "DNA/errors"
 	"DNA/net/protocol"
 
-	"github.com/howeyc/gopass"
+	"github.com/dnaproject/gopass"
 )
 
 const (
