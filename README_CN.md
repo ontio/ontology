@@ -174,7 +174,7 @@ $ cat node[1234]/config.json
 
     ...
 "SeedList": [
-      "10.0.0.100:20003"
+      "10.0.0.100:10003"
     ],
     "BookKeepers": [
             "027ffb2294611d2ba9cbfd81f5741208686182e839a195a08e57e34e83d31519fa",
@@ -189,7 +189,7 @@ $ cat node[1234]/config.json
     
     ...
 "SeedList": [
-      "10.0.0.100:30003"
+      "10.0.0.100:10003"
     ],
     "BookKeepers": [
             "027ffb2294611d2ba9cbfd81f5741208686182e839a195a08e57e34e83d31519fa",
@@ -204,7 +204,7 @@ $ cat node[1234]/config.json
 
     ...
 "SeedList": [
-      "10.0.0.100:40003"
+      "10.0.0.100:10003"
     ],
     "BookKeepers": [
             "027ffb2294611d2ba9cbfd81f5741208686182e839a195a08e57e34e83d31519fa",
