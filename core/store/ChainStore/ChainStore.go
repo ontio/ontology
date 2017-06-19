@@ -4,6 +4,7 @@ import (
 	. "DNA/common"
 	"DNA/common/log"
 	"DNA/common/serialization"
+	"DNA/core/account"
 	. "DNA/core/asset"
 	"DNA/core/contract/program"
 	. "DNA/core/ledger"
@@ -21,7 +22,6 @@ import (
 	"math/big"
 	"sort"
 	"sync"
-	"DNA/core/account"
 )
 
 const (
@@ -754,7 +754,7 @@ func (bd *ChainStore) persist(b *Block) error {
 				}
 			}
 		}
-		
+
 		for index := 0; index < len(b.Transactions[i].Outputs); index++ {
 			output := b.Transactions[i].Outputs[index]
 			programHash := output.ProgramHash
@@ -763,7 +763,9 @@ func (bd *ChainStore) persist(b *Block) error {
 				value.Balances[assetId] += output.Value
 			} else {
 				accountState, err := bd.GetAccount(programHash)
-				if err != nil && err.Error() != ErrDBNotFound.Error() { return err }
+				if err != nil && err.Error() != ErrDBNotFound.Error() {
+					return err
+				}
 				if accountState != nil {
 					accountState.Balances[assetId] += output.Value
 				} else {
@@ -778,16 +780,20 @@ func (bd *ChainStore) persist(b *Block) error {
 		for index := 0; index < len(b.Transactions[i].UTXOInputs); index++ {
 			input := b.Transactions[i].UTXOInputs[index]
 			transaction, err := bd.GetTransaction(input.ReferTxID)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			index := input.ReferTxOutputIndex
 			output := transaction.Outputs[index]
 			programHash := output.ProgramHash
 			assetId := output.AssetID
 			if value, ok := accounts[programHash]; ok {
 				value.Balances[assetId] -= output.Value
-			}else {
+			} else {
 				accountState, err := bd.GetAccount(programHash)
-				if err != nil { return err }
+				if err != nil {
+					return err
+				}
 				accountState.Balances[assetId] -= output.Value
 				accounts[programHash] = accountState
 			}
@@ -941,10 +947,6 @@ func (bd *ChainStore) persist(b *Block) error {
 		bd.st.BatchPut(accountKey.Bytes(), accountValue.Bytes())
 	}
 
-
-	// save hash with height
-	bd.currentBlockHeight = b.Blockdata.Height
-
 	// generate key with SYS_CurrentHeader prefix
 	currentBlockKey := bytes.NewBuffer(nil)
 	currentBlockKey.WriteByte(byte(SYS_CurrentBlock))
@@ -1044,11 +1046,17 @@ func (bd *ChainStore) persistBlocks(ledger *Ledger) {
 			log.Warn("[persistBlocks]: warn, blockCache not contain key hash.")
 			break
 		}
-		bd.persist(block)
+		err := bd.persist(block)
+		if err != nil {
+			log.Fatal("[persistBlocks]: error to persist block:", err.Error())
+			return
+		}
 
 		// PersistCompleted event
-		ledger.Blockchain.BCEvents.Notify(events.EventBlockPersistCompleted, block)
 		ledger.Blockchain.BlockHeight = block.Blockdata.Height
+		bd.currentBlockHeight = block.Blockdata.Height
+
+		ledger.Blockchain.BCEvents.Notify(events.EventBlockPersistCompleted, block)
 		log.Trace("The latest block height:", block.Blockdata.Height)
 
 		delete(bd.blockCache, hash)
@@ -1191,7 +1199,9 @@ func (bd *ChainStore) GetAccount(programHash Uint160) (*account.AccountState, er
 
 	state, err := bd.st.Get(append(accountPrefix, programHash.ToArray()...))
 
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	accountState := new(account.AccountState)
 	accountState.Deserialize(bytes.NewBuffer(state))
