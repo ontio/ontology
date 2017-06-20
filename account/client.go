@@ -51,7 +51,7 @@ type ClientImpl struct {
 	watchOnly     []Uint160
 	currentHeight uint32
 
-	store     FileStore
+	FileStore
 	isrunning bool
 }
 
@@ -85,17 +85,16 @@ func Open(path string, passwordKey []byte) *ClientImpl {
 	return cl
 }
 
-func NewClient(path string, passwordKey []byte, create bool) *ClientImpl {
+func NewClient(path string, password []byte, create bool) *ClientImpl {
 	newClient := &ClientImpl{
 		path:      path,
 		accounts:  map[Uint160]*Account{},
 		contracts: map[Uint160]*ct.Contract{},
-		store:     FileStore{path: path},
+		FileStore: FileStore{path: path},
 		isrunning: true,
 	}
 
-	passwordKey = crypto.ToAesKey(passwordKey)
-
+	passwordKey := crypto.ToAesKey(password)
 	if create {
 		//create new client
 		newClient.iv = make([]byte, 16)
@@ -113,16 +112,16 @@ func NewClient(path string, passwordKey []byte, create bool) *ClientImpl {
 		}
 
 		//new client store (build DB)
-		newClient.store.BuildDatabase(path)
+		newClient.BuildDatabase(path)
 
 		// SaveStoredData
 		pwdhash := sha256.Sum256(passwordKey)
-		err := newClient.store.SaveStoredData("PasswordHash", pwdhash[:])
+		err := newClient.SaveStoredData("PasswordHash", pwdhash[:])
 		if err != nil {
 			log.Error(err)
 			return nil
 		}
-		err = newClient.store.SaveStoredData("IV", newClient.iv[:])
+		err = newClient.SaveStoredData("IV", newClient.iv[:])
 		if err != nil {
 			log.Error(err)
 			return nil
@@ -130,7 +129,7 @@ func NewClient(path string, passwordKey []byte, create bool) *ClientImpl {
 
 		aesmk, err := crypto.AesEncrypt(newClient.masterKey[:], passwordKey, newClient.iv)
 		if err == nil {
-			err = newClient.store.SaveStoredData("MasterKey", aesmk)
+			err = newClient.SaveStoredData("MasterKey", aesmk)
 			if err != nil {
 				log.Error(err)
 				return nil
@@ -140,46 +139,35 @@ func NewClient(path string, passwordKey []byte, create bool) *ClientImpl {
 			return nil
 		}
 	} else {
-		//load client
-		passwordHash, err := newClient.store.LoadStoredData("PasswordHash")
-		if err != nil {
-			log.Error(err)
+		if b := newClient.verifyPasswordKey(passwordKey); b == false {
 			return nil
 		}
-
-		pwdhash := sha256.Sum256(passwordKey)
-		if passwordHash == nil {
-			log.Error("ERROR: passwordHash = nil")
-			return nil
-		}
-
-		if !IsEqualBytes(passwordHash, pwdhash[:]) {
-			log.Error("ERROR: password wrong!")
-			return nil
-		}
-
-		newClient.iv, err = newClient.store.LoadStoredData("IV")
-		if err != nil {
-			log.Error(err)
-			return nil
-		}
-
-		masterKey, err := newClient.store.LoadStoredData("MasterKey")
-		if err != nil {
-			log.Error(err)
-			return nil
-		}
-
-		newClient.masterKey, err = crypto.AesDecrypt(masterKey, passwordKey, newClient.iv)
-		if err != nil {
-			log.Error(err)
+		if err := newClient.loadClient(passwordKey); err != nil {
 			return nil
 		}
 	}
-
 	ClearBytes(passwordKey, len(passwordKey))
-
 	return newClient
+}
+
+func (cl *ClientImpl) loadClient(passwordKey []byte) error {
+	var err error
+	cl.iv, err = cl.LoadStoredData("IV")
+	if err != nil {
+		fmt.Println("error: failed to load iv")
+		return err
+	}
+	encryptedMasterKey, err := cl.LoadStoredData("MasterKey")
+	if err != nil {
+		fmt.Println("error: failed to load master key")
+		return err
+	}
+	cl.masterKey, err = crypto.AesDecrypt(encryptedMasterKey, passwordKey, cl.iv)
+	if err != nil {
+		fmt.Println("error: failed to decrypt master key")
+		return err
+	}
+	return nil
 }
 
 func (cl *ClientImpl) GetDefaultAccount() (*Account, error) {
@@ -223,14 +211,40 @@ func (cl *ClientImpl) GetContract(programHash Uint160) *ct.Contract {
 	return nil
 }
 
-func (cl *ClientImpl) ChangePassword(oldPassword string, newPassword string) bool {
-	if !cl.VerifyPassword(oldPassword) {
+func (cl *ClientImpl) ChangePassword(oldPassword []byte, newPassword []byte) bool {
+	// check password
+	oldPasswordKey := crypto.ToAesKey(oldPassword)
+	if !cl.verifyPasswordKey(oldPasswordKey) {
+		fmt.Println("error: password verification failed")
+		return false
+	}
+	if err := cl.loadClient(oldPasswordKey); err != nil {
+		fmt.Println("error: load wallet info failed")
 		return false
 	}
 
-	//TODO: ChangePassword
+	// encrypt master key with new password
+	newPasswordKey := crypto.ToAesKey(newPassword)
+	newMasterKey, err := crypto.AesEncrypt(cl.masterKey, newPasswordKey, cl.iv)
+	if err != nil {
+		fmt.Println("error: set new password failed")
+		return false
+	}
 
-	return false
+	// update wallet file
+	newPasswordHash := sha256.Sum256(newPasswordKey)
+	if err := cl.SaveStoredData("PasswordHash", newPasswordHash[:]); err != nil {
+		fmt.Println("error: wallet update failed(password hash)")
+		return false
+	}
+	if err := cl.SaveStoredData("MasterKey", newMasterKey); err != nil {
+		fmt.Println("error: wallet update failed (encrypted master key)")
+		return false
+	}
+	ClearBytes(newPasswordKey, len(newPasswordKey))
+	ClearBytes(cl.masterKey, len(cl.masterKey))
+
+	return true
 }
 
 func (cl *ClientImpl) ContainsAccount(pubKey *crypto.PubKey) bool {
@@ -356,8 +370,22 @@ func (cl *ClientImpl) Sign(context *ct.ContractContext) bool {
 	return fSuccess
 }
 
-func (cl *ClientImpl) VerifyPassword(password string) bool {
-	//TODO: VerifyPassword
+func (cl *ClientImpl) verifyPasswordKey(passwordKey []byte) bool {
+	savedPasswordHash, err := cl.LoadStoredData("PasswordHash")
+	if err != nil {
+		fmt.Println("error: failed to load password hash")
+		return false
+	}
+	if savedPasswordHash == nil {
+		fmt.Println("error: saved password hash is nil")
+		return false
+	}
+	passwordHash := sha256.Sum256(passwordKey)
+	///ClearBytes(passwordKey, len(passwordKey))
+	if !IsEqualBytes(savedPasswordHash, passwordHash[:]) {
+		fmt.Println("error: password wrong")
+		return false
+	}
 	return true
 }
 
@@ -407,7 +435,7 @@ func (cl *ClientImpl) SaveAccount(ac *Account) error {
 
 	ClearBytes(decryptedPrivateKey, 96)
 
-	err = cl.store.SaveAccountData(ac.ProgramHash.ToArray(), encryptedPrivateKey)
+	err = cl.SaveAccountData(ac.ProgramHash.ToArray(), encryptedPrivateKey)
 	if err != nil {
 		return err
 	}
@@ -419,7 +447,7 @@ func (cl *ClientImpl) LoadAccount() map[Uint160]*Account {
 	i := 0
 	accounts := map[Uint160]*Account{}
 	for true {
-		_, prikeyenc, err := cl.store.LoadAccountData(i)
+		_, prikeyenc, err := cl.LoadAccountData(i)
 		if err != nil {
 			// TODO: report the error
 		}
@@ -444,7 +472,7 @@ func (cl *ClientImpl) LoadContracts() map[Uint160]*ct.Contract {
 	contracts := map[Uint160]*ct.Contract{}
 
 	for true {
-		ph, _, rd, err := cl.store.LoadContractData(i)
+		ph, _, rd, err := cl.LoadContractData(i)
 		if err != nil {
 			fmt.Println(err)
 			break
@@ -474,7 +502,7 @@ func (cl *ClientImpl) AddContract(ct *contract.Contract) error {
 
 	cl.contracts[ct.ProgramHash] = ct
 
-	err := cl.store.SaveContractData(ct)
+	err := cl.SaveContractData(ct)
 	return err
 }
 

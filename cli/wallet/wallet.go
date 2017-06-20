@@ -53,7 +53,8 @@ func walletAction(c *cli.Context) error {
 	var wallet *account.ClientImpl
 	if create {
 		wallet = account.Create(name, []byte(passwd))
-	} else if list {
+	} else {
+		// list wallet or change wallet password
 		wallet = account.Open(name, []byte(passwd))
 	}
 	if wallet == nil {
@@ -61,17 +62,25 @@ func walletAction(c *cli.Context) error {
 		os.Exit(1)
 	}
 	fmt.Printf("Wallet File: '%s'\n", name)
+	if c.Bool("changepassword") {
+		fmt.Println("# input new password #")
+		newPassword, _ := password.GetConfirmedPassword()
+		if ok := wallet.ChangePassword([]byte(passwd), newPassword); !ok {
+			fmt.Println("error: failed to change password")
+			os.Exit(1)
+		}
+		fmt.Println("password changed")
+		return nil
+	}
 	account, _ := wallet.GetDefaultAccount()
 	pubKey := account.PubKey()
 	signatureRedeemScript, _ := contract.CreateSignatureRedeemScript(pubKey)
 	programHash, _ := ToCodeHash(signatureRedeemScript)
 	encodedPubKey, _ := pubKey.EncodePoint(true)
+	fmt.Println("public key:   ", ToHexString(encodedPubKey))
+	fmt.Println("program hash: ", ToHexString(programHash.ToArray()))
+	fmt.Println("address:      ", programHash.ToAddress())
 	asset := c.String("asset")
-	if asset == "" {
-		fmt.Println("public key:   ", ToHexString(encodedPubKey))
-		fmt.Println("program hash: ", ToHexString(programHash.ToArray()))
-		fmt.Println("address:      ", programHash.ToAddress())
-	}
 	if list && asset != "" {
 		var buffer bytes.Buffer
 		_, err := programHash.Serialize(&buffer)
@@ -121,6 +130,10 @@ func NewCommand() *cli.Command {
 			cli.BoolFlag{
 				Name:  "list, l",
 				Usage: "list wallet information",
+			},
+			cli.BoolFlag{
+				Name:  "changepassword",
+				Usage: "change wallet password",
 			},
 			cli.StringFlag{
 				Name:  "asset, a",
