@@ -6,6 +6,7 @@ import (
 
 	_ "DNA/cli"
 	"DNA/cli/asset"
+	"DNA/cli/bookkeeper"
 	. "DNA/cli/common"
 	"DNA/cli/consensus"
 	"DNA/cli/data"
@@ -44,6 +45,7 @@ func main() {
 		*asset.NewCommand(),
 		*privpayload.NewCommand(),
 		*data.NewCommand(),
+		*bookkeeper.NewCommand(),
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 	sort.Sort(cli.FlagsByName(app.Flags))

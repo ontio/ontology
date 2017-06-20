@@ -473,54 +473,6 @@ func sendSampleTransaction(params []interface{}) map[string]interface{} {
 			VerifyAndSendTx(regTx)
 		}
 		return DnaRpc(fmt.Sprintf("%d transaction(s) was sent", num))
-	case "bookkeeper":
-		//TODO Since each node only keep a wallet.dat for itself, the necessary public key
-		// and certification should be re-constructed. This bookkeeper test is invalid now
-		// and will be moved to nodectl as a subcommand then user could pass applicable
-		// public key and cert.
-		return DnaRpcUnsupported
-
-		// params:[type, ind, action]
-		if len(params) < 3 {
-			return DnaRpcNil
-		}
-		ind := 4
-		switch params[1].(type) {
-		case float64:
-			ind = int(params[1].(float64))
-		}
-		var isAdd bool
-		switch params[2].(type) {
-		case string:
-			action := params[2].(string)
-			if action == "add" {
-				isAdd = true
-			} else if action == "sub" {
-				isAdd = false
-			} else {
-				return DnaRpcInvalidParameter
-			}
-		default:
-			return DnaRpcInvalidParameter
-		}
-
-		walletFile := "wallet" + strconv.Itoa(ind) + ".dat"
-		c := account.Open(walletFile, []byte("no default password"))
-		if c == nil {
-			return DnaRpc("do not have wallet file:" + walletFile)
-		}
-
-		account, _ := c.GetDefaultAccount()
-		pubKey := account.PubKey()
-
-		cert := make([]byte, 100)
-		rand.Read(cert)
-
-		bkTx, _ := tx.NewBookKeeperTransaction(pubKey, isAdd, cert)
-		VerifyAndSendTx(bkTx)
-
-		return DnaRpc(fmt.Sprint("bookkeeper transaction was sent, select pubkey file:", walletFile))
-
 	default:
 		return DnaRpc("Invalid transacion type")
 	}

@@ -9,16 +9,10 @@ import (
 	"bytes"
 )
 
-type PayloadInfo interface {
-	Data() []byte
-}
+type PayloadInfo interface{}
 
 //implement PayloadInfo define BookKeepingInfo
 type BookKeepingInfo struct {
-}
-
-func (dc *BookKeepingInfo) Data() []byte {
-	return []byte{0}
 }
 
 //implement PayloadInfo define DeployCodeInfo
@@ -37,16 +31,8 @@ type DeployCodeInfo struct {
 	Description string
 }
 
-func (dc *DeployCodeInfo) Data() []byte {
-	return []byte{0}
-}
-
 //implement PayloadInfo define IssueAssetInfo
 type IssueAssetInfo struct {
-}
-
-func (a *IssueAssetInfo) Data() []byte {
-	return []byte{0}
 }
 
 type IssuerInfo struct {
@@ -61,16 +47,8 @@ type RegisterAssetInfo struct {
 	Controller string
 }
 
-func (a *RegisterAssetInfo) Data() []byte {
-	return []byte{0}
-}
-
 //implement PayloadInfo define TransferAssetInfo
 type TransferAssetInfo struct {
-}
-
-func (a *TransferAssetInfo) Data() []byte {
-	return []byte{0}
 }
 
 type RecordInfo struct {
@@ -78,8 +56,9 @@ type RecordInfo struct {
 	RecordData string
 }
 
-func (a *DataFileInfo) Data() []byte {
-	return []byte{0}
+type BookkeeperInfo struct {
+	PubKey string
+	Action string
 }
 
 type DataFileInfo struct {
@@ -89,10 +68,6 @@ type DataFileInfo struct {
 	Issuer   IssuerInfo
 }
 
-func (a *RecordInfo) Data() []byte {
-	return []byte{0}
-}
-
 type PrivacyPayloadInfo struct {
 	PayloadType uint8
 	Payload     string
@@ -100,14 +75,21 @@ type PrivacyPayloadInfo struct {
 	EncryptAttr string
 }
 
-func (a *PrivacyPayloadInfo) Data() []byte {
-	return []byte{0}
-}
-
 func TransPayloadToHex(p Payload) PayloadInfo {
 	switch object := p.(type) {
 	case *payload.BookKeeping:
 	case *payload.BookKeeper:
+		obj := new(BookkeeperInfo)
+		encodedPubKey, _ := object.PubKey.EncodePoint(true)
+		obj.PubKey = ToHexString(encodedPubKey)
+		if object.Action == payload.BookKeeperAction_ADD {
+			obj.Action = "add"
+		} else if object.Action == payload.BookKeeperAction_SUB {
+			obj.Action = "sub"
+		} else {
+			obj.Action = "nil"
+		}
+		return obj
 	case *payload.IssueAsset:
 	case *payload.TransferAsset:
 	case *payload.DeployCode:
