@@ -70,44 +70,52 @@ To run DNA node regularly, at least 4 nodes are necessary. We provides two ways 
 
 We can do a quick multi-hosts deployment by changing default configuration file `config.json`. Change the IP address in `SeedList` section to the seed node's IP address, then copy the changed file to hosts that you will run on.
 
-On each host, put the executable program `node` and the configuration file `config.json` into same directory. Like :
+On each host, put the executable program `node`, `nodectl` and the configuration file `config.json` into same directory. Like :
 
 ```shell
 $ ls
-config.json node
+config.json node nodectl
 
 ```
+For each node, also needs a `wallet.dat` to run. The quick way to generate wallets is trying to run `./nodectl wallet -c -p YourPassword` on each host. 
 
-We need to do is change the `BookKeeperName` field to "c1", "c2", "c3" and "c4" respectively on each host. The name sequence is not matter.
+Then, change the `BookKeepers` field to 4 nodes's wallet public keys, which you can got them from the last command's echo. The public key sequence is not matter. 
 
-Here's an snippet for configuration, note that 10.0.0.100 is seed node's address:
+Now all configurations are completed.
 
+Here's an snippet for configuration, note that `35.189.182.223` and `35.189.166.234` are two public seed node's addresses:
+ 
 ```shell
 $ cat config.json
 	...
-"SeedList": [
-      "10.0.1.100:20338"
+    "SeedList": [
+      "35.189.182.223:20338",
+      "35.189.166.234:30338"
     ],
 	...
-    "BookKeeperName" : "c1"
+    "BookKeepers": [
+      "03ad8f4a837f7a02adedcea920b30c5c99517aabc7d2695d93ac572b9c2106d4c2",
+      "0293bafa2df4813ae999bf42f35a38bcb9ec26a252fd28dc0ccab56c671cf784e6",
+      "02aec70e084e4e5d36ed2db54aa708a6bd095fbb663929850986a5ec22061e1be2",
+      "02758623d16774f3c5535a305e65ea949343eab06888ee2e7633b4f3f9d78d506c"
+    ],
+	"HttpRestPort": 20334,
+    "HttpJsonPort": 20336,
+    "HttpLocalPort": 20337,
     "NodePort": 20338,
-	...
+ 	...
 ```
-
-For each node, also needs a "wallet" to run. The quick way to generate wallets is trying to run the node program on a host, several wallets named with "wallet" prefix will be generated automatically. Then copy all of them to node program directory on other hosts.
-Congratulations, all configurations are completed.
 
 ## Configurations for single-host deployment
 
-Copy the executable file `node` and configuration file `config.json` to 4 different directories on single host. Then change each `config.json` file as following.
+Copy the executable file `node`, `nodectl` and configuration file `config.json` to 4 different directories on single host. Then change each `config.json` file as following.
 
 * The `SeedList` section should be same in all `config.json`.
 * For the seed node, the `NodePort` is same with the port in `SeedList` part.
 * For each non-seed node, the `NodePort` should have different port.
 * Also need to make sure the `HttpJsonPort` and `HttpLocalPort` for each node is not conflict on current host.
-* Each node should have different "BookKeeperName" field, "c1", "c2", "c3" and "c4" respectively.
 
-After changed the configuration file, we also need to generate wallet for each node. Please follow the steps in multi-hosts deployment section above.
+After changed the configuration file, we also need to generate wallet for each node and field the `BookKeepers` with 4 nodes's wallet public keys. Please follow the steps in multi-hosts deployment section above.
 
 Here's an example:
 
@@ -115,62 +123,92 @@ Here's an example:
 # directory structure #
 $ tree
 ├── node1
-│   ├── config.json
-│   ├── node
-│   └── wallet*
+│   ├── config.json
+│   ├── node
+│   ├── nodectl
+│   └── wallet.dat
 ├── node2
-│   ├── config.json
-│   ├── node
-│   └── wallet*
+│   ├── config.json
+│   ├── node
+│   ├── nodectl
+│   └── wallet.dat
 ├── node3
-│   ├── config.json
-│   ├── node
-│   └── wallet*
+│   ├── config.json
+│   ├── node
+│   ├── nodectl
+│   └── wallet.dat
 └── node4
     ├── config.json
     ├── node
-    └── wallet*
+    ├── nodectl
+    └── wallet.dat
 ```
 
 ```shell
 # configuration snippets #
 $ cat node[1234]/config.json
-"SeedList": [
-      "10.0.1.1:10338"
+    "SeedList": [
+      "35.189.182.223:20338",
+      "35.189.166.234:30338"
     ],
-    "BookKeeperName" : "c1"
+    "BookKeepers": [
+      "03ad8f4a837f7a02adedcea920b30c5c99517aabc7d2695d93ac572b9c2106d4c2",
+      "0293bafa2df4813ae999bf42f35a38bcb9ec26a252fd28dc0ccab56c671cf784e6",
+      "02aec70e084e4e5d36ed2db54aa708a6bd095fbb663929850986a5ec22061e1be2",
+      "02758623d16774f3c5535a305e65ea949343eab06888ee2e7633b4f3f9d78d506c"
+    ],
+    "HttpRestPort": 10334,
     "HttpJsonPort": 10336,
     "HttpLocalPort": 10337,
     "NodePort": 10338,
     ...
 
-"SeedList": [
-      "10.0.1.1:10338"
+    "SeedList": [
+      "35.189.182.223:20338",
+      "35.189.166.234:30338"
     ],
-    "BookKeeperName" : "c2"
+    "BookKeepers": [
+      "03ad8f4a837f7a02adedcea920b30c5c99517aabc7d2695d93ac572b9c2106d4c2",
+      "0293bafa2df4813ae999bf42f35a38bcb9ec26a252fd28dc0ccab56c671cf784e6",
+      "02aec70e084e4e5d36ed2db54aa708a6bd095fbb663929850986a5ec22061e1be2",
+      "02758623d16774f3c5535a305e65ea949343eab06888ee2e7633b4f3f9d78d506c"
+    ],
+    "HttpRestPort": 20334,
     "HttpJsonPort": 20336,
     "HttpLocalPort": 20337,
     "NodePort": 20338,
     ...
 
-"SeedList": [
-      "10.0.1.1:10338"
+    "SeedList": [
+      "35.189.182.223:20338",
+      "35.189.166.234:30338"
     ],
-    "BookKeeperName" : "c3"
+    "BookKeepers": [
+      "03ad8f4a837f7a02adedcea920b30c5c99517aabc7d2695d93ac572b9c2106d4c2",
+      "0293bafa2df4813ae999bf42f35a38bcb9ec26a252fd28dc0ccab56c671cf784e6",
+      "02aec70e084e4e5d36ed2db54aa708a6bd095fbb663929850986a5ec22061e1be2",
+      "02758623d16774f3c5535a305e65ea949343eab06888ee2e7633b4f3f9d78d506c"
+    ],
+    "HttpRestPort": 30334,
     "HttpJsonPort": 30336,
     "HttpLocalPort": 30337,
     "NodePort": 30338,
     ...
 
-"SeedList": [
-      "10.0.1.1:10338"
+    "SeedList": [
+      "35.189.182.223:20338",
+      "35.189.166.234:30338"
     ],
-    "BookKeeperName" : "c4"
+    "BookKeepers": [
+      "03ad8f4a837f7a02adedcea920b30c5c99517aabc7d2695d93ac572b9c2106d4c2",
+      "0293bafa2df4813ae999bf42f35a38bcb9ec26a252fd28dc0ccab56c671cf784e6",
+      "02aec70e084e4e5d36ed2db54aa708a6bd095fbb663929850986a5ec22061e1be2",
+      "02758623d16774f3c5535a305e65ea949343eab06888ee2e7633b4f3f9d78d506c"
+    ],
+    "HttpRestPort": 40334,
     "HttpJsonPort": 40336,
     "HttpLocalPort": 40337,
     "NodePort": 40338,
-    ...
-```
 
 ## Getting Started
 
@@ -178,6 +216,7 @@ Start the seed node program firstly then other nodes. Just run:
 
 ```shell
 $ ./node
+$ - input you wallet password
 ```
 
 ## Testing DNA in an open environment
@@ -186,22 +225,22 @@ We also provide an open testing environment, it suppots below operation:
 
 1. make some transactions :
 ```
-./nodectl test -ip 139.196.113.85 -port 10331 -tx perf -num 10
+./nodectl test -ip 35.189.182.223 -port 10336 -tx perf -num 10
 ```
 
 2. register, issue, transfer assert :
 ```
-./nodectl test -ip 139.196.113.85 -port 10331 -tx full
+./nodectl test -ip 35.189.182.223 -port 10336 -tx full
 ```
 
 3. look up block's information :
 ```
-./nodectl info -ip 139.196.113.85 -port 10331 -height 10
+./nodectl info -ip 35.189.182.223 -port 10336 -height 10
 ```
 
 4. look up transaction's information :
 ```
-./nodectl info -ip 139.196.113.85 -port 10331 -txhash d438896f07786b74281bc70259b0caaccb87460171104ea17473b5e802033a98
+./nodectl info -ip 35.189.182.223 -port 10336 -txhash d438896f07786b74281bc70259b0caaccb87460171104ea17473b5e802033a98
 ```
 
 ......
@@ -212,10 +251,10 @@ Some other avaliable nodes for testing:
 ```
 IP               PORT
 ----------------------
-139.196.113.85:  10331
-139.196.113.101: 10331
-139.196.227.195: 10331
-139.196.227.195: 20331
+35.189.182.223:  10336
+35.189.182.223:  20336
+35.189.166.234:  30336
+35.189.166.234:  40336
 ```
 
 `Notice: Above nodes intended be used for public testing only, the data saved on the testing chain maybe reset at anytime. Keep in mind to backup the data by youself to avoid data losting.`

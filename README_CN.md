@@ -34,7 +34,6 @@ DNA是go语言实现的基于区块链技术的去中心化的分布式网络协
 
 ```shell
 $ git clone https://github.com/DNAProject/DNA.git
-
 ```
 
 用第三方包管理工具glide拉取依赖库
@@ -82,9 +81,9 @@ $ make
 4. 创建钱包文件
     - 通过命令行程序，在每个主机上分别创建节点运行所需的钱包文件wallet.dat 
       
-        `$ ./nodectl wallet -c [-p password]` 
+        `$ ./nodectl wallet -c -p password` 
 
-        注：通过-p参数设置钱包密码，如果-p参数省略则使用默认密码`passwordtest` 
+        注：通过-p参数设置钱包密码
 
 5. 记账人配置
     - 为每个节点创建钱包时会显示钱包的公钥信息，将所有节点的公钥信息分别填写到每个节点的配置文件的`BookKeepers`项中
@@ -105,20 +104,21 @@ config.json node nodectl wallet.dat
 ```shell
 $ cat config.json
     ...
-"SeedList": [
-      "10.0.0.100:20338"
+    "SeedList": [
+      "35.189.182.223:20338",
+      "35.189.166.234:30338"
     ],
     "BookKeepers": [
-            "027ffb2294611d2ba9cbfd81f5741208686182e839a195a08e57e34e83d31519fa",
-            "0275bed61d25c633a2b063f7738262e35fe9cac01d0e17188cefbbefcac86a23e2",
-            "0304b39b0fff81c3d98abc9469cce0cc2de8b3d8de0bdc182533bfe3fd8e34effa",
-            "0276ea35cfdd804d2e9f4c7c993e0823e4bcfd74c42c2c0047ccd11426a23fcc2f"
+      "03ad8f4a837f7a02adedcea920b30c5c99517aabc7d2695d93ac572b9c2106d4c2",
+      "0293bafa2df4813ae999bf42f35a38bcb9ec26a252fd28dc0ccab56c671cf784e6",
+      "02aec70e084e4e5d36ed2db54aa708a6bd095fbb663929850986a5ec22061e1be2",
+      "02758623d16774f3c5535a305e65ea949343eab06888ee2e7633b4f3f9d78d506c"
     ],
+	"HttpRestPort": 20334,
     "HttpJsonPort": 20336,
     "HttpLocalPort": 20337,
     "NodePort": 20338,
     ...
-```
 
 ## 单机部署配置
 
@@ -158,64 +158,68 @@ $ tree
 ```shell
 $ cat node[1234]/config.json
     ...
-"SeedList": [
-      "10.0.0.100:10003"
+    "SeedList": [
+      "35.189.182.223:20338",
+      "35.189.166.234:30338"
     ],
     "BookKeepers": [
-            "027ffb2294611d2ba9cbfd81f5741208686182e839a195a08e57e34e83d31519fa",
-            "0275bed61d25c633a2b063f7738262e35fe9cac01d0e17188cefbbefcac86a23e2",
-            "0304b39b0fff81c3d98abc9469cce0cc2de8b3d8de0bdc182533bfe3fd8e34effa",
-            "0276ea35cfdd804d2e9f4c7c993e0823e4bcfd74c42c2c0047ccd11426a23fcc2f"
+      "03ad8f4a837f7a02adedcea920b30c5c99517aabc7d2695d93ac572b9c2106d4c2",
+      "0293bafa2df4813ae999bf42f35a38bcb9ec26a252fd28dc0ccab56c671cf784e6",
+      "02aec70e084e4e5d36ed2db54aa708a6bd095fbb663929850986a5ec22061e1be2",
+      "02758623d16774f3c5535a305e65ea949343eab06888ee2e7633b4f3f9d78d506c"
     ],
-    "HttpJsonPort": 10001,
-    "HttpLocalPort": 10002,
-    "NodePort": 10003,
+    "HttpRestPort": 10334,
+    "HttpJsonPort": 10336,
+    "HttpLocalPort": 10337,
+    "NodePort": 10338,
     ...
 
-    ...
-"SeedList": [
-      "10.0.0.100:10003"
+    "SeedList": [
+      "35.189.182.223:20338",
+      "35.189.166.234:30338"
     ],
     "BookKeepers": [
-            "027ffb2294611d2ba9cbfd81f5741208686182e839a195a08e57e34e83d31519fa",
-            "0275bed61d25c633a2b063f7738262e35fe9cac01d0e17188cefbbefcac86a23e2",
-            "0304b39b0fff81c3d98abc9469cce0cc2de8b3d8de0bdc182533bfe3fd8e34effa",
-            "0276ea35cfdd804d2e9f4c7c993e0823e4bcfd74c42c2c0047ccd11426a23fcc2f"
+      "03ad8f4a837f7a02adedcea920b30c5c99517aabc7d2695d93ac572b9c2106d4c2",
+      "0293bafa2df4813ae999bf42f35a38bcb9ec26a252fd28dc0ccab56c671cf784e6",
+      "02aec70e084e4e5d36ed2db54aa708a6bd095fbb663929850986a5ec22061e1be2",
+      "02758623d16774f3c5535a305e65ea949343eab06888ee2e7633b4f3f9d78d506c"
     ],
-    "HttpJsonPort": 20001,
-    "HttpLocalPort": 20002,
-    "NodePort": 20003,
-    ...
-    
-    ...
-"SeedList": [
-      "10.0.0.100:10003"
-    ],
-    "BookKeepers": [
-            "027ffb2294611d2ba9cbfd81f5741208686182e839a195a08e57e34e83d31519fa",
-            "0275bed61d25c633a2b063f7738262e35fe9cac01d0e17188cefbbefcac86a23e2",
-            "0304b39b0fff81c3d98abc9469cce0cc2de8b3d8de0bdc182533bfe3fd8e34effa",
-            "0276ea35cfdd804d2e9f4c7c993e0823e4bcfd74c42c2c0047ccd11426a23fcc2f"
-    ],
-    "HttpJsonPort": 30001,
-    "HttpLocalPort": 30002,
-    "NodePort": 30003,
+    "HttpRestPort": 20334,
+    "HttpJsonPort": 20336,
+    "HttpLocalPort": 20337,
+    "NodePort": 20338,
     ...
 
-    ...
-"SeedList": [
-      "10.0.0.100:10003"
+    "SeedList": [
+      "35.189.182.223:20338",
+      "35.189.166.234:30338"
     ],
     "BookKeepers": [
-            "027ffb2294611d2ba9cbfd81f5741208686182e839a195a08e57e34e83d31519fa",
-            "0275bed61d25c633a2b063f7738262e35fe9cac01d0e17188cefbbefcac86a23e2",
-            "0304b39b0fff81c3d98abc9469cce0cc2de8b3d8de0bdc182533bfe3fd8e34effa",
-            "0276ea35cfdd804d2e9f4c7c993e0823e4bcfd74c42c2c0047ccd11426a23fcc2f"
+      "03ad8f4a837f7a02adedcea920b30c5c99517aabc7d2695d93ac572b9c2106d4c2",
+      "0293bafa2df4813ae999bf42f35a38bcb9ec26a252fd28dc0ccab56c671cf784e6",
+      "02aec70e084e4e5d36ed2db54aa708a6bd095fbb663929850986a5ec22061e1be2",
+      "02758623d16774f3c5535a305e65ea949343eab06888ee2e7633b4f3f9d78d506c"
     ],
-    "HttpJsonPort": 40001,
-    "HttpLocalPort": 40002,
-    "NodePort": 40003,
+    "HttpRestPort": 30334,
+    "HttpJsonPort": 30336,
+    "HttpLocalPort": 30337,
+    "NodePort": 30338,
     ...
+
+    "SeedList": [
+      "35.189.182.223:20338",
+      "35.189.166.234:30338"
+    ],
+    "BookKeepers": [
+      "03ad8f4a837f7a02adedcea920b30c5c99517aabc7d2695d93ac572b9c2106d4c2",
+      "0293bafa2df4813ae999bf42f35a38bcb9ec26a252fd28dc0ccab56c671cf784e6",
+      "02aec70e084e4e5d36ed2db54aa708a6bd095fbb663929850986a5ec22061e1be2",
+      "02758623d16774f3c5535a305e65ea949343eab06888ee2e7633b4f3f9d78d506c"
+    ],
+    "HttpRestPort": 40334,
+    "HttpJsonPort": 40336,
+    "HttpLocalPort": 40337,
+    "NodePort": 40338,
 ```
 
 ## 运行
@@ -223,6 +227,7 @@ $ cat node[1234]/config.json
 
 ```shell
 $ ./node
+$ - 输入你的钱包口令
 ```
 
 ## 测试环境
@@ -248,10 +253,10 @@ $ ./node
 ```
 IP               PORT
 ----------------------
-139.196.113.85 : 7003
-139.196.113.101: 7131
-139.196.113.101: 7331
-139.196.227.195: 7231
+35.189.182.223:  10336
+35.189.182.223:  20336
+35.189.166.234:  30336
+35.189.166.234:  40336
 ```
 
 注：以上环境仅供测试使用，数据可能丢失或重置，我们不保证测试数据安全，请用户注意备份数据。
