@@ -7,9 +7,7 @@ import (
 	Err "DNA/net/httprestful/error"
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -31,24 +29,26 @@ type restServer struct {
 	server           *http.Server
 	postMap          map[string]Action
 	getMap           map[string]Action
-	checkAccessToken func(auth_type, access_token string) bool
+	checkAccessToken func(auth_type, access_token string) (string, int64, interface{})
 }
 
 const (
-	Api_Getconnectioncount = "/api/v1/node/connectioncount"
-	Api_Getblockbyheight   = "/api/v1/block/details/height/:height"
-	Api_Getblockbyhash     = "/api/v1/block/details/hash/:hash"
-	Api_Getblockheight     = "/api/v1/block/height"
-	Api_Gettransaction     = "/api/v1/transaction/:hash"
-	Api_Getasset           = "/api/v1/asset/:hash"
-	Api_Restart            = "/api/v1/restart"
-	Api_SendRawTransaction = "/api/v1/transaction"
-	Api_OauthServerAddr    = "/api/v1/config/oauthserver/addr"
-	Api_NoticeServerAddr   = "/api/v1/config/noticeserver/addr"
-	Api_NoticeServerState  = "/api/v1/config/noticeserver/state"
+	Api_Getconnectioncount           = "/api/v1/node/connectioncount"
+	Api_Getblockbyheight             = "/api/v1/block/details/height/:height"
+	Api_Getblockbyhash               = "/api/v1/block/details/hash/:hash"
+	Api_Getblockheight               = "/api/v1/block/height"
+	Api_Gettransaction               = "/api/v1/transaction/:hash"
+	Api_Getasset                     = "/api/v1/asset/:hash"
+	Api_GetUnspendOutput             = "/api/v1/asset/unspendoutput"
+	Api_Restart                      = "/api/v1/restart"
+	Api_SendRawTransaction           = "/api/v1/transaction"
+	Api_SendCustomRecordTxByTransfer = "/api/v1/custom/transaction/record"
+	Api_OauthServerAddr              = "/api/v1/config/oauthserver/addr"
+	Api_NoticeServerAddr             = "/api/v1/config/noticeserver/addr"
+	Api_NoticeServerState            = "/api/v1/config/noticeserver/state"
 )
 
-func InitRestServer(checkAccessToken func(string, string) bool) ApiServer {
+func InitRestServer(checkAccessToken func(string, string) (string, int64, interface{})) ApiServer {
 	rt := &restServer{}
 	rt.checkAccessToken = checkAccessToken
 
@@ -66,8 +66,13 @@ func (rt *restServer) Start() error {
 	}
 
 	tlsFlag := false
-	if tlsFlag {
-		rt.listener, _ = rt.initTlsListen()
+	if tlsFlag || Parameters.HttpRestPort%1000 == 443 {
+		var err error
+		rt.listener, err = rt.initTlsListen()
+		if err != nil {
+			log.Error("Https Cert: ", err.Error())
+			return err
+		}
 	} else {
 		var err error
 		rt.listener, err = net.Listen("tcp", ":"+strconv.Itoa(Parameters.HttpRestPort))
@@ -96,16 +101,18 @@ func (rt *restServer) registryMethod() {
 		Api_Getblockheight:     {name: "getblockheight", handler: GetBlockHeight},
 		Api_Gettransaction:     {name: "gettransaction", handler: GetTransactionByHash},
 		Api_Getasset:           {name: "getasset", handler: GetAssetByHash},
+		Api_GetUnspendOutput:   {name: "getunspendoutput", handler: GetUnspendOutput},
 		Api_OauthServerAddr:    {name: "getoauthserveraddr", handler: GetOauthServerAddr},
 		Api_NoticeServerAddr:   {name: "getnoticeserveraddr", handler: GetNoticeServerAddr},
 		Api_Restart:            {name: "restart", handler: rt.Restart},
 	}
 
 	postMethodMap := map[string]Action{
-		Api_SendRawTransaction: {name: "sendrawtransaction", handler: SendRawTransaction},
-		Api_OauthServerAddr:    {name: "setoauthserveraddr", handler: SetOauthServerAddr},
-		Api_NoticeServerAddr:   {name: "setnoticeserveraddr", handler: SetNoticeServerAddr},
-		Api_NoticeServerState:  {name: "setpostblock", handler: SetPushBlockFlag},
+		Api_SendRawTransaction:           {name: "sendrawtransaction", handler: SendRawTransaction},
+		Api_SendCustomRecordTxByTransfer: {name: "sendrecord", handler: SendRecorByTransferTransaction},
+		Api_OauthServerAddr:              {name: "setoauthserveraddr", handler: SetOauthServerAddr},
+		Api_NoticeServerAddr:             {name: "setnoticeserveraddr", handler: SetNoticeServerAddr},
+		Api_NoticeServerState:            {name: "setpostblock", handler: SetPushBlockFlag},
 	}
 	rt.postMap = postMethodMap
 	rt.getMap = getMethodMap
@@ -119,7 +126,9 @@ func (rt *restServer) getPath(url string) string {
 	} else if strings.Contains(url, strings.TrimRight(Api_Gettransaction, ":hash")) {
 		return Api_Gettransaction
 	} else if strings.Contains(url, strings.TrimRight(Api_Getasset, ":hash")) {
-		return Api_Getasset
+		if url != Api_GetUnspendOutput {
+			return Api_Getasset
+		}
 	}
 	return url
 }
@@ -136,15 +145,20 @@ func (rt *restServer) initGetHandler() {
 			access_token := r.FormValue("access_token")
 			auth_type := r.FormValue("auth_type")
 
-			if !rt.checkAccessToken(auth_type, access_token) && r.URL.Path != Api_OauthServerAddr {
-				resp = ResponsePack(Err.INVALID_TOKEN)
+			CAkey, errCode, result := rt.checkAccessToken(auth_type, access_token)
+			if errCode > 0 && r.URL.Path != Api_OauthServerAddr {
+				resp = ResponsePack(errCode)
+				resp["Result"] = result
 				goto ResponseWrite
 			}
 			if h, ok := rt.getMap[rt.getPath(r.URL.Path)]; ok {
 
 				reqMsg["Height"] = getParam(r, "height")
 				reqMsg["Hash"] = getParam(r, "hash")
+				reqMsg["CAkey"] = CAkey
 				reqMsg["Raw"] = r.FormValue("raw")
+				reqMsg["Addr"] = r.FormValue("addr")
+				reqMsg["Assetid"] = r.FormValue("assetid")
 				resp = h.handler(reqMsg)
 				resp["Action"] = h.name
 			} else {
@@ -160,7 +174,6 @@ func (rt *restServer) initGetHandler() {
 			w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
 			w.Header().Set("content-type", "application/json")
 			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Connection", "close")
 			w.Write([]byte(data))
 		})
 	}
@@ -178,16 +191,18 @@ func (rt *restServer) initPostHandler() {
 			access_token := r.FormValue("access_token")
 			auth_type := r.FormValue("auth_type")
 			var resp map[string]interface{}
-			if !rt.checkAccessToken(auth_type, access_token) && r.URL.Path != Api_OauthServerAddr {
-				resp = ResponsePack(Err.INVALID_TOKEN)
-				data, _ = json.Marshal(resp)
+			CAkey, errCode, result := rt.checkAccessToken(auth_type, access_token)
+			if errCode > 0 && r.URL.Path != Api_OauthServerAddr {
+				resp = ResponsePack(errCode)
+				resp["Result"] = result
 				goto ResponseWrite
 			}
 
 			if h, ok := rt.postMap[rt.getPath(r.URL.Path)]; ok {
 
 				if err = json.Unmarshal(body, &reqMsg); err == nil {
-
+					reqMsg["CAkey"] = CAkey
+					reqMsg["Raw"] = r.FormValue("raw")
 					resp = h.handler(reqMsg)
 					resp["Action"] = h.name
 
@@ -207,7 +222,6 @@ func (rt *restServer) initPostHandler() {
 			w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
 			w.Header().Set("content-type", "application/json")
 			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Connection", "close")
 			w.Write([]byte(data))
 		})
 	}
@@ -237,10 +251,9 @@ func (rt *restServer) Restart(cmd map[string]interface{}) map[string]interface{}
 	return resp
 }
 func (rt *restServer) initTlsListen() (net.Listener, error) {
-	//TODO TLS test, Cert Parameters
-	CertPath := Parameters.CertPath
-	KeyPath := Parameters.KeyPath
-	CAPath := Parameters.CAPath
+
+	CertPath := Parameters.RestCertPath
+	KeyPath := Parameters.RestKeyPath
 
 	// load cert
 	cert, err := tls.LoadX509KeyPair(CertPath, KeyPath)
@@ -248,23 +261,9 @@ func (rt *restServer) initTlsListen() (net.Listener, error) {
 		log.Error("load keys fail", err)
 		return nil, err
 	}
-	// load root ca
-	caData, err := ioutil.ReadFile(CAPath)
-	if err != nil {
-		log.Error("read ca fail", err)
-		return nil, err
-	}
-	pool := x509.NewCertPool()
-	ret := pool.AppendCertsFromPEM(caData)
-	if !ret {
-		return nil, errors.New("failed to parse root certificate")
-	}
 
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{cert},
-		RootCAs:      pool,
-		ClientAuth:   tls.RequireAndVerifyClientCert,
-		ClientCAs:    pool,
 	}
 
 	log.Info("TLS listen port is ", strconv.Itoa(Parameters.HttpRestPort))

@@ -21,6 +21,7 @@ import (
 
 var node Noder
 var pushBlockFlag bool = true
+var oauthClient = NewOauthClient()
 
 type ApiServer interface {
 	Start() error
@@ -165,6 +166,97 @@ func GetAssetByHash(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"] = asset
 	return resp
 }
+func GetUnspendOutput(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(Err.SUCCESS)
+	addr := cmd["Addr"].(string)
+	assetid := cmd["Assetid"].(string)
+
+	var programHash Uint160
+	var assetHash Uint256
+
+	bys, err := hex.DecodeString(addr)
+	if err != nil {
+		resp["Error"] = Err.INVALID_PARAMS
+		return resp
+	}
+	if err := programHash.Deserialize(bytes.NewReader(bys)); err != nil {
+		resp["Error"] = Err.INVALID_PARAMS
+		return resp
+	}
+
+	bys, err = hex.DecodeString(assetid)
+	if err != nil {
+		resp["Error"] = Err.INVALID_PARAMS
+		return resp
+	}
+	if err := assetHash.Deserialize(bytes.NewReader(bys)); err != nil {
+		resp["Error"] = Err.INVALID_PARAMS
+		return resp
+	}
+	type TxOutputInfo struct {
+		AssetID     string
+		Value       int64
+		ProgramHash string
+	}
+	outputs := make(map[string]*TxOutputInfo)
+	height := ledger.DefaultLedger.GetLocalBlockChainHeight()
+	var i uint32
+	// construct global UTXO table
+	for i = 0; i <= height; i++ {
+		block, err := ledger.DefaultLedger.GetBlockWithHeight(i)
+		if err != nil {
+			resp["Error"] = Err.INTERNAL_ERROR
+			return resp
+		}
+		// skip the bookkeeping transaction
+		for _, t := range block.Transactions[1:] {
+			// skip the register transaction
+			if t.TxType == tx.RegisterAsset {
+				continue
+			}
+			txHash := t.Hash()
+			txHashHex := ToHexString(txHash.ToArray())
+			for i, output := range t.Outputs {
+				if output.AssetID.CompareTo(assetHash) == 0 &&
+					output.ProgramHash.CompareTo(programHash) == 0 {
+					key := txHashHex + ":" + strconv.Itoa(i)
+					asset := ToHexString(output.AssetID.ToArray())
+					pHash := ToHexString(output.ProgramHash.ToArray())
+					value := int64(output.Value)
+					info := &TxOutputInfo{
+						asset,
+						value,
+						pHash,
+					}
+					outputs[key] = info
+				}
+			}
+		}
+	}
+	// delete spent output from global UTXO table
+	height = ledger.DefaultLedger.GetLocalBlockChainHeight()
+	for i = 0; i <= height; i++ {
+		block, err := ledger.DefaultLedger.GetBlockWithHeight(i)
+		if err != nil {
+			return DnaRpcInternalError
+		}
+		// skip the bookkeeping transaction
+		for _, t := range block.Transactions[1:] {
+			// skip the register transaction
+			if t.TxType == tx.RegisterAsset {
+				continue
+			}
+			for _, input := range t.UTXOInputs {
+				refer := ToHexString(input.ReferTxID.ToArray())
+				index := strconv.Itoa(int(input.ReferTxOutputIndex))
+				key := refer + ":" + index
+				delete(outputs, key)
+			}
+		}
+	}
+	resp["Result"] = outputs
+	return resp
+}
 
 //Transaction
 func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
@@ -222,6 +314,101 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 		return resp
 	}
 	resp["Result"] = ToHexString(hash.ToArray())
+	return resp
+}
+
+//record
+func getRecordData(cmd map[string]interface{}) ([]byte, int64) {
+	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
+		str, ok := cmd["RecordData"].(string)
+		if !ok {
+			return nil, Err.INVALID_PARAMS
+		}
+		bys, err := hex.DecodeString(str)
+		if err != nil {
+			return nil, Err.INVALID_PARAMS
+		}
+		return bys, Err.SUCCESS
+	}
+	type Data struct {
+		Algrithem string `json:Algrithem`
+		Desc      string `json:Desc`
+		Hash      string `json:Hash`
+		Text      string `json:Text`
+		Signature string `json:Signature`
+	}
+	type RecordData struct {
+		CAkey     string  `json:CAkey`
+		Data      Data    `json:Data`
+		SeqNo     string  `json:SeqNo`
+		Timestamp float64 `json:Timestamp`
+		//TrdPartyTimestamp float64 `json:TrdPartyTimestamp`
+	}
+
+	tmp := &RecordData{}
+	reqRecordData, ok := cmd["RecordData"].(map[string]interface{})
+	if !ok {
+		return nil, Err.INVALID_PARAMS
+	}
+	reqBtys, err := json.Marshal(reqRecordData)
+	if err != nil {
+		return nil, Err.INVALID_PARAMS
+	}
+
+	if err := json.Unmarshal(reqBtys, tmp); err != nil {
+		return nil, Err.INVALID_PARAMS
+	}
+	tmp.CAkey, ok = cmd["CAkey"].(string)
+	if !ok || tmp.Timestamp == 0 || len(tmp.Data.Hash) == 0 || len(tmp.Data.Algrithem) == 0 || len(tmp.Data.Desc) == 0 {
+		return nil, Err.INVALID_PARAMS
+	}
+	repBtys, err := json.Marshal(tmp)
+	if err != nil {
+		return nil, Err.INVALID_PARAMS
+	}
+	return repBtys, Err.SUCCESS
+}
+func SendRecorByTransferTransaction(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(Err.SUCCESS)
+	var recordData []byte
+	recordData, resp["Error"] = getRecordData(cmd)
+	if recordData == nil {
+		return resp
+	}
+
+	var inputs []*tx.UTXOTxInput
+	var outputs []*tx.TxOutput
+
+	transferTx, _ := tx.NewTransferAssetTransaction(inputs, outputs)
+	record := tx.NewTxAttribute(tx.Description, recordData)
+	transferTx.Attributes = append(transferTx.Attributes, &record)
+
+	hash := transferTx.Hash()
+	resp["Result"] = ToHexString(hash.ToArray())
+
+	if err := VerifyAndSendTx(transferTx); err != nil {
+		resp["Error"] = Err.INTERNAL_ERROR
+		return resp
+	}
+	return resp
+}
+
+func SendRecodTransaction(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(Err.SUCCESS)
+	var recordData []byte
+	recordData, resp["Error"] = getRecordData(cmd)
+	if recordData == nil {
+		return resp
+	}
+	recordType := "record"
+	recordTx, _ := tx.NewRecordTransaction(recordType, recordData)
+
+	hash := recordTx.Hash()
+	resp["Result"] = ToHexString(hash.ToArray())
+	if err := VerifyAndSendTx(recordTx); err != nil {
+		resp["Error"] = Err.INTERNAL_ERROR
+		return resp
+	}
 	return resp
 }
 
@@ -303,7 +490,7 @@ func ResponsePack(errCode int64) map[string]interface{} {
 	return resp
 }
 
-func PostRequest(cmd map[string]interface{}, addr string) (map[string]interface{}, error) {
+func PostRequest(cmd map[string]interface{}, url string) (map[string]interface{}, error) {
 
 	var repMsg = make(map[string]interface{})
 
@@ -314,33 +501,98 @@ func PostRequest(cmd map[string]interface{}, addr string) (map[string]interface{
 	reqData := bytes.NewBuffer(data)
 	transport := http.Transport{
 		Dial: func(netw, addr string) (net.Conn, error) {
-			conn, err := net.DialTimeout(netw, addr, time.Second*2)
+			conn, err := net.DialTimeout(netw, addr, time.Second*10)
 			if err != nil {
 				return nil, err
 			}
-			conn.SetDeadline(time.Now().Add(time.Second * 5))
+			conn.SetDeadline(time.Now().Add(time.Second * 10))
 			return conn, nil
 		},
-		DisableKeepAlives: true,
+		DisableKeepAlives: false,
 	}
 	client := &http.Client{Transport: &transport}
-	request, err := http.NewRequest("POST", addr, reqData)
+	request, err := http.NewRequest("POST", url, reqData)
 	if err != nil {
 		return repMsg, err
 	}
 	request.Header.Set("Content-type", "application/json")
 
 	response, err := client.Do(request)
+	if response != nil {
+		defer response.Body.Close()
+		if response.StatusCode == 200 {
+			body, _ := ioutil.ReadAll(response.Body)
+			if err := json.Unmarshal(body, &repMsg); err == nil {
+				return repMsg, err
+			}
+		}
+	}
+
 	if err != nil {
 		return repMsg, err
 	}
-	defer response.Body.Close()
 
-	if response.StatusCode == 200 {
+	return repMsg, err
+}
+
+func NewOauthClient() *http.Client {
+	c := &http.Client{
+		Transport: &http.Transport{
+			Dial: func(netw, addr string) (net.Conn, error) {
+				conn, err := net.DialTimeout(netw, addr, time.Second*10)
+				if err != nil {
+					return nil, err
+				}
+				conn.SetDeadline(time.Now().Add(time.Second * 10))
+				return conn, nil
+			},
+			DisableKeepAlives: false,
+		},
+	}
+	return c
+}
+
+func OauthRequest(method string, cmd map[string]interface{}, url string) (map[string]interface{}, error) {
+
+	var repMsg = make(map[string]interface{})
+	var response *http.Response
+	var err error
+
+	switch method {
+	case "GET":
+
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			return repMsg, err
+		}
+		response, err = oauthClient.Do(req)
+
+	case "POST":
+		data, err := json.Marshal(cmd)
+		if err != nil {
+			return repMsg, err
+		}
+		reqData := bytes.NewBuffer(data)
+		req, err := http.NewRequest("POST", url, reqData)
+		if err != nil {
+			return repMsg, err
+		}
+		req.Header.Set("Content-type", "application/json")
+		response, err = oauthClient.Do(req)
+	default:
+		return repMsg, err
+	}
+	if response != nil {
+		defer response.Body.Close()
+
 		body, _ := ioutil.ReadAll(response.Body)
 		if err := json.Unmarshal(body, &repMsg); err == nil {
 			return repMsg, err
 		}
 	}
+	if err != nil {
+		return repMsg, err
+	}
+
 	return repMsg, err
 }
