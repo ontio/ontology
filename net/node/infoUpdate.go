@@ -92,7 +92,7 @@ func (node *node) HeartBeatMonitor() {
 			if time.Since(t).Seconds() > (PERIODUPDATETIME * KEEPALIVETIMEOUT) {
 				log.Warn("keepalive timeout!!!")
 				n.SetState(INACTIVITY)
-				//n.CloseConn()
+				n.CloseConn()
 			}
 		}
 	}
@@ -142,6 +142,8 @@ func (node *node) reconnect(peer *node) error {
 			return nil
 		}
 	}
+	t := time.Now()
+	peer.UpdateRXTime(t)
 	peer.tryTimes = 0
 	peer.conn = conn
 	peer.addr, err = parseIPaddr(conn.RemoteAddr().String())
