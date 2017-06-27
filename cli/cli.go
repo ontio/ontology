@@ -10,8 +10,7 @@ import (
 )
 
 func init() {
-	var path string = "./Log/"
-	log.CreatePrintLog(path)
+	log.Init()
 	crypto.SetAlg(config.Parameters.EncryptAlg)
 	//seed transaction nonce
 	rand.Seed(time.Now().UnixNano())

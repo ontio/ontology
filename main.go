@@ -23,8 +23,7 @@ const (
 )
 
 func init() {
-	log.CreatePrintLog(log.Path)
-
+	log.Init(log.Path, log.Stdout)
 	var coreNum int
 	if config.Parameters.MultiCoreNum > DefaultMultiCoreNum {
 		coreNum = int(config.Parameters.MultiCoreNum)
@@ -97,7 +96,7 @@ func main() {
 		isNeedNewFile := log.CheckIfNeedNewFile()
 		if isNeedNewFile == true {
 			log.ClosePrintLog()
-			log.CreatePrintLog(log.Path)
+			log.Init(log.Path, os.Stdout)
 		}
 	}
 
