@@ -187,7 +187,7 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 			}
 		}
 
-		return current_Header_Height, nil
+		return bd.currentBlockHeight, nil
 
 	} else {
 		// batch delete old data
