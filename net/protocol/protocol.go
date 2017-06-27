@@ -122,6 +122,7 @@ type Noder interface {
 	GetLastRXTime() time.Time
 	SetHeight(height uint64)
 	WaitForFourPeersStart()
+	GetFlightHeights() []uint32
 }
 
 func (msg *NodeAddr) Deserialization(p []byte) error {

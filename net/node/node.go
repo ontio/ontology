@@ -381,6 +381,9 @@ func (node *node) StoreFlightHeight(height uint32) {
 func (node *node) GetFlightHeightCnt() int {
 	return len(node.flightHeights)
 }
+func (node *node) GetFlightHeights() []uint32 {
+	return node.flightHeights
+}
 
 func (node *node) RemoveFlightHeightLessThan(h uint32) {
 	heights := node.flightHeights

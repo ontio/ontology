@@ -43,10 +43,20 @@ func (node *node) SyncBlk() {
 	var reqCnt uint32
 	var i uint32
 	noders := node.local.GetNeighborNoder()
+
 	for _, n := range noders {
 		n.RemoveFlightHeightLessThan(currentBlkHeight)
 		count := MAXREQBLKONCE - uint32(n.GetFlightHeightCnt())
 		dValue = int32(headerHeight - currentBlkHeight - reqCnt)
+		flights := n.GetFlightHeights()
+		if count == 0 {
+			for _, f := range flights {
+
+				hash := ledger.DefaultLedger.Store.GetHeaderHashByHeight(f)
+				ReqBlkData(n, hash)
+			}
+
+		}
 		for i = 1; i <= count && dValue >= 0; i++ {
 			hash := ledger.DefaultLedger.Store.GetHeaderHashByHeight(currentBlkHeight + reqCnt)
 			ReqBlkData(n, hash)
@@ -148,6 +158,8 @@ func (node *node) reconnect(peer *node) error {
 }
 
 func (node *node) TryConnect() {
+	node.nbrNodes.RLock()
+	defer node.nbrNodes.RUnlock()
 	for _, n := range node.nbrNodes.List {
 		if n.GetState() == INACTIVITY && n.tryTimes < 3 {
 			//try to connect
