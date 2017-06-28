@@ -44,8 +44,14 @@ func unpackNodeBuf(node *node, buf []byte) {
 			errors.New("Unexpected size of received message")
 			return
 		}
-		// FIXME Check the payload < 0 error case
-		msgLen = PayloadLen(buf) + MSGHDRLEN
+		length := 0
+
+		length, buf = PayloadLen(buf)
+
+		if length == 0 && buf == nil {
+			return
+		}
+		msgLen = length + MSGHDRLEN
 	} else {
 		msgLen = node.rxBuf.len
 	}
@@ -58,6 +64,7 @@ func unpackNodeBuf(node *node, buf []byte) {
 	} else if len(buf) < msgLen {
 		node.rxBuf.p = append(node.rxBuf.p, buf[:]...)
 		node.rxBuf.len = msgLen - len(buf)
+
 	} else {
 		msgBuf = append(node.rxBuf.p, buf[0:msgLen]...)
 		go HandleNodeMsg(node, msgBuf, len(msgBuf))
