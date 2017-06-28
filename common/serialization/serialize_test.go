@@ -33,20 +33,66 @@ func BenchmarkWriteVarString(b *testing.B) {
 
 func BenchmarkReadVarUint(b *testing.B) {
 	data := []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
-	r := bytes.NewReader(data)
-	ReadVarUint(r, 0)
+	for i := 0; i < b.N; i++ {
+		r := bytes.NewReader(data)
+		ReadVarUint(r, 0)
+	}
 }
 
 func BenchmarkReadVarBytes(b *testing.B) {
 	data := []byte{10, 11, 12}
-	r := bytes.NewReader(data)
-	ReadVarBytes(r)
+	for i := 0; i < b.N; i++ {
+		r := bytes.NewReader(data)
+		ReadVarBytes(r)
+	}
 }
 
 func BenchmarkReadVarString(b *testing.B) {
 	data := []byte{10, 11, 12}
-	r := bytes.NewReader(data)
-	ReadVarString(r)
+	for i := 0; i < b.N; i++ {
+		r := bytes.NewReader(data)
+		ReadVarString(r)
+	}
+}
+
+func BenchmarkSerialize(ben *testing.B) {
+	a3 := uint8(100)
+	a4 := uint16(65535)
+	a5 := uint32(4294967295)
+	a6 := uint64(18446744073709551615)
+	a7 := uint64(18446744073709551615)
+	a8 := []byte{10, 11, 12}
+	a9 := "hello onchain."
+	for i := 0; i < ben.N; i++ {
+		b := new(bytes.Buffer)
+
+		WriteVarUint(b, uint64(a3))
+		WriteVarUint(b, uint64(a4))
+		WriteVarUint(b, uint64(a5))
+		WriteVarUint(b, uint64(a6))
+		WriteVarUint(b, uint64(a7))
+		WriteVarBytes(b, a8)
+		WriteVarString(b, a9)
+
+		ReadVarUint(b, math.MaxUint64)
+		ReadVarUint(b, math.MaxUint64)
+		ReadVarUint(b, math.MaxUint64)
+		ReadVarUint(b, math.MaxUint64)
+		ReadVarUint(b, math.MaxUint32)
+		ReadVarBytes(b)
+		ReadVarString(b)
+
+		GetVarUintSize(uint64(100))
+		GetVarUintSize(uint64(65535))
+		GetVarUintSize(uint64(4294967295))
+		GetVarUintSize(uint64(18446744073709551615))
+
+		b.WriteByte(20)
+		b.WriteByte(21)
+		b.WriteByte(22)
+		ReadBytes(b, uint64(3))
+	}
+
 }
 
 func TestSerialize(t *testing.T) {
