@@ -46,7 +46,7 @@ const (
 const (
 	HELLOTIMEOUT     = 3 // Seconds
 	MAXHELLORETYR    = 3
-	MAXBUFLEN        = 1024 * 1024 * 5 // Fixme The maximum buffer to receive message
+	MAXBUFLEN        = 1024 * 16 // Fixme The maximum buffer to receive message
 	MAXCHANBUF       = 512
 	PROTOCOLVERSION  = 0
 	PERIODUPDATETIME = 3 // Time to update and sync information with other nodes
