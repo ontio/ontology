@@ -154,7 +154,11 @@ func (node *node) reconnect(peer *node) error {
 		conn.RemoteAddr().Network()))
 	go peer.rx()
 
-	peer.SetState(ESTABLISH)
+	if node.GetID() > peer.GetID() {
+		peer.SetState(HAND)
+		buf, _ := NewVersion(node)
+		peer.Tx(buf)
+	}
 
 	return nil
 }
