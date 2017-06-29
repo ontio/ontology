@@ -231,13 +231,14 @@ func FileOpen(path string) (*os.File, error) {
 func Init(a ...interface{}) {
 	writers := []io.Writer{}
 	var logFile *os.File
+	var err error
 	if len(a) == 0 {
 		writers = append(writers, ioutil.Discard)
 	} else {
 		for _, o := range a {
 			switch o.(type) {
 			case string:
-				logFile, err := FileOpen(o.(string))
+				logFile, err = FileOpen(o.(string))
 				if err != nil {
 					fmt.Println("error: open log file failed")
 					os.Exit(1)
