@@ -230,23 +230,17 @@ func PayloadLen(buf []byte) (int, []byte) {
 	h.Deserialization(buf)
 	if magicVerify(h.Magic) {
 		//TODO: verify hdr checksum
-
 		return int(h.Length), buf
 	} else {
-		log.Fatal("========================================================================")
-		log.Fatal("Magic number wrong ,try to find the right index,now buf len is ", len(buf))
 		//try find the magic number
 		for i := 0; i <= len(buf)-MSGHDRLEN; i++ {
 			if magicVerify(binary.LittleEndian.Uint32(buf[i:])) {
 				buf = append(buf[:0], buf[i:]...)
-				log.Trace("Find the start index, buf len is ", len(buf))
 				h.Deserialization(buf)
-				log.Fatal("========================================================================")
 				//TODO: verify hdr checksum
 				return int(h.Length), buf
 			}
 		}
-		log.Fatal("========================================================================")
 		return 0, nil
 	}
 }
