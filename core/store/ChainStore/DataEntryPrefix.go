@@ -14,7 +14,7 @@ const (
 	IX_HeaderHashList DataEntryPrefix = 0x80
 	IX_Enrollment     DataEntryPrefix = 0x84
 	IX_Unspent        DataEntryPrefix = 0x90
-	IX_Unclaimed      DataEntryPrefix = 0x91
+	IX_Unspent_UTXO   DataEntryPrefix = 0x91
 	IX_Vote           DataEntryPrefix = 0x94
 
 	// ASSET
@@ -23,8 +23,8 @@ const (
 	ST_ACCOUNT        DataEntryPrefix = 0xc2
 
 	//SYSTEM
-	SYS_CurrentBlock  DataEntryPrefix = 0x40
-	SYS_CurrentHeader DataEntryPrefix = 0x41
+	SYS_CurrentBlock      DataEntryPrefix = 0x40
+	SYS_CurrentHeader     DataEntryPrefix = 0x41
 	SYS_CurrentBookKeeper DataEntryPrefix = 0x42
 
 	//CONFIG
