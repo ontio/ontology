@@ -417,7 +417,7 @@ func (tx *Transaction) GetReference() (map[*UTXOTxInput]*TxOutput, error) {
 	return reference, nil
 }
 func (tx *Transaction) GetTransactionResults() (TransactionResult, error) {
-	var result TransactionResult
+	result := make(map[Uint256]Fixed64)
 	outputResult := tx.GetMergedAssetIDValueFromOutputs()
 	InputResult, err := tx.GetMergedAssetIDValueFromReference()
 	if err != nil {
