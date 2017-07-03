@@ -84,8 +84,8 @@ $ cat config.json
 	...
     "SeedList": [
       "35.189.182.223:10338",
-      "35.189.182.223:20338",
-      "35.189.166.234:30338"
+      "35.189.166.234:30338",
+      "35.189.161.152:50338"
     ],
 	...
     "BookKeepers": [
@@ -142,8 +142,8 @@ $ tree
 $ cat node[1234]/config.json
     "SeedList": [
       "35.189.182.223:10338",
-      "35.189.182.223:20338",
-      "35.189.166.234:30338"
+      "35.189.166.234:30338",
+      "35.189.161.152:50338"
     ],
     "BookKeepers": [
       "03ad8f4a837f7a02adedcea920b30c5c99517aabc7d2695d93ac572b9c2106d4c2",
@@ -159,8 +159,8 @@ $ cat node[1234]/config.json
 
     "SeedList": [
       "35.189.182.223:10338",
-      "35.189.182.223:20338",
-      "35.189.166.234:30338"
+      "35.189.166.234:30338",
+      "35.189.161.152:50338"
     ],
     "BookKeepers": [
       "03ad8f4a837f7a02adedcea920b30c5c99517aabc7d2695d93ac572b9c2106d4c2",
@@ -176,8 +176,8 @@ $ cat node[1234]/config.json
 
     "SeedList": [
       "35.189.182.223:10338",
-      "35.189.182.223:20338",
-      "35.189.166.234:30338"
+      "35.189.166.234:30338",
+      "35.189.161.152:50338"
     ],
     "BookKeepers": [
       "03ad8f4a837f7a02adedcea920b30c5c99517aabc7d2695d93ac572b9c2106d4c2",
@@ -193,8 +193,8 @@ $ cat node[1234]/config.json
 
     "SeedList": [
       "35.189.182.223:10338",
-      "35.189.182.223:20338",
-      "35.189.166.234:30338"
+      "35.189.166.234:30338",
+      "35.189.161.152:50338"
     ],
     "BookKeepers": [
       "03ad8f4a837f7a02adedcea920b30c5c99517aabc7d2695d93ac572b9c2106d4c2",
@@ -252,8 +252,9 @@ IP               PORT
 35.189.182.223:  20336
 35.189.166.234:  30336
 35.189.166.234:  40336
+35.189.161.152:  50336
 ```
- 
+
  `Notice: The nodes above are intended to be used for public testing only. The data saved on the testing chain maybe be reset at any time. Keep in mind to back up the data by yourself to avoid data loss.`
 
 # Contributing
