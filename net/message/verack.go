@@ -5,6 +5,7 @@ import (
 	. "DNA/net/protocol"
 	"encoding/hex"
 	"errors"
+	"strconv"
 )
 
 type verACK struct {
@@ -69,6 +70,9 @@ func (msg verACK) Handle(node Noder) error {
 	// but it doesn't matter to access the invalid
 	// node which will trigger a warning
 	node.ReqNeighborList()
-
+	addr := node.GetAddr()
+	port := node.GetPort()
+	nodeAddr := addr + ":" + strconv.Itoa(int(port))
+	node.LocalNode().RemoveAddrInConnectingList(nodeAddr)
 	return nil
 }

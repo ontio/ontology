@@ -17,6 +17,9 @@ import (
 	"math/rand"
 	"net"
 	"runtime"
+	"strconv"
+	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -50,6 +53,12 @@ type node struct {
 	lastContact              time.Time
 	nodeDisconnectSubscriber events.Subscriber
 	tryTimes                 uint32
+	ConnectingNodes
+}
+
+type ConnectingNodes struct {
+	sync.RWMutex
+	ConnectingAddrs []string
 }
 
 func (node *node) DumpInfo() {
@@ -65,6 +74,49 @@ func (node *node) DumpInfo() {
 	log.Info("\t relay = ", node.relay)
 	log.Info("\t height = ", node.height)
 	log.Info("\t conn cnt = ", node.link.connCnt)
+}
+
+func (node *node) IsAddrInNbrList(addr string) bool {
+	node.nbrNodes.RLock()
+	defer node.nbrNodes.RUnlock()
+	for _, n := range node.nbrNodes.List {
+		if n.GetState() == HAND || n.GetState() == HANDSHAKE || n.GetState() == ESTABLISH {
+			addr := n.GetAddr()
+			port := n.GetPort()
+			na := addr + ":" + strconv.Itoa(int(port))
+			if strings.Compare(na, addr) == 0 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (node *node) IsAddrInConnectingList(addr string) bool {
+	node.ConnectingNodes.RLock()
+	defer node.ConnectingNodes.RUnlock()
+	for _, a := range node.ConnectingAddrs {
+		if strings.Compare(a, addr) == 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func (node *node) SetAddrInConnectingList(addr string) {
+	node.ConnectingNodes.Lock()
+	defer node.ConnectingNodes.Unlock()
+	node.ConnectingAddrs = append(node.ConnectingAddrs, addr)
+}
+
+func (node *node) RemoveAddrInConnectingList(addr string) {
+	node.ConnectingNodes.Lock()
+	defer node.ConnectingNodes.Unlock()
+	for i, a := range node.ConnectingAddrs {
+		if strings.Compare(a, addr) == 0 {
+			node.ConnectingAddrs = append(node.ConnectingAddrs[:i], node.ConnectingAddrs[i+1:]...)
+		}
+	}
 }
 
 func (node *node) UpdateInfo(t time.Time, version uint32, services uint64,

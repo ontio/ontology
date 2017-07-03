@@ -68,6 +68,7 @@ type Noder interface {
 	Version() uint32
 	GetID() uint64
 	Services() uint64
+	GetAddr() string
 	GetPort() uint16
 	GetState() uint32
 	GetRelay() bool
@@ -123,6 +124,10 @@ type Noder interface {
 	SetHeight(height uint64)
 	WaitForFourPeersStart()
 	GetFlightHeights() []uint32
+	IsAddrInNbrList(addr string) bool
+	IsAddrInConnectingList(addr string) bool
+	SetAddrInConnectingList(addr string)
+	RemoveAddrInConnectingList(addr string)
 }
 
 func (msg *NodeAddr) Deserialization(p []byte) error {

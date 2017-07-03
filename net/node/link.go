@@ -210,9 +210,18 @@ func parseIPaddr(s string) (string, error) {
 
 func (node *node) Connect(nodeAddr string) error {
 	log.Debug()
+
+	if node.IsAddrInNbrList(nodeAddr) == true {
+		return nil
+	}
+	if node.IsAddrInConnectingList(nodeAddr) == true {
+		return nil
+	}
+	node.SetAddrInConnectingList(nodeAddr)
 	isTls := Parameters.IsTLS
 	var conn net.Conn
 	var err error
+
 	if isTls {
 		conn, err = TLSDial(nodeAddr)
 		if err != nil {
