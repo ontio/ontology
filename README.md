@@ -307,13 +307,17 @@ We provide two ways to subscribe:
 * Sign in https://groups.google.com/forum/#!forum/OnchainDNA
 
 
-## Forum
+## Site
 
 * https://www.DNAproject.org
 
+## Forum
+
+* https://forum.DNAproject.org
+
 ## Wiki
 
-* http://wiki.DNAproject.org
+* https://wiki.DNAproject.org
 
 # License
 

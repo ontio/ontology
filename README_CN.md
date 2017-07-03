@@ -304,13 +304,17 @@ IP               PORT
 - 登录 https://groups.google.com/forum/#!forum/OnchainDNA 
 
 
-## 论坛
+## 网站
 
 - https://www.DNAproject.org
 
+## 论坛
+
+- https://forum.DNAproject.org
+
 ## Wiki
 
-- http://wiki.DNAproject.org
+- https://wiki.DNAproject.org
 
 # 许可证
 
