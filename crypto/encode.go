@@ -285,7 +285,8 @@ func (e *PubKey) EncodePoint(isCommpressed bool) ([]byte, error) {
 		yBytes := e.Y.Bytes()
 		copy(encodedData[NOCOMPRESSEDLEN-len(yBytes):], yBytes)
 	}
-	copy(encodedData[FLAGLEN:COMPRESSEDLEN], e.X.Bytes())
+	xBytes := e.X.Bytes()
+	copy(encodedData[COMPRESSEDLEN-len(xBytes):COMPRESSEDLEN], xBytes)
 
 	if isCommpressed {
 		if isEven(e.Y) {
