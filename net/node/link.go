@@ -225,12 +225,14 @@ func (node *node) Connect(nodeAddr string) error {
 	if isTls {
 		conn, err = TLSDial(nodeAddr)
 		if err != nil {
+			node.RemoveAddrInConnectingList(nodeAddr)
 			log.Error("TLS connect failed: ", err)
 			return nil
 		}
 	} else {
 		conn, err = NonTLSDial(nodeAddr)
 		if err != nil {
+			node.RemoveAddrInConnectingList(nodeAddr)
 			log.Error("non TLS connect failed: ", err)
 			return nil
 		}
