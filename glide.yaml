@@ -10,7 +10,7 @@ import:
   - leveldb/errors
   - leveldb/iterator
   - leveldb/opt
-- package: github.com/tv42/base58
+- package: github.com/itchyny/base58-go
 - package: github.com/urfave/cli
 - package: github.com/bitly/go-simplejson
 - package: github.com/whyrusleeping/tar-utils

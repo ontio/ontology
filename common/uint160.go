@@ -6,9 +6,10 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
-	"github.com/tv42/base58"
 	"io"
 	"math/big"
+
+	"github.com/itchyny/base58-go"
 )
 
 const UINT160SIZE int = 20
@@ -67,18 +68,19 @@ func (f *Uint160) Deserialize(r io.Reader) error {
 	return nil
 }
 
-func (f *Uint160) ToAddress() string {
+func (f *Uint160) ToAddress() (string, error) {
 	data := append([]byte{23}, f.ToArray()...)
 	temp := sha256.Sum256(data)
 	temps := sha256.Sum256(temp[:])
 	data = append(data, temps[0:4]...)
 
-	bi := new(big.Int)
-	bi.SetBytes(data)
-	var dst []byte
-	dst = base58.EncodeBig(dst, bi)
-
-	return string(dst[:])
+	bi := new(big.Int).SetBytes(data).String()
+	encoding := base58.BitcoinEncoding
+	encoded, err := encoding.Encode([]byte(bi))
+	if err != nil {
+		return "", err
+	}
+	return string(encoded), nil
 }
 
 func Uint160ParseFromBytes(f []byte) (Uint160, error) {

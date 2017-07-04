@@ -281,7 +281,8 @@ func (cl *ClientImpl) CreateAccount() (*Account, error) {
 	ct, err := contract.CreateSignatureContract(ac.PublicKey)
 	if err == nil {
 		cl.AddContract(ct)
-		log.Info("[CreateContract] Address: ", ct.ProgramHash.ToAddress())
+		address, _ := ct.ProgramHash.ToAddress()
+		log.Info("[CreateContract] Address: ", address)
 	}
 
 	log.Info("Create account Success")
