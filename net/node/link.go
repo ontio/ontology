@@ -8,7 +8,6 @@ import (
 	. "DNA/net/protocol"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -296,9 +295,7 @@ func TLSDial(nodeAddr string) (net.Conn, error) {
 }
 
 func (node *node) Tx(buf []byte) {
-	log.Debug()
-	str := hex.EncodeToString(buf)
-	log.Debug(fmt.Sprintf("TX buf length: %d\n%s", len(buf), str))
+	log.Debugf("TX buf length: %d\n%x", len(buf), buf)
 
 	_, err := node.conn.Write(buf)
 	if err != nil {

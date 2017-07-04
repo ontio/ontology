@@ -13,7 +13,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -62,8 +61,8 @@ const (
 )
 
 func GetGID() uint64 {
-	b := make([]byte, 64)
-	b = b[:runtime.Stack(b, false)]
+	var buf [64]byte
+	b := buf[:runtime.Stack(buf[:], false)]
 	b = bytes.TrimPrefix(b, []byte("goroutine "))
 	b = b[:bytes.IndexByte(b, ' ')]
 	n, _ := strconv.ParseUint(string(b), 10, 64)
@@ -93,7 +92,6 @@ func NameLevel(name string) int {
 }
 
 type Logger struct {
-	sync.Mutex
 	level   int
 	logger  *log.Logger
 	logFile *os.File
@@ -108,67 +106,91 @@ func New(out io.Writer, prefix string, flag, level int, file *os.File) *Logger {
 }
 
 func (l *Logger) SetDebugLevel(level int) error {
-	l.Lock()
-	defer l.Unlock()
 	if level > maxLevelLog || level < 0 {
 		return errors.New("Invalid Debug Level")
 	}
+
 	l.level = level
 	return nil
 }
 
-func (l *Logger) output(level int, s string) error {
-	gid := GetGID()
-	gidStr := strconv.FormatUint(gid, 10)
-
-	return l.logger.Output(callDepth, LevelName(level)+" "+"GID"+
-		" "+gidStr+", "+s)
-}
-
 func (l *Logger) Output(level int, a ...interface{}) error {
 	if level >= l.level {
-		return l.output(level, fmt.Sprintln(a...))
+		gid := GetGID()
+		gidStr := strconv.FormatUint(gid, 10)
+
+		a = append([]interface{}{LevelName(level), "GID",
+			gidStr + ","}, a...)
+
+		return l.logger.Output(callDepth, fmt.Sprintln(a...))
+	}
+	return nil
+}
+
+func (l *Logger) Outputf(level int, format string, v ...interface{}) error {
+	if level >= l.level {
+		gid := GetGID()
+		v = append([]interface{}{LevelName(level), "GID",
+			gid}, v...)
+
+		return l.logger.Output(callDepth, fmt.Sprintf("%s %s %d, "+format+"\n", v...))
 	}
 	return nil
 }
 
 func (l *Logger) Trace(a ...interface{}) {
-	l.Lock()
-	defer l.Unlock()
 	l.Output(traceLog, a...)
 }
 
+func (l *Logger) Tracef(format string, a ...interface{}) {
+	l.Outputf(traceLog, format, a...)
+}
+
 func (l *Logger) Debug(a ...interface{}) {
-	l.Lock()
-	defer l.Unlock()
 	l.Output(debugLog, a...)
 }
 
+func (l *Logger) Debugf(format string, a ...interface{}) {
+	l.Outputf(debugLog, format, a...)
+}
+
 func (l *Logger) Info(a ...interface{}) {
-	l.Lock()
-	defer l.Unlock()
 	l.Output(infoLog, a...)
 }
 
+func (l *Logger) Infof(format string, a ...interface{}) {
+	l.Outputf(infoLog, format, a...)
+}
+
 func (l *Logger) Warn(a ...interface{}) {
-	l.Lock()
-	defer l.Unlock()
 	l.Output(warnLog, a...)
 }
 
+func (l *Logger) Warnf(format string, a ...interface{}) {
+	l.Outputf(warnLog, format, a...)
+}
+
 func (l *Logger) Error(a ...interface{}) {
-	l.Lock()
-	defer l.Unlock()
 	l.Output(errorLog, a...)
 }
 
+func (l *Logger) Errorf(format string, a ...interface{}) {
+	l.Outputf(errorLog, format, a...)
+}
+
 func (l *Logger) Fatal(a ...interface{}) {
-	l.Lock()
-	defer l.Unlock()
 	l.Output(fatalLog, a...)
 }
 
+func (l *Logger) Fatalf(format string, a ...interface{}) {
+	l.Outputf(fatalLog, format, a...)
+}
+
 func Trace(a ...interface{}) {
+	if traceLog < Log.level {
+		return
+	}
+
 	pc := make([]uintptr, 10)
 	runtime.Callers(2, pc)
 	f := runtime.FuncForPC(pc[0])
@@ -178,32 +200,94 @@ func Trace(a ...interface{}) {
 	nameFull := f.Name()
 	nameEnd := filepath.Ext(nameFull)
 	funcName := strings.TrimPrefix(nameEnd, ".")
-	Log.Trace(fmt.Sprint(funcName, "() ", fileName, ":", line, " ", fmt.Sprint(a...)))
+
+	a = append([]interface{}{funcName + "()", fileName + ":" + strconv.Itoa(line)}, a...)
+
+	Log.Trace(a...)
 }
 
-func Debug(a ...interface{}) {
+func Tracef(format string, a ...interface{}) {
+	if traceLog < Log.level {
+		return
+	}
+
 	pc := make([]uintptr, 10)
 	runtime.Callers(2, pc)
 	f := runtime.FuncForPC(pc[0])
 	file, line := f.FileLine(pc[0])
 	fileName := filepath.Base(file)
-	Log.Debug(fmt.Sprint(f.Name(), " ", fileName, ":", line, " ", fmt.Sprint(a...)))
+
+	nameFull := f.Name()
+	nameEnd := filepath.Ext(nameFull)
+	funcName := strings.TrimPrefix(nameEnd, ".")
+
+	a = append([]interface{}{funcName, fileName, line}, a...)
+
+	Log.Tracef("%s() %s:%d "+format, a...)
+}
+
+func Debug(a ...interface{}) {
+	if debugLog < Log.level {
+		return
+	}
+
+	pc := make([]uintptr, 10)
+	runtime.Callers(2, pc)
+	f := runtime.FuncForPC(pc[0])
+	file, line := f.FileLine(pc[0])
+	fileName := filepath.Base(file)
+
+	a = append([]interface{}{f.Name(), fileName + ":" + strconv.Itoa(line)}, a...)
+
+	Log.Debug(a...)
+}
+
+func Debugf(format string, a ...interface{}) {
+	if debugLog < Log.level {
+		return
+	}
+
+	pc := make([]uintptr, 10)
+	runtime.Callers(2, pc)
+	f := runtime.FuncForPC(pc[0])
+	file, line := f.FileLine(pc[0])
+	fileName := filepath.Base(file)
+
+	a = append([]interface{}{f.Name(), fileName, line}, a...)
+
+	Log.Debugf("%s %s:%d "+format, a...)
 }
 
 func Info(a ...interface{}) {
-	Log.Info(fmt.Sprint(a...))
+	Log.Info(a...)
 }
 
 func Warn(a ...interface{}) {
-	Log.Warn(fmt.Sprint(a...))
+	Log.Warn(a...)
 }
 
 func Error(a ...interface{}) {
-	Log.Error(fmt.Sprint(a...))
+	Log.Error(a...)
 }
 
 func Fatal(a ...interface{}) {
-	Log.Fatal(fmt.Sprint(a...))
+	Log.Fatal(a...)
+}
+
+func Infof(format string, a ...interface{}) {
+	Log.Infof(format, a...)
+}
+
+func Warnf(format string, a ...interface{}) {
+	Log.Warnf(format, a...)
+}
+
+func Errorf(format string, a ...interface{}) {
+	Log.Errorf(format, a...)
+}
+
+func Fatalf(format string, a ...interface{}) {
+	Log.Fatalf(format, a...)
 }
 
 func FileOpen(path string) (*os.File, error) {
