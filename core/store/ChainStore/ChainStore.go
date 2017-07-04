@@ -248,6 +248,16 @@ func (bd *ChainStore) InitLedgerStore(l *Ledger) error {
 	return nil
 }
 
+func (bd *ChainStore) IsTxHashDuplicate(txhash Uint256) bool {
+	prefix := []byte{byte(DATA_Transaction)}
+	_, err_get := bd.st.Get(append(prefix, txhash.ToArray()...))
+	if err_get != nil {
+		return false
+	} else {
+		return true
+	}
+}
+
 func (bd *ChainStore) IsDoubleSpend(tx *tx.Transaction) bool {
 	if len(tx.UTXOInputs) == 0 {
 		return false
@@ -828,9 +838,9 @@ func (bd *ChainStore) persist(b *Block) error {
 
 			// find Transactions[i].UTXOInputs[index].ReferTxOutputIndex and delete it
 			unspentLen := len(unspents[txhash])
-			for k, outputIndex := range unspents[txhash]{
-				if outputIndex == uint16(b.Transactions[i].UTXOInputs[index].ReferTxOutputIndex){
-					unspents[txhash][k] =  unspents[txhash][unspentLen - 1]
+			for k, outputIndex := range unspents[txhash] {
+				if outputIndex == uint16(b.Transactions[i].UTXOInputs[index].ReferTxOutputIndex) {
+					unspents[txhash][k] = unspents[txhash][unspentLen-1]
 					unspents[txhash] = unspents[txhash][:unspentLen-1]
 					break
 				}

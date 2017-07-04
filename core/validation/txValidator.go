@@ -124,7 +124,10 @@ func VerifyTransactionWithBlock(TxPool []*tx.Transaction) error {
 // VerifyTransactionWithLedger verifys a transaction with history transaction in ledger
 func VerifyTransactionWithLedger(Tx *tx.Transaction, ledger *ledger.Ledger) error {
 	if IsDoubleSpend(Tx, ledger) {
-		return errors.New("[IsDoubleSpend] faild.")
+		return errors.New("[VerifyTransactionWithLedger] IsDoubleSpend check faild.")
+	}
+	if exist := ledger.Store.IsTxHashDuplicate(Tx.Hash()); exist {
+		return errors.New("[VerifyTransactionWithLedger] duplicate transaction check faild.")
 	}
 	return nil
 }
