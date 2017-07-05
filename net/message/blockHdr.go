@@ -220,7 +220,7 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]le
 				count = curHeight
 			}
 		} else {
-			bkstop, err := ledger.DefaultLedger.GetBlockWithHash(stopHash)
+			bkstop, err := ledger.DefaultLedger.Store.GetHeader(stopHash)
 			if err != nil {
 				return nil, 0, err
 			}
@@ -231,13 +231,13 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]le
 			}
 		}
 	} else {
-		bkstart, err := ledger.DefaultLedger.GetBlockWithHash(startHash)
+		bkstart, err := ledger.DefaultLedger.Store.GetHeader(startHash)
 		if err != nil {
 			return nil, 0, err
 		}
 		startHeight = bkstart.Blockdata.Height
 		if stopHash != empty {
-			bkstop, err := ledger.DefaultLedger.GetBlockWithHash(stopHash)
+			bkstop, err := ledger.DefaultLedger.Store.GetHeader(stopHash)
 			if err != nil {
 				return nil, 0, err
 			}
