@@ -2,9 +2,9 @@ package ledger
 
 import (
 	. "DNA/common"
+	"DNA/core/account"
 	. "DNA/core/asset"
 	tx "DNA/core/transaction"
-	"DNA/core/account"
 	"DNA/crypto"
 )
 
@@ -42,4 +42,5 @@ type ILedgerStore interface {
 
 	GetUnspent(txid Uint256, index uint16) (*tx.TxOutput, error)
 	ContainsUnspent(txid Uint256, index uint16) (bool, error)
+	IsTxHashDuplicate(txhash Uint256) bool
 }
