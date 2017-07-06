@@ -2,11 +2,18 @@ package validation
 
 import (
 	"DNA/common"
+	"DNA/common/log"
 	"DNA/core/ledger"
 	tx "DNA/core/transaction"
 	"DNA/core/transaction/payload"
 	"errors"
+	"fmt"
 	"math"
+)
+
+const (
+	MAX_PRECISION = 8
+	MIN_PRECISION = 0
 )
 
 // VerifyTransaction verifys received single transaction
@@ -157,14 +164,22 @@ func IsDoubleSpend(tx *tx.Transaction, ledger *ledger.Ledger) bool {
 }
 
 func CheckAssetPrecision(Tx *tx.Transaction) error {
-	for k, outputs := range Tx.AssetOutputs {
+	if len(Tx.Outputs) == 0 {
+		return nil
+	}
+	assetOutputs := make(map[common.Uint256][]*tx.TxOutput, len(Tx.Outputs))
+
+	for _, v := range Tx.Outputs {
+		assetOutputs[v.AssetID] = append(assetOutputs[v.AssetID], v)
+	}
+	for k, outputs := range assetOutputs {
 		asset, err := ledger.DefaultLedger.GetAsset(k)
 		if err != nil {
 			return errors.New("The asset not exist in local blockchain.")
 		}
 		precision := asset.Precision
 		for _, output := range outputs {
-			if output.Value.GetData()%int64(math.Pow(10, 8-float64(precision))) != 0 {
+			if checkAmountPrecise(output.Value, precision) {
 				return errors.New("The precision of asset is incorrect.")
 			}
 		}
@@ -173,13 +188,25 @@ func CheckAssetPrecision(Tx *tx.Transaction) error {
 }
 
 func CheckTransactionBalance(Tx *tx.Transaction) error {
-	if len(Tx.AssetInputAmount) != len(Tx.AssetOutputAmount) {
-		return errors.New("The number of asset is not same between inputs and outputs.")
+	for _, v := range Tx.Outputs {
+		if v.Value <= common.Fixed64(0) {
+			return errors.New("Invalide transaction UTXO output.")
+		}
 	}
-
-	for k, v := range Tx.AssetInputAmount {
-		if v != Tx.AssetOutputAmount[k] {
-			return errors.New("The amount of asset is not same between inputs and outputs.")
+	if Tx.TxType == tx.IssueAsset {
+		if len(Tx.UTXOInputs) > 0 {
+			return errors.New("Invalide Issue transaction.")
+		}
+		return nil
+	}
+	results, err := Tx.GetTransactionResults()
+	if err != nil {
+		return err
+	}
+	for k, v := range results {
+		if v != 0 {
+			log.Debug(fmt.Sprintf("AssetID %x in Transfer transactions %x , Input/output UTXO not equal.", k, Tx.Hash()))
+			return errors.New(fmt.Sprintf("AssetID %x in Transfer transactions %x , Input/output UTXO not equal.", k, Tx.Hash()))
 		}
 	}
 	return nil
@@ -199,6 +226,10 @@ func CheckTransactionContracts(Tx *tx.Transaction) error {
 	}
 }
 
+func checkAmountPrecise(amount common.Fixed64, precision byte) bool {
+	return amount.GetData()%int64(math.Pow(10, 8-float64(precision))) != 0
+}
+
 func CheckTransactionPayload(Tx *tx.Transaction) error {
 
 	switch pld := Tx.Payload.(type) {
@@ -207,6 +238,12 @@ func CheckTransactionPayload(Tx *tx.Transaction) error {
 		_ = pld.Cert
 		return nil
 	case *payload.RegisterAsset:
+		if pld.Asset.Precision < MIN_PRECISION || pld.Asset.Precision > MAX_PRECISION {
+			return errors.New("Invalide asset Precision.")
+		}
+		if checkAmountPrecise(pld.Amount, pld.Asset.Precision) {
+			return errors.New("Invalide asset value,out of precise.")
+		}
 	case *payload.IssueAsset:
 	case *payload.TransferAsset:
 	case *payload.BookKeeping:
