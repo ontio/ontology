@@ -91,7 +91,7 @@ func signTransaction(signer *account.Account, tx *transaction.Transaction) error
 }
 
 func makeRegTransaction(admin, issuer *account.Account, name string, value Fixed64) (string, error) {
-	asset := &Asset{name, byte(0x00), AssetType(Share), UTXO}
+	asset := &Asset{name, byte(MaxPrecision), AssetType(Share), UTXO}
 	transactionContract, err := contract.CreateSignatureContract(admin.PubKey())
 	if err != nil {
 		fmt.Println("CreateSignatureContract failed")

@@ -3,17 +3,13 @@ package validation
 import (
 	"DNA/common"
 	"DNA/common/log"
+	"DNA/core/asset"
 	"DNA/core/ledger"
 	tx "DNA/core/transaction"
 	"DNA/core/transaction/payload"
 	"errors"
 	"fmt"
 	"math"
-)
-
-const (
-	MAX_PRECISION = 8
-	MIN_PRECISION = 0
 )
 
 // VerifyTransaction verifys received single transaction
@@ -241,7 +237,7 @@ func CheckTransactionPayload(Tx *tx.Transaction) error {
 		_ = pld.Cert
 		return nil
 	case *payload.RegisterAsset:
-		if pld.Asset.Precision < MIN_PRECISION || pld.Asset.Precision > MAX_PRECISION {
+		if pld.Asset.Precision < asset.MinPrecision || pld.Asset.Precision > asset.MaxPrecision {
 			return errors.New("Invalide asset Precision.")
 		}
 		if checkAmountPrecise(pld.Amount, pld.Asset.Precision) {

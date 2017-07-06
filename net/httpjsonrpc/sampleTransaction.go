@@ -17,7 +17,7 @@ const (
 
 func NewRegTx(rand string, index int, admin, issuer *Account) *transaction.Transaction {
 	name := ASSETPREFIX + "-" + strconv.Itoa(index) + "-" + rand
-	asset := &Asset{name, byte(0x00), AssetType(Share), UTXO}
+	asset := &Asset{name, byte(MaxPrecision), AssetType(Share), UTXO}
 	amount := Fixed64(1000)
 	controller, _ := contract.CreateSignatureContract(admin.PubKey())
 	tx, _ := transaction.NewRegisterAssetTransaction(asset, amount, issuer.PubKey(), controller.ProgramHash)
