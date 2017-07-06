@@ -14,6 +14,7 @@
       "02758623d16774f3c5535a305e65ea949343eab06888ee2e7633b4f3f9d78d506c"
     ],
     "HttpRestPort": 20334,
+    "HttpWsPort":20335,
     "HttpJsonPort": 20336,
     "HttpLocalPort": 20337,
     "NoticeServerAddr":"",

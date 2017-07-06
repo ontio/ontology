@@ -1,8 +1,10 @@
-hash: 16eef47fd008bb9805616786db5c88a355ad5f9d1fb1c2e4bdbd5f84b2dc55fd
-updated: 2017-07-04T11:43:37.555433305+08:00
+hash: 2f1075f47c8df863bcabfbec42ce9f000dca85561e74147bb4144790d3728e43
+updated: 2017-07-04T18:08:50.5023931+08:00
 imports:
 - name: github.com/bitly/go-simplejson
   version: da1a8928f709389522c8023062a3739f3b4af419
+- name: github.com/dnaproject/gopass
+  version: 3d5cac4c3c49028515a6f149131ef897100b71c2
 - name: github.com/golang/crypto
   version: 459e26527287adbc2adcc5d0d49abff9a5f315a7
   subpackages:
@@ -10,10 +12,12 @@ imports:
   - ssh/terminal
 - name: github.com/golang/snappy
   version: 553a641470496b2327abcac10b36396bd98e45c9
-- name: github.com/dnaproject/gopass
-  version: 3d5cac4c3c49028515a6f149131ef897100b71c2
+- name: github.com/gorilla/websocket
+  version: a91eba7f97777409bc2c443f5534d41dd20c5720
 - name: github.com/itchyny/base58-go
   version: 4b24a7dfa1bfba3724ffb3598b1c6ded1cff087f
+- name: github.com/pborman/uuid
+  version: 1b00554d822231195d1babd97ff4a781231955c9
 - name: github.com/syndtr/goleveldb
   version: 3c5717caf1475fd25964109a0fc640bd150fce43
   subpackages:

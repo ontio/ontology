@@ -5,6 +5,7 @@ import (
 	"DNA/common/log"
 	. "DNA/net/httprestful/common"
 	Err "DNA/net/httprestful/error"
+	"DNA/net/httpwebsocket"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -33,19 +34,23 @@ type restServer struct {
 }
 
 const (
-	Api_Getconnectioncount           = "/api/v1/node/connectioncount"
-	Api_Getblockbyheight             = "/api/v1/block/details/height/:height"
-	Api_Getblockbyhash               = "/api/v1/block/details/hash/:hash"
-	Api_Getblockheight               = "/api/v1/block/height"
-	Api_Gettransaction               = "/api/v1/transaction/:hash"
-	Api_Getasset                     = "/api/v1/asset/:hash"
-	Api_GetUnspendOutput             = "/api/v1/asset/unspendoutput"
-	Api_Restart                      = "/api/v1/restart"
-	Api_SendRawTransaction           = "/api/v1/transaction"
-	Api_SendCustomRecordTxByTransfer = "/api/v1/custom/transaction/record"
-	Api_OauthServerAddr              = "/api/v1/config/oauthserver/addr"
-	Api_NoticeServerAddr             = "/api/v1/config/noticeserver/addr"
-	Api_NoticeServerState            = "/api/v1/config/noticeserver/state"
+	Api_Getconnectioncount = "/api/v1/node/connectioncount"
+	Api_Getblockbyheight   = "/api/v1/block/details/height/:height"
+	Api_Getblockbyhash     = "/api/v1/block/details/hash/:hash"
+	Api_Getblockheight     = "/api/v1/block/height"
+	Api_Getblockhash       = "/api/v1/block/hash/:height"
+	Api_Gettransaction     = "/api/v1/transaction/:hash"
+	Api_Getasset           = "/api/v1/asset/:hash"
+	Api_GetBalance         = "/api/v1/asset/balance/:addr"
+	Api_GetUTXO            = "/api/v1/asset/utxo/:addr/:assetid"
+	Api_SendRawTx          = "/api/v1/transaction"
+	Api_SendRcdTxByTrans   = "/api/v1/custom/transaction/record"
+	Api_GetStateUpdate     = "/api/v1/stateupdate/:namespace/:key"
+	Api_OauthServerUrl     = "/api/v1/config/oauthserver/url"
+	Api_NoticeServerUrl    = "/api/v1/config/noticeserver/url"
+	Api_NoticeServerState  = "/api/v1/config/noticeserver/state"
+	Api_WebsocketState     = "/api/v1/config/websocket/state"
+	Api_Restart            = "/api/v1/restart"
 )
 
 func InitRestServer(checkAccessToken func(string, string) (string, int64, interface{})) ApiServer {
@@ -66,7 +71,7 @@ func (rt *restServer) Start() error {
 	}
 
 	tlsFlag := false
-	if tlsFlag || Parameters.HttpRestPort%1000 == 443 {
+	if tlsFlag || Parameters.HttpRestPort%1000 == TlsPort {
 		var err error
 		rt.listener, err = rt.initTlsListen()
 		if err != nil {
@@ -91,7 +96,31 @@ func (rt *restServer) Start() error {
 
 	return nil
 }
-
+func (rt *restServer) setWebsocketState(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(Err.SUCCESS)
+	startFlag, ok := cmd["Open"].(bool)
+	if !ok {
+		resp["Error"] = Err.INVALID_PARAMS
+		return resp
+	}
+	if b, ok := cmd["PushBlock"].(bool); ok {
+		httpwebsocket.SetWsPushBlockFlag(b)
+	}
+	if wsPort, ok := cmd["Port"].(float64); ok && wsPort != 0 {
+		Parameters.HttpWsPort = int(wsPort)
+	}
+	if startFlag {
+		httpwebsocket.ReStartServer()
+	} else {
+		httpwebsocket.Stop()
+	}
+	var result = make(map[string]interface{})
+	result["Open"] = startFlag
+	result["Port"] = Parameters.HttpWsPort
+	result["PushBlock"] = httpwebsocket.GetWsPushBlockFlag()
+	resp["Result"] = result
+	return resp
+}
 func (rt *restServer) registryMethod() {
 
 	getMethodMap := map[string]Action{
@@ -99,20 +128,34 @@ func (rt *restServer) registryMethod() {
 		Api_Getblockbyheight:   {name: "getblockbyheight", handler: GetBlockByHeight},
 		Api_Getblockbyhash:     {name: "getblockbyhash", handler: GetBlockByHash},
 		Api_Getblockheight:     {name: "getblockheight", handler: GetBlockHeight},
+		Api_Getblockhash:       {name: "getblockhash", handler: GetBlockHash},
 		Api_Gettransaction:     {name: "gettransaction", handler: GetTransactionByHash},
 		Api_Getasset:           {name: "getasset", handler: GetAssetByHash},
-		Api_GetUnspendOutput:   {name: "getunspendoutput", handler: GetUnspendOutput},
-		Api_OauthServerAddr:    {name: "getoauthserveraddr", handler: GetOauthServerAddr},
-		Api_NoticeServerAddr:   {name: "getnoticeserveraddr", handler: GetNoticeServerAddr},
+		Api_GetUTXO:            {name: "getutxo", handler: GetUnspendOutput},
+		Api_GetBalance:         {name: "getbalance", handler: GetBalance},
+		Api_OauthServerUrl:     {name: "getoauthserverurl", handler: GetOauthServerUrl},
+		Api_NoticeServerUrl:    {name: "getnoticeserverurl", handler: GetNoticeServerUrl},
 		Api_Restart:            {name: "restart", handler: rt.Restart},
+		Api_GetStateUpdate:     {name: "getstateupdate", handler: GetStateUpdate},
 	}
 
+	sendRawTransaction := func(cmd map[string]interface{}) map[string]interface{} {
+		resp := SendRawTransaction(cmd)
+		if userid, ok := resp["Userid"].(string); ok && len(userid) > 0 {
+			if result, ok := resp["Result"].(string); ok {
+				httpwebsocket.SetTxHashMap(result, userid)
+			}
+			delete(resp, "Userid")
+		}
+		return resp
+	}
 	postMethodMap := map[string]Action{
-		Api_SendRawTransaction:           {name: "sendrawtransaction", handler: SendRawTransaction},
-		Api_SendCustomRecordTxByTransfer: {name: "sendrecord", handler: SendRecorByTransferTransaction},
-		Api_OauthServerAddr:              {name: "setoauthserveraddr", handler: SetOauthServerAddr},
-		Api_NoticeServerAddr:             {name: "setnoticeserveraddr", handler: SetNoticeServerAddr},
-		Api_NoticeServerState:            {name: "setpostblock", handler: SetPushBlockFlag},
+		Api_SendRawTx:         {name: "sendrawtransaction", handler: sendRawTransaction},
+		Api_SendRcdTxByTrans:  {name: "sendrecord", handler: SendRecord},
+		Api_OauthServerUrl:    {name: "setoauthserverurl", handler: SetOauthServerUrl},
+		Api_NoticeServerUrl:   {name: "setnoticeserverurl", handler: SetNoticeServerUrl},
+		Api_NoticeServerState: {name: "setpostblock", handler: SetPushBlockFlag},
+		Api_WebsocketState:    {name: "setwebsocketstate", handler: rt.setWebsocketState},
 	}
 	rt.postMap = postMethodMap
 	rt.getMap = getMethodMap
@@ -121,60 +164,106 @@ func (rt *restServer) getPath(url string) string {
 
 	if strings.Contains(url, strings.TrimRight(Api_Getblockbyheight, ":height")) {
 		return Api_Getblockbyheight
+	} else if strings.Contains(url, strings.TrimRight(Api_Getblockhash, ":height")) {
+		return Api_Getblockhash
 	} else if strings.Contains(url, strings.TrimRight(Api_Getblockbyhash, ":hash")) {
 		return Api_Getblockbyhash
 	} else if strings.Contains(url, strings.TrimRight(Api_Gettransaction, ":hash")) {
 		return Api_Gettransaction
+	} else if strings.Contains(url, strings.TrimRight(Api_GetBalance, ":addr")) {
+		return Api_GetBalance
+	} else if strings.Contains(url, strings.TrimRight(Api_GetUTXO, ":addr/:assetid")) {
+		return Api_GetUTXO
 	} else if strings.Contains(url, strings.TrimRight(Api_Getasset, ":hash")) {
-		if url != Api_GetUnspendOutput {
-			return Api_Getasset
-		}
+		return Api_Getasset
+	} else if strings.Contains(url, strings.TrimRight(Api_GetStateUpdate, ":namespace/:key")) {
+		return Api_GetStateUpdate
 	}
 	return url
 }
-
+func (rt *restServer) getParams(r *http.Request, url string, req map[string]interface{}) map[string]interface{} {
+	switch url {
+	case Api_Getconnectioncount:
+		break
+	case Api_Getblockbyheight:
+		req["Raw"] = r.FormValue("raw")
+		req["Height"] = getParam(r, "height")
+		break
+	case Api_Getblockbyhash:
+		req["Raw"] = r.FormValue("raw")
+		req["Hash"] = getParam(r, "hash")
+		break
+	case Api_Getblockheight:
+		break
+	case Api_Getblockhash:
+		req["Height"] = getParam(r, "height")
+		break
+	case Api_Gettransaction:
+		req["Hash"] = getParam(r, "hash")
+		req["Raw"] = r.FormValue("raw")
+		break
+	case Api_Getasset:
+		req["Hash"] = getParam(r, "hash")
+		req["Raw"] = r.FormValue("raw")
+		break
+	case Api_GetBalance:
+		req["Addr"] = getParam(r, "addr")
+		break
+	case Api_GetUTXO:
+		req["Addr"] = getParam(r, "addr")
+		req["Assetid"] = getParam(r, "assetid")
+		break
+	case Api_Restart:
+		break
+	case Api_SendRawTx:
+		userid := r.FormValue("userid")
+		if len(userid) == 0 {
+			req["Userid"] = getParam(r, "userid")
+		}
+		break
+	case Api_SendRcdTxByTrans:
+		req["Raw"] = r.FormValue("raw")
+		break
+	case Api_GetStateUpdate:
+		req["Namespace"] = getParam(r, "namespace")
+		req["Key"] = getParam(r, "key")
+		break
+	case Api_OauthServerUrl:
+	case Api_NoticeServerUrl:
+	case Api_NoticeServerState:
+	case Api_WebsocketState:
+		break
+	default:
+	}
+	return req
+}
 func (rt *restServer) initGetHandler() {
 
 	for k, _ := range rt.getMap {
 		rt.router.Get(k, func(w http.ResponseWriter, r *http.Request) {
 
-			var reqMsg = make(map[string]interface{})
-			var data []byte
-			var err error
+			var req = make(map[string]interface{})
 			var resp map[string]interface{}
 			access_token := r.FormValue("access_token")
 			auth_type := r.FormValue("auth_type")
 
 			CAkey, errCode, result := rt.checkAccessToken(auth_type, access_token)
-			if errCode > 0 && r.URL.Path != Api_OauthServerAddr {
+			url := rt.getPath(r.URL.Path)
+			if errCode > 0 && r.URL.Path != Api_OauthServerUrl {
 				resp = ResponsePack(errCode)
 				resp["Result"] = result
-				goto ResponseWrite
+				rt.response(w, resp)
+				return
 			}
-			if h, ok := rt.getMap[rt.getPath(r.URL.Path)]; ok {
-
-				reqMsg["Height"] = getParam(r, "height")
-				reqMsg["Hash"] = getParam(r, "hash")
-				reqMsg["CAkey"] = CAkey
-				reqMsg["Raw"] = r.FormValue("raw")
-				reqMsg["Addr"] = r.FormValue("addr")
-				reqMsg["Assetid"] = r.FormValue("assetid")
-				resp = h.handler(reqMsg)
+			if h, ok := rt.getMap[url]; ok {
+				req["CAkey"] = CAkey
+				req = rt.getParams(r, url, req)
+				resp = h.handler(req)
 				resp["Action"] = h.name
 			} else {
 				resp = ResponsePack(Err.INVALID_METHOD)
 			}
-		ResponseWrite:
-			resp["Desc"] = Err.ErrMap[resp["Error"].(int64)]
-			data, err = json.Marshal(resp)
-			if err != nil {
-				log.Fatal("HTTP Handle - json.Marshal: %v", err)
-				return
-			}
-			w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
-			w.Header().Set("content-type", "application/json")
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Write([]byte(data))
+			rt.response(w, resp)
 		})
 	}
 }
@@ -184,60 +273,64 @@ func (rt *restServer) initPostHandler() {
 
 			body, _ := ioutil.ReadAll(r.Body)
 			defer r.Body.Close()
-			var reqMsg = make(map[string]interface{})
-			var data []byte
-			var err error
 
+			var req = make(map[string]interface{})
+			var resp map[string]interface{}
 			access_token := r.FormValue("access_token")
 			auth_type := r.FormValue("auth_type")
-			var resp map[string]interface{}
+
 			CAkey, errCode, result := rt.checkAccessToken(auth_type, access_token)
-			if errCode > 0 && r.URL.Path != Api_OauthServerAddr {
+			url := rt.getPath(r.URL.Path)
+			if errCode > 0 && r.URL.Path != Api_OauthServerUrl {
 				resp = ResponsePack(errCode)
 				resp["Result"] = result
-				goto ResponseWrite
+				rt.response(w, resp)
+				return
 			}
-
-			if h, ok := rt.postMap[rt.getPath(r.URL.Path)]; ok {
-
-				if err = json.Unmarshal(body, &reqMsg); err == nil {
-					reqMsg["CAkey"] = CAkey
-					reqMsg["Raw"] = r.FormValue("raw")
-					resp = h.handler(reqMsg)
+			if h, ok := rt.postMap[url]; ok {
+				if err := json.Unmarshal(body, &req); err == nil {
+					req["CAkey"] = CAkey
+					req = rt.getParams(r, url, req)
+					resp = h.handler(req)
 					resp["Action"] = h.name
-
 				} else {
 					resp = ResponsePack(Err.ILLEGAL_DATAFORMAT)
 					resp["Action"] = h.name
-					data, _ = json.Marshal(resp)
 				}
+			} else {
+				resp = ResponsePack(Err.INVALID_METHOD)
 			}
-		ResponseWrite:
-			resp["Desc"] = Err.ErrMap[resp["Error"].(int64)]
-			data, err = json.Marshal(resp)
-			if err != nil {
-				log.Fatal("HTTP Handle - json.Marshal: %v", err)
-				return
-			}
-			w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
-			w.Header().Set("content-type", "application/json")
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Write([]byte(data))
+			rt.response(w, resp)
 		})
 	}
 	//Options
 	for k, _ := range rt.postMap {
 		rt.router.Options(k, func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
-			w.Header().Set("content-type", "application/json")
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Write([]byte{})
+			rt.write(w, []byte{})
 		})
 	}
 
 }
+func (rt *restServer) write(w http.ResponseWriter, data []byte) {
+	w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("content-type", "application/json;charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Write(data)
+}
+func (rt *restServer) response(w http.ResponseWriter, resp map[string]interface{}) {
+	resp["Desc"] = Err.ErrMap[resp["Error"].(int64)]
+	data, err := json.Marshal(resp)
+	if err != nil {
+		log.Fatal("HTTP Handle - json.Marshal: %v", err)
+		return
+	}
+	rt.write(w, data)
+}
 func (rt *restServer) Stop() {
-	rt.server.Shutdown(context.Background())
+	if rt.server != nil {
+		rt.server.Shutdown(context.Background())
+		log.Error("Close restful ")
+	}
 }
 func (rt *restServer) Restart(cmd map[string]interface{}) map[string]interface{} {
 	go func() {
