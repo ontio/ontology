@@ -4,6 +4,7 @@ import (
 	. "DNA/core/store"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
+	"github.com/syndtr/goleveldb/leveldb/filter"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
@@ -13,11 +14,16 @@ type LevelDBStore struct {
 	batch *leveldb.Batch
 }
 
+// used to compute the size of bloom filter bits array .
+// too small will lead to high false positive rate.
+const BITSPERKEY = 10
+
 func NewLevelDBStore(file string) (*LevelDBStore, error) {
 
 	// default Options
 	o := opt.Options{
 		NoSync: false,
+		Filter: filter.NewBloomFilter(BITSPERKEY),
 	}
 
 	db, err := leveldb.OpenFile(file, &o)
