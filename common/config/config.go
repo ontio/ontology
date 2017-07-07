@@ -39,6 +39,7 @@ type Configuration struct {
 	MultiCoreNum    uint     `json:"MultiCoreNum"`
 	EncryptAlg      string   `json:"EncryptAlg"`
 	MaxLogSize      int64    `json:"MaxLogSize"`
+	MaxTxInBlock    int      `json:"MaxTransactionInBlock"`
 }
 
 type ConfigFile struct {

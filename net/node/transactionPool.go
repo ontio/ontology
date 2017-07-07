@@ -2,6 +2,7 @@ package node
 
 import (
 	"DNA/common"
+	"DNA/common/config"
 	"DNA/common/log"
 	"DNA/core/ledger"
 	"DNA/core/transaction"
@@ -50,19 +51,25 @@ func (this *TXNPool) AppendTxnPool(txn *transaction.Transaction) bool {
 }
 
 //get the transaction in txnpool
-func (this *TXNPool) GetTxnPool(cleanPool bool) map[common.Uint256]*transaction.Transaction {
-	this.Lock()
-	txnMap := make(map[common.Uint256]*transaction.Transaction, len(this.txnList))
+func (this *TXNPool) GetTxnPool(byCount bool) map[common.Uint256]*transaction.Transaction {
+	this.RLock()
+	count := config.Parameters.MaxTxInBlock
+	if count <= 0 {
+		byCount = false
+	}
+	if len(this.txnList) < count || !byCount {
+		count = len(this.txnList)
+	}
+	var num int
+	txnMap := make(map[common.Uint256]*transaction.Transaction, count)
 	for txnId, tx := range this.txnList {
 		txnMap[txnId] = tx
+		num++
+		if num >= count {
+			break
+		}
 	}
-	if cleanPool {
-		this.txnCnt = 0
-		this.inputUTXOList = make(map[string]*transaction.Transaction)
-		this.issueSummary = make(map[common.Uint256]common.Fixed64)
-		this.txnList = make(map[common.Uint256]*transaction.Transaction)
-	}
-	this.Unlock()
+	this.RUnlock()
 	return txnMap
 }
 
@@ -86,12 +93,12 @@ func (this *TXNPool) verifyTransactionWithTxnPool(txn *transaction.Transaction) 
 	//check weather have duplicate UTXO input,if occurs duplicate, just keep the latest txn.
 	ok, duplicateTxn := this.apendToUTXOPool(txn)
 	if !ok && duplicateTxn != nil {
-		log.Info(fmt.Sprintf("txn=%x duplicateTxn UTXO occurs with txn in pool=%x,keep the latest one.",txn.Hash(),duplicateTxn.Hash()))
+		log.Info(fmt.Sprintf("txn=%x duplicateTxn UTXO occurs with txn in pool=%x,keep the latest one.", txn.Hash(), duplicateTxn.Hash()))
 		this.removeTransaction(duplicateTxn)
 	}
 	//check issue transaction weather occur exceed issue range.
 	if ok := this.summaryAssetIssueAmount(txn); !ok {
-		log.Info(fmt.Sprintf("Check summary Asset Issue Amount failed with txn=%x",txn.Hash()))
+		log.Info(fmt.Sprintf("Check summary Asset Issue Amount failed with txn=%x", txn.Hash()))
 		this.removeTransaction(txn)
 		return false
 	}
@@ -206,7 +213,7 @@ func (this *TXNPool) cleanTransactionList(txns []*transaction.Transaction) error
 	if txnsNum != cleaned {
 		log.Info(fmt.Sprintf("The Transactions num Unmatched. Expect %d, got %d .\n", txnsNum, cleaned))
 	}
-	log.Debug(fmt.Sprintf("[cleanProcessTxnPool], Requested %d clean, %d transactions cleaned from localNode.TransPool and remains %d still in TxPool", txnsNum, cleaned, this.GetTransactionCount()))
+	log.Debug(fmt.Sprintf("[cleanTransactionList],transaction %d Requested, %d cleaned, Remains %d in TxPool", txnsNum, cleaned, this.GetTransactionCount()))
 	return nil
 }
 
