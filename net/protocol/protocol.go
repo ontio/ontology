@@ -52,6 +52,7 @@ const (
 	PERIODUPDATETIME = 3 // Time to update and sync information with other nodes
 	HEARTBEAT        = 2
 	KEEPALIVETIMEOUT = 3
+	DIALTIMEOUT      = 3
 )
 
 // The node state
