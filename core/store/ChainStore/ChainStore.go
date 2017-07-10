@@ -653,6 +653,7 @@ func (self *ChainStore) GetBookKeeperList() ([]*crypto.PubKey, []*crypto.PubKey,
 }
 
 func (bd *ChainStore) persist(b *Block) error {
+	utxoUnspents := make(map[Uint160]map[Uint256][]*tx.UTXOUnspent)
 	unspents := make(map[Uint256][]uint16)
 	quantities := make(map[Uint256]Fixed64)
 
@@ -785,6 +786,25 @@ func (bd *ChainStore) persist(b *Block) error {
 				}
 				accounts[programHash] = accountState
 			}
+
+			// add utxoUnspent
+			if _, ok := utxoUnspents[programHash]; !ok {
+				utxoUnspents[programHash] = make(map[Uint256][]*tx.UTXOUnspent)
+			}
+
+			if _, ok := utxoUnspents[programHash][assetId]; !ok {
+				utxoUnspents[programHash][assetId], err = bd.GetUnspentFromProgramHash(programHash, assetId)
+				if err != nil {
+					utxoUnspents[programHash][assetId] = make([]*tx.UTXOUnspent, 0)
+				}
+			}
+
+			unspent := new(tx.UTXOUnspent)
+			unspent.Txid = b.Transactions[i].Hash()
+			unspent.Index = uint32(index)
+			unspent.Value = output.Value
+
+			utxoUnspents[programHash][assetId] = append(utxoUnspents[programHash][assetId], unspent)
 		}
 
 		for index := 0; index < len(b.Transactions[i].UTXOInputs); index++ {
@@ -810,6 +830,35 @@ func (bd *ChainStore) persist(b *Block) error {
 			if accounts[programHash].Balances[assetId] < 0 {
 				return errors.New(fmt.Sprintf("account programHash:%v, assetId:%v insufficient of balance", programHash, assetId))
 			}
+
+			// delete utxoUnspent
+			if _, ok := utxoUnspents[programHash]; !ok {
+				utxoUnspents[programHash] = make(map[Uint256][]*tx.UTXOUnspent)
+			}
+
+			if _, ok := utxoUnspents[programHash][assetId]; !ok {
+				utxoUnspents[programHash][assetId], err = bd.GetUnspentFromProgramHash(programHash, assetId)
+				if err != nil {
+					return errors.New(fmt.Sprintf("[persist] utxoUnspents programHash:%v, assetId:%v has no unspent UTXO.", programHash, assetId))
+				}
+			}
+
+			flag := false
+			listnum := len(utxoUnspents[programHash][assetId])
+			for i := 0; i < listnum; i++ {
+				if utxoUnspents[programHash][assetId][i].Txid.CompareTo(transaction.Hash()) == 0 && utxoUnspents[programHash][assetId][i].Index == uint32(index) {
+					utxoUnspents[programHash][assetId][i] = utxoUnspents[programHash][assetId][listnum-1]
+					utxoUnspents[programHash][assetId] = utxoUnspents[programHash][assetId][:listnum-1]
+
+					flag = true
+					break
+				}
+			}
+
+			if !flag {
+				return errors.New(fmt.Sprintf("[persist] utxoUnspents NOT find UTXO by txid: %x, index: %d.", transaction.Hash(), index))
+			}
+
 		}
 
 		// init unspent in tx
@@ -911,6 +960,16 @@ func (bd *ChainStore) persist(b *Block) error {
 	}
 	///////////////////////////////////////////////////////
 	//*/
+
+	// batch put the utxoUnspents
+	for programHash, programHash_value := range utxoUnspents {
+		for assetId, unspents := range programHash_value {
+			err := bd.saveUnspentWithProgramHash(programHash, assetId, unspents)
+			if err != nil {
+				return err
+			}
+		}
+	}
 
 	// batch put the unspents
 	for txhash, value := range unspents {
@@ -1218,4 +1277,60 @@ func (bd *ChainStore) GetAccount(programHash Uint160) (*account.AccountState, er
 	accountState.Deserialize(bytes.NewBuffer(state))
 
 	return accountState, nil
+}
+
+func (bd *ChainStore) GetUnspentFromProgramHash(programHash Uint160, assetid Uint256) ([]*tx.UTXOUnspent, error) {
+
+	prefix := []byte{byte(IX_Unspent_UTXO)}
+
+	key := append(prefix, programHash.ToArray()...)
+	key = append(key, assetid.ToArray()...)
+	unspentsData, err := bd.st.Get(key)
+	if err != nil {
+		return nil, err
+	}
+
+	r := bytes.NewReader(unspentsData)
+	listNum, err := serialization.ReadVarUint(r, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	//log.Trace(fmt.Printf("[getUnspentFromProgramHash] listNum: %d, unspentsData: %x\n", listNum, unspentsData ))
+
+	// read unspent list in store
+	unspents := make([]*tx.UTXOUnspent, listNum)
+	for i := 0; i < int(listNum); i++ {
+		uu := new(tx.UTXOUnspent)
+		err := uu.Deserialize(r)
+		if err != nil {
+			return nil, err
+		}
+
+		unspents[i] = uu
+	}
+
+	return unspents, nil
+}
+
+func (bd *ChainStore) saveUnspentWithProgramHash(programHash Uint160, assetid Uint256, unspents []*tx.UTXOUnspent) error {
+	prefix := []byte{byte(IX_Unspent_UTXO)}
+
+	key := append(prefix, programHash.ToArray()...)
+	key = append(key, assetid.ToArray()...)
+
+	listnum := len(unspents)
+	w := bytes.NewBuffer(nil)
+	serialization.WriteVarUint(w, uint64(listnum))
+	for i := 0; i < listnum; i++ {
+		unspents[i].Serialize(w)
+	}
+
+	// BATCH PUT VALUE
+	err := bd.st.BatchPut(key, w.Bytes())
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
