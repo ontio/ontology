@@ -112,11 +112,13 @@ func (node *node) SetAddrInConnectingList(addr string) {
 func (node *node) RemoveAddrInConnectingList(addr string) {
 	node.ConnectingNodes.Lock()
 	defer node.ConnectingNodes.Unlock()
+	addrs := []string{}
 	for i, a := range node.ConnectingAddrs {
 		if strings.Compare(a, addr) == 0 {
-			node.ConnectingAddrs = append(node.ConnectingAddrs[:i], node.ConnectingAddrs[i+1:]...)
+			addrs = append(node.ConnectingAddrs[:i], node.ConnectingAddrs[i+1:]...)
 		}
 	}
+	node.ConnectingAddrs = addrs
 }
 
 func (node *node) UpdateInfo(t time.Time, version uint32, services uint64,
