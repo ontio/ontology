@@ -213,10 +213,10 @@ func (node *node) Connect(nodeAddr string) error {
 	if node.IsAddrInNbrList(nodeAddr) == true {
 		return nil
 	}
-	if node.IsAddrInConnectingList(nodeAddr) == true {
+	if added := node.SetAddrInConnectingList(nodeAddr); added == false {
 		return nil
 	}
-	node.SetAddrInConnectingList(nodeAddr)
+
 	isTls := Parameters.IsTLS
 	var conn net.Conn
 	var err error

@@ -126,8 +126,7 @@ type Noder interface {
 	WaitForFourPeersStart()
 	GetFlightHeights() []uint32
 	IsAddrInNbrList(addr string) bool
-	IsAddrInConnectingList(addr string) bool
-	SetAddrInConnectingList(addr string)
+	SetAddrInConnectingList(addr string) bool
 	RemoveAddrInConnectingList(addr string)
 }
 

@@ -92,21 +92,16 @@ func (node *node) IsAddrInNbrList(addr string) bool {
 	return false
 }
 
-func (node *node) IsAddrInConnectingList(addr string) bool {
-	node.ConnectingNodes.RLock()
-	defer node.ConnectingNodes.RUnlock()
-	for _, a := range node.ConnectingAddrs {
-		if strings.Compare(a, addr) == 0 {
-			return true
-		}
-	}
-	return false
-}
-
-func (node *node) SetAddrInConnectingList(addr string) {
+func (node *node) SetAddrInConnectingList(addr string) (added bool) {
 	node.ConnectingNodes.Lock()
 	defer node.ConnectingNodes.Unlock()
+	for _, a := range node.ConnectingAddrs {
+		if strings.Compare(a, addr) == 0 {
+			return false
+		}
+	}
 	node.ConnectingAddrs = append(node.ConnectingAddrs, addr)
+	return true
 }
 
 func (node *node) RemoveAddrInConnectingList(addr string) {
