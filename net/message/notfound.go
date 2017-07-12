@@ -82,6 +82,7 @@ func (msg *notFound) Deserialization(p []byte) error {
 	return err
 }
 
-func (msg notFound) Handle(node Noder) {
+func (msg notFound) Handle(node Noder) error {
 	log.Debug("RX notfound message, hash is ", msg.hash)
+	return nil
 }

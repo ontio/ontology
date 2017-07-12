@@ -145,7 +145,7 @@ func AllocMsg(t string, length int) Messager {
 	case "notfound":
 		var msg notFound
 		copy(msg.msgHdr.CMD[0:len(t)], t)
-		return nil
+		return &msg
 	case "ping":
 		var msg ping
 		copy(msg.msgHdr.CMD[0:len(t)], t)
