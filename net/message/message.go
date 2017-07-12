@@ -143,7 +143,8 @@ func AllocMsg(t string, length int) Messager {
 		log.Warn("Not supported message type - merkleblock")
 		return nil
 	case "notfound":
-		log.Warn("Not supported message type - notfound")
+		var msg notFound
+		copy(msg.msgHdr.CMD[0:len(t)], t)
 		return nil
 	case "ping":
 		var msg ping
