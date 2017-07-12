@@ -50,23 +50,31 @@ type ChainStore struct {
 func init() {
 }
 
-func NewStore() IStore {
-	ldbs, _ := NewLevelDBStore("Chain")
+func NewStore(file string) (IStore, error) {
+	ldbs, err := NewLevelDBStore(file)
 
-	return ldbs
+	return ldbs, err
 }
 
-func NewLedgerStore() ILedgerStore {
+func NewLedgerStore() (ILedgerStore, error) {
 	// TODO: read config file decide which db to use.
-	cs, _ := NewChainStore("Chain")
+	cs, err := NewChainStore("Chain")
+	if err != nil {
+		return nil, err
+	}
 
-	return cs
+	return cs, nil
 }
 
 func NewChainStore(file string) (*ChainStore, error) {
 
+	st, err := NewStore(file)
+	if err != nil {
+		return nil, err
+	}
+
 	return &ChainStore{
-		st:                 NewStore(),
+		st:                 st,
 		headerIndex:        map[uint32]Uint256{},
 		blockCache:         map[Uint256]*Block{},
 		headerCache:        map[Uint256]*Header{},

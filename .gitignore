@@ -4,6 +4,8 @@ idea/*
 temp/*
 temp/
 idea/
+build/
+*.patch
 .idea/
 GoOnchain.iml
 .log

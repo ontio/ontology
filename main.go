@@ -44,7 +44,11 @@ func main() {
 
 	log.Info("0. Loading the Ledger")
 	ledger.DefaultLedger = new(ledger.Ledger)
-	ledger.DefaultLedger.Store = ChainStore.NewLedgerStore()
+	ledger.DefaultLedger.Store, err = ChainStore.NewLedgerStore()
+	if err != nil {
+		log.Fatal("open LedgerStore err:", err)
+		os.Exit(1)
+	}
 	ledger.DefaultLedger.Store.InitLedgerStore(ledger.DefaultLedger)
 	transaction.TxStore = ledger.DefaultLedger.Store
 	crypto.SetAlg(config.Parameters.EncryptAlg)
