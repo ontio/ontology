@@ -4,7 +4,7 @@ import (
 	. "DNA/common/config"
 	"DNA/common/log"
 	"DNA/events"
-	. "DNA/net/message"
+	msg "DNA/net/message"
 	. "DNA/net/protocol"
 	"crypto/tls"
 	"crypto/x509"
@@ -37,28 +37,36 @@ type link struct {
 func unpackNodeBuf(node *node, buf []byte) {
 	var msgLen int
 	var msgBuf []byte
-	if node.rxBuf.p == nil {
-		if len(buf) < MSGHDRLEN {
-			log.Warn("Unexpected size of received message")
-			errors.New("Unexpected size of received message")
-			return
-		}
 
-		length := 0
-		length, buf = PayloadLen(buf)
-
-		if length == 0 && buf == nil {
-			return
-		}
-
-		msgLen = length + MSGHDRLEN
-	} else {
-		msgLen = node.rxBuf.len
+	if len(buf) == 0 {
+		return
 	}
 
+	if node.rxBuf.len == 0 {
+		length := MSGHDRLEN - len(node.rxBuf.p)
+		if length > len(buf) {
+			length = len(buf)
+			node.rxBuf.p = append(node.rxBuf.p, buf[0:length]...)
+			return
+		}
+
+		node.rxBuf.p = append(node.rxBuf.p, buf[0:length]...)
+		if msg.ValidMsgHdr(node.rxBuf.p) == false {
+			node.rxBuf.p = nil
+			node.rxBuf.len = 0
+			log.Warn("Get error message header, TODO: relocate the msg header")
+			// TODO Relocate the message header
+			return
+		}
+
+		node.rxBuf.len = msg.PayloadLen(node.rxBuf.p)
+		buf = buf[length:]
+	}
+
+	msgLen = node.rxBuf.len
 	if len(buf) == msgLen {
 		msgBuf = append(node.rxBuf.p, buf[:]...)
-		go HandleNodeMsg(node, msgBuf, len(msgBuf))
+		go msg.HandleNodeMsg(node, msgBuf, len(msgBuf))
 		node.rxBuf.p = nil
 		node.rxBuf.len = 0
 	} else if len(buf) < msgLen {
@@ -66,7 +74,7 @@ func unpackNodeBuf(node *node, buf []byte) {
 		node.rxBuf.len = msgLen - len(buf)
 	} else {
 		msgBuf = append(node.rxBuf.p, buf[0:msgLen]...)
-		go HandleNodeMsg(node, msgBuf, len(msgBuf))
+		go msg.HandleNodeMsg(node, msgBuf, len(msgBuf))
 		node.rxBuf.p = nil
 		node.rxBuf.len = 0
 
@@ -248,7 +256,7 @@ func (node *node) Connect(nodeAddr string) error {
 	go n.rx()
 
 	n.SetState(HAND)
-	buf, _ := NewVersion(node)
+	buf, _ := msg.NewVersion(node)
 	n.Tx(buf)
 
 	return nil
