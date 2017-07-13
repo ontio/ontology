@@ -6,7 +6,7 @@ import (
 	"DNA/core/ledger"
 	. "DNA/net/message"
 	. "DNA/net/protocol"
-	"fmt"
+	"math/rand"
 	"net"
 	"strconv"
 	"time"
@@ -122,58 +122,55 @@ func getNodeAddr(n *node) NodeAddr {
 	return addr
 }
 
-func (node *node) reconnect(peer *node) error {
-	isTls := config.Parameters.IsTLS
-	addr := getNodeAddr(peer)
-	var ip net.IP
-	ip = addr.IpAddr[:]
-	nodeAddr := ip.To16().String() + ":" + strconv.Itoa(int(addr.Port))
-	log.Info("try to reconnect peer, peer addr is ", nodeAddr)
-	var conn net.Conn
-	var err error
-	if isTls {
-		conn, err = TLSDial(nodeAddr)
-		if err != nil {
-			return nil
-		}
-	} else {
-		conn, err = NonTLSDial(nodeAddr)
-		if err != nil {
-			return nil
+func (node *node) reconnect() {
+	node.RetryConnAddrs.Lock()
+	defer node.RetryConnAddrs.Unlock()
+	lst := make(map[string]int)
+	for addr := range node.RetryAddrs {
+		node.RetryAddrs[addr] = node.RetryAddrs[addr] + 1
+		rand.Seed(time.Now().UnixNano())
+		log.Trace("Try to reconnect peer, peer addr is ", addr)
+		<-time.After(time.Duration(rand.Intn(CONNMAXBACK)) * time.Second)
+		log.Trace("Back off time`s up, start connect node")
+		node.Connect(addr)
+		if node.RetryAddrs[addr] < MAXRETRYCOUNT {
+			lst[addr] = node.RetryAddrs[addr]
 		}
 	}
-	t := time.Now()
-	peer.UpdateRXTime(t)
-	peer.tryTimes = 0
-	peer.conn = conn
-	peer.addr, err = parseIPaddr(conn.RemoteAddr().String())
-	peer.local = node
+	node.RetryAddrs = lst
 
-	log.Info(fmt.Sprintf("Reconnect node %s connect with %s with %s",
-		conn.LocalAddr().String(), conn.RemoteAddr().String(),
-		conn.RemoteAddr().Network()))
-	go peer.rx()
-
-	if node.GetID() > peer.GetID() {
-		peer.SetState(HAND)
-		buf, _ := NewVersion(node)
-		peer.Tx(buf)
-	}
-
-	return nil
 }
 
-func (node *node) TryConnect() {
-	node.nbrNodes.RLock()
-	defer node.nbrNodes.RUnlock()
-	for _, n := range node.nbrNodes.List {
-		if n.GetState() == INACTIVITY && n.tryTimes < 3 {
-			//try to connect
-			n.tryTimes++
-			node.reconnect(n)
+func (n *node) TryConnect() {
+	if n.fetchRetryNodeFromNeiborList() > 0 {
+		n.reconnect()
+	}
+}
+
+func (n *node) fetchRetryNodeFromNeiborList() int {
+	n.nbrNodes.Lock()
+	defer n.nbrNodes.Unlock()
+	var ip net.IP
+	neibornodes := make(map[uint64]*node)
+	for _, tn := range n.nbrNodes.List {
+		addr := getNodeAddr(tn)
+		ip = addr.IpAddr[:]
+		nodeAddr := ip.To16().String() + ":" + strconv.Itoa(int(addr.Port))
+		if tn.GetState() == INACTIVITY {
+			//add addr to retry list
+			n.AddInRetryList(nodeAddr)
+			//close legacy node
+			if tn.conn != nil {
+				tn.CloseConn()
+			}
+		} else {
+			//add others to tmp node map
+			n.RemoveFromRetryList(nodeAddr)
+			neibornodes[tn.GetID()] = tn
 		}
 	}
-
+	n.nbrNodes.List = neibornodes
+	return len(n.RetryAddrs)
 }
 
 // FIXME part of node info update function could be a node method itself intead of
@@ -185,12 +182,10 @@ func (node *node) updateNodeInfo() {
 	for {
 		select {
 		case <-ticker.C:
-			node.ConnectSeeds()
 			node.SendPingToNbr()
 			node.GetBlkHdrs()
 			node.SyncBlk()
 			node.HeartBeatMonitor()
-			node.TryConnect()
 		case <-quit:
 			ticker.Stop()
 			return
@@ -198,4 +193,16 @@ func (node *node) updateNodeInfo() {
 	}
 	// TODO when to close the timer
 	//close(quit)
+}
+
+func (node *node) updateConnection() {
+	t := time.NewTicker(time.Second * CONNMONITOR)
+	for {
+		select {
+		case <-t.C:
+			node.ConnectSeeds()
+			node.TryConnect()
+		}
+	}
+
 }
