@@ -1376,3 +1376,66 @@ func (bd *ChainStore) saveUnspentWithProgramHash(programHash Uint160, assetid Ui
 
 	return nil
 }
+
+func (bd *ChainStore) GetUnspentsFromProgramHash(programHash Uint160) (map[Uint256][]*tx.UTXOUnspent, error) {
+	uxtoUnspents := make(map[Uint256][]*tx.UTXOUnspent)
+
+	prefix := []byte{byte(IX_Unspent_UTXO)}
+	key := append(prefix, programHash.ToArray()...)
+	iter := bd.st.NewIterator(key)
+	for iter.Next() {
+		rk := bytes.NewReader(iter.Key())
+
+		// read prefix
+		_, _ = serialization.ReadBytes(rk, 1)
+		var ph Uint160
+		ph.Deserialize(rk)
+		var assetid Uint256
+		assetid.Deserialize(rk)
+		log.Tracef("[GetUnspentsFromProgramHash] assetid: %x\n", assetid.ToArray())
+
+		r := bytes.NewReader(iter.Value())
+		listNum, err := serialization.ReadVarUint(r, 0)
+		if err != nil {
+			return nil, err
+		}
+
+		// read unspent list in store
+		unspents := make([]*tx.UTXOUnspent, listNum)
+		for i := 0; i < int(listNum); i++ {
+			uu := new(tx.UTXOUnspent)
+			err := uu.Deserialize(r)
+			if err != nil {
+				return nil, err
+			}
+
+			unspents[i] = uu
+		}
+		uxtoUnspents[assetid] = unspents
+	}
+
+	return uxtoUnspents, nil
+}
+
+func (bd *ChainStore) GetAssets() map[Uint256]*Asset {
+	assets := make(map[Uint256]*Asset)
+
+	iter := bd.st.NewIterator([]byte{byte(ST_Info)})
+	for iter.Next() {
+		rk := bytes.NewReader(iter.Key())
+
+		// read prefix
+		_, _ = serialization.ReadBytes(rk, 1)
+		var assetid Uint256
+		assetid.Deserialize(rk)
+		log.Tracef("[GetAssets] assetid: %x\n", assetid.ToArray())
+
+		asset := new(Asset)
+		r := bytes.NewReader(iter.Value())
+		asset.Deserialize(r)
+
+		assets[assetid] = asset
+	}
+
+	return assets
+}
