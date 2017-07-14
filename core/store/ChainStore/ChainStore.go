@@ -1287,6 +1287,40 @@ func (bd *ChainStore) GetAccount(programHash Uint160) (*account.AccountState, er
 	return accountState, nil
 }
 
+func (bd *ChainStore) IsBlockInStore(hash Uint256) bool {
+
+	var b *Block = new(Block)
+
+	b.Blockdata = new(Blockdata)
+	b.Blockdata.Program = new(program.Program)
+
+	prefix := []byte{byte(DATA_Header)}
+	blockData, err_get := bd.st.Get(append(prefix, hash.ToArray()...))
+	if err_get != nil {
+		return false
+	}
+
+	r := bytes.NewReader(blockData)
+
+	// first 8 bytes is sys_fee
+	_, err := serialization.ReadUint64(r)
+	if err != nil {
+		return false
+	}
+
+	// Deserialize block data
+	err = b.FromTrimmedData(r)
+	if err != nil {
+		return false
+	}
+
+	if b.Blockdata.Height > bd.currentBlockHeight {
+		return false
+	}
+
+	return true
+}
+
 func (bd *ChainStore) GetUnspentFromProgramHash(programHash Uint160, assetid Uint256) ([]*tx.UTXOUnspent, error) {
 
 	prefix := []byte{byte(IX_Unspent_UTXO)}

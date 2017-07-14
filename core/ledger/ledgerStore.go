@@ -45,4 +45,5 @@ type ILedgerStore interface {
 	GetUnspentFromProgramHash(programHash Uint160, assetid Uint256) ([]*tx.UTXOUnspent, error)
 
 	IsTxHashDuplicate(txhash Uint256) bool
+	IsBlockInStore(hash Uint256) bool
 }
