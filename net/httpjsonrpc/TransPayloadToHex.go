@@ -13,6 +13,7 @@ type PayloadInfo interface{}
 
 //implement PayloadInfo define BookKeepingInfo
 type BookKeepingInfo struct {
+	Nonce uint64
 }
 
 //implement PayloadInfo define DeployCodeInfo
@@ -78,6 +79,9 @@ type PrivacyPayloadInfo struct {
 func TransPayloadToHex(p Payload) PayloadInfo {
 	switch object := p.(type) {
 	case *payload.BookKeeping:
+		obj := new(BookKeepingInfo)
+		obj.Nonce = object.Nonce
+		return obj
 	case *payload.BookKeeper:
 		obj := new(BookkeeperInfo)
 		encodedPubKey, _ := object.PubKey.EncodePoint(true)

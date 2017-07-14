@@ -170,13 +170,14 @@ func (ds *DbftService) CheckSignatures() error {
 
 func (ds *DbftService) CreateBookkeepingTransaction(nonce uint64) *tx.Transaction {
 	log.Debug()
-
 	//TODO: sysfee
-
+	bookKeepingPayload := &payload.BookKeeping{
+		Nonce: uint64(time.Now().UnixNano()),
+	}
 	return &tx.Transaction{
 		TxType:         tx.BookKeeping,
-		PayloadVersion: 0x2,
-		Payload:        &payload.BookKeeping{},
+		PayloadVersion: tx.DefaultPayloadVersion,
+		Payload:        bookKeepingPayload,
 		Attributes:     []*tx.TxAttribute{},
 		UTXOInputs:     []*tx.UTXOTxInput{},
 		BalanceInputs:  []*tx.BalanceTxInput{},

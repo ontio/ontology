@@ -16,6 +16,8 @@ import (
 	. "DNA/errors"
 )
 
+const DefaultPayloadVersion byte = 0x00
+
 //for different transaction types with different payload format
 //and transaction process methods
 type TransactionType byte

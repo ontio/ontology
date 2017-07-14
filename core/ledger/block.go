@@ -7,12 +7,16 @@ import (
 	"DNA/core/contract/program"
 	sig "DNA/core/signature"
 	tx "DNA/core/transaction"
+	"DNA/core/transaction/payload"
 	"DNA/crypto"
 	. "DNA/errors"
 	"DNA/vm"
 	"io"
 	"time"
 )
+
+const BlockVersion uint32 = 0
+const GenesisNonce uint64 = 2083236893
 
 type Block struct {
 	Blockdata    *Blockdata
@@ -144,51 +148,43 @@ func (b *Block) Type() InventoryType {
 }
 
 func GenesisBlockInit() (*Block, error) {
-	genesisBlock := new(Block)
-	//blockdata
-	genesisBlockdata := new(Blockdata)
-	genesisBlockdata.Version = uint32(0x00)
-	genesisBlockdata.PrevBlockHash = Uint256{}
-	genesisBlockdata.TransactionsRoot = Uint256{}
-	tm := time.Date(2017, time.February, 23, 0, 0, 0, 0, time.UTC)
-	genesisBlockdata.Timestamp = uint32(tm.Unix())
-	genesisBlockdata.Height = uint32(0)
-	genesisBlockdata.ConsensusData = uint64(2083236893)
+	//getBookKeeper
 	nextBookKeeper, err := GetBookKeeperAddress(StandbyBookKeepers)
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[Block],GenesisBlockInit err with GetBookKeeperAddress")
 	}
-	genesisBlockdata.NextBookKeeper = nextBookKeeper
-
-	pg := new(program.Program)
-	pg.Code = []byte{'0'}
-	pg.Parameter = []byte{byte(vm.PUSHT)}
-	genesisBlockdata.Program = pg
-
-	//transaction
-	trans := new(tx.Transaction)
-	{
-		trans.TxType = tx.BookKeeping
-		trans.PayloadVersion = byte(0)
-		trans.Payload = nil
-		trans.Attributes = nil
-		trans.UTXOInputs = nil
-		trans.BalanceInputs = nil
-		trans.Outputs = nil
-		{
-			programHashes := []*program.Program{}
-			pg := new(program.Program)
-			pg.Code = []byte{'0'}
-			pg.Parameter = []byte{byte(vm.PUSHT)}
-			programHashes = append(programHashes, pg)
-			trans.Programs = programHashes
-		}
+	//blockdata
+	genesisBlockdata := &Blockdata{
+		Version:          BlockVersion,
+		PrevBlockHash:    Uint256{},
+		TransactionsRoot: Uint256{},
+		Timestamp:        uint32(uint32(time.Date(2017, time.February, 23, 0, 0, 0, 0, time.UTC).Unix())),
+		Height:           uint32(0),
+		ConsensusData:    GenesisNonce,
+		NextBookKeeper:   nextBookKeeper,
+		Program: &program.Program{
+			Code:      []byte{},
+			Parameter: []byte{byte(vm.PUSHT)},
+		},
 	}
-	genesisBlock.Blockdata = genesisBlockdata
-
-	genesisBlock.Transactions = append(genesisBlock.Transactions, trans)
-
-	//hashx := genesisBlock.Hash()
+	//transaction
+	trans := &tx.Transaction{
+		TxType:         tx.BookKeeping,
+		PayloadVersion: tx.DefaultPayloadVersion,
+		Payload: &payload.BookKeeping{
+			Nonce: GenesisNonce,
+		},
+		Attributes:    []*tx.TxAttribute{},
+		UTXOInputs:    []*tx.UTXOTxInput{},
+		BalanceInputs: []*tx.BalanceTxInput{},
+		Outputs:       []*tx.TxOutput{},
+		Programs:      []*program.Program{},
+	}
+	//block
+	genesisBlock := &Block{
+		Blockdata:    genesisBlockdata,
+		Transactions: []*tx.Transaction{trans},
+	}
 
 	return genesisBlock, nil
 }
