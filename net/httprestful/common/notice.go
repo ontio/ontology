@@ -36,7 +36,7 @@ func SetPushBlockFlag(cmd map[string]interface{}) map[string]interface{} {
 func SetNoticeServerUrl(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
 
-	addr, ok := cmd["Addr"].(string)
+	addr, ok := cmd["Url"].(string)
 	if !ok || len(addr) == 0 {
 		resp["Error"] = Err.INVALID_PARAMS
 		return resp

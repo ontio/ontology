@@ -24,7 +24,7 @@ func GetOauthServerUrl(cmd map[string]interface{}) map[string]interface{} {
 func SetOauthServerUrl(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
 
-	addr, ok := cmd["Addr"].(string)
+	addr, ok := cmd["Url"].(string)
 	if !ok {
 		resp["Error"] = Err.INVALID_PARAMS
 		return resp

@@ -113,7 +113,7 @@ func SendRecord(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-func SendRecodTransaction(cmd map[string]interface{}) map[string]interface{} {
+func SendRecordTransaction(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
 	var recordData []byte
 	recordData, resp["Error"] = getRecordData(cmd)
