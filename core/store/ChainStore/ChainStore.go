@@ -1148,6 +1148,10 @@ func (bd *ChainStore) SaveBlock(b *Block, ledger *Ledger) error {
 	bd.mu.Lock()
 	defer bd.mu.Unlock()
 
+	if b.Blockdata.Height <= bd.currentBlockHeight {
+		return nil
+	}
+
 	if bd.blockCache[b.Hash()] == nil {
 		bd.blockCache[b.Hash()] = b
 	}
