@@ -196,12 +196,14 @@ func (node *node) updateNodeInfo() {
 }
 
 func (node *node) updateConnection() {
-	t := time.NewTicker(time.Second * CONNMONITOR)
+	t := time.NewTimer(time.Second * CONNMONITOR)
 	for {
 		select {
 		case <-t.C:
 			node.ConnectSeeds()
 			node.TryConnect()
+			t.Stop()
+			t.Reset(time.Second * CONNMONITOR)
 		}
 	}
 
