@@ -525,18 +525,13 @@ func nodeType(typeName string) int {
 }
 
 func GetClient() Client {
-	if (protocol.SERVICENODENAME != config.Parameters.NodeType) &&
-		(len(config.Parameters.BookKeepers) < DefaultBookKeeperCount) {
-		log.Error("At least ", DefaultBookKeeperCount, " BookKeepers should be set at config.json")
-		return nil
-	}
 	if !FileExisted(WalletFileName) {
-		log.Error(fmt.Sprintf("No %s detected, please create a wallet by using command line.", WalletFileName))
+		log.Fatal(fmt.Sprintf("No %s detected, please create a wallet by using command line.", WalletFileName))
 		os.Exit(1)
 	}
 	passwd, err := password.GetAccountPassword()
 	if err != nil {
-		log.Error("Get password error.")
+		log.Fatal("Get password error.")
 		os.Exit(1)
 	}
 	c := Open(WalletFileName, passwd)

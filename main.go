@@ -42,6 +42,11 @@ func main() {
 	var noder protocol.Noder
 	log.Trace("Node version: ", config.Version)
 
+	if len(config.Parameters.BookKeepers) < account.DefaultBookKeeperCount {
+		log.Fatal("At least ", account.DefaultBookKeeperCount, " BookKeepers should be set at config.json")
+		os.Exit(1)
+	}
+
 	log.Info("0. Loading the Ledger")
 	ledger.DefaultLedger = new(ledger.Ledger)
 	ledger.DefaultLedger.Store, err = ChainStore.NewLedgerStore()
@@ -57,12 +62,12 @@ func main() {
 	log.Info("1. Open the account")
 	client := account.GetClient()
 	if client == nil {
-		log.Error("Can't get local account.")
+		log.Fatal("Can't get local account.")
 		goto ERROR
 	}
 	acct, err = client.GetDefaultAccount()
 	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 		goto ERROR
 	}
 	log.Debug("The Node's PublicKey ", acct.PublicKey)
@@ -71,7 +76,7 @@ func main() {
 	log.Info("3. BlockChain init")
 	blockChain, err = ledger.NewBlockchainWithGenesisBlock(ledger.StandbyBookKeepers)
 	if err != nil {
-		log.Error(err, "  BlockChain generate failed")
+		log.Fatal(err, "  BlockChain generate failed")
 		goto ERROR
 	}
 	ledger.DefaultLedger.Blockchain = blockChain

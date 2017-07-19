@@ -162,6 +162,11 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 	}
 
 	if version[0] == 0x01 {
+		// GenesisBlock should exist in chain
+		// Or the bookkeepers are not consistent with the chain
+		if !bd.containsBlock(hash) {
+			return 0, errors.New("bookkeepers are not consistent with the chain")
+		}
 		// Get Current Block
 		currentBlockPrefix := []byte{byte(SYS_CurrentBlock)}
 		data, err := bd.st.Get(currentBlockPrefix)

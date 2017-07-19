@@ -147,9 +147,9 @@ func (b *Block) Type() InventoryType {
 	return BLOCK
 }
 
-func GenesisBlockInit() (*Block, error) {
+func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*Block, error) {
 	//getBookKeeper
-	nextBookKeeper, err := GetBookKeeperAddress(StandbyBookKeepers)
+	nextBookKeeper, err := GetBookKeeperAddress(defaultBookKeeper)
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[Block],GenesisBlockInit err with GetBookKeeperAddress")
 	}
