@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+const AttributeMaxLen = 252
+
 //record
 func getRecordData(cmd map[string]interface{}) ([]byte, int64) {
 	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
@@ -93,13 +95,15 @@ func SendRecord(cmd map[string]interface{}) map[string]interface{} {
 
 	bytesBuf := bytes.NewBuffer(recordData)
 
-	buf := make([]byte, 252)
+	buf := make([]byte, AttributeMaxLen)
 	for {
 		n, err := bytesBuf.Read(buf)
 		if err != nil {
 			break
 		}
-		record := tx.NewTxAttribute(tx.Description, buf[0:n])
+		var data = make([]byte, n)
+		copy(data, buf[0:n])
+		record := tx.NewTxAttribute(tx.Description, data)
 		transferTx.Attributes = append(transferTx.Attributes, &record)
 	}
 	if err := VerifyAndSendTx(transferTx); err != nil {
