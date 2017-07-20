@@ -136,7 +136,7 @@ func (msg Inv) Handle(node Noder) error {
 			if !ledger.DefaultLedger.Store.BlockInCache(id) &&
 				!ledger.DefaultLedger.BlockInLedger(id) {
 				// send the block request
-				log.Info("inv request block hash: ", id)
+				log.Infof("inv request block hash: %x", id)
 				ReqBlkData(node, id)
 			}
 

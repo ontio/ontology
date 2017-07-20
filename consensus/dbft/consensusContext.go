@@ -156,14 +156,14 @@ func (cxt *ConsensusContext) GetSignaturesCount() (count int) {
 
 func (cxt *ConsensusContext) GetStateDetail() string {
 
-	return fmt.Sprintf("Initial: %t, Primary: %t, Backup: %t, RequestSent: %t, RequestReceived: %t, SignatureSent: %t, BlockSent: %t, ",
+	return fmt.Sprintf("Initial: %t, Primary: %t, Backup: %t, RequestSent: %t, RequestReceived: %t, SignatureSent: %t, BlockGenerated: %t, ",
 		cxt.State.HasFlag(Initial),
 		cxt.State.HasFlag(Primary),
 		cxt.State.HasFlag(Backup),
 		cxt.State.HasFlag(RequestSent),
 		cxt.State.HasFlag(RequestReceived),
 		cxt.State.HasFlag(SignatureSent),
-		cxt.State.HasFlag(BlockSent))
+		cxt.State.HasFlag(BlockGenerated))
 
 }
 

@@ -63,7 +63,7 @@ func (bc *Blockchain) GetHeader(hash Uint256) (*Header, error) {
 
 func (bc *Blockchain) SaveBlock(block *Block) error {
 	log.Debug()
-	log.Debug("Save block, block hash ", block.Hash())
+	log.Debugf("Save block, block hash %x", block.Hash())
 	err := DefaultLedger.Store.SaveBlock(block, DefaultLedger)
 	if err != nil {
 		log.Warn("Save block failure , ", err)

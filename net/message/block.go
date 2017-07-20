@@ -28,7 +28,7 @@ func (msg block) Handle(node Noder) error {
 	log.Debug("RX block message")
 	hash := msg.blk.Hash()
 	if ledger.DefaultLedger.BlockInLedger(hash) {
-		log.Warn("Receive duplicated block: ", hash)
+		log.Warnf("Receive duplicated block: %x", hash)
 		return errors.New("Received duplicate block")
 	}
 	if err := ledger.DefaultLedger.Blockchain.AddBlock(&msg.blk); err != nil {
@@ -78,7 +78,7 @@ func (msg dataReq) Handle(node Noder) error {
 func NewBlockFromHash(hash common.Uint256) (*ledger.Block, error) {
 	bk, err := ledger.DefaultLedger.Store.GetBlock(hash)
 	if err != nil {
-		log.Error("Get Block error: ", err.Error())
+		log.Errorf("Get Block error: %s, block hash: %x", err.Error(), hash)
 		return nil, err
 	}
 	return bk, nil
