@@ -85,7 +85,10 @@ $ cat config.json
     "SeedList": [
       "35.189.182.223:10338",
       "35.189.166.234:30338",
-      "35.189.161.152:50338"
+      "35.189.161.152:50338",
+      "52.79.125.166:10338",
+      "13.125.0.7:10338",
+      "52.79.103.97:10338"
     ],
 	...
     "BookKeepers": [
@@ -94,7 +97,8 @@ $ cat config.json
       "02aec70e084e4e5d36ed2db54aa708a6bd095fbb663929850986a5ec22061e1be2",
       "02758623d16774f3c5535a305e65ea949343eab06888ee2e7633b4f3f9d78d506c"
     ],
-	"HttpRestPort": 20334,
+    "HttpRestPort": 20334,
+    "HttpWsPort": 20335,
     "HttpJsonPort": 20336,
     "HttpLocalPort": 20337,
     "NodePort": 20338,
@@ -143,7 +147,10 @@ $ cat node[1234]/config.json
     "SeedList": [
       "35.189.182.223:10338",
       "35.189.166.234:30338",
-      "35.189.161.152:50338"
+      "35.189.161.152:50338",
+      "52.79.125.166:10338",
+      "13.125.0.7:10338",
+      "52.79.103.97:10338"
     ],
     "BookKeepers": [
       "03ad8f4a837f7a02adedcea920b30c5c99517aabc7d2695d93ac572b9c2106d4c2",
@@ -152,6 +159,7 @@ $ cat node[1234]/config.json
       "02758623d16774f3c5535a305e65ea949343eab06888ee2e7633b4f3f9d78d506c"
     ],
     "HttpRestPort": 10334,
+    "HttpWsPort": 10335,
     "HttpJsonPort": 10336,
     "HttpLocalPort": 10337,
     "NodePort": 10338,
@@ -160,7 +168,10 @@ $ cat node[1234]/config.json
     "SeedList": [
       "35.189.182.223:10338",
       "35.189.166.234:30338",
-      "35.189.161.152:50338"
+      "35.189.161.152:50338",
+      "52.79.125.166:10338",
+      "13.125.0.7:10338",
+      "52.79.103.97:10338"
     ],
     "BookKeepers": [
       "03ad8f4a837f7a02adedcea920b30c5c99517aabc7d2695d93ac572b9c2106d4c2",
@@ -169,6 +180,7 @@ $ cat node[1234]/config.json
       "02758623d16774f3c5535a305e65ea949343eab06888ee2e7633b4f3f9d78d506c"
     ],
     "HttpRestPort": 20334,
+    "HttpWsPort": 20335,
     "HttpJsonPort": 20336,
     "HttpLocalPort": 20337,
     "NodePort": 20338,
@@ -177,7 +189,10 @@ $ cat node[1234]/config.json
     "SeedList": [
       "35.189.182.223:10338",
       "35.189.166.234:30338",
-      "35.189.161.152:50338"
+      "35.189.161.152:50338",
+      "52.79.125.166:10338",
+      "13.125.0.7:10338",
+      "52.79.103.97:10338"
     ],
     "BookKeepers": [
       "03ad8f4a837f7a02adedcea920b30c5c99517aabc7d2695d93ac572b9c2106d4c2",
@@ -186,6 +201,7 @@ $ cat node[1234]/config.json
       "02758623d16774f3c5535a305e65ea949343eab06888ee2e7633b4f3f9d78d506c"
     ],
     "HttpRestPort": 30334,
+    "HttpWsPort": 30335,
     "HttpJsonPort": 30336,
     "HttpLocalPort": 30337,
     "NodePort": 30338,
@@ -194,7 +210,10 @@ $ cat node[1234]/config.json
     "SeedList": [
       "35.189.182.223:10338",
       "35.189.166.234:30338",
-      "35.189.161.152:50338"
+      "35.189.161.152:50338",
+      "52.79.125.166:10338",
+      "13.125.0.7:10338",
+      "52.79.103.97:10338"
     ],
     "BookKeepers": [
       "03ad8f4a837f7a02adedcea920b30c5c99517aabc7d2695d93ac572b9c2106d4c2",
@@ -203,6 +222,7 @@ $ cat node[1234]/config.json
       "02758623d16774f3c5535a305e65ea949343eab06888ee2e7633b4f3f9d78d506c"
     ],
     "HttpRestPort": 40334,
+    "HttpWsPort": 40335,
     "HttpJsonPort": 40336,
     "HttpLocalPort": 40337,
     "NodePort": 40338,
@@ -249,10 +269,11 @@ Some other available nodes for testing:
 IP               PORT
 ----------------------
 35.189.182.223:  10336
-35.189.182.223:  20336
 35.189.166.234:  30336
-35.189.166.234:  40336
 35.189.161.152:  50336
+52.79.125.166:   10336
+13.125.0.7:      10336
+52.79.103.97:    10336
 ```
 
  `Notice: The nodes above are intended to be used for public testing only. The data saved on the testing chain maybe be reset at any time. Keep in mind to back up the data by yourself to avoid data loss.`
