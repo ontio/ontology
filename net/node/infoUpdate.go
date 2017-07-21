@@ -108,10 +108,31 @@ func (node *node) ReqNeighborList() {
 }
 
 func (node *node) ConnectSeeds() {
-	if node.nbrNodes.GetConnectionCnt() == 0 {
+	if node.nbrNodes.GetConnectionCnt() < MINCONNCNT {
 		seedNodes := config.Parameters.SeedList
 		for _, nodeAddr := range seedNodes {
-			go node.Connect(nodeAddr)
+			found := false
+			var n Noder
+			var ip net.IP
+			node.nbrNodes.Lock()
+			for _, tn := range node.nbrNodes.List {
+				addr := getNodeAddr(tn)
+				ip = addr.IpAddr[:]
+				addrstring := ip.To16().String() + ":" + strconv.Itoa(int(addr.Port))
+				if nodeAddr == addrstring {
+					n = tn
+					found = true
+					break
+				}
+			}
+			node.nbrNodes.Unlock()
+			if found {
+				if n.GetState() == ESTABLISH {
+					n.ReqNeighborList()
+				}
+			} else { //not found
+				go node.Connect(nodeAddr)
+			}
 		}
 	}
 }
