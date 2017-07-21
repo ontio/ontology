@@ -32,7 +32,7 @@ func (msg block) Handle(node Noder) error {
 		return errors.New("Received duplicate block")
 	}
 	if err := ledger.DefaultLedger.Blockchain.AddBlock(&msg.blk); err != nil {
-		log.Error("Block adding error: ", hash)
+		log.Warn("Block add failed: ", err, " ,block hash is ", hash)
 		return err
 	}
 	node.RemoveFlightHeight(msg.blk.Blockdata.Height)
