@@ -51,16 +51,20 @@ func (node *node) SyncBlk() {
 		flights := n.GetFlightHeights()
 		if count == 0 {
 			for _, f := range flights {
-
 				hash := ledger.DefaultLedger.Store.GetHeaderHashByHeight(f)
-				ReqBlkData(n, hash)
+				if ledger.DefaultLedger.Store.BlockInCache(hash) == false {
+					ReqBlkData(n, hash)
+				}
 			}
 
 		}
 		for i = 1; i <= count && dValue >= 0; i++ {
 			hash := ledger.DefaultLedger.Store.GetHeaderHashByHeight(currentBlkHeight + reqCnt)
-			ReqBlkData(n, hash)
-			n.StoreFlightHeight(currentBlkHeight + reqCnt)
+
+			if ledger.DefaultLedger.Store.BlockInCache(hash) == false {
+				ReqBlkData(n, hash)
+				n.StoreFlightHeight(currentBlkHeight + reqCnt)
+			}
 			reqCnt++
 			dValue--
 		}
