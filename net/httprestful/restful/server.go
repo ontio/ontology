@@ -41,8 +41,10 @@ const (
 	Api_Getblockhash       = "/api/v1/block/hash/:height"
 	Api_Gettransaction     = "/api/v1/transaction/:hash"
 	Api_Getasset           = "/api/v1/asset/:hash"
-	Api_GetBalance         = "/api/v1/asset/balance/:addr"
-	Api_GetUTXO            = "/api/v1/asset/utxo/:addr/:assetid"
+	Api_GetBalanceByAddr   = "/api/v1/asset/balances/:addr"
+	Api_GetBalancebyAsset  = "/api/v1/asset/balance/:addr/:assetid"
+	Api_GetUTXObyAsset     = "/api/v1/asset/utxo/:addr/:assetid"
+	Api_GetUTXObyAddr      = "/api/v1/asset/utxos/:addr"
 	Api_SendRawTx          = "/api/v1/transaction"
 	Api_SendRcdTxByTrans   = "/api/v1/custom/transaction/record"
 	Api_GetStateUpdate     = "/api/v1/stateupdate/:namespace/:key"
@@ -51,6 +53,7 @@ const (
 	Api_NoticeServerState  = "/api/v1/config/noticeserver/state"
 	Api_WebsocketState     = "/api/v1/config/websocket/state"
 	Api_Restart            = "/api/v1/restart"
+	Api_GetContract        = "/api/v1/contract/:hash"
 )
 
 func InitRestServer(checkAccessToken func(string, string) (string, int64, interface{})) ApiServer {
@@ -131,8 +134,11 @@ func (rt *restServer) registryMethod() {
 		Api_Getblockhash:       {name: "getblockhash", handler: GetBlockHash},
 		Api_Gettransaction:     {name: "gettransaction", handler: GetTransactionByHash},
 		Api_Getasset:           {name: "getasset", handler: GetAssetByHash},
-		Api_GetUTXO:            {name: "getutxo", handler: GetUnspendOutput},
-		Api_GetBalance:         {name: "getbalance", handler: GetBalance},
+		Api_GetContract:        {name: "getcontract", handler: GetContract},
+		Api_GetUTXObyAddr:      {name: "getutxobyaddr", handler: GetUnspends},
+		Api_GetUTXObyAsset:     {name: "getutxobyasset", handler: GetUnspendOutput},
+		Api_GetBalanceByAddr:   {name: "getbalancebyaddr", handler: GetBalanceByAddr},
+		Api_GetBalancebyAsset:  {name: "getbalancebyasset", handler: GetBalanceByAsset},
 		Api_OauthServerUrl:     {name: "getoauthserverurl", handler: GetOauthServerUrl},
 		Api_NoticeServerUrl:    {name: "getnoticeserverurl", handler: GetNoticeServerUrl},
 		Api_Restart:            {name: "restart", handler: rt.Restart},
@@ -170,10 +176,16 @@ func (rt *restServer) getPath(url string) string {
 		return Api_Getblockbyhash
 	} else if strings.Contains(url, strings.TrimRight(Api_Gettransaction, ":hash")) {
 		return Api_Gettransaction
-	} else if strings.Contains(url, strings.TrimRight(Api_GetBalance, ":addr")) {
-		return Api_GetBalance
-	} else if strings.Contains(url, strings.TrimRight(Api_GetUTXO, ":addr/:assetid")) {
-		return Api_GetUTXO
+	} else if strings.Contains(url, strings.TrimRight(Api_GetContract, ":hash")) {
+		return Api_GetContract
+	} else if strings.Contains(url, strings.TrimRight(Api_GetBalanceByAddr, ":addr")) {
+		return Api_GetBalanceByAddr
+	} else if strings.Contains(url, strings.TrimRight(Api_GetBalancebyAsset, ":addr/:assetid")) {
+		return Api_GetBalancebyAsset
+	} else if strings.Contains(url, strings.TrimRight(Api_GetUTXObyAddr, ":addr")) {
+		return Api_GetUTXObyAddr
+	} else if strings.Contains(url, strings.TrimRight(Api_GetUTXObyAsset, ":addr/:assetid")) {
+		return Api_GetUTXObyAsset
 	} else if strings.Contains(url, strings.TrimRight(Api_Getasset, ":hash")) {
 		return Api_Getasset
 	} else if strings.Contains(url, strings.TrimRight(Api_GetStateUpdate, ":namespace/:key")) {
@@ -202,14 +214,25 @@ func (rt *restServer) getParams(r *http.Request, url string, req map[string]inte
 		req["Hash"] = getParam(r, "hash")
 		req["Raw"] = r.FormValue("raw")
 		break
+	case Api_GetContract:
+		req["Hash"] = getParam(r, "hash")
+		req["Raw"] = r.FormValue("raw")
+		break
 	case Api_Getasset:
 		req["Hash"] = getParam(r, "hash")
 		req["Raw"] = r.FormValue("raw")
 		break
-	case Api_GetBalance:
+	case Api_GetBalancebyAsset:
+		req["Addr"] = getParam(r, "addr")
+		req["Assetid"] = getParam(r, "assetid")
+		break
+	case Api_GetBalanceByAddr:
 		req["Addr"] = getParam(r, "addr")
 		break
-	case Api_GetUTXO:
+	case Api_GetUTXObyAddr:
+		req["Addr"] = getParam(r, "addr")
+		break
+	case Api_GetUTXObyAsset:
 		req["Addr"] = getParam(r, "addr")
 		req["Assetid"] = getParam(r, "assetid")
 		break

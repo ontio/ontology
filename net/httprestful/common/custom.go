@@ -111,9 +111,7 @@ func SendRecord(cmd map[string]interface{}) map[string]interface{} {
 		return resp
 	}
 	hash := transferTx.Hash()
-	var data = make(map[string]interface{})
-	data["Txid"] = ToHexString(hash.ToArrayReverse())
-	resp["Result"] = data
+	resp["Result"] = ToHexString(hash.ToArrayReverse())
 	return resp
 }
 
