@@ -48,4 +48,5 @@ type ILedgerStore interface {
 
 	IsTxHashDuplicate(txhash Uint256) bool
 	IsBlockInStore(hash Uint256) bool
+	Close()
 }
