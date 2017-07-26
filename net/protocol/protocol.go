@@ -68,6 +68,8 @@ const (
 	INACTIVITY = 5
 )
 
+var ReceiveDuplicateBlockCnt uint64 //an index to detecting networking status
+
 type Noder interface {
 	Version() uint32
 	GetID() uint64
@@ -123,6 +125,7 @@ type Noder interface {
 	GetLastRXTime() time.Time
 	SetHeight(height uint64)
 	WaitForFourPeersStart()
+	WaitForSyncBlkFinish()
 	GetFlightHeights() []uint32
 	IsAddrInNbrList(addr string) bool
 	SetAddrInConnectingList(addr string) bool

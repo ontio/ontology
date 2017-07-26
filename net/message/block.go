@@ -28,8 +28,9 @@ func (msg block) Handle(node Noder) error {
 	log.Debug("RX block message")
 	hash := msg.blk.Hash()
 	if ledger.DefaultLedger.BlockInLedger(hash) {
-		log.Warnf("Receive duplicated block: %x", hash)
-		return errors.New("Received duplicate block")
+		ReceiveDuplicateBlockCnt++
+		log.Debug("Receive ", ReceiveDuplicateBlockCnt, " duplicated block.")
+		return nil
 	}
 	if err := ledger.DefaultLedger.Blockchain.AddBlock(&msg.blk); err != nil {
 		log.Warn("Block add failed: ", err, " ,block hash is ", hash)

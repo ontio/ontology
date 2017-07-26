@@ -373,6 +373,17 @@ func (node *node) SyncNodeHeight() {
 	}
 }
 
+func (node *node) WaitForSyncBlkFinish() {
+	for {
+		headerHeight := ledger.DefaultLedger.Store.GetHeaderHeight()
+		currentBlkHeight := ledger.DefaultLedger.Blockchain.BlockHeight
+		log.Info("WaitForSyncBlkFinish... current block height is ", currentBlkHeight, " ,current header height is ", headerHeight)
+		if currentBlkHeight >= headerHeight {
+			break
+		}
+		<-time.After(2 * time.Second)
+	}
+}
 func (node *node) WaitForFourPeersStart() {
 	for {
 		log.Debug("WaitForFourPeersStart...")
