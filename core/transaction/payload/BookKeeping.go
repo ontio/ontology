@@ -5,6 +5,8 @@ import (
 	"io"
 )
 
+const BookKeepingPayloadVersion byte = 0x03
+
 type BookKeeping struct {
 	Nonce uint64
 }

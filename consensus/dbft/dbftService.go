@@ -176,7 +176,7 @@ func (ds *DbftService) CreateBookkeepingTransaction(nonce uint64) *tx.Transactio
 	}
 	return &tx.Transaction{
 		TxType:         tx.BookKeeping,
-		PayloadVersion: tx.DefaultPayloadVersion,
+		PayloadVersion: payload.BookKeepingPayloadVersion,
 		Payload:        bookKeepingPayload,
 		Attributes:     []*tx.TxAttribute{},
 		UTXOInputs:     []*tx.UTXOTxInput{},

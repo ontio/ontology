@@ -170,7 +170,7 @@ func GenesisBlockInit() (*Block, error) {
 	//transaction
 	trans := &tx.Transaction{
 		TxType:         tx.BookKeeping,
-		PayloadVersion: tx.DefaultPayloadVersion,
+		PayloadVersion: payload.BookKeepingPayloadVersion,
 		Payload: &payload.BookKeeping{
 			Nonce: GenesisNonce,
 		},
