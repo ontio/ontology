@@ -2,20 +2,21 @@ package payload
 
 import "io"
 
-type IssueAsset struct {
+const IssueAssetPayloadVersion byte = 0x00
 
+type IssueAsset struct {
 }
 
-func (a *IssueAsset) Data() []byte {
+func (a *IssueAsset) Data(version byte) []byte {
 	//TODO: implement IssueAsset.Data()
 	return []byte{0}
 
 }
 
-func (a *IssueAsset) Serialize(w io.Writer) error {
+func (a *IssueAsset) Serialize(w io.Writer, version byte) error {
 	return nil
 }
 
-func (a *IssueAsset) Deserialize(r io.Reader) error {
+func (a *IssueAsset) Deserialize(r io.Reader, version byte) error {
 	return nil
 }

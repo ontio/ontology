@@ -7,18 +7,20 @@ import (
 	"io"
 )
 
+const RecordPayloadVersion byte = 0x00
+
 type Record struct {
 	RecordType string
 	RecordData []byte
 }
 
-func (a *Record) Data() []byte {
+func (a *Record) Data(version byte) []byte {
 	//TODO: implement RegisterRecord.Data()
 	return []byte{0}
 }
 
 // Serialize is the implement of SignableData interface.
-func (a *Record) Serialize(w io.Writer) error {
+func (a *Record) Serialize(w io.Writer, version byte) error {
 	err := serialization.WriteVarString(w, a.RecordType)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "[RecordDetail], RecordType serialize failed.")
@@ -31,7 +33,7 @@ func (a *Record) Serialize(w io.Writer) error {
 }
 
 // Deserialize is the implement of SignableData interface.
-func (a *Record) Deserialize(r io.Reader) error {
+func (a *Record) Deserialize(r io.Reader, version byte) error {
 	var err error
 	a.RecordType, err = serialization.ReadVarString(r)
 	if err != nil {

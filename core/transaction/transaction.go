@@ -36,12 +36,12 @@ const (
 //base on payload type which have different struture
 type Payload interface {
 	//  Get payload data
-	Data() []byte
+	Data(version byte) []byte
 
 	//Serialize payload data
-	Serialize(w io.Writer) error
+	Serialize(w io.Writer, version byte) error
 
-	Deserialize(r io.Reader) error
+	Deserialize(r io.Reader, version byte) error
 }
 
 //Transaction is used for carry information or action to Ledger
@@ -101,7 +101,7 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 	if tx.Payload == nil {
 		return errors.New("Transaction Payload is nil.")
 	}
-	tx.Payload.Serialize(w)
+	tx.Payload.Serialize(w, tx.PayloadVersion)
 	//[]*txAttribute
 	err := serialization.WriteVarUint(w, uint64(len(tx.Attributes)))
 	if err != nil {
@@ -203,8 +203,7 @@ func (tx *Transaction) DeserializeUnsignedWithoutType(r io.Reader) error {
 	default:
 		return errors.New("[Transaction],invalide transaction type.")
 	}
-
-	err = tx.Payload.Deserialize(r)
+	err = tx.Payload.Deserialize(r, tx.PayloadVersion)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "Payload Parse error")
 	}

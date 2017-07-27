@@ -4,26 +4,27 @@ import (
 	"DNA/common"
 	"DNA/core/asset"
 	"DNA/crypto"
-	"io"
 	. "DNA/errors"
-
+	"io"
 )
 
+const RegisterPayloadVersion byte = 0x00
+
 type RegisterAsset struct {
-	Asset      *asset.Asset
-	Amount     common.Fixed64
+	Asset  *asset.Asset
+	Amount common.Fixed64
 	//Precision  byte
 	Issuer     *crypto.PubKey
 	Controller common.Uint160
 }
 
-func (a *RegisterAsset) Data() []byte {
+func (a *RegisterAsset) Data(version byte) []byte {
 	//TODO: implement RegisterAsset.Data()
 	return []byte{0}
 
 }
 
-func (a *RegisterAsset) Serialize(w io.Writer)  error {
+func (a *RegisterAsset) Serialize(w io.Writer, version byte) error {
 	a.Asset.Serialize(w)
 	a.Amount.Serialize(w)
 	//w.Write([]byte{a.Precision})
@@ -32,7 +33,7 @@ func (a *RegisterAsset) Serialize(w io.Writer)  error {
 	return nil
 }
 
-func (a *RegisterAsset) Deserialize(r io.Reader) error {
+func (a *RegisterAsset) Deserialize(r io.Reader, version byte) error {
 
 	//asset
 	a.Asset = new(asset.Asset)
@@ -72,4 +73,3 @@ func (a *RegisterAsset) Deserialize(r io.Reader) error {
 	}
 	return nil
 }
-

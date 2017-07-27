@@ -7,6 +7,8 @@ import (
 	"io"
 )
 
+const DataFilePayloadVersion byte = 0x00
+
 type DataFile struct {
 	IPFSPath string
 	Filename string
@@ -16,13 +18,13 @@ type DataFile struct {
 
 }
 
-func (a *DataFile) Data() []byte {
+func (a *DataFile) Data(version byte) []byte {
 	//TODO: implement RegisterRecord.Data()
 	return []byte{0}
 }
 
 // Serialize is the implement of SignableData interface.
-func (a *DataFile) Serialize(w io.Writer) error {
+func (a *DataFile) Serialize(w io.Writer, version byte) error {
 	err := serialization.WriteVarString(w, a.IPFSPath)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "[DataFileDetail], IPFSPath serialize failed.")
@@ -41,7 +43,7 @@ func (a *DataFile) Serialize(w io.Writer) error {
 }
 
 // Deserialize is the implement of SignableData interface.
-func (a *DataFile) Deserialize(r io.Reader) error {
+func (a *DataFile) Deserialize(r io.Reader, version byte) error {
 	var err error
 	a.IPFSPath, err = serialization.ReadVarString(r)
 	if err != nil {

@@ -8,6 +8,8 @@ import (
 	"io"
 )
 
+const BookKeeperPayloadVersion byte = 0x00
+
 type BookKeeperAction byte
 
 const (
@@ -21,7 +23,7 @@ type BookKeeper struct {
 	Cert   []byte
 }
 
-func (self *BookKeeper) Data() []byte {
+func (self *BookKeeper) Data(version byte) []byte {
 	var buf bytes.Buffer
 	self.PubKey.Serialize(&buf)
 	buf.WriteByte(byte(self.Action))
@@ -30,13 +32,13 @@ func (self *BookKeeper) Data() []byte {
 	return buf.Bytes()
 }
 
-func (self *BookKeeper) Serialize(w io.Writer) error {
-	_, err := w.Write(self.Data())
+func (self *BookKeeper) Serialize(w io.Writer, version byte) error {
+	_, err := w.Write(self.Data(version))
 
 	return err
 }
 
-func (self *BookKeeper) Deserialize(r io.Reader) error {
+func (self *BookKeeper) Deserialize(r io.Reader, version byte) error {
 	self.PubKey = new(crypto.PubKey)
 	err := self.PubKey.DeSerialize(r)
 	if err != nil {

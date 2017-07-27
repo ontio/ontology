@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+const PrivacyPayloadVersion byte = 0x00
+
 type EncryptedPayloadType byte
 
 type EncryptedPayload []byte
@@ -39,12 +41,12 @@ type PrivacyPayload struct {
 	EncryptAttr PayloadEncryptAttr
 }
 
-func (pp *PrivacyPayload) Data() []byte {
+func (pp *PrivacyPayload) Data(version byte) []byte {
 	//TODO: implement PrivacyPayload.Data()
 	return []byte{0}
 }
 
-func (pp *PrivacyPayload) Serialize(w io.Writer) error {
+func (pp *PrivacyPayload) Serialize(w io.Writer, version byte) error {
 	w.Write([]byte{byte(pp.PayloadType)})
 	err := serialization.WriteVarBytes(w, pp.Payload)
 	if err != nil {
@@ -56,7 +58,7 @@ func (pp *PrivacyPayload) Serialize(w io.Writer) error {
 	return err
 }
 
-func (pp *PrivacyPayload) Deserialize(r io.Reader) error {
+func (pp *PrivacyPayload) Deserialize(r io.Reader, version byte) error {
 	var PayloadType [1]byte
 	_, err := io.ReadFull(r, PayloadType[:])
 	if err != nil {
