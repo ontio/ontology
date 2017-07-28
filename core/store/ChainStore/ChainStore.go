@@ -1121,7 +1121,7 @@ func (bd *ChainStore) persistBlocks(ledger *Ledger) {
 
 		block, ok := bd.blockCache[hash]
 		if !ok {
-			log.Warn("[persistBlocks]: warn, blockCache not contain key hash.")
+			log.Debug("[persistBlocks]: debug, blockCache not contain key hash.")
 			break
 		}
 		err := bd.persist(block)
