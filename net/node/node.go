@@ -47,7 +47,6 @@ type node struct {
 	/*
 	 * |--|--|--|--|--|--|isSyncFailed|isSyncHeaders|
 	 */
-	syncFlag                 uint8
 	TxNotifyChan             chan int
 	flightHeights            []uint32
 	lastContact              time.Time
@@ -385,36 +384,8 @@ func (node *node) WaitForFourPeersStart() {
 	}
 }
 
-func (node *node) IsSyncHeaders() bool {
-	if (node.syncFlag & 0x01) == 0x01 {
-		return true
-	} else {
-		return false
-	}
-}
-
-func (node *node) SetSyncHeaders(b bool) {
-	if b == true {
-		node.syncFlag = node.syncFlag | 0x01
-	} else {
-		node.syncFlag = node.syncFlag & 0xFE
-	}
-}
-
-func (node *node) IsSyncFailed() bool {
-	if (node.syncFlag & 0x02) == 0x02 {
-		return true
-	} else {
-		return false
-	}
-}
-
-func (node *node) SetSyncFailed() {
-	node.syncFlag = node.syncFlag | 0x02
-}
-
 func (node *node) StartRetryTimer() {
-	t := time.NewTimer(time.Second * 2)
+	t := time.NewTimer(time.Second * PERIODUPDATETIME)
 	node.TxNotifyChan = make(chan int, 1)
 	go func() {
 		select {

@@ -10,6 +10,8 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
+	"math/rand"
+	"time"
 )
 
 type headersReq struct {
@@ -172,21 +174,20 @@ func SendMsgSyncHeaders(node Noder) {
 	if err != nil {
 		log.Error("failed build a new headersReq")
 	} else {
-		node.LocalNode().SetSyncHeaders(true)
-		node.SetSyncHeaders(true)
 		go node.Tx(buf)
 	}
 }
 
 func ReqBlkHdrFromOthers(node Noder) {
-	node.SetSyncFailed()
 	noders := node.LocalNode().GetNeighborNoder()
-	for _, noder := range noders {
-		if noder.IsSyncFailed() != true {
-			SendMsgSyncHeaders(noder)
-			break
-		}
+	rand.Seed(time.Now().UnixNano())
+	index := rand.Intn(len(noders))
+	if noders[index].GetID() == node.GetID() {
+		index = (index + 1) % len(noders)
 	}
+	n := noders[index]
+	SendMsgSyncHeaders(n)
+
 }
 
 func (msg blkHeader) Handle(node Noder) error {
