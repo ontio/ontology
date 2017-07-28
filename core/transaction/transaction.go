@@ -427,7 +427,12 @@ func (tx *Transaction) GetTransactionResults() (TransactionResult, error) {
 		if inputValue, ok := InputResult[outputAssetid]; ok {
 			result[outputAssetid] = inputValue - outputValue
 		} else {
-			result[outputAssetid] = outputValue * Fixed64(-1)
+			result[outputAssetid] -= outputValue
+		}
+	}
+	for inputAssetid, inputValue := range InputResult {
+		if _, exist := result[inputAssetid]; !exist {
+			result[inputAssetid] += inputValue
 		}
 	}
 	return result, nil
