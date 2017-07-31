@@ -45,6 +45,9 @@ func (node *node) SyncBlk() {
 	noders := node.local.GetNeighborNoder()
 
 	for _, n := range noders {
+		if uint32(n.GetHeight()) <= currentBlkHeight {
+			continue
+		}
 		n.RemoveFlightHeightLessThan(currentBlkHeight)
 		count := MAXREQBLKONCE - uint32(n.GetFlightHeightCnt())
 		dValue = int32(headerHeight - currentBlkHeight - reqCnt)
@@ -74,15 +77,12 @@ func (node *node) SyncBlk() {
 func (node *node) SendPingToNbr() {
 	noders := node.local.GetNeighborNoder()
 	for _, n := range noders {
-		t := n.GetLastRXTime()
-		if time.Since(t).Seconds() > PERIODUPDATETIME {
-			if n.GetState() == ESTABLISH {
-				buf, err := NewPingMsg()
-				if err != nil {
-					log.Error("failed build a new ping message")
-				} else {
-					go n.Tx(buf)
-				}
+		if n.GetState() == ESTABLISH {
+			buf, err := NewPingMsg()
+			if err != nil {
+				log.Error("failed build a new ping message")
+			} else {
+				go n.Tx(buf)
 			}
 		}
 	}
