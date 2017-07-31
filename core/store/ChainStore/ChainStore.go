@@ -164,7 +164,7 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 	if version[0] == 0x01 {
 		// GenesisBlock should exist in chain
 		// Or the bookkeepers are not consistent with the chain
-		if !bd.containsBlock(hash) {
+		if !bd.IsBlockInStore(hash) {
 			return 0, errors.New("bookkeepers are not consistent with the chain")
 		}
 		// Get Current Block
@@ -744,7 +744,7 @@ func (bd *ChainStore) persist(b *Block) error {
 	if len(currBookKeeper) != len(nextBookKeeper) {
 		needUpdateBookKeeper = true
 	} else {
-		for i, _ := range currBookKeeper {
+		for i := range currBookKeeper {
 			if currBookKeeper[i].X.Cmp(nextBookKeeper[i].X) != 0 ||
 				currBookKeeper[i].Y.Cmp(nextBookKeeper[i].Y) != 0 {
 				needUpdateBookKeeper = true
