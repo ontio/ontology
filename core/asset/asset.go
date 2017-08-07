@@ -33,10 +33,11 @@ const (
 //define the asset stucture in onchain DNA
 //registered asset will be assigned to contract address
 type Asset struct {
-	Name       string
-	Precision  byte
-	AssetType  AssetType
-	RecordType AssetRecordType
+	Name        string
+	Description string
+	Precision   byte
+	AssetType   AssetType
+	RecordType  AssetRecordType
 }
 
 // Serialize is the implement of SignableData interface.
@@ -44,6 +45,10 @@ func (a *Asset) Serialize(w io.Writer) error {
 	err := serialization.WriteVarString(w, a.Name)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "[Asset], Name serialize failed.")
+	}
+	err = serialization.WriteVarString(w, a.Description)
+	if err != nil {
+		return NewDetailErr(err, ErrNoCode, "[Asset], Description serialize failed.")
 	}
 	_, err = w.Write([]byte{byte(a.Precision)})
 	if err != nil {
@@ -62,11 +67,16 @@ func (a *Asset) Serialize(w io.Writer) error {
 
 // Deserialize is the implement of SignableData interface.
 func (a *Asset) Deserialize(r io.Reader) error {
-	vars, err := serialization.ReadVarString(r)
+	name, err := serialization.ReadVarString(r)
 	if err != nil {
 		return NewDetailErr(errors.New("[Asset], Name deserialize failed."), ErrNoCode, "")
 	}
-	a.Name = vars
+	a.Name = name
+	description, err := serialization.ReadVarString(r)
+	if err != nil {
+		return NewDetailErr(errors.New("[Asset], Description deserialize failed."), ErrNoCode, "")
+	}
+	a.Description = description
 	p := make([]byte, 1)
 	n, err := r.Read(p)
 	if n > 0 {
