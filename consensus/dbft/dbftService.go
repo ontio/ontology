@@ -345,7 +345,7 @@ func (ds *DbftService) GetUnverifiedTxs(txs []*tx.Transaction) []*tx.Transaction
 
 func (ds *DbftService) VerifyTxs(txs []*tx.Transaction) error {
 	for _, t := range txs {
-		if ok := ds.localNet.AppendTxnPool(t); !ok {
+		if errCode := ds.localNet.AppendTxnPool(t); errCode != ErrNoError {
 			return errors.New("[dbftService] VerifyTxs failed when AppendTxnPool.")
 		}
 	}

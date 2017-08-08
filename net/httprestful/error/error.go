@@ -1,5 +1,7 @@
 package error
 
+import . "DNA/errors"
+
 const (
 	SUCCESS            int64 = 0
 	SESSION_EXPIRED    int64 = 41001
@@ -46,7 +48,18 @@ var ErrMap = map[int64]string{
 	UNKNOWN_ASSET:       "UNKNOWN ASSET",
 	UNKNOWN_BLOCK:       "UNKNOWN BLOCK",
 
-	INVALID_VERSION: "INVALID VERSION",
-	INTERNAL_ERROR:  "INTERNAL ERROR",
-	SMARTCODE_ERROR: "SMARTCODE EXEC ERROR",
+	INVALID_VERSION:                "INVALID VERSION",
+	INTERNAL_ERROR:                 "INTERNAL ERROR",
+	SMARTCODE_ERROR:                "SMARTCODE EXEC ERROR",
+	int64(ErrDuplicateInput):       "INTERNAL ERROR, ErrDuplicateInput",
+	int64(ErrAssetPrecision):       "INTERNAL ERROR, ErrAssetPrecision",
+	int64(ErrTransactionBalance):   "INTERNAL ERROR, ErrTransactionBalance",
+	int64(ErrAttributeProgram):     "INTERNAL ERROR, ErrAttributeProgram",
+	int64(ErrTransactionContracts): "INTERNAL ERROR, ErrTransactionContracts",
+	int64(ErrTransactionPayload):   "INTERNAL ERROR, ErrTransactionPayload",
+	int64(ErrDoubleSpend):          "INTERNAL ERROR, ErrDoubleSpend",
+	int64(ErrTxHashDuplicate):      "INTERNAL ERROR, ErrTxHashDuplicate",
+	int64(ErrStateUpdaterVaild):    "INTERNAL ERROR, ErrStateUpdaterVaild",
+	int64(ErrSummaryAsset):         "INTERNAL ERROR, ErrSummaryAsset",
+	int64(ErrXmitFail):             "INTERNAL ERROR, ErrXmitFail",
 }

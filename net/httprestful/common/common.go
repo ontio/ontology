@@ -4,6 +4,7 @@ import (
 	. "DNA/common"
 	"DNA/core/ledger"
 	tx "DNA/core/transaction"
+	. "DNA/errors"
 	. "DNA/net/httpjsonrpc"
 	Err "DNA/net/httprestful/error"
 	. "DNA/net/protocol"
@@ -382,8 +383,8 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	}
 	var hash Uint256
 	hash = txn.Hash()
-	if err := VerifyAndSendTx(&txn); err != nil {
-		resp["Error"] = Err.INTERNAL_ERROR
+	if errCode := VerifyAndSendTx(&txn); errCode != ErrNoError {
+		resp["Error"] = int64(errCode)
 		return resp
 	}
 	resp["Result"] = ToHexString(hash.ToArrayReverse())

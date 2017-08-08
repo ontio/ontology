@@ -47,10 +47,10 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 			}
 		*/
 		for _, txVerify := range block.Transactions {
-			if err := VerifyTransaction(txVerify); err != nil {
+			if errCode := VerifyTransaction(txVerify); errCode != ErrNoError {
 				return errors.New(fmt.Sprintf("VerifyTransaction failed when verifiy block"))
 			}
-			if err := VerifyTransactionWithLedger(txVerify, ledger.DefaultLedger); err != nil {
+			if errCode := VerifyTransactionWithLedger(txVerify, ledger.DefaultLedger); errCode != ErrNoError {
 				return errors.New(fmt.Sprintf("VerifyTransactionWithLedger failed when verifiy block"))
 			}
 		}

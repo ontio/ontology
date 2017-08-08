@@ -7,6 +7,7 @@ import (
 	"DNA/common/log"
 	"DNA/core/ledger"
 	tx "DNA/core/transaction"
+	. "DNA/errors"
 	"bytes"
 	"encoding/base64"
 	"encoding/hex"
@@ -267,7 +268,7 @@ func sendRawTransaction(params []interface{}) map[string]interface{} {
 			return DnaRpcInvalidTransaction
 		}
 		hash = txn.Hash()
-		if err := VerifyAndSendTx(&txn); err != nil {
+		if errCode := VerifyAndSendTx(&txn); errCode != ErrNoError {
 			return DnaRpcInternalError
 		}
 	default:
@@ -547,7 +548,7 @@ func regDataFile(params []interface{}) map[string]interface{} {
 		}
 
 		hash = txn.Hash()
-		if err := VerifyAndSendTx(&txn); err != nil {
+		if errCode := VerifyAndSendTx(&txn); errCode != ErrNoError {
 			return DnaRpcInternalError
 		}
 	default:

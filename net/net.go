@@ -5,6 +5,7 @@ import (
 	"DNA/core/ledger"
 	"DNA/core/transaction"
 	"DNA/crypto"
+	. "DNA/errors"
 	"DNA/events"
 	"DNA/net/node"
 	"DNA/net/protocol"
@@ -18,7 +19,7 @@ type Neter interface {
 	CleanSubmittedTransactions(block *ledger.Block) error
 	GetNeighborNoder() []protocol.Noder
 	Tx(buf []byte)
-	AppendTxnPool(*transaction.Transaction) bool
+	AppendTxnPool(*transaction.Transaction) ErrCode
 }
 
 func StartProtocol(pubKey *crypto.PubKey) protocol.Noder {

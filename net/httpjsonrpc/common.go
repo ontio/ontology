@@ -6,9 +6,9 @@ import (
 	"DNA/consensus/dbft"
 	. "DNA/core/transaction"
 	tx "DNA/core/transaction"
+	. "DNA/errors"
 	. "DNA/net/protocol"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -269,15 +269,16 @@ func Call(address string, method string, id interface{}, params []interface{}) (
 	return body, nil
 }
 
-func VerifyAndSendTx(txn *tx.Transaction) error {
+func VerifyAndSendTx(txn *tx.Transaction) ErrCode {
 	// if transaction is verified unsucessfully then will not put it into transaction pool
-	if !node.AppendTxnPool(txn) {
+	if errCode := node.AppendTxnPool(txn); errCode != ErrNoError {
 		log.Warn("Can NOT add the transaction to TxnPool")
-		return errors.New("[httpjsonrpc] VerifyTransaction failed when AppendTxnPool.")
+		log.Info("[httpjsonrpc] VerifyTransaction failed when AppendTxnPool.")
+		return errCode
 	}
 	if err := node.Xmit(txn); err != nil {
-		log.Error("Xmit Tx Error")
-		return errors.New("Xmit transaction failed")
+		log.Error("Xmit Tx Error:Xmit transaction failed.", err)
+		return ErrXmitFail
 	}
-	return nil
+	return ErrNoError
 }

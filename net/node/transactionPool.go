@@ -8,6 +8,7 @@ import (
 	"DNA/core/transaction"
 	"DNA/core/transaction/payload"
 	va "DNA/core/validation"
+	. "DNA/errors"
 	"fmt"
 	"sync"
 )
@@ -31,23 +32,23 @@ func (this *TXNPool) init() {
 
 //append transaction to txnpool when check ok.
 //1.check transaction. 2.check with ledger(db) 3.check with pool
-func (this *TXNPool) AppendTxnPool(txn *transaction.Transaction) bool {
+func (this *TXNPool) AppendTxnPool(txn *transaction.Transaction) ErrCode {
 	//verify transaction with Concurrency
-	if err := va.VerifyTransaction(txn); err != nil {
-		log.Info("Transaction verification failed", txn.Hash(), err)
-		return false
+	if errCode := va.VerifyTransaction(txn); errCode != ErrNoError {
+		log.Info("Transaction verification failed", txn.Hash())
+		return errCode
 	}
-	if err := va.VerifyTransactionWithLedger(txn, ledger.DefaultLedger); err != nil {
-		log.Info("Transaction verification with ledger failed", txn.Hash(), err)
-		return false
+	if errCode := va.VerifyTransactionWithLedger(txn, ledger.DefaultLedger); errCode != ErrNoError {
+		log.Info("Transaction verification with ledger failed", txn.Hash())
+		return errCode
 	}
 	//verify transaction by pool with lock
 	if ok := this.verifyTransactionWithTxnPool(txn); !ok {
-		return false
+		return ErrSummaryAsset
 	}
 	//add the transaction to process scope
 	this.addtxnList(txn)
-	return true
+	return ErrNoError
 }
 
 //get the transaction in txnpool
