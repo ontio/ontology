@@ -16,6 +16,8 @@
       "02aec70e084e4e5d36ed2db54aa708a6bd095fbb663929850986a5ec22061e1be2",
       "02758623d16774f3c5535a305e65ea949343eab06888ee2e7633b4f3f9d78d506c"
     ],
+    "HttpInfoPort": 20333,
+    "HttpInfoStart": true,
     "HttpRestPort": 20334,
     "HttpWsPort":20335,
     "HttpJsonPort": 20336,

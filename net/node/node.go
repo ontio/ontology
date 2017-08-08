@@ -28,7 +28,7 @@ type node struct {
 	//sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
 	state     uint32 // node state
 	id        uint64 // The nodes's id
-	cap       uint32 // The node capability set
+	cap       [32]byte // The node capability set
 	version   uint32 // The network protocol the node used
 	services  uint64 // The services the node supplied
 	relay     bool   // The relay capability of the node (merge into capbility flag)
@@ -216,6 +216,30 @@ func (node *node) GetPort() uint16 {
 	return node.port
 }
 
+func (node *node) GetHttpInfoPort() (int) {
+	return int(node.httpInfoPort)
+}
+
+func (node *node) SetHttpInfoPort(nodeInfoPort uint16) {
+	node.httpInfoPort = nodeInfoPort
+}
+
+func (node *node) GetHttpInfoState() bool{
+	if node.cap[HTTPINFOFLAG] == 0x01 {
+		return true
+	} else {
+		return false
+	}
+}
+
+func (node *node) SetHttpInfoState(nodeInfo bool){
+	if nodeInfo{
+		node.cap[HTTPINFOFLAG] = 0x01
+	} else {
+		node.cap[HTTPINFOFLAG] = 0x00
+	}
+}
+
 func (node *node) GetRelay() bool {
 	return node.relay
 }
@@ -242,6 +266,10 @@ func (node *node) GetRxTxnCnt() uint64 {
 
 func (node *node) SetState(state uint32) {
 	atomic.StoreUint32(&(node.state), state)
+}
+
+func (node *node) GetPubKey() *crypto.PubKey{
+	return node.publicKey
 }
 
 func (node *node) CompareAndSetState(old, new uint32) bool {

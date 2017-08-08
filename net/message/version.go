@@ -1,6 +1,7 @@
 package message
 
 import (
+	"DNA/common/config"
 	"DNA/common/log"
 	"DNA/core/ledger"
 	"DNA/crypto"
@@ -13,14 +14,20 @@ import (
 	"time"
 )
 
+const (
+	HTTPINFOFLAG = 0
+)
+
 type version struct {
 	Hdr msgHdr
 	P   struct {
-		Version   uint32
-		Services  uint64
-		TimeStamp uint32
-		Port      uint16
-		Nonce     uint64
+		Version      uint32
+		Services     uint64
+		TimeStamp    uint32
+		Port         uint16
+		HttpInfoPort uint16
+		Cap          [32]byte
+		Nonce        uint64
 		// TODO remove tempory to get serilization function passed
 		UserAgent   uint8
 		StartHeight uint64
@@ -40,6 +47,13 @@ func NewVersion(n Noder) ([]byte, error) {
 
 	msg.P.Version = n.Version()
 	msg.P.Services = n.Services()
+	msg.P.HttpInfoPort = config.Parameters.HttpInfoPort
+	if config.Parameters.HttpInfoStart {
+		msg.P.Cap[HTTPINFOFLAG] = 0x01
+	} else {
+		msg.P.Cap[HTTPINFOFLAG] = 0x00
+	}
+
 	// FIXME Time overflow
 	msg.P.TimeStamp = uint32(time.Now().UTC().UnixNano())
 	msg.P.Port = n.GetPort()
@@ -172,6 +186,12 @@ func (msg version) Handle(node Noder) error {
 	}
 
 	log.Debug("handle version msg.pk is ", msg.pk)
+	if msg.P.Cap[HTTPINFOFLAG] == 0x01 {
+		node.SetHttpInfoState(true)
+	} else {
+		node.SetHttpInfoState(false)
+	}
+	node.SetHttpInfoPort(msg.P.HttpInfoPort)
 	node.SetBookKeeperAddr(msg.pk)
 	node.UpdateInfo(time.Now(), msg.P.Version, msg.P.Services,
 		msg.P.Port, msg.P.Nonce, msg.P.Relay, msg.P.StartHeight)

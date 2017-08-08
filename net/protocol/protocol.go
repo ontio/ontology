@@ -44,6 +44,7 @@ const (
 	MINCONNCNT    = 3
 	MAXREQBLKONCE = 16
 )
+
 const (
 	HELLOTIMEOUT     = 3 // Seconds
 	MAXHELLORETYR    = 3
@@ -77,9 +78,14 @@ type Noder interface {
 	Services() uint64
 	GetAddr() string
 	GetPort() uint16
+	GetHttpInfoPort() int
+	SetHttpInfoPort(uint16)
+	GetHttpInfoState() bool
+	SetHttpInfoState(bool)
 	GetState() uint32
 	GetRelay() bool
 	SetState(state uint32)
+	GetPubKey() *crypto.PubKey
 	CompareAndSetState(old, new uint32) bool
 	UpdateRXTime(t time.Time)
 	LocalNode() Noder
