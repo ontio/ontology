@@ -463,7 +463,11 @@ func (ds *DbftService) RefreshPolicy() {
 func (ds *DbftService) RequestChangeView() {
 	log.Debug()
 	// FIXME if there is no save block notifcation, when the timeout call this function it will crash
-	ds.context.ExpectedView[ds.context.BookKeeperIndex] = ds.context.ExpectedView[ds.context.BookKeeperIndex] + 1
+	if ds.context.ViewNumber > ds.context.ExpectedView[ds.context.BookKeeperIndex] {
+		ds.context.ExpectedView[ds.context.BookKeeperIndex] = ds.context.ViewNumber + 1
+	} else {
+		ds.context.ExpectedView[ds.context.BookKeeperIndex] += 1
+	}
 	log.Info(fmt.Sprintf("Request change view: height=%d View=%d nv=%d state=%s", ds.context.Height,
 		ds.context.ViewNumber, ds.context.ExpectedView[ds.context.BookKeeperIndex], ds.context.GetStateDetail()))
 
