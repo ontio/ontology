@@ -386,6 +386,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, mes
 	ds.context.Timestamp = payload.Timestamp
 	ds.context.Nonce = message.Nonce
 	ds.context.Transactions = message.Transactions
+	ds.context.header = nil
 
 	//block header verification
 	_, err = va.VerifySignature(ds.context.MakeHeader(), ds.context.BookKeepers[payload.BookKeeperIndex], message.Signature)
@@ -552,6 +553,7 @@ func (ds *DbftService) Timeout() {
 			for _, tx := range transactionsPool {
 				ds.context.Transactions = append(ds.context.Transactions, tx)
 			}
+			ds.context.header = nil
 			//build block and sign
 			block := ds.context.MakeHeader()
 			account, _ := ds.Client.GetAccount(ds.context.BookKeepers[ds.context.BookKeeperIndex]) //TODO: handle error

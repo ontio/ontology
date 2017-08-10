@@ -64,8 +64,8 @@ func (cxt *ConsensusContext) ChangeView(viewNum byte) {
 	if cxt.State == Initial {
 		cxt.Transactions = nil
 		cxt.Signatures = make([][]byte, len(cxt.BookKeepers))
+		cxt.header = nil
 	}
-	cxt.header = nil
 }
 
 func (cxt *ConsensusContext) MakeChangeView() *msg.ConsensusPayload {
@@ -82,15 +82,15 @@ func (cxt *ConsensusContext) MakeHeader() *ledger.Block {
 	if cxt.Transactions == nil {
 		return nil
 	}
-	txHash := []Uint256{}
-	for _, t := range cxt.Transactions {
-		txHash = append(txHash, t.Hash())
-	}
-	txRoot, err := crypto.ComputeRoot(txHash)
-	if err != nil {
-		return nil
-	}
 	if cxt.header == nil {
+		txHash := []Uint256{}
+		for _, t := range cxt.Transactions {
+			txHash = append(txHash, t.Hash())
+		}
+		txRoot, err := crypto.ComputeRoot(txHash)
+		if err != nil {
+			return nil
+		}
 		blockData := &ledger.Blockdata{
 			Version:          ContextVersion,
 			PrevBlockHash:    cxt.PrevHash,
@@ -190,6 +190,7 @@ func (cxt *ConsensusContext) Reset(client cl.Client, localNode net.Neter) {
 	bookKeeperLen := len(cxt.BookKeepers)
 	cxt.PrimaryIndex = cxt.Height % uint32(bookKeeperLen)
 	cxt.Transactions = nil
+	cxt.header = nil
 	cxt.Signatures = make([][]byte, bookKeeperLen)
 	cxt.ExpectedView = make([]byte, bookKeeperLen)
 
@@ -202,5 +203,4 @@ func (cxt *ConsensusContext) Reset(client cl.Client, localNode net.Neter) {
 		}
 	}
 
-	cxt.header = nil
 }
