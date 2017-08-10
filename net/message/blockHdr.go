@@ -180,6 +180,9 @@ func SendMsgSyncHeaders(node Noder) {
 
 func ReqBlkHdrFromOthers(node Noder) {
 	noders := node.LocalNode().GetNeighborNoder()
+	if len(noders) == 0 {
+		return
+	}
 	rand.Seed(time.Now().UnixNano())
 	index := rand.Intn(len(noders))
 	if noders[index].GetID() == node.GetID() {
