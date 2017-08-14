@@ -45,7 +45,7 @@ func Sign(algSet *util.CryptoAlgSet, priKey []byte, data []byte) (*big.Int, *big
 	return r, s, nil
 }
 
-func Verify(algSet *util.CryptoAlgSet, X *big.Int, Y *big.Int, data []byte, r, s *big.Int) (bool, error) {
+func Verify(algSet *util.CryptoAlgSet, X *big.Int, Y *big.Int, data []byte, r, s *big.Int) error {
 	digest := util.Hash(data)
 
 	pub := new(ecdsa.PublicKey)
@@ -54,5 +54,9 @@ func Verify(algSet *util.CryptoAlgSet, X *big.Int, Y *big.Int, data []byte, r, s
 	pub.X = new(big.Int).Set(X)
 	pub.Y = new(big.Int).Set(Y)
 
-	return ecdsa.Verify(pub, digest[:], r, s), nil
+	if ecdsa.Verify(pub, digest[:], r, s) {
+		return nil
+	} else {
+		return errors.New("[Validation], Verify failed.")
+	}
 }

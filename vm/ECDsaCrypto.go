@@ -30,10 +30,9 @@ func (c * ECDsaCrypto) VerifySignature(message []byte,signature []byte, pubkey [
 		return false,NewDetailErr(errors.New("[ECDsaCrypto], crypto.DecodePoint failed."), ErrNoCode, "")
 	}
 
-	temp ,err := crypto.Verify(*pk, message,signature)
-	if !temp {
+	err = crypto.Verify(*pk, message,signature)
+	if err != nil {
 		return false,NewDetailErr(errors.New("[ECDsaCrypto], VerifySignature failed."), ErrNoCode, "")
 	}
-
 	return true,nil
 }

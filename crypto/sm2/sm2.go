@@ -151,21 +151,21 @@ func Sign(algSet *util.CryptoAlgSet, priKey []byte, data []byte) (r *big.Int, s 
 	return
 }
 
-func Verify(algSet *util.CryptoAlgSet, publicKeyX *big.Int, publicKeyY *big.Int, data []byte, r, s *big.Int) (bool, error) {
+func Verify(algSet *util.CryptoAlgSet, publicKeyX *big.Int, publicKeyY *big.Int, data []byte, r, s *big.Int) error {
 	c := algSet.Curve
 	N := c.Params().N
 
 	if r.Sign() <= 0 || s.Sign() <= 0 {
-		return false, errors.New("SM2 signature contained zero or negative values")
+		return errors.New("SM2 signature contained zero or negative values")
 	}
 	if r.Cmp(N) >= 0 || s.Cmp(N) >= 0 {
-		return false, errors.New("SM2 signature contained zero or negative values")
+		return errors.New("SM2 signature contained zero or negative values")
 	}
 
 	t := new(big.Int).Add(r, s)
 	t.Mod(t, N)
 	if N.Sign() == 0 {
-		return false, errors.New("SM2 Params N contained zero or negative values")
+		return errors.New("SM2 Params N contained zero or negative values")
 	}
 
 	var x *big.Int
@@ -181,7 +181,11 @@ func Verify(algSet *util.CryptoAlgSet, publicKeyX *big.Int, publicKeyY *big.Int,
 	e := new(big.Int).SetBytes(hash[:])
 	x.Add(x, e)
 	x.Mod(x, N)
-	return x.Cmp(r) == 0, nil
+	if x.Cmp(r) == 0{
+		return nil
+	}else {
+		return errors.New("[Validation], Verify failed.")
+	}
 }
 
 // Combine the raw data with user ID, curve parameters and public key

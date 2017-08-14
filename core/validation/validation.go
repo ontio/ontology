@@ -55,8 +55,8 @@ func VerifySignableData(signableData sig.SignableData) (bool, error) {
 }
 
 func VerifySignature(signableData sig.SignableData, pubkey *crypto.PubKey, signature []byte) (bool, error) {
-	ok, err := crypto.Verify(*pubkey, sig.GetHashData(signableData), signature)
-	if !ok {
+	err := crypto.Verify(*pubkey, sig.GetHashData(signableData), signature)
+	if err != nil {
 		return false, NewDetailErr(err, ErrNoCode, "[Validation], VerifySignature failed.")
 	} else {
 		return true, nil

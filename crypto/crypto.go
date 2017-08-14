@@ -87,11 +87,11 @@ func Sign(privateKey []byte, data []byte) ([]byte, error) {
 	return signature, nil
 }
 
-func Verify(publicKey PubKey, data []byte, signature []byte) (bool, error) {
+func Verify(publicKey PubKey, data []byte, signature []byte) error {
 	len := len(signature)
 	if len != util.SIGNATURELEN {
 		fmt.Printf("Unknown signature length %d\n", len)
-		return false, errors.New("Unknown signature length")
+		return errors.New("Unknown signature length")
 	}
 
 	r := new(big.Int).SetBytes(signature[:len/2])
