@@ -153,7 +153,7 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 
 	hash := genesisBlock.Hash()
 	bd.headerIndex[0] = hash
-	log.Debug(fmt.Sprintf("listhash genesis: %x\n", hash))
+	log.Debugf("listhash genesis: %x\n", hash)
 
 	prefix := []byte{byte(CFG_Version)}
 	version, err := bd.st.Get(prefix)
@@ -197,8 +197,8 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 			current_Header_Height = headerHeight
 		}
 
-		log.Debug(fmt.Sprintf("blockHash: %x\n", blockHash.ToArray()))
-		log.Debug(fmt.Sprintf("blockheight: %d\n", current_Header_Height))
+		log.Debugf("blockHash: %x\n", blockHash.ToArray())
+		log.Debugf("blockheight: %d\n", current_Header_Height)
 		////////////////////////////////////////////////
 
 		var listHash Uint256
@@ -211,7 +211,7 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 			if err != nil {
 				return 0, err
 			}
-			log.Debug(fmt.Sprintf("start index: %d\n", startNum))
+			log.Debugf("start index: %d\n", startNum)
 
 			r = bytes.NewReader(iter.Value())
 			listNum, err := serialization.ReadVarUint(r, 0)
@@ -537,8 +537,7 @@ func (bd *ChainStore) GetAsset(hash Uint256) (*Asset, error) {
 }
 
 func (bd *ChainStore) GetTransaction(hash Uint256) (*tx.Transaction, error) {
-	log.Debug()
-	log.Debug(fmt.Sprintf("GetTransaction Hash: %x\n", hash))
+	log.Debugf("GetTransaction Hash: %x\n", hash)
 
 	t := new(tx.Transaction)
 	err := bd.getTx(t, hash)
@@ -573,7 +572,6 @@ func (bd *ChainStore) getTx(tx *tx.Transaction, hash Uint256) error {
 }
 
 func (bd *ChainStore) SaveTransaction(tx *tx.Transaction, height uint32) error {
-
 	//////////////////////////////////////////////////////////////
 	// generate key with DATA_Transaction prefix
 	txhash := bytes.NewBuffer(nil)
@@ -1189,6 +1187,12 @@ func (self *ChainStore) SaveBlock(b *Block, ledger *Ledger) error {
 		}
 
 		self.taskCh <- &persistHeaderTask{header: &Header{Blockdata: b.Blockdata}}
+	} else {
+		flag, err := validation.VerifySignableData(b)
+		if flag == false || err != nil {
+			log.Error("VerifyBlock error!")
+			return err
+		}
 	}
 
 	self.taskCh <- &persistBlockTask{block: b, ledger: ledger}
