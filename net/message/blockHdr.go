@@ -215,7 +215,7 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]le
 	headers := []ledger.Header{}
 	var startHeight uint32
 	var stopHeight uint32
-	curHeight := ledger.DefaultLedger.GetLocalBlockChainHeight()
+	curHeight := ledger.DefaultLedger.Store.GetHeaderHeight()
 	if startHash == empty {
 		if stopHash == empty {
 			if curHeight > MAXBLKHDRCNT {
@@ -246,7 +246,13 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]le
 				return nil, 0, err
 			}
 			stopHeight = bkstop.Blockdata.Height
+
+			// avoid unsigned integer underflow
+			if startHeight < stopHeight {
+				return nil, 0, errors.New("do not have header to send")
+			}
 			count = startHeight - stopHeight
+
 			if count >= MAXBLKHDRCNT {
 				count = MAXBLKHDRCNT
 				stopHeight = startHeight - MAXBLKHDRCNT
