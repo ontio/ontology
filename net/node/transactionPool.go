@@ -135,9 +135,9 @@ func (this *TXNPool) apendToUTXOPool(txn *transaction.Transaction) (bool, *trans
 		return false, nil
 	}
 	for k, _ := range reference {
-		txn := this.getInputUTXOList(k)
-		if txn != nil {
-			return false, txn
+		t := this.getInputUTXOList(k)
+		if t != nil {
+			return false, t
 		}
 		this.addInputUTXOList(txn, k)
 	}
@@ -270,6 +270,7 @@ func (this *TXNPool) addInputUTXOList(tx *transaction.Transaction, input *transa
 		return false
 	}
 	this.inputUTXOList[id] = tx
+
 	return true
 }
 
