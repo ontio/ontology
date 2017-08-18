@@ -115,8 +115,6 @@ type Noder interface {
 	SyncNodeHeight()
 	CleanSubmittedTransactions(block *ledger.Block) error
 
-	StartRetryTimer()
-	StopRetryTimer()
 	GetNeighborNoder() []Noder
 	GetNbrNodeCnt() uint32
 	StoreFlightHeight(height uint32)

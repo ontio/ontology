@@ -20,14 +20,24 @@ func (node *node) GetBlkHdrs() {
 	if node.local.GetNbrNodeCnt() < MINCONNCNT {
 		return
 	}
-	rand.Seed(time.Now().UnixNano())
 	noders := node.local.GetNeighborNoder()
-
-	index := rand.Intn(len(noders))
-	n := noders[index]
+	if len(noders) == 0 {
+		return
+	}
+	nodelist := []Noder{}
+	for _, v := range noders {
+		if uint64(ledger.DefaultLedger.Store.GetHeaderHeight()) < v.GetHeight() {
+			nodelist = append(nodelist, v)
+		}
+	}
+	ncout := len(nodelist)
+	if ncout == 0 {
+		return
+	}
+	rand.Seed(time.Now().UnixNano())
+	index := rand.Intn(ncout)
+	n := nodelist[index]
 	SendMsgSyncHeaders(n)
-	n.StartRetryTimer()
-
 }
 
 func (node *node) SyncBlk() {

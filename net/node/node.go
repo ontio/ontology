@@ -47,7 +47,6 @@ type node struct {
 	/*
 	 * |--|--|--|--|--|--|isSyncFailed|isSyncHeaders|
 	 */
-	TxNotifyChan             chan int
 	flightHeights            []uint32
 	lastContact              time.Time
 	nodeDisconnectSubscriber events.Subscriber
@@ -393,23 +392,6 @@ func (node *node) WaitForFourPeersStart() {
 		}
 		<-time.After(2 * time.Second)
 	}
-}
-
-func (node *node) StartRetryTimer() {
-	t := time.NewTimer(time.Second * PERIODUPDATETIME)
-	node.TxNotifyChan = make(chan int, 1)
-	go func() {
-		select {
-		case <-t.C:
-			ReqBlkHdrFromOthers(node)
-		case <-node.TxNotifyChan:
-			t.Stop()
-		}
-	}()
-}
-
-func (node *node) StopRetryTimer() {
-	node.TxNotifyChan <- 1
 }
 
 func (node *node) StoreFlightHeight(height uint32) {
