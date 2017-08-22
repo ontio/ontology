@@ -179,27 +179,8 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 		blockHash.Deserialize(r)
 		bd.currentBlockHeight, err = serialization.ReadUint32(r)
 		current_Header_Height := bd.currentBlockHeight
-		////////////////////////////////////////////////
-
-		// Get Current Header
-		var headerHash Uint256
-		currentHeaderPrefix := []byte{byte(SYS_CurrentHeader)}
-		data, err = bd.st.Get(currentHeaderPrefix)
-		if err == nil {
-			r = bytes.NewReader(data)
-			headerHash.Deserialize(r)
-
-			headerHeight, err_get := serialization.ReadUint32(r)
-			if err_get != nil {
-				return 0, err_get
-			}
-
-			current_Header_Height = headerHeight
-		}
 
 		log.Debugf("blockHash: %x\n", blockHash.ToArray())
-		log.Debugf("blockheight: %d\n", current_Header_Height)
-		////////////////////////////////////////////////
 
 		var listHash Uint256
 		iter := bd.st.NewIterator([]byte{byte(IX_HeaderHashList)})
@@ -246,7 +227,7 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 				bd.headerIndex[listheight] = listHash
 			}
 		} else if current_Header_Height >= bd.storedHeaderCount {
-			hash = headerHash
+			hash = blockHash
 			for {
 				if hash == bd.headerIndex[bd.storedHeaderCount-1] {
 					break
@@ -460,7 +441,13 @@ func (self *ChainStore) AddHeaders(headers []Header, ledger *Ledger) error {
 }
 
 func (bd *ChainStore) GetHeader(hash Uint256) (*Header, error) {
-	// TODO: GET HEADER
+	bd.mu.RLock()
+	if header, ok := bd.headerCache[hash]; ok {
+		bd.mu.RUnlock()
+		return header, nil
+	}
+	bd.mu.RUnlock()
+
 	var h *Header = new(Header)
 
 	h.Blockdata = new(Blockdata)
@@ -1052,10 +1039,8 @@ func (bd *ChainStore) persist(b *Block) error {
 		bd.st.BatchPut(accountKey.Bytes(), accountValue.Bytes())
 	}
 
-	// generate key with SYS_CurrentHeader prefix
 	currentBlockKey := bytes.NewBuffer(nil)
 	currentBlockKey.WriteByte(byte(SYS_CurrentBlock))
-	//fmt.Printf( "SYS_CurrentHeader key: %x\n",  currentBlockKey )
 
 	currentBlock := bytes.NewBuffer(nil)
 	blockHash.Serialize(currentBlock)
@@ -1075,73 +1060,12 @@ func (bd *ChainStore) persist(b *Block) error {
 
 // can only be invoked by backend write goroutine
 func (bd *ChainStore) addHeader(header *Header) {
-	bd.st.NewBatch()
 
 	log.Debugf("addHeader(), Height=%d\n", header.Blockdata.Height)
 
 	hash := header.Blockdata.Hash()
-	storedHeaderCount := bd.storedHeaderCount
-	for header.Blockdata.Height-storedHeaderCount >= HeaderHashListCount {
-		hashBuffer := new(bytes.Buffer)
-		serialization.WriteVarUint(hashBuffer, uint64(HeaderHashListCount))
-		var hashArray []byte
-		for i := 0; i < HeaderHashListCount; i++ {
-			index := storedHeaderCount + uint32(i)
-			thash := bd.headerIndex[index]
-			thehash := thash.ToArray()
-			hashArray = append(hashArray, thehash...)
-		}
-		hashBuffer.Write(hashArray)
-
-		// generate key with DATA_Header prefix
-		hhlPrefix := bytes.NewBuffer(nil)
-		// add block header prefix.
-		hhlPrefix.WriteByte(byte(IX_HeaderHashList))
-		serialization.WriteUint32(hhlPrefix, storedHeaderCount)
-
-		bd.st.BatchPut(hhlPrefix.Bytes(), hashBuffer.Bytes())
-		storedHeaderCount += HeaderHashListCount
-	}
-
-	//////////////////////////////////////////////////////////////
-	// generate key with DATA_Header prefix
-	headerKey := bytes.NewBuffer(nil)
-	// add header prefix.
-	headerKey.WriteByte(byte(DATA_Header))
-	// contact block hash
-	blockHash := hash
-	blockHash.Serialize(headerKey)
-	log.Debug(fmt.Sprintf("header key: %x\n", headerKey))
-
-	// generate value
-	w := bytes.NewBuffer(nil)
-	var sysfee uint64 = 0xFFFFFFFFFFFFFFFF
-	serialization.WriteUint64(w, sysfee)
-	header.Serialize(w)
-	log.Debug(fmt.Sprintf("header data: %x\n", w))
-
-	// PUT VALUE
-	bd.st.BatchPut(headerKey.Bytes(), w.Bytes())
-
-	//////////////////////////////////////////////////////////////
-	// generate key with SYS_CurrentHeader prefix
-	currentHeaderKey := bytes.NewBuffer(nil)
-	currentHeaderKey.WriteByte(byte(SYS_CurrentHeader))
-
-	currentHeader := bytes.NewBuffer(nil)
-	blockHash.Serialize(currentHeader)
-	serialization.WriteUint32(currentHeader, header.Blockdata.Height)
-
-	// PUT VALUE
-	bd.st.BatchPut(currentHeaderKey.Bytes(), currentHeader.Bytes())
-
-	err := bd.st.BatchCommit()
-	if err != nil {
-		return
-	}
 
 	bd.mu.Lock()
-	bd.storedHeaderCount = storedHeaderCount
 	bd.headerCache[header.Blockdata.Hash()] = header
 	bd.headerIndex[header.Blockdata.Height] = hash
 	bd.mu.Unlock()
@@ -1210,6 +1134,38 @@ func (self *ChainStore) handlePersistBlockTask(b *Block, ledger *Ledger) {
 
 	if b.Blockdata.Height < uint32(len(self.headerIndex)) {
 		self.persistBlocks(ledger)
+
+		self.st.NewBatch()
+		storedHeaderCount := self.storedHeaderCount
+		for self.currentBlockHeight-storedHeaderCount >= HeaderHashListCount {
+			hashBuffer := new(bytes.Buffer)
+			serialization.WriteVarUint(hashBuffer, uint64(HeaderHashListCount))
+			var hashArray []byte
+			for i := 0; i < HeaderHashListCount; i++ {
+				index := storedHeaderCount + uint32(i)
+				thash := self.headerIndex[index]
+				thehash := thash.ToArray()
+				hashArray = append(hashArray, thehash...)
+			}
+			hashBuffer.Write(hashArray)
+
+			hhlPrefix := bytes.NewBuffer(nil)
+			hhlPrefix.WriteByte(byte(IX_HeaderHashList))
+			serialization.WriteUint32(hhlPrefix, storedHeaderCount)
+
+			self.st.BatchPut(hhlPrefix.Bytes(), hashBuffer.Bytes())
+			storedHeaderCount += HeaderHashListCount
+		}
+
+		err := self.st.BatchCommit()
+		if err != nil {
+			log.Error("failed to persist header hash list:", err)
+			return
+		}
+		self.mu.Lock()
+		self.storedHeaderCount = storedHeaderCount
+		self.mu.Unlock()
+
 		self.clearCache()
 	}
 }
