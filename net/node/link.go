@@ -305,8 +305,12 @@ func TLSDial(nodeAddr string) (net.Conn, error) {
 func (node *node) Tx(buf []byte) {
 	log.Debugf("TX buf length: %d\n%x", len(buf), buf)
 
+	if node.GetState() == INACTIVITY {
+		return
+	}
 	_, err := node.conn.Write(buf)
 	if err != nil {
 		log.Error("Error sending messge to peer node ", err.Error())
+		node.local.eventQueue.GetEvent("disconnect").Notify(events.EventNodeDisconnect, node)
 	}
 }
