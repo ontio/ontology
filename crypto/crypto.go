@@ -169,3 +169,15 @@ func Sha256(value []byte) []byte {
 	copy(data, digest[0:32])
 	return data
 }
+
+func Equal(e1 *PubKey, e2 *PubKey) bool {
+	r := e1.X.Cmp(e2.X)
+	if r != 0 {
+		return false
+	}
+	r = e1.Y.Cmp(e2.Y)
+	if r == 0 {
+		return true
+	}
+	return false
+}

@@ -21,6 +21,7 @@ type BookKeeper struct {
 	PubKey *crypto.PubKey
 	Action BookKeeperAction
 	Cert   []byte
+	Issuer *crypto.PubKey
 }
 
 func (self *BookKeeper) Data(version byte) []byte {
@@ -28,6 +29,7 @@ func (self *BookKeeper) Data(version byte) []byte {
 	self.PubKey.Serialize(&buf)
 	buf.WriteByte(byte(self.Action))
 	serialization.WriteVarBytes(&buf, self.Cert)
+	self.Issuer.Serialize(&buf)
 
 	return buf.Bytes()
 }
@@ -53,6 +55,11 @@ func (self *BookKeeper) Deserialize(r io.Reader, version byte) error {
 	self.Cert, err = serialization.ReadVarBytes(r)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "[BookKeeper], Cert Deserialize failed.")
+	}
+	self.Issuer = new(crypto.PubKey)
+	err = self.Issuer.DeSerialize(r)
+	if err != nil {
+		return NewDetailErr(err, ErrNoCode, "[BookKeeper], Issuer Deserialize failed.")
 	}
 
 	return nil

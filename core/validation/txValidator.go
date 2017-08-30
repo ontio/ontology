@@ -7,6 +7,7 @@ import (
 	"DNA/core/ledger"
 	tx "DNA/core/transaction"
 	"DNA/core/transaction/payload"
+	"DNA/crypto"
 	. "DNA/errors"
 	"errors"
 	"fmt"
@@ -27,7 +28,7 @@ func VerifyTransaction(Tx *tx.Transaction) ErrCode {
 	}
 
 	if err := CheckTransactionBalance(Tx); err != nil {
-		log.Warn("VerifyTransaction:", err)
+		log.Warn("[VerifyTransaction],", err)
 		return ErrTransactionBalance
 	}
 
@@ -238,12 +239,29 @@ func checkAmountPrecise(amount common.Fixed64, precision byte) bool {
 	return amount.GetData()%int64(math.Pow(10, 8-float64(precision))) != 0
 }
 
+func checkIssuerInBookkeeperList(issuer *crypto.PubKey, bookKeepers []*crypto.PubKey) bool {
+	for _, bk := range bookKeepers {
+		r := crypto.Equal(issuer, bk)
+		if r == true {
+			log.Debug("issuer is in bookkeeperlist")
+			return true
+		}
+	}
+	log.Debug("issuer is NOT in bookkeeperlist")
+	return false
+}
+
 func CheckTransactionPayload(Tx *tx.Transaction) error {
 
 	switch pld := Tx.Payload.(type) {
 	case *payload.BookKeeper:
 		//Todo: validate bookKeeper Cert
 		_ = pld.Cert
+		bookKeepers, _, _ := ledger.DefaultLedger.Store.GetBookKeeperList()
+		r := checkIssuerInBookkeeperList(pld.Issuer, bookKeepers)
+		if r == false {
+			return errors.New("The issuer isn't bookekeeper, can't add other in bookkeepers list.")
+		}
 		return nil
 	case *payload.RegisterAsset:
 		if pld.Asset.Precision < asset.MinPrecision || pld.Asset.Precision > asset.MaxPrecision {

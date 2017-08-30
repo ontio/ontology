@@ -33,12 +33,13 @@ func NewRegisterAssetTransaction(asset *asset.Asset, amount common.Fixed64, issu
 }
 
 //initial a new transaction with asset registration payload
-func NewBookKeeperTransaction(pubKey *crypto.PubKey, isAdd bool, cert []byte) (*Transaction, error) {
+func NewBookKeeperTransaction(pubKey *crypto.PubKey, isAdd bool, cert []byte, issuer *crypto.PubKey) (*Transaction, error) {
 
 	bookKeeperPayload := &payload.BookKeeper{
 		PubKey: pubKey,
 		Action: payload.BookKeeperAction_SUB,
 		Cert:   cert,
+		Issuer: issuer,
 	}
 
 	if isAdd {

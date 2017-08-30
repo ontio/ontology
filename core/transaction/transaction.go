@@ -1,12 +1,6 @@
 package transaction
 
 import (
-	"crypto/sha256"
-	"errors"
-	"fmt"
-	"io"
-	"sort"
-
 	. "DNA/common"
 	"DNA/common/serialization"
 	"DNA/core/contract"
@@ -14,6 +8,11 @@ import (
 	sig "DNA/core/signature"
 	"DNA/core/transaction/payload"
 	. "DNA/errors"
+	"crypto/sha256"
+	"errors"
+	"fmt"
+	"io"
+	"sort"
 )
 
 //for different transaction types with different payload format
@@ -327,6 +326,17 @@ func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 	case TransferAsset:
 	case Record:
 	case BookKeeper:
+		issuer := tx.Payload.(*payload.BookKeeper).Issuer
+		signatureRedeemScript, err := contract.CreateSignatureRedeemScript(issuer)
+		if err != nil {
+			return nil, NewDetailErr(err, ErrNoCode, "[Transaction - BookKeeper], GetProgramHashes CreateSignatureRedeemScript failed.")
+		}
+
+		astHash, err := ToCodeHash(signatureRedeemScript)
+		if err != nil {
+			return nil, NewDetailErr(err, ErrNoCode, "[Transaction - BookKeeper], GetProgramHashes ToCodeHash failed.")
+		}
+		hashs = append(hashs, astHash)
 	case PrivacyPayload:
 		issuer := tx.Payload.(*payload.PrivacyPayload).EncryptAttr.(*payload.EcdhAes256).FromPubkey
 		signatureRedeemScript, err := contract.CreateSignatureRedeemScript(issuer)

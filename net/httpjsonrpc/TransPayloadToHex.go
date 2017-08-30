@@ -13,7 +13,8 @@ type PayloadInfo interface{}
 
 //implement PayloadInfo define BookKeepingInfo
 type BookKeepingInfo struct {
-	Nonce uint64
+	Nonce  uint64
+	Issuer IssuerInfo
 }
 
 //implement PayloadInfo define DeployCodeInfo
@@ -58,8 +59,10 @@ type RecordInfo struct {
 }
 
 type BookkeeperInfo struct {
-	PubKey string
-	Action string
+	PubKey     string
+	Action     string
+	Issuer     IssuerInfo
+	Controller string
 }
 
 type DataFileInfo struct {
@@ -93,6 +96,9 @@ func TransPayloadToHex(p Payload) PayloadInfo {
 		} else {
 			obj.Action = "nil"
 		}
+		obj.Issuer.X = object.Issuer.X.String()
+		obj.Issuer.Y = object.Issuer.Y.String()
+
 		return obj
 	case *payload.IssueAsset:
 	case *payload.TransferAsset:
