@@ -183,9 +183,6 @@ func (msg blkHeader) Handle(node Noder) error {
 		log.Warn("Add block Header error")
 		return errors.New("Add block Header error, send new header request to another node\n")
 	}
-	if msg.cnt == MAXBLKHDRCNT {
-		SendMsgSyncHeaders(node)
-	}
 	return nil
 }
 
