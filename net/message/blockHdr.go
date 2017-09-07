@@ -150,6 +150,7 @@ blkHdrErr:
 func (msg headersReq) Handle(node Noder) error {
 	log.Debug()
 	// lock
+	node.LocalNode().AcqSyncReqSem()
 	var startHash [HASHLEN]byte
 	var stopHash [HASHLEN]byte
 	startHash = msg.p.hashStart
@@ -157,13 +158,16 @@ func (msg headersReq) Handle(node Noder) error {
 	//FIXME if HeaderHashCount > 1
 	headers, cnt, err := GetHeadersFromHash(startHash, stopHash)
 	if err != nil {
+		node.LocalNode().RelSyncReqSem()
 		return err
 	}
 	buf, err := NewHeaders(headers, cnt)
 	if err != nil {
+		node.LocalNode().RelSyncReqSem()
 		return err
 	}
 	go node.Tx(buf)
+	node.LocalNode().RelSyncReqSem()
 	return nil
 }
 

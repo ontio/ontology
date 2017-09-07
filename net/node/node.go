@@ -24,6 +24,15 @@ import (
 	"time"
 )
 
+type Semaphore chan struct{}
+
+func MakeSemaphore(n int) Semaphore {
+	return make(chan struct{}, n)
+}
+
+func (s Semaphore) acquire() { s <- struct{}{} }
+func (s Semaphore) release() { <-s }
+
 type node struct {
 	//sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
 	state     uint32 // node state
@@ -53,6 +62,7 @@ type node struct {
 	tryTimes                 uint32
 	ConnectingNodes
 	RetryConnAddrs
+	SyncReqSem Semaphore
 }
 
 type RetryConnAddrs struct {
@@ -154,6 +164,13 @@ func InitNode(pubKey *crypto.PubKey) Noder {
 	} else if Parameters.NodeType == VERIFYNODENAME {
 		n.services = uint64(VERIFYNODE)
 	}
+
+	if Parameters.MaxHdrSyncReqs <= 0 {
+		n.SyncReqSem = MakeSemaphore(MAXSYNCHDRREQ)
+	} else {
+		n.SyncReqSem = MakeSemaphore(Parameters.MaxHdrSyncReqs)
+	}
+
 	n.link.port = uint16(Parameters.NodePort)
 	n.relay = true
 	// TODO is it neccessary to init the rand seed here?
@@ -489,4 +506,11 @@ func (node *node) RemoveFromRetryList(addr string) {
 		}
 	}
 
+}
+func (node *node) AcqSyncReqSem() {
+	node.SyncReqSem.acquire()
+}
+
+func (node *node) RelSyncReqSem() {
+	node.SyncReqSem.release()
 }

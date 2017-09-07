@@ -59,6 +59,7 @@ const (
 	CONNMONITOR      = 6
 	CONNMAXBACK      = 4000
 	MAXRETRYCOUNT    = 3
+	MAXSYNCHDRREQ    = 2 //Max Concurrent Sync Header Request
 )
 
 // The node state
@@ -138,6 +139,8 @@ type Noder interface {
 	RemoveAddrInConnectingList(addr string)
 	AddInRetryList(addr string)
 	RemoveFromRetryList(addr string)
+	AcqSyncReqSem()
+	RelSyncReqSem()
 }
 
 func (msg *NodeAddr) Deserialization(p []byte) error {
