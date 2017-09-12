@@ -76,32 +76,31 @@ config.json node nodectl
  Then, change the `BookKeepers` field to the 4 nodes' wallet public keys, which you can get from the last command's echo. The public key sequence does not matter.
  Now all configurations are completed.
  
- Here's an snippet for configuration, note that `35.189.182.223` and `35.189.166.234` are two public seed node's addresses:
+ Here's an snippet for configuration, note that `10.0.1.100` and `10.0.1.101` are public seed node's addresses:
  
  
 ```shell
 $ cat config.json
-	...
     "SeedList": [
-      "35.189.182.223:10338",
-      "35.189.166.234:30338",
-      "35.189.161.152:50338",
-      "52.79.125.166:10338",
-      "13.125.0.7:10338",
-      "52.79.103.97:10338"
+      "10.0.1.100:10338",
+      "10.0.1.101:10338",
+      "10.0.1.102:10338"
     ],
-	...
     "BookKeepers": [
-      "03ad8f4a837f7a02adedcea920b30c5c99517aabc7d2695d93ac572b9c2106d4c2",
-      "0293bafa2df4813ae999bf42f35a38bcb9ec26a252fd28dc0ccab56c671cf784e6",
-      "02aec70e084e4e5d36ed2db54aa708a6bd095fbb663929850986a5ec22061e1be2",
-      "02758623d16774f3c5535a305e65ea949343eab06888ee2e7633b4f3f9d78d506c"
+      "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
+      "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
+      "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
+      "03d36828a99547184452276116f1b5171861931ff439a6da2316fddf1f3f428850"
     ],
-    "HttpRestPort": 20334,
-    "HttpWsPort": 20335,
-    "HttpJsonPort": 20336,
-    "HttpLocalPort": 20337,
-    "NodePort": 20338,
+    "HttpInfoPort": 10333,
+    "HttpInfoStart": true,    
+    "HttpRestPort": 10334,
+    "HttpWsPort": 10335,
+    "HttpJsonPort": 10336,
+    "HttpLocalPort": 10337,
+    "NoticeServerUrl":"",
+    "OauthServerUrl":"",
+    "NodePort": 10338,
  	...
 ```
 
@@ -144,89 +143,99 @@ $ tree
 ```shell
 # configuration snippets #
 $ cat node[1234]/config.json
+    ...
     "SeedList": [
-      "35.189.182.223:10338",
-      "35.189.166.234:30338",
-      "35.189.161.152:50338",
-      "52.79.125.166:10338",
-      "13.125.0.7:10338",
-      "52.79.103.97:10338"
+      "10.0.1.100:10338",
+      "10.0.1.100:20338",
+      "10.0.1.100:30338",
+      "10.0.1.100:40338"
     ],
     "BookKeepers": [
-      "03ad8f4a837f7a02adedcea920b30c5c99517aabc7d2695d93ac572b9c2106d4c2",
-      "0293bafa2df4813ae999bf42f35a38bcb9ec26a252fd28dc0ccab56c671cf784e6",
-      "02aec70e084e4e5d36ed2db54aa708a6bd095fbb663929850986a5ec22061e1be2",
-      "02758623d16774f3c5535a305e65ea949343eab06888ee2e7633b4f3f9d78d506c"
+      "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
+      "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
+      "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
+      "03d36828a99547184452276116f1b5171861931ff439a6da2316fddf1f3f428850"
     ],
+    "HttpInfoPort": 10333,
+    "HttpInfoStart": true,    
     "HttpRestPort": 10334,
     "HttpWsPort": 10335,
     "HttpJsonPort": 10336,
     "HttpLocalPort": 10337,
+    "NoticeServerUrl":"",
+    "OauthServerUrl":"",
     "NodePort": 10338,
     ...
 
     "SeedList": [
-      "35.189.182.223:10338",
-      "35.189.166.234:30338",
-      "35.189.161.152:50338",
-      "52.79.125.166:10338",
-      "13.125.0.7:10338",
-      "52.79.103.97:10338"
+      "10.0.1.100:10338",
+      "10.0.1.100:20338",
+      "10.0.1.100:30338",
+      "10.0.1.100:40338"
     ],
     "BookKeepers": [
-      "03ad8f4a837f7a02adedcea920b30c5c99517aabc7d2695d93ac572b9c2106d4c2",
-      "0293bafa2df4813ae999bf42f35a38bcb9ec26a252fd28dc0ccab56c671cf784e6",
-      "02aec70e084e4e5d36ed2db54aa708a6bd095fbb663929850986a5ec22061e1be2",
-      "02758623d16774f3c5535a305e65ea949343eab06888ee2e7633b4f3f9d78d506c"
+      "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
+      "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
+      "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
+      "03d36828a99547184452276116f1b5171861931ff439a6da2316fddf1f3f428850"
     ],
+    "HttpInfoPort": 20333,
+    "HttpInfoStart": true,    
     "HttpRestPort": 20334,
     "HttpWsPort": 20335,
     "HttpJsonPort": 20336,
     "HttpLocalPort": 20337,
+    "NoticeServerUrl":"",
+    "OauthServerUrl":"",
     "NodePort": 20338,
     ...
 
     "SeedList": [
-      "35.189.182.223:10338",
-      "35.189.166.234:30338",
-      "35.189.161.152:50338",
-      "52.79.125.166:10338",
-      "13.125.0.7:10338",
-      "52.79.103.97:10338"
+      "10.0.1.100:10338",
+      "10.0.1.100:20338",
+      "10.0.1.100:30338",
+      "10.0.1.100:40338"
     ],
     "BookKeepers": [
-      "03ad8f4a837f7a02adedcea920b30c5c99517aabc7d2695d93ac572b9c2106d4c2",
-      "0293bafa2df4813ae999bf42f35a38bcb9ec26a252fd28dc0ccab56c671cf784e6",
-      "02aec70e084e4e5d36ed2db54aa708a6bd095fbb663929850986a5ec22061e1be2",
-      "02758623d16774f3c5535a305e65ea949343eab06888ee2e7633b4f3f9d78d506c"
+      "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
+      "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
+      "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
+      "03d36828a99547184452276116f1b5171861931ff439a6da2316fddf1f3f428850"
     ],
+    "HttpInfoPort": 30333,
+    "HttpInfoStart": true,    
     "HttpRestPort": 30334,
     "HttpWsPort": 30335,
     "HttpJsonPort": 30336,
     "HttpLocalPort": 30337,
+    "NoticeServerUrl":"",
+    "OauthServerUrl":"",
     "NodePort": 30338,
     ...
 
     "SeedList": [
-      "35.189.182.223:10338",
-      "35.189.166.234:30338",
-      "35.189.161.152:50338",
-      "52.79.125.166:10338",
-      "13.125.0.7:10338",
-      "52.79.103.97:10338"
+      "10.0.1.100:10338",
+      "10.0.1.100:20338",
+      "10.0.1.100:30338",
+      "10.0.1.100:40338"
     ],
     "BookKeepers": [
-      "03ad8f4a837f7a02adedcea920b30c5c99517aabc7d2695d93ac572b9c2106d4c2",
-      "0293bafa2df4813ae999bf42f35a38bcb9ec26a252fd28dc0ccab56c671cf784e6",
-      "02aec70e084e4e5d36ed2db54aa708a6bd095fbb663929850986a5ec22061e1be2",
-      "02758623d16774f3c5535a305e65ea949343eab06888ee2e7633b4f3f9d78d506c"
+      "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
+      "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
+      "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
+      "03d36828a99547184452276116f1b5171861931ff439a6da2316fddf1f3f428850"
     ],
+    "HttpInfoPort": 40333,
+    "HttpInfoStart": true,    
     "HttpRestPort": 40334,
     "HttpWsPort": 40335,
     "HttpJsonPort": 40336,
     "HttpLocalPort": 40337,
+    "NoticeServerUrl":"",
+    "OauthServerUrl":"",
     "NodePort": 40338,
-
+    ...
+```    
 ## Getting Started
 
 Start the seed node program first and then other nodes. Just run:
@@ -242,22 +251,22 @@ $ - input you wallet password
 
 1. make some transactions :
 ```
-./nodectl test -ip 35.189.182.223 -port 10336 -tx perf -num 10
+./nodectl test -ip 139.219.108.92 -port 10336 -tx perf -num 10
 ```
 
 2. register, issue, transfer assert :
 ```
-./nodectl test -ip 35.189.182.223 -port 10336 -tx full
+./nodectl test -ip 139.219.108.92 -port 10336 -tx full
 ```
 
 3. look up block's information :
 ```
-./nodectl info -ip 35.189.182.223 -port 10336 -height 10
+./nodectl info -ip 139.219.108.92 -port 10336 -height 10
 ```
 
 4. look up transaction's information :
 ```
-./nodectl info -ip 35.189.182.223 -port 10336 -txhash d438896f07786b74281bc70259b0caaccb87460171104ea17473b5e802033a98
+./nodectl info -ip 139.219.108.92 -port 10336 -txhash d438896f07786b74281bc70259b0caaccb87460171104ea17473b5e802033a98
 ```
 
 ......
@@ -268,12 +277,12 @@ Some other available nodes for testing:
 ```
 IP               PORT
 ----------------------
-35.189.182.223:  10336
-35.189.166.234:  30336
-35.189.161.152:  50336
-52.79.125.166:   10336
-13.125.0.7:      10336
-52.79.103.97:    10336
+139.219.108.92:  10336
+40.125.205.244:  10336
+139.219.105.20:  10336
+139.219.102.76:  10336
+139.219.99.237:  10336
+139.219.99.101:  10336
 ```
 
  `Notice: The nodes above are intended to be used for public testing only. The data saved on the testing chain maybe be reset at any time. Keep in mind to back up the data by yourself to avoid data loss.`
