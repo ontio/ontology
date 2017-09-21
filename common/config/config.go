@@ -10,6 +10,8 @@ import (
 
 const (
 	DefaultConfigFilename = "./config.json"
+	MINGENBLOCKTIME       = 2
+	DEFAULTGENBLOCKTIME   = 6
 )
 
 var Version string

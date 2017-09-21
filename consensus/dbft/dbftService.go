@@ -23,11 +23,7 @@ import (
 	"time"
 )
 
-const (
-	MINGENBLOCKTIME = 6
-)
-
-var GenBlockTime = (MINGENBLOCKTIME * time.Second)
+var GenBlockTime = (config.DEFAULTGENBLOCKTIME * time.Second)
 
 type DbftService struct {
 	context           ConsensusContext
@@ -506,10 +502,10 @@ func (ds *DbftService) Start() error {
 	log.Debug()
 	ds.started = true
 
-	if config.Parameters.GenBlockTime > MINGENBLOCKTIME {
+	if config.Parameters.GenBlockTime > config.MINGENBLOCKTIME {
 		GenBlockTime = time.Duration(config.Parameters.GenBlockTime) * time.Second
 	} else {
-		log.Warn("The Generate block time should be longer than 6 seconds, so set it to be 6.")
+		log.Warn("The Generate block time should be longer than 2 seconds, so set it to be default 6 seconds.")
 	}
 
 	ds.blockPersistCompletedSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, ds.BlockPersistCompleted)
