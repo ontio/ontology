@@ -251,22 +251,22 @@ $ - input you wallet password
 
 1. make some transactions :
 ```
-./nodectl test -ip 139.219.108.92 -port 10336 -tx perf -num 10
+./nodectl --ip 139.219.65.178 --port 10336 test -tx perf -num 10
 ```
 
 2. register, issue, transfer assert :
 ```
-./nodectl test -ip 139.219.108.92 -port 10336 -tx full
+./nodectl --ip 139.219.65.178 --port 10336 test -tx full
 ```
 
 3. look up block's information :
 ```
-./nodectl info -ip 139.219.108.92 -port 10336 -height 10
+./nodectl --ip 139.219.65.178 --port 10336 info -height 10
 ```
 
 4. look up transaction's information :
 ```
-./nodectl info -ip 139.219.108.92 -port 10336 -txhash d438896f07786b74281bc70259b0caaccb87460171104ea17473b5e802033a98
+./nodectl --ip 139.219.65.178 --port 10336 info -txhash d438896f07786b74281bc70259b0caaccb87460171104ea17473b5e802033a98
 ```
 
 ......
@@ -277,12 +277,9 @@ Some other available nodes for testing:
 ```
 IP               PORT
 ----------------------
-139.219.108.92:  10336
-40.125.205.244:  10336
-139.219.105.20:  10336
-139.219.102.76:  10336
-139.219.99.237:  10336
-139.219.99.101:  10336
+139.219.65.178:  10336
+139.219.99.201:  10336
+139.219.96.154:  10336
 ```
 
  `Notice: The nodes above are intended to be used for public testing only. The data saved on the testing chain maybe be reset at any time. Keep in mind to back up the data by yourself to avoid data loss.`
