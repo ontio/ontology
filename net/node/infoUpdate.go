@@ -97,10 +97,16 @@ func (node *node) SendPingToNbr() {
 
 func (node *node) HeartBeatMonitor() {
 	noders := node.local.GetNeighborNoder()
+	var periodUpdateTime uint
+	if config.Parameters.GenBlockTime > config.MINGENBLOCKTIME {
+		periodUpdateTime = config.Parameters.GenBlockTime / TIMESOFUPDATETIME
+	} else {
+		periodUpdateTime = config.DEFAULTGENBLOCKTIME / TIMESOFUPDATETIME
+	}
 	for _, n := range noders {
 		if n.GetState() == ESTABLISH {
 			t := n.GetLastRXTime()
-			if time.Since(t).Seconds() > (PERIODUPDATETIME * KEEPALIVETIMEOUT) {
+			if t.Before(time.Now().Add(-1 * time.Second * time.Duration(periodUpdateTime) * KEEPALIVETIMEOUT)) {
 				log.Warn("keepalive timeout!!!")
 				n.SetState(INACTIVITY)
 				n.CloseConn()
