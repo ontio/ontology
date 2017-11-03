@@ -5,6 +5,7 @@ temp/*
 temp/
 idea/
 build/
+wsl/*
 *.patch
 .idea/
 GoOnchain.iml
