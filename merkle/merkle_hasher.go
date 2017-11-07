@@ -2,6 +2,8 @@ package merkle
 
 import (
 	"crypto/sha256"
+
+	. "github.com/Ontology/common"
 )
 
 type TreeHasher struct {
@@ -22,7 +24,7 @@ func (self TreeHasher) hash_children(left, right Uint256) Uint256 {
 	return sha256.Sum256(data)
 }
 
-func (self TreeHasher) HashFullTree(leaves [][]byte) Uint256 {
+func (self TreeHasher) HashFullTreeWithLeafHash(leaves []Uint256) Uint256 {
 	length := uint32(len(leaves))
 	root_hash, hashes := self._hash_full(leaves, 0, length)
 
@@ -35,13 +37,30 @@ func (self TreeHasher) HashFullTree(leaves [][]byte) Uint256 {
 
 	return root_hash
 }
+func (self TreeHasher) HashFullTree(leaves [][]byte) Uint256 {
+	length := uint32(len(leaves))
+	leafhashes := make([]Uint256, length, length)
+	for i := range leaves {
+		leafhashes[i] = self.hash_leaf(leaves[i])
+	}
+	root_hash, hashes := self._hash_full(leafhashes, 0, length)
 
-func (self TreeHasher) _hash_full(leaves [][]byte, l_idx, r_idx uint32) (root_hash Uint256, hashes []Uint256) {
+	if uint(len(hashes)) != countBit(length) {
+		panic("assert failed in hash full tree")
+	}
+
+	// assert len(hashes) == countBit(len(leaves))
+	// assert self._hash_fold(hashes) == root_hash if hashes else root_hash == self.hash_empty()
+
+	return root_hash
+}
+
+func (self TreeHasher) _hash_full(leaves []Uint256, l_idx, r_idx uint32) (root_hash Uint256, hashes []Uint256) {
 	width := r_idx - l_idx
 	if width == 0 {
 		return self.hash_empty(), nil
 	} else if width == 1 {
-		leaf_hash := self.hash_leaf(leaves[l_idx])
+		leaf_hash := leaves[l_idx]
 		return leaf_hash, []Uint256{leaf_hash}
 	} else {
 		var split_width uint32 = 1 << (countBit(width-1) - 1)

@@ -23,12 +23,17 @@ import (
 	"sort"
 	"sync"
 	"time"
+
+	"encoding/binary"
+	"github.com/Ontology/merkle"
 )
 
 const (
 	HeaderHashListCount = 2000
 	CleanCacheThreshold = 2
 	TaskChanCap         = 4
+	DBDir               = "Chain"
+	MerkleTreeStorePath = "Chain/merkle_tree.db"
 )
 
 var (
@@ -55,6 +60,9 @@ type ChainStore struct {
 	blockCache  map[Uint256]*Block
 	headerCache map[Uint256]*Header
 
+	merkleTree      *merkle.CompactMerkleTree
+	merkleHashStore *merkle.FileHashStore
+
 	currentBlockHeight uint32
 	storedHeaderCount  uint32
 }
@@ -67,7 +75,7 @@ func NewStore(file string) (IStore, error) {
 
 func NewLedgerStore() (ILedgerStore, error) {
 	// TODO: read config file decide which db to use.
-	cs, err := NewChainStore("Chain")
+	cs, err := NewChainStore(DBDir)
 	if err != nil {
 		return nil, err
 	}
@@ -247,6 +255,23 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 			}
 		}
 
+		buf, _ := bd.st.Get([]byte{byte(SYS_BlockMerkleTree)})
+		tree_size := binary.BigEndian.Uint32(buf[0:4])
+		if tree_size != bd.currentBlockHeight+1 {
+			return 0, errors.New("Merkle tree size is inconsistent with blockheight")
+		}
+		nhashes := (len(buf) - 4) / UINT256SIZE
+		hashes := make([]Uint256, nhashes, nhashes)
+		for i := 0; i < nhashes; i++ {
+			copy(hashes[i][:], buf[4+i*UINT256SIZE:])
+		}
+
+		bd.merkleHashStore, err = merkle.NewFileHashStore(MerkleTreeStorePath, tree_size)
+		if err != nil {
+			log.Error("merkle_tree.db is inconsistent with ChainStore. persistence will be disabled")
+		}
+		bd.merkleTree = merkle.NewTree(tree_size, hashes, bd.merkleHashStore)
+
 		return bd.currentBlockHeight, nil
 
 	} else {
@@ -290,6 +315,10 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 		bd.st.Put(bkListKey.Bytes(), bkListValue.Bytes())
 		///////////////////////////////////////////////////
 
+		// Init merkle tree and hash store
+		bd.merkleHashStore, _ = merkle.NewFileHashStore(MerkleTreeStorePath, 0)
+		bd.merkleTree = merkle.NewTree(0, nil, bd.merkleHashStore)
+
 		// persist genesis block
 		bd.persist(genesisBlock)
 
@@ -316,6 +345,10 @@ func (bd *ChainStore) IsTxHashDuplicate(txhash Uint256) bool {
 	} else {
 		return true
 	}
+}
+
+func (bd *ChainStore) GetBlockRootWithNewLeaf(txRoot Uint256) Uint256 {
+	return bd.merkleTree.GetRootWithNewLeaf(txRoot)
 }
 
 func (bd *ChainStore) IsDoubleSpend(tx *tx.Transaction) bool {
@@ -1049,6 +1082,20 @@ func (bd *ChainStore) persist(b *Block) error {
 
 	// BATCH PUT VALUE
 	bd.st.BatchPut(currentBlockKey.Bytes(), currentBlock.Bytes())
+
+	// update merkle tree
+	bd.merkleTree.AppendHash(b.Blockdata.TransactionsRoot)
+	bd.merkleHashStore.Flush()
+
+	tree_size := bd.merkleTree.TreeSize()
+	hashes := bd.merkleTree.Hashes()
+	length := 4 + len(hashes)*UINT256SIZE
+	buf := make([]byte, 4, length)
+	binary.BigEndian.PutUint32(buf[0:], tree_size)
+	for _, h := range hashes {
+		buf = append(buf, h[:]...)
+	}
+	bd.st.BatchPut([]byte{byte(SYS_BlockMerkleTree)}, buf)
 
 	err = bd.st.BatchCommit()
 

@@ -26,6 +26,7 @@ const (
 	SYS_CurrentBlock DataEntryPrefix = 0x40
 	// SYS_CurrentHeader     DataEntryPrefix = 0x41
 	SYS_CurrentBookKeeper DataEntryPrefix = 0x42
+	SYS_BlockMerkleTree   DataEntryPrefix = 0x43
 
 	//CONFIG
 	CFG_Version DataEntryPrefix = 0xf0

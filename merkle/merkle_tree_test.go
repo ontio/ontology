@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"testing"
+
+	. "github.com/Ontology/common"
 )
 
 func TestMerkleLeaf3(t *testing.T) {
@@ -12,7 +14,7 @@ func TestMerkleLeaf3(t *testing.T) {
 	leafs := []Uint256{hasher.hash_leaf([]byte{1}),
 		hasher.hash_leaf([]byte{2}),
 		hasher.hash_leaf([]byte{3})}
-	store := NewFileHashStore("merkletree.db")
+	store, _ := NewFileHashStore("merkletree.db", 0)
 	tree := NewTree(0, nil, store)
 	if tree.Root() != sha256.Sum256(nil) {
 		t.Fatal("root error")
@@ -51,7 +53,7 @@ func TestMerkle(t *testing.T) {
 		hasher.hash_leaf([]byte{3}),
 		hasher.hash_leaf([]byte{4})}
 
-	store := NewFileHashStore("merkletree.db")
+	store, _ := NewFileHashStore("merkletree.db", 0)
 	tree := NewTree(0, nil, store)
 	if tree.Root() != sha256.Sum256(nil) {
 		t.Fatal("root error")
@@ -86,7 +88,7 @@ func TestMerkle(t *testing.T) {
 }
 
 func TestMerkleHashes(t *testing.T) {
-	store := NewFileHashStore("merkletree.db")
+	store, _ := NewFileHashStore("merkletree.db", 0)
 	tree := NewTree(0, nil, store)
 	for i := 0; i < 100; i++ {
 		tree.Append([]byte{byte(i + 1)})
@@ -103,7 +105,7 @@ func TestMerkleHashes(t *testing.T) {
 func TestMerkleRoot(t *testing.T) {
 	n := 100
 	roots := make([]Uint256, n, n)
-	store := NewFileHashStore("merkletree.db")
+	store, _ := NewFileHashStore("merkletree.db", 0)
 	tree := NewTree(0, nil, store)
 	for i := 0; i < n; i++ {
 		tree.Append([]byte{byte(i + 1)})
@@ -128,7 +130,7 @@ func TestGetSubTreeSize(t *testing.T) {
 // zero based return merkle root of D[0:n]
 func TestMerkleIncludeProof(t *testing.T) {
 	n := uint32(8)
-	store := NewFileHashStore("merkletree.db")
+	store, _ := NewFileHashStore("merkletree.db", 0)
 	tree := NewTree(0, nil, store)
 	for i := uint32(0); i < n; i++ {
 		tree.Append([]byte{byte(i + 1)})
@@ -149,7 +151,7 @@ func TestMerkleIncludeProof(t *testing.T) {
 
 func TestMerkleConsistencyProofLen(t *testing.T) {
 	n := uint32(7)
-	store := NewFileHashStore("merkletree.db")
+	store, _ := NewFileHashStore("merkletree.db", 0)
 	tree := NewTree(0, nil, store)
 	for i := uint32(0); i < n; i++ {
 		tree.Append([]byte{byte(i + 1)})
@@ -168,7 +170,7 @@ func TestMerkleConsistencyProofLen(t *testing.T) {
 func TestMerkleConsistencyProof(t *testing.T) {
 	n := uint32(140)
 	roots := make([]Uint256, n, n)
-	store := NewFileHashStore("merkletree.db")
+	store, _ := NewFileHashStore("merkletree.db", 0)
 	tree := NewTree(0, nil, store)
 	for i := uint32(0); i < n; i++ {
 		tree.Append([]byte{byte(i + 1)})
@@ -189,7 +191,7 @@ func TestMerkleConsistencyProof(t *testing.T) {
 
 //~70w
 func BenchmarkMerkleInsert(b *testing.B) {
-	store := NewFileHashStore("merkletree.db")
+	store, _ := NewFileHashStore("merkletree.db", 0)
 	tree := NewTree(0, nil, store)
 	for i := 0; i < b.N; i++ { //use b.N for looping
 		tree.Append([]byte(fmt.Sprintf("bench %d", i)))
@@ -201,7 +203,7 @@ var storeTest HashStore
 var N = 100 //00
 
 func init() {
-	storeTest := NewFileHashStore("merkletree.db")
+	storeTest, _ := NewFileHashStore("merkletree.db", 0)
 	treeTest := NewTree(0, nil, storeTest)
 	for i := 0; i < N; i++ {
 		treeTest.Append([]byte(fmt.Sprintf("setup %d", i)))
@@ -242,5 +244,10 @@ func TestNewFileSeek(t *testing.T) {
 	}
 	off, err := f.Seek(0, 2)
 	f.Write([]byte{12})
+	a := float64(9999999999996841)
+	b := int64(a)
+
+	t.Fatal(b, "haha")
+
 	t.Fatal(off, err)
 }

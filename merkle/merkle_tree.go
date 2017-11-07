@@ -1,13 +1,15 @@
 package merkle
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
+	. "github.com/Ontology/common"
 )
 
-const UINT256SIZE int = 32
+// const UINT256SIZE int = 32
 
-type Uint256 [UINT256SIZE]byte
+// type Uint256 [UINT256SIZE]byte
 
 var EMPTY_HASH = Uint256{}
 
@@ -20,7 +22,7 @@ type CompactMerkleTree struct {
 	treeSize  uint32
 }
 
-func NewTree(tree_size uint, hashes []Uint256, store HashStore) *CompactMerkleTree {
+func NewTree(tree_size uint32, hashes []Uint256, store HashStore) *CompactMerkleTree {
 
 	tree := &CompactMerkleTree{
 		mintree_h: 0,
@@ -32,6 +34,41 @@ func NewTree(tree_size uint, hashes []Uint256, store HashStore) *CompactMerkleTr
 
 	tree._update(tree_size, hashes)
 	return tree
+}
+
+func (self *CompactMerkleTree) Hashes() []Uint256 {
+	return self.hashes
+}
+
+func (self *CompactMerkleTree) TreeSize() uint32 {
+	return self.treeSize
+}
+
+func (self *CompactMerkleTree) Marshal() ([]byte, error) {
+	length := 4 + len(self.hashes)*UINT256SIZE
+	buf := make([]byte, 4, length)
+	binary.BigEndian.PutUint32(buf[0:], self.treeSize)
+	for _, h := range self.hashes {
+		buf = append(buf, h[:]...)
+	}
+
+	return buf, nil
+}
+
+func (self *CompactMerkleTree) UnMarshal(buf []byte) error {
+	tree_size := binary.BigEndian.Uint32(buf[0:4])
+	nhashes := countBit(tree_size)
+	if len(buf) < 4+int(nhashes)*UINT256SIZE {
+		return errors.New("Too short input buf length")
+	}
+	hashes := make([]Uint256, nhashes, nhashes)
+	for i := 0; i < int(nhashes); i++ {
+		copy(hashes[i][:], buf[4+i*UINT256SIZE:])
+	}
+
+	self._update(tree_size, hashes)
+
+	return nil
 }
 
 func (self *CompactMerkleTree) _update(tree_size uint32, hashes []Uint256) {
@@ -57,7 +94,20 @@ func (self *CompactMerkleTree) Root() Uint256 {
 	return self.rootHash
 }
 
+func (self *CompactMerkleTree) GetRootWithNewLeaf(newLeaf Uint256) Uint256 {
+	hashes := append(self.hashes, newLeaf)
+	root := self.hasher._hash_fold(hashes)
+
+	return root
+}
+
 func (self *CompactMerkleTree) Append(leafv []byte) []Uint256 {
+	leaf := self.hasher.hash_leaf(leafv)
+
+	return self.AppendHash(leaf)
+}
+
+func (self *CompactMerkleTree) AppendHash(leaf Uint256) []Uint256 {
 	size := len(self.hashes)
 	auditPath := make([]Uint256, size, size)
 	storehashes := make([]Uint256, 0)
@@ -66,7 +116,6 @@ func (self *CompactMerkleTree) Append(leafv []byte) []Uint256 {
 		auditPath[size-i-1] = v
 	}
 
-	leaf := self.hasher.hash_leaf(leafv)
 	storehashes = append(storehashes, leaf)
 	self.mintree_h = 1
 	for s := self.treeSize; s%2 == 1; s = s >> 1 {
@@ -291,7 +340,6 @@ func (self *MerkleVerifier) VerifyLeafInclusion(leaf []byte,
 	leaf_index uint32, proof []Uint256, root_hash Uint256, tree_size uint32) error {
 	leaf_hash := self.hasher.hash_leaf(leaf)
 	return self.VerifyLeafHashInclusion(leaf_hash, leaf_index, proof, root_hash, tree_size)
-
 }
 
 func (self *MerkleVerifier) calculate_root_hash_from_audit_path(leaf_hash Uint256,
