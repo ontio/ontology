@@ -97,6 +97,7 @@ func GetBlockInfo(block *ledger.Block) BlockInfo {
 		Version:          block.Blockdata.Version,
 		PrevBlockHash:    ToHexString(block.Blockdata.PrevBlockHash.ToArrayReverse()),
 		TransactionsRoot: ToHexString(block.Blockdata.TransactionsRoot.ToArrayReverse()),
+		BlockRoot:        ToHexString(block.Blockdata.BlockRoot.ToArrayReverse()),
 		Timestamp:        block.Blockdata.Timestamp,
 		Height:           block.Blockdata.Height,
 		ConsensusData:    block.Blockdata.ConsensusData,

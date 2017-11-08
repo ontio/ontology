@@ -347,7 +347,7 @@ func (bd *ChainStore) IsTxHashDuplicate(txhash Uint256) bool {
 	}
 }
 
-func (bd *ChainStore) GetBlockRootWithNewLeaf(txRoot Uint256) Uint256 {
+func (bd *ChainStore) GetBlockRootWithNewTxRoot(txRoot Uint256) Uint256 {
 	return bd.merkleTree.GetRootWithNewLeaf(txRoot)
 }
 

@@ -3,18 +3,20 @@ package ledger
 import (
 	"crypto/sha256"
 	"errors"
+	"io"
+
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/core/contract/program"
 	sig "github.com/Ontology/core/signature"
 	. "github.com/Ontology/errors"
-	"io"
 )
 
 type Blockdata struct {
 	Version          uint32
 	PrevBlockHash    Uint256
 	TransactionsRoot Uint256
+	BlockRoot        Uint256
 	Timestamp        uint32
 	Height           uint32
 	ConsensusData    uint64
@@ -39,6 +41,7 @@ func (bd *Blockdata) SerializeUnsigned(w io.Writer) error {
 	serialization.WriteUint32(w, bd.Version)
 	bd.PrevBlockHash.Serialize(w)
 	bd.TransactionsRoot.Serialize(w)
+	bd.BlockRoot.Serialize(w)
 	serialization.WriteUint32(w, bd.Timestamp)
 	serialization.WriteUint32(w, bd.Height)
 	serialization.WriteUint64(w, bd.ConsensusData)
@@ -93,6 +96,11 @@ func (bd *Blockdata) DeserializeUnsigned(r io.Reader) error {
 		return err
 	}
 	bd.TransactionsRoot = *txRoot
+
+	err = bd.BlockRoot.Deserialize(r)
+	if err != nil {
+		return err
+	}
 
 	//Timestamp
 	temp, _ = serialization.ReadUint32(r)
