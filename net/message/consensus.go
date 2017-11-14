@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
@@ -12,6 +13,7 @@ import (
 	"github.com/Ontology/core/contract/program"
 	"github.com/Ontology/core/ledger"
 	sig "github.com/Ontology/core/signature"
+	"github.com/Ontology/core/validation"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
 	"github.com/Ontology/events"
@@ -44,6 +46,11 @@ func (cp *ConsensusPayload) Hash() common.Uint256 {
 }
 
 func (cp *ConsensusPayload) Verify() error {
+	res, err := validation.VerifySignableData(cp)
+	if res == false || err != nil {
+		return errors.New(fmt.Sprint("ConsensusPayload verify failed", err.Error()))
+	}
+
 	return nil
 }
 
