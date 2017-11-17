@@ -350,7 +350,6 @@ func (ds *DbftService) VerifyTxs(txs []*tx.Transaction) error {
 }
 
 func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, message *PrepareRequest) {
-	log.Debug()
 	log.Info(fmt.Sprintf("Prepare Request Received: height=%d View=%d index=%d tx=%d", payload.Height, message.ViewNumber(), payload.BookKeeperIndex, len(message.Transactions)))
 
 	if !ds.context.State.HasFlag(Backup) || ds.context.State.HasFlag(RequestReceived) {
@@ -379,6 +378,8 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, mes
 		return
 	}
 
+	backupContext := ds.context
+
 	ds.context.State |= RequestReceived
 	ds.context.Timestamp = payload.Timestamp
 	ds.context.Nonce = message.Nonce
@@ -389,6 +390,8 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, mes
 	_, err = va.VerifySignature(ds.context.MakeHeader(), ds.context.BookKeepers[payload.BookKeeperIndex], message.Signature)
 	if err != nil {
 		log.Warn("PrepareRequestReceived VerifySignature failed.", err)
+		ds.context = backupContext
+		ds.RequestChangeView()
 		return
 	}
 
@@ -400,6 +403,8 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, mes
 	unverifyed := ds.GetUnverifiedTxs(ds.context.Transactions)
 	if err := ds.VerifyTxs(unverifyed); err != nil {
 		log.Error("PrepareRequestReceived new transaction verification failed, will not sent Prepare Response", err)
+		ds.context = backupContext
+		ds.RequestChangeView()
 		return
 	}
 
