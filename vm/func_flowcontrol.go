@@ -1,7 +1,7 @@
 package vm
 
 import (
-	"DNA/vm/errors"
+	"github.com/Ontology/vm/errors"
 	"io"
 	"time"
 )

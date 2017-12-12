@@ -1,8 +1,8 @@
 package transaction
 
 import (
-	"DNA/common"
-	"DNA/common/serialization"
+	"github.com/Ontology/common"
+	"github.com/Ontology/common/serialization"
 	"fmt"
 	"io"
 )

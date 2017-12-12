@@ -1,8 +1,8 @@
 package account
 
 import (
-	. "DNA/common"
-	ct "DNA/core/contract"
+	. "github.com/Ontology/common"
+	ct "github.com/Ontology/core/contract"
 )
 
 type IClientStore interface {

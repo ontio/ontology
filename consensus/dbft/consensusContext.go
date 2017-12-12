@@ -1,15 +1,15 @@
 package dbft
 
 import (
-	cl "DNA/account"
-	. "DNA/common"
-	"DNA/common/log"
-	ser "DNA/common/serialization"
-	"DNA/core/ledger"
-	tx "DNA/core/transaction"
-	"DNA/crypto"
-	"DNA/net"
-	msg "DNA/net/message"
+	cl "github.com/Ontology/account"
+	. "github.com/Ontology/common"
+	"github.com/Ontology/common/log"
+	ser "github.com/Ontology/common/serialization"
+	"github.com/Ontology/core/ledger"
+	tx "github.com/Ontology/core/transaction"
+	"github.com/Ontology/crypto"
+	"github.com/Ontology/net"
+	msg "github.com/Ontology/net/message"
 	"fmt"
 	"sync"
 )

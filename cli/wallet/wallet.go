@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"os"
 
-	"DNA/account"
-	. "DNA/cli/common"
-	. "DNA/common"
-	"DNA/common/password"
-	"DNA/core/contract"
-	"DNA/net/httpjsonrpc"
+	"github.com/Ontology/account"
+	. "github.com/Ontology/cli/common"
+	. "github.com/Ontology/common"
+	"github.com/Ontology/common/password"
+	"github.com/Ontology/core/contract"
+	"github.com/Ontology/net/httpjsonrpc"
 
 	"github.com/urfave/cli"
 )

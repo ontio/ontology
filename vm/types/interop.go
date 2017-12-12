@@ -2,7 +2,7 @@ package types
 
 import (
 	"math/big"
-	"DNA/vm/interfaces"
+	"github.com/Ontology/vm/interfaces"
 )
 
 type InteropInterface struct {

@@ -1,13 +1,13 @@
 package common
 
 import (
-	. "DNA/common"
-	"DNA/core/ledger"
-	tx "DNA/core/transaction"
-	. "DNA/errors"
-	. "DNA/net/httpjsonrpc"
-	Err "DNA/net/httprestful/error"
-	. "DNA/net/protocol"
+	. "github.com/Ontology/common"
+	"github.com/Ontology/core/ledger"
+	tx "github.com/Ontology/core/transaction"
+	. "github.com/Ontology/errors"
+	. "github.com/Ontology/net/httpjsonrpc"
+	Err "github.com/Ontology/net/httprestful/error"
+	. "github.com/Ontology/net/protocol"
 	"bytes"
 	"fmt"
 	"math"

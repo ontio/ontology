@@ -1,8 +1,8 @@
 package crypto
 
 import (
-	. "DNA/common"
-	. "DNA/errors"
+	. "github.com/Ontology/common"
+	. "github.com/Ontology/errors"
 	"bytes"
 	"crypto/sha256"
 	"errors"

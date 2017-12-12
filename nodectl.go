@@ -4,16 +4,16 @@ import (
 	"os"
 	"sort"
 
-	_ "DNA/cli"
-	"DNA/cli/asset"
-	"DNA/cli/bookkeeper"
-	. "DNA/cli/common"
-	"DNA/cli/data"
-	"DNA/cli/debug"
-	"DNA/cli/info"
-	"DNA/cli/privpayload"
-	"DNA/cli/test"
-	"DNA/cli/wallet"
+	_ "github.com/Ontology/cli"
+	"github.com/Ontology/cli/asset"
+	"github.com/Ontology/cli/bookkeeper"
+	. "github.com/Ontology/cli/common"
+	"github.com/Ontology/cli/data"
+	"github.com/Ontology/cli/debug"
+	"github.com/Ontology/cli/info"
+	"github.com/Ontology/cli/privpayload"
+	"github.com/Ontology/cli/test"
+	"github.com/Ontology/cli/wallet"
 
 	"github.com/urfave/cli"
 )
@@ -25,7 +25,7 @@ func main() {
 	app.Name = "nodectl"
 	app.Version = Version
 	app.HelpName = "nodectl"
-	app.Usage = "command line tool for DNA blockchain"
+	app.Usage = "command line tool for Ontology blockchain"
 	app.UsageText = "nodectl [global options] command [command options] [args]"
 	app.HideHelp = false
 	app.HideVersion = false

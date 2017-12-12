@@ -1,7 +1,7 @@
 package consensus
 
 import (
-	. "DNA/common"
+	. "github.com/Ontology/common"
 )
 type Policy struct {
 	PolicyLevel PolicyLevel

@@ -1,10 +1,10 @@
 package account
 
 import (
-	. "DNA/common"
-	"DNA/core/contract"
-	"DNA/crypto"
-	. "DNA/errors"
+	. "github.com/Ontology/common"
+	"github.com/Ontology/core/contract"
+	"github.com/Ontology/crypto"
+	. "github.com/Ontology/errors"
 	"errors"
 )
 

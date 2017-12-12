@@ -1,10 +1,10 @@
 package code
 
 import (
-	"DNA/common/log"
-	. "DNA/common"
-	. "DNA/core/contract"
-	"DNA/common/serialization"
+	"github.com/Ontology/common/log"
+	. "github.com/Ontology/common"
+	. "github.com/Ontology/core/contract"
+	"github.com/Ontology/common/serialization"
 	"fmt"
 	"io"
 )

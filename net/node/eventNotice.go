@@ -1,7 +1,7 @@
 package node
 
 import (
-	"DNA/events"
+	"github.com/Ontology/events"
 	"fmt"
 )
 

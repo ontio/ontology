@@ -1,8 +1,8 @@
 package code
 
 import (
-	. "DNA/common"
-	. "DNA/core/contract"
+	. "github.com/Ontology/common"
+	. "github.com/Ontology/core/contract"
 )
 //ICode is the abstract interface of smart contract code.
 type ICode interface {

@@ -1,12 +1,12 @@
 package protocol
 
 import (
-	"DNA/common"
-	"DNA/core/ledger"
-	"DNA/core/transaction"
-	"DNA/crypto"
-	. "DNA/errors"
-	"DNA/events"
+	"github.com/Ontology/common"
+	"github.com/Ontology/core/ledger"
+	"github.com/Ontology/core/transaction"
+	"github.com/Ontology/crypto"
+	. "github.com/Ontology/errors"
+	"github.com/Ontology/events"
 	"bytes"
 	"encoding/binary"
 	"time"

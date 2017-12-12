@@ -1,7 +1,7 @@
 package transaction
 
 import (
-	"DNA/common"
+	"github.com/Ontology/common"
 	"io"
 )
 

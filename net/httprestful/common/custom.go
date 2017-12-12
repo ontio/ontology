@@ -1,11 +1,11 @@
 package common
 
 import (
-	. "DNA/common"
-	tx "DNA/core/transaction"
-	. "DNA/errors"
-	. "DNA/net/httpjsonrpc"
-	Err "DNA/net/httprestful/error"
+	. "github.com/Ontology/common"
+	tx "github.com/Ontology/core/transaction"
+	. "github.com/Ontology/errors"
+	. "github.com/Ontology/net/httpjsonrpc"
+	Err "github.com/Ontology/net/httprestful/error"
 	"bytes"
 	"encoding/json"
 	"time"

@@ -1,9 +1,9 @@
 package payload
 
 import (
-	"DNA/common/serialization"
-	"DNA/crypto"
-	. "DNA/errors"
+	"github.com/Ontology/common/serialization"
+	"github.com/Ontology/crypto"
+	. "github.com/Ontology/errors"
 	"bytes"
 	"io"
 )

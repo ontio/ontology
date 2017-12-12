@@ -1,11 +1,11 @@
 package main
 
 import (
-	"DNA/crypto"
-	"DNA/core/ledger"
-	"DNA/core/store"
-	."DNA/common"
-	"DNA/common/log"
+	"github.com/Ontology/crypto"
+	"github.com/Ontology/core/ledger"
+	"github.com/Ontology/core/store"
+	."github.com/Ontology/common"
+	"github.com/Ontology/common/log"
 	"encoding/hex"
 	"os"
 	"fmt"

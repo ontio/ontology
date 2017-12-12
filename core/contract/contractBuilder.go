@@ -1,11 +1,11 @@
 package contract
 
 import (
-	. "DNA/common"
-	pg "DNA/core/contract/program"
-	"DNA/crypto"
-	. "DNA/errors"
-	"DNA/vm"
+	. "github.com/Ontology/common"
+	pg "github.com/Ontology/core/contract/program"
+	"github.com/Ontology/crypto"
+	. "github.com/Ontology/errors"
+	"github.com/Ontology/vm"
 	"math/big"
 	"sort"
 )

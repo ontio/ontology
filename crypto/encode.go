@@ -1,7 +1,7 @@
 package crypto
 
 import (
-	. "DNA/errors"
+	. "github.com/Ontology/errors"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"

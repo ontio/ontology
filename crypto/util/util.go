@@ -1,7 +1,7 @@
 package util
 
 import (
-	"DNA/crypto/sm3"
+	"github.com/Ontology/crypto/sm3"
 	"crypto/elliptic"
 	"crypto/hmac"
 	"crypto/rand"

@@ -1,14 +1,14 @@
 package net
 
 import (
-	. "DNA/common"
-	"DNA/core/ledger"
-	"DNA/core/transaction"
-	"DNA/crypto"
-	. "DNA/errors"
-	"DNA/events"
-	"DNA/net/node"
-	"DNA/net/protocol"
+	. "github.com/Ontology/common"
+	"github.com/Ontology/core/ledger"
+	"github.com/Ontology/core/transaction"
+	"github.com/Ontology/crypto"
+	. "github.com/Ontology/errors"
+	"github.com/Ontology/events"
+	"github.com/Ontology/net/node"
+	"github.com/Ontology/net/protocol"
 )
 
 type Neter interface {

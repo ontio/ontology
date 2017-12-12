@@ -1,11 +1,11 @@
 package message
 
 import (
-	"DNA/common"
-	"DNA/common/log"
-	"DNA/core/ledger"
-	"DNA/events"
-	. "DNA/net/protocol"
+	"github.com/Ontology/common"
+	"github.com/Ontology/common/log"
+	"github.com/Ontology/core/ledger"
+	"github.com/Ontology/events"
+	. "github.com/Ontology/net/protocol"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"

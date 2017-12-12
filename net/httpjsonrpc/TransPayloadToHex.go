@@ -1,11 +1,11 @@
 package httpjsonrpc
 
 import (
-	. "DNA/common"
-	"DNA/core/asset"
-	. "DNA/core/contract"
-	. "DNA/core/transaction"
-	"DNA/core/transaction/payload"
+	. "github.com/Ontology/common"
+	"github.com/Ontology/core/asset"
+	. "github.com/Ontology/core/contract"
+	. "github.com/Ontology/core/transaction"
+	"github.com/Ontology/core/transaction/payload"
 	"bytes"
 )
 

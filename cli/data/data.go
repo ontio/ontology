@@ -1,12 +1,12 @@
 package data
 
 import (
-	"DNA/account"
-	. "DNA/cli/common"
-	"DNA/core/contract"
-	"DNA/core/signature"
-	"DNA/core/transaction"
-	"DNA/net/httpjsonrpc"
+	"github.com/Ontology/account"
+	. "github.com/Ontology/cli/common"
+	"github.com/Ontology/core/contract"
+	"github.com/Ontology/core/signature"
+	"github.com/Ontology/core/transaction"
+	"github.com/Ontology/net/httpjsonrpc"
 	"bytes"
 	"encoding/hex"
 	"fmt"

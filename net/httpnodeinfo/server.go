@@ -1,9 +1,9 @@
 package httpnodeinfo
 
 import (
-	"DNA/common/config"
-	"DNA/core/ledger"
-	. "DNA/net/protocol"
+	"github.com/Ontology/common/config"
+	"github.com/Ontology/core/ledger"
+	. "github.com/Ontology/net/protocol"
 	"fmt"
 	"html/template"
 	"net/http"

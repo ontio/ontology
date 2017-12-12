@@ -1,11 +1,11 @@
 package node
 
 import (
-	"DNA/common/config"
-	"DNA/common/log"
-	"DNA/core/ledger"
-	. "DNA/net/message"
-	. "DNA/net/protocol"
+	"github.com/Ontology/common/config"
+	"github.com/Ontology/common/log"
+	"github.com/Ontology/core/ledger"
+	. "github.com/Ontology/net/message"
+	. "github.com/Ontology/net/protocol"
 	"math/rand"
 	"net"
 	"strconv"

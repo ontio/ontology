@@ -1,13 +1,13 @@
 package httpjsonrpc
 
 import (
-	"DNA/account"
-	. "DNA/common"
-	"DNA/common/config"
-	"DNA/common/log"
-	"DNA/core/ledger"
-	tx "DNA/core/transaction"
-	. "DNA/errors"
+	"github.com/Ontology/account"
+	. "github.com/Ontology/common"
+	"github.com/Ontology/common/config"
+	"github.com/Ontology/common/log"
+	"github.com/Ontology/core/ledger"
+	tx "github.com/Ontology/core/transaction"
+	. "github.com/Ontology/errors"
 	"bytes"
 	"encoding/base64"
 	"encoding/hex"

@@ -6,7 +6,7 @@ import (
 	"errors"
 	"io"
 
-	. "DNA/errors"
+	. "github.com/Ontology/errors"
 )
 
 const UINT256SIZE int = 32

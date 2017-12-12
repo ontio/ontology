@@ -1,11 +1,11 @@
 package restful
 
 import (
-	. "DNA/common/config"
-	"DNA/common/log"
-	. "DNA/net/httprestful/common"
-	Err "DNA/net/httprestful/error"
-	"DNA/net/httpwebsocket"
+	. "github.com/Ontology/common/config"
+	"github.com/Ontology/common/log"
+	. "github.com/Ontology/net/httprestful/common"
+	Err "github.com/Ontology/net/httprestful/error"
+	"github.com/Ontology/net/httpwebsocket"
 	"context"
 	"crypto/tls"
 	"encoding/json"

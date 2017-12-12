@@ -1,9 +1,9 @@
 package vm
 
 import (
-	"DNA/crypto"
-	. "DNA/errors"
-	"DNA/common/log"
+	"github.com/Ontology/crypto"
+	. "github.com/Ontology/errors"
+	"github.com/Ontology/common/log"
 	"errors"
 )
 

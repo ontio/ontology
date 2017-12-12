@@ -1,8 +1,8 @@
 package program
 
 import (
-	"DNA/common/serialization"
-	. "DNA/errors"
+	"github.com/Ontology/common/serialization"
+	. "github.com/Ontology/errors"
 	"io"
 )
 

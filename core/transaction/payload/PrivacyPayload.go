@@ -1,8 +1,8 @@
 package payload
 
 import (
-	"DNA/common/serialization"
-	"DNA/crypto"
+	"github.com/Ontology/common/serialization"
+	"github.com/Ontology/crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"

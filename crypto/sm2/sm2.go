@@ -1,8 +1,8 @@
 package sm2
 
 import (
-	"DNA/crypto/sm3"
-	"DNA/crypto/util"
+	"github.com/Ontology/crypto/sm3"
+	"github.com/Ontology/crypto/util"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/elliptic"

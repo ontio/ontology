@@ -1,12 +1,12 @@
 package signature
 
 import (
-	"DNA/common"
-	"DNA/common/log"
-	"DNA/core/contract/program"
-	"DNA/crypto"
-	. "DNA/errors"
-	"DNA/vm/interfaces"
+	"github.com/Ontology/common"
+	"github.com/Ontology/common/log"
+	"github.com/Ontology/core/contract/program"
+	"github.com/Ontology/crypto"
+	. "github.com/Ontology/errors"
+	"github.com/Ontology/vm/interfaces"
 	"bytes"
 	"crypto/sha256"
 	"io"

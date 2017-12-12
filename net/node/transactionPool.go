@@ -1,14 +1,14 @@
 package node
 
 import (
-	"DNA/common"
-	"DNA/common/config"
-	"DNA/common/log"
-	"DNA/core/ledger"
-	"DNA/core/transaction"
-	"DNA/core/transaction/payload"
-	va "DNA/core/validation"
-	. "DNA/errors"
+	"github.com/Ontology/common"
+	"github.com/Ontology/common/config"
+	"github.com/Ontology/common/log"
+	"github.com/Ontology/core/ledger"
+	"github.com/Ontology/core/transaction"
+	"github.com/Ontology/core/transaction/payload"
+	va "github.com/Ontology/core/validation"
+	. "github.com/Ontology/errors"
 	"fmt"
 	"sync"
 )

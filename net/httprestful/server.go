@@ -1,12 +1,12 @@
 package httprestful
 
 import (
-	. "DNA/common/config"
-	"DNA/core/ledger"
-	"DNA/events"
-	"DNA/net/httprestful/common"
-	. "DNA/net/httprestful/restful"
-	. "DNA/net/protocol"
+	. "github.com/Ontology/common/config"
+	"github.com/Ontology/core/ledger"
+	"github.com/Ontology/events"
+	"github.com/Ontology/net/httprestful/common"
+	. "github.com/Ontology/net/httprestful/restful"
+	. "github.com/Ontology/net/protocol"
 	"strconv"
 )
 

@@ -1,12 +1,12 @@
 package ledger
 
 import (
-	. "DNA/common"
-	"DNA/common/log"
-	tx "DNA/core/transaction"
-	"DNA/crypto"
-	. "DNA/errors"
-	"DNA/events"
+	. "github.com/Ontology/common"
+	"github.com/Ontology/common/log"
+	tx "github.com/Ontology/core/transaction"
+	"github.com/Ontology/crypto"
+	. "github.com/Ontology/errors"
+	"github.com/Ontology/events"
 	"sync"
 )
 

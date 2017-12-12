@@ -1,7 +1,7 @@
 package node
 
 import (
-	"DNA/common"
+	"github.com/Ontology/common"
 	"sync"
 )
 

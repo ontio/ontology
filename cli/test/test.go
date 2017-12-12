@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	. "DNA/cli/common"
-	"DNA/net/httpjsonrpc"
+	. "github.com/Ontology/cli/common"
+	"github.com/Ontology/net/httpjsonrpc"
 
 	"github.com/urfave/cli"
 )

@@ -1,12 +1,12 @@
 package contract
 
 import (
-	. "DNA/common"
-	"DNA/common/log"
-	pg "DNA/core/contract/program"
-	sig "DNA/core/signature"
-	"DNA/crypto"
-	_ "DNA/errors"
+	. "github.com/Ontology/common"
+	"github.com/Ontology/common/log"
+	pg "github.com/Ontology/core/contract/program"
+	sig "github.com/Ontology/core/signature"
+	"github.com/Ontology/crypto"
+	_ "github.com/Ontology/errors"
 	"errors"
 	"math/big"
 	"sort"

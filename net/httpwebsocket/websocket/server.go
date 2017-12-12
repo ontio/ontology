@@ -1,11 +1,11 @@
 package websocket
 
 import (
-	. "DNA/common/config"
-	"DNA/common/log"
-	. "DNA/net/httprestful/common"
-	Err "DNA/net/httprestful/error"
-	. "DNA/net/httpwebsocket/session"
+	. "github.com/Ontology/common/config"
+	"github.com/Ontology/common/log"
+	. "github.com/Ontology/net/httprestful/common"
+	Err "github.com/Ontology/net/httprestful/error"
+	. "github.com/Ontology/net/httpwebsocket/session"
 	"context"
 	"crypto/tls"
 	"encoding/json"

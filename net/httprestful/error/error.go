@@ -1,6 +1,6 @@
 package error
 
-import . "DNA/errors"
+import . "github.com/Ontology/errors"
 
 const (
 	SUCCESS            int64 = 0

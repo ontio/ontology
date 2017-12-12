@@ -1,8 +1,8 @@
 package common
 
 import (
-	"DNA/common/log"
-	. "DNA/errors"
+	"github.com/Ontology/common/log"
+	. "github.com/Ontology/errors"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"

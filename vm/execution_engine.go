@@ -1,8 +1,8 @@
 package vm
 
 import (
-	"DNA/vm/interfaces"
-	"DNA/vm/utils"
+	"github.com/Ontology/vm/interfaces"
+	"github.com/Ontology/vm/utils"
 	"io"
 	_ "math/big"
 	_ "sort"

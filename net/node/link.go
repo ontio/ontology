@@ -1,11 +1,11 @@
 package node
 
 import (
-	. "DNA/common/config"
-	"DNA/common/log"
-	"DNA/events"
-	msg "DNA/net/message"
-	. "DNA/net/protocol"
+	. "github.com/Ontology/common/config"
+	"github.com/Ontology/common/log"
+	"github.com/Ontology/events"
+	msg "github.com/Ontology/net/message"
+	. "github.com/Ontology/net/protocol"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"

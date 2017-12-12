@@ -1,7 +1,7 @@
 package httpjsonrpc
 
 import (
-	"DNA/common/log"
+	"github.com/Ontology/common/log"
 	"bytes"
 	"context"
 	"encoding/json"

@@ -1,14 +1,14 @@
 package common
 
 import (
-	"DNA/common/log"
-	. "DNA/errors"
+	"github.com/Ontology/common/log"
+	. "github.com/Ontology/errors"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
-	"github.com/golang/crypto/ripemd160"
+	"golang.org/x/crypto/ripemd160"
 	"io"
 	"math/rand"
 	"os"

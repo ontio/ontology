@@ -1,7 +1,7 @@
 package log
 
 import (
-	"DNA/common/config"
+	"github.com/Ontology/common/config"
 	"bytes"
 	"errors"
 	"fmt"

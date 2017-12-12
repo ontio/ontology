@@ -1,14 +1,14 @@
 package httpwebsocket
 
 import (
-	. "DNA/common"
-	. "DNA/common/config"
-	"DNA/core/ledger"
-	"DNA/events"
-	"DNA/net/httprestful/common"
-	Err "DNA/net/httprestful/error"
-	"DNA/net/httpwebsocket/websocket"
-	. "DNA/net/protocol"
+	. "github.com/Ontology/common"
+	. "github.com/Ontology/common/config"
+	"github.com/Ontology/core/ledger"
+	"github.com/Ontology/events"
+	"github.com/Ontology/net/httprestful/common"
+	Err "github.com/Ontology/net/httprestful/error"
+	"github.com/Ontology/net/httpwebsocket/websocket"
+	. "github.com/Ontology/net/protocol"
 	"bytes"
 )
 

@@ -1,8 +1,8 @@
 package account
 
 import (
-	ct "DNA/core/contract"
-	. "DNA/errors"
+	ct "github.com/Ontology/core/contract"
+	. "github.com/Ontology/errors"
 	"encoding/hex"
 	"encoding/json"
 	"errors"

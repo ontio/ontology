@@ -1,10 +1,10 @@
 package payload
 
 import (
-	"DNA/common"
-	"DNA/core/asset"
-	"DNA/crypto"
-	. "DNA/errors"
+	"github.com/Ontology/common"
+	"github.com/Ontology/core/asset"
+	"github.com/Ontology/crypto"
+	. "github.com/Ontology/errors"
 	"io"
 )
 

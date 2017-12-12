@@ -1,8 +1,8 @@
 package vm
 
 import (
-	"DNA/vm/errors"
-	"DNA/vm/types"
+	"github.com/Ontology/vm/errors"
+	"github.com/Ontology/vm/types"
 	"encoding/binary"
 	"math/big"
 	"reflect"

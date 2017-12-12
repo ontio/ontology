@@ -5,10 +5,10 @@ import (
 	"errors"
 	"io"
 
-	. "DNA/common"
-	"DNA/common/serialization"
-	. "DNA/errors"
-	"DNA/vm"
+	. "github.com/Ontology/common"
+	"github.com/Ontology/common/serialization"
+	. "github.com/Ontology/errors"
+	"github.com/Ontology/vm"
 )
 
 //Contract address is the hash of contract program .

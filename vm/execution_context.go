@@ -1,6 +1,6 @@
 package vm
 
-import "DNA/vm/utils"
+import "github.com/Ontology/vm/utils"
 
 type ExecutionContext struct {
 	Script             []byte

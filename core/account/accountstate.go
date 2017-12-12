@@ -1,10 +1,10 @@
 package account
 
 import (
-	"DNA/common"
+	"github.com/Ontology/common"
 	"io"
 	"bytes"
-	"DNA/common/serialization"
+	"github.com/Ontology/common/serialization"
 )
 
 type AccountState struct {

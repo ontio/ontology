@@ -1,11 +1,11 @@
 package ledger
 
 import (
-	. "DNA/common"
-	"DNA/core/account"
-	. "DNA/core/asset"
-	tx "DNA/core/transaction"
-	"DNA/crypto"
+	. "github.com/Ontology/common"
+	"github.com/Ontology/core/account"
+	. "github.com/Ontology/core/asset"
+	tx "github.com/Ontology/core/transaction"
+	"github.com/Ontology/crypto"
 )
 
 // ILedgerStore provides func with store package.
