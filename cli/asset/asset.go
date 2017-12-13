@@ -19,6 +19,7 @@ import (
 	"strconv"
 
 	"github.com/urfave/cli"
+	"github.com/Ontology/core/transaction/utxo"
 )
 
 const (
@@ -118,12 +119,12 @@ func makeIssueTransaction(issuer *account.Account, programHashStr, assetHashStr 
 	if err != nil {
 		return "", err
 	}
-	issueTxOutput := &transaction.TxOutput{
+	issueTxOutput := &utxo.TxOutput{
 		AssetID:     assetHash,
 		Value:       value,
 		ProgramHash: programHash,
 	}
-	outputs := []*transaction.TxOutput{issueTxOutput}
+	outputs := []*utxo.TxOutput{issueTxOutput}
 	tx, _ := transaction.NewIssueAssetTransaction(outputs)
 	txAttr := transaction.NewTxAttribute(transaction.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
 	tx.Attributes = make([]*transaction.TxAttribute, 0)
@@ -159,9 +160,9 @@ func makeTransferTransaction(signer *account.Account, programHashStr, assetHashS
 		return "", err
 	}
 
-	inputs := []*transaction.UTXOTxInput{}
-	outputs := []*transaction.TxOutput{}
-	transferTxOutput := &transaction.TxOutput{
+	inputs := []*utxo.UTXOTxInput{}
+	outputs := []*utxo.TxOutput{}
+	transferTxOutput := &utxo.TxOutput{
 		AssetID:     assetHash,
 		Value:       value,
 		ProgramHash: programHash,
@@ -181,7 +182,7 @@ func makeTransferTransaction(signer *account.Account, programHashStr, assetHashS
 		out := v.(map[string]interface{})
 		value := Fixed64(out["Value"].(float64))
 		if value == expected {
-			transferUTXOInput := &transaction.UTXOTxInput{
+			transferUTXOInput := &utxo.UTXOTxInput{
 				ReferTxID:          referHash,
 				ReferTxOutputIndex: uint16(referIndex),
 			}
@@ -189,12 +190,12 @@ func makeTransferTransaction(signer *account.Account, programHashStr, assetHashS
 			inputs = append(inputs, transferUTXOInput)
 			break
 		} else if value > expected {
-			transferUTXOInput := &transaction.UTXOTxInput{
+			transferUTXOInput := &utxo.UTXOTxInput{
 				ReferTxID:          referHash,
 				ReferTxOutputIndex: uint16(referIndex),
 			}
 			inputs = append(inputs, transferUTXOInput)
-			getChangeOutput := &transaction.TxOutput{
+			getChangeOutput := &utxo.TxOutput{
 				AssetID:     assetHash,
 				Value:       value - expected,
 				ProgramHash: signer.ProgramHash,
@@ -203,7 +204,7 @@ func makeTransferTransaction(signer *account.Account, programHashStr, assetHashS
 			outputs = append(outputs, getChangeOutput)
 			break
 		} else if value < expected {
-			transferUTXOInput := &transaction.UTXOTxInput{
+			transferUTXOInput := &utxo.UTXOTxInput{
 				ReferTxID:          referHash,
 				ReferTxOutputIndex: uint16(referIndex),
 			}

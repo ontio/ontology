@@ -6,6 +6,7 @@ import (
 	"github.com/Ontology/core/contract/program"
 	"github.com/Ontology/core/transaction/payload"
 	"github.com/Ontology/crypto"
+	. "github.com/Ontology/core/transaction/utxo"
 )
 
 //initial a new transaction with asset registration payload

@@ -15,6 +15,7 @@ import (
 	"github.com/Ontology/core/validation"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/events"
+	"github.com/Ontology/core/transaction/utxo"
 	"bytes"
 	"errors"
 	"fmt"
@@ -527,7 +528,7 @@ func (bd *ChainStore) GetTransaction(hash Uint256) (*tx.Transaction, error) {
 	log.Debugf("GetTransaction Hash: %x\n", hash)
 
 	t := new(tx.Transaction)
-	err := bd.getTx(t, hash)
+	_, err := bd.getTx(t, hash)
 
 	if err != nil {
 		return nil, err
@@ -536,26 +537,26 @@ func (bd *ChainStore) GetTransaction(hash Uint256) (*tx.Transaction, error) {
 	return t, nil
 }
 
-func (bd *ChainStore) getTx(tx *tx.Transaction, hash Uint256) error {
+func (bd *ChainStore) getTx(tx *tx.Transaction, hash Uint256) (uint32, error) {
 	prefix := []byte{byte(DATA_Transaction)}
 	tHash, err_get := bd.st.Get(append(prefix, hash.ToArray()...))
 	if err_get != nil {
 		//TODO: implement error process
-		return err_get
+		return 0, err_get
 	}
 
 	r := bytes.NewReader(tHash)
 
 	// get height
-	_, err := serialization.ReadUint32(r)
+	height, err := serialization.ReadUint32(r)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	// Deserialize Transaction
 	err = tx.Deserialize(r)
 
-	return err
+	return height, err
 }
 
 func (bd *ChainStore) SaveTransaction(tx *tx.Transaction, height uint32) error {
@@ -620,7 +621,7 @@ func (bd *ChainStore) GetBlock(hash Uint256) (*Block, error) {
 
 	// Deserialize transaction
 	for i := 0; i < len(b.Transactions); i++ {
-		err = bd.getTx(b.Transactions[i], b.Transactions[i].Hash())
+		_, err = bd.getTx(b.Transactions[i], b.Transactions[i].Hash())
 		if err != nil {
 			return nil, err
 		}
@@ -675,7 +676,7 @@ func (self *ChainStore) GetBookKeeperList() ([]*crypto.PubKey, []*crypto.PubKey,
 }
 
 func (bd *ChainStore) persist(b *Block) error {
-	utxoUnspents := make(map[Uint160]map[Uint256][]*tx.UTXOUnspent)
+	utxoUnspents := make(map[Uint160]map[Uint256][]*utxo.UTXOUnspent)
 	unspents := make(map[Uint256][]uint16)
 	quantities := make(map[Uint256]Fixed64)
 
@@ -811,17 +812,17 @@ func (bd *ChainStore) persist(b *Block) error {
 
 			// add utxoUnspent
 			if _, ok := utxoUnspents[programHash]; !ok {
-				utxoUnspents[programHash] = make(map[Uint256][]*tx.UTXOUnspent)
+				utxoUnspents[programHash] = make(map[Uint256][]*utxo.UTXOUnspent)
 			}
 
 			if _, ok := utxoUnspents[programHash][assetId]; !ok {
 				utxoUnspents[programHash][assetId], err = bd.GetUnspentFromProgramHash(programHash, assetId)
 				if err != nil {
-					utxoUnspents[programHash][assetId] = make([]*tx.UTXOUnspent, 0)
+					utxoUnspents[programHash][assetId] = make([]*utxo.UTXOUnspent, 0)
 				}
 			}
 
-			unspent := new(tx.UTXOUnspent)
+			unspent := new(utxo.UTXOUnspent)
 			unspent.Txid = b.Transactions[i].Hash()
 			unspent.Index = uint32(index)
 			unspent.Value = output.Value
@@ -855,7 +856,7 @@ func (bd *ChainStore) persist(b *Block) error {
 
 			// delete utxoUnspent
 			if _, ok := utxoUnspents[programHash]; !ok {
-				utxoUnspents[programHash] = make(map[Uint256][]*tx.UTXOUnspent)
+				utxoUnspents[programHash] = make(map[Uint256][]*utxo.UTXOUnspent)
 			}
 
 			if _, ok := utxoUnspents[programHash][assetId]; !ok {
@@ -1222,7 +1223,7 @@ func (bd *ChainStore) GetQuantityIssued(assetId Uint256) (Fixed64, error) {
 	return quantity, nil
 }
 
-func (bd *ChainStore) GetUnspent(txid Uint256, index uint16) (*tx.TxOutput, error) {
+func (bd *ChainStore) GetUnspent(txid Uint256, index uint16) (*utxo.TxOutput, error) {
 	if ok, _ := bd.ContainsUnspent(txid, index); ok {
 		Tx, err := bd.GetTransaction(txid)
 		if err != nil {
@@ -1333,7 +1334,7 @@ func (bd *ChainStore) IsBlockInStore(hash Uint256) bool {
 	return true
 }
 
-func (bd *ChainStore) GetUnspentFromProgramHash(programHash Uint160, assetid Uint256) ([]*tx.UTXOUnspent, error) {
+func (bd *ChainStore) GetUnspentFromProgramHash(programHash Uint160, assetid Uint256) ([]*utxo.UTXOUnspent, error) {
 
 	prefix := []byte{byte(IX_Unspent_UTXO)}
 
@@ -1353,9 +1354,9 @@ func (bd *ChainStore) GetUnspentFromProgramHash(programHash Uint160, assetid Uin
 	//log.Trace(fmt.Printf("[getUnspentFromProgramHash] listNum: %d, unspentsData: %x\n", listNum, unspentsData ))
 
 	// read unspent list in store
-	unspents := make([]*tx.UTXOUnspent, listNum)
+	unspents := make([]*utxo.UTXOUnspent, listNum)
 	for i := 0; i < int(listNum); i++ {
-		uu := new(tx.UTXOUnspent)
+		uu := new(utxo.UTXOUnspent)
 		err := uu.Deserialize(r)
 		if err != nil {
 			return nil, err
@@ -1367,7 +1368,7 @@ func (bd *ChainStore) GetUnspentFromProgramHash(programHash Uint160, assetid Uin
 	return unspents, nil
 }
 
-func (bd *ChainStore) saveUnspentWithProgramHash(programHash Uint160, assetid Uint256, unspents []*tx.UTXOUnspent) error {
+func (bd *ChainStore) saveUnspentWithProgramHash(programHash Uint160, assetid Uint256, unspents []*utxo.UTXOUnspent) error {
 	prefix := []byte{byte(IX_Unspent_UTXO)}
 
 	key := append(prefix, programHash.ToArray()...)
@@ -1389,8 +1390,8 @@ func (bd *ChainStore) saveUnspentWithProgramHash(programHash Uint160, assetid Ui
 	return nil
 }
 
-func (bd *ChainStore) GetUnspentsFromProgramHash(programHash Uint160) (map[Uint256][]*tx.UTXOUnspent, error) {
-	uxtoUnspents := make(map[Uint256][]*tx.UTXOUnspent)
+func (bd *ChainStore) GetUnspentsFromProgramHash(programHash Uint160) (map[Uint256][]*utxo.UTXOUnspent, error) {
+	uxtoUnspents := make(map[Uint256][]*utxo.UTXOUnspent)
 
 	prefix := []byte{byte(IX_Unspent_UTXO)}
 	key := append(prefix, programHash.ToArray()...)
@@ -1413,9 +1414,9 @@ func (bd *ChainStore) GetUnspentsFromProgramHash(programHash Uint160) (map[Uint2
 		}
 
 		// read unspent list in store
-		unspents := make([]*tx.UTXOUnspent, listNum)
+		unspents := make([]*utxo.UTXOUnspent, listNum)
 		for i := 0; i < int(listNum); i++ {
-			uu := new(tx.UTXOUnspent)
+			uu := new(utxo.UTXOUnspent)
 			err := uu.Deserialize(r)
 			if err != nil {
 				return nil, err

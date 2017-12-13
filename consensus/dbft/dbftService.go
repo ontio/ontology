@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"github.com/Ontology/core/transaction/utxo"
 )
 
 var GenBlockTime = (config.DEFAULTGENBLOCKTIME * time.Second)
@@ -175,9 +176,9 @@ func (ds *DbftService) CreateBookkeepingTransaction(nonce uint64) *tx.Transactio
 		PayloadVersion: payload.BookKeepingPayloadVersion,
 		Payload:        bookKeepingPayload,
 		Attributes:     []*tx.TxAttribute{},
-		UTXOInputs:     []*tx.UTXOTxInput{},
+		UTXOInputs:     []*utxo.UTXOTxInput{},
 		BalanceInputs:  []*tx.BalanceTxInput{},
-		Outputs:        []*tx.TxOutput{},
+		Outputs:        []*utxo.TxOutput{},
 		Programs:       []*program.Program{},
 	}
 }

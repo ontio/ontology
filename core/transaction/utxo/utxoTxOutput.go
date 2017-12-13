@@ -1,4 +1,4 @@
-package transaction
+package utxo
 
 import (
 	"github.com/Ontology/common"

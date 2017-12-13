@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	. "github.com/Ontology/core/transaction/utxo"
 )
 
 //for different transaction types with different payload format
@@ -23,6 +24,7 @@ const (
 	BookKeeping    TransactionType = 0x00
 	IssueAsset     TransactionType = 0x01
 	BookKeeper     TransactionType = 0x02
+	Claim          TransactionType = 0x03
 	PrivacyPayload TransactionType = 0x20
 	RegisterAsset  TransactionType = 0x40
 	TransferAsset  TransactionType = 0x80

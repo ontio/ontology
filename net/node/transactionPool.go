@@ -7,6 +7,7 @@ import (
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/transaction"
 	"github.com/Ontology/core/transaction/payload"
+	"github.com/Ontology/core/transaction/utxo"
 	va "github.com/Ontology/core/validation"
 	. "github.com/Ontology/errors"
 	"fmt"
@@ -256,13 +257,13 @@ func (this *TXNPool) GetTransactionCount() int {
 	return len(this.txnList)
 }
 
-func (this *TXNPool) getInputUTXOList(input *transaction.UTXOTxInput) *transaction.Transaction {
+func (this *TXNPool) getInputUTXOList(input *utxo.UTXOTxInput) *transaction.Transaction {
 	this.RLock()
 	defer this.RUnlock()
 	return this.inputUTXOList[input.ToString()]
 }
 
-func (this *TXNPool) addInputUTXOList(tx *transaction.Transaction, input *transaction.UTXOTxInput) bool {
+func (this *TXNPool) addInputUTXOList(tx *transaction.Transaction, input *utxo.UTXOTxInput) bool {
 	this.Lock()
 	defer this.Unlock()
 	id := input.ToString()
@@ -275,7 +276,7 @@ func (this *TXNPool) addInputUTXOList(tx *transaction.Transaction, input *transa
 	return true
 }
 
-func (this *TXNPool) delInputUTXOList(input *transaction.UTXOTxInput) bool {
+func (this *TXNPool) delInputUTXOList(input *utxo.UTXOTxInput) bool {
 	this.Lock()
 	defer this.Unlock()
 	id := input.ToString()

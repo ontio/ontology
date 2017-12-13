@@ -15,6 +15,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"github.com/Ontology/core/transaction/utxo"
 )
 
 func init() {
@@ -115,7 +116,7 @@ type TxInfo struct {
 type TxoutInfo struct {
 	High  uint32
 	Low   uint32
-	Txout tx.TxOutput
+	Txout utxo.TxOutput
 }
 
 type NodeInfo struct {

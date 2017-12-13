@@ -5,6 +5,7 @@ import (
 	"github.com/Ontology/core/account"
 	. "github.com/Ontology/core/asset"
 	tx "github.com/Ontology/core/transaction"
+	"github.com/Ontology/core/transaction/utxo"
 	"github.com/Ontology/crypto"
 )
 
@@ -40,10 +41,10 @@ type ILedgerStore interface {
 
 	GetQuantityIssued(assetid Uint256) (Fixed64, error)
 
-	GetUnspent(txid Uint256, index uint16) (*tx.TxOutput, error)
+	GetUnspent(txid Uint256, index uint16) (*utxo.TxOutput, error)
 	ContainsUnspent(txid Uint256, index uint16) (bool, error)
-	GetUnspentFromProgramHash(programHash Uint160, assetid Uint256) ([]*tx.UTXOUnspent, error)
-	GetUnspentsFromProgramHash(programHash Uint160) (map[Uint256][]*tx.UTXOUnspent, error)
+	GetUnspentFromProgramHash(programHash Uint160, assetid Uint256) ([]*utxo.UTXOUnspent, error)
+	GetUnspentsFromProgramHash(programHash Uint160) (map[Uint256][]*utxo.UTXOUnspent, error)
 	GetAssets() map[Uint256]*Asset
 
 	IsTxHashDuplicate(txhash Uint256) bool

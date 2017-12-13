@@ -8,6 +8,7 @@ import (
 	sig "github.com/Ontology/core/signature"
 	tx "github.com/Ontology/core/transaction"
 	"github.com/Ontology/core/transaction/payload"
+	"github.com/Ontology/core/transaction/utxo"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
 	"github.com/Ontology/vm"
@@ -175,9 +176,9 @@ func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*Block, error) {
 			Nonce: GenesisNonce,
 		},
 		Attributes:    []*tx.TxAttribute{},
-		UTXOInputs:    []*tx.UTXOTxInput{},
+		UTXOInputs:    []*utxo.UTXOTxInput{},
 		BalanceInputs: []*tx.BalanceTxInput{},
-		Outputs:       []*tx.TxOutput{},
+		Outputs:       []*utxo.TxOutput{},
 		Programs:      []*program.Program{},
 	}
 	//block

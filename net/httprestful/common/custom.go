@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"time"
+	"github.com/Ontology/core/transaction/utxo"
 )
 
 const AttributeMaxLen = 252
@@ -86,8 +87,8 @@ func SendRecord(cmd map[string]interface{}) map[string]interface{} {
 		return resp
 	}
 
-	var inputs []*tx.UTXOTxInput
-	var outputs []*tx.TxOutput
+	var inputs []*utxo.UTXOTxInput
+	var outputs []*utxo.TxOutput
 
 	transferTx, _ := tx.NewTransferAssetTransaction(inputs, outputs)
 
