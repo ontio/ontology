@@ -1,12 +1,12 @@
 package httpjsonrpc
 
 import (
-	"github.com/Ontology/common/log"
 	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Ontology/common/log"
 	tar "github.com/whyrusleeping/tar-utils"
 	"io"
 	"io/ioutil"

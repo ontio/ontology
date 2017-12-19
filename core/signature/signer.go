@@ -12,6 +12,4 @@ type Signer interface {
 
 	//get signer's public key
 	PubKey() *crypto.PubKey
-
 }
-

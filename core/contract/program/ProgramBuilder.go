@@ -1,9 +1,9 @@
 package program
 
 import (
+	"bytes"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/vm"
-	"bytes"
 	"math/big"
 )
 

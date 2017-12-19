@@ -1,5 +1,5 @@
 package interfaces
 
 type ISignableObject interface {
-	GetMessage() ([]byte)
+	GetMessage() []byte
 }

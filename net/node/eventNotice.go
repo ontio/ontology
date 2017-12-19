@@ -1,8 +1,8 @@
 package node
 
 import (
-	"github.com/Ontology/events"
 	"fmt"
+	"github.com/Ontology/events"
 )
 
 type eventQueue struct {

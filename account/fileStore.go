@@ -1,12 +1,12 @@
 package account
 
 import (
-	ct "github.com/Ontology/core/contract"
-	. "github.com/Ontology/errors"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	ct "github.com/Ontology/core/contract"
+	. "github.com/Ontology/errors"
 	"io/ioutil"
 	"os"
 )

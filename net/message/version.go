@@ -1,16 +1,16 @@
 package message
 
 import (
-	"github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/ledger"
-	"github.com/Ontology/crypto"
-	. "github.com/Ontology/net/protocol"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/Ontology/common/config"
+	"github.com/Ontology/common/log"
+	"github.com/Ontology/core/ledger"
+	"github.com/Ontology/crypto"
+	. "github.com/Ontology/net/protocol"
 	"time"
 )
 

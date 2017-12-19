@@ -1,6 +1,5 @@
 package transaction
 
-
 // TransactionPool provides storage for transactions in the pending
 // transaction pool.
 type TransactionPool interface {

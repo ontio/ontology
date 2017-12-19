@@ -3,22 +3,23 @@ package consensus
 import (
 	. "github.com/Ontology/common"
 )
+
 type Policy struct {
 	PolicyLevel PolicyLevel
-	List []Uint160
+	List        []Uint160
 }
 
-func NewPolicy()  *Policy{
+func NewPolicy() *Policy {
 	return &Policy{}
 }
 
-func (p *Policy) Refresh(){
+func (p *Policy) Refresh() {
 	//TODO: Refresh
 }
 
 var DefaultPolicy *Policy
 
-func InitPolicy(){
+func InitPolicy() {
 	DefaultPolicy := NewPolicy()
 	DefaultPolicy.Refresh()
 }

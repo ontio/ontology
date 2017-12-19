@@ -25,7 +25,7 @@ func (ba *ByteArray) Equals(other StackItem) bool {
 	if l1 != l2 {
 		return false
 	}
-	for i:=0; i<l1; i++ {
+	for i := 0; i < l1; i++ {
 		if a1[i] != a2[i] {
 			return false
 		}
@@ -38,7 +38,7 @@ func (ba *ByteArray) GetBigInteger() *big.Int {
 	return bi.SetBytes(ba.value)
 }
 
-func (ba *ByteArray) GetBoolean() bool{
+func (ba *ByteArray) GetBoolean() bool {
 	for _, b := range ba.value {
 		if b != 0 {
 			return true

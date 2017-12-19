@@ -1,8 +1,8 @@
 package node
 
 import (
-	. "github.com/Ontology/net/protocol"
 	"fmt"
+	. "github.com/Ontology/net/protocol"
 	"sync"
 )
 

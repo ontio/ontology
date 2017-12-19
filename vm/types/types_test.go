@@ -1,8 +1,8 @@
 package types
 
 import (
-	"testing"
 	"math/big"
+	"testing"
 )
 
 func TestTypes(t *testing.T) {

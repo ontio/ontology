@@ -1,13 +1,13 @@
 package ledger
 
 import (
+	"crypto/sha256"
+	"errors"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/core/contract/program"
 	sig "github.com/Ontology/core/signature"
 	. "github.com/Ontology/errors"
-	"crypto/sha256"
-	"errors"
 	"io"
 )
 

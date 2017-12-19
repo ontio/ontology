@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The DNA Dev team
+Copyright 2016 The Ontology Dev team
 
 The go-vm library is free software: you can redistribute it and/or modify
 it under the terms of the APACHA License
@@ -10,5 +10,5 @@ package vm implemented a blockchain virtual machine, which provide following mai
 - apiservice for external interaction API with triggered by opcode
 - crypto for external crypto implementations with triggered by opcode
 -
- */
+*/
 package vm

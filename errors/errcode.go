@@ -31,14 +31,35 @@ const (
 func (err ErrCode) Error() string {
 	switch err {
 	case ErrNoCode:
-		return "No error code"
+		return "no error code"
 	case ErrNoError:
-		return "Not an error"
+		return "not an error"
 	case ErrUnknown:
-		return "Unknown error"
+		return "unknown error"
 	case ErrDuplicatedTx:
-		return "There are duplicated Transactions"
-
+		return "duplicated transaction detected"
+	case ErrDuplicateInput:
+		return "duplicated transaction input detected"
+	case ErrAssetPrecision:
+		return "invalid asset precision"
+	case ErrTransactionBalance:
+		return "transaction balance unmatched"
+	case ErrAttributeProgram:
+		return "attribute program error"
+	case ErrTransactionContracts:
+		return "invalid transaction contract"
+	case ErrTransactionPayload:
+		return "invalid transaction payload"
+	case ErrDoubleSpend:
+		return "double spent transaction detected"
+	case ErrTxHashDuplicate:
+		return "duplicated transaction hash detected"
+	case ErrStateUpdaterVaild:
+		return "invalid state updater"
+	case ErrSummaryAsset:
+		return "invalid summary asset"
+	case ErrXmitFail:
+		return "transmit error"
 	}
 
 	return fmt.Sprintf("Unknown error? Error code = %d", err)

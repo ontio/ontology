@@ -1,13 +1,13 @@
 package contract
 
 import (
+	"errors"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	pg "github.com/Ontology/core/contract/program"
 	sig "github.com/Ontology/core/signature"
 	"github.com/Ontology/crypto"
 	_ "github.com/Ontology/errors"
-	"errors"
 	"math/big"
 	"sort"
 )

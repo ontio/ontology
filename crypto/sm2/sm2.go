@@ -1,14 +1,14 @@
 package sm2
 
 import (
-	"github.com/Ontology/crypto/sm3"
-	"github.com/Ontology/crypto/util"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha512"
 	"errors"
+	"github.com/Ontology/crypto/sm3"
+	"github.com/Ontology/crypto/util"
 	"io"
 	"math/big"
 )
@@ -181,9 +181,9 @@ func Verify(algSet *util.CryptoAlgSet, publicKeyX *big.Int, publicKeyY *big.Int,
 	e := new(big.Int).SetBytes(hash[:])
 	x.Add(x, e)
 	x.Mod(x, N)
-	if x.Cmp(r) == 0{
+	if x.Cmp(r) == 0 {
 		return nil
-	}else {
+	} else {
 		return errors.New("[Validation], Verify failed.")
 	}
 }

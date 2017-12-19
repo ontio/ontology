@@ -1,15 +1,15 @@
 package node
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"errors"
+	"fmt"
 	. "github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/events"
 	msg "github.com/Ontology/net/message"
 	. "github.com/Ontology/net/protocol"
-	"crypto/tls"
-	"crypto/x509"
-	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net"

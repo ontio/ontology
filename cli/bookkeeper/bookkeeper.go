@@ -1,6 +1,9 @@
 package bookkeeper
 
 import (
+	"bytes"
+	"encoding/hex"
+	"fmt"
 	"github.com/Ontology/account"
 	. "github.com/Ontology/cli/common"
 	"github.com/Ontology/core/contract"
@@ -8,9 +11,6 @@ import (
 	"github.com/Ontology/core/transaction"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/net/httpjsonrpc"
-	"bytes"
-	"encoding/hex"
-	"fmt"
 	"math/rand"
 	"os"
 	"strconv"

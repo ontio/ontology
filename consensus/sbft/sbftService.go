@@ -1,7 +1,6 @@
 package sbft
 
 type SbftService struct {
-
 }
 
 func (ss *SbftService) Halt() error {

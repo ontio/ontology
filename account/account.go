@@ -1,11 +1,11 @@
 package account
 
 import (
+	"errors"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/core/contract"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
-	"errors"
 )
 
 type Account struct {

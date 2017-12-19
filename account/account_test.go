@@ -1,8 +1,8 @@
 package account
 
 import (
-	"github.com/Ontology/crypto"
 	"fmt"
+	"github.com/Ontology/crypto"
 	"os"
 	"path"
 	"testing"

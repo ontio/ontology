@@ -1,6 +1,10 @@
 package node
 
 import (
+	"bytes"
+	"encoding/binary"
+	"errors"
+	"fmt"
 	. "github.com/Ontology/common"
 	. "github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
@@ -10,10 +14,6 @@ import (
 	"github.com/Ontology/events"
 	. "github.com/Ontology/net/message"
 	. "github.com/Ontology/net/protocol"
-	"bytes"
-	"encoding/binary"
-	"errors"
-	"fmt"
 	"math/rand"
 	"net"
 	"runtime"
@@ -35,15 +35,15 @@ func (s Semaphore) release() { <-s }
 
 type node struct {
 	//sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
-	state     uint32 // node state
-	id        uint64 // The nodes's id
+	state     uint32   // node state
+	id        uint64   // The nodes's id
 	cap       [32]byte // The node capability set
-	version   uint32 // The network protocol the node used
-	services  uint64 // The services the node supplied
-	relay     bool   // The relay capability of the node (merge into capbility flag)
-	height    uint64 // The node latest block height
-	txnCnt    uint64 // The transactions be transmit by this node
-	rxTxnCnt  uint64 // The transaction received by this node
+	version   uint32   // The network protocol the node used
+	services  uint64   // The services the node supplied
+	relay     bool     // The relay capability of the node (merge into capbility flag)
+	height    uint64   // The node latest block height
+	txnCnt    uint64   // The transactions be transmit by this node
+	rxTxnCnt  uint64   // The transaction received by this node
 	publicKey *crypto.PubKey
 	// TODO does this channel should be a buffer channel
 	chF        chan func() error // Channel used to operate the node without lock
@@ -233,7 +233,7 @@ func (node *node) GetPort() uint16 {
 	return node.port
 }
 
-func (node *node) GetHttpInfoPort() (int) {
+func (node *node) GetHttpInfoPort() int {
 	return int(node.httpInfoPort)
 }
 
@@ -241,7 +241,7 @@ func (node *node) SetHttpInfoPort(nodeInfoPort uint16) {
 	node.httpInfoPort = nodeInfoPort
 }
 
-func (node *node) GetHttpInfoState() bool{
+func (node *node) GetHttpInfoState() bool {
 	if node.cap[HTTPINFOFLAG] == 0x01 {
 		return true
 	} else {
@@ -249,8 +249,8 @@ func (node *node) GetHttpInfoState() bool{
 	}
 }
 
-func (node *node) SetHttpInfoState(nodeInfo bool){
-	if nodeInfo{
+func (node *node) SetHttpInfoState(nodeInfo bool) {
+	if nodeInfo {
 		node.cap[HTTPINFOFLAG] = 0x01
 	} else {
 		node.cap[HTTPINFOFLAG] = 0x00
@@ -285,7 +285,7 @@ func (node *node) SetState(state uint32) {
 	atomic.StoreUint32(&(node.state), state)
 }
 
-func (node *node) GetPubKey() *crypto.PubKey{
+func (node *node) GetPubKey() *crypto.PubKey {
 	return node.publicKey
 }
 

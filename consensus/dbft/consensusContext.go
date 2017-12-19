@@ -1,6 +1,7 @@
 package dbft
 
 import (
+	"fmt"
 	cl "github.com/Ontology/account"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/log"
@@ -10,7 +11,6 @@ import (
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/net"
 	msg "github.com/Ontology/net/message"
-	"fmt"
 	"sync"
 )
 

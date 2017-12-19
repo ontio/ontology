@@ -1,8 +1,8 @@
 package errors
 
 import (
-	"fmt"
 	"bytes"
+	"fmt"
 	"runtime"
 )
 
@@ -21,14 +21,13 @@ func GetCallStacks(err error) *CallStack {
 	return nil
 }
 
-
-func CallStacksString(call *CallStack) string  {
+func CallStacksString(call *CallStack) string {
 	buf := bytes.Buffer{}
 	if call == nil {
 		return fmt.Sprintf("No call stack available")
 	}
 
-	for _,stack := range call.Stacks{
+	for _, stack := range call.Stacks {
 		f := runtime.FuncForPC(stack)
 		file, line := f.FileLine(stack)
 		buf.WriteString(fmt.Sprintf("%s:%d - %s\n", file, line, f.Name()))
@@ -37,8 +36,7 @@ func CallStacksString(call *CallStack) string  {
 	return fmt.Sprintf("%s", buf.Bytes())
 }
 
-
-func getCallStack(skip int, depth int) (*CallStack){
+func getCallStack(skip int, depth int) *CallStack {
 	stacks := make([]uintptr, depth)
 	stacklen := runtime.Callers(skip, stacks)
 

@@ -1,13 +1,13 @@
 package message
 
 import (
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
-	. "github.com/Ontology/net/protocol"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
+	"github.com/Ontology/common"
+	"github.com/Ontology/common/log"
+	. "github.com/Ontology/net/protocol"
 )
 
 type notFound struct {

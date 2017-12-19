@@ -1,10 +1,10 @@
 package httpnodeinfo
 
 import (
+	"fmt"
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/core/ledger"
 	. "github.com/Ontology/net/protocol"
-	"fmt"
 	"html/template"
 	"net/http"
 	"sort"
@@ -36,7 +36,7 @@ var templates = template.Must(template.New("info").Parse(page))
 
 func newNgbNodeInfo(ngbId string, ngbType string, ngbAddr string, httpInfoAddr string, httpInfoPort int, httpInfoStart bool) *NgbNodeInfo {
 	return &NgbNodeInfo{NgbId: ngbId, NgbType: ngbType, NgbAddr: ngbAddr, HttpInfoAddr: httpInfoAddr,
-		HttpInfoPort: httpInfoPort,	HttpInfoStart: httpInfoStart}
+		HttpInfoPort: httpInfoPort, HttpInfoStart: httpInfoStart}
 }
 
 func initPageInfo(blockHeight uint32, curNodeType string, ngbrCnt int, ngbrsInfo []NgbNodeInfo) (*Info, error) {
@@ -109,5 +109,5 @@ func StartServer(n Noder) {
 	node = n
 	port := int(config.Parameters.HttpInfoPort)
 	http.HandleFunc("/info", viewHandler)
-	http.ListenAndServe(":" + strconv.Itoa(port), nil)
+	http.ListenAndServe(":"+strconv.Itoa(port), nil)
 }

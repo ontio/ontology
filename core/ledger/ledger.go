@@ -1,6 +1,7 @@
 package ledger
 
 import (
+	"errors"
 	"github.com/Ontology/common"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/core/asset"
@@ -8,7 +9,6 @@ import (
 	tx "github.com/Ontology/core/transaction"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
-	"errors"
 )
 
 var DefaultLedger *Ledger

@@ -1,9 +1,9 @@
 package vm
 
 import (
+	"encoding/binary"
 	"github.com/Ontology/vm/errors"
 	"github.com/Ontology/vm/types"
-	"encoding/binary"
 	"math/big"
 	"reflect"
 )
@@ -66,7 +66,7 @@ func SumBigInt(ints []big.Int) big.Int {
 	return *sum
 }
 
-func MinBigInt(ints []big.Int) big.Int{
+func MinBigInt(ints []big.Int) big.Int {
 	minimum := ints[0]
 
 	for _, d := range ints {
@@ -78,7 +78,7 @@ func MinBigInt(ints []big.Int) big.Int{
 	return minimum
 }
 
-func MaxBigInt(ints []big.Int) big.Int{
+func MaxBigInt(ints []big.Int) big.Int {
 	max := ints[0]
 
 	for _, d := range ints {
@@ -179,7 +179,7 @@ func AsInt64(b []byte) (int64, error) {
 	return int64(res), nil
 }
 
-func ByteArrZip(s1 []byte, s2 []byte, op OpCode) []byte{
+func ByteArrZip(s1 []byte, s2 []byte, op OpCode) []byte {
 	var ns []byte
 	switch op {
 	case CAT:

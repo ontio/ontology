@@ -1,8 +1,8 @@
 package types
 
 import (
-	"math/big"
 	"github.com/Ontology/vm/interfaces"
+	"math/big"
 )
 
 type InteropInterface struct {

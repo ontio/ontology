@@ -1,5 +1,5 @@
 package interfaces
 
 type IScriptContainer interface {
-	GetMessage() ([]byte)
+	GetMessage() []byte
 }

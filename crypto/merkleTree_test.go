@@ -1,9 +1,9 @@
 package crypto
 
 import (
-	. "github.com/Ontology/common"
 	"crypto/sha256"
 	"fmt"
+	. "github.com/Ontology/common"
 	"testing"
 )
 

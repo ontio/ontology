@@ -1,15 +1,15 @@
 package websocket
 
 import (
+	"context"
+	"crypto/tls"
+	"encoding/json"
+	"errors"
 	. "github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
 	. "github.com/Ontology/net/httprestful/common"
 	Err "github.com/Ontology/net/httprestful/error"
 	. "github.com/Ontology/net/httpwebsocket/session"
-	"context"
-	"crypto/tls"
-	"encoding/json"
-	"errors"
 	"github.com/gorilla/websocket"
 	"net"
 	"net/http"

@@ -1,10 +1,10 @@
 package log
 
 import (
-	"github.com/Ontology/common/config"
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/Ontology/common/config"
 	"io"
 	"io/ioutil"
 	"log"

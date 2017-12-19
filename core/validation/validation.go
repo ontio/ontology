@@ -1,13 +1,13 @@
 package validation
 
 import (
+	"errors"
 	. "github.com/Ontology/common"
 	sig "github.com/Ontology/core/signature"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
 	"github.com/Ontology/vm"
 	"github.com/Ontology/vm/interfaces"
-	"errors"
 )
 
 func VerifySignableData(signableData sig.SignableData) (bool, error) {

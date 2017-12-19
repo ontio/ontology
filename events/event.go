@@ -1,11 +1,9 @@
 package events
 
 import (
-	"sync"
 	"errors"
+	"sync"
 )
-
-
 
 type Event struct {
 	m           sync.RWMutex
@@ -19,14 +17,14 @@ func NewEvent() *Event {
 }
 
 //  adds a new subscriber to Event.
-func (e *Event) Subscribe(eventtype EventType,eventfunc EventFunc) Subscriber {
+func (e *Event) Subscribe(eventtype EventType, eventfunc EventFunc) Subscriber {
 	e.m.Lock()
 	defer e.m.Unlock()
 
 	sub := make(chan interface{})
-	_,ok := e.subscribers[eventtype]
+	_, ok := e.subscribers[eventtype]
 	if !ok {
-		e.subscribers[eventtype] =  make(map[Subscriber]EventFunc)
+		e.subscribers[eventtype] = make(map[Subscriber]EventFunc)
 	}
 	e.subscribers[eventtype][sub] = eventfunc
 
@@ -34,41 +32,43 @@ func (e *Event) Subscribe(eventtype EventType,eventfunc EventFunc) Subscriber {
 }
 
 // UnSubscribe removes the specified subscriber
-func (e *Event) UnSubscribe(eventtype EventType,subscriber Subscriber) (err error){
+func (e *Event) UnSubscribe(eventtype EventType, subscriber Subscriber) (err error) {
 	e.m.Lock()
 	defer e.m.Unlock()
 
-	subEvent,ok := e.subscribers[eventtype]
+	subEvent, ok := e.subscribers[eventtype]
 	if !ok {
 		err = errors.New("No event type.")
 		return
 	}
 
-	delete(subEvent,subscriber)
+	delete(subEvent, subscriber)
 	close(subscriber)
 
 	return
 }
 
 //Notify subscribers that Subscribe specified event
-func (e *Event) Notify(eventtype EventType,value interface{}) (err error){
+func (e *Event) Notify(eventtype EventType, value interface{}) (err error) {
 	e.m.RLock()
 	defer e.m.RUnlock()
 
-	subs,ok := e.subscribers[eventtype]
+	subs, ok := e.subscribers[eventtype]
 	if !ok {
 		err = errors.New("No event type.")
 		return
 	}
 
 	for _, event := range subs {
-		go e.NotifySubscriber(event,value)
+		go e.NotifySubscriber(event, value)
 	}
 	return
 }
 
 func (e *Event) NotifySubscriber(eventfunc EventFunc, value interface{}) {
-	if eventfunc == nil { return }
+	if eventfunc == nil {
+		return
+	}
 
 	//invode subscriber event func
 	eventfunc(value)
@@ -76,12 +76,12 @@ func (e *Event) NotifySubscriber(eventfunc EventFunc, value interface{}) {
 }
 
 //Notify all event subscribers
-func (e *Event) NotifyAll() (errs []error){
+func (e *Event) NotifyAll() (errs []error) {
 	e.m.RLock()
 	defer e.m.RUnlock()
 
-	for eventtype, _ := range e.subscribers{
-		if err := e.Notify(eventtype,nil);err != nil {
+	for eventtype, _ := range e.subscribers {
+		if err := e.Notify(eventtype, nil); err != nil {
 			errs = append(errs, err)
 		}
 	}

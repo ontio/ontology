@@ -1,6 +1,7 @@
 package httpwebsocket
 
 import (
+	"bytes"
 	. "github.com/Ontology/common"
 	. "github.com/Ontology/common/config"
 	"github.com/Ontology/core/ledger"
@@ -9,7 +10,6 @@ import (
 	Err "github.com/Ontology/net/httprestful/error"
 	"github.com/Ontology/net/httpwebsocket/websocket"
 	. "github.com/Ontology/net/protocol"
-	"bytes"
 )
 
 var ws *websocket.WsServer

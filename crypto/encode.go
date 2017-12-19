@@ -1,11 +1,11 @@
 package crypto
 
 import (
-	. "github.com/Ontology/errors"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"errors"
+	. "github.com/Ontology/errors"
 	"math/big"
 )
 

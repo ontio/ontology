@@ -1,7 +1,7 @@
 package transaction
 
 import (
-. "github.com/Ontology/common"
+	. "github.com/Ontology/common"
 )
 
 // ILedgerStore provides func with store package.

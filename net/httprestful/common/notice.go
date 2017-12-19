@@ -1,10 +1,10 @@
 package common
 
 import (
-	. "github.com/Ontology/common/config"
-	Err "github.com/Ontology/net/httprestful/error"
 	"bytes"
 	"encoding/json"
+	. "github.com/Ontology/common/config"
+	Err "github.com/Ontology/net/httprestful/error"
 	"io/ioutil"
 	"net"
 	"net/http"

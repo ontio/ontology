@@ -1,10 +1,10 @@
 package message
 
 import (
-	"github.com/Ontology/common/log"
-	. "github.com/Ontology/net/protocol"
 	"encoding/hex"
 	"errors"
+	"github.com/Ontology/common/log"
+	. "github.com/Ontology/net/protocol"
 	"strconv"
 )
 

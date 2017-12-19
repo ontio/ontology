@@ -1,9 +1,9 @@
 package transaction
 
 import (
+	"errors"
 	"github.com/Ontology/common/serialization"
 	. "github.com/Ontology/errors"
-	"errors"
 	"io"
 )
 

@@ -1,6 +1,10 @@
 package message
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/binary"
+	"errors"
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
@@ -12,10 +16,6 @@ import (
 	. "github.com/Ontology/errors"
 	"github.com/Ontology/events"
 	. "github.com/Ontology/net/protocol"
-	"bytes"
-	"crypto/sha256"
-	"encoding/binary"
-	"errors"
 	"io"
 )
 

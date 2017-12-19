@@ -1,19 +1,17 @@
 package errors
 
 import (
-	"testing"
 	"errors"
 	"fmt"
+	"testing"
 )
 
 var (
 	TestRootError = errors.New("Test Root Error Msg.")
 )
 
-
-
 func TestNewDetailErr(t *testing.T) {
-	e := NewDetailErr(TestRootError,ErrUnknown,"Test New Detail Error")
+	e := NewDetailErr(TestRootError, ErrUnknown, "Test New Detail Error")
 	if e == nil {
 		t.Fatal("NewDetailErr should not return nil.")
 	}
@@ -23,16 +21,15 @@ func TestNewDetailErr(t *testing.T) {
 
 	fmt.Println(msg)
 
-	if msg == ""{
+	if msg == "" {
 		t.Errorf("CallStacksString should not return empty msg.")
 	}
 
 	rooterr := RootErr(e)
-	fmt.Println("Root: ",rooterr.Error())
+	fmt.Println("Root: ", rooterr.Error())
 
 	code := ErrerCode(e)
-	fmt.Println("Code: ",code.Error())
+	fmt.Println("Code: ", code.Error())
 
 	fmt.Println("TestNewDetailErr End.")
 }
-

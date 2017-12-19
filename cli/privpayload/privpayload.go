@@ -1,6 +1,11 @@
 package privpayload
 
 import (
+	"bytes"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/Ontology/account"
 	. "github.com/Ontology/cli/common"
 	"github.com/Ontology/core/contract"
@@ -9,11 +14,6 @@ import (
 	"github.com/Ontology/core/transaction/payload"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/net/httpjsonrpc"
-	"bytes"
-	"encoding/hex"
-	"encoding/json"
-	"errors"
-	"fmt"
 	"math/rand"
 	"os"
 
