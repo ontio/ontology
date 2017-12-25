@@ -1,9 +1,8 @@
 package types
 
 import (
-	"math/big"
 	"github.com/Ontology/vm/neovm/interfaces"
-	"github.com/Ontology/common"
+	"math/big"
 )
 
 type Integer struct {
@@ -38,7 +37,7 @@ func (i *Integer) GetBoolean() bool {
 }
 
 func (i *Integer) GetByteArray() []byte {
-	return common.BytesReverse(append([]byte{}, i.value.Bytes()...))
+	return ConvertBigIntegerToBytes(i.value)
 }
 
 func (i *Integer) GetInterface() interfaces.IInteropInterface {

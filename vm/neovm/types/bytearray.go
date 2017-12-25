@@ -1,7 +1,6 @@
 package types
 
 import (
-	"github.com/Ontology/common"
 	"github.com/Ontology/vm/neovm/interfaces"
 	"math/big"
 )
@@ -36,32 +35,7 @@ func (ba *ByteArray) Equals(other StackItemInterface) bool {
 }
 
 func (ba *ByteArray) GetBigInteger() *big.Int {
-	res := big.NewInt(0)
-	l := len(ba.value)
-	if l == 0 {
-		return res
-	}
-
-	bytes := make([]byte, 0, l)
-	bytes = append(bytes, ba.value...)
-	common.BytesReverse(bytes)
-
-	if bytes[0] >> 7 == 1 {
-		for i, b := range bytes {
-			bytes[i] = ^b
-		}
-
-		temp := big.NewInt(0)
-		temp.SetBytes(bytes)
-		temp2 := big.NewInt(0)
-		temp2.Add(temp, big.NewInt(1))
-		bytes = temp2.Bytes()
-		res.SetBytes(bytes)
-		return res.Neg(res)
-	}
-
-	res.SetBytes(bytes)
-	return res
+	return ConvertBytesToBigInteger(ba.value)
 }
 
 func (ba *ByteArray) GetBoolean() bool {

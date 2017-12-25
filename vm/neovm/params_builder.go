@@ -3,7 +3,7 @@ package neovm
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/Ontology/common"
+	. "github.com/Ontology/vm/neovm/types"
 	"math/big"
 )
 
@@ -73,33 +73,4 @@ func (p *ParamsBuilder) EmitPushCall(codeHash []byte) {
 
 func (p *ParamsBuilder) ToArray() []byte {
 	return p.buffer.Bytes()
-}
-
-func ConvertBigIntegerToBytes(data *big.Int) []byte {
-	if data.Int64() == 0 {
-		return []byte{byte(0)}
-	}
-
-	bs := data.Bytes()
-	b := bs[0]
-	if data.Sign() < 0 {
-		for i, b := range bs {
-			bs[i] = ^b
-		}
-		temp := big.NewInt(0)
-		temp.SetBytes(bs)
-		temp2 := big.NewInt(0)
-		temp2.Add(temp, big.NewInt(1))
-		bs = temp2.Bytes()
-		common.BytesReverse(bs)
-		if b >> 7 == 1 {
-			bs = append(bs, 255)
-		}
-	} else {
-		common.BytesReverse(bs)
-		if b >> 7 == 1 {
-			bs = append(bs, 0)
-		}
-	}
-	return bs
 }
