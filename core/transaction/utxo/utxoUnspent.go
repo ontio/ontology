@@ -4,6 +4,7 @@ import (
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
 	"io"
+	"bytes"
 )
 
 type UTXOUnspent struct {
@@ -30,4 +31,10 @@ func (uu *UTXOUnspent) Deserialize(r io.Reader) error {
 	uu.Value.Deserialize(r)
 
 	return nil
+}
+
+func (uu *UTXOUnspent) ToArray() []byte {
+	bf := new(bytes.Buffer)
+	uu.Serialize(bf)
+	return bf.Bytes()
 }

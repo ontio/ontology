@@ -29,7 +29,6 @@ func NewStateMachine(dbCache store.IStateStore) *StateMachine {
 	stateMachine.CloneCache = storage.NewCloneCache(dbCache)
 	stateMachine.StateReader = NewStateReader()
 
-	//stateMachine.StateReader.Register("Neo.Validator.Register", stateMachine.RegisterValidator)
 	stateMachine.StateReader.Register("Neo.Asset.Create", stateMachine.CreateAsset)
 	stateMachine.StateReader.Register("Neo.Asset.Renew", stateMachine.AssetRenew)
 
@@ -45,33 +44,6 @@ func NewStateMachine(dbCache store.IStateStore) *StateMachine {
 	stateMachine.StateReader.Register("Neo.Storage.Delete", stateMachine.StorageDelete)
 	return &stateMachine
 }
-
-//func (s *StateMachine) RegisterValidator(engine *vm.ExecutionEngine) (bool, error) {
-//	if vm.EvaluationStackCount(engine) < 1 {
-//		return false, errors.NewErr("[RegisterValidator] Too few input parameters ")
-//	}
-//	pubkeyByte := vm.PopByteArray(engine)
-//	if pubkeyByte == nil {
-//		return false, errors.NewErr("[RegisterValidator] pop public key nil")
-//	}
-//	pubkey, err := crypto.DecodePoint(pubkeyByte)
-//	if err != nil {
-//		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[RegisterValidator] DecodePoint public key error!")
-//	}
-//	if result, err := s.StateReader.CheckWitnessPublicKey(engine, pubkey); !result {
-//		return result, errors.NewDetailErr(err, errors.ErrNoCode, "[RegisterValidator] CheckWitnessPublicKey error!")
-//	}
-//	b := new(bytes.Buffer)
-//	if err := pubkey.Serialize(b); err != nil {
-//		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[RegisterValidator] Pubkey Serialize error|")
-//	}
-//	validatorState := &states.ValidatorState{PublicKey: pubkey}
-//	if err := s.CloneCache.GetOrAdd(store.ST_Validator, b.Bytes(), validatorState); err != nil {
-//		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[RegisterValidator] GetOrAdd error!")
-//	}
-//	vm.PushData(engine, validatorState)
-//	return true, nil
-//}
 
 func (s *StateMachine) CreateAsset(engine *vm.ExecutionEngine) (bool, error) {
 	tx := engine.GetCodeContainer().(*transaction.Transaction)

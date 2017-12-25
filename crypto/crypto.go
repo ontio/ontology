@@ -181,3 +181,12 @@ func Equal(e1 *PubKey, e2 *PubKey) bool {
 	}
 	return false
 }
+
+func ContainPubKey(bk *PubKey, pk []*PubKey) int {
+	for k, n := range pk {
+		if bk.X.Cmp(n.X) == 0 && bk.Y.Cmp(n.Y) == 0 {
+			return k
+		}
+	}
+	return -1
+}

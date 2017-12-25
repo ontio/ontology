@@ -32,7 +32,6 @@ func NewStateReader() *StateReader {
 	stateReader.Register("Neo.Blockchain.GetBlock", stateReader.BlockChainGetBlock)
 	stateReader.Register("Neo.Blockchain.GetTransaction", stateReader.BlockChainGetTransaction)
 	stateReader.Register("Neo.Blockchain.GetAccount", stateReader.BlockChainGetAccount)
-	stateReader.Register("Neo.Blockchain.GetValidators", stateReader.BlockChainGetValidators)
 	stateReader.Register("Neo.Blockchain.GetAsset", stateReader.BlockChainGetAsset)
 	stateReader.Register("Neo.Blockchain.GetContract", stateReader.GetContract)
 
@@ -308,23 +307,6 @@ func (s *StateReader) GetContract(e *vm.ExecutionEngine) (bool, error) {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[GetContract] GetAsset error!")
 	}
 	vm.PushData(e, item)
-	return true, nil
-}
-
-func (s *StateReader) BlockChainGetValidators(e *vm.ExecutionEngine) (bool, error) {
-	bookKeeperList, err := ledger.GetValidators([]*tx.Transaction{})
-	if err != nil {
-		return false, err
-	}
-	var pkList []types.StackItemInterface
-	for _, v := range bookKeeperList {
-		pk, err := v.EncodePoint(true)
-		if err != nil {
-			return false, err
-		}
-		pkList = append(pkList, types.NewByteArray(pk))
-	}
-	vm.PushData(e, pkList)
 	return true, nil
 }
 

@@ -262,6 +262,7 @@ func GetAssetByHash(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"] = asset
 	return resp
 }
+
 func GetBalanceByAddr(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
 	addr, ok := cmd["Addr"].(string)
@@ -275,18 +276,25 @@ func GetBalanceByAddr(cmd map[string]interface{}) map[string]interface{} {
 		resp["Error"] = Err.INVALID_PARAMS
 		return resp
 	}
-	unspends, err := ledger.DefaultLedger.Store.GetUnspentsFromProgramHash(programHash)
-	var balance Fixed64 = 0
-	for _, u := range unspends {
-		for _, v := range u {
-			balance = balance + v.Value
-		}
+	account, err := ledger.DefaultLedger.Store.GetAccount(programHash)
+	if err != nil {
+		resp["Error"] = Err.UNKNOWN_PROGRAM
+		return resp
 	}
-	val := float64(balance) / math.Pow(10, 8)
+	type Result struct {
+		AssetId   string
+		Value string
+	}
+	var results []Result
+	for k, v := range account.Balances {
+		assetid := ToHexString(k.ToArray())
+		results = append(results, Result{assetid, strconv.FormatInt(v.GetData(), 10)})
+	}
 	//valStr := strconv.FormatFloat(val, 'f', -1, 64)
-	resp["Result"] = val
+	resp["Result"] = results
 	return resp
 }
+
 func GetBalanceByAsset(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
 	addr, ok := cmd["Addr"].(string)
@@ -301,66 +309,20 @@ func GetBalanceByAsset(cmd map[string]interface{}) map[string]interface{} {
 		resp["Error"] = Err.INVALID_PARAMS
 		return resp
 	}
-	unspends, err := ledger.DefaultLedger.Store.GetUnspentsFromProgramHash(programHash)
-	var balance Fixed64 = 0
-	for k, u := range unspends {
-		assid := ToHexString(k.ToArrayReverse())
-		for _, v := range u {
-			if assetid == assid {
-				balance = balance + v.Value
-			}
-		}
-	}
-	val := float64(balance) / math.Pow(10, 8)
-	//valStr := strconv.FormatFloat(val, 'f', -1, 64)
-	resp["Result"] = val
-	return resp
-}
-func GetUnspends(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
-	addr, ok := cmd["Addr"].(string)
-	if !ok {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
-	}
-	var programHash Uint160
-
-	programHash, err := ToScriptHash(addr)
+	account, err := ledger.DefaultLedger.Store.GetAccount(programHash)
 	if err != nil {
-		resp["Error"] = Err.INVALID_PARAMS
+		resp["Error"] = Err.UNKNOWN_PROGRAM
 		return resp
 	}
-	type UTXOUnspentInfo struct {
-		Txid  string
-		Index uint32
-		Value float64
+	ass, _ := HexToBytes(assetid)
+	assid, _ := Uint256ParseFromBytes(ass)
+	if v, ok := account.Balances[assid]; ok {
+		resp["Result"] = v.GetData()
 	}
-	type Result struct {
-		AssetId   string
-		AssetName string
-		Utxo      []UTXOUnspentInfo
-	}
-	var results []Result
-	unspends, err := ledger.DefaultLedger.Store.GetUnspentsFromProgramHash(programHash)
-
-	for k, u := range unspends {
-		assetid := ToHexString(k.ToArrayReverse())
-		asset, err := ledger.DefaultLedger.Store.GetAsset(k)
-		if err != nil {
-			resp["Error"] = Err.INTERNAL_ERROR
-			return resp
-		}
-		var unspendsInfo []UTXOUnspentInfo
-		for _, v := range u {
-			val := float64(v.Value) / math.Pow(10, 8)
-			//valStr := strconv.FormatFloat(val, 'f', -1, 64)
-			unspendsInfo = append(unspendsInfo, UTXOUnspentInfo{ToHexString(v.Txid.ToArrayReverse()), v.Index, val})
-		}
-		results = append(results, Result{assetid, asset.Name, unspendsInfo})
-	}
-	resp["Result"] = results
+	//valStr := strconv.FormatFloat(val, 'f', -1, 64)
 	return resp
 }
+
 func GetUnspendOutput(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
 	addr, ok := cmd["Addr"].(string)

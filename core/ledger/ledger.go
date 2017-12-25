@@ -4,11 +4,11 @@ import (
 	"errors"
 	"github.com/Ontology/common"
 	. "github.com/Ontology/common"
-	"github.com/Ontology/core/asset"
 	"github.com/Ontology/core/contract"
 	tx "github.com/Ontology/core/transaction"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
+	"github.com/Ontology/core/states"
 )
 
 var DefaultLedger *Ledger
@@ -17,7 +17,6 @@ var StandbyBookKeepers []*crypto.PubKey
 // Ledger - the struct for onchainDNA ledger
 type Ledger struct {
 	Blockchain *Blockchain
-	State      *State
 	Store      ILedgerStore
 }
 
@@ -64,7 +63,7 @@ func GetBookKeeperAddress(bookKeepers []*crypto.PubKey) (Uint160, error) {
 }
 
 //Get the Asset from store.
-func (l *Ledger) GetAsset(assetId Uint256) (*asset.Asset, error) {
+func (l *Ledger) GetAsset(assetId Uint256) (*states.AssetState, error) {
 	asset, err := l.Store.GetAsset(assetId)
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetAsset failed with assetId ="+assetId.ToString())

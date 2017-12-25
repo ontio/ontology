@@ -147,7 +147,6 @@ func (rt *restServer) registryMethod() {
 		Api_Gettransaction:      {name: "gettransaction", handler: GetTransactionByHash},
 		Api_Getasset:            {name: "getasset", handler: GetAssetByHash},
 		Api_GetContract:         {name: "getcontract", handler: GetContract},
-		Api_GetUTXObyAddr:       {name: "getutxobyaddr", handler: GetUnspends},
 		Api_GetUTXObyAsset:      {name: "getutxobyasset", handler: GetUnspendOutput},
 		Api_GetBalanceByAddr:    {name: "getbalancebyaddr", handler: GetBalanceByAddr},
 		Api_GetBalancebyAsset:   {name: "getbalancebyasset", handler: GetBalanceByAsset},

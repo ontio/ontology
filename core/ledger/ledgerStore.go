@@ -2,8 +2,7 @@ package ledger
 
 import (
 	. "github.com/Ontology/common"
-	"github.com/Ontology/core/account"
-	. "github.com/Ontology/core/asset"
+	"github.com/Ontology/core/states"
 	tx "github.com/Ontology/core/transaction"
 	"github.com/Ontology/core/transaction/utxo"
 	"github.com/Ontology/crypto"
@@ -19,16 +18,15 @@ type ILedgerStore interface {
 	InitLedgerStore(ledger *Ledger) error
 	IsDoubleSpend(tx *tx.Transaction) bool
 
-	//SaveHeader(header *Header,ledger *Ledger) error
 	AddHeaders(headers []Header, ledger *Ledger) error
 	GetHeader(hash Uint256) (*Header, error)
 
 	GetTransaction(hash Uint256) (*tx.Transaction, error)
+	GetTransactionWithHeight(hash Uint256) (*tx.Transaction, uint32, error)
 
-	SaveAsset(assetid Uint256, asset *Asset) error
-	GetAsset(hash Uint256) (*Asset, error)
-
-	GetAccount(programHash Uint160) (*account.AccountState, error)
+	GetAsset(hash Uint256) (*states.AssetState, error)
+	GetContract(hash Uint160) (*states.ContractState, error)
+	GetAccount(programHash Uint160) (*states.AccountState, error)
 
 	GetCurrentBlockHash() Uint256
 	GetCurrentHeaderHash() Uint256
@@ -45,10 +43,13 @@ type ILedgerStore interface {
 	GetUnspent(txid Uint256, index uint16) (*utxo.TxOutput, error)
 	ContainsUnspent(txid Uint256, index uint16) (bool, error)
 	GetUnspentFromProgramHash(programHash Uint160, assetid Uint256) ([]*utxo.UTXOUnspent, error)
-	GetUnspentsFromProgramHash(programHash Uint160) (map[Uint256][]*utxo.UTXOUnspent, error)
-	GetAssets() map[Uint256]*Asset
+	GetAssets() map[Uint256]*states.AssetState
 
 	IsTxHashDuplicate(txhash Uint256) bool
 	IsBlockInStore(hash Uint256) bool
 	Close()
+
+	GetUnclaimed(hash Uint256) (map[uint16]*utxo.SpentCoin, error)
+	GetCurrentStateRoot() Uint256
+	GetIdentity(ontId []byte) ([]byte, error)
 }

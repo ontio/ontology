@@ -541,8 +541,10 @@ func (ds *DbftService) Timeout() {
 		ds.context.State |= RequestSent
 		if !ds.context.State.HasFlag(SignatureSent) {
 			now := uint32(time.Now().Unix())
-			header, _ := ledger.DefaultLedger.Blockchain.GetHeader(ds.context.PrevHash)
-
+			header, err := ledger.DefaultLedger.Blockchain.GetHeader(ds.context.PrevHash)
+			if err != nil {
+				log.Error("[Timeout] GetHeader error:", err)
+			}
 			//set context Timestamp
 			blockTime := header.Blockdata.Timestamp + 1
 			if blockTime > now {

@@ -3,7 +3,6 @@ package utils
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 )
 
 type VmReader struct {
@@ -99,7 +98,6 @@ func (r *VmReader) ReadVarInt(max uint64) uint64 {
 	if value > max {
 		return 0
 	}
-	fmt.Println(value)
 	return value
 }
 

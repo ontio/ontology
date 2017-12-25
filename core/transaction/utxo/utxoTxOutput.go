@@ -3,6 +3,7 @@ package utxo
 import (
 	"github.com/Ontology/common"
 	"io"
+	"bytes"
 )
 
 type TxOutput struct {
@@ -22,3 +23,10 @@ func (o *TxOutput) Deserialize(r io.Reader) {
 	o.Value.Deserialize(r)
 	o.ProgramHash.Deserialize(r)
 }
+
+func (o *TxOutput) ToArray() []byte {
+	bf := new(bytes.Buffer)
+	o.Serialize(bf)
+	return bf.Bytes()
+}
+

@@ -7,8 +7,6 @@ import (
 	_ "sort"
 	. "github.com/Ontology/vm/neovm/errors"
 	"github.com/Ontology/common"
-	"fmt"
-	"reflect"
 )
 
 const (
@@ -67,7 +65,6 @@ func (e *ExecutionEngine) Create(caller common.Uint160, code []byte) ([]byte, er
 }
 
 func (e *ExecutionEngine) Call(caller common.Uint160, code, input []byte) ([]byte, error) {
-	fmt.Println("ExecutionEngine Call:", code, input)
 	e.LoadCode(code, false)
 	e.LoadCode(input, false)
 	err := e.Execute()
@@ -168,7 +165,6 @@ func (e *ExecutionEngine) StepInto() error {
 	}
 	e.opCode = opCode
 	e.context = context
-	fmt.Println("e.opCode", e.opCode)
 	if !e.checkStackSize() {
 		return ErrOverLimitStack
 	}
@@ -201,12 +197,6 @@ func (e *ExecutionEngine) ExecuteOp() (VMState, error) {
 	if opExec.Exec == nil {
 		return FAULT, ErrNotSupportOpCode
 	}
-	fmt.Println("op:", opExec.Name)
-	s := e.evaluationStack.Count()
-	for i := 0; i<s;i++ {
-		fmt.Print(" ", e.evaluationStack.Peek(i).GetStackItem(), reflect.TypeOf(e.evaluationStack.Peek(i).GetStackItem()))
-	}
-	fmt.Println()
 	if opExec.Validator != nil {
 		if err := opExec.Validator(e); err != nil {
 			return FAULT, err

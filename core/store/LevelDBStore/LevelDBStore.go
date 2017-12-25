@@ -51,6 +51,10 @@ func (self *LevelDBStore) Get(key []byte) ([]byte, error) {
 	return dat, err
 }
 
+func (self *LevelDBStore) Has(key []byte) (bool, error) {
+	return self.db.Has(key, nil)
+}
+
 func (self *LevelDBStore) Delete(key []byte) error {
 	return self.db.Delete(key, nil)
 }

@@ -21,7 +21,7 @@ type BookKeepingInfo struct {
 type FunctionCodeInfo struct {
 	Code           string
 	ParameterTypes string
-	ReturnTypes    string
+	ReturnType     uint8
 }
 
 type DeployCodeInfo struct {
@@ -106,7 +106,7 @@ func TransPayloadToHex(p Payload) PayloadInfo {
 		obj := new(DeployCodeInfo)
 		obj.Code.Code = ToHexString(object.Code.Code)
 		obj.Code.ParameterTypes = ToHexString(ContractParameterTypeToByte(object.Code.ParameterTypes))
-		obj.Code.ReturnTypes = ToHexString(ContractParameterTypeToByte(object.Code.ReturnTypes))
+		obj.Code.ReturnType = uint8(object.Code.ReturnType)
 		obj.Name = object.Name
 		obj.CodeVersion = object.CodeVersion
 		obj.Author = object.Author

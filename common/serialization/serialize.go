@@ -288,3 +288,20 @@ func ReadBool(reader io.Reader) (bool, error) {
 	err := binary.Read(reader, binary.LittleEndian, &x)
 	return x, err
 }
+
+func WriteByte(writer io.Writer, val byte) error {
+	_, err := writer.Write([]byte{val})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func ReadByte(reader io.Reader) (byte, error) {
+	b, err := byteXReader(reader, 1)
+	if err != nil {
+		return 0, err
+	}
+	return b[0], nil
+}
+
