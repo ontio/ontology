@@ -7,6 +7,8 @@ import (
 	"github.com/Ontology/core/transaction/payload"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/core/transaction/utxo"
+	"github.com/Ontology/core/code"
+	"github.com/Ontology/smartcontract/types"
 )
 
 //initial a new transaction with asset registration payload
@@ -144,3 +146,43 @@ func NewDataFileTransaction(path string, fileName string, note string, issuer *c
 		Programs:      []*program.Program{},
 	}, nil
 }
+
+func NewDeployTransaction(fc *code.FunctionCode, programHash common.Uint160, name, codeversion, author, email, desp string, vmType types.VmType, needStorage bool) (*Transaction, error) {
+	//TODO: check arguments
+	DeployCodePayload := &payload.DeployCode{
+		Code:        fc,
+		NeedStorage: needStorage,
+		Name:        name,
+		CodeVersion: codeversion,
+		Author:      author,
+		Email:       email,
+		Description: desp,
+	}
+
+	return &Transaction{
+		TxType:        Deploy,
+		Payload:       DeployCodePayload,
+		Attributes:    []*TxAttribute{},
+		UTXOInputs:    []*UTXOTxInput{},
+		BalanceInputs: []*BalanceTxInput{},
+		Programs:      []*program.Program{},
+	}, nil
+}
+
+func NewInvokeTransaction(fc []byte, codeHash common.Uint160) (*Transaction, error) {
+	//TODO: check arguments
+	InvokeCodePayload := &payload.InvokeCode{
+		Code:     fc,
+		CodeHash: codeHash,
+	}
+
+	return &Transaction{
+		TxType:        Invoke,
+		Payload:       InvokeCodePayload,
+		Attributes:    []*TxAttribute{},
+		UTXOInputs:    []*UTXOTxInput{},
+		BalanceInputs: []*BalanceTxInput{},
+		Programs:      []*program.Program{},
+	}, nil
+}
+
