@@ -432,11 +432,10 @@ func (node *node) WaitForSyncBlkFinish() {
 		<-time.After(2 * time.Second)
 	}
 }
-func (node *node) WaitForFourPeersStart() {
+func (node *node) WaitForPeersStart() {
 	for {
-		log.Debug("WaitForFourPeersStart...")
-		cnt := node.local.GetNbrNodeCnt()
-		if cnt >= MINCONNCNT {
+		log.Debug("WaitForPeersStart...")
+		if node.IsUptoMinNodeCount(){
 			break
 		}
 		<-time.After(2 * time.Second)

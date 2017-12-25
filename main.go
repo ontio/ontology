@@ -4,7 +4,7 @@ import (
 	"github.com/Ontology/account"
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
-	"github.com/Ontology/consensus/dbft"
+	"github.com/Ontology/consensus"
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/store/ChainStore"
 	"github.com/Ontology/core/transaction"
@@ -18,6 +18,8 @@ import (
 	"os"
 	"runtime"
 	"time"
+	"os/signal"
+	"syscall"
 )
 
 const (
@@ -72,7 +74,11 @@ func main() {
 		goto ERROR
 	}
 	log.Debug("The Node's PublicKey ", acct.PublicKey)
-	ledger.StandbyBookKeepers = account.GetBookKeepers()
+	ledger.StandbyBookKeepers, err= client.GetBookKeepers()
+	if err != nil {
+		log.Fatalf("GetBookKeepers error:%s", err)
+		goto ERROR
+	}
 
 	log.Info("3. BlockChain init")
 	blockChain, err = ledger.NewBlockchainWithGenesisBlock(ledger.StandbyBookKeepers)
@@ -86,15 +92,15 @@ func main() {
 	// Don't need two return value.
 	noder = net.StartProtocol(acct.PublicKey)
 	httpjsonrpc.RegistRpcNode(noder)
-	time.Sleep(20 * time.Second)
+
 	noder.SyncNodeHeight()
-	noder.WaitForFourPeersStart()
+	noder.WaitForPeersStart()
 	noder.WaitForSyncBlkFinish()
 	if protocol.SERVICENODENAME != config.Parameters.NodeType {
-		log.Info("5. Start DBFT Services")
-		dbftServices := dbft.NewDbftService(client, "logdbft", noder)
-		httpjsonrpc.RegistDbftService(dbftServices)
-		go dbftServices.Start()
+		log.Info("5. Start Consensus Services")
+		consensusSrv := consensus.ConsensusMgr.NewConsensusService(client, noder)
+		httpjsonrpc.RegistConsensusService(consensusSrv)
+		go consensusSrv.Start()
 		time.Sleep(5 * time.Second)
 	}
 
@@ -107,15 +113,35 @@ func main() {
 		go httpnodeinfo.StartServer(noder)
 	}
 
-	for {
-		time.Sleep(dbft.GenBlockTime)
-		log.Trace("BlockHeight = ", ledger.DefaultLedger.Blockchain.BlockHeight)
-		isNeedNewFile := log.CheckIfNeedNewFile()
-		if isNeedNewFile == true {
-			log.ClosePrintLog()
-			log.Init(log.Path, os.Stdout)
+	go func() {
+		ticker := time.NewTicker(config.DEFAULTGENBLOCKTIME * time.Second)
+		for {
+			select {
+			case <-ticker.C:
+				log.Trace("BlockHeight = ", ledger.DefaultLedger.Blockchain.BlockHeight)
+				isNeedNewFile := log.CheckIfNeedNewFile()
+				if isNeedNewFile == true {
+					log.ClosePrintLog()
+					log.Init(log.Path, os.Stdout)
+				}
+			}
 		}
-	}
+	}()
+
+	func() {
+		//等待退出信号
+		exit := make(chan bool, 0)
+		sc := make(chan os.Signal, 1)
+		signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+		go func() {
+			for sig := range sc {
+				log.Infof("Ontology received exit signal:%v.", sig.String())
+				close(exit)
+				break
+			}
+		}()
+		<-exit
+	}()
 
 	ERROR:
 	os.Exit(1)

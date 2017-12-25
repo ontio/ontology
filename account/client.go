@@ -6,13 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"math/rand"
-	"os"
-	"sort"
-	"strings"
-	"sync"
-	"time"
-
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
@@ -24,11 +17,17 @@ import (
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
 	"github.com/Ontology/net/protocol"
+	"math/rand"
+	"os"
+	"sort"
+	"strings"
+	"sync"
+	"time"
 )
 
 const (
 	DefaultBookKeeperCount = 4
-	WalletFileName = "wallet.dat"
+	WalletFileName         = "wallet.dat"
 )
 
 type Client interface {
@@ -36,23 +35,24 @@ type Client interface {
 	ContainsAccount(pubKey *crypto.PubKey) bool
 	GetAccount(pubKey *crypto.PubKey) (*Account, error)
 	GetDefaultAccount() (*Account, error)
+	GetBookKeepers() ([]*crypto.PubKey, error)
 }
 
 type ClientImpl struct {
-	mu            sync.Mutex
+	mu sync.Mutex
 
-	path          string
-	iv            []byte
-	masterKey     []byte
+	path      string
+	iv        []byte
+	masterKey []byte
 
-	accounts      map[Uint160]*Account
-	contracts     map[Uint160]*ct.Contract
+	accounts  map[Uint160]*Account
+	contracts map[Uint160]*ct.Contract
 
 	watchOnly     []Uint160
 	currentHeight uint32
 
 	FileStore
-	isrunning     bool
+	isrunning bool
 }
 
 //TODO: adjust contract folder structure
@@ -422,11 +422,11 @@ func (cl *ClientImpl) SaveAccount(ac *Account) error {
 		return err
 	}
 	for i := 1; i <= 64; i++ {
-		decryptedPrivateKey[i - 1] = temp[i]
+		decryptedPrivateKey[i-1] = temp[i]
 	}
 
 	for i := len(ac.PrivateKey) - 1; i >= 0; i-- {
-		decryptedPrivateKey[96 + i - len(ac.PrivateKey)] = ac.PrivateKey[i]
+		decryptedPrivateKey[96+i-len(ac.PrivateKey)] = ac.PrivateKey[i]
 	}
 
 	encryptedPrivateKey, err := cl.EncryptPrivateKey(decryptedPrivateKey)
@@ -505,6 +505,34 @@ func (cl *ClientImpl) AddContract(ct *contract.Contract) error {
 
 	err := cl.SaveContractData(ct)
 	return err
+}
+
+func (cl *ClientImpl) GetBookKeepers() ([]*crypto.PubKey, error) {
+	var pubKeys = []*crypto.PubKey{}
+	consensusType := config.Parameters.ConsensusType
+	if consensusType == "solo" {
+		ac, err := cl.GetDefaultAccount()
+		if err != nil {
+			return nil, fmt.Errorf("GetDefaultAccount error:%s", err)
+		}
+		pubKeys = append(pubKeys, ac.PublicKey)
+		return pubKeys, nil
+	}
+
+	sort.Strings(config.Parameters.BookKeepers)
+	for _, key := range config.Parameters.BookKeepers {
+		pubKey := []byte(key)
+		pubKey, err := hex.DecodeString(key)
+		// TODO Convert the key string to byte
+		k, err := crypto.DecodePoint(pubKey)
+		if err != nil {
+			log.Error("Incorrectly book keepers key")
+			return nil, fmt.Errorf("Incorrectly book keepers key:%s")
+		}
+		pubKeys = append(pubKeys, k)
+	}
+
+	return pubKeys, nil
 }
 
 func clientIsDefaultBookKeeper(publicKey string) bool {

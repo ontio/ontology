@@ -427,14 +427,14 @@ func getNodeState(params []interface{}) map[string]interface{} {
 }
 
 func startConsensus(params []interface{}) map[string]interface{} {
-	if err := dBFT.Start(); err != nil {
+	if err := consensusSrv.Start(); err != nil {
 		return DnaRpcFailed
 	}
 	return DnaRpcSuccess
 }
 
 func stopConsensus(params []interface{}) map[string]interface{} {
-	if err := dBFT.Halt(); err != nil {
+	if err := consensusSrv.Halt(); err != nil {
 		return DnaRpcFailed
 	}
 	return DnaRpcSuccess

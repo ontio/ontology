@@ -2,7 +2,9 @@ package node
 
 import (
 	"fmt"
+	"github.com/Ontology/common/config"
 	. "github.com/Ontology/net/protocol"
+	"strings"
 	"sync"
 )
 
@@ -153,4 +155,18 @@ func (node *node) GetNbrNodeCnt() uint32 {
 		}
 	}
 	return count
+}
+
+func (node *node) IsUptoMinNodeCount() bool {
+	consensusType := strings.ToLower(config.Parameters.ConsensusType)
+	if consensusType == "" {
+		consensusType = "dbft"
+	}
+	minCount := config.DBFTMINNODENUM
+	switch consensusType {
+	case "dbft":
+	case "solo":
+		minCount = config.SOLOMINNODENUM
+	}
+	return int(node.GetNbrNodeCnt())+1 >= minCount
 }

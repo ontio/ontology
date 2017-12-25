@@ -12,6 +12,8 @@ const (
 	DefaultConfigFilename = "./config.json"
 	MINGENBLOCKTIME = 2
 	DEFAULTGENBLOCKTIME = 6
+	DBFTMINNODENUM        = 4 //min node number of dbft consensus
+	SOLOMINNODENUM        = 1 //min node number of solo consensus
 )
 
 var Version string
@@ -45,6 +47,7 @@ type Configuration struct {
 	MaxLogSize      int64    `json:"MaxLogSize"`
 	MaxTxInBlock    int      `json:"MaxTransactionInBlock"`
 	MaxHdrSyncReqs  int      `json:"MaxConcurrentSyncHeaderReqs"`
+	ConsensusType   string           `json:"ConsensusType"`
 }
 
 type ConfigFile struct {
