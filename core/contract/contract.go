@@ -8,7 +8,7 @@ import (
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
 	. "github.com/Ontology/errors"
-	"github.com/Ontology/vm"
+	vm "github.com/Ontology/vm/neovm"
 )
 
 //Contract address is the hash of contract program .

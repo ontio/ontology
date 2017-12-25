@@ -14,6 +14,7 @@ import (
 	"io"
 	"sort"
 	. "github.com/Ontology/core/transaction/utxo"
+	"bytes"
 )
 
 //for different transaction types with different payload format
@@ -385,6 +386,12 @@ func (tx *Transaction) GenerateAssetMaps() {
 
 func (tx *Transaction) GetMessage() []byte {
 	return sig.GetHashData(tx)
+}
+
+func (tx *Transaction) ToArray() []byte {
+	b := new(bytes.Buffer)
+	tx.Serialize(b)
+	return b.Bytes()
 }
 
 func (tx *Transaction) Hash() Uint256 {

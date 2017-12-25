@@ -11,9 +11,10 @@ import (
 	"github.com/Ontology/core/transaction/utxo"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
-	"github.com/Ontology/vm"
+	vm "github.com/Ontology/vm/neovm"
 	"io"
 	"time"
+	"bytes"
 )
 
 const BlockVersion uint32 = 0
@@ -120,6 +121,12 @@ func (b *Block) GetMessage() []byte {
 func (b *Block) GetProgramHashes() ([]Uint160, error) {
 
 	return b.Blockdata.GetProgramHashes()
+}
+
+func (b *Block) ToArray() []byte {
+	bf := new(bytes.Buffer)
+	b.Serialize(bf)
+	return bf.Bytes()
 }
 
 func (b *Block) SetPrograms(prog []*program.Program) {

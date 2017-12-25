@@ -5,7 +5,7 @@ import (
 	pg "github.com/Ontology/core/contract/program"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
-	"github.com/Ontology/vm"
+	vm "github.com/Ontology/vm/neovm"
 	"math/big"
 	"sort"
 )

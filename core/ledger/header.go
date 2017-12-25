@@ -2,6 +2,7 @@ package ledger
 
 import (
 	"io"
+	"bytes"
 )
 
 type Header struct {
@@ -26,4 +27,10 @@ func (h *Header) Deserialize(r io.Reader) error {
 	}
 
 	return nil
+}
+
+func (h *Header) ToArray() []byte {
+	bf := new(bytes.Buffer)
+	h.Serialize(bf)
+	return bf.Bytes()
 }

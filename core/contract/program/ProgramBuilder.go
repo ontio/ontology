@@ -3,7 +3,7 @@ package program
 import (
 	"bytes"
 	. "github.com/Ontology/common"
-	"github.com/Ontology/vm"
+	vm "github.com/Ontology/vm/neovm"
 	"math/big"
 )
 
