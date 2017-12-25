@@ -21,8 +21,8 @@ type decoder func(*Stream, reflect.Value) error
 type writer func(reflect.Value, *encBuf) error
 
 type tags struct {
-	nilOK bool
-	tail bool
+	nilOK   bool
+	tail    bool
 	ignored bool
 }
 
@@ -69,7 +69,7 @@ func genTypeInfo(typ reflect.Type, tags tags) (info *typeInfo, err error) {
 
 type field struct {
 	index int
-	info *typeInfo
+	info  *typeInfo
 }
 
 func structFields(typ reflect.Type) (fields []field, err error) {

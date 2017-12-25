@@ -28,7 +28,7 @@ import (
 
 const (
 	DefaultBookKeeperCount = 4
-	WalletFileName         = "wallet.dat"
+	WalletFileName = "wallet.dat"
 )
 
 type Client interface {
@@ -39,20 +39,20 @@ type Client interface {
 }
 
 type ClientImpl struct {
-	mu sync.Mutex
+	mu            sync.Mutex
 
-	path      string
-	iv        []byte
-	masterKey []byte
+	path          string
+	iv            []byte
+	masterKey     []byte
 
-	accounts  map[Uint160]*Account
-	contracts map[Uint160]*ct.Contract
+	accounts      map[Uint160]*Account
+	contracts     map[Uint160]*ct.Contract
 
 	watchOnly     []Uint160
 	currentHeight uint32
 
 	FileStore
-	isrunning bool
+	isrunning     bool
 }
 
 //TODO: adjust contract folder structure
@@ -422,11 +422,11 @@ func (cl *ClientImpl) SaveAccount(ac *Account) error {
 		return err
 	}
 	for i := 1; i <= 64; i++ {
-		decryptedPrivateKey[i-1] = temp[i]
+		decryptedPrivateKey[i - 1] = temp[i]
 	}
 
 	for i := len(ac.PrivateKey) - 1; i >= 0; i-- {
-		decryptedPrivateKey[96+i-len(ac.PrivateKey)] = ac.PrivateKey[i]
+		decryptedPrivateKey[96 + i - len(ac.PrivateKey)] = ac.PrivateKey[i]
 	}
 
 	encryptedPrivateKey, err := cl.EncryptPrivateKey(decryptedPrivateKey)

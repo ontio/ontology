@@ -13,19 +13,19 @@ import (
 
 type AssetState struct {
 	StateBase
-	AssetId Uint256
-	AssetType asset.AssetType
-	Name string
-	Amount Fixed64
-	Available Fixed64
-	Precision byte
-	Owner *crypto.PubKey
-	Admin Uint160
+	AssetId    Uint256
+	AssetType  asset.AssetType
+	Name       string
+	Amount     Fixed64
+	Available  Fixed64
+	Precision  byte
+	Owner      *crypto.PubKey
+	Admin      Uint160
 	Expiration uint32
-	IsFrozen bool
+	IsFrozen   bool
 }
 
-func(this *AssetState) Serialize(w io.Writer) error {
+func (this *AssetState) Serialize(w io.Writer) error {
 	this.StateBase.Serialize(w)
 	this.AssetId.Serialize(w)
 	WriteByte(w, byte(this.AssetType))
@@ -41,14 +41,14 @@ func(this *AssetState) Serialize(w io.Writer) error {
 	return nil
 }
 
-func(this *AssetState) Deserialize(r io.Reader) error {
+func (this *AssetState) Deserialize(r io.Reader) error {
 	err := this.StateBase.Deserialize(r)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "AssetState StateBase Deserialize failed.")
 	}
 	assId := new(Uint256)
 	err = assId.Deserialize(r)
-	if err != nil{
+	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "AssetState AssetId Deserialize failed.")
 	}
 	this.AssetId = *assId
@@ -58,21 +58,21 @@ func(this *AssetState) Deserialize(r io.Reader) error {
 	}
 	this.AssetType = asset.AssetType(assetType)
 	name, err := ReadVarString(r)
-	if err != nil{
+	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "AssetState Name Deserialize failed.")
 	}
 	this.Name = name
 
 	amount := new(Fixed64)
 	err = amount.Deserialize(r)
-	if err != nil{
+	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "AssetState Amount Deserialize failed.")
 	}
 	this.Amount = *amount
 
 	available := new(Fixed64)
 	err = available.Deserialize(r)
-	if err != nil{
+	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "AssetState Available Deserialize failed.")
 	}
 	this.Available = *available
@@ -109,7 +109,7 @@ func(this *AssetState) Deserialize(r io.Reader) error {
 	return nil
 }
 
-func(assetState *AssetState) ToArray() []byte {
+func (assetState *AssetState) ToArray() []byte {
 	b := new(bytes.Buffer)
 	assetState.Serialize(b)
 	return b.Bytes()

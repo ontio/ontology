@@ -46,7 +46,7 @@ func (f Fixed64) String() string {
 		buffer.WriteRune('-')
 		value = -value
 	}
-	buffer.WriteString(strconv.FormatInt(value/100000000, 10))
+	buffer.WriteString(strconv.FormatInt(value / 100000000, 10))
 	value %= 100000000
 	if value > 0 {
 		buffer.WriteRune('.')

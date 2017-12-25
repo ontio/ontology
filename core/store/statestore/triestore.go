@@ -23,7 +23,7 @@ type ITrie interface {
 }
 
 type cachingDB struct {
-	db store.IStore
+	db        store.IStore
 	pastTries []*trie.SecureTrie
 }
 
@@ -48,7 +48,7 @@ func (db *cachingDB) OpenTrie(root Uint256) (ITrie, error) {
 func (db *cachingDB) pushTrie(t *trie.SecureTrie) {
 	if len(db.pastTries) > maxPastTries {
 		copy(db.pastTries, db.pastTries[1:])
-		db.pastTries[len(db.pastTries)-1] = t
+		db.pastTries[len(db.pastTries) - 1] = t
 	} else {
 		db.pastTries = append(db.pastTries, t)
 	}

@@ -5,7 +5,7 @@ type DataEntryPrefix byte
 
 const (
 	// DATA
-	DATA_Block   DataEntryPrefix = iota
+	DATA_Block DataEntryPrefix = iota
 	DATA_Header
 	DATA_Transaction
 

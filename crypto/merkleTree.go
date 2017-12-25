@@ -71,27 +71,27 @@ func generateLeaves(hashes []Uint256) []*MerkleTreeNode {
 //calc the next level's hash use double sha256
 func levelUp(nodes []*MerkleTreeNode) []*MerkleTreeNode {
 	var nextLevel []*MerkleTreeNode
-	for i := 0; i < len(nodes)/2; i++ {
+	for i := 0; i < len(nodes) / 2; i++ {
 		var data []Uint256
-		data = append(data, nodes[i*2].Hash)
-		data = append(data, nodes[i*2+1].Hash)
+		data = append(data, nodes[i * 2].Hash)
+		data = append(data, nodes[i * 2 + 1].Hash)
 		hash := DOUBLE_SHA256(data)
 		node := &MerkleTreeNode{
 			Hash:  hash,
-			Left:  nodes[i*2],
-			Right: nodes[i*2+1],
+			Left:  nodes[i * 2],
+			Right: nodes[i * 2 + 1],
 		}
 		nextLevel = append(nextLevel, node)
 	}
-	if len(nodes)%2 == 1 {
+	if len(nodes) % 2 == 1 {
 		var data []Uint256
-		data = append(data, nodes[len(nodes)-1].Hash)
-		data = append(data, nodes[len(nodes)-1].Hash)
+		data = append(data, nodes[len(nodes) - 1].Hash)
+		data = append(data, nodes[len(nodes) - 1].Hash)
 		hash := DOUBLE_SHA256(data)
 		node := &MerkleTreeNode{
 			Hash:  hash,
-			Left:  nodes[len(nodes)-1],
-			Right: nodes[len(nodes)-1],
+			Left:  nodes[len(nodes) - 1],
+			Right: nodes[len(nodes) - 1],
 		}
 		nextLevel = append(nextLevel, node)
 	}

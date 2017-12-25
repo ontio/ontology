@@ -27,7 +27,7 @@ func StartRPCServer() {
 	HandleFunc("regdatafile", regDataFile)
 	HandleFunc("uploadDataFile", uploadDataFile)
 
-	err := http.ListenAndServe(":"+strconv.Itoa(Parameters.HttpJsonPort), nil)
+	err := http.ListenAndServe(":" + strconv.Itoa(Parameters.HttpJsonPort), nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err.Error())
 	}

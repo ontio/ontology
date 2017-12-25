@@ -9,7 +9,7 @@ import (
 
 type StorageKey struct {
 	CodeHash common.Uint160
-	Key []byte
+	Key      []byte
 }
 
 func (this *StorageKey) Serialize(w io.Writer) (int, error) {

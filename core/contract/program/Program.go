@@ -7,9 +7,8 @@ import (
 )
 
 type Program struct {
-
 	//the contract program code,which will be run on VM or specific envrionment
-	Code []byte
+	Code      []byte
 
 	//the program code's parameter
 	Parameter []byte

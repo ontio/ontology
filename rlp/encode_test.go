@@ -218,7 +218,6 @@ var encTests = []encTest{
 	{val: []byteEncoder{0, 1, 2, 3, 4}, output: "C5C0C0C0C0C0"},
 }
 
-
 func runEncTests(t *testing.T, f func(val interface{}) ([]byte, error)) {
 	for i, test := range encTests {
 		output, err := f(test.val)

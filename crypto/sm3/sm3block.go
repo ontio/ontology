@@ -13,20 +13,20 @@ func blockGeneric(dig *digest, p []byte) {
 	for len(p) >= chunk {
 		for i := 0; i < 16; i++ {
 			j := i * 4
-			w[i] = uint32(p[j])<<24 | uint32(p[j+1])<<16 | uint32(p[j+2])<<8 | uint32(p[j+3])
+			w[i] = uint32(p[j]) << 24 | uint32(p[j + 1]) << 16 | uint32(p[j + 2]) << 8 | uint32(p[j + 3])
 		}
 		for i := 16; i < 68; i++ {
-			w[i] = sm3_p1(w[i-16]^w[i-9]^sm3_rotl(w[i-3], 15)) ^ sm3_rotl(w[i-13], 7) ^ w[i-6]
+			w[i] = sm3_p1(w[i - 16] ^ w[i - 9] ^ sm3_rotl(w[i - 3], 15)) ^ sm3_rotl(w[i - 13], 7) ^ w[i - 6]
 		}
 
 		for i := 0; i < 64; i++ {
-			w1[i] = w[i] ^ w[i+4]
+			w1[i] = w[i] ^ w[i + 4]
 		}
 
 		a, b, c, d, e, f, g, h := h0, h1, h2, h3, h4, h5, h6, h7
 
 		for j := 0; j < 64; j++ {
-			ss1 = sm3_rotl(sm3_rotl(a, 12)+e+sm3_rotl(sm3_t(j), uint32(j)), 7)
+			ss1 = sm3_rotl(sm3_rotl(a, 12) + e + sm3_rotl(sm3_t(j), uint32(j)), 7)
 			ss2 = ss1 ^ sm3_rotl(a, 12)
 			tt1 = sm3_ff(a, b, c, j) + d + ss2 + w1[j]
 			tt2 = sm3_gg(e, f, g, j) + h + ss1 + w[j]

@@ -4,7 +4,7 @@ import (
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/store"
-	."github.com/Ontology/common"
+	. "github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"encoding/hex"
 	"os"
@@ -24,7 +24,7 @@ var Usage = func() {
 }
 
 func DumpDB() {
-	fd,_:=os.OpenFile("dump.txt",os.O_RDWR|os.O_CREATE,0644)
+	fd, _ := os.OpenFile("dump.txt", os.O_RDWR | os.O_CREATE, 0644)
 
 	i := 0
 	for (true) {
@@ -34,94 +34,92 @@ func DumpDB() {
 			return
 		}
 
-		block,err := ledger.DefaultLedger.Store.GetBlock(hash)
+		block, err := ledger.DefaultLedger.Store.GetBlock(hash)
 		if err != nil {
 			fmt.Println("GetBlock() err!")
 			return
 		}
 
-		fd.Write( []byte(fmt.Sprintf("Block height: %d\n", block.Blockdata.Height)) )
+		fd.Write([]byte(fmt.Sprintf("Block height: %d\n", block.Blockdata.Height)))
 		h := block.Blockdata.Hash()
-		fd.Write( []byte(fmt.Sprintf( "Block hash: %x\n", h.ToArray() )) )
-		fd.Write( []byte(fmt.Sprintf( "Block timestamp: %d\n", block.Blockdata.Timestamp )) )
-		fd.Write( []byte(fmt.Sprintf( "Block transactionsRoot :%x\n", block.Blockdata.TransactionsRoot )) )
-		fd.Write( []byte(fmt.Sprintf( "Tx Len: %d\n", len(block.Transcations) )) )
+		fd.Write([]byte(fmt.Sprintf("Block hash: %x\n", h.ToArray())))
+		fd.Write([]byte(fmt.Sprintf("Block timestamp: %d\n", block.Blockdata.Timestamp)))
+		fd.Write([]byte(fmt.Sprintf("Block transactionsRoot :%x\n", block.Blockdata.TransactionsRoot)))
+		fd.Write([]byte(fmt.Sprintf("Tx Len: %d\n", len(block.Transcations))))
 
-		for k:=0; k<len(block.Transcations); k++ {
+		for k := 0; k < len(block.Transcations); k++ {
 			txhash := block.Transcations[k].Hash()
-			fd.Write( []byte(fmt.Sprintf( "Tx hash: %x\n", txhash.ToArray() )) )
-			fd.Write( []byte(fmt.Sprintf( "Tx Type: %x\n", block.Transcations[k].TxType )) )
+			fd.Write([]byte(fmt.Sprintf("Tx hash: %x\n", txhash.ToArray())))
+			fd.Write([]byte(fmt.Sprintf("Tx Type: %x\n", block.Transcations[k].TxType)))
 		}
 
-		fd.Write( []byte("\n") )
+		fd.Write([]byte("\n"))
 		i ++
 	}
 
 	fd.Close()
 }
 
-
 func GetBlock(hash string) {
-	bhash,err := hex.DecodeString(hash)
-	uhash,err := Uint256ParseFromBytes( bhash )
+	bhash, err := hex.DecodeString(hash)
+	uhash, err := Uint256ParseFromBytes(bhash)
 	if err != nil {
-		fmt.Printf( "bhash len: %d\n", len(bhash) )
-		fmt.Printf( "Uint256ParseFromBytes err: %s\n", err )
+		fmt.Printf("bhash len: %d\n", len(bhash))
+		fmt.Printf("Uint256ParseFromBytes err: %s\n", err)
 	}
 
-	block,err := ledger.DefaultLedger.Store.GetBlock(uhash)
+	block, err := ledger.DefaultLedger.Store.GetBlock(uhash)
 	if err == nil {
-		fmt.Printf( "hash: %s\n", hash )
-		fmt.Printf( "height: %d\n", block.Blockdata.Height )
-		fmt.Printf( "Tx Len: %d\n", len(block.Transcations) )
+		fmt.Printf("hash: %s\n", hash)
+		fmt.Printf("height: %d\n", block.Blockdata.Height)
+		fmt.Printf("Tx Len: %d\n", len(block.Transcations))
 
-		for k:=0; k<len(block.Transcations); k++ {
+		for k := 0; k < len(block.Transcations); k++ {
 			txhash := block.Transcations[k].Hash()
-			fmt.Printf( "Tx hash: %x\n", txhash.ToArray() )
-			fmt.Printf( "Tx Type: %x\n", block.Transcations[k].TxType )
-			fmt.Printf( "\n" )
+			fmt.Printf("Tx hash: %x\n", txhash.ToArray())
+			fmt.Printf("Tx Type: %x\n", block.Transcations[k].TxType)
+			fmt.Printf("\n")
 		}
 	} else {
-		fmt.Printf( "err: %s\n", err )
+		fmt.Printf("err: %s\n", err)
 	}
 }
 
 func GetTx(txid string) {
-	bhash,err := hex.DecodeString(txid)
-	uhash,err := Uint256ParseFromBytes( bhash )
+	bhash, err := hex.DecodeString(txid)
+	uhash, err := Uint256ParseFromBytes(bhash)
 	if err != nil {
-		fmt.Printf( "bhash len: %d\n", len(bhash) )
-		fmt.Printf( "Uint256ParseFromBytes err: %s\n", err )
+		fmt.Printf("bhash len: %d\n", len(bhash))
+		fmt.Printf("Uint256ParseFromBytes err: %s\n", err)
 	}
 
-	tx,err := ledger.DefaultLedger.Store.GetTransaction(uhash)
+	tx, err := ledger.DefaultLedger.Store.GetTransaction(uhash)
 	if err == nil {
-		fmt.Printf( "txid: %s\n", txid )
-		fmt.Printf( "tx.TxType: %x\n", tx.TxType )
+		fmt.Printf("txid: %s\n", txid)
+		fmt.Printf("tx.TxType: %x\n", tx.TxType)
 	} else {
-		fmt.Printf( "err: %s\n", err )
+		fmt.Printf("err: %s\n", err)
 	}
 }
 
-
 func GetAsset(assetid string) {
-	bhash,err := hex.DecodeString(assetid)
-	uhash,err := Uint256ParseFromBytes( bhash )
+	bhash, err := hex.DecodeString(assetid)
+	uhash, err := Uint256ParseFromBytes(bhash)
 	if err != nil {
-		fmt.Printf( "bhash len: %d\n", len(bhash) )
-		fmt.Printf( "Uint256ParseFromBytes err: %s\n", err )
+		fmt.Printf("bhash len: %d\n", len(bhash))
+		fmt.Printf("Uint256ParseFromBytes err: %s\n", err)
 	}
 
-	asset,err := ledger.DefaultLedger.Store.GetAsset(uhash)
+	asset, err := ledger.DefaultLedger.Store.GetAsset(uhash)
 	if err == nil {
-		fmt.Printf( "txid: %s\n", assetid )
+		fmt.Printf("txid: %s\n", assetid)
 		asset.ID
-		fmt.Printf( "asset.TxType: %x\n", asset.AssetType )
-		fmt.Printf( "asset.Name: %s\n", asset.Name )
-		fmt.Printf( "asset.RecordType: %x\n", asset.RecordType )
-		fmt.Printf( "asset.Precision: %x\n", asset.Precision )
+		fmt.Printf("asset.TxType: %x\n", asset.AssetType)
+		fmt.Printf("asset.Name: %s\n", asset.Name)
+		fmt.Printf("asset.RecordType: %x\n", asset.RecordType)
+		fmt.Printf("asset.Precision: %x\n", asset.Precision)
 	} else {
-		fmt.Printf( "err: %s\n", err )
+		fmt.Printf("err: %s\n", err)
 	}
 }
 
@@ -134,7 +132,7 @@ func main() {
 	ledger.DefaultLedger.Store.InitLedgerStore(ledger.DefaultLedger)
 
 	args := os.Args
-	if args == nil || len(args)<2{
+	if args == nil || len(args) < 2 {
 		Usage()
 		return
 	}
@@ -148,7 +146,7 @@ func main() {
 	} else if cmd == "tx" {
 		txid := args[2]
 		GetTx(txid)
-	}  else if cmd == "asset" {
+	} else if cmd == "asset" {
 		assetid := args[2]
 		GetAsset(assetid)
 	}

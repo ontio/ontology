@@ -46,7 +46,7 @@ func (ba *ByteArray) GetBigInteger() *big.Int {
 	bytes = append(bytes, ba.value...)
 	common.BytesReverse(bytes)
 
-	if bytes[0]>>7 == 1 {
+	if bytes[0] >> 7 == 1 {
 		for i, b := range bytes {
 			bytes[i] = ^b
 		}

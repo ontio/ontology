@@ -13,7 +13,6 @@ var ErrEof = errors.New("got EOF, can not get the next byte")
 
 //SerializableData describe the data need be serialized.
 type SerializableData interface {
-
 	//Write data to writer
 	Serialize(w io.Writer) error
 

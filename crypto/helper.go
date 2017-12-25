@@ -48,7 +48,7 @@ func AesDecrypt(ciphertext []byte, key []byte, iv []byte) ([]byte, error) {
 		return nil, errors.New("ciphertext too short")
 	}
 
-	if len(ciphertext)%blockSize != 0 {
+	if len(ciphertext) % blockSize != 0 {
 		return nil, errors.New("ciphertext is not a multiple of the block size")
 	}
 
@@ -62,7 +62,7 @@ func AesDecrypt(ciphertext []byte, key []byte, iv []byte) ([]byte, error) {
 }
 
 func PKCS5Padding(src []byte, blockSize int) []byte {
-	padding := blockSize - len(src)%blockSize
+	padding := blockSize - len(src) % blockSize
 	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
 
 	return append(src, padtext...)
@@ -70,6 +70,6 @@ func PKCS5Padding(src []byte, blockSize int) []byte {
 
 func PKCS5UnPadding(src []byte) []byte {
 	length := len(src)
-	unpadding := int(src[length-1])
+	unpadding := int(src[length - 1])
 	return src[:(length - unpadding)]
 }

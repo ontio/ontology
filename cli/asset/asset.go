@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	RANDBYTELEN    = 4
+	RANDBYTELEN = 4
 	REFERTXHASHLEN = 64
 )
 
@@ -173,7 +173,7 @@ func makeTransferTransaction(signer *account.Account, programHashStr, assetHashS
 	expected := transferTxOutput.Value
 	for k, v := range unspend {
 		h := k[0:REFERTXHASHLEN]
-		i := k[REFERTXHASHLEN+1:]
+		i := k[REFERTXHASHLEN + 1:]
 		b, _ := hex.DecodeString(h)
 		var referHash Uint256
 		referHash.Deserialize(bytes.NewReader(b))

@@ -46,9 +46,13 @@ func New() hash.Hash {
 	return d
 }
 
-func (d *digest) Size() int { return Size }
+func (d *digest) Size() int {
+	return Size
+}
 
-func (d *digest) BlockSize() int { return BlockSize }
+func (d *digest) BlockSize() int {
+	return BlockSize
+}
 
 func (d *digest) Write(p []byte) (nn int, err error) {
 	nn = len(p)
@@ -83,15 +87,15 @@ func (d *digest) checkSum() [Size]byte {
 	len := d.len
 	var tmp [64]byte
 	tmp[0] = 0x80
-	if len%64 < 56 {
-		d.Write(tmp[0 : 56-len%64])
+	if len % 64 < 56 {
+		d.Write(tmp[0 : 56 - len % 64])
 	} else {
-		d.Write(tmp[0 : 64+56-len%64])
+		d.Write(tmp[0 : 64 + 56 - len % 64])
 	}
 
 	len <<= 3
 	for i := uint(0); i < 8; i++ {
-		tmp[i] = byte(len >> (56 - 8*i))
+		tmp[i] = byte(len >> (56 - 8 * i))
 	}
 	d.Write(tmp[0:8])
 
@@ -103,10 +107,10 @@ func (d *digest) checkSum() [Size]byte {
 
 	var digest [Size]byte
 	for i, s := range h {
-		digest[i*4] = byte(s >> 24)
-		digest[i*4+1] = byte(s >> 16)
-		digest[i*4+2] = byte(s >> 8)
-		digest[i*4+3] = byte(s)
+		digest[i * 4] = byte(s >> 24)
+		digest[i * 4 + 1] = byte(s >> 16)
+		digest[i * 4 + 2] = byte(s >> 8)
+		digest[i * 4 + 3] = byte(s)
 	}
 
 	return digest

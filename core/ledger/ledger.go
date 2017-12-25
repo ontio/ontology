@@ -45,7 +45,7 @@ func GetBookKeeperAddress(bookKeepers []*crypto.PubKey) (Uint160, error) {
 	var temp []byte
 	var err error
 	if len(bookKeepers) > 1 {
-		temp, err = contract.CreateMultiSigRedeemScript(len(bookKeepers)-(len(bookKeepers)-1)/3, bookKeepers)
+		temp, err = contract.CreateMultiSigRedeemScript(len(bookKeepers) - (len(bookKeepers) - 1) / 3, bookKeepers)
 		if err != nil {
 			return Uint160{}, NewDetailErr(err, ErrNoCode, "[Ledger],GetBookKeeperAddress failed with CreateMultiSigRedeemScript.")
 		}
@@ -66,7 +66,7 @@ func GetBookKeeperAddress(bookKeepers []*crypto.PubKey) (Uint160, error) {
 func (l *Ledger) GetAsset(assetId Uint256) (*states.AssetState, error) {
 	asset, err := l.Store.GetAsset(assetId)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetAsset failed with assetId ="+assetId.ToString())
+		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetAsset failed with assetId =" + assetId.ToString())
 	}
 	return asset, nil
 }
@@ -75,11 +75,11 @@ func (l *Ledger) GetAsset(assetId Uint256) (*states.AssetState, error) {
 func (l *Ledger) GetBlockWithHeight(height uint32) (*Block, error) {
 	temp, err := l.Store.GetBlockHash(height)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetBlockWithHeight failed with height="+string(height))
+		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetBlockWithHeight failed with height=" + string(height))
 	}
 	bk, err := DefaultLedger.Store.GetBlock(temp)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetBlockWithHeight failed with hash="+temp.ToString())
+		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetBlockWithHeight failed with hash=" + temp.ToString())
 	}
 	return bk, nil
 }
@@ -88,7 +88,7 @@ func (l *Ledger) GetBlockWithHeight(height uint32) (*Block, error) {
 func (l *Ledger) GetBlockWithHash(hash Uint256) (*Block, error) {
 	bk, err := l.Store.GetBlock(hash)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetBlockWithHeight failed with hash="+hash.ToString())
+		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetBlockWithHeight failed with hash=" + hash.ToString())
 	}
 	return bk, nil
 }
@@ -102,7 +102,7 @@ func (l *Ledger) BlockInLedger(hash Uint256) bool {
 func (l *Ledger) GetTransactionWithHash(hash Uint256) (*tx.Transaction, error) {
 	tx, err := l.Store.GetTransaction(hash)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetTransactionWithHash failed with hash="+hash.ToString())
+		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetTransactionWithHash failed with hash=" + hash.ToString())
 	}
 	return tx, nil
 }

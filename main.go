@@ -107,7 +107,6 @@ func main() {
 		go httpnodeinfo.StartServer(noder)
 	}
 
-
 	for {
 		time.Sleep(dbft.GenBlockTime)
 		log.Trace("BlockHeight = ", ledger.DefaultLedger.Blockchain.BlockHeight)
@@ -118,6 +117,6 @@ func main() {
 		}
 	}
 
-ERROR:
+	ERROR:
 	os.Exit(1)
 }

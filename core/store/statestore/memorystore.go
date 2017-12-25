@@ -5,7 +5,6 @@ import (
 	. "github.com/Ontology/core/store"
 )
 
-
 type MemoryStore struct {
 	memory map[string]*StateItem
 }

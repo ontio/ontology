@@ -30,39 +30,43 @@ func MakeSemaphore(n int) Semaphore {
 	return make(chan struct{}, n)
 }
 
-func (s Semaphore) acquire() { s <- struct{}{} }
-func (s Semaphore) release() { <-s }
+func (s Semaphore) acquire() {
+	s <- struct{}{}
+}
+func (s Semaphore) release() {
+	<-s
+}
 
 type node struct {
-	//sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
-	state     uint32   // node state
-	id        uint64   // The nodes's id
-	cap       [32]byte // The node capability set
-	version   uint32   // The network protocol the node used
-	services  uint64   // The services the node supplied
-	relay     bool     // The relay capability of the node (merge into capbility flag)
-	height    uint64   // The node latest block height
-	txnCnt    uint64   // The transactions be transmit by this node
-	rxTxnCnt  uint64   // The transaction received by this node
-	publicKey *crypto.PubKey
-	// TODO does this channel should be a buffer channel
-	chF        chan func() error // Channel used to operate the node without lock
-	link                         // The link status and infomation
-	local      *node             // The pointer to local node
-	nbrNodes                     // The neighbor node connect with currently node except itself
-	eventQueue                   // The event queue to notice notice other modules
-	TXNPool                      // Unconfirmed transaction pool
-	idCache                      // The buffer to store the id of the items which already be processed
-	/*
-	 * |--|--|--|--|--|--|isSyncFailed|isSyncHeaders|
-	 */
+						   //sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
+	state                    uint32            // node state
+	id                       uint64            // The nodes's id
+	cap                      [32]byte          // The node capability set
+	version                  uint32            // The network protocol the node used
+	services                 uint64            // The services the node supplied
+	relay                    bool              // The relay capability of the node (merge into capbility flag)
+	height                   uint64            // The node latest block height
+	txnCnt                   uint64            // The transactions be transmit by this node
+	rxTxnCnt                 uint64            // The transaction received by this node
+	publicKey                *crypto.PubKey
+						   // TODO does this channel should be a buffer channel
+	chF                      chan func() error // Channel used to operate the node without lock
+	link                                       // The link status and infomation
+	local                    *node             // The pointer to local node
+	nbrNodes                                   // The neighbor node connect with currently node except itself
+	eventQueue                                 // The event queue to notice notice other modules
+	TXNPool                                    // Unconfirmed transaction pool
+	idCache                                    // The buffer to store the id of the items which already be processed
+						   /*
+						    * |--|--|--|--|--|--|isSyncFailed|isSyncHeaders|
+						    */
 	flightHeights            []uint32
 	lastContact              time.Time
 	nodeDisconnectSubscriber events.Subscriber
 	tryTimes                 uint32
 	ConnectingNodes
 	RetryConnAddrs
-	SyncReqSem Semaphore
+	SyncReqSem               Semaphore
 }
 
 type RetryConnAddrs struct {
@@ -124,14 +128,14 @@ func (node *node) RemoveAddrInConnectingList(addr string) {
 	addrs := []string{}
 	for i, a := range node.ConnectingAddrs {
 		if strings.Compare(a, addr) == 0 {
-			addrs = append(node.ConnectingAddrs[:i], node.ConnectingAddrs[i+1:]...)
+			addrs = append(node.ConnectingAddrs[:i], node.ConnectingAddrs[i + 1:]...)
 		}
 	}
 	node.ConnectingAddrs = addrs
 }
 
 func (node *node) UpdateInfo(t time.Time, version uint32, services uint64,
-	port uint16, nonce uint64, relay uint8, height uint64) {
+port uint16, nonce uint64, relay uint8, height uint64) {
 
 	node.UpdateRXTime(t)
 	node.id = nonce

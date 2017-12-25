@@ -8,13 +8,13 @@ import (
 
 var secureKeyPrefix = []byte("secure-key-")
 
-const secureKeyLength  = 11 + 32
+const secureKeyLength = 11 + 32
 
 type SecureTrie struct {
-	trie Trie
-	hashKeyBuf [secureKeyLength]byte
-	secKeyBuf [200]byte
-	secKeyCache map[string][]byte
+	trie             Trie
+	hashKeyBuf       [secureKeyLength]byte
+	secKeyBuf        [200]byte
+	secKeyCache      map[string][]byte
 	secKeyCacheOwner *SecureTrie
 }
 
@@ -83,7 +83,7 @@ func (t *SecureTrie) CommitTo(db DatabaseWriter) (common.Uint256, error) {
 		t.secKeyCache = make(map[string][]byte)
 	}
 	return t.trie.commitTo(db)
- }
+}
 
 func (t *SecureTrie) secKey(key []byte) []byte {
 	buf := append(t.secKeyBuf[:0], secureKeyPrefix...)

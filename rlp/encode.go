@@ -112,7 +112,7 @@ func (w *encBuf) encodeStringHeader(size int) {
 }
 
 func (w *encBuf) listEnd(lh *listHead) {
-	lh.size = w.size() - lh.offset -lh.size
+	lh.size = w.size() - lh.offset - lh.size
 	if lh.size < 56 {
 		w.lHSize += 1
 	} else {
@@ -245,7 +245,7 @@ func writeUint(val reflect.Value, w *encBuf) error {
 	} else {
 		s := putInt(w.sizeBuf[1:], i)
 		w.sizeBuf[0] = 0x80 + byte(s)
-		w.str = append(w.str, w.sizeBuf[:s+1]...)
+		w.str = append(w.str, w.sizeBuf[:s + 1]...)
 	}
 	return nil
 }
@@ -316,7 +316,7 @@ func makeStructWriter(typ reflect.Type) (writer, error) {
 	if err != nil {
 		return nil, err
 	}
-	writer := func(val reflect.Value, w * encBuf) error {
+	writer := func(val reflect.Value, w *encBuf) error {
 		lh := w.list()
 		for _, f := range fields {
 			if err := f.info.writer(val.Field(f.index), w); err != nil {

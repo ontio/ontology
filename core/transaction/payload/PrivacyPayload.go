@@ -144,7 +144,7 @@ func (ea *EcdhAes256) Encrypt(msg []byte, keys interface{}) ([]byte, error) {
 	}
 	x, _ := priv.Curve.ScalarMult(ea.ToPubkey.X, ea.ToPubkey.Y, key)
 	aesKey := make([]byte, 32)
-	copy(aesKey[32-len(x.Bytes()):], x.Bytes())
+	copy(aesKey[32 - len(x.Bytes()):], x.Bytes())
 
 	iv := make([]byte, 16)
 	r := mrand.New(mrand.NewSource(time.Now().UnixNano()))
@@ -177,10 +177,10 @@ func (ea *EcdhAes256) Decrypt(msg []byte, keys interface{}) ([]byte, error) {
 	}
 	x, _ := priv.Curve.ScalarMult(ea.FromPubkey.X, ea.FromPubkey.Y, key)
 	aesKey := make([]byte, 32)
-	copy(aesKey[32-len(x.Bytes()):], x.Bytes())
+	copy(aesKey[32 - len(x.Bytes()):], x.Bytes())
 
 	decryption, _ := crypto.AesDecrypt(msg, aesKey, ea.Nonce)
-	if len(decryption) < int(decryption[len(decryption)-1]) {
+	if len(decryption) < int(decryption[len(decryption) - 1]) {
 		return []byte{}, errors.New("decryption error")
 	}
 	result := crypto.PKCS5UnPadding(decryption)

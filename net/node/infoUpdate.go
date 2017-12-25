@@ -143,7 +143,8 @@ func (node *node) ConnectSeeds() {
 				if n.GetState() == ESTABLISH {
 					n.ReqNeighborList()
 				}
-			} else { //not found
+			} else {
+				//not found
 				go node.Connect(nodeAddr)
 			}
 		}

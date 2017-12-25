@@ -15,7 +15,7 @@ import (
 
 const (
 	P256R1 = 0
-	SM2    = 1
+	SM2 = 1
 )
 
 //It can be P256R1 or SM2
@@ -82,8 +82,8 @@ func Sign(privateKey []byte, data []byte) ([]byte, error) {
 
 	lenR := len(r.Bytes())
 	lenS := len(s.Bytes())
-	copy(signature[util.SIGNRLEN-lenR:], r.Bytes())
-	copy(signature[util.SIGNATURELEN-lenS:], s.Bytes())
+	copy(signature[util.SIGNRLEN - lenR:], r.Bytes())
+	copy(signature[util.SIGNATURELEN - lenS:], s.Bytes())
 	return signature, nil
 }
 
@@ -94,8 +94,8 @@ func Verify(publicKey PubKey, data []byte, signature []byte) error {
 		return errors.New("Unknown signature length")
 	}
 
-	r := new(big.Int).SetBytes(signature[:len/2])
-	s := new(big.Int).SetBytes(signature[len/2:])
+	r := new(big.Int).SetBytes(signature[:len / 2])
+	s := new(big.Int).SetBytes(signature[len / 2:])
 
 	if SM2 == AlgChoice {
 		return sm2.Verify(&algSet, publicKey.X, publicKey.Y, data, r, s)
@@ -151,7 +151,9 @@ func (e *PubKey) DeSerialize(r io.Reader) error {
 
 type PubKeySlice []*PubKey
 
-func (p PubKeySlice) Len() int { return len(p) }
+func (p PubKeySlice) Len() int {
+	return len(p)
+}
 func (p PubKeySlice) Less(i, j int) bool {
 	r := p[i].X.Cmp(p[j].X)
 	if r <= 0 {

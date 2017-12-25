@@ -192,7 +192,7 @@ func (this *TXNPool) summaryAssetIssueAmount(txn *transaction.Transaction) bool 
 		//AssetReg.Amount : amount when RegisterAsset of this assedID
 		//quantity_issued : amount has been issued of this assedID
 		//txnPool.issueSummary[k] : amount in transactionPool of this assedID
-		if AssetReg.Amount-quantity_issued < this.getAssetIssueAmount(k) {
+		if AssetReg.Amount - quantity_issued < this.getAssetIssueAmount(k) {
 			return false
 		}
 	}

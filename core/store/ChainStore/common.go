@@ -189,7 +189,7 @@ func addMerkleRoot(bd *ChainStore, b *ledger.Block) {
 
 	tree_size := bd.merkleTree.TreeSize()
 	hashes := bd.merkleTree.Hashes()
-	length := 4 + len(hashes)*UINT256SIZE
+	length := 4 + len(hashes) * UINT256SIZE
 	buf := make([]byte, 4, length)
 	binary.BigEndian.PutUint32(buf[0:], tree_size)
 	for _, h := range hashes {
@@ -207,5 +207,5 @@ func groupInputs(inputs []*utxo.UTXOTxInput) map[Uint256][]*utxo.UTXOTxInput {
 }
 
 func remove(items []*Item, index int) []*Item {
-	return append(items[:index], items[index+1:]...)
+	return append(items[:index], items[index + 1:]...)
 }

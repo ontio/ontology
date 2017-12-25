@@ -46,7 +46,7 @@ func TestRandomTrie(t *testing.T) {
 
 type kv struct {
 	k, v []byte
-	t bool
+	t    bool
 }
 
 func simpleTrie() (*Trie, map[string]*kv) {
@@ -68,7 +68,7 @@ func randomTrie(n int) (*Trie, map[string]*kv) {
 	vals := make(map[string]*kv)
 	for i := 0; i < 100; i++ {
 		value1 := &kv{[]byte{byte(i)}, []byte{byte(i)}, false}
-		value2 := &kv{[]byte{byte(i+10)}, []byte{byte(i)}, false}
+		value2 := &kv{[]byte{byte(i + 10)}, []byte{byte(i)}, false}
 		trie.Update(value1.k, value1.v)
 		trie.Update(value2.k, value2.v)
 		vals[string(value1.k)] = value1

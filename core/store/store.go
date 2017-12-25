@@ -54,10 +54,10 @@ const (
 )
 
 type StateItem struct {
-	Key       string
-	Value     states.IStateValue
-	State     ItemState
-	Trie      bool
+	Key   string
+	Value states.IStateValue
+	State ItemState
+	Trie  bool
 }
 
 func (e *StateItem) copy() *StateItem {

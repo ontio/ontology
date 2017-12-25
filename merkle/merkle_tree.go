@@ -45,7 +45,7 @@ func (self *CompactMerkleTree) TreeSize() uint32 {
 }
 
 func (self *CompactMerkleTree) Marshal() ([]byte, error) {
-	length := 4 + len(self.hashes)*UINT256SIZE
+	length := 4 + len(self.hashes) * UINT256SIZE
 	buf := make([]byte, 4, length)
 	binary.BigEndian.PutUint32(buf[0:], self.treeSize)
 	for _, h := range self.hashes {
@@ -58,12 +58,12 @@ func (self *CompactMerkleTree) Marshal() ([]byte, error) {
 func (self *CompactMerkleTree) UnMarshal(buf []byte) error {
 	tree_size := binary.BigEndian.Uint32(buf[0:4])
 	nhashes := countBit(tree_size)
-	if len(buf) < 4+int(nhashes)*UINT256SIZE {
+	if len(buf) < 4 + int(nhashes) * UINT256SIZE {
 		return errors.New("Too short input buf length")
 	}
 	hashes := make([]Uint256, nhashes, nhashes)
 	for i := 0; i < int(nhashes); i++ {
-		copy(hashes[i][:], buf[4+i*UINT256SIZE:])
+		copy(hashes[i][:], buf[4 + i * UINT256SIZE:])
 	}
 
 	self._update(tree_size, hashes)
@@ -113,14 +113,14 @@ func (self *CompactMerkleTree) AppendHash(leaf Uint256) []Uint256 {
 	storehashes := make([]Uint256, 0)
 	// reverse
 	for i, v := range self.hashes {
-		auditPath[size-i-1] = v
+		auditPath[size - i - 1] = v
 	}
 
 	storehashes = append(storehashes, leaf)
 	self.mintree_h = 1
-	for s := self.treeSize; s%2 == 1; s = s >> 1 {
+	for s := self.treeSize; s % 2 == 1; s = s >> 1 {
 		self.mintree_h += 1
-		leaf = self.hasher.hash_children(self.hashes[size-1], leaf)
+		leaf = self.hasher.hash_children(self.hashes[size - 1], leaf)
 		storehashes = append(storehashes, leaf)
 		size -= 1
 	}
@@ -146,9 +146,9 @@ func (self *CompactMerkleTree) DumpStatus() {
 func getSubTreeSize(n uint32) []uint32 {
 	nhashes := countBit(n)
 	subtreesize := make([]uint32, nhashes, nhashes)
-	for i, id := nhashes-1, uint32(1); n != 0; n = n >> 1 {
+	for i, id := nhashes - 1, uint32(1); n != 0; n = n >> 1 {
 		id = id * 2
-		if n%2 == 1 {
+		if n % 2 == 1 {
 			subtreesize[i] = id - 1
 			i -= 1
 		}
@@ -161,16 +161,16 @@ func getSubTreeSize(n uint32) []uint32 {
 func getSubTreePos(n uint32) []uint32 {
 	nhashes := countBit(n)
 	hashespos := make([]uint32, nhashes, nhashes)
-	for i, id := nhashes-1, uint32(1); n != 0; n = n >> 1 {
+	for i, id := nhashes - 1, uint32(1); n != 0; n = n >> 1 {
 		id = id * 2
-		if n%2 == 1 {
+		if n % 2 == 1 {
 			hashespos[i] = id - 1
 			i -= 1
 		}
 	}
 
 	for i := uint(1); i < nhashes; i++ {
-		hashespos[i] += hashespos[i-1]
+		hashespos[i] += hashespos[i - 1]
 	}
 
 	return hashespos
@@ -201,19 +201,19 @@ func (self *CompactMerkleTree) subproof(m, n uint32, b bool) []Uint256 {
 	offset := uint32(0)
 	var hashes []Uint256
 	for m < n {
-		k := uint32(1 << (highBit(n-1) - 1))
+		k := uint32(1 << (highBit(n - 1) - 1))
 		if m <= k {
 			pos := getSubTreePos(n - k)
 			subhashes := make([]Uint256, len(pos), len(pos))
 			for p := range pos {
-				pos[p] += offset + k*2 - 1
+				pos[p] += offset + k * 2 - 1
 				subhashes[p], _ = self.hashStore.GetHash(pos[p] - 1)
 			}
 			rootk2n := self.hasher._hash_fold(subhashes)
 			hashes = append(hashes, rootk2n)
 			n = k
 		} else {
-			offset += k*2 - 1
+			offset += k * 2 - 1
 			root02k, _ := self.hashStore.GetHash(offset - 1)
 			hashes = append(hashes, root02k)
 			m -= k
@@ -236,7 +236,7 @@ func (self *CompactMerkleTree) subproof(m, n uint32, b bool) []Uint256 {
 	length := len(hashes)
 	reverse := make([]Uint256, length, length)
 	for k, _ := range reverse {
-		reverse[k] = hashes[length-k-1]
+		reverse[k] = hashes[length - k - 1]
 	}
 
 	return reverse
@@ -252,19 +252,19 @@ func (self *CompactMerkleTree) InclusionProof(m, n uint32) []Uint256 {
 	offset := uint32(0)
 	var hashes []Uint256
 	for n != 1 {
-		k := uint32(1 << (highBit(n-1) - 1))
+		k := uint32(1 << (highBit(n - 1) - 1))
 		if m < k {
 			pos := getSubTreePos(n - k)
 			subhashes := make([]Uint256, len(pos), len(pos))
 			for p := range pos {
-				pos[p] += offset + k*2 - 1
+				pos[p] += offset + k * 2 - 1
 				subhashes[p], _ = self.hashStore.GetHash(pos[p] - 1)
 			}
 			rootk2n := self.hasher._hash_fold(subhashes)
 			hashes = append(hashes, rootk2n)
 			n = k
 		} else {
-			offset += k*2 - 1
+			offset += k * 2 - 1
 			root02k, _ := self.hashStore.GetHash(offset - 1)
 			hashes = append(hashes, root02k)
 			m -= k
@@ -275,7 +275,7 @@ func (self *CompactMerkleTree) InclusionProof(m, n uint32) []Uint256 {
 	length := len(hashes)
 	reverse := make([]Uint256, length, length)
 	for k, _ := range reverse {
-		reverse[k] = hashes[length-k-1]
+		reverse[k] = hashes[length - k - 1]
 	}
 
 	return reverse
@@ -305,7 +305,7 @@ func NewMerkleVerifier() *MerkleVerifier {
 */
 
 func (self *MerkleVerifier) VerifyLeafHashInclusion(leaf_hash Uint256,
-	leaf_index uint32, proof []Uint256, root_hash Uint256, tree_size uint32) error {
+leaf_index uint32, proof []Uint256, root_hash Uint256, tree_size uint32) error {
 
 	if tree_size <= leaf_index {
 		return errors.New("Wrong params: the tree size is smaller than the leaf index")
@@ -337,13 +337,13 @@ func (self *MerkleVerifier) VerifyLeafHashInclusion(leaf_hash Uint256,
        nil when the proof is valid
 */
 func (self *MerkleVerifier) VerifyLeafInclusion(leaf []byte,
-	leaf_index uint32, proof []Uint256, root_hash Uint256, tree_size uint32) error {
+leaf_index uint32, proof []Uint256, root_hash Uint256, tree_size uint32) error {
 	leaf_hash := self.hasher.hash_leaf(leaf)
 	return self.VerifyLeafHashInclusion(leaf_hash, leaf_index, proof, root_hash, tree_size)
 }
 
 func (self *MerkleVerifier) calculate_root_hash_from_audit_path(leaf_hash Uint256,
-	node_index uint32, audit_path []Uint256, tree_size uint32) (Uint256, error) {
+node_index uint32, audit_path []Uint256, tree_size uint32) (Uint256, error) {
 	calculated_hash := leaf_hash
 	last_node := tree_size - 1
 	pos := 0
@@ -354,7 +354,7 @@ func (self *MerkleVerifier) calculate_root_hash_from_audit_path(leaf_hash Uint25
 				audit_path_length(node_index, tree_size), path_len))
 		}
 
-		if node_index%2 == 1 {
+		if node_index % 2 == 1 {
 			calculated_hash = self.hasher.hash_children(audit_path[pos], calculated_hash)
 			pos += 1
 		} else if node_index < last_node {
@@ -375,7 +375,7 @@ func audit_path_length(index, tree_size uint32) int {
 	length := 0
 	last_node := tree_size - 1
 	for last_node > 0 {
-		if index%2 == 1 || index < last_node {
+		if index % 2 == 1 || index < last_node {
 			length += 1
 		}
 		index /= 2
@@ -408,7 +408,7 @@ Verify the consistency between two root hashes.
 */
 
 func (self *MerkleVerifier) VerifyConsistency(old_tree_size,
-	new_tree_size uint32, old_root, new_root Uint256, proof []Uint256) error {
+new_tree_size uint32, old_root, new_root Uint256, proof []Uint256) error {
 	old_size := old_tree_size
 	new_size := new_tree_size
 
@@ -432,7 +432,7 @@ func (self *MerkleVerifier) VerifyConsistency(old_tree_size,
 	last_node := new_size - 1
 
 	// while we are the right child, everything is in both trees, so move one level up
-	for node%2 == 1 {
+	for node % 2 == 1 {
 		node /= 2
 		last_node /= 2
 	}
@@ -456,7 +456,7 @@ func (self *MerkleVerifier) VerifyConsistency(old_tree_size,
 	}
 
 	for node != 0 {
-		if node%2 == 1 {
+		if node % 2 == 1 {
 			if pos >= lenp {
 				return errors.New("Wrong proof length")
 			}

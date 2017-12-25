@@ -32,10 +32,10 @@ type httpResponseReader struct {
 //cluster host
 var (
 	defaultClusterHost = fmt.Sprintf("127.0.0.1:%d", 9094)
-	defaultIPFSHost    = fmt.Sprintf("127.0.0.1:%d", 5001)
-	defaultHost        = "127.0.0.1"
-	defaultTimeout     = 60
-	defaultProtocol    = "http"
+	defaultIPFSHost = fmt.Sprintf("127.0.0.1:%d", 5001)
+	defaultHost = "127.0.0.1"
+	defaultTimeout = 60
+	defaultProtocol = "http"
 )
 
 func (r *httpResponseReader) Read(b []byte) (int, error) {
@@ -76,7 +76,7 @@ func AddFileIPFS(filepath string, useCluster bool) (string, error) {
 		return "", err
 	}
 	if useCluster {
-		resp, err = requestCluster("POST", "/pins/"+refpath, nil)
+		resp, err = requestCluster("POST", "/pins/" + refpath, nil)
 		if err != nil {
 			log.Error(err.Error())
 			return "", err
@@ -134,7 +134,7 @@ func formatIPFSResponse(r *http.Response) (string, error) {
 }
 func requestIPFS(method, cmd, path string, args ...string) (*http.Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(),
-		time.Duration(defaultTimeout)*time.Second)
+		time.Duration(defaultTimeout) * time.Second)
 	defer cancel()
 	url := apiURL(cmd, path, args)
 
@@ -195,7 +195,7 @@ func apiURL(cmd, path string, args []string) string {
 
 func requestCluster(method, path string, body io.Reader, args ...string) (*http.Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(),
-		time.Duration(defaultTimeout)*time.Second)
+		time.Duration(defaultTimeout) * time.Second)
 	defer cancel()
 
 	u := defaultProtocol + "://" + defaultClusterHost + path

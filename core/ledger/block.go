@@ -24,7 +24,7 @@ type Block struct {
 	Blockdata    *Blockdata
 	Transactions []*tx.Transaction
 
-	hash *Uint256
+	hash         *Uint256
 }
 
 func (b *Block) Serialize(w io.Writer) error {

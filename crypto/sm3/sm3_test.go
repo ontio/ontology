@@ -58,9 +58,9 @@ func TestGolden(t *testing.T) {
 			if j < 2 {
 				io.WriteString(c, g.in)
 			} else {
-				io.WriteString(c, g.in[0:len(g.in)/2])
+				io.WriteString(c, g.in[0:len(g.in) / 2])
 				c.Sum(nil)
-				io.WriteString(c, g.in[len(g.in)/2:])
+				io.WriteString(c, g.in[len(g.in) / 2:])
 			}
 			s := fmt.Sprintf("%x", c.Sum(nil))
 			if s != g.out {
@@ -87,7 +87,7 @@ func TestBlockSize(t *testing.T) {
 
 func TestBlockGeneric(t *testing.T) {
 	gen, asm := New().(*digest), New().(*digest)
-	buf := make([]byte, BlockSize*20) // arbitrary factor
+	buf := make([]byte, BlockSize * 20) // arbitrary factor
 	rand.Read(buf)
 	blockGeneric(gen, buf)
 	block(asm, buf)

@@ -26,7 +26,7 @@ type Info struct {
 }
 
 const (
-	verifyNode  = "Verify Node"
+	verifyNode = "Verify Node"
 	serviceNode = "Service Node"
 )
 
@@ -109,5 +109,5 @@ func StartServer(n Noder) {
 	node = n
 	port := int(config.Parameters.HttpInfoPort)
 	http.HandleFunc("/info", viewHandler)
-	http.ListenAndServe(":"+strconv.Itoa(port), nil)
+	http.ListenAndServe(":" + strconv.Itoa(port), nil)
 }

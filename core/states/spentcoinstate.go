@@ -107,7 +107,7 @@ func (this *SpentCoinState) Deserialize(r io.Reader) error {
 }
 
 func (this *SpentCoinState) RemoveItem(i int) {
-	this.Items[i] = this.Items[len(this.Items)-1]
-	this.Items = this.Items[:len(this.Items)-1]
+	this.Items[i] = this.Items[len(this.Items) - 1]
+	this.Items = this.Items[:len(this.Items) - 1]
 }
 

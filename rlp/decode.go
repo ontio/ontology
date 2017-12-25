@@ -14,28 +14,28 @@ import (
 
 var (
 	EOL = errors.New("rlp: end of list")
-	ErrCanonSize      = errors.New("rlp: non-canonical size information")
-	ErrValueTooLarge  = errors.New("rlp: value size exceeds available input length")
+	ErrCanonSize = errors.New("rlp: non-canonical size information")
+	ErrValueTooLarge = errors.New("rlp: value size exceeds available input length")
 	ErrExpectedString = errors.New("rlp: expected String or Byte")
-	ErrExpectedList   = errors.New("rlp: expected List")
-	ErrCanonInt       = errors.New("rlp: non-canonical integer format")
-	ErrElemTooLarge   = errors.New("rlp: element is larger than containing list")
+	ErrExpectedList = errors.New("rlp: expected List")
+	ErrCanonInt = errors.New("rlp: non-canonical integer format")
+	ErrElemTooLarge = errors.New("rlp: element is larger than containing list")
 
-	errNotAtEOL     = errors.New("rlp: call of ListEnd not positioned at EOL")
+	errNotAtEOL = errors.New("rlp: call of ListEnd not positioned at EOL")
 	errUintOverflow = errors.New("rlp: uint overflow")
-	errNotInList    = errors.New("rlp: call of ListEnd outside of any list")
+	errNotInList = errors.New("rlp: call of ListEnd outside of any list")
 )
 
 type Stream struct {
-	r ByteReader
+	r         ByteReader
 	remaining uint64
-	limited bool
-	uintbuf []byte
-	kind Kind
-	size uint64
-	byteval byte
-	kinderr error
-	stack []listpos
+	limited   bool
+	uintbuf   []byte
+	kind      Kind
+	size      uint64
+	byteval   byte
+	kinderr   error
+	stack     []listpos
 }
 
 func NewStream(r io.Reader, inputLimit uint64) *Stream {
@@ -99,7 +99,7 @@ func (s *Stream) Raw() ([]byte, error) {
 func (s *Stream) Kind() (Kind, uint64, error) {
 	var tos *listpos
 	if len(s.stack) > 0 {
-		tos = &s.stack[len(s.stack)-1]
+		tos = &s.stack[len(s.stack) - 1]
 	}
 	if s.kind < 0 {
 		s.kinderr = nil
@@ -188,7 +188,7 @@ func (s *Stream) readFull(buf []byte) (err error) {
 	}
 	var nn, n int
 	for n < len(buf) && err == nil {
-		nn, err =s.r.Read(buf[n:])
+		nn, err = s.r.Read(buf[n:])
 		n += nn
 	}
 	if err == io.EOF {
@@ -266,7 +266,7 @@ func (s *Stream) uint(maxbits int) (uint64, error) {
 		s.kind = -1
 		return uint64(s.byteval), nil
 	case String:
-		if size >uint64(maxbits/8) {
+		if size > uint64(maxbits / 8) {
 			return 0, errUintOverflow
 		}
 		v, err := s.readUint(byte(size))
@@ -318,13 +318,13 @@ func (s *Stream) ListEnd() error {
 	if len(s.stack) == 0 {
 		return errNotInList
 	}
-	tos := s.stack[len(s.stack)-1]
+	tos := s.stack[len(s.stack) - 1]
 	if tos.pos != tos.size {
 		return errNotAtEOL
 	}
-	s.stack = s.stack[:len(s.stack)-1]
+	s.stack = s.stack[:len(s.stack) - 1]
 	if len(s.stack) > 0 {
-		s.stack[len(s.stack)-1].pos += tos.size
+		s.stack[len(s.stack) - 1].pos += tos.size
 	}
 	s.kind = -1
 	s.size = 0
@@ -341,7 +341,7 @@ type ByteReader interface {
 }
 
 var (
-	bigInt           = reflect.TypeOf(big.Int{})
+	bigInt = reflect.TypeOf(big.Int{})
 )
 
 type Decoder interface {

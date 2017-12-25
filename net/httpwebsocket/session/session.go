@@ -58,7 +58,8 @@ func (s *Session) Send(data []byte) error {
 func (s *Session) SessionTimeoverCheck() bool {
 
 	nCurTime := time.Now().Unix()
-	if nCurTime-s.nLastActive > sessionTimeOut { //sec
+	if nCurTime - s.nLastActive > sessionTimeOut {
+		//sec
 		return true
 	}
 	return false

@@ -79,7 +79,7 @@ func VerifyBlockData(bd *ledger.Blockdata, ledger *ledger.Ledger) error {
 		return NewDetailErr(errors.New("[BlockValidator] error"), ErrNoCode, "[BlockValidator], Cannnot find previous block.")
 	}
 
-	if prevHeader.Blockdata.Height+1 != bd.Height {
+	if prevHeader.Blockdata.Height + 1 != bd.Height {
 		return NewDetailErr(errors.New("[BlockValidator] error"), ErrNoCode, "[BlockValidator], block height is incorrect.")
 	}
 

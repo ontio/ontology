@@ -53,7 +53,7 @@ func (p *ParamsBuilder) EmitPushInteger(data *big.Int) {
 		temp2.Add(temp, big.NewInt(1))
 		bytes = temp2.Bytes()
 		common.BytesReverse(bytes)
-	} else if data.Sign() > 0 && b>>7 == 1 {
+	} else if data.Sign() > 0 && b >> 7 == 1 {
 		common.BytesReverse(bytes)
 		bytes = append(bytes, 0)
 	} else {
@@ -115,12 +115,12 @@ func ConvertBigIntegerToBytes(data *big.Int) []byte {
 		temp2.Add(temp, big.NewInt(1))
 		bs = temp2.Bytes()
 		common.BytesReverse(bs)
-		if b>>7 == 1 {
+		if b >> 7 == 1 {
 			bs = append(bs, 255)
 		}
 	} else {
 		common.BytesReverse(bs)
-		if b>>7 == 1 {
+		if b >> 7 == 1 {
 			bs = append(bs, 0)
 		}
 	}

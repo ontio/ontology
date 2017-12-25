@@ -72,20 +72,20 @@ type ProgramInfo struct {
 }
 
 type Transactions struct {
-	TxType         TransactionType
-	PayloadVersion byte
-	Payload        PayloadInfo
-	Attributes     []TxAttributeInfo
-	UTXOInputs     []UTXOTxInputInfo
-	BalanceInputs  []BalanceTxInputInfo
-	Outputs        []TxoutputInfo
-	Programs       []ProgramInfo
+	TxType            TransactionType
+	PayloadVersion    byte
+	Payload           PayloadInfo
+	Attributes        []TxAttributeInfo
+	UTXOInputs        []UTXOTxInputInfo
+	BalanceInputs     []BalanceTxInputInfo
+	Outputs           []TxoutputInfo
+	Programs          []ProgramInfo
 
 	AssetOutputs      []TxoutputMap
 	AssetInputAmount  []AmountMap
 	AssetOutputAmount []AmountMap
 
-	Hash string
+	Hash              string
 }
 
 type BlockHead struct {
@@ -99,7 +99,7 @@ type BlockHead struct {
 	NextBookKeeper   string
 	Program          ProgramInfo
 
-	Hash string
+	Hash             string
 }
 
 type BlockInfo struct {

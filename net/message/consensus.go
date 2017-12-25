@@ -31,7 +31,7 @@ type ConsensusPayload struct {
 	Owner           *crypto.PubKey
 	Program         *program.Program
 
-	hash common.Uint256
+	hash            common.Uint256
 }
 
 type consensus struct {

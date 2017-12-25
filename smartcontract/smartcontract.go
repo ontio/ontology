@@ -103,7 +103,7 @@ func (sc *SmartContract) InvokeResult() (interface{}, error) {
 			case contract.ByteArray:
 				return common.ToHexString(neovm.PopByteArray(engine)), nil
 			//bs := neovm.PopByteArray(engine)
-				//return common.BytesToInt(bs), nil
+			//return common.BytesToInt(bs), nil
 			case contract.String:
 				return string(neovm.PopByteArray(engine)), nil
 			case contract.Hash160, contract.Hash256:
@@ -117,7 +117,7 @@ func (sc *SmartContract) InvokeResult() (interface{}, error) {
 				return nil, nil
 			case contract.Array:
 				var strs []string
-				for _, v := range neovm.PopArray(engine){
+				for _, v := range neovm.PopArray(engine) {
 					strs = append(strs, common.ToHexString(v.GetByteArray()))
 				}
 				return strs, nil

@@ -7,7 +7,6 @@ import (
 	"github.com/Ontology/core/code"
 	"github.com/Ontology/smartcontract/types"
 	. "github.com/Ontology/errors"
-
 )
 
 type ContractState struct {

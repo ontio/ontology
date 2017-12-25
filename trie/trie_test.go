@@ -108,7 +108,7 @@ func TestReplication(t *testing.T) {
 	if err != nil {
 		t.Fatalf("commit error: %v", err)
 	}
-	if hash.CompareTo(*exp) != 0{
+	if hash.CompareTo(*exp) != 0 {
 		t.Errorf("root failure. expected %x got %x", exp, hash)
 	}
 
@@ -161,7 +161,6 @@ func (db *countingDB) Get(key []byte) ([]byte, error) {
 	db.gets[string(key)]++
 	return db.Database.Get(key)
 }
-
 
 func TestCacheUnload(t *testing.T) {
 	// Create test trie with two branches.

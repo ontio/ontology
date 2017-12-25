@@ -64,7 +64,7 @@ func PostRequest(cmd map[string]interface{}, url string) (map[string]interface{}
 	reqData := bytes.NewBuffer(data)
 	transport := http.Transport{
 		Dial: func(netw, addr string) (net.Conn, error) {
-			conn, err := net.DialTimeout(netw, addr, time.Second*10)
+			conn, err := net.DialTimeout(netw, addr, time.Second * 10)
 			if err != nil {
 				return nil, err
 			}

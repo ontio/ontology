@@ -42,7 +42,7 @@ const (
 	TAILCALL OpCode = 0x69
 
 	// Stack
-	DUPFROMALTSTACK OpCode= 0x6A
+	DUPFROMALTSTACK OpCode = 0x6A
 	TOALTSTACK OpCode = 0x6B // Puts the input onto the top of the alt stack. Removes it from the main stack.
 	FROMALTSTACK OpCode = 0x6C // Puts the input onto the top of the main stack. Removes it from the alt stack.
 	XDROP OpCode = 0x6D
@@ -126,5 +126,4 @@ const (
 
 	THROW = 0xF0
 	THROWIFNOT = 0xF1
-
 )

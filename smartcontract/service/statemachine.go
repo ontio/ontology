@@ -64,7 +64,7 @@ func (s *StateMachine) CreateAsset(engine *vm.ExecutionEngine) (bool, error) {
 	if precision.Int64() > 8 {
 		return false, ErrAssetPrecisionInvalid
 	}
-	if amount.Int64()%int64(math.Pow(10, 8-float64(precision.Int64()))) != 0 {
+	if amount.Int64() % int64(math.Pow(10, 8 - float64(precision.Int64()))) != 0 {
 		return false, ErrAssetAmountInvalid
 	}
 	ownerByte := vm.PopByteArray(engine)
@@ -92,7 +92,7 @@ func (s *StateMachine) CreateAsset(engine *vm.ExecutionEngine) (bool, error) {
 		Expiration: ledger.DefaultLedger.Store.GetHeight() + 1 + 2000000,
 		IsFrozen:   false,
 	}
-	state, err := s.CloneCache.GetOrAdd(store.ST_Asset, assetId.ToArray(), assetState);if err != nil {
+	state, err := s.CloneCache.GetOrAdd(store.ST_Asset, assetId.ToArray(), assetState); if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[CreateAsset] GetOrAdd error!")
 	}
 	vm.PushData(engine, state)
@@ -104,7 +104,7 @@ func (s *StateMachine) ContractCreate(engine *vm.ExecutionEngine) (bool, error) 
 		return false, errors.NewErr("[ContractCreate] Too few input parameters ")
 	}
 	codeByte := vm.PopByteArray(engine)
-	if len(codeByte) > 1024*1024 {
+	if len(codeByte) > 1024 * 1024 {
 		return false, errors.NewErr("[ContractCreate] Code too long!")
 	}
 	parameters := vm.PopByteArray(engine)
@@ -153,7 +153,7 @@ func (s *StateMachine) ContractCreate(engine *vm.ExecutionEngine) (bool, error) 
 	if err != nil {
 		return false, err
 	}
-	state, err := s.CloneCache.GetOrAdd(store.ST_Contract, codeHash.ToArray(), contractState);if err != nil {
+	state, err := s.CloneCache.GetOrAdd(store.ST_Contract, codeHash.ToArray(), contractState); if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] GetOrAdd error!")
 	}
 	vm.PushData(engine, state)
@@ -165,7 +165,7 @@ func (s *StateMachine) ContractMigrate(engine *vm.ExecutionEngine) (bool, error)
 		return false, errors.NewErr("[ContractMigrate] Too few input parameters ")
 	}
 	codeByte := vm.PopByteArray(engine)
-	if len(codeByte) > 1024*1024 {
+	if len(codeByte) > 1024 * 1024 {
 		return false, errors.NewErr("[ContractMigrate] Code too long!")
 	}
 	codeHash, err := common.ToCodeHash(codeByte)
@@ -254,7 +254,7 @@ func (s *StateMachine) AssetRenew(engine *vm.ExecutionEngine) (bool, error) {
 	}
 	years := vm.PopInt(engine)
 	assetState := data.(*states.AssetState)
-	if assetState.Expiration < ledger.DefaultLedger.Store.GetHeight()+1 {
+	if assetState.Expiration < ledger.DefaultLedger.Store.GetHeight() + 1 {
 		assetState.Expiration = ledger.DefaultLedger.Store.GetHeight() + 1
 	}
 	assetState.Expiration += uint32(years) * 2000000

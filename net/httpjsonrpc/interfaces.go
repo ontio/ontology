@@ -515,7 +515,7 @@ func uploadDataFile(params []interface{}) map[string]interface{} {
 	if err != nil {
 		return DnaRpcInvalidParameter
 	}
-	f, err := os.OpenFile(tmpname, os.O_WRONLY|os.O_CREATE, 0664)
+	f, err := os.OpenFile(tmpname, os.O_WRONLY | os.O_CREATE, 0664)
 	if err != nil {
 		return DnaRpcIOError
 	}

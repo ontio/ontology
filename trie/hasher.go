@@ -66,7 +66,7 @@ func (h *hasher) hasChildren(original node, db DatabaseWriter) (node, node, erro
 				if err != nil {
 					return original, original, err
 				}
-			}else {
+			} else {
 				collapsed.Children[i] = valueNode(nil)
 			}
 		}

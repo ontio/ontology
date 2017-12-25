@@ -100,7 +100,6 @@ func (dc *DeployCode) Deserialize(r io.Reader, version byte) error {
 		return NewDetailErr(err, ErrNoCode, "Transaction DeployCode Name Deserialize failed.")
 	}
 
-
 	dc.CodeVersion, err = serialization.ReadVarString(r)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "Transaction DeployCode CodeVersion Deserialize failed.")

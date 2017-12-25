@@ -9,12 +9,12 @@ type StateBase struct {
 	StateVersion byte
 }
 
-func(this *StateBase) Serialize(w io.Writer) error {
+func (this *StateBase) Serialize(w io.Writer) error {
 	WriteByte(w, this.StateVersion)
 	return nil
 }
 
-func(this *StateBase) Deserialize(r io.Reader) error {
+func (this *StateBase) Deserialize(r io.Reader) error {
 	if this == nil {
 		this = new(StateBase)
 	}

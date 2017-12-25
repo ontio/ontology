@@ -150,7 +150,7 @@ func (msg *addr) Deserialization(p []byte) error {
 			goto err
 		}
 	}
-err:
+	err:
 	return err
 }
 

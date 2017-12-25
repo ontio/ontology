@@ -56,7 +56,7 @@ func (ws *WsServer) Start() error {
 	}
 
 	tlsFlag := false
-	if tlsFlag || Parameters.HttpWsPort%1000 == TlsPort {
+	if tlsFlag || Parameters.HttpWsPort % 1000 == TlsPort {
 		var err error
 		ws.listener, err = ws.initTlsListen()
 		if err != nil {
@@ -65,7 +65,7 @@ func (ws *WsServer) Start() error {
 		}
 	} else {
 		var err error
-		ws.listener, err = net.Listen("tcp", ":"+strconv.Itoa(Parameters.HttpWsPort))
+		ws.listener, err = net.Listen("tcp", ":" + strconv.Itoa(Parameters.HttpWsPort))
 		if err != nil {
 			log.Fatal("net.Listen: ", err.Error())
 			return err
@@ -371,7 +371,7 @@ func (ws *WsServer) initTlsListen() (net.Listener, error) {
 	}
 
 	log.Info("TLS listen port is ", strconv.Itoa(Parameters.HttpWsPort))
-	listener, err := tls.Listen("tcp", ":"+strconv.Itoa(Parameters.HttpWsPort), tlsConfig)
+	listener, err := tls.Listen("tcp", ":" + strconv.Itoa(Parameters.HttpWsPort), tlsConfig)
 	if err != nil {
 		log.Error(err)
 		return nil, err

@@ -6,17 +6,17 @@ import (
 )
 
 type MemDatabase struct {
-	db map[string][]byte
+	db   map[string][]byte
 	lock sync.RWMutex
 }
 
 func NewMemDatabase() *MemDatabase {
-	return &MemDatabase {
+	return &MemDatabase{
 		db: make(map[string][]byte),
 	}
 }
 
-func (db *MemDatabase) Put(key []byte, value []byte) error{
+func (db *MemDatabase) Put(key []byte, value []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 	db.db[string(key)] = CopyBytes(value)

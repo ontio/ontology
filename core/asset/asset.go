@@ -12,9 +12,9 @@ type AssetType byte
 
 const (
 	Currency AssetType = 0x00
-	Share    AssetType = 0x01
-	Invoice  AssetType = 0x10
-	Token    AssetType = 0x11
+	Share AssetType = 0x01
+	Invoice AssetType = 0x10
+	Token AssetType = 0x11
 )
 
 const (
@@ -26,7 +26,7 @@ type AssetRecordType byte
 
 //Ontology is planed to support UTXO and Balance
 const (
-	UTXO    AssetRecordType = 0x00
+	UTXO AssetRecordType = 0x00
 	Balance AssetRecordType = 0x01
 )
 

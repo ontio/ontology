@@ -17,23 +17,23 @@ import (
 const ContextVersion uint32 = 0
 
 type ConsensusContext struct {
-	State           ConsensusState
-	PrevHash        Uint256
-	Height          uint32
-	ViewNumber      byte
-	BookKeepers     []*crypto.PubKey
-	NextBookKeepers []*crypto.PubKey
-	Owner           *crypto.PubKey
-	BookKeeperIndex int
-	PrimaryIndex    uint32
-	Timestamp       uint32
-	Nonce           uint64
-	NextBookKeeper  Uint160
-	Transactions    []*tx.Transaction
-	Signatures      [][]byte
-	ExpectedView    []byte
+	State               ConsensusState
+	PrevHash            Uint256
+	Height              uint32
+	ViewNumber          byte
+	BookKeepers         []*crypto.PubKey
+	NextBookKeepers     []*crypto.PubKey
+	Owner               *crypto.PubKey
+	BookKeeperIndex     int
+	PrimaryIndex        uint32
+	Timestamp           uint32
+	Nonce               uint64
+	NextBookKeeper      Uint160
+	Transactions        []*tx.Transaction
+	Signatures          [][]byte
+	ExpectedView        []byte
 
-	header *ledger.Block
+	header              *ledger.Block
 
 	contextMu           sync.Mutex
 	isBookKeeperChanged bool
@@ -42,7 +42,7 @@ type ConsensusContext struct {
 
 func (cxt *ConsensusContext) M() int {
 	log.Debug()
-	return len(cxt.BookKeepers) - (len(cxt.BookKeepers)-1)/3
+	return len(cxt.BookKeepers) - (len(cxt.BookKeepers) - 1) / 3
 }
 
 func NewConsensusContext() *ConsensusContext {

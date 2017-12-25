@@ -159,7 +159,7 @@ func TestMerkleConsistencyProofLen(t *testing.T) {
 
 	cmp := []int{3, 2, 4, 1, 4, 3, 0}
 	for i := uint32(0); i < n; i++ {
-		proof := tree.ConsistencyProof(i+1, n)
+		proof := tree.ConsistencyProof(i + 1, n)
 		if len(proof) != cmp[i] {
 			t.Fatal("error: wrong proof length")
 		}
@@ -180,8 +180,8 @@ func TestMerkleConsistencyProof(t *testing.T) {
 	verify := NewMerkleVerifier()
 
 	for i := uint32(0); i < n; i++ {
-		proof := tree.ConsistencyProof(i+1, n)
-		err := verify.VerifyConsistency(i+1, n, roots[i], roots[n-1], proof)
+		proof := tree.ConsistencyProof(i + 1, n)
+		err := verify.VerifyConsistency(i + 1, n, roots[i], roots[n - 1], proof)
 		if err != nil {
 			t.Fatal("verify consistency error:", i, err)
 		}
@@ -193,7 +193,8 @@ func TestMerkleConsistencyProof(t *testing.T) {
 func BenchmarkMerkleInsert(b *testing.B) {
 	store, _ := NewFileHashStore("merkletree.db", 0)
 	tree := NewTree(0, nil, store)
-	for i := 0; i < b.N; i++ { //use b.N for looping
+	for i := 0; i < b.N; i++ {
+		//use b.N for looping
 		tree.Append([]byte(fmt.Sprintf("bench %d", i)))
 	}
 }
@@ -238,7 +239,7 @@ func BenchmarkMerkleInsert2(b *testing.B) {
 
 func TestNewFileSeek(t *testing.T) {
 	name := "test.txt"
-	f, err := os.OpenFile(name, os.O_RDWR|os.O_CREATE, 0755)
+	f, err := os.OpenFile(name, os.O_RDWR | os.O_CREATE, 0755)
 	if err != nil {
 		t.Fatal("can not open file", err)
 	}

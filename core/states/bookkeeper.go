@@ -11,10 +11,9 @@ type BookKeeperState struct {
 	StateBase
 	CurrBookKeeper []*crypto.PubKey
 	NextBookKeeper []*crypto.PubKey
-
 }
 
-func(this *BookKeeperState) Serialize(w io.Writer) error {
+func (this *BookKeeperState) Serialize(w io.Writer) error {
 	this.StateBase.Serialize(w)
 	serialization.WriteUint32(w, uint32(len(this.CurrBookKeeper)))
 	for _, v := range this.CurrBookKeeper {
@@ -27,8 +26,7 @@ func(this *BookKeeperState) Serialize(w io.Writer) error {
 	return nil
 }
 
-
-func(this *BookKeeperState) Deserialize(r io.Reader) error {
+func (this *BookKeeperState) Deserialize(r io.Reader) error {
 	if this == nil {
 		this = new(BookKeeperState)
 	}
@@ -64,7 +62,7 @@ func(this *BookKeeperState) Deserialize(r io.Reader) error {
 	return nil
 }
 
-func(v *BookKeeperState) ToArray() []byte {
+func (v *BookKeeperState) ToArray() []byte {
 	b := new(bytes.Buffer)
 	v.Serialize(b)
 	return b.Bytes()

@@ -282,8 +282,8 @@ func GetBalanceByAddr(cmd map[string]interface{}) map[string]interface{} {
 		return resp
 	}
 	type Result struct {
-		AssetId   string
-		Value string
+		AssetId string
+		Value   string
 	}
 	var results []Result
 	for k, v := range account.Balances {

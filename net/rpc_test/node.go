@@ -100,7 +100,7 @@ func TestServer() {
 
 	// Send hand-coded requests to server, parse responses.
 	for i := 0; i < 10; i++ {
-		fmt.Fprint(cli, `{"method": "Arith.Add", "id": "\u%04d", "params": [{"A": %d, "B": %d}]}`, i, i, i+1)
+		fmt.Fprint(cli, `{"method": "Arith.Add", "id": "\u%04d", "params": [{"A": %d, "B": %d}]}`, i, i, i + 1)
 		var resp ArithAddResp
 		err := dec.Decode(&resp)
 		if err != nil {
@@ -112,8 +112,8 @@ func TestServer() {
 		if resp.Id.(string) != string(i) {
 			print("resp: bad id %q want %q", resp.Id.(string), string(i))
 		}
-		if resp.Result.C != 2*i+1 {
-			print("resp: bad result: %d+%d=%d", i, i+1, resp.Result.C)
+		if resp.Result.C != 2 * i + 1 {
+			print("resp: bad result: %d+%d=%d", i, i + 1, resp.Result.C)
 		}
 	}
 }
@@ -135,8 +135,8 @@ func TestClient() {
 	if err != nil {
 		print("Add: expected no error but got string %q", err.Error())
 	}
-	if reply.C != args.A+args.B {
-		print("Add: got %d expected %d", reply.C, args.A+args.B)
+	if reply.C != args.A + args.B {
+		print("Add: got %d expected %d", reply.C, args.A + args.B)
 	}
 	print("testing at client 2 \n")
 
@@ -146,8 +146,8 @@ func TestClient() {
 	if err != nil {
 		print("Mul: expected no error but got string %q", err.Error())
 	}
-	if reply.C != args.A*args.B {
-		print("Mul: got %d expected %d", reply.C, args.A*args.B)
+	if reply.C != args.A * args.B {
+		print("Mul: got %d expected %d", reply.C, args.A * args.B)
 	}
 
 	fmt.Print("testing at client 3 result is ", reply.C, "\n")
@@ -162,16 +162,16 @@ func TestClient() {
 	if addCall.Error != nil {
 		print("Add: expected no error but got string %q", addCall.Error.Error())
 	}
-	if addReply.C != args.A+args.B {
-		print("Add: got %d expected %d", addReply.C, args.A+args.B)
+	if addReply.C != args.A + args.B {
+		print("Add: got %d expected %d", addReply.C, args.A + args.B)
 	}
 
 	mulCall = <-mulCall.Done
 	if mulCall.Error != nil {
 		print("Mul: expected no error but got string %q", mulCall.Error.Error())
 	}
-	if mulReply.C != args.A*args.B {
-		print("Mul: got %d expected %d", mulReply.C, args.A*args.B)
+	if mulReply.C != args.A * args.B {
+		print("Mul: got %d expected %d", mulReply.C, args.A * args.B)
 	}
 
 	print("testing at client 4 \n")

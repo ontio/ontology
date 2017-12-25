@@ -47,7 +47,7 @@ func NewOauthClient() *http.Client {
 	c := &http.Client{
 		Transport: &http.Transport{
 			Dial: func(netw, addr string) (net.Conn, error) {
-				conn, err := net.DialTimeout(netw, addr, time.Second*10)
+				conn, err := net.DialTimeout(netw, addr, time.Second * 10)
 				if err != nil {
 					return nil, err
 				}
@@ -111,7 +111,7 @@ func CheckAccessToken(auth_type, access_token string) (cakey string, errCode int
 	req := make(map[string]interface{})
 	req["token"] = access_token
 	req["auth_type"] = auth_type
-	rep, err := OauthRequest("GET", req, Parameters.OauthServerUrl+"/"+access_token+"?auth_type="+auth_type)
+	rep, err := OauthRequest("GET", req, Parameters.OauthServerUrl + "/" + access_token + "?auth_type=" + auth_type)
 	if err != nil {
 		log.Error("Oauth timeout:", err)
 		return "", Err.OAUTH_TIMEOUT, rep

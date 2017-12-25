@@ -19,7 +19,7 @@ func (this *StorageItem) Serialize(w io.Writer) error {
 
 func (this *StorageItem) Deserialize(r io.Reader) error {
 	if this == nil {
-		this =  new(StorageItem)
+		this = new(StorageItem)
 	}
 	err := this.StateBase.Deserialize(r)
 	if err != nil {

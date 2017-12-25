@@ -15,7 +15,6 @@ type DataFile struct {
 	Note     string
 	Issuer   *crypto.PubKey
 	//TODO: add hash or key to verify data
-
 }
 
 func (a *DataFile) Data(version byte) []byte {

@@ -18,7 +18,7 @@ type zr struct {
 }
 
 const (
-	aesIV  = "IV for <SM2> CTR"
+	aesIV = "IV for <SM2> CTR"
 	USERID = "1234567812345678"
 )
 
@@ -56,7 +56,7 @@ func Init(algSet *util.CryptoAlgSet) {
 
 func randFieldElement(c elliptic.Curve, rand io.Reader) (*big.Int, error) {
 	params := c.Params()
-	b := make([]byte, params.BitSize/8+8)
+	b := make([]byte, params.BitSize / 8 + 8)
 	_, err := io.ReadFull(rand, b)
 	if err != nil {
 		return nil, err

@@ -11,8 +11,8 @@ import (
 const RegisterPayloadVersion byte = 0x00
 
 type RegisterAsset struct {
-	Asset  *asset.Asset
-	Amount common.Fixed64
+	Asset      *asset.Asset
+	Amount     common.Fixed64
 	//Precision  byte
 	Issuer     *crypto.PubKey
 	Controller common.Uint160

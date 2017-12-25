@@ -12,7 +12,7 @@ func opSubStr(e *ExecutionEngine) (VMState, error) {
 	count := PopInt(e)
 	index := PopInt(e)
 	arr := PopByteArray(e)
-	b := arr[index : index+count]
+	b := arr[index : index + count]
 	PushData(e, b)
 	return NONE, nil
 }
@@ -28,7 +28,7 @@ func opLeft(e *ExecutionEngine) (VMState, error) {
 func opRight(e *ExecutionEngine) (VMState, error) {
 	count := PopInt(e)
 	arr := PopByteArray(e)
-	b := arr[len(arr)-count:]
+	b := arr[len(arr) - count:]
 	PushData(e, b)
 	return NONE, nil
 }

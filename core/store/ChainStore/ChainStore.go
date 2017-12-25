@@ -33,17 +33,17 @@ import (
 const (
 	HeaderHashListCount = 2000
 	CleanCacheThreshold = 2
-	TaskChanCap         = 4
-	DBDir               = "Chain"
+	TaskChanCap = 4
+	DBDir = "Chain"
 	MerkleTreeStorePath = "Chain/merkle_tree.db"
-	DEPLOY_TRANSACTION  = "DeployTransaction"
-	INVOKE_TRANSACTION  = "InvokeTransaction"
+	DEPLOY_TRANSACTION = "DeployTransaction"
+	INVOKE_TRANSACTION = "InvokeTransaction"
 )
 
 var (
-	ErrDBNotFound    = "leveldb: not found"
+	ErrDBNotFound = "leveldb: not found"
 	CurrentStateRoot = []byte("Current-State-Root")
-	BookerKeeper     = []byte("Booker-Keeper")
+	BookerKeeper = []byte("Booker-Keeper")
 )
 
 type persistTask interface{}
@@ -56,18 +56,18 @@ type persistBlockTask struct {
 }
 
 type ChainStore struct {
-	st IStore
+	st                 IStore
 
-	taskCh chan persistTask
-	quit   chan chan bool
+	taskCh             chan persistTask
+	quit               chan chan bool
 
-	mu          sync.RWMutex // guard the following var
-	headerIndex map[uint32]Uint256
-	blockCache  map[Uint256]*Block
-	headerCache map[Uint256]*Header
+	mu                 sync.RWMutex // guard the following var
+	headerIndex        map[uint32]Uint256
+	blockCache         map[Uint256]*Block
+	headerCache        map[Uint256]*Header
 
-	merkleTree      *merkle.CompactMerkleTree
-	merkleHashStore *merkle.FileHashStore
+	merkleTree         *merkle.CompactMerkleTree
+	merkleHashStore    *merkle.FileHashStore
 
 	currentBlockHeight uint32
 	storedHeaderCount  uint32
@@ -151,13 +151,13 @@ func (self *ChainStore) clearCache() {
 
 	currBlockHeight := self.currentBlockHeight
 	for hash, header := range self.headerCache {
-		if header.Blockdata.Height+CleanCacheThreshold < currBlockHeight {
+		if header.Blockdata.Height + CleanCacheThreshold < currBlockHeight {
 			delete(self.headerCache, hash)
 		}
 	}
 
 	for hash, block := range self.blockCache {
-		if block.Blockdata.Height+CleanCacheThreshold < currBlockHeight {
+		if block.Blockdata.Height + CleanCacheThreshold < currBlockHeight {
 			delete(self.blockCache, hash)
 		}
 	}
@@ -212,7 +212,7 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 
 			for i := 0; i < int(listNum); i++ {
 				listHash.Deserialize(r)
-				bd.headerIndex[startNum+uint32(i)] = listHash
+				bd.headerIndex[startNum + uint32(i)] = listHash
 				bd.storedHeaderCount++
 				//log.Debug( fmt.Sprintf( "listHash %d: %x\n", startNum+uint32(i), listHash ) )
 			}
@@ -239,7 +239,7 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 		} else if current_Header_Height >= bd.storedHeaderCount {
 			hash = blockHash
 			for {
-				if hash == bd.headerIndex[bd.storedHeaderCount-1] {
+				if hash == bd.headerIndex[bd.storedHeaderCount - 1] {
 					break
 				}
 
@@ -257,13 +257,13 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 		}
 		buf, _ := bd.st.Get([]byte{byte(SYS_BlockMerkleTree)})
 		tree_size := binary.BigEndian.Uint32(buf[0:4])
-		if tree_size != bd.currentBlockHeight+1 {
+		if tree_size != bd.currentBlockHeight + 1 {
 			return 0, errors.New("Merkle tree size is inconsistent with blockheight")
 		}
 		nhashes := (len(buf) - 4) / UINT256SIZE
 		hashes := make([]Uint256, nhashes, nhashes)
 		for i := 0; i < nhashes; i++ {
-			copy(hashes[i][:], buf[4+i*UINT256SIZE:])
+			copy(hashes[i][:], buf[4 + i * UINT256SIZE:])
 		}
 
 		bd.merkleHashStore, err = merkle.NewFileHashStore(MerkleTreeStorePath, tree_size)
@@ -421,7 +421,7 @@ func (bd *ChainStore) verifyHeader(header *Header) bool {
 		return false
 	}
 
-	if prevHeader.Blockdata.Height+1 != header.Blockdata.Height {
+	if prevHeader.Blockdata.Height + 1 != header.Blockdata.Height {
 		log.Error("[verifyHeader] failed, prevHeader.Height + 1 != header.Height")
 		return false
 	}
@@ -723,7 +723,7 @@ func (bd *ChainStore) persist(b *Block) error {
 			case payload.BookKeeperAction_SUB:
 				index := crypto.ContainPubKey(bk.PubKey, bookKeeper.NextBookKeeper)
 				if index >= 0 {
-					bookKeeper.NextBookKeeper = append(bookKeeper.NextBookKeeper[:index], bookKeeper.NextBookKeeper[index+1:]...)
+					bookKeeper.NextBookKeeper = append(bookKeeper.NextBookKeeper[:index], bookKeeper.NextBookKeeper[index + 1:]...)
 				}
 				stateStore.memoryStore.Change(byte(ST_BookKeeper), BookerKeeper, false)
 			}
@@ -888,7 +888,7 @@ func (self *ChainStore) handlePersistBlockTask(b *Block, ledger *Ledger) {
 
 		self.st.NewBatch()
 		storedHeaderCount := self.storedHeaderCount
-		for self.currentBlockHeight-storedHeaderCount >= HeaderHashListCount {
+		for self.currentBlockHeight - storedHeaderCount >= HeaderHashListCount {
 			hashBuffer := new(bytes.Buffer)
 			serialization.WriteVarUint(hashBuffer, uint64(HeaderHashListCount))
 			var hashArray []byte
@@ -1009,7 +1009,7 @@ func (bd *ChainStore) ContainsUnspent(txid Uint256, index uint16) (bool, error) 
 func (bd *ChainStore) GetCurrentHeaderHash() Uint256 {
 	bd.mu.RLock()
 	defer bd.mu.RUnlock()
-	return bd.headerIndex[uint32(len(bd.headerIndex)-1)]
+	return bd.headerIndex[uint32(len(bd.headerIndex) - 1)]
 }
 
 func (bd *ChainStore) GetHeaderHashByHeight(height uint32) Uint256 {

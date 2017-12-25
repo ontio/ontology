@@ -23,8 +23,8 @@ type Database interface {
 }
 
 type Trie struct {
-	root node
-	db Database
+	root     node
+	db       Database
 	rootHash common.Uint256
 }
 
@@ -66,10 +66,10 @@ func (t *Trie) tryGet(origNode node, key []byte, pos int) (value []byte, newNode
 	case valueNode:
 		return n, n, nil
 	case *shortNode:
-		if len(key) - pos < len(n.Key) || !bytes.Equal(n.Key, key[pos:pos+len(n.Key)]) {
+		if len(key) - pos < len(n.Key) || !bytes.Equal(n.Key, key[pos:pos + len(n.Key)]) {
 			return nil, n, nil
 		}
-		value, newNode, err = t.tryGet(n.Val, key, pos+len(n.Key))
+		value, newNode, err = t.tryGet(n.Val, key, pos + len(n.Key))
 		if err != nil {
 			return nil, n, err
 		}
@@ -77,7 +77,7 @@ func (t *Trie) tryGet(origNode node, key []byte, pos int) (value []byte, newNode
 		n.Val = newNode
 		return value, n, nil
 	case *fullNode:
-		value, newNode, err = t.tryGet(n.Children[key[pos]], key, pos+1)
+		value, newNode, err = t.tryGet(n.Children[key[pos]], key, pos + 1)
 		if err != nil {
 			return nil, n, err
 		}
@@ -127,11 +127,11 @@ func (t *Trie) insert(n node, prefix, key []byte, value node) (node, error) {
 		}
 		branch := &fullNode{flags: nodeFlag{}}
 		var err error
-		branch.Children[n.Key[matchLen]], err = t.insert(nil, append(prefix, n.Key[:matchLen+1]...), n.Key[matchLen+1:], n.Val)
+		branch.Children[n.Key[matchLen]], err = t.insert(nil, append(prefix, n.Key[:matchLen + 1]...), n.Key[matchLen + 1:], n.Val)
 		if err != nil {
 			return nil, err
 		}
-		branch.Children[key[matchLen]], err = t.insert(nil, append(prefix, key[:matchLen+1]...), key[matchLen+1:], value)
+		branch.Children[key[matchLen]], err = t.insert(nil, append(prefix, key[:matchLen + 1]...), key[matchLen + 1:], value)
 		if err != nil {
 			return nil, err
 		}
@@ -160,7 +160,7 @@ func (t *Trie) insert(n node, prefix, key []byte, value node) (node, error) {
 		}
 		return nn, nil
 	default:
-		panic(fmt.Sprintf("invalid insert node type : %v",reflect.TypeOf(n)))
+		panic(fmt.Sprintf("invalid insert node type : %v", reflect.TypeOf(n)))
 	}
 }
 
@@ -177,10 +177,10 @@ func (t *Trie) TryDelete(key []byte) error {
 		return err
 	}
 	t.root = n
- 	return nil
+	return nil
 }
 
-func (t *Trie) delete(n node, prefix, key []byte) (node, error){
+func (t *Trie) delete(n node, prefix, key []byte) (node, error) {
 	switch n := n.(type) {
 	case *shortNode:
 		matchLen := prefixLen(key, n.Key)
@@ -302,7 +302,7 @@ func (t *Trie) resolveHash(n hashNode, prefix []byte) (node, error) {
 }
 
 func concat(s1 []byte, s2 ...byte) []byte {
-	r := make([]byte, len(s1)+len(s2))
+	r := make([]byte, len(s1) + len(s2))
 	copy(r, s1)
 	copy(r[len(s1):], s2)
 	return r

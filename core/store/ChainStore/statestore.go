@@ -55,7 +55,7 @@ func (self *StateStore) TryGetOrAdd(prefix DataEntryPrefix, key []byte, value IS
 		return nil
 	}
 	item, err := self.db.st.Get(append([]byte{byte(prefix)}, key...))
-	if err != nil && !strings.EqualFold(err.Error(), ErrDBNotFound){
+	if err != nil && !strings.EqualFold(err.Error(), ErrDBNotFound) {
 		return err
 	}
 	if item != nil {
@@ -74,7 +74,7 @@ func (self *StateStore) TryGet(prefix DataEntryPrefix, key []byte) (*StateItem, 
 		return state, nil
 	}
 	enc, err := self.db.st.Get(append([]byte{byte(prefix)}, key...))
-	if err != nil && !strings.EqualFold(err.Error(), ErrDBNotFound){
+	if err != nil && !strings.EqualFold(err.Error(), ErrDBNotFound) {
 		return nil, err
 	}
 
