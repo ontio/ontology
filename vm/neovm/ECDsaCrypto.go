@@ -20,7 +20,7 @@ func (c *ECDsaCrypto) Hash160(message []byte) []byte {
 func (c *ECDsaCrypto) Hash256(message []byte) []byte {
 	temp := sha256.Sum256(message)
 	f := sha256.Sum256(temp[:])
-	return f
+	return f[:]
 }
 
 func (c *ECDsaCrypto) VerifySignature(message []byte, signature []byte, pubkey []byte) (bool, error) {
