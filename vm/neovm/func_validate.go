@@ -230,7 +230,7 @@ func validateInc(e *ExecutionEngine) error {
 		return err
 	}
 	x := PeekBigInteger(e)
-	if !CheckBigInteger(x) || !CheckBigInteger(x.Add(x, big.NewInt(1))) {
+	if !CheckBigInteger(x) || !CheckBigInteger(new(big.Int).Add(x, big.NewInt(1))) {
 		log.Error("[validateInc] CheckBigInteger fail")
 		return false
 	}
@@ -242,7 +242,7 @@ func validateDec(e *ExecutionEngine) error {
 		return err
 	}
 	x := PeekBigInteger(e)
-	if !CheckBigInteger(x) || (x.Sign() <= 0 && !CheckBigInteger(x.Sub(x, big.NewInt(1)))) {
+	if !CheckBigInteger(x) || (x.Sign() <= 0 && !CheckBigInteger(new(big.Int).Sub(x, big.NewInt(1)))) {
 		log.Error("[validateDec] CheckBigInteger fail")
 		return false
 	}
@@ -255,7 +255,7 @@ func validateAdd(e *ExecutionEngine) error {
 	}
 	x2 := PeekBigInteger(e)
 	x1 := PeekNBigInt(1, e)
-	if !CheckBigInteger(x1) || !CheckBigInteger(x2) || !CheckBigInteger(x1.Add(x1, x2)) {
+	if !CheckBigInteger(x1) || !CheckBigInteger(x2) || !CheckBigInteger(new(big.Int).Add(x1, x2)) {
 		log.Error("[validateAdd] CheckBigInteger fail")
 		return false
 	}
@@ -267,7 +267,7 @@ func validateSub(e *ExecutionEngine) error {
 	}
 	x2 := PeekBigInteger(e)
 	x1 := PeekNBigInt(1, e)
-	if !CheckBigInteger(x1) || !CheckBigInteger(x2) || !CheckBigInteger(x1.Add(x1, x2)) {
+	if !CheckBigInteger(x1) || !CheckBigInteger(x2) || !CheckBigInteger(new(big.Int).Sub(x1, x2)) {
 		log.Error("[validateAdd] CheckBigInteger fail")
 		return ErrOverMaxBigIntegerSize
 	}

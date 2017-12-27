@@ -9,12 +9,7 @@ import (
 	"github.com/Ontology/common"
 )
 
-const (
-	ratio = 100000
-	gasFree = 10 * 100000000;
-)
-
-func NewExecutionEngine(container interfaces.ICodeContainer, crypto interfaces.ICrypto, table interfaces.ICodeTable, service IInteropService, gas common.Fixed64) *ExecutionEngine {
+func NewExecutionEngine(container interfaces.ICodeContainer, crypto interfaces.ICrypto, table interfaces.ICodeTable, service IInteropService) *ExecutionEngine {
 	var engine ExecutionEngine
 
 	engine.crypto = crypto
@@ -36,7 +31,6 @@ func NewExecutionEngine(container interfaces.ICodeContainer, crypto interfaces.I
 	if service != nil {
 		engine.service.MergeMap(service.GetServiceMap())
 	}
-	engine.gas = gasFree + gas.GetData()
 	return &engine
 }
 
@@ -270,80 +264,4 @@ func (e *ExecutionEngine) checkStackSize() bool {
 		return false
 	}
 	return true
-}
-
-func (e *ExecutionEngine) getPrice() int64 {
-	switch e.opCode {
-	case NOP:
-		return 0
-	case APPCALL, TAILCALL:
-		return 10
-	case SYSCALL:
-		return e.getPriceForSysCall()
-	case SHA1, SHA256:
-		return 10
-	case HASH160, HASH256:
-		return 20
-	case CHECKSIG:
-		return 100
-	case CHECKMULTISIG:
-		if e.evaluationStack.Count() == 0 {
-			return 1
-		}
-		n := Peek(e).GetStackItem().GetBigInteger().Int64()
-		if n < 1 {
-			return 1
-		}
-		return int64(100 * n)
-	default:
-		return 1
-	}
-}
-
-func (e *ExecutionEngine) getPriceForSysCall() int64 {
-	context := e.context
-	i := context.GetInstructionPointer() - 1
-	c := len(context.Code)
-	if i >= c - 3 {
-		return 1
-	}
-	l := int(context.Code[i + 1])
-	if i >= c - l - 2 {
-		return 1
-	}
-	name := string(context.Code[i + 2:l])
-	switch name {
-	case "Neo.Blockchain.GetHeader":
-		return 100
-	case "Neo.Blockchain.GetBlock":
-		return 200
-	case "Neo.Blockchain.GetTransaction":
-		return 100
-	case "Neo.Blockchain.GetAccount":
-		return 100
-	case "Neo.Blockchain.RegisterValidator":
-		return 1000 * 100000000 / ratio;
-	case "Neo.Blockchain.GetValidators":
-		return 200
-	case "Neo.Blockchain.CreateAsset":
-		return 5000 * 100000000 / ratio
-	case "Neo.Blockchain.GetAsset":
-		return 100
-	case "Neo.Blockchain.CreateContract":
-		return 500 * 100000000 / ratio
-	case "Neo.Blockchain.GetContract":
-		return 100
-	case "Neo.Transaction.GetReferences":
-		return 200
-	case "Neo.Asset.Renew":
-		return Peek(e).GetStackItem().GetBigInteger().Int64() * 5000 * 100000000 / ratio
-	case "Neo.Storage.Get":
-		return 100
-	case "Neo.Storage.Put":
-		return 1000
-	case "Neo.Storage.Delete":
-		return 100
-	default:
-		return 1
-	}
 }

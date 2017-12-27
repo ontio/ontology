@@ -1,7 +1,5 @@
 package neovm
 
-import "fmt"
-
 func opBigInt(e *ExecutionEngine) (VMState, error) {
 	x := PopBigInt(e)
 	PushData(e, BigIntOp(x, e.opCode))
@@ -23,7 +21,6 @@ func opNz(e *ExecutionEngine) (VMState, error) {
 func opBigIntZip(e *ExecutionEngine) (VMState, error) {
 	x2 := PopBigInt(e)
 	x1 := PopBigInt(e)
-	fmt.Println("x1:", x1, "x2:", x2)
 	b := BigIntZip(x1, x2, e.opCode)
 	PushData(e, b)
 	return NONE, nil
@@ -39,7 +36,6 @@ func opBoolZip(e *ExecutionEngine) (VMState, error) {
 func opBigIntComp(e *ExecutionEngine) (VMState, error) {
 	x2 := PopBigInt(e)
 	x1 := PopBigInt(e)
-	fmt.Println("[x1]:", x1, "[x2]:", x2)
 	PushData(e, BigIntMultiComp(x1, x2, e.opCode))
 	return NONE, nil
 }
