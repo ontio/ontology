@@ -1,6 +1,8 @@
 package neovm
 
 import (
+	"fmt"
+	"github.com/Ontology/common/log"
 	. "github.com/Ontology/vm/neovm/errors"
 )
 
@@ -15,6 +17,10 @@ func opJmp(e *ExecutionEngine) (VMState, error) {
 
 	if offset > len(e.context.Code) {
 		return FAULT, ErrFault
+	}
+	if EvaluationStackCount(e) < 1 {
+		log.Error("[opJmp]", EvaluationStackCount(e), 1)
+		return FAULT, ErrUnderStackLen
 	}
 	var fValue = true
 
@@ -48,10 +54,14 @@ func opAppCall(e *ExecutionEngine) (VMState, error) {
 	if len(codeHash) == 0 {
 		codeHash = PopByteArray(e)
 	}
+
+	fmt.Printf("appcallllllllllllllllllllllllll: %x\n", codeHash)
+
 	code, err := e.table.GetCode(codeHash)
 	if code == nil {
 		return FAULT, err
 	}
+	fmt.Printf("appcall: %x\n", code)
 	if e.opCode == TAILCALL {
 		e.invocationStack.Pop()
 	}
