@@ -123,10 +123,17 @@ func validateXDrop(e *ExecutionEngine) error {
 }
 
 func validateXSwap(e *ExecutionEngine) error {
-
-	if err := validateOpStack(e); err != nil {
-		return err
+	total := EvaluationStackCount(e)
+	if total < 1 {
+		log.Error("[validateXSwap]", total, 1)
+		return ErrUnderStackLen
 	}
+	index := PeekNInt(0, e)
+	if index < 0 || index+2 > total {
+		log.Error("[validateXSwap] index < 0 || index > EvaluationStackCount(e)-2")
+		return ErrBadValue
+	}
+
 	return nil
 }
 
