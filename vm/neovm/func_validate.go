@@ -6,6 +6,7 @@ import (
 	"github.com/Ontology/common/log"
 	. "github.com/Ontology/vm/neovm/errors"
 	"github.com/Ontology/vm/neovm/types"
+	"math/big"
 )
 
 func validateCount1(e *ExecutionEngine) error {
@@ -78,7 +79,7 @@ func validateCall(e *ExecutionEngine) error {
 }
 
 func validateInvocationStack(e *ExecutionEngine) error {
-	if uint32(e.invocationStack.Count()) > MaxStackSize {
+	if uint32(e.invocationStack.Count()) >= MaxInvovationStackSize {
 		return ErrOverStackLen
 	}
 	return nil
@@ -236,6 +237,45 @@ func validateRight(e *ExecutionEngine) error {
 	return nil
 }
 
+func validateInc(e *ExecutionEngine) error {
+	if EvaluationStackCount(e) < 1 {
+		log.Error("[validateInc]", EvaluationStackCount(e) < 1)
+		return ErrUnderStackLen
+	}
+	x := PeekBigInteger(e)
+	if !CheckBigInteger(x) || !CheckBigInteger(x.Add(x, big.NewInt(1))) {
+		log.Error("[validateInc] CheckBigInteger fail")
+		return false
+	}
+	return nil
+}
+
+func validateDec(e *ExecutionEngine) error {
+	if EvaluationStackCount(e) < 1 {
+		log.Error("[validateDec]", EvaluationStackCount(e) < 1)
+		return ErrUnderStackLen
+	}
+	x := PeekBigInteger(e)
+	if !CheckBigInteger(x) || (x.Sign() <= 0 && !CheckBigInteger(x.Sub(x, big.NewInt(1)))) {
+		log.Error("[validateDec] CheckBigInteger fail")
+		return false
+	}
+	return nil
+}
+
+func validateAdd(e *ExecutionEngine) error {
+	if EvaluationStackCount(e) < 2 {
+		log.Error("[validateAdd]", EvaluationStackCount(e) < 1)
+		return ErrUnderStackLen
+	}
+	x2 := PeekBigInteger(e)
+	x1 := PeekNBigInt(1, e)
+	if !CheckBigInteger(x1) || !CheckBigInteger(x2) || !CheckBigInteger(x1.Add(x1, x2)) {
+		log.Error("[validateAdd] CheckBigInteger fail")
+		return false
+	}
+}
+
 func validatePack(e *ExecutionEngine) error {
 	total := EvaluationStackCount(e)
 	if total < 1 {
@@ -339,4 +379,14 @@ func validateNewArray(e *ExecutionEngine) error {
 		return ErrOverMaxArraySize
 	}
 	return nil
+}
+
+func CheckBigInteger(value *big.Int) bool {
+	if value == nil {
+		return false
+	}
+	if len(types.ConvertBigIntegerToBytes(value)) > MaxSizeForBigInteger {
+		return false
+	}
+	return true
 }
