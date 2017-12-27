@@ -274,6 +274,53 @@ func validateSub(e *ExecutionEngine) error {
 	return nil
 }
 
+func validateMul(e *ExecutionEngine) error {
+	if err := LogStackTrace(e, 2, "[validateMul]"); err != nil {
+		return err
+	}
+	x2 := PeekBigInteger(e)
+	x1 := PeekNBigInt(1, e)
+	lx2 := len(x2)
+	lx1 := len(x1)
+	if  lx2 >  MaxSizeForBigInteger || lx1 > MaxSizeForBigInteger || (lx1 + lx2) > MaxSizeForBigInteger {
+		log.Error("[validateMul] CheckBigInteger fail")
+		return ErrOverMaxBigIntegerSize
+	}
+	return nil
+}
+
+func validateDiv(e *ExecutionEngine) error {
+	if err := LogStackTrace(e, 2, "[validateAdd]"); err != nil {
+		return err
+	}
+	x2 := PeekBigInteger(e)
+	x1 := PeekNBigInt(1, e)
+	if !CheckBigInteger(x2) || !CheckBigInteger(x1) {
+		log.Error("[validateDiv] CheckBigInteger fail")
+		return ErrOverMaxBigIntegerSize
+	}
+	if x1.Int64() == 0 {
+		return ErrDivModByZero
+	}
+	return nil
+}
+
+func validateMod(e *ExecutionEngine) error {
+	if err := LogStackTrace(e, 2, "[validateMod]"); err != nil {
+		return err
+	}
+	x2 := PeekBigInteger(e)
+	x1 := PeekNBigInt(1, e)
+	if !CheckBigInteger(x2) || !CheckBigInteger(x1) {
+		log.Error("[validateMod] CheckBigInteger fail")
+		return ErrOverMaxBigIntegerSize
+	}
+	if x1.Int64() == 0 {
+		return ErrDivModByZero
+	}
+	return nil
+}
+
 
 func validatePack(e *ExecutionEngine) error {
 	if err := LogStackTrace(e, 1, "[validatePack]"); err != nil {
