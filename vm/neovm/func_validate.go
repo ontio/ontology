@@ -7,36 +7,33 @@ import (
 	. "github.com/Ontology/vm/neovm/errors"
 	"github.com/Ontology/vm/neovm/types"
 	"math/big"
+	"fmt"
 )
 
 func validateCount1(e *ExecutionEngine) error {
-	if EvaluationStackCount(e) < 1 {
-		log.Error("[validateCount1]", EvaluationStackCount(e), 1)
-		return ErrUnderStackLen
+	if err := LogStackTrace(e, 1, "[validateCount1]"); err != nil {
+		return err
 	}
 	return nil
 }
 
 func validateCount2(e *ExecutionEngine) error {
-	if EvaluationStackCount(e) < 2 {
-		log.Error("[validateCount2]", EvaluationStackCount(e), 2)
-		return ErrUnderStackLen
+	if err := LogStackTrace(e, 2, "[validateCount2]"); err != nil {
+		return err
 	}
 	return nil
 }
 
 func validateCount3(e *ExecutionEngine) error {
-	if EvaluationStackCount(e) < 3 {
-		log.Error("[validateCount3]", EvaluationStackCount(e), 3)
-		return ErrUnderStackLen
+	if err := LogStackTrace(e, 3, "[validateCount3]"); err != nil {
+		return err
 	}
 	return nil
 }
 
 func validateDivMod(e *ExecutionEngine) error {
-	if EvaluationStackCount(e) < 2 {
-		log.Error("[validateDivMod]", EvaluationStackCount(e), 2)
-		return ErrUnderStackLen
+	if err := LogStackTrace(e, 2, "[validateDivMod]"); err != nil {
+		return err
 	}
 	if PeekInt(e) == 0 {
 		return ErrDivModByZero
@@ -45,9 +42,8 @@ func validateDivMod(e *ExecutionEngine) error {
 }
 
 func validateShift(e *ExecutionEngine) error {
-	if EvaluationStackCount(e) < 2 {
-		log.Error("[validateShift]", EvaluationStackCount(e), 2)
-		return ErrUnderStackLen
+	if err := LogStackTrace(e, 2, "[validateShift]"); err != nil {
+		return err
 	}
 
 	if PeekInt(e) < 0 {
@@ -103,9 +99,8 @@ func validateSysCall(e *ExecutionEngine) error {
 }
 
 func validateOpStack(e *ExecutionEngine) error {
-	if EvaluationStackCount(e) < 1 {
-		log.Error("[validateOpStack]", EvaluationStackCount(e) < 1)
-		return ErrUnderStackLen
+	if err := LogStackTrace(e, 1, "[validateOpStack]"); err != nil {
+		return err
 	}
 	index := PeekNInt(0, e)
 	if index < 0 {
@@ -124,13 +119,11 @@ func validateXDrop(e *ExecutionEngine) error {
 }
 
 func validateXSwap(e *ExecutionEngine) error {
-	total := EvaluationStackCount(e)
-	if total < 1 {
-		log.Error("[validateXSwap]", total, 1)
-		return ErrUnderStackLen
+	if err := LogStackTrace(e, 1, "[validateOpStack]"); err != nil {
+		return err
 	}
 	index := PeekNInt(0, e)
-	if index < 0 || index+2 > total {
+	if index < 0 || index+2 > EvaluationStackCount(e) {
 		log.Error("[validateXSwap] index < 0 || index > EvaluationStackCount(e)-2")
 		return ErrBadValue
 	}
@@ -153,9 +146,8 @@ func validatePick(e *ExecutionEngine) error {
 }
 
 func validateRoll(e *ExecutionEngine) error {
-	if EvaluationStackCount(e) < 1 {
-		log.Error("[validateRoll]", EvaluationStackCount(e) < 1)
-		return ErrUnderStackLen
+	if err := LogStackTrace(e, 1, "[validateRoll]"); err != nil {
+		return err
 	}
 	index := PeekNInt(0, e)
 	if index < 0 {
@@ -166,9 +158,8 @@ func validateRoll(e *ExecutionEngine) error {
 }
 
 func validateCat(e *ExecutionEngine) error {
-	if EvaluationStackCount(e) < 2 {
-		log.Error("[validateCat] EvaluationStackCount(e) < 2")
-		return ErrUnderStackLen
+	if err := LogStackTrace(e, 2, "[validateCat]"); err != nil {
+		return err
 	}
 	l := len(PeekNByteArray(0, e)) + len(PeekNByteArray(1, e))
 	if uint32(l) > MaxItemSize {
@@ -179,9 +170,8 @@ func validateCat(e *ExecutionEngine) error {
 }
 
 func validateSubStr(e *ExecutionEngine) error {
-	if EvaluationStackCount(e) < 3 {
-		log.Error("[validateSubStr]", EvaluationStackCount(e) < 3)
-		return ErrUnderStackLen
+	if err := LogStackTrace(e, 3, "[validateSubStr]"); err != nil {
+		return err
 	}
 	count := PeekNInt(0, e)
 	if count < 0 {
@@ -202,9 +192,8 @@ func validateSubStr(e *ExecutionEngine) error {
 }
 
 func validateLeft(e *ExecutionEngine) error {
-	if EvaluationStackCount(e) < 2 {
-		log.Error("[validateLeft]", EvaluationStackCount(e) < 2)
-		return ErrUnderStackLen
+	if err := LogStackTrace(e, 2, "[validateLeft]"); err != nil {
+		return err
 	}
 	count := PeekNInt(0, e)
 	if count < 0 {
@@ -220,9 +209,8 @@ func validateLeft(e *ExecutionEngine) error {
 }
 
 func validateRight(e *ExecutionEngine) error {
-	if EvaluationStackCount(e) < 2 {
-		log.Error("[validateRight]", EvaluationStackCount(e), 2)
-		return ErrUnderStackLen
+	if err := LogStackTrace(e, 2, "[validateRight]"); err != nil {
+		return err
 	}
 	count := PeekNInt(0, e)
 	if count < 0 {
@@ -238,9 +226,8 @@ func validateRight(e *ExecutionEngine) error {
 }
 
 func validateInc(e *ExecutionEngine) error {
-	if EvaluationStackCount(e) < 1 {
-		log.Error("[validateInc]", EvaluationStackCount(e) < 1)
-		return ErrUnderStackLen
+	if err := LogStackTrace(e, 1, "[validateInc]"); err != nil {
+		return err
 	}
 	x := PeekBigInteger(e)
 	if !CheckBigInteger(x) || !CheckBigInteger(x.Add(x, big.NewInt(1))) {
@@ -251,9 +238,8 @@ func validateInc(e *ExecutionEngine) error {
 }
 
 func validateDec(e *ExecutionEngine) error {
-	if EvaluationStackCount(e) < 1 {
-		log.Error("[validateDec]", EvaluationStackCount(e) < 1)
-		return ErrUnderStackLen
+	if err := LogStackTrace(e, 1, "[validateDec]"); err != nil {
+		return err
 	}
 	x := PeekBigInteger(e)
 	if !CheckBigInteger(x) || (x.Sign() <= 0 && !CheckBigInteger(x.Sub(x, big.NewInt(1)))) {
@@ -264,9 +250,8 @@ func validateDec(e *ExecutionEngine) error {
 }
 
 func validateAdd(e *ExecutionEngine) error {
-	if EvaluationStackCount(e) < 2 {
-		log.Error("[validateAdd]", EvaluationStackCount(e) < 1)
-		return ErrUnderStackLen
+	if err := LogStackTrace(e, 2, "[validateAdd]"); err != nil {
+		return err
 	}
 	x2 := PeekBigInteger(e)
 	x1 := PeekNBigInt(1, e)
@@ -276,11 +261,23 @@ func validateAdd(e *ExecutionEngine) error {
 	}
 }
 
+func validateSub(e *ExecutionEngine) error {
+	if err := LogStackTrace(e, 2, "[validateSub]"); err != nil {
+		return err
+	}
+	x2 := PeekBigInteger(e)
+	x1 := PeekNBigInt(1, e)
+	if !CheckBigInteger(x1) || !CheckBigInteger(x2) || !CheckBigInteger(x1.Add(x1, x2)) {
+		log.Error("[validateAdd] CheckBigInteger fail")
+		return ErrOverMaxBigIntegerSize
+	}
+	return nil
+}
+
+
 func validatePack(e *ExecutionEngine) error {
-	total := EvaluationStackCount(e)
-	if total < 1 {
-		log.Error("[validatePack]", total, 1)
-		return ErrUnderStackLen
+	if err := LogStackTrace(e, 1, "[validatePack]"); err != nil {
+		return err
 	}
 
 	count := PeekInt(e)
@@ -288,7 +285,7 @@ func validatePack(e *ExecutionEngine) error {
 		log.Error("[validateRight] uint32(count) > MaxArraySize")
 		return ErrOverMaxArraySize
 	}
-	if count+1 > total {
+	if count+1 > EvaluationStackCount(e) {
 		log.Error("[validateRight] count+1 > EvaluationStackCount(e)")
 		return ErrOverStackLen
 	}
@@ -296,9 +293,8 @@ func validatePack(e *ExecutionEngine) error {
 }
 
 func validatePickItem(e *ExecutionEngine) error {
-	if EvaluationStackCount(e) < 2 {
-		log.Error("[validatePickItem]", EvaluationStackCount(e) < 2)
-		return ErrUnderStackLen
+	if err := LogStackTrace(e, 2, "[validatePickItem]"); err != nil {
+		return err
 	}
 	index := PeekNInt(0, e)
 	if index < 0 {
@@ -323,9 +319,8 @@ func validatePickItem(e *ExecutionEngine) error {
 }
 
 func validatorSetItem(e *ExecutionEngine) error {
-	if EvaluationStackCount(e) < 3 {
-		log.Error("[validatorSetItem]", EvaluationStackCount(e) < 3)
-		return ErrUnderStackLen
+	if err := LogStackTrace(e, 3, "[validatorSetItem]"); err != nil {
+		return err
 	}
 	newItem := PeekN(0, e)
 	if newItem == nil {
@@ -368,9 +363,8 @@ func validatorSetItem(e *ExecutionEngine) error {
 }
 
 func validateNewArray(e *ExecutionEngine) error {
-	if EvaluationStackCount(e) < 1 {
-		log.Error("[validateNewArray]", EvaluationStackCount(e), 1)
-		return ErrUnderStackLen
+	if err := LogStackTrace(e, 1, "[validateNewArray]"); err != nil {
+		return err
 	}
 
 	count := PeekInt(e)
@@ -389,4 +383,13 @@ func CheckBigInteger(value *big.Int) bool {
 		return false
 	}
 	return true
+}
+
+func LogStackTrace(e *ExecutionEngine, needStackCount int, desc string) error {
+	stackCount := EvaluationStackCount(e)
+	if stackCount < needStackCount {
+		log.Error(fmt.Sprintf("%s lack of parametes, actual: %v need: %x",desc, stackCount, needStackCount))
+		return ErrUnderStackLen
+	}
+	return nil
 }

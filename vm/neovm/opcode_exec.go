@@ -85,7 +85,7 @@ var (
 		NOT:         {Opcode: NOT, Name: "NOT", Exec: opNot, Validator: validateCount1},
 		NZ:          {Opcode: NZ, Name: "NZ", Exec: opNz, Validator: validateCount1},
 		ADD:         {Opcode: ADD, Name: "ADD", Exec: opBigIntZip, Validator: validateAdd},
-		SUB:         {Opcode: SUB, Name: "SUB", Exec: opBigIntZip, Validator: validateCount2},
+		SUB:         {Opcode: SUB, Name: "SUB", Exec: opBigIntZip, Validator: validateSub},
 		MUL:         {Opcode: MUL, Name: "MUL", Exec: opBigIntZip, Validator: validateCount2},
 		DIV:         {Opcode: DIV, Name: "DIV", Exec: opBigIntZip, Validator: validateDivMod},
 		MOD:         {Opcode: MOD, Name: "MOD", Exec: opBigIntZip, Validator: validateDivMod},
