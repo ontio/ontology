@@ -35,7 +35,7 @@ func validateDivMod(e *ExecutionEngine) error {
 	if err := LogStackTrace(e, 2, "[validateDivMod]"); err != nil {
 		return err
 	}
-	if PeekInt(e) == 0 {
+	if PeekBigInteger(e).Sign() == 0 {
 		return ErrDivModByZero
 	}
 	return nil
@@ -46,7 +46,7 @@ func validateShift(e *ExecutionEngine) error {
 		return err
 	}
 
-	if PeekInt(e) < 0 {
+	if PeekBigInteger(e).Sign() < 0 {
 		return ErrShiftByNeg
 	}
 
@@ -102,8 +102,8 @@ func validateOpStack(e *ExecutionEngine) error {
 	if err := LogStackTrace(e, 1, "[validateOpStack]"); err != nil {
 		return err
 	}
-	index := PeekNInt(0, e)
-	if index < 0 {
+	index := PeekBigInteger(e)
+	if index.Sign() < 0 {
 		log.Error("[validateOpStack] index < 0")
 		return ErrBadValue
 	}
@@ -119,11 +119,13 @@ func validateXDrop(e *ExecutionEngine) error {
 }
 
 func validateXSwap(e *ExecutionEngine) error {
-	if err := LogStackTrace(e, 1, "[validateOpStack]"); err != nil {
-		return err
-	}
-	index := PeekNInt(0, e)
-	if index < 0 || index+2 > EvaluationStackCount(e) {
+	total := EvaluationStackCount(e)
+	if total < 1 {
+		log.Error("[validateXSwap]", total, 1)
+		return ErrUnderStackLen
+}
+	index := PeekBigInteger(e)
+	if index.Sign() < 0 || index.Add(index, big.NewInt(2)).Cmp(big.NewInt(int64(total))) > 0 {
 		log.Error("[validateXSwap] index < 0 || index > EvaluationStackCount(e)-2")
 		return ErrBadValue
 	}
@@ -173,18 +175,21 @@ func validateSubStr(e *ExecutionEngine) error {
 	if err := LogStackTrace(e, 3, "[validateSubStr]"); err != nil {
 		return err
 	}
-	count := PeekNInt(0, e)
-	if count < 0 {
+	count := PeekNBigInt(0, e)
+	if count.Sign() < 0 {
 		log.Error("[validateSubStr] count < 0")
 		return ErrBadValue
 	}
-	index := PeekNInt(1, e)
-	if index < 0 {
+	index := PeekNBigInt(1, e)
+	if index.Sign() < 0 {
 		log.Error("[validateSubStr] index < 0")
 		return ErrBadValue
 	}
 	arr := PeekNByteArray(2, e)
-	if len(arr) < index+count {
+	temp := big.NewInt(0)
+	temp.Add(index, count)
+
+	if big.NewInt(int64(len(arr))).Cmp(temp) < 0 {
 		log.Error("[validateSubStr] len(arr) < index + count")
 		return ErrOverMaxArraySize
 	}
@@ -195,13 +200,13 @@ func validateLeft(e *ExecutionEngine) error {
 	if err := LogStackTrace(e, 2, "[validateLeft]"); err != nil {
 		return err
 	}
-	count := PeekNInt(0, e)
-	if count < 0 {
+	count := PeekNBigInt(0, e)
+	if count.Sign() < 0 {
 		log.Error("[validateLeft] count < 0")
 		return ErrBadValue
 	}
 	arr := PeekNByteArray(1, e)
-	if len(arr) < count {
+	if big.NewInt(int64(len(arr))).Cmp(count) < 0 {
 		log.Error("[validateLeft] len(arr) < count")
 		return ErrOverMaxArraySize
 	}
@@ -212,13 +217,13 @@ func validateRight(e *ExecutionEngine) error {
 	if err := LogStackTrace(e, 2, "[validateRight]"); err != nil {
 		return err
 	}
-	count := PeekNInt(0, e)
-	if count < 0 {
+	count := PeekNBigInt(0, e)
+	if count.Sign() < 0 {
 		log.Error("[validateRight] count < 0")
 		return ErrBadValue
 	}
 	arr := PeekNByteArray(1, e)
-	if len(arr) < count {
+	if big.NewInt(int64(len(arr))).Cmp(count) < 0 {
 		log.Error("[validateRight] len(arr) < count")
 		return ErrOverMaxArraySize
 	}
@@ -232,7 +237,7 @@ func validateInc(e *ExecutionEngine) error {
 	x := PeekBigInteger(e)
 	if !CheckBigInteger(x) || !CheckBigInteger(new(big.Int).Add(x, big.NewInt(1))) {
 		log.Error("[validateInc] CheckBigInteger fail")
-		return false
+		return ErrBadValue
 	}
 	return nil
 }
@@ -244,7 +249,7 @@ func validateDec(e *ExecutionEngine) error {
 	x := PeekBigInteger(e)
 	if !CheckBigInteger(x) || (x.Sign() <= 0 && !CheckBigInteger(new(big.Int).Sub(x, big.NewInt(1)))) {
 		log.Error("[validateDec] CheckBigInteger fail")
-		return false
+		return ErrBadValue
 	}
 	return nil
 }
@@ -257,8 +262,10 @@ func validateAdd(e *ExecutionEngine) error {
 	x1 := PeekNBigInt(1, e)
 	if !CheckBigInteger(x1) || !CheckBigInteger(x2) || !CheckBigInteger(new(big.Int).Add(x1, x2)) {
 		log.Error("[validateAdd] CheckBigInteger fail")
-		return false
+		return ErrBadValue
 	}
+
+	return nil
 }
 
 func validateSub(e *ExecutionEngine) error {
@@ -299,7 +306,7 @@ func validateDiv(e *ExecutionEngine) error {
 		log.Error("[validateDiv] CheckBigInteger fail")
 		return ErrOverMaxBigIntegerSize
 	}
-	if x1.Int64() == 0 {
+	if x1.Sign() == 0 {
 		return ErrDivModByZero
 	}
 	return nil
@@ -327,12 +334,15 @@ func validatePack(e *ExecutionEngine) error {
 		return err
 	}
 
-	count := PeekInt(e)
-	if uint32(count) > MaxArraySize {
+total := EvaluationStackCount(e)
+
+	count := PeekBigInteger(e)
+	if count.Cmp(big.NewInt(int64(MaxArraySize))) > 0 {
 		log.Error("[validateRight] uint32(count) > MaxArraySize")
 		return ErrOverMaxArraySize
 	}
-	if count+1 > EvaluationStackCount(e) {
+	count.Add(count, big.NewInt(1))
+	if count.Cmp(big.NewInt(int64(total))) > 0 {
 		log.Error("[validateRight] count+1 > EvaluationStackCount(e)")
 		return ErrOverStackLen
 	}
@@ -343,8 +353,8 @@ func validatePickItem(e *ExecutionEngine) error {
 	if err := LogStackTrace(e, 2, "[validatePickItem]"); err != nil {
 		return err
 	}
-	index := PeekNInt(0, e)
-	if index < 0 {
+	index := PeekBigInteger(e)
+	if index.Sign() < 0 {
 		log.Error("[validatePickItem] index < 0")
 		return ErrBadValue
 	}
@@ -358,7 +368,7 @@ func validatePickItem(e *ExecutionEngine) error {
 		log.Error("[validatePickItem] ErrNotArray")
 		return ErrNotArray
 	}
-	if index >= len(stackItem.GetArray()) {
+	if index.Cmp(big.NewInt(int64(len(stackItem.GetArray())))) >= 0 {
 		log.Error("[validatePickItem] index >= len(stackItem.GetArray())")
 		return ErrOverMaxArraySize
 	}
@@ -374,8 +384,8 @@ func validatorSetItem(e *ExecutionEngine) error {
 		log.Error("[validatorSetItem] newItem = nil")
 		return ErrBadValue
 	}
-	index := PeekNInt(1, e)
-	if index < 0 {
+	index := PeekNBigInt(1, e)
+	if index.Sign() < 0 {
 		log.Error("[validatorSetItem] index < 0")
 		return ErrBadValue
 	}
@@ -388,7 +398,7 @@ func validatorSetItem(e *ExecutionEngine) error {
 	if _, ok := item.(*types.Array); !ok {
 		if _, ok := item.(*types.ByteArray); ok {
 			l := len(item.GetByteArray())
-			if index >= l {
+			if index.Cmp(big.NewInt(int64(l))) >= 0 {
 				log.Error("[validatorSetItem] index >= l")
 				return ErrOverMaxArraySize
 			}
@@ -401,7 +411,7 @@ func validatorSetItem(e *ExecutionEngine) error {
 			return ErrBadValue
 		}
 	} else {
-		if index >= len(item.GetArray()) {
+		if index.Cmp(big.NewInt(int64(len(item.GetArray())))) >= 0 {
 			log.Error("[validatorSetItem] index >= len(item.GetArray())")
 			return ErrOverMaxArraySize
 		}
@@ -414,8 +424,8 @@ func validateNewArray(e *ExecutionEngine) error {
 		return err
 	}
 
-	count := PeekInt(e)
-	if uint32(count) > MaxArraySize {
+	count := PeekBigInteger(e)
+	if count.Cmp(big.NewInt(int64(MaxArraySize))) > 0 {
 		log.Error("[validateNewArray] uint32(count) > MaxArraySize ")
 		return ErrOverMaxArraySize
 	}
