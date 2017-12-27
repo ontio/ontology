@@ -78,13 +78,13 @@ var (
 		EQUAL:  {Opcode: EQUAL, Name: "EQUAL", Exec: opEqual, Validator: validateCount2},
 
 		//Arithmetic
-		INC:         {Opcode: INC, Name: "INC", Exec: opBigInt, Validator: validateCount1},
-		DEC:         {Opcode: DEC, Name: "DEC", Exec: opBigInt, Validator: validateCount1},
+		INC:         {Opcode: INC, Name: "INC", Exec: opBigInt, Validator: validateInc},
+		DEC:         {Opcode: DEC, Name: "DEC", Exec: opBigInt, Validator: validateDec},
 		NEGATE:      {Opcode: NEGATE, Name: "NEGATE", Exec: opBigInt, Validator: validateCount1},
 		ABS:         {Opcode: ABS, Name: "ABS", Exec: opBigInt, Validator: validateCount1},
 		NOT:         {Opcode: NOT, Name: "NOT", Exec: opNot, Validator: validateCount1},
 		NZ:          {Opcode: NZ, Name: "NZ", Exec: opNz, Validator: validateCount1},
-		ADD:         {Opcode: ADD, Name: "ADD", Exec: opBigIntZip, Validator: validateCount2},
+		ADD:         {Opcode: ADD, Name: "ADD", Exec: opBigIntZip, Validator: validateAdd},
 		SUB:         {Opcode: SUB, Name: "SUB", Exec: opBigIntZip, Validator: validateCount2},
 		MUL:         {Opcode: MUL, Name: "MUL", Exec: opBigIntZip, Validator: validateCount2},
 		DIV:         {Opcode: DIV, Name: "DIV", Exec: opBigIntZip, Validator: validateDivMod},
