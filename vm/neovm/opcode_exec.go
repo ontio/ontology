@@ -68,7 +68,7 @@ var (
 		SUBSTR: {Opcode: SUBSTR, Name: "SUBSTR", Exec: opSubStr, Validator: validateSubStr},
 		LEFT:   {Opcode: LEFT, Name: "LEFT", Exec: opLeft, Validator: validateLeft},
 		RIGHT:  {Opcode: RIGHT, Name: "RIGHT", Exec: opRight, Validator: validateRight},
-		SIZE:   {Opcode: SIZE, Name: "SIZE", Exec: opSize},
+		SIZE:   {Opcode: SIZE, Name: "SIZE", Exec: opSize, Validator: validateCount1},
 
 		//Bitwiase logic
 		INVERT: {Opcode: INVERT, Name: "INVERT", Exec: opInvert, Validator: validateCount1},
@@ -92,7 +92,7 @@ var (
 		SHL:         {Opcode: SHL, Name: "SHL", Exec: opBigIntZip, Validator: validateShift},
 		SHR:         {Opcode: SHR, Name: "SHR", Exec: opBigIntZip, Validator: validateShift},
 		BOOLAND:     {Opcode: BOOLAND, Name: "BOOLAND", Exec: opBoolZip, Validator: validateCount2},
-		BOOLOR:      {Opcode: BOOLOR, Name: "BOOLOR", Exec: opBoolZip},
+		BOOLOR:      {Opcode: BOOLOR, Name: "BOOLOR", Exec: opBoolZip, Validator: validateCount2},
 		NUMEQUAL:    {Opcode: NUMEQUAL, Name: "NUMEQUAL", Exec: opBigIntComp, Validator: validateCount2},
 		NUMNOTEQUAL: {Opcode: NUMNOTEQUAL, Name: "NUMNOTEQUAL", Exec: opBigIntComp, Validator: validateCount2},
 		LT:          {Opcode: LT, Name: "LT", Exec: opBigIntComp, Validator: validateCount2},

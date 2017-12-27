@@ -10,7 +10,7 @@ import (
 
 func validateCount1(e *ExecutionEngine) error {
 	if EvaluationStackCount(e) < 1 {
-		log.Error("[validateCount1]", EvaluationStackCount(e) < 1)
+		log.Error("[validateCount1]", EvaluationStackCount(e), 1)
 		return ErrUnderStackLen
 	}
 	return nil
@@ -18,7 +18,7 @@ func validateCount1(e *ExecutionEngine) error {
 
 func validateCount2(e *ExecutionEngine) error {
 	if EvaluationStackCount(e) < 2 {
-		log.Error("[validateCount2]", EvaluationStackCount(e) < 2)
+		log.Error("[validateCount2]", EvaluationStackCount(e), 2)
 		return ErrUnderStackLen
 	}
 	return nil
@@ -26,7 +26,7 @@ func validateCount2(e *ExecutionEngine) error {
 
 func validateCount3(e *ExecutionEngine) error {
 	if EvaluationStackCount(e) < 3 {
-		log.Error("[validateCount3]", EvaluationStackCount(e) < 3)
+		log.Error("[validateCount3]", EvaluationStackCount(e), 3)
 		return ErrUnderStackLen
 	}
 	return nil
@@ -34,7 +34,7 @@ func validateCount3(e *ExecutionEngine) error {
 
 func validateDivMod(e *ExecutionEngine) error {
 	if EvaluationStackCount(e) < 2 {
-		log.Error("[validateDivMod]", EvaluationStackCount(e) < 2)
+		log.Error("[validateDivMod]", EvaluationStackCount(e), 2)
 		return ErrUnderStackLen
 	}
 	if PeekInt(e) == 0 {

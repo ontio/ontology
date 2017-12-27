@@ -1,8 +1,8 @@
 package types
 
 import (
-	"math/big"
 	"github.com/Ontology/vm/neovm/interfaces"
+	"math/big"
 )
 
 type Array struct {
@@ -32,7 +32,6 @@ func (a *Array) Equals(other StackItemInterface) bool {
 		}
 	}
 	return true
-
 }
 
 func (a *Array) GetBigInteger() *big.Int {
