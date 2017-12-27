@@ -99,12 +99,14 @@ func validateSysCall(e *ExecutionEngine) error {
 }
 
 func validateOpStack(e *ExecutionEngine) error {
-	if err := LogStackTrace(e, 1, "[validateOpStack]"); err != nil {
-		return err
+	total := EvaluationStackCount(e)
+	if total < 1 {
+		log.Error("[validateOpStack]", total, 1)
+		return ErrUnderStackLen
 	}
 	index := PeekBigInteger(e)
-	if index.Sign() < 0 {
-		log.Error("[validateOpStack] index < 0")
+	if index.Sign() < 0 || index.Add(index, big.NewInt(2)).Cmp(big.NewInt(int64(total))) > 0 {
+		log.Error("[validateOpStack] index < 0 || index > EvaluationStackCount(e)-2")
 		return ErrBadValue
 	}
 
@@ -112,52 +114,24 @@ func validateOpStack(e *ExecutionEngine) error {
 }
 
 func validateXDrop(e *ExecutionEngine) error {
-	if err := validateOpStack(e); err != nil {
-		return err
+	return validateOpStack(e)
 	}
-	return nil
-}
 
 func validateXSwap(e *ExecutionEngine) error {
-	total := EvaluationStackCount(e)
-	if total < 1 {
-		log.Error("[validateXSwap]", total, 1)
-		return ErrUnderStackLen
-}
-	index := PeekBigInteger(e)
-	if index.Sign() < 0 || index.Add(index, big.NewInt(2)).Cmp(big.NewInt(int64(total))) > 0 {
-		log.Error("[validateXSwap] index < 0 || index > EvaluationStackCount(e)-2")
-		return ErrBadValue
-	}
-
-	return nil
+	return validateOpStack(e)
 }
 
 func validateXTuck(e *ExecutionEngine) error {
-	if err := validateOpStack(e); err != nil {
-		return err
+	return validateOpStack(e)
 	}
-	return nil
-}
 
 func validatePick(e *ExecutionEngine) error {
-	if err := validateOpStack(e); err != nil {
-		return err
+	return validateOpStack(e)
 	}
-	return nil
-}
 
 func validateRoll(e *ExecutionEngine) error {
-	if err := LogStackTrace(e, 1, "[validateRoll]"); err != nil {
-		return err
+	return validateOpStack(e)
 	}
-	index := PeekNInt(0, e)
-	if index < 0 {
-		log.Error("[validateRoll] index < 0")
-		return ErrBadValue
-	}
-	return nil
-}
 
 func validateCat(e *ExecutionEngine) error {
 	if err := LogStackTrace(e, 2, "[validateCat]"); err != nil {
@@ -337,13 +311,17 @@ func validatePack(e *ExecutionEngine) error {
 total := EvaluationStackCount(e)
 
 	count := PeekBigInteger(e)
+	if count.Sign() < 0 {
+		return ErrBadValue
+	}
+
 	if count.Cmp(big.NewInt(int64(MaxArraySize))) > 0 {
 		log.Error("[validateRight] uint32(count) > MaxArraySize")
 		return ErrOverMaxArraySize
 	}
 	count.Add(count, big.NewInt(1))
 	if count.Cmp(big.NewInt(int64(total))) > 0 {
-		log.Error("[validateRight] count+1 > EvaluationStackCount(e)")
+		log.Error("[validateRight] count+2 > EvaluationStackCount(e)")
 		return ErrOverStackLen
 	}
 	return nil
