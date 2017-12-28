@@ -282,7 +282,7 @@ func validateDiv(e *ExecutionEngine) error {
 		log.Error("[validateDiv] CheckBigInteger fail")
 		return ErrOverMaxBigIntegerSize
 	}
-	if x1.Sign() == 0 {
+	if x2.Sign() == 0 {
 		return ErrDivModByZero
 	}
 	return nil
@@ -298,7 +298,7 @@ func validateMod(e *ExecutionEngine) error {
 		log.Error("[validateMod] CheckBigInteger fail")
 		return ErrOverMaxBigIntegerSize
 	}
-	if x1.Int64() == 0 {
+	if x2.Sign() == 0 {
 		return ErrDivModByZero
 	}
 	return nil
