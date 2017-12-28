@@ -7,6 +7,7 @@ import (
 	. "github.com/Ontology/vm/neovm/errors"
 	"github.com/Ontology/vm/neovm/types"
 	"math/big"
+
 	"fmt"
 )
 
@@ -98,15 +99,16 @@ func validateSysCall(e *ExecutionEngine) error {
 	return nil
 }
 
-func validateOpStack(e *ExecutionEngine) error {
+func validateOpStack(e *ExecutionEngine, desc string) error {
 	total := EvaluationStackCount(e)
 	if total < 1 {
-		log.Error("[validateOpStack]", total, 1)
+		log.Error(desc, total, 1)
 		return ErrUnderStackLen
 	}
 	index := PeekBigInteger(e)
-	if index.Sign() < 0 || index.Add(index, big.NewInt(2)).Cmp(big.NewInt(int64(total))) > 0 {
-		log.Error("[validateOpStack] index < 0 || index > EvaluationStackCount(e)-2")
+	count := big.NewInt(0)
+	if index.Sign() < 0 || count.Add(index, big.NewInt(2)).Cmp(big.NewInt(int64(total))) > 0 {
+		log.Error(desc, " index < 0 || index > EvaluationStackCount(e)-2")
 		return ErrBadValue
 	}
 
@@ -114,24 +116,24 @@ func validateOpStack(e *ExecutionEngine) error {
 }
 
 func validateXDrop(e *ExecutionEngine) error {
-	return validateOpStack(e)
-	}
+	return validateOpStack(e, "[validateXDrop]")
+}
 
 func validateXSwap(e *ExecutionEngine) error {
-	return validateOpStack(e)
+	return validateOpStack(e, "[validateXSwap]")
 }
 
 func validateXTuck(e *ExecutionEngine) error {
-	return validateOpStack(e)
-	}
+	return validateOpStack(e, "[validateXTuck]")
+}
 
 func validatePick(e *ExecutionEngine) error {
-	return validateOpStack(e)
-	}
+	return validateOpStack(e, "[validatePick]")
+}
 
 func validateRoll(e *ExecutionEngine) error {
-	return validateOpStack(e)
-	}
+	return validateOpStack(e, "[validateRoll]")
+}
 
 func validateCat(e *ExecutionEngine) error {
 	if err := LogStackTrace(e, 2, "[validateCat]"); err != nil {
@@ -263,7 +265,7 @@ func validateMul(e *ExecutionEngine) error {
 	x1 := PeekNBigInt(1, e)
 	lx2 := len(types.ConvertBigIntegerToBytes(x2))
 	lx1 := len(types.ConvertBigIntegerToBytes(x1))
-	if  lx2 >  MaxSizeForBigInteger || lx1 > MaxSizeForBigInteger || (lx1 + lx2) > MaxSizeForBigInteger {
+	if lx2 > MaxSizeForBigInteger || lx1 > MaxSizeForBigInteger || (lx1+lx2) > MaxSizeForBigInteger {
 		log.Error("[validateMul] CheckBigInteger fail")
 		return ErrOverMaxBigIntegerSize
 	}
@@ -302,15 +304,15 @@ func validateMod(e *ExecutionEngine) error {
 	return nil
 }
 
-
 func validatePack(e *ExecutionEngine) error {
 	if err := LogStackTrace(e, 1, "[validatePack]"); err != nil {
 		return err
 	}
 
-total := EvaluationStackCount(e)
-
-	count := PeekBigInteger(e)
+	total := EvaluationStackCount(e)
+	temp := PeekBigInteger(e)
+	count := big.NewInt(0)
+	count.Set(temp)
 	if count.Sign() < 0 {
 		return ErrBadValue
 	}
@@ -403,6 +405,9 @@ func validateNewArray(e *ExecutionEngine) error {
 	}
 
 	count := PeekBigInteger(e)
+	if count.Sign() < 0 {
+		return ErrBadValue
+	}
 	if count.Cmp(big.NewInt(int64(MaxArraySize))) > 0 {
 		log.Error("[validateNewArray] uint32(count) > MaxArraySize ")
 		return ErrOverMaxArraySize
@@ -423,7 +428,7 @@ func CheckBigInteger(value *big.Int) bool {
 func LogStackTrace(e *ExecutionEngine, needStackCount int, desc string) error {
 	stackCount := EvaluationStackCount(e)
 	if stackCount < needStackCount {
-		log.Error(fmt.Sprintf("%s lack of parametes, actual: %v need: %x",desc, stackCount, needStackCount))
+		log.Error(fmt.Sprintf("%s lack of parametes, actual: %v need: %x", desc, stackCount, needStackCount))
 		return ErrUnderStackLen
 	}
 	return nil
