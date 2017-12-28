@@ -28,6 +28,7 @@ if (( $? != 0 )); then
 fi
 programhash=$(echo "$output" | grep "program hash" | awk -F : '{print $2}')
 
+echo "$CMD asset --reg --name DNA --value 10000 --wallet $WALLET --password $PASSWD"
 # asset registration
 output=$($CMD asset --reg --name DNA --value 10000 --wallet $WALLET --password $PASSWD)
 if (( $? != 0 )); then

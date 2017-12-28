@@ -1,9 +1,9 @@
 #!/bin/bash
 
-CMD=$(pwd)/nodectl
+CMD=$(pwd)/nodectl.exe
 CONFIG=config.json
-WALLET=wallet.dat
-PASSWD=testpasswd
+WALLET=walletT.dat
+PASSWD=passwordtest
 
 function getHashFromOutput()
 {
