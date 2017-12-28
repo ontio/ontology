@@ -89,7 +89,7 @@ var (
 		MUL:         {Opcode: MUL, Name: "MUL", Exec: opBigIntZip, Validator: validateMul},
 		DIV:         {Opcode: DIV, Name: "DIV", Exec: opBigIntZip, Validator: validateDiv},
 		MOD:         {Opcode: MOD, Name: "MOD", Exec: opBigIntZip, Validator: validateMod},
-		SHL:         {Opcode: SHL, Name: "SHL", Exec: opBigIntZip, Validator: validateShift},
+		SHL:         {Opcode: SHL, Name: "SHL", Exec: opBigIntZip, Validator: validateShiftLeft},
 		SHR:         {Opcode: SHR, Name: "SHR", Exec: opBigIntZip, Validator: validateShift},
 		BOOLAND:     {Opcode: BOOLAND, Name: "BOOLAND", Exec: opBoolZip, Validator: validateCount2},
 		BOOLOR:      {Opcode: BOOLOR, Name: "BOOLOR", Exec: opBoolZip, Validator: validateCount2},

@@ -42,6 +42,29 @@ func validateDivMod(e *ExecutionEngine) error {
 	return nil
 }
 
+func validateShiftLeft(e *ExecutionEngine) error {
+	if err := LogStackTrace(e, 2, "[validateShift]"); err != nil {
+		return err
+	}
+
+	// x1 << x2
+	x2 := PeekBigInteger(e)
+	x1 := PeekNBigInt(1, e)
+
+	if x2.Sign() < 0 {
+		return ErrShiftByNeg
+	}
+	if x1.Sign() != 0 && x2.Cmp(big.NewInt(MaxSizeForBigInteger*8)) > 0 {
+		return ErrOverMaxBigIntegerSize
+	}
+
+	if CheckBigInteger(new(big.Int).Lsh(x1, uint(x2.Int64()))) == false {
+		return ErrOverMaxBigIntegerSize
+	}
+
+	return nil
+}
+
 func validateShift(e *ExecutionEngine) error {
 	if err := LogStackTrace(e, 2, "[validateShift]"); err != nil {
 		return err
