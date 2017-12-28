@@ -71,6 +71,9 @@ func (cloneCache *CloneCache) Get(prefix store.DataEntryPrefix, key []byte) (sta
 	if err != nil {
 		return nil, err
 	}
+	if item == nil {
+		return nil, nil
+	}
 	return item.Value, nil
 }
 
