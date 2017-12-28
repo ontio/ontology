@@ -1,6 +1,11 @@
 package asset
 
 import (
+	"bytes"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/Ontology/account"
 	. "github.com/Ontology/cli/common"
 	. "github.com/Ontology/common"
@@ -9,21 +14,16 @@ import (
 	"github.com/Ontology/core/signature"
 	"github.com/Ontology/core/transaction"
 	"github.com/Ontology/net/httpjsonrpc"
-	"bytes"
-	"encoding/hex"
-	"encoding/json"
-	"errors"
-	"fmt"
 	"math/rand"
 	"os"
 	"strconv"
 
-	"github.com/urfave/cli"
 	"github.com/Ontology/core/transaction/utxo"
+	"github.com/urfave/cli"
 )
 
 const (
-	RANDBYTELEN = 4
+	RANDBYTELEN    = 4
 	REFERTXHASHLEN = 64
 )
 
@@ -91,7 +91,7 @@ func signTransaction(signer *account.Account, tx *transaction.Transaction) error
 	return nil
 }
 
-func makeRegTransaction(admin, issuer *account.Account, name string, description string, value Fixed64) (string, error) {
+func makeRegTransaction(admin, issuer *account.Account, name string, description string, value Fixed64, netWorkFee Fixed64) (string, error) {
 	asset := &Asset{name, description, byte(MaxPrecision), AssetType(Share), UTXO}
 	transactionContract, err := contract.CreateSignatureContract(admin.PubKey())
 	if err != nil {
@@ -102,6 +102,10 @@ func makeRegTransaction(admin, issuer *account.Account, name string, description
 	txAttr := transaction.NewTxAttribute(transaction.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
 	tx.Attributes = make([]*transaction.TxAttribute, 0)
 	tx.Attributes = append(tx.Attributes, &txAttr)
+	tx, err = checkAndAddFees(admin.ProgramHash, tx, netWorkFee)
+	if err != nil {
+		return "", nil
+	}
 	if err := signTransaction(issuer, tx); err != nil {
 		fmt.Println("sign regist transaction failed")
 		return "", err
@@ -114,13 +118,14 @@ func makeRegTransaction(admin, issuer *account.Account, name string, description
 	return hex.EncodeToString(buffer.Bytes()), nil
 }
 
-func makeIssueTransaction(issuer *account.Account, programHashStr, assetHashStr string, value Fixed64) (string, error) {
+func makeIssueTransaction(issuer *account.Account, programHashStr, assetHashStr string, value Fixed64, netWorkFee Fixed64) (string, error) {
 	programHash, assetHash, err := getUintHash(programHashStr, assetHashStr)
 	if err != nil {
 		return "", err
 	}
+	assetReverseHash, _ := Uint256ParseFromBytes(assetHash.ToArrayReverse())
 	issueTxOutput := &utxo.TxOutput{
-		AssetID:     assetHash,
+		AssetID:     assetReverseHash,
 		Value:       value,
 		ProgramHash: programHash,
 	}
@@ -129,6 +134,10 @@ func makeIssueTransaction(issuer *account.Account, programHashStr, assetHashStr 
 	txAttr := transaction.NewTxAttribute(transaction.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
 	tx.Attributes = make([]*transaction.TxAttribute, 0)
 	tx.Attributes = append(tx.Attributes, &txAttr)
+	tx, err = checkAndAddFees(issuer.ProgramHash, tx, netWorkFee)
+	if err != nil {
+		return "", nil
+	}
 	if err := signTransaction(issuer, tx); err != nil {
 		fmt.Println("sign issue transaction failed")
 		return "", err
@@ -141,46 +150,99 @@ func makeIssueTransaction(issuer *account.Account, programHashStr, assetHashStr 
 	return hex.EncodeToString(buffer.Bytes()), nil
 }
 
-func makeTransferTransaction(signer *account.Account, programHashStr, assetHashStr string, value Fixed64) (string, error) {
+func makeTransferTransaction(signer *account.Account, programHashStr, assetHashStr string, value Fixed64, netWorkFee Fixed64) (string, error) {
+	inputs := []*utxo.UTXOTxInput{}
+	outputs := []*utxo.TxOutput{}
+	// get user id & asset id
 	programHash, assetHash, err := getUintHash(programHashStr, assetHashStr)
 	if err != nil {
 		return "", err
 	}
-	myProgramHashStr := ToHexString(signer.ProgramHash.ToArray())
+	reverseHash, _ := Uint256ParseFromBytes(assetHash.ToArrayReverse())
+	var tx *transaction.Transaction
+	inputs, outputs, err = calcUtxoByRpc(signer.ProgramHash, programHash, reverseHash, value, 0, false)
+	if err != nil {
+		return "", err
+	}
+	tx, _ = transaction.NewTransferAssetTransaction(inputs, outputs)
+	txAttr := transaction.NewTxAttribute(transaction.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
+	tx.Attributes = make([]*transaction.TxAttribute, 0)
+	tx.Attributes = append(tx.Attributes, &txAttr)
+	if err := signTransaction(signer, tx); err != nil {
+		fmt.Println("sign transfer transaction failed")
+		return "", err
+	}
+	var buffer bytes.Buffer
+	if err := tx.Serialize(&buffer); err != nil {
+		fmt.Println("serialization of transfer transaction failed")
+		return "", err
+	}
+	return hex.EncodeToString(buffer.Bytes()), nil
+}
 
-	resp, err := httpjsonrpc.Call(Address(), "getunspendoutput", 0, []interface{}{myProgramHashStr, assetHashStr})
+func checkAndAddFees(Spender Uint160, Tx *transaction.Transaction, networkFee Fixed64) (*transaction.Transaction, error) {
+	return Tx, nil
+}
+
+func calcUtxoByRpc(spender Uint160, toAddr Uint160, assetID Uint256, value Fixed64, fee Fixed64, throw bool) ([]*utxo.UTXOTxInput, []*utxo.TxOutput, error) {
+	type UTXOUnspentInfo struct {
+		Txid  string
+		Index uint32
+		Value int64
+	}
+	//get spender utxos
+	b_buf := new(bytes.Buffer)
+	assetID.Serialize(b_buf)
+	assetIDHex := hex.EncodeToString(b_buf.Bytes())
+	resp, err := httpjsonrpc.Call(Address(), "getunspendoutput", 0, []interface{}{ToHexString(spender.ToArray()), assetIDHex})
 	if err != nil {
 		fmt.Println("HTTP JSON call failed")
-		return "", err
+		return nil, nil, err
 	}
 	r := make(map[string]interface{})
 	err = json.Unmarshal(resp, &r)
 	if err != nil {
 		fmt.Println("Unmarshal JSON failed")
-		return "", err
+		return nil, nil, err
 	}
-
+	var unspend []interface{}
+	switch res := r["result"].(type) {
+	case []interface{}:
+		unspend = res
+	default:
+		return nil, nil, errors.New(fmt.Sprintf("[calcUtxoByRpc] failed with invalid value returned with value=%s\n",res))
+	}
+	//calc inputs and outputs
 	inputs := []*utxo.UTXOTxInput{}
 	outputs := []*utxo.TxOutput{}
-	transferTxOutput := &utxo.TxOutput{
-		AssetID:     assetHash,
-		Value:       value,
-		ProgramHash: programHash,
+	if value != 0 && throw == false {
+		transferTxOutput := &utxo.TxOutput{
+			AssetID:     assetID,
+			Value:       value,
+			ProgramHash: toAddr,
+		}
+		outputs = append(outputs, transferTxOutput)
 	}
-	outputs = append(outputs, transferTxOutput)
 
-	unspend := r["result"].(map[string]interface{})
-	expected := transferTxOutput.Value
-	for k, v := range unspend {
-		h := k[0:REFERTXHASHLEN]
-		i := k[REFERTXHASHLEN + 1:]
+	expected := value + fee
+	for _, v := range unspend {
+		var unspentUtxo UTXOUnspentInfo
+		temp := v.(map[string]interface{})
+		if unspentUtxo.Value, err = strconv.ParseInt(temp["Value"].(string), 10, 64); err != nil {
+			return nil, nil, err
+		}
+		if index_, err := strconv.ParseInt(temp["Index"].(string), 10, 64); err != nil {
+			return nil, nil, err
+		} else {
+			unspentUtxo.Index = uint32(index_)
+		}
+		unspentUtxo.Txid = temp["Txid"].(string)
+		h := unspentUtxo.Txid
+		referIndex := unspentUtxo.Index
 		b, _ := hex.DecodeString(h)
 		var referHash Uint256
 		referHash.Deserialize(bytes.NewReader(b))
-		referIndex, _ := strconv.Atoi(i)
-
-		out := v.(map[string]interface{})
-		value := Fixed64(out["Value"].(float64))
+		value := Fixed64(unspentUtxo.Value)
 		if value == expected {
 			transferUTXOInput := &utxo.UTXOTxInput{
 				ReferTxID:          referHash,
@@ -196,9 +258,9 @@ func makeTransferTransaction(signer *account.Account, programHashStr, assetHashS
 			}
 			inputs = append(inputs, transferUTXOInput)
 			getChangeOutput := &utxo.TxOutput{
-				AssetID:     assetHash,
+				AssetID:     assetID,
 				Value:       value - expected,
-				ProgramHash: signer.ProgramHash,
+				ProgramHash: spender,
 			}
 			expected = 0
 			outputs = append(outputs, getChangeOutput)
@@ -216,22 +278,9 @@ func makeTransferTransaction(signer *account.Account, programHashStr, assetHashS
 		}
 	}
 	if expected != 0 {
-		return "", errors.New("transfer failed, ammount is not enough")
+		return nil, nil, errors.New(fmt.Sprintf("transfer failed, ammount is not enough, expected is %d\n", expected))
 	}
-	tx, _ := transaction.NewTransferAssetTransaction(inputs, outputs)
-	txAttr := transaction.NewTxAttribute(transaction.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
-	tx.Attributes = make([]*transaction.TxAttribute, 0)
-	tx.Attributes = append(tx.Attributes, &txAttr)
-	if err := signTransaction(signer, tx); err != nil {
-		fmt.Println("sign transfer transaction failed")
-		return "", err
-	}
-	var buffer bytes.Buffer
-	if err := tx.Serialize(&buffer); err != nil {
-		fmt.Println("serialization of transfer transaction failed")
-		return "", err
-	}
-	return hex.EncodeToString(buffer.Bytes()), nil
+	return inputs, outputs, nil
 }
 
 func assetAction(c *cli.Context) error {
@@ -239,50 +288,64 @@ func assetAction(c *cli.Context) error {
 		cli.ShowSubcommandHelp(c)
 		return nil
 	}
-	reg := c.Bool("reg")
-	issue := c.Bool("issue")
-	transfer := c.Bool("transfer")
-	if !reg && !issue && !transfer {
+	var funcName string
+	if c.Bool("reg") == true {
+		funcName = "reg"
+	}
+	if c.Bool("issue") == true {
+		funcName = "issue"
+	}
+	if c.Bool("transfer") == true {
+		funcName = "transfer"
+	}
+	if !c.Bool("reg") && !c.Bool("issue") && !c.Bool("transfer") {
 		cli.ShowSubcommandHelp(c)
 		return nil
 	}
-
 	wallet := openWallet(c.String("wallet"), WalletPassword(c.String("password")))
 	admin, _ := wallet.GetDefaultAccount()
 	value := c.Int64("value")
-	if value == 0 {
-		fmt.Println("invalid value [--value]")
-		return nil
-	}
-
+	netWorkFee := c.Int64("netWorkFee")
 	var txHex string
 	var err error
-	if reg {
+	switch funcName {
+	case "reg":
 		name := c.String("name")
 		if name == "" {
 			rbuf := make([]byte, RANDBYTELEN)
 			rand.Read(rbuf)
-			name = "DNA-" + ToHexString(rbuf)
+			name = "Ontology-" + ToHexString(rbuf)
 		}
 		issuer := admin
 		description := "description"
-		txHex, err = makeRegTransaction(admin, issuer, name, description, Fixed64(value))
-	} else {
+		txHex, err = makeRegTransaction(admin, issuer, name, description, Fixed64(value), Fixed64(netWorkFee))
+	case "issue":
 		asset := c.String("asset")
 		to := c.String("to")
 		if asset == "" || to == "" {
 			fmt.Println("missing flag [--asset] or [--to]")
 			return nil
 		}
-		if issue {
-			txHex, err = makeIssueTransaction(admin, to, asset, Fixed64(value))
-		} else if transfer {
-			txHex, err = makeTransferTransaction(admin, to, asset, Fixed64(value))
-		}
+		txHex, err = makeIssueTransaction(admin, to, asset, Fixed64(value), Fixed64(netWorkFee))
 		if err != nil {
 			fmt.Println(err)
 			return nil
 		}
+	case "transfer":
+		asset := c.String("asset")
+		to := c.String("to")
+		if asset == "" || to == "" {
+			fmt.Println("missing flag [--asset] or [--to]")
+			return nil
+		}
+		txHex, err = makeTransferTransaction(admin, to, asset, Fixed64(value), Fixed64(netWorkFee))
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
+	default:
+		cli.ShowSubcommandHelp(c)
+		return nil
 	}
 	resp, err := httpjsonrpc.Call(Address(), "sendrawtransaction", 0, []interface{}{txHex})
 	if err != nil {
@@ -334,9 +397,21 @@ func NewCommand() *cli.Command {
 				Name:  "to",
 				Usage: "asset to whom",
 			},
+			cli.StringFlag{
+				Name:  "referTxID",
+				Usage: "referTxID of utxo",
+			},
+			cli.StringFlag{
+				Name:  "index",
+				Usage: "index of utxo",
+			},
 			cli.Int64Flag{
 				Name:  "value, v",
 				Usage: "asset ammount",
+			},
+			cli.Int64Flag{
+				Name:  "netWorkFee, f",
+				Usage: "netWorkFee ammount",
 			},
 		},
 		Action: assetAction,

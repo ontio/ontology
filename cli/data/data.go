@@ -1,15 +1,15 @@
 package data
 
 import (
+	"bytes"
+	"encoding/hex"
+	"fmt"
 	"github.com/Ontology/account"
 	. "github.com/Ontology/cli/common"
 	"github.com/Ontology/core/contract"
 	"github.com/Ontology/core/signature"
 	"github.com/Ontology/core/transaction"
 	"github.com/Ontology/net/httpjsonrpc"
-	"bytes"
-	"encoding/hex"
-	"fmt"
 	"github.com/urfave/cli"
 	"math/rand"
 	"os"
@@ -141,7 +141,7 @@ func dataAction(c *cli.Context) error {
 		if name == "" {
 			rbuf := make([]byte, 4)
 			rand.Read(rbuf)
-			name = "DNA-" + hex.EncodeToString(rbuf)
+			name = "Ontology-" + hex.EncodeToString(rbuf)
 		}
 		//create transaction
 		var tx *transaction.Transaction

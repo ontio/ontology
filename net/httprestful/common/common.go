@@ -351,7 +351,7 @@ func GetUnspendOutput(cmd map[string]interface{}) map[string]interface{} {
 	type UTXOUnspentInfo struct {
 		Txid  string
 		Index uint32
-		Value float64
+		Value string
 	}
 	infos, err := ledger.DefaultLedger.Store.GetUnspentFromProgramHash(programHash, assetHash)
 	if err != nil {
@@ -361,8 +361,7 @@ func GetUnspendOutput(cmd map[string]interface{}) map[string]interface{} {
 	}
 	var UTXOoutputs []UTXOUnspentInfo
 	for _, v := range infos {
-		val := float64(v.Value) / math.Pow(10, 8)
-		//valStr := strconv.FormatFloat(val, 'f', -1, 64)
+		val := strconv.FormatInt(int64(v.Value), 10)
 		UTXOoutputs = append(UTXOoutputs, UTXOUnspentInfo{Txid: ToHexString(v.Txid.ToArrayReverse()), Index: v.Index, Value: val})
 	}
 	resp["Result"] = UTXOoutputs

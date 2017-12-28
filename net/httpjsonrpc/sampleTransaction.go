@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	ASSETPREFIX = "DNA"
+	ASSETPREFIX = "Ontology"
 )
 
 func NewRegTx(rand string, index int, admin, issuer *Account) *transaction.Transaction {

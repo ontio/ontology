@@ -101,7 +101,11 @@ func TransPayloadToHex(p Payload) PayloadInfo {
 
 		return obj
 	case *payload.IssueAsset:
+		obj := new(IssueAssetInfo)
+		return obj
 	case *payload.TransferAsset:
+		obj := new(TransferAssetInfo)
+		return obj
 	case *payload.DeployCode:
 		obj := new(DeployCodeInfo)
 		obj.Code = new(FunctionCodeInfo)
