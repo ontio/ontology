@@ -23,8 +23,6 @@ import (
 	"github.com/Ontology/core/transaction/utxo"
 )
 
-var GenBlockTime = (config.DEFAULTGENBLOCKTIME * time.Second)
-
 type DbftService struct {
 	context                         ConsensusContext
 	Client                          cl.Client
@@ -235,14 +233,14 @@ func (ds *DbftService) InitializeConsensus(viewNum byte) error {
 		ds.timerHeight = ds.context.Height
 		ds.timeView = viewNum
 		span := time.Now().Sub(ds.blockReceivedTime)
-		if span > GenBlockTime {
+		if span > ledger.GenBlockTime {
 			//TODO: double check the is the stop necessary
 			ds.timer.Stop()
 			ds.timer.Reset(0)
 			//go ds.Timeout()
 		} else {
 			ds.timer.Stop()
-			ds.timer.Reset(GenBlockTime - span)
+			ds.timer.Reset(ledger.GenBlockTime - span)
 		}
 	} else {
 
@@ -252,7 +250,7 @@ func (ds *DbftService) InitializeConsensus(viewNum byte) error {
 		ds.timeView = viewNum
 
 		ds.timer.Stop()
-		ds.timer.Reset(GenBlockTime << (viewNum + 1))
+		ds.timer.Reset(ledger.GenBlockTime << (viewNum + 1))
 	}
 	return nil
 }
@@ -477,7 +475,7 @@ func (ds *DbftService) RequestChangeView() {
 		ds.context.ViewNumber, ds.context.ExpectedView[ds.context.BookKeeperIndex], ds.context.GetStateDetail()))
 
 	ds.timer.Stop()
-	ds.timer.Reset(GenBlockTime << (ds.context.ExpectedView[ds.context.BookKeeperIndex] + 1))
+	ds.timer.Reset(ledger.GenBlockTime << (ds.context.ExpectedView[ds.context.BookKeeperIndex] + 1))
 
 	ds.SignAndRelay(ds.context.MakeChangeView())
 	ds.CheckExpectedView(ds.context.ExpectedView[ds.context.BookKeeperIndex])
@@ -512,7 +510,7 @@ func (ds *DbftService) Start() error {
 	ds.started = true
 
 	if config.Parameters.GenBlockTime > config.MINGENBLOCKTIME {
-		GenBlockTime = time.Duration(config.Parameters.GenBlockTime) * time.Second
+		ledger.GenBlockTime = time.Duration(config.Parameters.GenBlockTime) * time.Second
 	} else {
 		log.Warn("The Generate block time should be longer than 2 seconds, so set it to be default 6 seconds.")
 	}
@@ -573,7 +571,7 @@ func (ds *DbftService) Timeout() {
 		payload := ds.context.MakePrepareRequest()
 		ds.SignAndRelay(payload)
 		ds.timer.Stop()
-		ds.timer.Reset(GenBlockTime << (ds.timeView + 1))
+		ds.timer.Reset(ledger.GenBlockTime << (ds.timeView + 1))
 	} else if (ds.context.State.HasFlag(Primary) && ds.context.State.HasFlag(RequestSent)) || ds.context.State.HasFlag(Backup) {
 		ds.RequestChangeView()
 	}

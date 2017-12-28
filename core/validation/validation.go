@@ -8,6 +8,8 @@ import (
 	. "github.com/Ontology/errors"
 	vm "github.com/Ontology/vm/neovm"
 	"github.com/Ontology/vm/neovm/interfaces"
+	"github.com/Ontology/smartcontract/service"
+	"github.com/Ontology/smartcontract/types"
 )
 
 func VerifySignableData(signableData sig.SignableData) (bool, error) {
@@ -32,7 +34,8 @@ func VerifySignableData(signableData sig.SignableData) (bool, error) {
 		//execute program on VM
 		var cryptos interfaces.ICrypto
 		cryptos = new(vm.ECDsaCrypto)
-		se := vm.NewExecutionEngine(signableData, cryptos, nil, nil)
+		stateReader := service.NewStateReader(types.Verification)
+		se := vm.NewExecutionEngine(signableData, cryptos, nil, stateReader)
 		se.LoadCode(programs[i].Code, false)
 		se.LoadCode(programs[i].Parameter, true)
 		se.Execute()

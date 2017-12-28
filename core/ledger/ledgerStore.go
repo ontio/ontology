@@ -52,4 +52,6 @@ type ILedgerStore interface {
 	GetUnclaimed(hash Uint256) (map[uint16]*utxo.SpentCoin, error)
 	GetCurrentStateRoot() Uint256
 	GetIdentity(ontId []byte) ([]byte, error)
+
+	GetStorageItem(key *states.StorageKey) (*states.StorageItem, error)
 }

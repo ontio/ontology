@@ -28,6 +28,7 @@ import (
 	"sort"
 	"sync"
 	"time"
+	"github.com/Ontology/smartcontract/types"
 )
 
 const (
@@ -755,7 +756,7 @@ func (bd *ChainStore) persist(b *Block) error {
 				continue
 			}
 			contract := cs.Value.(*states.ContractState)
-			stateMachine := service.NewStateMachine(stateStore)
+			stateMachine := service.NewStateMachine(stateStore, types.Application, b)
 			smc, err := sc.NewSmartContract(&sc.Context{
 				VmType:         contract.VmType,
 				StateMachine:   stateMachine,
@@ -1176,3 +1177,16 @@ func (bd *ChainStore) SetIdentity(ontId, ddo []byte) error {
 	idKey := append(idPrefix, ontId...)
 	return bd.st.BatchPut(idKey, ddo)
 }
+
+func (bd *ChainStore) GetStorageItem(key *states.StorageKey) (*states.StorageItem, error) {
+	v, err := bd.st.Get(append(append([]byte{byte(ST_Storage)}, key.ToArray()...)))
+	if err != nil {
+		return nil, err
+	}
+	item := new(states.StorageItem)
+	if err := item.Deserialize(bytes.NewBuffer(v)); err != nil {
+		return nil, err
+	}
+	return item, nil
+}
+

@@ -87,6 +87,7 @@ func (sc *SmartContract) InvokeContract() (interface{}, error) {
 	return sc.InvokeResult()
 }
 
+
 func (sc *SmartContract) InvokeResult() (interface{}, error) {
 	switch sc.VMType {
 	case types.NEOVM:

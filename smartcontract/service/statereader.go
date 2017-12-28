@@ -10,6 +10,7 @@ import (
 	"github.com/Ontology/errors"
 	vm "github.com/Ontology/vm/neovm"
 	"github.com/Ontology/vm/neovm/types"
+	trigger "github.com/Ontology/smartcontract/types"
 	"math/big"
 	"github.com/Ontology/core/states"
 	"github.com/Ontology/core/transaction/utxo"
@@ -17,12 +18,16 @@ import (
 
 type StateReader struct {
 	serviceMap map[string]func(*vm.ExecutionEngine) (bool, error)
+	trigger trigger.TriggerType
 }
 
-func NewStateReader() *StateReader {
+func NewStateReader(trigger trigger.TriggerType) *StateReader {
 	var stateReader StateReader
 	stateReader.serviceMap = make(map[string]func(*vm.ExecutionEngine) (bool, error), 0)
+	stateReader.trigger = trigger
+
 	stateReader.Register("Neo.Runtime.GetTrigger", stateReader.RuntimeGetTrigger)
+	stateReader.Register("Neo.Runtime.GetTime", stateReader.RuntimeGetTime)
 	stateReader.Register("Neo.Runtime.CheckWitness", stateReader.RuntimeCheckWitness)
 	stateReader.Register("Neo.Runtime.Notify", stateReader.RuntimeNotify)
 	stateReader.Register("Neo.Runtime.Log", stateReader.RuntimeLog)
@@ -75,6 +80,10 @@ func NewStateReader() *StateReader {
 	stateReader.Register("Neo.Asset.GetOwner", stateReader.AssetGetOwner)
 	stateReader.Register("Neo.Asset.GetAdmin", stateReader.AssetGetAdmin)
 
+	stateReader.Register("Neo.Storage.GetScript", stateReader.ContractGetCode)
+	stateReader.Register("Neo.Storage.GetContext", stateReader.StorageGetContext)
+	stateReader.Register("Neo.Storage.Get", stateReader.StorageGet)
+
 	return &stateReader
 }
 
@@ -91,6 +100,20 @@ func (s *StateReader) GetServiceMap() map[string]func(*vm.ExecutionEngine) (bool
 }
 
 func (s *StateReader) RuntimeGetTrigger(e *vm.ExecutionEngine) (bool, error) {
+	vm.PushData(e, int(s.trigger))
+	return true, nil
+}
+
+func (s *StateReader) RuntimeGetTime(e *vm.ExecutionEngine) (bool, error) {
+	hash, err := ledger.DefaultLedger.Store.GetBlockHash(ledger.DefaultLedger.Store.GetHeight())
+	if err != nil {
+		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[RuntimeGetTime] GetBlockHash error!.")
+	}
+	header, err := ledger.DefaultLedger.Store.GetHeader(hash)
+	if err != nil {
+		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[RuntimeGetTime] GetHeader error!.")
+	}
+	vm.PushData(e, header.Blockdata.Timestamp + uint32(ledger.GenBlockTime))
 	return true, nil
 }
 
@@ -790,3 +813,34 @@ func (s *StateReader) StorageGetContext(e *vm.ExecutionEngine) (bool, error) {
 	vm.PushData(e, NewStorageContext(codeHash))
 	return true, nil
 }
+
+func (s *StateReader) StorageGet(e *vm.ExecutionEngine) (bool, error) {
+	if vm.EvaluationStackCount(e) < 2 {
+		return false, errors.NewErr("[StorageGet] Too few input parameters ")
+	}
+	opInterface := vm.PopInteropInterface(e)
+	if opInterface == nil {
+		return false, errors.NewErr("[StorageGet] Get StorageContext error!")
+	}
+	context := opInterface.(*StorageContext)
+	c, err := ledger.DefaultLedger.Store.GetContract(context.codeHash);
+	if err != nil{
+		return false, err
+	}
+	if c == nil {
+		return false, nil
+	}
+	key := vm.PopByteArray(e)
+	item, err := ledger.DefaultLedger.Store.GetStorageItem(&states.StorageKey{CodeHash: context.codeHash, Key: key})
+	if err != nil {
+		return false, err
+	}
+	if item == nil {
+		vm.PushData(e, []byte{})
+	} else {
+		vm.PushData(e, item.Value)
+	}
+	return true, nil
+}
+
+

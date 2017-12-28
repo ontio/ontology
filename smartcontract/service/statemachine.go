@@ -17,17 +17,25 @@ import (
 	"github.com/Ontology/smartcontract/storage"
 	vm "github.com/Ontology/vm/neovm"
 	"math"
+	"github.com/Ontology/smartcontract/types"
 )
 
 type StateMachine struct {
 	*StateReader
 	CloneCache *storage.CloneCache
+	trigger types.TriggerType
+	block   *ledger.Block
 }
 
-func NewStateMachine(dbCache store.IStateStore) *StateMachine {
+func NewStateMachine(dbCache store.IStateStore, trigger types.TriggerType, block *ledger.Block) *StateMachine {
 	var stateMachine StateMachine
 	stateMachine.CloneCache = storage.NewCloneCache(dbCache)
-	stateMachine.StateReader = NewStateReader()
+	stateMachine.StateReader = NewStateReader(trigger)
+	stateMachine.trigger = trigger
+	stateMachine.block = block
+
+	stateMachine.StateReader.Register("Neo.Runtime.GetTrigger", stateMachine.RuntimeGetTrigger)
+	stateMachine.StateReader.Register("Neo.Runtime.GetTime", stateMachine.RuntimeGetTime)
 
 	stateMachine.StateReader.Register("Neo.Asset.Create", stateMachine.CreateAsset)
 	stateMachine.StateReader.Register("Neo.Asset.Renew", stateMachine.AssetRenew)
@@ -38,11 +46,19 @@ func NewStateMachine(dbCache store.IStateStore) *StateMachine {
 	stateMachine.StateReader.Register("Neo.Contract.GetScript", stateMachine.ContractGetCode)
 	stateMachine.StateReader.Register("Neo.Contract.Destroy", stateMachine.ContractDestory)
 
-	stateMachine.StateReader.Register("Neo.Storage.GetContext", stateMachine.StorageGetContext)
-	stateMachine.StateReader.Register("Neo.Storage.Get", stateMachine.StorageGet)
 	stateMachine.StateReader.Register("Neo.Storage.Put", stateMachine.StoragePut)
 	stateMachine.StateReader.Register("Neo.Storage.Delete", stateMachine.StorageDelete)
 	return &stateMachine
+}
+
+func (s *StateMachine) RuntimeGetTrigger(engine *vm.ExecutionEngine) (bool, error) {
+	vm.PushData(engine, int(s.trigger))
+	return true, nil
+}
+
+func (s *StateMachine) RuntimeGetTime(engine *vm.ExecutionEngine) (bool, error) {
+	vm.PushData(engine, s.block.Blockdata.Timestamp)
+	return true, nil
 }
 
 func (s *StateMachine) CreateAsset(engine *vm.ExecutionEngine) (bool, error) {
@@ -296,35 +312,6 @@ func (s *StateMachine) CheckStorageContext(context *StorageContext) (bool, error
 	}
 	if item == nil {
 		return false, errors.NewErr(fmt.Sprintf("get contract by codehash=%v nil", context.codeHash))
-	}
-	return true, nil
-}
-
-func (s *StateMachine) StorageGet(engine *vm.ExecutionEngine) (bool, error) {
-	if vm.EvaluationStackCount(engine) < 2 {
-		return false, errors.NewErr("[StorageGet] Too few input parameters ")
-	}
-	opInterface := vm.PopInteropInterface(engine)
-	if opInterface == nil {
-		return false, errors.NewErr("[StorageGet] Get StorageContext error!")
-	}
-	context := opInterface.(*StorageContext)
-	if exist, err := s.CheckStorageContext(context); !exist {
-		return false, err
-	}
-	key := vm.PopByteArray(engine)
-	k, err := serializeStorageKey(context.codeHash, key)
-	if err != nil {
-		return false, err
-	}
-	item, err := s.CloneCache.Get(store.ST_Storage, k)
-	if err != nil {
-		return false, err
-	}
-	if item == nil {
-		vm.PushData(engine, []byte{})
-	} else {
-		vm.PushData(engine, item.(*states.StorageItem).Value)
 	}
 	return true, nil
 }

@@ -15,10 +15,12 @@ import (
 	"io"
 	"time"
 	"bytes"
+	"github.com/Ontology/common/config"
 )
 
 const BlockVersion uint32 = 0
 const GenesisNonce uint64 = 2083236893
+var GenBlockTime = (config.DEFAULTGENBLOCKTIME * time.Second)
 
 type Block struct {
 	Blockdata    *Blockdata
