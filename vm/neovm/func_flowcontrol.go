@@ -15,20 +15,21 @@ func opJmp(e *ExecutionEngine) (VMState, error) {
 
 	offset = e.context.GetInstructionPointer() + offset - 3
 
-	if offset > len(e.context.Code) {
+	if offset < 0 || offset > len(e.context.Code) {
 		log.Error(fmt.Sprintf("[opJmp] offset:%v > e.contex.Code len:%v error", offset, len(e.context.Code)))
 		return FAULT, ErrFault
 	}
-	if EvaluationStackCount(e) < 1 {
-		log.Error(fmt.Sprintf("[opJmp] stack count:%v > 1 error", EvaluationStackCount(e)))
-		return FAULT, ErrUnderStackLen
-	}
 	var fValue = true
 
-	if e.opCode == JMPIF {
+	if e.opCode > JMP {
+		if EvaluationStackCount(e) < 1 {
+			log.Error(fmt.Sprintf("[opJmp] stack count:%v > 1 error", EvaluationStackCount(e)))
+			return FAULT, ErrUnderStackLen
+		}
 		fValue = PopBoolean(e)
-	} else if e.opCode == JMPIFNOT {
-		fValue = !PopBoolean(e)
+		if e.opCode == JMPIFNOT {
+			fValue = !fValue
+		}
 	}
 
 	if fValue {
