@@ -57,7 +57,6 @@ func NewSmartContract(context *Context) (*SmartContract, error) {
 			new(neovm.ECDsaCrypto),
 			context.CacheCodeTable,
 			context.StateMachine,
-			context.Gas,
 		)
 	default:
 		return nil, errors.NewErr("[NewSmartContract] Invalid vm type!")

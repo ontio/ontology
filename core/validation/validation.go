@@ -32,7 +32,7 @@ func VerifySignableData(signableData sig.SignableData) (bool, error) {
 		//execute program on VM
 		var cryptos interfaces.ICrypto
 		cryptos = new(vm.ECDsaCrypto)
-		se := vm.NewExecutionEngine(signableData, cryptos, nil, nil, 0)
+		se := vm.NewExecutionEngine(signableData, cryptos, nil, nil)
 		se.LoadCode(programs[i].Code, false)
 		se.LoadCode(programs[i].Parameter, true)
 		se.Execute()

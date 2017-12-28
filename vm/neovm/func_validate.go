@@ -261,8 +261,8 @@ func validateMul(e *ExecutionEngine) error {
 	}
 	x2 := PeekBigInteger(e)
 	x1 := PeekNBigInt(1, e)
-	lx2 := len(x2)
-	lx1 := len(x1)
+	lx2 := len(types.ConvertBigIntegerToBytes(x2))
+	lx1 := len(types.ConvertBigIntegerToBytes(x1))
 	if  lx2 >  MaxSizeForBigInteger || lx1 > MaxSizeForBigInteger || (lx1 + lx2) > MaxSizeForBigInteger {
 		log.Error("[validateMul] CheckBigInteger fail")
 		return ErrOverMaxBigIntegerSize
