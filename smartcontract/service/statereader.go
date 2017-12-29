@@ -14,6 +14,11 @@ import (
 	"math/big"
 	"github.com/Ontology/core/states"
 	"github.com/Ontology/core/transaction/utxo"
+	"strings"
+)
+
+var (
+	ErrDBNotFound = "leveldb: not found"
 )
 
 type StateReader struct {
@@ -824,7 +829,7 @@ func (s *StateReader) StorageGet(e *vm.ExecutionEngine) (bool, error) {
 	}
 	context := opInterface.(*StorageContext)
 	c, err := ledger.DefaultLedger.Store.GetContract(context.codeHash);
-	if err != nil{
+	if err != nil &&  !strings.EqualFold(err.Error(), ErrDBNotFound) {
 		return false, err
 	}
 	if c == nil {
