@@ -829,7 +829,7 @@ func (s *StateReader) StorageGet(e *vm.ExecutionEngine) (bool, error) {
 	}
 	context := opInterface.(*StorageContext)
 	c, err := ledger.DefaultLedger.Store.GetContract(context.codeHash);
-	if err != nil &&  !strings.EqualFold(err.Error(), ErrDBNotFound) {
+	if err != nil && !strings.EqualFold(err.Error(), ErrDBNotFound) {
 		return false, err
 	}
 	if c == nil {
@@ -837,7 +837,7 @@ func (s *StateReader) StorageGet(e *vm.ExecutionEngine) (bool, error) {
 	}
 	key := vm.PopByteArray(e)
 	item, err := ledger.DefaultLedger.Store.GetStorageItem(&states.StorageKey{CodeHash: context.codeHash, Key: key})
-	if err != nil {
+	if err != nil && !strings.EqualFold(err.Error(), ErrDBNotFound) {
 		return false, err
 	}
 	if item == nil {
