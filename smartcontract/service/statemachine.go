@@ -46,6 +46,7 @@ func NewStateMachine(dbCache store.IStateStore, trigger types.TriggerType, block
 	stateMachine.StateReader.Register("Neo.Contract.GetScript", stateMachine.ContractGetCode)
 	stateMachine.StateReader.Register("Neo.Contract.Destroy", stateMachine.ContractDestory)
 
+	stateMachine.StateReader.Register("Neo.Storage.Get", stateMachine.StorageGet)
 	stateMachine.StateReader.Register("Neo.Storage.Put", stateMachine.StoragePut)
 	stateMachine.StateReader.Register("Neo.Storage.Delete", stateMachine.StorageDelete)
 	return &stateMachine
@@ -355,6 +356,36 @@ func (s *StateMachine) StorageDelete(engine *vm.ExecutionEngine) (bool, error) {
 	s.CloneCache.Delete(store.ST_Storage, k)
 	return true, nil
 }
+
+func (s *StateMachine) StorageGet(engine *vm.ExecutionEngine) (bool, error) {
+	if vm.EvaluationStackCount(engine) < 2 {
+		return false, errors.NewErr("[StorageGet] Too few input parameters ")
+	}
+	opInterface := vm.PopInteropInterface(engine)
+	if opInterface == nil {
+		return false, errors.NewErr("[StorageGet] Get StorageContext error!")
+	}
+	context := opInterface.(*StorageContext)
+	if exist, err := s.CheckStorageContext(context); !exist {
+		return false, err
+	}
+	key := vm.PopByteArray(engine)
+	k, err := serializeStorageKey(context.codeHash, key)
+	if err != nil {
+		return false, err
+	}
+	item, err := s.CloneCache.Get(store.ST_Storage, k)
+	if err != nil {
+		return false, err
+	}
+	if item == nil {
+		vm.PushData(engine, []byte{})
+	} else {
+		vm.PushData(engine, item.(*states.StorageItem).Value)
+	}
+	return true, nil
+}
+
 
 func (s *StateMachine) GetStorageContext(engine *vm.ExecutionEngine) (bool, error) {
 	if vm.EvaluationStackCount(engine) < 1 {

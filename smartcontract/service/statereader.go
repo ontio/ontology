@@ -93,9 +93,6 @@ func NewStateReader(trigger trigger.TriggerType) *StateReader {
 }
 
 func (s *StateReader) Register(methodName string, handler func(*vm.ExecutionEngine) (bool, error)) bool {
-	if _, ok := s.serviceMap[methodName]; ok {
-		return false
-	}
 	s.serviceMap[methodName] = handler
 	return true
 }
