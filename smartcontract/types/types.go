@@ -11,5 +11,5 @@ type TriggerType byte
 
 const (
 	Verification TriggerType = iota
-	Application
+	Application = 0x10
 )
