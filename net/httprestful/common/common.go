@@ -452,6 +452,24 @@ func GetStateUpdate(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+func GetSmartCodeResults(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(Err.SUCCESS)
+
+	param := cmd["Height"].(string)
+	if len(param) == 0 {
+		resp["Error"] = Err.INVALID_PARAMS
+		return resp
+	}
+	height, err := strconv.ParseInt(param, 10, 64)
+	if err != nil {
+		resp["Error"] = Err.INVALID_PARAMS
+		return resp
+	}
+	index := uint32(height)
+	resp["Result"] = map[string]interface{}{"Height":index}
+	return resp
+}
+
 func ResponsePack(errCode int64) map[string]interface{} {
 	resp := map[string]interface{}{
 		"Action":  "",

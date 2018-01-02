@@ -56,6 +56,7 @@ const (
 	Api_WebsocketState = "/api/v1/config/websocket/state"
 	Api_Restart = "/api/v1/restart"
 	Api_GetContract = "/api/v1/contract/:hash"
+	Api_GetSmartCodeResults = "/api/v1/smartcode/results/:height"
 )
 
 func InitRestServer(checkAccessToken func(string, string) (string, int64, interface{})) ApiServer {
@@ -154,6 +155,7 @@ func (rt *restServer) registryMethod() {
 		Api_NoticeServerUrl:     {name: "getnoticeserverurl", handler: GetNoticeServerUrl},
 		Api_Restart:             {name: "restart", handler: rt.Restart},
 		Api_GetStateUpdate:      {name: "getstateupdate", handler: GetStateUpdate},
+		Api_GetSmartCodeResults:{name: "getsmartcoderesults", handler: GetSmartCodeResults},
 	}
 
 	sendRawTransaction := func(cmd map[string]interface{}) map[string]interface{} {
@@ -205,6 +207,8 @@ func (rt *restServer) getPath(url string) string {
 		return Api_Getasset
 	} else if strings.Contains(url, strings.TrimRight(Api_GetStateUpdate, ":namespace/:key")) {
 		return Api_GetStateUpdate
+	} else if strings.Contains(url, strings.TrimRight(Api_GetSmartCodeResults, ":height")) {
+		return Api_GetSmartCodeResults
 	}
 	return url
 }
@@ -271,6 +275,9 @@ func (rt *restServer) getParams(r *http.Request, url string, req map[string]inte
 	case Api_GetStateUpdate:
 		req["Namespace"] = getParam(r, "namespace")
 		req["Key"] = getParam(r, "key")
+		break
+	case Api_GetSmartCodeResults:
+		req["Height"] = getParam(r, "height")
 		break
 	case Api_OauthServerUrl:
 	case Api_NoticeServerUrl:
