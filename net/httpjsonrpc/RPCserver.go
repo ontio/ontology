@@ -20,6 +20,7 @@ func StartRPCServer() {
 	HandleFunc("getrawmempool", getRawMemPool)
 	HandleFunc("getrawtransaction", getRawTransaction)
 	HandleFunc("sendrawtransaction", sendRawTransaction)
+	HandleFunc("getstorage", getStorage)
 	HandleFunc("submitblock", submitBlock)
 	HandleFunc("getversion", getVersion)
 	HandleFunc("getdataile", getDataFile)
