@@ -7,7 +7,7 @@ import (
 
 func ConvertBigIntegerToBytes(data *big.Int) []byte {
 	if data.Int64() == 0 {
-		return []byte{byte(0)}
+		return []byte{}
 	}
 
 	bs := data.Bytes()
