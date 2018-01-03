@@ -258,7 +258,7 @@ func getStorage(params []interface{})map[string]interface{} {
 	}
 
 	var codeHash Uint160
-	var key string
+	var key []byte
 	switch params[0].(type) {
 	case string:
 		str := params[0].(string)
@@ -275,11 +275,16 @@ func getStorage(params []interface{})map[string]interface{} {
 
 	switch params[1].(type) {
 	case string:
-		key = params[1].(string)
+		str := params[1].(string)
+		hex, err := hex.DecodeString(str)
+		if err != nil {
+			return DnaRpcInvalidParameter
+		}
+		key = hex
 	default:
 		return DnaRpcInvalidParameter
 	}
-	item, err := ledger.DefaultLedger.Store.GetStorageItem(&states.StorageKey{CodeHash: codeHash, Key: []byte(key)})
+	item, err := ledger.DefaultLedger.Store.GetStorageItem(&states.StorageKey{CodeHash: codeHash, Key: key})
 	if err != nil {
 		return DnaRpcInternalError
 	}
