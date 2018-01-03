@@ -22,6 +22,7 @@ var (
 func StartServer(n Noder) {
 	common.SetNode(n)
 	ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, SendBlock2WSclient)
+	ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventSmartCodeResult, PushEventSmartCode)
 	go func() {
 		ws = websocket.InitWsServer(common.CheckAccessToken)
 		ws.Start()
@@ -78,14 +79,26 @@ func SetTxHashMap(txhash string, sessionid string) {
 	ws.SetTxHashMap(txhash, sessionid)
 }
 
-func PushResult(txHash Uint256, errcode int64, action string, result interface{}) {
+func PushEventSmartCode(v interface{}) {
+	if ws != nil {
+		rs,ok := v.(map[string]interface{})
+		if !ok {
+			return
+		}
+		go func() {
+			PushResult(rs["TxHash"].(string),rs["Error"].(int64),rs["Action"].(string),rs["Result"])
+		}()
+	}
+}
+
+func PushResult(txHash string, errcode int64, action string, result interface{}) {
 	if ws != nil {
 		resp := common.ResponsePack(Err.SUCCESS)
 		resp["Result"] = result
 		resp["Error"] = errcode
 		resp["Action"] = action
 		resp["Desc"] = Err.ErrMap[resp["Error"].(int64)]
-		ws.PushTxResult(ToHexString(txHash.ToArrayReverse()), resp)
+		ws.PushTxResult(txHash, resp)
 	}
 }
 
