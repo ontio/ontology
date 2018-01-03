@@ -331,7 +331,8 @@ func (ws *WsServer) PushTxResult(txHashStr string, resp map[string]interface{}) 
 		ws.response(sSessionId, resp)
 	}
 }
-func (ws *WsServer) PushResult(resp map[string]interface{}) {
+
+func (ws *WsServer) BroadcastResult(resp map[string]interface{}) {
 	resp["Desc"] = Err.ErrMap[resp["Error"].(int64)]
 	data, err := json.Marshal(resp)
 	if err != nil {

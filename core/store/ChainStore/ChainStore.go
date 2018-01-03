@@ -28,6 +28,7 @@ import (
 	"sync"
 	"time"
 	"github.com/Ontology/smartcontract/types"
+	"github.com/Ontology/smartcontract/event"
 )
 
 const (
@@ -315,7 +316,7 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 		bd.merkleTree = merkle.NewTree(0, nil, bd.merkleHashStore)
 
 		// persist genesis block
-		bd.persist(genesisBlock,nil)
+		bd.persist(genesisBlock)
 
 		// put version to db
 		err = bd.st.Put(prefix, []byte{0x01})
@@ -660,7 +661,7 @@ func (self *ChainStore) GetBookKeeperList() ([]*crypto.PubKey, []*crypto.PubKey,
 	return bookKeeper.CurrBookKeeper, bookKeeper.NextBookKeeper, nil
 }
 
-func (bd *ChainStore) persist(b *Block,ledger *Ledger) error {
+func (bd *ChainStore) persist(b *Block) error {
 	bd.st.NewBatch()
 	stateStore := NewStateStore(statestore.NewMemDatabase(), bd, statestore.NewTrieStore(bd.st), b.Blockdata.StateRoot)
 	state, err := stateStore.TryGet(ST_BookKeeper, BookerKeeper)
@@ -752,7 +753,7 @@ func (bd *ChainStore) persist(b *Block,ledger *Ledger) error {
 				return err
 			}
 			if cs == nil {
-				PushResult(ledger,t.Hash(), 0, INVOKE_TRANSACTION, "Contract not found!")
+				event.PushSmartCodeEvent(t.Hash(), 0, INVOKE_TRANSACTION, "Contract not found!")
 				continue
 			}
 			contract := cs.Value.(*states.ContractState)
@@ -773,12 +774,12 @@ func (bd *ChainStore) persist(b *Block,ledger *Ledger) error {
 			ret, err := smc.InvokeContract()
 			if err != nil {
 				log.Error("[persist] InvokeContract error:", err)
-				PushResult(ledger,t.Hash(), httprestful.SMARTCODE_ERROR, INVOKE_TRANSACTION, err)
+				event.PushSmartCodeEvent(t.Hash(), httprestful.SMARTCODE_ERROR, INVOKE_TRANSACTION, err)
 				continue
 			}
 			log.Error("result:", ret)
 			stateMachine.CloneCache.Commit()
-			PushResult(ledger,t.Hash(), 0, INVOKE_TRANSACTION, ret)
+			event.PushSmartCodeEvent(t.Hash(), 0, INVOKE_TRANSACTION, ret)
 		}
 	}
 	if err := stateStore.CommitTo(); err != nil {
@@ -809,15 +810,7 @@ func (bd *ChainStore) persist(b *Block,ledger *Ledger) error {
 	}
 	return nil
 }
-func PushResult(ledger *Ledger,txHash Uint256, errcode int64, action string, result interface{}) {
-	resp := map[string]interface{}{
-		"TxHash":ToHexString(txHash.ToArrayReverse()),
-		"Action":  action,
-		"Result":  result,
-		"Error":   errcode,
-	}
-	ledger.Blockchain.BCEvents.Notify(events.EventSmartCodeResult, resp)
-}
+
 // can only be invoked by backend write goroutine
 func (bd *ChainStore) addHeader(header *Header) {
 
@@ -938,7 +931,7 @@ func (bd *ChainStore) persistBlocks(ledger *Ledger) {
 		if !ok {
 			break
 		}
-		err := bd.persist(block,ledger)
+		err := bd.persist(block)
 		if err != nil {
 			log.Fatal("[persistBlocks]: error to persist block:", err.Error())
 			return

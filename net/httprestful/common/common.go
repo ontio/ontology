@@ -452,7 +452,7 @@ func GetStateUpdate(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-func GetSmartCodeResults(cmd map[string]interface{}) map[string]interface{} {
+func GetSmartCodeEvent(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
 
 	param := cmd["Height"].(string)
@@ -467,6 +467,7 @@ func GetSmartCodeResults(cmd map[string]interface{}) map[string]interface{} {
 	}
 	index := uint32(height)
 	resp["Result"] = map[string]interface{}{"Height":index}
+	//TODO resp
 	return resp
 }
 

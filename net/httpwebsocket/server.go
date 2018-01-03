@@ -22,7 +22,7 @@ var (
 func StartServer(n Noder) {
 	common.SetNode(n)
 	ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, SendBlock2WSclient)
-	ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventSmartCodeResult, PushEventSmartCode)
+	ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventSmartCode, PushSmartCodeEvent)
 	go func() {
 		ws = websocket.InitWsServer(common.CheckAccessToken)
 		ws.Start()
@@ -79,19 +79,19 @@ func SetTxHashMap(txhash string, sessionid string) {
 	ws.SetTxHashMap(txhash, sessionid)
 }
 
-func PushEventSmartCode(v interface{}) {
+func PushSmartCodeEvent(v interface{}) {
 	if ws != nil {
 		rs,ok := v.(map[string]interface{})
 		if !ok {
 			return
 		}
 		go func() {
-			PushResult(rs["TxHash"].(string),rs["Error"].(int64),rs["Action"].(string),rs["Result"])
+			PushEvent(rs["TxHash"].(string),rs["Error"].(int64),rs["Action"].(string),rs["Result"])
 		}()
 	}
 }
 
-func PushResult(txHash string, errcode int64, action string, result interface{}) {
+func PushEvent(txHash string, errcode int64, action string, result interface{}) {
 	if ws != nil {
 		resp := common.ResponsePack(Err.SUCCESS)
 		resp["Result"] = result
@@ -99,25 +99,10 @@ func PushResult(txHash string, errcode int64, action string, result interface{})
 		resp["Action"] = action
 		resp["Desc"] = Err.ErrMap[resp["Error"].(int64)]
 		ws.PushTxResult(txHash, resp)
+		//ws.BroadcastResult(resp)
 	}
 }
 
-func PushSmartCodeInvokeResult(txHash Uint256, errcode int64, result interface{}) {
-	if ws == nil {
-		return
-	}
-	resp := common.ResponsePack(Err.SUCCESS)
-	var Result = make(map[string]interface{})
-	txHashStr := ToHexString(txHash.ToArray())
-	Result["TxHash"] = txHashStr
-	Result["ExecResult"] = result
-
-	resp["Result"] = Result
-	resp["Action"] = "sendsmartcodeinvoke"
-	resp["Error"] = errcode
-	resp["Desc"] = Err.ErrMap[errcode]
-	ws.PushTxResult(txHashStr, resp)
-}
 func PushBlock(v interface{}) {
 	if ws == nil {
 		return
@@ -132,7 +117,7 @@ func PushBlock(v interface{}) {
 			resp["Result"] = common.GetBlockInfo(block)
 		}
 		resp["Action"] = "sendrawblock"
-		ws.PushResult(resp)
+		ws.BroadcastResult(resp)
 	}
 }
 func PushBlockTransactions(v interface{}) {
@@ -145,6 +130,6 @@ func PushBlockTransactions(v interface{}) {
 			resp["Result"] = common.GetBlockTransactions(block)
 		}
 		resp["Action"] = "sendblocktransactions"
-		ws.PushResult(resp)
+		ws.BroadcastResult(resp)
 	}
 }

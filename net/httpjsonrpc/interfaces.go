@@ -571,7 +571,22 @@ func uploadDataFile(params []interface{}) map[string]interface{} {
 	return DnaRpc(refpath)
 
 }
+func getSmartCodeEvent(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return DnaRpcNil
+	}
 
+	switch (params[0]).(type) {
+	// block height
+	case float64:
+		height := uint32(params[0].(float64))
+		//TODO resp
+		return DnaRpc(map[string]interface{}{"Height": height})
+	default:
+		return DnaRpcInvalidParameter
+	}
+	return DnaRpcInvalidParameter
+}
 func regDataFile(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil

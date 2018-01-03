@@ -8,5 +8,5 @@ const (
 	EventBlockPersistCompleted EventType = 2
 	EventNewInventory EventType = 3
 	EventNodeDisconnect EventType = 4
-	EventSmartCodeResult EventType = 5
+	EventSmartCode EventType = 5
 )
