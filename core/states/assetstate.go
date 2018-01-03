@@ -21,6 +21,7 @@ type AssetState struct {
 	Precision  byte
 	Owner      *crypto.PubKey
 	Admin      Uint160
+	Issuer     Uint160
 	Expiration uint32
 	IsFrozen   bool
 }
@@ -36,6 +37,7 @@ func (this *AssetState) Serialize(w io.Writer) error {
 	WriteByte(w, this.Precision)
 	this.Owner.Serialize(w)
 	this.Admin.Serialize(w)
+	this.Issuer.Serialize(w)
 	WriteUint32(w, this.Expiration)
 	WriteBool(w, this.IsFrozen)
 	return nil
@@ -96,6 +98,14 @@ func (this *AssetState) Deserialize(r io.Reader) error {
 		return NewDetailErr(err, ErrNoCode, "AssetState Admin Deserialize failed.")
 	}
 	this.Admin = *admin
+
+	issuer := new(Uint160)
+	err = issuer.Deserialize(r)
+	if err != nil {
+		return NewDetailErr(err, ErrNoCode, "AssetState Admin Deserialize failed.")
+	}
+	this.Issuer = *issuer
+
 	ex, err := ReadUint32(r)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "AssetState Expiration Deserialize failed.")

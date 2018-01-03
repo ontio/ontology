@@ -695,6 +695,7 @@ func (bd *ChainStore) persist(b *Block) error {
 				Precision:  p.Asset.Precision,
 				Owner:      p.Issuer,
 				Admin:      p.Controller,
+				Issuer:     p.Controller,
 				Expiration: b.Blockdata.Height + 2 * 2000000,
 				IsFrozen:   false,
 			}, false); err != nil {

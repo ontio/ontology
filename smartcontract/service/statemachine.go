@@ -18,6 +18,7 @@ import (
 	vm "github.com/Ontology/vm/neovm"
 	"math"
 	"github.com/Ontology/smartcontract/types"
+	"github.com/Ontology/common/log"
 )
 
 type StateMachine struct {
@@ -63,62 +64,81 @@ func (s *StateMachine) RuntimeGetTime(engine *vm.ExecutionEngine) (bool, error) 
 }
 
 func (s *StateMachine) CreateAsset(engine *vm.ExecutionEngine) (bool, error) {
-	tx := engine.GetCodeContainer().(*transaction.Transaction)
-	assetId := tx.Hash()
+	container := engine.GetCodeContainer()
+	if container == nil {
+		log.Error("[CreateAsset] Get container fail!")
+		return false, errors.NewErr("[CreateAsset] Get container fail!")
+	}
+	tran, ok := container.(*transaction.Transaction)
+	if !ok {
+		log.Error("[CreateAsset] Container not transaction!")
+		return false, errors.NewErr("[CreateAsset] Container not transaction!")
+	}
+	assetId := tran.Hash()
 	if vm.EvaluationStackCount(engine) < 7 {
+		log.Error("[CreateAsset] Too few input parameters ")
 		return false, errors.NewErr("[CreateAsset] Too few input parameters ")
 	}
 	assertType := asset.AssetType(vm.PopInt(engine))
 	name := vm.PopByteArray(engine)
 	if len(name) > 1024 {
+		log.Error("[CreateAsset] Asset name invalid, too long")
 		return false, ErrAssetNameInvalid
 	}
 	amount := vm.PopBigInt(engine)
-	if amount.Int64() == 0 {
+	if amount.Sign() == 0 {
+		log.Error("[CreateAsset] Asset amount invalid")
 		return false, ErrAssetAmountInvalid
 	}
 	precision := vm.PopBigInt(engine)
 	if precision.Int64() > 8 {
+		log.Error("[CreateAsset] Asset precision invalid")
 		return false, ErrAssetPrecisionInvalid
 	}
 	if amount.Int64() % int64(math.Pow(10, 8 - float64(precision.Int64()))) != 0 {
+		log.Error("[CreateAsset] Asset precision invalid")
 		return false, ErrAssetAmountInvalid
 	}
 	ownerByte := vm.PopByteArray(engine)
 	owner, err := crypto.DecodePoint(ownerByte)
 	if err != nil {
+		log.Error("[CreateAsset] Decode publickey fail!")
 		return false, err
 	}
-	if result, err := s.StateReader.CheckWitnessPublicKey(engine, owner); !result {
-		return result, err
+	if result, _ := s.StateReader.CheckWitnessPublicKey(engine, owner); !result {
+		log.Error("[CreateAsset] Check publickey fail!")
+		return result, ErrAssetCheckOwnerInvalid
 	}
 	adminByte := vm.PopByteArray(engine)
 	admin, err := common.Uint160ParseFromBytes(adminByte)
 	if err != nil {
+		log.Error("[CreateAsset] Convert admin fail!")
 		return false, err
 	}
-
 	assetState := &states.AssetState{
 		AssetId:    assetId,
 		AssetType:  asset.AssetType(assertType),
 		Name:       string(name),
 		Amount:     common.Fixed64(amount.Int64()),
 		Precision:  byte(precision.Int64()),
-		Admin:      admin,
 		Owner:      owner,
+		Admin:      admin,
+		Issuer:     admin,
 		Expiration: ledger.DefaultLedger.Store.GetHeight() + 1 + 2000000,
 		IsFrozen:   false,
 	}
 	state, err := s.CloneCache.GetOrAdd(store.ST_Asset, assetId.ToArray(), assetState); if err != nil {
+		log.Error("[CreateAsset] GetOrAdd asset fail!")
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[CreateAsset] GetOrAdd error!")
 	}
+	fmt.Printf("state:%+v\n", state)
 	vm.PushData(engine, state)
 	return true, nil
 }
 
 func (s *StateMachine) ContractCreate(engine *vm.ExecutionEngine) (bool, error) {
 	if vm.EvaluationStackCount(engine) < 8 {
-		return false, errors.NewErr("[ContractCreate] Too few input parameters ")
+		return false, errors.NewErr("[ContractCreate] Too few input parameters")
 	}
 	codeByte := vm.PopByteArray(engine)
 	if len(codeByte) > 1024 * 1024 {
