@@ -7,6 +7,10 @@ import (
 	_ "sort"
 	. "github.com/Ontology/vm/neovm/errors"
 	"github.com/Ontology/common"
+	"fmt"
+	"reflect"
+	"github.com/Ontology/vm/neovm/types"
+	"github.com/Ontology/common/log"
 )
 
 func NewExecutionEngine(container interfaces.ICodeContainer, crypto interfaces.ICrypto, table interfaces.ICodeTable, service IInteropService) *ExecutionEngine {
@@ -85,39 +89,58 @@ func (e *ExecutionEngine) GetEvaluationStackCount() int {
 }
 
 func (e *ExecutionEngine) GetExecuteResult() bool {
+	if e.evaluationStack.Count() < 1 {
+		return false
+	}
 	return e.evaluationStack.Pop().GetStackItem().GetBoolean()
 }
 
-func (e *ExecutionEngine) ExecutingCode() []byte {
-	context := e.invocationStack.Peek(0).GetExecutionContext()
-	if context != nil {
-		return context.Code
+func (e *ExecutionEngine) ExecutingCode() ([]byte, error) {
+	if e.invocationStack.Count() < 1 {
+		log.Error("[ExecutingCode], Get execution context fail!")
+		return nil, ErrOverStackLen
 	}
-	return nil
+	context := e.invocationStack.Peek(0).GetExecutionContext()
+	if context == nil {
+		return nil, ErrExecutionContextNil
+	}
+	return context.Code, nil
 }
 
-func (e *ExecutionEngine) CurrentContext() *ExecutionContext {
-	context := e.invocationStack.Peek(0).GetExecutionContext()
-	if context != nil {
-		return context
+func (e *ExecutionEngine) CurrentContext() (*ExecutionContext, error) {
+	if e.invocationStack.Count() < 1 {
+		log.Error("[CurrentContext], Get current context fail!")
+		return nil, ErrOverStackLen
 	}
-	return nil
+	context := e.invocationStack.Peek(0).GetExecutionContext()
+	if context == nil {
+		return nil, ErrCurrentContextNil
+	}
+	return context, nil
 }
 
-func (e *ExecutionEngine) CallingContext() *ExecutionContext {
+func (e *ExecutionEngine) CallingContext() (*ExecutionContext, error) {
+	if e.invocationStack.Count() < 2 {
+		log.Error("[CallingContext], Get calling context fail!")
+		return nil, ErrOverStackLen
+	}
 	context := e.invocationStack.Peek(1).GetExecutionContext()
-	if context != nil {
-		return context
+	if context == nil {
+		return nil, ErrCallingContextNil
 	}
-	return nil
+	return context, nil
 }
 
-func (e *ExecutionEngine) EntryContext() *ExecutionContext {
-	context := e.invocationStack.Peek(e.invocationStack.Count() - 1).GetExecutionContext()
-	if context != nil {
-		return context
+func (e *ExecutionEngine) EntryContext() (*ExecutionContext, error) {
+	if e.invocationStack.Count() < 3 {
+		log.Error("[EntryContext], Get entry context fail!")
+		return nil, ErrOverStackLen
 	}
-	return nil
+	context := e.invocationStack.Peek(e.invocationStack.Count() - 1).GetExecutionContext()
+	if context == nil {
+		return nil, ErrEntryContextNil
+	}
+	return context, nil
 }
 
 func (e *ExecutionEngine) LoadCode(script []byte, pushOnly bool) {
@@ -143,8 +166,10 @@ func (e *ExecutionEngine) StepInto() error {
 		e.state = HALT
 		return nil
 	}
-	context := e.CurrentContext()
-
+	context, err := e.CurrentContext()
+	if err != nil {
+		return err
+	}
 	var opCode OpCode
 
 	if context.GetInstructionPointer() >= len(context.Code) {
@@ -191,6 +216,27 @@ func (e *ExecutionEngine) ExecuteOp() (VMState, error) {
 	if opExec.Exec == nil {
 		return FAULT, ErrNotSupportOpCode
 	}
+	fmt.Println("op:", opExec.Name)
+	s := e.evaluationStack.Count()
+	for i := 0; i<s;i++ {
+		item := e.evaluationStack.Peek(i).GetStackItem()
+		fmt.Print("type:", reflect.TypeOf(item))
+		fmt.Print(" ")
+		switch v := item.(type) {
+		case *types.Integer:
+			fmt.Print("value:", v.GetBigInteger())
+		case  *types.Boolean:
+			fmt.Print("value:", v.GetBoolean())
+		case *types.ByteArray:
+			fmt.Print("value:", v.GetByteArray())
+		case *types.InteropInterface:
+			fmt.Print("value:", v.GetInterface())
+		case *types.Array:
+			fmt.Print("value:", v.GetArray())
+		}
+		fmt.Print(" ")
+	}
+	fmt.Println()
 	if opExec.Validator != nil {
 		if err := opExec.Validator(e); err != nil {
 			return FAULT, err

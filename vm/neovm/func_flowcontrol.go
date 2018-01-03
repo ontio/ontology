@@ -39,10 +39,15 @@ func opJmp(e *ExecutionEngine) (VMState, error) {
 }
 
 func opCall(e *ExecutionEngine) (VMState, error) {
+
 	e.invocationStack.Push(e.context.Clone())
 	e.context.SetInstructionPointer(int64(e.context.GetInstructionPointer() + 2))
 	e.opCode = JMP
-	e.context = e.CurrentContext()
+	context, err := e.CurrentContext()
+	if err != nil {
+		return FAULT, err
+	}
+	e.context = context
 	return opJmp(e)
 }
 

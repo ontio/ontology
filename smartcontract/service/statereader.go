@@ -15,10 +15,13 @@ import (
 	"github.com/Ontology/core/states"
 	"github.com/Ontology/core/transaction/utxo"
 	"strings"
+	"github.com/Ontology/smartcontract/event"
+	"github.com/Ontology/common/log"
 )
 
 var (
 	ErrDBNotFound = "leveldb: not found"
+	Notify = "Notify"
 )
 
 type StateReader struct {
@@ -120,7 +123,18 @@ func (s *StateReader) RuntimeGetTime(e *vm.ExecutionEngine) (bool, error) {
 }
 
 func (s *StateReader) RuntimeNotify(e *vm.ExecutionEngine) (bool, error) {
-	vm.PopStackItem(e)
+	item := vm.PopStackItem(e)
+	container := e.GetCodeContainer()
+	if container == nil {
+		log.Error("[RuntimeNotify] Get container fail!")
+		return false, errors.NewErr("[CreateAsset] Get container fail!")
+	}
+	tran, ok := container.(*tx.Transaction)
+	if !ok {
+		log.Error("[CreateAsset] Container not transaction!")
+		return false, errors.NewErr("[CreateAsset] Container not transaction!")
+	}
+	event.PushSmartCodeEvent(tran.Hash(), 0, Notify, item)
 	return true, nil
 }
 
@@ -808,7 +822,11 @@ func (s *StateReader) ContractGetCode(e *vm.ExecutionEngine) (bool, error) {
 }
 
 func (s *StateReader) StorageGetContext(e *vm.ExecutionEngine) (bool, error) {
-	codeHash, err := common.Uint160ParseFromBytes(e.CurrentContext().GetCodeHash())
+	context, err := e.CurrentContext()
+	if err != nil {
+		return false, err
+	}
+	codeHash, err := common.Uint160ParseFromBytes(context.GetCodeHash())
 	if err != nil {
 		return false, err
 	}

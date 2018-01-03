@@ -300,7 +300,11 @@ func (s *StateMachine) AssetRenew(engine *vm.ExecutionEngine) (bool, error) {
 }
 
 func (s *StateMachine) ContractDestory(engine *vm.ExecutionEngine) (bool, error) {
-	data := engine.CurrentContext().CodeHash
+	context, err := engine.CurrentContext()
+	if err != nil {
+		return false, err
+	}
+	data := context.CodeHash
 	if data != nil {
 		return false, nil
 	}
@@ -421,10 +425,14 @@ func (s *StateMachine) GetStorageContext(engine *vm.ExecutionEngine) (bool, erro
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[GetStorageContext] Get StorageContext nil")
 	}
+	context, err := engine.CurrentContext()
+	if err != nil {
+		return false, err
+	}
 	if item == nil {
 		return false, errors.NewErr(fmt.Sprintf("[GetStorageContext] Get contract by codehash:%v nil", codeHash))
 	}
-	currentHash, err := common.Uint160ParseFromBytes(engine.CurrentContext().GetCodeHash())
+	currentHash, err := common.Uint160ParseFromBytes(context.GetCodeHash())
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[GetStorageContext] Get CurrentHash error")
 	}

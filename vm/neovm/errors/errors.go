@@ -21,4 +21,9 @@ var (
 	ErrServiceIsNil          = errors.New("service is nil")
 	ErrDivModByZero          = errors.New("div or mod by zore")
 	ErrShiftByNeg            = errors.New("shift by negtive value")
+	ErrExecutionContextNil   = errors.New("execution context is nil")
+	ErrCurrentContextNil     = errors.New("current context is nil")
+	ErrCallingContextNil     = errors.New("calling context is nil")
+	ErrEntryContextNil       = errors.New("entry context is nil")
+
 )

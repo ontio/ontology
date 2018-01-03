@@ -58,15 +58,27 @@ func (i *InteropService) GetCodeContainer(engine *ExecutionEngine) (bool, error)
 }
 
 func (i *InteropService) GetExecutingCodeHash(engine *ExecutionEngine) (bool, error) {
-	PushData(engine, engine.crypto.Hash160(engine.ExecutingCode()))
+	code, err := engine.ExecutingCode()
+	if err != nil {
+		return false, err
+	}
+	PushData(engine, engine.crypto.Hash160(code))
 	return true, nil
 }
 
 func (i *InteropService) GetCallingCodeHash(engine *ExecutionEngine) (bool, error) {
-	PushData(engine, engine.crypto.Hash160(engine.CallingContext().GetCodeHash()))
+	context, err := engine.CallingContext()
+	if err != nil {
+		return false, err
+	}
+	PushData(engine, engine.crypto.Hash160(context.GetCodeHash()))
 	return true, nil
 }
 func (i *InteropService) GetEntryCodeHash(engine *ExecutionEngine) (bool, error) {
-	PushData(engine, engine.crypto.Hash160(engine.EntryContext().GetCodeHash()))
+	context, err := engine.EntryContext()
+	if err != nil {
+		return false, err
+	}
+	PushData(engine, engine.crypto.Hash160(context.GetCodeHash()))
 	return true, nil
 }
