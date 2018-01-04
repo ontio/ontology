@@ -47,6 +47,10 @@ func (cloneCache *CloneCache) Add(prefix store.DataEntryPrefix, key []byte, valu
 
 func (cloneCache *CloneCache) GetOrAdd(prefix store.DataEntryPrefix, key []byte, value states.IStateValue) (states.IStateValue, error) {
 	if v, ok := cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))]; ok {
+		if v.State == store.Deleted {
+			cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))] = &StateItem{Prefix: prefix, Key: string(key), Value: value, State: store.Changed}
+			return value, nil
+		}
 		return v.Value, nil
 	}
 	item, err := cloneCache.Store.TryGet(prefix, key)
