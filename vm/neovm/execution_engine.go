@@ -1,3 +1,19 @@
+// Copyright 2017 The Ontology Authors
+// This file is part of the Ontology library.
+//
+// The Ontology library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The Ontology library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the Ontology library. If not, see <http://www.gnu.org/licenses/>.
+
 package neovm
 
 import (
@@ -7,9 +23,6 @@ import (
 	_ "sort"
 	. "github.com/Ontology/vm/neovm/errors"
 	"github.com/Ontology/common"
-	"fmt"
-	"reflect"
-	"github.com/Ontology/vm/neovm/types"
 	"github.com/Ontology/common/log"
 )
 
@@ -216,27 +229,6 @@ func (e *ExecutionEngine) ExecuteOp() (VMState, error) {
 	if opExec.Exec == nil {
 		return FAULT, ErrNotSupportOpCode
 	}
-	fmt.Println("op:", opExec.Name)
-	s := e.evaluationStack.Count()
-	for i := 0; i<s;i++ {
-		item := e.evaluationStack.Peek(i).GetStackItem()
-		fmt.Print("type:", reflect.TypeOf(item))
-		fmt.Print(" ")
-		switch v := item.(type) {
-		case *types.Integer:
-			fmt.Print("value:", v.GetBigInteger())
-		case  *types.Boolean:
-			fmt.Print("value:", v.GetBoolean())
-		case *types.ByteArray:
-			fmt.Print("value:", v.GetByteArray())
-		case *types.InteropInterface:
-			fmt.Print("value:", v.GetInterface())
-		case *types.Array:
-			fmt.Print("value:", v.GetArray())
-		}
-		fmt.Print(" ")
-	}
-	fmt.Println()
 	if opExec.Validator != nil {
 		if err := opExec.Validator(e); err != nil {
 			return FAULT, err
