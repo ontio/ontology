@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/Ontology/common"
+	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/asset"
 	"github.com/Ontology/core/code"
 	"github.com/Ontology/core/contract"
@@ -15,17 +16,16 @@ import (
 	"github.com/Ontology/errors"
 	. "github.com/Ontology/smartcontract/errors"
 	"github.com/Ontology/smartcontract/storage"
+	"github.com/Ontology/smartcontract/types"
 	vm "github.com/Ontology/vm/neovm"
 	"math"
-	"github.com/Ontology/smartcontract/types"
-	"github.com/Ontology/common/log"
 )
 
 type StateMachine struct {
 	*StateReader
 	CloneCache *storage.CloneCache
-	trigger types.TriggerType
-	block   *ledger.Block
+	trigger    types.TriggerType
+	block      *ledger.Block
 }
 
 func NewStateMachine(dbCache store.IStateStore, trigger types.TriggerType, block *ledger.Block) *StateMachine {
@@ -95,7 +95,7 @@ func (s *StateMachine) CreateAsset(engine *vm.ExecutionEngine) (bool, error) {
 		log.Error("[CreateAsset] Asset precision invalid")
 		return false, ErrAssetPrecisionInvalid
 	}
-	if amount.Int64() % int64(math.Pow(10, 8 - float64(precision.Int64()))) != 0 {
+	if amount.Int64()%int64(math.Pow(10, 8-float64(precision.Int64()))) != 0 {
 		log.Error("[CreateAsset] Asset precision invalid")
 		return false, ErrAssetAmountInvalid
 	}
@@ -127,7 +127,8 @@ func (s *StateMachine) CreateAsset(engine *vm.ExecutionEngine) (bool, error) {
 		Expiration: ledger.DefaultLedger.Store.GetHeight() + 1 + 2000000,
 		IsFrozen:   false,
 	}
-	state, err := s.CloneCache.GetOrAdd(store.ST_Asset, assetId.ToArray(), assetState); if err != nil {
+	state, err := s.CloneCache.GetOrAdd(store.ST_Asset, assetId.ToArray(), assetState)
+	if err != nil {
 		log.Error("[CreateAsset] GetOrAdd asset fail!")
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[CreateAsset] GetOrAdd error!")
 	}
@@ -141,7 +142,7 @@ func (s *StateMachine) ContractCreate(engine *vm.ExecutionEngine) (bool, error) 
 		return false, errors.NewErr("[ContractCreate] Too few input parameters")
 	}
 	codeByte := vm.PopByteArray(engine)
-	if len(codeByte) > 1024 * 1024 {
+	if len(codeByte) > 1024*1024 {
 		return false, errors.NewErr("[ContractCreate] Code too long!")
 	}
 	parameters := vm.PopByteArray(engine)
@@ -190,7 +191,8 @@ func (s *StateMachine) ContractCreate(engine *vm.ExecutionEngine) (bool, error) 
 	if err != nil {
 		return false, err
 	}
-	state, err := s.CloneCache.GetOrAdd(store.ST_Contract, codeHash.ToArray(), contractState); if err != nil {
+	state, err := s.CloneCache.GetOrAdd(store.ST_Contract, codeHash.ToArray(), contractState)
+	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] GetOrAdd error!")
 	}
 	vm.PushData(engine, state)
@@ -202,7 +204,7 @@ func (s *StateMachine) ContractMigrate(engine *vm.ExecutionEngine) (bool, error)
 		return false, errors.NewErr("[ContractMigrate] Too few input parameters ")
 	}
 	codeByte := vm.PopByteArray(engine)
-	if len(codeByte) > 1024 * 1024 {
+	if len(codeByte) > 1024*1024 {
 		return false, errors.NewErr("[ContractMigrate] Code too long!")
 	}
 	codeHash, err := common.ToCodeHash(codeByte)
@@ -243,7 +245,7 @@ func (s *StateMachine) ContractMigrate(engine *vm.ExecutionEngine) (bool, error)
 		return false, errors.NewErr("[ContractMigrate] Email too long!")
 	}
 	descByte := vm.PopByteArray(engine)
-	if len(emailByte) > 65536 {
+	if len(descByte) > 65536 {
 		return false, errors.NewErr("[ContractMigrate] Desc too long!")
 	}
 	funcCode := &code.FunctionCode{
@@ -291,7 +293,7 @@ func (s *StateMachine) AssetRenew(engine *vm.ExecutionEngine) (bool, error) {
 	}
 	years := vm.PopInt(engine)
 	assetState := data.(*states.AssetState)
-	if assetState.Expiration < ledger.DefaultLedger.Store.GetHeight() + 1 {
+	if assetState.Expiration < ledger.DefaultLedger.Store.GetHeight()+1 {
 		assetState.Expiration = ledger.DefaultLedger.Store.GetHeight() + 1
 	}
 	assetState.Expiration += uint32(years) * 2000000
@@ -409,7 +411,6 @@ func (s *StateMachine) StorageGet(engine *vm.ExecutionEngine) (bool, error) {
 	}
 	return true, nil
 }
-
 
 func (s *StateMachine) GetStorageContext(engine *vm.ExecutionEngine) (bool, error) {
 	if vm.EvaluationStackCount(engine) < 1 {
