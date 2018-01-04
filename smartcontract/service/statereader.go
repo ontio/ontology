@@ -2,31 +2,31 @@ package service
 
 import (
 	"github.com/Ontology/common"
+	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/contract"
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/signature"
+	"github.com/Ontology/core/states"
 	tx "github.com/Ontology/core/transaction"
+	"github.com/Ontology/core/transaction/utxo"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/errors"
+	"github.com/Ontology/smartcontract/event"
+	trigger "github.com/Ontology/smartcontract/types"
 	vm "github.com/Ontology/vm/neovm"
 	"github.com/Ontology/vm/neovm/types"
-	trigger "github.com/Ontology/smartcontract/types"
 	"math/big"
-	"github.com/Ontology/core/states"
-	"github.com/Ontology/core/transaction/utxo"
 	"strings"
-	"github.com/Ontology/smartcontract/event"
-	"github.com/Ontology/common/log"
 )
 
 var (
 	ErrDBNotFound = "leveldb: not found"
-	Notify = "Notify"
+	Notify        = "Notify"
 )
 
 type StateReader struct {
 	serviceMap map[string]func(*vm.ExecutionEngine) (bool, error)
-	trigger trigger.TriggerType
+	trigger    trigger.TriggerType
 }
 
 func NewStateReader(trigger trigger.TriggerType) *StateReader {
@@ -118,7 +118,7 @@ func (s *StateReader) RuntimeGetTime(e *vm.ExecutionEngine) (bool, error) {
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[RuntimeGetTime] GetHeader error!.")
 	}
-	vm.PushData(e, header.Blockdata.Timestamp + uint32(ledger.GenBlockTime))
+	vm.PushData(e, header.Blockdata.Timestamp+uint32(ledger.GenBlockTime))
 	return true, nil
 }
 
@@ -205,7 +205,7 @@ func (s *StateReader) RuntimeCheckWitness(e *vm.ExecutionEngine) (bool, error) {
 	data := vm.PopByteArray(e)
 	var (
 		result bool
-		err error
+		err    error
 	)
 	if len(data) == 20 {
 		program, err := common.Uint160ParseFromBytes(data)
@@ -247,7 +247,7 @@ func (s *StateReader) BlockChainGetHeader(e *vm.ExecutionEngine) (bool, error) {
 	data := vm.PopByteArray(e)
 	var (
 		header *ledger.Header
-		err error
+		err    error
 	)
 	l := len(data)
 	if l <= 5 {
@@ -611,15 +611,19 @@ func (s *StateReader) TransactionGetReferences(e *vm.ExecutionEngine) (bool, err
 	if d == nil {
 		return false, errors.NewErr("[TransactionGetReferences] Pop transaction nil!")
 	}
-	references, err := d.(*tx.Transaction).GetReference()
+	txn, ok := d.(*tx.Transaction)
+	if ok == false {
+		return false, errors.NewErr("[TransactionGetReferences] Wrong type!")
+	}
+	references, err := txn.GetReference()
+	if err != nil {
+		return false, err
+	}
 	referenceList := make([]types.StackItemInterface, 0)
 	for _, v := range references {
 		referenceList = append(referenceList, types.NewInteropInterface(v))
 	}
 	vm.PushData(e, referenceList)
-	if err != nil {
-		return false, err
-	}
 	return true, nil
 }
 
@@ -631,7 +635,10 @@ func (s *StateReader) AttributeGetUsage(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[AttributeGetUsage] Pop txAttribute nil!")
 	}
-	attribute := d.(*tx.TxAttribute)
+	attribute, ok := d.(*tx.TxAttribute)
+	if ok == false {
+		return false, errors.NewErr("[AttributeGetUsage] Wrong type!")
+	}
 	vm.PushData(e, int(attribute.Usage))
 	return true, nil
 }
@@ -644,7 +651,10 @@ func (s *StateReader) AttributeGetData(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[AttributeGetData] Pop txAttribute nil!")
 	}
-	attribute := d.(*tx.TxAttribute)
+	attribute, ok := d.(*tx.TxAttribute)
+	if ok == false {
+		return false, errors.NewErr("[AttributeGetUsage] Wrong type!")
+	}
 	vm.PushData(e, attribute.Data)
 	return true, nil
 }
@@ -657,7 +667,10 @@ func (s *StateReader) InputGetHash(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[InputGetHash] Pop utxoTxInput nil!")
 	}
-	input := d.(*utxo.UTXOTxInput)
+	input, ok := d.(*utxo.UTXOTxInput)
+	if ok == false {
+		return false, errors.NewErr("[InputGetHash] Wrong type!")
+	}
 	vm.PushData(e, input.ReferTxID.ToArray())
 	return true, nil
 }
@@ -683,7 +696,10 @@ func (s *StateReader) OutputGetAssetId(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[OutputGetAssetId] Pop txOutput nil!")
 	}
-	output := d.(*utxo.TxOutput)
+	output, ok := d.(*utxo.TxOutput)
+	if ok == false {
+		return false, errors.NewErr("[OutputGetAssetId] Wrong type!")
+	}
 	vm.PushData(e, output.AssetID.ToArray())
 	return true, nil
 }
@@ -696,7 +712,10 @@ func (s *StateReader) OutputGetValue(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[OutputGetValue] Pop txOutput nil!")
 	}
-	output := d.(*utxo.TxOutput)
+	output, ok := d.(*utxo.TxOutput)
+	if ok == false {
+		return false, errors.NewErr("[OutputGetValue] Wrong type!")
+	}
 	vm.PushData(e, output.Value.GetData())
 	return true, nil
 }
@@ -709,7 +728,10 @@ func (s *StateReader) OutputGetCodeHash(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[OutputGetCodeHash] Pop txOutput nil!")
 	}
-	output := d.(*utxo.TxOutput)
+	output, ok := d.(*utxo.TxOutput)
+	if ok == false {
+		return false, errors.NewErr("[OutputGetCodeHash] Wrong type!")
+	}
 	vm.PushData(e, output.ProgramHash.ToArray())
 	return true, nil
 }
@@ -722,8 +744,11 @@ func (s *StateReader) AccountGetCodeHash(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[AccountGetCodeHash] Pop accountState nil!")
 	}
-	accountState := d.(*states.AccountState).ProgramHash
-	vm.PushData(e, accountState.ToArray())
+	accountState, ok := d.(*states.AccountState)
+	if ok == false {
+		return false, errors.NewErr("[AccountGetCodeHash] Wrong type!")
+	}
+	vm.PushData(e, accountState.ProgramHash.ToArray())
 	return true, nil
 }
 
@@ -735,7 +760,10 @@ func (s *StateReader) AccountGetBalance(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[AccountGetBalance] Pop accountState nil!")
 	}
-	accountState := d.(*states.AccountState)
+	accountState, ok := d.(*states.AccountState)
+	if ok == false {
+		return false, errors.NewErr("[AccountGetBalance] Wrong type!")
+	}
 	assetIdByte := vm.PopByteArray(e)
 	assetId, err := common.Uint256ParseFromBytes(assetIdByte)
 	if err != nil {
@@ -757,7 +785,10 @@ func (s *StateReader) AssetGetAssetId(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[AssetGetAssetId] Pop assetState nil!")
 	}
-	assetState := d.(*states.AssetState)
+	assetState, ok := d.(*states.AssetState)
+	if ok == false {
+		return false, errors.NewErr("[AssetGetAssetId] Wrong type!")
+	}
 	vm.PushData(e, assetState.AssetId.ToArray())
 	return true, nil
 }
@@ -770,7 +801,10 @@ func (s *StateReader) AssetGetAssetType(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[AssetGetAssetType] Pop assetState nil!")
 	}
-	assetState := d.(*states.AssetState)
+	assetState, ok := d.(*states.AssetState)
+	if ok == false {
+		return false, errors.NewErr("[AssetGetAssetType] Wrong type!")
+	}
 	vm.PushData(e, int(assetState.AssetType))
 	return true, nil
 }
@@ -783,7 +817,10 @@ func (s *StateReader) AssetGetAmount(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[AssetGetAmount] Pop assetState nil!")
 	}
-	assetState := d.(*states.AssetState)
+	assetState, ok := d.(*states.AssetState)
+	if ok == false {
+		return false, errors.NewErr("[AssetGetAmount] Wrong type!")
+	}
 	vm.PushData(e, assetState.Amount.GetData())
 	return true, nil
 }
@@ -796,7 +833,10 @@ func (s *StateReader) AssetGetAvailable(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[AssetGetAvailable] Pop assetState nil!")
 	}
-	assetState := d.(*states.AssetState)
+	assetState, ok := d.(*states.AssetState)
+	if ok == false {
+		return false, errors.NewErr("[AssetGetAvailable] Wrong type!")
+	}
 	vm.PushData(e, assetState.Available.GetData())
 	return true, nil
 }
@@ -809,7 +849,10 @@ func (s *StateReader) AssetGetPrecision(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[AssetGetPrecision] Pop assetState nil!")
 	}
-	assetState := d.(*states.AssetState)
+	assetState, ok := d.(*states.AssetState)
+	if ok == false {
+		return false, errors.NewErr("[AssetGetPrecision] Wrong type!")
+	}
 	vm.PushData(e, int(assetState.Precision))
 	return true, nil
 }
@@ -822,7 +865,10 @@ func (s *StateReader) AssetGetOwner(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[AssetGetOwner] Pop assetState nil!")
 	}
-	assetState := d.(*states.AssetState)
+	assetState, ok := d.(*states.AssetState)
+	if ok == false {
+		return false, errors.NewErr("[AssetGetOwner] Wrong type!")
+	}
 	owner, err := assetState.Owner.EncodePoint(true)
 	if err != nil {
 		return false, err
@@ -839,7 +885,10 @@ func (s *StateReader) AssetGetAdmin(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[AssetGetAdmin] Pop assetState nil!")
 	}
-	assetState := d.(*states.AssetState)
+	assetState, ok := d.(*states.AssetState)
+	if ok == false {
+		return false, errors.NewErr("[AssetGetAdmin] Wrong type!")
+	}
 	vm.PushData(e, assetState.Admin.ToArray())
 	return true, nil
 }
@@ -852,7 +901,10 @@ func (s *StateReader) ContractGetCode(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[ContractGetCode] Pop contractState nil!")
 	}
-	assetState := d.(*states.ContractState)
+	assetState, ok := d.(*states.ContractState)
+	if ok == false {
+		return false, errors.NewErr("[ContractGetCode] Wrong type!")
+	}
 	vm.PushData(e, assetState.Code.Code)
 	return true, nil
 }
@@ -878,8 +930,11 @@ func (s *StateReader) StorageGet(e *vm.ExecutionEngine) (bool, error) {
 	if opInterface == nil {
 		return false, errors.NewErr("[StorageGet] Get StorageContext error!")
 	}
-	context := opInterface.(*StorageContext)
-	c, err := ledger.DefaultLedger.Store.GetContract(context.codeHash);
+	context, ok := opInterface.(*StorageContext)
+	if ok == false {
+		return false, errors.NewErr("[StorageGet] Wrong type!")
+	}
+	c, err := ledger.DefaultLedger.Store.GetContract(context.codeHash)
 	if err != nil && !strings.EqualFold(err.Error(), ErrDBNotFound) {
 		return false, err
 	}
@@ -898,5 +953,3 @@ func (s *StateReader) StorageGet(e *vm.ExecutionEngine) (bool, error) {
 	}
 	return true, nil
 }
-
-

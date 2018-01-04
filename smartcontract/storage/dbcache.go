@@ -1,8 +1,8 @@
 package storage
 
 import (
-	"github.com/Ontology/core/store"
 	"github.com/Ontology/core/states"
+	"github.com/Ontology/core/store"
 )
 
 type StateItem struct {
@@ -19,10 +19,10 @@ type CloneCache struct {
 	Store  store.IStateStore
 }
 
-func NewCloneCache(store  store.IStateStore) *CloneCache {
+func NewCloneCache(store store.IStateStore) *CloneCache {
 	return &CloneCache{
 		Memory: make(Memory),
-		Store: store,
+		Store:  store,
 	}
 }
 
@@ -39,9 +39,9 @@ func (cloneCache *CloneCache) Commit() {
 func (cloneCache *CloneCache) Add(prefix store.DataEntryPrefix, key []byte, value states.IStateValue) {
 	cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))] = &StateItem{
 		Prefix: prefix,
-		Key: string(key),
-		Value: value,
-		State: store.Changed,
+		Key:    string(key),
+		Value:  value,
+		State:  store.Changed,
 	}
 }
 
@@ -90,6 +90,3 @@ func (cloneCache *CloneCache) Delete(prefix store.DataEntryPrefix, key []byte) {
 		}
 	}
 }
-
-
-

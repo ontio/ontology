@@ -21,3 +21,4 @@ Chain/*
 nodectl
 cscope*
 *.exe
+**/*.log
