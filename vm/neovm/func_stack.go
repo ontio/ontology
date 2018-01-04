@@ -75,9 +75,6 @@ func opPick(e *ExecutionEngine) (VMState, error) {
 
 func opRoll(e *ExecutionEngine) (VMState, error) {
 	n := PopInt(e)
-	if n < 0 {
-		return FAULT, nil
-	}
 	if n == 0 {
 		return NONE, nil
 	}

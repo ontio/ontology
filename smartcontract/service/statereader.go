@@ -131,14 +131,42 @@ func (s *StateReader) RuntimeNotify(e *vm.ExecutionEngine) (bool, error) {
 	}
 	tran, ok := container.(*tx.Transaction)
 	if !ok {
-		log.Error("[CreateAsset] Container not transaction!")
+		log.Error("[RuntimeNotify] Container not transaction!")
 		return false, errors.NewErr("[CreateAsset] Container not transaction!")
 	}
-	event.PushSmartCodeEvent(tran.Hash(), 0, Notify, item)
+	context, err := e.CurrentContext()
+	if err != nil {
+		return false, err
+	}
+	m := make(map[string]interface{})
+	m["txid"] = tran.Hash()
+	m["contract"] = common.ToHexString(context.GetCodeHash())
+	m["state"] = item
+	event.PushSmartCodeEvent(tran.Hash(), 0, Notify, m)
 	return true, nil
 }
 
 func (s *StateReader) RuntimeLog(e *vm.ExecutionEngine) (bool, error) {
+	item := vm.PopByteArray(e)
+	container := e.GetCodeContainer()
+	if container == nil {
+		log.Error("[RuntimeLog] Get container fail!")
+		return false, errors.NewErr("[CreateAsset] Get container fail!")
+	}
+	tran, ok := container.(*tx.Transaction)
+	if !ok {
+		log.Error("[RuntimeLog] Container not transaction!")
+		return false, errors.NewErr("[CreateAsset] Container not transaction!")
+	}
+	context, err := e.CurrentContext()
+	if err != nil {
+		return false, err
+	}
+	m := make(map[string]interface{})
+	m["txid"] = tran.Hash()
+	m["contract"] = common.ToHexString(context.GetCodeHash())
+	m["state"] = string(item)
+	event.PushSmartCodeEvent(tran.Hash(), 0, Notify, m)
 	return true, nil
 }
 
