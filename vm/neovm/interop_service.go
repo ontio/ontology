@@ -88,10 +88,10 @@ func (i *InteropService) GetEntryCodeHash(engine *ExecutionEngine) (bool, error)
 	if err != nil {
 		return false, err
 	}
-	codehash, err := context.GetCodeHash()
+	codeHash, err := context.GetCodeHash()
 	if err != nil {
 		return false, err
 	}
-	PushData(engine, &codehash)
+	PushData(engine, &codeHash)
 	return true, nil
 }

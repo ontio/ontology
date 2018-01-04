@@ -51,7 +51,11 @@ func (self *StateStore) TryAdd(prefix DataEntryPrefix, key []byte, value IStateV
 
 func (self *StateStore) TryGetOrAdd(prefix DataEntryPrefix, key []byte, value IStateValue, trie bool) error {
 	state := self.memoryStore.Get(byte(prefix), key)
-	if state != nil && state.State != Deleted {
+	if state != nil  {
+		if state.State == Deleted {
+			self.setStateObject(byte(prefix), key, value, Changed, trie)
+			return value, nil
+		}
 		return nil
 	}
 	item, err := self.db.st.Get(append([]byte{byte(prefix)}, key...))
