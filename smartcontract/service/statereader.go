@@ -140,7 +140,11 @@ func (s *StateReader) RuntimeNotify(e *vm.ExecutionEngine) (bool, error) {
 	}
 	m := make(map[string]interface{})
 	m["txid"] = tran.Hash()
-	m["contract"] = common.ToHexString(context.GetCodeHash())
+	hash, err := context.GetCodeHash()
+	if err != nil {
+		return false, err
+	}
+	m["contract"] = common.ToHexString(hash.ToArray())
 	m["state"] = item
 	event.PushSmartCodeEvent(tran.Hash(), 0, Notify, m)
 	return true, nil
@@ -164,7 +168,11 @@ func (s *StateReader) RuntimeLog(e *vm.ExecutionEngine) (bool, error) {
 	}
 	m := make(map[string]interface{})
 	m["txid"] = tran.Hash()
-	m["contract"] = common.ToHexString(context.GetCodeHash())
+	hash, err := context.GetCodeHash()
+	if err != nil {
+		return false, err
+	}
+	m["contract"] = common.ToHexString(hash.ToArray())
 	m["state"] = string(item)
 	event.PushSmartCodeEvent(tran.Hash(), 0, Notify, m)
 	return true, nil
@@ -854,11 +862,11 @@ func (s *StateReader) StorageGetContext(e *vm.ExecutionEngine) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	codeHash, err := common.Uint160ParseFromBytes(context.GetCodeHash())
+	hash, err := context.GetCodeHash()
 	if err != nil {
 		return false, err
 	}
-	vm.PushData(e, NewStorageContext(codeHash))
+	vm.PushData(e, NewStorageContext(hash))
 	return true, nil
 }
 

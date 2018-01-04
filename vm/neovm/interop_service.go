@@ -3,6 +3,7 @@ package neovm
 import (
 	. "github.com/Ontology/vm/neovm/errors"
 	"github.com/Ontology/common/log"
+	"github.com/Ontology/common"
 )
 
 type IInteropService interface {
@@ -62,7 +63,11 @@ func (i *InteropService) GetExecutingCodeHash(engine *ExecutionEngine) (bool, er
 	if err != nil {
 		return false, err
 	}
-	PushData(engine, engine.crypto.Hash160(code))
+	codeHash, err := common.ToCodeHash(code)
+	if err != nil {
+		return false, err
+	}
+	PushData(engine, &codeHash)
 	return true, nil
 }
 
@@ -71,7 +76,11 @@ func (i *InteropService) GetCallingCodeHash(engine *ExecutionEngine) (bool, erro
 	if err != nil {
 		return false, err
 	}
-	PushData(engine, engine.crypto.Hash160(context.GetCodeHash()))
+	codeHash, err := context.GetCodeHash()
+	if err != nil {
+		return false, err
+	}
+	PushData(engine, &codeHash)
 	return true, nil
 }
 func (i *InteropService) GetEntryCodeHash(engine *ExecutionEngine) (bool, error) {
@@ -79,6 +88,10 @@ func (i *InteropService) GetEntryCodeHash(engine *ExecutionEngine) (bool, error)
 	if err != nil {
 		return false, err
 	}
-	PushData(engine, engine.crypto.Hash160(context.GetCodeHash()))
+	codehash, err := context.GetCodeHash()
+	if err != nil {
+		return false, err
+	}
+	PushData(engine, &codehash)
 	return true, nil
 }

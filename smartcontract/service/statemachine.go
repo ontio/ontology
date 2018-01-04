@@ -306,13 +306,9 @@ func (s *StateMachine) ContractDestory(engine *vm.ExecutionEngine) (bool, error)
 	if err != nil {
 		return false, err
 	}
-	data := context.CodeHash
-	if data != nil {
-		return false, nil
-	}
-	hash, err := common.Uint160ParseFromBytes(data)
+	hash, err := context.GetCodeHash()
 	if err != nil {
-		return false, err
+		return false, nil
 	}
 	item, err := s.CloneCache.Store.TryGet(store.ST_Contract, hash.ToArray())
 	if err != nil {
@@ -433,9 +429,9 @@ func (s *StateMachine) GetStorageContext(engine *vm.ExecutionEngine) (bool, erro
 	if item == nil {
 		return false, errors.NewErr(fmt.Sprintf("[GetStorageContext] Get contract by codehash:%v nil", codeHash))
 	}
-	currentHash, err := common.Uint160ParseFromBytes(context.GetCodeHash())
+	currentHash, err := context.GetCodeHash()
 	if err != nil {
-		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[GetStorageContext] Get CurrentHash error")
+		return false, err
 	}
 	if codeHash.CompareTo(currentHash) != 0 {
 		return false, errors.NewErr("[GetStorageContext] CodeHash not equal!")
