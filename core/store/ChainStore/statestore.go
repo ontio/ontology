@@ -54,7 +54,7 @@ func (self *StateStore) TryGetOrAdd(prefix DataEntryPrefix, key []byte, value IS
 	if state != nil  {
 		if state.State == Deleted {
 			self.setStateObject(byte(prefix), key, value, Changed, trie)
-			return value, nil
+			return nil
 		}
 		return nil
 	}
