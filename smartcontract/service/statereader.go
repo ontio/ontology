@@ -385,7 +385,11 @@ func (s *StateReader) HeaderGetHash(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetHash] Pop blockdata nil!")
 	}
-	h := d.(*ledger.Header).Blockdata.Hash()
+	header, ok := d.(*ledger.Header)
+	if ok == false {
+		return false, errors.NewErr("[HeaderGetHash] Wrong type!")
+	}
+	h := header.Blockdata.Hash()
 	vm.PushData(e, h.ToArray())
 	return true, nil
 }
