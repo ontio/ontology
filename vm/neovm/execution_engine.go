@@ -24,6 +24,9 @@ import (
 	. "github.com/Ontology/vm/neovm/errors"
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
+	"fmt"
+	"reflect"
+	"github.com/Ontology/vm/neovm/types"
 )
 
 func NewExecutionEngine(container interfaces.ICodeContainer, crypto interfaces.ICrypto, table interfaces.ICodeTable, service IInteropService) *ExecutionEngine {
@@ -106,18 +109,6 @@ func (e *ExecutionEngine) GetExecuteResult() bool {
 		return false
 	}
 	return e.evaluationStack.Pop().GetStackItem().GetBoolean()
-}
-
-func (e *ExecutionEngine) ExecutingCode() ([]byte, error) {
-	if e.invocationStack.Count() < 1 {
-		log.Error("[ExecutingCode], Get execution context fail!")
-		return nil, ErrOverStackLen
-	}
-	context := e.invocationStack.Peek(0).GetExecutionContext()
-	if context == nil {
-		return nil, ErrExecutionContextNil
-	}
-	return context.Code, nil
 }
 
 func (e *ExecutionEngine) CurrentContext() (*ExecutionContext, error) {
@@ -229,6 +220,7 @@ func (e *ExecutionEngine) ExecuteOp() (VMState, error) {
 	if opExec.Exec == nil {
 		return FAULT, ErrNotSupportOpCode
 	}
+
 	if opExec.Validator != nil {
 		if err := opExec.Validator(e); err != nil {
 			return FAULT, err

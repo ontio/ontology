@@ -49,11 +49,17 @@ func (a *Array) GetBoolean() bool {
 }
 
 func (a *Array) GetByteArray() []byte {
-	return []byte{}
+	if len(a._array) == 0 {
+		return []byte{}
+	}
+	return a._array[0].GetByteArray()
 }
 
 func (a *Array) GetInterface() interfaces.IInteropInterface {
-	return nil
+	if len(a._array) == 0 {
+		return nil
+	}
+	return a._array[0].GetInterface()
 }
 
 func (a *Array) GetArray() []StackItemInterface {
