@@ -438,6 +438,13 @@ func validateNewArray(e *ExecutionEngine) error {
 	return nil
 }
 
+func validatorThrowIfNot(e *ExecutionEngine) error {
+	if err := LogStackTrace(e, 1, "[validatorThrowIfNot]"); err != nil {
+		return err
+	}
+	return nil
+}
+
 func CheckBigInteger(value *big.Int) bool {
 	if value == nil {
 		return false

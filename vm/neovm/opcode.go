@@ -124,6 +124,7 @@ const (
 	APPEND OpCode = 0xC8
 	REVERSE OpCode = 0xC9
 
+	//Exception
 	THROW = 0xF0
 	THROWIFNOT = 0xF1
 )

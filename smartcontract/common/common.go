@@ -37,7 +37,7 @@ func ConvertTypes(item types.StackItemInterface) (results []States) {
 	case *types.StackItemInterface:
 		ConvertTypes(v)
 	default:
-		panic("Invalid Types!")
+		panic("[ConvertTypes] Invalid Types!")
 	}
 	return
 }
