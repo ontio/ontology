@@ -159,6 +159,7 @@ func getBlock(params []interface{}) map[string]interface{} {
 		PrevBlockHash:    ToHexString(block.Blockdata.PrevBlockHash.ToArray()),
 		TransactionsRoot: ToHexString(block.Blockdata.TransactionsRoot.ToArray()),
 		BlockRoot:        ToHexString(block.Blockdata.BlockRoot.ToArray()),
+		StateRoot:        ToHexString(block.Blockdata.StateRoot.ToArray()),
 		Timestamp:        block.Blockdata.Timestamp,
 		Height:           block.Blockdata.Height,
 		ConsensusData:    block.Blockdata.ConsensusData,

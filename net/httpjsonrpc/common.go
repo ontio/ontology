@@ -93,6 +93,7 @@ type BlockHead struct {
 	PrevBlockHash    string
 	TransactionsRoot string
 	BlockRoot        string
+	StateRoot        string
 	Timestamp        uint32
 	Height           uint32
 	ConsensusData    uint64
