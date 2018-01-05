@@ -66,7 +66,7 @@ func (i *InteropService) GetExecutingCodeHash(engine *ExecutionEngine) (bool, er
 	if err != nil {
 		return false, err
 	}
-	PushData(engine, &codeHash)
+	PushData(engine, codeHash.ToArray())
 	return true, nil
 }
 
@@ -79,7 +79,7 @@ func (i *InteropService) GetCallingCodeHash(engine *ExecutionEngine) (bool, erro
 	if err != nil {
 		return false, err
 	}
-	PushData(engine, &codeHash)
+	PushData(engine, codeHash.ToArray())
 	return true, nil
 }
 func (i *InteropService) GetEntryCodeHash(engine *ExecutionEngine) (bool, error) {
@@ -91,6 +91,6 @@ func (i *InteropService) GetEntryCodeHash(engine *ExecutionEngine) (bool, error)
 	if err != nil {
 		return false, err
 	}
-	PushData(engine, &codeHash)
+	PushData(engine, codeHash.ToArray())
 	return true, nil
 }
