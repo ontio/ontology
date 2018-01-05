@@ -3,6 +3,7 @@ package types
 import (
 	"math/big"
 	"github.com/Ontology/vm/neovm/interfaces"
+	"github.com/Ontology/common"
 )
 
 type InteropInterface struct {
@@ -16,7 +17,13 @@ func NewInteropInterface(value interfaces.IInteropInterface) *InteropInterface {
 }
 
 func (ii *InteropInterface) Equals(other StackItemInterface) bool {
-	return false
+	if _, ok := other.(*InteropInterface); !ok {
+		return false
+	}
+	if !common.IsEqualBytes(ii._object.ToArray(), other.GetInterface().ToArray()) {
+		return false
+	}
+	return true
 }
 
 func (ii *InteropInterface) GetBigInteger() *big.Int {
