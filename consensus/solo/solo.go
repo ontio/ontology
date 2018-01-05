@@ -1,6 +1,7 @@
 package solo
 
 import (
+	"fmt"
 	cl "github.com/Ontology/account"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/config"
@@ -15,7 +16,6 @@ import (
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/net"
 	"time"
-	"fmt"
 )
 
 /*
@@ -73,7 +73,7 @@ func (this *SoloService) genBlock() {
 
 func (this *SoloService) makeBlock() *ledger.Block {
 	log.Debug()
-	ac,_ := this.Client.GetDefaultAccount()
+	ac, _ := this.Client.GetDefaultAccount()
 	owner := ac.PublicKey
 	nextBookKeeper, err := ledger.GetBookKeeperAddress([]*crypto.PubKey{owner})
 	if err != nil {
@@ -84,7 +84,7 @@ func (this *SoloService) makeBlock() *ledger.Block {
 	nonce := GetNonce()
 	txBookkeeping := this.createBookkeepingTransaction(nonce)
 
-	transactions := make([]*tx.Transaction, 0, len(transactionsPool) + 1)
+	transactions := make([]*tx.Transaction, 0, len(transactionsPool)+1)
 	transactions = append(transactions, txBookkeeping)
 	for _, transaction := range transactionsPool {
 		transactions = append(transactions, transaction)
@@ -103,10 +103,12 @@ func (this *SoloService) makeBlock() *ledger.Block {
 		return nil
 	}
 
+	blockRoot := ledger.DefaultLedger.Store.GetBlockRootWithNewTxRoot(txRoot)
 	blockData := &ledger.Blockdata{
 		Version:          ContextVersion,
 		PrevBlockHash:    prevHash,
 		TransactionsRoot: txRoot,
+		BlockRoot:        blockRoot,
 		Timestamp:        uint32(time.Now().Unix()),
 		Height:           height,
 		ConsensusData:    nonce,
@@ -127,12 +129,11 @@ func (this *SoloService) makeBlock() *ledger.Block {
 		return nil
 	}
 
-
 	block.SetPrograms(programs)
 	return block
 }
 
-func (this *SoloService) getBlockPrograms(block *ledger.Block, owner *crypto.PubKey)([]*program.Program, error){
+func (this *SoloService) getBlockPrograms(block *ledger.Block, owner *crypto.PubKey) ([]*program.Program, error) {
 	ctx := contract.NewContractContext(block)
 	account, _ := this.Client.GetAccount(owner)
 	sigData, err := sig.SignBySigner(block, account)
@@ -142,12 +143,12 @@ func (this *SoloService) getBlockPrograms(block *ledger.Block, owner *crypto.Pub
 
 	sc, err := contract.CreateSignatureContract(owner)
 	if err != nil {
-		return nil, fmt.Errorf("CreateSignatureContract error:%s",err)
+		return nil, fmt.Errorf("CreateSignatureContract error:%s", err)
 	}
 
 	err = ctx.AddContract(sc, owner, sigData)
 	if err != nil {
-		return nil, fmt.Errorf("AddContract error:%s",err)
+		return nil, fmt.Errorf("AddContract error:%s", err)
 	}
 	return ctx.GetPrograms(), nil
 }
