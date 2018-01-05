@@ -24,9 +24,6 @@ import (
 	. "github.com/Ontology/vm/neovm/errors"
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
-	"fmt"
-	"reflect"
-	"github.com/Ontology/vm/neovm/types"
 )
 
 func NewExecutionEngine(container interfaces.ICodeContainer, crypto interfaces.ICrypto, table interfaces.ICodeTable, service IInteropService) *ExecutionEngine {
