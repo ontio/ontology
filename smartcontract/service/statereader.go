@@ -138,15 +138,11 @@ func (s *StateReader) RuntimeNotify(e *vm.ExecutionEngine) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	m := make(map[string]interface{})
-	m["txid"] = tran.Hash()
 	hash, err := context.GetCodeHash()
 	if err != nil {
 		return false, err
 	}
-	m["contract"] = common.ToHexString(hash.ToArray())
-	m["state"] = item
-	event.PushSmartCodeEvent(tran.Hash(), 0, Notify, m)
+	event.PushSmartCodeEvent(tran.Hash(), 0, Notify, &event.NotifyEventArgs{tran.Hash(), hash, item })
 	return true, nil
 }
 
@@ -166,15 +162,11 @@ func (s *StateReader) RuntimeLog(e *vm.ExecutionEngine) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	m := make(map[string]interface{})
-	m["txid"] = tran.Hash()
 	hash, err := context.GetCodeHash()
 	if err != nil {
 		return false, err
 	}
-	m["contract"] = common.ToHexString(hash.ToArray())
-	m["state"] = string(item)
-	event.PushSmartCodeEvent(tran.Hash(), 0, Notify, m)
+	event.PushSmartCodeEvent(tran.Hash(), 0, Notify, &event.LogEventArgs{tran.Hash(), hash, string(item) })
 	return true, nil
 }
 
