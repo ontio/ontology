@@ -80,6 +80,7 @@ var (
 		//Arithmetic
 		INC:         {Opcode: INC, Name: "INC", Exec: opBigInt, Validator: validateInc},
 		DEC:         {Opcode: DEC, Name: "DEC", Exec: opBigInt, Validator: validateDec},
+		SIGN:        {Opcode: SIGN, Name: "SIGN", Exec: opSign, Validator: validateSign},
 		NEGATE:      {Opcode: NEGATE, Name: "NEGATE", Exec: opBigInt, Validator: validateCount1},
 		ABS:         {Opcode: ABS, Name: "ABS", Exec: opBigInt, Validator: validateCount1},
 		NOT:         {Opcode: NOT, Name: "NOT", Exec: opNot, Validator: validateCount1},

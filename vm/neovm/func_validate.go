@@ -253,6 +253,13 @@ func validateDec(e *ExecutionEngine) error {
 	return nil
 }
 
+func validateSign(e *ExecutionEngine) error {
+	if err := LogStackTrace(e, 1, "[validateSign]"); err != nil {
+		return err
+	}
+	return nil
+}
+
 func validateAdd(e *ExecutionEngine) error {
 	if err := LogStackTrace(e, 2, "[validateAdd]"); err != nil {
 		return err

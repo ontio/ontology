@@ -6,6 +6,12 @@ func opBigInt(e *ExecutionEngine) (VMState, error) {
 	return NONE, nil
 }
 
+func opSign(e *ExecutionEngine) (VMState, error) {
+	x := PopBigInt(e)
+	PushData(e, x.Sign())
+	return NONE, nil
+}
+
 func opNot(e *ExecutionEngine) (VMState, error) {
 	x := PopBoolean(e)
 	PushData(e, !x)

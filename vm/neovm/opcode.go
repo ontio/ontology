@@ -80,7 +80,7 @@ const (
 	// Note: Arithmetic inputs are limited to signed 32-bit integers, but may overflow their output.
 	INC OpCode = 0x8B // 1 is added to the input.
 	DEC OpCode = 0x8C // 1 is subtracted from the input.
-	Sign OpCode = 0x8D
+	SIGN OpCode = 0x8D
 	NEGATE OpCode = 0x8F // The sign of the input is flipped.
 	ABS OpCode = 0x90 // The input is made positive.
 	NOT OpCode = 0x91 // If the input is 0 or 1, it is flipped. Otherwise the output will be 0.
