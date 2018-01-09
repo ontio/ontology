@@ -7,7 +7,7 @@ import (
 
 type States struct {
 	Key string
-	Value []string
+	Value interface{}
 }
 
 func ConvertTypes(item types.StackItemInterface) (results []States) {
@@ -29,12 +29,12 @@ func ConvertTypes(item types.StackItemInterface) (results []States) {
 	case *types.Array:
 		var arr []States
 		for _, val := range v.GetArray() {
-			arr = append(arr, ConvertTypes(val))
+			arr = append(arr, ConvertTypes(val)...)
 		}
 		results = append(results, States{"Array", arr})
 	case *types.InteropInterface:
 		results = append(results, States{"InteropInterface", common.ToHexString(v.GetInterface().ToArray())})
-	case *types.StackItemInterface:
+	case types.StackItemInterface:
 		ConvertTypes(v)
 	default:
 		panic("[ConvertTypes] Invalid Types!")

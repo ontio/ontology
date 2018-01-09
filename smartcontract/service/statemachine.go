@@ -132,7 +132,6 @@ func (s *StateMachine) CreateAsset(engine *vm.ExecutionEngine) (bool, error) {
 		log.Error("[CreateAsset] GetOrAdd asset fail!")
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[CreateAsset] GetOrAdd error!")
 	}
-	fmt.Printf("state:%+v\n", state)
 	vm.PushData(engine, state)
 	return true, nil
 }

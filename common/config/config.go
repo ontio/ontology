@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	DefaultConfigFilename = "./config.json"
+	DefaultConfigFilename = "../../config.json"
 	MINGENBLOCKTIME = 2
 	DEFAULTGENBLOCKTIME = 6
 	DBFTMINNODENUM        = 4 //min node number of dbft consensus

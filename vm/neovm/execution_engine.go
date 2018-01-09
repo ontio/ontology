@@ -133,7 +133,7 @@ func (e *ExecutionEngine) CallingContext() (*ExecutionContext, error) {
 }
 
 func (e *ExecutionEngine) EntryContext() (*ExecutionContext, error) {
-	if e.invocationStack.Count() < 3 {
+	if e.invocationStack.Count() < 1 {
 		log.Error("[EntryContext], Get entry context fail!")
 		return nil, ErrOverStackLen
 	}
