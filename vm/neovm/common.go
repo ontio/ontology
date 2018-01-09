@@ -328,6 +328,8 @@ func NewStackItemInterface(data interface{}) types.StackItemInterface {
 		stackItem = data.(*types.Boolean)
 	case *types.ByteArray:
 		stackItem = data.(*types.ByteArray)
+	case *types.Struct:
+		stackItem = data.(*types.Struct)
 	case bool:
 		stackItem = types.NewBoolean(data.(bool))
 	case []byte:

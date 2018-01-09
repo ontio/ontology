@@ -12,6 +12,7 @@ import (
 	"github.com/Ontology/core/store"
 	"github.com/Ontology/errors"
 	"github.com/Ontology/common/log"
+	scommon "github.com/Ontology/smartcontract/common"
 	"reflect"
 )
 
@@ -116,11 +117,12 @@ func (sc *SmartContract) InvokeResult() (interface{}, error) {
 				}
 				return nil, nil
 			case contract.Array:
-				var strs []string
-				for _, v := range neovm.PopArray(engine) {
-					strs = append(strs, common.ToHexString(v.GetByteArray()))
+				var states []scommon.States
+				arr := neovm.PeekArray(engine)
+				for _, v := range arr {
+					states = append(states, scommon.ConvertTypes(v)...)
 				}
-				return strs, nil
+				return states, nil
 			default:
 				return common.ToHexString(neovm.PopByteArray(engine)), nil
 			}
