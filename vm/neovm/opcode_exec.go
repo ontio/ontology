@@ -119,6 +119,7 @@ var (
 		PICKITEM:  {Opcode: PICKITEM, Name: "PICKITEM", Exec: opPickItem, Validator: validatePickItem},
 		SETITEM:   {Opcode: SETITEM, Name: "SETITEM", Exec: opSetItem, Validator: validatorSetItem},
 		NEWARRAY:  {Opcode: NEWARRAY, Name: "NEWARRAY", Exec: opNewArray, Validator: validateNewArray},
+		NEWSTRUCT: {Opcode: NEWSTRUCT, Name: "NEWSTRUCT", Exec: opNewStruct, Validator: validateNewStruct},
 		APPEND:    {Opcode: APPEND, Name: "APPEND", Exec: opAppend, Validator: validateAppend},
 		REVERSE:   {Opcode: REVERSE, Name: "REVERSE", Exec: opReverse, Validator: validatorReverse},
 

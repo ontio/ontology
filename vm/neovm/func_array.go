@@ -2,6 +2,7 @@ package neovm
 
 import (
 	"github.com/Ontology/vm/neovm/types"
+	"math/big"
 )
 
 func opArraySize(e *ExecutionEngine) (VMState, error) {
@@ -54,12 +55,22 @@ func opSetItem(e *ExecutionEngine) (VMState, error) {
 }
 
 func opNewArray(e *ExecutionEngine) (VMState, error) {
-	count := PopInt(e)
+	count := PopBigInt(e)
 	items := NewStackItems();
-	for i := 0; i < count; i++ {
+	for i := 0; count.Cmp(big.NewInt(int64(i))) > 0; i++ {
 		items = append(items, types.NewBoolean(false))
 	}
-	PushData(e, items)
+	PushData(e, types.NewArray(items))
+	return NONE, nil
+}
+
+func opNewStruct(e *ExecutionEngine) (VMState, error) {
+	count := PopBigInt(e)
+	items := NewStackItems();
+	for i := 0; count.Cmp(big.NewInt(int64(i))) > 0; i++ {
+		items = append(items, types.NewBoolean(false))
+	}
+	PushData(e, types.NewStruct(items))
 	return NONE, nil
 }
 

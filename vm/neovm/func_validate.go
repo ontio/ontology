@@ -442,6 +442,22 @@ func validateNewArray(e *ExecutionEngine) error {
 	return nil
 }
 
+func validateNewStruct(e *ExecutionEngine) error {
+	if err := LogStackTrace(e, 1, "[validateNewStruct]"); err != nil {
+		return err
+	}
+
+	count := PeekBigInteger(e)
+	if count.Sign() < 0 {
+		return ErrBadValue
+	}
+	if count.Cmp(big.NewInt(int64(MaxArraySize))) > 0 {
+		log.Error("[validateNewStruct] uint32(count) > MaxArraySize ")
+		return ErrOverMaxArraySize
+	}
+	return nil
+}
+
 func validateAppend(e *ExecutionEngine) error {
 	if err := LogStackTrace(e, 2, "[validateAppend]"); err != nil {
 		return err
