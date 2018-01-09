@@ -4,6 +4,7 @@ import (
 	"io"
 	"bytes"
 	"github.com/Ontology/common/serialization"
+	"github.com/Ontology/vm/neovm/interfaces"
 )
 
 type StorageItem struct {
@@ -37,4 +38,9 @@ func (storageItem *StorageItem) ToArray() []byte {
 	b := new(bytes.Buffer)
 	storageItem.Serialize(b)
 	return b.Bytes()
+}
+
+func (storageItem *StorageItem) Clone() interfaces.IInteropInterface {
+	si := *storageItem
+	return &si
 }

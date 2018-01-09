@@ -46,5 +46,13 @@ func (ii *InteropInterface) GetInterface() interfaces.IInteropInterface {
 }
 
 func (ii *InteropInterface) GetArray() []StackItemInterface {
-	return []StackItemInterface{}
+	return []StackItemInterface{ii}
+}
+
+func (ii *InteropInterface) GetStruct() []StackItemInterface {
+	return []StackItemInterface{ii}
+}
+
+func (ii *InteropInterface) Clone() StackItemInterface {
+	return &InteropInterface{ii._object.Clone()}
 }

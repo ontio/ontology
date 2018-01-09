@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"bytes"
+	"github.com/Ontology/vm/neovm/interfaces"
 )
 
 type UTXOTxInput struct {
@@ -60,4 +61,9 @@ func (ui *UTXOTxInput) ToArray() []byte {
 	bf := new(bytes.Buffer)
 	ui.Serialize(bf)
 	return bf.Bytes()
+}
+
+func (ui *UTXOTxInput) Clone() interfaces.IInteropInterface {
+	u := *ui
+	return &u
 }

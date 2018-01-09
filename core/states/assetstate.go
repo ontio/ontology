@@ -9,6 +9,7 @@ import (
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
 	"fmt"
+	"github.com/Ontology/vm/neovm/interfaces"
 )
 
 type AssetState struct {
@@ -123,4 +124,9 @@ func (assetState *AssetState) ToArray() []byte {
 	b := new(bytes.Buffer)
 	assetState.Serialize(b)
 	return b.Bytes()
+}
+
+func (assetState *AssetState) Clone() interfaces.IInteropInterface {
+	as := *assetState
+	return &as
 }

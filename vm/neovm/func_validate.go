@@ -359,6 +359,17 @@ func validatePack(e *ExecutionEngine) error {
 	return nil
 }
 
+func validateUnpack(e *ExecutionEngine) error {
+	if err := LogStackTrace(e, 1, "[validateUnpack]"); err != nil {
+		return err
+	}
+	item := PeekStackItem(e)
+	if _, ok := item.(*types.Array); !ok {
+		return ErrNotArray
+	}
+	return nil
+}
+
 func validatePickItem(e *ExecutionEngine) error {
 	if err := LogStackTrace(e, 2, "[validatePickItem]"); err != nil {
 		return err

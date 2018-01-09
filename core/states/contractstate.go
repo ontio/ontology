@@ -7,6 +7,7 @@ import (
 	"github.com/Ontology/core/code"
 	"github.com/Ontology/smartcontract/types"
 	. "github.com/Ontology/errors"
+	"github.com/Ontology/vm/neovm/interfaces"
 )
 
 type ContractState struct {
@@ -114,6 +115,11 @@ func (contractState *ContractState) ToArray() []byte {
 	b := new(bytes.Buffer)
 	contractState.Serialize(b)
 	return b.Bytes()
+}
+
+func (contractState *ContractState) Clone() interfaces.IInteropInterface {
+	cs := *contractState
+	return &cs
 }
 
 

@@ -3,6 +3,7 @@ package ledger
 import (
 	"io"
 	"bytes"
+	"github.com/Ontology/vm/neovm/interfaces"
 )
 
 type Header struct {
@@ -33,4 +34,9 @@ func (h *Header) ToArray() []byte {
 	bf := new(bytes.Buffer)
 	h.Serialize(bf)
 	return bf.Bytes()
+}
+
+func (h *Header) Clone() interfaces.IInteropInterface {
+	header := *h
+	return &header
 }

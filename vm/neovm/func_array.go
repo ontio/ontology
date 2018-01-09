@@ -44,6 +44,9 @@ func opPickItem(e *ExecutionEngine) (VMState, error) {
 
 func opSetItem(e *ExecutionEngine) (VMState, error) {
 	newItem := PopStackItem(e)
+	if _, ok := newItem.(*types.Struct); ok {
+		newItem = newItem.Clone()
+	}
 	index := PopInt(e)
 	items := PopArray(e)
 	items[index] = newItem
@@ -62,6 +65,9 @@ func opNewArray(e *ExecutionEngine) (VMState, error) {
 
 func opAppend(e *ExecutionEngine) (VMState, error) {
 	newItem := PopStackItem(e)
+	if _, ok := newItem.(*types.Struct); ok {
+		newItem = newItem.Clone()
+	}
 	itemArr := PopArray(e)
 	itemArr = append(itemArr, newItem)
 	return NONE, nil

@@ -6,6 +6,7 @@ import (
 	. "github.com/Ontology/errors"
 	"io"
 	"bytes"
+	"github.com/Ontology/vm/neovm/interfaces"
 )
 
 type TransactionAttributeUsage byte
@@ -75,4 +76,9 @@ func (tx *TxAttribute) ToArray() []byte {
 	bf := new(bytes.Buffer)
 	tx.Serialize(bf)
 	return bf.Bytes()
+}
+
+func (this *TxAttribute) Clone() interfaces.IInteropInterface {
+	ta := *this
+	return &ta
 }

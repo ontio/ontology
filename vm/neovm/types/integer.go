@@ -47,3 +47,11 @@ func (i *Integer) GetInterface() interfaces.IInteropInterface {
 func (i *Integer) GetArray() []StackItemInterface {
 	return []StackItemInterface{i}
 }
+
+func (i *Integer) GetStruct() []StackItemInterface {
+	return []StackItemInterface{i}
+}
+
+func (i *Integer) Clone() StackItemInterface {
+	return &Integer{big.NewInt(i.value.Int64())}
+}

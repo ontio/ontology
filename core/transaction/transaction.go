@@ -15,6 +15,7 @@ import (
 	"sort"
 	. "github.com/Ontology/core/transaction/utxo"
 	"bytes"
+	"github.com/Ontology/vm/neovm/interfaces"
 )
 
 //for different transaction types with different payload format
@@ -391,6 +392,11 @@ func (tx *Transaction) GenerateAssetMaps() {
 
 func (tx *Transaction) GetMessage() []byte {
 	return sig.GetHashData(tx)
+}
+
+func (tx *Transaction) Clone() interfaces.IInteropInterface {
+	tran := *tx
+	return &tran
 }
 
 func (tx *Transaction) ToArray() []byte {

@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/Ontology/common"
+	"github.com/Ontology/vm/neovm/interfaces"
 )
 
 type StorageContext struct {
@@ -16,4 +17,9 @@ func NewStorageContext(codeHash common.Uint160) *StorageContext {
 
 func (sc *StorageContext) ToArray() []byte {
 	return sc.codeHash.ToArray()
+}
+
+func (sc *StorageContext) Clone() interfaces.IInteropInterface {
+	s := *sc
+	return &s
 }

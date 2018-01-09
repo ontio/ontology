@@ -4,6 +4,7 @@ import (
 	"github.com/Ontology/common"
 	"io"
 	"bytes"
+	"github.com/Ontology/vm/neovm/interfaces"
 )
 
 type TxOutput struct {
@@ -29,4 +30,10 @@ func (o *TxOutput) ToArray() []byte {
 	o.Serialize(bf)
 	return bf.Bytes()
 }
+
+func (o *TxOutput) Clone() interfaces.IInteropInterface {
+	to := *o
+	return &to
+}
+
 

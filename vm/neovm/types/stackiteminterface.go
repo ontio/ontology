@@ -12,5 +12,7 @@ type StackItemInterface interface {
 	GetByteArray() []byte
 	GetInterface() interfaces.IInteropInterface
 	GetArray() []StackItemInterface
+	GetStruct() []StackItemInterface
+	Clone() StackItemInterface
 }
 
