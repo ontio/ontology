@@ -117,10 +117,10 @@ func (sc *SmartContract) InvokeResult() (interface{}, error) {
 				}
 				return nil, nil
 			case contract.Array:
-				var states []scommon.States
+				var states []interface{}
 				arr := neovm.PeekArray(engine)
 				for _, v := range arr {
-					states = append(states, scommon.ConvertTypes(v)...)
+					states = append(states, scommon.ConvertReturnTypes(v)...)
 				}
 				return states, nil
 			default:

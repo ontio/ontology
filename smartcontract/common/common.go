@@ -41,3 +41,27 @@ func ConvertTypes(item types.StackItemInterface) (results []States) {
 	}
 	return
 }
+
+func ConvertReturnTypes(item types.StackItemInterface) (results []interface{}) {
+	switch v := item.(type) {
+	case *types.ByteArray:
+		results = append(results, common.ToHexString(v.GetByteArray()))
+	case *types.Integer:
+		results = append(results, v.GetBigInteger())
+	case *types.Boolean:
+		results = append(results, v.GetBoolean())
+	case *types.Array:
+		var arr []interface{}
+		for _, val := range v.GetArray() {
+			arr = append(arr, ConvertReturnTypes(val)...)
+		}
+		results = append(results, arr)
+	case *types.InteropInterface:
+		results = append(results, common.ToHexString(v.GetInterface().ToArray()))
+	case types.StackItemInterface:
+		ConvertTypes(v)
+	default:
+		panic("[ConvertTypes] Invalid Types!")
+	}
+	return
+}
