@@ -25,5 +25,5 @@ var (
 	ErrCurrentContextNil     = errors.New("current context is nil")
 	ErrCallingContextNil     = errors.New("calling context is nil")
 	ErrEntryContextNil       = errors.New("entry context is nil")
-
+	ErrAppendNotArray        = errors.New("append not array")
 )
