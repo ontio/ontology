@@ -186,10 +186,7 @@ func (s *StateMachine) ContractCreate(engine *vm.ExecutionEngine) (bool, error) 
 		Email:       string(emailByte),
 		Description: string(descByte),
 	}
-	codeHash, err := common.Uint160ParseFromBytes(codeByte)
-	if err != nil {
-		return false, err
-	}
+	codeHash, _ := common.ToCodeHash(codeByte)
 	state, err := s.CloneCache.GetOrAdd(store.ST_Contract, codeHash.ToArray(), contractState)
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] GetOrAdd error!")
