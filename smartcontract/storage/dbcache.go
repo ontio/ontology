@@ -86,7 +86,9 @@ func (cloneCache *CloneCache) Delete(prefix store.DataEntryPrefix, key []byte) {
 		v.State = store.Deleted
 	} else {
 		cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))] = &StateItem{
-			State: store.Deleted,
+			Prefix: prefix,
+			Key:    string(key),
+			State:  store.Deleted,
 		}
 	}
 }
