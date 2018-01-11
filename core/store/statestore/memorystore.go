@@ -35,7 +35,10 @@ func (db *MemoryStore) Delete(prefix byte, key []byte) {
 	if v, ok := db.memory[string(append([]byte{prefix}, key...))]; ok {
 		v.State = Deleted
 	} else {
-		db.memory[string(append([]byte{prefix}, key...))] = &StateItem{State: Deleted}
+		db.memory[string(append([]byte{prefix}, key...))] = &StateItem{
+			Key: string(key),
+			State: Deleted,
+		}
 	}
 
 }
