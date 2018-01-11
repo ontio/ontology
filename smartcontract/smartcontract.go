@@ -79,8 +79,6 @@ func (sc *SmartContract) DeployContract() ([]byte, error) {
 }
 
 func (sc *SmartContract) InvokeContract() (interface{}, error) {
-	log.Error("[InvokeContract] code:", sc.Code)
-	log.Error("[InvokeContract] input:", sc.Input)
 	_, err := sc.Engine.Call(sc.Caller, sc.Code, sc.Input)
 	if err != nil {
 		return nil, err
@@ -93,7 +91,6 @@ func (sc *SmartContract) InvokeResult() (interface{}, error) {
 	switch sc.VMType {
 	case types.NEOVM:
 		engine := sc.Engine.(*neovm.ExecutionEngine)
-		log.Error("[InvokeResult]", engine.GetEvaluationStackCount(), reflect.TypeOf(neovm.Peek(engine).GetStackItem()), sc.ReturnType)
 		if engine.GetEvaluationStackCount() > 0 && neovm.Peek(engine).GetStackItem() != nil {
 			switch sc.ReturnType {
 			case contract.Boolean:
@@ -103,8 +100,6 @@ func (sc *SmartContract) InvokeResult() (interface{}, error) {
 				return neovm.PopBigInt(engine).Int64(), nil
 			case contract.ByteArray:
 				return common.ToHexString(neovm.PopByteArray(engine)), nil
-			//bs := neovm.PopByteArray(engine)
-			//return common.BytesToInt(bs), nil
 			case contract.String:
 				return string(neovm.PopByteArray(engine)), nil
 			case contract.Hash160, contract.Hash256:

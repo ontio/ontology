@@ -52,6 +52,7 @@ func NewStateReader(trigger trigger.TriggerType) *StateReader {
 	stateReader.Register("Neo.Header.GetVersion", stateReader.HeaderGetVersion)
 	stateReader.Register("Neo.Header.GetPrevHash", stateReader.HeaderGetPrevHash)
 	stateReader.Register("Neo.Header.GetMerkleRoot", stateReader.HeaderGetMerkleRoot)
+	stateReader.Register("Neo.Header.GetIndex", stateReader.HeaderGetIndex)
 	stateReader.Register("Neo.Header.GetTimestamp", stateReader.HeaderGetTimestamp)
 	stateReader.Register("Neo.Header.GetConsensusData", stateReader.HeaderGetConsensusData)
 	stateReader.Register("Neo.Header.GetNextConsensus", stateReader.HeaderGetNextConsensus)
@@ -441,6 +442,23 @@ func (s *StateReader) HeaderGetMerkleRoot(e *vm.ExecutionEngine) (bool, error) {
 	}
 	root := header.Blockdata.TransactionsRoot
 	vm.PushData(e, root.ToArray())
+	return true, nil
+}
+
+func (s *StateReader) HeaderGetIndex(e *vm.ExecutionEngine) (bool, error) {
+	if vm.EvaluationStackCount(e) < 1 {
+		return false, errors.NewErr("[HeaderGetIndex] Too few input parameters ")
+	}
+	d := vm.PopInteropInterface(e)
+	if d == nil {
+		return false, errors.NewErr("[HeaderGetIndex] Pop blockdata nil!")
+	}
+	header, ok := d.(*ledger.Header)
+	if ok == false {
+		return false, errors.NewErr("[HeaderGetIndex] Wrong type!")
+	}
+	height := header.Blockdata.Height
+	vm.PushData(e, height)
 	return true, nil
 }
 
