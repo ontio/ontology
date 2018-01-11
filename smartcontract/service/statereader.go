@@ -386,8 +386,12 @@ func (s *StateReader) HeaderGetHash(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetHash] Pop blockdata nil!")
 	}
-	header, ok := d.(*ledger.Header)
-	if ok == false {
+	var header *ledger.Header
+	if b, ok := d.(*ledger.Block); ok {
+		header = b.Blockdata
+	}else if h, ok := d.(*ledger.Header); ok {
+		header = h
+	}else {
 		return false, errors.NewErr("[HeaderGetHash] Wrong type!")
 	}
 	h := header.Blockdata.Hash()
@@ -403,8 +407,12 @@ func (s *StateReader) HeaderGetVersion(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetVersion] Pop blockdata nil!")
 	}
-	header, ok := d.(*ledger.Header)
-	if ok == false {
+	var header *ledger.Header
+	if b, ok := d.(*ledger.Block); ok {
+		header = b.Blockdata
+	}else if h, ok := d.(*ledger.Header); ok {
+		header = h
+	}else {
 		return false, errors.NewErr("[HeaderGetVersion] Wrong type!")
 	}
 	vm.PushData(e, header.Blockdata.Version)
@@ -419,8 +427,12 @@ func (s *StateReader) HeaderGetPrevHash(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetPrevHash] Pop blockdata nil!")
 	}
-	header, ok := d.(*ledger.Header)
-	if ok == false {
+	var header *ledger.Header
+	if b, ok := d.(*ledger.Block); ok {
+		header = b.Blockdata
+	}else if h, ok := d.(*ledger.Header); ok {
+		header = h
+	}else {
 		return false, errors.NewErr("[HeaderGetPrevHash] Wrong type!")
 	}
 	preHash := header.Blockdata.PrevBlockHash
@@ -436,8 +448,12 @@ func (s *StateReader) HeaderGetMerkleRoot(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetMerkleRoot] Pop blockdata nil!")
 	}
-	header, ok := d.(*ledger.Header)
-	if ok == false {
+	var header *ledger.Header
+	if b, ok := d.(*ledger.Block); ok {
+		header = b.Blockdata
+	}else if h, ok := d.(*ledger.Header); ok {
+		header = h
+	}else {
 		return false, errors.NewErr("[HeaderGetMerkleRoot] Wrong type!")
 	}
 	root := header.Blockdata.TransactionsRoot
@@ -453,8 +469,12 @@ func (s *StateReader) HeaderGetIndex(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetIndex] Pop blockdata nil!")
 	}
-	header, ok := d.(*ledger.Header)
-	if ok == false {
+	var header *ledger.Header
+	if b, ok := d.(*ledger.Block); ok {
+		header = b.Blockdata
+	}else if h, ok := d.(*ledger.Header); ok {
+		header = h
+	}else {
 		return false, errors.NewErr("[HeaderGetIndex] Wrong type!")
 	}
 	height := header.Blockdata.Height
@@ -470,8 +490,12 @@ func (s *StateReader) HeaderGetTimestamp(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetTimestamp] Pop blockdata nil!")
 	}
-	header, ok := d.(*ledger.Header)
-	if ok == false {
+	var header *ledger.Header
+	if b, ok := d.(*ledger.Block); ok {
+		header = b.Blockdata
+	}else if h, ok := d.(*ledger.Header); ok {
+		header = h
+	}else {
 		return false, errors.NewErr("[HeaderGetTimestamp] Wrong type!")
 	}
 	timeStamp := header.Blockdata.Timestamp
@@ -487,9 +511,13 @@ func (s *StateReader) HeaderGetConsensusData(e *vm.ExecutionEngine) (bool, error
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetConsensusData] Pop blockdata nil!")
 	}
-	header, ok := d.(*ledger.Header)
-	if ok == false {
-		return false, errors.NewErr("[HeaderGetTimestamp] Wrong type!")
+	var header *ledger.Header
+	if b, ok := d.(*ledger.Block); ok {
+		header = b.Blockdata
+	}else if h, ok := d.(*ledger.Header); ok {
+		header = h
+	}else {
+		return false, errors.NewErr("[HeaderGetConsensusData] Wrong type!")
 	}
 	consensusData := header.Blockdata.ConsensusData
 	vm.PushData(e, consensusData)
@@ -504,9 +532,13 @@ func (s *StateReader) HeaderGetNextConsensus(e *vm.ExecutionEngine) (bool, error
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetNextConsensus] Pop blockdata nil!")
 	}
-	header, ok := d.(*ledger.Header)
-	if ok == false {
-		return false, errors.NewErr("[HeaderGetTimestamp] Wrong type!")
+	var header *ledger.Header
+	if b, ok := d.(*ledger.Block); ok {
+		header = b.Blockdata
+	}else if h, ok := d.(*ledger.Header); ok {
+		header = h
+	}else {
+		return false, errors.NewErr("[HeaderGetNextConsensus] Wrong type!")
 	}
 	nextBookKeeper := header.Blockdata.NextBookKeeper
 	vm.PushData(e, nextBookKeeper.ToArray())
