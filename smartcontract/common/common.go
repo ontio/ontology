@@ -3,6 +3,8 @@ package common
 import (
 	"github.com/Ontology/vm/neovm/types"
 	"github.com/Ontology/common"
+	"fmt"
+	"reflect"
 )
 
 type States struct {
@@ -37,7 +39,7 @@ func ConvertTypes(item types.StackItemInterface) (results []States) {
 	case types.StackItemInterface:
 		ConvertTypes(v)
 	default:
-		panic("[ConvertTypes] Invalid Types!")
+		panic(fmt.Sprintf("[ConvertTypes] Invalid Types: %v", reflect.TypeOf(v)))
 	}
 	return
 }
