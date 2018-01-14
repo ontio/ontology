@@ -252,6 +252,43 @@ func getRawTransaction(params []interface{}) map[string]interface{} {
 	}
 }
 
+func getBalance(params []interface{}) map[string]interface{} {
+	if len(params) < 2 {
+		return DnaRpcNil
+	}
+
+	addr, ok := params[0].(string)
+	if !ok {
+		return DnaRpcInvalidParameter
+	}
+	assetId, ok := params[1].(string)
+	if !ok {
+		return DnaRpcInvalidParameter
+	}
+
+	programHash, err := ToScriptHash(addr)
+	if err != nil {
+		return DnaRpcInvalidParameter
+	}
+	account, err := ledger.DefaultLedger.Store.GetAccount(programHash)
+	if err !=nil{
+		return DnaRpcIdNotFound
+	}
+	c, err := HexToBytes(assetId)
+	if err != nil {
+		return DnaRpcInvalidParameter
+	}
+	ass, err := Uint256ParseFromBytes(c)
+	if err != nil {
+		return DnaRpcInvalidParameter
+	}
+
+	if v, ok := account.Balances[ass]; ok {
+		return DnaRpc(v.GetData())
+	}
+	return DnaRpcNil
+}
+
 //   {"jsonrpc": "2.0", "method": "getstorage", "params": ["code hash", "key"], "id": 0}
 func getStorage(params []interface{})map[string]interface{} {
 	if len(params) < 2 {
