@@ -31,8 +31,12 @@ func (this *UnspentCoinState) Deserialize(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	for i := 0; i < int(n); i++ {
-		this.Item = append(this.Item, CoinState(i))
+	for i := uint32(0); i < n; i++ {
+		state, err := serialization.ReadByte(r)
+		if err != nil {
+			return err
+		}
+		this.Item = append(this.Item, CoinState(state))
 	}
 	return nil
 }

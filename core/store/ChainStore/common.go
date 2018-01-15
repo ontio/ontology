@@ -72,7 +72,7 @@ func handleInputs(inputs []*utxo.UTXOTxInput, stateStore *StateStore, currentBlo
 			return err
 		}
 		unspentcoins := state.(*UnspentCoinState)
-		unspentcoins.Item[i.ReferTxOutputIndex] |= Spent
+		unspentcoins.Item[i.ReferTxOutputIndex] = Spent
 
 		state, err = stateStore.TryGetAndChange(ST_SpentCoin, refer_tx, false)
 		if err != nil {
