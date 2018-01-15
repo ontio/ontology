@@ -23,7 +23,10 @@ type FunctionCodeInfo struct {
 	ParameterTypes string
 	ReturnType     uint8
 }
-
+type InvokeCodeInfo struct {
+	CodeHash string
+	Code     string
+}
 type DeployCodeInfo struct {
 	Code        *FunctionCodeInfo
 	Name        string
@@ -105,6 +108,11 @@ func TransPayloadToHex(p Payload) PayloadInfo {
 		return obj
 	case *payload.TransferAsset:
 		obj := new(TransferAssetInfo)
+		return obj
+	case *payload.InvokeCode:
+		obj := new(InvokeCodeInfo)
+		obj.CodeHash = ToHexString(object.CodeHash.ToArray())
+		obj.Code = ToHexString(object.Code)
 		return obj
 	case *payload.DeployCode:
 		obj := new(DeployCodeInfo)

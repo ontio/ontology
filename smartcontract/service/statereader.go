@@ -144,7 +144,7 @@ func (s *StateReader) RuntimeNotify(e *vm.ExecutionEngine) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	event.PushSmartCodeEvent(tran.Hash(), 0, Notify, &event.NotifyEventArgs{tran.Hash(), hash, item })
+	event.PushSmartCodeEvent(tran.Hash(), 0, Notify, event.NotifyEventArgs{tran.Hash(), hash, item })
 	return true, nil
 }
 
@@ -168,7 +168,7 @@ func (s *StateReader) RuntimeLog(e *vm.ExecutionEngine) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	event.PushSmartCodeEvent(tran.Hash(), 0, Log, &event.LogEventArgs{tran.Hash(), hash, string(item) })
+	event.PushSmartCodeEvent(tran.Hash(), 0, Log, event.LogEventArgs{tran.Hash(), hash, string(item) })
 	return true, nil
 }
 
