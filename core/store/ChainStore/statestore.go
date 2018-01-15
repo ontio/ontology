@@ -1,13 +1,13 @@
 package ChainStore
 
 import (
+	"bytes"
+	"github.com/Ontology/common"
+	"github.com/Ontology/common/log"
 	. "github.com/Ontology/core/states"
 	. "github.com/Ontology/core/store"
-	"bytes"
-	"strings"
-	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/store/statestore"
-	"github.com/Ontology/common"
+	"strings"
 )
 
 type StateStore struct {
@@ -23,10 +23,10 @@ func NewStateStore(memoryStore IMemoryStore, db *ChainStore, trieStore statestor
 		panic("[NewStateStore] opentrie error:" + err.Error())
 	}
 	return &StateStore{
-		db: db,
+		db:          db,
 		memoryStore: memoryStore,
-		trieStore: trieStore,
-		trie: tr,
+		trieStore:   trieStore,
+		trie:        tr,
 	}
 }
 
@@ -51,7 +51,7 @@ func (self *StateStore) TryAdd(prefix DataEntryPrefix, key []byte, value IStateV
 
 func (self *StateStore) TryGetOrAdd(prefix DataEntryPrefix, key []byte, value IStateValue, trie bool) error {
 	state := self.memoryStore.Get(byte(prefix), key)
-	if state != nil  {
+	if state != nil {
 		if state.State == Deleted {
 			self.setStateObject(byte(prefix), key, value, Changed, trie)
 			return nil
@@ -128,7 +128,6 @@ func (self *StateStore) TryDelete(prefix DataEntryPrefix, key []byte) {
 func (self *StateStore) CommitTo() error {
 	for k, v := range self.memoryStore.GetChangeSet() {
 		if v.State == Deleted {
-			var err error
 			if v.Trie {
 				if err := self.trie.TryDelete([]byte(k)); err != nil {
 					return err
@@ -137,7 +136,6 @@ func (self *StateStore) CommitTo() error {
 			if err := self.db.st.BatchDelete([]byte(k)); err != nil {
 				return err
 			}
-			return err
 		} else {
 			data := new(bytes.Buffer)
 			err := v.Value.Serialize(data)
@@ -239,11 +237,3 @@ func newStateObject(prefix DataEntryPrefix) IStateValue {
 		panic("[newStateObject] invalid state type!")
 	}
 }
-
-
-
-
-
-
-
-
