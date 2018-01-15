@@ -13,6 +13,9 @@ type States struct {
 }
 
 func ConvertTypes(item types.StackItemInterface) (results []States) {
+	if item == nil {
+		return
+	}
 	switch v := item.(type) {
 	case *types.ByteArray:
 		results = append(results, States{"ByteArray", common.ToHexString(v.GetByteArray())})
@@ -45,6 +48,9 @@ func ConvertTypes(item types.StackItemInterface) (results []States) {
 }
 
 func ConvertReturnTypes(item types.StackItemInterface) (results []interface{}) {
+	if item == nil {
+		return
+	}
 	switch v := item.(type) {
 	case *types.ByteArray:
 		results = append(results, common.ToHexString(v.GetByteArray()))
