@@ -8,7 +8,7 @@ import (
 )
 
 type States struct {
-	Key string
+	Type string
 	Value interface{}
 }
 
