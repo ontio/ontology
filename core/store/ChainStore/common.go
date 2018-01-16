@@ -11,8 +11,8 @@ import (
 	. "github.com/Ontology/core/store"
 	tx "github.com/Ontology/core/transaction"
 	"github.com/Ontology/core/transaction/utxo"
-	"math/big"
 	"github.com/Ontology/crypto"
+	"math/big"
 )
 
 func repeat(length int) []CoinState {
@@ -104,7 +104,15 @@ func handleInputs(inputs []*utxo.UTXOTxInput, stateStore *StateStore, currentBlo
 			return err
 		}
 		programCoin := state.(*ProgramUnspentCoin)
-		programCoin.Unspents = append(programCoin.Unspents[:i.ReferTxOutputIndex], programCoin.Unspents[i.ReferTxOutputIndex:]...)
+		for ind, unspent := range programCoin.Unspents {
+			unspentLen := len(programCoin.Unspents)
+			if unspent.Txid == i.ReferTxID && unspent.Index == uint32(i.ReferTxOutputIndex) {
+				programCoin.Unspents[ind] = programCoin.Unspents[unspentLen-1]
+				programCoin.Unspents = programCoin.Unspents[:unspentLen-1]
+				break
+			}
+		}
+
 	}
 	return nil
 }
@@ -189,7 +197,7 @@ func addMerkleRoot(bd *ChainStore, b *ledger.Block) {
 
 	tree_size := bd.merkleTree.TreeSize()
 	hashes := bd.merkleTree.Hashes()
-	length := 4 + len(hashes) * UINT256SIZE
+	length := 4 + len(hashes)*UINT256SIZE
 	buf := make([]byte, 4, length)
 	binary.BigEndian.PutUint32(buf[0:], tree_size)
 	for _, h := range hashes {
@@ -207,5 +215,5 @@ func groupInputs(inputs []*utxo.UTXOTxInput) map[Uint256][]*utxo.UTXOTxInput {
 }
 
 func remove(items []*Item, index int) []*Item {
-	return append(items[:index], items[index + 1:]...)
+	return append(items[:index], items[index+1:]...)
 }
