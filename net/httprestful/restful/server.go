@@ -265,6 +265,7 @@ func (rt *restServer) getParams(r *http.Request, url string, req map[string]inte
 		break
 	case Api_SendRawTx:
 		userid := r.FormValue("userid")
+		req["Userid"] = userid
 		if len(userid) == 0 {
 			req["Userid"] = getParam(r, "userid")
 		}

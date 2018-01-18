@@ -8,7 +8,7 @@ import (
 
 func PushSmartCodeEvent(txHash Uint256, errcode int64, action string, result interface{}) {
 	resp := map[string]interface{}{
-		"TxHash": ToHexString(txHash.ToArrayReverse()),
+		"TxHash": ToHexString(txHash.ToArray()),
 		"Action": action,
 		"Result": result,
 		"Error":  errcode,

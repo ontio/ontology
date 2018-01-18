@@ -113,7 +113,7 @@ func SendRecord(cmd map[string]interface{}) map[string]interface{} {
 		return resp
 	}
 	hash := transferTx.Hash()
-	resp["Result"] = ToHexString(hash.ToArrayReverse())
+	resp["Result"] = ToHexString(hash.ToArray())
 	return resp
 }
 
@@ -128,7 +128,7 @@ func SendRecordTransaction(cmd map[string]interface{}) map[string]interface{} {
 	recordTx, _ := tx.NewRecordTransaction(recordType, recordData)
 
 	hash := recordTx.Hash()
-	resp["Result"] = ToHexString(hash.ToArrayReverse())
+	resp["Result"] = ToHexString(hash.ToArray())
 	if errCode := VerifyAndSendTx(recordTx); errCode != ErrNoError {
 		resp["Error"] = int64(errCode)
 		return resp
