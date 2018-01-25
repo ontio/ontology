@@ -73,7 +73,11 @@ func (s *Struct) GetStruct() []StackItemInterface {
 func (s *Struct) Clone() StackItemInterface {
 	var arr []StackItemInterface
 	for _, v := range s._array {
-		arr = append(arr, v.Clone())
+		if value, ok := v.(*Struct); ok {
+			arr = append(arr, value.Clone())
+		} else {
+			arr = append(arr, value)
+		}
 	}
 	return &Struct{arr}
 }

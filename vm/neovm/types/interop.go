@@ -53,6 +53,3 @@ func (ii *InteropInterface) GetStruct() []StackItemInterface {
 	return []StackItemInterface{ii}
 }
 
-func (ii *InteropInterface) Clone() StackItemInterface {
-	return &InteropInterface{ii._object.Clone()}
-}

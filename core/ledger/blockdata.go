@@ -11,7 +11,6 @@ import (
 	sig "github.com/Ontology/core/signature"
 	. "github.com/Ontology/errors"
 	"bytes"
-	"github.com/Ontology/vm/neovm/interfaces"
 )
 
 type Blockdata struct {
@@ -183,7 +182,3 @@ func (bd *Blockdata) ToArray() []byte {
 	return bf.Bytes()
 }
 
-func (bd *Blockdata) Clone() interfaces.IInteropInterface {
-	blockdata := *bd
-	return &blockdata
-}

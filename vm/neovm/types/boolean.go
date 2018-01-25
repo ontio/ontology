@@ -55,6 +55,3 @@ func (b *Boolean) GetStruct() []StackItemInterface {
 	return []StackItemInterface{b}
 }
 
-func (b *Boolean) Clone() StackItemInterface {
-	return &Boolean{b.value}
-}

@@ -3,7 +3,6 @@ package types
 import (
 	"github.com/Ontology/vm/neovm/interfaces"
 	"math/big"
-	"github.com/Ontology/common"
 )
 
 type ByteArray struct {
@@ -64,6 +63,3 @@ func (ba *ByteArray) GetStruct() []StackItemInterface {
 	return []StackItemInterface{ba}
 }
 
-func (b *ByteArray) Clone() StackItemInterface {
-	return &ByteArray{common.CopyBytes(b.value)}
-}

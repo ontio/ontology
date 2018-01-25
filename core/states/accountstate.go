@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"github.com/Ontology/common/serialization"
 	. "github.com/Ontology/common"
-	"github.com/Ontology/vm/neovm/interfaces"
 )
 
 type AccountState struct {
@@ -71,11 +70,6 @@ func (accountState *AccountState) ToArray() []byte {
 	b := new(bytes.Buffer)
 	accountState.Serialize(b)
 	return b.Bytes()
-}
-
-func (accountState *AccountState) Clone() interfaces.IInteropInterface {
-	as := *accountState
-	return &as
 }
 
 

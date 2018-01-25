@@ -52,6 +52,3 @@ func (i *Integer) GetStruct() []StackItemInterface {
 	return []StackItemInterface{i}
 }
 
-func (i *Integer) Clone() StackItemInterface {
-	return &Integer{big.NewInt(i.value.Int64())}
-}

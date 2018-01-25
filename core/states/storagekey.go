@@ -5,7 +5,6 @@ import (
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
 	"bytes"
-	"github.com/Ontology/vm/neovm/interfaces"
 )
 
 type StorageKey struct {
@@ -40,8 +39,5 @@ func (this *StorageKey) ToArray() []byte {
 	return b.Bytes()
 }
 
-func (this *StorageKey) Clone() interfaces.IInteropInterface {
-	sk := *this
-	return &sk
-}
+
 

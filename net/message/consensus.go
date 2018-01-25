@@ -19,7 +19,6 @@ import (
 	"github.com/Ontology/events"
 	. "github.com/Ontology/net/protocol"
 	"io"
-	"github.com/Ontology/vm/neovm/interfaces"
 )
 
 type ConsensusPayload struct {
@@ -59,11 +58,6 @@ func (cp *ConsensusPayload) ToArray() []byte {
 	b := new(bytes.Buffer)
 	cp.Serialize(b)
 	return b.Bytes()
-}
-
-func (cp *ConsensusPayload) Clone() interfaces.IInteropInterface {
-	c := *cp
-	return &c
 }
 
 func (cp *ConsensusPayload) InvertoryType() common.InventoryType {

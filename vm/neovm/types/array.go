@@ -70,11 +70,5 @@ func (a *Array) GetStruct() []StackItemInterface {
 	return a._array
 }
 
-func (a *Array) Clone() StackItemInterface {
-	var arr []StackItemInterface
-	for _, v := range a._array {
-		arr = append(arr, v.Clone())
-	}
-	return &Array{arr}
-}
+
 
