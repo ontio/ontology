@@ -16,6 +16,7 @@ var (
 	DnaRpcAPIError = responsePacking("internal API error")
 	DnaRpcSuccess = responsePacking(true)
 	DnaRpcFailed = responsePacking(false)
+	DnaRpcAccountNotFound = responsePacking(("Account not found"))
 
 	DnaRpc = responsePacking
 )

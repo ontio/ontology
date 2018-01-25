@@ -272,7 +272,7 @@ func getBalance(params []interface{}) map[string]interface{} {
 	}
 	account, err := ledger.DefaultLedger.Store.GetAccount(programHash)
 	if err !=nil{
-		return DnaRpcIdNotFound
+		return DnaRpcAccountNotFound
 	}
 	c, err := HexToBytes(assetId)
 	if err != nil {
