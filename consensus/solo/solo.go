@@ -104,7 +104,7 @@ func (this *SoloService) makeBlock() *ledger.Block {
 	}
 
 	blockRoot := ledger.DefaultLedger.Store.GetBlockRootWithNewTxRoot(txRoot)
-	blockData := &ledger.Blockdata{
+	header := &ledger.Header{
 		Version:          ContextVersion,
 		PrevBlockHash:    prevHash,
 		TransactionsRoot: txRoot,
@@ -115,7 +115,7 @@ func (this *SoloService) makeBlock() *ledger.Block {
 		NextBookKeeper:   nextBookKeeper,
 	}
 	block := &ledger.Block{
-		Blockdata:    blockData,
+		Header:       header,
 		Transactions: transactions,
 	}
 

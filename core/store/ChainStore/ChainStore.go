@@ -21,30 +21,30 @@ import (
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/events"
 	"github.com/Ontology/merkle"
-	sc "github.com/Ontology/smartcontract"
-	"github.com/Ontology/smartcontract/service"
 	httprestful "github.com/Ontology/net/httprestful/error"
+	sc "github.com/Ontology/smartcontract"
+	"github.com/Ontology/smartcontract/event"
+	"github.com/Ontology/smartcontract/service"
+	"github.com/Ontology/smartcontract/types"
 	"sort"
 	"sync"
 	"time"
-	"github.com/Ontology/smartcontract/types"
-	"github.com/Ontology/smartcontract/event"
 )
 
 const (
 	HeaderHashListCount = 2000
 	CleanCacheThreshold = 2
-	TaskChanCap = 4
-	DBDir = "Chain"
+	TaskChanCap         = 4
+	DBDir               = "Chain"
 	MerkleTreeStorePath = "Chain/merkle_tree.db"
-	DEPLOY_TRANSACTION = "DeployTransaction"
-	INVOKE_TRANSACTION = "InvokeTransaction"
+	DEPLOY_TRANSACTION  = "DeployTransaction"
+	INVOKE_TRANSACTION  = "InvokeTransaction"
 )
 
 var (
-	ErrDBNotFound = "leveldb: not found"
+	ErrDBNotFound    = "leveldb: not found"
 	CurrentStateRoot = []byte("Current-State-Root")
-	BookerKeeper = []byte("Booker-Keeper")
+	BookerKeeper     = []byte("Booker-Keeper")
 )
 
 type persistTask interface{}
@@ -57,18 +57,18 @@ type persistBlockTask struct {
 }
 
 type ChainStore struct {
-	st                 IStore
+	st IStore
 
-	taskCh             chan persistTask
-	quit               chan chan bool
+	taskCh chan persistTask
+	quit   chan chan bool
 
-	mu                 sync.RWMutex // guard the following var
-	headerIndex        map[uint32]Uint256
-	blockCache         map[Uint256]*Block
-	headerCache        map[Uint256]*Header
+	mu          sync.RWMutex // guard the following var
+	headerIndex map[uint32]Uint256
+	blockCache  map[Uint256]*Block
+	headerCache map[Uint256]*Header
 
-	merkleTree         *merkle.CompactMerkleTree
-	merkleHashStore    *merkle.FileHashStore
+	merkleTree      *merkle.CompactMerkleTree
+	merkleHashStore *merkle.FileHashStore
 
 	currentBlockHeight uint32
 	storedHeaderCount  uint32
@@ -152,13 +152,13 @@ func (self *ChainStore) clearCache() {
 
 	currBlockHeight := self.currentBlockHeight
 	for hash, header := range self.headerCache {
-		if header.Blockdata.Height + CleanCacheThreshold < currBlockHeight {
+		if header.Height+CleanCacheThreshold < currBlockHeight {
 			delete(self.headerCache, hash)
 		}
 	}
 
 	for hash, block := range self.blockCache {
-		if block.Blockdata.Height + CleanCacheThreshold < currBlockHeight {
+		if block.Header.Height+CleanCacheThreshold < currBlockHeight {
 			delete(self.blockCache, hash)
 		}
 	}
@@ -213,7 +213,7 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 
 			for i := 0; i < int(listNum); i++ {
 				listHash.Deserialize(r)
-				bd.headerIndex[startNum + uint32(i)] = listHash
+				bd.headerIndex[startNum+uint32(i)] = listHash
 				bd.storedHeaderCount++
 				//log.Debug( fmt.Sprintf( "listHash %d: %x\n", startNum+uint32(i), listHash ) )
 			}
@@ -240,7 +240,7 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 		} else if current_Header_Height >= bd.storedHeaderCount {
 			hash = blockHash
 			for {
-				if hash == bd.headerIndex[bd.storedHeaderCount - 1] {
+				if hash == bd.headerIndex[bd.storedHeaderCount-1] {
 					break
 				}
 
@@ -249,22 +249,22 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 					return 0, err
 				}
 
-				//log.Debug(fmt.Sprintf( "header height: %d\n", header.Blockdata.Height ))
+				//log.Debug(fmt.Sprintf( "header height: %d\n", header.Height ))
 				//log.Debug(fmt.Sprintf( "header hash: %x\n", hash ))
 
-				bd.headerIndex[header.Blockdata.Height] = hash
-				hash = header.Blockdata.PrevBlockHash
+				bd.headerIndex[header.Height] = hash
+				hash = header.PrevBlockHash
 			}
 		}
 		buf, _ := bd.st.Get([]byte{byte(SYS_BlockMerkleTree)})
 		tree_size := binary.BigEndian.Uint32(buf[0:4])
-		if tree_size != bd.currentBlockHeight + 1 {
+		if tree_size != bd.currentBlockHeight+1 {
 			return 0, errors.New("Merkle tree size is inconsistent with blockheight")
 		}
 		nhashes := (len(buf) - 4) / UINT256SIZE
 		hashes := make([]Uint256, nhashes, nhashes)
 		for i := 0; i < nhashes; i++ {
-			copy(hashes[i][:], buf[4 + i * UINT256SIZE:])
+			copy(hashes[i][:], buf[4+i*UINT256SIZE:])
 		}
 
 		bd.merkleHashStore, err = merkle.NewFileHashStore(MerkleTreeStorePath, tree_size)
@@ -415,24 +415,24 @@ func (bd *ChainStore) getHeaderWithCache(hash Uint256) *Header {
 }
 
 func (bd *ChainStore) verifyHeader(header *Header) bool {
-	prevHeader := bd.getHeaderWithCache(header.Blockdata.PrevBlockHash)
+	prevHeader := bd.getHeaderWithCache(header.PrevBlockHash)
 
 	if prevHeader == nil {
 		log.Error("[verifyHeader] failed, not found prevHeader.")
 		return false
 	}
 
-	if prevHeader.Blockdata.Height + 1 != header.Blockdata.Height {
+	if prevHeader.Height+1 != header.Height {
 		log.Error("[verifyHeader] failed, prevHeader.Height + 1 != header.Height")
 		return false
 	}
 
-	if prevHeader.Blockdata.Timestamp >= header.Blockdata.Timestamp {
+	if prevHeader.Timestamp >= header.Timestamp {
 		log.Error("[verifyHeader] failed, prevHeader.Timestamp >= header.Timestamp")
 		return false
 	}
 
-	flag, err := validation.VerifySignableData(header.Blockdata)
+	flag, err := validation.VerifySignableData(header)
 	if flag == false || err != nil {
 		log.Error("[verifyHeader] failed, VerifySignableData failed.")
 		log.Error(err)
@@ -445,7 +445,7 @@ func (bd *ChainStore) verifyHeader(header *Header) bool {
 func (self *ChainStore) AddHeaders(headers []Header, ledger *Ledger) error {
 
 	sort.Slice(headers, func(i, j int) bool {
-		return headers[i].Blockdata.Height < headers[j].Blockdata.Height
+		return headers[i].Height < headers[j].Height
 	})
 
 	for i := 0; i < len(headers); i++ {
@@ -466,8 +466,7 @@ func (bd *ChainStore) GetHeader(hash Uint256) (*Header, error) {
 
 	var h *Header = new(Header)
 
-	h.Blockdata = new(Blockdata)
-	h.Blockdata.Program = new(program.Program)
+	h.Program = new(program.Program)
 
 	prefix := []byte{byte(DATA_Header)}
 	data, err_get := bd.st.Get(append(prefix, hash.ToArray()...))
@@ -610,8 +609,8 @@ func (bd *ChainStore) GetBlock(hash Uint256) (*Block, error) {
 
 	var b *Block = new(Block)
 
-	b.Blockdata = new(Blockdata)
-	b.Blockdata.Program = new(program.Program)
+	b.Header = new(Header)
+	b.Header.Program = new(program.Program)
 
 	prefix := []byte{byte(DATA_Header)}
 	bHash, err_get := bd.st.Get(append(prefix, hash.ToArray()...))
@@ -663,7 +662,7 @@ func (self *ChainStore) GetBookKeeperList() ([]*crypto.PubKey, []*crypto.PubKey,
 
 func (bd *ChainStore) persist(b *Block) error {
 	bd.st.NewBatch()
-	stateStore := NewStateStore(statestore.NewMemDatabase(), bd, statestore.NewTrieStore(bd.st), b.Blockdata.StateRoot)
+	stateStore := NewStateStore(statestore.NewMemDatabase(), bd, statestore.NewTrieStore(bd.st), b.Header.StateRoot)
 	state, err := stateStore.TryGet(ST_BookKeeper, BookerKeeper)
 	if err != nil {
 		log.Error("[persist] TryGet ST_BookKeeper error:", err)
@@ -672,7 +671,7 @@ func (bd *ChainStore) persist(b *Block) error {
 	bookKeeper := state.Value.(*states.BookKeeperState)
 	handleBookKeeper(stateStore, bookKeeper)
 	for _, t := range b.Transactions {
-		bd.SaveTransaction(t, b.Blockdata.Height)
+		bd.SaveTransaction(t, b.Header.Height)
 		tx_id := t.Hash()
 		if len(t.Outputs) > 0 {
 			stateStore.TryAdd(ST_Coin, tx_id.ToArray(), &states.UnspentCoinState{Item: repeat(len(t.Outputs))}, false)
@@ -680,7 +679,7 @@ func (bd *ChainStore) persist(b *Block) error {
 		if err := handleOutputs(t.Hash(), t.Outputs, stateStore); err != nil {
 			return err
 		}
-		if err := handleInputs(t.UTXOInputs, stateStore, b.Blockdata.Height, bd); err != nil {
+		if err := handleInputs(t.UTXOInputs, stateStore, b.Header.Height, bd); err != nil {
 			return err
 		}
 		switch t.TxType {
@@ -696,7 +695,7 @@ func (bd *ChainStore) persist(b *Block) error {
 				Owner:      p.Issuer,
 				Admin:      p.Controller,
 				Issuer:     p.Controller,
-				Expiration: b.Blockdata.Height + 2 * 2000000,
+				Expiration: b.Header.Height + 2*2000000,
 				IsFrozen:   false,
 			}, false); err != nil {
 				log.Error("[persist] TryAdd ST_Asset error:", err)
@@ -725,7 +724,7 @@ func (bd *ChainStore) persist(b *Block) error {
 			case payload.BookKeeperAction_SUB:
 				index := crypto.ContainPubKey(bk.PubKey, bookKeeper.NextBookKeeper)
 				if index >= 0 {
-					bookKeeper.NextBookKeeper = append(bookKeeper.NextBookKeeper[:index], bookKeeper.NextBookKeeper[index + 1:]...)
+					bookKeeper.NextBookKeeper = append(bookKeeper.NextBookKeeper[:index], bookKeeper.NextBookKeeper[index+1:]...)
 				}
 				stateStore.memoryStore.Change(byte(ST_BookKeeper), BookerKeeper, false)
 			}
@@ -733,13 +732,13 @@ func (bd *ChainStore) persist(b *Block) error {
 			deploy := t.Payload.(*payload.DeployCode)
 			codeHash := deploy.Code.CodeHash()
 			if err := stateStore.TryGetOrAdd(ST_Contract, codeHash.ToArray(), &states.ContractState{
-				Code: deploy.Code,
-				VmType: deploy.VmType,
+				Code:        deploy.Code,
+				VmType:      deploy.VmType,
 				NeedStorage: deploy.NeedStorage,
-				Name: deploy.Name,
-				Version: deploy.CodeVersion,
-				Author: deploy.Author,
-				Email: deploy.Email,
+				Name:        deploy.Name,
+				Version:     deploy.CodeVersion,
+				Author:      deploy.Author,
+				Email:       deploy.Email,
 				Description: deploy.Description,
 			}, false); err != nil {
 				log.Error("[persist] TryAdd ST_Contract error:", err)
@@ -763,9 +762,9 @@ func (bd *ChainStore) persist(b *Block) error {
 				StateMachine:   stateMachine,
 				SignableData:   t,
 				CacheCodeTable: &CacheCodeTable{stateStore},
-				Input: invoke.Code,
-				Code: contract.Code.Code,
-				ReturnType: contract.Code.ReturnType,
+				Input:          invoke.Code,
+				Code:           contract.Code.Code,
+				ReturnType:     contract.Code.ReturnType,
 			})
 			if err != nil {
 				log.Error("[persist] NewSmartContract error:", err)
@@ -814,21 +813,21 @@ func (bd *ChainStore) persist(b *Block) error {
 // can only be invoked by backend write goroutine
 func (bd *ChainStore) addHeader(header *Header) {
 
-	log.Debugf("addHeader(), Height=%d\n", header.Blockdata.Height)
+	log.Debugf("addHeader(), Height=%d\n", header.Height)
 
-	hash := header.Blockdata.Hash()
+	hash := header.Hash()
 
 	bd.mu.Lock()
-	bd.headerCache[header.Blockdata.Hash()] = header
-	bd.headerIndex[header.Blockdata.Height] = hash
+	bd.headerCache[header.Hash()] = header
+	bd.headerIndex[header.Height] = hash
 	bd.mu.Unlock()
 
-	log.Debug("[addHeader]: finish, header height:", header.Blockdata.Height)
+	log.Debug("[addHeader]: finish, header height:", header.Height)
 }
 
 func (self *ChainStore) handlePersistHeaderTask(header *Header) {
 
-	if header.Blockdata.Height != uint32(len(self.headerIndex)) {
+	if header.Height != uint32(len(self.headerIndex)) {
 		return
 	}
 
@@ -847,23 +846,23 @@ func (self *ChainStore) SaveBlock(b *Block, ledger *Ledger) error {
 	currBlockHeight := self.currentBlockHeight
 	self.mu.RUnlock()
 
-	if b.Blockdata.Height <= currBlockHeight {
+	if b.Header.Height <= currBlockHeight {
 		return nil
 	}
 
-	if b.Blockdata.Height > headerHeight {
+	if b.Header.Height > headerHeight {
 		return errors.New(fmt.Sprintf("Info: [SaveBlock] block height - headerIndex.count >= 1, block height:%d, headerIndex.count:%d",
-			b.Blockdata.Height, headerHeight))
+			b.Header.Height, headerHeight))
 	}
 
-	if b.Blockdata.Height == headerHeight {
+	if b.Header.Height == headerHeight {
 		err := validation.VerifyBlock(b, ledger, false)
 		if err != nil {
 			log.Error("VerifyBlock error!")
 			return err
 		}
 
-		self.taskCh <- &persistHeaderTask{header: &Header{Blockdata: b.Blockdata}}
+		self.taskCh <- &persistHeaderTask{header: b.Header}
 	} else {
 		flag, err := validation.VerifySignableData(b)
 		if flag == false || err != nil {
@@ -877,7 +876,7 @@ func (self *ChainStore) SaveBlock(b *Block, ledger *Ledger) error {
 }
 
 func (self *ChainStore) handlePersistBlockTask(b *Block, ledger *Ledger) {
-	if b.Blockdata.Height <= self.currentBlockHeight {
+	if b.Header.Height <= self.currentBlockHeight {
 		return
 	}
 
@@ -885,12 +884,12 @@ func (self *ChainStore) handlePersistBlockTask(b *Block, ledger *Ledger) {
 	self.blockCache[b.Hash()] = b
 	self.mu.Unlock()
 
-	if b.Blockdata.Height < uint32(len(self.headerIndex)) {
+	if b.Header.Height < uint32(len(self.headerIndex)) {
 		self.persistBlocks(ledger)
 
 		self.st.NewBatch()
 		storedHeaderCount := self.storedHeaderCount
-		for self.currentBlockHeight - storedHeaderCount >= HeaderHashListCount {
+		for self.currentBlockHeight-storedHeaderCount >= HeaderHashListCount {
 			hashBuffer := new(bytes.Buffer)
 			serialization.WriteVarUint(hashBuffer, uint64(HeaderHashListCount))
 			var hashArray []byte
@@ -938,13 +937,13 @@ func (bd *ChainStore) persistBlocks(ledger *Ledger) {
 		}
 
 		// PersistCompleted event
-		ledger.Blockchain.BlockHeight = block.Blockdata.Height
+		ledger.Blockchain.BlockHeight = block.Header.Height
 		bd.mu.Lock()
-		bd.currentBlockHeight = block.Blockdata.Height
+		bd.currentBlockHeight = block.Header.Height
 		bd.mu.Unlock()
 
 		ledger.Blockchain.BCEvents.Notify(events.EventBlockPersistCompleted, block)
-		log.Tracef("The latest block height:%d, block hash: %x", block.Blockdata.Height, hash)
+		log.Tracef("The latest block height:%d, block hash: %x", block.Header.Height, hash)
 	}
 
 }
@@ -1011,7 +1010,7 @@ func (bd *ChainStore) ContainsUnspent(txid Uint256, index uint16) (bool, error) 
 func (bd *ChainStore) GetCurrentHeaderHash() Uint256 {
 	bd.mu.RLock()
 	defer bd.mu.RUnlock()
-	return bd.headerIndex[uint32(len(bd.headerIndex) - 1)]
+	return bd.headerIndex[uint32(len(bd.headerIndex)-1)]
 }
 
 func (bd *ChainStore) GetHeaderHashByHeight(height uint32) Uint256 {
@@ -1052,10 +1051,10 @@ func (bd *ChainStore) GetAccount(programHash Uint160) (*states.AccountState, err
 
 func (bd *ChainStore) IsBlockInStore(hash Uint256) bool {
 
-	var b *Block = new(Block)
+	b := new(Block)
 
-	b.Blockdata = new(Blockdata)
-	b.Blockdata.Program = new(program.Program)
+	b.Header = new(Header)
+	b.Header.Program = new(program.Program)
 
 	prefix := []byte{byte(DATA_Header)}
 	blockData, err_get := bd.st.Get(append(prefix, hash.ToArray()...))
@@ -1077,7 +1076,7 @@ func (bd *ChainStore) IsBlockInStore(hash Uint256) bool {
 		return false
 	}
 
-	if b.Blockdata.Height > bd.currentBlockHeight {
+	if b.Header.Height > bd.currentBlockHeight {
 		return false
 	}
 
@@ -1190,4 +1189,3 @@ func (bd *ChainStore) GetStorageItem(key *states.StorageKey) (*states.StorageIte
 	}
 	return item, nil
 }
-

@@ -92,7 +92,7 @@ func (cxt *ConsensusContext) MakeHeader() *ledger.Block {
 			return nil
 		}
 		blockRoot := ledger.DefaultLedger.Store.GetBlockRootWithNewTxRoot(txRoot)
-		blockData := &ledger.Blockdata{
+		header := &ledger.Header{
 			Version:          ContextVersion,
 			PrevBlockHash:    cxt.PrevHash,
 			TransactionsRoot: txRoot,
@@ -103,7 +103,7 @@ func (cxt *ConsensusContext) MakeHeader() *ledger.Block {
 			NextBookKeeper:   cxt.NextBookKeeper,
 		}
 		cxt.header = &ledger.Block{
-			Blockdata:    blockData,
+			Header:    header,
 			Transactions: []*tx.Transaction{},
 		}
 	}

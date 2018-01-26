@@ -36,7 +36,7 @@ func (msg block) Handle(node Noder) error {
 		log.Warnf("Block add failed: %s,block hash is %x\n", err, hash)
 		return err
 	}
-	node.RemoveFlightHeight(msg.blk.Blockdata.Height)
+	node.RemoveFlightHeight(msg.blk.Header.Height)
 	node.LocalNode().GetEvent("block").Notify(events.EventNewInventory, &msg.blk)
 	return nil
 }
@@ -55,7 +55,7 @@ func (msg dataReq) Handle(node Noder) error {
 			node.Tx(b)
 			return err
 		}
-		log.Debug("block height is ", block.Blockdata.Height, " ,hash is ", hash)
+		log.Debug("block height is ", block.Header.Height, " ,hash is ", hash)
 		buf, err := NewBlock(block)
 		if err != nil {
 			return err

@@ -19,10 +19,10 @@ var LastInvHash Uint256
 type blocksReq struct {
 	msgHdr
 	p struct {
-		  HeaderHashCount uint8
-		  hashStart       [HASHLEN]byte
-		  hashStop        [HASHLEN]byte
-	  }
+		HeaderHashCount uint8
+		hashStart       [HASHLEN]byte
+		hashStop        [HASHLEN]byte
+	}
 }
 
 type InvPayload struct {
@@ -133,7 +133,7 @@ func (msg Inv) Handle(node Noder) error {
 		count := msg.P.Cnt
 		log.Debug("RX inv-block message, hash is ", msg.P.Blk)
 		for i = 0; i < count; i++ {
-			id.Deserialize(bytes.NewReader(msg.P.Blk[HASHLEN * i:]))
+			id.Deserialize(bytes.NewReader(msg.P.Blk[HASHLEN*i:]))
 			// TODO check the ID queue
 			if !ledger.DefaultLedger.Store.BlockInCache(id) &&
 				!ledger.DefaultLedger.BlockInLedger(id) &&
@@ -183,7 +183,7 @@ func (msg *Inv) Deserialization(p []byte) error {
 		return err
 	}
 
-	msg.P.Blk = make([]byte, msg.P.Cnt * HASHLEN)
+	msg.P.Blk = make([]byte, msg.P.Cnt*HASHLEN)
 	err = binary.Read(buf, binary.LittleEndian, &(msg.P.Blk))
 
 	return err
@@ -212,7 +212,7 @@ func GetInvFromBlockHash(starthash Uint256, stophash Uint256) (*InvPayload, erro
 			if err != nil {
 				return nil, err
 			}
-			stopheight = bkstop.Blockdata.Height
+			stopheight = bkstop.Height
 			count = curHeight - stopheight
 			if curHeight > MAXINVHDRCNT {
 				count = MAXINVHDRCNT
@@ -223,13 +223,13 @@ func GetInvFromBlockHash(starthash Uint256, stophash Uint256) (*InvPayload, erro
 		if err != nil {
 			return nil, err
 		}
-		startheight = bkstart.Blockdata.Height
+		startheight = bkstart.Height
 		if stophash != empty {
 			bkstop, err := ledger.DefaultLedger.Store.GetHeader(stophash)
 			if err != nil {
 				return nil, err
 			}
-			stopheight = bkstop.Blockdata.Height
+			stopheight = bkstop.Height
 			count = startheight - stopheight
 			if count >= MAXINVHDRCNT {
 				count = MAXINVHDRCNT

@@ -1,6 +1,8 @@
 package dbft
 
 import (
+	"errors"
+	"fmt"
 	cl "github.com/Ontology/account"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/config"
@@ -12,27 +14,25 @@ import (
 	sig "github.com/Ontology/core/signature"
 	tx "github.com/Ontology/core/transaction"
 	"github.com/Ontology/core/transaction/payload"
+	"github.com/Ontology/core/transaction/utxo"
 	va "github.com/Ontology/core/validation"
 	. "github.com/Ontology/errors"
 	"github.com/Ontology/events"
 	"github.com/Ontology/net"
 	msg "github.com/Ontology/net/message"
-	"errors"
-	"fmt"
 	"time"
-	"github.com/Ontology/core/transaction/utxo"
 )
 
 type DbftService struct {
-	context                         ConsensusContext
-	Client                          cl.Client
-	timer                           *time.Timer
-	timerHeight                     uint32
-	timeView                        byte
-	blockReceivedTime               time.Time
-	logDictionary                   string
-	started                         bool
-	localNet                        net.Neter
+	context           ConsensusContext
+	Client            cl.Client
+	timer             *time.Timer
+	timerHeight       uint32
+	timeView          byte
+	blockReceivedTime time.Time
+	logDictionary     string
+	started           bool
+	localNet          net.Neter
 
 	newInventorySubscriber          events.Subscriber
 	blockPersistCompletedSubscriber events.Subscriber
@@ -365,8 +365,8 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, mes
 	}
 
 	//TODO Add Error Catch
-	prevBlockTimestamp := header.Blockdata.Timestamp
-	if payload.Timestamp <= prevBlockTimestamp || payload.Timestamp > uint32(time.Now().Add(time.Minute * 10).Unix()) {
+	prevBlockTimestamp := header.Timestamp
+	if payload.Timestamp <= prevBlockTimestamp || payload.Timestamp > uint32(time.Now().Add(time.Minute*10).Unix()) {
 		log.Info(fmt.Sprintf("Prepare Reques tReceived: Timestamp incorrect: %d", payload.Timestamp))
 		return
 	}
@@ -543,7 +543,7 @@ func (ds *DbftService) Timeout() {
 				log.Error("[Timeout] GetHeader error:", err)
 			}
 			//set context Timestamp
-			blockTime := header.Blockdata.Timestamp + 1
+			blockTime := header.Timestamp + 1
 			if blockTime > now {
 				ds.context.Timestamp = blockTime
 			} else {

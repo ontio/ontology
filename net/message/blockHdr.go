@@ -207,7 +207,7 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]le
 			if err != nil {
 				return nil, 0, err
 			}
-			stopHeight = bkstop.Blockdata.Height
+			stopHeight = bkstop.Height
 			count = curHeight - stopHeight
 			if count > MAXBLKHDRCNT {
 				count = MAXBLKHDRCNT
@@ -218,13 +218,13 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]le
 		if err != nil {
 			return nil, 0, err
 		}
-		startHeight = bkstart.Blockdata.Height
+		startHeight = bkstart.Height
 		if stopHash != empty {
 			bkstop, err := ledger.DefaultLedger.Store.GetHeader(stopHash)
 			if err != nil {
 				return nil, 0, err
 			}
-			stopHeight = bkstop.Blockdata.Height
+			stopHeight = bkstop.Height
 
 			// avoid unsigned integer underflow
 			if startHeight < stopHeight {

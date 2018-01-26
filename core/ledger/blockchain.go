@@ -29,7 +29,7 @@ func NewBlockchainWithGenesisBlock(defaultBookKeeper []*crypto.PubKey) (*Blockch
 		return nil, NewDetailErr(err, ErrNoCode, "[Blockchain], NewBlockchainWithGenesisBlock failed.")
 	}
 	genesisBlock.RebuildMerkleRoot()
-	genesisBlock.Blockdata.BlockRoot = genesisBlock.Blockdata.TransactionsRoot
+	genesisBlock.Header.BlockRoot = genesisBlock.Header.TransactionsRoot
 
 	hashx := genesisBlock.Hash()
 	genesisBlock.hash = &hashx

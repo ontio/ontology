@@ -1,6 +1,8 @@
 package common
 
 import (
+	"bytes"
+	"fmt"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/core/ledger"
 	tx "github.com/Ontology/core/transaction"
@@ -8,8 +10,6 @@ import (
 	. "github.com/Ontology/net/httpjsonrpc"
 	Err "github.com/Ontology/net/httprestful/error"
 	. "github.com/Ontology/net/protocol"
-	"bytes"
-	"fmt"
 	"math"
 	"strconv"
 )
@@ -94,18 +94,18 @@ func GetTotalIssued(cmd map[string]interface{}) map[string]interface{} {
 func GetBlockInfo(block *ledger.Block) BlockInfo {
 	hash := block.Hash()
 	blockHead := &BlockHead{
-		Version:          block.Blockdata.Version,
-		PrevBlockHash:    ToHexString(block.Blockdata.PrevBlockHash.ToArray()),
-		TransactionsRoot: ToHexString(block.Blockdata.TransactionsRoot.ToArray()),
-		BlockRoot:        ToHexString(block.Blockdata.BlockRoot.ToArray()),
-		StateRoot:        ToHexString(block.Blockdata.StateRoot.ToArray()),
-		Timestamp:        block.Blockdata.Timestamp,
-		Height:           block.Blockdata.Height,
-		ConsensusData:    block.Blockdata.ConsensusData,
-		NextBookKeeper:   ToHexString(block.Blockdata.NextBookKeeper.ToArray()),
+		Version:          block.Header.Version,
+		PrevBlockHash:    ToHexString(block.Header.PrevBlockHash.ToArray()),
+		TransactionsRoot: ToHexString(block.Header.TransactionsRoot.ToArray()),
+		BlockRoot:        ToHexString(block.Header.BlockRoot.ToArray()),
+		StateRoot:        ToHexString(block.Header.StateRoot.ToArray()),
+		Timestamp:        block.Header.Timestamp,
+		Height:           block.Header.Height,
+		ConsensusData:    block.Header.ConsensusData,
+		NextBookKeeper:   ToHexString(block.Header.NextBookKeeper.ToArray()),
 		Program: ProgramInfo{
-			Code:      ToHexString(block.Blockdata.Program.Code),
-			Parameter: ToHexString(block.Blockdata.Program.Parameter),
+			Code:      ToHexString(block.Header.Program.Code),
+			Parameter: ToHexString(block.Header.Program.Parameter),
 		},
 		Hash: ToHexString(hash.ToArray()),
 	}
@@ -122,6 +122,7 @@ func GetBlockInfo(block *ledger.Block) BlockInfo {
 	}
 	return b
 }
+
 func GetBlockTransactions(block *ledger.Block) interface{} {
 	trans := make([]string, len(block.Transactions))
 	for i := 0; i < len(block.Transactions); i++ {
@@ -136,7 +137,7 @@ func GetBlockTransactions(block *ledger.Block) interface{} {
 	}
 	b := BlockTransactions{
 		Hash:         ToHexString(hash.ToArray()),
-		Height:       block.Blockdata.Height,
+		Height:       block.Header.Height,
 		Transactions: trans,
 	}
 	return b
@@ -466,7 +467,7 @@ func GetSmartCodeEvent(cmd map[string]interface{}) map[string]interface{} {
 		return resp
 	}
 	index := uint32(height)
-	resp["Result"] = map[string]interface{}{"Height":index}
+	resp["Result"] = map[string]interface{}{"Height": index}
 	//TODO resp
 	return resp
 }

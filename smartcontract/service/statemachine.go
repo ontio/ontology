@@ -59,7 +59,7 @@ func (s *StateMachine) RuntimeGetTrigger(engine *vm.ExecutionEngine) (bool, erro
 }
 
 func (s *StateMachine) RuntimeGetTime(engine *vm.ExecutionEngine) (bool, error) {
-	vm.PushData(engine, s.block.Blockdata.Timestamp)
+	vm.PushData(engine, s.block.Header.Timestamp)
 	return true, nil
 }
 

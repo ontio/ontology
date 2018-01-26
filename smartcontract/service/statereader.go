@@ -21,8 +21,8 @@ import (
 
 var (
 	ErrDBNotFound = "leveldb: not found"
-	Notify = "Notify"
-	Log = "Log"
+	Notify        = "Notify"
+	Log           = "Log"
 )
 
 type StateReader struct {
@@ -120,7 +120,7 @@ func (s *StateReader) RuntimeGetTime(e *vm.ExecutionEngine) (bool, error) {
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[RuntimeGetTime] GetHeader error!.")
 	}
-	vm.PushData(e, header.Blockdata.Timestamp + uint32(ledger.GenBlockTime))
+	vm.PushData(e, header.Timestamp+uint32(ledger.GenBlockTime))
 	return true, nil
 }
 
@@ -144,7 +144,7 @@ func (s *StateReader) RuntimeNotify(e *vm.ExecutionEngine) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	event.PushSmartCodeEvent(tran.Hash(), 0, Notify, event.NotifyEventArgs{tran.Hash(), hash, item })
+	event.PushSmartCodeEvent(tran.Hash(), 0, Notify, event.NotifyEventArgs{tran.Hash(), hash, item})
 	return true, nil
 }
 
@@ -168,7 +168,7 @@ func (s *StateReader) RuntimeLog(e *vm.ExecutionEngine) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	event.PushSmartCodeEvent(tran.Hash(), 0, Log, event.LogEventArgs{tran.Hash(), hash, string(item) })
+	event.PushSmartCodeEvent(tran.Hash(), 0, Log, event.LogEventArgs{tran.Hash(), hash, string(item)})
 	return true, nil
 }
 
@@ -199,7 +199,7 @@ func (s *StateReader) RuntimeCheckWitness(e *vm.ExecutionEngine) (bool, error) {
 	data := vm.PopByteArray(e)
 	var (
 		result bool
-		err error
+		err    error
 	)
 	if len(data) == 20 {
 		program, err := common.Uint160ParseFromBytes(data)
@@ -241,7 +241,7 @@ func (s *StateReader) BlockChainGetHeader(e *vm.ExecutionEngine) (bool, error) {
 	data := vm.PopByteArray(e)
 	var (
 		header *ledger.Header
-		err error
+		err    error
 	)
 	l := len(data)
 	if l <= 5 {
@@ -387,11 +387,11 @@ func (s *StateReader) HeaderGetHash(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetHash] Pop blockdata nil!")
 	}
-	var data *ledger.Blockdata
+	var data *ledger.Header
 	if b, ok := d.(*ledger.Block); ok {
-		data = b.Blockdata
+		data = b.Header
 	} else if h, ok := d.(*ledger.Header); ok {
-		data = h.Blockdata
+		data = h
 	} else {
 		return false, errors.NewErr("[HeaderGetHash] Wrong type!")
 	}
@@ -408,11 +408,11 @@ func (s *StateReader) HeaderGetVersion(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetVersion] Pop blockdata nil!")
 	}
-	var data *ledger.Blockdata
+	var data *ledger.Header
 	if b, ok := d.(*ledger.Block); ok {
-		data = b.Blockdata
+		data = b.Header
 	} else if h, ok := d.(*ledger.Header); ok {
-		data = h.Blockdata
+		data = h
 	} else {
 		return false, errors.NewErr("[HeaderGetVersion] Wrong type!")
 	}
@@ -428,11 +428,11 @@ func (s *StateReader) HeaderGetPrevHash(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetPrevHash] Pop blockdata nil!")
 	}
-	var data *ledger.Blockdata
+	var data *ledger.Header
 	if b, ok := d.(*ledger.Block); ok {
-		data = b.Blockdata
+		data = b.Header
 	} else if h, ok := d.(*ledger.Header); ok {
-		data = h.Blockdata
+		data = h
 	} else {
 		return false, errors.NewErr("[HeaderGetPrevHash] Wrong type!")
 	}
@@ -448,11 +448,11 @@ func (s *StateReader) HeaderGetMerkleRoot(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetMerkleRoot] Pop blockdata nil!")
 	}
-	var data *ledger.Blockdata
+	var data *ledger.Header
 	if b, ok := d.(*ledger.Block); ok {
-		data = b.Blockdata
+		data = b.Header
 	} else if h, ok := d.(*ledger.Header); ok {
-		data = h.Blockdata
+		data = h
 	} else {
 		return false, errors.NewErr("[HeaderGetMerkleRoot] Wrong type!")
 	}
@@ -468,11 +468,11 @@ func (s *StateReader) HeaderGetIndex(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetIndex] Pop blockdata nil!")
 	}
-	var data *ledger.Blockdata
+	var data *ledger.Header
 	if b, ok := d.(*ledger.Block); ok {
-		data = b.Blockdata
+		data = b.Header
 	} else if h, ok := d.(*ledger.Header); ok {
-		data = h.Blockdata
+		data = h
 	} else {
 		return false, errors.NewErr("[HeaderGetIndex] Wrong type!")
 	}
@@ -488,11 +488,11 @@ func (s *StateReader) HeaderGetTimestamp(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetTimestamp] Pop blockdata nil!")
 	}
-	var data *ledger.Blockdata
+	var data *ledger.Header
 	if b, ok := d.(*ledger.Block); ok {
-		data = b.Blockdata
+		data = b.Header
 	} else if h, ok := d.(*ledger.Header); ok {
-		data = h.Blockdata
+		data = h
 	} else {
 		return false, errors.NewErr("[HeaderGetTimestamp] Wrong type!")
 	}
@@ -508,11 +508,11 @@ func (s *StateReader) HeaderGetConsensusData(e *vm.ExecutionEngine) (bool, error
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetConsensusData] Pop blockdata nil!")
 	}
-	var data *ledger.Blockdata
+	var data *ledger.Header
 	if b, ok := d.(*ledger.Block); ok {
-		data = b.Blockdata
+		data = b.Header
 	} else if h, ok := d.(*ledger.Header); ok {
-		data = h.Blockdata
+		data = h
 	} else {
 		return false, errors.NewErr("[HeaderGetConsensusData] Wrong type!")
 	}
@@ -528,11 +528,11 @@ func (s *StateReader) HeaderGetNextConsensus(e *vm.ExecutionEngine) (bool, error
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetNextConsensus] Pop blockdata nil!")
 	}
-	var data *ledger.Blockdata
+	var data *ledger.Header
 	if b, ok := d.(*ledger.Block); ok {
-		data = b.Blockdata
+		data = b.Header
 	} else if h, ok := d.(*ledger.Header); ok {
-		data = h.Blockdata
+		data = h
 	} else {
 		return false, errors.NewErr("[HeaderGetNextConsensus] Wrong type!")
 	}

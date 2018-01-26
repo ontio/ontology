@@ -165,7 +165,7 @@ func addSysCurrentBlock(bd *ChainStore, b *ledger.Block) error {
 	if _, err := bh.Serialize(value); err != nil {
 		return err
 	}
-	if err := serialization.WriteUint32(value, b.Blockdata.Height); err != nil {
+	if err := serialization.WriteUint32(value, b.Header.Height); err != nil {
 		return err
 	}
 	bd.st.BatchPut(key.Bytes(), value.Bytes())
@@ -174,7 +174,7 @@ func addSysCurrentBlock(bd *ChainStore, b *ledger.Block) error {
 
 func addDataBlock(bd *ChainStore, b *ledger.Block) error {
 	key := bytes.NewBuffer(append([]byte{byte(DATA_Block)}))
-	if err := serialization.WriteUint32(key, b.Blockdata.Height); err != nil {
+	if err := serialization.WriteUint32(key, b.Header.Height); err != nil {
 		return err
 	}
 	value := new(bytes.Buffer)
@@ -192,7 +192,7 @@ func addCurrentStateRoot(bd *ChainStore, stateRoot Uint256) error {
 
 func addMerkleRoot(bd *ChainStore, b *ledger.Block) {
 	// update merkle tree
-	bd.merkleTree.AppendHash(b.Blockdata.TransactionsRoot)
+	bd.merkleTree.AppendHash(b.Header.TransactionsRoot)
 	bd.merkleHashStore.Flush()
 
 	tree_size := bd.merkleTree.TreeSize()
