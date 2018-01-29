@@ -266,11 +266,11 @@ func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 	hashs := []Uint160{}
 	uniqHashes := []Uint160{}
 	// add inputUTXO's transaction
-	referenceWithUTXO_Output, err := tx.GetReference()
+	referOutput, err := tx.GetReference()
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetProgramHashes failed.")
 	}
-	for _, output := range referenceWithUTXO_Output {
+	for _, output := range referOutput {
 		programHash := output.ProgramHash
 		hashs = append(hashs, programHash)
 	}
@@ -414,12 +414,13 @@ func (tx *Transaction) Verify() error {
 }
 
 func (tx *Transaction) GetReference() ([]*TxOutput, error) {
-	//if tx.referTx != nil {
-	//	return tx.referTx, nil
-	//}
+	if tx.referTx != nil {
+		return tx.referTx, nil
+	}
 
 	if tx.TxType == RegisterAsset {
-		return nil, nil
+		tx.referTx = []*TxOutput{}
+		return tx.referTx, nil
 	}
 	//UTXO input /  Outputs
 	reference := make([]*TxOutput, 0, len(tx.UTXOInputs))
@@ -432,6 +433,7 @@ func (tx *Transaction) GetReference() ([]*TxOutput, error) {
 		index := utxo.ReferTxOutputIndex
 		reference = append(reference, transaction.Outputs[index])
 	}
+	tx.referTx = reference
 	return reference, nil
 }
 
