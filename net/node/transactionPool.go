@@ -1,6 +1,7 @@
 package node
 
 import (
+	"fmt"
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
@@ -10,7 +11,6 @@ import (
 	"github.com/Ontology/core/transaction/utxo"
 	va "github.com/Ontology/core/validation"
 	. "github.com/Ontology/errors"
-	"fmt"
 	"sync"
 )
 
@@ -112,13 +112,8 @@ func (this *TXNPool) removeTransaction(txn *transaction.Transaction) {
 	//1.remove from txnList
 	this.deltxnList(txn)
 	//2.remove from UTXO list map
-	result, err := txn.GetReference()
-	if err != nil {
-		log.Info(fmt.Sprintf("Transaction =%x not Exist in Pool when delete.", txn.Hash()))
-		return
-	}
-	for UTXOTxInput, _ := range result {
-		this.delInputUTXOList(UTXOTxInput)
+	for _, input := range txn.UTXOInputs {
+		this.delInputUTXOList(input)
 	}
 	//3.remove From Asset Issue Summary map
 	if txn.TxType != transaction.IssueAsset {
@@ -132,16 +127,12 @@ func (this *TXNPool) removeTransaction(txn *transaction.Transaction) {
 
 //check and add to utxo list pool
 func (this *TXNPool) apendToUTXOPool(txn *transaction.Transaction) (bool, *transaction.Transaction) {
-	reference, err := txn.GetReference()
-	if err != nil {
-		return false, nil
-	}
-	for k, _ := range reference {
-		t := this.getInputUTXOList(k)
+	for _, input := range txn.UTXOInputs {
+		t := this.getInputUTXOList(input)
 		if t != nil {
 			return false, t
 		}
-		this.addInputUTXOList(txn, k)
+		this.addInputUTXOList(txn, input)
 	}
 	return true, nil
 }
@@ -149,9 +140,8 @@ func (this *TXNPool) apendToUTXOPool(txn *transaction.Transaction) (bool, *trans
 //clean txnpool utxo map
 func (this *TXNPool) cleanUTXOList(txs []*transaction.Transaction) {
 	for _, txn := range txs {
-		inputUtxos, _ := txn.GetReference()
-		for Utxoinput, _ := range inputUtxos {
-			this.delInputUTXOList(Utxoinput)
+		for _, input := range txn.UTXOInputs {
+			this.delInputUTXOList(input)
 		}
 	}
 }
@@ -192,7 +182,7 @@ func (this *TXNPool) summaryAssetIssueAmount(txn *transaction.Transaction) bool 
 		//AssetReg.Amount : amount when RegisterAsset of this assedID
 		//quantity_issued : amount has been issued of this assedID
 		//txnPool.issueSummary[k] : amount in transactionPool of this assedID
-		if AssetReg.Amount - quantity_issued < this.getAssetIssueAmount(k) {
+		if AssetReg.Amount-quantity_issued < this.getAssetIssueAmount(k) {
 			return false
 		}
 	}
