@@ -135,10 +135,7 @@ func (bd *Header) GetProgramHashes() ([]Uint160, error) {
 
 	if bd.PrevBlockHash == zero {
 		pg := *bd.Program
-		outputHashes, err := ToCodeHash(pg.Code)
-		if err != nil {
-			return nil, NewDetailErr(err, ErrNoCode, "[Header], GetProgramHashes failed.")
-		}
+		outputHashes := ToCodeHash(pg.Code)
 		programHashes = append(programHashes, outputHashes)
 		return programHashes, nil
 	} else {

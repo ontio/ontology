@@ -20,10 +20,7 @@ func NewAccount() (*Account, error) {
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "CreateSignatureRedeemScript failed")
 	}
-	programHash, err := ToCodeHash(signatureRedeemScript)
-	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "ToCodeHash failed")
-	}
+	programHash := ToCodeHash(signatureRedeemScript)
 	return &Account{
 		PrivateKey:  priKey,
 		PublicKey:   &pubKey,
@@ -43,10 +40,7 @@ func NewAccountWithPrivatekey(privateKey []byte) (*Account, error) {
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "CreateSignatureRedeemScript failed")
 	}
-	programHash, err := ToCodeHash(signatureRedeemScript)
-	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "ToCodeHash failed")
-	}
+	programHash := ToCodeHash(signatureRedeemScript)
 	return &Account{
 		PrivateKey:  privateKey,
 		PublicKey:   pubKey,

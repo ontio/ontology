@@ -6,10 +6,10 @@ import (
 	sig "github.com/Ontology/core/signature"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
-	vm "github.com/Ontology/vm/neovm"
-	"github.com/Ontology/vm/neovm/interfaces"
 	"github.com/Ontology/smartcontract/service"
 	"github.com/Ontology/smartcontract/types"
+	vm "github.com/Ontology/vm/neovm"
+	"github.com/Ontology/vm/neovm/interfaces"
 )
 
 func VerifySignableData(signableData sig.SignableData) (bool, error) {
@@ -27,7 +27,7 @@ func VerifySignableData(signableData sig.SignableData) (bool, error) {
 
 	programs = signableData.GetPrograms()
 	for i := 0; i < len(programs); i++ {
-		temp, _ := ToCodeHash(programs[i].Code)
+		temp := ToCodeHash(programs[i].Code)
 		if hashes[i] != temp {
 			return false, errors.New("The data hashes is different with corresponding program code.")
 		}

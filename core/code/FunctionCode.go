@@ -1,9 +1,7 @@
 package code
 
 import (
-	"fmt"
 	. "github.com/Ontology/common"
-	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
 	. "github.com/Ontology/core/contract"
 	. "github.com/Ontology/errors"
@@ -12,15 +10,15 @@ import (
 
 type FunctionCode struct {
 	// Contract Code
-	Code           []byte
+	Code []byte
 
 	// Contract parameter type list
 	ParameterTypes []ContractParameterType
 
 	// Contract return type
-	ReturnType     ContractParameterType
+	ReturnType ContractParameterType
 
-	codeHash       Uint160
+	codeHash Uint160
 }
 
 // method of SerializableData
@@ -72,11 +70,7 @@ func (fc *FunctionCode) Deserialize(r io.Reader) error {
 func (fc *FunctionCode) CodeHash() Uint160 {
 	u160 := Uint160{}
 	if fc.codeHash == u160 {
-		u160, err := ToCodeHash(fc.Code)
-		if err != nil {
-			log.Debug(fmt.Sprintf("[FunctionCode] ToCodeHash err=%s", err))
-			return u160
-		}
+		u160 := ToCodeHash(fc.Code)
 		fc.codeHash = u160
 	}
 	return fc.codeHash

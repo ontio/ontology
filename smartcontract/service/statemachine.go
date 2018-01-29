@@ -186,7 +186,7 @@ func (s *StateMachine) ContractCreate(engine *vm.ExecutionEngine) (bool, error) 
 		Email:       string(emailByte),
 		Description: string(descByte),
 	}
-	codeHash, _ := common.ToCodeHash(codeByte)
+	codeHash := common.ToCodeHash(codeByte)
 	state, err := s.CloneCache.GetOrAdd(store.ST_Contract, codeHash.ToArray(), contractState)
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] GetOrAdd error!")
@@ -203,10 +203,7 @@ func (s *StateMachine) ContractMigrate(engine *vm.ExecutionEngine) (bool, error)
 	if len(codeByte) > 1024*1024 {
 		return false, errors.NewErr("[ContractMigrate] Code too long!")
 	}
-	codeHash, err := common.ToCodeHash(codeByte)
-	if err != nil {
-		return false, err
-	}
+	codeHash := common.ToCodeHash(codeByte)
 	item, err := s.CloneCache.Get(store.ST_Contract, codeHash.ToArray())
 	if err != nil {
 		return false, errors.NewErr("[ContractMigrate] Get Contract error!")

@@ -1,10 +1,10 @@
 package neovm
 
 import (
+	"github.com/Ontology/common"
+	"github.com/Ontology/vm/neovm/types"
 	"github.com/Ontology/vm/neovm/utils"
 	"io"
-	"github.com/Ontology/vm/neovm/types"
-	"github.com/Ontology/common"
 )
 
 type ExecutionContext struct {
@@ -38,10 +38,7 @@ func (ec *ExecutionContext) SetInstructionPointer(offset int64) {
 
 func (ec *ExecutionContext) GetCodeHash() (common.Uint160, error) {
 	if ec.CodeHash.CompareTo(common.Uint160{}) == 0 {
-		codeHash, err := common.ToCodeHash(ec.Code)
-		if err != nil {
-			return common.Uint160{}, err
-		}
+		codeHash := common.ToCodeHash(ec.Code)
 		ec.CodeHash = codeHash
 	}
 	return ec.CodeHash, nil
@@ -65,5 +62,3 @@ func (ec *ExecutionContext) GetStackItem() types.StackItemInterface {
 func (ec *ExecutionContext) GetExecutionContext() *ExecutionContext {
 	return ec
 }
-
-

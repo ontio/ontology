@@ -115,10 +115,7 @@ func (ds *DbftService) CheckSignatures() error {
 		if err != nil {
 			return NewDetailErr(err, ErrNoCode, "[DbftService] ,EncodePoint failed")
 		}
-		codehash, err := ToCodeHash(ep)
-		if err != nil {
-			return NewDetailErr(err, ErrNoCode, "[DbftService] ,ToCodeHash failed")
-		}
+		codehash := ToCodeHash(ep)
 
 		//create multi-sig contract with all bookKeepers
 		contract, err := ct.CreateMultiSigContract(codehash, ds.context.M(), ds.context.BookKeepers)

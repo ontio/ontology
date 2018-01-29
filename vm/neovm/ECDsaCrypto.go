@@ -1,19 +1,19 @@
 package neovm
 
 import (
-	"github.com/Ontology/crypto"
-	. "github.com/Ontology/errors"
-	"github.com/Ontology/common/log"
+	"crypto/sha256"
 	"errors"
 	"github.com/Ontology/common"
-	"crypto/sha256"
+	"github.com/Ontology/common/log"
+	"github.com/Ontology/crypto"
+	. "github.com/Ontology/errors"
 )
 
 type ECDsaCrypto struct {
 }
 
 func (c *ECDsaCrypto) Hash160(message []byte) []byte {
-	temp, _ := common.ToCodeHash(message)
+	temp := common.ToCodeHash(message)
 	return temp.ToArray()
 }
 

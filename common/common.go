@@ -1,36 +1,33 @@
 package common
 
 import (
-	"github.com/Ontology/common/log"
-	. "github.com/Ontology/errors"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"github.com/Ontology/common/log"
+	. "github.com/Ontology/errors"
 	"golang.org/x/crypto/ripemd160"
 	"io"
 	"math/rand"
 	"os"
 )
 
-func ToCodeHash(code []byte) (Uint160, error) {
+func ToCodeHash(code []byte) Uint160 {
 	temp := sha256.Sum256(code)
 	md := ripemd160.New()
 	io.WriteString(md, string(temp[:]))
 	f := md.Sum(nil)
 
-	hash, err := Uint160ParseFromBytes(f)
-	if err != nil {
-		return Uint160{}, NewDetailErr(errors.New("[Common] , ToCodeHash err."), ErrNoCode, "")
-	}
-	return hash, nil
+	hash, _ := Uint160ParseFromBytes(f) // err will never occur
+	return hash
 }
 
 func GetNonce() uint64 {
 	log.Debug()
 	// Fixme replace with the real random number generator
-	nonce := uint64(rand.Uint32()) << 32 + uint64(rand.Uint32())
+	nonce := uint64(rand.Uint32())<<32 + uint64(rand.Uint32())
 	return nonce
 }
 
@@ -73,7 +70,7 @@ func HexToBytes(value string) ([]byte, error) {
 }
 
 func BytesReverse(u []byte) []byte {
-	for i, j := 0, len(u) - 1; i < j; i, j = i + 1, j - 1 {
+	for i, j := 0, len(u)-1; i < j; i, j = i+1, j-1 {
 		u[i], u[j] = u[j], u[i]
 	}
 	return u
@@ -107,23 +104,23 @@ func GetUint16Array(source []byte) ([]uint16, error) {
 		return nil, NewDetailErr(errors.New("[Common] , GetUint16Array err, source = nil"), ErrNoCode, "")
 	}
 
-	if len(source) % 2 != 0 {
+	if len(source)%2 != 0 {
 		return nil, NewDetailErr(errors.New("[Common] , GetUint16Array err, length of source is odd."), ErrNoCode, "")
 	}
 
-	dst := make([]uint16, len(source) / 2)
-	for i := 0; i < len(source) / 2; i++ {
-		dst[i] = uint16(source[i * 2]) + uint16(source[i * 2 + 1]) * 256
+	dst := make([]uint16, len(source)/2)
+	for i := 0; i < len(source)/2; i++ {
+		dst[i] = uint16(source[i*2]) + uint16(source[i*2+1])*256
 	}
 
 	return dst, nil
 }
 
 func ToByteArray(source []uint16) []byte {
-	dst := make([]byte, len(source) * 2)
+	dst := make([]byte, len(source)*2)
 	for i := 0; i < len(source); i++ {
-		dst[i * 2] = byte(source[i] % 256)
-		dst[i * 2 + 1] = byte(source[i] / 256)
+		dst[i*2] = byte(source[i] % 256)
+		dst[i*2+1] = byte(source[i] / 256)
 	}
 
 	return dst
@@ -132,7 +129,7 @@ func ToByteArray(source []uint16) []byte {
 func SliceRemove(slice []uint32, h uint32) []uint32 {
 	for i, v := range slice {
 		if v == h {
-			return append(slice[:i], slice[i + 1:]...)
+			return append(slice[:i], slice[i+1:]...)
 		}
 	}
 	return slice

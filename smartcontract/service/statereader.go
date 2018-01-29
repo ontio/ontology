@@ -185,10 +185,7 @@ func (s *StateReader) CheckWitnessPublicKey(engine *vm.ExecutionEngine, publicKe
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[CheckWitnessPublicKey] CreateSignatureRedeemScript error!")
 	}
-	h, err := common.ToCodeHash(c)
-	if err != nil {
-		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[CheckWitnessPublicKey] ToCodeHash error!")
-	}
+	h := common.ToCodeHash(c)
 	return s.CheckWitnessHash(engine, h)
 }
 

@@ -55,10 +55,7 @@ func GetBookKeeperAddress(bookKeepers []*crypto.PubKey) (Uint160, error) {
 			return Uint160{}, NewDetailErr(err, ErrNoCode, "[Ledger],GetBookKeeperAddress failed with CreateMultiSigRedeemScript.")
 		}
 	}
-	codehash, err := common.ToCodeHash(temp)
-	if err != nil {
-		return Uint160{}, NewDetailErr(err, ErrNoCode, "[Ledger],GetBookKeeperAddress failed with ToCodeHash.")
-	}
+	codehash := common.ToCodeHash(temp)
 	return codehash, nil
 }
 
