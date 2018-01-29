@@ -173,11 +173,15 @@ func (s *StateReader) RuntimeLog(e *vm.ExecutionEngine) (bool, error) {
 }
 
 func (s *StateReader) CheckWitnessHash(engine *vm.ExecutionEngine, programHash common.Uint160) (bool, error) {
-	hashForVerifying, err := engine.GetCodeContainer().(signature.SignableData).GetProgramHashes()
-	if err != nil {
-		return false, err
+	signableData := engine.GetCodeContainer().(signature.SignableData)
+	programs := signableData.GetPrograms()
+	hashes := make([]common.Uint160, 0, len(programs))
+	for _, program := range programs {
+		hash := common.ToCodeHash(program.Code)
+		hashes = append(hashes, hash)
 	}
-	return contains(hashForVerifying, programHash), nil
+
+	return contains(hashes, programHash), nil
 }
 
 func (s *StateReader) CheckWitnessPublicKey(engine *vm.ExecutionEngine, publicKey *crypto.PubKey) (bool, error) {
