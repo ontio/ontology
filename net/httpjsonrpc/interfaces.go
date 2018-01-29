@@ -72,35 +72,6 @@ func TransArryByteToHexString(ptx *tx.Transaction) *Transactions {
 		n++
 	}
 
-	n = 0
-	trans.AssetOutputs = make([]TxoutputMap, len(ptx.AssetOutputs))
-	for k, v := range ptx.AssetOutputs {
-		trans.AssetOutputs[n].Key = k
-		trans.AssetOutputs[n].Txout = make([]TxoutputInfo, len(v))
-		for m := 0; m < len(v); m++ {
-			trans.AssetOutputs[n].Txout[m].AssetID = ToHexString(v[m].AssetID.ToArray())
-			trans.AssetOutputs[n].Txout[m].Value = v[m].Value
-			trans.AssetOutputs[n].Txout[m].ProgramHash = ToHexString(v[m].ProgramHash.ToArray())
-		}
-		n += 1
-	}
-
-	n = 0
-	trans.AssetInputAmount = make([]AmountMap, len(ptx.AssetInputAmount))
-	for k, v := range ptx.AssetInputAmount {
-		trans.AssetInputAmount[n].Key = k
-		trans.AssetInputAmount[n].Value = v
-		n += 1
-	}
-
-	n = 0
-	trans.AssetOutputAmount = make([]AmountMap, len(ptx.AssetOutputAmount))
-	for k, v := range ptx.AssetOutputAmount {
-		trans.AssetInputAmount[n].Key = k
-		trans.AssetInputAmount[n].Value = v
-		n += 1
-	}
-
 	mhash := ptx.Hash()
 	trans.Hash = ToHexString(mhash.ToArray())
 

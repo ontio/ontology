@@ -63,12 +63,9 @@ type Transaction struct {
 	Outputs        []*TxOutput
 	Programs       []*program.Program
 
-	//Inputs/Outputs map base on Asset (needn't serialize)
-	AssetOutputs      map[Uint256][]*TxOutput
-	AssetInputAmount  map[Uint256]Fixed64
-	AssetOutputAmount map[Uint256]Fixed64
-
-	hash *Uint256
+	//cache only, needn't serialize
+	referTx []*TxOutput
+	hash    *Uint256
 }
 
 //Serialize the Transaction
@@ -416,12 +413,16 @@ func (tx *Transaction) Verify() error {
 	return nil
 }
 
-func (tx *Transaction) GetReference() (map[*UTXOTxInput]*TxOutput, error) {
+func (tx *Transaction) GetReference() ([]*TxOutput, error) {
+	//if tx.referTx != nil {
+	//	return tx.referTx, nil
+	//}
+
 	if tx.TxType == RegisterAsset {
 		return nil, nil
 	}
 	//UTXO input /  Outputs
-	reference := make(map[*UTXOTxInput]*TxOutput)
+	reference := make([]*TxOutput, 0, len(tx.UTXOInputs))
 	// Key index，v UTXOInput
 	for _, utxo := range tx.UTXOInputs {
 		transaction, err := TxStore.GetTransaction(utxo.ReferTxID)
@@ -429,7 +430,7 @@ func (tx *Transaction) GetReference() (map[*UTXOTxInput]*TxOutput, error) {
 			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetReference failed.")
 		}
 		index := utxo.ReferTxOutputIndex
-		reference[utxo] = transaction.Outputs[index]
+		reference = append(reference, transaction.Outputs[index])
 	}
 	return reference, nil
 }
