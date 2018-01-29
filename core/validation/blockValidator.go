@@ -17,7 +17,12 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 		return err
 	}
 
-	err = VerifySignableData(block)
+	err = VerifySignableDataSignature(block)
+	if err != nil {
+		return err
+	}
+
+	err = VerifySignableDataProgramHashes(block)
 	if err != nil {
 		return err
 	}

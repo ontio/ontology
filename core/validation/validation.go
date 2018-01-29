@@ -12,8 +12,7 @@ import (
 	"github.com/Ontology/vm/neovm/interfaces"
 )
 
-func VerifySignableData(signableData sig.SignableData) error {
-
+func VerifySignableDataProgramHashes(signableData sig.SignableData) error {
 	hashes, err := signableData.GetProgramHashes()
 	if err != nil {
 		return err
@@ -22,15 +21,22 @@ func VerifySignableData(signableData sig.SignableData) error {
 	programs := signableData.GetPrograms()
 	Length := len(hashes)
 	if Length != len(programs) {
-		return errors.New("The number of data hashes is different with number of programs.")
+		return errors.New("the number of data hashes is different with number of programs")
 	}
 
-	programs = signableData.GetPrograms()
 	for i := 0; i < len(programs); i++ {
 		temp := ToCodeHash(programs[i].Code)
 		if hashes[i] != temp {
-			return errors.New("The data hashes is different with corresponding program code.")
+			return errors.New("the data hashes is different with corresponding program code")
 		}
+	}
+
+	return nil
+}
+
+func VerifySignableDataSignature(signableData sig.SignableData) error {
+	programs := signableData.GetPrograms()
+	for i := 0; i < len(programs); i++ {
 		//execute program on VM
 		var cryptos interfaces.ICrypto
 		cryptos = new(vm.ECDsaCrypto)

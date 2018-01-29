@@ -432,10 +432,14 @@ func (bd *ChainStore) verifyHeader(header *Header) bool {
 		return false
 	}
 
-	err := validation.VerifySignableData(header)
+	err := validation.VerifySignableDataSignature(header)
 	if err != nil {
-		log.Error("[verifyHeader] failed, VerifySignableData failed.")
-		log.Error(err)
+		log.Error("[verifyHeader] failed, VerifySignableDataSignature failed.", err.Error())
+		return false
+	}
+	err = validation.VerifySignableDataProgramHashes(header)
+	if err != nil {
+		log.Error("[verifyHeader] failed, VerifySignableDataProgramHashes failed.", err.Error())
 		return false
 	}
 
@@ -864,9 +868,14 @@ func (self *ChainStore) SaveBlock(b *Block, ledger *Ledger) error {
 
 		self.taskCh <- &persistHeaderTask{header: b.Header}
 	} else {
-		err := validation.VerifySignableData(b)
+		err := validation.VerifySignableDataSignature(b)
 		if err != nil {
-			log.Error("VerifyBlock error!")
+			log.Error("VerifyBlock Signature error!")
+			return err
+		}
+		err = validation.VerifySignableDataProgramHashes(b)
+		if err != nil {
+			log.Error("VerifyBlock ProgramHashes error!")
 			return err
 		}
 	}

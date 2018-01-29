@@ -45,7 +45,11 @@ func (cp *ConsensusPayload) Hash() common.Uint256 {
 }
 
 func (cp *ConsensusPayload) Verify() error {
-	err := validation.VerifySignableData(cp)
+	err := validation.VerifySignableDataSignature(cp)
+	if err != nil {
+		return errors.New(fmt.Sprint("ConsensusPayload verify failed", err.Error()))
+	}
+	err = validation.VerifySignableDataProgramHashes(cp)
 	if err != nil {
 		return errors.New(fmt.Sprint("ConsensusPayload verify failed", err.Error()))
 	}

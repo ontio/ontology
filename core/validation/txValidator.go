@@ -228,28 +228,17 @@ func CheckAttributeProgram(Tx *tx.Transaction) error {
 }
 
 func CheckTransactionContracts(Tx *tx.Transaction) error {
-	err := VerifySignableData(Tx)
+	err := VerifySignableDataSignature(Tx)
 	if err == nil {
 		return nil
-	} else {
-		return err
 	}
+
+	err = VerifySignableDataProgramHashes(Tx)
+	return err
 }
 
 func checkAmountPrecise(amount common.Fixed64, precision byte) bool {
 	return amount.GetData()%int64(math.Pow(10, 8-float64(precision))) != 0
-}
-
-func checkIssuerInBookkeeperList(issuer *crypto.PubKey, bookKeepers []*crypto.PubKey) bool {
-	for _, bk := range bookKeepers {
-		r := crypto.Equal(issuer, bk)
-		if r == true {
-			log.Debug("issuer is in bookkeeperlist")
-			return true
-		}
-	}
-	log.Debug("issuer is NOT in bookkeeperlist")
-	return false
 }
 
 func CheckTransactionPayload(Tx *tx.Transaction) error {
@@ -259,8 +248,9 @@ func CheckTransactionPayload(Tx *tx.Transaction) error {
 		//Todo: validate bookKeeper Cert
 		_ = pld.Cert
 		bookKeepers, _, _ := ledger.DefaultLedger.Store.GetBookKeeperList()
-		r := checkIssuerInBookkeeperList(pld.Issuer, bookKeepers)
-		if r == false {
+
+		index := crypto.ContainPubKey(pld.Issuer, bookKeepers)
+		if index == -1 {
 			return errors.New("The issuer isn't bookekeeper, can't add other in bookkeepers list.")
 		}
 		return nil
