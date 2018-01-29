@@ -1,6 +1,8 @@
 package validation
 
 import (
+	"errors"
+	"fmt"
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/asset"
@@ -10,8 +12,6 @@ import (
 	"github.com/Ontology/core/transaction/utxo"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
-	"errors"
-	"fmt"
 	"math"
 )
 
@@ -115,7 +115,7 @@ func VerifyTransactionWithBlock(TxPool []*tx.Transaction) error {
 				//AssetReg.Amount : amount when RegisterAsset of this assedID
 				//quantity_issued : amount has been issued of this assedID
 				//txPoolAmounts   : amount in transactionPool of this assedID of issue transaction.
-				if AssetReg.Amount - quantity_issued < txPoolAmounts {
+				if AssetReg.Amount-quantity_issued < txPoolAmounts {
 					return errors.New("[VerifyTransaction], Amount check error.")
 				}
 			}
@@ -228,8 +228,8 @@ func CheckAttributeProgram(Tx *tx.Transaction) error {
 }
 
 func CheckTransactionContracts(Tx *tx.Transaction) error {
-	flag, err := VerifySignableData(Tx)
-	if flag && err == nil {
+	err := VerifySignableData(Tx)
+	if err == nil {
 		return nil
 	} else {
 		return err
@@ -237,7 +237,7 @@ func CheckTransactionContracts(Tx *tx.Transaction) error {
 }
 
 func checkAmountPrecise(amount common.Fixed64, precision byte) bool {
-	return amount.GetData() % int64(math.Pow(10, 8 - float64(precision))) != 0
+	return amount.GetData()%int64(math.Pow(10, 8-float64(precision))) != 0
 }
 
 func checkIssuerInBookkeeperList(issuer *crypto.PubKey, bookKeepers []*crypto.PubKey) bool {

@@ -432,8 +432,8 @@ func (bd *ChainStore) verifyHeader(header *Header) bool {
 		return false
 	}
 
-	flag, err := validation.VerifySignableData(header)
-	if flag == false || err != nil {
+	err := validation.VerifySignableData(header)
+	if err != nil {
 		log.Error("[verifyHeader] failed, VerifySignableData failed.")
 		log.Error(err)
 		return false
@@ -864,8 +864,8 @@ func (self *ChainStore) SaveBlock(b *Block, ledger *Ledger) error {
 
 		self.taskCh <- &persistHeaderTask{header: b.Header}
 	} else {
-		flag, err := validation.VerifySignableData(b)
-		if flag == false || err != nil {
+		err := validation.VerifySignableData(b)
+		if err != nil {
 			log.Error("VerifyBlock error!")
 			return err
 		}

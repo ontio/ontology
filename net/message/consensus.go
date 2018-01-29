@@ -31,7 +31,7 @@ type ConsensusPayload struct {
 	Owner           *crypto.PubKey
 	Program         *program.Program
 
-	hash            common.Uint256
+	hash common.Uint256
 }
 
 type consensus struct {
@@ -46,8 +46,8 @@ func (cp *ConsensusPayload) Hash() common.Uint256 {
 }
 
 func (cp *ConsensusPayload) Verify() error {
-	res, err := validation.VerifySignableData(cp)
-	if res == false || err != nil {
+	err := validation.VerifySignableData(cp)
+	if err != nil {
 		return errors.New(fmt.Sprint("ConsensusPayload verify failed", err.Error()))
 	}
 
