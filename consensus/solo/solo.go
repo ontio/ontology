@@ -80,9 +80,9 @@ func (this *SoloService) makeBlock() *ledger.Block {
 		log.Error("SoloService GetBookKeeperAddress error:%s", err)
 		return nil
 	}
-	transactionsPool := this.localNet.GetTxnPool(true)
 	nonce := GetNonce()
-	txBookkeeping := this.createBookkeepingTransaction(nonce)
+	transactionsPool,feeSum := this.localNet.GetTxnPool(true)
+	txBookkeeping := this.createBookkeepingTransaction(nonce, feeSum)
 
 	transactions := make([]*tx.Transaction, 0, len(transactionsPool)+1)
 	transactions = append(transactions, txBookkeeping)
@@ -153,13 +153,31 @@ func (this *SoloService) getBlockPrograms(block *ledger.Block, owner *crypto.Pub
 	return ctx.GetPrograms(), nil
 }
 
-func (this *SoloService) createBookkeepingTransaction(nonce uint64) *tx.Transaction {
+func (this *SoloService) createBookkeepingTransaction(nonce uint64, fee Fixed64) *tx.Transaction {
 	log.Debug()
 	//TODO: sysfee
 	bookKeepingPayload := &payload.BookKeeping{
 		Nonce: uint64(time.Now().UnixNano()),
 	}
-
+	ac, _ := this.Client.GetDefaultAccount()
+	owner := ac.PublicKey
+	signatureRedeemScript, err := contract.CreateSignatureRedeemScript(owner)
+	if err != nil {
+		return nil
+	}
+	signatureRedeemScriptHashToCodeHash := ToCodeHash(signatureRedeemScript)
+	if err != nil {
+		return nil
+	}
+	outputs := []*utxo.TxOutput{}
+	if fee > 0 {
+		feeOutput := &utxo.TxOutput{
+			AssetID:     tx.ONGAssetID,
+			Value:       fee,
+			ProgramHash: signatureRedeemScriptHashToCodeHash,
+		}
+		outputs = append(outputs, feeOutput)
+	}
 	return &tx.Transaction{
 		TxType:         tx.BookKeeping,
 		PayloadVersion: payload.BookKeepingPayloadVersion,
@@ -167,7 +185,7 @@ func (this *SoloService) createBookkeepingTransaction(nonce uint64) *tx.Transact
 		Attributes:     []*tx.TxAttribute{},
 		UTXOInputs:     []*utxo.UTXOTxInput{},
 		BalanceInputs:  []*tx.BalanceTxInput{},
-		Outputs:        []*utxo.TxOutput{},
+		Outputs:        outputs,
 		Programs:       []*program.Program{},
 	}
 }

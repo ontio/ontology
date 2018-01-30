@@ -4,7 +4,6 @@ import (
 	. "github.com/Ontology/common"
 	."github.com/Ontology/consensus"
 	"github.com/Ontology/common/log"
-	. "github.com/Ontology/core/transaction"
 	tx "github.com/Ontology/core/transaction"
 	. "github.com/Ontology/errors"
 	. "github.com/Ontology/net/protocol"
@@ -35,7 +34,7 @@ type ServeMux struct {
 }
 
 type TxAttributeInfo struct {
-	Usage TransactionAttributeUsage
+	Usage tx.TransactionAttributeUsage
 	Data  string
 }
 
@@ -46,13 +45,13 @@ type UTXOTxInputInfo struct {
 
 type BalanceTxInputInfo struct {
 	AssetID     string
-	Value       Fixed64
+	Value       string
 	ProgramHash string
 }
 
 type TxoutputInfo struct {
 	AssetID     string
-	Value       Fixed64
+	Value       string
 	ProgramHash string
 }
 
@@ -72,7 +71,7 @@ type ProgramInfo struct {
 }
 
 type Transactions struct {
-	TxType            TransactionType
+	TxType            tx.TransactionType
 	PayloadVersion    byte
 	Payload           PayloadInfo
 	Attributes        []TxAttributeInfo
@@ -80,6 +79,8 @@ type Transactions struct {
 	BalanceInputs     []BalanceTxInputInfo
 	Outputs           []TxoutputInfo
 	Programs          []ProgramInfo
+	NetworkFee        string
+	SystemFee         string
 
 	AssetOutputs      []TxoutputMap
 	AssetInputAmount  []AmountMap

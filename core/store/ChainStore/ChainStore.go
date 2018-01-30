@@ -716,6 +716,14 @@ func (bd *ChainStore) persist(b *Block) error {
 				asset := state.(*states.AssetState)
 				asset.Available -= r
 			}
+		case tx.Claim:
+			claim_ := t.Payload.(*payload.Claim)
+			for _, v := range claim_.Claims {
+				err := bd.RemoveSpentCoin(v.ReferTxID, v.ReferTxOutputIndex)
+				if err != nil {
+					return err
+				}
+			}
 		case tx.BookKeeper:
 			bk := t.Payload.(*payload.BookKeeper)
 			switch bk.Action {
@@ -1197,4 +1205,102 @@ func (bd *ChainStore) GetStorageItem(key *states.StorageKey) (*states.StorageIte
 		return nil, err
 	}
 	return item, nil
+}
+
+func (bd *ChainStore) AddSpentCoinState(hash Uint256, index uint16, startHeight uint32, endHeight uint32) error {
+	prefix := []byte{byte(ST_SpentCoin)}
+	key := append(prefix, hash.ToArray()...)
+	var SpentCoinState_ *utxo.SpentCoinState
+	data, err := bd.st.Get(key)
+	if err != nil {
+		//not exist
+		SpentCoinState_ = &utxo.SpentCoinState{
+			TransactionHash:   hash,
+			TransactionHeight: startHeight,
+			Items: []*utxo.Item{
+				{
+					PrevIndex: index,
+					EndHeight: endHeight,
+				},
+			},
+		}
+	} else {
+		//exist
+		SpentCoinState_ = new(utxo.SpentCoinState)
+		r := bytes.NewReader(data)
+		err = SpentCoinState_.Deserialize(r)
+		if err != nil {
+			return err
+		}
+		//check
+		for _, v := range SpentCoinState_.Items {
+			if index == v.PrevIndex {
+				return errors.New("duplicate coin claim.")
+			}
+		}
+		SpentCoinState_.Items = append(SpentCoinState_.Items,
+			&utxo.Item{
+				PrevIndex: index,
+				EndHeight: endHeight,
+			})
+	}
+	w := bytes.NewBuffer(nil)
+	SpentCoinState_.Serialize(w)
+	err = bd.st.BatchPut(key, w.Bytes())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (bd *ChainStore) RemoveSpentCoin(hash Uint256, index uint16) error {
+	prefix := []byte{byte(ST_SpentCoin)}
+	key := append(prefix, hash.ToArray()...)
+	data, err := bd.st.Get(key)
+	if err != nil {
+		return err
+	}
+	r := bytes.NewReader(data)
+	SpentCoinState_ := new(utxo.SpentCoinState)
+	err = SpentCoinState_.Deserialize(r)
+	if err != nil {
+		return err
+	}
+	//check
+	var keyIndex int
+	for k, v := range SpentCoinState_.Items {
+		if index == v.PrevIndex {
+			keyIndex = k
+		}
+	}
+	if len(SpentCoinState_.Items) == 1 {
+		err = bd.st.BatchDelete(key)
+		if err != nil {
+			return err
+		}
+		return nil
+	} else {
+		SpentCoinState_.RemoveItem(keyIndex)
+		w := bytes.NewBuffer(nil)
+		SpentCoinState_.Serialize(w)
+		err = bd.st.BatchPut(key, w.Bytes())
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+func (bd *ChainStore) GetSysFeeAmount(hash Uint256) (Fixed64, error) {
+	amount := new(Fixed64)
+	data, err := bd.st.Get(append([]byte{byte(DATA_Header)}, hash.ToArray()...))
+	if err != nil {
+		return Fixed64(0), nil
+	}
+	b := bytes.NewReader(data)
+	err = amount.Deserialize(b)
+	if err != nil {
+		return Fixed64(0), nil
+	}
+	return *amount, nil
 }

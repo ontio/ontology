@@ -54,4 +54,6 @@ type ILedgerStore interface {
 	GetIdentity(ontId []byte) ([]byte, error)
 
 	GetStorageItem(key *states.StorageKey) (*states.StorageItem, error)
+
+	GetSysFeeAmount(hash Uint256) (Fixed64, error)
 }

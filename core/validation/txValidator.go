@@ -185,11 +185,13 @@ func CheckAssetPrecision(Tx *tx.Transaction) error {
 	for k, outputs := range assetOutputs {
 		asset, err := ledger.DefaultLedger.GetAsset(k)
 		if err != nil {
+			log.Debugf("The asset not exist in local blockchain. %x", k)
 			return errors.New("The asset not exist in local blockchain.")
 		}
 		precision := asset.Precision
 		for _, output := range outputs {
 			if checkAmountPrecise(output.Value, precision) {
+				log.Debugf("output.Value", output.Value, "precision", precision)
 				return errors.New("The precision of asset is incorrect.")
 			}
 		}
@@ -198,25 +200,52 @@ func CheckAssetPrecision(Tx *tx.Transaction) error {
 }
 
 func CheckTransactionBalance(Tx *tx.Transaction) error {
+	if Tx.SystemFee < 0 {
+		return errors.New("Invalide transaction SystemFee.")
+	}
 	for _, v := range Tx.Outputs {
 		if v.Value <= common.Fixed64(0) {
 			return errors.New("Invalide transaction UTXO output.")
 		}
 	}
-	if Tx.TxType == tx.IssueAsset {
-		if len(Tx.UTXOInputs) > 0 {
-			return errors.New("Invalide Issue transaction.")
-		}
-		return nil
+	networkFee, err := Tx.GetNetworkFee()
+	if Tx.NetworkFee < 0 || networkFee.GetData() != Tx.NetworkFee.GetData() {
+		return errors.New("Invalide transaction NetworkFee.")
 	}
 	results, err := Tx.GetTransactionResults()
 	if err != nil {
 		return err
 	}
-	for k, v := range results {
-		if v != 0 {
-			log.Debug(fmt.Sprintf("AssetID %x in Transfer transactions %x , Input/output UTXO not equal.", k, Tx.Hash()))
-			return errors.New(fmt.Sprintf("AssetID %x in Transfer transactions %x , Input/output UTXO not equal.", k, Tx.Hash()))
+	switch Tx.TxType {
+	case tx.IssueAsset:
+		for k, v := range results {
+			if k.CompareTo(tx.ONGAssetID) == 0 {
+				if Tx.GetSysFee().GetData() != Tx.SystemFee.GetData() {
+					return errors.New(fmt.Sprintf("AssetID %x in Transfer transactions %x ,SystemFee/NetworkFee Not equal.", k, Tx.Hash()))
+				}
+				if v.GetData() != Tx.GetSysFee().GetData()+Tx.NetworkFee.GetData() {
+					return errors.New(fmt.Sprintf("AssetID %x in Transfer transactions %x ,SystemFee/NetworkFee Not equal.", k, Tx.Hash()))
+				}
+			}
+		}
+	case tx.Claim:
+		return nil
+	default:
+		for k, v := range results {
+			if k.CompareTo(tx.ONGAssetID) == 0 {
+				if Tx.GetSysFee().GetData() != Tx.SystemFee.GetData() {
+					return errors.New(fmt.Sprintf("AssetID %x in Transfer transactions %x ,SystemFee/NetworkFee Not equal.", k, Tx.Hash()))
+				}
+				if v.GetData() != Tx.GetSysFee().GetData()+Tx.NetworkFee.GetData() {
+					log.Debug(fmt.Sprintf("AssetID %x in Transfer transactions %x ,SystemFee Not equal.", k, Tx.Hash()))
+					return errors.New(fmt.Sprintf("AssetID %x in Transfer transactions %x ,SystemFee Not equal.", k, Tx.Hash()))
+				}
+			} else {
+				if v != 0 {
+					log.Debug(fmt.Sprintf("AssetID %x in Transfer transactions %x , Input/output UTXO not equal.", k, Tx.Hash()))
+					return errors.New(fmt.Sprintf("AssetID %x in Transfer transactions %x , Input/output UTXO not equal.", k, Tx.Hash()))
+				}
+			}
 		}
 	}
 	return nil
@@ -269,8 +298,41 @@ func CheckTransactionPayload(Tx *tx.Transaction) error {
 	case *payload.DeployCode:
 	case *payload.InvokeCode:
 	case *payload.DataFile:
+	case *payload.Claim:
+		claims := Tx.Payload.(*payload.Claim).Claims
+		if isDoubleClaim(claims) {
+			return errors.New("[CheckTransactionPayload], Invalid double claim")
+		}
+		result, err := Tx.GetTransactionResults()
+		if err != nil {
+			return errors.New("[CheckTransactionPayload], Invalid transaction results")
+		}
+		var claimAmount common.Fixed64
+		for k, v := range result {
+			if k.CompareTo(tx.ONGAssetID) == 0 {
+				claimAmount += v
+			}
+		}
+		amount, err := ledger.CalculateBouns(claims, false)
+		if err != nil {
+			return errors.New(fmt.Sprintf("[CheckTransactionPayload], CalculateBouns error:%v", err))
+		}
+		if -amount.GetData() != claimAmount.GetData() {
+			return errors.New(fmt.Sprintf("[CheckTransactionPayload], claims amount error claimed amount =%d, actual=%d", claimAmount.GetData(), amount.GetData()))
+		}
 	default:
 		return errors.New("[txValidator],invalidate transaction payload type.")
 	}
 	return nil
+}
+
+func isDoubleClaim(claims []*utxo.UTXOTxInput) bool {
+	for i := 0; i < len(claims); i++ {
+		for j := 0; i < i; j++ {
+			if claims[i] == claims[j] {
+				return true
+			}
+		}
+	}
+	return false
 }

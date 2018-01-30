@@ -1,14 +1,14 @@
 package protocol
 
 import (
+	"bytes"
+	"encoding/binary"
 	"github.com/Ontology/common"
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/transaction"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
 	"github.com/Ontology/events"
-	"bytes"
-	"encoding/binary"
 	"time"
 )
 
@@ -95,7 +95,7 @@ type Noder interface {
 	CloseConn()
 	GetHeight() uint64
 	GetConnectionCnt() uint
-	GetTxnPool(bool) map[common.Uint256]*transaction.Transaction
+	GetTxnPool(bool) (map[common.Uint256]*transaction.Transaction, common.Fixed64)
 	AppendTxnPool(*transaction.Transaction) ErrCode
 	ExistedID(id common.Uint256) bool
 	ReqNeighborList()

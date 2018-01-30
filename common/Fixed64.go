@@ -10,6 +10,10 @@ import (
 //the 64 bit fixed-point number, precise 10^-8
 type Fixed64 int64
 
+const (
+	Decimal = 100000000
+)
+
 func (f *Fixed64) Serialize(w io.Writer) error {
 	err := binary.Write(w, binary.LittleEndian, int64(*f))
 	if err != nil {
@@ -33,6 +37,10 @@ func (f *Fixed64) Deserialize(r io.Reader) error {
 	}
 	*f = Fixed64(x)
 	return nil
+}
+
+func FromDecimal(value int64) Fixed64 {
+	return Fixed64(value * Decimal)
 }
 
 func (f Fixed64) GetData() int64 {

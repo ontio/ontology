@@ -92,6 +92,7 @@ func main() {
 	log.Info("4. Start the P2P networks")
 	// Don't need two return value.
 	noder = net.StartProtocol(acct.PublicKey)
+	go httprestful.StartServer(noder)
 	httpjsonrpc.RegistRpcNode(noder)
 
 	noder.SyncNodeHeight()
@@ -108,7 +109,6 @@ func main() {
 	log.Info("--Start the RPC interface")
 	go httpjsonrpc.StartRPCServer()
 	go httpjsonrpc.StartLocalServer()
-	go httprestful.StartServer(noder)
 	go httpwebsocket.StartServer(noder)
 	if config.Parameters.HttpInfoStart {
 		go httpnodeinfo.StartServer(noder)

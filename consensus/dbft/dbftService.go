@@ -7,6 +7,7 @@ import (
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
+	"github.com/Ontology/core/contract"
 	ct "github.com/Ontology/core/contract"
 	"github.com/Ontology/core/contract/program"
 	"github.com/Ontology/core/ledger"
@@ -157,11 +158,28 @@ func (ds *DbftService) CheckSignatures() error {
 	return nil
 }
 
-func (ds *DbftService) CreateBookkeepingTransaction(nonce uint64) *tx.Transaction {
+func (ds *DbftService) CreateBookkeepingTransaction(nonce uint64, fee Fixed64) *tx.Transaction {
 	log.Debug()
 	//TODO: sysfee
 	bookKeepingPayload := &payload.BookKeeping{
 		Nonce: uint64(time.Now().UnixNano()),
+	}
+	signatureRedeemScript, err := contract.CreateSignatureRedeemScript(ds.context.Owner)
+	if err != nil {
+		return nil
+	}
+	signatureRedeemScriptHashToCodeHash := ToCodeHash(signatureRedeemScript)
+	if err != nil {
+		return nil
+	}
+	outputs := []*utxo.TxOutput{}
+	if fee > 0 {
+		feeOutput := &utxo.TxOutput{
+			AssetID:     tx.ONGAssetID,
+			Value:       fee,
+			ProgramHash: signatureRedeemScriptHashToCodeHash,
+		}
+		outputs = append(outputs, feeOutput)
 	}
 	return &tx.Transaction{
 		TxType:         tx.BookKeeping,
@@ -170,7 +188,7 @@ func (ds *DbftService) CreateBookkeepingTransaction(nonce uint64) *tx.Transactio
 		Attributes:     []*tx.TxAttribute{},
 		UTXOInputs:     []*utxo.UTXOTxInput{},
 		BalanceInputs:  []*tx.BalanceTxInput{},
-		Outputs:        []*utxo.TxOutput{},
+		Outputs:        outputs,
 		Programs:       []*program.Program{},
 	}
 }
@@ -324,7 +342,7 @@ func (ds *DbftService) GetUnverifiedTxs(txs []*tx.Transaction) []*tx.Transaction
 	if len(ds.context.Transactions) == 0 {
 		return nil
 	}
-	txpool := ds.localNet.GetTxnPool(false)
+	txpool, _ := ds.localNet.GetTxnPool(false)
 	ret := []*tx.Transaction{}
 	for _, t := range txs {
 		if _, ok := txpool[t.Hash()]; !ok {
@@ -548,11 +566,11 @@ func (ds *DbftService) Timeout() {
 			}
 
 			ds.context.Nonce = GetNonce()
-			transactionsPool := ds.localNet.GetTxnPool(true)
+			transactionsPool, feeSum := ds.localNet.GetTxnPool(true)
 			//TODO: add policy
 			//TODO: add max TX limitation
 
-			txBookkeeping := ds.CreateBookkeepingTransaction(ds.context.Nonce)
+			txBookkeeping := ds.CreateBookkeepingTransaction(ds.context.Nonce, feeSum)
 			//add book keeping transaction first
 			ds.context.Transactions = append(ds.context.Transactions, txBookkeeping)
 			//add transactions from transaction pool

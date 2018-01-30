@@ -18,8 +18,17 @@ import (
 	"time"
 )
 
-const BlockVersion uint32 = 0
-const GenesisNonce uint64 = 2083236893
+const (
+	BlockVersion      uint32 = 0
+	GenesisNonce      uint64 = 2083236893
+	DecrementInterval uint32 = 2000000
+)
+
+var (
+	GenerationAmount = [17]uint32{80, 70, 60, 50, 40, 30, 20, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10}
+	ONTAssetID       Uint256
+	ONGAssetID       Uint256
+)
 
 var GenBlockTime = (config.DEFAULTGENBLOCKTIME * time.Second)
 
@@ -192,11 +201,16 @@ func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*Block, error) {
 		Programs:      []*program.Program{},
 	}
 	//block
+	issue := tx.NewIssueToken(tx.NewGoverningToken(), tx.NewUtilityToken())
 	genesisBlock := &Block{
 		Header:       genesisHeader,
-		Transactions: []*tx.Transaction{trans},
+		Transactions: []*tx.Transaction{
+			trans,
+			tx.NewGoverningToken(),
+			tx.NewUtilityToken(),
+			issue,
+		},
 	}
-
 	return genesisBlock, nil
 }
 
@@ -217,4 +231,109 @@ func (b *Block) RebuildMerkleRoot() error {
 
 func (bd *Block) SerializeUnsigned(w io.Writer) error {
 	return bd.Header.SerializeUnsigned(w)
+}
+
+func CalculateBouns(inputs []*utxo.UTXOTxInput, ignoreClaimed bool) (Fixed64, error) {
+	unclaimed := make([]*utxo.SpentCoin, 0)
+	group := make(map[Uint256][]uint16, 0)
+	for _, v := range inputs {
+		if _, ok := group[v.ReferTxID]; !ok {
+			group[v.ReferTxID] = make([]uint16, 0)
+		}
+		group[v.ReferTxID] = append(group[v.ReferTxID], v.ReferTxOutputIndex)
+	}
+	for k, v := range group {
+		claimable, err := DefaultLedger.Store.GetUnclaimed(k)
+		if err != nil {
+			if ignoreClaimed {
+				continue
+			} else {
+				return 0, err
+			}
+		}
+		for _, m := range v {
+			if value, ok := claimable[m]; !ok {
+				if ignoreClaimed {
+					continue
+				} else {
+					return 0, err
+				}
+				unclaimed = append(unclaimed, value)
+			}
+			unclaimed = append(unclaimed, claimable[m])
+		}
+	}
+	return CalculateBonusInternal(unclaimed)
+}
+
+func CalculateBonusInternal(unclaimed []*utxo.SpentCoin) (Fixed64, error) {
+	gl := uint32(len(GenerationAmount))
+	var amountClaimed uint64
+	type Temp struct {
+		StartHeight uint32
+		EndHeight   uint32
+	}
+	group := make(map[Temp]Fixed64, 0)
+	for _, v := range unclaimed {
+		group[Temp{v.StartHeight, v.EndHeight}] = group[Temp{v.StartHeight, v.EndHeight}] + v.Output.Value
+	}
+	for k, v := range group {
+		var amount uint32 = 0
+		ustart := k.StartHeight / DecrementInterval
+		if ustart < gl {
+			istart := k.StartHeight % DecrementInterval
+			uend := k.EndHeight / DecrementInterval
+			iend := k.EndHeight % DecrementInterval
+			if uend >= gl {
+				uend = gl
+				iend = 0
+			}
+			if iend == 0 {
+				uend--
+				iend = DecrementInterval
+			}
+			for {
+				if ustart >= uend {
+					break
+				}
+				amount += (DecrementInterval - istart) * GenerationAmount[ustart]
+				ustart++
+				istart = 0
+			}
+			amount += iend * GenerationAmount[ustart]
+		}
+		var (
+			hash        Uint256
+			err         error
+			startSysFee Fixed64
+			endSysFee   Fixed64
+		)
+
+		if k.StartHeight == 0 {
+			startSysFee = Fixed64(0)
+		} else {
+			hash, err = DefaultLedger.Store.GetBlockHash(k.StartHeight - 1)
+			if err != nil {
+				return Fixed64(0), err
+			}
+			startSysFee, err = DefaultLedger.Store.GetSysFeeAmount(hash)
+			if err != nil {
+				return Fixed64(0), err
+			}
+		}
+
+		hash, err = DefaultLedger.Store.GetBlockHash(k.EndHeight - 1)
+		if err != nil {
+			return Fixed64(0), err
+		}
+
+		endSysFee, err = DefaultLedger.Store.GetSysFeeAmount(hash)
+		if err != nil {
+			return Fixed64(0), err
+		}
+		amount += uint32(endSysFee.GetData()) - uint32(startSysFee.GetData())
+		amountClaimed += uint64(v.GetData()) / uint64(tx.OntRegisterAmount) * uint64(amount)
+
+	}
+	return Fixed64(amountClaimed), nil
 }

@@ -12,6 +12,8 @@ import (
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/states"
 	tx "github.com/Ontology/core/transaction"
+	"github.com/Ontology/core/transaction/payload"
+	"github.com/Ontology/core/transaction/utxo"
 	. "github.com/Ontology/errors"
 	"math/rand"
 	"os"
@@ -50,7 +52,7 @@ func TransArryByteToHexString(ptx *tx.Transaction) *Transactions {
 	trans.BalanceInputs = make([]BalanceTxInputInfo, len(ptx.BalanceInputs))
 	for _, v := range ptx.BalanceInputs {
 		trans.BalanceInputs[n].AssetID = ToHexString(v.AssetID.ToArray())
-		trans.BalanceInputs[n].Value = v.Value
+		trans.BalanceInputs[n].Value = strconv.FormatInt(int64(v.Value), 10)
 		trans.BalanceInputs[n].ProgramHash = ToHexString(v.ProgramHash.ToArray())
 		n++
 	}
@@ -59,7 +61,7 @@ func TransArryByteToHexString(ptx *tx.Transaction) *Transactions {
 	trans.Outputs = make([]TxoutputInfo, len(ptx.Outputs))
 	for _, v := range ptx.Outputs {
 		trans.Outputs[n].AssetID = ToHexString(v.AssetID.ToArray())
-		trans.Outputs[n].Value = v.Value
+		trans.Outputs[n].Value = strconv.FormatInt(int64(v.Value), 10)
 		trans.Outputs[n].ProgramHash = ToHexString(v.ProgramHash.ToArray())
 		n++
 	}
@@ -71,6 +73,9 @@ func TransArryByteToHexString(ptx *tx.Transaction) *Transactions {
 		trans.Programs[n].Parameter = ToHexString(v.Parameter)
 		n++
 	}
+
+	trans.NetworkFee = strconv.FormatInt(int64(ptx.NetworkFee),10)
+	trans.SystemFee = strconv.FormatInt(int64(ptx.SystemFee),10)
 
 	mhash := ptx.Hash()
 	trans.Hash = ToHexString(mhash.ToArray())
@@ -184,7 +189,7 @@ func getConnectionCount(params []interface{}) map[string]interface{} {
 
 func getRawMemPool(params []interface{}) map[string]interface{} {
 	txs := []*Transactions{}
-	txpool := node.GetTxnPool(false)
+	txpool, _ := node.GetTxnPool(false)
 	for _, t := range txpool {
 		txs = append(txs, TransArryByteToHexString(t))
 	}
@@ -218,6 +223,48 @@ func getRawTransaction(params []interface{}) map[string]interface{} {
 		}
 		tran := TransArryByteToHexString(tx)
 		return DnaRpc(tran)
+	default:
+		return DnaRpcInvalidParameter
+	}
+}
+
+// A JSON example for getrawtransaction method as following:
+//   {"jsonrpc": "2.0", "method": "getrawtransaction", "params": ["transactioin hash in hex"], "id": 0}
+func getCalculateBouns(params []interface{}) map[string]interface{} {
+	if len(params) < 2 {
+		return DnaRpcNil
+	}
+	switch params[0].(type) {
+	case string:
+		//get Transaction hash
+		str := params[0].(string)
+		hex, err := hex.DecodeString(str)
+		if err != nil {
+			return DnaRpcInvalidParameter
+		}
+		var hash Uint256
+		err = hash.Deserialize(bytes.NewReader(hex))
+		if err != nil {
+			return DnaRpcInvalidParameter
+		}
+		//get Transaction index
+		temp := params[1].(string)
+		num, err := strconv.Atoi(temp)
+		if err != nil {
+			return DnaRpcInvalidParameter
+		}
+		utxoInput:=&utxo.UTXOTxInput{
+			ReferTxID:         hash,
+			ReferTxOutputIndex:  uint16(num),
+		}
+		claimData := &payload.Claim{
+			[]*utxo.UTXOTxInput{utxoInput},
+		}
+		amount, err := ledger.CalculateBouns(claimData.Claims, false)
+		if err != nil {
+			return DnaRpcInvalidHash
+		}
+		return DnaRpc(strconv.FormatInt(int64(amount),10))
 	default:
 		return DnaRpcInvalidParameter
 	}
@@ -320,7 +367,7 @@ func sendRawTransaction(params []interface{}) map[string]interface{} {
 		}
 		hash = txn.Hash()
 		if errCode := VerifyAndSendTx(&txn); errCode != ErrNoError {
-			return DnaRpcInternalError
+			return DnaRpc(errCode.Error())
 		}
 	default:
 		return DnaRpcInvalidParameter

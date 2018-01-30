@@ -1,6 +1,7 @@
 package node
 
 import (
+	"errors"
 	"fmt"
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/config"
@@ -10,16 +11,18 @@ import (
 	"github.com/Ontology/core/transaction/payload"
 	"github.com/Ontology/core/transaction/utxo"
 	va "github.com/Ontology/core/validation"
-	. "github.com/Ontology/errors"
+	ontError "github.com/Ontology/errors"
+	"sort"
 	"sync"
 )
 
 type TXNPool struct {
 	sync.RWMutex
-	txnCnt        uint64                                      // count
-	txnList       map[common.Uint256]*transaction.Transaction // transaction which have been verifyed will put into this map
-	issueSummary  map[common.Uint256]common.Fixed64           // transaction which pass the verify will summary the amout to this map
-	inputUTXOList map[string]*transaction.Transaction         // transaction which pass the verify will add the UTXO to this map
+	txnCnt         uint64                                      // count
+	networkFeeList NetWorkFeeList                              // network fee list
+	txnList        map[common.Uint256]*transaction.Transaction // transaction which have been verifyed will put into this map
+	issueSummary   map[common.Uint256]common.Fixed64           // transaction which pass the verify will summary the amout to this map
+	inputUTXOList  map[string]*transaction.Transaction         // transaction which pass the verify will add the UTXO to this map
 }
 
 func (this *TXNPool) init() {
@@ -33,46 +36,49 @@ func (this *TXNPool) init() {
 
 //append transaction to txnpool when check ok.
 //1.check transaction. 2.check with ledger(db) 3.check with pool
-func (this *TXNPool) AppendTxnPool(txn *transaction.Transaction) ErrCode {
+func (this *TXNPool) AppendTxnPool(txn *transaction.Transaction) ontError.ErrCode {
 	//verify transaction with Concurrency
-	if errCode := va.VerifyTransaction(txn); errCode != ErrNoError {
-		log.Info("Transaction verification failed", txn.Hash())
+	if errCode := va.VerifyTransaction(txn); errCode != ontError.ErrNoError {
+		log.Infof("Transaction verification failed %x\n", txn.Hash())
 		return errCode
 	}
-	if errCode := va.VerifyTransactionWithLedger(txn, ledger.DefaultLedger); errCode != ErrNoError {
-		log.Info("Transaction verification with ledger failed", txn.Hash())
+	if errCode := va.VerifyTransactionWithLedger(txn, ledger.DefaultLedger); errCode != ontError.ErrNoError {
+		log.Infof("Transaction verification with ledger failed %x\n", txn.Hash())
 		return errCode
 	}
 	//verify transaction by pool with lock
-	if ok := this.verifyTransactionWithTxnPool(txn); !ok {
-		return ErrSummaryAsset
+	if errCode := this.verifyTransactionWithTxnPool(txn); errCode != ontError.ErrNoError {
+		log.Info("Transaction verification with transaction pool failed", txn.Hash())
+		return errCode
 	}
 	//add the transaction to process scope
 	this.addtxnList(txn)
-	return ErrNoError
+	return ontError.ErrNoError
 }
 
 //get the transaction in txnpool
-func (this *TXNPool) GetTxnPool(byCount bool) map[common.Uint256]*transaction.Transaction {
+func (this *TXNPool) GetTxnPool(byCount bool) (map[common.Uint256]*transaction.Transaction, common.Fixed64) {
 	this.RLock()
-	count := config.Parameters.MaxTxInBlock
-	if count <= 0 {
+	var networkFeeSum common.Fixed64
+	maxcount := config.Parameters.MaxTxInBlock
+	if maxcount <= 0 {
 		byCount = false
 	}
-	if len(this.txnList) < count || !byCount {
-		count = len(this.txnList)
+	if len(this.txnList) < maxcount || !byCount {
+		maxcount = len(this.txnList)
 	}
-	var num int
-	txnMap := make(map[common.Uint256]*transaction.Transaction, count)
-	for txnId, tx := range this.txnList {
-		txnMap[txnId] = tx
-		num++
-		if num >= count {
-			break
-		}
+	var processNum = len(this.networkFeeList)
+	if processNum > maxcount {
+		processNum = maxcount
+	}
+	txnMap := make(map[common.Uint256]*transaction.Transaction, processNum)
+	sort.Sort(this.networkFeeList)
+	for i := 0; i < processNum; i++ {
+		networkFeeSum += this.networkFeeList[i].Cost
+		txnMap[this.networkFeeList[i].Hash] = this.txnList[this.networkFeeList[i].Hash]
 	}
 	this.RUnlock()
-	return txnMap
+	return txnMap, networkFeeSum
 }
 
 //clean the trasaction Pool with committed block.
@@ -91,8 +97,8 @@ func (this *TXNPool) GetTransaction(hash common.Uint256) *transaction.Transactio
 }
 
 //verify transaction with txnpool
-func (this *TXNPool) verifyTransactionWithTxnPool(txn *transaction.Transaction) bool {
-	//check weather have duplicate UTXO input,if occurs duplicate, just keep the latest txn.
+func (this *TXNPool) verifyTransactionWithTxnPool(txn *transaction.Transaction) ontError.ErrCode {
+	// check if the transaction includes double spent UTXO inputs
 	ok, duplicateTxn := this.apendToUTXOPool(txn)
 	if !ok && duplicateTxn != nil {
 		log.Info(fmt.Sprintf("txn=%x duplicateTxn UTXO occurs with txn in pool=%x,keep the latest one.", txn.Hash(), duplicateTxn.Hash()))
@@ -102,9 +108,10 @@ func (this *TXNPool) verifyTransactionWithTxnPool(txn *transaction.Transaction) 
 	if ok := this.summaryAssetIssueAmount(txn); !ok {
 		log.Info(fmt.Sprintf("Check summary Asset Issue Amount failed with txn=%x", txn.Hash()))
 		this.removeTransaction(txn)
-		return false
+		return ontError.ErrSummaryAsset
 	}
-	return true
+
+	return ontError.ErrNoError
 }
 
 //remove from associated map
@@ -217,6 +224,7 @@ func (this *TXNPool) addtxnList(txn *transaction.Transaction) bool {
 		return false
 	}
 	this.txnList[txnHash] = txn
+	this.networkFeeList = append(this.networkFeeList, &TxFee{Hash: txnHash, Cost: txn.NetworkFee})
 	return true
 }
 
@@ -227,7 +235,12 @@ func (this *TXNPool) deltxnList(tx *transaction.Transaction) bool {
 	if _, ok := this.txnList[txHash]; !ok {
 		return false
 	}
-	delete(this.txnList, tx.Hash())
+	delete(this.txnList, txHash)
+	var err error
+	this.networkFeeList, err = this.networkFeeList.Remove(txHash)
+	if err != nil {
+		return false
+	}
 	return true
 }
 
@@ -313,4 +326,36 @@ func (this *TXNPool) getAssetIssueAmount(assetId common.Uint256) common.Fixed64 
 	this.RLock()
 	defer this.RUnlock()
 	return this.issueSummary[assetId]
+}
+
+type TxFee struct {
+	Hash common.Uint256
+	Cost common.Fixed64
+}
+
+type NetWorkFeeList []*TxFee
+
+func (n NetWorkFeeList) Len() int { return len(n) }
+
+func (n NetWorkFeeList) Swap(i, j int) { n[i], n[j] = n[j], n[i] }
+
+func (n NetWorkFeeList) Less(i, j int) bool { return n[i].Cost > n[j].Cost }
+
+func (n NetWorkFeeList) Remove(hash common.Uint256) (NetWorkFeeList, error) {
+	var index int
+	var found bool
+	var result = NetWorkFeeList{}
+	for k, v := range n {
+		if v.Hash == hash {
+			index = k
+			found = true
+		}
+	}
+	if found {
+		n[index] = n[len(n)-1]
+		result = n[:len(n)-1]
+		return result, nil
+	} else {
+		return result, errors.New("[NetWorkFeeList Remove], Hash not found in NetWorkFeeList.")
+	}
 }

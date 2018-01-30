@@ -49,6 +49,7 @@ const (
 	Api_GetUTXObyAddr = "/api/v1/asset/utxos/:addr"
 	Api_SendRawTx = "/api/v1/transaction"
 	Api_SendRcdTxByTrans = "/api/v1/custom/transaction/record"
+	Api_SendClaimTxByTrans  = "/api/v1/custom/transaction/claim"
 	Api_GetStateUpdate = "/api/v1/stateupdate/:namespace/:key"
 	Api_OauthServerUrl = "/api/v1/config/oauthserver/url"
 	Api_NoticeServerUrl = "/api/v1/config/noticeserver/url"
@@ -169,12 +170,13 @@ func (rt *restServer) registryMethod() {
 		return resp
 	}
 	postMethodMap := map[string]Action{
-		Api_SendRawTx:         {name: "sendrawtransaction", handler: sendRawTransaction},
-		Api_SendRcdTxByTrans:  {name: "sendrecord", handler: SendRecord},
-		Api_OauthServerUrl:    {name: "setoauthserverurl", handler: SetOauthServerUrl},
-		Api_NoticeServerUrl:   {name: "setnoticeserverurl", handler: SetNoticeServerUrl},
-		Api_NoticeServerState: {name: "setpostblock", handler: SetPushBlockFlag},
-		Api_WebsocketState:    {name: "setwebsocketstate", handler: rt.setWebsocketState},
+		Api_SendRawTx:          {name: "sendrawtransaction", handler: sendRawTransaction},
+		Api_SendRcdTxByTrans:   {name: "sendrecord", handler: SendRecord},
+		Api_OauthServerUrl:     {name: "setoauthserverurl", handler: SetOauthServerUrl},
+		Api_NoticeServerUrl:    {name: "setnoticeserverurl", handler: SetNoticeServerUrl},
+		Api_NoticeServerState:  {name: "setpostblock", handler: SetPushBlockFlag},
+		Api_WebsocketState:     {name: "setwebsocketstate", handler: rt.setWebsocketState},
+		Api_SendClaimTxByTrans: {name: "SendClaim", handler: SendClaim},
 	}
 	rt.postMap = postMethodMap
 	rt.getMap = getMethodMap

@@ -1,15 +1,18 @@
 package common
 
 import (
+	"bytes"
+	"encoding/hex"
+	"encoding/json"
 	. "github.com/Ontology/common"
+	"github.com/Ontology/core/ledger"
 	tx "github.com/Ontology/core/transaction"
+	"github.com/Ontology/core/transaction/payload"
+	"github.com/Ontology/core/transaction/utxo"
 	. "github.com/Ontology/errors"
 	. "github.com/Ontology/net/httpjsonrpc"
 	Err "github.com/Ontology/net/httprestful/error"
-	"bytes"
-	"encoding/json"
 	"time"
-	"github.com/Ontology/core/transaction/utxo"
 )
 
 const AttributeMaxLen = 252
@@ -130,6 +133,106 @@ func SendRecordTransaction(cmd map[string]interface{}) map[string]interface{} {
 	hash := recordTx.Hash()
 	resp["Result"] = ToHexString(hash.ToArray())
 	if errCode := VerifyAndSendTx(recordTx); errCode != ErrNoError {
+		resp["Error"] = int64(errCode)
+		return resp
+	}
+	return resp
+}
+
+func getClaimData(cmd map[string]interface{}) (*payload.Claim, int64) {
+	type UTXOTxInput struct {
+		ReferTxID          string
+		ReferTxOutputIndex uint16
+	}
+	type Claim struct {
+		Claims []*UTXOTxInput
+	}
+	claim := new(Claim)
+	reqClaimData, ok := cmd["data"].(map[string]interface{})
+	if !ok {
+		return nil, Err.INVALID_PARAMS
+	}
+	reqBtys, err := json.Marshal(reqClaimData)
+	if err != nil {
+		return nil, Err.INVALID_PARAMS
+	}
+	if err := json.Unmarshal(reqBtys, claim); err != nil {
+		return nil, Err.INVALID_PARAMS
+	}
+	if len(claim.Claims) < 1 {
+		return nil, Err.INVALID_PARAMS
+	}
+	realClaim := new(payload.Claim)
+	for _, v := range claim.Claims {
+		utxoTxinput := new(utxo.UTXOTxInput)
+		bytex, err := hex.DecodeString(v.ReferTxID)
+		if err != nil {
+			return nil, Err.INVALID_PARAMS
+		}
+		utxoTxinput.ReferTxID, err = Uint256ParseFromBytes(bytex)
+		utxoTxinput.ReferTxID, err = Uint256ParseFromBytes(utxoTxinput.ReferTxID.ToArrayReverse())
+		if err != nil {
+			return nil, Err.INVALID_PARAMS
+		}
+		utxoTxinput.ReferTxOutputIndex = v.ReferTxOutputIndex
+		realClaim.Claims = append(realClaim.Claims, utxoTxinput)
+	}
+	return realClaim, 0
+}
+
+func SendClaim(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(Err.SUCCESS)
+	var claimData = new(payload.Claim)
+	claimData, resp["Error"] = getClaimData(cmd)
+	if claimData == nil {
+		return resp
+	}
+	//TODO: calc txoutput
+	//output:=[]*utxo.TxOutput{}
+	var controller Uint160
+	reference := make(map[*utxo.UTXOTxInput]*utxo.TxOutput)
+	if len(claimData.Claims) <= 0 {
+		resp["Error"] = int64(ErrTransactionPayload)
+		return resp
+	}
+	// Key index，v UTXOInput
+	for _, utxo := range claimData.Claims {
+		transaction, err := tx.TxStore.GetTransaction(utxo.ReferTxID)
+		if err != nil {
+			resp["Error"] = int64(ErrTransactionPayload)
+			return resp
+		}
+		index := utxo.ReferTxOutputIndex
+		if len(transaction.Outputs) < int(index) {
+			resp["Error"] = int64(ErrTransactionPayload)
+			return resp
+		}
+		reference[utxo] = transaction.Outputs[index]
+	}
+	for _, output := range reference {
+		controller = output.ProgramHash
+		break
+	}
+	amount, err := ledger.CalculateBouns(claimData.Claims, false)
+	if err != nil {
+		resp["Error"] = int64(ErrTransactionBalance)
+		return resp
+	}
+	output := []*utxo.TxOutput{
+		{
+			AssetID:     tx.ONGAssetID,
+			Value:       amount,
+			ProgramHash: controller,
+		},
+	}
+	claimTx, err := tx.NewClaimTransaction(claimData.Claims, output)
+	if err != nil {
+		resp["Error"] = int64(ErrTransactionPayload)
+		return resp
+	}
+	hash := claimTx.Hash()
+	resp["Result"] = ToHexString(hash.ToArrayReverse())
+	if errCode := VerifyAndSendTx(claimTx); errCode != ErrNoError {
 		resp["Error"] = int64(errCode)
 		return resp
 	}

@@ -1,12 +1,12 @@
 package common
 
 import (
-	"github.com/Ontology/common/log"
-	. "github.com/Ontology/errors"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
+	"github.com/Ontology/common/log"
+	. "github.com/Ontology/errors"
 	"io"
 	"math/big"
 
@@ -131,4 +131,11 @@ func ToScriptHash(address string) (Uint160, error) {
 	}
 
 	return ph, nil
+}
+
+func (u *Uint160) SetBytes(b []byte) {
+	if len(b) > len(u) {
+		b = b[len(b)-UINT160SIZE:]
+	}
+	copy(u[UINT160SIZE-len(b):], b)
 }

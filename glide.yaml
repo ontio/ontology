@@ -1,23 +1,25 @@
-package: DNA
+package: github.com/Ontology
 import:
-- package: github.com/golang/crypto
-  subpackages:
-  - ripemd160
-  - ssh/terminal
+- package: github.com/bitly/go-simplejson
+  version: v0.5.0
+- package: github.com/dnaproject/gopass
+- package: github.com/gorilla/websocket
+  version: v1.2.0
+- package: github.com/hokaccha/go-prettyjson
+- package: github.com/itchyny/base58-go
+- package: github.com/pborman/uuid
+  version: v1.1
 - package: github.com/syndtr/goleveldb
   subpackages:
   - leveldb
   - leveldb/errors
+  - leveldb/filter
   - leveldb/iterator
   - leveldb/opt
-- package: github.com/itchyny/base58-go
+  - leveldb/util
 - package: github.com/urfave/cli
-- package: github.com/bitly/go-simplejson
+  version: v1.20.0
 - package: github.com/whyrusleeping/tar-utils
-- package: github.com/dnaproject/gopass
-- package: github.com/gorilla/websocket
-- package: github.com/pborman/uuid
-ignore:
-  - golang.org/x/sys/unix
-
-
+- package: golang.org/x/crypto
+  subpackages:
+  - ripemd160

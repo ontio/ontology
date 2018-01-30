@@ -18,6 +18,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/Ontology/core/transaction/payload"
 	"github.com/Ontology/core/transaction/utxo"
 	"github.com/urfave/cli"
 )
@@ -160,11 +161,23 @@ func makeTransferTransaction(signer *account.Account, programHashStr, assetHashS
 	}
 	reverseHash, _ := Uint256ParseFromBytes(assetHash.ToArrayReverse())
 	var tx *transaction.Transaction
-	inputs, outputs, err = calcUtxoByRpc(signer.ProgramHash, programHash, reverseHash, value, 0, false)
-	if err != nil {
-		return "", err
+	if assetHash == transaction.NewUtilityToken().Hash() {
+		inputs, outputs, err = calcUtxoByRpc(signer.ProgramHash, programHash, reverseHash, value, netWorkFee, false)
+		if err != nil {
+			return "", err
+		}
+		tx, _ = transaction.NewTransferAssetTransaction(inputs, outputs)
+	} else {
+		inputs, outputs, err = calcUtxoByRpc(signer.ProgramHash, programHash, reverseHash, value, 0, false)
+		if err != nil {
+			return "", err
+		}
+		tx, _ = transaction.NewTransferAssetTransaction(inputs, outputs)
+		tx, err = checkAndAddFees(signer.ProgramHash, tx, netWorkFee)
+		if err != nil {
+			return "", err
+		}
 	}
-	tx, _ = transaction.NewTransferAssetTransaction(inputs, outputs)
 	txAttr := transaction.NewTxAttribute(transaction.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
 	tx.Attributes = make([]*transaction.TxAttribute, 0)
 	tx.Attributes = append(tx.Attributes, &txAttr)
@@ -180,7 +193,87 @@ func makeTransferTransaction(signer *account.Account, programHashStr, assetHashS
 	return hex.EncodeToString(buffer.Bytes()), nil
 }
 
+func makeClaimTransaction(signer *account.Account, referTxID string, index string) (string, error) {
+	//referTxIDReverse, err = Uint256ParseFromBytes(temp.ToArrayReverse())
+	//if err != nil {
+	//	return "", errors.New("invalid ReferTxID.")
+	//}
+
+	/*
+	 *get from rpc
+	 */
+	resp, err := httpjsonrpc.Call(Address(), "getcalculateBouns", 0, []interface{}{referTxID, index})
+	if err != nil {
+		return "", errors.New("HTTP JSON call failed")
+	}
+	r := make(map[string]interface{})
+	err = json.Unmarshal(resp, &r)
+	if err != nil {
+		return "", err
+	}
+	var num int64
+	switch res := r["result"].(type) {
+	case string:
+		num,err = strconv.ParseInt(res,10,64)
+		if err != nil {
+			fmt.Println("[makeClaimTransaction] failed with invalid value returned,err=",err)
+			return "", errors.New(fmt.Sprintf("[makeClaimTransaction] failed with invalid value returned,res=,err=%s",res,err))
+		}
+	default:
+		return "", errors.New(fmt.Sprintf("[makeClaimTransaction] failed with invalid value returned,res=%s",res))
+	}
+
+	assetHashHex, err := hex.DecodeString(referTxID)
+	if err != nil {
+		return "", errors.New("invalid ReferTxID.")
+	}
+	var prTxID  Uint256
+	if err := prTxID.Deserialize(bytes.NewReader(assetHashHex)); err != nil {
+		return "", errors.New("invalid ReferTxID.")
+	}
+	tempcount, _ := strconv.Atoi(index)
+	utxoInput:= &utxo.UTXOTxInput{
+		ReferTxID:          prTxID,
+		ReferTxOutputIndex: uint16(tempcount),
+	}
+
+	claimData := &payload.Claim{
+		[]*utxo.UTXOTxInput{utxoInput},
+	}
+	output := []*utxo.TxOutput{
+		{
+			AssetID:     transaction.NewUtilityToken().Hash(),
+			Value:       Fixed64(num),
+			ProgramHash: signer.ProgramHash,
+		},
+	}
+	claimTx, err := transaction.NewClaimTransaction(claimData.Claims, output)
+	if err != nil {
+		return "", errors.New("invalide payload")
+	}
+	if err := signTransaction(signer, claimTx); err != nil {
+		fmt.Println("sign transfer transaction failed")
+		return "", err
+	}
+	var buffer bytes.Buffer
+	if err := claimTx.Serialize(&buffer); err != nil {
+		fmt.Println("serialization of transfer transaction failed")
+		return "", err
+	}
+	return hex.EncodeToString(buffer.Bytes()), nil
+}
+
 func checkAndAddFees(Spender Uint160, Tx *transaction.Transaction, networkFee Fixed64) (*transaction.Transaction, error) {
+	feeSum := Tx.GetSysFee() + networkFee
+	if feeSum > 0 {
+		inputs, outputs, err := calcUtxoByRpc(Spender, Spender, transaction.NewUtilityToken().Hash(), feeSum, 0, true)
+		if err != nil {
+			return nil, err
+		}
+		Tx.UTXOInputs = append(Tx.UTXOInputs, inputs...)
+		Tx.Outputs = append(Tx.Outputs, outputs...)
+		Tx.SystemFee = Tx.GetSysFee()
+	}
 	return Tx, nil
 }
 
@@ -298,13 +391,20 @@ func assetAction(c *cli.Context) error {
 	if c.Bool("transfer") == true {
 		funcName = "transfer"
 	}
-	if !c.Bool("reg") && !c.Bool("issue") && !c.Bool("transfer") {
+	if c.Bool("claim") == true {
+		funcName = "claim"
+	}
+	if !c.Bool("reg") && !c.Bool("issue") && !c.Bool("transfer") && !c.Bool("claim") {
 		cli.ShowSubcommandHelp(c)
 		return nil
 	}
 	wallet := openWallet(c.String("wallet"), WalletPassword(c.String("password")))
 	admin, _ := wallet.GetDefaultAccount()
 	value := c.Int64("value")
+	if value == 0 && funcName != "claim" {
+		fmt.Println("invalid value [--value]")
+		return nil
+	}
 	netWorkFee := c.Int64("netWorkFee")
 	var txHex string
 	var err error
@@ -343,6 +443,18 @@ func assetAction(c *cli.Context) error {
 			fmt.Println(err)
 			return nil
 		}
+	case "claim":
+		referTxID := c.String("referTxID")
+		index := c.String("index")
+		if referTxID == "" || index == "" {
+			fmt.Println("missing flag [--referTxID] or [--index]")
+			return nil
+		}
+		txHex, err = makeClaimTransaction(admin, referTxID, index)
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
 	default:
 		cli.ShowSubcommandHelp(c)
 		return nil
@@ -375,6 +487,10 @@ func NewCommand() *cli.Command {
 			cli.BoolFlag{
 				Name:  "transfer, t",
 				Usage: "transfer asset",
+			},
+			cli.BoolFlag{
+				Name:  "claim, c",
+				Usage: "claim utxo",
 			},
 			cli.StringFlag{
 				Name:  "wallet, w",

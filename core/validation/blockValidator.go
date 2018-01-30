@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/Ontology/core/ledger"
 	tx "github.com/Ontology/core/transaction"
+	"github.com/Ontology/core/transaction/payload"
+	"github.com/Ontology/core/transaction/utxo"
 	. "github.com/Ontology/errors"
 )
 
@@ -33,9 +35,20 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 	if block.Transactions[0].TxType != tx.BookKeeping {
 		return errors.New(fmt.Sprintf("Header Verify failed first Transacion in block is not BookKeeping type."))
 	}
+
+	claimTransactions := make([]*tx.Transaction, 0)
 	for index, v := range block.Transactions {
 		if v.TxType == tx.BookKeeping && index != 0 {
 			return errors.New(fmt.Sprintf("This Block Has BookKeeping transaction after first transaction in block."))
+		}
+		if v.TxType == tx.Claim {
+			claimTransactions = append(claimTransactions, v)
+		}
+	}
+
+	for i := 0; i < len(claimTransactions)-1; i++ {
+		if isIntersectClaim(claimTransactions[i].Payload.(*payload.Claim).Claims, claimTransactions[i+1].Payload.(*payload.Claim).Claims) {
+			return errors.New("[VerifyBlock], Invalid intersect claim")
 		}
 	}
 
@@ -93,4 +106,15 @@ func VerifyBlockData(bd *ledger.Header, ledger *ledger.Ledger) error {
 	}
 
 	return nil
+}
+
+func isIntersectClaim(c1, c2 []*utxo.UTXOTxInput) bool {
+	for _, v := range c1 {
+		for _, n := range c2 {
+			if v == n {
+				return true
+			}
+		}
+	}
+	return false
 }

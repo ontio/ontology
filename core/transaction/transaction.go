@@ -1,21 +1,37 @@
 package transaction
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"errors"
 	"fmt"
 	. "github.com/Ontology/common"
+	. "github.com/Ontology/common/config"
 	"github.com/Ontology/common/serialization"
+	"github.com/Ontology/core/asset"
 	"github.com/Ontology/core/contract"
 	"github.com/Ontology/core/contract/program"
 	sig "github.com/Ontology/core/signature"
 	"github.com/Ontology/core/transaction/payload"
 	. "github.com/Ontology/core/transaction/utxo"
+	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
-	"github.com/Ontology/vm/neovm/interfaces"
+	vm "github.com/Ontology/vm/neovm"
 	"io"
+	"math/big"
 	"sort"
+	"bytes"
+)
+
+const (
+	OntRegisterAmount = 1000000000
+	OngRegisterAmount = 1000000000
+)
+
+var (
+	Infinity    = &crypto.PubKey{X: big.NewInt(0), Y: big.NewInt(0)}
+	ONTAssetID  Uint256
+	ONGAssetID  Uint256
+	SystemIssue Uint256
 )
 
 //for different transaction types with different payload format
@@ -35,6 +51,20 @@ const (
 	Invoke         TransactionType = 0xd1
 	DataFile       TransactionType = 0x12
 )
+
+var TxName = map[TransactionType]string{
+	BookKeeping:    "BookKeeping",
+	IssueAsset:     "IssueAsset",
+	BookKeeper:     "BookKeeper",
+	Claim:          "Claim",
+	PrivacyPayload: "PrivacyPayload",
+	RegisterAsset:  "RegisterAsset",
+	TransferAsset:  "TransferAsset",
+	Record:         "Record",
+	Deploy:         "Deploy",
+	Invoke:         "Invoke",
+	DataFile:       "DataFile",
+}
 
 //Payload define the func for loading the payload data
 //base on payload type which have different struture
@@ -61,6 +91,8 @@ type Transaction struct {
 	UTXOInputs     []*UTXOTxInput
 	BalanceInputs  []*BalanceTxInput
 	Outputs        []*TxOutput
+	SystemFee      Fixed64
+	NetworkFee     Fixed64
 	Programs       []*program.Program
 
 	//cache only, needn't serialize
@@ -134,7 +166,10 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 			output.Serialize(w)
 		}
 	}
-
+	err = tx.SystemFee.Serialize(w)
+	if err != nil {
+		return NewDetailErr(err, ErrNoCode, "Transaction item SystemFee serialization failed.")
+	}
 	return nil
 }
 
@@ -145,7 +180,11 @@ func (tx *Transaction) Deserialize(r io.Reader) error {
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "transaction Deserialize error")
 	}
-
+	// tx networkFee
+	tx.NetworkFee, err = tx.GetNetworkFee()
+	if err != nil {
+		return NewDetailErr(err, ErrNoCode, "Transaction item NetworkFee Deserialize failed.")
+	}
 	// tx program
 	lens, err := serialization.ReadVarUint(r, 0)
 	if err != nil {
@@ -205,6 +244,8 @@ func (tx *Transaction) DeserializeUnsignedWithoutType(r io.Reader) error {
 		tx.Payload = new(payload.DeployCode)
 	case Invoke:
 		tx.Payload = new(payload.InvokeCode)
+	case Claim:
+		tx.Payload = new(payload.Claim)
 	default:
 		return errors.New("[Transaction],invalide transaction type.")
 	}
@@ -256,6 +297,10 @@ func (tx *Transaction) DeserializeUnsignedWithoutType(r io.Reader) error {
 			tx.Outputs = append(tx.Outputs, output)
 		}
 	}
+	err = tx.SystemFee.Deserialize(r)
+	if err != nil {
+		return NewDetailErr(err, ErrNoCode, "Transaction item SystemFee Deserialize failed.")
+	}
 	return nil
 }
 
@@ -299,6 +344,9 @@ func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetTransactionResults failed.")
 		}
 		for k := range result {
+			if k.CompareTo(NewGoverningToken().Hash()) == 0 || k.CompareTo(NewUtilityToken().Hash()) == 0 {
+				continue
+			}
 			tx, err := TxStore.GetTransaction(k)
 			if err != nil {
 				return nil, NewDetailErr(err, ErrNoCode, fmt.Sprintf("[Transaction], GetTransaction failed With AssetID:=%x", k))
@@ -343,6 +391,23 @@ func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 
 		astHash := ToCodeHash(signatureRedeemScript)
 		hashs = append(hashs, astHash)
+	case Claim:
+		// add claim UTXO's in to check list
+		reference := make(map[*UTXOTxInput]*TxOutput)
+		// Key index，v UTXOInput
+		for _, utxo := range tx.Payload.(*payload.Claim).Claims {
+			transaction, err := TxStore.GetTransaction(utxo.ReferTxID)
+			if err != nil {
+				return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetReference failed.")
+			}
+			index := utxo.ReferTxOutputIndex
+			reference[utxo] = transaction.Outputs[index]
+		}
+		for _, output := range reference {
+			programHash := output.ProgramHash
+			//	hashs = append(hashs, programHash)
+			hashs = appendHash(hashs, programHash)
+		}
 	default:
 	}
 	//remove dupilicated hashes
@@ -379,11 +444,6 @@ func (tx *Transaction) GetMessage() []byte {
 	return sig.GetHashData(tx)
 }
 
-func (tx *Transaction) Clone() interfaces.IInteropInterface {
-	tran := *tx
-	return &tran
-}
-
 func (tx *Transaction) ToArray() []byte {
 	b := new(bytes.Buffer)
 	tx.Serialize(b)
@@ -417,8 +477,7 @@ func (tx *Transaction) GetReference() ([]*TxOutput, error) {
 	if tx.referTx != nil {
 		return tx.referTx, nil
 	}
-
-	if tx.TxType == RegisterAsset {
+	if len(tx.UTXOInputs) <= 0 {
 		tx.referTx = []*TxOutput{}
 		return tx.referTx, nil
 	}
@@ -490,6 +549,96 @@ func (tx *Transaction) GetMergedAssetIDValueFromReference() (TransactionResult, 
 	return result, nil
 }
 
+func (tx *Transaction) GetSysFee() Fixed64 {
+	return Fixed64(Parameters.SystemFee[TxName[tx.TxType]])
+}
+
+func (tx *Transaction) GetNetworkFee() (Fixed64, error) {
+	txHash := tx.Hash()
+	if txHash.CompareTo(SystemIssue) == 0 || tx.TxType == Claim || tx.TxType == BookKeeping {
+		return 0, nil
+	}
+	refrence, err := tx.GetReference()
+	if err != nil {
+		return Fixed64(0), errors.New(fmt.Sprintf("[GetNetworkFee], GetRefrence error：%v", err))
+	}
+	var input int64
+	for _, v := range refrence {
+		if v.AssetID.CompareTo(ONGAssetID) == 0 {
+			input += v.Value.GetData()
+		}
+	}
+	var output int64
+	for _, v := range tx.Outputs {
+		if v.AssetID.CompareTo(ONGAssetID) == 0 {
+			output += v.Value.GetData()
+		}
+	}
+	result := Fixed64(input - output - tx.SystemFee.GetData())
+	if result >= 0 {
+		return result, nil
+	} else {
+		return 0, errors.New("[GetNetworkFee] failed as invalid network fee.")
+	}
+}
+
+func NewGoverningToken() *Transaction {
+	regAsset, _ := NewRegisterAssetTransaction(
+		&asset.Asset{
+			Name:        "ONT",
+			Description: "Ontology Network ONT Token",
+			Precision:   8,
+			AssetType:   asset.GoverningToken,
+			RecordType:  asset.UTXO,
+		},
+		FromDecimal(OngRegisterAmount),
+		Infinity,
+		BytesToUint160([]byte{byte(vm.PUSHF)}),
+	)
+	ONTAssetID = regAsset.Hash()
+	return regAsset
+}
+
+func NewUtilityToken() *Transaction {
+	regAsset, _ := NewRegisterAssetTransaction(
+		&asset.Asset{
+			Name:        "ONG",
+			Description: "Ontology Network ONG Token",
+			Precision:   8,
+			AssetType:   asset.GoverningToken,
+			RecordType:  asset.UTXO,
+		},
+		FromDecimal(OngRegisterAmount),
+		Infinity,
+		BytesToUint160([]byte{byte(vm.PUSHF)}),
+	)
+	ONGAssetID = regAsset.Hash()
+	return regAsset
+}
+
+func NewIssueToken(governingToken, utilityToken *Transaction) *Transaction {
+	//bookKeepers := crypto.GetBookKeepers()
+	//multiSigContract, _ := contract.CreateMultiSigRedeemScript(len(bookKeepers) / 2 + 1, bookKeepers)
+	programHexStr := `de16a89b7fed8974ea635867b23ffed6ea53ef51`
+	programByte, _ := HexToBytes(programHexStr)
+	programHash, _ := Uint160ParseFromBytes(programByte)
+	issueAsset, _ := NewIssueAssetTransaction(
+		[]*TxOutput{
+			&TxOutput{
+				AssetID:     governingToken.Hash(),
+				Value:       governingToken.Payload.(*payload.RegisterAsset).Amount,
+				ProgramHash: programHash,
+			},
+			&TxOutput{
+				AssetID:     utilityToken.Hash(),
+				Value:       Fixed64(governingToken.Payload.(*payload.RegisterAsset).Amount.GetData() * 10 / 100),
+				ProgramHash: programHash,
+			},
+		})
+	SystemIssue = issueAsset.Hash()
+	return issueAsset
+}
+
 type byProgramHashes []Uint160
 
 func (a byProgramHashes) Len() int {
@@ -504,4 +653,14 @@ func (a byProgramHashes) Less(i, j int) bool {
 	} else {
 		return true
 	}
+}
+
+func appendHash(hashs []Uint160, hash Uint160) []Uint160 {
+	for _, v := range hashs {
+		if hash.CompareTo(v) == 0 {
+			return hashs
+		}
+	}
+	hashs = append(hashs, hash)
+	return hashs
 }

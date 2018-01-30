@@ -19,6 +19,7 @@ func StartRPCServer() {
 	HandleFunc("getconnectioncount", getConnectionCount)
 	HandleFunc("getrawmempool", getRawMemPool)
 	HandleFunc("getrawtransaction", getRawTransaction)
+	HandleFunc("getcalculateBouns", getCalculateBouns)
 	HandleFunc("sendrawtransaction", sendRawTransaction)
 	HandleFunc("getstorage", getStorage)
 	HandleFunc("getbalance", getBalance)

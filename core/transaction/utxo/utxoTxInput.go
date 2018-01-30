@@ -1,9 +1,9 @@
 package utxo
 
 import (
+	"fmt"
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
-	"fmt"
 	"io"
 	"bytes"
 )

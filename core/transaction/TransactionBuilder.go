@@ -147,6 +147,21 @@ func NewDataFileTransaction(path string, fileName string, note string, issuer *c
 	}, nil
 }
 
+func NewClaimTransaction(claims []*UTXOTxInput, output []*TxOutput) (*Transaction, error) {
+	ClaimPayload := &payload.Claim{
+		Claims: claims,
+	}
+	return &Transaction{
+		TxType:        Claim,
+		Payload:       ClaimPayload,
+		Attributes:    []*TxAttribute{},
+		UTXOInputs:    []*UTXOTxInput{},
+		BalanceInputs: []*BalanceTxInput{},
+		Programs:      []*program.Program{},
+		Outputs:       output,
+	}, nil
+}
+
 func NewDeployTransaction(fc *code.FunctionCode, programHash common.Uint160, name, codeversion, author, email, desp string, vmType types.VmType, needStorage bool) (*Transaction, error) {
 	//TODO: check arguments
 	DeployCodePayload := &payload.DeployCode{
