@@ -66,16 +66,7 @@ func handleInputs(inputs []*utxo.UTXOTxInput, stateStore *StateStore, currentBlo
 			log.Errorf("[persist] getTx error: %v", err)
 			return err
 		}
-		//save spent coin
-		index := i.ReferTxOutputIndex
-		output := tx_prev.Outputs[index]
-		assetId := output.AssetID
-		if assetId.CompareTo(tx.ONTTokenID) == 0 {
-			err = bd.AddSpentCoinState(i.ReferTxID, i.ReferTxOutputIndex, height, bd.currentBlockHeight)
-			if err != nil {
-				return err
-			}
-		}
+
 		state, err := stateStore.TryGetAndChange(ST_Coin, refer_tx, false)
 		if err != nil {
 			log.Errorf("[persist] TryGet ST_Coin error:", err)
