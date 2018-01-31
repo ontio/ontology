@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"errors"
 	"fmt"
@@ -19,7 +20,6 @@ import (
 	"io"
 	"math/big"
 	"sort"
-	"bytes"
 )
 
 const (
@@ -405,8 +405,7 @@ func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 		}
 		for _, output := range reference {
 			programHash := output.ProgramHash
-			//	hashs = append(hashs, programHash)
-			hashs = appendHash(hashs, programHash)
+			hashs = append(hashs, programHash)
 		}
 	default:
 	}
@@ -653,14 +652,4 @@ func (a byProgramHashes) Less(i, j int) bool {
 	} else {
 		return true
 	}
-}
-
-func appendHash(hashs []Uint160, hash Uint160) []Uint160 {
-	for _, v := range hashs {
-		if hash.CompareTo(v) == 0 {
-			return hashs
-		}
-	}
-	hashs = append(hashs, hash)
-	return hashs
 }
