@@ -605,7 +605,7 @@ func NewUtilityToken() *Transaction {
 			Name:        "ONG",
 			Description: "Ontology Network ONG Token",
 			Precision:   8,
-			AssetType:   asset.GoverningToken,
+			AssetType:   asset.UtilityToken,
 			RecordType:  asset.UTXO,
 		},
 		FromDecimal(OngRegisterAmount),
