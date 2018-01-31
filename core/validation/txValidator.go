@@ -136,6 +136,14 @@ func VerifyTransactionWithLedger(Tx *tx.Transaction, ledger *ledger.Ledger) ErrC
 		log.Info("[VerifyTransactionWithLedger] duplicate transaction check faild.")
 		return ErrTxHashDuplicate
 	}
+	if Tx.TxType == tx.Vote {
+		vote := Tx.Payload.(*payload.Vote)
+		voter := vote.Account
+		_, err := ledger.Store.GetAccount(voter)
+		if err != nil {
+			return ErrNoAccount
+		}
+	}
 	return ErrNoError
 }
 

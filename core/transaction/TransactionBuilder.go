@@ -3,11 +3,11 @@ package transaction
 import (
 	"github.com/Ontology/common"
 	"github.com/Ontology/core/asset"
+	"github.com/Ontology/core/code"
 	"github.com/Ontology/core/contract/program"
 	"github.com/Ontology/core/transaction/payload"
-	"github.com/Ontology/crypto"
 	. "github.com/Ontology/core/transaction/utxo"
-	"github.com/Ontology/core/code"
+	"github.com/Ontology/crypto"
 	"github.com/Ontology/smartcontract/types"
 )
 
@@ -201,3 +201,31 @@ func NewInvokeTransaction(fc []byte, codeHash common.Uint160) (*Transaction, err
 	}, nil
 }
 
+func NewEnrollmentTransaction(pk *crypto.PubKey) (*Transaction, error) {
+	enrollmentPayload := &payload.Enrollment{
+		PublicKey: pk,
+	}
+	return &Transaction{
+		TxType:        Enrollment,
+		Payload:       enrollmentPayload,
+		Attributes:    []*TxAttribute{},
+		UTXOInputs:    []*UTXOTxInput{},
+		BalanceInputs: []*BalanceTxInput{},
+		Programs:      []*program.Program{},
+	}, nil
+}
+
+func NewVoteTransaction(pks []*crypto.PubKey, voter common.Uint160) (*Transaction, error) {
+	votePayload := &payload.Vote{
+		PubKeys: pks,
+		Account: voter,
+	}
+	return &Transaction{
+		TxType:        Vote,
+		Payload:       votePayload,
+		Attributes:    []*TxAttribute{},
+		UTXOInputs:    []*UTXOTxInput{},
+		BalanceInputs: []*BalanceTxInput{},
+		Programs:      []*program.Program{},
+	}, nil
+}

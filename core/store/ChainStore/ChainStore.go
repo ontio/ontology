@@ -683,7 +683,7 @@ func (bd *ChainStore) persist(b *Block) error {
 		if err := handleOutputs(t.Hash(), t.Outputs, stateStore); err != nil {
 			return err
 		}
- 		if err := handleInputs(t.UTXOInputs, stateStore, b.Header.Height, bd); err != nil {
+		if err := handleInputs(t.UTXOInputs, stateStore, b.Header.Height, bd); err != nil {
 			return err
 		}
 		switch t.TxType {
@@ -741,8 +741,15 @@ func (bd *ChainStore) persist(b *Block) error {
 				if index >= 0 {
 					bookKeeper.NextBookKeeper = append(bookKeeper.NextBookKeeper[:index], bookKeeper.NextBookKeeper[index+1:]...)
 				}
-				stateStore.memoryStore.Change(byte(ST_BookKeeper), BookerKeeper, false)
 			}
+			stateStore.memoryStore.Change(byte(ST_BookKeeper), BookerKeeper, false)
+		case tx.Enrollment:
+			en := t.Payload.(*payload.Enrollment)
+			bf := new(bytes.Buffer)
+			if err := en.PublicKey.Serialize(bf); err != nil {
+				return err
+			}
+			stateStore.TryAdd(ST_Validator, bf.Bytes(), &states.ValidatorState{PublicKey: en.PublicKey}, false)
 		case tx.Deploy:
 			deploy := t.Payload.(*payload.DeployCode)
 			codeHash := deploy.Code.CodeHash()
@@ -794,6 +801,11 @@ func (bd *ChainStore) persist(b *Block) error {
 			log.Error("result:", ret)
 			stateMachine.CloneCache.Commit()
 			event.PushSmartCodeEvent(t.Hash(), 0, INVOKE_TRANSACTION, ret)
+		case tx.Vote:
+			vote := t.Payload.(*payload.Vote)
+			buf := new(bytes.Buffer)
+			vote.Account.Serialize(buf)
+			stateStore.TryAdd(ST_Vote, buf.Bytes(), &states.VoteState{PublicKeys: vote.PubKeys}, false)
 		}
 	}
 	if err := stateStore.CommitTo(); err != nil {
@@ -1285,7 +1297,7 @@ func (bd *ChainStore) GetVotesAndEnrollments(txs []*tx.Transaction) ([]*states.V
 }
 
 func (bd *ChainStore) getBlockTransactionResult(txs []*tx.Transaction) (map[Uint160]Fixed64,
-map[Uint160]*states.VoteState, []*crypto.PubKey, error) {
+	map[Uint160]*states.VoteState, []*crypto.PubKey, error) {
 	r := make(map[Uint160]Fixed64)
 	votes := make(map[Uint160]*states.VoteState)
 	var enrolls []*crypto.PubKey
@@ -1332,4 +1344,3 @@ func (bd *ChainStore) getEnrollments() ([]*crypto.PubKey, error) {
 	}
 	return append(StandbyBookKeepers, validators...), nil
 }
-

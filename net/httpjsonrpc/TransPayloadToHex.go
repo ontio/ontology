@@ -1,12 +1,12 @@
 package httpjsonrpc
 
 import (
+	"bytes"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/core/asset"
 	. "github.com/Ontology/core/contract"
 	tx "github.com/Ontology/core/transaction"
 	"github.com/Ontology/core/transaction/payload"
-	"bytes"
 )
 
 type PayloadInfo interface{}
@@ -89,6 +89,11 @@ type PrivacyPayloadInfo struct {
 	Payload     string
 	EncryptType uint8
 	EncryptAttr string
+}
+
+type VoteInfo struct {
+	PubKeys []string
+	Voter   string
 }
 
 func TransPayloadToHex(p tx.Payload) PayloadInfo {
@@ -174,6 +179,14 @@ func TransPayloadToHex(p tx.Payload) PayloadInfo {
 			obj.Claims = append(obj.Claims, item)
 		}
 		return obj
+	case *payload.Vote:
+		obj := new(VoteInfo)
+		obj.PubKeys = make([]string, len(object.PubKeys))
+		obj.Voter = ToHexString(object.Account.ToArray())
+		for i, key := range object.PubKeys {
+			encodedPubKey, _ := key.EncodePoint(true)
+			obj.PubKeys[i] = ToHexString(encodedPubKey)
+		}
 	}
 	return nil
 }

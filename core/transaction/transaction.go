@@ -415,6 +415,10 @@ func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 			programHash := output.ProgramHash
 			hashs = append(hashs, programHash)
 		}
+	case Vote:
+		vote := tx.Payload.(*payload.Vote)
+		hash := vote.Account
+		hashs = append(hashs, hash)
 	default:
 	}
 	//remove dupilicated hashes
