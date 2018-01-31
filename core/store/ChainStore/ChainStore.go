@@ -1256,44 +1256,6 @@ func (bd *ChainStore) AddSpentCoinState(hash Uint256, index uint16, startHeight 
 	return nil
 }
 
-func (bd *ChainStore) RemoveSpentCoin(hash Uint256, index uint16) error {
-	prefix := []byte{byte(ST_SpentCoin)}
-	key := append(prefix, hash.ToArray()...)
-	data, err := bd.st.Get(key)
-	if err != nil {
-		return err
-	}
-	r := bytes.NewReader(data)
-	SpentCoinState_ := new(utxo.SpentCoinState)
-	err = SpentCoinState_.Deserialize(r)
-	if err != nil {
-		return err
-	}
-	//check
-	var keyIndex int
-	for k, v := range SpentCoinState_.Items {
-		if index == v.PrevIndex {
-			keyIndex = k
-		}
-	}
-	if len(SpentCoinState_.Items) == 1 {
-		err = bd.st.BatchDelete(key)
-		if err != nil {
-			return err
-		}
-		return nil
-	} else {
-		SpentCoinState_.RemoveItem(keyIndex)
-		w := bytes.NewBuffer(nil)
-		SpentCoinState_.Serialize(w)
-		err = bd.st.BatchPut(key, w.Bytes())
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-}
-
 func (bd *ChainStore) GetSysFeeAmount(hash Uint256) (Fixed64, error) {
 	amount := new(Fixed64)
 	data, err := bd.st.Get(append([]byte{byte(DATA_Header)}, hash.ToArray()...))
