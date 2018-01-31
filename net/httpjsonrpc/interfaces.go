@@ -74,7 +74,8 @@ func TransArryByteToHexString(ptx *tx.Transaction) *Transactions {
 		n++
 	}
 
-	trans.NetworkFee = strconv.FormatInt(int64(ptx.NetworkFee),10)
+	networkfee,_:=ptx.GetNetworkFee()
+	trans.NetworkFee = strconv.FormatInt(int64(networkfee),10)
 	trans.SystemFee = strconv.FormatInt(int64(ptx.SystemFee),10)
 
 	mhash := ptx.Hash()

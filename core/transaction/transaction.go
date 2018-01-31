@@ -98,12 +98,13 @@ type Transaction struct {
 	BalanceInputs  []*BalanceTxInput
 	Outputs        []*TxOutput
 	SystemFee      Fixed64
-	NetworkFee     Fixed64
+
 	Programs       []*program.Program
 
 	//cache only, needn't serialize
 	referTx []*TxOutput
 	hash    *Uint256
+	networkFee     Fixed64
 }
 
 //Serialize the Transaction
@@ -187,10 +188,7 @@ func (tx *Transaction) Deserialize(r io.Reader) error {
 		return NewDetailErr(err, ErrNoCode, "transaction Deserialize error")
 	}
 	// tx networkFee
-	tx.NetworkFee, err = tx.GetNetworkFee()
-	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Transaction item NetworkFee Deserialize failed.")
-	}
+	tx.networkFee = -1
 	// tx program
 	lens, err := serialization.ReadVarUint(r, 0)
 	if err != nil {
@@ -445,10 +443,6 @@ func (tx *Transaction) GetOutputHashes() ([]Uint160, error) {
 	return []Uint160{}, nil
 }
 
-func (tx *Transaction) GenerateAssetMaps() {
-	//TODO: implement Transaction.GenerateAssetMaps()
-}
-
 func (tx *Transaction) GetMessage() []byte {
 	return sig.GetHashData(tx)
 }
@@ -563,13 +557,16 @@ func (tx *Transaction) GetSysFee() Fixed64 {
 }
 
 func (tx *Transaction) GetNetworkFee() (Fixed64, error) {
+	if tx.networkFee != -1 {
+		return tx.networkFee, nil
+	}
 	txHash := tx.Hash()
 	if txHash.CompareTo(SystemIssue) == 0 || tx.TxType == Claim || tx.TxType == BookKeeping {
 		return 0, nil
 	}
 	refrence, err := tx.GetReference()
 	if err != nil {
-		return Fixed64(0), errors.New(fmt.Sprintf("[GetNetworkFee], GetRefrence error：%v", err))
+		return 0, errors.New(fmt.Sprintf("[GetNetworkFee], GetRefrence error：%v", err))
 	}
 	var input int64
 	for _, v := range refrence {
@@ -583,9 +580,9 @@ func (tx *Transaction) GetNetworkFee() (Fixed64, error) {
 			output += v.Value.GetData()
 		}
 	}
-	result := Fixed64(input - output - tx.SystemFee.GetData())
+	result := int64(input - output - tx.SystemFee.GetData())
 	if result >= 0 {
-		return result, nil
+		return Fixed64(result), nil
 	} else {
 		return 0, errors.New("[GetNetworkFee] failed as invalid network fee.")
 	}

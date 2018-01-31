@@ -201,16 +201,16 @@ func CheckAssetPrecision(Tx *tx.Transaction) error {
 
 func CheckTransactionBalance(Tx *tx.Transaction) error {
 	if Tx.SystemFee < 0 {
-		return errors.New("Invalide transaction SystemFee.")
+		return errors.New("[CheckTransactionBalance] Invalide transaction SystemFee.")
 	}
 	for _, v := range Tx.Outputs {
 		if v.Value <= common.Fixed64(0) {
-			return errors.New("Invalide transaction UTXO output.")
+			return errors.New("[CheckTransactionBalance] Invalide transaction UTXO output.")
 		}
 	}
-	networkFee, err := Tx.GetNetworkFee()
-	if Tx.NetworkFee < 0 || networkFee.GetData() != Tx.NetworkFee.GetData() {
-		return errors.New("Invalide transaction NetworkFee.")
+	networkfee, err := Tx.GetNetworkFee()
+	if err != nil {
+		return errors.New(fmt.Sprintf("[CheckTransactionBalance] GetNetworkFee failed. with err=",err))
 	}
 	results, err := Tx.GetTransactionResults()
 	if err != nil {
@@ -223,7 +223,7 @@ func CheckTransactionBalance(Tx *tx.Transaction) error {
 				if Tx.GetSysFee().GetData() != Tx.SystemFee.GetData() {
 					return errors.New(fmt.Sprintf("AssetID %x in Transfer transactions %x ,SystemFee/NetworkFee Not equal.", k, Tx.Hash()))
 				}
-				if v.GetData() != Tx.GetSysFee().GetData()+Tx.NetworkFee.GetData() {
+				if v.GetData() != Tx.GetSysFee().GetData()+ networkfee.GetData() {
 					return errors.New(fmt.Sprintf("AssetID %x in Transfer transactions %x ,SystemFee/NetworkFee Not equal.", k, Tx.Hash()))
 				}
 			}
@@ -236,7 +236,7 @@ func CheckTransactionBalance(Tx *tx.Transaction) error {
 				if Tx.GetSysFee().GetData() != Tx.SystemFee.GetData() {
 					return errors.New(fmt.Sprintf("AssetID %x in Transfer transactions %x ,SystemFee/NetworkFee Not equal.", k, Tx.Hash()))
 				}
-				if v.GetData() != Tx.GetSysFee().GetData()+Tx.NetworkFee.GetData() {
+				if v.GetData() != Tx.GetSysFee().GetData() + networkfee.GetData() {
 					log.Debug(fmt.Sprintf("AssetID %x in Transfer transactions %x ,SystemFee Not equal.", k, Tx.Hash()))
 					return errors.New(fmt.Sprintf("AssetID %x in Transfer transactions %x ,SystemFee Not equal.", k, Tx.Hash()))
 				}

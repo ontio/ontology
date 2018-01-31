@@ -1214,7 +1214,7 @@ func (bd *ChainStore) GetSysFeeAmount(hash Uint256) (Fixed64, error) {
 	amount := new(Fixed64)
 	data, err := bd.st.Get(append([]byte{byte(DATA_Header)}, hash.ToArray()...))
 	if err != nil {
-		return Fixed64(0), nil
+		return Fixed64(0), nil 
 	}
 	b := bytes.NewReader(data)
 	err = amount.Deserialize(b)

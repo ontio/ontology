@@ -224,7 +224,11 @@ func (this *TXNPool) addtxnList(txn *transaction.Transaction) bool {
 		return false
 	}
 	this.txnList[txnHash] = txn
-	this.networkFeeList = append(this.networkFeeList, &TxFee{Hash: txnHash, Cost: txn.NetworkFee})
+	networkfee,err:=txn.GetNetworkFee()
+	if err != nil {
+		return false
+	}
+	this.networkFeeList = append(this.networkFeeList, &TxFee{Hash: txnHash, Cost: networkfee})
 	return true
 }
 
