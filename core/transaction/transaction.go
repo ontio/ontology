@@ -52,6 +52,8 @@ const (
 	Deploy         TransactionType = 0xd0
 	Invoke         TransactionType = 0xd1
 	DataFile       TransactionType = 0x12
+	Enrollment     TransactionType = 0x04
+	Vote           TransactionType = 0x05
 )
 
 var TxName = map[TransactionType]string{
@@ -66,6 +68,8 @@ var TxName = map[TransactionType]string{
 	Deploy:         "Deploy",
 	Invoke:         "Invoke",
 	DataFile:       "DataFile",
+	Enrollment:     "Enrollment",
+	Vote:           "Vote",
 }
 
 //Payload define the func for loading the payload data
@@ -248,6 +252,10 @@ func (tx *Transaction) DeserializeUnsignedWithoutType(r io.Reader) error {
 		tx.Payload = new(payload.InvokeCode)
 	case Claim:
 		tx.Payload = new(payload.Claim)
+	case Enrollment:
+		tx.Payload = new(payload.Enrollment)
+	case Vote:
+		tx.Payload = new(payload.Vote)
 	default:
 		return errors.New("[Transaction],invalide transaction type.")
 	}

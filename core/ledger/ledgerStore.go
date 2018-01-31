@@ -56,4 +56,5 @@ type ILedgerStore interface {
 	GetStorageItem(key *states.StorageKey) (*states.StorageItem, error)
 
 	GetSysFeeAmount(hash Uint256) (Fixed64, error)
+	GetVotesAndEnrollments(txs []*tx.Transaction) ([]*states.VoteState, []*crypto.PubKey, error)
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/Ontology/net"
 	msg "github.com/Ontology/net/message"
 	"sync"
+	"github.com/Ontology/core/vote"
 )
 
 const ContextVersion uint32 = 0
@@ -170,25 +171,27 @@ func (cxt *ConsensusContext) GetStateDetail() string {
 }
 
 func (cxt *ConsensusContext) Reset(client cl.Client, localNode net.Neter) {
-	log.Debug()
-	cxt.State = Initial
-	cxt.PrevHash = ledger.DefaultLedger.Blockchain.CurrentBlockHash()
-	cxt.Height = ledger.DefaultLedger.Blockchain.BlockHeight + 1
-	cxt.ViewNumber = 0
-	cxt.BookKeeperIndex = -1
+	preHash := ledger.DefaultLedger.Blockchain.CurrentBlockHash()
+	height := ledger.DefaultLedger.Blockchain.BlockHeight
+	header := cxt.MakeHeader()
 
-	cxt.BookKeepers, cxt.NextBookKeepers, _ = ledger.DefaultLedger.Store.GetBookKeeperList()
-	log.Info("curr bookkeeper, len:", len(cxt.BookKeepers))
-	log.Info("next bookkeeper, len:", len(cxt.NextBookKeepers))
-
-	var err error
-	cxt.NextBookKeeper, err = ledger.GetBookKeeperAddress(cxt.NextBookKeepers)
-	if err != nil {
-		log.Error("[ConsensusContext] GetBookKeeperAddres failed")
+	if height != cxt.Height || header == nil || header.Hash() != preHash || len(cxt.NextBookKeepers) == 0 {
+		log.Info("[ConsensusContext] Calculate BookKeepers from db")
+		var err error
+		cxt.BookKeepers, err = vote.GetValidators([]*tx.Transaction{})
+		if err != nil {
+			log.Error("[ConsensusContext] GetNextBookKeeper failed", err)
+		}
+	} else {
+		cxt.BookKeepers = cxt.NextBookKeepers
 	}
 
-	cxt.Owner = cxt.BookKeepers[0]
-
+	cxt.State = Initial
+	cxt.PrevHash = preHash
+	cxt.Height = height + 1
+	cxt.ViewNumber = 0
+	cxt.BookKeeperIndex = -1
+	cxt.NextBookKeepers = nil
 	bookKeeperLen := len(cxt.BookKeepers)
 	cxt.PrimaryIndex = cxt.Height % uint32(bookKeeperLen)
 	cxt.Transactions = nil

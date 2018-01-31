@@ -1223,3 +1223,113 @@ func (bd *ChainStore) GetSysFeeAmount(hash Uint256) (Fixed64, error) {
 	}
 	return *amount, nil
 }
+
+func (bd *ChainStore) GetVoteStates() (map[Uint160]*states.VoteState, error) {
+	votes := make(map[Uint160]*states.VoteState)
+	iter := bd.st.NewIterator([]byte{byte(ST_Vote)})
+	for iter.Next() {
+		rk := bytes.NewReader(iter.Key())
+
+		// read prefix
+		_, _ = serialization.ReadBytes(rk, 1)
+		var programHash Uint160
+		if err := programHash.Deserialize(rk); err != nil {
+			return nil, err
+		}
+
+		vote := new(states.VoteState)
+		r := bytes.NewReader(iter.Value())
+		if err := vote.Deserialize(r); err != nil {
+			return nil, err
+		}
+		votes[programHash] = vote
+	}
+	return votes, nil
+}
+
+func (bd *ChainStore) GetVotesAndEnrollments(txs []*tx.Transaction) ([]*states.VoteState, []*crypto.PubKey, error) {
+	var votes []*states.VoteState
+	result, votesBlock, enrollsBlock, err := bd.getBlockTransactionResult(txs)
+	if err != nil {
+		return nil, nil, err
+	}
+	voteStates, err := bd.GetVoteStates()
+	if err != nil {
+		return nil, nil, err
+	}
+	for k, v := range votesBlock {
+		voteStates[k] = v
+	}
+
+	for k, v := range voteStates {
+		account, err := bd.GetAccount(k)
+		if err != nil {
+			return nil, nil, err
+		}
+		v.Count = account.Balances[tx.ONTTokenID]
+		if s, ok := result[k]; ok {
+			v.Count += s
+		}
+		if v.Count <= 0 || v.Count < Fixed64(len(v.PublicKeys)) {
+			continue
+		}
+		votes = append(votes, v)
+	}
+	enrolls, err := bd.getEnrollments()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	enrolls = append(enrolls, enrollsBlock...)
+	return votes, enrolls, nil
+}
+
+func (bd *ChainStore) getBlockTransactionResult(txs []*tx.Transaction) (map[Uint160]Fixed64,
+map[Uint160]*states.VoteState, []*crypto.PubKey, error) {
+	r := make(map[Uint160]Fixed64)
+	votes := make(map[Uint160]*states.VoteState)
+	var enrolls []*crypto.PubKey
+	for _, t := range txs {
+		for _, i := range t.UTXOInputs {
+			if i.ReferTxID.CompareTo(tx.ONTTokenID) != 0 {
+				continue
+			}
+			tran, err := bd.GetTransaction(i.ReferTxID)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			output := tran.Outputs[i.ReferTxOutputIndex]
+			r[output.ProgramHash] -= output.Value
+		}
+		for _, o := range t.Outputs {
+			if o.AssetID.CompareTo(tx.ONTTokenID) != 0 {
+				continue
+			}
+			r[o.ProgramHash] += o.Value
+		}
+
+		if t.TxType == tx.Vote {
+			vote := t.Payload.(*payload.Vote)
+			votes[vote.Account] = &states.VoteState{PublicKeys: vote.PubKeys}
+		} else if t.TxType == tx.Enrollment {
+			enroll := t.Payload.(*payload.Enrollment)
+			enrolls = append(enrolls, enroll.PublicKey)
+		}
+	}
+	return r, votes, enrolls, nil
+}
+
+func (bd *ChainStore) getEnrollments() ([]*crypto.PubKey, error) {
+	var validators []*crypto.PubKey
+	iter := bd.st.NewIterator([]byte{byte(ST_Validator)})
+	for iter.Next() {
+		validator := new(states.ValidatorState)
+		r := bytes.NewReader(iter.Value())
+		if err := validator.Deserialize(r); err != nil {
+			return nil, err
+		}
+		validators = append(validators, validator.PublicKey)
+	}
+	return append(StandbyBookKeepers, validators...), nil
+}
+

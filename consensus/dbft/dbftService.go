@@ -22,6 +22,7 @@ import (
 	"github.com/Ontology/net"
 	msg "github.com/Ontology/net/message"
 	"time"
+	"github.com/Ontology/core/vote"
 )
 
 type DbftService struct {
@@ -386,17 +387,12 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, mes
 		return
 	}
 
-	if ds.context.NextBookKeeper != message.NextBookKeeper {
-		log.Info("PrepareRequestReceived: Get mismatched NextBookKeeper, RequestChangeView")
-		ds.RequestChangeView()
-		return
-	}
-
 	backupContext := ds.context
 
 	ds.context.State |= RequestReceived
 	ds.context.Timestamp = payload.Timestamp
 	ds.context.Nonce = message.Nonce
+	ds.context.NextBookKeeper = message.NextBookKeeper
 	ds.context.Transactions = message.Transactions
 	ds.context.header = nil
 
@@ -419,6 +415,26 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, mes
 		log.Error("PrepareRequestReceived new transaction verification failed, will not sent Prepare Response", err)
 		ds.context = backupContext
 		ds.RequestChangeView()
+		return
+	}
+
+	ds.context.NextBookKeepers, err = vote.GetValidators(ds.context.Transactions)
+	if err != nil {
+		ds.context = backupContext
+		log.Error("[PrepareRequestReceived] GetValidators failed")
+		return
+	}
+	ds.context.NextBookKeeper, err = ledger.GetBookKeeperAddress(ds.context.NextBookKeepers)
+	if err != nil {
+		ds.context = backupContext
+		log.Error("[PrepareRequestReceived] GetBookKeeperAddress failed")
+		return
+	}
+
+	if ds.context.NextBookKeeper != message.NextBookKeeper {
+		ds.context = backupContext
+		ds.RequestChangeView()
+		log.Error("[PrepareRequestReceived] Unmatched NextBookKeeper")
 		return
 	}
 
@@ -576,6 +592,16 @@ func (ds *DbftService) Timeout() {
 			//add transactions from transaction pool
 			for _, tx := range transactionsPool {
 				ds.context.Transactions = append(ds.context.Transactions, tx)
+			}
+			ds.context.NextBookKeepers, err = vote.GetValidators(ds.context.Transactions)
+			if err != nil {
+				log.Error("[Timeout] GetValidators failed", err.Error())
+				return
+			}
+			ds.context.NextBookKeeper, err = ledger.GetBookKeeperAddress(ds.context.NextBookKeepers)
+			if err != nil {
+				log.Error("[Timeout] GetBookKeeperAddress failed")
+				return
 			}
 			ds.context.header = nil
 			//build block and sign
