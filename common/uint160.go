@@ -43,7 +43,7 @@ func (u *Uint160) ToArray() []byte {
 }
 func (u *Uint160) ToArrayReverse() []byte {
 	var x []byte = make([]byte, UINT160SIZE)
-	for i, j := 0, UINT160SIZE - 1; i < j; i, j = i + 1, j - 1 {
+	for i, j := 0, UINT160SIZE-1; i < j; i, j = i+1, j-1 {
 		x[i], x[j] = byte(u[j]), byte(u[i])
 	}
 	return x
@@ -133,9 +133,6 @@ func ToScriptHash(address string) (Uint160, error) {
 	return ph, nil
 }
 
-func (u *Uint160) SetBytes(b []byte) {
-	if len(b) > len(u) {
-		b = b[len(b)-UINT160SIZE:]
-	}
-	copy(u[UINT160SIZE-len(b):], b)
+func (u *Uint160) SetRawBytes(b []byte) {
+	copy(u[:], b)
 }

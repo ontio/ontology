@@ -140,9 +140,9 @@ func FileExisted(filename string) bool {
 	return err == nil || os.IsExist(err)
 }
 
-func BytesToUint160(b []byte) Uint160 {
+func RawBytesToUint160(b []byte) Uint160 {
 	u := new(Uint160)
-	u.SetBytes(b)
+	u.SetRawBytes(b)
 	return *u
 }
 

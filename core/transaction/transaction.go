@@ -593,7 +593,7 @@ func NewGoverningToken() *Transaction {
 		},
 		FromDecimal(OngRegisterAmount),
 		Infinity,
-		BytesToUint160([]byte{byte(vm.PUSHF)}),
+		RawBytesToUint160([]byte{byte(vm.PUSHF)}),
 	)
 	ONTAssetID = regAsset.Hash()
 	return regAsset
@@ -610,7 +610,7 @@ func NewUtilityToken() *Transaction {
 		},
 		FromDecimal(OngRegisterAmount),
 		Infinity,
-		BytesToUint160([]byte{byte(vm.PUSHF)}),
+		RawBytesToUint160([]byte{byte(vm.PUSHF)}),
 	)
 	ONGAssetID = regAsset.Hash()
 	return regAsset
