@@ -586,7 +586,7 @@ func NewGoverningToken() *Transaction {
 		&asset.Asset{
 			Name:        "ONT",
 			Description: "Ontology Network ONT Token",
-			Precision:   8,
+			Precision:   0,
 			AssetType:   asset.GoverningToken,
 			RecordType:  asset.UTXO,
 		},
