@@ -683,7 +683,7 @@ func (bd *ChainStore) persist(b *Block) error {
 		if err := handleOutputs(t.Hash(), t.Outputs, stateStore); err != nil {
 			return err
 		}
-		if err := handleInputs(t.UTXOInputs, stateStore, b.Header.Height, bd); err != nil {
+ 		if err := handleInputs(t.UTXOInputs, stateStore, b.Header.Height, bd); err != nil {
 			return err
 		}
 		switch t.TxType {
@@ -717,12 +717,15 @@ func (bd *ChainStore) persist(b *Block) error {
 				asset.Available -= r
 			}
 		case tx.Claim:
-			claim_ := t.Payload.(*payload.Claim)
-			for _, v := range claim_.Claims {
-				err := bd.RemoveSpentCoin(v.ReferTxID, v.ReferTxOutputIndex)
+			p := t.Payload.(*payload.Claim)
+			for _, c := range p.Claims {
+				state, err := stateStore.TryGetAndChange(ST_SpentCoin, c.ReferTxID.ToArray(), false)
 				if err != nil {
+					log.Errorf("[persist] TryGet ST_SpentCoin error:", err)
 					return err
 				}
+				spentcoins := state.(*states.SpentCoinState)
+				spentcoins.Items = remove(spentcoins.Items, int(c.ReferTxOutputIndex))
 			}
 		case tx.BookKeeper:
 			bk := t.Payload.(*payload.BookKeeper)

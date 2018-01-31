@@ -4,6 +4,7 @@ import (
 	"github.com/Ontology/common"
 	"io"
 	. "github.com/Ontology/common/serialization"
+	. "github.com/Ontology/errors"
 )
 
 type SpentCoinState struct {
@@ -36,15 +37,16 @@ func (this *Item) Deserialize(r io.Reader) error {
 	var err error
 	err = this.StateBase.Deserialize(r)
 	if err != nil {
+		return NewDetailErr(err, ErrNoCode, "[Item], StateBase Deserialize failed.")
 		return err
 	}
 	this.PrevIndex, err = ReadUint16(r)
 	if err != nil {
-		return err
+		return NewDetailErr(err, ErrNoCode, "[Item], PrevIndex Deserialize failed.")
 	}
 	this.EndHeight, err = ReadUint32(r)
 	if err != nil {
-		return err
+		return NewDetailErr(err, ErrNoCode, "[Item], EndHeight Deserialize failed.")
 	}
 	return nil
 }

@@ -8,7 +8,6 @@ import (
 	. "github.com/Ontology/common/serialization"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
-	"fmt"
 )
 
 type AssetState struct {
@@ -32,7 +31,6 @@ func (this *AssetState) Serialize(w io.Writer) error {
 	WriteByte(w, byte(this.AssetType))
 	WriteVarString(w, this.Name)
 	this.Amount.Serialize(w)
-	fmt.Println("[AssetState]", this.Available)
 	this.Available.Serialize(w)
 	WriteByte(w, this.Precision)
 	this.Owner.Serialize(w)
