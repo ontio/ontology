@@ -132,7 +132,3 @@ func ToScriptHash(address string) (Uint160, error) {
 
 	return ph, nil
 }
-
-func (u *Uint160) SetRawBytes(b []byte) {
-	copy(u[:], b)
-}

@@ -70,7 +70,7 @@ func handleInputs(inputs []*utxo.UTXOTxInput, stateStore *StateStore, currentBlo
 		index := i.ReferTxOutputIndex
 		output := tx_prev.Outputs[index]
 		assetId := output.AssetID
-		if assetId.CompareTo(tx.ONTAssetID) == 0 {
+		if assetId.CompareTo(tx.ONTTokenID) == 0 {
 			err = bd.AddSpentCoinState(i.ReferTxID, i.ReferTxOutputIndex, height, bd.currentBlockHeight)
 			if err != nil {
 				return err

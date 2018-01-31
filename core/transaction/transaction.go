@@ -29,9 +29,11 @@ const (
 
 var (
 	Infinity    = &crypto.PubKey{X: big.NewInt(0), Y: big.NewInt(0)}
-	ONTAssetID  Uint256
-	ONGAssetID  Uint256
 	SystemIssue Uint256
+	ONTToken    = NewGoverningToken()
+	ONGToken    = NewUtilityToken()
+	ONTTokenID  = ONTToken.Hash()
+	ONGTokenID  = ONGToken.Hash()
 )
 
 //for different transaction types with different payload format
@@ -344,7 +346,7 @@ func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetTransactionResults failed.")
 		}
 		for k := range result {
-			if k.CompareTo(NewGoverningToken().Hash()) == 0 || k.CompareTo(NewUtilityToken().Hash()) == 0 {
+			if k.CompareTo(ONTTokenID) == 0 || k.CompareTo(ONGTokenID) == 0 {
 				continue
 			}
 			tx, err := TxStore.GetTransaction(k)
@@ -563,13 +565,13 @@ func (tx *Transaction) GetNetworkFee() (Fixed64, error) {
 	}
 	var input int64
 	for _, v := range refrence {
-		if v.AssetID.CompareTo(ONGAssetID) == 0 {
+		if v.AssetID.CompareTo(ONGTokenID) == 0 {
 			input += v.Value.GetData()
 		}
 	}
 	var output int64
 	for _, v := range tx.Outputs {
-		if v.AssetID.CompareTo(ONGAssetID) == 0 {
+		if v.AssetID.CompareTo(ONGTokenID) == 0 {
 			output += v.Value.GetData()
 		}
 	}
@@ -592,9 +594,8 @@ func NewGoverningToken() *Transaction {
 		},
 		FromDecimal(OngRegisterAmount),
 		Infinity,
-		RawBytesToUint160([]byte{byte(vm.PUSHF)}),
+		ToCodeHash([]byte{byte(vm.PUSHF)}),
 	)
-	ONTAssetID = regAsset.Hash()
 	return regAsset
 }
 
@@ -609,9 +610,8 @@ func NewUtilityToken() *Transaction {
 		},
 		FromDecimal(OngRegisterAmount),
 		Infinity,
-		RawBytesToUint160([]byte{byte(vm.PUSHF)}),
+		ToCodeHash([]byte{byte(vm.PUSHF)}),
 	)
-	ONGAssetID = regAsset.Hash()
 	return regAsset
 }
 

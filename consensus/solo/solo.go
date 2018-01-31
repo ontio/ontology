@@ -81,7 +81,7 @@ func (this *SoloService) makeBlock() *ledger.Block {
 		return nil
 	}
 	nonce := GetNonce()
-	transactionsPool,feeSum := this.localNet.GetTxnPool(true)
+	transactionsPool, feeSum := this.localNet.GetTxnPool(true)
 	txBookkeeping := this.createBookkeepingTransaction(nonce, feeSum)
 
 	transactions := make([]*tx.Transaction, 0, len(transactionsPool)+1)
@@ -172,7 +172,7 @@ func (this *SoloService) createBookkeepingTransaction(nonce uint64, fee Fixed64)
 	outputs := []*utxo.TxOutput{}
 	if fee > 0 {
 		feeOutput := &utxo.TxOutput{
-			AssetID:     tx.ONGAssetID,
+			AssetID:     tx.ONGTokenID,
 			Value:       fee,
 			ProgramHash: signatureRedeemScriptHashToCodeHash,
 		}

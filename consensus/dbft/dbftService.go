@@ -175,7 +175,7 @@ func (ds *DbftService) CreateBookkeepingTransaction(nonce uint64, fee Fixed64) *
 	outputs := []*utxo.TxOutput{}
 	if fee > 0 {
 		feeOutput := &utxo.TxOutput{
-			AssetID:     tx.ONGAssetID,
+			AssetID:     tx.ONGTokenID,
 			Value:       fee,
 			ProgramHash: signatureRedeemScriptHashToCodeHash,
 		}

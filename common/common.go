@@ -140,12 +140,6 @@ func FileExisted(filename string) bool {
 	return err == nil || os.IsExist(err)
 }
 
-func RawBytesToUint160(b []byte) Uint160 {
-	u := new(Uint160)
-	u.SetRawBytes(b)
-	return *u
-}
-
 func IsArrayEqual(a, b []byte) bool {
 	if len(a) != len(b) {
 		return false

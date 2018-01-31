@@ -161,7 +161,7 @@ func makeTransferTransaction(signer *account.Account, programHashStr, assetHashS
 	}
 	reverseHash, _ := Uint256ParseFromBytes(assetHash.ToArrayReverse())
 	var tx *transaction.Transaction
-	if assetHash == transaction.NewUtilityToken().Hash() {
+	if assetHash == transaction.ONGTokenID {
 		inputs, outputs, err = calcUtxoByRpc(signer.ProgramHash, programHash, reverseHash, value, netWorkFee, false)
 		if err != nil {
 			return "", err
@@ -214,25 +214,25 @@ func makeClaimTransaction(signer *account.Account, referTxID string, index strin
 	var num int64
 	switch res := r["result"].(type) {
 	case string:
-		num,err = strconv.ParseInt(res,10,64)
+		num, err = strconv.ParseInt(res, 10, 64)
 		if err != nil {
-			fmt.Println("[makeClaimTransaction] failed with invalid value returned,err=",err)
-			return "", errors.New(fmt.Sprintf("[makeClaimTransaction] failed with invalid value returned,res=,err=%s",res,err))
+			fmt.Println("[makeClaimTransaction] failed with invalid value returned,err=", err)
+			return "", errors.New(fmt.Sprintf("[makeClaimTransaction] failed with invalid value returned,res=,err=%s", res, err))
 		}
 	default:
-		return "", errors.New(fmt.Sprintf("[makeClaimTransaction] failed with invalid value returned,res=%s",res))
+		return "", errors.New(fmt.Sprintf("[makeClaimTransaction] failed with invalid value returned,res=%s", res))
 	}
 
 	assetHashHex, err := hex.DecodeString(referTxID)
 	if err != nil {
 		return "", errors.New("invalid ReferTxID.")
 	}
-	var prTxID  Uint256
+	var prTxID Uint256
 	if err := prTxID.Deserialize(bytes.NewReader(assetHashHex)); err != nil {
 		return "", errors.New("invalid ReferTxID.")
 	}
 	tempcount, _ := strconv.Atoi(index)
-	utxoInput:= &utxo.UTXOTxInput{
+	utxoInput := &utxo.UTXOTxInput{
 		ReferTxID:          prTxID,
 		ReferTxOutputIndex: uint16(tempcount),
 	}
@@ -242,7 +242,7 @@ func makeClaimTransaction(signer *account.Account, referTxID string, index strin
 	}
 	output := []*utxo.TxOutput{
 		{
-			AssetID:     transaction.NewUtilityToken().Hash(),
+			AssetID:     transaction.ONGTokenID,
 			Value:       Fixed64(num),
 			ProgramHash: signer.ProgramHash,
 		},
@@ -266,7 +266,7 @@ func makeClaimTransaction(signer *account.Account, referTxID string, index strin
 func checkAndAddFees(Spender Uint160, Tx *transaction.Transaction, networkFee Fixed64) (*transaction.Transaction, error) {
 	feeSum := Tx.GetSysFee() + networkFee
 	if feeSum > 0 {
-		inputs, outputs, err := calcUtxoByRpc(Spender, Spender, transaction.NewUtilityToken().Hash(), feeSum, 0, true)
+		inputs, outputs, err := calcUtxoByRpc(Spender, Spender, transaction.ONGTokenID, feeSum, 0, true)
 		if err != nil {
 			return nil, err
 		}
@@ -303,7 +303,7 @@ func calcUtxoByRpc(spender Uint160, toAddr Uint160, assetID Uint256, value Fixed
 	case []interface{}:
 		unspend = res
 	default:
-		return nil, nil, errors.New(fmt.Sprintf("[calcUtxoByRpc] failed with invalid value returned with value=%s\n",res))
+		return nil, nil, errors.New(fmt.Sprintf("[calcUtxoByRpc] failed with invalid value returned with value=%s\n", res))
 	}
 	//calc inputs and outputs
 	inputs := []*utxo.UTXOTxInput{}

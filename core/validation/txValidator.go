@@ -219,7 +219,7 @@ func CheckTransactionBalance(Tx *tx.Transaction) error {
 	switch Tx.TxType {
 	case tx.IssueAsset:
 		for k, v := range results {
-			if k.CompareTo(tx.ONGAssetID) == 0 {
+			if k.CompareTo(tx.ONGTokenID) == 0 {
 				if Tx.GetSysFee().GetData() != Tx.SystemFee.GetData() {
 					return errors.New(fmt.Sprintf("AssetID %x in Transfer transactions %x ,SystemFee/NetworkFee Not equal.", k, Tx.Hash()))
 				}
@@ -232,7 +232,7 @@ func CheckTransactionBalance(Tx *tx.Transaction) error {
 		return nil
 	default:
 		for k, v := range results {
-			if k.CompareTo(tx.ONGAssetID) == 0 {
+			if k.CompareTo(tx.ONGTokenID) == 0 {
 				if Tx.GetSysFee().GetData() != Tx.SystemFee.GetData() {
 					return errors.New(fmt.Sprintf("AssetID %x in Transfer transactions %x ,SystemFee/NetworkFee Not equal.", k, Tx.Hash()))
 				}
@@ -309,7 +309,7 @@ func CheckTransactionPayload(Tx *tx.Transaction) error {
 		}
 		var claimAmount common.Fixed64
 		for k, v := range result {
-			if k.CompareTo(tx.ONGAssetID) == 0 {
+			if k.CompareTo(tx.ONGTokenID) == 0 {
 				claimAmount += v
 			}
 		}
