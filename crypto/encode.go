@@ -10,15 +10,15 @@ import (
 )
 
 const (
-	INFINITYLEN = 1
-	FLAGLEN = 1
-	XORYVALUELEN = 32
-	COMPRESSEDLEN = 33
-	NOCOMPRESSEDLEN = 65
-	COMPEVENFLAG = 0x02
-	COMPODDFLAG = 0x03
+	INFINITYLEN      = 1
+	FLAGLEN          = 1
+	XORYVALUELEN     = 32
+	COMPRESSEDLEN    = 33
+	NOCOMPRESSEDLEN  = 65
+	COMPEVENFLAG     = 0x02
+	COMPODDFLAG      = 0x03
 	NOCOMPRESSEDFLAG = 0x04
-	P256PARAMA = -3
+	P256PARAMA       = -3
 )
 
 func isEven(k *big.Int) bool {
@@ -49,7 +49,7 @@ func fastLucasSequence(curveP, lucasParamP, lucasParamQ, k *big.Int) (*big.Int, 
 	vh := big.NewInt(0).Set(lucasParamP)
 	tmp := big.NewInt(0)
 
-	for j := n - 1; j >= s + 1; j-- {
+	for j := n - 1; j >= s+1; j-- {
 		ql.Mul(ql, qh)
 		ql.Mod(ql, curveP)
 
@@ -235,7 +235,7 @@ func deCompress(yTilde int, xValue []byte, curve *elliptic.CurveParams) (*PubKey
 }
 
 func DecodePoint(encodeData []byte) (*PubKey, error) {
-	if nil == encodeData {
+	if 0 == len(encodeData) {
 		return nil, NewDetailErr(errors.New("The encodeData cann't be nil"), ErrNoCode, "")
 	}
 
@@ -246,12 +246,12 @@ func DecodePoint(encodeData []byte) (*PubKey, error) {
 		return &PubKey{nil, nil}, nil
 
 	case 0x02, 0x03: //compressed
-		if len(encodeData) != expectedLength + 1 {
+		if len(encodeData) != expectedLength+1 {
 			return nil, NewDetailErr(errors.New("The encodeData format is error"), ErrNoCode, "")
 		}
 
 		yTilde := int(encodeData[0] & 1)
-		pubKey, err := deCompress(yTilde, encodeData[FLAGLEN:FLAGLEN + XORYVALUELEN],
+		pubKey, err := deCompress(yTilde, encodeData[FLAGLEN:FLAGLEN+XORYVALUELEN],
 			&algSet.EccParams)
 		if nil != err {
 			return nil, NewDetailErr(err, ErrNoCode, "Invalid point encoding")
@@ -259,8 +259,8 @@ func DecodePoint(encodeData []byte) (*PubKey, error) {
 		return pubKey, nil
 
 	case 0x04, 0x06, 0x07: //uncompressed
-		pubKeyX := new(big.Int).SetBytes(encodeData[FLAGLEN : FLAGLEN + XORYVALUELEN])
-		pubKeyY := new(big.Int).SetBytes(encodeData[FLAGLEN + XORYVALUELEN : NOCOMPRESSEDLEN])
+		pubKeyX := new(big.Int).SetBytes(encodeData[FLAGLEN : FLAGLEN+XORYVALUELEN])
+		pubKeyY := new(big.Int).SetBytes(encodeData[FLAGLEN+XORYVALUELEN : NOCOMPRESSEDLEN])
 		return &PubKey{pubKeyX, pubKeyY}, nil
 
 	default:
@@ -283,10 +283,10 @@ func (e *PubKey) EncodePoint(isCommpressed bool) ([]byte, error) {
 		encodedData = make([]byte, NOCOMPRESSEDLEN)
 
 		yBytes := e.Y.Bytes()
-		copy(encodedData[NOCOMPRESSEDLEN - len(yBytes):], yBytes)
+		copy(encodedData[NOCOMPRESSEDLEN-len(yBytes):], yBytes)
 	}
 	xBytes := e.X.Bytes()
-	copy(encodedData[COMPRESSEDLEN - len(xBytes):COMPRESSEDLEN], xBytes)
+	copy(encodedData[COMPRESSEDLEN-len(xBytes):COMPRESSEDLEN], xBytes)
 
 	if isCommpressed {
 		if isEven(e.Y) {
