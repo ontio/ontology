@@ -300,6 +300,10 @@ func (ds *DbftService) NewConsensusPayload(payload *msg.ConsensusPayload) {
 		return
 	}
 
+	if ds.context.State.HasFlag(BlockGenerated) {
+		return
+	}
+
 	if int(payload.BookKeeperIndex) >= len(ds.context.BookKeepers) {
 		return
 	}
