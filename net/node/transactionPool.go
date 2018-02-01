@@ -1,7 +1,6 @@
 package node
 
 import (
-	"errors"
 	"fmt"
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/config"
@@ -16,22 +15,24 @@ import (
 	"sync"
 )
 
+// Genesis transaction will not be added to pool, so use height == 0 to indicate transaction not packed in block
+type PoolTransaction struct {
+	tx *transaction.Transaction
+	//height uint32
+	fee common.Fixed64
+}
+
 type TXNPool struct {
 	sync.RWMutex
-	txnCnt         uint64                                      // count
-	networkFeeList NetWorkFeeList                              // network fee list
-	txnList        map[common.Uint256]*transaction.Transaction // transaction which have been verifyed will put into this map
-	issueSummary   map[common.Uint256]common.Fixed64           // transaction which pass the verify will summary the amout to this map
-	inputUTXOList  map[string]*transaction.Transaction         // transaction which pass the verify will add the UTXO to this map
+	txnList       map[common.Uint256]*PoolTransaction // transaction which have been verifyed will put into this map
+	issueSummary  map[common.Uint256]common.Fixed64   // transaction which pass the verify will summary the amout to this map
+	inputUTXOList map[string]*transaction.Transaction // transaction which pass the verify will add the UTXO to this map
 }
 
 func (this *TXNPool) init() {
-	this.Lock()
-	defer this.Unlock()
-	this.txnCnt = 0
 	this.inputUTXOList = make(map[string]*transaction.Transaction)
 	this.issueSummary = make(map[common.Uint256]common.Fixed64)
-	this.txnList = make(map[common.Uint256]*transaction.Transaction)
+	this.txnList = make(map[common.Uint256]*PoolTransaction)
 }
 
 //append transaction to txnpool when check ok.
@@ -58,27 +59,40 @@ func (this *TXNPool) AppendTxnPool(txn *transaction.Transaction) ontError.ErrCod
 
 //get the transaction in txnpool
 func (this *TXNPool) GetTxnPool(byCount bool) (map[common.Uint256]*transaction.Transaction, common.Fixed64) {
-	this.RLock()
-	var networkFeeSum common.Fixed64
+	this.Lock()
+
+	orderByFee := make([]*PoolTransaction, 0, len(this.txnList))
+	for _, ptx := range this.txnList {
+		orderByFee = append(orderByFee, ptx)
+	}
+	sort.Sort(OrderByNetWorkFee(orderByFee))
+
 	maxcount := config.Parameters.MaxTxInBlock
-	if maxcount <= 0 {
-		byCount = false
+	if maxcount <= 0 || byCount == false || maxcount > len(orderByFee) {
+		maxcount = len(orderByFee)
 	}
-	if len(this.txnList) < maxcount || !byCount {
-		maxcount = len(this.txnList)
+
+	txnMap := make(map[common.Uint256]*transaction.Transaction, maxcount)
+	var networkFeeSum common.Fixed64
+	for i := 0; i < maxcount; i++ {
+		ptx := orderByFee[i]
+		networkFeeSum += common.Fixed64(ptx.fee)
+		txnMap[ptx.tx.Hash()] = ptx.tx
 	}
-	var processNum = len(this.networkFeeList)
-	if processNum > maxcount {
-		processNum = maxcount
-	}
-	txnMap := make(map[common.Uint256]*transaction.Transaction, processNum)
-	sort.Sort(this.networkFeeList)
-	for i := 0; i < processNum; i++ {
-		networkFeeSum += this.networkFeeList[i].Cost
-		txnMap[this.networkFeeList[i].Hash] = this.txnList[this.networkFeeList[i].Hash]
+
+	this.Unlock()
+	return txnMap, networkFeeSum
+}
+
+//get the transaction in txnpool
+func (this *TXNPool) GetTxnPoolTxlist() []common.Uint256 {
+	this.RLock()
+	list := make([]common.Uint256, 0, len(this.txnList))
+	for k, _ := range this.txnList {
+		list = append(list, k)
 	}
 	this.RUnlock()
-	return txnMap, networkFeeSum
+	return list
 }
 
 //clean the trasaction Pool with committed block.
@@ -93,7 +107,7 @@ func (this *TXNPool) CleanSubmittedTransactions(block *ledger.Block) error {
 func (this *TXNPool) GetTransaction(hash common.Uint256) *transaction.Transaction {
 	this.RLock()
 	defer this.RUnlock()
-	return this.txnList[hash]
+	return this.txnList[hash].tx
 }
 
 //verify transaction with txnpool
@@ -160,9 +174,6 @@ func (this *TXNPool) summaryAssetIssueAmount(txn *transaction.Transaction) bool 
 	}
 	transactionResult := txn.GetMergedAssetIDValueFromOutputs()
 	for k, delta := range transactionResult {
-		//update the amount in txnPool
-		this.incrAssetIssueAmountSummary(k, delta)
-
 		//Check weather occur exceed the amount when RegisterAsseted
 		//1. Get the Asset amount when RegisterAsseted.
 		txn, err := transaction.TxStore.GetTransaction(k)
@@ -189,10 +200,16 @@ func (this *TXNPool) summaryAssetIssueAmount(txn *transaction.Transaction) bool 
 		//AssetReg.Amount : amount when RegisterAsset of this assedID
 		//quantity_issued : amount has been issued of this assedID
 		//txnPool.issueSummary[k] : amount in transactionPool of this assedID
-		if AssetReg.Amount-quantity_issued < this.getAssetIssueAmount(k) {
+		if AssetReg.Amount < quantity_issued+this.getAssetIssueAmount(k)+delta {
 			return false
 		}
 	}
+
+	for k, delta := range transactionResult {
+		//update the amount in txnPool
+		this.incrAssetIssueAmountSummary(k, delta)
+	}
+
 	return true
 }
 
@@ -223,12 +240,11 @@ func (this *TXNPool) addtxnList(txn *transaction.Transaction) bool {
 	if _, ok := this.txnList[txnHash]; ok {
 		return false
 	}
-	this.txnList[txnHash] = txn
-	networkfee,err:=txn.GetNetworkFee()
+	nfw, err := txn.GetNetworkFee()
 	if err != nil {
 		return false
 	}
-	this.networkFeeList = append(this.networkFeeList, &TxFee{Hash: txnHash, Cost: networkfee})
+	this.txnList[txnHash] = &PoolTransaction{tx: txn, fee: nfw}
 	return true
 }
 
@@ -240,11 +256,6 @@ func (this *TXNPool) deltxnList(tx *transaction.Transaction) bool {
 		return false
 	}
 	delete(this.txnList, txHash)
-	var err error
-	this.networkFeeList, err = this.networkFeeList.Remove(txHash)
-	if err != nil {
-		return false
-	}
 	return true
 }
 
@@ -253,7 +264,7 @@ func (this *TXNPool) copytxnList() map[common.Uint256]*transaction.Transaction {
 	defer this.RUnlock()
 	txnMap := make(map[common.Uint256]*transaction.Transaction, len(this.txnList))
 	for txnId, txn := range this.txnList {
-		txnMap[txnId] = txn
+		txnMap[txnId] = txn.tx
 	}
 	return txnMap
 }
@@ -332,34 +343,10 @@ func (this *TXNPool) getAssetIssueAmount(assetId common.Uint256) common.Fixed64 
 	return this.issueSummary[assetId]
 }
 
-type TxFee struct {
-	Hash common.Uint256
-	Cost common.Fixed64
-}
+type OrderByNetWorkFee []*PoolTransaction
 
-type NetWorkFeeList []*TxFee
+func (n OrderByNetWorkFee) Len() int { return len(n) }
 
-func (n NetWorkFeeList) Len() int { return len(n) }
+func (n OrderByNetWorkFee) Swap(i, j int) { n[i], n[j] = n[j], n[i] }
 
-func (n NetWorkFeeList) Swap(i, j int) { n[i], n[j] = n[j], n[i] }
-
-func (n NetWorkFeeList) Less(i, j int) bool { return n[i].Cost > n[j].Cost }
-
-func (n NetWorkFeeList) Remove(hash common.Uint256) (NetWorkFeeList, error) {
-	var index int
-	var found bool
-	var result = NetWorkFeeList{}
-	for k, v := range n {
-		if v.Hash == hash {
-			index = k
-			found = true
-		}
-	}
-	if found {
-		n[index] = n[len(n)-1]
-		result = n[:len(n)-1]
-		return result, nil
-	} else {
-		return result, errors.New("[NetWorkFeeList Remove], Hash not found in NetWorkFeeList.")
-	}
-}
+func (n OrderByNetWorkFee) Less(i, j int) bool { return n[j].fee < n[i].fee }
