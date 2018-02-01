@@ -298,7 +298,7 @@ func CalculateBonusInternal(unclaimed []*utxo.SpentCoin) (Fixed64, error) {
 				ustart++
 				istart = 0
 			}
-			amount += iend * GenerationAmount[ustart]
+			amount += (iend - istart) * GenerationAmount[ustart]
 		}
 		var (
 			hash        Uint256
