@@ -580,9 +580,10 @@ func (tx *Transaction) GetNetworkFee() (Fixed64, error) {
 			output += v.Value.GetData()
 		}
 	}
-	result := int64(input - output - tx.SystemFee.GetData())
+	result := Fixed64(input - output - tx.SystemFee.GetData())
 	if result >= 0 {
-		return Fixed64(result), nil
+		tx.networkFee = result
+		return result, nil
 	} else {
 		return 0, errors.New("[GetNetworkFee] failed as invalid network fee.")
 	}
