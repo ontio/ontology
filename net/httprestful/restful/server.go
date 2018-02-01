@@ -34,7 +34,8 @@ type restServer struct {
 }
 
 const (
-	Api_Getconnectioncount = "/api/v1/node/connectioncount"
+	Api_GetGenerateBlockTime = "/api/v1/node/generateblocktime"
+	Api_Getconnectioncount  = "/api/v1/node/connectioncount"
 	Api_GetblockTxsByHeight = "/api/v1/block/transactions/height/:height"
 	Api_Getblockbyheight = "/api/v1/block/details/height/:height"
 	Api_Getblockbyhash = "/api/v1/block/details/hash/:hash"
@@ -139,6 +140,7 @@ func (rt *restServer) setWebsocketState(cmd map[string]interface{}) map[string]i
 func (rt *restServer) registryMethod() {
 
 	getMethodMap := map[string]Action{
+		Api_GetGenerateBlockTime:  {name: "getgenerateblocktime", handler: GetGenerateBlockTime},
 		Api_Getconnectioncount:  {name: "getconnectioncount", handler: GetConnectionCount},
 		Api_GetblockTxsByHeight: {name: "getblocktransactionsbyheight", handler: GetBlockTxsByHeight},
 		Api_Getblockbyheight:    {name: "getblockbyheight", handler: GetBlockByHeight},
@@ -216,6 +218,8 @@ func (rt *restServer) getPath(url string) string {
 }
 func (rt *restServer) getParams(r *http.Request, url string, req map[string]interface{}) map[string]interface{} {
 	switch url {
+	case Api_GetGenerateBlockTime:
+		break
 	case Api_Getconnectioncount:
 		break
 	case Api_GetblockTxsByHeight:

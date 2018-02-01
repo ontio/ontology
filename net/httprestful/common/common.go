@@ -1,15 +1,16 @@
 package common
 
 import (
-	"bytes"
-	"fmt"
 	. "github.com/Ontology/common"
+	"github.com/Ontology/common/config"
 	"github.com/Ontology/core/ledger"
 	tx "github.com/Ontology/core/transaction"
 	. "github.com/Ontology/errors"
 	. "github.com/Ontology/net/httpjsonrpc"
 	Err "github.com/Ontology/net/httprestful/error"
 	. "github.com/Ontology/net/protocol"
+	"bytes"
+	"fmt"
 	"math"
 	"strconv"
 )
@@ -28,6 +29,13 @@ func SetNode(n Noder) {
 }
 
 //Node
+func GetGenerateBlockTime(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(Err.SUCCESS)
+	if node != nil {
+		resp["Result"] = config.DEFAULTGENBLOCKTIME
+	}
+	return resp
+}
 func GetConnectionCount(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
 	if node != nil {
@@ -233,7 +241,23 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"], resp["Error"] = getBlock(hash, getTxBytes)
 	return resp
 }
-
+type PubKeyInfo struct {
+	X, Y string
+}
+type AssetStateInfo struct {
+	StateVersion  int
+	AssetId    string
+	AssetType  int
+	Name       string
+	Amount     Fixed64
+	Available  Fixed64
+	Precision  int
+	Owner      PubKeyInfo
+	Admin      string
+	Issuer     string
+	Expiration uint32
+	IsFrozen   bool
+}
 //Asset
 func GetAssetByHash(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
@@ -251,6 +275,21 @@ func GetAssetByHash(cmd map[string]interface{}) map[string]interface{} {
 		return resp
 	}
 	asset, err := ledger.DefaultLedger.Store.GetAsset(hash)
+	assetInfo := new(AssetStateInfo)
+	assetInfo.StateVersion = int(asset.StateVersion)
+	assetInfo.AssetId = ToHexString(asset.AssetId.ToArray())
+	assetInfo.AssetType = int(asset.AssetType)
+	assetInfo.Name = asset.Name
+	assetInfo.Amount = asset.Amount
+	assetInfo.Available = asset.Available
+	assetInfo.Precision = int(asset.Precision)
+	assetInfo.Owner.X = asset.Owner.X.String()
+	assetInfo.Owner.Y = asset.Owner.Y.String()
+	assetInfo.Admin = ToHexString(asset.Admin.ToArray())
+	assetInfo.Issuer = ToHexString(asset.Issuer.ToArray())
+	assetInfo.Expiration = asset.Expiration
+	assetInfo.IsFrozen = asset.IsFrozen
+
 	if err != nil {
 		resp["Error"] = Err.UNKNOWN_ASSET
 		return resp
@@ -261,7 +300,7 @@ func GetAssetByHash(cmd map[string]interface{}) map[string]interface{} {
 		resp["Result"] = ToHexString(w.Bytes())
 		return resp
 	}
-	resp["Result"] = asset
+	resp["Result"] = assetInfo
 	return resp
 }
 
