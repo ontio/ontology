@@ -52,6 +52,15 @@ func DeserializeMessage(data []byte) (ConsensusMessage, error) {
 		}
 		return cv, nil
 
+	case BlockSignaturesMsg:
+		blockSigs := &BlockSignatures{}
+		err := blockSigs.Deserialize(r)
+		if err != nil {
+			log.Error("[DeserializeMessage] BlockSignaturesMsg Deserialize Error: ", err.Error())
+			return nil, err
+		}
+
+		return blockSigs, nil
 	}
 
 	return nil, errors.New("The message is invalid.")

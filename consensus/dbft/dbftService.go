@@ -17,12 +17,12 @@ import (
 	"github.com/Ontology/core/transaction/payload"
 	"github.com/Ontology/core/transaction/utxo"
 	va "github.com/Ontology/core/validation"
+	"github.com/Ontology/core/vote"
 	. "github.com/Ontology/errors"
 	"github.com/Ontology/events"
 	"github.com/Ontology/net"
 	msg "github.com/Ontology/net/message"
 	"time"
-	"github.com/Ontology/core/vote"
 )
 
 type DbftService struct {
@@ -130,8 +130,11 @@ func (ds *DbftService) CheckSignatures() error {
 		block := ds.context.MakeHeader()
 		//sign the block with all bookKeepers and add signed contract to context
 		cxt := ct.NewContractContext(block)
+		sigs := make([]SignaturesData, ds.context.M())
 		for i, j := 0, 0; i < len(ds.context.BookKeepers) && j < ds.context.M(); i++ {
 			if ds.context.Signatures[i] != nil {
+				sigs[j].Index = uint16(i)
+				sigs[j].Signature = ds.context.Signatures[i]
 				err := cxt.AddContract(contract, ds.context.BookKeepers[i], ds.context.Signatures[i])
 				if err != nil {
 					log.Error("[CheckSignatures] Multi-sign add contract error:", err.Error())
@@ -154,6 +157,8 @@ func (ds *DbftService) CheckSignatures() error {
 			}
 
 			ds.context.State |= BlockGenerated
+			payload := ds.context.MakeBlockSignatures(sigs)
+			ds.SignAndRelay(payload)
 		}
 	}
 	return nil
@@ -304,6 +309,10 @@ func (ds *DbftService) NewConsensusPayload(payload *msg.ConsensusPayload) {
 		return
 	}
 
+	if ds.context.State.HasFlag(BlockGenerated) {
+		return
+	}
+
 	if int(payload.BookKeeperIndex) >= len(ds.context.BookKeepers) {
 		return
 	}
@@ -338,6 +347,11 @@ func (ds *DbftService) NewConsensusPayload(payload *msg.ConsensusPayload) {
 	case PrepareResponseMsg:
 		if pres, ok := message.(*PrepareResponse); ok {
 			ds.PrepareResponseReceived(payload, pres)
+		}
+		break
+	case BlockSignaturesMsg:
+		if blockSigs, ok := message.(*BlockSignatures); ok {
+			ds.BlockSignaturesReceived(payload, blockSigs)
 		}
 		break
 	}
@@ -454,6 +468,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, mes
 		log.Error("[DbftService] SignBySigner failed")
 		return
 	}
+
 	payload = ds.context.MakePrepareResponse(ds.context.Signatures[ds.context.BookKeeperIndex])
 	ds.SignAndRelay(payload)
 
@@ -489,6 +504,48 @@ func (ds *DbftService) PrepareResponseReceived(payload *msg.ConsensusPayload, me
 		return
 	}
 	log.Info("Prepare Response finished")
+}
+
+func (ds *DbftService) BlockSignaturesReceived(payload *msg.ConsensusPayload, message *BlockSignatures) {
+	log.Info(fmt.Sprintf("BlockSignatures Received: height=%d View=%d index=%d", payload.Height, message.ViewNumber(), payload.BookKeeperIndex))
+
+	if ds.context.State.HasFlag(BlockGenerated) {
+		return
+	}
+
+	//if the signature already exist, needn't handle again
+	if ds.context.Signatures[payload.BookKeeperIndex] != nil {
+		return
+	}
+
+	header := ds.context.MakeHeader()
+	if header == nil {
+		return
+	}
+	for i := 0; i < len(message.Signatures); i++ {
+		sigdata := message.Signatures[i]
+
+		if ds.context.Signatures[sigdata.Index] != nil {
+			continue
+		}
+
+		if err := va.VerifySignature(header, ds.context.BookKeepers[sigdata.Index], sigdata.Signature); err != nil {
+			continue
+		}
+
+		ds.context.Signatures[sigdata.Index] = sigdata.Signature
+		if ds.context.GetSignaturesCount() >= ds.context.M() {
+			log.Info("BlockSignatures got enough signatures")
+			break
+		}
+	}
+
+	err := ds.CheckSignatures()
+	if err != nil {
+		log.Error("CheckSignatures failed")
+		return
+	}
+	log.Info("BlockSignatures finished")
 }
 
 func (ds *DbftService) RefreshPolicy() {
