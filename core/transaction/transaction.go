@@ -99,12 +99,12 @@ type Transaction struct {
 	Outputs        []*TxOutput
 	SystemFee      Fixed64
 
-	Programs       []*program.Program
+	Programs []*program.Program
 
 	//cache only, needn't serialize
-	referTx []*TxOutput
-	hash    *Uint256
-	networkFee     Fixed64
+	referTx    []*TxOutput
+	hash       *Uint256
+	networkFee Fixed64
 }
 
 //Serialize the Transaction
@@ -200,6 +200,10 @@ func (tx *Transaction) Deserialize(r io.Reader) error {
 		for i := 0; i < int(lens); i++ {
 			outputHashes := new(program.Program)
 			outputHashes.Deserialize(r)
+			err := outputHashes.Deserialize(r)
+			if err != nil {
+				return errors.New("deserialize transaction failed")
+			}
 			programHashes = append(programHashes, outputHashes)
 		}
 		tx.Programs = programHashes
