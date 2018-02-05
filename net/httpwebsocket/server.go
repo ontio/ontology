@@ -16,7 +16,7 @@ import (
 
 var ws *websocket.WsServer
 var (
-	pushBlockFlag bool = false
+	pushBlockFlag    bool = false
 	pushRawBlockFlag bool = false
 	pushBlockTxsFlag bool = false
 )
@@ -83,7 +83,7 @@ func SetTxHashMap(txhash string, sessionid string) {
 
 func PushSmartCodeEvent(v interface{}) {
 	if ws != nil {
-		rs,ok := v.(map[string]interface{})
+		rs, ok := v.(map[string]interface{})
 		if !ok {
 			return
 		}
@@ -91,36 +91,36 @@ func PushSmartCodeEvent(v interface{}) {
 			switch object := rs["Result"].(type) {
 			case event.LogEventArgs:
 				type LogEventArgsInfo struct {
-					Container string
-					CodeHash  string
-					Message   string
+					Container   string
+					CodeHash    string
+					Message     string
 					BlockHeight uint32
 				}
-				msg :=LogEventArgsInfo{
-					Container: ToHexString(object.Container.ToArray()),
-					CodeHash:  ToHexString(object.CodeHash.ToArray()),
-					Message:   object.Message,
-					BlockHeight: ledger.DefaultLedger.Store.GetHeight(),
+				msg := LogEventArgsInfo{
+					Container:   ToHexString(object.Container.ToArray()),
+					CodeHash:    ToHexString(object.CodeHash.ToArray()),
+					Message:     object.Message,
+					BlockHeight: ledger.DefaultLedger.Store.GetHeight() + 1,
 				}
-				PushEvent(rs["TxHash"].(string),rs["Error"].(int64),rs["Action"].(string),msg)
+				PushEvent(rs["TxHash"].(string), rs["Error"].(int64), rs["Action"].(string), msg)
 				return
 			case event.NotifyEventArgs:
 				type NotifyEventArgsInfo struct {
-					Container string
-					CodeHash  string
-					State     []sc.States
+					Container   string
+					CodeHash    string
+					State       []sc.States
 					BlockHeight uint32
 				}
 				msg := NotifyEventArgsInfo{
-					Container: ToHexString(object.Container.ToArray()),
-					CodeHash:  ToHexString(object.CodeHash.ToArray()),
-					State:   sc.ConvertTypes(object.State),
-					BlockHeight: ledger.DefaultLedger.Store.GetHeight(),
+					Container:   ToHexString(object.Container.ToArray()),
+					CodeHash:    ToHexString(object.CodeHash.ToArray()),
+					State:       sc.ConvertTypes(object.State),
+					BlockHeight: ledger.DefaultLedger.Store.GetHeight() + 1,
 				}
-				PushEvent(rs["TxHash"].(string),rs["Error"].(int64),rs["Action"].(string),msg)
+				PushEvent(rs["TxHash"].(string), rs["Error"].(int64), rs["Action"].(string), msg)
 				return
 			default:
-				PushEvent(rs["TxHash"].(string),rs["Error"].(int64),rs["Action"].(string),rs["Result"])
+				PushEvent(rs["TxHash"].(string), rs["Error"].(int64), rs["Action"].(string), rs["Result"])
 				return
 			}
 		}()
