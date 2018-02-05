@@ -32,6 +32,7 @@ type WsServer struct {
 	SessionList      *SessionList
 	ActionMap        map[string]Handler
 	TxHashMap        map[string]string //key: txHash   value:sessionid
+	BroadcastMap     map[string]string
 	checkAccessToken func(auth_type, access_token string) (string, int64, interface{})
 }
 
@@ -40,6 +41,7 @@ func InitWsServer(checkAccessToken func(string, string) (string, int64, interfac
 		Upgrader:    websocket.Upgrader{},
 		SessionList: NewSessionList(),
 		TxHashMap:   make(map[string]string),
+		BroadcastMap:   make(map[string]string),
 	}
 	ws.checkAccessToken = checkAccessToken
 	return ws
@@ -106,6 +108,12 @@ func (ws *WsServer) registryMethod() {
 	}
 	heartbeat := func(cmd map[string]interface{}) map[string]interface{} {
 		resp := ResponsePack(Err.SUCCESS)
+		if b, ok := cmd["Broadcast"].(bool); ok && b == true {
+			if userid, ok := cmd["Userid"].(string); ok {
+				ws.BroadcastMap[userid] = userid
+				log.Trace("ws broadcast msg")
+			}
+		}
 		resp["Action"] = "heartbeat"
 		resp["Result"] = cmd["Userid"]
 		return resp
@@ -329,6 +337,10 @@ func (ws *WsServer) PushTxResult(txHashStr string, resp map[string]interface{}) 
 	delete(ws.TxHashMap, txHashStr)
 	if len(sSessionId) > 0 {
 		ws.response(sSessionId, resp)
+	}
+	//broadcast BroadcastMap
+	for _, v := range ws.BroadcastMap {
+		ws.response(v, resp)
 	}
 }
 
