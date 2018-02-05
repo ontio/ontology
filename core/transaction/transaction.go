@@ -199,7 +199,6 @@ func (tx *Transaction) Deserialize(r io.Reader) error {
 	if lens > 0 {
 		for i := 0; i < int(lens); i++ {
 			outputHashes := new(program.Program)
-			outputHashes.Deserialize(r)
 			err := outputHashes.Deserialize(r)
 			if err != nil {
 				return errors.New("deserialize transaction failed")
