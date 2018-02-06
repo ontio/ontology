@@ -7,6 +7,7 @@ import (
 	"io"
 
 	. "github.com/Ontology/errors"
+	"crypto/sha256"
 )
 
 const UINT256SIZE int = 32
@@ -74,6 +75,13 @@ func (u *Uint256) Deserialize(r io.Reader) error {
 
 func (u *Uint256) ToString() string {
 	return string(u.ToArray())
+}
+
+func ToHash256(bs []byte) Uint256 {
+	temp := sha256.Sum256([]byte(bs))
+	u256 := sha256.Sum256(temp[:])
+	u, _ := Uint256ParseFromBytes(u256[:])
+	return u
 }
 
 func Uint256ParseFromBytes(f []byte) (Uint256, error) {
