@@ -815,9 +815,12 @@ func (bd *ChainStore) persist(b *Block) error {
 	if err != nil {
 		return nil
 	}
-	if err := addCurrentStateRoot(bd, stateRoot); err != nil {
-		return nil
+	if b.Header.StateRoot.CompareTo(stateRoot) != 0 {
+		if err := addCurrentStateRoot(bd, stateRoot); err != nil {
+			return nil
+		}
 	}
+
 	if err := addSysCurrentBlock(bd, b); err != nil {
 		return err
 	}
@@ -1185,7 +1188,7 @@ func (bd *ChainStore) GetUnclaimed(hash Uint256) (map[uint16]*utxo.SpentCoin, er
 
 func (bd *ChainStore) GetCurrentStateRoot() Uint256 {
 	u256 := new(Uint256)
-	data, err := bd.st.Get(append([]byte{byte(Sys_CurrentStateRoot)}, CurrentStateRoot...))
+	data, err := bd.st.Get(append([]byte{byte(SYS_CurrentStateRoot)}, CurrentStateRoot...))
 	if err != nil {
 		return Uint256{}
 	}
@@ -1278,7 +1281,11 @@ func (bd *ChainStore) GetVotesAndEnrollments(txs []*tx.Transaction) ([]*states.V
 		if err != nil {
 			return nil, nil, err
 		}
-		v.Count = account.Balances[tx.ONTTokenID]
+		for _, b := range account.Balances {
+			if b.AssetId.CompareTo(tx.ONTTokenID) == 0 {
+				v.Count = b.Amount
+			}
+		}
 		if s, ok := result[k]; ok {
 			v.Count += s
 		}
