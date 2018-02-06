@@ -20,8 +20,10 @@ var hasherPool = sync.Pool{
 }
 
 func (h *hasher) hash(n node, db DatabaseWriter, force bool) (node, node, error) {
-	if hash := n.cache(); hash != nil {
-		return hash, n, nil
+	if hash, dirty := n.cache(); hash != nil {
+		if !dirty {
+			return hash, n, nil
+		}
 	}
 	collapsed, cached, err := h.hasChildren(n, db)
 	if err != nil {
@@ -35,8 +37,10 @@ func (h *hasher) hash(n node, db DatabaseWriter, force bool) (node, node, error)
 	switch cn := cached.(type) {
 	case *shortNode:
 		cn.flags.hash = cachedHash
+		cn.flags.dirty = false
 	case *fullNode:
 		cn.flags.hash = cachedHash
+		cn.flags.dirty = false
 	}
 	return hashed, cached, nil
 }
@@ -91,13 +95,13 @@ func (h *hasher) store(n node, db DatabaseWriter, force bool) (node, error) {
 	if h.tmp.Len() < 32 && !force {
 		return n, nil
 	}
-	hs := n.cache()
+	hs, _ := n.cache()
 	if hs == nil {
 		u256 := ToHash256(h.tmp.Bytes())
 		hs = hashNode(u256[:])
-		if db != nil {
-			return hs, db.Put(hs, h.tmp.Bytes())
-		}
+	}
+	if db != nil {
+		return hs, db.BatchPut(append(secureKeyPrefix, []byte(hs)...), h.tmp.Bytes())
 	}
 	return hs, nil
 }

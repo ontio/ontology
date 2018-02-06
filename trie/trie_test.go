@@ -16,12 +16,12 @@ func TestNode(t *testing.T) {
 	trie := newEmpty()
 
 	trie.TryUpdate([]byte("123456"), []byte("asdfasdfasdfasdfasdfasdfasdfasdf"))
-	trie.TryUpdate([]byte("12366"), []byte("wqeqweqweqweqweqwewerwerwerwerwerwerwerwerwerwerwerwerwerwqeqweqweqweqweqwewerwerwerwerwerwerwerwerwerwerwerwerwerwqeqweqweqweqweqwewerwerwerwerwerwerwerwerwerwerwerwerwerwqeqweqweqweqweqwewerwerwerwerwerwerwerwerwerwerwerwerwerwqeqweqweqweqweqwewerwerwerwerwerwerwerwerwerwerwerwerwerwqeqweqweqweqweqwewerwerwerwerwerwerwerwerwerwerwerwerwerwqeqweqweqweqweqwewerwerwerwerwerwerwerwerwerwerwerwerwer"))
-	trie.TryUpdate([]byte("1234"), []byte("asdfasdfasdfasdfasdfasdfasdfasdf"))
+	//trie.TryUpdate([]byte("12366"), []byte("wqeqweqweqweqweqwewerwerwerwerwerwerwerwerwerwerwerwerwerwqeqweqweqweqweqwewerwerwerwerwerwerwerwerwerwerwerwerwerwqeqweqweqweqweqwewerwerwerwerwerwerwerwerwerwerwerwerwerwqeqweqweqweqweqwewerwerwerwerwerwerwerwerwerwerwerwerwerwqeqweqweqweqweqwewerwerwerwerwerwerwerwerwerwerwerwerwerwqeqweqweqweqweqwewerwerwerwerwerwerwerwerwerwerwerwerwerwqeqweqweqweqweqwewerwerwerwerwerwerwerwerwerwerwerwerwer"))
+	//trie.TryUpdate([]byte("1234"), []byte("asdfasdfasdfasdfasdfasdfasdfasdf"))
 
 	root, _ := trie.Commit()
 
-	trie, _ = New(*root, trie.db)
+	trie, _ = New(root, trie.db)
 
 	v, err := trie.TryGet([]byte("1234"))
 	if err != nil {
@@ -49,6 +49,16 @@ func TestNode(t *testing.T) {
 	if err != nil {
 		t.Errorf("Wrong error: %v", err)
 	}
+	t.Log("trie key:", root)
+	trie.db.ViewDB()
+
+	trie, _ = New(root, trie.db)
+
+	trie.TryUpdate([]byte("12366"), []byte("wqeqweqweqweqweqwewerwerwerwerwerwerwerwerwerwerwerwerwerwqeqweqweqweqweqwewerwerwerwerwerwerwerwerwerwerwerwerwerwqeqweqweqweqweqwewerwerwerwerwerwerwerwerwerwerwerwerwerwqeqweqweqweqweqwewerwerwerwerwerwerwerwerwerwerwerwerwerwqeqweqweqweqweqwewerwerwerwerwerwerwerwerwerwerwerwerwerwqeqweqweqweqweqwewerwerwerwerwerwerwerwerwerwerwerwerwerwqeqweqweqweqweqwewerwerwerwerwerwerwerwerwerwerwerwerwer"))
+	root, _ = trie.Commit()
+
+	t.Log("trie key:", root)
+
 }
 
 func TestGet(t *testing.T) {
@@ -95,7 +105,7 @@ func TestReplication(t *testing.T) {
 	}
 
 	// create a new trie on top of the database and check that lookups work.
-	trie2, err := New(*exp, trie.db)
+	trie2, err := New(exp, trie.db)
 	if err != nil {
 		t.Fatalf("can't recreate trie at %x: %v", exp, err)
 	}
@@ -108,7 +118,7 @@ func TestReplication(t *testing.T) {
 	if err != nil {
 		t.Fatalf("commit error: %v", err)
 	}
-	if hash.CompareTo(*exp) != 0 {
+	if hash.CompareTo(exp) != 0 {
 		t.Errorf("root failure. expected %x got %x", exp, hash)
 	}
 
@@ -127,7 +137,7 @@ func TestReplication(t *testing.T) {
 	for _, val := range vals2 {
 		updateString(trie2, val.k, val.v)
 	}
-	if hash := trie2.Hash(); hash.CompareTo(*exp) != 0 {
+	if hash := trie2.Hash(); hash.CompareTo(exp) != 0 {
 		t.Errorf("root failure. expected %x got %x", exp, hash)
 	}
 }
@@ -175,7 +185,7 @@ func TestCacheUnload(t *testing.T) {
 	// The branch containing it is loaded from DB exactly two times:
 	// in the 0th and 6th iteration.
 	db := &countingDB{Database: trie.db, gets: make(map[string]int)}
-	trie, _ = New(*root, db)
+	trie, _ = New(root, db)
 	//trie.SetCacheLimit(5)
 	for i := 0; i < 12; i++ {
 		getString(trie, key1)

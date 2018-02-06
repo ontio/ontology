@@ -11,7 +11,7 @@ var indices = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b
 
 type node interface {
 	fString(string) string
-	cache() hashNode
+	cache() (hashNode, bool)
 }
 
 type (
@@ -35,17 +35,17 @@ func (n *shortNode) copy() *shortNode {
 	c := *n; return &c
 }
 
-func (n *fullNode) cache() hashNode {
-	return n.flags.hash
+func (n *fullNode) cache() (hashNode, bool) {
+	return n.flags.hash, n.flags.dirty
 }
-func (n *shortNode) cache() hashNode {
-	return n.flags.hash
+func (n *shortNode) cache() (hashNode, bool) {
+	return n.flags.hash, n.flags.dirty
 }
-func (n hashNode) cache() hashNode {
-	return nil
+func (n hashNode) cache() (hashNode, bool) {
+	return nil, true
 }
-func (n valueNode) cache() hashNode {
-	return nil
+func (n valueNode) cache() (hashNode, bool) {
+	return nil, true
 }
 
 func (n *fullNode) fString(ind string) string {

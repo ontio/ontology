@@ -6,9 +6,9 @@ import (
 	"fmt"
 )
 
-var secureKeyPrefix = []byte("secure-key-")
+var secureKeyPrefix = []byte{20}
 
-const secureKeyLength = 11 + 32
+const secureKeyLength = 1 + 32
 
 type SecureTrie struct {
 	trie             Trie
@@ -76,7 +76,7 @@ func (t *SecureTrie) Commit() (common.Uint256, error) {
 func (t *SecureTrie) CommitTo(db DatabaseWriter) (common.Uint256, error) {
 	if len(t.getSecKeyCache()) > 0 {
 		for hk, key := range t.secKeyCache {
-			if err := db.Put(t.secKey([]byte(hk)), key); err != nil {
+			if err := db.BatchPut(t.secKey([]byte(hk)), key); err != nil {
 				return common.Uint256{}, err
 			}
 		}

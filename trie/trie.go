@@ -14,7 +14,7 @@ type DatabaseReader interface {
 }
 
 type DatabaseWriter interface {
-	Put(key, value []byte) error
+	BatchPut(key, value []byte) error
 }
 
 type Database interface {
@@ -115,6 +115,7 @@ func (t *Trie) insert(n node, prefix, key []byte, value node) (node, error) {
 	if len(key) == 0 {
 		return value, nil
 	}
+	fmt.Printf("insert:%+v", n)
 	switch n := n.(type) {
 	case *shortNode:
 		matchLen := prefixLen(key, n.Key)
@@ -138,7 +139,7 @@ func (t *Trie) insert(n node, prefix, key []byte, value node) (node, error) {
 		if matchLen == 0 {
 			return branch, nil
 		}
-		return &shortNode{key[:matchLen], branch, nodeFlag{}}, nil
+		return &shortNode{key[:matchLen], branch, nodeFlag{dirty: true}}, nil
 	case *fullNode:
 		nn, err := t.insert(n.Children[key[0]], append(prefix, key[0]), key[1:], value)
 		if err != nil {
@@ -146,9 +147,10 @@ func (t *Trie) insert(n node, prefix, key []byte, value node) (node, error) {
 		}
 		n = n.copy()
 		n.Children[key[0]] = nn
+		n.flags = nodeFlag{dirty: true}
 		return n, nil
 	case nil:
-		return &shortNode{Key: key, Val: value}, nil
+		return &shortNode{Key: key, Val: value, flags: nodeFlag{dirty: true}}, nil
 	case hashNode:
 		rn, err := t.resolveHash(n, prefix)
 		if err != nil {
@@ -261,12 +263,18 @@ func (t *Trie) Commit() (common.Uint256, error) {
 
 func (t *Trie) commitTo(db DatabaseWriter) (common.Uint256, error) {
 	hash, cached, err := t.hashRoot(db)
+	fmt.Printf("[commitTo hash] %x\n", hash)
 	if err != nil {
 		return common.Uint256{}, err
 	}
 	t.root = cached
-	u160, _ := common.Uint256ParseFromBytes(hash.(hashNode))
-	return u160, nil
+	fmt.Printf("[commitTo hashNode] %x\n", hash.(hashNode))
+	u256, err := common.Uint256ParseFromBytes(hash.(hashNode))
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	fmt.Printf("[commitTo u256] %x \n", u256)
+	return u256, nil
 }
 
 func (t *Trie) Hash() common.Uint256 {
@@ -277,9 +285,11 @@ func (t *Trie) Hash() common.Uint256 {
 }
 
 func (t *Trie) hashRoot(db DatabaseWriter) (node, node, error) {
+	fmt.Println("hashRoot enter")
 	if t.root == nil {
 		return hashNode(nil), nil, nil
 	}
+	fmt.Println("hashRoot newHasher")
 	h := newHasher()
 	defer returnHasherToPool(h)
 	return h.hash(t.root, db, true)
@@ -293,7 +303,7 @@ func (t *Trie) resolve(n node, prefix []byte) (node, error) {
 }
 
 func (t *Trie) resolveHash(n hashNode, prefix []byte) (node, error) {
-	enc, err := t.db.Get(n)
+	enc, err := t.db.Get(append(secureKeyPrefix, []byte(n)...))
 	if err != nil {
 		return nil, err
 	}

@@ -16,7 +16,7 @@ func NewMemDatabase() *MemDatabase {
 	}
 }
 
-func (db *MemDatabase) Put(key []byte, value []byte) error {
+func (db *MemDatabase) BatchPut(key []byte, value []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 	db.db[string(key)] = CopyBytes(value)
@@ -51,7 +51,7 @@ func (db *MemDatabase) Delete(key []byte) error {
 
 func (db *MemDatabase) ViewDB() {
 	for k, v := range db.db {
-		fmt.Printf("DB Cache Key:%v value:%v \n", k, v)
+		fmt.Printf("DB Cache Key:%x value:%v \n", k, v)
 	}
 }
 
