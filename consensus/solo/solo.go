@@ -104,11 +104,13 @@ func (this *SoloService) makeBlock() *ledger.Block {
 	}
 
 	blockRoot := ledger.DefaultLedger.Store.GetBlockRootWithNewTxRoot(txRoot)
+	stateRoot := ledger.DefaultLedger.Store.GetCurrentStateRoot()
 	header := &ledger.Header{
 		Version:          ContextVersion,
 		PrevBlockHash:    prevHash,
 		TransactionsRoot: txRoot,
 		BlockRoot:        blockRoot,
+		StateRoot:        stateRoot,
 		Timestamp:        uint32(time.Now().Unix()),
 		Height:           height,
 		ConsensusData:    nonce,
