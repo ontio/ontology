@@ -302,9 +302,12 @@ func getBalance(params []interface{}) map[string]interface{} {
 		return DnaRpcInvalidParameter
 	}
 
-	if v, ok := account.Balances[ass]; ok {
-		return DnaRpc(v.GetData())
+	for _, v := range account.Balances {
+		if v.AssetId.CompareTo(ass) == 0 {
+			return DnaRpc(v.Amount.GetData())
+		}
 	}
+
 	return DnaRpcNil
 }
 

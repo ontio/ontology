@@ -144,7 +144,7 @@ func (self *StateStore) CommitTo() error {
 				return err
 			}
 			if v.Trie {
-				value, _ := common.Uint256ParseFromBytes(data.Bytes())
+				value := common.ToHash256(data.Bytes())
 				if err := self.trie.TryUpdate([]byte(k), value.ToArray()); err != nil {
 					return err
 				}
@@ -220,7 +220,7 @@ func getStateObject(prefix DataEntryPrefix, enc []byte) (IStateValue, error) {
 func newStateObject(prefix DataEntryPrefix) IStateValue {
 	switch prefix {
 	case ST_Account:
-		return NewAccountState()
+		return new(AccountState)
 	case ST_Coin:
 		return new(UnspentCoinState)
 	case ST_SpentCoin:

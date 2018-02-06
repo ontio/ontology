@@ -872,8 +872,10 @@ func (s *StateReader) AccountGetBalance(e *vm.ExecutionEngine) (bool, error) {
 		return false, err
 	}
 	balance := common.Fixed64(0)
-	if v, ok := accountState.Balances[assetId]; ok {
-		balance = v
+	for _, v := range accountState.Balances {
+		if v.AssetId.CompareTo(assetId) == 0 {
+			balance = v.Amount
+		}
 	}
 	vm.PushData(e, balance.GetData())
 	return true, nil

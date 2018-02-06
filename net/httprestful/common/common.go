@@ -327,9 +327,9 @@ func GetBalanceByAddr(cmd map[string]interface{}) map[string]interface{} {
 		Value   string
 	}
 	var results []Result
-	for k, v := range account.Balances {
-		assetid := ToHexString(k.ToArray())
-		results = append(results, Result{assetid, strconv.FormatInt(v.GetData(), 10)})
+	for _, v := range account.Balances {
+		assetid := ToHexString(v.AssetId.ToArray())
+		results = append(results, Result{assetid, strconv.FormatInt(v.Amount.GetData(), 10)})
 	}
 	//valStr := strconv.FormatFloat(val, 'f', -1, 64)
 	resp["Result"] = results
@@ -357,8 +357,10 @@ func GetBalanceByAsset(cmd map[string]interface{}) map[string]interface{} {
 	}
 	ass, _ := HexToBytes(assetid)
 	assid, _ := Uint256ParseFromBytes(ass)
-	if v, ok := account.Balances[assid]; ok {
-		resp["Result"] = v.GetData()
+	for _, v := range account.Balances {
+		if v.AssetId.CompareTo(assid) == 0 {
+			resp["Result"] = v.Amount.GetData()
+		}
 	}
 	//valStr := strconv.FormatFloat(val, 'f', -1, 64)
 	return resp

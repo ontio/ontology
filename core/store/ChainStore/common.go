@@ -33,12 +33,16 @@ func handleOutputs(txid Uint256, outputs []*utxo.TxOutput, stateStore *StateStor
 		ph := o.ProgramHash
 		as := o.AssetID
 		if state == nil {
-			balances := make(map[Uint256]Fixed64)
-			balances[as] = o.Value
+			var balances []*Balance
+			balances = append(balances, &Balance{AssetId: as, Amount: o.Value})
 			stateStore.TryAdd(ST_Account, ph.ToArray(), &AccountState{ProgramHash: ph, IsFrozen: false, Balances: balances}, true)
 		} else {
 			account := state.(*AccountState)
-			account.Balances[as] += o.Value
+			for _, v := range account.Balances {
+				if v.AssetId.CompareTo(as) == 0 {
+					v.Amount += o.Value
+				}
+			}
 		}
 		state, err = stateStore.TryGetAndChange(ST_Program_Coin, append(ph.ToArray(), as.ToArray()...), false)
 		if err != nil {
@@ -97,7 +101,11 @@ func handleInputs(inputs []*utxo.UTXOTxInput, stateStore *StateStore, currentBlo
 			return err
 		}
 		account := state.(*AccountState)
-		account.Balances[prev_output.AssetID] -= prev_output.Value
+		for _, v := range account.Balances {
+			if v.AssetId.CompareTo(prev_output.AssetID) == 0 {
+				v.Amount -= prev_output.Value
+			}
+		}
 
 		state, err = stateStore.TryGetAndChange(ST_Program_Coin, append(ph, prev_output.AssetID.ToArray()...), false)
 		if err != nil {
@@ -188,7 +196,7 @@ func addDataBlock(bd *ChainStore, b *ledger.Block) error {
 }
 
 func addCurrentStateRoot(bd *ChainStore, stateRoot Uint256) error {
-	return bd.st.BatchPut(append([]byte{byte(Sys_CurrentStateRoot)}, CurrentStateRoot...), stateRoot.ToArray())
+	return bd.st.BatchPut(append([]byte{byte(SYS_CurrentStateRoot)}, CurrentStateRoot...), stateRoot.ToArray())
 }
 
 func addMerkleRoot(bd *ChainStore, b *ledger.Block) {
