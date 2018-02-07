@@ -12,6 +12,12 @@ type CacheCodeTable struct {
 	store store.IStateStore
 }
 
+func NewCacheCodeTable(store store.IStateStore) *CacheCodeTable{
+	return &CacheCodeTable{
+		store: store,
+	}
+}
+
 func (table *CacheCodeTable) GetCode(codeHash []byte) ([]byte, error) {
 	value, _ := table.store.TryGet(store.ST_Contract, codeHash)
 	if value == nil {
