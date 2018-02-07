@@ -59,6 +59,9 @@ func (s *StateMachine) RuntimeGetTrigger(engine *vm.ExecutionEngine) (bool, erro
 }
 
 func (s *StateMachine) RuntimeGetTime(engine *vm.ExecutionEngine) (bool, error) {
+	if s.block == nil {
+		return false, errors.NewErr("[RuntimeGetTime] Block is fail!")
+	}
 	vm.PushData(engine, s.block.Header.Timestamp)
 	return true, nil
 }

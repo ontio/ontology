@@ -114,6 +114,9 @@ func main() {
 		go httpnodeinfo.StartServer(noder)
 	}
 
+	log.Info("--Loading Event Store--")
+	//ChainStore.NewEventStore()
+
 	go func() {
 		ticker := time.NewTicker(config.DEFAULTGENBLOCKTIME * time.Second)
 		for {
