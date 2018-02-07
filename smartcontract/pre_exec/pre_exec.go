@@ -12,13 +12,15 @@ import (
 	. "github.com/Ontology/common"
 )
 
+var DefaultEventStore ChainStore.IEventStore
+
 func PreExec(code []byte, container interfaces.ICodeContainer) ([]interface{}, error) {
 	var (
 		crypto interfaces.ICrypto
 		err error
 	)
 	crypto = new(neovm.ECDsaCrypto)
-	stateStore := ChainStore.NewStateStore(statestore.NewMemDatabase(), ledger.DefaultLedger.Store.(*ChainStore.ChainStore), nil, Uint256{})
+	stateStore := ChainStore.NewStateStore(statestore.NewMemDatabase(), ledger.DefaultLedger.Store.(*ChainStore.ChainStore), statestore.NewTrieStore(nil), Uint256{})
 	stateMachine := service.NewStateMachine(stateStore, types.Application, nil)
 	se := neovm.NewExecutionEngine(container, crypto, ChainStore.NewCacheCodeTable(stateStore), stateMachine)
 	se.LoadCode(code, false)
