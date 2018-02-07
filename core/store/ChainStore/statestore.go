@@ -17,7 +17,8 @@ type StateStore struct {
 	trie        statestore.ITrie
 }
 
-func NewStateStore(memoryStore IMemoryStore, db *ChainStore, trieStore statestore.ITrieStore, root common.Uint256) *StateStore {
+func NewStateStore(memoryStore IMemoryStore, db *ChainStore, root common.Uint256) *StateStore {
+	trieStore := statestore.NewTrieStore(db.st)
 	tr, err := trieStore.OpenTrie(root)
 	if err != nil {
 		panic("[NewStateStore] opentrie error:" + err.Error())

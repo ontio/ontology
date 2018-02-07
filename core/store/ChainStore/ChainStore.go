@@ -666,7 +666,7 @@ func (self *ChainStore) GetBookKeeperList() ([]*crypto.PubKey, []*crypto.PubKey,
 
 func (bd *ChainStore) persist(b *Block) error {
 	bd.st.NewBatch()
-	stateStore := NewStateStore(statestore.NewMemDatabase(), bd, statestore.NewTrieStore(bd.st), b.Header.StateRoot)
+	stateStore := NewStateStore(statestore.NewMemDatabase(), bd, b.Header.StateRoot)
 	state, err := stateStore.TryGet(ST_BookKeeper, BookerKeeper)
 	if err != nil {
 		log.Error("[persist] TryGet ST_BookKeeper error:", err)

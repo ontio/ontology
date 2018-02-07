@@ -4,11 +4,11 @@ import (
 	"github.com/Ontology/smartcontract/service"
 	"github.com/Ontology/vm/neovm"
 	"github.com/Ontology/vm/neovm/interfaces"
-	"github.com/Ontology/core/store/statestore"
 	"github.com/Ontology/smartcontract/types"
 	"github.com/Ontology/core/store/ChainStore"
-	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/smartcontract/common"
+	"github.com/Ontology/core/ledger"
+	"github.com/Ontology/core/store/statestore"
 	. "github.com/Ontology/common"
 )
 
@@ -20,7 +20,8 @@ func PreExec(code []byte, container interfaces.ICodeContainer) ([]interface{}, e
 		err error
 	)
 	crypto = new(neovm.ECDsaCrypto)
-	stateStore := ChainStore.NewStateStore(statestore.NewMemDatabase(), ledger.DefaultLedger.Store.(*ChainStore.ChainStore), statestore.NewTrieStore(nil), Uint256{})
+
+	stateStore := ChainStore.NewStateStore(statestore.NewMemDatabase(), ledger.DefaultLedger.Store.(*ChainStore.ChainStore), Uint256{})
 	stateMachine := service.NewStateMachine(stateStore, types.Application, nil)
 	se := neovm.NewExecutionEngine(container, crypto, ChainStore.NewCacheCodeTable(stateStore), stateMachine)
 	se.LoadCode(code, false)
