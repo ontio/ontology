@@ -11,7 +11,7 @@ import (
 	"github.com/Ontology/smartcontract/common"
 )
 
-func PreExec(code []byte, container interfaces.ICodeContainer) ([]byte, error) {
+func PreExec(code []byte, container interfaces.ICodeContainer) ([]interface{}, error) {
 	var (
 		crypto interfaces.ICrypto
 		err error
