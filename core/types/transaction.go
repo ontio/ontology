@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"errors"
 	"io"
-	"math/big"
 
 	. "github.com/Ontology/common"
 	. "github.com/Ontology/common/config"
@@ -26,7 +25,6 @@ type Transaction struct {
 
 	hash *Uint256
 }
-
 
 type Sig struct {
 	PubKey  crypto.PubKey
@@ -114,6 +112,7 @@ func (tx *Transaction) GetTotalFee() Fixed64 {
 	}
 	return sum
 }
+
 //Serialize the Transaction data without contracts
 func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 	//txType
@@ -236,20 +235,6 @@ func (tx *Transaction) DeserializeUnsigned(r io.Reader) error {
 	return nil
 }
 
-const (
-	OntRegisterAmount = 1000000000
-	OngRegisterAmount = 1000000000
-)
-
-var (
-	Infinity    = &crypto.PubKey{X: big.NewInt(0), Y: big.NewInt(0)}
-	SystemIssue Uint256
-	ONTToken    = NewGoverningToken()
-	ONGToken    = NewUtilityToken()
-	ONTTokenID  = ONTToken.Hash()
-	ONGTokenID  = ONGToken.Hash()
-)
-
 func (tx *Transaction) GetMessage() []byte {
 	buf := new(bytes.Buffer)
 	tx.SerializeUnsigned(buf)
@@ -292,14 +277,4 @@ func (tx *Transaction) GetSysFee() Fixed64 {
 
 func (tx *Transaction) GetNetworkFee() Fixed64 {
 	return tx.NetWorkFee
-}
-
-func NewGoverningToken() *Transaction {
-	panic("unimplemented ")
-	return nil
-}
-
-func NewUtilityToken() *Transaction {
-	panic("unimplemented ")
-	return nil
 }
