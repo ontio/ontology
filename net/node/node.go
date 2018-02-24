@@ -5,15 +5,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	. "github.com/Ontology/common"
-	. "github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/ledger"
-	"github.com/Ontology/core/transaction"
-	"github.com/Ontology/crypto"
-	"github.com/Ontology/events"
-	. "github.com/Ontology/net/message"
-	. "github.com/Ontology/net/protocol"
 	"math/rand"
 	"net"
 	"runtime"
@@ -22,6 +13,16 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	. "github.com/Ontology/common"
+	. "github.com/Ontology/common/config"
+	"github.com/Ontology/common/log"
+	"github.com/Ontology/core/ledger"
+	"github.com/Ontology/core/types"
+	"github.com/Ontology/crypto"
+	"github.com/Ontology/events"
+	. "github.com/Ontology/net/message"
+	. "github.com/Ontology/net/protocol"
 )
 
 type Semaphore chan struct{}
@@ -38,35 +39,35 @@ func (s Semaphore) release() {
 }
 
 type node struct {
-						   //sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
-	state                    uint32            // node state
-	id                       uint64            // The nodes's id
-	cap                      [32]byte          // The node capability set
-	version                  uint32            // The network protocol the node used
-	services                 uint64            // The services the node supplied
-	relay                    bool              // The relay capability of the node (merge into capbility flag)
-	height                   uint64            // The node latest block height
-	txnCnt                   uint64            // The transactions be transmit by this node
-	rxTxnCnt                 uint64            // The transaction received by this node
-	publicKey                *crypto.PubKey
-						   // TODO does this channel should be a buffer channel
-	chF                      chan func() error // Channel used to operate the node without lock
-	link                                       // The link status and infomation
-	local                    *node             // The pointer to local node
-	nbrNodes                                   // The neighbor node connect with currently node except itself
-	eventQueue                                 // The event queue to notice notice other modules
-	TXNPool                                    // Unconfirmed transaction pool
-	idCache                                    // The buffer to store the id of the items which already be processed
-						   /*
-						    * |--|--|--|--|--|--|isSyncFailed|isSyncHeaders|
-						    */
+	//sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
+	state     uint32   // node state
+	id        uint64   // The nodes's id
+	cap       [32]byte // The node capability set
+	version   uint32   // The network protocol the node used
+	services  uint64   // The services the node supplied
+	relay     bool     // The relay capability of the node (merge into capbility flag)
+	height    uint64   // The node latest block height
+	txnCnt    uint64   // The transactions be transmit by this node
+	rxTxnCnt  uint64   // The transaction received by this node
+	publicKey *crypto.PubKey
+	// TODO does this channel should be a buffer channel
+	chF        chan func() error // Channel used to operate the node without lock
+	link                         // The link status and infomation
+	local      *node             // The pointer to local node
+	nbrNodes                     // The neighbor node connect with currently node except itself
+	eventQueue                   // The event queue to notice notice other modules
+	TXNPool                      // Unconfirmed transaction pool
+	idCache                      // The buffer to store the id of the items which already be processed
+	/*
+	 * |--|--|--|--|--|--|isSyncFailed|isSyncHeaders|
+	 */
 	flightHeights            []uint32
 	lastContact              time.Time
 	nodeDisconnectSubscriber events.Subscriber
 	tryTimes                 uint32
 	ConnectingNodes
 	RetryConnAddrs
-	SyncReqSem               Semaphore
+	SyncReqSem Semaphore
 }
 
 type RetryConnAddrs struct {
@@ -128,14 +129,14 @@ func (node *node) RemoveAddrInConnectingList(addr string) {
 	addrs := []string{}
 	for i, a := range node.ConnectingAddrs {
 		if strings.Compare(a, addr) == 0 {
-			addrs = append(node.ConnectingAddrs[:i], node.ConnectingAddrs[i + 1:]...)
+			addrs = append(node.ConnectingAddrs[:i], node.ConnectingAddrs[i+1:]...)
 		}
 	}
 	node.ConnectingAddrs = addrs
 }
 
 func (node *node) UpdateInfo(t time.Time, version uint32, services uint64,
-port uint16, nonce uint64, relay uint8, height uint64) {
+	port uint16, nonce uint64, relay uint8, height uint64) {
 
 	node.UpdateRXTime(t)
 	node.id = nonce
@@ -319,18 +320,18 @@ func (node *node) Xmit(message interface{}) error {
 	var buffer []byte
 	var err error
 	switch message.(type) {
-	case *transaction.Transaction:
+	case *types.Transaction:
 		log.Debug("TX transaction message")
-		txn := message.(*transaction.Transaction)
+		txn := message.(*types.Transaction)
 		buffer, err = NewTxn(txn)
 		if err != nil {
 			log.Error("Error New Tx message: ", err)
 			return err
 		}
 		node.txnCnt++
-	case *ledger.Block:
+	case *types.Block:
 		log.Debug("TX block message")
-		block := message.(*ledger.Block)
+		block := message.(*types.Block)
 		buffer, err = NewBlock(block)
 		if err != nil {
 			log.Error("Error New Block message: ", err)
@@ -435,7 +436,7 @@ func (node *node) WaitForSyncBlkFinish() {
 func (node *node) WaitForPeersStart() {
 	for {
 		log.Debug("WaitForPeersStart...")
-		if node.IsUptoMinNodeCount(){
+		if node.IsUptoMinNodeCount() {
 			break
 		}
 		<-time.After(2 * time.Second)

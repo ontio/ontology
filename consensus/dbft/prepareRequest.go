@@ -1,10 +1,9 @@
 package dbft
 
 import (
-	. "github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	ser "github.com/Ontology/common/serialization"
-	tx "github.com/Ontology/core/transaction"
+	"github.com/Ontology/core/types"
 	. "github.com/Ontology/errors"
 	"io"
 )
@@ -12,8 +11,8 @@ import (
 type PrepareRequest struct {
 	msgData        ConsensusMessageData
 	Nonce          uint64
-	NextBookKeeper Uint160
-	Transactions   []*tx.Transaction
+	NextBookKeeper types.Address
+	Transactions   []*types.Transaction
 	Signature      []byte
 }
 
@@ -24,7 +23,7 @@ func (pr *PrepareRequest) Serialize(w io.Writer) error {
 	if err := ser.WriteVarUint(w, pr.Nonce); err != nil {
 		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] nonce serialization failed")
 	}
-	if _, err := pr.NextBookKeeper.Serialize(w); err != nil {
+	if err := pr.NextBookKeeper.Serialize(w); err != nil {
 		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] nextbookKeeper serialization failed")
 	}
 	if err := ser.WriteVarUint(w, uint64(len(pr.Transactions))); err != nil {
@@ -47,7 +46,6 @@ func (pr *PrepareRequest) Deserialize(r io.Reader) error {
 	pr.msgData.Deserialize(r)
 	pr.Nonce, _ = ser.ReadVarUint(r, 0)
 
-	pr.NextBookKeeper = Uint160{}
 	if err := pr.NextBookKeeper.Deserialize(r); err != nil {
 		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] nextbookKeeper deserialization failed")
 	}
@@ -57,9 +55,9 @@ func (pr *PrepareRequest) Deserialize(r io.Reader) error {
 		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] length deserialization failed")
 	}
 
-	pr.Transactions = make([]*tx.Transaction, length)
+	pr.Transactions = make([]*types.Transaction, length)
 	for i := 0; i < len(pr.Transactions); i++ {
-		var t tx.Transaction
+		var t types.Transaction
 		if err := t.Deserialize(r); err != nil {
 			return NewDetailErr(err, ErrNoCode, "[PrepareRequest] transactions deserialization failed")
 		}

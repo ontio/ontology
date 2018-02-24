@@ -7,34 +7,34 @@ import (
 	"github.com/Ontology/common/log"
 	ser "github.com/Ontology/common/serialization"
 	"github.com/Ontology/core/ledger"
-	tx "github.com/Ontology/core/transaction"
+	"github.com/Ontology/core/types"
+	"github.com/Ontology/core/vote"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/net"
 	msg "github.com/Ontology/net/message"
 	"sync"
-	"github.com/Ontology/core/vote"
 )
 
 const ContextVersion uint32 = 0
 
 type ConsensusContext struct {
-	State               ConsensusState
-	PrevHash            Uint256
-	Height              uint32
-	ViewNumber          byte
-	BookKeepers         []*crypto.PubKey
-	NextBookKeepers     []*crypto.PubKey
-	Owner               *crypto.PubKey
-	BookKeeperIndex     int
-	PrimaryIndex        uint32
-	Timestamp           uint32
-	Nonce               uint64
-	NextBookKeeper      Uint160
-	Transactions        []*tx.Transaction
-	Signatures          [][]byte
-	ExpectedView        []byte
+	State           ConsensusState
+	PrevHash        Uint256
+	Height          uint32
+	ViewNumber      byte
+	BookKeepers     []*crypto.PubKey
+	NextBookKeepers []*crypto.PubKey
+	Owner           *crypto.PubKey
+	BookKeeperIndex int
+	PrimaryIndex    uint32
+	Timestamp       uint32
+	Nonce           uint64
+	NextBookKeeper  types.Address
+	Transactions    []*types.Transaction
+	Signatures      [][]byte
+	ExpectedView    []byte
 
-	header              *ledger.Block
+	header *types.Block
 
 	contextMu           sync.Mutex
 	isBookKeeperChanged bool
@@ -43,7 +43,7 @@ type ConsensusContext struct {
 
 func (cxt *ConsensusContext) M() int {
 	log.Debug()
-	return len(cxt.BookKeepers) - (len(cxt.BookKeepers) - 1) / 3
+	return len(cxt.BookKeepers) - (len(cxt.BookKeepers)-1)/3
 }
 
 func NewConsensusContext() *ConsensusContext {
@@ -78,7 +78,7 @@ func (cxt *ConsensusContext) MakeChangeView() *msg.ConsensusPayload {
 	return cxt.MakePayload(cv)
 }
 
-func (cxt *ConsensusContext) MakeHeader() *ledger.Block {
+func (cxt *ConsensusContext) MakeHeader() *types.Block {
 	log.Debug()
 	if cxt.Transactions == nil {
 		return nil
@@ -94,7 +94,7 @@ func (cxt *ConsensusContext) MakeHeader() *ledger.Block {
 		}
 		blockRoot := ledger.DefaultLedger.Store.GetBlockRootWithNewTxRoot(txRoot)
 		stateRoot := ledger.DefaultLedger.Store.GetCurrentStateRoot()
-		header := &ledger.Header{
+		header := &types.Header{
 			Version:          ContextVersion,
 			PrevBlockHash:    cxt.PrevHash,
 			TransactionsRoot: txRoot,
@@ -105,9 +105,9 @@ func (cxt *ConsensusContext) MakeHeader() *ledger.Block {
 			ConsensusData:    cxt.Nonce,
 			NextBookKeeper:   cxt.NextBookKeeper,
 		}
-		cxt.header = &ledger.Block{
-			Header:    header,
-			Transactions: []*tx.Transaction{},
+		cxt.header = &types.Block{
+			Header:       header,
+			Transactions: []*types.Transaction{},
 		}
 	}
 	return cxt.header
@@ -189,7 +189,7 @@ func (cxt *ConsensusContext) Reset(client cl.Client, localNode net.Neter) {
 	if height != cxt.Height || header == nil || header.Hash() != preHash || len(cxt.NextBookKeepers) == 0 {
 		log.Info("[ConsensusContext] Calculate BookKeepers from db")
 		var err error
-		cxt.BookKeepers, err = vote.GetValidators([]*tx.Transaction{})
+		cxt.BookKeepers, err = vote.GetValidators([]*types.Transaction{})
 		if err != nil {
 			log.Error("[ConsensusContext] GetNextBookKeeper failed", err)
 		}

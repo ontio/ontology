@@ -2,13 +2,11 @@ package ledger
 
 import (
 	"errors"
-	"github.com/Ontology/common"
 	. "github.com/Ontology/common"
-	"github.com/Ontology/core/contract"
-	tx "github.com/Ontology/core/transaction"
+	"github.com/Ontology/core/states"
+	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
-	"github.com/Ontology/core/states"
 )
 
 var DefaultLedger *Ledger
@@ -21,7 +19,7 @@ type Ledger struct {
 }
 
 //check weather the transaction contains the doubleSpend.
-func (l *Ledger) IsDoubleSpend(Tx *tx.Transaction) bool {
+func (l *Ledger) IsDoubleSpend(Tx *types.Transaction) bool {
 	return DefaultLedger.Store.IsDoubleSpend(Tx)
 }
 
@@ -34,58 +32,33 @@ func GetDefaultLedger() (*Ledger, error) {
 	return DefaultLedger, nil
 }
 
-//Calc the BookKeepers address by bookKeepers pubkey.
-func GetBookKeeperAddress(bookKeepers []*crypto.PubKey) (Uint160, error) {
-	//TODO: GetBookKeeperAddress()
-	//return Uint160{}
-	//CreateSignatureRedeemScript
-	if len(bookKeepers) < 1 {
-		return Uint160{}, NewDetailErr(errors.New("[Ledger] , GetBookKeeperAddress with no bookKeeper"), ErrNoCode, "")
-	}
-	var temp []byte
-	var err error
-	if len(bookKeepers) > 1 {
-		temp, err = contract.CreateMultiSigRedeemScript(len(bookKeepers) - (len(bookKeepers) - 1) / 3, bookKeepers)
-		if err != nil {
-			return Uint160{}, NewDetailErr(err, ErrNoCode, "[Ledger],GetBookKeeperAddress failed with CreateMultiSigRedeemScript.")
-		}
-	} else {
-		temp, err = contract.CreateSignatureRedeemScript(bookKeepers[0])
-		if err != nil {
-			return Uint160{}, NewDetailErr(err, ErrNoCode, "[Ledger],GetBookKeeperAddress failed with CreateMultiSigRedeemScript.")
-		}
-	}
-	codehash := common.ToCodeHash(temp)
-	return codehash, nil
-}
-
 //Get the Asset from store.
 func (l *Ledger) GetAsset(assetId Uint256) (*states.AssetState, error) {
 	asset, err := l.Store.GetAsset(assetId)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetAsset failed with assetId =" + assetId.ToString())
+		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetAsset failed with assetId ="+assetId.ToString())
 	}
 	return asset, nil
 }
 
 //Get Block With Height.
-func (l *Ledger) GetBlockWithHeight(height uint32) (*Block, error) {
+func (l *Ledger) GetBlockWithHeight(height uint32) (*types.Block, error) {
 	temp, err := l.Store.GetBlockHash(height)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetBlockWithHeight failed with height=" + string(height))
+		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetBlockWithHeight failed with height="+string(height))
 	}
 	bk, err := DefaultLedger.Store.GetBlock(temp)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetBlockWithHeight failed with hash=" + temp.ToString())
+		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetBlockWithHeight failed with hash="+temp.ToString())
 	}
 	return bk, nil
 }
 
 //Get block with block hash.
-func (l *Ledger) GetBlockWithHash(hash Uint256) (*Block, error) {
+func (l *Ledger) GetBlockWithHash(hash Uint256) (*types.Block, error) {
 	bk, err := l.Store.GetBlock(hash)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetBlockWithHeight failed with hash=" + hash.ToString())
+		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetBlockWithHeight failed with hash="+hash.ToString())
 	}
 	return bk, nil
 }
@@ -96,10 +69,10 @@ func (l *Ledger) BlockInLedger(hash Uint256) bool {
 }
 
 //Get transaction with hash.
-func (l *Ledger) GetTransactionWithHash(hash Uint256) (*tx.Transaction, error) {
+func (l *Ledger) GetTransactionWithHash(hash Uint256) (*types.Transaction, error) {
 	tx, err := l.Store.GetTransaction(hash)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetTransactionWithHash failed with hash=" + hash.ToString())
+		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetTransactionWithHash failed with hash="+hash.ToString())
 	}
 	return tx, nil
 }

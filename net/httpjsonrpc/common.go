@@ -1,20 +1,20 @@
 package httpjsonrpc
 
 import (
-	. "github.com/Ontology/common"
-	."github.com/Ontology/consensus"
-	"github.com/Ontology/common/log"
-	tx "github.com/Ontology/core/transaction"
-	. "github.com/Ontology/errors"
-	. "github.com/Ontology/net/protocol"
 	"encoding/json"
 	"fmt"
+	. "github.com/Ontology/common"
+	"github.com/Ontology/common/log"
+	. "github.com/Ontology/consensus"
+	"github.com/Ontology/core/transaction/utxo"
+	tx "github.com/Ontology/core/types"
+	. "github.com/Ontology/errors"
+	. "github.com/Ontology/net/protocol"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
-	"github.com/Ontology/core/transaction/utxo"
 )
 
 func init() {
@@ -71,22 +71,22 @@ type ProgramInfo struct {
 }
 
 type Transactions struct {
-	TxType            tx.TransactionType
-	PayloadVersion    byte
-	Payload           PayloadInfo
-	Attributes        []TxAttributeInfo
-	UTXOInputs        []UTXOTxInputInfo
-	BalanceInputs     []BalanceTxInputInfo
-	Outputs           []TxoutputInfo
-	Programs          []ProgramInfo
-	NetworkFee        string
-	SystemFee         string
+	TxType         tx.TransactionType
+	PayloadVersion byte
+	Payload        PayloadInfo
+	Attributes     []TxAttributeInfo
+	UTXOInputs     []UTXOTxInputInfo
+	BalanceInputs  []BalanceTxInputInfo
+	Outputs        []TxoutputInfo
+	Programs       []ProgramInfo
+	NetworkFee     string
+	SystemFee      string
 
 	AssetOutputs      []TxoutputMap
 	AssetInputAmount  []AmountMap
 	AssetOutputAmount []AmountMap
 
-	Hash              string
+	Hash string
 }
 
 type BlockHead struct {
@@ -101,7 +101,7 @@ type BlockHead struct {
 	NextBookKeeper   string
 	Program          ProgramInfo
 
-	Hash             string
+	Hash string
 }
 
 type BlockInfo struct {

@@ -3,16 +3,16 @@ package ChainStore
 import (
 	"bytes"
 	"encoding/binary"
+	"math/big"
+
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
-	"github.com/Ontology/core/ledger"
 	. "github.com/Ontology/core/states"
 	. "github.com/Ontology/core/store"
-	tx "github.com/Ontology/core/transaction"
 	"github.com/Ontology/core/transaction/utxo"
+	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
-	"math/big"
 )
 
 func repeat(length int) []CoinState {
@@ -60,10 +60,11 @@ func handleOutputs(txid Uint256, outputs []*utxo.TxOutput, stateStore *StateStor
 	return nil
 }
 
+/*
 func handleInputs(inputs []*utxo.UTXOTxInput, stateStore *StateStore, currentBlockHeight uint32, bd *ChainStore) error {
 	for _, i := range inputs {
 		//get prev tx
-		tx_prev := new(tx.Transaction)
+		tx_prev := new(types.Transaction)
 		refer_tx := i.ReferTxID.ToArray()
 		height, err := bd.getTx(tx_prev, i.ReferTxID)
 		if err != nil {
@@ -125,6 +126,7 @@ func handleInputs(inputs []*utxo.UTXOTxInput, stateStore *StateStore, currentBlo
 	}
 	return nil
 }
+*/
 
 func handleBookKeeper(stateStore *StateStore, bookKeeper *BookKeeperState) {
 	flag := false
@@ -150,7 +152,7 @@ func handleBookKeeper(stateStore *StateStore, bookKeeper *BookKeeperState) {
 	}
 }
 
-func addHeader(bd *ChainStore, b *ledger.Block, curr_block_sysfee uint64) error {
+func addHeader(bd *ChainStore, b *types.Block, curr_block_sysfee uint64) error {
 	key := bytes.NewBuffer(append([]byte{byte(DATA_Header)}))
 	bh := b.Hash()
 	if _, err := bh.Serialize(key); err != nil {
@@ -167,7 +169,7 @@ func addHeader(bd *ChainStore, b *ledger.Block, curr_block_sysfee uint64) error 
 	return nil
 }
 
-func addSysCurrentBlock(bd *ChainStore, b *ledger.Block) error {
+func addSysCurrentBlock(bd *ChainStore, b *types.Block) error {
 	key := bytes.NewBuffer(append([]byte{byte(SYS_CurrentBlock)}))
 	value := new(bytes.Buffer)
 	bh := b.Hash()
@@ -181,7 +183,7 @@ func addSysCurrentBlock(bd *ChainStore, b *ledger.Block) error {
 	return nil
 }
 
-func addDataBlock(bd *ChainStore, b *ledger.Block) error {
+func addDataBlock(bd *ChainStore, b *types.Block) error {
 	key := bytes.NewBuffer(append([]byte{byte(DATA_Block)}))
 	if err := serialization.WriteUint32(key, b.Header.Height); err != nil {
 		return err
@@ -199,7 +201,7 @@ func addCurrentStateRoot(bd *ChainStore, stateRoot Uint256) error {
 	return bd.st.BatchPut(append([]byte{byte(SYS_CurrentStateRoot)}, CurrentStateRoot...), stateRoot.ToArray())
 }
 
-func addMerkleRoot(bd *ChainStore, b *ledger.Block) {
+func addMerkleRoot(bd *ChainStore, b *types.Block) {
 	// update merkle tree
 	bd.merkleTree.AppendHash(b.Header.TransactionsRoot)
 	bd.merkleHashStore.Flush()

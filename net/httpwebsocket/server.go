@@ -5,13 +5,14 @@ import (
 	. "github.com/Ontology/common"
 	. "github.com/Ontology/common/config"
 	"github.com/Ontology/core/ledger"
+	"github.com/Ontology/core/types"
 	"github.com/Ontology/events"
 	"github.com/Ontology/net/httprestful/common"
 	Err "github.com/Ontology/net/httprestful/error"
 	"github.com/Ontology/net/httpwebsocket/websocket"
 	. "github.com/Ontology/net/protocol"
-	"github.com/Ontology/smartcontract/event"
 	sc "github.com/Ontology/smartcontract/common"
+	"github.com/Ontology/smartcontract/event"
 )
 
 var ws *websocket.WsServer
@@ -144,7 +145,7 @@ func PushBlock(v interface{}) {
 		return
 	}
 	resp := common.ResponsePack(Err.SUCCESS)
-	if block, ok := v.(*ledger.Block); ok {
+	if block, ok := v.(*types.Block); ok {
 		if pushRawBlockFlag {
 			w := bytes.NewBuffer(nil)
 			block.Serialize(w)
@@ -161,7 +162,7 @@ func PushBlockTransactions(v interface{}) {
 		return
 	}
 	resp := common.ResponsePack(Err.SUCCESS)
-	if block, ok := v.(*ledger.Block); ok {
+	if block, ok := v.(*types.Block); ok {
 		if pushBlockTxsFlag {
 			resp["Result"] = common.GetBlockTransactions(block)
 		}

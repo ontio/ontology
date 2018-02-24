@@ -1,16 +1,11 @@
 package common
 
 import (
-	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	. "github.com/Ontology/common"
-	"github.com/Ontology/core/ledger"
-	tx "github.com/Ontology/core/transaction"
 	"github.com/Ontology/core/transaction/payload"
 	"github.com/Ontology/core/transaction/utxo"
-	. "github.com/Ontology/errors"
-	. "github.com/Ontology/net/httpjsonrpc"
 	Err "github.com/Ontology/net/httprestful/error"
 	"time"
 )
@@ -77,6 +72,8 @@ func getInnerTimestamp() ([]byte, int64) {
 	}
 	return repBtys, Err.SUCCESS
 }
+
+/*
 func SendRecord(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
 	var recordData []byte
@@ -119,7 +116,9 @@ func SendRecord(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"] = ToHexString(hash.ToArray())
 	return resp
 }
+*/
 
+/*
 func SendRecordTransaction(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
 	var recordData []byte
@@ -138,6 +137,7 @@ func SendRecordTransaction(cmd map[string]interface{}) map[string]interface{} {
 	}
 	return resp
 }
+*/
 
 func getClaimData(cmd map[string]interface{}) (*payload.Claim, int64) {
 	type UTXOTxInput struct {
@@ -180,6 +180,7 @@ func getClaimData(cmd map[string]interface{}) (*payload.Claim, int64) {
 	return realClaim, 0
 }
 
+/*
 func SendClaim(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
 	var claimData = new(payload.Claim)
@@ -238,3 +239,4 @@ func SendClaim(cmd map[string]interface{}) map[string]interface{} {
 	}
 	return resp
 }
+*/

@@ -8,7 +8,7 @@ import (
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/ledger"
-	"github.com/Ontology/core/transaction"
+	"github.com/Ontology/core/types"
 	. "github.com/Ontology/errors"
 	. "github.com/Ontology/net/protocol"
 )
@@ -24,7 +24,7 @@ type trn struct {
 	msgHdr
 	// TBD
 	//txn []byte
-	txn transaction.Transaction
+	txn types.Transaction
 	//hash common.Uint256
 }
 
@@ -92,7 +92,7 @@ func (msg *dataReq) Deserialization(p []byte) error {
 	return nil
 }
 
-func NewTxnFromHash(hash common.Uint256) (*transaction.Transaction, error) {
+func NewTxnFromHash(hash common.Uint256) (*types.Transaction, error) {
 	txn, err := ledger.DefaultLedger.GetTransactionWithHash(hash)
 	if err != nil {
 		log.Error("Get transaction with hash error: ", err.Error())
@@ -101,7 +101,7 @@ func NewTxnFromHash(hash common.Uint256) (*transaction.Transaction, error) {
 
 	return txn, nil
 }
-func NewTxn(txn *transaction.Transaction) ([]byte, error) {
+func NewTxn(txn *types.Transaction) ([]byte, error) {
 	log.Debug()
 	var msg trn
 

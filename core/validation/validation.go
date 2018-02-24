@@ -4,10 +4,11 @@ import (
 	"errors"
 	. "github.com/Ontology/common"
 	sig "github.com/Ontology/core/signature"
+	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
 	"github.com/Ontology/smartcontract/service"
-	"github.com/Ontology/smartcontract/types"
+	vmtypes "github.com/Ontology/smartcontract/types"
 	vm "github.com/Ontology/vm/neovm"
 	"github.com/Ontology/vm/neovm/interfaces"
 )
@@ -34,13 +35,39 @@ func VerifySignableDataProgramHashes(signableData sig.SignableData) error {
 	return nil
 }
 
+func VerifyHeaderProgram(header *types.Header) error {
+	program := header.Program
+	var cryptos interfaces.ICrypto
+	cryptos = new(vm.ECDsaCrypto)
+	stateReader := service.NewStateReader(vmtypes.Verification)
+	se := vm.NewExecutionEngine(header, cryptos, nil, stateReader)
+	se.LoadCode(program.Code, false)
+	se.LoadCode(program.Parameter, true)
+	se.Execute()
+
+	if se.GetState() != vm.HALT {
+		return NewDetailErr(errors.New("[VM] Finish State not equal to HALT."), ErrNoCode, "")
+	}
+
+	if se.GetEvaluationStack().Count() != 1 {
+		return NewDetailErr(errors.New("[VM] Execute Engine Stack Count Error."), ErrNoCode, "")
+	}
+
+	flag := se.GetExecuteResult()
+	if !flag {
+		return NewDetailErr(errors.New("[VM] Check Sig FALSE."), ErrNoCode, "")
+	}
+
+	return nil
+}
+
 func VerifySignableDataSignature(signableData sig.SignableData) error {
 	programs := signableData.GetPrograms()
 	for i := 0; i < len(programs); i++ {
 		//execute program on VM
 		var cryptos interfaces.ICrypto
 		cryptos = new(vm.ECDsaCrypto)
-		stateReader := service.NewStateReader(types.Verification)
+		stateReader := service.NewStateReader(vmtypes.Verification)
 		se := vm.NewExecutionEngine(signableData, cryptos, nil, stateReader)
 		se.LoadCode(programs[i].Code, false)
 		se.LoadCode(programs[i].Parameter, true)

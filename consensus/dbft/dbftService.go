@@ -1,28 +1,31 @@
 package dbft
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"time"
+
 	cl "github.com/Ontology/account"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
+	"github.com/Ontology/core"
 	"github.com/Ontology/core/contract"
 	ct "github.com/Ontology/core/contract"
 	"github.com/Ontology/core/contract/program"
+	"github.com/Ontology/core/genesis"
 	"github.com/Ontology/core/ledger"
+	"github.com/Ontology/core/payload"
 	_ "github.com/Ontology/core/signature"
-	sig "github.com/Ontology/core/signature"
-	tx "github.com/Ontology/core/transaction"
-	"github.com/Ontology/core/transaction/payload"
 	"github.com/Ontology/core/transaction/utxo"
-	va "github.com/Ontology/core/validation"
+	"github.com/Ontology/core/types"
 	"github.com/Ontology/core/vote"
+	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
 	"github.com/Ontology/events"
 	"github.com/Ontology/net"
 	msg "github.com/Ontology/net/message"
-	"time"
 )
 
 type DbftService struct {
@@ -59,9 +62,9 @@ func NewDbftService(client cl.Client, logDictionary string, localNet net.Neter) 
 
 func (ds *DbftService) BlockPersistCompleted(v interface{}) {
 	log.Debug()
-	if block, ok := v.(*ledger.Block); ok {
+	if block, ok := v.(*types.Block); ok {
 		log.Infof("persist block: %x", block.Hash())
-		err := ds.localNet.CleanSubmittedTransactions(block)
+		err := ds.localNet.CleanTransactions(block.Transactions)
 		if err != nil {
 			log.Warn(err)
 		}
@@ -100,7 +103,7 @@ func (ds *DbftService) CheckExpectedView(viewNumber byte) {
 	}
 }
 
-func (ds *DbftService) CheckPolicy(transaction *tx.Transaction) error {
+func (ds *DbftService) CheckPolicy(transaction *types.Transaction) error {
 	//TODO: CheckPolicy
 
 	return nil
@@ -129,24 +132,25 @@ func (ds *DbftService) CheckSignatures() error {
 		//build block
 		block := ds.context.MakeHeader()
 		//sign the block with all bookKeepers and add signed contract to context
-		cxt := ct.NewContractContext(block)
+		sb := program.NewProgramBuilder()
+
 		sigs := make([]SignaturesData, ds.context.M())
 		for i, j := 0, 0; i < len(ds.context.BookKeepers) && j < ds.context.M(); i++ {
 			if ds.context.Signatures[i] != nil {
 				sigs[j].Index = uint16(i)
 				sigs[j].Signature = ds.context.Signatures[i]
-				err := cxt.AddContract(contract, ds.context.BookKeepers[i], ds.context.Signatures[i])
-				if err != nil {
-					log.Error("[CheckSignatures] Multi-sign add contract error:", err.Error())
-					return NewDetailErr(err, ErrNoCode, "[DbftService], CheckSignatures AddContract failed.")
-				}
+
+				sb.PushData(ds.context.Signatures[i])
 				j++
 			}
 		}
+		//set signed program to the block
+		block.Header.Program = &program.Program{
+			Code:      contract.Code,
+			Parameter: sb.ToArray(),
+		}
 		//fill transactions
 		block.Transactions = ds.context.Transactions
-		//set signed program to the block
-		cxt.Data.SetPrograms(cxt.GetPrograms())
 
 		hash := block.Hash()
 		if !ledger.DefaultLedger.BlockInLedger(hash) {
@@ -164,7 +168,7 @@ func (ds *DbftService) CheckSignatures() error {
 	return nil
 }
 
-func (ds *DbftService) CreateBookkeepingTransaction(nonce uint64, fee Fixed64) *tx.Transaction {
+func (ds *DbftService) CreateBookkeepingTransaction(nonce uint64, fee Fixed64) *types.Transaction {
 	log.Debug()
 	//TODO: sysfee
 	bookKeepingPayload := &payload.BookKeeping{
@@ -181,21 +185,17 @@ func (ds *DbftService) CreateBookkeepingTransaction(nonce uint64, fee Fixed64) *
 	outputs := []*utxo.TxOutput{}
 	if fee > 0 {
 		feeOutput := &utxo.TxOutput{
-			AssetID:     tx.ONGTokenID,
+			AssetID:     genesis.ONGTokenID,
 			Value:       fee,
 			ProgramHash: signatureRedeemScriptHashToCodeHash,
 		}
 		outputs = append(outputs, feeOutput)
 	}
-	return &tx.Transaction{
-		TxType:         tx.BookKeeping,
-		PayloadVersion: payload.BookKeepingPayloadVersion,
-		Payload:        bookKeepingPayload,
-		Attributes:     []*tx.TxAttribute{},
-		UTXOInputs:     []*utxo.UTXOTxInput{},
-		BalanceInputs:  []*tx.BalanceTxInput{},
-		Outputs:        outputs,
-		Programs:       []*program.Program{},
+	return &types.Transaction{
+		TxType: types.BookKeeping,
+		//PayloadVersion: payload.BookKeepingPayloadVersion,
+		Payload:    bookKeepingPayload,
+		Attributes: []*types.TxAttribute{},
 	}
 }
 
@@ -254,14 +254,14 @@ func (ds *DbftService) InitializeConsensus(viewNum byte) error {
 		ds.timerHeight = ds.context.Height
 		ds.timeView = viewNum
 		span := time.Now().Sub(ds.blockReceivedTime)
-		if span > ledger.GenBlockTime {
+		if span > genesis.GenBlockTime {
 			//TODO: double check the is the stop necessary
 			ds.timer.Stop()
 			ds.timer.Reset(0)
 			//go ds.Timeout()
 		} else {
 			ds.timer.Stop()
-			ds.timer.Reset(ledger.GenBlockTime - span)
+			ds.timer.Reset(genesis.GenBlockTime - span)
 		}
 	} else {
 
@@ -271,7 +271,7 @@ func (ds *DbftService) InitializeConsensus(viewNum byte) error {
 		ds.timeView = viewNum
 
 		ds.timer.Stop()
-		ds.timer.Reset(ledger.GenBlockTime << (viewNum + 1))
+		ds.timer.Reset(genesis.GenBlockTime << (viewNum + 1))
 	}
 	return nil
 }
@@ -357,15 +357,15 @@ func (ds *DbftService) NewConsensusPayload(payload *msg.ConsensusPayload) {
 	}
 }
 
-func (ds *DbftService) GetUnverifiedTxs(txs []*tx.Transaction) []*tx.Transaction {
+func (ds *DbftService) GetUnverifiedTxs(txs []*types.Transaction) []*types.Transaction {
 	if len(ds.context.Transactions) == 0 {
 		return nil
 	}
 	txpool, _ := ds.localNet.GetTxnPool(false)
-	ret := []*tx.Transaction{}
+	ret := []*types.Transaction{}
 	for _, t := range txs {
 		if _, ok := txpool[t.Hash()]; !ok {
-			if t.TxType != tx.BookKeeping {
+			if t.TxType != types.BookKeeping {
 				ret = append(ret, t)
 			}
 		}
@@ -373,7 +373,7 @@ func (ds *DbftService) GetUnverifiedTxs(txs []*tx.Transaction) []*tx.Transaction
 	return ret
 }
 
-func (ds *DbftService) VerifyTxs(txs []*tx.Transaction) error {
+func (ds *DbftService) VerifyTxs(txs []*types.Transaction) error {
 	for _, t := range txs {
 		if errCode := ds.localNet.AppendTxnPool(t); errCode != ErrNoError {
 			return errors.New("[dbftService] VerifyTxs failed when AppendTxnPool.")
@@ -414,8 +414,9 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, mes
 	ds.context.Transactions = message.Transactions
 	ds.context.header = nil
 
-	//block header verification
-	err = va.VerifySignature(ds.context.MakeHeader(), ds.context.BookKeepers[payload.BookKeeperIndex], message.Signature)
+	buf := new(bytes.Buffer)
+	ds.context.MakeHeader().SerializeUnsigned(buf)
+	err = crypto.Verify(*ds.context.BookKeepers[payload.BookKeeperIndex], buf.Bytes(), message.Signature)
 	if err != nil {
 		log.Warn("PrepareRequestReceived VerifySignature failed.", err)
 		ds.context = backupContext
@@ -442,7 +443,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, mes
 		log.Error("[PrepareRequestReceived] GetValidators failed")
 		return
 	}
-	ds.context.NextBookKeeper, err = ledger.GetBookKeeperAddress(ds.context.NextBookKeepers)
+	ds.context.NextBookKeeper, err = core.AddressFromBookKeepers(ds.context.NextBookKeepers)
 	if err != nil {
 		ds.context = backupContext
 		log.Error("[PrepareRequestReceived] GetBookKeeperAddress failed")
@@ -463,11 +464,13 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, mes
 		log.Error("[DbftService] GetAccount failed")
 		return
 	}
-	ds.context.Signatures[ds.context.BookKeeperIndex], err = sig.SignBySigner(ds.context.MakeHeader(), bookKeeper)
+
+	signature, err := crypto.Sign(bookKeeper.PrivKey(), buf.Bytes())
 	if err != nil {
 		log.Error("[DbftService] SignBySigner failed")
 		return
 	}
+	ds.context.Signatures[ds.context.BookKeeperIndex] = signature
 
 	payload = ds.context.MakePrepareResponse(ds.context.Signatures[ds.context.BookKeeperIndex])
 	ds.SignAndRelay(payload)
@@ -493,12 +496,15 @@ func (ds *DbftService) PrepareResponseReceived(payload *msg.ConsensusPayload, me
 	if header == nil {
 		return
 	}
-	if err := va.VerifySignature(header, ds.context.BookKeepers[payload.BookKeeperIndex], message.Signature); err != nil {
+	buf := new(bytes.Buffer)
+	header.SerializeUnsigned(buf)
+	err := crypto.Verify(*ds.context.BookKeepers[payload.BookKeeperIndex], buf.Bytes(), message.Signature)
+	if err != nil {
 		return
 	}
 
 	ds.context.Signatures[payload.BookKeeperIndex] = message.Signature
-	err := ds.CheckSignatures()
+	err = ds.CheckSignatures()
 	if err != nil {
 		log.Error("CheckSignatures failed")
 		return
@@ -522,6 +528,10 @@ func (ds *DbftService) BlockSignaturesReceived(payload *msg.ConsensusPayload, me
 	if header == nil {
 		return
 	}
+
+	buf := new(bytes.Buffer)
+	header.SerializeUnsigned(buf)
+
 	for i := 0; i < len(message.Signatures); i++ {
 		sigdata := message.Signatures[i]
 
@@ -529,7 +539,8 @@ func (ds *DbftService) BlockSignaturesReceived(payload *msg.ConsensusPayload, me
 			continue
 		}
 
-		if err := va.VerifySignature(header, ds.context.BookKeepers[sigdata.Index], sigdata.Signature); err != nil {
+		err := crypto.Verify(*ds.context.BookKeepers[sigdata.Index], buf.Bytes(), sigdata.Signature)
+		if err != nil {
 			continue
 		}
 
@@ -567,7 +578,7 @@ func (ds *DbftService) RequestChangeView() {
 		ds.context.ViewNumber, ds.context.ExpectedView[ds.context.BookKeeperIndex], ds.context.GetStateDetail()))
 
 	ds.timer.Stop()
-	ds.timer.Reset(ledger.GenBlockTime << (ds.context.ExpectedView[ds.context.BookKeeperIndex] + 1))
+	ds.timer.Reset(genesis.GenBlockTime << (ds.context.ExpectedView[ds.context.BookKeeperIndex] + 1))
 
 	ds.SignAndRelay(ds.context.MakeChangeView())
 	ds.CheckExpectedView(ds.context.ExpectedView[ds.context.BookKeeperIndex])
@@ -602,7 +613,7 @@ func (ds *DbftService) Start() error {
 	ds.started = true
 
 	if config.Parameters.GenBlockTime > config.MINGENBLOCKTIME {
-		ledger.GenBlockTime = time.Duration(config.Parameters.GenBlockTime) * time.Second
+		genesis.GenBlockTime = time.Duration(config.Parameters.GenBlockTime) * time.Second
 	} else {
 		log.Warn("The Generate block time should be longer than 2 seconds, so set it to be default 6 seconds.")
 	}
@@ -659,7 +670,7 @@ func (ds *DbftService) Timeout() {
 				log.Error("[Timeout] GetValidators failed", err.Error())
 				return
 			}
-			ds.context.NextBookKeeper, err = ledger.GetBookKeeperAddress(ds.context.NextBookKeepers)
+			ds.context.NextBookKeeper, err = core.AddressFromBookKeepers(ds.context.NextBookKeepers)
 			if err != nil {
 				log.Error("[Timeout] GetBookKeeperAddress failed")
 				return
@@ -668,12 +679,14 @@ func (ds *DbftService) Timeout() {
 			//build block and sign
 			block := ds.context.MakeHeader()
 			account, _ := ds.Client.GetAccount(ds.context.BookKeepers[ds.context.BookKeeperIndex]) //TODO: handle error
-			ds.context.Signatures[ds.context.BookKeeperIndex], _ = sig.SignBySigner(block, account)
+			buf := new(bytes.Buffer)
+			block.SerializeUnsigned(buf)
+			ds.context.Signatures[ds.context.BookKeeperIndex], _ = crypto.Sign(account.PrivKey(), buf.Bytes())
 		}
 		payload := ds.context.MakePrepareRequest()
 		ds.SignAndRelay(payload)
 		ds.timer.Stop()
-		ds.timer.Reset(ledger.GenBlockTime << (ds.timeView + 1))
+		ds.timer.Reset(genesis.GenBlockTime << (ds.timeView + 1))
 	} else if (ds.context.State.HasFlag(Primary) && ds.context.State.HasFlag(RequestSent)) || ds.context.State.HasFlag(Backup) {
 		ds.RequestChangeView()
 	}

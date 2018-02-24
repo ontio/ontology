@@ -5,7 +5,7 @@ import (
 	"bytes"
 	. "github.com/Ontology/common/serialization"
 	"github.com/Ontology/core/code"
-	"github.com/Ontology/smartcontract/types"
+	"github.com/Ontology/core/types"
 	. "github.com/Ontology/errors"
 )
 

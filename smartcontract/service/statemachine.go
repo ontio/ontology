@@ -11,12 +11,12 @@ import (
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/states"
 	"github.com/Ontology/core/store"
-	"github.com/Ontology/core/transaction"
+	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/errors"
 	. "github.com/Ontology/smartcontract/errors"
 	"github.com/Ontology/smartcontract/storage"
-	"github.com/Ontology/smartcontract/types"
+	vmtypes "github.com/Ontology/smartcontract/types"
 	vm "github.com/Ontology/vm/neovm"
 	"math"
 )
@@ -24,11 +24,11 @@ import (
 type StateMachine struct {
 	*StateReader
 	CloneCache *storage.CloneCache
-	trigger    types.TriggerType
-	block      *ledger.Block
+	trigger    vmtypes.TriggerType
+	block      *types.Block
 }
 
-func NewStateMachine(dbCache store.IStateStore, trigger types.TriggerType, block *ledger.Block) *StateMachine {
+func NewStateMachine(dbCache store.IStateStore, trigger vmtypes.TriggerType, block *types.Block) *StateMachine {
 	var stateMachine StateMachine
 	stateMachine.CloneCache = storage.NewCloneCache(dbCache)
 	stateMachine.StateReader = NewStateReader(trigger)
@@ -72,7 +72,7 @@ func (s *StateMachine) CreateAsset(engine *vm.ExecutionEngine) (bool, error) {
 		log.Error("[CreateAsset] Get container fail!")
 		return false, errors.NewErr("[CreateAsset] Get container fail!")
 	}
-	tran, ok := container.(*transaction.Transaction)
+	tran, ok := container.(*types.Transaction)
 	if !ok {
 		log.Error("[CreateAsset] Container not transaction!")
 		return false, errors.NewErr("[CreateAsset] Container not transaction!")

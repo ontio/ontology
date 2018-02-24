@@ -22,3 +22,5 @@ nodectl
 cscope*
 *.exe
 **/*.log
+**/*.txt
+neosnapshot/*

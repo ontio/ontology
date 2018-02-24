@@ -5,31 +5,33 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"sort"
+	"sync"
+	"time"
+
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/core/contract/program"
 	. "github.com/Ontology/core/ledger"
+	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/states"
 	. "github.com/Ontology/core/store"
 	. "github.com/Ontology/core/store/LevelDBStore"
 	"github.com/Ontology/core/store/statestore"
-	tx "github.com/Ontology/core/transaction"
-	"github.com/Ontology/core/transaction/payload"
 	"github.com/Ontology/core/transaction/utxo"
+	"github.com/Ontology/core/types"
 	"github.com/Ontology/core/validation"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/events"
 	"github.com/Ontology/merkle"
-	httprestful "github.com/Ontology/net/httprestful/error"
-	sc "github.com/Ontology/smartcontract"
-	"github.com/Ontology/smartcontract/event"
-	"github.com/Ontology/smartcontract/service"
-	"github.com/Ontology/smartcontract/types"
-	"sort"
-	"sync"
-	"time"
-)
+	/*
+		httprestful "github.com/Ontology/net/httprestful/error"
+		sc "github.com/Ontology/smartcontract"
+		"github.com/Ontology/smartcontract/event"
+		"github.com/Ontology/smartcontract/service"
+		vmtypes "github.com/Ontology/smartcontract/types"
+	*/)
 
 const (
 	HeaderHashListCount = 2000
@@ -49,10 +51,10 @@ var (
 
 type persistTask interface{}
 type persistHeaderTask struct {
-	header *Header
+	header *types.Header
 }
 type persistBlockTask struct {
-	block  *Block
+	block  *types.Block
 	ledger *Ledger
 }
 
@@ -64,8 +66,8 @@ type ChainStore struct {
 
 	mu          sync.RWMutex // guard the following var
 	headerIndex map[uint32]Uint256
-	blockCache  map[Uint256]*Block
-	headerCache map[Uint256]*Header
+	blockCache  map[Uint256]*types.Block
+	headerCache map[Uint256]*types.Header
 
 	merkleTree      *merkle.CompactMerkleTree
 	merkleHashStore *merkle.FileHashStore
@@ -100,8 +102,8 @@ func NewChainStore(file string) (*ChainStore, error) {
 	chain := &ChainStore{
 		st:                 st,
 		headerIndex:        map[uint32]Uint256{},
-		blockCache:         map[Uint256]*Block{},
-		headerCache:        map[Uint256]*Header{},
+		blockCache:         map[Uint256]*types.Block{},
+		headerCache:        map[Uint256]*types.Header{},
 		currentBlockHeight: 0,
 		storedHeaderCount:  0,
 		taskCh:             make(chan persistTask, TaskChanCap),
@@ -164,7 +166,7 @@ func (self *ChainStore) clearCache() {
 	}
 }
 
-func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defaultBookKeeper []*crypto.PubKey) (uint32, error) {
+func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *types.Block, defaultBookKeeper []*crypto.PubKey) (uint32, error) {
 	hash := genesisBlock.Hash()
 	bd.headerIndex[0] = hash
 
@@ -259,7 +261,7 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 		buf, _ := bd.st.Get([]byte{byte(SYS_BlockMerkleTree)})
 		tree_size := binary.BigEndian.Uint32(buf[0:4])
 		if tree_size != bd.currentBlockHeight+1 {
-			return 0, errors.New("Merkle tree size is inconsistent with blockheight")
+			return 0, errors.New("merkle tree size is inconsistent with blockheight")
 		}
 		nhashes := (len(buf) - 4) / UINT256SIZE
 		hashes := make([]Uint256, nhashes, nhashes)
@@ -347,31 +349,8 @@ func (bd *ChainStore) GetBlockRootWithNewTxRoot(txRoot Uint256) Uint256 {
 	return bd.merkleTree.GetRootWithNewLeaf(txRoot)
 }
 
-func (bd *ChainStore) IsDoubleSpend(tx *tx.Transaction) bool {
-	if len(tx.UTXOInputs) == 0 {
-		return false
-	}
-
-	unspentPrefix := []byte{byte(ST_Coin)}
-	for k, group := range groupInputs(tx.UTXOInputs) {
-		unspentValue, err_get := bd.st.Get(append(unspentPrefix, k.ToArray()...))
-		if err_get != nil {
-			return true
-		}
-		unspentcoin := new(states.UnspentCoinState)
-		bf := bytes.NewBuffer(unspentValue)
-		if err := unspentcoin.Deserialize(bf); err != nil {
-			log.Error("[IsDoubleSpend] error:", err)
-			return true
-		}
-		for _, u := range group {
-			index := int(u.ReferTxOutputIndex)
-			if index >= len(unspentcoin.Item) || unspentcoin.Item[index] == states.Spent {
-				return true
-			}
-		}
-		return false
-	}
+func (bd *ChainStore) IsDoubleSpend(tx *types.Transaction) bool {
+	panic("unimplemented")
 
 	return false
 }
@@ -404,7 +383,7 @@ func (bd *ChainStore) GetCurrentBlockHash() Uint256 {
 	return bd.headerIndex[bd.currentBlockHeight]
 }
 
-func (bd *ChainStore) getHeaderWithCache(hash Uint256) *Header {
+func (bd *ChainStore) getHeaderWithCache(hash Uint256) *types.Header {
 	if _, ok := bd.headerCache[hash]; ok {
 		return bd.headerCache[hash]
 	}
@@ -414,39 +393,25 @@ func (bd *ChainStore) getHeaderWithCache(hash Uint256) *Header {
 	return header
 }
 
-func (bd *ChainStore) verifyHeader(header *Header) bool {
+func (bd *ChainStore) verifyHeader(header *types.Header) bool {
 	prevHeader := bd.getHeaderWithCache(header.PrevBlockHash)
 
-	if prevHeader == nil {
-		log.Error("[verifyHeader] failed, not found prevHeader.")
+	err := validation.VerifyHeader(header, prevHeader)
+	if err != nil {
+		log.Error("[verifyHeader] failed ", err.Error())
 		return false
 	}
 
-	if prevHeader.Height+1 != header.Height {
-		log.Error("[verifyHeader] failed, prevHeader.Height + 1 != header.Height")
-		return false
-	}
-
-	if prevHeader.Timestamp >= header.Timestamp {
-		log.Error("[verifyHeader] failed, prevHeader.Timestamp >= header.Timestamp")
-		return false
-	}
-
-	err := validation.VerifySignableDataSignature(header)
+	err = validation.VerifyHeaderProgram(header)
 	if err != nil {
 		log.Error("[verifyHeader] failed, VerifySignableDataSignature failed.", err.Error())
-		return false
-	}
-	err = validation.VerifySignableDataProgramHashes(header)
-	if err != nil {
-		log.Error("[verifyHeader] failed, VerifySignableDataProgramHashes failed.", err.Error())
 		return false
 	}
 
 	return true
 }
 
-func (self *ChainStore) AddHeaders(headers []Header, ledger *Ledger) error {
+func (self *ChainStore) AddHeaders(headers []types.Header, ledger *Ledger) error {
 
 	sort.Slice(headers, func(i, j int) bool {
 		return headers[i].Height < headers[j].Height
@@ -460,7 +425,7 @@ func (self *ChainStore) AddHeaders(headers []Header, ledger *Ledger) error {
 
 }
 
-func (bd *ChainStore) GetHeader(hash Uint256) (*Header, error) {
+func (bd *ChainStore) GetHeader(hash Uint256) (*types.Header, error) {
 	bd.mu.RLock()
 	if header, ok := bd.headerCache[hash]; ok {
 		bd.mu.RUnlock()
@@ -468,7 +433,7 @@ func (bd *ChainStore) GetHeader(hash Uint256) (*Header, error) {
 	}
 	bd.mu.RUnlock()
 
-	var h *Header = new(Header)
+	h := new(types.Header)
 
 	h.Program = new(program.Program)
 
@@ -530,10 +495,10 @@ func (bd *ChainStore) GetContract(hash Uint160) (*states.ContractState, error) {
 	return contract, nil
 }
 
-func (bd *ChainStore) GetTransaction(hash Uint256) (*tx.Transaction, error) {
+func (bd *ChainStore) GetTransaction(hash Uint256) (*types.Transaction, error) {
 	log.Debugf("GetTransaction Hash: %x\n", hash)
 
-	t := new(tx.Transaction)
+	t := new(types.Transaction)
 	_, err := bd.getTx(t, hash)
 
 	if err != nil {
@@ -543,8 +508,8 @@ func (bd *ChainStore) GetTransaction(hash Uint256) (*tx.Transaction, error) {
 	return t, nil
 }
 
-func (bd *ChainStore) GetTransactionWithHeight(hash Uint256) (*tx.Transaction, uint32, error) {
-	t := new(tx.Transaction)
+func (bd *ChainStore) GetTransactionWithHeight(hash Uint256) (*types.Transaction, uint32, error) {
+	t := new(types.Transaction)
 	height, err := bd.getTx(t, hash)
 	if err != nil {
 		return nil, 0, err
@@ -552,7 +517,7 @@ func (bd *ChainStore) GetTransactionWithHeight(hash Uint256) (*tx.Transaction, u
 	return t, height, nil
 }
 
-func (bd *ChainStore) getTx(tx *tx.Transaction, hash Uint256) (uint32, error) {
+func (bd *ChainStore) getTx(tx *types.Transaction, hash Uint256) (uint32, error) {
 	prefix := []byte{byte(DATA_Transaction)}
 	tHash, err_get := bd.st.Get(append(prefix, hash.ToArray()...))
 	if err_get != nil {
@@ -577,7 +542,7 @@ func (bd *ChainStore) getTx(tx *tx.Transaction, hash Uint256) (uint32, error) {
 	return height, err
 }
 
-func (bd *ChainStore) SaveTransaction(tx *tx.Transaction, height uint32) error {
+func (bd *ChainStore) SaveTransaction(tx *types.Transaction, height uint32) error {
 	//////////////////////////////////////////////////////////////
 	// generate key with DATA_Transaction prefix
 	txhash := bytes.NewBuffer(nil)
@@ -603,7 +568,7 @@ func (bd *ChainStore) SaveTransaction(tx *tx.Transaction, height uint32) error {
 	return nil
 }
 
-func (bd *ChainStore) GetBlock(hash Uint256) (*Block, error) {
+func (bd *ChainStore) GetBlock(hash Uint256) (*types.Block, error) {
 	bd.mu.RLock()
 	if block, ok := bd.blockCache[hash]; ok {
 		bd.mu.RUnlock()
@@ -611,9 +576,9 @@ func (bd *ChainStore) GetBlock(hash Uint256) (*Block, error) {
 	}
 	bd.mu.RUnlock()
 
-	var b *Block = new(Block)
+	b := new(types.Block)
 
-	b.Header = new(Header)
+	b.Header = new(types.Header)
 	b.Header.Program = new(program.Program)
 
 	prefix := []byte{byte(DATA_Header)}
@@ -664,7 +629,7 @@ func (self *ChainStore) GetBookKeeperList() ([]*crypto.PubKey, []*crypto.PubKey,
 	return bookKeeper.CurrBookKeeper, bookKeeper.NextBookKeeper, nil
 }
 
-func (bd *ChainStore) persist(b *Block) error {
+func (bd *ChainStore) persist(b *types.Block) error {
 	bd.st.NewBatch()
 	stateStore := NewStateStore(statestore.NewMemDatabase(), bd, b.Header.StateRoot)
 	state, err := stateStore.TryGet(ST_BookKeeper, BookerKeeper)
@@ -676,58 +641,22 @@ func (bd *ChainStore) persist(b *Block) error {
 	handleBookKeeper(stateStore, bookKeeper)
 	for _, t := range b.Transactions {
 		bd.SaveTransaction(t, b.Header.Height)
-		tx_id := t.Hash()
-		if len(t.Outputs) > 0 {
-			stateStore.TryAdd(ST_Coin, tx_id.ToArray(), &states.UnspentCoinState{Item: repeat(len(t.Outputs))}, false)
-		}
-		if err := handleOutputs(t.Hash(), t.Outputs, stateStore); err != nil {
-			return err
-		}
-		if err := handleInputs(t.UTXOInputs, stateStore, b.Header.Height, bd); err != nil {
-			return err
-		}
+
 		switch t.TxType {
-		case tx.RegisterAsset:
-			p := t.Payload.(*payload.RegisterAsset)
-			if err := stateStore.TryGetOrAdd(ST_Asset, tx_id.ToArray(), &states.AssetState{
-				AssetId:    tx_id,
-				AssetType:  p.Asset.AssetType,
-				Name:       p.Asset.Name,
-				Amount:     p.Amount,
-				Available:  p.Amount,
-				Precision:  p.Asset.Precision,
-				Owner:      p.Issuer,
-				Admin:      p.Controller,
-				Issuer:     p.Controller,
-				Expiration: b.Header.Height + 2*2000000,
-				IsFrozen:   false,
-			}, false); err != nil {
-				log.Error("[persist] TryAdd ST_Asset error:", err)
-				return err
-			}
-		case tx.IssueAsset:
-			results := t.GetMergedAssetIDValueFromOutputs()
-			for k, r := range results {
-				state, err := stateStore.TryGetAndChange(ST_Asset, k.ToArray(), false)
-				if err != nil {
-					log.Errorf("[persist] TryGet ST_Asset error:", err)
-					return err
+		case types.Claim:
+			/*
+				p := t.Payload.(*payload.Claim)
+				for _, c := range p.Claims {
+					state, err := stateStore.TryGetAndChange(ST_SpentCoin, c.ReferTxID.ToArray(), false)
+					if err != nil {
+						log.Errorf("[persist] TryGet ST_SpentCoin error:", err)
+						return err
+					}
+					spentcoins := state.(*states.SpentCoinState)
+					spentcoins.Items = remove(spentcoins.Items, int(c.ReferTxOutputIndex))
 				}
-				asset := state.(*states.AssetState)
-				asset.Available -= r
-			}
-		case tx.Claim:
-			p := t.Payload.(*payload.Claim)
-			for _, c := range p.Claims {
-				state, err := stateStore.TryGetAndChange(ST_SpentCoin, c.ReferTxID.ToArray(), false)
-				if err != nil {
-					log.Errorf("[persist] TryGet ST_SpentCoin error:", err)
-					return err
-				}
-				spentcoins := state.(*states.SpentCoinState)
-				spentcoins.Items = remove(spentcoins.Items, int(c.ReferTxOutputIndex))
-			}
-		case tx.BookKeeper:
+			*/
+		case types.BookKeeper:
 			bk := t.Payload.(*payload.BookKeeper)
 			switch bk.Action {
 			case payload.BookKeeperAction_ADD:
@@ -743,14 +672,14 @@ func (bd *ChainStore) persist(b *Block) error {
 				}
 			}
 			stateStore.memoryStore.Change(byte(ST_BookKeeper), BookerKeeper, false)
-		case tx.Enrollment:
+		case types.Enrollment:
 			en := t.Payload.(*payload.Enrollment)
 			bf := new(bytes.Buffer)
 			if err := en.PublicKey.Serialize(bf); err != nil {
 				return err
 			}
 			stateStore.TryAdd(ST_Validator, bf.Bytes(), &states.ValidatorState{PublicKey: en.PublicKey}, false)
-		case tx.Deploy:
+		case types.Deploy:
 			deploy := t.Payload.(*payload.DeployCode)
 			codeHash := deploy.Code.CodeHash()
 			if err := stateStore.TryGetOrAdd(ST_Contract, codeHash.ToArray(), &states.ContractState{
@@ -766,46 +695,50 @@ func (bd *ChainStore) persist(b *Block) error {
 				log.Error("[persist] TryAdd ST_Contract error:", err)
 				return err
 			}
-		case tx.Invoke:
-			invoke := t.Payload.(*payload.InvokeCode)
-			cs, err := stateStore.TryGet(ST_Contract, invoke.CodeHash.ToArray())
-			if err != nil {
-				log.Error("[persist] TryGet ST_Contract error:", err)
-				return err
-			}
-			if cs == nil {
-				event.PushSmartCodeEvent(t.Hash(), 0, INVOKE_TRANSACTION, "Contract not found!")
-				continue
-			}
-			contract := cs.Value.(*states.ContractState)
-			stateMachine := service.NewStateMachine(stateStore, types.Application, b)
-			smc, err := sc.NewSmartContract(&sc.Context{
-				VmType:         contract.VmType,
-				StateMachine:   stateMachine,
-				SignableData:   t,
-				CacheCodeTable: &CacheCodeTable{stateStore},
-				Input:          invoke.Code,
-				Code:           contract.Code.Code,
-				ReturnType:     contract.Code.ReturnType,
-			})
-			if err != nil {
-				log.Error("[persist] NewSmartContract error:", err)
-				return err
-			}
-			ret, err := smc.InvokeContract()
-			if err != nil {
-				log.Error("[persist] InvokeContract error:", err)
-				event.PushSmartCodeEvent(t.Hash(), httprestful.SMARTCODE_ERROR, INVOKE_TRANSACTION, err)
-				continue
-			}
-			log.Error("result:", ret)
-			stateMachine.CloneCache.Commit()
-			event.PushSmartCodeEvent(t.Hash(), 0, INVOKE_TRANSACTION, ret)
-		case tx.Vote:
-			vote := t.Payload.(*payload.Vote)
-			buf := new(bytes.Buffer)
-			vote.Account.Serialize(buf)
-			stateStore.TryAdd(ST_Vote, buf.Bytes(), &states.VoteState{PublicKeys: vote.PubKeys}, false)
+		case types.Invoke:
+			/*
+				invoke := t.Payload.(*payload.InvokeCode)
+				cs, err := stateStore.TryGet(ST_Contract, invoke.CodeHash.ToArray())
+				if err != nil {
+					log.Error("[persist] TryGet ST_Contract error:", err)
+					return err
+				}
+				if cs == nil {
+					event.PushSmartCodeEvent(t.Hash(), 0, INVOKE_TRANSACTION, "Contract not found!")
+					continue
+				}
+				contract := cs.Value.(*states.ContractState)
+				stateMachine := service.NewStateMachine(stateStore, vmtypes.Application, b)
+				smc, err := sc.NewSmartContract(&sc.Context{
+					VmType:         contract.VmType,
+					StateMachine:   stateMachine,
+					SignableData:   t,
+					CacheCodeTable: &CacheCodeTable{stateStore},
+					Input:          invoke.Code,
+					Code:           contract.Code.Code,
+					ReturnType:     contract.Code.ReturnType,
+				})
+				if err != nil {
+					log.Error("[persist] NewSmartContract error:", err)
+					return err
+				}
+				ret, err := smc.InvokeContract()
+				if err != nil {
+					log.Error("[persist] InvokeContract error:", err)
+					event.PushSmartCodeEvent(t.Hash(), httprestful.SMARTCODE_ERROR, INVOKE_TRANSACTION, err)
+					continue
+				}
+				log.Error("result:", ret)
+				stateMachine.CloneCache.Commit()
+				event.PushSmartCodeEvent(t.Hash(), 0, INVOKE_TRANSACTION, ret)
+			*/
+		case types.Vote:
+			/*
+				vote := t.Payload.(*payload.Vote)
+				buf := new(bytes.Buffer)
+				vote.Account.Serialize(buf)
+				stateStore.TryAdd(ST_Vote, buf.Bytes(), &states.VoteState{PublicKeys: vote.PubKeys}, false)
+			*/
 		}
 	}
 	if err := stateStore.CommitTo(); err != nil {
@@ -841,7 +774,7 @@ func (bd *ChainStore) persist(b *Block) error {
 }
 
 // can only be invoked by backend write goroutine
-func (bd *ChainStore) addHeader(header *Header) {
+func (bd *ChainStore) addHeader(header *types.Header) {
 
 	log.Debugf("addHeader(), Height=%d\n", header.Height)
 
@@ -855,7 +788,7 @@ func (bd *ChainStore) addHeader(header *Header) {
 	log.Debug("[addHeader]: finish, header height:", header.Height)
 }
 
-func (self *ChainStore) handlePersistHeaderTask(header *Header) {
+func (self *ChainStore) handlePersistHeaderTask(header *types.Header) {
 
 	if header.Height != uint32(len(self.headerIndex)) {
 		return
@@ -868,7 +801,7 @@ func (self *ChainStore) handlePersistHeaderTask(header *Header) {
 	self.addHeader(header)
 }
 
-func (self *ChainStore) SaveBlock(b *Block, ledger *Ledger) error {
+func (self *ChainStore) SaveBlock(b *types.Block, ledger *Ledger) error {
 	log.Debug("SaveBlock()")
 
 	self.mu.RLock()
@@ -894,14 +827,15 @@ func (self *ChainStore) SaveBlock(b *Block, ledger *Ledger) error {
 
 		self.taskCh <- &persistHeaderTask{header: b.Header}
 	} else {
-		err := validation.VerifySignableDataSignature(b)
+		prevHeader := self.getHeaderWithCache(b.Header.PrevBlockHash)
+
+		err := validation.VerifyHeader(b.Header, prevHeader)
 		if err != nil {
-			log.Error("VerifyBlock Signature error!")
 			return err
 		}
-		err = validation.VerifySignableDataProgramHashes(b)
+
+		err = validation.VerifyHeaderProgram(b.Header)
 		if err != nil {
-			log.Error("VerifyBlock ProgramHashes error!")
 			return err
 		}
 	}
@@ -910,7 +844,7 @@ func (self *ChainStore) SaveBlock(b *Block, ledger *Ledger) error {
 	return nil
 }
 
-func (self *ChainStore) handlePersistBlockTask(b *Block, ledger *Ledger) {
+func (self *ChainStore) handlePersistBlockTask(b *types.Block, ledger *Ledger) {
 	if b.Header.Height <= self.currentBlockHeight {
 		return
 	}
@@ -1007,19 +941,6 @@ func (bd *ChainStore) GetQuantityIssued(assetId Uint256) (Fixed64, error) {
 	return asset.Amount - asset.Available, nil
 }
 
-func (bd *ChainStore) GetUnspent(txid Uint256, index uint16) (*utxo.TxOutput, error) {
-	if ok, _ := bd.ContainsUnspent(txid, index); ok {
-		Tx, err := bd.GetTransaction(txid)
-		if err != nil {
-			return nil, err
-		}
-
-		return Tx.Outputs[index], nil
-	}
-
-	return nil, errors.New("[GetUnspent] NOT ContainsUnspent.")
-}
-
 func (bd *ChainStore) ContainsUnspent(txid Uint256, index uint16) (bool, error) {
 	unspentPrefix := []byte{byte(ST_Coin)}
 	unspentValue, err_get := bd.st.Get(append(unspentPrefix, txid.ToArray()...))
@@ -1086,9 +1007,9 @@ func (bd *ChainStore) GetAccount(programHash Uint160) (*states.AccountState, err
 
 func (bd *ChainStore) IsBlockInStore(hash Uint256) bool {
 
-	b := new(Block)
+	b := new(types.Block)
 
-	b.Header = new(Header)
+	b.Header = new(types.Header)
 	b.Header.Program = new(program.Program)
 
 	prefix := []byte{byte(DATA_Header)}
@@ -1155,35 +1076,6 @@ func (bd *ChainStore) GetAssets() map[Uint256]*states.AssetState {
 	}
 
 	return assets
-}
-
-func (bd *ChainStore) GetUnclaimed(hash Uint256) (map[uint16]*utxo.SpentCoin, error) {
-	transaction_ := new(tx.Transaction)
-	_, err := bd.getTx(transaction_, hash)
-	if err != nil {
-		return nil, err
-	}
-	claimable := make(map[uint16]*utxo.SpentCoin)
-	prefix := []byte{byte(ST_SpentCoin)}
-	key := append(prefix, hash.ToArray()...)
-	claimabledata, err := bd.st.Get(key)
-	if err != nil {
-		return nil, err
-	}
-	r := bytes.NewReader(claimabledata)
-	SpentCoinState_ := new(states.SpentCoinState)
-	err = SpentCoinState_.Deserialize(r)
-	if err != nil {
-		return nil, err
-	}
-	for _, v := range SpentCoinState_.Items {
-		claimable[v.PrevIndex] = &utxo.SpentCoin{
-			Output:      transaction_.Outputs[v.PrevIndex],
-			StartHeight: SpentCoinState_.TransactionHeight,
-			EndHeight:   v.EndHeight,
-		}
-	}
-	return claimable, nil
 }
 
 func (bd *ChainStore) GetCurrentStateRoot() Uint256 {
@@ -1260,82 +1152,6 @@ func (bd *ChainStore) GetVoteStates() (map[Uint160]*states.VoteState, error) {
 		votes[programHash] = vote
 	}
 	return votes, nil
-}
-
-func (bd *ChainStore) GetVotesAndEnrollments(txs []*tx.Transaction) ([]*states.VoteState, []*crypto.PubKey, error) {
-	var votes []*states.VoteState
-	result, votesBlock, enrollsBlock, err := bd.getBlockTransactionResult(txs)
-	if err != nil {
-		return nil, nil, err
-	}
-	voteStates, err := bd.GetVoteStates()
-	if err != nil {
-		return nil, nil, err
-	}
-	for k, v := range votesBlock {
-		voteStates[k] = v
-	}
-
-	for k, v := range voteStates {
-		account, err := bd.GetAccount(k)
-		if err != nil {
-			return nil, nil, err
-		}
-		for _, b := range account.Balances {
-			if b.AssetId.CompareTo(tx.ONTTokenID) == 0 {
-				v.Count = b.Amount
-			}
-		}
-		if s, ok := result[k]; ok {
-			v.Count += s
-		}
-		if v.Count <= 0 || v.Count < Fixed64(len(v.PublicKeys)) {
-			continue
-		}
-		votes = append(votes, v)
-	}
-	enrolls, err := bd.getEnrollments()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	enrolls = append(enrolls, enrollsBlock...)
-	return votes, enrolls, nil
-}
-
-func (bd *ChainStore) getBlockTransactionResult(txs []*tx.Transaction) (map[Uint160]Fixed64,
-	map[Uint160]*states.VoteState, []*crypto.PubKey, error) {
-	r := make(map[Uint160]Fixed64)
-	votes := make(map[Uint160]*states.VoteState)
-	var enrolls []*crypto.PubKey
-	for _, t := range txs {
-		for _, i := range t.UTXOInputs {
-			if i.ReferTxID.CompareTo(tx.ONTTokenID) != 0 {
-				continue
-			}
-			tran, err := bd.GetTransaction(i.ReferTxID)
-			if err != nil {
-				return nil, nil, nil, err
-			}
-			output := tran.Outputs[i.ReferTxOutputIndex]
-			r[output.ProgramHash] -= output.Value
-		}
-		for _, o := range t.Outputs {
-			if o.AssetID.CompareTo(tx.ONTTokenID) != 0 {
-				continue
-			}
-			r[o.ProgramHash] += o.Value
-		}
-
-		if t.TxType == tx.Vote {
-			vote := t.Payload.(*payload.Vote)
-			votes[vote.Account] = &states.VoteState{PublicKeys: vote.PubKeys}
-		} else if t.TxType == tx.Enrollment {
-			enroll := t.Payload.(*payload.Enrollment)
-			enrolls = append(enrolls, enroll.PublicKey)
-		}
-	}
-	return r, votes, enrolls, nil
 }
 
 func (bd *ChainStore) getEnrollments() ([]*crypto.PubKey, error) {

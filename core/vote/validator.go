@@ -1,16 +1,24 @@
 package vote
 
 import (
+	//"math"
 	"sort"
-	tx "github.com/Ontology/core/transaction"
-	"github.com/Ontology/crypto"
-	"math"
+
 	. "github.com/Ontology/common"
-	"github.com/Ontology/core/ledger"
+	//"github.com/Ontology/core/ledger"
+	"github.com/Ontology/core/genesis"
 	"github.com/Ontology/core/states"
+	"github.com/Ontology/core/types"
+	"github.com/Ontology/crypto"
 )
 
-func GetValidators(txs []*tx.Transaction) ([]*crypto.PubKey, error) {
+func GetValidators(txs []*types.Transaction) ([]*crypto.PubKey, error) {
+	// TODO implement vote
+	return genesis.GenesisBookKeepers, nil
+}
+
+/*
+func GetValidators(txs []*types.Transaction) ([]*crypto.PubKey, error) {
 	votes, validators, err := ledger.DefaultLedger.Store.GetVotesAndEnrollments(txs)
 	if err != nil {
 		return nil, err
@@ -45,6 +53,7 @@ func GetValidators(txs []*tx.Transaction) ([]*crypto.PubKey, error) {
 	sort.Sort(keys)
 	return keys, nil
 }
+*/
 
 func weightedAverage(votes []*states.VoteState) int64 {
 	var sumWeight, sumValue int64

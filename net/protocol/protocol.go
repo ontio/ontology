@@ -4,8 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"github.com/Ontology/common"
-	"github.com/Ontology/core/ledger"
-	"github.com/Ontology/core/transaction"
+	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
 	"github.com/Ontology/events"
@@ -22,52 +21,52 @@ type NodeAddr struct {
 
 // The node capability type
 const (
-	VERIFYNODE = 1
+	VERIFYNODE  = 1
 	SERVICENODE = 2
 )
 
 const (
-	VERIFYNODENAME = "verify"
+	VERIFYNODENAME  = "verify"
 	SERVICENODENAME = "service"
 )
 
 const (
-	MSGCMDLEN = 12
-	CMDOFFSET = 4
-	CHECKSUMLEN = 4
-	HASHLEN = 32 // hash length in byte
-	MSGHDRLEN = 24
-	NETMAGIC = 0x74746e41
-	MAXBLKHDRCNT = 500
-	MAXINVHDRCNT = 500
-	DIVHASHLEN = 5
-	MAXREQBLKONCE = 16
+	MSGCMDLEN         = 12
+	CMDOFFSET         = 4
+	CHECKSUMLEN       = 4
+	HASHLEN           = 32 // hash length in byte
+	MSGHDRLEN         = 24
+	NETMAGIC          = 0x74746e41
+	MAXBLKHDRCNT      = 500
+	MAXINVHDRCNT      = 500
+	DIVHASHLEN        = 5
+	MAXREQBLKONCE     = 16
 	TIMESOFUPDATETIME = 2
 )
 
 const (
-	HELLOTIMEOUT = 3 // Seconds
-	MAXHELLORETYR = 3
-	MAXBUFLEN = 1024 * 16 // Fixme The maximum buffer to receive message
-	MAXCHANBUF = 512
-	PROTOCOLVERSION = 0
+	HELLOTIMEOUT     = 3 // Seconds
+	MAXHELLORETYR    = 3
+	MAXBUFLEN        = 1024 * 16 // Fixme The maximum buffer to receive message
+	MAXCHANBUF       = 512
+	PROTOCOLVERSION  = 0
 	PERIODUPDATETIME = 3 // Time to update and sync information with other nodes
-	HEARTBEAT = 2
+	HEARTBEAT        = 2
 	KEEPALIVETIMEOUT = 3
-	DIALTIMEOUT = 6
-	CONNMONITOR = 6
-	CONNMAXBACK = 4000
-	MAXRETRYCOUNT = 3
-	MAXSYNCHDRREQ = 2 //Max Concurrent Sync Header Request
+	DIALTIMEOUT      = 6
+	CONNMONITOR      = 6
+	CONNMAXBACK      = 4000
+	MAXRETRYCOUNT    = 3
+	MAXSYNCHDRREQ    = 2 //Max Concurrent Sync Header Request
 )
 
 // The node state
 const (
-	INIT = 0
-	HAND = 1
-	HANDSHAKE = 2
+	INIT       = 0
+	HAND       = 1
+	HANDSHAKE  = 2
 	HANDSHAKED = 3
-	ESTABLISH = 4
+	ESTABLISH  = 4
 	INACTIVITY = 5
 )
 
@@ -95,13 +94,13 @@ type Noder interface {
 	CloseConn()
 	GetHeight() uint64
 	GetConnectionCnt() uint
-	GetTxnPool(bool) (map[common.Uint256]*transaction.Transaction, common.Fixed64)
-	AppendTxnPool(*transaction.Transaction) ErrCode
+	GetTxnPool(bool) (map[common.Uint256]*types.Transaction, common.Fixed64)
+	AppendTxnPool(*types.Transaction) ErrCode
 	ExistedID(id common.Uint256) bool
 	ReqNeighborList()
 	DumpInfo()
 	UpdateInfo(t time.Time, version uint32, services uint64,
-	port uint16, nonce uint64, relay uint8, height uint64)
+		port uint16, nonce uint64, relay uint8, height uint64)
 	ConnectSeeds()
 	Connect(nodeAddr string) error
 	Tx(buf []byte)
@@ -109,7 +108,7 @@ type Noder interface {
 	NodeEstablished(uid uint64) bool
 	GetEvent(eventName string) *events.Event
 	GetNeighborAddrs() ([]NodeAddr, uint64)
-	GetTransaction(hash common.Uint256) *transaction.Transaction
+	GetTransaction(hash common.Uint256) *types.Transaction
 	IncRxTxnCnt()
 	GetTxnCnt() uint64
 	GetRxTxnCnt() uint64
@@ -120,7 +119,7 @@ type Noder interface {
 	SetBookKeeperAddr(pk *crypto.PubKey)
 	GetNeighborHeights() ([]uint64, uint64)
 	SyncNodeHeight()
-	CleanSubmittedTransactions(block *ledger.Block) error
+	CleanTransactions(txns []*types.Transaction) error
 
 	GetNeighborNoder() []Noder
 	GetNbrNodeCnt() uint32

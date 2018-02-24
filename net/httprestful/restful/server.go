@@ -151,7 +151,7 @@ func (rt *restServer) registryMethod() {
 		Api_Gettransaction:      {name: "gettransaction", handler: GetTransactionByHash},
 		Api_Getasset:            {name: "getasset", handler: GetAssetByHash},
 		Api_GetContract:         {name: "getcontract", handler: GetContract},
-		Api_GetUTXObyAsset:      {name: "getutxobyasset", handler: GetUnspendOutput},
+		//Api_GetUTXObyAsset:      {name: "getutxobyasset", handler: GetUnspendOutput},
 		Api_GetBalanceByAddr:    {name: "getbalancebyaddr", handler: GetBalanceByAddr},
 		Api_GetBalancebyAsset:   {name: "getbalancebyasset", handler: GetBalanceByAsset},
 		Api_OauthServerUrl:      {name: "getoauthserverurl", handler: GetOauthServerUrl},
@@ -173,12 +173,12 @@ func (rt *restServer) registryMethod() {
 	}
 	postMethodMap := map[string]Action{
 		Api_SendRawTx:          {name: "sendrawtransaction", handler: sendRawTransaction},
-		Api_SendRcdTxByTrans:   {name: "sendrecord", handler: SendRecord},
+		//Api_SendRcdTxByTrans:   {name: "sendrecord", handler: SendRecord},
 		Api_OauthServerUrl:     {name: "setoauthserverurl", handler: SetOauthServerUrl},
 		Api_NoticeServerUrl:    {name: "setnoticeserverurl", handler: SetNoticeServerUrl},
 		Api_NoticeServerState:  {name: "setpostblock", handler: SetPushBlockFlag},
 		Api_WebsocketState:     {name: "setwebsocketstate", handler: rt.setWebsocketState},
-		Api_SendClaimTxByTrans: {name: "SendClaim", handler: SendClaim},
+		//Api_SendClaimTxByTrans: {name: "SendClaim", handler: SendClaim},
 	}
 	rt.postMap = postMethodMap
 	rt.getMap = getMethodMap

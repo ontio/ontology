@@ -9,6 +9,7 @@ import (
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/core/ledger"
+	"github.com/Ontology/core/types"
 	. "github.com/Ontology/net/protocol"
 )
 
@@ -24,7 +25,7 @@ type headersReq struct {
 type blkHeader struct {
 	hdr    msgHdr
 	cnt    uint32
-	blkHdr []ledger.Header
+	blkHdr []types.Header
 }
 
 func NewHeadersReq() ([]byte, error) {
@@ -134,7 +135,7 @@ func (msg *blkHeader) Deserialization(p []byte) error {
 	}
 
 	for i := 0; i < int(msg.cnt); i++ {
-		var headers ledger.Header
+		var headers types.Header
 		err := (&headers).Deserialize(buf)
 		msg.blkHdr = append(msg.blkHdr, headers)
 		if err != nil {
@@ -188,10 +189,10 @@ func (msg blkHeader) Handle(node Noder) error {
 	return nil
 }
 
-func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]ledger.Header, uint32, error) {
+func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]types.Header, uint32, error) {
 	var count uint32 = 0
 	var empty [HASHLEN]byte
-	headers := []ledger.Header{}
+	headers := []types.Header{}
 	var startHeight uint32
 	var stopHeight uint32
 	curHeight := ledger.DefaultLedger.Store.GetHeaderHeight()
@@ -260,7 +261,7 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]le
 	return headers, count, nil
 }
 
-func NewHeaders(headers []ledger.Header, count uint32) ([]byte, error) {
+func NewHeaders(headers []types.Header, count uint32) ([]byte, error) {
 	var msg blkHeader
 	msg.cnt = count
 	msg.blkHdr = headers

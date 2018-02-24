@@ -3,7 +3,8 @@ package ledger
 import (
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/log"
-	tx "github.com/Ontology/core/transaction"
+	"github.com/Ontology/core/genesis"
+	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
 	"github.com/Ontology/events"
@@ -24,15 +25,12 @@ func NewBlockchain(height uint32) *Blockchain {
 }
 
 func NewBlockchainWithGenesisBlock(defaultBookKeeper []*crypto.PubKey) (*Blockchain, error) {
-	genesisBlock, err := GenesisBlockInit(defaultBookKeeper)
+	genesisBlock, err := genesis.GenesisBlockInit(defaultBookKeeper)
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[Blockchain], NewBlockchainWithGenesisBlock failed.")
 	}
 	genesisBlock.RebuildMerkleRoot()
 	genesisBlock.Header.BlockRoot = genesisBlock.Header.TransactionsRoot
-
-	hashx := genesisBlock.Hash()
-	genesisBlock.hash = &hashx
 
 	height, err := DefaultLedger.Store.InitLedgerStoreWithGenesisBlock(genesisBlock, defaultBookKeeper)
 	if err != nil {
@@ -42,7 +40,7 @@ func NewBlockchainWithGenesisBlock(defaultBookKeeper []*crypto.PubKey) (*Blockch
 	return blockchain, nil
 }
 
-func (bc *Blockchain) AddBlock(block *Block) error {
+func (bc *Blockchain) AddBlock(block *types.Block) error {
 	log.Debug()
 	bc.mutex.Lock()
 	defer bc.mutex.Unlock()
@@ -55,7 +53,7 @@ func (bc *Blockchain) AddBlock(block *Block) error {
 	return nil
 }
 
-func (bc *Blockchain) GetHeader(hash Uint256) (*Header, error) {
+func (bc *Blockchain) GetHeader(hash Uint256) (*types.Header, error) {
 	header, err := DefaultLedger.Store.GetHeader(hash)
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[Blockchain], GetHeader failed.")
@@ -63,7 +61,7 @@ func (bc *Blockchain) GetHeader(hash Uint256) (*Header, error) {
 	return header, nil
 }
 
-func (bc *Blockchain) SaveBlock(block *Block) error {
+func (bc *Blockchain) SaveBlock(block *types.Block) error {
 	log.Debugf("Save block, block hash %x", block.Hash())
 	err := DefaultLedger.Store.SaveBlock(block, DefaultLedger)
 	if err != nil {
@@ -83,7 +81,7 @@ func (bc *Blockchain) ContainsTransaction(hash Uint256) bool {
 	return true
 }
 
-func (bc *Blockchain) GetBookKeepersByTXs(others []*tx.Transaction) []*crypto.PubKey {
+func (bc *Blockchain) GetBookKeepersByTXs(others []*types.Transaction) []*crypto.PubKey {
 	//TODO: GetBookKeepers()
 	//TODO: Just for TestUse
 

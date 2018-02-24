@@ -1,12 +1,12 @@
 package httpjsonrpc
 
 import (
-	"bytes"
 	. "github.com/Ontology/common"
+	"github.com/Ontology/core"
 	"github.com/Ontology/core/asset"
 	. "github.com/Ontology/core/contract"
-	tx "github.com/Ontology/core/transaction"
-	"github.com/Ontology/core/transaction/payload"
+	"github.com/Ontology/core/payload"
+	"github.com/Ontology/core/types"
 )
 
 type PayloadInfo interface{}
@@ -96,7 +96,7 @@ type VoteInfo struct {
 	Voter   string
 }
 
-func TransPayloadToHex(p tx.Payload) PayloadInfo {
+func TransPayloadToHex(p types.Payload) PayloadInfo {
 	switch object := p.(type) {
 	case *payload.BookKeeping:
 		obj := new(BookKeepingInfo)
@@ -117,16 +117,11 @@ func TransPayloadToHex(p tx.Payload) PayloadInfo {
 		obj.Issuer.Y = object.Issuer.Y.String()
 
 		return obj
-	case *payload.IssueAsset:
-		obj := new(IssueAssetInfo)
-		return obj
-	case *payload.TransferAsset:
-		obj := new(TransferAssetInfo)
-		return obj
 	case *payload.InvokeCode:
 		obj := new(InvokeCodeInfo)
-		obj.CodeHash = ToHexString(object.CodeHash.ToArray())
-		obj.Code = ToHexString(object.Code)
+		address := core.AddressFromVmCode(object.Code)
+		obj.CodeHash = ToHexString(address[:])
+		obj.Code = ToHexString(object.Code.Code)
 		return obj
 	case *payload.DeployCode:
 		obj := new(DeployCodeInfo)
@@ -139,45 +134,6 @@ func TransPayloadToHex(p tx.Payload) PayloadInfo {
 		obj.Author = object.Author
 		obj.Email = object.Email
 		obj.Description = object.Description
-		return obj
-	case *payload.RegisterAsset:
-		obj := new(RegisterAssetInfo)
-		obj.Asset = object.Asset
-		obj.Amount = object.Amount
-		obj.Issuer.X = object.Issuer.X.String()
-		obj.Issuer.Y = object.Issuer.Y.String()
-		obj.Controller = ToHexString(object.Controller.ToArray())
-		return obj
-	case *payload.Record:
-		obj := new(RecordInfo)
-		obj.RecordType = object.RecordType
-		obj.RecordData = ToHexString(object.RecordData)
-		return obj
-	case *payload.PrivacyPayload:
-		obj := new(PrivacyPayloadInfo)
-		obj.PayloadType = uint8(object.PayloadType)
-		obj.Payload = ToHexString(object.Payload)
-		obj.EncryptType = uint8(object.EncryptType)
-		bytesBuffer := bytes.NewBuffer([]byte{})
-		object.EncryptAttr.Serialize(bytesBuffer)
-		obj.EncryptAttr = ToHexString(bytesBuffer.Bytes())
-		return obj
-	case *payload.DataFile:
-		obj := new(DataFileInfo)
-		obj.IPFSPath = object.IPFSPath
-		obj.Filename = object.Filename
-		obj.Note = object.Note
-		obj.Issuer.X = object.Issuer.X.String()
-		obj.Issuer.Y = object.Issuer.Y.String()
-		return obj
-	case *payload.Claim:
-		obj := new(Claim)
-		for _, v := range object.Claims {
-			item := new(UTXOTxInput)
-			item.ReferTxID = ToHexString(v.ReferTxID.ToArray())
-			item.ReferTxOutputIndex = v.ReferTxOutputIndex
-			obj.Claims = append(obj.Claims, item)
-		}
 		return obj
 	case *payload.Vote:
 		obj := new(VoteInfo)

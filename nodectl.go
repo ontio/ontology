@@ -5,7 +5,6 @@ import (
 	"sort"
 
 	_ "github.com/Ontology/cli"
-	"github.com/Ontology/cli/asset"
 	"github.com/Ontology/cli/bookkeeper"
 	. "github.com/Ontology/cli/common"
 	"github.com/Ontology/cli/data"

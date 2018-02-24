@@ -2,8 +2,7 @@ package net
 
 import (
 	. "github.com/Ontology/common"
-	"github.com/Ontology/core/ledger"
-	"github.com/Ontology/core/transaction"
+	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
 	"github.com/Ontology/events"
@@ -12,14 +11,14 @@ import (
 )
 
 type Neter interface {
-	GetTxnPool(byCount bool) (map[Uint256]*transaction.Transaction, Fixed64)
+	GetTxnPool(byCount bool) (map[Uint256]*types.Transaction, Fixed64)
 	Xmit(interface{}) error
 	GetEvent(eventName string) *events.Event
 	GetBookKeepersAddrs() ([]*crypto.PubKey, uint64)
-	CleanSubmittedTransactions(block *ledger.Block) error
+	CleanTransactions(txns []*types.Transaction) error
 	GetNeighborNoder() []protocol.Noder
 	Tx(buf []byte)
-	AppendTxnPool(*transaction.Transaction) ErrCode
+	AppendTxnPool(*types.Transaction) ErrCode
 }
 
 func StartProtocol(pubKey *crypto.PubKey) protocol.Noder {

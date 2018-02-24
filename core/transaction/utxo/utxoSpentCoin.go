@@ -1,6 +1,6 @@
 package utxo
 
-type SpentCoin struct {
+type ISpentCoin struct {
 	Output      *TxOutput
 	StartHeight uint32
 	EndHeight   uint32

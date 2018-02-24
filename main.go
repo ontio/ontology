@@ -7,7 +7,6 @@ import (
 	"github.com/Ontology/consensus"
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/store/ChainStore"
-	"github.com/Ontology/core/transaction"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/net"
 	"github.com/Ontology/net/httpjsonrpc"
@@ -60,7 +59,6 @@ func main() {
 	defer ledger.DefaultLedger.Store.Close()
 
 	ledger.DefaultLedger.Store.InitLedgerStore(ledger.DefaultLedger)
-	transaction.TxStore = ledger.DefaultLedger.Store
 	crypto.SetAlg(config.Parameters.EncryptAlg)
 
 	log.Info("1. Open the account")

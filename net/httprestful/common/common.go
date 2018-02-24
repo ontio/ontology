@@ -1,16 +1,16 @@
 package common
 
 import (
+	"bytes"
+	"fmt"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/core/ledger"
-	tx "github.com/Ontology/core/transaction"
+	"github.com/Ontology/core/types"
 	. "github.com/Ontology/errors"
 	. "github.com/Ontology/net/httpjsonrpc"
 	Err "github.com/Ontology/net/httprestful/error"
 	. "github.com/Ontology/net/protocol"
-	"bytes"
-	"fmt"
 	"math"
 	"strconv"
 )
@@ -99,7 +99,7 @@ func GetTotalIssued(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"] = val
 	return resp
 }
-func GetBlockInfo(block *ledger.Block) BlockInfo {
+func GetBlockInfo(block *types.Block) BlockInfo {
 	hash := block.Hash()
 	blockHead := &BlockHead{
 		Version:          block.Header.Version,
@@ -110,7 +110,7 @@ func GetBlockInfo(block *ledger.Block) BlockInfo {
 		Timestamp:        block.Header.Timestamp,
 		Height:           block.Header.Height,
 		ConsensusData:    block.Header.ConsensusData,
-		NextBookKeeper:   ToHexString(block.Header.NextBookKeeper.ToArray()),
+		NextBookKeeper:   ToHexString(block.Header.NextBookKeeper[:]),
 		Program: ProgramInfo{
 			Code:      ToHexString(block.Header.Program.Code),
 			Parameter: ToHexString(block.Header.Program.Parameter),
@@ -131,7 +131,7 @@ func GetBlockInfo(block *ledger.Block) BlockInfo {
 	return b
 }
 
-func GetBlockTransactions(block *ledger.Block) interface{} {
+func GetBlockTransactions(block *types.Block) interface{} {
 	trans := make([]string, len(block.Transactions))
 	for i := 0; i < len(block.Transactions); i++ {
 		h := block.Transactions[i].Hash()
@@ -241,23 +241,25 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"], resp["Error"] = getBlock(hash, getTxBytes)
 	return resp
 }
+
 type PubKeyInfo struct {
 	X, Y string
 }
 type AssetStateInfo struct {
-	StateVersion  int
-	AssetId    string
-	AssetType  int
-	Name       string
-	Amount     Fixed64
-	Available  Fixed64
-	Precision  int
-	Owner      PubKeyInfo
-	Admin      string
-	Issuer     string
-	Expiration uint32
-	IsFrozen   bool
+	StateVersion int
+	AssetId      string
+	AssetType    int
+	Name         string
+	Amount       Fixed64
+	Available    Fixed64
+	Precision    int
+	Owner        PubKeyInfo
+	Admin        string
+	Issuer       string
+	Expiration   uint32
+	IsFrozen     bool
 }
+
 //Asset
 func GetAssetByHash(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
@@ -366,51 +368,6 @@ func GetBalanceByAsset(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-func GetUnspendOutput(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
-	addr, ok := cmd["Addr"].(string)
-	assetid, k := cmd["Assetid"].(string)
-	if !ok || !k {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
-	}
-
-	var programHash Uint160
-	var assetHash Uint256
-	programHash, err := ToScriptHash(addr)
-	if err != nil {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
-	}
-	bys, err := HexToBytes(assetid)
-	if err != nil {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
-	}
-	if err := assetHash.Deserialize(bytes.NewReader(bys)); err != nil {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
-	}
-	type UTXOUnspentInfo struct {
-		Txid  string
-		Index uint32
-		Value string
-	}
-	infos, err := ledger.DefaultLedger.Store.GetUnspentFromProgramHash(programHash, assetHash)
-	if err != nil {
-		resp["Error"] = Err.INVALID_PARAMS
-		resp["Result"] = err
-		return resp
-	}
-	var UTXOoutputs []UTXOUnspentInfo
-	for _, v := range infos {
-		val := strconv.FormatInt(int64(v.Value), 10)
-		UTXOoutputs = append(UTXOoutputs, UTXOUnspentInfo{Txid: ToHexString(v.Txid.ToArray()), Index: v.Index, Value: val})
-	}
-	resp["Result"] = UTXOoutputs
-	return resp
-}
-
 //Transaction
 func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
@@ -455,7 +412,7 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 		resp["Error"] = Err.INVALID_PARAMS
 		return resp
 	}
-	var txn tx.Transaction
+	var txn types.Transaction
 	if err := txn.Deserialize(bytes.NewReader(bys)); err != nil {
 		resp["Error"] = Err.INVALID_TRANSACTION
 		return resp

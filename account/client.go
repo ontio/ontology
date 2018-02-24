@@ -6,6 +6,13 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/rand"
+	"os"
+	"sort"
+	"strings"
+	"sync"
+	"time"
+
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
@@ -14,15 +21,10 @@ import (
 	ct "github.com/Ontology/core/contract"
 	"github.com/Ontology/core/ledger"
 	sig "github.com/Ontology/core/signature"
+	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
 	"github.com/Ontology/net/protocol"
-	"math/rand"
-	"os"
-	"sort"
-	"strings"
-	"sync"
-	"time"
 )
 
 const (
@@ -330,7 +332,7 @@ func (cl *ClientImpl) ProcessBlocks() {
 	}
 }
 
-func (cl *ClientImpl) ProcessNewBlock(block *ledger.Block) {
+func (cl *ClientImpl) ProcessNewBlock(block *types.Block) {
 	//TODO: ProcessNewBlock
 
 }

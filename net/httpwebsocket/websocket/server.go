@@ -38,10 +38,10 @@ type WsServer struct {
 
 func InitWsServer(checkAccessToken func(string, string) (string, int64, interface{})) *WsServer {
 	ws := &WsServer{
-		Upgrader:    websocket.Upgrader{},
-		SessionList: NewSessionList(),
-		TxHashMap:   make(map[string]string),
-		BroadcastMap:   make(map[string]string),
+		Upgrader:     websocket.Upgrader{},
+		SessionList:  NewSessionList(),
+		TxHashMap:    make(map[string]string),
+		BroadcastMap: make(map[string]string),
 	}
 	ws.checkAccessToken = checkAccessToken
 	return ws
@@ -58,7 +58,7 @@ func (ws *WsServer) Start() error {
 	}
 
 	tlsFlag := false
-	if tlsFlag || Parameters.HttpWsPort % 1000 == TlsPort {
+	if tlsFlag || Parameters.HttpWsPort%1000 == TlsPort {
 		var err error
 		ws.listener, err = ws.initTlsListen()
 		if err != nil {
@@ -67,7 +67,7 @@ func (ws *WsServer) Start() error {
 		}
 	} else {
 		var err error
-		ws.listener, err = net.Listen("tcp", ":" + strconv.Itoa(Parameters.HttpWsPort))
+		ws.listener, err = net.Listen("tcp", ":"+strconv.Itoa(Parameters.HttpWsPort))
 		if err != nil {
 			log.Fatal("net.Listen: ", err.Error())
 			return err
@@ -140,11 +140,11 @@ func (ws *WsServer) registryMethod() {
 		"getblockheight":     {handler: GetBlockHeight},
 		"gettransaction":     {handler: GetTransactionByHash},
 		"getasset":           {handler: GetAssetByHash},
-		"getunspendoutput":   {handler: GetUnspendOutput},
+		//"getunspendoutput":   {handler: GetUnspendOutput},
 
 		"sendrawtransaction": {handler: sendRawTransaction},
-		"sendrecord":         {handler: SendRecord},
-		"heartbeat":          {handler: heartbeat},
+		//"sendrecord":         {handler: SendRecord},
+		"heartbeat": {handler: heartbeat},
 
 		"sendtest": {handler: sendtest, pushFlag: true},
 
@@ -384,7 +384,7 @@ func (ws *WsServer) initTlsListen() (net.Listener, error) {
 	}
 
 	log.Info("TLS listen port is ", strconv.Itoa(Parameters.HttpWsPort))
-	listener, err := tls.Listen("tcp", ":" + strconv.Itoa(Parameters.HttpWsPort), tlsConfig)
+	listener, err := tls.Listen("tcp", ":"+strconv.Itoa(Parameters.HttpWsPort), tlsConfig)
 	if err != nil {
 		log.Error(err)
 		return nil, err

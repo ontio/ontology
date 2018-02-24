@@ -1,21 +1,25 @@
 package solo
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"time"
+
 	cl "github.com/Ontology/account"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
+	"github.com/Ontology/core"
 	"github.com/Ontology/core/contract"
 	"github.com/Ontology/core/contract/program"
+	"github.com/Ontology/core/genesis"
 	"github.com/Ontology/core/ledger"
-	sig "github.com/Ontology/core/signature"
-	tx "github.com/Ontology/core/transaction"
-	"github.com/Ontology/core/transaction/payload"
+	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/transaction/utxo"
+	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/net"
-	"time"
 )
 
 /*
@@ -64,18 +68,18 @@ func (this *SoloService) genBlock() {
 		log.Errorf("Blockchain.AddBlock error:%s", err)
 		return
 	}
-	err = this.localNet.CleanSubmittedTransactions(block)
+	err = this.localNet.CleanTransactions(block.Transactions)
 	if err != nil {
 		log.Errorf("CleanSubmittedTransactions error:%s", err)
 		return
 	}
 }
 
-func (this *SoloService) makeBlock() *ledger.Block {
+func (this *SoloService) makeBlock() *types.Block {
 	log.Debug()
 	ac, _ := this.Client.GetDefaultAccount()
 	owner := ac.PublicKey
-	nextBookKeeper, err := ledger.GetBookKeeperAddress([]*crypto.PubKey{owner})
+	nextBookKeeper, err := core.AddressFromBookKeepers([]*crypto.PubKey{owner})
 	if err != nil {
 		log.Error("SoloService GetBookKeeperAddress error:%s", err)
 		return nil
@@ -84,7 +88,7 @@ func (this *SoloService) makeBlock() *ledger.Block {
 	transactionsPool, feeSum := this.localNet.GetTxnPool(true)
 	txBookkeeping := this.createBookkeepingTransaction(nonce, feeSum)
 
-	transactions := make([]*tx.Transaction, 0, len(transactionsPool)+1)
+	transactions := make([]*types.Transaction, 0, len(transactionsPool)+1)
 	transactions = append(transactions, txBookkeeping)
 	for _, transaction := range transactionsPool {
 		transactions = append(transactions, transaction)
@@ -105,7 +109,7 @@ func (this *SoloService) makeBlock() *ledger.Block {
 
 	blockRoot := ledger.DefaultLedger.Store.GetBlockRootWithNewTxRoot(txRoot)
 	stateRoot := ledger.DefaultLedger.Store.GetCurrentStateRoot()
-	header := &ledger.Header{
+	header := &types.Header{
 		Version:          ContextVersion,
 		PrevBlockHash:    prevHash,
 		TransactionsRoot: txRoot,
@@ -116,31 +120,33 @@ func (this *SoloService) makeBlock() *ledger.Block {
 		ConsensusData:    nonce,
 		NextBookKeeper:   nextBookKeeper,
 	}
-	block := &ledger.Block{
+	block := &types.Block{
 		Header:       header,
 		Transactions: transactions,
 	}
 
-	programs, err := this.getBlockPrograms(block, owner)
+	prog, err := this.getBlockProgram(block, owner)
 	if err != nil {
 		log.Errorf("getBlockPrograms error:%s", err)
 		return nil
 	}
-	if programs == nil {
+	if prog == nil {
 		log.Errorf("getBlockPrograms programs is nil")
 		return nil
 	}
 
-	block.SetPrograms(programs)
+	block.Header.Program = prog
 	return block
 }
 
-func (this *SoloService) getBlockPrograms(block *ledger.Block, owner *crypto.PubKey) ([]*program.Program, error) {
-	ctx := contract.NewContractContext(block)
+func (this *SoloService) getBlockProgram(block *types.Block, owner *crypto.PubKey) (*program.Program, error) {
+	buf := new(bytes.Buffer)
+	block.SerializeUnsigned(buf)
 	account, _ := this.Client.GetAccount(owner)
-	sigData, err := sig.SignBySigner(block, account)
+
+	signature, err := crypto.Sign(account.PrivKey(), buf.Bytes())
 	if err != nil {
-		return nil, fmt.Errorf("SignBySigner error:%s", err)
+		return nil, errors.New("[Signature],Sign failed.")
 	}
 
 	sc, err := contract.CreateSignatureContract(owner)
@@ -148,14 +154,17 @@ func (this *SoloService) getBlockPrograms(block *ledger.Block, owner *crypto.Pub
 		return nil, fmt.Errorf("CreateSignatureContract error:%s", err)
 	}
 
-	err = ctx.AddContract(sc, owner, sigData)
-	if err != nil {
-		return nil, fmt.Errorf("AddContract error:%s", err)
-	}
-	return ctx.GetPrograms(), nil
+	sb := program.NewProgramBuilder()
+	sb.PushData(signature)
+
+	return &program.Program{
+		Code:      sc.Code,
+		Parameter: sb.ToArray(),
+	}, nil
+
 }
 
-func (this *SoloService) createBookkeepingTransaction(nonce uint64, fee Fixed64) *tx.Transaction {
+func (this *SoloService) createBookkeepingTransaction(nonce uint64, fee Fixed64) *types.Transaction {
 	log.Debug()
 	//TODO: sysfee
 	bookKeepingPayload := &payload.BookKeeping{
@@ -174,21 +183,16 @@ func (this *SoloService) createBookkeepingTransaction(nonce uint64, fee Fixed64)
 	outputs := []*utxo.TxOutput{}
 	if fee > 0 {
 		feeOutput := &utxo.TxOutput{
-			AssetID:     tx.ONGTokenID,
+			AssetID:     genesis.ONGTokenID,
 			Value:       fee,
 			ProgramHash: signatureRedeemScriptHashToCodeHash,
 		}
 		outputs = append(outputs, feeOutput)
 	}
-	return &tx.Transaction{
-		TxType:         tx.BookKeeping,
-		PayloadVersion: payload.BookKeepingPayloadVersion,
-		Payload:        bookKeepingPayload,
-		Attributes:     []*tx.TxAttribute{},
-		UTXOInputs:     []*utxo.UTXOTxInput{},
-		BalanceInputs:  []*tx.BalanceTxInput{},
-		Outputs:        outputs,
-		Programs:       []*program.Program{},
+	return &types.Transaction{
+		TxType:     types.BookKeeping,
+		Payload:    bookKeepingPayload,
+		Attributes: []*types.TxAttribute{},
 	}
 }
 

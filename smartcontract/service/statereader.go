@@ -7,14 +7,14 @@ import (
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/signature"
 	"github.com/Ontology/core/states"
-	tx "github.com/Ontology/core/transaction"
 	"github.com/Ontology/core/transaction/utxo"
+	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/errors"
 	"github.com/Ontology/smartcontract/event"
 	trigger "github.com/Ontology/smartcontract/types"
 	vm "github.com/Ontology/vm/neovm"
-	"github.com/Ontology/vm/neovm/types"
+	vmtypes "github.com/Ontology/vm/neovm/types"
 	"math/big"
 	"strings"
 )
@@ -65,9 +65,11 @@ func NewStateReader(trigger trigger.TriggerType) *StateReader {
 	stateReader.Register("Neo.Transaction.GetHash", stateReader.TransactionGetHash)
 	stateReader.Register("Neo.Transaction.GetType", stateReader.TransactionGetType)
 	stateReader.Register("Neo.Transaction.GetAttributes", stateReader.TransactionGetAttributes)
-	stateReader.Register("Neo.Transaction.GetInputs", stateReader.TransactionGetInputs)
-	stateReader.Register("Neo.Transaction.GetOutputs", stateReader.TransactionGetOutputs)
-	stateReader.Register("Neo.Transaction.GetReferences", stateReader.TransactionGetReferences)
+	/*
+		stateReader.Register("Neo.Transaction.GetInputs", stateReader.TransactionGetInputs)
+		stateReader.Register("Neo.Transaction.GetOutputs", stateReader.TransactionGetOutputs)
+		stateReader.Register("Neo.Transaction.GetReferences", stateReader.TransactionGetReferences)
+	*/
 
 	stateReader.Register("Neo.Attribute.GetUsage", stateReader.AttributeGetUsage)
 	stateReader.Register("Neo.Attribute.GetData", stateReader.AttributeGetData)
@@ -120,7 +122,8 @@ func (s *StateReader) RuntimeGetTime(e *vm.ExecutionEngine) (bool, error) {
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[RuntimeGetTime] GetHeader error!.")
 	}
-	vm.PushData(e, header.Timestamp+uint32(ledger.GenBlockTime))
+
+	vm.PushData(e, header.Timestamp)
 	return true, nil
 }
 
@@ -131,7 +134,7 @@ func (s *StateReader) RuntimeNotify(e *vm.ExecutionEngine) (bool, error) {
 		log.Error("[RuntimeNotify] Get container fail!")
 		return false, errors.NewErr("[CreateAsset] Get container fail!")
 	}
-	tran, ok := container.(*tx.Transaction)
+	tran, ok := container.(*types.Transaction)
 	if !ok {
 		log.Error("[RuntimeNotify] Container not transaction!")
 		return false, errors.NewErr("[CreateAsset] Container not transaction!")
@@ -155,7 +158,7 @@ func (s *StateReader) RuntimeLog(e *vm.ExecutionEngine) (bool, error) {
 		log.Error("[RuntimeLog] Get container fail!")
 		return false, errors.NewErr("[CreateAsset] Get container fail!")
 	}
-	tran, ok := container.(*tx.Transaction)
+	tran, ok := container.(*types.Transaction)
 	if !ok {
 		log.Error("[RuntimeLog] Container not transaction!")
 		return false, errors.NewErr("[CreateAsset] Container not transaction!")
@@ -241,7 +244,7 @@ func (s *StateReader) BlockChainGetHeader(e *vm.ExecutionEngine) (bool, error) {
 	}
 	data := vm.PopByteArray(e)
 	var (
-		header *ledger.Header
+		header *types.Header
 		err    error
 	)
 	l := len(data)
@@ -279,7 +282,7 @@ func (s *StateReader) BlockChainGetBlock(e *vm.ExecutionEngine) (bool, error) {
 	}
 	data := vm.PopByteArray(e)
 	var (
-		block *ledger.Block
+		block *types.Block
 	)
 	l := len(data)
 	if l <= 5 {
@@ -388,10 +391,10 @@ func (s *StateReader) HeaderGetHash(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetHash] Pop blockdata nil!")
 	}
-	var data *ledger.Header
-	if b, ok := d.(*ledger.Block); ok {
+	var data *types.Header
+	if b, ok := d.(*types.Block); ok {
 		data = b.Header
-	} else if h, ok := d.(*ledger.Header); ok {
+	} else if h, ok := d.(*types.Header); ok {
 		data = h
 	} else {
 		return false, errors.NewErr("[HeaderGetHash] Wrong type!")
@@ -409,10 +412,10 @@ func (s *StateReader) HeaderGetVersion(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetVersion] Pop blockdata nil!")
 	}
-	var data *ledger.Header
-	if b, ok := d.(*ledger.Block); ok {
+	var data *types.Header
+	if b, ok := d.(*types.Block); ok {
 		data = b.Header
-	} else if h, ok := d.(*ledger.Header); ok {
+	} else if h, ok := d.(*types.Header); ok {
 		data = h
 	} else {
 		return false, errors.NewErr("[HeaderGetVersion] Wrong type!")
@@ -429,10 +432,10 @@ func (s *StateReader) HeaderGetPrevHash(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetPrevHash] Pop blockdata nil!")
 	}
-	var data *ledger.Header
-	if b, ok := d.(*ledger.Block); ok {
+	var data *types.Header
+	if b, ok := d.(*types.Block); ok {
 		data = b.Header
-	} else if h, ok := d.(*ledger.Header); ok {
+	} else if h, ok := d.(*types.Header); ok {
 		data = h
 	} else {
 		return false, errors.NewErr("[HeaderGetPrevHash] Wrong type!")
@@ -449,10 +452,10 @@ func (s *StateReader) HeaderGetMerkleRoot(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetMerkleRoot] Pop blockdata nil!")
 	}
-	var data *ledger.Header
-	if b, ok := d.(*ledger.Block); ok {
+	var data *types.Header
+	if b, ok := d.(*types.Block); ok {
 		data = b.Header
-	} else if h, ok := d.(*ledger.Header); ok {
+	} else if h, ok := d.(*types.Header); ok {
 		data = h
 	} else {
 		return false, errors.NewErr("[HeaderGetMerkleRoot] Wrong type!")
@@ -469,10 +472,10 @@ func (s *StateReader) HeaderGetIndex(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetIndex] Pop blockdata nil!")
 	}
-	var data *ledger.Header
-	if b, ok := d.(*ledger.Block); ok {
+	var data *types.Header
+	if b, ok := d.(*types.Block); ok {
 		data = b.Header
-	} else if h, ok := d.(*ledger.Header); ok {
+	} else if h, ok := d.(*types.Header); ok {
 		data = h
 	} else {
 		return false, errors.NewErr("[HeaderGetIndex] Wrong type!")
@@ -489,10 +492,10 @@ func (s *StateReader) HeaderGetTimestamp(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetTimestamp] Pop blockdata nil!")
 	}
-	var data *ledger.Header
-	if b, ok := d.(*ledger.Block); ok {
+	var data *types.Header
+	if b, ok := d.(*types.Block); ok {
 		data = b.Header
-	} else if h, ok := d.(*ledger.Header); ok {
+	} else if h, ok := d.(*types.Header); ok {
 		data = h
 	} else {
 		return false, errors.NewErr("[HeaderGetTimestamp] Wrong type!")
@@ -509,10 +512,10 @@ func (s *StateReader) HeaderGetConsensusData(e *vm.ExecutionEngine) (bool, error
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetConsensusData] Pop blockdata nil!")
 	}
-	var data *ledger.Header
-	if b, ok := d.(*ledger.Block); ok {
+	var data *types.Header
+	if b, ok := d.(*types.Block); ok {
 		data = b.Header
-	} else if h, ok := d.(*ledger.Header); ok {
+	} else if h, ok := d.(*types.Header); ok {
 		data = h
 	} else {
 		return false, errors.NewErr("[HeaderGetConsensusData] Wrong type!")
@@ -529,15 +532,15 @@ func (s *StateReader) HeaderGetNextConsensus(e *vm.ExecutionEngine) (bool, error
 	if d == nil {
 		return false, errors.NewErr("[HeaderGetNextConsensus] Pop blockdata nil!")
 	}
-	var data *ledger.Header
-	if b, ok := d.(*ledger.Block); ok {
+	var data *types.Header
+	if b, ok := d.(*types.Block); ok {
 		data = b.Header
-	} else if h, ok := d.(*ledger.Header); ok {
+	} else if h, ok := d.(*types.Header); ok {
 		data = h
 	} else {
 		return false, errors.NewErr("[HeaderGetNextConsensus] Wrong type!")
 	}
-	vm.PushData(e, data.NextBookKeeper.ToArray())
+	vm.PushData(e, data.NextBookKeeper[:])
 	return true, nil
 }
 
@@ -549,7 +552,7 @@ func (s *StateReader) BlockGetTransactionCount(e *vm.ExecutionEngine) (bool, err
 	if d == nil {
 		return false, errors.NewErr("[BlockGetTransactionCount] Pop blockdata nil!")
 	}
-	block, ok := d.(*ledger.Block)
+	block, ok := d.(*types.Block)
 	if ok == false {
 		return false, errors.NewErr("[BlockGetTransactionCount] Wrong type!")
 	}
@@ -566,14 +569,14 @@ func (s *StateReader) BlockGetTransactions(e *vm.ExecutionEngine) (bool, error) 
 	if d == nil {
 		return false, errors.NewErr("[BlockGetTransactions] Pop blockdata nil!")
 	}
-	block, ok := d.(*ledger.Block)
+	block, ok := d.(*types.Block)
 	if ok == false {
 		return false, errors.NewErr("[BlockGetTransactions] Wrong type!")
 	}
 	transactions := block.Transactions
-	transactionList := make([]types.StackItemInterface, 0)
+	transactionList := make([]vmtypes.StackItemInterface, 0)
 	for _, v := range transactions {
-		transactionList = append(transactionList, types.NewInteropInterface(v))
+		transactionList = append(transactionList, vmtypes.NewInteropInterface(v))
 	}
 	vm.PushData(e, transactionList)
 	return true, nil
@@ -592,7 +595,7 @@ func (s *StateReader) BlockGetTransaction(e *vm.ExecutionEngine) (bool, error) {
 		return false, errors.NewErr("[BlockGetTransaction] Pop index invalid!")
 	}
 
-	block, ok := d.(*ledger.Block)
+	block, ok := d.(*types.Block)
 	if ok == false {
 		return false, errors.NewErr("[BlockGetTransactions] Wrong type!")
 	}
@@ -613,7 +616,7 @@ func (s *StateReader) TransactionGetHash(e *vm.ExecutionEngine) (bool, error) {
 		return false, errors.NewErr("[TransactionGetHash] Pop transaction nil!")
 	}
 
-	txn, ok := d.(*tx.Transaction)
+	txn, ok := d.(*types.Transaction)
 	if ok == false {
 		return false, errors.NewErr("[TransactionGetHash] Wrong type!")
 	}
@@ -630,7 +633,7 @@ func (s *StateReader) TransactionGetType(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[TransactionGetType] Pop transaction nil!")
 	}
-	txn, ok := d.(*tx.Transaction)
+	txn, ok := d.(*types.Transaction)
 	if ok == false {
 		return false, errors.NewErr("[TransactionGetHash] Wrong type!")
 	}
@@ -647,19 +650,20 @@ func (s *StateReader) TransactionGetAttributes(e *vm.ExecutionEngine) (bool, err
 	if d == nil {
 		return false, errors.NewErr("[TransactionGetAttributes] Pop transaction nil!")
 	}
-	txn, ok := d.(*tx.Transaction)
+	txn, ok := d.(*types.Transaction)
 	if ok == false {
 		return false, errors.NewErr("[TransactionGetAttributes] Wrong type!")
 	}
 	attributes := txn.Attributes
-	attributList := make([]types.StackItemInterface, 0)
+	attributList := make([]vmtypes.StackItemInterface, 0)
 	for _, v := range attributes {
-		attributList = append(attributList, types.NewInteropInterface(v))
+		attributList = append(attributList, vmtypes.NewInteropInterface(v))
 	}
 	vm.PushData(e, attributList)
 	return true, nil
 }
 
+/*
 func (s *StateReader) TransactionGetInputs(e *vm.ExecutionEngine) (bool, error) {
 	if vm.EvaluationStackCount(e) < 1 {
 		return false, errors.NewErr("[TransactionGetInputs] Too few input parameters ")
@@ -668,14 +672,14 @@ func (s *StateReader) TransactionGetInputs(e *vm.ExecutionEngine) (bool, error) 
 	if d == nil {
 		return false, errors.NewErr("[TransactionGetInputs] Pop transaction nil!")
 	}
-	txn, ok := d.(*tx.Transaction)
+	txn, ok := d.(*types.Transaction)
 	if ok == false {
 		return false, errors.NewErr("[TransactionGetInputs] Wrong type!")
 	}
 	inputs := txn.UTXOInputs
-	inputList := make([]types.StackItemInterface, 0)
+	inputList := make([]vmtypes.StackItemInterface, 0)
 	for _, v := range inputs {
-		inputList = append(inputList, types.NewInteropInterface(v))
+		inputList = append(inputList, vmtypes.NewInteropInterface(v))
 	}
 	vm.PushData(e, inputList)
 	return true, nil
@@ -689,14 +693,14 @@ func (s *StateReader) TransactionGetOutputs(e *vm.ExecutionEngine) (bool, error)
 	if d == nil {
 		return false, errors.NewErr("[TransactionGetOutputs] Pop transaction nil!")
 	}
-	txn, ok := d.(*tx.Transaction)
+	txn, ok := d.(*types.Transaction)
 	if ok == false {
 		return false, errors.NewErr("[TransactionGetOutputs] Wrong type!")
 	}
 	outputs := txn.Outputs
-	outputList := make([]types.StackItemInterface, 0)
+	outputList := make([]vmtypes.StackItemInterface, 0)
 	for _, v := range outputs {
-		outputList = append(outputList, types.NewInteropInterface(v))
+		outputList = append(outputList, vmtypes.NewInteropInterface(v))
 	}
 	vm.PushData(e, outputList)
 	return true, nil
@@ -710,7 +714,7 @@ func (s *StateReader) TransactionGetReferences(e *vm.ExecutionEngine) (bool, err
 	if d == nil {
 		return false, errors.NewErr("[TransactionGetReferences] Pop transaction nil!")
 	}
-	txn, ok := d.(*tx.Transaction)
+	txn, ok := d.(*types.Transaction)
 	if ok == false {
 		return false, errors.NewErr("[TransactionGetReferences] Wrong type!")
 	}
@@ -718,13 +722,14 @@ func (s *StateReader) TransactionGetReferences(e *vm.ExecutionEngine) (bool, err
 	if err != nil {
 		return false, err
 	}
-	referenceList := make([]types.StackItemInterface, 0)
+	referenceList := make([]vmtypes.StackItemInterface, 0)
 	for _, v := range references {
-		referenceList = append(referenceList, types.NewInteropInterface(v))
+		referenceList = append(referenceList, vmtypes.NewInteropInterface(v))
 	}
 	vm.PushData(e, referenceList)
 	return true, nil
 }
+*/
 
 func (s *StateReader) AttributeGetUsage(e *vm.ExecutionEngine) (bool, error) {
 	if vm.EvaluationStackCount(e) < 1 {
@@ -734,7 +739,7 @@ func (s *StateReader) AttributeGetUsage(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[AttributeGetUsage] Pop txAttribute nil!")
 	}
-	attribute, ok := d.(*tx.TxAttribute)
+	attribute, ok := d.(*types.TxAttribute)
 	if ok == false {
 		return false, errors.NewErr("[AttributeGetUsage] Wrong type!")
 	}
@@ -750,7 +755,7 @@ func (s *StateReader) AttributeGetData(e *vm.ExecutionEngine) (bool, error) {
 	if d == nil {
 		return false, errors.NewErr("[AttributeGetData] Pop txAttribute nil!")
 	}
-	attribute, ok := d.(*tx.TxAttribute)
+	attribute, ok := d.(*types.TxAttribute)
 	if ok == false {
 		return false, errors.NewErr("[AttributeGetUsage] Wrong type!")
 	}
