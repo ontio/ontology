@@ -27,8 +27,79 @@ type Transaction struct {
 }
 
 type Sig struct {
-	PubKey  crypto.PubKey
-	SigData []byte
+	PubKeys []*crypto.PubKey
+	M       uint8
+	SigData [][]byte
+}
+
+func (self *Sig) Deserialize(r io.Reader) error {
+	n, err := serialization.ReadVarUint(r, 0)
+	if err != nil {
+		return err
+	}
+
+	self.PubKeys = make([]*crypto.PubKey, n)
+	for i := 0; i < int(n); i++ {
+		pubkey := new(crypto.PubKey)
+		err = pubkey.DeSerialize(r)
+		if err != nil {
+			return err
+		}
+		self.PubKeys[i] = pubkey
+	}
+
+	self.M, err = serialization.ReadUint8(r)
+	if err != nil {
+		return err
+	}
+
+	m, err := serialization.ReadVarUint(r, 0)
+	if err != nil {
+		return err
+	}
+
+	self.SigData = make([][]byte, m)
+	for i := 0; i < int(m); i++ {
+		sig, err := serialization.ReadVarBytes(r)
+		if err != nil {
+			return err
+		}
+		self.SigData[i] = sig
+	}
+
+	return nil
+}
+
+func (self *Sig) Serialize(w io.Writer) error {
+	err := serialization.WriteVarUint(w, uint64(len(self.PubKeys)))
+	if err != nil {
+		return errors.New("serialize sig pubkey length failed")
+	}
+	for _, pubkey := range self.PubKeys {
+		err = pubkey.Serialize(w)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = serialization.WriteUint8(w, self.M)
+	if err != nil {
+		return errors.New("serialize Sig M failed")
+	}
+
+	err = serialization.WriteVarUint(w, uint64(len(self.SigData)))
+	if err != nil {
+		return errors.New("serialize sig pubkey length failed")
+	}
+
+	for _, sig := range self.SigData {
+		err = serialization.WriteVarBytes(w, sig)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 type Fee struct {
@@ -95,8 +166,7 @@ func (tx *Transaction) Serialize(w io.Writer) error {
 		return NewDetailErr(err, ErrNoCode, "serialize tx sigs length failed")
 	}
 	for _, sig := range tx.Sigs {
-		sig.PubKey.Serialize(w)
-		err = serialization.WriteVarBytes(w, sig.SigData)
+		err = sig.Serialize(w)
 		if err != nil {
 			return err
 		}
@@ -160,14 +230,13 @@ func (tx *Transaction) Deserialize(r io.Reader) error {
 		return NewDetailErr(err, ErrNoCode, "transaction sigs deserialize error")
 	}
 
+	tx.Sigs = make([]*Sig, 0, length)
 	for i := 0; i < int(length); i++ {
 		sig := new(Sig)
-		err := sig.PubKey.DeSerialize(r)
+		err := sig.Deserialize(r)
 		if err != nil {
 			return errors.New("deserialize transaction failed")
 		}
-		sig.SigData, err = serialization.ReadVarBytes(r)
-
 		tx.Sigs = append(tx.Sigs, sig)
 	}
 

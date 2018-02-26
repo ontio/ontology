@@ -5,13 +5,11 @@ import (
 	"crypto/sha256"
 	"errors"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/core/contract"
+	"DNA/common/serialization"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
 	"golang.org/x/crypto/ripemd160"
 )
-
 
 func AddressFromPubKey(pubkey *crypto.PubKey) types.Address {
 	buf := bytes.Buffer{}
@@ -28,6 +26,28 @@ func AddressFromPubKey(pubkey *crypto.PubKey) types.Address {
 	return addr
 }
 
+func AddressFromMultiPubKeys(pubkeys []*crypto.PubKey, m int) (types.Address, error) {
+	var addr types.Address
+	n := len(pubkeys)
+	if m <= 0 || m > n || n > 24 {
+		return addr, errors.New("wrong multi-sig param")
+	}
+	buf := bytes.Buffer{}
+	serialization.WriteUint8(&buf, uint8(n))
+	serialization.WriteUint8(&buf, uint8(m))
+	for _, pubkey := range pubkeys {
+		pubkey.Serialize(&buf)
+	}
+
+	temp := sha256.Sum256(buf.Bytes())
+	md := ripemd160.New()
+	md.Write(temp[:])
+	md.Sum(addr[:])
+	addr[0] = 0x02
+
+	return addr, nil
+}
+
 func AddressFromVmCode(vmCode types.VmCode) types.Address {
 	var addr types.Address
 	temp := sha256.Sum256(vmCode.Code)
@@ -41,24 +61,5 @@ func AddressFromVmCode(vmCode types.VmCode) types.Address {
 }
 
 func AddressFromBookKeepers(bookKeepers []*crypto.PubKey) (types.Address, error) {
-	if len(bookKeepers) < 1 {
-		return types.Address{}, errors.New("[Ledger] , GetBookKeeperAddress with no bookKeeper")
-	}
-	var temp []byte
-	var err error
-	if len(bookKeepers) > 1 {
-		temp, err = contract.CreateMultiSigRedeemScript(len(bookKeepers)-(len(bookKeepers)-1)/3, bookKeepers)
-		if err != nil {
-			return types.Address{}, errors.New("[Ledger],GetBookKeeperAddress failed with CreateMultiSigRedeemScript.")
-		}
-	} else {
-		temp, err = contract.CreateSignatureRedeemScript(bookKeepers[0])
-		if err != nil {
-			return types.Address{}, errors.New("[Ledger],GetBookKeeperAddress failed with CreateMultiSigRedeemScript.")
-		}
-	}
-
-	// TODO
-	codehash := common.ToCodeHash(temp)
-	return types.Address(codehash), nil
+	return AddressFromMultiPubKeys(bookKeepers, len(bookKeepers)-(len(bookKeepers)-1)/3)
 }
