@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"crypto/sha256"
+	"errors"
 	"io"
 
 	. "github.com/Ontology/common"
@@ -28,14 +29,13 @@ type Header struct {
 }
 
 //Serialize the blockheader
-func (bd *Header) Serialize(w io.Writer) {
+func (bd *Header) Serialize(w io.Writer) error {
 	bd.SerializeUnsigned(w)
-	w.Write([]byte{byte(1)})
 
-	//TODO: fix this, inconsist with Deserialize
 	if bd.Program != nil {
-		bd.Program.Serialize(w)
+		errors.New("block header program is nil")
 	}
+	return bd.Program.Serialize(w)
 }
 
 //Serialize the blockheader data without program
@@ -53,10 +53,13 @@ func (bd *Header) SerializeUnsigned(w io.Writer) error {
 }
 
 func (bd *Header) Deserialize(r io.Reader) error {
-	bd.DeserializeUnsigned(r)
+	err := bd.DeserializeUnsigned(r)
+	if err != nil {
+		return err
+	}
 
 	pg := new(program.Program)
-	err := pg.Deserialize(r)
+	err = pg.Deserialize(r)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "Header item Program Deserialize failed.")
 	}
