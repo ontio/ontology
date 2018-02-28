@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 	"errors"
 
-	"DNA/common/serialization"
+	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
 	"golang.org/x/crypto/ripemd160"
