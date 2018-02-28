@@ -1,0 +1,50 @@
+syntax = "proto3";
+package zmqremote;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "github.com/Ontology/eventbus/actor/protos.proto";
+
+option (gogoproto.gostring_all) = false;
+
+message MessageBatch {
+  repeated string type_names = 1;
+  repeated string target_names = 2;
+  repeated MessageEnvelope envelopes = 3;
+}
+
+message MessageEnvelope {
+  int32 type_id = 1;
+  bytes message_data = 2;
+  int32 target = 3;
+  actor.PID sender = 4;
+  int32 serializer_id = 5;
+  MessageHeader message_header = 6;
+}
+
+message MessageHeader {
+  map<string, string> header_data = 1;
+}
+
+message ActorPidRequest {
+  string name = 1;
+  string kind = 2;
+}
+
+message ActorPidResponse {
+  actor.PID pid = 1;
+  int32 status_code = 2;
+}
+
+enum MsgType {
+  ADDRESS_MSG_TYPE = 0;
+  BLOCK_MSG_TYPE = 1;
+  HEADER_MSG_TYPE = 2;
+  TX_MSG_TYPE    = 3;
+  TX_ATT_MSG_TYPE = 4;
+  VM_CODE_MSG_TYPE = 5;
+}
+
+message MsgData {
+  MsgType msgType = 1;
+  bytes data = 2;
+}

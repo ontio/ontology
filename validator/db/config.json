@@ -1,0 +1,37 @@
+﻿{
+  "Configuration": {
+    "Magic": 7630401,
+    "Version": 23,
+    "SeedList": [
+      "139.219.65.178:10338",
+      "139.219.99.201:10338",
+      "139.219.96.154:10338"
+    ],
+    "BookKeepers": [
+      "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
+      "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
+      "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
+      "03d36828a99547184452276116f1b5171861931ff439a6da2316fddf1f3f428850"
+    ],
+    "HttpInfoPort": 20333,
+    "HttpInfoStart": true,
+    "HttpRestPort": 20334,
+    "HttpWsPort":20335,
+    "HttpJsonPort": 20336,
+    "HttpLocalPort": 20337,
+    "NoticeServerUrl":"",
+    "OauthServerUrl":"",
+    "NodePort": 20338,
+    "PrintLevel": 3,
+    "IsTLS": false,
+    "CertPath": "./sample-cert.pem",
+    "KeyPath": "./sample-cert-key.pem",
+    "CAPath": "./sample-ca.pem",
+    "MultiCoreNum": 4,
+    "SystemFee": {
+      "RegisterAsset": 10000,
+      "IssueAsset": 10000
+    },
+    "ConsensusType":"solo"
+  }
+}

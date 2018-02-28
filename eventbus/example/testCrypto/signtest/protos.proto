@@ -1,0 +1,31 @@
+syntax = "proto3";
+package signtest;
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "github.com/Ontology/crypto/protos.proto";
+
+message SignRequest{
+    bytes Data = 1;
+    string Seq = 2;
+}
+
+message SignResponse{
+    bytes Signature = 1;
+    string Seq = 2;
+}
+
+message SetPrivKey{
+    bytes PrivKey = 1;
+}
+
+message VerifyRequest {
+    bytes Signature = 1;
+    bytes Data = 2;
+    crypto.PubKey PublicKey = 3;
+    string Seq = 4;
+}
+
+message VerifyResponse{
+    string Seq = 1;
+    bool Result = 2;
+    string ErrorMsg = 3;
+}

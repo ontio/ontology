@@ -1,0 +1,12 @@
+syntax = "proto3";
+package messages;
+import "github.com/Ontology/eventbus/actor/protos.proto";
+
+message Start {}
+message StartRemote {
+    actor.PID Sender = 1;
+}
+message Ping {
+    bytes Data = 1;
+}
+message Pong {}

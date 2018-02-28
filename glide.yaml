@@ -23,3 +23,17 @@ import:
 - package: golang.org/x/crypto
   subpackages:
   - ripemd160
+- package: github.com/Workiva/go-datastructures
+- package: github.com/AsynkronIT/goconsole
+- package: golang.org/x/sys
+  repo: https://github.com/golang/sys.git
+  subpackages:
+  - unix
+- package: golang.org/x/net
+  repo: https://github.com/golang/net.git
+  subpackages:
+  - context
+- package: google.golang.org/grpc
+  repo: https://github.com/grpc/grpc-go.git 
+ignore:
+  - golang.org/x/sys/unix
