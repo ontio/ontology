@@ -9,6 +9,7 @@ import (
 	. "github.com/Ontology/common"
 	. "github.com/Ontology/common/config"
 	"github.com/Ontology/common/serialization"
+	"github.com/Ontology/core/payload"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
 )
@@ -256,7 +257,7 @@ func (tx *Transaction) DeserializeUnsigned(r io.Reader) error {
 
 	switch tx.TxType {
 	case Invoke:
-		return errors.New("unimplemented")
+		tx.Payload = new(payload.InvokeCode)
 	default:
 		return errors.New("unsupported tx type")
 	}

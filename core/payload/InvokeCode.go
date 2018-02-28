@@ -3,7 +3,7 @@ package payload
 import (
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
-	"github.com/Ontology/core/types"
+	"github.com/Ontology/vm/types"
 	"io"
 )
 
@@ -13,9 +13,9 @@ import (
 //}
 
 type InvokeCode struct {
-	GasLimit  common.Fixed64
-	Code      types.VmCode
-	Params []byte
+	GasLimit common.Fixed64
+	Code     types.VmCode
+	Params   []byte
 }
 
 func (self *InvokeCode) Data() []byte {

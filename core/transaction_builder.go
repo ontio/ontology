@@ -5,6 +5,7 @@ import (
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
+	vmtypes "github.com/Ontology/vm/types"
 )
 
 //initial a new transaction with asset registration payload
@@ -27,7 +28,7 @@ func NewBookKeeperTransaction(pubKey *crypto.PubKey, isAdd bool, cert []byte, is
 	}, nil
 }
 
-func NewDeployTransaction(fc *code.FunctionCode, name, codeversion, author, email, desp string, vmType types.VmType, needStorage bool) *types.Transaction {
+func NewDeployTransaction(fc *code.FunctionCode, name, codeversion, author, email, desp string, vmType vmtypes.VmType, needStorage bool) *types.Transaction {
 	//TODO: check arguments
 	DeployCodePayload := &payload.DeployCode{
 		Code:        fc,
@@ -46,7 +47,7 @@ func NewDeployTransaction(fc *code.FunctionCode, name, codeversion, author, emai
 	}
 }
 
-func NewInvokeTransaction(vmcode types.VmCode, param []byte) (*types.Transaction, error) {
+func NewInvokeTransaction(vmcode vmtypes.VmCode, param []byte) (*types.Transaction, error) {
 	//TODO: check arguments
 	invokeCodePayload := &payload.InvokeCode{
 		Code:   vmcode,

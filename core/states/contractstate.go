@@ -1,12 +1,12 @@
 package states
 
 import (
-	"io"
 	"bytes"
 	. "github.com/Ontology/common/serialization"
 	"github.com/Ontology/core/code"
-	"github.com/Ontology/core/types"
 	. "github.com/Ontology/errors"
+	"github.com/Ontology/vm/types"
+	"io"
 )
 
 type ContractState struct {
@@ -115,5 +115,3 @@ func (contractState *ContractState) ToArray() []byte {
 	contractState.Serialize(b)
 	return b.Bytes()
 }
-
-

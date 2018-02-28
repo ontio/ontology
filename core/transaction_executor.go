@@ -5,6 +5,7 @@ import (
 
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/types"
+	vmtypes "github.com/Ontology/vm/types"
 )
 
 type TransactionExector interface {
@@ -19,7 +20,7 @@ func (self *transactionExecutor) Execute(tx *types.Transaction) {
 	switch pld := tx.Payload.(type) {
 	case *payload.InvokeCode:
 		vmcode := pld.Code
-		if vmcode.CodeType == types.NativeVM {
+		if vmcode.CodeType == vmtypes.NativeVM {
 			if bytes.Equal(vmcode.Code, []byte("ont")) {
 				if bytes.Equal(pld.Params[:8], []byte("transfer")) {
 					var from, to types.Address
@@ -40,8 +41,8 @@ func NewONTTransferTransaction(from, to types.Address) *types.Transaction {
 	code := []byte("ont")
 	params := append([]byte("transfer"), from[:]...)
 	params = append(params, to[:]...)
-	vmcode := types.VmCode{
-		CodeType: types.NativeVM,
+	vmcode := vmtypes.VmCode{
+		CodeType: vmtypes.NativeVM,
 		Code:     code,
 	}
 

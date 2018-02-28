@@ -3,8 +3,8 @@ package payload
 import (
 	"github.com/Ontology/common/serialization"
 	. "github.com/Ontology/core/code"
-	"github.com/Ontology/core/types"
 	. "github.com/Ontology/errors"
+	"github.com/Ontology/vm/types"
 	"io"
 )
 

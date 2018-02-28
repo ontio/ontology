@@ -1,8 +1,9 @@
 package types
 
 import (
-	"github.com/Ontology/common/serialization"
 	"io"
+
+	"github.com/Ontology/common/serialization"
 )
 
 type VmType byte
