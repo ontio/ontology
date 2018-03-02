@@ -220,6 +220,8 @@ func (rt *restServer) getParams(r *http.Request, url string, req map[string]inte
 		if len(userid) == 0 {
 			req["Userid"] = getParam(r, "userid")
 		}
+		preExec := r.FormValue("preExec")
+		req["PreExec"] = preExec
 		break
 	case Api_SendRcdTxByTrans:
 		req["Raw"] = r.FormValue("raw")

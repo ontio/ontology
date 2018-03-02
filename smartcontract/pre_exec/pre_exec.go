@@ -12,7 +12,7 @@ import (
 	. "github.com/Ontology/common"
 )
 
-var DefaultEventStore ChainStore.IEventStore
+//var DefaultEventStore ChainStore.IEventStore
 
 func PreExec(code []byte, container interfaces.ICodeContainer) ([]interface{}, error) {
 	var (
