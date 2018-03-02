@@ -2,7 +2,6 @@ package common
 
 import (
 	"bytes"
-	"fmt"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/core/ledger"
@@ -11,7 +10,6 @@ import (
 	. "github.com/Ontology/net/httpjsonrpc"
 	Err "github.com/Ontology/net/httprestful/error"
 	. "github.com/Ontology/net/protocol"
-	"math"
 	"strconv"
 )
 
@@ -71,34 +69,7 @@ func GetBlockHash(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"] = ToHexString(hash.ToArray())
 	return resp
 }
-func GetTotalIssued(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
-	assetid, ok := cmd["Assetid"].(string)
-	if !ok {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
-	}
-	var assetHash Uint256
 
-	bys, err := HexToBytes(assetid)
-	if err != nil {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
-	}
-	if err := assetHash.Deserialize(bytes.NewReader(bys)); err != nil {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
-	}
-	amount, err := ledger.DefaultLedger.Store.GetQuantityIssued(assetHash)
-	if err != nil {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
-	}
-	val := float64(amount) / math.Pow(10, 8)
-	//valStr := strconv.FormatFloat(val, 'f', -1, 64)
-	resp["Result"] = val
-	return resp
-}
 func GetBlockInfo(block *types.Block) BlockInfo {
 	hash := block.Hash()
 	blockHead := &BlockHead{
@@ -242,131 +213,6 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-type PubKeyInfo struct {
-	X, Y string
-}
-type AssetStateInfo struct {
-	StateVersion int
-	AssetId      string
-	AssetType    int
-	Name         string
-	Amount       Fixed64
-	Available    Fixed64
-	Precision    int
-	Owner        PubKeyInfo
-	Admin        string
-	Issuer       string
-	Expiration   uint32
-	IsFrozen     bool
-}
-
-//Asset
-func GetAssetByHash(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
-
-	str := cmd["Hash"].(string)
-	hex, err := HexToBytes(str)
-	if err != nil {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
-	}
-	var hash Uint256
-	err = hash.Deserialize(bytes.NewReader(hex))
-	if err != nil {
-		resp["Error"] = Err.INVALID_ASSET
-		return resp
-	}
-	asset, err := ledger.DefaultLedger.Store.GetAsset(hash)
-	assetInfo := new(AssetStateInfo)
-	assetInfo.StateVersion = int(asset.StateVersion)
-	assetInfo.AssetId = ToHexString(asset.AssetId.ToArray())
-	assetInfo.AssetType = int(asset.AssetType)
-	assetInfo.Name = asset.Name
-	assetInfo.Amount = asset.Amount
-	assetInfo.Available = asset.Available
-	assetInfo.Precision = int(asset.Precision)
-	assetInfo.Owner.X = asset.Owner.X.String()
-	assetInfo.Owner.Y = asset.Owner.Y.String()
-	assetInfo.Admin = ToHexString(asset.Admin.ToArray())
-	assetInfo.Issuer = ToHexString(asset.Issuer.ToArray())
-	assetInfo.Expiration = asset.Expiration
-	assetInfo.IsFrozen = asset.IsFrozen
-
-	if err != nil {
-		resp["Error"] = Err.UNKNOWN_ASSET
-		return resp
-	}
-	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
-		w := bytes.NewBuffer(nil)
-		asset.Serialize(w)
-		resp["Result"] = ToHexString(w.Bytes())
-		return resp
-	}
-	resp["Result"] = assetInfo
-	return resp
-}
-
-func GetBalanceByAddr(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
-	addr, ok := cmd["Addr"].(string)
-	if !ok {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
-	}
-	var programHash Uint160
-	programHash, err := ToScriptHash(addr)
-	if err != nil {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
-	}
-	account, err := ledger.DefaultLedger.Store.GetAccount(programHash)
-	if err != nil {
-		resp["Error"] = Err.UNKNOWN_PROGRAM
-		return resp
-	}
-	type Result struct {
-		AssetId string
-		Value   string
-	}
-	var results []Result
-	for _, v := range account.Balances {
-		assetid := ToHexString(v.AssetId.ToArray())
-		results = append(results, Result{assetid, strconv.FormatInt(v.Amount.GetData(), 10)})
-	}
-	//valStr := strconv.FormatFloat(val, 'f', -1, 64)
-	resp["Result"] = results
-	return resp
-}
-
-func GetBalanceByAsset(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
-	addr, ok := cmd["Addr"].(string)
-	assetid, k := cmd["Assetid"].(string)
-	if !ok || !k {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
-	}
-	var programHash Uint160
-	programHash, err := ToScriptHash(addr)
-	if err != nil {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
-	}
-	account, err := ledger.DefaultLedger.Store.GetAccount(programHash)
-	if err != nil {
-		resp["Error"] = Err.UNKNOWN_PROGRAM
-		return resp
-	}
-	ass, _ := HexToBytes(assetid)
-	assid, _ := Uint256ParseFromBytes(ass)
-	for _, v := range account.Balances {
-		if v.AssetId.CompareTo(assid) == 0 {
-			resp["Result"] = v.Amount.GetData()
-		}
-	}
-	//valStr := strconv.FormatFloat(val, 'f', -1, 64)
-	return resp
-}
 
 //Transaction
 func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
@@ -433,23 +279,6 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//stateupdate
-func GetStateUpdate(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
-	namespace, ok := cmd["Namespace"].(string)
-	if !ok {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
-	}
-	key, ok := cmd["Key"].(string)
-	if !ok {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
-	}
-	fmt.Println(cmd, namespace, key)
-	//TODO get state from store
-	return resp
-}
 
 func GetSmartCodeEvent(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
