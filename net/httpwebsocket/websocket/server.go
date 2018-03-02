@@ -33,17 +33,15 @@ type WsServer struct {
 	ActionMap        map[string]Handler
 	TxHashMap        map[string]string //key: txHash   value:sessionid
 	BroadcastMap     map[string]string
-	checkAccessToken func(auth_type, access_token string) (string, int64, interface{})
 }
 
-func InitWsServer(checkAccessToken func(string, string) (string, int64, interface{})) *WsServer {
+func InitWsServer() *WsServer {
 	ws := &WsServer{
 		Upgrader:     websocket.Upgrader{},
 		SessionList:  NewSessionList(),
 		TxHashMap:    make(map[string]string),
 		BroadcastMap: make(map[string]string),
 	}
-	ws.checkAccessToken = checkAccessToken
 	return ws
 }
 
@@ -118,15 +116,6 @@ func (ws *WsServer) registryMethod() {
 		resp["Result"] = cmd["Userid"]
 		return resp
 	}
-	sendtest := func(cmd map[string]interface{}) map[string]interface{} {
-		go func() {
-			time.Sleep(time.Second * 5)
-			resp := ResponsePack(Err.SUCCESS)
-			resp["Action"] = "pushresult"
-			ws.PushTxResult(cmd["Userid"].(string), resp)
-		}()
-		return heartbeat(cmd)
-	}
 	getsessioncount := func(cmd map[string]interface{}) map[string]interface{} {
 		resp := ResponsePack(Err.SUCCESS)
 		resp["Action"] = "getsessioncount"
@@ -139,14 +128,8 @@ func (ws *WsServer) registryMethod() {
 		"getblockbyhash":     {handler: GetBlockByHash},
 		"getblockheight":     {handler: GetBlockHeight},
 		"gettransaction":     {handler: GetTransactionByHash},
-		"getasset":           {handler: GetAssetByHash},
-		//"getunspendoutput":   {handler: GetUnspendOutput},
-
 		"sendrawtransaction": {handler: sendRawTransaction},
-		//"sendrecord":         {handler: SendRecord},
 		"heartbeat": {handler: heartbeat},
-
-		"sendtest": {handler: sendtest, pushFlag: true},
 
 		"gettxhashmap":    {handler: gettxhashmap},
 		"getsessioncount": {handler: getsessioncount},
@@ -277,24 +260,7 @@ func (ws *WsServer) OnDataHandle(curSession *Session, bysMsg []byte, r *http.Req
 	if raw, ok := req["Raw"].(float64); ok {
 		req["Raw"] = strconv.FormatInt(int64(raw), 10)
 	}
-	auth_type, ok := req["auth_type"].(string)
-	if !ok {
-		auth_type = ""
-	}
-	access_token, ok := req["access_token"].(string)
-	if !ok {
-		access_token = ""
-	}
-	if actionName != "heartbeat" {
-		CAkey, errCode, result := ws.checkAccessToken(auth_type, access_token)
-		if errCode > 0 {
-			resp := ResponsePack(errCode)
-			resp["Result"] = result
-			ws.response(curSession.GetSessionId(), resp)
-			return true
-		}
-		req["CAkey"] = CAkey
-	}
+
 	req["Userid"] = curSession.GetSessionId()
 	resp := action.handler(req)
 	resp["Action"] = actionName
