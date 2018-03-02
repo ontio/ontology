@@ -7,6 +7,7 @@ import (
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core"
 	"github.com/Ontology/core/ledger"
+	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
@@ -15,6 +16,7 @@ import (
 // VerifyTransaction verifys received single transaction
 func VerifyTransaction(tx *types.Transaction) ErrCode {
 	if err := checkTransactionSignatures(tx); err != nil {
+		log.Info("transaction verify error:", err)
 		return ErrTransactionContracts
 	}
 
@@ -85,6 +87,8 @@ func checkTransactionSignatures(tx *types.Transaction) error {
 func checkTransactionPayload(tx *types.Transaction) error {
 
 	switch pld := tx.Payload.(type) {
+	case *payload.InvokeCode:
+		return nil
 	default:
 		return errors.New(fmt.Sprint("[txValidator], unimplemented transaction payload type.", pld))
 	}

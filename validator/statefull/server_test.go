@@ -1,7 +1,10 @@
-package stateful
+package statefull
 
 import (
 	"bytes"
+	"testing"
+	"time"
+
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core"
 	"github.com/Ontology/core/genesis"
@@ -11,8 +14,6 @@ import (
 	tc "github.com/Ontology/txnpool/common"
 	"github.com/Ontology/validator/db"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 func init() {
