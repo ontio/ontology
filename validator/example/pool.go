@@ -39,7 +39,7 @@ func main() {
 				validator.Pid.Tell(&vatypes.UnRegisterAck{Id: msg.Id})
 				delete(validators, msg.Id)
 			}
-		case *vatypes.StatelessCheckResponse:
+		case *vatypes.CheckResponse:
 			log.Info("got message:", msg)
 		case *TxMsg:
 			log.Info("pool: recevied new tx", msg.Tx)

@@ -23,18 +23,16 @@ type UnRegisterAck struct {
 }
 
 type CheckTx struct {
-	Tx types.Transaction
+	WorkerId uint8
+	Tx       types.Transaction
 }
 
-type StatelessCheckResponse struct {
-	ErrCode errors.ErrCode
-	Hash    common.Uint256
-}
-
-type StatefullCheckResponse struct {
-	ErrCode errors.ErrCode
-	Hash    common.Uint256
-	Height  int32
+type CheckResponse struct {
+	WorkerId uint8
+	Type     VerifyType
+	Hash     common.Uint256
+	Height   uint32
+	ErrCode  errors.ErrCode
 }
 
 type VerifyType uint8

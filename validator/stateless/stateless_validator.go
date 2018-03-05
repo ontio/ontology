@@ -37,21 +37,25 @@ func (self *validator) Receive(context actor.Context) {
 		log.Info("Validator stopping")
 	case *actor.Restarting:
 		log.Info("Validator Restarting")
+	case *actor.Stopped:
+		log.Info("Validator Stopped")
 	case *vatypes.CheckTx:
 		log.Info("Validator receive tx")
 		sender := context.Sender()
 		errCode := validation.VerifyTransaction(&msg.Tx)
 
-		response := &vatypes.StatelessCheckResponse{
-			ErrCode: errCode,
-			Hash:    msg.Tx.Hash(),
+		response := &vatypes.CheckResponse{
+			WorkerId: msg.WorkerId,
+			ErrCode:  errCode,
+			Hash:     msg.Tx.Hash(),
+			Type:     self.VerifyType(),
+			Height:   0,
 		}
 
 		sender.Tell(response)
 	case *vatypes.UnRegisterAck:
 		context.Self().Stop()
 	default:
-		log.Info("hahaha", context.Sender())
 		log.Info("Unknown msg type", msg)
 	}
 
