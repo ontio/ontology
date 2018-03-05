@@ -8,8 +8,7 @@ import (
 	. "github.com/Ontology/errors"
 	. "github.com/Ontology/http/base/common"
 	. "github.com/Ontology/http/base/rpc"
-	"github.com/Ontology/core/ledger"
-	"github.com/Ontology/core/states"
+	. "github.com/Ontology/http/base/actor"
 	"github.com/Ontology/common/config"
 	"math/rand"
 	"fmt"
@@ -18,7 +17,10 @@ import (
 )
 
 func GetBestBlockHash(params []interface{}) map[string]interface{} {
-	hash := ledger.DefaultLedger.Blockchain.CurrentBlockHash()
+	hash,err := CurrentBlockHash()
+	if err != nil{
+		return DnaRpcFailed
+	}
 	return DnaRpc(ToHexString(hash.ToArray()))
 }
 
@@ -35,7 +37,7 @@ func GetBlock(params []interface{}) map[string]interface{} {
 	// block height
 	case float64:
 		index := uint32(params[0].(float64))
-		hash, err = ledger.DefaultLedger.Store.GetBlockHash(index)
+		hash, err = GetBlockHashFromStore(index)
 		if err != nil {
 			return DnaRpcUnknownBlock
 		}
@@ -53,7 +55,7 @@ func GetBlock(params []interface{}) map[string]interface{} {
 		return DnaRpcInvalidParameter
 	}
 
-	block, err := ledger.DefaultLedger.Store.GetBlock(hash)
+	block, err := GetBlockFromStore(hash)
 	if err != nil {
 		return DnaRpcUnknownBlock
 	}
@@ -89,7 +91,11 @@ func GetBlock(params []interface{}) map[string]interface{} {
 }
 
 func GetBlockCount(params []interface{}) map[string]interface{} {
-	return DnaRpc(ledger.DefaultLedger.Blockchain.BlockHeight + 1)
+	height,err := BlockHeight()
+	if err != nil{
+		return DnaRpcFailed
+	}
+	return DnaRpc(height + 1)
 }
 
 // A JSON example for getblockhash method as following:
@@ -101,7 +107,7 @@ func GetBlockHash(params []interface{}) map[string]interface{} {
 	switch params[0].(type) {
 	case float64:
 		height := uint32(params[0].(float64))
-		hash, err := ledger.DefaultLedger.Store.GetBlockHash(height)
+		hash, err := GetBlockHashFromStore(height)
 		if err != nil {
 			return DnaRpcUnknownBlock
 		}
@@ -112,12 +118,16 @@ func GetBlockHash(params []interface{}) map[string]interface{} {
 }
 
 func GetConnectionCount(params []interface{}) map[string]interface{} {
-	return DnaRpc(CNoder.GetConnectionCnt())
+	count,err := GetConnectionCnt()
+	if err != nil{
+		return DnaRpcFailed
+	}
+	return DnaRpc(count)
 }
 
 func GetRawMemPool(params []interface{}) map[string]interface{} {
 	txs := []*Transactions{}
-	txpool, _ := CNoder.GetTxnPool(false)
+	txpool, _ := GetTxnPool(false)
 	for _, t := range txpool {
 		txs = append(txs, TransArryByteToHexString(t))
 	}
@@ -145,7 +155,7 @@ func GetRawTransaction(params []interface{}) map[string]interface{} {
 		if err != nil {
 			return DnaRpcInvalidTransaction
 		}
-		tx, err := ledger.DefaultLedger.Store.GetTransaction(hash)
+		tx, err := GetTransaction(hash) //ledger.DefaultLedger.Store.GetTransaction(hash)
 		if err != nil {
 			return DnaRpcUnknownTransaction
 		}
@@ -189,7 +199,7 @@ func GetStorage(params []interface{}) map[string]interface{} {
 	default:
 		return DnaRpcInvalidParameter
 	}
-	item, err := ledger.DefaultLedger.Store.GetStorageItem(&states.StorageKey{CodeHash: codeHash, Key: key})
+	item, err := GetStorageItem(codeHash,key)
 	if err != nil {
 		return DnaRpcInternalError
 	}
@@ -242,7 +252,7 @@ func GetBalance(params []interface{}) map[string]interface{} {
 	if err != nil {
 		return DnaRpcInvalidParameter
 	}
-	account, err := ledger.DefaultLedger.Store.GetAccount(programHash)
+	account, err := GetAccount(programHash)
 	if err != nil {
 		return DnaRpcAccountNotFound
 	}
@@ -278,10 +288,10 @@ func SubmitBlock(params []interface{}) map[string]interface{} {
 		if err := block.Deserialize(bytes.NewReader(hex)); err != nil {
 			return DnaRpcInvalidBlock
 		}
-		if err := ledger.DefaultLedger.Blockchain.AddBlock(&block); err != nil {
+		if err := AddBlock(&block); err != nil {
 			return DnaRpcInvalidBlock
 		}
-		if err := CNoder.Xmit(&block); err != nil {
+		if err := Xmit(&block); err != nil {
 			return DnaRpcInternalError
 		}
 	default:
@@ -290,7 +300,7 @@ func SubmitBlock(params []interface{}) map[string]interface{} {
 	return DnaRpcSuccess
 }
 
-func GetVersion(params []interface{}) map[string]interface{} {
+func GetNodeVersion(params []interface{}) map[string]interface{} {
 	return DnaRpc(config.Version)
 }
 
@@ -383,7 +393,7 @@ func CatDataRecord(params []interface{}) map[string]interface{} {
 		if err != nil {
 			return DnaRpcInvalidTransaction
 		}
-		tx, err := ledger.DefaultLedger.Store.GetTransaction(hash)
+		tx, err := GetTransaction(hash)
 		if err != nil {
 			return DnaRpcUnknownTransaction
 		}
@@ -412,7 +422,7 @@ func GetDataFile(params []interface{}) map[string]interface{} {
 		if err != nil {
 			return DnaRpcInvalidTransaction
 		}
-		tx, err := ledger.DefaultLedger.Store.GetTransaction(hash)
+		tx, err := GetTransaction(hash)
 		if err != nil {
 			return DnaRpcUnknownTransaction
 		}

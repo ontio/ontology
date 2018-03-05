@@ -4,22 +4,15 @@ import (
 	. "github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
 	. "github.com/Ontology/http/base/rpc"
-	. "github.com/Ontology/http/base/common"
-	. "github.com/Ontology/consensus"
-	. "github.com/Ontology/net/protocol"
+	//. "github.com/Ontology/http/base/common"
+	//. "github.com/Ontology/consensus"
 	"net/http"
 	"strconv"
 )
 
-func RegistRpcNode(n Noder) {
-	if CNoder == nil {
-		CNoder = n
-	}
-}
 
-func RegistConsensusService(consensus ConsensusService) {
-	ConsensusSrv = consensus
-}
+
+
 func StartRPCServer() {
 	log.Debug()
 	http.HandleFunc("/", Handle)
@@ -36,7 +29,7 @@ func StartRPCServer() {
 	HandleFunc("getstorage", GetStorage)
 	HandleFunc("getbalance", GetBalance)
 	HandleFunc("submitblock", SubmitBlock)
-	HandleFunc("getversion", GetVersion)
+	HandleFunc("getversion", GetNodeVersion)
 	HandleFunc("getdataile", GetDataFile)
 	HandleFunc("catdatarecord", CatDataRecord)
 	HandleFunc("regdatafile", RegDataFile)

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/config"
-	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/types"
 	. "github.com/Ontology/errors"
 	Err "github.com/Ontology/http/base/error"
@@ -14,6 +13,7 @@ import (
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/common/log"
 	. "github.com/Ontology/http/base/common"
+	. "github.com/Ontology/http/base/actor"
 )
 
 var node Noder
@@ -25,9 +25,6 @@ type ApiServer interface {
 	Stop()
 }
 
-func SetNode(n Noder) {
-	node = n
-}
 
 //Node
 func GetGenerateBlockTime(cmd map[string]interface{}) map[string]interface{} {
@@ -40,7 +37,12 @@ func GetGenerateBlockTime(cmd map[string]interface{}) map[string]interface{} {
 func GetConnectionCount(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
 	if node != nil {
-		resp["Result"] = node.GetConnectionCnt()
+		count,err := GetConnectionCnt()
+		if err != nil{
+			resp["Error"] = Err.INTERNAL_ERROR
+			return resp
+		}
+		resp["Result"] = count
 	}
 
 	return resp
@@ -49,7 +51,12 @@ func GetConnectionCount(cmd map[string]interface{}) map[string]interface{} {
 //Block
 func GetBlockHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
-	resp["Result"] = ledger.DefaultLedger.Blockchain.BlockHeight
+	height,err := BlockHeight()
+	if err != nil{
+		resp["Error"] = Err.INTERNAL_ERROR
+		return resp
+	}
+	resp["Result"] = height
 	return resp
 }
 func GetBlockHash(cmd map[string]interface{}) map[string]interface{} {
@@ -64,7 +71,7 @@ func GetBlockHash(cmd map[string]interface{}) map[string]interface{} {
 		resp["Error"] = Err.INVALID_PARAMS
 		return resp
 	}
-	hash, err := ledger.DefaultLedger.Store.GetBlockHash(uint32(height))
+	hash, err := GetBlockHashFromStore(uint32(height))
 	if err != nil {
 		resp["Error"] = Err.INVALID_PARAMS
 		return resp
@@ -125,7 +132,7 @@ func GetBlockTransactions(block *types.Block) interface{} {
 	return b
 }
 func getBlock(hash Uint256, getTxBytes bool) (interface{}, int64) {
-	block, err := ledger.DefaultLedger.Store.GetBlock(hash)
+	block, err := GetBlockFromStore(hash)
 	if err != nil {
 		return "", Err.UNKNOWN_BLOCK
 	}
@@ -176,12 +183,12 @@ func GetBlockTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 		return resp
 	}
 	index := uint32(height)
-	hash, err := ledger.DefaultLedger.Store.GetBlockHash(index)
+	hash, err := GetBlockHashFromStore(index)
 	if err != nil {
 		resp["Error"] = Err.UNKNOWN_BLOCK
 		return resp
 	}
-	block, err := ledger.DefaultLedger.Store.GetBlock(hash)
+	block, err := GetBlockFromStore(hash)
 	if err != nil {
 		resp["Error"] = Err.UNKNOWN_BLOCK
 		return resp
@@ -207,7 +214,7 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 		return resp
 	}
 	index := uint32(height)
-	hash, err := ledger.DefaultLedger.Store.GetBlockHash(index)
+	hash, err := GetBlockHashFromStore(index)
 	if err != nil {
 		resp["Error"] = Err.UNKNOWN_BLOCK
 		return resp
@@ -233,7 +240,7 @@ func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
 		resp["Error"] = Err.INVALID_TRANSACTION
 		return resp
 	}
-	tx, err := ledger.DefaultLedger.Store.GetTransaction(hash)
+	tx, err := GetTransaction(hash)
 	if err != nil {
 		resp["Error"] = Err.UNKNOWN_TRANSACTION
 		return resp
@@ -343,7 +350,7 @@ func GetContract(cmd map[string]interface{}) map[string]interface{} {
 		return resp
 	}
 	//TODO GetContract from store
-	//contract, err := ledger.DefaultLedger.Store.GetContract(hash)
+	//contract, err := GetContractFromStore(hash)
 	//if err != nil {
 	//	resp["Error"] = Err.INVALID_PARAMS
 	//	return resp

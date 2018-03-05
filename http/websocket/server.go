@@ -6,11 +6,10 @@ import (
 	. "github.com/Ontology/common/config"
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/types"
-	"github.com/Ontology/events"
+	. "github.com/Ontology/http/base/actor"
 	. "github.com/Ontology/http/base/rest"
 	Err "github.com/Ontology/http/base/error"
 	"github.com/Ontology/http/websocket/websocket"
-	. "github.com/Ontology/net/protocol"
 	sc "github.com/Ontology/smartcontract/common"
 	"github.com/Ontology/smartcontract/event"
 )
@@ -22,10 +21,9 @@ var (
 	pushBlockTxsFlag bool = false
 )
 
-func StartServer(n Noder) {
-	SetNode(n)
-	ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, SendBlock2WSclient)
-	ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventSmartCode, PushSmartCodeEvent)
+func StartServer() {
+	SubscribeEvent("EventBlockPersistCompleted",SendBlock2WSclient)
+	SubscribeEvent("EventSmartCode",PushSmartCodeEvent)
 	go func() {
 		ws = websocket.InitWsServer()
 		ws.Start()

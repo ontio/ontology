@@ -91,8 +91,8 @@ func main() {
 	log.Info("4. Start the P2P networks")
 	// Don't need two return value.
 	noder = net.StartProtocol(acct.PublicKey)
-	go restful.StartServer(noder)
-	jsonrpc.RegistRpcNode(noder)
+	go restful.StartServer()
+	//jsonrpc.RegistRpcNode(noder)
 
 	noder.SyncNodeHeight()
 	noder.WaitForPeersStart()
@@ -100,7 +100,7 @@ func main() {
 	if protocol.SERVICENODENAME != config.Parameters.NodeType {
 		log.Info("5. Start Consensus Services")
 		consensusSrv := consensus.ConsensusMgr.NewConsensusService(client, noder)
-		jsonrpc.RegistConsensusService(consensusSrv)
+		//jsonrpc.RegistConsensusService(consensusSrv)
 		go consensusSrv.Start()
 		time.Sleep(5 * time.Second)
 	}
@@ -108,7 +108,7 @@ func main() {
 	log.Info("--Start the RPC interface")
 	go jsonrpc.StartRPCServer()
 	go localrpc.StartLocalServer()
-	go websocket.StartServer(noder)
+	go websocket.StartServer()
 	if config.Parameters.HttpInfoStart {
 		go nodeinfo.StartServer(noder)
 	}

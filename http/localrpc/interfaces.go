@@ -4,6 +4,7 @@ import (
 	"github.com/Ontology/common/log"
 	. "github.com/Ontology/http/base/common"
 	. "github.com/Ontology/http/base/rpc"
+	. "github.com/Ontology/http/base/actor"
 	"os"
 	"path/filepath"
 )
@@ -21,35 +22,75 @@ func getCurrentDirectory() string {
 }
 
 func GetNeighbor(params []interface{}) map[string]interface{} {
-	addr, _ := CNoder.GetNeighborAddrs()
+	addr, _ := GetNeighborAddrs()
 	return DnaRpc(addr)
 }
 
 func GetNodeState(params []interface{}) map[string]interface{} {
+	state,err := GetState()
+	if err != nil {
+		return DnaRpcFailed
+	}
+	t,err := GetTime()
+	if err != nil {
+		return DnaRpcFailed
+	}
+	port,err := GetPort()
+	if err != nil {
+		return DnaRpcFailed
+	}
+	id,err := GetID()
+	if err != nil {
+		return DnaRpcFailed
+	}
+	ver,err := GetVersion()
+	if err != nil {
+		return DnaRpcFailed
+	}
+	sers,err := Services()
+	if err != nil {
+		return DnaRpcFailed
+	}
+	relay,err := GetRelay()
+	if err != nil {
+		return DnaRpcFailed
+	}
+	height,err := GetHeight()
+	if err != nil {
+		return DnaRpcFailed
+	}
+	txnCnt,err := GetTxnCnt()
+	if err != nil {
+		return DnaRpcFailed
+	}
+	rxTxnCnt,err := GetRxTxnCnt()
+	if err != nil {
+		return DnaRpcFailed
+	}
 	n := NodeInfo{
-		State:    uint(CNoder.GetState()),
-		Time:     CNoder.GetTime(),
-		Port:     CNoder.GetPort(),
-		ID:       CNoder.GetID(),
-		Version:  CNoder.Version(),
-		Services: CNoder.Services(),
-		Relay:    CNoder.GetRelay(),
-		Height:   CNoder.GetHeight(),
-		TxnCnt:   CNoder.GetTxnCnt(),
-		RxTxnCnt: CNoder.GetRxTxnCnt(),
+		State:    uint(state),
+		Time:     t,
+		Port:     port,
+		ID:       id,
+		Version:  ver,
+		Services: sers,
+		Relay:    relay,
+		Height:   height,
+		TxnCnt:   txnCnt,
+		RxTxnCnt: rxTxnCnt,
 	}
 	return DnaRpc(n)
 }
 
 func StartConsensus(params []interface{}) map[string]interface{} {
-	if err := ConsensusSrv.Start(); err != nil {
+	if err := ConsensusSrvStart(); err != nil {
 		return DnaRpcFailed
 	}
 	return DnaRpcSuccess
 }
 
 func StopConsensus(params []interface{}) map[string]interface{} {
-	if err := ConsensusSrv.Halt(); err != nil {
+	if err := ConsensusSrvHalt(); err != nil {
 		return DnaRpcFailed
 	}
 	return DnaRpcSuccess
