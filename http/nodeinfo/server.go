@@ -1,4 +1,4 @@
-package httpnodeinfo
+package nodeinfo
 
 import (
 	"fmt"

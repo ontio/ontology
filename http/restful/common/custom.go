@@ -6,7 +6,7 @@ import (
 	. "github.com/Ontology/common"
 	"github.com/Ontology/core/transaction/payload"
 	"github.com/Ontology/core/transaction/utxo"
-	Err "github.com/Ontology/http/httprestful/error"
+	Err "github.com/Ontology/http/restful/error"
 	"time"
 )
 

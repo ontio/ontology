@@ -113,7 +113,7 @@ func assetAction(c *cli.Context) error {
 		return err
 	}
 
-	resp, err := httpjsonrpc.Call(Address(), "sendrawtransaction", 0, []interface{}{txHex})
+	resp, err := jsonrpc.Call(Address(), "sendrawtransaction", 0, []interface{}{txHex})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return err

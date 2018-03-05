@@ -28,7 +28,7 @@ func infoAction(c *cli.Context) (err error) {
 	var resp []byte
 	var output [][]byte
 	if height != -1 {
-		resp, err = httpjsonrpc.Call(Address(), "getblock", 0, []interface{}{height})
+		resp, err = jsonrpc.Call(Address(), "getblock", 0, []interface{}{height})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return err
@@ -37,7 +37,7 @@ func infoAction(c *cli.Context) (err error) {
 	}
 
 	if c.String("blockhash") != "" {
-		resp, err = httpjsonrpc.Call(Address(), "getblock", 0, []interface{}{blockhash})
+		resp, err = jsonrpc.Call(Address(), "getblock", 0, []interface{}{blockhash})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return err
@@ -46,7 +46,7 @@ func infoAction(c *cli.Context) (err error) {
 	}
 
 	if bestblockhash {
-		resp, err = httpjsonrpc.Call(Address(), "getbestblockhash", 0, []interface{}{})
+		resp, err = jsonrpc.Call(Address(), "getbestblockhash", 0, []interface{}{})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return err
@@ -55,7 +55,7 @@ func infoAction(c *cli.Context) (err error) {
 	}
 
 	if blockcount {
-		resp, err = httpjsonrpc.Call(Address(), "getblockcount", 0, []interface{}{})
+		resp, err = jsonrpc.Call(Address(), "getblockcount", 0, []interface{}{})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return err
@@ -64,7 +64,7 @@ func infoAction(c *cli.Context) (err error) {
 	}
 
 	if connections {
-		resp, err = httpjsonrpc.Call(Address(), "getconnectioncount", 0, []interface{}{})
+		resp, err = jsonrpc.Call(Address(), "getconnectioncount", 0, []interface{}{})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return err
@@ -73,7 +73,7 @@ func infoAction(c *cli.Context) (err error) {
 	}
 
 	if neighbor {
-		resp, err := httpjsonrpc.Call(Address(), "getneighbor", 0, []interface{}{})
+		resp, err := jsonrpc.Call(Address(), "getneighbor", 0, []interface{}{})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return err
@@ -82,7 +82,7 @@ func infoAction(c *cli.Context) (err error) {
 	}
 
 	if state {
-		resp, err := httpjsonrpc.Call(Address(), "getnodestate", 0, []interface{}{})
+		resp, err := jsonrpc.Call(Address(), "getnodestate", 0, []interface{}{})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return err
@@ -91,7 +91,7 @@ func infoAction(c *cli.Context) (err error) {
 	}
 
 	if txhash != "" {
-		resp, err = httpjsonrpc.Call(Address(), "getrawtransaction", 0, []interface{}{txhash})
+		resp, err = jsonrpc.Call(Address(), "getrawtransaction", 0, []interface{}{txhash})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return err
@@ -100,7 +100,7 @@ func infoAction(c *cli.Context) (err error) {
 	}
 
 	if version {
-		resp, err = httpjsonrpc.Call(Address(), "getversion", 0, []interface{}{})
+		resp, err = jsonrpc.Call(Address(), "getversion", 0, []interface{}{})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return err

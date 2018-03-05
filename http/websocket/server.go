@@ -1,4 +1,4 @@
-package httpwebsocket
+package websocket
 
 import (
 	"bytes"
@@ -7,9 +7,9 @@ import (
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/events"
-	"github.com/Ontology/http/httprestful/common"
-	Err "github.com/Ontology/http/httprestful/error"
-	"github.com/Ontology/http/httpwebsocket/websocket"
+	"github.com/Ontology/http/restful/common"
+	Err "github.com/Ontology/http/restful/error"
+	"github.com/Ontology/http/websocket/websocket"
 	. "github.com/Ontology/net/protocol"
 	sc "github.com/Ontology/smartcontract/common"
 	"github.com/Ontology/smartcontract/event"

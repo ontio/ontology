@@ -91,7 +91,7 @@ func privpayloadAction(c *cli.Context) error {
 		to := c.String("to")
 
 		txHex, err := makePrivacyTx(admin, to, data)
-		resp, err := httpjsonrpc.Call(Address(), "sendrawtransaction", 0, []interface{}{txHex})
+		resp, err := jsonrpc.Call(Address(), "sendrawtransaction", 0, []interface{}{txHex})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return err
@@ -101,7 +101,7 @@ func privpayloadAction(c *cli.Context) error {
 
 	if dec {
 		txhash := c.String("txhash")
-		resp, err := httpjsonrpc.Call(Address(), "getrawtransaction", 0, []interface{}{txhash})
+		resp, err := jsonrpc.Call(Address(), "getrawtransaction", 0, []interface{}{txhash})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return err

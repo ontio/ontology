@@ -123,7 +123,7 @@ func dataAction(c *cli.Context) error {
 
 		fmt.Println("data uploading...")
 		//tranfer data to node
-		resp, err = httpjsonrpc.Call(Address(), "uploadDataFile", 0, []interface{}{payload})
+		resp, err = jsonrpc.Call(Address(), "uploadDataFile", 0, []interface{}{payload})
 
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -166,7 +166,7 @@ func dataAction(c *cli.Context) error {
 
 		txHex := hex.EncodeToString(buffer.Bytes())
 
-		resp, err = httpjsonrpc.Call(Address(), "regdatafile", 0, []interface{}{txHex})
+		resp, err = jsonrpc.Call(Address(), "regdatafile", 0, []interface{}{txHex})
 
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -181,7 +181,7 @@ func dataAction(c *cli.Context) error {
 			return nil
 		}
 		if txhash != "" {
-			resp, err = httpjsonrpc.Call(Address(), "catdatarecord", 0, []interface{}{txhash})
+			resp, err = jsonrpc.Call(Address(), "catdatarecord", 0, []interface{}{txhash})
 
 		}
 
@@ -193,7 +193,7 @@ func dataAction(c *cli.Context) error {
 			return nil
 		}
 		if txhash != "" {
-			resp, err = httpjsonrpc.Call(Address(), "getdataile", 0, []interface{}{txhash})
+			resp, err = jsonrpc.Call(Address(), "getdataile", 0, []interface{}{txhash})
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				return err

@@ -1,4 +1,4 @@
-package httpjsonrpc
+package jsonrpc
 
 import (
 	. "github.com/Ontology/common/config"

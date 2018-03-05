@@ -9,10 +9,10 @@ import (
 	"github.com/Ontology/core/store/ChainStore"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/net"
-	"github.com/Ontology/http/httpjsonrpc"
-	"github.com/Ontology/http/httpnodeinfo"
-	"github.com/Ontology/http/httprestful"
-	"github.com/Ontology/http/httpwebsocket"
+	"github.com/Ontology/http/jsonrpc"
+	"github.com/Ontology/http/nodeinfo"
+	"github.com/Ontology/http/restful"
+	"github.com/Ontology/http/websocket"
 	"github.com/Ontology/http/localrpc"
 	"github.com/Ontology/net/protocol"
 	"os"
@@ -91,8 +91,8 @@ func main() {
 	log.Info("4. Start the P2P networks")
 	// Don't need two return value.
 	noder = net.StartProtocol(acct.PublicKey)
-	go httprestful.StartServer(noder)
-	httpjsonrpc.RegistRpcNode(noder)
+	go restful.StartServer(noder)
+	jsonrpc.RegistRpcNode(noder)
 
 	noder.SyncNodeHeight()
 	noder.WaitForPeersStart()
@@ -100,17 +100,17 @@ func main() {
 	if protocol.SERVICENODENAME != config.Parameters.NodeType {
 		log.Info("5. Start Consensus Services")
 		consensusSrv := consensus.ConsensusMgr.NewConsensusService(client, noder)
-		httpjsonrpc.RegistConsensusService(consensusSrv)
+		jsonrpc.RegistConsensusService(consensusSrv)
 		go consensusSrv.Start()
 		time.Sleep(5 * time.Second)
 	}
 
 	log.Info("--Start the RPC interface")
-	go httpjsonrpc.StartRPCServer()
+	go jsonrpc.StartRPCServer()
 	go localrpc.StartLocalServer()
-	go httpwebsocket.StartServer(noder)
+	go websocket.StartServer(noder)
 	if config.Parameters.HttpInfoStart {
-		go httpnodeinfo.StartServer(noder)
+		go nodeinfo.StartServer(noder)
 	}
 
 	log.Info("--Loading Event Store--")

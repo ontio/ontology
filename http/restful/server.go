@@ -1,8 +1,8 @@
-package httprestful
+package restful
 
 import (
-	"github.com/Ontology/http/httprestful/common"
-	. "github.com/Ontology/http/httprestful/restful"
+	"github.com/Ontology/http/restful/common"
+	. "github.com/Ontology/http/restful/restful"
 	. "github.com/Ontology/net/protocol"
 )
 

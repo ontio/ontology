@@ -7,7 +7,7 @@ import (
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/types"
 	. "github.com/Ontology/errors"
-	Err "github.com/Ontology/http/httprestful/error"
+	Err "github.com/Ontology/http/restful/error"
 	. "github.com/Ontology/net/protocol"
 	"strconv"
 	"github.com/Ontology/smartcontract/pre_exec"
