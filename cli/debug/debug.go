@@ -5,7 +5,7 @@ import (
 	"os"
 
 	. "github.com/Ontology/cli/common"
-	"github.com/Ontology/net/httpjsonrpc"
+	"github.com/Ontology/http/httpjsonrpc"
 
 	"github.com/urfave/cli"
 )

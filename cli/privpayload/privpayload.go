@@ -13,7 +13,7 @@ import (
 	"github.com/Ontology/core/transaction"
 	"github.com/Ontology/core/transaction/payload"
 	"github.com/Ontology/crypto"
-	"github.com/Ontology/net/httpjsonrpc"
+	"github.com/Ontology/http/httpjsonrpc"
 	"math/rand"
 	"os"
 

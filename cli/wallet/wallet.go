@@ -12,7 +12,7 @@ import (
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/password"
 	"github.com/Ontology/core/contract"
-	"github.com/Ontology/net/httpjsonrpc"
+	"github.com/Ontology/http/httpjsonrpc"
 
 	"github.com/urfave/cli"
 )

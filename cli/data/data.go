@@ -9,7 +9,7 @@ import (
 	"github.com/Ontology/core/contract"
 	"github.com/Ontology/core/signature"
 	"github.com/Ontology/core/transaction"
-	"github.com/Ontology/net/httpjsonrpc"
+	"github.com/Ontology/http/httpjsonrpc"
 	"github.com/urfave/cli"
 	"math/rand"
 	"os"

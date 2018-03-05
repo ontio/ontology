@@ -10,7 +10,7 @@ import (
 	"github.com/Ontology/core/signature"
 	"github.com/Ontology/core/transaction"
 	"github.com/Ontology/crypto"
-	"github.com/Ontology/net/httpjsonrpc"
+	"github.com/Ontology/http/httpjsonrpc"
 	"math/rand"
 	"os"
 	"strconv"

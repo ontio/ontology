@@ -3,9 +3,9 @@ package restful
 import (
 	. "github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
-	. "github.com/Ontology/net/httprestful/common"
-	Err "github.com/Ontology/net/httprestful/error"
-	"github.com/Ontology/net/httpwebsocket"
+	. "github.com/Ontology/http/httprestful/common"
+	Err "github.com/Ontology/http/httprestful/error"
+	"github.com/Ontology/http/httpwebsocket"
 	"context"
 	"crypto/tls"
 	"encoding/json"
