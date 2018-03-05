@@ -3,8 +3,8 @@ package jsonrpc
 import (
 	. "github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
-	. "github.com/Ontology/http/common/rpc"
-	. "github.com/Ontology/http/common"
+	. "github.com/Ontology/http/base/rpc"
+	. "github.com/Ontology/http/base/common"
 	. "github.com/Ontology/consensus"
 	. "github.com/Ontology/net/protocol"
 	"net/http"

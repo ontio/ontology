@@ -1,4 +1,4 @@
-package common
+package rest
 
 import (
 	"bytes"
@@ -7,13 +7,13 @@ import (
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/types"
 	. "github.com/Ontology/errors"
-	Err "github.com/Ontology/http/restful/error"
+	Err "github.com/Ontology/http/base/error"
 	. "github.com/Ontology/net/protocol"
 	"strconv"
 	"github.com/Ontology/smartcontract/pre_exec"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/common/log"
-	. "github.com/Ontology/http/common"
+	. "github.com/Ontology/http/base/common"
 )
 
 var node Noder
@@ -318,7 +318,6 @@ func GetSmartCodeEventByHeight(cmd map[string]interface{}) map[string]interface{
 	//TODO resp
 	return resp
 }
-
 func ResponsePack(errCode int64) map[string]interface{} {
 	resp := map[string]interface{}{
 		"Action":  "",

@@ -2,8 +2,8 @@ package localrpc
 
 import (
 	"github.com/Ontology/common/log"
-	. "github.com/Ontology/http/common"
-	. "github.com/Ontology/http/common/rpc"
+	. "github.com/Ontology/http/base/common"
+	. "github.com/Ontology/http/base/rpc"
 	"os"
 	"path/filepath"
 )

@@ -3,8 +3,8 @@ package restful
 import (
 	. "github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
-	. "github.com/Ontology/http/restful/common"
-	Err "github.com/Ontology/http/restful/error"
+	. "github.com/Ontology/http/base/rest"
+	Err "github.com/Ontology/http/base/error"
 	"github.com/Ontology/http/websocket"
 	"context"
 	"crypto/tls"

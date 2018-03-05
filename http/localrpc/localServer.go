@@ -3,7 +3,7 @@ package localrpc
 import (
 	. "github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
-	. "github.com/Ontology/http/common/rpc"
+	. "github.com/Ontology/http/base/rpc"
 	"net/http"
 	"strconv"
 )
