@@ -7,13 +7,13 @@ import (
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/types"
 	. "github.com/Ontology/errors"
-	. "github.com/Ontology/http/httpjsonrpc"
 	Err "github.com/Ontology/http/httprestful/error"
 	. "github.com/Ontology/net/protocol"
 	"strconv"
 	"github.com/Ontology/smartcontract/pre_exec"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/common/log"
+	. "github.com/Ontology/http/common"
 )
 
 var node Noder
@@ -300,7 +300,7 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 }
 
 
-func GetSmartCodeEvent(cmd map[string]interface{}) map[string]interface{} {
+func GetSmartCodeEventByHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
 
 	param := cmd["Height"].(string)

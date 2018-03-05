@@ -2,57 +2,22 @@ package httpjsonrpc
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/hex"
-	"fmt"
 	. "github.com/Ontology/common"
-	"github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/ledger"
-	"github.com/Ontology/core/states"
 	"github.com/Ontology/core/types"
 	. "github.com/Ontology/errors"
+	. "github.com/Ontology/http/common"
+	. "github.com/Ontology/http/common/rpc"
+	"github.com/Ontology/core/ledger"
+	"github.com/Ontology/core/states"
+	"github.com/Ontology/common/config"
 	"math/rand"
+	"fmt"
+	"encoding/base64"
 	"os"
-	"path/filepath"
-	"strconv"
 )
 
-const (
-	RANDBYTELEN = 4
-)
-
-func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
-	panic("Transaction structure has changed need reimplement ")
-
-	trans := new(Transactions)
-	trans.TxType = ptx.TxType
-	trans.Payload = TransPayloadToHex(ptx.Payload)
-
-	n := 0
-	trans.Attributes = make([]TxAttributeInfo, len(ptx.Attributes))
-	for _, v := range ptx.Attributes {
-		trans.Attributes[n].Usage = v.Usage
-		trans.Attributes[n].Data = ToHexString(v.Data)
-		n++
-	}
-
-	networkfee := ptx.GetNetworkFee()
-	trans.NetworkFee = strconv.FormatInt(int64(networkfee), 10)
-
-	mhash := ptx.Hash()
-	trans.Hash = ToHexString(mhash.ToArray())
-
-	return trans
-}
-func getCurrentDirectory() string {
-	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		log.Fatal(err)
-	}
-	return dir
-}
-func getBestBlockHash(params []interface{}) map[string]interface{} {
+func GetBestBlockHash(params []interface{}) map[string]interface{} {
 	hash := ledger.DefaultLedger.Blockchain.CurrentBlockHash()
 	return DnaRpc(ToHexString(hash.ToArray()))
 }
@@ -60,7 +25,7 @@ func getBestBlockHash(params []interface{}) map[string]interface{} {
 // Input JSON string examples for getblock method as following:
 //   {"jsonrpc": "2.0", "method": "getblock", "params": [1], "id": 0}
 //   {"jsonrpc": "2.0", "method": "getblock", "params": ["aabbcc.."], "id": 0}
-func getBlock(params []interface{}) map[string]interface{} {
+func GetBlock(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil
 	}
@@ -74,7 +39,7 @@ func getBlock(params []interface{}) map[string]interface{} {
 		if err != nil {
 			return DnaRpcUnknownBlock
 		}
-	// block hash
+		// block hash
 	case string:
 		str := params[0].(string)
 		hex, err := hex.DecodeString(str)
@@ -123,13 +88,13 @@ func getBlock(params []interface{}) map[string]interface{} {
 	return DnaRpc(b)
 }
 
-func getBlockCount(params []interface{}) map[string]interface{} {
+func GetBlockCount(params []interface{}) map[string]interface{} {
 	return DnaRpc(ledger.DefaultLedger.Blockchain.BlockHeight + 1)
 }
 
 // A JSON example for getblockhash method as following:
 //   {"jsonrpc": "2.0", "method": "getblockhash", "params": [1], "id": 0}
-func getBlockHash(params []interface{}) map[string]interface{} {
+func GetBlockHash(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil
 	}
@@ -146,13 +111,13 @@ func getBlockHash(params []interface{}) map[string]interface{} {
 	}
 }
 
-func getConnectionCount(params []interface{}) map[string]interface{} {
-	return DnaRpc(node.GetConnectionCnt())
+func GetConnectionCount(params []interface{}) map[string]interface{} {
+	return DnaRpc(CNoder.GetConnectionCnt())
 }
 
-func getRawMemPool(params []interface{}) map[string]interface{} {
+func GetRawMemPool(params []interface{}) map[string]interface{} {
 	txs := []*Transactions{}
-	txpool, _ := node.GetTxnPool(false)
+	txpool, _ := CNoder.GetTxnPool(false)
 	for _, t := range txpool {
 		txs = append(txs, TransArryByteToHexString(t))
 	}
@@ -164,7 +129,7 @@ func getRawMemPool(params []interface{}) map[string]interface{} {
 
 // A JSON example for getrawtransaction method as following:
 //   {"jsonrpc": "2.0", "method": "getrawtransaction", "params": ["transactioin hash in hex"], "id": 0}
-func getRawTransaction(params []interface{}) map[string]interface{} {
+func GetRawTransaction(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil
 	}
@@ -191,48 +156,8 @@ func getRawTransaction(params []interface{}) map[string]interface{} {
 	}
 }
 
-func getBalance(params []interface{}) map[string]interface{} {
-	if len(params) < 2 {
-		return DnaRpcNil
-	}
-
-	addr, ok := params[0].(string)
-	if !ok {
-		return DnaRpcInvalidParameter
-	}
-	assetId, ok := params[1].(string)
-	if !ok {
-		return DnaRpcInvalidParameter
-	}
-
-	programHash, err := ToScriptHash(addr)
-	if err != nil {
-		return DnaRpcInvalidParameter
-	}
-	account, err := ledger.DefaultLedger.Store.GetAccount(programHash)
-	if err != nil {
-		return DnaRpcAccountNotFound
-	}
-	c, err := HexToBytes(assetId)
-	if err != nil {
-		return DnaRpcInvalidParameter
-	}
-	ass, err := Uint256ParseFromBytes(c)
-	if err != nil {
-		return DnaRpcInvalidParameter
-	}
-
-	for _, v := range account.Balances {
-		if v.AssetId.CompareTo(ass) == 0 {
-			return DnaRpc(v.Amount.GetData())
-		}
-	}
-
-	return DnaRpcNil
-}
-
 //   {"jsonrpc": "2.0", "method": "getstorage", "params": ["code hash", "key"], "id": 0}
-func getStorage(params []interface{}) map[string]interface{} {
+func GetStorage(params []interface{}) map[string]interface{} {
 	if len(params) < 2 {
 		return DnaRpcNil
 	}
@@ -273,7 +198,7 @@ func getStorage(params []interface{}) map[string]interface{} {
 
 // A JSON example for sendrawtransaction method as following:
 //   {"jsonrpc": "2.0", "method": "sendrawtransaction", "params": ["raw transactioin in hex"], "id": 0}
-func sendRawTransaction(params []interface{}) map[string]interface{} {
+func SendRawTransaction(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil
 	}
@@ -299,9 +224,49 @@ func sendRawTransaction(params []interface{}) map[string]interface{} {
 	return DnaRpc(ToHexString(hash.ToArray()))
 }
 
+func GetBalance(params []interface{}) map[string]interface{} {
+	if len(params) < 2 {
+		return DnaRpcNil
+	}
+
+	addr, ok := params[0].(string)
+	if !ok {
+		return DnaRpcInvalidParameter
+	}
+	assetId, ok := params[1].(string)
+	if !ok {
+		return DnaRpcInvalidParameter
+	}
+
+	programHash, err := ToScriptHash(addr)
+	if err != nil {
+		return DnaRpcInvalidParameter
+	}
+	account, err := ledger.DefaultLedger.Store.GetAccount(programHash)
+	if err != nil {
+		return DnaRpcAccountNotFound
+	}
+	c, err := HexToBytes(assetId)
+	if err != nil {
+		return DnaRpcInvalidParameter
+	}
+	ass, err := Uint256ParseFromBytes(c)
+	if err != nil {
+		return DnaRpcInvalidParameter
+	}
+
+	for _, v := range account.Balances {
+		if v.AssetId.CompareTo(ass) == 0 {
+			return DnaRpc(v.Amount.GetData())
+		}
+	}
+
+	return DnaRpcNil
+}
+
 // A JSON example for submitblock method as following:
 //   {"jsonrpc": "2.0", "method": "submitblock", "params": ["raw block in hex"], "id": 0}
-func submitBlock(params []interface{}) map[string]interface{} {
+func SubmitBlock(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil
 	}
@@ -316,7 +281,7 @@ func submitBlock(params []interface{}) map[string]interface{} {
 		if err := ledger.DefaultLedger.Blockchain.AddBlock(&block); err != nil {
 			return DnaRpcInvalidBlock
 		}
-		if err := node.Xmit(&block); err != nil {
+		if err := CNoder.Xmit(&block); err != nil {
 			return DnaRpcInternalError
 		}
 	default:
@@ -325,107 +290,11 @@ func submitBlock(params []interface{}) map[string]interface{} {
 	return DnaRpcSuccess
 }
 
-func getNeighbor(params []interface{}) map[string]interface{} {
-	addr, _ := node.GetNeighborAddrs()
-	return DnaRpc(addr)
-}
-
-func getNodeState(params []interface{}) map[string]interface{} {
-	n := NodeInfo{
-		State:    uint(node.GetState()),
-		Time:     node.GetTime(),
-		Port:     node.GetPort(),
-		ID:       node.GetID(),
-		Version:  node.Version(),
-		Services: node.Services(),
-		Relay:    node.GetRelay(),
-		Height:   node.GetHeight(),
-		TxnCnt:   node.GetTxnCnt(),
-		RxTxnCnt: node.GetRxTxnCnt(),
-	}
-	return DnaRpc(n)
-}
-
-func startConsensus(params []interface{}) map[string]interface{} {
-	if err := consensusSrv.Start(); err != nil {
-		return DnaRpcFailed
-	}
-	return DnaRpcSuccess
-}
-
-func stopConsensus(params []interface{}) map[string]interface{} {
-	if err := consensusSrv.Halt(); err != nil {
-		return DnaRpcFailed
-	}
-	return DnaRpcSuccess
-}
-
-func sendSampleTransaction(params []interface{}) map[string]interface{} {
-	panic("need reimplementation")
-	return nil
-
-	/*
-		if len(params) < 1 {
-			return DnaRpcNil
-		}
-		var txType string
-		switch params[0].(type) {
-		case string:
-			txType = params[0].(string)
-		default:
-			return DnaRpcInvalidParameter
-		}
-
-		issuer, err := account.NewAccount()
-		if err != nil {
-			return DnaRpc("Failed to create account")
-		}
-		admin := issuer
-
-		rbuf := make([]byte, RANDBYTELEN)
-		rand.Read(rbuf)
-		switch string(txType) {
-		case "perf":
-			num := 1
-			if len(params) == 2 {
-				switch params[1].(type) {
-				case float64:
-					num = int(params[1].(float64))
-				}
-			}
-			for i := 0; i < num; i++ {
-				regTx := NewRegTx(ToHexString(rbuf), i, admin, issuer)
-				SignTx(admin, regTx)
-				VerifyAndSendTx(regTx)
-			}
-			return DnaRpc(fmt.Sprintf("%d transaction(s) was sent", num))
-		default:
-			return DnaRpc("Invalid transacion type")
-		}
-	*/
-}
-
-func setDebugInfo(params []interface{}) map[string]interface{} {
-	if len(params) < 1 {
-		return DnaRpcInvalidParameter
-	}
-	switch params[0].(type) {
-	case float64:
-		level := params[0].(float64)
-		if err := log.Log.SetDebugLevel(int(level)); err != nil {
-			return DnaRpcInvalidParameter
-		}
-	default:
-		return DnaRpcInvalidParameter
-	}
-	return DnaRpcSuccess
-}
-
-func getVersion(params []interface{}) map[string]interface{} {
+func GetVersion(params []interface{}) map[string]interface{} {
 	return DnaRpc(config.Version)
 }
 
-func uploadDataFile(params []interface{}) map[string]interface{} {
+func UploadDataFile(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil
 	}
@@ -455,7 +324,7 @@ func uploadDataFile(params []interface{}) map[string]interface{} {
 	return DnaRpc(refpath)
 
 }
-func getSmartCodeEvent(params []interface{}) map[string]interface{} {
+func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil
 	}
@@ -471,7 +340,7 @@ func getSmartCodeEvent(params []interface{}) map[string]interface{} {
 	}
 	return DnaRpcInvalidParameter
 }
-func regDataFile(params []interface{}) map[string]interface{} {
+func RegDataFile(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil
 	}
@@ -498,7 +367,7 @@ func regDataFile(params []interface{}) map[string]interface{} {
 	return DnaRpc(ToHexString(hash.ToArray()))
 }
 
-func catDataRecord(params []interface{}) map[string]interface{} {
+func CatDataRecord(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil
 	}
@@ -527,7 +396,7 @@ func catDataRecord(params []interface{}) map[string]interface{} {
 	}
 }
 
-func getDataFile(params []interface{}) map[string]interface{} {
+func GetDataFile(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil
 	}

@@ -1,4 +1,4 @@
-package httpjsonrpc
+package common
 
 import (
 	. "github.com/Ontology/common"
@@ -146,3 +146,4 @@ func TransPayloadToHex(p types.Payload) PayloadInfo {
 	}
 	return nil
 }
+

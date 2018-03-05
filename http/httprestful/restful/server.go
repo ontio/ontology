@@ -141,7 +141,7 @@ func (rt *restServer) registryMethod() {
 		Api_Gettransaction:      {name: "gettransaction", handler: GetTransactionByHash},
 		Api_GetContract:         {name: "getcontract", handler: GetContract},
 		Api_Restart:             {name: "restart", handler: rt.Restart},
-		Api_GetSmartCodeEvent:{name: "getsmartcodeevent", handler: GetSmartCodeEvent},
+		Api_GetSmartCodeEvent:{name: "getsmartcodeevent", handler: GetSmartCodeEventByHeight},
 	}
 
 	sendRawTransaction := func(cmd map[string]interface{}) map[string]interface{} {

@@ -13,6 +13,7 @@ import (
 	"github.com/Ontology/http/httpnodeinfo"
 	"github.com/Ontology/http/httprestful"
 	"github.com/Ontology/http/httpwebsocket"
+	"github.com/Ontology/http/localrpc"
 	"github.com/Ontology/net/protocol"
 	"os"
 	"os/signal"
@@ -106,7 +107,7 @@ func main() {
 
 	log.Info("--Start the RPC interface")
 	go httpjsonrpc.StartRPCServer()
-	go httpjsonrpc.StartLocalServer()
+	go localrpc.StartLocalServer()
 	go httpwebsocket.StartServer(noder)
 	if config.Parameters.HttpInfoStart {
 		go httpnodeinfo.StartServer(noder)
