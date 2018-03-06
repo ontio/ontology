@@ -23,6 +23,7 @@ import (
 	"github.com/Ontology/events"
 	. "github.com/Ontology/net/message"
 	. "github.com/Ontology/net/protocol"
+	"github.com/Ontology/net/actor"
 )
 
 type Semaphore chan struct{}
@@ -480,25 +481,29 @@ func (node *node) SetBookKeeperAddr(pk *crypto.PubKey) {
 
 func (node *node) SyncNodeHeight() {
 	//TODO
-	//for {
-	//	heights, _ := node.GetNeighborHeights()
-	//	if CompareHeight(uint64(ledger.DefaultLedger.Blockchain.BlockHeight), heights) {
-	//		break
-	//	}
-	//	<-time.After(5 * time.Second)
-	//}
+	for {
+		heights, _ := node.GetNeighborHeights()
+		height, _ := actor.GetCurrentBlockHeight()
+		if CompareHeight(uint64(height), heights) {
+			break
+		}
+		<-time.After(5 * time.Second)
+	}
 }
 
 func (node *node) WaitForSyncBlkFinish() {
-	//for {
-	//	headerHeight := ledger.DefaultLedger.Store.GetHeaderHeight()
-	//	currentBlkHeight := ledger.DefaultLedger.Blockchain.BlockHeight
-	//	log.Info("WaitForSyncBlkFinish... current block height is ", currentBlkHeight, " ,current header height is ", headerHeight)
-	//	if currentBlkHeight >= headerHeight {
-	//		break
-	//	}
-	//	<-time.After(2 * time.Second)
-	//}
+	for {
+		//headerHeight := ledger.DefaultLedger.Store.GetHeaderHeight()
+		headerHeight, _ := actor.GetCurrentHeaderHeight()
+		//currentBlkHeight := ledger.DefaultLedger.Blockchain.BlockHeight
+		currentBlkHeight, _ := actor.GetCurrentBlockHeight()
+
+		log.Info("WaitForSyncBlkFinish... current block height is ", currentBlkHeight, " ,current header height is ", headerHeight)
+		if currentBlkHeight >= headerHeight {
+			break
+		}
+		<-time.After(2 * time.Second)
+	}
 }
 func (node *node) WaitForPeersStart() {
 	for {

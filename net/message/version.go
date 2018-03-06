@@ -11,6 +11,7 @@ import (
 	//	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/net/protocol"
+	"github.com/Ontology/net/actor"
 	"time"
 )
 
@@ -63,7 +64,9 @@ func NewVersion(n Noder, isConsensus bool) ([]byte, error) {
 	msg.P.Port = n.GetPort()
 	msg.P.Nonce = n.GetID()
 	msg.P.UserAgent = 0x00
-	msg.P.StartHeight = 0 //uint64(ledger.DefaultLedger.GetLocalBlockChainHeight())
+	//msg.P.StartHeight = 0 //uint64(ledger.DefaultLedger.GetLocalBlockChainHeight())
+	height, _ := actor.GetCurrentBlockHeight()
+	msg.P.StartHeight = uint64(height)
 	if n.GetRelay() {
 		msg.P.Relay = 1
 	} else {

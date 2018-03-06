@@ -11,6 +11,7 @@ import (
 	"github.com/Ontology/core/types"
 	. "github.com/Ontology/errors"
 	. "github.com/Ontology/net/protocol"
+	"github.com/Ontology/net/actor"
 )
 
 type dataReq struct {
@@ -31,15 +32,16 @@ type trn struct {
 func (msg trn) Handle(node Noder) error {
 	log.Debug()
 	log.Debug("RX Transaction message")
-	//tx := &msg.txn
-	//if !node.LocalNode().ExistedID(tx.Hash()) {
-	//	if errCode := node.LocalNode().AppendTxnPool(&(msg.txn)); errCode != ErrNoError {
-	//		return errors.New("[message] VerifyTransaction failed when AppendTxnPool.")
-	//	}
-	//	node.LocalNode().IncRxTxnCnt()
-	//	log.Debug("RX Transaction message hash", msg.txn.Hash())
-	//	//log.Debug("RX Transaction message type", msg.txn.TxType)
-	//}
+	tx := &msg.txn
+	if !node.LocalNode().ExistedID(tx.Hash()) {
+		//if errCode := node.LocalNode().AppendTxnPool(&(msg.txn)); errCode != ErrNoError {
+		//	return errors.New("[message] VerifyTransaction failed when AppendTxnPool.")
+		//}
+		actor.AddTransaction(&msg.txn)
+		//node.LocalNode().IncRxTxnCnt()
+		log.Debug("RX Transaction message hash", msg.txn.Hash())
+		//log.Debug("RX Transaction message type", msg.txn.TxType)
+	}
 
 	return nil
 }
@@ -94,12 +96,12 @@ func (msg *dataReq) Deserialization(p []byte) error {
 
 func NewTxnFromHash(hash common.Uint256) (*types.Transaction, error) {
 	//txn, err := ledger.DefaultLedger.GetTransactionWithHash(hash)
-	//if err != nil {
-	//	log.Error("Get transaction with hash error: ", err.Error())
-	//	return nil, err
-	//}
-	//return txn, nil
-	return nil, nil
+	txn, err := actor.GetTxnFromLedger(hash)
+	if err != nil {
+		log.Error("Get transaction with hash error: ", err.Error())
+		return nil, err
+	}
+	return txn, nil
 }
 func NewTxn(txn *types.Transaction) ([]byte, error) {
 	log.Debug()

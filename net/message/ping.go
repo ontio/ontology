@@ -8,6 +8,7 @@ import (
 	"github.com/Ontology/common/serialization"
 	//"github.com/Ontology/ledger"
 	. "github.com/Ontology/net/protocol"
+	"github.com/Ontology/net/actor"
 )
 
 type ping struct {
@@ -20,7 +21,8 @@ func NewPingMsg() ([]byte, error) {
 	msg.msgHdr.Magic = NETMAGIC
 	copy(msg.msgHdr.CMD[0:7], "ping")
 	//msg.height = uint64(ledger.DefaultLedger.Blockchain.BlockHeight)
-	msg.height = uint64(0)
+	height, _ := actor.GetCurrentBlockHeight()
+	msg.height = uint64(height)
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	serialization.WriteUint64(tmpBuffer, msg.height)
 	b := new(bytes.Buffer)

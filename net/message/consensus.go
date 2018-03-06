@@ -15,8 +15,9 @@ import (
 	//"github.com/Ontology/core/validation"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
-	"github.com/Ontology/events"
+	//"github.com/Ontology/events"
 	. "github.com/Ontology/net/protocol"
+	"github.com/Ontology/net/actor"
 )
 
 type ConsensusPayload struct {
@@ -104,7 +105,9 @@ func (cp *ConsensusPayload) GetMessage() []byte {
 
 func (msg consensus) Handle(node Noder) error {
 	log.Debug()
-	node.LocalNode().GetEvent("consensus").Notify(events.EventNewInventory, &msg.cons)
+	//node.LocalNode().GetEvent("consensus").Notify(events.EventNewInventory, &msg.cons)
+	//actor.PushConsensus(&msg.cons)
+	actor.ConsensusPid.Tell(&msg.cons)
 	return nil
 }
 

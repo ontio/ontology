@@ -9,8 +9,9 @@ import (
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/types"
-	"github.com/Ontology/events"
+	//"github.com/Ontology/events"
 	. "github.com/Ontology/net/protocol"
+	"github.com/Ontology/net/actor"
 )
 
 type blockReq struct {
@@ -38,7 +39,8 @@ func (msg block) Handle(node Noder) error {
 	//	return err
 	//}
 	//node.RemoveFlightHeight(msg.blk.Header.Height)
-	node.LocalNode().GetEvent("block").Notify(events.EventNewInventory, &msg.blk)
+	//node.LocalNode().GetEvent("block").Notify(events.EventNewInventory, &msg.blk)
+	actor.AddBlock(&msg.blk)
 	return nil
 }
 
