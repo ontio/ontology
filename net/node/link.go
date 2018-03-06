@@ -273,15 +273,15 @@ func parseIPaddr(s string) (string, error) {
 	return s[:i], nil
 }
 
-func (node *node) Connect(nodeAddr string, isConsensusChannel bool) error {
+func (n *node) Connect(nodeAddr string, isConsensusChannel bool) error {
 	log.Debug()
 
 	//TODO consensusChannel judgement
 	if !isConsensusChannel {
-		if node.IsAddrInNbrList(nodeAddr) == true {
+		if n.IsAddrInNbrList(nodeAddr) == true {
 			return nil
 		}
-		if added := node.SetAddrInConnectingList(nodeAddr); added == false {
+		if added := n.SetAddrInConnectingList(nodeAddr); added == false {
 			return errors.New("node exist in connecting list, cancel")
 		}
 	}
@@ -293,44 +293,45 @@ func (node *node) Connect(nodeAddr string, isConsensusChannel bool) error {
 	if isTls {
 		conn, err = TLSDial(nodeAddr)
 		if err != nil {
-			node.RemoveAddrInConnectingList(nodeAddr)
+			n.RemoveAddrInConnectingList(nodeAddr)
 			log.Error("TLS connect failed: ", err)
 			return err
 		}
 	} else {
 		conn, err = NonTLSDial(nodeAddr)
 		if err != nil {
-			node.RemoveAddrInConnectingList(nodeAddr)
+			n.RemoveAddrInConnectingList(nodeAddr)
 			log.Error("non TLS connect failed: ", err)
 			return err
 		}
 	}
-	node.link.connCnt++
-	n := NewNode()
+	n.link.connCnt++
+	var nbrNode *node
 	if isConsensusChannel {
 		//TODO localnode is being or not
 		n.consensusConn = conn
+		nbrNode = n
 	} else {
-		n.conn = conn
-		n.addr, err = parseIPaddr(conn.RemoteAddr().String())
-		n.local = node
+		nbrNode = NewNode()
+		nbrNode.conn = conn
+		nbrNode.addr, err = parseIPaddr(conn.RemoteAddr().String())
+		nbrNode.local = n
 	}
 
 	log.Info(fmt.Sprintf("Connect node %s connect with %s with %s",
 		conn.LocalAddr().String(), conn.RemoteAddr().String(),
 		conn.RemoteAddr().Network()))
 
-	go n.rx(isConsensusChannel)
+	go nbrNode.rx(isConsensusChannel)
 
 	if isConsensusChannel {
-		n.SetConsensusState(HAND)
+		nbrNode.SetConsensusState(HAND)
 	} else {
-		n.SetState(HAND)
+		nbrNode.SetState(HAND)
 	}
-	buf, _ := msg.NewV
-	ersion(node, isConsensusChannel)
+	buf, _ := msg.NewVersion(n, isConsensusChannel)
 
-	n.tx(buf, isConsensusChannel)
+	nbrNode.tx(buf, isConsensusChannel)
 
 	return nil
 }

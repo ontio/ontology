@@ -101,7 +101,7 @@ func (msg verACK) Handle(node Noder) error {
 
 		if s == HANDSHAKE {
 			buf, _ := NewVerack(true)
-			node.Tx(buf)
+			node.ConsensusTx(buf)
 		}
 		return nil
 	}
@@ -129,9 +129,12 @@ func (msg verACK) Handle(node Noder) error {
 	nodeAddr := addr + ":" + strconv.Itoa(int(port))
 	//TODO JQ： only master p2p port remove the list
 	node.LocalNode().RemoveAddrInConnectingList(nodeAddr)
-	//connect consensus port	
-	consensusPort := node.GetConsensusPort()
-	nodeConsensusAddr := addr + ":" + strconv.Itoa(int(consensusPort))
-	go node.Connect(nodeConsensusAddr, true)
+	//connect consensus port
+
+	if s == HANDSHAKED {
+		consensusPort := node.GetConsensusPort()
+		nodeConsensusAddr := addr + ":" + strconv.Itoa(int(consensusPort))
+		go node.Connect(nodeConsensusAddr, true)
+	}
 	return nil
 }
