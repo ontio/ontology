@@ -386,6 +386,7 @@ func (node *node) Xmit(message interface{}) error {
 	log.Debug()
 	var buffer []byte
 	var err error
+	var isConsensus = false
 	switch message.(type) {
 	case *types.Transaction:
 		log.Debug("TX transaction message")
@@ -412,6 +413,7 @@ func (node *node) Xmit(message interface{}) error {
 			log.Error("Error New consensus message: ", err)
 			return err
 		}
+		isConsensus = true
 	case Uint256:
 		log.Debug("TX block hash message")
 		hash := message.(Uint256)
@@ -429,7 +431,7 @@ func (node *node) Xmit(message interface{}) error {
 		return errors.New("Unknown Xmit message type")
 	}
 
-	node.nbrNodes.Broadcast(buffer)
+	node.nbrNodes.Broadcast(buffer, isConsensus)
 
 	return nil
 }

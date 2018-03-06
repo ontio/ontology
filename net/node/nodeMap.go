@@ -16,12 +16,16 @@ type nbrNodes struct {
 	List map[uint64]*node
 }
 
-func (nm *nbrNodes) Broadcast(buf []byte) {
+func (nm *nbrNodes) Broadcast(buf []byte, isConensus bool) {
 	nm.RLock()
 	defer nm.RUnlock()
 	for _, node := range nm.List {
 		if node.state == ESTABLISH && node.relay == true {
-			node.Tx(buf)
+			if !isConensus {
+				node.Tx(buf)
+			} else {
+				node.ConsensusTx(buf)
+			}
 		}
 	}
 }
