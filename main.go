@@ -89,7 +89,7 @@ func main() {
 	noder.WaitForSyncBlkFinish()
 	if protocol.SERVICENODENAME != config.Parameters.NodeType {
 		log.Info("4. Start Consensus Services")
-		consensusSrv := consensus.ConsensusMgr.NewConsensusService(client, noder)
+		consensusSrv := consensus.NewConsensusService(client, noder)
 		//jsonrpc.RegistConsensusService(consensusSrv)
 		go consensusSrv.Start()
 		time.Sleep(5 * time.Second)
