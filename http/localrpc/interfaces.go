@@ -63,10 +63,6 @@ func GetNodeState(params []interface{}) map[string]interface{} {
 	if err != nil {
 		return DnaRpcFailed
 	}
-	rxTxnCnt,err := GetRxTxnCnt()
-	if err != nil {
-		return DnaRpcFailed
-	}
 	n := NodeInfo{
 		State:    uint(state),
 		Time:     t,
@@ -77,7 +73,6 @@ func GetNodeState(params []interface{}) map[string]interface{} {
 		Relay:    relay,
 		Height:   height,
 		TxnCnt:   txnCnt,
-		RxTxnCnt: rxTxnCnt,
 	}
 	return DnaRpc(n)
 }

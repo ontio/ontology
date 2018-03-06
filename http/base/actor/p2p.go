@@ -106,6 +106,7 @@ func GetRelay() (bool, error) {
 	}
 	return false, nil
 }
+
 func GetHeight() (uint64, error) {
 	future := p2pPid.RequestFuture(nil, 10*time.Second)
 	_, err := future.Result()
@@ -114,19 +115,4 @@ func GetHeight() (uint64, error) {
 	}
 	return 0, nil
 }
-func GetTxnCnt() (uint64, error) {
-	future := p2pPid.RequestFuture(nil, 10*time.Second)
-	_, err := future.Result()
-	if err != nil {
-		return 0, nil
-	}
-	return 0, nil
-}
-func GetRxTxnCnt() (uint64, error) {
-	future := p2pPid.RequestFuture(nil, 10*time.Second)
-	_, err := future.Result()
-	if err != nil {
-		return 0, nil
-	}
-	return 0, nil
-}
+

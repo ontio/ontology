@@ -127,7 +127,7 @@ func GetConnectionCount(params []interface{}) map[string]interface{} {
 
 func GetRawMemPool(params []interface{}) map[string]interface{} {
 	txs := []*Transactions{}
-	txpool, _ := GetTxnPool(false)
+	txpool, _ := GetTxsFromPool(false)
 	for _, t := range txpool {
 		txs = append(txs, TransArryByteToHexString(t))
 	}
@@ -136,7 +136,37 @@ func GetRawMemPool(params []interface{}) map[string]interface{} {
 	}
 	return DnaRpc(txs)
 }
-
+func GetMemPoolTx(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return DnaRpcNil
+	}
+	switch params[0].(type) {
+	case string:
+		str := params[0].(string)
+		hex, err := hex.DecodeString(str)
+		if err != nil {
+			return DnaRpcInvalidParameter
+		}
+		var hash Uint256
+		err = hash.Deserialize(bytes.NewReader(hex))
+		if err != nil {
+			return DnaRpcInvalidTransaction
+		}
+		txEntry, err := GetTxFromPool(hash)
+		if err != nil {
+			return DnaRpcUnknownTransaction
+		}
+		tran := TransArryByteToHexString(txEntry.Tx)
+		attrs := []TXNAttrInfo{}
+		for _, t := range txEntry.Attrs {
+			attrs = append(attrs, TXNAttrInfo{t.Height,int(t.Type),int(t.ErrCode)})
+		}
+		info := TXNEntryInfo{*tran,int64(txEntry.Fee),attrs}
+		return DnaRpc(info)
+	default:
+		return DnaRpcInvalidParameter
+	}
+}
 // A JSON example for getrawtransaction method as following:
 //   {"jsonrpc": "2.0", "method": "getrawtransaction", "params": ["transactioin hash in hex"], "id": 0}
 func GetRawTransaction(params []interface{}) map[string]interface{} {
