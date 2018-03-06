@@ -309,16 +309,13 @@ func (cl *ClientImpl) ProcessBlocks() {
 		}
 
 		for {
-			if ledger.DefaultLedger.Blockchain == nil {
-				break
-			}
-			if cl.currentHeight > ledger.DefaultLedger.Blockchain.BlockHeight {
+			if cl.currentHeight > ledger.DefLedger.GetCurrentBlockHeight(){
 				break
 			}
 
 			cl.mu.Lock()
 
-			block, _ := ledger.DefaultLedger.GetBlockWithHeight(cl.currentHeight)
+			block, _ := ledger.DefLedger.GetBlockByHeight(cl.currentHeight)
 			if block != nil {
 				cl.ProcessNewBlock(block)
 			}

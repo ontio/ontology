@@ -8,6 +8,12 @@ import (
 type NotifyEventArgs struct {
 	Container common.Uint256
 	CodeHash  common.Uint160
-	State     types.StackItemInterface
+	States     types.StackItemInterface
+}
+
+type NotifyEventInfo struct {
+	Container common.Uint256
+	CodeHash  common.Uint160
+	States interface{}
 }
 

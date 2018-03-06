@@ -63,16 +63,16 @@ func (this *SoloService) genBlock() {
 	if block == nil {
 		return
 	}
-	err := ledger.DefaultLedger.Blockchain.AddBlock(block)
+	err := ledger.DefLedger.AddBlock(block)
 	if err != nil {
 		log.Errorf("Blockchain.AddBlock error:%s", err)
 		return
 	}
-	err = this.localNet.CleanTransactions(block.Transactions)
-	if err != nil {
-		log.Errorf("CleanSubmittedTransactions error:%s", err)
-		return
-	}
+	//err = this.localNet.CleanTransactions(block.Transactions)
+	//if err != nil {
+	//	log.Errorf("CleanSubmittedTransactions error:%s", err)
+	//	return
+	//}
 }
 
 func (this *SoloService) makeBlock() *types.Block {
@@ -85,7 +85,10 @@ func (this *SoloService) makeBlock() *types.Block {
 		return nil
 	}
 	nonce := GetNonce()
-	transactionsPool, feeSum := this.localNet.GetTxnPool(true)
+	//TODO Need remove after merge
+	transactionsPool := make([]*types.Transaction, 0)
+	feeSum := Fixed64(0)
+	//transactionsPool, feeSum := this.localNet.GetTxnPool(true)
 	txBookkeeping := this.createBookkeepingTransaction(nonce, feeSum)
 
 	transactions := make([]*types.Transaction, 0, len(transactionsPool)+1)
@@ -94,8 +97,8 @@ func (this *SoloService) makeBlock() *types.Block {
 		transactions = append(transactions, transaction)
 	}
 
-	prevHash := ledger.DefaultLedger.Blockchain.CurrentBlockHash()
-	height := ledger.DefaultLedger.Blockchain.BlockHeight + 1
+	prevHash := ledger.DefLedger.GetCurrentBlockHash()
+	height := ledger.DefLedger.GetCurrentBlockHeight()+1
 
 	txHash := []Uint256{}
 	for _, t := range transactions {
@@ -107,14 +110,18 @@ func (this *SoloService) makeBlock() *types.Block {
 		return nil
 	}
 
-	blockRoot := ledger.DefaultLedger.Store.GetBlockRootWithNewTxRoot(txRoot)
-	stateRoot := ledger.DefaultLedger.Store.GetCurrentStateRoot()
+	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoot(&txRoot)
+	stateRoot, err := ledger.DefLedger.GetCurrentStateRoot()
+	if err != nil {
+		log.Errorf("GetCurrentStateRoot error %s", err)
+		return nil
+	}
 	header := &types.Header{
 		Version:          ContextVersion,
-		PrevBlockHash:    prevHash,
+		PrevBlockHash:    *prevHash,
 		TransactionsRoot: txRoot,
-		BlockRoot:        blockRoot,
-		StateRoot:        stateRoot,
+		BlockRoot:        *blockRoot,
+		StateRoot:        *stateRoot,
 		Timestamp:        uint32(time.Now().Unix()),
 		Height:           height,
 		ConsensusData:    nonce,

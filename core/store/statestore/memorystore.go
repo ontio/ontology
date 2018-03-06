@@ -2,7 +2,7 @@ package statestore
 
 import (
 	"github.com/Ontology/core/states"
-	. "github.com/Ontology/core/store"
+	."github.com/Ontology/core/store/common"
 )
 
 type MemoryStore struct {

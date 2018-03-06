@@ -9,11 +9,11 @@ import (
 	Err "github.com/Ontology/http/base/error"
 	. "github.com/Ontology/net/protocol"
 	"strconv"
-	"github.com/Ontology/smartcontract/pre_exec"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/common/log"
 	. "github.com/Ontology/http/base/common"
 	. "github.com/Ontology/http/base/actor"
+	"github.com/Ontology/core/ledger"
 )
 
 var node Noder
@@ -276,12 +276,8 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	if txn.TxType == types.Invoke {
 		if preExec, ok := cmd["PreExec"].(string); ok && preExec == "1" {
 			log.Tracef("PreExec SMARTCODE")
-			if invokeCode,ok := txn.Payload.(*payload.InvokeCode);ok{
-				param := invokeCode.Code.Code
-				codeHash := ToCodeHash(param)
-				param = append(param, 0x67)
-				param = append(param, codeHash.ToArray()...)
-				resp["Result"], err = pre_exec.PreExec(param, &txn)
+			if _, ok := txn.Payload.(*payload.InvokeCode); ok {
+				resp["Result"], err = ledger.DefLedger.PreExecuteContract(&txn)
 				if err != nil {
 					resp["Error"] = Err.SMARTCODE_ERROR
 					return resp

@@ -9,8 +9,8 @@ import (
 	pool "github.com/valyala/bytebufferpool"
 
 	"github.com/Ontology/common"
-	"github.com/Ontology/core/store"
-	leveldb "github.com/Ontology/core/store/LevelDBStore"
+	storcomm"github.com/Ontology/core/store/common"
+	leveldb "github.com/Ontology/core/store/leveldbstore"
 	"github.com/Ontology/core/types"
 	tx "github.com/Ontology/core/types"
 
@@ -21,7 +21,7 @@ var keyPool pool.Pool
 var valuePool pool.Pool
 
 type Store struct {
-	db store.IStore
+	db storcomm.IStore
 
 	mutex           sync.RWMutex // guard the following var
 	bestBlockHeader *types.Header

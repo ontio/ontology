@@ -1,4 +1,4 @@
-package store
+package common
 
 // DataEntryPrefix
 type DataEntryPrefix byte
@@ -29,5 +29,6 @@ const (
 	SYS_Version
 	SYS_CurrentStateRoot
 	SYS_BlockMerkleTree
-	SYS_MPTTrie
+
+	EVENT_Notify
 )

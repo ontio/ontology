@@ -4,13 +4,14 @@ import (
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/contract"
-	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/signature"
 	"github.com/Ontology/core/states"
+	"github.com/Ontology/core/store"
 	"github.com/Ontology/core/transaction/utxo"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/errors"
+	. "github.com/Ontology/smartcontract/common"
 	"github.com/Ontology/smartcontract/event"
 	trigger "github.com/Ontology/smartcontract/types"
 	vm "github.com/Ontology/vm/neovm"
@@ -26,12 +27,15 @@ var (
 )
 
 type StateReader struct {
-	serviceMap map[string]func(*vm.ExecutionEngine) (bool, error)
-	trigger    trigger.TriggerType
+	serviceMap    map[string]func(*vm.ExecutionEngine) (bool, error)
+	trigger       trigger.TriggerType
+	Notifications []*event.NotifyEventInfo
+	ldgerStore    store.ILedgerStore
 }
 
-func NewStateReader(trigger trigger.TriggerType) *StateReader {
+func NewStateReader(ldgerStore store.ILedgerStore, trigger trigger.TriggerType) *StateReader {
 	var stateReader StateReader
+	stateReader.ldgerStore = ldgerStore
 	stateReader.serviceMap = make(map[string]func(*vm.ExecutionEngine) (bool, error), 0)
 	stateReader.trigger = trigger
 
@@ -114,11 +118,8 @@ func (s *StateReader) RuntimeGetTrigger(e *vm.ExecutionEngine) (bool, error) {
 }
 
 func (s *StateReader) RuntimeGetTime(e *vm.ExecutionEngine) (bool, error) {
-	hash, err := ledger.DefaultLedger.Store.GetBlockHash(ledger.DefaultLedger.Store.GetHeight())
-	if err != nil {
-		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[RuntimeGetTime] GetBlockHash error!.")
-	}
-	header, err := ledger.DefaultLedger.Store.GetHeader(hash)
+	hash := s.ldgerStore.GetCurrentBlockHash()
+	header, err := s.ldgerStore.GetHeaderByHash(hash)
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[RuntimeGetTime] GetHeader error!.")
 	}
@@ -147,7 +148,9 @@ func (s *StateReader) RuntimeNotify(e *vm.ExecutionEngine) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	event.PushSmartCodeEvent(tran.Hash(), 0, Notify, event.NotifyEventArgs{tran.Hash(), hash, item})
+	txid := tran.Hash()
+	s.Notifications = append(s.Notifications, &event.NotifyEventInfo{Container: txid, CodeHash: hash, States: ConvertReturnTypes(item)})
+	event.PushSmartCodeEvent(tran.Hash(), 0, Notify, event.NotifyEventArgs{Container: txid, CodeHash: hash, States: item})
 	return true, nil
 }
 
@@ -229,11 +232,7 @@ func (s *StateReader) RuntimeCheckWitness(e *vm.ExecutionEngine) (bool, error) {
 
 func (s *StateReader) BlockChainGetHeight(e *vm.ExecutionEngine) (bool, error) {
 	var i uint32
-	if ledger.DefaultLedger == nil {
-		i = 0
-	} else {
-		i = ledger.DefaultLedger.Store.GetHeight()
-	}
+	i = s.ldgerStore.GetCurrentBlockHeight()
 	vm.PushData(e, i)
 	return true, nil
 }
@@ -251,23 +250,17 @@ func (s *StateReader) BlockChainGetHeader(e *vm.ExecutionEngine) (bool, error) {
 	if l <= 5 {
 		b := new(big.Int)
 		height := uint32(b.SetBytes(common.BytesReverse(data)).Int64())
-		if ledger.DefaultLedger != nil {
-			hash, err := ledger.DefaultLedger.Store.GetBlockHash(height)
-			if err != nil {
-				return false, errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetHeader] GetBlockHash error!.")
-			}
-			header, err = ledger.DefaultLedger.Store.GetHeader(hash)
-			if err != nil {
-				return false, errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetHeader] GetHeader error!.")
-			}
+		hash := s.ldgerStore.GetBlockHash(height)
+		header, err = s.ldgerStore.GetHeaderByHash(hash)
+		if err != nil {
+			return false, errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetHeader] GetHeader error!.")
 		}
+
 	} else if l == 32 {
 		hash, _ := common.Uint256ParseFromBytes(data)
-		if ledger.DefaultLedger != nil {
-			header, err = ledger.DefaultLedger.Store.GetHeader(hash)
-			if err != nil {
-				return false, errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetHeader] GetHeader error!.")
-			}
+		header, err = s.ldgerStore.GetHeaderByHash(&hash)
+		if err != nil {
+			return false, errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetHeader] GetHeader error!.")
 		}
 	} else {
 		return false, errors.NewErr("[BlockChainGetHeader] data invalid.")
@@ -288,22 +281,17 @@ func (s *StateReader) BlockChainGetBlock(e *vm.ExecutionEngine) (bool, error) {
 	if l <= 5 {
 		b := new(big.Int)
 		height := uint32(b.SetBytes(common.BytesReverse(data)).Int64())
-		if ledger.DefaultLedger != nil {
-			hash, err := ledger.DefaultLedger.Store.GetBlockHash(height)
-			if err != nil {
-				return false, errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetBlock] GetBlockHash error!.")
-			}
-			block, err = ledger.DefaultLedger.Store.GetBlock(hash)
-			if err != nil {
-				return false, errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetBlock] GetBlock error!.")
-			}
+		var err error
+		block, err = s.ldgerStore.GetBlockByHeight(height)
+		if err != nil {
+			return false, errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetBlock] GetBlock error!.")
 		}
 	} else if l == 32 {
 		hash, err := common.Uint256ParseFromBytes(data)
 		if err != nil {
 			return false, err
 		}
-		block, err = ledger.DefaultLedger.Store.GetBlock(hash)
+		block, err = s.ldgerStore.GetBlockByHash(&hash)
 		if err != nil {
 			return false, errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetBlock] GetBlock error!.")
 		}
@@ -323,7 +311,7 @@ func (s *StateReader) BlockChainGetTransaction(e *vm.ExecutionEngine) (bool, err
 	if err != nil {
 		return false, err
 	}
-	t, err := ledger.DefaultLedger.Store.GetTransaction(hash)
+	t, _, err := s.ldgerStore.GetTransaction(&hash)
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetTransaction] GetTransaction error!")
 	}
@@ -341,7 +329,7 @@ func (s *StateReader) BlockChainGetAccount(e *vm.ExecutionEngine) (bool, error) 
 	if err != nil {
 		return false, err
 	}
-	account, err := ledger.DefaultLedger.Store.GetAccount(hash)
+	account, err := s.ldgerStore.GetAccountState(&hash)
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetAccount] BlockChainGetAccount error!")
 	}
@@ -358,7 +346,7 @@ func (s *StateReader) BlockChainGetAsset(e *vm.ExecutionEngine) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	assetState, err := ledger.DefaultLedger.Store.GetAsset(hash)
+	assetState, err := s.ldgerStore.GetAssetState(&hash)
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetAsset] GetAsset error!")
 	}
@@ -375,7 +363,7 @@ func (s *StateReader) GetContract(e *vm.ExecutionEngine) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	item, err := ledger.DefaultLedger.Store.GetContract(hash)
+	item, err := s.ldgerStore.GetContractState(&hash)
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[GetContract] GetAsset error!")
 	}
@@ -1043,7 +1031,7 @@ func (s *StateReader) StorageGet(e *vm.ExecutionEngine) (bool, error) {
 	if ok == false {
 		return false, errors.NewErr("[StorageGet] Wrong type!")
 	}
-	c, err := ledger.DefaultLedger.Store.GetContract(context.codeHash)
+	c, err := s.ldgerStore.GetContractState(&context.codeHash)
 	if err != nil && !strings.EqualFold(err.Error(), ErrDBNotFound) {
 		return false, err
 	}
@@ -1051,7 +1039,7 @@ func (s *StateReader) StorageGet(e *vm.ExecutionEngine) (bool, error) {
 		return false, nil
 	}
 	key := vm.PopByteArray(e)
-	item, err := ledger.DefaultLedger.Store.GetStorageItem(&states.StorageKey{CodeHash: context.codeHash, Key: key})
+	item, err := s.ldgerStore.GetStorageItem(&states.StorageKey{CodeHash: context.codeHash, Key: key})
 	if err != nil && !strings.EqualFold(err.Error(), ErrDBNotFound) {
 		return false, err
 	}

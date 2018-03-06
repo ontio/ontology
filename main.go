@@ -6,7 +6,6 @@ import (
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/consensus"
 	"github.com/Ontology/core/ledger"
-	"github.com/Ontology/core/store/ChainStore"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/net"
 	"github.com/Ontology/http/jsonrpc"
@@ -40,7 +39,6 @@ func init() {
 
 func main() {
 	var acct *account.Account
-	var blockChain *ledger.Blockchain
 	var err error
 	var noder protocol.Noder
 	log.Trace("Node version: ", config.Version)
@@ -49,46 +47,38 @@ func main() {
 		log.Fatal("At least ", account.DefaultBookKeeperCount, " BookKeepers should be set at config.json")
 		os.Exit(1)
 	}
-
-	log.Info("0. Loading the Ledger")
-	ledger.DefaultLedger = new(ledger.Ledger)
-	ledger.DefaultLedger.Store, err = ChainStore.NewLedgerStore()
-	if err != nil {
-		log.Fatal("open LedgerStore err:", err)
-		os.Exit(1)
-	}
-	defer ledger.DefaultLedger.Store.Close()
-
-	ledger.DefaultLedger.Store.InitLedgerStore(ledger.DefaultLedger)
 	crypto.SetAlg(config.Parameters.EncryptAlg)
 
-	log.Info("1. Open the account")
+	log.Info("0. Open the account")
 	client := account.GetClient()
 	if client == nil {
 		log.Fatal("Can't get local account.")
-		goto ERROR
+		os.Exit(1)
 	}
 	acct, err = client.GetDefaultAccount()
 	if err != nil {
 		log.Fatal(err)
-		goto ERROR
+		os.Exit(1)
 	}
 	log.Debug("The Node's PublicKey ", acct.PublicKey)
-	ledger.StandbyBookKeepers, err = client.GetBookKeepers()
+	defBookKeepers, err := client.GetBookKeepers()
 	if err != nil {
 		log.Fatalf("GetBookKeepers error:%s", err)
-		goto ERROR
+		os.Exit(1)
 	}
-
-	log.Info("3. BlockChain init")
-	blockChain, err = ledger.NewBlockchainWithGenesisBlock(ledger.StandbyBookKeepers)
+	log.Info("1. Loading the Ledger")
+	ledger.DefLedger, err = ledger.NewLedger()
 	if err != nil {
-		log.Fatal(err, "  BlockChain generate failed")
-		goto ERROR
+		log.Fatalf("NewLedger error %s", err)
+		os.Exit(1)
 	}
-	ledger.DefaultLedger.Blockchain = blockChain
+	err = ledger.DefLedger.Init(defBookKeepers)
+	if err != nil {
+		log.Fatalf("DefLedger.Init error %s", err)
+		os.Exit(1)
+	}
 
-	log.Info("4. Start the P2P networks")
+	log.Info("3. Start the P2P networks")
 	// Don't need two return value.
 	noder = net.StartProtocol(acct.PublicKey)
 	go restful.StartServer()
@@ -98,7 +88,7 @@ func main() {
 	noder.WaitForPeersStart()
 	noder.WaitForSyncBlkFinish()
 	if protocol.SERVICENODENAME != config.Parameters.NodeType {
-		log.Info("5. Start Consensus Services")
+		log.Info("4. Start Consensus Services")
 		consensusSrv := consensus.ConsensusMgr.NewConsensusService(client, noder)
 		//jsonrpc.RegistConsensusService(consensusSrv)
 		go consensusSrv.Start()
@@ -113,39 +103,37 @@ func main() {
 		go nodeinfo.StartServer(noder)
 	}
 
-	log.Info("--Loading Event Store--")
-	//ChainStore.NewEventStore()
+	go logCurrBlockHeight()
 
-	go func() {
-		ticker := time.NewTicker(config.DEFAULTGENBLOCKTIME * time.Second)
-		for {
-			select {
-			case <-ticker.C:
-				log.Trace("BlockHeight = ", ledger.DefaultLedger.Blockchain.BlockHeight)
-				isNeedNewFile := log.CheckIfNeedNewFile()
-				if isNeedNewFile == true {
-					log.ClosePrintLog()
-					log.Init(log.Path, os.Stdout)
-				}
+	//等待退出信号
+	waitToExit()
+}
+
+func logCurrBlockHeight(){
+	ticker := time.NewTicker(config.DEFAULTGENBLOCKTIME * time.Second)
+	for {
+		select {
+		case <-ticker.C:
+			log.Trace("BlockHeight = ", ledger.DefLedger.GetCurrentBlockHeight())
+			isNeedNewFile := log.CheckIfNeedNewFile()
+			if isNeedNewFile {
+				log.ClosePrintLog()
+				log.Init(log.Path, os.Stdout)
 			}
 		}
-	}()
+	}
+}
 
-	func() {
-		//等待退出信号
-		exit := make(chan bool, 0)
-		sc := make(chan os.Signal, 1)
-		signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
-		go func() {
-			for sig := range sc {
-				log.Infof("Ontology received exit signal:%v.", sig.String())
-				close(exit)
-				break
-			}
-		}()
-		<-exit
+func waitToExit(){
+	exit := make(chan bool, 0)
+	sc := make(chan os.Signal, 1)
+	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	go func() {
+		for sig := range sc {
+			log.Infof("Ontology received exit signal:%v.", sig.String())
+			close(exit)
+			break
+		}
 	}()
-
-ERROR:
-	os.Exit(1)
+	<-exit
 }

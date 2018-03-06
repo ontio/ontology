@@ -2,7 +2,7 @@ package dbft
 
 import (
 	"bytes"
-	"errors"
+	//"errors"
 	"fmt"
 	"time"
 
@@ -26,6 +26,7 @@ import (
 	"github.com/Ontology/events"
 	"github.com/Ontology/net"
 	msg "github.com/Ontology/net/message"
+	"github.com/Ontology/core/ledger/ledgerevent"
 )
 
 type DbftService struct {
@@ -61,21 +62,21 @@ func NewDbftService(client cl.Client, logDictionary string, localNet net.Neter) 
 }
 
 func (ds *DbftService) BlockPersistCompleted(v interface{}) {
-	log.Debug()
-	if block, ok := v.(*types.Block); ok {
-		log.Infof("persist block: %x", block.Hash())
-		err := ds.localNet.CleanTransactions(block.Transactions)
-		if err != nil {
-			log.Warn(err)
-		}
-
-		ds.localNet.Xmit(block.Hash())
-		//log.Debug(fmt.Sprintf("persist block: %x with %d transactions\n", block.Hash(),len(trxHashToBeDelete)))
-	}
-
-	ds.blockReceivedTime = time.Now()
-
-	go ds.InitializeConsensus(0)
+	//log.Debug()
+	//if block, ok := v.(*types.Block); ok {
+	//	log.Infof("persist block: %x", block.Hash())
+	//	err := ds.localNet.CleanTransactions(block.Transactions)
+	//	if err != nil {
+	//		log.Warn(err)
+	//	}
+	//
+	//	ds.localNet.Xmit(block.Hash())
+	//	//log.Debug(fmt.Sprintf("persist block: %x with %d transactions\n", block.Hash(),len(trxHashToBeDelete)))
+	//}
+	//
+	//ds.blockReceivedTime = time.Now()
+	//
+	//go ds.InitializeConsensus(0)
 }
 
 func (ds *DbftService) CheckExpectedView(viewNumber byte) {
@@ -153,9 +154,14 @@ func (ds *DbftService) CheckSignatures() error {
 		block.Transactions = ds.context.Transactions
 
 		hash := block.Hash()
-		if !ledger.DefaultLedger.BlockInLedger(hash) {
+		isExist, err := ledger.DefLedger.IsContainBlock(&hash)
+		if err != nil {
+			log.Errorf("DefLedger.IsContainBlock Hash:%x error:%s", hash, err)
+			return err
+		}
+		if !isExist {
 			// save block
-			if err := ledger.DefaultLedger.Blockchain.AddBlock(block); err != nil {
+			if err := ledger.DefLedger.AddBlock(block); err != nil {
 				log.Error(fmt.Sprintf("[CheckSignatures] Xmit block Error: %s, blockHash: %d", err.Error(), block.Hash()))
 				return NewDetailErr(err, ErrNoCode, "[DbftService], CheckSignatures AddContract failed.")
 			}
@@ -220,7 +226,7 @@ func (ds *DbftService) Halt() error {
 	}
 
 	if ds.started {
-		ledger.DefaultLedger.Blockchain.BCEvents.UnSubscribe(events.EventBlockPersistCompleted, ds.blockPersistCompletedSubscriber)
+		ledgerevent.DefLedgerEvt.UnSubscribe(events.EventBlockPersistCompleted, ds.blockPersistCompletedSubscriber)
 		ds.localNet.GetEvent("consensus").UnSubscribe(events.EventNewInventory, ds.newInventorySubscriber)
 	}
 	return nil
@@ -358,27 +364,28 @@ func (ds *DbftService) NewConsensusPayload(payload *msg.ConsensusPayload) {
 }
 
 func (ds *DbftService) GetUnverifiedTxs(txs []*types.Transaction) []*types.Transaction {
-	if len(ds.context.Transactions) == 0 {
-		return nil
-	}
-	txpool, _ := ds.localNet.GetTxnPool(false)
-	ret := []*types.Transaction{}
-	for _, t := range txs {
-		if _, ok := txpool[t.Hash()]; !ok {
-			if t.TxType != types.BookKeeping {
-				ret = append(ret, t)
-			}
-		}
-	}
-	return ret
+	//if len(ds.context.Transactions) == 0 {
+	//	return nil
+	//}
+	//txpool, _ := ds.localNet.GetTxnPool(false)
+	//ret := []*types.Transaction{}
+	//for _, t := range txs {
+	//	if _, ok := txpool[t.Hash()]; !ok {
+	//		if t.TxType != types.BookKeeping {
+	//			ret = append(ret, t)
+	//		}
+	//	}
+	//}
+	//return ret
+	return nil
 }
 
 func (ds *DbftService) VerifyTxs(txs []*types.Transaction) error {
-	for _, t := range txs {
-		if errCode := ds.localNet.AppendTxnPool(t); errCode != ErrNoError {
-			return errors.New("[dbftService] VerifyTxs failed when AppendTxnPool.")
-		}
-	}
+	//for _, t := range txs {
+	//	if errCode := ds.localNet.AppendTxnPool(t); errCode != ErrNoError {
+	//		return errors.New("[dbftService] VerifyTxs failed when AppendTxnPool.")
+	//	}
+	//}
 	return nil
 }
 
@@ -393,7 +400,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *msg.ConsensusPayload, mes
 		return
 	}
 
-	header, err := ledger.DefaultLedger.Blockchain.GetHeader(ds.context.PrevHash)
+	header, err := ledger.DefLedger.GetHeaderByHash(&ds.context.PrevHash)
 	if err != nil {
 		log.Info("PrepareRequestReceived GetHeader failed with ds.context.PrevHash", ds.context.PrevHash)
 	}
@@ -618,7 +625,7 @@ func (ds *DbftService) Start() error {
 		log.Warn("The Generate block time should be longer than 2 seconds, so set it to be default 6 seconds.")
 	}
 
-	ds.blockPersistCompletedSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, ds.BlockPersistCompleted)
+	ds.blockPersistCompletedSubscriber = ledgerevent.DefLedgerEvt.Subscribe(events.EventBlockPersistCompleted, ds.BlockPersistCompleted)
 	ds.newInventorySubscriber = ds.localNet.GetEvent("consensus").Subscribe(events.EventNewInventory, ds.LocalNodeNewInventory)
 
 	go ds.InitializeConsensus(0)
@@ -641,7 +648,7 @@ func (ds *DbftService) Timeout() {
 		ds.context.State |= RequestSent
 		if !ds.context.State.HasFlag(SignatureSent) {
 			now := uint32(time.Now().Unix())
-			header, err := ledger.DefaultLedger.Blockchain.GetHeader(ds.context.PrevHash)
+			header, err :=ledger.DefLedger.GetHeaderByHash(&ds.context.PrevHash)
 			if err != nil {
 				log.Error("[Timeout] GetHeader error:", err)
 			}
@@ -654,7 +661,11 @@ func (ds *DbftService) Timeout() {
 			}
 
 			ds.context.Nonce = GetNonce()
-			transactionsPool, feeSum := ds.localNet.GetTxnPool(true)
+
+			//TODO Need remove after merge
+			transactionsPool := make([]*types.Transaction, 0)
+			feeSum := Fixed64(0)
+			//transactionsPool, feeSum := ds.localNet.GetTxnPool(true)
 			//TODO: add policy
 			//TODO: add max TX limitation
 

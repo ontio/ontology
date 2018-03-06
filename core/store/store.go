@@ -2,64 +2,40 @@ package store
 
 import (
 	states "github.com/Ontology/core/states"
+	."github.com/Ontology/common"
+	"github.com/Ontology/core/types"
+	"github.com/Ontology/crypto"
 )
-
-type IIterator interface {
-	Next() bool
-	Prev() bool
-	First() bool
-	Last() bool
-	Seek(key []byte) bool
-	Key() []byte
-	Value() []byte
-	Release()
-}
-
-type IStore interface {
-	Put(key []byte, value []byte) error
-	Get(key []byte) ([]byte, error)
-	Has(key []byte) (bool, error)
-	Delete(key []byte) error
-	NewBatch() error
-	BatchPut(key []byte, value []byte) error
-	BatchDelete(key []byte) error
-	BatchCommit() error
+// ILedgerStore provides func with store package.
+type ILedgerStore interface {
+	InitLedgerStoreWithGenesisBlock(genesisblock *types.Block, defaultBookKeeper []*crypto.PubKey) error
 	Close() error
-	NewIterator(prefix []byte) IIterator
+	AddHeaders(headers []*types.Header) error
+	AddBlock(block *types.Block) error
+	GetCurrentBlockHash() *Uint256
+	GetCurrentBlockHeight() uint32
+	GetCurrentHeaderHeight() uint32
+	GetCurrentHeaderHash() *Uint256
+	GetBlockHash(height uint32) *Uint256
+	GetHeaderByHash(blockHash *Uint256) (*types.Header, error)
+	GetHeaderByHeight(height uint32) (*types.Header, error)
+	GetBlockByHash(blockHash *Uint256) (*types.Block, error)
+	GetBlockByHeight(height uint32) (*types.Block, error)
+	GetTransaction(txHash *Uint256) (*types.Transaction, uint32, error)
+	IsContainBlock(blockHash *Uint256) (bool, error)
+	IsContainTransaction(txHash *Uint256) (bool, error)
+	GetCurrentStateRoot() (*Uint256, error)
+	GetBlockRootWithNewTxRoot(txRoot *Uint256) *Uint256
+	//Sates
+	GetAssetState(assetId *Uint256) (*states.AssetState, error)
+	//GetAllAssetState()(map[Uint256]*states.AssetState, error)
+	GetContractState(contractHash *Uint160) (*states.ContractState, error)
+	GetAccountState(programHash *Uint160) (*states.AccountState, error)
+	GetBookKeeperState() (*states.BookKeeperState, error)
+	//GetSpentCoinState(refTxId *Uint256)(*states.SpentCoinState, error)
+	//GetUnspentCoinState(refTxId *Uint256)(*states.UnspentCoinState, error)
+	//GetUnspentCoinStateByProgramHash(programHash *Uint160,assetId *Uint256)(*states.ProgramUnspentCoin, error)
+	GetStorageItem(key *states.StorageKey) (*states.StorageItem, error)
+	PreExecuteContract(tx *types.Transaction) ([]interface{}, error)
 }
 
-type IStateStore interface {
-	TryAdd(prefix DataEntryPrefix, key []byte, value states.IStateValue, trie bool)
-	TryGetOrAdd(prefix DataEntryPrefix, key []byte, value states.IStateValue, trie bool) error
-	TryGet(prefix DataEntryPrefix, key []byte) (*StateItem, error)
-	TryGetAndChange(prefix DataEntryPrefix, key []byte, trie bool) (states.IStateValue, error)
-	TryDelete(prefix DataEntryPrefix, key []byte)
-	Find(prefix DataEntryPrefix, key []byte) ([]*StateItem, error)
-}
-
-type IMemoryStore interface {
-	Put(prefix byte, key []byte, value states.IStateValue, state ItemState, trie bool)
-	Get(prefix byte, key []byte) *StateItem
-	Delete(prefix byte, key []byte)
-	GetChangeSet() map[string]*StateItem
-	Change(prefix byte, key []byte, trie bool)
-}
-
-type ItemState byte
-
-const (
-	None ItemState = iota
-	Changed
-	Deleted
-)
-
-type StateItem struct {
-	Key   string
-	Value states.IStateValue
-	State ItemState
-	Trie  bool
-}
-
-func (e *StateItem) copy() *StateItem {
-	c := *e; return &c
-}

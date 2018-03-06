@@ -2,24 +2,24 @@ package storage
 
 import (
 	"github.com/Ontology/core/states"
-	"github.com/Ontology/core/store"
+	"github.com/Ontology/core/store/common"
 )
 
 type StateItem struct {
-	Prefix store.DataEntryPrefix
+	Prefix common.DataEntryPrefix
 	Key    string
 	Value  states.IStateValue
-	State  store.ItemState
+	State  common.ItemState
 }
 
 type Memory map[string]*StateItem
 
 type CloneCache struct {
 	Memory Memory
-	Store  store.IStateStore
+	Store  common.IStateStore
 }
 
-func NewCloneCache(store store.IStateStore) *CloneCache {
+func NewCloneCache(store common.IStateStore) *CloneCache {
 	return &CloneCache{
 		Memory: make(Memory),
 		Store:  store,
@@ -28,27 +28,27 @@ func NewCloneCache(store store.IStateStore) *CloneCache {
 
 func (cloneCache *CloneCache) Commit() {
 	for _, v := range cloneCache.Memory {
-		if v.State == store.Deleted {
+		if v.State == common.Deleted {
 			cloneCache.Store.TryDelete(v.Prefix, []byte(v.Key))
-		} else if v.State == store.Changed {
+		} else if v.State == common.Changed {
 			cloneCache.Store.TryAdd(v.Prefix, []byte(v.Key), v.Value, true)
 		}
 	}
 }
 
-func (cloneCache *CloneCache) Add(prefix store.DataEntryPrefix, key []byte, value states.IStateValue) {
+func (cloneCache *CloneCache) Add(prefix common.DataEntryPrefix, key []byte, value states.IStateValue) {
 	cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))] = &StateItem{
 		Prefix: prefix,
 		Key:    string(key),
 		Value:  value,
-		State:  store.Changed,
+		State:  common.Changed,
 	}
 }
 
-func (cloneCache *CloneCache) GetOrAdd(prefix store.DataEntryPrefix, key []byte, value states.IStateValue) (states.IStateValue, error) {
+func (cloneCache *CloneCache) GetOrAdd(prefix common.DataEntryPrefix, key []byte, value states.IStateValue) (states.IStateValue, error) {
 	if v, ok := cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))]; ok {
-		if v.State == store.Deleted {
-			cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))] = &StateItem{Prefix: prefix, Key: string(key), Value: value, State: store.Changed}
+		if v.State == common.Deleted {
+			cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))] = &StateItem{Prefix: prefix, Key: string(key), Value: value, State: common.Changed}
 			return value, nil
 		}
 		return v.Value, nil
@@ -57,16 +57,16 @@ func (cloneCache *CloneCache) GetOrAdd(prefix store.DataEntryPrefix, key []byte,
 	if err != nil {
 		return nil, err
 	}
-	if item != nil && item.State != store.Deleted {
+	if item != nil && item.State != common.Deleted {
 		return item.Value, nil
 	}
-	cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))] = &StateItem{Prefix: prefix, Key: string(key), Value: value, State: store.Changed}
+	cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))] = &StateItem{Prefix: prefix, Key: string(key), Value: value, State: common.Changed}
 	return value, nil
 }
 
-func (cloneCache *CloneCache) Get(prefix store.DataEntryPrefix, key []byte) (states.IStateValue, error) {
+func (cloneCache *CloneCache) Get(prefix common.DataEntryPrefix, key []byte) (states.IStateValue, error) {
 	if v, ok := cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))]; ok {
-		if v.State == store.Deleted {
+		if v.State == common.Deleted {
 			return nil, nil
 		}
 		return v.Value, nil
@@ -75,20 +75,20 @@ func (cloneCache *CloneCache) Get(prefix store.DataEntryPrefix, key []byte) (sta
 	if err != nil {
 		return nil, err
 	}
-	if item == nil || item.State == store.Deleted {
+	if item == nil || item.State == common.Deleted {
 		return nil, nil
 	}
 	return item.Value, nil
 }
 
-func (cloneCache *CloneCache) Delete(prefix store.DataEntryPrefix, key []byte) {
+func (cloneCache *CloneCache) Delete(prefix common.DataEntryPrefix, key []byte) {
 	if v, ok := cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))]; ok {
-		v.State = store.Deleted
+		v.State = common.Deleted
 	} else {
 		cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))] = &StateItem{
 			Prefix: prefix,
 			Key:    string(key),
-			State:  store.Deleted,
+			State:  common.Deleted,
 		}
 	}
 }

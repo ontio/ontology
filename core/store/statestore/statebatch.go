@@ -1,39 +1,39 @@
-package ChainStore
+package statestore
 
 import (
 	"bytes"
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	. "github.com/Ontology/core/states"
-	. "github.com/Ontology/core/store"
-	"github.com/Ontology/core/store/statestore"
+	. "github.com/Ontology/core/store/common"
 	"strings"
+	"fmt"
 )
 
-type StateStore struct {
-	db          *ChainStore
+type StateBatch struct {
+	store       IStore
 	memoryStore IMemoryStore
-	trieStore   statestore.ITrieStore
-	trie        statestore.ITrie
+	trieStore   ITrieStore
+	trie        ITrie
 }
 
-func NewStateStore(memoryStore IMemoryStore, db *ChainStore, root common.Uint256) *StateStore {
-	trieStore := statestore.NewTrieStore(db.st)
-	tr, err := trieStore.OpenTrie(root)
+func NewStateStoreBatch(memoryStore IMemoryStore, store IStore, root *common.Uint256) (*StateBatch, error) {
+	trieStore := NewTrieStore(store)
+	tr, err := trieStore.OpenTrie(*root)
 	if err != nil {
-		panic("[NewStateStore] opentrie error:" + err.Error())
+		return nil, fmt.Errorf("opentrie error:" + err.Error())
 	}
-	return &StateStore{
-		db:          db,
+	return &StateBatch{
+		store:       store,
 		memoryStore: memoryStore,
 		trieStore:   trieStore,
 		trie:        tr,
-	}
+	},nil
 }
 
-func (self *StateStore) Find(prefix DataEntryPrefix, key []byte) ([]*StateItem, error) {
+func (self *StateBatch) Find(prefix DataEntryPrefix, key []byte) ([]*StateItem, error) {
 	var states []*StateItem
-	iter := self.db.st.NewIterator(append([]byte{byte(prefix)}, key...))
+	iter := self.store.NewIterator(append([]byte{byte(prefix)}, key...))
 	for iter.Next() {
 		key := iter.Key()
 		value := iter.Value()
@@ -46,11 +46,11 @@ func (self *StateStore) Find(prefix DataEntryPrefix, key []byte) ([]*StateItem, 
 	return states, nil
 }
 
-func (self *StateStore) TryAdd(prefix DataEntryPrefix, key []byte, value IStateValue, trie bool) {
+func (self *StateBatch) TryAdd(prefix DataEntryPrefix, key []byte, value IStateValue, trie bool) {
 	self.setStateObject(byte(prefix), key, value, Changed, trie)
 }
 
-func (self *StateStore) TryGetOrAdd(prefix DataEntryPrefix, key []byte, value IStateValue, trie bool) error {
+func (self *StateBatch) TryGetOrAdd(prefix DataEntryPrefix, key []byte, value IStateValue, trie bool) error {
 	state := self.memoryStore.Get(byte(prefix), key)
 	if state != nil {
 		if state.State == Deleted {
@@ -59,7 +59,7 @@ func (self *StateStore) TryGetOrAdd(prefix DataEntryPrefix, key []byte, value IS
 		}
 		return nil
 	}
-	item, err := self.db.st.Get(append([]byte{byte(prefix)}, key...))
+	item, err := self.store.Get(append([]byte{byte(prefix)}, key...))
 	if err != nil && !strings.EqualFold(err.Error(), ErrDBNotFound) {
 		return err
 	}
@@ -70,7 +70,7 @@ func (self *StateStore) TryGetOrAdd(prefix DataEntryPrefix, key []byte, value IS
 	return nil
 }
 
-func (self *StateStore) TryGet(prefix DataEntryPrefix, key []byte) (*StateItem, error) {
+func (self *StateBatch) TryGet(prefix DataEntryPrefix, key []byte) (*StateItem, error) {
 	state := self.memoryStore.Get(byte(prefix), key)
 	if state != nil {
 		if state.State == Deleted {
@@ -78,7 +78,7 @@ func (self *StateStore) TryGet(prefix DataEntryPrefix, key []byte) (*StateItem, 
 		}
 		return state, nil
 	}
-	enc, err := self.db.st.Get(append([]byte{byte(prefix)}, key...))
+	enc, err := self.store.Get(append([]byte{byte(prefix)}, key...))
 	if err != nil && !strings.EqualFold(err.Error(), ErrDBNotFound) {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func (self *StateStore) TryGet(prefix DataEntryPrefix, key []byte) (*StateItem, 
 	return &StateItem{Key: string(append([]byte{byte(prefix)}, key...)), Value: stateVal, State: None}, nil
 }
 
-func (self *StateStore) TryGetAndChange(prefix DataEntryPrefix, key []byte, trie bool) (IStateValue, error) {
+func (self *StateBatch) TryGetAndChange(prefix DataEntryPrefix, key []byte, trie bool) (IStateValue, error) {
 	state := self.memoryStore.Get(byte(prefix), key)
 	if state != nil {
 		if state.State == Deleted {
@@ -105,7 +105,7 @@ func (self *StateStore) TryGetAndChange(prefix DataEntryPrefix, key []byte, trie
 		return state.Value, nil
 	}
 	k := append([]byte{byte(prefix)}, key...)
-	enc, err := self.db.st.Get(k)
+	enc, err := self.store.Get(k)
 	if err != nil && !strings.EqualFold(err.Error(), ErrDBNotFound) {
 		return nil, err
 	}
@@ -122,43 +122,51 @@ func (self *StateStore) TryGetAndChange(prefix DataEntryPrefix, key []byte, trie
 	return val, nil
 }
 
-func (self *StateStore) TryDelete(prefix DataEntryPrefix, key []byte) {
+func (self *StateBatch) TryDelete(prefix DataEntryPrefix, key []byte) {
 	self.memoryStore.Delete(byte(prefix), key)
 }
 
-func (self *StateStore) CommitTo() error {
+func (self *StateBatch) CommitTo() (*common.Uint256, error) {
 	for k, v := range self.memoryStore.GetChangeSet() {
 		if v.State == Deleted {
 			if v.Trie {
 				if err := self.trie.TryDelete([]byte(k)); err != nil {
-					return err
+					return nil, err
 				}
 			}
-			if err := self.db.st.BatchDelete([]byte(k)); err != nil {
-				return err
+			if err := self.store.BatchDelete([]byte(k)); err != nil {
+				return nil, err
 			}
 		} else {
 			data := new(bytes.Buffer)
 			err := v.Value.Serialize(data)
 			if err != nil {
 				log.Errorf("[CommitTo] error: key %v, value:%v", k, v.Value)
-				return err
+				return nil, err
 			}
 			if v.Trie {
 				value := common.ToHash256(data.Bytes())
 				if err := self.trie.TryUpdate([]byte(k), value.ToArray()); err != nil {
-					return err
+					return nil, err
 				}
 			}
-			if err = self.db.st.BatchPut([]byte(k), data.Bytes()); err != nil {
-				return err
+			if err = self.store.BatchPut([]byte(k), data.Bytes()); err != nil {
+				return nil, err
 			}
 		}
 	}
-	return nil
+	stateRoot, err := self.trie.CommitTo()
+	if err != nil {
+		return nil, err
+	}
+	return &stateRoot, nil
 }
 
-func (self *StateStore) setStateObject(prefix byte, key []byte, value IStateValue, state ItemState, trie bool) {
+func (this *StateBatch) Change(prefix byte, key []byte, trie bool) {
+	this.memoryStore.Change(prefix, key, trie)
+}
+
+func (self *StateBatch) setStateObject(prefix byte, key []byte, value IStateValue, state ItemState, trie bool) {
 	self.memoryStore.Put(prefix, key, value, state, trie)
 }
 

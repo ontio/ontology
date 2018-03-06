@@ -61,7 +61,8 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	var ngbHttpInfoAddr string
 
 	curNodeType := serviceNode
-	bookKeepers, _, _ := ledger.DefaultLedger.Store.GetBookKeeperList()
+	bookKeeperState,  _ := ledger.DefLedger.GetBookKeeperState()
+	bookKeepers := bookKeeperState.CurrBookKeeper
 	bookKeeperLen := len(bookKeepers)
 	for i := 0; i < bookKeeperLen; i++ {
 		if node.GetPubKey().X.Cmp(bookKeepers[i].X) == 0 {
@@ -92,7 +93,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	sort.Sort(NgbNodeInfoSlice(ngbrNodersInfo))
 
-	blockHeight := ledger.DefaultLedger.Blockchain.BlockHeight
+	blockHeight := ledger.DefLedger.GetCurrentBlockHeight()
 	pageInfo, err := initPageInfo(blockHeight, curNodeType, ngbrsLen, ngbrNodersInfo)
 	if err != nil {
 		http.Redirect(w, r, "/info", http.StatusFound)
