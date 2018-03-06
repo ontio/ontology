@@ -22,7 +22,8 @@
     "NoticeServerUrl":"",
     "OauthServerUrl":"",
     "NodePort": 20338,
-    "PrintLevel": 3,
+    "NodeConsensusPort": 20339,
+    "PrintLevel": 1,
     "IsTLS": false,
     "CertPath": "./sample-cert.pem",
     "KeyPath": "./sample-cert-key.pem",
@@ -32,6 +33,6 @@
       "RegisterAsset": 10000,
       "IssueAsset": 10000
     },
-    "ConsensusType":"solo"
+    "ConsensusType":"dbft"
   }
 }

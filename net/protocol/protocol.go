@@ -12,11 +12,12 @@ import (
 )
 
 type NodeAddr struct {
-	Time     int64
-	Services uint64
-	IpAddr   [16]byte
-	Port     uint16
-	ID       uint64 // Unique ID
+	Time          int64
+	Services      uint64
+	IpAddr        [16]byte
+	Port          uint16
+	ConsensusPort uint16
+	ID            uint64 // Unique ID
 }
 
 // The node capability type
@@ -78,6 +79,7 @@ type Noder interface {
 	Services() uint64
 	GetAddr() string
 	GetPort() uint16
+	GetConsensusPort() uint16
 	GetHttpInfoPort() int
 	SetHttpInfoPort(uint16)
 	GetHttpInfoState() bool
@@ -102,8 +104,9 @@ type Noder interface {
 	UpdateInfo(t time.Time, version uint32, services uint64,
 		port uint16, nonce uint64, relay uint8, height uint64)
 	ConnectSeeds()
-	Connect(nodeAddr string) error
+	Connect(nodeAddr string, isConsensusChannel bool) error
 	Tx(buf []byte)
+	ConsensusTx(buf []byte)
 	GetTime() int64
 	NodeEstablished(uid uint64) bool
 	GetEvent(eventName string) *events.Event

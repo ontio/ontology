@@ -40,16 +40,17 @@ func (s Semaphore) release() {
 
 type node struct {
 	//sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
-	state     uint32   // node state
-	id        uint64   // The nodes's id
-	cap       [32]byte // The node capability set
-	version   uint32   // The network protocol the node used
-	services  uint64   // The services the node supplied
-	relay     bool     // The relay capability of the node (merge into capbility flag)
-	height    uint64   // The node latest block height
-	txnCnt    uint64   // The transactions be transmit by this node
-	rxTxnCnt  uint64   // The transaction received by this node
-	publicKey *crypto.PubKey
+	state          uint32 // node state
+	consensusState uint32
+	id             uint64   // The nodes's id
+	cap            [32]byte // The node capability set
+	version        uint32   // The network protocol the node used
+	services       uint64   // The services the node supplied
+	relay          bool     // The relay capability of the node (merge into capbility flag)
+	height         uint64   // The node latest block height
+	txnCnt         uint64   // The transactions be transmit by this node
+	rxTxnCnt       uint64   // The transaction received by this node
+	publicKey      *crypto.PubKey
 	// TODO does this channel should be a buffer channel
 	chF        chan func() error // Channel used to operate the node without lock
 	link                         // The link status and infomation
@@ -83,16 +84,34 @@ type ConnectingNodes struct {
 func (node *node) DumpInfo() {
 	log.Info("Node info:")
 	log.Info("\t state = ", node.state)
+	log.Info("\t consensusstate = ", node.consensusState)
 	log.Info(fmt.Sprintf("\t id = 0x%x", node.id))
 	log.Info("\t addr = ", node.addr)
 	log.Info("\t conn = ", node.conn)
+	log.Info("\t consensusConn = ", node.consensusConn)
 	log.Info("\t cap = ", node.cap)
 	log.Info("\t version = ", node.version)
 	log.Info("\t services = ", node.services)
 	log.Info("\t port = ", node.port)
+	log.Info("\t consensusport = ", node.consensusPort)
 	log.Info("\t relay = ", node.relay)
 	log.Info("\t height = ", node.height)
 	log.Info("\t conn cnt = ", node.link.connCnt)
+}
+
+func (node *node) GetNbrNodeByAddr(addr string) *node {
+	node.nbrNodes.RLock()
+	defer node.nbrNodes.RUnlock()
+	for _, n := range node.nbrNodes.List {
+		if n.GetState() == ESTABLISH {
+			address := n.GetAddr()
+			if strings.Compare(address, addr) == 0 {
+				return n
+			}
+
+		}
+	}
+	return nil
 }
 
 func (node *node) IsAddrInNbrList(addr string) bool {
@@ -100,9 +119,9 @@ func (node *node) IsAddrInNbrList(addr string) bool {
 	defer node.nbrNodes.RUnlock()
 	for _, n := range node.nbrNodes.List {
 		if n.GetState() == HAND || n.GetState() == HANDSHAKE || n.GetState() == ESTABLISH {
-			addr := n.GetAddr()
+			addr_new := n.GetAddr()
 			port := n.GetPort()
-			na := addr + ":" + strconv.Itoa(int(port))
+			na := addr_new + ":" + strconv.Itoa(int(port))
 			if strings.Compare(na, addr) == 0 {
 				return true
 			}
@@ -153,8 +172,9 @@ func (node *node) UpdateInfo(t time.Time, version uint32, services uint64,
 
 func NewNode() *node {
 	n := node{
-		state: INIT,
-		chF:   make(chan func() error),
+		state:          INIT,
+		consensusState: INIT,
+		chF:            make(chan func() error),
 	}
 	runtime.SetFinalizer(&n, rmNode)
 	go n.backend()
@@ -177,6 +197,7 @@ func InitNode(pubKey *crypto.PubKey) Noder {
 	}
 
 	n.link.port = uint16(Parameters.NodePort)
+	n.link.consensusPort = uint16(Parameters.NodeConsensusPort)
 	n.relay = true
 	// TODO is it neccessary to init the rand seed here?
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -196,11 +217,20 @@ func InitNode(pubKey *crypto.PubKey) Noder {
 	//n.TXNPool.init()
 	n.eventQueue.init()
 	n.nodeDisconnectSubscriber = n.eventQueue.GetEvent("disconnect").Subscribe(events.EventNodeDisconnect, n.NodeDisconnect)
+	n.nodeDisconnectSubscriber = n.eventQueue.GetEvent("disconnect").Subscribe(events.EventNodeConsensusDisconnect, n.NodeConsensusDisconnect)
 	go n.initConnection()
 	go n.updateConnection()
 	go n.updateNodeInfo()
 
 	return n
+}
+
+func (n *node) NodeConsensusDisconnect(v interface{}) {
+	if node, ok := v.(*node); ok {
+		//node.SetState(INACTIVITY)
+		conn := node.getConsensusConn()
+		conn.Close()
+	}
 }
 
 func (n *node) NodeDisconnect(v interface{}) {
@@ -231,11 +261,35 @@ func (node *node) GetState() uint32 {
 }
 
 func (node *node) getConn() net.Conn {
-	return node.conn
+	return node.getconn(false)
+}
+
+func (node *node) getConsensusConn() net.Conn {
+	return node.getconn(true)
+}
+
+func (node *node) getconn(isConsensusChannel bool) net.Conn {
+	if isConsensusChannel {
+		return node.consensusConn
+	} else {
+		return node.conn
+	}
 }
 
 func (node *node) GetPort() uint16 {
-	return node.port
+	return node.getPort(false)
+}
+
+func (node *node) GetConsensusPort() uint16 {
+	return node.getPort(true)
+}
+
+func (node *node) getPort(isConsensusChannel bool) uint16 {
+	if isConsensusChannel {
+		return node.consensusPort
+	} else {
+		return node.port
+	}
 }
 
 func (node *node) GetHttpInfoPort() int {

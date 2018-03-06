@@ -1,10 +1,10 @@
 package node
 
 import (
-	"math/rand"
-	"net"
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
+	"math/rand"
+	"net"
 	//"github.com/Ontology/core/ledger"
 	. "github.com/Ontology/net/message"
 	. "github.com/Ontology/net/protocol"
@@ -147,7 +147,7 @@ func (node *node) ConnectSeeds() {
 				n.ReqNeighborList()
 			}
 		} else { //not found
-			go node.Connect(nodeAddr)
+			go node.Connect(nodeAddr, false)
 		}
 	}
 }
@@ -158,6 +158,7 @@ func getNodeAddr(n *node) NodeAddr {
 	addr.Time = n.GetTime()
 	addr.Services = n.Services()
 	addr.Port = n.GetPort()
+	addr.ConsensusPort = n.GetConsensusPort()
 	addr.ID = n.GetID()
 	return addr
 }
@@ -172,7 +173,7 @@ func (node *node) reconnect() {
 		log.Trace("Try to reconnect peer, peer addr is ", addr)
 		<-time.After(time.Duration(rand.Intn(CONNMAXBACK)) * time.Millisecond)
 		log.Trace("Back off time`s up, start connect node")
-		node.Connect(addr)
+		node.Connect(addr, false)
 		if node.RetryAddrs[addr] < MAXRETRYCOUNT {
 			lst[addr] = node.RetryAddrs[addr]
 		}
