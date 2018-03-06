@@ -49,11 +49,11 @@ func unpackNodeBuf(node *node, buf []byte, isConsensusChannel bool) {
 		return
 	}
 
-	var rxBuf RxBuf
+	var rxBuf *RxBuf
 	if isConsensusChannel {
-		rxBuf = node.consensusRxBuf
+		rxBuf = &node.consensusRxBuf
 	} else {
-		rxBuf = node.rxBuf
+		rxBuf = &node.rxBuf
 	}
 
 	if rxBuf.len == 0 {
