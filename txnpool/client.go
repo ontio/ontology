@@ -2,21 +2,20 @@ package main
 
 import (
 	//"fmt"
+	"bytes"
+	"encoding/hex"
+	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
-	"github.com/Ontology/eventbus/actor"
-	"github.com/Ontology/eventbus/zmqremote"
-	//tp "github.com/Ontology/txnpool/proc"
-	"github.com/Ontology/eventbus/remote"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/types"
-    "time"
-    "github.com/Ontology/common"
-    "bytes"
-	"encoding/hex"
+	"github.com/Ontology/eventbus/actor"
+	"github.com/Ontology/eventbus/remote"
+	"github.com/Ontology/eventbus/zmqremote"
+	"time"
 )
 
 var (
-	txn   *types.Transaction
+	tx *types.Transaction
 )
 
 func init() {
@@ -26,7 +25,7 @@ func init() {
 		Nonce: uint64(time.Now().UnixNano()),
 	}
 
-	txn = &types.Transaction{
+	tx = &types.Transaction{
 		Version:    0,
 		Attributes: []*types.TxAttribute{},
 		TxType:     types.BookKeeping,
@@ -37,7 +36,7 @@ func init() {
 	hex, _ := hex.DecodeString(tempStr)
 	var hash common.Uint256
 	hash.Deserialize(bytes.NewReader(hex))
-	txn.SetHash(hash)
+	tx.SetHash(hash)
 }
 
 func main() {
@@ -46,8 +45,8 @@ func main() {
 	stopCh = make(chan bool)
 
 	remote.Start("192.168.153.130:50011")
-    server := actor.NewPID("192.168.153.130:50010", "Txn")
-    /*props := actor.FromFunc(func(context actor.Context) {
+	server := actor.NewPID("192.168.153.130:50010", "Txn")
+	/*props := actor.FromFunc(func(context actor.Context) {
 		switch msg := context.Message().(type) {
 		case *tp.CheckTxnRsp:
 			fmt.Println(msg)
@@ -55,6 +54,8 @@ func main() {
 	})*/
 
 	//client := actor.Spawn(props)
-	server.Tell(&zmqremote.MsgData{MsgType: 1, Data: txn})
-    <- stopCh
+	tmpBuffer := bytes.NewBuffer([]byte{})
+	tx.Serialize(tmpBuffer)
+	server.Tell(&zmqremote.MsgData{MsgType: 1, Data: tmpBuffer.Bytes()})
+	<-stopCh
 }

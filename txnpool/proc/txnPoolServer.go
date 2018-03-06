@@ -4,46 +4,53 @@ import (
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	tx "github.com/Ontology/core/types"
+	"github.com/Ontology/errors"
 	"github.com/Ontology/eventbus/actor"
-	"github.com/Ontology/eventbus/eventhub"
 	tc "github.com/Ontology/txnpool/common"
+	"github.com/Ontology/validator/types"
 	"sort"
 	"sync"
 )
 
-type txnStats struct {
+type txStats struct {
 	sync.RWMutex
 	count []uint64
 }
 
-type TXNPoolServer struct {
-	mu             sync.RWMutex
-	wg             sync.WaitGroup
-	workers        []txnPoolWorker
-	workersNum     uint8
-	txnPool        *tc.TXNPool
-	allPendingTxns map[common.Uint256]*tx.Transaction
-	eh             *eventhub.EventHub
-	actors         map[tc.ActorType]*actor.PID
-	stats          txnStats
+type Validator struct {
+	Pid       *actor.PID
+	CheckType types.VerifyType
 }
 
-func NewTxnPoolServer(num uint8) *TXNPoolServer {
-	s := &TXNPoolServer{}
+type TXPoolServer struct {
+	mu            sync.RWMutex
+	wg            sync.WaitGroup
+	workers       []txPoolWorker
+	workersNum    uint8
+	txPool        *tc.TXPool
+	allPendingTxs map[common.Uint256]*tx.Transaction
+	actors        map[tc.ActorType]*actor.PID
+	validators    map[string]Validator
+	stats         txStats
+}
+
+func NewTxPoolServer(num uint8) *TXPoolServer {
+	s := &TXPoolServer{}
 	s.init(num)
 	return s
 }
 
-func (s *TXNPoolServer) init(num uint8) {
+func (s *TXPoolServer) init(num uint8) {
 	// Initial txnPool
-	s.txnPool = &tc.TXNPool{}
-	s.txnPool.Init()
-	s.allPendingTxns = make(map[common.Uint256]*tx.Transaction)
+	s.txPool = &tc.TXPool{}
+	s.txPool.Init()
+	s.allPendingTxs = make(map[common.Uint256]*tx.Transaction)
 	s.actors = make(map[tc.ActorType]*actor.PID)
-	s.stats = txnStats{count: make([]uint64, tc.MAXSTATS-1)}
+	s.validators = make(map[string]Validator)
+	s.stats = txStats{count: make([]uint64, tc.MAXSTATS-1)}
 
 	// Create the given concurrent workers
-	s.workers = make([]txnPoolWorker, num)
+	s.workers = make([]txPoolWorker, num)
 	s.workersNum = num
 	// Initial and start the workers
 	for i := uint8(0); i < num; i++ {
@@ -53,26 +60,26 @@ func (s *TXNPoolServer) init(num uint8) {
 	}
 }
 
-func (s *TXNPoolServer) removePendingTxn(hash common.Uint256) {
+func (s *TXPoolServer) removePendingTx(hash common.Uint256) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	delete(s.allPendingTxns, hash)
+	delete(s.allPendingTxs, hash)
 }
 
-func (s *TXNPoolServer) setPendingTxn(txn *tx.Transaction) bool {
+func (s *TXPoolServer) setPendingTx(tx *tx.Transaction) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if ok := s.allPendingTxns[txn.Hash()]; ok != nil {
-		log.Info("Transaction %x already in the verifying process",
-			txn.Hash())
+	if ok := s.allPendingTxs[tx.Hash()]; ok != nil {
+		log.Info("Transaction already in the verifying process",
+			tx.Hash())
 		return false
 	}
 
-	s.allPendingTxns[txn.Hash()] = txn
+	s.allPendingTxs[tx.Hash()] = tx
 	return true
 }
 
-func (s *TXNPoolServer) assginTXN2Worker(txn *tx.Transaction) (
+func (s *TXPoolServer) assginTXN2Worker(tx *tx.Transaction) (
 	assign bool) {
 	defer func() {
 		if recover() != nil {
@@ -80,29 +87,29 @@ func (s *TXNPoolServer) assginTXN2Worker(txn *tx.Transaction) (
 		}
 	}()
 
-	if txn == nil {
+	if tx == nil {
 		return
 	}
 
-	if ok := s.setPendingTxn(txn); !ok {
+	if ok := s.setPendingTx(tx); !ok {
 		s.increaseStats(tc.DuplicateStats)
 		return false
 	}
 	// Add the rcvTxn to the worker
 	lb := make(tc.LBSlice, s.workersNum)
 	for i := uint8(0); i < s.workersNum; i++ {
-		entry := tc.LB{Size: len(s.workers[i].pendingTxnList),
+		entry := tc.LB{Size: len(s.workers[i].pendingTxList),
 			WorkerID: i,
 		}
 		lb[i] = entry
 	}
 	sort.Sort(lb)
-	s.workers[lb[0].WorkerID].rcvTXNCh <- txn
+	s.workers[lb[0].WorkerID].rcvTXCh <- tx
 
 	return true
 }
 
-func (s *TXNPoolServer) assignRsp2Worker(rsp *tc.VerifyRsp) (assign bool) {
+func (s *TXPoolServer) assignRsp2Worker(rsp *types.CheckResponse) (assign bool) {
 	defer func() {
 		if recover() != nil {
 			assign = false
@@ -117,11 +124,11 @@ func (s *TXNPoolServer) assignRsp2Worker(rsp *tc.VerifyRsp) (assign bool) {
 		s.workers[rsp.WorkerId].rspCh <- rsp
 	}
 
-	if rsp.Ok {
+	if rsp.ErrCode == errors.ErrNoError {
 		s.increaseStats(tc.SuccessStats)
 	} else {
 		s.increaseStats(tc.FailureStats)
-		if rsp.ValidatorID == uint8(tc.SignatureV) {
+		if rsp.Type == types.Stateless {
 			s.increaseStats(tc.SigErrStats)
 		} else {
 			s.increaseStats(tc.StateErrStats)
@@ -130,7 +137,7 @@ func (s *TXNPoolServer) assignRsp2Worker(rsp *tc.VerifyRsp) (assign bool) {
 	return true
 }
 
-func (s *TXNPoolServer) GetPID(actor tc.ActorType) *actor.PID {
+func (s *TXPoolServer) GetPID(actor tc.ActorType) *actor.PID {
 	if actor < tc.TxActor || actor >= tc.MAXACTOR {
 		return nil
 	}
@@ -138,15 +145,31 @@ func (s *TXNPoolServer) GetPID(actor tc.ActorType) *actor.PID {
 	return s.actors[actor]
 }
 
-func (s *TXNPoolServer) RegisterActor(actor tc.ActorType, pid *actor.PID) {
+func (s *TXPoolServer) RegisterActor(actor tc.ActorType, pid *actor.PID) {
 	s.actors[actor] = pid
 }
 
-func (s *TXNPoolServer) UnRegisterActor(actor tc.ActorType) {
+func (s *TXPoolServer) UnRegisterActor(actor tc.ActorType) {
 	delete(s.actors, actor)
 }
 
-func (s *TXNPoolServer) Stop() {
+func (s *TXPoolServer) registerValidator(id string, v Validator) {
+	s.validators[id] = v
+}
+
+func (s *TXPoolServer) unRegisterValidator(id string) {
+	delete(s.validators, id)
+}
+
+func (s *TXPoolServer) GetValidatorPID(id string) *actor.PID {
+	v, ok := s.validators[id]
+	if !ok {
+		return nil
+	}
+	return v.Pid
+}
+
+func (s *TXPoolServer) Stop() {
 	for _, v := range s.actors {
 		v.Stop()
 	}
@@ -157,62 +180,50 @@ func (s *TXNPoolServer) Stop() {
 	s.wg.Wait()
 }
 
-func (s *TXNPoolServer) SetEventHub(eh *eventhub.EventHub) {
-	s.eh = eh
+func (s *TXPoolServer) getTransaction(hash common.Uint256) *tx.Transaction {
+	return s.txPool.GetTransaction(hash)
 }
 
-func (s *TXNPoolServer) GetEventHub() *eventhub.EventHub {
-	return s.eh
+func (s *TXPoolServer) GetTxPool(byCount bool) []*tc.TXEntry {
+	return s.txPool.GetTxPool(byCount)
 }
 
-func (s *TXNPoolServer) publishEvent(event *eventhub.Event) {
-	s.eh.Publish(event)
-}
-
-func (s *TXNPoolServer) getTransaction(hash common.Uint256) *tx.Transaction {
-	return s.txnPool.GetTransaction(hash)
-}
-
-func (s *TXNPoolServer) GetTxnPool(byCount bool) []*tc.TXNEntry {
-	return s.txnPool.GetTxnPool(byCount)
-}
-
-func (s *TXNPoolServer) GetPendingTxs(byCount bool) []*tx.Transaction {
+func (s *TXPoolServer) GetPendingTxs(byCount bool) []*tx.Transaction {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	ret := make([]*tx.Transaction, 0, len(s.allPendingTxns))
-	for _, v := range s.allPendingTxns {
+	ret := make([]*tx.Transaction, 0, len(s.allPendingTxs))
+	for _, v := range s.allPendingTxs {
 		ret = append(ret, v)
 	}
 	return ret
 }
 
-func (s *TXNPoolServer) GetUnverifiedTxs(txs []*tx.Transaction) []*tx.Transaction {
+func (s *TXPoolServer) GetUnverifiedTxs(txs []*tx.Transaction) []*tx.Transaction {
 	if len(txs) == 0 {
 		return nil
 	}
-	return s.txnPool.GetUnverifiedTxs(txs)
+	return s.txPool.GetUnverifiedTxs(txs)
 }
 
-func (s *TXNPoolServer) CleanTransactionList(txns []*tx.Transaction) error {
-	return s.txnPool.CleanTransactionList(txns)
+func (s *TXPoolServer) CleanTransactionList(txs []*tx.Transaction) error {
+	return s.txPool.CleanTransactionList(txs)
 }
 
-func (s *TXNPoolServer) AddTxnList(txnEntry *tc.TXNEntry) bool {
-	ret := s.txnPool.AddTxnList(txnEntry)
+func (s *TXPoolServer) AddTxList(txEntry *tc.TXEntry) bool {
+	ret := s.txPool.AddTxList(txEntry)
 	if !ret {
 		s.increaseStats(tc.DuplicateStats)
 	}
 	return ret
 }
 
-func (s *TXNPoolServer) increaseStats(v tc.TxnStatsType) {
+func (s *TXPoolServer) increaseStats(v tc.TxnStatsType) {
 	s.stats.Lock()
 	defer s.stats.Unlock()
 	s.stats.count[v-1]++
 }
 
-func (s *TXNPoolServer) getStats() *[]uint64 {
+func (s *TXPoolServer) getStats() *[]uint64 {
 	s.stats.RLock()
 	defer s.stats.RUnlock()
 	ret := make([]uint64, 0, len(s.stats.count))
@@ -222,30 +233,30 @@ func (s *TXNPoolServer) getStats() *[]uint64 {
 	return &ret
 }
 
-func (s *TXNPoolServer) CheckTxn(hash common.Uint256) bool {
+func (s *TXPoolServer) CheckTx(hash common.Uint256) bool {
 	// Check if the tx is in pending list
 	s.mu.RLock()
-	if ok := s.allPendingTxns[hash]; ok != nil {
+	if ok := s.allPendingTxs[hash]; ok != nil {
 		s.mu.RUnlock()
 		return true
 	}
 	s.mu.RUnlock()
 
 	// Check if the tx is in txn pool
-	if res := s.txnPool.GetTransaction(hash); res != nil {
+	if res := s.txPool.GetTransaction(hash); res != nil {
 		return true
 	}
 
 	return false
 }
 
-func (s *TXNPoolServer) GetTxnStatusReq(hash common.Uint256) *tc.TXNEntry {
+func (s *TXPoolServer) GetTxStatusReq(hash common.Uint256) *tc.TxStatus {
 	for i := uint8(0); i < s.workersNum; i++ {
-		ret := s.workers[i].GetTxnStatus(hash)
+		ret := s.workers[i].GetTxStatus(hash)
 		if ret != nil {
 			return ret
 		}
 	}
 
-	return s.txnPool.GetTxnStatus(hash)
+	return s.txPool.GetTxStatus(hash)
 }

@@ -6,89 +6,91 @@ import (
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/types"
+	"github.com/Ontology/errors"
+	vt "github.com/Ontology/validator/types"
 	"sync"
 )
 
-type TXNAttr struct {
-	Height      uint32
-	ValidatorID uint8
-	Ok          bool
+type TXAttr struct {
+	Height  uint32
+	Type    vt.VerifyType
+	ErrCode errors.ErrCode
 }
 
-type TXNEntry struct {
-	Txn   *types.Transaction // transaction which has been verified
+type TXEntry struct {
+	Tx    *types.Transaction // transaction which has been verified
 	Fee   common.Fixed64     // Total fee per transaction
-	Attrs []*TXNAttr         // the result from each validator
+	Attrs []*TXAttr          // the result from each validator
 }
 
-type TXNPool struct {
+type TXPool struct {
 	sync.RWMutex
-	txnList map[common.Uint256]*TXNEntry
+	txList map[common.Uint256]*TXEntry
 }
 
-func (tp *TXNPool) Init() {
+func (tp *TXPool) Init() {
 	tp.Lock()
 	defer tp.Unlock()
-	tp.txnList = make(map[common.Uint256]*TXNEntry)
+	tp.txList = make(map[common.Uint256]*TXEntry)
 }
 
-func (tp *TXNPool) AddTxnList(txnEntry *TXNEntry) bool {
+func (tp *TXPool) AddTxList(txEntry *TXEntry) bool {
 	tp.Lock()
 	defer tp.Unlock()
-	txnHash := txnEntry.Txn.Hash()
-	if _, ok := tp.txnList[txnHash]; ok {
-		log.Info("Transaction %x already existed in the pool\n", txnHash)
+	txHash := txEntry.Tx.Hash()
+	if _, ok := tp.txList[txHash]; ok {
+		log.Info("Transaction %x already existed in the pool\n", txHash)
 		return false
 	}
 
-	tp.txnList[txnHash] = txnEntry
+	tp.txList[txHash] = txEntry
 	return true
 }
 
 // clean the trasaction Pool with committed transactions.
-func (tp *TXNPool) CleanTransactionList(txns []*types.Transaction) error {
+func (tp *TXPool) CleanTransactionList(txs []*types.Transaction) error {
 	cleaned := 0
-	txnsNum := len(txns)
-	for _, txn := range txns {
-		if txn.TxType == types.BookKeeping {
-			txnsNum = txnsNum - 1
+	txsNum := len(txs)
+	for _, tx := range txs {
+		if tx.TxType == types.BookKeeping {
+			txsNum = txsNum - 1
 			continue
 		}
-		if tp.delTxnList(txn) {
+		if tp.delTxList(tx) {
 			cleaned++
 		}
 	}
-	if txnsNum != cleaned {
+	if txsNum != cleaned {
 		log.Info(fmt.Sprintf("The Transactions num Unmatched. Expect %d,got %d .\n",
-			txnsNum, cleaned))
+			txsNum, cleaned))
 	}
 	log.Debug(fmt.Sprintf("[cleanTransactionList],transaction %d Requested,%d cleaned, Remains %d in TxPool",
-		txnsNum, cleaned, tp.GetTransactionCount()))
+		txsNum, cleaned, tp.GetTransactionCount()))
 	return nil
 }
 
-func (tp *TXNPool) CopyTxnList() map[common.Uint256]*TXNEntry {
+func (tp *TXPool) CopyTxList() map[common.Uint256]*TXEntry {
 	tp.RLock()
 	defer tp.RUnlock()
-	txnMap := make(map[common.Uint256]*TXNEntry, len(tp.txnList))
-	for txnId, txnEntry := range tp.txnList {
-		txnMap[txnId] = txnEntry
+	txMap := make(map[common.Uint256]*TXEntry, len(tp.txList))
+	for txId, txEntry := range tp.txList {
+		txMap[txId] = txEntry
 	}
-	return txnMap
+	return txMap
 }
 
-func (tp *TXNPool) delTxnList(txn *types.Transaction) bool {
+func (tp *TXPool) delTxList(tx *types.Transaction) bool {
 	tp.Lock()
 	defer tp.Unlock()
-	txHash := txn.Hash()
-	if _, ok := tp.txnList[txHash]; !ok {
+	txHash := tx.Hash()
+	if _, ok := tp.txList[txHash]; !ok {
 		return false
 	}
-	delete(tp.txnList, txHash)
+	delete(tp.txList, txHash)
 	return true
 }
 
-func (tp *TXNPool) GetTxnPool(byCount bool) []*TXNEntry {
+func (tp *TXPool) GetTxPool(byCount bool) []*TXEntry {
 	tp.RLock()
 	defer tp.RUnlock()
 
@@ -96,44 +98,52 @@ func (tp *TXNPool) GetTxnPool(byCount bool) []*TXNEntry {
 	if count <= 0 {
 		byCount = false
 	}
-	if len(tp.txnList) < count || !byCount {
-		count = len(tp.txnList)
+	if len(tp.txList) < count || !byCount {
+		count = len(tp.txList)
 	}
 
 	var num int
-	txnList := make([]*TXNEntry, count)
-	for _, txnEntry := range tp.txnList {
-		txnList[num] = txnEntry
+	txList := make([]*TXEntry, count)
+	for _, txEntry := range tp.txList {
+		txList[num] = txEntry
 		num++
 		if num >= count {
 			break
 		}
 	}
-	return txnList
+	return txList
 }
 
-func (tp *TXNPool) GetTransaction(hash common.Uint256) *types.Transaction {
+func (tp *TXPool) GetTransaction(hash common.Uint256) *types.Transaction {
 	tp.RLock()
 	defer tp.RUnlock()
-	if txn := tp.txnList[hash]; txn == nil {
+	if tx := tp.txList[hash]; tx == nil {
 		return nil
 	}
-	return tp.txnList[hash].Txn
+	return tp.txList[hash].Tx
 }
 
-func (tp *TXNPool) GetTxnStatus(hash common.Uint256) *TXNEntry {
+func (tp *TXPool) GetTxStatus(hash common.Uint256) *TxStatus {
 	tp.RLock()
 	defer tp.RUnlock()
-	return tp.txnList[hash]
+	txEntry, ok := tp.txList[hash]
+	if !ok {
+		return nil
+	}
+	ret := &TxStatus{
+		Hash:  hash,
+		Attrs: txEntry.Attrs,
+	}
+	return ret
 }
 
-func (tp *TXNPool) GetTransactionCount() int {
+func (tp *TXPool) GetTransactionCount() int {
 	tp.RLock()
 	defer tp.RUnlock()
-	return len(tp.txnList)
+	return len(tp.txList)
 }
 
-func (tp *TXNPool) GetUnverifiedTxs(txs []*types.Transaction) []*types.Transaction {
+func (tp *TXPool) GetUnverifiedTxs(txs []*types.Transaction) []*types.Transaction {
 	tp.RLock()
 	defer tp.RUnlock()
 	ret := []*types.Transaction{}
@@ -141,7 +151,7 @@ func (tp *TXNPool) GetUnverifiedTxs(txs []*types.Transaction) []*types.Transacti
 		if t.TxType == types.BookKeeping {
 			continue
 		}
-		if _, ok := tp.txnList[t.Hash()]; !ok {
+		if _, ok := tp.txList[t.Hash()]; !ok {
 			ret = append(ret, t)
 		}
 	}
