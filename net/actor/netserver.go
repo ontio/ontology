@@ -10,10 +10,22 @@ var NetServerPid *actor.PID
 var node protocol.Noder
 type MsgActor struct{}
 
+type GetConnectionCntReq struct {
+}
+type GetConnectionCntRsp struct {
+	Cnt uint
+}
+
 func (state *MsgActor) Receive(context actor.Context) {
-	err := node.Xmit(context.Message())
-	if nil != err {
-		log.Error("Error Xmit message ", err.Error())
+	switch context.Message().(type) {
+	case *GetConnectionCntReq:
+		connectionCnt := node.GetConnectionCnt()
+		context.Sender().Request(&GetConnectionCntRsp{Cnt: connectionCnt}, context.Self())
+	default:
+		err := node.Xmit(context.Message())
+		if nil != err {
+			log.Error("Error Xmit message ", err.Error())
+		}
 	}
 }
 
