@@ -2,8 +2,7 @@ package actor
 
 import (
 	"github.com/ONTID/eventbus/actor"
-	"github.com/Ontology/ledger"
-	"github.com/Ontology/transaction"
+	"github.com/Ontology/core/types"
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/errors"
@@ -13,7 +12,7 @@ import (
 var DefLedgerPid actor.PID
 
 type AddHeaderReq struct{
-	Header *[]ledger.Header
+	Header *[]types.Header
 }
 type AddHeaderRsp struct{
 	BlockHash *common.Uint256
@@ -21,7 +20,7 @@ type AddHeaderRsp struct{
 }
 
 type AddBlockReq struct{
-	Block *ledger.Block
+	Block *types.Block
 }
 type AddBlockRsp struct{
 	BlockHash *common.Uint256
@@ -32,7 +31,7 @@ type GetTransactionReq struct{
 	TxHash common.Uint256
 }
 type GetTransactionRsp struct{
-	Tx *transaction.Transaction
+	Tx *types.Transaction
 	Error error
 }
 
@@ -40,7 +39,7 @@ type GetBlockByHashReq struct{
 	BlockHash common.Uint256
 }
 type GetBlockByHashRsp struct{
-	Block *ledger.Block
+	Block *types.Block
 	Error error
 }
 
@@ -48,7 +47,7 @@ type GetBlockByHeightReq struct{
 	Height uint32
 }
 type GetBlockByHeightRsp struct{
-	Block *ledger.Block
+	Block *types.Block
 	Error error
 }
 
@@ -56,7 +55,7 @@ type GetHeaderByHashReq struct{
 	BlockHash common.Uint256
 }
 type GetHeaderByHashRsp struct{
-	Header *ledger.Header
+	Header *types.Header
 	Error error
 }
 
@@ -64,7 +63,7 @@ type GetHeaderByHeightReq struct{
 	Height uint32
 }
 type GetHeaderByHeightRsp struct{
-	Header *ledger.Header
+	Header *types.Header
 	Error error
 }
 
@@ -103,15 +102,15 @@ type IsContainBlockRsp struct{
 }
 
 //------------------------------------------------------------------------------------
-func AddHeader(header *[]ledger.Header){
+func AddHeader(header *[]types.Header){
 	DefLedgerPid.Tell(&AddHeaderReq{Header: header})
 }
 
-func AddBlock(block *ledger.Block){
+func AddBlock(block *types.Block){
 	DefLedgerPid.Tell(&AddBlockReq{Block: block})
 }
 
-func GetTxnFromLedger(hash common.Uint256)(*transaction.Transaction, error){
+func GetTxnFromLedger(hash common.Uint256)(*types.Transaction, error){
 	future := DefLedgerPid.RequestFuture(&GetTransactionReq{hash}, 5*time.Second)
 	result, err := future.Result()
 	if err != nil {
@@ -138,7 +137,7 @@ func GetBlockHashByHeight(height uint32) (common.Uint256, error) {
 	return result.(GetBlockHashRsp).BlockHash, result.(GetBlockHashRsp).Error
 }
 
-func GetHeaderByHeight(height uint32) (*ledger.Header, error){
+func GetHeaderByHeight(height uint32) (*types.Header, error){
 	future := DefLedgerPid.RequestFuture(&GetHeaderByHeightReq{height}, 5*time.Second)
 	result, err := future.Result()
 	if err != nil {
@@ -147,7 +146,7 @@ func GetHeaderByHeight(height uint32) (*ledger.Header, error){
 	return result.(GetHeaderByHeightRsp).Header, result.(GetHeaderByHeightRsp).Error
 }
 
-func GetBlockByHeight(height uint32)(*ledger.Block, error){
+func GetBlockByHeight(height uint32)(*types.Block, error){
 	future := DefLedgerPid.RequestFuture(&GetBlockByHeightReq{height}, 5*time.Second)
 	result, err := future.Result()
 	if err != nil {
@@ -156,7 +155,7 @@ func GetBlockByHeight(height uint32)(*ledger.Block, error){
 	return result.(GetBlockByHeightRsp).Block, result.(GetBlockByHeightRsp).Error
 }
 
-func GetHeaderByHash(hash common.Uint256)(*ledger.Header, error){
+func GetHeaderByHash(hash common.Uint256)(*types.Header, error){
 	future := DefLedgerPid.RequestFuture(&GetHeaderByHashReq{hash}, 5*time.Second)
 	result, err := future.Result()
 	if err != nil {
@@ -165,7 +164,7 @@ func GetHeaderByHash(hash common.Uint256)(*ledger.Header, error){
 	return result.(GetHeaderByHashRsp).Header, result.(GetHeaderByHashRsp).Error
 }
 
-func GetBlockByHash(hash common.Uint256)(*ledger.Block, error){
+func GetBlockByHash(hash common.Uint256)(*types.Block, error){
 	future := DefLedgerPid.RequestFuture(&GetBlockByHashReq{hash}, 5*time.Second)
 	result, err := future.Result()
 	if err != nil {

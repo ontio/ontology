@@ -9,4 +9,5 @@ const (
 	EventNewInventory EventType = 3
 	EventNodeDisconnect EventType = 4
 	EventSmartCode EventType = 5
+	EventNodeConsensusDisconnect EventType = 6
 )

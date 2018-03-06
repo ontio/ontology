@@ -1,7 +1,7 @@
 package actor
 
 import (
-	"github.com/Ontology/transaction"
+	"github.com/Ontology/core/types"
 	"github.com/Ontology/common"
 	"github.com/ONTID/eventbus/actor"
 	"time"
@@ -44,7 +44,7 @@ type TXNAttr struct {
 }
 
 type TXNEntry struct {
-	Txn   *transaction.Transaction
+	Txn   *types.Transaction
 	Attrs []*TXNAttr
 }
 
@@ -53,21 +53,21 @@ type GetTxnPoolRsp struct {
 }
 
 type CleanTxnPoolReq struct {
-	TxnPool []*transaction.Transaction
+	TxnPool []*types.Transaction
 }
 
 type GetTxnReq struct {
 	hash common.Uint256
 }
 type GetTxnRsp struct {
-	txn *transaction.Transaction
+	txn *types.Transaction
 }
 
-func AddTransaction(transaction *transaction.Transaction){
+func AddTransaction(transaction *types.Transaction){
 	TxnPid.Tell(transaction)
 }
 
-func CleanTxnPool(TxnPool []*transaction.Transaction){
+func CleanTxnPool(TxnPool []*types.Transaction){
 	TxnPid.Tell(&CleanTxnPoolReq{TxnPool})
 }
 
@@ -80,7 +80,7 @@ func GetTxnPool(byCount bool)([]*TXNEntry){
 	return result.(GetTxnPoolRsp).TxnPool
 }
 
-func GetTransaction(hash common.Uint256)(*transaction.Transaction){
+func GetTransaction(hash common.Uint256)(*types.Transaction){
 	future := TxnPid.RequestFuture(&GetTxnReq{hash}, 5*time.Second)
 	result, err := future.Result()
 	if err != nil {

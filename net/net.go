@@ -1,10 +1,7 @@
 package net
 
 import (
-	. "github.com/Ontology/common"
-	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
-	. "github.com/Ontology/errors"
 	"github.com/Ontology/events"
 	"github.com/Ontology/net/node"
 	"github.com/Ontology/net/protocol"
@@ -15,7 +12,7 @@ type Neter interface {
 	Xmit(interface{}) error
 	GetEvent(eventName string) *events.Event
 	GetBookKeepersAddrs() ([]*crypto.PubKey, uint64)
-	CleanTransactions(txns []*types.Transaction) error
+	//CleanTransactions(txns []*types.Transaction) error
 	GetNeighborNoder() []protocol.Noder
 	Tx(buf []byte)
 	//AppendTxnPool(*types.Transaction) ErrCode

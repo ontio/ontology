@@ -4,9 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"github.com/Ontology/common"
-	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
-	. "github.com/Ontology/errors"
 	"github.com/Ontology/events"
 	"time"
 )
@@ -122,7 +120,7 @@ type Noder interface {
 	SetBookKeeperAddr(pk *crypto.PubKey)
 	GetNeighborHeights() ([]uint64, uint64)
 	SyncNodeHeight()
-	CleanTransactions(txns []*types.Transaction) error
+	//CleanTransactions(txns []*types.Transaction) error
 
 	GetNeighborNoder() []Noder
 	GetNbrNodeCnt() uint32

@@ -7,9 +7,7 @@ import (
 	"errors"
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/types"
-	. "github.com/Ontology/errors"
 	. "github.com/Ontology/net/protocol"
 	"github.com/Ontology/net/actor"
 )

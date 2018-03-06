@@ -9,7 +9,7 @@ import (
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
-	"github.com/Ontology/contract/program"
+	"github.com/Ontology/core/contract/program"
 	//"github.com/Ontology/core/contract"
 	//sig "github.com/Ontology/core/signature"
 	//"github.com/Ontology/core/validation"

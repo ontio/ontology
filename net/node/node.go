@@ -17,7 +17,6 @@ import (
 	. "github.com/Ontology/common"
 	. "github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/events"

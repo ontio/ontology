@@ -8,11 +8,9 @@ import (
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
-	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/types"
 	. "github.com/Ontology/net/protocol"
 	"github.com/Ontology/net/actor"
-	"github.com/syndtr/goleveldb/leveldb/errors"
 )
 
 type headersReq struct {
@@ -197,7 +195,7 @@ func (msg blkHeader) Handle(node Noder) error {
 func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]types.Header, uint32, error) {
 	var count uint32 = 0
 	var empty [HASHLEN]byte
-	headers := []ledger.Header{}
+	headers := []types.Header{}
 	var startHeight uint32
 	var stopHeight uint32
 	//curHeight := ledger.DefaultLedger.Store.GetHeaderHeight()
@@ -266,7 +264,7 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]ty
 	}
 
 	return headers, count, nil
-	return []ledger.Header{}, 0, nil
+	return []types.Header{}, 0, nil
 }
 
 func NewHeaders(headers []types.Header, count uint32) ([]byte, error) {
