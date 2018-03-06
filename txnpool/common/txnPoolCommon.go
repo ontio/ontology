@@ -3,6 +3,7 @@ package common
 import (
 	"github.com/Ontology/common"
 	"github.com/Ontology/core/types"
+	"github.com/Ontology/errors"
 )
 
 const (
@@ -27,16 +28,6 @@ const (
 	MAXACTOR
 )
 
-type VerifyType uint8
-
-const (
-	_ VerifyType = iota
-	SignatureV
-	StatefulV
-
-	MAXVALIDATOR
-)
-
 type TxnStatsType uint8
 
 const (
@@ -51,52 +42,12 @@ const (
 	MAXSTATS
 )
 
-type VerifyReq struct {
-	WorkerId uint8
-	Txn      *types.Transaction
-}
-
-type VerifyRsp struct {
-	WorkerId    uint8
-	ValidatorID uint8
-	Height      uint32
-	TxHash      common.Uint256
-	Ok          bool
-}
-
 type TxStatus struct {
 	Hash  common.Uint256 // transaction hash
 	Attrs []*TXAttr      // transaction's status
 }
 
-type GetTxnPoolReq struct {
-	ByCount bool
-}
-
-type GetTxnPoolRsp struct {
-	TxnPool []*TXEntry
-}
-
-type GetPendingTxnReq struct {
-	ByCount bool
-}
-
-type GetPendingTxnRsp struct {
-	Txs []*types.Transaction
-}
-
-type GetUnverifiedTxsReq struct {
-	Txs []*types.Transaction
-}
-
-type GetUnverifiedTxsRsp struct {
-	Txs []*types.Transaction
-}
-
-type CleanTxnPoolReq struct {
-	TxnPool []*types.Transaction
-}
-
+// restful api
 type GetTxnReq struct {
 	Hash common.Uint256
 }
@@ -127,6 +78,38 @@ type GetTxnStats struct {
 
 type GetTxnStatsRsp struct {
 	Count *[]uint64
+}
+
+type GetPendingTxnReq struct {
+	ByCount bool
+}
+
+type GetPendingTxnRsp struct {
+	Txs []*types.Transaction
+}
+
+// consensus messages
+type GetTxnPoolReq struct {
+	ByCount bool
+}
+
+type GetTxnPoolRsp struct {
+	TxnPool []*TXEntry
+}
+
+type VerifyBlockReq struct {
+	Height uint32
+	Txs    []*types.Transaction
+}
+
+type VerifyTxResult struct {
+	Height  uint32
+	Tx      *types.Transaction
+	ErrCode errors.ErrCode
+}
+
+type VerifyBlockRsp struct {
+	TxnPool []VerifyTxResult
 }
 
 /*

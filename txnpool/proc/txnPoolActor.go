@@ -87,14 +87,9 @@ func (tpa *TxPoolActor) Receive(context actor.Context) {
 	case *tc.GetTxnPoolReq:
 		res := tpa.server.GetTxPool(msg.ByCount)
 		context.Sender().Request(&tc.GetTxnPoolRsp{TxnPool: res}, context.Self())
-	case *tc.CleanTxnPoolReq:
-		tpa.server.CleanTransactionList(msg.TxnPool)
 	case *tc.GetPendingTxnReq:
 		res := tpa.server.GetPendingTxs(msg.ByCount)
 		context.Sender().Request(&tc.GetPendingTxnRsp{Txs: res}, context.Self())
-	case *tc.GetUnverifiedTxsReq:
-		res := tpa.server.GetUnverifiedTxs(msg.Txs)
-		context.Sender().Request(&tc.GetUnverifiedTxsRsp{Txs: res}, context.Self())
 	default:
 		log.Info("Unknown msg type", msg)
 	}
