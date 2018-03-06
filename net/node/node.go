@@ -260,6 +260,10 @@ func (node *node) GetState() uint32 {
 	return atomic.LoadUint32(&(node.state))
 }
 
+func (node *node) GetConsensusState() uint32 {
+	return atomic.LoadUint32(&(node.consensusState))
+}
+
 func (node *node) getConn() net.Conn {
 	return node.getconn(false)
 }
@@ -282,6 +286,10 @@ func (node *node) GetPort() uint16 {
 
 func (node *node) GetConsensusPort() uint16 {
 	return node.getPort(true)
+}
+
+func (node *node) SetConsensusPort(consensusPort uint16) {
+	node.consensusPort = consensusPort
 }
 
 func (node *node) getPort(isConsensusChannel bool) uint16 {
@@ -342,6 +350,10 @@ func (node *node) GetRxTxnCnt() uint64 {
 
 func (node *node) SetState(state uint32) {
 	atomic.StoreUint32(&(node.state), state)
+}
+
+func (node *node) SetConsensusState(state uint32) {
+	atomic.StoreUint32(&(node.consensusState), state)
 }
 
 func (node *node) GetPubKey() *crypto.PubKey {

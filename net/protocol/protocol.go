@@ -142,6 +142,10 @@ type Noder interface {
 	RemoveFromRetryList(addr string)
 	AcqSyncReqSem()
 	RelSyncReqSem()
+	SetConsensusPort(uint16)
+	GetConsensusState() uint32
+	SetConsensusState(state uint32)
+	CloseConsensusConn()
 }
 
 func (msg *NodeAddr) Deserialization(p []byte) error {

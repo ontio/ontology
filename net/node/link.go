@@ -322,8 +322,13 @@ func (node *node) Connect(nodeAddr string, isConsensusChannel bool) error {
 
 	go n.rx(isConsensusChannel)
 
-	n.SetState(HAND)
-	buf, _ := msg.NewVersion(node)
+	if isConsensusChannel {
+		n.SetConsensusState(HAND)
+	} else {
+		n.SetState(HAND)
+	}
+	buf, _ := msg.NewV
+	ersion(node, isConsensusChannel)
 
 	n.tx(buf, isConsensusChannel)
 

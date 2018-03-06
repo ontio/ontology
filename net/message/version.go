@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
+	//	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/crypto"
-	//"github.com/Ontology/ledger"
 	. "github.com/Ontology/net/protocol"
 	"time"
 )
@@ -21,18 +21,20 @@ const (
 type version struct {
 	Hdr msgHdr
 	P   struct {
-		Version      uint32
-		Services     uint64
-		TimeStamp    uint32
-		Port         uint16
-		HttpInfoPort uint16
-		Cap          [32]byte
-		Nonce        uint64
+		Version       uint32
+		Services      uint64
+		TimeStamp     uint32
+		Port          uint16
+		HttpInfoPort  uint16
+		ConsensusPort uint16
+		Cap           [32]byte
+		Nonce         uint64
 		// TODO remove tempory to get serilization function passed
 		UserAgent   uint8
 		StartHeight uint64
 		// FIXME check with the specify relay type length
-		Relay uint8
+		Relay       uint8
+		IsConsensus bool
 	}
 	pk *crypto.PubKey
 }
@@ -41,13 +43,15 @@ func (msg *version) init(n Noder) {
 	// Do the init
 }
 
-func NewVersion(n Noder) ([]byte, error) {
+func NewVersion(n Noder, isConsensus bool) ([]byte, error) {
 	log.Debug()
 	var msg version
 
 	msg.P.Version = n.Version()
 	msg.P.Services = n.Services()
 	msg.P.HttpInfoPort = config.Parameters.HttpInfoPort
+	msg.P.ConsensusPort = n.GetConsensusPort()
+	msg.P.IsConsensus = isConsensus
 	if config.Parameters.HttpInfoStart {
 		msg.P.Cap[HTTPINFOFLAG] = 0x01
 	} else {
@@ -59,8 +63,7 @@ func NewVersion(n Noder) ([]byte, error) {
 	msg.P.Port = n.GetPort()
 	msg.P.Nonce = n.GetID()
 	msg.P.UserAgent = 0x00
-	//msg.P.StartHeight = uint64(ledger.DefaultLedger.GetLocalBlockChainHeight())
-	msg.P.StartHeight = uint64(0)
+	msg.P.StartHeight = 0 //uint64(ledger.DefaultLedger.GetLocalBlockChainHeight())
 	if n.GetRelay() {
 		msg.P.Relay = 1
 	} else {
@@ -166,9 +169,30 @@ func (msg version) Handle(node Noder) error {
 
 	// Exclude the node itself
 	if msg.P.Nonce == localNode.GetID() {
-		log.Warn("The node handshark with itself")
-		node.CloseConn()
-		return errors.New("The node handshark with itself")
+		if (msg.P.IsConsensus == false && node.GetState() == ESTABLISH) || (msg.P.IsConsensus == true && node.GetConsensusState() == ESTABLISH) {
+			log.Warn("The node handshark with itself")
+			node.CloseConn()
+			return errors.New("The node handshark with itself")
+		}
+	}
+
+	if msg.P.IsConsensus == true {
+		s := node.GetConsensusState()
+		if s != INIT && s != HAND {
+			log.Warn("Unknow status to received version")
+			return errors.New("Unknow status to received version")
+		}
+
+		var buf []byte
+		if s == INIT {
+			node.SetConsensusState(HANDSHAKE)
+			buf, _ = NewVersion(localNode, true)
+		} else if s == HAND {
+			node.SetConsensusState(HANDSHAKED)
+			buf, _ = NewVerack(true)
+		}
+		node.ConsensusTx(buf)
+		return nil
 	}
 
 	s := node.GetState()
@@ -193,7 +217,9 @@ func (msg version) Handle(node Noder) error {
 		node.SetHttpInfoState(false)
 	}
 	node.SetHttpInfoPort(msg.P.HttpInfoPort)
+	node.SetConsensusPort(msg.P.ConsensusPort)
 	node.SetBookKeeperAddr(msg.pk)
+	// if  msg.P.Port == msg.P.ConsensusPort don't updateInfo
 	node.UpdateInfo(time.Now(), msg.P.Version, msg.P.Services,
 		msg.P.Port, msg.P.Nonce, msg.P.Relay, msg.P.StartHeight)
 	localNode.AddNbrNode(node)
@@ -201,10 +227,10 @@ func (msg version) Handle(node Noder) error {
 	var buf []byte
 	if s == INIT {
 		node.SetState(HANDSHAKE)
-		buf, _ = NewVersion(localNode)
+		buf, _ = NewVersion(localNode, false)
 	} else if s == HAND {
 		node.SetState(HANDSHAKED)
-		buf, _ = NewVerack()
+		buf, _ = NewVerack(false)
 	}
 	node.Tx(buf)
 

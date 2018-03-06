@@ -177,9 +177,9 @@ func MsgType(buf []byte) (string, error) {
 func NewMsg(t string, n Noder) ([]byte, error) {
 	switch t {
 	case "version":
-		return NewVersion(n)
+		return NewVersion(n, false)
 	case "verack":
-		return NewVerack()
+		return NewVerack(false)
 	case "getheaders":
 		return NewHeadersReq()
 	case "getaddr":

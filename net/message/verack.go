@@ -1,34 +1,72 @@
 package message
 
 import (
-	"encoding/hex"
+	"bytes"
+	"crypto/sha256"
+	"encoding/binary"
 	"errors"
 	"github.com/Ontology/common/log"
+	"github.com/Ontology/common/serialization"
 	. "github.com/Ontology/net/protocol"
 	"strconv"
 )
 
 type verACK struct {
 	msgHdr
-	// No payload
+	isConsensus bool
 }
 
-func NewVerack() ([]byte, error) {
+func NewVerack(isConsensus bool) ([]byte, error) {
 	var msg verACK
-	// Fixme the check is the []byte{0} instead of 0
-	var sum []byte
-	sum = []byte{0x5d, 0xf6, 0xe0, 0xe2}
-	msg.msgHdr.init("verack", sum, 0)
+	msg.msgHdr.Magic = NETMAGIC
+	copy(msg.msgHdr.CMD[0:7], "verack")
+	msg.isConsensus = isConsensus
+	tmpBuffer := bytes.NewBuffer([]byte{})
+	serialization.WriteBool(tmpBuffer, msg.isConsensus)
+	b := new(bytes.Buffer)
+	err := binary.Write(b, binary.LittleEndian, tmpBuffer.Bytes())
+	if err != nil {
+		log.Error("Binary Write failed at new Msg")
+		return nil, err
+	}
+	s := sha256.Sum256(b.Bytes())
+	s2 := s[:]
+	s = sha256.Sum256(s2)
+	buf := bytes.NewBuffer(s[:4])
+	binary.Read(buf, binary.LittleEndian, &(msg.msgHdr.Checksum))
+	msg.msgHdr.Length = uint32(len(b.Bytes()))
 
-	buf, err := msg.Serialization()
+	m, err := msg.Serialization()
+	if err != nil {
+		log.Error("Error Convert net message ", err.Error())
+		return nil, err
+	}
+	return m, nil
+}
+
+func (msg verACK) Serialization() ([]byte, error) {
+	hdrBuf, err := msg.msgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
+	buf := bytes.NewBuffer(hdrBuf)
+	err = serialization.WriteBool(buf, msg.isConsensus)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), err
 
-	str := hex.EncodeToString(buf)
-	log.Debug("The message tx verack length is ", len(buf), ", ", str)
+}
 
-	return buf, err
+func (msg *verACK) Deserialization(p []byte) error {
+	buf := bytes.NewBuffer(p)
+	err := binary.Read(buf, binary.LittleEndian, &(msg.msgHdr))
+	if err != nil {
+		return err
+	}
+
+	msg.isConsensus, err = serialization.ReadBool(buf)
+	return err
 }
 
 /*
@@ -52,6 +90,21 @@ func NewVerack() ([]byte, error) {
 func (msg verACK) Handle(node Noder) error {
 	log.Debug()
 
+	if msg.isConsensus == true {
+		s := node.GetConsensusState()
+		if s != HANDSHAKE && s != HANDSHAKED {
+			log.Warn("Unknow status to received verack")
+			return errors.New("Unknow status to received verack")
+		}
+
+		node.SetConsensusState(ESTABLISH)
+
+		if s == HANDSHAKE {
+			buf, _ := NewVerack(true)
+			node.Tx(buf)
+		}
+		return nil
+	}
 	s := node.GetState()
 	if s != HANDSHAKE && s != HANDSHAKED {
 		log.Warn("Unknow status to received verack")
@@ -61,7 +114,7 @@ func (msg verACK) Handle(node Noder) error {
 	node.SetState(ESTABLISH)
 
 	if s == HANDSHAKE {
-		buf, _ := NewVerack()
+		buf, _ := NewVerack(false)
 		node.Tx(buf)
 	}
 
@@ -69,10 +122,16 @@ func (msg verACK) Handle(node Noder) error {
 	// Fixme, there is a race condition here,
 	// but it doesn't matter to access the invalid
 	// node which will trigger a warning
+	//TODO JQ: only master p2p port request neighbor list
 	node.ReqNeighborList()
 	addr := node.GetAddr()
 	port := node.GetPort()
 	nodeAddr := addr + ":" + strconv.Itoa(int(port))
+	//TODO JQ： only master p2p port remove the list
 	node.LocalNode().RemoveAddrInConnectingList(nodeAddr)
+	//connect consensus port	
+	consensusPort := node.GetConsensusPort()
+	nodeConsensusAddr := addr + ":" + strconv.Itoa(int(consensusPort))
+	go node.Connect(nodeConsensusAddr, true)
 	return nil
 }
