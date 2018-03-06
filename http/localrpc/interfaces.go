@@ -21,21 +21,21 @@ func getCurrentDirectory() string {
 	return dir
 }
 
-func GetNeighbor(params []interface{}) map[string]interface{} {
+func getNeighbor(params []interface{}) map[string]interface{} {
 	addr, _ := GetNeighborAddrs()
 	return DnaRpc(addr)
 }
 
-func GetNodeState(params []interface{}) map[string]interface{} {
-	state,err := GetState()
+func getNodeState(params []interface{}) map[string]interface{} {
+	state,err := GetConnectionState()
 	if err != nil {
 		return DnaRpcFailed
 	}
-	t,err := GetTime()
+	t,err := GetNodeTime()
 	if err != nil {
 		return DnaRpcFailed
 	}
-	port,err := GetPort()
+	port,err := GetNodePort()
 	if err != nil {
 		return DnaRpcFailed
 	}
@@ -43,19 +43,19 @@ func GetNodeState(params []interface{}) map[string]interface{} {
 	if err != nil {
 		return DnaRpcFailed
 	}
-	ver,err := GetVersion()
+	ver,err := GetNodeVersion()
 	if err != nil {
 		return DnaRpcFailed
 	}
-	sers,err := Services()
+	tpe,err := GetNodeType()
 	if err != nil {
 		return DnaRpcFailed
 	}
-	relay,err := GetRelay()
+	relay,err := GetRelayState()
 	if err != nil {
 		return DnaRpcFailed
 	}
-	height,err := GetHeight()
+	height,err := BlockHeight()
 	if err != nil {
 		return DnaRpcFailed
 	}
@@ -64,12 +64,12 @@ func GetNodeState(params []interface{}) map[string]interface{} {
 		return DnaRpcFailed
 	}
 	n := NodeInfo{
-		State:    uint(state),
-		Time:     t,
-		Port:     port,
+		NodeState:    uint(state),
+		NodeTime:     t,
+		NodePort:     port,
 		ID:       id,
-		Version:  ver,
-		Services: sers,
+		NodeVersion:  ver,
+		NodeType: tpe,
 		Relay:    relay,
 		Height:   height,
 		TxnCnt:   txnCnt,
@@ -77,21 +77,21 @@ func GetNodeState(params []interface{}) map[string]interface{} {
 	return DnaRpc(n)
 }
 
-func StartConsensus(params []interface{}) map[string]interface{} {
+func startConsensus(params []interface{}) map[string]interface{} {
 	if err := ConsensusSrvStart(); err != nil {
 		return DnaRpcFailed
 	}
 	return DnaRpcSuccess
 }
 
-func StopConsensus(params []interface{}) map[string]interface{} {
+func stopConsensus(params []interface{}) map[string]interface{} {
 	if err := ConsensusSrvHalt(); err != nil {
 		return DnaRpcFailed
 	}
 	return DnaRpcSuccess
 }
 
-func SendSampleTransaction(params []interface{}) map[string]interface{} {
+func sendSampleTransaction(params []interface{}) map[string]interface{} {
 	panic("need reimplementation")
 	return nil
 
@@ -136,7 +136,7 @@ func SendSampleTransaction(params []interface{}) map[string]interface{} {
 	*/
 }
 
-func SetDebugInfo(params []interface{}) map[string]interface{} {
+func setDebugInfo(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcInvalidParameter
 	}

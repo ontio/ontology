@@ -30,9 +30,9 @@ type GetNodeIdRsp struct {
 	Id uint64
 }
 
-type GetSynPortReq struct {
+type GetNodePortReq struct {
 }
-type GetSynPortRsp struct {
+type GetNodePortRsp struct {
 	Port uint16
 }
 
@@ -74,9 +74,9 @@ func (state *NetServer) Receive(context actor.Context) {
 	case *GetConnectionCntReq:
 		connectionCnt := node.GetConnectionCnt()
 		context.Sender().Request(&GetConnectionCntRsp{Cnt: connectionCnt}, context.Self())
-	case *GetSynPortReq:
-		synPort := node.GetPort()
-		context.Sender().Request(&GetSynPortRsp{Port: synPort}, context.Self())
+	case *GetNodePortReq:
+		nodePort := node.GetPort()
+		context.Sender().Request(&GetNodePortRsp{Port: nodePort}, context.Self())
 	case *GetConsensusPortReq:
 		conPort := node.GetConsensusPort()
 		context.Sender().Request(&GetConsensusPortRsp{Port: conPort}, context.Self())

@@ -16,7 +16,7 @@ import (
 	"os"
 )
 
-func GetBestBlockHash(params []interface{}) map[string]interface{} {
+func getBestBlockHash(params []interface{}) map[string]interface{} {
 	hash,err := CurrentBlockHash()
 	if err != nil{
 		return DnaRpcFailed
@@ -27,7 +27,7 @@ func GetBestBlockHash(params []interface{}) map[string]interface{} {
 // Input JSON string examples for getblock method as following:
 //   {"jsonrpc": "2.0", "method": "getblock", "params": [1], "id": 0}
 //   {"jsonrpc": "2.0", "method": "getblock", "params": ["aabbcc.."], "id": 0}
-func GetBlock(params []interface{}) map[string]interface{} {
+func getBlock(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil
 	}
@@ -90,7 +90,7 @@ func GetBlock(params []interface{}) map[string]interface{} {
 	return DnaRpc(b)
 }
 
-func GetBlockCount(params []interface{}) map[string]interface{} {
+func getBlockCount(params []interface{}) map[string]interface{} {
 	height,err := BlockHeight()
 	if err != nil{
 		return DnaRpcFailed
@@ -100,7 +100,7 @@ func GetBlockCount(params []interface{}) map[string]interface{} {
 
 // A JSON example for getblockhash method as following:
 //   {"jsonrpc": "2.0", "method": "getblockhash", "params": [1], "id": 0}
-func GetBlockHash(params []interface{}) map[string]interface{} {
+func getBlockHash(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil
 	}
@@ -117,7 +117,7 @@ func GetBlockHash(params []interface{}) map[string]interface{} {
 	}
 }
 
-func GetConnectionCount(params []interface{}) map[string]interface{} {
+func getConnectionCount(params []interface{}) map[string]interface{} {
 	count,err := GetConnectionCnt()
 	if err != nil{
 		return DnaRpcFailed
@@ -125,7 +125,7 @@ func GetConnectionCount(params []interface{}) map[string]interface{} {
 	return DnaRpc(count)
 }
 
-func GetRawMemPool(params []interface{}) map[string]interface{} {
+func getRawMemPool(params []interface{}) map[string]interface{} {
 	txs := []*Transactions{}
 	txpool, _ := GetTxsFromPool(false)
 	for _, t := range txpool {
@@ -136,7 +136,7 @@ func GetRawMemPool(params []interface{}) map[string]interface{} {
 	}
 	return DnaRpc(txs)
 }
-func GetMemPoolTx(params []interface{}) map[string]interface{} {
+func getMemPoolTx(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil
 	}
@@ -169,7 +169,7 @@ func GetMemPoolTx(params []interface{}) map[string]interface{} {
 }
 // A JSON example for getrawtransaction method as following:
 //   {"jsonrpc": "2.0", "method": "getrawtransaction", "params": ["transactioin hash in hex"], "id": 0}
-func GetRawTransaction(params []interface{}) map[string]interface{} {
+func getRawTransaction(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil
 	}
@@ -197,7 +197,7 @@ func GetRawTransaction(params []interface{}) map[string]interface{} {
 }
 
 //   {"jsonrpc": "2.0", "method": "getstorage", "params": ["code hash", "key"], "id": 0}
-func GetStorage(params []interface{}) map[string]interface{} {
+func getStorage(params []interface{}) map[string]interface{} {
 	if len(params) < 2 {
 		return DnaRpcNil
 	}
@@ -238,7 +238,7 @@ func GetStorage(params []interface{}) map[string]interface{} {
 
 // A JSON example for sendrawtransaction method as following:
 //   {"jsonrpc": "2.0", "method": "sendrawtransaction", "params": ["raw transactioin in hex"], "id": 0}
-func SendRawTransaction(params []interface{}) map[string]interface{} {
+func sendRawTransaction(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil
 	}
@@ -264,7 +264,7 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 	return DnaRpc(ToHexString(hash.ToArray()))
 }
 
-func GetBalance(params []interface{}) map[string]interface{} {
+func getBalance(params []interface{}) map[string]interface{} {
 	if len(params) < 2 {
 		return DnaRpcNil
 	}
@@ -306,7 +306,7 @@ func GetBalance(params []interface{}) map[string]interface{} {
 
 // A JSON example for submitblock method as following:
 //   {"jsonrpc": "2.0", "method": "submitblock", "params": ["raw block in hex"], "id": 0}
-func SubmitBlock(params []interface{}) map[string]interface{} {
+func submitBlock(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil
 	}
@@ -330,11 +330,11 @@ func SubmitBlock(params []interface{}) map[string]interface{} {
 	return DnaRpcSuccess
 }
 
-func GetNodeVersion(params []interface{}) map[string]interface{} {
+func getNodeVersion(params []interface{}) map[string]interface{} {
 	return DnaRpc(config.Version)
 }
 
-func UploadDataFile(params []interface{}) map[string]interface{} {
+func uploadDataFile(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil
 	}
@@ -364,7 +364,7 @@ func UploadDataFile(params []interface{}) map[string]interface{} {
 	return DnaRpc(refpath)
 
 }
-func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
+func getSmartCodeEvent(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil
 	}
@@ -380,7 +380,7 @@ func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 	}
 	return DnaRpcInvalidParameter
 }
-func RegDataFile(params []interface{}) map[string]interface{} {
+func regDataFile(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil
 	}
@@ -407,7 +407,7 @@ func RegDataFile(params []interface{}) map[string]interface{} {
 	return DnaRpc(ToHexString(hash.ToArray()))
 }
 
-func CatDataRecord(params []interface{}) map[string]interface{} {
+func catDataRecord(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil
 	}
@@ -436,7 +436,7 @@ func CatDataRecord(params []interface{}) map[string]interface{} {
 	}
 }
 
-func GetDataFile(params []interface{}) map[string]interface{} {
+func getDataFile(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil
 	}

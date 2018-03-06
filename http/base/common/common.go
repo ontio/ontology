@@ -102,14 +102,14 @@ type TxoutInfo struct {
 }
 
 type NodeInfo struct {
-	State    uint   // node status
-	Port     uint16 // The nodes's port
+	NodeState    uint   // node status
+	NodePort     uint16 // The nodes's port
 	ID       uint64 // The nodes's id
-	Time     int64
-	Version  uint32 // The network protocol the node used
-	Services uint64 // The services the node supplied
+	NodeTime     int64
+	NodeVersion  uint32 // The network protocol the node used
+	NodeType uint64 // The services the node supplied
 	Relay    bool   // The relay capability of the node (merge into capbility flag)
-	Height   uint64 // The node latest block height
+	Height   uint32 // The node latest block height
 	TxnCnt   []uint64 // The transactions be transmit by this node
 	//RxTxnCnt uint64 // The transaction received by this node
 }
