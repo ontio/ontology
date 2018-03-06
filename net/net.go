@@ -11,14 +11,14 @@ import (
 )
 
 type Neter interface {
-	GetTxnPool(byCount bool) (map[Uint256]*types.Transaction, Fixed64)
+	//GetTxnPool(byCount bool) (map[Uint256]*types.Transaction, Fixed64)
 	Xmit(interface{}) error
 	GetEvent(eventName string) *events.Event
 	GetBookKeepersAddrs() ([]*crypto.PubKey, uint64)
 	CleanTransactions(txns []*types.Transaction) error
 	GetNeighborNoder() []protocol.Noder
 	Tx(buf []byte)
-	AppendTxnPool(*types.Transaction) ErrCode
+	//AppendTxnPool(*types.Transaction) ErrCode
 }
 
 func StartProtocol(pubKey *crypto.PubKey) protocol.Noder {

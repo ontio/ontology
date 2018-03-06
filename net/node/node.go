@@ -56,8 +56,8 @@ type node struct {
 	local      *node             // The pointer to local node
 	nbrNodes                     // The neighbor node connect with currently node except itself
 	eventQueue                   // The event queue to notice notice other modules
-	TXNPool                      // Unconfirmed transaction pool
-	idCache                      // The buffer to store the id of the items which already be processed
+	//TXNPool                      // Unconfirmed transaction pool
+	idCache // The buffer to store the id of the items which already be processed
 	/*
 	 * |--|--|--|--|--|--|isSyncFailed|isSyncHeaders|
 	 */
@@ -100,9 +100,9 @@ func (node *node) IsAddrInNbrList(addr string) bool {
 	defer node.nbrNodes.RUnlock()
 	for _, n := range node.nbrNodes.List {
 		if n.GetState() == HAND || n.GetState() == HANDSHAKE || n.GetState() == ESTABLISH {
-			nodeaddr := n.GetAddr()
+			addr := n.GetAddr()
 			port := n.GetPort()
-			na := nodeaddr + ":" + strconv.Itoa(int(port))
+			na := addr + ":" + strconv.Itoa(int(port))
 			if strings.Compare(na, addr) == 0 {
 				return true
 			}
@@ -193,7 +193,7 @@ func InitNode(pubKey *crypto.PubKey) Noder {
 	n.nbrNodes.init()
 	n.local = n
 	n.publicKey = pubKey
-	n.TXNPool.init()
+	//n.TXNPool.init()
 	n.eventQueue.init()
 	n.nodeDisconnectSubscriber = n.eventQueue.GetEvent("disconnect").Subscribe(events.EventNodeDisconnect, n.NodeDisconnect)
 	go n.initConnection()
@@ -413,25 +413,26 @@ func (node *node) SetBookKeeperAddr(pk *crypto.PubKey) {
 }
 
 func (node *node) SyncNodeHeight() {
-	for {
-		heights, _ := node.GetNeighborHeights()
-		if CompareHeight(uint64(ledger.DefaultLedger.Blockchain.BlockHeight), heights) {
-			break
-		}
-		<-time.After(5 * time.Second)
-	}
+	//TODO
+	//for {
+	//	heights, _ := node.GetNeighborHeights()
+	//	if CompareHeight(uint64(ledger.DefaultLedger.Blockchain.BlockHeight), heights) {
+	//		break
+	//	}
+	//	<-time.After(5 * time.Second)
+	//}
 }
 
 func (node *node) WaitForSyncBlkFinish() {
-	for {
-		headerHeight := ledger.DefaultLedger.Store.GetHeaderHeight()
-		currentBlkHeight := ledger.DefaultLedger.Blockchain.BlockHeight
-		log.Info("WaitForSyncBlkFinish... current block height is ", currentBlkHeight, " ,current header height is ", headerHeight)
-		if currentBlkHeight >= headerHeight {
-			break
-		}
-		<-time.After(2 * time.Second)
-	}
+	//for {
+	//	headerHeight := ledger.DefaultLedger.Store.GetHeaderHeight()
+	//	currentBlkHeight := ledger.DefaultLedger.Blockchain.BlockHeight
+	//	log.Info("WaitForSyncBlkFinish... current block height is ", currentBlkHeight, " ,current header height is ", headerHeight)
+	//	if currentBlkHeight >= headerHeight {
+	//		break
+	//	}
+	//	<-time.After(2 * time.Second)
+	//}
 }
 func (node *node) WaitForPeersStart() {
 	for {

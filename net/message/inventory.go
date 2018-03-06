@@ -6,12 +6,12 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"io"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
-	"github.com/Ontology/core/ledger"
+	//	"github.com/Ontology/ledger"
 	. "github.com/Ontology/net/protocol"
-	"io"
 )
 
 var LastInvHash Uint256
@@ -42,7 +42,8 @@ func NewBlocksReq(n Noder) ([]byte, error) {
 	// Fixme correct with the exactly request length
 	h.p.HeaderHashCount = 1
 	//Fixme! Should get the remote Node height.
-	buf := ledger.DefaultLedger.Blockchain.CurrentBlockHash()
+	//buf := ledger.DefaultLedger.Blockchain.CurrentBlockHash()
+	buf := Uint256{}
 
 	copy(h.p.hashStart[:], reverse(buf[:]))
 
@@ -135,14 +136,14 @@ func (msg Inv) Handle(node Noder) error {
 		for i = 0; i < count; i++ {
 			id.Deserialize(bytes.NewReader(msg.P.Blk[HASHLEN*i:]))
 			// TODO check the ID queue
-			if !ledger.DefaultLedger.Store.BlockInCache(id) &&
-				!ledger.DefaultLedger.BlockInLedger(id) &&
-				LastInvHash != id {
-				LastInvHash = id
-				// send the block request
-				log.Infof("inv request block hash: %x", id)
-				ReqBlkData(node, id)
-			}
+			//if !ledger.DefaultLedger.Store.BlockInCache(id) &&
+			//	!ledger.DefaultLedger.BlockInLedger(id) &&
+			//	LastInvHash != id {
+			//	LastInvHash = id
+			//	// send the block request
+			//	log.Infof("inv request block hash: %x", id)
+			//	ReqBlkData(node, id)
+			//}
 
 		}
 	case CONSENSUS:
@@ -194,65 +195,66 @@ func (msg Inv) invType() InventoryType {
 }
 
 func GetInvFromBlockHash(starthash Uint256, stophash Uint256) (*InvPayload, error) {
-	var count uint32 = 0
-	var i uint32
-	var empty Uint256
-	var startheight uint32
-	var stopheight uint32
-	curHeight := ledger.DefaultLedger.GetLocalBlockChainHeight()
-	if starthash == empty {
-		if stophash == empty {
-			if curHeight > MAXBLKHDRCNT {
-				count = MAXBLKHDRCNT
-			} else {
-				count = curHeight
-			}
-		} else {
-			bkstop, err := ledger.DefaultLedger.Store.GetHeader(stophash)
-			if err != nil {
-				return nil, err
-			}
-			stopheight = bkstop.Height
-			count = curHeight - stopheight
-			if curHeight > MAXINVHDRCNT {
-				count = MAXINVHDRCNT
-			}
-		}
-	} else {
-		bkstart, err := ledger.DefaultLedger.Store.GetHeader(starthash)
-		if err != nil {
-			return nil, err
-		}
-		startheight = bkstart.Height
-		if stophash != empty {
-			bkstop, err := ledger.DefaultLedger.Store.GetHeader(stophash)
-			if err != nil {
-				return nil, err
-			}
-			stopheight = bkstop.Height
-			count = startheight - stopheight
-			if count >= MAXINVHDRCNT {
-				count = MAXINVHDRCNT
-				stopheight = startheight + MAXINVHDRCNT
-			}
-		} else {
+	//var count uint32 = 0
+	//var i uint32
+	//var empty Uint256
+	//var startheight uint32
+	//var stopheight uint32
+	//curHeight := ledger.DefaultLedger.GetLocalBlockChainHeight()
+	//if starthash == empty {
+	//	if stophash == empty {
+	//		if curHeight > MAXBLKHDRCNT {
+	//			count = MAXBLKHDRCNT
+	//		} else {
+	//			count = curHeight
+	//		}
+	//	} else {
+	//		bkstop, err := ledger.DefaultLedger.Store.GetHeader(stophash)
+	//		if err != nil {
+	//			return nil, err
+	//		}
+	//		stopheight = bkstop.Height
+	//		count = curHeight - stopheight
+	//		if curHeight > MAXINVHDRCNT {
+	//			count = MAXINVHDRCNT
+	//		}
+	//	}
+	//} else {
+	//	bkstart, err := ledger.DefaultLedger.Store.GetHeader(starthash)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	startheight = bkstart.Height
+	//	if stophash != empty {
+	//		bkstop, err := ledger.DefaultLedger.Store.GetHeader(stophash)
+	//		if err != nil {
+	//			return nil, err
+	//		}
+	//		stopheight = bkstop.Height
+	//		count = startheight - stopheight
+	//		if count >= MAXINVHDRCNT {
+	//			count = MAXINVHDRCNT
+	//			stopheight = startheight + MAXINVHDRCNT
+	//		}
+	//	} else {
 
-			if startheight > MAXINVHDRCNT {
-				count = MAXINVHDRCNT
-			} else {
-				count = startheight
-			}
-		}
-	}
-	tmpBuffer := bytes.NewBuffer([]byte{})
-	for i = 1; i <= count; i++ {
-		//FIXME need add error handle for GetBlockWithHash
-		hash, _ := ledger.DefaultLedger.Store.GetBlockHash(stopheight + i)
-		log.Debug("GetInvFromBlockHash i is ", i, " , hash is ", hash)
-		hash.Serialize(tmpBuffer)
-	}
-	log.Debug("GetInvFromBlockHash hash is ", tmpBuffer.Bytes())
-	return NewInvPayload(BLOCK, count, tmpBuffer.Bytes()), nil
+	//		if startheight > MAXINVHDRCNT {
+	//			count = MAXINVHDRCNT
+	//		} else {
+	//			count = startheight
+	//		}
+	//	}
+	//}
+	//tmpBuffer := bytes.NewBuffer([]byte{})
+	//for i = 1; i <= count; i++ {
+	//	//FIXME need add error handle for GetBlockWithHash
+	//	hash, _ := ledger.DefaultLedger.Store.GetBlockHash(stopheight + i)
+	//	log.Debug("GetInvFromBlockHash i is ", i, " , hash is ", hash)
+	//	hash.Serialize(tmpBuffer)
+	//}
+	//log.Debug("GetInvFromBlockHash hash is ", tmpBuffer.Bytes())
+	//return NewInvPayload(BLOCK, count, tmpBuffer.Bytes()), nil
+	return NewInvPayload(BLOCK, 0, []byte{}), nil
 }
 
 func NewInvPayload(invType InventoryType, count uint32, msg []byte) *InvPayload {

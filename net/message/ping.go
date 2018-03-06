@@ -6,7 +6,7 @@ import (
 	"encoding/binary"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
-	"github.com/Ontology/core/ledger"
+	//"github.com/Ontology/ledger"
 	. "github.com/Ontology/net/protocol"
 )
 
@@ -19,7 +19,8 @@ func NewPingMsg() ([]byte, error) {
 	var msg ping
 	msg.msgHdr.Magic = NETMAGIC
 	copy(msg.msgHdr.CMD[0:7], "ping")
-	msg.height = uint64(ledger.DefaultLedger.Blockchain.BlockHeight)
+	//msg.height = uint64(ledger.DefaultLedger.Blockchain.BlockHeight)
+	msg.height = uint64(0)
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	serialization.WriteUint64(tmpBuffer, msg.height)
 	b := new(bytes.Buffer)

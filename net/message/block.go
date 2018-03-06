@@ -27,17 +27,17 @@ type block struct {
 
 func (msg block) Handle(node Noder) error {
 	log.Debug("RX block message")
-	hash := msg.blk.Hash()
-	if ledger.DefaultLedger.BlockInLedger(hash) {
-		ReceiveDuplicateBlockCnt++
-		log.Debug("Receive ", ReceiveDuplicateBlockCnt, " duplicated block.")
-		return nil
-	}
-	if err := ledger.DefaultLedger.Blockchain.AddBlock(&msg.blk); err != nil {
-		log.Warnf("Block add failed: %s,block hash is %x\n", err, hash)
-		return err
-	}
-	node.RemoveFlightHeight(msg.blk.Header.Height)
+	//hash := msg.blk.Hash()
+	//if ledger.DefaultLedger.BlockInLedger(hash) {
+	//	ReceiveDuplicateBlockCnt++
+	//	log.Debug("Receive ", ReceiveDuplicateBlockCnt, " duplicated block.")
+	//	return nil
+	//}
+	//if err := ledger.DefaultLedger.Blockchain.AddBlock(&msg.blk); err != nil {
+	//	log.Warnf("Block add failed: %s,block hash is %x\n", err, hash)
+	//	return err
+	//}
+	//node.RemoveFlightHeight(msg.blk.Header.Height)
 	node.LocalNode().GetEvent("block").Notify(events.EventNewInventory, &msg.blk)
 	return nil
 }
@@ -78,12 +78,13 @@ func (msg dataReq) Handle(node Noder) error {
 }
 
 func NewBlockFromHash(hash common.Uint256) (*types.Block, error) {
-	bk, err := ledger.DefaultLedger.Store.GetBlock(hash)
-	if err != nil {
-		log.Errorf("Get Block error: %s, block hash: %x", err.Error(), hash)
-		return nil, err
-	}
-	return bk, nil
+	//bk, err := ledger.DefaultLedger.Store.GetBlock(hash)
+	//if err != nil {
+	//	log.Errorf("Get Block error: %s, block hash: %x", err.Error(), hash)
+	//	return nil, err
+	//}
+	//return bk, nil
+	return nil, nil
 }
 
 func NewBlock(bk *types.Block) ([]byte, error) {

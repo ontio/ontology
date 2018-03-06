@@ -1,13 +1,13 @@
 package node
 
 import (
-	"github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/ledger"
-	. "github.com/Ontology/net/message"
-	. "github.com/Ontology/net/protocol"
 	"math/rand"
 	"net"
+	"github.com/Ontology/common/config"
+	"github.com/Ontology/common/log"
+	//"github.com/Ontology/core/ledger"
+	. "github.com/Ontology/net/message"
+	. "github.com/Ontology/net/protocol"
 	"strconv"
 	"time"
 )
@@ -17,68 +17,69 @@ func keepAlive(from *Noder, dst *Noder) {
 }
 
 func (node *node) GetBlkHdrs() {
-	if !node.IsUptoMinNodeCount() {
-		return
-	}
-	noders := node.local.GetNeighborNoder()
-	if len(noders) == 0 {
-		return
-	}
-	nodelist := []Noder{}
-	for _, v := range noders {
-		if uint64(ledger.DefaultLedger.Store.GetHeaderHeight()) < v.GetHeight() {
-			nodelist = append(nodelist, v)
-		}
-	}
-	ncout := len(nodelist)
-	if ncout == 0 {
-		return
-	}
-	rand.Seed(time.Now().UnixNano())
-	index := rand.Intn(ncout)
-	n := nodelist[index]
-	SendMsgSyncHeaders(n)
+	//TODO
+	//if !node.IsUptoMinNodeCount() {
+	//	return
+	//}
+	//noders := node.local.GetNeighborNoder()
+	//if len(noders) == 0 {
+	//	return
+	//}
+	//nodelist := []Noder{}
+	//for _, v := range noders {
+	//	if uint64(ledger.DefaultLedger.Store.GetHeaderHeight()) < v.GetHeight() {
+	//		nodelist = append(nodelist, v)
+	//	}
+	//}
+	//ncout := len(nodelist)
+	//if ncout == 0 {
+	//	return
+	//}
+	//rand.Seed(time.Now().UnixNano())
+	//index := rand.Intn(ncout)
+	//n := nodelist[index]
+	//SendMsgSyncHeaders(n)
 }
 
 func (node *node) SyncBlk() {
-	headerHeight := ledger.DefaultLedger.Store.GetHeaderHeight()
-	currentBlkHeight := ledger.DefaultLedger.Blockchain.BlockHeight
-	if currentBlkHeight >= headerHeight {
-		return
-	}
-	var dValue int32
-	var reqCnt uint32
-	var i uint32
-	noders := node.local.GetNeighborNoder()
+	//headerHeight := ledger.DefaultLedger.Store.GetHeaderHeight()
+	//currentBlkHeight := ledger.DefaultLedger.Blockchain.BlockHeight
+	//if currentBlkHeight >= headerHeight {
+	//	return
+	//}
+	//var dValue int32
+	//var reqCnt uint32
+	//var i uint32
+	//noders := node.local.GetNeighborNoder()
 
-	for _, n := range noders {
-		if uint32(n.GetHeight()) <= currentBlkHeight {
-			continue
-		}
-		n.RemoveFlightHeightLessThan(currentBlkHeight)
-		count := MAXREQBLKONCE - uint32(n.GetFlightHeightCnt())
-		dValue = int32(headerHeight - currentBlkHeight - reqCnt)
-		flights := n.GetFlightHeights()
-		if count == 0 {
-			for _, f := range flights {
-				hash := ledger.DefaultLedger.Store.GetHeaderHashByHeight(f)
-				if ledger.DefaultLedger.Store.BlockInCache(hash) == false {
-					ReqBlkData(n, hash)
-				}
-			}
+	//for _, n := range noders {
+	//	if uint32(n.GetHeight()) <= currentBlkHeight {
+	//		continue
+	//	}
+	//	n.RemoveFlightHeightLessThan(currentBlkHeight)
+	//	count := MAXREQBLKONCE - uint32(n.GetFlightHeightCnt())
+	//	dValue = int32(headerHeight - currentBlkHeight - reqCnt)
+	//	flights := n.GetFlightHeights()
+	//	if count == 0 {
+	//		for _, f := range flights {
+	//			hash := ledger.DefaultLedger.Store.GetHeaderHashByHeight(f)
+	//			if ledger.DefaultLedger.Store.BlockInCache(hash) == false {
+	//				ReqBlkData(n, hash)
+	//			}
+	//		}
 
-		}
-		for i = 1; i <= count && dValue >= 0; i++ {
-			hash := ledger.DefaultLedger.Store.GetHeaderHashByHeight(currentBlkHeight + reqCnt)
+	//	}
+	//	for i = 1; i <= count && dValue >= 0; i++ {
+	//		hash := ledger.DefaultLedger.Store.GetHeaderHashByHeight(currentBlkHeight + reqCnt)
 
-			if ledger.DefaultLedger.Store.BlockInCache(hash) == false {
-				ReqBlkData(n, hash)
-				n.StoreFlightHeight(currentBlkHeight + reqCnt)
-			}
-			reqCnt++
-			dValue--
-		}
-	}
+	//		if ledger.DefaultLedger.Store.BlockInCache(hash) == false {
+	//			ReqBlkData(n, hash)
+	//			n.StoreFlightHeight(currentBlkHeight + reqCnt)
+	//		}
+	//		reqCnt++
+	//		dValue--
+	//	}
+	//}
 }
 
 func (node *node) SendPingToNbr() {
@@ -228,9 +229,9 @@ func (node *node) updateNodeInfo() {
 		select {
 		case <-ticker.C:
 			node.SendPingToNbr()
-			node.GetBlkHdrs()
-			node.SyncBlk()
-			node.HeartBeatMonitor()
+			//node.GetBlkHdrs()
+			//node.SyncBlk()
+			//node.HeartBeatMonitor()
 		case <-quit:
 			ticker.Stop()
 			return

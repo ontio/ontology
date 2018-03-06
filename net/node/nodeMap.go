@@ -3,6 +3,7 @@ package node
 import (
 	"fmt"
 	"github.com/Ontology/common/config"
+	//	"github.com/Ontology/common/log"
 	. "github.com/Ontology/net/protocol"
 	"strings"
 	"sync"

@@ -94,8 +94,8 @@ type Noder interface {
 	CloseConn()
 	GetHeight() uint64
 	GetConnectionCnt() uint
-	GetTxnPool(bool) (map[common.Uint256]*types.Transaction, common.Fixed64)
-	AppendTxnPool(*types.Transaction) ErrCode
+	//GetTxnPool(bool) (map[common.Uint256]*types.Transaction, common.Fixed64)
+	//AppendTxnPool(*types.Transaction) ErrCode
 	ExistedID(id common.Uint256) bool
 	ReqNeighborList()
 	DumpInfo()
@@ -108,7 +108,7 @@ type Noder interface {
 	NodeEstablished(uid uint64) bool
 	GetEvent(eventName string) *events.Event
 	GetNeighborAddrs() ([]NodeAddr, uint64)
-	GetTransaction(hash common.Uint256) *types.Transaction
+	//GetTransaction(hash common.Uint256) *types.Transaction
 	IncRxTxnCnt()
 	GetTxnCnt() uint64
 	GetRxTxnCnt() uint64

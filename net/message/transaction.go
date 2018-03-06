@@ -31,15 +31,15 @@ type trn struct {
 func (msg trn) Handle(node Noder) error {
 	log.Debug()
 	log.Debug("RX Transaction message")
-	tx := &msg.txn
-	if !node.LocalNode().ExistedID(tx.Hash()) {
-		if errCode := node.LocalNode().AppendTxnPool(&(msg.txn)); errCode != ErrNoError {
-			return errors.New("[message] VerifyTransaction failed when AppendTxnPool.")
-		}
-		node.LocalNode().IncRxTxnCnt()
-		log.Debug("RX Transaction message hash", msg.txn.Hash())
-		log.Debug("RX Transaction message type", msg.txn.TxType)
-	}
+	//tx := &msg.txn
+	//if !node.LocalNode().ExistedID(tx.Hash()) {
+	//	if errCode := node.LocalNode().AppendTxnPool(&(msg.txn)); errCode != ErrNoError {
+	//		return errors.New("[message] VerifyTransaction failed when AppendTxnPool.")
+	//	}
+	//	node.LocalNode().IncRxTxnCnt()
+	//	log.Debug("RX Transaction message hash", msg.txn.Hash())
+	//	//log.Debug("RX Transaction message type", msg.txn.TxType)
+	//}
 
 	return nil
 }
@@ -93,13 +93,13 @@ func (msg *dataReq) Deserialization(p []byte) error {
 }
 
 func NewTxnFromHash(hash common.Uint256) (*types.Transaction, error) {
-	txn, err := ledger.DefaultLedger.GetTransactionWithHash(hash)
-	if err != nil {
-		log.Error("Get transaction with hash error: ", err.Error())
-		return nil, err
-	}
-
-	return txn, nil
+	//txn, err := ledger.DefaultLedger.GetTransactionWithHash(hash)
+	//if err != nil {
+	//	log.Error("Get transaction with hash error: ", err.Error())
+	//	return nil, err
+	//}
+	//return txn, nil
+	return nil, nil
 }
 func NewTxn(txn *types.Transaction) ([]byte, error) {
 	log.Debug()

@@ -20,8 +20,8 @@ type Messager interface {
 
 // The network communication message header
 type msgHdr struct {
-	Magic    uint32
-				 //ID	 uint64
+	Magic uint32
+	//ID	 uint64
 	CMD      [MSGCMDLEN]byte // The message type
 	Length   uint32
 	Checksum [CHECKSUMLEN]byte
@@ -96,7 +96,7 @@ func AllocMsg(t string, length int) Messager {
 		var msg Inv
 		copy(msg.Hdr.CMD[0:len(t)], t)
 		// the 1 is the inv type lenght
-		msg.P.Blk = make([]byte, length - MSGHDRLEN - 1)
+		msg.P.Blk = make([]byte, length-MSGHDRLEN-1)
 		return &msg
 	case "getdata":
 		var msg dataReq
@@ -164,7 +164,7 @@ func AllocMsg(t string, length int) Messager {
 }
 
 func MsgType(buf []byte) (string, error) {
-	cmd := buf[CMDOFFSET : CMDOFFSET + MSGCMDLEN]
+	cmd := buf[CMDOFFSET : CMDOFFSET+MSGCMDLEN]
 	n := bytes.IndexByte(cmd, 0)
 	if n < 0 || n >= MSGCMDLEN {
 		return "", errors.New("Unexpected length of CMD command")
@@ -240,7 +240,7 @@ func PayloadLen(buf []byte) int {
 
 func LocateMsgHdr(buf []byte) []byte {
 	var h msgHdr
-	for i := 0; i <= len(buf) - MSGHDRLEN; i++ {
+	for i := 0; i <= len(buf)-MSGHDRLEN; i++ {
 		if magicVerify(binary.LittleEndian.Uint32(buf[i:])) {
 			buf = append(buf[:0], buf[i:]...)
 			h.Deserialization(buf)

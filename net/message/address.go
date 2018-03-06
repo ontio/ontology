@@ -6,9 +6,9 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"net"
 	"github.com/Ontology/common/log"
 	. "github.com/Ontology/net/protocol"
-	"net"
 	"strconv"
 )
 
@@ -150,7 +150,7 @@ func (msg *addr) Deserialization(p []byte) error {
 			goto err
 		}
 	}
-	err:
+err:
 	return err
 }
 
