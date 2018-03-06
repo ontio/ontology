@@ -1,14 +1,15 @@
 package actor
 
 import (
-	"github.com/ONTID/eventbus/actor"
-	"github.com/Ontology/net/protocol"
 	"github.com/Ontology/common/log"
+	"github.com/Ontology/eventbus/actor"
+	"github.com/Ontology/net/protocol"
 )
 
 var NetServerPid *actor.PID
 
 var node protocol.Noder
+
 type NetServer struct{}
 
 type GetNodeVersionReq struct {
@@ -107,6 +108,6 @@ func init() {
 	NetServerPid = actor.Spawn(props)
 }
 
-func SetNode(netNode protocol.Noder){
+func SetNode(netNode protocol.Noder) {
 	node = netNode
 }

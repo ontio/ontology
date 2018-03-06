@@ -1,17 +1,18 @@
 package actor
 
 import (
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/common"
-	"github.com/ONTID/eventbus/actor"
-	"time"
 	"fmt"
+	"github.com/Ontology/common"
+	"github.com/Ontology/core/types"
+	"github.com/Ontology/eventbus/actor"
 	"sync"
+	"time"
 )
 
-var TxnPid actor.PID
+var TxnPid *actor.PID
 
 type TxnStatsType uint8
+
 const (
 	_ TxnStatsType = iota
 	RcvStats
@@ -28,7 +29,7 @@ type txnStats struct {
 	count []uint64
 }
 
-type GetTxnStatsReq struct {}
+type GetTxnStatsReq struct{}
 type GetTxnStatsRsp struct {
 	count *[]uint64
 }
@@ -63,15 +64,15 @@ type GetTxnRsp struct {
 	txn *types.Transaction
 }
 
-func AddTransaction(transaction *types.Transaction){
+func AddTransaction(transaction *types.Transaction) {
 	TxnPid.Tell(transaction)
 }
 
-func CleanTxnPool(TxnPool []*types.Transaction){
+func CleanTxnPool(TxnPool []*types.Transaction) {
 	TxnPid.Tell(&CleanTxnPoolReq{TxnPool})
 }
 
-func GetTxnPool(byCount bool)([]*TXNEntry){
+func GetTxnPool(byCount bool) []*TXNEntry {
 	future := TxnPid.RequestFuture(&GetTxnPoolReq{ByCount: byCount}, 5*time.Second)
 	result, err := future.Result()
 	if err != nil {
@@ -80,7 +81,7 @@ func GetTxnPool(byCount bool)([]*TXNEntry){
 	return result.(GetTxnPoolRsp).TxnPool
 }
 
-func GetTransaction(hash common.Uint256)(*types.Transaction){
+func GetTransaction(hash common.Uint256) *types.Transaction {
 	future := TxnPid.RequestFuture(&GetTxnReq{hash}, 5*time.Second)
 	result, err := future.Result()
 	if err != nil {
@@ -89,7 +90,7 @@ func GetTransaction(hash common.Uint256)(*types.Transaction){
 	return result.(GetTxnRsp).txn
 }
 
-func GetTxnStats(hash common.Uint256)(*[]uint64){
+func GetTxnStats(hash common.Uint256) *[]uint64 {
 	future := TxnPid.RequestFuture(&GetTxnStatsReq{}, 5*time.Second)
 	result, err := future.Result()
 	if err != nil {
