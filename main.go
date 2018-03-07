@@ -91,8 +91,22 @@ func main() {
 	}
 
 	log.Info("4. Start the P2P networks")
-	// Don't need two return value.
+
+	net.SetLedgePid(nil)
+	net.SetTxnPoolPid(nil)
+	net.SetConsensusPid(nil)
 	noder = net.StartProtocol(acct.PublicKey)
+	if err != nil {
+		log.Fatalf("Net StartProtocol error %s", err)
+		os.Exit(1)
+	}
+	_, err = net.InitNetServerActor(noder)
+	if err != nil {
+		log.Fatalf("Net InitNetServerActor error %s", err)
+		os.Exit(1)
+	}
+
+
 	go restful.StartServer()
 	//jsonrpc.RegistRpcNode(noder)
 

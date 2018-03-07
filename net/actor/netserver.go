@@ -6,7 +6,7 @@ import (
 	"github.com/Ontology/net/protocol"
 )
 
-var NetServerPid *actor.PID
+var netServerPid *actor.PID
 
 var node protocol.Noder
 
@@ -103,11 +103,12 @@ func (state *NetServer) Receive(context actor.Context) {
 	}
 }
 
-func init() {
+func InitNetServer(netNode protocol.Noder) (*actor.PID, error){
 	props := actor.FromProducer(func() actor.Actor { return &NetServer{} })
-	NetServerPid = actor.Spawn(props)
-}
-
-func SetNode(netNode protocol.Noder) {
+	netServerPid, err := actor.SpawnNamed(props, "net_server")
+	if err != nil {
+		return nil, err
+	}
 	node = netNode
+	return netServerPid, err
 }

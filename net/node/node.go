@@ -221,7 +221,7 @@ func InitNode(pubKey *crypto.PubKey) Noder {
 	go n.initConnection()
 	go n.updateConnection()
 	go n.updateNodeInfo()
-	actor.SetNode(n)
+
 	return n
 }
 
