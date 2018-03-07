@@ -66,6 +66,13 @@ type GetRelayStateRsp struct {
 	Relay bool
 }
 
+type GetNeighborAddrsReq struct {
+}
+type GetNeighborAddrsRsp struct {
+	Addrs []protocol.NodeAddr
+	Count uint64
+}
+
 func (state *NetServer) Receive(context actor.Context) {
 	switch context.Message().(type) {
 	case *GetNodeVersionReq:
@@ -95,6 +102,9 @@ func (state *NetServer) Receive(context actor.Context) {
 	case *GetRelayStateReq:
 		relay := node.GetRelay()
 		context.Sender().Request(&GetRelayStateRsp{Relay: relay}, context.Self())
+	case *GetNeighborAddrsReq:
+		addrs, count := node.GetNeighborAddrs()
+		context.Sender().Request(&GetNeighborAddrsRsp{Addrs: addrs, Count:count}, context.Self())
 	default:
 		err := node.Xmit(context.Message())
 		if nil != err {
