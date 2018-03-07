@@ -1,7 +1,7 @@
 package ledgerstore
 
 import (
-	"DNA/common/serialization"
+	"github.com/Ontology/common/serialization"
 	"bytes"
 	"encoding/binary"
 	"fmt"
