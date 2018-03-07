@@ -14,12 +14,12 @@ func VerifyBlock(block *types.Block, ld *ledger.Ledger, completely bool) error {
 		return nil
 	}
 
-	err := VerifyHeaderProgram(block.Header)
+	err := VerifyHeaderProgram(ld, block.Header)
 	if err != nil {
 		return err
 	}
 
-	prevHeader, err := ld.Blockchain.GetHeader(block.Header.PrevBlockHash)
+	prevHeader, err := ld.GetHeaderByHash(&block.Header.PrevBlockHash)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "[BlockValidator], Cannnot find prevHeader..")
 	}

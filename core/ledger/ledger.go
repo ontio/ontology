@@ -5,8 +5,8 @@ import (
 	"github.com/Ontology/common"
 	"github.com/Ontology/core/genesis"
 	"github.com/Ontology/core/states"
-	"github.com/Ontology/core/store/ledgerstore"
 	"github.com/Ontology/core/store"
+	"github.com/Ontology/core/store/ledgerstore"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
 )
@@ -26,6 +26,10 @@ func NewLedger() (*Ledger, error) {
 	return &Ledger{
 		ldgStore: ldgStore,
 	}, nil
+}
+
+func (this *Ledger) GetStore() store.ILedgerStore {
+	return this.ldgStore
 }
 
 func (this *Ledger) Init(defaultBookKeeper []*crypto.PubKey) error {

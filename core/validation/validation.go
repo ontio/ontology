@@ -3,6 +3,7 @@ package validation
 import (
 	"errors"
 	. "github.com/Ontology/common"
+	"github.com/Ontology/core/ledger"
 	sig "github.com/Ontology/core/signature"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
@@ -35,11 +36,11 @@ func VerifySignableDataProgramHashes(signableData sig.SignableData) error {
 	return nil
 }
 
-func VerifyHeaderProgram(header *types.Header) error {
+func VerifyHeaderProgram(ld *ledger.Ledger, header *types.Header) error {
 	program := header.Program
 	var cryptos interfaces.ICrypto
 	cryptos = new(vm.ECDsaCrypto)
-	stateReader := service.NewStateReader(vmtypes.Verification)
+	stateReader := service.NewStateReader(ld.GetStore(), vmtypes.Verification)
 	se := vm.NewExecutionEngine(header, cryptos, nil, stateReader)
 	se.LoadCode(program.Code, false)
 	se.LoadCode(program.Parameter, true)
@@ -61,13 +62,13 @@ func VerifyHeaderProgram(header *types.Header) error {
 	return nil
 }
 
-func VerifySignableDataSignature(signableData sig.SignableData) error {
+func VerifySignableDataSignature(ledger *ledger.Ledger, signableData sig.SignableData) error {
 	programs := signableData.GetPrograms()
 	for i := 0; i < len(programs); i++ {
 		//execute program on VM
 		var cryptos interfaces.ICrypto
 		cryptos = new(vm.ECDsaCrypto)
-		stateReader := service.NewStateReader(vmtypes.Verification)
+		stateReader := service.NewStateReader(ledger.GetStore(), vmtypes.Verification)
 		se := vm.NewExecutionEngine(signableData, cryptos, nil, stateReader)
 		se.LoadCode(programs[i].Code, false)
 		se.LoadCode(programs[i].Parameter, true)
