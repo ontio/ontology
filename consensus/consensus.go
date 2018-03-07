@@ -15,6 +15,7 @@ import (
 type ConsensusService interface {
 	Start() error
 	Halt() error
+	GetPID() *actor.PID
 }
 
 const (
@@ -22,7 +23,6 @@ const (
 	CONSENSUS_SOLO = "solo"
 )
 
-//func NewConsensusService(client cl.Client, localNet net.Neter) ConsensusService {
 func NewConsensusService(account *account.Account, txpool *actor.PID, ledger *actor.PID, localNet net.Neter) (ConsensusService, error) {
 	consensusType := strings.ToLower(config.Parameters.ConsensusType)
 	if consensusType == "" {
@@ -33,9 +33,9 @@ func NewConsensusService(account *account.Account, txpool *actor.PID, ledger *ac
 	var err error
 	switch consensusType {
 	case CONSENSUS_DBFT:
-		consensus = dbft.NewDbftService(account, "dbft", nil)
+		consensus, err = dbft.NewDbftService(account, txpool)
 	case CONSENSUS_SOLO:
-		consensus, err = solo.NewSoloService(account, nil, nil)
+		consensus, err = solo.NewSoloService(account, txpool, ledger)
 	}
 	log.Infof("ConsensusType:%s", consensusType)
 	return consensus, err

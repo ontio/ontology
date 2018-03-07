@@ -3,17 +3,17 @@ package ledgerstore
 import (
 	"fmt"
 	"github.com/Ontology/common"
+	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/states"
 	"github.com/Ontology/core/store/statestore"
-	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
 	smcommon "github.com/Ontology/smartcontract/common"
-	vm "github.com/Ontology/vm/neovm"
-	vmtypes "github.com/Ontology/smartcontract/types"
 	"github.com/Ontology/smartcontract/service"
 	smtypes "github.com/Ontology/smartcontract/types"
+	vmtypes "github.com/Ontology/smartcontract/types"
 	"github.com/Ontology/vm/neovm"
+	vm "github.com/Ontology/vm/neovm"
 	log4 "github.com/alecthomas/log4go"
 	"sort"
 	"sync"
@@ -688,7 +688,7 @@ func (this *LedgerStore) IsContainTransaction(txHash *common.Uint256) (bool, err
 }
 
 func (this *LedgerStore) GetBlockRootWithNewTxRoot(txRoot *common.Uint256) *common.Uint256 {
-	newTxRoot :=this.merkleStore.GetBlockRootWithNewTxRoot(*txRoot)
+	newTxRoot := this.merkleStore.GetBlockRootWithNewTxRoot(*txRoot)
 	return &newTxRoot
 }
 

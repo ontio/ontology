@@ -68,7 +68,7 @@ func (this *SoloService) Receive(context actor.Context) {
 			for {
 				select {
 				case <-timer.C:
-					this.genBlock()
+					this.pid.Tell(&actorTypes.TimeOut{})
 				case <-existCh:
 					return
 				}
@@ -79,9 +79,15 @@ func (this *SoloService) Receive(context actor.Context) {
 			close(this.existCh)
 			this.existCh = nil
 		}
+	case *actorTypes.TimeOut:
+		this.genBlock()
 	default:
 		log.Info("Unknown msg type", msg)
 	}
+}
+
+func (this *SoloService) GetPID() *actor.PID {
+	return this.pid
 }
 
 func (this *SoloService) Start() error {
