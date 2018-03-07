@@ -14,6 +14,7 @@ import (
 	"github.com/Ontology/http/websocket"
 	"github.com/Ontology/net"
 	"github.com/Ontology/net/protocol"
+	"github.com/Ontology/txnpool"
 	"os"
 	"os/signal"
 	"runtime"
@@ -78,7 +79,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Info("3. Start the P2P networks")
+	log.Info("3. Start the transaction pool server")
+	// Start the transaction pool server
+	txPoolServer := txnpool.StartTxnPoolServer()
+	if txPoolServer == nil {
+		log.Fatalf("failed to start txn pool server")
+		os.Exit(1)
+	}
+
+	log.Info("4. Start the P2P networks")
 	// Don't need two return value.
 	noder = net.StartProtocol(acct.PublicKey)
 	go restful.StartServer()
@@ -88,7 +97,7 @@ func main() {
 	noder.WaitForPeersStart()
 	noder.WaitForSyncBlkFinish()
 	if protocol.SERVICENODENAME != config.Parameters.NodeType {
-		log.Info("4. Start Consensus Services")
+		log.Info("5. Start Consensus Services")
 		consensusSrv, _ := consensus.NewConsensusService(acct, nil, nil, noder)
 		go consensusSrv.Start()
 		time.Sleep(5 * time.Second)
@@ -108,7 +117,7 @@ func main() {
 	waitToExit()
 }
 
-func logCurrBlockHeight(){
+func logCurrBlockHeight() {
 	ticker := time.NewTicker(config.DEFAULTGENBLOCKTIME * time.Second)
 	for {
 		select {
@@ -123,7 +132,7 @@ func logCurrBlockHeight(){
 	}
 }
 
-func waitToExit(){
+func waitToExit() {
 	exit := make(chan bool, 0)
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
