@@ -75,7 +75,7 @@ func (worker *txPoolWorker) handleRsp(rsp *types.CheckResponse) {
 		log.Info(fmt.Sprintf("Validator %d: Transaction %x invalid",
 			rsp.Type, rsp.Hash))
 		delete(worker.pendingTxList, rsp.Hash)
-		worker.server.removePendingTx(rsp.Hash)
+		worker.server.removePendingTx(rsp.Hash, rsp.ErrCode)
 		return
 	}
 
@@ -118,6 +118,7 @@ func (worker *txPoolWorker) handleTimeoutEvent() {
 				worker.mu.Lock()
 				delete(worker.pendingTxList, k)
 				worker.mu.Unlock()
+				worker.server.removePendingTx(k, errors.ErrUnknown)
 			}
 		}
 	}
@@ -129,8 +130,8 @@ func (worker *txPoolWorker) putTxPool(pt *pendingTx) bool {
 		Attrs: pt.ret,
 		Fee:   pt.tx.GetTotalFee(),
 	}
-	worker.server.AddTxList(txEntry)
-	worker.server.removePendingTx(pt.tx.Hash())
+	worker.server.addTxList(txEntry)
+	worker.server.removePendingTx(pt.tx.Hash(), errors.ErrNoError)
 	return true
 }
 
@@ -138,6 +139,7 @@ func (worker *txPoolWorker) verifyTx(tx *tx.Transaction) {
 	if tx := worker.server.getTransaction(tx.Hash()); tx != nil {
 		log.Info(fmt.Sprintf("Transaction %x already in the txn pool",
 			tx.Hash()))
+		worker.server.removePendingTx(tx.Hash(), errors.ErrDuplicatedTx)
 		return
 	}
 
@@ -198,7 +200,7 @@ func (worker *txPoolWorker) sendReq2Validator(req *types.CheckTx) (send bool) {
 		return false
 	}
 
-	pid := worker.server.GetValidatorPID("stateless")
+	pid := worker.server.getValidatorPID("stateless")
 	if pid == nil {
 		return false
 	}

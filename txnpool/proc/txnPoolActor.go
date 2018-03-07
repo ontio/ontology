@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Ontology/common/log"
 	tx "github.com/Ontology/core/types"
+	"github.com/Ontology/errors"
 	"github.com/Ontology/eventbus/actor"
 	tc "github.com/Ontology/txnpool/common"
 	"github.com/Ontology/validator/types"
@@ -32,36 +33,106 @@ type TxActor struct {
 	server *TXPoolServer
 }
 
+// Handle a new transaction
+func (ta *TxActor) handleTransaction(sender, self *actor.PID,
+	txn *tx.Transaction) {
+	ta.server.increaseStats(tc.RcvStats)
+
+	if txn := ta.server.getTransaction(txn.Hash()); txn != nil {
+		log.Info(fmt.Sprintf("Transaction %x already in the txn pool",
+			txn.Hash()))
+
+		ta.server.increaseStats(tc.DuplicateStats)
+
+		if sender == nil {
+			return
+		}
+		rsp := &tc.TxRsp{
+			Hash:    txn.Hash(),
+			ErrCode: errors.ErrNoError,
+		}
+		sender.Request(rsp, self)
+	} else if ta.server.getTransactionCount() >= tc.MAXCAPACITY {
+		log.Info("Transaction pool is full", txn.Hash())
+
+		ta.server.increaseStats(tc.FailureStats)
+
+		if sender == nil {
+			return
+		}
+
+		rsp := &tc.TxRsp{
+			Hash:    txn.Hash(),
+			ErrCode: errors.ErrUnknown,
+		}
+		sender.Request(rsp, self)
+	} else {
+		ta.server.assginTXN2Worker(txn, sender)
+	}
+}
+
 func (ta *TxActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
 		log.Info("Server started and be ready to receive tx msg")
+
 	case *actor.Stopping:
 		log.Info("Server stopping")
+
 	case *actor.Restarting:
 		log.Info("Server Restarting")
+
 	case *tx.Transaction:
-		log.Info("Server Receives txn message")
-		ta.server.increaseStats(tc.RcvStats)
-		if txn := ta.server.getTransaction(msg.Hash()); txn != nil {
-			log.Info(fmt.Sprintf("Transaction %x already in the txn pool",
-				msg.Hash()))
-			ta.server.increaseStats(tc.DuplicateStats)
-		} else {
-			ta.server.assginTXN2Worker(msg)
-		}
+		sender := context.Sender()
+
+		log.Info("Server Receives tx from ", sender)
+
+		ta.handleTransaction(sender, context.Self(), msg)
+
 	case *tc.GetTxnReq:
+		sender := context.Sender()
+
+		log.Info("Server Receives getting tx req from ", sender)
+
 		res := ta.server.getTransaction(msg.Hash)
-		context.Sender().Request(&tc.GetTxnRsp{Txn: res}, context.Self())
+		if sender != nil {
+			sender.Request(&tc.GetTxnRsp{Txn: res},
+				context.Self())
+		}
+
 	case *tc.GetTxnStats:
+		sender := context.Sender()
+
+		log.Info("Server Receives getting tx stats from ", sender)
+
 		res := ta.server.getStats()
-		context.Sender().Request(&tc.GetTxnStatsRsp{Count: res}, context.Self())
+		if sender != nil {
+			sender.Request(&tc.GetTxnStatsRsp{Count: res},
+				context.Self())
+		}
+
 	case *tc.CheckTxnReq:
-		res := ta.server.CheckTx(msg.Hash)
-		context.Sender().Request(&tc.CheckTxnRsp{Ok: res}, context.Self())
+		sender := context.Sender()
+
+		log.Info("Server Receives checking tx req from ", sender)
+
+		res := ta.server.checkTx(msg.Hash)
+		if sender != nil {
+			sender.Request(&tc.CheckTxnRsp{Ok: res},
+				context.Self())
+		}
+
 	case *tc.GetTxnStatusReq:
-		res := ta.server.GetTxStatusReq(msg.Hash)
-		context.Sender().Request(res, context.Self())
+		sender := context.Sender()
+
+		log.Info("Server Receives getting tx status req from ", sender)
+
+		res := ta.server.getTxStatusReq(msg.Hash)
+		if sender != nil {
+			sender.Request(&tc.GetTxnStatusRsp{Hash: res.Hash, TxStatus: res.Attrs},
+				context.Self())
+		}
+
 	default:
 		log.Info("Unknown msg type", msg)
 	}
@@ -80,16 +151,40 @@ func (tpa *TxPoolActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
 		log.Info("Server started and be ready to receive txPool msg")
+
 	case *actor.Stopping:
 		log.Info("Server stopping")
+
 	case *actor.Restarting:
 		log.Info("Server Restarting")
+
 	case *tc.GetTxnPoolReq:
-		res := tpa.server.GetTxPool(msg.ByCount)
-		context.Sender().Request(&tc.GetTxnPoolRsp{TxnPool: res}, context.Self())
+		sender := context.Sender()
+
+		log.Info("Server Receives getting tx pool req from ", sender)
+
+		res := tpa.server.getTxPool(msg.ByCount)
+		if sender != nil {
+			sender.Request(&tc.GetTxnPoolRsp{TxnPool: res}, context.Self())
+		}
+
 	case *tc.GetPendingTxnReq:
-		res := tpa.server.GetPendingTxs(msg.ByCount)
-		context.Sender().Request(&tc.GetPendingTxnRsp{Txs: res}, context.Self())
+		sender := context.Sender()
+
+		log.Info("Server Receives getting pedning tx req from ", sender)
+
+		res := tpa.server.getPendingTxs(msg.ByCount)
+		if sender != nil {
+			sender.Request(&tc.GetPendingTxnRsp{Txs: res}, context.Self())
+		}
+
+	case *tc.VerifyBlockReq:
+		sender := context.Sender()
+
+		log.Info("Server Receives verifying block req from ", sender)
+
+		tpa.server.verifyBlock(msg, sender)
+
 	default:
 		log.Info("Unknown msg type", msg)
 	}
@@ -108,21 +203,26 @@ func (vpa *VerifyRspActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
 		log.Info("Server started and be ready to receive validator's msg")
+
 	case *actor.Stopping:
 		log.Info("Server stopping")
+
 	case *actor.Restarting:
 		log.Info("Server Restarting")
+
 	case *types.RegisterValidator:
 		log.Infof("validator %v connected", msg.Sender)
-		fmt.Println("llls")
+
 		v := Validator{
 			Pid:       msg.Sender,
 			CheckType: msg.Type,
 		}
 		vpa.server.registerValidator(msg.Id, v)
+
 	case *types.UnRegisterValidator:
 		log.Infof("validator %v disconnected", msg.Id)
-		pid := vpa.server.GetValidatorPID(msg.Id)
+
+		pid := vpa.server.getValidatorPID(msg.Id)
 		if pid != nil {
 			vpa.server.unRegisterValidator(msg.Id)
 			pid.Tell(&types.UnRegisterAck{Id: msg.Id})
@@ -130,7 +230,9 @@ func (vpa *VerifyRspActor) Receive(context actor.Context) {
 
 	case *types.CheckResponse:
 		log.Info("Server Receives verify rsp message")
+
 		vpa.server.assignRsp2Worker(msg)
+
 	default:
 		log.Info("Unknown msg type", msg)
 	}

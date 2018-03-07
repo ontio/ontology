@@ -7,6 +7,7 @@ import (
 )
 
 const (
+	MAXCAPACITY    = 20140                        // The tx pool's capacity that holds the verified txs
 	MAXPENDINGTXN  = 2048                         // The max length of pending txs
 	MAXWORKERNUM   = 2                            // The max concurrent workers
 	MAXRCVTXNLEN   = MAXWORKERNUM * MAXPENDINGTXN // The max length of the queue that server can hold
@@ -20,10 +21,10 @@ const (
 type ActorType uint8
 
 const (
-	_ ActorType = iota
-	TxActor
-	TxPoolActor
-	VerifyRspActor
+	_              ActorType = iota
+	TxActor                  // Actor that handles new transaction
+	TxPoolActor              // Actor that handles consensus msg
+	VerifyRspActor           // Actor that handles the response from valdiators
 
 	MAXACTOR
 )
@@ -31,13 +32,13 @@ const (
 type TxnStatsType uint8
 
 const (
-	_ TxnStatsType = iota
-	RcvStats
-	SuccessStats
-	FailureStats
-	DuplicateStats
-	SigErrStats
-	StateErrStats
+	_              TxnStatsType = iota
+	RcvStats                    // The count that the tx pool receive from the actor bus
+	SuccessStats                // The count that the transctions are verified successfully
+	FailureStats                // The count that the transactions are invalid
+	DuplicateStats              // The count that the transactions are duplicated input
+	SigErrStats                 // The count that the transactions' signature error
+	StateErrStats               // The count that the transactions are invalid in database
 
 	MAXSTATS
 )
@@ -45,6 +46,11 @@ const (
 type TxStatus struct {
 	Hash  common.Uint256 // transaction hash
 	Attrs []*TXAttr      // transaction's status
+}
+
+type TxRsp struct {
+	Hash    common.Uint256
+	ErrCode errors.ErrCode
 }
 
 // restful api
@@ -110,7 +116,7 @@ type VerifyTxResult struct {
 }
 
 type VerifyBlockRsp struct {
-	TxnPool []VerifyTxResult
+	TxnPool []*VerifyTxResult
 }
 
 /*

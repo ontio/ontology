@@ -12,9 +12,9 @@ import (
 )
 
 type TXAttr struct {
-	Height  uint32
-	Type    vt.VerifyType
-	ErrCode errors.ErrCode
+	Height  uint32         // The height in which tx was verified
+	Type    vt.VerifyType  // The validator flag: stateless/stateful
+	ErrCode errors.ErrCode // Verified result
 }
 
 type TXEntry struct {
@@ -25,7 +25,7 @@ type TXEntry struct {
 
 type TXPool struct {
 	sync.RWMutex
-	txList map[common.Uint256]*TXEntry
+	txList map[common.Uint256]*TXEntry // Transactions which have been verified
 }
 
 func (tp *TXPool) Init() {
@@ -141,19 +141,4 @@ func (tp *TXPool) GetTransactionCount() int {
 	tp.RLock()
 	defer tp.RUnlock()
 	return len(tp.txList)
-}
-
-func (tp *TXPool) GetUnverifiedTxs(txs []*types.Transaction) []*types.Transaction {
-	tp.RLock()
-	defer tp.RUnlock()
-	ret := []*types.Transaction{}
-	for _, t := range txs {
-		if t.TxType == types.BookKeeping {
-			continue
-		}
-		if _, ok := tp.txList[t.Hash()]; !ok {
-			ret = append(ret, t)
-		}
-	}
-	return ret
 }
