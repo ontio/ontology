@@ -91,6 +91,7 @@ type GetPendingTxnRsp struct {
 // consensus messages
 type GetTxnPoolReq struct {
 	ByCount bool
+	Height  uint32
 }
 
 type GetTxnPoolRsp struct {

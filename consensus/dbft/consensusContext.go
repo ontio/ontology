@@ -2,7 +2,7 @@ package dbft
 
 import (
 	"fmt"
-	cl "github.com/Ontology/account"
+	"github.com/Ontology/account"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	ser "github.com/Ontology/common/serialization"
@@ -184,7 +184,7 @@ func (cxt *ConsensusContext) GetStateDetail() string {
 
 }
 
-func (cxt *ConsensusContext) Reset(client cl.Client, localNode net.Neter) {
+func (cxt *ConsensusContext) Reset(bkAccount *account.Account, localNode net.Neter) {
 	preHash := ledger.DefLedger.GetCurrentBlockHash()
 	height := ledger.DefLedger.GetCurrentBlockHeight()
 	header := cxt.MakeHeader()
@@ -214,8 +214,7 @@ func (cxt *ConsensusContext) Reset(client cl.Client, localNode net.Neter) {
 	cxt.ExpectedView = make([]byte, bookKeeperLen)
 
 	for i := 0; i < bookKeeperLen; i++ {
-		ac, _ := client.GetDefaultAccount()
-		if ac.PublicKey.X.Cmp(cxt.BookKeepers[i].X) == 0 {
+		if bkAccount.PublicKey.X.Cmp(cxt.BookKeepers[i].X) == 0 {
 			cxt.BookKeeperIndex = i
 			cxt.Owner = cxt.BookKeepers[i]
 			break

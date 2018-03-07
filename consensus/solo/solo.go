@@ -6,20 +6,19 @@ import (
 	"fmt"
 	"time"
 
-	cl "github.com/Ontology/account"
+	"github.com/Ontology/account"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
+	actorTypes "github.com/Ontology/consensus/actor"
 	"github.com/Ontology/core"
 	"github.com/Ontology/core/contract"
 	"github.com/Ontology/core/contract/program"
-	"github.com/Ontology/core/genesis"
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/payload"
-	"github.com/Ontology/core/transaction/utxo"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
-	"github.com/Ontology/net"
+	"github.com/Ontology/eventbus/actor"
 )
 
 /*
@@ -30,31 +29,68 @@ var GenBlockTime = (config.DEFAULTGENBLOCKTIME * time.Second)
 const ContextVersion uint32 = 0
 
 type SoloService struct {
-	Client   cl.Client
-	localNet net.Neter
-	existCh  chan interface{}
+	Account     *account.Account
+	poolActor   *actorTypes.TxPoolActor
+	ledgerActor *actorTypes.LedgerActor
+	existCh     chan interface{}
+
+	pid *actor.PID
 }
 
-func NewSoloService(client cl.Client, localNet net.Neter) *SoloService {
-	return &SoloService{
-		Client:   client,
-		localNet: localNet,
+func NewSoloService(bkAccount *account.Account, txpool *actor.PID, ledger *actor.PID) (*SoloService, error) {
+	service := &SoloService{
+		Account:     bkAccount,
+		poolActor:   &actorTypes.TxPoolActor{Pool: txpool},
+		ledgerActor: &actorTypes.LedgerActor{Ledger: ledger},
+	}
+
+	props := actor.FromProducer(func() actor.Actor {
+		return service
+	})
+
+	pid, err := actor.SpawnNamed(props, "consensus_solo")
+	service.pid = pid
+	return service, err
+}
+
+func (this *SoloService) Receive(context actor.Context) {
+	switch msg := context.Message().(type) {
+	case *actorTypes.StartConsensus:
+		if this.existCh != nil {
+			log.Warn("consensus have started")
+			return
+		}
+		timer := time.NewTicker(GenBlockTime)
+		this.existCh = make(chan interface{})
+		go func() {
+			defer timer.Stop()
+			existCh := this.existCh
+			for {
+				select {
+				case <-timer.C:
+					this.genBlock()
+				case <-existCh:
+					return
+				}
+			}
+		}()
+	case *actorTypes.StopConsensus:
+		if this.existCh != nil {
+			close(this.existCh)
+			this.existCh = nil
+		}
+	default:
+		log.Info("Unknown msg type", msg)
 	}
 }
 
 func (this *SoloService) Start() error {
-	timer := time.NewTicker(GenBlockTime)
-	go func() {
-		defer timer.Stop()
-		for {
-			select {
-			case <-timer.C:
-				this.genBlock()
-			case <-this.existCh:
-				return
-			}
-		}
-	}()
+	this.pid.Tell(&actorTypes.StartConsensus{})
+	return nil
+}
+
+func (this *SoloService) Halt() error {
+	this.pid.Tell(&actorTypes.StopConsensus{})
 	return nil
 }
 
@@ -77,28 +113,29 @@ func (this *SoloService) genBlock() {
 
 func (this *SoloService) makeBlock() *types.Block {
 	log.Debug()
-	ac, _ := this.Client.GetDefaultAccount()
-	owner := ac.PublicKey
+	owner := this.Account.PublicKey
 	nextBookKeeper, err := core.AddressFromBookKeepers([]*crypto.PubKey{owner})
 	if err != nil {
 		log.Error("SoloService GetBookKeeperAddress error:%s", err)
 		return nil
 	}
+	prevHash := ledger.DefLedger.GetCurrentBlockHash()
+	height := ledger.DefLedger.GetCurrentBlockHeight() + 1
+
 	nonce := GetNonce()
-	//TODO Need remove after merge
-	transactionsPool := make([]*types.Transaction, 0)
+	txs := this.poolActor.GetTxnPool(true, height-1)
+	// todo : fix feesum calcuation
 	feeSum := Fixed64(0)
-	//transactionsPool, feeSum := this.localNet.GetTxnPool(true)
+
+	// TODO: increment checking txs
+
 	txBookkeeping := this.createBookkeepingTransaction(nonce, feeSum)
 
-	transactions := make([]*types.Transaction, 0, len(transactionsPool)+1)
+	transactions := make([]*types.Transaction, 0, len(txs)+1)
 	transactions = append(transactions, txBookkeeping)
-	for _, transaction := range transactionsPool {
-		transactions = append(transactions, transaction)
+	for _, txEntry := range txs {
+		transactions = append(transactions, txEntry.Tx)
 	}
-
-	prevHash := ledger.DefLedger.GetCurrentBlockHash()
-	height := ledger.DefLedger.GetCurrentBlockHeight()+1
 
 	txHash := []Uint256{}
 	for _, t := range transactions {
@@ -149,9 +186,8 @@ func (this *SoloService) makeBlock() *types.Block {
 func (this *SoloService) getBlockProgram(block *types.Block, owner *crypto.PubKey) (*program.Program, error) {
 	buf := new(bytes.Buffer)
 	block.SerializeUnsigned(buf)
-	account, _ := this.Client.GetAccount(owner)
 
-	signature, err := crypto.Sign(account.PrivKey(), buf.Bytes())
+	signature, err := crypto.Sign(this.Account.PrivKey(), buf.Bytes())
 	if err != nil {
 		return nil, errors.New("[Signature],Sign failed.")
 	}
@@ -177,33 +213,10 @@ func (this *SoloService) createBookkeepingTransaction(nonce uint64, fee Fixed64)
 	bookKeepingPayload := &payload.BookKeeping{
 		Nonce: uint64(time.Now().UnixNano()),
 	}
-	ac, _ := this.Client.GetDefaultAccount()
-	owner := ac.PublicKey
-	signatureRedeemScript, err := contract.CreateSignatureRedeemScript(owner)
-	if err != nil {
-		return nil
-	}
-	signatureRedeemScriptHashToCodeHash := ToCodeHash(signatureRedeemScript)
-	if err != nil {
-		return nil
-	}
-	outputs := []*utxo.TxOutput{}
-	if fee > 0 {
-		feeOutput := &utxo.TxOutput{
-			AssetID:     genesis.ONGTokenID,
-			Value:       fee,
-			ProgramHash: signatureRedeemScriptHashToCodeHash,
-		}
-		outputs = append(outputs, feeOutput)
-	}
+
 	return &types.Transaction{
 		TxType:     types.BookKeeping,
 		Payload:    bookKeepingPayload,
 		Attributes: []*types.TxAttribute{},
 	}
-}
-
-func (this *SoloService) Halt() error {
-	close(this.existCh)
-	return nil
 }

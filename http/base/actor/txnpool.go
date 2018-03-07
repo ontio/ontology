@@ -1,14 +1,14 @@
 package actor
 
 import (
-	"time"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/eventbus/actor"
-	. "github.com/Ontology/errors"
-	. "github.com/Ontology/common"
-	tc "github.com/Ontology/txnpool/common"
 	"errors"
 	"fmt"
+	. "github.com/Ontology/common"
+	"github.com/Ontology/core/types"
+	. "github.com/Ontology/errors"
+	"github.com/Ontology/eventbus/actor"
+	tc "github.com/Ontology/txnpool/common"
+	"time"
 )
 
 var txnPid *actor.PID
@@ -34,12 +34,12 @@ func AppendTxToPool(txn *types.Transaction) ErrCode {
 }
 
 func GetTxsFromPool(byCount bool) (map[Uint256]*types.Transaction, Fixed64) {
-	future := txnPoolPid.RequestFuture(&tc.GetTxnPoolReq{byCount}, 10*time.Second)
+	future := txnPoolPid.RequestFuture(&tc.GetTxnPoolReq{ByCount: byCount}, 10*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		return nil, 0
 	}
-	txpool, ok := result.(*tc.GetTxnPoolRsp);
+	txpool, ok := result.(*tc.GetTxnPoolRsp)
 	if !ok {
 		return nil, 0
 	}
@@ -60,7 +60,7 @@ func GetTxFromPool(hash Uint256) (tc.TXEntry, error) {
 	if err != nil {
 		return tc.TXEntry{}, err
 	}
-	txn, ok := result.(*tc.GetTxnRsp);
+	txn, ok := result.(*tc.GetTxnRsp)
 	if !ok {
 		return tc.TXEntry{}, errors.New("fail")
 	}
@@ -73,12 +73,12 @@ func GetTxFromPool(hash Uint256) (tc.TXEntry, error) {
 	if err != nil {
 		return tc.TXEntry{}, err
 	}
-	txStatus, ok := result.(*tc.GetTxnStatusRsp);
+	txStatus, ok := result.(*tc.GetTxnStatusRsp)
 	if !ok {
 		return tc.TXEntry{}, errors.New("fail")
 	}
 
-	txnEntry := tc.TXEntry{txn.Txn,0,txStatus.TxStatus}
+	txnEntry := tc.TXEntry{txn.Txn, 0, txStatus.TxStatus}
 
 	return txnEntry, nil
 }
@@ -89,7 +89,7 @@ func GetTxnCnt() ([]uint64, error) {
 	if err != nil {
 		return []uint64{}, err
 	}
-	txnCnt, ok := result.(*tc.GetTxnStatsRsp);
+	txnCnt, ok := result.(*tc.GetTxnStatsRsp)
 	if !ok {
 		return []uint64{}, errors.New("fail")
 	}

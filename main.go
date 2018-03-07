@@ -7,12 +7,12 @@ import (
 	"github.com/Ontology/consensus"
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/crypto"
-	"github.com/Ontology/net"
 	"github.com/Ontology/http/jsonrpc"
+	"github.com/Ontology/http/localrpc"
 	"github.com/Ontology/http/nodeinfo"
 	"github.com/Ontology/http/restful"
 	"github.com/Ontology/http/websocket"
-	"github.com/Ontology/http/localrpc"
+	"github.com/Ontology/net"
 	"github.com/Ontology/net/protocol"
 	"os"
 	"os/signal"
@@ -89,8 +89,7 @@ func main() {
 	noder.WaitForSyncBlkFinish()
 	if protocol.SERVICENODENAME != config.Parameters.NodeType {
 		log.Info("4. Start Consensus Services")
-		consensusSrv := consensus.NewConsensusService(client, noder)
-		//jsonrpc.RegistConsensusService(consensusSrv)
+		consensusSrv, _ := consensus.NewConsensusService(acct, nil, nil, noder)
 		go consensusSrv.Start()
 		time.Sleep(5 * time.Second)
 	}
