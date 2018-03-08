@@ -95,9 +95,10 @@ func (worker *txPoolWorker) handleRsp(rsp *types.CheckResponse) {
 	}
 }
 
-/* Check if the transaction need to be sent to validator to verify when time out
- * Todo: Going through the list will take time if the list is too long, need to
- * change the algorithm later
+/* Check if the transaction need to be sent to validator to verify
+ * when time out.
+ * Todo: Going through the list will take time if the list is too
+ * long, need to change the algorithm later
  */
 func (worker *txPoolWorker) handleTimeoutEvent() {
 	if len(worker.pendingTxList) <= 0 {
@@ -200,11 +201,13 @@ func (worker *txPoolWorker) sendReq2Validator(req *types.CheckTx) (send bool) {
 		return false
 	}
 
-	pid := worker.server.getValidatorPID("stateless")
-	if pid == nil {
+	pids := worker.server.getNextValidatorPIDs()
+	if pids == nil {
 		return false
 	}
-	pid.Request(req, rspPid)
+	for _, pid := range pids {
+		pid.Request(req, rspPid)
+	}
 
 	return true
 }

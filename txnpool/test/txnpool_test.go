@@ -103,6 +103,19 @@ func Test_RCV(t *testing.T) {
 	}
 	statelessV.Register(rspPid)
 
+	statelessV2, err := stateless.NewValidator("stateless2")
+	if err != nil {
+		fmt.Println("failed to new stateless valdiator", err)
+		return
+	}
+	statelessV2.Register(rspPid)
+
+	statelessV3, err := stateless.NewValidator("stateless3")
+	if err != nil {
+		fmt.Println("failed to new stateless valdiator", err)
+		return
+	}
+	statelessV3.Register(rspPid)
 	// Todo: depending on ledger db sync, when ledger db ready, enable it
 	// Start stateful validator
 	/*store, err := db.NewStore("temp.db")
@@ -126,7 +139,7 @@ func Test_RCV(t *testing.T) {
 				j++
 				txPid.Tell(tx)
 
-				if j >= 2 {
+				if j >= 4 {
 					return
 				}
 			}
@@ -140,6 +153,8 @@ func Test_RCV(t *testing.T) {
 	time.Sleep(2 * time.Second)
 
 	statelessV.UnRegister(rspPid)
+	statelessV2.UnRegister(rspPid)
+	statelessV3.UnRegister(rspPid)
 	//statefulV.UnRegister(rspPid)
 	s.Stop()
 }

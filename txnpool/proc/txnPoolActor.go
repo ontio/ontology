@@ -38,7 +38,7 @@ func (ta *TxActor) handleTransaction(sender, self *actor.PID,
 	txn *tx.Transaction) {
 	ta.server.increaseStats(tc.RcvStats)
 
-	if txn := ta.server.getTransaction(txn.Hash()); txn != nil {
+	if ta.server.getTransaction(txn.Hash()) != nil {
 		log.Info(fmt.Sprintf("Transaction %x already in the txn pool",
 			txn.Hash()))
 
@@ -129,8 +129,8 @@ func (ta *TxActor) Receive(context actor.Context) {
 
 		res := ta.server.getTxStatusReq(msg.Hash)
 		if sender != nil {
-			sender.Request(&tc.GetTxnStatusRsp{Hash: res.Hash, TxStatus: res.Attrs},
-				context.Self())
+			sender.Request(&tc.GetTxnStatusRsp{Hash: res.Hash,
+				TxStatus: res.Attrs}, context.Self())
 		}
 
 	default:
@@ -212,21 +212,12 @@ func (vpa *VerifyRspActor) Receive(context actor.Context) {
 
 	case *types.RegisterValidator:
 		log.Infof("validator %v connected", msg.Sender)
-
-		v := Validator{
-			Pid:       msg.Sender,
-			CheckType: msg.Type,
-		}
-		vpa.server.registerValidator(msg.Id, v)
+		vpa.server.registerValidator(msg)
 
 	case *types.UnRegisterValidator:
-		log.Infof("validator %v disconnected", msg.Id)
+		log.Infof("validator %d:%v disconnected", msg.Type, msg.Id)
 
-		pid := vpa.server.getValidatorPID(msg.Id)
-		if pid != nil {
-			vpa.server.unRegisterValidator(msg.Id)
-			pid.Tell(&types.UnRegisterAck{Id: msg.Id})
-		}
+		vpa.server.unRegisterValidator(msg.Type, msg.Id)
 
 	case *types.CheckResponse:
 		log.Info("Server Receives verify rsp message")

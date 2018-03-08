@@ -17,11 +17,6 @@ type txStats struct {
 	count []uint64
 }
 
-type Validator struct {
-	Pid       *actor.PID       // The actor pid of the registered validator
-	CheckType types.VerifyType // The validator's type: stateless/stateful
-}
-
 type serverPendingTx struct {
 	tx     *tx.Transaction // Pending tx
 	sender *actor.PID      // Indicate which sender tx is from
@@ -36,6 +31,16 @@ type pendingBlock struct {
 	stopCh         chan bool                             // Sync call, right now, server only can handle one by one
 }
 
+type roundRobinState struct {
+	state map[types.VerifyType]int // Keep the round robin index for each verify type
+}
+
+type registerValidators struct {
+	sync.RWMutex
+	entries map[types.VerifyType][]*types.RegisterValidator // Registered validator container
+	state   roundRobinState                                 // For loadbance
+}
+
 type TXPoolServer struct {
 	mu            sync.RWMutex                        // Sync mutex
 	wg            sync.WaitGroup                      // Worker sync
@@ -45,7 +50,7 @@ type TXPoolServer struct {
 	allPendingTxs map[common.Uint256]*serverPendingTx // The txs that server is processing
 	pendingBlock  *pendingBlock                       // The block that server is processing
 	actors        map[tc.ActorType]*actor.PID         // The actors running in the server
-	validators    map[string]Validator                // The registered validators
+	validators    *registerValidators                 // The registered validators
 	stats         txStats                             // The transaction statstics
 }
 
@@ -61,14 +66,21 @@ func (s *TXPoolServer) init(num uint8) {
 	s.txPool.Init()
 	s.allPendingTxs = make(map[common.Uint256]*serverPendingTx)
 	s.actors = make(map[tc.ActorType]*actor.PID)
-	s.validators = make(map[string]Validator)
-	s.stats = txStats{count: make([]uint64, tc.MAXSTATS-1)}
+
+	s.validators = &registerValidators{
+		entries: make(map[types.VerifyType][]*types.RegisterValidator),
+		state: roundRobinState{
+			state: make(map[types.VerifyType]int),
+		},
+	}
 
 	s.pendingBlock = &pendingBlock{
 		processedTxs:   make(map[common.Uint256]*tc.VerifyTxResult, 0),
 		unProcessedTxs: make(map[common.Uint256]*tx.Transaction, 0),
 		stopCh:         make(chan bool),
 	}
+
+	s.stats = txStats{count: make([]uint64, tc.MAXSTATS-1)}
 
 	// Create the given concurrent workers
 	s.workers = make([]txPoolWorker, num)
@@ -81,8 +93,9 @@ func (s *TXPoolServer) init(num uint8) {
 	}
 }
 
-func (s *TXPoolServer) sendRsp2Client(sender *actor.PID, hash common.Uint256,
-	err errors.ErrCode) {
+func (s *TXPoolServer) sendRsp2Client(sender *actor.PID,
+	hash common.Uint256, err errors.ErrCode) {
+
 	res := &tc.TxRsp{
 		Hash:    hash,
 		ErrCode: err,
@@ -90,7 +103,9 @@ func (s *TXPoolServer) sendRsp2Client(sender *actor.PID, hash common.Uint256,
 	sender.Request(res, s.GetPID(tc.TxActor))
 }
 
-func (s *TXPoolServer) checkPendingBlockOk(hash common.Uint256, err errors.ErrCode) {
+func (s *TXPoolServer) checkPendingBlockOk(hash common.Uint256,
+	err errors.ErrCode) {
+
 	// Check if the tx is in pending block, if yes, move it to
 	// the verified tx list
 	s.pendingBlock.mu.Lock()
@@ -111,11 +126,12 @@ func (s *TXPoolServer) checkPendingBlockOk(hash common.Uint256, err errors.ErrCo
 	s.pendingBlock.processedTxs[hash] = entry
 	delete(s.pendingBlock.unProcessedTxs, hash)
 
-	// Check if the block has been verified, if yes, send rsp to
-	// the actor bus
+	// Check if the block has been verified, if yes,
+	// send rsp to the actor bus
 	if len(s.pendingBlock.unProcessedTxs) == 0 {
 		rsp := &tc.VerifyBlockRsp{
-			TxnPool: make([]*tc.VerifyTxResult, len(s.pendingBlock.processedTxs)),
+			TxnPool: make([]*tc.VerifyTxResult,
+				0, len(s.pendingBlock.processedTxs)),
 		}
 		for _, v := range s.pendingBlock.processedTxs {
 			rsp.TxnPool = append(rsp.TxnPool, v)
@@ -131,7 +147,9 @@ func (s *TXPoolServer) checkPendingBlockOk(hash common.Uint256, err errors.ErrCo
 	}
 }
 
-func (s *TXPoolServer) removePendingTx(hash common.Uint256, err errors.ErrCode) {
+func (s *TXPoolServer) removePendingTx(hash common.Uint256,
+	err errors.ErrCode) {
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -145,11 +163,14 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256, err errors.ErrCode) 
 
 	delete(s.allPendingTxs, hash)
 
-	// Check if the tx is in the pending block and the pending block is verified
+	// Check if the tx is in the pending block and
+	// the pending block is verified
 	s.checkPendingBlockOk(hash, err)
 }
 
-func (s *TXPoolServer) setPendingTx(tx *tx.Transaction, sender *actor.PID) bool {
+func (s *TXPoolServer) setPendingTx(tx *tx.Transaction,
+	sender *actor.PID) bool {
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if ok := s.allPendingTxs[tx.Hash()]; ok != nil {
@@ -167,8 +188,9 @@ func (s *TXPoolServer) setPendingTx(tx *tx.Transaction, sender *actor.PID) bool 
 	return true
 }
 
-func (s *TXPoolServer) assginTXN2Worker(tx *tx.Transaction, sender *actor.PID) (
-	assign bool) {
+func (s *TXPoolServer) assginTXN2Worker(tx *tx.Transaction,
+	sender *actor.PID) (assign bool) {
+
 	defer func() {
 		if recover() != nil {
 			assign = false
@@ -196,11 +218,12 @@ func (s *TXPoolServer) assginTXN2Worker(tx *tx.Transaction, sender *actor.PID) (
 	}
 	sort.Sort(lb)
 	s.workers[lb[0].WorkerID].rcvTXCh <- tx
-
 	return true
 }
 
-func (s *TXPoolServer) assignRsp2Worker(rsp *types.CheckResponse) (assign bool) {
+func (s *TXPoolServer) assignRsp2Worker(rsp *types.CheckResponse) (
+	assign bool) {
+
 	defer func() {
 		if recover() != nil {
 			assign = false
@@ -244,20 +267,56 @@ func (s *TXPoolServer) UnRegisterActor(actor tc.ActorType) {
 	delete(s.actors, actor)
 }
 
-func (s *TXPoolServer) registerValidator(id string, v Validator) {
-	s.validators[id] = v
-}
+func (s *TXPoolServer) registerValidator(v *types.RegisterValidator) {
+	s.validators.Lock()
+	defer s.validators.Unlock()
 
-func (s *TXPoolServer) unRegisterValidator(id string) {
-	delete(s.validators, id)
-}
+	_, ok := s.validators.entries[v.Type]
 
-func (s *TXPoolServer) getValidatorPID(id string) *actor.PID {
-	v, ok := s.validators[id]
 	if !ok {
+		s.validators.entries[v.Type] = make([]*types.RegisterValidator, 1)
+	}
+	s.validators.entries[v.Type] = append(s.validators.entries[v.Type], v)
+}
+
+func (s *TXPoolServer) unRegisterValidator(checkType types.VerifyType,
+	id string) {
+
+	s.validators.Lock()
+	defer s.validators.Unlock()
+
+	tmpSlice, ok := s.validators.entries[checkType]
+	if !ok {
+		log.Error("No validator on check type:%d\n", checkType)
+		return
+	}
+
+	for i, v := range tmpSlice {
+		if v.Id == id {
+			s.validators.entries[checkType] =
+				append(tmpSlice[0:i], tmpSlice[i+1:]...)
+			v.Sender.Tell(&types.UnRegisterAck{Id: id, Type: checkType})
+
+		}
+	}
+}
+
+func (s *TXPoolServer) getNextValidatorPIDs() []*actor.PID {
+	s.validators.RLock()
+	defer s.validators.RUnlock()
+
+	if len(s.validators.entries) == 0 {
 		return nil
 	}
-	return v.Pid
+
+	ret := make([]*actor.PID, 0, len(s.validators.entries))
+	for k, v := range s.validators.entries {
+		lastIdx := s.validators.state.state[k]
+		next := (lastIdx + 1) % len(v)
+		s.validators.state.state[k] = next
+		ret = append(ret, v[next].Sender)
+	}
+	return ret
 }
 
 func (s *TXPoolServer) Stop() {

@@ -15,11 +15,13 @@ type RegisterValidator struct {
 }
 
 type UnRegisterValidator struct {
-	Id string
+	Id   string
+	Type VerifyType
 }
 
 type UnRegisterAck struct {
-	Id string
+	Id   string
+	Type VerifyType
 }
 
 type CheckTx struct {
