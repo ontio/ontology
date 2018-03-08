@@ -114,7 +114,7 @@ func (this *LedgerStore) InitLedgerStoreWithGenesisBlock(genesisBlock *types.Blo
 		if err != nil {
 			return fmt.Errorf("SaveBookKeeperState error %s", err)
 		}
-		err = this.AddBlock(genesisBlock)
+		err = this.saveBlock(genesisBlock)
 		if err != nil {
 			return fmt.Errorf("save genesis block error %s", err)
 		}
