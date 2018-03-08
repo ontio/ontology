@@ -1,11 +1,11 @@
 package ledgerstore
 
 import (
-	"github.com/Ontology/common/serialization"
 	"bytes"
 	"encoding/binary"
 	"fmt"
 	"github.com/Ontology/common"
+	"github.com/Ontology/common/serialization"
 	. "github.com/Ontology/core/store/common"
 	"github.com/Ontology/core/store/leveldbstore"
 	"github.com/Ontology/core/types"
@@ -70,11 +70,8 @@ func (this *BlockStore) ContainBlock(blockHash *common.Uint256) (bool, error) {
 			return true, nil
 		}
 	}
-	key, err := this.getHeaderKey(blockHash)
-	if err != nil {
-		return false, err
-	}
-	_, err = this.store.Get(key)
+	key := this.getHeaderKey(blockHash)
+	_, err := this.store.Get(key)
 	if err != nil {
 		if IsLevelDBNotFound(err) {
 			return false, nil
@@ -115,10 +112,7 @@ func (this *BlockStore) GetBlock(blockHash *common.Uint256) (*types.Block, error
 }
 
 func (this *BlockStore) loadHeaderWithTx(blockHash *common.Uint256) (*types.Header, []*common.Uint256, error) {
-	key, err := this.getHeaderKey(blockHash)
-	if err != nil {
-		return nil, nil, err
-	}
+	key := this.getHeaderKey(blockHash)
 	value, err := this.store.Get(key)
 	if err != nil {
 		if IsLevelDBNotFound(err) {
@@ -155,12 +149,9 @@ func (this *BlockStore) loadHeaderWithTx(blockHash *common.Uint256) (*types.Head
 
 func (this *BlockStore) SaveHeader(block *types.Block, sysFee common.Fixed64) error {
 	blockHash := block.Hash()
-	key, err := this.getHeaderKey(&blockHash)
-	if err != nil {
-		return err
-	}
+	key := this.getHeaderKey(&blockHash)
 	value := bytes.NewBuffer(nil)
-	err = sysFee.Serialize(value)
+	err := sysFee.Serialize(value)
 	if err != nil {
 		return err
 	}
@@ -187,10 +178,7 @@ func (this *BlockStore) GetHeader(blockHash *common.Uint256) (*types.Header, err
 }
 
 func (this *BlockStore) GetSysFeeAmount(blockHash *common.Uint256) (common.Fixed64, error) {
-	key, err := this.getHeaderKey(blockHash)
-	if err != nil {
-		return common.Fixed64(0), err
-	}
+	key := this.getHeaderKey(blockHash)
 	data, err := this.store.Get(key)
 	if err != nil {
 		if IsLevelDBNotFound(err) {
@@ -208,10 +196,7 @@ func (this *BlockStore) GetSysFeeAmount(blockHash *common.Uint256) (common.Fixed
 }
 
 func (this *BlockStore) loadHeader(blockHash *common.Uint256) (*types.Header, error) {
-	key, err := this.getHeaderKey(blockHash)
-	if err != nil {
-		return nil, err
-	}
+	key := this.getHeaderKey(blockHash)
 	value, err := this.store.Get(key)
 	if err != nil {
 		if IsLevelDBNotFound(err) {
@@ -234,10 +219,7 @@ func (this *BlockStore) loadHeader(blockHash *common.Uint256) (*types.Header, er
 }
 
 func (this *BlockStore) GetCurrentBlock() (*common.Uint256, uint32, error) {
-	key, err := this.getCurrentBlockKey()
-	if err != nil {
-		return nil, 0, err
-	}
+	key := this.getCurrentBlockKey()
 	data, err := this.store.Get(key)
 	if err != nil {
 		if IsLevelDBNotFound(err) {
@@ -259,20 +241,11 @@ func (this *BlockStore) GetCurrentBlock() (*common.Uint256, uint32, error) {
 }
 
 func (this *BlockStore) SaveCurrentBlock(height uint32, blockHash *common.Uint256) error {
-	key, err := this.getCurrentBlockKey()
-	if err != nil {
-		return err
-	}
+	key := this.getCurrentBlockKey()
 	value := bytes.NewBuffer(nil)
-	_, err = blockHash.Serialize(value)
-	if err != nil {
-		return err
-	}
-	err = serialization.WriteUint32(value, height)
-	if err != nil {
-		return err
-	}
-	err = this.store.BatchPut(key, value.Bytes())
+	blockHash.Serialize(value)
+	serialization.WriteUint32(value, height)
+	err := this.store.BatchPut(key, value.Bytes())
 	if err != nil {
 		return fmt.Errorf("BatchPut error %s", err)
 	}
@@ -307,23 +280,14 @@ func (this *BlockStore) GetHeaderIndexList() (map[uint32]*common.Uint256, error)
 }
 
 func (this *BlockStore) SaveHeaderIndexList(startIndex uint32, indexList map[uint32]*common.Uint256) error {
-	indexKey, err := this.getHeaderIndexListKey(startIndex)
-	if err != nil {
-		return fmt.Errorf("getHeaderIndexListKey error %s", err)
-	}
+	indexKey := this.getHeaderIndexListKey(startIndex)
 	indexSize := uint32(len(indexList))
 	value := bytes.NewBuffer(nil)
-	err = serialization.WriteUint32(value, indexSize)
-	if err != nil {
-		return fmt.Errorf("serialization.WriteUint32 error %s", err)
-	}
+	serialization.WriteUint32(value, indexSize)
 	for i := uint32(0); i < indexSize; i++ {
 		height := startIndex + i
 		blockHash := indexList[height]
-		_, err = blockHash.Serialize(value)
-		if err != nil {
-			return fmt.Errorf("blockHash.Serialize error %s", err)
-		}
+		blockHash.Serialize(value)
 	}
 	return this.store.BatchPut(indexKey, value.Bytes())
 }
@@ -364,16 +328,10 @@ func (this *BlockStore) SaveTransaction(tx *types.Transaction, height uint32) er
 
 func (this *BlockStore) putTransaction(tx *types.Transaction, height uint32) error {
 	txHash := tx.Hash()
-	key, err := this.getTransactionKey(&txHash)
-	if err != nil {
-		return err
-	}
+	key := this.getTransactionKey(&txHash)
 	value := bytes.NewBuffer(nil)
-	err = serialization.WriteUint32(value, height)
-	if err != nil {
-		return err
-	}
-	err = tx.Serialize(value)
+	serialization.WriteUint32(value, height)
+	err := tx.Serialize(value)
 	if err != nil {
 		return err
 	}
@@ -391,10 +349,7 @@ func (this *BlockStore) GetTransaction(txHash *common.Uint256) (*types.Transacti
 }
 
 func (this *BlockStore) loadTransaction(txHash *common.Uint256) (*types.Transaction, uint32, error) {
-	key, err := this.getTransactionKey(txHash)
-	if err != nil {
-		return nil, 0, err
-	}
+	key := this.getTransactionKey(txHash)
 
 	var tx *types.Transaction
 	var height uint32
@@ -426,10 +381,7 @@ func (this *BlockStore) loadTransaction(txHash *common.Uint256) (*types.Transact
 }
 
 func (this *BlockStore) ContainTransaction(txHash *common.Uint256) (bool, error) {
-	key, err := this.getTransactionKey(txHash)
-	if err != nil {
-		return false, err
-	}
+	key := this.getTransactionKey(txHash)
 
 	if this.enableCache {
 		if this.cache.ContainTransaction(txHash) {
@@ -437,7 +389,7 @@ func (this *BlockStore) ContainTransaction(txHash *common.Uint256) (bool, error)
 		}
 	}
 
-	_, err = this.store.Get(key)
+	_, err := this.store.Get(key)
 	if err != nil {
 		if IsLevelDBNotFound(err) {
 			return false, nil
@@ -448,10 +400,7 @@ func (this *BlockStore) ContainTransaction(txHash *common.Uint256) (bool, error)
 }
 
 func (this *BlockStore) GetVersion() (byte, error) {
-	key, err := this.getVersionKey()
-	if err != nil {
-		return 0, nil
-	}
+	key := this.getVersionKey()
 	value, err := this.store.Get(key)
 	if err != nil {
 		if IsLevelDBNotFound(err) {
@@ -464,10 +413,7 @@ func (this *BlockStore) GetVersion() (byte, error) {
 }
 
 func (this *BlockStore) SaveVersion(ver byte) error {
-	key, err := this.getVersionKey()
-	if err != nil {
-		return err
-	}
+	key := this.getVersionKey()
 	return this.store.BatchPut(key, []byte{ver})
 }
 
@@ -495,25 +441,19 @@ func (this *BlockStore) Close() error {
 	return this.store.Close()
 }
 
-func (this *BlockStore) getTransactionKey(txHash *common.Uint256) ([]byte, error) {
+func (this *BlockStore) getTransactionKey(txHash *common.Uint256) []byte {
 	key := bytes.NewBuffer(nil)
-	err := key.WriteByte(byte(DATA_Transaction))
-	if err != nil {
-		return nil, err
-	}
-	_, err = txHash.Serialize(key)
-	if err != nil {
-		return nil, err
-	}
-	return key.Bytes(), nil
+	key.WriteByte(byte(DATA_Transaction))
+	txHash.Serialize(key)
+	return key.Bytes()
 }
 
-func (this *BlockStore) getHeaderKey(blockHash *common.Uint256) ([]byte, error) {
+func (this *BlockStore) getHeaderKey(blockHash *common.Uint256) []byte {
 	data := blockHash.ToArray()
 	key := make([]byte, 1+len(data))
 	key[0] = byte(DATA_Header)
 	copy(key[1:], data)
-	return key, nil
+	return key
 }
 
 func (this *BlockStore) getBlockHashKey(height uint32) ([]byte, error) {
@@ -523,26 +463,23 @@ func (this *BlockStore) getBlockHashKey(height uint32) ([]byte, error) {
 	return key, nil
 }
 
-func (this *BlockStore) getCurrentBlockKey() ([]byte, error) {
-	return []byte{byte(SYS_CurrentBlock)}, nil
+func (this *BlockStore) getCurrentBlockKey() []byte {
+	return []byte{byte(SYS_CurrentBlock)}
 }
 
-func (this *BlockStore) getBlockMerkleTreeKey() ([]byte, error) {
-	return []byte{byte(SYS_BlockMerkleTree)}, nil
+func (this *BlockStore) getBlockMerkleTreeKey() []byte {
+	return []byte{byte(SYS_BlockMerkleTree)}
 }
 
-func (this *BlockStore) getVersionKey() ([]byte, error) {
-	return []byte{byte(SYS_Version)}, nil
+func (this *BlockStore) getVersionKey() []byte {
+	return []byte{byte(SYS_Version)}
 }
 
-func (this *BlockStore) getHeaderIndexListKey(startHeight uint32) ([]byte, error) {
+func (this *BlockStore) getHeaderIndexListKey(startHeight uint32) []byte {
 	key := bytes.NewBuffer(nil)
 	key.WriteByte(byte(IX_HeaderHashList))
-	err := serialization.WriteUint32(key, startHeight)
-	if err != nil {
-		return nil, err
-	}
-	return key.Bytes(), nil
+	serialization.WriteUint32(key, startHeight)
+	return key.Bytes()
 }
 
 func (this *BlockStore) getStartHeightByHeaderIndexKey(key []byte) (uint32, error) {
