@@ -6,7 +6,7 @@ import (
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/consensus"
 	"github.com/Ontology/core/ledger"
-	ldgactor"github.com/Ontology/core/ledger/actor"
+	ldgactor "github.com/Ontology/core/ledger/actor"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/http/jsonrpc"
 	"github.com/Ontology/http/localrpc"
@@ -16,6 +16,9 @@ import (
 	"github.com/Ontology/net"
 	"github.com/Ontology/net/protocol"
 	"github.com/Ontology/txnpool"
+	tc "github.com/Ontology/txnpool/common"
+	"github.com/Ontology/validator/statefull"
+	"github.com/Ontology/validator/stateless"
 	"os"
 	"os/signal"
 	"runtime"
@@ -79,7 +82,7 @@ func main() {
 		log.Fatalf("DefLedger.Init error %s", err)
 		os.Exit(1)
 	}
-	ldgerActor :=  ldgactor.NewLedgerActor()
+	ldgerActor := ldgactor.NewLedgerActor()
 	ldgerActor.Start()
 
 	log.Info("3. Start the transaction pool server")
@@ -89,6 +92,12 @@ func main() {
 		log.Fatalf("failed to start txn pool server")
 		os.Exit(1)
 	}
+
+	stlValidator, _ := stateless.NewValidator("stateless_validator")
+	stlValidator.Register(txPoolServer.GetPID(tc.VerifyRspActor))
+
+	stfValidator, _ := statefull.NewValidator("statefull_validator")
+	stfValidator.Register(txPoolServer.GetPID(tc.VerifyRspActor))
 
 	log.Info("4. Start the P2P networks")
 
@@ -106,7 +115,6 @@ func main() {
 		os.Exit(1)
 	}
 
-
 	go restful.StartServer()
 	//jsonrpc.RegistRpcNode(noder)
 
@@ -115,7 +123,8 @@ func main() {
 	noder.WaitForSyncBlkFinish()
 	if protocol.SERVICENODENAME != config.Parameters.NodeType {
 		log.Info("5. Start Consensus Services")
-		consensusSrv, _ := consensus.NewConsensusService(acct, nil, nil, noder)
+		pool := txPoolServer.GetPID(tc.TxPoolActor)
+		consensusSrv, _ := consensus.NewConsensusService(acct, pool, nil, noder)
 		go consensusSrv.Start()
 		time.Sleep(5 * time.Second)
 	}

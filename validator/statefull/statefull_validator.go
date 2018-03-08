@@ -2,6 +2,8 @@ package statefull
 
 import (
 	"github.com/Ontology/common/log"
+	"github.com/Ontology/core/ledger"
+	"github.com/Ontology/core/types"
 	"github.com/Ontology/errors"
 	"github.com/Ontology/eventbus/actor"
 	"github.com/Ontology/validator/db"
@@ -17,22 +19,18 @@ type Validator interface {
 type validator struct {
 	pid       *actor.PID
 	id        string
-	db        db.TransactionProvider
 	bestBlock db.BestBlock
 }
 
-func NewValidator(id string, db db.TransactionProvider) (Validator, error) {
-	bestBlock, err := db.GetBestBlock()
-	if err != nil {
-		return nil, err
-	}
+func NewValidator(id string) (Validator, error) {
 
-	validator := &validator{id: id, db: db, bestBlock: bestBlock}
+	validator := &validator{id: id}
 	props := actor.FromProducer(func() actor.Actor {
 		return validator
 	})
 
-	validator.pid, err = actor.SpawnNamed(props, id)
+	pid, err := actor.SpawnNamed(props, id)
+	validator.pid = pid
 	return validator, err
 }
 
@@ -47,10 +45,16 @@ func (self *validator) Receive(context actor.Context) {
 	case *vatypes.CheckTx:
 		log.Info("Validator receive tx")
 		sender := context.Sender()
-		bestBlock, _ := self.db.GetBestBlock()
+		height := ledger.DefLedger.GetCurrentBlockHeight()
 
 		errCode := errors.ErrNoError
-		if exist := self.db.ContainTransaction(msg.Tx.Hash()); exist {
+		hash := msg.Tx.Hash()
+
+		exist, err := ledger.DefLedger.IsContainTransaction(&hash)
+		if err != nil {
+			log.Warn("query db error:", err)
+			errCode = errors.ErrUnknown
+		} else if exist {
 			errCode = errors.ErrDuplicatedTx
 		}
 
@@ -58,13 +62,22 @@ func (self *validator) Receive(context actor.Context) {
 			WorkerId: msg.WorkerId,
 			Type:     self.VerifyType(),
 			Hash:     msg.Tx.Hash(),
-			Height:   bestBlock.Height,
+			Height:   height,
 			ErrCode:  errCode,
 		}
 
 		sender.Tell(response)
 	case *vatypes.UnRegisterAck:
 		context.Self().Stop()
+	case *types.Block:
+
+		//bestBlock, _ := self.db.GetBestBlock()
+		//if bestBlock.Height+1 < msg.Header.Height {
+		//	// add sync block request
+		//} else if bestBlock.Height+1 == msg.Header.Height {
+		//	self.db.PersistBlock(msg)
+		//}
+
 	default:
 		log.Info("Unknown msg type", msg)
 	}
