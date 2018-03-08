@@ -199,14 +199,6 @@ func (this *Ledger) GetContractState(contractHash *common.Uint160) (*states.Cont
 	return this.ldgStore.GetContractState(contractHash)
 }
 
-func (this *Ledger) GetAccountState(programHash *common.Uint160) (*states.AccountState, error) {
-	return this.ldgStore.GetAccountState(programHash)
-}
-
-func (this *Ledger) GetAssetState(assetId *common.Uint256) (*states.AssetState, error) {
-	return this.ldgStore.GetAssetState(assetId)
-}
-
 func (this *Ledger) PreExecuteContract(tx *types.Transaction) ([]interface{}, error) {
 	return this.ldgStore.PreExecuteContract(tx)
 }

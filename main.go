@@ -6,6 +6,7 @@ import (
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/consensus"
 	"github.com/Ontology/core/ledger"
+	ldgactor"github.com/Ontology/core/ledger/actor"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/http/jsonrpc"
 	"github.com/Ontology/http/localrpc"
@@ -78,6 +79,8 @@ func main() {
 		log.Fatalf("DefLedger.Init error %s", err)
 		os.Exit(1)
 	}
+	ldgerActor :=  ldgactor.NewLedgerActor()
+	ldgerActor.Start()
 
 	log.Info("3. Start the transaction pool server")
 	// Start the transaction pool server
