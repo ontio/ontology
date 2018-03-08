@@ -15,7 +15,6 @@ import (
 	"github.com/Ontology/core/contract/program"
 	"github.com/Ontology/core/genesis"
 	"github.com/Ontology/core/ledger"
-	"github.com/Ontology/core/ledger/ledgerevent"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/signature"
 	"github.com/Ontology/core/transaction/utxo"
@@ -26,6 +25,7 @@ import (
 	"github.com/Ontology/eventbus/actor"
 	"github.com/Ontology/events"
 	p2pmsg "github.com/Ontology/net/message"
+	"github.com/Ontology/events/message"
 )
 
 type DbftService struct {
@@ -40,8 +40,8 @@ type DbftService struct {
 	p2p               *actorTypes.P2PActor
 
 	pid *actor.PID
-
-	blockPersistCompletedSubscriber events.Subscriber
+	sub *events.ActorSubscriber
+	//blockPersistCompletedSubscriber events.Subscriber
 }
 
 func NewDbftService(bkAccount *account.Account, txpool, p2p *actor.PID) (*DbftService, error) {
@@ -74,6 +74,8 @@ func NewDbftService(bkAccount *account.Account, txpool, p2p *actor.PID) (*DbftSe
 
 	pid, err := actor.SpawnNamed(props, "consensus_dbft")
 	service.pid = pid
+
+	service.sub = events.NewActorSubscriber(pid)
 	return service, err
 }
 
@@ -89,7 +91,7 @@ func (this *DbftService) Receive(context actor.Context) {
 		this.halt()
 	case *actorTypes.TimeOut:
 		this.Timeout()
-	case *actorTypes.BlockCompleted:
+	case *message.SaveBlockCompleteMsg:
 		this.handleBlockPersistCompleted(msg.Block)
 	case *p2pmsg.ConsensusPayload:
 		this.NewConsensusPayload(msg)
@@ -277,7 +279,7 @@ func (ds *DbftService) halt() error {
 	}
 
 	if ds.started {
-		ledgerevent.DefLedgerEvt.UnSubscribe(events.EventBlockPersistCompleted, ds.blockPersistCompletedSubscriber)
+		ds.sub.Unsubscribe(message.TopicSaveBlockComplete)
 	}
 	return nil
 }
@@ -653,12 +655,7 @@ func (ds *DbftService) start() {
 		log.Warn("The Generate block time should be longer than 2 seconds, so set it to be default 6 seconds.")
 	}
 
-	ds.blockPersistCompletedSubscriber = ledgerevent.DefLedgerEvt.Subscribe(events.EventBlockPersistCompleted,
-		func(v interface{}) {
-			if block, ok := v.(*types.Block); ok {
-				ds.pid.Tell(&actorTypes.BlockCompleted{Block: block})
-			}
-		})
+	ds.sub.Subscribe(message.TopicSaveBlockComplete)
 
 	ds.InitializeConsensus(0)
 }

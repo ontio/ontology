@@ -25,7 +25,7 @@ import (
 	"github.com/Ontology/vm/neovm"
 	"github.com/Ontology/vm/neovm/interfaces"
 	"math/big"
-	"github.com/Ontology/core/store"
+	storecomm"github.com/Ontology/core/store/common"
 	"github.com/Ontology/errors"
 	"github.com/Ontology/common/log"
 	scommon "github.com/Ontology/smartcontract/common"
@@ -47,7 +47,7 @@ type Context struct {
 	VmType         types.VmType
 	Caller         common.Uint160
 	StateMachine   *service.StateMachine
-	DBCache        store.IStateStore
+	DBCache        storecomm.IStateStore
 	Code           []byte
 	Input          []byte
 	CodeHash       common.Uint160

@@ -8,6 +8,8 @@ import (
 	"github.com/Ontology/core/store/statestore"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
+	"github.com/Ontology/events"
+	"github.com/Ontology/events/message"
 	smcommon "github.com/Ontology/smartcontract/common"
 	"github.com/Ontology/smartcontract/service"
 	smtypes "github.com/Ontology/smartcontract/types"
@@ -597,6 +599,11 @@ func (this *LedgerStore) saveBlock(block *types.Block) error {
 	}
 	this.setCurrentBlock(blockHeight, &blockHash)
 
+	events.DefActorPublisher.Publish(
+		message.TopicSaveBlockComplete,
+		&message.SaveBlockCompleteMsg{
+			Block: block,
+		})
 	return nil
 }
 
