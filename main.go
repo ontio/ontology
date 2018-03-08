@@ -83,7 +83,7 @@ func main() {
 		os.Exit(1)
 	}
 	ldgerActor := ldgactor.NewLedgerActor()
-	ldgerActor.Start()
+	ledgerPID := ldgerActor.Start()
 
 	log.Info("3. Start the transaction pool server")
 	// Start the transaction pool server
@@ -101,15 +101,14 @@ func main() {
 
 	log.Info("4. Start the P2P networks")
 
-	net.SetLedgePid(nil)
-	net.SetTxnPoolPid(nil)
-	net.SetConsensusPid(nil)
+	net.SetLedgerPid(ledgerPID)
+	net.SetTxnPoolPid(txPoolServer.GetPID(tc.TxPoolActor))
 	noder = net.StartProtocol(acct.PublicKey)
 	if err != nil {
 		log.Fatalf("Net StartProtocol error %s", err)
 		os.Exit(1)
 	}
-	_, err = net.InitNetServerActor(noder)
+	p2pActor, err := net.InitNetServerActor(noder)
 	if err != nil {
 		log.Fatalf("Net InitNetServerActor error %s", err)
 		os.Exit(1)
@@ -124,8 +123,9 @@ func main() {
 	if protocol.SERVICENODENAME != config.Parameters.NodeType {
 		log.Info("5. Start Consensus Services")
 		pool := txPoolServer.GetPID(tc.TxPoolActor)
-		consensusSrv, _ := consensus.NewConsensusService(acct, pool, nil, noder)
-		go consensusSrv.Start()
+		consensusService, _ := consensus.NewConsensusService(acct, pool, nil, p2pActor)
+		net.SetConsensusPid(consensusService.GetPID())
+		go consensusService.Start()
 		time.Sleep(5 * time.Second)
 	}
 

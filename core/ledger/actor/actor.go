@@ -18,9 +18,10 @@ func NewLedgerActor() *LedgerActor {
 	return &LedgerActor{}
 }
 
-func (this *LedgerActor) Start() {
+func (this *LedgerActor) Start() *actor.PID {
 	this.props = actor.FromProducer(func() actor.Actor { return this })
 	DefLedgerPid = actor.Spawn(this.props)
+	return DefLedgerPid
 }
 
 func (this *LedgerActor) Receive(ctx actor.Context) {

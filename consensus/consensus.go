@@ -9,7 +9,6 @@ import (
 	"github.com/Ontology/consensus/dbft"
 	"github.com/Ontology/consensus/solo"
 	"github.com/Ontology/eventbus/actor"
-	"github.com/Ontology/net"
 )
 
 type ConsensusService interface {
@@ -23,7 +22,7 @@ const (
 	CONSENSUS_SOLO = "solo"
 )
 
-func NewConsensusService(account *account.Account, txpool *actor.PID, ledger *actor.PID, localNet net.Neter) (ConsensusService, error) {
+func NewConsensusService(account *account.Account, txpool *actor.PID, ledger *actor.PID, p2p *actor.PID) (ConsensusService, error) {
 	consensusType := strings.ToLower(config.Parameters.ConsensusType)
 	if consensusType == "" {
 		consensusType = CONSENSUS_DBFT
@@ -33,7 +32,7 @@ func NewConsensusService(account *account.Account, txpool *actor.PID, ledger *ac
 	var err error
 	switch consensusType {
 	case CONSENSUS_DBFT:
-		consensus, err = dbft.NewDbftService(account, txpool)
+		consensus, err = dbft.NewDbftService(account, txpool, p2p)
 	case CONSENSUS_SOLO:
 		consensus, err = solo.NewSoloService(account, txpool, ledger)
 	}

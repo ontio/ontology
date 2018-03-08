@@ -28,8 +28,8 @@ func SetConsensusPid(conPid *actor.PID) {
 	ns.SetConsensusPid(conPid)
 }
 
-func SetLedgePid(conPid *actor.PID) {
-	ns.SetLedgePid(conPid)
+func SetLedgerPid(conPid *actor.PID) {
+	ns.SetLedgerPid(conPid)
 }
 
 func InitNetServerActor(noder protocol.Noder) (*actor.PID, error){

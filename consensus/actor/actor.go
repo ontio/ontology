@@ -48,6 +48,10 @@ type P2PActor struct {
 	P2P *actor.PID
 }
 
+func (self *P2PActor) Xmit(msg interface{})  {
+	self.P2P.Tell(msg)
+}
+
 type LedgerActor struct {
 	Ledger *actor.PID
 }

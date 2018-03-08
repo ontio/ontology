@@ -101,7 +101,7 @@ type IsContainBlockRsp struct {
 	Error     error
 }
 
-func SetLedgePid(ledgePid *actor.PID){
+func SetLedgerPid(ledgePid *actor.PID){
 	defLedgerPid = ledgePid
 }
 

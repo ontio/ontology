@@ -10,7 +10,6 @@ import (
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/core/vote"
 	"github.com/Ontology/crypto"
-	"github.com/Ontology/net"
 	msg "github.com/Ontology/net/message"
 	"sync"
 )
@@ -184,7 +183,7 @@ func (cxt *ConsensusContext) GetStateDetail() string {
 
 }
 
-func (cxt *ConsensusContext) Reset(bkAccount *account.Account, localNode net.Neter) {
+func (cxt *ConsensusContext) Reset(bkAccount *account.Account) {
 	preHash := ledger.DefLedger.GetCurrentBlockHash()
 	height := ledger.DefLedger.GetCurrentBlockHeight()
 	header := cxt.MakeHeader()
