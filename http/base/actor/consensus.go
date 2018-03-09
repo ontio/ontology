@@ -1,8 +1,8 @@
 package actor
 
 import (
-	"time"
 	"github.com/Ontology/eventbus/actor"
+	actorTypes "github.com/Ontology/consensus/actor"
 )
 
 var consensusSrvPid *actor.PID
@@ -12,18 +12,10 @@ func SetConsensusActor(actr *actor.PID) {
 }
 
 func ConsensusSrvStart() (error) {
-	future := consensusSrvPid.RequestFuture(nil, 10*time.Second)
-	_, err := future.Result()
-	if err != nil {
-		return nil
-	}
+	consensusSrvPid.Tell(&actorTypes.StartConsensus{})
 	return nil
 }
 func ConsensusSrvHalt() (error) {
-	future := consensusSrvPid.RequestFuture(nil, 10*time.Second)
-	_, err := future.Result()
-	if err != nil {
-		return nil
-	}
+	consensusSrvPid.Tell(&actorTypes.StopConsensus{})
 	return nil
 }
