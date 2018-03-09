@@ -14,10 +14,10 @@ import (
 var txnPid *actor.PID
 var txnPoolPid *actor.PID
 
-func SetTxActor(actr *actor.PID) {
+func SetTxPid(actr *actor.PID) {
 	txnPid = actr
 }
-func SetTxnPoolActor(actr *actor.PID) {
+func SetTxnPoolPid(actr *actor.PID) {
 	txnPoolPid = actr
 }
 func AppendTxToPool(txn *types.Transaction) ErrCode {

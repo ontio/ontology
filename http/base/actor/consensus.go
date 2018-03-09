@@ -7,7 +7,7 @@ import (
 
 var consensusSrvPid *actor.PID
 
-func SetConsensusActor(actr *actor.PID) {
+func SetConsensusPid(actr *actor.PID) {
 	consensusSrvPid = actr
 }
 

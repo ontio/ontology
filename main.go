@@ -13,6 +13,7 @@ import (
 	"github.com/Ontology/http/nodeinfo"
 	"github.com/Ontology/http/restful"
 	"github.com/Ontology/http/websocket"
+	hserver "github.com/Ontology/http/base/actor"
 	"github.com/Ontology/net"
 	"github.com/Ontology/net/protocol"
 	"github.com/Ontology/txnpool"
@@ -118,8 +119,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	hserver.SetConsensusPid(nil)
+	hserver.SetNetServerPid(nil)
+	hserver.SetLedgerPid(nil)
+	hserver.SetTxnPoolPid(nil)
+	hserver.SetTxPid(nil)
 	go restful.StartServer()
-	//jsonrpc.RegistRpcNode(noder)
 
 	noder.SyncNodeHeight()
 	noder.WaitForPeersStart()

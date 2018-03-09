@@ -12,7 +12,7 @@ import (
 
 var defLedgerPid *actor.PID
 
-func SetLedgerActor(actr *actor.PID) {
+func SetLedgerPid(actr *actor.PID) {
 	defLedgerPid = actr
 }
 

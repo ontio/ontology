@@ -10,7 +10,7 @@ import (
 
 var netServerPid *actor.PID
 
-func SetNetServerActor(actr *actor.PID) {
+func SetNetServerPid(actr *actor.PID) {
 	netServerPid = actr
 }
 
