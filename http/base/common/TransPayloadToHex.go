@@ -2,11 +2,11 @@ package common
 
 import (
 	. "github.com/Ontology/common"
-	"github.com/Ontology/core"
 	"github.com/Ontology/core/asset"
 	. "github.com/Ontology/core/contract"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/types"
+	"github.com/Ontology/core/utils"
 )
 
 type PayloadInfo interface{}
@@ -119,7 +119,7 @@ func TransPayloadToHex(p types.Payload) PayloadInfo {
 		return obj
 	case *payload.InvokeCode:
 		obj := new(InvokeCodeInfo)
-		address := core.AddressFromVmCode(object.Code)
+		address := utils.AddressFromVmCode(object.Code)
 		obj.CodeHash = ToHexString(address[:])
 		obj.Code = ToHexString(object.Code.Code)
 		return obj
@@ -146,4 +146,3 @@ func TransPayloadToHex(p types.Payload) PayloadInfo {
 	}
 	return nil
 }
-

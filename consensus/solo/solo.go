@@ -11,12 +11,12 @@ import (
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
 	actorTypes "github.com/Ontology/consensus/actor"
-	"github.com/Ontology/core"
 	"github.com/Ontology/core/contract"
 	"github.com/Ontology/core/contract/program"
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/types"
+	"github.com/Ontology/core/utils"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/eventbus/actor"
 )
@@ -120,7 +120,7 @@ func (this *SoloService) genBlock() {
 func (this *SoloService) makeBlock() *types.Block {
 	log.Debug()
 	owner := this.Account.PublicKey
-	nextBookKeeper, err := core.AddressFromBookKeepers([]*crypto.PubKey{owner})
+	nextBookKeeper, err := utils.AddressFromBookKeepers([]*crypto.PubKey{owner})
 	if err != nil {
 		log.Error("SoloService GetBookKeeperAddress error:%s", err)
 		return nil

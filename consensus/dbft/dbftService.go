@@ -10,7 +10,6 @@ import (
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
 	actorTypes "github.com/Ontology/consensus/actor"
-	"github.com/Ontology/core"
 	"github.com/Ontology/core/contract"
 	"github.com/Ontology/core/contract/program"
 	"github.com/Ontology/core/genesis"
@@ -19,13 +18,14 @@ import (
 	"github.com/Ontology/core/signature"
 	"github.com/Ontology/core/transaction/utxo"
 	"github.com/Ontology/core/types"
+	"github.com/Ontology/core/utils"
 	"github.com/Ontology/core/vote"
 	"github.com/Ontology/crypto"
 	ontErrors "github.com/Ontology/errors"
 	"github.com/Ontology/eventbus/actor"
 	"github.com/Ontology/events"
-	p2pmsg "github.com/Ontology/net/message"
 	"github.com/Ontology/events/message"
+	p2pmsg "github.com/Ontology/net/message"
 )
 
 type DbftService struct {
@@ -476,7 +476,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 		log.Error("[PrepareRequestReceived] GetValidators failed")
 		return
 	}
-	ds.context.NextBookKeeper, err = core.AddressFromBookKeepers(ds.context.NextBookKeepers)
+	ds.context.NextBookKeeper, err = utils.AddressFromBookKeepers(ds.context.NextBookKeepers)
 	if err != nil {
 		ds.context = backupContext
 		log.Error("[PrepareRequestReceived] GetBookKeeperAddress failed")
@@ -707,7 +707,7 @@ func (ds *DbftService) Timeout() {
 				log.Error("[Timeout] GetValidators failed", err.Error())
 				return
 			}
-			ds.context.NextBookKeeper, err = core.AddressFromBookKeepers(ds.context.NextBookKeepers)
+			ds.context.NextBookKeeper, err = utils.AddressFromBookKeepers(ds.context.NextBookKeepers)
 			if err != nil {
 				log.Error("[Timeout] GetBookKeeperAddress failed")
 				return

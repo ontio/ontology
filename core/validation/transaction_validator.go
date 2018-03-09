@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/Ontology/common/log"
-	"github.com/Ontology/core"
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/types"
+	"github.com/Ontology/core/utils"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
 )
@@ -51,7 +51,7 @@ func checkTransactionSignatures(tx *types.Transaction) error {
 				return err
 			}
 
-			address[core.AddressFromPubKey(sig.PubKeys[0])] = true
+			address[utils.AddressFromPubKey(sig.PubKeys[0])] = true
 		} else {
 			passed := true
 			for i, j := 0, 0; passed && i < m && j < n; {
@@ -69,7 +69,7 @@ func checkTransactionSignatures(tx *types.Transaction) error {
 				return errors.New("multi-signature not enough")
 			}
 
-			addr, _ := core.AddressFromMultiPubKeys(sig.PubKeys, m)
+			addr, _ := utils.AddressFromMultiPubKeys(sig.PubKeys, m)
 			address[addr] = true
 		}
 	}

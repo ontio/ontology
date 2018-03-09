@@ -6,10 +6,10 @@ import (
 
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/config"
-	"github.com/Ontology/core"
 	"github.com/Ontology/core/code"
 	"github.com/Ontology/core/contract/program"
 	"github.com/Ontology/core/types"
+	"github.com/Ontology/core/utils"
 	"github.com/Ontology/crypto"
 	vm "github.com/Ontology/vm/neovm"
 	vmtypes "github.com/Ontology/vm/types"
@@ -40,7 +40,7 @@ var GenesisBookKeepers []*crypto.PubKey
 func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*types.Block, error) {
 	//getBookKeeper
 	GenesisBookKeepers = defaultBookKeeper
-	nextBookKeeper, err := core.AddressFromBookKeepers(defaultBookKeeper)
+	nextBookKeeper, err := utils.AddressFromBookKeepers(defaultBookKeeper)
 	if err != nil {
 		return nil, errors.New("[Block],GenesisBlockInit err with GetBookKeeperAddress")
 	}
@@ -78,7 +78,7 @@ func NewGoverningToken() *types.Transaction {
 		Code: []byte("ONT Token"),
 	}
 
-	tx := core.NewDeployTransaction(&fnCode, "ONT", "0.1.0",
+	tx := utils.NewDeployTransaction(&fnCode, "ONT", "0.1.0",
 		"Ontology", "", "Ontology Network ONT Token", vmtypes.NativeVM, true)
 	return tx
 }
@@ -88,7 +88,7 @@ func NewUtilityToken() *types.Transaction {
 		Code: []byte("ONG Token"),
 	}
 
-	tx := core.NewDeployTransaction(&fnCode, "ONG", "0.1.0",
+	tx := utils.NewDeployTransaction(&fnCode, "ONG", "0.1.0",
 		"Ontology", "", "Ontology Network ONG Token", vmtypes.NativeVM, true)
 	return tx
 }
