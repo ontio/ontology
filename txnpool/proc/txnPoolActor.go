@@ -6,6 +6,7 @@ import (
 	tx "github.com/Ontology/core/types"
 	"github.com/Ontology/errors"
 	"github.com/Ontology/eventbus/actor"
+	"github.com/Ontology/events/message"
 	tc "github.com/Ontology/txnpool/common"
 	"github.com/Ontology/validator/types"
 )
@@ -184,6 +185,15 @@ func (tpa *TxPoolActor) Receive(context actor.Context) {
 		log.Info("Server Receives verifying block req from ", sender)
 
 		tpa.server.verifyBlock(msg, sender)
+
+	case *message.SaveBlockCompleteMsg:
+		sender := context.Sender()
+
+		log.Info("Server Receives block complete event from ", sender)
+
+		if msg.Block != nil {
+			tpa.server.cleanTransactionList(msg.Block.Transactions)
+		}
 
 	default:
 		log.Info("Unknown msg type", msg)

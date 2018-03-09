@@ -3,6 +3,8 @@ package txnpool
 import (
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/eventbus/actor"
+	"github.com/Ontology/events"
+	"github.com/Ontology/events/message"
 	tc "github.com/Ontology/txnpool/common"
 	tp "github.com/Ontology/txnpool/proc"
 )
@@ -54,5 +56,9 @@ func StartTxnPoolServer() *tp.TXPoolServer {
 		return nil
 	}
 	s.RegisterActor(tc.TxActor, txPid)
+
+	// Subscribe the block complete event
+	var sub = events.NewActorSubscriber(txPoolPid)
+	sub.Subscribe(message.TopicSaveBlockComplete)
 	return s
 }
