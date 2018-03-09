@@ -288,7 +288,13 @@ func (this *BlockStore) SaveHeaderIndexList(startIndex uint32, indexList map[uin
 	for i := uint32(0); i < indexSize; i++ {
 		height := startIndex + i
 		blockHash := indexList[height]
-		blockHash.Serialize(value)
+		if blockHash == nil {
+			return fmt.Errorf("cannot get block hash by height %d", height)
+		}
+		_, err := blockHash.Serialize(value)
+		if err != nil {
+			return fmt.Errorf("blockHash.Serialize %x error %s", blockHash, err)
+		}
 	}
 	return this.store.BatchPut(indexKey, value.Bytes())
 }
@@ -415,7 +421,7 @@ func (this *BlockStore) GetVersion() (byte, error) {
 
 func (this *BlockStore) SaveVersion(ver byte) error {
 	key := this.getVersionKey()
-	return this.store.BatchPut(key, []byte{ver})
+	return this.store.Put(key, []byte{ver})
 }
 
 func (this *BlockStore) ClearAll() error {

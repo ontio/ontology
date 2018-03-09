@@ -267,6 +267,9 @@ func (t *Trie) commitTo(db DatabaseWriter) (common.Uint256, error) {
 	if err != nil {
 		return common.Uint256{}, err
 	}
+	if hash == nil{
+		return common.Uint256{}, nil
+	}
 	t.root = cached
 	fmt.Printf("[commitTo hashNode] %x\n", hash.(hashNode))
 	u256, err := common.Uint256ParseFromBytes(hash.(hashNode))
@@ -287,7 +290,7 @@ func (t *Trie) Hash() common.Uint256 {
 func (t *Trie) hashRoot(db DatabaseWriter) (node, node, error) {
 	fmt.Println("hashRoot enter")
 	if t.root == nil {
-		return hashNode(nil), nil, nil
+		return nil, nil, nil
 	}
 	fmt.Println("hashRoot newHasher")
 	h := newHasher()

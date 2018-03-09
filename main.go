@@ -73,6 +73,10 @@ func main() {
 		log.Fatalf("GetBookKeepers error:%s", err)
 		os.Exit(1)
 	}
+
+	//Init event hub
+	events.Init()
+
 	log.Info("1. Loading the Ledger")
 	ledger.DefLedger, err = ledger.NewLedger()
 	if err != nil {
@@ -86,9 +90,6 @@ func main() {
 	}
 	ldgerActor := ldgactor.NewLedgerActor()
 	ledgerPID := ldgerActor.Start()
-
-	//start event hub
-	events.Init()
 
 	log.Info("3. Start the transaction pool server")
 	// Start the transaction pool server
