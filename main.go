@@ -102,7 +102,7 @@ func main() {
 	log.Info("4. Start the P2P networks")
 
 	net.SetLedgerPid(ledgerPID)
-	net.SetTxnPoolPid(txPoolServer.GetPID(tc.TxPoolActor))
+	net.SetTxnPoolPid(txPoolServer.GetPID(tc.TxActor))
 	noder = net.StartProtocol(acct.PublicKey)
 	if err != nil {
 		log.Fatalf("Net StartProtocol error %s", err)
