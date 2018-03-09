@@ -12,9 +12,9 @@ var defPublisherProps *actor.Props
 
 func Init() {
 	DefEvtHub = eventhub.GlobalEventHub
+	defPublisherProps = actor.FromFunc(func(context actor.Context) {})
 	DefPublisherPID = actor.Spawn(defPublisherProps)
 	DefActorPublisher = NewActorPublisher(DefPublisherPID)
-	defPublisherProps = actor.FromFunc(func(context actor.Context) {})
 }
 
 func NewActorPublisher(publisher *actor.PID, evtHub ...*eventhub.EventHub) *ActorPublisher {
