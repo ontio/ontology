@@ -24,6 +24,7 @@ import (
 	"runtime"
 	"syscall"
 	"time"
+	"github.com/Ontology/events"
 )
 
 const (
@@ -84,6 +85,9 @@ func main() {
 	}
 	ldgerActor := ldgactor.NewLedgerActor()
 	ledgerPID := ldgerActor.Start()
+
+	//start event hub
+	events.Init()
 
 	log.Info("3. Start the transaction pool server")
 	// Start the transaction pool server
