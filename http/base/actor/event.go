@@ -1,28 +1,43 @@
 package actor
 
 import (
-	"fmt"
 	"github.com/Ontology/eventbus/actor"
-	"github.com/Ontology/eventbus/eventhub"
+	"github.com/Ontology/events/message"
+	"github.com/Ontology/events"
 )
 
-var completeBlockPid *actor.PID
-var smartcodePid *actor.PID
+var defLedgerEvtPid *actor.PID
+var smartcodeEvtPid *actor.PID
 
-func SubscribeEvent(topic string, handle func(v interface{})) {
-	eh := eventhub.GlobalEventHub
-	subprops := actor.FromFunc(func(context actor.Context) {
-		switch msg := context.Message().(type) {
+type EventActor struct{
+	blockPersistCompleted func(v interface{})
+	smartCodeEvt func(v interface{})
+}
 
-		case interface{}:
-			handle(msg)
-			fmt.Println(context.Self().Id + " get message ")
-			//context.Sender().Request(ResponseMessage{"response message from "+context.Self().Id },context.Self())
-		default:
-			//ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, SendBlock2WSclient)
-			//ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventSmartCode, PushSmartCodeEvent)
+func (t *EventActor) Receive(c actor.Context) {
+	switch msg := c.Message().(type) {
+	case *message.SaveBlockCompleteMsg:
+		t.blockPersistCompleted(msg.Block)
+	case *message.SmartCodeEventMsg:
+		t.smartCodeEvt(msg.Event)
+	default:
+		//fmt.Println(msg)
+	}
+}
+
+//ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, SendBlock2WSclient)
+//ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventSmartCode, PushSmartCodeEvent)
+func SubscribeEvent(topic string,handler func(v interface{})) {
+	var props = actor.FromProducer(func() actor.Actor {
+		if topic == message.TopicSaveBlockComplete{
+			return &EventActor{blockPersistCompleted:handler}
+		}else if topic == message.TopicSmartCodeEvent{
+			return &EventActor{smartCodeEvt:handler}
+		}else{
+			return &EventActor{}
 		}
 	})
-	sub1, _ := actor.SpawnNamed(subprops, "sub1")
-	eh.Subscribe(topic, sub1)
+	var pid = actor.Spawn(props)
+	var sub = events.NewActorSubscriber(pid)
+	sub.Subscribe(topic)
 }
