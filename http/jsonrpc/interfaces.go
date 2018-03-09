@@ -229,11 +229,11 @@ func getStorage(params []interface{}) map[string]interface{} {
 	default:
 		return DnaRpcInvalidParameter
 	}
-	item, err := GetStorageItem(codeHash,key)
+	value, err := GetStorageItem(codeHash,key)
 	if err != nil {
 		return DnaRpcInternalError
 	}
-	return DnaRpc(ToHexString(item.Value))
+	return DnaRpc(ToHexString(value))
 }
 
 // A JSON example for sendrawtransaction method as following:
