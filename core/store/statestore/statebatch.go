@@ -6,8 +6,8 @@ import (
 	"github.com/Ontology/common/log"
 	. "github.com/Ontology/core/states"
 	. "github.com/Ontology/core/store/common"
-	"strings"
 	"fmt"
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 type StateBatch struct {
@@ -60,7 +60,7 @@ func (self *StateBatch) TryGetOrAdd(prefix DataEntryPrefix, key []byte, value IS
 		return nil
 	}
 	item, err := self.store.Get(append([]byte{byte(prefix)}, key...))
-	if err != nil && !strings.EqualFold(err.Error(), ErrDBNotFound) {
+	if err != nil && err != leveldb.ErrNotFound {
 		return err
 	}
 	if item != nil {
@@ -79,7 +79,7 @@ func (self *StateBatch) TryGet(prefix DataEntryPrefix, key []byte) (*StateItem, 
 		return state, nil
 	}
 	enc, err := self.store.Get(append([]byte{byte(prefix)}, key...))
-	if err != nil && !strings.EqualFold(err.Error(), ErrDBNotFound) {
+	if err != nil && err != leveldb.ErrNotFound {
 		return nil, err
 	}
 
@@ -106,7 +106,7 @@ func (self *StateBatch) TryGetAndChange(prefix DataEntryPrefix, key []byte, trie
 	}
 	k := append([]byte{byte(prefix)}, key...)
 	enc, err := self.store.Get(k)
-	if err != nil && !strings.EqualFold(err.Error(), ErrDBNotFound) {
+	if err != nil && err != leveldb.ErrNotFound{
 		return nil, err
 	}
 

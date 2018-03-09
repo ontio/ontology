@@ -9,6 +9,7 @@ import (
 	. "github.com/Ontology/core/store/common"
 	"github.com/Ontology/core/store/leveldbstore"
 	. "github.com/Ontology/core/store/statestore"
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 var (
@@ -57,7 +58,7 @@ func (this *StateStore) GetUnspentCoinState(refTxHash *common.Uint256) (*Unspent
 
 	data, err := this.store.Get(key)
 	if err != nil {
-		if IsLevelDBNotFound(err) {
+		if err == leveldb.ErrNotFound{
 			return nil, nil
 		}
 		return nil, err
@@ -79,7 +80,7 @@ func (this *StateStore) GetSpentCoinState(refTxHash *common.Uint256) (*SpentCoin
 
 	value, err := this.store.Get(key)
 	if err != nil {
-		if IsLevelDBNotFound(err) {
+		if err == leveldb.ErrNotFound{
 			return nil, nil
 		}
 		return nil, err
@@ -100,7 +101,7 @@ func (this *StateStore) GetCurrentStateRoot() (*common.Uint256, error) {
 	}
 	value, err := this.store.Get(key)
 	if err != nil {
-		if IsLevelDBNotFound(err) {
+		if err == leveldb.ErrNotFound{
 			return nil, nil
 		}
 		return nil, err
@@ -120,7 +121,7 @@ func (this *StateStore) GetAssetState(assetTx *common.Uint256) (*AssetState, err
 
 	value, err := this.store.Get(key)
 	if err != nil {
-		if IsLevelDBNotFound(err) {
+		if err == leveldb.ErrNotFound{
 			return nil, nil
 		}
 		return nil, err
@@ -142,7 +143,7 @@ func (this *StateStore) GetAccountState(programHash *common.Uint160) (*AccountSt
 
 	value, err := this.store.Get(key)
 	if err != nil {
-		if IsLevelDBNotFound(err) {
+		if err == leveldb.ErrNotFound{
 			return nil, nil
 		}
 		return nil, err
@@ -164,7 +165,7 @@ func (this *StateStore) GetContractState(contractHash *common.Uint160) (*Contrac
 
 	value, err := this.store.Get(key)
 	if err != nil {
-		if IsLevelDBNotFound(err) {
+		if err == leveldb.ErrNotFound{
 			return nil, nil
 		}
 		return nil, err
@@ -195,7 +196,7 @@ func (this *StateStore) GetBookKeeperState() (*BookKeeperState, error) {
 
 	value, err := this.store.Get(key)
 	if err != nil {
-		if IsLevelDBNotFound(err) {
+		if err == leveldb.ErrNotFound{
 			return nil, nil
 		}
 		return nil, err
@@ -255,7 +256,7 @@ func (this *StateStore) GetUnspentCoinStateByProgramHash(programHash *common.Uin
 
 	data, err := this.store.Get(key)
 	if err != nil {
-		if IsLevelDBNotFound(err) {
+		if err == leveldb.ErrNotFound{
 			return nil, nil
 		}
 		return nil, err
@@ -277,6 +278,9 @@ func (this *StateStore) GetStorageState(key *StorageKey) (*StorageItem, error) {
 
 	data, err := this.store.Get(storeKey)
 	if err != nil {
+		if err == leveldb.ErrNotFound{
+			return nil,nil
+		}
 		return nil, err
 	}
 	reader := bytes.NewReader(data)

@@ -8,6 +8,7 @@ import (
 	"github.com/Ontology/core/store/leveldbstore"
 	. "github.com/Ontology/core/store/common"
 	"github.com/Ontology/merkle"
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 type MerkleTreeStore struct {
@@ -62,7 +63,7 @@ func (this *MerkleTreeStore) GetMerkleTree() (uint32, []common.Uint256, error) {
 	}
 	data, err := this.store.Get(key)
 	if err != nil {
-		if IsLevelDBNotFound(err) {
+		if err == leveldb.ErrNotFound{
 			return 0, nil, nil
 		}
 		return 0, nil, err

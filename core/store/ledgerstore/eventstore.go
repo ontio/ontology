@@ -10,6 +10,7 @@ import (
 	. "github.com/Ontology/core/store/common"
 	"github.com/Ontology/core/store/leveldbstore"
 	"github.com/Ontology/smartcontract/event"
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 type EventStore struct {
@@ -71,7 +72,7 @@ func (this *EventStore) GetEventNotifyByTx(txHash *common.Uint256) ([]*event.Not
 	}
 	data, err := this.store.Get(key)
 	if err != nil {
-		if IsLevelDBNotFound(err) {
+		if err == leveldb.ErrNotFound{
 			return nil, nil
 		}
 		return nil, err
@@ -90,7 +91,7 @@ func (this *EventStore) GetEventNotifyByBlock(height uint32) ([]*common.Uint256,
 	}
 	data, err := this.store.Get(key)
 	if err != nil {
-		if IsLevelDBNotFound(err) {
+		if err == leveldb.ErrNotFound{
 			return nil, nil
 		}
 		return nil, err

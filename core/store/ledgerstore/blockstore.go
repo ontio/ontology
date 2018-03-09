@@ -9,6 +9,7 @@ import (
 	. "github.com/Ontology/core/store/common"
 	"github.com/Ontology/core/store/leveldbstore"
 	"github.com/Ontology/core/types"
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 type BlockStore struct {
@@ -73,7 +74,7 @@ func (this *BlockStore) ContainBlock(blockHash *common.Uint256) (bool, error) {
 	key := this.getHeaderKey(blockHash)
 	_, err := this.store.Get(key)
 	if err != nil {
-		if IsLevelDBNotFound(err) {
+		if err == leveldb.ErrNotFound{
 			return false, nil
 		}
 		return false, err
@@ -115,7 +116,7 @@ func (this *BlockStore) loadHeaderWithTx(blockHash *common.Uint256) (*types.Head
 	key := this.getHeaderKey(blockHash)
 	value, err := this.store.Get(key)
 	if err != nil {
-		if IsLevelDBNotFound(err) {
+		if err == leveldb.ErrNotFound{
 			return nil, nil, nil
 		}
 		return nil, nil, err
@@ -181,7 +182,7 @@ func (this *BlockStore) GetSysFeeAmount(blockHash *common.Uint256) (common.Fixed
 	key := this.getHeaderKey(blockHash)
 	data, err := this.store.Get(key)
 	if err != nil {
-		if IsLevelDBNotFound(err) {
+		if err == leveldb.ErrNotFound{
 			return common.Fixed64(0), nil
 		}
 		return common.Fixed64(0), err
@@ -199,7 +200,7 @@ func (this *BlockStore) loadHeader(blockHash *common.Uint256) (*types.Header, er
 	key := this.getHeaderKey(blockHash)
 	value, err := this.store.Get(key)
 	if err != nil {
-		if IsLevelDBNotFound(err) {
+		if err == leveldb.ErrNotFound{
 			return nil, nil
 		}
 		return nil, err
@@ -222,7 +223,7 @@ func (this *BlockStore) GetCurrentBlock() (*common.Uint256, uint32, error) {
 	key := this.getCurrentBlockKey()
 	data, err := this.store.Get(key)
 	if err != nil {
-		if IsLevelDBNotFound(err) {
+		if err == leveldb.ErrNotFound{
 			return nil, 0, nil
 		}
 		return nil, 0, err
@@ -299,7 +300,7 @@ func (this *BlockStore) GetBlockHash(height uint32) (*common.Uint256, error) {
 	}
 	value, err := this.store.Get(key)
 	if err != nil {
-		if IsLevelDBNotFound(err) {
+		if err == leveldb.ErrNotFound{
 			return nil, nil
 		}
 		return nil, err
@@ -362,7 +363,7 @@ func (this *BlockStore) loadTransaction(txHash *common.Uint256) (*types.Transact
 
 	value, err := this.store.Get(key)
 	if err != nil {
-		if IsLevelDBNotFound(err) {
+		if err == leveldb.ErrNotFound{
 			return nil, 0, nil
 		}
 		return nil, 0, err
@@ -391,7 +392,7 @@ func (this *BlockStore) ContainTransaction(txHash *common.Uint256) (bool, error)
 
 	_, err := this.store.Get(key)
 	if err != nil {
-		if IsLevelDBNotFound(err) {
+		if err == leveldb.ErrNotFound{
 			return false, nil
 		}
 		return false, err
@@ -403,7 +404,7 @@ func (this *BlockStore) GetVersion() (byte, error) {
 	key := this.getVersionKey()
 	value, err := this.store.Get(key)
 	if err != nil {
-		if IsLevelDBNotFound(err) {
+		if err == leveldb.ErrNotFound{
 			return 0, nil
 		}
 		return 0, err
