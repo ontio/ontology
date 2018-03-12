@@ -1,9 +1,8 @@
-package localrpc
+package rpc
 
 import (
 	"github.com/Ontology/common/log"
 	. "github.com/Ontology/http/base/common"
-	. "github.com/Ontology/http/base/rpc"
 	. "github.com/Ontology/http/base/actor"
 	"os"
 	"path/filepath"
@@ -21,12 +20,12 @@ func getCurrentDirectory() string {
 	return dir
 }
 
-func getNeighbor(params []interface{}) map[string]interface{} {
+func GetNeighbor(params []interface{}) map[string]interface{} {
 	addr, _ := GetNeighborAddrs()
 	return DnaRpc(addr)
 }
 
-func getNodeState(params []interface{}) map[string]interface{} {
+func GetNodeState(params []interface{}) map[string]interface{} {
 	state,err := GetConnectionState()
 	if err != nil {
 		return DnaRpcFailed
@@ -43,7 +42,7 @@ func getNodeState(params []interface{}) map[string]interface{} {
 	if err != nil {
 		return DnaRpcFailed
 	}
-	ver,err := GetNodeVersion()
+	ver,err := GetVersion()
 	if err != nil {
 		return DnaRpcFailed
 	}
@@ -77,21 +76,21 @@ func getNodeState(params []interface{}) map[string]interface{} {
 	return DnaRpc(n)
 }
 
-func startConsensus(params []interface{}) map[string]interface{} {
+func StartConsensus(params []interface{}) map[string]interface{} {
 	if err := ConsensusSrvStart(); err != nil {
 		return DnaRpcFailed
 	}
 	return DnaRpcSuccess
 }
 
-func stopConsensus(params []interface{}) map[string]interface{} {
+func StopConsensus(params []interface{}) map[string]interface{} {
 	if err := ConsensusSrvHalt(); err != nil {
 		return DnaRpcFailed
 	}
 	return DnaRpcSuccess
 }
 
-func sendSampleTransaction(params []interface{}) map[string]interface{} {
+func SendSampleTransaction(params []interface{}) map[string]interface{} {
 	panic("need reimplementation")
 	return nil
 
@@ -136,7 +135,7 @@ func sendSampleTransaction(params []interface{}) map[string]interface{} {
 	*/
 }
 
-func setDebugInfo(params []interface{}) map[string]interface{} {
+func SetDebugInfo(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcInvalidParameter
 	}

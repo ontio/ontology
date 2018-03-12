@@ -17,12 +17,12 @@ func StartLocalServer() {
 	log.Debug()
 	http.HandleFunc(LocalDir, Handle)
 
-	HandleFunc("getneighbor", getNeighbor)
-	HandleFunc("getnodestate", getNodeState)
-	HandleFunc("startconsensus", startConsensus)
-	HandleFunc("stopconsensus", stopConsensus)
-	HandleFunc("sendsampletransaction", sendSampleTransaction)
-	HandleFunc("setdebuginfo", setDebugInfo)
+	HandleFunc("getneighbor", GetNeighbor)
+	HandleFunc("getnodestate", GetNodeState)
+	HandleFunc("startconsensus", StartConsensus)
+	HandleFunc("stopconsensus", StopConsensus)
+	HandleFunc("sendsampletransaction", SendSampleTransaction)
+	HandleFunc("setdebuginfo", SetDebugInfo)
 
 	// TODO: only listen to local host
 	err := http.ListenAndServe(":"+strconv.Itoa(Parameters.HttpLocalPort), nil)

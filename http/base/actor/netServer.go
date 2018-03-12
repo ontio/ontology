@@ -110,7 +110,7 @@ func GetRelayState() (bool, error) {
 	return r.Relay, nil
 }
 
-func GetNodeVersion() (uint32, error) {
+func GetVersion() (uint32, error) {
 	future := netServerPid.RequestFuture(&ac.GetNodeVersionReq{}, 10*time.Second)
 	result, err := future.Result()
 	if err != nil {

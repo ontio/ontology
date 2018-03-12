@@ -4,8 +4,6 @@ import (
 	. "github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
 	. "github.com/Ontology/http/base/rpc"
-	//. "github.com/Ontology/http/base/common"
-	//. "github.com/Ontology/consensus"
 	"net/http"
 	"strconv"
 )
@@ -17,25 +15,25 @@ func StartRPCServer() {
 	log.Debug()
 	http.HandleFunc("/", Handle)
 
-	HandleFunc("getbestblockhash", getBestBlockHash)
-	HandleFunc("getblock", getBlock)
-	HandleFunc("getblockcount", getBlockCount)
-	HandleFunc("getblockhash", getBlockHash)
+	HandleFunc("getbestblockhash", GetBestBlockHash)
+	HandleFunc("getblock", GetBlock)
+	HandleFunc("getblockcount", GetBlockCount)
+	HandleFunc("getblockhash", GetBlockHash)
 	//HandleFunc("getunspendoutput", getUnspendOutput)
-	HandleFunc("getconnectioncount", getConnectionCount)
-	HandleFunc("getrawmempool", getRawMemPool)
-	HandleFunc("getmempooltx", getMemPoolTx)
-	HandleFunc("getrawtransaction", getRawTransaction)
-	HandleFunc("sendrawtransaction", sendRawTransaction)
-	HandleFunc("getstorage", getStorage)
-	HandleFunc("getbalance", getBalance)
-	HandleFunc("submitblock", submitBlock)
-	HandleFunc("getversion", getNodeVersion)
-	HandleFunc("getdataile", getDataFile)
-	HandleFunc("catdatarecord", catDataRecord)
-	HandleFunc("regdatafile", regDataFile)
-	HandleFunc("uploadDataFile", uploadDataFile)
-	HandleFunc("getsmartcodeevent", getSmartCodeEvent)
+	HandleFunc("getconnectioncount", GetConnectionCount)
+	HandleFunc("getrawmempool", GetRawMemPool)
+	HandleFunc("getmempooltx", GetMemPoolTx)
+	HandleFunc("getrawtransaction", GetRawTransaction)
+	HandleFunc("sendrawtransaction", SendRawTransaction)
+	HandleFunc("getstorage", GetStorage)
+	HandleFunc("getbalance", GetBalance)
+	HandleFunc("submitblock", SubmitBlock)
+	HandleFunc("getversion", GetNodeVersion)
+	HandleFunc("getdataile", GetDataFile)
+	HandleFunc("catdatarecord", CatDataRecord)
+	HandleFunc("regdatafile", RegDataFile)
+	HandleFunc("uploadDataFile", UploadDataFile)
+	HandleFunc("getsmartcodeevent", GetSmartCodeEvent)
 
 	err := http.ListenAndServe(":"+strconv.Itoa(Parameters.HttpJsonPort), nil)
 	if err != nil {
