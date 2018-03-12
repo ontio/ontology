@@ -274,7 +274,7 @@ func (s *TXPoolServer) registerValidator(v *types.RegisterValidator) {
 	_, ok := s.validators.entries[v.Type]
 
 	if !ok {
-		s.validators.entries[v.Type] = make([]*types.RegisterValidator, 1)
+		s.validators.entries[v.Type] = make([]*types.RegisterValidator, 0, 1)
 	}
 	s.validators.entries[v.Type] = append(s.validators.entries[v.Type], v)
 }
@@ -295,8 +295,9 @@ func (s *TXPoolServer) unRegisterValidator(checkType types.VerifyType,
 		if v.Id == id {
 			s.validators.entries[checkType] =
 				append(tmpSlice[0:i], tmpSlice[i+1:]...)
-			v.Sender.Tell(&types.UnRegisterAck{Id: id, Type: checkType})
-
+			if v.Sender != nil {
+				v.Sender.Tell(&types.UnRegisterAck{Id: id, Type: checkType})
+			}
 		}
 	}
 }
