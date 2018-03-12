@@ -6,18 +6,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
-	"github.com/Ontology/core/contract/program"
-	//"github.com/Ontology/core/contract"
-	//sig "github.com/Ontology/core/signature"
-	//"github.com/Ontology/core/validation"
 	"github.com/Ontology/crypto"
-	. "github.com/Ontology/errors"
-	//"github.com/Ontology/events"
-	. "github.com/Ontology/net/protocol"
 	"github.com/Ontology/net/actor"
+	. "github.com/Ontology/net/protocol"
 )
 
 type ConsensusPayload struct {
@@ -27,8 +22,9 @@ type ConsensusPayload struct {
 	BookKeeperIndex uint16
 	Timestamp       uint32
 	Data            []byte
-	Owner           *crypto.PubKey
-	Program         *program.Program
+
+	Owner     *crypto.PubKey
+	Signature []byte
 
 	hash common.Uint256
 }
@@ -45,16 +41,13 @@ func (cp *ConsensusPayload) Hash() common.Uint256 {
 }
 
 func (cp *ConsensusPayload) Verify() error {
-	//err := validation.VerifySignableDataSignature(cp)
-	//if err != nil {
-	//	return errors.New(fmt.Sprint("ConsensusPayload verify failed", err.Error()))
-	//}
-	//err = validation.VerifySignableDataProgramHashes(cp)
-	//if err != nil {
-	//	return errors.New(fmt.Sprint("ConsensusPayload verify failed", err.Error()))
-	//}
 
-	return nil
+	buf := new(bytes.Buffer)
+	cp.SerializeUnsigned(buf)
+
+	err := crypto.Verify(*cp.Owner, buf.Bytes(), cp.Signature)
+
+	return err
 }
 
 func (cp *ConsensusPayload) ToArray() []byte {
@@ -65,36 +58,6 @@ func (cp *ConsensusPayload) ToArray() []byte {
 
 func (cp *ConsensusPayload) InvertoryType() common.InventoryType {
 	return common.CONSENSUS
-}
-
-func (cp *ConsensusPayload) GetProgramHashes() ([]common.Uint160, error) {
-	//contract, err := contract.CreateSignatureContract(cp.Owner)
-	//if err != nil {
-	//	return nil, NewDetailErr(err, ErrNoCode, "[Consensus], CreateSignatureContract failed.")
-	//}
-
-	//hash := contract.ProgramHash
-	//programhashes := []common.Uint160{hash}
-	programhashes := []common.Uint160{}
-	return programhashes, nil
-}
-
-func (cp *ConsensusPayload) SetPrograms(programs []*program.Program) {
-	if programs == nil {
-		log.Warn("Set programs with NULL parameters")
-		return
-	}
-
-	if len(programs) > 0 {
-		cp.Program = programs[0]
-	} else {
-		log.Warn("Set programs with 0 program")
-	}
-}
-
-func (cp *ConsensusPayload) GetPrograms() []*program.Program {
-	cpg := []*program.Program{cp.Program}
-	return cpg
 }
 
 func (cp *ConsensusPayload) GetMessage() []byte {
@@ -135,21 +98,25 @@ func (cp *ConsensusPayload) SerializeUnsigned(w io.Writer) error {
 	serialization.WriteUint16(w, cp.BookKeeperIndex)
 	serialization.WriteUint32(w, cp.Timestamp)
 	serialization.WriteVarBytes(w, cp.Data)
-	err := cp.Owner.Serialize(w)
-	if err != nil {
-		return err
-	}
 	return nil
 
 }
 
 func (cp *ConsensusPayload) Serialize(w io.Writer) error {
 	err := cp.SerializeUnsigned(w)
-	if cp.Program == nil {
-		log.Error("Program is NULL")
-		return errors.New("Program in consensus is NULL")
+	if err != nil {
+		return err
 	}
-	err = cp.Program.Serialize(w)
+	err = cp.Owner.Serialize(w)
+	if err != nil {
+		return err
+	}
+
+	err = serialization.WriteVarBytes(w, cp.Signature)
+	if err != nil {
+		return err
+	}
+
 	return err
 }
 
@@ -203,6 +170,13 @@ func (cp *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
 		log.Warn("consensus item Data Deserialize failed.")
 		return errors.New("consensus item Data Deserialize failed.")
 	}
+
+	return nil
+}
+
+func (cp *ConsensusPayload) Deserialize(r io.Reader) error {
+	err := cp.DeserializeUnsigned(r)
+
 	pk := new(crypto.PubKey)
 	err = pk.DeSerialize(r)
 	if err != nil {
@@ -211,19 +185,8 @@ func (cp *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
 	}
 	cp.Owner = pk
 
-	return nil
-}
+	cp.Signature, err = serialization.ReadVarBytes(r)
 
-func (cp *ConsensusPayload) Deserialize(r io.Reader) error {
-	err := cp.DeserializeUnsigned(r)
-
-	pg := new(program.Program)
-	err = pg.Deserialize(r)
-	if err != nil {
-		log.Error("Blockdata item Program Deserialize failed")
-		return NewDetailErr(err, ErrNoCode, "Blockdata item Program Deserialize failed.")
-	}
-	cp.Program = pg
 	return err
 }
 

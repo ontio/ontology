@@ -15,7 +15,6 @@ import (
 	"github.com/Ontology/core/genesis"
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/payload"
-	"github.com/Ontology/core/signature"
 	"github.com/Ontology/core/transaction/utxo"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/core/utils"
@@ -618,30 +617,10 @@ func (ds *DbftService) RequestChangeView() {
 }
 
 func (ds *DbftService) SignAndRelay(payload *p2pmsg.ConsensusPayload) {
-	log.Debug()
+	buf := new(bytes.Buffer)
+	payload.SerializeUnsigned(buf)
+	payload.Signature, _ = crypto.Sign(ds.Account.PrivKey(), buf.Bytes())
 
-	prohash, err := payload.GetProgramHashes()
-	if err != nil {
-		log.Debug("[SignAndRelay] payload.GetProgramHashes failed: ", err.Error())
-		return
-	}
-	log.Debug("[SignAndRelay] ConsensusPayload Program Hashes: ", prohash)
-
-	context := contract.NewContractContext(payload)
-
-	if prohash[0] != ds.Account.ProgramHash {
-		log.Error("[SignAndRelay] wrong program hash")
-	}
-
-	sig, _ := signature.SignBySigner(context.Data, ds.Account)
-	ct, _ := contract.CreateSignatureContract(ds.Account.PublicKey)
-	context.AddContract(ct, ds.Account.PublicKey, sig)
-
-	prog := context.GetPrograms()
-	if prog == nil {
-		log.Warn("[SignAndRelay] Get program failure")
-	}
-	payload.SetPrograms(prog)
 	ds.p2p.Xmit(payload)
 }
 
