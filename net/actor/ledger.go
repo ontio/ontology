@@ -118,6 +118,7 @@ func GetTxnFromLedger(hash common.Uint256) (*types.Transaction, error) {
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
+		return nil, err
 	}
 	return result.(GetTransactionRsp).Tx, result.(GetTransactionRsp).Error
 }
@@ -127,6 +128,7 @@ func GetCurrentBlockHash() (common.Uint256, error) {
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
+		return common.Uint256{}, err
 	}
 	return result.(GetCurrentBlockHashRsp).BlockHash, result.(GetCurrentBlockHashRsp).Error
 }
@@ -136,6 +138,7 @@ func GetBlockHashByHeight(height uint32) (common.Uint256, error) {
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
+		return common.Uint256{}, err
 	}
 	return result.(GetBlockHashRsp).BlockHash, result.(GetBlockHashRsp).Error
 }
@@ -145,6 +148,7 @@ func GetHeaderByHeight(height uint32) (*types.Header, error) {
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
+		return nil, err
 	}
 	return result.(GetHeaderByHeightRsp).Header, result.(GetHeaderByHeightRsp).Error
 }
@@ -154,6 +158,7 @@ func GetBlockByHeight(height uint32) (*types.Block, error) {
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
+		return nil, err
 	}
 	return result.(GetBlockByHeightRsp).Block, result.(GetBlockByHeightRsp).Error
 }
@@ -163,6 +168,7 @@ func GetHeaderByHash(hash common.Uint256) (*types.Header, error) {
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
+		return nil, err
 	}
 	return result.(GetHeaderByHashRsp).Header, result.(GetHeaderByHashRsp).Error
 }
@@ -172,6 +178,7 @@ func GetBlockByHash(hash common.Uint256) (*types.Block, error) {
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
+		return nil, err
 	}
 	return result.(GetBlockByHashRsp).Block, result.(GetBlockByHashRsp).Error
 }
@@ -181,6 +188,7 @@ func GetCurrentHeaderHeight() (uint32, error) {
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
+		return 0, err
 	}
 	return result.(GetCurrentHeaderHeightRsp).Height, result.(GetCurrentHeaderHeightRsp).Error
 }
@@ -190,6 +198,7 @@ func GetCurrentBlockHeight() (uint32, error) {
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
+		return 0, err
 	}
 	return result.(GetCurrentBlockHeightRsp).Height, result.(GetCurrentBlockHeightRsp).Error
 }
@@ -199,6 +208,7 @@ func IsContainBlock(hash common.Uint256) (bool, error) {
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
+		return false, err
 	}
 	return result.(IsContainBlockRsp).IsContain, result.(IsContainBlockRsp).Error
 }
