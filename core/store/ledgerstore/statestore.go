@@ -158,7 +158,7 @@ func (this *StateStore) GetAccountState(programHash *common.Uint160) (*AccountSt
 }
 
 func (this *StateStore) GetContractState(contractHash *common.Uint160) (*ContractState, error) {
-	key, err := this.getAccountStatekey(contractHash)
+	key, err := this.getContractStateKey(contractHash)
 	if err != nil {
 		return nil, err
 	}
