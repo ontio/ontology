@@ -2,10 +2,11 @@ package actor
 
 import (
 	"github.com/Ontology/common"
+	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/eventbus/actor"
-	"github.com/Ontology/common/log"
+	"reflect"
 )
 
 var DefLedgerPid *actor.PID
@@ -69,7 +70,7 @@ func (this *LedgerActor) Receive(ctx actor.Context) {
 	case *PreExecuteContractReq:
 		this.handlePreExecuteContractReq(ctx, msg)
 	default:
-		log.Warnf("LedgerActor cannot deal with type: %v", msg)
+		log.Warnf("LedgerActor cannot deal with type: %v %v", msg, reflect.TypeOf(msg))
 	}
 }
 
@@ -261,11 +262,11 @@ func (this *LedgerActor) handleIsContainTransactionReq(ctx actor.Context, req *I
 	ctx.Sender().Request(resp, ctx.Self())
 }
 
-func (this *LedgerActor)handlePreExecuteContractReq(ctx actor.Context, req *PreExecuteContractReq){
+func (this *LedgerActor) handlePreExecuteContractReq(ctx actor.Context, req *PreExecuteContractReq) {
 	result, err := ledger.DefLedger.PreExecuteContract(req.Tx)
 	resp := PreExecuteContractRsp{
-		Result:result,
-		Error:err,
+		Result: result,
+		Error:  err,
 	}
 	ctx.Sender().Request(resp, ctx.Self())
 }

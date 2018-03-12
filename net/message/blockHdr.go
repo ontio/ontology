@@ -188,7 +188,7 @@ func (msg blkHeader) Handle(node Noder) error {
 	//	log.Warn("Add block Header error")
 	//	return errors.New("Add block Header error, send new header request to another node\n")
 	//}
-	actor.AddHeader(&msg.blkHdr)
+	actor.AddHeader(msg.blkHdr)
 	return nil
 }
 
