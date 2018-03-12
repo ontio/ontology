@@ -38,7 +38,12 @@ func (msg block) Handle(node Noder) error {
 	//}
 	//node.RemoveFlightHeight(msg.blk.Header.Height)
 	//node.LocalNode().GetEvent("block").Notify(events.EventNewInventory, &msg.blk)
-	actor.AddBlock(&msg.blk)
+	hash := msg.blk.Hash()
+	if con, _ := actor.IsContainBlock(hash); con != true{
+		actor.AddBlock(&msg.blk)
+	} else {
+		log.Debug("Receive duplicated block")
+	}
 	return nil
 }
 
@@ -79,12 +84,12 @@ func (msg dataReq) Handle(node Noder) error {
 
 func NewBlockFromHash(hash common.Uint256) (*types.Block, error) {
 	//bk, err := ledger.DefaultLedger.Store.GetBlock(hash)
-	//if err != nil {
-	//	log.Errorf("Get Block error: %s, block hash: %x", err.Error(), hash)
-	//	return nil, err
-	//}
-	//return bk, nil
-	return nil, nil
+	bk, err := actor.GetBlockByHash(hash)
+	if err != nil {
+		log.Errorf("Get Block error: %s, block hash: %x", err.Error(), hash)
+		return nil, err
+	}
+	return bk, nil
 }
 
 func NewBlock(bk *types.Block) ([]byte, error) {
