@@ -2,22 +2,22 @@ package rpc
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/hex"
+	"fmt"
 	. "github.com/Ontology/common"
+	"github.com/Ontology/common/config"
 	"github.com/Ontology/core/types"
 	. "github.com/Ontology/errors"
-	. "github.com/Ontology/http/base/common"
 	. "github.com/Ontology/http/base/actor"
-	"github.com/Ontology/common/config"
+	. "github.com/Ontology/http/base/common"
 	"math/rand"
-	"fmt"
-	"encoding/base64"
 	"os"
 )
 
 func GetBestBlockHash(params []interface{}) map[string]interface{} {
-	hash,err := CurrentBlockHash()
-	if err != nil{
+	hash, err := CurrentBlockHash()
+	if err != nil {
 		return DnaRpcFailed
 	}
 	return DnaRpc(ToHexString(hash.ToArray()))
@@ -69,10 +69,11 @@ func GetBlock(params []interface{}) map[string]interface{} {
 		Height:           block.Header.Height,
 		ConsensusData:    block.Header.ConsensusData,
 		NextBookKeeper:   ToHexString(block.Header.NextBookKeeper[:]),
-		Program: ProgramInfo{
-			Code:      ToHexString(block.Header.Program.Code),
-			Parameter: ToHexString(block.Header.Program.Parameter),
-		},
+		// TODO replace with bookkeepers and sigdata
+		//Program: ProgramInfo{
+		//	Code:      ToHexString(block.Header.Program.Code),
+		//	Parameter: ToHexString(block.Header.Program.Parameter),
+		//},
 		Hash: ToHexString(hash.ToArray()),
 	}
 
@@ -90,8 +91,8 @@ func GetBlock(params []interface{}) map[string]interface{} {
 }
 
 func GetBlockCount(params []interface{}) map[string]interface{} {
-	height,err := BlockHeight()
-	if err != nil{
+	height, err := BlockHeight()
+	if err != nil {
 		return DnaRpcFailed
 	}
 	return DnaRpc(height + 1)
@@ -117,8 +118,8 @@ func GetBlockHash(params []interface{}) map[string]interface{} {
 }
 
 func GetConnectionCount(params []interface{}) map[string]interface{} {
-	count,err := GetConnectionCnt()
-	if err != nil{
+	count, err := GetConnectionCnt()
+	if err != nil {
 		return DnaRpcFailed
 	}
 	return DnaRpc(count)
@@ -158,14 +159,15 @@ func GetMemPoolTx(params []interface{}) map[string]interface{} {
 		tran := TransArryByteToHexString(txEntry.Tx)
 		attrs := []TXNAttrInfo{}
 		for _, t := range txEntry.Attrs {
-			attrs = append(attrs, TXNAttrInfo{t.Height,int(t.Type),int(t.ErrCode)})
+			attrs = append(attrs, TXNAttrInfo{t.Height, int(t.Type), int(t.ErrCode)})
 		}
-		info := TXNEntryInfo{*tran,int64(txEntry.Fee),attrs}
+		info := TXNEntryInfo{*tran, int64(txEntry.Fee), attrs}
 		return DnaRpc(info)
 	default:
 		return DnaRpcInvalidParameter
 	}
 }
+
 // A JSON example for getrawtransaction method as following:
 //   {"jsonrpc": "2.0", "method": "getrawtransaction", "params": ["transactioin hash in hex"], "id": 0}
 func GetRawTransaction(params []interface{}) map[string]interface{} {
@@ -228,7 +230,7 @@ func GetStorage(params []interface{}) map[string]interface{} {
 	default:
 		return DnaRpcInvalidParameter
 	}
-	value, err := GetStorageItem(codeHash,key)
+	value, err := GetStorageItem(codeHash, key)
 	if err != nil {
 		return DnaRpcInternalError
 	}

@@ -8,7 +8,7 @@ import (
 
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
-	"github.com/Ontology/core/contract/program"
+	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
 )
 
@@ -23,7 +23,9 @@ type Header struct {
 	ConsensusData    uint64
 	NextBookKeeper   Address
 
-	Program *program.Program
+	//Program *program.Program
+	BookKeepers []*crypto.PubKey
+	SigData     [][]byte
 
 	hash Uint256
 }
@@ -32,10 +34,30 @@ type Header struct {
 func (bd *Header) Serialize(w io.Writer) error {
 	bd.SerializeUnsigned(w)
 
-	if bd.Program != nil {
-		errors.New("block header program is nil")
+	err := serialization.WriteVarUint(w, uint64(len(bd.BookKeepers)))
+	if err != nil {
+		return errors.New("serialize sig pubkey length failed")
 	}
-	return bd.Program.Serialize(w)
+	for _, pubkey := range bd.BookKeepers {
+		err = pubkey.Serialize(w)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = serialization.WriteVarUint(w, uint64(len(bd.SigData)))
+	if err != nil {
+		return errors.New("serialize sig pubkey length failed")
+	}
+
+	for _, sig := range bd.SigData {
+		err = serialization.WriteVarBytes(w, sig)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 //Serialize the blockheader data without program
@@ -58,12 +80,35 @@ func (bd *Header) Deserialize(r io.Reader) error {
 		return err
 	}
 
-	pg := new(program.Program)
-	err = pg.Deserialize(r)
+	n, err := serialization.ReadVarUint(r, 0)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Header item Program Deserialize failed.")
+		return err
 	}
-	bd.Program = pg
+
+	bd.BookKeepers = make([]*crypto.PubKey, n)
+	for i := 0; i < int(n); i++ {
+		pubkey := new(crypto.PubKey)
+		err = pubkey.DeSerialize(r)
+		if err != nil {
+			return err
+		}
+		bd.BookKeepers[i] = pubkey
+	}
+
+	m, err := serialization.ReadVarUint(r, 0)
+	if err != nil {
+		return err
+	}
+
+	bd.SigData = make([][]byte, m)
+	for i := 0; i < int(m); i++ {
+		sig, err := serialization.ReadVarBytes(r)
+		if err != nil {
+			return err
+		}
+		bd.SigData[i] = sig
+	}
+
 	return nil
 }
 

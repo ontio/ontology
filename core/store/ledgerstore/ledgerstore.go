@@ -7,15 +7,14 @@ import (
 	"github.com/Ontology/core/states"
 	"github.com/Ontology/core/store/statestore"
 	"github.com/Ontology/core/types"
+	"github.com/Ontology/core/utils"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/events"
 	"github.com/Ontology/events/message"
 	smcommon "github.com/Ontology/smartcontract/common"
 	"github.com/Ontology/smartcontract/service"
 	smtypes "github.com/Ontology/smartcontract/types"
-	vmtypes "github.com/Ontology/smartcontract/types"
 	"github.com/Ontology/vm/neovm"
-	vm "github.com/Ontology/vm/neovm"
 	log4 "github.com/alecthomas/log4go"
 	"sort"
 	"sync"
@@ -380,37 +379,20 @@ func (this *LedgerStore) verifyHeader(header *types.Header) error {
 		return fmt.Errorf("block timestamp is incorrect")
 	}
 
-	programhash := common.ToCodeHash(header.Program.Code)
-	if prevHeader.NextBookKeeper != types.Address(programhash) {
+	address, err := utils.AddressFromBookKeepers(header.BookKeepers)
+	if err != nil {
+		return err
+	}
+	if prevHeader.NextBookKeeper != address {
 		return fmt.Errorf("bookkeeper address error")
 	}
 
-	err = this.verifyHeaderProgram(header)
+	m := len(header.BookKeepers) - (len(header.BookKeepers)-1)/3
+	err = crypto.VerifyMultiSignature(header.GetMessage(), header.BookKeepers, m, header.SigData)
 	if err != nil {
-		return fmt.Errorf("VerifyHeaderProgram error %s", err)
+		return err
 	}
-	return nil
-}
 
-func (this *LedgerStore) verifyHeaderProgram(header *types.Header) error {
-	program := header.Program
-	cryptos := new(vm.ECDsaCrypto)
-	stateReader := service.NewStateReader(this, vmtypes.Verification)
-	se := vm.NewExecutionEngine(header, cryptos, nil, stateReader)
-	se.LoadCode(program.Code, false)
-	se.LoadCode(program.Parameter, true)
-	se.Execute()
-
-	if se.GetState() != vm.HALT {
-		return fmt.Errorf("VM] Finish State not equal to HALT")
-	}
-	if se.GetEvaluationStack().Count() != 1 {
-		return fmt.Errorf("[VM] Execute Engine Stack Count Error")
-	}
-	flag := se.GetExecuteResult()
-	if !flag {
-		return fmt.Errorf("[VM] Check Sig FALSE")
-	}
 	return nil
 }
 

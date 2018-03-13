@@ -92,10 +92,11 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 		Height:           block.Header.Height,
 		ConsensusData:    block.Header.ConsensusData,
 		NextBookKeeper:   ToHexString(block.Header.NextBookKeeper[:]),
-		Program: ProgramInfo{
-			Code:      ToHexString(block.Header.Program.Code),
-			Parameter: ToHexString(block.Header.Program.Parameter),
-		},
+		// TODO replace with BookKeepers and sigdata
+		//Program: ProgramInfo{
+		//	Code:      ToHexString(block.Header.Program.Code),
+		//	Parameter: ToHexString(block.Header.Program.Parameter),
+		//},
 		Hash: ToHexString(hash.ToArray()),
 	}
 

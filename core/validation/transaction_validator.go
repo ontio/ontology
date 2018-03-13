@@ -33,6 +33,7 @@ func VerifyTransactionWithLedger(tx *types.Transaction, ledger *ledger.Ledger) E
 	return ErrNoError
 }
 
+
 func checkTransactionSignatures(tx *types.Transaction) error {
 	hash := tx.Hash()
 	address := make(map[types.Address]bool, len(tx.Sigs))
@@ -53,20 +54,8 @@ func checkTransactionSignatures(tx *types.Transaction) error {
 
 			address[utils.AddressFromPubKey(sig.PubKeys[0])] = true
 		} else {
-			passed := true
-			for i, j := 0, 0; passed && i < m && j < n; {
-				err := crypto.Verify(*sig.PubKeys[j], hash[:], sig.SigData[i])
-				if err == nil {
-					i++
-				}
-				j++
-				if m-i > n-j {
-					passed = false
-				}
-			}
-
-			if passed == false {
-				return errors.New("multi-signature not enough")
+			if err := crypto.VerifyMultiSignature(hash[:], sig.PubKeys, m, sig.SigData); err != nil {
+				return err
 			}
 
 			addr, _ := utils.AddressFromMultiPubKeys(sig.PubKeys, m)

@@ -7,11 +7,9 @@ import (
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/core/code"
-	"github.com/Ontology/core/contract/program"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/core/utils"
 	"github.com/Ontology/crypto"
-	vm "github.com/Ontology/vm/neovm"
 	vmtypes "github.com/Ontology/vm/types"
 )
 
@@ -53,10 +51,9 @@ func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*types.Block, error) 
 		Height:           uint32(0),
 		ConsensusData:    GenesisNonce,
 		NextBookKeeper:   nextBookKeeper,
-		Program: &program.Program{
-			Code:      []byte{},
-			Parameter: []byte{byte(vm.PUSHT)},
-		},
+
+		BookKeepers: nil,
+		SigData:     nil,
 	}
 
 	//block

@@ -103,6 +103,32 @@ func Verify(publicKey PubKey, data []byte, signature []byte) error {
 	return p256r1.Verify(&algSet, publicKey.X, publicKey.Y, data, r, s)
 }
 
+func VerifyMultiSignature(data []byte, pubKeys []*PubKey, m int, sigs [][]byte) error {
+	passed := true
+	n := len(pubKeys)
+
+	if len(sigs) < m {
+		passed = false
+	}
+
+	for i, j := 0, 0; passed && i < m && j < n; {
+		err := Verify(*pubKeys[j], data, sigs[i])
+		if err == nil {
+			i++
+		}
+		j++
+		if m-i > n-j {
+			passed = false
+		}
+	}
+
+	if passed == false {
+		return errors.New("multi-signature not enough")
+	}
+
+	return nil
+}
+
 func (e *PubKey) Serialize(w io.Writer) error {
 	bufX := []byte{}
 	if e.X.Sign() == -1 {

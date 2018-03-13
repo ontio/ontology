@@ -6,8 +6,8 @@ import (
 	"github.com/Ontology/core/transaction/utxo"
 	"github.com/Ontology/core/types"
 	. "github.com/Ontology/errors"
-	"strconv"
 	. "github.com/Ontology/http/base/actor"
+	"strconv"
 )
 
 //multiplexer that keeps track of every function to be called on specific rpc call
@@ -78,7 +78,9 @@ type BlockHead struct {
 	Height           uint32
 	ConsensusData    uint64
 	NextBookKeeper   string
-	Program          ProgramInfo
+
+	BookKeepers []string
+	SigData     []string
 
 	Hash string
 }
@@ -102,15 +104,15 @@ type TxoutInfo struct {
 }
 
 type NodeInfo struct {
-	NodeState    uint   // node status
-	NodePort     uint16 // The nodes's port
-	ID       uint64 // The nodes's id
-	NodeTime     int64
-	NodeVersion  uint32 // The network protocol the node used
-	NodeType uint64 // The services the node supplied
-	Relay    bool   // The relay capability of the node (merge into capbility flag)
-	Height   uint32 // The node latest block height
-	TxnCnt   []uint64 // The transactions be transmit by this node
+	NodeState   uint   // node status
+	NodePort    uint16 // The nodes's port
+	ID          uint64 // The nodes's id
+	NodeTime    int64
+	NodeVersion uint32   // The network protocol the node used
+	NodeType    uint64   // The services the node supplied
+	Relay       bool     // The relay capability of the node (merge into capbility flag)
+	Height      uint32   // The node latest block height
+	TxnCnt      []uint64 // The transactions be transmit by this node
 	//RxTxnCnt uint64 // The transaction received by this node
 }
 
