@@ -26,7 +26,7 @@ func AddBlock(block *types.Block) {
 }
 
 func GetTxnFromLedger(hash common.Uint256) (*types.Transaction, error) {
-	future := defLedgerPid.RequestFuture(&ledger.GetTransactionReq{TxHash: &hash}, 5*time.Second)
+	future := defLedgerPid.RequestFuture(&ledger.GetTransactionReq{TxHash: hash}, 5*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
@@ -42,7 +42,7 @@ func GetCurrentBlockHash() (common.Uint256, error) {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return common.Uint256{}, err
 	}
-	return *result.(ledger.GetCurrentBlockHashRsp).BlockHash, result.(ledger.GetCurrentBlockHashRsp).Error
+	return result.(ledger.GetCurrentBlockHashRsp).BlockHash, result.(ledger.GetCurrentBlockHashRsp).Error
 }
 
 func GetBlockHashByHeight(height uint32) (common.Uint256, error) {
@@ -52,7 +52,7 @@ func GetBlockHashByHeight(height uint32) (common.Uint256, error) {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return common.Uint256{}, err
 	}
-	return *result.(ledger.GetBlockHashRsp).BlockHash, result.(ledger.GetBlockHashRsp).Error
+	return result.(ledger.GetBlockHashRsp).BlockHash, result.(ledger.GetBlockHashRsp).Error
 }
 
 func GetHeaderByHeight(height uint32) (*types.Header, error) {
@@ -76,7 +76,7 @@ func GetBlockByHeight(height uint32) (*types.Block, error) {
 }
 
 func GetHeaderByHash(hash common.Uint256) (*types.Header, error) {
-	future := defLedgerPid.RequestFuture(&ledger.GetHeaderByHashReq{&hash}, 5*time.Second)
+	future := defLedgerPid.RequestFuture(&ledger.GetHeaderByHashReq{hash}, 5*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
@@ -86,7 +86,7 @@ func GetHeaderByHash(hash common.Uint256) (*types.Header, error) {
 }
 
 func GetBlockByHash(hash common.Uint256) (*types.Block, error) {
-	future := defLedgerPid.RequestFuture(&ledger.GetBlockByHashReq{&hash}, 5*time.Second)
+	future := defLedgerPid.RequestFuture(&ledger.GetBlockByHashReq{hash}, 5*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
@@ -116,7 +116,7 @@ func GetCurrentBlockHeight() (uint32, error) {
 }
 
 func IsContainBlock(hash common.Uint256) (bool, error) {
-	future := defLedgerPid.RequestFuture(&ledger.IsContainBlockReq{BlockHash: &hash}, 5*time.Second)
+	future := defLedgerPid.RequestFuture(&ledger.IsContainBlockReq{BlockHash: hash}, 5*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
