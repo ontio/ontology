@@ -120,11 +120,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	hserver.SetConsensusPid(nil)
-	hserver.SetNetServerPid(nil)
-	hserver.SetLedgerPid(nil)
-	hserver.SetTxnPoolPid(nil)
-	hserver.SetTxPid(nil)
+	hserver.SetNetServerPid(p2pActor)
+	hserver.SetLedgerPid(ledgerPID)
+	hserver.SetTxnPoolPid(txPoolServer.GetPID(tc.TxPoolActor))
+	hserver.SetTxPid(txPoolServer.GetPID(tc.TxActor))
 	go restful.StartServer()
 
 	noder.SyncNodeHeight()
@@ -137,11 +136,12 @@ func main() {
 		net.SetConsensusPid(consensusService.GetPID())
 		go consensusService.Start()
 		time.Sleep(5 * time.Second)
+		hserver.SetConsensusPid(consensusService.GetPID())
+		go localrpc.StartLocalServer()
 	}
 
 	log.Info("--Start the RPC interface")
 	go jsonrpc.StartRPCServer()
-	go localrpc.StartLocalServer()
 	go websocket.StartServer()
 	if config.Parameters.HttpInfoStart {
 		go nodeinfo.StartServer(noder)
