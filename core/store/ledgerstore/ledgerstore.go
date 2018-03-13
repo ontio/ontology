@@ -284,13 +284,21 @@ func (this *LedgerStore) getHeaderIndex(height uint32) common.Uint256 {
 func (this *LedgerStore) GetCurrentHeaderHeight() uint32 {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
-	return uint32(len(this.headerIndex)) - 1
+	size := len(this.headerIndex)
+	if size == 0 {
+		return 0
+	}
+	return uint32(size) - 1
 }
 
 func (this *LedgerStore) GetCurrentHeaderHash() common.Uint256 {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
-	return this.headerIndex[uint32(len(this.headerIndex))-1]
+	size := len(this.headerIndex)
+	if size == 0{
+		return common.Uint256{}
+	}
+	return this.headerIndex[uint32(size)-1]
 }
 
 func (this *LedgerStore) setCurrentBlock(height uint32, blockHash common.Uint256) {
@@ -521,6 +529,7 @@ func (this *LedgerStore) saveBlock(block *types.Block) error {
 		}
 	}
 
+	this.setHeaderIndex(blockHeight, blockHash)
 	err = this.saveHeaderIndexList()
 	if err != nil {
 		return fmt.Errorf("saveHeaderIndexList error %s", err)
