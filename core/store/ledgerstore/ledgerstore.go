@@ -641,11 +641,11 @@ func (this *LedgerStore) saveHeaderIndexList() error {
 		return nil
 	}
 
-	headerList := make(map[uint32]common.Uint256, HeaderIndexBatchSize)
+	//headerList := make(map[uint32]common.Uint256, HeaderIndexBatchSize)
+	headerList := make([]common.Uint256, HeaderIndexBatchSize)
 	for i := uint32(0); i < HeaderIndexBatchSize; i++ {
 		height := storeCount + i
-		blockHash := this.headerIndex[height]
-		headerList[height] = blockHash
+		headerList[i] = this.headerIndex[height]
 	}
 	this.lock.RUnlock()
 
