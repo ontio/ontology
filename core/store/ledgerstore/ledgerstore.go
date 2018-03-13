@@ -24,7 +24,9 @@ import (
 const (
 	SystemVersion        = byte(1)
 	HeaderIndexBatchSize = uint32(2000)
+)
 
+var (
 	DBDirEvent          = "Chain/ledgerevent"
 	DBDirBlock          = "Chain/block"
 	DBDirState          = "Chain/states"
@@ -48,8 +50,12 @@ type LedgerStore struct {
 }
 
 func NewLedgerStore() (*LedgerStore, error) {
-	ledgerStore := &LedgerStore{exitCh: make(chan interface{}, 0)}
-	ledgerStore.headerCache = make(map[common.Uint256]*types.Header)
+	ledgerStore := &LedgerStore{
+		exitCh:      make(chan interface{}, 0),
+		headerIndex: make(map[uint32]common.Uint256),
+		headerCache: make(map[common.Uint256]*types.Header),
+		blockCache:  make(map[common.Uint256]*types.Block),
+	}
 
 	blockStore, err := NewBlockStore(DBDirBlock, true)
 	if err != nil {
@@ -165,6 +171,7 @@ func (this *LedgerStore) initCurrentBlock() error {
 	if err != nil {
 		return fmt.Errorf("LoadCurrentBlock error %s", err)
 	}
+	fmt.Printf("currentBlockHash %x currentBlockHeight %d\n", currentBlockHash, currentBlockHeight)
 	this.currBlockHash = currentBlockHash
 	this.currBlockHeight = currentBlockHeight
 	return nil
@@ -283,7 +290,7 @@ func (this *LedgerStore) GetCurrentHeaderHash() common.Uint256 {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	size := len(this.headerIndex)
-	if size == 0{
+	if size == 0 {
 		return common.Uint256{}
 	}
 	return this.headerIndex[uint32(size)-1]
@@ -579,11 +586,13 @@ func (this *LedgerStore) saveBlock(block *types.Block) error {
 	}
 	this.setCurrentBlock(blockHeight, blockHash)
 
-	events.DefActorPublisher.Publish(
-		message.TopicSaveBlockComplete,
-		&message.SaveBlockCompleteMsg{
-			Block: block,
-		})
+	if events.DefActorPublisher != nil {
+		events.DefActorPublisher.Publish(
+			message.TopicSaveBlockComplete,
+			&message.SaveBlockCompleteMsg{
+				Block: block,
+			})
+	}
 	return nil
 }
 

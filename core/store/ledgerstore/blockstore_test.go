@@ -4,49 +4,11 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/Ontology/common"
-	"github.com/Ontology/core/contract/program"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/types"
-	"github.com/Ontology/vm/neovm"
-	"os"
 	"testing"
 	"time"
 )
-
-var testBlockStore *BlockStore
-var testStateStore *StateStore
-
-func TestMain(m *testing.M) {
-	testBlockDir := "test/block"
-	var err error
-	testBlockStore, err = NewBlockStore(testBlockDir, false)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "NewBlockStore error %s\n", err)
-		return
-	}
-	testStateDir := "test/state"
-	testStateStore, err = NewStateStore(testStateDir)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "NewStateStore error %s\n", err)
-		return
-	}
-	m.Run()
-	err = testBlockStore.Close()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "testBlockStore.Close error %s\n", err)
-		return
-	}
-	err = testStateStore.Close()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "testStateStore.Close error %s", err)
-		return
-	}
-	err = os.RemoveAll("./test")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "os.RemoveAll error %s\n", err)
-		return
-	}
-}
 
 func TestVersion(t *testing.T) {
 	err := testBlockStore.NewBatch()
@@ -84,7 +46,7 @@ func TestCurrentBlock(t *testing.T) {
 		t.Errorf("NewBatch error %s", err)
 		return
 	}
-	err = testBlockStore.SaveCurrentBlock(blockHeight, &blockHash)
+	err = testBlockStore.SaveCurrentBlock(blockHeight, blockHash)
 	if err != nil {
 		t.Errorf("SaveCurrentBlock error %s", err)
 		return
@@ -95,8 +57,8 @@ func TestCurrentBlock(t *testing.T) {
 		return
 	}
 	hash, height, err := testBlockStore.GetCurrentBlock()
-	if *hash != blockHash {
-		t.Errorf("TestCurrentBlock BlockHash %x != %x", *hash, blockHash)
+	if hash != blockHash {
+		t.Errorf("TestCurrentBlock BlockHash %x != %x", hash, blockHash)
 		return
 	}
 	if height != blockHeight {
@@ -113,14 +75,14 @@ func TestBlockHash(t *testing.T) {
 		t.Errorf("NewBatch error %s", err)
 		return
 	}
-	err = testBlockStore.SaveBlockHash(blockHeight, &blockHash)
+	err = testBlockStore.SaveBlockHash(blockHeight, blockHash)
 	if err != nil {
 		t.Errorf("SaveBlockHash error %s", err)
 		return
 	}
 	blockHash = common.Uint256(sha256.Sum256([]byte("234567890")))
 	blockHeight = uint32(2)
-	err = testBlockStore.SaveBlockHash(blockHeight, &blockHash)
+	err = testBlockStore.SaveBlockHash(blockHeight, blockHash)
 	if err != nil {
 		t.Errorf("SaveBlockHash error %s", err)
 		return
@@ -135,8 +97,8 @@ func TestBlockHash(t *testing.T) {
 		t.Errorf("GetBlockHash error %s", err)
 		return
 	}
-	if *hash != blockHash {
-		t.Errorf("TestBlockHash failed BlockHash %x != %x", *hash, blockHash)
+	if hash != blockHash {
+		t.Errorf("TestBlockHash failed BlockHash %x != %x", hash, blockHash)
 		return
 	}
 }
@@ -153,7 +115,7 @@ func TestSaveTransaction(t *testing.T) {
 	blockHeight := uint32(1)
 	txHash := tx.Hash()
 
-	exist, err := testBlockStore.ContainTransaction(&txHash)
+	exist, err := testBlockStore.ContainTransaction(txHash)
 	if err != nil {
 		t.Errorf("ContainTransaction error %s", err)
 		return
@@ -179,7 +141,7 @@ func TestSaveTransaction(t *testing.T) {
 		return
 	}
 
-	tx1, height, err := testBlockStore.GetTransaction(&txHash)
+	tx1, height, err := testBlockStore.GetTransaction(txHash)
 	if err != nil {
 		t.Errorf("GetTransaction error %s", err)
 		return
@@ -198,7 +160,7 @@ func TestSaveTransaction(t *testing.T) {
 		return
 	}
 
-	exist, err = testBlockStore.ContainTransaction(&txHash)
+	exist, err = testBlockStore.ContainTransaction(txHash)
 	if err != nil {
 		t.Errorf("ContainTransaction error %s", err)
 		return
@@ -217,12 +179,12 @@ func TestHeaderIndexList(t *testing.T) {
 	}
 	startHeight := uint32(0)
 	size := uint32(100)
-	indexMap := make(map[uint32]*common.Uint256, size)
-	indexList := make([]*common.Uint256, 0)
+	indexMap := make(map[uint32]common.Uint256, size)
+	indexList := make([]common.Uint256, 0)
 	for i := startHeight; i < size; i++ {
 		hash := common.Uint256(sha256.Sum256([]byte(fmt.Sprintf("%v", i))))
-		indexMap[i] = &hash
-		indexList = append(indexList, &hash)
+		indexMap[i] = hash
+		indexList = append(indexList, hash)
 	}
 	err = testBlockStore.SaveHeaderIndexList(startHeight, indexMap)
 	if err != nil {
@@ -231,11 +193,11 @@ func TestHeaderIndexList(t *testing.T) {
 	}
 	startHeight = uint32(100)
 	size = uint32(100)
-	indexMap = make(map[uint32]*common.Uint256, size)
+	indexMap = make(map[uint32]common.Uint256, size)
 	for i := startHeight; i < size; i++ {
 		hash := common.Uint256(sha256.Sum256([]byte(fmt.Sprintf("%v", i))))
-		indexMap[i] = &hash
-		indexList = append(indexList, &hash)
+		indexMap[i] = hash
+		indexList = append(indexList, hash)
 	}
 	err = testBlockStore.CommitTo()
 	if err != nil {
@@ -255,7 +217,7 @@ func TestHeaderIndexList(t *testing.T) {
 			t.Errorf("TestHeaderIndexList failed height:%d hash not exist", height)
 			return
 		}
-		if *hash != *h {
+		if hash !=h {
 			t.Errorf("TestHeaderIndexList failed height:%d hash %x != %x", height, hash, h)
 			return
 		}
@@ -271,10 +233,6 @@ func TestSaveHeader(t *testing.T) {
 		Height:           uint32(1),
 		ConsensusData:    123456789,
 		NextBookKeeper:   types.Address(common.ToCodeHash([]byte("123456"))),
-		Program: &program.Program{
-			Code:      []byte{},
-			Parameter: []byte{byte(neovm.PUSHT)},
-		},
 	}
 	tx1 := &types.Transaction{
 		TxType: types.BookKeeping,
@@ -314,7 +272,7 @@ func TestSaveHeader(t *testing.T) {
 		return
 	}
 
-	h, err := testBlockStore.GetHeader(&blockHash)
+	h, err := testBlockStore.GetHeader(blockHash)
 	if err != nil {
 		t.Errorf("GetHeader error %s", err)
 		return
@@ -331,7 +289,7 @@ func TestSaveHeader(t *testing.T) {
 		return
 	}
 
-	fee, err := testBlockStore.GetSysFeeAmount(&blockHash)
+	fee, err := testBlockStore.GetSysFeeAmount(blockHash)
 	if err != nil {
 		t.Errorf("TestSaveHeader SysFee %d != %d", fee, sysFee)
 		return
@@ -347,10 +305,6 @@ func TestBlock(t *testing.T) {
 		Height:           uint32(2),
 		ConsensusData:    1234567890,
 		NextBookKeeper:   types.Address(common.ToCodeHash([]byte("123456"))),
-		Program: &program.Program{
-			Code:      []byte{},
-			Parameter: []byte{byte(neovm.PUSHT)},
-		},
 	}
 	tx1 := &types.Transaction{
 		TxType: types.BookKeeping,
@@ -391,7 +345,7 @@ func TestBlock(t *testing.T) {
 		return
 	}
 
-	b, err := testBlockStore.GetBlock(&blockHash)
+	b, err := testBlockStore.GetBlock(blockHash)
 	if err != nil {
 		t.Errorf("GetBlock error %s", err)
 		return
@@ -402,7 +356,7 @@ func TestBlock(t *testing.T) {
 		t.Errorf("TestBlock failed BlockHash %x != %x ", hash, blockHash)
 		return
 	}
-	exist, err := testBlockStore.ContainTransaction(&tx1Hash)
+	exist, err := testBlockStore.ContainTransaction(tx1Hash)
 	if err != nil {
 		t.Errorf("ContainTransaction error %s", err)
 		return
@@ -411,7 +365,7 @@ func TestBlock(t *testing.T) {
 		t.Errorf("TestBlock failed transaction %x should exist", tx1Hash)
 		return
 	}
-	exist, err = testBlockStore.ContainTransaction(&tx2Hash)
+	exist, err = testBlockStore.ContainTransaction(tx2Hash)
 	if err != nil {
 		t.Errorf("ContainTransaction error %s", err)
 		return
