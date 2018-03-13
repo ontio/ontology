@@ -14,7 +14,7 @@ import (
 )
 
 func TestWorker(t *testing.T) {
-	// Start txnpool server to receive msgs from p2p, consensus and valdiators
+	fmt.Println("Starting worker test")
 	s := NewTxPoolServer(tc.MAXWORKERNUM)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
@@ -145,4 +145,5 @@ func TestWorker(t *testing.T) {
 
 	worker.stop()
 	s.Stop()
+	fmt.Println("Ending worker test")
 }

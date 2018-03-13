@@ -298,6 +298,9 @@ func (s *TXPoolServer) unRegisterValidator(checkType types.VerifyType,
 			if v.Sender != nil {
 				v.Sender.Tell(&types.UnRegisterAck{Id: id, Type: checkType})
 			}
+			if len(s.validators.entries[checkType]) == 0 {
+				delete(s.validators.entries, checkType)
+			}
 		}
 	}
 }

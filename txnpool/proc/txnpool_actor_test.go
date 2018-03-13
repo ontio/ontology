@@ -11,7 +11,7 @@ import (
 )
 
 func TestTxActor(t *testing.T) {
-	// Start txnpool server to receive msgs from p2p, consensus and valdiators
+	fmt.Println("Starting tx actor test")
 	s := NewTxPoolServer(tc.MAXWORKERNUM)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
@@ -72,10 +72,11 @@ func TestTxActor(t *testing.T) {
 
 	txPid.Tell("test")
 	s.Stop()
+	fmt.Println("Ending tx actor test")
 }
 
 func TestTxPoolActor(t *testing.T) {
-	// Start txnpool server to receive msgs from p2p, consensus and valdiators
+	fmt.Println("Starting tx pool actor test")
 	s := NewTxPoolServer(tc.MAXWORKERNUM)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
@@ -112,10 +113,11 @@ func TestTxPoolActor(t *testing.T) {
 	txPoolPid.Tell(sbc)
 
 	s.Stop()
+	fmt.Println("Ending tx pool actor test")
 }
 
 func TestVerifyRspActor(t *testing.T) {
-	// Start txnpool server to receive msgs from p2p, consensus and valdiators
+	fmt.Println("Starting validator response actor test")
 	s := NewTxPoolServer(tc.MAXWORKERNUM)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
@@ -142,4 +144,5 @@ func TestVerifyRspActor(t *testing.T) {
 	validatorPid.Tell(rsp)
 
 	s.Stop()
+	fmt.Println("Ending validator response actor test")
 }

@@ -69,16 +69,6 @@ func (tp *TXPool) CleanTransactionList(txs []*types.Transaction) error {
 	return nil
 }
 
-func (tp *TXPool) CopyTxList() map[common.Uint256]*TXEntry {
-	tp.RLock()
-	defer tp.RUnlock()
-	txMap := make(map[common.Uint256]*TXEntry, len(tp.txList))
-	for txId, txEntry := range tp.txList {
-		txMap[txId] = txEntry
-	}
-	return txMap
-}
-
 func (tp *TXPool) delTxList(tx *types.Transaction) bool {
 	tp.Lock()
 	defer tp.Unlock()
