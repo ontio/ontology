@@ -68,7 +68,8 @@ type node struct {
 	tryTimes                 uint32
 	ConnectingNodes
 	RetryConnAddrs
-	SyncReqSem Semaphore
+	SyncReqSem    Semaphore
+	ConsensusNode *node
 }
 
 type RetryConnAddrs struct {
@@ -268,6 +269,9 @@ func (node *node) getConn() net.Conn {
 	return node.getconn(false)
 }
 
+func (node *node) GetConsensusConn() net.Conn {
+	return node.getconn(true)
+}
 func (node *node) getConsensusConn() net.Conn {
 	return node.getconn(true)
 }
@@ -286,6 +290,10 @@ func (node *node) GetPort() uint16 {
 
 func (node *node) GetConsensusPort() uint16 {
 	return node.getPort(true)
+}
+
+func (node *node) SetConsensusConn(conn net.Conn) {
+	node.consensusConn = conn
 }
 
 func (node *node) SetConsensusPort(consensusPort uint16) {
@@ -591,3 +599,12 @@ func (node *node) AcqSyncReqSem() {
 func (node *node) RelSyncReqSem() {
 	node.SyncReqSem.release()
 }
+
+//func (node *node) UpdateConsensusNode(n *node) {
+//	n.SetConsensusConn(node.GetConsensusConn())
+//	n.SetConsensusState(node.GetConsensusState())
+//	n.SetConsensusPort(node.GetConsensusPort())
+//	node.SetConsensusState(INACTIVITY)
+//	node = n
+//	go n.rx(true)
+//}

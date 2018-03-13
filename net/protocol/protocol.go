@@ -3,6 +3,8 @@ package protocol
 import (
 	"bytes"
 	"encoding/binary"
+	"net"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/events"
@@ -90,6 +92,7 @@ type Noder interface {
 	UpdateRXTime(t time.Time)
 	LocalNode() Noder
 	DelNbrNode(id uint64) (Noder, bool)
+	GetNbrNode(id uint64) (Noder, bool)
 	AddNbrNode(Noder)
 	CloseConn()
 	GetHeight() uint64
@@ -144,6 +147,8 @@ type Noder interface {
 	GetConsensusState() uint32
 	SetConsensusState(state uint32)
 	CloseConsensusConn()
+	SetConsensusConn(conn net.Conn)
+	GetConsensusConn() net.Conn
 }
 
 func (msg *NodeAddr) Deserialization(p []byte) error {

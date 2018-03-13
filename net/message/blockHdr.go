@@ -188,7 +188,12 @@ func (msg blkHeader) Handle(node Noder) error {
 	//	log.Warn("Add block Header error")
 	//	return errors.New("Add block Header error, send new header request to another node\n")
 	//}
-	actor.AddHeader(msg.blkHdr)
+	var blkHdr []*types.Header
+	var i uint32
+	for i = 0; i < msg.cnt ; i++  {
+		blkHdr = append(blkHdr, &msg.blkHdr[i])
+	}
+	actor.AddHeaders(blkHdr)
 	return nil
 }
 
@@ -264,7 +269,6 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]ty
 	}
 
 	return headers, count, nil
-	return []types.Header{}, 0, nil
 }
 
 func NewHeaders(headers []types.Header, count uint32) ([]byte, error) {

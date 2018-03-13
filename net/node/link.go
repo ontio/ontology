@@ -25,18 +25,25 @@ type RxBuf struct {
 	len int
 }
 
+type ConsensusLink struct {
+	consensusPort  uint16
+	consensusConn  net.Conn // Connect socket with the peer node
+	consensusRxBuf RxBuf
+}
+
 type link struct {
 	//Todo Add lock here
-	addr           string   // The address of the node
-	conn           net.Conn // Connect socket with the peer node
-	consensusConn  net.Conn // Connect socket with the peer node
-	port           uint16   // The server port of the node
+	addr         string   // The address of the node
+	conn         net.Conn // Connect socket with the peer node
+	port         uint16   // The server port of the node
+	rxBuf        RxBuf
+	httpInfoPort uint16    // The node information server port of the node
+	time         time.Time // The latest time the node activity
+	connCnt      uint64    // The connection count
+	//ConsensusLink
 	consensusPort  uint16
-	rxBuf          RxBuf
+	consensusConn  net.Conn // Connect socket with the peer node
 	consensusRxBuf RxBuf
-	httpInfoPort   uint16    // The node information server port of the node
-	time           time.Time // The latest time the node activity
-	connCnt        uint64    // The connection count
 }
 
 // Shrinking the buf to the exactly reading in byte length
@@ -191,19 +198,25 @@ func (n *node) waitForConnect(listener net.Listener, isConsensusChannel bool) {
 			node.addr, err = parseIPaddr(conn.RemoteAddr().String())
 			node.local = n
 			node.conn = conn
+			node.ConsensusNode = node
 		} else {
-			localIp, err := parseIPaddr(conn.LocalAddr().String())
-			if err != nil {
-				log.Error("parseIPaddr error:", err)
-				conn.Close()
-				continue
-			}
-			node = n.GetNbrNodeByAddr(localIp)
-			if node == nil {
-				conn.Close()
-				continue
-			}
+			//localIp, err := parseIPaddr(conn.LocalAddr().String())
+			//if err != nil {
+			//	log.Error("parseIPaddr error:", err)
+			//	conn.Close()
+			//	continue
+			//}
+			//node = n.GetNbrNodeByAddr(localIp)
+			//if node == nil {
+			//	conn.Close()
+			//	continue
+			//}
+			//node.consensusConn = conn
+			node = NewNode()
+			node.addr, err = parseIPaddr(conn.RemoteAddr().String())
+			node.local = n
 			node.consensusConn = conn
+			node.ConsensusNode = node
 		}
 		go node.rx(isConsensusChannel)
 	}
@@ -273,8 +286,10 @@ func parseIPaddr(s string) (string, error) {
 	return s[:i], nil
 }
 
-func (n *node) Connect(nodeAddr string, isConsensusChannel bool) error {
+func (n1 *node) Connect(nodeAddr string, isConsensusChannel bool) error {
 	log.Debug()
+
+	n := n1.LocalNode().(*node)
 
 	//TODO consensusChannel judgement
 	if !isConsensusChannel {
@@ -309,13 +324,14 @@ func (n *node) Connect(nodeAddr string, isConsensusChannel bool) error {
 	var nbrNode *node
 	if isConsensusChannel {
 		//TODO localnode is being or not
-		n.consensusConn = conn
-		nbrNode = n
+		n1.consensusConn = conn
+		nbrNode = n1
 	} else {
 		nbrNode = NewNode()
 		nbrNode.conn = conn
 		nbrNode.addr, err = parseIPaddr(conn.RemoteAddr().String())
 		nbrNode.local = n
+		nbrNode.ConsensusNode = nbrNode
 	}
 
 	log.Info(fmt.Sprintf("Connect node %s connect with %s with %s",
@@ -378,7 +394,7 @@ func TLSDial(nodeAddr string) (net.Conn, error) {
 }
 
 func (node *node) Tx(buf []byte) {
-	node.tx(buf, false)
+	node.ConsensusNode.tx(buf, false)
 }
 
 func (node *node) ConsensusTx(buf []byte) {

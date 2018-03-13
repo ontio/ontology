@@ -51,6 +51,17 @@ func (nm *nbrNodes) AddNbrNode(n Noder) {
 	}
 }
 
+func (nm *nbrNodes) GetNbrNode(id uint64) (Noder, bool) {
+	nm.Lock()
+	defer nm.Unlock()
+
+	n, ok := nm.List[id]
+	if ok == false {
+		return nil, false
+	}
+	return n, true
+}
+
 func (nm *nbrNodes) DelNbrNode(id uint64) (Noder, bool) {
 	nm.Lock()
 	defer nm.Unlock()

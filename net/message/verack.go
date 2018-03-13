@@ -97,7 +97,18 @@ func (msg verACK) Handle(node Noder) error {
 			return errors.New("Unknow status to received verack")
 		}
 
+		localNode := node.LocalNode()
+		n, ok := localNode.GetNbrNode(node.GetID())
+		if ok == false {
+			log.Warn("nbr node is not exsit")
+			return errors.New("nbr node is not exsit")
+		}
+
 		node.SetConsensusState(ESTABLISH)
+		n.SetConsensusState(node.GetConsensusState())
+		n.SetConsensusConn(node.GetConsensusConn())
+		//	n.SetConsensusPort(node.GetConsensusPort())
+		//	n.SetConsensusState(node.GetConsensusState())
 
 		if s == HANDSHAKE {
 			buf, _ := NewVerack(true)

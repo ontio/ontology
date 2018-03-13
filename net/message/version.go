@@ -172,9 +172,14 @@ func (msg version) Handle(node Noder) error {
 
 	// Exclude the node itself
 	if msg.P.Nonce == localNode.GetID() {
-		if (msg.P.IsConsensus == false && node.GetState() == ESTABLISH) || (msg.P.IsConsensus == true && node.GetConsensusState() == ESTABLISH) {
+		if msg.P.IsConsensus == false {
 			log.Warn("The node handshark with itself")
 			node.CloseConn()
+			return errors.New("The node handshark with itself")
+		}
+		if msg.P.IsConsensus == true {
+			log.Warn("The node handshark with itself")
+			node.CloseConsensusConn()
 			return errors.New("The node handshark with itself")
 		}
 	}
@@ -185,6 +190,20 @@ func (msg version) Handle(node Noder) error {
 			log.Warn("Unknow status to received version")
 			return errors.New("Unknow status to received version")
 		}
+
+		//	n, ok := LocalNode.GetNbrNode(msg.P.Nonce)
+		//	if ok == false {
+		//		log.Warn("nbr node is not exsit")
+		//		return errors.New("nbr node is not exsit")
+		//	}
+
+		//	n.SetConsensusConn(node.GetConsensusConn())
+		//	n.SetConsensusPort(node.GetConsensusPort())
+		//	n.SetConsensusState(node.GetConsensusState())
+
+		node.UpdateInfo(time.Now(), msg.P.Version, msg.P.Services,
+			msg.P.Port, msg.P.Nonce, msg.P.Relay, msg.P.StartHeight)
+		node.SetConsensusPort(msg.P.ConsensusPort)
 
 		var buf []byte
 		if s == INIT {
