@@ -17,7 +17,7 @@ func init() {
 }
 
 func TestContractState(t *testing.T) {
-	batch, err := getStateBatch(&common.Uint256{})
+	batch, err := getStateBatch(common.Uint256{})
 	if err != nil {
 		t.Errorf("NewStateBatch error %s", err)
 		return
@@ -45,7 +45,7 @@ func TestContractState(t *testing.T) {
 		t.Errorf("testStateStore.CommitTo error %s", err)
 		return
 	}
-	contractState1, err := testStateStore.GetContractState(&codeHash)
+	contractState1, err := testStateStore.GetContractState(codeHash)
 	if err != nil {
 		t.Errorf("GetContractState error %s", err)
 		return
@@ -61,7 +61,7 @@ func TestContractState(t *testing.T) {
 }
 
 func TestBookKeeperState(t *testing.T) {
-	batch, err := getStateBatch(&common.Uint256{})
+	batch, err := getStateBatch(common.Uint256{})
 	if err != nil {
 		t.Errorf("NewStateBatch error %s", err)
 		return
@@ -114,12 +114,12 @@ func TestBookKeeperState(t *testing.T) {
 	}
 }
 
-func getStateBatch(stateRoot *common.Uint256) (*statestore.StateBatch, error) {
+func getStateBatch(stateRoot common.Uint256) (*statestore.StateBatch, error) {
 	err := testStateStore.NewBatch()
 	if err != nil {
 		return nil, fmt.Errorf("testStateStore.NewBatch error %s", err)
 	}
-	batch, err := testStateStore.NewStateBatch(&common.Uint256{})
+	batch, err := testStateStore.NewStateBatch(common.Uint256{})
 	if err != nil {
 		return nil, fmt.Errorf("NewStateBatch error %s", err)
 	}

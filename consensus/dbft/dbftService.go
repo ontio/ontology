@@ -186,7 +186,7 @@ func (ds *DbftService) CheckSignatures() error {
 		block.Transactions = ds.context.Transactions
 
 		hash := block.Hash()
-		isExist, err := ledger.DefLedger.IsContainBlock(&hash)
+		isExist, err := ledger.DefLedger.IsContainBlock(hash)
 		if err != nil {
 			log.Errorf("DefLedger.IsContainBlock Hash:%x error:%s", hash, err)
 			return err
@@ -405,7 +405,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 		return
 	}
 
-	header, err := ledger.DefLedger.GetHeaderByHash(&ds.context.PrevHash)
+	header, err := ledger.DefLedger.GetHeaderByHash(ds.context.PrevHash)
 	if err != nil {
 		log.Info("PrepareRequestReceived GetHeader failed with ds.context.PrevHash", ds.context.PrevHash)
 	}
@@ -635,7 +635,7 @@ func (ds *DbftService) Timeout() {
 		ds.context.State |= RequestSent
 		if !ds.context.State.HasFlag(SignatureSent) {
 			now := uint32(time.Now().Unix())
-			header, err := ledger.DefLedger.GetHeaderByHash(&ds.context.PrevHash)
+			header, err := ledger.DefLedger.GetHeaderByHash(ds.context.PrevHash)
 			if err != nil {
 				log.Error("[Timeout] GetHeader error:", err)
 			}

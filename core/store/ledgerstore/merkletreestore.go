@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
-	"github.com/Ontology/core/store/leveldbstore"
 	. "github.com/Ontology/core/store/common"
+	"github.com/Ontology/core/store/leveldbstore"
 	"github.com/Ontology/merkle"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
 type MerkleTreeStore struct {
-	dbDir string
-	merklePath string
+	dbDir           string
+	merklePath      string
 	store           IStore
 	merkleTree      *merkle.CompactMerkleTree
 	merkleHashStore *merkle.FileHashStore
@@ -25,9 +25,9 @@ func NewMerkleTreeStore(dbDir, merklePath string, currentHeight uint32) (*Merkle
 		return nil, err
 	}
 	merkleTreeStore := &MerkleTreeStore{
-		dbDir:dbDir,
-		merklePath:merklePath,
-		store: store,
+		dbDir:      dbDir,
+		merklePath: merklePath,
+		store:      store,
 	}
 	err = merkleTreeStore.init(currentHeight)
 	if err != nil {
@@ -63,7 +63,7 @@ func (this *MerkleTreeStore) GetMerkleTree() (uint32, []common.Uint256, error) {
 	}
 	data, err := this.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound{
+		if err == leveldb.ErrNotFound {
 			return 0, nil, nil
 		}
 		return 0, nil, err
@@ -132,7 +132,7 @@ func (this *MerkleTreeStore) CommitTo() error {
 	return this.store.BatchCommit()
 }
 
-func (this *MerkleTreeStore) Close()error{
+func (this *MerkleTreeStore) Close() error {
 	this.merkleHashStore.Close()
 	return this.store.Close()
 }

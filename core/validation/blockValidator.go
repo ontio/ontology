@@ -23,7 +23,7 @@ func VerifyBlock(block *types.Block, ld *ledger.Ledger, completely bool) error {
 		return err
 	}
 
-	prevHeader, err := ld.GetHeaderByHash(&block.Header.PrevBlockHash)
+	prevHeader, err := ld.GetHeaderByHash(block.Header.PrevBlockHash)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "[BlockValidator], Cannnot find prevHeader..")
 	}

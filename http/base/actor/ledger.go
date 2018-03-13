@@ -26,7 +26,7 @@ func GetBlockHashFromStore(height uint32) (Uint256, error) {
 	if rsp, ok := result.(*GetBlockHashRsp); !ok {
 		return Uint256{}, errors.New("fail")
 	}else {
-		return *rsp.BlockHash, rsp.Error
+		return rsp.BlockHash, rsp.Error
 	}
 }
 
@@ -40,13 +40,13 @@ func CurrentBlockHash() (Uint256, error) {
 	if rsp, ok := result.(*GetCurrentBlockHashRsp); !ok {
 		return Uint256{}, errors.New("fail")
 	}else {
-		return *rsp.BlockHash, rsp.Error
+		return rsp.BlockHash, rsp.Error
 	}
 }
 
 //ledger.DefaultLedger.Store.GetBlock(hash)
 func GetBlockFromStore(hash Uint256) (*types.Block, error) {
-	future := defLedgerPid.RequestFuture(&GetBlockByHashReq{&hash}, 10*time.Second)
+	future := defLedgerPid.RequestFuture(&GetBlockByHashReq{hash}, 10*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		return nil, err
@@ -74,7 +74,7 @@ func BlockHeight() (uint32, error) {
 
 //ledger.DefaultLedger.Store.GetTransaction(hash)
 func GetTransaction(hash Uint256) (*types.Transaction, error) {
-	future := defLedgerPid.RequestFuture(&GetTransactionReq{&hash}, 10*time.Second)
+	future := defLedgerPid.RequestFuture(&GetTransactionReq{hash}, 10*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		return nil, err
@@ -117,7 +117,7 @@ func GetAccount(programHash Uint160) (*states.AccountState, error) {
 
 //ledger.DefaultLedger.Store.GetContract(hash)
 func GetContractFromStore(hash Uint160) (*states.ContractState, error) {
-	future := defLedgerPid.RequestFuture(&GetContractStateReq{&hash}, 10*time.Second)
+	future := defLedgerPid.RequestFuture(&GetContractStateReq{hash}, 10*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		return nil, err

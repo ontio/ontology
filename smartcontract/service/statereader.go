@@ -258,7 +258,7 @@ func (s *StateReader) BlockChainGetHeader(e *vm.ExecutionEngine) (bool, error) {
 
 	} else if l == 32 {
 		hash, _ := common.Uint256ParseFromBytes(data)
-		header, err = s.ldgerStore.GetHeaderByHash(&hash)
+		header, err = s.ldgerStore.GetHeaderByHash(hash)
 		if err != nil {
 			return false, errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetHeader] GetHeader error!.")
 		}
@@ -291,7 +291,7 @@ func (s *StateReader) BlockChainGetBlock(e *vm.ExecutionEngine) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		block, err = s.ldgerStore.GetBlockByHash(&hash)
+		block, err = s.ldgerStore.GetBlockByHash(hash)
 		if err != nil {
 			return false, errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetBlock] GetBlock error!.")
 		}
@@ -311,7 +311,7 @@ func (s *StateReader) BlockChainGetTransaction(e *vm.ExecutionEngine) (bool, err
 	if err != nil {
 		return false, err
 	}
-	t, _, err := s.ldgerStore.GetTransaction(&hash)
+	t, _, err := s.ldgerStore.GetTransaction(hash)
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetTransaction] GetTransaction error!")
 	}
@@ -329,7 +329,7 @@ func (s *StateReader) BlockChainGetAccount(e *vm.ExecutionEngine) (bool, error) 
 	if err != nil {
 		return false, err
 	}
-	account, err := s.ldgerStore.GetAccountState(&hash)
+	account, err := s.ldgerStore.GetAccountState(hash)
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetAccount] BlockChainGetAccount error!")
 	}
@@ -346,7 +346,7 @@ func (s *StateReader) BlockChainGetAsset(e *vm.ExecutionEngine) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	assetState, err := s.ldgerStore.GetAssetState(&hash)
+	assetState, err := s.ldgerStore.GetAssetState(hash)
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetAsset] GetAsset error!")
 	}
@@ -363,7 +363,7 @@ func (s *StateReader) GetContract(e *vm.ExecutionEngine) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	item, err := s.ldgerStore.GetContractState(&hash)
+	item, err := s.ldgerStore.GetContractState(hash)
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[GetContract] GetAsset error!")
 	}
@@ -1031,7 +1031,7 @@ func (s *StateReader) StorageGet(e *vm.ExecutionEngine) (bool, error) {
 	if ok == false {
 		return false, errors.NewErr("[StorageGet] Wrong type!")
 	}
-	c, err := s.ldgerStore.GetContractState(&context.codeHash)
+	c, err := s.ldgerStore.GetContractState(context.codeHash)
 	if err != nil && !strings.EqualFold(err.Error(), ErrDBNotFound) {
 		return false, err
 	}

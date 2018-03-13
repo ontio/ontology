@@ -39,10 +39,10 @@ type LedgerStore struct {
 	eventStore       *EventStore
 	storedIndexCount uint32
 	currBlockHeight  uint32
-	currBlockHash    *common.Uint256
+	currBlockHash    common.Uint256
 	headerCache      map[common.Uint256]*types.Header
 	blockCache       map[common.Uint256]*types.Block
-	headerIndex      map[uint32]*common.Uint256
+	headerIndex      map[uint32]common.Uint256
 	lock             sync.RWMutex
 	exitCh           chan interface{}
 }
@@ -125,7 +125,7 @@ func (this *LedgerStore) InitLedgerStoreWithGenesisBlock(genesisBlock *types.Blo
 		}
 	} else {
 		genesisHash := genesisBlock.Hash()
-		exist, err := this.blockStore.ContainBlock(&genesisHash)
+		exist, err := this.blockStore.ContainBlock(genesisHash)
 		if err != nil {
 			return fmt.Errorf("HashBlockExist error %s", err)
 		}
@@ -172,7 +172,8 @@ func (this *LedgerStore) initCurrentBlock() error {
 
 func (this *LedgerStore) initHeaderIndexList() error {
 	currBlockHeight, currBlockHash := this.GetCurrentBlock()
-	if currBlockHash == nil {
+	var empty common.Uint256
+	if currBlockHash == empty {
 		return nil
 	}
 
@@ -190,7 +191,7 @@ func (this *LedgerStore) initHeaderIndexList() error {
 		if err != nil {
 			return fmt.Errorf("LoadBlockHash height %d error %s", height, err)
 		}
-		if blockHash == nil {
+		if blockHash == empty {
 			return fmt.Errorf("LoadBlockHash height %d hash nil", height)
 		}
 		this.headerIndex[height] = blockHash
@@ -233,7 +234,7 @@ func (this *LedgerStore) clearCache() {
 		if !ok {
 			break
 		}
-		block := this.blockCache[*nextBlockHash]
+		block := this.blockCache[nextBlockHash]
 		if block == nil {
 			break
 		}
@@ -245,7 +246,7 @@ func (this *LedgerStore) clearCache() {
 		err := this.saveBlock(block)
 		if err != nil {
 			blockHash := block.Hash()
-			this.delFromBlockHash(&blockHash)
+			this.delFromBlockHash(blockHash)
 			log4.Error("saveBlock in cache height:%d error %s", block.Header.Height, err)
 			break
 		}
@@ -264,18 +265,18 @@ func (this *LedgerStore) addStoreIndexCount(delt uint32) {
 	this.storedIndexCount += delt
 }
 
-func (this *LedgerStore) setHeaderIndex(height uint32, blockHash *common.Uint256) {
+func (this *LedgerStore) setHeaderIndex(height uint32, blockHash common.Uint256) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	this.headerIndex[height] = blockHash
 }
 
-func (this *LedgerStore) getHeaderIndex(height uint32) *common.Uint256 {
+func (this *LedgerStore) getHeaderIndex(height uint32) common.Uint256 {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	blockHash, ok := this.headerIndex[height]
 	if !ok {
-		return nil
+		return common.Uint256{}
 	}
 	return blockHash
 }
@@ -286,13 +287,13 @@ func (this *LedgerStore) GetCurrentHeaderHeight() uint32 {
 	return uint32(len(this.headerIndex)) - 1
 }
 
-func (this *LedgerStore) GetCurrentHeaderHash() *common.Uint256 {
+func (this *LedgerStore) GetCurrentHeaderHash() common.Uint256 {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	return this.headerIndex[uint32(len(this.headerIndex))-1]
 }
 
-func (this *LedgerStore) setCurrentBlock(height uint32, blockHash *common.Uint256) {
+func (this *LedgerStore) setCurrentBlock(height uint32, blockHash common.Uint256) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	this.currBlockHash = blockHash
@@ -300,13 +301,13 @@ func (this *LedgerStore) setCurrentBlock(height uint32, blockHash *common.Uint25
 	return
 }
 
-func (this *LedgerStore) GetCurrentBlock() (uint32, *common.Uint256) {
+func (this *LedgerStore) GetCurrentBlock() (uint32, common.Uint256) {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	return this.currBlockHeight, this.currBlockHash
 }
 
-func (this *LedgerStore) GetCurrentBlockHash() *common.Uint256 {
+func (this *LedgerStore) GetCurrentBlockHash() common.Uint256 {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	return this.currBlockHash
@@ -324,10 +325,10 @@ func (this *LedgerStore) addToHeaderCache(header *types.Header) {
 	this.headerCache[header.Hash()] = header
 }
 
-func (this *LedgerStore) getFromHeaderCache(blockHash *common.Uint256) *types.Header {
+func (this *LedgerStore) getFromHeaderCache(blockHash common.Uint256) *types.Header {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
-	header, ok := this.headerCache[*blockHash]
+	header, ok := this.headerCache[blockHash]
 	if !ok {
 		return nil
 	}
@@ -340,20 +341,20 @@ func (this *LedgerStore) addToBlockCache(block *types.Block) {
 	this.blockCache[block.Hash()] = block
 }
 
-func (this *LedgerStore) getFromBlockCache(blockHash *common.Uint256) *types.Block {
+func (this *LedgerStore) getFromBlockCache(blockHash common.Uint256) *types.Block {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
-	block, ok := this.blockCache[*blockHash]
+	block, ok := this.blockCache[blockHash]
 	if !ok {
 		return nil
 	}
 	return block
 }
 
-func (this *LedgerStore) delFromBlockHash(blockHash *common.Uint256) {
+func (this *LedgerStore) delFromBlockHash(blockHash common.Uint256) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	delete(this.blockCache, *blockHash)
+	delete(this.blockCache, blockHash)
 }
 
 func (this *LedgerStore) verifyHeader(header *types.Header) error {
@@ -363,7 +364,7 @@ func (this *LedgerStore) verifyHeader(header *types.Header) error {
 
 	var prevHeader *types.Header
 	prevHeaderHash := header.PrevBlockHash
-	prevHeader, err := this.GetHeaderByHash(&prevHeaderHash)
+	prevHeader, err := this.GetHeaderByHash(prevHeaderHash)
 	if err != nil {
 		return fmt.Errorf("get prev header error %s", err)
 	}
@@ -407,7 +408,7 @@ func (this *LedgerStore) AddHeader(header *types.Header) error {
 		fmt.Errorf("verifyHeader error %s", err)
 	}
 	blockHash := header.Hash()
-	this.setHeaderIndex(header.Height, &blockHash)
+	this.setHeaderIndex(header.Height, blockHash)
 	this.addToHeaderCache(header)
 	return nil
 }
@@ -494,7 +495,7 @@ func (this *LedgerStore) saveBlock(block *types.Block) error {
 	if err != nil {
 		return fmt.Errorf("stateStore.NewBatch error %s", err)
 	}
-	stateBatch, err := this.stateStore.NewStateBatch(&stateRoot)
+	stateBatch, err := this.stateStore.NewStateBatch(stateRoot)
 	if err != nil {
 		return fmt.Errorf("NewStateBatch error %s", err)
 	}
@@ -508,7 +509,7 @@ func (this *LedgerStore) saveBlock(block *types.Block) error {
 		return fmt.Errorf("handleBookKeeper error %s", err)
 	}
 
-	invokeTxs := make([]*common.Uint256, 0)
+	invokeTxs := make([]common.Uint256, 0)
 	for _, tx := range block.Transactions {
 		err = this.handleTransaction(stateBatch, block, tx)
 		if err != nil {
@@ -516,7 +517,7 @@ func (this *LedgerStore) saveBlock(block *types.Block) error {
 		}
 		txHash := tx.Hash()
 		if tx.TxType == types.Invoke {
-			invokeTxs = append(invokeTxs, &txHash)
+			invokeTxs = append(invokeTxs, txHash)
 		}
 	}
 
@@ -524,11 +525,11 @@ func (this *LedgerStore) saveBlock(block *types.Block) error {
 	if err != nil {
 		return fmt.Errorf("saveHeaderIndexList error %s", err)
 	}
-	err = this.blockStore.SaveCurrentBlock(blockHeight, &blockHash)
+	err = this.blockStore.SaveCurrentBlock(blockHeight, blockHash)
 	if err != nil {
 		return fmt.Errorf("SaveCurrentBlock error %s", err)
 	}
-	err = this.blockStore.SaveBlockHash(blockHeight, &blockHash)
+	err = this.blockStore.SaveBlockHash(blockHeight, blockHash)
 	if err != nil {
 		return fmt.Errorf("SaveBlockHash height %s hash %v error%s", blockHeight, blockHash, err)
 	}
@@ -537,7 +538,7 @@ func (this *LedgerStore) saveBlock(block *types.Block) error {
 		return fmt.Errorf("SaveBlock height %d hash %x error %s", blockHeight, blockHash, err)
 	}
 
-	err = this.stateStore.SaveCurrentStateRoot(&block.Header.StateRoot)
+	err = this.stateStore.SaveCurrentStateRoot(block.Header.StateRoot)
 	if err != nil {
 		return fmt.Errorf("SaveCurrentStateRoot error %s", err)
 	}
@@ -557,7 +558,7 @@ func (this *LedgerStore) saveBlock(block *types.Block) error {
 	if err != nil {
 		return fmt.Errorf("stateBatch.CommitTo error %s", err)
 	}
-	if *newStateRoot != stateRoot {
+	if newStateRoot != stateRoot {
 		err = this.stateStore.SaveCurrentStateRoot(newStateRoot)
 		if err != nil {
 			return fmt.Errorf("SaveCurrentStateRoot error %s", err)
@@ -579,7 +580,7 @@ func (this *LedgerStore) saveBlock(block *types.Block) error {
 	if err != nil {
 		return fmt.Errorf("eventStore.CommitTo error %s", err)
 	}
-	this.setCurrentBlock(blockHeight, &blockHash)
+	this.setCurrentBlock(blockHeight, blockHash)
 
 	events.DefActorPublisher.Publish(
 		message.TopicSaveBlockComplete,
@@ -643,7 +644,7 @@ func (this *LedgerStore) saveHeaderIndexList() error {
 		return nil
 	}
 
-	headerList := make(map[uint32]*common.Uint256, HeaderIndexBatchSize)
+	headerList := make(map[uint32]common.Uint256, HeaderIndexBatchSize)
 	for i := uint32(0); i < HeaderIndexBatchSize; i++ {
 		height := storeCount + i
 		blockHash := this.headerIndex[height]
@@ -660,7 +661,7 @@ func (this *LedgerStore) saveHeaderIndexList() error {
 	return nil
 }
 
-func (this *LedgerStore) IsContainBlock(blockHash *common.Uint256) (bool, error) {
+func (this *LedgerStore) IsContainBlock(blockHash common.Uint256) (bool, error) {
 	block := this.getFromBlockCache(blockHash)
 	if block != nil {
 		return true, nil
@@ -668,24 +669,23 @@ func (this *LedgerStore) IsContainBlock(blockHash *common.Uint256) (bool, error)
 	return this.blockStore.ContainBlock(blockHash)
 }
 
-func (this *LedgerStore) GetCurrentStateRoot() (*common.Uint256, error) {
+func (this *LedgerStore) GetCurrentStateRoot() (common.Uint256, error) {
 	return this.stateStore.GetCurrentStateRoot()
 }
 
-func (this *LedgerStore) IsContainTransaction(txHash *common.Uint256) (bool, error) {
+func (this *LedgerStore) IsContainTransaction(txHash common.Uint256) (bool, error) {
 	return this.blockStore.ContainTransaction(txHash)
 }
 
-func (this *LedgerStore) GetBlockRootWithNewTxRoot(txRoot *common.Uint256) *common.Uint256 {
-	newTxRoot := this.merkleStore.GetBlockRootWithNewTxRoot(*txRoot)
-	return &newTxRoot
+func (this *LedgerStore) GetBlockRootWithNewTxRoot(txRoot common.Uint256) common.Uint256 {
+	return  this.merkleStore.GetBlockRootWithNewTxRoot(txRoot)
 }
 
-func (this *LedgerStore) GetBlockHash(height uint32) *common.Uint256 {
+func (this *LedgerStore) GetBlockHash(height uint32) common.Uint256 {
 	return this.getHeaderIndex(height)
 }
 
-func (this *LedgerStore) GetHeaderByHash(blockHash *common.Uint256) (*types.Header, error) {
+func (this *LedgerStore) GetHeaderByHash(blockHash common.Uint256) (*types.Header, error) {
 	header := this.getFromHeaderCache(blockHash)
 	if header != nil {
 		return header, nil
@@ -695,21 +695,22 @@ func (this *LedgerStore) GetHeaderByHash(blockHash *common.Uint256) (*types.Head
 
 func (this *LedgerStore) GetHeaderByHeight(height uint32) (*types.Header, error) {
 	blockHash := this.GetBlockHash(height)
-	if blockHash == nil {
+	var empty common.Uint256
+	if blockHash == empty {
 		return nil, nil
 	}
 	return this.GetHeaderByHash(blockHash)
 }
 
-func (this *LedgerStore) GetSysFeeAmount(blockHash *common.Uint256) (common.Fixed64, error) {
+func (this *LedgerStore) GetSysFeeAmount(blockHash common.Uint256) (common.Fixed64, error) {
 	return this.blockStore.GetSysFeeAmount(blockHash)
 }
 
-func (this *LedgerStore) GetTransaction(txHash *common.Uint256) (*types.Transaction, uint32, error) {
+func (this *LedgerStore) GetTransaction(txHash common.Uint256) (*types.Transaction, uint32, error) {
 	return this.blockStore.GetTransaction(txHash)
 }
 
-func (this *LedgerStore) GetBlockByHash(blockHash *common.Uint256) (*types.Block, error) {
+func (this *LedgerStore) GetBlockByHash(blockHash common.Uint256) (*types.Block, error) {
 	block := this.getFromBlockCache(blockHash)
 	if block != nil {
 		return block, nil
@@ -719,21 +720,22 @@ func (this *LedgerStore) GetBlockByHash(blockHash *common.Uint256) (*types.Block
 
 func (this *LedgerStore) GetBlockByHeight(height uint32) (*types.Block, error) {
 	blockHash := this.GetBlockHash(height)
-	if blockHash == nil {
+	var empty common.Uint256
+	if blockHash == empty {
 		return nil, nil
 	}
 	return this.GetBlockByHash(blockHash)
 }
 
-func (this *LedgerStore) GetUnspentCoinState(refTxId *common.Uint256) (*states.UnspentCoinState, error) {
+func (this *LedgerStore) GetUnspentCoinState(refTxId common.Uint256) (*states.UnspentCoinState, error) {
 	return this.stateStore.GetUnspentCoinState(refTxId)
 }
 
-func (this *LedgerStore) GetSpentCoinState(refTxId *common.Uint256) (*states.SpentCoinState, error) {
+func (this *LedgerStore) GetSpentCoinState(refTxId common.Uint256) (*states.SpentCoinState, error) {
 	return this.stateStore.GetSpentCoinState(refTxId)
 }
 
-func (this *LedgerStore) GetAccountState(programHash *common.Uint160) (*states.AccountState, error) {
+func (this *LedgerStore) GetAccountState(programHash common.Uint160) (*states.AccountState, error) {
 	return this.stateStore.GetAccountState(programHash)
 }
 
@@ -741,15 +743,15 @@ func (this *LedgerStore) GetBookKeeperState() (*states.BookKeeperState, error) {
 	return this.stateStore.GetBookKeeperState()
 }
 
-func (this *LedgerStore) GetAssetState(assetId *common.Uint256) (*states.AssetState, error) {
+func (this *LedgerStore) GetAssetState(assetId common.Uint256) (*states.AssetState, error) {
 	return this.stateStore.GetAssetState(assetId)
 }
 
-func (this *LedgerStore) GetContractState(contractHash *common.Uint160) (*states.ContractState, error) {
+func (this *LedgerStore) GetContractState(contractHash common.Uint160) (*states.ContractState, error) {
 	return this.stateStore.GetContractState(contractHash)
 }
 
-func (this *LedgerStore) GetUnspentCoinStateByProgramHash(programHash *common.Uint160, assetId *common.Uint256) (*states.ProgramUnspentCoin, error) {
+func (this *LedgerStore) GetUnspentCoinStateByProgramHash(programHash common.Uint160, assetId common.Uint256) (*states.ProgramUnspentCoin, error) {
 	return this.stateStore.GetUnspentCoinStateByProgramHash(programHash, assetId)
 }
 
@@ -774,7 +776,7 @@ func (this *LedgerStore) PreExecuteContract(tx *types.Transaction) ([]interface{
 	codeHash := common.ToCodeHash(param)
 	param = append(param, 0x67)
 	param = append(param, codeHash.ToArray()...)
-	stateBatch, err := this.stateStore.NewStateBatch(&common.Uint256{})
+	stateBatch, err := this.stateStore.NewStateBatch(common.Uint256{})
 	if err != nil {
 		return nil, fmt.Errorf("NewStateBatch error %s", err)
 	}

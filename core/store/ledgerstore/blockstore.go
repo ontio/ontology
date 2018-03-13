@@ -65,7 +65,7 @@ func (this *BlockStore) SaveBlock(block *types.Block) error {
 	return nil
 }
 
-func (this *BlockStore) ContainBlock(blockHash *common.Uint256) (bool, error) {
+func (this *BlockStore) ContainBlock(blockHash common.Uint256) (bool, error) {
 	if this.enableCache {
 		if this.cache.ContainBlock(blockHash) {
 			return true, nil
@@ -82,7 +82,7 @@ func (this *BlockStore) ContainBlock(blockHash *common.Uint256) (bool, error) {
 	return true, nil
 }
 
-func (this *BlockStore) GetBlock(blockHash *common.Uint256) (*types.Block, error) {
+func (this *BlockStore) GetBlock(blockHash common.Uint256) (*types.Block, error) {
 	var block *types.Block
 	if this.enableCache {
 		block = this.cache.GetBlock(blockHash)
@@ -112,7 +112,7 @@ func (this *BlockStore) GetBlock(blockHash *common.Uint256) (*types.Block, error
 	return block, nil
 }
 
-func (this *BlockStore) loadHeaderWithTx(blockHash *common.Uint256) (*types.Header, []*common.Uint256, error) {
+func (this *BlockStore) loadHeaderWithTx(blockHash common.Uint256) (*types.Header, []common.Uint256, error) {
 	key := this.getHeaderKey(blockHash)
 	value, err := this.store.Get(key)
 	if err != nil {
@@ -136,9 +136,9 @@ func (this *BlockStore) loadHeaderWithTx(blockHash *common.Uint256) (*types.Head
 	if err != nil {
 		return nil, nil, err
 	}
-	txHashes := make([]*common.Uint256, 0, int(txSize))
+	txHashes := make([]common.Uint256, 0, int(txSize))
 	for i := uint32(0); i < txSize; i++ {
-		txHash := new(common.Uint256)
+		txHash := common.Uint256{}
 		err = txHash.Deserialize(reader)
 		if err != nil {
 			return nil, nil, err
@@ -150,7 +150,7 @@ func (this *BlockStore) loadHeaderWithTx(blockHash *common.Uint256) (*types.Head
 
 func (this *BlockStore) SaveHeader(block *types.Block, sysFee common.Fixed64) error {
 	blockHash := block.Hash()
-	key := this.getHeaderKey(&blockHash)
+	key := this.getHeaderKey(blockHash)
 	value := bytes.NewBuffer(nil)
 	err := sysFee.Serialize(value)
 	if err != nil {
@@ -168,7 +168,7 @@ func (this *BlockStore) SaveHeader(block *types.Block, sysFee common.Fixed64) er
 	return this.store.BatchPut(key, value.Bytes())
 }
 
-func (this *BlockStore) GetHeader(blockHash *common.Uint256) (*types.Header, error) {
+func (this *BlockStore) GetHeader(blockHash common.Uint256) (*types.Header, error) {
 	if this.enableCache {
 		block := this.cache.GetBlock(blockHash)
 		if block != nil {
@@ -178,7 +178,7 @@ func (this *BlockStore) GetHeader(blockHash *common.Uint256) (*types.Header, err
 	return this.loadHeader(blockHash)
 }
 
-func (this *BlockStore) GetSysFeeAmount(blockHash *common.Uint256) (common.Fixed64, error) {
+func (this *BlockStore) GetSysFeeAmount(blockHash common.Uint256) (common.Fixed64, error) {
 	key := this.getHeaderKey(blockHash)
 	data, err := this.store.Get(key)
 	if err != nil {
@@ -196,7 +196,7 @@ func (this *BlockStore) GetSysFeeAmount(blockHash *common.Uint256) (common.Fixed
 	return fee, nil
 }
 
-func (this *BlockStore) loadHeader(blockHash *common.Uint256) (*types.Header, error) {
+func (this *BlockStore) loadHeader(blockHash common.Uint256) (*types.Header, error) {
 	key := this.getHeaderKey(blockHash)
 	value, err := this.store.Get(key)
 	if err != nil {
@@ -219,29 +219,29 @@ func (this *BlockStore) loadHeader(blockHash *common.Uint256) (*types.Header, er
 	return header, nil
 }
 
-func (this *BlockStore) GetCurrentBlock() (*common.Uint256, uint32, error) {
+func (this *BlockStore) GetCurrentBlock() (common.Uint256, uint32, error) {
 	key := this.getCurrentBlockKey()
 	data, err := this.store.Get(key)
 	if err != nil {
 		if err == leveldb.ErrNotFound{
-			return nil, 0, nil
+			return common.Uint256{}, 0, nil
 		}
-		return nil, 0, err
+		return common.Uint256{}, 0, err
 	}
 	reader := bytes.NewReader(data)
-	blockHash := new(common.Uint256)
+	blockHash := common.Uint256{}
 	err = blockHash.Deserialize(reader)
 	if err != nil {
-		return nil, 0, err
+		return common.Uint256{}, 0, err
 	}
 	height, err := serialization.ReadUint32(reader)
 	if err != nil {
-		return nil, 0, err
+		return common.Uint256{}, 0, err
 	}
 	return blockHash, height, nil
 }
 
-func (this *BlockStore) SaveCurrentBlock(height uint32, blockHash *common.Uint256) error {
+func (this *BlockStore) SaveCurrentBlock(height uint32, blockHash common.Uint256) error {
 	key := this.getCurrentBlockKey()
 	value := bytes.NewBuffer(nil)
 	blockHash.Serialize(value)
@@ -253,8 +253,8 @@ func (this *BlockStore) SaveCurrentBlock(height uint32, blockHash *common.Uint25
 	return nil
 }
 
-func (this *BlockStore) GetHeaderIndexList() (map[uint32]*common.Uint256, error) {
-	result := make(map[uint32]*common.Uint256)
+func (this *BlockStore) GetHeaderIndexList() (map[uint32]common.Uint256, error) {
+	result := make(map[uint32]common.Uint256)
 	iter := this.store.NewIterator([]byte{byte(IX_HeaderHashList)})
 	for iter.Next() {
 		startCount, err := this.getStartHeightByHeaderIndexKey(iter.Key())
@@ -268,7 +268,7 @@ func (this *BlockStore) GetHeaderIndexList() (map[uint32]*common.Uint256, error)
 		}
 		for i := uint32(0); i < count; i++ {
 			height := startCount + i
-			blockHash := &common.Uint256{}
+			blockHash := common.Uint256{}
 			err = blockHash.Deserialize(reader)
 			if err != nil {
 				return nil, fmt.Errorf("blockHash.Deserialize error %s", err)
@@ -280,15 +280,15 @@ func (this *BlockStore) GetHeaderIndexList() (map[uint32]*common.Uint256, error)
 	return result, nil
 }
 
-func (this *BlockStore) SaveHeaderIndexList(startIndex uint32, indexList map[uint32]*common.Uint256) error {
+func (this *BlockStore) SaveHeaderIndexList(startIndex uint32, indexList map[uint32]common.Uint256) error {
 	indexKey := this.getHeaderIndexListKey(startIndex)
 	indexSize := uint32(len(indexList))
 	value := bytes.NewBuffer(nil)
 	serialization.WriteUint32(value, indexSize)
 	for i := uint32(0); i < indexSize; i++ {
 		height := startIndex + i
-		blockHash := indexList[height]
-		if blockHash == nil {
+		blockHash, ok := indexList[height]
+		if !ok {
 			return fmt.Errorf("cannot get block hash by height %d", height)
 		}
 		_, err := blockHash.Serialize(value)
@@ -299,26 +299,26 @@ func (this *BlockStore) SaveHeaderIndexList(startIndex uint32, indexList map[uin
 	return this.store.BatchPut(indexKey, value.Bytes())
 }
 
-func (this *BlockStore) GetBlockHash(height uint32) (*common.Uint256, error) {
+func (this *BlockStore) GetBlockHash(height uint32) (common.Uint256, error) {
 	key, err := this.getBlockHashKey(height)
 	if err != nil {
-		return nil, err
+		return common.Uint256{}, err
 	}
 	value, err := this.store.Get(key)
 	if err != nil {
 		if err == leveldb.ErrNotFound{
-			return nil, nil
+			return common.Uint256{}, nil
 		}
-		return nil, err
+		return common.Uint256{}, err
 	}
 	blockHash, err := common.Uint256ParseFromBytes(value)
 	if err != nil {
-		return nil, err
+		return common.Uint256{}, err
 	}
-	return &blockHash, nil
+	return blockHash, nil
 }
 
-func (this *BlockStore) SaveBlockHash(height uint32, blockHash *common.Uint256) error {
+func (this *BlockStore) SaveBlockHash(height uint32, blockHash common.Uint256) error {
 	key, err := this.getBlockHashKey(height)
 	if err != nil {
 		return err
@@ -335,7 +335,7 @@ func (this *BlockStore) SaveTransaction(tx *types.Transaction, height uint32) er
 
 func (this *BlockStore) putTransaction(tx *types.Transaction, height uint32) error {
 	txHash := tx.Hash()
-	key := this.getTransactionKey(&txHash)
+	key := this.getTransactionKey(txHash)
 	value := bytes.NewBuffer(nil)
 	serialization.WriteUint32(value, height)
 	err := tx.Serialize(value)
@@ -345,7 +345,7 @@ func (this *BlockStore) putTransaction(tx *types.Transaction, height uint32) err
 	return this.store.BatchPut(key, value.Bytes())
 }
 
-func (this *BlockStore) GetTransaction(txHash *common.Uint256) (*types.Transaction, uint32, error) {
+func (this *BlockStore) GetTransaction(txHash common.Uint256) (*types.Transaction, uint32, error) {
 	if this.enableCache {
 		tx, height := this.cache.GetTransaction(txHash)
 		if tx != nil {
@@ -355,7 +355,7 @@ func (this *BlockStore) GetTransaction(txHash *common.Uint256) (*types.Transacti
 	return this.loadTransaction(txHash)
 }
 
-func (this *BlockStore) loadTransaction(txHash *common.Uint256) (*types.Transaction, uint32, error) {
+func (this *BlockStore) loadTransaction(txHash common.Uint256) (*types.Transaction, uint32, error) {
 	key := this.getTransactionKey(txHash)
 
 	var tx *types.Transaction
@@ -387,7 +387,7 @@ func (this *BlockStore) loadTransaction(txHash *common.Uint256) (*types.Transact
 	return tx, height, nil
 }
 
-func (this *BlockStore) ContainTransaction(txHash *common.Uint256) (bool, error) {
+func (this *BlockStore) ContainTransaction(txHash common.Uint256) (bool, error) {
 	key := this.getTransactionKey(txHash)
 
 	if this.enableCache {
@@ -448,14 +448,14 @@ func (this *BlockStore) Close() error {
 	return this.store.Close()
 }
 
-func (this *BlockStore) getTransactionKey(txHash *common.Uint256) []byte {
+func (this *BlockStore) getTransactionKey(txHash common.Uint256) []byte {
 	key := bytes.NewBuffer(nil)
 	key.WriteByte(byte(DATA_Transaction))
 	txHash.Serialize(key)
 	return key.Bytes()
 }
 
-func (this *BlockStore) getHeaderKey(blockHash *common.Uint256) []byte {
+func (this *BlockStore) getHeaderKey(blockHash common.Uint256) []byte {
 	data := blockHash.ToArray()
 	key := make([]byte, 1+len(data))
 	key[0] = byte(DATA_Header)

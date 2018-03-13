@@ -17,9 +17,9 @@ type StateBatch struct {
 	trie        ITrie
 }
 
-func NewStateStoreBatch(memoryStore IMemoryStore, store IStore, root *common.Uint256) (*StateBatch, error) {
+func NewStateStoreBatch(memoryStore IMemoryStore, store IStore, root common.Uint256) (*StateBatch, error) {
 	trieStore := NewTrieStore(store)
-	tr, err := trieStore.OpenTrie(*root)
+	tr, err := trieStore.OpenTrie(root)
 	if err != nil {
 		return nil, fmt.Errorf("opentrie error:" + err.Error())
 	}
@@ -126,40 +126,40 @@ func (self *StateBatch) TryDelete(prefix DataEntryPrefix, key []byte) {
 	self.memoryStore.Delete(byte(prefix), key)
 }
 
-func (self *StateBatch) CommitTo() (*common.Uint256, error) {
+func (self *StateBatch) CommitTo() (common.Uint256, error) {
 	for k, v := range self.memoryStore.GetChangeSet() {
 		if v.State == Deleted {
 			if v.Trie {
 				if err := self.trie.TryDelete([]byte(k)); err != nil {
-					return nil, err
+					return common.Uint256{}, err
 				}
 			}
 			if err := self.store.BatchDelete([]byte(k)); err != nil {
-				return nil, err
+				return common.Uint256{}, err
 			}
 		} else {
 			data := new(bytes.Buffer)
 			err := v.Value.Serialize(data)
 			if err != nil {
 				log.Errorf("[CommitTo] error: key %v, value:%v", k, v.Value)
-				return nil, err
+				return common.Uint256{}, err
 			}
 			if v.Trie {
 				value := common.ToHash256(data.Bytes())
 				if err := self.trie.TryUpdate([]byte(k), value.ToArray()); err != nil {
-					return nil, err
+					return common.Uint256{}, err
 				}
 			}
 			if err = self.store.BatchPut([]byte(k), data.Bytes()); err != nil {
-				return nil, err
+				return common.Uint256{}, err
 			}
 		}
 	}
 	stateRoot, err := self.trie.CommitTo()
 	if err != nil {
-		return nil, err
+		return common.Uint256{}, err
 	}
-	return &stateRoot, nil
+	return stateRoot, nil
 }
 
 func (this *StateBatch) Change(prefix byte, key []byte, trie bool) {

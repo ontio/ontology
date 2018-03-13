@@ -91,7 +91,7 @@ func (cxt *ConsensusContext) MakeHeader() *types.Block {
 		if err != nil {
 			return nil
 		}
-		blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoot(&txRoot)
+		blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoot(txRoot)
 		stateRoot, err := ledger.DefLedger.GetCurrentStateRoot()
 		if err != nil {
 			return nil
@@ -100,8 +100,8 @@ func (cxt *ConsensusContext) MakeHeader() *types.Block {
 			Version:          ContextVersion,
 			PrevBlockHash:    cxt.PrevHash,
 			TransactionsRoot: txRoot,
-			BlockRoot:        *blockRoot,
-			StateRoot:        *stateRoot,
+			BlockRoot:        blockRoot,
+			StateRoot:        stateRoot,
 			Timestamp:        cxt.Timestamp,
 			Height:           cxt.Height,
 			ConsensusData:    cxt.Nonce,
@@ -188,7 +188,7 @@ func (cxt *ConsensusContext) Reset(bkAccount *account.Account) {
 	height := ledger.DefLedger.GetCurrentBlockHeight()
 	header := cxt.MakeHeader()
 
-	if height != cxt.Height || header == nil || header.Hash() != *preHash || len(cxt.NextBookKeepers) == 0 {
+	if height != cxt.Height || header == nil || header.Hash() != preHash || len(cxt.NextBookKeepers) == 0 {
 		log.Info("[ConsensusContext] Calculate BookKeepers from db")
 		var err error
 		cxt.BookKeepers, err = vote.GetValidators([]*types.Transaction{})
@@ -200,7 +200,7 @@ func (cxt *ConsensusContext) Reset(bkAccount *account.Account) {
 	}
 
 	cxt.State = Initial
-	cxt.PrevHash = *preHash
+	cxt.PrevHash = preHash
 	cxt.Height = height + 1
 	cxt.ViewNumber = 0
 	cxt.BookKeeperIndex = -1

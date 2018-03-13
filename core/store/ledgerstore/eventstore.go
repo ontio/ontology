@@ -33,7 +33,7 @@ func (this *EventStore) NewBatch() error {
 	return this.store.NewBatch()
 }
 
-func (this *EventStore) SaveEventNotifyByTx(txHash *common.Uint256, notifies []*event.NotifyEventInfo) error {
+func (this *EventStore) SaveEventNotifyByTx(txHash common.Uint256, notifies []*event.NotifyEventInfo) error {
 	result, err := json.Marshal(notifies)
 	if err != nil {
 		return fmt.Errorf("json.Marshal error %s", err)
@@ -45,7 +45,7 @@ func (this *EventStore) SaveEventNotifyByTx(txHash *common.Uint256, notifies []*
 	return this.store.BatchPut(key, result)
 }
 
-func (this *EventStore) SaveEventNotifyByBlock(height uint32, txHashs []*common.Uint256) error {
+func (this *EventStore) SaveEventNotifyByBlock(height uint32, txHashs []common.Uint256) error {
 	key, err := this.getEventNotifyByBlockKey(height)
 	if err != nil {
 		return err
@@ -65,7 +65,7 @@ func (this *EventStore) SaveEventNotifyByBlock(height uint32, txHashs []*common.
 	return this.store.BatchPut(key, values.Bytes())
 }
 
-func (this *EventStore) GetEventNotifyByTx(txHash *common.Uint256) ([]*event.NotifyEventInfo, error) {
+func (this *EventStore) GetEventNotifyByTx(txHash common.Uint256) ([]*event.NotifyEventInfo, error) {
 	key, err := this.getEventNotifyByTxKey(txHash)
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ func (this *EventStore) GetEventNotifyByTx(txHash *common.Uint256) ([]*event.Not
 	return notifies, nil
 }
 
-func (this *EventStore) GetEventNotifyByBlock(height uint32) ([]*common.Uint256, error) {
+func (this *EventStore) GetEventNotifyByBlock(height uint32) ([]common.Uint256, error) {
 	key, err := this.getEventNotifyByBlockKey(height)
 	if err != nil {
 		return nil, err
@@ -101,14 +101,14 @@ func (this *EventStore) GetEventNotifyByBlock(height uint32) ([]*common.Uint256,
 	if err != nil {
 		return nil, fmt.Errorf("ReadUint32 error %s", err)
 	}
-	txHashs := make([]*common.Uint256, 0, size)
+	txHashs := make([]common.Uint256, 0, size)
 	for i := uint32(0); i < size; i++ {
 		var txHash common.Uint256
 		err = txHash.Deserialize(reader)
 		if err != nil {
 			return nil, fmt.Errorf("txHash.Deserialize error %s", err)
 		}
-		txHashs = append(txHashs, &txHash)
+		txHashs = append(txHashs, txHash)
 	}
 	return txHashs, nil
 }
@@ -144,7 +144,7 @@ func (this *EventStore) getEventNotifyByBlockKey(height uint32) ([]byte, error) 
 	return key, nil
 }
 
-func (this *EventStore) getEventNotifyByTxKey(txHash *common.Uint256) ([]byte, error) {
+func (this *EventStore) getEventNotifyByTxKey(txHash common.Uint256) ([]byte, error) {
 	data := txHash.ToArray()
 	key := make([]byte, 1+len(data))
 	key[0] = byte(EVENT_Notify)

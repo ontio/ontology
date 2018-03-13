@@ -50,7 +50,7 @@ func (self *validator) Receive(context actor.Context) {
 		errCode := errors.ErrNoError
 		hash := msg.Tx.Hash()
 
-		exist, err := ledger.DefLedger.IsContainTransaction(&hash)
+		exist, err := ledger.DefLedger.IsContainTransaction(hash)
 		if err != nil {
 			log.Warn("query db error:", err)
 			errCode = errors.ErrUnknown

@@ -48,9 +48,9 @@ type IMemoryStore interface {
 }
 
 type IEventStore interface {
-	SaveEventNotifyByTx(txHash *Uint256, notifies []*event.NotifyEventInfo) error
-	SaveEventNotifyByBlock(height uint32, txHashs []*Uint256) error
-	GetEventNotifyByTx(txHash *Uint256) ([]*event.NotifyEventInfo, error)
+	SaveEventNotifyByTx(txHash Uint256, notifies []*event.NotifyEventInfo) error
+	SaveEventNotifyByBlock(height uint32, txHashs []Uint256) error
+	GetEventNotifyByTx(txHash Uint256) ([]*event.NotifyEventInfo, error)
 	CommitTo() error
 }
 

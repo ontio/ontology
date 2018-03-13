@@ -42,7 +42,7 @@ func (this *BlockCache) AddBlock(block *types.Block) {
 	this.blockCache.Add(string(blockHash.ToArray()), block)
 }
 
-func (this *BlockCache) GetBlock(blockHash *common.Uint256) *types.Block {
+func (this *BlockCache) GetBlock(blockHash common.Uint256) *types.Block {
 	block, ok := this.blockCache.Get(string(blockHash.ToArray()))
 	if !ok {
 		return nil
@@ -50,7 +50,7 @@ func (this *BlockCache) GetBlock(blockHash *common.Uint256) *types.Block {
 	return block.(*types.Block)
 }
 
-func (this *BlockCache) ContainBlock(blockHash *common.Uint256) bool{
+func (this *BlockCache) ContainBlock(blockHash common.Uint256) bool{
 	return this.blockCache.Contains(string(blockHash.ToArray()))
 }
 
@@ -62,7 +62,7 @@ func (this *BlockCache) AddTransaction(tx *types.Transaction, height uint32) {
 	})
 }
 
-func (this *BlockCache) GetTransaction(txHash *common.Uint256) (*types.Transaction ,uint32){
+func (this *BlockCache) GetTransaction(txHash common.Uint256) (*types.Transaction ,uint32){
 	value, ok := this.transactionCache.Get(string(txHash.ToArray()))
 	if !ok {
 		return nil, 0
@@ -71,6 +71,6 @@ func (this *BlockCache) GetTransaction(txHash *common.Uint256) (*types.Transacti
 	return txValue.Tx, txValue.Height
 }
 
-func (this *BlockCache) ContainTransaction(txHash *common.Uint256) bool{
+func (this *BlockCache) ContainTransaction(txHash common.Uint256) bool{
 	return this.transactionCache.Contains(string(txHash.ToArray()))
 }

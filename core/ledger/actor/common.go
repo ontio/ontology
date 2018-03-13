@@ -11,7 +11,7 @@ type AddHeaderReq struct {
 }
 
 type AddHeaderRsp struct {
-	BlockHash *common.Uint256
+	BlockHash common.Uint256
 	Error     error
 }
 
@@ -20,7 +20,7 @@ type AddHeadersReq struct {
 }
 
 type AddHeadersRsp struct {
-	BlockHashes []*common.Uint256
+	BlockHashes []common.Uint256
 	Error       error
 }
 
@@ -29,12 +29,12 @@ type AddBlockReq struct {
 }
 
 type AddBlockRsp struct {
-	BlockHash *common.Uint256
+	BlockHash common.Uint256
 	Error     error
 }
 
 type GetTransactionReq struct {
-	TxHash *common.Uint256
+	TxHash common.Uint256
 }
 
 type GetTransactionRsp struct {
@@ -43,7 +43,7 @@ type GetTransactionRsp struct {
 }
 
 type GetBlockByHashReq struct {
-	BlockHash *common.Uint256
+	BlockHash common.Uint256
 }
 
 type GetBlockByHashRsp struct {
@@ -61,7 +61,7 @@ type GetBlockByHeightRsp struct {
 }
 
 type GetHeaderByHashReq struct {
-	BlockHash *common.Uint256
+	BlockHash common.Uint256
 }
 
 type GetHeaderByHashRsp struct {
@@ -81,7 +81,7 @@ type GetHeaderByHeightRsp struct {
 type GetCurrentBlockHashReq struct{}
 
 type GetCurrentBlockHashRsp struct {
-	BlockHash *common.Uint256
+	BlockHash common.Uint256
 	Error     error
 }
 
@@ -104,12 +104,12 @@ type GetBlockHashReq struct {
 }
 
 type GetBlockHashRsp struct {
-	BlockHash *common.Uint256
+	BlockHash common.Uint256
 	Error     error
 }
 
 type IsContainBlockReq struct {
-	BlockHash *common.Uint256
+	BlockHash common.Uint256
 }
 
 type IsContainBlockRsp struct {
@@ -118,16 +118,16 @@ type IsContainBlockRsp struct {
 }
 
 type GetBlockRootWithNewTxRootReq struct {
-	TxRoot *common.Uint256
+	TxRoot common.Uint256
 }
 
 type GetBlockRootWithNewTxRootRsp struct {
-	NewTxRoot *common.Uint256
+	NewTxRoot common.Uint256
 	Error error
 }
 
 type GetTransactionWithHeightReq struct {
-	TxHash *common.Uint256
+	TxHash common.Uint256
 }
 
 type GetTransactionWithHeightRsp struct {
@@ -137,7 +137,7 @@ type GetTransactionWithHeightRsp struct {
 }
 
 type IsContainTransactionReq struct {
-	TxHash *common.Uint256
+	TxHash common.Uint256
 }
 
 type IsContainTransactionRsp struct {
@@ -148,7 +148,7 @@ type IsContainTransactionRsp struct {
 type GetCurrentStateRootReq struct{}
 
 type GetCurrentStateRootRsp struct {
-	StateRoot *common.Uint256
+	StateRoot common.Uint256
 	Error     error
 }
 
@@ -170,7 +170,7 @@ type GetStorageItemRsp struct {
 }
 
 type GetContractStateReq struct {
-	ContractHash *common.Uint160
+	ContractHash common.Uint160
 }
 
 type GetContractStateRsp struct {

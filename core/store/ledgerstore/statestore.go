@@ -42,7 +42,7 @@ func (this *StateStore) NewBatch() error {
 	return nil
 }
 
-func (this *StateStore) NewStateBatch(stateRoot *common.Uint256) (*StateBatch, error) {
+func (this *StateStore) NewStateBatch(stateRoot common.Uint256) (*StateBatch, error) {
 	return NewStateStoreBatch(NewMemDatabase(), this.store, stateRoot)
 }
 
@@ -50,7 +50,7 @@ func (this *StateStore) CommitTo() error {
 	return this.store.BatchCommit()
 }
 
-func (this *StateStore) GetUnspentCoinState(refTxHash *common.Uint256) (*UnspentCoinState, error) {
+func (this *StateStore) GetUnspentCoinState(refTxHash common.Uint256) (*UnspentCoinState, error) {
 	key, err := this.getCoinStateKey(refTxHash)
 	if err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ func (this *StateStore) GetUnspentCoinState(refTxHash *common.Uint256) (*Unspent
 	return coinState, nil
 }
 
-func (this *StateStore) GetSpentCoinState(refTxHash *common.Uint256) (*SpentCoinState, error) {
+func (this *StateStore) GetSpentCoinState(refTxHash common.Uint256) (*SpentCoinState, error) {
 	key, err := this.getSpentCoinStateKey(refTxHash)
 	if err != nil {
 		return nil, err
@@ -94,26 +94,26 @@ func (this *StateStore) GetSpentCoinState(refTxHash *common.Uint256) (*SpentCoin
 	return spentState, nil
 }
 
-func (this *StateStore) GetCurrentStateRoot() (*common.Uint256, error) {
+func (this *StateStore) GetCurrentStateRoot() (common.Uint256, error) {
 	key, err := this.getCurrentStateRootKey()
 	if err != nil {
-		return nil, err
+		return common.Uint256{}, err
 	}
 	value, err := this.store.Get(key)
 	if err != nil {
 		if err == leveldb.ErrNotFound{
-			return nil, nil
+			return common.Uint256{}, nil
 		}
-		return nil, err
+		return common.Uint256{}, err
 	}
 	stateRoot, err := common.Uint256ParseFromBytes(value)
 	if err != nil {
-		return nil, err
+		return common.Uint256{}, err
 	}
-	return &stateRoot, nil
+	return stateRoot, nil
 }
 
-func (this *StateStore) GetAssetState(assetTx *common.Uint256) (*AssetState, error) {
+func (this *StateStore) GetAssetState(assetTx common.Uint256) (*AssetState, error) {
 	key, err := this.getAssetStateKey(assetTx)
 	if err != nil {
 		return nil, err
@@ -135,7 +135,7 @@ func (this *StateStore) GetAssetState(assetTx *common.Uint256) (*AssetState, err
 	return assetState, nil
 }
 
-func (this *StateStore) GetAccountState(programHash *common.Uint160) (*AccountState, error) {
+func (this *StateStore) GetAccountState(programHash common.Uint160) (*AccountState, error) {
 	key, err := this.getAccountStatekey(programHash)
 	if err != nil {
 		return nil, err
@@ -157,7 +157,7 @@ func (this *StateStore) GetAccountState(programHash *common.Uint160) (*AccountSt
 	return accountState, nil
 }
 
-func (this *StateStore) GetContractState(contractHash *common.Uint160) (*ContractState, error) {
+func (this *StateStore) GetContractState(contractHash common.Uint160) (*ContractState, error) {
 	key, err := this.getContractStateKey(contractHash)
 	if err != nil {
 		return nil, err
@@ -179,7 +179,7 @@ func (this *StateStore) GetContractState(contractHash *common.Uint160) (*Contrac
 	return contractState, nil
 }
 
-func (this *StateStore) SaveCurrentStateRoot(stateRoot *common.Uint256) error {
+func (this *StateStore) SaveCurrentStateRoot(stateRoot common.Uint256) error {
 	key, err := this.getCurrentStateRootKey()
 	if err != nil {
 		return err
@@ -233,7 +233,7 @@ func (this *StateStore) GetAllAssetState() (map[common.Uint256]*AssetState, erro
 		if err != nil {
 			return nil, fmt.Errorf("readByte error %s", err)
 		}
-		var assetId *common.Uint256
+		var assetId common.Uint256
 		err = assetId.Deserialize(reader)
 		if err != nil {
 			return nil, fmt.Errorf("assetId.Deserialize error %s", err)
@@ -242,13 +242,13 @@ func (this *StateStore) GetAllAssetState() (map[common.Uint256]*AssetState, erro
 		asset := new(AssetState)
 		reader = bytes.NewReader(iter.Value())
 		asset.Deserialize(reader)
-		assets[*assetId] = asset
+		assets[assetId] = asset
 	}
 	iter.Release()
 	return assets, nil
 }
 
-func (this *StateStore) GetUnspentCoinStateByProgramHash(programHash *common.Uint160, assetId *common.Uint256) (*ProgramUnspentCoin, error) {
+func (this *StateStore) GetUnspentCoinStateByProgramHash(programHash common.Uint160, assetId common.Uint256) (*ProgramUnspentCoin, error) {
 	key, err := this.getProgramUnspentCoinStateKey(programHash, assetId)
 	if err != nil {
 		return nil, err
@@ -323,7 +323,7 @@ func (this *StateStore) getCurrentStateRootKey() ([]byte, error) {
 	return key, nil
 }
 
-func (this *StateStore) getCoinStateKey(refTxHash *common.Uint256) ([]byte, error) {
+func (this *StateStore) getCoinStateKey(refTxHash common.Uint256) ([]byte, error) {
 	data := refTxHash.ToArray()
 	key := make([]byte, 1+len(data))
 	key[0] = byte(ST_Coin)
@@ -331,7 +331,7 @@ func (this *StateStore) getCoinStateKey(refTxHash *common.Uint256) ([]byte, erro
 	return key, nil
 }
 
-func (this *StateStore) getSpentCoinStateKey(refTxHash *common.Uint256) ([]byte, error) {
+func (this *StateStore) getSpentCoinStateKey(refTxHash common.Uint256) ([]byte, error) {
 	data := refTxHash.ToArray()
 	key := make([]byte, 1+len(data))
 	key[0] = byte(ST_SpentCoin)
@@ -339,7 +339,7 @@ func (this *StateStore) getSpentCoinStateKey(refTxHash *common.Uint256) ([]byte,
 	return key, nil
 }
 
-func (this *StateStore) getProgramUnspentCoinStateKey(programHash *common.Uint160, assetId *common.Uint256) ([]byte, error) {
+func (this *StateStore) getProgramUnspentCoinStateKey(programHash common.Uint160, assetId common.Uint256) ([]byte, error) {
 	ph := programHash.ToArray()
 	as := assetId.ToArray()
 	phSize := len(ph)
@@ -351,7 +351,7 @@ func (this *StateStore) getProgramUnspentCoinStateKey(programHash *common.Uint16
 	return key, nil
 }
 
-func (this *StateStore) getAssetStateKey(assetTx *common.Uint256) ([]byte, error) {
+func (this *StateStore) getAssetStateKey(assetTx common.Uint256) ([]byte, error) {
 	data := assetTx.ToArray()
 	key := make([]byte, 1+len(data))
 	key[0] = byte(ST_Asset)
@@ -359,7 +359,7 @@ func (this *StateStore) getAssetStateKey(assetTx *common.Uint256) ([]byte, error
 	return key, nil
 }
 
-func (this *StateStore) getAccountStatekey(programHash *common.Uint160) ([]byte, error) {
+func (this *StateStore) getAccountStatekey(programHash common.Uint160) ([]byte, error) {
 	data := programHash.ToArray()
 	key := make([]byte, 1+len(data))
 	key[0] = byte(ST_Account)
@@ -374,7 +374,7 @@ func (this *StateStore) getBookKeeperKey() ([]byte, error) {
 	return key, nil
 }
 
-func (this *StateStore) getContractStateKey(contractHash *common.Uint160) ([]byte, error) {
+func (this *StateStore) getContractStateKey(contractHash common.Uint160) ([]byte, error) {
 	data := contractHash.ToArray()
 	key := make([]byte, 1+len(data))
 	key[0] = byte(ST_Contract)
