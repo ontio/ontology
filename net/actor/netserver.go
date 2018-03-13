@@ -4,6 +4,7 @@ import (
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/eventbus/actor"
 	"github.com/Ontology/net/protocol"
+	"reflect"
 )
 
 var netServerPid *actor.PID
@@ -75,6 +76,16 @@ type GetNeighborAddrsRsp struct {
 
 func (state *NetServer) Receive(context actor.Context) {
 	switch context.Message().(type) {
+	case *actor.Restarting:
+		log.Warn("p2p actor restarting")
+	case *actor.Stopping:
+		log.Warn("p2p actor stopping")
+	case *actor.Stopped:
+		log.Warn("p2p actor stopped")
+	case *actor.Started:
+		log.Warn("p2p actor started")
+	case *actor.Restart:
+		log.Warn("p2p actor restart")
 	case *GetNodeVersionReq:
 		version := node.Version()
 		context.Sender().Request(&GetNodeVersionRsp{Version: version}, context.Self())
@@ -104,16 +115,16 @@ func (state *NetServer) Receive(context actor.Context) {
 		context.Sender().Request(&GetRelayStateRsp{Relay: relay}, context.Self())
 	case *GetNeighborAddrsReq:
 		addrs, count := node.GetNeighborAddrs()
-		context.Sender().Request(&GetNeighborAddrsRsp{Addrs: addrs, Count:count}, context.Self())
+		context.Sender().Request(&GetNeighborAddrsRsp{Addrs: addrs, Count: count}, context.Self())
 	default:
 		err := node.Xmit(context.Message())
 		if nil != err {
-			log.Error("Error Xmit message ", err.Error())
+			log.Error("Error Xmit message ", err.Error(), reflect.TypeOf(context.Message()))
 		}
 	}
 }
 
-func InitNetServer(netNode protocol.Noder) (*actor.PID, error){
+func InitNetServer(netNode protocol.Noder) (*actor.PID, error) {
 	props := actor.FromProducer(func() actor.Actor { return &NetServer{} })
 	netServerPid, err := actor.SpawnNamed(props, "net_server")
 	if err != nil {
