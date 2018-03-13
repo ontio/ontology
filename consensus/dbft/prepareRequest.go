@@ -41,7 +41,6 @@ func (pr *PrepareRequest) Serialize(w io.Writer) error {
 }
 
 func (pr *PrepareRequest) Deserialize(r io.Reader) error {
-	log.Debug()
 	pr.msgData = ConsensusMessageData{}
 	pr.msgData.Deserialize(r)
 	pr.Nonce, _ = ser.ReadVarUint(r, 0)

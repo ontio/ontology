@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 
+	"fmt"
 	. "github.com/Ontology/common"
 	. "github.com/Ontology/common/config"
 	"github.com/Ontology/common/serialization"
@@ -258,8 +259,12 @@ func (tx *Transaction) DeserializeUnsigned(r io.Reader) error {
 	switch tx.TxType {
 	case Invoke:
 		tx.Payload = new(payload.InvokeCode)
+	case BookKeeping:
+		tx.Payload = new(payload.BookKeeping)
+	case Deploy:
+		tx.Payload = new(payload.DeployCode)
 	default:
-		return errors.New("unsupported tx type")
+		return fmt.Errorf("unsupported tx type %v", tx.Type())
 	}
 
 	err = tx.Payload.Deserialize(r)
