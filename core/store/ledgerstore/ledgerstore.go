@@ -196,7 +196,7 @@ func (this *LedgerStore) initHeaderIndexList() error {
 		}
 		this.headerIndex[height] = blockHash
 	}
-	this.storedIndexCount += currBlockHeight - storeIndexCount + 1
+
 	return nil
 }
 
@@ -251,18 +251,6 @@ func (this *LedgerStore) clearCache() {
 			break
 		}
 	}
-}
-
-func (this *LedgerStore) getStoreIndexCount() uint32 {
-	this.lock.RLock()
-	defer this.lock.RUnlock()
-	return this.storedIndexCount
-}
-
-func (this *LedgerStore) addStoreIndexCount(delt uint32) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	this.storedIndexCount += delt
 }
 
 func (this *LedgerStore) setHeaderIndex(height uint32, blockHash common.Uint256) {
@@ -666,7 +654,9 @@ func (this *LedgerStore) saveHeaderIndexList() error {
 		return fmt.Errorf("SaveHeaderIndexList start %d error %s", storeCount, err)
 	}
 
-	this.addStoreIndexCount(HeaderIndexBatchSize)
+	this.lock.Lock()
+	this.storedIndexCount += HeaderIndexBatchSize
+	this.lock.Unlock()
 	return nil
 }
 
@@ -687,7 +677,7 @@ func (this *LedgerStore) IsContainTransaction(txHash common.Uint256) (bool, erro
 }
 
 func (this *LedgerStore) GetBlockRootWithNewTxRoot(txRoot common.Uint256) common.Uint256 {
-	return  this.merkleStore.GetBlockRootWithNewTxRoot(txRoot)
+	return this.merkleStore.GetBlockRootWithNewTxRoot(txRoot)
 }
 
 func (this *LedgerStore) GetBlockHash(height uint32) common.Uint256 {
