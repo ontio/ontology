@@ -13,7 +13,6 @@ import (
 	"github.com/Ontology/common/log"
 	. "github.com/Ontology/http/base/common"
 	. "github.com/Ontology/http/base/actor"
-	"github.com/Ontology/core/ledger"
 )
 
 var node Noder
@@ -63,18 +62,15 @@ func GetBlockHash(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
 	param := cmd["Height"].(string)
 	if len(param) == 0 {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	height, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	hash, err := GetBlockHashFromStore(uint32(height))
 	if err != nil {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	resp["Result"] = ToHexString(hash.ToArray())
 	return resp
@@ -148,8 +144,7 @@ func GetBlockByHash(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
 	param := cmd["Hash"].(string)
 	if len(param) == 0 {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	var getTxBytes bool = false
 	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
@@ -158,12 +153,10 @@ func GetBlockByHash(cmd map[string]interface{}) map[string]interface{} {
 	var hash Uint256
 	hex, err := HexToBytes(param)
 	if err != nil {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
-		resp["Error"] = Err.INVALID_TRANSACTION
-		return resp
+		return ResponsePack(Err.INVALID_TRANSACTION)
 	}
 
 	resp["Result"], resp["Error"] = getBlock(hash, getTxBytes)
@@ -175,24 +168,20 @@ func GetBlockTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 
 	param := cmd["Height"].(string)
 	if len(param) == 0 {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	height, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	index := uint32(height)
 	hash, err := GetBlockHashFromStore(index)
 	if err != nil {
-		resp["Error"] = Err.UNKNOWN_BLOCK
-		return resp
+		return ResponsePack(Err.UNKNOWN_BLOCK)
 	}
 	block, err := GetBlockFromStore(hash)
 	if err != nil {
-		resp["Error"] = Err.UNKNOWN_BLOCK
-		return resp
+		return ResponsePack(Err.UNKNOWN_BLOCK)
 	}
 	resp["Result"] = GetBlockTransactions(block)
 	return resp
@@ -202,8 +191,7 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 
 	param := cmd["Height"].(string)
 	if len(param) == 0 {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	var getTxBytes bool = false
 	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
@@ -211,14 +199,12 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 	}
 	height, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	index := uint32(height)
 	hash, err := GetBlockHashFromStore(index)
 	if err != nil {
-		resp["Error"] = Err.UNKNOWN_BLOCK
-		return resp
+		return ResponsePack(Err.UNKNOWN_BLOCK)
 	}
 	resp["Result"], resp["Error"] = getBlock(hash, getTxBytes)
 	return resp
@@ -232,19 +218,16 @@ func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
 	str := cmd["Hash"].(string)
 	bys, err := HexToBytes(str)
 	if err != nil {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	var hash Uint256
 	err = hash.Deserialize(bytes.NewReader(bys))
 	if err != nil {
-		resp["Error"] = Err.INVALID_TRANSACTION
-		return resp
+		return ResponsePack(Err.INVALID_TRANSACTION)
 	}
 	tx, err := GetTransaction(hash)
 	if err != nil {
-		resp["Error"] = Err.UNKNOWN_TRANSACTION
-		return resp
+		return ResponsePack(Err.UNKNOWN_TRANSACTION)
 	}
 	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
 		w := bytes.NewBuffer(nil)
@@ -261,24 +244,21 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 
 	str, ok := cmd["Data"].(string)
 	if !ok {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	bys, err := HexToBytes(str)
 	if err != nil {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	var txn types.Transaction
 	if err := txn.Deserialize(bytes.NewReader(bys)); err != nil {
-		resp["Error"] = Err.INVALID_TRANSACTION
-		return resp
+		return ResponsePack(Err.INVALID_TRANSACTION)
 	}
 	if txn.TxType == types.Invoke {
 		if preExec, ok := cmd["PreExec"].(string); ok && preExec == "1" {
 			log.Tracef("PreExec SMARTCODE")
 			if _, ok := txn.Payload.(*payload.InvokeCode); ok {
-				resp["Result"], err = ledger.DefLedger.PreExecuteContract(&txn)
+				resp["Result"], err = PreExecuteContract(&txn)
 				if err != nil {
 					resp["Error"] = Err.SMARTCODE_ERROR
 					return resp
@@ -309,15 +289,14 @@ func GetSmartCodeEventByHeight(cmd map[string]interface{}) map[string]interface{
 
 	param := cmd["Height"].(string)
 	if len(param) == 0 {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	height, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	index := uint32(height)
+	//infos,_ := GetEventNotifyByTx(Uint256{})
 	resp["Result"] = map[string]interface{}{"Height": index}
 	//TODO resp
 	return resp
@@ -337,14 +316,12 @@ func GetContract(cmd map[string]interface{}) map[string]interface{} {
 	str := cmd["Hash"].(string)
 	bys, err := HexToBytes(str)
 	if err != nil {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	var hash Uint160
 	err = hash.Deserialize(bytes.NewReader(bys))
 	if err != nil {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	//TODO GetContract from store
 	//contract, err := GetContractFromStore(hash)

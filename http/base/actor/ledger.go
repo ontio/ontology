@@ -8,6 +8,7 @@ import (
 	. "github.com/Ontology/core/ledger/actor"
 	. "github.com/Ontology/common"
 	"errors"
+	"github.com/Ontology/smartcontract/event"
 )
 
 var defLedgerPid *actor.PID
@@ -141,4 +142,47 @@ func AddBlock(block *types.Block) error {
 	}else {
 		return rsp.Error
 	}
+}
+
+func PreExecuteContract(tx *types.Transaction) ([]interface{}, error) {
+	future := defLedgerPid.RequestFuture(&PreExecuteContractReq{tx}, 10*time.Second)
+	result, err := future.Result()
+	if err != nil {
+		return nil,err
+	}
+	if rsp, ok := result.(*PreExecuteContractRsp); !ok {
+		return rsp.Result,errors.New("fail")
+	}else {
+		return rsp.Result,rsp.Error
+	}
+}
+
+func GetEventNotifyByTx(txHash Uint256) ([]*event.NotifyEventInfo, error) {
+	future := defLedgerPid.RequestFuture(nil, 10*time.Second)
+	_, err := future.Result()
+	if err != nil {
+		return nil,err
+	}
+	//TODO
+	//if rsp, ok := result.(*GetEventNotifyByTxRsp); !ok {
+	//	return rsp.Result,errors.New("fail")
+	//}else {
+	//	return rsp.Result,rsp.Error
+	//}
+	return nil,err
+}
+
+func GetEventNotifyByHeight(height uint32) ([]Uint256, error) {
+	future := defLedgerPid.RequestFuture(nil, 10*time.Second)
+	_, err := future.Result()
+	if err != nil {
+		return nil,err
+	}
+	//TODO
+	//if rsp, ok := result.(*GetEventNotifyByBlockRsp); !ok {
+	//	return rsp.Result,errors.New("fail")
+	//}else {
+	//	return rsp.Result,rsp.Error
+	//}
+	return nil,err
 }
