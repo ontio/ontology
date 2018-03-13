@@ -3,7 +3,6 @@ package common
 import (
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/transaction/utxo"
 	"github.com/Ontology/core/types"
 	. "github.com/Ontology/errors"
 	. "github.com/Ontology/http/base/actor"
@@ -17,28 +16,6 @@ type TxAttributeInfo struct {
 	Data  string
 }
 
-type UTXOTxInputInfo struct {
-	ReferTxID          string
-	ReferTxOutputIndex uint16
-}
-
-type BalanceTxInputInfo struct {
-	AssetID     string
-	Value       string
-	ProgramHash string
-}
-
-type TxoutputInfo struct {
-	AssetID     string
-	Value       string
-	ProgramHash string
-}
-
-type TxoutputMap struct {
-	Key   Uint256
-	Txout []TxoutputInfo
-}
-
 type AmountMap struct {
 	Key   Uint256
 	Value Fixed64
@@ -49,23 +26,28 @@ type ProgramInfo struct {
 	Parameter string
 }
 
+type Fee struct {
+	Amount Fixed64
+	Payer  string
+}
+type PubKeyInfo struct {
+	X, Y string
+}
+type Sig struct {
+	PubKeys []PubKeyInfo
+	M       uint8
+	SigData []string
+}
 type Transactions struct {
-	TxType         types.TransactionType
-	PayloadVersion byte
-	Payload        PayloadInfo
-	Attributes     []TxAttributeInfo
-	UTXOInputs     []UTXOTxInputInfo
-	BalanceInputs  []BalanceTxInputInfo
-	Outputs        []TxoutputInfo
-	Programs       []ProgramInfo
-	NetworkFee     string
-	SystemFee      string
-
-	AssetOutputs      []TxoutputMap
-	AssetInputAmount  []AmountMap
-	AssetOutputAmount []AmountMap
-
-	Hash string
+	Version    byte
+	Nonce      uint32
+	TxType     types.TransactionType
+	Payload    PayloadInfo
+	Attributes []TxAttributeInfo
+	Fee        []Fee
+	NetworkFee string
+	Sigs       []Sig
+	Hash       string
 }
 
 type BlockHead struct {
@@ -89,18 +71,6 @@ type BlockInfo struct {
 	Hash         string
 	BlockData    *BlockHead
 	Transactions []*Transactions
-}
-
-type TxInfo struct {
-	Hash string
-	Hex  string
-	Tx   *Transactions
-}
-
-type TxoutInfo struct {
-	High  uint32
-	Low   uint32
-	Txout utxo.TxOutput
 }
 
 type NodeInfo struct {
@@ -133,26 +103,32 @@ type TXNEntryInfo struct {
 }
 
 func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
-	panic("Transaction structure has changed need reimplement ")
-
 	trans := new(Transactions)
 	trans.TxType = ptx.TxType
 	trans.Payload = TransPayloadToHex(ptx.Payload)
 
-	n := 0
 	trans.Attributes = make([]TxAttributeInfo, len(ptx.Attributes))
-	for _, v := range ptx.Attributes {
-		trans.Attributes[n].Usage = v.Usage
-		trans.Attributes[n].Data = ToHexString(v.Data)
-		n++
+	for i, v := range ptx.Attributes {
+		trans.Attributes[i].Usage = v.Usage
+		trans.Attributes[i].Data = ToHexString(v.Data)
 	}
-
+	for _, fee := range ptx.Fee {
+		e := Fee{fee.Amount, fee.Payer.ToHexString()}
+		trans.Fee = append(trans.Fee, e)
+	}
+	for _, sig := range ptx.Sigs {
+		e := Sig{M: sig.M}
+		for i := 0; i < len(sig.PubKeys); i++ {
+			e.PubKeys = append(e.PubKeys, PubKeyInfo{sig.PubKeys[i].X.String(), sig.PubKeys[i].Y.String()})
+			e.SigData = append(e.SigData, ToHexString(sig.SigData[i]))
+		}
+		trans.Sigs = append(trans.Sigs, e)
+	}
 	networkfee := ptx.GetNetworkFee()
 	trans.NetworkFee = strconv.FormatInt(int64(networkfee), 10)
 
 	mhash := ptx.Hash()
 	trans.Hash = ToHexString(mhash.ToArray())
-
 	return trans
 }
 
