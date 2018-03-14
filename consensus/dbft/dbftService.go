@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"time"
+	"reflect"
 
 	"github.com/Ontology/account"
 	. "github.com/Ontology/common"
@@ -83,6 +84,16 @@ func (this *DbftService) Receive(context actor.Context) {
 	}
 
 	switch msg := context.Message().(type) {
+	case *actor.Restarting:
+		log.Warn("dbft actor restarting")
+	case *actor.Stopping:
+		log.Warn("dbft actor stopping")
+	case *actor.Stopped:
+		log.Warn("dbft actor stopped")
+	case *actor.Started:
+		log.Warn("dbft actor started")
+	case *actor.Restart:
+		log.Warn("dbft actor restart")
 	case *actorTypes.StartConsensus:
 		this.start()
 	case *actorTypes.StopConsensus:
@@ -95,7 +106,7 @@ func (this *DbftService) Receive(context actor.Context) {
 		this.NewConsensusPayload(msg)
 
 	default:
-		log.Info("Unknown msg type", msg)
+		log.Info("dbft actor: Unknown msg ", msg, "type", reflect.TypeOf(msg))
 	}
 }
 

@@ -8,6 +8,7 @@ import (
 	"github.com/Ontology/eventbus/actor"
 	"github.com/Ontology/validator/db"
 	vatypes "github.com/Ontology/validator/types"
+	"reflect"
 )
 
 type Validator interface {
@@ -79,7 +80,7 @@ func (self *validator) Receive(context actor.Context) {
 		//}
 
 	default:
-		log.Info("Unknown msg type", msg)
+		log.Info("statefull-validator:Unknown msg ", msg, "type", reflect.TypeOf(msg))
 	}
 
 }

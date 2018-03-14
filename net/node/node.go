@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"net"
 	"runtime"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -434,7 +435,7 @@ func (node *node) Xmit(message interface{}) error {
 			return err
 		}
 	default:
-		log.Warn("Unknown Xmit message type")
+		log.Warnf("Unknown Xmit message %v , type %v", message, reflect.TypeOf(message))
 		return errors.New("Unknown Xmit message type")
 	}
 

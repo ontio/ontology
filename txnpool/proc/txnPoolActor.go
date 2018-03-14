@@ -2,6 +2,8 @@ package proc
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/Ontology/common/log"
 	tx "github.com/Ontology/core/types"
 	"github.com/Ontology/errors"
@@ -135,7 +137,7 @@ func (ta *TxActor) Receive(context actor.Context) {
 		}
 
 	default:
-		log.Info("Unknown msg type", msg)
+		log.Info("txpool-tx actor: Unknown msg ", msg, "type", reflect.TypeOf(msg))
 	}
 }
 
@@ -196,7 +198,7 @@ func (tpa *TxPoolActor) Receive(context actor.Context) {
 		}
 
 	default:
-		log.Info("Unknown msg type", msg)
+		log.Info("txpool actor: Unknown msg ", msg, "type", reflect.TypeOf(msg))
 	}
 }
 
@@ -235,7 +237,7 @@ func (vpa *VerifyRspActor) Receive(context actor.Context) {
 		vpa.server.assignRsp2Worker(msg)
 
 	default:
-		log.Info("Unknown msg type", msg)
+		log.Info("txpool-verify actor:Unknown msg ", msg, "type", reflect.TypeOf(msg))
 	}
 }
 

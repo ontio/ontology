@@ -5,6 +5,7 @@ import (
 	"github.com/Ontology/core/validation"
 	"github.com/Ontology/eventbus/actor"
 	vatypes "github.com/Ontology/validator/types"
+	"reflect"
 )
 
 type Validator interface {
@@ -56,7 +57,7 @@ func (self *validator) Receive(context actor.Context) {
 	case *vatypes.UnRegisterAck:
 		context.Self().Stop()
 	default:
-		log.Info("Unknown msg type", msg)
+		log.Info("stateless-validator:Unknown msg ", msg, "type", reflect.TypeOf(msg))
 	}
 
 }

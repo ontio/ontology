@@ -14,6 +14,7 @@ import (
 	"github.com/Ontology/core/utils"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/eventbus/actor"
+	"reflect"
 )
 
 /*
@@ -50,6 +51,16 @@ func NewSoloService(bkAccount *account.Account, txpool *actor.PID, ledger *actor
 
 func (this *SoloService) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
+	case *actor.Restarting:
+		log.Warn("solo actor restarting")
+	case *actor.Stopping:
+		log.Warn("solo actor stopping")
+	case *actor.Stopped:
+		log.Warn("solo actor stopped")
+	case *actor.Started:
+		log.Warn("solo actor started")
+	case *actor.Restart:
+		log.Warn("solo actor restart")
 	case *actorTypes.StartConsensus:
 		if this.existCh != nil {
 			log.Warn("consensus have started")
@@ -77,7 +88,7 @@ func (this *SoloService) Receive(context actor.Context) {
 	case *actorTypes.TimeOut:
 		this.genBlock()
 	default:
-		log.Info("Unknown msg type", msg)
+		log.Info("solo actor: Unknown msg ", msg, "type", reflect.TypeOf(msg))
 	}
 }
 

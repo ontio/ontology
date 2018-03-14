@@ -158,7 +158,7 @@ func AllocMsg(t string, length int) Messager {
 		log.Warn("Not supported message type - reject")
 		return nil
 	default:
-		log.Warn("Unknown message type")
+		log.Warn("Unknown message type", t)
 		return nil
 	}
 }
@@ -186,7 +186,7 @@ func NewMsg(t string, n Noder) ([]byte, error) {
 		return newGetAddr()
 
 	default:
-		return nil, errors.New("Unknown message type")
+		return nil, fmt.Errorf("Unknown message type %v", t)
 	}
 }
 
