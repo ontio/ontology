@@ -35,7 +35,7 @@ func GetTxnFromLedger(hash common.Uint256) (*types.Transaction, error) {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return nil, err
 	}
-	return result.(ledger.GetTransactionRsp).Tx, result.(ledger.GetTransactionRsp).Error
+	return result.(*ledger.GetTransactionRsp).Tx, result.(*ledger.GetTransactionRsp).Error
 }
 
 func GetCurrentBlockHash() (common.Uint256, error) {
@@ -45,7 +45,7 @@ func GetCurrentBlockHash() (common.Uint256, error) {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return common.Uint256{}, err
 	}
-	return result.(ledger.GetCurrentBlockHashRsp).BlockHash, result.(ledger.GetCurrentBlockHashRsp).Error
+	return result.(*ledger.GetCurrentBlockHashRsp).BlockHash, result.(*ledger.GetCurrentBlockHashRsp).Error
 }
 
 func GetBlockHashByHeight(height uint32) (common.Uint256, error) {
@@ -55,7 +55,7 @@ func GetBlockHashByHeight(height uint32) (common.Uint256, error) {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return common.Uint256{}, err
 	}
-	return result.(ledger.GetBlockHashRsp).BlockHash, result.(ledger.GetBlockHashRsp).Error
+	return result.(*ledger.GetBlockHashRsp).BlockHash, result.(*ledger.GetBlockHashRsp).Error
 }
 
 func GetHeaderByHeight(height uint32) (*types.Header, error) {
@@ -65,7 +65,7 @@ func GetHeaderByHeight(height uint32) (*types.Header, error) {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return nil, err
 	}
-	return result.(ledger.GetHeaderByHeightRsp).Header, result.(ledger.GetHeaderByHeightRsp).Error
+	return result.(*ledger.GetHeaderByHeightRsp).Header, result.(*ledger.GetHeaderByHeightRsp).Error
 }
 
 func GetBlockByHeight(height uint32) (*types.Block, error) {
@@ -75,7 +75,7 @@ func GetBlockByHeight(height uint32) (*types.Block, error) {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return nil, err
 	}
-	return result.(ledger.GetBlockByHeightRsp).Block, result.(ledger.GetBlockByHeightRsp).Error
+	return result.(*ledger.GetBlockByHeightRsp).Block, result.(*ledger.GetBlockByHeightRsp).Error
 }
 
 func GetHeaderByHash(hash common.Uint256) (*types.Header, error) {
@@ -85,7 +85,7 @@ func GetHeaderByHash(hash common.Uint256) (*types.Header, error) {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return nil, err
 	}
-	return result.(ledger.GetHeaderByHashRsp).Header, result.(ledger.GetHeaderByHashRsp).Error
+	return result.(*ledger.GetHeaderByHashRsp).Header, result.(*ledger.GetHeaderByHashRsp).Error
 }
 
 func GetBlockByHash(hash common.Uint256) (*types.Block, error) {
@@ -95,7 +95,7 @@ func GetBlockByHash(hash common.Uint256) (*types.Block, error) {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return nil, err
 	}
-	return result.(ledger.GetBlockByHashRsp).Block, result.(ledger.GetBlockByHashRsp).Error
+	return result.(*ledger.GetBlockByHashRsp).Block, result.(*ledger.GetBlockByHashRsp).Error
 }
 
 func GetCurrentHeaderHeight() (uint32, error) {
@@ -125,5 +125,5 @@ func IsContainBlock(hash common.Uint256) (bool, error) {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return false, err
 	}
-	return result.(ledger.IsContainBlockRsp).IsContain, result.(ledger.IsContainBlockRsp).Error
+	return result.(*ledger.IsContainBlockRsp).IsContain, result.(*ledger.IsContainBlockRsp).Error
 }
