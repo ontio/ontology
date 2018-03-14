@@ -6,7 +6,6 @@ import (
 
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/types"
-	"github.com/Ontology/core/utils"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
 )
@@ -90,7 +89,7 @@ func VerifyHeader(header, prevHeader *types.Header) error {
 		return NewDetailErr(errors.New("[BlockValidator] error"), ErrNoCode, "[BlockValidator], block timestamp is incorrect.")
 	}
 
-	address, err := utils.AddressFromBookKeepers(header.BookKeepers)
+	address, err := types.AddressFromBookKeepers(header.BookKeepers)
 	if err != nil {
 		return err
 	}

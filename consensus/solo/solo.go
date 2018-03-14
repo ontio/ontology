@@ -11,7 +11,6 @@ import (
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/types"
-	"github.com/Ontology/core/utils"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/eventbus/actor"
 	"reflect"
@@ -126,7 +125,7 @@ func (this *SoloService) genBlock() {
 func (this *SoloService) makeBlock() *types.Block {
 	log.Debug()
 	owner := this.Account.PublicKey
-	nextBookKeeper, err := utils.AddressFromBookKeepers([]*crypto.PubKey{owner})
+	nextBookKeeper, err := types.AddressFromBookKeepers([]*crypto.PubKey{owner})
 	if err != nil {
 		log.Error("SoloService GetBookKeeperAddress error:%s", err)
 		return nil

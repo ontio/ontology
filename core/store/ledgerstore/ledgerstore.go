@@ -7,7 +7,6 @@ import (
 	"github.com/Ontology/core/states"
 	"github.com/Ontology/core/store/statestore"
 	"github.com/Ontology/core/types"
-	"github.com/Ontology/core/utils"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/events"
 	"github.com/Ontology/events/message"
@@ -383,7 +382,7 @@ func (this *LedgerStore) verifyHeader(header *types.Header) error {
 		return fmt.Errorf("block timestamp is incorrect")
 	}
 
-	address, err := utils.AddressFromBookKeepers(header.BookKeepers)
+	address, err := types.AddressFromBookKeepers(header.BookKeepers)
 	if err != nil {
 		return err
 	}

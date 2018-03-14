@@ -6,7 +6,6 @@ import (
 	. "github.com/Ontology/core/contract"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/types"
-	"github.com/Ontology/core/utils"
 )
 
 type PayloadInfo interface{}
@@ -119,7 +118,7 @@ func TransPayloadToHex(p types.Payload) PayloadInfo {
 		return obj
 	case *payload.InvokeCode:
 		obj := new(InvokeCodeInfo)
-		address := utils.AddressFromVmCode(object.Code)
+		address := types.AddressFromVmCode(object.Code)
 		obj.CodeHash = ToHexString(address[:])
 		obj.Code = ToHexString(object.Code.Code)
 		return obj

@@ -38,7 +38,7 @@ var GenesisBookKeepers []*crypto.PubKey
 func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*types.Block, error) {
 	//getBookKeeper
 	GenesisBookKeepers = defaultBookKeeper
-	nextBookKeeper, err := utils.AddressFromBookKeepers(defaultBookKeeper)
+	nextBookKeeper, err := types.AddressFromBookKeepers(defaultBookKeeper)
 	if err != nil {
 		return nil, errors.New("[Block],GenesisBlockInit err with GetBookKeeperAddress")
 	}

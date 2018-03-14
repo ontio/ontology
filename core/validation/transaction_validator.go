@@ -8,7 +8,6 @@ import (
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/types"
-	"github.com/Ontology/core/utils"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
 )
@@ -52,13 +51,13 @@ func checkTransactionSignatures(tx *types.Transaction) error {
 				return err
 			}
 
-			address[utils.AddressFromPubKey(sig.PubKeys[0])] = true
+			address[types.AddressFromPubKey(sig.PubKeys[0])] = true
 		} else {
 			if err := crypto.VerifyMultiSignature(hash[:], sig.PubKeys, m, sig.SigData); err != nil {
 				return err
 			}
 
-			addr, _ := utils.AddressFromMultiPubKeys(sig.PubKeys, m)
+			addr, _ := types.AddressFromMultiPubKeys(sig.PubKeys, m)
 			address[addr] = true
 		}
 	}

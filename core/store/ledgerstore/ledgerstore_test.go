@@ -71,7 +71,7 @@ func TestInitLedgerStoreWithGenesisBlock(t *testing.T) {
 	_, pubKey4, _ := crypto.GenKeyPair()
 
 	bookKeepers := []*crypto.PubKey{&pubKey1, &pubKey2, &pubKey3, &pubKey4}
-	bookKeeper, err := utils.AddressFromBookKeepers(bookKeepers)
+	bookKeeper, err := types.AddressFromBookKeepers(bookKeepers)
 	if err != nil {
 		t.Errorf("AddressFromBookKeepers error %s", err)
 		return
