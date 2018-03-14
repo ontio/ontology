@@ -22,3 +22,4 @@ cscope*
 **/*.log
 **/*.txt
 neosnapshot/*
+glide.lock
