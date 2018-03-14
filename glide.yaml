@@ -34,6 +34,7 @@ import:
   subpackages:
   - context
 - package: google.golang.org/grpc
-  repo: https://github.com/grpc/grpc-go.git 
+  repo: https://github.com/grpc/grpc-go.git
+- package: github.com/hashicorp/golang-lru
 ignore:
   - golang.org/x/sys/unix
