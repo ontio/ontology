@@ -552,6 +552,10 @@ func (this *LedgerStore) saveBlock(block *types.Block) error {
 	}
 
 	if len(invokeTxs) > 0 {
+		err = this.eventStore.NewBatch()
+		if err != nil {
+			return fmt.Errorf("eventStore.NewBatch error %s", err)
+		}
 		err = this.eventStore.SaveEventNotifyByBlock(blockHeight, invokeTxs)
 		if err != nil {
 			return fmt.Errorf("SaveEventNotifyByBlock error %s", err)
@@ -580,9 +584,11 @@ func (this *LedgerStore) saveBlock(block *types.Block) error {
 	if err != nil {
 		return fmt.Errorf("merkleStore.CommitTo error %s", err)
 	}
-	err = this.eventStore.CommitTo()
-	if err != nil {
-		return fmt.Errorf("eventStore.CommitTo error %s", err)
+	if len(invokeTxs) > 0 {
+		err = this.eventStore.CommitTo()
+		if err != nil {
+			return fmt.Errorf("eventStore.CommitTo error %s", err)
+		}
 	}
 	this.setCurrentBlock(blockHeight, blockHash)
 

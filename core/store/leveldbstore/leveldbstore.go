@@ -79,6 +79,7 @@ func (self *LevelDBStore) BatchCommit() error {
 	if err != nil {
 		return err
 	}
+	self.batch = nil
 	return nil
 }
 
