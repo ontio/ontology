@@ -1,46 +1,69 @@
-// Copyright 2017 The Onchain Authors
-// This file is part of the Onchain library.
+// Copyright 2017 The Ontology Authors
+// This file is part of the Ontology library.
 //
-// The Onchain library is free software: you can redistribute it and/or modify
+// The Ontology library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The Onchain library is distributed in the hope that it will be useful,
+// The Ontology library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the Onchain library. If not, see <http://www.gnu.org/licenses/>.
+// along with the Ontology library. If not, see <http://www.gnu.org/licenses/>.
 
 package smartcontract
 
 import (
 	"github.com/Ontology/common"
 	"github.com/Ontology/core/contract"
-	"github.com/Ontology/smartcontract/service"
-	vmtypes "github.com/Ontology/vm/types"
-	"reflect"
+	sig "github.com/Ontology/core/signature"
+	"github.com/Ontology/smartcontract/service/neovm"
+	"github.com/Ontology/vm/types"
 	"github.com/Ontology/vm/neovm"
+	"github.com/Ontology/vm/neovm/interfaces"
+	"math/big"
+	storecomm"github.com/Ontology/core/store/common"
 	"github.com/Ontology/errors"
 	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/store"
-	scommon "github.com/Ontology/core/store/common"
-	"github.com/Ontology/core/types"
+	scommon "github.com/Ontology/smartcontract/common"
+	"reflect"
+	"github.com/Ontology/vm/wasmvm/memory"
+	"encoding/binary"
+	"github.com/Ontology/vm/wasmvm/exec"
+	"github.com/Ontology/vm/wasmvm/util"
+	"github.com/Ontology/smartcontract/service/wasm"
 )
 
-type Context struct {
-	LedgerStore store.ILedgerStore
-	Code vmtypes.VmCode
-	DBCache scommon.IStateStore
-	TX *types.Transaction
-	Time uint32
+type SmartContract struct {
+	Engine         Engine
+	Code           []byte
+	Input          []byte
+	ParameterTypes []contract.ContractParameterType
+	Caller         common.Uint160
+	CodeHash       common.Uint160
+	VMType         types.VmType
+	ReturnType     contract.ContractParameterType
 }
 
-type SmartContract struct {
+type Context struct {
+	VmType         types.VmType
+	Caller         common.Uint160
+	StateMachine   *service.StateMachine
+	WasmStateMachine *wasm.WasmStateMachine //add for wasm state machine
+	DBCache        storecomm.IStateStore
+	Code           []byte
 	Input          []byte
-	VMType         vmtypes.VmType
+	CodeHash       common.Uint160
+	Time           *big.Int
+	BlockNumber    *big.Int
+	CacheCodeTable interfaces.ICodeTable
+	SignableData   sig.SignableData
+	Gas            common.Fixed64
+	ReturnType     contract.ContractParameterType
+	ParameterTypes []contract.ContractParameterType
 }
 
 type Engine interface {
@@ -50,15 +73,20 @@ type Engine interface {
 
 func NewSmartContract(context *Context) (*SmartContract, error) {
 	var e Engine
-	switch context.Code.VmType {
-	case vmtypes.NEOVM:
-		stateMachine := service.NewStateMachine(context.LedgerStore, context.DBCache, vmtypes.Application, context.Time)
+	switch context.VmType {
+	case types.NEOVM:
 		e = neovm.NewExecutionEngine(
-			context.TX,
+			context.SignableData,
 			new(neovm.ECDsaCrypto),
 			context.CacheCodeTable,
 			context.StateMachine,
 		)
+		//add wasmvm case
+	case types.WASMVM:
+		e = exec.NewExecutionEngine(context.SignableData,
+			new(neovm.ECDsaCrypto),
+			context.CacheCodeTable,
+			context.WasmStateMachine)
 	default:
 		return nil, errors.NewErr("[NewSmartContract] Invalid vm type!")
 	}
@@ -79,13 +107,122 @@ func (sc *SmartContract) DeployContract() ([]byte, error) {
 }
 
 func (sc *SmartContract) InvokeContract() (interface{}, error) {
-	_, err := sc.Engine.Call(sc.Caller, sc.Code, sc.Input)
+
+	res, err := sc.Engine.Call(sc.Caller, sc.Code, sc.Input)
 	if err != nil {
 		return nil, err
 	}
-	return sc.InvokeResult()
-}
+	switch sc.VMType {
+	case types.NEOVM:
+		return sc.InvokeResult()
+	case types.WASMVM:
+		//todo add trasmform types
+		//todo current we have multi-interface per wasm smart contract
+		mem := sc.Engine.(*exec.ExecutionEngine).GetMemory()
+		switch sc.ReturnType {
+		case contract.Boolean:
+			if len(res) > 0 && int(res[0]) == 0 {
+				return false, nil
+			} else {
+				return true, nil
+			}
+		case contract.Integer:
+			if len(res) == 4 { //int32 case
+				return int32(binary.LittleEndian.Uint32(res)), nil
+			}
+			if len(res) == 8 { //int64 case
+				return int64(binary.LittleEndian.Uint64(res)), nil
+			}
 
+		case contract.ByteArray:
+			var idx int
+			if len(res) == 4 {
+				idx = int(binary.LittleEndian.Uint32(res))
+			}else if len(res) == 8 {
+				idx = int(binary.LittleEndian.Uint64(res))
+			}
+			bytes,err := mem.GetPointerMemory(uint64(idx))
+			if err != nil{
+				return nil,err
+			}
+			return bytes,nil
+
+		case contract.String:
+			var idx int
+			if len(res) == 4 {
+				idx = int(binary.LittleEndian.Uint32(res))
+			}else if len(res) == 8 {
+				idx = int(binary.LittleEndian.Uint64(res))
+			}
+			bytes,err := mem.GetPointerMemory(uint64(idx))
+			if err != nil{
+				return nil,err
+			}
+			return string(bytes),nil
+		case contract.Hash160,contract.Hash256,contract.PublicKey:
+			var idx int
+			if len(res) == 4 {
+				idx = int(binary.LittleEndian.Uint32(res))
+			}else if len(res) == 8 {
+				idx = int(binary.LittleEndian.Uint64(res))
+			}
+			bytes,err := mem.GetPointerMemory(uint64(idx))
+			if err != nil{
+				return nil,err
+			}
+
+			return common.ToHexString(bytes), nil
+
+		case contract.InteropInterface:
+			return common.ToHexString(res), nil
+		case contract.Array:
+			var idx int
+			if len(res) == 4 {
+				idx = int(binary.LittleEndian.Uint32(res))
+			}else if len(res) == 8 {
+				idx = int(binary.LittleEndian.Uint64(res))
+			}
+			bytes,err := mem.GetPointerMemory(uint64(idx))
+			if err != nil{
+				return nil,err
+			}
+			tl,_ := mem.MemPoints[uint64(idx)]
+			switch tl.Ptype {
+			case memory.P_INT32:
+				tmp := make([]int,tl.Length / 4)
+				for i:= 0 ;i < tl.Length / 4;i++{
+					tmp[i] = int(binary.LittleEndian.Uint32(bytes[i*4:(i+1)*4]))
+				}
+				return tmp,nil
+			case memory.P_INT64:
+				tmp := make([]int64,tl.Length / 8)
+				for i:= 0 ;i < tl.Length / 8;i++{
+					tmp[i] = int64(binary.LittleEndian.Uint64(bytes[i*8:(i+1)*8]))
+				}
+				return tmp,nil
+			case memory.P_FLOAT32:
+				tmp := make([]float32,tl.Length / 4)
+				for i:= 0 ;i < tl.Length / 4;i++{
+					tmp[i] = util.ByteToFloat32(bytes[i*4:(i+1)*4])
+				}
+				return tmp,nil
+			case memory.P_FLOAT64:
+				tmp := make([]float64,tl.Length / 8)
+				for i:= 0 ;i < tl.Length / 8;i++{
+					tmp[i] = util.ByteToFloat64(bytes[i*8:(i+1)*8])
+				}
+				return tmp,nil
+			}
+		default:
+			return common.ToHexString(res), nil
+		}
+
+		return res, nil
+	default:
+		return nil, errors.NewErr("not a support vm")
+	}
+
+}
 
 func (sc *SmartContract) InvokeResult() (interface{}, error) {
 	switch sc.VMType {

@@ -1,0 +1,1110 @@
+[
+  {
+    "file": "basic.wasm",
+    "tests": [
+      {
+        "function": "main",
+        "return": "i32:42"
+      }
+    ]
+  },
+  {
+    "file": "binary.wasm",
+    "tests": [
+      {
+        "function": "f64_copysign",
+        "return": "f64:0.000000"
+      },
+      {
+        "function": "f64_max",
+        "return": "f64:0.000000"
+      },
+      {
+        "function": "f64_min",
+        "return": "f64:0.000000"
+      },
+      {
+        "function": "f64_div",
+        "return": "f64:1e150"
+      },
+      {
+        "function": "f64_mul",
+        "return": "f64:-15179717820000.000000"
+      },
+      {
+        "function": "f64_sub",
+        "return": "f64:123400000000000007812762268812638756607430593436581896388608.000000"
+      },
+      {
+        "function": "f64_add",
+        "return": "f64:1111111110.000000"
+      },
+      {
+        "function": "f32_copysign",
+        "return": "f32:0.000000"
+      },
+      {
+        "function": "f32_max",
+        "return": "f32:0.000000"
+      },
+      {
+        "function": "f32_min",
+        "return": "f32:0.000000"
+      },
+      {
+        "function": "f32_div",
+        "return": "f32:-500000000.000000"
+      },
+      {
+        "function": "f32_mul",
+        "return": "f32:-8487.187500"
+      },
+      {
+        "function": "f32_sub",
+        "return": "f32:-9995.500000"
+      },
+      {
+        "function": "f32_add",
+        "return": "f32:5.000000"
+      },
+      {
+        "function": "i64_rotr",
+        "return": "i64:11529215046068469747"
+      },
+      {
+        "function": "i64_rotl",
+        "return": "i64:18446744073709550823"
+      },
+      {
+        "function": "i64_shr_s",
+        "return": "i64:18446744073709551603"
+      },
+      {
+        "function": "i64_shr_u",
+        "return": "i64:2305843009213693939"
+      },
+      {
+        "function": "i64_shl",
+        "return": "i64:18446744073709550816"
+      },
+      {
+        "function": "i64_xor",
+        "return": "i64:14"
+      },
+      {
+        "function": "i64_or",
+        "return": "i64:15"
+      },
+      {
+        "function": "i64_and",
+        "return": "i64:1"
+      },
+      {
+        "function": "i64_rem_u",
+        "return": "i64:1"
+      },
+      {
+        "function": "i64_rem_s",
+        "return": "i64:18446744073709551615"
+      },
+      {
+        "function": "i64_div_u",
+        "return": "i64:9223372036854775806"
+      },
+      {
+        "function": "i64_div_s",
+        "return": "i64:18446744073709551614"
+      },
+      {
+        "function": "i64_mul",
+        "return": "i64:21"
+      },
+      {
+        "function": "i64_sub",
+        "return": "i64:16"
+      },
+      {
+        "function": "i64_add",
+        "return": "i64:3"
+      },
+      {
+        "function": "i32_rotr",
+        "return": "i32:2684354547"
+      },
+      {
+        "function": "i32_rotl",
+        "return": "i32:4294966503"
+      },
+      {
+        "function": "i32_shr_s",
+        "return": "i32:4294967283"
+      },
+      {
+        "function": "i32_shr_u",
+        "return": "i32:536870899"
+      },
+      {
+        "function": "i32_shl",
+        "return": "i32:4294966496"
+      },
+      {
+        "function": "i32_xor",
+        "return": "i32:14"
+      },
+      {
+        "function": "i32_or",
+        "return": "i32:15"
+      },
+      {
+        "function": "i32_and",
+        "return": "i32:1"
+      },
+      {
+        "function": "i32_rem_u",
+        "return": "i32:1"
+      },
+      {
+        "function": "i32_rem_s",
+        "return": "i32:4294967295"
+      },
+      {
+        "function": "i32_div_u",
+        "return": "i32:2147483646"
+      },
+      {
+        "function": "i32_div_s",
+        "return": "i32:4294967294"
+      },
+      {
+        "function": "i32_mul",
+        "return": "i32:21"
+      },
+      {
+        "function": "i32_sub",
+        "return": "i32:16"
+      },
+      {
+        "function": "i32_add",
+        "return": "i32:3"
+      }
+    ]
+  },
+  {
+    "file": "brif-loop.wasm",
+    "tests": [
+      {
+        "function": "test2",
+        "return": "i32:10"
+      },
+      {
+        "function": "test1",
+        "return": "i32:3"
+      }
+    ]
+  },
+  {
+    "file": "brif.wasm",
+    "tests": [
+      {
+        "function": "test2",
+        "return": "i32:2"
+      },
+      {
+        "function": "test1",
+        "return": "i32:1"
+      }
+    ]
+  },
+  {
+    "file": "br.wasm",
+    "tests": [
+      {
+        "function": "br3",
+        "return": "i32:3"
+      },
+      {
+        "function": "br2",
+        "return": "i32:2"
+      },
+      {
+        "function": "br1",
+        "return": "i32:3"
+      },
+      {
+        "function": "br0",
+        "return": "i32:2"
+      }
+    ]
+  },
+  {
+    "file": "call.wasm",
+    "tests": [
+      {
+        "function": "fac10",
+        "return": "i32:3628800"
+      },
+      {
+        "function": "call",
+        "return": "i32:10"
+      }
+    ]
+  },
+  {
+    "file": "call-zero-args.wasm",
+    "tests": [
+      {
+        "function": "h",
+        "return": "i32:43"
+      }
+    ]
+  },
+  {
+    "file": "callindirect.wasm",
+    "tests": [
+      {
+        "function": "test_zero",
+        "return": "i32:0"
+      },
+      {
+        "function": "test_one",
+        "return": "i32:1"
+      },
+      {
+        "function": "test_add",
+        "return": "i32:14"
+      },
+      {
+        "function": "test_sub",
+        "return": "i32:6"
+      }
+    ]
+  },
+  {
+    "file": "cast.wasm",
+    "tests": [
+      {
+        "function": "i64_reinterpret_f64",
+        "return": "i64:4758506566875873280"
+      },
+      {
+        "function": "f64_reinterpret_i64",
+        "return": "f64:125.125000"
+      },
+      {
+        "function": "i32_reinterpret_f32",
+        "return": "i32:3227516928"
+      },
+      {
+        "function": "f32_reinterpret_i32",
+        "return": "f32:4.500000"
+      }
+    ]
+  },
+  {
+    "file": "compare.wasm",
+    "tests": [
+      {
+        "function": "f64_ge_greater",
+        "return": "i32:1"
+      },
+      {
+        "function": "f64_ge_equal",
+        "return": "i32:1"
+      },
+      {
+        "function": "f64_ge_less",
+        "return": "i32:0"
+      },
+      {
+        "function": "f64_gt_greater",
+        "return": "i32:1"
+      },
+      {
+        "function": "f64_gt_equal",
+        "return": "i32:0"
+      },
+      {
+        "function": "f64_gt_less",
+        "return": "i32:0"
+      },
+      {
+        "function": "f64_le_greater",
+        "return": "i32:0"
+      },
+      {
+        "function": "f64_le_equal",
+        "return": "i32:1"
+      },
+      {
+        "function": "f64_le_less",
+        "return": "i32:1"
+      },
+      {
+        "function": "f64_lt_greater",
+        "return": "i32:0"
+      },
+      {
+        "function": "f64_lt_equal",
+        "return": "i32:0"
+      },
+      {
+        "function": "f64_lt_less",
+        "return": "i32:1"
+      },
+      {
+        "function": "f64_ne_false",
+        "return": "i32:0"
+      },
+      {
+        "function": "f64_ne_true",
+        "return": "i32:1"
+      },
+      {
+        "function": "f64_eq_false",
+        "return": "i32:0"
+      },
+      {
+        "function": "f64_eq_true",
+        "return": "i32:1"
+      },
+      {
+        "function": "f32_ge_greater",
+        "return": "i32:1"
+      },
+      {
+        "function": "f32_ge_equal",
+        "return": "i32:1"
+      },
+      {
+        "function": "f32_ge_less",
+        "return": "i32:0"
+      },
+      {
+        "function": "f32_gt_greater",
+        "return": "i32:1"
+      },
+      {
+        "function": "f32_gt_equal",
+        "return": "i32:0"
+      },
+      {
+        "function": "f32_gt_less",
+        "return": "i32:0"
+      },
+      {
+        "function": "f32_le_greater",
+        "return": "i32:0"
+      },
+      {
+        "function": "f32_le_equal",
+        "return": "i32:1"
+      },
+      {
+        "function": "f32_le_less",
+        "return": "i32:1"
+      },
+      {
+        "function": "f32_lt_greater",
+        "return": "i32:0"
+      },
+      {
+        "function": "f32_lt_equal",
+        "return": "i32:0"
+      },
+      {
+        "function": "f32_lt_less",
+        "return": "i32:1"
+      },
+      {
+        "function": "f32_ne_false",
+        "return": "i32:0"
+      },
+      {
+        "function": "f32_ne_true",
+        "return": "i32:1"
+      },
+      {
+        "function": "f32_eq_false",
+        "return": "i32:0"
+      },
+      {
+        "function": "f32_eq_true",
+        "return": "i32:1"
+      },
+      {
+        "function": "i64_ge_u_greater",
+        "return": "i32:1"
+      },
+      {
+        "function": "i64_ge_u_equal",
+        "return": "i32:1"
+      },
+      {
+        "function": "i64_ge_u_less",
+        "return": "i32:0"
+      },
+      {
+        "function": "i64_ge_s_greater",
+        "return": "i32:1"
+      },
+      {
+        "function": "i64_ge_s_equal",
+        "return": "i32:1"
+      },
+      {
+        "function": "i64_ge_s_less",
+        "return": "i32:0"
+      },
+      {
+        "function": "i64_gt_u_greater",
+        "return": "i32:1"
+      },
+      {
+        "function": "i64_gt_u_equal",
+        "return": "i32:0"
+      },
+      {
+        "function": "i64_gt_u_less",
+        "return": "i32:0"
+      },
+      {
+        "function": "i64_gt_s_greater",
+        "return": "i32:1"
+      },
+      {
+        "function": "i64_gt_s_equal",
+        "return": "i32:0"
+      },
+      {
+        "function": "i64_gt_s_less",
+        "return": "i32:0"
+      },
+      {
+        "function": "i64_le_u_greater",
+        "return": "i32:0"
+      },
+      {
+        "function": "i64_le_u_equal",
+        "return": "i32:1"
+      },
+      {
+        "function": "i64_le_u_less",
+        "return": "i32:1"
+      },
+      {
+        "function": "i64_le_s_greater",
+        "return": "i32:0"
+      },
+      {
+        "function": "i64_le_s_equal",
+        "return": "i32:1"
+      },
+      {
+        "function": "i64_le_s_less",
+        "return": "i32:1"
+      },
+      {
+        "function": "i64_lt_u_greater",
+        "return": "i32:0"
+      },
+      {
+        "function": "i64_lt_u_equal",
+        "return": "i32:0"
+      },
+      {
+        "function": "i64_lt_u_less",
+        "return": "i32:1"
+      },
+      {
+        "function": "i64_lt_s_greater",
+        "return": "i32:0"
+      },
+      {
+        "function": "i64_lt_s_equal",
+        "return": "i32:0"
+      },
+      {
+        "function": "i64_lt_s_less",
+        "return": "i32:1"
+      },
+      {
+        "function": "i64_ne_false",
+        "return": "i32:0"
+      },
+      {
+        "function": "i64_ne_true",
+        "return": "i32:1"
+      },
+      {
+        "function": "i64_eq_false",
+        "return": "i32:0"
+      },
+      {
+        "function": "i64_eq_true",
+        "return": "i32:1"
+      },
+      {
+        "function": "i32_ge_u_greater",
+        "return": "i32:1"
+      },
+      {
+        "function": "i32_ge_u_equal",
+        "return": "i32:1"
+      },
+      {
+        "function": "i32_ge_u_less",
+        "return": "i32:0"
+      },
+      {
+        "function": "i32_ge_s_greater",
+        "return": "i32:1"
+      },
+      {
+        "function": "i32_ge_s_equal",
+        "return": "i32:1"
+      },
+      {
+        "function": "i32_ge_s_less",
+        "return": "i32:0"
+      },
+      {
+        "function": "i32_gt_u_greater",
+        "return": "i32:1"
+      },
+      {
+        "function": "i32_gt_u_equal",
+        "return": "i32:0"
+      },
+      {
+        "function": "i32_gt_u_less",
+        "return": "i32:0"
+      },
+      {
+        "function": "i32_gt_s_greater",
+        "return": "i32:1"
+      },
+      {
+        "function": "i32_gt_s_equal",
+        "return": "i32:0"
+      },
+      {
+        "function": "i32_gt_s_less",
+        "return": "i32:0"
+      },
+      {
+        "function": "i32_le_u_greater",
+        "return": "i32:0"
+      },
+      {
+        "function": "i32_le_u_equal",
+        "return": "i32:1"
+      },
+      {
+        "function": "i32_le_u_less",
+        "return": "i32:1"
+      },
+      {
+        "function": "i32_le_s_greater",
+        "return": "i32:0"
+      },
+      {
+        "function": "i32_le_s_equal",
+        "return": "i32:1"
+      },
+      {
+        "function": "i32_le_s_less",
+        "return": "i32:1"
+      },
+      {
+        "function": "i32_lt_u_greater",
+        "return": "i32:0"
+      },
+      {
+        "function": "i32_lt_u_equal",
+        "return": "i32:0"
+      },
+      {
+        "function": "i32_lt_u_less",
+        "return": "i32:1"
+      },
+      {
+        "function": "i32_lt_s_greater",
+        "return": "i32:0"
+      },
+      {
+        "function": "i32_lt_s_equal",
+        "return": "i32:0"
+      },
+      {
+        "function": "i32_lt_s_less",
+        "return": "i32:1"
+      },
+      {
+        "function": "i32_ne_false",
+        "return": "i32:0"
+      },
+      {
+        "function": "i32_ne_true",
+        "return": "i32:1"
+      },
+      {
+        "function": "i32_eq_false",
+        "return": "i32:0"
+      },
+      {
+        "function": "i32_eq_true",
+        "return": "i32:1"
+      }
+    ]
+  },
+  {
+    "file": "convert.wasm",
+    "tests": [
+      {
+        "function": "f64_convert_u_i64",
+        "return": "f64:0.000000"
+      },
+      {
+        "function": "f64_convert_s_i64",
+        "return": "f64:0.000000"
+      },
+      {
+        "function": "f64_demote_f32",
+        "return": "f64:12345679.000000"
+      },
+      {
+        "function": "f64_convert_u_i32",
+        "return": "f64:4294967295.000000"
+      },
+      {
+        "function": "f64_convert_s_i32",
+        "return": "f64:-1.000000"
+      },
+      {
+        "function": "f32_convert_u_i64",
+        "return": "f32:0.000000"
+      },
+      {
+        "function": "f32_convert_s_i64",
+        "return": "f32:0.000000"
+      },
+      {
+        "function": "f32_demote_f64",
+        "return": "f32:12345679.000000"
+      },
+      {
+        "function": "f32_convert_u_i32",
+        "return": "f32:4294967296.000000"
+      },
+      {
+        "function": "f32_convert_s_i32",
+        "return": "f32:-1.000000"
+      },
+      {
+        "function": "i64_trunc_u_f64",
+        "return": "i32:1"
+      },
+      {
+        "function": "i64_trunc_s_f64",
+        "return": "i32:1"
+      },
+      {
+        "function": "i64_trunc_u_f32",
+        "return": "i32:1"
+      },
+      {
+        "function": "i64_trunc_s_f32",
+        "return": "i32:1"
+      },
+      {
+        "function": "i64_extend_s_i32",
+        "return": "i64:18446744073709551615"
+      },
+      {
+        "function": "i64_extend_u_i32",
+        "return": "i64:4294967295"
+      },
+      {
+        "function": "i32_trunc_u_f64",
+        "return": "i32:3000000000"
+      },
+      {
+        "function": "i32_trunc_s_f64",
+        "return": "i32:4294967196"
+      },
+      {
+        "function": "i32_trunc_u_f32",
+        "return": "i32:3000000000"
+      },
+      {
+        "function": "i32_trunc_s_f32",
+        "return": "i32:4294967196"
+      },
+      {
+        "function": "i32_wrap_i64",
+        "return": "i32:4294967295"
+      }
+    ]
+  },
+  {
+    "file": "expr-block.wasm",
+    "tests": [
+      {
+        "function": "test",
+        "return": "i32:1"
+      }
+    ]
+  },
+  {
+    "file": "expr-brif.wasm",
+    "tests": [
+      {
+        "function": "test1",
+        "return": "i32:29"
+      },
+      {
+        "function": "test2",
+        "return": "i32:42"
+      }
+    ]
+  },
+  {
+    "file": "expr-br.wasm",
+    "tests": [
+      {
+        "function": "test1",
+        "return": "i32:1"
+      },
+      {
+        "function": "test2",
+        "return": "i32:2"
+      }
+    ]
+  },
+  {
+    "file": "expr-if.wasm",
+    "tests": [
+      {
+        "function": "test1",
+        "return": "i32:1"
+      },
+      {
+        "function": "test2",
+        "return": "i32:2"
+      }
+    ]
+  },
+  {
+    "file": "if.wasm",
+    "tests": [
+      {
+        "function": "if2",
+        "return": "i32:9"
+      },
+      {
+        "function": "if1",
+        "return": "i32:1"
+      }
+    ]
+  },
+  {
+    "file": "load.wasm",
+    "tests": [
+      {
+        "function": "f64_load",
+        "return": "f64:1023.875000"
+      },
+      {
+        "function": "f32_load",
+        "return": "f32:25.750000"
+      },
+      {
+        "function": "i64_load32_u",
+        "return": "i64:4294967295"
+      },
+      {
+        "function": "i64_load16_u",
+        "return": "i64:65535"
+      },
+      {
+        "function": "i64_load8_u",
+        "return": "i64:255"
+      },
+      {
+        "function": "i64_load",
+        "return": "i64:18446744073709551615"
+      },
+      {
+        "function": "i64_load32_s",
+        "return": "i64:18446744073709551615"
+      },
+      {
+        "function": "i64_load16_s",
+        "return": "i64:18446744073709551615"
+      },
+      {
+        "function": "i64_load8_s",
+        "return": "i64:18446744073709551615"
+      },
+      {
+        "function": "i32_load16_u",
+        "return": "i32:65535"
+      },
+      {
+        "function": "i32_load8_u",
+        "return": "i32:255"
+      },
+      {
+        "function": "i32_load",
+        "return": "i32:4294967295"
+      },
+      {
+        "function": "i32_load16_s",
+        "return": "i32:4294967295"
+      },
+      {
+        "function": "i32_load8_s",
+        "return": "i32:4294967295"
+      }
+    ]
+  },
+  {
+    "file": "loop.wasm",
+    "tests": [
+      {
+        "function": "loop",
+        "return": "i32:10"
+      }
+    ]
+  },
+  {
+    "file": "nested-if.wasm",
+    "tests": [
+      {
+        "function": "f",
+        "return": "i32:4"
+      }
+    ]
+  },
+  {
+    "file": "return.wasm",
+    "tests": [
+      {
+        "function": "test3",
+        "return": "i32:3"
+      },
+      {
+        "function": "test2",
+        "return": "i32:2"
+      },
+      {
+        "function": "test1",
+        "return": "i32:1"
+      }
+    ]
+  },
+  {
+    "file": "select.wasm",
+    "tests": [
+      {
+        "function": "test_f64_r",
+        "return": "f64:1.000000"
+      },
+      {
+        "function": "test_f64_l",
+        "return": "f64:2.000000"
+      },
+      {
+        "function": "test_f32_r",
+        "return": "f32:1.000000"
+      },
+      {
+        "function": "test_f32_l",
+        "return": "f32:2.000000"
+      },
+      {
+        "function": "test_i64_r",
+        "return": "i64:1"
+      },
+      {
+        "function": "test_i64_l",
+        "return": "i64:2"
+      },
+      {
+        "function": "test_i32_r",
+        "return": "i32:1"
+      },
+      {
+        "function": "test_i32_l",
+        "return": "i32:2"
+      }
+    ]
+  },
+  {
+    "file": "start.wasm",
+    "tests": [
+      {
+        "function": "get",
+        "return": "i32:42"
+      }
+    ]
+  },
+  {
+    "file": "store.wasm",
+    "tests": [
+      {
+        "function": "f64_store",
+        "return": "i32:3230615040"
+      },
+      {
+        "function": "f32_store",
+        "return": "i32:1069547520"
+      },
+      {
+        "function": "i64_store",
+        "return": "i64:13465130522234441741"
+      },
+      {
+        "function": "i64_store32",
+        "return": "i32:4294843840"
+      },
+      {
+        "function": "i64_store16",
+        "return": "i32:3435907785"
+      },
+      {
+        "function": "i64_store8",
+        "return": "i32:4278058235"
+      },
+      {
+        "function": "i32_store",
+        "return": "i32:4294843840"
+      },
+      {
+        "function": "i32_store16",
+        "return": "i32:3435907785"
+      },
+      {
+        "function": "i32_store8",
+        "return": "i32:4278058235"
+      }
+    ]
+  },
+  {
+    "file": "unary.wasm",
+    "tests": [
+      {
+        "function": "f64_nearest_hi",
+        "return": "f64:2.000000"
+      },
+      {
+        "function": "f64_nearest_lo",
+        "return": "f64:1.000000"
+      },
+      {
+        "function": "f64_trunc",
+        "return": "f64:-0.000000"
+      },
+      {
+        "function": "f64_floor",
+        "return": "f64:-1.000000"
+      },
+      {
+        "function": "f64_ceil",
+        "return": "f64:-0.000000"
+      },
+      {
+        "function": "f64_sqrt_100",
+        "return": "f64:10.000000"
+      },
+      {
+        "function": "f64_sqrt_neg_is_nan",
+        "return": "i32:1"
+      },
+      {
+        "function": "f64_abs",
+        "return": "f64:100.000000"
+      },
+      {
+        "function": "f64_neg",
+        "return": "f64:-100.000000"
+      },
+      {
+        "function": "f32_nearest_hi",
+        "return": "f32:2.000000"
+      },
+      {
+        "function": "f32_nearest_lo",
+        "return": "f32:1.000000"
+      },
+      {
+        "function": "f32_trunc",
+        "return": "f32:-0.000000"
+      },
+      {
+        "function": "f32_floor",
+        "return": "f32:-1.000000"
+      },
+      {
+        "function": "f32_ceil",
+        "return": "f32:-0.000000"
+      },
+      {
+        "function": "f32_sqrt_100",
+        "return": "f32:10.000000"
+      },
+      {
+        "function": "f32_sqrt_neg_is_nan",
+        "return": "i32:1"
+      },
+      {
+        "function": "f32_abs",
+        "return": "f32:100.000000"
+      },
+      {
+        "function": "f32_neg",
+        "return": "f32:-100.000000"
+      },
+      {
+        "function": "i64_popcnt",
+        "return": "i64:1"
+      },
+      {
+        "function": "i64_ctz",
+        "return": "i64:7"
+      },
+      {
+        "function": "i64_clz",
+        "return": "i64:56"
+      },
+      {
+        "function": "i64_eqz_0",
+        "return": "i32:1"
+      },
+      {
+        "function": "i64_eqz_100",
+        "return": "i32:0"
+      },
+      {
+        "function": "i32_popcnt",
+        "return": "i32:1"
+      },
+      {
+        "function": "i32_ctz",
+        "return": "i32:7"
+      },
+      {
+        "function": "i32_clz",
+        "return": "i32:24"
+      },
+      {
+        "function": "i32_eqz_0",
+        "return": "i32:1"
+      },
+      {
+        "function": "i32_eqz_100",
+        "return": "i32:0"
+      }
+    ]
+  }
+]
