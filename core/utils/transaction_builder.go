@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"github.com/Ontology/core/code"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
@@ -28,13 +27,14 @@ func NewBookKeeperTransaction(pubKey *crypto.PubKey, isAdd bool, cert []byte, is
 	}, nil
 }
 
-func NewDeployTransaction(fc *code.FunctionCode, name, codeversion, author, email, desp string, vmType vmtypes.VmType, needStorage bool) *types.Transaction {
+func NewDeployTransaction(code []byte, name, version, author, email, desp string, vmType vmtypes.VmType, needStorage bool) *types.Transaction {
 	//TODO: check arguments
 	DeployCodePayload := &payload.DeployCode{
-		Code:        fc,
+		VmType: vmType,
+		Code:        code,
 		NeedStorage: needStorage,
 		Name:        name,
-		CodeVersion: codeversion,
+		Version:     version,
 		Author:      author,
 		Email:       email,
 		Description: desp,
@@ -47,16 +47,15 @@ func NewDeployTransaction(fc *code.FunctionCode, name, codeversion, author, emai
 	}
 }
 
-func NewInvokeTransaction(vmcode vmtypes.VmCode, param []byte) (*types.Transaction, error) {
+func NewInvokeTransaction(vmcode vmtypes.VmCode) *types.Transaction {
 	//TODO: check arguments
 	invokeCodePayload := &payload.InvokeCode{
 		Code:   vmcode,
-		Params: param,
 	}
 
 	return &types.Transaction{
 		TxType:     types.Invoke,
 		Payload:    invokeCodePayload,
 		Attributes: nil,
-	}, nil
+	}
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/Ontology/core/store/leveldbstore"
 	. "github.com/Ontology/core/store/statestore"
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/Ontology/core/payload"
 )
 
 var (
@@ -50,50 +51,6 @@ func (this *StateStore) CommitTo() error {
 	return this.store.BatchCommit()
 }
 
-func (this *StateStore) GetUnspentCoinState(refTxHash common.Uint256) (*UnspentCoinState, error) {
-	key, err := this.getCoinStateKey(refTxHash)
-	if err != nil {
-		return nil, err
-	}
-
-	data, err := this.store.Get(key)
-	if err != nil {
-		if err == leveldb.ErrNotFound{
-			return nil, nil
-		}
-		return nil, err
-	}
-	buf := bytes.NewBuffer(data)
-	coinState := new(UnspentCoinState)
-	err = coinState.Deserialize(buf)
-	if err != nil {
-		return nil, fmt.Errorf("deserialize error %s", err)
-	}
-	return coinState, nil
-}
-
-func (this *StateStore) GetSpentCoinState(refTxHash common.Uint256) (*SpentCoinState, error) {
-	key, err := this.getSpentCoinStateKey(refTxHash)
-	if err != nil {
-		return nil, err
-	}
-
-	value, err := this.store.Get(key)
-	if err != nil {
-		if err == leveldb.ErrNotFound{
-			return nil, nil
-		}
-		return nil, err
-	}
-	reader := bytes.NewBuffer(value)
-	spentState := new(SpentCoinState)
-	err = spentState.Deserialize(reader)
-	if err != nil {
-		return nil, err
-	}
-	return spentState, nil
-}
-
 func (this *StateStore) GetCurrentStateRoot() (common.Uint256, error) {
 	key, err := this.getCurrentStateRootKey()
 	if err != nil {
@@ -113,51 +70,8 @@ func (this *StateStore) GetCurrentStateRoot() (common.Uint256, error) {
 	return stateRoot, nil
 }
 
-func (this *StateStore) GetAssetState(assetTx common.Uint256) (*AssetState, error) {
-	key, err := this.getAssetStateKey(assetTx)
-	if err != nil {
-		return nil, err
-	}
 
-	value, err := this.store.Get(key)
-	if err != nil {
-		if err == leveldb.ErrNotFound{
-			return nil, nil
-		}
-		return nil, err
-	}
-	reader := bytes.NewReader(value)
-	assetState := new(AssetState)
-	err = assetState.Deserialize(reader)
-	if err != nil {
-		return nil, err
-	}
-	return assetState, nil
-}
-
-func (this *StateStore) GetAccountState(programHash common.Uint160) (*AccountState, error) {
-	key, err := this.getAccountStatekey(programHash)
-	if err != nil {
-		return nil, err
-	}
-
-	value, err := this.store.Get(key)
-	if err != nil {
-		if err == leveldb.ErrNotFound{
-			return nil, nil
-		}
-		return nil, err
-	}
-	reader := bytes.NewReader(value)
-	accountState := new(AccountState)
-	err = accountState.Deserialize(reader)
-	if err != nil {
-		return nil, err
-	}
-	return accountState, nil
-}
-
-func (this *StateStore) GetContractState(contractHash common.Uint160) (*ContractState, error) {
+func (this *StateStore) GetContractState(contractHash common.Uint160) (*payload.DeployCode, error) {
 	key, err := this.getContractStateKey(contractHash)
 	if err != nil {
 		return nil, err
@@ -171,7 +85,7 @@ func (this *StateStore) GetContractState(contractHash common.Uint160) (*Contract
 		return nil, err
 	}
 	reader := bytes.NewReader(value)
-	contractState := new(ContractState)
+	contractState := new(payload.DeployCode)
 	err = contractState.Deserialize(reader)
 	if err != nil {
 		return nil, err
@@ -224,52 +138,6 @@ func (this *StateStore) SaveBookKeeperState(bookKeeperState *BookKeeperState) er
 	return this.store.Put(key, value.Bytes())
 }
 
-func (this *StateStore) GetAllAssetState() (map[common.Uint256]*AssetState, error) {
-	assets := make(map[common.Uint256]*AssetState)
-	iter := this.store.NewIterator([]byte{byte(ST_Asset)})
-	for iter.Next() {
-		reader := bytes.NewReader(iter.Key())
-		_, err := reader.ReadByte()
-		if err != nil {
-			return nil, fmt.Errorf("readByte error %s", err)
-		}
-		var assetId common.Uint256
-		err = assetId.Deserialize(reader)
-		if err != nil {
-			return nil, fmt.Errorf("assetId.Deserialize error %s", err)
-		}
-
-		asset := new(AssetState)
-		reader = bytes.NewReader(iter.Value())
-		asset.Deserialize(reader)
-		assets[assetId] = asset
-	}
-	iter.Release()
-	return assets, nil
-}
-
-func (this *StateStore) GetUnspentCoinStateByProgramHash(programHash common.Uint160, assetId common.Uint256) (*ProgramUnspentCoin, error) {
-	key, err := this.getProgramUnspentCoinStateKey(programHash, assetId)
-	if err != nil {
-		return nil, err
-	}
-
-	data, err := this.store.Get(key)
-	if err != nil {
-		if err == leveldb.ErrNotFound{
-			return nil, nil
-		}
-		return nil, err
-	}
-	reader := bytes.NewReader(data)
-	programState := new(ProgramUnspentCoin)
-	err = programState.Deserialize(reader)
-	if err != nil {
-		return nil, err
-	}
-	return programState, nil
-}
-
 func (this *StateStore) GetStorageState(key *StorageKey) (*StorageItem, error) {
 	storeKey, err := this.getStorageKey(key)
 	if err != nil {
@@ -320,50 +188,6 @@ func (this *StateStore) getCurrentStateRootKey() ([]byte, error) {
 	key := make([]byte, 1+len(CurrentStateRoot))
 	key[0] = byte(SYS_CurrentStateRoot)
 	copy(key[1:], []byte(CurrentStateRoot))
-	return key, nil
-}
-
-func (this *StateStore) getCoinStateKey(refTxHash common.Uint256) ([]byte, error) {
-	data := refTxHash.ToArray()
-	key := make([]byte, 1+len(data))
-	key[0] = byte(ST_Coin)
-	copy(key[1:], data)
-	return key, nil
-}
-
-func (this *StateStore) getSpentCoinStateKey(refTxHash common.Uint256) ([]byte, error) {
-	data := refTxHash.ToArray()
-	key := make([]byte, 1+len(data))
-	key[0] = byte(ST_SpentCoin)
-	copy(key[1:], data)
-	return key, nil
-}
-
-func (this *StateStore) getProgramUnspentCoinStateKey(programHash common.Uint160, assetId common.Uint256) ([]byte, error) {
-	ph := programHash.ToArray()
-	as := assetId.ToArray()
-	phSize := len(ph)
-	asSize := len(as)
-	key := make([]byte, 1+phSize+asSize)
-	key[0] = byte(ST_Program_Coin)
-	copy(key[1:1+phSize], ph)
-	copy(key[1+phSize:], as)
-	return key, nil
-}
-
-func (this *StateStore) getAssetStateKey(assetTx common.Uint256) ([]byte, error) {
-	data := assetTx.ToArray()
-	key := make([]byte, 1+len(data))
-	key[0] = byte(ST_Asset)
-	copy(key[1:], data)
-	return key, nil
-}
-
-func (this *StateStore) getAccountStatekey(programHash common.Uint160) ([]byte, error) {
-	data := programHash.ToArray()
-	key := make([]byte, 1+len(data))
-	key[0] = byte(ST_Account)
-	copy(key[1:], data)
 	return key, nil
 }
 

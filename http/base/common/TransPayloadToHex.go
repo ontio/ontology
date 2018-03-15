@@ -2,8 +2,6 @@ package common
 
 import (
 	. "github.com/Ontology/common"
-	"github.com/Ontology/core/asset"
-	. "github.com/Ontology/core/contract"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/types"
 )
@@ -43,13 +41,6 @@ type IssuerInfo struct {
 	X, Y string
 }
 
-//implement PayloadInfo define RegisterAssetInfo
-type RegisterAssetInfo struct {
-	Asset      *asset.Asset
-	Amount     Fixed64
-	Issuer     IssuerInfo
-	Controller string
-}
 
 //implement PayloadInfo define TransferAssetInfo
 type TransferAssetInfo struct {
@@ -118,18 +109,16 @@ func TransPayloadToHex(p types.Payload) PayloadInfo {
 		return obj
 	case *payload.InvokeCode:
 		obj := new(InvokeCodeInfo)
-		address := types.AddressFromVmCode(object.Code)
+		address := object.Code.AddressFromVmCode()
 		obj.CodeHash = ToHexString(address[:])
 		obj.Code = ToHexString(object.Code.Code)
 		return obj
 	case *payload.DeployCode:
 		obj := new(DeployCodeInfo)
 		obj.Code = new(FunctionCodeInfo)
-		obj.Code.Code = ToHexString(object.Code.Code)
-		obj.Code.ParameterTypes = ToHexString(ContractParameterTypeToByte(object.Code.ParameterTypes))
-		obj.Code.ReturnType = uint8(object.Code.ReturnType)
+		obj.Code.Code = ToHexString(object.Code)
 		obj.Name = object.Name
-		obj.CodeVersion = object.CodeVersion
+		obj.CodeVersion = object.Version
 		obj.Author = object.Author
 		obj.Email = object.Email
 		obj.Description = object.Description

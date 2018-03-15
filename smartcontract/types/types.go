@@ -1,15 +1,9 @@
 package types
 
-type VmType byte
-
-const (
-	NEOVM VmType = iota
-	EVM
-)
-
 type TriggerType byte
 
 const (
-	Verification TriggerType = iota
-	Application = 0x10
+	Verification TriggerType = 0x01
+	Application = 0x02
 )
+

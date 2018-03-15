@@ -11,13 +11,13 @@ import (
 	"github.com/Ontology/events"
 	"github.com/Ontology/events/message"
 	smcommon "github.com/Ontology/smartcontract/common"
-	"github.com/Ontology/smartcontract/service"
 	smtypes "github.com/Ontology/smartcontract/types"
 	"github.com/Ontology/vm/neovm"
 	"sort"
 	"sync"
 	"time"
 	"github.com/Ontology/common/log"
+	"github.com/Ontology/smartcontract/service/neovm"
 )
 
 const (
@@ -506,11 +506,6 @@ func (this *LedgerStore) saveBlock(block *types.Block) error {
 		return fmt.Errorf("merkleStore.NewBatch error %s", err)
 	}
 
-	err = this.stateStore.HandleBookKeeper(stateBatch)
-	if err != nil {
-		return fmt.Errorf("handleBookKeeper error %s", err)
-	}
-
 	invokeTxs := make([]common.Uint256, 0)
 	for _, tx := range block.Transactions {
 		err = this.handleTransaction(stateBatch, block, tx)
@@ -615,10 +610,10 @@ func (this *LedgerStore) handleTransaction(stateBatch *statestore.StateBatch, bl
 	//}
 	switch tx.TxType {
 	case types.BookKeeper:
-		err = this.stateStore.HandleBookKeeperTransaction(stateBatch, tx)
-		if err != nil {
-			return fmt.Errorf("HandleBookKeeperTransaction tx %x error %s", txHash, err)
-		}
+		//err = this.stateStore.HandleBookKeeperTransaction(stateBatch, tx)
+		//if err != nil {
+		//	return fmt.Errorf("HandleBookKeeperTransaction tx %x error %s", txHash, err)
+		//}
 	//case types.RegisterAsset:
 	//	err = this.stateStore.HandleRegisterAssertTransaction(tx, blockHeight)
 	//	if err != nil {
@@ -740,40 +735,16 @@ func (this *LedgerStore) GetBlockByHeight(height uint32) (*types.Block, error) {
 	return this.GetBlockByHash(blockHash)
 }
 
-func (this *LedgerStore) GetUnspentCoinState(refTxId common.Uint256) (*states.UnspentCoinState, error) {
-	return this.stateStore.GetUnspentCoinState(refTxId)
-}
-
-func (this *LedgerStore) GetSpentCoinState(refTxId common.Uint256) (*states.SpentCoinState, error) {
-	return this.stateStore.GetSpentCoinState(refTxId)
-}
-
-func (this *LedgerStore) GetAccountState(programHash common.Uint160) (*states.AccountState, error) {
-	return this.stateStore.GetAccountState(programHash)
-}
-
 func (this *LedgerStore) GetBookKeeperState() (*states.BookKeeperState, error) {
 	return this.stateStore.GetBookKeeperState()
 }
 
-func (this *LedgerStore) GetAssetState(assetId common.Uint256) (*states.AssetState, error) {
-	return this.stateStore.GetAssetState(assetId)
-}
-
-func (this *LedgerStore) GetContractState(contractHash common.Uint160) (*states.ContractState, error) {
+func (this *LedgerStore) GetContractState(contractHash common.Uint160) (*payload.DeployCode, error) {
 	return this.stateStore.GetContractState(contractHash)
-}
-
-func (this *LedgerStore) GetUnspentCoinStateByProgramHash(programHash common.Uint160, assetId common.Uint256) (*states.ProgramUnspentCoin, error) {
-	return this.stateStore.GetUnspentCoinStateByProgramHash(programHash, assetId)
 }
 
 func (this *LedgerStore) GetStorageItem(key *states.StorageKey) (*states.StorageItem, error) {
 	return this.stateStore.GetStorageState(key)
-}
-
-func (this *LedgerStore) GetAllAssetState() (map[common.Uint256]*states.AssetState, error) {
-	return this.stateStore.GetAllAssetState()
 }
 
 func (this *LedgerStore) PreExecuteContract(tx *types.Transaction) ([]interface{}, error) {
@@ -785,18 +756,18 @@ func (this *LedgerStore) PreExecuteContract(tx *types.Transaction) ([]interface{
 		return nil, fmt.Errorf("transaction type error")
 	}
 
-	param := invokeCode.Code.Code
-	codeHash := common.ToCodeHash(param)
-	param = append(param, 0x67)
-	param = append(param, codeHash.ToArray()...)
+	param := invokeCode.Code
+	address := param.AddressFromVmCode()
+	code := append(param.Code, 0x67)
+	code = append(param.Code, address.ToArray()...)
 	stateBatch, err := this.stateStore.NewStateBatch(common.Uint256{})
 	if err != nil {
 		return nil, fmt.Errorf("NewStateBatch error %s", err)
 	}
 
-	stateMachine := service.NewStateMachine(this, stateBatch, smtypes.Application, nil)
+	stateMachine := service.NewStateMachine(this, stateBatch, smtypes.Application, 0)
 	se := neovm.NewExecutionEngine(tx, new(neovm.ECDsaCrypto), &CacheCodeTable{stateBatch}, stateMachine)
-	se.LoadCode(param, false)
+	se.LoadCode(code, false)
 	err = se.Execute()
 	if err != nil {
 		return nil, err

@@ -8,6 +8,7 @@ import (
 	. "github.com/Ontology/core/store/common"
 	"fmt"
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/Ontology/core/payload"
 )
 
 type StateBatch struct {
@@ -173,38 +174,14 @@ func (self *StateBatch) setStateObject(prefix byte, key []byte, value IStateValu
 func getStateObject(prefix DataEntryPrefix, enc []byte) (IStateValue, error) {
 	reader := bytes.NewBuffer(enc)
 	switch prefix {
-	case ST_Account:
-		account := new(AccountState)
-		if err := account.Deserialize(reader); err != nil {
-			return nil, err
-		}
-		return account, nil
-	case ST_Coin:
-		unspentcoin := new(UnspentCoinState)
-		if err := unspentcoin.Deserialize(reader); err != nil {
-			return nil, err
-		}
-		return unspentcoin, nil
-	case ST_SpentCoin:
-		spentcoin := new(SpentCoinState)
-		if err := spentcoin.Deserialize(reader); err != nil {
-			return nil, err
-		}
-		return spentcoin, nil
 	case ST_BookKeeper:
-		bookKeeper := new(BookKeeperState)
+		bookKeeper := new(payload.BookKeeper)
 		if err := bookKeeper.Deserialize(reader); err != nil {
 			return nil, err
 		}
 		return bookKeeper, nil
-	case ST_Asset:
-		asset := new(AssetState)
-		if err := asset.Deserialize(reader); err != nil {
-			return nil, err
-		}
-		return asset, nil
 	case ST_Contract:
-		contract := new(ContractState)
+		contract := new(payload.DeployCode)
 		if err := contract.Deserialize(reader); err != nil {
 			return nil, err
 		}
@@ -215,34 +192,7 @@ func getStateObject(prefix DataEntryPrefix, enc []byte) (IStateValue, error) {
 			return nil, err
 		}
 		return storage, nil
-	case ST_Program_Coin:
-		programCoin := new(ProgramUnspentCoin)
-		if err := programCoin.Deserialize(reader); err != nil {
-			return nil, err
-		}
-		return programCoin, nil
 	default:
 		panic("[getStateObject] invalid state type!")
-	}
-}
-
-func newStateObject(prefix DataEntryPrefix) IStateValue {
-	switch prefix {
-	case ST_Account:
-		return new(AccountState)
-	case ST_Coin:
-		return new(UnspentCoinState)
-	case ST_SpentCoin:
-		return new(SpentCoinState)
-	case ST_BookKeeper:
-		return new(BookKeeperState)
-	case ST_Asset:
-		return new(AssetState)
-	case ST_Contract:
-		return new(ContractState)
-	case ST_Storage:
-		return new(StorageItem)
-	default:
-		panic("[newStateObject] invalid state type!")
 	}
 }

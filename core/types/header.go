@@ -21,7 +21,7 @@ type Header struct {
 	Timestamp        uint32
 	Height           uint32
 	ConsensusData    uint64
-	NextBookKeeper   Address
+	NextBookKeeper   Uint160
 
 	//Program *program.Program
 	BookKeepers []*crypto.PubKey

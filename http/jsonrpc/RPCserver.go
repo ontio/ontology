@@ -26,7 +26,7 @@ func StartRPCServer() {
 	HandleFunc("getrawtransaction", GetRawTransaction)
 	HandleFunc("sendrawtransaction", SendRawTransaction)
 	HandleFunc("getstorage", GetStorage)
-	HandleFunc("getbalance", GetBalance)
+	//HandleFunc("getbalance", GetBalance)
 	HandleFunc("submitblock", SubmitBlock)
 	HandleFunc("getversion", GetNodeVersion)
 	HandleFunc("getdataile", GetDataFile)

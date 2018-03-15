@@ -6,12 +6,13 @@ import (
 	"github.com/Ontology/core/types"
 	. "github.com/Ontology/errors"
 	"io"
+	"github.com/Ontology/common"
 )
 
 type PrepareRequest struct {
 	msgData        ConsensusMessageData
 	Nonce          uint64
-	NextBookKeeper types.Address
+	NextBookKeeper common.Uint160
 	Transactions   []*types.Transaction
 	Signature      []byte
 }
@@ -23,7 +24,7 @@ func (pr *PrepareRequest) Serialize(w io.Writer) error {
 	if err := ser.WriteVarUint(w, pr.Nonce); err != nil {
 		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] nonce serialization failed")
 	}
-	if err := pr.NextBookKeeper.Serialize(w); err != nil {
+	if _, err := pr.NextBookKeeper.Serialize(w); err != nil {
 		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] nextbookKeeper serialization failed")
 	}
 	if err := ser.WriteVarUint(w, uint64(len(pr.Transactions))); err != nil {

@@ -11,11 +11,9 @@ import (
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
 	actorTypes "github.com/Ontology/consensus/actor"
-	"github.com/Ontology/core/contract"
 	"github.com/Ontology/core/genesis"
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/payload"
-	"github.com/Ontology/core/transaction/utxo"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/core/vote"
 	"github.com/Ontology/crypto"
@@ -223,23 +221,23 @@ func (ds *DbftService) CreateBookkeepingTransaction(nonce uint64, fee Fixed64) *
 	bookKeepingPayload := &payload.BookKeeping{
 		Nonce: uint64(time.Now().UnixNano()),
 	}
-	signatureRedeemScript, err := contract.CreateSignatureRedeemScript(ds.context.Owner)
-	if err != nil {
-		return nil
-	}
-	signatureRedeemScriptHashToCodeHash := ToCodeHash(signatureRedeemScript)
-	if err != nil {
-		return nil
-	}
-	outputs := []*utxo.TxOutput{}
-	if fee > 0 {
-		feeOutput := &utxo.TxOutput{
-			AssetID:     genesis.ONGTokenID,
-			Value:       fee,
-			ProgramHash: signatureRedeemScriptHashToCodeHash,
-		}
-		outputs = append(outputs, feeOutput)
-	}
+	//signatureRedeemScript, err := contract.CreateSignatureRedeemScript(ds.context.Owner)
+	//if err != nil {
+	//	return nil
+	//}
+	//signatureRedeemScriptHashToCodeHash := ToCodeHash(signatureRedeemScript)
+	//if err != nil {
+	//	return nil
+	//}
+	//outputs := []*utxo.TxOutput{}
+	//if fee > 0 {
+	//	feeOutput := &utxo.TxOutput{
+	//		AssetID:     genesis.ONGTokenID,
+	//		Value:       fee,
+	//		ProgramHash: signatureRedeemScriptHashToCodeHash,
+	//	}
+	//	outputs = append(outputs, feeOutput)
+	//}
 	return &types.Transaction{
 		TxType: types.BookKeeping,
 		//PayloadVersion: payload.BookKeepingPayloadVersion,

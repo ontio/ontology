@@ -2,8 +2,8 @@ package ledgerstore
 
 import (
 	"fmt"
-	"github.com/Ontology/core/states"
 	."github.com/Ontology/core/store/common"
+	"github.com/Ontology/core/payload"
 )
 
 type CacheCodeTable struct {
@@ -16,5 +16,5 @@ func (table *CacheCodeTable) GetCode(codeHash []byte) ([]byte, error) {
 		return nil, fmt.Errorf("[GetCode] TryGet contract error! codeHash:%x", codeHash)
 	}
 
-	return value.Value.(*states.ContractState).Code.Code, nil
+	return value.Value.(*payload.DeployCode).Code, nil
 }

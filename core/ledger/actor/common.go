@@ -4,6 +4,7 @@ import (
 	"github.com/Ontology/common"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/core/states"
+	"github.com/Ontology/core/payload"
 )
 
 type AddHeaderReq struct {
@@ -174,7 +175,7 @@ type GetContractStateReq struct {
 }
 
 type GetContractStateRsp struct {
-	ContractState *states.ContractState
+	ContractState *payload.DeployCode
 	Error         error
 }
 

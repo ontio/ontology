@@ -10,6 +10,7 @@ import (
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
+	"github.com/Ontology/common"
 )
 
 // VerifyTransaction verifys received single transaction
@@ -35,7 +36,7 @@ func VerifyTransactionWithLedger(tx *types.Transaction, ledger *ledger.Ledger) E
 
 func checkTransactionSignatures(tx *types.Transaction) error {
 	hash := tx.Hash()
-	address := make(map[types.Address]bool, len(tx.Sigs))
+	address := make(map[common.Uint160]bool, len(tx.Sigs))
 	for _, sig := range tx.Sigs {
 		m := int(sig.M)
 		n := len(sig.PubKeys)
@@ -65,7 +66,7 @@ func checkTransactionSignatures(tx *types.Transaction) error {
 	// check all payers in address
 	for _, fee := range tx.Fee {
 		if address[fee.Payer] == false {
-			return errors.New("signature missing for payer: " + fee.Payer.ToHexString())
+			return errors.New("signature missing for payer: " + common.ToHexString(fee.Payer.ToArray()))
 		}
 	}
 

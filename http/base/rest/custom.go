@@ -1,11 +1,8 @@
 package rest
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	. "github.com/Ontology/common"
-	"github.com/Ontology/core/transaction/payload"
-	"github.com/Ontology/core/transaction/utxo"
 	Err "github.com/Ontology/http/base/error"
 	"time"
 )
@@ -139,46 +136,46 @@ func SendRecordTransaction(cmd map[string]interface{}) map[string]interface{} {
 }
 */
 
-func getClaimData(cmd map[string]interface{}) (*payload.Claim, int64) {
-	type UTXOTxInput struct {
-		ReferTxID          string
-		ReferTxOutputIndex uint16
-	}
-	type Claim struct {
-		Claims []*UTXOTxInput
-	}
-	claim := new(Claim)
-	reqClaimData, ok := cmd["data"].(map[string]interface{})
-	if !ok {
-		return nil, Err.INVALID_PARAMS
-	}
-	reqBtys, err := json.Marshal(reqClaimData)
-	if err != nil {
-		return nil, Err.INVALID_PARAMS
-	}
-	if err := json.Unmarshal(reqBtys, claim); err != nil {
-		return nil, Err.INVALID_PARAMS
-	}
-	if len(claim.Claims) < 1 {
-		return nil, Err.INVALID_PARAMS
-	}
-	realClaim := new(payload.Claim)
-	for _, v := range claim.Claims {
-		utxoTxinput := new(utxo.UTXOTxInput)
-		bytex, err := hex.DecodeString(v.ReferTxID)
-		if err != nil {
-			return nil, Err.INVALID_PARAMS
-		}
-		utxoTxinput.ReferTxID, err = Uint256ParseFromBytes(bytex)
-		utxoTxinput.ReferTxID, err = Uint256ParseFromBytes(utxoTxinput.ReferTxID.ToArrayReverse())
-		if err != nil {
-			return nil, Err.INVALID_PARAMS
-		}
-		utxoTxinput.ReferTxOutputIndex = v.ReferTxOutputIndex
-		realClaim.Claims = append(realClaim.Claims, utxoTxinput)
-	}
-	return realClaim, 0
-}
+//func getClaimData(cmd map[string]interface{}) (*payload.Claim, int64) {
+//	type UTXOTxInput struct {
+//		ReferTxID          string
+//		ReferTxOutputIndex uint16
+//	}
+//	type Claim struct {
+//		Claims []*UTXOTxInput
+//	}
+//	claim := new(Claim)
+//	reqClaimData, ok := cmd["data"].(map[string]interface{})
+//	if !ok {
+//		return nil, Err.INVALID_PARAMS
+//	}
+//	reqBtys, err := json.Marshal(reqClaimData)
+//	if err != nil {
+//		return nil, Err.INVALID_PARAMS
+//	}
+//	if err := json.Unmarshal(reqBtys, claim); err != nil {
+//		return nil, Err.INVALID_PARAMS
+//	}
+//	if len(claim.Claims) < 1 {
+//		return nil, Err.INVALID_PARAMS
+//	}
+//	realClaim := new(payload.Claim)
+//	for _, v := range claim.Claims {
+//		utxoTxinput := new(utxo.UTXOTxInput)
+//		bytex, err := hex.DecodeString(v.ReferTxID)
+//		if err != nil {
+//			return nil, Err.INVALID_PARAMS
+//		}
+//		utxoTxinput.ReferTxID, err = Uint256ParseFromBytes(bytex)
+//		utxoTxinput.ReferTxID, err = Uint256ParseFromBytes(utxoTxinput.ReferTxID.ToArrayReverse())
+//		if err != nil {
+//			return nil, Err.INVALID_PARAMS
+//		}
+//		utxoTxinput.ReferTxOutputIndex = v.ReferTxOutputIndex
+//		realClaim.Claims = append(realClaim.Claims, utxoTxinput)
+//	}
+//	return realClaim, 0
+//}
 
 /*
 func SendClaim(cmd map[string]interface{}) map[string]interface{} {
