@@ -261,7 +261,6 @@ func (ds *DbftService) ChangeViewReceived(payload *p2pmsg.ConsensusPayload, mess
 }
 
 func (ds *DbftService) halt() error {
-	log.Debug()
 	log.Info("DBFT Stop")
 	if ds.timer != nil {
 		ds.timer.Stop()
@@ -334,8 +333,6 @@ func (ds *DbftService) LocalNodeNewInventory(v interface{}) {
 		}
 	}
 }
-
-//TODO: add invenory receiving
 
 func (ds *DbftService) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 	log.Debug()
@@ -449,14 +446,29 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 	ds.context.Signatures = make([][]byte, len(ds.context.BookKeepers))
 	ds.context.Signatures[payload.BookKeeperIndex] = message.Signature
 
-	//check if the transactions received are verified. If it already exists in transaction pool
-	//then no need to verify it again. Otherwise, verify it.
-	if err := ds.poolActor.VerifyBlock(ds.context.Transactions, ds.context.Height-1); err != nil {
-		log.Error("PrepareRequestReceived new transaction verification failed, will not sent Prepare Response", err)
+	if len(ds.context.Transactions) == 0 || ds.context.Transactions[0].TxType != types.BookKeeping {
+		log.Error("PrepareRequestReceived first transaction type is not bookking")
 		ds.context = backupContext
 		ds.RequestChangeView()
-
 		return
+	}
+	for _, tx := range ds.context.Transactions[1:] {
+		if tx.TxType == types.BookKeeping {
+			log.Error("PrepareRequestReceived non-first transaction type is bookking")
+			ds.context = backupContext
+			ds.RequestChangeView()
+			return
+		}
+	}
+
+	if len(ds.context.Transactions) > 1 {
+		if err := ds.poolActor.VerifyBlock(ds.context.Transactions[1:], ds.context.Height-1); err != nil {
+			log.Error("PrepareRequestReceived new transaction verification failed, will not sent Prepare Response", err)
+			ds.context = backupContext
+			ds.RequestChangeView()
+
+			return
+		}
 	}
 
 	ds.context.NextBookKeepers, err = vote.GetValidators(ds.context.Transactions)
