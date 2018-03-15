@@ -11,7 +11,6 @@ import (
 	"github.com/Ontology/core/vote"
 	"github.com/Ontology/crypto"
 	msg "github.com/Ontology/net/message"
-	"sync"
 )
 
 const ContextVersion uint32 = 0
@@ -35,7 +34,6 @@ type ConsensusContext struct {
 
 	header *types.Block
 
-	contextMu           sync.Mutex
 	isBookKeeperChanged bool
 	nmChangedblkHeight  uint32
 }

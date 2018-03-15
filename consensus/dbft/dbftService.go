@@ -98,6 +98,7 @@ func (this *DbftService) Receive(context actor.Context) {
 	case *actorTypes.StopConsensus:
 		this.halt()
 	case *actorTypes.TimeOut:
+		log.Info("dbft receive timeout")
 		this.Timeout()
 	case *message.SaveBlockCompleteMsg:
 		this.handleBlockPersistCompleted(msg.Block)
@@ -274,9 +275,6 @@ func (ds *DbftService) halt() error {
 
 func (ds *DbftService) InitializeConsensus(viewNum byte) error {
 	log.Debug("[InitializeConsensus] Start InitializeConsensus.")
-	ds.context.contextMu.Lock()
-	defer ds.context.contextMu.Unlock()
-
 	log.Debug("[InitializeConsensus] viewNum: ", viewNum)
 
 	if viewNum == 0 {
@@ -335,10 +333,6 @@ func (ds *DbftService) LocalNodeNewInventory(v interface{}) {
 }
 
 func (ds *DbftService) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
-	log.Debug()
-	ds.context.contextMu.Lock()
-	defer ds.context.contextMu.Unlock()
-
 	//if payload from current peer, ignore it
 	if int(payload.BookKeeperIndex) == ds.context.BookKeeperIndex {
 		return
@@ -424,6 +418,12 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 		return
 	}
 
+	if len(message.Transactions) == 0 || message.Transactions[0].TxType != types.BookKeeping {
+		log.Error("PrepareRequestReceived first transaction type is not bookking")
+		ds.RequestChangeView()
+		return
+	}
+
 	backupContext := ds.context
 
 	ds.context.State |= RequestReceived
@@ -446,12 +446,6 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 	ds.context.Signatures = make([][]byte, len(ds.context.BookKeepers))
 	ds.context.Signatures[payload.BookKeeperIndex] = message.Signature
 
-	if len(ds.context.Transactions) == 0 || ds.context.Transactions[0].TxType != types.BookKeeping {
-		log.Error("PrepareRequestReceived first transaction type is not bookking")
-		ds.context = backupContext
-		ds.RequestChangeView()
-		return
-	}
 	for _, tx := range ds.context.Transactions[1:] {
 		if tx.TxType == types.BookKeeping {
 			log.Error("PrepareRequestReceived non-first transaction type is bookking")
@@ -513,8 +507,6 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 }
 
 func (ds *DbftService) PrepareResponseReceived(payload *p2pmsg.ConsensusPayload, message *PrepareResponse) {
-	log.Debug()
-
 	log.Info(fmt.Sprintf("Prepare Response Received: height=%d View=%d index=%d", payload.Height, message.ViewNumber(), payload.BookKeeperIndex))
 
 	if ds.context.State.HasFlag(BlockGenerated) {
@@ -642,9 +634,6 @@ func (ds *DbftService) start() {
 }
 
 func (ds *DbftService) Timeout() {
-	log.Debug()
-	ds.context.contextMu.Lock()
-	defer ds.context.contextMu.Unlock()
 	if ds.timerHeight != ds.context.Height || ds.timeView != ds.context.ViewNumber {
 		return
 	}
