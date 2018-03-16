@@ -313,7 +313,7 @@ func ResponsePack(errCode int64) map[string]interface{} {
 	}
 	return resp
 }
-func GetContract(cmd map[string]interface{}) map[string]interface{} {
+func GetContractState(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
 	str := cmd["Hash"].(string)
 	bys, err := HexToBytes(str)
@@ -325,12 +325,11 @@ func GetContract(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(Err.INVALID_PARAMS)
 	}
-	//TODO GetContract from store
-	//contract, err := GetContractFromStore(hash)
-	//if err != nil {
-	//	resp["Error"] = Err.INVALID_PARAMS
-	//	return resp
-	//}
-	//resp["Result"] = string(contract)
+	contract, err := GetContractStateFromStore(hash)
+	if err != nil || contract == nil {
+		resp["Error"] = Err.INVALID_PARAMS
+		return resp
+	}
+	resp["Result"] = TransPayloadToHex(contract)
 	return resp
 }

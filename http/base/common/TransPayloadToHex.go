@@ -14,18 +14,16 @@ type BookKeepingInfo struct {
 	Issuer IssuerInfo
 }
 
-//implement PayloadInfo define DeployCodeInfo
-type FunctionCodeInfo struct {
-	Code           string
-	ParameterTypes string
-	ReturnType     uint8
-}
+
 type InvokeCodeInfo struct {
-	CodeHash string
 	Code     string
+	GasLimit uint64
+	VmType   int
 }
 type DeployCodeInfo struct {
-	Code        *FunctionCodeInfo
+	VmType      int
+	Code        string
+	NeedStorage bool
 	Name        string
 	CodeVersion string
 	Author      string
@@ -109,14 +107,15 @@ func TransPayloadToHex(p types.Payload) PayloadInfo {
 		return obj
 	case *payload.InvokeCode:
 		obj := new(InvokeCodeInfo)
-		address := object.Code.AddressFromVmCode()
-		obj.CodeHash = ToHexString(address[:])
 		obj.Code = ToHexString(object.Code.Code)
+		obj.GasLimit = uint64(object.GasLimit)
+		obj.VmType = int(object.Code.VmType)
 		return obj
 	case *payload.DeployCode:
 		obj := new(DeployCodeInfo)
-		obj.Code = new(FunctionCodeInfo)
-		obj.Code.Code = ToHexString(object.Code)
+		obj.VmType = int(object.VmType)
+		obj.Code = ToHexString(object.Code)
+		obj.NeedStorage = object.NeedStorage
 		obj.Name = object.Name
 		obj.CodeVersion = object.Version
 		obj.Author = object.Author

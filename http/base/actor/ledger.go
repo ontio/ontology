@@ -102,7 +102,7 @@ func GetStorageItem(codeHash Uint160, key []byte) ([]byte, error) {
 }
 
 //ledger.DefaultLedger.Store.GetContract(hash)
-func GetContractFromStore(hash Uint160) (*payload.DeployCode, error) {
+func GetContractStateFromStore(hash Uint160) (*payload.DeployCode, error) {
 	future := defLedgerPid.RequestFuture(&GetContractStateReq{hash}, 10*time.Second)
 	result, err := future.Result()
 	if err != nil {

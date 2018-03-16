@@ -136,7 +136,7 @@ func (rt *restServer) registryMethod() {
 		Api_Getblockheight:      {name: "getblockheight", handler: GetBlockHeight},
 		Api_Getblockhash:        {name: "getblockhash", handler: GetBlockHash},
 		Api_Gettransaction:      {name: "gettransaction", handler: GetTransactionByHash},
-		Api_GetContract:         {name: "getcontract", handler: GetContract},
+		Api_GetContract:         {name: "getcontract", handler: GetContractState},
 		Api_Restart:             {name: "restart", handler: rt.Restart},
 		Api_GetSmartCodeEvent:{name: "getsmartcodeevent", handler: GetSmartCodeEventByHeight},
 	}

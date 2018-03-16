@@ -28,6 +28,9 @@ func StartRPCServer() {
 	HandleFunc("getversion", GetNodeVersion)
 	HandleFunc("getsmartcodeevent", GetSmartCodeEvent)
 
+	HandleFunc("getblocksysfee", GetSystemFee)
+	HandleFunc("getcontractstate", GetContractState)
+
 	err := http.ListenAndServe(":"+strconv.Itoa(Parameters.HttpJsonPort), nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err.Error())
