@@ -5,6 +5,7 @@ import (
 	"github.com/Ontology/vm/neovm/types"
 	"github.com/Ontology/vm/neovm/utils"
 	"io"
+	vmtypes "github.com/Ontology/vm/types"
 )
 
 type ExecutionContext struct {
@@ -38,8 +39,11 @@ func (ec *ExecutionContext) SetInstructionPointer(offset int64) {
 
 func (ec *ExecutionContext) GetCodeHash() (common.Uint160, error) {
 	if ec.CodeHash.CompareTo(common.Uint160{}) == 0 {
-		codeHash := common.ToCodeHash(ec.Code)
-		ec.CodeHash = codeHash
+		code := &vmtypes.VmCode{
+			Code: ec.Code,
+			VmType: vmtypes.NEOVM,
+		}
+		ec.CodeHash = code.AddressFromVmCode()
 	}
 	return ec.CodeHash, nil
 }
