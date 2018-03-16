@@ -5,7 +5,7 @@ import (
 	"github.com/Ontology/common/serialization"
 	"crypto/sha256"
 	. "github.com/Ontology/common"
-	"github.com/golang/crypto/ripemd160"
+	"golang.org/x/crypto/ripemd160"
 )
 
 type VmType byte
