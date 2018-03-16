@@ -3,6 +3,7 @@ package ledgerstore
 import (
 	"fmt"
 	"github.com/Ontology/common"
+	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/states"
 	"github.com/Ontology/core/store/statestore"
@@ -11,13 +12,12 @@ import (
 	"github.com/Ontology/events"
 	"github.com/Ontology/events/message"
 	smcommon "github.com/Ontology/smartcontract/common"
+	"github.com/Ontology/smartcontract/service/neovm"
 	smtypes "github.com/Ontology/smartcontract/types"
 	"github.com/Ontology/vm/neovm"
 	"sort"
 	"sync"
 	"time"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/smartcontract/service/neovm"
 )
 
 const (
@@ -170,7 +170,7 @@ func (this *LedgerStore) initCurrentBlock() error {
 	if err != nil {
 		return fmt.Errorf("LoadCurrentBlock error %s", err)
 	}
-	fmt.Printf("currentBlockHash %x currentBlockHeight %d\n", currentBlockHash, currentBlockHeight)
+	log.Infof("InitCurrentBlock currentBlockHash %x currentBlockHeight %d", currentBlockHash, currentBlockHeight)
 	this.currBlockHash = currentBlockHash
 	this.currBlockHeight = currentBlockHeight
 	return nil
@@ -182,7 +182,6 @@ func (this *LedgerStore) initHeaderIndexList() error {
 	if currBlockHash == empty {
 		return nil
 	}
-
 	headerIndex, err := this.blockStore.GetHeaderIndexList()
 	if err != nil {
 		return fmt.Errorf("LoadHeaderIndexList error %s", err)
@@ -192,7 +191,7 @@ func (this *LedgerStore) initHeaderIndexList() error {
 	this.storedIndexCount = storeIndexCount
 
 	for i := storeIndexCount; i <= currBlockHeight; i++ {
-		height := storeIndexCount
+		height := i
 		blockHash, err := this.blockStore.GetBlockHash(height)
 		if err != nil {
 			return fmt.Errorf("LoadBlockHash height %d error %s", height, err)
@@ -202,7 +201,6 @@ func (this *LedgerStore) initHeaderIndexList() error {
 		}
 		this.headerIndex[height] = blockHash
 	}
-
 	return nil
 }
 
@@ -650,7 +648,6 @@ func (this *LedgerStore) saveHeaderIndexList() error {
 		return nil
 	}
 
-	//headerList := make(map[uint32]common.Uint256, HeaderIndexBatchSize)
 	headerList := make([]common.Uint256, HeaderIndexBatchSize)
 	for i := uint32(0); i < HeaderIndexBatchSize; i++ {
 		height := storeCount + i

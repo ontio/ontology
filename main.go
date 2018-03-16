@@ -158,7 +158,7 @@ func logCurrBlockHeight() {
 	for {
 		select {
 		case <-ticker.C:
-			log.Trace("BlockHeight = ", ledger.DefLedger.GetCurrentBlockHeight())
+			log.Infof("BlockHeight = %d", ledger.DefLedger.GetCurrentBlockHeight())
 			isNeedNewFile := log.CheckIfNeedNewFile()
 			if isNeedNewFile {
 				log.ClosePrintLog()
