@@ -31,8 +31,6 @@ type Configuration struct {
 	HttpWsPort        int              `json:"HttpWsPort"`
 	HttpJsonPort      int              `json:"HttpJsonPort"`
 	HttpLocalPort     int              `json:"HttpLocalPort"`
-	OauthServerUrl    string           `json:"OauthServerUrl"`
-	NoticeServerUrl   string           `json:"NoticeServerUrl"`
 	NodePort          int              `json:"NodePort"`
 	NodeConsensusPort int              `json:"NodeConsensusPort"`
 	NodeType          string           `json:"NodeType"`

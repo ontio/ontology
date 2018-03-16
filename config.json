@@ -19,8 +19,6 @@
     "HttpWsPort":20385,
     "HttpJsonPort": 20386,
     "HttpLocalPort": 20387,
-    "NoticeServerUrl":"",
-    "OauthServerUrl":"",
     "NodePort": 20388,
     "NodeConsensusPort": 20389,
     "PrintLevel": 3,
