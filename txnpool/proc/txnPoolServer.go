@@ -129,17 +129,7 @@ func (s *TXPoolServer) checkPendingBlockOk(hash common.Uint256,
 	// Check if the block has been verified, if yes,
 	// send rsp to the actor bus
 	if len(s.pendingBlock.unProcessedTxs) == 0 {
-		rsp := &tc.VerifyBlockRsp{
-			TxnPool: make([]*tc.VerifyTxResult,
-				0, len(s.pendingBlock.processedTxs)),
-		}
-		for _, v := range s.pendingBlock.processedTxs {
-			rsp.TxnPool = append(rsp.TxnPool, v)
-		}
-
-		if s.pendingBlock.sender != nil {
-			s.pendingBlock.sender.Tell(rsp)
-		}
+		s.sendBlkResult2Consensus()
 
 		if s.pendingBlock.stopCh != nil {
 			s.pendingBlock.stopCh <- true
@@ -356,6 +346,10 @@ func (s *TXPoolServer) cleanTransactionList(txs []*tx.Transaction) error {
 	return s.txPool.CleanTransactionList(txs)
 }
 
+func (s *TXPoolServer) delTransaction(t *tx.Transaction) {
+	s.txPool.DelTxList(t)
+}
+
 func (s *TXPoolServer) addTxList(txEntry *tc.TXEntry) bool {
 	ret := s.txPool.AddTxList(txEntry)
 	if !ret {
@@ -412,6 +406,20 @@ func (s *TXPoolServer) getTransactionCount() int {
 	return s.txPool.GetTransactionCount()
 }
 
+func (s *TXPoolServer) sendBlkResult2Consensus() {
+	rsp := &tc.VerifyBlockRsp{
+		TxnPool: make([]*tc.VerifyTxResult,
+			0, len(s.pendingBlock.processedTxs)),
+	}
+	for _, v := range s.pendingBlock.processedTxs {
+		rsp.TxnPool = append(rsp.TxnPool, v)
+	}
+
+	if s.pendingBlock.sender != nil {
+		s.pendingBlock.sender.Tell(rsp)
+	}
+}
+
 func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 	if req == nil || len(req.Txs) == 0 {
 		return
@@ -419,14 +427,14 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 	s.pendingBlock.sender = sender
 	s.pendingBlock.height = req.Height
 
-	for _, tx := range req.Txs {
+	for _, t := range req.Txs {
 		/* Check if the tx is in the tx pool, if not, send it to
 		 * valdiator to verify and add it to pending block list
 		 */
-		ret := s.txPool.GetTxStatus(tx.Hash())
+		ret := s.txPool.GetTxStatus(t.Hash())
 		if ret == nil {
-			s.assginTXN2Worker(tx, nil)
-			s.pendingBlock.unProcessedTxs[tx.Hash()] = tx
+			s.assginTXN2Worker(t, nil)
+			s.pendingBlock.unProcessedTxs[t.Hash()] = t
 			continue
 		}
 
@@ -438,11 +446,11 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 			if v.Type == types.Statefull &&
 				v.Height >= req.Height {
 				entry := &tc.VerifyTxResult{
-					Tx:      tx,
+					Tx:      t,
 					Height:  v.Height,
 					ErrCode: v.ErrCode,
 				}
-				s.pendingBlock.processedTxs[tx.Hash()] = entry
+				s.pendingBlock.processedTxs[t.Hash()] = entry
 				ok = true
 				break
 			}
@@ -450,9 +458,18 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 
 		// Re-verify it
 		if !ok {
-			s.assginTXN2Worker(tx, nil)
-			s.pendingBlock.unProcessedTxs[tx.Hash()] = tx
+			s.assginTXN2Worker(t, nil)
+			s.pendingBlock.unProcessedTxs[t.Hash()] = t
 		}
 	}
+
+	/* If all the txs in the blocks are verified, send response
+	 * to the consensus directly
+	 */
+	if len(s.pendingBlock.unProcessedTxs) == 0 {
+		s.sendBlkResult2Consensus()
+		return
+	}
+
 	<-s.pendingBlock.stopCh
 }

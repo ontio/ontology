@@ -77,25 +77,25 @@ func (ta *TxActor) handleTransaction(sender, self *actor.PID,
 func (ta *TxActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
-		log.Info("Server started and be ready to receive tx msg")
+		log.Info("txpool-tx actor started and be ready to receive tx msg")
 
 	case *actor.Stopping:
-		log.Info("Server stopping")
+		log.Info("txpool-tx actor stopping")
 
 	case *actor.Restarting:
-		log.Info("Server Restarting")
+		log.Info("txpool-tx actor Restarting")
 
 	case *tx.Transaction:
 		sender := context.Sender()
 
-		log.Info("Server Receives tx from ", sender)
+		log.Info("txpool-tx actor Receives tx from ", sender)
 
 		ta.handleTransaction(sender, context.Self(), msg)
 
 	case *tc.GetTxnReq:
 		sender := context.Sender()
 
-		log.Info("Server Receives getting tx req from ", sender)
+		log.Info("txpool-tx actor Receives getting tx req from ", sender)
 
 		res := ta.server.getTransaction(msg.Hash)
 		if sender != nil {
@@ -106,7 +106,7 @@ func (ta *TxActor) Receive(context actor.Context) {
 	case *tc.GetTxnStats:
 		sender := context.Sender()
 
-		log.Info("Server Receives getting tx stats from ", sender)
+		log.Info("txpool-tx actor Receives getting tx stats from ", sender)
 
 		res := ta.server.getStats()
 		if sender != nil {
@@ -117,7 +117,7 @@ func (ta *TxActor) Receive(context actor.Context) {
 	case *tc.CheckTxnReq:
 		sender := context.Sender()
 
-		log.Info("Server Receives checking tx req from ", sender)
+		log.Info("txpool-tx actor Receives checking tx req from ", sender)
 
 		res := ta.server.checkTx(msg.Hash)
 		if sender != nil {
@@ -128,7 +128,7 @@ func (ta *TxActor) Receive(context actor.Context) {
 	case *tc.GetTxnStatusReq:
 		sender := context.Sender()
 
-		log.Info("Server Receives getting tx status req from ", sender)
+		log.Info("txpool-tx actor Receives getting tx status req from ", sender)
 
 		res := ta.server.getTxStatusReq(msg.Hash)
 		if sender != nil {
@@ -214,25 +214,25 @@ type VerifyRspActor struct {
 func (vpa *VerifyRspActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
-		log.Info("Server started and be ready to receive validator's msg")
+		log.Info("txpool-verify actor: started and be ready to receive validator's msg")
 
 	case *actor.Stopping:
-		log.Info("Server stopping")
+		log.Info("txpool-verify actor: stopping")
 
 	case *actor.Restarting:
-		log.Info("Server Restarting")
+		log.Info("txpool-verify actor: Restarting")
 
 	case *types.RegisterValidator:
-		log.Infof("validator %v connected", msg.Sender)
+		log.Infof("txpool-verify actor:: validator %v connected", msg.Sender)
 		vpa.server.registerValidator(msg)
 
 	case *types.UnRegisterValidator:
-		log.Infof("validator %d:%v disconnected", msg.Type, msg.Id)
+		log.Infof("txpool-verify actor:: validator %d:%v disconnected", msg.Type, msg.Id)
 
 		vpa.server.unRegisterValidator(msg.Type, msg.Id)
 
 	case *types.CheckResponse:
-		log.Info("Server Receives verify rsp message")
+		log.Info("txpool-verify actor:: Receives verify rsp message")
 
 		vpa.server.assignRsp2Worker(msg)
 
