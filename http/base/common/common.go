@@ -7,7 +7,6 @@ import (
 	. "github.com/Ontology/errors"
 	. "github.com/Ontology/http/base/actor"
 	"strconv"
-	"encoding/hex"
 )
 
 //multiplexer that keeps track of every function to be called on specific rpc call
@@ -62,7 +61,7 @@ type BlockHead struct {
 	ConsensusData    uint64
 	NextBookKeeper   string
 
-	BookKeepers []string
+	BookKeepers []PubKeyInfo
 	SigData     []string
 
 	Hash string
@@ -114,7 +113,7 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 		trans.Attributes[i].Data = ToHexString(v.Data)
 	}
 	for _, fee := range ptx.Fee {
-		e := Fee{fee.Amount, hex.EncodeToString(fee.Payer.ToArray())}
+		e := Fee{fee.Amount, ToHexString(fee.Payer.ToArray())}
 		trans.Fee = append(trans.Fee, e)
 	}
 	for _, sig := range ptx.Sigs {

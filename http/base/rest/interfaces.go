@@ -7,7 +7,6 @@ import (
 	"github.com/Ontology/core/types"
 	. "github.com/Ontology/errors"
 	Err "github.com/Ontology/http/base/error"
-	. "github.com/Ontology/net/protocol"
 	"strconv"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/common/log"
@@ -15,7 +14,7 @@ import (
 	. "github.com/Ontology/http/base/actor"
 )
 
-var node Noder
+
 
 const TlsPort int = 443
 
@@ -28,21 +27,17 @@ type ApiServer interface {
 //Node
 func GetGenerateBlockTime(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
-	if node != nil {
-		resp["Result"] = config.DEFAULTGENBLOCKTIME
-	}
+	resp["Result"] = config.DEFAULTGENBLOCKTIME
 	return resp
 }
 func GetConnectionCount(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
-	if node != nil {
-		count,err := GetConnectionCnt()
-		if err != nil{
-			resp["Error"] = Err.INTERNAL_ERROR
-			return resp
-		}
-		resp["Result"] = count
+	count, err := GetConnectionCnt()
+	if err != nil {
+		resp["Error"] = Err.INTERNAL_ERROR
+		return resp
 	}
+	resp["Result"] = count
 
 	return resp
 }
@@ -78,6 +73,16 @@ func GetBlockHash(cmd map[string]interface{}) map[string]interface{} {
 
 func GetBlockInfo(block *types.Block) BlockInfo {
 	hash := block.Hash()
+	var bookKeepers = []PubKeyInfo{}
+	var sigData = []string{}
+	for i := 0; i < len(block.Header.SigData); i++ {
+		s := ToHexString(block.Header.SigData[i])
+		sigData = append(sigData, s)
+	}
+	for i := 0; i < len(block.Header.BookKeepers); i++ {
+		e := block.Header.BookKeepers[i]
+		bookKeepers = append(bookKeepers, PubKeyInfo{e.X.String(), e.Y.String()})
+	}
 	blockHead := &BlockHead{
 		Version:          block.Header.Version,
 		PrevBlockHash:    ToHexString(block.Header.PrevBlockHash.ToArray()),
@@ -88,11 +93,8 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 		Height:           block.Header.Height,
 		ConsensusData:    block.Header.ConsensusData,
 		NextBookKeeper:   ToHexString(block.Header.NextBookKeeper[:]),
-		// TODO replace with BookKeepers and sigdata
-		//Program: ProgramInfo{
-		//	Code:      ToHexString(block.Header.Program.Code),
-		//	Parameter: ToHexString(block.Header.Program.Parameter),
-		//},
+		BookKeepers: bookKeepers,
+		SigData:     sigData,
 		Hash: ToHexString(hash.ToArray()),
 	}
 

@@ -26,10 +26,12 @@ func AppendTxToPool(txn *types.Transaction) ErrCode {
 	if err != nil {
 		return ErrUnknown
 	}
-	if errCode, ok := result.(ErrCode); !ok {
-		return errCode
-	} else {
+	if result, ok := result.(*tc.TxRsp); !ok {
 		return ErrUnknown
+	} else if result.Hash != txn.Hash(){
+		return ErrUnknown
+	} else {
+		return result.ErrCode
 	}
 }
 

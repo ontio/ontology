@@ -15,11 +15,7 @@ func SetNetServerPid(actr *actor.PID) {
 }
 
 func Xmit(msg interface{}) error {
-	future := netServerPid.RequestFuture(msg, 10*time.Second)
-	_, err := future.Result()
-	if err != nil {
-		return errors.New("fail")
-	}
+	netServerPid.Tell(msg)
 	return nil
 }
 
