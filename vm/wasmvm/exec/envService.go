@@ -3,6 +3,10 @@ package exec
 import (
 	"errors"
 	"github.com/Ontology/vm/wasmvm/memory"
+	"github.com/Ontology/vm/wasmvm/wasm"
+	"bytes"
+	"io/ioutil"
+	"fmt"
 )
 
 type IInteropService interface {
@@ -25,7 +29,9 @@ func NewInteropService() *InteropService{
 	service.Register("arrayLen",arrayLen)
 	service.Register("memcpy",memcpy)
 	service.Register("read_message",readMessage)
-	//===================block apis ==================
+	service.Register("callContract",callContract)
+
+	//===================add block apis below==================
 
 	return &service
 }
@@ -218,3 +224,79 @@ func readMessage(engine *ExecutionEngine) (bool, error) {
 	return true,nil
 }
 
+//call other contract
+func callContract(engine *ExecutionEngine)(bool,error){
+
+	envCall := engine.vm.envCall
+	params := envCall.envParams
+	if len(params) < 2 {
+		return false, errors.New("parameter count error while call readMessage")
+	}
+	contractAddressIdx := params[0]
+	addr,err := engine.vm.GetPointerMemory(contractAddressIdx)
+	if err != nil{
+		return false ,errors.New("get Contract address failed")
+	}
+	//the contract codes
+	contractBytes := getContractFromAddr(addr)
+	bf := bytes.NewBuffer(contractBytes)
+	module,err :=wasm.ReadModule(bf,emptyImporter)
+	if err != nil{
+		return false ,errors.New("load Module failed")
+	}
+
+	methodName ,err := engine.vm.GetPointerMemory(params[1])
+	if err != nil{
+		return false ,errors.New("get Contract address failed")
+	}
+
+	//if has args
+	var args []uint64
+	if len(params) > 3{
+		args =params[2:]
+	}
+
+	res,err:=engine.vm.CallContract(module,trimBuffToString(methodName),args ...)
+	if err != nil{
+		return false ,errors.New("call contract " + trimBuffToString(methodName) + " failed")
+	}
+
+	engine.vm.RestoreStat()
+	if envCall.envReturns{
+		engine.vm.pushUint64(res)
+	}
+
+	return true ,nil
+}
+
+func emptyImporter(name string) (*wasm.Module, error){
+	return nil,nil
+}
+
+
+func getContractFromAddr(addr []byte)[]byte{
+
+	//todo get the contract code from ledger
+	//just for test
+	contract := trimBuffToString(addr)
+
+	code, err := ioutil.ReadFile(fmt.Sprintf("./testdata2/%s.wasm",contract))
+	if err != nil {
+		return nil
+	}
+
+	return code
+}
+
+func trimBuffToString(bytes []byte)string{
+
+	var count = 0
+	for i,b := range bytes{
+		if b == 0{
+			count = i
+			break
+		}
+	}
+	return string(bytes[:count])
+
+}

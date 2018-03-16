@@ -58,6 +58,7 @@ type EnvCall struct {
 	envParams  []uint64
 	envReturns bool
 	envPreCtx  context
+	Message   []interface{} //the 'Message' field is for the EOS contract like parameters
 }
 
 func (ec *EnvCall) GetParams() []uint64 {
@@ -74,7 +75,6 @@ type VM struct {
 
 	module  *wasm.Module
 	globals []uint64
-	//memory        []byte
 	compiledFuncs []compiledFunction
 	funcTable     [256]func()
 	Services      map[string]func(engine *ExecutionEngine) (bool, error)
@@ -83,8 +83,23 @@ type VM struct {
 	envCall *EnvCall
 	//store a engine pointer
 	Engine *ExecutionEngine
+	Backup	*BackStat
+}
+
+
+type BackStat struct{
+	ctx context
+	module  *wasm.Module
+	globals []uint64
+	compiledFuncs []compiledFunction
+	funcTable     [256]func()
+	memory        *memory.VMmemory
+	//store the env call parameters
+	envCall *EnvCall
+	//store a engine pointer
 	Message   []interface{} //the 'Message' field is for the EOS contract like parameters
 }
+
 
 // As per the WebAssembly spec: https://github.com/WebAssembly/design/blob/27ac254c854994103c24834a994be16f74f54186/Semantics.md#linear-memory
 const wasmPageSize = 65536 // (64 KB)
@@ -95,7 +110,7 @@ var endianess = binary.LittleEndian
 // start function, it will be executed.
 func NewVM(module *wasm.Module) (*VM, error) {
 	var vm VM
-	vm.memory = &memory.VMmemory{}
+	/*vm.memory = &memory.VMmemory{}
 	if module.Memory != nil && len(module.Memory.Entries) != 0 {
 		if len(module.Memory.Entries) > 1 {
 			return nil, ErrMultipleLinearMemories
@@ -181,7 +196,11 @@ func NewVM(module *wasm.Module) (*VM, error) {
 			return nil, err
 		}
 	}
-
+*/
+	err := vm.loadModule(module)
+	if err != nil{
+		return nil,err
+	}
 	return &vm, nil
 }
 
@@ -227,17 +246,22 @@ func (vm *VM) RestoreCtx() bool {
 }
 
 func (vm *VM) SetMessage(message []interface{}) {
-	vm.Message = message
+	if message != nil {
+		if vm.envCall == nil{
+			vm.envCall = &EnvCall{}
+		}
+		vm.envCall.Message = message
+	}
 }
 
 func (vm *VM) GetMessageBytes() ([]byte, error) {
-	if vm.Message == nil || len(vm.Message) == 0 {
+	if vm.envCall.Message == nil || len(vm.envCall.Message) == 0 {
 		return nil, nil
 	}
 
 	bytesbuf := bytes.NewBuffer(nil)
 
-	for _, m := range vm.Message {
+	for _, m := range vm.envCall.Message {
 		switch m.(type) {
 		case string:
 			bytesbuf.WriteString(m.(string))
@@ -383,7 +407,8 @@ func (vm *VM) pushFloat32(f float32) {
 // ExecCode calls the function with the given index and arguments.
 // fnIndex should be a valid index into the function index space of
 // the VM's module.
-func (vm *VM) ExecCode(fnIndex int64, args ...uint64) (interface{}, error) {
+//insideCall :true (call contract)
+func (vm *VM) ExecCode(insideCall bool,fnIndex int64,  args ...uint64) (interface{}, error) {
 	if int(fnIndex) > len(vm.compiledFuncs) {
 		return nil, InvalidFunctionIndexError(fnIndex)
 	}
@@ -405,6 +430,12 @@ func (vm *VM) ExecCode(fnIndex int64, args ...uint64) (interface{}, error) {
 
 	var rtrn interface{}
 	res := vm.execCode(compiled)
+
+	// for the call contract case
+	if insideCall{
+		return res,nil
+	}
+
 	if compiled.returns {
 		rtrnType := vm.module.GetFunction(int(fnIndex)).Sig.ReturnTypes[0]
 		switch rtrnType {
@@ -503,4 +534,190 @@ outer:
 		return vm.ctx.stack[len(vm.ctx.stack)-1]
 	}
 	return 0
+}
+
+//todo implement the "call other contract function"
+func (vm *VM) CallContract(module *wasm.Module,methodName string,args ...uint64)(uint64,error){
+	originMem := vm.memory
+	//1. backup current states
+	vm.BackupStat()
+	//2. get the method idx
+	err := vm.loadModule(module)
+	if err != nil{
+		return uint64(0),nil
+	}
+	//3. exec the method code
+	entry, ok := module.Export.Entries[methodName]
+	if ok == false {
+		return uint64(0), errors.New("Method:" + methodName + " does not exist!")
+	}
+	//get entry index
+	index := int64(entry.Index)
+	//get function index
+	fidx := module.Function.Types[int(index)]
+
+	//get  function type
+	//ftype := module.Types.Entries[int(fidx)]
+
+	//init parameters memory
+	/*
+	for k,v :=range initMem{
+		copy(vm.Memory()[k:k+uint64(len(v))],v)
+		vm.memory.MemPoints[k] = &memory.TypeLength{Ptype:memory.P_UNKNOW,Length:len(v)}
+	}
+	*/
+
+	//use the same memory
+	vm.memory = originMem
+	res,err :=vm.ExecCode(true,int64(fidx),args ...)
+	if err != nil{
+		return uint64(0),err
+	}
+
+	//4 restore
+
+	return res.(uint64),nil
+}
+
+func (vm *VM) loadModule(module *wasm.Module) error{
+
+	vm.memory = &memory.VMmemory{}
+	if module.Memory != nil && len(module.Memory.Entries) != 0 {
+		if len(module.Memory.Entries) > 1 {
+			return  ErrMultipleLinearMemories
+		}
+		vm.memory.Memory = make([]byte, uint(module.Memory.Entries[0].Limits.Initial)*wasmPageSize)
+		copy(vm.memory.Memory, module.LinearMemoryIndexSpace[0])
+	} else if len(module.LinearMemoryIndexSpace) > 0 {
+		//add imported memory ,all mem access will be on the imported mem
+		vm.memory.Memory = module.LinearMemoryIndexSpace[0]
+		//copy(vm.memory, module.LinearMemoryIndexSpace[0])
+	}
+
+	//give a default memory even if no memory section exist in wasm file
+	if vm.memory.Memory == nil {
+		vm.memory.Memory = make([]byte, 1*wasmPageSize)
+	}
+
+	vm.memory.AllocedMemIdex = -1                             //init the allocated memory offset
+	vm.memory.PointedMemIndex = len(vm.memory.Memory) / 2     //the second half memory is reserved for the pointed objects,string,array,structs
+	vm.memory.MemPoints = make(map[uint64]*memory.TypeLength) //init the pointer map
+
+	//solve the Data section
+	if module.Data != nil{
+		for _, entry := range module.Data.Entries {
+			if entry.Index != 0 {
+				return errors.New("invalid data index")
+			}
+			val, err := module.ExecInitExpr(entry.Offset)
+			if err != nil {
+				return err
+			}
+			offset, ok := val.(int32)
+			if !ok {
+				return errors.New("invalid data index")
+			}
+			vm.memory.MemPoints[uint64(offset)] = &memory.TypeLength{Ptype:memory.P_UNKNOW,Length:len(entry.Data)}
+			vm.memory.AllocedMemIdex = int(offset)+len(entry.Data)
+		}
+	}
+
+
+	vm.compiledFuncs = make([]compiledFunction, len(module.FunctionIndexSpace))
+	vm.globals = make([]uint64, len(module.GlobalIndexSpace))
+	vm.newFuncTable()
+	vm.module = module
+
+	for i, fn := range module.FunctionIndexSpace {
+		disassembly, err := disasm.Disassemble(fn, module)
+		if err != nil {
+			return  err
+		}
+
+		totalLocalVars := 0
+		totalLocalVars += len(fn.Sig.ParamTypes)
+		for _, entry := range fn.Body.Locals {
+			totalLocalVars += int(entry.Count)
+		}
+		code, table := compile.Compile(disassembly.Code)
+
+		if fn.IsEnvFunc {
+			vm.compiledFuncs[i] = compiledFunction{
+				code:           code,
+				branchTables:   table,
+				maxDepth:       disassembly.MaxDepth,
+				totalLocalVars: totalLocalVars,
+				args:           len(fn.Sig.ParamTypes),
+				returns:        len(fn.Sig.ReturnTypes) != 0,
+				isEnv:          true,
+				name:           fn.Name,
+			}
+		} else {
+			vm.compiledFuncs[i] = compiledFunction{
+				code:           code,
+				branchTables:   table,
+				maxDepth:       disassembly.MaxDepth,
+				totalLocalVars: totalLocalVars,
+				args:           len(fn.Sig.ParamTypes),
+				returns:        len(fn.Sig.ReturnTypes) != 0,
+			}
+		}
+	}
+
+	for i, global := range module.GlobalIndexSpace {
+		val, err := module.ExecInitExpr(global.Init)
+		if err != nil {
+			return  err
+		}
+		switch v := val.(type) {
+		case int32:
+			vm.globals[i] = uint64(v)
+		case int64:
+			vm.globals[i] = uint64(v)
+		case float32:
+			vm.globals[i] = uint64(math.Float32bits(v))
+		case float64:
+			vm.globals[i] = uint64(math.Float64bits(v))
+		}
+	}
+
+	if module.Start != nil {
+		_, err := vm.ExecCode(false,int64(module.Start.Index))
+		if err != nil {
+			return  err
+		}
+	}
+	return nil
+
+}
+
+func (vm *VM)BackupStat(){
+	backup := &BackStat{}
+
+	backup.ctx = vm.ctx
+	backup.module = vm.module
+	backup.memory =vm.memory
+	backup.globals =vm.globals
+	backup.envCall = vm.envCall
+	backup.compiledFuncs = vm.compiledFuncs
+	backup.funcTable = vm.funcTable
+
+	vm.Backup = backup
+}
+
+func (vm *VM)RestoreStat() error{
+
+	if vm.Backup == nil{
+		return errors.New("no backup stat")
+	}
+
+	vm.ctx = vm.Backup.ctx
+	vm.module = vm.Backup.module
+	vm.memory = vm.Backup.memory
+	vm.globals = vm.Backup.globals
+	vm.envCall =vm.Backup.envCall
+	vm.compiledFuncs = vm.Backup.compiledFuncs
+	vm.funcTable = vm.Backup.funcTable
+
+	return nil
 }

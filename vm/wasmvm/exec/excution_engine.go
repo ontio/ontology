@@ -74,6 +74,7 @@ func (e *ExecutionEngine) CallInf(caller common.Uint160, code []byte, input []in
 	}
 	e.vm = vm
 	vm.Engine = e
+
 	vm.SetMessage(message)
 
 	entry, ok := m.Export.Entries[methodName]
@@ -183,7 +184,7 @@ func (e *ExecutionEngine) CallInf(caller common.Uint160, code []byte, input []in
 
 	}
 
-	res, err := vm.ExecCode(index, params...)
+	res, err := vm.ExecCode(false,index, params...)
 	if err != nil {
 		return nil, errors.New("ExecCode error!" + err.Error())
 	}
@@ -281,7 +282,7 @@ func (e *ExecutionEngine) Call(caller common.Uint160, code, input []byte) ([]byt
 		return nil, errors.New("Parameters count is not right")
 	}
 
-	res, err := vm.ExecCode(index, params...)
+	res, err := vm.ExecCode(false ,index, params...)
 	if err != nil {
 		return nil, errors.New("ExecCode error!" + err.Error())
 	}
@@ -306,6 +307,7 @@ func (e *ExecutionEngine) Call(caller common.Uint160, code, input []byte) ([]byt
 	//return nil, nil
 }
 
+//TODO NOT IN USE BUT DON'T DELETE IT
 //current we only support the ONT SYSTEM module import
 //other imports will raise an error
 func importer(name string) (*wasm.Module, error) {

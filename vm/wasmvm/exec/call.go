@@ -30,7 +30,10 @@ func (vm *VM) doCall(compiled compiledFunction, index int64) {
 
 	if compiled.isEnv {
 		//set the parameters and return in vm ,these will be used by inter service
-		vm.envCall = &EnvCall{}
+		if vm.envCall == nil{
+			vm.envCall = &EnvCall{}
+		}
+
 		vm.envCall.envParams = locals
 		if compiled.returns {
 			vm.envCall.envReturns = true

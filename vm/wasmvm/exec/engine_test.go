@@ -838,3 +838,31 @@ func TestString(t *testing.T) {
 
 }
 
+func TestContractCall(t *testing.T){
+	engine := NewExecutionEngine(nil,nil,nil,nil)
+	//test
+	code, err := ioutil.ReadFile("./testdata2/callContract.wasm")
+	if err != nil {
+		fmt.Println("error in read file", err.Error())
+		return
+	}
+
+	input := make([]interface{}, 3)
+	input[0] = "testCall"
+	input[1] = 10
+	input[2] = 29
+
+	fmt.Printf("input is %v\n", input)
+
+	res, err := engine.CallInf(common.Uint160{}, code, input,nil)
+	if err != nil {
+		fmt.Println("call error!", err.Error())
+	}
+	fmt.Printf("res:%v\n", res)
+
+	if binary.LittleEndian.Uint32(res) != uint32(39){
+		t.Fatal("the result should be 39!")
+	}
+
+
+}

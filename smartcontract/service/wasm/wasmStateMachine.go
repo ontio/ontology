@@ -1,12 +1,10 @@
 package wasm
 
 import (
-	"github.com/Ontology/core/ledger"
 	vmtypes "github.com/Ontology/smartcontract/types"
 	"github.com/Ontology/smartcontract/storage"
 	"github.com/Ontology/core/store"
 	scommon "github.com/Ontology/core/store/common"
-	"github.com/Ontology/vm/wasmvm/exec"
 	"github.com/Ontology/core/types"
 )
 
@@ -23,16 +21,17 @@ func NewWasmStateMachine(ldgerStore store.ILedgerStore, dbCache scommon.IStateSt
 	var stateMachine WasmStateMachine
 	stateMachine.ldgerStore = ldgerStore
 	stateMachine.CloneCache = storage.NewCloneCache(dbCache)
-	stateMachine.WasmStateReader = NewWasmStateReader(trigger)
+	stateMachine.WasmStateReader = NewWasmStateReader(ldgerStore,trigger)
 	stateMachine.trigger = trigger
 	stateMachine.block = block
 
-	stateMachine.Register("getBlockHeight",bcGetHeight)
+	//stateMachine.Register("getBlockHeight",bcGetHeight)
 	//todo add and register services
 	return &stateMachine
 }
 
 //======================some block api ===============
+/*
 func  bcGetHeight(engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 	var i uint32
@@ -47,4 +46,4 @@ func  bcGetHeight(engine *exec.ExecutionEngine) (bool, error) {
 		vm.PushResult(uint64(i))
 	}
 	return true,nil
-}
+}*/
