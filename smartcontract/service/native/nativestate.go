@@ -31,7 +31,7 @@ func NewNativeService(dbCache scommon.IStateStore, input []byte, tx *types.Trans
 	nativeService.Input = input
 	nativeService.Tx = tx
 	nativeService.ServiceMap = make(map[string]Handler)
-	nativeService.Register("Common.Token.Transfer", Transfer)
+	nativeService.Register("Ont.Token.Transfer", Transfer)
 	nativeService.Register("Ont.Token.Init", OntInit)
 	return &nativeService
 }

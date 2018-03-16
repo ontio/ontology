@@ -12,9 +12,8 @@ import (
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/password"
 	"github.com/Ontology/core/contract"
-	"github.com/Ontology/http/httpjsonrpc"
-
 	"github.com/urfave/cli"
+	"github.com/Ontology/http/base/rpc"
 )
 
 func walletAction(c *cli.Context) error {
@@ -88,7 +87,7 @@ func walletAction(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		resp, err := jsonrpc.Call(Address(), "getunspendoutput", 0,
+		resp, err := rpc.Call(Address(), "getunspendoutput", 0,
 			[]interface{}{hex.EncodeToString(buffer.Bytes()), asset})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
