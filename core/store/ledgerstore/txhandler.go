@@ -47,12 +47,11 @@ func (this *StateStore) HandleDeployTransaction(stateBatch *statestore.StateBatc
 func (this *StateStore) HandleInvokeTransaction(stateBatch *statestore.StateBatch, tx *types.Transaction, block *types.Block, eventStore common.IEventStore) error {
 	invoke := tx.Payload.(*payload.InvokeCode)
 	txHash := tx.Hash()
-
 	//var notifies []*event.NotifyEventInfo
 	switch invoke.Code.VmType {
 	case vmtypes.NativeVM:
 		na := native.NewNativeService(stateBatch, invoke.Code.Code, tx)
-		if ok, err := na.IsValid(); !ok {
+		if ok, err := na.Invoke(); !ok {
 			event.PushSmartCodeEvent(txHash, 0, INVOKE_TRANSACTION, err)
 		}
 		na.CloneCache.Commit()

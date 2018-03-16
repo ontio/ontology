@@ -21,7 +21,7 @@ var (
 )
 
 func OntInit(native *NativeService) (bool, error) {
-	pubKey, _ := hex.DecodeString("03d3ca3b948fc22e4e99cd348a4351c639f042de87798605d7623fcfb045836ea5")
+	pubKey, _ := hex.DecodeString("03ccbfeb4fcf8bee8cd65b55b9fc7ff114df8e0fd377f6235f1b55625a958b0cd1")
 	pk, _  := crypto.DecodePoint(pubKey)
 	owner  = ctypes.AddressFromPubKey(pk)
 
@@ -29,9 +29,10 @@ func OntInit(native *NativeService) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if amount.Value.Sign() != 0 {
+	if amount != nil && amount.Value.Sign() != 0 {
 		return false, errors.NewErr("Init has been completed!")
 	}
+
 	native.CloneCache.Add(scommon.ST_Storage, getOntOwnerKey(), &states.Amount{Value: totalSupply})
 	native.CloneCache.Add(scommon.ST_Storage, getOntTotalSupplyKey(), &states.Amount{Value: totalSupply})
 	native.Notifications = append(native.Notifications, &event.NotifyEventInfo{

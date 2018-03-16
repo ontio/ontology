@@ -89,7 +89,7 @@ func NewUtilityToken() *types.Transaction {
 func NewGoverningInit() *types.Transaction {
 	vmCode := vmtypes.VmCode{
 		VmType: vmtypes.NativeVM,
-		Code: []byte{21, 67, 111, 109, 109, 111, 110, 46, 84, 111, 107, 101, 110, 46, 84, 114, 97, 110, 115, 102, 101, 114},
+		Code: []byte{14, 79, 110, 116, 46, 84, 111, 107, 101, 110, 46, 73, 110, 105, 116},
 	}
 	tx := utils.NewInvokeTransaction(vmCode)
 	return tx
