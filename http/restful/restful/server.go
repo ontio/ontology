@@ -44,9 +44,6 @@ const (
 	Api_Gettransaction = "/api/v1/transaction/:hash"
 
 	Api_SendRawTx = "/api/v1/transaction"
-	Api_SendRcdTxByTrans = "/api/v1/custom/transaction/record"
-	Api_SendClaimTxByTrans  = "/api/v1/custom/transaction/claim"
-
 	Api_WebsocketState = "/api/v1/config/websocket/state"
 	Api_Restart = "/api/v1/restart"
 	Api_GetContract = "/api/v1/contract/:hash"
@@ -156,9 +153,7 @@ func (rt *restServer) registryMethod() {
 	}
 	postMethodMap := map[string]Action{
 		Api_SendRawTx:          {name: "sendrawtransaction", handler: sendRawTransaction},
-		//Api_SendRcdTxByTrans:   {name: "sendrecord", handler: SendRecord},
 		Api_WebsocketState:     {name: "setwebsocketstate", handler: rt.setWebsocketState},
-		//Api_SendClaimTxByTrans: {name: "SendClaim", handler: SendClaim},
 	}
 	rt.postMap = postMethodMap
 	rt.getMap = getMethodMap
@@ -222,9 +217,6 @@ func (rt *restServer) getParams(r *http.Request, url string, req map[string]inte
 		}
 		preExec := r.FormValue("preExec")
 		req["PreExec"] = preExec
-		break
-	case Api_SendRcdTxByTrans:
-		req["Raw"] = r.FormValue("raw")
 		break
 	case Api_GetSmartCodeEvent:
 		req["Height"] = getParam(r, "height")
