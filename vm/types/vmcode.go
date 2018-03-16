@@ -45,7 +45,7 @@ func (self *VmCode) AddressFromVmCode() Uint160 {
 	temp := sha256.Sum256(self.Code)
 	md := ripemd160.New()
 	md.Write(temp[:])
-	md.Sum(u160[:])
+	md.Sum(u160[:0])
 
 	u160[0] = byte(self.VmType)
 

@@ -18,7 +18,7 @@ func AddressFromPubKey(pubkey *crypto.PubKey) Uint160 {
 	temp := sha256.Sum256(buf.Bytes())
 	md := ripemd160.New()
 	md.Write(temp[:])
-	md.Sum(u160[:])
+	md.Sum(u160[:0])
 
 	u160[0] = 0x01
 
@@ -41,7 +41,7 @@ func AddressFromMultiPubKeys(pubkeys []*crypto.PubKey, m int) (Uint160, error) {
 	temp := sha256.Sum256(buf.Bytes())
 	md := ripemd160.New()
 	md.Write(temp[:])
-	md.Sum(u160[:])
+	md.Sum(u160[:0])
 	u160[0] = 0x02
 
 	return u160, nil
