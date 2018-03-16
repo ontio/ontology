@@ -13,7 +13,7 @@ import (
 var logger *log.Logger
 
 func init() {
-	SetDebugMode(true)
+	SetDebugMode(false)
 }
 
 func SetDebugMode(dbg bool) {

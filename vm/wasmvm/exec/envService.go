@@ -1,10 +1,10 @@
 package exec
 
 import (
+	"bytes"
 	"errors"
 	"github.com/Ontology/vm/wasmvm/memory"
 	"github.com/Ontology/vm/wasmvm/wasm"
-	"bytes"
 	"io/ioutil"
 	"fmt"
 )
@@ -14,28 +14,25 @@ type IInteropService interface {
 	GetServiceMap() map[string]func(*ExecutionEngine) (bool, error)
 }
 
-
-
 type InteropService struct {
 	serviceMap map[string]func(*ExecutionEngine) (bool, error)
 }
 
-func NewInteropService() *InteropService{
+func NewInteropService() *InteropService {
 	service := InteropService{make(map[string]func(*ExecutionEngine) (bool, error))}
 
 	//init some system functions
-	service.Register("calloc",calloc)
-	service.Register("malloc",malloc)
-	service.Register("arrayLen",arrayLen)
-	service.Register("memcpy",memcpy)
-	service.Register("read_message",readMessage)
-	service.Register("callContract",callContract)
+	service.Register("calloc", calloc)
+	service.Register("malloc", malloc)
+	service.Register("arrayLen", arrayLen)
+	service.Register("memcpy", memcpy)
+	service.Register("read_message", readMessage)
+	service.Register("callContract", callContract)
 
 	//===================add block apis below==================
 
 	return &service
 }
-
 
 func (i *InteropService) Register(name string, handler func(*ExecutionEngine) (bool, error)) bool {
 	if _, ok := i.serviceMap[name]; ok {
@@ -53,7 +50,7 @@ func (i *InteropService) Invoke(methodName string, engine *ExecutionEngine) (boo
 	return false, errors.New("Not supported method:" + methodName)
 }
 
-func (i *InteropService) MergeMap(mMap  map[string]func(*ExecutionEngine) (bool, error)) bool {
+func (i *InteropService) MergeMap(mMap map[string]func(*ExecutionEngine) (bool, error)) bool {
 
 	for k, v := range mMap {
 		if _, ok := i.serviceMap[k]; !ok {
@@ -94,7 +91,7 @@ func calloc(engine *ExecutionEngine) (bool, error) {
 	//1. recover the vm context
 	//2. if the call returns value,push the result to the stack
 	engine.vm.ctx = envCall.envPreCtx
-	if envCall.envReturns{
+	if envCall.envReturns {
 		engine.vm.pushUint64(uint64(index))
 	}
 	return true, nil
@@ -117,14 +114,14 @@ func malloc(engine *ExecutionEngine) (bool, error) {
 	//1. recover the vm context
 	//2. if the call returns value,push the result to the stack
 	engine.vm.ctx = envCall.envPreCtx
-	if envCall.envReturns{
+	if envCall.envReturns {
 		engine.vm.pushUint64(uint64(index))
 	}
 	return true, nil
 
 }
 
-//TODO use arrayLen to replace 'sizeof'
+//use arrayLen to replace 'sizeof'
 func arrayLen(engine *ExecutionEngine) (bool, error) {
 	envCall := engine.vm.envCall
 	params := envCall.envParams
@@ -134,19 +131,19 @@ func arrayLen(engine *ExecutionEngine) (bool, error) {
 
 	pointer := params[0]
 
-	tl,ok := engine.vm.memory.MemPoints[pointer]
+	tl, ok := engine.vm.memory.MemPoints[pointer]
 
 	var result uint64
-	if ok{
+	if ok {
 		switch tl.Ptype {
 		case memory.P_INT8, memory.P_STRING:
-			result =  uint64(tl.Length / 1)
+			result = uint64(tl.Length / 1)
 		case memory.P_INT16:
 			result = uint64(tl.Length / 2)
 		case memory.P_INT32, memory.P_FLOAT32:
 			result = uint64(tl.Length / 4)
 		case memory.P_INT64, memory.P_FLOAT64:
-			result =  uint64(tl.Length / 8)
+			result = uint64(tl.Length / 8)
 		case memory.P_UNKNOW:
 			//todo ???
 			result = uint64(0)
@@ -154,17 +151,16 @@ func arrayLen(engine *ExecutionEngine) (bool, error) {
 			result = uint64(0)
 		}
 
-	}else {
+	} else {
 		result = uint64(0)
 	}
 	//1. recover the vm context
 	//2. if the call returns value,push the result to the stack
 	engine.vm.ctx = envCall.envPreCtx
-	if envCall.envReturns{
+	if envCall.envReturns {
 		engine.vm.pushUint64(uint64(result))
 	}
 	return true, nil
-
 
 }
 
@@ -187,11 +183,11 @@ func memcpy(engine *ExecutionEngine) (bool, error) {
 	//1. recover the vm context
 	//2. if the call returns value,push the result to the stack
 	engine.vm.ctx = envCall.envPreCtx
-	if envCall.envReturns{
+	if envCall.envReturns {
 		engine.vm.pushUint64(uint64(1))
 	}
 
-	return true,nil  //this return will be dropped in wasm
+	return true, nil //this return will be dropped in wasm
 }
 
 func readMessage(engine *ExecutionEngine) (bool, error) {
@@ -204,28 +200,28 @@ func readMessage(engine *ExecutionEngine) (bool, error) {
 	addr := int(params[0])
 	length := int(params[1])
 
-	msgBytes ,err:= engine.vm.GetMessageBytes()
-	if err != nil{
-		return false,err
+	msgBytes, err := engine.vm.GetMessageBytes()
+	if err != nil {
+		return false, err
 	}
 	if length != len(msgBytes) {
-		return false,errors.New("readMessage length error")
+		return false, errors.New("readMessage length error")
 	}
-	copy(engine.vm.memory.Memory[addr:addr+length],msgBytes[:length])
-	engine.vm.memory.MemPoints[uint64(addr)] = &memory.TypeLength{Ptype:memory.P_UNKNOW,Length:length}
+	copy(engine.vm.memory.Memory[addr:addr+length], msgBytes[:length])
+	engine.vm.memory.MemPoints[uint64(addr)] = &memory.TypeLength{Ptype: memory.P_UNKNOW, Length: length}
 
 	//1. recover the vm context
 	//2. if the call returns value,push the result to the stack
 	engine.vm.ctx = envCall.envPreCtx
-	if envCall.envReturns{
+	if envCall.envReturns {
 		engine.vm.pushUint64(uint64(length))
 	}
 
-	return true,nil
+	return true, nil
 }
 
 //call other contract
-func callContract(engine *ExecutionEngine)(bool,error){
+func callContract(engine *ExecutionEngine) (bool, error) {
 
 	envCall := engine.vm.envCall
 	params := envCall.envParams
@@ -233,70 +229,88 @@ func callContract(engine *ExecutionEngine)(bool,error){
 		return false, errors.New("parameter count error while call readMessage")
 	}
 	contractAddressIdx := params[0]
-	addr,err := engine.vm.GetPointerMemory(contractAddressIdx)
-	if err != nil{
-		return false ,errors.New("get Contract address failed")
+	addr, err := engine.vm.GetPointerMemory(contractAddressIdx)
+	if err != nil {
+		return false, errors.New("get Contract address failed")
 	}
 	//the contract codes
-	contractBytes := getContractFromAddr(addr)
+	contractBytes, err := getContractFromAddr(addr)
+	if err != nil {
+		return false, err
+	}
 	bf := bytes.NewBuffer(contractBytes)
-	module,err :=wasm.ReadModule(bf,emptyImporter)
-	if err != nil{
-		return false ,errors.New("load Module failed")
+	module, err := wasm.ReadModule(bf, emptyImporter)
+	if err != nil {
+		return false, errors.New("load Module failed")
 	}
 
-	methodName ,err := engine.vm.GetPointerMemory(params[1])
-	if err != nil{
-		return false ,errors.New("get Contract address failed")
+	methodName, err := engine.vm.GetPointerMemory(params[1])
+	if err != nil {
+		return false, errors.New("get Contract address failed")
 	}
 
 	//if has args
 	var args []uint64
-	if len(params) > 3{
-		args =params[2:]
+	if len(params) > 3 {
+		args = params[2:]
 	}
 
-	res,err:=engine.vm.CallContract(module,trimBuffToString(methodName),args ...)
-	if err != nil{
-		return false ,errors.New("call contract " + trimBuffToString(methodName) + " failed")
+	res, err := engine.vm.CallContract(module, trimBuffToString(methodName), args...)
+	if err != nil {
+		return false, errors.New("call contract " + trimBuffToString(methodName) + " failed")
 	}
 
 	engine.vm.RestoreStat()
-	if envCall.envReturns{
+	if envCall.envReturns {
 		engine.vm.pushUint64(res)
 	}
 
-	return true ,nil
+	return true, nil
 }
 
-func emptyImporter(name string) (*wasm.Module, error){
-	return nil,nil
+func emptyImporter(name string) (*wasm.Module, error) {
+	return nil, nil
 }
 
-
-func getContractFromAddr(addr []byte)[]byte{
+func getContractFromAddr(addr []byte) ([]byte, error) {
 
 	//todo get the contract code from ledger
 	//just for test
-	contract := trimBuffToString(addr)
+		contract := trimBuffToString(addr)
 
-	code, err := ioutil.ReadFile(fmt.Sprintf("./testdata2/%s.wasm",contract))
+		code, err := ioutil.ReadFile(fmt.Sprintf("./testdata2/%s.wasm",contract))
+		if err != nil {
+			return nil,err
+		}
+
+		return code,nil
+/*	codeHash, err := common.Uint160ParseFromBytes(addr)
 	if err != nil {
-		return nil
+		return nil, errors.New("get address Code hash failed")
 	}
 
-	return code
+	contract, err := ledger.DefLedger.GetContractState(codeHash)
+	if err != nil {
+		return nil, errors.New("get contract state failed")
+	}
+
+	if contract.VmType != types.WASM {
+		return nil, errors.New(" contract is not a wasm contract")
+	}
+
+	return contract.Code.Code, nil*/
+
 }
 
-func trimBuffToString(bytes []byte)string{
+//trim the '\00' byte
+func trimBuffToString(bytes []byte) string {
 
-	var count = 0
-	for i,b := range bytes{
-		if b == 0{
-			count = i
-			break
+	for i, b := range bytes {
+		if b == 0 {
+			return string(bytes[:i])
 		}
 	}
-	return string(bytes[:count])
+
+	return string(bytes)
 
 }
