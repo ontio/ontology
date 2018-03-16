@@ -20,7 +20,10 @@ import:
 - package: github.com/urfave/cli
   version: v1.20.0
 - package: github.com/whyrusleeping/tar-utils
+- package: golang.org/x/text
+  repo: http://github.com/golang/text.git
 - package: golang.org/x/crypto
+  repo: https://github.com/golang/crypto.git
   subpackages:
   - ripemd160
 - package: github.com/Workiva/go-datastructures
@@ -36,5 +39,7 @@ import:
 - package: google.golang.org/grpc
   repo: https://github.com/grpc/grpc-go.git
 - package: github.com/hashicorp/golang-lru
+- package: google.golang.org/genproto
+  repo: https://github.com/google/go-genproto.git
 ignore:
   - golang.org/x/sys/unix
