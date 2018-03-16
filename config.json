@@ -21,7 +21,7 @@
     "HttpLocalPort": 20387,
     "NodePort": 20388,
     "NodeConsensusPort": 20389,
-    "PrintLevel": 3,
+    "PrintLevel": 1,
     "IsTLS": false,
     "CertPath": "./sample-cert.pem",
     "KeyPath": "./sample-cert-key.pem",
