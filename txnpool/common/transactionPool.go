@@ -56,7 +56,7 @@ func (tp *TXPool) CleanTransactionList(txs []*types.Transaction) error {
 			txsNum = txsNum - 1
 			continue
 		}
-		if tp.delTxList(tx) {
+		if tp.DelTxList(tx) {
 			cleaned++
 		}
 	}
@@ -69,7 +69,7 @@ func (tp *TXPool) CleanTransactionList(txs []*types.Transaction) error {
 	return nil
 }
 
-func (tp *TXPool) delTxList(tx *types.Transaction) bool {
+func (tp *TXPool) DelTxList(tx *types.Transaction) bool {
 	tp.Lock()
 	defer tp.Unlock()
 	txHash := tx.Hash()

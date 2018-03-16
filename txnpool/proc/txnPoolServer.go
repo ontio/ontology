@@ -458,6 +458,7 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 
 		// Re-verify it
 		if !ok {
+			s.delTransaction(t)
 			s.assginTXN2Worker(t, nil)
 			s.pendingBlock.unProcessedTxs[t.Hash()] = t
 		}

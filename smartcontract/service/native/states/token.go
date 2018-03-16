@@ -1,19 +1,18 @@
 package states
 
 import (
-	"math/big"
-	"io"
-	"github.com/Ontology/errors"
-	"DNA/common/serialization"
 	"github.com/Ontology/common"
+	"github.com/Ontology/common/serialization"
+	"github.com/Ontology/errors"
+	"io"
+	"math/big"
 )
-
 
 type Transfers struct {
 	Params []*TokenTransfer
 }
 
-func(this *Transfers) Serialize(w io.Writer) error {
+func (this *Transfers) Serialize(w io.Writer) error {
 	if err := serialization.WriteVarUint(w, uint64(len(this.Params))); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[Transfers Serialize] TokenTransfer length error!")
 	}
@@ -25,8 +24,9 @@ func(this *Transfers) Serialize(w io.Writer) error {
 	return nil
 }
 
-func(this *Transfers) Deserialize(r io.Reader) error {
-	n, err := serialization.ReadVarUint(r, 0); if err != nil {
+func (this *Transfers) Deserialize(r io.Reader) error {
+	n, err := serialization.ReadVarUint(r, 0)
+	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[Transfers Deserialize] TokenTransfer length error!")
 	}
 	for i := 0; uint64(i) < n; i++ {
@@ -41,10 +41,10 @@ func(this *Transfers) Deserialize(r io.Reader) error {
 
 type TokenTransfer struct {
 	Contract common.Uint160
-	States []*State
+	States   []*State
 }
 
-func(this *TokenTransfer) Serialize(w io.Writer) error {
+func (this *TokenTransfer) Serialize(w io.Writer) error {
 	if _, err := this.Contract.Serialize(w); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TokenTransfer Serialize] Contract error!")
 	}
@@ -59,15 +59,16 @@ func(this *TokenTransfer) Serialize(w io.Writer) error {
 	return nil
 }
 
-func(this *TokenTransfer) Deserialize(r io.Reader) error {
+func (this *TokenTransfer) Deserialize(r io.Reader) error {
 	contract := new(common.Uint160)
 	if err := contract.Deserialize(r); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TokenTransfer Deserialize] Contract error!")
 	}
-	n, err := serialization.ReadVarUint(r, 0); if err != nil {
+	n, err := serialization.ReadVarUint(r, 0)
+	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TokenTransfer Deserialize] States length error!")
 	}
-	for i:=0; uint64(i) < n; i++ {
+	for i := 0; uint64(i) < n; i++ {
 		state := new(State)
 		if err := state.Deserialize(r); err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[TokenTransfer Deserialize] States error!")
@@ -77,14 +78,13 @@ func(this *TokenTransfer) Deserialize(r io.Reader) error {
 	return nil
 }
 
-
 type State struct {
-	From common.Uint160
-	To common.Uint160
+	From  common.Uint160
+	To    common.Uint160
 	Value *big.Int
 }
 
-func(this *State) Serialize(w io.Writer) error {
+func (this *State) Serialize(w io.Writer) error {
 	if _, err := this.From.Serialize(w); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[State Serialize] From error!")
 	}
@@ -97,7 +97,7 @@ func(this *State) Serialize(w io.Writer) error {
 	return nil
 }
 
-func(this *State) Deserialize(r io.Reader) error {
+func (this *State) Deserialize(r io.Reader) error {
 	from := new(common.Uint160)
 	if err := from.Deserialize(r); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[State Deserialize] From error!")
@@ -110,12 +110,11 @@ func(this *State) Deserialize(r io.Reader) error {
 	}
 	this.From = *to
 
-	value, err := serialization.ReadVarBytes(r); if err != nil {
+	value, err := serialization.ReadVarBytes(r)
+	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[State Deserialize] Value error!")
 	}
 
 	this.Value = new(big.Int).SetBytes(value)
 	return nil
 }
-
-
