@@ -332,7 +332,7 @@ func SubmitBlock(params []interface{}) map[string]interface{} {
 }
 
 func GetNodeVersion(params []interface{}) map[string]interface{} {
-	return DnaRpc(config.Version)
+	return DnaRpc(config.Parameters.Version)
 }
 
 func UploadDataFile(params []interface{}) map[string]interface{} {

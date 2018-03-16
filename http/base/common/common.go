@@ -105,6 +105,7 @@ type TXNEntryInfo struct {
 func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 	trans := new(Transactions)
 	trans.TxType = ptx.TxType
+	trans.Nonce = ptx.Nonce
 	trans.Payload = TransPayloadToHex(ptx.Payload)
 
 	trans.Attributes = make([]TxAttributeInfo, len(ptx.Attributes))
