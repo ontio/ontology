@@ -296,8 +296,8 @@ func (s *TXPoolServer) unRegisterValidator(checkType types.VerifyType,
 }
 
 func (s *TXPoolServer) getNextValidatorPIDs() []*actor.PID {
-	s.validators.RLock()
-	defer s.validators.RUnlock()
+	s.validators.Lock()
+	defer s.validators.Unlock()
 
 	if len(s.validators.entries) == 0 {
 		return nil
@@ -424,6 +424,9 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 	if req == nil || len(req.Txs) == 0 {
 		return
 	}
+
+	s.pendingBlock.mu.Lock()
+
 	s.pendingBlock.sender = sender
 	s.pendingBlock.height = req.Height
 
@@ -469,8 +472,11 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 	 */
 	if len(s.pendingBlock.unProcessedTxs) == 0 {
 		s.sendBlkResult2Consensus()
+		s.pendingBlock.mu.Unlock()
 		return
 	}
+
+	s.pendingBlock.mu.Unlock()
 
 	<-s.pendingBlock.stopCh
 }
