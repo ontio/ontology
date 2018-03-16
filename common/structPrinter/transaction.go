@@ -26,13 +26,13 @@ package structPrinter
 //type BalanceTxInputInfo struct {
 //	AssetID     string
 //	Value       string
-//	ProgramHash string
+//	Address string
 //}
 //
 //type TxoutputInfo struct {
 //	AssetID     string
 //	Value       string
-//	ProgramHash string
+//	Address string
 //}
 //
 //type TxoutputMap struct {
@@ -202,7 +202,7 @@ package structPrinter
 //	for _, v := range ptx.BalanceInputs {
 //		trans.BalanceInputs[n].AssetID = ToHexString(v.AssetID.ToArray())
 //		trans.BalanceInputs[n].Value = strconv.FormatInt(int64(v.Value), 10)
-//		trans.BalanceInputs[n].ProgramHash = ToHexString(v.ProgramHash.ToArray())
+//		trans.BalanceInputs[n].Address = ToHexString(v.Address.ToArray())
 //		n++
 //	}
 //
@@ -211,7 +211,7 @@ package structPrinter
 //	for _, v := range ptx.Outputs {
 //		trans.Outputs[n].AssetID = ToHexString(v.AssetID.ToArrayReverse())
 //		trans.Outputs[n].Value = strconv.FormatInt(int64(v.Value), 10)
-//		trans.Outputs[n].ProgramHash = ToHexString(v.ProgramHash.ToArray())
+//		trans.Outputs[n].Address = ToHexString(v.Address.ToArray())
 //		n++
 //	}
 //

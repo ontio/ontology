@@ -9,9 +9,9 @@ import (
 )
 
 type Account struct {
-	PrivateKey  []byte
-	PublicKey   *crypto.PubKey
-	ProgramHash Uint160
+	PrivateKey []byte
+	PublicKey  *crypto.PubKey
+	Address    Uint160
 }
 
 func NewAccount() (*Account, error) {
@@ -22,9 +22,9 @@ func NewAccount() (*Account, error) {
 	}
 	programHash := ToCodeHash(signatureRedeemScript)
 	return &Account{
-		PrivateKey:  priKey,
-		PublicKey:   &pubKey,
-		ProgramHash: programHash,
+		PrivateKey: priKey,
+		PublicKey:  &pubKey,
+		Address:    programHash,
 	}, nil
 }
 
@@ -42,9 +42,9 @@ func NewAccountWithPrivatekey(privateKey []byte) (*Account, error) {
 	}
 	programHash := ToCodeHash(signatureRedeemScript)
 	return &Account{
-		PrivateKey:  privateKey,
-		PublicKey:   pubKey,
-		ProgramHash: programHash,
+		PrivateKey: privateKey,
+		PublicKey:  pubKey,
+		Address:    programHash,
 	}, nil
 }
 

@@ -9,6 +9,9 @@ func opHash(e *ExecutionEngine) (VMState, error) {
 func opCheckSig(e *ExecutionEngine) (VMState, error) {
 	pubkey := PopByteArray(e)
 	signature := PopByteArray(e)
+
+	// TODO use Hash for VerifySignature data
+	panic("need reimplement sig data should be hash")
 	ver, err := e.crypto.VerifySignature(e.codeContainer.GetMessage(), signature, pubkey)
 	if err != nil {
 		return FAULT, err

@@ -264,7 +264,7 @@ func (cl *ClientImpl) CreateAccount() (*Account, error) {
 	}
 
 	cl.mu.Lock()
-	cl.accounts[ac.ProgramHash] = ac
+	cl.accounts[ac.Address] = ac
 	cl.mu.Unlock()
 
 	err = cl.SaveAccount(ac)
@@ -292,7 +292,7 @@ func (cl *ClientImpl) CreateAccountByPrivateKey(privateKey []byte) (*Account, er
 		return nil, err
 	}
 
-	cl.accounts[ac.ProgramHash] = ac
+	cl.accounts[ac.Address] = ac
 	err = cl.SaveAccount(ac)
 	if err != nil {
 		return nil, err
@@ -395,7 +395,7 @@ func (cl *ClientImpl) SaveAccount(ac *Account) error {
 
 	ClearBytes(decryptedPrivateKey, 96)
 
-	err = cl.SaveAccountData(ac.ProgramHash.ToArray(), encryptedPrivateKey)
+	err = cl.SaveAccountData(ac.Address.ToArray(), encryptedPrivateKey)
 	if err != nil {
 		return err
 	}
@@ -419,7 +419,7 @@ func (cl *ClientImpl) LoadAccount() map[Uint160]*Account {
 
 		prikey := decryptedPrivateKey[64:96]
 		ac, err := NewAccountWithPrivatekey(prikey)
-		accounts[ac.ProgramHash] = ac
+		accounts[ac.Address] = ac
 		i++
 		break
 	}

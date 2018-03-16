@@ -234,7 +234,7 @@ func (ds *DbftService) CreateBookkeepingTransaction(nonce uint64, fee Fixed64) *
 	//	feeOutput := &utxo.TxOutput{
 	//		AssetID:     genesis.ONGTokenID,
 	//		Value:       fee,
-	//		ProgramHash: signatureRedeemScriptHashToCodeHash,
+	//		Address: signatureRedeemScriptHashToCodeHash,
 	//	}
 	//	outputs = append(outputs, feeOutput)
 	//}
@@ -431,9 +431,8 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 	ds.context.Transactions = message.Transactions
 	ds.context.header = nil
 
-	buf := new(bytes.Buffer)
-	ds.context.MakeHeader().SerializeUnsigned(buf)
-	err = crypto.Verify(*ds.context.BookKeepers[payload.BookKeeperIndex], buf.Bytes(), message.Signature)
+	blockHash := ds.context.MakeHeader().Hash()
+	err = crypto.Verify(*ds.context.BookKeepers[payload.BookKeeperIndex], blockHash[:], message.Signature)
 	if err != nil {
 		log.Warn("PrepareRequestReceived VerifySignature failed.", err)
 		ds.context = backupContext
@@ -491,7 +490,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 		return
 	}
 
-	sign, err := crypto.Sign(ds.Account.PrivKey(), buf.Bytes())
+	sign, err := crypto.Sign(ds.Account.PrivKey(), blockHash[:])
 	if err != nil {
 		log.Error("[DbftService] SignBySigner failed")
 		return
@@ -520,9 +519,8 @@ func (ds *DbftService) PrepareResponseReceived(payload *p2pmsg.ConsensusPayload,
 	if header == nil {
 		return
 	}
-	buf := new(bytes.Buffer)
-	header.SerializeUnsigned(buf)
-	err := crypto.Verify(*ds.context.BookKeepers[payload.BookKeeperIndex], buf.Bytes(), message.Signature)
+	blockHash := header.Hash()
+	err := crypto.Verify(*ds.context.BookKeepers[payload.BookKeeperIndex], blockHash[:], message.Signature)
 	if err != nil {
 		return
 	}
@@ -553,8 +551,7 @@ func (ds *DbftService) BlockSignaturesReceived(payload *p2pmsg.ConsensusPayload,
 		return
 	}
 
-	buf := new(bytes.Buffer)
-	header.SerializeUnsigned(buf)
+	blockHash := header.Hash()
 
 	for i := 0; i < len(message.Signatures); i++ {
 		sigdata := message.Signatures[i]
@@ -563,7 +560,7 @@ func (ds *DbftService) BlockSignaturesReceived(payload *p2pmsg.ConsensusPayload,
 			continue
 		}
 
-		err := crypto.Verify(*ds.context.BookKeepers[sigdata.Index], buf.Bytes(), sigdata.Signature)
+		err := crypto.Verify(*ds.context.BookKeepers[sigdata.Index], blockHash[:], sigdata.Signature)
 		if err != nil {
 			continue
 		}
@@ -683,9 +680,8 @@ func (ds *DbftService) Timeout() {
 			ds.context.header = nil
 			//build block and sign
 			block := ds.context.MakeHeader()
-			buf := new(bytes.Buffer)
-			block.SerializeUnsigned(buf)
-			ds.context.Signatures[ds.context.BookKeeperIndex], _ = crypto.Sign(ds.Account.PrivKey(), buf.Bytes())
+			blockHash := block.Hash()
+			ds.context.Signatures[ds.context.BookKeeperIndex], _ = crypto.Sign(ds.Account.PrivKey(), blockHash[:])
 		}
 		payload := ds.context.MakePrepareRequest()
 		ds.SignAndRelay(payload)

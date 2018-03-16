@@ -95,7 +95,8 @@ func transferAction(c *cli.Context) error {
 }
 
 func signTransaction(signer *account.Account, tx *ctypes.Transaction) error {
-	signature, err := crypto.Sign(signer.PrivKey(), tx.GetMessage())
+	hash := tx.Hash()
+	signature, err := crypto.Sign(signer.PrivKey(), hash[:])
 	if err != nil {
 		return err
 	}

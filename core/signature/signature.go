@@ -6,7 +6,6 @@ import (
 	"io"
 
 	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/contract/program"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
@@ -29,30 +28,20 @@ type SignableData interface {
 }
 
 func SignBySigner(data SignableData, signer Signer) ([]byte, error) {
-	log.Debug()
-	//fmt.Println("data",data)
-	signature, err := crypto.Sign(signer.PrivKey(), GetHashData(data))
-	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Signature],Sign failed.")
-	}
-	return signature, nil
+	return sign(data, signer.PrivKey())
 }
 
-func GetHashData(data SignableData) []byte {
-	b_buf := new(bytes.Buffer)
-	data.SerializeUnsigned(b_buf)
-	return b_buf.Bytes()
+func getHashData(data SignableData) []byte {
+	buf := new(bytes.Buffer)
+	data.SerializeUnsigned(buf)
+	return buf.Bytes()
 }
 
-func GetHashForSigning(data SignableData) []byte {
-	//TODO: GetHashForSigning
-	temp := sha256.Sum256(GetHashData(data))
-	return temp[:]
-}
+func sign(data SignableData, privKey []byte) ([]byte, error) {
+	temp := sha256.Sum256(getHashData(data))
+	hash := sha256.Sum256(temp[:])
 
-func Sign(data SignableData, prikey []byte) ([]byte, error) {
-	// FIXME ignore the return error value
-	signature, err := crypto.Sign(prikey, GetHashData(data))
+	signature, err := crypto.Sign(privKey, hash[:])
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[Signature],Sign failed.")
 	}

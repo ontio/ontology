@@ -180,7 +180,9 @@ func (this *SoloService) makeBlock() *types.Block {
 		Transactions: transactions,
 	}
 
-	signature, err := crypto.Sign(this.Account.PrivKey(), block.GetMessage())
+	blockHash := block.Hash()
+
+	signature, err := crypto.Sign(this.Account.PrivKey(), blockHash[:])
 	if err != nil {
 		log.Error("[Signature],Sign failed.")
 		return nil
