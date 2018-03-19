@@ -104,26 +104,31 @@ func Verify(publicKey PubKey, data []byte, signature []byte) error {
 }
 
 func VerifyMultiSignature(data []byte, pubKeys []*PubKey, m int, sigs [][]byte) error {
-	passed := true
 	n := len(pubKeys)
 
 	if len(sigs) < m {
-		passed = false
-	}
-
-	for i, j := 0, 0; passed && i < m && j < n; {
-		err := Verify(*pubKeys[j], data, sigs[i])
-		if err == nil {
-			i++
-		}
-		j++
-		if m-i > n-j {
-			passed = false
-		}
-	}
-
-	if passed == false {
 		return errors.New("multi-signature not enough")
+	}
+
+	mask := make([]bool, n)
+	for i := 0; i < m; i++ {
+		valid := false
+
+		for j := 0; j < n ; j ++ {
+			if mask[j] {
+				continue
+			}
+			err := Verify(*pubKeys[j], data, sigs[i])
+			if err == nil {
+				mask[j]= true
+				valid = true
+				break
+			}
+		}
+
+		if valid == false {
+			return errors.New("wrong sign in multi-signature")
+		}
 	}
 
 	return nil

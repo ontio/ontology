@@ -8,6 +8,7 @@ import (
 	"golang.org/x/crypto/ripemd160"
 	"errors"
 	"github.com/Ontology/common/serialization"
+	"sort"
 )
 
 func AddressFromPubKey(pubkey *crypto.PubKey) Uint160 {
@@ -31,6 +32,7 @@ func AddressFromMultiPubKeys(pubkeys []*crypto.PubKey, m int) (Uint160, error) {
 	if m <= 0 || m > n || n > 24 {
 		return u160, errors.New("wrong multi-sig param")
 	}
+	sort.Sort(crypto.PubKeySlice(pubkeys))
 	buf := bytes.Buffer{}
 	serialization.WriteUint8(&buf, uint8(n))
 	serialization.WriteUint8(&buf, uint8(m))
