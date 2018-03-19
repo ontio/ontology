@@ -258,16 +258,13 @@ func (cl *ClientImpl) ContainsAccount(pubKey *crypto.PubKey) bool {
 }
 
 func (cl *ClientImpl) CreateAccount() (*Account, error) {
-	ac, err := NewAccount()
-	if err != nil {
-		return nil, err
-	}
+	ac:= NewAccount()
 
 	cl.mu.Lock()
 	cl.accounts[ac.Address] = ac
 	cl.mu.Unlock()
 
-	err = cl.SaveAccount(ac)
+	err := cl.SaveAccount(ac)
 	if err != nil {
 		return nil, err
 	}
