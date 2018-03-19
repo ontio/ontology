@@ -7,7 +7,7 @@ import (
 	"errors"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
-	. "github.com/Ontology/net/protocol"
+	. "github.com/Ontology/p2pserver/protocol"
 	"strconv"
 )
 

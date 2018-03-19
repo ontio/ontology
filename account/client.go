@@ -22,7 +22,7 @@ import (
 	sig "github.com/Ontology/core/signature"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
-	"github.com/Ontology/net/protocol"
+	"github.com/Ontology/p2pserver/protocol"
 )
 
 const (
@@ -171,7 +171,7 @@ func (cl *ClientImpl) loadClient(passwordKey []byte) error {
 }
 
 func (cl *ClientImpl) GetDefaultAccount() (*Account, error) {
-	for programHash, _ := range cl.accounts {
+	for programHash := range cl.accounts {
 		return cl.GetAccountByProgramHash(programHash), nil
 	}
 

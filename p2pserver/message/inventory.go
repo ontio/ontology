@@ -6,13 +6,13 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"io"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
+	"io"
 	//	"github.com/Ontology/ledger"
-	. "github.com/Ontology/net/protocol"
-	"github.com/Ontology/net/actor"
+	"github.com/Ontology/p2pserver/actor"
+	. "github.com/Ontology/p2pserver/protocol"
 )
 
 var LastInvHash Uint256
@@ -209,7 +209,7 @@ func GetInvFromBlockHash(starthash Uint256, stophash Uint256) (*InvPayload, erro
 	var startheight uint32
 	var stopheight uint32
 	//curHeight := ledger.DefaultLedger.GetLocalBlockChainHeight()
-	curHeight, _:= actor.GetCurrentBlockHeight()
+	curHeight, _ := actor.GetCurrentBlockHeight()
 	if starthash == empty {
 		if stophash == empty {
 			if curHeight > MAXBLKHDRCNT {

@@ -9,8 +9,8 @@ import (
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/core/types"
-	. "github.com/Ontology/net/protocol"
-	"github.com/Ontology/net/actor"
+	"github.com/Ontology/p2pserver/actor"
+	. "github.com/Ontology/p2pserver/protocol"
 )
 
 type headersReq struct {
@@ -190,7 +190,7 @@ func (msg blkHeader) Handle(node Noder) error {
 	//}
 	var blkHdr []*types.Header
 	var i uint32
-	for i = 0; i < msg.cnt ; i++  {
+	for i = 0; i < msg.cnt; i++ {
 		blkHdr = append(blkHdr, &msg.blkHdr[i])
 	}
 	actor.AddHeaders(blkHdr)

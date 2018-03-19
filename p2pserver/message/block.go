@@ -8,8 +8,8 @@ import (
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/types"
-	. "github.com/Ontology/net/protocol"
-	"github.com/Ontology/net/actor"
+	"github.com/Ontology/p2pserver/actor"
+	. "github.com/Ontology/p2pserver/protocol"
 )
 
 type blockReq struct {
@@ -39,7 +39,7 @@ func (msg block) Handle(node Noder) error {
 	//node.RemoveFlightHeight(msg.blk.Header.Height)
 	//node.LocalNode().GetEvent("block").Notify(events.EventNewInventory, &msg.blk)
 	hash := msg.blk.Hash()
-	if con, _ := actor.IsContainBlock(hash); con != true{
+	if con, _ := actor.IsContainBlock(hash); con != true {
 		actor.AddBlock(&msg.blk)
 	} else {
 		log.Debug("Receive duplicated block")

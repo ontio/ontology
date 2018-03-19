@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/core/ledger"
-	. "github.com/Ontology/net/protocol"
+	. "github.com/Ontology/p2pserver/protocol"
 	"html/template"
 	"net/http"
 	"sort"
@@ -26,7 +26,7 @@ type Info struct {
 }
 
 const (
-	verifyNode = "Verify Node"
+	verifyNode  = "Verify Node"
 	serviceNode = "Service Node"
 )
 
@@ -61,7 +61,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	var ngbHttpInfoAddr string
 
 	curNodeType := serviceNode
-	bookKeeperState,  _ := ledger.DefLedger.GetBookKeeperState()
+	bookKeeperState, _ := ledger.DefLedger.GetBookKeeperState()
 	bookKeepers := bookKeeperState.CurrBookKeeper
 	bookKeeperLen := len(bookKeepers)
 	for i := 0; i < bookKeeperLen; i++ {
@@ -110,5 +110,5 @@ func StartServer(n Noder) {
 	node = n
 	port := int(config.Parameters.HttpInfoPort)
 	http.HandleFunc("/info", viewHandler)
-	http.ListenAndServe(":" + strconv.Itoa(port), nil)
+	http.ListenAndServe(":"+strconv.Itoa(port), nil)
 }

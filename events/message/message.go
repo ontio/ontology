@@ -1,9 +1,9 @@
 package message
 
 import (
-	"github.com/Ontology/core/types"
 	"github.com/Ontology/common"
-	"github.com/Ontology/net/protocol"
+	"github.com/Ontology/core/types"
+	"github.com/Ontology/p2pserver/protocol"
 )
 
 const (

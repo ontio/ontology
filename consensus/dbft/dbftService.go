@@ -3,8 +3,8 @@ package dbft
 import (
 	"bytes"
 	"fmt"
-	"time"
 	"reflect"
+	"time"
 
 	"github.com/Ontology/account"
 	. "github.com/Ontology/common"
@@ -21,7 +21,7 @@ import (
 	"github.com/Ontology/eventbus/actor"
 	"github.com/Ontology/events"
 	"github.com/Ontology/events/message"
-	p2pmsg "github.com/Ontology/net/message"
+	p2pmsg "github.com/Ontology/p2pserver/message"
 )
 
 type DbftService struct {

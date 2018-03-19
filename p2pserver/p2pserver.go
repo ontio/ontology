@@ -2,11 +2,11 @@ package net
 
 import (
 	"github.com/Ontology/crypto"
-	"github.com/Ontology/events"
-	"github.com/Ontology/net/node"
-	"github.com/Ontology/net/protocol"
-	ns "github.com/Ontology/net/actor"
 	"github.com/Ontology/eventbus/actor"
+	"github.com/Ontology/events"
+	ns "github.com/Ontology/p2pserver/actor"
+	"github.com/Ontology/p2pserver/node"
+	"github.com/Ontology/p2pserver/protocol"
 )
 
 type Neter interface {
@@ -32,12 +32,12 @@ func SetLedgerPid(conPid *actor.PID) {
 	ns.SetLedgerPid(conPid)
 }
 
-func InitNetServerActor(noder protocol.Noder) (*actor.PID, error){
+func InitNetServerActor(noder protocol.Noder) (*actor.PID, error) {
 	netServerPid, err := ns.InitNetServer(noder)
 	return netServerPid, err
 }
 
-func StartProtocol(pubKey *crypto.PubKey) protocol.Noder{
+func StartProtocol(pubKey *crypto.PubKey) protocol.Noder {
 	net := node.InitNode(pubKey)
 	net.ConnectSeeds()
 	return net

@@ -10,7 +10,7 @@ import (
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/core/vote"
 	"github.com/Ontology/crypto"
-	msg "github.com/Ontology/net/message"
+	msg "github.com/Ontology/p2pserver/message"
 )
 
 const ContextVersion uint32 = 0

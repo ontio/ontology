@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Ontology/common/log"
-	. "github.com/Ontology/net/protocol"
+	. "github.com/Ontology/p2pserver/protocol"
 )
 
 type Messager interface {

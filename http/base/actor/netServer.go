@@ -1,11 +1,11 @@
 package actor
 
 import (
-	"time"
-	"github.com/Ontology/eventbus/actor"
-	. "github.com/Ontology/net/protocol"
-	ac "github.com/Ontology/net/actor"
 	"errors"
+	"github.com/Ontology/eventbus/actor"
+	ac "github.com/Ontology/p2pserver/actor"
+	. "github.com/Ontology/p2pserver/protocol"
+	"time"
 )
 
 var netServerPid *actor.PID
@@ -131,5 +131,3 @@ func GetNodeType() (uint64, error) {
 	}
 	return r.NodeType, nil
 }
-
-

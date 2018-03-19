@@ -7,7 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/Ontology/common/log"
-	. "github.com/Ontology/net/protocol"
+	. "github.com/Ontology/p2pserver/protocol"
 	"net"
 	"strconv"
 )

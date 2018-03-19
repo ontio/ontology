@@ -3,7 +3,7 @@ package actor
 import (
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/eventbus/actor"
-	"github.com/Ontology/net/protocol"
+	"github.com/Ontology/p2pserver/protocol"
 	"reflect"
 )
 
