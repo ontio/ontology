@@ -58,36 +58,7 @@ func GetBlock(params []interface{}) map[string]interface{} {
 	if err != nil {
 		return DnaRpcUnknownBlock
 	}
-
-	blockHead := &BlockHead{
-		Version:          block.Header.Version,
-		PrevBlockHash:    ToHexString(block.Header.PrevBlockHash.ToArray()),
-		TransactionsRoot: ToHexString(block.Header.TransactionsRoot.ToArray()),
-		BlockRoot:        ToHexString(block.Header.BlockRoot.ToArray()),
-		StateRoot:        ToHexString(block.Header.StateRoot.ToArray()),
-		Timestamp:        block.Header.Timestamp,
-		Height:           block.Header.Height,
-		ConsensusData:    block.Header.ConsensusData,
-		NextBookKeeper:   ToHexString(block.Header.NextBookKeeper[:]),
-		// TODO replace with bookkeepers and sigdata
-		//Program: ProgramInfo{
-		//	Code:      ToHexString(block.Header.Program.Code),
-		//	Parameter: ToHexString(block.Header.Program.Parameter),
-		//},
-		Hash: ToHexString(hash.ToArray()),
-	}
-
-	trans := make([]*Transactions, len(block.Transactions))
-	for i := 0; i < len(block.Transactions); i++ {
-		trans[i] = TransArryByteToHexString(block.Transactions[i])
-	}
-
-	b := BlockInfo{
-		Hash:         ToHexString(hash.ToArray()),
-		BlockData:    blockHead,
-		Transactions: trans,
-	}
-	return DnaRpc(b)
+	return DnaRpc(GetBlockInfo(block))
 }
 
 func GetBlockCount(params []interface{}) map[string]interface{} {

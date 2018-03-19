@@ -63,7 +63,7 @@ type BlockHead struct {
 
 type BlockInfo struct {
 	Hash         string
-	BlockData    *BlockHead
+	Header    *BlockHead
 	Transactions []*Transactions
 }
 
@@ -140,4 +140,44 @@ func VerifyAndSendTx(txn *types.Transaction) ErrCode {
 		return ErrXmitFail
 	}
 	return ErrNoError
+}
+
+func GetBlockInfo(block *types.Block) BlockInfo {
+	hash := block.Hash()
+	var bookKeepers = []PubKeyInfo{}
+	var sigData = []string{}
+	for i := 0; i < len(block.Header.SigData); i++ {
+		s := ToHexString(block.Header.SigData[i])
+		sigData = append(sigData, s)
+	}
+	for i := 0; i < len(block.Header.BookKeepers); i++ {
+		e := block.Header.BookKeepers[i]
+		bookKeepers = append(bookKeepers, PubKeyInfo{e.X.String(), e.Y.String()})
+	}
+	blockHead := &BlockHead{
+		Version:          block.Header.Version,
+		PrevBlockHash:    ToHexString(block.Header.PrevBlockHash.ToArray()),
+		TransactionsRoot: ToHexString(block.Header.TransactionsRoot.ToArray()),
+		BlockRoot:        ToHexString(block.Header.BlockRoot.ToArray()),
+		StateRoot:        ToHexString(block.Header.StateRoot.ToArray()),
+		Timestamp:        block.Header.Timestamp,
+		Height:           block.Header.Height,
+		ConsensusData:    block.Header.ConsensusData,
+		NextBookKeeper:   ToHexString(block.Header.NextBookKeeper[:]),
+		BookKeepers: bookKeepers,
+		SigData:     sigData,
+		Hash: ToHexString(hash.ToArray()),
+	}
+
+	trans := make([]*Transactions, len(block.Transactions))
+	for i := 0; i < len(block.Transactions); i++ {
+		trans[i] = TransArryByteToHexString(block.Transactions[i])
+	}
+
+	b := BlockInfo{
+		Hash:         ToHexString(hash.ToArray()),
+		Header:    blockHead,
+		Transactions: trans,
+	}
+	return b
 }
