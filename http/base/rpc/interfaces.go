@@ -341,6 +341,31 @@ func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 	}
 	return DnaRpcInvalidParameter
 }
+
+func GetTxBlockHeight(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return DnaRpcNil
+	}
+
+	switch (params[0]).(type) {
+	// tx hash
+	case string:
+		str := params[0].(string)
+		hex, err := hex.DecodeString(str)
+		if err != nil {
+			return DnaRpcInvalidParameter
+		}
+		var hash Uint256
+		if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
+			return DnaRpcInvalidParameter
+		}
+		//TODO resp
+		return DnaRpc(map[string]interface{}{"Height": 0})
+	default:
+		return DnaRpcInvalidParameter
+	}
+	return DnaRpcInvalidParameter
+}
 func RegDataFile(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil

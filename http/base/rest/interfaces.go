@@ -125,6 +125,28 @@ func GetBlockByHash(cmd map[string]interface{}) map[string]interface{} {
 
 	return resp
 }
+
+func GetTxBlockHeight(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(Err.SUCCESS)
+	param := cmd["Hash"].(string)
+	if len(param) == 0 {
+		return ResponsePack(Err.INVALID_PARAMS)
+	}
+	var hash Uint256
+	hex, err := HexToBytes(param)
+	if err != nil {
+		return ResponsePack(Err.INVALID_PARAMS)
+	}
+	if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
+		return ResponsePack(Err.INVALID_TRANSACTION)
+	}
+	height,err := GetTxBlockHeightFromStore(hash)
+	if err != nil {
+		return ResponsePack(Err.INTERNAL_ERROR)
+	}
+	resp["Result"] = height
+	return resp
+}
 func GetBlockTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
 
