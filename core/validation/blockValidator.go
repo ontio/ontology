@@ -17,7 +17,8 @@ func VerifyBlock(block *types.Block, ld *ledger.Ledger, completely bool) error {
 	}
 
 	m := len(header.BookKeepers) - (len(header.BookKeepers)-1)/3
-	err := crypto.VerifyMultiSignature(block.Header.GetMessage(), header.BookKeepers, m, header.SigData)
+	hash := block.Hash()
+	err := crypto.VerifyMultiSignature(hash[:], header.BookKeepers, m, header.SigData)
 	if err != nil {
 		return err
 	}

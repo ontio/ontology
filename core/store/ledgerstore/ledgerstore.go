@@ -380,6 +380,7 @@ func (this *LedgerStore) verifyHeader(header *types.Header) error {
 		return fmt.Errorf("block timestamp is incorrect")
 	}
 
+
 	address, err := types.AddressFromBookKeepers(header.BookKeepers)
 	if err != nil {
 		return err
@@ -389,7 +390,8 @@ func (this *LedgerStore) verifyHeader(header *types.Header) error {
 	}
 
 	m := len(header.BookKeepers) - (len(header.BookKeepers)-1)/3
-	err = crypto.VerifyMultiSignature(header.GetMessage(), header.BookKeepers, m, header.SigData)
+	hash := header.Hash()
+	err = crypto.VerifyMultiSignature(hash[:], header.BookKeepers, m, header.SigData)
 	if err != nil {
 		return err
 	}
