@@ -136,7 +136,7 @@ func PreExecuteContract(tx *types.Transaction) ([]interface{}, error) {
 		return nil,err
 	}
 	if rsp, ok := result.(*PreExecuteContractRsp); !ok {
-		return rsp.Result,errors.New("fail")
+		return nil,errors.New("fail")
 	}else {
 		return rsp.Result,rsp.Error
 	}

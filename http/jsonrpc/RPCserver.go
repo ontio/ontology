@@ -21,15 +21,16 @@ func StartRPCServer() {
 	HandleFunc("getblockhash", GetBlockHash)
 	HandleFunc("getconnectioncount", GetConnectionCount)
 	HandleFunc("getrawmempool", GetRawMemPool)
-	HandleFunc("getmempooltx", GetMemPoolTx)
+
 	HandleFunc("getrawtransaction", GetRawTransaction)
 	HandleFunc("sendrawtransaction", SendRawTransaction)
 	HandleFunc("getstorage", GetStorage)
 	HandleFunc("getversion", GetNodeVersion)
-	HandleFunc("getsmartcodeevent", GetSmartCodeEvent)
 
 	HandleFunc("getblocksysfee", GetSystemFee)
 	HandleFunc("getcontractstate", GetContractState)
+	HandleFunc("getmempooltxstate", GetMemPoolTxState)
+	HandleFunc("getsmartcodeevent", GetSmartCodeEvent)
 
 	err := http.ListenAndServe(":"+strconv.Itoa(Parameters.HttpJsonPort), nil)
 	if err != nil {

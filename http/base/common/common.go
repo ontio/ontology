@@ -6,7 +6,6 @@ import (
 	"github.com/Ontology/core/types"
 	. "github.com/Ontology/errors"
 	. "github.com/Ontology/http/base/actor"
-	"strconv"
 )
 
 //multiplexer that keeps track of every function to be called on specific rpc call
@@ -19,11 +18,6 @@ type TxAttributeInfo struct {
 type AmountMap struct {
 	Key   Uint256
 	Value Fixed64
-}
-
-type ProgramInfo struct {
-	Code      string
-	Parameter string
 }
 
 type Fee struct {
@@ -45,7 +39,7 @@ type Transactions struct {
 	Payload    PayloadInfo
 	Attributes []TxAttributeInfo
 	Fee        []Fee
-	NetworkFee string
+	NetworkFee Fixed64
 	Sigs       []Sig
 	Hash       string
 }
@@ -126,7 +120,7 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 		trans.Sigs = append(trans.Sigs, e)
 	}
 	networkfee := ptx.GetNetworkFee()
-	trans.NetworkFee = strconv.FormatInt(int64(networkfee), 10)
+	trans.NetworkFee = networkfee
 
 	mhash := ptx.Hash()
 	trans.Hash = ToHexString(mhash.ToArray())
