@@ -163,6 +163,9 @@ func GetBlockTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(Err.UNKNOWN_BLOCK)
 	}
+	if hash.CompareTo(Uint256{}) == 0{
+		return ResponsePack(Err.INVALID_PARAMS)
+	}
 	block, err := GetBlockFromStore(hash)
 	if err != nil {
 		return ResponsePack(Err.UNKNOWN_BLOCK)
