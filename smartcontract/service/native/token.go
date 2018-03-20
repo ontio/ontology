@@ -21,46 +21,29 @@ var (
 )
 
 func OntInit(native *NativeService) (bool, error) {
-	cli := account.Open("wallet.dat", []byte("passwordtest"))
-	acc, _ :=cli.GetDefaultAccount()
-	ontOwner := ctypes.AddressFromPubKey(acc.PublicKey)
+	booKeepers := account.GetBookKeepers()
 
 	amount, err := getBalance(native, getOntTotalSupplyKey())
 	if err != nil {
 		return false, err
 	}
+
 	if amount != nil && amount.Sign() != 0 {
 		return false, errors.NewErr("Init ont has been completed!")
 	}
-	native.CloneCache.Add(scommon.ST_Storage, append(getOntContext(), ontOwner.ToArray()...), &cstates.StorageItem{Value: totalSupply.Bytes()})
-	native.CloneCache.Add(scommon.ST_Storage, getOntTotalSupplyKey(), &cstates.StorageItem{Value: totalSupply.Bytes()})
-	native.Notifications = append(native.Notifications, &event.NotifyEventInfo{
-		Container: native.Tx.Hash(),
-		CodeHash: genesis.OntContractAddress,
-		States: []interface{}{nil, ontOwner, totalSupply},
-	})
-	return true, nil
-}
 
-func OngInit(native *NativeService) (bool, error) {
-	cli := account.Open("wallet.dat", []byte("passwordtest"))
-	acc, _ :=cli.GetDefaultAccount()
-	ongOwner := ctypes.AddressFromPubKey(acc.PublicKey)
+	ts := new(big.Int).Div(totalSupply, big.NewInt(int64(len(booKeepers))))
+	for _, v := range booKeepers {
+		address := ctypes.AddressFromPubKey(v)
+		native.CloneCache.Add(scommon.ST_Storage, append(getOntContext(), address.ToArray()...), &cstates.StorageItem{Value: ts.Bytes()})
+		native.CloneCache.Add(scommon.ST_Storage, getOntTotalSupplyKey(), &cstates.StorageItem{Value: ts.Bytes()})
+		native.Notifications = append(native.Notifications, &event.NotifyEventInfo{
+			Container: native.Tx.Hash(),
+			CodeHash: genesis.OntContractAddress,
+			States: []interface{}{nil, address, ts},
+		})
+	}
 
-	amount, err := getBalance(native, getOngTotalSupplyKey())
-	if err != nil {
-		return false, err
-	}
-	if amount != nil && amount.Sign() != 0 {
-		return false, errors.NewErr("Init ong has been completed!")
-	}
-	native.CloneCache.Add(scommon.ST_Storage, append(getOngContext(), ongOwner.ToArray()...), &cstates.StorageItem{Value: totalSupply.Bytes()})
-	native.CloneCache.Add(scommon.ST_Storage, getOngTotalSupplyKey(), &cstates.StorageItem{Value: totalSupply.Bytes()})
-	native.Notifications = append(native.Notifications, &event.NotifyEventInfo{
-		Container: native.Tx.Hash(),
-		CodeHash: genesis.OngContractAddress,
-		States: []interface{}{nil, ongOwner, totalSupply},
-	})
 	return true, nil
 }
 
@@ -79,9 +62,10 @@ func Transfer(native *NativeService) (bool, error) {
 				return true, nil
 			}
 
-			//if !checkWitness(native, s.From) {
-			//	return false, errors.NewErr("[Transfer] Authentication failed!")
-			//}
+			if !checkWitness(native, s.From) {
+				return false, errors.NewErr("[Transfer] Authentication failed!")
+			}
+
 			fromKey := append(p.Contract.ToArray(), s.From.ToArray()...)
 			fromBalance, err := getBalance(native, fromKey); if err != nil {
 				return false, err
