@@ -22,45 +22,45 @@ func getCurrentDirectory() string {
 
 func GetNeighbor(params []interface{}) map[string]interface{} {
 	addr, _ := GetNeighborAddrs()
-	return DnaRpc(addr)
+	return Rpc(addr)
 }
 
 func GetNodeState(params []interface{}) map[string]interface{} {
 	state,err := GetConnectionState()
 	if err != nil {
-		return DnaRpcFailed
+		return RpcFailed
 	}
 	t,err := GetNodeTime()
 	if err != nil {
-		return DnaRpcFailed
+		return RpcFailed
 	}
 	port,err := GetNodePort()
 	if err != nil {
-		return DnaRpcFailed
+		return RpcFailed
 	}
 	id,err := GetID()
 	if err != nil {
-		return DnaRpcFailed
+		return RpcFailed
 	}
 	ver,err := GetVersion()
 	if err != nil {
-		return DnaRpcFailed
+		return RpcFailed
 	}
 	tpe,err := GetNodeType()
 	if err != nil {
-		return DnaRpcFailed
+		return RpcFailed
 	}
 	relay,err := GetRelayState()
 	if err != nil {
-		return DnaRpcFailed
+		return RpcFailed
 	}
 	height,err := BlockHeight()
 	if err != nil {
-		return DnaRpcFailed
+		return RpcFailed
 	}
 	txnCnt,err := GetTxnCnt()
 	if err != nil {
-		return DnaRpcFailed
+		return RpcFailed
 	}
 	n := NodeInfo{
 		NodeState:    uint(state),
@@ -73,21 +73,21 @@ func GetNodeState(params []interface{}) map[string]interface{} {
 		Height:   height,
 		TxnCnt:   txnCnt,
 	}
-	return DnaRpc(n)
+	return Rpc(n)
 }
 
 func StartConsensus(params []interface{}) map[string]interface{} {
 	if err := ConsensusSrvStart(); err != nil {
-		return DnaRpcFailed
+		return RpcFailed
 	}
-	return DnaRpcSuccess
+	return RpcSuccess
 }
 
 func StopConsensus(params []interface{}) map[string]interface{} {
 	if err := ConsensusSrvHalt(); err != nil {
-		return DnaRpcFailed
+		return RpcFailed
 	}
-	return DnaRpcSuccess
+	return RpcSuccess
 }
 
 func SendSampleTransaction(params []interface{}) map[string]interface{} {
@@ -137,16 +137,16 @@ func SendSampleTransaction(params []interface{}) map[string]interface{} {
 
 func SetDebugInfo(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
-		return DnaRpcInvalidParameter
+		return RpcInvalidParameter
 	}
 	switch params[0].(type) {
 	case float64:
 		level := params[0].(float64)
 		if err := log.Log.SetDebugLevel(int(level)); err != nil {
-			return DnaRpcInvalidParameter
+			return RpcInvalidParameter
 		}
 	default:
-		return DnaRpcInvalidParameter
+		return RpcInvalidParameter
 	}
-	return DnaRpcSuccess
+	return RpcSuccess
 }

@@ -216,6 +216,9 @@ func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(Err.UNKNOWN_TRANSACTION)
 	}
+	if tx == nil {
+		return ResponsePack(Err.UNKNOWN_TRANSACTION)
+	}
 	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
 		w := bytes.NewBuffer(nil)
 		tx.Serialize(w)

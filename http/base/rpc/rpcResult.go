@@ -5,24 +5,25 @@ import (
 )
 
 var (
-	DnaRpcInvalidHash        = responsePacking(Err.INVALID_PARAMS, "invalid hash")
-	DnaRpcInvalidBlock       = responsePacking(Err.INVALID_BLOCK, "invalid block")
-	DnaRpcInvalidTransaction = responsePacking(Err.INVALID_TRANSACTION, "invalid transaction")
-	DnaRpcInvalidParameter   = responsePacking(Err.INVALID_PARAMS, "invalid parameter")
+	RpcInvalidHash        = responsePacking(Err.INVALID_PARAMS, "invalid hash")
+	RpcInvalidBlock       = responsePacking(Err.INVALID_BLOCK, "invalid block")
+	RpcInvalidTransaction = responsePacking(Err.INVALID_TRANSACTION, "invalid transaction")
+	RpcInvalidParameter   = responsePacking(Err.INVALID_PARAMS, "invalid parameter")
 
-	DnaRpcUnknownBlock       = responsePacking(Err.UNKNOWN_BLOCK, "unknown block")
-	DnaRpcUnknownTransaction = responsePacking(Err.UNKNOWN_TRANSACTION, "unknown transaction")
+	RpcUnknownBlock       = responsePacking(Err.UNKNOWN_BLOCK, "unknown block")
+	RpcUnknownTransaction = responsePacking(Err.UNKNOWN_TRANSACTION, "unknown transaction")
 
-	DnaRpcNil             = responsePacking(Err.INVALID_PARAMS, nil)
-	DnaRpcUnsupported     = responsePacking(Err.INTERNAL_ERROR, "Unsupported")
-	DnaRpcInternalError   = responsePacking(Err.INTERNAL_ERROR, "internal error")
-	DnaRpcIOError         = responsePacking(Err.INTERNAL_ERROR, "internal IO error")
-	DnaRpcAPIError        = responsePacking(Err.INTERNAL_ERROR, "internal API error")
-	DnaRpcSuccess         = responsePacking(Err.SUCCESS, true)
-	DnaRpcFailed          = responsePacking(Err.INTERNAL_ERROR, false)
-	DnaRpcAccountNotFound = responsePacking(Err.INTERNAL_ERROR, "Account not found")
+	RpcNil             = responsePacking(Err.INVALID_PARAMS, nil)
+	RpcUnsupported     = responsePacking(Err.INTERNAL_ERROR, "Unsupported")
+	RpcInternalError   = responsePacking(Err.INTERNAL_ERROR, "internal error")
+	RpcIOError         = responsePacking(Err.INTERNAL_ERROR, "internal IO error")
+	RpcAPIError        = responsePacking(Err.INTERNAL_ERROR, "internal API error")
 
-	DnaRpc = responseSuccess
+	RpcFailed          = responsePacking(Err.INTERNAL_ERROR, false)
+	RpcAccountNotFound = responsePacking(Err.INTERNAL_ERROR, "Account not found")
+
+	RpcSuccess         = responsePacking(Err.SUCCESS, true)
+	Rpc = responseSuccess
 )
 
 func responseSuccess(result interface{}) map[string]interface{} {
