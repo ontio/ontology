@@ -14,15 +14,12 @@ import (
 	. "github.com/Ontology/http/base/actor"
 )
 
-
-
 const TlsPort int = 443
 
 type ApiServer interface {
 	Start() error
 	Stop()
 }
-
 
 //Node
 func GetGenerateBlockTime(cmd map[string]interface{}) map[string]interface{} {
@@ -93,6 +90,9 @@ func GetBlockTransactions(block *types.Block) interface{} {
 func getBlock(hash Uint256, getTxBytes bool) (interface{}, int64) {
 	block, err := GetBlockFromStore(hash)
 	if err != nil {
+		return "", Err.UNKNOWN_BLOCK
+	}
+	if block.Header == nil {
 		return "", Err.UNKNOWN_BLOCK
 	}
 	if getTxBytes {

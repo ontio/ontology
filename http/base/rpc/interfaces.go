@@ -61,6 +61,9 @@ func GetBlock(params []interface{}) map[string]interface{} {
 	if err != nil {
 		return DnaRpcUnknownBlock
 	}
+	if block.Header == nil{
+		return DnaRpcUnknownBlock
+	}
 	return DnaRpc(GetBlockInfo(block))
 }
 

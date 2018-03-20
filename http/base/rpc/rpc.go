@@ -85,6 +85,8 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		response := function(request["params"].([]interface{}))
 		data, err := json.Marshal(map[string]interface{}{
 			"jsonpc": "2.0",
+			"error":  response["error"],
+			"desc":   response["desc"],
 			"result": response["result"],
 			"id":     request["id"],
 		})
