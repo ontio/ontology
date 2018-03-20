@@ -58,36 +58,7 @@ func GetBlock(params []interface{}) map[string]interface{} {
 	if err != nil {
 		return DnaRpcUnknownBlock
 	}
-
-	blockHead := &BlockHead{
-		Version:          block.Header.Version,
-		PrevBlockHash:    ToHexString(block.Header.PrevBlockHash.ToArray()),
-		TransactionsRoot: ToHexString(block.Header.TransactionsRoot.ToArray()),
-		BlockRoot:        ToHexString(block.Header.BlockRoot.ToArray()),
-		StateRoot:        ToHexString(block.Header.StateRoot.ToArray()),
-		Timestamp:        block.Header.Timestamp,
-		Height:           block.Header.Height,
-		ConsensusData:    block.Header.ConsensusData,
-		NextBookKeeper:   ToHexString(block.Header.NextBookKeeper[:]),
-		// TODO replace with bookkeepers and sigdata
-		//Program: ProgramInfo{
-		//	Code:      ToHexString(block.Header.Program.Code),
-		//	Parameter: ToHexString(block.Header.Program.Parameter),
-		//},
-		Hash: ToHexString(hash.ToArray()),
-	}
-
-	trans := make([]*Transactions, len(block.Transactions))
-	for i := 0; i < len(block.Transactions); i++ {
-		trans[i] = TransArryByteToHexString(block.Transactions[i])
-	}
-
-	b := BlockInfo{
-		Hash:         ToHexString(hash.ToArray()),
-		BlockData:    blockHead,
-		Transactions: trans,
-	}
-	return DnaRpc(b)
+	return DnaRpc(GetBlockInfo(block))
 }
 
 func GetBlockCount(params []interface{}) map[string]interface{} {
@@ -136,7 +107,7 @@ func GetRawMemPool(params []interface{}) map[string]interface{} {
 	}
 	return DnaRpc(txs)
 }
-func GetMemPoolTx(params []interface{}) map[string]interface{} {
+func GetMemPoolTxState(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil
 	}
@@ -365,6 +336,31 @@ func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 		height := uint32(params[0].(float64))
 		//TODO resp
 		return DnaRpc(map[string]interface{}{"Height": height})
+	default:
+		return DnaRpcInvalidParameter
+	}
+	return DnaRpcInvalidParameter
+}
+
+func GetTxBlockHeight(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return DnaRpcNil
+	}
+
+	switch (params[0]).(type) {
+	// tx hash
+	case string:
+		str := params[0].(string)
+		hex, err := hex.DecodeString(str)
+		if err != nil {
+			return DnaRpcInvalidParameter
+		}
+		var hash Uint256
+		if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
+			return DnaRpcInvalidParameter
+		}
+		//TODO resp
+		return DnaRpc(map[string]interface{}{"Height": 0})
 	default:
 		return DnaRpcInvalidParameter
 	}

@@ -29,14 +29,12 @@ var (
 	DBDirEvent          = "Chain/ledgerevent"
 	DBDirBlock          = "Chain/block"
 	DBDirState          = "Chain/states"
-	DBDirMerkleTree     = "Chain/merkle"
 	MerkleTreeStorePath = "Chain/merkle_tree.db"
 )
 
 type LedgerStore struct {
 	blockStore       *BlockStore
 	stateStore       *StateStore
-	merkleStore      *MerkleTreeStore
 	eventStore       *EventStore
 	storedIndexCount uint32
 	currBlockHeight  uint32
@@ -62,22 +60,16 @@ func NewLedgerStore() (*LedgerStore, error) {
 	}
 	ledgerStore.blockStore = blockStore
 
-	stateStore, err := NewStateStore(DBDirState)
-	if err != nil {
-		return nil, fmt.Errorf("NewStateStore error %s", err)
-	}
-	ledgerStore.stateStore = stateStore
-
 	err = ledgerStore.init()
 	if err != nil {
 		return nil, fmt.Errorf("init error %s", err)
 	}
 
-	merkleStore, err := NewMerkleTreeStore(DBDirMerkleTree, MerkleTreeStorePath, ledgerStore.GetCurrentBlockHeight())
+	stateStore, err := NewStateStore(DBDirState, MerkleTreeStorePath, ledgerStore.GetCurrentBlockHeight())
 	if err != nil {
-		return nil, fmt.Errorf("NewMerkleTreeStore error %s", err)
+		return nil, fmt.Errorf("NewStateStore error %s", err)
 	}
-	ledgerStore.merkleStore = merkleStore
+	ledgerStore.stateStore = stateStore
 
 	eventState, err := NewEventStore(DBDirEvent)
 	if err != nil {
@@ -102,10 +94,6 @@ func (this *LedgerStore) InitLedgerStoreWithGenesisBlock(genesisBlock *types.Blo
 		err = this.stateStore.ClearAll()
 		if err != nil {
 			return fmt.Errorf("stateStore.ClearAll error %s", err)
-		}
-		err = this.merkleStore.ClearAll()
-		if err != nil {
-			return fmt.Errorf("merkleStore.ClearAll error %s", err)
 		}
 		err = this.eventStore.ClearAll()
 		if err != nil {
@@ -501,10 +489,6 @@ func (this *LedgerStore) saveBlock(block *types.Block) error {
 	if err != nil {
 		return fmt.Errorf("NewStateBatch error %s", err)
 	}
-	err = this.merkleStore.NewBatch()
-	if err != nil {
-		return fmt.Errorf("merkleStore.NewBatch error %s", err)
-	}
 
 	invokeTxs := make([]common.Uint256, 0)
 	for _, tx := range block.Transactions {
@@ -540,7 +524,7 @@ func (this *LedgerStore) saveBlock(block *types.Block) error {
 	if err != nil {
 		return fmt.Errorf("SaveCurrentStateRoot error %s", err)
 	}
-	err = this.merkleStore.AddMerkleTreeRoot(block.Header.TransactionsRoot)
+	err = this.stateStore.AddMerkleTreeRoot(block.Header.TransactionsRoot)
 	if err != nil {
 		return fmt.Errorf("AddMerkleTreeRoot error %s", err)
 	}
@@ -573,10 +557,6 @@ func (this *LedgerStore) saveBlock(block *types.Block) error {
 	err = this.blockStore.CommitTo()
 	if err != nil {
 		return fmt.Errorf("blockStore.CommitTo error %s", err)
-	}
-	err = this.merkleStore.CommitTo()
-	if err != nil {
-		return fmt.Errorf("merkleStore.CommitTo error %s", err)
 	}
 	if len(invokeTxs) > 0 {
 		err = this.eventStore.CommitTo()
@@ -685,7 +665,7 @@ func (this *LedgerStore) IsContainTransaction(txHash common.Uint256) (bool, erro
 }
 
 func (this *LedgerStore) GetBlockRootWithNewTxRoot(txRoot common.Uint256) common.Uint256 {
-	return this.merkleStore.GetBlockRootWithNewTxRoot(txRoot)
+	return this.stateStore.GetBlockRootWithNewTxRoot(txRoot)
 }
 
 func (this *LedgerStore) GetBlockHash(height uint32) common.Uint256 {
@@ -789,10 +769,6 @@ func (this *LedgerStore) Close() error {
 	err = this.stateStore.Close()
 	if err != nil {
 		return fmt.Errorf("stateStore close error %s", err)
-	}
-	err = this.merkleStore.Close()
-	if err != nil {
-		return fmt.Errorf("merkleStore close error %s", err)
 	}
 	err = this.eventStore.Close()
 	if err != nil {

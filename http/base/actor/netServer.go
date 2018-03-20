@@ -1,11 +1,12 @@
 package actor
 
 import (
-	"errors"
-	"github.com/Ontology/eventbus/actor"
-	ac "github.com/Ontology/p2pserver/actor"
-	. "github.com/Ontology/p2pserver/protocol"
 	"time"
+	"github.com/Ontology/eventbus/actor"
+	. "github.com/Ontology/p2pserver/protocol"
+	ac "github.com/Ontology/p2pserver/actor"
+	"errors"
+	"github.com/Ontology/common/log"
 )
 
 var netServerPid *actor.PID
@@ -20,9 +21,10 @@ func Xmit(msg interface{}) error {
 }
 
 func GetConnectionCnt() (uint, error) {
-	future := netServerPid.RequestFuture(&ac.GetConnectionCntReq{}, 10*time.Second)
+	future := netServerPid.RequestFuture(&ac.GetConnectionCntReq{}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
+		log.Errorf(ErrActorComm, err)
 		return 0, err
 	}
 	r, ok := result.(*ac.GetConnectionCntRsp)
@@ -33,18 +35,24 @@ func GetConnectionCnt() (uint, error) {
 }
 
 func GetNeighborAddrs() ([]NodeAddr, uint64) {
-	future := netServerPid.RequestFuture(nil, 10*time.Second)
-	_, err := future.Result()
+	future := netServerPid.RequestFuture(&ac.GetNeighborAddrsReq{}, ReqTimeout*time.Second)
+	result, err := future.Result()
 	if err != nil {
+		log.Errorf(ErrActorComm, err)
 		return nil, 0
 	}
-	return nil, 0
+	r, ok := result.(*ac.GetNeighborAddrsRsp)
+	if !ok {
+		return nil, 0
+	}
+	return r.Addrs, r.Count
 }
 
 func GetConnectionState() (uint32, error) {
-	future := netServerPid.RequestFuture(&ac.GetConnectionStateReq{}, 10*time.Second)
+	future := netServerPid.RequestFuture(&ac.GetConnectionStateReq{}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
+		log.Errorf(ErrActorComm, err)
 		return 0, err
 	}
 	r, ok := result.(*ac.GetConnectionStateRsp)
@@ -55,9 +63,10 @@ func GetConnectionState() (uint32, error) {
 }
 
 func GetNodeTime() (int64, error) {
-	future := netServerPid.RequestFuture(&ac.GetNodeTimeReq{}, 10*time.Second)
+	future := netServerPid.RequestFuture(&ac.GetNodeTimeReq{}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
+		log.Errorf(ErrActorComm, err)
 		return 0, err
 	}
 	r, ok := result.(*ac.GetNodeTimeRsp)
@@ -68,9 +77,10 @@ func GetNodeTime() (int64, error) {
 }
 
 func GetNodePort() (uint16, error) {
-	future := netServerPid.RequestFuture(&ac.GetNodePortReq{}, 10*time.Second)
+	future := netServerPid.RequestFuture(&ac.GetNodePortReq{}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
+		log.Errorf(ErrActorComm, err)
 		return 0, err
 	}
 	r, ok := result.(*ac.GetNodePortRsp)
@@ -81,9 +91,10 @@ func GetNodePort() (uint16, error) {
 }
 
 func GetID() (uint64, error) {
-	future := netServerPid.RequestFuture(&ac.GetNodeIdReq{}, 10*time.Second)
+	future := netServerPid.RequestFuture(&ac.GetNodeIdReq{}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
+		log.Errorf(ErrActorComm, err)
 		return 0, err
 	}
 	r, ok := result.(*ac.GetNodeIdRsp)
@@ -94,9 +105,10 @@ func GetID() (uint64, error) {
 }
 
 func GetRelayState() (bool, error) {
-	future := netServerPid.RequestFuture(&ac.GetRelayStateReq{}, 10*time.Second)
+	future := netServerPid.RequestFuture(&ac.GetRelayStateReq{}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
+		log.Errorf(ErrActorComm, err)
 		return false, err
 	}
 	r, ok := result.(*ac.GetRelayStateRsp)
@@ -107,9 +119,10 @@ func GetRelayState() (bool, error) {
 }
 
 func GetVersion() (uint32, error) {
-	future := netServerPid.RequestFuture(&ac.GetNodeVersionReq{}, 10*time.Second)
+	future := netServerPid.RequestFuture(&ac.GetNodeVersionReq{}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
+		log.Errorf(ErrActorComm, err)
 		return 0, err
 	}
 	r, ok := result.(*ac.GetNodeVersionRsp)
@@ -120,9 +133,10 @@ func GetVersion() (uint32, error) {
 }
 
 func GetNodeType() (uint64, error) {
-	future := netServerPid.RequestFuture(&ac.GetNodeTypeReq{}, 10*time.Second)
+	future := netServerPid.RequestFuture(&ac.GetNodeTypeReq{}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
+		log.Errorf(ErrActorComm, err)
 		return 0, err
 	}
 	r, ok := result.(*ac.GetNodeTypeRsp)

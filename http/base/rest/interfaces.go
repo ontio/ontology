@@ -71,46 +71,6 @@ func GetBlockHash(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-func GetBlockInfo(block *types.Block) BlockInfo {
-	hash := block.Hash()
-	var bookKeepers = []PubKeyInfo{}
-	var sigData = []string{}
-	for i := 0; i < len(block.Header.SigData); i++ {
-		s := ToHexString(block.Header.SigData[i])
-		sigData = append(sigData, s)
-	}
-	for i := 0; i < len(block.Header.BookKeepers); i++ {
-		e := block.Header.BookKeepers[i]
-		bookKeepers = append(bookKeepers, PubKeyInfo{e.X.String(), e.Y.String()})
-	}
-	blockHead := &BlockHead{
-		Version:          block.Header.Version,
-		PrevBlockHash:    ToHexString(block.Header.PrevBlockHash.ToArray()),
-		TransactionsRoot: ToHexString(block.Header.TransactionsRoot.ToArray()),
-		BlockRoot:        ToHexString(block.Header.BlockRoot.ToArray()),
-		StateRoot:        ToHexString(block.Header.StateRoot.ToArray()),
-		Timestamp:        block.Header.Timestamp,
-		Height:           block.Header.Height,
-		ConsensusData:    block.Header.ConsensusData,
-		NextBookKeeper:   ToHexString(block.Header.NextBookKeeper[:]),
-		BookKeepers: bookKeepers,
-		SigData:     sigData,
-		Hash: ToHexString(hash.ToArray()),
-	}
-
-	trans := make([]*Transactions, len(block.Transactions))
-	for i := 0; i < len(block.Transactions); i++ {
-		trans[i] = TransArryByteToHexString(block.Transactions[i])
-	}
-
-	b := BlockInfo{
-		Hash:         ToHexString(hash.ToArray()),
-		BlockData:    blockHead,
-		Transactions: trans,
-	}
-	return b
-}
-
 func GetBlockTransactions(block *types.Block) interface{} {
 	trans := make([]string, len(block.Transactions))
 	for i := 0; i < len(block.Transactions); i++ {
@@ -163,6 +123,28 @@ func GetBlockByHash(cmd map[string]interface{}) map[string]interface{} {
 
 	resp["Result"], resp["Error"] = getBlock(hash, getTxBytes)
 
+	return resp
+}
+
+func GetTxBlockHeight(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(Err.SUCCESS)
+	param := cmd["Hash"].(string)
+	if len(param) == 0 {
+		return ResponsePack(Err.INVALID_PARAMS)
+	}
+	var hash Uint256
+	hex, err := HexToBytes(param)
+	if err != nil {
+		return ResponsePack(Err.INVALID_PARAMS)
+	}
+	if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
+		return ResponsePack(Err.INVALID_TRANSACTION)
+	}
+	height,err := GetTxBlockHeightFromStore(hash)
+	if err != nil {
+		return ResponsePack(Err.INTERNAL_ERROR)
+	}
+	resp["Result"] = height
 	return resp
 }
 func GetBlockTxsByHeight(cmd map[string]interface{}) map[string]interface{} {

@@ -21,7 +21,7 @@ import:
   version: v1.20.0
 - package: github.com/whyrusleeping/tar-utils
 - package: golang.org/x/text
-  repo: http://github.com/golang/text.git
+  repo: https://github.com/golang/text.git
 - package: golang.org/x/crypto
   repo: https://github.com/golang/crypto.git
   subpackages:

@@ -76,6 +76,8 @@ func checkTransactionSignatures(tx *types.Transaction) error {
 func checkTransactionPayload(tx *types.Transaction) error {
 
 	switch pld := tx.Payload.(type) {
+	case *payload.DeployCode:
+		return nil
 	case *payload.InvokeCode:
 		return nil
 	default:

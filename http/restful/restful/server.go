@@ -46,8 +46,9 @@ const (
 	Api_SendRawTx = "/api/v1/transaction"
 	Api_WebsocketState = "/api/v1/config/websocket/state"
 	Api_Restart = "/api/v1/restart"
-	Api_GetContract = "/api/v1/contract/:hash"
+	Api_GetContractState = "/api/v1/contract/:hash"
 	Api_GetSmartCodeEvent = "/api/v1/smartcode/event/:height"
+	Api_GetTxBlockHeight = "/api/v1/block/height/txhash/:hash"
 )
 
 func InitRestServer() ApiServer {
@@ -136,9 +137,10 @@ func (rt *restServer) registryMethod() {
 		Api_Getblockheight:      {name: "getblockheight", handler: GetBlockHeight},
 		Api_Getblockhash:        {name: "getblockhash", handler: GetBlockHash},
 		Api_Gettransaction:      {name: "gettransaction", handler: GetTransactionByHash},
-		Api_GetContract:         {name: "getcontract", handler: GetContractState},
+		Api_GetContractState:         {name: "getcontract", handler: GetContractState},
 		Api_Restart:             {name: "restart", handler: rt.Restart},
 		Api_GetSmartCodeEvent:{name: "getsmartcodeevent", handler: GetSmartCodeEventByHeight},
+		Api_GetTxBlockHeight:{name: "gettxblockheight", handler: GetTxBlockHeight},
 	}
 
 	sendRawTransaction := func(cmd map[string]interface{}) map[string]interface{} {
@@ -170,10 +172,12 @@ func (rt *restServer) getPath(url string) string {
 		return Api_Getblockbyhash
 	} else if strings.Contains(url, strings.TrimRight(Api_Gettransaction, ":hash")) {
 		return Api_Gettransaction
-	} else if strings.Contains(url, strings.TrimRight(Api_GetContract, ":hash")) {
-		return Api_GetContract
+	} else if strings.Contains(url, strings.TrimRight(Api_GetContractState, ":hash")) {
+		return Api_GetContractState
 	} else if strings.Contains(url, strings.TrimRight(Api_GetSmartCodeEvent, ":height")) {
 		return Api_GetSmartCodeEvent
+	} else if strings.Contains(url, strings.TrimRight(Api_GetTxBlockHeight, ":hash")) {
+		return Api_GetTxBlockHeight
 	}
 	return url
 }
@@ -203,7 +207,7 @@ func (rt *restServer) getParams(r *http.Request, url string, req map[string]inte
 		req["Hash"] = getParam(r, "hash")
 		req["Raw"] = r.FormValue("raw")
 		break
-	case Api_GetContract:
+	case Api_GetContractState:
 		req["Hash"] = getParam(r, "hash")
 		req["Raw"] = r.FormValue("raw")
 		break
@@ -220,6 +224,9 @@ func (rt *restServer) getParams(r *http.Request, url string, req map[string]inte
 		break
 	case Api_GetSmartCodeEvent:
 		req["Height"] = getParam(r, "height")
+		break
+	case Api_GetTxBlockHeight:
+		req["Hash"] = getParam(r, "hash")
 		break
 	case Api_WebsocketState:
 		break
