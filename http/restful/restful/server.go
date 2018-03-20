@@ -33,15 +33,15 @@ type restServer struct {
 }
 
 const (
-	Api_GetGenerateBlockTime = "/api/v1/node/generateblocktime"
-	Api_Getconnectioncount  = "/api/v1/node/connectioncount"
-	Api_GetblockTxsByHeight = "/api/v1/block/transactions/height/:height"
-	Api_Getblockbyheight = "/api/v1/block/details/height/:height"
-	Api_Getblockbyhash = "/api/v1/block/details/hash/:hash"
-	Api_Getblockheight = "/api/v1/block/height"
-	Api_Getblockhash = "/api/v1/block/hash/:height"
+	Api_GetGenBlockTime = "/api/v1/node/generateblocktime"
+	Api_GetconnCount  = "/api/v1/node/connectioncount"
+	Api_GetblkTxsByHeight = "/api/v1/block/transactions/height/:height"
+	Api_Getblkbyheight = "/api/v1/block/details/height/:height"
+	Api_Getblkbyhash = "/api/v1/block/details/hash/:hash"
+	Api_Getblkheight = "/api/v1/block/height"
+	Api_Getblkhash = "/api/v1/block/hash/:height"
 
-	Api_Gettransaction = "/api/v1/transaction/:hash"
+	Api_GetTransaction = "/api/v1/transaction/:hash"
 
 	Api_SendRawTx = "/api/v1/transaction"
 	Api_WebsocketState = "/api/v1/config/websocket/state"
@@ -129,14 +129,14 @@ func (rt *restServer) setWebsocketState(cmd map[string]interface{}) map[string]i
 func (rt *restServer) registryMethod() {
 
 	getMethodMap := map[string]Action{
-		Api_GetGenerateBlockTime:  {name: "getgenerateblocktime", handler: GetGenerateBlockTime},
-		Api_Getconnectioncount:  {name: "getconnectioncount", handler: GetConnectionCount},
-		Api_GetblockTxsByHeight: {name: "getblocktransactionsbyheight", handler: GetBlockTxsByHeight},
-		Api_Getblockbyheight:    {name: "getblockbyheight", handler: GetBlockByHeight},
-		Api_Getblockbyhash:      {name: "getblockbyhash", handler: GetBlockByHash},
-		Api_Getblockheight:      {name: "getblockheight", handler: GetBlockHeight},
-		Api_Getblockhash:        {name: "getblockhash", handler: GetBlockHash},
-		Api_Gettransaction:      {name: "gettransaction", handler: GetTransactionByHash},
+		Api_GetGenBlockTime:  {name: "getgenerateblocktime", handler: GetGenerateBlockTime},
+		Api_GetconnCount:  {name: "getconnectioncount", handler: GetConnectionCount},
+		Api_GetblkTxsByHeight: {name: "getblocktxsbyheight", handler: GetBlockTxsByHeight},
+		Api_Getblkbyheight:    {name: "getblockbyheight", handler: GetBlockByHeight},
+		Api_Getblkbyhash:      {name: "getblockbyhash", handler: GetBlockByHash},
+		Api_Getblkheight:      {name: "getblockheight", handler: GetBlockHeight},
+		Api_Getblkhash:        {name: "getblockhash", handler: GetBlockHash},
+		Api_GetTransaction:      {name: "gettransaction", handler: GetTransactionByHash},
 		Api_GetContractState:         {name: "getcontract", handler: GetContractState},
 		Api_Restart:             {name: "restart", handler: rt.Restart},
 		Api_GetSmartCodeEvent:{name: "getsmartcodeevent", handler: GetSmartCodeEventByHeight},
@@ -162,16 +162,16 @@ func (rt *restServer) registryMethod() {
 }
 func (rt *restServer) getPath(url string) string {
 
-	if strings.Contains(url, strings.TrimRight(Api_GetblockTxsByHeight, ":height")) {
-		return Api_GetblockTxsByHeight
-	} else if strings.Contains(url, strings.TrimRight(Api_Getblockbyheight, ":height")) {
-		return Api_Getblockbyheight
-	} else if strings.Contains(url, strings.TrimRight(Api_Getblockhash, ":height")) {
-		return Api_Getblockhash
-	} else if strings.Contains(url, strings.TrimRight(Api_Getblockbyhash, ":hash")) {
-		return Api_Getblockbyhash
-	} else if strings.Contains(url, strings.TrimRight(Api_Gettransaction, ":hash")) {
-		return Api_Gettransaction
+	if strings.Contains(url, strings.TrimRight(Api_GetblkTxsByHeight, ":height")) {
+		return Api_GetblkTxsByHeight
+	} else if strings.Contains(url, strings.TrimRight(Api_Getblkbyheight, ":height")) {
+		return Api_Getblkbyheight
+	} else if strings.Contains(url, strings.TrimRight(Api_Getblkhash, ":height")) {
+		return Api_Getblkhash
+	} else if strings.Contains(url, strings.TrimRight(Api_Getblkbyhash, ":hash")) {
+		return Api_Getblkbyhash
+	} else if strings.Contains(url, strings.TrimRight(Api_GetTransaction, ":hash")) {
+		return Api_GetTransaction
 	} else if strings.Contains(url, strings.TrimRight(Api_GetContractState, ":hash")) {
 		return Api_GetContractState
 	} else if strings.Contains(url, strings.TrimRight(Api_GetSmartCodeEvent, ":height")) {
@@ -183,53 +183,34 @@ func (rt *restServer) getPath(url string) string {
 }
 func (rt *restServer) getParams(r *http.Request, url string, req map[string]interface{}) map[string]interface{} {
 	switch url {
-	case Api_GetGenerateBlockTime:
-		break
-	case Api_Getconnectioncount:
-		break
-	case Api_GetblockTxsByHeight:
+	case Api_GetGenBlockTime:
+	case Api_GetconnCount:
+	case Api_GetblkTxsByHeight:
 		req["Height"] = getParam(r, "height")
-		break
-	case Api_Getblockbyheight:
-		req["Raw"] = r.FormValue("raw")
+	case Api_Getblkbyheight:
+		req["Raw"], req["Height"] = r.FormValue("raw"), getParam(r, "height")
+	case Api_Getblkbyhash:
+		req["Raw"], req["Hash"] = r.FormValue("raw"), getParam(r, "hash")
+	case Api_Getblkheight:
+	case Api_Getblkhash:
 		req["Height"] = getParam(r, "height")
-		break
-	case Api_Getblockbyhash:
-		req["Raw"] = r.FormValue("raw")
-		req["Hash"] = getParam(r, "hash")
-		break
-	case Api_Getblockheight:
-		break
-	case Api_Getblockhash:
-		req["Height"] = getParam(r, "height")
-		break
-	case Api_Gettransaction:
-		req["Hash"] = getParam(r, "hash")
-		req["Raw"] = r.FormValue("raw")
-		break
+	case Api_GetTransaction:
+		req["Hash"], req["Raw"] = getParam(r, "hash"), r.FormValue("raw")
 	case Api_GetContractState:
-		req["Hash"] = getParam(r, "hash")
-		req["Raw"] = r.FormValue("raw")
-		break
+		req["Hash"], req["Raw"] = getParam(r, "hash"), r.FormValue("raw")
 	case Api_Restart:
-		break
 	case Api_SendRawTx:
 		userid := r.FormValue("userid")
 		req["Userid"] = userid
 		if len(userid) == 0 {
 			req["Userid"] = getParam(r, "userid")
 		}
-		preExec := r.FormValue("preExec")
-		req["PreExec"] = preExec
-		break
+		req["PreExec"] = r.FormValue("preExec")
 	case Api_GetSmartCodeEvent:
 		req["Height"] = getParam(r, "height")
-		break
 	case Api_GetTxBlockHeight:
 		req["Hash"] = getParam(r, "hash")
-		break
 	case Api_WebsocketState:
-		break
 	default:
 	}
 	return req
@@ -248,7 +229,7 @@ func (rt *restServer) initGetHandler() {
 				resp = h.handler(req)
 				resp["Action"] = h.name
 			} else {
-				resp = ResponsePack(Err.INVALID_METHOD)
+				resp = RspInvalidMethod
 			}
 			rt.response(w, resp)
 		})
@@ -271,11 +252,11 @@ func (rt *restServer) initPostHandler() {
 					resp = h.handler(req)
 					resp["Action"] = h.name
 				} else {
-					resp = ResponsePack(Err.ILLEGAL_DATAFORMAT)
+					resp = RspIllegalDataFormat
 					resp["Action"] = h.name
 				}
 			} else {
-				resp = ResponsePack(Err.INVALID_METHOD)
+				resp = RspInvalidMethod
 			}
 			rt.response(w, resp)
 		})

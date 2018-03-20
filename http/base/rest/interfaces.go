@@ -23,46 +23,43 @@ type ApiServer interface {
 
 //Node
 func GetGenerateBlockTime(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
+	resp := rspSuccess
 	resp["Result"] = config.DEFAULTGENBLOCKTIME
 	return resp
 }
 func GetConnectionCount(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
+	resp := rspSuccess
 	count, err := GetConnectionCnt()
 	if err != nil {
-		resp["Error"] = Err.INTERNAL_ERROR
-		return resp
+		return rspInternalError
 	}
 	resp["Result"] = count
-
 	return resp
 }
 
 //Block
 func GetBlockHeight(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
+	resp := rspSuccess
 	height,err := BlockHeight()
 	if err != nil{
-		resp["Error"] = Err.INTERNAL_ERROR
-		return resp
+		return rspInternalError
 	}
 	resp["Result"] = height
 	return resp
 }
 func GetBlockHash(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
+	resp := rspSuccess
 	param := cmd["Height"].(string)
 	if len(param) == 0 {
-		return ResponsePack(Err.INVALID_PARAMS)
+		return rspInvalidParams
 	}
 	height, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
-		return ResponsePack(Err.INVALID_PARAMS)
+		return rspInvalidParams
 	}
 	hash, err := GetBlockHashFromStore(uint32(height))
 	if err != nil {
-		return ResponsePack(Err.INVALID_PARAMS)
+		return rspInvalidParams
 	}
 	resp["Result"] = ToHexString(hash.ToArray())
 	return resp
@@ -90,10 +87,10 @@ func GetBlockTransactions(block *types.Block) interface{} {
 func getBlock(hash Uint256, getTxBytes bool) (interface{}, int64) {
 	block, err := GetBlockFromStore(hash)
 	if err != nil {
-		return "", Err.UNKNOWN_BLOCK
+		return nil, Err.UNKNOWN_BLOCK
 	}
 	if block.Header == nil {
-		return "", Err.UNKNOWN_BLOCK
+		return nil, Err.UNKNOWN_BLOCK
 	}
 	if getTxBytes {
 		w := bytes.NewBuffer(nil)
@@ -103,82 +100,80 @@ func getBlock(hash Uint256, getTxBytes bool) (interface{}, int64) {
 	return GetBlockInfo(block), Err.SUCCESS
 }
 func GetBlockByHash(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
+	resp := rspSuccess
 	param := cmd["Hash"].(string)
 	if len(param) == 0 {
-		return ResponsePack(Err.INVALID_PARAMS)
+		return rspInvalidParams
 	}
-	var getTxBytes bool = false
+	var getTxBytes = false
 	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
 		getTxBytes = true
 	}
 	var hash Uint256
 	hex, err := HexToBytes(param)
 	if err != nil {
-		return ResponsePack(Err.INVALID_PARAMS)
+		return rspInvalidParams
 	}
 	if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
-		return ResponsePack(Err.INVALID_TRANSACTION)
+		return rspInvalidTx
 	}
-
 	resp["Result"], resp["Error"] = getBlock(hash, getTxBytes)
-
 	return resp
 }
 
 func GetTxBlockHeight(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
+	resp := rspSuccess
 	param := cmd["Hash"].(string)
 	if len(param) == 0 {
-		return ResponsePack(Err.INVALID_PARAMS)
+		return rspInvalidParams
 	}
 	var hash Uint256
 	hex, err := HexToBytes(param)
 	if err != nil {
-		return ResponsePack(Err.INVALID_PARAMS)
+		return rspInvalidParams
 	}
 	if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
-		return ResponsePack(Err.INVALID_TRANSACTION)
+		return rspInvalidTx
 	}
 	height,err := GetTxBlockHeightFromStore(hash)
 	if err != nil {
-		return ResponsePack(Err.INTERNAL_ERROR)
+		return rspInternalError
 	}
 	resp["Result"] = height
 	return resp
 }
 func GetBlockTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
+	resp := rspSuccess
 
 	param := cmd["Height"].(string)
 	if len(param) == 0 {
-		return ResponsePack(Err.INVALID_PARAMS)
+		return rspInvalidParams
 	}
 	height, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
-		return ResponsePack(Err.INVALID_PARAMS)
+		return rspInvalidParams
 	}
 	index := uint32(height)
 	hash, err := GetBlockHashFromStore(index)
 	if err != nil {
-		return ResponsePack(Err.UNKNOWN_BLOCK)
+		return rspUnkownBlock
 	}
 	if hash.CompareTo(Uint256{}) == 0{
-		return ResponsePack(Err.INVALID_PARAMS)
+		return rspInvalidParams
 	}
 	block, err := GetBlockFromStore(hash)
 	if err != nil {
-		return ResponsePack(Err.UNKNOWN_BLOCK)
+		return rspUnkownBlock
 	}
 	resp["Result"] = GetBlockTransactions(block)
 	return resp
 }
 func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
+	resp := rspSuccess
 
 	param := cmd["Height"].(string)
 	if len(param) == 0 {
-		return ResponsePack(Err.INVALID_PARAMS)
+		return rspInvalidParams
 	}
 	var getTxBytes bool = false
 	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
@@ -186,12 +181,12 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 	}
 	height, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
-		return ResponsePack(Err.INVALID_PARAMS)
+		return rspInvalidParams
 	}
 	index := uint32(height)
 	hash, err := GetBlockHashFromStore(index)
 	if err != nil {
-		return ResponsePack(Err.UNKNOWN_BLOCK)
+		return rspUnkownBlock
 	}
 	resp["Result"], resp["Error"] = getBlock(hash, getTxBytes)
 	return resp
@@ -200,24 +195,24 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 
 //Transaction
 func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
+	resp := rspSuccess
 
 	str := cmd["Hash"].(string)
 	bys, err := HexToBytes(str)
 	if err != nil {
-		return ResponsePack(Err.INVALID_PARAMS)
+		return rspInvalidParams
 	}
 	var hash Uint256
 	err = hash.Deserialize(bytes.NewReader(bys))
 	if err != nil {
-		return ResponsePack(Err.INVALID_TRANSACTION)
+		return rspInvalidTx
 	}
 	tx, err := GetTransaction(hash)
 	if err != nil {
-		return ResponsePack(Err.UNKNOWN_TRANSACTION)
+		return rspUnkownTx
 	}
 	if tx == nil {
-		return ResponsePack(Err.UNKNOWN_TRANSACTION)
+		return rspUnkownTx
 	}
 	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
 		w := bytes.NewBuffer(nil)
@@ -230,19 +225,19 @@ func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
+	resp := rspSuccess
 
 	str, ok := cmd["Data"].(string)
 	if !ok {
-		return ResponsePack(Err.INVALID_PARAMS)
+		return rspInvalidParams
 	}
 	bys, err := HexToBytes(str)
 	if err != nil {
-		return ResponsePack(Err.INVALID_PARAMS)
+		return rspInvalidParams
 	}
 	var txn types.Transaction
 	if err := txn.Deserialize(bytes.NewReader(bys)); err != nil {
-		return ResponsePack(Err.INVALID_TRANSACTION)
+		return rspInvalidTx
 	}
 	if txn.TxType == types.Invoke {
 		if preExec, ok := cmd["PreExec"].(string); ok && preExec == "1" {
@@ -250,8 +245,7 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 			if _, ok := txn.Payload.(*payload.InvokeCode); ok {
 				resp["Result"], err = PreExecuteContract(&txn)
 				if err != nil {
-					resp["Error"] = Err.SMARTCODE_ERROR
-					return resp
+					return rspSmartCodeError
 				}
 				return resp
 			}
@@ -275,15 +269,15 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 
 
 func GetSmartCodeEventByHeight(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
+	resp := rspSuccess
 
 	param := cmd["Height"].(string)
 	if len(param) == 0 {
-		return ResponsePack(Err.INVALID_PARAMS)
+		return rspInvalidParams
 	}
 	height, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
-		return ResponsePack(Err.INVALID_PARAMS)
+		return rspInvalidParams
 	}
 	index := uint32(height)
 	//infos,_ := GetEventNotifyByTx(Uint256{})
@@ -291,32 +285,22 @@ func GetSmartCodeEventByHeight(cmd map[string]interface{}) map[string]interface{
 	//TODO resp
 	return resp
 }
-func ResponsePack(errCode int64) map[string]interface{} {
-	resp := map[string]interface{}{
-		"Action":  "",
-		"Result":  "",
-		"Error":   errCode,
-		"Desc":    "",
-		"Version": "1.0.0",
-	}
-	return resp
-}
+
 func GetContractState(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
+	resp := rspSuccess
 	str := cmd["Hash"].(string)
 	bys, err := HexToBytes(str)
 	if err != nil {
-		return ResponsePack(Err.INVALID_PARAMS)
+		return rspInvalidParams
 	}
 	var hash Uint160
 	err = hash.Deserialize(bytes.NewReader(bys))
 	if err != nil {
-		return ResponsePack(Err.INVALID_PARAMS)
+		return rspInvalidParams
 	}
 	contract, err := GetContractStateFromStore(hash)
 	if err != nil || contract == nil {
-		resp["Error"] = Err.INVALID_PARAMS
-		return resp
+		return rspInvalidParams
 	}
 	resp["Result"] = TransPayloadToHex(contract)
 	return resp

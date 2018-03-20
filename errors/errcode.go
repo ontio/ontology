@@ -14,7 +14,7 @@ const (
 	ErrNoCode               ErrCode = -2
 	ErrNoError              ErrCode = 0
 	ErrUnknown              ErrCode = -1
-	ErrDuplicatedTx         ErrCode = 1
+	ErrDuplicatedTx         ErrCode = 45002
 	ErrDuplicateInput       ErrCode = 45003
 	ErrAssetPrecision       ErrCode = 45004
 	ErrTransactionBalance   ErrCode = 45005
