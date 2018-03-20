@@ -67,7 +67,6 @@ func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*types.Block, error) 
 			ont,
 			ong,
 			NewGoverningInit(),
-			NewUtilityInit(),
 		},
 	}
 	return genesisBlock, nil
@@ -93,13 +92,3 @@ func NewGoverningInit() *types.Transaction {
 	tx := utils.NewInvokeTransaction(vmCode)
 	return tx
 }
-
-func NewUtilityInit() *types.Transaction {
-	vmCode := vmtypes.VmCode{
-		VmType: vmtypes.NativeVM,
-		Code: []byte{14, 84, 111, 107, 101, 110, 46, 79, 110, 103, 46, 73, 110, 105, 116},
-	}
-	tx := utils.NewInvokeTransaction(vmCode)
-	return tx
-}
-

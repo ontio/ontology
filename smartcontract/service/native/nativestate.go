@@ -30,7 +30,6 @@ func NewNativeService(dbCache scommon.IStateStore, input []byte, tx *types.Trans
 	nativeService.ServiceMap = make(map[string]Handler)
 	nativeService.Register("Token.Common.Transfer", Transfer)
 	nativeService.Register("Token.Ont.Init", OntInit)
-	nativeService.Register("Token.Ong.Init", OngInit)
 	return &nativeService
 }
 
