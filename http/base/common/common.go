@@ -114,6 +114,8 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 		e := Sig{M: sig.M}
 		for i := 0; i < len(sig.PubKeys); i++ {
 			e.PubKeys = append(e.PubKeys, PubKeyInfo{sig.PubKeys[i].X.String(), sig.PubKeys[i].Y.String()})
+		}
+		for i := 0; i < len(sig.SigData);i ++{
 			e.SigData = append(e.SigData, ToHexString(sig.SigData[i]))
 		}
 		trans.Sigs = append(trans.Sigs, e)
