@@ -33,7 +33,7 @@ func NewHeadersReq() ([]byte, error) {
 
 	h.p.len = 1
 	//buf := ledger.DefaultLedger.Store.GetCurrentHeaderHash()
-	buf, _ := actor.GetCurrentBlockHash()
+	buf, _ := actor.GetCurrentHeaderHash()
 	copy(h.p.hashEnd[:], buf[:])
 
 	p := new(bytes.Buffer)

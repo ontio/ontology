@@ -48,6 +48,16 @@ func GetCurrentBlockHash() (common.Uint256, error) {
 	return result.(*ledger.GetCurrentBlockHashRsp).BlockHash, result.(*ledger.GetCurrentBlockHashRsp).Error
 }
 
+func GetCurrentHeaderHash() (common.Uint256, error) {
+	future := defLedgerPid.RequestFuture(&ledger.GetCurrentHeaderHashReq{}, 5*time.Second)
+	result, err := future.Result()
+	if err != nil {
+		log.Error(errors.NewErr("ERROR: "), err)
+		return common.Uint256{}, err
+	}
+	return result.(*ledger.GetCurrentHeaderHashRsp).BlockHash, result.(*ledger.GetCurrentHeaderHashRsp).Error
+}
+
 func GetBlockHashByHeight(height uint32) (common.Uint256, error) {
 	future := defLedgerPid.RequestFuture(&ledger.GetBlockHashReq{Height:height}, 5*time.Second)
 	result, err := future.Result()
