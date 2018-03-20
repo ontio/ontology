@@ -23,6 +23,7 @@ import (
 const (
 	SystemVersion        = byte(1)
 	HeaderIndexBatchSize = uint32(2000)
+	BlockCacheTimeout    = time.Minute * 30
 )
 
 var (
@@ -32,6 +33,11 @@ var (
 	MerkleTreeStorePath = "Chain/merkle_tree.db"
 )
 
+type ledgerCacheItem struct {
+	item      interface{}
+	cacheTime time.Time
+}
+
 type LedgerStore struct {
 	blockStore       *BlockStore
 	stateStore       *StateStore
@@ -39,8 +45,8 @@ type LedgerStore struct {
 	storedIndexCount uint32
 	currBlockHeight  uint32
 	currBlockHash    common.Uint256
-	headerCache      map[common.Uint256]*types.Header
-	blockCache       map[common.Uint256]*types.Block
+	headerCache      map[common.Uint256]*ledgerCacheItem
+	blockCache       map[common.Uint256]*ledgerCacheItem
 	headerIndex      map[uint32]common.Uint256
 	lock             sync.RWMutex
 	exitCh           chan interface{}
@@ -50,8 +56,8 @@ func NewLedgerStore() (*LedgerStore, error) {
 	ledgerStore := &LedgerStore{
 		exitCh:      make(chan interface{}, 0),
 		headerIndex: make(map[uint32]common.Uint256),
-		headerCache: make(map[common.Uint256]*types.Header),
-		blockCache:  make(map[common.Uint256]*types.Block),
+		headerCache: make(map[common.Uint256]*ledgerCacheItem),
+		blockCache:  make(map[common.Uint256]*ledgerCacheItem),
 	}
 
 	blockStore, err := NewBlockStore(DBDirBlock, true)
@@ -196,7 +202,6 @@ func (this *LedgerStore) initHeaderIndexList() error {
 	return nil
 }
 
-
 func (this *LedgerStore) initStore() error {
 	blockHeight := this.GetCurrentBlockHeight()
 
@@ -241,14 +246,18 @@ func (this *LedgerStore) initStore() error {
 }
 
 func (this *LedgerStore) start() {
-	ticker := time.NewTicker(time.Minute)
+	ticker := time.NewTicker(time.Second * 10)
 	defer ticker.Stop()
+	timeoutTicker := time.NewTicker(time.Minute)
+	defer timeoutTicker.Stop()
 	for {
 		select {
 		case <-this.exitCh:
 			return
 		case <-ticker.C:
-			this.clearCache()
+			go this.clearCache()
+		case <-timeoutTicker.C:
+			go this.clearTimeoutBlock()
 		}
 	}
 }
@@ -257,14 +266,17 @@ func (this *LedgerStore) clearCache() {
 	this.lock.Lock()
 	blocks := make([]*types.Block, 0)
 	currentBlockHeight := this.currBlockHeight
-	for blockHash, header := range this.headerCache {
+	for blockHash, cacheItem := range this.headerCache {
+		header := cacheItem.item.(*types.Header)
 		if header.Height > currentBlockHeight {
 			continue
 		}
 		delete(this.headerCache, blockHash)
 	}
-	for blockHash, block := range this.blockCache {
+	for blockHash, cacheItem := range this.blockCache {
+		block := cacheItem.item.(*types.Block)
 		if block.Header.Height > currentBlockHeight {
+
 			continue
 		}
 		delete(this.blockCache, blockHash)
@@ -274,10 +286,11 @@ func (this *LedgerStore) clearCache() {
 		if !ok {
 			break
 		}
-		block := this.blockCache[nextBlockHash]
-		if block == nil {
+		cacheItem := this.blockCache[nextBlockHash]
+		if cacheItem == nil {
 			break
 		}
+		block := cacheItem.item.(*types.Block)
 		blocks = append(blocks, block)
 	}
 	this.lock.Unlock()
@@ -290,6 +303,22 @@ func (this *LedgerStore) clearCache() {
 			log.Errorf("saveBlock in cache height:%d error %s", block.Header.Height, err)
 			break
 		}
+	}
+}
+
+func (this *LedgerStore) clearTimeoutBlock() {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	timeoutBlocks := make([]common.Uint256, 0)
+	now := time.Now()
+	for blockHash, cacheItem := range this.blockCache {
+		if now.Sub(cacheItem.cacheTime) < BlockCacheTimeout {
+			continue
+		}
+		timeoutBlocks = append(timeoutBlocks, blockHash)
+	}
+	for _, blockHash := range timeoutBlocks {
+		delete(this.blockCache, blockHash)
 	}
 }
 
@@ -358,33 +387,41 @@ func (this *LedgerStore) GetCurrentBlockHeight() uint32 {
 func (this *LedgerStore) addToHeaderCache(header *types.Header) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	this.headerCache[header.Hash()] = header
+	cacheItem := &ledgerCacheItem{
+		item:      header,
+		cacheTime: time.Now(),
+	}
+	this.headerCache[header.Hash()] = cacheItem
 }
 
 func (this *LedgerStore) getFromHeaderCache(blockHash common.Uint256) *types.Header {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
-	header, ok := this.headerCache[blockHash]
+	cacheItem, ok := this.headerCache[blockHash]
 	if !ok {
 		return nil
 	}
-	return header
+	return cacheItem.item.(*types.Header)
 }
 
 func (this *LedgerStore) addToBlockCache(block *types.Block) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	this.blockCache[block.Hash()] = block
+	cacheItem := &ledgerCacheItem{
+		item:      block,
+		cacheTime: time.Now(),
+	}
+	this.blockCache[block.Hash()] = cacheItem
 }
 
 func (this *LedgerStore) getFromBlockCache(blockHash common.Uint256) *types.Block {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
-	block, ok := this.blockCache[blockHash]
+	cacheItem, ok := this.blockCache[blockHash]
 	if !ok {
 		return nil
 	}
-	return block
+	return cacheItem.item.(*types.Block)
 }
 
 func (this *LedgerStore) delFromBlockHash(blockHash common.Uint256) {
@@ -493,7 +530,9 @@ func (this *LedgerStore) AddBlock(block *types.Block) error {
 	}
 
 	nextBlockHeight := currBlockHeight + 1
-	if blockHeight > nextBlockHeight {
+	blockHash := this.getHeaderIndex(blockHeight)
+	var empty common.Uint256
+	if blockHeight > nextBlockHeight && blockHash == empty {
 		return fmt.Errorf("block height %d larger than next block height %d", blockHeight, nextBlockHeight)
 	}
 
@@ -507,6 +546,7 @@ func (this *LedgerStore) AddBlock(block *types.Block) error {
 	}
 
 	if blockHeight != nextBlockHeight {
+		//sync block
 		this.addToBlockCache(block)
 		return nil
 	}
