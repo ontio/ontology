@@ -77,17 +77,17 @@ func GetNodeTime() (int64, error) {
 }
 
 func GetNodePort() (uint16, error) {
-	future := netServerPid.RequestFuture(&ac.GetNodePortReq{}, ReqTimeout*time.Second)
+	future := netServerPid.RequestFuture(&ac.GetSyncPortReq{}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ErrActorComm, err)
 		return 0, err
 	}
-	r, ok := result.(*ac.GetNodePortRsp)
+	r, ok := result.(*ac.GetSyncPortRsp)
 	if !ok {
 		return 0, errors.New("fail")
 	}
-	return r.Port, nil
+	return r.SyncPort, nil
 }
 
 func GetID() (uint64, error) {

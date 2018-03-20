@@ -44,16 +44,16 @@ type GetIdRsp struct {
 	Id uint64
 }
 
-type GetNodePortReq struct {
+type GetSyncPortReq struct {
 }
-type GetNodePortRsp struct {
-	Port uint16
+type GetSyncPortRsp struct {
+	SyncPort uint16
 }
 
-type GetConsensusPortReq struct {
+type GetConsPortReq struct {
 }
-type GetConsensusPortRsp struct {
-	Port uint16
+type GetConsPortRsp struct {
+	ConsPort uint16
 }
 
 type GetPortReq struct {
@@ -122,20 +122,20 @@ func (state *NetServer) Receive(context actor.Context) {
 		isSyncing := IsSyncing()
 		context.Sender().Request(&IsSyncingRsp{IsSyncing: isSyncing}, context.Self())
 	case *GetPortReq:
-		conPort := node.GetPort()
-		context.Sender().Request(&GetPortRsp{SyncPort: conPort}, context.Self())
+		syncPort, consPort := GetPort()
+		context.Sender().Request(&GetPortRsp{SyncPort: syncPort, ConsPort: consPort}, context.Self())
 	case *GetVersionReq:
 		version := node.Version()
 		context.Sender().Request(&GetVersionRsp{Version: version}, context.Self())
 	case *GetConnectionCntReq:
 		connectionCnt := node.GetConnectionCnt()
 		context.Sender().Request(&GetConnectionCntRsp{Cnt: connectionCnt}, context.Self())
-	case *GetNodePortReq:
-		syncPort, consPort := GetPort()
-		context.Sender().Request(&GetPortRsp{SyncPort: syncPort, ConsPort: consPort}, context.Self())
-	case *GetConsensusPortReq:
+	case *GetSyncPortReq:
+		conPort := node.GetPort()
+		context.Sender().Request(&GetSyncPortRsp{SyncPort: conPort}, context.Self())
+	case *GetConsPortReq:
 		conPort := node.GetConsensusPort()
-		context.Sender().Request(&GetConsensusPortRsp{Port: conPort}, context.Self())
+		context.Sender().Request(&GetConsPortRsp{ConsPort: conPort}, context.Self())
 	case *GetIdReq:
 		id := node.GetID()
 		context.Sender().Request(&GetIdRsp{Id: id}, context.Self())
