@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	. "github.com/Ontology/common"
+	"github.com/Ontology/common/log"
 )
 
 // const UINT256SIZE int = 32
@@ -137,9 +138,11 @@ func (self *CompactMerkleTree) AppendHash(leaf Uint256) []Uint256 {
 }
 
 func (self *CompactMerkleTree) DumpStatus() {
-	fmt.Printf("tree size: %d \n", self.treeSize)
-	fmt.Printf("hashes size: %d \n", len(self.hashes))
-
+	log.Errorf("tree root: %x \n", self.rootHash)
+	log.Errorf("tree size: %d \n", self.treeSize)
+	log.Errorf("hashes size: %d \n", len(self.hashes))
+	log.Errorf("hashes  %x \n", self.hashes)
+	log.Errorf("mintree_h  %x \n", self.mintree_h)
 }
 
 // 1 based n
