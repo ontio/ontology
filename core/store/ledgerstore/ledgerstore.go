@@ -60,12 +60,7 @@ func NewLedgerStore() (*LedgerStore, error) {
 	}
 	ledgerStore.blockStore = blockStore
 
-	err = ledgerStore.init()
-	if err != nil {
-		return nil, fmt.Errorf("init error %s", err)
-	}
-
-	stateStore, err := NewStateStore(DBDirState, MerkleTreeStorePath, ledgerStore.GetCurrentBlockHeight())
+	stateStore, err := NewStateStore(DBDirState, MerkleTreeStorePath)
 	if err != nil {
 		return nil, fmt.Errorf("NewStateStore error %s", err)
 	}
@@ -76,6 +71,11 @@ func NewLedgerStore() (*LedgerStore, error) {
 		return nil, fmt.Errorf("NewEventStore error %s", err)
 	}
 	ledgerStore.eventStore = eventState
+
+	err = ledgerStore.init()
+	if err != nil {
+		return nil, fmt.Errorf("init error %s", err)
+	}
 
 	go ledgerStore.start()
 	return ledgerStore, nil
@@ -150,6 +150,10 @@ func (this *LedgerStore) init() error {
 	if err != nil {
 		return fmt.Errorf("initHeaderIndexList error %s", err)
 	}
+	err = this.initStore()
+	if err != nil {
+		return fmt.Errorf("initStore error %s", err)
+	}
 	return nil
 }
 
@@ -188,6 +192,50 @@ func (this *LedgerStore) initHeaderIndexList() error {
 			return fmt.Errorf("LoadBlockHash height %d hash nil", height)
 		}
 		this.headerIndex[height] = blockHash
+	}
+	return nil
+}
+
+
+func (this *LedgerStore) initStore() error {
+	blockHeight := this.GetCurrentBlockHeight()
+
+	_, stateHeight, err := this.stateStore.GetCurrentBlock()
+	if err != nil {
+		return fmt.Errorf("stateStore.GetCurrentBlock error %s", err)
+	}
+	for i := stateHeight; i < blockHeight; i++ {
+		blockHash, err := this.blockStore.GetBlockHash(i)
+		if err != nil {
+			return fmt.Errorf("blockStore.GetBlockHash height:%d error:%s", i, err)
+		}
+		block, err := this.blockStore.GetBlock(blockHash)
+		if err != nil {
+			return fmt.Errorf("blockStore.GetBlock height:%d error:%s", i, err)
+		}
+		err = this.saveBlockToStateStore(block)
+		if err != nil {
+			return fmt.Errorf("save to state store height:%d error:%s", i, err)
+		}
+	}
+
+	_, eventHeight, err := this.eventStore.GetCurrentBlock()
+	if err != nil {
+		return fmt.Errorf("eventStore.GetCurrentBlock error:%s", err)
+	}
+	for i := eventHeight; i < blockHeight; i++ {
+		blockHash, err := this.blockStore.GetBlockHash(i)
+		if err != nil {
+			return fmt.Errorf("blockStore.GetBlockHash height:%d error:%s", i, err)
+		}
+		block, err := this.blockStore.GetBlock(blockHash)
+		if err != nil {
+			return fmt.Errorf("blockStore.GetBlock height:%d error:%s", i, err)
+		}
+		err = this.saveBlockToEventStore(block)
+		if err != nil {
+			return fmt.Errorf("save to event store height:%d error:%s", i, err)
+		}
 	}
 	return nil
 }
@@ -368,7 +416,6 @@ func (this *LedgerStore) verifyHeader(header *types.Header) error {
 		return fmt.Errorf("block timestamp is incorrect")
 	}
 
-
 	address, err := types.AddressFromBookKeepers(header.BookKeepers)
 	if err != nil {
 		return err
@@ -472,7 +519,7 @@ func (this *LedgerStore) AddBlock(block *types.Block) error {
 	return nil
 }
 
-func (this *LedgerStore) saveBlock(block *types.Block) error {
+func (this *LedgerStore) saveBlockToBlockStore(block *types.Block) error {
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
 
@@ -480,24 +527,6 @@ func (this *LedgerStore) saveBlock(block *types.Block) error {
 	if err != nil {
 		return fmt.Errorf("blockStore.NewBatch error %s", err)
 	}
-	err = this.stateStore.NewBatch()
-	if err != nil {
-		return fmt.Errorf("stateStore.NewBatch error %s", err)
-	}
-	stateBatch := this.stateStore.NewStateBatch()
-
-	invokeTxs := make([]common.Uint256, 0)
-	for _, tx := range block.Transactions {
-		err = this.handleTransaction(stateBatch, block, tx)
-		if err != nil {
-			return fmt.Errorf("handleTransaction error %s", err)
-		}
-		txHash := tx.Hash()
-		if tx.TxType == types.Invoke {
-			invokeTxs = append(invokeTxs, txHash)
-		}
-	}
-
 	this.setHeaderIndex(blockHeight, blockHash)
 	err = this.saveHeaderIndexList()
 	if err != nil {
@@ -515,23 +544,38 @@ func (this *LedgerStore) saveBlock(block *types.Block) error {
 	if err != nil {
 		return fmt.Errorf("SaveBlock height %d hash %x error %s", blockHeight, blockHash, err)
 	}
+	err = this.blockStore.CommitTo()
+	if err != nil {
+		return fmt.Errorf("blockStore.CommitTo error %s", err)
+	}
+	return nil
+}
 
+func (this *LedgerStore) saveBlockToStateStore(block *types.Block) error {
+	blockHash := block.Hash()
+	blockHeight := block.Header.Height
+
+	err := this.stateStore.NewBatch()
+	if err != nil {
+		return fmt.Errorf("stateStore.NewBatch error %s", err)
+	}
+	stateBatch := this.stateStore.NewStateBatch()
+
+	for _, tx := range block.Transactions {
+		err = this.handleTransaction(stateBatch, block, tx)
+		if err != nil {
+			return fmt.Errorf("handleTransaction error %s", err)
+		}
+	}
 	err = this.stateStore.AddMerkleTreeRoot(block.Header.TransactionsRoot)
 	if err != nil {
 		return fmt.Errorf("AddMerkleTreeRoot error %s", err)
 	}
 
-	if len(invokeTxs) > 0 {
-		err = this.eventStore.NewBatch()
-		if err != nil {
-			return fmt.Errorf("eventStore.NewBatch error %s", err)
-		}
-		err = this.eventStore.SaveEventNotifyByBlock(blockHeight, invokeTxs)
-		if err != nil {
-			return fmt.Errorf("SaveEventNotifyByBlock error %s", err)
-		}
+	err = this.stateStore.SaveCurrentBlock(blockHeight, blockHash)
+	if err != nil {
+		return fmt.Errorf("SaveCurrentBlock error %s", err)
 	}
-
 	err = stateBatch.CommitTo()
 	if err != nil {
 		return fmt.Errorf("stateBatch.CommitTo error %s", err)
@@ -540,16 +584,57 @@ func (this *LedgerStore) saveBlock(block *types.Block) error {
 	if err != nil {
 		return fmt.Errorf("stateStore.CommitTo error %s", err)
 	}
-	err = this.blockStore.CommitTo()
-	if err != nil {
-		return fmt.Errorf("blockStore.CommitTo error %s", err)
-	}
-	if len(invokeTxs) > 0 {
-		err = this.eventStore.CommitTo()
-		if err != nil {
-			return fmt.Errorf("eventStore.CommitTo error %s", err)
+	return nil
+}
+
+func (this *LedgerStore) saveBlockToEventStore(block *types.Block) error {
+	blockHash := block.Hash()
+	blockHeight := block.Header.Height
+	invokeTxs := make([]common.Uint256, 0)
+	for _, tx := range block.Transactions {
+		txHash := tx.Hash()
+		if tx.TxType == types.Invoke {
+			invokeTxs = append(invokeTxs, txHash)
 		}
 	}
+	err := this.eventStore.NewBatch()
+	if err != nil {
+		return fmt.Errorf("eventStore.NewBatch error %s", err)
+	}
+	if len(invokeTxs) > 0 {
+		err = this.eventStore.SaveEventNotifyByBlock(block.Header.Height, invokeTxs)
+		if err != nil {
+			return fmt.Errorf("SaveEventNotifyByBlock error %s", err)
+		}
+	}
+	err = this.eventStore.SaveCurrentBlock(blockHeight, blockHash)
+	if err != nil {
+		return fmt.Errorf("SaveCurrentBlock error %s", err)
+	}
+	err = this.eventStore.CommitTo()
+	if err != nil {
+		return fmt.Errorf("eventStore.CommitTo error %s", err)
+	}
+	return nil
+}
+
+func (this *LedgerStore) saveBlock(block *types.Block) error {
+	blockHash := block.Hash()
+	blockHeight := block.Header.Height
+
+	err := this.saveBlockToBlockStore(block)
+	if err != nil {
+		return fmt.Errorf("save to block store error:%s", err)
+	}
+	err = this.saveBlockToStateStore(block)
+	if err != nil {
+		return fmt.Errorf("save to state store error:%s", err)
+	}
+	err = this.saveBlockToEventStore(block)
+	if err != nil {
+		return fmt.Errorf("save to event store error:%s", err)
+	}
+
 	this.setCurrentBlock(blockHeight, blockHash)
 
 	if events.DefActorPublisher != nil {
