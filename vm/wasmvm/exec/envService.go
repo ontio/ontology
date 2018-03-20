@@ -5,9 +5,8 @@ import (
 	"errors"
 	"github.com/Ontology/vm/wasmvm/memory"
 	"github.com/Ontology/vm/wasmvm/wasm"
-	"github.com/Ontology/core/ledger"
-	"github.com/Ontology/common"
-	"github.com/Ontology/vm/types"
+	"io/ioutil"
+	"fmt"
 )
 
 type IInteropService interface {
@@ -31,7 +30,6 @@ func NewInteropService() *InteropService {
 	service.Register("callContract", callContract)
 
 	//===================add block apis below==================
-
 	return &service
 }
 
@@ -111,7 +109,6 @@ func malloc(engine *ExecutionEngine) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
 	//1. recover the vm context
 	//2. if the call returns value,push the result to the stack
 	engine.vm.ctx = envCall.envPreCtx
@@ -146,8 +143,8 @@ func arrayLen(engine *ExecutionEngine) (bool, error) {
 		case memory.P_INT64, memory.P_FLOAT64:
 			result = uint64(tl.Length / 8)
 		case memory.P_UNKNOW:
-			//todo ???
-			result = uint64(0)
+			//todo assume it's byte
+			result = uint64(tl.Length / 1)
 		default:
 			result = uint64(0)
 		}
@@ -223,7 +220,6 @@ func readMessage(engine *ExecutionEngine) (bool, error) {
 
 //call other contract
 func callContract(engine *ExecutionEngine) (bool, error) {
-
 	envCall := engine.vm.envCall
 	params := envCall.envParams
 	if len(params) < 2 {
@@ -249,10 +245,9 @@ func callContract(engine *ExecutionEngine) (bool, error) {
 	if err != nil {
 		return false, errors.New("get Contract address failed")
 	}
-
 	//if has args
 	var args []uint64
-	if len(params) > 3 {
+	if len(params) > 2 {
 		args = params[2:]
 	}
 
@@ -260,8 +255,7 @@ func callContract(engine *ExecutionEngine) (bool, error) {
 	if err != nil {
 		return false, errors.New("call contract " + trimBuffToString(methodName) + " failed")
 	}
-
-	engine.vm.RestoreStat()
+	//engine.vm.RestoreStat()
 	if envCall.envReturns {
 		engine.vm.pushUint64(res)
 	}
@@ -277,15 +271,15 @@ func getContractFromAddr(addr []byte) ([]byte, error) {
 
 	//todo get the contract code from ledger
 	//just for test
-/*		contract := trimBuffToString(addr)
-
+		contract := trimBuffToString(addr)
 		code, err := ioutil.ReadFile(fmt.Sprintf("./testdata2/%s.wasm",contract))
 		if err != nil {
+			fmt.Printf("./testdata2/%s.wasm is not exist",contract)
 			return nil,err
 		}
 
-		return code,nil*/
-	codeHash, err := common.Uint160ParseFromBytes(addr)
+		return code,nil
+/*	codeHash, err := common.Uint160ParseFromBytes(addr)
 	if err != nil {
 		return nil, errors.New("get address Code hash failed")
 	}
@@ -299,7 +293,7 @@ func getContractFromAddr(addr []byte) ([]byte, error) {
 		return nil, errors.New(" contract is not a wasm contract")
 	}
 
-	return contract.Code, nil
+	return contract.Code, nil*/
 
 }
 
@@ -311,7 +305,6 @@ func trimBuffToString(bytes []byte) string {
 			return string(bytes[:i])
 		}
 	}
-
 	return string(bytes)
 
 }

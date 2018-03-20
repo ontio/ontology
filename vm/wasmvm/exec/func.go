@@ -5,11 +5,11 @@
 package exec
 
 import (
-	"fmt"
 	"math"
 	"reflect"
 
 	"github.com/Ontology/vm/wasmvm/exec/internal/compile"
+	"fmt"
 )
 
 type function interface {
@@ -49,6 +49,7 @@ func (fn goFunction) call(vm *VM, index int64) {
 		case reflect.Int32, reflect.Int64:
 			val.SetUint(raw)
 		default:
+			//todo remove panic with other handler
 			panic(fmt.Sprintf("exec: args %d invalid kind=%v", i, kind))
 		}
 
@@ -66,6 +67,7 @@ func (fn goFunction) call(vm *VM, index int64) {
 		case reflect.Int32, reflect.Int64:
 			vm.pushInt64(out.Int())
 		default:
+			//todo remove panic with other handler
 			panic(fmt.Sprintf("exec: return value %d invalid kind=%v", i, kind))
 		}
 	}
@@ -90,7 +92,7 @@ func (compiled compiledFunction) call(vm *VM, index int64) {
 		curFunc: index,
 	}
 
-	rtrn := vm.execCode(compiled)
+	rtrn := vm.execCode(false,compiled)
 
 	//restore execution context
 	vm.ctx = prevCtxt

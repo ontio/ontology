@@ -866,3 +866,34 @@ func TestContractCall(t *testing.T){
 
 
 }
+
+
+func TestConststr(t *testing.T){
+	engine := NewExecutionEngine(nil,nil,nil,nil)
+	//test
+	code, err := ioutil.ReadFile("./testdata2/conststr.wasm")
+	if err != nil {
+		fmt.Println("error in read file", err.Error())
+		return
+	}
+
+/*	input := make([]interface{}, 2)
+	input[0] = "contactHello"
+	input[1] = "world! "*/
+
+	input := make([]interface{}, 1)
+	input[0] = "test"
+
+	fmt.Printf("input is %v\n", input)
+
+	res, err := engine.CallInf(common.Uint160{}, code, input,nil)
+	if err != nil {
+		fmt.Println("call error!", err.Error())
+	}
+	fmt.Printf("res:%v\n", res)
+	fmt.Println(engine.vm.memory.Memory[int(binary.LittleEndian.Uint32(res)):])
+
+	sss,_ :=engine.vm.memory.GetPointerMemory(uint64(binary.LittleEndian.Uint32(res)))
+	fmt.Println(string(sss))
+
+}

@@ -110,93 +110,6 @@ var endianess = binary.LittleEndian
 // start function, it will be executed.
 func NewVM(module *wasm.Module) (*VM, error) {
 	var vm VM
-	/*vm.memory = &memory.VMmemory{}
-	if module.Memory != nil && len(module.Memory.Entries) != 0 {
-		if len(module.Memory.Entries) > 1 {
-			return nil, ErrMultipleLinearMemories
-		}
-		vm.memory.Memory = make([]byte, uint(module.Memory.Entries[0].Limits.Initial)*wasmPageSize)
-		copy(vm.memory.Memory, module.LinearMemoryIndexSpace[0])
-	} else if len(module.LinearMemoryIndexSpace) > 0 {
-		//add imported memory ,all mem access will be on the imported mem
-		vm.memory.Memory = module.LinearMemoryIndexSpace[0]
-		//copy(vm.memory, module.LinearMemoryIndexSpace[0])
-	}
-
-	//give a default memory even if no memory section exist in wasm file
-	if vm.memory.Memory == nil {
-		vm.memory.Memory = make([]byte, 1*wasmPageSize)
-	}
-
-	vm.memory.AllocedMemIdex = -1                             //init the allocated memory offset
-	vm.memory.PointedMemIndex = len(vm.memory.Memory) / 2     //the second half memory is reserved for the pointed objects,string,array,structs
-	vm.memory.MemPoints = make(map[uint64]*memory.TypeLength) //init the pointer map
-
-	vm.compiledFuncs = make([]compiledFunction, len(module.FunctionIndexSpace))
-	vm.globals = make([]uint64, len(module.GlobalIndexSpace))
-	vm.newFuncTable()
-	vm.module = module
-
-	for i, fn := range module.FunctionIndexSpace {
-		disassembly, err := disasm.Disassemble(fn, module)
-		if err != nil {
-			return nil, err
-		}
-
-		totalLocalVars := 0
-		totalLocalVars += len(fn.Sig.ParamTypes)
-		for _, entry := range fn.Body.Locals {
-			totalLocalVars += int(entry.Count)
-		}
-		code, table := compile.Compile(disassembly.Code)
-
-		if fn.IsEnvFunc {
-			vm.compiledFuncs[i] = compiledFunction{
-				code:           code,
-				branchTables:   table,
-				maxDepth:       disassembly.MaxDepth,
-				totalLocalVars: totalLocalVars,
-				args:           len(fn.Sig.ParamTypes),
-				returns:        len(fn.Sig.ReturnTypes) != 0,
-				isEnv:          true,
-				name:           fn.Name,
-			}
-		} else {
-			vm.compiledFuncs[i] = compiledFunction{
-				code:           code,
-				branchTables:   table,
-				maxDepth:       disassembly.MaxDepth,
-				totalLocalVars: totalLocalVars,
-				args:           len(fn.Sig.ParamTypes),
-				returns:        len(fn.Sig.ReturnTypes) != 0,
-			}
-		}
-	}
-
-	for i, global := range module.GlobalIndexSpace {
-		val, err := module.ExecInitExpr(global.Init)
-		if err != nil {
-			return nil, err
-		}
-		switch v := val.(type) {
-		case int32:
-			vm.globals[i] = uint64(v)
-		case int64:
-			vm.globals[i] = uint64(v)
-		case float32:
-			vm.globals[i] = uint64(math.Float32bits(v))
-		case float64:
-			vm.globals[i] = uint64(math.Float64bits(v))
-		}
-	}
-
-	if module.Start != nil {
-		_, err := vm.ExecCode(int64(module.Start.Index))
-		if err != nil {
-			return nil, err
-		}
-	}
-*/
 	err := vm.loadModule(module)
 	if err != nil{
 		return nil,err
@@ -409,13 +322,17 @@ func (vm *VM) pushFloat32(f float32) {
 // the VM's module.
 //insideCall :true (call contract)
 func (vm *VM) ExecCode(insideCall bool,fnIndex int64,  args ...uint64) (interface{}, error) {
+
 	if int(fnIndex) > len(vm.compiledFuncs) {
 		return nil, InvalidFunctionIndexError(fnIndex)
 	}
+
 	if len(vm.module.GetFunction(int(fnIndex)).Sig.ParamTypes) != len(args) {
 		return nil, ErrInvalidArgumentCount
 	}
+
 	compiled := vm.compiledFuncs[fnIndex]
+
 	if len(vm.ctx.stack) < compiled.maxDepth {
 		vm.ctx.stack = make([]uint64, 0, compiled.maxDepth)
 	}
@@ -429,7 +346,7 @@ func (vm *VM) ExecCode(insideCall bool,fnIndex int64,  args ...uint64) (interfac
 	}
 
 	var rtrn interface{}
-	res := vm.execCode(compiled)
+	res := vm.execCode(insideCall,compiled)
 
 	// for the call contract case
 	if insideCall{
@@ -455,11 +372,12 @@ func (vm *VM) ExecCode(insideCall bool,fnIndex int64,  args ...uint64) (interfac
 	return rtrn, nil
 }
 
-func (vm *VM) execCode(compiled compiledFunction) uint64 {
+func (vm *VM) execCode(isinside bool,compiled compiledFunction) uint64 {
 outer:
 	for int(vm.ctx.pc) < len(vm.ctx.code) {
 		op := vm.ctx.code[vm.ctx.pc]
 		vm.ctx.pc++
+
 		switch op {
 		case ops.Return:
 			break outer
@@ -530,52 +448,42 @@ outer:
 		}
 	}
 
-	if compiled.returns {
+	if compiled.returns  {
 		return vm.ctx.stack[len(vm.ctx.stack)-1]
 	}
 	return 0
 }
 
 //todo implement the "call other contract function"
+//start a new vm
 func (vm *VM) CallContract(module *wasm.Module,methodName string,args ...uint64)(uint64,error){
-	originMem := vm.memory
-	//1. backup current states
-	vm.BackupStat()
-	//2. get the method idx
-	err := vm.loadModule(module)
-	if err != nil{
-		return uint64(0),nil
-	}
-	//3. exec the method code
+
+	//1. exec the method code
 	entry, ok := module.Export.Entries[methodName]
 	if ok == false {
 		return uint64(0), errors.New("Method:" + methodName + " does not exist!")
 	}
+
 	//get entry index
 	index := int64(entry.Index)
 	//get function index
 	fidx := module.Function.Types[int(index)]
-
 	//get  function type
-	//ftype := module.Types.Entries[int(fidx)]
+	ftype := module.Types.Entries[int(fidx)]
 
-	//init parameters memory
-	/*
-	for k,v :=range initMem{
-		copy(vm.Memory()[k:k+uint64(len(v))],v)
-		vm.memory.MemPoints[k] = &memory.TypeLength{Ptype:memory.P_UNKNOW,Length:len(v)}
+	if len(ftype.ParamTypes) != len(args) {
+		return uint64(0), errors.New("parameter count is not right")
 	}
-	*/
-
-	//use the same memory
-	vm.memory = originMem
-	res,err :=vm.ExecCode(true,int64(fidx),args ...)
-	if err != nil{
+	//new vm
+	newvm,err := NewVM(module)
+	if err!=nil{
 		return uint64(0),err
 	}
+	res,err := newvm.ExecCode(true,int64(index),args ...)
 
-	//4 restore
-
+	//todo copy memory if need!!!
+	fmt.Printf("CallContract res is %v\n ",res)
+	//2 copy memory if need!!!
 	return res.(uint64),nil
 }
 
@@ -691,6 +599,7 @@ func (vm *VM) loadModule(module *wasm.Module) error{
 
 }
 
+//todo remove the following 2 method later
 func (vm *VM)BackupStat(){
 	backup := &BackStat{}
 

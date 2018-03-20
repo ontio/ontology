@@ -71,7 +71,7 @@ func (vm *VM) doCall(compiled compiledFunction, index int64) {
 		//}
 
 	} else {
-		rtrn := vm.execCode(compiled)
+		rtrn := vm.execCode(false,compiled)
 
 		// restore execution context
 		vm.ctx = prevCtxt

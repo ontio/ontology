@@ -43,6 +43,7 @@ func(e *ExecutionEngine)GetVM() *VM{
 }
 
 
+//todo use this method just for test
 func (e *ExecutionEngine) CallInf(caller common.Uint160, code []byte, input []interface{}, message []interface{}) ([]byte, error) {
 	methodName := input[0].(string)
 
@@ -221,6 +222,7 @@ func (e *ExecutionEngine) Create(caller common.Uint160, code []byte) ([]byte, er
 	return code, nil
 }
 
+//todo anaylze input base on abi file
 func (e *ExecutionEngine) Call(caller common.Uint160, code, input []byte) ([]byte, error) {
 
 	methodName, err := getCallMethodName(input)
@@ -255,6 +257,7 @@ func (e *ExecutionEngine) Call(caller common.Uint160, code, input []byte) ([]byt
 	}
 	e.vm = vm
 	vm.Engine = e
+	//todo add message from input
 	//vm.SetMessage(message)
 	entry, ok := m.Export.Entries[methodName]
 	if ok == false {
