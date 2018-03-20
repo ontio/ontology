@@ -116,7 +116,7 @@ func (this *LedgerActor) handleAddBlockReq(ctx actor.Context, req *AddBlockReq) 
 
 func (this *LedgerActor) handleGetTransactionReq(ctx actor.Context, req *GetTransactionReq) {
 	tx, err := ledger.DefLedger.GetTransaction(req.TxHash)
-	resp := GetTransactionRsp{
+	resp := &GetTransactionRsp{
 		Error: err,
 		Tx:    tx,
 	}
@@ -270,7 +270,7 @@ func (this *LedgerActor) handleIsContainTransactionReq(ctx actor.Context, req *I
 
 func (this *LedgerActor) handlePreExecuteContractReq(ctx actor.Context, req *PreExecuteContractReq) {
 	result, err := ledger.DefLedger.PreExecuteContract(req.Tx)
-	resp := PreExecuteContractRsp{
+	resp := &PreExecuteContractRsp{
 		Result: result,
 		Error:  err,
 	}
