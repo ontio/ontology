@@ -684,6 +684,8 @@ func (this *LedgerStore) saveBlockToEventStore(block *types.Block) error {
 }
 
 func (this *LedgerStore) saveBlock(block *types.Block) error {
+	defer this.resetSavingBlock()
+
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
 
@@ -701,7 +703,6 @@ func (this *LedgerStore) saveBlock(block *types.Block) error {
 	}
 
 	this.setCurrentBlock(blockHeight, blockHash)
-	this.resetSavingBlock()
 
 	if events.DefActorPublisher != nil {
 		events.DefActorPublisher.Publish(
