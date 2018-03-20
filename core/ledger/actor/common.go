@@ -2,9 +2,9 @@ package actor
 
 import (
 	"github.com/Ontology/common"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/core/states"
 	"github.com/Ontology/core/payload"
+	"github.com/Ontology/core/states"
+	"github.com/Ontology/core/types"
 )
 
 type AddHeaderReq struct {
@@ -100,6 +100,13 @@ type GetCurrentHeaderHeightRsp struct {
 	Error  error
 }
 
+type GetCurrentHeaderHashReq struct{}
+
+type GetCurrentHeaderHashRsp struct {
+	BlockHash common.Uint256
+	Error     error
+}
+
 type GetBlockHashReq struct {
 	Height uint32
 }
@@ -124,7 +131,7 @@ type GetBlockRootWithNewTxRootReq struct {
 
 type GetBlockRootWithNewTxRootRsp struct {
 	NewTxRoot common.Uint256
-	Error error
+	Error     error
 }
 
 type GetTransactionWithHeightReq struct {
@@ -153,7 +160,7 @@ type GetCurrentStateRootRsp struct {
 	Error     error
 }
 
-type GetBookKeeperStateReq struct {}
+type GetBookKeeperStateReq struct{}
 
 type GetBookKeeperStateRsp struct {
 	BookKeepState *states.BookKeeperState
@@ -185,5 +192,5 @@ type PreExecuteContractReq struct {
 
 type PreExecuteContractRsp struct {
 	Result []interface{}
-	Error error
+	Error  error
 }

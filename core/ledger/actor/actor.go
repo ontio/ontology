@@ -49,6 +49,8 @@ func (this *LedgerActor) Receive(ctx actor.Context) {
 		this.handleGetCurrentBlockHeightReq(ctx, msg)
 	case *GetCurrentHeaderHeightReq:
 		this.handleGetCurrentHeaderHeightReq(ctx, msg)
+	case *GetCurrentHeaderHashReq:
+		this.handleGetCurrentHeaderHashReq(ctx, msg)
 	case *GetBlockHashReq:
 		this.handleGetBlockHashReq(ctx, msg)
 	case *IsContainBlockReq:
@@ -182,6 +184,15 @@ func (this *LedgerActor) handleGetCurrentHeaderHeightReq(ctx actor.Context, req 
 	resp := &GetCurrentHeaderHeightRsp{
 		Height: curHeaderHeight,
 		Error:  nil,
+	}
+	ctx.Sender().Request(resp, ctx.Self())
+}
+
+func (this *LedgerActor) handleGetCurrentHeaderHashReq(ctx actor.Context, req *GetCurrentHeaderHashReq){
+	curHeaderHash := ledger.DefLedger.GetCurrentHeaderHash()
+	resp := &GetCurrentHeaderHashRsp{
+		BlockHash:curHeaderHash,
+		Error:nil,
 	}
 	ctx.Sender().Request(resp, ctx.Self())
 }
