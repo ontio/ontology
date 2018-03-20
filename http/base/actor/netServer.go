@@ -63,13 +63,13 @@ func GetConnectionState() (uint32, error) {
 }
 
 func GetNodeTime() (int64, error) {
-	future := netServerPid.RequestFuture(&ac.GetNodeTimeReq{}, ReqTimeout*time.Second)
+	future := netServerPid.RequestFuture(&ac.GetTimeReq{}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ErrActorComm, err)
 		return 0, err
 	}
-	r, ok := result.(*ac.GetNodeTimeRsp)
+	r, ok := result.(*ac.GetTimeRsp)
 	if !ok {
 		return 0, errors.New("fail")
 	}
@@ -91,13 +91,13 @@ func GetNodePort() (uint16, error) {
 }
 
 func GetID() (uint64, error) {
-	future := netServerPid.RequestFuture(&ac.GetNodeIdReq{}, ReqTimeout*time.Second)
+	future := netServerPid.RequestFuture(&ac.GetIdReq{}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ErrActorComm, err)
 		return 0, err
 	}
-	r, ok := result.(*ac.GetNodeIdRsp)
+	r, ok := result.(*ac.GetIdRsp)
 	if !ok {
 		return 0, errors.New("fail")
 	}
@@ -119,13 +119,13 @@ func GetRelayState() (bool, error) {
 }
 
 func GetVersion() (uint32, error) {
-	future := netServerPid.RequestFuture(&ac.GetNodeVersionReq{}, ReqTimeout*time.Second)
+	future := netServerPid.RequestFuture(&ac.GetVersionReq{}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ErrActorComm, err)
 		return 0, err
 	}
-	r, ok := result.(*ac.GetNodeVersionRsp)
+	r, ok := result.(*ac.GetVersionRsp)
 	if !ok {
 		return 0, errors.New("fail")
 	}

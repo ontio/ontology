@@ -13,9 +13,22 @@ var node protocol.Noder
 
 type NetServer struct{}
 
-type GetNodeVersionReq struct {
+type StartServerReq struct {
+	StartSync bool
 }
-type GetNodeVersionRsp struct {
+type StartServerRsp struct {
+	Error error
+}
+
+type StopServerReq struct {
+}
+type StopServerRsp struct {
+	Error error
+}
+
+type GetVersionReq struct {
+}
+type GetVersionRsp struct {
 	Version uint32
 }
 
@@ -25,9 +38,9 @@ type GetConnectionCntRsp struct {
 	Cnt uint
 }
 
-type GetNodeIdReq struct {
+type GetIdReq struct {
 }
-type GetNodeIdRsp struct {
+type GetIdRsp struct {
 	Id uint64
 }
 
@@ -43,15 +56,22 @@ type GetConsensusPortRsp struct {
 	Port uint16
 }
 
+type GetPortReq struct {
+}
+type GetPortRsp struct {
+	SyncPort uint16
+	ConsPort uint16
+}
+
 type GetConnectionStateReq struct {
 }
 type GetConnectionStateRsp struct {
 	State uint32
 }
 
-type GetNodeTimeReq struct {
+type GetTimeReq struct {
 }
-type GetNodeTimeRsp struct {
+type GetTimeRsp struct {
 	Time int64
 }
 
@@ -74,6 +94,12 @@ type GetNeighborAddrsRsp struct {
 	Count uint64
 }
 
+type IsSyncingReq struct {
+}
+type IsSyncingRsp struct {
+	IsSyncing bool
+}
+
 func (state *NetServer) Receive(context actor.Context) {
 	switch context.Message().(type) {
 	case *actor.Restarting:
@@ -86,31 +112,43 @@ func (state *NetServer) Receive(context actor.Context) {
 		log.Warn("p2p actor started")
 	case *actor.Restart:
 		log.Warn("p2p actor restart")
-	case *GetNodeVersionReq:
+	case *StartServerReq:
+		err := StartServer(context.Message().(StartServerReq).StartSync)
+		context.Sender().Request(&StartServerRsp{Error: err}, context.Self())
+	case *StopServerReq:
+		err := StopServer()
+		context.Sender().Request(&StopServerRsp{Error: err}, context.Self())
+	case *IsSyncingReq:
+		isSyncing := IsSyncing()
+		context.Sender().Request(&IsSyncingRsp{IsSyncing: isSyncing}, context.Self())
+	case *GetPortReq:
+		conPort := node.GetPort()
+		context.Sender().Request(&GetPortRsp{SyncPort: conPort}, context.Self())
+	case *GetVersionReq:
 		version := node.Version()
-		context.Sender().Request(&GetNodeVersionRsp{Version: version}, context.Self())
+		context.Sender().Request(&GetVersionRsp{Version: version}, context.Self())
 	case *GetConnectionCntReq:
 		connectionCnt := node.GetConnectionCnt()
 		context.Sender().Request(&GetConnectionCntRsp{Cnt: connectionCnt}, context.Self())
 	case *GetNodePortReq:
-		nodePort := node.GetPort()
-		context.Sender().Request(&GetNodePortRsp{Port: nodePort}, context.Self())
+		syncPort, consPort := GetPort()
+		context.Sender().Request(&GetPortRsp{SyncPort: syncPort, ConsPort: consPort}, context.Self())
 	case *GetConsensusPortReq:
 		conPort := node.GetConsensusPort()
 		context.Sender().Request(&GetConsensusPortRsp{Port: conPort}, context.Self())
-	case *GetNodeIdReq:
+	case *GetIdReq:
 		id := node.GetID()
-		context.Sender().Request(&GetNodeIdRsp{Id: id}, context.Self())
+		context.Sender().Request(&GetIdRsp{Id: id}, context.Self())
 	case *GetConnectionStateReq:
 		state := node.GetState()
 		context.Sender().Request(&GetConnectionStateRsp{State: state}, context.Self())
-	case *GetNodeTimeReq:
+	case *GetTimeReq:
 		time := node.GetTime()
-		context.Sender().Request(&GetNodeTimeRsp{Time: time}, context.Self())
-	case *GetNodeTypeReq:
+		context.Sender().Request(&GetTimeRsp{Time: time}, context.Self())
+	case *GetNodeTypeReq:		//this function will be deleted
 		nodeType := node.Services()
 		context.Sender().Request(&GetNodeTypeRsp{NodeType: nodeType}, context.Self())
-	case *GetRelayStateReq:
+	case *GetRelayStateReq:		//this function will be deleted
 		relay := node.GetRelay()
 		context.Sender().Request(&GetRelayStateRsp{Relay: relay}, context.Self())
 	case *GetNeighborAddrsReq:
@@ -133,3 +171,37 @@ func InitNetServer(netNode protocol.Noder) (*actor.PID, error) {
 	node = netNode
 	return netServerPid, err
 }
+
+func StartServer(startSync bool) error {
+	var err error
+	if startSync {
+		//TODO
+
+		err = nil
+	} else {
+		//TODO
+
+		err = nil
+	}
+	return err
+}
+
+func StopServer() error {
+	var err error
+	err = nil
+	//TODO
+
+	return err
+}
+
+func IsSyncing() bool {
+	var isSyncing bool
+	//TODO
+
+	return isSyncing
+}
+
+func GetPort() (uint16, uint16) {
+	return node.GetPort(), node.GetConsensusPort()
+}
+
