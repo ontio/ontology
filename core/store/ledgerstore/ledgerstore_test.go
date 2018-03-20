@@ -5,7 +5,6 @@ import (
 	"github.com/Ontology/common"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/types"
-	"github.com/Ontology/core/utils"
 	"github.com/Ontology/crypto"
 	"os"
 	"testing"
@@ -21,7 +20,6 @@ func TestMain(m *testing.M) {
 	DBDirEvent = "test/ledger/ledgerevent"
 	DBDirBlock = "test/ledger/block"
 	DBDirState = "test/ledger/states"
-	DBDirMerkleTree = "test/ledger/merkle"
 	MerkleTreeStorePath = "test/ledger/merkle_tree.db"
 	testLedgerStore, err = NewLedgerStore()
 	if err != nil {
@@ -36,7 +34,7 @@ func TestMain(m *testing.M) {
 		return
 	}
 	testStateDir := "test/state"
-	testStateStore, err = NewStateStore(testStateDir)
+	testStateStore, err = NewStateStore(testStateDir,MerkleTreeStorePath, 0)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "NewStateStore error %s\n", err)
 		return

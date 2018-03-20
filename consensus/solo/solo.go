@@ -159,17 +159,11 @@ func (this *SoloService) makeBlock() *types.Block {
 	}
 
 	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoot(txRoot)
-	stateRoot, err := ledger.DefLedger.GetCurrentStateRoot()
-	if err != nil {
-		log.Errorf("GetCurrentStateRoot error %s", err)
-		return nil
-	}
 	header := &types.Header{
 		Version:          ContextVersion,
 		PrevBlockHash:    prevHash,
 		TransactionsRoot: txRoot,
 		BlockRoot:        blockRoot,
-		StateRoot:        stateRoot,
 		Timestamp:        uint32(time.Now().Unix()),
 		Height:           height,
 		ConsensusData:    nonce,

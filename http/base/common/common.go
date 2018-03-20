@@ -159,7 +159,6 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 		PrevBlockHash:    ToHexString(block.Header.PrevBlockHash.ToArray()),
 		TransactionsRoot: ToHexString(block.Header.TransactionsRoot.ToArray()),
 		BlockRoot:        ToHexString(block.Header.BlockRoot.ToArray()),
-		StateRoot:        ToHexString(block.Header.StateRoot.ToArray()),
 		Timestamp:        block.Header.Timestamp,
 		Height:           block.Header.Height,
 		ConsensusData:    block.Header.ConsensusData,

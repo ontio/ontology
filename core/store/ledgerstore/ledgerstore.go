@@ -480,15 +480,11 @@ func (this *LedgerStore) saveBlock(block *types.Block) error {
 	if err != nil {
 		return fmt.Errorf("blockStore.NewBatch error %s", err)
 	}
-	stateRoot := block.Header.StateRoot
 	err = this.stateStore.NewBatch()
 	if err != nil {
 		return fmt.Errorf("stateStore.NewBatch error %s", err)
 	}
-	stateBatch, err := this.stateStore.NewStateBatch(stateRoot)
-	if err != nil {
-		return fmt.Errorf("NewStateBatch error %s", err)
-	}
+	stateBatch := this.stateStore.NewStateBatch()
 
 	invokeTxs := make([]common.Uint256, 0)
 	for _, tx := range block.Transactions {
@@ -520,10 +516,6 @@ func (this *LedgerStore) saveBlock(block *types.Block) error {
 		return fmt.Errorf("SaveBlock height %d hash %x error %s", blockHeight, blockHash, err)
 	}
 
-	err = this.stateStore.SaveCurrentStateRoot(block.Header.StateRoot)
-	if err != nil {
-		return fmt.Errorf("SaveCurrentStateRoot error %s", err)
-	}
 	err = this.stateStore.AddMerkleTreeRoot(block.Header.TransactionsRoot)
 	if err != nil {
 		return fmt.Errorf("AddMerkleTreeRoot error %s", err)
@@ -540,15 +532,9 @@ func (this *LedgerStore) saveBlock(block *types.Block) error {
 		}
 	}
 
-	newStateRoot, err := stateBatch.CommitTo()
+	err = stateBatch.CommitTo()
 	if err != nil {
 		return fmt.Errorf("stateBatch.CommitTo error %s", err)
-	}
-	if newStateRoot != stateRoot {
-		err = this.stateStore.SaveCurrentStateRoot(newStateRoot)
-		if err != nil {
-			return fmt.Errorf("SaveCurrentStateRoot error %s", err)
-		}
 	}
 	err = this.stateStore.CommitTo()
 	if err != nil {
@@ -656,10 +642,6 @@ func (this *LedgerStore) IsContainBlock(blockHash common.Uint256) (bool, error) 
 	return this.blockStore.ContainBlock(blockHash)
 }
 
-func (this *LedgerStore) GetCurrentStateRoot() (common.Uint256, error) {
-	return this.stateStore.GetCurrentStateRoot()
-}
-
 func (this *LedgerStore) IsContainTransaction(txHash common.Uint256) (bool, error) {
 	return this.blockStore.ContainTransaction(txHash)
 }
@@ -739,15 +721,12 @@ func (this *LedgerStore) PreExecuteContract(tx *types.Transaction) ([]interface{
 	address := param.AddressFromVmCode()
 	code := append(param.Code, 0x67)
 	code = append(param.Code, address.ToArray()...)
-	stateBatch, err := this.stateStore.NewStateBatch(common.Uint256{})
-	if err != nil {
-		return nil, fmt.Errorf("NewStateBatch error %s", err)
-	}
+	stateBatch := this.stateStore.NewStateBatch()
 
 	stateMachine := service.NewStateMachine(this, stateBatch, smtypes.Application, 0)
 	se := neovm.NewExecutionEngine(tx, new(neovm.ECDsaCrypto), &CacheCodeTable{stateBatch}, stateMachine)
 	se.LoadCode(code, false)
-	err = se.Execute()
+	err := se.Execute()
 	if err != nil {
 		return nil, err
 	}

@@ -134,7 +134,7 @@ func (this *Ledger) IsDoubleSpend(tx *types.Transaction) (bool, error) {
 }
 
 func (this *Ledger) GetCurrentStateRoot() (common.Uint256, error) {
-	return this.ldgStore.GetCurrentStateRoot()
+	return common.Uint256{}, nil
 }
 
 func (this *Ledger) GetBookKeeperState() (*states.BookKeeperState, error) {

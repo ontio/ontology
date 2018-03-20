@@ -125,8 +125,8 @@ func (this *StateStore) AddMerkleTreeRoot(txRoot common.Uint256) error {
 	return this.store.BatchPut(key, value.Bytes())
 }
 
-func (this *StateStore) NewStateBatch(stateRoot common.Uint256) (*StateBatch, error) {
-	return NewStateStoreBatch(NewMemDatabase(), this.store, stateRoot)
+func (this *StateStore) NewStateBatch() *StateBatch {
+	return NewStateStoreBatch(NewMemDatabase(), this.store)
 }
 
 func (this *StateStore) CommitTo() error {

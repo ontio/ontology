@@ -81,7 +81,7 @@ func TestBookKeeperState(t *testing.T) {
 		NextBookKeeper: nextBookKeepers,
 	}
 	batch.TryAdd(scommon.ST_BookKeeper, BookerKeeper, bookKeeperState, false)
-	_, err = batch.CommitTo()
+	err = batch.CommitTo()
 	if err != nil {
 		t.Errorf("batch.CommitTo error %s", err)
 		return
@@ -119,9 +119,6 @@ func getStateBatch(stateRoot common.Uint256) (*statestore.StateBatch, error) {
 	if err != nil {
 		return nil, fmt.Errorf("testStateStore.NewBatch error %s", err)
 	}
-	batch, err := testStateStore.NewStateBatch(common.Uint256{})
-	if err != nil {
-		return nil, fmt.Errorf("NewStateBatch error %s", err)
-	}
+	batch := testStateStore.NewStateBatch()
 	return batch, nil
 }

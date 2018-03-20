@@ -6,6 +6,7 @@ import (
 	"github.com/Ontology/common"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/types"
+	"github.com/Ontology/crypto"
 	"testing"
 	"time"
 )
@@ -186,7 +187,7 @@ func TestHeaderIndexList(t *testing.T) {
 		indexMap[i] = hash
 		indexList = append(indexList, hash)
 	}
-	err = testBlockStore.SaveHeaderIndexList(startHeight, indexMap)
+	err = testBlockStore.SaveHeaderIndexList(startHeight, indexList)
 	if err != nil {
 		t.Errorf("SaveHeaderIndexList error %s", err)
 		return
@@ -217,7 +218,7 @@ func TestHeaderIndexList(t *testing.T) {
 			t.Errorf("TestHeaderIndexList failed height:%d hash not exist", height)
 			return
 		}
-		if hash !=h {
+		if hash != h {
 			t.Errorf("TestHeaderIndexList failed height:%d hash %x != %x", height, hash, h)
 			return
 		}
@@ -225,6 +226,13 @@ func TestHeaderIndexList(t *testing.T) {
 }
 
 func TestSaveHeader(t *testing.T) {
+	_, pubKey1, _ := crypto.GenKeyPair()
+	_, pubKey2, _ := crypto.GenKeyPair()
+	bookKeeper, err := types.AddressFromBookKeepers([]*crypto.PubKey{&pubKey1, &pubKey2})
+	if err != nil {
+		t.Errorf("AddressFromBookKeepers error %s", err)
+		return
+	}
 	header := &types.Header{
 		Version:          123,
 		PrevBlockHash:    common.Uint256{},
@@ -232,7 +240,7 @@ func TestSaveHeader(t *testing.T) {
 		Timestamp:        uint32(uint32(time.Date(2017, time.February, 23, 0, 0, 0, 0, time.UTC).Unix())),
 		Height:           uint32(1),
 		ConsensusData:    123456789,
-		NextBookKeeper:   types.Address(common.ToCodeHash([]byte("123456"))),
+		NextBookKeeper:   bookKeeper,
 	}
 	tx1 := &types.Transaction{
 		TxType: types.BookKeeping,
@@ -255,11 +263,7 @@ func TestSaveHeader(t *testing.T) {
 	blockHash := block.Hash()
 	sysFee := common.Fixed64(1)
 
-	err := testBlockStore.NewBatch()
-	if err != nil {
-		t.Errorf("NewBatch error %s", err)
-		return
-	}
+	testBlockStore.NewBatch()
 
 	err = testBlockStore.SaveHeader(block, sysFee)
 	if err != nil {
@@ -297,6 +301,13 @@ func TestSaveHeader(t *testing.T) {
 }
 
 func TestBlock(t *testing.T) {
+	_, pubKey1, _ := crypto.GenKeyPair()
+	_, pubKey2, _ := crypto.GenKeyPair()
+	bookKeeper, err := types.AddressFromBookKeepers([]*crypto.PubKey{&pubKey1, &pubKey2})
+	if err != nil {
+		t.Errorf("AddressFromBookKeepers error %s", err)
+		return
+	}
 	header := &types.Header{
 		Version:          123,
 		PrevBlockHash:    common.Uint256{},
@@ -304,7 +315,7 @@ func TestBlock(t *testing.T) {
 		Timestamp:        uint32(uint32(time.Date(2017, time.February, 23, 0, 0, 0, 0, time.UTC).Unix())),
 		Height:           uint32(2),
 		ConsensusData:    1234567890,
-		NextBookKeeper:   types.Address(common.ToCodeHash([]byte("123456"))),
+		NextBookKeeper:   bookKeeper,
 	}
 	tx1 := &types.Transaction{
 		TxType: types.BookKeeping,
@@ -328,11 +339,7 @@ func TestBlock(t *testing.T) {
 	tx1Hash := tx1.Hash()
 	tx2Hash := tx2.Hash()
 
-	err := testBlockStore.NewBatch()
-	if err != nil {
-		t.Errorf("NewBatch error %s", err)
-		return
-	}
+	testBlockStore.NewBatch()
 
 	err = testBlockStore.SaveBlock(block)
 	if err != nil {
