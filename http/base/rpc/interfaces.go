@@ -7,6 +7,7 @@ import (
 	"fmt"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/config"
+	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/types"
 	. "github.com/Ontology/errors"
 	. "github.com/Ontology/http/base/actor"
@@ -18,6 +19,7 @@ import (
 func GetBestBlockHash(params []interface{}) map[string]interface{} {
 	hash, err := CurrentBlockHash()
 	if err != nil {
+		log.Errorf("GetBestBlockHash error:%s", err)
 		return RpcFailed
 	}
 	return Rpc(ToHexString(hash.ToArray()))
@@ -38,9 +40,10 @@ func GetBlock(params []interface{}) map[string]interface{} {
 		index := uint32(params[0].(float64))
 		hash, err = GetBlockHashFromStore(index)
 		if err != nil {
+			log.Errorf("GetBlock GetBlockHashFromStore Height:%v error:%s", index, err)
 			return RpcUnknownBlock
 		}
-		if hash.CompareTo(Uint256{}) == 0{
+		if hash.CompareTo(Uint256{}) == 0 {
 			return RpcInvalidParameter
 		}
 		// block hash
@@ -59,9 +62,10 @@ func GetBlock(params []interface{}) map[string]interface{} {
 
 	block, err := GetBlockFromStore(hash)
 	if err != nil {
+		log.Errorf("GetBlock GetBlockFromStore BlockHash:%x error:%s", hash, err)
 		return RpcUnknownBlock
 	}
-	if block.Header == nil{
+	if block == nil || block.Header == nil {
 		return RpcUnknownBlock
 	}
 	return Rpc(GetBlockInfo(block))
@@ -70,6 +74,7 @@ func GetBlock(params []interface{}) map[string]interface{} {
 func GetBlockCount(params []interface{}) map[string]interface{} {
 	height, err := BlockHeight()
 	if err != nil {
+		log.Errorf("GetBlockCount error:%s", err)
 		return RpcFailed
 	}
 	return Rpc(height + 1)
@@ -86,6 +91,7 @@ func GetBlockHash(params []interface{}) map[string]interface{} {
 		height := uint32(params[0].(float64))
 		hash, err := GetBlockHashFromStore(height)
 		if err != nil {
+			log.Errorf("GetBlockHash GetBlockHashFromStore height:%v error:%s", height, err)
 			return RpcUnknownBlock
 		}
 		return Rpc(fmt.Sprintf("%016x", hash))
@@ -97,6 +103,7 @@ func GetBlockHash(params []interface{}) map[string]interface{} {
 func GetConnectionCount(params []interface{}) map[string]interface{} {
 	count, err := GetConnectionCnt()
 	if err != nil {
+		log.Errorf("GetConnectionCount error:%s", err)
 		return RpcFailed
 	}
 	return Rpc(count)
@@ -165,6 +172,7 @@ func GetRawTransaction(params []interface{}) map[string]interface{} {
 		}
 		tx, err := GetTransaction(hash) //ledger.DefaultLedger.Store.GetTransaction(hash)
 		if err != nil {
+			log.Errorf("GetRawTransaction GetTransaction error:%s", err)
 			return RpcUnknownTransaction
 		}
 		if tx == nil {
@@ -212,6 +220,7 @@ func GetStorage(params []interface{}) map[string]interface{} {
 	}
 	value, err := GetStorageItem(codeHash, key)
 	if err != nil {
+		log.Errorf("GetStorage GetStorageItem CodeHash:%x key:%s error:%s", codeHash, key, err)
 		return RpcInternalError
 	}
 	return Rpc(ToHexString(value))
@@ -295,8 +304,12 @@ func GetContractState(params []interface{}) map[string]interface{} {
 			return RpcInvalidParameter
 		}
 		contract, err := GetContractStateFromStore(hash)
-		if err != nil || contract == nil{
+		if err != nil {
+			log.Errorf("GetContractState GetContractStateFromStore hash:%x error:%s", hash, err)
 			return RpcInternalError
+		}
+		if contract == nil {
+			return RpcUnKnownContact
 		}
 		return Rpc(TransPayloadToHex(contract))
 	default:
