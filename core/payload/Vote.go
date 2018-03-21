@@ -1,7 +1,6 @@
 package payload
 
 import (
-	"bytes"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/crypto"
