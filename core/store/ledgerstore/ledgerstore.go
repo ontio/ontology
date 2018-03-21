@@ -716,32 +716,8 @@ func (this *LedgerStore) saveBlock(block *types.Block) error {
 
 func (this *LedgerStore) handleTransaction(stateBatch *statestore.StateBatch, block *types.Block, tx *types.Transaction) error {
 	var err error
-	//blockHeight := block.Header.Height
 	txHash := tx.Hash()
-	//err := this.stateStore.HandleTxOutput(tx)
-	//if err != nil {
-	//	return fmt.Errorf("handleTxOutput block height %d tx %x err %s", blockHeight, txHash, err)
-	//}
-	//err = this.stateStore.HandleTxInput(tx, blockHeight, this.blockStore)
-	//if err != nil {
-	//	return fmt.Errorf("handleTxInput block height %d tx %x err %s", blockHeight, txHash, err)
-	//}
 	switch tx.TxType {
-	case types.BookKeeper:
-		//err = this.stateStore.HandleBookKeeperTransaction(stateBatch, tx)
-		//if err != nil {
-		//	return fmt.Errorf("HandleBookKeeperTransaction tx %x error %s", txHash, err)
-		//}
-	//case types.RegisterAsset:
-	//	err = this.stateStore.HandleRegisterAssertTransaction(tx, blockHeight)
-	//	if err != nil {
-	//		return fmt.Errorf("HandleRegisterAssertTransaction tx %x error %s", txHash, err)
-	//	}
-	//case types.IssueAsset:
-	//	err = this.stateStore.HandleIssueAssetTransaction(tx)
-	//	if err != nil {
-	//		return fmt.Errorf("HandleIssueAssetTransaction tx %x error %s", txHash, err)
-	//	}
 	case types.Deploy:
 		err = this.stateStore.HandleDeployTransaction(stateBatch, tx)
 		if err != nil {
