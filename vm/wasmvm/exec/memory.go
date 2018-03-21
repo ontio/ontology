@@ -7,7 +7,6 @@ package exec
 import (
 	"errors"
 	"math"
-	"fmt"
 )
 
 // ErrOutOfBoundsMemoryAccess is the error value used while trapping the VM
@@ -170,7 +169,6 @@ func (vm *VM) i32Store16() {
 }
 
 func (vm *VM) i64Store() {
-	fmt.Printf("current vm.mem len:%d\n",len(vm.memory.Memory))
 	v := vm.popUint64()
 	if !vm.inBounds(7) {
 		panic(ErrOutOfBoundsMemoryAccess)

@@ -10,7 +10,6 @@ import (
 	"math"
 	"os"
 	"reflect"
-	"fmt"
 	"github.com/Ontology/vm/wasmvm/memory"
 	"github.com/Ontology/vm/neovm/interfaces"
 )
@@ -96,7 +95,6 @@ func (e *ExecutionEngine) CallInf(caller common.Uint160, code []byte, input []in
 	}
 	params := make([]uint64, paramlength)
 	for i, param := range input[1:] {
-		fmt.Println(param)
 		//if type is struct
 		if reflect.TypeOf(param).Kind() == reflect.Struct {
 			offset, err := vm.SetStructMemory(param)
