@@ -191,7 +191,7 @@ func (this *Ledger) GetStorageItem(codeHash *common.Address, key []byte) ([]byte
 		return nil, fmt.Errorf("GetStorageItem error %s", err)
 	}
 	if storageItem == nil {
-		return nil, fmt.Errorf("cannot get storage item by codehash %x Key %x", *codeHash, key)
+		return nil, nil
 	}
 	return storageItem.Value, nil
 }

@@ -4,10 +4,10 @@ import (
 	"github.com/Ontology/smartcontract/storage"
 	scommon "github.com/Ontology/core/store/common"
 	"bytes"
-	"github.com/Ontology/errors"
 	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/smartcontract/event"
+	"fmt"
 )
 
 type (
@@ -43,7 +43,7 @@ func(native *NativeService) Invoke() (bool, error){
 		return false, err
 	}
 	service, ok := native.ServiceMap[string(serviceName)]; if !ok {
-		return false, errors.NewErr("Native does not support this service!")
+		return false, fmt.Errorf("Native does not support this service:%s !",serviceName)
 	}
 	native.Input = bf.Bytes()
 	return service(native)

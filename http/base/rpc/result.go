@@ -12,7 +12,7 @@ var (
 
 	RpcUnknownBlock       = responsePacking(Err.UNKNOWN_BLOCK, "unknown block")
 	RpcUnknownTransaction = responsePacking(Err.UNKNOWN_TRANSACTION, "unknown transaction")
-	RpcUnKnownContact = responsePacking(Err.UNKNWN_CONTRACT, "unknown contract")
+	RpcUnKnownContact     = responsePacking(Err.UNKNWN_CONTRACT, "unknow contract")
 
 	RpcNil           = responsePacking(Err.INVALID_PARAMS, nil)
 	RpcUnsupported   = responsePacking(Err.INTERNAL_ERROR, "Unsupported")
