@@ -42,21 +42,21 @@ type SmartContract struct {
 	Code           []byte
 	Input          []byte
 	ParameterTypes []contract.ContractParameterType
-	Caller         common.Uint160
-	CodeHash       common.Uint160
+	Caller         common.Address
+	CodeHash       common.Address
 	VMType         types.VmType
 	ReturnType     contract.ContractParameterType
 }
 
 type Context struct {
 	VmType         types.VmType
-	Caller         common.Uint160
+	Caller         common.Address
 	StateMachine   *service.StateMachine
 	WasmStateMachine *wasm.WasmStateMachine //add for wasm state machine
 	DBCache        storecomm.IStateStore
 	Code           []byte
 	Input          []byte
-	CodeHash       common.Uint160
+	CodeHash       common.Address
 	Time           *big.Int
 	BlockNumber    *big.Int
 	CacheCodeTable interfaces.ICodeTable
@@ -107,7 +107,6 @@ func (sc *SmartContract) DeployContract() ([]byte, error) {
 }
 
 func (sc *SmartContract) InvokeContract() (interface{}, error) {
-
 	res, err := sc.Engine.Call(sc.Caller, sc.Code, sc.Input)
 	if err != nil {
 		return nil, err
