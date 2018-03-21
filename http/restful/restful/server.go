@@ -44,11 +44,11 @@ const (
 	Api_SendRawTx = "/api/v1/transaction"
 	Api_GetStorage = "/api/v1/storage/:hash/:key"
 
-	Api_WebsocketState = "/api/v1/config/websocket/state"
-	Api_Restart = "/api/v1/restart"
-	Api_GetContractState = "/api/v1/contract/:hash"
-	Api_GetSmartCodeEvent = "/api/v1/smartcode/event/:height"
-	Api_GetTxBlockHeight = "/api/v1/block/height/txhash/:hash"
+	Api_WebsocketState       = "/api/v1/config/websocket/state"
+	Api_Restart              = "/api/v1/restart"
+	Api_GetContractState     = "/api/v1/contract/:hash"
+	Api_GetSmartCodeEvent    = "/api/v1/smartcode/event/:height"
+	Api_GetBlkHeightByTxHash = "/api/v1/block/height/txhash/:hash"
 )
 
 func InitRestServer() ApiServer {
@@ -133,15 +133,15 @@ func (rt *restServer) registryMethod() {
 		Api_GetconnCount:  {name: "getconnectioncount", handler: GetConnectionCount},
 		Api_GetblkTxsByHeight: {name: "getblocktxsbyheight", handler: GetBlockTxsByHeight},
 		Api_Getblkbyheight:    {name: "getblockbyheight", handler: GetBlockByHeight},
-		Api_Getblkbyhash:      {name: "getblockbyhash", handler: GetBlockByHash},
-		Api_Getblkheight:      {name: "getblockheight", handler: GetBlockHeight},
-		Api_Getblkhash:        {name: "getblockhash", handler: GetBlockHash},
-		Api_GetTransaction:      {name: "gettransaction", handler: GetTransactionByHash},
-		Api_GetContractState:         {name: "getcontract", handler: GetContractState},
-		Api_Restart:             {name: "restart", handler: rt.Restart},
-		Api_GetSmartCodeEvent:{name: "getsmartcodeevent", handler: GetSmartCodeEventByHeight},
-		Api_GetTxBlockHeight:{name: "gettxblockheight", handler: GetTxBlockHeight},
-		Api_GetStorage:{name: "getstorage", handler: GetStorage},
+		Api_Getblkbyhash:         {name: "getblockbyhash", handler: GetBlockByHash},
+		Api_Getblkheight:         {name: "getblockheight", handler: GetBlockHeight},
+		Api_Getblkhash:           {name: "getblockhash", handler: GetBlockHash},
+		Api_GetTransaction:       {name: "gettransaction", handler: GetTransactionByHash},
+		Api_GetContractState:     {name: "getcontract", handler: GetContractState},
+		Api_Restart:              {name: "restart", handler: rt.Restart},
+		Api_GetSmartCodeEvent:    {name: "getsmartcodeevent", handler: GetSmartCodeEventByHeight},
+		Api_GetBlkHeightByTxHash: {name: "gettxblockheight", handler: GetBlockHeightByTxHash},
+		Api_GetStorage:           {name: "getstorage", handler: GetStorage},
 	}
 
 	sendRawTransaction := func(cmd map[string]interface{}) map[string]interface{} {
@@ -177,8 +177,8 @@ func (rt *restServer) getPath(url string) string {
 		return Api_GetContractState
 	} else if strings.Contains(url, strings.TrimRight(Api_GetSmartCodeEvent, ":height")) {
 		return Api_GetSmartCodeEvent
-	} else if strings.Contains(url, strings.TrimRight(Api_GetTxBlockHeight, ":hash")) {
-		return Api_GetTxBlockHeight
+	} else if strings.Contains(url, strings.TrimRight(Api_GetBlkHeightByTxHash, ":hash")) {
+		return Api_GetBlkHeightByTxHash
 	} else if strings.Contains(url, strings.TrimRight(Api_GetStorage, ":hash/:key")) {
 		return Api_GetStorage
 	}
@@ -213,7 +213,7 @@ func (rt *restServer) getParams(r *http.Request, url string, req map[string]inte
 		req["Hash"], req["Key"] = getParam(r, "hash"), getParam(r,"key")
 	case Api_GetSmartCodeEvent:
 		req["Height"] = getParam(r, "height")
-	case Api_GetTxBlockHeight:
+	case Api_GetBlkHeightByTxHash:
 		req["Hash"] = getParam(r, "hash")
 	case Api_WebsocketState:
 	default:

@@ -121,7 +121,7 @@ func GetBlockByHash(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-func GetTxBlockHeight(cmd map[string]interface{}) map[string]interface{} {
+func GetBlockHeightByTxHash(cmd map[string]interface{}) map[string]interface{} {
 	resp := rspSuccess
 	param := cmd["Hash"].(string)
 	if len(param) == 0 {

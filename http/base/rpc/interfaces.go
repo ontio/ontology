@@ -364,7 +364,7 @@ func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 	return RpcInvalidParameter
 }
 
-func GetTxBlockHeight(params []interface{}) map[string]interface{} {
+func GetBlockHeightByTxHash(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return RpcNil
 	}
@@ -382,7 +382,7 @@ func GetTxBlockHeight(params []interface{}) map[string]interface{} {
 			return RpcInvalidParameter
 		}
 		//TODO resp
-		return Rpc(map[string]interface{}{"Height": 0})
+		return Rpc(map[string]interface{}{})
 	default:
 		return RpcInvalidParameter
 	}

@@ -8,8 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"encoding/json"
-	"github.com/Ontology/common"
-	"math/big"
 )
 
 func TestGenerateblocktime(t *testing.T) {
@@ -99,7 +97,8 @@ func TestTxBlockHeight(t *testing.T) {
 		fmt.Println(err)
 		os.Exit(0)
 	}
-	fmt.Println(resp)
+	r, _ := json.Marshal(resp)
+	fmt.Println(string(r))
 }
 func TestGetStorage(t *testing.T) {
 	resp, err := Request("GET", nil, "http://127.0.0.1:20384/api/v1/storage/ff00000000000000000000000000000000000001/0121dca8ffcba308e697ee9e734ce686f4181658")
@@ -109,8 +108,24 @@ func TestGetStorage(t *testing.T) {
 	}
 	r, _ := json.Marshal(resp)
 	fmt.Println(string(r))
-	value, _ := common.HexToBytes(resp["Result"].(string))
-	fmt.Println(new(big.Int).SetBytes(value))
+	//value, _ := common.HexToBytes(resp["Result"].(string))
+	//fmt.Println(new(big.Int).SetBytes(value))
+}
+func TestSendRawTx(t *testing.T) {
+	var req = map[string]interface{}{
+		"Action":  "sendrawtransaction",
+		"Version": "1.0.0",
+		"Data":    "",
+	}
+	q, _ := json.Marshal(req)
+	fmt.Println(string(q))
+	resp, err := Request("POST", req, "http://127.0.0.1:20384/api/v1/transaction")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(0)
+	}
+	r, _ := json.Marshal(resp)
+	fmt.Println(string(r))
 }
 func TestAll(t *testing.T) {
 	TestGenerateblocktime(t)
@@ -124,6 +139,7 @@ func TestAll(t *testing.T) {
 	TestGetEventByHeight(t)
 	TestTxBlockHeight(t)
 	TestGetStorage(t)
+	TestSendRawTx(t)
 }
 
 func Request(method string, cmd map[string]interface{}, url string) (map[string]interface{}, error) {

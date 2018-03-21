@@ -36,7 +36,7 @@ func TestAddress(t *testing.T) {
 	fmt.Println(addr)
 	fmt.Println(ui60.ToBase58())
 }
-func TestTransfer(t *testing.T)  {
+func TestTransfer(t *testing.T) {
 	contract := "ff00000000000000000000000000000000000001"
 
 	ct, _ := common.HexToBytes(contract)
@@ -52,15 +52,15 @@ func TestTransfer(t *testing.T)  {
 
 	var sts []*states.State
 	sts = append(sts, &states.State{
-		From: fu,
-		To: tu,
+		From:  fu,
+		To:    tu,
 		Value: big.NewInt(100),
 	})
 	transfers := new(states.Transfers)
 	fmt.Println("ctu:", ctu)
 	transfers.Params = append(transfers.Params, &states.TokenTransfer{
 		Contract: ctu,
-		States: sts,
+		States:   sts,
 	})
 
 	bf := new(bytes.Buffer)
