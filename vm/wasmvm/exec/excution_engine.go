@@ -42,7 +42,6 @@ func(e *ExecutionEngine)GetVM() *VM{
 	return e.vm
 }
 
-
 //todo use this method just for test
 func (e *ExecutionEngine) CallInf(caller common.Uint160, code []byte, input []interface{}, message []interface{}) ([]byte, error) {
 	methodName := input[0].(string)
@@ -233,28 +232,28 @@ func (e *ExecutionEngine) Call(caller common.Uint160, code, input []byte) ([]byt
 	//1. read code
 	bf := bytes.NewBuffer(code)
 
-	//2. read module
-	m, err := wasm.ReadModule(bf, importer)
-	if err != nil {
-		return nil, errors.New("Verify wasm failed!" + err.Error())
-	}
+		//2. read module
+		m, err := wasm.ReadModule(bf, importer)
+		if err != nil {
+			return nil, errors.New("Verify wasm failed!" + err.Error())
+		}
 
-	//3. verify the module
-	//already verified in step 2
+		//3. verify the module
+		//already verified in step 2
 
-	//4. check the export
-	//every wasm should have at least 1 export
-	if m.Export == nil {
-		return nil, errors.New("No export in wasm!")
-	}
+		//4. check the export
+		//every wasm should have at least 1 export
+		if m.Export == nil {
+			return nil, errors.New("No export in wasm!")
+		}
 
-	vm, err := NewVM(m)
-	if err != nil {
-		return nil, err
-	}
-	if e.service != nil{
-		vm.Services = e.service.GetServiceMap()
-	}
+		vm, err := NewVM(m)
+		if err != nil {
+			return nil, err
+		}
+		if e.service != nil{
+			vm.Services = e.service.GetServiceMap()
+		}
 	e.vm = vm
 	vm.Engine = e
 	//todo add message from input

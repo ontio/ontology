@@ -479,11 +479,20 @@ func (vm *VM) CallContract(module *wasm.Module,methodName string,args ...uint64)
 	if err!=nil{
 		return uint64(0),err
 	}
+	newvm.Services = vm.Services
+
+	vm.Engine.vm = newvm
+	newvm.Engine = vm.Engine
+
 	res,err := newvm.ExecCode(true,int64(index),args ...)
 
 	//todo copy memory if need!!!
 	fmt.Printf("CallContract res is %v\n ",res)
 	//2 copy memory if need!!!
+
+	vm.Engine.vm = vm
+
+
 	return res.(uint64),nil
 }
 
@@ -600,6 +609,7 @@ func (vm *VM) loadModule(module *wasm.Module) error{
 }
 
 //todo remove the following 2 method later
+/*
 func (vm *VM)BackupStat(){
 	backup := &BackStat{}
 
@@ -629,4 +639,4 @@ func (vm *VM)RestoreStat() error{
 	vm.funcTable = vm.Backup.funcTable
 
 	return nil
-}
+}*/
