@@ -141,7 +141,6 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256,
 	err errors.ErrCode) {
 
 	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	pt, ok := s.allPendingTxs[hash]
 	if !ok {
@@ -152,6 +151,8 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256,
 	}
 
 	delete(s.allPendingTxs, hash)
+
+	s.mu.Unlock()
 
 	// Check if the tx is in the pending block and
 	// the pending block is verified
