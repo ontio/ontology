@@ -1,11 +1,11 @@
-# Ontology Restful API
+# Ontology RESTful API
 
 * [Introduction](#Introduction)
 * [Errorcode](#Errorcode)
 
 ## Introduction
 
-This document describes the restful api format for the http/https used in the Onchain Ontology.
+This document describes the RESTful API format for the http/https used in Ontology.
 
 ## Errorcode
 
@@ -27,8 +27,8 @@ This document describes the restful api format for the http/https used in the On
 | 45001 | int64 | INTERNAL\_ERROR: internel error |
 | 47001 | int64 | SMARTCODE\_ERROR: smartcode error |
 
-### 1.Get the generate block time
-##### Get
+### 1. Get the generate block time
+##### GET
 
 ```
 /api/v1/node/generateblocktime
@@ -39,7 +39,7 @@ This document describes the restful api format for the http/https used in the On
 curl -i http://server:port/api/v1/node/generateblocktime
 ```
 
-#### Respone
+#### Response
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
@@ -60,7 +60,7 @@ curl -i http://server:port/api/v1/node/generateblocktime
     "Version": "1.0.0"
 }
 ```
-### 2 Get the number of connected node
+### 2. Get the number of connected node
 
 GET
 
@@ -74,7 +74,7 @@ GET
 curl -i http://server:port/api/v1/node/connectioncount
 ```
 
-#### Respone
+#### Response
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
@@ -95,7 +95,7 @@ curl -i http://server:port/api/v1/node/connectioncount
     "Version": "1.0.0"
 }
 ```
-### 3 Get transactions by block height
+### 3. Get transactions by block height
 
 GET
 
@@ -109,7 +109,7 @@ GET
 curl -i http://server:port/api/v1/block/transactions/height/100
 ```
 
-#### Respone
+#### Response
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
@@ -136,7 +136,7 @@ curl -i http://server:port/api/v1/block/transactions/height/100
     "Version": "1.0.0"
 }
 ```
-### 4 Get the block by block height
+### 4. Get the block by block height
 
 GET
 
@@ -144,13 +144,13 @@ GET
 /api/v1/block/details/height/:height
 ```
 
-####Example usage:
+#### Example usage:
 
 ```
 curl -i http://server:port/api/v1/block/details/height/22
 ```
 
-#### Respone
+#### Response
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
@@ -213,7 +213,7 @@ curl -i http://server:port/api/v1/block/details/height/22
     "Version": "1.0.0"
 }
 ```
-### 5 Get block by blockhash
+### 5. Get block by blockhash
 
 GET
 
@@ -227,7 +227,7 @@ GET
 curl -i http://server:port/api/v1/block/details/hash/8723534588ea3202c0949ce5e39876cfcec83f3e9a3ed20168133714944d1227
 ```
 
-#### Respone
+#### Response
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
@@ -291,7 +291,7 @@ curl -i http://server:port/api/v1/block/details/hash/8723534588ea3202c0949ce5e39
 }
 ```
 
-### 6 Get the current block height
+### 6. Get the current block height
 
 GET
 
@@ -305,7 +305,7 @@ GET
 curl -i http://server:port/api/v1/block/height
 ```
 
-#### Respone
+#### Response
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
@@ -327,7 +327,7 @@ curl -i http://server:port/api/v1/block/height
 }
 ```
 
-### 7 Get blockhash by block height
+### 7. Get blockhash by block height
 
 GET
 
@@ -341,7 +341,7 @@ GET
 curl -i http://server:port/api/v1/block/hash/100
 ```
 
-#### Respone
+#### Response
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
@@ -363,7 +363,7 @@ curl -i http://server:port/api/v1/block/hash/100
 }
 ```
 
-### 8 get transaction by transaction hash（unsolved）
+### 8. Get transaction by transaction hash (unsolved)
 
 GET
 
@@ -414,7 +414,7 @@ curl -i http://server:port/api/v1/transaction/c5e0d387c6a97aef12f1750840d24b53d9
 }
 ```
 
-### 9 send transaction
+### 9. Send transaction
 
 POST
 
@@ -428,7 +428,7 @@ POST
 curl  -H "Content-Type: application/json"  -X POST -d '{}'  http://server:port/api/v1/transaction
 ```
 
-#### Request example
+#### Request example:
 
 ```
 {
@@ -446,9 +446,9 @@ curl  -H "Content-Type: application/json"  -X POST -d '{}'  http://server:port/a
 | Version | string | version information |
 | Data | string | transaction data |
 
-### 10 get ong（unsolved）
+### 10. Get ONG (unsolved)
 
-#### claim ong
+#### Claim ONG
 
 POST
 
@@ -456,7 +456,7 @@ POST
 /api/v1/claim
 ```
 
-### 11 get contract（unsolved）
+### 11. Get contract (unsolved)
 
 GET
 
@@ -470,7 +470,7 @@ Example
 curl -i http://server:port/api/v1/block/details/hash/:hash
 ```
 
-#### 12 get contract event by height（unsolved）
+#### 12. Get contract event by height (unsolved)
 
 GET
 
@@ -484,7 +484,7 @@ GET
 curl -i http://server:port/api/v1/smartcontract/event/:height
 ```
 
-### 13 websocket configuration（unsolved）
+### 13. WebSocket configuration (unsolved)
 
 POST
 

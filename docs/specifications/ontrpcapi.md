@@ -1,11 +1,11 @@
-# ont node
+# ONT Nodes
 
 * [Introduction](#Introduction)
 * [errorcode](#errorcode)
 
 ## Introduction
 
-request paraeters description
+Request parameter description:
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
@@ -14,7 +14,7 @@ request paraeters description
 | params | string | method required parameters |
 | id | int | any value |
 
-Program execution result parameter description
+Program execution result parameter description:
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
@@ -22,7 +22,7 @@ Program execution result parameter description
 | id | int | any value |
 | result | object/string/bool | program execution result |
 
-note: the type of result varies with the request
+Note: The type of result varies with the request.
 
 ## errorcode
 
@@ -44,13 +44,13 @@ note: the type of result varies with the request
 | 45001 | int64 | INTERNAL\_ERROR: internel error |
 | 47001 | int64 | SMARTCODE\_ERROR: smartcode error |
 
-### 1.getbestblockhash
+### 1. getbestblockhash
 
 Get the hash of the highest height block in the main chain.
 
-#### example
+#### Example
 
-request:
+Request:
 
 ```
 {
@@ -61,7 +61,7 @@ request:
 }
 ```
 
-response：
+Response:
 
 ```
 {
@@ -71,24 +71,24 @@ response：
 }
 ```
 
-response instruction：
+Response instruction:
 
-result：the hash of the highest height block in the main chain.
+Result: The hash of the highest block height in the main chain.
 
-### 2.getblock
+### 2. getblock
 
-get the block information by given hash.
+Get the block information by given hash.
 
-#### parameter instruction
+#### Parameter instruction
 
-| parameter | type | optional/required | description |
+| Parameter | Type | Optional/required | Description |
 | :--- | :--- | :--- | :--- |
-| hash/height | String/long | required | block hash/height |
-| verbose | String | optional | optional parameter,the default value of verbose is 0,when verbose is 0, it returns the block serialized information, which is represented by a hexadecimal string. To get detailed information from it, you need to call the SDK to deserialize.When verbose is 1, the detailed information of the corresponding block is returned, which is represented by a Json format string. |
+| Hash/height | String/long | Required | Block hash/height |
+| Verbose | String | Optional | Optional parameter, the default value of verbose is 0. When verbose is 0, it returns the block serialized information, which is represented by a hexadecimal string. To get detailed information from it, you need to call the SDK to deserialize. When verbose is 1, the detailed information of the corresponding block is returned, which is represented by a JSON format string. |
 
-#### example
+#### Example
 
-request：
+Request:
 
 ```
 {
@@ -106,7 +106,7 @@ or
 }
 ```
 
-response，when verbose is nil：
+Response when verbose is nil:
 
 ```
 {
@@ -116,7 +116,7 @@ response，when verbose is nil：
 }
 ```
 
-response，when verbose = 1：
+Response when verbose = 1:
 
 ```
 {
@@ -195,13 +195,13 @@ response，when verbose = 1：
 }
 ```
 
-### 3.getblockcount
+### 3. getblockcount
 
 Get the number of blocks in the main chain.
 
-#### example
+#### Example
 
-request：
+Request:
 
 ```
 {
@@ -212,7 +212,7 @@ request：
 }
 ```
 
-response：
+Response:
 
 ```
 {
@@ -222,21 +222,21 @@ response：
 }
 ```
 
-response instruction：
+Response instruction:
 
-result：the height of the main chain.
+Result: the height of the main chain.
 
-#### 4.getblockhash
+#### 4. getblockhash
 
-According to the specified index, returns the hash value of the corresponding block.
+Returns the hash value of the corresponding block according to the specified index.
 
-#### parameter instruction
+#### Parameter instruction
 
-index：block index。
+Index: block index.
 
-#### example
+#### Example
 
-request：
+Request:
 
 ```
 {
@@ -247,7 +247,7 @@ request：
 }
 ```
 
-reponse：
+Reponse:
 
 ```
 {
@@ -257,13 +257,13 @@ reponse：
 }
 ```
 
-#### 5.getconnectioncount
+#### 5. getconnectioncount
 
 Get the current number of connections for the node.
 
-#### example
+#### Example
 
-request：
+Request:
 
 ```
 {
@@ -274,7 +274,7 @@ request：
 }
 ```
 
-response：
+Response:
 
 ```
 {
@@ -284,13 +284,13 @@ response：
 }
 ```
 
-#### 6.getrawmempool
+#### 6. getrawmempool
 
 Get a list of unconfirmed transactions in memory.
 
-#### example
+#### Example
 
-request：
+Request:
 
 ```
 {
@@ -301,7 +301,7 @@ request：
 }
 ```
 
-reponse：
+Reponse:
 
 ```
 {
@@ -313,21 +313,21 @@ reponse：
 }
 ```
 
-These are the undetermined transactions received by the node, that is, zero confirmed transactions.
+These are the undetermined transactions received by the node, that is, those with zero confirmed transactions.
 
-#### 7.getrawtransaction方法
+#### 7. getrawtransaction
 
-returns the corresponding transaction information based on the specified hash value.
+Returns the corresponding transaction information based on the specified hash value.
 
-#### parameter instruction
+#### Parameter instruction
 
-txid：transaction ID。
+txid: transaction ID
 
-verbose：optional parameter,the default value of verbose is 0,when verbose is 0, it returns the block serialized information, which is represented by a hexadecimal string. To get detailed information from it, you need to call the SDK to deserialize.When verbose is 1, the detailed information of the corresponding block is returned, which is represented by a Json format string.
+Verbose: Optional parameter, the default value of verbose is 0, when verbose is 0, it returns the block serialized information, which is represented by a hexadecimal string. To get detailed information from it, you need to call the SDK to deserialize. When verbose is 1, the detailed information of the corresponding block is returned, which is represented by a JSON format string.
 
-#### example
+#### Example
 
-request：
+Request:
 
 ```
 {
@@ -338,7 +338,7 @@ request：
 }
 ```
 
-response：
+Response:
 
 ```
 {
@@ -391,17 +391,17 @@ or
 }
 ```
 
-#### 8.sendrawtransaction
+#### 8. sendrawtransaction
 
-broadcast transaction.
+Broadcast transaction.
 
-#### parameter instruction
+#### Parameter instruction
 
-hex：a  hexadecimal string of serialized the signed transaction constructed in the program.
+Hex: Serialized signed transactions constructed in the program into hexadecimal strings.
 
-#### example
+#### Example
 
-request：
+Request:
 
 ```
 {
@@ -412,7 +412,7 @@ request：
 }
 ```
 
-response：
+Response:
 
 ```
 {
@@ -422,27 +422,27 @@ response：
 }
 ```
 
-response instruction：
+Response instruction:
 
 When result is true, the current transaction broadcast is successful.
 
-When result is false, it means that the current transaction broadcast failed because of double costs, incomplete signatures, and so on.
+When result is false, it means that the current transaction broadcast failed because of double costs, incomplete signatures, etc.
 
 In this example, a confirmed transaction was broadcast, the broadcast failed because of double costs.
 
-#### 9.getstorage
+#### 9. getstorage
 
 Returns the stored value according to the contract script hashes and stored key.
 
-#### parameter instruction
+#### Parameter instruction
 
 script\_hash: Contract script hash.
 
-key: stored key。（require to be converted into hex string）
+Key: stored key (required to be converted into hex string)
 
-#### example
+#### Example
 
-request：
+Request:
 
 ```
 {
@@ -453,7 +453,7 @@ request：
 }
 ```
 
-response：
+Response:
 
 ```
 {
@@ -463,13 +463,13 @@ response：
 }
 ```
 
-#### 10.getversion
+#### 10. getversion
 
-get the version information of the query node.
+Get the version information of the query node.
 
-#### example
+#### Example
 
-request：
+Request:
 
 ```
 {
@@ -480,7 +480,7 @@ request：
 }
 ```
 
-response：
+Response:
 
 ```
 {
@@ -494,13 +494,13 @@ response：
 }
 ```
 
-#### 11.getsmartcodeevent
+#### 11. getsmartcodeevent
 
-get smartcode event
+Get smartcode event.
 
-#### example
+#### Example
 
-request：
+Request:
 
 ```
 {
@@ -511,7 +511,7 @@ request：
 }
 ```
 
-response：
+Response:
 
 ```
 {
@@ -523,17 +523,17 @@ response：
 }
 ```
 
-#### 13.getblocksysfee
+#### 13. getblocksysfee
 
 According to the specified index, return the system fee before the block.
 
-#### parameter instruction
+#### Parameter instruction
 
-index：block index。
+Index: Block index
 
-#### example
+#### Example
 
-request：
+Request:
 
 ```
 {
@@ -544,7 +544,7 @@ request：
 }
 ```
 
-response：
+Response:
 
 ```
 {
@@ -554,21 +554,21 @@ response：
 }
 ```
 
-response instruction：
+Response instruction:
 
-result：the system fee before the block and the unit is OntGas.
+Result: The system fee before the block and the unit is OntGas.
 
-#### 14.getcontractstate
+#### 14. getcontractstate
 
-according to the contract script hash, query the contract information.
+According to the contract script hash, query the contract information.
 
-#### parameter instruction
+#### Parameter instruction
 
-script\_hash：Contract script hash.
+script\_hash: Contract script hash.
 
-#### example
+#### Example
 
-request：
+Request:
 
 ```
 {
@@ -579,7 +579,7 @@ request：
 }
 ```
 
-response：
+Response:
 
 ```
 {
@@ -611,17 +611,17 @@ response：
 }
 ```
 
-#### 15.getmempooltxstate
+#### 15. getmempooltxstate
 
 Query the transaction status in the memory pool.
 
-#### parameter instruction
+#### Parameter instruction
 
-tx\_hash：transaction hash。
+tx\_hash: transaction hash.
 
-#### example
+#### Example
 
-request：
+Request:
 
 ```
 {
@@ -632,7 +632,7 @@ request：
 }
 ```
 
-response：
+Response:
 
 ```
 {
@@ -643,17 +643,17 @@ response：
 }
 ```
 
-#### 16.getsmartcodeevent
+#### 16. getsmartcodeevent
 
-get smartcontract event.
+Get smartcontract event.
 
-#### parameter instruction
+#### Parameter instruction
 
-height：block height.
+Height: block height.
 
-#### example
+#### Example
 
-request：
+Request:
 
 ```
 {
@@ -664,7 +664,7 @@ request：
 }
 ```
 
-response：
+Response:
 
 ```
 {
