@@ -331,11 +331,11 @@ func (this *StateStore) getContractStateKey(contractHash common.Uint160) ([]byte
 }
 
 func (this *StateStore) getStorageKey(key *StorageKey) ([]byte, error) {
-	data := key.ToArray()
-	storeKey := make([]byte, 1+len(data))
-	storeKey[0] = byte(ST_Storage)
-	copy(storeKey[1:], []byte(data))
-	return storeKey, nil
+	buf := bytes.NewBuffer(nil)
+	buf.WriteByte( byte(ST_Storage))
+	buf.Write(key.CodeHash.ToArray())
+	buf.Write(key.Key)
+	return buf.Bytes(), nil
 }
 
 func (this *StateStore) GetBlockRootWithNewTxRoot(txRoot common.Uint256) common.Uint256 {
