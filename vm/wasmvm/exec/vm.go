@@ -534,8 +534,19 @@ func (vm *VM) loadModule(module *wasm.Module) error{
 			if !ok {
 				return errors.New("invalid data index")
 			}
-			vm.memory.MemPoints[uint64(offset)] = &memory.TypeLength{Ptype:memory.P_UNKNOW,Length:len(entry.Data)}
-			vm.memory.AllocedMemIdex = int(offset)+len(entry.Data)
+			// for the case of " (data (get_global 0) "init\00init success!\00add\00int"))"
+			if bytes.Contains(entry.Data,[]byte{byte(0)}){
+				splited := bytes.Split(entry.Data,[]byte{byte(0)})
+				var tmpoffset = int(offset)
+				for _, tmp := range splited{
+					vm.memory.MemPoints[uint64(tmpoffset)] = &memory.TypeLength{Ptype:memory.P_STRING,Length:len(tmp)+1}
+					vm.memory.AllocedMemIdex = int(tmpoffset)+len(tmp) +1
+					tmpoffset += len(tmp) +1
+				}
+			}else{
+				vm.memory.MemPoints[uint64(offset)] = &memory.TypeLength{Ptype:memory.P_STRING,Length:len(entry.Data)}
+				vm.memory.AllocedMemIdex = int(offset)+len(entry.Data)
+			}
 		}
 	}
 

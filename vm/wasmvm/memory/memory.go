@@ -90,6 +90,11 @@ func (vm *VMmemory) copyMemAndGetIdx(b []byte, p_type P_Type) (int, error) {
 		return 0, err
 	}
 	copy(vm.Memory[idx:idx+len(b)], b)
+
+	if p_type == P_STRING{
+		return idx,nil
+	}
+
 	//set the pointer(address) to the front memory
 	tmp, err := vm.SetMemory(idx)
 	if err != nil {
@@ -132,6 +137,9 @@ func (vm *VMmemory) SetPointerMemory(val interface{}) (int, error) {
 		return 0, nil
 	case reflect.Slice:
 		switch val.(type) {
+		case []byte:
+			return vm.copyMemAndGetIdx(val.([]byte), P_STRING)
+
 		case []int:
 			intBytes := make([]byte, len(val.([]int))*4)
 			for i, v := range val.([]int) {

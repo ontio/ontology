@@ -128,7 +128,7 @@ func (module *Module) resolveImports(resolve ResolveFunc) error {
 				if importEntry.FieldName == "memoryBase" ||importEntry.FieldName == "tableBase" {
 					glb := &GlobalEntry{Type:&GlobalVar{Type:ValueTypeI32,Mutable:false},
 														Init:[]byte{getGlobal,byte(0),end}, //global 0 end
-														InitVal:uint64(0),
+														InitVal:uint64(65536 / 4),  // pagesize/4
 														IsEnv:true}
 					module.GlobalIndexSpace = append(module.GlobalIndexSpace, *glb)
 					module.imports.Globals++
@@ -140,8 +140,6 @@ func (module *Module) resolveImports(resolve ResolveFunc) error {
 				module.imports.Tables++
 			case ExternalMemory:
 				initMemSize := importEntry.Type.(MemoryImport).Type.Limits.Initial
-				fmt.Println("initMemSize:")
-				fmt.Println(initMemSize)
 				//todo decide how to lazy alloc the memory???
 				memory := make([]byte,65536 *initMemSize)
 				module.LinearMemoryIndexSpace[0] = memory
