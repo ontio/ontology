@@ -77,7 +77,7 @@ Result: The hash of the highest block height in the main chain.
 
 ### 2. getblock
 
-Get the block information by given hash.
+Get the block information by block hash or height.
 
 #### Parameter instruction
 
