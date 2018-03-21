@@ -12,10 +12,6 @@ type InvokeCode struct {
 	Code     vmtypes.VmCode
 }
 
-func (self *InvokeCode) Data() []byte {
-	return []byte{0}
-}
-
 func (self *InvokeCode) Serialize(w io.Writer) error {
 	var err error
 	err = self.GasLimit.Serialize(w)

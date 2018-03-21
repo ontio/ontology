@@ -1,7 +1,6 @@
 package payload
 
 import (
-	"bytes"
 	"io"
 
 	"github.com/Ontology/common/serialization"
@@ -25,20 +24,20 @@ type BookKeeper struct {
 	Issuer *crypto.PubKey
 }
 
-func (self *BookKeeper) Data() []byte {
-	var buf bytes.Buffer
-	self.PubKey.Serialize(&buf)
-	buf.WriteByte(byte(self.Action))
-	serialization.WriteVarBytes(&buf, self.Cert)
-	self.Issuer.Serialize(&buf)
-
-	return buf.Bytes()
-}
-
 func (self *BookKeeper) Serialize(w io.Writer) error {
-	_, err := w.Write(self.Data())
-
-	return err
+	if err := self.PubKey.Serialize(w); err != nil {
+		return NewDetailErr(err, ErrNoCode, "[BookKeeper], PubKey Serialize failed.")
+	}
+	if err := serialization.WriteVarBytes(w, []byte{byte(self.Action)}); err != nil {
+		return NewDetailErr(err, ErrNoCode, "[BookKeeper], Action Serialize failed.")
+	}
+	if err := serialization.WriteVarBytes(w, self.Cert); err != nil {
+		return NewDetailErr(err, ErrNoCode, "[BookKeeper], Cert Serialize failed.")
+	}
+	if err := self.Issuer.Serialize(w); err != nil {
+		return NewDetailErr(err, ErrNoCode, "[BookKeeper], Issuer Serialize failed.")
+	}
+	return nil
 }
 
 func (self *BookKeeper) Deserialize(r io.Reader) error {

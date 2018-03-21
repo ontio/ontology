@@ -19,12 +19,6 @@ type DeployCode struct {
 	Description string
 }
 
-func (dc *DeployCode) Data() []byte {
-	// TODO: Data()
-
-	return []byte{0}
-}
-
 func (dc *DeployCode) Serialize(w io.Writer) error {
 	var err error
 	err = serialization.WriteByte(w, byte(dc.VmType))

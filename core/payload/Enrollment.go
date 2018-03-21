@@ -9,10 +9,6 @@ type Enrollment struct {
 	PublicKey *crypto.PubKey
 }
 
-func (e *Enrollment) Data() []byte {
-	return []byte{0}
-}
-
 func (e *Enrollment) Serialize(w io.Writer) error {
 	if err := e.PublicKey.Serialize(w); err != nil {
 		return err

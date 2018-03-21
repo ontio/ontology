@@ -163,8 +163,6 @@ var TxName = map[TransactionType]string{
 //Payload define the func for loading the payload data
 //base on payload type which have different struture
 type Payload interface {
-	//  Get payload data
-	Data() []byte
 
 	//Serialize payload data
 	Serialize(w io.Writer) error
