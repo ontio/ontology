@@ -4,15 +4,14 @@ import (
 	"bytes"
 	. "github.com/Ontology/common"
 	. "github.com/Ontology/common/config"
-	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/types"
 	. "github.com/Ontology/http/base/actor"
 	. "github.com/Ontology/http/base/rest"
 	Err "github.com/Ontology/http/base/error"
 	"github.com/Ontology/http/websocket/websocket"
-	sc "github.com/Ontology/smartcontract/common"
+	//sc "github.com/Ontology/smartcontract/common"
 	. "github.com/Ontology/http/base/common"
-	"github.com/Ontology/smartcontract/event"
+	//"github.com/Ontology/smartcontract/event"
 	"github.com/Ontology/events/message"
 )
 
@@ -84,44 +83,44 @@ func SetTxHashMap(txhash string, sessionid string) {
 
 func PushSmartCodeEvent(v interface{}) {
 	if ws != nil {
-		rs, ok := v.(map[string]interface{})
+		rs, ok := v.(types.SmartCodeEvent)
 		if !ok {
 			return
 		}
 		go func() {
-			switch object := rs["Result"].(type) {
-			case event.LogEventArgs:
-				type LogEventArgsInfo struct {
-					Container   string
-					CodeHash    string
-					Message     string
-					BlockHeight uint32
-				}
-				msg := LogEventArgsInfo{
-					Container:   ToHexString(object.Container.ToArray()),
-					CodeHash:    ToHexString(object.CodeHash.ToArray()),
-					Message:     object.Message,
-					BlockHeight: ledger.DefLedger.GetCurrentBlockHeight() + 1,
-				}
-				PushEvent(rs["TxHash"].(string), rs["Error"].(int64), rs["Action"].(string), msg)
-				return
-			case event.NotifyEventArgs:
-				type NotifyEventArgsInfo struct {
-					Container   string
-					CodeHash    string
-					State       []sc.States
-					BlockHeight uint32
-				}
-				msg := NotifyEventArgsInfo{
-					Container:   ToHexString(object.Container.ToArray()),
-					CodeHash:    ToHexString(object.CodeHash.ToArray()),
-					State:       sc.ConvertTypes(object.States),
-					BlockHeight: ledger.DefLedger.GetCurrentBlockHeight() + 1,
-				}
-				PushEvent(rs["TxHash"].(string), rs["Error"].(int64), rs["Action"].(string), msg)
-				return
+			switch rs.Action {
+			//case "Notify":
+			//	type LogEventArgsInfo struct {
+			//		Container   string
+			//		CodeHash    string
+			//		Message     string
+			//		BlockHeight uint32
+			//	}
+			//	msg := LogEventArgsInfo{
+			//		Container:   ToHexString(object.Container.ToArray()),
+			//		CodeHash:    ToHexString(object.CodeHash.ToArray()),
+			//		Message:     object.Message,
+			//		BlockHeight: ledger.DefLedger.GetCurrentBlockHeight() + 1,
+			//	}
+			//	PushEvent(rs.TxHash, rs.Error, rs.Action, rs.Result)
+			//	return
+			//case event.NotifyEventArgs:
+			//	type NotifyEventArgsInfo struct {
+			//		Container   string
+			//		CodeHash    string
+			//		State       []sc.States
+			//		BlockHeight uint32
+			//	}
+			//	msg := NotifyEventArgsInfo{
+			//		Container:   ToHexString(object.Container.ToArray()),
+			//		CodeHash:    ToHexString(object.CodeHash.ToArray()),
+			//		State:       sc.ConvertTypes(object.States),
+			//		BlockHeight: ledger.DefLedger.GetCurrentBlockHeight() + 1,
+			//	}
+			//	PushEvent(rs.TxHash, rs.Error, rs.Action, msg)
+			//	return
 			default:
-				PushEvent(rs["TxHash"].(string), rs["Error"].(int64), rs["Action"].(string), rs["Result"])
+				PushEvent(rs.TxHash, rs.Error, rs.Action, rs.Result)
 				return
 			}
 		}()
