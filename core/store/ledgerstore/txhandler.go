@@ -11,6 +11,7 @@ import (
 	"github.com/Ontology/smartcontract/event"
 	vmtypes "github.com/Ontology/vm/types"
 	"github.com/Ontology/smartcontract/service/native"
+	"github.com/Ontology/common/log"
 )
 
 const (
@@ -52,6 +53,7 @@ func (this *StateStore) HandleInvokeTransaction(stateBatch *statestore.StateBatc
 	case vmtypes.NativeVM:
 		na := native.NewNativeService(stateBatch, invoke.Code.Code, tx)
 		if ok, err := na.Invoke(); !ok {
+			log.Error("Native contract execute error:", err)
 			event.PushSmartCodeEvent(txHash, 0, INVOKE_TRANSACTION, err)
 		}
 		na.CloneCache.Commit()

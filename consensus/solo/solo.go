@@ -3,6 +3,7 @@ package solo
 import (
 	"time"
 
+	"fmt"
 	"github.com/Ontology/account"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/config"
@@ -85,7 +86,10 @@ func (this *SoloService) Receive(context actor.Context) {
 			this.existCh = nil
 		}
 	case *actorTypes.TimeOut:
-		this.genBlock()
+		err := this.genBlock()
+		if err != nil {
+			log.Errorf("Solo genBlock error %s", err)
+		}
 	default:
 		log.Info("solo actor: Unknown msg ", msg, "type", reflect.TypeOf(msg))
 	}
@@ -105,30 +109,29 @@ func (this *SoloService) Halt() error {
 	return nil
 }
 
-func (this *SoloService) genBlock() {
-	block := this.makeBlock()
-	if block == nil {
-		return
-	}
-	err := ledger.DefLedger.AddBlock(block)
+func (this *SoloService) genBlock()error {
+	block, err := this.makeBlock()
 	if err != nil {
-		log.Errorf("Blockchain.AddBlock error:%s", err)
-		return
+		return fmt.Errorf("makeBlock error %s", err)
+	}
+	err = ledger.DefLedger.AddBlock(block)
+	if err != nil {
+		return fmt.Errorf("Blockchain.AddBlock error:%s", err)
 	}
 	//err = this.localNet.CleanTransactions(block.Transactions)
 	//if err != nil {
 	//	log.Errorf("CleanSubmittedTransactions error:%s", err)
 	//	return
 	//}
+	return nil
 }
 
-func (this *SoloService) makeBlock() *types.Block {
+func (this *SoloService) makeBlock() (*types.Block, error) {
 	log.Debug()
 	owner := this.Account.PublicKey
 	nextBookKeeper, err := types.AddressFromBookKeepers([]*crypto.PubKey{owner})
 	if err != nil {
-		log.Error("SoloService GetBookKeeperAddress error:%s", err)
-		return nil
+		return nil, fmt.Errorf("GetBookKeeperAddress error:%s", err)
 	}
 	prevHash := ledger.DefLedger.GetCurrentBlockHash()
 	height := ledger.DefLedger.GetCurrentBlockHeight() + 1
@@ -140,7 +143,10 @@ func (this *SoloService) makeBlock() *types.Block {
 
 	// TODO: increment checking txs
 
-	txBookkeeping := this.createBookkeepingTransaction(nonce, feeSum)
+	txBookkeeping, err := this.createBookkeepingTransaction(nonce, feeSum)
+	if err != nil {
+		return nil, fmt.Errorf("createBookkeepingTransaction error:%s", err)
+	}
 
 	transactions := make([]*types.Transaction, 0, len(txs)+1)
 	transactions = append(transactions, txBookkeeping)
@@ -154,22 +160,15 @@ func (this *SoloService) makeBlock() *types.Block {
 	}
 	txRoot, err := crypto.ComputeRoot(txHash)
 	if err != nil {
-		log.Errorf("ComputeRoot error:%s", err)
-		return nil
+		return nil, fmt.Errorf("ComputeRoot error:%s", err)
 	}
 
 	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoot(txRoot)
-	stateRoot, err := ledger.DefLedger.GetCurrentStateRoot()
-	if err != nil {
-		log.Errorf("GetCurrentStateRoot error %s", err)
-		return nil
-	}
 	header := &types.Header{
 		Version:          ContextVersion,
 		PrevBlockHash:    prevHash,
 		TransactionsRoot: txRoot,
 		BlockRoot:        blockRoot,
-		StateRoot:        stateRoot,
 		Timestamp:        uint32(time.Now().Unix()),
 		Height:           height,
 		ConsensusData:    nonce,
@@ -184,25 +183,36 @@ func (this *SoloService) makeBlock() *types.Block {
 
 	signature, err := crypto.Sign(this.Account.PrivKey(), blockHash[:])
 	if err != nil {
-		log.Error("[Signature],Sign failed.")
-		return nil
+		return nil, fmt.Errorf("[Signature],Sign error:%s.", err)
 	}
 
 	block.Header.BookKeepers = []*crypto.PubKey{owner}
 	block.Header.SigData = [][]byte{signature}
-	return block
+	return block, nil
 }
 
-func (this *SoloService) createBookkeepingTransaction(nonce uint64, fee Fixed64) *types.Transaction {
+func (this *SoloService) createBookkeepingTransaction(nonce uint64, fee Fixed64) (*types.Transaction, error) {
 	log.Debug()
 	//TODO: sysfee
 	bookKeepingPayload := &payload.BookKeeping{
 		Nonce: uint64(time.Now().UnixNano()),
 	}
-
-	return &types.Transaction{
+	tx := &types.Transaction{
 		TxType:     types.BookKeeping,
 		Payload:    bookKeepingPayload,
 		Attributes: []*types.TxAttribute{},
 	}
+	txHash := tx.Hash()
+	acc := this.Account
+	signature, err := crypto.Sign(acc.PrivateKey, txHash[:])
+	if err != nil {
+		return nil, fmt.Errorf("crypto.Sign error %s", err)
+	}
+	sig := &types.Sig{
+		PubKeys: []*crypto.PubKey{acc.PublicKey},
+		M:       1,
+		SigData: [][]byte{signature},
+	}
+	tx.Sigs = []*types.Sig{sig}
+	return tx, nil
 }

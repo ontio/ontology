@@ -16,6 +16,9 @@ import (
 	"bytes"
 	"github.com/Ontology/account"
 	"encoding/json"
+	"github.com/Ontology/common/serialization"
+	"encoding/hex"
+	"time"
 )
 
 func transferAction(c *cli.Context) error {
@@ -26,28 +29,28 @@ func transferAction(c *cli.Context) error {
 	// wallet name is wallet.dat by default
 	contract := c.String("contract")
 	if contract == "" {
-		fmt.Println("Invalid contract address.")
+		fmt.Println("Invalid contract address: ", contract)
 		os.Exit(1)
 	}
 	ct, _ := common.HexToBytes(contract)
 	ctu, _ := common.Uint160ParseFromBytes(ct)
 	from := c.String("from")
 	if from == "" {
-		fmt.Println("Invalid sender address.")
+		fmt.Println("Invalid sender address: ", from)
 		os.Exit(1)
 	}
 	f, _ := common.HexToBytes(from)
 	fu, _ := common.Uint160ParseFromBytes(f)
 	to := c.String("to")
 	if to == "" {
-		fmt.Println("Invalid revicer address.")
+		fmt.Println("Invalid revicer address: ", to)
 		os.Exit(1)
 	}
-	t, _ := common.HexToBytes(from)
+	t, _ := common.HexToBytes(to)
 	tu, _ := common.Uint160ParseFromBytes(t)
 	value := c.Int64("value")
 	if value <= 0 {
-		fmt.Println("Invalid ont amount.")
+		fmt.Println("Invalid ont amount: ", value)
 		os.Exit(1)
 	}
 
@@ -58,21 +61,47 @@ func transferAction(c *cli.Context) error {
 		Value: big.NewInt(value),
 	})
 	transfers := new(states.Transfers)
+	fmt.Println("ctu:", ctu)
 	transfers.Params = append(transfers.Params, &states.TokenTransfer{
 		Contract: ctu,
 		States: sts,
 	})
 
 	bf := new(bytes.Buffer)
-	transfers.Deserialize(bf)
+	if err := serialization.WriteVarBytes(bf, []byte("Token.Common.Transfer")); err != nil {
+		fmt.Println("Serialize transfer falg error.")
+		os.Exit(1)
+	}
+	if err := transfers.Serialize(bf); err != nil {
+		fmt.Println("Serialize transfers struct error.")
+		os.Exit(1)
+	}
 
 	tx := cutils.NewInvokeTransaction(vmtypes.VmCode{
 		VmType: vmtypes.NativeVM,
 		Code: bf.Bytes(),
 	})
 
+	//acct := account.Open(account.WalletFileName, []byte("passwordtest"))
+	//acc, err := acct.GetDefaultAccount(); if err != nil {
+	//	fmt.Println("GetDefaultAccount error:", err)
+	//	os.Exit(1)
+	//}
+	//if err := signTransaction(acc, tx); err != nil {
+	//	fmt.Println("signTransaction error:", err)
+	//	os.Exit(1)
+	//}
+
+	tx.Nonce = uint32(time.Now().Unix())
+
+	txbf := new(bytes.Buffer)
+	if err := tx.Serialize(txbf); err != nil {
+		fmt.Println("Serialize transaction error.")
+		os.Exit(1)
+	}
 	resp, err := rpc.Call(Address(), "sendrawtransaction", 0,
-		[]interface{}{tx})
+		[]interface{}{hex.EncodeToString(txbf.Bytes())})
+
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return err
@@ -81,29 +110,25 @@ func transferAction(c *cli.Context) error {
 	err = json.Unmarshal(resp, &r)
 	if err != nil {
 		fmt.Println("Unmarshal JSON failed")
-		return err
+		os.Exit(1)
 	}
-	fmt.Println("result", r["result"])
 	switch r["result"].(type) {
 	case map[string]interface{}:
 
 	case string:
 		fmt.Println(r["result"].(string))
-		return nil
+		os.Exit(1)
 	}
 	return nil
 }
 
 func signTransaction(signer *account.Account, tx *ctypes.Transaction) error {
 	hash := tx.Hash()
-	signature, err := crypto.Sign(signer.PrivKey(), hash[:])
-	if err != nil {
-		return err
-	}
+	sign, _ := crypto.Sign(signer.PrivateKey, hash[:])
 	tx.Sigs = append(tx.Sigs, &ctypes.Sig{
 		PubKeys: []*crypto.PubKey{signer.PublicKey},
 		M: 1,
-		SigData: [][]byte{signature},
+		SigData: [][]byte{sign},
 	})
 	return nil
 }
@@ -115,19 +140,19 @@ func NewCommand() *cli.Command {
 		Description: "With nodectl transfer, you could transfer ont.",
 		ArgsUsage:   "[args]",
 		Flags: []cli.Flag{
-			cli.BoolFlag{
+			cli.StringFlag{
 				Name:  "contract, c",
 				Usage: "contract address",
 			},
-			cli.BoolFlag{
+			cli.StringFlag{
 				Name:  "from, f",
 				Usage: "sender address",
 			},
-			cli.BoolFlag{
+			cli.StringFlag{
 				Name:  "to, t",
 				Usage: "revicer address",
 			},
-			cli.StringFlag{
+			cli.Int64Flag{
 				Name:  "value, v",
 				Usage: "ont amount",
 			},

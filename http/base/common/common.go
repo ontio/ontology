@@ -49,7 +49,6 @@ type BlockHead struct {
 	PrevBlockHash    string
 	TransactionsRoot string
 	BlockRoot        string
-	StateRoot        string
 	Timestamp        uint32
 	Height           uint32
 	ConsensusData    uint64
@@ -115,6 +114,8 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 		e := Sig{M: sig.M}
 		for i := 0; i < len(sig.PubKeys); i++ {
 			e.PubKeys = append(e.PubKeys, PubKeyInfo{sig.PubKeys[i].X.String(), sig.PubKeys[i].Y.String()})
+		}
+		for i := 0; i < len(sig.SigData);i ++{
 			e.SigData = append(e.SigData, ToHexString(sig.SigData[i]))
 		}
 		trans.Sigs = append(trans.Sigs, e)
@@ -159,7 +160,6 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 		PrevBlockHash:    ToHexString(block.Header.PrevBlockHash.ToArray()),
 		TransactionsRoot: ToHexString(block.Header.TransactionsRoot.ToArray()),
 		BlockRoot:        ToHexString(block.Header.BlockRoot.ToArray()),
-		StateRoot:        ToHexString(block.Header.StateRoot.ToArray()),
 		Timestamp:        block.Header.Timestamp,
 		Height:           block.Header.Height,
 		ConsensusData:    block.Header.ConsensusData,

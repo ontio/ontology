@@ -27,7 +27,7 @@ type StateStore struct {
 	merkleHashStore *merkle.FileHashStore
 }
 
-func NewStateStore(dbDir, merklePath string, currentHeight uint32) (*StateStore, error) {
+func NewStateStore(dbDir, merklePath string) (*StateStore, error) {
 	var err error
 	store, err := leveldbstore.NewLevelDBStore(dbDir)
 	if err != nil {
@@ -38,7 +38,11 @@ func NewStateStore(dbDir, merklePath string, currentHeight uint32) (*StateStore,
 		store: store,
 		merklePath:merklePath,
 	}
-	err = stateStore.init(currentHeight)
+	_, height, err :=stateStore.GetCurrentBlock()
+	if err != nil {
+		return nil, fmt.Errorf("GetCurrentBlock error %s", err)
+	}
+	err = stateStore.init(height)
 	if err != nil {
 		return nil,fmt.Errorf("init error %s", err)
 	}
@@ -125,8 +129,8 @@ func (this *StateStore) AddMerkleTreeRoot(txRoot common.Uint256) error {
 	return this.store.BatchPut(key, value.Bytes())
 }
 
-func (this *StateStore) NewStateBatch(stateRoot common.Uint256) (*StateBatch, error) {
-	return NewStateStoreBatch(NewMemDatabase(), this.store, stateRoot)
+func (this *StateStore) NewStateBatch() *StateBatch {
+	return NewStateStoreBatch(NewMemDatabase(), this.store)
 }
 
 func (this *StateStore) CommitTo() error {
@@ -266,6 +270,44 @@ func (this *StateStore) GetVoteStates() (map[common.Uint160]*VoteState, error) {
 	return votes, nil
 }
 
+func (this *StateStore) GetCurrentBlock() (common.Uint256, uint32, error) {
+	key := this.getCurrentBlockKey()
+	data, err := this.store.Get(key)
+	if err != nil {
+		if err == leveldb.ErrNotFound {
+			return common.Uint256{}, 0, nil
+		}
+		return common.Uint256{}, 0, err
+	}
+	reader := bytes.NewReader(data)
+	blockHash := common.Uint256{}
+	err = blockHash.Deserialize(reader)
+	if err != nil {
+		return common.Uint256{}, 0, err
+	}
+	height, err := serialization.ReadUint32(reader)
+	if err != nil {
+		return common.Uint256{}, 0, err
+	}
+	return blockHash, height, nil
+}
+
+func (this *StateStore) SaveCurrentBlock(height uint32, blockHash common.Uint256) error {
+	key := this.getCurrentBlockKey()
+	value := bytes.NewBuffer(nil)
+	blockHash.Serialize(value)
+	serialization.WriteUint32(value, height)
+	err := this.store.BatchPut(key, value.Bytes())
+	if err != nil {
+		return fmt.Errorf("BatchPut error %s", err)
+	}
+	return nil
+}
+
+func (this *StateStore) getCurrentBlockKey() []byte {
+	return []byte{byte(SYS_CurrentBlock)}
+}
+
 func (this *StateStore) getCurrentStateRootKey() ([]byte, error) {
 	key := make([]byte, 1+len(CurrentStateRoot))
 	key[0] = byte(SYS_CurrentStateRoot)
@@ -289,11 +331,11 @@ func (this *StateStore) getContractStateKey(contractHash common.Uint160) ([]byte
 }
 
 func (this *StateStore) getStorageKey(key *StorageKey) ([]byte, error) {
-	data := key.ToArray()
-	storeKey := make([]byte, 1+len(data))
-	storeKey[0] = byte(ST_Storage)
-	copy(storeKey[1:], []byte(data))
-	return storeKey, nil
+	buf := bytes.NewBuffer(nil)
+	buf.WriteByte( byte(ST_Storage))
+	buf.Write(key.CodeHash.ToArray())
+	buf.Write(key.Key)
+	return buf.Bytes(), nil
 }
 
 func (this *StateStore) GetBlockRootWithNewTxRoot(txRoot common.Uint256) common.Uint256 {

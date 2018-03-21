@@ -64,6 +64,8 @@ func (this *TokenTransfer) Deserialize(r io.Reader) error {
 	if err := contract.Deserialize(r); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TokenTransfer Deserialize] Contract error!")
 	}
+	this.Contract = *contract
+
 	n, err := serialization.ReadVarUint(r, 0)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TokenTransfer Deserialize] States length error!")
@@ -105,10 +107,10 @@ func (this *State) Deserialize(r io.Reader) error {
 	this.From = *from
 
 	to := new(common.Uint160)
-	if err := from.Deserialize(r); err != nil {
+	if err := to.Deserialize(r); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[State Deserialize] To error!")
 	}
-	this.From = *to
+	this.To = *to
 
 	value, err := serialization.ReadVarBytes(r)
 	if err != nil {

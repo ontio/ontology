@@ -49,6 +49,8 @@ func (this *LedgerActor) Receive(ctx actor.Context) {
 		this.handleGetCurrentBlockHeightReq(ctx, msg)
 	case *GetCurrentHeaderHeightReq:
 		this.handleGetCurrentHeaderHeightReq(ctx, msg)
+	case *GetCurrentHeaderHashReq:
+		this.handleGetCurrentHeaderHashReq(ctx, msg)
 	case *GetBlockHashReq:
 		this.handleGetBlockHashReq(ctx, msg)
 	case *IsContainBlockReq:
@@ -116,7 +118,7 @@ func (this *LedgerActor) handleAddBlockReq(ctx actor.Context, req *AddBlockReq) 
 
 func (this *LedgerActor) handleGetTransactionReq(ctx actor.Context, req *GetTransactionReq) {
 	tx, err := ledger.DefLedger.GetTransaction(req.TxHash)
-	resp := GetTransactionRsp{
+	resp := &GetTransactionRsp{
 		Error: err,
 		Tx:    tx,
 	}
@@ -182,6 +184,15 @@ func (this *LedgerActor) handleGetCurrentHeaderHeightReq(ctx actor.Context, req 
 	resp := &GetCurrentHeaderHeightRsp{
 		Height: curHeaderHeight,
 		Error:  nil,
+	}
+	ctx.Sender().Request(resp, ctx.Self())
+}
+
+func (this *LedgerActor) handleGetCurrentHeaderHashReq(ctx actor.Context, req *GetCurrentHeaderHashReq){
+	curHeaderHash := ledger.DefLedger.GetCurrentHeaderHash()
+	resp := &GetCurrentHeaderHashRsp{
+		BlockHash:curHeaderHash,
+		Error:nil,
 	}
 	ctx.Sender().Request(resp, ctx.Self())
 }
@@ -270,7 +281,7 @@ func (this *LedgerActor) handleIsContainTransactionReq(ctx actor.Context, req *I
 
 func (this *LedgerActor) handlePreExecuteContractReq(ctx actor.Context, req *PreExecuteContractReq) {
 	result, err := ledger.DefLedger.PreExecuteContract(req.Tx)
-	resp := PreExecuteContractRsp{
+	resp := &PreExecuteContractRsp{
 		Result: result,
 		Error:  err,
 	}

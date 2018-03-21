@@ -16,7 +16,6 @@ type Header struct {
 	Version          uint32
 	PrevBlockHash    Uint256
 	TransactionsRoot Uint256
-	StateRoot        Uint256
 	BlockRoot        Uint256
 	Timestamp        uint32
 	Height           uint32
@@ -65,7 +64,6 @@ func (bd *Header) SerializeUnsigned(w io.Writer) error {
 	serialization.WriteUint32(w, bd.Version)
 	bd.PrevBlockHash.Serialize(w)
 	bd.TransactionsRoot.Serialize(w)
-	bd.StateRoot.Serialize(w)
 	bd.BlockRoot.Serialize(w)
 	serialization.WriteUint32(w, bd.Timestamp)
 	serialization.WriteUint32(w, bd.Height)
@@ -131,12 +129,7 @@ func (bd *Header) DeserializeUnsigned(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-
-	//StateRoot
-	err = bd.StateRoot.Deserialize(r)
-	if err != nil {
-		return err
-	}
+	
 	err = bd.BlockRoot.Deserialize(r)
 	if err != nil {
 		return err

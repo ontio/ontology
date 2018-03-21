@@ -2,34 +2,23 @@ package statestore
 
 import (
 	"bytes"
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
+	"fmt"
+	"github.com/Ontology/core/payload"
 	. "github.com/Ontology/core/states"
 	. "github.com/Ontology/core/store/common"
-	"fmt"
 	"github.com/syndtr/goleveldb/leveldb"
-	"github.com/Ontology/core/payload"
 )
 
 type StateBatch struct {
 	store       IStore
 	memoryStore IMemoryStore
-	trieStore   ITrieStore
-	trie        ITrie
 }
 
-func NewStateStoreBatch(memoryStore IMemoryStore, store IStore, root common.Uint256) (*StateBatch, error) {
-	trieStore := NewTrieStore(store)
-	tr, err := trieStore.OpenTrie(root)
-	if err != nil {
-		return nil, fmt.Errorf("opentrie error:" + err.Error())
-	}
+func NewStateStoreBatch(memoryStore IMemoryStore, store IStore) *StateBatch {
 	return &StateBatch{
 		store:       store,
 		memoryStore: memoryStore,
-		trieStore:   trieStore,
-		trie:        tr,
-	},nil
+	}
 }
 
 func (self *StateBatch) Find(prefix DataEntryPrefix, key []byte) ([]*StateItem, error) {
@@ -107,7 +96,7 @@ func (self *StateBatch) TryGetAndChange(prefix DataEntryPrefix, key []byte, trie
 	}
 	k := append([]byte{byte(prefix)}, key...)
 	enc, err := self.store.Get(k)
-	if err != nil && err != leveldb.ErrNotFound{
+	if err != nil && err != leveldb.ErrNotFound {
 		return nil, err
 	}
 
@@ -127,40 +116,24 @@ func (self *StateBatch) TryDelete(prefix DataEntryPrefix, key []byte) {
 	self.memoryStore.Delete(byte(prefix), key)
 }
 
-func (self *StateBatch) CommitTo() (common.Uint256, error) {
+func (self *StateBatch) CommitTo() error {
 	for k, v := range self.memoryStore.GetChangeSet() {
 		if v.State == Deleted {
-			if v.Trie {
-				if err := self.trie.TryDelete([]byte(k)); err != nil {
-					return common.Uint256{}, err
-				}
-			}
 			if err := self.store.BatchDelete([]byte(k)); err != nil {
-				return common.Uint256{}, err
+				return err
 			}
 		} else {
 			data := new(bytes.Buffer)
 			err := v.Value.Serialize(data)
 			if err != nil {
-				log.Errorf("[CommitTo] error: key %v, value:%v", k, v.Value)
-				return common.Uint256{}, err
-			}
-			if v.Trie {
-				value := common.ToHash256(data.Bytes())
-				if err := self.trie.TryUpdate([]byte(k), value.ToArray()); err != nil {
-					return common.Uint256{}, err
-				}
+				return fmt.Errorf("error: key %v, value:%v", k, v.Value)
 			}
 			if err = self.store.BatchPut([]byte(k), data.Bytes()); err != nil {
-				return common.Uint256{}, err
+				return err
 			}
 		}
 	}
-	stateRoot, err := self.trie.CommitTo()
-	if err != nil {
-		return common.Uint256{}, err
-	}
-	return stateRoot, nil
+	return nil
 }
 
 func (this *StateBatch) Change(prefix byte, key []byte, trie bool) {

@@ -137,6 +137,44 @@ func (this *EventStore) ClearAll() error {
 	return this.CommitTo()
 }
 
+func (this *EventStore) SaveCurrentBlock(height uint32, blockHash common.Uint256) error {
+	key := this.getCurrentBlockKey()
+	value := bytes.NewBuffer(nil)
+	blockHash.Serialize(value)
+	serialization.WriteUint32(value, height)
+	err := this.store.BatchPut(key, value.Bytes())
+	if err != nil {
+		return fmt.Errorf("BatchPut error %s", err)
+	}
+	return nil
+}
+
+func (this *EventStore) GetCurrentBlock() (common.Uint256, uint32, error) {
+	key := this.getCurrentBlockKey()
+	data, err := this.store.Get(key)
+	if err != nil {
+		if err == leveldb.ErrNotFound {
+			return common.Uint256{}, 0, nil
+		}
+		return common.Uint256{}, 0, err
+	}
+	reader := bytes.NewReader(data)
+	blockHash := common.Uint256{}
+	err = blockHash.Deserialize(reader)
+	if err != nil {
+		return common.Uint256{}, 0, err
+	}
+	height, err := serialization.ReadUint32(reader)
+	if err != nil {
+		return common.Uint256{}, 0, err
+	}
+	return blockHash, height, nil
+}
+
+func (this *EventStore) getCurrentBlockKey() []byte {
+	return []byte{byte(SYS_CurrentBlock)}
+}
+
 func (this *EventStore) getEventNotifyByBlockKey(height uint32) ([]byte, error) {
 	key := make([]byte, 5, 5)
 	key[0] = byte(EVENT_Notify)

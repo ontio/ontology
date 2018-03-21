@@ -3,9 +3,7 @@ package types
 import (
 	"io"
 	"github.com/Ontology/common/serialization"
-	"crypto/sha256"
 	. "github.com/Ontology/common"
-	"golang.org/x/crypto/ripemd160"
 )
 
 type VmType byte
@@ -41,13 +39,7 @@ func (self *VmCode) Deserialize(r io.Reader) error {
 }
 
 func (self *VmCode) AddressFromVmCode() Uint160 {
-	var u160 Uint160
-	temp := sha256.Sum256(self.Code)
-	md := ripemd160.New()
-	md.Write(temp[:])
-	md.Sum(u160[:0])
-
+	u160 := ToCodeHash(self.Code)
 	u160[0] = byte(self.VmType)
-
 	return u160
 }

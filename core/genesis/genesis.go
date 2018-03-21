@@ -23,10 +23,8 @@ const (
 var (
 	GenerationAmount = [17]uint32{80, 70, 60, 50, 40, 30, 20, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10}
 
-	OntContractCode = &vmtypes.VmCode{VmType: vmtypes.NativeVM, Code: []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}}
-	OngContractCode = &vmtypes.VmCode{VmType: vmtypes.NativeVM, Code: []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}}
-	OntContractAddress = OntContractCode.AddressFromVmCode()
-	OngContractAddress = OngContractCode.AddressFromVmCode()
+	OntContractAddress, _ = common.Uint160ParseFromBytes([]byte{0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1})
+	OngContractAddress, _ = common.Uint160ParseFromBytes([]byte{0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2})
 
 	ONTToken   = NewGoverningToken()
 	ONGToken   = NewUtilityToken()
@@ -89,9 +87,8 @@ func NewUtilityToken() *types.Transaction {
 func NewGoverningInit() *types.Transaction {
 	vmCode := vmtypes.VmCode{
 		VmType: vmtypes.NativeVM,
-		Code: []byte{14, 79, 110, 116, 46, 84, 111, 107, 101, 110, 46, 73, 110, 105, 116},
+		Code: []byte{14, 84, 111, 107, 101, 110, 46, 79, 110, 116, 46, 73, 110, 105, 116},
 	}
 	tx := utils.NewInvokeTransaction(vmCode)
 	return tx
 }
-
