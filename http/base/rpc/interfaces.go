@@ -383,8 +383,11 @@ func GetBlockHeightByTxHash(params []interface{}) map[string]interface{} {
 		if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
 			return RpcInvalidParameter
 		}
-		//TODO resp
-		return Rpc(map[string]interface{}{})
+		height,err := GetBlockHeightByTxHashFromStore(hash)
+		if err != nil{
+			return RpcInvalidParameter
+		}
+		return Rpc(height)
 	default:
 		return RpcInvalidParameter
 	}
@@ -420,16 +423,6 @@ func BalanceOf(params []interface{}) map[string]interface{} {
 	if ontBalance != nil {
 		ont.SetBytes(ontBalance)
 	}
-
-	//ongBalance, err := GetStorageItem(genesis.OngContractAddress, data)
-	//if err != nil {
-	//	log.Errorf("GetOntBalanceOf GetStorageItem ong address:%s error:%s",  address, err)
-	//	return RpcInternalError
-	//}
-	//if ongBalance != nil {
-	//	ong.SetBytes(ongBalance)
-	//}
-
 	rsp := &BalanceOfRsp{
 		Ont: ont.String(),
 		Ong: ong.String(),

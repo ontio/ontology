@@ -121,18 +121,17 @@ func GetContractStateFromStore(hash Address) (*payload.DeployCode, error) {
 	}
 }
 
-func GetTxBlockHeightFromStore(hash Uint256) (uint32, error) {
-	future := defLedgerPid.RequestFuture(nil, ReqTimeout*time.Second)
+func GetBlockHeightByTxHashFromStore(hash Uint256) (uint32, error) {
+	future := defLedgerPid.RequestFuture(&GetTransactionWithHeightReq{hash}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ErrActorComm, err)
 		return 0, err
 	}
-	//TODO GetTxBlockHeightFromStore
-	if rsp, ok := result.(*GetContractStateRsp); !ok {
+	if rsp, ok := result.(*GetTransactionWithHeightRsp); !ok {
 		return 0, errors.New("fail")
 	} else {
-		return 0, rsp.Error
+		return rsp.Height, rsp.Error
 	}
 }
 

@@ -135,7 +135,7 @@ func GetBlockHeightByTxHash(cmd map[string]interface{}) map[string]interface{} {
 	if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
 		return rspInvalidTx
 	}
-	height,err := GetTxBlockHeightFromStore(hash)
+	height,err := GetBlockHeightByTxHashFromStore(hash)
 	if err != nil {
 		return rspInternalError
 	}

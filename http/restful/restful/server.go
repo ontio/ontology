@@ -140,7 +140,7 @@ func (rt *restServer) registryMethod() {
 		Api_GetContractState:     {name: "getcontract", handler: GetContractState},
 		Api_Restart:              {name: "restart", handler: rt.Restart},
 		Api_GetSmartCodeEvent:    {name: "getsmartcodeevent", handler: GetSmartCodeEventByHeight},
-		Api_GetBlkHeightByTxHash: {name: "gettxblockheight", handler: GetBlockHeightByTxHash},
+		Api_GetBlkHeightByTxHash: {name: "getblockheightbytxhash", handler: GetBlockHeightByTxHash},
 		Api_GetStorage:           {name: "getstorage", handler: GetStorage},
 	}
 
