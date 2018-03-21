@@ -82,17 +82,17 @@ func transferAction(c *cli.Context) error {
 		Code: bf.Bytes(),
 	})
 
-	//acct := account.Open(account.WalletFileName, []byte("passwordtest"))
-	//acc, err := acct.GetDefaultAccount(); if err != nil {
-	//	fmt.Println("GetDefaultAccount error:", err)
-	//	os.Exit(1)
-	//}
-	//if err := signTransaction(acc, tx); err != nil {
-	//	fmt.Println("signTransaction error:", err)
-	//	os.Exit(1)
-	//}
-
 	tx.Nonce = uint32(time.Now().Unix())
+
+	acct := account.Open(account.WalletFileName, []byte("passwordtest"))
+	acc, err := acct.GetDefaultAccount(); if err != nil {
+		fmt.Println("GetDefaultAccount error:", err)
+		os.Exit(1)
+	}
+	if err := signTransaction(acc, tx); err != nil {
+		fmt.Println("signTransaction error:", err)
+		os.Exit(1)
+	}
 
 	txbf := new(bytes.Buffer)
 	if err := tx.Serialize(txbf); err != nil {
