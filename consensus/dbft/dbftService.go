@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 	"reflect"
-
+	ldgractor"github.com/Ontology/core/ledger/actor"
 	"github.com/Ontology/account"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/config"
@@ -17,7 +17,6 @@ import (
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/core/vote"
 	"github.com/Ontology/crypto"
-	ontErrors "github.com/Ontology/errors"
 	"github.com/Ontology/eventbus/actor"
 	"github.com/Ontology/events"
 	"github.com/Ontology/events/message"
@@ -202,9 +201,14 @@ func (ds *DbftService) CheckSignatures() error {
 		}
 		if !isExist {
 			// save block
-			if err := ledger.DefLedger.AddBlock(block); err != nil {
-				log.Error(fmt.Sprintf("[CheckSignatures] Xmit block Error: %s, blockHash: %d", err.Error(), block.Hash()))
-				return ontErrors.NewDetailErr(err, ontErrors.ErrNoCode, "[DbftService], CheckSignatures AddContract failed.")
+			future := ldgractor.DefLedgerPid.RequestFuture(&ldgractor.AddBlockReq{Block:block}, 30*time.Second)
+			result, err := future.Result()
+			if err != nil {
+				return fmt.Errorf("CheckSignatures DefLedgerPid.RequestFuture Height:%d error:%s",block.Header.Height, err)
+			}
+			addBlockRsp :=  result.(*ldgractor.AddBlockRsp)
+			if addBlockRsp.Error != nil {
+				return fmt.Errorf("CheckSignatures AddBlockRsp Height:%d error:%s", block.Header.Height, err)
 			}
 
 			ds.context.State |= BlockGenerated

@@ -2,7 +2,7 @@ package solo
 
 import (
 	"time"
-
+ldgactor "github.com/Ontology/core/ledger/actor"
 	"fmt"
 	"github.com/Ontology/account"
 	. "github.com/Ontology/common"
@@ -114,10 +114,17 @@ func (this *SoloService) genBlock()error {
 	if err != nil {
 		return fmt.Errorf("makeBlock error %s", err)
 	}
-	err = ledger.DefLedger.AddBlock(block)
+
+	future := ldgactor.DefLedgerPid.RequestFuture(&ldgactor.AddBlockReq{Block:block}, 30*time.Second)
+	result, err := future.Result()
 	if err != nil {
-		return fmt.Errorf("Blockchain.AddBlock error:%s", err)
+		return fmt.Errorf("genBlock DefLedgerPid.RequestFuture Height:%d error:%s",block.Header.Height, err)
 	}
+	addBlockRsp :=  result.(*ldgactor.AddBlockRsp)
+	if addBlockRsp.Error != nil {
+		return fmt.Errorf("AddBlockRsp Height:%d error:%s", block.Header.Height, err)
+	}
+
 	//err = this.localNet.CleanTransactions(block.Transactions)
 	//if err != nil {
 	//	log.Errorf("CleanSubmittedTransactions error:%s", err)
@@ -185,7 +192,6 @@ func (this *SoloService) makeBlock() (*types.Block, error) {
 	if err != nil {
 		return nil, fmt.Errorf("[Signature],Sign error:%s.", err)
 	}
-
 	block.Header.BookKeepers = []*crypto.PubKey{owner}
 	block.Header.SigData = [][]byte{signature}
 	return block, nil
