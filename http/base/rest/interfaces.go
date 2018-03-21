@@ -300,8 +300,34 @@ func GetContractState(cmd map[string]interface{}) map[string]interface{} {
 	}
 	contract, err := GetContractStateFromStore(hash)
 	if err != nil || contract == nil {
-		return rspInvalidParams
+		return rspInternalError
 	}
 	resp["Result"] = TransPayloadToHex(contract)
+	return resp
+}
+
+func GetStorage(cmd map[string]interface{}) map[string]interface{} {
+	resp := rspSuccess
+	str := cmd["Hash"].(string)
+	bys, err := HexToBytes(str)
+	if err != nil {
+		return rspInvalidParams
+	}
+	var hash Address
+	err = hash.Deserialize(bytes.NewReader(bys))
+	if err != nil {
+		return rspInvalidParams
+	}
+	key := cmd["Key"].(string)
+	item, err := HexToBytes(key)
+	if err != nil {
+		return rspInvalidParams
+	}
+	log.Info("[GetStorage] ",str,key)
+	value, err := GetStorageItem(hash,item)
+	if err != nil || value == nil {
+		return rspInternalError
+	}
+	resp["Result"] = ToHexString(value)
 	return resp
 }
