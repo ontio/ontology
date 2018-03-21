@@ -8,7 +8,7 @@ import (
 )
 
 type StorageKey struct {
-	CodeHash common.Uint160
+	CodeHash common.Address
 	Key      []byte
 }
 
@@ -19,7 +19,7 @@ func (this *StorageKey) Serialize(w io.Writer) (int, error) {
 }
 
 func (this *StorageKey) Deserialize(r io.Reader) error {
-	u := new(common.Uint160)
+	u := new(common.Address)
 	err := u.Deserialize(r)
 	if err != nil {
 		return err

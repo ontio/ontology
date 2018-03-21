@@ -71,11 +71,11 @@ type ExecutionEngine struct {
 	gas             int64
 }
 
-func (e *ExecutionEngine) Create(caller common.Uint160, code []byte) ([]byte, error) {
+func (e *ExecutionEngine) Create(caller common.Address, code []byte) ([]byte, error) {
 	return code, nil
 }
 
-func (e *ExecutionEngine) Call(caller common.Uint160, code, input []byte) ([]byte, error) {
+func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) ([]byte, error) {
 	e.LoadCode(code, false)
 	e.LoadCode(input, false)
 	err := e.Execute()

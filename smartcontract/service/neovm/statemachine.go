@@ -304,23 +304,23 @@ func (s *StateMachine) GetStorageContext(engine *vm.ExecutionEngine) (bool, erro
 	if err != nil {
 		return false, err
 	}
-	if codeHash.CompareTo(currentHash) != 0 {
+	if codeHash != currentHash {
 		return false, errors.NewErr("[GetStorageContext] CodeHash not equal!")
 	}
 	vm.PushData(engine, &StorageContext{codeHash: codeHash})
 	return true, nil
 }
 
-func contains(programHashes []common.Uint160, programHash common.Uint160) bool {
+func contains(programHashes []common.Address, programHash common.Address) bool {
 	for _, v := range programHashes {
-		if v.CompareTo(programHash) == 0 {
+		if v == programHash {
 			return true
 		}
 	}
 	return false
 }
 
-func serializeStorageKey(codeHash common.Uint160, key []byte) ([]byte, error) {
+func serializeStorageKey(codeHash common.Address, key []byte) ([]byte, error) {
 	bf := new(bytes.Buffer)
 	storageKey := &states.StorageKey{CodeHash: codeHash, Key: key}
 	if _, err := storageKey.Serialize(bf); err != nil {

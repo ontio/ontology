@@ -99,7 +99,7 @@ func transferAction(c *cli.Context) error {
 		fmt.Println("Serialize transaction error.")
 		os.Exit(1)
 	}
-	resp, err := rpc.Call(Address(), "sendrawtransaction", 0,
+	resp, err := rpc.Call(RpcAddress(), "sendrawtransaction", 0,
 		[]interface{}{hex.EncodeToString(txbf.Bytes())})
 
 	if err != nil {

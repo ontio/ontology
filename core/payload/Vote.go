@@ -15,7 +15,7 @@ const (
 type Vote struct {
 	PubKeys []*crypto.PubKey // vote node list
 
-	Account Uint160
+	Account Address
 }
 
 func (self *Vote) Check() bool {

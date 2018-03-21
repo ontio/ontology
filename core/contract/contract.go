@@ -24,10 +24,10 @@ type Contract struct {
 	Parameters      []ContractParameterType
 
 	//The program hash as contract address
-	ProgramHash     Uint160
+	ProgramHash Address
 
 	//owner's pubkey hash indicate the owner of contract
-	OwnerPubkeyHash Uint160
+	OwnerPubkeyHash Address
 }
 
 func (c *Contract) IsStandard() bool {
@@ -154,7 +154,7 @@ func (c *Contract) Serialize(w io.Writer) error {
 		return err
 	}
 	if len != 20 {
-		return NewDetailErr(errors.New("PubkeyHash.Serialize(): len != len(Uint160)"), ErrNoCode, "")
+		return NewDetailErr(errors.New("PubkeyHash.Serialize(): len != len(Address)"), ErrNoCode, "")
 	}
 
 	err = serialization.WriteVarBytes(w, ContractParameterTypeToByte(c.Parameters))

@@ -93,7 +93,7 @@ func GetTransaction(hash Uint256) (*types.Transaction, error) {
 	}
 }
 
-func GetStorageItem(codeHash Uint160, key []byte) ([]byte, error) {
+func GetStorageItem(codeHash Address, key []byte) ([]byte, error) {
 	future := defLedgerPid.RequestFuture(&GetStorageItemReq{CodeHash: &codeHash, Key: key}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
@@ -107,7 +107,7 @@ func GetStorageItem(codeHash Uint160, key []byte) ([]byte, error) {
 	}
 }
 
-func GetContractStateFromStore(hash Uint160) (*payload.DeployCode, error) {
+func GetContractStateFromStore(hash Address) (*payload.DeployCode, error) {
 	future := defLedgerPid.RequestFuture(&GetContractStateReq{hash}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {

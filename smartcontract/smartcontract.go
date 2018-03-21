@@ -44,8 +44,8 @@ type SmartContract struct {
 }
 
 type Engine interface {
-	Create(caller common.Uint160, code []byte) ([]byte, error)
-	Call(caller common.Uint160, code, input []byte) ([]byte, error)
+	Create(caller common.Address, code []byte) ([]byte, error)
+	Call(caller common.Address, code, input []byte) ([]byte, error)
 }
 
 func NewSmartContract(context *Context) (*SmartContract, error) {

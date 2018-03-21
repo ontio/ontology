@@ -14,7 +14,7 @@ type ECDsaCrypto struct {
 
 func (c *ECDsaCrypto) Hash160(message []byte) []byte {
 	temp := common.ToCodeHash(message)
-	return temp.ToArray()
+	return temp[:]
 }
 
 func (c *ECDsaCrypto) Hash256(message []byte) []byte {

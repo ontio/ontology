@@ -14,7 +14,7 @@ import (
 	"os"
 )
 
-func ToCodeHash(code []byte) Uint160 {
+func ToCodeHash(code []byte) Address {
 	temp := sha256.Sum256(code)
 	md := ripemd160.New()
 	io.WriteString(md, string(temp[:]))

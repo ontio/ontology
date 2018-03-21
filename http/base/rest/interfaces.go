@@ -293,7 +293,7 @@ func GetContractState(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return rspInvalidParams
 	}
-	var hash Uint160
+	var hash Address
 	err = hash.Deserialize(bytes.NewReader(bys))
 	if err != nil {
 		return rspInvalidParams

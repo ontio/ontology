@@ -58,7 +58,7 @@ func Transfer(native *NativeService) (bool, error) {
 				return false, errors.NewErr("[Transfer] transfer amount invalid!")
 			}
 
-			if s.From.CompareTo(s.To) == 0 {
+			if s.From == s.To {
 				return true, nil
 			}
 
@@ -110,10 +110,10 @@ func getBalance(native *NativeService, key []byte) (*big.Int, error) {
 	return new(big.Int).SetBytes(item.Value), nil
 }
 
-func checkWitness(native *NativeService, u160 common.Uint160) bool {
+func checkWitness(native *NativeService, u160 common.Address) bool {
 	addresses := native.Tx.GetSignatureAddresses()
 	for _, v := range addresses {
-		if v.CompareTo(u160) == 0 {
+		if v == u160 {
 			return true
 		}
 	}

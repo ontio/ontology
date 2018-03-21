@@ -12,7 +12,7 @@ import (
 type PrepareRequest struct {
 	msgData        ConsensusMessageData
 	Nonce          uint64
-	NextBookKeeper common.Uint160
+	NextBookKeeper common.Address
 	Transactions   []*types.Transaction
 	Signature      []byte
 }

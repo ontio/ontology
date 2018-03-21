@@ -5,10 +5,10 @@ import (
 )
 
 type StorageContext struct {
-	codeHash common.Uint160
+	codeHash common.Address
 }
 
-func NewStorageContext(codeHash common.Uint160) *StorageContext {
+func NewStorageContext(codeHash common.Address) *StorageContext {
 	var storageContext StorageContext
 	storageContext.codeHash = codeHash
 	return &storageContext

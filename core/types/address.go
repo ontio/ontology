@@ -11,26 +11,26 @@ import (
 	"sort"
 )
 
-func AddressFromPubKey(pubkey *crypto.PubKey) Uint160 {
+func AddressFromPubKey(pubkey *crypto.PubKey) Address {
 	buf := bytes.Buffer{}
 	pubkey.Serialize(&buf)
 
-	var u160 Uint160
+	var addr Address
 	temp := sha256.Sum256(buf.Bytes())
 	md := ripemd160.New()
 	md.Write(temp[:])
-	md.Sum(u160[:0])
+	md.Sum(addr[:0])
 
-	u160[0] = 0x01
+	addr[0] = 0x01
 
-	return u160
+	return addr
 }
 
-func AddressFromMultiPubKeys(pubkeys []*crypto.PubKey, m int) (Uint160, error) {
-	var u160 Uint160
+func AddressFromMultiPubKeys(pubkeys []*crypto.PubKey, m int) (Address, error) {
+	var addr Address
 	n := len(pubkeys)
 	if m <= 0 || m > n || n > 24 {
-		return u160, errors.New("wrong multi-sig param")
+		return addr, errors.New("wrong multi-sig param")
 	}
 	sort.Sort(crypto.PubKeySlice(pubkeys))
 	buf := bytes.Buffer{}
@@ -43,13 +43,13 @@ func AddressFromMultiPubKeys(pubkeys []*crypto.PubKey, m int) (Uint160, error) {
 	temp := sha256.Sum256(buf.Bytes())
 	md := ripemd160.New()
 	md.Write(temp[:])
-	md.Sum(u160[:0])
-	u160[0] = 0x02
+	md.Sum(addr[:0])
+	addr[0] = 0x02
 
-	return u160, nil
+	return addr, nil
 }
 
-func AddressFromBookKeepers(bookKeepers []*crypto.PubKey) (Uint160, error) {
+func AddressFromBookKeepers(bookKeepers []*crypto.PubKey) (Address, error) {
 	return AddressFromMultiPubKeys(bookKeepers, len(bookKeepers)-(len(bookKeepers)-1)/3)
 }
 

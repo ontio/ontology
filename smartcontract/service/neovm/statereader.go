@@ -154,10 +154,10 @@ func (s *StateReader) RuntimeLog(e *vm.ExecutionEngine) (bool, error) {
 	return true, nil
 }
 
-func (s *StateReader) CheckWitnessHash(engine *vm.ExecutionEngine, programHash common.Uint160) (bool, error) {
+func (s *StateReader) CheckWitnessHash(engine *vm.ExecutionEngine, programHash common.Address) (bool, error) {
 	signableData := engine.GetCodeContainer().(signature.SignableData)
 	programs := signableData.GetPrograms()
-	hashes := make([]common.Uint160, 0, len(programs))
+	hashes := make([]common.Address, 0, len(programs))
 	for _, program := range programs {
 		hash := common.ToCodeHash(program.Code)
 		hashes = append(hashes, hash)

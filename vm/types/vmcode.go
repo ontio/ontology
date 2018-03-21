@@ -38,7 +38,7 @@ func (self *VmCode) Deserialize(r io.Reader) error {
 	return nil
 }
 
-func (self *VmCode) AddressFromVmCode() Uint160 {
+func (self *VmCode) AddressFromVmCode() Address {
 	u160 := ToCodeHash(self.Code)
 	u160[0] = byte(self.VmType)
 	return u160

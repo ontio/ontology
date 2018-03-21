@@ -10,7 +10,7 @@ import (
 type Account struct {
 	PrivateKey []byte
 	PublicKey  *crypto.PubKey
-	Address    Uint160
+	Address    Address
 }
 
 func NewAccount() *Account {

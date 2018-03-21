@@ -26,7 +26,7 @@ type ILedgerStore interface {
 	IsContainBlock(blockHash Uint256) (bool, error)
 	IsContainTransaction(txHash Uint256) (bool, error)
 	GetBlockRootWithNewTxRoot(txRoot Uint256) Uint256
-	GetContractState(contractHash Uint160) (*payload.DeployCode, error)
+	GetContractState(contractHash Address) (*payload.DeployCode, error)
 	GetBookKeeperState() (*states.BookKeeperState, error)
 	GetStorageItem(key *states.StorageKey) (*states.StorageItem, error)
 	PreExecuteContract(tx *types.Transaction) ([]interface{}, error)

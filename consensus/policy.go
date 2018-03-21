@@ -6,7 +6,7 @@ import (
 
 type Policy struct {
 	PolicyLevel PolicyLevel
-	List        []Uint160
+	List        []Address
 }
 
 func NewPolicy() *Policy {

@@ -183,7 +183,7 @@ func GetStorage(params []interface{}) map[string]interface{} {
 		return RpcNil
 	}
 
-	var codeHash Uint160
+	var codeHash Address
 	var key []byte
 	switch params[0].(type) {
 	case string:
@@ -290,7 +290,7 @@ func GetContractState(params []interface{}) map[string]interface{} {
 		if err != nil {
 			return RpcInvalidParameter
 		}
-		var hash Uint160
+		var hash Address
 		if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
 			return RpcInvalidParameter
 		}

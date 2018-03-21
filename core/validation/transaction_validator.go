@@ -36,7 +36,7 @@ func VerifyTransactionWithLedger(tx *types.Transaction, ledger *ledger.Ledger) E
 
 func checkTransactionSignatures(tx *types.Transaction) error {
 	hash := tx.Hash()
-	address := make(map[common.Uint160]bool, len(tx.Sigs))
+	address := make(map[common.Address]bool, len(tx.Sigs))
 	for _, sig := range tx.Sigs {
 		m := int(sig.M)
 		n := len(sig.PubKeys)

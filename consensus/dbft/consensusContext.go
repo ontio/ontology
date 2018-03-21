@@ -27,7 +27,7 @@ type ConsensusContext struct {
 	PrimaryIndex    uint32
 	Timestamp       uint32
 	Nonce           uint64
-	NextBookKeeper  Uint160
+	NextBookKeeper  Address
 	Transactions    []*types.Transaction
 	Signatures      [][]byte
 	ExpectedView    []byte

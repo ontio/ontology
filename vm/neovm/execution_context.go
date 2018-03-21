@@ -14,7 +14,7 @@ type ExecutionContext struct {
 	PushOnly           bool
 	BreakPoints        []uint
 	InstructionPointer int
-	CodeHash           common.Uint160
+	CodeHash           common.Address
 	engine             *ExecutionEngine
 }
 
@@ -37,8 +37,9 @@ func (ec *ExecutionContext) SetInstructionPointer(offset int64) {
 	ec.OpReader.Seek(offset, io.SeekStart)
 }
 
-func (ec *ExecutionContext) GetCodeHash() (common.Uint160, error) {
-	if ec.CodeHash.CompareTo(common.Uint160{}) == 0 {
+func (ec *ExecutionContext) GetCodeHash() (common.Address, error) {
+	empty :=common.Address{}
+	if ec.CodeHash == empty {
 		code := &vmtypes.VmCode{
 			Code: ec.Code,
 			VmType: vmtypes.NEOVM,

@@ -36,7 +36,7 @@ func NewPortFlag() cli.Flag {
 	}
 }
 
-func Address() string {
+func RpcAddress() string {
 	address := "http://" + Ip + ":" + Port
 	return address
 }

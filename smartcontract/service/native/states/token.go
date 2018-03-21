@@ -40,7 +40,7 @@ func (this *Transfers) Deserialize(r io.Reader) error {
 }
 
 type TokenTransfer struct {
-	Contract common.Uint160
+	Contract common.Address
 	States   []*State
 }
 
@@ -60,7 +60,7 @@ func (this *TokenTransfer) Serialize(w io.Writer) error {
 }
 
 func (this *TokenTransfer) Deserialize(r io.Reader) error {
-	contract := new(common.Uint160)
+	contract := new(common.Address)
 	if err := contract.Deserialize(r); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TokenTransfer Deserialize] Contract error!")
 	}
@@ -81,8 +81,8 @@ func (this *TokenTransfer) Deserialize(r io.Reader) error {
 }
 
 type State struct {
-	From  common.Uint160
-	To    common.Uint160
+	From  common.Address
+	To    common.Address
 	Value *big.Int
 }
 
@@ -100,13 +100,13 @@ func (this *State) Serialize(w io.Writer) error {
 }
 
 func (this *State) Deserialize(r io.Reader) error {
-	from := new(common.Uint160)
+	from := new(common.Address)
 	if err := from.Deserialize(r); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[State Deserialize] From error!")
 	}
 	this.From = *from
 
-	to := new(common.Uint160)
+	to := new(common.Address)
 	if err := to.Deserialize(r); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[State Deserialize] To error!")
 	}

@@ -168,7 +168,7 @@ type GetBookKeeperStateRsp struct {
 }
 
 type GetStorageItemReq struct {
-	CodeHash *common.Uint160
+	CodeHash *common.Address
 	Key      []byte
 }
 
@@ -178,7 +178,7 @@ type GetStorageItemRsp struct {
 }
 
 type GetContractStateReq struct {
-	ContractHash common.Uint160
+	ContractHash common.Address
 }
 
 type GetContractStateRsp struct {

@@ -11,7 +11,6 @@ import (
 	. "github.com/Ontology/cli/common"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/password"
-	"github.com/Ontology/core/contract"
 	"github.com/urfave/cli"
 	"github.com/Ontology/http/base/rpc"
 )
@@ -73,21 +72,20 @@ func walletAction(c *cli.Context) error {
 	}
 	account, _ := wallet.GetDefaultAccount()
 	pubKey := account.PubKey()
-	signatureRedeemScript, _ := contract.CreateSignatureRedeemScript(pubKey)
-	programHash:= ToCodeHash(signatureRedeemScript)
+	address := account.Address
+
 	encodedPubKey, _ := pubKey.EncodePoint(true)
-	address, _ := programHash.ToAddress()
 	fmt.Println("public key:   ", ToHexString(encodedPubKey))
-	fmt.Println("program hash: ", ToHexString(programHash.ToArray()))
-	fmt.Println("address:      ", address)
+	fmt.Println("hex address: ", ToHexString(address[:]))
+	fmt.Println("base58 address:      ", address.ToBase58())
 	asset := c.String("asset")
 	if list && asset != "" {
 		var buffer bytes.Buffer
-		_, err := programHash.Serialize(&buffer)
+		_, err := address.Serialize(&buffer)
 		if err != nil {
 			return err
 		}
-		resp, err := rpc.Call(Address(), "getunspendoutput", 0,
+		resp, err := rpc.Call(RpcAddress(), "getunspendoutput", 0,
 			[]interface{}{hex.EncodeToString(buffer.Bytes()), asset})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)

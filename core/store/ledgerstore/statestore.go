@@ -157,7 +157,7 @@ func (this *StateStore) GetCurrentStateRoot() (common.Uint256, error) {
 }
 
 
-func (this *StateStore) GetContractState(contractHash common.Uint160) (*payload.DeployCode, error) {
+func (this *StateStore) GetContractState(contractHash common.Address) (*payload.DeployCode, error) {
 	key, err := this.getContractStateKey(contractHash)
 	if err != nil {
 		return nil, err
@@ -246,8 +246,8 @@ func (this *StateStore) GetStorageState(key *StorageKey) (*StorageItem, error) {
 	return storageState, nil
 }
 
-func (this *StateStore) GetVoteStates() (map[common.Uint160]*VoteState, error) {
-	votes := make(map[common.Uint160]*VoteState)
+func (this *StateStore) GetVoteStates() (map[common.Address]*VoteState, error) {
+	votes := make(map[common.Address]*VoteState)
 	iter := this.store.NewIterator([]byte{byte(ST_Vote)})
 	for iter.Next() {
 		rk := bytes.NewReader(iter.Key())
@@ -256,7 +256,7 @@ func (this *StateStore) GetVoteStates() (map[common.Uint160]*VoteState, error) {
 		if err != nil {
 			return nil, fmt.Errorf("ReadBytes error %s", err)
 		}
-		var programHash common.Uint160
+		var programHash common.Address
 		if err := programHash.Deserialize(rk); err != nil {
 			return nil, err
 		}
@@ -322,7 +322,7 @@ func (this *StateStore) getBookKeeperKey() ([]byte, error) {
 	return key, nil
 }
 
-func (this *StateStore) getContractStateKey(contractHash common.Uint160) ([]byte, error) {
+func (this *StateStore) getContractStateKey(contractHash common.Address) ([]byte, error) {
 	data := contractHash.ToArray()
 	key := make([]byte, 1+len(data))
 	key[0] = byte(ST_Contract)

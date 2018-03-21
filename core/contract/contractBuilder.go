@@ -42,7 +42,7 @@ func CreateSignatureRedeemScript(pubkey *crypto.PubKey) ([]byte, error) {
 }
 
 //create a Multi Singature contract for owner  。
-func CreateMultiSigContract(publicKeyHash Uint160, m int, publicKeys []*crypto.PubKey) (*Contract, error) {
+func CreateMultiSigContract(publicKeyHash Address, m int, publicKeys []*crypto.PubKey) (*Contract, error) {
 
 	params := make([]ContractParameterType, m)
 	for i, _ := range params {

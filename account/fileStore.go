@@ -202,8 +202,8 @@ func (cs *FileStore) SaveContractData(ct *ct.Contract) error {
 		fmt.Println("error:", err)
 	}
 
-	cs.fd.ScriptHash = fmt.Sprintf("%x", ct.ProgramHash.ToArray())
-	cs.fd.PublicKeyHash = fmt.Sprintf("%x", ct.OwnerPubkeyHash.ToArray())
+	cs.fd.ScriptHash = fmt.Sprintf("%x", ct.ProgramHash[:])
+	cs.fd.PublicKeyHash = fmt.Sprintf("%x", ct.OwnerPubkeyHash[:])
 	cs.fd.RawData = fmt.Sprintf("%x", ct.ToArray())
 
 	jsonblob, err := json.Marshal(cs.fd)
