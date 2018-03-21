@@ -45,7 +45,7 @@ type TokenTransfer struct {
 }
 
 func (this *TokenTransfer) Serialize(w io.Writer) error {
-	if _, err := this.Contract.Serialize(w); err != nil {
+	if err := this.Contract.Serialize(w); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TokenTransfer Serialize] Contract error!")
 	}
 	if err := serialization.WriteVarUint(w, uint64(len(this.States))); err != nil {
@@ -87,10 +87,10 @@ type State struct {
 }
 
 func (this *State) Serialize(w io.Writer) error {
-	if _, err := this.From.Serialize(w); err != nil {
+	if err := this.From.Serialize(w); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[State Serialize] From error!")
 	}
-	if _, err := this.To.Serialize(w); err != nil {
+	if err := this.To.Serialize(w); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[State Serialize] To error!")
 	}
 	if err := serialization.WriteVarBytes(w, this.Value.Bytes()); err != nil {

@@ -81,7 +81,7 @@ func walletAction(c *cli.Context) error {
 	asset := c.String("asset")
 	if list && asset != "" {
 		var buffer bytes.Buffer
-		_, err := address.Serialize(&buffer)
+		err := address.Serialize(&buffer)
 		if err != nil {
 			return err
 		}

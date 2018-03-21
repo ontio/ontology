@@ -34,7 +34,7 @@ func (self *Vote) Serialize(w io.Writer) error {
 			return NewDetailErr(err, ErrNoCode, "InvokeCode PubKeys Serialize failed.")
 		}
 	}
-	if _, err := self.Account.Serialize(w); err != nil {
+	if err := self.Account.Serialize(w); err != nil {
 		return NewDetailErr(err, ErrNoCode, "InvokeCode Account Serialize failed.")
 	}
 

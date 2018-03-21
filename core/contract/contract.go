@@ -2,12 +2,10 @@ package contract
 
 import (
 	"bytes"
-	"errors"
 	"io"
 
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
-	. "github.com/Ontology/errors"
 	vm "github.com/Ontology/vm/neovm"
 )
 
@@ -149,12 +147,9 @@ func (c *Contract) Deserialize(r io.Reader) error {
 }
 
 func (c *Contract) Serialize(w io.Writer) error {
-	len, err := c.OwnerPubkeyHash.Serialize(w)
+	err := c.OwnerPubkeyHash.Serialize(w)
 	if err != nil {
 		return err
-	}
-	if len != 20 {
-		return NewDetailErr(errors.New("PubkeyHash.Serialize(): len != len(Address)"), ErrNoCode, "")
 	}
 
 	err = serialization.WriteVarBytes(w, ContractParameterTypeToByte(c.Parameters))

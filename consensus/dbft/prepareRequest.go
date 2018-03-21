@@ -24,7 +24,7 @@ func (pr *PrepareRequest) Serialize(w io.Writer) error {
 	if err := ser.WriteVarUint(w, pr.Nonce); err != nil {
 		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] nonce serialization failed")
 	}
-	if _, err := pr.NextBookKeeper.Serialize(w); err != nil {
+	if err := pr.NextBookKeeper.Serialize(w); err != nil {
 		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] nextbookKeeper serialization failed")
 	}
 	if err := ser.WriteVarUint(w, uint64(len(pr.Transactions))); err != nil {
