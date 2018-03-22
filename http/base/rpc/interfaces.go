@@ -79,7 +79,6 @@ func GetBlock(params []interface{}) map[string]interface{} {
 	default:
 		return RpcInvalidParameter
 	}
-
 	block, err := GetBlockFromStore(hash)
 	if err != nil {
 		log.Errorf("GetBlock GetBlockFromStore BlockHash:%x error:%s", hash, err)
@@ -88,7 +87,20 @@ func GetBlock(params []interface{}) map[string]interface{} {
 	if block == nil || block.Header == nil {
 		return RpcUnknownBlock
 	}
-	return Rpc(GetBlockInfo(block))
+	if len(params) >= 2 {
+		switch (params[1]).(type) {
+		case float64:
+			json := uint32(params[1].(float64))
+			if json == 1{
+				return Rpc(GetBlockInfo(block))
+			}
+		default:
+			return RpcInvalidParameter
+		}
+	}
+	w := bytes.NewBuffer(nil)
+	block.Serialize(w)
+	return Rpc(ToHexString(w.Bytes()))
 }
 
 func GetBlockCount(params []interface{}) map[string]interface{} {
