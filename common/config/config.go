@@ -32,6 +32,7 @@ const (
 	DEFAULT_GEN_BLOCK_TIME   = 6
 	DBFT_MIN_NODE_NUM        = 4 //min node number of dbft consensus
 	SOLO_MIN_NODE_NUM        = 1 //min node number of solo consensus
+	VBFTMINNODENUM           = 4 //min node number of vbft consensus
 )
 
 var Version string
