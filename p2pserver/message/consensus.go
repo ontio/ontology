@@ -69,7 +69,6 @@ func (cp *ConsensusPayload) GetMessage() []byte {
 func (msg consensus) Handle(node Noder) error {
 	log.Debug()
 	//node.LocalNode().GetEvent("consensus").Notify(events.EventNewInventory, &msg.cons)
-	//actor.PushConsensus(&msg.cons)
 	if actor.ConsensusPid != nil {
 		actor.ConsensusPid.Tell(&msg.cons)
 	}

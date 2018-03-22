@@ -7,10 +7,6 @@ import (
 
 var ConsensusPid *actor.PID
 
-//func PushConsensus(cons *message.ConsensusPayload){
-//	ConsensusPid.Tell(cons)
-//}
-
 func SetConsensusPid(conPid *actor.PID) {
 	ConsensusPid = conPid
 }

@@ -85,7 +85,7 @@ func (p *peer) Stop() error {
 func (p *peer) GetVersion() uint32 {
 	return 0
 }
-func (p *peer) GetConnectionCnt() uint64 {
+func (p *peer) GetConnectionCnt() uint {
 	return 0
 }
 func (p *peer) GetPort() (uint16, uint16) {

@@ -17,7 +17,7 @@ import (
 	"github.com/Ontology/http/websocket"
 	"github.com/Ontology/p2pserver"
 	netreqactor "github.com/Ontology/p2pserver/actor/req"
-	netserveractor "github.com/Ontology/p2pserver/actor/server"
+	p2pactor "github.com/Ontology/p2pserver/actor/server"
 	"github.com/Ontology/p2pserver/protocol"
 	"github.com/Ontology/txnpool"
 	tc "github.com/Ontology/txnpool/common"
@@ -115,7 +115,9 @@ func main() {
 		log.Fatalf("p2pserver NewServer error %s", err)
 		os.Exit(1)
 	}
-	p2pActor, err := netserveractor.InitNetServer(p2p)
+
+	p2pActor := p2pactor.NewP2PActor()
+	p2pPid, err := p2pActor.Start(p2p)
 	if err != nil {
 		log.Fatalf("p2pActor init error %s", err)
 		os.Exit(1)
@@ -123,7 +125,7 @@ func main() {
 	netreqactor.SetLedgerPid(ledgerPID)
 	netreqactor.SetTxnPoolPid(txPoolServer.GetPID(tc.TxPoolActor))
 
-	hserver.SetNetServerPid(p2pActor)
+	hserver.SetP2pPid(p2pPid)
 	hserver.SetLedgerPid(ledgerPID)
 	hserver.SetTxnPoolPid(txPoolServer.GetPID(tc.TxPoolActor))
 	hserver.SetTxPid(txPoolServer.GetPID(tc.TxActor))
@@ -135,7 +137,7 @@ func main() {
 	if protocol.SERVICENODENAME != config.Parameters.NodeType {
 		log.Info("5. Start Consensus Services")
 		pool := txPoolServer.GetPID(tc.TxPoolActor)
-		consensusService, _ := consensus.NewConsensusService(acct, pool, nil, p2pActor)
+		consensusService, _ := consensus.NewConsensusService(acct, pool, nil, p2pPid)
 		netreqactor.SetConsensusPid(consensusService.GetPID())
 		go consensusService.Start()
 		time.Sleep(5 * time.Second)

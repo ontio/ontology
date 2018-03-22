@@ -1,0 +1,193 @@
+package server
+
+import (
+	"github.com/Ontology/common/log"
+	"github.com/Ontology/eventbus/actor"
+	"github.com/Ontology/p2pserver"
+	"reflect"
+)
+
+type P2PActor struct {
+	props  *actor.Props
+	server p2pserver.P2PServer
+}
+
+func NewP2PActor() *P2PActor {
+	return &P2PActor{}
+}
+
+func (this *P2PActor) Start(p2pServer p2pserver.P2PServer) (*actor.PID, error) {
+	this.props = actor.FromProducer(func() actor.Actor { return &P2PActor{} })
+	p2pPid, err := actor.SpawnNamed(this.props, "net_server")
+	this.server = p2pServer
+	return p2pPid, err
+}
+
+func (this *P2PActor) Receive(ctx actor.Context) {
+	switch msg := ctx.Message().(type) {
+	case *actor.Restarting:
+		log.Warn("p2p actor restarting")
+	case *actor.Stopping:
+		log.Warn("p2p actor stopping")
+	case *actor.Stopped:
+		log.Warn("p2p actor stopped")
+	case *actor.Started:
+		log.Warn("p2p actor started")
+	case *actor.Restart:
+		log.Warn("p2p actor restart")
+	case *StartServerReq:
+		this.handleStartServerReq(ctx, msg)
+	case *StopServerReq:
+		this.handleStopServerReq(ctx, msg)
+	case *IsSyncingReq:
+		this.handleIsSyncingReq(ctx, msg)
+	case *GetPortReq:
+		this.handleGetPortReq(ctx, msg)
+	case *GetVersionReq:
+		this.handleGetVersionReq(ctx, msg)
+	case *GetConnectionCntReq:
+		this.handleGetConnectionCntReq(ctx, msg)
+	case *GetSyncPortReq:
+		this.handleGetSyncPortReq(ctx, msg)
+	case *GetConsPortReq:
+		this.handleGetConsPortReq(ctx, msg)
+	case *GetIdReq:
+		this.handleGetIdReq(ctx, msg)
+	case *GetConnectionStateReq:
+		this.handleGetConnectionStateReq(ctx, msg)
+	case *GetTimeReq:
+		this.handleGetTimeReq(ctx, msg)
+	case *GetNeighborAddrsReq:
+		this.handleGetNeighborAddrsReq(ctx, msg)
+	default:
+		err := this.server.Xmit(ctx.Message())
+		if nil != err {
+			log.Error("Error Xmit message ", err.Error(), reflect.TypeOf(ctx.Message()))
+		}
+	}
+}
+
+func (this *P2PActor) handleStartServerReq(ctx actor.Context, req *StartServerReq) {
+	startSync := ctx.Message().(StartServerReq).StartSync
+	err := this.server.Start(startSync, startSync)
+	if ctx.Sender() != nil {
+		resp := &StartServerRsp{
+			Error: err,
+		}
+		ctx.Sender().Request(resp, ctx.Self())
+	}
+}
+
+func (this *P2PActor) handleStopServerReq(ctx actor.Context, req *StopServerReq) {
+	err := this.server.Stop()
+	if ctx.Sender() != nil {
+		resp := &StopServerRsp{
+			Error: err,
+		}
+		ctx.Sender().Request(resp, ctx.Self())
+	}
+}
+
+func (this *P2PActor) handleIsSyncingReq(ctx actor.Context, req *IsSyncingReq) {
+	isSyncing := this.server.IsSyncing()
+	if ctx.Sender() != nil {
+		resp := &IsSyncingRsp{
+			IsSyncing: isSyncing,
+		}
+		ctx.Sender().Request(resp, ctx.Self())
+	}
+}
+
+func (this *P2PActor) handleGetPortReq(ctx actor.Context, req *GetPortReq) {
+	syncPort, consPort := this.server.GetPort()
+	if ctx.Sender() != nil {
+		resp := &GetPortRsp{
+			SyncPort: syncPort,
+			ConsPort: consPort,
+		}
+		ctx.Sender().Request(resp, ctx.Self())
+	}
+}
+
+func (this *P2PActor) handleGetVersionReq(ctx actor.Context, req *GetVersionReq) {
+	version := this.server.GetVersion()
+	if ctx.Sender() != nil {
+		resp := &GetVersionRsp{
+			Version: version,
+		}
+		ctx.Sender().Request(resp, ctx.Self())
+	}
+}
+
+func (this *P2PActor) handleGetConnectionCntReq(ctx actor.Context, req *GetConnectionCntReq) {
+	cnt := this.server.GetConnectionCnt()
+	if ctx.Sender() != nil {
+		resp := &GetConnectionCntRsp{
+			Cnt: cnt,
+		}
+		ctx.Sender().Request(resp, ctx.Self())
+	}
+}
+
+func (this *P2PActor) handleGetSyncPortReq(ctx actor.Context, req *GetSyncPortReq) {
+	var syncPort uint16
+	//TODO
+	if ctx.Sender() != nil {
+		resp := &GetSyncPortRsp{
+			SyncPort: syncPort,
+		}
+		ctx.Sender().Request(resp, ctx.Self())
+	}
+}
+
+func (this *P2PActor) handleGetConsPortReq(ctx actor.Context, req *GetConsPortReq) {
+	var consPort uint16
+	//TODO
+	if ctx.Sender() != nil {
+		resp := &GetConsPortRsp{
+			ConsPort: consPort,
+		}
+		ctx.Sender().Request(resp, ctx.Self())
+	}
+}
+
+func (this *P2PActor) handleGetIdReq(ctx actor.Context, req *GetIdReq) {
+	id := this.server.GetId()
+	if ctx.Sender() != nil {
+		resp := &GetIdRsp{
+			Id: id,
+		}
+		ctx.Sender().Request(resp, ctx.Self())
+	}
+}
+
+func (this *P2PActor) handleGetConnectionStateReq(ctx actor.Context, req *GetConnectionStateReq) {
+	state := this.server.GetConnectionState()
+	if ctx.Sender() != nil {
+		resp := &GetConnectionStateRsp{
+			State: state,
+		}
+		ctx.Sender().Request(resp, ctx.Self())
+	}
+}
+
+func (this *P2PActor) handleGetTimeReq(ctx actor.Context, req *GetTimeReq) {
+	time := this.server.GetTime()
+	if ctx.Sender() != nil {
+		resp := &GetTimeRsp{
+			Time: time,
+		}
+		ctx.Sender().Request(resp, ctx.Self())
+	}
+}
+
+func (this *P2PActor) handleGetNeighborAddrsReq(ctx actor.Context, req *GetNeighborAddrsReq) {
+	addrs, cnt := this.server.GetNeighborAddrs()
+	if ctx.Sender() != nil {
+		resp := &GetNeighborAddrsRsp{
+			Addrs: addrs,
+			Count: cnt,
+		}
+		ctx.Sender().Request(resp, ctx.Self())
+	}
+}

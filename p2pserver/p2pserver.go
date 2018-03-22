@@ -6,11 +6,11 @@ import (
 	"github.com/Ontology/p2pserver/protocol"
 )
 
-type P2pServer interface {
+type P2PServer interface {
 	Start(bool, bool) error
 	Stop() error
 	GetVersion() uint32
-	GetConnectionCnt() uint64
+	GetConnectionCnt() uint
 	GetPort() (uint16, uint16)
 	GetState() uint32
 	GetId() uint64
@@ -24,7 +24,7 @@ type P2pServer interface {
 	EnableDual(bool) error
 }
 
-func NewServer(acc *account.Account) (P2pServer, error) {
+func NewServer(acc *account.Account) (P2PServer, error) {
 	server := peer.NewPeer(acc.PubKey())
 	err := server.Start(true, true)
 	return server, err

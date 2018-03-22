@@ -11,7 +11,7 @@ import (
 
 var netServerPid *actor.PID
 
-func SetNetServerPid(actr *actor.PID) {
+func SetP2pPid(actr *actor.PID) {
 	netServerPid = actr
 }
 
