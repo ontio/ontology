@@ -253,7 +253,15 @@ func (e *ExecutionEngine) Create(caller common.Address, code []byte) ([]byte, er
 }
 
 //the input format should be "methodname | args"
-func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) ([]byte, error) {
+func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) (returnbytes []byte, er error) {
+
+	//catch the panic to avoid crash the whole node
+	defer func() {
+		if err := recover(); err != nil {
+			returnbytes = nil
+			er = errors.New("error happend")
+		}
+	}()
 
 	if e.version != "test" {
 

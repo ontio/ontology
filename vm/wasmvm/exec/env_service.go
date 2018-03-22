@@ -23,7 +23,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/Ontology/common"
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/vm/types"
@@ -385,11 +384,9 @@ func readStringParam(engine *ExecutionEngine) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
 	var length int
 
 	pidx := engine.vm.memory.ParamIndex
-
 	switch paramBytes[pidx] {
 	case 0xfd: //uint16
 		if pidx+3 > len(paramBytes) {
@@ -416,9 +413,9 @@ func readStringParam(engine *ExecutionEngine) (bool, error) {
 	if pidx+length > len(paramBytes) {
 		return false, errors.New("read string failed")
 	}
-	pidx += length
+	pidx += length + 1
 
-	stringbytes := paramBytes[engine.vm.memory.ParamIndex:pidx]
+	stringbytes := paramBytes[engine.vm.memory.ParamIndex+1 : pidx]
 
 	retidx, err := engine.vm.SetPointerMemory(stringbytes)
 	if err != nil {
@@ -556,7 +553,7 @@ func jsonUnmashal(engine *ExecutionEngine) (bool, error) {
 	if len(bytes) != size {
 		//return false ,errors.New("")
 		//todo this case is not an error, sizeof doesn't means actual memory length,so the size parameter should be removed.
-		fmt.Printf("length is not same! size :%d, length:%d\n", size, len(bytes))
+		//fmt.Printf("length is not same! size :%d, length:%d\n", size, len(bytes))
 	}
 	//todo add more check
 
