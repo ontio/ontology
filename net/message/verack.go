@@ -58,6 +58,7 @@ func (msg verACK) Handle(node protocol.Noder) error {
 	}
 
 	node.SetState(protocol.ESTABLISH)
+	NotifyPeerState(node.GetPubKey(), true)
 
 	if s == protocol.HAND_SHAKE {
 		buf, _ := NewVerack()

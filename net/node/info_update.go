@@ -58,6 +58,7 @@ func (node *node) HeartBeatMonitor() {
 			if t.Before(time.Now().Add(-1 * time.Second * time.Duration(periodUpdateTime) * protocol.KEEPALIVE_TIMEOUT)) {
 				log.Warn("keepalive timeout!!!")
 				n.SetState(protocol.INACTIVITY)
+				NotifyPeerState(n.GetPubKey(), false)
 				n.CloseConn()
 			}
 		}

@@ -169,6 +169,7 @@ func (msg version) Handle(node protocol.Noder) error {
 		log.Info(fmt.Sprintf("Node reconnect 0x%x", msg.P.Nonce))
 		// Close the connection and release the node soure
 		n.SetState(protocol.INACTIVITY)
+		NotifyPeerState(n.GetPubKey(), false)
 		n.CloseConn()
 	}
 

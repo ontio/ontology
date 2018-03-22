@@ -1,0 +1,307 @@
+package vbft
+
+import (
+	"fmt"
+	"math"
+)
+
+func (self *Server) GetCurrentBlockNo() uint64 {
+	return self.currentBlockNum
+}
+
+func (self *Server) GetCommittedBlockNo() uint64 {
+	return self.chainStore.GetChainedBlockNum()
+}
+
+func (self *Server) isPeerAlive(peerIdx uint32, blockNum uint64) bool {
+
+	// TODO
+	if peerIdx == self.Index {
+		return true
+	}
+
+	return self.peerPool.isPeerAlive(peerIdx)
+}
+
+func (self *Server) isPeerActive(peerIdx uint32, blockNum uint64) bool {
+	if self.isPeerAlive(peerIdx, blockNum) {
+		p := self.peerPool.getPeer(peerIdx)
+		if p == nil {
+			return false
+		}
+
+		if p.LatestInfo != nil {
+			return p.LatestInfo.CommittedBlockNumber + maxSyncingCheckBlkNum * 4 > self.GetCommittedBlockNo()
+		}
+		return true
+	}
+
+	return false
+}
+
+//
+// the first proposer as leader-proposer,
+// all other proposer as 2nd-proposer
+// before propose-timeout, only proposal from leader-proposer is accepted
+//
+func (self *Server) isProposer(blockNum uint64, peerIdx uint32) bool {
+	self.metaLock.RLock()
+	defer self.metaLock.RUnlock()
+
+	{
+		if peerIdx == self.Index && !isActive(self.getState()) {
+			return false
+		}
+		// the first active proposer
+		for _, id := range self.currentParticipantConfig.Proposers {
+			if self.isPeerAlive(id, blockNum) {
+				return peerIdx == id
+			}
+		}
+	}
+
+	// TODO: proposer check for non-current block
+	return false
+}
+
+func (self *Server) is2ndProposer(blockNum uint64, peerIdx uint32) bool {
+	self.metaLock.RLock()
+	defer self.metaLock.RUnlock()
+
+	{
+		for _, id := range self.currentParticipantConfig.Proposers[1:] {
+			if id == peerIdx {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func (self *Server) isEndorser(blockNum uint64, peerIdx uint32) bool {
+	self.metaLock.RLock()
+	defer self.metaLock.RUnlock()
+
+	// the first 2F+1 active endorsers
+	var activeN uint32
+	{
+		for _, id := range self.currentParticipantConfig.Endorsers {
+			if id == peerIdx {
+				return true
+			}
+			if self.isPeerActive(id, blockNum) {
+				activeN++
+				if activeN > self.config.F*2 {
+					break
+				}
+			}
+		}
+	}
+
+	return false
+}
+
+func (self *Server) isCommitter(blockNum uint64, peerIdx uint32) bool {
+	self.metaLock.RLock()
+	defer self.metaLock.RUnlock()
+
+	// the first 2F+1 active committers
+	var activeN uint32
+	{
+		for _, id := range self.currentParticipantConfig.Committers {
+			if id == peerIdx {
+				return true
+			}
+			if self.isPeerActive(id, blockNum) {
+				activeN++
+				if activeN > self.config.F*2 {
+					break
+				}
+			}
+		}
+	}
+
+	return false
+}
+
+func (self *Server) getProposerRankLocked(blockNum uint64, peerIdx uint32) int {
+	if blockNum == self.currentParticipantConfig.BlockNum {
+		for rank, id := range self.currentParticipantConfig.Proposers {
+			if id == peerIdx {
+				return rank
+			}
+		}
+	} else {
+		self.log.Errorf("todo: get proposer config for non-current blocknum")
+	}
+	return -1
+}
+
+func (self *Server) getHighestRankProposal(blockNum uint64, proposals []*blockProposalMsg) *blockProposalMsg {
+	self.metaLock.RLock()
+	defer self.metaLock.RUnlock()
+
+	proposerRank := 10000
+	var proposal *blockProposalMsg
+	for _, p := range proposals {
+		if p.GetBlockNum() != blockNum {
+			self.log.Errorf("server %d, diff blockNum found when get highest rank proposal", self.Index)
+			continue
+		}
+
+		if r := self.getProposerRankLocked(blockNum, p.Block.getProposer()); r < 0 {
+			continue
+		} else if r < proposerRank {
+			proposerRank = r
+			proposal = p
+		}
+	}
+
+	return proposal
+}
+
+func isEmptyProposal(proposal *blockProposalMsg) bool {
+	if proposal == nil || proposal.Block == nil {
+		return false
+	}
+
+	return proposal.Block.isEmpty()
+}
+
+//
+//  call this method with metaLock locked
+//
+func (self *Server) buildParticipantConfig(blkNum uint64, chainCfg *ChainConfig) (*BlockParticipantConfig, error) {
+
+	if blkNum == 0 {
+		return nil, fmt.Errorf("not participant config for genesis block")
+	}
+
+	block, blockHash := self.blockPool.getSealedBlock(blkNum - 1)
+	if block == nil {
+		return nil, fmt.Errorf("failed to get sealed block (%d)", blkNum-1)
+	}
+
+	vrfValue := vrf(block, blockHash)
+	if vrfValue.IsNil() {
+		return nil, fmt.Errorf("failed to calculate vrf")
+	}
+
+	cfg := &BlockParticipantConfig{
+		BlockNum:    blkNum,
+		Vrf:         vrfValue,
+		ChainConfig: chainCfg, // TODO: copy chain config
+	}
+
+	s := 0
+	cfg.Proposers = calcParticipantPeers(cfg, chainCfg, s, s+maxProposerCount)
+	s += maxProposerCount
+	cfg.Endorsers = calcParticipantPeers(cfg, chainCfg, s, s+maxEndorserCount)
+	s += maxEndorserCount
+	cfg.Committers = calcParticipantPeers(cfg, chainCfg, s, s+maxCommitterCount)
+
+	self.log.Infof("server %d, blkNum: %d, state: %d, participants config: %v, %v, %v", self.Index, blkNum,
+		self.getState(), cfg.Proposers, cfg.Endorsers, cfg.Committers)
+
+	return cfg, nil
+}
+
+func calcParticipantPeers(cfg *BlockParticipantConfig, chain *ChainConfig, start, end int) []uint32 {
+
+	peers := make([]uint32, 0)
+	peerMap := make(map[uint32]bool)
+	var cnt uint32
+
+	for i := start; i < end; i++ {
+		peerId := calcParticipant(cfg.Vrf, chain.DposTable, uint32(i))
+		if _, present := peerMap[peerId]; !present {
+			// got new peer
+			peers = append(peers, peerId)
+			peerMap[peerId] = true
+			cnt++
+
+			if cnt > chain.F*3 {
+				return peers
+			}
+		}
+	}
+
+	return peers
+}
+
+func calcParticipant(vrf VRFValue, dposTable []uint32, k uint32) uint32 {
+	var v1, v2 uint32
+	bIdx := k / 8
+	bits1 := k % 8
+	bits2 := 8 + bits1 // L - 8 + bits1
+
+	// FIXME:
+	// take 16bits random variable from vrf, if len(dposTable) is not power of 2,
+	// this algorithm will break the fairness of vrf. to be fixed
+
+	v1 = uint32(vrf[bIdx]) >> bits1
+	if bIdx+1 < uint32(len(vrf)) {
+		v2 = uint32(vrf[bIdx+1])
+	} else {
+		v2 = uint32(vrf[0])
+	}
+
+	v2 = v2 & ((1 << bits2) - 1)
+	v := (v2 << (8 - bits1)) + v1
+	v = v % uint32(len(dposTable))
+	return dposTable[v]
+}
+
+func getCommitConsensus(commitMsgs []*blockCommitMsg, F int) (uint32, bool) {
+	commitCount := make(map[uint32]int)
+	emptyCommitCount := 0
+	for _, c := range commitMsgs {
+		if c.CommitForEmpty {
+			emptyCommitCount++
+		}
+
+		commitCount[c.BlockProposer] += 1
+		if commitCount[c.BlockProposer] > F {
+			return c.BlockProposer, emptyCommitCount > F
+		}
+	}
+
+	return math.MaxUint32, false
+}
+
+func (self *Server) validateTxsInProposal(proposal *blockProposalMsg) error {
+	// TODO
+	return nil
+}
+
+func (self *Server)receiveFromPeer(peerIdx uint32) ([]byte, error) {
+	payload := <- self.msgRecvC[peerIdx]
+	if payload != nil {
+		return payload.Data, nil
+	}
+
+	return nil, fmt.Errorf("nil consensus payload")
+}
+
+func (self *Server)sendToPeer(peerIdx uint32, data []byte) error {
+	peer := self.peerPool.getPeer(peerIdx)
+	if peer == nil {
+		return fmt.Errorf("send peer failed: failed to get peer %d", peerIdx)
+	}
+	self.p2p.Transmit(peer.PubKey, data)
+	return nil
+}
+
+func (self *Server) broadcast(msg ConsensusMsg) error {
+	self.msgSendC <- &SendMsgEvent{
+		ToPeer: math.MaxUint32,
+		Msg:    msg,
+	}
+	return nil
+}
+
+func (self *Server)broadcastToAll(data []byte) error {
+	self.p2p.Broadcast(data)
+	return nil
+}

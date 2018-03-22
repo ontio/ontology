@@ -147,7 +147,7 @@ func (this *DbftService) Halt() error {
 
 func (self *DbftService) handleBlockPersistCompleted(block *types.Block) {
 	log.Infof("persist block: %x", block.Hash())
-	self.p2p.Xmit(block.Hash())
+	self.p2p.Broadcast(block.Hash())
 
 	self.blockReceivedTime = time.Now()
 
@@ -158,7 +158,7 @@ func (ds *DbftService) BlockPersistCompleted(v interface{}) {
 	if block, ok := v.(*types.Block); ok {
 		log.Infof("persist block: %x", block.Hash())
 
-		ds.p2p.Xmit(block.Hash())
+		ds.p2p.Broadcast(block.Hash())
 	}
 
 }
@@ -645,7 +645,7 @@ func (ds *DbftService) SignAndRelay(payload *p2pmsg.ConsensusPayload) {
 	payload.SerializeUnsigned(buf)
 	payload.Signature, _ = signature.Sign(ds.Account, buf.Bytes())
 
-	ds.p2p.Xmit(payload)
+	ds.p2p.Broadcast(payload)
 }
 
 func (ds *DbftService) start() {

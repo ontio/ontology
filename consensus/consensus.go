@@ -26,7 +26,8 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus/dbft"
 	"github.com/ontio/ontology/consensus/solo"
-	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology/eventbus/actor"
+	"github.com/ontio/ontology/consensus/vbft"
 )
 
 type ConsensusService interface {
@@ -38,6 +39,7 @@ type ConsensusService interface {
 const (
 	CONSENSUS_DBFT = "dbft"
 	CONSENSUS_SOLO = "solo"
+	CONSENSUS_VBFT = "vbft"
 )
 
 func NewConsensusService(account *account.Account, txpool *actor.PID, ledger *actor.PID, p2p *actor.PID) (ConsensusService, error) {
@@ -53,6 +55,8 @@ func NewConsensusService(account *account.Account, txpool *actor.PID, ledger *ac
 		consensus, err = dbft.NewDbftService(account, txpool, p2p)
 	case CONSENSUS_SOLO:
 		consensus, err = solo.NewSoloService(account, txpool, ledger)
+	case CONSENSUS_VBFT:
+		consensus, err = vbft.NewVbftServer(account, txpool, ledger, p2p)
 	}
 	log.Infof("ConsensusType:%s", consensusType)
 	return consensus, err
