@@ -497,3 +497,40 @@ POST
 ```
 curl -i http://server:port/api/v1/config/websocket/state
 ```
+### 14. Get ont balance by address
+
+GET
+
+```
+/api/v1/balance/:hash
+```
+
+#### Example usage:
+
+```
+curl -i http://server:port/api/v1/transaction/TA5uYzLU2vBvvfCMxyV2sdzc9kPqJzGZWq
+```
+
+#### Response
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| Action | string | action name |
+| Desc | string | description |
+| Error | int64 | error code |
+| Result | object | program execution result |
+
+#### Response example
+
+```
+{
+    "Action": "getbalance",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": {
+        "ont": "25000000000000000",
+        "ong": "0"
+    },
+    "Version": "1.0.0"
+}
+```
