@@ -1,8 +1,6 @@
-[![Build Status](https://travis-ci.org/DNAProject/DNA.svg?branch=master)](https://travis-ci.org/DNAProject/DNA)
+# Ontology
 
-# DNA (Distributed Networks Architecture)
-
-DNA是go语言实现的基于区块链技术的去中心化的分布式网络协议。可以用来数字化资产和金融相关业务包括资产注册，发行，转账等。
+Ontology是go语言实现的基于区块链技术的去中心化的分布式网络协议。
 
 ## 特性
 
@@ -11,33 +9,29 @@ DNA是go语言实现的基于区块链技术的去中心化的分布式网络协
 * 抗量子密码算法 (可选择模块)
 * 中国商用密码算法 (可选择模块)
 * 高度优化的交易处理速度
-* 基于IPFS的分布式存储和文件共享解决方案
-* 节点访问权限控制
 * P2P连接链路加密
-* 多种共识算法支持 (DBFT/RBFT/SBFT)
+* 多种共识算法支持 (VBFT/DBFT/RBFT/SBFT)
 * 可配置区块生成时间
-* 可配置电子货币模型
-* 可配置的分区共识(进行中)
 
 # 编译
-成功编译DNA需要以下准备：
+成功编译Ontology需要以下准备：
 
-* Go版本在1.8及以上
+* Go版本在1.9及以上
 * 安装第三方包管理工具glide
 * 正确的Go语言开发环境
 
-克隆DNA仓库到$GOPATH/src目录
+克隆Ontology仓库到$GOPATH/src目录
 
 
 ```shell
-$ git clone https://github.com/DNAProject/DNA.git
+$ git clone https://github.com/dappledger/Ontology.git
 ```
 
 用第三方包管理工具glide拉取依赖库
 
 
 ````shell
-$ cd DNA
+$ cd Ontology
 $ glide install
 ````
 
@@ -54,7 +48,7 @@ $ make
 
 # 部署
 
-成功运行DNA需要至少4个节点，可以通过两种方式进行部署
+成功运行Ontology需要至少4个节点，可以通过两种方式进行部署
 
 * 多机部署
 * 单机部署
@@ -263,115 +257,45 @@ $ ./node
 $ - 输入你的钱包口令
 ```
 
-## 在开放公共环境中测试DNA
- 
-1. 交易 :
-```
-./nodectl --ip 139.219.65.178 --port 10336 test -tx perf -num 10
-```
-
-2. 注册,分发,交易资产 :
-```
-./nodectl --ip 139.219.65.178 --port 10336 test -tx full
-```
-
-3. 查询区块信息 :
-```
-./nodectl --ip 139.219.65.178 --port 10336 info -height 10
-```
-
-4. 查询交易信息 :
-```
-./nodectl --ip 139.219.65.178 --port 10336 info -txhash d438896f07786b74281bc70259b0caaccb87460171104ea17473b5e802033a98
-```
-
-......
-
 了解更多请运行 `./nodectl --h`.
 
 ## 测试环境
 
-我们在云上部署了DNA供大家使用
-
-主要功能包括：
-1. 区块链相关信息查询
-    - 区块信息
-    - 交易信息
-    - 节点信息
-2. 资产操作
-    - 注册资产
-    - 发型资产
-    - 转账
-3. 测试交易发送
-
-使用方式参见：
-
-[forum.DNAProject.com/DNA节点控制工具](https://forum.dnaproject.org/t/dna-nodectl/57)
-
-可用节点如下：
-```
-IP               PORT
-----------------------
-139.219.65.178:  10336
-139.219.99.201:  10336
-139.219.96.154:  10336
-```
-
-注：以上环境仅供测试使用，数据可能丢失或重置，我们不保证测试数据安全，请用户注意备份数据。
+//TODO
+后期提供
 
 # 贡献代码
 
 请您以签过名的commit发送pull request请求，我们期待您的加入！
-您也可以通过邮件的方式发送你的代码到开发者邮件列表，欢迎加入DNA邮件列表和开发者论坛。
+您也可以通过邮件的方式发送你的代码到开发者邮件列表，欢迎加入Ontology邮件列表和开发者论坛。
 
 另外，在您想为本项目贡献代码时请提供详细的提交信息，格式参考如下：
 
-	Header line: explain the commit in one line (use the imperative)
+  Header line: explain the commit in one line (use the imperative)
 
-	Body of commit message is a few lines of text, explaining things
-	in more detail, possibly giving some background about the issue
-	being fixed, etc etc.
+  Body of commit message is a few lines of text, explaining things
+  in more detail, possibly giving some background about the issue
+  being fixed, etc etc.
 
-	The body of the commit message can be several paragraphs, and
-	please do proper word-wrap and keep columns shorter than about
-	74 characters or so. That way "git log" will show things
-	nicely even when it's indented.
+  The body of the commit message can be several paragraphs, and
+  please do proper word-wrap and keep columns shorter than about
+  74 characters or so. That way "git log" will show things
+  nicely even when it's indented.
 
-	Make sure you explain your solution and why you're doing what you're
-	doing, as opposed to describing what you're doing. Reviewers and your
-	future self can read the patch, but might not understand why a
-	particular solution was implemented.
+  Make sure you explain your solution and why you're doing what you're
+  doing, as opposed to describing what you're doing. Reviewers and your
+  future self can read the patch, but might not understand why a
+  particular solution was implemented.
 
-	Reported-by: whoever-reported-it
-	Signed-off-by: Your Name <youremail@yourhost.com>
+  Reported-by: whoever-reported-it
+  Signed-off-by: Your Name <youremail@yourhost.com>
 
 # 开源社区
 
-## 邮件列表
-
-我们为开发者提供了一下邮件列表
-
-- OnchainDNA@googlegroups.com
-
-可以通过两种方式订阅并参与讨论
-
-- 发送任何内容到邮箱地址 OnchainDNA+subscribe@googlegroups.com
-
-- 登录 https://groups.google.com/forum/#!forum/OnchainDNA 
-
-
 ## 网站
 
-- https://www.DNAproject.org
-
-## 论坛
-
-- https://forum.DNAproject.org
-
-## Wiki
-
-- https://wiki.DNAproject.org
+- http://ont.io/
 
 # 许可证
 
-DNA遵守Apache License, 版本2.0。 详细信息请查看项目根目录下的LICENSE文件。
+Ontology遵守GNU Lesser General Public License, 版本3.0。 详细信息请查看项目根目录下的LICENSE文件。

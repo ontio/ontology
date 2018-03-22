@@ -1,36 +1,29 @@
-[![Build Status](https://travis-ci.org/DNAProject/DNA.svg?branch=master)](https://travis-ci.org/DNAProject/DNA)
+# Ontology
 
-# DNA (Distributed Networks Architecture)
-
- DNA is a decentralized distributed network protocol based on blockchain technology and is implemented in Golang. Through peer-to-peer network, DNA can be used to digitize assets and provide financial service, including asset registration, issuance, transfer, etc.
+ Ontology is a decentralized distributed network protocol based on blockchain technology. Through peer-to-peer network.
 
 ## Highlight Features
 
- *	Scalable Lightweight Universal Smart Contract
- *	Crosschain Interactive Protocol
- *	Quantum-Resistant Cryptography (optional module)
- *	China National Crypto Standard (optional module)
- *	High Optimization of TPS
- *	Distributed Storage and File Sharding Solutions Based on IPFS
- *	P2P Link Layer Encryption
- *	Node Access Control
- *	Multiple Consensus Algorithm Support (DBFT/RBFT/SBFT)
- *	Configurable Block Generation Time
- *	Configurable Digital Currency Incentive
- *	Configable Sharding Consensus (in progress)
-
+ *  Scalable Lightweight Universal Smart Contract
+ *  Crosschain Interactive Protocol
+ *  Quantum-Resistant Cryptography (optional module)
+ *  China National Crypto Standard (optional module)
+ *  High Optimization of TPS
+ *  P2P Link Layer Encryption
+ *  Multiple Consensus Algorithm Support (VBFT/DBFT/RBFT/SBFT)
+ *  Configurable Block Generation Time
 
 # Building
-The requirements to build DNA are:
- *	Go version 1.8 or later
- *	Glide (a third-party package management tool)
- *	Properly configured Go environment
+The requirements to build Ontology are:
+ *  Go version 1.9 or later
+ *  Glide (a third-party package management tool)
+ *  Properly configured Go environment
  
-Clone the DNA repository into the appropriate $GOPATH/src directory.
+Clone the Ontology repository into the appropriate $GOPATH/src directory.
 
 
 ```shell
-$ git clone https://github.com/DNAProject/DNA.git
+$ git clone https://github.com/dappledger/Ontology.git
 
 ```
 
@@ -38,7 +31,7 @@ Fetch the dependent third-party packages with glide.
 
 
 ````shell
-$ cd DNA
+$ cd Ontology
 $ glide install
 ````
 Build the source code with make.
@@ -57,7 +50,7 @@ Follow the procedures in Deployment section to give them a shot!
 
 # Deployment
  
-To run DNA successfully, at least 4 nodes are required. The four nodes can be deployed in the following two way:
+To run Ontology successfully, at least 4 nodes are required. The four nodes can be deployed in the following two way:
 
 * multi-hosts deployment
 * single-host deployment
@@ -101,16 +94,16 @@ $ cat config.json
     "NoticeServerUrl":"",
     "OauthServerUrl":"",
     "NodePort": 10338,
- 	...
+  ...
 ```
 
 ## Configurations for single-host deployment
 
  Copy the executable file `node`, `nodectl` and configuration file `config.json` to 4 different directories on the single host. Then change each `config.json` file as following.
- *	The SeedList section should be same in all `config.json`.
- *	For the seed node, the `NodePort` is the same with the port in `SeedList` part.
- *	For each non-seed node, the `NodePort` should have different ports.
- *	Also make sure that the `HttpJsonPort` and `HttpLocalPort` of each node do not conflict with those of the current host.
+ *  The SeedList section should be same in all `config.json`.
+ *  For the seed node, the `NodePort` is the same with the port in `SeedList` part.
+ *  For each non-seed node, the `NodePort` should have different ports.
+ *  Also make sure that the `HttpJsonPort` and `HttpLocalPort` of each node do not conflict with those of the current host.
  After changing the configuration file, we also need to generate a wallet for each node and field the `BookKeepers` with the 4 nodes' wallet public keys. Please follow the steps in the multi-hosts deployment section above.
  Here's an example:
 
@@ -245,53 +238,19 @@ $ ./node
 $ - input you wallet password
 ```
 
-## Testing DNA in an open environment
+## Testing Ontology in an open environment
  
- We also provide an open testing environment. It supports the operation below:
-
-1. make some transactions :
-```
-./nodectl --ip 139.219.65.178 --port 10336 test -tx perf -num 10
-```
-
-2. register, issue, transfer assert :
-```
-./nodectl --ip 139.219.65.178 --port 10336 test -tx full
-```
-
-3. look up block's information :
-```
-./nodectl --ip 139.219.65.178 --port 10336 info -height 10
-```
-
-4. look up transaction's information :
-```
-./nodectl --ip 139.219.65.178 --port 10336 info -txhash d438896f07786b74281bc70259b0caaccb87460171104ea17473b5e802033a98
-```
-
-......
-
-Run `./nodectl --h` for more details.
-
-Some other available nodes for testing:
-```
-IP               PORT
-----------------------
-139.219.65.178:  10336
-139.219.99.201:  10336
-139.219.96.154:  10336
-```
-
- `Notice: The nodes above are intended to be used for public testing only. The data saved on the testing chain maybe be reset at any time. Keep in mind to back up the data by yourself to avoid data loss.`
+//TODO
+add later.
 
 # Contributing
 
-Can I contribute patches to DNA project?
+Can I contribute patches to Ontology project?
 
 Yes! Please open a pull request with signed-off commits. We appreciate your help!
 
 You can also send your patches as emails to the developer mailing list.
-Please join the DNA mailing list or forum and talk to us about it.
+Please join the Ontology mailing list or forum and talk to us about it.
 
 Either way, if you don't sign off your patches, we will not accept them.
 This means adding a line that says "Signed-off-by: Name <email>" at the
@@ -301,52 +260,31 @@ to pass it on as an open source patch.
 Also, please write good git commit messages.  A good commit message
 looks like this:
 
-	Header line: explain the commit in one line (use the imperative)
+  Header line: explain the commit in one line (use the imperative)
 
-	Body of commit message is a few lines of text, explaining things
-	in more detail, possibly giving some background about the issue
-	being fixed, etc etc.
+  Body of commit message is a few lines of text, explaining things
+  in more detail, possibly giving some background about the issue
+  being fixed, etc etc.
 
-	The body of the commit message can be several paragraphs, and
-	please do proper word-wrap and keep columns shorter than about
-	74 characters or so. That way "git log" will show things
-	nicely even when it's indented.
+  The body of the commit message can be several paragraphs, and
+  please do proper word-wrap and keep columns shorter than about
+  74 characters or so. That way "git log" will show things
+  nicely even when it's indented.
 
-	Make sure you explain your solution and why you're doing what you're
-	doing, as opposed to describing what you're doing. Reviewers and your
-	future self can read the patch, but might not understand why a
-	particular solution was implemented.
+  Make sure you explain your solution and why you're doing what you're
+  doing, as opposed to describing what you're doing. Reviewers and your
+  future self can read the patch, but might not understand why a
+  particular solution was implemented.
 
-	Reported-by: whoever-reported-it
-	Signed-off-by: Your Name <youremail@yourhost.com>
+  Reported-by: whoever-reported-it
+  Signed-off-by: Your Name <youremail@yourhost.com>
 
 # Community
 
-## Mailing list
-
-We have a mailing list for developers:
-
-* OnchainDNA@googlegroups.com
-
-We provide two ways to subscribe:
-
-* Send any contents to the email OnchainDNA+subscribe@googlegroups.com
-
-* Sign in https://groups.google.com/forum/#!forum/OnchainDNA
-
-
 ## Site
 
-* https://www.DNAproject.org
-
-## Forum
-
-* https://forum.DNAproject.org
-
-## Wiki
-
-* https://wiki.DNAproject.org
+* http://ont.io/
 
 # License
 
-DNA is licensed under the Apache License, Version 2.0. See LICENSE for the full license text.
+The Ontology library (i.e. all code outside of the cmd directory) is licensed under the GNU Lesser General Public License v3.0, also included in our repository in the License file.
