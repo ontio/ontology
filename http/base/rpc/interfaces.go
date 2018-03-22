@@ -20,7 +20,6 @@ package rpc
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	. "github.com/Ontology/common"
@@ -32,8 +31,6 @@ import (
 	. "github.com/Ontology/http/base/actor"
 	. "github.com/Ontology/http/base/common"
 	"math/big"
-	"math/rand"
-	"os"
 )
 
 func GetBestBlockHash(params []interface{}) map[string]interface{} {
@@ -349,36 +346,6 @@ func GetContractState(params []interface{}) map[string]interface{} {
 	}
 }
 
-func UploadDataFile(params []interface{}) map[string]interface{} {
-	if len(params) < 1 {
-		return RpcNil
-	}
-
-	rbuf := make([]byte, 4)
-	rand.Read(rbuf)
-	tmpname := hex.EncodeToString(rbuf)
-
-	str := params[0].(string)
-
-	data, err := base64.StdEncoding.DecodeString(str)
-	if err != nil {
-		return RpcInvalidParameter
-	}
-	f, err := os.OpenFile(tmpname, os.O_WRONLY|os.O_CREATE, 0664)
-	if err != nil {
-		return RpcIOError
-	}
-	defer f.Close()
-	f.Write(data)
-
-	refpath, err := AddFileIPFS(tmpname, true)
-	if err != nil {
-		return RpcAPIError
-	}
-
-	return Rpc(refpath)
-
-}
 func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return RpcNil
@@ -505,41 +472,6 @@ func CatDataRecord(params []interface{}) map[string]interface{} {
 		info := tran.Payload.(*DataFileInfo)
 		//ref := string(record.RecordData[:])
 		return Rpc(info)
-	default:
-		return RpcInvalidParameter
-	}
-}
-
-func GetDataFile(params []interface{}) map[string]interface{} {
-	if len(params) < 1 {
-		return RpcNil
-	}
-	switch params[0].(type) {
-	case string:
-		str := params[0].(string)
-		hex, err := hex.DecodeString(str)
-		if err != nil {
-			return RpcInvalidParameter
-		}
-		var hash Uint256
-		err = hash.Deserialize(bytes.NewReader(hex))
-		if err != nil {
-			return RpcInvalidTransaction
-		}
-		tx, err := GetTransaction(hash)
-		if err != nil {
-			return RpcUnknownTransaction
-		}
-
-		tran := TransArryByteToHexString(tx)
-		info := tran.Payload.(*DataFileInfo)
-
-		err = GetFileIPFS(info.IPFSPath, info.Filename)
-		if err != nil {
-			return RpcAPIError
-		}
-		//TODO: shoud return download address
-		return RpcSuccess
 	default:
 		return RpcInvalidParameter
 	}
