@@ -35,7 +35,7 @@ import (
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/core/vote"
 	"github.com/Ontology/crypto"
-	"github.com/Ontology/eventbus/actor"
+	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/Ontology/events"
 	"github.com/Ontology/events/message"
 	p2pmsg "github.com/Ontology/net/message"

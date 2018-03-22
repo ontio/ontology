@@ -19,8 +19,8 @@
 package events
 
 import (
-	"github.com/Ontology/eventbus/actor"
-	"github.com/Ontology/eventbus/eventhub"
+	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology-eventbus/eventhub"
 )
 
 var DefEvtHub *eventhub.EventHub

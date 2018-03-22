@@ -20,7 +20,7 @@ package txnpool
 
 import (
 	"github.com/Ontology/common/log"
-	"github.com/Ontology/eventbus/actor"
+	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/Ontology/events"
 	"github.com/Ontology/events/message"
 	tc "github.com/Ontology/txnpool/common"

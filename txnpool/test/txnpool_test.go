@@ -27,7 +27,7 @@ import (
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
-	"github.com/Ontology/eventbus/actor"
+	"github.com/ontio/ontology-eventbus/actor"
 	tc "github.com/Ontology/txnpool/common"
 	tp "github.com/Ontology/txnpool/proc"
 	//"github.com/Ontology/validator/db"

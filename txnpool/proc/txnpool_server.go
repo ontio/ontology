@@ -23,7 +23,7 @@ import (
 	"github.com/Ontology/common/log"
 	tx "github.com/Ontology/core/types"
 	"github.com/Ontology/errors"
-	"github.com/Ontology/eventbus/actor"
+	"github.com/ontio/ontology-eventbus/actor"
 	tc "github.com/Ontology/txnpool/common"
 	"github.com/Ontology/validator/types"
 	"sort"

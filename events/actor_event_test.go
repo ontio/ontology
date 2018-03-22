@@ -19,7 +19,7 @@
 package events
 
 import (
-	"github.com/Ontology/eventbus/actor"
+	"github.com/ontio/ontology-eventbus/actor"
 	"fmt"
 	"testing"
 	"time"

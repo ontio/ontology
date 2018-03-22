@@ -23,7 +23,8 @@ import (
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/types"
-	"github.com/Ontology/eventbus/actor"
+	"github.com/ontio/ontology-eventbus/actor"
+
 	"reflect"
 )
 

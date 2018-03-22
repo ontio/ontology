@@ -23,7 +23,7 @@ import (
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/errors"
-	"github.com/Ontology/eventbus/actor"
+	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/Ontology/validator/db"
 	vatypes "github.com/Ontology/validator/types"
 	"reflect"
