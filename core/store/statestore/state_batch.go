@@ -137,18 +137,14 @@ func (self *StateBatch) TryDelete(prefix DataEntryPrefix, key []byte) {
 func (self *StateBatch) CommitTo() error {
 	for k, v := range self.memoryStore.GetChangeSet() {
 		if v.State == Deleted {
-			if err := self.store.BatchDelete([]byte(k)); err != nil {
-				return err
-			}
+			self.store.BatchDelete([]byte(k))
 		} else {
 			data := new(bytes.Buffer)
 			err := v.Value.Serialize(data)
 			if err != nil {
 				return fmt.Errorf("error: key %v, value:%v", k, v.Value)
 			}
-			if err = self.store.BatchPut([]byte(k), data.Bytes()); err != nil {
-				return err
-			}
+			self.store.BatchPut([]byte(k), data.Bytes())
 		}
 	}
 	return nil

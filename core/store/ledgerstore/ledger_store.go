@@ -606,12 +606,9 @@ func (this *LedgerStore) saveBlockToBlockStore(block *types.Block) error {
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
 
-	err := this.blockStore.NewBatch()
-	if err != nil {
-		return fmt.Errorf("blockStore.NewBatch error %s", err)
-	}
+	this.blockStore.NewBatch()
 	this.setHeaderIndex(blockHeight, blockHash)
-	err = this.saveHeaderIndexList()
+	err := this.saveHeaderIndexList()
 	if err != nil {
 		return fmt.Errorf("saveHeaderIndexList error %s", err)
 	}
@@ -619,10 +616,7 @@ func (this *LedgerStore) saveBlockToBlockStore(block *types.Block) error {
 	if err != nil {
 		return fmt.Errorf("SaveCurrentBlock error %s", err)
 	}
-	err = this.blockStore.SaveBlockHash(blockHeight, blockHash)
-	if err != nil {
-		return fmt.Errorf("SaveBlockHash height %s hash %v error%s", blockHeight, blockHash, err)
-	}
+	this.blockStore.SaveBlockHash(blockHeight, blockHash)
 	err = this.blockStore.SaveBlock(block)
 	if err != nil {
 		return fmt.Errorf("SaveBlock height %d hash %x error %s", blockHeight, blockHash, err)
@@ -638,19 +632,16 @@ func (this *LedgerStore) saveBlockToStateStore(block *types.Block) error {
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
 
-	err := this.stateStore.NewBatch()
-	if err != nil {
-		return fmt.Errorf("stateStore.NewBatch error %s", err)
-	}
+	this.stateStore.NewBatch()
 	stateBatch := this.stateStore.NewStateBatch()
 
 	for _, tx := range block.Transactions {
-		err = this.handleTransaction(stateBatch, block, tx)
+		err := this.handleTransaction(stateBatch, block, tx)
 		if err != nil {
 			return fmt.Errorf("handleTransaction error %s", err)
 		}
 	}
-	err = this.stateStore.AddMerkleTreeRoot(block.Header.TransactionsRoot)
+	err := this.stateStore.AddMerkleTreeRoot(block.Header.TransactionsRoot)
 	if err != nil {
 		return fmt.Errorf("AddMerkleTreeRoot error %s", err)
 	}
@@ -680,17 +671,14 @@ func (this *LedgerStore) saveBlockToEventStore(block *types.Block) error {
 			invokeTxs = append(invokeTxs, txHash)
 		}
 	}
-	err := this.eventStore.NewBatch()
-	if err != nil {
-		return fmt.Errorf("eventStore.NewBatch error %s", err)
-	}
+	this.eventStore.NewBatch()
 	if len(invokeTxs) > 0 {
-		err = this.eventStore.SaveEventNotifyByBlock(block.Header.Height, invokeTxs)
+		err := this.eventStore.SaveEventNotifyByBlock(block.Header.Height, invokeTxs)
 		if err != nil {
 			return fmt.Errorf("SaveEventNotifyByBlock error %s", err)
 		}
 	}
-	err = this.eventStore.SaveCurrentBlock(blockHeight, blockHash)
+	err := this.eventStore.SaveCurrentBlock(blockHeight, blockHash)
 	if err != nil {
 		return fmt.Errorf("SaveCurrentBlock error %s", err)
 	}

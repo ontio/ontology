@@ -196,8 +196,8 @@ func (self *Store) saveTransaction(tx *tx.Transaction, height uint32) error {
 	tx.Serialize(value)
 
 	// put value
-	err := self.db.BatchPut(key.Bytes(), value.Bytes())
-	return err
+	self.db.BatchPut(key.Bytes(), value.Bytes())
+	return nil
 }
 
 func (self *Store) PersistBlock(block *types.Block) error {

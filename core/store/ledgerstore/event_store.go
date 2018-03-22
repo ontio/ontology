@@ -47,8 +47,8 @@ func NewEventStore(dbDir string) (*EventStore, error) {
 	}, nil
 }
 
-func (this *EventStore) NewBatch() error {
-	return this.store.NewBatch()
+func (this *EventStore) NewBatch() {
+	this.store.NewBatch()
 }
 
 func (this *EventStore) SaveEventNotifyByTx(txHash common.Uint256, notifies []*event.NotifyEventInfo) error {
@@ -56,11 +56,9 @@ func (this *EventStore) SaveEventNotifyByTx(txHash common.Uint256, notifies []*e
 	if err != nil {
 		return fmt.Errorf("json.Marshal error %s", err)
 	}
-	key, err := this.getEventNotifyByTxKey(txHash)
-	if err != nil {
-		return err
-	}
-	return this.store.BatchPut(key, result)
+	key := this.getEventNotifyByTxKey(txHash)
+	this.store.BatchPut(key, result)
+	return nil
 }
 
 func (this *EventStore) SaveEventNotifyByBlock(height uint32, txHashs []common.Uint256) error {
@@ -80,14 +78,13 @@ func (this *EventStore) SaveEventNotifyByBlock(height uint32, txHashs []common.U
 			return err
 		}
 	}
-	return this.store.BatchPut(key, values.Bytes())
+	this.store.BatchPut(key, values.Bytes())
+
+	return nil
 }
 
 func (this *EventStore) GetEventNotifyByTx(txHash common.Uint256) ([]*event.NotifyEventInfo, error) {
-	key, err := this.getEventNotifyByTxKey(txHash)
-	if err != nil {
-		return nil, err
-	}
+	key := this.getEventNotifyByTxKey(txHash)
 	data, err := this.store.Get(key)
 	if err != nil {
 		if err == leveldb.ErrNotFound{
@@ -140,16 +137,10 @@ func (this *EventStore) Close() error{
 }
 
 func (this *EventStore) ClearAll() error {
-	err := this.NewBatch()
-	if err != nil {
-		return err
-	}
+	this.NewBatch()
 	iter := this.store.NewIterator(nil)
 	for iter.Next() {
-		err = this.store.BatchDelete(iter.Key())
-		if err != nil {
-			return fmt.Errorf("BatchDelete error %s", err)
-		}
+		this.store.BatchDelete(iter.Key())
 	}
 	iter.Release()
 	return this.CommitTo()
@@ -160,10 +151,8 @@ func (this *EventStore) SaveCurrentBlock(height uint32, blockHash common.Uint256
 	value := bytes.NewBuffer(nil)
 	blockHash.Serialize(value)
 	serialization.WriteUint32(value, height)
-	err := this.store.BatchPut(key, value.Bytes())
-	if err != nil {
-		return fmt.Errorf("BatchPut error %s", err)
-	}
+	this.store.BatchPut(key, value.Bytes())
+
 	return nil
 }
 
@@ -200,10 +189,10 @@ func (this *EventStore) getEventNotifyByBlockKey(height uint32) ([]byte, error) 
 	return key, nil
 }
 
-func (this *EventStore) getEventNotifyByTxKey(txHash common.Uint256) ([]byte, error) {
+func (this *EventStore) getEventNotifyByTxKey(txHash common.Uint256) []byte {
 	data := txHash.ToArray()
 	key := make([]byte, 1+len(data))
 	key[0] = byte(EVENT_Notify)
 	copy(key[1:], data)
-	return key, nil
+	return key
 }

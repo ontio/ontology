@@ -77,19 +77,16 @@ func (self *LevelDBStore) Delete(key []byte) error {
 	return self.db.Delete(key, nil)
 }
 
-func (self *LevelDBStore) NewBatch() error {
+func (self *LevelDBStore) NewBatch() {
 	self.batch = new(leveldb.Batch)
-	return nil
 }
 
-func (self *LevelDBStore) BatchPut(key []byte, value []byte) error {
+func (self *LevelDBStore) BatchPut(key []byte, value []byte){
 	self.batch.Put(key, value)
-	return nil
 }
 
-func (self *LevelDBStore) BatchDelete(key []byte) error {
+func (self *LevelDBStore) BatchDelete(key []byte){
 	self.batch.Delete(key)
-	return nil
 }
 
 func (self *LevelDBStore) BatchCommit() error {

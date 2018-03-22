@@ -60,8 +60,8 @@ func NewBlockStore(dbDir string, enableCache bool) (*BlockStore, error) {
 	return blockStore, nil
 }
 
-func (this *BlockStore) NewBatch() error {
-	return this.store.NewBatch()
+func (this *BlockStore) NewBatch() {
+	this.store.NewBatch()
 }
 
 func (this *BlockStore) SaveBlock(block *types.Block) error {
@@ -183,7 +183,8 @@ func (this *BlockStore) SaveHeader(block *types.Block, sysFee common.Fixed64) er
 			return err
 		}
 	}
-	return this.store.BatchPut(key, value.Bytes())
+	this.store.BatchPut(key, value.Bytes())
+	return nil
 }
 
 func (this *BlockStore) GetHeader(blockHash common.Uint256) (*types.Header, error) {
@@ -264,10 +265,7 @@ func (this *BlockStore) SaveCurrentBlock(height uint32, blockHash common.Uint256
 	value := bytes.NewBuffer(nil)
 	blockHash.Serialize(value)
 	serialization.WriteUint32(value, height)
-	err := this.store.BatchPut(key, value.Bytes())
-	if err != nil {
-		return fmt.Errorf("BatchPut error %s", err)
-	}
+	this.store.BatchPut(key, value.Bytes())
 	return nil
 }
 
@@ -307,14 +305,12 @@ func (this *BlockStore) SaveHeaderIndexList(startIndex uint32, indexList []commo
 		hash.Serialize(value)
 	}
 
-	return this.store.BatchPut(indexKey, value.Bytes())
+	this.store.BatchPut(indexKey, value.Bytes())
+	return nil
 }
 
 func (this *BlockStore) GetBlockHash(height uint32) (common.Uint256, error) {
-	key, err := this.getBlockHashKey(height)
-	if err != nil {
-		return common.Uint256{}, err
-	}
+	key:= this.getBlockHashKey(height)
 	value, err := this.store.Get(key)
 	if err != nil {
 		if err == leveldb.ErrNotFound {
@@ -329,12 +325,9 @@ func (this *BlockStore) GetBlockHash(height uint32) (common.Uint256, error) {
 	return blockHash, nil
 }
 
-func (this *BlockStore) SaveBlockHash(height uint32, blockHash common.Uint256) error {
-	key, err := this.getBlockHashKey(height)
-	if err != nil {
-		return err
-	}
-	return this.store.BatchPut(key, blockHash.ToArray())
+func (this *BlockStore) SaveBlockHash(height uint32, blockHash common.Uint256){
+	key := this.getBlockHashKey(height)
+	this.store.BatchPut(key, blockHash.ToArray())
 }
 
 func (this *BlockStore) SaveTransaction(tx *types.Transaction, height uint32) error {
@@ -353,7 +346,8 @@ func (this *BlockStore) putTransaction(tx *types.Transaction, height uint32) err
 	if err != nil {
 		return err
 	}
-	return this.store.BatchPut(key, value.Bytes())
+	this.store.BatchPut(key, value.Bytes())
+	return nil
 }
 
 func (this *BlockStore) GetTransaction(txHash common.Uint256) (*types.Transaction, uint32, error) {
@@ -436,16 +430,10 @@ func (this *BlockStore) SaveVersion(ver byte) error {
 }
 
 func (this *BlockStore) ClearAll() error {
-	err := this.NewBatch()
-	if err != nil {
-		return err
-	}
+	this.NewBatch()
 	iter := this.store.NewIterator(nil)
 	for iter.Next() {
-		err = this.store.BatchDelete(iter.Key())
-		if err != nil {
-			return fmt.Errorf("BatchDelete error %s", err)
-		}
+		this.store.BatchDelete(iter.Key())
 	}
 	iter.Release()
 	return this.CommitTo()
@@ -474,11 +462,11 @@ func (this *BlockStore) getHeaderKey(blockHash common.Uint256) []byte {
 	return key
 }
 
-func (this *BlockStore) getBlockHashKey(height uint32) ([]byte, error) {
+func (this *BlockStore) getBlockHashKey(height uint32) []byte {
 	key := make([]byte, 5, 5)
 	key[0] = byte(DATA_Block)
 	binary.LittleEndian.PutUint32(key[1:], height)
-	return key, nil
+	return key
 }
 
 func (this *BlockStore) getCurrentBlockKey() []byte {

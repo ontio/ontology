@@ -67,12 +67,8 @@ func NewStateStore(dbDir, merklePath string) (*StateStore, error) {
 	return stateStore, nil
 }
 
-func (this *StateStore) NewBatch() error {
-	err := this.store.NewBatch()
-	if err != nil {
-		return fmt.Errorf("NewBatch error %s", err)
-	}
-	return nil
+func (this *StateStore) NewBatch(){
+	this.store.NewBatch()
 }
 
 func (this *StateStore) init(currBlockHeight uint32)error{
@@ -144,7 +140,8 @@ func (this *StateStore) AddMerkleTreeRoot(txRoot common.Uint256) error {
 			return err
 		}
 	}
-	return this.store.BatchPut(key, value.Bytes())
+	this.store.BatchPut(key, value.Bytes())
+	return nil
 }
 
 func (this *StateStore) NewStateBatch() *StateBatch {
@@ -286,10 +283,7 @@ func (this *StateStore) SaveCurrentBlock(height uint32, blockHash common.Uint256
 	value := bytes.NewBuffer(nil)
 	blockHash.Serialize(value)
 	serialization.WriteUint32(value, height)
-	err := this.store.BatchPut(key, value.Bytes())
-	if err != nil {
-		return fmt.Errorf("BatchPut error %s", err)
-	}
+	this.store.BatchPut(key, value.Bytes())
 	return nil
 }
 
@@ -329,16 +323,10 @@ func (this *StateStore) getMerkleTreeKey() ([]byte, error) {
 }
 
 func (this *StateStore) ClearAll() error {
-	err := this.store.NewBatch()
-	if err != nil {
-		return err
-	}
+	this.store.NewBatch()
 	iter := this.store.NewIterator(nil)
 	for iter.Next() {
-		err = this.store.BatchDelete(iter.Key())
-		if err != nil {
-			return fmt.Errorf("BatchDelete error %s", err)
-		}
+		this.store.BatchDelete(iter.Key())
 	}
 	iter.Release()
 	return this.store.BatchCommit()

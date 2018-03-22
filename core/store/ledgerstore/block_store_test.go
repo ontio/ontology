@@ -30,13 +30,9 @@ import (
 )
 
 func TestVersion(t *testing.T) {
-	err := testBlockStore.NewBatch()
-	if err != nil {
-		t.Errorf("NewBatch error %s", err)
-		return
-	}
+	testBlockStore.NewBatch()
 	version := byte(1)
-	err = testBlockStore.SaveVersion(version)
+	err := testBlockStore.SaveVersion(version)
 	if err != nil {
 		t.Errorf("SaveVersion error %s", err)
 		return
@@ -60,12 +56,8 @@ func TestVersion(t *testing.T) {
 func TestCurrentBlock(t *testing.T) {
 	blockHash := common.Uint256(sha256.Sum256([]byte("123456789")))
 	blockHeight := uint32(1)
-	err := testBlockStore.NewBatch()
-	if err != nil {
-		t.Errorf("NewBatch error %s", err)
-		return
-	}
-	err = testBlockStore.SaveCurrentBlock(blockHeight, blockHash)
+	testBlockStore.NewBatch()
+	err := testBlockStore.SaveCurrentBlock(blockHeight, blockHash)
 	if err != nil {
 		t.Errorf("SaveCurrentBlock error %s", err)
 		return
@@ -89,24 +81,12 @@ func TestCurrentBlock(t *testing.T) {
 func TestBlockHash(t *testing.T) {
 	blockHash := common.Uint256(sha256.Sum256([]byte("123456789")))
 	blockHeight := uint32(1)
-	err := testBlockStore.NewBatch()
-	if err != nil {
-		t.Errorf("NewBatch error %s", err)
-		return
-	}
-	err = testBlockStore.SaveBlockHash(blockHeight, blockHash)
-	if err != nil {
-		t.Errorf("SaveBlockHash error %s", err)
-		return
-	}
+	testBlockStore.NewBatch()
+	testBlockStore.SaveBlockHash(blockHeight, blockHash)
 	blockHash = common.Uint256(sha256.Sum256([]byte("234567890")))
 	blockHeight = uint32(2)
-	err = testBlockStore.SaveBlockHash(blockHeight, blockHash)
-	if err != nil {
-		t.Errorf("SaveBlockHash error %s", err)
-		return
-	}
-	err = testBlockStore.CommitTo()
+	testBlockStore.SaveBlockHash(blockHeight, blockHash)
+	err := testBlockStore.CommitTo()
 	if err != nil {
 		t.Errorf("CommitTo error %s", err)
 		return
@@ -144,11 +124,7 @@ func TestSaveTransaction(t *testing.T) {
 		return
 	}
 
-	err = testBlockStore.NewBatch()
-	if err != nil {
-		t.Errorf("NewBatch error %s", err)
-		return
-	}
+	testBlockStore.NewBatch()
 	err = testBlockStore.SaveTransaction(tx, blockHeight)
 	if err != nil {
 		t.Errorf("SaveTransaction error %s", err)
@@ -191,11 +167,7 @@ func TestSaveTransaction(t *testing.T) {
 }
 
 func TestHeaderIndexList(t *testing.T) {
-	err := testBlockStore.NewBatch()
-	if err != nil {
-		t.Errorf("NewBatch error %s", err)
-		return
-	}
+	testBlockStore.NewBatch()
 	startHeight := uint32(0)
 	size := uint32(100)
 	indexMap := make(map[uint32]common.Uint256, size)
@@ -205,7 +177,7 @@ func TestHeaderIndexList(t *testing.T) {
 		indexMap[i] = hash
 		indexList = append(indexList, hash)
 	}
-	err = testBlockStore.SaveHeaderIndexList(startHeight, indexList)
+	err := testBlockStore.SaveHeaderIndexList(startHeight, indexList)
 	if err != nil {
 		t.Errorf("SaveHeaderIndexList error %s", err)
 		return

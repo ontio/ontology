@@ -40,9 +40,9 @@ type IStore interface {
 	Get(key []byte) ([]byte, error)
 	Has(key []byte) (bool, error)
 	Delete(key []byte) error
-	NewBatch() error
-	BatchPut(key []byte, value []byte) error
-	BatchDelete(key []byte) error
+	NewBatch()
+	BatchPut(key []byte, value []byte)
+	BatchDelete(key []byte)
 	BatchCommit() error
 	Close() error
 	NewIterator(prefix []byte) IIterator
