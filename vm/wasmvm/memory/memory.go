@@ -48,7 +48,8 @@ type VMmemory struct {
 	Memory          []byte
 	AllocedMemIdex  int
 	PointedMemIndex int
-	MemPoints map[uint64]*TypeLength
+	ParamIndex      int //args analyze pointer
+	MemPoints       map[uint64]*TypeLength
 }
 
 func (vm *VMmemory) Malloc(size int) (int, error) {
@@ -91,16 +92,17 @@ func (vm *VMmemory) copyMemAndGetIdx(b []byte, p_type P_Type) (int, error) {
 	}
 	copy(vm.Memory[idx:idx+len(b)], b)
 
-	if p_type == P_STRING{
-		return idx,nil
-	}
+	return idx, nil
+	/*	if p_type == P_STRING{
+			return idx,nil
+		}
 
-	//set the pointer(address) to the front memory
-	tmp, err := vm.SetMemory(idx)
-	if err != nil {
-		return 0, err
-	}
-	return tmp, nil
+		//set the pointer(address) to the front memory
+		tmp, err := vm.SetMemory(idx)
+		if err != nil {
+			return 0, err
+		}
+		return tmp, nil*/
 }
 
 func (vm *VMmemory) GetPointerMemSize(addr uint64) int {
@@ -133,7 +135,7 @@ func (vm *VMmemory) SetPointerMemory(val interface{}) (int, error) {
 		return vm.copyMemAndGetIdx(b, P_STRING)
 	case reflect.Array, reflect.Struct, reflect.Ptr:
 
-		//todo not implement
+		//todo  implement
 		return 0, nil
 	case reflect.Slice:
 		switch val.(type) {

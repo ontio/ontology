@@ -20,31 +20,31 @@ package exec
 
 import (
 	"bytes"
+	"encoding/binary"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/Ontology/common"
+	"github.com/Ontology/core/ledger"
+	"github.com/Ontology/vm/types"
 	"github.com/Ontology/vm/wasmvm/memory"
 	"github.com/Ontology/vm/wasmvm/wasm"
-	"github.com/Ontology/core/ledger"
-	"github.com/Ontology/common"
-	"github.com/Ontology/vm/types"
-	"fmt"
-	"encoding/json"
-	"strings"
-	"encoding/binary"
 	"strconv"
+	"strings"
 )
 
-type Args struct{
-	Params []Param	`json:"Params"`
+type Args struct {
+	Params []Param `json:"Params"`
 }
 
-type Param struct{
-	Ptype string	`json:"type"`
-	Pval string		`json:"value"`
+type Param struct {
+	Ptype string `json:"type"`
+	Pval  string `json:"value"`
 }
 
-type Result struct{
-	Ptype string	`json:"type"`
-	Pval string		`json:"value"`
+type Result struct {
+	Ptype string `json:"type"`
+	Pval  string `json:"value"`
 }
 
 type IInteropService interface {
@@ -67,9 +67,14 @@ func NewInteropService() *InteropService {
 	service.Register("memcpy", memcpy)
 	service.Register("read_message", readMessage)
 	service.Register("callContract", callContract)
+	service.Register("ReadInt32Param", readInt32Param)
+	service.Register("ReadInt64Param", readInt64Param)
+	service.Register("ReadStringParam", readStringParam)
+	service.Register("RawUnmashal", rawUnmashal)
 	service.Register("JsonUnmashal", jsonUnmashal)
 	service.Register("JsonMashal", jsonMashal)
-
+	service.Register("GetCaller", GetCaller)
+	service.Register("GetSelfAddress", GetCodeHash)
 
 	//===================add block apis below==================
 	return &service
@@ -305,6 +310,151 @@ func callContract(engine *ExecutionEngine) (bool, error) {
 	return true, nil
 }
 
+//read int value from args bytes
+func readInt32Param(engine *ExecutionEngine) (bool, error) {
+
+	envCall := engine.vm.envCall
+	params := envCall.envParams
+	if len(params) != 1 {
+		return false, errors.New("parameter count error while call readInt32Param")
+	}
+
+	addr := params[0]
+	paramBytes, err := engine.vm.GetPointerMemory(addr)
+	if err != nil {
+		return false, err
+	}
+
+	pidx := engine.vm.memory.ParamIndex
+
+	if pidx+4 > len(paramBytes) {
+		return false, errors.New("read params error")
+	}
+
+	retInt := binary.LittleEndian.Uint32(paramBytes[pidx : pidx+4])
+	engine.vm.memory.ParamIndex += 4
+
+	engine.vm.ctx = envCall.envPreCtx
+	if envCall.envReturns {
+		engine.vm.pushUint64(uint64(retInt))
+	}
+	return true, nil
+}
+
+//read int64 value from args bytes
+func readInt64Param(engine *ExecutionEngine) (bool, error) {
+
+	envCall := engine.vm.envCall
+	params := envCall.envParams
+	if len(params) != 1 {
+		return false, errors.New("parameter count error while call readInt64Param")
+	}
+
+	addr := params[0]
+	paramBytes, err := engine.vm.GetPointerMemory(addr)
+	if err != nil {
+		return false, err
+	}
+
+	pidx := engine.vm.memory.ParamIndex
+
+	if pidx+8 > len(paramBytes) {
+		return false, errors.New("read params error")
+	}
+
+	retInt := binary.LittleEndian.Uint64(paramBytes[pidx : pidx+8])
+	engine.vm.memory.ParamIndex += 8
+
+	engine.vm.ctx = envCall.envPreCtx
+	if envCall.envReturns {
+		engine.vm.pushUint64(retInt)
+	}
+	return true, nil
+}
+
+//read string value from args bytes
+func readStringParam(engine *ExecutionEngine) (bool, error) {
+	envCall := engine.vm.envCall
+	params := envCall.envParams
+	if len(params) != 1 {
+		return false, errors.New("parameter count error while call readStringParam")
+	}
+
+	addr := params[0]
+	paramBytes, err := engine.vm.GetPointerMemory(addr)
+	if err != nil {
+		return false, err
+	}
+
+	var length int
+
+	pidx := engine.vm.memory.ParamIndex
+
+	switch paramBytes[pidx] {
+	case 0xfd: //uint16
+		if pidx+3 > len(paramBytes) {
+			return false, errors.New("read string failed")
+		}
+		length = int(binary.LittleEndian.Uint16(paramBytes[pidx+1 : pidx+3]))
+		pidx += 3
+	case 0xfe: //uint32
+		if pidx+5 > len(paramBytes) {
+			return false, errors.New("read string failed")
+		}
+		length = int(binary.LittleEndian.Uint16(paramBytes[pidx+1 : pidx+5]))
+		pidx += 5
+	case 0xff:
+		if pidx+9 > len(paramBytes) {
+			return false, errors.New("read string failed")
+		}
+		length = int(binary.LittleEndian.Uint16(paramBytes[pidx+1 : pidx+9]))
+		pidx += 9
+	default:
+		length = int(paramBytes[pidx])
+	}
+
+	if pidx+length > len(paramBytes) {
+		return false, errors.New("read string failed")
+	}
+	pidx += length
+
+	stringbytes := paramBytes[engine.vm.memory.ParamIndex:pidx]
+
+	retidx, err := engine.vm.SetPointerMemory(stringbytes)
+	if err != nil {
+		return false, errors.New("set memory failed")
+	}
+
+	engine.vm.memory.ParamIndex = pidx
+	engine.vm.ctx = envCall.envPreCtx
+	if envCall.envReturns {
+		engine.vm.pushUint64(uint64(retidx))
+	}
+	return true, nil
+}
+
+//todo solve the struct{char *} case
+func rawUnmashal(engine *ExecutionEngine) (bool, error) {
+
+	envCall := engine.vm.envCall
+	params := envCall.envParams
+	if len(params) != 3 {
+		return false, errors.New("parameter count error while call jsonUnmashal")
+	}
+
+	addr := params[0]
+	//size := int(params[1])
+
+	rawAddr := params[2]
+	rawBytes, err := engine.vm.GetPointerMemory(rawAddr)
+	if err != nil {
+		return false, err
+	}
+
+	copy(engine.vm.memory.Memory[addr:int(addr)+len(rawBytes)], rawBytes)
+
+	return true, nil
+}
 
 func jsonUnmashal(engine *ExecutionEngine) (bool, error) {
 
@@ -318,87 +468,104 @@ func jsonUnmashal(engine *ExecutionEngine) (bool, error) {
 	size := int(params[1])
 
 	jsonaddr := params[2]
-	jsonbytes,err := engine.vm.GetPointerMemory(jsonaddr)
+	jsonbytes, err := engine.vm.GetPointerMemory(jsonaddr)
 	if err != nil {
-		return false ,err
+		return false, err
 	}
 	arg := &Args{}
-	err = json.Unmarshal(jsonbytes,arg)
+	err = json.Unmarshal(jsonbytes, arg)
 
-	if err != nil{
-		return false ,err
+	if err != nil {
+		return false, err
 	}
 
 	buff := bytes.NewBuffer(nil)
 
-	for _,arg := range arg.Params{
+	for _, arg := range arg.Params {
 
-		switch strings.ToLower(arg.Ptype){
+		switch strings.ToLower(arg.Ptype) {
 		case "int":
-			tmp:= make([]byte,4)
-			val,err := strconv.Atoi(arg.Pval)
-			if err!= nil{
-				return false ,err
+			tmp := make([]byte, 4)
+			val, err := strconv.Atoi(arg.Pval)
+			if err != nil {
+				return false, err
 			}
-			binary.LittleEndian.PutUint32(tmp,uint32(val))
+			binary.LittleEndian.PutUint32(tmp, uint32(val))
 			buff.Write(tmp)
 
 		case "int64":
-			tmp:= make([]byte,8)
-			val,err :=  strconv.ParseInt(arg.Pval, 10, 64)
-			if err!= nil{
-				return false ,err
+			tmp := make([]byte, 8)
+			val, err := strconv.ParseInt(arg.Pval, 10, 64)
+			if err != nil {
+				return false, err
 			}
-			binary.LittleEndian.PutUint64(tmp,uint64(val))
+			binary.LittleEndian.PutUint64(tmp, uint64(val))
 			buff.Write(tmp)
 
 		case "int_array":
-			arr := strings.Split(arg.Pval,",")
-			for _,str := range arr{
-				tmp:= make([]byte,4)
-				val,err := strconv.Atoi(str)
-				if err!= nil{
-					return false ,err
+			arr := strings.Split(arg.Pval, ",")
+			tmparr := make([]int, len(arr))
+			for i, str := range arr {
+				tmparr[i], err = strconv.Atoi(str)
+				if err != nil {
+					return false, err
 				}
-				binary.LittleEndian.PutUint32(tmp,uint32(val))
-				buff.Write(tmp)
 			}
+			idx, err := engine.vm.SetPointerMemory(tmparr)
+			if err != nil {
+				return false, err
+			}
+			tmp := make([]byte, 4)
+			binary.LittleEndian.PutUint32(tmp, uint32(idx))
+			buff.Write(tmp)
 
 		case "int64_array":
-			arr := strings.Split(arg.Pval,",")
-			for _,str := range arr{
-				tmp:= make([]byte,8)
-				val,err :=  strconv.ParseInt(str, 10, 64)
-				if err!= nil{
-					return false ,err
+			arr := strings.Split(arg.Pval, ",")
+			tmparr := make([]int64, len(arr))
+			for i, str := range arr {
+				tmparr[i], err = strconv.ParseInt(str, 10, 64)
+				if err != nil {
+					return false, err
 				}
-				binary.LittleEndian.PutUint64(tmp,uint64(val))
-				buff.Write(tmp)
 			}
 
+			idx, err := engine.vm.SetPointerMemory(tmparr)
+			if err != nil {
+				return false, err
+			}
+			tmp := make([]byte, 8)
+			binary.LittleEndian.PutUint64(tmp, uint64(idx))
+			buff.Write(tmp)
+
 		case "string":
-			buff.WriteString(arg.Pval)
+			idx, err := engine.vm.SetPointerMemory(arg.Pval)
+			if err != nil {
+				return false, err
+			}
+			tmp := make([]byte, 4)
+			binary.LittleEndian.PutUint32(tmp, uint32(idx))
+			buff.Write(tmp)
 
 		default:
-			return false,errors.New("unsupported type :" + arg.Ptype)
+			return false, errors.New("unsupported type :" + arg.Ptype)
 		}
-
 
 	}
 
 	bytes := buff.Bytes()
-	if len(bytes) != size{
+	if len(bytes) != size {
 		//return false ,errors.New("")
 		//todo this case is not an error, sizeof doesn't means actual memory length,so the size parameter should be removed.
-		fmt.Printf("length is not same! size :%d, length:%d\n",size,len(bytes))
+		fmt.Printf("length is not same! size :%d, length:%d\n", size, len(bytes))
 	}
 	//todo add more check
-	if int(addr) + len(bytes) > len(engine.vm.memory.Memory) {
-		return false,errors.New("out of memory")
+
+	if int(addr)+len(bytes) > len(engine.vm.memory.Memory) {
+		return false, errors.New("out of memory")
 	}
-	copy(engine.vm.memory.Memory[int(addr):int(addr)+len(bytes)],bytes)
+	copy(engine.vm.memory.Memory[int(addr):int(addr)+len(bytes)], bytes)
 	engine.vm.ctx = envCall.envPreCtx
-	return true,nil
+	return true, nil
 }
 
 func jsonMashal(engine *ExecutionEngine) (bool, error) {
@@ -411,64 +578,64 @@ func jsonMashal(engine *ExecutionEngine) (bool, error) {
 
 	val := params[0]
 	ptype := params[1] //type
-	tpstr ,err := engine.vm.GetPointerMemory(ptype)
-	if err != nil{
-		return false ,err
+	tpstr, err := engine.vm.GetPointerMemory(ptype)
+	if err != nil {
+		return false, err
 	}
 
 	ret := &Result{}
 
 	pstype := strings.ToLower(trimBuffToString(tpstr))
 	ret.Ptype = pstype
-	switch pstype{
+	switch pstype {
 	case "int":
 		res := int(val)
 		ret.Pval = strconv.Itoa(res)
 
 	case "int64":
 		res := int64(val)
-		ret.Pval = strconv.FormatInt(res,10)
+		ret.Pval = strconv.FormatInt(res, 10)
 
 	case "string":
-		tmp,err := engine.vm.GetPointerMemory(val)
-		if err != nil{
-			return false ,err
+		tmp, err := engine.vm.GetPointerMemory(val)
+		if err != nil {
+			return false, err
 		}
 		ret.Pval = string(tmp)
 
 	case "int_array":
-		tmp,err := engine.vm.GetPointerMemory(val)
+		tmp, err := engine.vm.GetPointerMemory(val)
 		if err != nil {
-			return false ,err
+			return false, err
 		}
-		length := len(tmp)/4
-		retArray := make([]string,length)
-		for i := 0 ; i < length;i++{
-			retArray[i] = strconv.Itoa(int(binary.LittleEndian.Uint32(tmp[i:i+4])))
+		length := len(tmp) / 4
+		retArray := make([]string, length)
+		for i := 0; i < length; i++ {
+			retArray[i] = strconv.Itoa(int(binary.LittleEndian.Uint32(tmp[i : i+4])))
 		}
-		ret.Pval = strings.Join(retArray,",")
+		ret.Pval = strings.Join(retArray, ",")
 
 	case "int64_array":
-		tmp,err := engine.vm.GetPointerMemory(val)
+		tmp, err := engine.vm.GetPointerMemory(val)
 		if err != nil {
-			return false ,err
+			return false, err
 		}
-		length := len(tmp)/8
-		retArray := make([]string,length)
-		for i := 0 ; i < length;i++{
-			retArray[i] = strconv.FormatInt(int64(binary.LittleEndian.Uint64(tmp[i:i+8])),10)
+		length := len(tmp) / 8
+		retArray := make([]string, length)
+		for i := 0; i < length; i++ {
+			retArray[i] = strconv.FormatInt(int64(binary.LittleEndian.Uint64(tmp[i:i+8])), 10)
 		}
-		ret.Pval = strings.Join(retArray,",")
+		ret.Pval = strings.Join(retArray, ",")
 	}
 
-	jsonstr ,err:= json.Marshal(ret)
-	if err != nil{
-		return false,err
+	jsonstr, err := json.Marshal(ret)
+	if err != nil {
+		return false, err
 	}
 
-	offset,err:=engine.vm.SetPointerMemory(string(jsonstr))
-	if err != nil{
-		return false ,err
+	offset, err := engine.vm.SetPointerMemory(string(jsonstr))
+	if err != nil {
+		return false, err
 	}
 
 	engine.vm.ctx = envCall.envPreCtx
@@ -476,8 +643,9 @@ func jsonMashal(engine *ExecutionEngine) (bool, error) {
 		engine.vm.pushUint64(uint64(offset))
 	}
 
-	return true,nil
+	return true, nil
 }
+
 func stringcmp(engine *ExecutionEngine) (bool, error) {
 
 	envCall := engine.vm.envCall
@@ -492,20 +660,20 @@ func stringcmp(engine *ExecutionEngine) (bool, error) {
 	addr2 := params[1]
 	if addr1 == addr2 {
 		ret = 0
-	}else{
-		bytes1,err:= engine.vm.GetPointerMemory(addr1)
-		if err != nil{
-			return false ,err
+	} else {
+		bytes1, err := engine.vm.GetPointerMemory(addr1)
+		if err != nil {
+			return false, err
 		}
 
-		bytes2 ,err:= engine.vm.GetPointerMemory(addr2)
-		if err != nil{
-			return false ,err
+		bytes2, err := engine.vm.GetPointerMemory(addr2)
+		if err != nil {
+			return false, err
 		}
 
-		if trimBuffToString(bytes1) == trimBuffToString(bytes2){
+		if trimBuffToString(bytes1) == trimBuffToString(bytes2) {
 			ret = 0
-		}else {
+		} else {
 			ret = 1
 		}
 	}
@@ -513,12 +681,38 @@ func stringcmp(engine *ExecutionEngine) (bool, error) {
 	if envCall.envReturns {
 		engine.vm.pushUint64(uint64(ret))
 	}
-
-
-	return true,nil
+	return true, nil
 }
 
+func GetCaller(engine *ExecutionEngine) (bool, error) {
+	envCall := engine.vm.envCall
 
+	caller := engine.vm.Caller
+	idx, err := engine.vm.SetPointerMemory(caller.ToArray())
+	if err != nil {
+		return false, err
+	}
+	engine.vm.ctx = envCall.envPreCtx
+	if envCall.envReturns {
+		engine.vm.pushUint64(uint64(idx))
+	}
+	return true, nil
+}
+
+func GetCodeHash(engine *ExecutionEngine) (bool, error) {
+	envCall := engine.vm.envCall
+
+	codeHash := engine.vm.CodeHash
+	idx, err := engine.vm.SetPointerMemory(codeHash.ToArray())
+	if err != nil {
+		return false, err
+	}
+	engine.vm.ctx = envCall.envPreCtx
+	if envCall.envReturns {
+		engine.vm.pushUint64(uint64(idx))
+	}
+	return true, nil
+}
 
 func emptyImporter(name string) (*wasm.Module, error) {
 	return nil, nil
@@ -528,14 +722,14 @@ func getContractFromAddr(addr []byte) ([]byte, error) {
 
 	//todo get the contract code from ledger
 	//just for test
-/*		contract := trimBuffToString(addr)
-		code, err := ioutil.ReadFile(fmt.Sprintf("./testdata2/%s.wasm",contract))
-		if err != nil {
-			fmt.Printf("./testdata2/%s.wasm is not exist",contract)
-			return nil,err
-		}
+	/*		contract := trimBuffToString(addr)
+			code, err := ioutil.ReadFile(fmt.Sprintf("./testdata2/%s.wasm",contract))
+			if err != nil {
+				fmt.Printf("./testdata2/%s.wasm is not exist",contract)
+				return nil,err
+			}
 
-		return code,nil*/
+			return code,nil*/
 	codeHash, err := common.Uint160ParseFromBytes(addr)
 	if err != nil {
 		return nil, errors.New("get address Code hash failed")
@@ -553,9 +747,6 @@ func getContractFromAddr(addr []byte) ([]byte, error) {
 	return contract.Code, nil
 
 }
-
-
-
 
 //trim the '\00' byte
 func trimBuffToString(bytes []byte) string {

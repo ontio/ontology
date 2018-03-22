@@ -10,14 +10,15 @@ import (
 	"errors"
 	"math"
 
+	"bytes"
 	"fmt"
 	"github.com/Ontology/vm/wasmvm/disasm"
 	"github.com/Ontology/vm/wasmvm/exec/internal/compile"
 	"github.com/Ontology/vm/wasmvm/memory"
 	"github.com/Ontology/vm/wasmvm/wasm"
 	ops "github.com/Ontology/vm/wasmvm/wasm/operators"
-	"bytes"
 
+	"github.com/Ontology/common"
 )
 
 var (
@@ -58,7 +59,7 @@ type EnvCall struct {
 	envParams  []uint64
 	envReturns bool
 	envPreCtx  context
-	Message   []interface{} //the 'Message' field is for the EOS contract like parameters
+	Message    []interface{} //the 'Message' field is for the EOS contract like parameters
 }
 
 func (ec *EnvCall) GetParams() []uint64 {
@@ -73,8 +74,8 @@ func (ec *EnvCall) GetReturns() bool {
 type VM struct {
 	ctx context
 
-	module  *wasm.Module
-	globals []uint64
+	module        *wasm.Module
+	globals       []uint64
 	compiledFuncs []compiledFunction
 	funcTable     [256]func()
 	Services      map[string]func(engine *ExecutionEngine) (bool, error)
@@ -82,24 +83,10 @@ type VM struct {
 	//store the env call parameters
 	envCall *EnvCall
 	//store a engine pointer
-	Engine *ExecutionEngine
-	Backup	*BackStat
+	CodeHash common.Address
+	Caller   common.Address
+	Engine   *ExecutionEngine
 }
-
-
-type BackStat struct{
-	ctx context
-	module  *wasm.Module
-	globals []uint64
-	compiledFuncs []compiledFunction
-	funcTable     [256]func()
-	memory        *memory.VMmemory
-	//store the env call parameters
-	envCall *EnvCall
-	//store a engine pointer
-	Message   []interface{} //the 'Message' field is for the EOS contract like parameters
-}
-
 
 // As per the WebAssembly spec: https://github.com/WebAssembly/design/blob/27ac254c854994103c24834a994be16f74f54186/Semantics.md#linear-memory
 const wasmPageSize = 65536 // (64 KB)
@@ -111,8 +98,8 @@ var endianess = binary.LittleEndian
 func NewVM(module *wasm.Module) (*VM, error) {
 	var vm VM
 	err := vm.loadModule(module)
-	if err != nil{
-		return nil,err
+	if err != nil {
+		return nil, err
 	}
 	return &vm, nil
 }
@@ -121,7 +108,6 @@ func NewVM(module *wasm.Module) (*VM, error) {
 func (vm *VM) Malloc(size int) (int, error) {
 	return vm.memory.Malloc(size)
 }
-
 
 //alloc memory for pointer and return the first index
 func (vm *VM) MallocPointer(size int, ptype memory.P_Type) (int, error) {
@@ -160,7 +146,7 @@ func (vm *VM) RestoreCtx() bool {
 
 func (vm *VM) SetMessage(message []interface{}) {
 	if message != nil {
-		if vm.envCall == nil{
+		if vm.envCall == nil {
 			vm.envCall = &EnvCall{}
 		}
 		vm.envCall.Message = message
@@ -321,7 +307,7 @@ func (vm *VM) pushFloat32(f float32) {
 // fnIndex should be a valid index into the function index space of
 // the VM's module.
 //insideCall :true (call contract)
-func (vm *VM) ExecCode(insideCall bool,fnIndex int64,  args ...uint64) (interface{}, error) {
+func (vm *VM) ExecCode(insideCall bool, fnIndex int64, args ...uint64) (interface{}, error) {
 
 	if int(fnIndex) > len(vm.compiledFuncs) {
 		return nil, InvalidFunctionIndexError(fnIndex)
@@ -346,11 +332,11 @@ func (vm *VM) ExecCode(insideCall bool,fnIndex int64,  args ...uint64) (interfac
 	}
 
 	var rtrn interface{}
-	res := vm.execCode(insideCall,compiled)
+	res := vm.execCode(insideCall, compiled)
 
 	// for the call contract case
-	if insideCall{
-		return res,nil
+	if insideCall {
+		return res, nil
 	}
 
 	if compiled.returns {
@@ -372,7 +358,7 @@ func (vm *VM) ExecCode(insideCall bool,fnIndex int64,  args ...uint64) (interfac
 	return rtrn, nil
 }
 
-func (vm *VM) execCode(isinside bool,compiled compiledFunction) uint64 {
+func (vm *VM) execCode(isinside bool, compiled compiledFunction) uint64 {
 outer:
 	for int(vm.ctx.pc) < len(vm.ctx.code) {
 		op := vm.ctx.code[vm.ctx.pc]
@@ -448,7 +434,7 @@ outer:
 		}
 	}
 
-	if compiled.returns  {
+	if compiled.returns {
 		return vm.ctx.stack[len(vm.ctx.stack)-1]
 	}
 	return 0
@@ -456,7 +442,7 @@ outer:
 
 //todo implement the "call other contract function"
 //start a new vm
-func (vm *VM) CallContract(module *wasm.Module,methodName string,args ...uint64)(uint64,error){
+func (vm *VM) CallContract(module *wasm.Module, methodName string, args ...uint64) (uint64, error) {
 
 	//1. exec the method code
 	entry, ok := module.Export.Entries[methodName]
@@ -475,16 +461,16 @@ func (vm *VM) CallContract(module *wasm.Module,methodName string,args ...uint64)
 		return uint64(0), errors.New("parameter count is not right")
 	}
 	//new vm
-	newvm,err := NewVM(module)
-	if err!=nil{
-		return uint64(0),err
+	newvm, err := NewVM(module)
+	if err != nil {
+		return uint64(0), err
 	}
 	newvm.Services = vm.Services
 
 	vm.Engine.vm = newvm
 	newvm.Engine = vm.Engine
 
-	res,err := newvm.ExecCode(true,int64(index),args ...)
+	res, err := newvm.ExecCode(true, int64(index), args...)
 
 	//todo copy memory if need!!!
 	//fmt.Printf("CallContract res is %v\n ",res)
@@ -492,16 +478,15 @@ func (vm *VM) CallContract(module *wasm.Module,methodName string,args ...uint64)
 
 	vm.Engine.vm = vm
 
-
-	return res.(uint64),nil
+	return res.(uint64), nil
 }
 
-func (vm *VM) loadModule(module *wasm.Module) error{
+func (vm *VM) loadModule(module *wasm.Module) error {
 
 	vm.memory = &memory.VMmemory{}
 	if module.Memory != nil && len(module.Memory.Entries) != 0 {
 		if len(module.Memory.Entries) > 1 {
-			return  ErrMultipleLinearMemories
+			return ErrMultipleLinearMemories
 		}
 		vm.memory.Memory = make([]byte, uint(module.Memory.Entries[0].Limits.Initial)*wasmPageSize)
 		copy(vm.memory.Memory, module.LinearMemoryIndexSpace[0])
@@ -516,12 +501,14 @@ func (vm *VM) loadModule(module *wasm.Module) error{
 		vm.memory.Memory = make([]byte, 1*wasmPageSize)
 	}
 
-	vm.memory.AllocedMemIdex = -1                             //init the allocated memory offset
-	vm.memory.PointedMemIndex = len(vm.memory.Memory) / 2     //the second half memory is reserved for the pointed objects,string,array,structs
+	vm.memory.AllocedMemIdex = -1 //init the allocated memory offset
+
 	vm.memory.MemPoints = make(map[uint64]*memory.TypeLength) //init the pointer map
 
 	//solve the Data section
-	if module.Data != nil{
+	//this section is for some const strings, just like heap
+	if module.Data != nil {
+		var tmpIdx int
 		for _, entry := range module.Data.Entries {
 			if entry.Index != 0 {
 				return errors.New("invalid data index")
@@ -531,25 +518,31 @@ func (vm *VM) loadModule(module *wasm.Module) error{
 				return err
 			}
 			offset, ok := val.(int32)
+			tmpIdx += int(offset) + len(entry.Data)
 			if !ok {
 				return errors.New("invalid data index")
 			}
 			// for the case of " (data (get_global 0) "init\00init success!\00add\00int"))"
-			if bytes.Contains(entry.Data,[]byte{byte(0)}){
-				splited := bytes.Split(entry.Data,[]byte{byte(0)})
+			if bytes.Contains(entry.Data, []byte{byte(0)}) {
+				splited := bytes.Split(entry.Data, []byte{byte(0)})
 				var tmpoffset = int(offset)
-				for _, tmp := range splited{
-					vm.memory.MemPoints[uint64(tmpoffset)] = &memory.TypeLength{Ptype:memory.P_STRING,Length:len(tmp)+1}
+				for _, tmp := range splited {
+					vm.memory.MemPoints[uint64(tmpoffset)] = &memory.TypeLength{Ptype: memory.P_STRING, Length: len(tmp) + 1}
 					//vm.memory.AllocedMemIdex = int(tmpoffset)+len(tmp) +1
-					tmpoffset += len(tmp) +1
+					tmpoffset += len(tmp) + 1
 				}
-			}else{
-				vm.memory.MemPoints[uint64(offset)] = &memory.TypeLength{Ptype:memory.P_STRING,Length:len(entry.Data)}
+			} else {
+				vm.memory.MemPoints[uint64(offset)] = &memory.TypeLength{Ptype: memory.P_STRING, Length: len(entry.Data)}
 				//vm.memory.AllocedMemIdex = int(offset)+len(entry.Data)
 			}
 		}
+		//
+		vm.memory.PointedMemIndex = tmpIdx + 1
+	} else {
+		//default pointed memory
+		//todo define the magic number
+		vm.memory.PointedMemIndex = len(vm.memory.Memory) / 2 //the second half memory is reserved for the pointed objects,string,array,structs
 	}
-
 
 	vm.compiledFuncs = make([]compiledFunction, len(module.FunctionIndexSpace))
 	vm.globals = make([]uint64, len(module.GlobalIndexSpace))
@@ -559,7 +552,7 @@ func (vm *VM) loadModule(module *wasm.Module) error{
 	for i, fn := range module.FunctionIndexSpace {
 		disassembly, err := disasm.Disassemble(fn, module)
 		if err != nil {
-			return  err
+			return err
 		}
 
 		totalLocalVars := 0
@@ -595,7 +588,7 @@ func (vm *VM) loadModule(module *wasm.Module) error{
 	for i, global := range module.GlobalIndexSpace {
 		val, err := module.ExecInitExpr(global.Init)
 		if err != nil {
-			return  err
+			return err
 		}
 		switch v := val.(type) {
 		case int32:
@@ -610,44 +603,11 @@ func (vm *VM) loadModule(module *wasm.Module) error{
 	}
 
 	if module.Start != nil {
-		_, err := vm.ExecCode(false,int64(module.Start.Index))
+		_, err := vm.ExecCode(false, int64(module.Start.Index))
 		if err != nil {
-			return  err
+			return err
 		}
 	}
 	return nil
 
 }
-
-//todo remove the following 2 method later
-/*
-func (vm *VM)BackupStat(){
-	backup := &BackStat{}
-
-	backup.ctx = vm.ctx
-	backup.module = vm.module
-	backup.memory =vm.memory
-	backup.globals =vm.globals
-	backup.envCall = vm.envCall
-	backup.compiledFuncs = vm.compiledFuncs
-	backup.funcTable = vm.funcTable
-
-	vm.Backup = backup
-}
-
-func (vm *VM)RestoreStat() error{
-
-	if vm.Backup == nil{
-		return errors.New("no backup stat")
-	}
-
-	vm.ctx = vm.Backup.ctx
-	vm.module = vm.Backup.module
-	vm.memory = vm.Backup.memory
-	vm.globals = vm.Backup.globals
-	vm.envCall =vm.Backup.envCall
-	vm.compiledFuncs = vm.Backup.compiledFuncs
-	vm.funcTable = vm.Backup.funcTable
-
-	return nil
-}*/
