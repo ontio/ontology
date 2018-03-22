@@ -159,12 +159,6 @@ func (this *SoloService) genBlock()error {
 	if addBlockRsp.Error != nil {
 		return fmt.Errorf("AddBlockRsp Height:%d error:%s", block.Header.Height, err)
 	}
-
-	//err = this.localNet.CleanTransactions(block.Transactions)
-	//if err != nil {
-	//	log.Errorf("CleanSubmittedTransactions error:%s", err)
-	//	return
-	//}
 	return nil
 }
 

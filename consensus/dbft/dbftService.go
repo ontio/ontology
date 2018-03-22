@@ -56,7 +56,6 @@ type DbftService struct {
 
 	pid *actor.PID
 	sub *events.ActorSubscriber
-	//blockPersistCompletedSubscriber events.Subscriber
 }
 
 func NewDbftService(bkAccount *account.Account, txpool, p2p *actor.PID) (*DbftService, error) {
@@ -184,7 +183,6 @@ func (ds *DbftService) CheckExpectedView(viewNumber byte) {
 	if count >= M {
 		log.Debug("[CheckExpectedView] Begin InitializeConsensus.")
 		ds.InitializeConsensus(viewNumber)
-		//ds.InitializeConsensus(viewNumber)
 	}
 }
 
@@ -592,8 +590,6 @@ func (ds *DbftService) BlockSignaturesReceived(payload *p2pmsg.ConsensusPayload,
 }
 
 func (ds *DbftService) RefreshPolicy() {
-	log.Debug()
-	//con.DefaultPolicy.Refresh()
 }
 
 func (ds *DbftService) RequestChangeView() {
