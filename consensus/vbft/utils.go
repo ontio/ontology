@@ -43,7 +43,7 @@ func HashBlock(blk *Block) (Uint256, error) {
 
 	// FIXME: has to do marshal on each call
 
-	data, err := json.Marshal(blk)
+	data, err := blk.Serialize()
 	if err != nil {
 		return Uint256{}, fmt.Errorf("failed to marshal block: %s", err)
 	}
@@ -77,8 +77,10 @@ type vrfData struct {
 func vrf(block *Block, hash Uint256) vconfig.VRFValue {
 
 	// XXX: all-zero vrf value is taken as invalid
-
-	sig := block.Block.Header.SigData[0]
+	sig := []byte{}
+	if len(block.Block.Header.SigData) > 0 {
+		sig = block.Block.Header.SigData[0]
+	}
 	if block.isEmpty() {
 		sig = block.Block.Header.SigData[1]
 	}

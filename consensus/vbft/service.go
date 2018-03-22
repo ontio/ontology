@@ -127,17 +127,19 @@ func NewVbftServer(account *account.Account, txpool, ledger, p2p *actor.PID) (*S
 func (self *Server) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Restarting:
-		log.Warn("vbft actor restarting")
+		log.Info("vbft actor restarting")
 	case *actor.Stopping:
-		log.Warn("vbft actor stopping")
+		log.Info("vbft actor stopping")
 	case *actor.Stopped:
-		log.Warn("vbft actor stopped")
+		log.Info("vbft actor stopped")
 	case *actor.Started:
-		log.Warn("vbft actor started")
+		log.Info("vbft actor started")
 	case *actor.Restart:
-		log.Warn("vbft actor restart")
+		log.Info("vbft actor restart")
 	case *actorTypes.StartConsensus:
-		self.start()
+		if err := self.start(); err != nil {
+			self.log.Errorf("vbft start failed: %s", err)
+		}
 	case *actorTypes.StopConsensus:
 		self.stop()
 	case *message.SaveBlockCompleteMsg:

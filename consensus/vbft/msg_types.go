@@ -19,13 +19,14 @@
 package vbft
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 
 	. "github.com/Ontology/common"
-	"github.com/Ontology/crypto"
-
 	vconfig "github.com/Ontology/consensus/vbft/config"
+	"github.com/Ontology/core/types"
+	"github.com/Ontology/crypto"
 )
 
 type MsgType uint8
@@ -72,7 +73,27 @@ func (msg *blockProposalMsg) GetBlockNum() uint64 {
 }
 
 func (msg *blockProposalMsg) Serialize() ([]byte, error) {
-	return json.Marshal(msg)
+	return msg.Block.Serialize()
+}
+
+func (msg *blockProposalMsg) UnmarshalJSON(data []byte) error {
+	buf := bytes.NewBuffer(data)
+
+	blk := &types.Block{}
+	if err := blk.Deserialize(buf); err != nil {
+		return err
+	}
+
+	block, err := initVbftBlock(blk)
+	if err != nil {
+		return err
+	}
+	msg.Block = block
+	return nil
+}
+
+func (msg *blockProposalMsg) MarshalJSON() ([]byte, error) {
+	return msg.Block.Serialize()
 }
 
 type FaultyReport struct {

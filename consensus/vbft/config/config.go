@@ -48,6 +48,12 @@ type ChainConfig struct {
 	PosTable      []uint32      `json:"pos_table"`
 }
 
+type VbftBlockInfo struct {
+	Proposer           uint32               `json:"leader"`
+	LastConfigBlockNum uint64               `json:"last_config_block_num"`
+	NewChainConfig     *ChainConfig `json:"new_chain_config"`
+}
+
 const (
 	VrfSize           = 64 // bytes
 	MaxProposerCount  = 32

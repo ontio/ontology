@@ -27,15 +27,9 @@ import (
 	"github.com/Ontology/core/types"
 )
 
-type VbftBlockInfo struct {
-	Proposer           uint32               `json:"leader"`
-	LastConfigBlockNum uint64               `json:"last_config_block_num"`
-	NewChainConfig     *vconfig.ChainConfig `json:"new_chain_config"`
-}
-
 type Block struct {
-	Block *types.Block   `json:"block"`
-	Info  *VbftBlockInfo `json:"info"`
+	Block *types.Block           `json:"block"`
+	Info  *vconfig.VbftBlockInfo `json:"info"`
 }
 
 func (blk *Block) getProposer() uint32 {
@@ -79,7 +73,7 @@ func (blk *Block) Serialize() ([]byte, error) {
 }
 
 func initVbftBlock(block *types.Block) (*Block, error) {
-	blkInfo := &VbftBlockInfo{}
+	blkInfo := &vconfig.VbftBlockInfo{}
 	if err := json.Unmarshal(block.Header.ConsensusPayload, blkInfo); err != nil {
 		return nil, err
 	}
