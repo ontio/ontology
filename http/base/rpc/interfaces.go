@@ -33,6 +33,10 @@ import (
 	"math/big"
 )
 
+func GetGenerateBlockTime(params []interface{}) map[string]interface{} {
+	return Rpc(config.DEFAULTGENBLOCKTIME)
+}
+
 func GetBestBlockHash(params []interface{}) map[string]interface{} {
 	hash, err := CurrentBlockHash()
 	if err != nil {

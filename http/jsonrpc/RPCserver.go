@@ -33,12 +33,13 @@ func StartRPCServer() {
 	log.Debug()
 	http.HandleFunc("/", Handle)
 
+	HandleFunc("getgenerateblocktime", GetGenerateBlockTime)
 	HandleFunc("getbestblockhash", GetBestBlockHash)
 	HandleFunc("getblock", GetBlock)
 	HandleFunc("getblockcount", GetBlockCount)
 	HandleFunc("getblockhash", GetBlockHash)
 	HandleFunc("getconnectioncount", GetConnectionCount)
-	HandleFunc("getrawmempool", GetRawMemPool)
+	//HandleFunc("getrawmempool", GetRawMemPool)
 
 	HandleFunc("getrawtransaction", GetRawTransaction)
 	HandleFunc("sendrawtransaction", SendRawTransaction)
