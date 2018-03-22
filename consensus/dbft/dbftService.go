@@ -21,6 +21,7 @@ import (
 	"github.com/Ontology/events"
 	"github.com/Ontology/events/message"
 	p2pmsg "github.com/Ontology/net/message"
+	"github.com/Ontology/validator/increment"
 )
 
 type DbftService struct {
@@ -31,6 +32,7 @@ type DbftService struct {
 	timeView          byte
 	blockReceivedTime time.Time
 	started           bool
+	incrValidator *increment.IncrementValidator
 	poolActor         *actorTypes.TxPoolActor
 	p2p               *actorTypes.P2PActor
 
@@ -45,6 +47,7 @@ func NewDbftService(bkAccount *account.Account, txpool, p2p *actor.PID) (*DbftSe
 		Account:   bkAccount,
 		timer:     time.NewTimer(time.Second * 15),
 		started:   false,
+		incrValidator: increment.NewIncrementValidator(10),
 		poolActor: &actorTypes.TxPoolActor{Pool: txpool},
 		p2p:       &actorTypes.P2PActor{P2P: p2p},
 	}
@@ -93,11 +96,15 @@ func (this *DbftService) Receive(context actor.Context) {
 	case *actorTypes.StartConsensus:
 		this.start()
 	case *actorTypes.StopConsensus:
+		this.incrValidator.Clean()
 		this.halt()
 	case *actorTypes.TimeOut:
 		log.Info("dbft receive timeout")
 		this.Timeout()
 	case *message.SaveBlockCompleteMsg:
+		log.Infof("dbft actor receives block complete event. block height=%d, numtx=%d",
+			msg.Block.Header.Height, len(msg.Block.Transactions))
+		this.incrValidator.AddBlock(msg.Block)
 		this.handleBlockPersistCompleted(msg.Block)
 	case *p2pmsg.ConsensusPayload:
 		this.NewConsensusPayload(msg)
@@ -225,26 +232,8 @@ func (ds *DbftService) CreateBookkeepingTransaction(nonce uint64, fee Fixed64) *
 	bookKeepingPayload := &payload.BookKeeping{
 		Nonce: uint64(time.Now().UnixNano()),
 	}
-	//signatureRedeemScript, err := contract.CreateSignatureRedeemScript(ds.context.Owner)
-	//if err != nil {
-	//	return nil
-	//}
-	//signatureRedeemScriptHashToCodeHash := ToCodeHash(signatureRedeemScript)
-	//if err != nil {
-	//	return nil
-	//}
-	//outputs := []*utxo.TxOutput{}
-	//if fee > 0 {
-	//	feeOutput := &utxo.TxOutput{
-	//		AssetID:     genesis.ONGTokenID,
-	//		Value:       fee,
-	//		Address: signatureRedeemScriptHashToCodeHash,
-	//	}
-	//	outputs = append(outputs, feeOutput)
-	//}
 	return &types.Transaction{
 		TxType: types.BookKeeping,
-		//PayloadVersion: payload.BookKeepingPayloadVersion,
 		Payload:    bookKeepingPayload,
 		Attributes: []*types.TxAttribute{},
 	}
@@ -421,7 +410,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 	}
 
 	if len(message.Transactions) == 0 || message.Transactions[0].TxType != types.BookKeeping {
-		log.Error("PrepareRequestReceived first transaction type is not bookking")
+		log.Error("PrepareRequestReceived first transaction type is not bookkeeping")
 		ds.RequestChangeView()
 		return
 	}
@@ -658,19 +647,36 @@ func (ds *DbftService) Timeout() {
 			}
 
 			ds.context.Nonce = GetNonce()
-			txs := ds.poolActor.GetTxnPool(true, ds.context.Height-1)
+
+			height :=  ds.context.Height - 1
+			validHeight := height
+
+			start, end := ds.incrValidator.BlockRange()
+
+			if height + 1 == end {
+				validHeight = start
+			} else {
+				ds.incrValidator.Clean()
+				log.Infof("incr validator block height %v != ledger block height %v", end -1, height)
+			}
+
+			log.Infof("current block Height %v, incrValidateHeight %v", height, validHeight)
+			txs := ds.poolActor.GetTxnPool(true, validHeight)
 			// todo : fix feesum calcuation
 			feeSum := Fixed64(0)
 
-			// TODO: increment checking txs
-
 			txBookkeeping := ds.CreateBookkeepingTransaction(ds.context.Nonce, feeSum)
-			//add book keeping transaction first
-			ds.context.Transactions = append(ds.context.Transactions, txBookkeeping)
-			//add transactions from transaction pool
+			transactions := make([]*types.Transaction, 0, len(txs)+1)
+			transactions = append(transactions, txBookkeeping)
 			for _, txEntry := range txs {
-				ds.context.Transactions = append(ds.context.Transactions, txEntry.Tx)
+				// TODO optimize to use height in txentry
+				if  err := ds.incrValidator.Verify(txEntry.Tx, validHeight) ; err == nil {
+					transactions = append(transactions, txEntry.Tx)
+				}
 			}
+
+			ds.context.Transactions = transactions
+
 			ds.context.NextBookKeepers, err = vote.GetValidators(ds.context.Transactions)
 			if err != nil {
 				log.Error("[Timeout] GetValidators failed", err.Error())
