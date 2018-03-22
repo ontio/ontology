@@ -52,7 +52,7 @@ func TestMain(m *testing.M) {
 		return
 	}
 	testStateDir := "test/state"
-	testStateStore, err = NewStateStore(testStateDir,MerkleTreeStorePath, 0)
+	testStateStore, err = NewStateStore(testStateDir,MerkleTreeStorePath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "NewStateStore error %s\n", err)
 		return

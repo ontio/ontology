@@ -20,13 +20,12 @@ package ledgerstore
 
 import (
 	"fmt"
-	"github.com/Ontology/common"
-	//"github.com/Ontology/core/code"
 	"github.com/Ontology/core/states"
 	scommon "github.com/Ontology/core/store/common"
 	"github.com/Ontology/core/store/statestore"
+	"github.com/Ontology/core/payload"
 	"github.com/Ontology/crypto"
-	//"github.com/Ontology/vm/types"
+	vmtypes"github.com/Ontology/vm/types"
 	"testing"
 )
 
@@ -35,51 +34,65 @@ func init() {
 }
 
 func TestContractState(t *testing.T) {
-	//batch, err := getStateBatch(common.Uint256{})
-	//if err != nil {
-	//	t.Errorf("NewStateBatch error %s", err)
-	//	return
-	//}
-	//testCode := []byte("testcode")
-	//codeHash := common.ToCodeHash(testCode)
-	//contactState := &states.ContractState{
-	//	Code:        &code.FunctionCode{Code: testCode},
-	//	VmType:      types.NEOVM,
-	//	NeedStorage: false,
-	//	Name:        "test",
-	//	Version:     "1.0",
-	//	Author:      "test",
-	//	Email:       "test",
-	//	Description: "test",
-	//}
-	//batch.TryAdd(scommon.ST_Contract, codeHash.ToArray(), contactState, false)
-	//_, err = batch.CommitTo()
-	//if err != nil {
-	//	t.Errorf("batch.CommitTo error %s", err)
-	//	return
-	//}
-	//err = testStateStore.CommitTo()
-	//if err != nil {
-	//	t.Errorf("testStateStore.CommitTo error %s", err)
-	//	return
-	//}
-	//contractState1, err := testStateStore.GetContractState(codeHash)
-	//if err != nil {
-	//	t.Errorf("GetContractState error %s", err)
-	//	return
-	//}
-	//if contractState1.Name != contactState.Name ||
-	//	contractState1.Version != contactState.Version ||
-	//	contractState1.Author != contactState.Author ||
-	//	contractState1.Description != contactState.Description ||
-	//	contractState1.Email != contactState.Email {
-	//	t.Errorf("TestContractState failed %+v != %+v", contractState1, contactState)
-	//	return
-	//}
+	batch, err := getStateBatch()
+	if err != nil {
+		t.Errorf("NewStateBatch error %s", err)
+		return
+	}
+	testCode := []byte("testcode")
+
+	deploy := &payload.DeployCode{
+		Code:        testCode,
+		VmType:      vmtypes.NEOVM,
+		NeedStorage: false,
+		Name:        "testsm",
+		Version:     "v1.0",
+		Author:     "",
+		Email:       "",
+		Description: "",
+	}
+	code := &vmtypes.VmCode{
+		Code:   testCode,
+		VmType: vmtypes.NEOVM,
+	}
+	codeHash := code.AddressFromVmCode()
+	err = batch.TryGetOrAdd(
+		scommon.ST_Contract,
+		codeHash[:],
+		deploy,
+		false)
+	if err != nil {
+		 t.Errorf("TryGetOrAdd contract error %s", err)
+		 return
+	}
+
+	err = batch.CommitTo()
+	if err != nil {
+		t.Errorf("batch.CommitTo error %s", err)
+		return
+	}
+	err = testStateStore.CommitTo()
+	if err != nil {
+		t.Errorf("testStateStore.CommitTo error %s", err)
+		return
+	}
+	contractState1, err := testStateStore.GetContractState(codeHash)
+	if err != nil {
+		t.Errorf("GetContractState error %s", err)
+		return
+	}
+	if contractState1.Name != deploy.Name ||
+		contractState1.Version != deploy.Version ||
+		contractState1.Author != deploy.Author ||
+		contractState1.Description != deploy.Description ||
+		contractState1.Email != deploy.Email {
+		t.Errorf("TestContractState failed %+v != %+v", contractState1, deploy)
+		return
+	}
 }
 
 func TestBookKeeperState(t *testing.T) {
-	batch, err := getStateBatch(common.Uint256{})
+	batch, err := getStateBatch()
 	if err != nil {
 		t.Errorf("NewStateBatch error %s", err)
 		return
@@ -132,7 +145,7 @@ func TestBookKeeperState(t *testing.T) {
 	}
 }
 
-func getStateBatch(stateRoot common.Uint256) (*statestore.StateBatch, error) {
+func getStateBatch() (*statestore.StateBatch, error) {
 	err := testStateStore.NewBatch()
 	if err != nil {
 		return nil, fmt.Errorf("testStateStore.NewBatch error %s", err)

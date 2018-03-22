@@ -155,26 +155,6 @@ func (this *StateStore) CommitTo() error {
 	return this.store.BatchCommit()
 }
 
-func (this *StateStore) GetCurrentStateRoot() (common.Uint256, error) {
-	key, err := this.getCurrentStateRootKey()
-	if err != nil {
-		return common.Uint256{}, err
-	}
-	value, err := this.store.Get(key)
-	if err != nil {
-		if err == leveldb.ErrNotFound{
-			return common.Uint256{}, nil
-		}
-		return common.Uint256{}, err
-	}
-	stateRoot, err := common.Uint256ParseFromBytes(value)
-	if err != nil {
-		return common.Uint256{}, err
-	}
-	return stateRoot, nil
-}
-
-
 func (this *StateStore) GetContractState(contractHash common.Address) (*payload.DeployCode, error) {
 	key, err := this.getContractStateKey(contractHash)
 	if err != nil {
@@ -195,15 +175,6 @@ func (this *StateStore) GetContractState(contractHash common.Address) (*payload.
 		return nil, err
 	}
 	return contractState, nil
-}
-
-func (this *StateStore) SaveCurrentStateRoot(stateRoot common.Uint256) error {
-	key, err := this.getCurrentStateRootKey()
-	if err != nil {
-		return err
-	}
-
-	return this.store.BatchPut(key, stateRoot.ToArray())
 }
 
 func (this *StateStore) GetBookKeeperState() (*BookKeeperState, error) {
@@ -324,13 +295,6 @@ func (this *StateStore) SaveCurrentBlock(height uint32, blockHash common.Uint256
 
 func (this *StateStore) getCurrentBlockKey() []byte {
 	return []byte{byte(SYS_CurrentBlock)}
-}
-
-func (this *StateStore) getCurrentStateRootKey() ([]byte, error) {
-	key := make([]byte, 1+len(CurrentStateRoot))
-	key[0] = byte(SYS_CurrentStateRoot)
-	copy(key[1:], []byte(CurrentStateRoot))
-	return key, nil
 }
 
 func (this *StateStore) getBookKeeperKey() ([]byte, error) {
