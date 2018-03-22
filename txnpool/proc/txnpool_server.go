@@ -23,9 +23,9 @@ import (
 	"github.com/Ontology/common/log"
 	tx "github.com/Ontology/core/types"
 	"github.com/Ontology/errors"
-	"github.com/ontio/ontology-eventbus/actor"
 	tc "github.com/Ontology/txnpool/common"
 	"github.com/Ontology/validator/types"
+	"github.com/ontio/ontology-eventbus/actor"
 	"sort"
 	"sync"
 )
@@ -436,6 +436,11 @@ func (s *TXPoolServer) sendBlkResult2Consensus() {
 
 	if s.pendingBlock.sender != nil {
 		s.pendingBlock.sender.Tell(rsp)
+	}
+
+	// Clear the processedTxs for the next block verify req
+	for k := range s.pendingBlock.processedTxs {
+		delete(s.pendingBlock.processedTxs, k)
 	}
 }
 

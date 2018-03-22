@@ -28,10 +28,10 @@ import (
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/errors"
-	"github.com/ontio/ontology-eventbus/actor"
 	tc "github.com/Ontology/txnpool/common"
 	"github.com/Ontology/validator/stateless"
 	vt "github.com/Ontology/validator/types"
+	"github.com/ontio/ontology-eventbus/actor"
 	"testing"
 	"time"
 )
