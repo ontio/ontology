@@ -269,6 +269,9 @@ func ToArray(data SerializableData) []byte {
 //**************************************************************************
 
 func byteXReader(reader io.Reader, x uint64) ([]byte, error) {
+	if x == 0 {
+		return nil, nil
+	}
 	p := make([]byte, x)
 	n, err := reader.Read(p)
 	if n > 0 {
