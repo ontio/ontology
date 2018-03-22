@@ -43,7 +43,7 @@ const (
 	Api_GetTransaction = "/api/v1/transaction/:hash"
 	Api_SendRawTx = "/api/v1/transaction"
 	Api_GetStorage = "/api/v1/storage/:hash/:key"
-
+	Api_GetBalanceByAddr = "/api/v1/balance/:addr"
 	Api_WebsocketState       = "/api/v1/config/websocket/state"
 	Api_Restart              = "/api/v1/restart"
 	Api_GetContractState     = "/api/v1/contract/:hash"
@@ -142,6 +142,7 @@ func (rt *restServer) registryMethod() {
 		Api_GetSmartCodeEvent:    {name: "getsmartcodeevent", handler: GetSmartCodeEventByHeight},
 		Api_GetBlkHeightByTxHash: {name: "getblockheightbytxhash", handler: GetBlockHeightByTxHash},
 		Api_GetStorage:           {name: "getstorage", handler: GetStorage},
+		Api_GetBalanceByAddr:    {name: "getbalance", handler: GetBalance},
 	}
 
 	sendRawTransaction := func(cmd map[string]interface{}) map[string]interface{} {
@@ -181,6 +182,8 @@ func (rt *restServer) getPath(url string) string {
 		return Api_GetBlkHeightByTxHash
 	} else if strings.Contains(url, strings.TrimRight(Api_GetStorage, ":hash/:key")) {
 		return Api_GetStorage
+	} else if strings.Contains(url, strings.TrimRight(Api_GetBalanceByAddr, ":addr")) {
+		return Api_GetBalanceByAddr
 	}
 	return url
 }
@@ -215,6 +218,8 @@ func (rt *restServer) getParams(r *http.Request, url string, req map[string]inte
 		req["Height"] = getParam(r, "height")
 	case Api_GetBlkHeightByTxHash:
 		req["Hash"] = getParam(r, "hash")
+	case Api_GetBalanceByAddr:
+		req["Addr"] = getParam(r, "addr")
 	case Api_WebsocketState:
 	default:
 	}

@@ -394,30 +394,24 @@ func GetBlockHeightByTxHash(params []interface{}) map[string]interface{} {
 	return RpcInvalidParameter
 }
 
-type BalanceOfRsp struct {
-	Ont string `json:"ont"`
-	Ong string `json:"ong"`
-}
-
-func BalanceOf(params []interface{}) map[string]interface{} {
+func GetBalance(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return RpcInvalidParameter
 	}
-	address, ok := params[0].(string)
+	addrBase58, ok := params[0].(string)
 	if !ok {
 		return RpcInvalidParameter
 	}
-	data, err := hex.DecodeString(address)
+	address, err := AddressFromBase58(addrBase58)
 	if err != nil {
 		return RpcInvalidParameter
 	}
-
 	ont := new(big.Int)
 	ong := new(big.Int)
 
-	ontBalance, err := GetStorageItem(genesis.OntContractAddress, data)
+	ontBalance, err := GetStorageItem(genesis.OntContractAddress, address.ToArray())
 	if err != nil {
-		log.Errorf("GetOntBalanceOf GetStorageItem ont address:%s error:%s", address, err)
+		log.Errorf("GetOntBalanceOf GetStorageItem ont address:%s error:%s", addrBase58, err)
 		return RpcInternalError
 	}
 	if ontBalance != nil {

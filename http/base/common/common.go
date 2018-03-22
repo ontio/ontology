@@ -8,7 +8,11 @@ import (
 	. "github.com/Ontology/http/base/actor"
 )
 
-//multiplexer that keeps track of every function to be called on specific rpc call
+
+type BalanceOfRsp struct {
+	Ont string `json:"ont"`
+	Ong string `json:"ong"`
+}
 
 type TxAttributeInfo struct {
 	Usage types.TransactionAttributeUsage

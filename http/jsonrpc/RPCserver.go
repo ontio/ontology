@@ -33,7 +33,7 @@ func StartRPCServer() {
 	HandleFunc("getsmartcodeevent", GetSmartCodeEvent)
 	HandleFunc("getblockheightbytxhash", GetBlockHeightByTxHash)
 
-	HandleFunc("balanceof", BalanceOf)
+	HandleFunc("getbalance", GetBalance)
 
 	err := http.ListenAndServe(":"+strconv.Itoa(Parameters.HttpJsonPort), nil)
 	if err != nil {

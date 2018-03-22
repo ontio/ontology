@@ -12,6 +12,8 @@ import (
 	"github.com/Ontology/common/log"
 	. "github.com/Ontology/http/base/common"
 	. "github.com/Ontology/http/base/actor"
+	"math/big"
+	"github.com/Ontology/core/genesis"
 )
 
 const TlsPort int = 443
@@ -330,5 +332,30 @@ func GetStorage(cmd map[string]interface{}) map[string]interface{} {
 		return rspInternalError
 	}
 	resp["Result"] = ToHexString(value)
+	return resp
+}
+func GetBalance(cmd map[string]interface{}) map[string]interface{} {
+	resp := rspSuccess
+	addrBase58 := cmd["Addr"].(string)
+	address, err := AddressFromBase58(addrBase58)
+	if err != nil {
+		return rspInvalidParams
+	}
+	ont := new(big.Int)
+	ong := new(big.Int)
+
+	ontBalance, err := GetStorageItem(genesis.OntContractAddress, address.ToArray())
+	if err != nil {
+		log.Errorf("GetOntBalanceOf GetStorageItem ont address:%s error:%s", address, err)
+		return rspInternalError
+	}
+	if ontBalance != nil {
+		ont.SetBytes(ontBalance)
+	}
+	rsp := &BalanceOfRsp{
+		Ont: ont.String(),
+		Ong: ong.String(),
+	}
+	resp["Result"] = rsp
 	return resp
 }
