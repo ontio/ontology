@@ -62,6 +62,7 @@ type Configuration struct {
 	MaxTxInBlock      int              `json:"MaxTransactionInBlock"`
 	MaxHdrSyncReqs    int              `json:"MaxConcurrentSyncHeaderReqs"`
 	ConsensusType     string           `json:"ConsensusType"`
+	ConsensusConfigPath string           `json:"ConsensusConfigPath"`
 	SystemFee         map[string]int64 `json:"SystemFee"`
 }
 

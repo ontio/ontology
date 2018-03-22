@@ -25,6 +25,7 @@ import (
 	"fmt"
 
 	. "github.com/Ontology/common"
+	"github.com/Ontology/consensus/vbft/config"
 	"github.com/Ontology/crypto"
 )
 
@@ -73,7 +74,7 @@ type vrfData struct {
 	PrevBlockSig      []byte  `json:"prev_block_sig"`
 }
 
-func vrf(block *Block, hash Uint256) VRFValue {
+func vrf(block *Block, hash Uint256) vconfig.VRFValue {
 
 	// XXX: all-zero vrf value is taken as invalid
 
@@ -89,10 +90,10 @@ func vrf(block *Block, hash Uint256) VRFValue {
 		PrevBlockSig:      sig,
 	})
 	if err != nil {
-		return VRFValue{}
+		return vconfig.VRFValue{}
 	}
 
 	t := sha512.Sum512(data)
 	f := sha512.Sum512(t[:])
-	return VRFValue(f)
+	return vconfig.VRFValue(f)
 }

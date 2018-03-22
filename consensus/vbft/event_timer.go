@@ -26,11 +26,6 @@ import (
 	"time"
 )
 
-type SendMsgEvent struct {
-	ToPeer uint32 // peer index
-	Msg    ConsensusMsg
-}
-
 type TimerEventType int
 
 const (
@@ -44,6 +39,19 @@ const (
 	EventPeerHeartbeat
 	EventMax
 )
+
+var (
+	makeProposalTimeout    = 300 * time.Millisecond
+	make2ndProposalTimeout = 300 * time.Millisecond
+	endorseBlockTimeout    = 100 * time.Millisecond
+	commitBlockTimeout     = 200 * time.Millisecond
+	peerHandshakeTimeout   = 10 * time.Second
+)
+
+type SendMsgEvent struct {
+	ToPeer uint32 // peer index
+	Msg    ConsensusMsg
+}
 
 type TimerEvent struct {
 	evtType  TimerEventType

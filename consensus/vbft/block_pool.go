@@ -424,7 +424,7 @@ func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool) error {
 	if !forEmpty {
 		c.SealedBlock = block
 	} else {
-		blk := *block     // copy the block block
+		blk := *block                // copy the block block
 		blk.Block.Transactions = nil // remove its payload
 		c.SealedBlock = &blk
 	}
