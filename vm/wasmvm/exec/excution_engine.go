@@ -123,12 +123,18 @@ func (e *ExecutionEngine) CallInf(caller common.Uint160, code []byte, input []in
 		}else{
 			switch param.(type) {
 			case string:
-				offset, err := vm.SetMemory(param)
+				offset,err := vm.SetPointerMemory(param.(string))
+				if err != nil {
+					return nil, err
+				}
+				params[i] = uint64(offset)
+
+/*				offset, err := vm.SetMemory(param)
 				if err != nil {
 					return nil, err
 				}
 				vm.GetMemory().MemPoints[uint64(offset)] = &memory.TypeLength{Ptype:memory.P_STRING,Length:len(param.(string))}
-				params[i] = uint64(offset)
+				params[i] = uint64(offset)*/
 			case int:
 				params[i] = uint64(param.(int))
 			case int64:

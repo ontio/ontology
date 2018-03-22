@@ -540,12 +540,12 @@ func (vm *VM) loadModule(module *wasm.Module) error{
 				var tmpoffset = int(offset)
 				for _, tmp := range splited{
 					vm.memory.MemPoints[uint64(tmpoffset)] = &memory.TypeLength{Ptype:memory.P_STRING,Length:len(tmp)+1}
-					vm.memory.AllocedMemIdex = int(tmpoffset)+len(tmp) +1
+					//vm.memory.AllocedMemIdex = int(tmpoffset)+len(tmp) +1
 					tmpoffset += len(tmp) +1
 				}
 			}else{
 				vm.memory.MemPoints[uint64(offset)] = &memory.TypeLength{Ptype:memory.P_STRING,Length:len(entry.Data)}
-				vm.memory.AllocedMemIdex = int(offset)+len(entry.Data)
+				//vm.memory.AllocedMemIdex = int(offset)+len(entry.Data)
 			}
 		}
 	}

@@ -57,6 +57,11 @@ func TestContract1(t *testing.T){
 	result := &Result{}
 	json.Unmarshal(retbytes,result)
 
+	fmt.Println(engine.vm.memory.Memory[:20])
+	fmt.Println(engine.vm.memory.Memory[16384:])
+
+	fmt.Println(string(engine.vm.memory.Memory[7:50]))
+
 	if result.Pval != "50"{
 		t.Fatal("result should be 50")
 	}
