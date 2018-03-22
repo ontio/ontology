@@ -12,10 +12,12 @@ import (
 	hserver "github.com/Ontology/http/base/actor"
 	"github.com/Ontology/http/jsonrpc"
 	"github.com/Ontology/http/localrpc"
-	"github.com/Ontology/http/nodeinfo"
+	//"github.com/Ontology/http/nodeinfo"
 	"github.com/Ontology/http/restful"
 	"github.com/Ontology/http/websocket"
 	"github.com/Ontology/p2pserver"
+	netreqactor "github.com/Ontology/p2pserver/actor/req"
+	netserveractor "github.com/Ontology/p2pserver/actor/server"
 	"github.com/Ontology/p2pserver/protocol"
 	"github.com/Ontology/txnpool"
 	tc "github.com/Ontology/txnpool/common"
@@ -48,7 +50,6 @@ func init() {
 func main() {
 	var acct *account.Account
 	var err error
-	var noder protocol.Noder
 	log.Trace("Node version: ", config.Version)
 
 	if len(config.Parameters.BookKeepers) < account.DefaultBookKeeperCount {
@@ -109,33 +110,33 @@ func main() {
 
 	log.Info("4. Start the P2P networks")
 
-	net.SetLedgerPid(ledgerPID)
-	net.SetTxnPoolPid(txPoolServer.GetPID(tc.TxActor))
-	noder = net.StartProtocol(acct.PublicKey)
+	p2p, err := p2pserver.NewServer(acct)
 	if err != nil {
-		log.Fatalf("Net StartProtocol error %s", err)
+		log.Fatalf("p2pserver NewServer error %s", err)
 		os.Exit(1)
 	}
-	p2pActor, err := net.InitNetServerActor(noder)
+	p2pActor, err := netserveractor.InitNetServer(p2p)
 	if err != nil {
-		log.Fatalf("Net InitNetServerActor error %s", err)
+		log.Fatalf("p2pActor init error %s", err)
 		os.Exit(1)
 	}
+	netreqactor.SetLedgerPid(ledgerPID)
+	netreqactor.SetTxnPoolPid(txPoolServer.GetPID(tc.TxPoolActor))
 
 	hserver.SetNetServerPid(p2pActor)
 	hserver.SetLedgerPid(ledgerPID)
 	hserver.SetTxnPoolPid(txPoolServer.GetPID(tc.TxPoolActor))
 	hserver.SetTxPid(txPoolServer.GetPID(tc.TxActor))
 	go restful.StartServer()
-
-	noder.SyncNodeHeight()
-	noder.WaitForPeersStart()
-	noder.WaitForSyncBlkFinish()
+	//TODO how to info consencus module
+	// noder.SyncNodeHeight()
+	// noder.WaitForPeersStart()
+	// noder.WaitForSyncBlkFinish()
 	if protocol.SERVICENODENAME != config.Parameters.NodeType {
 		log.Info("5. Start Consensus Services")
 		pool := txPoolServer.GetPID(tc.TxPoolActor)
 		consensusService, _ := consensus.NewConsensusService(acct, pool, nil, p2pActor)
-		net.SetConsensusPid(consensusService.GetPID())
+		netreqactor.SetConsensusPid(consensusService.GetPID())
 		go consensusService.Start()
 		time.Sleep(5 * time.Second)
 		hserver.SetConsensusPid(consensusService.GetPID())
@@ -145,9 +146,9 @@ func main() {
 	log.Info("--Start the RPC interface")
 	go jsonrpc.StartRPCServer()
 	go websocket.StartServer()
-	if config.Parameters.HttpInfoStart {
-		go nodeinfo.StartServer(noder)
-	}
+	// if config.Parameters.HttpInfoStart {
+	// 	go nodeinfo.StartServer(noder)
+	// }
 
 	go logCurrBlockHeight()
 

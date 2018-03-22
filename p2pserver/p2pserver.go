@@ -1,44 +1,31 @@
-package net
+package p2pserver
 
 import (
-	"github.com/Ontology/crypto"
-	"github.com/Ontology/eventbus/actor"
-	"github.com/Ontology/events"
-	ns "github.com/Ontology/p2pserver/actor"
-	"github.com/Ontology/p2pserver/node"
+	"github.com/Ontology/account"
+	"github.com/Ontology/p2pserver/peer"
 	"github.com/Ontology/p2pserver/protocol"
 )
 
-type Neter interface {
-	//GetTxnPool(byCount bool) (map[Uint256]*types.Transaction, Fixed64)
+type P2pServer interface {
+	Start(bool, bool) error
+	Stop() error
+	GetVersion() uint32
+	GetConnectionCnt() uint64
+	GetPort() (uint16, uint16)
+	GetState() uint32
+	GetId() uint64
+	Services() uint64
+	GetConnectionState() uint32
+	GetTime() int64
+	GetNeighborAddrs() ([]protocol.PeerAddr, uint64)
 	Xmit(interface{}) error
-	GetEvent(eventName string) *events.Event
-	GetBookKeepersAddrs() ([]*crypto.PubKey, uint64)
-	//CleanTransactions(txns []*types.Transaction) error
-	GetNeighborNoder() []protocol.Noder
-	Tx(buf []byte)
-	//AppendTxnPool(*types.Transaction) ErrCode
+	IsSyncing() bool
+	IsStarted() bool
+	EnableDual(bool) error
 }
 
-func SetTxnPoolPid(txnPid *actor.PID) {
-	ns.SetTxnPoolPid(txnPid)
-}
-
-func SetConsensusPid(conPid *actor.PID) {
-	ns.SetConsensusPid(conPid)
-}
-
-func SetLedgerPid(conPid *actor.PID) {
-	ns.SetLedgerPid(conPid)
-}
-
-func InitNetServerActor(noder protocol.Noder) (*actor.PID, error) {
-	netServerPid, err := ns.InitNetServer(noder)
-	return netServerPid, err
-}
-
-func StartProtocol(pubKey *crypto.PubKey) protocol.Noder {
-	net := node.InitNode(pubKey)
-	net.ConnectSeeds()
-	return net
+func NewServer(acc *account.Account) (P2pServer, error) {
+	server := peer.NewPeer(acc.PubKey())
+	err := server.Start(true, true)
+	return server, err
 }

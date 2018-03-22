@@ -10,7 +10,7 @@ import (
 	"github.com/Ontology/common/log"
 	//	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/crypto"
-	"github.com/Ontology/p2pserver/actor"
+	actor "github.com/Ontology/p2pserver/actor/req"
 	. "github.com/Ontology/p2pserver/protocol"
 	"time"
 )

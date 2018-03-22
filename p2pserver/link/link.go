@@ -9,7 +9,7 @@ import (
 	"github.com/Ontology/common/log"
 	//"github.com/Ontology/events"
 	//msg "github.com/Ontology/p2pserver/message"
-	//. "github.com/Ontology/p2pserver/protocol"
+	. "github.com/Ontology/p2pserver/protocol"
 
 	"io"
 	"io/ioutil"
@@ -21,7 +21,7 @@ import (
 )
 
 type ConnectingNodes struct {
-	sync.RWMutex
+	//sync.RWMutex
 	ConnectingAddrs []string
 }
 
@@ -65,7 +65,7 @@ func (link *link) getConsensusConn() net.Conn {
 }
 
 func (link *link) SetConsensusConn(conn net.Conn) {
-	consensusConn = link.conn
+	link.consensusConn = conn
 }
 
 func (link *link) getconn(isConsensusChannel bool) net.Conn {

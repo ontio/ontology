@@ -11,7 +11,7 @@ import (
 	"github.com/Ontology/common/serialization"
 	"io"
 	//	"github.com/Ontology/ledger"
-	"github.com/Ontology/p2pserver/actor"
+	actor "github.com/Ontology/p2pserver/actor/req"
 	. "github.com/Ontology/p2pserver/protocol"
 )
 

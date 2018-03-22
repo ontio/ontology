@@ -1,15 +1,16 @@
-package actor
+package server
 
 import (
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/eventbus/actor"
+	"github.com/Ontology/p2pserver"
 	"github.com/Ontology/p2pserver/protocol"
 	"reflect"
 )
 
 var netServerPid *actor.PID
 
-var node protocol.Noder
+var server p2pserver.P2pServer
 
 type NetServer struct{}
 
@@ -90,7 +91,7 @@ type GetRelayStateRsp struct {
 type GetNeighborAddrsReq struct {
 }
 type GetNeighborAddrsRsp struct {
-	Addrs []protocol.NodeAddr
+	Addrs []protocol.PeerAddr
 	Count uint64
 }
 
@@ -125,50 +126,50 @@ func (state *NetServer) Receive(context actor.Context) {
 		syncPort, consPort := GetPort()
 		context.Sender().Request(&GetPortRsp{SyncPort: syncPort, ConsPort: consPort}, context.Self())
 	case *GetVersionReq:
-		version := node.Version()
+		version := server.GetVersion()
 		context.Sender().Request(&GetVersionRsp{Version: version}, context.Self())
 	case *GetConnectionCntReq:
-		connectionCnt := node.GetConnectionCnt()
-		context.Sender().Request(&GetConnectionCntRsp{Cnt: connectionCnt}, context.Self())
+		connectionCnt := server.GetConnectionCnt()
+		context.Sender().Request(&GetConnectionCntRsp{Cnt: uint(connectionCnt)}, context.Self())
 	case *GetSyncPortReq:
-		conPort := node.GetPort()
-		context.Sender().Request(&GetSyncPortRsp{SyncPort: conPort}, context.Self())
+		syncPort, _ := GetPort()
+		context.Sender().Request(&GetSyncPortRsp{SyncPort: syncPort}, context.Self())
 	case *GetConsPortReq:
-		conPort := node.GetConsensusPort()
+		_, conPort := GetPort()
 		context.Sender().Request(&GetConsPortRsp{ConsPort: conPort}, context.Self())
 	case *GetIdReq:
-		id := node.GetID()
+		id := server.GetId()
 		context.Sender().Request(&GetIdRsp{Id: id}, context.Self())
 	case *GetConnectionStateReq:
-		state := node.GetState()
+		state := server.GetState()
 		context.Sender().Request(&GetConnectionStateRsp{State: state}, context.Self())
 	case *GetTimeReq:
-		time := node.GetTime()
+		time := server.GetTime()
 		context.Sender().Request(&GetTimeRsp{Time: time}, context.Self())
-	case *GetNodeTypeReq:		//this function will be deleted
-		nodeType := node.Services()
+	case *GetNodeTypeReq: //this function will be deleted
+		nodeType := server.Services()
 		context.Sender().Request(&GetNodeTypeRsp{NodeType: nodeType}, context.Self())
-	case *GetRelayStateReq:		//this function will be deleted
-		relay := node.GetRelay()
-		context.Sender().Request(&GetRelayStateRsp{Relay: relay}, context.Self())
+	// case *GetRelayStateReq: //this function will be deleted
+	// 	relay := act.server.GetRelay()
+	// 	context.Sender().Request(&GetRelayStateRsp{Relay: relay}, context.Self())
 	case *GetNeighborAddrsReq:
-		addrs, count := node.GetNeighborAddrs()
+		addrs, count := server.GetNeighborAddrs()
 		context.Sender().Request(&GetNeighborAddrsRsp{Addrs: addrs, Count: count}, context.Self())
 	default:
-		err := node.Xmit(context.Message())
+		err := server.Xmit(context.Message())
 		if nil != err {
 			log.Error("Error Xmit message ", err.Error(), reflect.TypeOf(context.Message()))
 		}
 	}
 }
 
-func InitNetServer(netNode protocol.Noder) (*actor.PID, error) {
+func InitNetServer(p2p p2pserver.P2pServer) (*actor.PID, error) {
 	props := actor.FromProducer(func() actor.Actor { return &NetServer{} })
 	netServerPid, err := actor.SpawnNamed(props, "net_server")
 	if err != nil {
 		return nil, err
 	}
-	node = netNode
+	server = p2p
 	return netServerPid, err
 }
 
@@ -202,6 +203,5 @@ func IsSyncing() bool {
 }
 
 func GetPort() (uint16, uint16) {
-	return node.GetPort(), node.GetConsensusPort()
+	return 0, 0
 }
-

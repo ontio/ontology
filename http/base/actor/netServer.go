@@ -1,12 +1,12 @@
 package actor
 
 import (
-	"time"
-	"github.com/Ontology/eventbus/actor"
-	. "github.com/Ontology/p2pserver/protocol"
-	ac "github.com/Ontology/p2pserver/actor"
 	"errors"
 	"github.com/Ontology/common/log"
+	"github.com/Ontology/eventbus/actor"
+	ac "github.com/Ontology/p2pserver/actor/server"
+	. "github.com/Ontology/p2pserver/protocol"
+	"time"
 )
 
 var netServerPid *actor.PID
@@ -34,7 +34,7 @@ func GetConnectionCnt() (uint, error) {
 	return r.Cnt, nil
 }
 
-func GetNeighborAddrs() ([]NodeAddr, uint64) {
+func GetNeighborAddrs() ([]PeerAddr, uint64) {
 	future := netServerPid.RequestFuture(&ac.GetNeighborAddrsReq{}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {

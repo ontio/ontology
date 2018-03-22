@@ -1,4 +1,4 @@
-package actor
+package req
 
 import (
 	"github.com/Ontology/eventbus/actor"
@@ -11,6 +11,6 @@ var ConsensusPid *actor.PID
 //	ConsensusPid.Tell(cons)
 //}
 
-func SetConsensusPid(conPid * actor.PID){
+func SetConsensusPid(conPid *actor.PID) {
 	ConsensusPid = conPid
 }
