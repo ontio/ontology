@@ -23,6 +23,7 @@ import (
 	"fmt"
 
 	. "github.com/Ontology/common"
+	vconfig "github.com/Ontology/consensus/vbft/config"
 	"github.com/Ontology/core/types"
 )
 
@@ -122,10 +123,6 @@ func SerializeVbftMsg(msg ConsensusMsg) ([]byte, error) {
 	})
 }
 
-func DeserializeBlock(data []byte, blk *Block) error {
-	return json.Unmarshal(data, blk)
-}
-
 func (self *Server) constructHandshakeMsg() (*peerHandshakeMsg, error) {
 
 	blkNum := self.GetCurrentBlockNo() - 1
@@ -181,7 +178,7 @@ func (self *Server) constructProposalMsg(blkNum uint64, txs []*types.Transaction
 	if prevBlk.Info.NewChainConfig != nil {
 		lastConfigBlkNum = prevBlk.getBlockNum()
 	}
-	vbftBlkInfo := &VbftBlockInfo{
+	vbftBlkInfo := &vconfig.VbftBlockInfo{
 		Proposer:           self.Index,
 		LastConfigBlockNum: lastConfigBlkNum,
 		NewChainConfig:     nil,

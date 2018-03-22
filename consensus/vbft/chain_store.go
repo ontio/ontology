@@ -38,13 +38,26 @@ type ChainStore struct {
 	db   *actor.LedgerActor
 }
 
-func OpenBlockStore(ledger *actor.LedgerActor) (*ChainStore, error) {
-	info := &ChainInfo{
-		Num: math.MaxUint64, // as invalid blockNum
+func OpenBlockStore(lgr *actor.LedgerActor) (*ChainStore, error) {
+	var blk *Block
+	blkNum := ledger.DefLedger.GetCurrentBlockHeight()
+	if b, err := ledger.DefLedger.GetBlockByHeight(blkNum); err != nil {
+		return nil, fmt.Errorf("open block store %d failed: %s", blkNum, err)
+	} else {
+		blk, err = initVbftBlock(b)
+		if err != nil {
+			return nil, fmt.Errorf("open block store, failed to init vbft block %d: %s", blkNum, err)
+		}
 	}
+
+	info := &ChainInfo{
+		Num:      blk.getBlockNum(),
+		Proposer: blk.getProposer(),
+	}
+
 	return &ChainStore{
 		Info: info,
-		db:   ledger,
+		db:   lgr,
 	}, nil
 }
 

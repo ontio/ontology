@@ -180,7 +180,13 @@ func genConsensusPayload(configFilename string) ([]byte, error) {
 		PosTable:      posTable,
 	}
 
-	return json.Marshal(chainConfig)
+	vbftBlockInfo := &VbftBlockInfo{
+		Proposer:           math.MaxUint32,
+		LastConfigBlockNum: math.MaxUint64,
+		NewChainConfig:     chainConfig,
+	}
+
+	return json.Marshal(vbftBlockInfo)
 }
 
 func GenesisConsensusPayload() ([]byte, error) {
