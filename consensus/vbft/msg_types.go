@@ -24,6 +24,8 @@ import (
 
 	. "github.com/Ontology/common"
 	"github.com/Ontology/crypto"
+
+	vconfig "github.com/Ontology/consensus/vbft/config"
 )
 
 type MsgType uint8
@@ -157,11 +159,11 @@ func (msg *blockCommitMsg) Serialize() ([]byte, error) {
 }
 
 type peerHandshakeMsg struct {
-	CommittedBlockNumber uint64       `json:"committed_block_number"`
-	CommittedBlockHash   Uint256      `json:"committed_block_hash"`
-	CommittedBlockLeader uint32       `json:"committed_block_leader"`
-	ChainConfig          *ChainConfig `json:"chain_config"`
-	Sig                  []byte       `json:"sig"`
+	CommittedBlockNumber uint64               `json:"committed_block_number"`
+	CommittedBlockHash   Uint256              `json:"committed_block_hash"`
+	CommittedBlockLeader uint32               `json:"committed_block_leader"`
+	ChainConfig          *vconfig.ChainConfig `json:"chain_config"`
+	Sig                  []byte               `json:"sig"`
 }
 
 func (msg *peerHandshakeMsg) Type() MsgType {
@@ -197,7 +199,7 @@ type peerHeartbeatMsg struct {
 	CommittedBlockNumber uint64  `json:"committed_block_number"`
 	CommittedBlockHash   Uint256 `json:"committed_block_hash"`
 	CommittedBlockLeader uint32  `json:"committed_block_leader"`
-	ChainConfigView      uint32 `json:"chain_config_view"`
+	ChainConfigView      uint32  `json:"chain_config_view"`
 	Sig                  []byte  `json:"sig"`
 }
 
@@ -409,4 +411,3 @@ func (msg *proposalFetchMsg) GetBlockNum() uint64 {
 func (msg *proposalFetchMsg) Serialize() ([]byte, error) {
 	return json.Marshal(msg)
 }
-

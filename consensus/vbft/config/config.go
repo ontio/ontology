@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package vbft
+package vconfig
 
 import (
 	"bytes"
@@ -29,12 +29,6 @@ import (
 )
 
 var (
-	makeProposalTimeout    = 300 * time.Millisecond
-	make2ndProposalTimeout = 300 * time.Millisecond
-	endorseBlockTimeout    = 100 * time.Millisecond
-	commitBlockTimeout     = 200 * time.Millisecond
-	peerHandshakeTimeout   = 10 * time.Second
-
 	Version uint32 = 1
 )
 
@@ -50,16 +44,15 @@ type ChainConfig struct {
 	F             uint32        `json:"f"`       // tolerated fault peers
 	BlockMsgDelay time.Duration `json:"block_msg_delay"`
 	HashMsgDelay  time.Duration `json:"hash_msg_delay"`
-	SyncDelay     time.Duration `json:"sync_delay"`
 	Peers         []*PeerConfig `json:"peers"`
-	DposTable     []uint32      `json:"dpos_table"`
+	PosTable      []uint32      `json:"pos_table"`
 }
 
 const (
 	VrfSize           = 64 // bytes
-	maxProposerCount  = 32
-	maxEndorserCount  = 240
-	maxCommitterCount = 240
+	MaxProposerCount  = 32
+	MaxEndorserCount  = 240
+	MaxCommitterCount = 240
 )
 
 type VRFValue [VrfSize]byte
@@ -72,16 +65,6 @@ func (v VRFValue) Bytes() []byte {
 
 func (v VRFValue) IsNil() bool {
 	return bytes.Compare(v.Bytes(), NilVRF.Bytes()) == 0
-}
-
-type BlockParticipantConfig struct {
-	BlockNum    uint64
-	L           uint32
-	Vrf         VRFValue
-	ChainConfig *ChainConfig
-	Proposers   []uint32
-	Endorsers   []uint32
-	Committers  []uint32
 }
 
 func VerifyChainConfig(cfg *ChainConfig) error {

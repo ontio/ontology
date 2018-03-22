@@ -20,6 +20,7 @@ package vbft
 
 import (
 	"fmt"
+	vconfig "github.com/Ontology/consensus/vbft/config"
 	"math"
 )
 
@@ -49,7 +50,7 @@ func (self *Server) isPeerActive(peerIdx uint32, blockNum uint64) bool {
 		}
 
 		if p.LatestInfo != nil {
-			return p.LatestInfo.CommittedBlockNumber + maxSyncingCheckBlkNum * 4 > self.GetCommittedBlockNo()
+			return p.LatestInfo.CommittedBlockNumber+maxSyncingCheckBlkNum*4 > self.GetCommittedBlockNo()
 		}
 		return true
 	}
@@ -190,7 +191,7 @@ func isEmptyProposal(proposal *blockProposalMsg) bool {
 //
 //  call this method with metaLock locked
 //
-func (self *Server) buildParticipantConfig(blkNum uint64, chainCfg *ChainConfig) (*BlockParticipantConfig, error) {
+func (self *Server) buildParticipantConfig(blkNum uint64, chainCfg *vconfig.ChainConfig) (*BlockParticipantConfig, error) {
 
 	if blkNum == 0 {
 		return nil, fmt.Errorf("not participant config for genesis block")
@@ -213,11 +214,11 @@ func (self *Server) buildParticipantConfig(blkNum uint64, chainCfg *ChainConfig)
 	}
 
 	s := 0
-	cfg.Proposers = calcParticipantPeers(cfg, chainCfg, s, s+maxProposerCount)
-	s += maxProposerCount
-	cfg.Endorsers = calcParticipantPeers(cfg, chainCfg, s, s+maxEndorserCount)
-	s += maxEndorserCount
-	cfg.Committers = calcParticipantPeers(cfg, chainCfg, s, s+maxCommitterCount)
+	cfg.Proposers = calcParticipantPeers(cfg, chainCfg, s, s+vconfig.MaxProposerCount)
+	s += vconfig.MaxProposerCount
+	cfg.Endorsers = calcParticipantPeers(cfg, chainCfg, s, s+vconfig.MaxEndorserCount)
+	s += vconfig.MaxEndorserCount
+	cfg.Committers = calcParticipantPeers(cfg, chainCfg, s, s+vconfig.MaxCommitterCount)
 
 	self.log.Infof("server %d, blkNum: %d, state: %d, participants config: %v, %v, %v", self.Index, blkNum,
 		self.getState(), cfg.Proposers, cfg.Endorsers, cfg.Committers)
@@ -225,14 +226,14 @@ func (self *Server) buildParticipantConfig(blkNum uint64, chainCfg *ChainConfig)
 	return cfg, nil
 }
 
-func calcParticipantPeers(cfg *BlockParticipantConfig, chain *ChainConfig, start, end int) []uint32 {
+func calcParticipantPeers(cfg *BlockParticipantConfig, chain *vconfig.ChainConfig, start, end int) []uint32 {
 
 	peers := make([]uint32, 0)
 	peerMap := make(map[uint32]bool)
 	var cnt uint32
 
 	for i := start; i < end; i++ {
-		peerId := calcParticipant(cfg.Vrf, chain.DposTable, uint32(i))
+		peerId := calcParticipant(cfg.Vrf, chain.PosTable, uint32(i))
 		if _, present := peerMap[peerId]; !present {
 			// got new peer
 			peers = append(peers, peerId)
@@ -248,7 +249,7 @@ func calcParticipantPeers(cfg *BlockParticipantConfig, chain *ChainConfig, start
 	return peers
 }
 
-func calcParticipant(vrf VRFValue, dposTable []uint32, k uint32) uint32 {
+func calcParticipant(vrf vconfig.VRFValue, dposTable []uint32, k uint32) uint32 {
 	var v1, v2 uint32
 	bIdx := k / 8
 	bits1 := k % 8
@@ -293,8 +294,8 @@ func (self *Server) validateTxsInProposal(proposal *blockProposalMsg) error {
 	return nil
 }
 
-func (self *Server)receiveFromPeer(peerIdx uint32) ([]byte, error) {
-	payload := <- self.msgRecvC[peerIdx]
+func (self *Server) receiveFromPeer(peerIdx uint32) ([]byte, error) {
+	payload := <-self.msgRecvC[peerIdx]
 	if payload != nil {
 		return payload.Data, nil
 	}
@@ -302,7 +303,7 @@ func (self *Server)receiveFromPeer(peerIdx uint32) ([]byte, error) {
 	return nil, fmt.Errorf("nil consensus payload")
 }
 
-func (self *Server)sendToPeer(peerIdx uint32, data []byte) error {
+func (self *Server) sendToPeer(peerIdx uint32, data []byte) error {
 	peer := self.peerPool.getPeer(peerIdx)
 	if peer == nil {
 		return fmt.Errorf("send peer failed: failed to get peer %d", peerIdx)
@@ -319,7 +320,7 @@ func (self *Server) broadcast(msg ConsensusMsg) error {
 	return nil
 }
 
-func (self *Server)broadcastToAll(data []byte) error {
+func (self *Server) broadcastToAll(data []byte) error {
 	self.p2p.Broadcast(data)
 	return nil
 }

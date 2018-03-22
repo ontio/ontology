@@ -29,6 +29,7 @@ import (
 	"github.com/Ontology/account"
 	"github.com/Ontology/common/log"
 	actorTypes "github.com/Ontology/consensus/actor"
+	vconfig "github.com/Ontology/consensus/vbft/config"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/eventbus/actor"
@@ -54,6 +55,16 @@ type BftAction struct {
 	forEmpty bool
 }
 
+type BlockParticipantConfig struct {
+	BlockNum    uint64
+	L           uint32
+	Vrf         vconfig.VRFValue
+	ChainConfig *vconfig.ChainConfig
+	Proposers   []uint32
+	Endorsers   []uint32
+	Committers  []uint32
+}
+
 type Server struct {
 	Index     uint32
 	account   *account.Account
@@ -70,7 +81,7 @@ type Server struct {
 
 	metaLock                 sync.RWMutex
 	currentBlockNum          uint64
-	config                   *ChainConfig
+	config                   *vconfig.ChainConfig
 	currentParticipantConfig *BlockParticipantConfig
 
 	chainStore *ChainStore // block store
@@ -161,7 +172,7 @@ func (self *Server) handlePeerStateUpdate(peer *p2pmsg.PeerStateUpdate) {
 		return
 	}
 	if peer.Connected {
-		peerID, err := PubkeyID(peer.PeerPubKey)
+		peerID, err := vconfig.PubkeyID(peer.PeerPubKey)
 		if err != nil {
 			self.log.Errorf("failed to get peer ID for pubKey: %v", peer.PeerPubKey)
 		}
@@ -191,7 +202,7 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 }
 
 func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
-	peerID, err := PubkeyID(payload.Owner)
+	peerID, err := vconfig.PubkeyID(payload.Owner)
 	if err != nil {
 		self.log.Errorf("failed to get peer ID for pubKey: %v", payload.Owner)
 	}
@@ -214,7 +225,7 @@ func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
 		return err
 	}
 
-	var cfg ChainConfig
+	var cfg vconfig.ChainConfig
 	if block.getNewChainConfig() != nil {
 		cfg = *block.getNewChainConfig()
 	} else {
@@ -312,7 +323,7 @@ func (self *Server) start() error {
 		self.log.Infof("added peer: %s", p.ID.String())
 	}
 
-	id, _ := PubkeyID(self.account.PublicKey)
+	id, _ := vconfig.PubkeyID(self.account.PublicKey)
 	self.Index, _ = self.peerPool.GetPeerIndex(id)
 
 	go self.syncer.run()
@@ -348,7 +359,7 @@ func (self *Server) stop() error {
 }
 
 func (self *Server) run(peerPubKey *crypto.PubKey) error {
-	peerID, err := PubkeyID(peerPubKey)
+	peerID, err := vconfig.PubkeyID(peerPubKey)
 	if err != nil {
 		return fmt.Errorf("failed to get peer ID for pubKey: %v", peerPubKey)
 	}
