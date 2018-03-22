@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	MAXCAPACITY    = 20140                        // The tx pool's capacity that holds the verified txs
-	MAXPENDINGTXN  = 2048                         // The max length of pending txs
+	MAXCAPACITY    = 100140                        // The tx pool's capacity that holds the verified txs
+	MAXPENDINGTXN  = 2048*10                         // The max length of pending txs
 	MAXWORKERNUM   = 2                            // The max concurrent workers
 	MAXRCVTXNLEN   = MAXWORKERNUM * MAXPENDINGTXN // The max length of the queue that server can hold
 	MAXRETRIES     = 3                            // The retry times to verify tx

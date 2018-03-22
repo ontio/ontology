@@ -21,6 +21,7 @@ import (
 	"time"
 )
 
+
 func transferAction(c *cli.Context) error {
 	if c.NumFlags() == 0 {
 		cli.ShowSubcommandHelp(c)
