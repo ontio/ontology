@@ -39,7 +39,6 @@ import (
 	tc "github.com/Ontology/txnpool/common"
 	"github.com/Ontology/validator/statefull"
 	"github.com/Ontology/validator/stateless"
-	el "github.com/ontio/ontology-eventbus/common/log"
 	"os"
 	"os/signal"
 	"runtime"
@@ -55,7 +54,6 @@ const (
 func init() {
 	log.Init(log.Path, log.Stdout)
 	// Todo: If the actor bus uses a different log lib, remove it
-	el.Init(log.Path, log.Stdout)
 
 	var coreNum int
 	if config.Parameters.MultiCoreNum > DefaultMultiCoreNum {
