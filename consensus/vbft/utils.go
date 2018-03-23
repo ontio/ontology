@@ -40,17 +40,7 @@ func SignMsg(sk []byte, msg ConsensusMsg) ([]byte, error) {
 }
 
 func HashBlock(blk *Block) (Uint256, error) {
-
-	// FIXME: has to do marshal on each call
-
-	data, err := blk.Serialize()
-	if err != nil {
-		return Uint256{}, fmt.Errorf("failed to marshal block: %s", err)
-	}
-
-	t := sha256.Sum256(data)
-	f := sha256.Sum256(t[:])
-	return Uint256(f), nil
+	return blk.Block.Hash(), nil
 }
 
 func HashMsg(msg ConsensusMsg) (Uint256, error) {
