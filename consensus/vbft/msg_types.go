@@ -81,12 +81,12 @@ func (msg *blockProposalMsg) UnmarshalJSON(data []byte) error {
 
 	blk := &types.Block{}
 	if err := blk.Deserialize(buf); err != nil {
-		return err
+		return fmt.Errorf("marshal block type: %s", err)
 	}
 
 	block, err := initVbftBlock(blk)
 	if err != nil {
-		return err
+		return fmt.Errorf("init vbft block: %s", err)
 	}
 	msg.Block = block
 	return nil

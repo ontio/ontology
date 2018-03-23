@@ -21,6 +21,7 @@ package vbft
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 
 	"github.com/Ontology/common"
 	vconfig "github.com/Ontology/consensus/vbft/config"
@@ -59,14 +60,14 @@ func (blk *Block) isEmpty() bool {
 func (blk *Block) Serialize() ([]byte, error) {
 	infoData, err := json.Marshal(blk.Info)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("marshal blockInfo: %s", err)
 	}
 
 	blk.Block.Header.ConsensusPayload = infoData
 
 	buf := bytes.NewBuffer([]byte{})
 	if err := blk.Block.Serialize(buf); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("serialize block type: %s", err)
 	}
 
 	return buf.Bytes(), nil
@@ -75,7 +76,7 @@ func (blk *Block) Serialize() ([]byte, error) {
 func initVbftBlock(block *types.Block) (*Block, error) {
 	blkInfo := &vconfig.VbftBlockInfo{}
 	if err := json.Unmarshal(block.Header.ConsensusPayload, blkInfo); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshal blockInfo: %s", err)
 	}
 
 	return &Block{
