@@ -29,7 +29,7 @@ type PayloadInfo interface{}
 //implement PayloadInfo define BookKeepingInfo
 type BookKeepingInfo struct {
 	Nonce  uint64
-	Issuer IssuerInfo
+	//Issuer IssuerInfo
 }
 
 
@@ -53,10 +53,6 @@ type DeployCodeInfo struct {
 type IssueAssetInfo struct {
 }
 
-type IssuerInfo struct {
-	X, Y string
-}
-
 
 //implement PayloadInfo define TransferAssetInfo
 type TransferAssetInfo struct {
@@ -70,7 +66,7 @@ type RecordInfo struct {
 type BookkeeperInfo struct {
 	PubKey     string
 	Action     string
-	Issuer     IssuerInfo
+	Issuer     string
 	Controller string
 }
 
@@ -78,7 +74,7 @@ type DataFileInfo struct {
 	IPFSPath string
 	Filename string
 	Note     string
-	Issuer   IssuerInfo
+	Issuer   string
 }
 
 type Claim struct {
@@ -119,9 +115,10 @@ func TransPayloadToHex(p types.Payload) PayloadInfo {
 		} else {
 			obj.Action = "nil"
 		}
-		obj.Issuer.X = object.Issuer.X.String()
-		obj.Issuer.Y = object.Issuer.Y.String()
-
+		pk,err :=object.Issuer.EncodePoint(true)
+		if err == nil{
+			obj.Issuer = ToHexString(pk)
+		}
 		return obj
 	case *payload.InvokeCode:
 		obj := new(InvokeCodeInfo)
