@@ -216,6 +216,7 @@ func (self *Server) constructProposalMsg(blkNum uint64, txs []*types.Transaction
 		},
 		Info: vbftBlkInfo,
 	}
+	blk.Block.Hash()			// update block header hash
 	msg := &blockProposalMsg{
 		Block: blk,
 	}
