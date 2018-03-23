@@ -30,6 +30,7 @@ import (
 	"github.com/Ontology/common/log"
 	actorTypes "github.com/Ontology/consensus/actor"
 	vconfig "github.com/Ontology/consensus/vbft/config"
+	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/eventbus/actor"
@@ -742,7 +743,6 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 			self.log.Errorf("failed to response handshake msg: %s", err)
 			return
 		}
-
 
 	case peerHeartbeatMessage:
 		pMsg, ok := msg.(*peerHeartbeatMsg)
@@ -1680,9 +1680,27 @@ func (self *Server) msgSendLoop() {
 	}
 }
 
+// FIXME
+//    copied from dbft
+func (self *Server) createBookkeepingTransaction(nonce uint64, fee uint64) *types.Transaction {
+	log.Debug()
+	//TODO: sysfee
+	bookKeepingPayload := &payload.BookKeeping{
+		Nonce: uint64(time.Now().UnixNano()),
+	}
+	return &types.Transaction{
+		TxType:     types.BookKeeping,
+		Payload:    bookKeepingPayload,
+		Attributes: []*types.TxAttribute{},
+	}
+}
+
 func (self *Server) makeProposal(blkNum uint64, forEmpty bool) error {
 	var txs []*types.Transaction
 
+	// FIXME: self.index as nonce??
+	txBookkeeping := self.createBookkeepingTransaction(uint64(self.Index), 0)
+	txs = append(txs, txBookkeeping)
 	if !forEmpty {
 		for _, e := range self.poolActor.GetTxnPool(true, uint32(blkNum-1)) {
 			txs = append(txs, e.Tx)

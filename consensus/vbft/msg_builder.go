@@ -21,10 +21,13 @@ package vbft
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	. "github.com/Ontology/common"
 	vconfig "github.com/Ontology/consensus/vbft/config"
+	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/types"
+	"github.com/Ontology/crypto"
 )
 
 type ConsensusMsgPayload struct {
@@ -37,7 +40,7 @@ func DeserializeVbftMsg(msgPayload []byte) (ConsensusMsg, error) {
 
 	m := &ConsensusMsgPayload{}
 	if err := json.Unmarshal(msgPayload, m); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshal consensus msg payload: %s", err)
 	}
 	if m.Len < uint32(len(m.Payload)) {
 		return nil, fmt.Errorf("invalid payload length: %d", m.Len)
@@ -46,7 +49,7 @@ func DeserializeVbftMsg(msgPayload []byte) (ConsensusMsg, error) {
 	switch m.Type {
 	case blockProposalMessage:
 		t := &blockProposalMsg{}
-		if err := json.Unmarshal(m.Payload, t); err != nil {
+		if err := t.UnmarshalJSON(m.Payload); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
 		}
 		return t, nil
@@ -174,6 +177,16 @@ func (self *Server) constructProposalMsg(blkNum uint64, txs []*types.Transaction
 		return nil, fmt.Errorf("failed to get prevBlock (%d)", blkNum)
 	}
 
+	txHash := []Uint256{}
+	for _, t := range txs {
+		txHash = append(txHash, t.Hash())
+	}
+	txRoot, err := crypto.ComputeRoot(txHash)
+	if err != nil {
+		return nil, fmt.Errorf("compute hash root: %s", err)
+	}
+	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoot(txRoot)
+
 	lastConfigBlkNum := prevBlk.Info.LastConfigBlockNum
 	if prevBlk.Info.NewChainConfig != nil {
 		lastConfigBlkNum = prevBlk.getBlockNum()
@@ -189,7 +202,11 @@ func (self *Server) constructProposalMsg(blkNum uint64, txs []*types.Transaction
 	}
 	blkHeader := &types.Header{
 		PrevBlockHash:    prevBlkHash,
+		TransactionsRoot: txRoot,
+		BlockRoot:        blockRoot,
+		Timestamp:        uint32(time.Now().Unix()),
 		Height:           uint32(blkNum),
+		ConsensusData:    uint64(self.Index),
 		ConsensusPayload: consensusPayload,
 		SigData:          [][]byte{{}, {}},
 	}
