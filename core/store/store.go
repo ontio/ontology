@@ -28,7 +28,7 @@ import (
 
 // ILedgerStore provides func with store package.
 type ILedgerStore interface {
-	InitLedgerStoreWithGenesisBlock(genesisblock *types.Block, defaultBookKeeper []*crypto.PubKey) error
+	InitLedgerStoreWithGenesisBlock(genesisblock *types.Block, defaultBookkeeper []*crypto.PubKey) error
 	Close() error
 	AddHeaders(headers []*types.Header) error
 	AddBlock(block *types.Block) error
@@ -46,7 +46,7 @@ type ILedgerStore interface {
 	IsContainTransaction(txHash common.Uint256) (bool, error)
 	GetBlockRootWithNewTxRoot(txRoot common.Uint256) common.Uint256
 	GetContractState(contractHash common.Address) (*payload.DeployCode, error)
-	GetBookKeeperState() (*states.BookKeeperState, error)
+	GetBookkeeperState() (*states.BookkeeperState, error)
 	GetStorageItem(key *states.StorageKey) (*states.StorageItem, error)
 	PreExecuteContract(tx *types.Transaction) ([]interface{}, error)
 }

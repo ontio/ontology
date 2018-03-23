@@ -91,7 +91,7 @@ func TestContractState(t *testing.T) {
 	}
 }
 
-func TestBookKeeperState(t *testing.T) {
+func TestBookkeeperState(t *testing.T) {
 	batch, err := getStateBatch()
 	if err != nil {
 		t.Errorf("NewStateBatch error %s", err)
@@ -100,18 +100,18 @@ func TestBookKeeperState(t *testing.T) {
 
 	_, pubKey1, _ := crypto.GenKeyPair()
 	_, pubKey2, _ := crypto.GenKeyPair()
-	currBookKeepers := make([]*crypto.PubKey, 0)
-	currBookKeepers = append(currBookKeepers, &pubKey1)
-	currBookKeepers = append(currBookKeepers, &pubKey2)
-	nextBookKeepers := make([]*crypto.PubKey, 0)
-	nextBookKeepers = append(nextBookKeepers, &pubKey1)
-	nextBookKeepers = append(nextBookKeepers, &pubKey2)
+	currBookkeepers := make([]*crypto.PubKey, 0)
+	currBookkeepers = append(currBookkeepers, &pubKey1)
+	currBookkeepers = append(currBookkeepers, &pubKey2)
+	nextBookkeepers := make([]*crypto.PubKey, 0)
+	nextBookkeepers = append(nextBookkeepers, &pubKey1)
+	nextBookkeepers = append(nextBookkeepers, &pubKey2)
 
-	bookKeeperState := &states.BookKeeperState{
-		CurrBookKeeper: currBookKeepers,
-		NextBookKeeper: nextBookKeepers,
+	bookkeeperState := &states.BookkeeperState{
+		CurrBookkeeper: currBookkeepers,
+		NextBookkeeper: nextBookkeepers,
 	}
-	batch.TryAdd(scommon.ST_BookKeeper, BookerKeeper, bookKeeperState, false)
+	batch.TryAdd(scommon.ST_Bookkeeper, BookerKeeper, bookkeeperState, false)
 	err = batch.CommitTo()
 	if err != nil {
 		t.Errorf("batch.CommitTo error %s", err)
@@ -122,24 +122,24 @@ func TestBookKeeperState(t *testing.T) {
 		t.Errorf("testStateStore.CommitTo error %s", err)
 		return
 	}
-	bookState, err := testStateStore.GetBookKeeperState()
+	bookState, err := testStateStore.GetBookkeeperState()
 	if err != nil {
-		t.Errorf("GetBookKeeperState error %s", err)
+		t.Errorf("GetBookkeeperState error %s", err)
 		return
 	}
-	currBookKeepers1 := bookState.CurrBookKeeper
-	nextBookKeepers1 := bookState.NextBookKeeper
-	for index, pk := range currBookKeepers {
-		pk1 := currBookKeepers1[index]
+	currBookkeepers1 := bookState.CurrBookkeeper
+	nextBookkeepers1 := bookState.NextBookkeeper
+	for index, pk := range currBookkeepers {
+		pk1 := currBookkeepers1[index]
 		if pk.X.Cmp(pk1.X) != 0 || pk.Y.Cmp(pk1.Y) != 0 {
-			t.Errorf("TestBookKeeperState currentBookKeeper failed")
+			t.Errorf("TestBookkeeperState currentBookkeeper failed")
 			return
 		}
 	}
-	for index, pk := range nextBookKeepers {
-		pk1 := nextBookKeepers1[index]
+	for index, pk := range nextBookkeepers {
+		pk1 := nextBookkeepers1[index]
 		if pk.X.Cmp(pk1.X) != 0 || pk.Y.Cmp(pk1.Y) != 0 {
-			t.Errorf("TestBookKeeperState currentBookKeeper failed")
+			t.Errorf("TestBookkeeperState currentBookkeeper failed")
 			return
 		}
 	}

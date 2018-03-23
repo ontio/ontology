@@ -86,10 +86,10 @@ func TestInitLedgerStoreWithGenesisBlock(t *testing.T) {
 	_, pubKey3, _ := crypto.GenKeyPair()
 	_, pubKey4, _ := crypto.GenKeyPair()
 
-	bookKeepers := []*crypto.PubKey{&pubKey1, &pubKey2, &pubKey3, &pubKey4}
-	bookKeeper, err := types.AddressFromBookKeepers(bookKeepers)
+	bookkeepers := []*crypto.PubKey{&pubKey1, &pubKey2, &pubKey3, &pubKey4}
+	bookkeeper, err := types.AddressFromBookkeepers(bookkeepers)
 	if err != nil {
-		t.Errorf("AddressFromBookKeepers error %s", err)
+		t.Errorf("AddressFromBookkeepers error %s", err)
 		return
 	}
 	header := &types.Header{
@@ -99,7 +99,7 @@ func TestInitLedgerStoreWithGenesisBlock(t *testing.T) {
 		Timestamp:        uint32(uint32(time.Date(2017, time.February, 23, 0, 0, 0, 0, time.UTC).Unix())),
 		Height:           uint32(0),
 		ConsensusData:    1234567890,
-		NextBookKeeper:   bookKeeper,
+		NextBookkeeper:   bookkeeper,
 	}
 	tx1 := &types.Transaction{
 		TxType: types.BookKeeping,
@@ -113,7 +113,7 @@ func TestInitLedgerStoreWithGenesisBlock(t *testing.T) {
 		Transactions: []*types.Transaction{tx1},
 	}
 
-	err = testLedgerStore.InitLedgerStoreWithGenesisBlock(block, bookKeepers)
+	err = testLedgerStore.InitLedgerStoreWithGenesisBlock(block, bookkeepers)
 	if err != nil {
 		t.Errorf("TestInitLedgerStoreWithGenesisBlock error %s", err)
 		return

@@ -138,8 +138,8 @@ Response when verbose = 1:
             "Timestamp": 1521703551,
             "Height": 4,
             "ConsensusData": 17166119660593720000,
-            "NextBookKeeper": "027c557d2e735b9a369d20dd099bfd42db5cdb74",
-            "BookKeepers": [
+            "NextBookkeeper": "027c557d2e735b9a369d20dd099bfd42db5cdb74",
+            "Bookkeepers": [
                 {
                     "X": "11045594958442581564679839478917319740817938700262919124154204990772552987783",
                     "Y": "28445199876541353997545685344458930058882115795876754515124389392470701852812"

@@ -28,7 +28,7 @@ const (
 	DATA_Transaction = 0x02
 
 	// Transaction
-	ST_BookKeeper = 0x03
+	ST_Bookkeeper = 0x03
 	ST_Contract = 0x04
 	ST_Storage = 0x05
 	ST_Validator = 0x07

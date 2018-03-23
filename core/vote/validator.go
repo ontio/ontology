@@ -32,7 +32,7 @@ import (
 
 func GetValidators(txs []*types.Transaction) ([]*crypto.PubKey, error) {
 	// TODO implement vote
-	return genesis.GenesisBookKeepers, nil
+	return genesis.GenesisBookkeepers, nil
 }
 
 /*
@@ -41,7 +41,7 @@ func GetValidators(txs []*types.Transaction) ([]*crypto.PubKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	validatorCount := int(math.Max(float64(weightedAverage(votes)), float64(len(ledger.StandbyBookKeepers))))
+	validatorCount := int(math.Max(float64(weightedAverage(votes)), float64(len(ledger.StandbyBookkeepers))))
 	if err != nil {
 		return nil, err
 	}

@@ -39,7 +39,7 @@ var (
 )
 
 func OntInit(native *NativeService) (bool, error) {
-	booKeepers := account.GetBookKeepers()
+	booKeepers := account.GetBookkeepers()
 
 	amount, err := getBalance(native, getOntTotalSupplyKey())
 	if err != nil {

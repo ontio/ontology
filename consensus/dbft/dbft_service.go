@@ -200,7 +200,7 @@ func (ds *DbftService) CheckSignatures() error {
 		//build block
 		block := ds.context.MakeHeader()
 		sigs := make([]SignaturesData, ds.context.M())
-		for i, j := 0, 0; i < len(ds.context.BookKeepers) && j < ds.context.M(); i++ {
+		for i, j := 0, 0; i < len(ds.context.Bookkeepers) && j < ds.context.M(); i++ {
 			if ds.context.Signatures[i] != nil {
 				sig := ds.context.Signatures[i]
 				sigs[j].Index = uint16(i)
@@ -211,7 +211,7 @@ func (ds *DbftService) CheckSignatures() error {
 			}
 		}
 
-		block.Header.BookKeepers = ds.context.BookKeepers
+		block.Header.Bookkeepers = ds.context.Bookkeepers
 
 		//fill transactions
 		block.Transactions = ds.context.Transactions
@@ -257,13 +257,13 @@ func (ds *DbftService) CreateBookkeepingTransaction(nonce uint64, fee Fixed64) *
 
 func (ds *DbftService) ChangeViewReceived(payload *p2pmsg.ConsensusPayload, message *ChangeView) {
 	log.Debug()
-	log.Info(fmt.Sprintf("Change View Received: height=%d View=%d index=%d nv=%d", payload.Height, message.ViewNumber(), payload.BookKeeperIndex, message.NewViewNumber))
+	log.Info(fmt.Sprintf("Change View Received: height=%d View=%d index=%d nv=%d", payload.Height, message.ViewNumber(), payload.BookkeeperIndex, message.NewViewNumber))
 
-	if message.NewViewNumber <= ds.context.ExpectedView[payload.BookKeeperIndex] {
+	if message.NewViewNumber <= ds.context.ExpectedView[payload.BookkeeperIndex] {
 		return
 	}
 
-	ds.context.ExpectedView[payload.BookKeeperIndex] = message.NewViewNumber
+	ds.context.ExpectedView[payload.BookkeeperIndex] = message.NewViewNumber
 
 	ds.CheckExpectedView(message.NewViewNumber)
 }
@@ -293,12 +293,12 @@ func (ds *DbftService) InitializeConsensus(viewNum byte) error {
 		ds.context.ChangeView(viewNum)
 	}
 
-	if ds.context.BookKeeperIndex < 0 {
+	if ds.context.BookkeeperIndex < 0 {
 		log.Info("You aren't bookkeeper")
 		return nil
 	}
 
-	if ds.context.BookKeeperIndex == int(ds.context.PrimaryIndex) {
+	if ds.context.BookkeeperIndex == int(ds.context.PrimaryIndex) {
 
 		//primary peer
 		ds.context.State |= Primary
@@ -341,7 +341,7 @@ func (ds *DbftService) LocalNodeNewInventory(v interface{}) {
 
 func (ds *DbftService) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 	//if payload from current peer, ignore it
-	if int(payload.BookKeeperIndex) == ds.context.BookKeeperIndex {
+	if int(payload.BookkeeperIndex) == ds.context.BookkeeperIndex {
 		return
 	}
 
@@ -358,7 +358,7 @@ func (ds *DbftService) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 		return
 	}
 
-	if int(payload.BookKeeperIndex) >= len(ds.context.BookKeepers) {
+	if int(payload.BookkeeperIndex) >= len(ds.context.Bookkeepers) {
 		return
 	}
 
@@ -403,13 +403,13 @@ func (ds *DbftService) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 }
 
 func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, message *PrepareRequest) {
-	log.Info(fmt.Sprintf("Prepare Request Received: height=%d View=%d index=%d tx=%d", payload.Height, message.ViewNumber(), payload.BookKeeperIndex, len(message.Transactions)))
+	log.Info(fmt.Sprintf("Prepare Request Received: height=%d View=%d index=%d tx=%d", payload.Height, message.ViewNumber(), payload.BookkeeperIndex, len(message.Transactions)))
 
 	if !ds.context.State.HasFlag(Backup) || ds.context.State.HasFlag(RequestReceived) {
 		return
 	}
 
-	if uint32(payload.BookKeeperIndex) != ds.context.PrimaryIndex {
+	if uint32(payload.BookkeeperIndex) != ds.context.PrimaryIndex {
 		return
 	}
 
@@ -436,12 +436,12 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 	ds.context.State |= RequestReceived
 	ds.context.Timestamp = payload.Timestamp
 	ds.context.Nonce = message.Nonce
-	ds.context.NextBookKeeper = message.NextBookKeeper
+	ds.context.NextBookkeeper = message.NextBookkeeper
 	ds.context.Transactions = message.Transactions
 	ds.context.header = nil
 
 	blockHash := ds.context.MakeHeader().Hash()
-	err = crypto.Verify(*ds.context.BookKeepers[payload.BookKeeperIndex], blockHash[:], message.Signature)
+	err = crypto.Verify(*ds.context.Bookkeepers[payload.BookkeeperIndex], blockHash[:], message.Signature)
 	if err != nil {
 		log.Warn("PrepareRequestReceived VerifySignature failed.", err)
 		ds.context = backupContext
@@ -449,8 +449,8 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 		return
 	}
 
-	ds.context.Signatures = make([][]byte, len(ds.context.BookKeepers))
-	ds.context.Signatures[payload.BookKeeperIndex] = message.Signature
+	ds.context.Signatures = make([][]byte, len(ds.context.Bookkeepers))
+	ds.context.Signatures[payload.BookkeeperIndex] = message.Signature
 
 	for _, tx := range ds.context.Transactions[1:] {
 		if tx.TxType == types.BookKeeping {
@@ -471,30 +471,30 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 		}
 	}
 
-	ds.context.NextBookKeepers, err = vote.GetValidators(ds.context.Transactions)
+	ds.context.NextBookkeepers, err = vote.GetValidators(ds.context.Transactions)
 	if err != nil {
 		ds.context = backupContext
 		log.Error("[PrepareRequestReceived] GetValidators failed")
 		return
 	}
-	ds.context.NextBookKeeper, err = types.AddressFromBookKeepers(ds.context.NextBookKeepers)
+	ds.context.NextBookkeeper, err = types.AddressFromBookkeepers(ds.context.NextBookkeepers)
 	if err != nil {
 		ds.context = backupContext
-		log.Error("[PrepareRequestReceived] GetBookKeeperAddress failed")
+		log.Error("[PrepareRequestReceived] GetBookkeeperAddress failed")
 		return
 	}
 
-	if ds.context.NextBookKeeper != message.NextBookKeeper {
+	if ds.context.NextBookkeeper != message.NextBookkeeper {
 		ds.context = backupContext
 		ds.RequestChangeView()
-		log.Error("[PrepareRequestReceived] Unmatched NextBookKeeper")
+		log.Error("[PrepareRequestReceived] Unmatched NextBookkeeper")
 		return
 	}
 
 	log.Info("send prepare response")
 	ds.context.State |= SignatureSent
 
-	if ds.context.BookKeeperIndex == -1 {
+	if ds.context.BookkeeperIndex == -1 {
 		log.Error("[DbftService] GetAccount failed")
 		return
 	}
@@ -504,23 +504,23 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 		log.Error("[DbftService] SignBySigner failed")
 		return
 	}
-	ds.context.Signatures[ds.context.BookKeeperIndex] = sign
+	ds.context.Signatures[ds.context.BookkeeperIndex] = sign
 
-	payload = ds.context.MakePrepareResponse(ds.context.Signatures[ds.context.BookKeeperIndex])
+	payload = ds.context.MakePrepareResponse(ds.context.Signatures[ds.context.BookkeeperIndex])
 	ds.SignAndRelay(payload)
 
 	log.Info("Prepare Request finished")
 }
 
 func (ds *DbftService) PrepareResponseReceived(payload *p2pmsg.ConsensusPayload, message *PrepareResponse) {
-	log.Info(fmt.Sprintf("Prepare Response Received: height=%d View=%d index=%d", payload.Height, message.ViewNumber(), payload.BookKeeperIndex))
+	log.Info(fmt.Sprintf("Prepare Response Received: height=%d View=%d index=%d", payload.Height, message.ViewNumber(), payload.BookkeeperIndex))
 
 	if ds.context.State.HasFlag(BlockGenerated) {
 		return
 	}
 
 	//if the signature already exist, needn't handle again
-	if ds.context.Signatures[payload.BookKeeperIndex] != nil {
+	if ds.context.Signatures[payload.BookkeeperIndex] != nil {
 		return
 	}
 
@@ -529,12 +529,12 @@ func (ds *DbftService) PrepareResponseReceived(payload *p2pmsg.ConsensusPayload,
 		return
 	}
 	blockHash := header.Hash()
-	err := crypto.Verify(*ds.context.BookKeepers[payload.BookKeeperIndex], blockHash[:], message.Signature)
+	err := crypto.Verify(*ds.context.Bookkeepers[payload.BookkeeperIndex], blockHash[:], message.Signature)
 	if err != nil {
 		return
 	}
 
-	ds.context.Signatures[payload.BookKeeperIndex] = message.Signature
+	ds.context.Signatures[payload.BookkeeperIndex] = message.Signature
 	err = ds.CheckSignatures()
 	if err != nil {
 		log.Error("CheckSignatures failed")
@@ -544,14 +544,14 @@ func (ds *DbftService) PrepareResponseReceived(payload *p2pmsg.ConsensusPayload,
 }
 
 func (ds *DbftService) BlockSignaturesReceived(payload *p2pmsg.ConsensusPayload, message *BlockSignatures) {
-	log.Info(fmt.Sprintf("BlockSignatures Received: height=%d View=%d index=%d", payload.Height, message.ViewNumber(), payload.BookKeeperIndex))
+	log.Info(fmt.Sprintf("BlockSignatures Received: height=%d View=%d index=%d", payload.Height, message.ViewNumber(), payload.BookkeeperIndex))
 
 	if ds.context.State.HasFlag(BlockGenerated) {
 		return
 	}
 
 	//if the signature already exist, needn't handle again
-	if ds.context.Signatures[payload.BookKeeperIndex] != nil {
+	if ds.context.Signatures[payload.BookkeeperIndex] != nil {
 		return
 	}
 
@@ -569,7 +569,7 @@ func (ds *DbftService) BlockSignaturesReceived(payload *p2pmsg.ConsensusPayload,
 			continue
 		}
 
-		err := crypto.Verify(*ds.context.BookKeepers[sigdata.Index], blockHash[:], sigdata.Signature)
+		err := crypto.Verify(*ds.context.Bookkeepers[sigdata.Index], blockHash[:], sigdata.Signature)
 		if err != nil {
 			continue
 		}
@@ -597,19 +597,19 @@ func (ds *DbftService) RequestChangeView() {
 		return
 	}
 	// FIXME if there is no save block notifcation, when the timeout call this function it will crash
-	if ds.context.ViewNumber > ds.context.ExpectedView[ds.context.BookKeeperIndex] {
-		ds.context.ExpectedView[ds.context.BookKeeperIndex] = ds.context.ViewNumber + 1
+	if ds.context.ViewNumber > ds.context.ExpectedView[ds.context.BookkeeperIndex] {
+		ds.context.ExpectedView[ds.context.BookkeeperIndex] = ds.context.ViewNumber + 1
 	} else {
-		ds.context.ExpectedView[ds.context.BookKeeperIndex] += 1
+		ds.context.ExpectedView[ds.context.BookkeeperIndex] += 1
 	}
 	log.Info(fmt.Sprintf("Request change view: height=%d View=%d nv=%d state=%s", ds.context.Height,
-		ds.context.ViewNumber, ds.context.ExpectedView[ds.context.BookKeeperIndex], ds.context.GetStateDetail()))
+		ds.context.ViewNumber, ds.context.ExpectedView[ds.context.BookkeeperIndex], ds.context.GetStateDetail()))
 
 	ds.timer.Stop()
-	ds.timer.Reset(genesis.GenBlockTime << (ds.context.ExpectedView[ds.context.BookKeeperIndex] + 1))
+	ds.timer.Reset(genesis.GenBlockTime << (ds.context.ExpectedView[ds.context.BookkeeperIndex] + 1))
 
 	ds.SignAndRelay(ds.context.MakeChangeView())
-	ds.CheckExpectedView(ds.context.ExpectedView[ds.context.BookKeeperIndex])
+	ds.CheckExpectedView(ds.context.ExpectedView[ds.context.BookkeeperIndex])
 }
 
 func (ds *DbftService) SignAndRelay(payload *p2pmsg.ConsensusPayload) {
@@ -691,21 +691,21 @@ func (ds *DbftService) Timeout() {
 
 			ds.context.Transactions = transactions
 
-			ds.context.NextBookKeepers, err = vote.GetValidators(ds.context.Transactions)
+			ds.context.NextBookkeepers, err = vote.GetValidators(ds.context.Transactions)
 			if err != nil {
 				log.Error("[Timeout] GetValidators failed", err.Error())
 				return
 			}
-			ds.context.NextBookKeeper, err = types.AddressFromBookKeepers(ds.context.NextBookKeepers)
+			ds.context.NextBookkeeper, err = types.AddressFromBookkeepers(ds.context.NextBookkeepers)
 			if err != nil {
-				log.Error("[Timeout] GetBookKeeperAddress failed")
+				log.Error("[Timeout] GetBookkeeperAddress failed")
 				return
 			}
 			ds.context.header = nil
 			//build block and sign
 			block := ds.context.MakeHeader()
 			blockHash := block.Hash()
-			ds.context.Signatures[ds.context.BookKeeperIndex], _ = crypto.Sign(ds.Account.PrivKey(), blockHash[:])
+			ds.context.Signatures[ds.context.BookkeeperIndex], _ = crypto.Sign(ds.Account.PrivKey(), blockHash[:])
 		}
 		payload := ds.context.MakePrepareRequest()
 		ds.SignAndRelay(payload)

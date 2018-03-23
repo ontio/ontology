@@ -108,13 +108,13 @@ func TransPayloadToHex(p types.Payload) PayloadInfo {
 		obj := new(BookKeepingInfo)
 		obj.Nonce = object.Nonce
 		return obj
-	case *payload.BookKeeper:
+	case *payload.Bookkeeper:
 		obj := new(BookkeeperInfo)
 		encodedPubKey, _ := object.PubKey.EncodePoint(true)
 		obj.PubKey = ToHexString(encodedPubKey)
-		if object.Action == payload.BookKeeperAction_ADD {
+		if object.Action == payload.BookkeeperAction_ADD {
 			obj.Action = "add"
-		} else if object.Action == payload.BookKeeperAction_SUB {
+		} else if object.Action == payload.BookkeeperAction_SUB {
 			obj.Action = "sub"
 		} else {
 			obj.Action = "nil"

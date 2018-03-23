@@ -67,7 +67,7 @@ func AddressFromMultiPubKeys(pubkeys []*crypto.PubKey, m int) (Address, error) {
 	return addr, nil
 }
 
-func AddressFromBookKeepers(bookKeepers []*crypto.PubKey) (Address, error) {
-	return AddressFromMultiPubKeys(bookKeepers, len(bookKeepers)-(len(bookKeepers)-1)/3)
+func AddressFromBookkeepers(bookkeepers []*crypto.PubKey) (Address, error) {
+	return AddressFromMultiPubKeys(bookkeepers, len(bookkeepers)-(len(bookkeepers)-1)/3)
 }
 

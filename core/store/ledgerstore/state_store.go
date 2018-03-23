@@ -174,8 +174,8 @@ func (this *StateStore) GetContractState(contractHash common.Address) (*payload.
 	return contractState, nil
 }
 
-func (this *StateStore) GetBookKeeperState() (*BookKeeperState, error) {
-	key, err := this.getBookKeeperKey()
+func (this *StateStore) GetBookkeeperState() (*BookkeeperState, error) {
+	key, err := this.getBookkeeperKey()
 	if err != nil {
 		return nil, err
 	}
@@ -188,21 +188,21 @@ func (this *StateStore) GetBookKeeperState() (*BookKeeperState, error) {
 		return nil, err
 	}
 	reader := bytes.NewReader(value)
-	bookKeeperState := new(BookKeeperState)
-	err = bookKeeperState.Deserialize(reader)
+	bookkeeperState := new(BookkeeperState)
+	err = bookkeeperState.Deserialize(reader)
 	if err != nil {
 		return nil, err
 	}
-	return bookKeeperState, nil
+	return bookkeeperState, nil
 }
 
-func (this *StateStore) SaveBookKeeperState(bookKeeperState *BookKeeperState) error {
-	key, err := this.getBookKeeperKey()
+func (this *StateStore) SaveBookkeeperState(bookkeeperState *BookkeeperState) error {
+	key, err := this.getBookkeeperKey()
 	if err != nil {
 		return err
 	}
 	value := bytes.NewBuffer(nil)
-	err = bookKeeperState.Serialize(value)
+	err = bookkeeperState.Serialize(value)
 	if err != nil {
 		return err
 	}
@@ -291,9 +291,9 @@ func (this *StateStore) getCurrentBlockKey() []byte {
 	return []byte{byte(SYS_CurrentBlock)}
 }
 
-func (this *StateStore) getBookKeeperKey() ([]byte, error) {
+func (this *StateStore) getBookkeeperKey() ([]byte, error) {
 	key := make([]byte, 1+len(BookerKeeper))
-	key[0] = byte(ST_BookKeeper)
+	key[0] = byte(ST_Bookkeeper)
 	copy(key[1:], []byte(BookerKeeper))
 	return key, nil
 }

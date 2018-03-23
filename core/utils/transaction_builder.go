@@ -26,21 +26,21 @@ import (
 )
 
 //initial a new transaction with asset registration payload
-func NewBookKeeperTransaction(pubKey *crypto.PubKey, isAdd bool, cert []byte, issuer *crypto.PubKey) (*types.Transaction, error) {
-	bookKeeperPayload := &payload.BookKeeper{
+func NewBookkeeperTransaction(pubKey *crypto.PubKey, isAdd bool, cert []byte, issuer *crypto.PubKey) (*types.Transaction, error) {
+	bookkeeperPayload := &payload.Bookkeeper{
 		PubKey: pubKey,
-		Action: payload.BookKeeperAction_SUB,
+		Action: payload.BookkeeperAction_SUB,
 		Cert:   cert,
 		Issuer: issuer,
 	}
 
 	if isAdd {
-		bookKeeperPayload.Action = payload.BookKeeperAction_ADD
+		bookkeeperPayload.Action = payload.BookkeeperAction_ADD
 	}
 
 	return &types.Transaction{
-		TxType:     types.BookKeeper,
-		Payload:    bookKeeperPayload,
+		TxType:     types.Bookkeeper,
+		Payload:    bookkeeperPayload,
 		Attributes: nil,
 	}, nil
 }

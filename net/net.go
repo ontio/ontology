@@ -31,7 +31,7 @@ type Neter interface {
 	//GetTxnPool(byCount bool) (map[Uint256]*types.Transaction, Fixed64)
 	Xmit(interface{}) error
 	GetEvent(eventName string) *events.Event
-	GetBookKeepersAddrs() ([]*crypto.PubKey, uint64)
+	GetBookkeepersAddrs() ([]*crypto.PubKey, uint64)
 	//CleanTransactions(txns []*types.Transaction) error
 	GetNeighborNoder() []protocol.Noder
 	Tx(buf []byte)

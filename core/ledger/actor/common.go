@@ -178,10 +178,10 @@ type GetCurrentStateRootRsp struct {
 	Error     error
 }
 
-type GetBookKeeperStateReq struct{}
+type GetBookkeeperStateReq struct{}
 
-type GetBookKeeperStateRsp struct {
-	BookKeepState *states.BookKeeperState
+type GetBookkeeperStateRsp struct {
+	BookKeepState *states.BookkeeperState
 	Error         error
 }
 

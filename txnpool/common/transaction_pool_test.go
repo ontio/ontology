@@ -44,7 +44,7 @@ func init() {
 	txn = &types.Transaction{
 		Version:    0,
 		Attributes: []*types.TxAttribute{},
-		TxType:     types.BookKeeper,
+		TxType:     types.Bookkeeper,
 		Payload:    bookKeepingPayload,
 	}
 

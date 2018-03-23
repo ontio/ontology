@@ -79,11 +79,11 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	var ngbHttpInfoAddr string
 
 	curNodeType := serviceNode
-	bookKeeperState,  _ := ledger.DefLedger.GetBookKeeperState()
-	bookKeepers := bookKeeperState.CurrBookKeeper
-	bookKeeperLen := len(bookKeepers)
-	for i := 0; i < bookKeeperLen; i++ {
-		if node.GetPubKey().X.Cmp(bookKeepers[i].X) == 0 {
+	bookkeeperState,  _ := ledger.DefLedger.GetBookkeeperState()
+	bookkeepers := bookkeeperState.CurrBookkeeper
+	bookkeeperLen := len(bookkeepers)
+	for i := 0; i < bookkeeperLen; i++ {
+		if node.GetPubKey().X.Cmp(bookkeepers[i].X) == 0 {
 			curNodeType = verifyNode
 			break
 		}
@@ -93,8 +93,8 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	ngbrsLen := len(ngbrNoders)
 	for i := 0; i < ngbrsLen; i++ {
 		ngbType = serviceNode
-		for j := 0; j < bookKeeperLen; j++ {
-			if ngbrNoders[i].GetPubKey().X.Cmp(bookKeepers[j].X) == 0 {
+		for j := 0; j < bookkeeperLen; j++ {
+			if ngbrNoders[i].GetPubKey().X.Cmp(bookkeepers[j].X) == 0 {
 				ngbType = verifyNode
 				break
 			}

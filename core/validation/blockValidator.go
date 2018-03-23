@@ -34,9 +34,9 @@ func VerifyBlock(block *types.Block, ld *ledger.Ledger, completely bool) error {
 		return nil
 	}
 
-	m := len(header.BookKeepers) - (len(header.BookKeepers)-1)/3
+	m := len(header.Bookkeepers) - (len(header.Bookkeepers)-1)/3
 	hash := block.Hash()
-	err := crypto.VerifyMultiSignature(hash[:], header.BookKeepers, m, header.SigData)
+	err := crypto.VerifyMultiSignature(hash[:], header.Bookkeepers, m, header.SigData)
 	if err != nil {
 		return err
 	}
@@ -68,13 +68,13 @@ func VerifyBlock(block *types.Block, ld *ledger.Ledger, completely bool) error {
 	//verfiy block's transactions
 	if completely {
 		/*
-			//TODO: NextBookKeeper Check.
-			bookKeeperaddress, err := ledger.GetBookKeeperAddress(ld.Blockchain.GetBookKeepersByTXs(block.Transactions))
+			//TODO: NextBookkeeper Check.
+			bookkeeperaddress, err := ledger.GetBookkeeperAddress(ld.Blockchain.GetBookkeepersByTXs(block.Transactions))
 			if err != nil {
-				return errors.New(fmt.Sprintf("GetBookKeeperAddress Failed."))
+				return errors.New(fmt.Sprintf("GetBookkeeperAddress Failed."))
 			}
-			if block.Header.NextBookKeeper != bookKeeperaddress {
-				return errors.New(fmt.Sprintf("BookKeeper is not validate."))
+			if block.Header.NextBookkeeper != bookkeeperaddress {
+				return errors.New(fmt.Sprintf("Bookkeeper is not validate."))
 			}
 		*/
 		for _, txVerify := range block.Transactions {
@@ -108,12 +108,12 @@ func VerifyHeader(header, prevHeader *types.Header) error {
 		return NewDetailErr(errors.New("[BlockValidator] error"), ErrNoCode, "[BlockValidator], block timestamp is incorrect.")
 	}
 
-	address, err := types.AddressFromBookKeepers(header.BookKeepers)
+	address, err := types.AddressFromBookkeepers(header.Bookkeepers)
 	if err != nil {
 		return err
 	}
 
-	if prevHeader.NextBookKeeper != address {
+	if prevHeader.NextBookkeeper != address {
 		return fmt.Errorf("bookkeeper address error")
 	}
 

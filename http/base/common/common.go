@@ -74,9 +74,9 @@ type BlockHead struct {
 	Timestamp        uint32
 	Height           uint32
 	ConsensusData    uint64
-	NextBookKeeper   string
+	NextBookkeeper   string
 
-	BookKeepers []PubKeyInfo
+	Bookkeepers []PubKeyInfo
 	SigData     []string
 
 	Hash string
@@ -167,15 +167,15 @@ func VerifyAndSendTx(txn *types.Transaction) ErrCode {
 
 func GetBlockInfo(block *types.Block) BlockInfo {
 	hash := block.Hash()
-	var bookKeepers = []PubKeyInfo{}
+	var bookkeepers = []PubKeyInfo{}
 	var sigData = []string{}
 	for i := 0; i < len(block.Header.SigData); i++ {
 		s := ToHexString(block.Header.SigData[i])
 		sigData = append(sigData, s)
 	}
-	for i := 0; i < len(block.Header.BookKeepers); i++ {
-		e := block.Header.BookKeepers[i]
-		bookKeepers = append(bookKeepers, PubKeyInfo{e.X.String(), e.Y.String()})
+	for i := 0; i < len(block.Header.Bookkeepers); i++ {
+		e := block.Header.Bookkeepers[i]
+		bookkeepers = append(bookkeepers, PubKeyInfo{e.X.String(), e.Y.String()})
 	}
 	blockHead := &BlockHead{
 		Version:          block.Header.Version,
@@ -185,8 +185,8 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 		Timestamp:        block.Header.Timestamp,
 		Height:           block.Header.Height,
 		ConsensusData:    block.Header.ConsensusData,
-		NextBookKeeper:   ToHexString(block.Header.NextBookKeeper[:]),
-		BookKeepers: bookKeepers,
+		NextBookkeeper:   ToHexString(block.Header.NextBookkeeper[:]),
+		Bookkeepers: bookkeepers,
 		SigData:     sigData,
 		Hash: ToHexString(hash.ToArray()),
 	}

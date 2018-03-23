@@ -149,7 +149,7 @@ type TransactionType byte
 const (
 	BookKeeping    TransactionType = 0x00
 	IssueAsset     TransactionType = 0x01
-	BookKeeper     TransactionType = 0x02
+	Bookkeeper     TransactionType = 0x02
 	Claim          TransactionType = 0x03
 	PrivacyPayload TransactionType = 0x20
 	RegisterAsset  TransactionType = 0x40
@@ -165,7 +165,7 @@ const (
 var TxName = map[TransactionType]string{
 	BookKeeping:    "BookKeeping",
 	IssueAsset:     "IssueAsset",
-	BookKeeper:     "BookKeeper",
+	Bookkeeper:     "Bookkeeper",
 	Claim:          "Claim",
 	PrivacyPayload: "PrivacyPayload",
 	RegisterAsset:  "RegisterAsset",

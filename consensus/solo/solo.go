@@ -165,9 +165,9 @@ func (this *SoloService) genBlock()error {
 func (this *SoloService) makeBlock() (*types.Block, error) {
 	log.Debug()
 	owner := this.Account.PublicKey
-	nextBookKeeper, err := types.AddressFromBookKeepers([]*crypto.PubKey{owner})
+	nextBookkeeper, err := types.AddressFromBookkeepers([]*crypto.PubKey{owner})
 	if err != nil {
-		return nil, fmt.Errorf("GetBookKeeperAddress error:%s", err)
+		return nil, fmt.Errorf("GetBookkeeperAddress error:%s", err)
 	}
 	prevHash := ledger.DefLedger.GetCurrentBlockHash()
 	height := ledger.DefLedger.GetCurrentBlockHeight()
@@ -221,7 +221,7 @@ func (this *SoloService) makeBlock() (*types.Block, error) {
 		Timestamp:        uint32(time.Now().Unix()),
 		Height:           height+1,
 		ConsensusData:    nonce,
-		NextBookKeeper:   nextBookKeeper,
+		NextBookkeeper:   nextBookkeeper,
 	}
 	block := &types.Block{
 		Header:       header,
@@ -234,7 +234,7 @@ func (this *SoloService) makeBlock() (*types.Block, error) {
 	if err != nil {
 		return nil, fmt.Errorf("[Signature],Sign error:%s.", err)
 	}
-	block.Header.BookKeepers = []*crypto.PubKey{owner}
+	block.Header.Bookkeepers = []*crypto.PubKey{owner}
 	block.Header.SigData = [][]byte{signature}
 	return block, nil
 }

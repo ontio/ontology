@@ -488,7 +488,7 @@ func (s *StateReader) HeaderGetNextConsensus(e *vm.ExecutionEngine) (bool, error
 	} else {
 		return false, errors.NewErr("[HeaderGetNextConsensus] Wrong type!")
 	}
-	vm.PushData(e, data.NextBookKeeper[:])
+	vm.PushData(e, data.NextBookkeeper[:])
 	return true, nil
 }
 

@@ -218,9 +218,9 @@ func TestHeaderIndexList(t *testing.T) {
 func TestSaveHeader(t *testing.T) {
 	_, pubKey1, _ := crypto.GenKeyPair()
 	_, pubKey2, _ := crypto.GenKeyPair()
-	bookKeeper, err := types.AddressFromBookKeepers([]*crypto.PubKey{&pubKey1, &pubKey2})
+	bookkeeper, err := types.AddressFromBookkeepers([]*crypto.PubKey{&pubKey1, &pubKey2})
 	if err != nil {
-		t.Errorf("AddressFromBookKeepers error %s", err)
+		t.Errorf("AddressFromBookkeepers error %s", err)
 		return
 	}
 	header := &types.Header{
@@ -230,7 +230,7 @@ func TestSaveHeader(t *testing.T) {
 		Timestamp:        uint32(uint32(time.Date(2017, time.February, 23, 0, 0, 0, 0, time.UTC).Unix())),
 		Height:           uint32(1),
 		ConsensusData:    123456789,
-		NextBookKeeper:   bookKeeper,
+		NextBookkeeper:   bookkeeper,
 	}
 	tx1 := &types.Transaction{
 		TxType: types.BookKeeping,
@@ -293,9 +293,9 @@ func TestSaveHeader(t *testing.T) {
 func TestBlock(t *testing.T) {
 	_, pubKey1, _ := crypto.GenKeyPair()
 	_, pubKey2, _ := crypto.GenKeyPair()
-	bookKeeper, err := types.AddressFromBookKeepers([]*crypto.PubKey{&pubKey1, &pubKey2})
+	bookkeeper, err := types.AddressFromBookkeepers([]*crypto.PubKey{&pubKey1, &pubKey2})
 	if err != nil {
-		t.Errorf("AddressFromBookKeepers error %s", err)
+		t.Errorf("AddressFromBookkeepers error %s", err)
 		return
 	}
 	header := &types.Header{
@@ -305,7 +305,7 @@ func TestBlock(t *testing.T) {
 		Timestamp:        uint32(uint32(time.Date(2017, time.February, 23, 0, 0, 0, 0, time.UTC).Unix())),
 		Height:           uint32(2),
 		ConsensusData:    1234567890,
-		NextBookKeeper:   bookKeeper,
+		NextBookkeeper:   bookkeeper,
 	}
 	tx1 := &types.Transaction{
 		TxType: types.BookKeeping,

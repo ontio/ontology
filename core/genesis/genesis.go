@@ -52,14 +52,14 @@ var (
 
 var GenBlockTime = (config.DEFAULTGENBLOCKTIME * time.Second)
 
-var GenesisBookKeepers []*crypto.PubKey
+var GenesisBookkeepers []*crypto.PubKey
 
-func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*types.Block, error) {
-	//getBookKeeper
-	GenesisBookKeepers = defaultBookKeeper
-	nextBookKeeper, err := types.AddressFromBookKeepers(defaultBookKeeper)
+func GenesisBlockInit(defaultBookkeeper []*crypto.PubKey) (*types.Block, error) {
+	//getBookkeeper
+	GenesisBookkeepers = defaultBookkeeper
+	nextBookkeeper, err := types.AddressFromBookkeepers(defaultBookkeeper)
 	if err != nil {
-		return nil, errors.New("[Block],GenesisBlockInit err with GetBookKeeperAddress")
+		return nil, errors.New("[Block],GenesisBlockInit err with GetBookkeeperAddress")
 	}
 	//blockdata
 	genesisHeader := &types.Header{
@@ -69,9 +69,9 @@ func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*types.Block, error) 
 		Timestamp:        uint32(uint32(time.Date(2017, time.February, 23, 0, 0, 0, 0, time.UTC).Unix())),
 		Height:           uint32(0),
 		ConsensusData:    GenesisNonce,
-		NextBookKeeper:   nextBookKeeper,
+		NextBookkeeper:   nextBookkeeper,
 
-		BookKeepers: nil,
+		Bookkeepers: nil,
 		SigData:     nil,
 	}
 

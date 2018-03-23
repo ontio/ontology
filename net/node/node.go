@@ -483,11 +483,11 @@ func (node *node) GetTime() int64 {
 	return t.UnixNano()
 }
 
-func (node *node) GetBookKeeperAddr() *crypto.PubKey {
+func (node *node) GetBookkeeperAddr() *crypto.PubKey {
 	return node.publicKey
 }
 
-func (node *node) GetBookKeepersAddrs() ([]*crypto.PubKey, uint64) {
+func (node *node) GetBookkeepersAddrs() ([]*crypto.PubKey, uint64) {
 	pks := make([]*crypto.PubKey, 1)
 	pks[0] = node.publicKey
 	var i uint64
@@ -495,7 +495,7 @@ func (node *node) GetBookKeepersAddrs() ([]*crypto.PubKey, uint64) {
 	//TODO read lock
 	for _, n := range node.nbrNodes.List {
 		if n.GetState() == ESTABLISH && n.services != SERVICENODE {
-			pktmp := n.GetBookKeeperAddr()
+			pktmp := n.GetBookkeeperAddr()
 			pks = append(pks, pktmp)
 			i++
 		}
@@ -503,7 +503,7 @@ func (node *node) GetBookKeepersAddrs() ([]*crypto.PubKey, uint64) {
 	return pks, i
 }
 
-func (node *node) SetBookKeeperAddr(pk *crypto.PubKey) {
+func (node *node) SetBookkeeperAddr(pk *crypto.PubKey) {
 	node.publicKey = pk
 }
 

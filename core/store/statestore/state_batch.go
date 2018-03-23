@@ -161,12 +161,12 @@ func (self *StateBatch) setStateObject(prefix byte, key []byte, value IStateValu
 func getStateObject(prefix DataEntryPrefix, enc []byte) (IStateValue, error) {
 	reader := bytes.NewBuffer(enc)
 	switch prefix {
-	case ST_BookKeeper:
-		bookKeeper := new(payload.BookKeeper)
-		if err := bookKeeper.Deserialize(reader); err != nil {
+	case ST_Bookkeeper:
+		bookkeeper := new(payload.Bookkeeper)
+		if err := bookkeeper.Deserialize(reader); err != nil {
 			return nil, err
 		}
-		return bookKeeper, nil
+		return bookkeeper, nil
 	case ST_Contract:
 		contract := new(payload.DeployCode)
 		if err := contract.Deserialize(reader); err != nil {

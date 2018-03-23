@@ -71,8 +71,8 @@ func main() {
 	var noder protocol.Noder
 	log.Trace("Node version: ", config.Version)
 
-	if len(config.Parameters.BookKeepers) < account.DefaultBookKeeperCount {
-		log.Fatal("At least ", account.DefaultBookKeeperCount, " BookKeepers should be set at config.json")
+	if len(config.Parameters.Bookkeepers) < account.DefaultBookkeeperCount {
+		log.Fatal("At least ", account.DefaultBookkeeperCount, " Bookkeepers should be set at config.json")
 		os.Exit(1)
 	}
 	crypto.SetAlg(config.Parameters.EncryptAlg)
@@ -89,10 +89,10 @@ func main() {
 		os.Exit(1)
 	}
 	log.Debug("The Node's PublicKey ", acct.PublicKey)
-	defBookKeepers, err := client.GetBookKeepers()
-	sort.Sort(crypto.PubKeySlice(defBookKeepers))
+	defBookkeepers, err := client.GetBookkeepers()
+	sort.Sort(crypto.PubKeySlice(defBookkeepers))
 	if err != nil {
-		log.Fatalf("GetBookKeepers error:%s", err)
+		log.Fatalf("GetBookkeepers error:%s", err)
 		os.Exit(1)
 	}
 
@@ -105,7 +105,7 @@ func main() {
 		log.Fatalf("NewLedger error %s", err)
 		os.Exit(1)
 	}
-	err = ledger.DefLedger.Init(defBookKeepers)
+	err = ledger.DefLedger.Init(defBookkeepers)
 	if err != nil {
 		log.Fatalf("DefLedger.Init error %s", err)
 		os.Exit(1)

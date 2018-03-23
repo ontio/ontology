@@ -40,7 +40,7 @@ type Configuration struct {
 	Magic             int64            `json:"Magic"`
 	Version           int              `json:"Version"`
 	SeedList          []string         `json:"SeedList"`
-	BookKeepers       []string         `json:"BookKeepers"` // The default book keepers' publickey
+	Bookkeepers       []string         `json:"Bookkeepers"` // The default book keepers' publickey
 	HttpRestPort      int              `json:"HttpRestPort"`
 	RestCertPath      string           `json:"RestCertPath"`
 	RestKeyPath       string           `json:"RestKeyPath"`

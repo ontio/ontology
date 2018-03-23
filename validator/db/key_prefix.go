@@ -47,7 +47,7 @@ const (
 
 	//ST_Account
 	//ST_Coin
-	//ST_BookKeeper
+	//ST_Bookkeeper
 	//ST_Asset
 	//ST_Contract
 	//ST_Storage

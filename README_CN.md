@@ -77,7 +77,7 @@ $ make
         注：通过-p参数设置钱包密码
 
 5. 记账人配置
-    - 为每个节点创建钱包时会显示钱包的公钥信息，将所有节点的公钥信息分别填写到每个节点的配置文件的`BookKeepers`项中
+    - 为每个节点创建钱包时会显示钱包的公钥信息，将所有节点的公钥信息分别填写到每个节点的配置文件的`Bookkeepers`项中
     
         注：每个节点的钱包公钥信息也可以通过命令行程序查看：
     
@@ -100,7 +100,7 @@ $ cat config.json
       "10.0.1.101:10338",
       "10.0.1.102:10338"
     ],
-    "BookKeepers": [
+    "Bookkeepers": [
       "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
       "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
       "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
@@ -161,7 +161,7 @@ $ cat node[1234]/config.json
       "10.0.1.100:30338",
       "10.0.1.100:40338"
     ],
-    "BookKeepers": [
+    "Bookkeepers": [
       "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
       "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
       "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
@@ -184,7 +184,7 @@ $ cat node[1234]/config.json
       "10.0.1.100:30338",
       "10.0.1.100:40338"
     ],
-    "BookKeepers": [
+    "Bookkeepers": [
       "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
       "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
       "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
@@ -207,7 +207,7 @@ $ cat node[1234]/config.json
       "10.0.1.100:30338",
       "10.0.1.100:40338"
     ],
-    "BookKeepers": [
+    "Bookkeepers": [
       "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
       "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
       "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
@@ -230,7 +230,7 @@ $ cat node[1234]/config.json
       "10.0.1.100:30338",
       "10.0.1.100:40338"
     ],
-    "BookKeepers": [
+    "Bookkeepers": [
       "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
       "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
       "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",

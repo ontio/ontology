@@ -91,7 +91,7 @@ func NewVersion(n Noder, isConsensus bool) ([]byte, error) {
 		msg.P.Relay = 0
 	}
 
-	msg.pk = n.GetBookKeeperAddr()
+	msg.pk = n.GetBookkeeperAddr()
 	log.Debug("new version msg.pk is ", msg.pk)
 	// TODO the function to wrap below process
 	// msg.HDR.init("version", n.GetID(), uint32(len(p.Bytes())))
@@ -258,7 +258,7 @@ func (msg version) Handle(node Noder) error {
 	}
 	node.SetHttpInfoPort(msg.P.HttpInfoPort)
 	node.SetConsensusPort(msg.P.ConsensusPort)
-	node.SetBookKeeperAddr(msg.pk)
+	node.SetBookkeeperAddr(msg.pk)
 	// if  msg.P.Port == msg.P.ConsensusPort don't updateInfo
 	node.UpdateInfo(time.Now(), msg.P.Version, msg.P.Services,
 		msg.P.Port, msg.P.Nonce, msg.P.Relay, msg.P.StartHeight)

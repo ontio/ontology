@@ -136,9 +136,9 @@ type Noder interface {
 	GetRxTxnCnt() uint64
 
 	Xmit(interface{}) error
-	GetBookKeeperAddr() *crypto.PubKey
-	GetBookKeepersAddrs() ([]*crypto.PubKey, uint64)
-	SetBookKeeperAddr(pk *crypto.PubKey)
+	GetBookkeeperAddr() *crypto.PubKey
+	GetBookkeepersAddrs() ([]*crypto.PubKey, uint64)
+	SetBookkeeperAddr(pk *crypto.PubKey)
 	GetNeighborHeights() ([]uint64, uint64)
 	SyncNodeHeight()
 	//CleanTransactions(txns []*types.Transaction) error

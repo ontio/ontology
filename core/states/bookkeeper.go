@@ -25,28 +25,28 @@ import (
 	"github.com/Ontology/crypto"
 )
 
-type BookKeeperState struct {
+type BookkeeperState struct {
 	StateBase
-	CurrBookKeeper []*crypto.PubKey
-	NextBookKeeper []*crypto.PubKey
+	CurrBookkeeper []*crypto.PubKey
+	NextBookkeeper []*crypto.PubKey
 }
 
-func (this *BookKeeperState) Serialize(w io.Writer) error {
+func (this *BookkeeperState) Serialize(w io.Writer) error {
 	this.StateBase.Serialize(w)
-	serialization.WriteUint32(w, uint32(len(this.CurrBookKeeper)))
-	for _, v := range this.CurrBookKeeper {
+	serialization.WriteUint32(w, uint32(len(this.CurrBookkeeper)))
+	for _, v := range this.CurrBookkeeper {
 		v.Serialize(w)
 	}
-	serialization.WriteUint32(w, uint32(len(this.NextBookKeeper)))
-	for _, v := range this.NextBookKeeper {
+	serialization.WriteUint32(w, uint32(len(this.NextBookkeeper)))
+	for _, v := range this.NextBookkeeper {
 		v.Serialize(w)
 	}
 	return nil
 }
 
-func (this *BookKeeperState) Deserialize(r io.Reader) error {
+func (this *BookkeeperState) Deserialize(r io.Reader) error {
 	if this == nil {
-		this = new(BookKeeperState)
+		this = new(BookkeeperState)
 	}
 	err := this.StateBase.Deserialize(r)
 	if err != nil {
@@ -62,7 +62,7 @@ func (this *BookKeeperState) Deserialize(r io.Reader) error {
 		if err != nil {
 			return err
 		}
-		this.CurrBookKeeper = append(this.CurrBookKeeper, p)
+		this.CurrBookkeeper = append(this.CurrBookkeeper, p)
 	}
 
 	n, err = serialization.ReadUint32(r)
@@ -75,12 +75,12 @@ func (this *BookKeeperState) Deserialize(r io.Reader) error {
 		if err != nil {
 			return err
 		}
-		this.NextBookKeeper = append(this.NextBookKeeper, p)
+		this.NextBookkeeper = append(this.NextBookkeeper, p)
 	}
 	return nil
 }
 
-func (v *BookKeeperState) ToArray() []byte {
+func (v *BookkeeperState) ToArray() []byte {
 	b := new(bytes.Buffer)
 	v.Serialize(b)
 	return b.Bytes()

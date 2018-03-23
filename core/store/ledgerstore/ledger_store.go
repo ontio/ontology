@@ -106,7 +106,7 @@ func NewLedgerStore() (*LedgerStore, error) {
 	return ledgerStore, nil
 }
 
-func (this *LedgerStore) InitLedgerStoreWithGenesisBlock(genesisBlock *types.Block, defaultBookKeeper []*crypto.PubKey) error {
+func (this *LedgerStore) InitLedgerStoreWithGenesisBlock(genesisBlock *types.Block, defaultBookkeeper []*crypto.PubKey) error {
 	hasInit, err := this.hasAlreadyInitGenesisBlock()
 	if err != nil {
 		return fmt.Errorf("hasAlreadyInit error %s", err)
@@ -124,14 +124,14 @@ func (this *LedgerStore) InitLedgerStoreWithGenesisBlock(genesisBlock *types.Blo
 		if err != nil {
 			return fmt.Errorf("eventStore.ClearAll error %s", err)
 		}
-		sort.Sort(crypto.PubKeySlice(defaultBookKeeper))
-		bookKeeperState := &states.BookKeeperState{
-			CurrBookKeeper: defaultBookKeeper,
-			NextBookKeeper: defaultBookKeeper,
+		sort.Sort(crypto.PubKeySlice(defaultBookkeeper))
+		bookkeeperState := &states.BookkeeperState{
+			CurrBookkeeper: defaultBookkeeper,
+			NextBookkeeper: defaultBookkeeper,
 		}
-		err = this.stateStore.SaveBookKeeperState(bookKeeperState)
+		err = this.stateStore.SaveBookkeeperState(bookkeeperState)
 		if err != nil {
-			return fmt.Errorf("SaveBookKeeperState error %s", err)
+			return fmt.Errorf("SaveBookkeeperState error %s", err)
 		}
 		err = this.saveBlock(genesisBlock)
 		if err != nil {
@@ -472,17 +472,17 @@ func (this *LedgerStore) verifyHeader(header *types.Header) error {
 		return fmt.Errorf("block timestamp is incorrect")
 	}
 
-	address, err := types.AddressFromBookKeepers(header.BookKeepers)
+	address, err := types.AddressFromBookkeepers(header.Bookkeepers)
 	if err != nil {
 		return err
 	}
-	if prevHeader.NextBookKeeper != address {
+	if prevHeader.NextBookkeeper != address {
 		return fmt.Errorf("bookkeeper address error")
 	}
 
-	m := len(header.BookKeepers) - (len(header.BookKeepers)-1)/3
+	m := len(header.Bookkeepers) - (len(header.Bookkeepers)-1)/3
 	hash := header.Hash()
-	err = crypto.VerifyMultiSignature(hash[:], header.BookKeepers, m, header.SigData)
+	err = crypto.VerifyMultiSignature(hash[:], header.Bookkeepers, m, header.SigData)
 	if err != nil {
 		return err
 	}
@@ -830,8 +830,8 @@ func (this *LedgerStore) GetBlockByHeight(height uint32) (*types.Block, error) {
 	return this.GetBlockByHash(blockHash)
 }
 
-func (this *LedgerStore) GetBookKeeperState() (*states.BookKeeperState, error) {
-	return this.stateStore.GetBookKeeperState()
+func (this *LedgerStore) GetBookkeeperState() (*states.BookkeeperState, error) {
+	return this.stateStore.GetBookkeeperState()
 }
 
 func (this *LedgerStore) GetContractState(contractHash common.Address) (*payload.DeployCode, error) {

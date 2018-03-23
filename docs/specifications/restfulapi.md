@@ -178,8 +178,8 @@ curl -i http://server:port/api/v1/block/details/height/22
             "Timestamp": 1521432329,
             "Height": 22,
             "ConsensusData": 11160228784438648574,
-            "NextBookKeeper": "027c557d2e735b9a369d20dd099bfd42db5cdb74",
-            "BookKeepers": [
+            "NextBookkeeper": "027c557d2e735b9a369d20dd099bfd42db5cdb74",
+            "Bookkeepers": [
                 {
                     "X": "11045594958442581564679839478917319740817938700262919124154204990772552987783",
                     "Y": "28445199876541353997545685344458930058882115795876754515124389392470701852812"
@@ -255,8 +255,8 @@ curl -i http://server:port/api/v1/block/details/hash/8723534588ea3202c0949ce5e39
             "Timestamp": 1521432329,
             "Height": 22,
             "ConsensusData": 11160228784438648574,
-            "NextBookKeeper": "027c557d2e735b9a369d20dd099bfd42db5cdb74",
-            "BookKeepers": [
+            "NextBookkeeper": "027c557d2e735b9a369d20dd099bfd42db5cdb74",
+            "Bookkeepers": [
                 {
                     "X": "11045594958442581564679839478917319740817938700262919124154204990772552987783",
                     "Y": "28445199876541353997545685344458930058882115795876754515124389392470701852812"

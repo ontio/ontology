@@ -37,7 +37,7 @@ package bookkeeper
 //)
 //
 //func makeBookkeeperTransaction(pubkey *crypto.PubKey, op bool, cert []byte, issuer *account.Account) (string, error) {
-//	tx, _ := transaction.NewBookKeeperTransaction(pubkey, op, cert, issuer.PubKey())
+//	tx, _ := transaction.NewBookkeeperTransaction(pubkey, op, cert, issuer.PubKey())
 //	attr := transaction.NewTxAttribute(transaction.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
 //	tx.Attributes = make([]*transaction.TxAttribute, 0)
 //	tx.Attributes = append(tx.Attributes, &attr)

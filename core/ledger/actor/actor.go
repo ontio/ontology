@@ -78,8 +78,8 @@ func (this *LedgerActor) Receive(ctx actor.Context) {
 		this.handleGetContractStateReq(ctx, msg)
 	case *GetStorageItemReq:
 		this.handleGetStorageItemReq(ctx, msg)
-	case *GetBookKeeperStateReq:
-		this.handleGetBookKeeperStateReq(ctx, msg)
+	case *GetBookkeeperStateReq:
+		this.handleGetBookkeeperStateReq(ctx, msg)
 	case *GetCurrentStateRootReq:
 		this.handleGetCurrentStateRootReq(ctx, msg)
 	case *IsContainTransactionReq:
@@ -271,9 +271,9 @@ func (this *LedgerActor) handleGetCurrentStateRootReq(ctx actor.Context, req *Ge
 	ctx.Sender().Request(resp, ctx.Self())
 }
 
-func (this *LedgerActor) handleGetBookKeeperStateReq(ctx actor.Context, req *GetBookKeeperStateReq) {
-	bookKeep, err := ledger.DefLedger.GetBookKeeperState()
-	resp := &GetBookKeeperStateRsp{
+func (this *LedgerActor) handleGetBookkeeperStateReq(ctx actor.Context, req *GetBookkeeperStateReq) {
+	bookKeep, err := ledger.DefLedger.GetBookkeeperState()
+	resp := &GetBookkeeperStateRsp{
 		BookKeepState: bookKeep,
 		Error:         err,
 	}

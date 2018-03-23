@@ -44,7 +44,7 @@ import (
 )
 
 const (
-	DefaultBookKeeperCount = 4
+	DefaultBookkeeperCount = 4
 	WalletFileName         = "wallet.dat"
 )
 
@@ -53,7 +53,7 @@ type Client interface {
 	ContainsAccount(pubKey *crypto.PubKey) bool
 	GetAccount(pubKey *crypto.PubKey) (*Account, error)
 	GetDefaultAccount() (*Account, error)
-	GetBookKeepers() ([]*crypto.PubKey, error)
+	GetBookkeepers() ([]*crypto.PubKey, error)
 }
 
 type ClientImpl struct {
@@ -481,7 +481,7 @@ func (cl *ClientImpl) AddContract(ct *contract.Contract) error {
 	return err
 }
 
-func (cl *ClientImpl) GetBookKeepers() ([]*crypto.PubKey, error) {
+func (cl *ClientImpl) GetBookkeepers() ([]*crypto.PubKey, error) {
 	var pubKeys = []*crypto.PubKey{}
 	consensusType := config.Parameters.ConsensusType
 	if consensusType == "solo" {
@@ -493,8 +493,8 @@ func (cl *ClientImpl) GetBookKeepers() ([]*crypto.PubKey, error) {
 		return pubKeys, nil
 	}
 
-	sort.Strings(config.Parameters.BookKeepers)
-	for _, key := range config.Parameters.BookKeepers {
+	sort.Strings(config.Parameters.Bookkeepers)
+	for _, key := range config.Parameters.Bookkeepers {
 		pubKey := []byte(key)
 		pubKey, err := hex.DecodeString(key)
 		// TODO Convert the key string to byte
@@ -509,9 +509,9 @@ func (cl *ClientImpl) GetBookKeepers() ([]*crypto.PubKey, error) {
 	return pubKeys, nil
 }
 
-func clientIsDefaultBookKeeper(publicKey string) bool {
-	for _, bookKeeper := range config.Parameters.BookKeepers {
-		if strings.Compare(bookKeeper, publicKey) == 0 {
+func clientIsDefaultBookkeeper(publicKey string) bool {
+	for _, bookkeeper := range config.Parameters.Bookkeepers {
+		if strings.Compare(bookkeeper, publicKey) == 0 {
 			return true
 		}
 	}
@@ -543,10 +543,10 @@ func GetClient() Client {
 	return c
 }
 
-func GetBookKeepers() []*crypto.PubKey {
+func GetBookkeepers() []*crypto.PubKey {
 	var pubKeys = []*crypto.PubKey{}
-	sort.Strings(config.Parameters.BookKeepers)
-	for _, key := range config.Parameters.BookKeepers {
+	sort.Strings(config.Parameters.Bookkeepers)
+	for _, key := range config.Parameters.Bookkeepers {
 		pubKey := []byte(key)
 		pubKey, err := hex.DecodeString(key)
 		// TODO Convert the key string to byte

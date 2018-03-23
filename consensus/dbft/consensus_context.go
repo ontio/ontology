@@ -38,27 +38,27 @@ type ConsensusContext struct {
 	PrevHash        Uint256
 	Height          uint32
 	ViewNumber      byte
-	BookKeepers     []*crypto.PubKey
-	NextBookKeepers []*crypto.PubKey
+	Bookkeepers     []*crypto.PubKey
+	NextBookkeepers []*crypto.PubKey
 	Owner           *crypto.PubKey
-	BookKeeperIndex int
+	BookkeeperIndex int
 	PrimaryIndex    uint32
 	Timestamp       uint32
 	Nonce           uint64
-	NextBookKeeper  Address
+	NextBookkeeper  Address
 	Transactions    []*types.Transaction
 	Signatures      [][]byte
 	ExpectedView    []byte
 
 	header *types.Block
 
-	isBookKeeperChanged bool
+	isBookkeeperChanged bool
 	nmChangedblkHeight  uint32
 }
 
 func (cxt *ConsensusContext) M() int {
 	log.Debug()
-	return len(cxt.BookKeepers) - (len(cxt.BookKeepers)-1)/3
+	return len(cxt.Bookkeepers) - (len(cxt.Bookkeepers)-1)/3
 }
 
 func NewConsensusContext() *ConsensusContext {
@@ -68,18 +68,18 @@ func NewConsensusContext() *ConsensusContext {
 
 func (cxt *ConsensusContext) ChangeView(viewNum byte) {
 	log.Debug()
-	p := (cxt.Height - uint32(viewNum)) % uint32(len(cxt.BookKeepers))
+	p := (cxt.Height - uint32(viewNum)) % uint32(len(cxt.Bookkeepers))
 	cxt.State &= SignatureSent
 	cxt.ViewNumber = viewNum
 	if p >= 0 {
 		cxt.PrimaryIndex = uint32(p)
 	} else {
-		cxt.PrimaryIndex = uint32(p) + uint32(len(cxt.BookKeepers))
+		cxt.PrimaryIndex = uint32(p) + uint32(len(cxt.Bookkeepers))
 	}
 
 	if cxt.State == Initial {
 		cxt.Transactions = nil
-		cxt.Signatures = make([][]byte, len(cxt.BookKeepers))
+		cxt.Signatures = make([][]byte, len(cxt.Bookkeepers))
 		cxt.header = nil
 	}
 }
@@ -87,7 +87,7 @@ func (cxt *ConsensusContext) ChangeView(viewNum byte) {
 func (cxt *ConsensusContext) MakeChangeView() *msg.ConsensusPayload {
 	log.Debug()
 	cv := &ChangeView{
-		NewViewNumber: cxt.ExpectedView[cxt.BookKeeperIndex],
+		NewViewNumber: cxt.ExpectedView[cxt.BookkeeperIndex],
 	}
 	cv.msgData.Type = ChangeViewMsg
 	return cxt.MakePayload(cv)
@@ -116,7 +116,7 @@ func (cxt *ConsensusContext) MakeHeader() *types.Block {
 			Timestamp:        cxt.Timestamp,
 			Height:           cxt.Height,
 			ConsensusData:    cxt.Nonce,
-			NextBookKeeper:   cxt.NextBookKeeper,
+			NextBookkeeper:   cxt.NextBookkeeper,
 		}
 		cxt.header = &types.Block{
 			Header:       header,
@@ -133,7 +133,7 @@ func (cxt *ConsensusContext) MakePayload(message ConsensusMessage) *msg.Consensu
 		Version:         ContextVersion,
 		PrevHash:        cxt.PrevHash,
 		Height:          cxt.Height,
-		BookKeeperIndex: uint16(cxt.BookKeeperIndex),
+		BookkeeperIndex: uint16(cxt.BookkeeperIndex),
 		Timestamp:       cxt.Timestamp,
 		Data:            ser.ToArray(message),
 		Owner:           cxt.Owner,
@@ -144,9 +144,9 @@ func (cxt *ConsensusContext) MakePrepareRequest() *msg.ConsensusPayload {
 	log.Debug()
 	preReq := &PrepareRequest{
 		Nonce:          cxt.Nonce,
-		NextBookKeeper: cxt.NextBookKeeper,
+		NextBookkeeper: cxt.NextBookkeeper,
 		Transactions:   cxt.Transactions,
-		Signature:      cxt.Signatures[cxt.BookKeeperIndex],
+		Signature:      cxt.Signatures[cxt.BookkeeperIndex],
 	}
 	preReq.msgData.Type = PrepareRequestMsg
 	return cxt.MakePayload(preReq)
@@ -199,34 +199,34 @@ func (cxt *ConsensusContext) Reset(bkAccount *account.Account) {
 	height := ledger.DefLedger.GetCurrentBlockHeight()
 	header := cxt.MakeHeader()
 
-	if height != cxt.Height || header == nil || header.Hash() != preHash || len(cxt.NextBookKeepers) == 0 {
-		log.Info("[ConsensusContext] Calculate BookKeepers from db")
+	if height != cxt.Height || header == nil || header.Hash() != preHash || len(cxt.NextBookkeepers) == 0 {
+		log.Info("[ConsensusContext] Calculate Bookkeepers from db")
 		var err error
-		cxt.BookKeepers, err = vote.GetValidators([]*types.Transaction{})
+		cxt.Bookkeepers, err = vote.GetValidators([]*types.Transaction{})
 		if err != nil {
-			log.Error("[ConsensusContext] GetNextBookKeeper failed", err)
+			log.Error("[ConsensusContext] GetNextBookkeeper failed", err)
 		}
 	} else {
-		cxt.BookKeepers = cxt.NextBookKeepers
+		cxt.Bookkeepers = cxt.NextBookkeepers
 	}
 
 	cxt.State = Initial
 	cxt.PrevHash = preHash
 	cxt.Height = height + 1
 	cxt.ViewNumber = 0
-	cxt.BookKeeperIndex = -1
-	cxt.NextBookKeepers = nil
-	bookKeeperLen := len(cxt.BookKeepers)
-	cxt.PrimaryIndex = cxt.Height % uint32(bookKeeperLen)
+	cxt.BookkeeperIndex = -1
+	cxt.NextBookkeepers = nil
+	bookkeeperLen := len(cxt.Bookkeepers)
+	cxt.PrimaryIndex = cxt.Height % uint32(bookkeeperLen)
 	cxt.Transactions = nil
 	cxt.header = nil
-	cxt.Signatures = make([][]byte, bookKeeperLen)
-	cxt.ExpectedView = make([]byte, bookKeeperLen)
+	cxt.Signatures = make([][]byte, bookkeeperLen)
+	cxt.ExpectedView = make([]byte, bookkeeperLen)
 
-	for i := 0; i < bookKeeperLen; i++ {
-		if bkAccount.PublicKey.X.Cmp(cxt.BookKeepers[i].X) == 0 {
-			cxt.BookKeeperIndex = i
-			cxt.Owner = cxt.BookKeepers[i]
+	for i := 0; i < bookkeeperLen; i++ {
+		if bkAccount.PublicKey.X.Cmp(cxt.Bookkeepers[i].X) == 0 {
+			cxt.BookkeeperIndex = i
+			cxt.Owner = cxt.Bookkeepers[i]
 			break
 		}
 	}

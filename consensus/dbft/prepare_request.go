@@ -30,7 +30,7 @@ import (
 type PrepareRequest struct {
 	msgData        ConsensusMessageData
 	Nonce          uint64
-	NextBookKeeper common.Address
+	NextBookkeeper common.Address
 	Transactions   []*types.Transaction
 	Signature      []byte
 }
@@ -42,8 +42,8 @@ func (pr *PrepareRequest) Serialize(w io.Writer) error {
 	if err := ser.WriteVarUint(w, pr.Nonce); err != nil {
 		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] nonce serialization failed")
 	}
-	if err := pr.NextBookKeeper.Serialize(w); err != nil {
-		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] nextbookKeeper serialization failed")
+	if err := pr.NextBookkeeper.Serialize(w); err != nil {
+		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] nextbookkeeper serialization failed")
 	}
 	if err := ser.WriteVarUint(w, uint64(len(pr.Transactions))); err != nil {
 		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] length serialization failed")
@@ -64,8 +64,8 @@ func (pr *PrepareRequest) Deserialize(r io.Reader) error {
 	pr.msgData.Deserialize(r)
 	pr.Nonce, _ = ser.ReadVarUint(r, 0)
 
-	if err := pr.NextBookKeeper.Deserialize(r); err != nil {
-		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] nextbookKeeper deserialization failed")
+	if err := pr.NextBookkeeper.Deserialize(r); err != nil {
+		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] nextbookkeeper deserialization failed")
 	}
 
 	length, err := ser.ReadVarUint(r, 0)

@@ -66,7 +66,7 @@ config.json node nodectl
 
 ```
  Each node also needs a `wallet.dat` to run. The quickest way to generate wallets is to run `./nodectl wallet -c -p YourPassword` on each host.
- Then, change the `BookKeepers` field to the 4 nodes' wallet public keys, which you can get from the last command's echo. The public key sequence does not matter.
+ Then, change the `Bookkeepers` field to the 4 nodes' wallet public keys, which you can get from the last command's echo. The public key sequence does not matter.
  Now all configurations are completed.
  
  Here's an snippet for configuration, note that `10.0.1.100` and `10.0.1.101` are public seed node's addresses:
@@ -79,7 +79,7 @@ $ cat config.json
       "10.0.1.101:10338",
       "10.0.1.102:10338"
     ],
-    "BookKeepers": [
+    "Bookkeepers": [
       "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
       "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
       "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
@@ -104,7 +104,7 @@ $ cat config.json
  *  For the seed node, the `NodePort` is the same with the port in `SeedList` part.
  *  For each non-seed node, the `NodePort` should have different ports.
  *  Also make sure that the `HttpJsonPort` and `HttpLocalPort` of each node do not conflict with those of the current host.
- After changing the configuration file, we also need to generate a wallet for each node and field the `BookKeepers` with the 4 nodes' wallet public keys. Please follow the steps in the multi-hosts deployment section above.
+ After changing the configuration file, we also need to generate a wallet for each node and field the `Bookkeepers` with the 4 nodes' wallet public keys. Please follow the steps in the multi-hosts deployment section above.
  Here's an example:
 
 
@@ -143,7 +143,7 @@ $ cat node[1234]/config.json
       "10.0.1.100:30338",
       "10.0.1.100:40338"
     ],
-    "BookKeepers": [
+    "Bookkeepers": [
       "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
       "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
       "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
@@ -166,7 +166,7 @@ $ cat node[1234]/config.json
       "10.0.1.100:30338",
       "10.0.1.100:40338"
     ],
-    "BookKeepers": [
+    "Bookkeepers": [
       "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
       "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
       "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
@@ -189,7 +189,7 @@ $ cat node[1234]/config.json
       "10.0.1.100:30338",
       "10.0.1.100:40338"
     ],
-    "BookKeepers": [
+    "Bookkeepers": [
       "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
       "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
       "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
@@ -212,7 +212,7 @@ $ cat node[1234]/config.json
       "10.0.1.100:30338",
       "10.0.1.100:40338"
     ],
-    "BookKeepers": [
+    "Bookkeepers": [
       "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
       "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
       "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
