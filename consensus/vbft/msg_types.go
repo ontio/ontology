@@ -27,6 +27,7 @@ import (
 	vconfig "github.com/Ontology/consensus/vbft/config"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
+	"github.com/Ontology/common/serialization"
 )
 
 type MsgType uint8
@@ -81,7 +82,7 @@ func (msg *blockProposalMsg) UnmarshalJSON(data []byte) error {
 
 	blk := &types.Block{}
 	if err := blk.Deserialize(buf); err != nil {
-		return fmt.Errorf("marshal block type: %s", err)
+		return fmt.Errorf("unmarshal block type: %s", err)
 	}
 
 	block, err := initVbftBlock(blk)
@@ -395,7 +396,44 @@ func (msg *BlockFetchRespMsg) GetBlockNum() uint64 {
 }
 
 func (msg *BlockFetchRespMsg) Serialize() ([]byte, error) {
-	return json.Marshal(msg)
+	buffer := bytes.NewBuffer([]byte{})
+	serialization.WriteUint64(buffer,msg.BlockNumber)
+	msg.BlockHash.Serialize(buffer)
+	blockbuff,err := msg.BlockData.Serialize()
+	if err != nil {
+		return nil ,err
+	}
+	buffer.Write(blockbuff)
+	serialization.WriteVarBytes(buffer,msg.Sig)
+	return buffer.Bytes(),nil
+}
+
+func (msg *BlockFetchRespMsg) Deserialize(data []byte) error {
+	buffer := bytes.NewBuffer(data)
+	blocknum, err := serialization.ReadUint64(buffer)
+	if err != nil {
+		return err
+	}
+	msg.BlockNumber = blocknum
+	err = msg.BlockHash.Deserialize(buffer)
+	if err != nil {
+		return err
+	}
+	blk := &types.Block{}
+	if err := blk.Deserialize(buffer); err != nil {
+		return fmt.Errorf("unmarshal block type: %s", err)
+	}
+	block, err := initVbftBlock(blk)
+	if err != nil {
+		return fmt.Errorf("init vbft block: %s", err)
+	}
+	msg.BlockData = block
+	sig, err := serialization.ReadVarBytes(buffer)
+	if err != nil {
+		return nil
+	}
+	msg.Sig = sig
+	return nil
 }
 
 // proposal fetch msg is to fetch proposal when peer failed to get proposal locally
