@@ -26,25 +26,26 @@ import (
 	"github.com/Ontology/core/ledger"
 	ldgactor "github.com/Ontology/core/ledger/actor"
 	"github.com/Ontology/crypto"
+	"github.com/Ontology/events"
+	hserver "github.com/Ontology/http/base/actor"
 	"github.com/Ontology/http/jsonrpc"
 	"github.com/Ontology/http/localrpc"
 	"github.com/Ontology/http/nodeinfo"
 	"github.com/Ontology/http/restful"
 	"github.com/Ontology/http/websocket"
-	hserver "github.com/Ontology/http/base/actor"
 	"github.com/Ontology/net"
 	"github.com/Ontology/net/protocol"
 	"github.com/Ontology/txnpool"
 	tc "github.com/Ontology/txnpool/common"
 	"github.com/Ontology/validator/statefull"
 	"github.com/Ontology/validator/stateless"
+	el "github.com/ontio/ontology-eventbus/common/log"
 	"os"
 	"os/signal"
 	"runtime"
+	"sort"
 	"syscall"
 	"time"
-	"github.com/Ontology/events"
-	"sort"
 )
 
 const (
@@ -53,6 +54,9 @@ const (
 
 func init() {
 	log.Init(log.Path, log.Stdout)
+	// Todo: If the actor bus uses a different log lib, remove it
+	el.Init(log.Path, log.Stdout)
+
 	var coreNum int
 	if config.Parameters.MultiCoreNum > DefaultMultiCoreNum {
 		coreNum = int(config.Parameters.MultiCoreNum)
