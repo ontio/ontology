@@ -153,7 +153,6 @@ func ontMain(ctx *cli.Context) {
 		log.Fatalf("GetBookkeepers error:%s", err)
 		os.Exit(1)
 	}
-
 	//Init event hub
 	events.Init()
 
@@ -221,8 +220,6 @@ func ontMain(ctx *cli.Context) {
 		hserver.SetConsensusPid(consensusService.GetPID())
 		go localrpc.StartLocalServer()
 	}
-	noder.WaitForPeersStart()
-	noder.WaitForSyncBlkFinish()
 
 	log.Info("--Start the RPC interface")
 	go jsonrpc.StartRPCServer()
