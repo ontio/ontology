@@ -28,6 +28,7 @@ import (
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/core/payload"
+	"github.com/Ontology/smartcontract/event"
 )
 
 var DefLedger *Ledger
@@ -127,11 +128,6 @@ func (this *Ledger) IsContainBlock(blockHash common.Uint256) (bool, error) {
 	return this.ldgStore.IsContainBlock(blockHash)
 }
 
-func (this *Ledger) IsDoubleSpend(tx *types.Transaction) (bool, error) {
-	//
-	return false, nil
-}
-
 func (this *Ledger) GetCurrentStateRoot() (common.Uint256, error) {
 	return common.Uint256{}, nil
 }
@@ -161,4 +157,12 @@ func (this *Ledger) GetContractState(contractHash common.Address) (*payload.Depl
 
 func (this *Ledger) PreExecuteContract(tx *types.Transaction) ([]interface{}, error) {
 	return this.ldgStore.PreExecuteContract(tx)
+}
+
+func (this *Ledger)GetEventNotifyByTx(tx common.Uint256)([]*event.NotifyEventInfo, error){
+	return this.ldgStore.GetEventNotifyByTx(tx)
+}
+
+func (this *Ledger)GetEventNotifyByBlock(height uint32)([]common.Uint256, error){
+	return this.ldgStore.GetEventNotifyByBlock(height)
 }

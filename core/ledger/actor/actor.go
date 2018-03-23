@@ -46,6 +46,8 @@ func (this *LedgerActor) Start() *actor.PID {
 
 func (this *LedgerActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
+	case *actor.Started:
+	case *actor.Stop:
 	case *AddHeaderReq:
 		this.handleAddHeaderReq(ctx, msg)
 	case *AddHeadersReq:
@@ -90,6 +92,10 @@ func (this *LedgerActor) Receive(ctx actor.Context) {
 		this.handleGetBlockRootWithNewTxRootReq(ctx, msg)
 	case *PreExecuteContractReq:
 		this.handlePreExecuteContractReq(ctx, msg)
+	case *GetEventNotifyByTxReq:
+		this.handleGetEventNotifyByTx(ctx, msg)
+	case *GetEventNotifyByBlockReq:
+		this.handleGetEventNotifyByBlock(ctx, msg)
 	default:
 		log.Warnf("LedgerActor cannot deal with type: %v %v", msg, reflect.TypeOf(msg))
 	}
@@ -303,6 +309,24 @@ func (this *LedgerActor) handlePreExecuteContractReq(ctx actor.Context, req *Pre
 	resp := &PreExecuteContractRsp{
 		Result: result,
 		Error:  err,
+	}
+	ctx.Sender().Request(resp, ctx.Self())
+}
+
+func (this *LedgerActor) handleGetEventNotifyByTx(ctx actor.Context, req *GetEventNotifyByTxReq){
+	result, err := ledger.DefLedger.GetEventNotifyByTx(req.Tx)
+	resp := &GetEventNotifyByTxRsp{
+		Notifies:result,
+		Error:err,
+	}
+	ctx.Sender().Request(resp, ctx.Self())
+}
+
+func (this *LedgerActor) handleGetEventNotifyByBlock(ctx actor.Context, req *GetEventNotifyByBlockReq){
+	result, err := ledger.DefLedger.GetEventNotifyByBlock(req.Height)
+	resp := &GetEventNotifyByBlockRsp{
+		TxHashes:result,
+		Error:err,
 	}
 	ctx.Sender().Request(resp, ctx.Self())
 }

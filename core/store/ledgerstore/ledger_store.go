@@ -36,6 +36,7 @@ import (
 	"sort"
 	"sync"
 	"time"
+	"github.com/Ontology/smartcontract/event"
 )
 
 const (
@@ -840,6 +841,14 @@ func (this *LedgerStore) GetContractState(contractHash common.Address) (*payload
 
 func (this *LedgerStore) GetStorageItem(key *states.StorageKey) (*states.StorageItem, error) {
 	return this.stateStore.GetStorageState(key)
+}
+
+func (this *LedgerStore)GetEventNotifyByTx(tx common.Uint256)([]*event.NotifyEventInfo, error){
+	return this.eventStore.GetEventNotifyByTx(tx)
+}
+
+func (this *LedgerStore)GetEventNotifyByBlock(height uint32)([]common.Uint256, error){
+	return this.eventStore.GetEventNotifyByBlock(height)
 }
 
 func (this *LedgerStore) PreExecuteContract(tx *types.Transaction) ([]interface{}, error) {

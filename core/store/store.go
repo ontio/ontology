@@ -21,8 +21,9 @@ package store
 import (
 	"github.com/Ontology/common"
 	"github.com/Ontology/core/payload"
-	states "github.com/Ontology/core/states"
+	"github.com/Ontology/core/states"
 	"github.com/Ontology/core/types"
+	"github.com/Ontology/smartcontract/event"
 	"github.com/Ontology/crypto"
 )
 
@@ -49,4 +50,6 @@ type ILedgerStore interface {
 	GetBookkeeperState() (*states.BookkeeperState, error)
 	GetStorageItem(key *states.StorageKey) (*states.StorageItem, error)
 	PreExecuteContract(tx *types.Transaction) ([]interface{}, error)
+	GetEventNotifyByTx(tx common.Uint256)([]*event.NotifyEventInfo, error)
+	GetEventNotifyByBlock(height uint32)([]common.Uint256, error)
 }
