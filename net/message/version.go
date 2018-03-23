@@ -27,8 +27,8 @@ import (
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/crypto"
-	. "github.com/Ontology/net/protocol"
 	"github.com/Ontology/net/actor"
+	. "github.com/Ontology/net/protocol"
 	"time"
 )
 
@@ -39,20 +39,20 @@ const (
 type version struct {
 	Hdr msgHdr
 	P   struct {
-		    Version      uint32
-		    Services     uint64
-		    TimeStamp    uint32
-		    Port         uint16
-		    HttpInfoPort uint16
-		    Cap          [32]byte
-		    Nonce        uint64
-		    // TODO remove tempory to get serilization function passed
-		    UserAgent    uint8
-		    StartHeight  uint64
-		    // FIXME check with the specify relay type length
-		    Relay        uint8
-	    }
-	pk  *crypto.PubKey
+		Version      uint32
+		Services     uint64
+		TimeStamp    uint32
+		Port         uint16
+		HttpInfoPort uint16
+		Cap          [32]byte
+		Nonce        uint64
+		// TODO remove tempory to get serilization function passed
+		UserAgent   uint8
+		StartHeight uint64
+		// FIXME check with the specify relay type length
+		Relay uint8
+	}
+	pk *crypto.PubKey
 }
 
 func (msg *version) init(n Noder) {

@@ -51,7 +51,7 @@ type link struct {
 	httpInfoPort uint16    // The node information server port of the node
 	time         time.Time // The latest time the node activity
 	rxBuf        RxBuff
-	connCnt      uint64    // The connection count
+	connCnt      uint64 // The connection count
 }
 
 // Shrinking the buf to the exactly reading in byte length
@@ -109,7 +109,7 @@ func (node *node) rx() {
 	buf := make([]byte, MAXBUFLEN)
 	for {
 		len, err := conn.Read(buf[0:(MAXBUFLEN - 1)])
-		buf[MAXBUFLEN - 1] = 0 //Prevent overflow
+		buf[MAXBUFLEN-1] = 0 //Prevent overflow
 		switch err {
 		case nil:
 			t := time.Now()
@@ -124,7 +124,7 @@ func (node *node) rx() {
 		}
 	}
 
-	DISCONNECT:
+DISCONNECT:
 	node.local.eventQueue.GetEvent("disconnect").Notify(events.EventNodeDisconnect, node)
 }
 
@@ -180,7 +180,7 @@ func (n *node) initConnection() {
 
 func initNonTlsListen() (net.Listener, error) {
 	log.Debug()
-	listener, err := net.Listen("tcp", ":" + strconv.Itoa(Parameters.NodePort))
+	listener, err := net.Listen("tcp", ":"+strconv.Itoa(Parameters.NodePort))
 	if err != nil {
 		log.Error("Error listening\n", err.Error())
 		return nil, err
@@ -219,7 +219,7 @@ func initTlsListen() (net.Listener, error) {
 	}
 
 	log.Info("TLS listen port is ", strconv.Itoa(Parameters.NodePort))
-	listener, err := tls.Listen("tcp", ":" + strconv.Itoa(Parameters.NodePort), tlsConfig)
+	listener, err := tls.Listen("tcp", ":"+strconv.Itoa(Parameters.NodePort), tlsConfig)
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -285,7 +285,7 @@ func (node *node) Connect(nodeAddr string) error {
 
 func NonTLSDial(nodeAddr string) (net.Conn, error) {
 	log.Debug()
-	conn, err := net.DialTimeout("tcp", nodeAddr, time.Second * DIALTIMEOUT)
+	conn, err := net.DialTimeout("tcp", nodeAddr, time.Second*DIALTIMEOUT)
 	if err != nil {
 		return nil, err
 	}

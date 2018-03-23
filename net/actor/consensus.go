@@ -29,6 +29,6 @@ var ConsensusPid *actor.PID
 //	ConsensusPid.Tell(cons)
 //}
 
-func SetConsensusPid(conPid * actor.PID){
+func SetConsensusPid(conPid *actor.PID) {
 	ConsensusPid = conPid
 }

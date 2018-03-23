@@ -26,8 +26,8 @@ import (
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/types"
-	. "github.com/Ontology/net/protocol"
 	"github.com/Ontology/net/actor"
+	. "github.com/Ontology/net/protocol"
 )
 
 type blockReq struct {
@@ -45,9 +45,9 @@ type block struct {
 func (msg block) Handle(node Noder) error {
 	log.Debug("RX block message")
 	hash := msg.blk.Hash()
-	if con, _ := actor.IsContainBlock(hash); con != true{
+	if con, _ := actor.IsContainBlock(hash); con != true {
 		actor.AddBlock(&msg.blk)
-		//FIXME if AddBlock successfully, removeFlightHeight		
+		//FIXME if AddBlock successfully, removeFlightHeight
 		node.RemoveFlightHeight(msg.blk.Header.Height)
 	} else {
 		log.Debug("Receive duplicated block")
@@ -62,7 +62,7 @@ func (msg dataReq) Handle(node Noder) error {
 	switch reqtype {
 	case common.BLOCK:
 		block, err := NewBlockFromHash(hash)
-		if err != nil || block == nil{
+		if err != nil || block == nil {
 			log.Debug("Can't get block from hash: ", hash, " ,send not found message")
 			//call notfound message
 			b, err := NewNotFound(hash)
@@ -92,7 +92,7 @@ func (msg dataReq) Handle(node Noder) error {
 
 func NewBlockFromHash(hash common.Uint256) (*types.Block, error) {
 	bk, err := actor.GetBlockByHash(hash)
-	if err != nil || bk == nil{
+	if err != nil || bk == nil {
 		log.Errorf("Get Block error: %s, block hash: %x", err.Error(), hash)
 		return nil, err
 	}

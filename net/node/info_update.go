@@ -24,11 +24,11 @@ import (
 	"math/rand"
 	"net"
 	//"github.com/Ontology/core/ledger"
+	"github.com/Ontology/net/actor"
 	. "github.com/Ontology/net/message"
 	. "github.com/Ontology/net/protocol"
 	"strconv"
 	"time"
-	"github.com/Ontology/net/actor"
 )
 
 func keepAlive(from *Noder, dst *Noder) {

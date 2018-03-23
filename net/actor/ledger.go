@@ -77,7 +77,7 @@ func GetCurrentHeaderHash() (common.Uint256, error) {
 }
 
 func GetBlockHashByHeight(height uint32) (common.Uint256, error) {
-	future := defLedgerPid.RequestFuture(&ledger.GetBlockHashReq{Height:height}, 5*time.Second)
+	future := defLedgerPid.RequestFuture(&ledger.GetBlockHashReq{Height: height}, 5*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
@@ -87,7 +87,7 @@ func GetBlockHashByHeight(height uint32) (common.Uint256, error) {
 }
 
 func GetHeaderByHeight(height uint32) (*types.Header, error) {
-	future := defLedgerPid.RequestFuture(&ledger.GetHeaderByHeightReq{Height:height}, 5*time.Second)
+	future := defLedgerPid.RequestFuture(&ledger.GetHeaderByHeightReq{Height: height}, 5*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
@@ -97,7 +97,7 @@ func GetHeaderByHeight(height uint32) (*types.Header, error) {
 }
 
 func GetBlockByHeight(height uint32) (*types.Block, error) {
-	future := defLedgerPid.RequestFuture(&ledger.GetBlockByHeightReq{Height:height}, 5*time.Second)
+	future := defLedgerPid.RequestFuture(&ledger.GetBlockByHeightReq{Height: height}, 5*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
@@ -107,7 +107,7 @@ func GetBlockByHeight(height uint32) (*types.Block, error) {
 }
 
 func GetHeaderByHash(hash common.Uint256) (*types.Header, error) {
-	future := defLedgerPid.RequestFuture(&ledger.GetHeaderByHashReq{BlockHash:hash}, 5*time.Second)
+	future := defLedgerPid.RequestFuture(&ledger.GetHeaderByHashReq{BlockHash: hash}, 5*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
@@ -117,7 +117,7 @@ func GetHeaderByHash(hash common.Uint256) (*types.Header, error) {
 }
 
 func GetBlockByHash(hash common.Uint256) (*types.Block, error) {
-	future := defLedgerPid.RequestFuture(&ledger.GetBlockByHashReq{BlockHash:hash}, 5*time.Second)
+	future := defLedgerPid.RequestFuture(&ledger.GetBlockByHashReq{BlockHash: hash}, 5*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)

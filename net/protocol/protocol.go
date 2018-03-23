@@ -29,11 +29,11 @@ import (
 )
 
 type NodeAddr struct {
-	Time          int64
-	Services      uint64
-	IpAddr        [16]byte
-	Port          uint16
-	ID            uint64 // Unique ID
+	Time     int64
+	Services uint64
+	IpAddr   [16]byte
+	Port     uint16
+	ID       uint64 // Unique ID
 }
 
 // The node capability type

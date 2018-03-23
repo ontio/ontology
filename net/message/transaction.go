@@ -26,8 +26,8 @@ import (
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/types"
-	. "github.com/Ontology/net/protocol"
 	"github.com/Ontology/net/actor"
+	. "github.com/Ontology/net/protocol"
 )
 
 type dataReq struct {
@@ -110,7 +110,7 @@ func (msg *dataReq) Deserialization(p []byte) error {
 
 func NewTxnFromHash(hash common.Uint256) (*types.Transaction, error) {
 	txn, err := actor.GetTxnFromLedger(hash)
-	if err != nil || txn == nil{
+	if err != nil || txn == nil {
 		log.Error("Get transaction with hash error: ", err.Error())
 		return nil, err
 	}

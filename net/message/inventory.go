@@ -24,13 +24,13 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"io"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
+	"io"
 	//	"github.com/Ontology/ledger"
-	. "github.com/Ontology/net/protocol"
 	"github.com/Ontology/net/actor"
+	. "github.com/Ontology/net/protocol"
 )
 
 var LastInvHash Uint256
@@ -217,7 +217,7 @@ func GetInvFromBlockHash(starthash Uint256, stophash Uint256) (*InvPayload, erro
 	var empty Uint256
 	var startheight uint32
 	var stopheight uint32
-	curHeight, _:= actor.GetCurrentBlockHeight()
+	curHeight, _ := actor.GetCurrentBlockHeight()
 	if starthash == empty {
 		if stophash == empty {
 			if curHeight > MAXBLKHDRCNT {
@@ -227,7 +227,7 @@ func GetInvFromBlockHash(starthash Uint256, stophash Uint256) (*InvPayload, erro
 			}
 		} else {
 			bkstop, err := actor.GetHeaderByHash(stophash)
-			if err != nil || bkstop == nil{
+			if err != nil || bkstop == nil {
 				return nil, err
 			}
 			stopheight = bkstop.Height
@@ -244,7 +244,7 @@ func GetInvFromBlockHash(starthash Uint256, stophash Uint256) (*InvPayload, erro
 		startheight = bkstart.Height
 		if stophash != empty {
 			bkstop, err := actor.GetHeaderByHash(stophash)
-			if err != nil || bkstop == nil{
+			if err != nil || bkstop == nil {
 				return nil, err
 			}
 			stopheight = bkstop.Height
