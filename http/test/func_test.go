@@ -25,7 +25,6 @@ import (
 	"os"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/common"
-	. "github.com/Ontology/http/base/common"
 	"github.com/Ontology/crypto"
 	"math/big"
 	"github.com/Ontology/smartcontract/service/native/states"
@@ -38,6 +37,14 @@ import (
 	ctypes "github.com/Ontology/core/types"
 	. "github.com/Ontology/common"
 )
+
+func TestCodeHash(t *testing.T) {
+	code,_ := HexToBytes("aa")
+	vmcode := vmtypes.VmCode{vmtypes.NEOVM,code}
+	codehash := vmcode.AddressFromVmCode()
+	fmt.Println(codehash.ToHexString())
+	os.Exit(0)
+}
 
 func TestTxDeserialize(t *testing.T) {
 	bys, _ := common.HexToBytes("")
@@ -58,6 +65,25 @@ func TestAddress(t *testing.T) {
 		os.Exit(0)
 	}
 	ui60 := types.AddressFromPubKey(pk)
+	addr := common.ToHexString(ui60.ToArray())
+	fmt.Println(addr)
+	fmt.Println(ui60.ToBase58())
+}
+func TestMultiPubKeysAddress(t *testing.T) {
+	crypto.SetAlg("")
+	pubkey, _ := common.HexToBytes("0399b851bc2cd05506d6821d4bc5a92139b00ac4bc7399cd9ca0aac86a468d1c05")
+	pk, err := crypto.DecodePoint(pubkey)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(0)
+	}
+	pubkey2, _ := common.HexToBytes("03525e53bfeac2e408ce5150fcc08502da135dd51e4878f304080293055d7049fc")
+	pk2, err := crypto.DecodePoint(pubkey2)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(0)
+	}
+	ui60,_ := types.AddressFromMultiPubKeys([]*crypto.PubKey{pk,pk2},1)
 	addr := common.ToHexString(ui60.ToArray())
 	fmt.Println(addr)
 	fmt.Println(ui60.ToBase58())
