@@ -430,7 +430,7 @@ func (msg *BlockFetchRespMsg) Deserialize(data []byte) error {
 	msg.BlockData = block
 	sig, err := serialization.ReadVarBytes(buffer)
 	if err != nil {
-		return nil
+		return err
 	}
 	msg.Sig = sig
 	return nil
