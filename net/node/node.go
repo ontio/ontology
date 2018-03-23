@@ -58,37 +58,34 @@ func (s Semaphore) release() {
 }
 
 type node struct {
-	//sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
-	state          uint32 // node state
-	consensusState uint32
-	id             uint64   // The nodes's id
-	cap            [32]byte // The node capability set
-	version        uint32   // The network protocol the node used
-	services       uint64   // The services the node supplied
-	relay          bool     // The relay capability of the node (merge into capbility flag)
-	height         uint64   // The node latest block height
-	txnCnt         uint64   // The transactions be transmit by this node
-	rxTxnCnt       uint64   // The transaction received by this node
-	publicKey      *crypto.PubKey
-	// TODO does this channel should be a buffer channel
-	chF        chan func() error // Channel used to operate the node without lock
-	link                         // The link status and infomation
-	local      *node             // The pointer to local node
-	nbrNodes                     // The neighbor node connect with currently node except itself
-	eventQueue                   // The event queue to notice notice other modules
-	//TXNPool                      // Unconfirmed transaction pool
-	idCache // The buffer to store the id of the items which already be processed
-	/*
-	 * |--|--|--|--|--|--|isSyncFailed|isSyncHeaders|
-	 */
+						   //sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
+	state                    uint32            // node state
+	id                       uint64            // The nodes's id
+	cap                      [32]byte          // The node capability set
+	version                  uint32            // The network protocol the node used
+	services                 uint64            // The services the node supplied
+	relay                    bool              // The relay capability of the node (merge into capbility flag)
+	height                   uint64            // The node latest block height
+	txnCnt                   uint64            // The transactions be transmit by this node
+	rxTxnCnt                 uint64            // The transaction received by this node
+	publicKey                *crypto.PubKey
+						   // TODO does this channel should be a buffer channel
+	chF                      chan func() error // Channel used to operate the node without lock
+	link                                       // The link status and infomation
+	local                    *node             // The pointer to local node
+	nbrNodes                                   // The neighbor node connect with currently node except itself
+	eventQueue                                 // The event queue to notice notice other modules
+	idCache                                    // The buffer to store the id of the items which already be processed
+						   /*
+						    * |--|--|--|--|--|--|isSyncFailed|isSyncHeaders|
+						    */
 	flightHeights            []uint32
 	lastContact              time.Time
 	nodeDisconnectSubscriber events.Subscriber
 	tryTimes                 uint32
 	ConnectingNodes
 	RetryConnAddrs
-	SyncReqSem    Semaphore
-	ConsensusNode *node
+	SyncReqSem               Semaphore
 }
 
 type RetryConnAddrs struct {
@@ -104,34 +101,16 @@ type ConnectingNodes struct {
 func (node *node) DumpInfo() {
 	log.Info("Node info:")
 	log.Info("\t state = ", node.state)
-	log.Info("\t consensusstate = ", node.consensusState)
 	log.Info(fmt.Sprintf("\t id = 0x%x", node.id))
 	log.Info("\t addr = ", node.addr)
 	log.Info("\t conn = ", node.conn)
-	log.Info("\t consensusConn = ", node.consensusConn)
 	log.Info("\t cap = ", node.cap)
 	log.Info("\t version = ", node.version)
 	log.Info("\t services = ", node.services)
 	log.Info("\t port = ", node.port)
-	log.Info("\t consensusport = ", node.consensusPort)
 	log.Info("\t relay = ", node.relay)
 	log.Info("\t height = ", node.height)
 	log.Info("\t conn cnt = ", node.link.connCnt)
-}
-
-func (node *node) GetNbrNodeByAddr(addr string) *node {
-	node.nbrNodes.RLock()
-	defer node.nbrNodes.RUnlock()
-	for _, n := range node.nbrNodes.List {
-		if n.GetState() == ESTABLISH {
-			address := n.GetAddr()
-			if strings.Compare(address, addr) == 0 {
-				return n
-			}
-
-		}
-	}
-	return nil
 }
 
 func (node *node) IsAddrInNbrList(addr string) bool {
@@ -168,14 +147,14 @@ func (node *node) RemoveAddrInConnectingList(addr string) {
 	addrs := []string{}
 	for i, a := range node.ConnectingAddrs {
 		if strings.Compare(a, addr) == 0 {
-			addrs = append(node.ConnectingAddrs[:i], node.ConnectingAddrs[i+1:]...)
+			addrs = append(node.ConnectingAddrs[:i], node.ConnectingAddrs[i + 1:]...)
 		}
 	}
 	node.ConnectingAddrs = addrs
 }
 
 func (node *node) UpdateInfo(t time.Time, version uint32, services uint64,
-	port uint16, nonce uint64, relay uint8, height uint64) {
+port uint16, nonce uint64, relay uint8, height uint64) {
 
 	node.UpdateRXTime(t)
 	node.id = nonce
@@ -192,9 +171,8 @@ func (node *node) UpdateInfo(t time.Time, version uint32, services uint64,
 
 func NewNode() *node {
 	n := node{
-		state:          INIT,
-		consensusState: INIT,
-		chF:            make(chan func() error),
+		state: INIT,
+		chF:   make(chan func() error),
 	}
 	runtime.SetFinalizer(&n, rmNode)
 	go n.backend()
@@ -217,7 +195,6 @@ func InitNode(pubKey *crypto.PubKey) Noder {
 	}
 
 	n.link.port = uint16(Parameters.NodePort)
-	n.link.consensusPort = uint16(Parameters.NodeConsensusPort)
 	n.relay = true
 	// TODO is it neccessary to init the rand seed here?
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -237,20 +214,11 @@ func InitNode(pubKey *crypto.PubKey) Noder {
 	//n.TXNPool.init()
 	n.eventQueue.init()
 	n.nodeDisconnectSubscriber = n.eventQueue.GetEvent("disconnect").Subscribe(events.EventNodeDisconnect, n.NodeDisconnect)
-	n.nodeDisconnectSubscriber = n.eventQueue.GetEvent("disconnect").Subscribe(events.EventNodeConsensusDisconnect, n.NodeConsensusDisconnect)
 	go n.initConnection()
 	go n.updateConnection()
 	go n.updateNodeInfo()
 
 	return n
-}
-
-func (n *node) NodeConsensusDisconnect(v interface{}) {
-	if node, ok := v.(*node); ok {
-		//node.SetState(INACTIVITY)
-		conn := node.getConsensusConn()
-		conn.Close()
-	}
 }
 
 func (n *node) NodeDisconnect(v interface{}) {
@@ -280,51 +248,12 @@ func (node *node) GetState() uint32 {
 	return atomic.LoadUint32(&(node.state))
 }
 
-func (node *node) GetConsensusState() uint32 {
-	return atomic.LoadUint32(&(node.consensusState))
-}
-
 func (node *node) getConn() net.Conn {
-	return node.getconn(false)
-}
-
-func (node *node) GetConsensusConn() net.Conn {
-	return node.getconn(true)
-}
-func (node *node) getConsensusConn() net.Conn {
-	return node.getconn(true)
-}
-
-func (node *node) getconn(isConsensusChannel bool) net.Conn {
-	if isConsensusChannel {
-		return node.consensusConn
-	} else {
-		return node.conn
-	}
+	return node.conn
 }
 
 func (node *node) GetPort() uint16 {
-	return node.getPort(false)
-}
-
-func (node *node) GetConsensusPort() uint16 {
-	return node.getPort(true)
-}
-
-func (node *node) SetConsensusConn(conn net.Conn) {
-	node.consensusConn = conn
-}
-
-func (node *node) SetConsensusPort(consensusPort uint16) {
-	node.consensusPort = consensusPort
-}
-
-func (node *node) getPort(isConsensusChannel bool) uint16 {
-	if isConsensusChannel {
-		return node.consensusPort
-	} else {
-		return node.port
-	}
+	return node.port
 }
 
 func (node *node) GetHttpInfoPort() int {
@@ -379,10 +308,6 @@ func (node *node) SetState(state uint32) {
 	atomic.StoreUint32(&(node.state), state)
 }
 
-func (node *node) SetConsensusState(state uint32) {
-	atomic.StoreUint32(&(node.consensusState), state)
-}
-
 func (node *node) GetPubKey() *crypto.PubKey {
 	return node.publicKey
 }
@@ -412,7 +337,6 @@ func (node *node) Xmit(message interface{}) error {
 	log.Debug()
 	var buffer []byte
 	var err error
-	var isConsensus = false
 	switch message.(type) {
 	case *types.Transaction:
 		log.Debug("TX transaction message")
@@ -439,7 +363,6 @@ func (node *node) Xmit(message interface{}) error {
 			log.Error("Error New consensus message: ", err)
 			return err
 		}
-		isConsensus = true
 	case Uint256:
 		log.Debug("TX block hash message")
 		hash := message.(Uint256)
@@ -457,7 +380,7 @@ func (node *node) Xmit(message interface{}) error {
 		return errors.New("Unknown Xmit message type")
 	}
 
-	node.nbrNodes.Broadcast(buffer, isConsensus)
+	node.nbrNodes.Broadcast(buffer)
 
 	return nil
 }
@@ -508,7 +431,6 @@ func (node *node) SetBookkeeperAddr(pk *crypto.PubKey) {
 }
 
 func (node *node) SyncNodeHeight() {
-	//TODO
 	for {
 		heights, _ := node.GetNeighborHeights()
 		height, _ := actor.GetCurrentBlockHeight()
@@ -521,9 +443,7 @@ func (node *node) SyncNodeHeight() {
 
 func (node *node) WaitForSyncBlkFinish() {
 	for {
-		//headerHeight := ledger.DefaultLedger.Store.GetHeaderHeight()
 		headerHeight, _ := actor.GetCurrentHeaderHeight()
-		//currentBlkHeight := ledger.DefaultLedger.Blockchain.BlockHeight
 		currentBlkHeight, _ := actor.GetCurrentBlockHeight()
 
 		log.Info("WaitForSyncBlkFinish... current block height is ", currentBlkHeight, " ,current header height is ", headerHeight)
@@ -536,7 +456,7 @@ func (node *node) WaitForSyncBlkFinish() {
 func (node *node) WaitForPeersStart() {
 	for {
 		log.Debug("WaitForPeersStart...")
-		if node.IsUptoMinNodeCount() {
+		if node.IsUptoMinNodeCount(){
 			break
 		}
 		<-time.After(2 * time.Second)
@@ -618,12 +538,3 @@ func (node *node) AcqSyncReqSem() {
 func (node *node) RelSyncReqSem() {
 	node.SyncReqSem.release()
 }
-
-//func (node *node) UpdateConsensusNode(n *node) {
-//	n.SetConsensusConn(node.GetConsensusConn())
-//	n.SetConsensusState(node.GetConsensusState())
-//	n.SetConsensusPort(node.GetConsensusPort())
-//	node.SetConsensusState(INACTIVITY)
-//	node = n
-//	go n.rx(true)
-//}

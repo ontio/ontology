@@ -38,7 +38,6 @@ func NewPongMsg() ([]byte, error) {
 	var msg pong
 	msg.msgHdr.Magic = NETMAGIC
 	copy(msg.msgHdr.CMD[0:7], "pong")
-	//msg.height = uint64(ledger.DefaultLedger.Store.GetHeaderHeight())
 	height, _ := actor.GetCurrentHeaderHeight()
 	msg.height = uint64(height)
 	tmpBuffer := bytes.NewBuffer([]byte{})

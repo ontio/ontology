@@ -36,7 +36,6 @@ func keepAlive(from *Noder, dst *Noder) {
 }
 
 func (node *node) GetBlkHdrs() {
-	//TODO
 	if !node.IsUptoMinNodeCount() {
 		return
 	}
@@ -62,9 +61,7 @@ func (node *node) GetBlkHdrs() {
 }
 
 func (node *node) SyncBlk() {
-	//headerHeight := ledger.DefaultLedger.Store.GetHeaderHeight()
 	headerHeight, _ := actor.GetCurrentHeaderHeight()
-	//currentBlkHeight := ledger.DefaultLedger.Blockchain.BlockHeight
 	currentBlkHeight, _ := actor.GetCurrentBlockHeight()
 	if currentBlkHeight >= headerHeight {
 		return
@@ -84,7 +81,6 @@ func (node *node) SyncBlk() {
 		flights := n.GetFlightHeights()
 		if count == 0 {
 			for _, f := range flights {
-				//hash := ledger.DefaultLedger.Store.GetHeaderHashByHeight(f)
 				hash, _ := actor.GetBlockHashByHeight(f)
 				isContainBlock, _ := actor.IsContainBlock(hash)
 				if isContainBlock == false {
@@ -94,7 +90,6 @@ func (node *node) SyncBlk() {
 
 		}
 		for i = 1; i <= count && dValue >= 0; i++ {
-			//hash := ledger.DefaultLedger.Store.GetHeaderHashByHeight(currentBlkHeight + reqCnt)
 			hash, _ := actor.GetBlockHashByHeight(currentBlkHeight + reqCnt)
 			isContainBlock, _ := actor.IsContainBlock(hash)
 			if isContainBlock == false {
@@ -172,7 +167,7 @@ func (node *node) ConnectSeeds() {
 				n.ReqNeighborList()
 			}
 		} else { //not found
-			go node.Connect(nodeAddr, false)
+			go node.Connect(nodeAddr)
 		}
 	}
 }
@@ -183,7 +178,6 @@ func getNodeAddr(n *node) NodeAddr {
 	addr.Time = n.GetTime()
 	addr.Services = n.Services()
 	addr.Port = n.GetPort()
-	addr.ConsensusPort = n.GetConsensusPort()
 	addr.ID = n.GetID()
 	return addr
 }
@@ -198,7 +192,7 @@ func (node *node) reconnect() {
 		log.Trace("Try to reconnect peer, peer addr is ", addr)
 		<-time.After(time.Duration(rand.Intn(CONNMAXBACK)) * time.Millisecond)
 		log.Trace("Back off time`s up, start connect node")
-		node.Connect(addr, false)
+		node.Connect(addr)
 		if node.RetryAddrs[addr] < MAXRETRYCOUNT {
 			lst[addr] = node.RetryAddrs[addr]
 		}

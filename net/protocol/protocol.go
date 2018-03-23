@@ -21,7 +21,6 @@ package protocol
 import (
 	"bytes"
 	"encoding/binary"
-	"net"
 
 	"github.com/Ontology/common"
 	"github.com/Ontology/crypto"
@@ -34,7 +33,6 @@ type NodeAddr struct {
 	Services      uint64
 	IpAddr        [16]byte
 	Port          uint16
-	ConsensusPort uint16
 	ID            uint64 // Unique ID
 }
 
@@ -97,7 +95,6 @@ type Noder interface {
 	Services() uint64
 	GetAddr() string
 	GetPort() uint16
-	GetConsensusPort() uint16
 	GetHttpInfoPort() int
 	SetHttpInfoPort(uint16)
 	GetHttpInfoState() bool
@@ -110,7 +107,6 @@ type Noder interface {
 	UpdateRXTime(t time.Time)
 	LocalNode() Noder
 	DelNbrNode(id uint64) (Noder, bool)
-	GetNbrNode(id uint64) (Noder, bool)
 	AddNbrNode(Noder)
 	CloseConn()
 	GetHeight() uint64
@@ -123,9 +119,8 @@ type Noder interface {
 	UpdateInfo(t time.Time, version uint32, services uint64,
 		port uint16, nonce uint64, relay uint8, height uint64)
 	ConnectSeeds()
-	Connect(nodeAddr string, isConsensusChannel bool) error
+	Connect(nodeAddr string) error
 	Tx(buf []byte)
-	ConsensusTx(buf []byte)
 	GetTime() int64
 	NodeEstablished(uid uint64) bool
 	GetEvent(eventName string) *events.Event
@@ -161,12 +156,6 @@ type Noder interface {
 	RemoveFromRetryList(addr string)
 	AcqSyncReqSem()
 	RelSyncReqSem()
-	SetConsensusPort(uint16)
-	GetConsensusState() uint32
-	SetConsensusState(state uint32)
-	CloseConsensusConn()
-	SetConsensusConn(conn net.Conn)
-	GetConsensusConn() net.Conn
 }
 
 func (msg *NodeAddr) Deserialization(p []byte) error {

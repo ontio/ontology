@@ -21,7 +21,6 @@ package node
 import (
 	"fmt"
 	"github.com/Ontology/common/config"
-	//	"github.com/Ontology/common/log"
 	. "github.com/Ontology/net/protocol"
 	"strings"
 	"sync"
@@ -34,16 +33,12 @@ type nbrNodes struct {
 	List map[uint64]*node
 }
 
-func (nm *nbrNodes) Broadcast(buf []byte, isConensus bool) {
+func (nm *nbrNodes) Broadcast(buf []byte) {
 	nm.RLock()
 	defer nm.RUnlock()
 	for _, node := range nm.List {
 		if node.state == ESTABLISH && node.relay == true {
-			if !isConensus {
-				node.Tx(buf)
-			} else {
-				node.ConsensusTx(buf)
-			}
+			node.Tx(buf)
 		}
 	}
 }
@@ -67,17 +62,6 @@ func (nm *nbrNodes) AddNbrNode(n Noder) {
 		}
 		nm.List[n.GetID()] = node
 	}
-}
-
-func (nm *nbrNodes) GetNbrNode(id uint64) (Noder, bool) {
-	nm.Lock()
-	defer nm.Unlock()
-
-	n, ok := nm.List[id]
-	if ok == false {
-		return nil, false
-	}
-	return n, true
 }
 
 func (nm *nbrNodes) DelNbrNode(id uint64) (Noder, bool) {

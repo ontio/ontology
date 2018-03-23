@@ -198,7 +198,7 @@ func (msg addr) Handle(node Noder) error {
 			continue
 		}
 
-		go node.LocalNode().Connect(address, false)
+		go node.LocalNode().Connect(address)
 	}
 	return nil
 }

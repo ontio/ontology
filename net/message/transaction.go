@@ -50,10 +50,8 @@ func (msg trn) Handle(node Noder) error {
 	log.Debug("RX Transaction message")
 	tx := &msg.txn
 	if !node.LocalNode().ExistedID(tx.Hash()) {
-		//if errCode := node.LocalNode().AppendTxnPool(&(msg.txn)); errCode != ErrNoError {
-		//	return errors.New("[message] VerifyTransaction failed when AppendTxnPool.")
-		//}
 		actor.AddTransaction(&msg.txn)
+		// Fixme
 		//node.LocalNode().IncRxTxnCnt()
 		log.Debug("RX Transaction message hash", msg.txn.Hash())
 		//log.Debug("RX Transaction message type", msg.txn.TxType)
@@ -111,12 +109,12 @@ func (msg *dataReq) Deserialization(p []byte) error {
 }
 
 func NewTxnFromHash(hash common.Uint256) (*types.Transaction, error) {
-	//txn, err := ledger.DefaultLedger.GetTransactionWithHash(hash)
 	txn, err := actor.GetTxnFromLedger(hash)
-	if err != nil {
+	if err != nil || txn == nil{
 		log.Error("Get transaction with hash error: ", err.Error())
 		return nil, err
 	}
+
 	return txn, nil
 }
 func NewTxn(txn *types.Transaction) ([]byte, error) {

@@ -114,7 +114,7 @@ func (state *NetServer) Receive(context actor.Context) {
 		nodePort := node.GetPort()
 		context.Sender().Request(&GetNodePortRsp{Port: nodePort}, context.Self())
 	case *GetConsensusPortReq:
-		conPort := node.GetConsensusPort()
+		conPort := node.GetPort()
 		context.Sender().Request(&GetConsensusPortRsp{Port: conPort}, context.Self())
 	case *GetNodeIdReq:
 		id := node.GetID()

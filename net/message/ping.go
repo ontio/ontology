@@ -38,7 +38,6 @@ func NewPingMsg() ([]byte, error) {
 	var msg ping
 	msg.msgHdr.Magic = NETMAGIC
 	copy(msg.msgHdr.CMD[0:7], "ping")
-	//msg.height = uint64(ledger.DefaultLedger.Blockchain.BlockHeight)
 	height, _ := actor.GetCurrentBlockHeight()
 	msg.height = uint64(height)
 	tmpBuffer := bytes.NewBuffer([]byte{})
