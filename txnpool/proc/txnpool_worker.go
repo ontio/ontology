@@ -90,8 +90,8 @@ func (worker *txPoolWorker) handleRsp(rsp *types.CheckResponse) {
 	}
 	if rsp.ErrCode != errors.ErrNoError {
 		//Verify fail
-		log.Info(fmt.Sprintf("Validator %d: Transaction %x invalid",
-			rsp.Type, rsp.Hash))
+		log.Info(fmt.Sprintf("Validator %d: Transaction %x invalid: %s",
+			rsp.Type, rsp.Hash, rsp.ErrCode.Error()))
 		delete(worker.pendingTxList, rsp.Hash)
 		worker.server.removePendingTx(rsp.Hash, rsp.ErrCode)
 		return
@@ -134,10 +134,11 @@ func (worker *txPoolWorker) handleTimeoutEvent() {
 				v.retries++
 			} else {
 				// Todo: Retry exhausted, remove it from pendingTxnList
+				log.Infof("Retry to verify transaction exhausted %x", k.ToArray())
 				worker.mu.Lock()
 				delete(worker.pendingTxList, k)
 				worker.mu.Unlock()
-				worker.server.removePendingTx(k, errors.ErrUnknown)
+				worker.server.removePendingTx(k, errors.ErrRetryExhausted)
 			}
 		}
 	}

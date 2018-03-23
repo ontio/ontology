@@ -451,6 +451,15 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 
 	s.pendingBlock.mu.Lock()
 
+	// Clear the list for the next block verify req
+	for k := range s.pendingBlock.processedTxs {
+		delete(s.pendingBlock.processedTxs, k)
+	}
+
+	for k := range s.pendingBlock.unProcessedTxs {
+		delete(s.pendingBlock.unProcessedTxs, k)
+	}
+
 	s.pendingBlock.sender = sender
 	s.pendingBlock.height = req.Height
 

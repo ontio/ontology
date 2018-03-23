@@ -84,7 +84,7 @@ func (ta *TxActor) handleTransaction(sender, self *actor.PID,
 
 		rsp := &tc.TxRsp{
 			Hash:    txn.Hash(),
-			ErrCode: errors.ErrUnknown,
+			ErrCode: errors.ErrTxPoolFull,
 		}
 		sender.Request(rsp, self)
 	} else {

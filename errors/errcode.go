@@ -45,6 +45,8 @@ const (
 	ErrSummaryAsset         ErrCode = 45012
 	ErrXmitFail             ErrCode = 45013
 	ErrNoAccount            ErrCode = 45014
+	ErrRetryExhausted       ErrCode = 45015
+	ErrTxPoolFull           ErrCode = 45016
 )
 
 func (err ErrCode) Error() string {
@@ -79,6 +81,10 @@ func (err ErrCode) Error() string {
 		return "invalid summary asset"
 	case ErrXmitFail:
 		return "transmit error"
+	case ErrRetryExhausted:
+		return "retry exhausted"
+	case ErrTxPoolFull:
+		return "tx pool full"
 	}
 
 	return fmt.Sprintf("Unknown error? Error code = %d", err)
