@@ -188,6 +188,7 @@ func (self *Server) handlePeerStateUpdate(peer *p2pmsg.PeerStateUpdate) {
 		}
 
 		go func() {
+			time.Sleep(5 * time.Second)
 			if err := self.run(peer.PeerPubKey); err != nil {
 				self.log.Errorf("server %d, processor on peer %d failed: %s",
 					self.Index, peerIdx, err)
@@ -423,7 +424,7 @@ func (self *Server) run(peerPubKey *crypto.PubKey) error {
 			msg, err := DeserializeVbftMsg(msgData)
 
 			if err != nil {
-				self.log.Errorf("server %d failed to deserialize vbft msg: %s", self.Index, err)
+				self.log.Errorf("server %d failed to deserialize vbft msg (len %d): %s", self.Index, len(msgData), err)
 			} else {
 				if err := msg.Verify(peerPubKey); err != nil {
 					self.log.Errorf("server %d failed to verify msg, type %d, err: %s",
@@ -720,6 +721,28 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 			}
 			self.processConsensusMsg(msg)
 		}
+
+	case peerHandshakeMessage:
+		_, ok := msg.(*peerHandshakeMsg)
+		if !ok {
+			self.log.Errorf("invalid msg with handshake msg type")
+			return
+		}
+		msg, err := self.constructHandshakeMsg()
+		if err != nil {
+			self.log.Errorf("failed to construct handshake resp msg: %s", err)
+			return
+		}
+		msgPayload, err := SerializeVbftMsg(msg)
+		if err != nil {
+			self.log.Errorf("failed to marshal handshake msg: %s", err)
+			return
+		}
+		if err := self.sendToPeer(peerIdx, msgPayload); err != nil {
+			self.log.Errorf("failed to response handshake msg: %s", err)
+			return
+		}
+
 
 	case peerHeartbeatMessage:
 		pMsg, ok := msg.(*peerHeartbeatMsg)
@@ -1809,12 +1832,12 @@ func (self *Server) handleProposalTimeout(evt *TimerEvent) error {
 func (self *Server) initHandshake(peerIdx uint32, peerPubKey *crypto.PubKey) error {
 	msg, err := self.constructHandshakeMsg()
 	if err != nil {
-		return fmt.Errorf("build heartbeat msg: %s", err)
+		return fmt.Errorf("build handshake msg: %s", err)
 	}
 
 	msgPayload, err := SerializeVbftMsg(msg)
 	if err != nil {
-		return fmt.Errorf("marshal heartbeat msg: %s", err)
+		return fmt.Errorf("marshal handshake msg: %s", err)
 	}
 
 	errC := make(chan error)
@@ -1834,7 +1857,10 @@ func (self *Server) initHandshake(peerIdx uint32, peerPubKey *crypto.PubKey) err
 			errC <- fmt.Errorf("msg verify failed in initHandshake: %s", err)
 		}
 
-		msgC <- msg.(*peerHandshakeMsg)
+		if shakeMsg, ok := msg.(*peerHandshakeMsg); ok {
+			self.sendToPeer(peerIdx, msgPayload)
+			msgC <- shakeMsg
+		}
 	}()
 
 	if err := self.sendToPeer(peerIdx, msgPayload); err != nil {
