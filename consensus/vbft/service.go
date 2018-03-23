@@ -150,7 +150,7 @@ func (self *Server) Receive(context actor.Context) {
 		self.NewConsensusPayload(msg)
 
 	default:
-		log.Info("dbft actor: Unknown msg ", msg, "type", reflect.TypeOf(msg))
+		log.Info("vbft actor: Unknown msg ", msg, "type", reflect.TypeOf(msg))
 	}
 }
 

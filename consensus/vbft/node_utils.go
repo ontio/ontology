@@ -22,6 +22,7 @@ import (
 	"fmt"
 	vconfig "github.com/Ontology/consensus/vbft/config"
 	"math"
+	p2pmsg "github.com/Ontology/net/message"
 )
 
 func (self *Server) GetCurrentBlockNo() uint64 {
@@ -308,7 +309,16 @@ func (self *Server) sendToPeer(peerIdx uint32, data []byte) error {
 	if peer == nil {
 		return fmt.Errorf("send peer failed: failed to get peer %d", peerIdx)
 	}
-	self.p2p.Transmit(peer.PubKey, data)
+	msg := &p2pmsg.ConsensusPayload{
+		Data:data,
+		Owner:self.account.PublicKey,
+	}
+	buffer, err := p2pmsg.NewConsensus(msg)
+	if err != nil {
+		self.log.Error("Error NewConsensus: ", err)
+		return err
+	}
+	self.p2p.Transmit(peer.PubKey, buffer)
 	return nil
 }
 
@@ -321,6 +331,10 @@ func (self *Server) broadcast(msg ConsensusMsg) error {
 }
 
 func (self *Server) broadcastToAll(data []byte) error {
-	self.p2p.Broadcast(data)
+	msg := &p2pmsg.ConsensusPayload{
+		Data:data,
+		Owner:self.account.PublicKey,
+	}
+	self.p2p.Broadcast(msg)
 	return nil
 }
