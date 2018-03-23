@@ -65,7 +65,8 @@ const (
 	Api_WebsocketState       = "/api/v1/config/websocket/state"
 	Api_Restart              = "/api/v1/restart"
 	Api_GetContractState     = "/api/v1/contract/:hash"
-	Api_GetSmartCodeEvent    = "/api/v1/smartcode/event/:height"
+	Api_GetSmtCodeEvtByHgt  = "/api/v1/smartcode/event/height/:height"
+	Api_GetSmtCodeEvtByHash = "/api/v1/smartcode/event/txhash/:hash"
 	Api_GetBlkHeightByTxHash = "/api/v1/block/height/txhash/:hash"
 )
 
@@ -157,7 +158,8 @@ func (rt *restServer) registryMethod() {
 		Api_GetTransaction:       {name: "gettransaction", handler: GetTransactionByHash},
 		Api_GetContractState:     {name: "getcontract", handler: GetContractState},
 		Api_Restart:              {name: "restart", handler: rt.Restart},
-		Api_GetSmartCodeEvent:    {name: "getsmartcodeevent", handler: GetSmartCodeEventByHeight},
+		Api_GetSmtCodeEvtByHgt:    {name: "getsmartcodeeventbyheight", handler: GetSmartCodeEventByHeight},
+		Api_GetSmtCodeEvtByHash:    {name: "getsmartcodeeventbyhash", handler: GetSmartCodeEventByTxHash},
 		Api_GetBlkHeightByTxHash: {name: "getblockheightbytxhash", handler: GetBlockHeightByTxHash},
 		Api_GetStorage:           {name: "getstorage", handler: GetStorage},
 		Api_GetBalanceByAddr:    {name: "getbalance", handler: GetBalance},
@@ -194,8 +196,10 @@ func (rt *restServer) getPath(url string) string {
 		return Api_GetTransaction
 	} else if strings.Contains(url, strings.TrimRight(Api_GetContractState, ":hash")) {
 		return Api_GetContractState
-	} else if strings.Contains(url, strings.TrimRight(Api_GetSmartCodeEvent, ":height")) {
-		return Api_GetSmartCodeEvent
+	} else if strings.Contains(url, strings.TrimRight(Api_GetSmtCodeEvtByHgt, ":height")) {
+		return Api_GetSmtCodeEvtByHgt
+	} else if strings.Contains(url, strings.TrimRight(Api_GetSmtCodeEvtByHash, ":hash")) {
+		return Api_GetSmtCodeEvtByHash
 	} else if strings.Contains(url, strings.TrimRight(Api_GetBlkHeightByTxHash, ":hash")) {
 		return Api_GetBlkHeightByTxHash
 	} else if strings.Contains(url, strings.TrimRight(Api_GetStorage, ":hash/:key")) {
@@ -232,8 +236,10 @@ func (rt *restServer) getParams(r *http.Request, url string, req map[string]inte
 		req["PreExec"] = r.FormValue("preExec")
 	case Api_GetStorage:
 		req["Hash"], req["Key"] = getParam(r, "hash"), getParam(r,"key")
-	case Api_GetSmartCodeEvent:
+	case Api_GetSmtCodeEvtByHgt:
 		req["Height"] = getParam(r, "height")
+	case Api_GetSmtCodeEvtByHash:
+		req["Hash"] = getParam(r, "hash")
 	case Api_GetBlkHeightByTxHash:
 		req["Hash"] = getParam(r, "hash")
 	case Api_GetBalanceByAddr:

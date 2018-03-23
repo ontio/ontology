@@ -374,8 +374,37 @@ func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 	// block height
 	case float64:
 		height := uint32(params[0].(float64))
-		//TODO resp
-		return Rpc(map[string]interface{}{"Height": height})
+		txs, err := GetEventNotifyByHeight(height)
+		if err != nil {
+			return RpcInvalidParameter
+		}
+		var txhexs []string
+		for _, v := range txs {
+			txhexs = append(txhexs, ToHexString(v.ToArray()))
+		}
+		return Rpc(txhexs)
+		//txhash
+	case string:
+		str := params[0].(string)
+		hex, err := hex.DecodeString(str)
+		if err != nil {
+			return RpcInvalidParameter
+		}
+		var hash Uint256
+		if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
+			return RpcInvalidParameter
+		}
+		eventInfos, err := GetEventNotifyByTxHash(hash)
+		if err != nil {
+			return RpcInvalidParameter
+		}
+		var evs []map[string]interface{}
+		for _, v := range eventInfos {
+			evs = append(evs, map[string]interface{}{"CodeHash": v.CodeHash,
+				"States": v.States,
+				"Container": v.Container})
+		}
+		return Rpc(evs)
 	default:
 		return RpcInvalidParameter
 	}

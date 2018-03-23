@@ -181,34 +181,30 @@ func PreExecuteContract(tx *types.Transaction) ([]interface{}, error) {
 	}
 }
 
-func GetEventNotifyByTx(txHash Uint256) ([]*event.NotifyEventInfo, error) {
-	future := defLedgerPid.RequestFuture(nil, ReqTimeout*time.Second)
-	_, err := future.Result()
+func GetEventNotifyByTxHash(txHash Uint256) ([]*event.NotifyEventInfo, error) {
+	future := defLedgerPid.RequestFuture(&GetEventNotifyByTxReq{txHash}, ReqTimeout*time.Second)
+	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ErrActorComm, err)
 		return nil, err
 	}
-	//TODO
-	//if rsp, ok := result.(*GetEventNotifyByTxRsp); !ok {
-	//	return rsp.Result,errors.New("fail")
-	//}else {
-	//	return rsp.Result,rsp.Error
-	//}
-	return nil, err
+	if rsp, ok := result.(*GetEventNotifyByTxRsp); !ok {
+		return nil,errors.New("fail")
+	}else {
+		return rsp.Notifies,rsp.Error
+	}
 }
 
 func GetEventNotifyByHeight(height uint32) ([]Uint256, error) {
-	future := defLedgerPid.RequestFuture(nil, ReqTimeout*time.Second)
-	_, err := future.Result()
+	future := defLedgerPid.RequestFuture(&GetEventNotifyByBlockReq{height}, ReqTimeout*time.Second)
+	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ErrActorComm, err)
 		return nil, err
 	}
-	//TODO
-	//if rsp, ok := result.(*GetEventNotifyByBlockRsp); !ok {
-	//	return rsp.Result,errors.New("fail")
-	//}else {
-	//	return rsp.Result,rsp.Error
-	//}
-	return nil, err
+	if rsp, ok := result.(*GetEventNotifyByBlockRsp); !ok {
+		return nil,errors.New("fail")
+	}else {
+		return rsp.TxHashes,rsp.Error
+	}
 }

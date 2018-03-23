@@ -126,10 +126,12 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 		trans.Attributes[i].Usage = v.Usage
 		trans.Attributes[i].Data = ToHexString(v.Data)
 	}
+	trans.Fee  = []Fee{}
 	for _, fee := range ptx.Fee {
 		e := Fee{fee.Amount, ToHexString(fee.Payer[:])}
 		trans.Fee = append(trans.Fee, e)
 	}
+	trans.Sigs = []Sig{}
 	for _, sig := range ptx.Sigs {
 		e := Sig{M: sig.M}
 		for i := 0; i < len(sig.PubKeys); i++ {

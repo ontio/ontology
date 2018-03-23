@@ -288,7 +288,6 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-
 func GetSmartCodeEventByHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp := rspSuccess
 
@@ -301,9 +300,42 @@ func GetSmartCodeEventByHeight(cmd map[string]interface{}) map[string]interface{
 		return rspInvalidParams
 	}
 	index := uint32(height)
-	//infos,_ := GetEventNotifyByTx(Uint256{})
-	resp["Result"] = map[string]interface{}{"Height": index}
-	//TODO resp
+	txs, err := GetEventNotifyByHeight(index)
+	if err != nil {
+		return rspInvalidParams
+	}
+	var txhexs []string
+	for _, v := range txs {
+		txhexs = append(txhexs, ToHexString(v.ToArray()))
+	}
+	resp["Result"] = txhexs
+	return resp
+}
+
+func GetSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{} {
+	resp := rspSuccess
+
+	str := cmd["Hash"].(string)
+	bys, err := HexToBytes(str)
+	if err != nil {
+		return rspInvalidParams
+	}
+	var hash Uint256
+	err = hash.Deserialize(bytes.NewReader(bys))
+	if err != nil {
+		return rspInvalidTx
+	}
+	eventInfos, err := GetEventNotifyByTxHash(hash)
+	if err != nil {
+		return rspInvalidParams
+	}
+	var evs []map[string]interface{}
+	for _, v := range eventInfos {
+		evs = append(evs, map[string]interface{}{"CodeHash": v.CodeHash,
+			"States": v.States,
+			"Container": v.Container})
+	}
+	resp["Result"] = evs
 	return resp
 }
 
