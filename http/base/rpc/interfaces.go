@@ -191,6 +191,7 @@ func GetRawTransaction(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return RpcNil
 	}
+	var tx *types.Transaction
 	switch params[0].(type) {
 	case string:
 		str := params[0].(string)
@@ -203,19 +204,33 @@ func GetRawTransaction(params []interface{}) map[string]interface{} {
 		if err != nil {
 			return RpcInvalidTransaction
 		}
-		tx, err := GetTransaction(hash) //ledger.DefaultLedger.Store.GetTransaction(hash)
+		t, err := GetTransaction(hash)
 		if err != nil {
 			log.Errorf("GetRawTransaction GetTransaction error:%s", err)
 			return RpcUnknownTransaction
 		}
+		tx = t
 		if tx == nil {
 			return RpcUnknownTransaction
 		}
-		tran := TransArryByteToHexString(tx)
-		return Rpc(tran)
 	default:
 		return RpcInvalidParameter
 	}
+
+	if len(params) >= 2 {
+		switch (params[1]).(type) {
+		case float64:
+			json := uint32(params[1].(float64))
+			if json == 1{
+				return Rpc(TransArryByteToHexString(tx))
+			}
+		default:
+			return RpcInvalidParameter
+		}
+	}
+	w := bytes.NewBuffer(nil)
+	tx.Serialize(w)
+	return Rpc(ToHexString(w.Bytes()))
 }
 
 //   {"jsonrpc": "2.0", "method": "getstorage", "params": ["code hash", "key"], "id": 0}
