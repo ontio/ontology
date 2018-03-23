@@ -39,6 +39,8 @@ import (
 	vmtypes "github.com/Ontology/vm/types"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/urfave/cli"
+	"encoding/binary"
+	"bufio"
 )
 
 func signTransaction(signer *account.Account, tx *types.Transaction) error {
@@ -55,6 +57,7 @@ func signTransaction(signer *account.Account, tx *types.Transaction) error {
 func testAction(c *cli.Context) (err error) {
 	txnNum := c.Int("num")
 	passwd := c.String("password")
+	genFile := c.Bool("gen")
 
 	acct := account.Open(account.WalletFileName, []byte(passwd))
 	acc, err := acct.GetDefaultAccount()
@@ -62,13 +65,54 @@ func testAction(c *cli.Context) (err error) {
 		fmt.Println("GetDefaultAccount error:", err)
 		os.Exit(1)
 	}
+	if genFile {
+		GenTransferFile(txnNum, acc, "transfer.txt")
+		return nil
+	}
 
 	transferTest(txnNum, acc)
 
 	return nil
 }
 
-func transferTest(n int, acc *account.Account) {
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
+}
+
+func Tx2Hex(tx *types.Transaction) string {
+	var buffer bytes.Buffer
+	tx.Serialize(&buffer)
+	return hex.EncodeToString(buffer.Bytes())
+}
+
+func GenTransferFile(n int,acc *account.Account, fileName string) {
+	f, err := os.Create(fileName)
+	check(err)
+	w := bufio.NewWriter(f)
+
+	defer func() {
+		w.Flush()
+		f.Close()
+	}()
+
+	for i := 0; i < n; i ++ {
+		to := acc.Address
+		binary.BigEndian.PutUint64(to[:], uint64(i))
+		tx := NewOntTransferTransaction(acc.Address, to, 1)
+		if err := signTransaction(acc, tx); err != nil {
+			fmt.Println("signTransaction error:", err)
+			os.Exit(1)
+		}
+
+		txhex := Tx2Hex(tx)
+		_, _ = w.WriteString(fmt.Sprintf("%x,%s\n", tx.Hash(), txhex))
+	}
+
+}
+
+func transferTest(n int, acc *account.Account) {	
 	if n <= 0 {
 		n = 1
 	}
@@ -162,6 +206,11 @@ func NewCommand() *cli.Command {
 				Usage: "wallet password",
 				Value: "passwordtest",
 			},
+			cli.BoolFlag{
+				Name:  "gen, g",
+				Usage: "gen transaction to file",
+
+		},
 		},
 		Action: testAction,
 		OnUsageError: func(c *cli.Context, err error, isSubcommand bool) error {
