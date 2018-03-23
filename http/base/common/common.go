@@ -72,7 +72,7 @@ type BlockHead struct {
 	Timestamp        uint32
 	Height           uint32
 	ConsensusData    uint64
-	NextBookKeeper   string
+	NextBookkeeper   string
 
 	BookKeepers []string
 	SigData     []string
@@ -175,8 +175,8 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 		s := ToHexString(block.Header.SigData[i])
 		sigData = append(sigData, s)
 	}
-	for i := 0; i < len(block.Header.BookKeepers); i++ {
-		e := block.Header.BookKeepers[i]
+	for i := 0; i < len(block.Header.Bookkeepers); i++ {
+		e := block.Header.Bookkeepers[i]
 		pk,err := e.EncodePoint(true)
 		if err != nil{
 			continue
@@ -191,7 +191,7 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 		Timestamp:        block.Header.Timestamp,
 		Height:           block.Header.Height,
 		ConsensusData:    block.Header.ConsensusData,
-		NextBookKeeper:   block.Header.NextBookKeeper.ToBase58(),
+		NextBookkeeper:   block.Header.NextBookkeeper.ToBase58(),
 		BookKeepers: bookKeepers,
 		SigData:     sigData,
 		Hash: ToHexString(hash.ToArray()),
