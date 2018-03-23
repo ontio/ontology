@@ -169,6 +169,11 @@ func (bd *Header) DeserializeUnsigned(r io.Reader) error {
 		return err
 	}
 
+	bd.ConsensusPayload, err = serialization.ReadVarBytes(r)
+    if err != nil {
+		return err
+    }
+
 	err = bd.NextBookkeeper.Deserialize(r)
 
 	return err
