@@ -106,6 +106,10 @@ func (vm *VMmemory) copyMemAndGetIdx(b []byte, p_type P_Type) (int, error) {
 }
 
 func (vm *VMmemory) GetPointerMemSize(addr uint64) int {
+	if addr == uint64(-1){
+		return 0
+	}
+
 	v, ok := vm.MemPoints[addr]
 	if ok {
 		return v.Length
@@ -116,6 +120,10 @@ func (vm *VMmemory) GetPointerMemSize(addr uint64) int {
 
 //when wasm returns a pointer, call this function to get the pointed memory
 func (vm *VMmemory) GetPointerMemory(addr uint64) ([]byte, error) {
+	if addr == uint64(-1){
+		return nil,nil
+	}
+
 	length := vm.GetPointerMemSize(addr)
 	if int(addr)+length > len(vm.Memory) {
 		return nil, errors.New("memory out of bound")
@@ -126,9 +134,11 @@ func (vm *VMmemory) GetPointerMemory(addr uint64) ([]byte, error) {
 
 func (vm *VMmemory) SetPointerMemory(val interface{}) (int, error) {
 
+	//null address
 	if val == nil {
-		return 0, nil
+		return -1, nil
 	}
+
 	switch reflect.TypeOf(val).Kind() {
 	case reflect.String:
 		b := []byte(val.(string))

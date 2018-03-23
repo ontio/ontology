@@ -49,16 +49,16 @@ func NewWasmStateMachine(ldgerStore store.LedgerStore, dbCache scommon.StateStor
 	stateMachine.trigger = trigger
 	stateMachine.block = block
 
-	stateMachine.Register("getBlockHeight",bcGetHeight)
-	stateMachine.Register("PutStorage",putstore)
-	stateMachine.Register("GetStorage",getstore)
-	stateMachine.Register("DeleteStorage",deletestore)
+	stateMachine.Register("getBlockHeight",stateMachine.bcGetHeight)
+	stateMachine.Register("PutStorage",stateMachine.putstore)
+	stateMachine.Register("GetStorage",stateMachine.getstore)
+	stateMachine.Register("DeleteStorage",stateMachine.deletestore)
 	//todo add and register services
 	return &stateMachine
 }
 
 //======================some block api ===============
-func  bcGetHeight(engine *exec.ExecutionEngine) (bool, error) {
+func  (s *WasmStateMachine)bcGetHeight(engine *exec.ExecutionEngine) (bool, error) {
 /*	vm := engine.GetVM()
 	var i uint32
 	if ledger.DefaultLedger == nil {
@@ -74,16 +74,105 @@ func  bcGetHeight(engine *exec.ExecutionEngine) (bool, error) {
 	return true,nil
 }
 
-func putstore(engine *exec.ExecutionEngine) (bool, error) {
+func (s *WasmStateMachine)putstore(engine *exec.ExecutionEngine) (bool, error) {
+
+	vm := engine.GetVM()
+	envCall := vm.GetEnvCall()
+	params := envCall.GetParams()
+
+	if len(params) != 2 {
+		return false, errors.New("[putstore] parameter count error")
+	}
+
+	key,err := vm.GetPointerMemory(params[0])
+	if err != nil{
+		return false,err
+	}
+
+	if len(key) > 1024{
+		return false,errors.New("[putstore] Get Storage key to long")
+	}
+
+	value, err := vm.GetPointerMemory(params[1])
+	if err != nil{
+		return false,err
+	}
+
+	k, err := serializeStorageKey(vm.CodeHash, key)
+	if err != nil{
+		return false,err
+	}
+
+	s.CloneCache.Add(scommon.ST_Storage, k, &states.StorageItem{Value: value})
+
+	vm.RestoreCtx()
+
 	return true,nil
 }
 
-func getstore(engine *exec.ExecutionEngine) (bool, error) {
-	return true,nil
+
+func (s *WasmStateMachine)getstore(engine *exec.ExecutionEngine) (bool, error) {
+
+	vm := engine.GetVM()
+	envCall := vm.GetEnvCall()
+	params := envCall.GetParams()
+
+	if len(params) != 1 {
+		return false, errors.New("[getstore] parameter count error ")
+	}
+
+	key,err := vm.GetPointerMemory(params[0])
+	if err != nil{
+		return false,err
+	}
+
+	k, err := serializeStorageKey(vm.CodeHash, key)
+	if err != nil{
+		return false,err
+	}
+	item, err := s.CloneCache.Get(scommon.ST_Storage, k)
+	if err != nil {
+		return false, err
+	}
+
+	// idx = -1 if item is nil
+	//todo need more  test about the nil case
+	idx,err := vm.SetPointerMemory(item)
+	if err != nil {
+		return false, err
+	}
+
+	vm.RestoreCtx()
+	if envCall.GetReturns() {
+		vm.PushResult(uint64(idx))
+	}
+	return true, nil
 }
 
 
-func deletestore(engine *exec.ExecutionEngine) (bool, error) {
+func (s *WasmStateMachine)deletestore(engine *exec.ExecutionEngine) (bool, error) {
+
+	vm := engine.GetVM()
+	envCall := vm.GetEnvCall()
+	params := envCall.GetParams()
+
+	if len(params) != 1 {
+		return false, errors.New("[deletestore] parameter count error")
+	}
+
+	key,err := vm.GetPointerMemory(params[0])
+	if err != nil{
+		return false,err
+	}
+
+	k, err := serializeStorageKey(vm.CodeHash, key)
+	if err != nil{
+		return false,err
+	}
+
+	s.CloneCache.Delete(scommon.ST_Storage, k)
+	vm.RestoreCtx()
+
 	return true,nil
 }
 
