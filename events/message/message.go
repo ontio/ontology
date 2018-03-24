@@ -3,7 +3,7 @@ package message
 import (
 	"github.com/Ontology/common"
 	"github.com/Ontology/core/types"
-	"github.com/Ontology/p2pserver/protocol"
+	"github.com/Ontology/p2pserver/peer"
 )
 
 const (
@@ -23,11 +23,11 @@ type NewInventoryMsg struct {
 }
 
 type NodeDisconnectMsg struct {
-	Node protocol.Noder
+	Peer *peer.Peer
 }
 
 type NodeConsensusDisconnectMsg struct {
-	Node protocol.Noder
+	Peer *peer.Peer
 }
 
 type SmartCodeEventMsg struct {

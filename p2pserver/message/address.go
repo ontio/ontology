@@ -5,16 +5,25 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
-	"fmt"
+	//"fmt"
 	"github.com/Ontology/common/log"
-	. "github.com/Ontology/p2pserver/protocol"
-	"net"
-	"strconv"
+	. "github.com/Ontology/p2pserver/common"
+	//"net"
+	//"strconv"
 )
 
 type addrReq struct {
 	Hdr msgHdr
 	// No payload
+}
+
+type NodeAddr struct {
+	Time          int64
+	Services      uint64
+	IpAddr        [16]byte
+	Port          uint16
+	ConsensusPort uint16
+	ID            uint64 // Unique ID
 }
 
 type addr struct {
@@ -87,20 +96,6 @@ func (msg addrReq) Verify(buf []byte) error {
 	return err
 }
 
-func (msg addrReq) Handle(node Noder) error {
-	log.Debug()
-	// lock
-	var addrstr []NodeAddr
-	var count uint64
-	addrstr, count = node.LocalNode().GetNeighborAddrs()
-	buf, err := NewAddrs(addrstr, count)
-	if err != nil {
-		return err
-	}
-	go node.Tx(buf)
-	return nil
-}
-
 func (msg addrReq) Serialization() ([]byte, error) {
 	var buf bytes.Buffer
 	err := binary.Write(&buf, binary.LittleEndian, msg)
@@ -153,34 +148,24 @@ func (msg *addr) Deserialization(p []byte) error {
 err:
 	return err
 }
+func (msg *NodeAddr) Deserialization(p []byte) error {
+	buf := bytes.NewBuffer(p)
+	err := binary.Read(buf, binary.LittleEndian, msg)
+	return err
+}
+
+func (msg NodeAddr) Serialization() ([]byte, error) {
+	var buf bytes.Buffer
+	err := binary.Write(&buf, binary.LittleEndian, msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), err
+}
 
 func (msg addr) Verify(buf []byte) error {
 	err := msg.hdr.Verify(buf)
 	// TODO Verify the message Content, check the ipaddr number
 	return err
-}
-
-func (msg addr) Handle(node Noder) error {
-	log.Debug()
-	for _, v := range msg.nodeAddrs {
-		var ip net.IP
-		ip = v.IpAddr[:]
-		//address := ip.To4().String() + ":" + strconv.Itoa(int(v.Port))
-		address := ip.To16().String() + ":" + strconv.Itoa(int(v.Port))
-		log.Info(fmt.Sprintf("The ip address is %s id is 0x%x", address, v.ID))
-
-		if v.ID == node.LocalNode().GetID() {
-			continue
-		}
-		if node.LocalNode().NodeEstablished(v.ID) {
-			continue
-		}
-
-		if v.Port == 0 {
-			continue
-		}
-
-		go node.LocalNode().Connect(address, false)
-	}
-	return nil
 }

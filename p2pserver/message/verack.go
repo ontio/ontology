@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"errors"
+	//"errors"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
-	. "github.com/Ontology/p2pserver/protocol"
-	"strconv"
+	. "github.com/Ontology/p2pserver/common"
 )
 
 type verACK struct {
@@ -67,85 +66,4 @@ func (msg *verACK) Deserialization(p []byte) error {
 
 	msg.isConsensus, err = serialization.ReadBool(buf)
 	return err
-}
-
-/*
- * The node state switch table after rx message, there is time limitation for each action
- * The Hanshake status will switch to INIT after TIMEOUT if not received the VerACK
- * in this time window
- *  _______________________________________________________________________
- * |          |    INIT         | HANDSHAKE |  ESTABLISH | INACTIVITY      |
- * |-----------------------------------------------------------------------|
- * | version  | HANDSHAKE(timer)|           |            | HANDSHAKE(timer)|
- * |          | if helloTime > 3| Tx verack | Depend on  | if helloTime > 3|
- * |          | Tx version      |           | node update| Tx version      |
- * |          | then Tx verack  |           |            | then Tx verack  |
- * |-----------------------------------------------------------------------|
- * | verack   |                 | ESTABLISH |            |                 |
- * |          |   No Action     |           | No Action  | No Action       |
- * |------------------------------------------------------------------------
- *
- */
-// TODO The process should be adjusted based on above table
-func (msg verACK) Handle(node Noder) error {
-	log.Debug()
-
-	if msg.isConsensus == true {
-		s := node.GetConsensusState()
-		if s != HANDSHAKE && s != HANDSHAKED {
-			log.Warn("Unknow status to received verack")
-			return errors.New("Unknow status to received verack")
-		}
-
-		localNode := node.LocalNode()
-		n, ok := localNode.GetNbrNode(node.GetID())
-		if ok == false {
-			log.Warn("nbr node is not exsit")
-			return errors.New("nbr node is not exsit")
-		}
-
-		node.SetConsensusState(ESTABLISH)
-		n.SetConsensusState(node.GetConsensusState())
-		n.SetConsensusConn(node.GetConsensusConn())
-		//	n.SetConsensusPort(node.GetConsensusPort())
-		//	n.SetConsensusState(node.GetConsensusState())
-
-		if s == HANDSHAKE {
-			buf, _ := NewVerack(true)
-			node.ConsensusTx(buf)
-		}
-		return nil
-	}
-	s := node.GetState()
-	if s != HANDSHAKE && s != HANDSHAKED {
-		log.Warn("Unknow status to received verack")
-		return errors.New("Unknow status to received verack")
-	}
-
-	node.SetState(ESTABLISH)
-
-	if s == HANDSHAKE {
-		buf, _ := NewVerack(false)
-		node.Tx(buf)
-	}
-
-	node.DumpInfo()
-	// Fixme, there is a race condition here,
-	// but it doesn't matter to access the invalid
-	// node which will trigger a warning
-	//TODO JQ: only master p2p port request neighbor list
-	node.ReqNeighborList()
-	addr := node.GetAddr()
-	port := node.GetPort()
-	nodeAddr := addr + ":" + strconv.Itoa(int(port))
-	//TODO JQ： only master p2p port remove the list
-	node.LocalNode().RemoveAddrInConnectingList(nodeAddr)
-	//connect consensus port
-
-	if s == HANDSHAKED {
-		consensusPort := node.GetConsensusPort()
-		nodeConsensusAddr := addr + ":" + strconv.Itoa(int(consensusPort))
-		go node.Connect(nodeConsensusAddr, true)
-	}
-	return nil
 }

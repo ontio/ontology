@@ -7,7 +7,7 @@ import (
 	"errors"
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
-	. "github.com/Ontology/p2pserver/protocol"
+	. "github.com/Ontology/p2pserver/common"
 )
 
 type notFound struct {
@@ -80,9 +80,4 @@ func (msg *notFound) Deserialization(p []byte) error {
 	}
 
 	return err
-}
-
-func (msg notFound) Handle(node Noder) error {
-	log.Debug("RX notfound message, hash is ", msg.hash)
-	return nil
 }

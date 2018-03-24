@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"errors"
-	"github.com/Ontology/common"
+	//"errors"
+	//"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/core/types"
-	actor "github.com/Ontology/p2pserver/actor/req"
-	. "github.com/Ontology/p2pserver/protocol"
+	. "github.com/Ontology/p2pserver/common"
 )
 
 type headersReq struct {
@@ -26,29 +25,6 @@ type blkHeader struct {
 	hdr    msgHdr
 	cnt    uint32
 	blkHdr []types.Header
-}
-
-func NewHeadersReq() ([]byte, error) {
-	var h headersReq
-
-	h.p.len = 1
-	//buf := ledger.DefaultLedger.Store.GetCurrentHeaderHash()
-	buf, _ := actor.GetCurrentHeaderHash()
-	copy(h.p.hashEnd[:], buf[:])
-
-	p := new(bytes.Buffer)
-	err := binary.Write(p, binary.LittleEndian, &(h.p))
-	if err != nil {
-		log.Error("Binary Write failed at new headersReq")
-		return nil, err
-	}
-
-	s := checkSum(p.Bytes())
-	h.hdr.init("getheaders", s, uint32(len(p.Bytes())))
-
-	m, err := h.Serialization()
-	return m, err
-	return []byte{}, nil
 }
 
 func (msg headersReq) Verify(buf []byte) error {
@@ -148,127 +124,6 @@ func (msg *blkHeader) Deserialization(p []byte) error {
 
 blkHdrErr:
 	return err
-}
-
-func (msg headersReq) Handle(node Noder) error {
-	log.Debug()
-	// lock
-	node.LocalNode().AcqSyncReqSem()
-	defer node.LocalNode().RelSyncReqSem()
-	var startHash [HASHLEN]byte
-	var stopHash [HASHLEN]byte
-	startHash = msg.p.hashStart
-	stopHash = msg.p.hashEnd
-	//FIXME if HeaderHashCount > 1
-	headers, cnt, err := GetHeadersFromHash(startHash, stopHash)
-	if err != nil {
-		return err
-	}
-	buf, err := NewHeaders(headers, cnt)
-	if err != nil {
-		return err
-	}
-	go node.Tx(buf)
-	return nil
-}
-
-func SendMsgSyncHeaders(node Noder) {
-	buf, err := NewHeadersReq()
-	if err != nil {
-		log.Error("failed build a new headersReq")
-	} else {
-		go node.Tx(buf)
-	}
-}
-
-func (msg blkHeader) Handle(node Noder) error {
-	//log.Debug()
-	//err := ledger.DefaultLedger.Store.AddHeaders(msg.blkHdr, ledger.DefaultLedger)
-	//if err != nil {
-	//	log.Warn("Add block Header error")
-	//	return errors.New("Add block Header error, send new header request to another node\n")
-	//}
-	var blkHdr []*types.Header
-	var i uint32
-	for i = 0; i < msg.cnt; i++ {
-		blkHdr = append(blkHdr, &msg.blkHdr[i])
-	}
-	actor.AddHeaders(blkHdr)
-	return nil
-}
-
-func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]types.Header, uint32, error) {
-	var count uint32 = 0
-	var empty [HASHLEN]byte
-	headers := []types.Header{}
-	var startHeight uint32
-	var stopHeight uint32
-	//curHeight := ledger.DefaultLedger.Store.GetHeaderHeight()
-	curHeight, _ := actor.GetCurrentHeaderHeight()
-	if startHash == empty {
-		if stopHash == empty {
-			if curHeight > MAXBLKHDRCNT {
-				count = MAXBLKHDRCNT
-			} else {
-				count = curHeight
-			}
-		} else {
-			//bkstop, err := ledger.DefaultLedger.Store.GetHeader(stopHash)
-			bkstop, err := actor.GetHeaderByHash(stopHash)
-			if err != nil {
-				return nil, 0, err
-			}
-			stopHeight = bkstop.Height
-			count = curHeight - stopHeight
-			if count > MAXBLKHDRCNT {
-				count = MAXBLKHDRCNT
-			}
-		}
-	} else {
-		bkstart, err := actor.GetHeaderByHash(startHash)
-		if err != nil {
-			return nil, 0, err
-		}
-		startHeight = bkstart.Height
-		if stopHash != empty {
-			bkstop, err := actor.GetHeaderByHash(stopHash)
-			if err != nil {
-				return nil, 0, err
-			}
-			stopHeight = bkstop.Height
-
-			// avoid unsigned integer underflow
-			if startHeight < stopHeight {
-				return nil, 0, errors.New("do not have header to send")
-			}
-			count = startHeight - stopHeight
-
-			if count >= MAXBLKHDRCNT {
-				count = MAXBLKHDRCNT
-				stopHeight = startHeight - MAXBLKHDRCNT
-			}
-		} else {
-
-			if startHeight > MAXBLKHDRCNT {
-				count = MAXBLKHDRCNT
-			} else {
-				count = startHeight
-			}
-		}
-	}
-
-	var i uint32
-	for i = 1; i <= count; i++ {
-		hash, err := actor.GetBlockHashByHeight(stopHeight + i)
-		hd, err := actor.GetHeaderByHash(hash)
-		if err != nil {
-			log.Errorf("GetBlockWithHeight failed with err=%s, hash=%x,height=%d\n", err.Error(), hash, stopHeight+i)
-			return nil, 0, err
-		}
-		headers = append(headers, *hd)
-	}
-
-	return headers, count, nil
 }
 
 func NewHeaders(headers []types.Header, count uint32) ([]byte, error) {

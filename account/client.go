@@ -22,7 +22,7 @@ import (
 	sig "github.com/Ontology/core/signature"
 	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
-	"github.com/Ontology/p2pserver/protocol"
+	net_type "github.com/Ontology/p2pserver/common"
 )
 
 const (
@@ -258,7 +258,7 @@ func (cl *ClientImpl) ContainsAccount(pubKey *crypto.PubKey) bool {
 }
 
 func (cl *ClientImpl) CreateAccount() (*Account, error) {
-	ac:= NewAccount()
+	ac := NewAccount()
 
 	cl.mu.Lock()
 	cl.accounts[ac.Address] = ac
@@ -502,9 +502,9 @@ func clientIsDefaultBookKeeper(publicKey string) bool {
 
 func nodeType(typeName string) int {
 	if "service" == config.Parameters.NodeType {
-		return protocol.SERVICENODE
+		return net_type.SERVICENODE
 	} else {
-		return protocol.VERIFYNODE
+		return net_type.VERIFYNODE
 	}
 }
 

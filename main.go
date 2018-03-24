@@ -18,7 +18,7 @@ import (
 	"github.com/Ontology/p2pserver"
 	netreqactor "github.com/Ontology/p2pserver/actor/req"
 	p2pactor "github.com/Ontology/p2pserver/actor/server"
-	"github.com/Ontology/p2pserver/protocol"
+	nettypes "github.com/Ontology/p2pserver/common"
 	"github.com/Ontology/txnpool"
 	tc "github.com/Ontology/txnpool/common"
 	"github.com/Ontology/validator/statefull"
@@ -134,7 +134,7 @@ func main() {
 	// noder.SyncNodeHeight()
 	// noder.WaitForPeersStart()
 	// noder.WaitForSyncBlkFinish()
-	if protocol.SERVICENODENAME != config.Parameters.NodeType {
+	if nettypes.SERVICENODENAME != config.Parameters.NodeType {
 		log.Info("5. Start Consensus Services")
 		pool := txPoolServer.GetPID(tc.TxPoolActor)
 		consensusService, _ := consensus.NewConsensusService(acct, pool, nil, p2pPid)

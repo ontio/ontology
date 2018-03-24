@@ -2,8 +2,8 @@ package p2pserver
 
 import (
 	"github.com/Ontology/account"
+	types "github.com/Ontology/p2pserver/common"
 	"github.com/Ontology/p2pserver/peer"
-	"github.com/Ontology/p2pserver/protocol"
 )
 
 type P2PServer interface {
@@ -17,7 +17,7 @@ type P2PServer interface {
 	Services() uint64
 	GetConnectionState() uint32
 	GetTime() int64
-	GetNeighborAddrs() ([]protocol.PeerAddr, uint64)
+	GetNeighborAddrs() ([]types.PeerAddr, uint64)
 	Xmit(interface{}) error
 	IsSyncing() bool
 	IsStarted() bool
