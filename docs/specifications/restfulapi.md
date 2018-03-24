@@ -1,38 +1,25 @@
 # Ontology RESTful API
 
 * [Introduction](#Introduction)
+* [Restful api list](#Restful api list)
 * [Errorcode](#Errorcode)
 
 ## Introduction
 
 This document describes the RESTful API format for the http/https used in Ontology.
 
-## Errorcode
-
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| 0 | int64 | SUCCESS |
-| 41001 | int64 | SESSION\_EXPIRED: invalided or expired session |
-| 41002 | int64 | SERVICE\_CEILING: reach service limit |
-| 41003 | int64 | ILLEGAL\_DATAFORMAT: illegal dataformat |
-| 41004 | int64 | INVALID\_VERSION: invalid version |
-| 42001 | int64 | INVALID\_METHOD: invalid method |
-| 42002 | int64 | INVALID\_PARAMS: invalid params |
-| 43001 | int64 | INVALID\_TRANSACTION: invalid transaction |
-| 43002 | int64 | INVALID\_ASSET: invalid asset |
-| 43003 | int64 | INVALID\_BLOCK: invalid block |
-| 44001 | int64 | UNKNOWN\_TRANSACTION: unknown transaction |
-| 44002 | int64 | UNKNOWN\_ASSET: unknown asset |
-| 44003 | int64 | UNKNOWN\_BLOCK: unknown block |
-| 45001 | int64 | INTERNAL\_ERROR: internel error |
-| 47001 | int64 | SMARTCODE\_ERROR: smartcode error |
+## Restful api list
 
 ### 1. Get the generate block time
+
+Note: get the generate block time
+
 ##### GET
 
 ```
 /api/v1/node/generateblocktime
 ```
+
 #### Example usage:
 
 ```
@@ -60,7 +47,10 @@ curl -i http://server:port/api/v1/node/generateblocktime
     "Version": "1.0.0"
 }
 ```
+
 ### 2. Get the number of connected node
+
+Note: get the number of connected node
 
 GET
 
@@ -95,6 +85,7 @@ curl -i http://server:port/api/v1/node/connectioncount
     "Version": "1.0.0"
 }
 ```
+
 ### 3. Get transactions by block height
 
 GET
@@ -130,12 +121,13 @@ curl -i http://server:port/api/v1/block/transactions/height/100
         "Hash": "8723534588ea3202c0949ce5e39876cfcec83f3e9a3ed20168133714944d1227",
         "Height": 22,
         "Transactions": [
-        "8c4a7568701fe58211adfe2cba2a7a5438f0670af5f24be8442c57f36e625996"        
+        "8c4a7568701fe58211adfe2cba2a7a5438f0670af5f24be8442c57f36e625996"
         ]
-    },    
+    },
     "Version": "1.0.0"
 }
 ```
+
 ### 4. Get the block by block height
 
 GET
@@ -178,8 +170,8 @@ curl -i http://server:port/api/v1/block/details/height/22
             "Timestamp": 1521432329,
             "Height": 22,
             "ConsensusData": 11160228784438648574,
-            "NextBookkeeper": "027c557d2e735b9a369d20dd099bfd42db5cdb74",
-            "Bookkeepers": [
+            "NextBookKeeper": "027c557d2e735b9a369d20dd099bfd42db5cdb74",
+            "BookKeepers": [
                 {
                     "X": "11045594958442581564679839478917319740817938700262919124154204990772552987783",
                     "Y": "28445199876541353997545685344458930058882115795876754515124389392470701852812"
@@ -213,6 +205,7 @@ curl -i http://server:port/api/v1/block/details/height/22
     "Version": "1.0.0"
 }
 ```
+
 ### 5. Get block by blockhash
 
 GET
@@ -255,8 +248,8 @@ curl -i http://server:port/api/v1/block/details/hash/8723534588ea3202c0949ce5e39
             "Timestamp": 1521432329,
             "Height": 22,
             "ConsensusData": 11160228784438648574,
-            "NextBookkeeper": "027c557d2e735b9a369d20dd099bfd42db5cdb74",
-            "Bookkeepers": [
+            "NextBookKeeper": "027c557d2e735b9a369d20dd099bfd42db5cdb74",
+            "BookKeepers": [
                 {
                     "X": "11045594958442581564679839478917319740817938700262919124154204990772552987783",
                     "Y": "28445199876541353997545685344458930058882115795876754515124389392470701852812"
@@ -363,7 +356,7 @@ curl -i http://server:port/api/v1/block/hash/100
 }
 ```
 
-### 8. Get transaction by transaction hash (unsolved)
+### 8. Get transaction by transaction hash \(unsolved\)
 
 GET
 
@@ -446,7 +439,7 @@ curl  -H "Content-Type: application/json"  -X POST -d '{}'  http://server:port/a
 | Version | string | version information |
 | Data | string | transaction data |
 
-### 10. Get ONG (unsolved)
+### 10. Get ONG \(unsolved\)
 
 #### Claim ONG
 
@@ -456,7 +449,7 @@ POST
 /api/v1/claim
 ```
 
-### 11. Get contract (unsolved)
+### 11. Get contract \(unsolved\)
 
 GET
 
@@ -464,27 +457,41 @@ GET
 /api/v1/contract/:hash
 ```
 
-Example
+#### Example
 
 ```
 curl -i http://server:port/api/v1/block/details/hash/:hash
 ```
-
-#### 12. Get contract event by height (unsolved)
+#### Response example:
+```
+{
+    "Action": "getsmartcodeeventbyhash",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": null,
+    "Version": "1.0.0"
+}
+```
+#### 12. Get contract event by height or txHash
 
 GET
 
 ```
-/api/v1/smartcontract/event/:height
+/api/v1/smartcode/event/:height
 ```
 
 #### Example usage:
 
 ```
-curl -i http://server:port/api/v1/smartcontract/event/:height
+curl -i http://server:port/api/v1/smartcode/event/height/9
+```
+or
+```
+curl -i http://server:port/api/v1/smartcode/event/txhash/3ba4b4e463a717635614595378f2aac78feacc7d4dfda075bfcf9328cbbcdb7c
 ```
 
-### 13. WebSocket configuration (unsolved)
+
+### 13. WebSocket configuration \(unsolved\)
 
 POST
 
@@ -497,6 +504,7 @@ POST
 ```
 curl -i http://server:port/api/v1/config/websocket/state
 ```
+
 ### 14. Get ont balance by address
 
 GET
@@ -534,3 +542,24 @@ curl -i http://server:port/api/v1/transaction/TA5uYzLU2vBvvfCMxyV2sdzc9kPqJzGZWq
     "Version": "1.0.0"
 }
 ```
+
+## Errorcode
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| 0 | int64 | SUCCESS |
+| 41001 | int64 | SESSION\_EXPIRED: invalided or expired session |
+| 41002 | int64 | SERVICE\_CEILING: reach service limit |
+| 41003 | int64 | ILLEGAL\_DATAFORMAT: illegal dataformat |
+| 41004 | int64 | INVALID\_VERSION: invalid version |
+| 42001 | int64 | INVALID\_METHOD: invalid method |
+| 42002 | int64 | INVALID\_PARAMS: invalid params |
+| 43001 | int64 | INVALID\_TRANSACTION: invalid transaction |
+| 43002 | int64 | INVALID\_ASSET: invalid asset |
+| 43003 | int64 | INVALID\_BLOCK: invalid block |
+| 44001 | int64 | UNKNOWN\_TRANSACTION: unknown transaction |
+| 44002 | int64 | UNKNOWN\_ASSET: unknown asset |
+| 44003 | int64 | UNKNOWN\_BLOCK: unknown block |
+| 45001 | int64 | INTERNAL\_ERROR: internel error |
+| 47001 | int64 | SMARTCODE\_ERROR: smartcode error |
+
