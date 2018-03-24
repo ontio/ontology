@@ -43,15 +43,15 @@ type ApiServer interface {
 
 //Node
 func GetGenerateBlockTime(cmd map[string]interface{}) map[string]interface{} {
-	resp := rspSuccess
+	resp := ResponsePack(Err.SUCCESS)
 	resp["Result"] = config.DEFAULTGENBLOCKTIME
 	return resp
 }
 func GetConnectionCount(cmd map[string]interface{}) map[string]interface{} {
-	resp := rspSuccess
+	resp := ResponsePack(Err.SUCCESS)
 	count, err := GetConnectionCnt()
 	if err != nil {
-		return rspInternalError
+		return ResponsePack(Err.INTERNAL_ERROR)
 	}
 	resp["Result"] = count
 	return resp
@@ -59,27 +59,27 @@ func GetConnectionCount(cmd map[string]interface{}) map[string]interface{} {
 
 //Block
 func GetBlockHeight(cmd map[string]interface{}) map[string]interface{} {
-	resp := rspSuccess
+	resp := ResponsePack(Err.SUCCESS)
 	height,err := BlockHeight()
 	if err != nil{
-		return rspInternalError
+		return ResponsePack(Err.INTERNAL_ERROR)
 	}
 	resp["Result"] = height
 	return resp
 }
 func GetBlockHash(cmd map[string]interface{}) map[string]interface{} {
-	resp := rspSuccess
+	resp := ResponsePack(Err.SUCCESS)
 	param := cmd["Height"].(string)
 	if len(param) == 0 {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	height, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	hash, err := GetBlockHashFromStore(uint32(height))
 	if err != nil {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	resp["Result"] = ToHexString(hash.ToArray())
 	return resp
@@ -120,10 +120,10 @@ func getBlock(hash Uint256, getTxBytes bool) (interface{}, int64) {
 	return GetBlockInfo(block), Err.SUCCESS
 }
 func GetBlockByHash(cmd map[string]interface{}) map[string]interface{} {
-	resp := rspSuccess
+	resp := ResponsePack(Err.SUCCESS)
 	param := cmd["Hash"].(string)
 	if len(param) == 0 {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	var getTxBytes = false
 	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
@@ -132,68 +132,68 @@ func GetBlockByHash(cmd map[string]interface{}) map[string]interface{} {
 	var hash Uint256
 	hex, err := HexToBytes(param)
 	if err != nil {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
-		return rspInvalidTx
+		return ResponsePack(Err.INVALID_TRANSACTION)
 	}
 	resp["Result"], resp["Error"] = getBlock(hash, getTxBytes)
 	return resp
 }
 
 func GetBlockHeightByTxHash(cmd map[string]interface{}) map[string]interface{} {
-	resp := rspSuccess
+	resp := ResponsePack(Err.SUCCESS)
 	param := cmd["Hash"].(string)
 	if len(param) == 0 {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	var hash Uint256
 	hex, err := HexToBytes(param)
 	if err != nil {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
-		return rspInvalidTx
+		return ResponsePack(Err.INVALID_TRANSACTION)
 	}
 	height,err := GetBlockHeightByTxHashFromStore(hash)
 	if err != nil {
-		return rspInternalError
+		return ResponsePack(Err.INTERNAL_ERROR)
 	}
 	resp["Result"] = height
 	return resp
 }
 func GetBlockTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
-	resp := rspSuccess
+	resp := ResponsePack(Err.SUCCESS)
 
 	param := cmd["Height"].(string)
 	if len(param) == 0 {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	height, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	index := uint32(height)
 	hash, err := GetBlockHashFromStore(index)
 	if err != nil {
-		return rspUnkownBlock
+		return ResponsePack(Err.UNKNOWN_BLOCK)
 	}
 	if hash.CompareTo(Uint256{}) == 0{
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	block, err := GetBlockFromStore(hash)
 	if err != nil {
-		return rspUnkownBlock
+		return ResponsePack(Err.UNKNOWN_BLOCK)
 	}
 	resp["Result"] = GetBlockTransactions(block)
 	return resp
 }
 func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
-	resp := rspSuccess
+	resp := ResponsePack(Err.SUCCESS)
 
 	param := cmd["Height"].(string)
 	if len(param) == 0 {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	var getTxBytes bool = false
 	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
@@ -201,12 +201,12 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 	}
 	height, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	index := uint32(height)
 	hash, err := GetBlockHashFromStore(index)
 	if err != nil {
-		return rspUnkownBlock
+		return ResponsePack(Err.UNKNOWN_BLOCK)
 	}
 	resp["Result"], resp["Error"] = getBlock(hash, getTxBytes)
 	return resp
@@ -215,24 +215,24 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 
 //Transaction
 func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
-	resp := rspSuccess
+	resp := ResponsePack(Err.SUCCESS)
 
 	str := cmd["Hash"].(string)
 	bys, err := HexToBytes(str)
 	if err != nil {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	var hash Uint256
 	err = hash.Deserialize(bytes.NewReader(bys))
 	if err != nil {
-		return rspInvalidTx
+		return ResponsePack(Err.INVALID_TRANSACTION)
 	}
 	tx, err := GetTransaction(hash)
 	if err != nil {
-		return rspUnkownTx
+		return ResponsePack(Err.UNKNOWN_TRANSACTION)
 	}
 	if tx == nil {
-		return rspUnkownTx
+		return ResponsePack(Err.UNKNOWN_TRANSACTION)
 	}
 	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
 		w := bytes.NewBuffer(nil)
@@ -245,19 +245,19 @@ func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
-	resp := rspSuccess
+	resp := ResponsePack(Err.SUCCESS)
 
 	str, ok := cmd["Data"].(string)
 	if !ok {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	bys, err := HexToBytes(str)
 	if err != nil {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	var txn types.Transaction
 	if err := txn.Deserialize(bytes.NewReader(bys)); err != nil {
-		return rspInvalidTx
+		return ResponsePack(Err.INVALID_TRANSACTION)
 	}
 	if txn.TxType == types.Invoke {
 		if preExec, ok := cmd["PreExec"].(string); ok && preExec == "1" {
@@ -266,7 +266,7 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 				resp["Result"], err = PreExecuteContract(&txn)
 				if err != nil {
 					log.Error(err)
-					return rspSmartCodeError
+					return ResponsePack(Err.SMARTCODE_ERROR)
 				}
 				return resp
 			}
@@ -289,20 +289,20 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 }
 
 func GetSmartCodeEventByHeight(cmd map[string]interface{}) map[string]interface{} {
-	resp := rspSuccess
+	resp := ResponsePack(Err.SUCCESS)
 
 	param := cmd["Height"].(string)
 	if len(param) == 0 {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	height, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	index := uint32(height)
 	txs, err := GetEventNotifyByHeight(index)
 	if err != nil {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	var txhexs []string
 	for _, v := range txs {
@@ -313,21 +313,21 @@ func GetSmartCodeEventByHeight(cmd map[string]interface{}) map[string]interface{
 }
 
 func GetSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{} {
-	resp := rspSuccess
+	resp := ResponsePack(Err.SUCCESS)
 
 	str := cmd["Hash"].(string)
 	bys, err := HexToBytes(str)
 	if err != nil {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	var hash Uint256
 	err = hash.Deserialize(bytes.NewReader(bys))
 	if err != nil {
-		return rspInvalidTx
+		return ResponsePack(Err.INVALID_TRANSACTION)
 	}
 	eventInfos, err := GetEventNotifyByTxHash(hash)
 	if err != nil {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	var evs []map[string]interface{}
 	for _, v := range eventInfos {
@@ -340,56 +340,56 @@ func GetSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{
 }
 
 func GetContractState(cmd map[string]interface{}) map[string]interface{} {
-	resp := rspSuccess
+	resp := ResponsePack(Err.SUCCESS)
 	str := cmd["Hash"].(string)
 	bys, err := HexToBytes(str)
 	if err != nil {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	var hash Address
 	err = hash.Deserialize(bytes.NewReader(bys))
 	if err != nil {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	contract, err := GetContractStateFromStore(hash)
 	if err != nil || contract == nil {
-		return rspInternalError
+		return ResponsePack(Err.INTERNAL_ERROR)
 	}
 	resp["Result"] = TransPayloadToHex(contract)
 	return resp
 }
 
 func GetStorage(cmd map[string]interface{}) map[string]interface{} {
-	resp := rspSuccess
+	resp := ResponsePack(Err.SUCCESS)
 	str := cmd["Hash"].(string)
 	bys, err := HexToBytes(str)
 	if err != nil {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	var hash Address
 	err = hash.Deserialize(bytes.NewReader(bys))
 	if err != nil {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	key := cmd["Key"].(string)
 	item, err := HexToBytes(key)
 	if err != nil {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	log.Info("[GetStorage] ",str,key)
 	value, err := GetStorageItem(hash,item)
 	if err != nil || value == nil {
-		return rspInternalError
+		return ResponsePack(Err.INTERNAL_ERROR)
 	}
 	resp["Result"] = ToHexString(value)
 	return resp
 }
 func GetBalance(cmd map[string]interface{}) map[string]interface{} {
-	resp := rspSuccess
+	resp := ResponsePack(Err.SUCCESS)
 	addrBase58 := cmd["Addr"].(string)
 	address, err := AddressFromBase58(addrBase58)
 	if err != nil {
-		return rspInvalidParams
+		return ResponsePack(Err.INVALID_PARAMS)
 	}
 	ont := new(big.Int)
 	ong := new(big.Int)
@@ -397,7 +397,7 @@ func GetBalance(cmd map[string]interface{}) map[string]interface{} {
 	ontBalance, err := GetStorageItem(genesis.OntContractAddress, address.ToArray())
 	if err != nil {
 		log.Errorf("GetOntBalanceOf GetStorageItem ont address:%s error:%s", address, err)
-		return rspInternalError
+		return ResponsePack(Err.INTERNAL_ERROR)
 	}
 	if ontBalance != nil {
 		ont.SetBytes(ontBalance)

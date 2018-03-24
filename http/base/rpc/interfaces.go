@@ -30,20 +30,21 @@ import (
 	. "github.com/Ontology/errors"
 	. "github.com/Ontology/http/base/actor"
 	. "github.com/Ontology/http/base/common"
+	Err "github.com/Ontology/http/base/error"
 	"math/big"
 )
 
 func GetGenerateBlockTime(params []interface{}) map[string]interface{} {
-	return Rpc(config.DEFAULTGENBLOCKTIME)
+	return responseSuccess(config.DEFAULTGENBLOCKTIME)
 }
 
 func GetBestBlockHash(params []interface{}) map[string]interface{} {
 	hash, err := CurrentBlockHash()
 	if err != nil {
 		log.Errorf("GetBestBlockHash error:%s", err)
-		return RpcFailed
+		return responsePacking(Err.INTERNAL_ERROR, false)
 	}
-	return Rpc(ToHexString(hash.ToArray()))
+	return responseSuccess(ToHexString(hash.ToArray()))
 }
 
 // Input JSON string examples for getblock method as following:
@@ -51,7 +52,7 @@ func GetBestBlockHash(params []interface{}) map[string]interface{} {
 //   {"jsonrpc": "2.0", "method": "getblock", "params": ["aabbcc.."], "id": 0}
 func GetBlock(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
-		return RpcNil
+		return responsePacking(Err.INVALID_PARAMS, nil)
 	}
 	var err error
 	var hash Uint256
@@ -62,62 +63,62 @@ func GetBlock(params []interface{}) map[string]interface{} {
 		hash, err = GetBlockHashFromStore(index)
 		if err != nil {
 			log.Errorf("GetBlock GetBlockHashFromStore Height:%v error:%s", index, err)
-			return RpcUnknownBlock
+			return responsePacking(Err.UNKNOWN_BLOCK, "unknown block")
 		}
 		if hash.CompareTo(Uint256{}) == 0 {
-			return RpcInvalidParameter
+			return responsePacking(Err.INVALID_PARAMS, "")
 		}
 		// block hash
 	case string:
 		str := params[0].(string)
 		hex, err := hex.DecodeString(str)
 		if err != nil {
-			return RpcInvalidParameter
+			return responsePacking(Err.INVALID_PARAMS, "")
 		}
 		if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
-			return RpcInvalidTransaction
+			return responsePacking(Err.INVALID_PARAMS, "")
 		}
 	default:
-		return RpcInvalidParameter
+		return responsePacking(Err.INVALID_PARAMS, "")
 	}
 	block, err := GetBlockFromStore(hash)
 	if err != nil {
 		log.Errorf("GetBlock GetBlockFromStore BlockHash:%x error:%s", hash, err)
-		return RpcUnknownBlock
+		return responsePacking(Err.UNKNOWN_BLOCK, "unknown block")
 	}
 	if block == nil || block.Header == nil {
-		return RpcUnknownBlock
+		return responsePacking(Err.UNKNOWN_BLOCK, "unknown block")
 	}
 	if len(params) >= 2 {
 		switch (params[1]).(type) {
 		case float64:
 			json := uint32(params[1].(float64))
 			if json == 1{
-				return Rpc(GetBlockInfo(block))
+				return responseSuccess(GetBlockInfo(block))
 			}
 		default:
-			return RpcInvalidParameter
+			return responsePacking(Err.INVALID_PARAMS, "")
 		}
 	}
 	w := bytes.NewBuffer(nil)
 	block.Serialize(w)
-	return Rpc(ToHexString(w.Bytes()))
+	return responseSuccess(ToHexString(w.Bytes()))
 }
 
 func GetBlockCount(params []interface{}) map[string]interface{} {
 	height, err := BlockHeight()
 	if err != nil {
 		log.Errorf("GetBlockCount error:%s", err)
-		return RpcFailed
+		return responsePacking(Err.INTERNAL_ERROR, false)
 	}
-	return Rpc(height + 1)
+	return responseSuccess(height + 1)
 }
 
 // A JSON example for getblockhash method as following:
 //   {"jsonrpc": "2.0", "method": "getblockhash", "params": [1], "id": 0}
 func GetBlockHash(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
-		return RpcNil
+		return responsePacking(Err.INVALID_PARAMS, nil)
 	}
 	switch params[0].(type) {
 	case float64:
@@ -125,11 +126,11 @@ func GetBlockHash(params []interface{}) map[string]interface{} {
 		hash, err := GetBlockHashFromStore(height)
 		if err != nil {
 			log.Errorf("GetBlockHash GetBlockHashFromStore height:%v error:%s", height, err)
-			return RpcUnknownBlock
+			return responsePacking(Err.UNKNOWN_BLOCK, "unknown block")
 		}
-		return Rpc(fmt.Sprintf("%016x", hash))
+		return responseSuccess(fmt.Sprintf("%016x", hash))
 	default:
-		return RpcInvalidParameter
+		return responsePacking(Err.INVALID_PARAMS, "")
 	}
 }
 
@@ -137,9 +138,9 @@ func GetConnectionCount(params []interface{}) map[string]interface{} {
 	count, err := GetConnectionCnt()
 	if err != nil {
 		log.Errorf("GetConnectionCount error:%s", err)
-		return RpcFailed
+		return responsePacking(Err.INTERNAL_ERROR, false)
 	}
-	return Rpc(count)
+	return responseSuccess(count)
 }
 
 func GetRawMemPool(params []interface{}) map[string]interface{} {
@@ -149,29 +150,29 @@ func GetRawMemPool(params []interface{}) map[string]interface{} {
 		txs = append(txs, TransArryByteToHexString(t))
 	}
 	if len(txs) == 0 {
-		return RpcNil
+		return responsePacking(Err.INVALID_PARAMS, nil)
 	}
-	return Rpc(txs)
+	return responseSuccess(txs)
 }
 func GetMemPoolTxState(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
-		return RpcNil
+		return responsePacking(Err.INVALID_PARAMS, nil)
 	}
 	switch params[0].(type) {
 	case string:
 		str := params[0].(string)
 		hex, err := hex.DecodeString(str)
 		if err != nil {
-			return RpcInvalidParameter
+			return responsePacking(Err.INVALID_PARAMS, "")
 		}
 		var hash Uint256
 		err = hash.Deserialize(bytes.NewReader(hex))
 		if err != nil {
-			return RpcInvalidTransaction
+			return responsePacking(Err.INVALID_TRANSACTION, "")
 		}
 		txEntry, err := GetTxFromPool(hash)
 		if err != nil {
-			return RpcUnknownTransaction
+			return responsePacking(Err.UNKNOWN_TRANSACTION, "unknown transaction")
 		}
 		tran := TransArryByteToHexString(txEntry.Tx)
 		attrs := []TXNAttrInfo{}
@@ -179,9 +180,9 @@ func GetMemPoolTxState(params []interface{}) map[string]interface{} {
 			attrs = append(attrs, TXNAttrInfo{t.Height, int(t.Type), int(t.ErrCode)})
 		}
 		info := TXNEntryInfo{*tran, int64(txEntry.Fee), attrs}
-		return Rpc(info)
+		return responseSuccess(info)
 	default:
-		return RpcInvalidParameter
+		return responsePacking(Err.INVALID_PARAMS, "")
 	}
 }
 
@@ -189,7 +190,7 @@ func GetMemPoolTxState(params []interface{}) map[string]interface{} {
 //   {"jsonrpc": "2.0", "method": "getrawtransaction", "params": ["transactioin hash in hex"], "id": 0}
 func GetRawTransaction(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
-		return RpcNil
+		return responsePacking(Err.INVALID_PARAMS, nil)
 	}
 	var tx *types.Transaction
 	switch params[0].(type) {
@@ -197,24 +198,24 @@ func GetRawTransaction(params []interface{}) map[string]interface{} {
 		str := params[0].(string)
 		hex, err := hex.DecodeString(str)
 		if err != nil {
-			return RpcInvalidParameter
+			return responsePacking(Err.INVALID_PARAMS, "")
 		}
 		var hash Uint256
 		err = hash.Deserialize(bytes.NewReader(hex))
 		if err != nil {
-			return RpcInvalidTransaction
+			return responsePacking(Err.INVALID_TRANSACTION, "")
 		}
 		t, err := GetTransaction(hash)
 		if err != nil {
 			log.Errorf("GetRawTransaction GetTransaction error:%s", err)
-			return RpcUnknownTransaction
+			return responsePacking(Err.UNKNOWN_TRANSACTION, "unknown transaction")
 		}
 		tx = t
 		if tx == nil {
-			return RpcUnknownTransaction
+			return responsePacking(Err.UNKNOWN_TRANSACTION, "unknown transaction")
 		}
 	default:
-		return RpcInvalidParameter
+		return responsePacking(Err.INVALID_PARAMS, "")
 	}
 
 	if len(params) >= 2 {
@@ -222,21 +223,21 @@ func GetRawTransaction(params []interface{}) map[string]interface{} {
 		case float64:
 			json := uint32(params[1].(float64))
 			if json == 1{
-				return Rpc(TransArryByteToHexString(tx))
+				return responseSuccess(TransArryByteToHexString(tx))
 			}
 		default:
-			return RpcInvalidParameter
+			return responsePacking(Err.INVALID_PARAMS, "")
 		}
 	}
 	w := bytes.NewBuffer(nil)
 	tx.Serialize(w)
-	return Rpc(ToHexString(w.Bytes()))
+	return responseSuccess(ToHexString(w.Bytes()))
 }
 
 //   {"jsonrpc": "2.0", "method": "getstorage", "params": ["code hash", "key"], "id": 0}
 func GetStorage(params []interface{}) map[string]interface{} {
 	if len(params) < 2 {
-		return RpcNil
+		return responsePacking(Err.INVALID_PARAMS, nil)
 	}
 
 	var codeHash Address
@@ -246,13 +247,13 @@ func GetStorage(params []interface{}) map[string]interface{} {
 		str := params[0].(string)
 		hex, err := hex.DecodeString(str)
 		if err != nil {
-			return RpcInvalidParameter
+			return responsePacking(Err.INVALID_PARAMS, "")
 		}
 		if err := codeHash.Deserialize(bytes.NewReader(hex)); err != nil {
-			return RpcInvalidHash
+			return responsePacking(Err.INVALID_PARAMS, "")
 		}
 	default:
-		return RpcInvalidParameter
+		return responsePacking(Err.INVALID_PARAMS, "")
 	}
 
 	switch params[1].(type) {
@@ -260,25 +261,25 @@ func GetStorage(params []interface{}) map[string]interface{} {
 		str := params[1].(string)
 		hex, err := hex.DecodeString(str)
 		if err != nil {
-			return RpcInvalidParameter
+			return responsePacking(Err.INVALID_PARAMS, "")
 		}
 		key = hex
 	default:
-		return RpcInvalidParameter
+		return responsePacking(Err.INVALID_PARAMS, "")
 	}
 	value, err := GetStorageItem(codeHash, key)
 	if err != nil {
 		log.Errorf("GetStorage GetStorageItem CodeHash:%x key:%s error:%s", codeHash, key, err)
-		return RpcInternalError
+		return responsePacking(Err.INTERNAL_ERROR, "internal error")
 	}
-	return Rpc(ToHexString(value))
+	return responseSuccess(ToHexString(value))
 }
 
 // A JSON example for sendrawtransaction method as following:
 //   {"jsonrpc": "2.0", "method": "sendrawtransaction", "params": ["raw transactioin in hex"], "id": 0}
 func SendRawTransaction(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
-		return RpcNil
+		return responsePacking(Err.INVALID_PARAMS, nil)
 	}
 	var hash Uint256
 	switch params[0].(type) {
@@ -286,27 +287,27 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 		str := params[0].(string)
 		hex, err := hex.DecodeString(str)
 		if err != nil {
-			return RpcInvalidParameter
+			return responsePacking(Err.INVALID_PARAMS, "")
 		}
 		var txn types.Transaction
 		if err := txn.Deserialize(bytes.NewReader(hex)); err != nil {
-			return RpcInvalidTransaction
+			return responsePacking(Err.INVALID_TRANSACTION, "")
 		}
 		hash = txn.Hash()
 		if errCode := VerifyAndSendTx(&txn); errCode != ErrNoError {
-			return Rpc(errCode.Error())
+			return responseSuccess(errCode.Error())
 		}
 	default:
-		return RpcInvalidParameter
+		return responsePacking(Err.INVALID_PARAMS, "")
 	}
-	return Rpc(ToHexString(hash.ToArray()))
+	return responseSuccess(ToHexString(hash.ToArray()))
 }
 
 // A JSON example for submitblock method as following:
 //   {"jsonrpc": "2.0", "method": "submitblock", "params": ["raw block in hex"], "id": 0}
 func SubmitBlock(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
-		return RpcNil
+		return responsePacking(Err.INVALID_PARAMS, nil)
 	}
 	switch params[0].(type) {
 	case string:
@@ -314,60 +315,60 @@ func SubmitBlock(params []interface{}) map[string]interface{} {
 		hex, _ := hex.DecodeString(str)
 		var block types.Block
 		if err := block.Deserialize(bytes.NewReader(hex)); err != nil {
-			return RpcInvalidBlock
+			return responsePacking(Err.INVALID_BLOCK, "")
 		}
 		if err := AddBlock(&block); err != nil {
-			return RpcInvalidBlock
+			return responsePacking(Err.INVALID_BLOCK, "")
 		}
 		if err := Xmit(&block); err != nil {
-			return RpcInternalError
+			return responsePacking(Err.INTERNAL_ERROR, "internal error")
 		}
 	default:
-		return RpcInvalidParameter
+		return responsePacking(Err.INVALID_PARAMS, "")
 	}
-	return RpcSuccess
+	return responsePacking(Err.SUCCESS, true)
 }
 
 func GetNodeVersion(params []interface{}) map[string]interface{} {
-	return Rpc(config.Parameters.Version)
+	return responseSuccess(config.Parameters.Version)
 }
 
 func GetSystemFee(params []interface{}) map[string]interface{} {
-	return Rpc(config.Parameters.SystemFee)
+	return responseSuccess(config.Parameters.SystemFee)
 }
 
 func GetContractState(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
-		return RpcNil
+		return responsePacking(Err.INVALID_PARAMS, nil)
 	}
 	switch params[0].(type) {
 	case string:
 		str := params[0].(string)
 		hex, err := hex.DecodeString(str)
 		if err != nil {
-			return RpcInvalidParameter
+			return responsePacking(Err.INVALID_PARAMS, "")
 		}
 		var hash Address
 		if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
-			return RpcInvalidParameter
+			return responsePacking(Err.INVALID_PARAMS, "")
 		}
 		contract, err := GetContractStateFromStore(hash)
 		if err != nil {
 			log.Errorf("GetContractState GetContractStateFromStore hash:%x error:%s", hash, err)
-			return RpcInternalError
+			return responsePacking(Err.INTERNAL_ERROR, "internal error")
 		}
 		if contract == nil {
-			return RpcUnKnownContact
+			return responsePacking(Err.UNKNWN_CONTRACT, "unknow contract")
 		}
-		return Rpc(TransPayloadToHex(contract))
+		return responseSuccess(TransPayloadToHex(contract))
 	default:
-		return RpcInvalidParameter
+		return responsePacking(Err.INVALID_PARAMS, "")
 	}
 }
 
 func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
-		return RpcNil
+		return responsePacking(Err.INVALID_PARAMS, nil)
 	}
 
 	switch (params[0]).(type) {
@@ -376,27 +377,27 @@ func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 		height := uint32(params[0].(float64))
 		txs, err := GetEventNotifyByHeight(height)
 		if err != nil {
-			return RpcInvalidParameter
+			return responsePacking(Err.INVALID_PARAMS, "")
 		}
 		var txhexs []string
 		for _, v := range txs {
 			txhexs = append(txhexs, ToHexString(v.ToArray()))
 		}
-		return Rpc(txhexs)
+		return responseSuccess(txhexs)
 		//txhash
 	case string:
 		str := params[0].(string)
 		hex, err := hex.DecodeString(str)
 		if err != nil {
-			return RpcInvalidParameter
+			return responsePacking(Err.INVALID_PARAMS, "")
 		}
 		var hash Uint256
 		if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
-			return RpcInvalidParameter
+			return responsePacking(Err.INVALID_PARAMS, "")
 		}
 		eventInfos, err := GetEventNotifyByTxHash(hash)
 		if err != nil {
-			return RpcInvalidParameter
+			return responsePacking(Err.INVALID_PARAMS, "")
 		}
 		var evs []map[string]interface{}
 		for _, v := range eventInfos {
@@ -404,16 +405,16 @@ func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 				"States": v.States,
 				"Container": v.Container})
 		}
-		return Rpc(evs)
+		return responseSuccess(evs)
 	default:
-		return RpcInvalidParameter
+		return responsePacking(Err.INVALID_PARAMS, "")
 	}
-	return RpcInvalidParameter
+	return responsePacking(Err.INVALID_PARAMS, "")
 }
 
 func GetBlockHeightByTxHash(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
-		return RpcNil
+		return responsePacking(Err.INVALID_PARAMS, nil)
 	}
 
 	switch (params[0]).(type) {
@@ -422,34 +423,34 @@ func GetBlockHeightByTxHash(params []interface{}) map[string]interface{} {
 		str := params[0].(string)
 		hex, err := hex.DecodeString(str)
 		if err != nil {
-			return RpcInvalidParameter
+			return responsePacking(Err.INVALID_PARAMS, "")
 		}
 		var hash Uint256
 		if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
-			return RpcInvalidParameter
+			return responsePacking(Err.INVALID_PARAMS, "")
 		}
 		height,err := GetBlockHeightByTxHashFromStore(hash)
 		if err != nil{
-			return RpcInvalidParameter
+			return responsePacking(Err.INVALID_PARAMS, "")
 		}
-		return Rpc(height)
+		return responseSuccess(height)
 	default:
-		return RpcInvalidParameter
+		return responsePacking(Err.INVALID_PARAMS, "")
 	}
-	return RpcInvalidParameter
+	return responsePacking(Err.INVALID_PARAMS, "")
 }
 
 func GetBalance(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
-		return RpcInvalidParameter
+		return responsePacking(Err.INVALID_PARAMS, "")
 	}
 	addrBase58, ok := params[0].(string)
 	if !ok {
-		return RpcInvalidParameter
+		return responsePacking(Err.INVALID_PARAMS, "")
 	}
 	address, err := AddressFromBase58(addrBase58)
 	if err != nil {
-		return RpcInvalidParameter
+		return responsePacking(Err.INVALID_PARAMS, "")
 	}
 	ont := new(big.Int)
 	ong := new(big.Int)
@@ -457,7 +458,7 @@ func GetBalance(params []interface{}) map[string]interface{} {
 	ontBalance, err := GetStorageItem(genesis.OntContractAddress, address.ToArray())
 	if err != nil {
 		log.Errorf("GetOntBalanceOf GetStorageItem ont address:%s error:%s", addrBase58, err)
-		return RpcInternalError
+		return responsePacking(Err.INTERNAL_ERROR, "internal error")
 	}
 	if ontBalance != nil {
 		ont.SetBytes(ontBalance)
@@ -466,12 +467,12 @@ func GetBalance(params []interface{}) map[string]interface{} {
 		Ont: ont.String(),
 		Ong: ong.String(),
 	}
-	return Rpc(rsp)
+	return responseSuccess(rsp)
 }
 
 func RegDataFile(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
-		return RpcNil
+		return responsePacking(Err.INVALID_PARAMS, nil)
 	}
 	var hash Uint256
 	switch params[0].(type) {
@@ -479,48 +480,48 @@ func RegDataFile(params []interface{}) map[string]interface{} {
 		str := params[0].(string)
 		hex, err := hex.DecodeString(str)
 		if err != nil {
-			return RpcInvalidParameter
+			return responsePacking(Err.INVALID_PARAMS, "")
 		}
 		var txn types.Transaction
 		if err := txn.Deserialize(bytes.NewReader(hex)); err != nil {
-			return RpcInvalidTransaction
+			return responsePacking(Err.INVALID_BLOCK, "")
 		}
 
 		hash = txn.Hash()
 		if errCode := VerifyAndSendTx(&txn); errCode != ErrNoError {
-			return RpcInternalError
+			return responsePacking(Err.INTERNAL_ERROR, "internal error")
 		}
 	default:
-		return RpcInvalidParameter
+		return responsePacking(Err.INVALID_PARAMS, "")
 	}
-	return Rpc(ToHexString(hash.ToArray()))
+	return responseSuccess(ToHexString(hash.ToArray()))
 }
 
 func CatDataRecord(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
-		return RpcNil
+		return responsePacking(Err.INVALID_PARAMS, nil)
 	}
 	switch params[0].(type) {
 	case string:
 		str := params[0].(string)
 		b, err := hex.DecodeString(str)
 		if err != nil {
-			return RpcInvalidParameter
+			return responsePacking(Err.INVALID_PARAMS, "")
 		}
 		var hash Uint256
 		err = hash.Deserialize(bytes.NewReader(b))
 		if err != nil {
-			return RpcInvalidTransaction
+			return responsePacking(Err.INVALID_TRANSACTION, "")
 		}
 		tx, err := GetTransaction(hash)
 		if err != nil {
-			return RpcUnknownTransaction
+			return responsePacking(Err.UNKNOWN_TRANSACTION, "unknown transaction")
 		}
 		tran := TransArryByteToHexString(tx)
 		info := tran.Payload.(*DataFileInfo)
 		//ref := string(record.RecordData[:])
-		return Rpc(info)
+		return responseSuccess(info)
 	default:
-		return RpcInvalidParameter
+		return responsePacking(Err.INVALID_PARAMS, "")
 	}
 }

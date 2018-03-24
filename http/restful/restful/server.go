@@ -263,7 +263,7 @@ func (rt *restServer) initGetHandler() {
 				resp = h.handler(req)
 				resp["Action"] = h.name
 			} else {
-				resp = RspInvalidMethod
+				resp = ResponsePack(Err.INVALID_METHOD)
 			}
 			rt.response(w, resp)
 		})
@@ -286,11 +286,11 @@ func (rt *restServer) initPostHandler() {
 					resp = h.handler(req)
 					resp["Action"] = h.name
 				} else {
-					resp = RspIllegalDataFormat
+					resp = ResponsePack(Err.ILLEGAL_DATAFORMAT)
 					resp["Action"] = h.name
 				}
 			} else {
-				resp = RspInvalidMethod
+				resp = ResponsePack(Err.INVALID_METHOD)
 			}
 			rt.response(w, resp)
 		})

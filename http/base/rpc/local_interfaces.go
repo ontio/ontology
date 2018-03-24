@@ -22,6 +22,7 @@ import (
 	"github.com/Ontology/common/log"
 	. "github.com/Ontology/http/base/common"
 	. "github.com/Ontology/http/base/actor"
+	Err "github.com/Ontology/http/base/error"
 	"os"
 	"path/filepath"
 )
@@ -40,45 +41,45 @@ func getCurrentDirectory() string {
 
 func GetNeighbor(params []interface{}) map[string]interface{} {
 	addr, _ := GetNeighborAddrs()
-	return Rpc(addr)
+	return responseSuccess(addr)
 }
 
 func GetNodeState(params []interface{}) map[string]interface{} {
 	state,err := GetConnectionState()
 	if err != nil {
-		return RpcFailed
+		return responsePacking(Err.INTERNAL_ERROR, false)
 	}
 	t,err := GetNodeTime()
 	if err != nil {
-		return RpcFailed
+		return responsePacking(Err.INTERNAL_ERROR, false)
 	}
 	port,err := GetNodePort()
 	if err != nil {
-		return RpcFailed
+		return responsePacking(Err.INTERNAL_ERROR, false)
 	}
 	id,err := GetID()
 	if err != nil {
-		return RpcFailed
+		return responsePacking(Err.INTERNAL_ERROR, false)
 	}
 	ver,err := GetVersion()
 	if err != nil {
-		return RpcFailed
+		return responsePacking(Err.INTERNAL_ERROR, false)
 	}
 	tpe,err := GetNodeType()
 	if err != nil {
-		return RpcFailed
+		return responsePacking(Err.INTERNAL_ERROR, false)
 	}
 	relay,err := GetRelayState()
 	if err != nil {
-		return RpcFailed
+		return responsePacking(Err.INTERNAL_ERROR, false)
 	}
 	height,err := BlockHeight()
 	if err != nil {
-		return RpcFailed
+		return responsePacking(Err.INTERNAL_ERROR, false)
 	}
 	txnCnt,err := GetTxnCnt()
 	if err != nil {
-		return RpcFailed
+		return responsePacking(Err.INTERNAL_ERROR, false)
 	}
 	n := NodeInfo{
 		NodeState:    uint(state),
@@ -91,21 +92,21 @@ func GetNodeState(params []interface{}) map[string]interface{} {
 		Height:   height,
 		TxnCnt:   txnCnt,
 	}
-	return Rpc(n)
+	return responseSuccess(n)
 }
 
 func StartConsensus(params []interface{}) map[string]interface{} {
 	if err := ConsensusSrvStart(); err != nil {
-		return RpcFailed
+		return responsePacking(Err.INTERNAL_ERROR, false)
 	}
-	return RpcSuccess
+	return responsePacking(Err.SUCCESS, true)
 }
 
 func StopConsensus(params []interface{}) map[string]interface{} {
 	if err := ConsensusSrvHalt(); err != nil {
-		return RpcFailed
+		return responsePacking(Err.INTERNAL_ERROR, false)
 	}
-	return RpcSuccess
+	return responsePacking(Err.SUCCESS, true)
 }
 
 func SendSampleTransaction(params []interface{}) map[string]interface{} {
@@ -155,16 +156,16 @@ func SendSampleTransaction(params []interface{}) map[string]interface{} {
 
 func SetDebugInfo(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
-		return RpcInvalidParameter
+		return responsePacking(Err.INVALID_PARAMS, "")
 	}
 	switch params[0].(type) {
 	case float64:
 		level := params[0].(float64)
 		if err := log.Log.SetDebugLevel(int(level)); err != nil {
-			return RpcInvalidParameter
+			return responsePacking(Err.INVALID_PARAMS, "")
 		}
 	default:
-		return RpcInvalidParameter
+		return responsePacking(Err.INVALID_PARAMS, "")
 	}
-	return RpcSuccess
+	return responsePacking(Err.SUCCESS, true)
 }
