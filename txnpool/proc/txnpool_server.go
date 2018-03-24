@@ -162,6 +162,7 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256,
 
 	pt, ok := s.allPendingTxs[hash]
 	if !ok {
+		s.mu.Unlock()
 		return
 	}
 	if pt.sender != nil {
