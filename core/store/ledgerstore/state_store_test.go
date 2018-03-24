@@ -19,7 +19,6 @@
 package ledgerstore
 
 import (
-	"fmt"
 	"github.com/Ontology/core/states"
 	scommon "github.com/Ontology/core/store/common"
 	"github.com/Ontology/core/store/statestore"
@@ -146,10 +145,7 @@ func TestBookkeeperState(t *testing.T) {
 }
 
 func getStateBatch() (*statestore.StateBatch, error) {
-	err := testStateStore.NewBatch()
-	if err != nil {
-		return nil, fmt.Errorf("testStateStore.NewBatch error %s", err)
-	}
+	testStateStore.NewBatch()
 	batch := testStateStore.NewStateBatch()
 	return batch, nil
 }

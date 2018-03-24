@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
-	. "github.com/Ontology/core/store/common"
+	scom "github.com/Ontology/core/store/common"
 	"github.com/Ontology/core/store/leveldbstore"
 	"github.com/Ontology/core/types"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -271,7 +271,7 @@ func (this *BlockStore) SaveCurrentBlock(height uint32, blockHash common.Uint256
 
 func (this *BlockStore) GetHeaderIndexList() (map[uint32]common.Uint256, error) {
 	result := make(map[uint32]common.Uint256)
-	iter := this.store.NewIterator([]byte{byte(IX_HeaderHashList)})
+	iter := this.store.NewIterator([]byte{byte(scom.IX_HeaderHashList)})
 	for iter.Next() {
 		startCount, err := this.getStartHeightByHeaderIndexKey(iter.Key())
 		if err != nil {
@@ -449,7 +449,7 @@ func (this *BlockStore) Close() error {
 
 func (this *BlockStore) getTransactionKey(txHash common.Uint256) []byte {
 	key := bytes.NewBuffer(nil)
-	key.WriteByte(byte(DATA_Transaction))
+	key.WriteByte(byte(scom.DATA_Transaction))
 	txHash.Serialize(key)
 	return key.Bytes()
 }
@@ -457,33 +457,33 @@ func (this *BlockStore) getTransactionKey(txHash common.Uint256) []byte {
 func (this *BlockStore) getHeaderKey(blockHash common.Uint256) []byte {
 	data := blockHash.ToArray()
 	key := make([]byte, 1+len(data))
-	key[0] = byte(DATA_Header)
+	key[0] = byte(scom.DATA_Header)
 	copy(key[1:], data)
 	return key
 }
 
 func (this *BlockStore) getBlockHashKey(height uint32) []byte {
 	key := make([]byte, 5, 5)
-	key[0] = byte(DATA_Block)
+	key[0] = byte(scom.DATA_Block)
 	binary.LittleEndian.PutUint32(key[1:], height)
 	return key
 }
 
 func (this *BlockStore) getCurrentBlockKey() []byte {
-	return []byte{byte(SYS_CurrentBlock)}
+	return []byte{byte(scom.SYS_CurrentBlock)}
 }
 
 func (this *BlockStore) getBlockMerkleTreeKey() []byte {
-	return []byte{byte(SYS_BlockMerkleTree)}
+	return []byte{byte(scom.SYS_BlockMerkleTree)}
 }
 
 func (this *BlockStore) getVersionKey() []byte {
-	return []byte{byte(SYS_Version)}
+	return []byte{byte(scom.SYS_Version)}
 }
 
 func (this *BlockStore) getHeaderIndexListKey(startHeight uint32) []byte {
 	key := bytes.NewBuffer(nil)
-	key.WriteByte(byte(IX_HeaderHashList))
+	key.WriteByte(byte(scom.IX_HeaderHashList))
 	serialization.WriteUint32(key, startHeight)
 	return key.Bytes()
 }

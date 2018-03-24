@@ -20,16 +20,16 @@ package ledgerstore
 
 import (
 	"fmt"
-	."github.com/Ontology/core/store/common"
+	scom "github.com/Ontology/core/store/common"
 	"github.com/Ontology/core/payload"
 )
 
 type CacheCodeTable struct {
-	store IStateStore
+	store scom.IStateStore
 }
 
 func (table *CacheCodeTable) GetCode(codeHash []byte) ([]byte, error) {
-	value, _ := table.store.TryGet(ST_Contract, codeHash)
+	value, _ := table.store.TryGet(scom.ST_Contract, codeHash)
 	if value == nil {
 		return nil, fmt.Errorf("[GetCode] TryGet contract error! codeHash:%x", codeHash)
 	}

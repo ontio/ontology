@@ -25,7 +25,7 @@ import (
 	"fmt"
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
-	. "github.com/Ontology/core/store/common"
+	scom "github.com/Ontology/core/store/common"
 	"github.com/Ontology/core/store/leveldbstore"
 	"github.com/Ontology/smartcontract/event"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -179,12 +179,12 @@ func (this *EventStore) GetCurrentBlock() (common.Uint256, uint32, error) {
 }
 
 func (this *EventStore) getCurrentBlockKey() []byte {
-	return []byte{byte(SYS_CurrentBlock)}
+	return []byte{byte(scom.SYS_CurrentBlock)}
 }
 
 func (this *EventStore) getEventNotifyByBlockKey(height uint32) ([]byte, error) {
 	key := make([]byte, 5, 5)
-	key[0] = byte(EVENT_Notify)
+	key[0] = byte(scom.EVENT_Notify)
 	binary.LittleEndian.PutUint32(key[1:], height)
 	return key, nil
 }
@@ -192,7 +192,7 @@ func (this *EventStore) getEventNotifyByBlockKey(height uint32) ([]byte, error) 
 func (this *EventStore) getEventNotifyByTxKey(txHash common.Uint256) []byte {
 	data := txHash.ToArray()
 	key := make([]byte, 1+len(data))
-	key[0] = byte(EVENT_Notify)
+	key[0] = byte(scom.EVENT_Notify)
 	copy(key[1:], data)
 	return key
 }
