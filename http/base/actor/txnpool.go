@@ -116,5 +116,5 @@ func GetTxnCnt() ([]uint64, error) {
 	if !ok {
 		return []uint64{}, errors.New("fail")
 	}
-	return *txnCnt.Count, nil
+	return txnCnt.Count, nil
 }

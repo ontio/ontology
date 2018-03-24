@@ -101,7 +101,7 @@ type GetTxnStats struct {
 }
 
 type GetTxnStatsRsp struct {
-	Count *[]uint64
+	Count []uint64
 }
 
 type GetPendingTxnReq struct {

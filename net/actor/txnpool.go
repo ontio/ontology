@@ -98,7 +98,7 @@ func VerifyBlock(height uint32, txs []*types.Transaction) ([]*VerifyTxResult, er
 	return result.(VerifyBlockRsp).TxnPool, nil
 }
 
-func GetTransactionStats(hash common.Uint256) (*[]uint64, error) {
+func GetTransactionStats(hash common.Uint256) ([]uint64, error) {
 	future := txnPoolPid.RequestFuture(&GetTxnStats{}, 5*time.Second)
 	result, err := future.Result()
 	if err != nil {
