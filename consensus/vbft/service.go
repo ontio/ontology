@@ -214,7 +214,6 @@ func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 	if !present {
 		self.log.Errorf("invalid consensus node: %s", peerID.String())
 	}
-
 	if C, present := self.msgRecvC[peerIdx]; present {
 		C <- payload
 	}
@@ -722,28 +721,6 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 			}
 			self.processConsensusMsg(msg)
 		}
-
-	case peerHandshakeMessage:
-		_, ok := msg.(*peerHandshakeMsg)
-		if !ok {
-			self.log.Errorf("invalid msg with handshake msg type")
-			return
-		}
-		msg, err := self.constructHandshakeMsg()
-		if err != nil {
-			self.log.Errorf("failed to construct handshake resp msg: %s", err)
-			return
-		}
-		msgPayload, err := SerializeVbftMsg(msg)
-		if err != nil {
-			self.log.Errorf("failed to marshal handshake msg: %s", err)
-			return
-		}
-		if err := self.sendToPeer(peerIdx, msgPayload); err != nil {
-			self.log.Errorf("failed to response handshake msg: %s", err)
-			return
-		}
-
 	case peerHeartbeatMessage:
 		pMsg, ok := msg.(*peerHeartbeatMsg)
 		if !ok {
@@ -1880,7 +1857,6 @@ func (self *Server) initHandshake(peerIdx uint32, peerPubKey *crypto.PubKey) err
 			msgC <- shakeMsg
 		}
 	}()
-
 	if err := self.sendToPeer(peerIdx, msgPayload); err != nil {
 		return fmt.Errorf("send initHandshake msg: %s", err)
 	}
