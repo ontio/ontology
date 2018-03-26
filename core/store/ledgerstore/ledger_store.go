@@ -33,6 +33,10 @@ import (
 	"sync"
 	"time"
 	"github.com/Ontology/smartcontract/event"
+	"github.com/Ontology/vm/neovm"
+	stypes "github.com/Ontology/smartcontract/types"
+	scommon "github.com/Ontology/smartcontract/common"
+	neoservice "github.com/Ontology/smartcontract/service/neovm"
 )
 
 const (
@@ -850,35 +854,30 @@ func (this *LedgerStore)GetEventNotifyByBlock(height uint32)([]common.Uint256, e
 }
 
 func (this *LedgerStore) PreExecuteContract(tx *types.Transaction) ([]interface{}, error) {
-//	if tx.TxType != types.Invoke {
-//		return nil, fmt.Errorf("transaction type error")
-//	}
-//	invokeCode, ok := tx.Payload.(*payload.InvokeCode)
-//	if !ok {
-//		return nil, fmt.Errorf("transaction type error")
-//	}
-//
-//	param := invokeCode.Code
-//	address := param.AddressFromVmCode()
-//	code := append(param.Code, 0x67)
-//	code = append(param.Code, address.ToArray()...)
-//	stateBatch := this.stateStore.NewStateBatch()
-//
-//	stateMachine := service.NewStateMachine(this, stateBatch, smtypes.Application, 0)
-//	se := neovm.NewExecutionEngine(tx, new(neovm.ECDsaCrypto), &CacheCodeTable{stateBatch}, stateMachine)
-//	se.LoadCode(code, false)
-//	err := se.Execute()
-//	if err != nil {
-//		return nil, err
-//	}
-//	if se.GetEvaluationStackCount() == 0 {
-//		return nil, err
-//	}
-//	if neovm.Peek(se).GetStackItem() == nil {
-//		return nil, err
-//	}
-//	return smcommon.ConvertReturnTypes(neovm.Peek(se).GetStackItem()), nil
-	return nil, nil
+	if tx.TxType != types.Invoke {
+		return nil, fmt.Errorf("transaction type error")
+	}
+	invokeCode, ok := tx.Payload.(*payload.InvokeCode)
+	if !ok {
+		return nil, fmt.Errorf("transaction type error")
+	}
+
+	stateBatch := this.stateStore.NewStateBatch()
+
+	stateMachine := neoservice.NewStateMachine(this, stateBatch, stypes.Application, 0)
+	se := neovm.NewExecutionEngine(tx, new(neovm.ECDsaCrypto), &CacheCodeTable{stateBatch}, stateMachine)
+	se.LoadCode(invokeCode.Code.Code, false)
+	err := se.Execute()
+	if err != nil {
+		return nil, err
+	}
+	if se.GetEvaluationStackCount() == 0 {
+		return nil, err
+	}
+	if neovm.Peek(se).GetStackItem() == nil {
+		return nil, err
+	}
+	return scommon.ConvertReturnTypes(neovm.Peek(se).GetStackItem()), nil
 }
 
 func (this *LedgerStore) Close() error {
