@@ -6,10 +6,11 @@ import (
 )
 
 type ContextRef interface {
-	LoadContext(context *Context)
+	PushContext(context *Context)
 	CurrentContext() *Context
 	CallingContext() *Context
 	EntryContext() *Context
+	PopContext()
 	Execute() error
 }
 

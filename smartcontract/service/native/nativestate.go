@@ -72,7 +72,7 @@ func(native *NativeService) Register(methodName string, handler Handler) {
 func(native *NativeService) Invoke() error {
 	ctx := native.ContextRef.CurrentContext()
 	if ctx == nil {
-		return errors.NewErr("Native service current context doesn't exist!")
+		return errors.NewErr("[Invoke] Native service current context doesn't exist!")
 	}
 	bf := bytes.NewBuffer(ctx.Code.Code)
 	contract := new(states.Contract)
@@ -86,9 +86,13 @@ func(native *NativeService) Invoke() error {
 	service, ok := native.ServiceMap[contract.Method]; if !ok {
 		return fmt.Errorf("Native contract %x doesn't support this function %s.", contract.Address, contract.Method)
 	}
-	native.ContextRef.LoadContext(&context.Context{ContractAddress: contract.Address})
+	native.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address})
 	native.Input = contract.Args
-	return service(native)
+	if err := service(native); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[Invoke] Native serivce function execute error!")
+	}
+	native.ContextRef.PopContext()
+	return nil
 }
 
 func(native *NativeService) AppCall(address common.Address, method string, args []byte) error {
@@ -103,7 +107,7 @@ func(native *NativeService) AppCall(address common.Address, method string, args 
 		return err
 	}
 
-	native.ContextRef.LoadContext(&context.Context{
+	native.ContextRef.PushContext(&context.Context{
 		Code: vmtypes.VmCode{
 			VmType: vmtypes.Native,
 			Code: bf.Bytes(),

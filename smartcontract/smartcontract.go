@@ -51,7 +51,7 @@ type Engine interface {
 }
 
 //put current context to smart contract
-func(sc *SmartContract) LoadContext(context *context.Context) {
+func(sc *SmartContract) PushContext(context *context.Context) {
 	sc.Context = append(sc.Context, context)
 }
 
@@ -77,6 +77,11 @@ func(sc *SmartContract) EntryContext() *context.Context {
 		return nil
 	}
 	return sc.Context[0]
+}
+
+//pop smart contract current context
+func(sc *SmartContract) PopContext() {
+	sc.Context = sc.Context[:len(sc.Context) - 1]
 }
 
 func (sc *SmartContract) Execute() error {
