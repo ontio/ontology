@@ -86,7 +86,7 @@ func(sc *SmartContract) PopContext() {
 }
 
 func(sc *SmartContract) PushNotifications(notifications []*event.NotifyEventInfo) {
-	sc.Notifications = append(sc.Notifications, notifications)
+	sc.Notifications = append(sc.Notifications, notifications...)
 }
 
 func (sc *SmartContract) Execute() error {
