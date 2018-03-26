@@ -42,13 +42,13 @@ func (this *StateStore) HandleDeployTransaction(stateBatch *statestore.StateBatc
 	deploy := tx.Payload.(*payload.DeployCode)
 
 	originAddress := deploy.Code.AddressFromVmCode()
-	targetAddress, err := common.AddressParseFromBytes(deploy.Code.Code)
-	if err != nil {
-		return fmt.Errorf("Invalid native contract address:%v", err)
-	}
 
 	// mapping native contract origin address to target address
 	if deploy.Code.VmType == vmtypes.Native {
+		targetAddress, err := common.AddressParseFromBytes(deploy.Code.Code)
+		if err != nil {
+			return fmt.Errorf("Invalid native contract address:%v", err)
+		}
 		if err := stateBatch.TryGetOrAdd(
 			scommon.ST_Contract,
 			targetAddress[:],
