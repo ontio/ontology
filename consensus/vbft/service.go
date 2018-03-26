@@ -37,6 +37,7 @@ import (
 	"github.com/Ontology/events/message"
 	p2pmsg "github.com/Ontology/net/message"
 	"reflect"
+	"github.com/Ontology/events"
 )
 
 type BftActionType uint8
@@ -98,6 +99,7 @@ type Server struct {
 	bftActionC chan *BftAction
 	msgSendC   chan *SendMsgEvent
 
+	sub *events.ActorSubscriber
 	quitC chan interface{}
 	quit  bool
 }
@@ -121,7 +123,7 @@ func NewVbftServer(account *account.Account, txpool, ledger, p2p *actor.PID) (*S
 		return nil, err
 	}
 	server.pid = pid
-
+	server.sub = events.NewActorSubscriber(pid)
 	return server, nil
 }
 
@@ -144,6 +146,8 @@ func (self *Server) Receive(context actor.Context) {
 	case *actorTypes.StopConsensus:
 		self.stop()
 	case *message.SaveBlockCompleteMsg:
+		log.Infof("vbft actor receives block complete event. block height=%d, numtx=%d",
+			msg.Block.Header.Height, len(msg.Block.Transactions))
 		self.handleBlockPersistCompleted(msg.Block)
 	case *p2pmsg.PeerStateUpdate:
 		self.handlePeerStateUpdate(msg)
@@ -203,6 +207,8 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 
 	// TODO: why this?
 	self.p2p.Broadcast(block.Hash())
+
+	self.startNewRound()
 }
 
 func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
@@ -328,7 +334,7 @@ func (self *Server) start() error {
 
 	id, _ := vconfig.PubkeyID(self.account.PublicKey)
 	self.Index, _ = self.peerPool.GetPeerIndex(id)
-
+	self.sub.Subscribe(message.TopicSaveBlockComplete)
 	go self.syncer.run()
 	go self.stateMgr.run()
 	go self.msgSendLoop()
@@ -357,7 +363,7 @@ func (self *Server) start() error {
 func (self *Server) stop() error {
 
 	// TODO
-
+	self.sub.Unsubscribe(message.TopicSaveBlockComplete)
 	return nil
 }
 
@@ -1567,7 +1573,8 @@ func (self *Server) sealProposal(proposal *blockProposalMsg, empty bool) error {
 	if self.hasBlockConsensused() {
 		return self.makeFastForward()
 	} else {
-		return self.startNewRound()
+		return nil
+		//return self.startNewRound()
 	}
 
 	return nil
