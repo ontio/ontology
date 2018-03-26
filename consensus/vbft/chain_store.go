@@ -59,6 +59,9 @@ func (self *ChainStore) AddBlock(block *Block, blockHash Uint256) error {
 		return nil
 	}
 
+	if block.Block.Header == nil {
+		panic("nil block header")
+	}
 	self.pendingBlocks[block.getBlockNum()] = block
 
 	blkNum := self.GetChainedBlockNum() + 1
