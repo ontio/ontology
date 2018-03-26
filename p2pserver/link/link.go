@@ -8,8 +8,8 @@ import (
 	. "github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
 	//"github.com/Ontology/events"
-	//msg "github.com/Ontology/p2pserver/message"
-	. "github.com/Ontology/p2pserver/protocol"
+	. "github.com/Ontology/p2pserver/common"
+	msg "github.com/Ontology/p2pserver/message"
 
 	"io"
 	"io/ioutil"
@@ -17,11 +17,12 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 type ConnectingNodes struct {
-	//sync.RWMutex
+	sync.RWMutex
 	ConnectingAddrs []string
 }
 
@@ -37,7 +38,7 @@ type ConsensusLink struct {
 	consensusRxBuf RxBuf
 }
 
-type link struct {
+type Link struct {
 	//Todo Add lock here
 	addr         string   // The address of the node
 	conn         net.Conn // Connect socket with the peer node
@@ -53,22 +54,31 @@ type link struct {
 	ConnectingNodes
 }
 
-func (link *link) getConn() net.Conn {
+func (link *Link) GetAddr() string {
+	return link.addr
+}
+func (link *Link) SetPort(p uint16) {
+	link.port = p
+}
+func (link *Link) GetPort() uint16 {
+	return link.port
+}
+func (link *Link) getConn() net.Conn {
 	return link.getconn(false)
 }
 
-func (link *link) GetConsensusConn() net.Conn {
+func (link *Link) GetConsensusConn() net.Conn {
 	return link.getconn(true)
 }
-func (link *link) getConsensusConn() net.Conn {
+func (link *Link) getConsensusConn() net.Conn {
 	return link.getconn(true)
 }
 
-func (link *link) SetConsensusConn(conn net.Conn) {
+func (link *Link) SetConsensusConn(conn net.Conn) {
 	link.consensusConn = conn
 }
 
-func (link *link) getconn(isConsensusChannel bool) net.Conn {
+func (link *Link) getconn(isConsensusChannel bool) net.Conn {
 	if isConsensusChannel {
 		return link.consensusConn
 	} else {
@@ -76,15 +86,15 @@ func (link *link) getconn(isConsensusChannel bool) net.Conn {
 	}
 }
 
-func (link *link) UpdateRXTime(t time.Time) {
+func (link *Link) UpdateRXTime(t time.Time) {
 	link.time = t
 }
 
 // Shrinking the buf to the exactly reading in byte length
 //@Return @1 the start header of next message, the left length of the next message
-func unpackNodeBuf(link *link, buf []byte, isConsensusChannel bool) {
+func unpackNodeBuf(link *Link, buf []byte, isConsensusChannel bool) {
 	var msgLen int
-	var msgBuf []byte
+	//var msgBuf []byte
 
 	if len(buf) == 0 {
 		return
@@ -120,7 +130,7 @@ func unpackNodeBuf(link *link, buf []byte, isConsensusChannel bool) {
 
 	msgLen = rxBuf.len
 	if len(buf) == msgLen {
-		msgBuf = append(rxBuf.p, buf[:]...)
+		//msgBuf = append(rxBuf.p, buf[:]...)
 		//TODO !! need change HandleNodeMsg in message.go
 		//go msg.HandleNodeMsg(msgBuf, len(msgBuf))
 
@@ -130,7 +140,7 @@ func unpackNodeBuf(link *link, buf []byte, isConsensusChannel bool) {
 		rxBuf.p = append(rxBuf.p, buf[:]...)
 		rxBuf.len = msgLen - len(buf)
 	} else {
-		msgBuf = append(rxBuf.p, buf[0:msgLen]...)
+		//msgBuf = append(rxBuf.p, buf[0:msgLen]...)
 		//TODO !! need change HandleNodeMsg in message.go
 		//go msg.HandleNodeMsg(msgBuf, len(msgBuf))
 
@@ -141,7 +151,7 @@ func unpackNodeBuf(link *link, buf []byte, isConsensusChannel bool) {
 	}
 }
 
-func (link *link) rx(isConsensusChannel bool) {
+func (link *Link) rx(isConsensusChannel bool) {
 	conn := link.getconn(isConsensusChannel)
 	buf := make([]byte, MAXBUFLEN)
 	for {
@@ -155,7 +165,7 @@ func (link *link) rx(isConsensusChannel bool) {
 			}
 			unpackNodeBuf(link, buf[0:len], isConsensusChannel)
 		case io.EOF:
-			log.Error("Rx io.EOF: ", err, ", node id is ", node.GetID())
+			//log.Error("Rx io.EOF: ", err, ", node id is ", node.GetID())
 			goto DISCONNECT
 		default:
 			log.Error("Read connection error ", err)
@@ -182,7 +192,7 @@ func printIPAddr() {
 		}
 	}
 }
-func (link *link) closeConn(isConsensusChannel bool) {
+func (link *Link) closeConn(isConsensusChannel bool) {
 	if !isConsensusChannel {
 		link.conn.Close()
 	} else {
@@ -190,15 +200,15 @@ func (link *link) closeConn(isConsensusChannel bool) {
 	}
 }
 
-func (link *link) CloseConn() {
+func (link *Link) CloseConn() {
 	link.closeConn(false)
 }
 
-func (link *link) CloseConsensusConn() {
+func (link *Link) CloseConsensusConn() {
 	link.closeConn(true)
 }
 
-func (link *link) initConnection() {
+func (link *Link) initConnection() {
 	isTls := Parameters.IsTLS
 	var listener, listenerConsensus net.Listener
 	var err error
@@ -220,7 +230,7 @@ func (link *link) initConnection() {
 	//TODO Release the net listen resouce
 }
 
-func (link *link) waitForConnect(listener net.Listener, isConsensusChannel bool) {
+func (link *Link) waitForConnect(listener net.Listener, isConsensusChannel bool) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -304,10 +314,10 @@ func parseIPaddr(s string) (string, error) {
 	return s[:i], nil
 }
 
-func (link *link) SetAddrInConnectingList(addr string) (added bool) {
+func (link *Link) SetAddrInConnectingList(addr string) (added bool) {
 	link.ConnectingNodes.Lock()
 	defer link.ConnectingNodes.Unlock()
-	for _, a := range node.ConnectingAddrs {
+	for _, a := range link.ConnectingAddrs {
 		if strings.Compare(a, addr) == 0 {
 			return false
 		}
@@ -316,7 +326,7 @@ func (link *link) SetAddrInConnectingList(addr string) (added bool) {
 	return true
 }
 
-func (link *link) RemoveAddrInConnectingList(addr string) {
+func (link *Link) RemoveAddrInConnectingList(addr string) {
 	link.ConnectingNodes.Lock()
 	defer link.ConnectingNodes.Unlock()
 	addrs := []string{}
@@ -328,7 +338,7 @@ func (link *link) RemoveAddrInConnectingList(addr string) {
 	link.ConnectingAddrs = addrs
 }
 
-func (link *link) Connect(nodeAddr string, isConsensusChannel bool) error {
+func (link *Link) Connect(nodeAddr string, isConsensusChannel bool) error {
 	log.Debug()
 
 	//TODO consensusChannel judgement
@@ -384,9 +394,9 @@ func (link *link) Connect(nodeAddr string, isConsensusChannel bool) error {
 		//TODO need get peer layer function
 		//nbrNode.SetState(HAND)
 	}
-	buf, _ := msg.NewVersion(n, isConsensusChannel)
-
-	link.tx(buf, isConsensusChannel)
+	//TODO need get msg layer function
+	//buf, _ := msg.NewVersion(n, isConsensusChannel)
+	//link.tx(buf, isConsensusChannel)
 
 	return nil
 }
@@ -432,15 +442,15 @@ func TLSDial(nodeAddr string) (net.Conn, error) {
 	return conn, nil
 }
 
-func (link *link) Tx(buf []byte) {
+func (link *Link) Tx(buf []byte) {
 	link.tx(buf, false)
 }
 
-func (link *link) ConsensusTx(buf []byte) {
+func (link *Link) ConsensusTx(buf []byte) {
 	link.tx(buf, true)
 }
 
-func (link *link) tx(buf []byte, isConsensusChannel bool) {
+func (link *Link) tx(buf []byte, isConsensusChannel bool) {
 	log.Debugf("TX buf length: %d\n%x", len(buf), buf)
 
 	//TODO need get peer layer function

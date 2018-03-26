@@ -11,8 +11,7 @@ import (
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/crypto"
-	actor "github.com/Ontology/p2pserver/actor/req"
-	. "github.com/Ontology/p2pserver/protocol"
+	. "github.com/Ontology/p2pserver/common"
 )
 
 type ConsensusPayload struct {
@@ -66,26 +65,6 @@ func (cp *ConsensusPayload) GetMessage() []byte {
 	return []byte{}
 }
 
-func (msg consensus) Handle(node Noder) error {
-	log.Debug()
-	//node.LocalNode().GetEvent("consensus").Notify(events.EventNewInventory, &msg.cons)
-	if actor.ConsensusPid != nil {
-		actor.ConsensusPid.Tell(&msg.cons)
-	}
-	return nil
-}
-
-func reqConsensusData(node Noder, hash common.Uint256) error {
-	var msg dataReq
-	msg.dataType = common.CONSENSUS
-	// TODO handle the hash array case
-	msg.hash = hash
-
-	buf, _ := msg.Serialization()
-	go node.Tx(buf)
-
-	return nil
-}
 func (cp *ConsensusPayload) Type() common.InventoryType {
 
 	//TODO:Temporary add for Interface signature.SignableData use.

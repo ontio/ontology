@@ -1,6 +1,8 @@
 package server
 
-import "github.com/Ontology/p2pserver/protocol"
+import (
+	types "github.com/Ontology/p2pserver/common"
+)
 
 type StartServerReq struct {
 	StartSync bool
@@ -24,7 +26,7 @@ type GetVersionRsp struct {
 type GetConnectionCntReq struct {
 }
 type GetConnectionCntRsp struct {
-	Cnt uint
+	Cnt uint32
 }
 
 type GetIdReq struct {
@@ -79,7 +81,7 @@ type GetRelayStateRsp struct {
 type GetNeighborAddrsReq struct {
 }
 type GetNeighborAddrsRsp struct {
-	Addrs []protocol.PeerAddr
+	Addrs []types.PeerAddr
 	Count uint64
 }
 

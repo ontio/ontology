@@ -9,14 +9,14 @@ import (
 
 type P2PActor struct {
 	props  *actor.Props
-	server p2pserver.P2PServer
+	server *p2pserver.P2PServer
 }
 
 func NewP2PActor() *P2PActor {
 	return &P2PActor{}
 }
 
-func (this *P2PActor) Start(p2pServer p2pserver.P2PServer) (*actor.PID, error) {
+func (this *P2PActor) Start(p2pServer *p2pserver.P2PServer) (*actor.PID, error) {
 	this.props = actor.FromProducer(func() actor.Actor { return &P2PActor{} })
 	p2pPid, err := actor.SpawnNamed(this.props, "net_server")
 	this.server = p2pServer
@@ -69,7 +69,7 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 
 func (this *P2PActor) handleStartServerReq(ctx actor.Context, req *StartServerReq) {
 	startSync := ctx.Message().(StartServerReq).StartSync
-	err := this.server.Start(startSync, startSync)
+	err := this.server.Start(startSync)
 	if ctx.Sender() != nil {
 		resp := &StartServerRsp{
 			Error: err,

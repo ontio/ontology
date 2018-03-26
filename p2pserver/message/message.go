@@ -8,14 +8,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Ontology/common/log"
-	. "github.com/Ontology/p2pserver/protocol"
+	. "github.com/Ontology/p2pserver/common"
 )
 
 type Messager interface {
 	Verify([]byte) error
 	Serialization() ([]byte, error)
 	Deserialization([]byte) error
-	Handle(Noder) error
 }
 
 // The network communication message header
@@ -173,51 +172,6 @@ func MsgType(buf []byte) (string, error) {
 	return s, nil
 }
 
-// TODO combine all of message alloc in one function via interface
-func NewMsg(t string, n Noder) ([]byte, error) {
-	switch t {
-	case "version":
-		return NewVersion(n, false)
-	case "verack":
-		return NewVerack(false)
-	case "getheaders":
-		return NewHeadersReq()
-	case "getaddr":
-		return newGetAddr()
-
-	default:
-		return nil, fmt.Errorf("Unknown message type %v", t)
-	}
-}
-
-// FIXME the length exceed int32 case?
-func HandleNodeMsg(node Noder, buf []byte, len int) error {
-	if len < MSGHDRLEN {
-		log.Warn("Unexpected size of received message")
-		return errors.New("Unexpected size of received message")
-	}
-
-	log.Debugf("Received data len:  %d\n%x", len, buf[:len])
-
-	s, err := MsgType(buf)
-	if err != nil {
-		log.Error("Message type parsing error")
-		return err
-	}
-
-	msg := AllocMsg(s, len)
-	if msg == nil {
-		log.Error(fmt.Sprintf("Allocation message %s failed", s))
-		return errors.New("Allocation message failed")
-	}
-	// Todo attach a node pointer to each message
-	// Todo drop the message when verify/deseria packet error
-	msg.Deserialization(buf[:len])
-	msg.Verify(buf[MSGHDRLEN:len])
-
-	return msg.Handle(node)
-}
-
 func magicVerify(magic uint32) bool {
 	if magic != NETMAGIC {
 		return false
@@ -309,10 +263,4 @@ func (hdr msgHdr) Serialization() ([]byte, error) {
 	}
 
 	return buf.Bytes(), err
-}
-
-func (hdr msgHdr) Handle(n Noder) error {
-	log.Debug()
-	// TBD
-	return nil
 }

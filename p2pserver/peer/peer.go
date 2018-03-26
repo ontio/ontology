@@ -5,138 +5,135 @@ import (
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
 	//actor "github.com/Ontology/p2pserver/actor/req"
-	//. "github.com/Ontology/p2pserver/message"
-	//"github.com/Ontology/p2pserver/link"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/events"
-	. "github.com/Ontology/p2pserver/protocol"
+	types "github.com/Ontology/p2pserver/common"
+	conn "github.com/Ontology/p2pserver/link"
 	//"math/rand"
-	//"net"
-	//"strconv"
-	//"runtime"
-	"strings"
+	"bytes"
+	"encoding/binary"
+	"errors"
+	"net"
+	"runtime"
+	//"strings"
 	"time"
 )
 
-type peer struct {
-	//link          *link
-	//consensusLink *link
-	id             uint32
-	state          uint32
-	consensusState uint32
-	version        uint32
-	cap            []uint32
-	this           *peer  // The pointer to local peer
-	height         uint64 // The peer latest block height
-	publicKey      *crypto.PubKey
-	chF            chan func() error // Channel used to operate the node without lock
-	//nbrPeers                 nbrNodes          // The neighbor peer connect with currently node except itself
-	eventQueue               // The event queue to notice notice other modules
+type Peer struct {
+	link                     *conn.Link
+	id                       uint64
+	state                    uint32
+	version                  uint32
+	cap                      [32]byte
+	services                 uint64
+	relay                    bool
+	height                   uint64
+	txnCnt                   uint64
+	rxTxnCnt                 uint64
+	ReceiveChan              chan types.MsgPayload
+	publicKey                *crypto.PubKey
+	chF                      chan func() error // Channel used to operate the node without lock
+	eventQueue                                 // The event queue to notice other modules
 	flightHeights            []uint32
 	lastContact              time.Time
 	nodeDisconnectSubscriber events.Subscriber
 	tryCount                 uint32
 	//connectingNodes
 	//retryConnAddrs
-	//actors
-	// poolActor   *ns.TxPoolActor
-	// ledgerActor *ns.LedgerActor
-	// conActor    *ns.ConsensusActor
 }
 
-func (p *peer) getHdrs() {
-	// if !p.isUptoMinCount() {
-	// 	return
-	// }
-	// peers := p.this.GetNeighborNoder()
-	// if len(peers) == 0 {
-	// 	return
-	// }
-	// plist := []peer{}
-	// for _, v := range peers {
-	// 	height, _ := actor.GetCurrentHeaderHeight()
-	// 	if uint64(height) < v.GetHeight() {
-	// 		plist = append(plist, v)
-	// 	}
-	// }
-	// count := len(plist)
-	// if count == 0 {
-	// 	return
-	// }
-	// rand.Seed(time.Now().UnixNano())
-	// n := plist[rand.Intn(count)]
-	//sendSyncHeaders(n)
-}
-func NewPeer(pubKey *crypto.PubKey) *peer {
-
-	return nil
-}
-
-func rmNode(peer *peer) {
-	log.Debug(fmt.Sprintf("Remove unused peer: 0x%0x", peer.id))
-}
-
-func (p *peer) Start(bool, bool) error {
-	return nil
-}
-func (p *peer) Stop() error {
-	return nil
-}
-func (p *peer) GetVersion() uint32 {
-	return 0
-}
-func (p *peer) GetConnectionCnt() uint {
-	return 0
-}
-func (p *peer) GetPort() (uint16, uint16) {
-	return 0, 0
-}
-func (p *peer) GetState() uint32 {
-	return 0
-}
-func (p *peer) GetId() uint64 {
-	return 0
-}
-func (p *peer) Services() uint64 {
-	return 0
-}
-func (p *peer) GetConnectionState() uint32 {
-	return 0
-}
-func (p *peer) GetTime() int64 {
-	return 0
-}
-func (p *peer) GetNeighborAddrs() ([]PeerAddr, uint64) {
-	return nil, 0
-}
-func (p *peer) Xmit(interface{}) error {
-	return nil
-}
-func (p *peer) IsSyncing() bool {
-	return false
-}
-func (p *peer) IsStarted() bool {
-	return false
-}
-func (p *peer) EnableDual(bool) error {
-	return nil
-}
-func (p *peer) isUptoMinCount() bool {
-	consensusType := strings.ToLower(config.Parameters.ConsensusType)
-	if consensusType == "" {
-		consensusType = "dbft"
+func (p *Peer) backend() {
+	for f := range p.chF {
+		f()
 	}
-	minCount := config.DBFTMINNODENUM
-	switch consensusType {
-	case "dbft":
-	case "solo":
-		minCount = config.SOLOMINNODENUM
-	}
-	return int(p.GetNbrCnt())+1 >= minCount
 }
-func (p *peer) GetNbrCnt() uint32 {
+func NewPeer(pubKey *crypto.PubKey) (*Peer, error) {
+	p := &Peer{
+		state: types.INIT,
+		chF:   make(chan func() error),
+	}
+	runtime.SetFinalizer(&p, rmPeer)
+	go p.backend()
+
+	p.version = types.PROTOCOLVERSION
+	if config.Parameters.NodeType == types.SERVICENODENAME {
+		p.services = uint64(types.SERVICENODE)
+	} else if config.Parameters.NodeType == types.VERIFYNODENAME {
+		p.services = uint64(types.VERIFYNODE)
+	}
+	p.link.SetPort(uint16(config.Parameters.NodePort))
+	p.relay = true
+
+	key, err := pubKey.EncodePoint(true)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	err = binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(p.id))
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	log.Info(fmt.Sprintf("Init peer ID to 0x%x", p.id))
+	p.publicKey = pubKey
+	p.eventQueue.init()
+	p.nodeDisconnectSubscriber = p.eventQueue.GetEvent("disconnect").Subscribe(events.EventNodeDisconnect, p.NodeDisconnect)
+
+	return p, nil
+}
+
+func rmPeer(p *Peer) {
+	log.Debug(fmt.Sprintf("Remove unused peer: 0x%0x", p.id))
+}
+
+func (p *Peer) Version() uint32 {
+	return p.version
+}
+func (p *Peer) GetHeight() uint64 {
+	return p.height
+}
+func (p *Peer) GetState() uint32 {
+	return p.state
+}
+func (p *Peer) GetID() uint64 {
+	return p.id
+}
+func (p *Peer) GetRelay() bool {
+	return p.relay
+}
+func (p *Peer) Services() uint64 {
+	return p.services
+}
+func (p *Peer) GetConnectionState() uint32 {
 	return 0
 }
-func (p *peer) HandleMsg(buf []byte, len int) error {
+func (p *Peer) GetTime() int64 {
+	return p.lastContact.UnixNano()
+}
+func (p *Peer) GetPort() uint16 {
+	return p.link.GetPort()
+}
+func (p *Peer) Send(buf []byte) {
+	p.link.Tx(buf)
+}
+func (p *Peer) GetAddr() string {
+	return p.link.GetAddr()
+}
+func (p *Peer) GetAddr16() ([16]byte, error) {
+	var result [16]byte
+	ip := net.ParseIP(p.GetAddr()).To16()
+	if ip == nil {
+		log.Error("Parse IP address error\n")
+		return result, errors.New("Parse IP address error")
+	}
+
+	copy(result[:], ip[:16])
+	return result, nil
+}
+
+func (p *Peer) NodeDisconnect(v interface{}) {
+}
+
+func (p *Peer) HandleMsg(buf []byte, len int) error {
 	return nil
 }
