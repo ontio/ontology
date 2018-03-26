@@ -34,7 +34,6 @@ import (
 	"bytes"
 	"github.com/Ontology/account"
 	"encoding/json"
-	"github.com/Ontology/common/serialization"
 	"encoding/hex"
 	"time"
 )
@@ -79,26 +78,32 @@ func transferAction(c *cli.Context) error {
 		To: tu,
 		Value: big.NewInt(value),
 	})
-	transfers := new(states.Transfers)
-	fmt.Println("ctu:", ctu)
-	transfers.Params = append(transfers.Params, &states.TokenTransfer{
-		Contract: ctu,
+	transfers := &states.Transfers{
 		States: sts,
-	})
-
-	bf := new(bytes.Buffer)
-	if err := serialization.WriteVarBytes(bf, []byte("Token.Common.Transfer")); err != nil {
-		fmt.Println("Serialize transfer falg error.")
-		os.Exit(1)
 	}
+	bf := new(bytes.Buffer)
+
 	if err := transfers.Serialize(bf); err != nil {
 		fmt.Println("Serialize transfers struct error.")
 		os.Exit(1)
 	}
 
+	cont := &states.Contract{
+		Address: ctu,
+		Method: "transfer",
+		Args: bf.Bytes(),
+	}
+
+	ff := new(bytes.Buffer)
+
+	if err := cont.Serialize(ff); err != nil {
+		fmt.Println("Serialize contract struct error.")
+		os.Exit(1)
+	}
+
 	tx := cutils.NewInvokeTransaction(vmtypes.VmCode{
 		VmType: vmtypes.Native,
-		Code: bf.Bytes(),
+		Code: ff.Bytes(),
 	})
 
 	tx.Nonce = uint32(time.Now().Unix())
