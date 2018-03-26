@@ -32,7 +32,6 @@ import (
 
 type addrReq struct {
 	Hdr msgHdr
-	// No payload
 }
 
 type addr struct {
@@ -40,10 +39,6 @@ type addr struct {
 	nodeCnt   uint64
 	nodeAddrs []NodeAddr
 }
-
-const (
-	NODEADDRSIZE = 30
-)
 
 func newGetAddr() ([]byte, error) {
 	var msg addrReq
@@ -67,7 +62,7 @@ func NewAddrs(nodeaddrs []NodeAddr, count uint64) ([]byte, error) {
 	var msg addr
 	msg.nodeAddrs = nodeaddrs
 	msg.nodeCnt = count
-	msg.hdr.Magic = NETMAGIC
+	msg.hdr.Magic = NET_MAGIC
 	cmd := "addr"
 	copy(msg.hdr.CMD[0:7], cmd)
 	p := new(bytes.Buffer)
@@ -183,7 +178,6 @@ func (msg addr) Handle(node Noder) error {
 	for _, v := range msg.nodeAddrs {
 		var ip net.IP
 		ip = v.IpAddr[:]
-		//address := ip.To4().String() + ":" + strconv.Itoa(int(v.Port))
 		address := ip.To16().String() + ":" + strconv.Itoa(int(v.Port))
 		log.Info(fmt.Sprintf("The ip address is %s id is 0x%x", address, v.ID))
 

@@ -50,8 +50,6 @@ type ConsensusPayload struct {
 type consensus struct {
 	msgHdr
 	cons ConsensusPayload
-	//event *events.Event
-	//TBD
 }
 
 func (cp *ConsensusPayload) Hash() common.Uint256 {
@@ -80,14 +78,11 @@ func (cp *ConsensusPayload) InvertoryType() common.InventoryType {
 
 func (cp *ConsensusPayload) GetMessage() []byte {
 	//TODO: GetMessage
-	//return sig.GetHashData(cp)
 	return []byte{}
 }
 
 func (msg consensus) Handle(node Noder) error {
 	log.Debug()
-	//node.LocalNode().GetEvent("consensus").Notify(events.EventNewInventory, &msg.cons)
-	//actor.PushConsensus(&msg.cons)
 	if actor.ConsensusPid != nil {
 		actor.ConsensusPid.Tell(&msg.cons)
 	}
@@ -221,7 +216,7 @@ func (msg *consensus) Deserialization(p []byte) error {
 func NewConsensus(cp *ConsensusPayload) ([]byte, error) {
 	log.Debug()
 	var msg consensus
-	msg.msgHdr.Magic = NETMAGIC
+	msg.msgHdr.Magic = NET_MAGIC
 	cmd := "consensus"
 	copy(msg.msgHdr.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})

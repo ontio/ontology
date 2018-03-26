@@ -38,53 +38,53 @@ type NodeAddr struct {
 
 // The node capability type
 const (
-	VERIFYNODE  = 1
-	SERVICENODE = 2
+	VERIFY_NODE  = 1
+	SERVICE_NODE = 2
 )
 
 const (
-	VERIFYNODENAME  = "verify"
-	SERVICENODENAME = "service"
+	VERIFY_NODE_NAME  = "verify"
+	SERVICE_NODE_NAME = "service"
 )
 
 const (
-	MSGCMDLEN         = 12
-	CMDOFFSET         = 4
-	CHECKSUMLEN       = 4
-	HASHLEN           = 32 // hash length in byte
-	MSGHDRLEN         = 24
-	NETMAGIC          = 0x74746e41
-	MAXBLKHDRCNT      = 500
-	MAXINVHDRCNT      = 500
-	DIVHASHLEN        = 5
-	MAXREQBLKONCE     = 16
-	TIMESOFUPDATETIME = 2
+	MSG_CMD_LEN          = 12
+	CMD_OFFSET           = 4
+	CHECKSUM_LEN         = 4
+	HASH_LEN             = 32 // hash length in byte
+	MSG_HDR_LEN          = 24
+	NET_MAGIC            = 0x74746e41
+	MAX_BLK_HDR_CNT      = 500
+	MAX_INV_HDR_CNT      = 500
+	DIV_HASH_LEN         = 5
+	MAX_REQ_BLK_ONCE     = 16
+	TIMES_OF_UPDATE_TIME = 2
 )
 
 const (
-	HELLOTIMEOUT     = 3 // Seconds
-	MAXHELLORETYR    = 3
-	MAXBUFLEN        = 1024 * 16 // Fixme The maximum buffer to receive message
-	MAXCHANBUF       = 512
-	PROTOCOLVERSION  = 0
-	PERIODUPDATETIME = 3 // Time to update and sync information with other nodes
-	HEARTBEAT        = 2
-	KEEPALIVETIMEOUT = 3
-	DIALTIMEOUT      = 6
-	CONNMONITOR      = 6
-	CONNMAXBACK      = 4000
-	MAXRETRYCOUNT    = 3
-	MAXSYNCHDRREQ    = 2 //Max Concurrent Sync Header Request
+	HELLO_TIMEOUT      = 3 // Seconds
+	MAX_HELLO_RETYR    = 3
+	MAX_BUF_LEN        = 1024 * 16 // Fixme The maximum buffer to receive message
+	MAX_CHAN_BUF       = 512
+	PROTOCOL_VERSION   = 0
+	PERIOD_UPDATE_TIME = 3 // Time to update and sync information with other nodes
+	HEARTBEAT          = 2
+	KEEPALIVE_TIMEOUT  = 3
+	DIAL_TIMEOUT       = 6
+	CONN_MONITOR       = 6
+	CONN_MAX_BACK      = 4000
+	MAX_RETRY_COUNT    = 3
+	MAX_SYNC_HDR_REQ   = 2 //Max Concurrent Sync Header Request
 )
 
 // The node state
 const (
-	INIT       = 0
-	HAND       = 1
-	HANDSHAKE  = 2
-	HANDSHAKED = 3
-	ESTABLISH  = 4
-	INACTIVITY = 5
+	INIT        = 0
+	HAND        = 1
+	HAND_SHAKE  = 2
+	HAND_SHAKED = 3
+	ESTABLISH   = 4
+	INACTIVITY  = 5
 )
 
 var ReceiveDuplicateBlockCnt uint64 //an index to detecting networking status
@@ -111,8 +111,6 @@ type Noder interface {
 	CloseConn()
 	GetHeight() uint64
 	GetConnectionCnt() uint
-	//GetTxnPool(bool) (map[common.Uint256]*types.Transaction, common.Fixed64)
-	//AppendTxnPool(*types.Transaction) ErrCode
 	ExistedID(id common.Uint256) bool
 	ReqNeighborList()
 	DumpInfo()
@@ -125,7 +123,6 @@ type Noder interface {
 	NodeEstablished(uid uint64) bool
 	GetEvent(eventName string) *events.Event
 	GetNeighborAddrs() ([]NodeAddr, uint64)
-	//GetTransaction(hash common.Uint256) *types.Transaction
 	IncRxTxnCnt()
 	GetTxnCnt() uint64
 	GetRxTxnCnt() uint64
@@ -136,7 +133,6 @@ type Noder interface {
 	SetBookkeeperAddr(pk *crypto.PubKey)
 	GetNeighborHeights() ([]uint64, uint64)
 	SyncNodeHeight()
-	//CleanTransactions(txns []*types.Transaction) error
 
 	GetNeighborNoder() []Noder
 	GetNbrNodeCnt() uint32

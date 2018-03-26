@@ -31,7 +31,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -65,7 +64,7 @@ func unpackNodeBuf(node *node, buf []byte) {
 	}
 
 	if node.rxBuf.len == 0 {
-		length := MSGHDRLEN - len(node.rxBuf.p)
+		length := MSG_HDR_LEN - len(node.rxBuf.p)
 		if length > len(buf) {
 			length = len(buf)
 			node.rxBuf.p = append(node.rxBuf.p, buf[0:length]...)
@@ -106,10 +105,10 @@ func unpackNodeBuf(node *node, buf []byte) {
 
 func (node *node) rx() {
 	conn := node.getConn()
-	buf := make([]byte, MAXBUFLEN)
+	buf := make([]byte, MAX_BUF_LEN)
 	for {
-		len, err := conn.Read(buf[0:(MAXBUFLEN - 1)])
-		buf[MAXBUFLEN-1] = 0 //Prevent overflow
+		len, err := conn.Read(buf[0:(MAX_BUF_LEN - 1)])
+		buf[MAX_BUF_LEN-1] = 0 //Prevent overflow
 		switch err {
 		case nil:
 			t := time.Now()
@@ -126,16 +125,6 @@ func (node *node) rx() {
 
 DISCONNECT:
 	node.local.eventQueue.GetEvent("disconnect").Notify(events.EventNodeDisconnect, node)
-}
-
-func printIPAddr() {
-	host, _ := os.Hostname()
-	addrs, _ := net.LookupIP(host)
-	for _, addr := range addrs {
-		if ipv4 := addr.To4(); ipv4 != nil {
-			log.Info("IPv4: ", ipv4)
-		}
-	}
 }
 
 func (link *link) CloseConn() {
@@ -189,18 +178,16 @@ func initNonTlsListen() (net.Listener, error) {
 }
 
 func initTlsListen() (net.Listener, error) {
-	CertPath := Parameters.CertPath
-	KeyPath := Parameters.KeyPath
-	CAPath := Parameters.CAPath
+	certPath := Parameters.CertPath
+	keyPath := Parameters.KeyPath
+	caPath := Parameters.CAPath
 
-	// load cert
-	cert, err := tls.LoadX509KeyPair(CertPath, KeyPath)
+	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
 	if err != nil {
 		log.Error("load keys fail", err)
 		return nil, err
 	}
-	// load root ca
-	caData, err := ioutil.ReadFile(CAPath)
+	caData, err := ioutil.ReadFile(caPath)
 	if err != nil {
 		log.Error("read ca fail", err)
 		return nil, err
@@ -285,7 +272,7 @@ func (node *node) Connect(nodeAddr string) error {
 
 func NonTLSDial(nodeAddr string) (net.Conn, error) {
 	log.Debug()
-	conn, err := net.DialTimeout("tcp", nodeAddr, time.Second*DIALTIMEOUT)
+	conn, err := net.DialTimeout("tcp", nodeAddr, time.Second*DIAL_TIMEOUT)
 	if err != nil {
 		return nil, err
 	}
@@ -293,19 +280,19 @@ func NonTLSDial(nodeAddr string) (net.Conn, error) {
 }
 
 func TLSDial(nodeAddr string) (net.Conn, error) {
-	CertPath := Parameters.CertPath
-	KeyPath := Parameters.KeyPath
-	CAPath := Parameters.CAPath
+	certPath := Parameters.CertPath
+	keyPath := Parameters.KeyPath
+	caPath := Parameters.CAPath
 
 	clientCertPool := x509.NewCertPool()
 
-	cacert, err := ioutil.ReadFile(CAPath)
-	cert, err := tls.LoadX509KeyPair(CertPath, KeyPath)
+	caCert, err := ioutil.ReadFile(caPath)
+	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
 	if err != nil {
 		return nil, err
 	}
 
-	ret := clientCertPool.AppendCertsFromPEM(cacert)
+	ret := clientCertPool.AppendCertsFromPEM(caCert)
 	if !ret {
 		return nil, errors.New("failed to parse root certificate")
 	}
@@ -316,7 +303,7 @@ func TLSDial(nodeAddr string) (net.Conn, error) {
 	}
 
 	var dialer net.Dialer
-	dialer.Timeout = time.Second * DIALTIMEOUT
+	dialer.Timeout = time.Second * DIAL_TIMEOUT
 	conn, err := tls.DialWithDialer(&dialer, "tcp", nodeAddr, conf)
 	if err != nil {
 		return nil, err

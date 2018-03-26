@@ -71,14 +71,14 @@ func (msg verACK) Handle(node Noder) error {
 	log.Debug()
 
 	s := node.GetState()
-	if s != HANDSHAKE && s != HANDSHAKED {
+	if s != HAND_SHAKE && s != HAND_SHAKED {
 		log.Warn("Unknow status to received verack")
 		return errors.New("Unknow status to received verack")
 	}
 
 	node.SetState(ESTABLISH)
 
-	if s == HANDSHAKE {
+	if s == HAND_SHAKE {
 		buf, _ := NewVerack()
 		node.Tx(buf)
 	}

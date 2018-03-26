@@ -37,7 +37,7 @@ func NewNotFound(hash common.Uint256) ([]byte, error) {
 	log.Debug()
 	var msg notFound
 	msg.hash = hash
-	msg.msgHdr.Magic = NETMAGIC
+	msg.msgHdr.Magic = NET_MAGIC
 	cmd := "notfound"
 	copy(msg.msgHdr.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})

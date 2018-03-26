@@ -151,7 +151,7 @@ func main() {
 	noder.SyncNodeHeight()
 	noder.WaitForPeersStart()
 	noder.WaitForSyncBlkFinish()
-	if protocol.SERVICENODENAME != config.Parameters.NodeType {
+	if protocol.SERVICE_NODE_NAME != config.Parameters.NodeType {
 		log.Info("5. Start Consensus Services")
 		pool := txPoolServer.GetPID(tc.TxPoolActor)
 		consensusService, _ := consensus.NewConsensusService(acct, pool, nil, p2pActor)

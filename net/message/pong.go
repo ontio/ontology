@@ -36,7 +36,7 @@ type pong struct {
 
 func NewPongMsg() ([]byte, error) {
 	var msg pong
-	msg.msgHdr.Magic = NETMAGIC
+	msg.msgHdr.Magic = NET_MAGIC
 	copy(msg.msgHdr.CMD[0:7], "pong")
 	height, _ := actor.GetCurrentHeaderHeight()
 	msg.height = uint64(height)

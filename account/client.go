@@ -520,9 +520,9 @@ func clientIsDefaultBookkeeper(publicKey string) bool {
 
 func nodeType(typeName string) int {
 	if "service" == config.Parameters.NodeType {
-		return protocol.SERVICENODE
+		return protocol.SERVICE_NODE
 	} else {
-		return protocol.VERIFYNODE
+		return protocol.VERIFY_NODE
 	}
 }
 

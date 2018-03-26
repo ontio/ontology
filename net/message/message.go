@@ -40,9 +40,9 @@ type Messager interface {
 type msgHdr struct {
 	Magic uint32
 	//ID	 uint64
-	CMD      [MSGCMDLEN]byte // The message type
+	CMD      [MSG_CMD_LEN]byte // The message type
 	Length   uint32
-	Checksum [CHECKSUMLEN]byte
+	Checksum [CHECKSUM_LEN]byte
 }
 
 // The message body and header
@@ -114,7 +114,7 @@ func AllocMsg(t string, length int) Messager {
 		var msg Inv
 		copy(msg.Hdr.CMD[0:len(t)], t)
 		// the 1 is the inv type lenght
-		msg.P.Blk = make([]byte, length-MSGHDRLEN-1)
+		msg.P.Blk = make([]byte, length-MSG_HDR_LEN-1)
 		return &msg
 	case "getdata":
 		var msg dataReq
@@ -127,8 +127,6 @@ func AllocMsg(t string, length int) Messager {
 	case "tx":
 		var msg trn
 		copy(msg.msgHdr.CMD[0:len(t)], t)
-		//if (message.Payload.Length <= 1024 * 1024)
-		//OnInventoryReceived(Transaction.DeserializeFrom(message.Payload));
 		return &msg
 	case "consensus":
 		var msg consensus
@@ -182,9 +180,9 @@ func AllocMsg(t string, length int) Messager {
 }
 
 func MsgType(buf []byte) (string, error) {
-	cmd := buf[CMDOFFSET : CMDOFFSET+MSGCMDLEN]
+	cmd := buf[CMD_OFFSET : CMD_OFFSET+MSG_CMD_LEN]
 	n := bytes.IndexByte(cmd, 0)
-	if n < 0 || n >= MSGCMDLEN {
+	if n < 0 || n >= MSG_CMD_LEN {
 		return "", errors.New("Unexpected length of CMD command")
 	}
 	s := string(cmd[:n])
@@ -210,7 +208,7 @@ func NewMsg(t string, n Noder) ([]byte, error) {
 
 // FIXME the length exceed int32 case?
 func HandleNodeMsg(node Noder, buf []byte, len int) error {
-	if len < MSGHDRLEN {
+	if len < MSG_HDR_LEN {
 		log.Warn("Unexpected size of received message")
 		return errors.New("Unexpected size of received message")
 	}
@@ -231,13 +229,13 @@ func HandleNodeMsg(node Noder, buf []byte, len int) error {
 	// Todo attach a node pointer to each message
 	// Todo drop the message when verify/deseria packet error
 	msg.Deserialization(buf[:len])
-	msg.Verify(buf[MSGHDRLEN:len])
+	msg.Verify(buf[MSG_HDR_LEN:len])
 
 	return msg.Handle(node)
 }
 
 func magicVerify(magic uint32) bool {
-	if magic != NETMAGIC {
+	if magic != NET_MAGIC {
 		return false
 	}
 	return true
@@ -258,7 +256,7 @@ func PayloadLen(buf []byte) int {
 
 func LocateMsgHdr(buf []byte) []byte {
 	var h msgHdr
-	for i := 0; i <= len(buf)-MSGHDRLEN; i++ {
+	for i := 0; i <= len(buf)-MSG_HDR_LEN; i++ {
 		if magicVerify(binary.LittleEndian.Uint32(buf[i:])) {
 			buf = append(buf[:0], buf[i:]...)
 			h.Deserialization(buf)
@@ -273,7 +271,7 @@ func checkSum(p []byte) []byte {
 	s := sha256.Sum256(t[:])
 
 	// Currently we only need the front 4 bytes as checksum
-	return s[:CHECKSUMLEN]
+	return s[:CHECKSUM_LEN]
 }
 
 func reverse(input []byte) []byte {
@@ -284,9 +282,9 @@ func reverse(input []byte) []byte {
 }
 
 func (hdr *msgHdr) init(cmd string, checksum []byte, length uint32) {
-	hdr.Magic = NETMAGIC
+	hdr.Magic = NET_MAGIC
 	copy(hdr.CMD[0:uint32(len(cmd))], cmd)
-	copy(hdr.Checksum[:], checksum[:CHECKSUMLEN])
+	copy(hdr.Checksum[:], checksum[:CHECKSUM_LEN])
 	hdr.Length = length
 	//hdr.ID = id
 }
@@ -312,7 +310,7 @@ func (hdr msgHdr) Verify(buf []byte) error {
 
 func (msg *msgHdr) Deserialization(p []byte) error {
 
-	buf := bytes.NewBuffer(p[0:MSGHDRLEN])
+	buf := bytes.NewBuffer(p[0:MSG_HDR_LEN])
 	err := binary.Read(buf, binary.LittleEndian, msg)
 	return err
 }

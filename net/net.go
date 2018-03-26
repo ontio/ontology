@@ -20,23 +20,11 @@ package net
 
 import (
 	"github.com/Ontology/crypto"
-	"github.com/Ontology/events"
 	ns "github.com/Ontology/net/actor"
 	"github.com/Ontology/net/node"
 	"github.com/Ontology/net/protocol"
 	"github.com/ontio/ontology-eventbus/actor"
 )
-
-type Neter interface {
-	//GetTxnPool(byCount bool) (map[Uint256]*types.Transaction, Fixed64)
-	Xmit(interface{}) error
-	GetEvent(eventName string) *events.Event
-	GetBookkeepersAddrs() ([]*crypto.PubKey, uint64)
-	//CleanTransactions(txns []*types.Transaction) error
-	GetNeighborNoder() []protocol.Noder
-	Tx(buf []byte)
-	//AppendTxnPool(*types.Transaction) ErrCode
-}
 
 func SetTxnPoolPid(txnPid *actor.PID) {
 	ns.SetTxnPoolPid(txnPid)

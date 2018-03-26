@@ -32,14 +32,11 @@ import (
 
 type blockReq struct {
 	msgHdr
-	//TBD
 }
 
 type block struct {
 	msgHdr
 	blk types.Block
-	// TBD
-	//event *events.Event
 }
 
 func (msg block) Handle(node Noder) error {
@@ -57,14 +54,13 @@ func (msg block) Handle(node Noder) error {
 
 func (msg dataReq) Handle(node Noder) error {
 	log.Debug()
-	reqtype := common.InventoryType(msg.dataType)
+	reqType := common.InventoryType(msg.dataType)
 	hash := msg.hash
-	switch reqtype {
+	switch reqType {
 	case common.BLOCK:
 		block, err := NewBlockFromHash(hash)
 		if err != nil || block == nil {
 			log.Debug("Can't get block from hash: ", hash, " ,send not found message")
-			//call notfound message
 			b, err := NewNotFound(hash)
 			node.Tx(b)
 			return err
@@ -103,7 +99,7 @@ func NewBlock(bk *types.Block) ([]byte, error) {
 	log.Debug()
 	var msg block
 	msg.blk = *bk
-	msg.msgHdr.Magic = NETMAGIC
+	msg.msgHdr.Magic = NET_MAGIC
 	cmd := "block"
 	copy(msg.msgHdr.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})
@@ -136,7 +132,7 @@ func ReqBlkData(node Noder, hash common.Uint256) error {
 	msg.dataType = common.BLOCK
 	msg.hash = hash
 
-	msg.msgHdr.Magic = NETMAGIC
+	msg.msgHdr.Magic = NET_MAGIC
 	copy(msg.msgHdr.CMD[0:7], "getdata")
 	p := bytes.NewBuffer([]byte{})
 	err := binary.Write(p, binary.LittleEndian, &(msg.dataType))

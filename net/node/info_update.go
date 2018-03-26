@@ -31,10 +31,6 @@ import (
 	"time"
 )
 
-func keepAlive(from *Noder, dst *Noder) {
-	// Need move to node function or keep here?
-}
-
 func (node *node) GetBlkHdrs() {
 	if !node.IsUptoMinNodeCount() {
 		return
@@ -76,7 +72,7 @@ func (node *node) SyncBlk() {
 			continue
 		}
 		n.RemoveFlightHeightLessThan(currentBlkHeight)
-		count := MAXREQBLKONCE - uint32(n.GetFlightHeightCnt())
+		count := MAX_REQ_BLK_ONCE - uint32(n.GetFlightHeightCnt())
 		dValue = int32(headerHeight - currentBlkHeight - reqCnt)
 		flights := n.GetFlightHeights()
 		if count == 0 {
@@ -120,14 +116,14 @@ func (node *node) HeartBeatMonitor() {
 	noders := node.local.GetNeighborNoder()
 	var periodUpdateTime uint
 	if config.Parameters.GenBlockTime > config.MINGENBLOCKTIME {
-		periodUpdateTime = config.Parameters.GenBlockTime / TIMESOFUPDATETIME
+		periodUpdateTime = config.Parameters.GenBlockTime / TIMES_OF_UPDATE_TIME
 	} else {
-		periodUpdateTime = config.DEFAULTGENBLOCKTIME / TIMESOFUPDATETIME
+		periodUpdateTime = config.DEFAULTGENBLOCKTIME / TIMES_OF_UPDATE_TIME
 	}
 	for _, n := range noders {
 		if n.GetState() == ESTABLISH {
 			t := n.GetLastRXTime()
-			if t.Before(time.Now().Add(-1 * time.Second * time.Duration(periodUpdateTime) * KEEPALIVETIMEOUT)) {
+			if t.Before(time.Now().Add(-1 * time.Second * time.Duration(periodUpdateTime) * KEEPALIVE_TIMEOUT)) {
 				log.Warn("keepalive timeout!!!")
 				n.SetState(INACTIVITY)
 				n.CloseConn()
@@ -190,10 +186,10 @@ func (node *node) reconnect() {
 		node.RetryAddrs[addr] = node.RetryAddrs[addr] + 1
 		rand.Seed(time.Now().UnixNano())
 		log.Trace("Try to reconnect peer, peer addr is ", addr)
-		<-time.After(time.Duration(rand.Intn(CONNMAXBACK)) * time.Millisecond)
+		<-time.After(time.Duration(rand.Intn(CONN_MAX_BACK)) * time.Millisecond)
 		log.Trace("Back off time`s up, start connect node")
 		node.Connect(addr)
-		if node.RetryAddrs[addr] < MAXRETRYCOUNT {
+		if node.RetryAddrs[addr] < MAX_RETRY_COUNT {
 			lst[addr] = node.RetryAddrs[addr]
 		}
 	}
@@ -239,9 +235,9 @@ func (n *node) fetchRetryNodeFromNeiborList() int {
 func (node *node) updateNodeInfo() {
 	var periodUpdateTime uint
 	if config.Parameters.GenBlockTime > config.MINGENBLOCKTIME {
-		periodUpdateTime = config.Parameters.GenBlockTime / TIMESOFUPDATETIME
+		periodUpdateTime = config.Parameters.GenBlockTime / TIMES_OF_UPDATE_TIME
 	} else {
-		periodUpdateTime = config.DEFAULTGENBLOCKTIME / TIMESOFUPDATETIME
+		periodUpdateTime = config.DEFAULTGENBLOCKTIME / TIMES_OF_UPDATE_TIME
 	}
 	ticker := time.NewTicker(time.Second * (time.Duration(periodUpdateTime)))
 	quit := make(chan struct{})
@@ -258,18 +254,17 @@ func (node *node) updateNodeInfo() {
 		}
 	}
 	// TODO when to close the timer
-	//close(quit)
 }
 
 func (node *node) updateConnection() {
-	t := time.NewTimer(time.Second * CONNMONITOR)
+	t := time.NewTimer(time.Second * CONN_MONITOR)
 	for {
 		select {
 		case <-t.C:
 			node.ConnectSeeds()
 			node.TryConnect()
 			t.Stop()
-			t.Reset(time.Second * CONNMONITOR)
+			t.Reset(time.Second * CONN_MONITOR)
 		}
 	}
 

@@ -117,7 +117,7 @@ func (node *node) IsAddrInNbrList(addr string) bool {
 	node.nbrNodes.RLock()
 	defer node.nbrNodes.RUnlock()
 	for _, n := range node.nbrNodes.List {
-		if n.GetState() == HAND || n.GetState() == HANDSHAKE || n.GetState() == ESTABLISH {
+		if n.GetState() == HAND || n.GetState() == HAND_SHAKE || n.GetState() == ESTABLISH {
 			addr_new := n.GetAddr()
 			port := n.GetPort()
 			na := addr_new + ":" + strconv.Itoa(int(port))
@@ -181,15 +181,15 @@ func NewNode() *node {
 
 func InitNode(pubKey *crypto.PubKey) Noder {
 	n := NewNode()
-	n.version = PROTOCOLVERSION
-	if Parameters.NodeType == SERVICENODENAME {
-		n.services = uint64(SERVICENODE)
-	} else if Parameters.NodeType == VERIFYNODENAME {
-		n.services = uint64(VERIFYNODE)
+	n.version = PROTOCOL_VERSION
+	if Parameters.NodeType == SERVICE_NODE_NAME {
+		n.services = uint64(SERVICE_NODE)
+	} else if Parameters.NodeType == VERIFY_NODE_NAME {
+		n.services = uint64(VERIFY_NODE)
 	}
 
 	if Parameters.MaxHdrSyncReqs <= 0 {
-		n.SyncReqSem = MakeSemaphore(MAXSYNCHDRREQ)
+		n.SyncReqSem = MakeSemaphore(MAX_SYNC_HDR_REQ)
 	} else {
 		n.SyncReqSem = MakeSemaphore(Parameters.MaxHdrSyncReqs)
 	}
@@ -265,7 +265,7 @@ func (node *node) SetHttpInfoPort(nodeInfoPort uint16) {
 }
 
 func (node *node) GetHttpInfoState() bool {
-	if node.cap[HTTPINFOFLAG] == 0x01 {
+	if node.cap[HTTP_INFO_FLAG] == 0x01 {
 		return true
 	} else {
 		return false
@@ -274,9 +274,9 @@ func (node *node) GetHttpInfoState() bool {
 
 func (node *node) SetHttpInfoState(nodeInfo bool) {
 	if nodeInfo {
-		node.cap[HTTPINFOFLAG] = 0x01
+		node.cap[HTTP_INFO_FLAG] = 0x01
 	} else {
-		node.cap[HTTPINFOFLAG] = 0x00
+		node.cap[HTTP_INFO_FLAG] = 0x00
 	}
 }
 
@@ -417,7 +417,7 @@ func (node *node) GetBookkeepersAddrs() ([]*crypto.PubKey, uint64) {
 	i = 1
 	//TODO read lock
 	for _, n := range node.nbrNodes.List {
-		if n.GetState() == ESTABLISH && n.services != SERVICENODE {
+		if n.GetState() == ESTABLISH && n.services != SERVICE_NODE {
 			pktmp := n.GetBookkeeperAddr()
 			pks = append(pks, pktmp)
 			i++

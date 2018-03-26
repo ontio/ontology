@@ -35,8 +35,8 @@ type headersReq struct {
 	hdr msgHdr
 	p   struct {
 		len       uint8
-		hashStart [HASHLEN]byte
-		hashEnd   [HASHLEN]byte
+		hashStart [HASH_LEN]byte
+		hashEnd   [HASH_LEN]byte
 	}
 }
 
@@ -50,7 +50,6 @@ func NewHeadersReq() ([]byte, error) {
 	var h headersReq
 
 	h.p.len = 1
-	//buf := ledger.DefaultLedger.Store.GetCurrentHeaderHash()
 	buf, _ := actor.GetCurrentHeaderHash()
 	copy(h.p.hashEnd[:], buf[:])
 
@@ -172,8 +171,8 @@ func (msg headersReq) Handle(node Noder) error {
 	// lock
 	node.LocalNode().AcqSyncReqSem()
 	defer node.LocalNode().RelSyncReqSem()
-	var startHash [HASHLEN]byte
-	var stopHash [HASHLEN]byte
+	var startHash [HASH_LEN]byte
+	var stopHash [HASH_LEN]byte
 	startHash = msg.p.hashStart
 	stopHash = msg.p.hashEnd
 	//FIXME if HeaderHashCount > 1
@@ -199,12 +198,6 @@ func SendMsgSyncHeaders(node Noder) {
 }
 
 func (msg blkHeader) Handle(node Noder) error {
-	//log.Debug()
-	//err := ledger.DefaultLedger.Store.AddHeaders(msg.blkHdr, ledger.DefaultLedger)
-	//if err != nil {
-	//	log.Warn("Add block Header error")
-	//	return errors.New("Add block Header error, send new header request to another node\n")
-	//}
 	var blkHdr []*types.Header
 	var i uint32
 	for i = 0; i < msg.cnt; i++ {
@@ -216,37 +209,35 @@ func (msg blkHeader) Handle(node Noder) error {
 
 func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]types.Header, uint32, error) {
 	var count uint32 = 0
-	var empty [HASHLEN]byte
+	var empty [HASH_LEN]byte
 	headers := []types.Header{}
 	var startHeight uint32
 	var stopHeight uint32
-	//curHeight := ledger.DefaultLedger.Store.GetHeaderHeight()
 	curHeight, _ := actor.GetCurrentHeaderHeight()
 	if startHash == empty {
 		if stopHash == empty {
-			if curHeight > MAXBLKHDRCNT {
-				count = MAXBLKHDRCNT
+			if curHeight > MAX_BLK_HDR_CNT {
+				count = MAX_BLK_HDR_CNT
 			} else {
 				count = curHeight
 			}
 		} else {
-			//bkstop, err := ledger.DefaultLedger.Store.GetHeader(stopHash)
-			bkstop, err := actor.GetHeaderByHash(stopHash)
-			if err != nil || bkstop == nil {
+			bkStop, err := actor.GetHeaderByHash(stopHash)
+			if err != nil || bkStop == nil {
 				return nil, 0, err
 			}
-			stopHeight = bkstop.Height
+			stopHeight = bkStop.Height
 			count = curHeight - stopHeight
-			if count > MAXBLKHDRCNT {
-				count = MAXBLKHDRCNT
+			if count > MAX_BLK_HDR_CNT {
+				count = MAX_BLK_HDR_CNT
 			}
 		}
 	} else {
-		bkstart, err := actor.GetHeaderByHash(startHash)
-		if err != nil || bkstart == nil {
+		bkStart, err := actor.GetHeaderByHash(startHash)
+		if err != nil || bkStart == nil {
 			return nil, 0, err
 		}
-		startHeight = bkstart.Height
+		startHeight = bkStart.Height
 		if stopHash != empty {
 			bkstop, err := actor.GetHeaderByHash(stopHash)
 			if err != nil || bkstop == nil {
@@ -260,14 +251,14 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]ty
 			}
 			count = startHeight - stopHeight
 
-			if count >= MAXBLKHDRCNT {
-				count = MAXBLKHDRCNT
-				stopHeight = startHeight - MAXBLKHDRCNT
+			if count >= MAX_BLK_HDR_CNT {
+				count = MAX_BLK_HDR_CNT
+				stopHeight = startHeight - MAX_BLK_HDR_CNT
 			}
 		} else {
 
-			if startHeight > MAXBLKHDRCNT {
-				count = MAXBLKHDRCNT
+			if startHeight > MAX_BLK_HDR_CNT {
+				count = MAX_BLK_HDR_CNT
 			} else {
 				count = startHeight
 			}
@@ -296,7 +287,7 @@ func NewHeaders(headers []types.Header, count uint32) ([]byte, error) {
 	var msg blkHeader
 	msg.cnt = count
 	msg.blkHdr = headers
-	msg.hdr.Magic = NETMAGIC
+	msg.hdr.Magic = NET_MAGIC
 	cmd := "headers"
 	copy(msg.hdr.CMD[0:len(cmd)], cmd)
 

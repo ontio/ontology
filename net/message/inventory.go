@@ -39,8 +39,8 @@ type blocksReq struct {
 	msgHdr
 	p struct {
 		HeaderHashCount uint8
-		hashStart       [HASHLEN]byte
-		hashStop        [HASHLEN]byte
+		hashStart       [HASH_LEN]byte
+		hashStop        [HASH_LEN]byte
 	}
 }
 
@@ -152,7 +152,7 @@ func (msg Inv) Handle(node Noder) error {
 		count := msg.P.Cnt
 		log.Debug("RX inv-block message, hash is ", msg.P.Blk)
 		for i = 0; i < count; i++ {
-			id.Deserialize(bytes.NewReader(msg.P.Blk[HASHLEN*i:]))
+			id.Deserialize(bytes.NewReader(msg.P.Blk[HASH_LEN*i:]))
 			// TODO check the ID queue
 			isContainBlock, _ := actor.IsContainBlock(id)
 			if !isContainBlock && LastInvHash != id {
@@ -190,7 +190,7 @@ func (msg *Inv) Deserialization(p []byte) error {
 		return err
 	}
 
-	buf := bytes.NewBuffer(p[MSGHDRLEN:])
+	buf := bytes.NewBuffer(p[MSG_HDR_LEN:])
 	invType, err := serialization.ReadUint8(buf)
 	if err != nil {
 		return err
@@ -201,7 +201,7 @@ func (msg *Inv) Deserialization(p []byte) error {
 		return err
 	}
 
-	msg.P.Blk = make([]byte, msg.P.Cnt*HASHLEN)
+	msg.P.Blk = make([]byte, msg.P.Cnt*HASH_LEN)
 	err = binary.Read(buf, binary.LittleEndian, &(msg.P.Blk))
 
 	return err
@@ -220,8 +220,8 @@ func GetInvFromBlockHash(starthash Uint256, stophash Uint256) (*InvPayload, erro
 	curHeight, _ := actor.GetCurrentBlockHeight()
 	if starthash == empty {
 		if stophash == empty {
-			if curHeight > MAXBLKHDRCNT {
-				count = MAXBLKHDRCNT
+			if curHeight > MAX_BLK_HDR_CNT {
+				count = MAX_BLK_HDR_CNT
 			} else {
 				count = curHeight
 			}
@@ -232,8 +232,8 @@ func GetInvFromBlockHash(starthash Uint256, stophash Uint256) (*InvPayload, erro
 			}
 			stopheight = bkstop.Height
 			count = curHeight - stopheight
-			if curHeight > MAXINVHDRCNT {
-				count = MAXINVHDRCNT
+			if curHeight > MAX_INV_HDR_CNT {
+				count = MAX_INV_HDR_CNT
 			}
 		}
 	} else {
@@ -249,14 +249,14 @@ func GetInvFromBlockHash(starthash Uint256, stophash Uint256) (*InvPayload, erro
 			}
 			stopheight = bkstop.Height
 			count = startheight - stopheight
-			if count >= MAXINVHDRCNT {
-				count = MAXINVHDRCNT
-				stopheight = startheight + MAXINVHDRCNT
+			if count >= MAX_INV_HDR_CNT {
+				count = MAX_INV_HDR_CNT
+				stopheight = startheight + MAX_INV_HDR_CNT
 			}
 		} else {
 
-			if startheight > MAXINVHDRCNT {
-				count = MAXINVHDRCNT
+			if startheight > MAX_INV_HDR_CNT {
+				count = MAX_INV_HDR_CNT
 			} else {
 				count = startheight
 			}
@@ -287,7 +287,7 @@ func NewInv(inv *InvPayload) ([]byte, error) {
 	msg.P.Blk = inv.Blk
 	msg.P.InvType = inv.InvType
 	msg.P.Cnt = inv.Cnt
-	msg.Hdr.Magic = NETMAGIC
+	msg.Hdr.Magic = NET_MAGIC
 	cmd := "inv"
 	copy(msg.Hdr.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})

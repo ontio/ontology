@@ -36,7 +36,7 @@ type ping struct {
 
 func NewPingMsg() ([]byte, error) {
 	var msg ping
-	msg.msgHdr.Magic = NETMAGIC
+	msg.msgHdr.Magic = NET_MAGIC
 	copy(msg.msgHdr.CMD[0:7], "ping")
 	height, _ := actor.GetCurrentBlockHeight()
 	msg.height = uint64(height)

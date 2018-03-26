@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	HTTPINFOFLAG = 0
+	HTTP_INFO_FLAG = 0
 )
 
 type version struct {
@@ -67,9 +67,9 @@ func NewVersion(n Noder) ([]byte, error) {
 	msg.P.Services = n.Services()
 	msg.P.HttpInfoPort = config.Parameters.HttpInfoPort
 	if config.Parameters.HttpInfoStart {
-		msg.P.Cap[HTTPINFOFLAG] = 0x01
+		msg.P.Cap[HTTP_INFO_FLAG] = 0x01
 	} else {
-		msg.P.Cap[HTTPINFOFLAG] = 0x00
+		msg.P.Cap[HTTP_INFO_FLAG] = 0x00
 	}
 
 	// FIXME Time overflow
@@ -90,7 +90,7 @@ func NewVersion(n Noder) ([]byte, error) {
 	// TODO the function to wrap below process
 	// msg.HDR.init("version", n.GetID(), uint32(len(p.Bytes())))
 
-	msg.Hdr.Magic = NETMAGIC
+	msg.Hdr.Magic = NET_MAGIC
 	copy(msg.Hdr.CMD[0:7], "version")
 	p := bytes.NewBuffer([]byte{})
 	err := binary.Write(p, binary.LittleEndian, &(msg.P))
@@ -205,7 +205,7 @@ func (msg version) Handle(node Noder) error {
 	}
 
 	log.Debug("handle version msg.pk is ", msg.pk)
-	if msg.P.Cap[HTTPINFOFLAG] == 0x01 {
+	if msg.P.Cap[HTTP_INFO_FLAG] == 0x01 {
 		node.SetHttpInfoState(true)
 	} else {
 		node.SetHttpInfoState(false)
@@ -218,10 +218,10 @@ func (msg version) Handle(node Noder) error {
 
 	var buf []byte
 	if s == INIT {
-		node.SetState(HANDSHAKE)
+		node.SetState(HAND_SHAKE)
 		buf, _ = NewVersion(localNode)
 	} else if s == HAND {
-		node.SetState(HANDSHAKED)
+		node.SetState(HAND_SHAKED)
 		buf, _ = NewVerack()
 	}
 	node.Tx(buf)

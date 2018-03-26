@@ -39,10 +39,7 @@ type dataReq struct {
 // Transaction message
 type trn struct {
 	msgHdr
-	// TBD
-	//txn []byte
 	txn types.Transaction
-	//hash common.Uint256
 }
 
 func (msg trn) Handle(node Noder) error {
@@ -54,7 +51,6 @@ func (msg trn) Handle(node Noder) error {
 		// Fixme
 		//node.LocalNode().IncRxTxnCnt()
 		log.Debug("RX Transaction message hash", msg.txn.Hash())
-		//log.Debug("RX Transaction message type", msg.txn.TxType)
 	}
 
 	return nil
@@ -121,7 +117,7 @@ func NewTxn(txn *types.Transaction) ([]byte, error) {
 	log.Debug()
 	var msg trn
 
-	msg.msgHdr.Magic = NETMAGIC
+	msg.msgHdr.Magic = NET_MAGIC
 	cmd := "tx"
 	copy(msg.msgHdr.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})
@@ -174,13 +170,4 @@ func (msg *trn) Deserialization(p []byte) error {
 
 type txnPool struct {
 	msgHdr
-	//TBD
-}
-
-func ReqTxnPool(node Noder) error {
-	msg := AllocMsg("txnpool", 0)
-	buf, _ := msg.Serialization()
-	go node.Tx(buf)
-
-	return nil
 }
