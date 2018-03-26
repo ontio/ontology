@@ -53,23 +53,25 @@ func signTransaction(signer *account.Account, tx *types.Transaction) error {
 
 func testAction(c *cli.Context) (err error) {
 	txnNum := c.Int("num")
+	passwd := c.String("password")
 
-	transferTest(txnNum)
-
-	return nil
-}
-
-func transferTest(n int) {
-	if n <= 0 {
-		n  = 1
-	}
-	acct := account.Open(account.WalletFileName, []byte("passwordtest"))
+	acct := account.Open(account.WalletFileName, []byte(passwd))
 	acc, err := acct.GetDefaultAccount(); if err != nil {
 		fmt.Println("GetDefaultAccount error:", err)
 		os.Exit(1)
 	}
-	for i := 0; i < n; i ++ {
 
+	transferTest(txnNum, acc)
+
+	return nil
+}
+
+func transferTest(n int, acc *account.Account) {
+	if n <= 0 {
+		n  = 1
+	}
+
+	for i := 0; i < n; i ++ {
 		tx := NewOntTransferTransaction(acc.Address, acc.Address, int64(i))
 		if err := signTransaction(acc, tx); err != nil {
 			fmt.Println("signTransaction error:", err)
@@ -153,6 +155,11 @@ func NewCommand() *cli.Command {
 				Name:  "num, n",
 				Usage: "sample transaction numbers",
 				Value: 1,
+			},
+			cli.StringFlag{
+				Name:  "password, p",
+				Usage: "wallet password",
+				Value:"passwordtest",
 			},
 		},
 		Action: testAction,

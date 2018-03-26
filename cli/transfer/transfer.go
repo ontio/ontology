@@ -108,11 +108,14 @@ func transferAction(c *cli.Context) error {
 
 	tx.Nonce = uint32(time.Now().Unix())
 
-	acct := account.Open(account.WalletFileName, []byte("passwordtest"))
+	passwd := c.String("password")
+
+	acct := account.Open(account.WalletFileName, []byte(passwd))
 	acc, err := acct.GetDefaultAccount(); if err != nil {
 		fmt.Println("GetDefaultAccount error:", err)
 		os.Exit(1)
 	}
+
 	if err := signTransaction(acc, tx); err != nil {
 		fmt.Println("signTransaction error:", err)
 		os.Exit(1)
@@ -179,6 +182,11 @@ func NewCommand() *cli.Command {
 			cli.Int64Flag{
 				Name:  "value, v",
 				Usage: "ont amount",
+			},
+			cli.StringFlag{
+				Name:  "password, p",
+				Usage: "wallet password",
+				Value:"passwordtest",
 			},
 		},
 		Action: transferAction,
