@@ -28,6 +28,7 @@ import (
 	"github.com/Ontology/vm/neovm"
 	"github.com/Ontology/smartcontract/context"
 	"github.com/Ontology/smartcontract/event"
+	"github.com/Ontology/common"
 )
 
 type SmartContract struct {
@@ -109,4 +110,23 @@ func (sc *SmartContract) Execute() error {
 	case vmtypes.WASMVM:
 	}
 	return nil
+}
+
+func (sc *SmartContract) CheckWitness(address common.Address) bool {
+	if vmtypes.IsVmCodeAddress(address) {
+		for _, v := range sc.Context {
+			if v.ContractAddress == address {
+				return true
+			}
+		}
+	} else {
+		addresses := sc.Config.Tx.GetSignatureAddresses()
+		for _, v := range addresses {
+			if v == address {
+				return true
+			}
+		}
+	}
+
+	return false
 }

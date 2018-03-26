@@ -68,3 +68,13 @@ func (self *VmCode) AddressFromVmCode() Address {
 	addr[0] = byte(self.VmType)
 	return addr
 }
+
+
+func IsVmCodeAddress(addr Address) bool {
+	vmType := addr[0]
+	if  vmType == byte(Native) || vmType == byte(NEOVM) || vmType == byte(WASMVM) {
+		return true
+	}
+
+	return false
+}

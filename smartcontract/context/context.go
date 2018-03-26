@@ -11,6 +11,7 @@ type ContextRef interface {
 	CallingContext() *Context
 	EntryContext() *Context
 	PopContext()
+	CheckWitness(address common.Address) bool
 	Execute() error
 }
 

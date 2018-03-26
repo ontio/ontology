@@ -25,22 +25,11 @@ import (
 	cstates "github.com/Ontology/core/states"
 	"github.com/Ontology/common"
 	"github.com/Ontology/smartcontract/service/native/states"
-	"github.com/Ontology/vm/types"
 )
 
 var (
 	addressHeight = []byte("addressHeight")
 )
-
-func checkWitness(native *NativeService, address common.Address) bool {
-	addresses := native.Tx.GetSignatureAddresses()
-	for _, v := range addresses {
-		if v == address {
-			return true
-		}
-	}
-	return false
-}
 
 func getAddressHeightKey(contract, address common.Address) []byte {
 	temp := append(addressHeight, address[:]...)
@@ -82,8 +71,8 @@ func isTransferValid(native *NativeService, state *states.State) error {
 		return errors.NewErr("Transfer amount invalid!")
 	}
 
-	if err := isSenderValid(native, state.From); err != nil {
-		return err
+	if native.ContextRef.CheckWitness(state.From) == false {
+		return errors.NewErr("[Sender] Authentication failed!")
 	}
 	return nil
 }
@@ -126,8 +115,9 @@ func isTransferFromValid(native *NativeService, state *states.TransferFrom) erro
 	if state.Value.Sign() < 0 {
 		return errors.NewErr("TransferFrom amount invalid!")
 	}
-	if err := isSenderValid(native, state.Sender); err != nil {
-		return err
+
+	if native.ContextRef.CheckWitness(state.From) == false {
+		return errors.NewErr("[Sender] Authentication failed!")
 	}
 	return nil
 }
@@ -136,26 +126,8 @@ func isApproveValid(native *NativeService, state *states.State) error {
 	if state.Value.Sign() < 0 {
 		return errors.NewErr("Approve amount invalid!")
 	}
-	if err := isSenderValid(native, state.From); err != nil {
-		return err
-	}
-	return nil
-}
-
-func isSenderValid(native *NativeService, sender common.Address) error {
-	vmType := sender[0]
-	if  vmType == byte(types.Native) || vmType == byte(types.NEOVM) || vmType == byte(types.WASMVM) {
-		callContext := native.ContextRef.CallingContext()
-		if callContext != nil {
-			return errors.NewErr("[Sender] CallingContext nil, Authentication failed!")
-		}
-		if sender != callContext.ContractAddress {
-			return errors.NewErr("[Sender] CallingContext invalid, Authentication failed!")
-		}
-	} else {
-		if !checkWitness(native, sender) {
-			return errors.NewErr("[Sender] Authentication failed!")
-		}
+	if native.ContextRef.CheckWitness(state.From) == false {
+		return errors.NewErr("[Sender] Authentication failed!")
 	}
 	return nil
 }
