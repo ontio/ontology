@@ -131,7 +131,7 @@ func isSenderValid(native *NativeService, sender common.Address) error {
 		if callContext != nil {
 			return errors.NewErr("[Sender] CallingContext nil, Authentication failed!")
 		}
-		if sender == callContext.ContractAddress {
+		if sender != callContext.ContractAddress {
 			return errors.NewErr("[Sender] CallingContext invalid, Authentication failed!")
 		}
 	} else {
