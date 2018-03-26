@@ -27,8 +27,7 @@ import (
 )
 
 type DeployCode struct {
-	VmType      vmtypes.VmType
-	Code        []byte
+	Code        *vmtypes.VmCode
 	NeedStorage bool
 	Name        string
 	Version     string
@@ -39,12 +38,8 @@ type DeployCode struct {
 
 func (dc *DeployCode) Serialize(w io.Writer) error {
 	var err error
-	err = serialization.WriteByte(w, byte(dc.VmType))
-	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "DeployCode VmType Serialize failed.")
-	}
 
-	err = serialization.WriteVarBytes(w, dc.Code)
+	err = dc.Code.Serialize(w)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "DeployCode Code Serialize failed.")
 	}
@@ -83,16 +78,14 @@ func (dc *DeployCode) Serialize(w io.Writer) error {
 }
 
 func (dc *DeployCode) Deserialize(r io.Reader) error {
-	vmType, err := serialization.ReadByte(r)
-	if err != nil {
-		return err
-	}
-	dc.VmType = vmtypes.VmType(vmType)
+	var err error
+	code := new(vmtypes.VmCode)
 
-	dc.Code, err = serialization.ReadVarBytes(r)
+	err = code.Deserialize(r)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "DeployCode Code Deserialize failed.")
 	}
+	dc.Code = code
 
 	dc.NeedStorage, err = serialization.ReadBool(r)
 	if err != nil {
