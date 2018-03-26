@@ -33,62 +33,62 @@ func NewSessionList() *SessionList {
 		mapOnlineList: make(map[string]*Session),
 	}
 }
-func (sl *SessionList) NewSession(wsConn *websocket.Conn) (session *Session, err error) {
+func (this *SessionList) NewSession(wsConn *websocket.Conn) (session *Session, err error) {
 	session, err = newSession(wsConn)
 	if err == nil {
-		sl.addOnlineSession(session)
+		this.addOnlineSession(session)
 	}
 	return session, err
 }
-func (sl *SessionList) CloseSession(session *Session) {
+func (this *SessionList) CloseSession(session *Session) {
 	if session == nil {
 		return
 	}
-	sl.removeSession(session)
+	this.removeSession(session)
 	session.close()
 }
-func (sl *SessionList) addOnlineSession(session *Session) {
+func (this *SessionList) addOnlineSession(session *Session) {
 	if session.GetSessionId() == "" {
 		return
 	}
-	sl.Lock()
-	defer sl.Unlock()
-	sl.mapOnlineList[session.GetSessionId()] = session
+	this.Lock()
+	defer this.Unlock()
+	this.mapOnlineList[session.GetSessionId()] = session
 }
 
-func (sl *SessionList) removeSession(iSession *Session) (err error) {
-	return sl.removeSessionById(iSession.GetSessionId())
+func (this *SessionList) removeSession(iSession *Session) (err error) {
+	return this.removeSessionById(iSession.GetSessionId())
 }
 
-func (sl *SessionList) removeSessionById(sSessionId string) (err error) {
+func (this *SessionList) removeSessionById(sSessionId string) (err error) {
 
 	if sSessionId == "" {
 		return err
 	}
-	sl.Lock()
-	defer sl.Unlock()
-	delete(sl.mapOnlineList, sSessionId)
+	this.Lock()
+	defer this.Unlock()
+	delete(this.mapOnlineList, sSessionId)
 	return nil
 }
 
-func (sl *SessionList) GetSessionById(sSessionId string) *Session {
-	sl.RLock()
-	defer sl.RUnlock()
-	if session, ok := sl.mapOnlineList[sSessionId]; ok {
+func (this *SessionList) GetSessionById(sSessionId string) *Session {
+	this.RLock()
+	defer this.RUnlock()
+	if session, ok := this.mapOnlineList[sSessionId]; ok {
 		return session
 	}
 	return nil
 
 }
-func (sl *SessionList) GetSessionCount() int {
-	sl.RLock()
-	defer sl.RUnlock()
-	return len(sl.mapOnlineList)
+func (this *SessionList) GetSessionCount() int {
+	this.RLock()
+	defer this.RUnlock()
+	return len(this.mapOnlineList)
 }
-func (sl *SessionList) ForEachSession(visit func(*Session)) {
-	sl.RLock()
-	defer sl.RUnlock()
-	for _, v := range sl.mapOnlineList {
+func (this *SessionList) ForEachSession(visit func(*Session)) {
+	this.RLock()
+	defer this.RUnlock()
+	for _, v := range this.mapOnlineList {
 		visit(v)
 	}
 }

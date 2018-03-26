@@ -19,7 +19,7 @@
 package common
 
 import (
-	. "github.com/Ontology/common"
+	"github.com/Ontology/common"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/types"
 )
@@ -107,7 +107,7 @@ func TransPayloadToHex(p types.Payload) PayloadInfo {
 	case *payload.Bookkeeper:
 		obj := new(BookkeeperInfo)
 		encodedPubKey, _ := object.PubKey.EncodePoint(true)
-		obj.PubKey = ToHexString(encodedPubKey)
+		obj.PubKey = common.ToHexString(encodedPubKey)
 		if object.Action == payload.BookkeeperAction_ADD {
 			obj.Action = "add"
 		} else if object.Action == payload.BookkeeperAction_SUB {
@@ -117,19 +117,19 @@ func TransPayloadToHex(p types.Payload) PayloadInfo {
 		}
 		pk,err :=object.Issuer.EncodePoint(true)
 		if err == nil{
-			obj.Issuer = ToHexString(pk)
+			obj.Issuer = common.ToHexString(pk)
 		}
 		return obj
 	case *payload.InvokeCode:
 		obj := new(InvokeCodeInfo)
-		obj.Code = ToHexString(object.Code.Code)
+		obj.Code = common.ToHexString(object.Code.Code)
 		obj.GasLimit = uint64(object.GasLimit)
 		obj.VmType = int(object.Code.VmType)
 		return obj
 	case *payload.DeployCode:
 		obj := new(DeployCodeInfo)
 		obj.VmType = int(object.Code.VmType)
-		obj.Code = ToHexString(object.Code.Code)
+		obj.Code = common.ToHexString(object.Code.Code)
 		obj.NeedStorage = object.NeedStorage
 		obj.Name = object.Name
 		obj.CodeVersion = object.Version
@@ -140,10 +140,10 @@ func TransPayloadToHex(p types.Payload) PayloadInfo {
 	case *payload.Vote:
 		obj := new(VoteInfo)
 		obj.PubKeys = make([]string, len(object.PubKeys))
-		obj.Voter = ToHexString(object.Account[:])
+		obj.Voter = common.ToHexString(object.Account[:])
 		for i, key := range object.PubKeys {
 			encodedPubKey, _ := key.EncodePoint(true)
-			obj.PubKeys[i] = ToHexString(encodedPubKey)
+			obj.PubKeys[i] = common.ToHexString(encodedPubKey)
 		}
 	}
 	return nil

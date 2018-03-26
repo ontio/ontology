@@ -23,9 +23,9 @@ import (
 )
 
 func responseSuccess(result interface{}) map[string]interface{} {
-	return responsePacking(Err.SUCCESS, result)
+	return responsePack(Err.SUCCESS, result)
 }
-func responsePacking(errcode int64, result interface{}) map[string]interface{} {
+func responsePack(errcode int64, result interface{}) map[string]interface{} {
 	resp := map[string]interface{}{
 		"error":  errcode,
 		"desc":   Err.ErrMap[errcode],

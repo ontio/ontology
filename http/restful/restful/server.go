@@ -19,10 +19,10 @@
 package restful
 
 import (
-	. "github.com/Ontology/common/config"
+	cfg "github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
-	. "github.com/Ontology/http/base/rest"
-	Err "github.com/Ontology/http/base/error"
+	"github.com/Ontology/http/base/rest"
+	berr "github.com/Ontology/http/base/error"
 	"github.com/Ontology/http/websocket"
 	"context"
 	"crypto/tls"
@@ -70,7 +70,7 @@ const (
 	Api_GetBlkHeightByTxHash = "/api/v1/block/height/txhash/:hash"
 )
 
-func InitRestServer() ApiServer {
+func InitRestServer() rest.ApiServer {
 	rt := &restServer{}
 
 	rt.router = NewRouter()
@@ -80,30 +80,30 @@ func InitRestServer() ApiServer {
 	return rt
 }
 
-func (rt *restServer) Start() error {
-	if Parameters.HttpRestPort == 0 {
+func (this *restServer) Start() error {
+	if cfg.Parameters.HttpRestPort == 0 {
 		log.Fatal("Not configure HttpRestPort port ")
 		return nil
 	}
 
 	tlsFlag := false
-	if tlsFlag || Parameters.HttpRestPort % 1000 == TlsPort {
+	if tlsFlag || cfg.Parameters.HttpRestPort % 1000 == rest.TlsPort {
 		var err error
-		rt.listener, err = rt.initTlsListen()
+		this.listener, err = this.initTlsListen()
 		if err != nil {
 			log.Error("Https Cert: ", err.Error())
 			return err
 		}
 	} else {
 		var err error
-		rt.listener, err = net.Listen("tcp", ":" + strconv.Itoa(Parameters.HttpRestPort))
+		this.listener, err = net.Listen("tcp", ":" + strconv.Itoa(cfg.Parameters.HttpRestPort))
 		if err != nil {
 			log.Fatal("net.Listen: ", err.Error())
 			return err
 		}
 	}
-	rt.server = &http.Server{Handler: rt.router}
-	err := rt.server.Serve(rt.listener)
+	this.server = &http.Server{Handler: this.router}
+	err := this.server.Serve(this.listener)
 
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err.Error())
@@ -112,11 +112,11 @@ func (rt *restServer) Start() error {
 
 	return nil
 }
-func (rt *restServer) setWebsocketState(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
+func (this *restServer) setWebsocketState(cmd map[string]interface{}) map[string]interface{} {
+	resp := rest.ResponsePack(berr.SUCCESS)
 	startFlag, ok := cmd["Open"].(bool)
 	if !ok {
-		resp["Error"] = Err.INVALID_PARAMS
+		resp["Error"] = berr.INVALID_PARAMS
 		return resp
 	}
 	if b, ok := cmd["PushBlock"].(bool); ok {
@@ -129,7 +129,7 @@ func (rt *restServer) setWebsocketState(cmd map[string]interface{}) map[string]i
 		websocket.SetPushBlockTxsFlag(b)
 	}
 	if wsPort, ok := cmd["Port"].(float64); ok && wsPort != 0 {
-		Parameters.HttpWsPort = int(wsPort)
+		cfg.Parameters.HttpWsPort = int(wsPort)
 	}
 	if startFlag {
 		websocket.ReStartServer()
@@ -138,35 +138,35 @@ func (rt *restServer) setWebsocketState(cmd map[string]interface{}) map[string]i
 	}
 	var result = make(map[string]interface{})
 	result["Open"] = startFlag
-	result["Port"] = Parameters.HttpWsPort
+	result["Port"] = cfg.Parameters.HttpWsPort
 	result["PushBlock"] = websocket.GetWsPushBlockFlag()
 	result["PushRawBlock"] = websocket.GetPushRawBlockFlag()
 	result["PushBlockTxs"] = websocket.GetPushBlockTxsFlag()
 	resp["Result"] = result
 	return resp
 }
-func (rt *restServer) registryMethod() {
+func (this *restServer) registryMethod() {
 
 	getMethodMap := map[string]Action{
-		Api_GetGenBlockTime:  {name: "getgenerateblocktime", handler: GetGenerateBlockTime},
-		Api_GetconnCount:  {name: "getconnectioncount", handler: GetConnectionCount},
-		Api_GetblkTxsByHeight: {name: "getblocktxsbyheight", handler: GetBlockTxsByHeight},
-		Api_Getblkbyheight:    {name: "getblockbyheight", handler: GetBlockByHeight},
-		Api_Getblkbyhash:         {name: "getblockbyhash", handler: GetBlockByHash},
-		Api_Getblkheight:         {name: "getblockheight", handler: GetBlockHeight},
-		Api_Getblkhash:           {name: "getblockhash", handler: GetBlockHash},
-		Api_GetTransaction:       {name: "gettransaction", handler: GetTransactionByHash},
-		Api_GetContractState:     {name: "getcontract", handler: GetContractState},
-		Api_Restart:              {name: "restart", handler: rt.Restart},
-		Api_GetSmtCodeEvtByHgt:    {name: "getsmartcodeeventbyheight", handler: GetSmartCodeEventByHeight},
-		Api_GetSmtCodeEvtByHash:    {name: "getsmartcodeeventbyhash", handler: GetSmartCodeEventByTxHash},
-		Api_GetBlkHeightByTxHash: {name: "getblockheightbytxhash", handler: GetBlockHeightByTxHash},
-		Api_GetStorage:           {name: "getstorage", handler: GetStorage},
-		Api_GetBalanceByAddr:    {name: "getbalance", handler: GetBalance},
+		Api_GetGenBlockTime:  {name: "getgenerateblocktime", handler: rest.GetGenerateBlockTime},
+		Api_GetconnCount:  {name: "getconnectioncount", handler: rest.GetConnectionCount},
+		Api_GetblkTxsByHeight: {name: "getblocktxsbyheight", handler: rest.GetBlockTxsByHeight},
+		Api_Getblkbyheight:    {name: "getblockbyheight", handler: rest.GetBlockByHeight},
+		Api_Getblkbyhash:         {name: "getblockbyhash", handler: rest.GetBlockByHash},
+		Api_Getblkheight:         {name: "getblockheight", handler: rest.GetBlockHeight},
+		Api_Getblkhash:           {name: "getblockhash", handler: rest.GetBlockHash},
+		Api_GetTransaction:       {name: "gettransaction", handler: rest.GetTransactionByHash},
+		Api_GetContractState:     {name: "getcontract", handler: rest.GetContractState},
+		Api_Restart:              {name: "restart", handler: this.Restart},
+		Api_GetSmtCodeEvtByHgt:    {name: "getsmartcodeeventbyheight", handler: rest.GetSmartCodeEventByHeight},
+		Api_GetSmtCodeEvtByHash:    {name: "getsmartcodeeventbyhash", handler: rest.GetSmartCodeEventByTxHash},
+		Api_GetBlkHeightByTxHash: {name: "getblockheightbytxhash", handler: rest.GetBlockHeightByTxHash},
+		Api_GetStorage:           {name: "getstorage", handler: rest.GetStorage},
+		Api_GetBalanceByAddr:    {name: "getbalance", handler: rest.GetBalance},
 	}
 
 	sendRawTransaction := func(cmd map[string]interface{}) map[string]interface{} {
-		resp := SendRawTransaction(cmd)
+		resp := rest.SendRawTransaction(cmd)
 		if userid, ok := resp["Userid"].(string); ok && len(userid) > 0 {
 			if result, ok := resp["Result"].(string); ok {
 				websocket.SetTxHashMap(result, userid)
@@ -177,12 +177,12 @@ func (rt *restServer) registryMethod() {
 	}
 	postMethodMap := map[string]Action{
 		Api_SendRawTx:          {name: "sendrawtransaction", handler: sendRawTransaction},
-		Api_WebsocketState:     {name: "setwebsocketstate", handler: rt.setWebsocketState},
+		Api_WebsocketState:     {name: "setwebsocketstate", handler: this.setWebsocketState},
 	}
-	rt.postMap = postMethodMap
-	rt.getMap = getMethodMap
+	this.postMap = postMethodMap
+	this.getMap = getMethodMap
 }
-func (rt *restServer) getPath(url string) string {
+func (this *restServer) getPath(url string) string {
 
 	if strings.Contains(url, strings.TrimRight(Api_GetblkTxsByHeight, ":height")) {
 		return Api_GetblkTxsByHeight
@@ -209,7 +209,7 @@ func (rt *restServer) getPath(url string) string {
 	}
 	return url
 }
-func (rt *restServer) getParams(r *http.Request, url string, req map[string]interface{}) map[string]interface{} {
+func (this *restServer) getParams(r *http.Request, url string, req map[string]interface{}) map[string]interface{} {
 	switch url {
 	case Api_GetGenBlockTime:
 	case Api_GetconnCount:
@@ -249,29 +249,29 @@ func (rt *restServer) getParams(r *http.Request, url string, req map[string]inte
 	}
 	return req
 }
-func (rt *restServer) initGetHandler() {
+func (this *restServer) initGetHandler() {
 
-	for k, _ := range rt.getMap {
-		rt.router.Get(k, func(w http.ResponseWriter, r *http.Request) {
+	for k, _ := range this.getMap {
+		this.router.Get(k, func(w http.ResponseWriter, r *http.Request) {
 
 			var req = make(map[string]interface{})
 			var resp map[string]interface{}
 
-			url := rt.getPath(r.URL.Path)
-			if h, ok := rt.getMap[url]; ok {
-				req = rt.getParams(r, url, req)
+			url := this.getPath(r.URL.Path)
+			if h, ok := this.getMap[url]; ok {
+				req = this.getParams(r, url, req)
 				resp = h.handler(req)
 				resp["Action"] = h.name
 			} else {
-				resp = ResponsePack(Err.INVALID_METHOD)
+				resp = rest.ResponsePack(berr.INVALID_METHOD)
 			}
-			rt.response(w, resp)
+			this.response(w, resp)
 		})
 	}
 }
-func (rt *restServer) initPostHandler() {
-	for k, _ := range rt.postMap {
-		rt.router.Post(k, func(w http.ResponseWriter, r *http.Request) {
+func (this *restServer) initPostHandler() {
+	for k, _ := range this.postMap {
+		this.router.Post(k, func(w http.ResponseWriter, r *http.Request) {
 
 			body, _ := ioutil.ReadAll(r.Body)
 			defer r.Body.Close()
@@ -279,69 +279,69 @@ func (rt *restServer) initPostHandler() {
 			var req = make(map[string]interface{})
 			var resp map[string]interface{}
 
-			url := rt.getPath(r.URL.Path)
-			if h, ok := rt.postMap[url]; ok {
+			url := this.getPath(r.URL.Path)
+			if h, ok := this.postMap[url]; ok {
 				if err := json.Unmarshal(body, &req); err == nil {
-					req = rt.getParams(r, url, req)
+					req = this.getParams(r, url, req)
 					resp = h.handler(req)
 					resp["Action"] = h.name
 				} else {
-					resp = ResponsePack(Err.ILLEGAL_DATAFORMAT)
+					resp = rest.ResponsePack(berr.ILLEGAL_DATAFORMAT)
 					resp["Action"] = h.name
 				}
 			} else {
-				resp = ResponsePack(Err.INVALID_METHOD)
+				resp = rest.ResponsePack(berr.INVALID_METHOD)
 			}
-			rt.response(w, resp)
+			this.response(w, resp)
 		})
 	}
 	//Options
-	for k, _ := range rt.postMap {
-		rt.router.Options(k, func(w http.ResponseWriter, r *http.Request) {
-			rt.write(w, []byte{})
+	for k, _ := range this.postMap {
+		this.router.Options(k, func(w http.ResponseWriter, r *http.Request) {
+			this.write(w, []byte{})
 		})
 	}
 
 }
-func (rt *restServer) write(w http.ResponseWriter, data []byte) {
+func (this *restServer) write(w http.ResponseWriter, data []byte) {
 	w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
 	w.Header().Set("content-type", "application/json;charset=utf-8")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(data)
 }
-func (rt *restServer) response(w http.ResponseWriter, resp map[string]interface{}) {
-	resp["Desc"] = Err.ErrMap[resp["Error"].(int64)]
+func (this *restServer) response(w http.ResponseWriter, resp map[string]interface{}) {
+	resp["Desc"] = berr.ErrMap[resp["Error"].(int64)]
 	data, err := json.Marshal(resp)
 	if err != nil {
 		log.Fatal("HTTP Handle - json.Marshal: %v", err)
 		return
 	}
-	rt.write(w, data)
+	this.write(w, data)
 }
-func (rt *restServer) Stop() {
-	if rt.server != nil {
-		rt.server.Shutdown(context.Background())
+func (this *restServer) Stop() {
+	if this.server != nil {
+		this.server.Shutdown(context.Background())
 		log.Error("Close restful ")
 	}
 }
-func (rt *restServer) Restart(cmd map[string]interface{}) map[string]interface{} {
+func (this *restServer) Restart(cmd map[string]interface{}) map[string]interface{} {
 	go func() {
 		time.Sleep(time.Second)
-		rt.Stop()
+		this.Stop()
 		time.Sleep(time.Second)
-		go rt.Start()
+		go this.Start()
 	}()
 
-	var resp = ResponsePack(Err.SUCCESS)
+	var resp = rest.ResponsePack(berr.SUCCESS)
 	return resp
 }
-func (rt *restServer) initTlsListen() (net.Listener, error) {
+func (this *restServer) initTlsListen() (net.Listener, error) {
 
-	CertPath := Parameters.RestCertPath
-	KeyPath := Parameters.RestKeyPath
+	certPath := cfg.Parameters.RestCertPath
+	keyPath := cfg.Parameters.RestKeyPath
 
 	// load cert
-	cert, err := tls.LoadX509KeyPair(CertPath, KeyPath)
+	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
 	if err != nil {
 		log.Error("load keys fail", err)
 		return nil, err
@@ -351,8 +351,8 @@ func (rt *restServer) initTlsListen() (net.Listener, error) {
 		Certificates: []tls.Certificate{cert},
 	}
 
-	log.Info("TLS listen port is ", strconv.Itoa(Parameters.HttpRestPort))
-	listener, err := tls.Listen("tcp", ":" + strconv.Itoa(Parameters.HttpRestPort), tlsConfig)
+	log.Info("TLS listen port is ", strconv.Itoa(cfg.Parameters.HttpRestPort))
+	listener, err := tls.Listen("tcp", ":" + strconv.Itoa(cfg.Parameters.HttpRestPort), tlsConfig)
 	if err != nil {
 		log.Error(err)
 		return nil, err

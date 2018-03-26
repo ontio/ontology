@@ -39,7 +39,7 @@ func StartLocalServer() {
 	HandleFunc("getnodestate", GetNodeState)
 	HandleFunc("startconsensus", StartConsensus)
 	HandleFunc("stopconsensus", StopConsensus)
-	HandleFunc("sendsampletransaction", SendSampleTransaction)
+	//HandleFunc("sendsampletransaction", SendSampleTransaction)
 	HandleFunc("setdebuginfo", SetDebugInfo)
 
 	// TODO: only listen to local host

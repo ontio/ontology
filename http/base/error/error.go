@@ -18,7 +18,7 @@
 
 package error
 
-import . "github.com/Ontology/errors"
+import onterr "github.com/Ontology/errors"
 
 const (
 	SUCCESS            int64 = 0
@@ -63,17 +63,17 @@ var ErrMap = map[int64]string{
 
 	INTERNAL_ERROR:                 "INTERNAL ERROR",
 	SMARTCODE_ERROR:                "SMARTCODE EXEC ERROR",
-	int64(ErrDuplicatedTx):         "INTERNAL ERROR, ErrDuplicatedTx",
-	int64(ErrDuplicateInput):       "INTERNAL ERROR, ErrDuplicateInput",
-	int64(ErrAssetPrecision):       "INTERNAL ERROR, ErrAssetPrecision",
-	int64(ErrTransactionBalance):   "INTERNAL ERROR, ErrTransactionBalance",
-	int64(ErrAttributeProgram):     "INTERNAL ERROR, ErrAttributeProgram",
-	int64(ErrTransactionContracts): "INTERNAL ERROR, ErrTransactionContracts",
-	int64(ErrTransactionPayload):   "INTERNAL ERROR, ErrTransactionPayload",
-	int64(ErrDoubleSpend):          "INTERNAL ERROR, ErrDoubleSpend",
-	int64(ErrTxHashDuplicate):      "INTERNAL ERROR, ErrTxHashDuplicate",
-	int64(ErrStateUpdaterVaild):    "INTERNAL ERROR, ErrStateUpdaterVaild",
-	int64(ErrSummaryAsset):         "INTERNAL ERROR, ErrSummaryAsset",
-	int64(ErrXmitFail):             "INTERNAL ERROR, ErrXmitFail",
-	int64(ErrNoAccount):            "INTERNAL ERROR, ErrNoAccount",
+	int64(onterr.ErrDuplicatedTx):         "INTERNAL ERROR, ErrDuplicatedTx",
+	int64(onterr.ErrDuplicateInput):       "INTERNAL ERROR, ErrDuplicateInput",
+	int64(onterr.ErrAssetPrecision):       "INTERNAL ERROR, ErrAssetPrecision",
+	int64(onterr.ErrTransactionBalance):   "INTERNAL ERROR, ErrTransactionBalance",
+	int64(onterr.ErrAttributeProgram):     "INTERNAL ERROR, ErrAttributeProgram",
+	int64(onterr.ErrTransactionContracts): "INTERNAL ERROR, ErrTransactionContracts",
+	int64(onterr.ErrTransactionPayload):   "INTERNAL ERROR, ErrTransactionPayload",
+	int64(onterr.ErrDoubleSpend):          "INTERNAL ERROR, ErrDoubleSpend",
+	int64(onterr.ErrTxHashDuplicate):      "INTERNAL ERROR, ErrTxHashDuplicate",
+	int64(onterr.ErrStateUpdaterVaild):    "INTERNAL ERROR, ErrStateUpdaterVaild",
+	int64(onterr.ErrSummaryAsset):         "INTERNAL ERROR, ErrSummaryAsset",
+	int64(onterr.ErrXmitFail):             "INTERNAL ERROR, ErrXmitFail",
+	int64(onterr.ErrNoAccount):            "INTERNAL ERROR, ErrNoAccount",
 }

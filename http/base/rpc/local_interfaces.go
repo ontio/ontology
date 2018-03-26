@@ -20,9 +20,9 @@ package rpc
 
 import (
 	"github.com/Ontology/common/log"
-	. "github.com/Ontology/http/base/common"
-	. "github.com/Ontology/http/base/actor"
-	Err "github.com/Ontology/http/base/error"
+	"github.com/Ontology/http/base/common"
+	bactor "github.com/Ontology/http/base/actor"
+	berr "github.com/Ontology/http/base/error"
 	"os"
 	"path/filepath"
 )
@@ -40,48 +40,48 @@ func getCurrentDirectory() string {
 }
 
 func GetNeighbor(params []interface{}) map[string]interface{} {
-	addr, _ := GetNeighborAddrs()
+	addr, _ := bactor.GetNeighborAddrs()
 	return responseSuccess(addr)
 }
 
 func GetNodeState(params []interface{}) map[string]interface{} {
-	state,err := GetConnectionState()
+	state,err := bactor.GetConnectionState()
 	if err != nil {
-		return responsePacking(Err.INTERNAL_ERROR, false)
+		return responsePack(berr.INTERNAL_ERROR, false)
 	}
-	t,err := GetNodeTime()
+	t,err := bactor.GetNodeTime()
 	if err != nil {
-		return responsePacking(Err.INTERNAL_ERROR, false)
+		return responsePack(berr.INTERNAL_ERROR, false)
 	}
-	port,err := GetNodePort()
+	port,err := bactor.GetNodePort()
 	if err != nil {
-		return responsePacking(Err.INTERNAL_ERROR, false)
+		return responsePack(berr.INTERNAL_ERROR, false)
 	}
-	id,err := GetID()
+	id,err := bactor.GetID()
 	if err != nil {
-		return responsePacking(Err.INTERNAL_ERROR, false)
+		return responsePack(berr.INTERNAL_ERROR, false)
 	}
-	ver,err := GetVersion()
+	ver,err := bactor.GetVersion()
 	if err != nil {
-		return responsePacking(Err.INTERNAL_ERROR, false)
+		return responsePack(berr.INTERNAL_ERROR, false)
 	}
-	tpe,err := GetNodeType()
+	tpe,err := bactor.GetNodeType()
 	if err != nil {
-		return responsePacking(Err.INTERNAL_ERROR, false)
+		return responsePack(berr.INTERNAL_ERROR, false)
 	}
-	relay,err := GetRelayState()
+	relay,err := bactor.GetRelayState()
 	if err != nil {
-		return responsePacking(Err.INTERNAL_ERROR, false)
+		return responsePack(berr.INTERNAL_ERROR, false)
 	}
-	height,err := BlockHeight()
+	height,err := bactor.BlockHeight()
 	if err != nil {
-		return responsePacking(Err.INTERNAL_ERROR, false)
+		return responsePack(berr.INTERNAL_ERROR, false)
 	}
-	txnCnt,err := GetTxnCnt()
+	txnCnt,err := bactor.GetTxnCnt()
 	if err != nil {
-		return responsePacking(Err.INTERNAL_ERROR, false)
+		return responsePack(berr.INTERNAL_ERROR, false)
 	}
-	n := NodeInfo{
+	n := common.NodeInfo{
 		NodeState:    uint(state),
 		NodeTime:     t,
 		NodePort:     port,
@@ -96,76 +96,31 @@ func GetNodeState(params []interface{}) map[string]interface{} {
 }
 
 func StartConsensus(params []interface{}) map[string]interface{} {
-	if err := ConsensusSrvStart(); err != nil {
-		return responsePacking(Err.INTERNAL_ERROR, false)
+	if err := bactor.ConsensusSrvStart(); err != nil {
+		return responsePack(berr.INTERNAL_ERROR, false)
 	}
-	return responsePacking(Err.SUCCESS, true)
+	return responsePack(berr.SUCCESS, true)
 }
 
 func StopConsensus(params []interface{}) map[string]interface{} {
-	if err := ConsensusSrvHalt(); err != nil {
-		return responsePacking(Err.INTERNAL_ERROR, false)
+	if err := bactor.ConsensusSrvHalt(); err != nil {
+		return responsePack(berr.INTERNAL_ERROR, false)
 	}
-	return responsePacking(Err.SUCCESS, true)
-}
-
-func SendSampleTransaction(params []interface{}) map[string]interface{} {
-	panic("need reimplementation")
-	return nil
-
-	/*
-		if len(params) < 1 {
-			return DnaRpcNil
-		}
-		var txType string
-		switch params[0].(type) {
-		case string:
-			txType = params[0].(string)
-		default:
-			return DnaRpcInvalidParameter
-		}
-
-		issuer, err := account.NewAccount()
-		if err != nil {
-			return DnaRpc("Failed to create account")
-		}
-		admin := issuer
-
-		rbuf := make([]byte, RANDBYTELEN)
-		rand.Read(rbuf)
-		switch string(txType) {
-		case "perf":
-			num := 1
-			if len(params) == 2 {
-				switch params[1].(type) {
-				case float64:
-					num = int(params[1].(float64))
-				}
-			}
-			for i := 0; i < num; i++ {
-				regTx := NewRegTx(ToHexString(rbuf), i, admin, issuer)
-				SignTx(admin, regTx)
-				VerifyAndSendTx(regTx)
-			}
-			return DnaRpc(fmt.Sprintf("%d transaction(s) was sent", num))
-		default:
-			return DnaRpc("Invalid transacion type")
-		}
-	*/
+	return responsePack(berr.SUCCESS, true)
 }
 
 func SetDebugInfo(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
-		return responsePacking(Err.INVALID_PARAMS, "")
+		return responsePack(berr.INVALID_PARAMS, "")
 	}
 	switch params[0].(type) {
 	case float64:
 		level := params[0].(float64)
 		if err := log.Log.SetDebugLevel(int(level)); err != nil {
-			return responsePacking(Err.INVALID_PARAMS, "")
+			return responsePack(berr.INVALID_PARAMS, "")
 		}
 	default:
-		return responsePacking(Err.INVALID_PARAMS, "")
+		return responsePack(berr.INVALID_PARAMS, "")
 	}
-	return responsePacking(Err.SUCCESS, true)
+	return responsePack(berr.SUCCESS, true)
 }

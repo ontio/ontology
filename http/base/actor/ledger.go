@@ -22,8 +22,8 @@ import (
 	"time"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/Ontology/core/types"
-	. "github.com/Ontology/core/ledger/actor"
-	. "github.com/Ontology/common"
+	lactor "github.com/Ontology/core/ledger/actor"
+	"github.com/Ontology/common"
 	"errors"
 	"github.com/Ontology/smartcontract/event"
 	"github.com/Ontology/core/payload"
@@ -41,42 +41,42 @@ func SetLedgerPid(actr *actor.PID) {
 	defLedgerPid = actr
 }
 
-func GetBlockHashFromStore(height uint32) (Uint256, error) {
-	future := defLedgerPid.RequestFuture(&GetBlockHashReq{height}, ReqTimeout*time.Second)
+func GetBlockHashFromStore(height uint32) (common.Uint256, error) {
+	future := defLedgerPid.RequestFuture(&lactor.GetBlockHashReq{height}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ErrActorComm, err)
-		return Uint256{}, err
+		return common.Uint256{}, err
 	}
-	if rsp, ok := result.(*GetBlockHashRsp); !ok {
-		return Uint256{}, errors.New("fail")
+	if rsp, ok := result.(*lactor.GetBlockHashRsp); !ok {
+		return common.Uint256{}, errors.New("fail")
 	} else {
 		return rsp.BlockHash, rsp.Error
 	}
 }
 
-func CurrentBlockHash() (Uint256, error) {
-	future := defLedgerPid.RequestFuture(&GetCurrentBlockHashReq{}, ReqTimeout*time.Second)
+func CurrentBlockHash() (common.Uint256, error) {
+	future := defLedgerPid.RequestFuture(&lactor.GetCurrentBlockHashReq{}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ErrActorComm, err)
-		return Uint256{}, err
+		return common.Uint256{}, err
 	}
-	if rsp, ok := result.(*GetCurrentBlockHashRsp); !ok {
-		return Uint256{}, errors.New("fail")
+	if rsp, ok := result.(*lactor.GetCurrentBlockHashRsp); !ok {
+		return common.Uint256{}, errors.New("fail")
 	} else {
 		return rsp.BlockHash, rsp.Error
 	}
 }
 
-func GetBlockFromStore(hash Uint256) (*types.Block, error) {
-	future := defLedgerPid.RequestFuture(&GetBlockByHashReq{hash}, ReqTimeout*time.Second)
+func GetBlockFromStore(hash common.Uint256) (*types.Block, error) {
+	future := defLedgerPid.RequestFuture(&lactor.GetBlockByHashReq{hash}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ErrActorComm, err)
 		return nil, err
 	}
-	if rsp, ok := result.(*GetBlockByHashRsp); !ok {
+	if rsp, ok := result.(*lactor.GetBlockByHashRsp); !ok {
 		return nil, errors.New("fail")
 	} else {
 		return rsp.Block, rsp.Error
@@ -84,69 +84,70 @@ func GetBlockFromStore(hash Uint256) (*types.Block, error) {
 }
 
 func BlockHeight() (uint32, error) {
-	future := defLedgerPid.RequestFuture(&GetCurrentBlockHeightReq{}, ReqTimeout*time.Second)
+	future := defLedgerPid.RequestFuture(&lactor.GetCurrentBlockHeightReq{}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ErrActorComm, err)
 		return 0, err
 	}
-	if rsp, ok := result.(*GetCurrentBlockHeightRsp); !ok {
+	if rsp, ok := result.(*lactor.GetCurrentBlockHeightRsp); !ok {
 		return 0, errors.New("fail")
 	} else {
 		return rsp.Height, rsp.Error
 	}
 }
 
-func GetTransaction(hash Uint256) (*types.Transaction, error) {
-	future := defLedgerPid.RequestFuture(&GetTransactionReq{hash}, ReqTimeout*time.Second)
+func GetTransaction(hash common.Uint256) (*types.Transaction, error) {
+	future := defLedgerPid.RequestFuture(&lactor.GetTransactionReq{hash}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ErrActorComm, err)
 		return nil, err
 	}
-	if rsp, ok := result.(*GetTransactionRsp); !ok {
+	if rsp, ok := result.(*lactor.GetTransactionRsp); !ok {
 		return nil, errors.New("fail")
 	} else {
 		return rsp.Tx, rsp.Error
 	}
 }
 
-func GetStorageItem(codeHash Address, key []byte) ([]byte, error) {
-	future := defLedgerPid.RequestFuture(&GetStorageItemReq{CodeHash: &codeHash, Key: key}, ReqTimeout*time.Second)
+func GetStorageItem(codeHash common.Address, key []byte) ([]byte, error) {
+	future := defLedgerPid.RequestFuture(&lactor.GetStorageItemReq{CodeHash: &codeHash, Key: key}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ErrActorComm, err)
 		return nil, err
 	}
-	if rsp, ok := result.(*GetStorageItemRsp); !ok {
+	if rsp, ok := result.(*lactor.GetStorageItemRsp); !ok {
 		return nil, errors.New("fail")
 	} else {
 		return rsp.Value, rsp.Error
 	}
 }
 
-func GetContractStateFromStore(hash Address) (*payload.DeployCode, error) {
-	future := defLedgerPid.RequestFuture(&GetContractStateReq{hash}, ReqTimeout*time.Second)
+func GetContractStateFromStore(hash common.Address) (*payload.DeployCode, error) {
+	future := defLedgerPid.RequestFuture(&lactor.GetContractStateReq{hash}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ErrActorComm, err)
 		return nil, err
 	}
-	if rsp, ok := result.(*GetContractStateRsp); !ok {
+	if rsp, ok := result.(*lactor.GetContractStateRsp); !ok {
+		log.Error(ErrActorComm,"GetContractStateRsp")
 		return nil, errors.New("fail")
 	} else {
 		return rsp.ContractState, rsp.Error
 	}
 }
 
-func GetBlockHeightByTxHashFromStore(hash Uint256) (uint32, error) {
-	future := defLedgerPid.RequestFuture(&GetTransactionWithHeightReq{hash}, ReqTimeout*time.Second)
+func GetBlockHeightByTxHashFromStore(hash common.Uint256) (uint32, error) {
+	future := defLedgerPid.RequestFuture(&lactor.GetTransactionWithHeightReq{hash}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ErrActorComm, err)
 		return 0, err
 	}
-	if rsp, ok := result.(*GetTransactionWithHeightRsp); !ok {
+	if rsp, ok := result.(*lactor.GetTransactionWithHeightRsp); !ok {
 		return 0, errors.New("fail")
 	} else {
 		return rsp.Height, rsp.Error
@@ -154,13 +155,13 @@ func GetBlockHeightByTxHashFromStore(hash Uint256) (uint32, error) {
 }
 
 func AddBlock(block *types.Block) error {
-	future := defLedgerPid.RequestFuture(&AddBlockReq{block}, ReqTimeout*time.Second)
+	future := defLedgerPid.RequestFuture(&lactor.AddBlockReq{block}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ErrActorComm, err)
 		return err
 	}
-	if rsp, ok := result.(*AddBlockRsp); !ok {
+	if rsp, ok := result.(*lactor.AddBlockRsp); !ok {
 		return errors.New("fail")
 	} else {
 		return rsp.Error
@@ -168,41 +169,41 @@ func AddBlock(block *types.Block) error {
 }
 
 func PreExecuteContract(tx *types.Transaction) ([]interface{}, error) {
-	future := defLedgerPid.RequestFuture(&PreExecuteContractReq{tx}, ReqTimeout*time.Second)
+	future := defLedgerPid.RequestFuture(&lactor.PreExecuteContractReq{tx}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ErrActorComm, err)
 		return nil, err
 	}
-	if rsp, ok := result.(*PreExecuteContractRsp); !ok {
+	if rsp, ok := result.(*lactor.PreExecuteContractRsp); !ok {
 		return nil, errors.New("fail")
 	} else {
 		return rsp.Result, rsp.Error
 	}
 }
 
-func GetEventNotifyByTxHash(txHash Uint256) ([]*event.NotifyEventInfo, error) {
-	future := defLedgerPid.RequestFuture(&GetEventNotifyByTxReq{txHash}, ReqTimeout*time.Second)
+func GetEventNotifyByTxHash(txHash common.Uint256) ([]*event.NotifyEventInfo, error) {
+	future := defLedgerPid.RequestFuture(&lactor.GetEventNotifyByTxReq{txHash}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ErrActorComm, err)
 		return nil, err
 	}
-	if rsp, ok := result.(*GetEventNotifyByTxRsp); !ok {
+	if rsp, ok := result.(*lactor.GetEventNotifyByTxRsp); !ok {
 		return nil,errors.New("fail")
 	}else {
 		return rsp.Notifies,rsp.Error
 	}
 }
 
-func GetEventNotifyByHeight(height uint32) ([]Uint256, error) {
-	future := defLedgerPid.RequestFuture(&GetEventNotifyByBlockReq{height}, ReqTimeout*time.Second)
+func GetEventNotifyByHeight(height uint32) ([]common.Uint256, error) {
+	future := defLedgerPid.RequestFuture(&lactor.GetEventNotifyByBlockReq{height}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ErrActorComm, err)
 		return nil, err
 	}
-	if rsp, ok := result.(*GetEventNotifyByBlockRsp); !ok {
+	if rsp, ok := result.(*lactor.GetEventNotifyByBlockRsp); !ok {
 		return nil,errors.New("fail")
 	}else {
 		return rsp.TxHashes,rsp.Error

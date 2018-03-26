@@ -21,7 +21,7 @@ package actor
 import (
 	"time"
 	"github.com/ontio/ontology-eventbus/actor"
-	. "github.com/Ontology/net/protocol"
+	"github.com/Ontology/net/protocol"
 	ac "github.com/Ontology/net/actor"
 	"errors"
 	"github.com/Ontology/common/log"
@@ -52,7 +52,7 @@ func GetConnectionCnt() (uint, error) {
 	return r.Cnt, nil
 }
 
-func GetNeighborAddrs() ([]NodeAddr, uint64) {
+func GetNeighborAddrs() ([]protocol.NodeAddr, uint64) {
 	future := netServerPid.RequestFuture(&ac.GetNeighborAddrsReq{}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
