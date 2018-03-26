@@ -403,7 +403,7 @@ func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 		for _, v := range eventInfos {
 			evs = append(evs, map[string]interface{}{"CodeHash": v.CodeHash,
 				"States": v.States,
-				"Container": v.Container})
+				"TxHash": v.TxHash})
 		}
 		return responseSuccess(evs)
 	default:

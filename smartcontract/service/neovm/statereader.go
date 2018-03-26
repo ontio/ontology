@@ -143,8 +143,7 @@ func (s *StateReader) RuntimeNotify(e *vm.ExecutionEngine) (bool, error) {
 		return false, err
 	}
 	txid := tran.Hash()
-	s.Notifications = append(s.Notifications, &event.NotifyEventInfo{Container: txid, CodeHash: hash, States: ConvertReturnTypes(item)})
-	event.PushSmartCodeEvent(tran.Hash(), 0, Notify, event.NotifyEventArgs{Container: txid, CodeHash: hash, States: item})
+	s.Notifications = append(s.Notifications, &event.NotifyEventInfo{TxHash: txid, CodeHash: hash, States: ConvertReturnTypes(item)})
 	return true, nil
 }
 
