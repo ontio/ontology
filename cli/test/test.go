@@ -36,7 +36,6 @@ import (
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/common"
 	"github.com/Ontology/smartcontract/service/native/states"
-	"github.com/Ontology/common/serialization"
 	"encoding/json"
 	"github.com/Ontology/core/utils"
 )
@@ -112,24 +111,30 @@ func NewOntTransferTransaction(from, to common.Address, value int64) *types.Tran
 		Value: big.NewInt(value),
 	})
 	transfers := new(states.Transfers)
-	transfers.Params = append(transfers.Params, &states.TokenTransfer{
-		Contract: genesis.OntContractAddress,
-		States: sts,
-	})
+	transfers.States = sts
 
 	bf := new(bytes.Buffer)
-	if err := serialization.WriteVarBytes(bf, []byte("Token.Common.Transfer")); err != nil {
-		fmt.Println("Serialize transfer falg error.")
-		os.Exit(1)
-	}
+
 	if err := transfers.Serialize(bf); err != nil {
 		fmt.Println("Serialize transfers struct error.")
 		os.Exit(1)
 	}
 
+	cont := &states.Contract{
+		Address: genesis.OntContractAddress,
+		Method: "transfer",
+		Args: bf.Bytes(),
+	}
+
+	ff := new(bytes.Buffer)
+	if err := cont.Serialize(ff); err != nil {
+		fmt.Println("Serialize contract struct error.")
+		os.Exit(1)
+	}
+
 	tx := utils.NewInvokeTransaction(vmtypes.VmCode{
-		VmType: vmtypes.NativeVM,
-		Code: bf.Bytes(),
+		VmType: vmtypes.Native,
+		Code: ff.Bytes(),
 	})
 
 	tx.Nonce = uint32(time.Now().Unix())

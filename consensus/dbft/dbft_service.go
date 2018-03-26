@@ -231,7 +231,7 @@ func (ds *DbftService) CheckSignatures() error {
 			}
 			addBlockRsp :=  result.(*ldgractor.AddBlockRsp)
 			if addBlockRsp.Error != nil {
-				return fmt.Errorf("CheckSignatures AddBlockRsp Height:%d error:%s", block.Header.Height, err)
+				return fmt.Errorf("CheckSignatures AddBlockRsp Height:%d error:%s", block.Header.Height, addBlockRsp.Error)
 			}
 
 			ds.context.State |= BlockGenerated
@@ -558,7 +558,7 @@ func (ds *DbftService) PrepareResponseReceived(payload *p2pmsg.ConsensusPayload,
 	ds.context.Signatures[payload.BookkeeperIndex] = message.Signature
 	err = ds.CheckSignatures()
 	if err != nil {
-		log.Error("CheckSignatures failed")
+		log.Error("CheckSignatures failed", err)
 		return
 	}
 	log.Info("Prepare Response finished")
