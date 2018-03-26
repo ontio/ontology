@@ -24,7 +24,6 @@ import (
 	"github.com/Ontology/core/genesis"
 	ctypes "github.com/Ontology/core/types"
 	"math/big"
-	"github.com/Ontology/smartcontract/event"
 	"github.com/Ontology/smartcontract/service/native/states"
 	cstates "github.com/Ontology/core/states"
 	"bytes"
@@ -56,11 +55,7 @@ func OntInit(native *NativeService) error {
 		address := ctypes.AddressFromPubKey(v)
 		native.CloneCache.Add(scommon.ST_Storage, append(contract[:], address[:]...), &cstates.StorageItem{Value: ts.Bytes()})
 		native.CloneCache.Add(scommon.ST_Storage, getTotalSupplyKey(contract), &cstates.StorageItem{Value: ts.Bytes()})
-		native.Notifications = append(native.Notifications, &event.NotifyEventInfo{
-			Container: native.Tx.Hash(),
-			CodeHash: genesis.OntContractAddress,
-			States: []interface{}{nil, address, ts},
-		})
+		addNotifications(native, contract, &states.State{To: address, Value: ts})
 	}
 
 	return nil
@@ -85,11 +80,7 @@ func OntTransfer(native *NativeService) error {
 			return err
 		}
 
-		native.Notifications = append(native.Notifications, &event.NotifyEventInfo{
-			Container: native.Tx.Hash(),
-			CodeHash: native.ContextRef.CurrentContext().ContractAddress,
-			States: []interface{}{v.From, v.To, v.Value},
-		})
+		addNotifications(native, contract, v)
 	}
 	return nil
 }
@@ -103,12 +94,7 @@ func OntTransferFrom(native *NativeService) error {
 	if err := transferFrom(native, contract, state); err != nil {
 		return err
 	}
-	native.Notifications = append(native.Notifications,
-		&event.NotifyEventInfo{
-			Container: native.Tx.Hash(),
-			CodeHash: contract,
-			States: []interface{}{state.From, state.To, state.Value},
-		})
+	addNotifications(native, contract, &states.State{From: state.From, To: state.To, Value: state.Value})
 	return nil
 }
 

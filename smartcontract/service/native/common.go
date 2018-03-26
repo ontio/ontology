@@ -25,10 +25,12 @@ import (
 	cstates "github.com/Ontology/core/states"
 	"github.com/Ontology/common"
 	"github.com/Ontology/smartcontract/service/native/states"
+	"github.com/Ontology/smartcontract/event"
 )
 
 var (
 	addressHeight = []byte("addressHeight")
+	transferName = "transfer"
 )
 
 func getAddressHeightKey(contract, address common.Address) []byte {
@@ -116,7 +118,7 @@ func isTransferFromValid(native *NativeService, state *states.TransferFrom) erro
 		return errors.NewErr("TransferFrom amount invalid!")
 	}
 
-	if native.ContextRef.CheckWitness(state.From) == false {
+	if native.ContextRef.CheckWitness(state.Sender) == false {
 		return errors.NewErr("[Sender] Authentication failed!")
 	}
 	return nil
@@ -191,5 +193,14 @@ func getStorageBigInt(native *NativeService, key []byte) (*big.Int, error) {
 		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[getBalance] get amount error!")
 	}
 	return new(big.Int).SetBytes(item.Value), nil
+}
+
+func addNotifications(native *NativeService, contract common.Address, state *states.State) {
+	native.Notifications = append(native.Notifications,
+		&event.NotifyEventInfo{
+			TxHash: native.Tx.Hash(),
+			CodeHash: contract,
+			States: []interface{}{transferName, state.From, state.To, state.Value},
+		})
 }
 

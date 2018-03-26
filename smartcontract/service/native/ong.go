@@ -26,7 +26,6 @@ import (
 	cstates "github.com/Ontology/core/states"
 	"bytes"
 	"github.com/Ontology/core/genesis"
-	"github.com/Ontology/smartcontract/event"
 )
 
 var (
@@ -45,8 +44,8 @@ func OngInit(native *NativeService) error {
 	if amount != nil && amount.Sign() != 0 {
 		return errors.NewErr("Init ong has been completed!")
 	}
-
 	native.CloneCache.Add(scommon.ST_Storage, append(contract[:], getOntContext()...), &cstates.StorageItem{Value: totalSupply.Bytes()})
+	addNotifications(native, contract, &states.State{To: genesis.OntContractAddress, Value: totalSupply})
 	return nil
 }
 
@@ -60,12 +59,7 @@ func OngTransfer(native *NativeService) error {
 		if err := transfer(native, contract, v); err != nil {
 			return err
 		}
-		native.Notifications = append(native.Notifications,
-			&event.NotifyEventInfo{
-				Container: native.Tx.Hash(),
-				CodeHash: contract,
-				States: []interface{}{v.From, v.To, v.Value},
-			})
+		addNotifications(native, contract, v)
 	}
 	return nil
 }
@@ -89,12 +83,7 @@ func OngTransferFrom(native *NativeService) error {
 	if err := transferFrom(native, contract, state); err != nil {
 		return err
 	}
-	native.Notifications = append(native.Notifications,
-		&event.NotifyEventInfo{
-			Container: native.Tx.Hash(),
-			CodeHash: contract,
-			States: []interface{}{state.From, state.To, state.Value},
-		})
+	addNotifications(native, contract, &states.State{From: state.From, To: state.To, Value: state.Value})
 	return nil
 }
 
