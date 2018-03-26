@@ -64,8 +64,8 @@ func isTransferValid(native *NativeService, state *states.State) error {
 		return errors.NewErr("Transfer amount invalid!")
 	}
 
-	if !checkWitness(native, state.From) {
-		return errors.NewErr("Authentication failed!")
+	if err := isSenderValid(native, state.From); err != nil {
+		return err
 	}
 	return nil
 }
