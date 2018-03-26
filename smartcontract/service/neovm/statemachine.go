@@ -54,7 +54,7 @@ func NewStateMachine(ldgerStore store.ILedgerStore, dbCache scommon.IStateStore,
 
 	stateMachine.StateReader.Register("Neo.Contract.Create", stateMachine.ContractCreate)
 	stateMachine.StateReader.Register("Neo.Contract.Migrate", stateMachine.ContractMigrate)
-	stateMachine.StateReader.Register("Neo .Contract.GetStorageContext", stateMachine.GetStorageContext)
+	stateMachine.StateReader.Register("Neo.Contract.GetStorageContext", stateMachine.GetStorageContext)
 	stateMachine.StateReader.Register("Neo.Contract.GetScript", stateMachine.ContractGetCode)
 	stateMachine.StateReader.Register("Neo.Contract.Destroy", stateMachine.ContractDestory)
 
