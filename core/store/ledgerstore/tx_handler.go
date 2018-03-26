@@ -93,7 +93,7 @@ func (this *StateStore) HandleInvokeTransaction(store store.ILedgerStore, stateB
 	}
 
 	//load current context to smart contract
-	sc.LoadContext(ctx)
+	sc.PushContext(ctx)
 
 	//start the smart contract executive function
 	if err := sc.Execute(); err != nil {
