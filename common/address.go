@@ -34,11 +34,6 @@ const AddrLen int = 20
 
 type Address [AddrLen]byte
 
-func (u *Address) ToArray() []byte {
-	x := append([]byte{}, u[:]...)
-	return x
-}
-
 
 func (self *Address) ToHexString() string {
 	return fmt.Sprintf("%x", self[:])
@@ -69,7 +64,7 @@ func (f *Address) ToBase58() string {
 	return string(encoded)
 }
 
-func Uint160ParseFromBytes(f []byte) (Address, error) {
+func AddressParseFromBytes(f []byte) (Address, error) {
 	if len(f) != AddrLen {
 		return Address{}, NewDetailErr(errors.New("[Common]: Uint160ParseFromBytes err, len != 20"), ErrNoCode, "")
 	}
@@ -90,7 +85,7 @@ func AddressFromBase58(encoded string) (Address, error) {
 	x, _ := new(big.Int).SetString(string(decoded), 10)
 	log.Tracef("[ToAddress] x: ", x.Bytes())
 
-	ph, err := Uint160ParseFromBytes(x.Bytes()[1:21])
+	ph, err := AddressParseFromBytes(x.Bytes()[1:21])
 	if err != nil {
 		return Address{}, err
 	}

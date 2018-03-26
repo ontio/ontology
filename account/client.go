@@ -457,7 +457,7 @@ func (cl *ClientImpl) LoadContracts() map[Address]*ct.Contract {
 		ct := new(ct.Contract)
 		ct.Deserialize(rdreader)
 
-		programhash, err := Uint160ParseFromBytes(ph)
+		programhash, err := AddressParseFromBytes(ph)
 		ct.ProgramHash = programhash
 		contracts[ct.ProgramHash] = ct
 		i++

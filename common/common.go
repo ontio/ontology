@@ -38,7 +38,7 @@ func ToCodeHash(code []byte) Address {
 	io.WriteString(md, string(temp[:]))
 	f := md.Sum(nil)
 
-	hash, _ := Uint160ParseFromBytes(f) // err will never occur
+	hash, _ := AddressParseFromBytes(f) // err will never occur
 	return hash
 }
 

@@ -52,21 +52,21 @@ func transferAction(c *cli.Context) error {
 		os.Exit(1)
 	}
 	ct, _ := common.HexToBytes(contract)
-	ctu, _ := common.Uint160ParseFromBytes(ct)
+	ctu, _ := common.AddressParseFromBytes(ct)
 	from := c.String("from")
 	if from == "" {
 		fmt.Println("Invalid sender address: ", from)
 		os.Exit(1)
 	}
 	f, _ := common.HexToBytes(from)
-	fu, _ := common.Uint160ParseFromBytes(f)
+	fu, _ := common.AddressParseFromBytes(f)
 	to := c.String("to")
 	if to == "" {
 		fmt.Println("Invalid revicer address: ", to)
 		os.Exit(1)
 	}
 	t, _ := common.HexToBytes(to)
-	tu, _ := common.Uint160ParseFromBytes(t)
+	tu, _ := common.AddressParseFromBytes(t)
 	value := c.Int64("value")
 	if value <= 0 {
 		fmt.Println("Invalid ont amount: ", value)
@@ -97,7 +97,7 @@ func transferAction(c *cli.Context) error {
 	}
 
 	tx := cutils.NewInvokeTransaction(vmtypes.VmCode{
-		VmType: vmtypes.NativeVM,
+		VmType: vmtypes.Native,
 		Code: bf.Bytes(),
 	})
 
