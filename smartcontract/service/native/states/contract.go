@@ -36,8 +36,7 @@ func (this *Contract) Deserialize(r io.Reader) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[Contract] Version deserialize error!")
 	}
 
-	address := new(common.Address)
-	if err := address.Deserialize(r); err != nil {
+	if err := this.Address.Deserialize(r); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[Contract] Address deserialize error!")
 	}
 

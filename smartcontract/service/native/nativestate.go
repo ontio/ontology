@@ -41,7 +41,7 @@ type (
 var (
 	Contracts = map[common.Address]RegisterService{
 		genesis.OntContractAddress: RegisterOntContract,
-		genesis.OntContractAddress: RegisterOngContract,
+		genesis.OngContractAddress: RegisterOngContract,
 	}
 )
 

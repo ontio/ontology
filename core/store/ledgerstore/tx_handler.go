@@ -69,7 +69,7 @@ func (this *StateStore) HandleDeployTransaction(stateBatch *statestore.StateBatc
 
 func (this *StateStore) HandleInvokeTransaction(store store.ILedgerStore, stateBatch *statestore.StateBatch, tx *types.Transaction, block *types.Block, eventStore scommon.IEventStore) error {
 	invoke := tx.Payload.(*payload.InvokeCode)
-	txHash := tx.Hash()
+	//txHash := tx.Hash()
 
 	// init smart contract configuration info
 	config := &smartcontract.Config{
@@ -100,11 +100,11 @@ func (this *StateStore) HandleInvokeTransaction(store store.ILedgerStore, stateB
 		return err
 	}
 
-	if len(sc.Notifications) > 0 {
-		if err := eventStore.SaveEventNotifyByTx(txHash, sc.Notifications); err != nil {
-			return fmt.Errorf("SaveEventNotifyByTx error %s", err)
-		}
-	}
+	//if len(sc.Notifications) > 0 {
+	//	if err := eventStore.SaveEventNotifyByTx(txHash, sc.Notifications); err != nil {
+	//		return fmt.Errorf("SaveEventNotifyByTx error %s", err)
+	//	}
+	//}
 
 	return nil
 }
