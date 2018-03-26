@@ -92,7 +92,6 @@ func (sc *SmartContract) Execute() error {
 		if err := service.Invoke(); err != nil {
 			return err
 		}
-		service.CloneCache.Commit()
 		sc.Notifications = append(sc.Notifications, service.Notifications...)
 	case vmtypes.NEOVM:
 		stateMachine := sneovm.NewStateMachine(sc.Config.Store, sc.Config.DBCache, stypes.Application, sc.Config.Time)
