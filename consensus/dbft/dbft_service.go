@@ -462,13 +462,34 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 	}
 
 	if len(ds.context.Transactions) > 1 {
-		if err := ds.poolActor.VerifyBlock(ds.context.Transactions[1:], ds.context.Height-1); err != nil {
+		height := ds.context.Height
+		start, end := ds.incrValidator.BlockRange()
+
+		validHeight := height
+		if height == end {
+			validHeight = start
+		} else {
+			ds.incrValidator.Clean()
+			log.Infof("incr validator block height %v != ledger block height %v", end -1, height)
+		}
+
+		if err := ds.poolActor.VerifyBlock(ds.context.Transactions[1:], validHeight); err != nil {
 			log.Error("PrepareRequestReceived new transaction verification failed, will not sent Prepare Response", err)
 			ds.context = backupContext
 			ds.RequestChangeView()
 
 			return
 		}
+
+		for _, tx := range ds.context.Transactions[1:] {
+			if  err := ds.incrValidator.Verify(tx, validHeight) ; err != nil {
+				log.Error("PrepareRequestReceived new transaction increment verification failed, will not sent Prepare Response", err)
+				ds.context = backupContext
+				ds.RequestChangeView()
+				return
+			}
+		}
+
 	}
 
 	ds.context.NextBookkeepers, err = vote.GetValidators(ds.context.Transactions)
