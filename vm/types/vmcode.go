@@ -23,7 +23,7 @@ import (
 	"github.com/Ontology/common/serialization"
 	. "github.com/Ontology/common"
 	"crypto/sha256"
-	"github.com/golang/crypto/ripemd160"
+	"golang.org/x/crypto/ripemd160"
 )
 
 type VmType byte
