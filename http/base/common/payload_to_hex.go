@@ -128,8 +128,8 @@ func TransPayloadToHex(p types.Payload) PayloadInfo {
 		return obj
 	case *payload.DeployCode:
 		obj := new(DeployCodeInfo)
-		obj.VmType = int(object.VmType)
-		obj.Code = ToHexString(object.Code)
+		obj.VmType = int(object.Code.VmType)
+		obj.Code = ToHexString(object.Code.Code)
 		obj.NeedStorage = object.NeedStorage
 		obj.Name = object.Name
 		obj.CodeVersion = object.Version
@@ -140,7 +140,7 @@ func TransPayloadToHex(p types.Payload) PayloadInfo {
 	case *payload.Vote:
 		obj := new(VoteInfo)
 		obj.PubKeys = make([]string, len(object.PubKeys))
-		obj.Voter = ToHexString(object.Account.ToArray())
+		obj.Voter = ToHexString(object.Account[:])
 		for i, key := range object.PubKeys {
 			encodedPubKey, _ := key.EncodePoint(true)
 			obj.PubKeys[i] = ToHexString(encodedPubKey)

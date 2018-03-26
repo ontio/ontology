@@ -455,7 +455,7 @@ func GetBalance(params []interface{}) map[string]interface{} {
 	ont := new(big.Int)
 	ong := new(big.Int)
 
-	ontBalance, err := GetStorageItem(genesis.OntContractAddress, address.ToArray())
+	ontBalance, err := GetStorageItem(genesis.OntContractAddress, address[:])
 	if err != nil {
 		log.Errorf("GetOntBalanceOf GetStorageItem ont address:%s error:%s", addrBase58, err)
 		return responsePacking(Err.INTERNAL_ERROR, "internal error")
