@@ -31,6 +31,11 @@ import (
 	"github.com/Ontology/smartcontract"
 	"github.com/Ontology/core/store"
 	"github.com/Ontology/smartcontract/context"
+	"github.com/Ontology/smartcontract/event"
+)
+
+const (
+	INVOKE_TRANSACTION = "InvokeTransaction"
 )
 
 func (this *StateStore) HandleDeployTransaction(stateBatch *statestore.StateBatch, tx *types.Transaction) error {
@@ -104,8 +109,8 @@ func (this *StateStore) HandleInvokeTransaction(store store.ILedgerStore, stateB
 		if err := eventStore.SaveEventNotifyByTx(txHash, sc.Notifications); err != nil {
 			return fmt.Errorf("SaveEventNotifyByTx error %s", err)
 		}
+		event.PushSmartCodeEvent(txHash, 0, INVOKE_TRANSACTION, sc.Notifications)
 	}
-
 	return nil
 }
 
