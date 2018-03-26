@@ -157,7 +157,7 @@ func (this *SoloService) genBlock()error {
 	}
 	addBlockRsp :=  result.(*ldgactor.AddBlockRsp)
 	if addBlockRsp.Error != nil {
-		return fmt.Errorf("AddBlockRsp Height:%d error:%s", block.Header.Height, err)
+		return fmt.Errorf("AddBlockRsp Height:%d error:%s", block.Header.Height, addBlockRsp.Error)
 	}
 	return nil
 }
