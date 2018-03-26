@@ -123,10 +123,13 @@ func (vm *VM) GetPointerMemory(addr uint64) ([]byte, error) {
 	return vm.memory.GetPointerMemory(addr)
 }
 
+//alloc memory for any pointer type
 func (vm *VM) SetPointerMemory(val interface{}) (int, error) {
 	return vm.memory.SetPointerMemory(val)
 }
 
+//alloc memory for struct
+//todo move to the SetPointerMemory
 func (vm *VM) SetStructMemory(val interface{}) (int, error) {
 	return vm.memory.SetStructMemory(val)
 
@@ -144,6 +147,7 @@ func (vm *VM) RestoreCtx() bool {
 	return true
 }
 
+//support EOS like message
 func (vm *VM) SetMessage(message []interface{}) {
 	if message != nil {
 		if vm.envCall == nil {
@@ -185,6 +189,7 @@ func (vm *VM) GetMessageBytes() ([]byte, error) {
 
 		default:
 			//todo need support array types???
+			return nil,errors.New("[GetMessageBytes] unsupported type")
 
 		}
 	}

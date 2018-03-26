@@ -27,8 +27,9 @@ import (
 	"github.com/Ontology/vm/wasmvm/wasm"
 	"strconv"
 	"strings"
-	"io/ioutil"
-	"fmt"
+	"github.com/Ontology/core/ledger"
+	"github.com/Ontology/common"
+	"github.com/Ontology/vm/types"
 )
 
 type Args struct {
@@ -731,15 +732,15 @@ func getContractFromAddr(addr []byte) ([]byte, error) {
 
 	//todo get the contract code from ledger
 	//just for test
-			contract := trimBuffToString(addr)
+/*			contract := trimBuffToString(addr)
 			code, err := ioutil.ReadFile(fmt.Sprintf("./testdata2/%s.wasm",contract))
 			if err != nil {
 				fmt.Printf("./testdata2/%s.wasm is not exist",contract)
 				return nil,err
 			}
 
-			return code,nil
-/*	codeHash, err := common.Uint160ParseFromBytes(addr)
+			return code,nil*/
+	codeHash, err := common.Uint160ParseFromBytes(addr)
 	if err != nil {
 		return nil, errors.New("get address Code hash failed")
 	}
@@ -753,7 +754,7 @@ func getContractFromAddr(addr []byte) ([]byte, error) {
 		return nil, errors.New(" contract is not a wasm contract")
 	}
 
-	return contract.Code, nil*/
+	return contract.Code, nil
 
 }
 

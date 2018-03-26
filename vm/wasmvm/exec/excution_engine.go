@@ -30,6 +30,8 @@ import (
 	"math"
 	"os"
 	"reflect"
+	"fmt"
+	"github.com/Ontology/vm/wasmvm/util"
 )
 
 const (
@@ -38,7 +40,7 @@ const (
 	VM_STACK_DEPTH		 = 10
 )
 
-
+// backup vm while call other contracts
 type vmstack struct{
 	top   int
 	stack []*VM
@@ -46,7 +48,7 @@ type vmstack struct{
 
 func(s *vmstack)push(vm *VM) error{
 	if s.top == len(s.stack){
-		return errors.New("[vm stack push] stack is full")
+		return errors.New(fmt.Sprintf("[vm stack push] stack is full, only support %d contracts calls",VM_STACK_DEPTH))
 	}
 	s.stack[s.top + 1] = vm
 	s.top += 1
@@ -90,6 +92,7 @@ type ExecutionEngine struct {
 	service       	*InteropService
 	codeContainer 	interfaces.ICodeContainer
 	vm      		*VM
+	//todo ,move to contract info later
 	version 		string //for test different contracts
 	backupVM     	*vmstack
 }
@@ -123,7 +126,7 @@ func (e *ExecutionEngine)RestoreVM() error{
 	return nil
 }
 
-//todo use this method just for test
+//use this method just for test
 func (e *ExecutionEngine) CallInf(caller common.Address, code []byte, input []interface{}, message []interface{}) ([]byte, error) {
 	methodName := input[0].(string)
 
@@ -283,13 +286,13 @@ func (e *ExecutionEngine) CallInf(caller common.Address, code []byte, input []in
 
 	switch ftype.ReturnTypes[0] {
 	case wasm.ValueTypeI32:
-		return Int32ToBytes(res.(uint32)), nil
+		return util.Int32ToBytes(res.(uint32)), nil
 	case wasm.ValueTypeI64:
-		return Int64ToBytes(res.(uint64)), nil
+		return util.Int64ToBytes(res.(uint64)), nil
 	case wasm.ValueTypeF32:
-		return Float32ToBytes(res.(float32)), nil
+		return util.Float32ToBytes(res.(float32)), nil
 	case wasm.ValueTypeF64:
-		return Float64ToBytes(res.(float64)), nil
+		return util.Float64ToBytes(res.(float64)), nil
 	default:
 		return nil, errors.New("the return type is not supported")
 	}
@@ -356,8 +359,8 @@ func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) (retur
 		}
 		e.vm = vm
 		vm.Engine = e
-		//todo add message from input
-		//vm.SetMessage(message)
+		//no message support for now
+		// vm.SetMessage(message)
 
 		vm.Caller = caller
 		vm.CodeHash = common.ToCodeHash(code)
@@ -375,6 +378,7 @@ func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) (retur
 		//get  function type
 		ftype := m.Types.Entries[int(fidx)]
 
+		//method ,param bytes
 		params := make([]uint64, 2)
 
 		actionName := string(tmparr[0])
@@ -405,13 +409,13 @@ func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) (retur
 
 		switch ftype.ReturnTypes[0] {
 		case wasm.ValueTypeI32:
-			return Int32ToBytes(res.(uint32)), nil
+			return util.Int32ToBytes(res.(uint32)), nil
 		case wasm.ValueTypeI64:
-			return Int64ToBytes(res.(uint64)), nil
+			return util.Int64ToBytes(res.(uint64)), nil
 		case wasm.ValueTypeF32:
-			return Float32ToBytes(res.(float32)), nil
+			return util.Float32ToBytes(res.(float32)), nil
 		case wasm.ValueTypeF64:
-			return Float64ToBytes(res.(float64)), nil
+			return util.Float64ToBytes(res.(float64)), nil
 		default:
 			return nil, errors.New("the return type is not supported")
 		}
@@ -487,13 +491,13 @@ func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) (retur
 
 		switch ftype.ReturnTypes[0] {
 		case wasm.ValueTypeI32:
-			return Int32ToBytes(res.(uint32)), nil
+			return util.Int32ToBytes(res.(uint32)), nil
 		case wasm.ValueTypeI64:
-			return Int64ToBytes(res.(uint64)), nil
+			return util.Int64ToBytes(res.(uint64)), nil
 		case wasm.ValueTypeF32:
-			return Float32ToBytes(res.(float32)), nil
+			return util.Float32ToBytes(res.(float32)), nil
 		case wasm.ValueTypeF64:
-			return Float64ToBytes(res.(float64)), nil
+			return util.Float64ToBytes(res.(float64)), nil
 		default:
 			return nil, errors.New("the return type is not supported")
 		}
@@ -544,7 +548,6 @@ func getCallMethodName(input []byte) (string, error) {
 }
 
 func getParams(input []byte) ([]uint64, error) {
-	//log.Error(fmt.Sprintf("in getParams: input is %v\n",input))
 
 	nameLength := int(input[0])
 
@@ -573,33 +576,5 @@ func getParams(input []byte) ([]uint64, error) {
 			res[i] = binary.LittleEndian.Uint64(param)
 		}
 	}
-	//log.Error(res)
 	return res, nil
-
-}
-
-func Int32ToBytes(i32 uint32) []byte {
-	bytesBuffer := bytes.NewBuffer([]byte{})
-	binary.Write(bytesBuffer, binary.LittleEndian, i32)
-	return bytesBuffer.Bytes()
-}
-
-func Int64ToBytes(i64 uint64) []byte {
-	bytesBuffer := bytes.NewBuffer([]byte{})
-	binary.Write(bytesBuffer, binary.LittleEndian, i64)
-	return bytesBuffer.Bytes()
-}
-func Float32ToBytes(float float32) []byte {
-	bits := math.Float32bits(float)
-	bytes := make([]byte, 4)
-	binary.LittleEndian.PutUint32(bytes, bits)
-
-	return bytes
-}
-
-func Float64ToBytes(float float64) []byte {
-	bits := math.Float64bits(float)
-	bytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(bytes, bits)
-	return bytes
 }

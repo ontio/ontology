@@ -260,14 +260,15 @@ func (vm *VMmemory) SetStructMemory(val interface{}) (int, error) {
 func (vm *VMmemory) SetMemory(val interface{}) (int, error) {
 
 	switch val.(type) {
-	case string:
-		b := []byte(val.(string))
+	case string: //use SetPointerMemory for string
+		return vm.SetPointerMemory(val.(string))
+/*		b := []byte(val.(string))
 		idx, err := vm.Malloc(len(b))
 		if err != nil {
 			return 0, err
 		}
 		copy(vm.Memory[idx:idx+len(b)], b)
-		return idx, nil
+		return idx, nil*/
 	case int:
 		tmp := make([]byte, 4)
 		binary.LittleEndian.PutUint32(tmp, uint32(val.(int)))
