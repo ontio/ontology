@@ -731,7 +731,7 @@ func (this *LedgerStore) handleTransaction(stateBatch *statestore.StateBatch, bl
 	case types.Invoke:
 		err = this.stateStore.HandleInvokeTransaction(this, stateBatch, tx, block, this.eventStore)
 		if err != nil {
-			return fmt.Errorf("HandleInvokeTransaction tx %x error %s", txHash, err)
+			fmt.Printf("HandleInvokeTransaction tx %x error %s \n", txHash, err)
 		}
 	case types.Claim:
 	case types.Enrollment:
