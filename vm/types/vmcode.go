@@ -22,12 +22,14 @@ import (
 	"io"
 	"github.com/Ontology/common/serialization"
 	. "github.com/Ontology/common"
+	"crypto/sha256"
+	"github.com/golang/crypto/ripemd160"
 )
 
 type VmType byte
 
 const (
-	NativeVM = VmType(0xFF)
+	Native = VmType(0xFF)
 	NEOVM    = VmType(0x80)
 	WASMVM     = VmType(0x90)
 	// EVM = VmType(0x90)
@@ -57,7 +59,12 @@ func (self *VmCode) Deserialize(r io.Reader) error {
 }
 
 func (self *VmCode) AddressFromVmCode() Address {
-	u160 := ToCodeHash(self.Code)
-	u160[0] = byte(self.VmType)
-	return u160
+	var addr Address
+	temp := sha256.Sum256(self.Code)
+	md := ripemd160.New()
+	md.Write(temp[:])
+	md.Sum(addr[:0])
+
+	addr[0] = byte(self.VmType)
+	return addr
 }

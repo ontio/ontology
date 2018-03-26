@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package service
+package neovm
 
 import (
 	"bytes"
@@ -103,7 +103,7 @@ func (s *StateMachine) ContractCreate(engine *vm.ExecutionEngine) (bool, error) 
 		return false, errors.NewErr("[ContractCreate] Desc too long!")
 	}
 	contractState := &payload.DeployCode{
-		Code:        codeByte,
+		Code:        &vmtypes.VmCode{VmType:vmtypes.NEOVM, Code: codeByte},
 		Name:        string(nameByte),
 		Version:     string(versionByte),
 		Author:      string(authorByte),
@@ -111,7 +111,7 @@ func (s *StateMachine) ContractCreate(engine *vm.ExecutionEngine) (bool, error) 
 		Description: string(descByte),
 	}
 	codeHash := common.ToCodeHash(codeByte)
-	state, err := s.CloneCache.GetOrAdd(scommon.ST_Contract, codeHash.ToArray(), contractState)
+	state, err := s.CloneCache.GetOrAdd(scommon.ST_Contract, codeHash[:], contractState)
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] GetOrAdd error!")
 	}
@@ -128,7 +128,7 @@ func (s *StateMachine) ContractMigrate(engine *vm.ExecutionEngine) (bool, error)
 		return false, errors.NewErr("[ContractMigrate] Code too long!")
 	}
 	codeHash := common.ToCodeHash(codeByte)
-	item, err := s.CloneCache.Get(scommon.ST_Contract, codeHash.ToArray())
+	item, err := s.CloneCache.Get(scommon.ST_Contract, codeHash[:])
 	if err != nil {
 		return false, errors.NewErr("[ContractMigrate] Get Contract error!")
 	}
@@ -157,15 +157,15 @@ func (s *StateMachine) ContractMigrate(engine *vm.ExecutionEngine) (bool, error)
 		return false, errors.NewErr("[ContractMigrate] Desc too long!")
 	}
 	contractState := &payload.DeployCode{
-		Code:        codeByte,
+		Code:        &vmtypes.VmCode{VmType:vmtypes.NEOVM, Code: codeByte},
 		Name:        string(nameByte),
 		Version:     string(versionByte),
 		Author:      string(authorByte),
 		Email:       string(emailByte),
 		Description: string(descByte),
 	}
-	s.CloneCache.Add(scommon.ST_Contract, codeHash.ToArray(), contractState)
-	stateValues, err := s.CloneCache.Store.Find(scommon.ST_Contract, codeHash.ToArray())
+	s.CloneCache.Add(scommon.ST_Contract, codeHash[:], contractState)
+	stateValues, err := s.CloneCache.Store.Find(scommon.ST_Contract, codeHash[:])
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[ContractMigrate] Find error!")
 	}
@@ -195,15 +195,15 @@ func (s *StateMachine) ContractDestory(engine *vm.ExecutionEngine) (bool, error)
 	if err != nil {
 		return false, nil
 	}
-	item, err := s.CloneCache.Store.TryGet(scommon.ST_Contract, hash.ToArray())
+	item, err := s.CloneCache.Store.TryGet(scommon.ST_Contract, hash[:])
 	if err != nil {
 		return false, err
 	}
 	if item == nil {
 		return false, nil
 	}
-	s.CloneCache.Delete(scommon.ST_Contract, hash.ToArray())
-	stateValues, err := s.CloneCache.Store.Find(scommon.ST_Contract, hash.ToArray())
+	s.CloneCache.Delete(scommon.ST_Contract, hash[:])
+	stateValues, err := s.CloneCache.Store.Find(scommon.ST_Contract, hash[:])
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[ContractDestory] Find error!")
 	}
@@ -214,7 +214,7 @@ func (s *StateMachine) ContractDestory(engine *vm.ExecutionEngine) (bool, error)
 }
 
 func (s *StateMachine) CheckStorageContext(context *StorageContext) (bool, error) {
-	item, err := s.CloneCache.Get(scommon.ST_Contract, context.codeHash.ToArray())
+	item, err := s.CloneCache.Get(scommon.ST_Contract, context.codeHash[:])
 	if err != nil {
 		return false, err
 	}
@@ -302,12 +302,8 @@ func (s *StateMachine) GetStorageContext(engine *vm.ExecutionEngine) (bool, erro
 		return false, errors.NewErr("[GetStorageContext] Get StorageContext nil")
 	}
 	contractState := opInterface.(*payload.DeployCode)
-	code := &vmtypes.VmCode{
-		VmType: contractState.VmType,
-		Code: contractState.Code,
-	}
-	codeHash := code.AddressFromVmCode()
-	item, err := s.CloneCache.Store.TryGet(scommon.ST_Contract, codeHash.ToArray())
+	codeHash := contractState.Code.AddressFromVmCode()
+	item, err := s.CloneCache.Store.TryGet(scommon.ST_Contract, codeHash[:])
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[GetStorageContext] Get StorageContext nil")
 	}

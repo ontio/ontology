@@ -22,14 +22,27 @@ import (
 	"github.com/Ontology/smartcontract/storage"
 	scommon "github.com/Ontology/core/store/common"
 	"bytes"
-	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/smartcontract/event"
+	"github.com/Ontology/common"
+	"github.com/Ontology/smartcontract/context"
+	"github.com/Ontology/core/genesis"
+	"github.com/Ontology/smartcontract/service/native/states"
+	"github.com/Ontology/errors"
+	vmtypes "github.com/Ontology/vm/types"
 	"fmt"
 )
 
 type (
-	Handler func(native *NativeService) (bool, error)
+	Handler func(native *NativeService) error
+	RegisterService func(native *NativeService)
+)
+
+var (
+	Contracts = map[common.Address]RegisterService{
+		genesis.OntContractAddress: RegisterOntContract,
+		genesis.OntContractAddress: RegisterOngContract,
+	}
 )
 
 type NativeService struct {
@@ -38,16 +51,17 @@ type NativeService struct {
 	Notifications []*event.NotifyEventInfo
 	Input []byte
 	Tx *types.Transaction
+	Height uint32
+	ContextRef context.ContextRef
 }
 
-func NewNativeService(dbCache scommon.IStateStore, input []byte, tx *types.Transaction) *NativeService {
+func NewNativeService(dbCache scommon.IStateStore, height uint32, tx *types.Transaction, ctxRef context.ContextRef) *NativeService {
 	var nativeService NativeService
 	nativeService.CloneCache = storage.NewCloneCache(dbCache)
-	nativeService.Input = input
 	nativeService.Tx = tx
+	nativeService.Height = height
+	nativeService.ContextRef = ctxRef
 	nativeService.ServiceMap = make(map[string]Handler)
-	nativeService.Register("Token.Common.Transfer", Transfer)
-	nativeService.Register("Token.Ont.Init", OntInit)
 	return &nativeService
 }
 
@@ -55,16 +69,64 @@ func(native *NativeService) Register(methodName string, handler Handler) {
 	native.ServiceMap[methodName] = handler
 }
 
-func(native *NativeService) Invoke() (bool, error){
-	bf := bytes.NewBuffer(native.Input)
-	serviceName, err := serialization.ReadVarBytes(bf); if err != nil {
-		return false, err
+func(native *NativeService) Invoke() error {
+	ctx := native.ContextRef.CurrentContext()
+	if ctx == nil {
+		return errors.NewErr("Native service current context doesn't exist!")
 	}
-	service, ok := native.ServiceMap[string(serviceName)]; if !ok {
-		return false, fmt.Errorf("Native does not support this service:%s !",serviceName)
+	bf := bytes.NewBuffer(ctx.Code.Code)
+	contract := new(states.Contract)
+	if err := contract.Deserialize(bf); err != nil {
+		return err
 	}
+	services, ok := Contracts[contract.Address]; if !ok {
+		return fmt.Errorf("Native contract address %x haven't been registered.", contract.Address)
+	}
+	services(native)
+	service, ok := native.ServiceMap[contract.Method]; if !ok {
+		return fmt.Errorf("Native contract %x doesn't support this function %s.", contract.Address, contract.Method)
+	}
+	native.ContextRef.LoadContext(&context.Context{ContractAddress: contract.Address})
 	native.Input = bf.Bytes()
 	return service(native)
+}
+
+func(native *NativeService) AppCall(address common.Address, method string, args []byte) error {
+	bf := new(bytes.Buffer)
+	contract := &states.Contract{
+		Address: address,
+		Method: method,
+		Args: args,
+	}
+
+	if err := contract.Serialize(bf); err != nil {
+		return err
+	}
+
+	native.ContextRef.LoadContext(&context.Context{
+		Code: vmtypes.VmCode{
+			VmType: vmtypes.Native,
+			Code: bf.Bytes(),
+		},
+	})
+	if err := native.ContextRef.Execute(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func RegisterOntContract(native *NativeService) {
+	native.Register("init", OntInit)
+	native.Register("transfer", OntTransfer)
+	native.Register("approve", OntApprove)
+	native.Register("transferFrom", OntTransferFrom)
+}
+
+func RegisterOngContract(native *NativeService) {
+	native.Register("init", OngInit)
+	native.Register("transfer", OngTransfer)
+	native.Register("approve", OngApprove)
+	native.Register("transferFrom", OngTransferFrom)
 }
 
 

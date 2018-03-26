@@ -119,7 +119,7 @@ func NewONTTransferTransaction(from, to types.Address) *types.Transaction {
 	params := append([]byte("transfer"), from[:]...)
 	params = append(params, to[:]...)
 	vmcode := vmtypes.VmCode{
-		CodeType: vmtypes.NativeVM,
+		CodeType: vmtypes.Native,
 		Code:     code,
 	}
 

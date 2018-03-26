@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package service
+package neovm
 
 import (
 	"github.com/Ontology/common"
@@ -203,7 +203,7 @@ func (s *StateReader) RuntimeCheckWitness(e *vm.ExecutionEngine) (bool, error) {
 		err    error
 	)
 	if len(data) == 20 {
-		program, err := common.Uint160ParseFromBytes(data)
+		program, err := common.AddressParseFromBytes(data)
 		if err != nil {
 			return false, err
 		}
@@ -319,7 +319,7 @@ func (s *StateReader) GetContract(e *vm.ExecutionEngine) (bool, error) {
 		return false, errors.NewErr("[GetContract] Too few input parameters ")
 	}
 	hashByte := vm.PopByteArray(e)
-	hash, err := common.Uint160ParseFromBytes(hashByte)
+	hash, err := common.AddressParseFromBytes(hashByte)
 	if err != nil {
 		return false, err
 	}
