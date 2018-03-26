@@ -28,14 +28,16 @@ import (
 )
 
 type ChainStore struct {
-	db            *actor.LedgerActor
-	pendingBlocks map[uint64]*Block
+	db              *actor.LedgerActor
+	chainedBlockNum uint64
+	pendingBlocks   map[uint64]*Block
 }
 
 func OpenBlockStore(lgr *actor.LedgerActor) (*ChainStore, error) {
 	return &ChainStore{
-		db:            lgr,
-		pendingBlocks: make(map[uint64]*Block),
+		db:              lgr,
+		chainedBlockNum: uint64(ledger.DefLedger.GetCurrentBlockHeight()),
+		pendingBlocks:   make(map[uint64]*Block),
 	}, nil
 }
 
@@ -44,7 +46,7 @@ func (self *ChainStore) Close() {
 }
 
 func (self *ChainStore) GetChainedBlockNum() uint64 {
-	return uint64(ledger.DefLedger.GetCurrentBlockHeight())
+	return self.chainedBlockNum
 }
 
 func (self *ChainStore) AddBlock(block *Block, blockHash Uint256) error {
@@ -62,7 +64,9 @@ func (self *ChainStore) AddBlock(block *Block, blockHash Uint256) error {
 	blkNum := self.GetChainedBlockNum() + 1
 	for {
 		if blk, present := self.pendingBlocks[blkNum]; blk != nil && present {
-			if err := ledger.DefLedger.AddBlock(blk.Block); err != nil {
+			err := ledger.DefLedger.AddBlock(blk.Block)
+			self.chainedBlockNum = uint64(ledger.DefLedger.GetCurrentBlockHeight())
+			if err != nil && blkNum > self.GetChainedBlockNum() {
 				return fmt.Errorf("ledger add blk (%d, %d) failed: %s", blkNum, self.GetChainedBlockNum(), err)
 			}
 
@@ -81,7 +85,9 @@ func (self *ChainStore) AddBlock(block *Block, blockHash Uint256) error {
 //
 func (self *ChainStore) SetBlock(block *Block, blockHash Uint256) error {
 
-	if err := ledger.DefLedger.AddBlock(block.Block); err != nil {
+	err := ledger.DefLedger.AddBlock(block.Block)
+	self.chainedBlockNum = uint64(ledger.DefLedger.GetCurrentBlockHeight())
+	if err != nil {
 		return fmt.Errorf("ledger failed to add block: %s", err)
 	}
 
