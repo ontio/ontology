@@ -24,7 +24,6 @@ import (
 
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
-	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
 )
 
@@ -69,7 +68,7 @@ func (b *Block) Deserialize(r io.Reader) error {
 		tharray = append(tharray, txhash)
 	}
 
-	b.Header.TransactionsRoot, err = crypto.ComputeRoot(tharray)
+	b.Header.TransactionsRoot, err = ComputeRoot(tharray)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "Block Deserialize merkleTree compute failed")
 	}
@@ -113,7 +112,7 @@ func (b *Block) FromTrimmedData(r io.Reader) error {
 		tharray = append(tharray, txhash)
 	}
 
-	b.Header.TransactionsRoot, err = crypto.ComputeRoot(tharray)
+	b.Header.TransactionsRoot, err = ComputeRoot(tharray)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "Block Deserialize merkleTree compute failed")
 	}
@@ -151,7 +150,7 @@ func (b *Block) RebuildMerkleRoot() error {
 	for _, tx := range txs {
 		transactionHashes = append(transactionHashes, tx.Hash())
 	}
-	hash, err := crypto.ComputeRoot(transactionHashes)
+	hash, err := ComputeRoot(transactionHashes)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "[Block] , RebuildMerkleRoot ComputeRoot failed.")
 	}

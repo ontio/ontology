@@ -21,13 +21,14 @@ package main
 import (
 	"os"
 	"sort"
+
+	"github.com/urfave/cli"
+
 	_ "github.com/Ontology/cli"
 	. "github.com/Ontology/cli/common"
 	"github.com/Ontology/cli/test"
-	"github.com/Ontology/cli/wallet"
-
-	"github.com/urfave/cli"
 	"github.com/Ontology/cli/transfer"
+	"github.com/Ontology/cli/wallet"
 )
 
 var Version string

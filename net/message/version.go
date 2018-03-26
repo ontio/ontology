@@ -1,35 +1,20 @@
-/*
- * Copyright (C) 2018 The ontology Authors
- * This file is part of The ontology library.
- *
- * The ontology is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * The ontology is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
- */
-
 package message
 
 import (
 	"bytes"
+	"crypto"
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
-	"github.com/Ontology/crypto"
+	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/net/actor"
 	. "github.com/Ontology/net/protocol"
-	"time"
+	"github.com/ontio/ontology-crypto/keypair"
 )
 
 const (
@@ -39,20 +24,21 @@ const (
 type version struct {
 	Hdr msgHdr
 	P   struct {
-		Version      uint32
-		Services     uint64
-		TimeStamp    uint32
-		Port         uint16
-		HttpInfoPort uint16
-		Cap          [32]byte
-		Nonce        uint64
+		Version       uint32
+		Services      uint64
+		TimeStamp     uint32
+		Port          uint16
+		HttpInfoPort  uint16
+		Cap           [32]byte
+		Nonce         uint64
 		// TODO remove tempory to get serilization function passed
 		UserAgent   uint8
 		StartHeight uint64
 		// FIXME check with the specify relay type length
-		Relay uint8
+		Relay       uint8
+		IsConsensus bool
 	}
-	pk *crypto.PubKey
+	pk crypto.PublicKey
 }
 
 func (msg *version) init(n Noder) {
@@ -94,7 +80,7 @@ func NewVersion(n Noder) ([]byte, error) {
 	copy(msg.Hdr.CMD[0:7], "version")
 	p := bytes.NewBuffer([]byte{})
 	err := binary.Write(p, binary.LittleEndian, &(msg.P))
-	msg.pk.Serialize(p)
+	serialization.WriteVarBytes(p, keypair.SerializePublicKey(msg.pk))
 	if err != nil {
 		log.Error("Binary Write failed at new Msg")
 		return nil, err
@@ -133,7 +119,14 @@ func (msg version) Serialization() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	msg.pk.Serialize(buf)
+	keyBuf, err := serialization.ReadVarBytes(buf)
+	if err != nil {
+		return nil, err
+	}
+	msg.pk, err = keypair.DeserializePublicKey(keyBuf)
+	if err != nil {
+		return nil, err
+	}
 
 	return buf.Bytes(), err
 }
@@ -153,8 +146,11 @@ func (msg *version) Deserialization(p []byte) error {
 		return errors.New("Parse version P message error")
 	}
 
-	pk := new(crypto.PubKey)
-	err = pk.DeSerialize(buf)
+	keyBuf, err := serialization.ReadVarBytes(buf)
+	if err != nil {
+		return errors.New("Parse pubkey Deserialize failed.")
+	}
+	pk, err := keypair.DeserializePublicKey(keyBuf)
 	if err != nil {
 		return errors.New("Parse pubkey Deserialize failed.")
 	}
@@ -228,3 +224,4 @@ func (msg version) Handle(node Noder) error {
 
 	return nil
 }
+

@@ -24,12 +24,12 @@ import (
 	"github.com/Ontology/core/states"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/smartcontract/event"
-	"github.com/Ontology/crypto"
+	"github.com/ontio/ontology-crypto/keypair"
 )
 
 // ILedgerStore provides func with store package.
 type ILedgerStore interface {
-	InitLedgerStoreWithGenesisBlock(genesisblock *types.Block, defaultBookkeeper []*crypto.PubKey) error
+	InitLedgerStoreWithGenesisBlock(genesisblock *types.Block, defaultBookkeeper []keypair.PublicKey) error
 	Close() error
 	AddHeaders(headers []*types.Header) error
 	AddBlock(block *types.Block) error

@@ -19,27 +19,29 @@
 package contract
 
 import (
+	"crypto"
 	"errors"
+	"math/big"
+	"sort"
+
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	pg "github.com/Ontology/core/contract/program"
 	sig "github.com/Ontology/core/signature"
-	"github.com/Ontology/crypto"
 	_ "github.com/Ontology/errors"
-	"math/big"
-	"sort"
+	"github.com/ontio/ontology-crypto/keypair"
 )
 
 type ContractContext struct {
-	Data            sig.SignableData
-	ProgramHashes   []Address
-	Codes           [][]byte
-	Parameters      [][][]byte
+	Data          sig.SignableData
+	ProgramHashes []Address
+	Codes         [][]byte
+	Parameters    [][][]byte
 
 	MultiPubkeyPara [][]PubkeyParameter
 
 	//temp index for multi sig
-	tempParaIndex   int
+	tempParaIndex int
 }
 
 func NewContractContext(data sig.SignableData) *ContractContext {
@@ -74,7 +76,7 @@ func (cxt *ContractContext) Add(contract *Contract, index int, parameter []byte)
 	return nil
 }
 
-func (cxt *ContractContext) AddContract(contract *Contract, pubkey *crypto.PubKey, parameter []byte) error {
+func (cxt *ContractContext) AddContract(contract *Contract, pubkey crypto.PublicKey, parameter []byte) error {
 	log.Debug()
 	if contract.GetType() == MultiSigContract {
 		log.Debug()
@@ -145,14 +147,11 @@ func (cxt *ContractContext) AddContract(contract *Contract, pubkey *crypto.PubKe
 	return nil
 }
 
-func (cxt *ContractContext) AddSignatureToMultiList(contractIndex int, contract *Contract, pubkey *crypto.PubKey, parameter []byte) error {
+func (cxt *ContractContext) AddSignatureToMultiList(contractIndex int, contract *Contract, pubkey crypto.PublicKey, parameter []byte) error {
 	if cxt.MultiPubkeyPara[contractIndex] == nil {
 		cxt.MultiPubkeyPara[contractIndex] = make([]PubkeyParameter, len(contract.Parameters))
 	}
-	pk, err := pubkey.EncodePoint(true)
-	if err != nil {
-		return err
-	}
+	pk := keypair.SerializePublicKey(pubkey)
 
 	pubkeyPara := PubkeyParameter{
 		PubKey:    ToHexString(pk),
@@ -163,7 +162,7 @@ func (cxt *ContractContext) AddSignatureToMultiList(contractIndex int, contract 
 	return nil
 }
 
-func (cxt *ContractContext) AddMultiSignatures(index int, contract *Contract, pubkey *crypto.PubKey, parameter []byte) error {
+func (cxt *ContractContext) AddMultiSignatures(index int, contract *Contract, pubkey crypto.PublicKey, parameter []byte) error {
 	pkIndexs, err := cxt.ParseContractPubKeys(contract)
 	if err != nil {
 		return errors.New("Contract Parameters are not supported.")
@@ -215,10 +214,6 @@ func (cxt *ContractContext) ParseContractPubKeys(contract *Contract) (map[string
 	}
 	for contract.Code[i] == 33 {
 		i++
-		//pubkey, err := crypto.DecodePoint(contract.Code[i:33])
-		//if err != nil {
-		//	return nil, errors.New("[Contract],AddContract DecodePoint failed.")
-		//}
 
 		//add to parameter index
 		pubkeyIndex[ToHexString(contract.Code[i:33])] = Index

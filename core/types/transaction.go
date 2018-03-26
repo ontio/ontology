@@ -25,12 +25,13 @@ import (
 	"io"
 
 	"fmt"
+
 	. "github.com/Ontology/common"
 	. "github.com/Ontology/common/config"
 	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/core/payload"
-	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
+	"github.com/ontio/ontology-crypto/keypair"
 )
 
 type Transaction struct {
@@ -47,7 +48,7 @@ type Transaction struct {
 }
 
 type Sig struct {
-	PubKeys []*crypto.PubKey
+	PubKeys []keypair.PublicKey
 	M       uint8
 	SigData [][]byte
 }
@@ -58,14 +59,16 @@ func (self *Sig) Deserialize(r io.Reader) error {
 		return err
 	}
 
-	self.PubKeys = make([]*crypto.PubKey, n)
+	self.PubKeys = make([]keypair.PublicKey, n)
 	for i := 0; i < int(n); i++ {
-		pubkey := new(crypto.PubKey)
-		err = pubkey.DeSerialize(r)
+		buf, err := serialization.ReadVarBytes(r)
 		if err != nil {
 			return err
 		}
-		self.PubKeys[i] = pubkey
+		self.PubKeys[i], err = keypair.DeserializePublicKey(buf)
+		if err != nil {
+			return err
+		}
 	}
 
 	self.M, err = serialization.ReadUint8(r)
@@ -112,8 +115,8 @@ func (self *Sig) Serialize(w io.Writer) error {
 	if err != nil {
 		return errors.New("serialize sig pubkey length failed")
 	}
-	for _, pubkey := range self.PubKeys {
-		err = pubkey.Serialize(w)
+	for _, key := range self.PubKeys {
+		err := serialization.WriteVarBytes(w, keypair.SerializePublicKey(key))
 		if err != nil {
 			return err
 		}
@@ -386,4 +389,3 @@ func (tx *Transaction) GetSysFee() Fixed64 {
 func (tx *Transaction) GetNetworkFee() Fixed64 {
 	return tx.NetWorkFee
 }
-

@@ -19,19 +19,23 @@
 package states
 
 import (
-	"github.com/Ontology/crypto"
+	"crypto"
 	"io"
+
+	"github.com/Ontology/common/serialization"
 	. "github.com/Ontology/errors"
+	"github.com/ontio/ontology-crypto/keypair"
 )
 
 type ValidatorState struct {
 	StateBase
-	PublicKey *crypto.PubKey
+	PublicKey crypto.PublicKey
 }
 
 func (this *ValidatorState) Serialize(w io.Writer) error {
 	this.StateBase.Serialize(w)
-	if err := this.PublicKey.Serialize(w); err != nil {
+	buf := keypair.SerializePublicKey(this.PublicKey)
+	if err := serialization.WriteVarBytes(w, buf); err != nil {
 		return err
 	}
 	return nil
@@ -45,8 +49,12 @@ func (this *ValidatorState) Deserialize(r io.Reader) error {
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "[ValidatorState], StateBase Deserialize failed.")
 	}
-	pk := new(crypto.PubKey)
-	if err := pk.DeSerialize(r); err != nil {
+	buf, err := serialization.ReadVarBytes(r)
+	if err != nil {
+		return NewDetailErr(err, ErrNoCode, "[ValidatorState], PublicKey Deserialize failed.")
+	}
+	pk, err := keypair.DeserializePublicKey(buf)
+	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "[ValidatorState], PublicKey Deserialize failed.")
 	}
 	this.PublicKey = pk

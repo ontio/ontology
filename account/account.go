@@ -19,49 +19,79 @@
 package account
 
 import (
-	"errors"
 	. "github.com/Ontology/common"
-	"github.com/Ontology/crypto"
+	"github.com/Ontology/common/config"
+	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/types"
+	"github.com/ontio/ontology-crypto/keypair"
+	s "github.com/ontio/ontology-crypto/signature"
 )
 
 type Account struct {
-	PrivateKey []byte
-	PublicKey  *crypto.PubKey
+	PrivateKey keypair.PrivateKey
+	PublicKey  keypair.PublicKey
 	Address    Address
 }
 
 func NewAccount() *Account {
-	priKey, pubKey, _ := crypto.GenKeyPair()
-	address := types.AddressFromPubKey(&pubKey)
+	// Determine the public key algorithm and parameters according to
+	// the config file.
+	// FIXME: better to decouple from config file by inputing as arguments.
+	var pkAlgorithm keypair.KeyType
+	var params interface{}
+	scheme, err := s.GetScheme(config.Parameters.SignatureScheme)
+	if err != nil {
+		log.Warn("unknown signature scheme, use SHA256withECDSA as default.")
+		scheme = s.SHA256withECDSA
+	}
+	switch scheme {
+	case s.SHA224withECDSA, s.SHA3_224withECDSA:
+		pkAlgorithm = keypair.PK_ECDSA
+		params = keypair.P224
+	case s.SHA256withECDSA, s.SHA3_256withECDSA, s.RIPEMD160withECDSA:
+		pkAlgorithm = keypair.PK_ECDSA
+		params = keypair.P256
+	case s.SHA384withECDSA, s.SHA3_384withECDSA:
+		pkAlgorithm = keypair.PK_ECDSA
+		params = keypair.P384
+	case s.SHA512withECDSA, s.SHA3_512withECDSA:
+		pkAlgorithm = keypair.PK_ECDSA
+		params = keypair.P521
+	case s.SM3withSM2:
+		pkAlgorithm = keypair.PK_SM2
+		params = keypair.SM2P256V1
+	case s.SHA512withEDDSA:
+		pkAlgorithm = keypair.PK_EDDSA
+		params = keypair.ED25519
+	}
+
+	pri, pub, _ := keypair.GenerateKeyPair(pkAlgorithm, params)
+	address := types.AddressFromPubKey(pub)
 	return &Account{
-		PrivateKey: priKey,
-		PublicKey:  &pubKey,
+		PrivateKey: pri,
+		PublicKey:  pub,
 		Address:    address,
 	}
 }
 
 func NewAccountWithPrivatekey(privateKey []byte) (*Account, error) {
-	privKeyLen := len(privateKey)
-
-	if privKeyLen != 32 && privKeyLen != 96 && privKeyLen != 104 {
-		return nil, errors.New("Invalid private Key.")
+	pri, err := keypair.DeserializePrivateKey(privateKey)
+	if err != nil {
+		return nil, err
 	}
-
-	pubKey := crypto.NewPubKey(privateKey)
-	address := types.AddressFromPubKey(pubKey)
-
+	pub := pri.Public()
+	address := types.AddressFromPubKey(pub)
 	return &Account{
-		PrivateKey: privateKey,
-		PublicKey:  pubKey,
+		PrivateKey: pri,
+		PublicKey:  pub,
 		Address:    address,
 	}, nil
 }
 
-func (ac *Account) PrivKey() []byte {
+func (ac *Account) PrivKey() keypair.PrivateKey {
 	return ac.PrivateKey
 }
 
-func (ac *Account) PubKey() *crypto.PubKey {
+func (ac *Account) PubKey() keypair.PublicKey {
 	return ac.PublicKey
 }

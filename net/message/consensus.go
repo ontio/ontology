@@ -20,6 +20,7 @@ package message
 
 import (
 	"bytes"
+	"crypto"
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
@@ -28,9 +29,10 @@ import (
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
-	"github.com/Ontology/crypto"
+	"github.com/Ontology/core/signature"
 	"github.com/Ontology/net/actor"
 	. "github.com/Ontology/net/protocol"
+	"github.com/ontio/ontology-crypto/keypair"
 )
 
 type ConsensusPayload struct {
@@ -41,7 +43,7 @@ type ConsensusPayload struct {
 	Timestamp       uint32
 	Data            []byte
 
-	Owner     *crypto.PubKey
+	Owner     crypto.PublicKey
 	Signature []byte
 
 	hash common.Uint256
@@ -57,11 +59,12 @@ func (cp *ConsensusPayload) Hash() common.Uint256 {
 }
 
 func (cp *ConsensusPayload) Verify() error {
-
 	buf := new(bytes.Buffer)
 	cp.SerializeUnsigned(buf)
-
-	err := crypto.Verify(*cp.Owner, buf.Bytes(), cp.Signature)
+	err := signature.Verify(buf.Bytes(), cp.Signature, cp.Owner)
+	if err != nil {
+		err = errors.New("consensus failed: signature verification failed")
+	}
 
 	return err
 }
@@ -122,7 +125,8 @@ func (cp *ConsensusPayload) Serialize(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	err = cp.Owner.Serialize(w)
+	buf := keypair.SerializePublicKey(cp.Owner)
+	err = serialization.WriteVarBytes(w, buf)
 	if err != nil {
 		return err
 	}
@@ -192,13 +196,16 @@ func (cp *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
 func (cp *ConsensusPayload) Deserialize(r io.Reader) error {
 	err := cp.DeserializeUnsigned(r)
 
-	pk := new(crypto.PubKey)
-	err = pk.DeSerialize(r)
+	buf, err := serialization.ReadVarBytes(r)
 	if err != nil {
-		log.Warn("consensus item Owner deserialize failed.")
+		log.Warn("consensus item Owner deserialize failed, " + err.Error())
 		return errors.New("consensus item Owner deserialize failed.")
 	}
-	cp.Owner = pk
+	cp.Owner, err = keypair.DeserializePublicKey(buf)
+	if err != nil {
+		log.Warn("consensus item Owner deserialize failed, " + err.Error())
+		return errors.New("consensus item Owner deserialize failed.")
+	}
 
 	cp.Signature, err = serialization.ReadVarBytes(r)
 

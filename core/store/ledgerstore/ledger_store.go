@@ -20,18 +20,20 @@ package ledgerstore
 
 import (
 	"fmt"
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/payload"
-	"github.com/Ontology/core/states"
-	"github.com/Ontology/core/store/statestore"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/crypto"
-	"github.com/Ontology/events"
-	"github.com/Ontology/events/message"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/Ontology/common"
+	"github.com/Ontology/common/log"
+	"github.com/Ontology/core/payload"
+	"github.com/Ontology/core/signature"
+	"github.com/Ontology/core/states"
+	"github.com/Ontology/core/store/statestore"
+	"github.com/Ontology/core/types"
+	"github.com/Ontology/events"
+	"github.com/Ontology/events/message"
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/Ontology/smartcontract/event"
 	"github.com/Ontology/vm/neovm"
 	stypes "github.com/Ontology/smartcontract/types"
@@ -108,7 +110,7 @@ func NewLedgerStore() (*LedgerStore, error) {
 	return ledgerStore, nil
 }
 
-func (this *LedgerStore) InitLedgerStoreWithGenesisBlock(genesisBlock *types.Block, defaultBookkeeper []*crypto.PubKey) error {
+func (this *LedgerStore) InitLedgerStoreWithGenesisBlock(genesisBlock *types.Block, defaultBookkeeper []keypair.PublicKey) error {
 	hasInit, err := this.hasAlreadyInitGenesisBlock()
 	if err != nil {
 		return fmt.Errorf("hasAlreadyInit error %s", err)
@@ -126,7 +128,7 @@ func (this *LedgerStore) InitLedgerStoreWithGenesisBlock(genesisBlock *types.Blo
 		if err != nil {
 			return fmt.Errorf("eventStore.ClearAll error %s", err)
 		}
-		sort.Sort(crypto.PubKeySlice(defaultBookkeeper))
+		sort.Sort(keypair.NewPublicList(defaultBookkeeper))
 		bookkeeperState := &states.BookkeeperState{
 			CurrBookkeeper: defaultBookkeeper,
 			NextBookkeeper: defaultBookkeeper,
@@ -485,7 +487,7 @@ func (this *LedgerStore) verifyHeader(header *types.Header) error {
 
 	m := len(header.Bookkeepers) - (len(header.Bookkeepers)-1)/3
 	hash := header.Hash()
-	err = crypto.VerifyMultiSignature(hash[:], header.Bookkeepers, m, header.SigData)
+	err = signature.VerifyMultiSignature(hash[:], header.Bookkeepers, m, header.SigData)
 	if err != nil {
 		return err
 	}

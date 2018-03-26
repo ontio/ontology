@@ -20,14 +20,15 @@ package ledger
 
 import (
 	"fmt"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/core/genesis"
+	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/states"
 	"github.com/Ontology/core/store"
 	"github.com/Ontology/core/store/ledgerstore"
 	"github.com/Ontology/core/types"
-	"github.com/Ontology/crypto"
-	"github.com/Ontology/core/payload"
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/Ontology/smartcontract/event"
 )
 
@@ -51,7 +52,7 @@ func (this *Ledger) GetStore() store.ILedgerStore {
 	return this.ldgStore
 }
 
-func (this *Ledger) Init(defaultBookkeeper []*crypto.PubKey) error {
+func (this *Ledger) Init(defaultBookkeeper []keypair.PublicKey) error {
 	genesisBlock, err := genesis.GenesisBlockInit(defaultBookkeeper)
 	if err != nil {
 		return fmt.Errorf("genesisBlock error %s", err)

@@ -19,23 +19,26 @@
 package transfer
 
 import (
-	"github.com/urfave/cli"
-	"fmt"
-	"os"
-	"github.com/Ontology/http/base/rpc"
-	. "github.com/Ontology/cli/common"
-	cutils "github.com/Ontology/core/utils"
-	vmtypes "github.com/Ontology/vm/types"
-	ctypes "github.com/Ontology/core/types"
-	"github.com/Ontology/smartcontract/service/native/states"
-	"github.com/Ontology/crypto"
-	"math/big"
-	"github.com/Ontology/common"
 	"bytes"
-	"github.com/Ontology/account"
-	"encoding/json"
 	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"math/big"
+	"os"
 	"time"
+
+	"github.com/urfave/cli"
+
+	"github.com/Ontology/account"
+	. "github.com/Ontology/cli/common"
+	"github.com/Ontology/common"
+	"github.com/Ontology/core/signature"
+	ctypes "github.com/Ontology/core/types"
+	cutils "github.com/Ontology/core/utils"
+	"github.com/Ontology/http/base/rpc"
+	"github.com/Ontology/smartcontract/service/native/states"
+	vmtypes "github.com/Ontology/vm/types"
+	"github.com/ontio/ontology-crypto/keypair"
 )
 
 
@@ -74,12 +77,12 @@ func transferAction(c *cli.Context) error {
 
 	var sts []*states.State
 	sts = append(sts, &states.State{
-		From: fu,
-		To: tu,
+		From:  fu,
+		To:    tu,
 		Value: big.NewInt(value),
 	})
 	transfers := &states.Transfers{
-		States: sts,
+		States:   sts,
 	}
 	bf := new(bytes.Buffer)
 
@@ -111,7 +114,8 @@ func transferAction(c *cli.Context) error {
 	passwd := c.String("password")
 
 	acct := account.Open(account.WalletFileName, []byte(passwd))
-	acc, err := acct.GetDefaultAccount(); if err != nil {
+	acc, err := acct.GetDefaultAccount()
+	if err != nil {
 		fmt.Println("GetDefaultAccount error:", err)
 		os.Exit(1)
 	}
@@ -151,10 +155,10 @@ func transferAction(c *cli.Context) error {
 
 func signTransaction(signer *account.Account, tx *ctypes.Transaction) error {
 	hash := tx.Hash()
-	sign, _ := crypto.Sign(signer.PrivateKey, hash[:])
+	sign, _ := signature.Sign(hash[:], signer.PrivateKey)
 	tx.Sigs = append(tx.Sigs, &ctypes.Sig{
-		PubKeys: []*crypto.PubKey{signer.PublicKey},
-		M: 1,
+		PubKeys: []keypair.PublicKey{signer.PublicKey},
+		M:       1,
 		SigData: [][]byte{sign},
 	})
 	return nil
@@ -187,7 +191,7 @@ func NewCommand() *cli.Command {
 				Name:  "password, p",
 				Usage: "wallet password",
 				Value:"passwordtest",
-			},
+		},
 		},
 		Action: transferAction,
 		OnUsageError: func(c *cli.Context, err error, isSubcommand bool) error {
@@ -195,4 +199,3 @@ func NewCommand() *cli.Command {
 		},
 	}
 }
-

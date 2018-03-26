@@ -20,13 +20,15 @@ package nodeinfo
 
 import (
 	"fmt"
-	"github.com/Ontology/common/config"
-	"github.com/Ontology/core/ledger"
-	. "github.com/Ontology/net/protocol"
 	"html/template"
 	"net/http"
 	"sort"
 	"strconv"
+
+	"github.com/Ontology/common/config"
+	"github.com/Ontology/core/ledger"
+	. "github.com/Ontology/net/protocol"
+	"github.com/ontio/ontology-crypto/keypair"
 )
 
 type Info struct {
@@ -44,7 +46,7 @@ type Info struct {
 }
 
 const (
-	verifyNode = "Verify Node"
+	verifyNode  = "Verify Node"
 	serviceNode = "Service Node"
 )
 
@@ -79,11 +81,11 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	var ngbHttpInfoAddr string
 
 	curNodeType := serviceNode
-	bookkeeperState,  _ := ledger.DefLedger.GetBookkeeperState()
+	bookkeeperState, _ := ledger.DefLedger.GetBookkeeperState()
 	bookkeepers := bookkeeperState.CurrBookkeeper
 	bookkeeperLen := len(bookkeepers)
 	for i := 0; i < bookkeeperLen; i++ {
-		if node.GetPubKey().X.Cmp(bookkeepers[i].X) == 0 {
+		if keypair.ComparePublicKey(node.GetPubKey(), bookkeepers[i]) {
 			curNodeType = verifyNode
 			break
 		}
@@ -94,7 +96,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	for i := 0; i < ngbrsLen; i++ {
 		ngbType = serviceNode
 		for j := 0; j < bookkeeperLen; j++ {
-			if ngbrNoders[i].GetPubKey().X.Cmp(bookkeepers[j].X) == 0 {
+			if keypair.ComparePublicKey(ngbrNoders[i].GetPubKey(), bookkeepers[j]) {
 				ngbType = verifyNode
 				break
 			}
@@ -128,5 +130,5 @@ func StartServer(n Noder) {
 	node = n
 	port := int(config.Parameters.HttpInfoPort)
 	http.HandleFunc("/info", viewHandler)
-	http.ListenAndServe(":" + strconv.Itoa(port), nil)
+	http.ListenAndServe(":"+strconv.Itoa(port), nil)
 }

@@ -19,11 +19,13 @@
 package payload
 
 import (
+	"crypto"
+	"io"
+
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
-	"github.com/Ontology/crypto"
-	"io"
 	. "github.com/Ontology/errors"
+	"github.com/ontio/ontology-crypto/keypair"
 )
 
 const (
@@ -31,7 +33,7 @@ const (
 )
 
 type Vote struct {
-	PubKeys []*crypto.PubKey // vote node list
+	PubKeys []crypto.PublicKey // vote node list
 
 	Account Address
 }
@@ -48,7 +50,9 @@ func (self *Vote) Serialize(w io.Writer) error {
 		return NewDetailErr(err, ErrNoCode, "Vote PubKeys length Serialize failed.")
 	}
 	for _, key := range self.PubKeys {
-		if err := key.Serialize(w); err != nil {
+		buf := keypair.SerializePublicKey(key)
+		err := serialization.WriteVarBytes(w, buf)
+		if err != nil {
 			return NewDetailErr(err, ErrNoCode, "InvokeCode PubKeys Serialize failed.")
 		}
 	}
@@ -64,14 +68,16 @@ func (self *Vote) Deserialize(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	self.PubKeys = make([]*crypto.PubKey, length)
+	self.PubKeys = make([]crypto.PublicKey, length)
 	for i := 0; i < int(length); i++ {
-		pubkey := new(crypto.PubKey)
-		err := pubkey.DeSerialize(r)
+		buf, err := serialization.ReadVarBytes(r)
 		if err != nil {
 			return err
 		}
-		self.PubKeys[i] = pubkey
+		self.PubKeys[i], err = keypair.DeserializePublicKey(buf)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = self.Account.Deserialize(r)

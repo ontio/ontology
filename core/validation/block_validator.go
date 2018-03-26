@@ -23,8 +23,8 @@ import (
 	"fmt"
 
 	"github.com/Ontology/core/ledger"
+	"github.com/Ontology/core/signature"
 	"github.com/Ontology/core/types"
-	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
 )
 
@@ -36,7 +36,7 @@ func VerifyBlock(block *types.Block, ld *ledger.Ledger, completely bool) error {
 
 	m := len(header.Bookkeepers) - (len(header.Bookkeepers)-1)/3
 	hash := block.Hash()
-	err := crypto.VerifyMultiSignature(hash[:], header.Bookkeepers, m, header.SigData)
+	err := signature.VerifyMultiSignature(hash[:], header.Bookkeepers, m, header.SigData)
 	if err != nil {
 		return err
 	}

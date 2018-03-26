@@ -21,30 +21,31 @@ package test
 import (
 	"fmt"
 	"os"
-
-	. "github.com/Ontology/cli/common"
-	"github.com/Ontology/http/base/rpc"
-	"github.com/urfave/cli"
+	"encoding/json"
 	"bytes"
 	"encoding/hex"
 	"math/big"
 	"time"
+
 	vmtypes "github.com/Ontology/vm/types"
 	"github.com/Ontology/account"
 	"github.com/Ontology/core/genesis"
-	"github.com/Ontology/crypto"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/common"
 	"github.com/Ontology/smartcontract/service/native/states"
-	"encoding/json"
 	"github.com/Ontology/core/utils"
+	"github.com/Ontology/core/signature"
+	"github.com/ontio/ontology-crypto/keypair"
+	. "github.com/Ontology/cli/common"
+	"github.com/Ontology/http/base/rpc"
+	"github.com/urfave/cli"
 )
 
 func signTransaction(signer *account.Account, tx *types.Transaction) error {
 	hash := tx.Hash()
-	sign, _ := crypto.Sign(signer.PrivateKey, hash[:])
+	sign, _ := signature.Sign(hash[:], signer.PrivateKey)
 	tx.Sigs = append(tx.Sigs, &types.Sig{
-		PubKeys: []*crypto.PubKey{signer.PublicKey},
+		PubKeys: []keypair.PublicKey{signer.PublicKey},
 		M: 1,
 		SigData: [][]byte{sign},
 	})

@@ -18,15 +18,13 @@
 
 package signature
 
-import (
-	"github.com/Ontology/crypto"
-)
+import "github.com/ontio/ontology-crypto/keypair"
 
 //Signer is the abstract interface of user's information(Keys) for signing data.
 type Signer interface {
 	//get signer's private key
-	PrivKey() []byte
+	PrivKey() keypair.PrivateKey
 
 	//get signer's public key
-	PubKey() *crypto.PubKey
+	PubKey() keypair.PublicKey
 }

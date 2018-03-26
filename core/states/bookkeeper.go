@@ -19,27 +19,36 @@
 package states
 
 import (
-	"io"
 	"bytes"
+	"io"
+
 	"github.com/Ontology/common/serialization"
-	"github.com/Ontology/crypto"
+	"github.com/ontio/ontology-crypto/keypair"
 )
 
 type BookkeeperState struct {
 	StateBase
-	CurrBookkeeper []*crypto.PubKey
-	NextBookkeeper []*crypto.PubKey
+	CurrBookkeeper []keypair.PublicKey
+	NextBookkeeper []keypair.PublicKey
 }
 
 func (this *BookkeeperState) Serialize(w io.Writer) error {
 	this.StateBase.Serialize(w)
 	serialization.WriteUint32(w, uint32(len(this.CurrBookkeeper)))
 	for _, v := range this.CurrBookkeeper {
-		v.Serialize(w)
+		buf := keypair.SerializePublicKey(v)
+		err := serialization.WriteVarBytes(w, buf)
+		if err != nil {
+			return err
+		}
 	}
 	serialization.WriteUint32(w, uint32(len(this.NextBookkeeper)))
 	for _, v := range this.NextBookkeeper {
-		v.Serialize(w)
+		buf := keypair.SerializePublicKey(v)
+		err := serialization.WriteVarBytes(w, buf)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -57,12 +66,12 @@ func (this *BookkeeperState) Deserialize(r io.Reader) error {
 		return err
 	}
 	for i := 0; i < int(n); i++ {
-		p := new(crypto.PubKey)
-		err = p.DeSerialize(r)
+		buf, err := serialization.ReadVarBytes(r)
 		if err != nil {
 			return err
 		}
-		this.CurrBookkeeper = append(this.CurrBookkeeper, p)
+		key, err := keypair.DeserializePublicKey(buf)
+		this.CurrBookkeeper = append(this.CurrBookkeeper, key)
 	}
 
 	n, err = serialization.ReadUint32(r)
@@ -70,12 +79,12 @@ func (this *BookkeeperState) Deserialize(r io.Reader) error {
 		return err
 	}
 	for i := 0; i < int(n); i++ {
-		p := new(crypto.PubKey)
-		err = p.DeSerialize(r)
+		buf, err := serialization.ReadVarBytes(r)
 		if err != nil {
 			return err
 		}
-		this.NextBookkeeper = append(this.NextBookkeeper, p)
+		key, err := keypair.DeserializePublicKey(buf)
+		this.NextBookkeeper = append(this.NextBookkeeper, key)
 	}
 	return nil
 }
@@ -85,4 +94,3 @@ func (v *BookkeeperState) ToArray() []byte {
 	v.Serialize(b)
 	return b.Bytes()
 }
-

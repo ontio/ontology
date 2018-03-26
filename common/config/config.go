@@ -60,7 +60,7 @@ type Configuration struct {
 	CAPath            string           `json:"CAPath"`
 	GenBlockTime      uint             `json:"GenBlockTime"`
 	MultiCoreNum      uint             `json:"MultiCoreNum"`
-	EncryptAlg        string           `json:"EncryptAlg"`
+	SignatureScheme   string           `json:"SignatureScheme"`
 	MaxLogSize        int64            `json:"MaxLogSize"`
 	MaxTxInBlock      int              `json:"MaxTransactionInBlock"`
 	MaxHdrSyncReqs    int              `json:"MaxConcurrentSyncHeaderReqs"`

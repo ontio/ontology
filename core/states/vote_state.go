@@ -19,15 +19,17 @@
 package states
 
 import (
-	"github.com/Ontology/crypto"
-	"github.com/Ontology/common"
+	"crypto"
 	"io"
+
+	"github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
+	"github.com/ontio/ontology-crypto/keypair"
 )
 
 type VoteState struct {
 	StateBase
-	PublicKeys []*crypto.PubKey
+	PublicKeys []crypto.PublicKey
 	Count      common.Fixed64
 }
 
@@ -35,7 +37,8 @@ func (this *VoteState) Serialize(w io.Writer) error {
 	this.StateBase.Serialize(w)
 	serialization.WriteUint32(w, uint32(len(this.PublicKeys)))
 	for _, v := range this.PublicKeys {
-		err := v.Serialize(w)
+		buf := keypair.SerializePublicKey(v)
+		err := serialization.WriteVarBytes(w, buf)
 		if err != nil {
 			return err
 		}
@@ -56,13 +59,15 @@ func (this *VoteState) Deserialize(r io.Reader) error {
 		return err
 	}
 	for i := 0; i < int(n); i++ {
-		pk := new(crypto.PubKey)
-		if err := pk.DeSerialize(r); err != nil {
+		buf, err := serialization.ReadVarBytes(r)
+		if err != nil {
+			return err
+		}
+		pk, err := keypair.DeserializePublicKey(buf)
+		if err != nil {
 			return err
 		}
 		this.PublicKeys = append(this.PublicKeys, pk)
 	}
 	return nil
 }
-
-

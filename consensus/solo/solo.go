@@ -22,6 +22,8 @@ import (
 	"time"
 ldgactor "github.com/Ontology/core/ledger/actor"
 	"fmt"
+	"reflect"
+
 	"github.com/Ontology/account"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/config"
@@ -29,11 +31,11 @@ ldgactor "github.com/Ontology/core/ledger/actor"
 	actorTypes "github.com/Ontology/consensus/actor"
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/payload"
+	"github.com/Ontology/core/signature"
 	"github.com/Ontology/core/types"
-	"github.com/Ontology/crypto"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/Ontology/validator/increment"
-	"reflect"
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/Ontology/events"
 	"github.com/Ontology/events/message"
 )
@@ -144,7 +146,7 @@ func (this *SoloService) Halt() error {
 	return nil
 }
 
-func (this *SoloService) genBlock()error {
+func (this *SoloService) genBlock() error {
 	block, err := this.makeBlock()
 	if err != nil {
 		return fmt.Errorf("makeBlock error %s", err)
@@ -165,7 +167,7 @@ func (this *SoloService) genBlock()error {
 func (this *SoloService) makeBlock() (*types.Block, error) {
 	log.Debug()
 	owner := this.Account.PublicKey
-	nextBookkeeper, err := types.AddressFromBookkeepers([]*crypto.PubKey{owner})
+	nextBookkeeper, err := types.AddressFromBookkeepers([]keypair.PublicKey{owner})
 	if err != nil {
 		return nil, fmt.Errorf("GetBookkeeperAddress error:%s", err)
 	}
@@ -199,15 +201,15 @@ func (this *SoloService) makeBlock() (*types.Block, error) {
 	for _, txEntry := range txs {
 		// TODO optimize to use height in txentry
 		if  err := this.incrValidator.Verify(txEntry.Tx, validHeight) ; err == nil {
-			transactions = append(transactions, txEntry.Tx)
-		}
+		transactions = append(transactions, txEntry.Tx)
+	}
 	}
 
 	txHash := []Uint256{}
 	for _, t := range transactions {
 		txHash = append(txHash, t.Hash())
 	}
-	txRoot, err := crypto.ComputeRoot(txHash)
+	txRoot, err := ComputeRoot(txHash)
 	if err != nil {
 		return nil, fmt.Errorf("ComputeRoot error:%s", err)
 	}
@@ -230,12 +232,13 @@ func (this *SoloService) makeBlock() (*types.Block, error) {
 
 	blockHash := block.Hash()
 
-	signature, err := crypto.Sign(this.Account.PrivKey(), blockHash[:])
+	sig, err := signature.Sign(blockHash[:], this.Account.PrivKey())
 	if err != nil {
 		return nil, fmt.Errorf("[Signature],Sign error:%s.", err)
 	}
-	block.Header.Bookkeepers = []*crypto.PubKey{owner}
-	block.Header.SigData = [][]byte{signature}
+
+	block.Header.Bookkeepers = []keypair.PublicKey{owner}
+	block.Header.SigData = [][]byte{sig}
 	return block, nil
 }
 
@@ -252,11 +255,14 @@ func (this *SoloService) createBookkeepingTransaction(nonce uint64, fee Fixed64)
 	}
 	txHash := tx.Hash()
 	acc := this.Account
-	signature, _ := crypto.Sign(acc.PrivateKey, txHash[:])
+	s, err := signature.Sign(txHash[:], acc.PrivateKey)
+	if err != nil {
+		return nil
+	}
 	sig := &types.Sig{
-		PubKeys: []*crypto.PubKey{acc.PublicKey},
+		PubKeys: []keypair.PublicKey{acc.PublicKey},
 		M:       1,
-		SigData: [][]byte{signature},
+		SigData: [][]byte{s},
 	}
 	tx.Sigs = []*types.Sig{sig}
 	return tx

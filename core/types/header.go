@@ -26,8 +26,8 @@ import (
 
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
-	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
+	"github.com/ontio/ontology-crypto/keypair"
 )
 
 type Header struct {
@@ -41,7 +41,7 @@ type Header struct {
 	NextBookkeeper   Address
 
 	//Program *program.Program
-	Bookkeepers []*crypto.PubKey
+	Bookkeepers []keypair.PublicKey
 	SigData     [][]byte
 
 	hash Uint256
@@ -56,7 +56,7 @@ func (bd *Header) Serialize(w io.Writer) error {
 		return errors.New("serialize sig pubkey length failed")
 	}
 	for _, pubkey := range bd.Bookkeepers {
-		err = pubkey.Serialize(w)
+		err := serialization.WriteVarBytes(w, keypair.SerializePublicKey(pubkey))
 		if err != nil {
 			return err
 		}
@@ -101,14 +101,16 @@ func (bd *Header) Deserialize(r io.Reader) error {
 		return err
 	}
 
-	bd.Bookkeepers = make([]*crypto.PubKey, n)
+	bd.Bookkeepers = make([]keypair.PublicKey, n)
 	for i := 0; i < int(n); i++ {
-		pubkey := new(crypto.PubKey)
-		err = pubkey.DeSerialize(r)
+		buf, err := serialization.ReadVarBytes(r)
 		if err != nil {
 			return err
 		}
-		bd.Bookkeepers[i] = pubkey
+		bd.Bookkeepers[i], err = keypair.DeserializePublicKey(buf)
+		if err != nil {
+			return err
+		}
 	}
 
 	m, err := serialization.ReadVarUint(r, 0)
@@ -147,7 +149,7 @@ func (bd *Header) DeserializeUnsigned(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	
+
 	err = bd.BlockRoot.Deserialize(r)
 	if err != nil {
 		return err

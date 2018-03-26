@@ -6,10 +6,10 @@
       "127.0.0.1:10338"
     ],
     "Bookkeepers": [
-      "03ccbfeb4fcf8bee8cd65b55b9fc7ff114df8e0fd377f6235f1b55625a958b0cd1",
-      "02f519192cfcb4a09e2682186771ebe8558174446eeb015f68a7f1ac1d54ff8aec",
-      "02f519192cfcb4a09e2682186771ebe8558174446eeb015f68a7f1ac1d54ff8aec",
-      "02f519192cfcb4a09e2682186771ebe8558174446eeb015f68a7f1ac1d54ff8aec"
+      "120203a4e50edc1e59979442b83f327030a56bffd08c2de3e0a404cefb4ed2cc04ca3e",
+      "12020225c98cc5f82506fb9d01bad15a7be3da29c97a279bb6b55da1a3177483ab149b",
+      "12020225c98cc5f82506fb9d01bad15a7be3da29c97a279bb6b55da1a3177483ab149b",
+      "12020225c98cc5f82506fb9d01bad15a7be3da29c97a279bb6b55da1a3177483ab149b"
     ],
     "HttpInfoPort": 20383,
     "HttpInfoStart": true,
@@ -29,6 +29,7 @@
       "RegisterAsset": 10000,
       "IssueAsset": 10000
     },
+    "SignatureScheme": "SHA256withECDSA",
     "ConsensusType":"solo"
   }
 }

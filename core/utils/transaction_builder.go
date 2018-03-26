@@ -21,29 +21,8 @@ package utils
 import (
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/types"
-	"github.com/Ontology/crypto"
 	vmtypes "github.com/Ontology/vm/types"
 )
-
-//initial a new transaction with asset registration payload
-func NewBookkeeperTransaction(pubKey *crypto.PubKey, isAdd bool, cert []byte, issuer *crypto.PubKey) (*types.Transaction, error) {
-	bookkeeperPayload := &payload.Bookkeeper{
-		PubKey: pubKey,
-		Action: payload.BookkeeperAction_SUB,
-		Cert:   cert,
-		Issuer: issuer,
-	}
-
-	if isAdd {
-		bookkeeperPayload.Action = payload.BookkeeperAction_ADD
-	}
-
-	return &types.Transaction{
-		TxType:     types.Bookkeeper,
-		Payload:    bookkeeperPayload,
-		Attributes: nil,
-	}, nil
-}
 
 func NewDeployTransaction(code *vmtypes.VmCode, name, version, author, email, desp string, needStorage bool) *types.Transaction {
 	//TODO: check arguments
@@ -67,7 +46,7 @@ func NewDeployTransaction(code *vmtypes.VmCode, name, version, author, email, de
 func NewInvokeTransaction(vmcode vmtypes.VmCode) *types.Transaction {
 	//TODO: check arguments
 	invokeCodePayload := &payload.InvokeCode{
-		Code:   vmcode,
+		Code: vmcode,
 	}
 
 	return &types.Transaction{

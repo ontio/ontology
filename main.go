@@ -19,13 +19,20 @@
 package main
 
 import (
+	"os"
+	"os/signal"
+	"runtime"
+	"sort"
+	"syscall"
+	"time"
+
 	"github.com/Ontology/account"
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/consensus"
 	"github.com/Ontology/core/ledger"
 	ldgactor "github.com/Ontology/core/ledger/actor"
-	"github.com/Ontology/crypto"
+	"github.com/Ontology/core/signature"
 	"github.com/Ontology/events"
 	hserver "github.com/Ontology/http/base/actor"
 	"github.com/Ontology/http/jsonrpc"
@@ -39,12 +46,7 @@ import (
 	tc "github.com/Ontology/txnpool/common"
 	"github.com/Ontology/validator/statefull"
 	"github.com/Ontology/validator/stateless"
-	"os"
-	"os/signal"
-	"runtime"
-	"sort"
-	"syscall"
-	"time"
+	"github.com/ontio/ontology-crypto/keypair"
 )
 
 const (
@@ -75,7 +77,12 @@ func main() {
 		log.Fatal("At least ", account.DefaultBookkeeperCount, " Bookkeepers should be set at config.json")
 		os.Exit(1)
 	}
-	crypto.SetAlg(config.Parameters.EncryptAlg)
+
+	// Set default signature scheme
+	err = signature.SetDefaultScheme(config.Parameters.SignatureScheme)
+	if err != nil {
+		log.Warn("Config error: ", err)
+	}
 
 	log.Info("0. Open the account")
 	client := account.GetClient()
@@ -90,7 +97,7 @@ func main() {
 	}
 	log.Debug("The Node's PublicKey ", acct.PublicKey)
 	defBookkeepers, err := client.GetBookkeepers()
-	sort.Sort(crypto.PubKeySlice(defBookkeepers))
+	sort.Sort(keypair.NewPublicList(defBookkeepers))
 	if err != nil {
 		log.Fatalf("GetBookkeepers error:%s", err)
 		os.Exit(1)

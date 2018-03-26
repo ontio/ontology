@@ -22,18 +22,19 @@ import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/crypto"
-	"github.com/Ontology/events"
 	"time"
+
+	"github.com/Ontology/common"
+	"github.com/Ontology/events"
+	"github.com/ontio/ontology-crypto/keypair"
 )
 
 type NodeAddr struct {
-	Time     int64
-	Services uint64
-	IpAddr   [16]byte
-	Port     uint16
-	ID       uint64 // Unique ID
+	Time          int64
+	Services      uint64
+	IpAddr        [16]byte
+	Port          uint16
+	ID            uint64 // Unique ID
 }
 
 // The node capability type
@@ -68,7 +69,7 @@ const (
 	MAX_CHAN_BUF       = 512
 	PROTOCOL_VERSION   = 0
 	PERIOD_UPDATE_TIME = 3 // Time to update and sync information with other nodes
-	HEARTBEAT          = 2
+	HEARTBEAT        = 2
 	KEEPALIVE_TIMEOUT  = 3
 	DIAL_TIMEOUT       = 6
 	CONN_MONITOR       = 6
@@ -79,12 +80,12 @@ const (
 
 // The node state
 const (
-	INIT        = 0
-	HAND        = 1
+	INIT       = 0
+	HAND       = 1
 	HAND_SHAKE  = 2
 	HAND_SHAKED = 3
-	ESTABLISH   = 4
-	INACTIVITY  = 5
+	ESTABLISH  = 4
+	INACTIVITY = 5
 )
 
 var ReceiveDuplicateBlockCnt uint64 //an index to detecting networking status
@@ -102,7 +103,7 @@ type Noder interface {
 	GetState() uint32
 	GetRelay() bool
 	SetState(state uint32)
-	GetPubKey() *crypto.PubKey
+	GetPubKey() keypair.PublicKey
 	CompareAndSetState(old, new uint32) bool
 	UpdateRXTime(t time.Time)
 	LocalNode() Noder
@@ -128,9 +129,9 @@ type Noder interface {
 	GetRxTxnCnt() uint64
 
 	Xmit(interface{}) error
-	GetBookkeeperAddr() *crypto.PubKey
-	GetBookkeepersAddrs() ([]*crypto.PubKey, uint64)
-	SetBookkeeperAddr(pk *crypto.PubKey)
+	GetBookkeeperAddr() keypair.PublicKey
+	GetBookkeepersAddrs() ([]keypair.PublicKey, uint64)
+	SetBookkeeperAddr(pk keypair.PublicKey)
 	GetNeighborHeights() ([]uint64, uint64)
 	SyncNodeHeight()
 

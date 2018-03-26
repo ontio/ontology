@@ -21,8 +21,8 @@ package dbft
 import (
 	"bytes"
 	"fmt"
-	"time"
 	"reflect"
+	"time"
 	ldgractor"github.com/Ontology/core/ledger/actor"
 	"github.com/Ontology/account"
 	. "github.com/Ontology/common"
@@ -32,9 +32,9 @@ import (
 	"github.com/Ontology/core/genesis"
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/payload"
+	"github.com/Ontology/core/signature"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/core/vote"
-	"github.com/Ontology/crypto"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/Ontology/events"
 	"github.com/Ontology/events/message"
@@ -446,7 +446,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 	ds.context.header = nil
 
 	blockHash := ds.context.MakeHeader().Hash()
-	err = crypto.Verify(*ds.context.Bookkeepers[payload.BookkeeperIndex], blockHash[:], message.Signature)
+	err = signature.Verify(blockHash[:], message.Signature, ds.context.Bookkeepers[payload.BookkeeperIndex])
 	if err != nil {
 		log.Warn("PrepareRequestReceived VerifySignature failed.", err)
 		ds.context = backupContext
@@ -492,7 +492,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 				ds.context = backupContext
 				ds.RequestChangeView()
 				return
-			}
+	}
 		}
 
 	}
@@ -525,12 +525,12 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 		return
 	}
 
-	sign, err := crypto.Sign(ds.Account.PrivKey(), blockHash[:])
+	sig, err := signature.Sign(blockHash[:], ds.Account.PrivKey())
 	if err != nil {
-		log.Error("[DbftService] SignBySigner failed")
+		log.Error("[DbftService] signing failed")
 		return
 	}
-	ds.context.Signatures[ds.context.BookkeeperIndex] = sign
+	ds.context.Signatures[ds.context.BookkeeperIndex] = sig
 
 	payload = ds.context.MakePrepareResponse(ds.context.Signatures[ds.context.BookkeeperIndex])
 	ds.SignAndRelay(payload)
@@ -555,7 +555,7 @@ func (ds *DbftService) PrepareResponseReceived(payload *p2pmsg.ConsensusPayload,
 		return
 	}
 	blockHash := header.Hash()
-	err := crypto.Verify(*ds.context.Bookkeepers[payload.BookkeeperIndex], blockHash[:], message.Signature)
+	err := signature.Verify(blockHash[:], message.Signature, ds.context.Bookkeepers[payload.BookkeeperIndex])
 	if err != nil {
 		return
 	}
@@ -595,7 +595,7 @@ func (ds *DbftService) BlockSignaturesReceived(payload *p2pmsg.ConsensusPayload,
 			continue
 		}
 
-		err := crypto.Verify(*ds.context.Bookkeepers[sigdata.Index], blockHash[:], sigdata.Signature)
+		err := signature.Verify(blockHash[:], sigdata.Signature, ds.context.Bookkeepers[sigdata.Index])
 		if err != nil {
 			continue
 		}
@@ -641,7 +641,7 @@ func (ds *DbftService) RequestChangeView() {
 func (ds *DbftService) SignAndRelay(payload *p2pmsg.ConsensusPayload) {
 	buf := new(bytes.Buffer)
 	payload.SerializeUnsigned(buf)
-	payload.Signature, _ = crypto.Sign(ds.Account.PrivKey(), buf.Bytes())
+	payload.Signature, _ = signature.Sign(buf.Bytes(), ds.Account.PrivKey())
 
 	ds.p2p.Xmit(payload)
 }
@@ -717,7 +717,7 @@ func (ds *DbftService) Timeout() {
 				// TODO optimize to use height in txentry
 				if  err := ds.incrValidator.Verify(txEntry.Tx, validHeight) ; err == nil {
 					transactions = append(transactions, txEntry.Tx)
-				}
+			}
 			}
 
 			ds.context.Transactions = transactions
@@ -736,7 +736,7 @@ func (ds *DbftService) Timeout() {
 			//build block and sign
 			block := ds.context.MakeHeader()
 			blockHash := block.Hash()
-			ds.context.Signatures[ds.context.BookkeeperIndex], _ = crypto.Sign(ds.Account.PrivKey(), blockHash[:])
+			ds.context.Signatures[ds.context.BookkeeperIndex], _ = signature.Sign(blockHash[:], ds.Account.PrivKey())
 		}
 		payload := ds.context.MakePrepareRequest()
 		ds.SignAndRelay(payload)

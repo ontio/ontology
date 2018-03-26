@@ -20,14 +20,17 @@ package signature
 
 import (
 	"bytes"
+	"crypto"
 	"crypto/sha256"
+	"errors"
 	"io"
 
 	"github.com/Ontology/common"
 	"github.com/Ontology/core/contract/program"
-	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
 	"github.com/Ontology/vm/neovm/interfaces"
+	"github.com/ontio/ontology-crypto/keypair"
+	s "github.com/ontio/ontology-crypto/signature"
 )
 
 //SignableData describe the data need be signed.
@@ -45,23 +48,83 @@ type SignableData interface {
 	SerializeUnsigned(io.Writer) error
 }
 
+// Default signature scheme
+var defaultScheme = s.SHA256withECDSA
+
+func SetDefaultScheme(scheme string) error {
+	res, err := s.GetScheme(scheme)
+	if err != nil {
+		return errors.New(err.Error() + ", use SHA256withECDSA as default")
+	}
+	defaultScheme = res
+
+	return nil
+}
+
 func SignBySigner(data SignableData, signer Signer) ([]byte, error) {
-	return sign(data, signer.PrivKey())
+	return Sign(getHashData(data), signer.PrivKey())
 }
 
 func getHashData(data SignableData) []byte {
 	buf := new(bytes.Buffer)
 	data.SerializeUnsigned(buf)
-	return buf.Bytes()
+	temp := sha256.Sum256(buf.Bytes())
+	hash := sha256.Sum256(temp[:])
+	return hash[:]
 }
 
-func sign(data SignableData, privKey []byte) ([]byte, error) {
-	temp := sha256.Sum256(getHashData(data))
-	hash := sha256.Sum256(temp[:])
-
-	signature, err := crypto.Sign(privKey, hash[:])
+func Sign(data []byte, privKey crypto.PrivateKey) ([]byte, error) {
+	signature, err := s.Sign(defaultScheme, privKey, data, nil)
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[Signature],Sign failed.")
 	}
-	return signature, nil
+
+	return s.Serialize(signature)
+}
+
+func Verify(data, signature []byte, pubKey crypto.PublicKey) error {
+	sigObj, err := s.Deserialize(signature)
+	if err != nil {
+		return errors.New("invalid signature data: " + err.Error())
+	}
+
+	if s.Verify(pubKey, data, sigObj) {
+		return errors.New("signature verification failed")
+	}
+
+	return nil
+}
+
+func VerifyMultiSignature(data []byte, keys []keypair.PublicKey, m int, sigs [][]byte) error {
+	n := len(keys)
+
+	if len(sigs) < m {
+		return errors.New("not enough signatures in multi-signature")
+	}
+
+	mask := make([]bool, n)
+	for i := 0; i < m; i++ {
+		valid := false
+
+		sig, err := s.Deserialize(sigs[i])
+		if err != nil {
+			return errors.New("invalid signature data")
+		}
+		for j := 0; j < n; j++ {
+			if mask[j] {
+				continue
+			}
+			if s.Verify(keys[j], data, sig) {
+				mask[j] = true
+				valid = true
+				break
+			}
+		}
+
+		if valid == false {
+			return errors.New("multi-signature verification failed")
+		}
+	}
+
+	return nil
 }

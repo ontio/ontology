@@ -135,16 +135,6 @@ func (this *StateStore) HandleClaimTransaction(stateBatch *statestore.StateBatch
 	return nil
 }
 
-func (this *StateStore) HandleEnrollmentTransaction(stateBatch *statestore.StateBatch, tx *types.Transaction) error {
-	en := tx.Payload.(*payload.Enrollment)
-	bf := new(bytes.Buffer)
-	if err := en.PublicKey.Serialize(bf); err != nil {
-		return err
-	}
-	stateBatch.TryAdd(scommon.ST_Validator, bf.Bytes(), &states.ValidatorState{PublicKey: en.PublicKey}, false)
-	return nil
-}
-
 func (this *StateStore) HandleVoteTransaction(stateBatch *statestore.StateBatch, tx *types.Transaction) error {
 	vote := tx.Payload.(*payload.Vote)
 	buf := new(bytes.Buffer)

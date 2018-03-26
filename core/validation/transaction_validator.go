@@ -22,13 +22,13 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/payload"
+	"github.com/Ontology/core/signature"
 	"github.com/Ontology/core/types"
-	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
-	"github.com/Ontology/common"
 )
 
 // VerifyTransaction verifys received single transaction
@@ -51,28 +51,27 @@ func VerifyTransactionWithLedger(tx *types.Transaction, ledger *ledger.Ledger) E
 	return ErrNoError
 }
 
-
 func checkTransactionSignatures(tx *types.Transaction) error {
 	hash := tx.Hash()
 	address := make(map[common.Address]bool, len(tx.Sigs))
 	for _, sig := range tx.Sigs {
 		m := int(sig.M)
-		n := len(sig.PubKeys)
-		s := len(sig.SigData)
+		kn := len(sig.PubKeys)
+		sn := len(sig.SigData)
 
-		if n > 24 || s < m || m > n {
+		if kn > 24 || sn < m || m > kn {
 			return errors.New("wrong tx sig param length")
 		}
 
-		if n == 1 {
-			err := crypto.Verify(*sig.PubKeys[0], hash[:], sig.SigData[0])
+		if kn == 1 {
+			err := signature.Verify(hash[:], sig.SigData[0], sig.PubKeys[0])
 			if err != nil {
-				return err
+				return errors.New("signature verification failed")
 			}
 
 			address[types.AddressFromPubKey(sig.PubKeys[0])] = true
 		} else {
-			if err := crypto.VerifyMultiSignature(hash[:], sig.PubKeys, m, sig.SigData); err != nil {
+			if err := signature.VerifyMultiSignature(hash[:], sig.PubKeys, m, sig.SigData); err != nil {
 				return err
 			}
 
