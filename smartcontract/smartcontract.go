@@ -85,6 +85,10 @@ func(sc *SmartContract) PopContext() {
 	sc.Context = sc.Context[:len(sc.Context) - 1]
 }
 
+func(sc *SmartContract) PushNotifications(notifications []*event.NotifyEventInfo) {
+	sc.Notifications = append(sc.Notifications, notifications)
+}
+
 func (sc *SmartContract) Execute() error {
 	ctx := sc.CurrentContext()
 	switch ctx.Code.VmType {
@@ -93,7 +97,6 @@ func (sc *SmartContract) Execute() error {
 		if err := service.Invoke(); err != nil {
 			return err
 		}
-		sc.Notifications = append(sc.Notifications, service.Notifications...)
 	case vmtypes.NEOVM:
 		stateMachine := sneovm.NewStateMachine(sc.Config.Store, sc.Config.DBCache, stypes.Application, sc.Config.Time)
 		engine := neovm.NewExecutionEngine(
