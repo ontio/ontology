@@ -288,7 +288,7 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-func GetSmartCodeEventByHeight(cmd map[string]interface{}) map[string]interface{} {
+func GetSmartCodeEventTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 
 	param := cmd["Height"].(string)

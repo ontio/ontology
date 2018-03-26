@@ -33,7 +33,7 @@ type Session struct {
 	sSessionId  string
 }
 
-const sessionTimeOut int64 = 120
+const sessionTimeOut int64 = 600
 
 func newSession(wsConn *websocket.Conn) (session *Session, err error) {
 	sSessionId := uuid.NewUUID().String()

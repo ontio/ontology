@@ -101,7 +101,7 @@ func TestGetContract(t *testing.T) {
 	fmt.Println(string(r))
 }
 func TestGetEventByHeight(t *testing.T) {
-	resp, err := Request("GET", nil, "http://127.0.0.1:20384/api/v1/smartcode/event/11")
+	resp, err := Request("GET", nil, "http://127.0.0.1:20384/api/v1/smartcode/event/transactions/11")
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(0)

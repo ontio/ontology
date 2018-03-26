@@ -65,7 +65,7 @@ func TestAddress(t *testing.T) {
 		os.Exit(0)
 	}
 	ui60 := types.AddressFromPubKey(pk)
-	addr := common.ToHexString(ui60.ToArray())
+	addr := common.ToHexString(ui60[:])
 	fmt.Println(addr)
 	fmt.Println(ui60.ToBase58())
 }
@@ -84,49 +84,9 @@ func TestMultiPubKeysAddress(t *testing.T) {
 		os.Exit(0)
 	}
 	ui60,_ := types.AddressFromMultiPubKeys([]*crypto.PubKey{pk,pk2},1)
-	addr := common.ToHexString(ui60.ToArray())
+	addr := common.ToHexString(ui60[:])
 	fmt.Println(addr)
 	fmt.Println(ui60.ToBase58())
-}
-func TestTransfer(t *testing.T) {
-	contract := "ff00000000000000000000000000000000000001"
-
-	ct, _ := common.HexToBytes(contract)
-	ctu, _ := common.Uint160ParseFromBytes(ct)
-	from := "0121dca8ffcba308e697ee9e734ce686f4181658"
-
-	f, _ := common.HexToBytes(from)
-	fu, _ := common.Uint160ParseFromBytes(f)
-	to := "01c6d97beeb85c7fef8cea8edd564f52c0236fb1"
-
-	tt, _ := common.HexToBytes(to)
-	tu, _ := common.Uint160ParseFromBytes(tt)
-
-	var sts []*states.State
-	sts = append(sts, &states.State{
-		From:  fu,
-		To:    tu,
-		Value: big.NewInt(100),
-	})
-	transfers := new(states.Transfers)
-	fmt.Println("ctu:", ctu)
-	transfers.Params = append(transfers.Params, &states.TokenTransfer{
-		Contract: ctu,
-		States:   sts,
-	})
-
-	bf := new(bytes.Buffer)
-	if err := serialization.WriteVarBytes(bf, []byte("Token.Common.Transfer")); err != nil {
-		fmt.Println("Serialize transfer falg error.")
-		os.Exit(1)
-	}
-	if err := transfers.Serialize(bf); err != nil {
-		fmt.Println("Serialize transfers struct error.")
-		os.Exit(1)
-	}
-
-	fmt.Println(common.ToHexString(bf.Bytes()))
-
 }
 
 func TestInvokefunction(t *testing.T) {
@@ -137,7 +97,7 @@ func TestInvokefunction(t *testing.T) {
 	}
 	codeParams := builder.ToArray();
 	tx := utils.NewInvokeTransaction(vmtypes.VmCode{
-		VmType: vmtypes.NativeVM,
+		VmType: vmtypes.Native,
 		Code: codeParams,
 	})
 	tx.Nonce = uint32(time.Now().Unix())

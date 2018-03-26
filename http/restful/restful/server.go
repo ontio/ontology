@@ -65,7 +65,7 @@ const (
 	Api_WebsocketState       = "/api/v1/config/websocket/state"
 	Api_Restart              = "/api/v1/restart"
 	Api_GetContractState     = "/api/v1/contract/:hash"
-	Api_GetSmtCodeEvtByHgt  = "/api/v1/smartcode/event/height/:height"
+	Api_GetSmtCodeEvtTxsByHgt  = "/api/v1/smartcode/event/transactions/:height"
 	Api_GetSmtCodeEvtByHash = "/api/v1/smartcode/event/txhash/:hash"
 	Api_GetBlkHeightByTxHash = "/api/v1/block/height/txhash/:hash"
 )
@@ -158,7 +158,7 @@ func (this *restServer) registryMethod() {
 		Api_GetTransaction:       {name: "gettransaction", handler: rest.GetTransactionByHash},
 		Api_GetContractState:     {name: "getcontract", handler: rest.GetContractState},
 		Api_Restart:              {name: "restart", handler: this.Restart},
-		Api_GetSmtCodeEvtByHgt:    {name: "getsmartcodeeventbyheight", handler: rest.GetSmartCodeEventByHeight},
+		Api_GetSmtCodeEvtTxsByHgt:    {name: "getsmartcodeeventbyheight", handler: rest.GetSmartCodeEventTxsByHeight},
 		Api_GetSmtCodeEvtByHash:    {name: "getsmartcodeeventbyhash", handler: rest.GetSmartCodeEventByTxHash},
 		Api_GetBlkHeightByTxHash: {name: "getblockheightbytxhash", handler: rest.GetBlockHeightByTxHash},
 		Api_GetStorage:           {name: "getstorage", handler: rest.GetStorage},
@@ -196,8 +196,8 @@ func (this *restServer) getPath(url string) string {
 		return Api_GetTransaction
 	} else if strings.Contains(url, strings.TrimRight(Api_GetContractState, ":hash")) {
 		return Api_GetContractState
-	} else if strings.Contains(url, strings.TrimRight(Api_GetSmtCodeEvtByHgt, ":height")) {
-		return Api_GetSmtCodeEvtByHgt
+	} else if strings.Contains(url, strings.TrimRight(Api_GetSmtCodeEvtTxsByHgt, ":height")) {
+		return Api_GetSmtCodeEvtTxsByHgt
 	} else if strings.Contains(url, strings.TrimRight(Api_GetSmtCodeEvtByHash, ":hash")) {
 		return Api_GetSmtCodeEvtByHash
 	} else if strings.Contains(url, strings.TrimRight(Api_GetBlkHeightByTxHash, ":hash")) {
@@ -236,7 +236,7 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["PreExec"] = r.FormValue("preExec")
 	case Api_GetStorage:
 		req["Hash"], req["Key"] = getParam(r, "hash"), getParam(r,"key")
-	case Api_GetSmtCodeEvtByHgt:
+	case Api_GetSmtCodeEvtTxsByHgt:
 		req["Height"] = getParam(r, "height")
 	case Api_GetSmtCodeEvtByHash:
 		req["Hash"] = getParam(r, "hash")
