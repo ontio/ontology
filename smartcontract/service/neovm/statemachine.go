@@ -45,7 +45,7 @@ func NewStateMachine(ldgerStore store.ILedgerStore, dbCache scommon.IStateStore,
 	var stateMachine StateMachine
 	stateMachine.ldgerStore = ldgerStore
 	stateMachine.CloneCache = storage.NewCloneCache(dbCache)
-	stateMachine.StateReader = NewStateReader(ldgerStore,trigger)
+	stateMachine.StateReader = NewStateReader(ldgerStore, trigger)
 	stateMachine.trigger = trigger
 	stateMachine.time = time
 
@@ -75,43 +75,40 @@ func (s *StateMachine) RuntimeGetTime(engine *vm.ExecutionEngine) (bool, error) 
 }
 
 func (s *StateMachine) ContractCreate(engine *vm.ExecutionEngine) (bool, error) {
-	if vm.EvaluationStackCount(engine) < 8 {
+	if vm.EvaluationStackCount(engine) < 7 {
 		return false, errors.NewErr("[ContractCreate] Too few input parameters")
 	}
-	codeByte := vm.PopByteArray(engine)
-	if len(codeByte) > 1024*1024 {
+	code := vm.PopByteArray(engine); if len(code) > 1024 * 1024 {
 		return false, errors.NewErr("[ContractCreate] Code too long!")
 	}
-	nameByte := vm.PopByteArray(engine)
-	if len(nameByte) > 252 {
+	needStorage := vm.PopBoolean(engine)
+	name := vm.PopByteArray(engine); if len(name) > 252 {
 		return false, errors.NewErr("[ContractCreate] Name too long!")
 	}
-	versionByte := vm.PopByteArray(engine)
-	if len(versionByte) > 252 {
+	version := vm.PopByteArray(engine); if len(version) > 252 {
 		return false, errors.NewErr("[ContractCreate] Version too long!")
 	}
-	authorByte := vm.PopByteArray(engine)
-	if len(authorByte) > 252 {
+	author := vm.PopByteArray(engine); if len(author) > 252 {
 		return false, errors.NewErr("[ContractCreate] Author too long!")
 	}
-	emailByte := vm.PopByteArray(engine)
-	if len(emailByte) > 252 {
+	email := vm.PopByteArray(engine); if len(email) > 252 {
 		return false, errors.NewErr("[ContractCreate] Email too long!")
 	}
-	descByte := vm.PopByteArray(engine)
-	if len(descByte) > 65536 {
+	desc := vm.PopByteArray(engine); if len(desc) > 65536 {
 		return false, errors.NewErr("[ContractCreate] Desc too long!")
 	}
+	vmCode := &vmtypes.VmCode{VmType:vmtypes.NEOVM, Code: code}
 	contractState := &payload.DeployCode{
-		Code:        &vmtypes.VmCode{VmType:vmtypes.NEOVM, Code: codeByte},
-		Name:        string(nameByte),
-		Version:     string(versionByte),
-		Author:      string(authorByte),
-		Email:       string(emailByte),
-		Description: string(descByte),
+		Code:        vmCode,
+		NeedStorage: needStorage,
+		Name:        string(name),
+		Version:     string(version),
+		Author:      string(author),
+		Email:       string(email),
+		Description: string(desc),
 	}
-	codeHash := common.ToCodeHash(codeByte)
-	state, err := s.CloneCache.GetOrAdd(scommon.ST_Contract, codeHash[:], contractState)
+	contractAddress := vmCode.AddressFromVmCode()
+	state, err := s.CloneCache.GetOrAdd(scommon.ST_Contract, contractAddress[:], contractState)
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] GetOrAdd error!")
 	}
@@ -120,53 +117,49 @@ func (s *StateMachine) ContractCreate(engine *vm.ExecutionEngine) (bool, error) 
 }
 
 func (s *StateMachine) ContractMigrate(engine *vm.ExecutionEngine) (bool, error) {
-	if vm.EvaluationStackCount(engine) < 8 {
+	if vm.EvaluationStackCount(engine) < 7 {
 		return false, errors.NewErr("[ContractMigrate] Too few input parameters ")
 	}
-	codeByte := vm.PopByteArray(engine)
-	if len(codeByte) > 1024*1024 {
+	code := vm.PopByteArray(engine); if len(code) > 1024 * 1024 {
 		return false, errors.NewErr("[ContractMigrate] Code too long!")
 	}
-	codeHash := common.ToCodeHash(codeByte)
-	item, err := s.CloneCache.Get(scommon.ST_Contract, codeHash[:])
-	if err != nil {
+	vmCode := &vmtypes.VmCode{
+		Code: code,
+		VmType: vmtypes.NEOVM,
+	}
+	contractAddress := vmCode.AddressFromVmCode()
+	item, err := s.CloneCache.Get(scommon.ST_Contract, contractAddress[:]); if err != nil {
 		return false, errors.NewErr("[ContractMigrate] Get Contract error!")
 	}
 	if item != nil {
 		return false, errors.NewErr("[ContractMigrate] Migrate Contract has exist!")
 	}
 
-	nameByte := vm.PopByteArray(engine)
-	if len(nameByte) > 252 {
+	nameByte := vm.PopByteArray(engine); if len(nameByte) > 252 {
 		return false, errors.NewErr("[ContractMigrate] Name too long!")
 	}
-	versionByte := vm.PopByteArray(engine)
-	if len(versionByte) > 252 {
+	versionByte := vm.PopByteArray(engine); if len(versionByte) > 252 {
 		return false, errors.NewErr("[ContractMigrate] Version too long!")
 	}
-	authorByte := vm.PopByteArray(engine)
-	if len(authorByte) > 252 {
+	authorByte := vm.PopByteArray(engine); if len(authorByte) > 252 {
 		return false, errors.NewErr("[ContractMigrate] Author too long!")
 	}
-	emailByte := vm.PopByteArray(engine)
-	if len(emailByte) > 252 {
+	emailByte := vm.PopByteArray(engine); if len(emailByte) > 252 {
 		return false, errors.NewErr("[ContractMigrate] Email too long!")
 	}
-	descByte := vm.PopByteArray(engine)
-	if len(descByte) > 65536 {
+	descByte := vm.PopByteArray(engine); if len(descByte) > 65536 {
 		return false, errors.NewErr("[ContractMigrate] Desc too long!")
 	}
 	contractState := &payload.DeployCode{
-		Code:        &vmtypes.VmCode{VmType:vmtypes.NEOVM, Code: codeByte},
+		Code:        vmCode,
 		Name:        string(nameByte),
 		Version:     string(versionByte),
 		Author:      string(authorByte),
 		Email:       string(emailByte),
 		Description: string(descByte),
 	}
-	s.CloneCache.Add(scommon.ST_Contract, codeHash[:], contractState)
-	stateValues, err := s.CloneCache.Store.Find(scommon.ST_Contract, codeHash[:])
-	if err != nil {
+	s.CloneCache.Add(scommon.ST_Contract, contractAddress[:], contractState)
+	stateValues, err := s.CloneCache.Store.Find(scommon.ST_Contract, contractAddress[:]); if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[ContractMigrate] Find error!")
 	}
 	for _, v := range stateValues {
@@ -175,7 +168,7 @@ func (s *StateMachine) ContractMigrate(engine *vm.ExecutionEngine) (bool, error)
 		if err := key.Deserialize(bf); err != nil {
 			return false, errors.NewErr("[ContractMigrate] Key deserialize error!")
 		}
-		key = &states.StorageKey{CodeHash: codeHash, Key: key.Key}
+		key = &states.StorageKey{CodeHash: contractAddress, Key: key.Key}
 		b := new(bytes.Buffer)
 		if _, err := key.Serialize(b); err != nil {
 			return false, errors.NewErr("[ContractMigrate] Key Serialize error!")
@@ -187,24 +180,20 @@ func (s *StateMachine) ContractMigrate(engine *vm.ExecutionEngine) (bool, error)
 }
 
 func (s *StateMachine) ContractDestory(engine *vm.ExecutionEngine) (bool, error) {
-	context, err := engine.CurrentContext()
-	if err != nil {
+	context, err := engine.CurrentContext(); if err != nil {
 		return false, err
 	}
-	hash, err := context.GetCodeHash()
-	if err != nil {
+	hash, err := context.GetCodeHash(); if err != nil {
 		return false, nil
 	}
-	item, err := s.CloneCache.Store.TryGet(scommon.ST_Contract, hash[:])
-	if err != nil {
+	item, err := s.CloneCache.Store.TryGet(scommon.ST_Contract, hash[:]); if err != nil {
 		return false, err
 	}
 	if item == nil {
 		return false, nil
 	}
 	s.CloneCache.Delete(scommon.ST_Contract, hash[:])
-	stateValues, err := s.CloneCache.Store.Find(scommon.ST_Contract, hash[:])
-	if err != nil {
+	stateValues, err := s.CloneCache.Store.Find(scommon.ST_Contract, hash[:]); if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[ContractDestory] Find error!")
 	}
 	for _, v := range stateValues {
@@ -228,8 +217,7 @@ func (s *StateMachine) StoragePut(engine *vm.ExecutionEngine) (bool, error) {
 	if vm.EvaluationStackCount(engine) < 3 {
 		return false, errors.NewErr("[StoragePut] Too few input parameters ")
 	}
-	opInterface := vm.PopInteropInterface(engine)
-	if opInterface == nil {
+	opInterface := vm.PopInteropInterface(engine); if opInterface == nil {
 		return false, errors.NewErr("[StoragePut] Get StorageContext nil")
 	}
 	context := opInterface.(*StorageContext)
@@ -238,8 +226,7 @@ func (s *StateMachine) StoragePut(engine *vm.ExecutionEngine) (bool, error) {
 		return false, errors.NewErr("[StoragePut] Get Storage key to long")
 	}
 	value := vm.PopByteArray(engine)
-	k, err := serializeStorageKey(context.codeHash, key)
-	if err != nil {
+	k, err := serializeStorageKey(context.codeHash, key); if err != nil {
 		return false, err
 	}
 	s.CloneCache.Add(scommon.ST_Storage, k, &states.StorageItem{Value: value})
@@ -256,8 +243,7 @@ func (s *StateMachine) StorageDelete(engine *vm.ExecutionEngine) (bool, error) {
 	}
 	context := opInterface.(*StorageContext)
 	key := vm.PopByteArray(engine)
-	k, err := serializeStorageKey(context.codeHash, key)
-	if err != nil {
+	k, err := serializeStorageKey(context.codeHash, key); if err != nil {
 		return false, err
 	}
 	s.CloneCache.Delete(scommon.ST_Storage, k)
@@ -277,12 +263,10 @@ func (s *StateMachine) StorageGet(engine *vm.ExecutionEngine) (bool, error) {
 		return false, err
 	}
 	key := vm.PopByteArray(engine)
-	k, err := serializeStorageKey(context.codeHash, key)
-	if err != nil {
+	k, err := serializeStorageKey(context.codeHash, key); if err != nil {
 		return false, err
 	}
-	item, err := s.CloneCache.Get(scommon.ST_Storage, k)
-	if err != nil {
+	item, err := s.CloneCache.Get(scommon.ST_Storage, k); if err != nil {
 		return false, err
 	}
 	if item == nil {
@@ -307,15 +291,13 @@ func (s *StateMachine) GetStorageContext(engine *vm.ExecutionEngine) (bool, erro
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[GetStorageContext] Get StorageContext nil")
 	}
-	context, err := engine.CurrentContext()
-	if err != nil {
+	context, err := engine.CurrentContext(); if err != nil {
 		return false, err
 	}
 	if item == nil {
 		return false, errors.NewErr(fmt.Sprintf("[GetStorageContext] Get contract by codehash:%v nil", codeHash))
 	}
-	currentHash, err := context.GetCodeHash()
-	if err != nil {
+	currentHash, err := context.GetCodeHash(); if err != nil {
 		return false, err
 	}
 	if codeHash != currentHash {
