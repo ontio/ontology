@@ -60,3 +60,8 @@ type PeerAddr struct {
 	ConsensusPort uint16
 	ID            uint64 // Unique ID
 }
+
+type MsgPayload struct {
+	Id      uint64
+	Payload []byte
+}

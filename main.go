@@ -115,7 +115,11 @@ func main() {
 		log.Fatalf("p2pserver NewServer error %s", err)
 		os.Exit(1)
 	}
-
+	err = p2p.Start(true)
+	if err != nil {
+		log.Fatalf("p2p sevice start error %s", err)
+		os.Exit(1)
+	}
 	p2pActor := p2pactor.NewP2PActor()
 	p2pPid, err := p2pActor.Start(p2p)
 	if err != nil {

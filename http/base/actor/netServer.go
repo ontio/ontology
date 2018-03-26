@@ -20,7 +20,7 @@ func Xmit(msg interface{}) error {
 	return nil
 }
 
-func GetConnectionCnt() (uint, error) {
+func GetConnectionCnt() (uint32, error) {
 	future := netServerPid.RequestFuture(&ac.GetConnectionCntReq{}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {

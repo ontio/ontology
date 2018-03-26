@@ -26,7 +26,7 @@ type GetVersionRsp struct {
 type GetConnectionCntReq struct {
 }
 type GetConnectionCntRsp struct {
-	Cnt uint
+	Cnt uint32
 }
 
 type GetIdReq struct {
