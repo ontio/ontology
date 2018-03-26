@@ -32,17 +32,14 @@ import (
 const (
 	BlockVersion      uint32 = 0
 	GenesisNonce      uint64 = 2083236893
-	DecrementInterval uint32 = 2000000
 
 	OntRegisterAmount = 1000000000
 	OngRegisterAmount = 1000000000
 )
 
 var (
-	GenerationAmount = [17]uint32{80, 70, 60, 50, 40, 30, 20, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10}
-
-	OntContractAddress, _ = common.Uint160ParseFromBytes([]byte{0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1})
-	OngContractAddress, _ = common.Uint160ParseFromBytes([]byte{0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2})
+	OntContractAddress, _ = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})
+	OngContractAddress, _ = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02})
 
 	ONTToken   = NewGoverningToken()
 	ONGToken   = NewUtilityToken()
@@ -91,20 +88,20 @@ func GenesisBlockInit(defaultBookkeeper []*crypto.PubKey) (*types.Block, error) 
 }
 
 func NewGoverningToken() *types.Transaction {
-	tx := utils.NewDeployTransaction([]byte("ONT Token"), "ONT", "1.0",
-		"Ontology Team", "contact@ont.io", "Ontology Network ONT Token", vmtypes.NativeVM, true)
+	tx := utils.NewDeployTransaction(&vmtypes.VmCode{Code: OntContractAddress[:], VmType: vmtypes.Native}, "ONT", "1.0",
+		"Ontology Team", "contact@ont.io", "Ontology Network ONT Token", true)
 	return tx
 }
 
 func NewUtilityToken() *types.Transaction {
-	tx := utils.NewDeployTransaction([]byte("ONT Token"), "ONG", "1.0",
-		"Ontology Team", "contact@ont.io", "Ontology Network ONG Token", vmtypes.NativeVM, true)
+	tx := utils.NewDeployTransaction(&vmtypes.VmCode{Code: OngContractAddress[:], VmType: vmtypes.Native}, "ONG", "1.0",
+		"Ontology Team", "contact@ont.io", "Ontology Network ONG Token", true)
 	return tx
 }
 
 func NewGoverningInit() *types.Transaction {
 	vmCode := vmtypes.VmCode{
-		VmType: vmtypes.NativeVM,
+		VmType: vmtypes.Native,
 		Code: []byte{14, 84, 111, 107, 101, 110, 46, 79, 110, 116, 46, 73, 110, 105, 116},
 	}
 	tx := utils.NewInvokeTransaction(vmCode)
