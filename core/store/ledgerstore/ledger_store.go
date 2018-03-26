@@ -29,10 +29,6 @@ import (
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/events"
 	"github.com/Ontology/events/message"
-	smcommon "github.com/Ontology/smartcontract/common"
-	"github.com/Ontology/smartcontract/service/neovm"
-	smtypes "github.com/Ontology/smartcontract/types"
-	"github.com/Ontology/vm/neovm"
 	"sort"
 	"sync"
 	"time"
@@ -731,7 +727,7 @@ func (this *LedgerStore) handleTransaction(stateBatch *statestore.StateBatch, bl
 			return fmt.Errorf("HandleDeployTransaction tx %x error %s", txHash, err)
 		}
 	case types.Invoke:
-		err = this.stateStore.HandleInvokeTransaction(stateBatch, tx, block, this.eventStore)
+		err = this.stateStore.HandleInvokeTransaction(this, stateBatch, tx, block, this.eventStore)
 		if err != nil {
 			return fmt.Errorf("HandleInvokeTransaction tx %x error %s", txHash, err)
 		}
@@ -852,34 +848,35 @@ func (this *LedgerStore)GetEventNotifyByBlock(height uint32)([]common.Uint256, e
 }
 
 func (this *LedgerStore) PreExecuteContract(tx *types.Transaction) ([]interface{}, error) {
-	if tx.TxType != types.Invoke {
-		return nil, fmt.Errorf("transaction type error")
-	}
-	invokeCode, ok := tx.Payload.(*payload.InvokeCode)
-	if !ok {
-		return nil, fmt.Errorf("transaction type error")
-	}
-
-	param := invokeCode.Code
-	address := param.AddressFromVmCode()
-	code := append(param.Code, 0x67)
-	code = append(param.Code, address.ToArray()...)
-	stateBatch := this.stateStore.NewStateBatch()
-
-	stateMachine := service.NewStateMachine(this, stateBatch, smtypes.Application, 0)
-	se := neovm.NewExecutionEngine(tx, new(neovm.ECDsaCrypto), &CacheCodeTable{stateBatch}, stateMachine)
-	se.LoadCode(code, false)
-	err := se.Execute()
-	if err != nil {
-		return nil, err
-	}
-	if se.GetEvaluationStackCount() == 0 {
-		return nil, err
-	}
-	if neovm.Peek(se).GetStackItem() == nil {
-		return nil, err
-	}
-	return smcommon.ConvertReturnTypes(neovm.Peek(se).GetStackItem()), nil
+//	if tx.TxType != types.Invoke {
+//		return nil, fmt.Errorf("transaction type error")
+//	}
+//	invokeCode, ok := tx.Payload.(*payload.InvokeCode)
+//	if !ok {
+//		return nil, fmt.Errorf("transaction type error")
+//	}
+//
+//	param := invokeCode.Code
+//	address := param.AddressFromVmCode()
+//	code := append(param.Code, 0x67)
+//	code = append(param.Code, address.ToArray()...)
+//	stateBatch := this.stateStore.NewStateBatch()
+//
+//	stateMachine := service.NewStateMachine(this, stateBatch, smtypes.Application, 0)
+//	se := neovm.NewExecutionEngine(tx, new(neovm.ECDsaCrypto), &CacheCodeTable{stateBatch}, stateMachine)
+//	se.LoadCode(code, false)
+//	err := se.Execute()
+//	if err != nil {
+//		return nil, err
+//	}
+//	if se.GetEvaluationStackCount() == 0 {
+//		return nil, err
+//	}
+//	if neovm.Peek(se).GetStackItem() == nil {
+//		return nil, err
+//	}
+//	return smcommon.ConvertReturnTypes(neovm.Peek(se).GetStackItem()), nil
+	return nil, nil
 }
 
 func (this *LedgerStore) Close() error {

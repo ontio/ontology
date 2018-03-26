@@ -299,7 +299,7 @@ func (this *StateStore) getBookkeeperKey() ([]byte, error) {
 }
 
 func (this *StateStore) getContractStateKey(contractHash common.Address) ([]byte, error) {
-	data := contractHash.ToArray()
+	data := contractHash[:]
 	key := make([]byte, 1+len(data))
 	key[0] = byte(scom.ST_Contract)
 	copy(key[1:], []byte(data))
@@ -309,7 +309,7 @@ func (this *StateStore) getContractStateKey(contractHash common.Address) ([]byte
 func (this *StateStore) getStorageKey(key *states.StorageKey) ([]byte, error) {
 	buf := bytes.NewBuffer(nil)
 	buf.WriteByte( byte(scom.ST_Storage))
-	buf.Write(key.CodeHash.ToArray())
+	buf.Write(key.CodeHash[:])
 	buf.Write(key.Key)
 	return buf.Bytes(), nil
 }

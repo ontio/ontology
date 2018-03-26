@@ -21,69 +21,112 @@ package ledgerstore
 import (
 	"bytes"
 	"fmt"
-	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/states"
-	"github.com/Ontology/core/store/common"
+	scommon "github.com/Ontology/core/store/common"
+	"github.com/Ontology/common"
 	"github.com/Ontology/core/store/statestore"
 	"github.com/Ontology/core/types"
-	"github.com/Ontology/smartcontract/event"
-	"github.com/Ontology/smartcontract/service/native"
 	vmtypes "github.com/Ontology/vm/types"
-)
-
-const (
-	DEPLOY_TRANSACTION = "DeployTransaction"
-	INVOKE_TRANSACTION = "InvokeTransaction"
+	"github.com/Ontology/smartcontract"
+	"github.com/Ontology/core/store"
+	"github.com/Ontology/smartcontract/context"
 )
 
 func (this *StateStore) HandleDeployTransaction(stateBatch *statestore.StateBatch, tx *types.Transaction) error {
 	deploy := tx.Payload.(*payload.DeployCode)
-	code := &vmtypes.VmCode{
-		Code:   deploy.Code,
-		VmType: deploy.VmType,
+
+	originAddress := deploy.Code.AddressFromVmCode()
+	targetAddress, err := common.AddressParseFromBytes(deploy.Code.Code)
+	if err != nil {
+		return fmt.Errorf("Invalid native contract address:%v", err)
 	}
-	codeHash := code.AddressFromVmCode()
+
+	// mapping native contract origin address to target address
+	if deploy.Code.VmType == vmtypes.Native {
+		if err := stateBatch.TryGetOrAdd(
+			scommon.ST_Contract,
+			targetAddress[:],
+			&states.ContractMapping{
+				OriginAddress: originAddress,
+				TargetAddress: targetAddress,
+			},
+			false); err != nil {
+			return fmt.Errorf("TryGetOrAdd contract error %s", err)
+		}
+	}
+
+	// store contract message
 	if err := stateBatch.TryGetOrAdd(
-		common.ST_Contract,
-		codeHash[:],
-		&payload.DeployCode{
-			Code:        deploy.Code,
-			VmType:      deploy.VmType,
-			NeedStorage: deploy.NeedStorage,
-			Name:        deploy.Name,
-			Version:     deploy.Version,
-			Author:      deploy.Author,
-			Email:       deploy.Email,
-			Description: deploy.Description,
-		},
+		scommon.ST_Contract,
+		originAddress[:],
+		deploy,
 		false); err != nil {
 		return fmt.Errorf("TryGetOrAdd contract error %s", err)
 	}
 	return nil
 }
 
-func (this *StateStore) HandleInvokeTransaction(stateBatch *statestore.StateBatch, tx *types.Transaction, block *types.Block, eventStore common.IEventStore) error {
+func (this *StateStore) HandleInvokeTransaction(store store.ILedgerStore, stateBatch *statestore.StateBatch, tx *types.Transaction, block *types.Block, eventStore scommon.IEventStore) error {
 	invoke := tx.Payload.(*payload.InvokeCode)
 	txHash := tx.Hash()
-	switch invoke.Code.VmType {
-	case vmtypes.NativeVM:
-		na := native.NewNativeService(stateBatch, invoke.Code.Code, tx)
-		if ok, err := na.Invoke(); !ok {
-			log.Error("Native contract execute error:", err)
-			event.PushSmartCodeEvent(txHash, 0, INVOKE_TRANSACTION, err)
-		}
-		na.CloneCache.Commit()
-	case vmtypes.NEOVM:
-	//TODO
-	case vmtypes.WASMVM:
-		//TODO
+
+	// init smart contract configuration info
+	config := &smartcontract.Config{
+		Time: block.Header.Timestamp,
+		Height: block.Header.Height,
+		Tx: tx,
+		Table: &CacheCodeTable{stateBatch},
+		DBCache: stateBatch,
+		Store: store,
 	}
+
+	//init smart contract context info
+	ctx := &context.Context{
+		Code: invoke.Code,
+		ContractAddress: invoke.Code.AddressFromVmCode(),
+	}
+
+	//init smart contract info
+	sc := smartcontract.SmartContract{
+		Config: config,
+	}
+
+	//load current context to smart contract
+	sc.LoadContext(ctx)
+
+	//start the smart contract executive function
+	if err := sc.Execute(); err != nil {
+		return err
+	}
+
+	if len(sc.Notifications) > 0 {
+		if err := eventStore.SaveEventNotifyByTx(txHash, sc.Notifications); err != nil {
+			return fmt.Errorf("SaveEventNotifyByTx error %s", err)
+		}
+	}
+
 	return nil
 }
 
 func (this *StateStore) HandleClaimTransaction(stateBatch *statestore.StateBatch, tx *types.Transaction) error {
 	//TODO
+	//p := tx.Payload.(*payload.Claim)
+	//for _, c := range p.Claims {
+	//	state, err := this.TryGetAndChange(ST_SpentCoin, c.ReferTxID.ToArray(), false)
+	//	if err != nil {
+	//		return fmt.Errorf("TryGetAndChange error %s", err)
+	//	}
+	//	spentcoins := state.(*SpentCoinState)
+	//
+	//	newItems := make([]*Item, 0, len(spentcoins.Items)-1)
+	//	for index, item := range spentcoins.Items {
+	//		if uint16(index) != c.ReferTxOutputIndex {
+	//			newItems = append(newItems, item)
+	//		}
+	//	}
+	//	spentcoins.Items = newItems
+	//}
 	return nil
 }
 
@@ -93,7 +136,7 @@ func (this *StateStore) HandleEnrollmentTransaction(stateBatch *statestore.State
 	if err := en.PublicKey.Serialize(bf); err != nil {
 		return err
 	}
-	stateBatch.TryAdd(common.ST_Validator, bf.Bytes(), &states.ValidatorState{PublicKey: en.PublicKey}, false)
+	stateBatch.TryAdd(scommon.ST_Validator, bf.Bytes(), &states.ValidatorState{PublicKey: en.PublicKey}, false)
 	return nil
 }
 
@@ -101,6 +144,10 @@ func (this *StateStore) HandleVoteTransaction(stateBatch *statestore.StateBatch,
 	vote := tx.Payload.(*payload.Vote)
 	buf := new(bytes.Buffer)
 	vote.Account.Serialize(buf)
-	stateBatch.TryAdd(common.ST_Vote, buf.Bytes(), &states.VoteState{PublicKeys: vote.PubKeys}, false)
+	stateBatch.TryAdd(scommon.ST_Vote, buf.Bytes(), &states.VoteState{PublicKeys: vote.PubKeys}, false)
 	return nil
 }
+
+
+
+
