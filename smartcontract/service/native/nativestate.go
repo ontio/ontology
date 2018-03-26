@@ -107,16 +107,18 @@ func(native *NativeService) AppCall(address common.Address, method string, args 
 	if err := contract.Serialize(bf); err != nil {
 		return err
 	}
-
+	code := vmtypes.VmCode{
+		VmType: vmtypes.Native,
+		Code: bf.Bytes(),
+	}
 	native.ContextRef.PushContext(&context.Context{
-		Code: vmtypes.VmCode{
-			VmType: vmtypes.Native,
-			Code: bf.Bytes(),
-		},
+		Code: code,
+		ContractAddress: code.AddressFromVmCode(),
 	})
 	if err := native.ContextRef.Execute(); err != nil {
 		return err
 	}
+	native.ContextRef.PopContext()
 	return nil
 }
 
