@@ -144,6 +144,19 @@ func (s *TXPoolServer) checkPendingBlockOk(hash common.Uint256,
 	s.pendingBlock.processedTxs[hash] = entry
 	delete(s.pendingBlock.unProcessedTxs, hash)
 
+	// if the tx is invalid, send the response at once
+	if err != errors.ErrNoError {
+		s.sendBlkResult2Consensus()
+		for k := range s.pendingBlock.unProcessedTxs {
+			delete(s.pendingBlock.unProcessedTxs, k)
+		}
+
+		if s.pendingBlock.stopCh != nil {
+			s.pendingBlock.stopCh <- true
+		}
+		return
+	}
+
 	// Check if the block has been verified, if yes,
 	// send rsp to the actor bus
 	if len(s.pendingBlock.unProcessedTxs) == 0 {

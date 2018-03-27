@@ -127,7 +127,7 @@ func (worker *txPoolWorker) handleTimeoutEvent() {
 	 * resend them to the validators
 	 */
 	for k, v := range worker.pendingTxList {
-		if v.flag&0xf != tc.VERIFYMASK && time.Now().Sub(v.valTime) >=
+		if v.flag&0xf != tc.VERIFYMASK && (time.Now().Sub(v.valTime)/time.Second) >=
 			tc.EXPIREINTERVAL {
 			if v.retries < tc.MAXRETRIES {
 				worker.reVerifyTx(k)

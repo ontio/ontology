@@ -29,8 +29,8 @@ const (
 	MAXPENDINGTXN  = 2048 * 10                    // The max length of pending txs
 	MAXWORKERNUM   = 2                            // The max concurrent workers
 	MAXRCVTXNLEN   = MAXWORKERNUM * MAXPENDINGTXN // The max length of the queue that server can hold
-	MAXRETRIES     = 3                            // The retry times to verify tx
-	EXPIREINTERVAL = 2                            // The timeout that verify tx
+	MAXRETRIES     = 0                            // The retry times to verify tx
+	EXPIREINTERVAL = 9                            // The timeout that verify tx
 	STATELESSMASK  = 0x1                          // The mask of stateless validator
 	STATEFULMASK   = 0x2                          // The mask of stateful validator
 	VERIFYMASK     = STATELESSMASK | STATEFULMASK
