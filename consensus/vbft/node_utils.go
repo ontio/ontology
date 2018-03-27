@@ -153,7 +153,7 @@ func (self *Server) getProposerRankLocked(blockNum uint64, peerIdx uint32) int {
 			}
 		}
 	} else {
-		self.log.Errorf("todo: get proposer config for non-current blocknum")
+		self.log.Errorf("todo: get proposer config for non-current blocknum:%d, current.BlockNum%d,peerIdx:",blockNum, self.currentParticipantConfig.BlockNum,peerIdx)
 	}
 	return -1
 }
@@ -166,7 +166,7 @@ func (self *Server) getHighestRankProposal(blockNum uint64, proposals []*blockPr
 	var proposal *blockProposalMsg
 	for _, p := range proposals {
 		if p.GetBlockNum() != blockNum {
-			self.log.Errorf("server %d, diff blockNum found when get highest rank proposal", self.Index)
+			self.log.Errorf("server %d, diff blockNum found when get highest rank proposal,blockNum:%d", self.Index,blockNum)
 			continue
 		}
 
