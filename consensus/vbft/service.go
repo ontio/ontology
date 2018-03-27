@@ -206,9 +206,7 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 	log.Infof("persist block: %x", block.Hash())
 
 	// TODO: why this?
-	self.p2p.Broadcast(block.Hash())
-
-	self.startNewRound()
+	//self.p2p.Broadcast(block.Hash())
 }
 
 func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
@@ -1573,8 +1571,7 @@ func (self *Server) sealProposal(proposal *blockProposalMsg, empty bool) error {
 	if self.hasBlockConsensused() {
 		return self.makeFastForward()
 	} else {
-		return nil
-		//return self.startNewRound()
+		return self.startNewRound()
 	}
 
 	return nil
