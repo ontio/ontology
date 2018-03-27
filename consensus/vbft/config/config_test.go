@@ -40,6 +40,7 @@ func generTestData() []byte {
 		F:             3,
 		BlockMsgDelay: 1000,
 		HashMsgDelay:  1000,
+		PeerHandshakeTimeout:10000,
 		Peers:         chainPeers,
 		PosTable:      []uint32{2, 3, 1, 3, 1, 3, 2, 3, 2, 3, 2, 1, 3},
 	}

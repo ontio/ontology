@@ -258,7 +258,7 @@ func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
 	make2ndProposalTimeout = time.Duration(cfg.BlockMsgDelay)
 	endorseBlockTimeout = time.Duration(cfg.HashMsgDelay * 2)
 	commitBlockTimeout = time.Duration(cfg.HashMsgDelay * 3)
-
+	peerHandshakeTimeout = time.Duration(cfg.PeerHandshakeTimeout)
 	// TODO: load sealed blocks from chainStore
 
 	// protected by server.metaLock
@@ -299,6 +299,7 @@ func (self *Server) start() error {
 
 	store, err := OpenBlockStore(self.ledger)
 	if err != nil {
+		self.log.Errorf("failed to open block store: %s", err)
 		return fmt.Errorf("failed to open block store: %s", err)
 	}
 	self.chainStore = store
@@ -306,6 +307,7 @@ func (self *Server) start() error {
 
 	self.blockPool, err = newBlockPool(self.msgHistoryDuration, store)
 	if err != nil {
+		self.log.Errorf("init blockpool: %s", err)
 		return fmt.Errorf("init blockpool: %s", err)
 	}
 	self.msgPool = newMsgPool(self, self.msgHistoryDuration)
@@ -320,6 +322,7 @@ func (self *Server) start() error {
 	self.quitC = make(chan interface{})
 
 	if err := self.LoadChainConfig(store); err != nil {
+		self.log.Errorf("failed to load config: %s", err)
 		return fmt.Errorf("failed to load config: %s", err)
 	}
 	self.log.Infof("chain config loaded from local, current blockNum: %d", self.GetCurrentBlockNo())
