@@ -145,7 +145,7 @@ func grantOng(native *NativeService, contract, address common.Address, balance *
 		}
 		amount += (iend - istart) * generationAmount[ustart]
 	}
-
+	
 	args, err := getApproveArgs(native, contract, genesis.OngContractAddress, address, balance, amount); if err != nil {
 		return err
 	}
