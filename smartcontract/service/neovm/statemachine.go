@@ -31,7 +31,6 @@ import (
 	vm "github.com/Ontology/vm/neovm"
 	"github.com/Ontology/core/payload"
 	vmtypes "github.com/Ontology/vm/types"
-	scommon "github.com/Ontology/core/store/common"
 )
 
 type StateMachine struct {
