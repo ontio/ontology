@@ -23,13 +23,12 @@ import (
 	"github.com/Ontology/smartcontract/storage"
 	"github.com/Ontology/core/store"
 	scommon "github.com/Ontology/core/store/common"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/vm/wasmvm/exec"
 	"bytes"
 	"github.com/Ontology/common"
 	"github.com/Ontology/core/states"
 	"errors"
+	"github.com/Ontology/core/ledger"
 )
 
 type WasmStateMachine struct {
@@ -37,19 +36,21 @@ type WasmStateMachine struct {
 	ldgerStore store.LedgerStore
 	CloneCache *storage.CloneCache
 	trigger    vmtypes.TriggerType
-	block       *types.Block
-}
+	time       uint32
+	}
 
 
-func NewWasmStateMachine(ldgerStore store.LedgerStore, dbCache scommon.StateStore, trigger vmtypes.TriggerType, block *types.Block) *WasmStateMachine {
+
+func NewWasmStateMachine(ldgerStore store.LedgerStore, dbCache scommon.StateStore, trigger vmtypes.TriggerType, time uint32) *WasmStateMachine {
+
 	var stateMachine WasmStateMachine
 	stateMachine.ldgerStore = ldgerStore
 	stateMachine.CloneCache = storage.NewCloneCache(dbCache)
 	stateMachine.WasmStateReader = NewWasmStateReader(ldgerStore,trigger)
 	stateMachine.trigger = trigger
-	stateMachine.block = block
+	stateMachine.time = time
 
-	stateMachine.Register("getBlockHeight",stateMachine.bcGetHeight)
+	stateMachine.Register("GetBlockHeight",stateMachine.getblockheight)
 	stateMachine.Register("PutStorage",stateMachine.putstore)
 	stateMachine.Register("GetStorage",stateMachine.getstore)
 	stateMachine.Register("DeleteStorage",stateMachine.deletestore)
@@ -58,19 +59,18 @@ func NewWasmStateMachine(ldgerStore store.LedgerStore, dbCache scommon.StateStor
 }
 
 //======================some block api ===============
-func  (s *WasmStateMachine)bcGetHeight(engine *exec.ExecutionEngine) (bool, error) {
-/*	vm := engine.GetVM()
+func  (s *WasmStateMachine)getblockheight(engine *exec.ExecutionEngine) (bool, error) {
+	vm := engine.GetVM()
 	var i uint32
-	if ledger.DefaultLedger == nil {
+	if ledger.DefLedger == nil {
 		i = 0
 	} else {
-		i = ledger.DefaultLedger.PersistStore.GetHeight()
+		i = ledger.DefLedger.GetCurrentBlockHeight()
 	}
-	//engine.vm.ctx = envCall.envPreCtx
 	vm.RestoreCtx()
 	if vm.GetEnvCall().GetReturns(){
 		vm.PushResult(uint64(i))
-	}*/
+	}
 	return true,nil
 }
 
@@ -103,7 +103,7 @@ func (s *WasmStateMachine)putstore(engine *exec.ExecutionEngine) (bool, error) {
 		return false,err
 	}
 
-	s.CloneCache.Add(scommon.ST_Storage, k, &states.StorageItem{Value: value})
+	s.CloneCache.Add(scommon.ST_STORAGE, k, &states.StorageItem{Value: value})
 
 	vm.RestoreCtx()
 
@@ -130,12 +130,12 @@ func (s *WasmStateMachine)getstore(engine *exec.ExecutionEngine) (bool, error) {
 	if err != nil{
 		return false,err
 	}
-	item, err := s.CloneCache.Get(scommon.ST_Storage, k)
+	item, err := s.CloneCache.Get(scommon.ST_STORAGE, k)
 	if err != nil {
 		return false, err
 	}
 
-	// idx = -1 if item is nil
+	// idx = int64.max value if item is nil
 	//todo need more  test about the nil case
 	idx,err := vm.SetPointerMemory(item)
 	if err != nil {
@@ -170,7 +170,7 @@ func (s *WasmStateMachine)deletestore(engine *exec.ExecutionEngine) (bool, error
 		return false,err
 	}
 
-	s.CloneCache.Delete(scommon.ST_Storage, k)
+	s.CloneCache.Delete(scommon.ST_STORAGE, k)
 	vm.RestoreCtx()
 
 	return true,nil

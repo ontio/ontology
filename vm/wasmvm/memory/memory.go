@@ -23,6 +23,7 @@ import (
 	"errors"
 	"github.com/Ontology/vm/wasmvm/util"
 	"reflect"
+	"math"
 )
 
 type P_Type int
@@ -93,20 +94,11 @@ func (vm *VMmemory) copyMemAndGetIdx(b []byte, p_type P_Type) (int, error) {
 	copy(vm.Memory[idx:idx+len(b)], b)
 
 	return idx, nil
-	/*	if p_type == P_STRING{
-			return idx,nil
-		}
-
-		//set the pointer(address) to the front memory
-		tmp, err := vm.SetMemory(idx)
-		if err != nil {
-			return 0, err
-		}
-		return tmp, nil*/
 }
 
 func (vm *VMmemory) GetPointerMemSize(addr uint64) int {
-	if addr == uint64(-1){
+	//nil case
+	if addr == uint64(math.MaxInt64){
 		return 0
 	}
 
@@ -120,7 +112,8 @@ func (vm *VMmemory) GetPointerMemSize(addr uint64) int {
 
 //when wasm returns a pointer, call this function to get the pointed memory
 func (vm *VMmemory) GetPointerMemory(addr uint64) ([]byte, error) {
-	if addr == uint64(-1){
+	//nil case
+	if addr == uint64(math.MaxInt64){
 		return nil,nil
 	}
 
@@ -134,9 +127,9 @@ func (vm *VMmemory) GetPointerMemory(addr uint64) ([]byte, error) {
 
 func (vm *VMmemory) SetPointerMemory(val interface{}) (int, error) {
 
-	//null address
+	////nil case
 	if val == nil {
-		return -1, nil
+		return math.MaxInt64, nil
 	}
 
 	switch reflect.TypeOf(val).Kind() {
@@ -233,11 +226,22 @@ func (vm *VMmemory) SetStructMemory(val interface{}) (int, error) {
 				idx, err = vm.SetMemory(fieldVal)
 			case reflect.String:
 				fieldVal = field.String()
-				idx, err = vm.SetPointerMemory(fieldVal)
+				tmp, err := vm.SetPointerMemory(fieldVal)
+				if err != nil{
+					return 0,err
+				}
+				//add the point address to memory
+				idx, err = vm.SetMemory(tmp)
+
 			case reflect.Slice:
 				//fieldVal = field.Interface()
 				//TODO note the struct field MUST be public
-				idx, err = vm.SetPointerMemory(field.Interface())
+				tmp, err := vm.SetPointerMemory(fieldVal)
+				if err != nil{
+					return 0,err
+				}
+				//add the point address to memory
+				idx, err = vm.SetMemory(tmp)
 			}
 
 			if err != nil {

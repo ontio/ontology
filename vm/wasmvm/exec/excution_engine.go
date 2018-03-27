@@ -35,7 +35,37 @@ import (
 const (
 	CONTRACT_METHOD_NAME = "invoke"
 	PARAM_SPLITER        = "|"
+	VM_STACK_DEPTH		 = 10
 )
+
+
+type vmstack struct{
+	top   int
+	stack []*VM
+}
+
+func(s *vmstack)push(vm *VM) error{
+	if s.top == len(s.stack){
+		return errors.New("[vm stack push] stack is full")
+	}
+	s.stack[s.top + 1] = vm
+	s.top += 1
+	return nil
+}
+
+func (s *vmstack)pop() (*VM,error){
+	if s.top == 0{
+		return nil,errors.New("[vm stack pop] stack is empty")
+	}
+
+	retvm := s.stack[s.top]
+	s.top -= 1
+	return retvm,nil
+}
+
+func newStack(depth int) *vmstack{
+	return &vmstack{top:0,stack:make([]*VM,depth)}
+}
 
 //todo add parameters
 func NewExecutionEngine(icontainer interfaces.ICodeContainer, icrypto interfaces.ICrypto, itable interfaces.ICodeTable, iservice IInteropService, ver string) *ExecutionEngine {
@@ -49,21 +79,48 @@ func NewExecutionEngine(icontainer interfaces.ICodeContainer, icrypto interfaces
 	if iservice != nil {
 		engine.service.MergeMap(iservice.GetServiceMap())
 	}
+
+	engine.backupVM = newStack(VM_STACK_DEPTH)
 	return engine
 }
 
 type ExecutionEngine struct {
-	crypto        interfaces.ICrypto
-	table         interfaces.ICodeTable
-	service       *InteropService
-	codeContainer interfaces.ICodeContainer
-	//memory  		*memory.VMmemory
-	vm      *VM
-	version string //for test different contracts
+	crypto        	interfaces.ICrypto
+	table         	interfaces.ICodeTable
+	service       	*InteropService
+	codeContainer 	interfaces.ICodeContainer
+	vm      		*VM
+	version 		string //for test different contracts
+	backupVM     	*vmstack
 }
 
 func (e *ExecutionEngine) GetVM() *VM {
 	return e.vm
+}
+
+//for call other contract,
+// 1.store current vm
+// 2.load new vm
+func (e *ExecutionEngine)SetNewVM(vm *VM) error{
+
+	err := e.backupVM.push(e.vm)
+	if err != nil{
+		return err
+	}
+	e.vm = vm
+	return nil
+}
+
+//for call other contract,
+// 1.pop stored vm
+// 2.reset vm
+func (e *ExecutionEngine)RestoreVM() error{
+	backupVM,err := e.backupVM.pop()
+	if err != nil{
+		return err
+	}
+	e.vm = backupVM
+	return nil
 }
 
 //todo use this method just for test
