@@ -415,7 +415,12 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 
 	header, err := ledger.DefLedger.GetHeaderByHash(ds.context.PrevHash)
 	if err != nil {
-		log.Info("PrepareRequestReceived GetHeader failed with ds.context.PrevHash", ds.context.PrevHash)
+		log.Errorf("PrepareRequestReceived GetHeader failed with ds.context.PrevHash:%x", ds.context.PrevHash)
+		return
+	}
+	if header == nil {
+		log.Errorf("PrepareRequestReceived cannot GetHeaderByHash by PrevHash:%x", ds.context.PrevHash)
+		return
 	}
 
 	//TODO Add Error Catch
@@ -671,7 +676,12 @@ func (ds *DbftService) Timeout() {
 			now := uint32(time.Now().Unix())
 			header, err := ledger.DefLedger.GetHeaderByHash(ds.context.PrevHash)
 			if err != nil {
-				log.Error("[Timeout] GetHeader error:", err)
+				log.Errorf("[Timeout] GetHeader PrevHash:%x error:%s",ds.context.PrevHash, err)
+				return
+			}
+			if header == nil {
+				log.Errorf("[Timeout] cannot GetHeaderByHash by PrevHash:%x", ds.context.PrevHash)
+				return
 			}
 			//set context Timestamp
 			blockTime := header.Timestamp + 1
