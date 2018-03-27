@@ -29,9 +29,8 @@ import (
 )
 
 var (
-	totalSupplyName = []byte("totalSupply")
-	decimals = big.NewInt(8)
-	totalSupply = new(big.Int).Mul(big.NewInt(1000000000), (new(big.Int).Exp(big.NewInt(10), decimals, nil)))
+	decimals = big.NewInt(9)
+	ongTotalSupply = new(big.Int).Mul(big.NewInt(1000000000), (new(big.Int).Exp(big.NewInt(10), decimals, nil)))
 )
 
 func OngInit(native *NativeService) error {
@@ -44,8 +43,8 @@ func OngInit(native *NativeService) error {
 	if amount != nil && amount.Sign() != 0 {
 		return errors.NewErr("Init ong has been completed!")
 	}
-	native.CloneCache.Add(scommon.ST_Storage, append(contract[:], getOntContext()...), &cstates.StorageItem{Value: totalSupply.Bytes()})
-	addNotifications(native, contract, &states.State{To: genesis.OntContractAddress, Value: totalSupply})
+	native.CloneCache.Add(scommon.ST_Storage, append(contract[:], getOntContext()...), &cstates.StorageItem{Value: ongTotalSupply.Bytes()})
+	addNotifications(native, contract, &states.State{To: genesis.OntContractAddress, Value: ongTotalSupply})
 	return nil
 }
 
@@ -56,7 +55,7 @@ func OngTransfer(native *NativeService) error {
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	for _, v := range transfers.States {
-		if err := transfer(native, contract, v); err != nil {
+		if _, _, err := transfer(native, contract, v); err != nil {
 			return err
 		}
 		addNotifications(native, contract, v)

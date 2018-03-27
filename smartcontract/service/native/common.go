@@ -31,6 +31,7 @@ import (
 var (
 	addressHeight = []byte("addressHeight")
 	transferName = "transfer"
+	totalSupplyName = []byte("totalSupply")
 )
 
 func getAddressHeightKey(contract, address common.Address) []byte {
@@ -79,19 +80,19 @@ func isTransferValid(native *NativeService, state *states.State) error {
 	return nil
 }
 
-func transfer(native *NativeService, contract common.Address, state *states.State) error {
+func transfer(native *NativeService, contract common.Address, state *states.State) (*big.Int, *big.Int, error) {
 	if err := isTransferValid(native, state); err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	err := fromTransfer(native, getTransferKey(contract, state.From), state.Value); if err != nil {
-		return err
+	fromBalance, err := fromTransfer(native, getTransferKey(contract, state.From), state.Value); if err != nil {
+		return nil, nil, err
 	}
 
-	if err := toTransfer(native, getTransferKey(contract, state.To), state.Value); err != nil {
-		return err
+	toBalance, err := toTransfer(native, getTransferKey(contract, state.To), state.Value); if err != nil {
+		return nil, nil, err
 	}
-	return nil
+	return fromBalance, toBalance, nil
 }
 
 func transferFrom(native *NativeService, currentContract common.Address, state *states.TransferFrom) error {
@@ -103,11 +104,11 @@ func transferFrom(native *NativeService, currentContract common.Address, state *
 		return err
 	}
 
-	err := fromTransfer(native, getTransferKey(currentContract, state.From), state.Value); if err != nil {
+	if _, err := fromTransfer(native, getTransferKey(currentContract, state.From), state.Value); err != nil {
 		return err
 	}
 
-	if err := toTransfer(native, getTransferKey(currentContract, state.To), state.Value); err != nil {
+	if _, err := toTransfer(native, getTransferKey(currentContract, state.To), state.Value); err != nil {
 		return err
 	}
 	return nil
@@ -150,28 +151,28 @@ func fromApprove(native *NativeService, fromApproveKey []byte, value *big.Int) e
 	return nil
 }
 
-func fromTransfer(native *NativeService, fromKey []byte, value *big.Int) error {
+func fromTransfer(native *NativeService, fromKey []byte, value *big.Int) (*big.Int, error) {
 	fromBalance, err := getStorageBigInt(native, fromKey); if err != nil {
-		return err
+		return nil, err
 	}
 	balance := new(big.Int).Sub(fromBalance, value)
 	sign := balance.Sign()
 	if sign < 0 {
-		return errors.NewErr("[Transfer] balance insufficient!")
+		return nil, errors.NewErr("[Transfer] balance insufficient!")
 	} else if sign == 0 {
 		native.CloneCache.Delete(scommon.ST_Storage, fromKey)
 	} else {
 		native.CloneCache.Add(scommon.ST_Storage, fromKey, getAmountStorageItem(balance))
 	}
-	return nil
+	return fromBalance, nil
 }
 
-func toTransfer(native *NativeService, toKey []byte, value *big.Int) error {
+func toTransfer(native *NativeService, toKey []byte, value *big.Int) (*big.Int, error) {
 	toBalance, err := getStorageBigInt(native, toKey); if err != nil {
-		return err
+		return nil, err
 	}
 	native.CloneCache.Add(scommon.ST_Storage, toKey, getToAmountStorageItem(toBalance, value))
-	return nil
+	return toBalance, nil
 }
 
 func getStartHeight(native *NativeService, contract, from common.Address) (uint32, error) {
