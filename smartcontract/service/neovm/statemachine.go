@@ -307,9 +307,9 @@ func (s *StateMachine) GetStorageContext(engine *vm.ExecutionEngine) (bool, erro
 	return true, nil
 }
 
-func contains(programHashes []common.Address, programHash common.Address) bool {
-	for _, v := range programHashes {
-		if v == programHash {
+func contains(addresses []common.Address, address common.Address) bool {
+	for _, v := range addresses {
+		if v == address {
 			return true
 		}
 	}
