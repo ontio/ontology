@@ -44,6 +44,7 @@ type txPoolWorker struct {
 	mu            sync.RWMutex
 	workId        uint8                         // Worker ID
 	rcvTXCh       chan *tx.Transaction          // The channel of receive transaction
+	stfTxCh       chan *tx.Transaction          // The channel of txs to be re-verified stateful
 	rspCh         chan *types.CheckResponse     // The channel of verified response
 	server        *TXPoolServer                 // The txn pool server pointer
 	timer         *time.Timer                   // The timer of reverifying
@@ -53,6 +54,7 @@ type txPoolWorker struct {
 
 func (worker *txPoolWorker) init(workID uint8, s *TXPoolServer) {
 	worker.rcvTXCh = make(chan *tx.Transaction, tc.MAXPENDINGTXN)
+	worker.stfTxCh = make(chan *tx.Transaction, tc.MAXPENDINGTXN)
 	worker.pendingTxList = make(map[common.Uint256]*pendingTx)
 	worker.rspCh = make(chan *types.CheckResponse, tc.MAXPENDINGTXN)
 	worker.stopCh = make(chan bool)
@@ -231,6 +233,56 @@ func (worker *txPoolWorker) sendReq2Validator(req *types.CheckTx) (send bool) {
 	return true
 }
 
+func (worker *txPoolWorker) sendReq2StatefulV(req *types.CheckTx) {
+	rspPid := worker.server.GetPID(tc.VerifyRspActor)
+	if rspPid == nil {
+		log.Info("VerifyRspActor not exist")
+		return
+	}
+
+	pid := worker.server.getNextValidatorPID(types.Statefull)
+	log.Info("worker send tx to the stateful")
+	if pid == nil {
+		return
+	}
+
+	pid.Request(req, rspPid)
+
+}
+
+func (worker *txPoolWorker) verifyStateful(tx *tx.Transaction) {
+	req := &types.CheckTx{
+		WorkerId: worker.workId,
+		Tx:       *tx,
+	}
+
+	// Construct the pending transaction
+	pt := &pendingTx{
+		tx:      tx,
+		worker:  worker,
+		req:     req,
+		retries: 0,
+		valTime: time.Now(),
+	}
+
+	retAttr := &tc.TXAttr{
+		Height:  0,
+		Type:    types.Statefull,
+		ErrCode: errors.ErrNoError,
+	}
+
+	pt.ret = append(pt.ret, retAttr)
+	// Since the signature has been already verified, mark stateless as true
+	pt.flag |= tc.STATELESSMASK
+
+	// Add it to the pending transaction list
+	worker.mu.Lock()
+	worker.pendingTxList[tx.Hash()] = pt
+	worker.mu.Unlock()
+
+	worker.sendReq2StatefulV(req)
+}
+
 func (worker *txPoolWorker) start() {
 	worker.timer = time.NewTimer(time.Second * tc.EXPIREINTERVAL)
 	for {
@@ -242,6 +294,10 @@ func (worker *txPoolWorker) start() {
 			if ok {
 				// Verify rcvTxn
 				worker.verifyTx(rcvTx)
+			}
+		case stfTx, ok := <-worker.stfTxCh:
+			if ok {
+				worker.verifyStateful(stfTx)
 			}
 		case <-worker.timer.C:
 			worker.handleTimeoutEvent()
@@ -264,6 +320,9 @@ func (worker *txPoolWorker) stop() {
 	}
 	if worker.rcvTXCh != nil {
 		close(worker.rcvTXCh)
+	}
+	if worker.stfTxCh != nil {
+		close(worker.stfTxCh)
 	}
 	if worker.rspCh != nil {
 		close(worker.rspCh)

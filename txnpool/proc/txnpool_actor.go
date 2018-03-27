@@ -88,7 +88,12 @@ func (ta *TxActor) handleTransaction(sender, self *actor.PID,
 		}
 		sender.Request(rsp, self)
 	} else {
-		ta.server.assginTXN2Worker(txn, sender)
+		for {
+			if ta.server.getPendingListSize() < tc.MAXLIMITATION {
+				ta.server.assginTXN2Worker(txn, sender)
+				break
+			}
+		}
 	}
 }
 

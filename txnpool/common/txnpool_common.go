@@ -34,6 +34,7 @@ const (
 	STATELESSMASK  = 0x1                          // The mask of stateless validator
 	STATEFULMASK   = 0x2                          // The mask of stateful validator
 	VERIFYMASK     = STATELESSMASK | STATEFULMASK
+	MAXLIMITATION  = 10000
 )
 
 type ActorType uint8
@@ -43,7 +44,7 @@ const (
 	TxActor                  // Actor that handles new transaction
 	TxPoolActor              // Actor that handles consensus msg
 	VerifyRspActor           // Actor that handles the response from valdiators
-
+	NetActor                 // Actor to send msg to the net actor
 	MAXACTOR
 )
 

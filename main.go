@@ -142,6 +142,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	txPoolServer.RegisterActor(tc.NetActor, p2pActor)
+
 	hserver.SetNetServerPid(p2pActor)
 	hserver.SetLedgerPid(ledgerPID)
 	hserver.SetTxnPoolPid(txPoolServer.GetPID(tc.TxPoolActor))
