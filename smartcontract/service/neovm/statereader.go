@@ -21,7 +21,6 @@ package neovm
 import (
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/contract"
 	"github.com/Ontology/core/states"
 	"github.com/Ontology/core/store"
 	"github.com/Ontology/core/types"
