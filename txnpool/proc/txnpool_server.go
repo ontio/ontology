@@ -168,6 +168,12 @@ func (s *TXPoolServer) checkPendingBlockOk(hash common.Uint256,
 	}
 }
 
+func (s *TXPoolServer) getPendingListSize() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return len(s.allPendingTxs)
+}
+
 func (s *TXPoolServer) removePendingTx(hash common.Uint256,
 	err errors.ErrCode) {
 
