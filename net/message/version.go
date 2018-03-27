@@ -118,11 +118,8 @@ func (msg version) Serialization() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	keyBuf, err := serialization.ReadVarBytes(buf)
-	if err != nil {
-		return nil, err
-	}
-	msg.pk, err = keypair.DeserializePublicKey(keyBuf)
+	keyBuf := keypair.SerializePublicKey(msg.pk)
+	err = serialization.WriteVarBytes(buf, keyBuf)
 	if err != nil {
 		return nil, err
 	}
