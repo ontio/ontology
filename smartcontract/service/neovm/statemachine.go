@@ -318,7 +318,6 @@ func contains(addresses []common.Address, address common.Address) bool {
 
 func serializeStorageKey(codeHash common.Address, key []byte) ([]byte, error) {
 	buf := bytes.NewBuffer(nil)
-	buf.WriteByte( byte(scommon.ST_Storage))
 	buf.Write(codeHash[:])
 	buf.Write(key)
 	return buf.Bytes(), nil
