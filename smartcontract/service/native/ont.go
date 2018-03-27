@@ -145,8 +145,9 @@ func grantOng(native *NativeService, contract, address common.Address, balance *
 		}
 		amount += (iend - istart) * generationAmount[ustart]
 	}
-	
+
 	args, err := getApproveArgs(native, contract, genesis.OngContractAddress, address, balance, amount); if err != nil {
+
 		return err
 	}
 
@@ -158,6 +159,7 @@ func grantOng(native *NativeService, contract, address common.Address, balance *
 	return nil
 }
 
+
 func getApproveArgs(native *NativeService, contract, ongContract, address common.Address, balance *big.Int, amount uint32) ([]byte, error) {
 	bf := new(bytes.Buffer)
 	approve := &states.State {
@@ -165,6 +167,7 @@ func getApproveArgs(native *NativeService, contract, ongContract, address common
 		To: address,
 		Value: new(big.Int).Mul(balance, big.NewInt(int64(amount))),
 	}
+
 
 	stateValue, err := getStorageBigInt(native, getApproveKey(ongContract, approve)); if err != nil {
 		return nil, err
