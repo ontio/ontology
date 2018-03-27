@@ -399,6 +399,8 @@ func TestRawContract4(t *testing.T){
 
 }
 
+//todo rewrite this test in up level
+/*
 
 func TestCallContract(t *testing.T){
 	engine := NewExecutionEngine(nil,nil,nil,nil,"product")
@@ -440,3 +442,4 @@ func TestCallContract(t *testing.T){
 	}
 
 }
+*/

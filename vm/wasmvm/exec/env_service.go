@@ -24,12 +24,9 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/Ontology/vm/wasmvm/memory"
-	"github.com/Ontology/vm/wasmvm/wasm"
+	"github.com/Ontology/vm/wasmvm/util"
 	"strconv"
 	"strings"
-	"github.com/Ontology/core/ledger"
-	"github.com/Ontology/common"
-	"github.com/Ontology/vm/types"
 )
 
 type Args struct {
@@ -65,7 +62,8 @@ func NewInteropService() *InteropService {
 	service.Register("arrayLen", arrayLen)
 	service.Register("memcpy", memcpy)
 	service.Register("read_message", readMessage)
-	service.Register("callContract", callContract)
+	//todo move this to wasmstatemachine
+	//service.Register("callContract", callContract)
 	service.Register("ReadInt32Param", readInt32Param)
 	service.Register("ReadInt64Param", readInt64Param)
 	service.Register("ReadStringParam", readStringParam)
@@ -265,8 +263,8 @@ func readMessage(engine *ExecutionEngine) (bool, error) {
 }
 
 //call other contract
-//todo rewrite logic
-func callContract(engine *ExecutionEngine) (bool, error) {
+//todo move to statemachine
+/*func callContract(engine *ExecutionEngine) (bool, error) {
 	envCall := engine.vm.envCall
 	params := envCall.envParams
 	if len(params) != 3 {
@@ -304,23 +302,8 @@ func callContract(engine *ExecutionEngine) (bool, error) {
 	if envCall.envReturns {
 		engine.vm.pushUint64(res)
 	}
-	//if has args
-/*	var args []uint64
-	if len(params) > 2 { // must be 3
-		args = params[2:]
-	}
-
-	res, err := engine.vm.CallContract(module, trimBuffToString(methodName), args...)
-	if err != nil {
-		return false, errors.New("call contract " + trimBuffToString(methodName) + " failed")
-	}
-	//engine.vm.RestoreStat()
-	if envCall.envReturns {
-		engine.vm.pushUint64(res)
-	}*/
-
 	return true, nil
-}
+}*/
 
 //read int value from args bytes
 func readInt32Param(engine *ExecutionEngine) (bool, error) {
@@ -595,7 +578,7 @@ func jsonMashal(engine *ExecutionEngine) (bool, error) {
 
 	ret := &Result{}
 
-	pstype := strings.ToLower(trimBuffToString(tpstr))
+	pstype := strings.ToLower(util.TrimBuffToString(tpstr))
 	ret.Ptype = pstype
 	switch pstype {
 	case "int":
@@ -681,7 +664,7 @@ func stringcmp(engine *ExecutionEngine) (bool, error) {
 			return false, err
 		}
 
-		if trimBuffToString(bytes1) == trimBuffToString(bytes2) {
+		if util.TrimBuffToString(bytes1) == util.TrimBuffToString(bytes2) {
 			ret = 0
 		} else {
 			ret = 1
@@ -698,7 +681,7 @@ func GetCaller(engine *ExecutionEngine) (bool, error) {
 	envCall := engine.vm.envCall
 
 	caller := engine.vm.Caller
-	idx, err := engine.vm.SetPointerMemory(caller.ToArray())
+	idx, err := engine.vm.SetPointerMemory(caller.ToHexString())
 	if err != nil {
 		return false, err
 	}
@@ -713,7 +696,7 @@ func GetCodeHash(engine *ExecutionEngine) (bool, error) {
 	envCall := engine.vm.envCall
 
 	codeHash := engine.vm.CodeHash
-	idx, err := engine.vm.SetPointerMemory(codeHash.ToArray())
+	idx, err := engine.vm.SetPointerMemory(codeHash.ToHexString())
 	if err != nil {
 		return false, err
 	}
@@ -724,22 +707,20 @@ func GetCodeHash(engine *ExecutionEngine) (bool, error) {
 	return true, nil
 }
 
-func emptyImporter(name string) (*wasm.Module, error) {
-	return nil, nil
-}
-
+/*
 func getContractFromAddr(addr []byte) ([]byte, error) {
 
-	//todo get the contract code from ledger
 	//just for test
-/*			contract := trimBuffToString(addr)
+			contract := util.TrimBuffToString(addr)
 			code, err := ioutil.ReadFile(fmt.Sprintf("./testdata2/%s.wasm",contract))
 			if err != nil {
 				fmt.Printf("./testdata2/%s.wasm is not exist",contract)
 				return nil,err
 			}
 
-			return code,nil*/
+			return code,nil
+*/
+/*
 	codeHash, err := common.Uint160ParseFromBytes(addr)
 	if err != nil {
 		return nil, errors.New("get address Code hash failed")
@@ -755,17 +736,8 @@ func getContractFromAddr(addr []byte) ([]byte, error) {
 	}
 
 	return contract.Code, nil
+*/ /*
+
 
 }
-
-//trim the '\00' byte
-func trimBuffToString(bytes []byte) string {
-
-	for i, b := range bytes {
-		if b == 0 {
-			return string(bytes[:i])
-		}
-	}
-	return string(bytes)
-
-}
+*/
