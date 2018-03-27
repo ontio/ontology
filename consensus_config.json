@@ -8,6 +8,7 @@
   "genesis_timestamp": 0,
   "block_msg_delay":10000,
   "hash_msg_delay":10000,
+  "peer_handshake_timeout":10,
   "peers":[
     {
       "index":0,

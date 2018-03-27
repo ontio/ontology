@@ -40,16 +40,17 @@ type PeerStakeInfo struct {
 }
 
 type Configuration struct {
-	View             uint32           `json:"view"`
-	N                uint32           `json:"n"`
-	F                uint32           `json:"f"`
-	K                uint32           `json:"k"`
-	L                uint32           `json:"l"`
-	InitTxid         uint64           `json:"init_txid"`
-	GenesisTimestamp uint64           `json:"genesis_timestamp"`
-	BlockMsgDelay    uint32           `json:"block_msg_delay"`
-	HashMsgDelay     uint32           `json:"hash_msg_delay"`
-	Peers            []*PeerStakeInfo `json:"peers"`
+	View                 uint32           `json:"view"`
+	N                    uint32           `json:"n"`
+	F                    uint32           `json:"f"`
+	K                    uint32           `json:"k"`
+	L                    uint32           `json:"l"`
+	InitTxid             uint64           `json:"init_txid"`
+	GenesisTimestamp     uint64           `json:"genesis_timestamp"`
+	BlockMsgDelay        uint32           `json:"block_msg_delay"`
+	HashMsgDelay         uint32           `json:"hash_msg_delay"`
+	PeerHandshakeTimeout uint32           `json:"peer_handshake_timeout"`
+	Peers            []*PeerStakeInfo     `json:"peers"`
 }
 
 func shuffle_hash(txid uint64, ts uint64, id string, idx int) (uint64, error) {
@@ -167,15 +168,15 @@ func genConsensusPayload(configFilename string) ([]byte, error) {
 	}
 
 	log.Debugf("shuffled pos table: %v", posTable)
-
 	// generate chain config, and save to ChainConfigFile
 	chainConfig := &ChainConfig{
-		Version:       Version,
-		View:          config.View,
-		N:             config.N,
-		F:             config.F,
-		BlockMsgDelay: time.Duration(config.BlockMsgDelay) * time.Millisecond,
-		HashMsgDelay:  time.Duration(config.HashMsgDelay) * time.Millisecond,
+		Version:             Version,
+		View:                config.View,
+		N:                   config.N,
+		F:                   config.F,
+		BlockMsgDelay:       time.Duration(config.BlockMsgDelay) * time.Millisecond,
+		HashMsgDelay:        time.Duration(config.HashMsgDelay) * time.Millisecond,
+		PeerHandshakeTimeout:time.Duration(config.PeerHandshakeTimeout) * time.Second,
 		Peers:         chainPeers,
 		PosTable:      posTable,
 	}
