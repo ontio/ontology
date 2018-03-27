@@ -31,6 +31,7 @@ import (
 	vm "github.com/Ontology/vm/neovm"
 	"github.com/Ontology/core/payload"
 	vmtypes "github.com/Ontology/vm/types"
+	scommon "github.com/Ontology/core/store/common"
 )
 
 type StateMachine struct {
@@ -317,10 +318,9 @@ func contains(addresses []common.Address, address common.Address) bool {
 }
 
 func serializeStorageKey(codeHash common.Address, key []byte) ([]byte, error) {
-	bf := new(bytes.Buffer)
-	storageKey := &states.StorageKey{CodeHash: codeHash, Key: key}
-	if _, err := storageKey.Serialize(bf); err != nil {
-		return []byte{}, errors.NewErr("[serializeStorageKey] StorageKey serialize error!")
-	}
-	return bf.Bytes(), nil
+	buf := bytes.NewBuffer(nil)
+	buf.WriteByte( byte(scommon.ST_Storage))
+	buf.Write(codeHash[:])
+	buf.Write(key)
+	return buf.Bytes(), nil
 }
