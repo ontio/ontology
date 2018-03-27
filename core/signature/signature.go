@@ -87,7 +87,7 @@ func Verify(pubKey keypair.PublicKey, data, signature []byte) error {
 		return errors.New("invalid signature data: " + err.Error())
 	}
 
-	if s.Verify(pubKey, data, sigObj) {
+	if !s.Verify(pubKey, data, sigObj) {
 		return errors.New("signature verification failed")
 	}
 

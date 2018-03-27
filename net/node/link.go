@@ -23,17 +23,18 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	. "github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/events"
-	msg "github.com/Ontology/net/message"
-	. "github.com/Ontology/net/protocol"
 	"io"
 	"io/ioutil"
 	"net"
 	"strconv"
 	"strings"
 	"time"
+
+	. "github.com/Ontology/common/config"
+	"github.com/Ontology/common/log"
+	"github.com/Ontology/events"
+	msg "github.com/Ontology/net/message"
+	. "github.com/Ontology/net/protocol"
 )
 
 type RxBuff struct {

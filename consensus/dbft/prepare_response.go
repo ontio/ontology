@@ -32,7 +32,7 @@ type PrepareResponse struct {
 func (pres *PrepareResponse) Serialize(w io.Writer) error {
 	log.Debug()
 	pres.msgData.Serialize(w)
-	w.Write(pres.Signature)
+	ser.WriteVarBytes(w, pres.Signature)
 	return nil
 }
 
@@ -44,7 +44,7 @@ func (pres *PrepareResponse) Deserialize(r io.Reader) error {
 		return err
 	}
 	// Fixme the 64 should be defined as a unified const
-	pres.Signature, err = ser.ReadBytes(r, 64)
+	pres.Signature, err = ser.ReadVarBytes(r)
 	if err != nil {
 		return err
 	}

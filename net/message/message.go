@@ -221,6 +221,8 @@ func HandleNodeMsg(node Noder, buf []byte, len int) error {
 		return err
 	}
 
+	log.Debug("Message type:", s)
+
 	msg := AllocMsg(s, len)
 	if msg == nil {
 		log.Error(fmt.Sprintf("Allocation message %s failed", s))

@@ -62,6 +62,7 @@ func (cp *ConsensusPayload) Verify() error {
 	cp.SerializeUnsigned(buf)
 	err := signature.Verify(cp.Owner, buf.Bytes(), cp.Signature)
 	if err != nil {
+		log.Error(err.Error())
 		err = errors.New("consensus failed: signature verification failed")
 	}
 
@@ -207,6 +208,10 @@ func (cp *ConsensusPayload) Deserialize(r io.Reader) error {
 	}
 
 	cp.Signature, err = serialization.ReadVarBytes(r)
+	if err != nil {
+		log.Warn("consensus item Signature deserialize failed, " + err.Error())
+		return errors.New("consensus item Signature deserialize failed.")
+	}
 
 	return err
 }
@@ -215,6 +220,10 @@ func (msg *consensus) Deserialization(p []byte) error {
 	log.Debug()
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.msgHdr))
+	if err != nil {
+		return err
+	}
+
 	err = msg.cons.Deserialize(buf)
 	return err
 }

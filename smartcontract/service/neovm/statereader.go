@@ -34,6 +34,7 @@ import (
 	vm "github.com/Ontology/vm/neovm"
 	vmtypes "github.com/Ontology/vm/neovm/types"
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/Ontology/core/payload"
 )
 
 var (
