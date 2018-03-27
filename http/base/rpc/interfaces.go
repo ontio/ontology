@@ -32,6 +32,7 @@ import (
 	bcomn "github.com/Ontology/http/base/common"
 	berr "github.com/Ontology/http/base/error"
 	"math/big"
+	"github.com/Ontology/core/payload"
 )
 
 func GetGenerateBlockTime(params []interface{}) map[string]interface{} {
@@ -292,6 +293,20 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 		var txn types.Transaction
 		if err := txn.Deserialize(bytes.NewReader(hex)); err != nil {
 			return responsePack(berr.INVALID_TRANSACTION, "")
+		}
+		if txn.TxType == types.Invoke && len(params) > 1{
+			preExec,ok := params[1].(float64)
+			if ok && preExec == 1{
+				log.Tracef("PreExec SMARTCODE")
+				if _, ok := txn.Payload.(*payload.InvokeCode); ok {
+					result, err := bactor.PreExecuteContract(&txn)
+					if err != nil {
+						log.Error(err)
+						return responsePack(berr.SMARTCODE_ERROR, "")
+					}
+					return responseSuccess(result)
+				}
+			}
 		}
 		hash = txn.Hash()
 		if errCode := bcomn.VerifyAndSendTx(&txn); errCode != onterr.ErrNoError {
