@@ -688,7 +688,7 @@ func (this *LedgerStore) saveBlockToEventStore(block *types.Block) error {
 func (this *LedgerStore) saveBlock(block *types.Block) error {
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
-	if !this.addSavingBlock(blockHash) || blockHeight <= this.GetCurrentBlockHeight(){
+	if !this.addSavingBlock(blockHash) || (blockHeight >0 && blockHeight <= this.GetCurrentBlockHeight()){
 		//hash already saved or is saving
 		return nil
 	}
