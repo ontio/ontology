@@ -177,12 +177,7 @@ func (s *StateReader) CheckWitnessHash(engine *vm.ExecutionEngine, address commo
 }
 
 func (s *StateReader) CheckWitnessPublicKey(engine *vm.ExecutionEngine, publicKey *crypto.PubKey) (bool, error) {
-	c, err := contract.CreateSignatureRedeemScript(publicKey)
-	if err != nil {
-		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[CheckWitnessPublicKey] CreateSignatureRedeemScript error!")
-	}
-	h := common.ToCodeHash(c)
-	return s.CheckWitnessHash(engine, h)
+	return s.CheckWitnessHash(engine, types.AddressFromPubKey(publicKey))
 }
 
 func (s *StateReader) RuntimeCheckWitness(e *vm.ExecutionEngine) (bool, error) {
