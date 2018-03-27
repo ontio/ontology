@@ -19,10 +19,10 @@
 package solo
 
 import (
-	"time"
-ldgactor "github.com/Ontology/core/ledger/actor"
 	"fmt"
+	ldgactor "github.com/Ontology/core/ledger/actor"
 	"reflect"
+	"time"
 
 	"github.com/Ontology/account"
 	. "github.com/Ontology/common"
@@ -33,11 +33,11 @@ ldgactor "github.com/Ontology/core/ledger/actor"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/signature"
 	"github.com/Ontology/core/types"
-	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/Ontology/validator/increment"
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/Ontology/events"
 	"github.com/Ontology/events/message"
+	"github.com/Ontology/validator/increment"
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology-eventbus/actor"
 )
 
 /*
@@ -48,11 +48,11 @@ var GenBlockTime = (config.DEFAULTGENBLOCKTIME * time.Second)
 const ContextVersion uint32 = 0
 
 type SoloService struct {
-	Account     *account.Account
-	poolActor   *actorTypes.TxPoolActor
-	ledgerActor *actorTypes.LedgerActor
+	Account       *account.Account
+	poolActor     *actorTypes.TxPoolActor
+	ledgerActor   *actorTypes.LedgerActor
 	incrValidator *increment.IncrementValidator
-	existCh     chan interface{}
+	existCh       chan interface{}
 
 	pid *actor.PID
 	sub *events.ActorSubscriber
@@ -60,9 +60,9 @@ type SoloService struct {
 
 func NewSoloService(bkAccount *account.Account, txpool *actor.PID, ledger *actor.PID) (*SoloService, error) {
 	service := &SoloService{
-		Account:     bkAccount,
-		poolActor:   &actorTypes.TxPoolActor{Pool: txpool},
-		ledgerActor: &actorTypes.LedgerActor{Ledger: ledger},
+		Account:       bkAccount,
+		poolActor:     &actorTypes.TxPoolActor{Pool: txpool},
+		ledgerActor:   &actorTypes.LedgerActor{Ledger: ledger},
 		incrValidator: increment.NewIncrementValidator(10),
 	}
 
@@ -152,12 +152,12 @@ func (this *SoloService) genBlock() error {
 		return fmt.Errorf("makeBlock error %s", err)
 	}
 
-	future := ldgactor.DefLedgerPid.RequestFuture(&ldgactor.AddBlockReq{Block:block}, 30*time.Second)
+	future := ldgactor.DefLedgerPid.RequestFuture(&ldgactor.AddBlockReq{Block: block}, 30*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		return fmt.Errorf("genBlock DefLedgerPid.RequestFuture Height:%d error:%s",block.Header.Height, err)
+		return fmt.Errorf("genBlock DefLedgerPid.RequestFuture Height:%d error:%s", block.Header.Height, err)
 	}
-	addBlockRsp :=  result.(*ldgactor.AddBlockRsp)
+	addBlockRsp := result.(*ldgactor.AddBlockRsp)
 	if addBlockRsp.Error != nil {
 		return fmt.Errorf("AddBlockRsp Height:%d error:%s", block.Header.Height, addBlockRsp.Error)
 	}
@@ -178,11 +178,11 @@ func (this *SoloService) makeBlock() (*types.Block, error) {
 
 	start, end := this.incrValidator.BlockRange()
 
-	if height + 1 == end {
+	if height+1 == end {
 		validHeight = start
 	} else {
 		this.incrValidator.Clean()
-		log.Infof("incr validator block height %v != ledger block height %v", end -1, height)
+		log.Infof("incr validator block height %v != ledger block height %v", end-1, height)
 	}
 
 	log.Infof("current block Height %v, incrValidateHeight %v", height, validHeight)
@@ -194,15 +194,15 @@ func (this *SoloService) makeBlock() (*types.Block, error) {
 	// TODO: increment checking txs
 
 	nonce := GetNonce()
-	txBookkeeping:= this.createBookkeepingTransaction(nonce, feeSum)
+	txBookkeeping := this.createBookkeepingTransaction(nonce, feeSum)
 
 	transactions := make([]*types.Transaction, 0, len(txs)+1)
 	transactions = append(transactions, txBookkeeping)
 	for _, txEntry := range txs {
 		// TODO optimize to use height in txentry
-		if  err := this.incrValidator.Verify(txEntry.Tx, validHeight) ; err == nil {
-		transactions = append(transactions, txEntry.Tx)
-	}
+		if err := this.incrValidator.Verify(txEntry.Tx, validHeight); err == nil {
+			transactions = append(transactions, txEntry.Tx)
+		}
 	}
 
 	txHash := []Uint256{}
@@ -221,7 +221,7 @@ func (this *SoloService) makeBlock() (*types.Block, error) {
 		TransactionsRoot: txRoot,
 		BlockRoot:        blockRoot,
 		Timestamp:        uint32(time.Now().Unix()),
-		Height:           height+1,
+		Height:           height + 1,
 		ConsensusData:    nonce,
 		NextBookkeeper:   nextBookkeeper,
 	}
@@ -232,7 +232,7 @@ func (this *SoloService) makeBlock() (*types.Block, error) {
 
 	blockHash := block.Hash()
 
-	sig, err := signature.Sign(blockHash[:], this.Account.PrivKey())
+	sig, err := signature.Sign(this.Account.PrivKey(), blockHash[:])
 	if err != nil {
 		return nil, fmt.Errorf("[Signature],Sign error:%s.", err)
 	}
@@ -255,7 +255,7 @@ func (this *SoloService) createBookkeepingTransaction(nonce uint64, fee Fixed64)
 	}
 	txHash := tx.Hash()
 	acc := this.Account
-	s, err := signature.Sign(txHash[:], acc.PrivateKey)
+	s, err := signature.Sign(acc.PrivateKey, txHash[:])
 	if err != nil {
 		return nil
 	}

@@ -19,28 +19,29 @@
 package test
 
 import (
-	"testing"
 	"bytes"
 	"fmt"
-	"os"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/common"
-	"github.com/Ontology/crypto"
 	"math/big"
-	"github.com/Ontology/smartcontract/service/native/states"
-	"github.com/Ontology/common/serialization"
+	"os"
+	"testing"
 	"time"
-	"github.com/Ontology/vm/neovm"
-	"github.com/Ontology/core/utils"
+
 	"github.com/Ontology/account"
-	vmtypes "github.com/Ontology/vm/types"
+	"github.com/Ontology/common"
+	"github.com/Ontology/common/serialization"
+	"github.com/Ontology/core/signature"
+	"github.com/Ontology/core/types"
 	ctypes "github.com/Ontology/core/types"
-	. "github.com/Ontology/common"
+	"github.com/Ontology/core/utils"
+	"github.com/Ontology/smartcontract/service/native/states"
+	"github.com/Ontology/vm/neovm"
+	vmtypes "github.com/Ontology/vm/types"
+	"github.com/ontio/ontology-crypto/keypair"
 )
 
 func TestCodeHash(t *testing.T) {
-	code,_ := HexToBytes("aa")
-	vmcode := vmtypes.VmCode{vmtypes.NEOVM,code}
+	code, _ := common.HexToBytes("aa")
+	vmcode := vmtypes.VmCode{vmtypes.NEOVM, code}
 	codehash := vmcode.AddressFromVmCode()
 	fmt.Println(codehash.ToHexString())
 	os.Exit(0)
@@ -57,9 +58,8 @@ func TestTxDeserialize(t *testing.T) {
 	os.Exit(0)
 }
 func TestAddress(t *testing.T) {
-	crypto.SetAlg("")
-	pubkey, _ := common.HexToBytes("0399b851bc2cd05506d6821d4bc5a92139b00ac4bc7399cd9ca0aac86a468d1c05")
-	pk, err := crypto.DecodePoint(pubkey)
+	pubkey, _ := common.HexToBytes("120203a4e50edc1e59979442b83f327030a56bffd08c2de3e0a404cefb4ed2cc04ca3e")
+	pk, err := keypair.DeserializePublicKey(pubkey)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(0)
@@ -70,15 +70,14 @@ func TestAddress(t *testing.T) {
 	fmt.Println(ui60.ToBase58())
 }
 func TestMultiPubKeysAddress(t *testing.T) {
-	crypto.SetAlg("")
-	pubkey, _ := common.HexToBytes("0399b851bc2cd05506d6821d4bc5a92139b00ac4bc7399cd9ca0aac86a468d1c05")
-	pk, err := crypto.DecodePoint(pubkey)
+	pubkey, _ := common.HexToBytes("120203a4e50edc1e59979442b83f327030a56bffd08c2de3e0a404cefb4ed2cc04ca3e")
+	pk, err := keypair.DeserializePublicKey(pubkey)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(0)
 	}
-	pubkey2, _ := common.HexToBytes("03525e53bfeac2e408ce5150fcc08502da135dd51e4878f304080293055d7049fc")
-	pk2, err := crypto.DecodePoint(pubkey2)
+	pubkey2, _ := common.HexToBytes("12020225c98cc5f82506fb9d01bad15a7be3da29c97a279bb6b55da1a3177483ab149b")
+	pk2, err := keypair.DeserializePublicKey(pubkey2)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(0)
@@ -92,25 +91,26 @@ func TestMultiPubKeysAddress(t *testing.T) {
 func TestInvokefunction(t *testing.T) {
 	var funcName string
 	builder := neovm.NewParamsBuilder(new(bytes.Buffer))
-	err := BuildSmartContractParamInter(builder, []interface{}{funcName, "",""})
+	err := BuildSmartContractParamInter(builder, []interface{}{funcName, "", ""})
 	if err != nil {
 	}
-	codeParams := builder.ToArray();
+	codeParams := builder.ToArray()
 	tx := utils.NewInvokeTransaction(vmtypes.VmCode{
 		VmType: vmtypes.Native,
-		Code: codeParams,
+		Code:   codeParams,
 	})
 	tx.Nonce = uint32(time.Now().Unix())
 
 	acct := account.Open(account.WalletFileName, []byte("passwordtest"))
-	acc, err := acct.GetDefaultAccount(); if err != nil {
+	acc, err := acct.GetDefaultAccount()
+	if err != nil {
 		fmt.Println("GetDefaultAccount error:", err)
 		os.Exit(1)
 	}
 	hash := tx.Hash()
-	sign, _ := crypto.Sign(acc.PrivateKey, hash[:])
+	sign, _ := signature.Sign(acc.PrivateKey, hash[:])
 	tx.Sigs = append(tx.Sigs, &ctypes.Sig{
-		PubKeys: []*crypto.PubKey{acc.PublicKey},
+		PubKeys: []keypair.PublicKey{acc.PublicKey},
 		M:       1,
 		SigData: [][]byte{sign},
 	})
@@ -138,7 +138,7 @@ func BuildSmartContractParamInter(builder *neovm.ParamsBuilder, smartContractPar
 			builder.EmitPushInteger(big.NewInt(int64(v)))
 		case int64:
 			builder.EmitPushInteger(big.NewInt(int64(v)))
-		case Fixed64:
+		case common.Fixed64:
 			builder.EmitPushInteger(big.NewInt(int64(v.GetData())))
 		case uint64:
 			val := big.NewInt(0)

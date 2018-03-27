@@ -19,7 +19,6 @@
 package neovm
 
 import (
-	"crypto"
 	"math/big"
 	"strings"
 
@@ -175,7 +174,7 @@ func (s *StateReader) CheckWitnessHash(engine *vm.ExecutionEngine, address commo
 	return contains(addresses, address), nil
 }
 
-func (s *StateReader) CheckWitnessPublicKey(engine *vm.ExecutionEngine, publicKey crypto.PublicKey) (bool, error) {
+func (s *StateReader) CheckWitnessPublicKey(engine *vm.ExecutionEngine, publicKey keypair.PublicKey) (bool, error) {
 	return s.CheckWitnessHash(engine, types.AddressFromPubKey(publicKey))
 }
 

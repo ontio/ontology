@@ -2,7 +2,6 @@ package message
 
 import (
 	"bytes"
-	"crypto"
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
@@ -24,13 +23,13 @@ const (
 type version struct {
 	Hdr msgHdr
 	P   struct {
-		Version       uint32
-		Services      uint64
-		TimeStamp     uint32
-		Port          uint16
-		HttpInfoPort  uint16
-		Cap           [32]byte
-		Nonce         uint64
+		Version      uint32
+		Services     uint64
+		TimeStamp    uint32
+		Port         uint16
+		HttpInfoPort uint16
+		Cap          [32]byte
+		Nonce        uint64
 		// TODO remove tempory to get serilization function passed
 		UserAgent   uint8
 		StartHeight uint64
@@ -38,7 +37,7 @@ type version struct {
 		Relay       uint8
 		IsConsensus bool
 	}
-	pk crypto.PublicKey
+	pk keypair.PublicKey
 }
 
 func (msg *version) init(n Noder) {
@@ -224,4 +223,3 @@ func (msg version) Handle(node Noder) error {
 
 	return nil
 }
-

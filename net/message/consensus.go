@@ -20,7 +20,6 @@ package message
 
 import (
 	"bytes"
-	"crypto"
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
@@ -43,7 +42,7 @@ type ConsensusPayload struct {
 	Timestamp       uint32
 	Data            []byte
 
-	Owner     crypto.PublicKey
+	Owner     keypair.PublicKey
 	Signature []byte
 
 	hash common.Uint256
@@ -61,7 +60,7 @@ func (cp *ConsensusPayload) Hash() common.Uint256 {
 func (cp *ConsensusPayload) Verify() error {
 	buf := new(bytes.Buffer)
 	cp.SerializeUnsigned(buf)
-	err := signature.Verify(buf.Bytes(), cp.Signature, cp.Owner)
+	err := signature.Verify(cp.Owner, buf.Bytes(), cp.Signature)
 	if err != nil {
 		err = errors.New("consensus failed: signature verification failed")
 	}

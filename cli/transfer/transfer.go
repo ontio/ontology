@@ -41,7 +41,6 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 )
 
-
 func transferAction(c *cli.Context) error {
 	if c.NumFlags() == 0 {
 		cli.ShowSubcommandHelp(c)
@@ -82,7 +81,7 @@ func transferAction(c *cli.Context) error {
 		Value: big.NewInt(value),
 	})
 	transfers := &states.Transfers{
-		States:   sts,
+		States: sts,
 	}
 	bf := new(bytes.Buffer)
 
@@ -93,8 +92,8 @@ func transferAction(c *cli.Context) error {
 
 	cont := &states.Contract{
 		Address: ctu,
-		Method: "transfer",
-		Args: bf.Bytes(),
+		Method:  "transfer",
+		Args:    bf.Bytes(),
 	}
 
 	ff := new(bytes.Buffer)
@@ -106,7 +105,7 @@ func transferAction(c *cli.Context) error {
 
 	tx := cutils.NewInvokeTransaction(vmtypes.VmCode{
 		VmType: vmtypes.Native,
-		Code: ff.Bytes(),
+		Code:   ff.Bytes(),
 	})
 
 	tx.Nonce = uint32(time.Now().Unix())
@@ -155,7 +154,7 @@ func transferAction(c *cli.Context) error {
 
 func signTransaction(signer *account.Account, tx *ctypes.Transaction) error {
 	hash := tx.Hash()
-	sign, _ := signature.Sign(hash[:], signer.PrivateKey)
+	sign, _ := signature.Sign(signer.PrivateKey, hash[:])
 	tx.Sigs = append(tx.Sigs, &ctypes.Sig{
 		PubKeys: []keypair.PublicKey{signer.PublicKey},
 		M:       1,
@@ -190,8 +189,8 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "password, p",
 				Usage: "wallet password",
-				Value:"passwordtest",
-		},
+				Value: "passwordtest",
+			},
 		},
 		Action: transferAction,
 		OnUsageError: func(c *cli.Context, err error, isSubcommand bool) error {

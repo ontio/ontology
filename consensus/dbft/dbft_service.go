@@ -21,9 +21,6 @@ package dbft
 import (
 	"bytes"
 	"fmt"
-	"reflect"
-	"time"
-	ldgractor"github.com/Ontology/core/ledger/actor"
 	"github.com/Ontology/account"
 	. "github.com/Ontology/common"
 	"github.com/Ontology/common/config"
@@ -31,15 +28,18 @@ import (
 	actorTypes "github.com/Ontology/consensus/actor"
 	"github.com/Ontology/core/genesis"
 	"github.com/Ontology/core/ledger"
+	ldgractor "github.com/Ontology/core/ledger/actor"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/signature"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/core/vote"
-	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/Ontology/events"
 	"github.com/Ontology/events/message"
 	p2pmsg "github.com/Ontology/net/message"
 	"github.com/Ontology/validator/increment"
+	"github.com/ontio/ontology-eventbus/actor"
+	"reflect"
+	"time"
 )
 
 type DbftService struct {
@@ -50,7 +50,7 @@ type DbftService struct {
 	timeView          byte
 	blockReceivedTime time.Time
 	started           bool
-	incrValidator *increment.IncrementValidator
+	incrValidator     *increment.IncrementValidator
 	poolActor         *actorTypes.TxPoolActor
 	p2p               *actorTypes.P2PActor
 
@@ -61,12 +61,12 @@ type DbftService struct {
 func NewDbftService(bkAccount *account.Account, txpool, p2p *actor.PID) (*DbftService, error) {
 
 	service := &DbftService{
-		Account:   bkAccount,
-		timer:     time.NewTimer(time.Second * 15),
-		started:   false,
+		Account:       bkAccount,
+		timer:         time.NewTimer(time.Second * 15),
+		started:       false,
 		incrValidator: increment.NewIncrementValidator(10),
-		poolActor: &actorTypes.TxPoolActor{Pool: txpool},
-		p2p:       &actorTypes.P2PActor{P2P: p2p},
+		poolActor:     &actorTypes.TxPoolActor{Pool: txpool},
+		p2p:           &actorTypes.P2PActor{P2P: p2p},
 	}
 
 	if !service.timer.Stop() {
@@ -224,12 +224,12 @@ func (ds *DbftService) CheckSignatures() error {
 		}
 		if !isExist {
 			// save block
-			future := ldgractor.DefLedgerPid.RequestFuture(&ldgractor.AddBlockReq{Block:block}, 30*time.Second)
+			future := ldgractor.DefLedgerPid.RequestFuture(&ldgractor.AddBlockReq{Block: block}, 30*time.Second)
 			result, err := future.Result()
 			if err != nil {
-				return fmt.Errorf("CheckSignatures DefLedgerPid.RequestFuture Height:%d error:%s",block.Header.Height, err)
+				return fmt.Errorf("CheckSignatures DefLedgerPid.RequestFuture Height:%d error:%s", block.Header.Height, err)
 			}
-			addBlockRsp :=  result.(*ldgractor.AddBlockRsp)
+			addBlockRsp := result.(*ldgractor.AddBlockRsp)
 			if addBlockRsp.Error != nil {
 				return fmt.Errorf("CheckSignatures AddBlockRsp Height:%d error:%s", block.Header.Height, addBlockRsp.Error)
 			}
@@ -249,7 +249,7 @@ func (ds *DbftService) CreateBookkeepingTransaction(nonce uint64, fee Fixed64) *
 		Nonce: uint64(time.Now().UnixNano()),
 	}
 	return &types.Transaction{
-		TxType: types.BookKeeping,
+		TxType:     types.BookKeeping,
 		Payload:    bookKeepingPayload,
 		Attributes: []*types.TxAttribute{},
 	}
@@ -446,7 +446,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 	ds.context.header = nil
 
 	blockHash := ds.context.MakeHeader().Hash()
-	err = signature.Verify(blockHash[:], message.Signature, ds.context.Bookkeepers[payload.BookkeeperIndex])
+	err = signature.Verify(ds.context.Bookkeepers[payload.BookkeeperIndex], blockHash[:], message.Signature)
 	if err != nil {
 		log.Warn("PrepareRequestReceived VerifySignature failed.", err)
 		ds.context = backupContext
@@ -475,7 +475,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 			validHeight = start
 		} else {
 			ds.incrValidator.Clean()
-			log.Infof("incr validator block height %v != ledger block height %v", end -1, height)
+			log.Infof("incr validator block height %v != ledger block height %v", end-1, height)
 		}
 
 		if err := ds.poolActor.VerifyBlock(ds.context.Transactions[1:], validHeight); err != nil {
@@ -487,12 +487,12 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 		}
 
 		for _, tx := range ds.context.Transactions[1:] {
-			if  err := ds.incrValidator.Verify(tx, validHeight) ; err != nil {
+			if err := ds.incrValidator.Verify(tx, validHeight); err != nil {
 				log.Error("PrepareRequestReceived new transaction increment verification failed, will not sent Prepare Response", err)
 				ds.context = backupContext
 				ds.RequestChangeView()
 				return
-	}
+			}
 		}
 
 	}
@@ -525,7 +525,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 		return
 	}
 
-	sig, err := signature.Sign(blockHash[:], ds.Account.PrivKey())
+	sig, err := signature.Sign(ds.Account.PrivKey(), blockHash[:])
 	if err != nil {
 		log.Error("[DbftService] signing failed")
 		return
@@ -555,7 +555,7 @@ func (ds *DbftService) PrepareResponseReceived(payload *p2pmsg.ConsensusPayload,
 		return
 	}
 	blockHash := header.Hash()
-	err := signature.Verify(blockHash[:], message.Signature, ds.context.Bookkeepers[payload.BookkeeperIndex])
+	err := signature.Verify(ds.context.Bookkeepers[payload.BookkeeperIndex], blockHash[:], message.Signature)
 	if err != nil {
 		return
 	}
@@ -595,7 +595,7 @@ func (ds *DbftService) BlockSignaturesReceived(payload *p2pmsg.ConsensusPayload,
 			continue
 		}
 
-		err := signature.Verify(blockHash[:], sigdata.Signature, ds.context.Bookkeepers[sigdata.Index])
+		err := signature.Verify(ds.context.Bookkeepers[sigdata.Index], blockHash[:], sigdata.Signature)
 		if err != nil {
 			continue
 		}
@@ -641,7 +641,7 @@ func (ds *DbftService) RequestChangeView() {
 func (ds *DbftService) SignAndRelay(payload *p2pmsg.ConsensusPayload) {
 	buf := new(bytes.Buffer)
 	payload.SerializeUnsigned(buf)
-	payload.Signature, _ = signature.Sign(buf.Bytes(), ds.Account.PrivKey())
+	payload.Signature, _ = signature.Sign(ds.Account.PrivKey(), buf.Bytes())
 
 	ds.p2p.Xmit(payload)
 }
@@ -693,16 +693,16 @@ func (ds *DbftService) Timeout() {
 
 			ds.context.Nonce = GetNonce()
 
-			height :=  ds.context.Height - 1
+			height := ds.context.Height - 1
 			validHeight := height
 
 			start, end := ds.incrValidator.BlockRange()
 
-			if height + 1 == end {
+			if height+1 == end {
 				validHeight = start
 			} else {
 				ds.incrValidator.Clean()
-				log.Infof("incr validator block height %v != ledger block height %v", end -1, height)
+				log.Infof("incr validator block height %v != ledger block height %v", end-1, height)
 			}
 
 			log.Infof("current block Height %v, incrValidateHeight %v", height, validHeight)
@@ -715,9 +715,9 @@ func (ds *DbftService) Timeout() {
 			transactions = append(transactions, txBookkeeping)
 			for _, txEntry := range txs {
 				// TODO optimize to use height in txentry
-				if  err := ds.incrValidator.Verify(txEntry.Tx, validHeight) ; err == nil {
+				if err := ds.incrValidator.Verify(txEntry.Tx, validHeight); err == nil {
 					transactions = append(transactions, txEntry.Tx)
-			}
+				}
 			}
 
 			ds.context.Transactions = transactions
@@ -736,7 +736,7 @@ func (ds *DbftService) Timeout() {
 			//build block and sign
 			block := ds.context.MakeHeader()
 			blockHash := block.Hash()
-			ds.context.Signatures[ds.context.BookkeeperIndex], _ = signature.Sign(blockHash[:], ds.Account.PrivKey())
+			ds.context.Signatures[ds.context.BookkeeperIndex], _ = signature.Sign(ds.Account.PrivKey(), blockHash[:])
 		}
 		payload := ds.context.MakePrepareRequest()
 		ds.SignAndRelay(payload)

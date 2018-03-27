@@ -19,7 +19,6 @@
 package contract
 
 import (
-	"crypto"
 	"errors"
 	"math/big"
 	"sort"
@@ -76,7 +75,7 @@ func (cxt *ContractContext) Add(contract *Contract, index int, parameter []byte)
 	return nil
 }
 
-func (cxt *ContractContext) AddContract(contract *Contract, pubkey crypto.PublicKey, parameter []byte) error {
+func (cxt *ContractContext) AddContract(contract *Contract, pubkey keypair.PublicKey, parameter []byte) error {
 	log.Debug()
 	if contract.GetType() == MultiSigContract {
 		log.Debug()
@@ -147,7 +146,7 @@ func (cxt *ContractContext) AddContract(contract *Contract, pubkey crypto.Public
 	return nil
 }
 
-func (cxt *ContractContext) AddSignatureToMultiList(contractIndex int, contract *Contract, pubkey crypto.PublicKey, parameter []byte) error {
+func (cxt *ContractContext) AddSignatureToMultiList(contractIndex int, contract *Contract, pubkey keypair.PublicKey, parameter []byte) error {
 	if cxt.MultiPubkeyPara[contractIndex] == nil {
 		cxt.MultiPubkeyPara[contractIndex] = make([]PubkeyParameter, len(contract.Parameters))
 	}
@@ -162,7 +161,7 @@ func (cxt *ContractContext) AddSignatureToMultiList(contractIndex int, contract 
 	return nil
 }
 
-func (cxt *ContractContext) AddMultiSignatures(index int, contract *Contract, pubkey crypto.PublicKey, parameter []byte) error {
+func (cxt *ContractContext) AddMultiSignatures(index int, contract *Contract, pubkey keypair.PublicKey, parameter []byte) error {
 	pkIndexs, err := cxt.ParseContractPubKeys(contract)
 	if err != nil {
 		return errors.New("Contract Parameters are not supported.")

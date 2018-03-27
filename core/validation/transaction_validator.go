@@ -64,7 +64,7 @@ func checkTransactionSignatures(tx *types.Transaction) error {
 		}
 
 		if kn == 1 {
-			err := signature.Verify(hash[:], sig.SigData[0], sig.PubKeys[0])
+			err := signature.Verify(sig.PubKeys[0], hash[:], sig.SigData[0])
 			if err != nil {
 				return errors.New("signature verification failed")
 			}

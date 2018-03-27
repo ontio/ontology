@@ -23,12 +23,13 @@ import (
 
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core"
+	"github.com/Ontology/core/signature"
 	"github.com/Ontology/core/types"
-	"github.com/Ontology/crypto"
-	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/Ontology/validator/stateless"
 	vatypes "github.com/Ontology/validator/types"
 	vmtypes "github.com/Ontology/vm/types"
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology-eventbus/actor"
 )
 
 type Validator struct {
@@ -92,14 +93,13 @@ func main() {
 
 	// p2p node
 	go func() {
-		crypto.SetAlg("")
-		priv, pub, _ := crypto.GenKeyPair()
+		priv, pub, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
 		from := core.AddressFromPubKey(&pub)
 		tx := NewONTTransferTransaction(from, from)
 
 		sign := SignTransaction(tx, priv)
 		tx.Sigs = append(tx.Sigs, &types.Sig{
-			PubKeys: []*crypto.PubKey{&pub},
+			PubKeys: []keypair.PublicKey{&pub},
 			M:       1,
 			SigData: [][]byte{sign},
 		})
@@ -127,9 +127,9 @@ func NewONTTransferTransaction(from, to types.Address) *types.Transaction {
 	return tx
 }
 
-func SignTransaction(tx *types.Transaction, privKey []byte) []byte {
+func SignTransaction(tx *types.Transaction, privKey keypair.PrivateKey) []byte {
 	hash := tx.Hash()
-	sign, _ := crypto.Sign(privKey, hash[:])
+	sign, _ := signature.Sign(privKey, hash[:])
 
 	return sign
 

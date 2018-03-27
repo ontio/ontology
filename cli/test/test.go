@@ -19,34 +19,34 @@
 package test
 
 import (
-	"fmt"
-	"os"
-	"encoding/json"
 	"bytes"
 	"encoding/hex"
+	"encoding/json"
+	"fmt"
 	"math/big"
+	"os"
 	"time"
 
-	vmtypes "github.com/Ontology/vm/types"
 	"github.com/Ontology/account"
-	"github.com/Ontology/core/genesis"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/common"
-	"github.com/Ontology/smartcontract/service/native/states"
-	"github.com/Ontology/core/utils"
-	"github.com/Ontology/core/signature"
-	"github.com/ontio/ontology-crypto/keypair"
 	. "github.com/Ontology/cli/common"
+	"github.com/Ontology/common"
+	"github.com/Ontology/core/genesis"
+	"github.com/Ontology/core/signature"
+	"github.com/Ontology/core/types"
+	"github.com/Ontology/core/utils"
 	"github.com/Ontology/http/base/rpc"
+	"github.com/Ontology/smartcontract/service/native/states"
+	vmtypes "github.com/Ontology/vm/types"
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/urfave/cli"
 )
 
 func signTransaction(signer *account.Account, tx *types.Transaction) error {
 	hash := tx.Hash()
-	sign, _ := signature.Sign(hash[:], signer.PrivateKey)
+	sign, _ := signature.Sign(signer.PrivateKey, hash[:])
 	tx.Sigs = append(tx.Sigs, &types.Sig{
 		PubKeys: []keypair.PublicKey{signer.PublicKey},
-		M: 1,
+		M:       1,
 		SigData: [][]byte{sign},
 	})
 	return nil
@@ -57,7 +57,8 @@ func testAction(c *cli.Context) (err error) {
 	passwd := c.String("password")
 
 	acct := account.Open(account.WalletFileName, []byte(passwd))
-	acc, err := acct.GetDefaultAccount(); if err != nil {
+	acc, err := acct.GetDefaultAccount()
+	if err != nil {
 		fmt.Println("GetDefaultAccount error:", err)
 		os.Exit(1)
 	}
@@ -69,10 +70,10 @@ func testAction(c *cli.Context) (err error) {
 
 func transferTest(n int, acc *account.Account) {
 	if n <= 0 {
-		n  = 1
+		n = 1
 	}
 
-	for i := 0; i < n; i ++ {
+	for i := 0; i < n; i++ {
 		tx := NewOntTransferTransaction(acc.Address, acc.Address, int64(i))
 		if err := signTransaction(acc, tx); err != nil {
 			fmt.Println("signTransaction error:", err)
@@ -105,12 +106,11 @@ func transferTest(n int, acc *account.Account) {
 	}
 }
 
-
 func NewOntTransferTransaction(from, to common.Address, value int64) *types.Transaction {
 	var sts []*states.State
 	sts = append(sts, &states.State{
-		From: from,
-		To: to,
+		From:  from,
+		To:    to,
 		Value: big.NewInt(value),
 	})
 	transfers := new(states.Transfers)
@@ -125,8 +125,8 @@ func NewOntTransferTransaction(from, to common.Address, value int64) *types.Tran
 
 	cont := &states.Contract{
 		Address: genesis.OntContractAddress,
-		Method: "transfer",
-		Args: bf.Bytes(),
+		Method:  "transfer",
+		Args:    bf.Bytes(),
 	}
 
 	ff := new(bytes.Buffer)
@@ -137,7 +137,7 @@ func NewOntTransferTransaction(from, to common.Address, value int64) *types.Tran
 
 	tx := utils.NewInvokeTransaction(vmtypes.VmCode{
 		VmType: vmtypes.Native,
-		Code: ff.Bytes(),
+		Code:   ff.Bytes(),
 	})
 
 	tx.Nonce = uint32(time.Now().Unix())
@@ -160,7 +160,7 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "password, p",
 				Usage: "wallet password",
-				Value:"passwordtest",
+				Value: "passwordtest",
 			},
 		},
 		Action: testAction,

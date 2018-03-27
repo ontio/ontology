@@ -20,7 +20,6 @@ package signature
 
 import (
 	"bytes"
-	"crypto"
 	"crypto/sha256"
 	"errors"
 	"io"
@@ -62,7 +61,7 @@ func SetDefaultScheme(scheme string) error {
 }
 
 func SignBySigner(data SignableData, signer Signer) ([]byte, error) {
-	return Sign(getHashData(data), signer.PrivKey())
+	return Sign(signer.PrivKey(), getHashData(data))
 }
 
 func getHashData(data SignableData) []byte {
@@ -73,7 +72,7 @@ func getHashData(data SignableData) []byte {
 	return hash[:]
 }
 
-func Sign(data []byte, privKey crypto.PrivateKey) ([]byte, error) {
+func Sign(privKey keypair.PrivateKey, data []byte) ([]byte, error) {
 	signature, err := s.Sign(defaultScheme, privKey, data, nil)
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[Signature],Sign failed.")
@@ -82,7 +81,7 @@ func Sign(data []byte, privKey crypto.PrivateKey) ([]byte, error) {
 	return s.Serialize(signature)
 }
 
-func Verify(data, signature []byte, pubKey crypto.PublicKey) error {
+func Verify(pubKey keypair.PublicKey, data, signature []byte) error {
 	sigObj, err := s.Deserialize(signature)
 	if err != nil {
 		return errors.New("invalid signature data: " + err.Error())

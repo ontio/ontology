@@ -20,13 +20,14 @@ package ledgerstore
 
 import (
 	"fmt"
-	"github.com/Ontology/common"
-	"github.com/Ontology/core/payload"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/crypto"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/Ontology/common"
+	"github.com/Ontology/core/payload"
+	"github.com/Ontology/core/types"
+	"github.com/ontio/ontology-crypto/keypair"
 )
 
 var testBlockStore *BlockStore
@@ -52,7 +53,7 @@ func TestMain(m *testing.M) {
 		return
 	}
 	testStateDir := "test/state"
-	testStateStore, err = NewStateStore(testStateDir,MerkleTreeStorePath)
+	testStateStore, err = NewStateStore(testStateDir, MerkleTreeStorePath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "NewStateStore error %s\n", err)
 		return
@@ -81,12 +82,12 @@ func TestMain(m *testing.M) {
 }
 
 func TestInitLedgerStoreWithGenesisBlock(t *testing.T) {
-	_, pubKey1, _ := crypto.GenKeyPair()
-	_, pubKey2, _ := crypto.GenKeyPair()
-	_, pubKey3, _ := crypto.GenKeyPair()
-	_, pubKey4, _ := crypto.GenKeyPair()
+	_, pubKey1, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
+	_, pubKey2, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
+	_, pubKey3, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
+	_, pubKey4, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
 
-	bookkeepers := []*crypto.PubKey{&pubKey1, &pubKey2, &pubKey3, &pubKey4}
+	bookkeepers := []keypair.PublicKey{&pubKey1, &pubKey2, &pubKey3, &pubKey4}
 	bookkeeper, err := types.AddressFromBookkeepers(bookkeepers)
 	if err != nil {
 		t.Errorf("AddressFromBookkeepers error %s", err)

@@ -42,7 +42,6 @@ import (
 	. "github.com/Ontology/net/message"
 	. "github.com/Ontology/net/protocol"
 	"github.com/ontio/ontology-crypto/keypair"
-	"crypto"
 )
 
 type Semaphore chan struct{}
@@ -60,23 +59,23 @@ func (s Semaphore) release() {
 
 type node struct {
 	//sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
-	state          uint32 // node state
-	id             uint64   // The nodes's id
-	cap            [32]byte // The node capability set
-	version        uint32   // The network protocol the node used
-	services       uint64   // The services the node supplied
-	relay          bool     // The relay capability of the node (merge into capbility flag)
-	height         uint64   // The node latest block height
-	txnCnt         uint64   // The transactions be transmit by this node
-	rxTxnCnt       uint64   // The transaction received by this node
-	publicKey      crypto.PublicKey
+	state     uint32   // node state
+	id        uint64   // The nodes's id
+	cap       [32]byte // The node capability set
+	version   uint32   // The network protocol the node used
+	services  uint64   // The services the node supplied
+	relay     bool     // The relay capability of the node (merge into capbility flag)
+	height    uint64   // The node latest block height
+	txnCnt    uint64   // The transactions be transmit by this node
+	rxTxnCnt  uint64   // The transaction received by this node
+	publicKey keypair.PublicKey
 	// TODO does this channel should be a buffer channel
 	chF        chan func() error // Channel used to operate the node without lock
 	link                         // The link status and infomation
 	local      *node             // The pointer to local node
 	nbrNodes                     // The neighbor node connect with currently node except itself
 	eventQueue                   // The event queue to notice notice other modules
-	idCache // The buffer to store the id of the items which already be processed
+	idCache                      // The buffer to store the id of the items which already be processed
 	/*
 	 * |--|--|--|--|--|--|isSyncFailed|isSyncHeaders|
 	 */
@@ -86,7 +85,7 @@ type node struct {
 	tryTimes                 uint32
 	ConnectingNodes
 	RetryConnAddrs
-	SyncReqSem    Semaphore
+	SyncReqSem Semaphore
 }
 
 type RetryConnAddrs struct {
@@ -172,15 +171,15 @@ func (node *node) UpdateInfo(t time.Time, version uint32, services uint64,
 
 func NewNode() *node {
 	n := node{
-		state:          INIT,
-		chF:            make(chan func() error),
+		state: INIT,
+		chF:   make(chan func() error),
 	}
 	runtime.SetFinalizer(&n, rmNode)
 	go n.backend()
 	return &n
 }
 
-func InitNode(pubKey crypto.PublicKey) Noder {
+func InitNode(pubKey keypair.PublicKey) Noder {
 	n := NewNode()
 	n.version = PROTOCOL_VERSION
 	if Parameters.NodeType == SERVICE_NODE_NAME {
@@ -247,11 +246,11 @@ func (node *node) GetState() uint32 {
 }
 
 func (node *node) getConn() net.Conn {
-		return node.conn
+	return node.conn
 }
 
 func (node *node) GetPort() uint16 {
-		return node.port
+	return node.port
 }
 
 func (node *node) GetHttpInfoPort() int {

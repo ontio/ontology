@@ -19,7 +19,6 @@
 package states
 
 import (
-	"crypto"
 	"io"
 
 	"github.com/Ontology/common/serialization"
@@ -29,7 +28,7 @@ import (
 
 type ValidatorState struct {
 	StateBase
-	PublicKey crypto.PublicKey
+	PublicKey keypair.PublicKey
 }
 
 func (this *ValidatorState) Serialize(w io.Writer) error {

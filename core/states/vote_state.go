@@ -19,7 +19,6 @@
 package states
 
 import (
-	"crypto"
 	"io"
 
 	"github.com/Ontology/common"
@@ -29,7 +28,7 @@ import (
 
 type VoteState struct {
 	StateBase
-	PublicKeys []crypto.PublicKey
+	PublicKeys []keypair.PublicKey
 	Count      common.Fixed64
 }
 
