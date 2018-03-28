@@ -19,18 +19,20 @@
 package native
 
 import (
+	"fmt"
+	"math/big"
+
+	"github.com/Ontology/common"
+	cstates "github.com/Ontology/core/states"
 	scommon "github.com/Ontology/core/store/common"
 	"github.com/Ontology/errors"
-	"math/big"
-	cstates "github.com/Ontology/core/states"
-	"github.com/Ontology/common"
-	"github.com/Ontology/smartcontract/service/native/states"
 	"github.com/Ontology/smartcontract/event"
+	"github.com/Ontology/smartcontract/service/native/states"
 )
 
 var (
-	addressHeight = []byte("addressHeight")
-	transferName = "transfer"
+	addressHeight   = []byte("addressHeight")
+	transferName    = "transfer"
 	totalSupplyName = []byte("totalSupply")
 )
 
@@ -85,11 +87,13 @@ func transfer(native *NativeService, contract common.Address, state *states.Stat
 		return nil, nil, err
 	}
 
-	fromBalance, err := fromTransfer(native, getTransferKey(contract, state.From), state.Value); if err != nil {
+	fromBalance, err := fromTransfer(native, getTransferKey(contract, state.From), state.Value)
+	if err != nil {
 		return nil, nil, err
 	}
 
-	toBalance, err := toTransfer(native, getTransferKey(contract, state.To), state.Value); if err != nil {
+	toBalance, err := toTransfer(native, getTransferKey(contract, state.To), state.Value)
+	if err != nil {
 		return nil, nil, err
 	}
 	return fromBalance, toBalance, nil
@@ -136,13 +140,14 @@ func isApproveValid(native *NativeService, state *states.State) error {
 }
 
 func fromApprove(native *NativeService, fromApproveKey []byte, value *big.Int) error {
-	approveValue, err := getStorageBigInt(native, fromApproveKey); if err != nil {
+	approveValue, err := getStorageBigInt(native, fromApproveKey)
+	if err != nil {
 		return err
 	}
-	approveBalance := new(big.Int).Sub(approveValue,value)
+	approveBalance := new(big.Int).Sub(approveValue, value)
 	sign := approveBalance.Sign()
 	if sign < 0 {
-		return errors.NewErr("[TransferFrom] approve balance insufficient!")
+		return fmt.Errorf("[TransferFrom] approve balance insufficient! have %d, got %d", approveValue.Int64(), value.Int64())
 	} else if sign == 0 {
 		native.CloneCache.Delete(scommon.ST_STORAGE, fromApproveKey)
 	} else {
@@ -152,7 +157,8 @@ func fromApprove(native *NativeService, fromApproveKey []byte, value *big.Int) e
 }
 
 func fromTransfer(native *NativeService, fromKey []byte, value *big.Int) (*big.Int, error) {
-	fromBalance, err := getStorageBigInt(native, fromKey); if err != nil {
+	fromBalance, err := getStorageBigInt(native, fromKey)
+	if err != nil {
 		return nil, err
 	}
 	balance := new(big.Int).Sub(fromBalance, value)
@@ -168,7 +174,8 @@ func fromTransfer(native *NativeService, fromKey []byte, value *big.Int) (*big.I
 }
 
 func toTransfer(native *NativeService, toKey []byte, value *big.Int) (*big.Int, error) {
-	toBalance, err := getStorageBigInt(native, toKey); if err != nil {
+	toBalance, err := getStorageBigInt(native, toKey)
+	if err != nil {
 		return nil, err
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, toKey, getToAmountStorageItem(toBalance, value))
@@ -176,7 +183,8 @@ func toTransfer(native *NativeService, toKey []byte, value *big.Int) (*big.Int, 
 }
 
 func getStartHeight(native *NativeService, contract, from common.Address) (uint32, error) {
-	startHeight, err := getStorageBigInt(native, getAddressHeightKey(contract, from)); if err != nil {
+	startHeight, err := getStorageBigInt(native, getAddressHeightKey(contract, from))
+	if err != nil {
 		return 0, err
 	}
 	return uint32(startHeight.Int64()), nil
@@ -190,7 +198,8 @@ func getStorageBigInt(native *NativeService, key []byte) (*big.Int, error) {
 	if balance == nil {
 		return big.NewInt(0), nil
 	}
-	item, ok := balance.(*cstates.StorageItem); if !ok {
+	item, ok := balance.(*cstates.StorageItem)
+	if !ok {
 		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[getBalance] get amount error!")
 	}
 	return new(big.Int).SetBytes(item.Value), nil
@@ -199,9 +208,8 @@ func getStorageBigInt(native *NativeService, key []byte) (*big.Int, error) {
 func addNotifications(native *NativeService, contract common.Address, state *states.State) {
 	native.Notifications = append(native.Notifications,
 		&event.NotifyEventInfo{
-			TxHash: native.Tx.Hash(),
+			TxHash:   native.Tx.Hash(),
 			CodeHash: contract,
-			States: []interface{}{transferName, state.From, state.To, state.Value},
+			States:   []interface{}{transferName, state.From, state.To, state.Value},
 		})
 }
-
