@@ -41,8 +41,8 @@ import (
 )
 
 const (
-	nonSpecTestsDir = "./testdata"
-	specTestsDir    = "./testdata/spec"
+	nonSpecTestsDir = "./test_data"
+	specTestsDir    = "./test_data/spec"
 )
 
 type testCase struct {
