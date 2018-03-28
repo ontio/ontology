@@ -262,49 +262,6 @@ func readMessage(engine *ExecutionEngine) (bool, error) {
 	return true, nil
 }
 
-//call other contract
-//todo move to statemachine
-/*func callContract(engine *ExecutionEngine) (bool, error) {
-	envCall := engine.vm.envCall
-	params := envCall.envParams
-	if len(params) != 3 {
-		return false, errors.New("parameter count error while call readMessage")
-	}
-	contractAddressIdx := params[0]
-	addr, err := engine.vm.GetPointerMemory(contractAddressIdx)
-	if err != nil {
-		return false, errors.New("get Contract address failed")
-	}
-	//the contract codes
-	contractBytes, err := getContractFromAddr(addr)
-	if err != nil {
-		return false, err
-	}
-	bf := bytes.NewBuffer(contractBytes)
-	module, err := wasm.ReadModule(bf, emptyImporter)
-	if err != nil {
-		return false, errors.New("load Module failed")
-	}
-
-	methodName, err := engine.vm.GetPointerMemory(params[1])
-	if err != nil {
-		return false, errors.New("[callContract]get Contract methodName failed")
-	}
-
-	arg ,err := engine.vm.GetPointerMemory(params[2])
-	if err != nil {
-		return false, errors.New("[callContract]get Contract arg failed")
-	}
-
-	res, err := engine.vm.CallProductContract(module,methodName,arg)
-
-	engine.vm.ctx = envCall.envPreCtx
-	if envCall.envReturns {
-		engine.vm.pushUint64(res)
-	}
-	return true, nil
-}*/
-
 //read int value from args bytes
 func readInt32Param(engine *ExecutionEngine) (bool, error) {
 
@@ -706,38 +663,3 @@ func GetCodeHash(engine *ExecutionEngine) (bool, error) {
 	}
 	return true, nil
 }
-
-/*
-func getContractFromAddr(addr []byte) ([]byte, error) {
-
-	//just for test
-			contract := util.TrimBuffToString(addr)
-			code, err := ioutil.ReadFile(fmt.Sprintf("./testdata2/%s.wasm",contract))
-			if err != nil {
-				fmt.Printf("./testdata2/%s.wasm is not exist",contract)
-				return nil,err
-			}
-
-			return code,nil
-*/
-/*
-	codeHash, err := common.Uint160ParseFromBytes(addr)
-	if err != nil {
-		return nil, errors.New("get address Code hash failed")
-	}
-
-	contract, err := ledger.DefLedger.GetContractState(codeHash)
-	if err != nil {
-		return nil, errors.New("get contract state failed")
-	}
-
-	if contract.VmType != types.WASMVM {
-		return nil, errors.New(" contract is not a wasm contract")
-	}
-
-	return contract.Code, nil
-*/ /*
-
-
-}
-*/

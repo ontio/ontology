@@ -22,58 +22,59 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"github.com/Ontology/common"
 	"github.com/Ontology/vm/neovm/interfaces"
 	"github.com/Ontology/vm/wasmvm/memory"
+	"github.com/Ontology/vm/wasmvm/util"
 	"github.com/Ontology/vm/wasmvm/validate"
 	"github.com/Ontology/vm/wasmvm/wasm"
 	"math"
 	"os"
 	"reflect"
-	"fmt"
-	"github.com/Ontology/vm/wasmvm/util"
 )
 
 const (
 	CONTRACT_METHOD_NAME = "invoke"
 	PARAM_SPLITER        = "|"
-	VM_STACK_DEPTH		 = 10
+	VM_STACK_DEPTH       = 10
 )
 
 // backup vm while call other contracts
-type vmstack struct{
+type vmstack struct {
 	top   int
 	stack []*VM
 }
 
-func(s *vmstack)push(vm *VM) error{
-	if s.top == len(s.stack){
-		return errors.New(fmt.Sprintf("[vm stack push] stack is full, only support %d contracts calls",VM_STACK_DEPTH))
+func (s *vmstack) push(vm *VM) error {
+	if s.top == len(s.stack) {
+		return errors.New(fmt.Sprintf("[vm stack push] stack is full, only support %d contracts calls", VM_STACK_DEPTH))
 	}
-	s.stack[s.top + 1] = vm
+	s.stack[s.top+1] = vm
 	s.top += 1
 	return nil
 }
 
-func (s *vmstack)pop() (*VM,error){
-	if s.top == 0{
-		return nil,errors.New("[vm stack pop] stack is empty")
+func (s *vmstack) pop() (*VM, error) {
+	if s.top == 0 {
+		return nil, errors.New("[vm stack pop] stack is empty")
 	}
 
 	retvm := s.stack[s.top]
 	s.top -= 1
-	return retvm,nil
+	return retvm, nil
 }
 
-func newStack(depth int) *vmstack{
-	return &vmstack{top:0,stack:make([]*VM,depth)}
+func newStack(depth int) *vmstack {
+	return &vmstack{top: 0, stack: make([]*VM, depth)}
 }
 
 //todo add parameters
 func NewExecutionEngine(icontainer interfaces.ICodeContainer, icrypto interfaces.ICrypto, itable interfaces.ICodeTable, iservice IInteropService, ver string) *ExecutionEngine {
 
 	engine := &ExecutionEngine{
-		crypto: icrypto, table: itable,
+		crypto:        icrypto,
+		table:         itable,
 		codeContainer: icontainer,
 		service:       NewInteropService(),
 		version:       ver,
@@ -87,14 +88,14 @@ func NewExecutionEngine(icontainer interfaces.ICodeContainer, icrypto interfaces
 }
 
 type ExecutionEngine struct {
-	crypto        	interfaces.ICrypto
-	table         	interfaces.ICodeTable
-	service       	*InteropService
-	codeContainer 	interfaces.ICodeContainer
-	vm      		*VM
+	crypto        interfaces.ICrypto
+	table         interfaces.ICodeTable
+	service       *InteropService
+	codeContainer interfaces.ICodeContainer
+	vm            *VM
 	//todo ,move to contract info later
-	version 		string //for test different contracts
-	backupVM     	*vmstack
+	version  string //for test different contracts
+	backupVM *vmstack
 }
 
 func (e *ExecutionEngine) GetVM() *VM {
@@ -104,10 +105,10 @@ func (e *ExecutionEngine) GetVM() *VM {
 //for call other contract,
 // 1.store current vm
 // 2.load new vm
-func (e *ExecutionEngine)SetNewVM(vm *VM) error{
+func (e *ExecutionEngine) SetNewVM(vm *VM) error {
 
 	err := e.backupVM.push(e.vm)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 	e.vm = vm
@@ -117,9 +118,9 @@ func (e *ExecutionEngine)SetNewVM(vm *VM) error{
 //for call other contract,
 // 1.pop stored vm
 // 2.reset vm
-func (e *ExecutionEngine)RestoreVM() error{
-	backupVM,err := e.backupVM.pop()
-	if err != nil{
+func (e *ExecutionEngine) RestoreVM() error {
+	backupVM, err := e.backupVM.pop()
+	if err != nil {
 		return err
 	}
 	e.vm = backupVM
@@ -198,13 +199,6 @@ func (e *ExecutionEngine) CallInf(caller common.Address, code []byte, input []in
 					return nil, err
 				}
 				params[i] = uint64(offset)
-
-				/*				offset, err := vm.SetMemory(param)
-								if err != nil {
-									return nil, err
-								}
-								vm.GetMemory().MemPoints[uint64(offset)] = &memory.TypeLength{Ptype:memory.P_STRING,Length:len(param.(string))}
-								params[i] = uint64(offset)*/
 			case int:
 				params[i] = uint64(param.(int))
 			case int64:
@@ -304,10 +298,6 @@ func (e *ExecutionEngine) GetMemory() *memory.VMmemory {
 	return e.vm.memory
 }
 
-//func (e *ExecutionEngine)GetMemStruct() *memory.VMmemory{
-//	return e.memory
-//}
-
 func (e *ExecutionEngine) Create(caller common.Address, code []byte) ([]byte, error) {
 	return code, nil
 }
@@ -319,7 +309,7 @@ func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) (retur
 	defer func() {
 		if err := recover(); err != nil {
 			returnbytes = nil
-			er = errors.New("error happend")
+			er = errors.New("[Call]error happend")
 		}
 	}()
 
@@ -329,7 +319,7 @@ func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) (retur
 
 		tmparr := bytes.Split(input, []byte(PARAM_SPLITER))
 		if len(tmparr) != 2 {
-			return nil, errors.New("input format is not right!")
+			return nil, errors.New("[Call]input format is not right!")
 		}
 
 		//1. read code
@@ -338,7 +328,7 @@ func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) (retur
 		//2. read module
 		m, err := wasm.ReadModule(bf, importer)
 		if err != nil {
-			return nil, errors.New("Verify wasm failed!" + err.Error())
+			return nil, errors.New("[Call]Verify wasm failed!" + err.Error())
 		}
 
 		//3. verify the module
@@ -347,7 +337,7 @@ func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) (retur
 		//4. check the export
 		//every wasm should have at least 1 export
 		if m.Export == nil {
-			return nil, errors.New("No export in wasm!")
+			return nil, errors.New("[Call]No export in wasm!")
 		}
 
 		vm, err := NewVM(m)
@@ -367,7 +357,7 @@ func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) (retur
 
 		entry, ok := m.Export.Entries[methodName]
 		if ok == false {
-			return nil, errors.New("Method:" + methodName + " does not exist!")
+			return nil, errors.New("[Call]Method:" + methodName + " does not exist!")
 		}
 		//get entry index
 		index := int64(entry.Index)
@@ -400,7 +390,7 @@ func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) (retur
 
 		res, err := vm.ExecCode(false, index, params...)
 		if err != nil {
-			return nil, errors.New("ExecCode error!" + err.Error())
+			return nil, errors.New("[Call]ExecCode error!" + err.Error())
 		}
 
 		if len(ftype.ReturnTypes) == 0 {
@@ -417,7 +407,7 @@ func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) (retur
 		case wasm.ValueTypeF64:
 			return util.Float64ToBytes(res.(float64)), nil
 		default:
-			return nil, errors.New("the return type is not supported")
+			return nil, errors.New("[Call]the return type is not supported")
 		}
 
 	} else {
@@ -433,7 +423,7 @@ func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) (retur
 		//2. read module
 		m, err := wasm.ReadModule(bf, importer)
 		if err != nil {
-			return nil, errors.New("Verify wasm failed!" + err.Error())
+			return nil, errors.New("[Call]Verify wasm failed!" + err.Error())
 		}
 
 		//3. verify the module
@@ -442,7 +432,7 @@ func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) (retur
 		//4. check the export
 		//every wasm should have at least 1 export
 		if m.Export == nil {
-			return nil, errors.New("No export in wasm!")
+			return nil, errors.New("[Call]No export in wasm!")
 		}
 
 		vm, err := NewVM(m)
@@ -458,7 +448,7 @@ func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) (retur
 		//vm.SetMessage(message)
 		entry, ok := m.Export.Entries[methodName]
 		if ok == false {
-			return nil, errors.New("Method:" + methodName + " does not exist!")
+			return nil, errors.New("[Call]Method:" + methodName + " does not exist!")
 		}
 		//get entry index
 		index := int64(entry.Index)
@@ -477,12 +467,12 @@ func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) (retur
 		}
 
 		if len(params) != len(ftype.ParamTypes) {
-			return nil, errors.New("Parameters count is not right")
+			return nil, errors.New("[Call]Parameters count is not right")
 		}
 
 		res, err := vm.ExecCode(false, index, params...)
 		if err != nil {
-			return nil, errors.New("ExecCode error!" + err.Error())
+			return nil, errors.New("[Call]ExecCode error!" + err.Error())
 		}
 
 		if len(ftype.ReturnTypes) == 0 {
@@ -499,7 +489,7 @@ func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) (retur
 		case wasm.ValueTypeF64:
 			return util.Float64ToBytes(res.(float64)), nil
 		default:
-			return nil, errors.New("the return type is not supported")
+			return nil, errors.New("[Call]the return type is not supported")
 		}
 
 	}
@@ -535,13 +525,13 @@ func importer(name string) (*wasm.Module, error) {
 func getCallMethodName(input []byte) (string, error) {
 
 	if len(input) <= 1 {
-		return "", errors.New("input format error!")
+		return "", errors.New("[Call]input format error!")
 	}
 
 	length := int(input[0])
 
 	if length > len(input[1:]) {
-		return "", errors.New("input method name length error!")
+		return "", errors.New("[Call]input method name length error!")
 	}
 
 	return string(input[1 : length+1]), nil
@@ -564,7 +554,7 @@ func getParams(input []byte) ([]uint64, error) {
 		pl := int(paramlengthSlice[i])
 
 		if (i+1)*pl > len(paramSlice) {
-			return nil, errors.New("get param failed!")
+			return nil, errors.New("[Call]get param failed!")
 		}
 		param := paramSlice[i*pl : (i+1)*pl]
 
