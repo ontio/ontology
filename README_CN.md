@@ -1,34 +1,64 @@
-# Ontology
 
-Ontology是go语言实现的基于区块链技术的去中心化的分布式网络协议。
+<h1 align="center">Ontology </h1>
+<h4 align="center">Version V0.6.0 </h4>
+
+欢迎来到Ontology的源码库！ 
+
+Ontology致力于创建一个组件化、可自由配置、跨链支持、高性能、横向可扩展的区块链底层基础设施。 让部署及调用去中心化应用变得更加非常简单。
+
+目前代码还处于内部测试阶段，但处于快速的开发过程中，master代码可能是不稳定的，稳定的版本可以在releases中下载。
+
+公开的测试网将会在之后推出，也非常欢迎及希望能有更多的开发者加入到ontology中来。
 
 ## 特性
 
 * 可扩展的轻量级通用智能合约
+* 可扩展的WASM合约的支持
 * 跨链交互协议（进行中）
-* 抗量子密码算法 (可选择模块)
-* 中国商用密码算法 (可选择模块)
+* 多种加密算法支持 
 * 高度优化的交易处理速度
-* P2P连接链路加密
-* 多种共识算法支持 (VBFT/DBFT/RBFT/SBFT)
-* 可配置区块生成时间
+* P2P连接链路加密(可选择模块)
+* 多种共识算法支持 (VBFT/DBFT/SBFT/SOLO...)
+* 快速的区块生成时间
 
-# 编译
+## 目录
+
+* [构建开发环境](#构建开发环境)
+* [部署及测试](#部署及测试)
+	* [获取ontology](#获取ontology)
+		* [从源码获取](#从源码获取)
+		* [从release获取](#从release获取)
+	* [创建ONT钱包文件](#创建ont钱包文件)
+	* [服务器部署](#服务器部署)
+		* [单机部署配置](#单机部署配置)
+		* [多机部署配置](#多机部署配置)
+		* [在公共测试网上部署节点](#在公共测试网上部署节点)
+		* [运行](#运行)
+* [简单示例](#简单示例)
+	* [ONT转账调用示例](#ont转账调用示例)
+* [贡献代码](#贡献代码)
+* [开源社区](#开源社区)
+	* [网站](#网站)
+* [许可证](#许可证)
+
+# 构建开发环境
 成功编译Ontology需要以下准备：
 
-* Go版本在1.9及以上
+* Golang版本在1.9及以上
 * 安装第三方包管理工具glide
 * 正确的Go语言开发环境
+* Golang所支持的操作系统
 
+
+# 部署及测试
+## 获取ontology
+### 从源码获取
 克隆Ontology仓库到$GOPATH/src目录
-
-
 ```shell
-$ git clone https://github.com/dappledger/Ontology.git
+$ git clone https://github.com/ontio/Ontology.git
 ```
 
 用第三方包管理工具glide拉取依赖库
-
 
 ````shell
 $ cd Ontology
@@ -46,20 +76,51 @@ $ make
 * `node`: 节点程序
 * `nodectl`: 以命令行方式提供的节点控制程序
 
-# 部署
+### 从release获取
+//TODO
+## 创建ONT钱包文件
+创建钱包文件
+    - 通过命令行程序，在每个主机上分别创建节点运行所需的钱包文件wallet.dat 
+      
+        `$ ./nodectl wallet -c -p password` 
 
-成功运行Ontology需要至少4个节点，可以通过两种方式进行部署
+        注：通过-p参数设置钱包密码
 
-* 多机部署
+## 服务器部署
+成功运行Ontology可以通过以下两种方式进行部署
+
 * 单机部署
+* 多机部署
+ * 在公共测试网上部署节点
 
-## 多机部署配置
+### 单机部署配置
+
+在单机上创建一个目录，在目录下存放以下文件：
+- 默认配置文件`config.json`
+- 节点程序`ontology`
+- 节点控制程序`nodectl`
+- 钱包文件`wallet.dat`
+把source根目录下的config-solo.config配置文件的内容复制到config.json内，然后启动节点即可。
+
+单机配置的例子如下：
+- 目录结构
+```shell
+$ tree
+└── node
+    ├── config.json
+    ├── ontology
+    ├── nodectl
+    └── wallet.dat
+```
+
+
+### 多机部署配置
 
 我们可以通过修改默认的配置文件`config.json`进行快速部署。
 
 1. 将相关文件复制到目标主机，包括：
     - 默认配置文件`config.json`
-    - 节点程序`node`
+    - 节点程序`ontology`
     - 节点控制程序`nodectl`
 
 2. 设置每个节点网络连接的端口号（推荐不做修改，使用默认端口配置）
@@ -88,181 +149,59 @@ $ make
 
 ```shell
 $ ls
-config.json node nodectl wallet.dat
+config.json ontology nodectl wallet.dat
 ```
 
-一个配置文件片段如下, 其中10.0.1.100、10.0.1.101等都是种子节点地址:
+一个配置文件片段如下, 可以参考根目录下的config.json文件。
+
+### 在公共测试网上部署节点
+按照以下配置文件启动可以连接到ont目前的测试网络。
 ```shell
 $ cat config.json
-    ...
+{
+  "Configuration": {
+    "Magic": 7630401,
+    "Version": 23,
     "SeedList": [
-      "10.0.1.100:10338",
-      "10.0.1.101:10338",
-      "10.0.1.102:10338"
+	   "139.219.108.204:20338",
+	   "139.219.111.50:20338",
+	   "139.219.69.70:20338",
+	   "40.125.165.118:20338"
     ],
-    "Bookkeepers": [
-      "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
-      "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
-      "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
-      "03d36828a99547184452276116f1b5171861931ff439a6da2316fddf1f3f428850"
+    "BookKeepers": [
+"1202021c6750d2c5d99813997438cee0740b04a73e42664c444e778e001196eed96c9d",
+"12020339541a43af2206358714cf6bd385fc9ac8b5df554fec5497d9e947d583f985fc",
+"120203bdf0d966f98ff4af5c563c4a3e2fe499d98542115e1ffd75fbca44b12c56a591",
+"1202021401156f187ec23ce631a489c3fa17f292171009c6c3162ef642406d3d09c74d"
     ],
-    "HttpInfoPort": 10333,
-    "HttpInfoStart": true,    
-    "HttpRestPort": 10334,
-    "HttpWsPort": 10335,
-    "HttpJsonPort": 10336,
-    "HttpLocalPort": 10337,
-    "NoticeServerUrl":"",
-    "OauthServerUrl":"",
-    "NodePort": 10338,
-    ...
-```
-## 单机部署配置
-
-在单机上创建4个不同的目录，类似多机部署的方法分别在每个目录下存放以下文件：
-- 默认配置文件`config.json`
-- 节点程序`node`
-- 节点控制程序`nodectl`
-- 钱包文件`wallet.dat`
-与多机配置不同的是，需要保证本机上端口不冲突, 请使用者自行修改个端口值。
-
-单机配置的例子如下：
-- 目录结构
-```shell
-$ tree
-├── node1
-│   ├── config.json
-│   ├── node
-│   ├── nodectl
-│   └── wallet.dat
-├── node2
-│   ├── config.json
-│   ├── node
-│   ├── nodectl
-│   └── wallet.dat
-├── node3
-│   ├── config.json
-│   ├── node
-│   ├── nodectl
-│   └── wallet.dat
-└── node4
-    ├── config.json
-    ├── node
-    ├── nodectl
-    └── wallet.dat
-```
-- 配置文件参考
-```shell
-$ cat node[1234]/config.json
-    ...
-    "SeedList": [
-      "10.0.1.100:10338",
-      "10.0.1.100:20338",
-      "10.0.1.100:30338",
-      "10.0.1.100:40338"
-    ],
-    "Bookkeepers": [
-      "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
-      "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
-      "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
-      "03d36828a99547184452276116f1b5171861931ff439a6da2316fddf1f3f428850"
-    ],
-    "HttpInfoPort": 10333,
-    "HttpInfoStart": true,    
-    "HttpRestPort": 10334,
-    "HttpWsPort": 10335,
-    "HttpJsonPort": 10336,
-    "HttpLocalPort": 10337,
-    "NoticeServerUrl":"",
-    "OauthServerUrl":"",
-    "NodePort": 10338,
-    ...
-
-    "SeedList": [
-      "10.0.1.100:10338",
-      "10.0.1.100:20338",
-      "10.0.1.100:30338",
-      "10.0.1.100:40338"
-    ],
-    "Bookkeepers": [
-      "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
-      "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
-      "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
-      "03d36828a99547184452276116f1b5171861931ff439a6da2316fddf1f3f428850"
-    ],
-    "HttpInfoPort": 20333,
-    "HttpInfoStart": true,    
     "HttpRestPort": 20334,
-    "HttpWsPort": 20335,
+    "HttpWsPort":20335,
     "HttpJsonPort": 20336,
     "HttpLocalPort": 20337,
-    "NoticeServerUrl":"",
-    "OauthServerUrl":"",
     "NodePort": 20338,
-    ...
+    "NodeConsensusPort": 20339,
+    "PrintLevel": 1,
+    "IsTLS": false,
+    "MaxTransactionInBlock": 60000,
+    "MultiCoreNum": 4
+  }
+}
 
-    "SeedList": [
-      "10.0.1.100:10338",
-      "10.0.1.100:20338",
-      "10.0.1.100:30338",
-      "10.0.1.100:40338"
-    ],
-    "Bookkeepers": [
-      "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
-      "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
-      "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
-      "03d36828a99547184452276116f1b5171861931ff439a6da2316fddf1f3f428850"
-    ],
-    "HttpInfoPort": 30333,
-    "HttpInfoStart": true,    
-    "HttpRestPort": 30334,
-    "HttpWsPort": 30335,
-    "HttpJsonPort": 30336,
-    "HttpLocalPort": 30337,
-    "NoticeServerUrl":"",
-    "OauthServerUrl":"",
-    "NodePort": 30338,
-    ...
-
-    "SeedList": [
-      "10.0.1.100:10338",
-      "10.0.1.100:20338",
-      "10.0.1.100:30338",
-      "10.0.1.100:40338"
-    ],
-    "Bookkeepers": [
-      "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
-      "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
-      "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
-      "03d36828a99547184452276116f1b5171861931ff439a6da2316fddf1f3f428850"
-    ],
-    "HttpInfoPort": 40333,
-    "HttpInfoStart": true,    
-    "HttpRestPort": 40334,
-    "HttpWsPort": 40335,
-    "HttpJsonPort": 40336,
-    "HttpLocalPort": 40337,
-    "NoticeServerUrl":"",
-    "OauthServerUrl":"",
-    "NodePort": 40338,
-    ...
-    
 ```
 
-## 运行
+### 运行
 以任意顺序运行每个节点node程序，并在出现`Password:`提示后输入节点的钱包密码
 
 ```shell
-$ ./node
+$ ./ontology
 $ - 输入你的钱包口令
 ```
 
 了解更多请运行 `./nodectl --h`.
 
-## 测试环境
 
-//TODO
-后期提供
+# 简单示例
+## ONT转账调用示例
 
 # 贡献代码
 
