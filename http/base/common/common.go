@@ -47,11 +47,9 @@ type Fee struct {
 	Amount common.Fixed64
 	Payer  string
 }
-type PubKeyInfo struct {
-	PublicKey string
-}
+
 type Sig struct {
-	PubKeys []PubKeyInfo
+	PubKeys []string
 	M       uint8
 	SigData []string
 }
@@ -139,7 +137,7 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 		e := Sig{M: sig.M}
 		for i := 0; i < len(sig.PubKeys); i++ {
 			key := keypair.SerializePublicKey(sig.PubKeys[i])
-			e.PubKeys = append(e.PubKeys, PubKeyInfo{common.ToHexString(key)})
+			e.PubKeys = append(e.PubKeys, common.ToHexString(key))
 		}
 		for i := 0; i < len(sig.SigData); i++ {
 			e.SigData = append(e.SigData, common.ToHexString(sig.SigData[i]))
