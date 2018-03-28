@@ -43,7 +43,7 @@ type Result struct {
 	Pval  string `json:"value"`
 }
 
-type IInteropService interface {
+type InteropServiceInterface interface {
 	Register(method string, handler func(*ExecutionEngine) (bool, error)) bool
 	GetServiceMap() map[string]func(*ExecutionEngine) (bool, error)
 }

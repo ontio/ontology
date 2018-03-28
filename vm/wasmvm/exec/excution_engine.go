@@ -70,7 +70,7 @@ func newStack(depth int) *vmstack {
 }
 
 //todo add parameters
-func NewExecutionEngine(icontainer interfaces.ICodeContainer, icrypto interfaces.ICrypto, itable interfaces.ICodeTable, iservice IInteropService, ver string) *ExecutionEngine {
+func NewExecutionEngine(icontainer interfaces.ICodeContainer, icrypto interfaces.ICrypto, itable interfaces.ICodeTable, iservice InteropServiceInterface, ver string) *ExecutionEngine {
 
 	engine := &ExecutionEngine{
 		crypto:        icrypto,
