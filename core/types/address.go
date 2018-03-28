@@ -26,15 +26,15 @@ import (
 
 	"golang.org/x/crypto/ripemd160"
 
-	. "github.com/Ontology/common"
+	"github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
 	"github.com/ontio/ontology-crypto/keypair"
 )
 
-func AddressFromPubKey(pubkey keypair.PublicKey) Address {
+func AddressFromPubKey(pubkey keypair.PublicKey) common.Address {
 	buf := keypair.SerializePublicKey(pubkey)
 
-	var addr Address
+	var addr common.Address
 	temp := sha256.Sum256(buf)
 	md := ripemd160.New()
 	md.Write(temp[:])
@@ -45,8 +45,8 @@ func AddressFromPubKey(pubkey keypair.PublicKey) Address {
 	return addr
 }
 
-func AddressFromMultiPubKeys(pubkeys []keypair.PublicKey, m int) (Address, error) {
-	var addr Address
+func AddressFromMultiPubKeys(pubkeys []keypair.PublicKey, m int) (common.Address, error) {
+	var addr common.Address
 	n := len(pubkeys)
 	if m <= 0 || m > n || n > 24 {
 		return addr, errors.New("wrong multi-sig param")
@@ -72,6 +72,6 @@ func AddressFromMultiPubKeys(pubkeys []keypair.PublicKey, m int) (Address, error
 	return addr, nil
 }
 
-func AddressFromBookkeepers(bookkeepers []keypair.PublicKey) (Address, error) {
+func AddressFromBookkeepers(bookkeepers []keypair.PublicKey) (common.Address, error) {
 	return AddressFromMultiPubKeys(bookkeepers, len(bookkeepers)-(len(bookkeepers)-1)/3)
 }
