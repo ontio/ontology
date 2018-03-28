@@ -44,7 +44,7 @@ type ApiServer interface {
 //Node
 func GetGenerateBlockTime(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	resp["Result"] = config.DEFAULTGENBLOCKTIME
+	resp["Result"] = config.DEFAULT_GEN_BLOCK_TIME
 	return resp
 }
 func GetConnectionCount(cmd map[string]interface{}) map[string]interface{} {

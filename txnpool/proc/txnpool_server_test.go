@@ -52,7 +52,7 @@ func (this *testActor) Receive(context actor.Context) {
 }
 
 func init() {
-	log.Init(log.Path, log.Stdout)
+	log.Init(log.PATH, log.Stdout)
 	topic = "TXN"
 
 	bookKeepingPayload := &payload.BookKeeping{

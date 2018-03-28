@@ -35,7 +35,7 @@ var (
 )
 
 func init() {
-	log.Init(log.Path, log.Stdout)
+	log.Init(log.PATH, log.Stdout)
 
 	bookKeepingPayload := &payload.BookKeeping{
 		Nonce: uint64(time.Now().UnixNano()),

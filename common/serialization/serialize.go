@@ -29,24 +29,13 @@ import (
 var ErrRange = errors.New("value out of range")
 var ErrEof = errors.New("got EOF, can not get the next byte")
 
-//SerializableData describe the data need be serialized.
+// SerializableData describe the data need be serialized.
 type SerializableData interface {
-	//Write data to writer
+	// Write data to writer
 	Serialize(w io.Writer) error
 
-	//read data to reader
+	// read data to reader
 	Deserialize(r io.Reader) error
-}
-
-func WriteDataList(w io.Writer, list []SerializableData) error {
-	len := uint64(len(list))
-	WriteVarUint(w, len)
-
-	for _, data := range list {
-		data.Serialize(w)
-	}
-
-	return nil
 }
 
 /*
@@ -240,11 +229,6 @@ func ReadUint64(reader io.Reader) (uint64, error) {
 	return binary.LittleEndian.Uint64(p[:]), nil
 }
 
-func ReadDataList(reader io.Reader) ([]SerializableData, error) {
-
-	return nil, nil
-}
-
 func WriteUint8(writer io.Writer, val uint8) error {
 	var p [1]byte
 	p[0] = byte(val)
@@ -274,9 +258,9 @@ func WriteUint64(writer io.Writer, val uint64) error {
 }
 
 func ToArray(data SerializableData) []byte {
-	b_buf := new(bytes.Buffer)
-	data.Serialize(b_buf)
-	return b_buf.Bytes()
+	buf := new(bytes.Buffer)
+	data.Serialize(buf)
+	return buf.Bytes()
 }
 
 //**************************************************************************

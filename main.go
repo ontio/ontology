@@ -54,7 +54,7 @@ const (
 )
 
 func init() {
-	log.Init(log.Path, log.Stdout)
+	log.Init(log.PATH, log.Stdout)
 	// Todo: If the actor bus uses a different log lib, remove it
 
 	var coreNum int
@@ -185,7 +185,7 @@ func main() {
 }
 
 func logCurrBlockHeight() {
-	ticker := time.NewTicker(config.DEFAULTGENBLOCKTIME * time.Second)
+	ticker := time.NewTicker(config.DEFAULT_GEN_BLOCK_TIME * time.Second)
 	for {
 		select {
 		case <-ticker.C:
@@ -193,7 +193,7 @@ func logCurrBlockHeight() {
 			isNeedNewFile := log.CheckIfNeedNewFile()
 			if isNeedNewFile {
 				log.ClosePrintLog()
-				log.Init(log.Path, os.Stdout)
+				log.Init(log.PATH, os.Stdout)
 			}
 		}
 	}

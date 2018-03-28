@@ -21,18 +21,17 @@ package common
 import (
 	"crypto/sha256"
 	"errors"
-	"github.com/Ontology/common/log"
-	. "github.com/Ontology/errors"
 	"io"
 	"math/big"
+	"fmt"
 
 	"github.com/itchyny/base58-go"
-	"fmt"
+	"github.com/Ontology/common/log"
 )
 
-const AddrLen int = 20
+const ADDR_LEN = 20
 
-type Address [AddrLen]byte
+type Address [ADDR_LEN]byte
 
 
 func (self *Address) ToHexString() string {
@@ -65,8 +64,8 @@ func (f *Address) ToBase58() string {
 }
 
 func AddressParseFromBytes(f []byte) (Address, error) {
-	if len(f) != AddrLen {
-		return Address{}, NewDetailErr(errors.New("[Common]: Uint160ParseFromBytes err, len != 20"), ErrNoCode, "")
+	if len(f) != ADDR_LEN {
+		return Address{}, errors.New("[Common]: Uint160ParseFromBytes err, len != 20")
 	}
 
 	var hash [20]uint8

@@ -115,10 +115,10 @@ func (node *node) SendPingToNbr() {
 func (node *node) HeartBeatMonitor() {
 	noders := node.local.GetNeighborNoder()
 	var periodUpdateTime uint
-	if config.Parameters.GenBlockTime > config.MINGENBLOCKTIME {
+	if config.Parameters.GenBlockTime > config.MIN_GEN_BLOCK_TIME {
 		periodUpdateTime = config.Parameters.GenBlockTime / TIMES_OF_UPDATE_TIME
 	} else {
-		periodUpdateTime = config.DEFAULTGENBLOCKTIME / TIMES_OF_UPDATE_TIME
+		periodUpdateTime = config.DEFAULT_GEN_BLOCK_TIME / TIMES_OF_UPDATE_TIME
 	}
 	for _, n := range noders {
 		if n.GetState() == ESTABLISH {
@@ -234,10 +234,10 @@ func (n *node) fetchRetryNodeFromNeiborList() int {
 // Fixme the Nodes should be a parameter
 func (node *node) updateNodeInfo() {
 	var periodUpdateTime uint
-	if config.Parameters.GenBlockTime > config.MINGENBLOCKTIME {
+	if config.Parameters.GenBlockTime > config.MIN_GEN_BLOCK_TIME {
 		periodUpdateTime = config.Parameters.GenBlockTime / TIMES_OF_UPDATE_TIME
 	} else {
-		periodUpdateTime = config.DEFAULTGENBLOCKTIME / TIMES_OF_UPDATE_TIME
+		periodUpdateTime = config.DEFAULT_GEN_BLOCK_TIME / TIMES_OF_UPDATE_TIME
 	}
 	ticker := time.NewTicker(time.Second * (time.Duration(periodUpdateTime)))
 	quit := make(chan struct{})

@@ -26,9 +26,9 @@ import (
 	"github.com/Ontology/common/log"
 )
 
-// const UINT256SIZE int = 32
+// const UINT256_SIZE int = 32
 
-// type Uint256 [UINT256SIZE]byte
+// type Uint256 [UINT256_SIZE]byte
 
 var EMPTY_HASH = Uint256{}
 
@@ -64,7 +64,7 @@ func (self *CompactMerkleTree) TreeSize() uint32 {
 }
 
 func (self *CompactMerkleTree) Marshal() ([]byte, error) {
-	length := 4 + len(self.hashes) * UINT256SIZE
+	length := 4 + len(self.hashes) *UINT256_SIZE
 	buf := make([]byte, 4, length)
 	binary.BigEndian.PutUint32(buf[0:], self.treeSize)
 	for _, h := range self.hashes {
@@ -77,12 +77,12 @@ func (self *CompactMerkleTree) Marshal() ([]byte, error) {
 func (self *CompactMerkleTree) UnMarshal(buf []byte) error {
 	tree_size := binary.BigEndian.Uint32(buf[0:4])
 	nhashes := countBit(tree_size)
-	if len(buf) < 4 + int(nhashes) * UINT256SIZE {
+	if len(buf) < 4 + int(nhashes) *UINT256_SIZE {
 		return errors.New("Too short input buf length")
 	}
 	hashes := make([]Uint256, nhashes, nhashes)
 	for i := 0; i < int(nhashes); i++ {
-		copy(hashes[i][:], buf[4 + i * UINT256SIZE:])
+		copy(hashes[i][:], buf[4 + i *UINT256_SIZE:])
 	}
 
 	self._update(tree_size, hashes)
@@ -313,7 +313,7 @@ func NewMerkleVerifier() *MerkleVerifier {
 }
 
 /*
-   Verify a Merkle Audit Path.
+   Verify a Merkle Audit PATH.
 
    leaf_hash: The hash of the leaf for which the proof was provided.
    leaf_index: Index of the leaf in the tree.
@@ -346,7 +346,7 @@ leaf_index uint32, proof []Uint256, root_hash Uint256, tree_size uint32) error {
 }
 
 /*
-   Verify a Merkle Audit Path.
+   Verify a Merkle Audit PATH.
 
    leaf: The leaf for which the proof is provided
    leaf_index: Index of the leaf in the tree.

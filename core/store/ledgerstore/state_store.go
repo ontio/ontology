@@ -104,7 +104,7 @@ func (this *StateStore) GetMerkleTree() (uint32, []common.Uint256, error) {
 	if err != nil {
 		return 0, nil, err
 	}
-	hashCount := (len(data) - 4) / common.UINT256SIZE
+	hashCount := (len(data) - 4) / common.UINT256_SIZE
 	hashes := make([]common.Uint256, 0, hashCount)
 	for i := 0; i < hashCount; i++ {
 		var hash = new(common.Uint256)
@@ -129,7 +129,7 @@ func (this *StateStore) AddMerkleTreeRoot(txRoot common.Uint256) error {
 	}
 	treeSize := this.merkleTree.TreeSize()
 	hashes := this.merkleTree.Hashes()
-	value := bytes.NewBuffer(make([]byte, 0, 4+len(hashes)*common.UINT256SIZE))
+	value := bytes.NewBuffer(make([]byte, 0, 4+len(hashes)*common.UINT256_SIZE))
 	err = serialization.WriteUint32(value, treeSize)
 	if err != nil {
 		return err

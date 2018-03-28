@@ -180,11 +180,11 @@ func (node *node) IsUptoMinNodeCount() bool {
 	if consensusType == "" {
 		consensusType = "dbft"
 	}
-	minCount := config.DBFTMINNODENUM
+	minCount := config.DBFT_MIN_NODE_NUM
 	switch consensusType {
 	case "dbft":
 	case "solo":
-		minCount = config.SOLOMINNODENUM
+		minCount = config.SOLO_MIN_NODE_NUM
 	}
 	return int(node.GetNbrNodeCnt())+1 >= minCount
 }

@@ -652,7 +652,7 @@ func (ds *DbftService) start() {
 	log.Debug()
 	ds.started = true
 
-	if config.Parameters.GenBlockTime > config.MINGENBLOCKTIME {
+	if config.Parameters.GenBlockTime > config.MIN_GEN_BLOCK_TIME {
 		genesis.GenBlockTime = time.Duration(config.Parameters.GenBlockTime) * time.Second
 	} else {
 		log.Warn("The Generate block time should be longer than 2 seconds, so set it to be default 6 seconds.")

@@ -561,3 +561,9 @@ func DoubleHash(pwd []byte) []byte {
 
 	return pwdhash2[:]
 }
+
+func ClearBytes(arr []byte, len int) {
+	for i := 0; i < len; i++ {
+		arr[i] = 0
+	}
+}

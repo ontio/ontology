@@ -43,7 +43,7 @@ import (
 /*
 *Simple consensus for solo node in test environment.
  */
-var GenBlockTime = (config.DEFAULTGENBLOCKTIME * time.Second)
+var GenBlockTime = (config.DEFAULT_GEN_BLOCK_TIME * time.Second)
 
 const ContextVersion uint32 = 0
 

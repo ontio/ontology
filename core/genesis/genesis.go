@@ -50,7 +50,7 @@ var (
 	ONGTokenID = ONGToken.Hash()
 )
 
-var GenBlockTime = (config.DEFAULTGENBLOCKTIME * time.Second)
+var GenBlockTime = (config.DEFAULT_GEN_BLOCK_TIME * time.Second)
 
 var GenesisBookkeepers []keypair.PublicKey
 

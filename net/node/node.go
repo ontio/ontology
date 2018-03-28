@@ -492,7 +492,7 @@ func (node *node) RemoveFlightHeight(height uint32) {
 	for _, h := range node.flightHeights {
 		log.Debug("flight height ", h)
 	}
-	node.flightHeights = SliceRemove(node.flightHeights, height)
+	node.flightHeights = sliceRemove(node.flightHeights, height)
 	for _, h := range node.flightHeights {
 		log.Debug("after flight height ", h)
 	}
@@ -534,4 +534,13 @@ func (node *node) AcqSyncReqSem() {
 
 func (node *node) RelSyncReqSem() {
 	node.SyncReqSem.release()
+}
+
+func sliceRemove(slice []uint32, h uint32) []uint32 {
+	for i, v := range slice {
+		if v == h {
+			return append(slice[:i], slice[i+1:]...)
+		}
+	}
+	return slice
 }

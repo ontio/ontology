@@ -36,7 +36,7 @@ import (
 )
 
 func GetGenerateBlockTime(params []interface{}) map[string]interface{} {
-	return responseSuccess(config.DEFAULTGENBLOCKTIME)
+	return responseSuccess(config.DEFAULT_GEN_BLOCK_TIME)
 }
 
 func GetBestBlockHash(params []interface{}) map[string]interface{} {
