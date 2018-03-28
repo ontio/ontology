@@ -21,6 +21,7 @@ package events
 import (
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology-eventbus/eventhub"
+	"fmt"
 )
 
 var DefEvtHub *eventhub.EventHub
@@ -31,7 +32,11 @@ var defPublisherProps *actor.Props
 func Init() {
 	DefEvtHub = eventhub.GlobalEventHub
 	defPublisherProps = actor.FromFunc(func(context actor.Context) {})
-	DefPublisherPID = actor.Spawn(defPublisherProps)
+	var err error
+	DefPublisherPID , err = actor.SpawnNamed(defPublisherProps, "DefPublisherActor")
+	if err != nil {
+		panic(fmt.Errorf("DefPublisherPID SpawnNamed error:%s", err))
+	}
 	DefActorPublisher = NewActorPublisher(DefPublisherPID)
 }
 

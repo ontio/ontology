@@ -26,6 +26,7 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 
 	"reflect"
+	"fmt"
 )
 
 var DefLedgerPid *actor.PID
@@ -40,7 +41,11 @@ func NewLedgerActor() *LedgerActor {
 
 func (this *LedgerActor) Start() *actor.PID {
 	this.props = actor.FromProducer(func() actor.Actor { return this })
-	DefLedgerPid = actor.Spawn(this.props)
+	var err error
+	DefLedgerPid, err = actor.SpawnNamed(this.props, "LedgerActor")
+	if err != nil {
+		panic(fmt.Errorf("LedgerActor SpawnNamed error:%s", err))
+	}
 	return DefLedgerPid
 }
 
