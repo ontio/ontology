@@ -33,7 +33,6 @@ import (
 	"github.com/Ontology/smartcontract/service/wasm"
 	"github.com/Ontology/vm/wasmvm/exec"
 	"github.com/Ontology/vm/wasmvm/util"
-
 )
 
 type SmartContract struct {
@@ -119,6 +118,7 @@ func (sc *SmartContract) Execute() error {
 		sc.Notifications = append(sc.Notifications, stateMachine.Notifications...)
 	case vmtypes.WASMVM:
 		stateMachine:= wasm.NewWasmStateMachine(sc.Config.Store, sc.Config.DBCache, stypes.Application,sc.Config.Time)
+
 		engine := exec.NewExecutionEngine(
 			sc.Config.Tx,
 			new(util.ECDsaCrypto),
@@ -127,7 +127,9 @@ func (sc *SmartContract) Execute() error {
 			"product",
 		)
 		//todo how to get the input
-		//engine.Call(ctx.ContractAddress,ctx.Code.Code,input)
+		input:= []byte{}
+		engine.Call(ctx.ContractAddress,ctx.Code.Code,input)
+		//fmt.Println(engine)
 		sc.Notifications = append(sc.Notifications, stateMachine.Notifications...)
 	}
 	return nil

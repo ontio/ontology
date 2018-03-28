@@ -21,10 +21,12 @@ package util
 import (
 	"crypto/sha256"
 	"errors"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
-	"github.com/Ontology/crypto"
 	. "github.com/Ontology/errors"
+	"github.com/ontio/ontology-crypto/keypair"
+	s "github.com/ontio/ontology-crypto/signature"
 )
 
 type ECDsaCrypto struct {
@@ -47,13 +49,14 @@ func (c *ECDsaCrypto) VerifySignature(message []byte, signature []byte, pubkey [
 	log.Debugf("signature: %x", signature)
 	log.Debugf("pubkey: %x", pubkey)
 
-	pk, err := crypto.DecodePoint(pubkey)
+	pk, err := keypair.DeserializePublicKey(pubkey)
 	if err != nil {
-		return false, NewDetailErr(errors.New("[ECDsaCrypto], crypto.DecodePoint failed."), ErrNoCode, "")
+		return false, NewDetailErr(errors.New("[ECDsaCrypto], deserializing public key failed."), ErrNoCode, "")
 	}
 
-	err = crypto.Verify(*pk, message, signature)
-	if err != nil {
+	sig, err := s.Deserialize(signature)
+	ok := s.Verify(pk, message, sig)
+	if !ok {
 		return false, NewDetailErr(errors.New("[ECDsaCrypto], VerifySignature failed."), ErrNoCode, "")
 	}
 
