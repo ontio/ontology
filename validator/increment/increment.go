@@ -19,9 +19,10 @@
 package increment
 
 import (
+	"fmt"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/core/types"
-	"fmt"
 	"github.com/Ontology/common/log"
 )
 

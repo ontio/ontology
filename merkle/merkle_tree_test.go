@@ -24,12 +24,12 @@ import (
 	"os"
 	"testing"
 
-	. "github.com/Ontology/common"
+	"github.com/Ontology/common"
 )
 
 func TestMerkleLeaf3(t *testing.T) {
 	hasher := TreeHasher{}
-	leafs := []Uint256{hasher.hash_leaf([]byte{1}),
+	leafs := []common.Uint256{hasher.hash_leaf([]byte{1}),
 		hasher.hash_leaf([]byte{2}),
 		hasher.hash_leaf([]byte{3})}
 	store, _ := NewFileHashStore("merkletree.db", 0)
@@ -41,13 +41,13 @@ func TestMerkleLeaf3(t *testing.T) {
 		tree.Append([]byte{byte(i + 1)})
 	}
 
-	hashes := make([]Uint256, 5, 5)
+	hashes := make([]common.Uint256, 5, 5)
 	for i := 0; i < 4; i++ {
 		hashes[i], _ = tree.hashStore.GetHash(uint32(i))
 	}
 	hashes[4] = tree.Root()
 
-	cmp := []Uint256{
+	cmp := []common.Uint256{
 		leafs[0],
 		leafs[1],
 		hasher.hash_children(leafs[0], leafs[1]),
@@ -66,7 +66,7 @@ func TestMerkleLeaf3(t *testing.T) {
 
 func TestMerkle(t *testing.T) {
 	hasher := TreeHasher{}
-	leafs := []Uint256{hasher.hash_leaf([]byte{1}),
+	leafs := []common.Uint256{hasher.hash_leaf([]byte{1}),
 		hasher.hash_leaf([]byte{2}),
 		hasher.hash_leaf([]byte{3}),
 		hasher.hash_leaf([]byte{4})}
@@ -80,11 +80,11 @@ func TestMerkle(t *testing.T) {
 		tree.Append([]byte{byte(i + 1)})
 	}
 
-	hashes := make([]Uint256, 6, 6)
+	hashes := make([]common.Uint256, 6, 6)
 	for i := 0; i < 6; i++ {
 		hashes[i], _ = tree.hashStore.GetHash(uint32(i))
 	}
-	cmp := []Uint256{
+	cmp := []common.Uint256{
 		leafs[0],
 		leafs[1],
 		hasher.hash_children(leafs[0], leafs[1]),
@@ -122,7 +122,7 @@ func TestMerkleHashes(t *testing.T) {
 // zero based return merkle root of D[0:n]
 func TestMerkleRoot(t *testing.T) {
 	n := 100
-	roots := make([]Uint256, n, n)
+	roots := make([]common.Uint256, n, n)
 	store, _ := NewFileHashStore("merkletree.db", 0)
 	tree := NewTree(0, nil, store)
 	for i := 0; i < n; i++ {
@@ -130,7 +130,7 @@ func TestMerkleRoot(t *testing.T) {
 		roots[i] = tree.Root()
 	}
 
-	cmp := make([]Uint256, n, n)
+	cmp := make([]common.Uint256, n, n)
 	for i := 0; i < n; i++ {
 		cmp[i] = tree.merkleRoot(uint32(i) + 1)
 		if cmp[i] != roots[i] {
@@ -187,7 +187,7 @@ func TestMerkleConsistencyProofLen(t *testing.T) {
 
 func TestMerkleConsistencyProof(t *testing.T) {
 	n := uint32(140)
-	roots := make([]Uint256, n, n)
+	roots := make([]common.Uint256, n, n)
 	store, _ := NewFileHashStore("merkletree.db", 0)
 	tree := NewTree(0, nil, store)
 	for i := uint32(0); i < n; i++ {

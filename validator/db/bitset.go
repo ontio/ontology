@@ -32,7 +32,7 @@ type FixedBitMap struct {
 	data  []byte // first 4bytes used to store len to avoid reallocate mem when put to db
 }
 
-//创建指定初始化大小的bitSet
+// 创建指定初始化大小的bitSet
 func NewFixedBitMap(nbits uint32) *FixedBitMap {
 	nbyte := (nbits+7)/8 + 4
 	data := make([]byte, nbyte, nbyte)
@@ -68,7 +68,7 @@ func (self *FixedBitMap) Deserialize(r io.Reader) error {
 	return nil
 }
 
-//把指定位置设为ture
+// 把指定位置设为ture
 func (self *FixedBitMap) Set(bitIndex uint32) {
 	if bitIndex >= self.len {
 		panic("[FixedBitMap] Set index out of range")
@@ -77,7 +77,7 @@ func (self *FixedBitMap) Set(bitIndex uint32) {
 	self.value[pos] |= byte(0x01) << (bitIndex % 8)
 }
 
-//设置指定位置为false
+// 设置指定位置为false
 func (self *FixedBitMap) Unset(bitIndex uint32) {
 	if bitIndex >= self.len {
 		panic("[FixedBitMap] Set index out of range")
@@ -92,7 +92,7 @@ func (self *FixedBitMap) boundcheck(bitIndex uint32) {
 	}
 }
 
-//获取指定位置的值
+// 获取指定位置的值
 func (self *FixedBitMap) Get(bitIndex uint32) bool {
 	self.boundcheck(bitIndex)
 	pos := bitIndex / 8
@@ -111,7 +111,7 @@ func (self *FixedBitMap) IsFullSet() bool {
 	return mask&self.value[size] == mask
 }
 
-//以二进制串的格式打印bitMap内容
+// 以二进制串的格式打印bitMap内容
 func (self *FixedBitMap) ToString() string {
 	strAppend := &bytes.Buffer{}
 	for i := uint32(0); i < self.len; i++ {

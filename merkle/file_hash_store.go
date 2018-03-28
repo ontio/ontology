@@ -23,14 +23,14 @@ import (
 	"io"
 	"os"
 
-	. "github.com/Ontology/common"
+	"github.com/Ontology/common"
 )
 
 type HashStore interface {
-	Append(hash []Uint256) error
+	Append(hash []common.Uint256) error
 	Flush() error
 	Close()
-	GetHash(pos uint32) (Uint256, error)
+	GetHash(pos uint32) (common.Uint256, error)
 }
 
 type FileHashStore struct {
@@ -54,7 +54,7 @@ func NewFileHashStore(name string, tree_size uint32) (*FileHashStore, error) {
 	}
 
 	num_hashes := getStoredHashNum(tree_size)
-	size := int64(num_hashes) * int64(UINT256_SIZE)
+	size := int64(num_hashes) * int64(common.UINT256_SIZE)
 
 	_, err = store.file.Seek(size, io.SeekStart)
 	if err != nil {
@@ -79,18 +79,18 @@ func (self *FileHashStore) checkConsistence(tree_size uint32) error {
 	stat, err := self.file.Stat()
 	if err != nil {
 		return err
-	} else if stat.Size() < int64(num_hashes) * int64(UINT256_SIZE) {
+	} else if stat.Size() < int64(num_hashes) * int64(common.UINT256_SIZE) {
 		return errors.New("stored hashes are less than expected")
 	}
 
 	return nil
 }
 
-func (self *FileHashStore) Append(hash []Uint256) error {
+func (self *FileHashStore) Append(hash []common.Uint256) error {
 	if self == nil {
 		return nil
 	}
-	buf := make([]byte, 0, len(hash) *UINT256_SIZE)
+	buf := make([]byte, 0, len(hash) *common.UINT256_SIZE)
 	for _, h := range hash {
 		buf = append(buf, h[:]...)
 	}
@@ -112,12 +112,12 @@ func (self *FileHashStore) Close() {
 	self.file.Close()
 }
 
-func (self *FileHashStore) GetHash(pos uint32) (Uint256, error) {
+func (self *FileHashStore) GetHash(pos uint32) (common.Uint256, error) {
 	if self == nil {
 		return EMPTY_HASH, errors.New("FileHashstore is nil")
 	}
 	hash := EMPTY_HASH
-	_, err := self.file.ReadAt(hash[:], int64(pos) * int64(UINT256_SIZE))
+	_, err := self.file.ReadAt(hash[:], int64(pos) * int64(common.UINT256_SIZE))
 	if err != nil {
 		return EMPTY_HASH, err
 	}
@@ -126,15 +126,15 @@ func (self *FileHashStore) GetHash(pos uint32) (Uint256, error) {
 }
 
 type MemHashStore struct {
-	hashes []Uint256
+	hashes []common.Uint256
 }
 
-func (self *MemHashStore) Append(hash []Uint256) error {
+func (self *MemHashStore) Append(hash []common.Uint256) error {
 	self.hashes = append(self.hashes, hash...)
 	return nil
 }
 
-func (self *MemHashStore) GetHash(pos uint32) (Uint256, error) {
+func (self *MemHashStore) GetHash(pos uint32) (common.Uint256, error) {
 	return self.hashes[pos], nil
 }
 

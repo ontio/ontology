@@ -62,7 +62,7 @@ func NewStore(path string) (*Store, error) {
 }
 
 func (self *Store) init() error {
-	prefix := []byte{byte(SYS_Version)}
+	prefix := []byte{byte(SYS_VERSION)}
 	version, err := self.db.Get(prefix)
 	if err != nil {
 		version = []byte{0x00}
@@ -70,7 +70,7 @@ func (self *Store) init() error {
 
 	if version[0] == 0x01 {
 		//test if genesis block in db
-		genesis, err := self.db.Get([]byte{byte(SYS_GenesisBlock)})
+		genesis, err := self.db.Get([]byte{byte(SYS_GENESIS_BLOCK)})
 		if err != nil {
 			self.bestBlockHeader = nil
 			self.genesisBlock = nil
@@ -84,7 +84,7 @@ func (self *Store) init() error {
 			return errors.New(fmt.Sprint("inconsist db: genesis block deserialize failed. cause of:\n ", err.Error()))
 		}
 
-		best, err := self.db.Get([]byte{byte(SYS_BestBlockHeader)})
+		best, err := self.db.Get([]byte{byte(SYS_BEST_BLOCK_HEADER)})
 		if err != nil {
 			return errors.New("inconsist db: best blockheader not in db")
 		}
@@ -186,7 +186,7 @@ func (self *Store) Close() error {
 }
 
 func (self *Store) saveTransaction(tx *tx.Transaction, height uint32) error {
-	// generate key with DATA_Transaction prefix
+	// generate key with DATA_TRANSACTION prefix
 	key := GenDataTransactionKey(tx.Hash())
 	defer keyPool.Put(key)
 	value := valuePool.Get()

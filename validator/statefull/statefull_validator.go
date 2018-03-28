@@ -19,6 +19,8 @@
 package statefull
 
 import (
+	"reflect"
+
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/types"
@@ -26,7 +28,6 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/Ontology/validator/db"
 	vatypes "github.com/Ontology/validator/types"
-	"reflect"
 )
 
 type Validator interface {
