@@ -179,12 +179,12 @@ func (this *EventStore) GetCurrentBlock() (common.Uint256, uint32, error) {
 }
 
 func (this *EventStore) getCurrentBlockKey() []byte {
-	return []byte{byte(scom.SYS_CurrentBlock)}
+	return []byte{byte(scom.SYS_CURRENT_BLOCK)}
 }
 
 func (this *EventStore) getEventNotifyByBlockKey(height uint32) ([]byte, error) {
 	key := make([]byte, 5, 5)
-	key[0] = byte(scom.EVENT_Notify)
+	key[0] = byte(scom.EVENT_NOTIFY)
 	binary.LittleEndian.PutUint32(key[1:], height)
 	return key, nil
 }
@@ -192,7 +192,7 @@ func (this *EventStore) getEventNotifyByBlockKey(height uint32) ([]byte, error) 
 func (this *EventStore) getEventNotifyByTxKey(txHash common.Uint256) []byte {
 	data := txHash.ToArray()
 	key := make([]byte, 1+len(data))
-	key[0] = byte(scom.EVENT_Notify)
+	key[0] = byte(scom.EVENT_NOTIFY)
 	copy(key[1:], data)
 	return key
 }

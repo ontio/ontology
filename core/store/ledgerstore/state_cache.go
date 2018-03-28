@@ -24,7 +24,7 @@ import (
 )
 
 const(
-	StateCacheSize = 100000
+	STATE_CACHE_SIZE = 100000
 )
 
 type StateCache struct {
@@ -32,7 +32,7 @@ type StateCache struct {
 }
 
 func NewStateCache() (*StateCache, error){
-	stateCache, err := lru.NewARC(StateCacheSize)
+	stateCache, err := lru.NewARC(STATE_CACHE_SIZE)
 	if err != nil {
 		return nil, err
 	}

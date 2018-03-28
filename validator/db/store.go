@@ -39,7 +39,7 @@ var keyPool pool.Pool
 var valuePool pool.Pool
 
 type Store struct {
-	db storcomm.IStore
+	db storcomm.PersistStore
 
 	mutex           sync.RWMutex // guard the following var
 	bestBlockHeader *types.Header

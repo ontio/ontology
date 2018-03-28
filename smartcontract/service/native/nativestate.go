@@ -55,7 +55,7 @@ type NativeService struct {
 	ContextRef context.ContextRef
 }
 
-func NewNativeService(dbCache scommon.IStateStore, height uint32, tx *types.Transaction, ctxRef context.ContextRef) *NativeService {
+func NewNativeService(dbCache scommon.StateStore, height uint32, tx *types.Transaction, ctxRef context.ContextRef) *NativeService {
 	var nativeService NativeService
 	nativeService.CloneCache = storage.NewCloneCache(dbCache)
 	nativeService.Tx = tx

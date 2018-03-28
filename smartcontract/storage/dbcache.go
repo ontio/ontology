@@ -34,10 +34,10 @@ type Memory map[string]*StateItem
 
 type CloneCache struct {
 	Memory Memory
-	Store  common.IStateStore
+	Store  common.StateStore
 }
 
-func NewCloneCache(store common.IStateStore) *CloneCache {
+func NewCloneCache(store common.StateStore) *CloneCache {
 	return &CloneCache{
 		Memory: make(Memory),
 		Store:  store,

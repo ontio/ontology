@@ -35,7 +35,7 @@ import (
 var DefLedger *Ledger
 
 type Ledger struct {
-	ldgStore store.ILedgerStore
+	ldgStore store.LedgerStore
 }
 
 func NewLedger() (*Ledger, error) {
@@ -48,7 +48,7 @@ func NewLedger() (*Ledger, error) {
 	}, nil
 }
 
-func (this *Ledger) GetStore() store.ILedgerStore {
+func (this *Ledger) GetStore() store.LedgerStore {
 	return this.ldgStore
 }
 

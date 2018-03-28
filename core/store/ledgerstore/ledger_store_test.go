@@ -32,7 +32,7 @@ import (
 
 var testBlockStore *BlockStore
 var testStateStore *StateStore
-var testLedgerStore *LedgerStore
+var testLedgerStore *LedgerStoreImp
 
 func TestMain(m *testing.M) {
 	var err error

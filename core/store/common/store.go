@@ -19,12 +19,12 @@
 package common
 
 import (
-	states "github.com/Ontology/core/states"
-	."github.com/Ontology/common"
+	"github.com/Ontology/common"
+	"github.com/Ontology/core/states"
 	"github.com/Ontology/smartcontract/event"
 )
 
-type IIterator interface {
+type StoreIterator interface {
 	Next() bool
 	Prev() bool
 	First() bool
@@ -35,7 +35,7 @@ type IIterator interface {
 	Release()
 }
 
-type IStore interface {
+type PersistStore interface {
 	Put(key []byte, value []byte) error
 	Get(key []byte) ([]byte, error)
 	Has(key []byte) (bool, error)
@@ -45,10 +45,10 @@ type IStore interface {
 	BatchDelete(key []byte)
 	BatchCommit() error
 	Close() error
-	NewIterator(prefix []byte) IIterator
+	NewIterator(prefix []byte) StoreIterator
 }
 
-type IStateStore interface {
+type StateStore interface {
 	TryAdd(prefix DataEntryPrefix, key []byte, value states.IStateValue, trie bool)
 	TryGetOrAdd(prefix DataEntryPrefix, key []byte, value states.IStateValue, trie bool) error
 	TryGet(prefix DataEntryPrefix, key []byte) (*StateItem, error)
@@ -57,7 +57,7 @@ type IStateStore interface {
 	Find(prefix DataEntryPrefix, key []byte) ([]*StateItem, error)
 }
 
-type IMemoryStore interface {
+type MemoryCacheStore interface {
 	Put(prefix byte, key []byte, value states.IStateValue, state ItemState, trie bool)
 	Get(prefix byte, key []byte) *StateItem
 	Delete(prefix byte, key []byte)
@@ -65,10 +65,10 @@ type IMemoryStore interface {
 	Change(prefix byte, key []byte, trie bool)
 }
 
-type IEventStore interface {
-	SaveEventNotifyByTx(txHash Uint256, notifies []*event.NotifyEventInfo) error
-	SaveEventNotifyByBlock(height uint32, txHashs []Uint256) error
-	GetEventNotifyByTx(txHash Uint256) ([]*event.NotifyEventInfo, error)
+type EventStore interface {
+	SaveEventNotifyByTx(txHash common.Uint256, notifies []*event.NotifyEventInfo) error
+	SaveEventNotifyByBlock(height uint32, txHashs []common.Uint256) error
+	GetEventNotifyByTx(txHash common.Uint256) ([]*event.NotifyEventInfo, error)
 	CommitTo() error
 }
 
@@ -88,5 +88,6 @@ type StateItem struct {
 }
 
 func (e *StateItem) copy() *StateItem {
-	c := *e; return &c
+	c := *e
+	return &c
 }

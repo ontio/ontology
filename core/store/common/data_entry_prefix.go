@@ -23,24 +23,24 @@ type DataEntryPrefix byte
 
 const (
 	// DATA
-	DATA_Block DataEntryPrefix = iota
-	DATA_Header = 0x01
-	DATA_Transaction = 0x02
+	DATA_BLOCK       DataEntryPrefix = 0x00
+	DATA_HEADER                      = 0x01
+	DATA_TRANSACTION                 = 0x02
 
 	// Transaction
-	ST_Bookkeeper = 0x03
-	ST_Contract = 0x04
-	ST_Storage = 0x05
-	ST_Validator = 0x07
-	ST_Vote = 0x08
+	ST_BOOK_KEEPER DataEntryPrefix = 0x03
+	ST_CONTRACT    DataEntryPrefix = 0x04
+	ST_STORAGE     DataEntryPrefix = 0x05
+	ST_VALIDATOR   DataEntryPrefix = 0x07
+	ST_VOTE        DataEntryPrefix = 0x08
 
-	IX_HeaderHashList = 0x09
+	IX_HEADER_HASH_LIST DataEntryPrefix = 0x09
 
 	//SYSTEM
-	SYS_CurrentBlock = 0x10
-	SYS_Version = 0x11
-	SYS_CurrentStateRoot = 0x12
-	SYS_BlockMerkleTree = 0x13
+	SYS_CURRENT_BLOCK      DataEntryPrefix = 0x10
+	SYS_VERSION            DataEntryPrefix = 0x11
+	SYS_CURRENT_STATE_ROOT DataEntryPrefix = 0x12
+	SYS_BLOCK_MERKLE_TREE  DataEntryPrefix = 0x13
 
-	EVENT_Notify = 0x14
+	EVENT_NOTIFY DataEntryPrefix = 0x14
 )

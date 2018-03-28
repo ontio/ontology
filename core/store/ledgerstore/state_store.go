@@ -23,13 +23,13 @@ import (
 	"fmt"
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
+	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/states"
 	scom "github.com/Ontology/core/store/common"
 	"github.com/Ontology/core/store/leveldbstore"
-	 "github.com/Ontology/core/store/statestore"
-	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/Ontology/core/store/statestore"
 	"github.com/Ontology/merkle"
-	"github.com/Ontology/core/payload"
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 var (
@@ -38,8 +38,8 @@ var (
 )
 
 type StateStore struct {
-	dbDir string
-	store scom.IStore
+	dbDir           string
+	store           scom.PersistStore
 	merklePath      string
 	merkleTree      *merkle.CompactMerkleTree
 	merkleHashStore *merkle.FileHashStore
@@ -52,26 +52,26 @@ func NewStateStore(dbDir, merklePath string) (*StateStore, error) {
 		return nil, err
 	}
 	stateStore := &StateStore{
-		dbDir: dbDir,
-		store: store,
-		merklePath:merklePath,
+		dbDir:      dbDir,
+		store:      store,
+		merklePath: merklePath,
 	}
-	_, height, err :=stateStore.GetCurrentBlock()
+	_, height, err := stateStore.GetCurrentBlock()
 	if err != nil {
 		return nil, fmt.Errorf("GetCurrentBlock error %s", err)
 	}
 	err = stateStore.init(height)
 	if err != nil {
-		return nil,fmt.Errorf("init error %s", err)
+		return nil, fmt.Errorf("init error %s", err)
 	}
 	return stateStore, nil
 }
 
-func (this *StateStore) NewBatch(){
+func (this *StateStore) NewBatch() {
 	this.store.NewBatch()
 }
 
-func (this *StateStore) init(currBlockHeight uint32)error{
+func (this *StateStore) init(currBlockHeight uint32) error {
 	treeSize, hashes, err := this.GetMerkleTree()
 	if err != nil {
 		return err
@@ -160,7 +160,7 @@ func (this *StateStore) GetContractState(contractHash common.Address) (*payload.
 
 	value, err := this.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound{
+		if err == leveldb.ErrNotFound {
 			return nil, nil
 		}
 		return nil, err
@@ -182,7 +182,7 @@ func (this *StateStore) GetBookkeeperState() (*states.BookkeeperState, error) {
 
 	value, err := this.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound{
+		if err == leveldb.ErrNotFound {
 			return nil, nil
 		}
 		return nil, err
@@ -218,8 +218,8 @@ func (this *StateStore) GetStorageState(key *states.StorageKey) (*states.Storage
 
 	data, err := this.store.Get(storeKey)
 	if err != nil {
-		if err == leveldb.ErrNotFound{
-			return nil,nil
+		if err == leveldb.ErrNotFound {
+			return nil, nil
 		}
 		return nil, err
 	}
@@ -234,7 +234,7 @@ func (this *StateStore) GetStorageState(key *states.StorageKey) (*states.Storage
 
 func (this *StateStore) GetVoteStates() (map[common.Address]*states.VoteState, error) {
 	votes := make(map[common.Address]*states.VoteState)
-	iter := this.store.NewIterator([]byte{byte(scom.ST_Vote)})
+	iter := this.store.NewIterator([]byte{byte(scom.ST_VOTE)})
 	for iter.Next() {
 		rk := bytes.NewReader(iter.Key())
 		// read prefix
@@ -288,12 +288,12 @@ func (this *StateStore) SaveCurrentBlock(height uint32, blockHash common.Uint256
 }
 
 func (this *StateStore) getCurrentBlockKey() []byte {
-	return []byte{byte(scom.SYS_CurrentBlock)}
+	return []byte{byte(scom.SYS_CURRENT_BLOCK)}
 }
 
 func (this *StateStore) getBookkeeperKey() ([]byte, error) {
 	key := make([]byte, 1+len(BookerKeeper))
-	key[0] = byte(scom.ST_Bookkeeper)
+	key[0] = byte(scom.ST_BOOK_KEEPER)
 	copy(key[1:], []byte(BookerKeeper))
 	return key, nil
 }
@@ -301,14 +301,14 @@ func (this *StateStore) getBookkeeperKey() ([]byte, error) {
 func (this *StateStore) getContractStateKey(contractHash common.Address) ([]byte, error) {
 	data := contractHash[:]
 	key := make([]byte, 1+len(data))
-	key[0] = byte(scom.ST_Contract)
+	key[0] = byte(scom.ST_CONTRACT)
 	copy(key[1:], []byte(data))
 	return key, nil
 }
 
 func (this *StateStore) getStorageKey(key *states.StorageKey) ([]byte, error) {
 	buf := bytes.NewBuffer(nil)
-	buf.WriteByte( byte(scom.ST_Storage))
+	buf.WriteByte(byte(scom.ST_STORAGE))
 	buf.Write(key.CodeHash[:])
 	buf.Write(key.Key)
 	return buf.Bytes(), nil
@@ -319,7 +319,7 @@ func (this *StateStore) GetBlockRootWithNewTxRoot(txRoot common.Uint256) common.
 }
 
 func (this *StateStore) getMerkleTreeKey() ([]byte, error) {
-	return []byte{byte(scom.SYS_BlockMerkleTree)}, nil
+	return []byte{byte(scom.SYS_BLOCK_MERKLE_TREE)}, nil
 }
 
 func (this *StateStore) ClearAll() error {

@@ -50,7 +50,7 @@ func (this *StateStore) HandleDeployTransaction(stateBatch *statestore.StateBatc
 			return fmt.Errorf("Invalid native contract address:%v", err)
 		}
 		if err := stateBatch.TryGetOrAdd(
-			scommon.ST_Contract,
+			scommon.ST_CONTRACT,
 			targetAddress[:],
 			&states.ContractMapping{
 				OriginAddress: originAddress,
@@ -63,7 +63,7 @@ func (this *StateStore) HandleDeployTransaction(stateBatch *statestore.StateBatc
 
 	// store contract message
 	if err := stateBatch.TryGetOrAdd(
-		scommon.ST_Contract,
+		scommon.ST_CONTRACT,
 		originAddress[:],
 		deploy,
 		false); err != nil {
@@ -72,7 +72,7 @@ func (this *StateStore) HandleDeployTransaction(stateBatch *statestore.StateBatc
 	return nil
 }
 
-func (this *StateStore) HandleInvokeTransaction(store store.ILedgerStore, stateBatch *statestore.StateBatch, tx *types.Transaction, block *types.Block, eventStore scommon.IEventStore) error {
+func (this *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBatch *statestore.StateBatch, tx *types.Transaction, block *types.Block, eventStore scommon.EventStore) error {
 	invoke := tx.Payload.(*payload.InvokeCode)
 	txHash := tx.Hash()
 
@@ -116,22 +116,6 @@ func (this *StateStore) HandleInvokeTransaction(store store.ILedgerStore, stateB
 
 func (this *StateStore) HandleClaimTransaction(stateBatch *statestore.StateBatch, tx *types.Transaction) error {
 	//TODO
-	//p := tx.Payload.(*payload.Claim)
-	//for _, c := range p.Claims {
-	//	state, err := this.TryGetAndChange(ST_SpentCoin, c.ReferTxID.ToArray(), false)
-	//	if err != nil {
-	//		return fmt.Errorf("TryGetAndChange error %s", err)
-	//	}
-	//	spentcoins := state.(*SpentCoinState)
-	//
-	//	newItems := make([]*Item, 0, len(spentcoins.Items)-1)
-	//	for index, item := range spentcoins.Items {
-	//		if uint16(index) != c.ReferTxOutputIndex {
-	//			newItems = append(newItems, item)
-	//		}
-	//	}
-	//	spentcoins.Items = newItems
-	//}
 	return nil
 }
 
@@ -139,7 +123,7 @@ func (this *StateStore) HandleVoteTransaction(stateBatch *statestore.StateBatch,
 	vote := tx.Payload.(*payload.Vote)
 	buf := new(bytes.Buffer)
 	vote.Account.Serialize(buf)
-	stateBatch.TryAdd(scommon.ST_Vote, buf.Bytes(), &states.VoteState{PublicKeys: vote.PubKeys}, false)
+	stateBatch.TryAdd(scommon.ST_VOTE, buf.Bytes(), &states.VoteState{PublicKeys: vote.PubKeys}, false)
 	return nil
 }
 

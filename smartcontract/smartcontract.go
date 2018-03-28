@@ -43,8 +43,8 @@ type Config struct {
 	Height uint32
 	Tx *ctypes.Transaction
 	Table interfaces.ICodeTable
-	DBCache scommon.IStateStore
-	Store store.ILedgerStore
+	DBCache scommon.StateStore
+	Store store.LedgerStore
 }
 
 type Engine interface {

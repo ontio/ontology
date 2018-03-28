@@ -103,7 +103,7 @@ func (self *LevelDBStore) Close() error {
 	return err
 }
 
-func (self *LevelDBStore) NewIterator(prefix []byte) IIterator {
+func (self *LevelDBStore) NewIterator(prefix []byte) StoreIterator {
 
 	iter := self.db.NewIterator(util.BytesPrefix(prefix), nil)
 

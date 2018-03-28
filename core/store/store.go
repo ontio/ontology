@@ -27,8 +27,8 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 )
 
-// ILedgerStore provides func with store package.
-type ILedgerStore interface {
+// LedgerStore provides func with store package.
+type LedgerStore interface {
 	InitLedgerStoreWithGenesisBlock(genesisblock *types.Block, defaultBookkeeper []keypair.PublicKey) error
 	Close() error
 	AddHeaders(headers []*types.Header) error

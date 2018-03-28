@@ -271,7 +271,7 @@ func (this *BlockStore) SaveCurrentBlock(height uint32, blockHash common.Uint256
 
 func (this *BlockStore) GetHeaderIndexList() (map[uint32]common.Uint256, error) {
 	result := make(map[uint32]common.Uint256)
-	iter := this.store.NewIterator([]byte{byte(scom.IX_HeaderHashList)})
+	iter := this.store.NewIterator([]byte{byte(scom.IX_HEADER_HASH_LIST)})
 	for iter.Next() {
 		startCount, err := this.getStartHeightByHeaderIndexKey(iter.Key())
 		if err != nil {
@@ -449,7 +449,7 @@ func (this *BlockStore) Close() error {
 
 func (this *BlockStore) getTransactionKey(txHash common.Uint256) []byte {
 	key := bytes.NewBuffer(nil)
-	key.WriteByte(byte(scom.DATA_Transaction))
+	key.WriteByte(byte(scom.DATA_TRANSACTION))
 	txHash.Serialize(key)
 	return key.Bytes()
 }
@@ -457,33 +457,33 @@ func (this *BlockStore) getTransactionKey(txHash common.Uint256) []byte {
 func (this *BlockStore) getHeaderKey(blockHash common.Uint256) []byte {
 	data := blockHash.ToArray()
 	key := make([]byte, 1+len(data))
-	key[0] = byte(scom.DATA_Header)
+	key[0] = byte(scom.DATA_HEADER)
 	copy(key[1:], data)
 	return key
 }
 
 func (this *BlockStore) getBlockHashKey(height uint32) []byte {
 	key := make([]byte, 5, 5)
-	key[0] = byte(scom.DATA_Block)
+	key[0] = byte(scom.DATA_BLOCK)
 	binary.LittleEndian.PutUint32(key[1:], height)
 	return key
 }
 
 func (this *BlockStore) getCurrentBlockKey() []byte {
-	return []byte{byte(scom.SYS_CurrentBlock)}
+	return []byte{byte(scom.SYS_CURRENT_BLOCK)}
 }
 
 func (this *BlockStore) getBlockMerkleTreeKey() []byte {
-	return []byte{byte(scom.SYS_BlockMerkleTree)}
+	return []byte{byte(scom.SYS_BLOCK_MERKLE_TREE)}
 }
 
 func (this *BlockStore) getVersionKey() []byte {
-	return []byte{byte(scom.SYS_Version)}
+	return []byte{byte(scom.SYS_VERSION)}
 }
 
 func (this *BlockStore) getHeaderIndexListKey(startHeight uint32) []byte {
 	key := bytes.NewBuffer(nil)
-	key.WriteByte(byte(scom.IX_HeaderHashList))
+	key.WriteByte(byte(scom.IX_HEADER_HASH_LIST))
 	serialization.WriteUint32(key, startHeight)
 	return key.Bytes()
 }

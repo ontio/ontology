@@ -20,21 +20,21 @@ package statestore
 
 import (
 	"github.com/Ontology/core/states"
-	."github.com/Ontology/core/store/common"
+	"github.com/Ontology/core/store/common"
 )
 
 type MemoryStore struct {
-	memory map[string]*StateItem
+	memory map[string]*common.StateItem
 }
 
 func NewMemDatabase() *MemoryStore {
 	return &MemoryStore{
-		memory: make(map[string]*StateItem),
+		memory: make(map[string]*common.StateItem),
 	}
 }
 
-func (db *MemoryStore) Put(prefix byte, key []byte, value states.IStateValue, state ItemState, trie bool) {
-	db.memory[string(append([]byte{prefix}, key...))] = &StateItem{
+func (db *MemoryStore) Put(prefix byte, key []byte, value states.IStateValue, state common.ItemState, trie bool) {
+	db.memory[string(append([]byte{prefix}, key...))] = &common.StateItem{
 		Key: string(key),
 		Value: value,
 		State: state,
@@ -42,7 +42,7 @@ func (db *MemoryStore) Put(prefix byte, key []byte, value states.IStateValue, st
 	}
 }
 
-func (db *MemoryStore) Get(prefix byte, key []byte) *StateItem {
+func (db *MemoryStore) Get(prefix byte, key []byte) *common.StateItem {
 	if entry, ok := db.memory[string(append([]byte{prefix}, key...))]; ok {
 		return entry
 	}
@@ -51,25 +51,25 @@ func (db *MemoryStore) Get(prefix byte, key []byte) *StateItem {
 
 func (db *MemoryStore) Delete(prefix byte, key []byte) {
 	if v, ok := db.memory[string(append([]byte{prefix}, key...))]; ok {
-		v.State = Deleted
+		v.State = common.Deleted
 	} else {
-		db.memory[string(append([]byte{prefix}, key...))] = &StateItem{
+		db.memory[string(append([]byte{prefix}, key...))] = &common.StateItem{
 			Key: string(key),
-			State: Deleted,
+			State: common.Deleted,
 		}
 	}
 
 }
 
 func (db *MemoryStore) Change(prefix byte, key []byte, trie bool) {
-	db.memory[string(append([]byte{prefix}, key...))].State = Changed
+	db.memory[string(append([]byte{prefix}, key...))].State = common.Changed
 	db.memory[string(append([]byte{prefix}, key...))].Trie = trie
 }
 
-func (db *MemoryStore) GetChangeSet() map[string]*StateItem {
-	m := make(map[string]*StateItem)
+func (db *MemoryStore) GetChangeSet() map[string]*common.StateItem {
+	m := make(map[string]*common.StateItem)
 	for k, v := range db.memory {
-		if v.State != None {
+		if v.State != common.None {
 			m[k] = v
 		}
 	}

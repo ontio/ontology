@@ -33,10 +33,10 @@ type WasmStateReader struct{
 	serviceMap map[string]func(*exec.ExecutionEngine) (bool, error)
 	trigger    trigger.TriggerType
 	Notifications []*event.NotifyEventInfo
-	ldgerStore    store.ILedgerStore
+	ldgerStore    store.LedgerStore
 }
 
-func NewWasmStateReader(ldgerStore store.ILedgerStore,trigger trigger.TriggerType) *WasmStateReader {
+func NewWasmStateReader(ldgerStore store.LedgerStore,trigger trigger.TriggerType) *WasmStateReader {
 
 	i := &WasmStateReader{
 		ldgerStore:ldgerStore,

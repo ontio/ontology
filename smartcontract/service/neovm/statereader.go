@@ -47,10 +47,10 @@ type StateReader struct {
 	serviceMap    map[string]func(*vm.ExecutionEngine) (bool, error)
 	trigger       trigger.TriggerType
 	Notifications []*event.NotifyEventInfo
-	ldgerStore    store.ILedgerStore
+	ldgerStore    store.LedgerStore
 }
 
-func NewStateReader(ldgerStore store.ILedgerStore, trigger trigger.TriggerType) *StateReader {
+func NewStateReader(ldgerStore store.LedgerStore, trigger trigger.TriggerType) *StateReader {
 	var stateReader StateReader
 	stateReader.ldgerStore = ldgerStore
 	stateReader.serviceMap = make(map[string]func(*vm.ExecutionEngine) (bool, error), 0)

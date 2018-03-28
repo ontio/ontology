@@ -25,11 +25,11 @@ import (
 )
 
 type CacheCodeTable struct {
-	store scom.IStateStore
+	store scom.StateStore
 }
 
 func (table *CacheCodeTable) GetCode(codeHash []byte) ([]byte, error) {
-	value, _ := table.store.TryGet(scom.ST_Contract, codeHash)
+	value, _ := table.store.TryGet(scom.ST_CONTRACT, codeHash)
 	if value == nil {
 		return nil, fmt.Errorf("[GetCode] TryGet contract error! codeHash:%x", codeHash)
 	}

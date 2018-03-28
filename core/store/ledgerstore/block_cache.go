@@ -26,8 +26,8 @@ import (
 )
 
 const (
-	BlockCacheSize       = 1000
-	TransactionCacheSize = 100000
+	BLOCK_CAHE_SIZE        = 1000
+	TRANSACTION_CACHE_SIZE = 100000
 )
 
 type TransactionCacheaValue struct {
@@ -41,11 +41,11 @@ type BlockCache struct {
 }
 
 func NewBlockCache() (*BlockCache, error) {
-	blockCache, err := lru.NewARC(BlockCacheSize)
+	blockCache, err := lru.NewARC(BLOCK_CAHE_SIZE)
 	if err != nil {
 		return nil, fmt.Errorf("NewARC block error %s", err)
 	}
-	transactionCache, err := lru.NewARC(TransactionCacheSize)
+	transactionCache, err := lru.NewARC(TRANSACTION_CACHE_SIZE)
 	if err != nil {
 		return nil, fmt.Errorf("NewARC header error %s", err)
 	}

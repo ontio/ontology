@@ -28,11 +28,11 @@ import (
 )
 
 type StateBatch struct {
-	store       IStore
-	memoryStore IMemoryStore
+	store       PersistStore
+	memoryStore MemoryCacheStore
 }
 
-func NewStateStoreBatch(memoryStore IMemoryStore, store IStore) *StateBatch {
+func NewStateStoreBatch(memoryStore MemoryCacheStore, store PersistStore) *StateBatch {
 	return &StateBatch{
 		store:       store,
 		memoryStore: memoryStore,
@@ -161,19 +161,19 @@ func (self *StateBatch) setStateObject(prefix byte, key []byte, value IStateValu
 func getStateObject(prefix DataEntryPrefix, enc []byte) (IStateValue, error) {
 	reader := bytes.NewBuffer(enc)
 	switch prefix {
-	case ST_Bookkeeper:
+	case ST_BOOK_KEEPER:
 		bookkeeper := new(payload.Bookkeeper)
 		if err := bookkeeper.Deserialize(reader); err != nil {
 			return nil, err
 		}
 		return bookkeeper, nil
-	case ST_Contract:
+	case ST_CONTRACT:
 		contract := new(payload.DeployCode)
 		if err := contract.Deserialize(reader); err != nil {
 			return nil, err
 		}
 		return contract, nil
-	case ST_Storage:
+	case ST_STORAGE:
 		storage := new(StorageItem)
 		if err := storage.Deserialize(reader); err != nil {
 			return nil, err

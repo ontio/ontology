@@ -28,14 +28,14 @@ import (
 
 type WasmStateMachine struct {
 	*WasmStateReader
-	ldgerStore store.ILedgerStore
+	ldgerStore store.LedgerStore
 	CloneCache *storage.CloneCache
 	trigger    vmtypes.TriggerType
 	block       *types.Block
 }
 
 
-func NewWasmStateMachine(ldgerStore store.ILedgerStore, dbCache scommon.IStateStore, trigger vmtypes.TriggerType, block *types.Block) *WasmStateMachine {
+func NewWasmStateMachine(ldgerStore store.LedgerStore, dbCache scommon.StateStore, trigger vmtypes.TriggerType, block *types.Block) *WasmStateMachine {
 	var stateMachine WasmStateMachine
 	stateMachine.ldgerStore = ldgerStore
 	stateMachine.CloneCache = storage.NewCloneCache(dbCache)
@@ -56,7 +56,7 @@ func  bcGetHeight(engine *exec.ExecutionEngine) (bool, error) {
 	if ledger.DefaultLedger == nil {
 		i = 0
 	} else {
-		i = ledger.DefaultLedger.Store.GetHeight()
+		i = ledger.DefaultLedger.PersistStore.GetHeight()
 	}
 	//engine.vm.ctx = envCall.envPreCtx
 	vm.RestoreCtx()

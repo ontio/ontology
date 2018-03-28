@@ -37,9 +37,12 @@ func TestContractState(t *testing.T) {
 	}
 	testCode := []byte("testcode")
 
+	vmCode := &vmtypes.VmCode{
+		VmType:vmtypes.NEOVM,
+		Code:testCode,
+	}
 	deploy := &payload.DeployCode{
-		Code:        testCode,
-		VmType:      vmtypes.NEOVM,
+		Code:        vmCode,
 		NeedStorage: false,
 		Name:        "testsm",
 		Version:     "v1.0",
@@ -53,7 +56,7 @@ func TestContractState(t *testing.T) {
 	}
 	codeHash := code.AddressFromVmCode()
 	err = batch.TryGetOrAdd(
-		scommon.ST_Contract,
+		scommon.ST_CONTRACT,
 		codeHash[:],
 		deploy,
 		false)
@@ -107,7 +110,7 @@ func TestBookkeeperState(t *testing.T) {
 		CurrBookkeeper: currBookkeepers,
 		NextBookkeeper: nextBookkeepers,
 	}
-	batch.TryAdd(scommon.ST_Bookkeeper, BookerKeeper, bookkeeperState, false)
+	batch.TryAdd(scommon.ST_BOOK_KEEPER, BookerKeeper, bookkeeperState, false)
 	err = batch.CommitTo()
 	if err != nil {
 		t.Errorf("batch.CommitTo error %s", err)
@@ -127,15 +130,15 @@ func TestBookkeeperState(t *testing.T) {
 	nextBookkeepers1 := bookState.NextBookkeeper
 	for index, pk := range currBookkeepers {
 		pk1 := currBookkeepers1[index]
-		if pk.X.Cmp(pk1.X) != 0 || pk.Y.Cmp(pk1.Y) != 0 {
+		if !keypair.ComparePublicKey(pk,pk1){
 			t.Errorf("TestBookkeeperState currentBookkeeper failed")
 			return
 		}
 	}
 	for index, pk := range nextBookkeepers {
 		pk1 := nextBookkeepers1[index]
-		if pk.X.Cmp(pk1.X) != 0 || pk.Y.Cmp(pk1.Y) != 0 {
-			t.Errorf("TestBookkeeperState currentBookkeeper failed")
+		if !keypair.ComparePublicKey(pk,pk1){
+			t.Errorf("TestBookkeeperState nextBookkeeper failed")
 			return
 		}
 	}

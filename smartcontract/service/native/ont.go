@@ -54,8 +54,8 @@ func OntInit(native *NativeService) error {
 	ts := new(big.Int).Div(ontTotalSupply, big.NewInt(int64(len(booKeepers))))
 	for _, v := range booKeepers {
 		address := ctypes.AddressFromPubKey(v)
-		native.CloneCache.Add(scommon.ST_Storage, append(contract[:], address[:]...), &cstates.StorageItem{Value: ts.Bytes()})
-		native.CloneCache.Add(scommon.ST_Storage, getTotalSupplyKey(contract), &cstates.StorageItem{Value: ts.Bytes()})
+		native.CloneCache.Add(scommon.ST_STORAGE, append(contract[:], address[:]...), &cstates.StorageItem{Value: ts.Bytes()})
+		native.CloneCache.Add(scommon.ST_STORAGE, getTotalSupplyKey(contract), &cstates.StorageItem{Value: ts.Bytes()})
 		addNotifications(native, contract, &states.State{To: address, Value: ts})
 	}
 
@@ -116,7 +116,7 @@ func OntApprove(native *NativeService) error {
 		return err
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	native.CloneCache.Add(scommon.ST_Storage, getApproveKey(contract, state), &cstates.StorageItem{Value: state.Value.Bytes()})
+	native.CloneCache.Add(scommon.ST_STORAGE, getApproveKey(contract, state), &cstates.StorageItem{Value: state.Value.Bytes()})
 	return nil
 }
 
@@ -154,7 +154,7 @@ func grantOng(native *NativeService, contract, address common.Address, balance *
 		return err
 	}
 
-	native.CloneCache.Add(scommon.ST_Storage, getAddressHeightKey(contract, address), getHeightStorageItem(native.Height))
+	native.CloneCache.Add(scommon.ST_STORAGE, getAddressHeightKey(contract, address), getHeightStorageItem(native.Height))
 	return nil
 }
 

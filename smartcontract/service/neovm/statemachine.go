@@ -35,13 +35,13 @@ import (
 
 type StateMachine struct {
 	*StateReader
-	ldgerStore store.ILedgerStore
+	ldgerStore store.LedgerStore
 	CloneCache *storage.CloneCache
 	trigger    stypes.TriggerType
 	time       uint32
 }
 
-func NewStateMachine(ldgerStore store.ILedgerStore, dbCache scommon.IStateStore, trigger stypes.TriggerType, time uint32) *StateMachine {
+func NewStateMachine(ldgerStore store.LedgerStore, dbCache scommon.StateStore, trigger stypes.TriggerType, time uint32) *StateMachine {
 	var stateMachine StateMachine
 	stateMachine.ldgerStore = ldgerStore
 	stateMachine.CloneCache = storage.NewCloneCache(dbCache)
@@ -108,7 +108,7 @@ func (s *StateMachine) ContractCreate(engine *vm.ExecutionEngine) (bool, error) 
 		Description: string(desc),
 	}
 	contractAddress := vmCode.AddressFromVmCode()
-	state, err := s.CloneCache.GetOrAdd(scommon.ST_Contract, contractAddress[:], contractState)
+	state, err := s.CloneCache.GetOrAdd(scommon.ST_CONTRACT, contractAddress[:], contractState)
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] GetOrAdd error!")
 	}
@@ -128,7 +128,7 @@ func (s *StateMachine) ContractMigrate(engine *vm.ExecutionEngine) (bool, error)
 		VmType: vmtypes.NEOVM,
 	}
 	contractAddress := vmCode.AddressFromVmCode()
-	item, err := s.CloneCache.Get(scommon.ST_Contract, contractAddress[:]); if err != nil {
+	item, err := s.CloneCache.Get(scommon.ST_CONTRACT, contractAddress[:]); if err != nil {
 		return false, errors.NewErr("[ContractMigrate] Get Contract error!")
 	}
 	if item != nil {
@@ -158,8 +158,8 @@ func (s *StateMachine) ContractMigrate(engine *vm.ExecutionEngine) (bool, error)
 		Email:       string(emailByte),
 		Description: string(descByte),
 	}
-	s.CloneCache.Add(scommon.ST_Contract, contractAddress[:], contractState)
-	stateValues, err := s.CloneCache.Store.Find(scommon.ST_Contract, contractAddress[:]); if err != nil {
+	s.CloneCache.Add(scommon.ST_CONTRACT, contractAddress[:], contractState)
+	stateValues, err := s.CloneCache.Store.Find(scommon.ST_CONTRACT, contractAddress[:]); if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[ContractMigrate] Find error!")
 	}
 	for _, v := range stateValues {
@@ -173,7 +173,7 @@ func (s *StateMachine) ContractMigrate(engine *vm.ExecutionEngine) (bool, error)
 		if _, err := key.Serialize(b); err != nil {
 			return false, errors.NewErr("[ContractMigrate] Key Serialize error!")
 		}
-		s.CloneCache.Add(scommon.ST_Storage, key.ToArray(), v.Value)
+		s.CloneCache.Add(scommon.ST_STORAGE, key.ToArray(), v.Value)
 	}
 	vm.PushData(engine, contractState)
 	return s.ContractDestory(engine)
@@ -186,24 +186,24 @@ func (s *StateMachine) ContractDestory(engine *vm.ExecutionEngine) (bool, error)
 	hash, err := context.GetCodeHash(); if err != nil {
 		return false, nil
 	}
-	item, err := s.CloneCache.Store.TryGet(scommon.ST_Contract, hash[:]); if err != nil {
+	item, err := s.CloneCache.Store.TryGet(scommon.ST_CONTRACT, hash[:]); if err != nil {
 		return false, err
 	}
 	if item == nil {
 		return false, nil
 	}
-	s.CloneCache.Delete(scommon.ST_Contract, hash[:])
-	stateValues, err := s.CloneCache.Store.Find(scommon.ST_Contract, hash[:]); if err != nil {
+	s.CloneCache.Delete(scommon.ST_CONTRACT, hash[:])
+	stateValues, err := s.CloneCache.Store.Find(scommon.ST_CONTRACT, hash[:]); if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[ContractDestory] Find error!")
 	}
 	for _, v := range stateValues {
-		s.CloneCache.Delete(scommon.ST_Storage, []byte(v.Key))
+		s.CloneCache.Delete(scommon.ST_STORAGE, []byte(v.Key))
 	}
 	return true, nil
 }
 
 func (s *StateMachine) CheckStorageContext(context *StorageContext) (bool, error) {
-	item, err := s.CloneCache.Get(scommon.ST_Contract, context.codeHash[:])
+	item, err := s.CloneCache.Get(scommon.ST_CONTRACT, context.codeHash[:])
 	if err != nil {
 		return false, err
 	}
@@ -229,7 +229,7 @@ func (s *StateMachine) StoragePut(engine *vm.ExecutionEngine) (bool, error) {
 	k, err := serializeStorageKey(context.codeHash, key); if err != nil {
 		return false, err
 	}
-	s.CloneCache.Add(scommon.ST_Storage, k, &states.StorageItem{Value: value})
+	s.CloneCache.Add(scommon.ST_STORAGE, k, &states.StorageItem{Value: value})
 	return true, nil
 }
 
@@ -246,7 +246,7 @@ func (s *StateMachine) StorageDelete(engine *vm.ExecutionEngine) (bool, error) {
 	k, err := serializeStorageKey(context.codeHash, key); if err != nil {
 		return false, err
 	}
-	s.CloneCache.Delete(scommon.ST_Storage, k)
+	s.CloneCache.Delete(scommon.ST_STORAGE, k)
 	return true, nil
 }
 
@@ -266,7 +266,7 @@ func (s *StateMachine) StorageGet(engine *vm.ExecutionEngine) (bool, error) {
 	k, err := serializeStorageKey(context.codeHash, key); if err != nil {
 		return false, err
 	}
-	item, err := s.CloneCache.Get(scommon.ST_Storage, k); if err != nil {
+	item, err := s.CloneCache.Get(scommon.ST_STORAGE, k); if err != nil {
 		return false, err
 	}
 	if item == nil {
@@ -287,7 +287,7 @@ func (s *StateMachine) GetStorageContext(engine *vm.ExecutionEngine) (bool, erro
 	}
 	contractState := opInterface.(*payload.DeployCode)
 	codeHash := contractState.Code.AddressFromVmCode()
-	item, err := s.CloneCache.Store.TryGet(scommon.ST_Contract, codeHash[:])
+	item, err := s.CloneCache.Store.TryGet(scommon.ST_CONTRACT, codeHash[:])
 	if err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[GetStorageContext] Get StorageContext nil")
 	}

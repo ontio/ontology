@@ -144,9 +144,9 @@ func fromApprove(native *NativeService, fromApproveKey []byte, value *big.Int) e
 	if sign < 0 {
 		return errors.NewErr("[TransferFrom] approve balance insufficient!")
 	} else if sign == 0 {
-		native.CloneCache.Delete(scommon.ST_Storage, fromApproveKey)
+		native.CloneCache.Delete(scommon.ST_STORAGE, fromApproveKey)
 	} else {
-		native.CloneCache.Add(scommon.ST_Storage, fromApproveKey, getAmountStorageItem(approveBalance))
+		native.CloneCache.Add(scommon.ST_STORAGE, fromApproveKey, getAmountStorageItem(approveBalance))
 	}
 	return nil
 }
@@ -160,9 +160,9 @@ func fromTransfer(native *NativeService, fromKey []byte, value *big.Int) (*big.I
 	if sign < 0 {
 		return nil, errors.NewErr("[Transfer] balance insufficient!")
 	} else if sign == 0 {
-		native.CloneCache.Delete(scommon.ST_Storage, fromKey)
+		native.CloneCache.Delete(scommon.ST_STORAGE, fromKey)
 	} else {
-		native.CloneCache.Add(scommon.ST_Storage, fromKey, getAmountStorageItem(balance))
+		native.CloneCache.Add(scommon.ST_STORAGE, fromKey, getAmountStorageItem(balance))
 	}
 	return fromBalance, nil
 }
@@ -171,7 +171,7 @@ func toTransfer(native *NativeService, toKey []byte, value *big.Int) (*big.Int, 
 	toBalance, err := getStorageBigInt(native, toKey); if err != nil {
 		return nil, err
 	}
-	native.CloneCache.Add(scommon.ST_Storage, toKey, getToAmountStorageItem(toBalance, value))
+	native.CloneCache.Add(scommon.ST_STORAGE, toKey, getToAmountStorageItem(toBalance, value))
 	return toBalance, nil
 }
 
@@ -183,7 +183,7 @@ func getStartHeight(native *NativeService, contract, from common.Address) (uint3
 }
 
 func getStorageBigInt(native *NativeService, key []byte) (*big.Int, error) {
-	balance, err := native.CloneCache.Get(scommon.ST_Storage, key)
+	balance, err := native.CloneCache.Get(scommon.ST_STORAGE, key)
 	if err != nil {
 		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[getBalance] storage error!")
 	}

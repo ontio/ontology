@@ -43,7 +43,7 @@ func OngInit(native *NativeService) error {
 	if amount != nil && amount.Sign() != 0 {
 		return errors.NewErr("Init ong has been completed!")
 	}
-	native.CloneCache.Add(scommon.ST_Storage, append(contract[:], getOntContext()...), &cstates.StorageItem{Value: ongTotalSupply.Bytes()})
+	native.CloneCache.Add(scommon.ST_STORAGE, append(contract[:], getOntContext()...), &cstates.StorageItem{Value: ongTotalSupply.Bytes()})
 	addNotifications(native, contract, &states.State{To: genesis.OntContractAddress, Value: ongTotalSupply})
 	return nil
 }
@@ -69,7 +69,7 @@ func OngApprove(native *NativeService) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[OngApprove] state deserialize error!")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	native.CloneCache.Add(scommon.ST_Storage, getApproveKey(contract, state), &cstates.StorageItem{Value: state.Value.Bytes()})
+	native.CloneCache.Add(scommon.ST_STORAGE, getApproveKey(contract, state), &cstates.StorageItem{Value: state.Value.Bytes()})
 	return nil
 }
 
