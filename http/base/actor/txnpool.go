@@ -21,12 +21,12 @@ package actor
 import (
 	"errors"
 	"github.com/Ontology/common"
+	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/types"
 	onterr "github.com/Ontology/errors"
-	"github.com/ontio/ontology-eventbus/actor"
 	tcomn "github.com/Ontology/txnpool/common"
+	"github.com/ontio/ontology-eventbus/actor"
 	"time"
-	"github.com/Ontology/common/log"
 )
 
 var txnPid *actor.PID
@@ -39,22 +39,26 @@ func SetTxnPoolPid(actr *actor.PID) {
 	txnPoolPid = actr
 }
 func AppendTxToPool(txn *types.Transaction) onterr.ErrCode {
-	txnPid.Tell(txn)
+	txReq := &tcomn.TxReq{
+		Tx:     txn,
+		Sender: tcomn.HttpSender,
+	}
+	txnPid.Tell(txReq)
 	return onterr.ErrNoError
 	/*
-	future := txnPid.RequestFuture(txn, ReqTimeout*time.Second)
-	result, err := future.Result()
-	if err != nil {
-		log.Errorf(ErrActorComm, err)
-		return onterr.ErrUnknown
-	}
-	if result, ok := result.(*tcomn.TxRsp); !ok {
-		return onterr.ErrUnknown
-	} else if result.Hash != txn.Hash() {
-		return onterr.ErrUnknown
-	} else {
-		return result.ErrCode
-	}
+		future := txnPid.RequestFuture(txn, ReqTimeout*time.Second)
+		result, err := future.Result()
+		if err != nil {
+			log.Errorf(ErrActorComm, err)
+			return onterr.ErrUnknown
+		}
+		if result, ok := result.(*tcomn.TxRsp); !ok {
+			return onterr.ErrUnknown
+		} else if result.Hash != txn.Hash() {
+			return onterr.ErrUnknown
+		} else {
+			return result.ErrCode
+		}
 	*/
 }
 

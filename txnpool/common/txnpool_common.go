@@ -48,6 +48,27 @@ const (
 	MAXACTOR
 )
 
+type SenderType uint8
+
+const (
+	NilSender  SenderType = iota
+	NetSender             // Net sends tx req
+	HttpSender            // Http sends tx req
+)
+
+func (sender SenderType) Sender() string {
+	switch sender {
+	case NilSender:
+		return "nil sender"
+	case NetSender:
+		return "net sender"
+	case HttpSender:
+		return "http sender"
+	default:
+		return "unknown sender"
+	}
+}
+
 type TxnStatsType uint8
 
 const (
@@ -65,6 +86,11 @@ const (
 type TxStatus struct {
 	Hash  common.Uint256 // transaction hash
 	Attrs []*TXAttr      // transaction's status
+}
+
+type TxReq struct {
+	Tx     *types.Transaction
+	Sender SenderType
 }
 
 type TxRsp struct {

@@ -35,7 +35,11 @@ func SetTxnPoolPid(txnPid *actor.PID) {
 }
 
 func AddTransaction(transaction *types.Transaction) {
-	txnPoolPid.Tell(transaction)
+	txReq := &tc.TxReq{
+		Tx:     transaction,
+		Sender: tc.NetSender,
+	}
+	txnPoolPid.Tell(txReq)
 }
 
 func GetTxnPool(byCount bool) ([]*tc.TXEntry, error) {

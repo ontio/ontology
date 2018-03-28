@@ -24,7 +24,6 @@ import (
 
 	"github.com/Ontology/common/log"
 	tx "github.com/Ontology/core/types"
-	"github.com/Ontology/errors"
 	"github.com/Ontology/events/message"
 	tc "github.com/Ontology/txnpool/common"
 	"github.com/Ontology/validator/types"
@@ -55,7 +54,7 @@ type TxActor struct {
 }
 
 // Handle a new transaction
-func (ta *TxActor) handleTransaction(sender, self *actor.PID,
+func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 	txn *tx.Transaction) {
 	ta.server.increaseStats(tc.RcvStats)
 
@@ -64,29 +63,10 @@ func (ta *TxActor) handleTransaction(sender, self *actor.PID,
 			txn.Hash()))
 
 		ta.server.increaseStats(tc.DuplicateStats)
-
-		if sender == nil {
-			return
-		}
-		rsp := &tc.TxRsp{
-			Hash:    txn.Hash(),
-			ErrCode: errors.ErrNoError,
-		}
-		sender.Request(rsp, self)
 	} else if ta.server.getTransactionCount() >= tc.MAXCAPACITY {
 		log.Info("Transaction pool is full", txn.Hash())
 
 		ta.server.increaseStats(tc.FailureStats)
-
-		if sender == nil {
-			return
-		}
-
-		rsp := &tc.TxRsp{
-			Hash:    txn.Hash(),
-			ErrCode: errors.ErrTxPoolFull,
-		}
-		sender.Request(rsp, self)
 	} else {
 		for {
 			if ta.server.getPendingListSize() < tc.MAXLIMITATION {
@@ -108,12 +88,12 @@ func (ta *TxActor) Receive(context actor.Context) {
 	case *actor.Restarting:
 		log.Info("txpool-tx actor Restarting")
 
-	case *tx.Transaction:
-		sender := context.Sender()
+	case *tc.TxReq:
+		sender := msg.Sender
 
-		log.Info("txpool-tx actor Receives tx from ", sender)
+		log.Info("txpool-tx actor Receives tx from ", sender.Sender())
 
-		ta.handleTransaction(sender, context.Self(), msg)
+		ta.handleTransaction(sender, context.Self(), msg.Tx)
 
 	case *tc.GetTxnReq:
 		sender := context.Sender()
