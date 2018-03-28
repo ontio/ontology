@@ -66,7 +66,7 @@ func (this *ActorPublisher) Publish(topic string, msg interface{}) {
 		Publisher: this.Publisher,
 		Message:   msg,
 		Topic:     topic,
-		Policy:    eventhub.PublishPolicyAll,
+		Policy:    eventhub.PUBLISH_POLICY_ALL,
 	}
 	this.EvtHub.Publish(event)
 }
