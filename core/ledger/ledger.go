@@ -137,9 +137,9 @@ func (this *Ledger) GetBookkeeperState() (*states.BookkeeperState, error) {
 	return this.ldgStore.GetBookkeeperState()
 }
 
-func (this *Ledger) GetStorageItem(codeHash *common.Address, key []byte) ([]byte, error) {
+func (this *Ledger) GetStorageItem(codeHash common.Address, key []byte) ([]byte, error) {
 	storageKey := &states.StorageKey{
-		CodeHash: *codeHash,
+		CodeHash: codeHash,
 		Key:      key,
 	}
 	storageItem, err := this.ldgStore.GetStorageItem(storageKey)

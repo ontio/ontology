@@ -112,7 +112,7 @@ func GetTransaction(hash common.Uint256) (*types.Transaction, error) {
 }
 
 func GetStorageItem(codeHash common.Address, key []byte) ([]byte, error) {
-	future := defLedgerPid.RequestFuture(&lactor.GetStorageItemReq{CodeHash: &codeHash, Key: key}, ReqTimeout*time.Second)
+	future := defLedgerPid.RequestFuture(&lactor.GetStorageItemReq{CodeHash: codeHash, Key: key}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ErrActorComm, err)

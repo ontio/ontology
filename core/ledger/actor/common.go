@@ -187,7 +187,7 @@ type GetBookkeeperStateRsp struct {
 }
 
 type GetStorageItemReq struct {
-	CodeHash *common.Address
+	CodeHash common.Address
 	Key      []byte
 }
 
