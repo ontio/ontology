@@ -6,7 +6,7 @@ BUILD_NODE_PAR = -ldflags "-X github.com/Ontology/common/config.Version=$(VERSIO
 BUILD_NODECTL_PAR = -ldflags "-X main.Version=$(VERSION)"
 
 all:
-	$(GC)  $(BUILD_NODE_PAR) -o node main.go
+	$(GC)  $(BUILD_NODE_PAR) -o ontology main.go
 	$(GC)  $(BUILD_NODECTL_PAR) nodectl.go
 
 format:
