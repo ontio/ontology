@@ -33,14 +33,14 @@ import (
 
 func TestWorker(t *testing.T) {
 	fmt.Println("Starting worker test")
-	s := NewTxPoolServer(tc.MAXWORKERNUM)
+	s := NewTxPoolServer(tc.MAX_WORKER_NUM)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
 	}
 
 	worker := &txPoolWorker{}
-	worker.init(tc.MAXWORKERNUM, s)
+	worker.init(tc.MAX_WORKER_NUM, s)
 
 	s.wg.Add(1)
 
@@ -54,7 +54,7 @@ func TestWorker(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	statelessRsp := &vt.CheckResponse{
-		WorkerId: tc.MAXWORKERNUM,
+		WorkerId: tc.MAX_WORKER_NUM,
 		ErrCode:  errors.ErrNoError,
 		Hash:     txn.Hash(),
 		Type:     vt.Stateless,
@@ -62,7 +62,7 @@ func TestWorker(t *testing.T) {
 	}
 
 	statefulRsp := &vt.CheckResponse{
-		WorkerId: tc.MAXWORKERNUM,
+		WorkerId: tc.MAX_WORKER_NUM,
 		ErrCode:  errors.ErrNoError,
 		Hash:     txn.Hash(),
 		Type:     vt.Statefull,
@@ -91,7 +91,7 @@ func TestWorker(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	statelessRsp = &vt.CheckResponse{
-		WorkerId: tc.MAXWORKERNUM,
+		WorkerId: tc.MAX_WORKER_NUM,
 		ErrCode:  errors.ErrUnknown,
 		Hash:     txn.Hash(),
 		Type:     vt.Stateless,
@@ -99,7 +99,7 @@ func TestWorker(t *testing.T) {
 	}
 
 	statefulRsp = &vt.CheckResponse{
-		WorkerId: tc.MAXWORKERNUM,
+		WorkerId: tc.MAX_WORKER_NUM,
 		ErrCode:  errors.ErrUnknown,
 		Hash:     txn.Hash(),
 		Type:     vt.Statefull,
@@ -113,7 +113,7 @@ func TestWorker(t *testing.T) {
 	 */
 	time.Sleep(2 * time.Second)
 	statelessRsp = &vt.CheckResponse{
-		WorkerId: tc.MAXWORKERNUM,
+		WorkerId: tc.MAX_WORKER_NUM,
 		ErrCode:  errors.ErrUnknown,
 		Hash:     txn.Hash(),
 		Type:     vt.Stateless,
@@ -121,7 +121,7 @@ func TestWorker(t *testing.T) {
 	}
 
 	statefulRsp = &vt.CheckResponse{
-		WorkerId: tc.MAXWORKERNUM + 1,
+		WorkerId: tc.MAX_WORKER_NUM + 1,
 		ErrCode:  errors.ErrUnknown,
 		Hash:     txn.Hash(),
 		Type:     vt.Statefull,

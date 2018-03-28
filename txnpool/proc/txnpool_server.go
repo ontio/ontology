@@ -98,7 +98,7 @@ func (s *TXPoolServer) init(num uint8) {
 		stopCh:         make(chan bool),
 	}
 
-	s.stats = txStats{count: make([]uint64, tc.MAXSTATS-1)}
+	s.stats = txStats{count: make([]uint64, tc.MaxStats-1)}
 
 	// Create the given concurrent workers
 	s.workers = make([]txPoolWorker, num)
@@ -211,7 +211,7 @@ func (s *TXPoolServer) setPendingTx(tx *tx.Transaction,
 	return true
 }
 
-func (s *TXPoolServer) assginTXN2Worker(tx *tx.Transaction,
+func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction,
 	sender tc.SenderType) (assign bool) {
 
 	defer func() {
@@ -241,7 +241,7 @@ func (s *TXPoolServer) assginTXN2Worker(tx *tx.Transaction,
 	return true
 }
 
-func (s *TXPoolServer) assignRsp2Worker(rsp *types.CheckResponse) (
+func (s *TXPoolServer) assignRspToWorker(rsp *types.CheckResponse) (
 	assign bool) {
 
 	defer func() {
@@ -272,7 +272,7 @@ func (s *TXPoolServer) assignRsp2Worker(rsp *types.CheckResponse) (
 }
 
 func (s *TXPoolServer) GetPID(actor tc.ActorType) *actor.PID {
-	if actor < tc.TxActor || actor >= tc.MAXACTOR {
+	if actor < tc.TxActor || actor >= tc.MaxActor {
 		return nil
 	}
 
@@ -515,7 +515,7 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 		 */
 		ret := s.txPool.GetTxStatus(t.Hash())
 		if ret == nil {
-			s.assginTXN2Worker(t, tc.NilSender)
+			s.assignTxToWorker(t, tc.NilSender)
 			s.pendingBlock.unProcessedTxs[t.Hash()] = t
 			continue
 		}

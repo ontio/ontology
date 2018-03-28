@@ -38,18 +38,8 @@ import (
 var (
 	txn    *types.Transaction
 	topic  string
-	sender *actor.PID
+	sender tc.SenderType
 )
-
-type testActor struct {
-}
-
-func (this *testActor) Receive(context actor.Context) {
-	switch msg := context.Message().(type) {
-	default:
-		log.Info(msg)
-	}
-}
 
 func init() {
 	log.Init(log.PATH, log.Stdout)
@@ -72,11 +62,7 @@ func init() {
 	hash.Deserialize(bytes.NewReader(hex))
 	txn.SetHash(hash)
 
-	object := &testActor{}
-	sender = startActor(object)
-	if sender == nil {
-		panic("failed to start actor")
-	}
+	sender = tc.NilSender
 }
 
 func startActor(obj interface{}) *actor.PID {
@@ -95,7 +81,7 @@ func startActor(obj interface{}) *actor.PID {
 func TestTxn(t *testing.T) {
 	fmt.Println("Starting test tx")
 	var s *TXPoolServer
-	s = NewTxPoolServer(tc.MAXWORKERNUM)
+	s = NewTxPoolServer(tc.MAX_WORKER_NUM)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -145,7 +131,7 @@ func TestTxn(t *testing.T) {
 func TestAssignRsp2Worker(t *testing.T) {
 	fmt.Println("Starting assign response to the worker testing")
 	var s *TXPoolServer
-	s = NewTxPoolServer(tc.MAXWORKERNUM)
+	s = NewTxPoolServer(tc.MAX_WORKER_NUM)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -188,7 +174,7 @@ func TestAssignRsp2Worker(t *testing.T) {
 func TestActor(t *testing.T) {
 	fmt.Println("Starting actor testing")
 	var s *TXPoolServer
-	s = NewTxPoolServer(tc.MAXWORKERNUM)
+	s = NewTxPoolServer(tc.MAX_WORKER_NUM)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -244,7 +230,7 @@ func TestActor(t *testing.T) {
 		return
 	}
 
-	pid = s.GetPID(tc.MAXACTOR)
+	pid = s.GetPID(tc.MaxActor)
 	if pid != nil {
 		t.Error("Invalid PID")
 		return
@@ -256,7 +242,7 @@ func TestActor(t *testing.T) {
 func TestValidator(t *testing.T) {
 	fmt.Println("Starting validator testing")
 	var s *TXPoolServer
-	s = NewTxPoolServer(tc.MAXWORKERNUM)
+	s = NewTxPoolServer(tc.MAX_WORKER_NUM)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return

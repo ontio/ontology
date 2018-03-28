@@ -30,7 +30,7 @@ import (
 
 func TestTxActor(t *testing.T) {
 	fmt.Println("Starting tx actor test")
-	s := NewTxPoolServer(tc.MAXWORKERNUM)
+	s := NewTxPoolServer(tc.MAX_WORKER_NUM)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -43,12 +43,15 @@ func TestTxActor(t *testing.T) {
 		s.Stop()
 		return
 	}
-	future := txPid.RequestFuture(txn, 5*time.Second)
-	result, err := future.Result()
-	fmt.Println(result, err)
 
-	future = txPid.RequestFuture(&tc.GetTxnReq{Hash: txn.Hash()}, 1*time.Second)
-	result, err = future.Result()
+	txReq := &txReq{
+		Tx:     txn,
+		Sender: tc.NilSender,
+	}
+	txPid.RequestFuture(txn)
+
+	future := txPid.RequestFuture(&tc.GetTxnReq{Hash: txn.Hash()}, 1*time.Second)
+	result, err := future.Result()
 	fmt.Println(result, err)
 
 	future = txPid.RequestFuture(&tc.GetTxnStats{}, 2*time.Second)
@@ -95,7 +98,7 @@ func TestTxActor(t *testing.T) {
 
 func TestTxPoolActor(t *testing.T) {
 	fmt.Println("Starting tx pool actor test")
-	s := NewTxPoolServer(tc.MAXWORKERNUM)
+	s := NewTxPoolServer(tc.MAX_WORKER_NUM)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -136,7 +139,7 @@ func TestTxPoolActor(t *testing.T) {
 
 func TestVerifyRspActor(t *testing.T) {
 	fmt.Println("Starting validator response actor test")
-	s := NewTxPoolServer(tc.MAXWORKERNUM)
+	s := NewTxPoolServer(tc.MAX_WORKER_NUM)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return

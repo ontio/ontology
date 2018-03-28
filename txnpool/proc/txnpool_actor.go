@@ -59,18 +59,18 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 	ta.server.increaseStats(tc.RcvStats)
 
 	if ta.server.getTransaction(txn.Hash()) != nil {
-		log.Info(fmt.Sprintf("Transaction %x already in the txn pool",
+		log.Debug(fmt.Sprintf("Transaction %x already in the txn pool",
 			txn.Hash()))
 
 		ta.server.increaseStats(tc.DuplicateStats)
-	} else if ta.server.getTransactionCount() >= tc.MAXCAPACITY {
-		log.Info("Transaction pool is full", txn.Hash())
+	} else if ta.server.getTransactionCount() >= tc.MAX_CAPACITY {
+		log.Warn("Transaction pool is full", txn.Hash())
 
 		ta.server.increaseStats(tc.FailureStats)
 	} else {
 		for {
-			if ta.server.getPendingListSize() < tc.MAXLIMITATION {
-				ta.server.assginTXN2Worker(txn, sender)
+			if ta.server.getPendingListSize() < tc.MAX_LIMITATION {
+				ta.server.assignTxToWorker(txn, sender)
 				break
 			}
 		}
@@ -83,22 +83,22 @@ func (ta *TxActor) Receive(context actor.Context) {
 		log.Info("txpool-tx actor started and be ready to receive tx msg")
 
 	case *actor.Stopping:
-		log.Info("txpool-tx actor stopping")
+		log.Warn("txpool-tx actor stopping")
 
 	case *actor.Restarting:
-		log.Info("txpool-tx actor Restarting")
+		log.Warn("txpool-tx actor Restarting")
 
 	case *tc.TxReq:
 		sender := msg.Sender
 
-		log.Info("txpool-tx actor Receives tx from ", sender.Sender())
+		log.Debug("txpool-tx actor Receives tx from ", sender.Sender())
 
 		ta.handleTransaction(sender, context.Self(), msg.Tx)
 
 	case *tc.GetTxnReq:
 		sender := context.Sender()
 
-		log.Info("txpool-tx actor Receives getting tx req from ", sender)
+		log.Debug("txpool-tx actor Receives getting tx req from ", sender)
 
 		res := ta.server.getTransaction(msg.Hash)
 		if sender != nil {
@@ -109,7 +109,7 @@ func (ta *TxActor) Receive(context actor.Context) {
 	case *tc.GetTxnStats:
 		sender := context.Sender()
 
-		log.Info("txpool-tx actor Receives getting tx stats from ", sender)
+		log.Debug("txpool-tx actor Receives getting tx stats from ", sender)
 
 		res := ta.server.getStats()
 		if sender != nil {
@@ -120,7 +120,7 @@ func (ta *TxActor) Receive(context actor.Context) {
 	case *tc.CheckTxnReq:
 		sender := context.Sender()
 
-		log.Info("txpool-tx actor Receives checking tx req from ", sender)
+		log.Debug("txpool-tx actor Receives checking tx req from ", sender)
 
 		res := ta.server.checkTx(msg.Hash)
 		if sender != nil {
@@ -131,7 +131,7 @@ func (ta *TxActor) Receive(context actor.Context) {
 	case *tc.GetTxnStatusReq:
 		sender := context.Sender()
 
-		log.Info("txpool-tx actor Receives getting tx status req from ", sender)
+		log.Debug("txpool-tx actor Receives getting tx status req from ", sender)
 
 		res := ta.server.getTxStatusReq(msg.Hash)
 		if sender != nil {
@@ -140,7 +140,7 @@ func (ta *TxActor) Receive(context actor.Context) {
 		}
 
 	default:
-		log.Info("txpool-tx actor: Unknown msg ", msg, "type", reflect.TypeOf(msg))
+		log.Warn("txpool-tx actor: Unknown msg ", msg, "type", reflect.TypeOf(msg))
 	}
 }
 
@@ -159,15 +159,15 @@ func (tpa *TxPoolActor) Receive(context actor.Context) {
 		log.Info("txpool actor started and be ready to receive txPool msg")
 
 	case *actor.Stopping:
-		log.Info("txpool actor stopping")
+		log.Warn("txpool actor stopping")
 
 	case *actor.Restarting:
-		log.Info("txpool actor Restarting")
+		log.Warn("txpool actor Restarting")
 
 	case *tc.GetTxnPoolReq:
 		sender := context.Sender()
 
-		log.Info("txpool actor Receives getting tx pool req from ", sender)
+		log.Debug("txpool actor Receives getting tx pool req from ", sender)
 
 		res := tpa.server.getTxPool(msg.ByCount)
 		if sender != nil {
@@ -177,7 +177,7 @@ func (tpa *TxPoolActor) Receive(context actor.Context) {
 	case *tc.GetPendingTxnReq:
 		sender := context.Sender()
 
-		log.Info("txpool actor Receives getting pedning tx req from ", sender)
+		log.Debug("txpool actor Receives getting pedning tx req from ", sender)
 
 		res := tpa.server.getPendingTxs(msg.ByCount)
 		if sender != nil {
@@ -187,21 +187,21 @@ func (tpa *TxPoolActor) Receive(context actor.Context) {
 	case *tc.VerifyBlockReq:
 		sender := context.Sender()
 
-		log.Info("txpool actor Receives verifying block req from ", sender)
+		log.Debug("txpool actor Receives verifying block req from ", sender)
 
 		tpa.server.verifyBlock(msg, sender)
 
 	case *message.SaveBlockCompleteMsg:
 		sender := context.Sender()
 
-		log.Info("txpool actor Receives block complete event from ", sender)
+		log.Debug("txpool actor Receives block complete event from ", sender)
 
 		if msg.Block != nil {
 			tpa.server.cleanTransactionList(msg.Block.Transactions)
 		}
 
 	default:
-		log.Info("txpool actor: Unknown msg ", msg, "type", reflect.TypeOf(msg))
+		log.Debug("txpool actor: Unknown msg ", msg, "type", reflect.TypeOf(msg))
 	}
 }
 
@@ -220,27 +220,27 @@ func (vpa *VerifyRspActor) Receive(context actor.Context) {
 		log.Info("txpool-verify actor: started and be ready to receive validator's msg")
 
 	case *actor.Stopping:
-		log.Info("txpool-verify actor: stopping")
+		log.Warn("txpool-verify actor: stopping")
 
 	case *actor.Restarting:
-		log.Info("txpool-verify actor: Restarting")
+		log.Warn("txpool-verify actor: Restarting")
 
 	case *types.RegisterValidator:
-		log.Infof("txpool-verify actor:: validator %v connected", msg.Sender)
+		log.Debugf("txpool-verify actor:: validator %v connected", msg.Sender)
 		vpa.server.registerValidator(msg)
 
 	case *types.UnRegisterValidator:
-		log.Infof("txpool-verify actor:: validator %d:%v disconnected", msg.Type, msg.Id)
+		log.Debugf("txpool-verify actor:: validator %d:%v disconnected", msg.Type, msg.Id)
 
 		vpa.server.unRegisterValidator(msg.Type, msg.Id)
 
 	case *types.CheckResponse:
-		log.Info("txpool-verify actor:: Receives verify rsp message")
+		log.Debug("txpool-verify actor:: Receives verify rsp message")
 
-		vpa.server.assignRsp2Worker(msg)
+		vpa.server.assignRspToWorker(msg)
 
 	default:
-		log.Info("txpool-verify actor:Unknown msg ", msg, "type", reflect.TypeOf(msg))
+		log.Warn("txpool-verify actor:Unknown msg ", msg, "type", reflect.TypeOf(msg))
 	}
 }
 

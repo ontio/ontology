@@ -53,10 +53,10 @@ type txPoolWorker struct {
 }
 
 func (worker *txPoolWorker) init(workID uint8, s *TXPoolServer) {
-	worker.rcvTXCh = make(chan *tx.Transaction, tc.MAXPENDINGTXN)
-	worker.stfTxCh = make(chan *tx.Transaction, tc.MAXPENDINGTXN)
+	worker.rcvTXCh = make(chan *tx.Transaction, tc.MAX_PENDING_TXN)
+	worker.stfTxCh = make(chan *tx.Transaction, tc.MAX_PENDING_TXN)
 	worker.pendingTxList = make(map[common.Uint256]*pendingTx)
-	worker.rspCh = make(chan *types.CheckResponse, tc.MAXPENDINGTXN)
+	worker.rspCh = make(chan *types.CheckResponse, tc.MAX_PENDING_TXN)
 	worker.stopCh = make(chan bool)
 	worker.workId = workID
 	worker.server = s
@@ -109,7 +109,7 @@ func (worker *txPoolWorker) handleRsp(rsp *types.CheckResponse) {
 		pt.ret = append(pt.ret, retAttr)
 	}
 
-	if pt.flag&0xf == tc.VERIFYMASK {
+	if pt.flag&0xf == tc.VERIFY_MASK {
 		worker.putTxPool(pt)
 		delete(worker.pendingTxList, rsp.Hash)
 	}
@@ -129,9 +129,9 @@ func (worker *txPoolWorker) handleTimeoutEvent() {
 	 * resend them to the validators
 	 */
 	for k, v := range worker.pendingTxList {
-		if v.flag&0xf != tc.VERIFYMASK && (time.Now().Sub(v.valTime)/time.Second) >=
-			tc.EXPIREINTERVAL {
-			if v.retries < tc.MAXRETRIES {
+		if v.flag&0xf != tc.VERIFY_MASK && (time.Now().Sub(v.valTime)/time.Second) >=
+			tc.EXPIRE_INTERVAL {
+			if v.retries < tc.MAX_RETRIES {
 				worker.reVerifyTx(k)
 				v.retries++
 			} else {
@@ -201,7 +201,7 @@ func (worker *txPoolWorker) reVerifyTx(txHash common.Uint256) {
 		return
 	}
 
-	if pt.flag&0xf != tc.VERIFYMASK {
+	if pt.flag&0xf != tc.VERIFY_MASK {
 		worker.sendReq2Validator(pt.req)
 	}
 
@@ -273,7 +273,7 @@ func (worker *txPoolWorker) verifyStateful(tx *tx.Transaction) {
 
 	pt.ret = append(pt.ret, retAttr)
 	// Since the signature has been already verified, mark stateless as true
-	pt.flag |= tc.STATELESSMASK
+	pt.flag |= tc.STATELESS_MASK
 
 	// Add it to the pending transaction list
 	worker.mu.Lock()
@@ -284,7 +284,7 @@ func (worker *txPoolWorker) verifyStateful(tx *tx.Transaction) {
 }
 
 func (worker *txPoolWorker) start() {
-	worker.timer = time.NewTimer(time.Second * tc.EXPIREINTERVAL)
+	worker.timer = time.NewTimer(time.Second * tc.EXPIRE_INTERVAL)
 	for {
 		select {
 		case <-worker.stopCh:
@@ -302,7 +302,7 @@ func (worker *txPoolWorker) start() {
 		case <-worker.timer.C:
 			worker.handleTimeoutEvent()
 			worker.timer.Stop()
-			worker.timer.Reset(time.Second * tc.EXPIREINTERVAL)
+			worker.timer.Reset(time.Second * tc.EXPIRE_INTERVAL)
 		case rsp, ok := <-worker.rspCh:
 			if ok {
 				/* Handle the response from validator, if all of cases

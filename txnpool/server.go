@@ -46,7 +46,7 @@ func StartTxnPoolServer() *tp.TXPoolServer {
 	/* Start txnpool server to receive msgs from p2p,
 	 * consensus and valdiators
 	 */
-	s = tp.NewTxPoolServer(tc.MAXWORKERNUM)
+	s = tp.NewTxPoolServer(tc.MAX_WORKER_NUM)
 
 	// Initialize an actor to handle the msgs from valdiators
 	rspActor := tp.NewVerifyRspActor(s)
