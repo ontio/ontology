@@ -20,7 +20,7 @@ package signature
 
 import "github.com/ontio/ontology-crypto/keypair"
 
-//Signer is the abstract interface of user's information(Keys) for signing data.
+// Signer is the abstract interface of user's information(Keys) for signing data.
 type Signer interface {
 	//get signer's private key
 	PrivKey() keypair.PrivateKey

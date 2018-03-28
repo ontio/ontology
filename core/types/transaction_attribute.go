@@ -24,7 +24,7 @@ import (
 	"io"
 
 	"github.com/Ontology/common/serialization"
-	. "github.com/Ontology/errors"
+	"fmt"
 )
 
 type TransactionAttributeUsage byte
@@ -62,13 +62,13 @@ func (u *TxAttribute) GetSize() uint32 {
 
 func (tx *TxAttribute) Serialize(w io.Writer) error {
 	if err := serialization.WriteUint8(w, byte(tx.Usage)); err != nil {
-		return NewDetailErr(err, ErrNoCode, "Transaction attribute Usage serialization error.")
+		return fmt.Errorf("Transaction attribute Usage serialization error: %s", err)
 	}
 	if !IsValidAttributeType(tx.Usage) {
-		return NewDetailErr(errors.New("[TxAttribute] error"), ErrNoCode, "Unsupported attribute Description.")
+		return errors.New( "Unsupported attribute Description.")
 	}
 	if err := serialization.WriteVarBytes(w, tx.Data); err != nil {
-		return NewDetailErr(err, ErrNoCode, "Transaction attribute Data serialization error.")
+		return fmt.Errorf("Transaction attribute Data serialization error: %s", err)
 	}
 	return nil
 }
@@ -76,15 +76,15 @@ func (tx *TxAttribute) Serialize(w io.Writer) error {
 func (tx *TxAttribute) Deserialize(r io.Reader) error {
 	val, err := serialization.ReadBytes(r, 1)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Transaction attribute Usage deserialization error.")
+		return fmt.Errorf("Transaction attribute Usage deserialization error: %s", err)
 	}
 	tx.Usage = TransactionAttributeUsage(val[0])
 	if !IsValidAttributeType(tx.Usage) {
-		return NewDetailErr(errors.New("[TxAttribute] error"), ErrNoCode, "Unsupported attribute Description.")
+		return errors.New("[TxAttribute] Unsupported attribute Description.")
 	}
 	tx.Data, err = serialization.ReadVarBytes(r)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Transaction attribute Data deserialization error.")
+		return fmt.Errorf("Transaction attribute Data deserialization error: %s", err)
 	}
 	return nil
 

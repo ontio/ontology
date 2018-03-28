@@ -22,15 +22,13 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io"
 
-	"fmt"
-
-	. "github.com/Ontology/common"
-	. "github.com/Ontology/common/config"
+	"github.com/Ontology/common"
+	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/core/payload"
-	. "github.com/Ontology/errors"
 	"github.com/ontio/ontology-crypto/keypair"
 )
 
@@ -41,10 +39,10 @@ type Transaction struct {
 	Payload    Payload
 	Attributes []*TxAttribute
 	Fee        []*Fee
-	NetWorkFee Fixed64
+	NetWorkFee common.Fixed64
 	Sigs       []*Sig
 
-	hash *Uint256
+	hash *common.Uint256
 }
 
 type Sig struct {
@@ -93,8 +91,8 @@ func (self *Sig) Deserialize(r io.Reader) error {
 	return nil
 }
 
-func (self *Transaction) GetSignatureAddresses() []Address {
-	address := make([]Address, 0, len(self.Sigs))
+func (self *Transaction) GetSignatureAddresses() []common.Address {
+	address := make([]common.Address, 0, len(self.Sigs))
 	for _, sig := range self.Sigs {
 		m := int(sig.M)
 		n := len(sig.PubKeys)
@@ -143,8 +141,8 @@ func (self *Sig) Serialize(w io.Writer) error {
 }
 
 type Fee struct {
-	Amount Fixed64
-	Payer  Address
+	Amount common.Fixed64
+	Payer  common.Address
 }
 
 type TransactionType byte
@@ -181,8 +179,8 @@ var TxName = map[TransactionType]string{
 	Vote:           "Vote",
 }
 
-//Payload define the func for loading the payload data
-//base on payload type which have different struture
+// Payload define the func for loading the payload data
+// base on payload type which have different struture
 type Payload interface {
 
 	//Serialize payload data
@@ -191,17 +189,17 @@ type Payload interface {
 	Deserialize(r io.Reader) error
 }
 
-//Serialize the Transaction
+// Serialize the Transaction
 func (tx *Transaction) Serialize(w io.Writer) error {
 
 	err := tx.SerializeUnsigned(w)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Transaction txSerializeUnsigned Serialize failed.")
+		return fmt.Errorf("Transaction txSerializeUnsigned Serialize failed: %s", err)
 	}
 
 	err = serialization.WriteVarUint(w, uint64(len(tx.Sigs)))
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "serialize tx sigs length failed")
+		return fmt.Errorf("serialize tx sigs length failed: %s", err)
 	}
 	for _, sig := range tx.Sigs {
 		err = sig.Serialize(w)
@@ -213,8 +211,8 @@ func (tx *Transaction) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (tx *Transaction) GetTotalFee() Fixed64 {
-	sum := Fixed64(0)
+func (tx *Transaction) GetTotalFee() common.Fixed64 {
+	sum := common.Fixed64(0)
 	for _, fee := range tx.Fee {
 		sum += fee.Amount
 	}
@@ -234,7 +232,7 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 	//[]*txAttribute
 	err := serialization.WriteVarUint(w, uint64(len(tx.Attributes)))
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Transaction item txAttribute length serialization failed.")
+		return fmt.Errorf("Transaction item txAttribute length serialization failed: %s", err)
 	}
 	for _, attr := range tx.Attributes {
 		attr.Serialize(w)
@@ -242,7 +240,7 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 
 	err = serialization.WriteVarUint(w, uint64(len(tx.Fee)))
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "serialize tx fee length failed")
+		return fmt.Errorf("serialize tx fee length failed: %s", err)
 	}
 	for _, fee := range tx.Fee {
 		fee.Amount.Serialize(w)
@@ -254,18 +252,18 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 	return nil
 }
 
-//deserialize the Transaction
+// deserialize the Transaction
 func (tx *Transaction) Deserialize(r io.Reader) error {
 	// tx deserialize
 	err := tx.DeserializeUnsigned(r)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "transaction Deserialize error")
+		return fmt.Errorf("transaction Deserialize error: %s", err)
 	}
 
 	// tx sigs
 	length, err := serialization.ReadVarUint(r, 0)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "transaction sigs deserialize error")
+		return fmt.Errorf("transaction sigs deserialize error: %s", err)
 	}
 
 	tx.Sigs = make([]*Sig, 0, length)
@@ -305,7 +303,7 @@ func (tx *Transaction) DeserializeUnsigned(r io.Reader) error {
 
 	err = tx.Payload.Deserialize(r)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Payload Parse error")
+		return fmt.Errorf("Payload Parse error: %s", err)
 	}
 
 	//attributes
@@ -358,23 +356,23 @@ func (tx *Transaction) ToArray() []byte {
 	return b.Bytes()
 }
 
-func (tx *Transaction) Hash() Uint256 {
+func (tx *Transaction) Hash() common.Uint256 {
 	if tx.hash == nil {
 		buf := bytes.Buffer{}
 		tx.SerializeUnsigned(&buf)
 		temp := sha256.Sum256(buf.Bytes())
-		f := Uint256(sha256.Sum256(temp[:]))
+		f := common.Uint256(sha256.Sum256(temp[:]))
 		tx.hash = &f
 	}
 	return *tx.hash
 }
 
-func (tx *Transaction) SetHash(hash Uint256) {
+func (tx *Transaction) SetHash(hash common.Uint256) {
 	tx.hash = &hash
 }
 
-func (tx *Transaction) Type() InventoryType {
-	return TRANSACTION
+func (tx *Transaction) Type() common.InventoryType {
+	return common.TRANSACTION
 }
 
 func (tx *Transaction) Verify() error {
@@ -382,10 +380,10 @@ func (tx *Transaction) Verify() error {
 	return nil
 }
 
-func (tx *Transaction) GetSysFee() Fixed64 {
-	return Fixed64(Parameters.SystemFee[TxName[tx.TxType]])
+func (tx *Transaction) GetSysFee() common.Fixed64 {
+	return common.Fixed64(config.Parameters.SystemFee[TxName[tx.TxType]])
 }
 
-func (tx *Transaction) GetNetworkFee() Fixed64 {
+func (tx *Transaction) GetNetworkFee() common.Fixed64 {
 	return tx.NetWorkFee
 }

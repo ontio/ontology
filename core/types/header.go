@@ -22,29 +22,29 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io"
 
-	. "github.com/Ontology/common"
+	"github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
-	. "github.com/Ontology/errors"
 	"github.com/ontio/ontology-crypto/keypair"
 )
 
 type Header struct {
 	Version          uint32
-	PrevBlockHash    Uint256
-	TransactionsRoot Uint256
-	BlockRoot        Uint256
+	PrevBlockHash    common.Uint256
+	TransactionsRoot common.Uint256
+	BlockRoot        common.Uint256
 	Timestamp        uint32
 	Height           uint32
 	ConsensusData    uint64
-	NextBookkeeper   Address
+	NextBookkeeper   common.Address
 
 	//Program *program.Program
 	Bookkeepers []keypair.PublicKey
 	SigData     [][]byte
 
-	hash Uint256
+	hash common.Uint256
 }
 
 //Serialize the blockheader
@@ -134,14 +134,14 @@ func (bd *Header) DeserializeUnsigned(r io.Reader) error {
 	//Version
 	temp, err := serialization.ReadUint32(r)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Header item Version Deserialize failed.")
+		return fmt.Errorf("Header item Version Deserialize failed: %s", err)
 	}
 	bd.Version = temp
 
 	//PrevBlockHash
 	err = bd.PrevBlockHash.Deserialize(r)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Header item preBlock Deserialize failed.")
+		return fmt.Errorf("Header item preBlock Deserialize failed: %s", err)
 	}
 
 	//TransactionsRoot
@@ -172,7 +172,7 @@ func (bd *Header) DeserializeUnsigned(r io.Reader) error {
 	return err
 }
 
-func (bd *Header) Hash() Uint256 {
+func (bd *Header) Hash() common.Uint256 {
 	buf := new(bytes.Buffer)
 	bd.SerializeUnsigned(buf)
 	temp := sha256.Sum256(buf.Bytes())

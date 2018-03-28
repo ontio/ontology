@@ -20,8 +20,8 @@ package types
 
 import (
 	"bytes"
-	"io"
 	"fmt"
+	"io"
 
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
@@ -80,7 +80,7 @@ func (b *Block) Trim(w io.Writer) error {
 	b.Header.Serialize(w)
 	err := serialization.WriteUint32(w, uint32(len(b.Transactions)))
 	if err != nil {
-		return fmt.Errorf( "Block item Transactions length serialization failed: %s", err)
+		return fmt.Errorf("Block item Transactions length serialization failed: %s", err)
 	}
 	for _, transaction := range b.Transactions {
 		temp := *transaction

@@ -21,8 +21,9 @@ package statestore
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/Ontology/core/payload"
-	. "github.com/Ontology/core/states"
+	"github.com/Ontology/core/states"
 	. "github.com/Ontology/core/store/common"
 	"github.com/syndtr/goleveldb/leveldb"
 )
@@ -54,11 +55,11 @@ func (self *StateBatch) Find(prefix DataEntryPrefix, key []byte) ([]*StateItem, 
 	return states, nil
 }
 
-func (self *StateBatch) TryAdd(prefix DataEntryPrefix, key []byte, value IStateValue, trie bool) {
+func (self *StateBatch) TryAdd(prefix DataEntryPrefix, key []byte, value states.IStateValue, trie bool) {
 	self.setStateObject(byte(prefix), key, value, Changed, trie)
 }
 
-func (self *StateBatch) TryGetOrAdd(prefix DataEntryPrefix, key []byte, value IStateValue, trie bool) error {
+func (self *StateBatch) TryGetOrAdd(prefix DataEntryPrefix, key []byte, value states.IStateValue, trie bool) error {
 	state := self.memoryStore.Get(byte(prefix), key)
 	if state != nil {
 		if state.State == Deleted {
@@ -102,7 +103,7 @@ func (self *StateBatch) TryGet(prefix DataEntryPrefix, key []byte) (*StateItem, 
 	return &StateItem{Key: string(append([]byte{byte(prefix)}, key...)), Value: stateVal, State: None}, nil
 }
 
-func (self *StateBatch) TryGetAndChange(prefix DataEntryPrefix, key []byte, trie bool) (IStateValue, error) {
+func (self *StateBatch) TryGetAndChange(prefix DataEntryPrefix, key []byte, trie bool) (states.IStateValue, error) {
 	state := self.memoryStore.Get(byte(prefix), key)
 	if state != nil {
 		if state.State == Deleted {
@@ -154,11 +155,11 @@ func (this *StateBatch) Change(prefix byte, key []byte, trie bool) {
 	this.memoryStore.Change(prefix, key, trie)
 }
 
-func (self *StateBatch) setStateObject(prefix byte, key []byte, value IStateValue, state ItemState, trie bool) {
+func (self *StateBatch) setStateObject(prefix byte, key []byte, value states.IStateValue, state ItemState, trie bool) {
 	self.memoryStore.Put(prefix, key, value, state, trie)
 }
 
-func getStateObject(prefix DataEntryPrefix, enc []byte) (IStateValue, error) {
+func getStateObject(prefix DataEntryPrefix, enc []byte) (states.IStateValue, error) {
 	reader := bytes.NewBuffer(enc)
 	switch prefix {
 	case ST_BOOK_KEEPER:
@@ -174,7 +175,7 @@ func getStateObject(prefix DataEntryPrefix, enc []byte) (IStateValue, error) {
 		}
 		return contract, nil
 	case ST_STORAGE:
-		storage := new(StorageItem)
+		storage := new(states.StorageItem)
 		if err := storage.Deserialize(reader); err != nil {
 			return nil, err
 		}

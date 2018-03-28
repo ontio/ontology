@@ -19,10 +19,11 @@
 package payload
 
 import (
+	"io"
+	"fmt"
+
 	"github.com/Ontology/common"
 	vmtypes "github.com/Ontology/vm/types"
-	"io"
-	. "github.com/Ontology/errors"
 )
 
 type InvokeCode struct {
@@ -34,11 +35,11 @@ func (self *InvokeCode) Serialize(w io.Writer) error {
 	var err error
 	err = self.GasLimit.Serialize(w)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "InvokeCode GasLimit Serialize failed.")
+			return fmt.Errorf("InvokeCode GasLimit Serialize failed: %s", err)
 	}
 	err = self.Code.Serialize(w)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "InvokeCode Code Serialize failed.")
+			return fmt.Errorf("InvokeCode Code Serialize failed: %s", err)
 	}
 	return err
 }
@@ -48,11 +49,11 @@ func (self *InvokeCode) Deserialize(r io.Reader) error {
 
 	err = self.GasLimit.Deserialize(r)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "InvokeCode GasLimit Deserialize failed.")
+			return fmt.Errorf("InvokeCode GasLimit Deserialize failed: %s", err)
 	}
 	err = self.Code.Deserialize(r)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "InvokeCode Code Deserialize failed.")
+			return fmt.Errorf("InvokeCode Code Deserialize failed: %s", err)
 	}
 	return nil
 }

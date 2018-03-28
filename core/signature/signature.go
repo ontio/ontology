@@ -26,7 +26,6 @@ import (
 
 	"github.com/Ontology/common"
 	"github.com/Ontology/core/contract/program"
-	. "github.com/Ontology/errors"
 	"github.com/Ontology/vm/neovm/interfaces"
 	"github.com/ontio/ontology-crypto/keypair"
 	s "github.com/ontio/ontology-crypto/signature"
@@ -75,7 +74,7 @@ func getHashData(data SignableData) []byte {
 func Sign(privKey keypair.PrivateKey, data []byte) ([]byte, error) {
 	signature, err := s.Sign(defaultScheme, privKey, data, nil)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Signature],Sign failed.")
+		return nil, err
 	}
 
 	return s.Serialize(signature)
