@@ -43,31 +43,31 @@ type Action struct {
 	handler handler
 }
 type restServer struct {
-	router           *Router
-	listener         net.Listener
-	server           *http.Server
-	postMap          map[string]Action
-	getMap           map[string]Action
+	router   *Router
+	listener net.Listener
+	server   *http.Server
+	postMap  map[string]Action
+	getMap   map[string]Action
 }
 
 const (
-	Api_GetGenBlockTime = "/api/v1/node/generateblocktime"
-	Api_GetconnCount  = "/api/v1/node/connectioncount"
-	Api_GetblkTxsByHeight = "/api/v1/block/transactions/height/:height"
-	Api_Getblkbyheight = "/api/v1/block/details/height/:height"
-	Api_Getblkbyhash = "/api/v1/block/details/hash/:hash"
-	Api_Getblkheight = "/api/v1/block/height"
-	Api_Getblkhash = "/api/v1/block/hash/:height"
-	Api_GetTransaction = "/api/v1/transaction/:hash"
-	Api_SendRawTx = "/api/v1/transaction"
-	Api_GetStorage = "/api/v1/storage/:hash/:key"
-	Api_GetBalanceByAddr = "/api/v1/balance/:addr"
-	Api_WebsocketState       = "/api/v1/config/websocket/state"
-	Api_Restart              = "/api/v1/restart"
-	Api_GetContractState     = "/api/v1/contract/:hash"
-	Api_GetSmtCodeEvtTxsByHgt  = "/api/v1/smartcode/event/transactions/:height"
-	Api_GetSmtCodeEvtByHash = "/api/v1/smartcode/event/txhash/:hash"
-	Api_GetBlkHeightByTxHash = "/api/v1/block/height/txhash/:hash"
+	GET_GEN_BLK_TIME      = "/api/v1/node/generateblocktime"
+	GET_CONN_COUNT        = "/api/v1/node/connectioncount"
+	GET_BLK_TXS_BY_HEIGHT = "/api/v1/block/transactions/height/:height"
+	GET_BLK_BY_HEIGHT     = "/api/v1/block/details/height/:height"
+	GET_BLK_BY_HASH       = "/api/v1/block/details/hash/:hash"
+	GET_BLK_HEIGHT        = "/api/v1/block/height"
+	GET_BLK_HASH          = "/api/v1/block/hash/:height"
+	GET_TX                = "/api/v1/transaction/:hash"
+	GET_STORAGE           = "/api/v1/storage/:hash/:key"
+	GET_BALANCE           = "/api/v1/balance/:addr"
+	GET_CONTRACT_STATE    = "/api/v1/contract/:hash"
+	GET_SMTCOCE_EVT_TXS   = "/api/v1/smartcode/event/transactions/:height"
+	GET_SMTCOCE_EVTS      = "/api/v1/smartcode/event/txhash/:hash"
+	GET_BLK_HGT_BY_TXHASH = "/api/v1/block/height/txhash/:hash"
+
+	POST_RAW_TX          = "/api/v1/transaction"
+	POST_WEBWOCKET_STATE = "/api/v1/config/websocket/state"
 )
 
 func InitRestServer() rest.ApiServer {
@@ -87,7 +87,7 @@ func (this *restServer) Start() error {
 	}
 
 	tlsFlag := false
-	if tlsFlag || cfg.Parameters.HttpRestPort % 1000 == rest.TlsPort {
+	if tlsFlag || cfg.Parameters.HttpRestPort%1000 == rest.TLS_PORT {
 		var err error
 		this.listener, err = this.initTlsListen()
 		if err != nil {
@@ -96,7 +96,7 @@ func (this *restServer) Start() error {
 		}
 	} else {
 		var err error
-		this.listener, err = net.Listen("tcp", ":" + strconv.Itoa(cfg.Parameters.HttpRestPort))
+		this.listener, err = net.Listen("tcp", ":"+strconv.Itoa(cfg.Parameters.HttpRestPort))
 		if err != nil {
 			log.Fatal("net.Listen: ", err.Error())
 			return err
@@ -148,21 +148,20 @@ func (this *restServer) setWebsocketState(cmd map[string]interface{}) map[string
 func (this *restServer) registryMethod() {
 
 	getMethodMap := map[string]Action{
-		Api_GetGenBlockTime:  {name: "getgenerateblocktime", handler: rest.GetGenerateBlockTime},
-		Api_GetconnCount:  {name: "getconnectioncount", handler: rest.GetConnectionCount},
-		Api_GetblkTxsByHeight: {name: "getblocktxsbyheight", handler: rest.GetBlockTxsByHeight},
-		Api_Getblkbyheight:    {name: "getblockbyheight", handler: rest.GetBlockByHeight},
-		Api_Getblkbyhash:         {name: "getblockbyhash", handler: rest.GetBlockByHash},
-		Api_Getblkheight:         {name: "getblockheight", handler: rest.GetBlockHeight},
-		Api_Getblkhash:           {name: "getblockhash", handler: rest.GetBlockHash},
-		Api_GetTransaction:       {name: "gettransaction", handler: rest.GetTransactionByHash},
-		Api_GetContractState:     {name: "getcontract", handler: rest.GetContractState},
-		Api_Restart:              {name: "restart", handler: this.Restart},
-		Api_GetSmtCodeEvtTxsByHgt:    {name: "getsmartcodeeventbyheight", handler: rest.GetSmartCodeEventTxsByHeight},
-		Api_GetSmtCodeEvtByHash:    {name: "getsmartcodeeventbyhash", handler: rest.GetSmartCodeEventByTxHash},
-		Api_GetBlkHeightByTxHash: {name: "getblockheightbytxhash", handler: rest.GetBlockHeightByTxHash},
-		Api_GetStorage:           {name: "getstorage", handler: rest.GetStorage},
-		Api_GetBalanceByAddr:    {name: "getbalance", handler: rest.GetBalance},
+		GET_GEN_BLK_TIME:      {name: "getgenerateblocktime", handler: rest.GetGenerateBlockTime},
+		GET_CONN_COUNT:        {name: "getconnectioncount", handler: rest.GetConnectionCount},
+		GET_BLK_TXS_BY_HEIGHT: {name: "getblocktxsbyheight", handler: rest.GetBlockTxsByHeight},
+		GET_BLK_BY_HEIGHT:     {name: "getblockbyheight", handler: rest.GetBlockByHeight},
+		GET_BLK_BY_HASH:       {name: "getblockbyhash", handler: rest.GetBlockByHash},
+		GET_BLK_HEIGHT:        {name: "getblockheight", handler: rest.GetBlockHeight},
+		GET_BLK_HASH:          {name: "getblockhash", handler: rest.GetBlockHash},
+		GET_TX:                {name: "gettransaction", handler: rest.GetTransactionByHash},
+		GET_CONTRACT_STATE:    {name: "getcontract", handler: rest.GetContractState},
+		GET_SMTCOCE_EVT_TXS:   {name: "getsmartcodeeventbyheight", handler: rest.GetSmartCodeEventTxsByHeight},
+		GET_SMTCOCE_EVTS:      {name: "getsmartcodeeventbyhash", handler: rest.GetSmartCodeEventByTxHash},
+		GET_BLK_HGT_BY_TXHASH: {name: "getblockheightbytxhash", handler: rest.GetBlockHeightByTxHash},
+		GET_STORAGE:           {name: "getstorage", handler: rest.GetStorage},
+		GET_BALANCE:           {name: "getbalance", handler: rest.GetBalance},
 	}
 
 	sendRawTransaction := func(cmd map[string]interface{}) map[string]interface{} {
@@ -176,75 +175,74 @@ func (this *restServer) registryMethod() {
 		return resp
 	}
 	postMethodMap := map[string]Action{
-		Api_SendRawTx:          {name: "sendrawtransaction", handler: sendRawTransaction},
-		Api_WebsocketState:     {name: "setwebsocketstate", handler: this.setWebsocketState},
+		POST_RAW_TX:          {name: "sendrawtransaction", handler: sendRawTransaction},
+		POST_WEBWOCKET_STATE: {name: "setwebsocketstate", handler: this.setWebsocketState},
 	}
 	this.postMap = postMethodMap
 	this.getMap = getMethodMap
 }
 func (this *restServer) getPath(url string) string {
 
-	if strings.Contains(url, strings.TrimRight(Api_GetblkTxsByHeight, ":height")) {
-		return Api_GetblkTxsByHeight
-	} else if strings.Contains(url, strings.TrimRight(Api_Getblkbyheight, ":height")) {
-		return Api_Getblkbyheight
-	} else if strings.Contains(url, strings.TrimRight(Api_Getblkhash, ":height")) {
-		return Api_Getblkhash
-	} else if strings.Contains(url, strings.TrimRight(Api_Getblkbyhash, ":hash")) {
-		return Api_Getblkbyhash
-	} else if strings.Contains(url, strings.TrimRight(Api_GetTransaction, ":hash")) {
-		return Api_GetTransaction
-	} else if strings.Contains(url, strings.TrimRight(Api_GetContractState, ":hash")) {
-		return Api_GetContractState
-	} else if strings.Contains(url, strings.TrimRight(Api_GetSmtCodeEvtTxsByHgt, ":height")) {
-		return Api_GetSmtCodeEvtTxsByHgt
-	} else if strings.Contains(url, strings.TrimRight(Api_GetSmtCodeEvtByHash, ":hash")) {
-		return Api_GetSmtCodeEvtByHash
-	} else if strings.Contains(url, strings.TrimRight(Api_GetBlkHeightByTxHash, ":hash")) {
-		return Api_GetBlkHeightByTxHash
-	} else if strings.Contains(url, strings.TrimRight(Api_GetStorage, ":hash/:key")) {
-		return Api_GetStorage
-	} else if strings.Contains(url, strings.TrimRight(Api_GetBalanceByAddr, ":addr")) {
-		return Api_GetBalanceByAddr
+	if strings.Contains(url, strings.TrimRight(GET_BLK_TXS_BY_HEIGHT, ":height")) {
+		return GET_BLK_TXS_BY_HEIGHT
+	} else if strings.Contains(url, strings.TrimRight(GET_BLK_BY_HEIGHT, ":height")) {
+		return GET_BLK_BY_HEIGHT
+	} else if strings.Contains(url, strings.TrimRight(GET_BLK_HASH, ":height")) {
+		return GET_BLK_HASH
+	} else if strings.Contains(url, strings.TrimRight(GET_BLK_BY_HASH, ":hash")) {
+		return GET_BLK_BY_HASH
+	} else if strings.Contains(url, strings.TrimRight(GET_TX, ":hash")) {
+		return GET_TX
+	} else if strings.Contains(url, strings.TrimRight(GET_CONTRACT_STATE, ":hash")) {
+		return GET_CONTRACT_STATE
+	} else if strings.Contains(url, strings.TrimRight(GET_SMTCOCE_EVT_TXS, ":height")) {
+		return GET_SMTCOCE_EVT_TXS
+	} else if strings.Contains(url, strings.TrimRight(GET_SMTCOCE_EVTS, ":hash")) {
+		return GET_SMTCOCE_EVTS
+	} else if strings.Contains(url, strings.TrimRight(GET_BLK_HGT_BY_TXHASH, ":hash")) {
+		return GET_BLK_HGT_BY_TXHASH
+	} else if strings.Contains(url, strings.TrimRight(GET_STORAGE, ":hash/:key")) {
+		return GET_STORAGE
+	} else if strings.Contains(url, strings.TrimRight(GET_BALANCE, ":addr")) {
+		return GET_BALANCE
 	}
 	return url
 }
 func (this *restServer) getParams(r *http.Request, url string, req map[string]interface{}) map[string]interface{} {
 	switch url {
-	case Api_GetGenBlockTime:
-	case Api_GetconnCount:
-	case Api_GetblkTxsByHeight:
+	case GET_GEN_BLK_TIME:
+	case GET_CONN_COUNT:
+	case GET_BLK_TXS_BY_HEIGHT:
 		req["Height"] = getParam(r, "height")
-	case Api_Getblkbyheight:
+	case GET_BLK_BY_HEIGHT:
 		req["Raw"], req["Height"] = r.FormValue("raw"), getParam(r, "height")
-	case Api_Getblkbyhash:
+	case GET_BLK_BY_HASH:
 		req["Raw"], req["Hash"] = r.FormValue("raw"), getParam(r, "hash")
-	case Api_Getblkheight:
-	case Api_Getblkhash:
+	case GET_BLK_HEIGHT:
+	case GET_BLK_HASH:
 		req["Height"] = getParam(r, "height")
-	case Api_GetTransaction:
+	case GET_TX:
 		req["Hash"], req["Raw"] = getParam(r, "hash"), r.FormValue("raw")
-	case Api_GetContractState:
+	case GET_CONTRACT_STATE:
 		req["Hash"], req["Raw"] = getParam(r, "hash"), r.FormValue("raw")
-	case Api_Restart:
-	case Api_SendRawTx:
+	case POST_RAW_TX:
 		userid := r.FormValue("userid")
 		req["Userid"] = userid
 		if len(userid) == 0 {
 			req["Userid"] = getParam(r, "userid")
 		}
 		req["PreExec"] = r.FormValue("preExec")
-	case Api_GetStorage:
-		req["Hash"], req["Key"] = getParam(r, "hash"), getParam(r,"key")
-	case Api_GetSmtCodeEvtTxsByHgt:
+	case GET_STORAGE:
+		req["Hash"], req["Key"] = getParam(r, "hash"), getParam(r, "key")
+	case GET_SMTCOCE_EVT_TXS:
 		req["Height"] = getParam(r, "height")
-	case Api_GetSmtCodeEvtByHash:
+	case GET_SMTCOCE_EVTS:
 		req["Hash"] = getParam(r, "hash")
-	case Api_GetBlkHeightByTxHash:
+	case GET_BLK_HGT_BY_TXHASH:
 		req["Hash"] = getParam(r, "hash")
-	case Api_GetBalanceByAddr:
+	case GET_BALANCE:
 		req["Addr"] = getParam(r, "addr")
-	case Api_WebsocketState:
+	case POST_WEBWOCKET_STATE:
 	default:
 	}
 	return req
@@ -352,7 +350,7 @@ func (this *restServer) initTlsListen() (net.Listener, error) {
 	}
 
 	log.Info("TLS listen port is ", strconv.Itoa(cfg.Parameters.HttpRestPort))
-	listener, err := tls.Listen("tcp", ":" + strconv.Itoa(cfg.Parameters.HttpRestPort), tlsConfig)
+	listener, err := tls.Listen("tcp", ":"+strconv.Itoa(cfg.Parameters.HttpRestPort), tlsConfig)
 	if err != nil {
 		log.Error(err)
 		return nil, err

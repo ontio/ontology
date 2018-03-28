@@ -158,15 +158,8 @@ func VerifyAndSendTx(txn *types.Transaction) onterr.ErrCode {
 	// if transaction is verified unsucessfully then will not put it into transaction pool
 	if errCode := bactor.AppendTxToPool(txn); errCode != onterr.ErrNoError {
 		log.Warn("Can NOT add the transaction to TxnPool")
-		log.Info("[httpjsonrpc] VerifyTransaction failed when AppendTxnPool.")
 		return errCode
 	}
-	/* moveto txpool actor
-		if err := bactor.Xmit(txn); err != nil {
-			log.Error("Xmit Tx Error:Xmit transaction failed.", err)
-			return onterr.ErrXmitFail
-		}
-	*/
 	return onterr.ErrNoError
 }
 

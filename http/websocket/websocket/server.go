@@ -74,7 +74,7 @@ func (this *WsServer) Start() error {
 	}
 
 	tlsFlag := false
-	if tlsFlag || cfg.Parameters.HttpWsPort%1000 == rest.TlsPort {
+	if tlsFlag || cfg.Parameters.HttpWsPort%1000 == rest.TLS_PORT {
 		var err error
 		this.listener, err = this.initTlsListen()
 		if err != nil {

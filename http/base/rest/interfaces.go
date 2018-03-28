@@ -34,7 +34,7 @@ import (
 	"github.com/Ontology/core/genesis"
 )
 
-const TlsPort int = 443
+const TLS_PORT int = 443
 
 type ApiServer interface {
 	Start() error

@@ -36,7 +36,6 @@ func (t *EventActor) Receive(c actor.Context) {
 	case *message.SmartCodeEventMsg:
 		t.smartCodeEvt(*msg.Event)
 	default:
-		//fmt.Println(msg)
 	}
 }
 

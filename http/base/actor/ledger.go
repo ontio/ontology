@@ -31,8 +31,8 @@ import (
 )
 
 const (
-	ReqTimeout   = 5
-	ErrActorComm = "[http] Actor comm error: %v"
+	REQ_TIMEOUT   = 5
+	ERR_ACTOR_COMM = "[http] Actor comm error: %v"
 )
 
 var defLedgerPid *actor.PID
@@ -42,10 +42,10 @@ func SetLedgerPid(actr *actor.PID) {
 }
 
 func GetBlockHashFromStore(height uint32) (common.Uint256, error) {
-	future := defLedgerPid.RequestFuture(&lactor.GetBlockHashReq{height}, ReqTimeout*time.Second)
+	future := defLedgerPid.RequestFuture(&lactor.GetBlockHashReq{height}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Errorf(ErrActorComm, err)
+		log.Errorf(ERR_ACTOR_COMM, err)
 		return common.Uint256{}, err
 	}
 	if rsp, ok := result.(*lactor.GetBlockHashRsp); !ok {
@@ -56,10 +56,10 @@ func GetBlockHashFromStore(height uint32) (common.Uint256, error) {
 }
 
 func CurrentBlockHash() (common.Uint256, error) {
-	future := defLedgerPid.RequestFuture(&lactor.GetCurrentBlockHashReq{}, ReqTimeout*time.Second)
+	future := defLedgerPid.RequestFuture(&lactor.GetCurrentBlockHashReq{}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Errorf(ErrActorComm, err)
+		log.Errorf(ERR_ACTOR_COMM, err)
 		return common.Uint256{}, err
 	}
 	if rsp, ok := result.(*lactor.GetCurrentBlockHashRsp); !ok {
@@ -70,10 +70,10 @@ func CurrentBlockHash() (common.Uint256, error) {
 }
 
 func GetBlockFromStore(hash common.Uint256) (*types.Block, error) {
-	future := defLedgerPid.RequestFuture(&lactor.GetBlockByHashReq{hash}, ReqTimeout*time.Second)
+	future := defLedgerPid.RequestFuture(&lactor.GetBlockByHashReq{hash}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Errorf(ErrActorComm, err)
+		log.Errorf(ERR_ACTOR_COMM, err)
 		return nil, err
 	}
 	if rsp, ok := result.(*lactor.GetBlockByHashRsp); !ok {
@@ -84,10 +84,10 @@ func GetBlockFromStore(hash common.Uint256) (*types.Block, error) {
 }
 
 func BlockHeight() (uint32, error) {
-	future := defLedgerPid.RequestFuture(&lactor.GetCurrentBlockHeightReq{}, ReqTimeout*time.Second)
+	future := defLedgerPid.RequestFuture(&lactor.GetCurrentBlockHeightReq{}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Errorf(ErrActorComm, err)
+		log.Errorf(ERR_ACTOR_COMM, err)
 		return 0, err
 	}
 	if rsp, ok := result.(*lactor.GetCurrentBlockHeightRsp); !ok {
@@ -98,10 +98,10 @@ func BlockHeight() (uint32, error) {
 }
 
 func GetTransaction(hash common.Uint256) (*types.Transaction, error) {
-	future := defLedgerPid.RequestFuture(&lactor.GetTransactionReq{hash}, ReqTimeout*time.Second)
+	future := defLedgerPid.RequestFuture(&lactor.GetTransactionReq{hash}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Errorf(ErrActorComm, err)
+		log.Errorf(ERR_ACTOR_COMM, err)
 		return nil, err
 	}
 	if rsp, ok := result.(*lactor.GetTransactionRsp); !ok {
@@ -112,10 +112,10 @@ func GetTransaction(hash common.Uint256) (*types.Transaction, error) {
 }
 
 func GetStorageItem(codeHash common.Address, key []byte) ([]byte, error) {
-	future := defLedgerPid.RequestFuture(&lactor.GetStorageItemReq{CodeHash: codeHash, Key: key}, ReqTimeout*time.Second)
+	future := defLedgerPid.RequestFuture(&lactor.GetStorageItemReq{CodeHash: codeHash, Key: key}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Errorf(ErrActorComm, err)
+		log.Errorf(ERR_ACTOR_COMM, err)
 		return nil, err
 	}
 	if rsp, ok := result.(*lactor.GetStorageItemRsp); !ok {
@@ -126,14 +126,14 @@ func GetStorageItem(codeHash common.Address, key []byte) ([]byte, error) {
 }
 
 func GetContractStateFromStore(hash common.Address) (*payload.DeployCode, error) {
-	future := defLedgerPid.RequestFuture(&lactor.GetContractStateReq{hash}, ReqTimeout*time.Second)
+	future := defLedgerPid.RequestFuture(&lactor.GetContractStateReq{hash}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Errorf(ErrActorComm, err)
+		log.Errorf(ERR_ACTOR_COMM, err)
 		return nil, err
 	}
 	if rsp, ok := result.(*lactor.GetContractStateRsp); !ok {
-		log.Error(ErrActorComm,"GetContractStateRsp")
+		log.Error(ERR_ACTOR_COMM,"GetContractStateRsp")
 		return nil, errors.New("fail")
 	} else {
 		return rsp.ContractState, rsp.Error
@@ -141,10 +141,10 @@ func GetContractStateFromStore(hash common.Address) (*payload.DeployCode, error)
 }
 
 func GetBlockHeightByTxHashFromStore(hash common.Uint256) (uint32, error) {
-	future := defLedgerPid.RequestFuture(&lactor.GetTransactionWithHeightReq{hash}, ReqTimeout*time.Second)
+	future := defLedgerPid.RequestFuture(&lactor.GetTransactionWithHeightReq{hash}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Errorf(ErrActorComm, err)
+		log.Errorf(ERR_ACTOR_COMM, err)
 		return 0, err
 	}
 	if rsp, ok := result.(*lactor.GetTransactionWithHeightRsp); !ok {
@@ -155,10 +155,10 @@ func GetBlockHeightByTxHashFromStore(hash common.Uint256) (uint32, error) {
 }
 
 func AddBlock(block *types.Block) error {
-	future := defLedgerPid.RequestFuture(&lactor.AddBlockReq{block}, ReqTimeout*time.Second)
+	future := defLedgerPid.RequestFuture(&lactor.AddBlockReq{block}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Errorf(ErrActorComm, err)
+		log.Errorf(ERR_ACTOR_COMM, err)
 		return err
 	}
 	if rsp, ok := result.(*lactor.AddBlockRsp); !ok {
@@ -169,10 +169,10 @@ func AddBlock(block *types.Block) error {
 }
 
 func PreExecuteContract(tx *types.Transaction) ([]interface{}, error) {
-	future := defLedgerPid.RequestFuture(&lactor.PreExecuteContractReq{tx}, ReqTimeout*time.Second)
+	future := defLedgerPid.RequestFuture(&lactor.PreExecuteContractReq{tx}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Errorf(ErrActorComm, err)
+		log.Errorf(ERR_ACTOR_COMM, err)
 		return nil, err
 	}
 	if rsp, ok := result.(*lactor.PreExecuteContractRsp); !ok {
@@ -183,10 +183,10 @@ func PreExecuteContract(tx *types.Transaction) ([]interface{}, error) {
 }
 
 func GetEventNotifyByTxHash(txHash common.Uint256) ([]*event.NotifyEventInfo, error) {
-	future := defLedgerPid.RequestFuture(&lactor.GetEventNotifyByTxReq{txHash}, ReqTimeout*time.Second)
+	future := defLedgerPid.RequestFuture(&lactor.GetEventNotifyByTxReq{txHash}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Errorf(ErrActorComm, err)
+		log.Errorf(ERR_ACTOR_COMM, err)
 		return nil, err
 	}
 	if rsp, ok := result.(*lactor.GetEventNotifyByTxRsp); !ok {
@@ -197,10 +197,10 @@ func GetEventNotifyByTxHash(txHash common.Uint256) ([]*event.NotifyEventInfo, er
 }
 
 func GetEventNotifyByHeight(height uint32) ([]common.Uint256, error) {
-	future := defLedgerPid.RequestFuture(&lactor.GetEventNotifyByBlockReq{height}, ReqTimeout*time.Second)
+	future := defLedgerPid.RequestFuture(&lactor.GetEventNotifyByBlockReq{height}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Errorf(ErrActorComm, err)
+		log.Errorf(ERR_ACTOR_COMM, err)
 		return nil, err
 	}
 	if rsp, ok := result.(*lactor.GetEventNotifyByBlockRsp); !ok {

@@ -100,6 +100,7 @@ func SetTxHashMap(txhash string, sessionid string) {
 
 func PushSmartCodeEvent(v interface{}) {
 	if ws != nil {
+		log.Info("[PushSmartCodeEvent]",v)
 		rs, ok := v.(types.SmartCodeEvent)
 		if !ok {
 			log.Errorf("[PushSmartCodeEvent]","SmartCodeEvent err")

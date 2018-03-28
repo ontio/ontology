@@ -33,7 +33,7 @@ type Session struct {
 	sSessionId  string
 }
 
-const sessionTimeOut int64 = 600
+const SESSION_TIMEOUT int64 = 600
 
 func newSession(wsConn *websocket.Conn) (session *Session, err error) {
 	sSessionId := uuid.NewUUID().String()
@@ -67,7 +67,6 @@ func (this *Session) Send(data []byte) error {
 	if this.mConnection == nil {
 		return errors.New("WebSocket is null")
 	}
-	//https://godoc.org/github.com/gorilla/websocket
 	this.Lock()
 	defer this.Unlock()
 	return this.mConnection.WriteMessage(websocket.TextMessage, data)
@@ -76,7 +75,7 @@ func (this *Session) Send(data []byte) error {
 func (this *Session) SessionTimeoverCheck() bool {
 
 	nCurTime := time.Now().Unix()
-	if nCurTime - this.nLastActive > sessionTimeOut {
+	if nCurTime - this.nLastActive > SESSION_TIMEOUT {
 		//sec
 		return true
 	}
