@@ -19,9 +19,9 @@
 package dbft
 
 import (
-	"github.com/Ontology/common/log"
-	ser "github.com/Ontology/common/serialization"
 	"io"
+
+	ser "github.com/Ontology/common/serialization"
 )
 
 type PrepareResponse struct {
@@ -30,7 +30,6 @@ type PrepareResponse struct {
 }
 
 func (pres *PrepareResponse) Serialize(w io.Writer) error {
-	log.Debug()
 	pres.msgData.Serialize(w)
 	ser.WriteVarBytes(w, pres.Signature)
 	return nil
@@ -38,7 +37,6 @@ func (pres *PrepareResponse) Serialize(w io.Writer) error {
 
 //read data to reader
 func (pres *PrepareResponse) Deserialize(r io.Reader) error {
-	log.Debug()
 	err := pres.msgData.Deserialize(r)
 	if err != nil {
 		return err
@@ -53,16 +51,13 @@ func (pres *PrepareResponse) Deserialize(r io.Reader) error {
 }
 
 func (pres *PrepareResponse) Type() ConsensusMessageType {
-	log.Debug()
 	return pres.ConsensusMessageData().Type
 }
 
 func (pres *PrepareResponse) ViewNumber() byte {
-	log.Debug()
 	return pres.msgData.ViewNumber
 }
 
 func (pres *PrepareResponse) ConsensusMessageData() *ConsensusMessageData {
-	log.Debug()
 	return &(pres.msgData)
 }

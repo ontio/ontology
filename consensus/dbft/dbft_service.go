@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/Ontology/account"
-	. "github.com/Ontology/common"
+	"github.com/Ontology/common"
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
 	actorTypes "github.com/Ontology/consensus/actor"
@@ -243,7 +243,7 @@ func (ds *DbftService) CheckSignatures() error {
 	return nil
 }
 
-func (ds *DbftService) CreateBookkeepingTransaction(nonce uint64, fee Fixed64) *types.Transaction {
+func (ds *DbftService) CreateBookkeepingTransaction(nonce uint64, fee common.Fixed64) *types.Transaction {
 	log.Debug()
 	//TODO: sysfee
 	bookKeepingPayload := &payload.BookKeeping{
@@ -330,8 +330,8 @@ func (ds *DbftService) InitializeConsensus(viewNum byte) error {
 
 func (ds *DbftService) LocalNodeNewInventory(v interface{}) {
 	log.Debug()
-	if inventory, ok := v.(Inventory); ok {
-		if inventory.Type() == CONSENSUS {
+	if inventory, ok := v.(common.Inventory); ok {
+		if inventory.Type() == common.CONSENSUS {
 			payload, ret := inventory.(*p2pmsg.ConsensusPayload)
 			if ret == true {
 				ds.NewConsensusPayload(payload)
@@ -693,7 +693,7 @@ func (ds *DbftService) Timeout() {
 				ds.context.Timestamp = now
 			}
 
-			ds.context.Nonce = GetNonce()
+			ds.context.Nonce = common.GetNonce()
 
 			height := ds.context.Height - 1
 			validHeight := height
@@ -710,7 +710,7 @@ func (ds *DbftService) Timeout() {
 			log.Infof("current block Height %v, incrValidateHeight %v", height, validHeight)
 			txs := ds.poolActor.GetTxnPool(true, validHeight)
 			// todo : fix feesum calcuation
-			feeSum := Fixed64(0)
+			feeSum := common.Fixed64(0)
 
 			txBookkeeping := ds.CreateBookkeepingTransaction(ds.context.Nonce, feeSum)
 			transactions := make([]*types.Transaction, 0, len(txs)+1)

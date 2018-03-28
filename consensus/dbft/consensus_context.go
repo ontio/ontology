@@ -22,7 +22,7 @@ import (
 	"fmt"
 
 	"github.com/Ontology/account"
-	. "github.com/Ontology/common"
+	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	ser "github.com/Ontology/common/serialization"
 	"github.com/Ontology/core/ledger"
@@ -36,7 +36,7 @@ const ContextVersion uint32 = 0
 
 type ConsensusContext struct {
 	State           ConsensusState
-	PrevHash        Uint256
+	PrevHash        common.Uint256
 	Height          uint32
 	ViewNumber      byte
 	Bookkeepers     []keypair.PublicKey
@@ -46,7 +46,7 @@ type ConsensusContext struct {
 	PrimaryIndex    uint32
 	Timestamp       uint32
 	Nonce           uint64
-	NextBookkeeper  Address
+	NextBookkeeper  common.Address
 	Transactions    []*types.Transaction
 	Signatures      [][]byte
 	ExpectedView    []byte
@@ -100,11 +100,11 @@ func (ctx *ConsensusContext) MakeHeader() *types.Block {
 		return nil
 	}
 	if ctx.header == nil {
-		txHash := []Uint256{}
+		txHash := []common.Uint256{}
 		for _, t := range ctx.Transactions {
 			txHash = append(txHash, t.Hash())
 		}
-		txRoot, err := ComputeRoot(txHash)
+		txRoot, err := common.ComputeRoot(txHash)
 		if err != nil {
 			return nil
 		}

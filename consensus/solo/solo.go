@@ -20,15 +20,15 @@ package solo
 
 import (
 	"fmt"
-	ldgactor "github.com/Ontology/core/ledger/actor"
 	"reflect"
 	"time"
 
 	"github.com/Ontology/account"
-	. "github.com/Ontology/common"
+	"github.com/Ontology/common"
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
 	actorTypes "github.com/Ontology/consensus/actor"
+	ldgactor "github.com/Ontology/core/ledger/actor"
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/signature"
@@ -77,7 +77,7 @@ func NewSoloService(bkAccount *account.Account, txpool *actor.PID, ledger *actor
 	return service, err
 }
 
-func (this *SoloService) Receive(context actor.Context) {
+func (self *SoloService) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Restarting:
 		log.Warn("solo actor restarting")
@@ -90,40 +90,40 @@ func (this *SoloService) Receive(context actor.Context) {
 	case *actor.Restart:
 		log.Warn("solo actor restart")
 	case *actorTypes.StartConsensus:
-		if this.existCh != nil {
+		if self.existCh != nil {
 			log.Warn("consensus have started")
 			return
 		}
 
-		this.sub.Subscribe(message.TopicSaveBlockComplete)
+		self.sub.Subscribe(message.TopicSaveBlockComplete)
 
 		timer := time.NewTicker(GenBlockTime)
-		this.existCh = make(chan interface{})
+		self.existCh = make(chan interface{})
 		go func() {
 			defer timer.Stop()
-			existCh := this.existCh
+			existCh := self.existCh
 			for {
 				select {
 				case <-timer.C:
-					this.pid.Tell(&actorTypes.TimeOut{})
+					self.pid.Tell(&actorTypes.TimeOut{})
 				case <-existCh:
 					return
 				}
 			}
 		}()
 	case *actorTypes.StopConsensus:
-		if this.existCh != nil {
-			close(this.existCh)
-			this.existCh = nil
-			this.incrValidator.Clean()
-			this.sub.Unsubscribe(message.TopicSaveBlockComplete)
+		if self.existCh != nil {
+			close(self.existCh)
+			self.existCh = nil
+			self.incrValidator.Clean()
+			self.sub.Unsubscribe(message.TopicSaveBlockComplete)
 		}
 	case *message.SaveBlockCompleteMsg:
 		log.Info("solo actor receives block complete event. block height=", msg.Block.Header.Height)
-		this.incrValidator.AddBlock(msg.Block)
+		self.incrValidator.AddBlock(msg.Block)
 
 	case *actorTypes.TimeOut:
-		err := this.genBlock()
+		err := self.genBlock()
 		if err != nil {
 			log.Errorf("Solo genBlock error %s", err)
 		}
@@ -132,22 +132,22 @@ func (this *SoloService) Receive(context actor.Context) {
 	}
 }
 
-func (this *SoloService) GetPID() *actor.PID {
-	return this.pid
+func (self *SoloService) GetPID() *actor.PID {
+	return self.pid
 }
 
-func (this *SoloService) Start() error {
-	this.pid.Tell(&actorTypes.StartConsensus{})
+func (self *SoloService) Start() error {
+	self.pid.Tell(&actorTypes.StartConsensus{})
 	return nil
 }
 
-func (this *SoloService) Halt() error {
-	this.pid.Tell(&actorTypes.StopConsensus{})
+func (self *SoloService) Halt() error {
+	self.pid.Tell(&actorTypes.StopConsensus{})
 	return nil
 }
 
-func (this *SoloService) genBlock() error {
-	block, err := this.makeBlock()
+func (self *SoloService) genBlock() error {
+	block, err := self.makeBlock()
 	if err != nil {
 		return fmt.Errorf("makeBlock error %s", err)
 	}
@@ -164,9 +164,9 @@ func (this *SoloService) genBlock() error {
 	return nil
 }
 
-func (this *SoloService) makeBlock() (*types.Block, error) {
+func (self *SoloService) makeBlock() (*types.Block, error) {
 	log.Debug()
-	owner := this.Account.PublicKey
+	owner := self.Account.PublicKey
 	nextBookkeeper, err := types.AddressFromBookkeepers([]keypair.PublicKey{owner})
 	if err != nil {
 		return nil, fmt.Errorf("GetBookkeeperAddress error:%s", err)
@@ -176,40 +176,40 @@ func (this *SoloService) makeBlock() (*types.Block, error) {
 
 	validHeight := height
 
-	start, end := this.incrValidator.BlockRange()
+	start, end := self.incrValidator.BlockRange()
 
 	if height+1 == end {
 		validHeight = start
 	} else {
-		this.incrValidator.Clean()
+		self.incrValidator.Clean()
 		log.Infof("incr validator block height %v != ledger block height %v", end-1, height)
 	}
 
 	log.Infof("current block Height %v, incrValidateHeight %v", height, validHeight)
 
-	txs := this.poolActor.GetTxnPool(true, validHeight)
+	txs := self.poolActor.GetTxnPool(true, validHeight)
 	// todo : fix feesum calcuation
-	feeSum := Fixed64(0)
+	feeSum := common.Fixed64(0)
 
 	// TODO: increment checking txs
 
-	nonce := GetNonce()
-	txBookkeeping := this.createBookkeepingTransaction(nonce, feeSum)
+	nonce := common.GetNonce()
+	txBookkeeping := self.createBookkeepingTransaction(nonce, feeSum)
 
 	transactions := make([]*types.Transaction, 0, len(txs)+1)
 	transactions = append(transactions, txBookkeeping)
 	for _, txEntry := range txs {
 		// TODO optimize to use height in txentry
-		if err := this.incrValidator.Verify(txEntry.Tx, validHeight); err == nil {
+		if err := self.incrValidator.Verify(txEntry.Tx, validHeight); err == nil {
 			transactions = append(transactions, txEntry.Tx)
 		}
 	}
 
-	txHash := []Uint256{}
+	txHash := []common.Uint256{}
 	for _, t := range transactions {
 		txHash = append(txHash, t.Hash())
 	}
-	txRoot, err := ComputeRoot(txHash)
+	txRoot, err := common.ComputeRoot(txHash)
 	if err != nil {
 		return nil, fmt.Errorf("ComputeRoot error:%s", err)
 	}
@@ -232,7 +232,7 @@ func (this *SoloService) makeBlock() (*types.Block, error) {
 
 	blockHash := block.Hash()
 
-	sig, err := signature.Sign(this.Account.PrivKey(), blockHash[:])
+	sig, err := signature.Sign(self.Account.PrivKey(), blockHash[:])
 	if err != nil {
 		return nil, fmt.Errorf("[Signature],Sign error:%s.", err)
 	}
@@ -242,7 +242,7 @@ func (this *SoloService) makeBlock() (*types.Block, error) {
 	return block, nil
 }
 
-func (this *SoloService) createBookkeepingTransaction(nonce uint64, fee Fixed64) *types.Transaction {
+func (self *SoloService) createBookkeepingTransaction(nonce uint64, fee common.Fixed64) *types.Transaction {
 	log.Debug()
 	//TODO: sysfee
 	bookKeepingPayload := &payload.BookKeeping{
@@ -254,7 +254,7 @@ func (this *SoloService) createBookkeepingTransaction(nonce uint64, fee Fixed64)
 		Attributes: []*types.TxAttribute{},
 	}
 	txHash := tx.Hash()
-	acc := this.Account
+	acc := self.Account
 	s, err := signature.Sign(acc.PrivateKey, txHash[:])
 	if err != nil {
 		return nil

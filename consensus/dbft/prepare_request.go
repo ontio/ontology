@@ -19,11 +19,12 @@
 package dbft
 
 import (
+	"io"
+	"fmt"
+
 	"github.com/Ontology/common/log"
 	ser "github.com/Ontology/common/serialization"
 	"github.com/Ontology/core/types"
-	. "github.com/Ontology/errors"
-	"io"
 	"github.com/Ontology/common"
 )
 
@@ -40,21 +41,21 @@ func (pr *PrepareRequest) Serialize(w io.Writer) error {
 
 	pr.msgData.Serialize(w)
 	if err := ser.WriteVarUint(w, pr.Nonce); err != nil {
-		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] nonce serialization failed")
+		return fmt.Errorf("[PrepareRequest] nonce serialization failed: %s", err)
 	}
 	if err := pr.NextBookkeeper.Serialize(w); err != nil {
-		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] nextbookkeeper serialization failed")
+		return fmt.Errorf("[PrepareRequest] nextbookkeeper serialization failed: %s", err)
 	}
 	if err := ser.WriteVarUint(w, uint64(len(pr.Transactions))); err != nil {
-		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] length serialization failed")
+		return fmt.Errorf("[PrepareRequest] length serialization failed: %s", err)
 	}
 	for _, t := range pr.Transactions {
 		if err := t.Serialize(w); err != nil {
-			return NewDetailErr(err, ErrNoCode, "[PrepareRequest] transactions serialization failed")
+			return fmt.Errorf("[PrepareRequest] transactions serialization failed: %s", err)
 		}
 	}
 	if err := ser.WriteVarBytes(w, pr.Signature); err != nil {
-		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] signature serialization failed")
+		return fmt.Errorf("[PrepareRequest] signature serialization failed: %s", err)
 	}
 	return nil
 }
@@ -65,26 +66,26 @@ func (pr *PrepareRequest) Deserialize(r io.Reader) error {
 	pr.Nonce, _ = ser.ReadVarUint(r, 0)
 
 	if err := pr.NextBookkeeper.Deserialize(r); err != nil {
-		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] nextbookkeeper deserialization failed")
+		return fmt.Errorf( "[PrepareRequest] nextbookkeeper deserialization failed: %s", err)
 	}
 
 	length, err := ser.ReadVarUint(r, 0)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] length deserialization failed")
+		return fmt.Errorf("[PrepareRequest] length deserialization failed: %s", err)
 	}
 
 	pr.Transactions = make([]*types.Transaction, length)
 	for i := 0; i < len(pr.Transactions); i++ {
 		var t types.Transaction
 		if err := t.Deserialize(r); err != nil {
-			return NewDetailErr(err, ErrNoCode, "[PrepareRequest] transactions deserialization failed")
+			return fmt.Errorf("[PrepareRequest] transactions deserialization failed: %s", err)
 		}
 		pr.Transactions[i] = &t
 	}
 
 	pr.Signature, err = ser.ReadVarBytes(r)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "[PrepareRequest] signature deserialization failed")
+		return fmt.Errorf("[PrepareRequest] signature deserialization failed: %s", err)
 	}
 
 	return nil

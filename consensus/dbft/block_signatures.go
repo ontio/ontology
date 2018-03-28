@@ -20,8 +20,9 @@ package dbft
 
 import (
 	"errors"
-	ser "github.com/Ontology/common/serialization"
 	"io"
+
+	ser "github.com/Ontology/common/serialization"
 )
 
 type BlockSignatures struct {

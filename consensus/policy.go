@@ -19,12 +19,12 @@
 package consensus
 
 import (
-	. "github.com/Ontology/common"
+	"github.com/Ontology/common"
 )
 
 type Policy struct {
 	PolicyLevel PolicyLevel
-	List        []Address
+	List        []common.Address
 }
 
 func NewPolicy() *Policy {

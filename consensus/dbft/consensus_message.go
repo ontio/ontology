@@ -21,9 +21,10 @@ package dbft
 import (
 	"bytes"
 	"errors"
+	"io"
+
 	"github.com/Ontology/common/log"
 	ser "github.com/Ontology/common/serialization"
-	"io"
 )
 
 type ConsensusMessage interface {
@@ -85,7 +86,6 @@ func DeserializeMessage(data []byte) (ConsensusMessage, error) {
 }
 
 func (cd *ConsensusMessageData) Serialize(w io.Writer) {
-	log.Debug()
 	//ConsensusMessageType
 	w.Write([]byte{byte(cd.Type)})
 
