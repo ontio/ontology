@@ -194,7 +194,7 @@ func (s *StateReader) RuntimeCheckWitness(e *vm.ExecutionEngine) (bool, error) {
 			return false, err
 		}
 		result, err = s.CheckWitnessHash(e, program)
-	} else if len(data) == 33 {
+	} else if len(data) == 33 + 2 {
 		publicKey, err := keypair.DeserializePublicKey(data)
 		if err != nil {
 			return false, err
