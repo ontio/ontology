@@ -77,6 +77,6 @@ func StartTxnPoolServer() *tp.TXPoolServer {
 
 	// Subscribe the block complete event
 	var sub = events.NewActorSubscriber(txPoolPid)
-	sub.Subscribe(message.TopicSaveBlockComplete)
+	sub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
 	return s
 }

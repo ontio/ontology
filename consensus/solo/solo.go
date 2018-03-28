@@ -95,7 +95,7 @@ func (self *SoloService) Receive(context actor.Context) {
 			return
 		}
 
-		self.sub.Subscribe(message.TopicSaveBlockComplete)
+		self.sub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
 
 		timer := time.NewTicker(GenBlockTime)
 		self.existCh = make(chan interface{})
@@ -116,7 +116,7 @@ func (self *SoloService) Receive(context actor.Context) {
 			close(self.existCh)
 			self.existCh = nil
 			self.incrValidator.Clean()
-			self.sub.Unsubscribe(message.TopicSaveBlockComplete)
+			self.sub.Unsubscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
 		}
 	case *message.SaveBlockCompleteMsg:
 		log.Info("solo actor receives block complete event. block height=", msg.Block.Header.Height)

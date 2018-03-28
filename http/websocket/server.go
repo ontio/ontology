@@ -40,8 +40,8 @@ var (
 )
 
 func StartServer() {
-	bactor.SubscribeEvent(message.TopicSaveBlockComplete,SendBlock2WSclient)
-	bactor.SubscribeEvent(message.TopicSmartCodeEvent,PushSmartCodeEvent)
+	bactor.SubscribeEvent(message.TOPIC_SAVE_BLOCK_COMPLETE,SendBlock2WSclient)
+	bactor.SubscribeEvent(message.TOPIC_SMART_CODE_EVENT,PushSmartCodeEvent)
 	go func() {
 		ws = websocket.InitWsServer()
 		ws.Start()

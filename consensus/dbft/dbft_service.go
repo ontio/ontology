@@ -276,7 +276,7 @@ func (ds *DbftService) halt() error {
 	}
 
 	if ds.started {
-		ds.sub.Unsubscribe(message.TopicSaveBlockComplete)
+		ds.sub.Unsubscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
 	}
 	return nil
 }
@@ -658,7 +658,7 @@ func (ds *DbftService) start() {
 		log.Warn("The Generate block time should be longer than 2 seconds, so set it to be default 6 seconds.")
 	}
 
-	ds.sub.Subscribe(message.TopicSaveBlockComplete)
+	ds.sub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
 
 	ds.InitializeConsensus(0)
 }

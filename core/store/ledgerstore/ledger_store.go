@@ -716,7 +716,7 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block) error {
 
 	if events.DefActorPublisher != nil {
 		events.DefActorPublisher.Publish(
-			message.TopicSaveBlockComplete,
+			message.TOPIC_SAVE_BLOCK_COMPLETE,
 			&message.SaveBlockCompleteMsg{
 				Block: block,
 			})

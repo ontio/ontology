@@ -25,11 +25,11 @@ import (
 )
 
 const (
-	TopicSaveBlockComplete       = "svblkcmp"
-	TopicNewInventory            = "newinv"
-	TopicNodeDisconnect          = "noddis"
-	TopicNodeConsensusDisconnect = "nodcnsdis"
-	TopicSmartCodeEvent          = "scevt"
+	TOPIC_SAVE_BLOCK_COMPLETE       = "svblkcmp"
+	TOPIC_NEW_INVENTORY             = "newinv"
+	TOPIC_NODE_DISCONNECT           = "noddis"
+	TOPIC_NODE_CONSENSUS_DISCONNECT = "nodcnsdis"
+	TOPIC_SMART_CODE_EVENT          = "scevt"
 )
 
 type SaveBlockCompleteMsg struct {
