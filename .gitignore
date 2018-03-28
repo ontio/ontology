@@ -23,4 +23,3 @@ cscope*
 **/*.txt
 neosnapshot/*
 glide.lock
-config.json
