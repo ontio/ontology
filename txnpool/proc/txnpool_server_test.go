@@ -26,7 +26,6 @@ import (
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/types"
-	"github.com/Ontology/crypto"
 	"github.com/Ontology/errors"
 	tc "github.com/Ontology/txnpool/common"
 	"github.com/Ontology/validator/stateless"
@@ -53,7 +52,6 @@ func (this *testActor) Receive(context actor.Context) {
 }
 
 func init() {
-	crypto.SetAlg("")
 	log.Init(log.Path, log.Stdout)
 	topic = "TXN"
 
