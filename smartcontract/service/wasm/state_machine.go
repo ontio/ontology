@@ -40,9 +40,7 @@ type WasmStateMachine struct {
 	CloneCache *storage.CloneCache
 	trigger    vmtypes.TriggerType
 	time       uint32
-	}
-
-
+}
 
 func NewWasmStateMachine(ldgerStore store.LedgerStore, dbCache scommon.StateStore, trigger vmtypes.TriggerType, time uint32) *WasmStateMachine {
 
@@ -58,7 +56,6 @@ func NewWasmStateMachine(ldgerStore store.LedgerStore, dbCache scommon.StateStor
 	stateMachine.Register("DeleteStorage", stateMachine.deletestore)
 	stateMachine.Register("callContract", callContract)
 
-	//todo add and register services
 	return &stateMachine
 }
 
@@ -218,7 +215,6 @@ func serializeStorageKey(codeHash common.Address, key []byte) ([]byte, error) {
 
 func getContractFromAddr(addr []byte) ([]byte, error) {
 
-	//todo get the contract code from ledger
 	//just for test
 	contract := util.TrimBuffToString(addr)
 	code, err := ioutil.ReadFile(fmt.Sprintf("./testdata2/%s.wasm", contract))
@@ -228,7 +224,7 @@ func getContractFromAddr(addr []byte) ([]byte, error) {
 	}
 
 	return code, nil
-
+	//Fixme get the contract code from ledger
 	/*
 		codeHash, err := common.Uint160ParseFromBytes(addr)
 		if err != nil {

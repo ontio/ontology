@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 // Copyright 2017 The go-interpreter Authors.  All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
@@ -110,21 +128,12 @@ func (module *Module) resolveImports(resolve ResolveFunc) error {
 				//get the function type
 				funcType := module.Types.Entries[importEntry.Type.(FuncImport).Type]
 
-				//todo complete the function sig and body
-				//todo verify the env function sig????
-				/*
-				if !services.Exists(importEntry.FieldName) {
-					return errors.New("function " + importEntry.FieldName + " is not supported! ")
-				}
-				*/
-
 				fn := &Function{IsEnvFunc: true, Name: importEntry.FieldName, Sig: &FunctionSig{ParamTypes: funcType.ParamTypes, ReturnTypes: funcType.ReturnTypes}, Body: &FunctionBody{}}
 				module.FunctionIndexSpace = append(module.FunctionIndexSpace, *fn)
 				module.Code.Bodies = append(module.Code.Bodies, *fn.Body)
 				module.imports.Funcs = append(module.imports.Funcs, funcs)
 				funcs++
 			case ExternalGlobal:
-				//todo to support the memorybase global
 				if importEntry.FieldName == "memoryBase" ||importEntry.FieldName == "tableBase" {
 					glb := &GlobalEntry{Type:&GlobalVar{Type:ValueTypeI32,Mutable:false},
 														Init:[]byte{getGlobal,byte(0),end}, //global 0 end
@@ -140,7 +149,6 @@ func (module *Module) resolveImports(resolve ResolveFunc) error {
 				module.imports.Tables++
 			case ExternalMemory:
 				initMemSize := importEntry.Type.(MemoryImport).Type.Limits.Initial
-				//todo decide how to lazy alloc the memory???
 				memory := make([]byte,65536 *initMemSize)
 				module.LinearMemoryIndexSpace[0] = memory
 				module.imports.Memories++

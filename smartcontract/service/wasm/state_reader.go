@@ -20,31 +20,27 @@ package wasm
 
 import (
 	"errors"
+	"github.com/Ontology/core/store"
 	"github.com/Ontology/smartcontract/event"
 	trigger "github.com/Ontology/smartcontract/types"
-
 	"github.com/Ontology/vm/wasmvm/exec"
-	"github.com/Ontology/core/store"
 )
 
-
-
-type WasmStateReader struct{
-	serviceMap map[string]func(*exec.ExecutionEngine) (bool, error)
-	trigger    trigger.TriggerType
+type WasmStateReader struct {
+	serviceMap    map[string]func(*exec.ExecutionEngine) (bool, error)
+	trigger       trigger.TriggerType
 	Notifications []*event.NotifyEventInfo
 	ldgerStore    store.LedgerStore
 }
 
-func NewWasmStateReader(ldgerStore store.LedgerStore,trigger trigger.TriggerType) *WasmStateReader {
-
+func NewWasmStateReader(ldgerStore store.LedgerStore, trigger trigger.TriggerType) *WasmStateReader {
 	i := &WasmStateReader{
-		ldgerStore:ldgerStore,
+		ldgerStore: ldgerStore,
 		serviceMap: make(map[string]func(*exec.ExecutionEngine) (bool, error)),
-		trigger:trigger,
-		}
+		trigger:    trigger,
+	}
 
-		i.Register("GetBlockHeight",i.getblockheight)
+	i.Register("GetBlockHeight", i.getblockheight)
 
 	return i
 }
@@ -57,7 +53,7 @@ func (i *WasmStateReader) Register(name string, handler func(*exec.ExecutionEngi
 	return true
 }
 
-func (i *WasmStateReader) Invoke(methodName string,engine *exec.ExecutionEngine) (bool, error) {
+func (i *WasmStateReader) Invoke(methodName string, engine *exec.ExecutionEngine) (bool, error) {
 
 	if v, ok := i.serviceMap[methodName]; ok {
 		return v(engine)
