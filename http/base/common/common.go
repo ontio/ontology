@@ -77,7 +77,7 @@ type BlockHead struct {
 	ConsensusData    uint64
 	NextBookkeeper   string
 
-	BookKeepers []string
+	Bookkeepers []string
 	SigData     []string
 
 	Hash string
@@ -186,7 +186,7 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 		Height:           block.Header.Height,
 		ConsensusData:    block.Header.ConsensusData,
 		NextBookkeeper:   block.Header.NextBookkeeper.ToBase58(),
-		BookKeepers:      bookKeepers,
+		Bookkeepers:      bookKeepers,
 		SigData:          sigData,
 		Hash: common.ToHexString(hash.ToArray()),
 	}
