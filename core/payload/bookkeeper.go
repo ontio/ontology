@@ -26,18 +26,18 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 )
 
-const BookKeeperPayloadVersion byte = 0x00
+const BookkeeperPayloadVersion byte = 0x00
 
-type BookKeeperAction byte
+type BookkeeperAction byte
 
 const (
-	BookKeeperAction_ADD BookKeeperAction = 0
-	BookKeeperAction_SUB BookKeeperAction = 1
+	BookkeeperAction_ADD BookkeeperAction = 0
+	BookkeeperAction_SUB BookkeeperAction = 1
 )
 
 type Bookkeeper struct {
 	PubKey keypair.PublicKey
-	Action BookKeeperAction
+	Action BookkeeperAction
 	Cert   []byte
 	Issuer keypair.PublicKey
 }
@@ -77,7 +77,7 @@ func (self *Bookkeeper) Deserialize(r io.Reader) error {
 	if n == 0 {
 		return fmt.Errorf("[Bookkeeper], deserializing Action failed: %s", err)
 	}
-	self.Action = BookKeeperAction(p[0])
+	self.Action = BookkeeperAction(p[0])
 	self.Cert, err = serialization.ReadVarBytes(r)
 	if err != nil {
 		return fmt.Errorf("[Bookkeeper], deserializing Cert failed: %s", err)

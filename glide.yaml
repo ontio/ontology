@@ -18,6 +18,7 @@ import:
   - leveldb/util
 - package: github.com/urfave/cli
   version: v1.20.0
+- package: github.com/orcaman/concurrent-map
 - package: github.com/whyrusleeping/tar-utils
 - package: golang.org/x/text
   repo: https://github.com/golang/text.git

@@ -55,7 +55,7 @@ var GenBlockTime = (config.DEFAULT_GEN_BLOCK_TIME * time.Second)
 var GenesisBookkeepers []keypair.PublicKey
 
 func GenesisBlockInit(defaultBookkeeper []keypair.PublicKey) (*types.Block, error) {
-	//getBookKeeper
+	//getBookkeeper
 	GenesisBookkeepers = defaultBookkeeper
 	nextBookkeeper, err := types.AddressFromBookkeepers(defaultBookkeeper)
 	if err != nil {

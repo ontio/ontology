@@ -46,8 +46,8 @@ Header field description
 | Timestamp | int | block timestamp,uinix timestamp |
 | Height | int | block height |
 | ConsensusData | uint64 |  |
-| NextBookKeeper | Address | Accounting contract hash value for the next block |
-| BookKeepers | []*crypto.PubKey ||
+| NextBookkeeper | Address | Accounting contract hash value for the next block |
+| Bookkeepers | []*crypto.PubKey ||
 | SigData | [][]byte ||
 | Hash | Uint256 | Script to verify the block |
 
