@@ -24,7 +24,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	. "github.com/Ontology/common"
+	common "github.com/Ontology/common"
 	"github.com/Ontology/consensus/vbft/config"
 	"github.com/Ontology/crypto"
 )
@@ -39,32 +39,32 @@ func SignMsg(sk []byte, msg ConsensusMsg) ([]byte, error) {
 	return crypto.Sign(sk, data)
 }
 
-func HashBlock(blk *Block) (Uint256, error) {
+func HashBlock(blk *Block) (common.Uint256, error) {
 	return blk.Block.Hash(), nil
 }
 
-func HashMsg(msg ConsensusMsg) (Uint256, error) {
+func HashMsg(msg ConsensusMsg) (common.Uint256, error) {
 
 	// FIXME: has to do marshal on each call
 
 	data, err := SerializeVbftMsg(msg)
 	if err != nil {
-		return Uint256{}, fmt.Errorf("failed to marshal block: %s", err)
+		return common.Uint256{}, fmt.Errorf("failed to marshal block: %s", err)
 	}
 
 	t := sha256.Sum256(data)
 	f := sha256.Sum256(t[:])
-	return Uint256(f), nil
+	return common.Uint256(f), nil
 }
 
 type vrfData struct {
 	BlockNum          uint64  `json:"block_num"`
-	PrevBlockHash     Uint256 `json:"prev_block_hash"`
+	PrevBlockHash     common.Uint256 `json:"prev_block_hash"`
 	PrevBlockProposer uint32  `json:"prev_block_proposer"` // TODO: change to NodeID
 	PrevBlockSig      []byte  `json:"prev_block_sig"`
 }
 
-func vrf(block *Block, hash Uint256) vconfig.VRFValue {
+func vrf(block *Block, hash common.Uint256) vconfig.VRFValue {
 
 	// XXX: all-zero vrf value is taken as invalid
 	sig := []byte{}
