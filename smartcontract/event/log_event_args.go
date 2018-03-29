@@ -19,7 +19,7 @@
 package event
 
 import (
-	"github.com/Ontology/common"
+	"github.com/ontio/ontology/common"
 )
 
 type LogEventArgs struct {

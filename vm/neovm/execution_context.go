@@ -21,10 +21,10 @@ package neovm
 import (
 	"io"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/vm/neovm/types"
-	"github.com/Ontology/vm/neovm/utils"
-	vmtypes "github.com/Ontology/vm/types"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/vm/neovm/types"
+	"github.com/ontio/ontology/vm/neovm/utils"
+	vmtypes "github.com/ontio/ontology/vm/types"
 )
 
 type ExecutionContext struct {

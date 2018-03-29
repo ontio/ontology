@@ -24,11 +24,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/serialization"
-	scom "github.com/Ontology/core/store/common"
-	"github.com/Ontology/core/store/leveldbstore"
-	"github.com/Ontology/smartcontract/event"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/serialization"
+	scom "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/core/store/leveldbstore"
+	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 

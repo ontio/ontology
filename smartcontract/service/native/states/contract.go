@@ -21,9 +21,9 @@ package states
 import (
 	"io"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/serialization"
-	"github.com/Ontology/errors"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/errors"
 )
 
 type Contract struct {

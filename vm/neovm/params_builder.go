@@ -23,7 +23,7 @@ import (
 	"encoding/binary"
 	"math/big"
 
-	"github.com/Ontology/vm/neovm/types"
+	"github.com/ontio/ontology/vm/neovm/types"
 )
 
 type ParamsBuilder struct {

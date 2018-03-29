@@ -24,16 +24,16 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/genesis"
-	"github.com/Ontology/core/payload"
-	"github.com/Ontology/core/types"
-	ontErrors "github.com/Ontology/errors"
-	bactor "github.com/Ontology/http/base/actor"
-	bcomn "github.com/Ontology/http/base/common"
-	berr "github.com/Ontology/http/base/error"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/genesis"
+	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/types"
+	ontErrors "github.com/ontio/ontology/errors"
+	bactor "github.com/ontio/ontology/http/base/actor"
+	bcomn "github.com/ontio/ontology/http/base/common"
+	berr "github.com/ontio/ontology/http/base/error"
 )
 
 func GetGenerateBlockTime(params []interface{}) map[string]interface{} {

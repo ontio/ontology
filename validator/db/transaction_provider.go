@@ -21,9 +21,9 @@ package db
 import (
 	"io"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/serialization"
-	"github.com/Ontology/core/types"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/types"
 )
 
 type TransactionMeta struct {

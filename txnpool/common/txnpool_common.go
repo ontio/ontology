@@ -19,9 +19,9 @@
 package common
 
 import (
-	"github.com/Ontology/common"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/errors"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/errors"
 )
 
 const (

@@ -22,9 +22,9 @@ import (
 	"crypto/sha256"
 	"errors"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
-	ontErrors "github.com/Ontology/errors"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	ontErrors "github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology-crypto/keypair"
 	s "github.com/ontio/ontology-crypto/signature"
 )

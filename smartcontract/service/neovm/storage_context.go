@@ -19,7 +19,7 @@
 package neovm
 
 import (
-	"github.com/Ontology/common"
+	"github.com/ontio/ontology/common"
 )
 
 type StorageContext struct {

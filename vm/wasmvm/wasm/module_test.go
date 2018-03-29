@@ -28,7 +28,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/Ontology/vm/wasmvm/wasm"
+	"github.com/ontio/ontology/vm/wasmvm/wasm"
 )
 
 func TestReadModule(t *testing.T) {

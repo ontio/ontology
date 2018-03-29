@@ -25,8 +25,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/Ontology/common/config"
-	"github.com/Ontology/common/password"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/password"
 
 	"github.com/urfave/cli"
 )

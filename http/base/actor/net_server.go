@@ -22,9 +22,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/Ontology/common/log"
-	ac "github.com/Ontology/net/actor"
-	"github.com/Ontology/net/protocol"
+	"github.com/ontio/ontology/common/log"
+	ac "github.com/ontio/ontology/net/actor"
+	"github.com/ontio/ontology/net/protocol"
 	"github.com/ontio/ontology-eventbus/actor"
 )
 

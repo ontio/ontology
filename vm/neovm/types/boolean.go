@@ -21,7 +21,7 @@ package types
 import (
 	"math/big"
 
-	"github.com/Ontology/vm/neovm/interfaces"
+	"github.com/ontio/ontology/vm/neovm/interfaces"
 )
 
 type Boolean struct {

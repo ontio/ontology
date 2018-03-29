@@ -24,9 +24,9 @@ import (
 	"errors"
 	"io"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/core/contract/program"
-	"github.com/Ontology/vm/neovm/interfaces"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/contract/program"
+	"github.com/ontio/ontology/vm/neovm/interfaces"
 	"github.com/ontio/ontology-crypto/keypair"
 	s "github.com/ontio/ontology-crypto/signature"
 )

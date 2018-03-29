@@ -23,8 +23,8 @@ import (
 	"errors"
 	"io"
 
-	"github.com/Ontology/common/log"
-	ser "github.com/Ontology/common/serialization"
+	"github.com/ontio/ontology/common/log"
+	ser "github.com/ontio/ontology/common/serialization"
 )
 
 type ConsensusMessage interface {

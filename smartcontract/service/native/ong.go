@@ -22,11 +22,11 @@ import (
 	"bytes"
 	"math/big"
 
-	"github.com/Ontology/core/genesis"
-	cstates "github.com/Ontology/core/states"
-	scommon "github.com/Ontology/core/store/common"
-	"github.com/Ontology/errors"
-	"github.com/Ontology/smartcontract/service/native/states"
+	"github.com/ontio/ontology/core/genesis"
+	cstates "github.com/ontio/ontology/core/states"
+	scommon "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/smartcontract/service/native/states"
 )
 
 var (

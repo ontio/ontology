@@ -22,16 +22,16 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/core/genesis"
-	scommon "github.com/Ontology/core/store/common"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/errors"
-	"github.com/Ontology/smartcontract/context"
-	"github.com/Ontology/smartcontract/event"
-	"github.com/Ontology/smartcontract/service/native/states"
-	"github.com/Ontology/smartcontract/storage"
-	vmtypes "github.com/Ontology/vm/types"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/genesis"
+	scommon "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/smartcontract/context"
+	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/native/states"
+	"github.com/ontio/ontology/smartcontract/storage"
+	vmtypes "github.com/ontio/ontology/vm/types"
 )
 
 type (

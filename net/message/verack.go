@@ -23,8 +23,8 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/net/protocol"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/net/protocol"
 )
 
 type verACK struct {

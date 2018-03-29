@@ -19,9 +19,9 @@
 package message
 
 import (
-	"github.com/Ontology/common"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/net/protocol"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/net/protocol"
 )
 
 const (

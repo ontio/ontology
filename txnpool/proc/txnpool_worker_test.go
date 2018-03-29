@@ -25,11 +25,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/errors"
-	tc "github.com/Ontology/txnpool/common"
-	vt "github.com/Ontology/validator/types"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/errors"
+	tc "github.com/ontio/ontology/txnpool/common"
+	vt "github.com/ontio/ontology/validator/types"
 )
 
 func TestWorker(t *testing.T) {

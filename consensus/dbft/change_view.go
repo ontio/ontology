@@ -21,7 +21,7 @@ package dbft
 import (
 	"io"
 
-	ser "github.com/Ontology/common/serialization"
+	ser "github.com/ontio/ontology/common/serialization"
 )
 
 type ChangeView struct {

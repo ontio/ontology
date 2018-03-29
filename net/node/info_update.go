@@ -24,11 +24,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/net/actor"
-	"github.com/Ontology/net/message"
-	"github.com/Ontology/net/protocol"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/net/actor"
+	"github.com/ontio/ontology/net/message"
+	"github.com/ontio/ontology/net/protocol"
 )
 
 func (node *node) GetBlkHdrs() {

@@ -19,11 +19,11 @@
 package store
 
 import (
-	"github.com/Ontology/common"
-	"github.com/Ontology/core/payload"
-	"github.com/Ontology/core/states"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/smartcontract/event"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology-crypto/keypair"
 )
 

@@ -23,11 +23,11 @@ import (
 	"math/big"
 	"sort"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
-	pg "github.com/Ontology/core/contract/program"
-	sig "github.com/Ontology/core/signature"
-	_ "github.com/Ontology/errors"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	pg "github.com/ontio/ontology/core/contract/program"
+	sig "github.com/ontio/ontology/core/signature"
+	_ "github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology-crypto/keypair"
 )
 

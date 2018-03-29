@@ -19,7 +19,7 @@
 package neovm
 
 import (
-	"github.com/Ontology/vm/neovm/types"
+	"github.com/ontio/ontology/vm/neovm/types"
 )
 
 type Element interface {

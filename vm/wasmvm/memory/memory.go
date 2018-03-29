@@ -24,7 +24,7 @@ import (
 	"math"
 	"reflect"
 
-	"github.com/Ontology/vm/wasmvm/util"
+	"github.com/ontio/ontology/vm/wasmvm/util"
 )
 
 type PType int

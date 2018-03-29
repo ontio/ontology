@@ -4,7 +4,7 @@
 
 Welcome to Ontology's source code library!
 
-Ontology is dedicated to creating a freely configurable, componentized, cross-chain supported, high-performance, and horizontally scalable blockchain infrastructure system. Ontology makes deploying and calling Decentralization applications even more easier.
+Ontology is dedicated to creating a freely configurable, componentized, interoperability across chains, high-performance, and horizontally scalable blockchain infrastructure system. Ontology makes deploying and calling Decentralization applications even more easier.
 
 The code is currently alpha-quality, but in the rapid development process. The master code may be unstable, stable versions can be downloaded in the release page.
 

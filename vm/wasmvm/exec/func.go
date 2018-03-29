@@ -28,7 +28,7 @@ import (
 
 	"fmt"
 
-	"github.com/Ontology/vm/wasmvm/exec/internal/compile"
+	"github.com/ontio/ontology/vm/wasmvm/exec/internal/compile"
 )
 
 type function interface {

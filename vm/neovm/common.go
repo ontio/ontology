@@ -24,8 +24,8 @@ import (
 	"hash"
 	"math/big"
 
-	"github.com/Ontology/vm/neovm/interfaces"
-	"github.com/Ontology/vm/neovm/types"
+	"github.com/ontio/ontology/vm/neovm/interfaces"
+	"github.com/ontio/ontology/vm/neovm/types"
 )
 
 type BigIntSorter []big.Int

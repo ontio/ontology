@@ -21,14 +21,14 @@ package dbft
 import (
 	"fmt"
 
-	"github.com/Ontology/account"
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
-	ser "github.com/Ontology/common/serialization"
-	"github.com/Ontology/core/ledger"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/core/vote"
-	msg "github.com/Ontology/net/message"
+	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	ser "github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/ledger"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/core/vote"
+	msg "github.com/ontio/ontology/net/message"
 	"github.com/ontio/ontology-crypto/keypair"
 )
 

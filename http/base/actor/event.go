@@ -19,8 +19,8 @@
 package actor
 
 import (
-	"github.com/Ontology/events"
-	"github.com/Ontology/events/message"
+	"github.com/ontio/ontology/events"
+	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology-eventbus/actor"
 )
 

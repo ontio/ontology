@@ -24,9 +24,9 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/vm/neovm/errors"
-	"github.com/Ontology/vm/neovm/types"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/vm/neovm/errors"
+	"github.com/ontio/ontology/vm/neovm/types"
 )
 
 func validateCount1(e *ExecutionEngine) error {

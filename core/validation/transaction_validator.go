@@ -22,13 +22,13 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/ledger"
-	"github.com/Ontology/core/payload"
-	"github.com/Ontology/core/signature"
-	"github.com/Ontology/core/types"
-	ontErrors "github.com/Ontology/errors"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/ledger"
+	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/signature"
+	"github.com/ontio/ontology/core/types"
+	ontErrors "github.com/ontio/ontology/errors"
 )
 
 // VerifyTransaction verifys received single transaction

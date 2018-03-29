@@ -22,14 +22,14 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/serialization"
-	"github.com/Ontology/core/payload"
-	"github.com/Ontology/core/states"
-	scom "github.com/Ontology/core/store/common"
-	"github.com/Ontology/core/store/leveldbstore"
-	"github.com/Ontology/core/store/statestore"
-	"github.com/Ontology/merkle"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/states"
+	scom "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/core/store/leveldbstore"
+	"github.com/ontio/ontology/core/store/statestore"
+	"github.com/ontio/ontology/merkle"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 

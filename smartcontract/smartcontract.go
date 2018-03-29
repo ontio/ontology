@@ -17,21 +17,21 @@
 package smartcontract
 
 import (
-	"github.com/Ontology/common"
-	"github.com/Ontology/core/store"
-	scommon "github.com/Ontology/core/store/common"
-	ctypes "github.com/Ontology/core/types"
-	"github.com/Ontology/smartcontract/context"
-	"github.com/Ontology/smartcontract/event"
-	"github.com/Ontology/smartcontract/service/native"
-	sneovm "github.com/Ontology/smartcontract/service/neovm"
-	"github.com/Ontology/smartcontract/service/wasm"
-	stypes "github.com/Ontology/smartcontract/types"
-	"github.com/Ontology/vm/neovm"
-	"github.com/Ontology/vm/neovm/interfaces"
-	vmtypes "github.com/Ontology/vm/types"
-	"github.com/Ontology/vm/wasmvm/exec"
-	"github.com/Ontology/vm/wasmvm/util"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/store"
+	scommon "github.com/ontio/ontology/core/store/common"
+	ctypes "github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/context"
+	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/native"
+	sneovm "github.com/ontio/ontology/smartcontract/service/neovm"
+	"github.com/ontio/ontology/smartcontract/service/wasm"
+	stypes "github.com/ontio/ontology/smartcontract/types"
+	"github.com/ontio/ontology/vm/neovm"
+	"github.com/ontio/ontology/vm/neovm/interfaces"
+	vmtypes "github.com/ontio/ontology/vm/types"
+	"github.com/ontio/ontology/vm/wasmvm/exec"
+	"github.com/ontio/ontology/vm/wasmvm/util"
 )
 
 type SmartContract struct {

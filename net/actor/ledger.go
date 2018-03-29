@@ -21,11 +21,11 @@ package actor
 import (
 	"time"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
-	ledger "github.com/Ontology/core/ledger/actor"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/errors"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	ledger "github.com/ontio/ontology/core/ledger/actor"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology-eventbus/actor"
 )
 

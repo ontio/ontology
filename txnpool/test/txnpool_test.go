@@ -26,13 +26,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/payload"
-	"github.com/Ontology/core/types"
-	tc "github.com/Ontology/txnpool/common"
-	tp "github.com/Ontology/txnpool/proc"
-	"github.com/Ontology/validator/stateless"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/types"
+	tc "github.com/ontio/ontology/txnpool/common"
+	tp "github.com/ontio/ontology/txnpool/proc"
+	"github.com/ontio/ontology/validator/stateless"
 	"github.com/ontio/ontology-eventbus/actor"
 )
 

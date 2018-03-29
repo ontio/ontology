@@ -22,7 +22,7 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/Ontology/common/serialization"
+	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology-crypto/keypair"
 )
 

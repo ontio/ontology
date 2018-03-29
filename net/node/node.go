@@ -33,14 +33,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/events"
-	"github.com/Ontology/net/actor"
-	msg "github.com/Ontology/net/message"
-	"github.com/Ontology/net/protocol"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/events"
+	"github.com/ontio/ontology/net/actor"
+	msg "github.com/ontio/ontology/net/message"
+	"github.com/ontio/ontology/net/protocol"
 	"github.com/ontio/ontology-crypto/keypair"
 )
 

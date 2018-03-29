@@ -29,11 +29,11 @@ import (
 	"sync"
 	"time"
 
-	cfg "github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
-	Err "github.com/Ontology/http/base/error"
-	"github.com/Ontology/http/base/rest"
-	"github.com/Ontology/http/websocket/session"
+	cfg "github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
+	Err "github.com/ontio/ontology/http/base/error"
+	"github.com/ontio/ontology/http/base/rest"
+	"github.com/ontio/ontology/http/websocket/session"
 	"github.com/gorilla/websocket"
 )
 

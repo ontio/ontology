@@ -26,8 +26,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	ct "github.com/Ontology/core/contract"
-	ontErrors "github.com/Ontology/errors"
+	ct "github.com/ontio/ontology/core/contract"
+	ontErrors "github.com/ontio/ontology/errors"
 )
 
 type FileData struct {

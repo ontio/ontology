@@ -27,7 +27,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/Ontology/vm/wasmvm/wasm/internal/readpos"
+	"github.com/ontio/ontology/vm/wasmvm/wasm/internal/readpos"
 )
 
 func TestRead(t *testing.T) {

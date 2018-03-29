@@ -22,12 +22,12 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/errors"
-	vt "github.com/Ontology/validator/types"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/errors"
+	vt "github.com/ontio/ontology/validator/types"
 )
 
 type TXAttr struct {

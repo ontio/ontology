@@ -30,11 +30,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/events"
-	msg "github.com/Ontology/net/message"
-	"github.com/Ontology/net/protocol"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/events"
+	msg "github.com/ontio/ontology/net/message"
+	"github.com/ontio/ontology/net/protocol"
 )
 
 type RxBuff struct {

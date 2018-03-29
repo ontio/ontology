@@ -22,12 +22,12 @@ import (
 	"errors"
 	"time"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
-	lactor "github.com/Ontology/core/ledger/actor"
-	"github.com/Ontology/core/payload"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/smartcontract/event"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	lactor "github.com/ontio/ontology/core/ledger/actor"
+	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology-eventbus/actor"
 )
 

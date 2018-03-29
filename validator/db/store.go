@@ -26,13 +26,13 @@ import (
 
 	pool "github.com/valyala/bytebufferpool"
 
-	"github.com/Ontology/common"
-	storcomm "github.com/Ontology/core/store/common"
-	leveldb "github.com/Ontology/core/store/leveldbstore"
-	"github.com/Ontology/core/types"
-	tx "github.com/Ontology/core/types"
+	"github.com/ontio/ontology/common"
+	storcomm "github.com/ontio/ontology/core/store/common"
+	leveldb "github.com/ontio/ontology/core/store/leveldbstore"
+	"github.com/ontio/ontology/core/types"
+	tx "github.com/ontio/ontology/core/types"
 
-	"github.com/Ontology/common/serialization"
+	"github.com/ontio/ontology/common/serialization"
 )
 
 var keyPool pool.Pool

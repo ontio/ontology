@@ -19,11 +19,11 @@
 package common
 
 import (
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/types"
-	ontErrors "github.com/Ontology/errors"
-	bactor "github.com/Ontology/http/base/actor"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/types"
+	ontErrors "github.com/ontio/ontology/errors"
+	bactor "github.com/ontio/ontology/http/base/actor"
 	"github.com/ontio/ontology-crypto/keypair"
 )
 

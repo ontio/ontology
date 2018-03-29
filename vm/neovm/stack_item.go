@@ -18,7 +18,7 @@
 
 package neovm
 
-import "github.com/Ontology/vm/neovm/types"
+import "github.com/ontio/ontology/vm/neovm/types"
 
 type StackItem struct {
 	_object types.StackItems

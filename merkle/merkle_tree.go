@@ -23,8 +23,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 )
 
 // const UINT256_SIZE int = 32

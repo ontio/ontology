@@ -26,8 +26,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Ontology/vm/wasmvm/wasm"
-	ops "github.com/Ontology/vm/wasmvm/wasm/operators"
+	"github.com/ontio/ontology/vm/wasmvm/wasm"
+	ops "github.com/ontio/ontology/vm/wasmvm/wasm/operators"
 )
 
 type Error struct {

@@ -22,11 +22,11 @@ import (
 	"errors"
 	"time"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/types"
-	ontErrors "github.com/Ontology/errors"
-	tcomn "github.com/Ontology/txnpool/common"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/types"
+	ontErrors "github.com/ontio/ontology/errors"
+	tcomn "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology-eventbus/actor"
 )
 

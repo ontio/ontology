@@ -35,9 +35,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Ontology/vm/wasmvm/exec"
-	"github.com/Ontology/vm/wasmvm/validate"
-	"github.com/Ontology/vm/wasmvm/wasm"
+	"github.com/ontio/ontology/vm/wasmvm/exec"
+	"github.com/ontio/ontology/vm/wasmvm/validate"
+	"github.com/ontio/ontology/vm/wasmvm/wasm"
 )
 
 const (

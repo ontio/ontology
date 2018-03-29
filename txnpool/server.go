@@ -19,11 +19,11 @@
 package txnpool
 
 import (
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/events"
-	"github.com/Ontology/events/message"
-	tc "github.com/Ontology/txnpool/common"
-	tp "github.com/Ontology/txnpool/proc"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/events"
+	"github.com/ontio/ontology/events/message"
+	tc "github.com/ontio/ontology/txnpool/common"
+	tp "github.com/ontio/ontology/txnpool/proc"
 	"github.com/ontio/ontology-eventbus/actor"
 )
 

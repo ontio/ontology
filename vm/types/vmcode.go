@@ -22,8 +22,8 @@ import (
 	"crypto/sha256"
 	"io"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/serialization"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/serialization"
 	"golang.org/x/crypto/ripemd160"
 )
 

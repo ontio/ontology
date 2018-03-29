@@ -22,17 +22,17 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/core/payload"
-	"github.com/Ontology/core/states"
-	"github.com/Ontology/core/store"
-	scommon "github.com/Ontology/core/store/common"
-	"github.com/Ontology/core/store/statestore"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/smartcontract"
-	"github.com/Ontology/smartcontract/context"
-	"github.com/Ontology/smartcontract/event"
-	vmtypes "github.com/Ontology/vm/types"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/core/store"
+	scommon "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/core/store/statestore"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract"
+	"github.com/ontio/ontology/smartcontract/context"
+	"github.com/ontio/ontology/smartcontract/event"
+	vmtypes "github.com/ontio/ontology/vm/types"
 )
 
 const (

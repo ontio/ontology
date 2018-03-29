@@ -21,8 +21,8 @@ package actor
 import (
 	"reflect"
 
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/net/protocol"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/net/protocol"
 	"github.com/ontio/ontology-eventbus/actor"
 )
 

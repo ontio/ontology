@@ -27,9 +27,9 @@ import (
 	"encoding/binary"
 	"io"
 
-	"github.com/Ontology/vm/wasmvm/wasm"
-	"github.com/Ontology/vm/wasmvm/wasm/leb128"
-	ops "github.com/Ontology/vm/wasmvm/wasm/operators"
+	"github.com/ontio/ontology/vm/wasmvm/wasm"
+	"github.com/ontio/ontology/vm/wasmvm/wasm/leb128"
+	ops "github.com/ontio/ontology/vm/wasmvm/wasm/operators"
 )
 
 // mockVM is a minimal implementation of a virtual machine to

@@ -22,10 +22,10 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
-	ser "github.com/Ontology/common/serialization"
-	"github.com/Ontology/core/types"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	ser "github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/types"
 )
 
 type PrepareRequest struct {

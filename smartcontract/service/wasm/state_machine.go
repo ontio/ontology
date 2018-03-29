@@ -24,15 +24,15 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/core/states"
-	"github.com/Ontology/core/store"
-	scommon "github.com/Ontology/core/store/common"
-	"github.com/Ontology/smartcontract/storage"
-	vmtypes "github.com/Ontology/smartcontract/types"
-	"github.com/Ontology/vm/wasmvm/exec"
-	"github.com/Ontology/vm/wasmvm/util"
-	"github.com/Ontology/vm/wasmvm/wasm"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/core/store"
+	scommon "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/smartcontract/storage"
+	vmtypes "github.com/ontio/ontology/smartcontract/types"
+	"github.com/ontio/ontology/vm/wasmvm/exec"
+	"github.com/ontio/ontology/vm/wasmvm/util"
+	"github.com/ontio/ontology/vm/wasmvm/wasm"
 )
 
 type WasmStateMachine struct {

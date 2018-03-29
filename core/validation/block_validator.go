@@ -22,10 +22,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Ontology/core/ledger"
-	"github.com/Ontology/core/signature"
-	"github.com/Ontology/core/types"
-	ontErrors "github.com/Ontology/errors"
+	"github.com/ontio/ontology/core/ledger"
+	"github.com/ontio/ontology/core/signature"
+	"github.com/ontio/ontology/core/types"
+	ontErrors "github.com/ontio/ontology/errors"
 )
 
 func VerifyBlock(block *types.Block, ld *ledger.Ledger, completely bool) error {

@@ -19,7 +19,7 @@
 package actor
 
 import (
-	cactor "github.com/Ontology/consensus/actor"
+	cactor "github.com/ontio/ontology/consensus/actor"
 	"github.com/ontio/ontology-eventbus/actor"
 )
 

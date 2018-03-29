@@ -22,9 +22,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/Ontology/core/types"
-	ontErrors "github.com/Ontology/errors"
-	txpool "github.com/Ontology/txnpool/common"
+	"github.com/ontio/ontology/core/types"
+	ontErrors "github.com/ontio/ontology/errors"
+	txpool "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology-eventbus/actor"
 )
 

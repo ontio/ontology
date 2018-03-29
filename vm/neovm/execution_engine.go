@@ -19,10 +19,10 @@ package neovm
 import (
 	"io"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/vm/neovm/errors"
-	"github.com/Ontology/vm/neovm/interfaces"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/vm/neovm/errors"
+	"github.com/ontio/ontology/vm/neovm/interfaces"
 )
 
 func NewExecutionEngine(container interfaces.CodeContainer, crypto interfaces.Crypto, table interfaces.CodeTable, service InteropServices) *ExecutionEngine {

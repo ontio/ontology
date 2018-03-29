@@ -26,11 +26,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/common/serialization"
-	"github.com/Ontology/net/actor"
-	"github.com/Ontology/net/protocol"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/net/actor"
+	"github.com/ontio/ontology/net/protocol"
 )
 
 var LastInvHash common.Uint256

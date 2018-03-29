@@ -21,8 +21,8 @@ package types
 import (
 	"math/big"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/vm/neovm/interfaces"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/vm/neovm/interfaces"
 )
 
 type Interop struct {

@@ -30,11 +30,11 @@ import (
 	"sync"
 	"time"
 
-	cfg "github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
-	berr "github.com/Ontology/http/base/error"
-	"github.com/Ontology/http/base/rest"
-	"github.com/Ontology/http/websocket"
+	cfg "github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
+	berr "github.com/ontio/ontology/http/base/error"
+	"github.com/ontio/ontology/http/base/rest"
+	"github.com/ontio/ontology/http/websocket"
 )
 
 type handler func(map[string]interface{}) map[string]interface{}

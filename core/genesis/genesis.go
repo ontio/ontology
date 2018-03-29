@@ -23,12 +23,12 @@ import (
 	"errors"
 	"time"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/config"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/core/utils"
-	"github.com/Ontology/smartcontract/service/native/states"
-	vmtypes "github.com/Ontology/vm/types"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/core/utils"
+	"github.com/ontio/ontology/smartcontract/service/native/states"
+	vmtypes "github.com/ontio/ontology/vm/types"
 	"github.com/ontio/ontology-crypto/keypair"
 )
 

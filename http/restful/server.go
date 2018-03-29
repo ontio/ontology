@@ -19,7 +19,7 @@
 package restful
 
 import (
-	"github.com/Ontology/http/restful/restful"
+	"github.com/ontio/ontology/http/restful/restful"
 )
 
 func StartServer() {

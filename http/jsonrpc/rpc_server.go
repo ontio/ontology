@@ -22,9 +22,9 @@ import (
 	"net/http"
 	"strconv"
 
-	cfg "github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/http/base/rpc"
+	cfg "github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/http/base/rpc"
 )
 
 func StartRPCServer() {

@@ -21,8 +21,8 @@ package ledgerstore
 import (
 	"fmt"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/core/types"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/types"
 	"github.com/hashicorp/golang-lru"
 )
 

@@ -27,12 +27,12 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/vm/neovm/interfaces"
-	"github.com/Ontology/vm/wasmvm/memory"
-	"github.com/Ontology/vm/wasmvm/util"
-	"github.com/Ontology/vm/wasmvm/validate"
-	"github.com/Ontology/vm/wasmvm/wasm"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/vm/neovm/interfaces"
+	"github.com/ontio/ontology/vm/wasmvm/memory"
+	"github.com/ontio/ontology/vm/wasmvm/util"
+	"github.com/ontio/ontology/vm/wasmvm/validate"
+	"github.com/ontio/ontology/vm/wasmvm/wasm"
 )
 
 const (

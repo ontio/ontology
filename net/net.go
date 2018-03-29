@@ -19,9 +19,9 @@
 package net
 
 import (
-	ns "github.com/Ontology/net/actor"
-	"github.com/Ontology/net/node"
-	"github.com/Ontology/net/protocol"
+	ns "github.com/ontio/ontology/net/actor"
+	"github.com/ontio/ontology/net/node"
+	"github.com/ontio/ontology/net/protocol"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
 )

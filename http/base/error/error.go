@@ -18,7 +18,7 @@
 
 package error
 
-import ontErrors "github.com/Ontology/errors"
+import ontErrors "github.com/ontio/ontology/errors"
 
 const (
 	SUCCESS            int64 = 0

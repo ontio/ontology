@@ -23,8 +23,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Ontology/common/config"
-	"github.com/Ontology/net/protocol"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/net/protocol"
 )
 
 // The neighbor node list

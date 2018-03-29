@@ -25,8 +25,8 @@ import (
 	"math"
 	"testing"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/vm/wasmvm/util"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/vm/wasmvm/util"
 )
 
 var service = NewInteropService()

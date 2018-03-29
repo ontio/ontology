@@ -21,10 +21,10 @@ package wasm
 import (
 	"errors"
 
-	"github.com/Ontology/core/store"
-	"github.com/Ontology/smartcontract/event"
-	trigger "github.com/Ontology/smartcontract/types"
-	"github.com/Ontology/vm/wasmvm/exec"
+	"github.com/ontio/ontology/core/store"
+	"github.com/ontio/ontology/smartcontract/event"
+	trigger "github.com/ontio/ontology/smartcontract/types"
+	"github.com/ontio/ontology/vm/wasmvm/exec"
 )
 
 type WasmStateReader struct {

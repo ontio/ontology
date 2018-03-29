@@ -23,7 +23,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/Ontology/common"
+	"github.com/ontio/ontology/common"
 )
 
 type HashStore interface {

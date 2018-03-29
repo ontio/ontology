@@ -19,9 +19,9 @@
 package context
 
 import (
-	"github.com/Ontology/common"
-	"github.com/Ontology/smartcontract/event"
-	vmtypes "github.com/Ontology/vm/types"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/smartcontract/event"
+	vmtypes "github.com/ontio/ontology/vm/types"
 )
 
 type ContextRef interface {

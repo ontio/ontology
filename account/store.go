@@ -19,8 +19,8 @@
 package account
 
 import (
-	"github.com/Ontology/common"
-	ct "github.com/Ontology/core/contract"
+	"github.com/ontio/ontology/common"
+	ct "github.com/ontio/ontology/core/contract"
 )
 
 type ClientStore interface {

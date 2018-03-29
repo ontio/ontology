@@ -19,9 +19,9 @@
 package common
 
 import (
-	"github.com/Ontology/common"
-	"github.com/Ontology/core/states"
-	"github.com/Ontology/smartcontract/event"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/smartcontract/event"
 )
 
 type StoreIterator interface {

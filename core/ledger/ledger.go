@@ -21,14 +21,14 @@ package ledger
 import (
 	"fmt"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/core/genesis"
-	"github.com/Ontology/core/payload"
-	"github.com/Ontology/core/states"
-	"github.com/Ontology/core/store"
-	"github.com/Ontology/core/store/ledgerstore"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/smartcontract/event"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/genesis"
+	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/core/store"
+	"github.com/ontio/ontology/core/store/ledgerstore"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology-crypto/keypair"
 )
 

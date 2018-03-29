@@ -22,10 +22,10 @@ import (
 	"math/big"
 	"sort"
 
-	"github.com/Ontology/common"
-	pg "github.com/Ontology/core/contract/program"
-	"github.com/Ontology/errors"
-	vm "github.com/Ontology/vm/neovm"
+	"github.com/ontio/ontology/common"
+	pg "github.com/ontio/ontology/core/contract/program"
+	"github.com/ontio/ontology/errors"
+	vm "github.com/ontio/ontology/vm/neovm"
 	"github.com/ontio/ontology-crypto/keypair"
 )
 

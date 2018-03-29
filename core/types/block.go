@@ -23,8 +23,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/serialization"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/serialization"
 )
 
 type Block struct {

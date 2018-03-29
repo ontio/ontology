@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/Ontology/common"
-	vmtypes "github.com/Ontology/vm/types"
+	"github.com/ontio/ontology/common"
+	vmtypes "github.com/ontio/ontology/vm/types"
 )
 
 type InvokeCode struct {

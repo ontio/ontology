@@ -19,8 +19,8 @@
 package storage
 
 import (
-	"github.com/Ontology/core/states"
-	"github.com/Ontology/core/store/common"
+	"github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/core/store/common"
 )
 
 type StateItem struct {

@@ -22,8 +22,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"time"
-	"github.com/Ontology/common"
-	"github.com/Ontology/events"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology-crypto/keypair"
 )
 

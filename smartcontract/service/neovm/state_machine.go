@@ -22,16 +22,16 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/core/payload"
-	"github.com/Ontology/core/states"
-	"github.com/Ontology/core/store"
-	scommon "github.com/Ontology/core/store/common"
-	"github.com/Ontology/errors"
-	"github.com/Ontology/smartcontract/storage"
-	stypes "github.com/Ontology/smartcontract/types"
-	vm "github.com/Ontology/vm/neovm"
-	vmtypes "github.com/Ontology/vm/types"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/core/store"
+	scommon "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/smartcontract/storage"
+	stypes "github.com/ontio/ontology/smartcontract/types"
+	vm "github.com/ontio/ontology/vm/neovm"
+	vmtypes "github.com/ontio/ontology/vm/types"
 )
 
 type StateMachine struct {

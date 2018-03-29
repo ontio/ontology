@@ -21,7 +21,7 @@ package neovm
 import (
 	"math/big"
 
-	"github.com/Ontology/vm/neovm/types"
+	"github.com/ontio/ontology/vm/neovm/types"
 )
 
 func opArraySize(e *ExecutionEngine) (VMState, error) {

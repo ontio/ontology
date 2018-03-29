@@ -23,10 +23,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/events/message"
-	tc "github.com/Ontology/txnpool/common"
-	vt "github.com/Ontology/validator/types"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/events/message"
+	tc "github.com/ontio/ontology/txnpool/common"
+	vt "github.com/ontio/ontology/validator/types"
 )
 
 func TestTxActor(t *testing.T) {

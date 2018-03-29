@@ -19,7 +19,7 @@
 package consensus
 
 import (
-	"github.com/Ontology/common"
+	"github.com/ontio/ontology/common"
 )
 
 type Policy struct {

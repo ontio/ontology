@@ -21,11 +21,11 @@ package consensus
 import (
 	"strings"
 
-	"github.com/Ontology/account"
-	"github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/consensus/dbft"
-	"github.com/Ontology/consensus/solo"
+	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/consensus/dbft"
+	"github.com/ontio/ontology/consensus/solo"
 	"github.com/ontio/ontology-eventbus/actor"
 )
 

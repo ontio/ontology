@@ -23,8 +23,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/Ontology/common/serialization"
-	vmtypes "github.com/Ontology/vm/types"
+	"github.com/ontio/ontology/common/serialization"
+	vmtypes "github.com/ontio/ontology/vm/types"
 )
 
 type DeployCode struct {
