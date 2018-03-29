@@ -113,6 +113,9 @@ func (this *BlockStore) GetBlock(blockHash common.Uint256) (*types.Block, error)
 	if err != nil {
 		return nil, err
 	}
+	if header == nil {
+		return nil, nil
+	}
 	txList := make([]*types.Transaction, 0, len(txHashes))
 	for _, txHash := range txHashes {
 		tx, _, err := this.GetTransaction(txHash)

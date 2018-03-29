@@ -60,27 +60,26 @@ type ledgerCacheItem struct {
 }
 
 type LedgerStoreImp struct {
-	blockStore        *BlockStore
-	stateStore        *StateStore
-	eventStore        *EventStore
-	storedIndexCount  uint32
-	currBlockHeight   uint32
-	currBlockHash     common.Uint256
-	headerCache       map[common.Uint256]*ledgerCacheItem
-	blockCache        map[common.Uint256]*ledgerCacheItem
-	headerIndex       map[uint32]common.Uint256
-	savingBlockHashes map[common.Uint256]bool
-	lock              sync.RWMutex
-	exitCh            chan interface{}
+	blockStore       *BlockStore
+	stateStore       *StateStore
+	eventStore       *EventStore
+	storedIndexCount uint32
+	currBlockHeight  uint32
+	currBlockHash    common.Uint256
+	headerCache      map[common.Uint256]*ledgerCacheItem
+	blockCache       map[common.Uint256]*ledgerCacheItem
+	headerIndex      map[uint32]common.Uint256
+	savingBlock      bool
+	lock             sync.RWMutex
+	exitCh           chan interface{}
 }
 
 func NewLedgerStore() (*LedgerStoreImp, error) {
 	ledgerStore := &LedgerStoreImp{
-		exitCh:            make(chan interface{}, 0),
-		headerIndex:       make(map[uint32]common.Uint256),
-		headerCache:       make(map[common.Uint256]*ledgerCacheItem),
-		blockCache:        make(map[common.Uint256]*ledgerCacheItem),
-		savingBlockHashes: make(map[common.Uint256]bool, 0),
+		exitCh:      make(chan interface{}, 0),
+		headerIndex: make(map[uint32]common.Uint256),
+		headerCache: make(map[common.Uint256]*ledgerCacheItem),
+		blockCache:  make(map[common.Uint256]*ledgerCacheItem),
 	}
 
 	blockStore, err := NewBlockStore(DBDirBlock, true)
@@ -280,14 +279,14 @@ func (this *LedgerStoreImp) start() {
 		case <-this.exitCh:
 			return
 		case <-ticker.C:
-			go this.clearCache()
+			go this.clearBlockCache()
 		case <-timeoutTicker.C:
 			go this.clearTimeoutBlock()
 		}
 	}
 }
 
-func (this *LedgerStoreImp) clearCache() {
+func (this *LedgerStoreImp) clearBlockCache() {
 	this.lock.Lock()
 	blocks := make([]*types.Block, 0)
 	currentBlockHeight := this.currBlockHeight
@@ -546,26 +545,6 @@ func (this *LedgerStoreImp) verifyBlock(block *types.Block) error {
 	return nil
 }
 
-func (this *LedgerStoreImp) addSavingBlock(blockHash common.Uint256) bool {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-
-	_, ok := this.savingBlockHashes[blockHash]
-	if ok {
-		return false
-	}
-
-	this.savingBlockHashes[blockHash] = true
-	return true
-}
-
-func (this *LedgerStoreImp) deleteSavingBlock(blockHash common.Uint256) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-
-	delete(this.savingBlockHashes, blockHash)
-}
-
 func (this *LedgerStoreImp) AddBlock(block *types.Block) error {
 	currBlockHeight := this.GetCurrentBlockHeight()
 	blockHeight := block.Header.Height
@@ -600,6 +579,7 @@ func (this *LedgerStoreImp) AddBlock(block *types.Block) error {
 		return fmt.Errorf("saveBlock error %s", err)
 	}
 
+	go this.clearBlockCache()
 	return nil
 }
 
@@ -687,14 +667,31 @@ func (this *LedgerStoreImp) saveBlockToEventStore(block *types.Block) error {
 	return nil
 }
 
+func (this *LedgerStoreImp) isSavingBlock() bool {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+
+	if !this.savingBlock {
+		this.savingBlock = true
+		return false
+	}
+	return true
+}
+
+func (this *LedgerStoreImp) resetSavingBlock() {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	this.savingBlock = false
+}
+
 func (this *LedgerStoreImp) saveBlock(block *types.Block) error {
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
-	if !this.addSavingBlock(blockHash) || (blockHeight > 0 && blockHeight <= this.GetCurrentBlockHeight()) {
+	if this.isSavingBlock() || (blockHeight > 0 && blockHeight != (this.GetCurrentBlockHeight()+1)) {
 		//hash already saved or is saving
 		return nil
 	}
-	defer this.deleteSavingBlock(blockHash)
+	defer this.resetSavingBlock()
 
 	this.blockStore.NewBatch()
 	this.stateStore.NewBatch()
