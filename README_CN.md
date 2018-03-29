@@ -73,11 +73,11 @@ $ make
 
 成功编译后会生成两个可以执行程序
 
-* `node`: 节点程序
+* `ontology`: 节点程序
 * `nodectl`: 以命令行方式提供的节点控制程序
 
 ### 从release获取
-//TODO
+//TODO 将和release版本同步更新
 ## 创建ONT钱包文件
 创建钱包文件
     - 通过命令行程序，在每个主机上分别创建节点运行所需的钱包文件wallet.dat 
@@ -116,6 +116,7 @@ $ tree
 
 ### 多机部署配置
 
+网络环境下，最少需要4个节点（共识节点）完成部署。
 我们可以通过修改默认的配置文件`config.json`进行快速部署。
 
 1. 将相关文件复制到目标主机，包括：
@@ -201,6 +202,7 @@ $ - 输入你的钱包口令
 
 
 # 简单示例
+[请看这里](https://github.com/ontio/documentation/tree/master/smart-contract-tutorial)
 ## ONT转账调用示例
 
 # 贡献代码
