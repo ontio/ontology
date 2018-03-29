@@ -60,7 +60,7 @@ $ git clone https://github.com/ontio/ontology.git
 用第三方包管理工具glide拉取依赖库
 
 ````shell
-$ cd Ontology
+$ cd ontology
 $ glide install
 ````
 
@@ -82,18 +82,18 @@ $ make
 ## ONT钱包创建示例
 钱包创建的时候，支持用户手动选择签名方案；如果用户没有手动选择，将会使用config.json中的默认配置项(SignatureScheme); 如果以上两种方式都没有配置，或者使用了系统不支持的签名方案，系统将会提供最终的默认签名方案(SHA256withECDSA). 
 
-1. 创建钱包示例如下：
+创建钱包示例如下：
 ```shell
 $ ./nodectl wallet --create --name wallet.dat --password passwordtest --encrypt=SHA512withEdDSA
 ```
         注：通过-p参数设置钱包密码
 
-2. 展示钱包示例(需要输入密码)：
+展示钱包示例(需要输入密码)：
 ```shell
 $ ./nodectl wallet --list account
 ```
 
-3. ONT可签名方案说明( <hash>with<dsa> 前面是散列算法，后面是签名算法):
+ONT可签名方案说明( <hash>with<dsa> 前面是散列算法，后面是签名算法):
  - SHA224withECDSA 
  - SHA256withECDSA
  - SHA384withECDSA
@@ -226,9 +226,7 @@ $ - 输入你的钱包口令
 ## ONT转账调用示例
 
  ```shell
- nodectl transfer --contract ff00000000000000000000000000000000000001 --value 10
-                  --from 5c1bbd3568145a1bdce46f89ed9881ca0eb7324d --to 5c1bbd3568145a1bdce46f89ed9881ca0eb7324d
-
+  ./nodectl transfer --contract ff00000000000000000000000000000000000001 --value 10 --from 0181beb9cfba23c777421eaf57e357e0fc331cbf --to 01f3aecd2ba7a5b704fbd5bac673e141d5109e3e
   contract:合约地址； - from: 转出地址； - to: 转入地址； - value: 资产转移数量；
  ```
 
@@ -262,7 +260,7 @@ $ - 输入你的钱包口令
 
 ## 网站
 
-- http://ont.io/
+- https://ont.io/
 
 # 许可证
 

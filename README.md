@@ -63,7 +63,7 @@ $ git clone https://github.com/ontio/ontology.git
 Fetch the dependent third-party packages with glide.
 
 ```
-$ cd Ontology
+$ cd ontology
 $ glide install
 
 ```
@@ -85,20 +85,21 @@ After building the source code sucessfully, you should see two executable progra
 ## create ontology wallet
 ont supports multiple encryption methods for generating accounts, but can set a default in config.json such as SHA256withECDSA, 
 
-1. create wallet cmd：
+Create wallet cmd：
 ```shell
 $ ./nodectl wallet --create --name wallet.dat --password passwordtest --encrypt=SHA512withEdDSA
 
 Note: Set wallet password by parameter -p.
+
 ```
 
+To show the wallet info：
 
-2. to show the wallet info：
 ```shell
 $ ./nodectl wallet --list account
 ```
 
-3. ONT supported crypto( <hash>with<dsa> ):
+ONT supported crypto( <hash>with<dsa> ):
  - SHA224withECDSA 
  - SHA256withECDSA
  - SHA384withECDSA
@@ -242,8 +243,7 @@ Run `./nodectl --h` for details.
 ## ONT transfer sample
 
  ```shell
- nodectl transfer --contract ff00000000000000000000000000000000000001 --value 10
-                  --from 5c1bbd3568145a1bdce46f89ed9881ca0eb7324d --to 5c1bbd3568145a1bdce46f89ed9881ca0eb7324d
+  ./nodectl transfer --contract ff00000000000000000000000000000000000001 --value 10 --from 0181beb9cfba23c777421eaf57e357e0fc331cbf --to 01f3aecd2ba7a5b704fbd5bac673e141d5109e3e
 
   contract:contract address； - from: transfer from； - to: transfer to； - value: amount；
  ```
@@ -266,7 +266,7 @@ Reported-by: whoever-reported-it  Signed-off-by: Your Name [youremail@yourhost.c
 # Open source community
 ## Site
 
-- <http://ont.io/>
+- <https://ont.io/>
 
 # License
 
