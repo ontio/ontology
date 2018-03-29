@@ -45,6 +45,7 @@ const (
 	SYSTEM_VERSION          = byte(1)
 	HEADER_INDEX_BATCH_SIZE = uint32(2000)
 	BLOCK_CACHE_TIMEOUT     = time.Minute * 30
+	MAX_BLOCK_CACHE_SIZE    = 2000
 )
 
 var (
@@ -410,6 +411,11 @@ func (this *LedgerStoreImp) GetCurrentBlockHeight() uint32 {
 func (this *LedgerStoreImp) addToHeaderCache(header *types.Header) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
+
+	if len(this.headerCache) > MAX_BLOCK_CACHE_SIZE {
+		return
+	}
+
 	cacheItem := &ledgerCacheItem{
 		item:      header,
 		cacheTime: time.Now(),
@@ -430,6 +436,11 @@ func (this *LedgerStoreImp) getFromHeaderCache(blockHash common.Uint256) *types.
 func (this *LedgerStoreImp) addToBlockCache(block *types.Block) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
+
+	if len(this.blockCache) > MAX_BLOCK_CACHE_SIZE {
+		return
+	}
+
 	cacheItem := &ledgerCacheItem{
 		item:      block,
 		cacheTime: time.Now(),
