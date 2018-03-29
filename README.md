@@ -82,14 +82,34 @@ After building the source code sucessfully, you should see two executable progra
 
 ## Create ONT wallet file
 
-Create wallet file 
+## create ontology wallet
+ont supports multiple encryption methods for generating accounts, but can set a default in config.json such as SHA256withECDSA, 
 
-```
-- Through command line program, on each host create wallet file wallet.dat needed for node implement.
-     `$ ./nodectl wallet -c -p password` 
-     Note: Set wallet password by parameter -p.
+1. create wallet cmd：
+```shell
+$ ./nodectl wallet --create --name wallet.dat --password passwordtest --encrypt=SHA512withEdDSA
 
+Note: Set wallet password by parameter -p.
 ```
+
+
+2. to show the wallet info：
+```shell
+$ ./nodectl wallet --list account
+```
+
+3. ONT supported crypto( <hash>with<dsa> ):
+ - SHA224withECDSA 
+ - SHA256withECDSA
+ - SHA384withECDSA
+ - SHA512withECDSA
+ - SHA3-224withECDSA
+ - SHA3-256withECDSA
+ - SHA3-384withECDSA
+ - SHA3-512withECDSA
+ - RIPEMD160withECDSA
+ - SM3withSM2
+ - SHA512withEdDSA
 
 ## Server Deployment
 
@@ -216,8 +236,17 @@ $ - Input your wallet password
 Run `./nodectl --h` for details.
 
 # examples
+## contract
 [click this link](https://github.com/ontio/documentation/tree/master/smart-contract-tutorial)
 
+## ONT transfer sample
+
+ ```shell
+ nodectl transfer --contract ff00000000000000000000000000000000000001 --value 10
+                  --from 5c1bbd3568145a1bdce46f89ed9881ca0eb7324d --to 5c1bbd3568145a1bdce46f89ed9881ca0eb7324d
+
+  contract:contract address； - from: transfer from； - to: transfer to； - value: amount；
+ ```
 # Contributing
 
 Please open a pull request with signed-off commits. We appreciate your help! You can also send your codes as emails to the developer mailing list. You're welcomed to join the Ontology mailing list or developer forum.

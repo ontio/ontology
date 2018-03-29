@@ -79,12 +79,32 @@ $ make
 //TODO 将和release版本同步更新
 
 ## 创建ONT钱包文件
-创建钱包文件
-    - 通过命令行程序，在每个主机上分别创建节点运行所需的钱包文件wallet.dat 
-      
-        `$ ./nodectl wallet -c -p password` 
+## ONT钱包创建示例
+钱包创建的时候，支持用户手动选择签名方案；如果用户没有手动选择，将会使用config.json中的默认配置项(SignatureScheme); 如果以上两种方式都没有配置，或者使用了系统不支持的签名方案，系统将会提供最终的默认签名方案(SHA256withECDSA). 
 
+1. 创建钱包示例如下：
+```shell
+$ ./nodectl wallet --create --name wallet.dat --password passwordtest --encrypt=SHA512withEdDSA
+```
         注：通过-p参数设置钱包密码
+
+2. 展示钱包示例(需要输入密码)：
+```shell
+$ ./nodectl wallet --list account
+```
+
+3. ONT可签名方案说明( <hash>with<dsa> 前面是散列算法，后面是签名算法):
+ - SHA224withECDSA 
+ - SHA256withECDSA
+ - SHA384withECDSA
+ - SHA512withECDSA
+ - SHA3-224withECDSA
+ - SHA3-256withECDSA
+ - SHA3-384withECDSA
+ - SHA3-512withECDSA
+ - RIPEMD160withECDSA
+ - SM3withSM2
+ - SHA512withEdDSA
 
 ## 服务器部署
 成功运行Ontology可以通过以下两种方式进行部署
@@ -200,7 +220,17 @@ $ - 输入你的钱包口令
 了解更多请运行 `./nodectl --h`.
 
 # 简单示例
+## 合约
 [请看这里](https://github.com/ontio/documentation/tree/master/smart-contract-tutorial)
+
+## ONT转账调用示例
+
+ ```shell
+ nodectl transfer --contract ff00000000000000000000000000000000000001 --value 10
+                  --from 5c1bbd3568145a1bdce46f89ed9881ca0eb7324d --to 5c1bbd3568145a1bdce46f89ed9881ca0eb7324d
+
+  contract:合约地址； - from: 转出地址； - to: 转入地址； - value: 资产转移数量；
+ ```
 
 # 贡献代码
 
