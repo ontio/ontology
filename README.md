@@ -1,6 +1,8 @@
 
 <h1 align="center">Ontology </h1>
-<h4 align="center">Version V0.6.0 </h4>
+<h4 align="center">Version V0.6.0 </h4> 
+
+[![Build Status](https://travis-ci.org/ontio/ontology.svg?branch=master)](https://travis-ci.org/ontio/ontology)
 
 Welcome to Ontology's source code library!
 
