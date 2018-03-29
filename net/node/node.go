@@ -429,18 +429,40 @@ func (node *node) SyncNodeHeight() {
 	}
 }
 
+
+func (node *node) isBlockSyncFinish()bool{
+	noders := node.local.GetNeighborNoder()
+	if len(noders) == 0 {
+		return false
+	}
+
+	blockHeight, err := actor.GetCurrentBlockHeight()
+	if err != nil {
+		log.Errorf("node isBlockSyncFinish GetCurrentBlockHeight error:%s", err)
+		return false
+	}
+
+	for _, v := range noders {
+		if blockHeight < uint32(v.GetHeight()) {
+			return false
+		}
+	}
+	return true
+}
+
 func (node *node) WaitForSyncBlkFinish() {
 	for {
 		headerHeight, _ := actor.GetCurrentHeaderHeight()
 		currentBlkHeight, _ := actor.GetCurrentBlockHeight()
-
 		log.Info("WaitForSyncBlkFinish... current block height is ", currentBlkHeight, " ,current header height is ", headerHeight)
-		if currentBlkHeight >= headerHeight {
+
+		if node.isBlockSyncFinish() {
 			break
 		}
 		<-time.After(protocol.PERIOD_UPDATE_TIME * time.Second)
 	}
 }
+
 func (node *node) WaitForPeersStart() {
 	for {
 		log.Debug("WaitForPeersStart...")
