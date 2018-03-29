@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
-
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/payload"
@@ -39,9 +38,8 @@ import (
 )
 
 var (
-	ErrDBNotFound = "leveldb: not found"
-	Notify        = "Notify"
-	Log           = "Log"
+	ERR_DB_NOT_FOUND = "leveldb: not found"
+	LOG = "Log"
 )
 
 type StateReader struct {
@@ -166,7 +164,7 @@ func (s *StateReader) RuntimeLog(e *vm.ExecutionEngine) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	event.PushSmartCodeEvent(tran.Hash(), 0, Log, event.LogEventArgs{tran.Hash(), hash, string(item)})
+	event.PushSmartCodeEvent(tran.Hash(), 0, LOG, event.LogEventArgs{tran.Hash(), hash, string(item)})
 	return true, nil
 }
 
@@ -218,7 +216,7 @@ func (s *StateReader) BlockChainGetHeader(e *vm.ExecutionEngine) (bool, error) {
 	data := vm.PopByteArray(e)
 	var (
 		header *types.Header
-		err    error
+		err error
 	)
 	l := len(data)
 	if l <= 5 {
@@ -665,7 +663,7 @@ func (s *StateReader) StorageGet(e *vm.ExecutionEngine) (bool, error) {
 		return false, errors.NewErr("[StorageGet] Wrong type!")
 	}
 	c, err := s.ldgerStore.GetContractState(context.codeHash)
-	if err != nil && !strings.EqualFold(err.Error(), ErrDBNotFound) {
+	if err != nil && !strings.EqualFold(err.Error(), ERR_DB_NOT_FOUND) {
 		return false, err
 	}
 	if c == nil {
@@ -673,7 +671,7 @@ func (s *StateReader) StorageGet(e *vm.ExecutionEngine) (bool, error) {
 	}
 	key := vm.PopByteArray(e)
 	item, err := s.ldgerStore.GetStorageItem(&states.StorageKey{CodeHash: context.codeHash, Key: key})
-	if err != nil && !strings.EqualFold(err.Error(), ErrDBNotFound) {
+	if err != nil && !strings.EqualFold(err.Error(), ERR_DB_NOT_FOUND) {
 		return false, err
 	}
 	if item == nil {
