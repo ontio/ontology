@@ -22,17 +22,18 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math/big"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/genesis"
+	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/types"
-	onterr "github.com/Ontology/errors"
+	ontErrors "github.com/Ontology/errors"
 	bactor "github.com/Ontology/http/base/actor"
 	bcomn "github.com/Ontology/http/base/common"
 	berr "github.com/Ontology/http/base/error"
-	"math/big"
-	"github.com/Ontology/core/payload"
 )
 
 func GetGenerateBlockTime(params []interface{}) map[string]interface{} {
@@ -94,7 +95,7 @@ func GetBlock(params []interface{}) map[string]interface{} {
 		switch (params[1]).(type) {
 		case float64:
 			json := uint32(params[1].(float64))
-			if json == 1{
+			if json == 1 {
 				return responseSuccess(bcomn.GetBlockInfo(block))
 			}
 		default:
@@ -223,7 +224,7 @@ func GetRawTransaction(params []interface{}) map[string]interface{} {
 		switch (params[1]).(type) {
 		case float64:
 			json := uint32(params[1].(float64))
-			if json == 1{
+			if json == 1 {
 				return responseSuccess(bcomn.TransArryByteToHexString(tx))
 			}
 		default:
@@ -294,9 +295,9 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 		if err := txn.Deserialize(bytes.NewReader(hex)); err != nil {
 			return responsePack(berr.INVALID_TRANSACTION, "")
 		}
-		if txn.TxType == types.Invoke && len(params) > 1{
-			preExec,ok := params[1].(float64)
-			if ok && preExec == 1{
+		if txn.TxType == types.Invoke && len(params) > 1 {
+			preExec, ok := params[1].(float64)
+			if ok && preExec == 1 {
 				log.Tracef("PreExec SMARTCODE")
 				if _, ok := txn.Payload.(*payload.InvokeCode); ok {
 					result, err := bactor.PreExecuteContract(&txn)
@@ -309,7 +310,7 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 			}
 		}
 		hash = txn.Hash()
-		if errCode := bcomn.VerifyAndSendTx(&txn); errCode != onterr.ErrNoError {
+		if errCode := bcomn.VerifyAndSendTx(&txn); errCode != ontErrors.ErrNoError {
 			return responseSuccess(errCode.Error())
 		}
 	default:
@@ -444,8 +445,8 @@ func GetBlockHeightByTxHash(params []interface{}) map[string]interface{} {
 		if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
-		height,err := bactor.GetBlockHeightByTxHashFromStore(hash)
-		if err != nil{
+		height, err := bactor.GetBlockHeightByTxHashFromStore(hash)
+		if err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
 		return responseSuccess(height)
@@ -503,7 +504,7 @@ func RegDataFile(params []interface{}) map[string]interface{} {
 		}
 
 		hash = txn.Hash()
-		if errCode := bcomn.VerifyAndSendTx(&txn); errCode != onterr.ErrNoError {
+		if errCode := bcomn.VerifyAndSendTx(&txn); errCode != ontErrors.ErrNoError {
 			return responsePack(berr.INTERNAL_ERROR, "internal error")
 		}
 	default:

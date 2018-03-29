@@ -25,7 +25,7 @@ import (
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/signature"
 	"github.com/Ontology/core/types"
-	ontError "github.com/Ontology/errors"
+	ontErrors "github.com/Ontology/errors"
 )
 
 func VerifyBlock(block *types.Block, ld *ledger.Ledger, completely bool) error {
@@ -78,11 +78,11 @@ func VerifyBlock(block *types.Block, ld *ledger.Ledger, completely bool) error {
 			}
 		*/
 		for _, txVerify := range block.Transactions {
-			if errCode := VerifyTransaction(txVerify); errCode != ontError.ErrNoError {
+			if errCode := VerifyTransaction(txVerify); errCode != ontErrors.ErrNoError {
 				return errors.New(fmt.Sprintf("VerifyTransaction failed when verifiy block"))
 			}
 
-			if errCode := VerifyTransactionWithLedger(txVerify, ld); errCode != ontError.ErrNoError {
+			if errCode := VerifyTransactionWithLedger(txVerify, ld); errCode != ontErrors.ErrNoError {
 				return errors.New(fmt.Sprintf("VerifyTransaction failed when verifiy block"))
 			}
 		}

@@ -20,18 +20,19 @@ package rest
 
 import (
 	"bytes"
+	"math/big"
+	"strconv"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/config"
-	"github.com/Ontology/core/types"
-	onterr "github.com/Ontology/errors"
-	berr "github.com/Ontology/http/base/error"
-	"strconv"
-	"github.com/Ontology/core/payload"
 	"github.com/Ontology/common/log"
-	bcomn "github.com/Ontology/http/base/common"
-	bactor "github.com/Ontology/http/base/actor"
-	"math/big"
 	"github.com/Ontology/core/genesis"
+	"github.com/Ontology/core/payload"
+	"github.com/Ontology/core/types"
+	ontErrors "github.com/Ontology/errors"
+	bactor "github.com/Ontology/http/base/actor"
+	bcomn "github.com/Ontology/http/base/common"
+	berr "github.com/Ontology/http/base/error"
 )
 
 const TLS_PORT int = 443
@@ -60,8 +61,8 @@ func GetConnectionCount(cmd map[string]interface{}) map[string]interface{} {
 //Block
 func GetBlockHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	height,err := bactor.BlockHeight()
-	if err != nil{
+	height, err := bactor.BlockHeight()
+	if err != nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
 	resp["Result"] = height
@@ -155,7 +156,7 @@ func GetBlockHeightByTxHash(cmd map[string]interface{}) map[string]interface{} {
 	if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
 		return ResponsePack(berr.INVALID_TRANSACTION)
 	}
-	height,err := bactor.GetBlockHeightByTxHashFromStore(hash)
+	height, err := bactor.GetBlockHeightByTxHashFromStore(hash)
 	if err != nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
@@ -178,7 +179,7 @@ func GetBlockTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(berr.UNKNOWN_BLOCK)
 	}
-	if hash.CompareTo(common.Uint256{}) == 0{
+	if hash.CompareTo(common.Uint256{}) == 0 {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	block, err := bactor.GetBlockFromStore(hash)
@@ -211,7 +212,6 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"], resp["Error"] = getBlock(hash, getTxBytes)
 	return resp
 }
-
 
 //Transaction
 func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
@@ -274,7 +274,7 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	}
 	var hash common.Uint256
 	hash = txn.Hash()
-	if errCode := bcomn.VerifyAndSendTx(&txn); errCode != onterr.ErrNoError {
+	if errCode := bcomn.VerifyAndSendTx(&txn); errCode != ontErrors.ErrNoError {
 		resp["Error"] = int64(errCode)
 		return resp
 	}
@@ -376,8 +376,8 @@ func GetStorage(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	log.Info("[GetStorage] ",str,key)
-	value, err := bactor.GetStorageItem(hash,item)
+	log.Info("[GetStorage] ", str, key)
+	value, err := bactor.GetStorageItem(hash, item)
 	if err != nil || value == nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}

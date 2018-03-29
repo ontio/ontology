@@ -20,13 +20,14 @@ package actor
 
 import (
 	"errors"
+	"time"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/types"
-	onterr "github.com/Ontology/errors"
+	ontErrors "github.com/Ontology/errors"
 	tcomn "github.com/Ontology/txnpool/common"
 	"github.com/ontio/ontology-eventbus/actor"
-	"time"
 )
 
 var txnPid *actor.PID
@@ -38,13 +39,13 @@ func SetTxPid(actr *actor.PID) {
 func SetTxnPoolPid(actr *actor.PID) {
 	txnPoolPid = actr
 }
-func AppendTxToPool(txn *types.Transaction) onterr.ErrCode {
+func AppendTxToPool(txn *types.Transaction) ontErrors.ErrCode {
 	txReq := &tcomn.TxReq{
 		Tx:     txn,
 		Sender: tcomn.HttpSender,
 	}
 	txnPid.Tell(txReq)
-	return onterr.ErrNoError
+	return ontErrors.ErrNoError
 }
 
 func GetTxsFromPool(byCount bool) (map[common.Uint256]*types.Transaction, common.Fixed64) {

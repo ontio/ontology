@@ -22,7 +22,7 @@ import (
 	"io"
 
 	"github.com/Ontology/common/serialization"
-	. "github.com/Ontology/errors"
+	"github.com/Ontology/errors"
 	"github.com/ontio/ontology-crypto/keypair"
 )
 
@@ -46,15 +46,15 @@ func (this *ValidatorState) Deserialize(r io.Reader) error {
 	}
 	err := this.StateBase.Deserialize(r)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "[ValidatorState], StateBase Deserialize failed.")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[ValidatorState], StateBase Deserialize failed.")
 	}
 	buf, err := serialization.ReadVarBytes(r)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "[ValidatorState], PublicKey Deserialize failed.")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[ValidatorState], PublicKey Deserialize failed.")
 	}
 	pk, err := keypair.DeserializePublicKey(buf)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "[ValidatorState], PublicKey Deserialize failed.")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[ValidatorState], PublicKey Deserialize failed.")
 	}
 	this.PublicKey = pk
 	return nil
