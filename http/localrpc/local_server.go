@@ -22,29 +22,28 @@ import (
 	"net/http"
 	"strconv"
 
-	. "github.com/Ontology/common/config"
+	cfg "github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
-	. "github.com/Ontology/http/base/rpc"
+	"github.com/Ontology/http/base/rpc"
 )
 
 const (
-	localHost string = "127.0.0.1"
-	LocalDir  string = "/local"
+	LOCAL_HOST string = "127.0.0.1"
+	LOCAL_DIR  string = "/local"
 )
 
 func StartLocalServer() {
 	log.Debug()
-	http.HandleFunc(LocalDir, Handle)
+	http.HandleFunc(LOCAL_DIR, rpc.Handle)
 
-	HandleFunc("getneighbor", GetNeighbor)
-	HandleFunc("getnodestate", GetNodeState)
-	HandleFunc("startconsensus", StartConsensus)
-	HandleFunc("stopconsensus", StopConsensus)
-	//HandleFunc("sendsampletransaction", SendSampleTransaction)
-	HandleFunc("setdebuginfo", SetDebugInfo)
+	rpc.HandleFunc("getneighbor", rpc.GetNeighbor)
+	rpc.HandleFunc("getnodestate", rpc.GetNodeState)
+	rpc.HandleFunc("startconsensus", rpc.StartConsensus)
+	rpc.HandleFunc("stopconsensus", rpc.StopConsensus)
+	rpc.HandleFunc("setdebuginfo", rpc.SetDebugInfo)
 
 	// TODO: only listen to local host
-	err := http.ListenAndServe(":"+strconv.Itoa(Parameters.HttpLocalPort), nil)
+	err := http.ListenAndServe(":"+strconv.Itoa(cfg.Parameters.HttpLocalPort), nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err.Error())
 	}

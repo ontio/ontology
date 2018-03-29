@@ -46,13 +46,13 @@ type Info struct {
 }
 
 const (
-	verifyNode  = "Verify Node"
-	serviceNode = "Service Node"
+	VERIFYNODE  = "Verify Node"
+	SERVICENODE = "Service Node"
 )
 
 var node Noder
 
-var templates = template.Must(template.New("info").Parse(page))
+var templates = template.Must(template.New("info").Parse(TEMPLATE_PAGE))
 
 func newNgbNodeInfo(ngbId string, ngbType string, ngbAddr string, httpInfoAddr string, httpInfoPort int, httpInfoStart bool) *NgbNodeInfo {
 	return &NgbNodeInfo{NgbId: ngbId, NgbType: ngbType, NgbAddr: ngbAddr, HttpInfoAddr: httpInfoAddr,
@@ -80,13 +80,13 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	var ngbInfoState bool
 	var ngbHttpInfoAddr string
 
-	curNodeType := serviceNode
+	curNodeType := SERVICENODE
 	bookkeeperState, _ := ledger.DefLedger.GetBookkeeperState()
 	bookkeepers := bookkeeperState.CurrBookkeeper
 	bookkeeperLen := len(bookkeepers)
 	for i := 0; i < bookkeeperLen; i++ {
 		if keypair.ComparePublicKey(node.GetPubKey(), bookkeepers[i]) {
-			curNodeType = verifyNode
+			curNodeType = VERIFYNODE
 			break
 		}
 	}
@@ -94,10 +94,10 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	ngbrNoders := node.GetNeighborNoder()
 	ngbrsLen := len(ngbrNoders)
 	for i := 0; i < ngbrsLen; i++ {
-		ngbType = serviceNode
+		ngbType = SERVICENODE
 		for j := 0; j < bookkeeperLen; j++ {
 			if keypair.ComparePublicKey(ngbrNoders[i].GetPubKey(), bookkeepers[j]) {
-				ngbType = verifyNode
+				ngbType = VERIFYNODE
 				break
 			}
 		}

@@ -21,7 +21,7 @@ package nodeinfo
 import "strings"
 
 type NgbNodeInfo struct {
-	NgbId         string
+	NgbId         string  //neighbor node id
 	NgbType       string
 	NgbAddr       string
 	HttpInfoAddr  string

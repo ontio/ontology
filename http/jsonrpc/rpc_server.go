@@ -22,37 +22,37 @@ import (
 	"net/http"
 	"strconv"
 
-	. "github.com/Ontology/common/config"
+	cfg "github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
-	. "github.com/Ontology/http/base/rpc"
+	"github.com/Ontology/http/base/rpc"
 )
 
 func StartRPCServer() {
 	log.Debug()
-	http.HandleFunc("/", Handle)
+	http.HandleFunc("/", rpc.Handle)
 
-	HandleFunc("getgenerateblocktime", GetGenerateBlockTime)
-	HandleFunc("getbestblockhash", GetBestBlockHash)
-	HandleFunc("getblock", GetBlock)
-	HandleFunc("getblockcount", GetBlockCount)
-	HandleFunc("getblockhash", GetBlockHash)
-	HandleFunc("getconnectioncount", GetConnectionCount)
+	rpc.HandleFunc("getgenerateblocktime", rpc.GetGenerateBlockTime)
+	rpc.HandleFunc("getbestblockhash", rpc.GetBestBlockHash)
+	rpc.HandleFunc("getblock", rpc.GetBlock)
+	rpc.HandleFunc("getblockcount", rpc.GetBlockCount)
+	rpc.HandleFunc("getblockhash", rpc.GetBlockHash)
+	rpc.HandleFunc("getconnectioncount", rpc.GetConnectionCount)
 	//HandleFunc("getrawmempool", GetRawMemPool)
 
-	HandleFunc("getrawtransaction", GetRawTransaction)
-	HandleFunc("sendrawtransaction", SendRawTransaction)
-	HandleFunc("getstorage", GetStorage)
-	HandleFunc("getversion", GetNodeVersion)
+	rpc.HandleFunc("getrawtransaction", rpc.GetRawTransaction)
+	rpc.HandleFunc("sendrawtransaction", rpc.SendRawTransaction)
+	rpc.HandleFunc("getstorage", rpc.GetStorage)
+	rpc.HandleFunc("getversion", rpc.GetNodeVersion)
 
-	HandleFunc("getblocksysfee", GetSystemFee)
-	HandleFunc("getcontractstate", GetContractState)
-	HandleFunc("getmempooltxstate", GetMemPoolTxState)
-	HandleFunc("getsmartcodeevent", GetSmartCodeEvent)
-	HandleFunc("getblockheightbytxhash", GetBlockHeightByTxHash)
+	rpc.HandleFunc("getblocksysfee", rpc.GetSystemFee)
+	rpc.HandleFunc("getcontractstate", rpc.GetContractState)
+	rpc.HandleFunc("getmempooltxstate", rpc.GetMemPoolTxState)
+	rpc.HandleFunc("getsmartcodeevent", rpc.GetSmartCodeEvent)
+	rpc.HandleFunc("getblockheightbytxhash", rpc.GetBlockHeightByTxHash)
 
-	HandleFunc("getbalance", GetBalance)
+	rpc.HandleFunc("getbalance", rpc.GetBalance)
 
-	err := http.ListenAndServe(":"+strconv.Itoa(Parameters.HttpJsonPort), nil)
+	err := http.ListenAndServe(":"+strconv.Itoa(cfg.Parameters.HttpJsonPort), nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err.Error())
 	}

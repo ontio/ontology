@@ -18,7 +18,7 @@
 
 package nodeinfo
 
-const page = `
+const TEMPLATE_PAGE = `
 <html>
 <head>
 <meta http-equiv="refresh" content="3">
