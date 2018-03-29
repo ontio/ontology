@@ -25,7 +25,6 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/Ontology/common/log"
 	"github.com/itchyny/base58-go"
 )
 
@@ -80,7 +79,6 @@ func AddressFromBase58(encoded string) (Address, error) {
 	}
 
 	x, _ := new(big.Int).SetString(string(decoded), 10)
-	log.Tracef("[ToAddress] x: ", x.Bytes())
 
 	ph, err := AddressParseFromBytes(x.Bytes()[1:21])
 	if err != nil {

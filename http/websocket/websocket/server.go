@@ -128,7 +128,6 @@ func (this *WsServer) registryMethod() {
 		if b, ok := cmd["Broadcast"].(bool); ok && b == true {
 			if userid, ok := cmd["Userid"].(string); ok {
 				this.BroadcastMap[userid] = userid
-				log.Trace("ws broadcast msg")
 			}
 		}
 		resp["Action"] = "heartbeat"
