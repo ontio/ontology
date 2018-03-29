@@ -433,7 +433,7 @@ func (node *node) SyncNodeHeight() {
 func (node *node) isBlockSyncFinish()bool{
 	noders := node.local.GetNeighborNoder()
 	if len(noders) == 0 {
-		return false
+		return true
 	}
 
 	blockHeight, err := actor.GetCurrentBlockHeight()
