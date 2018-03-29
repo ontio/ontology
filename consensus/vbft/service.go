@@ -1107,7 +1107,7 @@ func (self *Server) actionLoop() {
 						// catcher doesnot participant in the latest round before catched up
 						// rebroadcast timer will reinit the consensus when halt
 						if err := self.catchConsensus(blkNum); err != nil {
-							self.log.Errorf("server %d fastforward done, catch consensus: %s", self.Index, err)
+							self.log.Infof("server %d fastforward done, catch consensus: %s", self.Index, err)
 						}
 
 						self.log.Infof("server %d fastforward done at blk %d, no msg", self.Index, blkNum)
@@ -1130,7 +1130,7 @@ func (self *Server) actionLoop() {
 					proposer, forEmpty := getCommitConsensus(commitMsgs, F)
 					if proposer == math.MaxUint32 {
 						if err := self.catchConsensus(blkNum); err != nil {
-							self.log.Errorf("server %d fastforward done, catch consensus: %s", self.Index, err)
+							self.log.Infof("server %d fastforward done, catch consensus: %s", self.Index, err)
 						}
 						self.log.Errorf("server %d fastforward done at blk %d, no consensus", self.Index, blkNum)
 						break
