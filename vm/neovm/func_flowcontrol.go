@@ -19,9 +19,10 @@
 package neovm
 
 import (
-	. "github.com/Ontology/vm/neovm/errors"
-	"github.com/Ontology/common/log"
 	"fmt"
+
+	"github.com/Ontology/vm/neovm/errors"
+	"github.com/Ontology/common/log"
 )
 
 func opNop(e *ExecutionEngine) (VMState, error) {
@@ -35,14 +36,14 @@ func opJmp(e *ExecutionEngine) (VMState, error) {
 
 	if offset < 0 || offset > len(e.context.Code) {
 		log.Error(fmt.Sprintf("[opJmp] offset:%v > e.contex.Code len:%v error", offset, len(e.context.Code)))
-		return FAULT, ERR_FAULT
+		return FAULT, errors.ERR_FAULT
 	}
 	var fValue = true
 
 	if e.opCode > JMP {
 		if EvaluationStackCount(e) < 1 {
 			log.Error(fmt.Sprintf("[opJmp] stack count:%v > 1 error", EvaluationStackCount(e)))
-			return FAULT, ERR_UNDER_STACK_LEN
+			return FAULT, errors.ERR_UNDER_STACK_LEN
 		}
 		fValue = PopBoolean(e)
 		if e.opCode == JMPIFNOT {

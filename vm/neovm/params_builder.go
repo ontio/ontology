@@ -21,8 +21,9 @@ package neovm
 import (
 	"bytes"
 	"encoding/binary"
-	. "github.com/Ontology/vm/neovm/types"
 	"math/big"
+
+	"github.com/Ontology/vm/neovm/types"
 )
 
 type ParamsBuilder struct {
@@ -59,7 +60,7 @@ func (p *ParamsBuilder) EmitPushInteger(data *big.Int) {
 		return
 	}
 
-	bytes := ConvertBigIntegerToBytes(data)
+	bytes := types.ConvertBigIntegerToBytes(data)
 	p.EmitPushByteArray(bytes)
 }
 

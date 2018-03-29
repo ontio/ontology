@@ -20,6 +20,7 @@ package types
 
 import (
 	"math/big"
+
 	"github.com/Ontology/vm/neovm/interfaces"
 	"github.com/Ontology/common"
 )

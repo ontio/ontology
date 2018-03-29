@@ -19,10 +19,11 @@
 package types
 
 import (
-	"io"
-	"github.com/Ontology/common/serialization"
-	. "github.com/Ontology/common"
 	"crypto/sha256"
+	"io"
+
+	"github.com/Ontology/common"
+	"github.com/Ontology/common/serialization"
 	"golang.org/x/crypto/ripemd160"
 )
 
@@ -30,14 +31,14 @@ type VmType byte
 
 const (
 	Native = VmType(0xFF)
-	NEOVM    = VmType(0x80)
-	WASMVM     = VmType(0x90)
+	NEOVM  = VmType(0x80)
+	WASMVM = VmType(0x90)
 	// EVM = VmType(0x90)
 )
 
 type VmCode struct {
 	VmType VmType
-	Code     []byte
+	Code   []byte
 }
 
 func (self *VmCode) Serialize(w io.Writer) error {
@@ -58,8 +59,8 @@ func (self *VmCode) Deserialize(r io.Reader) error {
 	return nil
 }
 
-func (self *VmCode) AddressFromVmCode() Address {
-	var addr Address
+func (self *VmCode) AddressFromVmCode() common.Address {
+	var addr common.Address
 	temp := sha256.Sum256(self.Code)
 	md := ripemd160.New()
 	md.Write(temp[:])
@@ -69,10 +70,9 @@ func (self *VmCode) AddressFromVmCode() Address {
 	return addr
 }
 
-
-func IsVmCodeAddress(addr Address) bool {
+func IsVmCodeAddress(addr common.Address) bool {
 	vmType := addr[0]
-	if  vmType == byte(Native) || vmType == byte(NEOVM) || vmType == byte(WASMVM) {
+	if vmType == byte(Native) || vmType == byte(NEOVM) || vmType == byte(WASMVM) {
 		return true
 	}
 

@@ -17,8 +17,9 @@
 package neovm
 
 import (
-	"github.com/Ontology/vm/neovm/interfaces"
 	"io"
+
+	"github.com/Ontology/vm/neovm/interfaces"
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/vm/neovm/errors"

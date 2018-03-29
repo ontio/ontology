@@ -19,8 +19,9 @@
 package types
 
 import (
-	"github.com/Ontology/common"
 	"math/big"
+
+	"github.com/Ontology/common"
 )
 
 func ConvertBigIntegerToBytes(data *big.Int) []byte {

@@ -21,10 +21,11 @@ package neovm
 import (
 	"crypto/sha1"
 	"crypto/sha256"
-	"github.com/Ontology/vm/neovm/interfaces"
-	"github.com/Ontology/vm/neovm/types"
 	"hash"
 	"math/big"
+
+	"github.com/Ontology/vm/neovm/interfaces"
+	"github.com/Ontology/vm/neovm/types"
 )
 
 type BigIntSorter []big.Int

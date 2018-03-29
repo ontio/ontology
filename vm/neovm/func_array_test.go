@@ -21,6 +21,7 @@ package neovm
 import (
 	"testing"
 	"math/big"
+
 	"github.com/Ontology/vm/neovm/types"
 )
 
