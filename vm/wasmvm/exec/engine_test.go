@@ -21,12 +21,12 @@ package exec
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/Ontology/common"
 	"io/ioutil"
 	"testing"
 	"math"
-	"github.com/Ontology/vm/wasmvm/util"
 
+	"github.com/Ontology/vm/wasmvm/util"
+	"github.com/Ontology/common"
 )
 
 var service = NewInteropService()

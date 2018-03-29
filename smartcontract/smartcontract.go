@@ -129,6 +129,7 @@ func (sc *SmartContract) Execute() error {
 		input:= []byte{}
 		engine.Call(ctx.ContractAddress,ctx.Code.Code,input)
 		//fmt.Println(engine)
+		stateMachine.CloneCache.Commit()
 		sc.Notifications = append(sc.Notifications, stateMachine.Notifications...)
 	}
 	return nil

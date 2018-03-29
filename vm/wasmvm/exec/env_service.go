@@ -23,10 +23,11 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
-	"github.com/Ontology/vm/wasmvm/memory"
-	"github.com/Ontology/vm/wasmvm/util"
 	"strconv"
 	"strings"
+
+	"github.com/Ontology/vm/wasmvm/memory"
+	"github.com/Ontology/vm/wasmvm/util"
 )
 
 type Args struct {

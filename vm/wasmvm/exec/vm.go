@@ -9,15 +9,14 @@ import (
 	"encoding/binary"
 	"errors"
 	"math"
-
 	"bytes"
 	"fmt"
+
 	"github.com/Ontology/vm/wasmvm/disasm"
 	"github.com/Ontology/vm/wasmvm/exec/internal/compile"
 	"github.com/Ontology/vm/wasmvm/memory"
 	"github.com/Ontology/vm/wasmvm/wasm"
 	ops "github.com/Ontology/vm/wasmvm/wasm/operators"
-
 	"github.com/Ontology/common"
 )
 

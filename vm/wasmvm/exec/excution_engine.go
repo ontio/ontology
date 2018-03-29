@@ -23,15 +23,17 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math"
+	"os"
+	"reflect"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/vm/neovm/interfaces"
 	"github.com/Ontology/vm/wasmvm/memory"
 	"github.com/Ontology/vm/wasmvm/util"
 	"github.com/Ontology/vm/wasmvm/validate"
 	"github.com/Ontology/vm/wasmvm/wasm"
-	"math"
-	"os"
-	"reflect"
+
 )
 
 const (

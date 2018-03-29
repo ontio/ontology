@@ -21,9 +21,10 @@ package memory
 import (
 	"encoding/binary"
 	"errors"
-	"github.com/Ontology/vm/wasmvm/util"
 	"reflect"
 	"math"
+
+	"github.com/Ontology/vm/wasmvm/util"
 )
 
 type PType int

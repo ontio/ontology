@@ -20,6 +20,7 @@ package wasm
 
 import (
 	"errors"
+
 	"github.com/Ontology/core/store"
 	"github.com/Ontology/smartcontract/event"
 	trigger "github.com/Ontology/smartcontract/types"

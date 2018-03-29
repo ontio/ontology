@@ -22,11 +22,12 @@ import (
 	"testing"
 	"io/ioutil"
 	"fmt"
-	"github.com/Ontology/common"
 	"encoding/json"
 	"encoding/binary"
 	"bytes"
+
 	"github.com/Ontology/common/serialization"
+	"github.com/Ontology/common"
 )
 
 func TestContract1(t *testing.T){
