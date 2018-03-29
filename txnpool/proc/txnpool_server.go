@@ -124,7 +124,6 @@ func (s *TXPoolServer) checkPendingBlockOk(hash common.Uint256,
 		return
 	}
 
-	// Todo:
 	entry := &tc.VerifyTxResult{
 		Height:  s.pendingBlock.height,
 		Tx:      tx,

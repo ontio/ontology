@@ -135,7 +135,6 @@ func (worker *txPoolWorker) handleTimeoutEvent() {
 				worker.reVerifyTx(k)
 				v.retries++
 			} else {
-				// Todo: Retry exhausted, remove it from pendingTxnList
 				log.Infof("Retry to verify transaction exhausted %x", k.ToArray())
 				worker.mu.Lock()
 				delete(worker.pendingTxList, k)
@@ -195,7 +194,6 @@ func (worker *txPoolWorker) verifyTx(tx *tx.Transaction) {
 }
 
 func (worker *txPoolWorker) reVerifyTx(txHash common.Uint256) {
-	// Todo: add retry logic
 	pt, ok := worker.pendingTxList[txHash]
 	if !ok {
 		return
