@@ -54,7 +54,7 @@ Ontology致力于创建一个组件化、可自由配置、跨链支持、高性
 ### 从源码获取
 克隆Ontology仓库到$GOPATH/src目录
 ```shell
-$ git clone https://github.com/ontio/Ontology.git
+$ git clone https://github.com/ontio/ontology.git
 ```
 
 用第三方包管理工具glide拉取依赖库
