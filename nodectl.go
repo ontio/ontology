@@ -25,7 +25,7 @@ import (
 	"github.com/urfave/cli"
 
 	_ "github.com/Ontology/cli"
-	. "github.com/Ontology/cli/common"
+	"github.com/Ontology/cli/common"
 	"github.com/Ontology/cli/test"
 	"github.com/Ontology/cli/transfer"
 	"github.com/Ontology/cli/wallet"
@@ -44,8 +44,8 @@ func main() {
 	app.HideVersion = false
 	//global options
 	app.Flags = []cli.Flag{
-		NewIpFlag(),
-		NewPortFlag(),
+		common.NewIpFlag(),
+		common.NewPortFlag(),
 	}
 	//commands
 	app.Commands = []cli.Command{

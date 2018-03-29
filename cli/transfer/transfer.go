@@ -30,7 +30,7 @@ import (
 	"github.com/urfave/cli"
 
 	"github.com/Ontology/account"
-	. "github.com/Ontology/cli/common"
+	clicommon "github.com/Ontology/cli/common"
 	"github.com/Ontology/common"
 	"github.com/Ontology/core/signature"
 	ctypes "github.com/Ontology/core/types"
@@ -129,7 +129,7 @@ func transferAction(c *cli.Context) error {
 		fmt.Println("Serialize transaction error.")
 		os.Exit(1)
 	}
-	resp, err := rpc.Call(RpcAddress(), "sendrawtransaction", 0,
+	resp, err := rpc.Call(clicommon.RpcAddress(), "sendrawtransaction", 0,
 		[]interface{}{hex.EncodeToString(txbf.Bytes())})
 
 	if err != nil {

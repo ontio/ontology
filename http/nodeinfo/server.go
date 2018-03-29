@@ -27,7 +27,7 @@ import (
 
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/core/ledger"
-	. "github.com/Ontology/net/protocol"
+	"github.com/Ontology/net/protocol"
 	"github.com/ontio/ontology-crypto/keypair"
 )
 
@@ -50,7 +50,7 @@ const (
 	SERVICENODE = "Service Node"
 )
 
-var node Noder
+var node protocol.Noder
 
 var templates = template.Must(template.New("info").Parse(TEMPLATE_PAGE))
 
@@ -126,7 +126,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func StartServer(n Noder) {
+func StartServer(n protocol.Noder) {
 	node = n
 	port := int(config.Parameters.HttpInfoPort)
 	http.HandleFunc("/info", viewHandler)

@@ -28,7 +28,7 @@ import (
 	"time"
 
 	"github.com/Ontology/account"
-	. "github.com/Ontology/cli/common"
+	clicommon "github.com/Ontology/cli/common"
 	"github.com/Ontology/common"
 	"github.com/Ontology/core/genesis"
 	"github.com/Ontology/core/signature"
@@ -129,7 +129,7 @@ func transferTest(n int, acc *account.Account) {
 			fmt.Println("Serialize transaction error.")
 			os.Exit(1)
 		}
-		resp, err := rpc.Call(RpcAddress(), "sendrawtransaction", 0,
+		resp, err := rpc.Call(clicommon.RpcAddress(), "sendrawtransaction", 0,
 			[]interface{}{hex.EncodeToString(txbf.Bytes())})
 
 		if err != nil {
@@ -214,7 +214,7 @@ func NewCommand() *cli.Command {
 		},
 		Action: testAction,
 		OnUsageError: func(c *cli.Context, err error, isSubcommand bool) error {
-			PrintError(c, err, "test")
+			clicommon.PrintError(c, err, "test")
 			return cli.NewExitError("", 1)
 		},
 	}

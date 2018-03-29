@@ -23,7 +23,7 @@ import (
 	"math/big"
 	"sort"
 
-	. "github.com/Ontology/common"
+	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	pg "github.com/Ontology/core/contract/program"
 	sig "github.com/Ontology/core/signature"
@@ -33,7 +33,7 @@ import (
 
 type ContractContext struct {
 	Data          sig.SignableData
-	ProgramHashes []Address
+	ProgramHashes []common.Address
 	Codes         [][]byte
 	Parameters    [][][]byte
 
@@ -153,8 +153,8 @@ func (cxt *ContractContext) AddSignatureToMultiList(contractIndex int, contract 
 	pk := keypair.SerializePublicKey(pubkey)
 
 	pubkeyPara := PubkeyParameter{
-		PubKey:    ToHexString(pk),
-		Parameter: ToHexString(parameter),
+		PubKey:    common.ToHexString(pk),
+		Parameter: common.ToHexString(parameter),
 	}
 	cxt.MultiPubkeyPara[contractIndex] = append(cxt.MultiPubkeyPara[contractIndex], pubkeyPara)
 
@@ -169,7 +169,7 @@ func (cxt *ContractContext) AddMultiSignatures(index int, contract *Contract, pu
 
 	paraIndexs := []ParameterIndex{}
 	for _, pubkeyPara := range cxt.MultiPubkeyPara[index] {
-		pubKeyBytes, err := HexToBytes(pubkeyPara.Parameter)
+		pubKeyBytes, err := common.HexToBytes(pubkeyPara.Parameter)
 		if err != nil {
 			return errors.New("Contract AddContract pubKeyBytes HexToBytes failed.")
 		}
@@ -215,7 +215,7 @@ func (cxt *ContractContext) ParseContractPubKeys(contract *Contract) (map[string
 		i++
 
 		//add to parameter index
-		pubkeyIndex[ToHexString(contract.Code[i:33])] = Index
+		pubkeyIndex[common.ToHexString(contract.Code[i:33])] = Index
 
 		i += 33
 		Index++
@@ -224,7 +224,7 @@ func (cxt *ContractContext) ParseContractPubKeys(contract *Contract) (map[string
 	return pubkeyIndex, nil
 }
 
-func (cxt *ContractContext) GetIndex(programHash Address) int {
+func (cxt *ContractContext) GetIndex(programHash common.Address) int {
 	for i := 0; i < len(cxt.ProgramHashes); i++ {
 		if cxt.ProgramHashes[i] == programHash {
 			return i

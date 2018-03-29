@@ -26,8 +26,8 @@ import (
 	"os"
 
 	"github.com/Ontology/account"
-	. "github.com/Ontology/cli/common"
-	. "github.com/Ontology/common"
+	clicommon "github.com/Ontology/cli/common"
+	"github.com/Ontology/common"
 	"github.com/Ontology/common/password"
 	"github.com/Ontology/http/base/rpc"
 	"github.com/ontio/ontology-crypto/keypair"
@@ -48,7 +48,7 @@ func walletAction(c *cli.Context) error {
 		fmt.Println("Invalid wallet name.")
 		os.Exit(1)
 	}
-	if FileExisted(name) && create {
+	if common.FileExisted(name) && create {
 		fmt.Printf("CAUTION: '%s' already exists!\n", name)
 		os.Exit(1)
 	}
@@ -95,8 +95,8 @@ func walletAction(c *cli.Context) error {
 	address := account.Address
 
 	pubKeyBytes := keypair.SerializePublicKey(pubKey)
-	fmt.Println("public key:   ", ToHexString(pubKeyBytes))
-	fmt.Println("hex address: ", ToHexString(address[:]))
+	fmt.Println("public key:   ", common.ToHexString(pubKeyBytes))
+	fmt.Println("hex address: ", common.ToHexString(address[:]))
 	fmt.Println("base58 address:      ", address.ToBase58())
 	asset := c.String("asset")
 	if list && asset != "" {
@@ -105,7 +105,7 @@ func walletAction(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		resp, err := rpc.Call(RpcAddress(), "getunspendoutput", 0,
+		resp, err := rpc.Call(clicommon.RpcAddress(), "getunspendoutput", 0,
 			[]interface{}{hex.EncodeToString(buffer.Bytes()), asset})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -178,7 +178,7 @@ func NewCommand() *cli.Command {
 		},
 		Action: walletAction,
 		OnUsageError: func(c *cli.Context, err error, isSubcommand bool) error {
-			PrintError(c, err, "wallet")
+			clicommon.PrintError(c, err, "wallet")
 			return cli.NewExitError("", 1)
 		},
 	}
