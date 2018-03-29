@@ -286,7 +286,7 @@ func (e *ExecutionEngine) checkStackSize() bool {
 		}
 	}
 	size += e.evaluationStack.Count() + e.altStack.Count()
-	if uint32(size) > StackLimit {
+	if uint32(size) > Stack_LIMIT {
 		return false
 	}
 	return true

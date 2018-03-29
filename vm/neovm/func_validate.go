@@ -19,14 +19,14 @@
 package neovm
 
 import (
+	"math/big"
 	"bytes"
 	"encoding/binary"
+	"fmt"
+
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/vm/neovm/errors"
 	"github.com/Ontology/vm/neovm/types"
-	"math/big"
-
-	"fmt"
 )
 
 func validateCount1(e *ExecutionEngine) error {
@@ -72,7 +72,7 @@ func validateShiftLeft(e *ExecutionEngine) error {
 	if x2.Sign() < 0 {
 		return errors.ERR_SHIFT_BY_NEG
 	}
-	if x1.Sign() != 0 && x2.Cmp(big.NewInt(MaxSizeForBigInteger*8)) > 0 {
+	if x1.Sign() != 0 && x2.Cmp(big.NewInt(MAX_SIZE_FOR_BIGINTEGER*8)) > 0 {
 		return errors.ERR_OVER_MAX_BIGINTEGER_SIZE
 	}
 
@@ -103,7 +103,7 @@ func validatorPushData4(e *ExecutionEngine) error {
 	bytesBuffer := bytes.NewBuffer(e.context.Code[index : index+4])
 	var l uint32
 	binary.Read(bytesBuffer, binary.LittleEndian, &l)
-	if l > MaxItemSize {
+	if l > MAX_ITEN_SIZE {
 		return errors.ERR_OVER_MAX_ITEM_SIZE
 	}
 	return nil
@@ -117,7 +117,7 @@ func validateCall(e *ExecutionEngine) error {
 }
 
 func validateInvocationStack(e *ExecutionEngine) error {
-	if uint32(e.invocationStack.Count()) >= MaxInvovationStackSize {
+	if uint32(e.invocationStack.Count()) >= MAX_INVOCATION_STACK_SIZE {
 		return errors.ERR_OVER_STACK_LEN
 	}
 	return nil
@@ -181,7 +181,7 @@ func validateCat(e *ExecutionEngine) error {
 		return err
 	}
 	l := len(PeekNByteArray(0, e)) + len(PeekNByteArray(1, e))
-	if uint32(l) > MaxItemSize {
+	if uint32(l) > MAX_ITEN_SIZE {
 		log.Error("[validateCat] uint32(l) > MaxItemSize")
 		return errors.ERR_OVER_MAX_ITEM_SIZE
 	}
@@ -313,7 +313,7 @@ func validateMul(e *ExecutionEngine) error {
 	x1 := PeekNBigInt(1, e)
 	lx2 := len(types.ConvertBigIntegerToBytes(x2))
 	lx1 := len(types.ConvertBigIntegerToBytes(x1))
-	if lx2 > MaxSizeForBigInteger || lx1 > MaxSizeForBigInteger || (lx1+lx2) > MaxSizeForBigInteger {
+	if lx2 > MAX_SIZE_FOR_BIGINTEGER || lx1 > MAX_SIZE_FOR_BIGINTEGER || (lx1+lx2) > MAX_SIZE_FOR_BIGINTEGER {
 		log.Error("[validateMul] CheckBigInteger fail")
 		return errors.ERR_OVER_MAX_BIGINTEGER_SIZE
 	}
@@ -365,7 +365,7 @@ func validatePack(e *ExecutionEngine) error {
 		return errors.ERR_BAD_VALUE
 	}
 
-	if count.Cmp(big.NewInt(int64(MaxArraySize))) > 0 {
+	if count.Cmp(big.NewInt(int64(MAX_ARRAY_SIZE))) > 0 {
 		log.Error("[validateRight] uint32(count) > MaxArraySize")
 		return errors.ERR_OVER_MAX_ARRAY_SIZE
 	}
@@ -453,7 +453,7 @@ func validateNewArray(e *ExecutionEngine) error {
 	if count.Sign() < 0 {
 		return errors.ERR_BAD_VALUE
 	}
-	if count.Cmp(big.NewInt(int64(MaxArraySize))) > 0 {
+	if count.Cmp(big.NewInt(int64(MAX_ARRAY_SIZE))) > 0 {
 		log.Error("[validateNewArray] uint32(count) > MaxArraySize ")
 		return errors.ERR_OVER_MAX_ARRAY_SIZE
 	}
@@ -469,7 +469,7 @@ func validateNewStruct(e *ExecutionEngine) error {
 	if count.Sign() < 0 {
 		return errors.ERR_BAD_VALUE
 	}
-	if count.Cmp(big.NewInt(int64(MaxArraySize))) > 0 {
+	if count.Cmp(big.NewInt(int64(MAX_ARRAY_SIZE))) > 0 {
 		log.Error("[validateNewStruct] uint32(count) > MaxArraySize ")
 		return errors.ERR_OVER_MAX_ARRAY_SIZE
 	}
@@ -509,7 +509,7 @@ func CheckBigInteger(value *big.Int) bool {
 	if value == nil {
 		return false
 	}
-	if len(types.ConvertBigIntegerToBytes(value)) > MaxSizeForBigInteger {
+	if len(types.ConvertBigIntegerToBytes(value)) > MAX_SIZE_FOR_BIGINTEGER {
 		return false
 	}
 	return true

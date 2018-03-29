@@ -19,10 +19,10 @@
 package neovm
 
 const (
-	StackLimit uint32 = 2 * 1024
-	MaxInvovationStackSize = 1024
-	MaxSizeForBigInteger = 32
-	MaxItemSize uint32 = 1024 * 1024
-	MaxArraySize uint32 = 1024
+	Stack_LIMIT uint32 = 2 * 1024
+	MAX_INVOCATION_STACK_SIZE = 1024
+	MAX_SIZE_FOR_BIGINTEGER = 32
+	MAX_ITEN_SIZE uint32 = 1024 * 1024
+	MAX_ARRAY_SIZE uint32 = 1024
 )
 
