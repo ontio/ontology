@@ -112,7 +112,7 @@ func transferAction(c *cli.Context) error {
 
 	passwd := c.String("password")
 
-	acct := account.Open(account.WalletFileName, []byte(passwd))
+	acct := account.Open(account.WALLET_FILENAME, []byte(passwd))
 	acc, err := acct.GetDefaultAccount()
 	if err != nil {
 		fmt.Println("GetDefaultAccount error:", err)

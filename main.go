@@ -73,8 +73,8 @@ func main() {
 	var noder protocol.Noder
 	log.Trace("Node version: ", config.Version)
 
-	if len(config.Parameters.Bookkeepers) < account.DefaultBookkeeperCount {
-		log.Fatal("At least ", account.DefaultBookkeeperCount, " Bookkeepers should be set at config.json")
+	if len(config.Parameters.Bookkeepers) < account.DEFAULT_BOOKKEEPER_COUNT {
+		log.Fatal("At least ", account.DEFAULT_BOOKKEEPER_COUNT, " Bookkeepers should be set at config.json")
 		os.Exit(1)
 	}
 

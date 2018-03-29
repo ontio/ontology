@@ -99,7 +99,7 @@ func TestInvokefunction(t *testing.T) {
 	})
 	tx.Nonce = uint32(time.Now().Unix())
 
-	acct := account.Open(account.WalletFileName, []byte("passwordtest"))
+	acct := account.Open(account.WALLET_FILENAME, []byte("passwordtest"))
 	acc, err := acct.GetDefaultAccount()
 	if err != nil {
 		fmt.Println("GetDefaultAccount error:", err)

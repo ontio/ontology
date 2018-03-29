@@ -45,8 +45,8 @@ import (
 )
 
 const (
-	DefaultBookkeeperCount = 4
-	WalletFileName         = "wallet.dat"
+	DEFAULT_BOOKKEEPER_COUNT = 4
+	WALLET_FILENAME          = "wallet.dat"
 )
 
 type Client interface {
@@ -517,8 +517,8 @@ func nodeType(typeName string) int {
 }
 
 func GetClient() Client {
-	if !common.FileExisted(WalletFileName) {
-		log.Fatal(fmt.Sprintf("No %s detected, please create a wallet by using command line.", WalletFileName))
+	if !common.FileExisted(WALLET_FILENAME) {
+		log.Fatal(fmt.Sprintf("No %s detected, please create a wallet by using command line.", WALLET_FILENAME))
 		os.Exit(1)
 	}
 	passwd, err := password.GetAccountPassword()
@@ -526,7 +526,7 @@ func GetClient() Client {
 		log.Fatal("Get password error.")
 		os.Exit(1)
 	}
-	c := Open(WalletFileName, passwd)
+	c := Open(WALLET_FILENAME, passwd)
 	if c == nil {
 		return nil
 	}

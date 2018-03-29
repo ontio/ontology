@@ -159,7 +159,7 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "name, n",
 				Usage: "wallet name",
-				Value: account.WalletFileName,
+				Value: account.WALLET_FILENAME,
 			},
 			cli.StringFlag{
 				Name:  "password, p",
