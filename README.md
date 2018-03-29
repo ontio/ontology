@@ -26,7 +26,7 @@ The public test network described in the page below, and we sincerely welcome an
 
 * [Build development environment](#build-development-environment)
 * [Deployment and test](#deployment-and-test)
-	* [Get Ontology](#get-ontology)
+	* [Get ontology](#get-ontology)
 		* [Get from source code](#get-from-source-code)
 	* [Create ONT wallet file](#create-ont-wallet-file)
 	* [Server Deployment](#server-deployment)
@@ -34,7 +34,7 @@ The public test network described in the page below, and we sincerely welcome an
 		* [Multi-hosts deployment configuration](#multi-hosts-deployment-configuration)
 		* [Deploy nodes on public test network](#deploy-nodes-on-public-test-network)
 		* [Inplement](#inplement)
-* [examples](#examples)
+* [Examples](#Examples)
 * [Contributing](#contributing)
 * [Open source community](#open-source-community)
 	* [Site](#site)
@@ -42,7 +42,7 @@ The public test network described in the page below, and we sincerely welcome an
 
 # Build development environment
 
-The requirements to build Ontology are:
+The requirements to build ontology are:
 
 - Golang version 1.9 or later
 - Glide (a third-party package management tool)
@@ -50,10 +50,10 @@ The requirements to build Ontology are:
 - Golang supported operating systems
 
 # Deployment and test
-## Get Ontology
+## Get ontology
 ### Get from source code
 
-Clone the Ontology repository into the appropriate $GOPATH/src directory.
+Clone the ontology repository into the appropriate $GOPATH/src directory.
 
 ```
 $ git clone https://github.com/ontio/ontology.git
@@ -114,7 +114,7 @@ ONT supported crypto( <hash>with<dsa> ):
 
 ## Server Deployment
 
-To run Ontology successfully,  nodes can be deployed by the following two way:
+To run ontology successfully,  nodes can be deployed by the following two way:
 
 - Single-host deployment
 - Multi-hosts deployment
@@ -236,9 +236,9 @@ $ - Input your wallet password
 
 Run `./nodectl --h` for details.
 
-# examples
-## contract
-[click this link](https://github.com/ontio/documentation/tree/master/smart-contract-tutorial)
+# Examples
+## Contract
+[Smart Contract guide](https://github.com/ontio/documentation/tree/master/smart-contract-tutorial)
 
 ## ONT transfer sample
 

@@ -8,7 +8,7 @@ Ontology致力于创建一个组件化、可自由配置、跨链支持、高性
 
 目前代码还处于内部测试阶段，但处于快速的开发过程中，master代码可能是不稳定的，稳定的版本可以在releases中下载。
 
-公开的测试网可以在下面找到，也非常欢迎及希望能有更多的开发者加入到ontology中来。
+公开的测试网可以在下面找到，也非常欢迎及希望能有更多的开发者加入到Ontology中来。
 
 ## 特性
 
@@ -42,7 +42,7 @@ Ontology致力于创建一个组件化、可自由配置、跨链支持、高性
 * [许可证](#许可证)
 
 # 构建开发环境
-成功编译Ontology需要以下准备：
+成功编译ontology需要以下准备：
 
 * Golang版本在1.9及以上
 * 安装第三方包管理工具glide
@@ -52,7 +52,7 @@ Ontology致力于创建一个组件化、可自由配置、跨链支持、高性
 # 部署及测试
 ## 获取ontology
 ### 从源码获取
-克隆Ontology仓库到$GOPATH/src目录
+克隆ontology仓库到$GOPATH/src目录
 ```shell
 $ git clone https://github.com/ontio/ontology.git
 ```
@@ -107,7 +107,7 @@ ONT可签名方案说明( <hash>with<dsa> 前面是散列算法，后面是签�
  - SHA512withEdDSA
 
 ## 服务器部署
-成功运行Ontology可以通过以下两种方式进行部署
+成功运行ontology可以通过以下两种方式进行部署
 
 * 单机部署
 * 多机部署
@@ -221,7 +221,7 @@ $ - 输入你的钱包口令
 
 # 简单示例
 ## 合约
-[请看这里](https://github.com/ontio/documentation/tree/master/smart-contract-tutorial)
+[合约Guide](https://github.com/ontio/documentation/tree/master/smart-contract-tutorial)
 
 ## ONT转账调用示例
 
