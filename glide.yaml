@@ -5,7 +5,6 @@ import:
 - package: github.com/dnaproject/gopass
 - package: github.com/gorilla/websocket
   version: v1.2.0
-- package: github.com/hokaccha/go-prettyjson
 - package: github.com/itchyny/base58-go
 - package: github.com/pborman/uuid
   version: v1.1
