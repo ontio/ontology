@@ -97,6 +97,15 @@ To show the wallet info：
 
 ```shell
 $ ./nodectl wallet --list account
+
+public key:    1202021401156f187ec23ce631a489c3fa17f292171009c6c3162ef642406d3d09c74d
+hex address:  018f0dcf09ec2f0040e6e8d7e54635dba40f7d63
+base58 address:       TA7T3p6ikRG5s2pAaehUH2XvRCCzvsFmwE
+
+$ ./nodectl wallet --list account -b
+ont: 248965536
+
+* with -b cmd will show the ont amount this account have.
 ```
 
 ONT supported crypto( <hash>with<dsa> ):

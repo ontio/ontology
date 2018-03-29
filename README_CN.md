@@ -91,6 +91,15 @@ $ ./nodectl wallet --create --name wallet.dat --password passwordtest --encrypt=
 展示钱包示例(需要输入密码)：
 ```shell
 $ ./nodectl wallet --list account
+
+public key:    1202021401156f187ec23ce631a489c3fa17f292171009c6c3162ef642406d3d09c74d
+hex address:  018f0dcf09ec2f0040e6e8d7e54635dba40f7d63
+base58 address:       TA7T3p6ikRG5s2pAaehUH2XvRCCzvsFmwE
+
+$ ./nodectl wallet --list account -b
+ont: 248965536
+
+* 用-b 命令可以显示当前账户所持有的ont数量。
 ```
 
 ONT可签名方案说明( <hash>with<dsa> 前面是散列算法，后面是签名算法):
