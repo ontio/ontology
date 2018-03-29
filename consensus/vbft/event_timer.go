@@ -37,6 +37,8 @@ const (
 	EventEndorseEmptyBlockTimeout
 	EventCommitBlockTimeout
 	EventPeerHeartbeat
+	EventTxPool
+	EventTxBlockTimeout
 	EventMax
 )
 
@@ -46,6 +48,8 @@ var (
 	endorseBlockTimeout    = 100 * time.Millisecond
 	commitBlockTimeout     = 200 * time.Millisecond
 	peerHandshakeTimeout   = 10 * time.Second
+	txPooltimeout		   = 1 *  time.Second
+	zeroTxBlockTimeout 	   = 10 * time.Second
 )
 
 type SendMsgEvent struct {
@@ -73,9 +77,10 @@ type EventTimer struct {
 
 	// peer heartbeat tickers
 	peerTickers map[uint32]*time.Timer
-
 	// other timers
 	normalTimers map[uint64]*time.Timer
+	//tx timer
+	txTickers *time.Timer
 }
 
 func NewEventTimer(server *Server) *EventTimer {
@@ -173,6 +178,10 @@ func (self *EventTimer) getEventTimeout(evtType TimerEventType) time.Duration {
 	case EventRandomBackoff:
 		d := (rand.Int63n(100) + 50) * int64(endorseBlockTimeout) / 100
 		return time.Duration(d)
+	case EventTxPool:
+		return txPooltimeout
+	case EventTxBlockTimeout:
+		return zeroTxBlockTimeout
 	}
 
 	return 0
@@ -332,6 +341,20 @@ func (self *EventTimer) onBlockSealed(blockNum uint64) {
 	}
 }
 
+func (self *EventTimer) StartTxBlockTimeout(blockNum uint64) error {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+
+	return self.startEventTimer(EventTxBlockTimeout,blockNum)
+}
+
+func (self *EventTimer) CancelTxBlockTimeout(blockNum uint64) error {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+
+	return self.cancelEventTimer(EventTxBlockTimeout, blockNum)
+}
+
 func (self *EventTimer) startPeerTicker(peerIdx uint32) error {
 	self.lock.Lock()
 	defer self.lock.Unlock()
@@ -361,6 +384,28 @@ func (self *EventTimer) stopPeerTicker(peerIdx uint32) error {
 		p.Stop()
 		delete(self.peerTickers, peerIdx)
 	}
+	return nil
+}
+
+
+func (self *EventTimer) startTxTicker(blockNum uint64) error {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+	timeout := self.getEventTimeout(EventTxPool)
+	self.txTickers = time.AfterFunc(timeout, func() {
+		self.C <- &TimerEvent{
+			evtType:  EventTxPool,
+			blockNum: blockNum,
+		}
+		self.txTickers.Reset(timeout)
+	})
+	return nil
+}
+
+func (self *EventTimer) stopTxTicker() error {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+	self.txTickers.Stop()
 	return nil
 }
 

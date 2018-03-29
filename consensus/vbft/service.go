@@ -99,7 +99,7 @@ type Server struct {
 	bftActionC chan *BftAction
 	msgSendC   chan *SendMsgEvent
 
-	sub *events.ActorSubscriber
+	sub   *events.ActorSubscriber
 	quitC chan interface{}
 	quit  bool
 }
@@ -259,6 +259,7 @@ func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
 	endorseBlockTimeout = time.Duration(cfg.HashMsgDelay * 2)
 	commitBlockTimeout = time.Duration(cfg.HashMsgDelay * 3)
 	peerHandshakeTimeout = time.Duration(cfg.PeerHandshakeTimeout)
+	zeroTxBlockTimeout = time.Duration(cfg.BlockMsgDelay *3)
 	// TODO: load sealed blocks from chainStore
 
 	// protected by server.metaLock
@@ -320,7 +321,6 @@ func (self *Server) start() error {
 	self.bftActionC = make(chan *BftAction, 8)
 	self.msgSendC = make(chan *SendMsgEvent, 16)
 	self.quitC = make(chan interface{})
-
 	if err := self.LoadChainConfig(store); err != nil {
 		self.log.Errorf("failed to load config: %s", err)
 		return fmt.Errorf("failed to load config: %s", err)
@@ -538,6 +538,16 @@ func (self *Server) startNewRound() error {
 		return nil
 	}
 
+	txpool := self.poolActor.GetTxnPool(true, uint32(blkNum-1))
+	if len(txpool) != 0 {
+		self.packProposal(blkNum)
+	} else {
+		self.timer.startTxTicker(blkNum)
+	}
+	return nil
+}
+
+func (self *Server) packProposal(blkNum uint64) error {
 	// make proposal
 	if self.isProposer(blkNum, self.Index) {
 		self.log.Infof("server %d, proposer for block %d", self.Index, blkNum)
@@ -1421,8 +1431,22 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 			ToPeer: uint32(evt.blockNum),
 			Msg:    msg,
 		}
+	case EventTxPool:
+		blockNum := self.GetCurrentBlockNo()
+		txpool := self.poolActor.GetTxnPool(true, uint32(blockNum-1))
+		if len(txpool) != 0 {
+			self.packProposal(blockNum)
+			self.timer.stopTxTicker()
+		} else {
+			self.timer.stopTxTicker()
+			self.timer.StartTxBlockTimeout(blockNum)
+		}
+	case EventTxBlockTimeout:
+		self.packProposal(evt.blockNum)
+		if err := self.timer.CancelTxBlockTimeout(evt.blockNum); err != nil {
+			self.log.Errorf("failed to cancel txBlockTimeout timer, blockNum %d, err: %s", evt.blockNum, err)
+		}
 	}
-
 	return nil
 }
 
