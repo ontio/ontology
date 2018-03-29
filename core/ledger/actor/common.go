@@ -220,7 +220,7 @@ type GetEventNotifyByTxReq struct {
 
 type GetEventNotifyByTxRsp struct {
 	Notifies []*event.NotifyEventInfo
-	Error error
+	Error    error
 }
 
 type GetEventNotifyByBlockReq struct {
@@ -229,5 +229,5 @@ type GetEventNotifyByBlockReq struct {
 
 type GetEventNotifyByBlockRsp struct {
 	TxHashes []common.Uint256
-	Error error
+	Error    error
 }

@@ -19,10 +19,10 @@
 package test
 
 import (
-	"testing"
+	"encoding/json"
 	"fmt"
 	"os"
-	"encoding/json"
+	"testing"
 )
 
 func reqPacking(method string, params []interface{}) map[string]interface{} {

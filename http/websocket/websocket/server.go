@@ -23,17 +23,18 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
-	cfg "github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/http/base/rest"
-	Err "github.com/Ontology/http/base/error"
-	"github.com/Ontology/http/websocket/session"
-	"github.com/gorilla/websocket"
 	"net"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
+
+	cfg "github.com/Ontology/common/config"
+	"github.com/Ontology/common/log"
+	Err "github.com/Ontology/http/base/error"
+	"github.com/Ontology/http/base/rest"
+	"github.com/Ontology/http/websocket/session"
+	"github.com/gorilla/websocket"
 )
 
 type handler func(map[string]interface{}) map[string]interface{}

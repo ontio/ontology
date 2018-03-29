@@ -1,4 +1,5 @@
 package common
+
 /*
  * Copyright (C) 2018 The ontology Authors
  * This file is part of The ontology library.
@@ -19,7 +20,6 @@ package common
 import (
 	"crypto/sha256"
 	"fmt"
-	. "github.com/Ontology/common"
 	"testing"
 )
 

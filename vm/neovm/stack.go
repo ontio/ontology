@@ -63,7 +63,7 @@ func (r *RandomAccessStack) Peek(index int) Element {
 		return nil
 	}
 	index = l - index
-	return r.e[index - 1]
+	return r.e[index-1]
 }
 
 func (r *RandomAccessStack) Remove(index int) Element {
@@ -72,9 +72,9 @@ func (r *RandomAccessStack) Remove(index int) Element {
 		return nil
 	}
 	index = l - index
-	e := r.e[index - 1]
+	e := r.e[index-1]
 	var si []Element
-	si = append(r.e[:index - 1], r.e[index:]...)
+	si = append(r.e[:index-1], r.e[index:]...)
 	r.e = si
 	return e
 }
@@ -97,5 +97,5 @@ func (r *RandomAccessStack) Pop() Element {
 
 func (r *RandomAccessStack) Swap(i, j int) {
 	l := len(r.e)
-	r.e[l - i - 1], r.e[l - j - 1] = r.e[l - j - 1], r.e[l - i - 1]
+	r.e[l-i-1], r.e[l-j-1] = r.e[l-j-1], r.e[l-i-1]
 }

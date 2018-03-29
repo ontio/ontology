@@ -19,15 +19,15 @@
 package program
 
 import (
-	"io"
 	"fmt"
+	"io"
 
 	"github.com/Ontology/common/serialization"
 )
 
 type Program struct {
 	//the contract program code,which will be run on VM or specific envrionment
-	Code      []byte
+	Code []byte
 
 	//the program code's parameter
 	Parameter []byte
@@ -37,11 +37,11 @@ type Program struct {
 func (p *Program) Serialize(w io.Writer) error {
 	err := serialization.WriteVarBytes(w, p.Parameter)
 	if err != nil {
-			return fmt.Errorf("Execute Program Serialize Code failed: %s", err)
+		return fmt.Errorf("Execute Program Serialize Code failed: %s", err)
 	}
 	err = serialization.WriteVarBytes(w, p.Code)
 	if err != nil {
-			return fmt.Errorf("Execute Program Serialize Parameter failed: %s", err)
+		return fmt.Errorf("Execute Program Serialize Parameter failed: %s", err)
 	}
 
 	return nil
@@ -51,12 +51,12 @@ func (p *Program) Serialize(w io.Writer) error {
 func (p *Program) Deserialize(w io.Reader) error {
 	val, err := serialization.ReadVarBytes(w)
 	if err != nil {
-			return fmt.Errorf("Execute Program Deserialize Parameter failed: %s", err)
+		return fmt.Errorf("Execute Program Deserialize Parameter failed: %s", err)
 	}
 	p.Parameter = val
 	p.Code, err = serialization.ReadVarBytes(w)
 	if err != nil {
-			return fmt.Errorf("Execute Program Deserialize Code failed: %s", err)
+		return fmt.Errorf("Execute Program Deserialize Code failed: %s", err)
 	}
 	return nil
 }

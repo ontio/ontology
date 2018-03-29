@@ -43,7 +43,7 @@ func opCheckMultiSig(e *ExecutionEngine) (VMState, error) {
 	if n < 1 {
 		return FAULT, nil
 	}
-	if Count(e) < n + 2 {
+	if Count(e) < n+2 {
 		return FAULT, nil
 	}
 	e.opCount += n
@@ -72,7 +72,7 @@ func opCheckMultiSig(e *ExecutionEngine) (VMState, error) {
 			i++
 		}
 		j++
-		if m - i > n - j {
+		if m-i > n-j {
 			fSuccess = false
 		}
 	}

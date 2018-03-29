@@ -308,4 +308,3 @@ func ReadByte(reader io.Reader) (byte, error) {
 	}
 	return b[0], nil
 }
-

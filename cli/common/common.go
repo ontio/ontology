@@ -32,7 +32,7 @@ import (
 )
 
 var (
-	Ip string
+	Ip   string
 	Port string
 )
 

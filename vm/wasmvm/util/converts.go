@@ -19,9 +19,9 @@
 package util
 
 import (
+	"bytes"
 	"encoding/binary"
 	"math"
-	"bytes"
 )
 
 func Float32ToByte(float float32) []byte {

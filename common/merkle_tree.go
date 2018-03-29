@@ -1,4 +1,5 @@
 package common
+
 /*
  * Copyright (C) 2018 The ontology Authors
  * This file is part of The ontology library.
@@ -22,15 +23,15 @@ import (
 	"errors"
 )
 
-	func doubleSha256(s []Uint256) Uint256 {
-		b := new(bytes.Buffer)
-		for _, d := range s {
-			d.Serialize(b)
-		}
-		temp := sha256.Sum256(b.Bytes())
-		f := sha256.Sum256(temp[:])
-		return Uint256(f)
+func doubleSha256(s []Uint256) Uint256 {
+	b := new(bytes.Buffer)
+	for _, d := range s {
+		d.Serialize(b)
 	}
+	temp := sha256.Sum256(b.Bytes())
+	f := sha256.Sum256(temp[:])
+	return Uint256(f)
+}
 
 type MerkleTree struct {
 	Depth uint

@@ -19,16 +19,16 @@
 package node
 
 import (
-	"github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
 	"math/rand"
 	"net"
-	//"github.com/Ontology/core/ledger"
+	"strconv"
+	"time"
+
+	"github.com/Ontology/common/config"
+	"github.com/Ontology/common/log"
 	"github.com/Ontology/net/actor"
 	. "github.com/Ontology/net/message"
 	. "github.com/Ontology/net/protocol"
-	"strconv"
-	"time"
 )
 
 func (node *node) GetBlkHdrs() {

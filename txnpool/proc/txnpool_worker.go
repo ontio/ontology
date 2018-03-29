@@ -20,14 +20,15 @@ package proc
 
 import (
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	tx "github.com/Ontology/core/types"
 	"github.com/Ontology/errors"
 	tc "github.com/Ontology/txnpool/common"
 	"github.com/Ontology/validator/types"
-	"sync"
-	"time"
 )
 
 type pendingTx struct {

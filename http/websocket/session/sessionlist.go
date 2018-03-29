@@ -19,8 +19,9 @@
 package session
 
 import (
-	"github.com/gorilla/websocket"
 	"sync"
+
+	"github.com/gorilla/websocket"
 )
 
 type SessionList struct {

@@ -81,11 +81,11 @@ func (self *LevelDBStore) NewBatch() {
 	self.batch = new(leveldb.Batch)
 }
 
-func (self *LevelDBStore) BatchPut(key []byte, value []byte){
+func (self *LevelDBStore) BatchPut(key []byte, value []byte) {
 	self.batch.Put(key, value)
 }
 
-func (self *LevelDBStore) BatchDelete(key []byte){
+func (self *LevelDBStore) BatchDelete(key []byte) {
 	self.batch.Delete(key)
 }
 

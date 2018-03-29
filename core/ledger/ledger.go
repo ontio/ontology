@@ -28,8 +28,8 @@ import (
 	"github.com/Ontology/core/store"
 	"github.com/Ontology/core/store/ledgerstore"
 	"github.com/Ontology/core/types"
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/Ontology/smartcontract/event"
+	"github.com/ontio/ontology-crypto/keypair"
 )
 
 var DefLedger *Ledger
@@ -160,10 +160,10 @@ func (this *Ledger) PreExecuteContract(tx *types.Transaction) ([]interface{}, er
 	return this.ldgStore.PreExecuteContract(tx)
 }
 
-func (this *Ledger)GetEventNotifyByTx(tx common.Uint256)([]*event.NotifyEventInfo, error){
+func (this *Ledger) GetEventNotifyByTx(tx common.Uint256) ([]*event.NotifyEventInfo, error) {
 	return this.ldgStore.GetEventNotifyByTx(tx)
 }
 
-func (this *Ledger)GetEventNotifyByBlock(height uint32)([]common.Uint256, error){
+func (this *Ledger) GetEventNotifyByBlock(height uint32) ([]common.Uint256, error) {
 	return this.ldgStore.GetEventNotifyByBlock(height)
 }

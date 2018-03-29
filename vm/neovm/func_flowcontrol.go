@@ -21,8 +21,8 @@ package neovm
 import (
 	"fmt"
 
-	"github.com/Ontology/vm/neovm/errors"
 	"github.com/Ontology/common/log"
+	"github.com/Ontology/vm/neovm/errors"
 )
 
 func opNop(e *ExecutionEngine) (VMState, error) {

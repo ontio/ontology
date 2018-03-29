@@ -26,7 +26,6 @@ import (
 	"strings"
 )
 
-
 type paramsMap map[string]string
 
 type Route struct {
@@ -42,7 +41,6 @@ type Router struct {
 func NewRouter() *Router {
 	return &Router{}
 }
-
 
 func (this *Router) Try(path string, method string) (http.HandlerFunc, paramsMap, error) {
 

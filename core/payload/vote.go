@@ -19,12 +19,12 @@
 package payload
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
 	"github.com/ontio/ontology-crypto/keypair"
-	"fmt"
 )
 
 const (
@@ -46,17 +46,17 @@ func (self *Vote) Check() bool {
 
 func (self *Vote) Serialize(w io.Writer) error {
 	if err := serialization.WriteUint32(w, uint32(len(self.PubKeys))); err != nil {
-			return fmt.Errorf("Vote PubKeys length Serialize failed: %s", err)
+		return fmt.Errorf("Vote PubKeys length Serialize failed: %s", err)
 	}
 	for _, key := range self.PubKeys {
 		buf := keypair.SerializePublicKey(key)
 		err := serialization.WriteVarBytes(w, buf)
 		if err != nil {
-				return fmt.Errorf("InvokeCode PubKeys Serialize failed: %s", err)
+			return fmt.Errorf("InvokeCode PubKeys Serialize failed: %s", err)
 		}
 	}
 	if err := self.Account.Serialize(w); err != nil {
-			return fmt.Errorf("InvokeCode Account Serialize failed: %s", err)
+		return fmt.Errorf("InvokeCode Account Serialize failed: %s", err)
 	}
 
 	return nil

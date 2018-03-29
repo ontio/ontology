@@ -33,7 +33,6 @@ import (
 	"github.com/Ontology/vm/wasmvm/exec"
 	"github.com/Ontology/vm/wasmvm/util"
 	"github.com/Ontology/vm/wasmvm/wasm"
-
 )
 
 type WasmStateMachine struct {

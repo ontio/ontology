@@ -24,11 +24,10 @@ import (
 	"errors"
 	"sort"
 
-	"golang.org/x/crypto/ripemd160"
-
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
 	"github.com/ontio/ontology-crypto/keypair"
+	"golang.org/x/crypto/ripemd160"
 )
 
 func AddressFromPubKey(pubkey keypair.PublicKey) common.Address {

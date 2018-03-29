@@ -33,7 +33,6 @@ import (
 	"github.com/Ontology/vm/wasmvm/util"
 	"github.com/Ontology/vm/wasmvm/validate"
 	"github.com/Ontology/vm/wasmvm/wasm"
-
 )
 
 const (

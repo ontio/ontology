@@ -20,13 +20,14 @@ package common
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/errors"
 	vt "github.com/Ontology/validator/types"
-	"sync"
 )
 
 type TXAttr struct {

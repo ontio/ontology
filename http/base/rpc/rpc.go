@@ -21,12 +21,13 @@ package rpc
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Ontology/common/log"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/Ontology/common/log"
 )
 
 func init() {
@@ -39,7 +40,7 @@ var mainMux ServeMux
 //multiplexer that keeps track of every function to be called on specific rpc call
 type ServeMux struct {
 	sync.RWMutex
-	m map[string]func([]interface{}) map[string]interface{}
+	m               map[string]func([]interface{}) map[string]interface{}
 	defaultFunction func(http.ResponseWriter, *http.Request)
 }
 
@@ -102,7 +103,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		log.Error("HTTP JSON RPC Handle - json.Unmarshal: ", err)
 		return
 	}
-	if request["method"] == nil{
+	if request["method"] == nil {
 		log.Error("HTTP JSON RPC Handle - method not found: ")
 		return
 	}

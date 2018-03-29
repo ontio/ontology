@@ -123,5 +123,3 @@ func (r *VmReader) ReadVarString() string {
 	bs := r.ReadVarBytes(0X7fffffc7)
 	return string(bs)
 }
-
-

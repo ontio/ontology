@@ -24,8 +24,8 @@ import (
 
 	"github.com/Ontology/core/types"
 	ontErrors "github.com/Ontology/errors"
-	"github.com/ontio/ontology-eventbus/actor"
 	txpool "github.com/Ontology/txnpool/common"
+	"github.com/ontio/ontology-eventbus/actor"
 )
 
 type TxPoolActor struct {
@@ -66,7 +66,7 @@ type P2PActor struct {
 	P2P *actor.PID
 }
 
-func (self *P2PActor) Xmit(msg interface{})  {
+func (self *P2PActor) Xmit(msg interface{}) {
 	self.P2P.Tell(msg)
 }
 

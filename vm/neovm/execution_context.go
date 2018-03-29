@@ -19,10 +19,11 @@
 package neovm
 
 import (
+	"io"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/vm/neovm/types"
 	"github.com/Ontology/vm/neovm/utils"
-	"io"
 	vmtypes "github.com/Ontology/vm/types"
 )
 
@@ -56,10 +57,10 @@ func (ec *ExecutionContext) SetInstructionPointer(offset int64) {
 }
 
 func (ec *ExecutionContext) GetCodeHash() (common.Address, error) {
-	empty :=common.Address{}
+	empty := common.Address{}
 	if ec.CodeHash == empty {
 		code := &vmtypes.VmCode{
-			Code: ec.Code,
+			Code:   ec.Code,
 			VmType: vmtypes.NEOVM,
 		}
 		ec.CodeHash = code.AddressFromVmCode()

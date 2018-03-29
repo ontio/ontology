@@ -2,8 +2,8 @@ package context
 
 import (
 	"github.com/Ontology/common"
-	vmtypes "github.com/Ontology/vm/types"
 	"github.com/Ontology/smartcontract/event"
+	vmtypes "github.com/Ontology/vm/types"
 )
 
 type ContextRef interface {
@@ -17,8 +17,7 @@ type ContextRef interface {
 	Execute() error
 }
 
-
 type Context struct {
 	ContractAddress common.Address
-	Code vmtypes.VmCode
+	Code            vmtypes.VmCode
 }

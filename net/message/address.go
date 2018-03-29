@@ -24,10 +24,11 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"github.com/Ontology/common/log"
-	. "github.com/Ontology/net/protocol"
 	"net"
 	"strconv"
+
+	"github.com/Ontology/common/log"
+	. "github.com/Ontology/net/protocol"
 )
 
 type addrReq struct {
@@ -44,7 +45,7 @@ func newGetAddr() ([]byte, error) {
 	var msg addrReq
 	// Fixme the check is the []byte{0} instead of 0
 	var sum []byte
-	sum = []byte{0x5d, 0xf6, 0xe0, 0xe2}  //modify ===
+	sum = []byte{0x5d, 0xf6, 0xe0, 0xe2} //modify ===
 	msg.Hdr.init("getaddr", sum, 0)
 
 	buf, err := msg.Serialization()

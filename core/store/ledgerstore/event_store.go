@@ -23,6 +23,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
 	scom "github.com/Ontology/core/store/common"
@@ -87,7 +88,7 @@ func (this *EventStore) GetEventNotifyByTx(txHash common.Uint256) ([]*event.Noti
 	key := this.getEventNotifyByTxKey(txHash)
 	data, err := this.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound{
+		if err == leveldb.ErrNotFound {
 			return nil, nil
 		}
 		return nil, err
@@ -106,7 +107,7 @@ func (this *EventStore) GetEventNotifyByBlock(height uint32) ([]common.Uint256, 
 	}
 	data, err := this.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound{
+		if err == leveldb.ErrNotFound {
 			return nil, nil
 		}
 		return nil, err
@@ -132,7 +133,7 @@ func (this *EventStore) CommitTo() error {
 	return this.store.BatchCommit()
 }
 
-func (this *EventStore) Close() error{
+func (this *EventStore) Close() error {
 	return this.store.Close()
 }
 

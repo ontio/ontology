@@ -35,4 +35,3 @@ func NewStorageContext(codeHash common.Address) *StorageContext {
 func (sc *StorageContext) ToArray() []byte {
 	return sc.codeHash[:]
 }
-

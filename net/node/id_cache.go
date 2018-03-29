@@ -19,8 +19,9 @@
 package node
 
 import (
-	"github.com/Ontology/common"
 	"sync"
+
+	"github.com/Ontology/common"
 )
 
 type idCache struct {

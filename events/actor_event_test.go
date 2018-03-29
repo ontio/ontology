@@ -19,13 +19,15 @@
 package events
 
 import (
-	"github.com/ontio/ontology-eventbus/actor"
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/ontio/ontology-eventbus/actor"
 )
 
 const testTopic = "test"
+
 type testMessage struct {
 	Message string
 }
@@ -37,16 +39,15 @@ func testSubReceive(c actor.Context) {
 	}
 }
 
-func TestActorEvent(t *testing.T){
+func TestActorEvent(t *testing.T) {
 	Init()
-	subPID1 := actor.Spawn( actor.FromFunc(testSubReceive))
+	subPID1 := actor.Spawn(actor.FromFunc(testSubReceive))
 	subPID2 := actor.Spawn(actor.FromFunc(testSubReceive))
 	sub1 := NewActorSubscriber(subPID1)
 	sub2 := NewActorSubscriber(subPID2)
 	sub1.Subscribe(testTopic)
 	sub2.Subscribe(testTopic)
-	DefActorPublisher.Publish(testTopic, &testMessage{Message:"Hello"})
+	DefActorPublisher.Publish(testTopic, &testMessage{Message: "Hello"})
 	time.Sleep(time.Millisecond)
-	DefActorPublisher.Publish(testTopic, &testMessage{Message:"Word"})
+	DefActorPublisher.Publish(testTopic, &testMessage{Message: "Word"})
 }
-

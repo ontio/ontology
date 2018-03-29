@@ -81,15 +81,15 @@ func (self TreeHasher) _hash_full(leaves []common.Uint256, l_idx, r_idx uint32) 
 		leaf_hash := leaves[l_idx]
 		return leaf_hash, []common.Uint256{leaf_hash}
 	} else {
-		var split_width uint32 = 1 << (countBit(width - 1) - 1)
-		l_root, l_hashes := self._hash_full(leaves, l_idx, l_idx + split_width)
+		var split_width uint32 = 1 << (countBit(width-1) - 1)
+		l_root, l_hashes := self._hash_full(leaves, l_idx, l_idx+split_width)
 		if len(l_hashes) != 1 {
 			panic("left tree always full")
 		}
-		r_root, r_hashes := self._hash_full(leaves, l_idx + split_width, r_idx)
+		r_root, r_hashes := self._hash_full(leaves, l_idx+split_width, r_idx)
 		root_hash = self.hash_children(l_root, r_root)
 		var hashes []common.Uint256
-		if split_width * 2 == width {
+		if split_width*2 == width {
 			hashes = []common.Uint256{root_hash}
 		} else {
 			hashes = append(l_hashes, r_hashes[:]...)
@@ -100,7 +100,7 @@ func (self TreeHasher) _hash_full(leaves []common.Uint256, l_idx, r_idx uint32) 
 
 func (self TreeHasher) _hash_fold(hashes []common.Uint256) common.Uint256 {
 	l := len(hashes)
-	accum := hashes[l - 1]
+	accum := hashes[l-1]
 	for i := l - 2; i >= 0; i-- {
 		accum = self.hash_children(hashes[i], accum)
 	}

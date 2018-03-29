@@ -19,13 +19,14 @@
 package actor
 
 import (
+	"time"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	ledger "github.com/Ontology/core/ledger/actor"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/errors"
 	"github.com/ontio/ontology-eventbus/actor"
-	"time"
 )
 
 const ledgerReqTimeout = 5 * time.Second

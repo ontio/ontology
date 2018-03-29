@@ -19,11 +19,6 @@
 package restful
 
 import (
-	cfg "github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/http/base/rest"
-	berr "github.com/Ontology/http/base/error"
-	"github.com/Ontology/http/websocket"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -34,6 +29,12 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	cfg "github.com/Ontology/common/config"
+	"github.com/Ontology/common/log"
+	berr "github.com/Ontology/http/base/error"
+	"github.com/Ontology/http/base/rest"
+	"github.com/Ontology/http/websocket"
 )
 
 type handler func(map[string]interface{}) map[string]interface{}

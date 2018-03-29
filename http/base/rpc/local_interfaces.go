@@ -19,12 +19,13 @@
 package rpc
 
 import (
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/http/base/common"
-	bactor "github.com/Ontology/http/base/actor"
-	berr "github.com/Ontology/http/base/error"
 	"os"
 	"path/filepath"
+
+	"github.com/Ontology/common/log"
+	bactor "github.com/Ontology/http/base/actor"
+	"github.com/Ontology/http/base/common"
+	berr "github.com/Ontology/http/base/error"
 )
 
 const (
@@ -45,52 +46,52 @@ func GetNeighbor(params []interface{}) map[string]interface{} {
 }
 
 func GetNodeState(params []interface{}) map[string]interface{} {
-	state,err := bactor.GetConnectionState()
+	state, err := bactor.GetConnectionState()
 	if err != nil {
 		return responsePack(berr.INTERNAL_ERROR, false)
 	}
-	t,err := bactor.GetNodeTime()
+	t, err := bactor.GetNodeTime()
 	if err != nil {
 		return responsePack(berr.INTERNAL_ERROR, false)
 	}
-	port,err := bactor.GetNodePort()
+	port, err := bactor.GetNodePort()
 	if err != nil {
 		return responsePack(berr.INTERNAL_ERROR, false)
 	}
-	id,err := bactor.GetID()
+	id, err := bactor.GetID()
 	if err != nil {
 		return responsePack(berr.INTERNAL_ERROR, false)
 	}
-	ver,err := bactor.GetVersion()
+	ver, err := bactor.GetVersion()
 	if err != nil {
 		return responsePack(berr.INTERNAL_ERROR, false)
 	}
-	tpe,err := bactor.GetNodeType()
+	tpe, err := bactor.GetNodeType()
 	if err != nil {
 		return responsePack(berr.INTERNAL_ERROR, false)
 	}
-	relay,err := bactor.GetRelayState()
+	relay, err := bactor.GetRelayState()
 	if err != nil {
 		return responsePack(berr.INTERNAL_ERROR, false)
 	}
-	height,err := bactor.BlockHeight()
+	height, err := bactor.BlockHeight()
 	if err != nil {
 		return responsePack(berr.INTERNAL_ERROR, false)
 	}
-	txnCnt,err := bactor.GetTxnCnt()
+	txnCnt, err := bactor.GetTxnCnt()
 	if err != nil {
 		return responsePack(berr.INTERNAL_ERROR, false)
 	}
 	n := common.NodeInfo{
-		NodeState:    uint(state),
-		NodeTime:     t,
-		NodePort:     port,
-		ID:       id,
-		NodeVersion:  ver,
-		NodeType: tpe,
-		Relay:    relay,
-		Height:   height,
-		TxnCnt:   txnCnt,
+		NodeState:   uint(state),
+		NodeTime:    t,
+		NodePort:    port,
+		ID:          id,
+		NodeVersion: ver,
+		NodeType:    tpe,
+		Relay:       relay,
+		Height:      height,
+		TxnCnt:      txnCnt,
 	}
 	return responseSuccess(n)
 }

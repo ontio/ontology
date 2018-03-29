@@ -19,14 +19,14 @@
 package actor
 
 import (
+	"fmt"
+	"reflect"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/types"
 	"github.com/ontio/ontology-eventbus/actor"
-
-	"reflect"
-	"fmt"
 )
 
 var DefLedgerPid *actor.PID
@@ -139,7 +139,7 @@ func (this *LedgerActor) handleAddBlockReq(ctx actor.Context, req *AddBlockReq) 
 	if ctx.Sender() != nil {
 		hash := req.Block.Hash()
 		resp := &AddBlockRsp{
-			BlockHash:hash,
+			BlockHash: hash,
 			Error:     err,
 		}
 		ctx.Sender().Request(resp, ctx.Self())
@@ -218,11 +218,11 @@ func (this *LedgerActor) handleGetCurrentHeaderHeightReq(ctx actor.Context, req 
 	ctx.Sender().Request(resp, ctx.Self())
 }
 
-func (this *LedgerActor) handleGetCurrentHeaderHashReq(ctx actor.Context, req *GetCurrentHeaderHashReq){
+func (this *LedgerActor) handleGetCurrentHeaderHashReq(ctx actor.Context, req *GetCurrentHeaderHashReq) {
 	curHeaderHash := ledger.DefLedger.GetCurrentHeaderHash()
 	resp := &GetCurrentHeaderHashRsp{
-		BlockHash:curHeaderHash,
-		Error:nil,
+		BlockHash: curHeaderHash,
+		Error:     nil,
 	}
 	ctx.Sender().Request(resp, ctx.Self())
 }
@@ -318,20 +318,20 @@ func (this *LedgerActor) handlePreExecuteContractReq(ctx actor.Context, req *Pre
 	ctx.Sender().Request(resp, ctx.Self())
 }
 
-func (this *LedgerActor) handleGetEventNotifyByTx(ctx actor.Context, req *GetEventNotifyByTxReq){
+func (this *LedgerActor) handleGetEventNotifyByTx(ctx actor.Context, req *GetEventNotifyByTxReq) {
 	result, err := ledger.DefLedger.GetEventNotifyByTx(req.Tx)
 	resp := &GetEventNotifyByTxRsp{
-		Notifies:result,
-		Error:err,
+		Notifies: result,
+		Error:    err,
 	}
 	ctx.Sender().Request(resp, ctx.Self())
 }
 
-func (this *LedgerActor) handleGetEventNotifyByBlock(ctx actor.Context, req *GetEventNotifyByBlockReq){
+func (this *LedgerActor) handleGetEventNotifyByBlock(ctx actor.Context, req *GetEventNotifyByBlockReq) {
 	result, err := ledger.DefLedger.GetEventNotifyByBlock(req.Height)
 	resp := &GetEventNotifyByBlockRsp{
-		TxHashes:result,
-		Error:err,
+		TxHashes: result,
+		Error:    err,
 	}
 	ctx.Sender().Request(resp, ctx.Self())
 }

@@ -21,8 +21,8 @@ package memory
 import (
 	"encoding/binary"
 	"errors"
-	"reflect"
 	"math"
+	"reflect"
 
 	"github.com/Ontology/vm/wasmvm/util"
 )
@@ -99,7 +99,7 @@ func (vm *VMmemory) copyMemAndGetIdx(b []byte, p_type PType) (int, error) {
 
 func (vm *VMmemory) GetPointerMemSize(addr uint64) int {
 	//nil case
-	if addr == uint64(math.MaxInt64){
+	if addr == uint64(math.MaxInt64) {
 		return 0
 	}
 
@@ -114,8 +114,8 @@ func (vm *VMmemory) GetPointerMemSize(addr uint64) int {
 //when wasm returns a pointer, call this function to get the pointed memory
 func (vm *VMmemory) GetPointerMemory(addr uint64) ([]byte, error) {
 	//nil case
-	if addr == uint64(math.MaxInt64){
-		return nil,nil
+	if addr == uint64(math.MaxInt64) {
+		return nil, nil
 	}
 
 	length := vm.GetPointerMemSize(addr)
@@ -228,8 +228,8 @@ func (vm *VMmemory) SetStructMemory(val interface{}) (int, error) {
 			case reflect.String:
 				fieldVal = field.String()
 				tmp, err := vm.SetPointerMemory(fieldVal)
-				if err != nil{
-					return 0,err
+				if err != nil {
+					return 0, err
 				}
 				//add the point address to memory
 				idx, err = vm.SetMemory(tmp)
@@ -238,8 +238,8 @@ func (vm *VMmemory) SetStructMemory(val interface{}) (int, error) {
 				//fieldVal = field.Interface()
 				//TODO note the struct field MUST be public
 				tmp, err := vm.SetPointerMemory(fieldVal)
-				if err != nil{
-					return 0,err
+				if err != nil {
+					return 0, err
 				}
 				//add the point address to memory
 				idx, err = vm.SetMemory(tmp)

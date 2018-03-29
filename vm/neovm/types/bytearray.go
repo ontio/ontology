@@ -81,4 +81,3 @@ func (this *ByteArray) GetArray() []StackItems {
 func (this *ByteArray) GetStruct() []StackItems {
 	return []StackItems{this}
 }
-

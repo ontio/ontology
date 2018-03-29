@@ -22,13 +22,14 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/errors"
 	tc "github.com/Ontology/txnpool/common"
 	vt "github.com/Ontology/validator/types"
-	"testing"
-	"time"
 )
 
 func TestWorker(t *testing.T) {

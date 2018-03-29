@@ -23,8 +23,8 @@ import (
 
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/validation"
-	"github.com/ontio/ontology-eventbus/actor"
 	vatypes "github.com/Ontology/validator/types"
+	"github.com/ontio/ontology-eventbus/actor"
 )
 
 type Validator interface {

@@ -303,7 +303,7 @@ func runTest(fileName string, testCases []testCase, t testing.TB) {
 		if testCase.Trap != "" {
 			// don't benchmark tests that involve trapping the VM
 			fn := func() {
-				_, err := vm.ExecCode(false,int64(index), args...)
+				_, err := vm.ExecCode(false, int64(index), args...)
 				if err != nil {
 					t.Fatalf("%s, %s: %v", fileName, testCase.Function, err)
 				}
@@ -325,7 +325,7 @@ func runTest(fileName string, testCases []testCase, t testing.TB) {
 		var err error
 
 		for i := 0; i < times; i++ {
-			res, err = vm.ExecCode(false ,int64(index), args...)
+			res, err = vm.ExecCode(false, int64(index), args...)
 		}
 		if ok {
 			b.StopTimer()

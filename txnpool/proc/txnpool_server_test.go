@@ -22,6 +22,9 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/payload"
@@ -31,8 +34,6 @@ import (
 	"github.com/Ontology/validator/stateless"
 	vt "github.com/Ontology/validator/types"
 	"github.com/ontio/ontology-eventbus/actor"
-	"testing"
-	"time"
 )
 
 var (

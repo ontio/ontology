@@ -20,10 +20,11 @@ package session
 
 import (
 	"errors"
-	"github.com/gorilla/websocket"
-	"github.com/pborman/uuid"
 	"sync"
 	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/pborman/uuid"
 )
 
 type Session struct {
@@ -75,7 +76,7 @@ func (this *Session) Send(data []byte) error {
 func (this *Session) SessionTimeoverCheck() bool {
 
 	nCurTime := time.Now().Unix()
-	if nCurTime - this.nLastActive > SESSION_TIMEOUT {
+	if nCurTime-this.nLastActive > SESSION_TIMEOUT {
 		//sec
 		return true
 	}

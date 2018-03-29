@@ -28,12 +28,10 @@ import (
 
 	"github.com/Ontology/account"
 	"github.com/Ontology/common"
-	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/core/signature"
 	"github.com/Ontology/core/types"
 	ctypes "github.com/Ontology/core/types"
 	"github.com/Ontology/core/utils"
-	"github.com/Ontology/smartcontract/service/native/states"
 	"github.com/Ontology/vm/neovm"
 	vmtypes "github.com/Ontology/vm/types"
 	"github.com/ontio/ontology-crypto/keypair"
@@ -82,7 +80,7 @@ func TestMultiPubKeysAddress(t *testing.T) {
 		fmt.Println(err)
 		os.Exit(0)
 	}
-	ui60,_ := types.AddressFromMultiPubKeys([]*crypto.PubKey{pk,pk2},1)
+	ui60, _ := types.AddressFromMultiPubKeys([]*keypair.PublicKey{pk, pk2}, 1)
 	addr := common.ToHexString(ui60[:])
 	fmt.Println(addr)
 	fmt.Println(ui60.ToBase58())

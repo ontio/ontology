@@ -24,6 +24,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
@@ -40,9 +41,9 @@ type ConsensusPayload struct {
 	BookkeeperIndex uint16
 	Timestamp       uint32
 	Data            []byte
-	Owner     keypair.PublicKey
-	Signature []byte
-	hash common.Uint256
+	Owner           keypair.PublicKey
+	Signature       []byte
+	hash            common.Uint256
 }
 
 type consensus struct {

@@ -22,21 +22,21 @@ import (
 	"bytes"
 	"math/big"
 
-	scommon "github.com/Ontology/core/store/common"
-	"github.com/Ontology/errors"
-	"github.com/Ontology/core/genesis"
-	ctypes "github.com/Ontology/core/types"
-	"github.com/Ontology/smartcontract/service/native/states"
-	cstates "github.com/Ontology/core/states"
 	"github.com/Ontology/account"
 	"github.com/Ontology/common"
+	"github.com/Ontology/core/genesis"
+	cstates "github.com/Ontology/core/states"
+	scommon "github.com/Ontology/core/store/common"
+	ctypes "github.com/Ontology/core/types"
+	"github.com/Ontology/errors"
+	"github.com/Ontology/smartcontract/service/native/states"
 )
 
 var (
 	DECREMENT_INTERVAL = uint32(2000000)
-	GENERATION_AMOUNT = [17]uint32{80, 70, 60, 50, 40, 30, 20, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10}
-	GL = uint32(len(GENERATION_AMOUNT))
-	ONT_TOTAL_SUPPLY = big.NewInt(1000000000)
+	GENERATION_AMOUNT  = [17]uint32{80, 70, 60, 50, 40, 30, 20, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10}
+	GL                 = uint32(len(GENERATION_AMOUNT))
+	ONT_TOTAL_SUPPLY   = big.NewInt(1000000000)
 )
 
 func OntInit(native *NativeService) error {
@@ -70,15 +70,18 @@ func OntTransfer(native *NativeService) error {
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	for _, v := range transfers.States {
-		fromBalance, toBalance, err := transfer(native, contract, v); if err != nil {
+		fromBalance, toBalance, err := transfer(native, contract, v)
+		if err != nil {
 			return err
 		}
 
-		fromStartHeight, err := getStartHeight(native, contract, v.From); if err != nil {
+		fromStartHeight, err := getStartHeight(native, contract, v.From)
+		if err != nil {
 			return err
 		}
 
-		toStartHeight, err := getStartHeight(native, contract, v.From); if err != nil {
+		toStartHeight, err := getStartHeight(native, contract, v.From)
+		if err != nil {
 			return err
 		}
 
@@ -147,7 +150,8 @@ func grantOng(native *NativeService, contract, address common.Address, balance *
 		amount += (iend - istart) * GENERATION_AMOUNT[ustart]
 	}
 
-	args, err := getApproveArgs(native, contract, genesis.OngContractAddress, address, balance, amount); if err != nil {
+	args, err := getApproveArgs(native, contract, genesis.OngContractAddress, address, balance, amount)
+	if err != nil {
 		return err
 	}
 
@@ -161,13 +165,14 @@ func grantOng(native *NativeService, contract, address common.Address, balance *
 
 func getApproveArgs(native *NativeService, contract, ongContract, address common.Address, balance *big.Int, amount uint32) ([]byte, error) {
 	bf := new(bytes.Buffer)
-	approve := &states.State {
-		From: contract,
-		To: address,
+	approve := &states.State{
+		From:  contract,
+		To:    address,
 		Value: new(big.Int).Mul(balance, big.NewInt(int64(amount))),
 	}
 
-	stateValue, err := getStorageBigInt(native, getApproveKey(ongContract, approve)); if err != nil {
+	stateValue, err := getStorageBigInt(native, getApproveKey(ongContract, approve))
+	if err != nil {
 		return nil, err
 	}
 
@@ -178,4 +183,3 @@ func getApproveArgs(native *NativeService, contract, ongContract, address common
 	}
 	return bf.Bytes(), nil
 }
-

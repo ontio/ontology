@@ -19,12 +19,13 @@
 package actor
 
 import (
-	"time"
-	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/Ontology/net/protocol"
-	ac "github.com/Ontology/net/actor"
 	"errors"
+	"time"
+
 	"github.com/Ontology/common/log"
+	ac "github.com/Ontology/net/actor"
+	"github.com/Ontology/net/protocol"
+	"github.com/ontio/ontology-eventbus/actor"
 )
 
 var netServerPid *actor.PID

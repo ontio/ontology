@@ -20,6 +20,7 @@ package ledgerstore
 
 import (
 	"fmt"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/core/types"
 	"github.com/hashicorp/golang-lru"
@@ -31,7 +32,7 @@ const (
 )
 
 type TransactionCacheaValue struct {
-	Tx *types.Transaction
+	Tx     *types.Transaction
 	Height uint32
 }
 
@@ -68,19 +69,19 @@ func (this *BlockCache) GetBlock(blockHash common.Uint256) *types.Block {
 	return block.(*types.Block)
 }
 
-func (this *BlockCache) ContainBlock(blockHash common.Uint256) bool{
+func (this *BlockCache) ContainBlock(blockHash common.Uint256) bool {
 	return this.blockCache.Contains(string(blockHash.ToArray()))
 }
 
 func (this *BlockCache) AddTransaction(tx *types.Transaction, height uint32) {
 	txHash := tx.Hash()
 	this.transactionCache.Add(string(txHash.ToArray()), &TransactionCacheaValue{
-		Tx:tx,
-		Height:height,
+		Tx:     tx,
+		Height: height,
 	})
 }
 
-func (this *BlockCache) GetTransaction(txHash common.Uint256) (*types.Transaction ,uint32){
+func (this *BlockCache) GetTransaction(txHash common.Uint256) (*types.Transaction, uint32) {
 	value, ok := this.transactionCache.Get(string(txHash.ToArray()))
 	if !ok {
 		return nil, 0
@@ -89,6 +90,6 @@ func (this *BlockCache) GetTransaction(txHash common.Uint256) (*types.Transactio
 	return txValue.Tx, txValue.Height
 }
 
-func (this *BlockCache) ContainTransaction(txHash common.Uint256) bool{
+func (this *BlockCache) ContainTransaction(txHash common.Uint256) bool {
 	return this.transactionCache.Contains(string(txHash.ToArray()))
 }

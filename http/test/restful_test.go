@@ -19,13 +19,13 @@
 package test
 
 import (
-	"testing"
 	"bytes"
+	"encoding/json"
 	"fmt"
-	"os"
 	"io/ioutil"
 	"net/http"
-	"encoding/json"
+	"os"
+	"testing"
 )
 
 func TestGenerateblocktime(t *testing.T) {

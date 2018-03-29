@@ -19,14 +19,14 @@
 package actor
 
 import (
-	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/Ontology/events/message"
 	"github.com/Ontology/events"
+	"github.com/Ontology/events/message"
+	"github.com/ontio/ontology-eventbus/actor"
 )
 
-type EventActor struct{
+type EventActor struct {
 	blockPersistCompleted func(v interface{})
-	smartCodeEvt func(v interface{})
+	smartCodeEvt          func(v interface{})
 }
 
 func (t *EventActor) Receive(c actor.Context) {
@@ -39,13 +39,13 @@ func (t *EventActor) Receive(c actor.Context) {
 	}
 }
 
-func SubscribeEvent(topic string,handler func(v interface{})) {
+func SubscribeEvent(topic string, handler func(v interface{})) {
 	var props = actor.FromProducer(func() actor.Actor {
 		if topic == message.TOPIC_SAVE_BLOCK_COMPLETE {
-			return &EventActor{blockPersistCompleted:handler}
-		}else if topic == message.TOPIC_SMART_CODE_EVENT {
-			return &EventActor{smartCodeEvt:handler}
-		}else{
+			return &EventActor{blockPersistCompleted: handler}
+		} else if topic == message.TOPIC_SMART_CODE_EVENT {
+			return &EventActor{smartCodeEvt: handler}
+		} else {
 			return &EventActor{}
 		}
 	})

@@ -21,10 +21,10 @@ package types
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/Ontology/common/serialization"
-	"fmt"
 )
 
 type TransactionAttributeUsage byte
@@ -65,7 +65,7 @@ func (tx *TxAttribute) Serialize(w io.Writer) error {
 		return fmt.Errorf("Transaction attribute Usage serialization error: %s", err)
 	}
 	if !IsValidAttributeType(tx.Usage) {
-		return errors.New( "Unsupported attribute Description.")
+		return errors.New("Unsupported attribute Description.")
 	}
 	if err := serialization.WriteVarBytes(w, tx.Data); err != nil {
 		return fmt.Errorf("Transaction attribute Data serialization error: %s", err)

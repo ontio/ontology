@@ -31,8 +31,8 @@ import (
 )
 
 var (
-	ADDRESS_HEIGHT   = []byte("addressHeight")
-	TRANSFER_NAME    = "transfer"
+	ADDRESS_HEIGHT    = []byte("addressHeight")
+	TRANSFER_NAME     = "transfer"
 	TOTAL_SUPPLY_NAME = []byte("totalSupply")
 )
 

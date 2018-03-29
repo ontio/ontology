@@ -24,14 +24,13 @@ import (
 )
 
 type NotifyEventArgs struct {
-	TxHash common.Uint256
+	TxHash   common.Uint256
 	CodeHash common.Address
-	States types.StackItems
+	States   types.StackItems
 }
 
 type NotifyEventInfo struct {
-	TxHash common.Uint256
+	TxHash   common.Uint256
 	CodeHash common.Address
-	States interface{}
+	States   interface{}
 }
-

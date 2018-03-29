@@ -22,6 +22,10 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/payload"
@@ -30,9 +34,6 @@ import (
 	tp "github.com/Ontology/txnpool/proc"
 	"github.com/Ontology/validator/stateless"
 	"github.com/ontio/ontology-eventbus/actor"
-	"sync"
-	"testing"
-	"time"
 )
 
 var (

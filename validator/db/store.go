@@ -27,7 +27,7 @@ import (
 	pool "github.com/valyala/bytebufferpool"
 
 	"github.com/Ontology/common"
-	storcomm"github.com/Ontology/core/store/common"
+	storcomm "github.com/Ontology/core/store/common"
 	leveldb "github.com/Ontology/core/store/leveldbstore"
 	"github.com/Ontology/core/types"
 	tx "github.com/Ontology/core/types"

@@ -11,7 +11,7 @@ type PayloadInfo interface{}
 
 //implement PayloadInfo define BookKeepingInfo
 type BookKeepingInfo struct {
-	Nonce  uint64
+	Nonce uint64
 }
 
 type InvokeCodeInfo struct {
@@ -33,7 +33,6 @@ type DeployCodeInfo struct {
 //implement PayloadInfo define IssueAssetInfo
 type IssueAssetInfo struct {
 }
-
 
 //implement PayloadInfo define TransferAssetInfo
 type TransferAssetInfo struct {

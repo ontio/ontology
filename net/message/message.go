@@ -25,6 +25,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+
 	"github.com/Ontology/common/log"
 	. "github.com/Ontology/net/protocol"
 )
@@ -38,7 +39,7 @@ type Messager interface {
 
 // The network communication message header
 type msgHdr struct {
-	Magic uint32
+	Magic    uint32
 	CMD      [MSG_CMD_LEN]byte // The message type
 	Length   uint32
 	Checksum [CHECKSUM_LEN]byte

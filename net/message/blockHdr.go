@@ -23,6 +23,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
@@ -39,7 +40,7 @@ type hdrHashReq struct {
 
 type headersReq struct {
 	hdr msgHdr
-	p	hdrHashReq
+	p   hdrHashReq
 }
 
 type blkHeader struct {
@@ -175,7 +176,7 @@ func (msg headersReq) Handle(node Noder) error {
 	startHash = msg.p.hashStart
 	stopHash = msg.p.hashEnd
 	headers, cnt, err := GetHeadersFromHash(startHash, stopHash)
-	if err != nil || headers == nil || cnt < 1{
+	if err != nil || headers == nil || cnt < 1 {
 		return err
 	}
 	buf, err := NewHeaders(headers, cnt)

@@ -20,6 +20,7 @@ package node
 
 import (
 	"fmt"
+
 	"github.com/Ontology/events"
 )
 

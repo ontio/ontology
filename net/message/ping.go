@@ -22,9 +22,9 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
+
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
-	//"github.com/Ontology/ledger"
 	"github.com/Ontology/net/actor"
 	. "github.com/Ontology/net/protocol"
 )

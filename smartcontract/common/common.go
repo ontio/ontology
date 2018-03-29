@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/Ontology/vm/neovm/types"
 	"github.com/Ontology/common"
+	"github.com/Ontology/vm/neovm/types"
 )
 
 type States struct {

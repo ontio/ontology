@@ -20,16 +20,17 @@ package websocket
 
 import (
 	"bytes"
+
 	"github.com/Ontology/common"
 	cfg "github.com/Ontology/common/config"
-	"github.com/Ontology/core/types"
-	bactor "github.com/Ontology/http/base/actor"
-	"github.com/Ontology/http/base/rest"
-	Err "github.com/Ontology/http/base/error"
-	"github.com/Ontology/http/websocket/websocket"
-	bcomn "github.com/Ontology/http/base/common"
-	"github.com/Ontology/events/message"
 	"github.com/Ontology/common/log"
+	"github.com/Ontology/core/types"
+	"github.com/Ontology/events/message"
+	bactor "github.com/Ontology/http/base/actor"
+	bcomn "github.com/Ontology/http/base/common"
+	Err "github.com/Ontology/http/base/error"
+	"github.com/Ontology/http/base/rest"
+	"github.com/Ontology/http/websocket/websocket"
 )
 
 var ws *websocket.WsServer
@@ -40,8 +41,8 @@ var (
 )
 
 func StartServer() {
-	bactor.SubscribeEvent(message.TOPIC_SAVE_BLOCK_COMPLETE,SendBlock2WSclient)
-	bactor.SubscribeEvent(message.TOPIC_SMART_CODE_EVENT,PushSmartCodeEvent)
+	bactor.SubscribeEvent(message.TOPIC_SAVE_BLOCK_COMPLETE, SendBlock2WSclient)
+	bactor.SubscribeEvent(message.TOPIC_SMART_CODE_EVENT, PushSmartCodeEvent)
 	go func() {
 		ws = websocket.InitWsServer()
 		ws.Start()
@@ -100,10 +101,10 @@ func SetTxHashMap(txhash string, sessionid string) {
 
 func PushSmartCodeEvent(v interface{}) {
 	if ws != nil {
-		log.Info("[PushSmartCodeEvent]",v)
+		log.Info("[PushSmartCodeEvent]", v)
 		rs, ok := v.(types.SmartCodeEvent)
 		if !ok {
-			log.Errorf("[PushSmartCodeEvent]","SmartCodeEvent err")
+			log.Errorf("[PushSmartCodeEvent]", "SmartCodeEvent err")
 			return
 		}
 		go func() {

@@ -19,11 +19,11 @@
 package ledgerstore
 
 import (
-	"github.com/hashicorp/golang-lru"
 	"github.com/Ontology/core/states"
+	"github.com/hashicorp/golang-lru"
 )
 
-const(
+const (
 	STATE_CACHE_SIZE = 100000
 )
 
@@ -31,17 +31,17 @@ type StateCache struct {
 	stateCache *lru.ARCCache
 }
 
-func NewStateCache() (*StateCache, error){
+func NewStateCache() (*StateCache, error) {
 	stateCache, err := lru.NewARC(STATE_CACHE_SIZE)
 	if err != nil {
 		return nil, err
 	}
 	return &StateCache{
-		stateCache:stateCache,
+		stateCache: stateCache,
 	}, nil
 }
 
-func (this *StateCache) GetState(key []byte)states.IStateValue{
+func (this *StateCache) GetState(key []byte) states.IStateValue {
 	state, ok := this.stateCache.Get(string(key))
 	if !ok {
 		return nil
@@ -49,10 +49,10 @@ func (this *StateCache) GetState(key []byte)states.IStateValue{
 	return state.(states.IStateValue)
 }
 
-func (this *StateCache) AddState(key []byte, state states.IStateValue){
+func (this *StateCache) AddState(key []byte, state states.IStateValue) {
 	this.stateCache.Add(string(key), state)
 }
 
-func (this *StateCache) DeleteState(key []byte){
+func (this *StateCache) DeleteState(key []byte) {
 	this.stateCache.Remove(string(key))
 }

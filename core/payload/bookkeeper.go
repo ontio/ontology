@@ -19,11 +19,11 @@
 package payload
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/Ontology/common/serialization"
 	"github.com/ontio/ontology-crypto/keypair"
-	"fmt"
 )
 
 const BookKeeperPayloadVersion byte = 0x00
@@ -94,4 +94,3 @@ func (self *Bookkeeper) Deserialize(r io.Reader) error {
 
 	return nil
 }
-

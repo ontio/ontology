@@ -22,26 +22,26 @@ import (
 	"fmt"
 
 	"github.com/Ontology/common"
-	"github.com/Ontology/core/types"
 	"github.com/Ontology/common/log"
+	"github.com/Ontology/core/types"
 )
 
 type IncrementValidator struct {
-	blocks []map[common.Uint256]bool
+	blocks     []map[common.Uint256]bool
 	baseHeight uint32
-	maxBlocks int
+	maxBlocks  int
 }
 
 func NewIncrementValidator(maxBlocks int) *IncrementValidator {
-	if maxBlocks <=0 {
+	if maxBlocks <= 0 {
 		maxBlocks = 2
 	}
 	return &IncrementValidator{
-		maxBlocks:maxBlocks,
+		maxBlocks: maxBlocks,
 	}
 }
 
-func (self *IncrementValidator)Clean() {
+func (self *IncrementValidator) Clean() {
 	self.blocks = nil
 	self.baseHeight = 0
 }
@@ -56,7 +56,7 @@ func (self *IncrementValidator) AddBlock(block *types.Block) {
 		self.baseHeight = block.Header.Height
 	}
 
-	if self.baseHeight + uint32(len(self.blocks)) != block.Header.Height {
+	if self.baseHeight+uint32(len(self.blocks)) != block.Header.Height {
 		start, end := self.BlockRange()
 		log.Error("discontinue block is not allowed: [start, end)=[%d, %d), block height= %d",
 			start, end, block.Header.Height)
@@ -74,7 +74,7 @@ func (self *IncrementValidator) AddBlock(block *types.Block) {
 	self.blocks = append(self.blocks, txHashes)
 }
 
-func (self *IncrementValidator)Verify(tx *types.Transaction, startHeight uint32) error {
+func (self *IncrementValidator) Verify(tx *types.Transaction, startHeight uint32) error {
 	if startHeight < self.baseHeight {
 		return fmt.Errorf("can not do increment validation: startHeight %v < self.baseHeight %v", startHeight, self.baseHeight)
 	}
@@ -87,4 +87,3 @@ func (self *IncrementValidator)Verify(tx *types.Transaction, startHeight uint32)
 
 	return nil
 }
-

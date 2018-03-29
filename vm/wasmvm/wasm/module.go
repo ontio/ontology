@@ -25,6 +25,7 @@ package wasm
 import (
 	"errors"
 	"io"
+
 	"github.com/Ontology/vm/wasmvm/wasm/internal/readpos"
 )
 

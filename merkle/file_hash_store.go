@@ -39,7 +39,7 @@ type FileHashStore struct {
 }
 
 func NewFileHashStore(name string, tree_size uint32) (*FileHashStore, error) {
-	f, err := os.OpenFile(name, os.O_RDWR | os.O_CREATE, 0755)
+	f, err := os.OpenFile(name, os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func (self *FileHashStore) checkConsistence(tree_size uint32) error {
 	stat, err := self.file.Stat()
 	if err != nil {
 		return err
-	} else if stat.Size() < int64(num_hashes) * int64(common.UINT256_SIZE) {
+	} else if stat.Size() < int64(num_hashes)*int64(common.UINT256_SIZE) {
 		return errors.New("stored hashes are less than expected")
 	}
 
@@ -90,7 +90,7 @@ func (self *FileHashStore) Append(hash []common.Uint256) error {
 	if self == nil {
 		return nil
 	}
-	buf := make([]byte, 0, len(hash) *common.UINT256_SIZE)
+	buf := make([]byte, 0, len(hash)*common.UINT256_SIZE)
 	for _, h := range hash {
 		buf = append(buf, h[:]...)
 	}
@@ -117,7 +117,7 @@ func (self *FileHashStore) GetHash(pos uint32) (common.Uint256, error) {
 		return EMPTY_HASH, errors.New("FileHashstore is nil")
 	}
 	hash := EMPTY_HASH
-	_, err := self.file.ReadAt(hash[:], int64(pos) * int64(common.UINT256_SIZE))
+	_, err := self.file.ReadAt(hash[:], int64(pos)*int64(common.UINT256_SIZE))
 	if err != nil {
 		return EMPTY_HASH, err
 	}

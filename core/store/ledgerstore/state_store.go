@@ -21,6 +21,7 @@ package ledgerstore
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/core/payload"

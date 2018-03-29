@@ -58,22 +58,22 @@ func (s Semaphore) release() {
 }
 
 type node struct {
-	state     uint32   // node state
-	id        uint64   // The nodes's id
-	cap       [32]byte // The node capability set
-	version   uint32   // The network protocol the node used
-	services  uint64   // The services the node supplied
-	relay     bool     // The relay capability of the node (merge into capbility flag)
-	height    uint64   // The node latest block height
-	txnCnt    uint64   // The transactions be transmit by this node
-	rxTxnCnt  uint64   // The transaction received by this node
-	publicKey keypair.PublicKey
-	chF        chan func() error // Channel used to operate the node without lock
-	link                         // The link status and infomation
-	local      *node             // The pointer to local node
-	nbrNodes                     // The neighbor node connect with currently node except itself
-	eventQueue                   // The event queue to notice notice other modules
-	idCache                      // The buffer to store the id of the items which already be processed
+	state                    uint32   // node state
+	id                       uint64   // The nodes's id
+	cap                      [32]byte // The node capability set
+	version                  uint32   // The network protocol the node used
+	services                 uint64   // The services the node supplied
+	relay                    bool     // The relay capability of the node (merge into capbility flag)
+	height                   uint64   // The node latest block height
+	txnCnt                   uint64   // The transactions be transmit by this node
+	rxTxnCnt                 uint64   // The transaction received by this node
+	publicKey                keypair.PublicKey
+	chF                      chan func() error // Channel used to operate the node without lock
+	link                                       // The link status and infomation
+	local                    *node             // The pointer to local node
+	nbrNodes                                   // The neighbor node connect with currently node except itself
+	eventQueue                                 // The event queue to notice notice other modules
+	idCache                                    // The buffer to store the id of the items which already be processed
 	flightHeights            []uint32
 	lastContact              time.Time
 	nodeDisconnectSubscriber events.Subscriber

@@ -19,8 +19,8 @@
 package actor
 
 import (
-	"github.com/ontio/ontology-eventbus/actor"
 	cactor "github.com/Ontology/consensus/actor"
+	"github.com/ontio/ontology-eventbus/actor"
 )
 
 var consensusSrvPid *actor.PID
@@ -29,11 +29,11 @@ func SetConsensusPid(actr *actor.PID) {
 	consensusSrvPid = actr
 }
 
-func ConsensusSrvStart() (error) {
+func ConsensusSrvStart() error {
 	consensusSrvPid.Tell(&cactor.StartConsensus{})
 	return nil
 }
-func ConsensusSrvHalt() (error) {
+func ConsensusSrvHalt() error {
 	consensusSrvPid.Tell(&cactor.StopConsensus{})
 	return nil
 }

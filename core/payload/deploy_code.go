@@ -19,9 +19,9 @@
 package payload
 
 import (
-	"io"
 	"bytes"
 	"fmt"
+	"io"
 
 	"github.com/Ontology/common/serialization"
 	vmtypes "github.com/Ontology/vm/types"
@@ -42,37 +42,37 @@ func (dc *DeployCode) Serialize(w io.Writer) error {
 
 	err = dc.Code.Serialize(w)
 	if err != nil {
-			return fmt.Errorf("DeployCode Code Serialize failed: %s", err)
+		return fmt.Errorf("DeployCode Code Serialize failed: %s", err)
 	}
 
 	err = serialization.WriteBool(w, dc.NeedStorage)
 	if err != nil {
-			return fmt.Errorf("DeployCode NeedStorage Serialize failed: %s", err)
+		return fmt.Errorf("DeployCode NeedStorage Serialize failed: %s", err)
 	}
 
 	err = serialization.WriteVarString(w, dc.Name)
 	if err != nil {
-			return fmt.Errorf("DeployCode Name Serialize failed: %s", err)
+		return fmt.Errorf("DeployCode Name Serialize failed: %s", err)
 	}
 
 	err = serialization.WriteVarString(w, dc.Version)
 	if err != nil {
-			return fmt.Errorf("DeployCode Version Serialize failed: %s", err)
+		return fmt.Errorf("DeployCode Version Serialize failed: %s", err)
 	}
 
 	err = serialization.WriteVarString(w, dc.Author)
 	if err != nil {
-			return fmt.Errorf("DeployCode Author Serialize failed: %s", err)
+		return fmt.Errorf("DeployCode Author Serialize failed: %s", err)
 	}
 
 	err = serialization.WriteVarString(w, dc.Email)
 	if err != nil {
-			return fmt.Errorf("DeployCode Email Serialize failed: %s", err)
+		return fmt.Errorf("DeployCode Email Serialize failed: %s", err)
 	}
 
 	err = serialization.WriteVarString(w, dc.Description)
 	if err != nil {
-			return fmt.Errorf("DeployCode Description Serialize failed: %s", err)
+		return fmt.Errorf("DeployCode Description Serialize failed: %s", err)
 	}
 
 	return nil
@@ -84,38 +84,38 @@ func (dc *DeployCode) Deserialize(r io.Reader) error {
 
 	err = code.Deserialize(r)
 	if err != nil {
-			return fmt.Errorf("DeployCode Code Deserialize failed: %s", err)
+		return fmt.Errorf("DeployCode Code Deserialize failed: %s", err)
 	}
 	dc.Code = code
 
 	dc.NeedStorage, err = serialization.ReadBool(r)
 	if err != nil {
-			return fmt.Errorf("DeployCode NeedStorage Deserialize failed: %s", err)
+		return fmt.Errorf("DeployCode NeedStorage Deserialize failed: %s", err)
 	}
 
 	dc.Name, err = serialization.ReadVarString(r)
 	if err != nil {
-			return fmt.Errorf("DeployCode Name Deserialize failed: %s", err)
+		return fmt.Errorf("DeployCode Name Deserialize failed: %s", err)
 	}
 
 	dc.Version, err = serialization.ReadVarString(r)
 	if err != nil {
-			return fmt.Errorf("DeployCode CodeVersion Deserialize failed: %s", err)
+		return fmt.Errorf("DeployCode CodeVersion Deserialize failed: %s", err)
 	}
 
 	dc.Author, err = serialization.ReadVarString(r)
 	if err != nil {
-			return fmt.Errorf("DeployCode Author Deserialize failed: %s", err)
+		return fmt.Errorf("DeployCode Author Deserialize failed: %s", err)
 	}
 
 	dc.Email, err = serialization.ReadVarString(r)
 	if err != nil {
-			return fmt.Errorf("DeployCode Email Deserialize failed: %s", err)
+		return fmt.Errorf("DeployCode Email Deserialize failed: %s", err)
 	}
 
 	dc.Description, err = serialization.ReadVarString(r)
 	if err != nil {
-			return fmt.Errorf("DeployCode Description Deserialize failed: %s", err)
+		return fmt.Errorf("DeployCode Description Deserialize failed: %s", err)
 	}
 
 	return nil

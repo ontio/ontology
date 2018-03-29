@@ -19,10 +19,10 @@
 package neovm
 
 import (
-	"math/big"
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"math/big"
 
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/vm/neovm/errors"

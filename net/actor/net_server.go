@@ -19,10 +19,11 @@
 package actor
 
 import (
+	"reflect"
+
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/net/protocol"
 	"github.com/ontio/ontology-eventbus/actor"
-	"reflect"
 )
 
 var netServerPid *actor.PID

@@ -22,15 +22,15 @@ import (
 	"bytes"
 	"math/big"
 
+	"github.com/Ontology/core/genesis"
+	cstates "github.com/Ontology/core/states"
 	scommon "github.com/Ontology/core/store/common"
 	"github.com/Ontology/errors"
 	"github.com/Ontology/smartcontract/service/native/states"
-	cstates "github.com/Ontology/core/states"
-	"github.com/Ontology/core/genesis"
 )
 
 var (
-	DECIMALS = big.NewInt(9)
+	DECIMALS         = big.NewInt(9)
 	ONG_TOTAL_SUPPLY = new(big.Int).Mul(big.NewInt(1000000000), (new(big.Int).Exp(big.NewInt(10), DECIMALS, nil)))
 )
 
@@ -90,5 +90,3 @@ func OngTransferFrom(native *NativeService) error {
 func getOntContext() []byte {
 	return genesis.OntContractAddress[:]
 }
-
-

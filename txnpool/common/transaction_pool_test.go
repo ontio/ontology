@@ -22,12 +22,13 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/types"
-	"testing"
-	"time"
 )
 
 var (

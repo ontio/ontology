@@ -28,16 +28,16 @@ type versionPayload struct {
 	HttpInfoPort uint16
 	Cap          [32]byte
 	Nonce        uint64
-	UserAgent   uint8
-	StartHeight uint64
-	Relay       uint8
-	IsConsensus bool
+	UserAgent    uint8
+	StartHeight  uint64
+	Relay        uint8
+	IsConsensus  bool
 }
 
 type version struct {
 	Hdr msgHdr
-	P	versionPayload
-	pk	keypair.PublicKey
+	P   versionPayload
+	pk  keypair.PublicKey
 }
 
 func NewVersion(n Noder) ([]byte, error) {

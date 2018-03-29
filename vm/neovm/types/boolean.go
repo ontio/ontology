@@ -73,4 +73,3 @@ func (this *Boolean) GetArray() []StackItems {
 func (this *Boolean) GetStruct() []StackItems {
 	return []StackItems{this}
 }
-

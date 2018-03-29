@@ -29,8 +29,8 @@ import (
 type Contract struct {
 	Version byte
 	Address common.Address
-	Method string
-	Args []byte
+	Method  string
+	Args    []byte
 }
 
 func (this *Contract) Serialize(w io.Writer) error {
@@ -51,7 +51,8 @@ func (this *Contract) Serialize(w io.Writer) error {
 
 func (this *Contract) Deserialize(r io.Reader) error {
 	var err error
-	this.Version, err = serialization.ReadByte(r); if err != nil {
+	this.Version, err = serialization.ReadByte(r)
+	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[Contract] Version deserialize error!")
 	}
 
@@ -59,12 +60,14 @@ func (this *Contract) Deserialize(r io.Reader) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[Contract] Address deserialize error!")
 	}
 
-	method, err := serialization.ReadVarBytes(r); if err != nil {
+	method, err := serialization.ReadVarBytes(r)
+	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[Contract] Method deserialize error!")
 	}
 	this.Method = string(method)
 
-	this.Args, err = serialization.ReadVarBytes(r); if err != nil {
+	this.Args, err = serialization.ReadVarBytes(r)
+	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[Contract] Args deserialize error!")
 	}
 	return nil

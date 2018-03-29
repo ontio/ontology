@@ -21,18 +21,17 @@ package common
 import (
 	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
-	"fmt"
 
-	"github.com/itchyny/base58-go"
 	"github.com/Ontology/common/log"
+	"github.com/itchyny/base58-go"
 )
 
 const ADDR_LEN = 20
 
 type Address [ADDR_LEN]byte
-
 
 func (self *Address) ToHexString() string {
 	return fmt.Sprintf("%x", self[:])
@@ -50,7 +49,6 @@ func (self *Address) Deserialize(r io.Reader) error {
 	}
 	return nil
 }
-
 
 func (f *Address) ToBase58() string {
 	data := append([]byte{0x41}, f[:]...)

@@ -19,13 +19,13 @@
 package dbft
 
 import (
-	"io"
 	"fmt"
+	"io"
 
+	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	ser "github.com/Ontology/common/serialization"
 	"github.com/Ontology/core/types"
-	"github.com/Ontology/common"
 )
 
 type PrepareRequest struct {
@@ -66,7 +66,7 @@ func (pr *PrepareRequest) Deserialize(r io.Reader) error {
 	pr.Nonce, _ = ser.ReadVarUint(r, 0)
 
 	if err := pr.NextBookkeeper.Deserialize(r); err != nil {
-		return fmt.Errorf( "[PrepareRequest] nextbookkeeper deserialization failed: %s", err)
+		return fmt.Errorf("[PrepareRequest] nextbookkeeper deserialization failed: %s", err)
 	}
 
 	length, err := ser.ReadVarUint(r, 0)

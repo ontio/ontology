@@ -19,11 +19,12 @@
 package localrpc
 
 import (
+	"net/http"
+	"strconv"
+
 	. "github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
 	. "github.com/Ontology/http/base/rpc"
-	"net/http"
-	"strconv"
 )
 
 const (

@@ -126,4 +126,3 @@ func opTuck(e *ExecutionEngine) (VMState, error) {
 	Push(e, x2)
 	return NONE, nil
 }
-

@@ -19,10 +19,11 @@
 package states
 
 import (
+	"bytes"
 	"io"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
-	"bytes"
 )
 
 type StorageKey struct {
@@ -56,6 +57,3 @@ func (this *StorageKey) ToArray() []byte {
 	this.Serialize(b)
 	return b.Bytes()
 }
-
-
-

@@ -20,12 +20,13 @@ package proc
 
 import (
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/events/message"
 	tc "github.com/Ontology/txnpool/common"
 	vt "github.com/Ontology/validator/types"
-	"testing"
-	"time"
 )
 
 func TestTxActor(t *testing.T) {

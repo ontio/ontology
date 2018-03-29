@@ -164,8 +164,8 @@ func (m *Module) ExecInitExpr(expr []byte) (interface{}, error) {
 			}
 			lastVal = globalVar.Type.Type
 			//for env global
-			if globalVar.IsEnv{
-				stack = append(stack ,globalVar.InitVal)
+			if globalVar.IsEnv {
+				stack = append(stack, globalVar.InitVal)
 			}
 		case end:
 			break

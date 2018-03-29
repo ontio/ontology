@@ -21,9 +21,10 @@ package message
 import (
 	"encoding/hex"
 	"errors"
+	"strconv"
+
 	"github.com/Ontology/common/log"
 	. "github.com/Ontology/net/protocol"
-	"strconv"
 )
 
 type verACK struct {

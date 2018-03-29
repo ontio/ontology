@@ -19,6 +19,9 @@
 package proc
 
 import (
+	"sort"
+	"sync"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	tx "github.com/Ontology/core/types"
@@ -26,8 +29,6 @@ import (
 	tc "github.com/Ontology/txnpool/common"
 	"github.com/Ontology/validator/types"
 	"github.com/ontio/ontology-eventbus/actor"
-	"sort"
-	"sync"
 )
 
 type txStats struct {

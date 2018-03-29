@@ -19,22 +19,22 @@
 package genesis
 
 import (
+	"bytes"
 	"errors"
 	"time"
-	"bytes"
 
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/core/utils"
+	"github.com/Ontology/smartcontract/service/native/states"
 	vmtypes "github.com/Ontology/vm/types"
 	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/Ontology/smartcontract/service/native/states"
 )
 
 const (
-	BlockVersion      uint32 = 0
-	GenesisNonce      uint64 = 2083236893
+	BlockVersion uint32 = 0
+	GenesisNonce uint64 = 2083236893
 
 	OntRegisterAmount = 1000000000
 	OngRegisterAmount = 1000000000
@@ -107,14 +107,14 @@ func NewUtilityToken() *types.Transaction {
 func NewGoverningInit() *types.Transaction {
 	init := states.Contract{
 		Address: OntContractAddress,
-		Method: "init",
-		Args: []byte{},
+		Method:  "init",
+		Args:    []byte{},
 	}
 	bf := new(bytes.Buffer)
 	init.Serialize(bf)
 	vmCode := vmtypes.VmCode{
 		VmType: vmtypes.Native,
-		Code: bf.Bytes(),
+		Code:   bf.Bytes(),
 	}
 	tx := utils.NewInvokeTransaction(vmCode)
 	return tx
@@ -123,14 +123,14 @@ func NewGoverningInit() *types.Transaction {
 func NewUtilityInit() *types.Transaction {
 	init := states.Contract{
 		Address: OngContractAddress,
-		Method: "init",
-		Args: []byte{},
+		Method:  "init",
+		Args:    []byte{},
 	}
 	bf := new(bytes.Buffer)
 	init.Serialize(bf)
 	vmCode := vmtypes.VmCode{
 		VmType: vmtypes.Native,
-		Code: bf.Bytes(),
+		Code:   bf.Bytes(),
 	}
 	tx := utils.NewInvokeTransaction(vmCode)
 	return tx

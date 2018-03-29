@@ -19,7 +19,9 @@
 package test
 
 import (
+	"bufio"
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -39,8 +41,6 @@ import (
 	vmtypes "github.com/Ontology/vm/types"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/urfave/cli"
-	"encoding/binary"
-	"bufio"
 )
 
 func signTransaction(signer *account.Account, tx *types.Transaction) error {
@@ -87,7 +87,7 @@ func Tx2Hex(tx *types.Transaction) string {
 	return hex.EncodeToString(buffer.Bytes())
 }
 
-func GenTransferFile(n int,acc *account.Account, fileName string) {
+func GenTransferFile(n int, acc *account.Account, fileName string) {
 	f, err := os.Create(fileName)
 	check(err)
 	w := bufio.NewWriter(f)
@@ -97,7 +97,7 @@ func GenTransferFile(n int,acc *account.Account, fileName string) {
 		f.Close()
 	}()
 
-	for i := 0; i < n; i ++ {
+	for i := 0; i < n; i++ {
 		to := acc.Address
 		binary.BigEndian.PutUint64(to[:], uint64(i))
 		tx := NewOntTransferTransaction(acc.Address, to, 1)
@@ -112,7 +112,7 @@ func GenTransferFile(n int,acc *account.Account, fileName string) {
 
 }
 
-func transferTest(n int, acc *account.Account) {	
+func transferTest(n int, acc *account.Account) {
 	if n <= 0 {
 		n = 1
 	}
@@ -209,8 +209,7 @@ func NewCommand() *cli.Command {
 			cli.BoolFlag{
 				Name:  "gen, g",
 				Usage: "gen transaction to file",
-
-		},
+			},
 		},
 		Action: testAction,
 		OnUsageError: func(c *cli.Context, err error, isSubcommand bool) error {

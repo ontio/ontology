@@ -678,7 +678,7 @@ func (ds *DbftService) Timeout() {
 			now := uint32(time.Now().Unix())
 			header, err := ledger.DefLedger.GetHeaderByHash(ds.context.PrevHash)
 			if err != nil {
-				log.Errorf("[Timeout] GetHeader PrevHash:%x error:%s",ds.context.PrevHash, err)
+				log.Errorf("[Timeout] GetHeader PrevHash:%x error:%s", ds.context.PrevHash, err)
 				return
 			}
 			if header == nil {
