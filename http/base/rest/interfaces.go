@@ -386,6 +386,7 @@ func GetStorage(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"] = common.ToHexString(value)
 	return resp
 }
+
 func GetBalance(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	addrBase58 := cmd["Addr"].(string)
@@ -393,9 +394,10 @@ func GetBalance(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	ont := new(big.Int)
-	ong := new(big.Int)
-	appove := new(big.Int)
+
+	ont := big.NewInt(0)
+	ong := big.NewInt(0)
+	appove := big.NewInt(0)
 
 	ontBalance, err := bactor.GetStorageItem(genesis.OntContractAddress, address[:])
 	if err != nil {
@@ -417,6 +419,7 @@ func GetBalance(cmd map[string]interface{}) map[string]interface{} {
 
 	appoveKey := append(genesis.OntContractAddress[:], address[:]...)
 	ongappove, err := bactor.GetStorageItem(genesis.OngContractAddress, appoveKey[:])
+
 	if ongappove != nil {
 		appove.SetBytes(ongappove)
 	}

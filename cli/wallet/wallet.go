@@ -19,14 +19,12 @@
 package wallet
 
 import (
-	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
 
 	"github.com/Ontology/account"
-	clicommon "github.com/Ontology/cli/common"
+	cliCommon "github.com/Ontology/cli/common"
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/password"
 	"github.com/Ontology/http/base/rpc"
@@ -98,15 +96,10 @@ func walletAction(c *cli.Context) error {
 	fmt.Println("public key:   ", common.ToHexString(pubKeyBytes))
 	fmt.Println("hex address: ", common.ToHexString(address[:]))
 	fmt.Println("base58 address:      ", address.ToBase58())
-	asset := c.String("asset")
-	if list && asset != "" {
-		var buffer bytes.Buffer
-		err := address.Serialize(&buffer)
-		if err != nil {
-			return err
-		}
-		resp, err := rpc.Call(clicommon.RpcAddress(), "getunspendoutput", 0,
-			[]interface{}{hex.EncodeToString(buffer.Bytes()), asset})
+	balance := c.Bool("balance")
+	if list && balance {
+		resp, err := rpc.Call(cliCommon.RpcAddress(), "getbalance", 0,
+			[]interface{}{address.ToBase58()})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return err
@@ -117,17 +110,15 @@ func walletAction(c *cli.Context) error {
 			fmt.Println("Unmarshal JSON failed")
 			return err
 		}
-		switch r["result"].(type) {
+
+		switch res := r["result"].(type) {
 		case map[string]interface{}:
-			ammount := 0
-			unspend := r["result"].(map[string]interface{})
-			for _, v := range unspend {
-				out := v.(map[string]interface{})
-				ammount += int(out["Value"].(float64))
+			for k, v := range res {
+				fmt.Printf("%s: %v\n", k, v)
 			}
-			fmt.Println("Ammount: ", ammount)
+			return nil
 		case string:
-			fmt.Println(r["result"].(string))
+			fmt.Println(res)
 			return nil
 		}
 	}
@@ -153,9 +144,9 @@ func NewCommand() *cli.Command {
 				Name:  "changepassword",
 				Usage: "change wallet password",
 			},
-			cli.StringFlag{
-				Name:  "asset, a",
-				Usage: "asset uniq ID",
+			cli.BoolFlag{
+				Name:  "balance, b",
+				Usage: "get ont/ong balance",
 			},
 			cli.StringFlag{
 				Name: "encrypt, e",
@@ -178,7 +169,7 @@ func NewCommand() *cli.Command {
 		},
 		Action: walletAction,
 		OnUsageError: func(c *cli.Context, err error, isSubcommand bool) error {
-			clicommon.PrintError(c, err, "wallet")
+			cliCommon.PrintError(c, err, "wallet")
 			return cli.NewExitError("", 1)
 		},
 	}
