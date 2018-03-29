@@ -57,7 +57,6 @@ Clone the Ontology repository into the appropriate $GOPATH/src directory.
 
 ```
 $ git clone https://github.com/ontio/ontology.git
-
 ```
 
 Fetch the dependent third-party packages with glide.
@@ -65,14 +64,12 @@ Fetch the dependent third-party packages with glide.
 ```
 $ cd ontology
 $ glide install
-
 ```
 
 Build the source code with make.
 
 ```
 $ make
-
 ```
 
 After building the source code sucessfully, you should see two executable programs:
@@ -86,12 +83,12 @@ After building the source code sucessfully, you should see two executable progra
 ont supports multiple encryption methods for generating accounts, but can set a default in config.json such as SHA256withECDSA, 
 
 Create wallet cmd：
+
 ```shell
 $ ./nodectl wallet --create --name wallet.dat --password passwordtest --encrypt=SHA512withEdDSA
+```
 
 Note: Set wallet password by parameter -p.
-
-```
 
 To show the wallet info：
 
@@ -132,6 +129,7 @@ Create a directory on the host and store the following files in the directory:
 Here's a example of Single-host configuration:
 
 - directory structure `
+
 ```shell
 $ tree
 └── ontology
@@ -181,7 +179,6 @@ Now multi-hosts configuration is cpmpleted, directory structure of each node is 
 ```
 $ ls
 config.json ontology nodectl wallet.dat
-
 ```
 
 A configuration file fragment is as follows, refer to the config.json file in the root directory.
@@ -220,8 +217,6 @@ $ cat config.json
     "MultiCoreNum": 4
   }
 }
-
-
 ```
 
 ### Inplement
@@ -231,7 +226,6 @@ Run each node program in any order and enter the node's wallet password after th
 ```
 $ ./ontology
 $ - Input your wallet password
-
 ```
 
 Run `./nodectl --h` for details.
@@ -242,11 +236,12 @@ Run `./nodectl --h` for details.
 
 ## ONT transfer sample
 
- ```shell
+```shell
   ./nodectl transfer --contract ff00000000000000000000000000000000000001 --value 10 --from 0181beb9cfba23c777421eaf57e357e0fc331cbf --to 01f3aecd2ba7a5b704fbd5bac673e141d5109e3e
 
   contract:contract address； - from: transfer from； - to: transfer to； - value: amount；
- ```
+```
+
 # Contributing
 
 Please open a pull request with signed-off commits. We appreciate your help! You can also send your codes as emails to the developer mailing list. You're welcomed to join the Ontology mailing list or developer forum.
