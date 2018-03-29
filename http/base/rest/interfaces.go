@@ -393,6 +393,7 @@ func GetBalance(cmd map[string]interface{}) map[string]interface{} {
 	}
 	ont := new(big.Int)
 	ong := new(big.Int)
+	appove := new(big.Int)
 
 	ontBalance, err := bactor.GetStorageItem(genesis.OntContractAddress, address[:])
 	if err != nil {
@@ -402,9 +403,25 @@ func GetBalance(cmd map[string]interface{}) map[string]interface{} {
 	if ontBalance != nil {
 		ont.SetBytes(ontBalance)
 	}
+
+	ongBalance, err := bactor.GetStorageItem(genesis.OngContractAddress, address[:])
+	if err != nil {
+		log.Errorf("GetOngBalanceOf GetStorageItem ong address:%s error:%s", address, err)
+		return ResponsePack(berr.INTERNAL_ERROR)
+	}
+	if ongBalance != nil {
+		ong.SetBytes(ongBalance)
+	}
+
+	appoveKey := append(genesis.OntContractAddress[:], address[:]...)
+	ongappove, err := bactor.GetStorageItem(genesis.OngContractAddress, appoveKey[:])
+	if ongappove != nil {
+		appove.SetBytes(ongappove)
+	}
 	rsp := &bcomn.BalanceOfRsp{
-		Ont: ont.String(),
-		Ong: ong.String(),
+		Ont:       ont.String(),
+		Ong:       ong.String(),
+		OngAppove: appove.String(),
 	}
 	resp["Result"] = rsp
 	return resp

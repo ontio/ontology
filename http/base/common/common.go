@@ -30,6 +30,7 @@ import (
 type BalanceOfRsp struct {
 	Ont string `json:"ont"`
 	Ong string `json:"ong"`
+	OngAppove string `json:"ong_appove"`
 }
 
 type TxAttributeInfo struct {
