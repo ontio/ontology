@@ -128,7 +128,7 @@ Create a directory on the host and store the following files in the directory:
 
 Here's a example of Single-host configuration:
 
-- directory structure `
+- directory structure
 
 ```shell
 $ tree
