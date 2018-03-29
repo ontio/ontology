@@ -87,11 +87,7 @@ func AddressFromBase58(encoded string) (Address, error) {
 		return Address{}, err
 	}
 
-	log.Tracef("[AddressToProgramHash] programhash: %x", ph[:])
-
 	addr := ph.ToBase58()
-
-	log.Tracef("[AddressToProgramHash] encoded: %s", addr)
 
 	if addr != encoded {
 		return Address{}, errors.New("[AddressFromBase58]: decode encoded verify failed.")
