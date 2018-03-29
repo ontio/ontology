@@ -161,7 +161,6 @@ func (s *WasmStateMachine) deletestore(engine *exec.ExecutionEngine) (bool, erro
 }
 
 //call other contract
-//todo move to statemachine
 func callContract(engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()

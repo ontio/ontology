@@ -62,8 +62,7 @@ func NewInteropService() *InteropService {
 	service.Register("arrayLen", arrayLen)
 	service.Register("memcpy", memcpy)
 	service.Register("read_message", readMessage)
-	//todo move this to wasmstatemachine
-	//service.Register("callContract", callContract)
+
 	service.Register("ReadInt32Param", readInt32Param)
 	service.Register("ReadInt64Param", readInt64Param)
 	service.Register("ReadStringParam", readStringParam)
