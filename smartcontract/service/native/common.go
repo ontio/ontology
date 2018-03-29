@@ -31,13 +31,13 @@ import (
 )
 
 var (
-	addressHeight   = []byte("addressHeight")
-	transferName    = "transfer"
-	totalSupplyName = []byte("totalSupply")
+	ADDRESS_HEIGHT   = []byte("addressHeight")
+	TRANSFER_NAME    = "transfer"
+	TOTAL_SUPPLY_NAME = []byte("totalSupply")
 )
 
 func getAddressHeightKey(contract, address common.Address) []byte {
-	temp := append(addressHeight, address[:]...)
+	temp := append(ADDRESS_HEIGHT, address[:]...)
 	return append(contract[:], temp...)
 }
 
@@ -54,7 +54,7 @@ func getToAmountStorageItem(toBalance, value *big.Int) *cstates.StorageItem {
 }
 
 func getTotalSupplyKey(contract common.Address) []byte {
-	return append(contract[:], totalSupplyName...)
+	return append(contract[:], TOTAL_SUPPLY_NAME...)
 }
 
 func getTransferKey(contract, from common.Address) []byte {
@@ -210,6 +210,6 @@ func addNotifications(native *NativeService, contract common.Address, state *sta
 		&event.NotifyEventInfo{
 			TxHash:   native.Tx.Hash(),
 			CodeHash: contract,
-			States:   []interface{}{transferName, state.From, state.To, state.Value},
+			States:   []interface{}{TRANSFER_NAME, state.From, state.To, state.Value},
 		})
 }

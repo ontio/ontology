@@ -16,13 +16,14 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package errors
+package event
 
-import "errors"
-
-var (
-	ERR_ASSET_NAME_INVALID = errors.New("asset name invalid, too long")
-	ERR_ASSET_PRECISION_INVALID = errors.New("asset precision invalid")
-	ERR_ASSET_AMOUNT_INVALID = errors.New("asset amount invalid")
-	ERR_ASSET_CHECK_OWNER_INVALID = errors.New("asset owner invalid")
+import (
+	"github.com/Ontology/common"
 )
+
+type LogEventArgs struct {
+	Container common.Uint256
+	CodeHash  common.Address
+	Message   string
+}

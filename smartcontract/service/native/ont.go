@@ -32,10 +32,10 @@ import (
 )
 
 var (
-	decrementInterval = uint32(2000000)
-	generationAmount = [17]uint32{80, 70, 60, 50, 40, 30, 20, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10}
-	gl = uint32(len(generationAmount))
-	ontTotalSupply = big.NewInt(1000000000)
+	DECREMENT_INTERVAL = uint32(2000000)
+	GENERATION_AMOUNT = [17]uint32{80, 70, 60, 50, 40, 30, 20, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10}
+	GL = uint32(len(GENERATION_AMOUNT))
+	ONT_TOTAL_SUPPLY = big.NewInt(1000000000)
 )
 
 func OntInit(native *NativeService) error {
@@ -51,7 +51,7 @@ func OntInit(native *NativeService) error {
 		return errors.NewErr("Init ont has been completed!")
 	}
 
-	ts := new(big.Int).Div(ontTotalSupply, big.NewInt(int64(len(booKeepers))))
+	ts := new(big.Int).Div(ONT_TOTAL_SUPPLY, big.NewInt(int64(len(booKeepers))))
 	for _, v := range booKeepers {
 		address := ctypes.AddressFromPubKey(v)
 		native.CloneCache.Add(scommon.ST_STORAGE, append(contract[:], address[:]...), &cstates.StorageItem{Value: ts.Bytes()})
@@ -122,28 +122,28 @@ func OntApprove(native *NativeService) error {
 
 func grantOng(native *NativeService, contract, address common.Address, balance *big.Int, startHeight uint32) error {
 	var amount uint32 = 0
-	ustart := startHeight / decrementInterval
-	if ustart < gl {
-		istart := startHeight % decrementInterval
-		uend := native.Height / decrementInterval
-		iend := native.Height % decrementInterval
-		if uend >= gl {
-			uend = gl
+	ustart := startHeight / DECREMENT_INTERVAL
+	if ustart < GL {
+		istart := startHeight % DECREMENT_INTERVAL
+		uend := native.Height / DECREMENT_INTERVAL
+		iend := native.Height % DECREMENT_INTERVAL
+		if uend >= GL {
+			uend = GL
 			iend = 0
 		}
 		if iend == 0 {
 			uend--
-			iend = decrementInterval
+			iend = DECREMENT_INTERVAL
 		}
 		for {
 			if ustart >= uend {
 				break
 			}
-			amount += (decrementInterval - istart) * generationAmount[ustart]
+			amount += (DECREMENT_INTERVAL - istart) * GENERATION_AMOUNT[ustart]
 			ustart++
 			istart = 0
 		}
-		amount += (iend - istart) * generationAmount[ustart]
+		amount += (iend - istart) * GENERATION_AMOUNT[ustart]
 	}
 
 	args, err := getApproveArgs(native, contract, genesis.OngContractAddress, address, balance, amount); if err != nil {
