@@ -1,6 +1,8 @@
 
 <h1 align="center">Ontology </h1>
-<h4 align="center">Version V0.6.0 </h4>
+<h4 align="center">Version 0.6.0 </h4>
+
+[English](README.md) | 中文
 
 欢迎来到Ontology的源码库！ 
 
