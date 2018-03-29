@@ -19,11 +19,13 @@
 package neovm
 
 import (
+	"fmt"
 	"math/big"
 	"strings"
 
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
+	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/states"
 	"github.com/Ontology/core/store"
 	"github.com/Ontology/core/types"
@@ -34,7 +36,6 @@ import (
 	vm "github.com/Ontology/vm/neovm"
 	vmtypes "github.com/Ontology/vm/neovm/types"
 	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/Ontology/core/payload"
 )
 
 var (
@@ -169,14 +170,10 @@ func (s *StateReader) RuntimeLog(e *vm.ExecutionEngine) (bool, error) {
 	return true, nil
 }
 
-func (s *StateReader) CheckWitnessHash(engine *vm.ExecutionEngine, address common.Address) (bool, error) {
+func (s *StateReader) CheckWitness(engine *vm.ExecutionEngine, address common.Address) (bool, error) {
 	tx := engine.GetCodeContainer().(*types.Transaction)
 	addresses := tx.GetSignatureAddresses()
 	return contains(addresses, address), nil
-}
-
-func (s *StateReader) CheckWitnessPublicKey(engine *vm.ExecutionEngine, publicKey keypair.PublicKey) (bool, error) {
-	return s.CheckWitnessHash(engine, types.AddressFromPubKey(publicKey))
 }
 
 func (s *StateReader) RuntimeCheckWitness(e *vm.ExecutionEngine) (bool, error) {
@@ -184,25 +181,22 @@ func (s *StateReader) RuntimeCheckWitness(e *vm.ExecutionEngine) (bool, error) {
 		return false, errors.NewErr("[RuntimeCheckWitness] Too few input parameters ")
 	}
 	data := vm.PopByteArray(e)
-	var (
-		result bool
-		err    error
-	)
+	var addr common.Address
 	if len(data) == 20 {
-		program, err := common.AddressParseFromBytes(data)
+		temp, err := common.AddressParseFromBytes(data)
 		if err != nil {
 			return false, err
 		}
-		result, err = s.CheckWitnessHash(e, program)
-	} else if len(data) == 33 + 2 {
+		addr = temp
+	} else {
 		publicKey, err := keypair.DeserializePublicKey(data)
 		if err != nil {
-			return false, err
+			return false, fmt.Errorf("[RuntimeCheckWitness] data invalid: %s", err)
 		}
-		result, err = s.CheckWitnessPublicKey(e, publicKey)
-	} else {
-		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[RuntimeCheckWitness] data invalid.")
+		addr = types.AddressFromPubKey(publicKey)
 	}
+
+	result, err := s.CheckWitness(e, addr)
 	if err != nil {
 		return false, err
 	}
