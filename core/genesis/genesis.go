@@ -88,6 +88,7 @@ func GenesisBlockInit(defaultBookkeeper []keypair.PublicKey) (*types.Block, erro
 			NewUtilityInit(),
 		},
 	}
+	genesisBlock.RebuildMerkleRoot()
 	return genesisBlock, nil
 }
 
