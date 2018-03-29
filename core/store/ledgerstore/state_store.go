@@ -294,7 +294,7 @@ func (this *StateStore) getCurrentBlockKey() []byte {
 
 func (this *StateStore) getBookkeeperKey() ([]byte, error) {
 	key := make([]byte, 1+len(BookerKeeper))
-	key[0] = byte(scom.ST_BOOK_KEEPER)
+	key[0] = byte(scom.ST_BOOKKEEPER)
 	copy(key[1:], []byte(BookerKeeper))
 	return key, nil
 }

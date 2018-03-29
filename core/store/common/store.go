@@ -49,16 +49,16 @@ type PersistStore interface {
 }
 
 type StateStore interface {
-	TryAdd(prefix DataEntryPrefix, key []byte, value states.IStateValue, trie bool)
-	TryGetOrAdd(prefix DataEntryPrefix, key []byte, value states.IStateValue, trie bool) error
+	TryAdd(prefix DataEntryPrefix, key []byte, value states.StateValue, trie bool)
+	TryGetOrAdd(prefix DataEntryPrefix, key []byte, value states.StateValue, trie bool) error
 	TryGet(prefix DataEntryPrefix, key []byte) (*StateItem, error)
-	TryGetAndChange(prefix DataEntryPrefix, key []byte, trie bool) (states.IStateValue, error)
+	TryGetAndChange(prefix DataEntryPrefix, key []byte, trie bool) (states.StateValue, error)
 	TryDelete(prefix DataEntryPrefix, key []byte)
 	Find(prefix DataEntryPrefix, key []byte) ([]*StateItem, error)
 }
 
 type MemoryCacheStore interface {
-	Put(prefix byte, key []byte, value states.IStateValue, state ItemState, trie bool)
+	Put(prefix byte, key []byte, value states.StateValue, state ItemState, trie bool)
 	Get(prefix byte, key []byte) *StateItem
 	Delete(prefix byte, key []byte)
 	GetChangeSet() map[string]*StateItem
@@ -82,7 +82,7 @@ const (
 
 type StateItem struct {
 	Key   string
-	Value states.IStateValue
+	Value states.StateValue
 	State ItemState
 	Trie  bool
 }

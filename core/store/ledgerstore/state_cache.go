@@ -41,15 +41,15 @@ func NewStateCache() (*StateCache, error) {
 	}, nil
 }
 
-func (this *StateCache) GetState(key []byte) states.IStateValue {
+func (this *StateCache) GetState(key []byte) states.StateValue {
 	state, ok := this.stateCache.Get(string(key))
 	if !ok {
 		return nil
 	}
-	return state.(states.IStateValue)
+	return state.(states.StateValue)
 }
 
-func (this *StateCache) AddState(key []byte, state states.IStateValue) {
+func (this *StateCache) AddState(key []byte, state states.StateValue) {
 	this.stateCache.Add(string(key), state)
 }
 

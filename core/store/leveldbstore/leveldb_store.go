@@ -19,7 +19,7 @@
 package leveldbstore
 
 import (
-	. "github.com/Ontology/core/store/common"
+	"github.com/Ontology/core/store/common"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/filter"
@@ -103,7 +103,7 @@ func (self *LevelDBStore) Close() error {
 	return err
 }
 
-func (self *LevelDBStore) NewIterator(prefix []byte) StoreIterator {
+func (self *LevelDBStore) NewIterator(prefix []byte) common.StoreIterator {
 
 	iter := self.db.NewIterator(util.BytesPrefix(prefix), nil)
 

@@ -33,7 +33,7 @@ func NewMemDatabase() *MemoryStore {
 	}
 }
 
-func (db *MemoryStore) Put(prefix byte, key []byte, value states.IStateValue, state common.ItemState, trie bool) {
+func (db *MemoryStore) Put(prefix byte, key []byte, value states.StateValue, state common.ItemState, trie bool) {
 	db.memory[string(append([]byte{prefix}, key...))] = &common.StateItem{
 		Key:   string(key),
 		Value: value,

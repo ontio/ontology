@@ -24,24 +24,24 @@ import (
 
 	"github.com/Ontology/core/payload"
 	"github.com/Ontology/core/states"
-	. "github.com/Ontology/core/store/common"
+	"github.com/Ontology/core/store/common"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
 type StateBatch struct {
-	store       PersistStore
-	memoryStore MemoryCacheStore
+	store       common.PersistStore
+	memoryStore common.MemoryCacheStore
 }
 
-func NewStateStoreBatch(memoryStore MemoryCacheStore, store PersistStore) *StateBatch {
+func NewStateStoreBatch(memoryStore common.MemoryCacheStore, store common.PersistStore) *StateBatch {
 	return &StateBatch{
 		store:       store,
 		memoryStore: memoryStore,
 	}
 }
 
-func (self *StateBatch) Find(prefix DataEntryPrefix, key []byte) ([]*StateItem, error) {
-	var states []*StateItem
+func (self *StateBatch) Find(prefix common.DataEntryPrefix, key []byte) ([]*common.StateItem, error) {
+	var states []*common.StateItem
 	iter := self.store.NewIterator(append([]byte{byte(prefix)}, key...))
 	for iter.Next() {
 		key := iter.Key()
@@ -50,20 +50,20 @@ func (self *StateBatch) Find(prefix DataEntryPrefix, key []byte) ([]*StateItem, 
 		if err != nil {
 			return nil, err
 		}
-		states = append(states, &StateItem{Key: string(key[1:]), Value: state})
+		states = append(states, &common.StateItem{Key: string(key[1:]), Value: state})
 	}
 	return states, nil
 }
 
-func (self *StateBatch) TryAdd(prefix DataEntryPrefix, key []byte, value states.IStateValue, trie bool) {
-	self.setStateObject(byte(prefix), key, value, Changed, trie)
+func (self *StateBatch) TryAdd(prefix common.DataEntryPrefix, key []byte, value states.StateValue, trie bool) {
+	self.setStateObject(byte(prefix), key, value, common.Changed, trie)
 }
 
-func (self *StateBatch) TryGetOrAdd(prefix DataEntryPrefix, key []byte, value states.IStateValue, trie bool) error {
+func (self *StateBatch) TryGetOrAdd(prefix common.DataEntryPrefix, key []byte, value states.StateValue, trie bool) error {
 	state := self.memoryStore.Get(byte(prefix), key)
 	if state != nil {
-		if state.State == Deleted {
-			self.setStateObject(byte(prefix), key, value, Changed, trie)
+		if state.State == common.Deleted {
+			self.setStateObject(byte(prefix), key, value, common.Changed, trie)
 			return nil
 		}
 		return nil
@@ -75,14 +75,14 @@ func (self *StateBatch) TryGetOrAdd(prefix DataEntryPrefix, key []byte, value st
 	if item != nil {
 		return nil
 	}
-	self.setStateObject(byte(prefix), key, value, Changed, trie)
+	self.setStateObject(byte(prefix), key, value, common.Changed, trie)
 	return nil
 }
 
-func (self *StateBatch) TryGet(prefix DataEntryPrefix, key []byte) (*StateItem, error) {
+func (self *StateBatch) TryGet(prefix common.DataEntryPrefix, key []byte) (*common.StateItem, error) {
 	state := self.memoryStore.Get(byte(prefix), key)
 	if state != nil {
-		if state.State == Deleted {
+		if state.State == common.Deleted {
 			return nil, nil
 		}
 		return state, nil
@@ -99,17 +99,17 @@ func (self *StateBatch) TryGet(prefix DataEntryPrefix, key []byte) (*StateItem, 
 	if err != nil {
 		return nil, err
 	}
-	self.setStateObject(byte(prefix), key, stateVal, None, false)
-	return &StateItem{Key: string(append([]byte{byte(prefix)}, key...)), Value: stateVal, State: None}, nil
+	self.setStateObject(byte(prefix), key, stateVal, common.None, false)
+	return &common.StateItem{Key: string(append([]byte{byte(prefix)}, key...)), Value: stateVal, State: common.None}, nil
 }
 
-func (self *StateBatch) TryGetAndChange(prefix DataEntryPrefix, key []byte, trie bool) (states.IStateValue, error) {
+func (self *StateBatch) TryGetAndChange(prefix common.DataEntryPrefix, key []byte, trie bool) (states.StateValue, error) {
 	state := self.memoryStore.Get(byte(prefix), key)
 	if state != nil {
-		if state.State == Deleted {
+		if state.State == common.Deleted {
 			return nil, nil
-		} else if state.State == None {
-			state.State = Changed
+		} else if state.State == common.None {
+			state.State = common.Changed
 		}
 		return state.Value, nil
 	}
@@ -127,17 +127,17 @@ func (self *StateBatch) TryGetAndChange(prefix DataEntryPrefix, key []byte, trie
 	if err != nil {
 		return nil, err
 	}
-	self.setStateObject(byte(prefix), key, val, Changed, trie)
+	self.setStateObject(byte(prefix), key, val, common.Changed, trie)
 	return val, nil
 }
 
-func (self *StateBatch) TryDelete(prefix DataEntryPrefix, key []byte) {
+func (self *StateBatch) TryDelete(prefix common.DataEntryPrefix, key []byte) {
 	self.memoryStore.Delete(byte(prefix), key)
 }
 
 func (self *StateBatch) CommitTo() error {
 	for k, v := range self.memoryStore.GetChangeSet() {
-		if v.State == Deleted {
+		if v.State == common.Deleted {
 			self.store.BatchDelete([]byte(k))
 		} else {
 			data := new(bytes.Buffer)
@@ -155,26 +155,26 @@ func (this *StateBatch) Change(prefix byte, key []byte, trie bool) {
 	this.memoryStore.Change(prefix, key, trie)
 }
 
-func (self *StateBatch) setStateObject(prefix byte, key []byte, value states.IStateValue, state ItemState, trie bool) {
+func (self *StateBatch) setStateObject(prefix byte, key []byte, value states.StateValue, state common.ItemState, trie bool) {
 	self.memoryStore.Put(prefix, key, value, state, trie)
 }
 
-func getStateObject(prefix DataEntryPrefix, enc []byte) (states.IStateValue, error) {
+func getStateObject(prefix common.DataEntryPrefix, enc []byte) (states.StateValue, error) {
 	reader := bytes.NewBuffer(enc)
 	switch prefix {
-	case ST_BOOK_KEEPER:
+	case common.ST_BOOKKEEPER:
 		bookkeeper := new(payload.Bookkeeper)
 		if err := bookkeeper.Deserialize(reader); err != nil {
 			return nil, err
 		}
 		return bookkeeper, nil
-	case ST_CONTRACT:
+	case common.ST_CONTRACT:
 		contract := new(payload.DeployCode)
 		if err := contract.Deserialize(reader); err != nil {
 			return nil, err
 		}
 		return contract, nil
-	case ST_STORAGE:
+	case common.ST_STORAGE:
 		storage := new(states.StorageItem)
 		if err := storage.Deserialize(reader); err != nil {
 			return nil, err

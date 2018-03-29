@@ -110,7 +110,7 @@ func TestBookkeeperState(t *testing.T) {
 		CurrBookkeeper: currBookkeepers,
 		NextBookkeeper: nextBookkeepers,
 	}
-	batch.TryAdd(scommon.ST_BOOK_KEEPER, BookerKeeper, bookkeeperState, false)
+	batch.TryAdd(scommon.ST_BOOKKEEPER, BookerKeeper, bookkeeperState, false)
 	err = batch.CommitTo()
 	if err != nil {
 		t.Errorf("batch.CommitTo error %s", err)

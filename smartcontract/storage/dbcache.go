@@ -26,7 +26,7 @@ import (
 type StateItem struct {
 	Prefix common.DataEntryPrefix
 	Key    string
-	Value  states.IStateValue
+	Value  states.StateValue
 	State  common.ItemState
 }
 
@@ -54,7 +54,7 @@ func (cloneCache *CloneCache) Commit() {
 	}
 }
 
-func (cloneCache *CloneCache) Add(prefix common.DataEntryPrefix, key []byte, value states.IStateValue) {
+func (cloneCache *CloneCache) Add(prefix common.DataEntryPrefix, key []byte, value states.StateValue) {
 	cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))] = &StateItem{
 		Prefix: prefix,
 		Key:    string(key),
@@ -63,7 +63,7 @@ func (cloneCache *CloneCache) Add(prefix common.DataEntryPrefix, key []byte, val
 	}
 }
 
-func (cloneCache *CloneCache) GetOrAdd(prefix common.DataEntryPrefix, key []byte, value states.IStateValue) (states.IStateValue, error) {
+func (cloneCache *CloneCache) GetOrAdd(prefix common.DataEntryPrefix, key []byte, value states.StateValue) (states.StateValue, error) {
 	if v, ok := cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))]; ok {
 		if v.State == common.Deleted {
 			cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))] = &StateItem{Prefix: prefix, Key: string(key), Value: value, State: common.Changed}
@@ -82,7 +82,7 @@ func (cloneCache *CloneCache) GetOrAdd(prefix common.DataEntryPrefix, key []byte
 	return value, nil
 }
 
-func (cloneCache *CloneCache) Get(prefix common.DataEntryPrefix, key []byte) (states.IStateValue, error) {
+func (cloneCache *CloneCache) Get(prefix common.DataEntryPrefix, key []byte) (states.StateValue, error) {
 	if v, ok := cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))]; ok {
 		if v.State == common.Deleted {
 			return nil, nil

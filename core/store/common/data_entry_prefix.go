@@ -28,11 +28,11 @@ const (
 	DATA_TRANSACTION                 = 0x02
 
 	// Transaction
-	ST_BOOK_KEEPER DataEntryPrefix = 0x03
-	ST_CONTRACT    DataEntryPrefix = 0x04
-	ST_STORAGE     DataEntryPrefix = 0x05
-	ST_VALIDATOR   DataEntryPrefix = 0x07
-	ST_VOTE        DataEntryPrefix = 0x08
+	ST_BOOKKEEPER DataEntryPrefix = 0x03
+	ST_CONTRACT   DataEntryPrefix = 0x04
+	ST_STORAGE    DataEntryPrefix = 0x05
+	ST_VALIDATOR  DataEntryPrefix = 0x07
+	ST_VOTE       DataEntryPrefix = 0x08
 
 	IX_HEADER_HASH_LIST DataEntryPrefix = 0x09
 

@@ -22,7 +22,7 @@ import (
 	"io"
 )
 
-type IStateValue interface {
+type StateValue interface {
 	Serialize(w io.Writer) error
 	Deserialize(r io.Reader) error
 }
