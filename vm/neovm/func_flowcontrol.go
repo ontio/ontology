@@ -35,14 +35,14 @@ func opJmp(e *ExecutionEngine) (VMState, error) {
 
 	if offset < 0 || offset > len(e.context.Code) {
 		log.Error(fmt.Sprintf("[opJmp] offset:%v > e.contex.Code len:%v error", offset, len(e.context.Code)))
-		return FAULT, ErrFault
+		return FAULT, ERR_FAULT
 	}
 	var fValue = true
 
 	if e.opCode > JMP {
 		if EvaluationStackCount(e) < 1 {
 			log.Error(fmt.Sprintf("[opJmp] stack count:%v > 1 error", EvaluationStackCount(e)))
-			return FAULT, ErrUnderStackLen
+			return FAULT, ERR_UNDER_STACK_LEN
 		}
 		fValue = PopBoolean(e)
 		if e.opCode == JMPIFNOT {

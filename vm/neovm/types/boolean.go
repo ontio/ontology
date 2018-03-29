@@ -28,48 +28,48 @@ type Boolean struct {
 }
 
 func NewBoolean(value bool) *Boolean {
-	var b Boolean
-	b.value = value
-	return &b
+	var this Boolean
+	this.value = value
+	return &this
 }
 
-func (b *Boolean) Equals(other StackItemInterface) bool {
+func (this *Boolean) Equals(other StackItems) bool {
 	if _, ok := other.(*Boolean); !ok {
 		return false
 	}
-	if b.value != other.GetBoolean() {
+	if this.value != other.GetBoolean() {
 		return false
 	}
 	return true
 }
 
-func (b *Boolean) GetBigInteger() *big.Int {
-	if b.value {
+func (this *Boolean) GetBigInteger() *big.Int {
+	if this.value {
 		return big.NewInt(1)
 	}
 	return big.NewInt(0)
 }
 
-func (b *Boolean) GetBoolean() bool {
-	return b.value
+func (this *Boolean) GetBoolean() bool {
+	return this.value
 }
 
-func (b *Boolean) GetByteArray() []byte {
-	if b.value {
+func (this *Boolean) GetByteArray() []byte {
+	if this.value {
 		return []byte{1}
 	}
 	return []byte{0}
 }
 
-func (b *Boolean) GetInterface() interfaces.IInteropInterface {
+func (this *Boolean) GetInterface() interfaces.Interop {
 	return nil
 }
 
-func (b *Boolean) GetArray() []StackItemInterface {
-	return []StackItemInterface{b}
+func (this *Boolean) GetArray() []StackItems {
+	return []StackItems{this}
 }
 
-func (b *Boolean) GetStruct() []StackItemInterface {
-	return []StackItemInterface{b}
+func (this *Boolean) GetStruct() []StackItems {
+	return []StackItems{this}
 }
 

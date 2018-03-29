@@ -26,7 +26,7 @@ import (
 type NotifyEventArgs struct {
 	TxHash common.Uint256
 	CodeHash common.Address
-	States types.StackItemInterface
+	States types.StackItems
 }
 
 type NotifyEventInfo struct {

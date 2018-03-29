@@ -46,7 +46,7 @@ type Config struct {
 	Time uint32
 	Height uint32
 	Tx *ctypes.Transaction
-	Table interfaces.ICodeTable
+	Table interfaces.CodeTable
 	DBCache scommon.StateStore
 	Store store.LedgerStore
 }

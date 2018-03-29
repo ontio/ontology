@@ -23,7 +23,7 @@ import (
 )
 
 type Element interface {
-	GetStackItem() types.StackItemInterface
+	GetStackItem() types.StackItems
 	GetExecutionContext() *ExecutionContext
 }
 

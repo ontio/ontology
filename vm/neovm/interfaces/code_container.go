@@ -18,7 +18,7 @@
 
 package interfaces
 
-type ICodeContainer interface {
+type CodeContainer interface {
 	GetMessage() []byte
-	IInteropInterface
+	Interop
 }

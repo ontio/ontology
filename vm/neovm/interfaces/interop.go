@@ -18,6 +18,6 @@
 
 package interfaces
 
-type IInteropInterface interface {
+type Interop interface {
 	ToArray() []byte
 }

@@ -19,11 +19,10 @@
 package neovm
 
 import (
-	. "github.com/Ontology/vm/neovm/errors"
-	"github.com/Ontology/common/log"
+	"github.com/Ontology/vm/neovm/errors"
 )
 
-type IInteropService interface {
+type InteropServices interface {
 	Register(method string, handler func(*ExecutionEngine) (bool, error)) bool
 	GetServiceMap() map[string]func(*ExecutionEngine) (bool, error)
 }
@@ -64,10 +63,9 @@ func (i *InteropService) GetServiceMap() map[string]func(*ExecutionEngine) (bool
 
 func (i *InteropService) Invoke(methodName string, engine *ExecutionEngine) (bool, error) {
 	if v, ok := i.serviceMap[methodName]; ok {
-		log.Error("Invoke MethodName:", methodName)
 		return v(engine)
 	}
-	return false, ErrNotSupportService
+	return false, errors.ERR_NOT_SUPPORT_SERVICE
 }
 
 func (i *InteropService) GetCodeContainer(engine *ExecutionEngine) (bool, error) {

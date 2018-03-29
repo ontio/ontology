@@ -24,20 +24,20 @@ import (
 )
 
 type Struct struct {
-	_array []StackItemInterface
+	_array []StackItems
 }
 
-func NewStruct(value []StackItemInterface) *Struct {
-	var s Struct
-	s._array = value
-	return &s
+func NewStruct(value []StackItems) *Struct {
+	var this Struct
+	this._array = value
+	return &this
 }
 
-func (s *Struct) Equals(other StackItemInterface) bool {
+func (this *Struct) Equals(other StackItems) bool {
 	if _, ok := other.(*Struct); !ok {
 		return false
 	}
-	a1 := s._array
+	a1 := this._array
 	a2 := other.GetStruct()
 	l1 := len(a1)
 	l2 := len(a2)
@@ -52,44 +52,44 @@ func (s *Struct) Equals(other StackItemInterface) bool {
 	return true
 }
 
-func (s *Struct) GetBigInteger() *big.Int {
-	if len(s._array) == 0 {
+func (this *Struct) GetBigInteger() *big.Int {
+	if len(this._array) == 0 {
 		return big.NewInt(0)
 	}
-	return s._array[0].GetBigInteger()
+	return this._array[0].GetBigInteger()
 }
 
-func (s *Struct) GetBoolean() bool {
-	if len(s._array) == 0 {
+func (this *Struct) GetBoolean() bool {
+	if len(this._array) == 0 {
 		return false
 	}
-	return s._array[0].GetBoolean()
+	return this._array[0].GetBoolean()
 }
 
-func (s *Struct) GetByteArray() []byte {
-	if len(s._array) == 0 {
+func (this *Struct) GetByteArray() []byte {
+	if len(this._array) == 0 {
 		return []byte{}
 	}
-	return s._array[0].GetByteArray()
+	return this._array[0].GetByteArray()
 }
 
-func (s *Struct) GetInterface() interfaces.IInteropInterface {
-	if len(s._array) == 0 {
+func (this *Struct) GetInterface() interfaces.Interop {
+	if len(this._array) == 0 {
 		return nil
 	}
-	return s._array[0].GetInterface()
+	return this._array[0].GetInterface()
 }
 
-func (s *Struct) GetArray() []StackItemInterface {
+func (s *Struct) GetArray() []StackItems {
 	return s._array
 }
 
-func (s *Struct) GetStruct() []StackItemInterface {
+func (s *Struct) GetStruct() []StackItems {
 	return s._array
 }
 
-func (s *Struct) Clone() StackItemInterface {
-	var arr []StackItemInterface
+func (s *Struct) Clone() StackItems {
+	var arr []StackItems
 	for _, v := range s._array {
 		if value, ok := v.(*Struct); ok {
 			arr = append(arr, value.Clone())

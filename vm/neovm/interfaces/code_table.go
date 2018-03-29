@@ -16,20 +16,8 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package types
+package interfaces
 
-import (
-	"math/big"
-	"github.com/Ontology/vm/neovm/interfaces"
-)
-
-type StackItemInterface interface {
-	Equals(other StackItemInterface) bool
-	GetBigInteger() *big.Int
-	GetBoolean() bool
-	GetByteArray() []byte
-	GetInterface() interfaces.IInteropInterface
-	GetArray() []StackItemInterface
-	GetStruct() []StackItemInterface
+type CodeTable interface {
+	GetCode(scriptHash []byte) ([]byte, error)
 }
-

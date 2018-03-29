@@ -78,7 +78,7 @@ func (ec *ExecutionContext) Clone() *ExecutionContext {
 	return executionContext
 }
 
-func (ec *ExecutionContext) GetStackItem() types.StackItemInterface {
+func (ec *ExecutionContext) GetStackItem() types.StackItems {
 	return nil
 }
 

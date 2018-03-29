@@ -16,8 +16,20 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package interfaces
+package types
 
-type ICodeTable interface {
-	GetCode(scriptHash []byte) ([]byte, error)
+import (
+	"math/big"
+	"github.com/Ontology/vm/neovm/interfaces"
+)
+
+type StackItems interface {
+	Equals(other StackItems) bool
+	GetBigInteger() *big.Int
+	GetBoolean() bool
+	GetByteArray() []byte
+	GetInterface() interfaces.Interop
+	GetArray() []StackItems
+	GetStruct() []StackItems
 }
+

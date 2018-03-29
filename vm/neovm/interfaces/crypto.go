@@ -18,7 +18,7 @@
 
 package interfaces
 
-type ICrypto interface {
+type Crypto interface {
 	Hash160(message []byte) []byte
 
 	Hash256(message []byte) []byte

@@ -508,7 +508,7 @@ func (s *StateReader) BlockGetTransactions(e *vm.ExecutionEngine) (bool, error) 
 		return false, errors.NewErr("[BlockGetTransactions] Wrong type!")
 	}
 	transactions := block.Transactions
-	transactionList := make([]vmtypes.StackItemInterface, 0)
+	transactionList := make([]vmtypes.StackItems, 0)
 	for _, v := range transactions {
 		transactionList = append(transactionList, vmtypes.NewInteropInterface(v))
 	}
@@ -589,7 +589,7 @@ func (s *StateReader) TransactionGetAttributes(e *vm.ExecutionEngine) (bool, err
 		return false, errors.NewErr("[TransactionGetAttributes] Wrong type!")
 	}
 	attributes := txn.Attributes
-	attributList := make([]vmtypes.StackItemInterface, 0)
+	attributList := make([]vmtypes.StackItems, 0)
 	for _, v := range attributes {
 		attributList = append(attributList, vmtypes.NewInteropInterface(v))
 	}

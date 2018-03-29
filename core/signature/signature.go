@@ -33,7 +33,7 @@ import (
 
 //SignableData describe the data need be signed.
 type SignableData interface {
-	interfaces.ICodeContainer
+	interfaces.CodeContainer
 
 	////Get the the SignableData's program hashes
 	GetProgramHashes() ([]common.Address, error)

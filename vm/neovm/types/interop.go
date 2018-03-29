@@ -24,50 +24,50 @@ import (
 	"github.com/Ontology/common"
 )
 
-type InteropInterface struct {
-	_object interfaces.IInteropInterface
+type Interop struct {
+	_object interfaces.Interop
 }
 
-func NewInteropInterface(value interfaces.IInteropInterface) *InteropInterface {
-	var ii InteropInterface
+func NewInteropInterface(value interfaces.Interop) *Interop {
+	var ii Interop
 	ii._object = value
 	return &ii
 }
 
-func (ii *InteropInterface) Equals(other StackItemInterface) bool {
-	if _, ok := other.(*InteropInterface); !ok {
+func (this *Interop) Equals(other StackItems) bool {
+	if _, ok := other.(*Interop); !ok {
 		return false
 	}
-	if !common.IsEqualBytes(ii._object.ToArray(), other.GetInterface().ToArray()) {
+	if !common.IsEqualBytes(this._object.ToArray(), other.GetInterface().ToArray()) {
 		return false
 	}
 	return true
 }
 
-func (ii *InteropInterface) GetBigInteger() *big.Int {
+func (this *Interop) GetBigInteger() *big.Int {
 	return big.NewInt(0)
 }
 
-func (ii *InteropInterface) GetBoolean() bool {
-	if ii._object == nil {
+func (this *Interop) GetBoolean() bool {
+	if this._object == nil {
 		return false
 	}
 	return true
 }
 
-func (ii *InteropInterface) GetByteArray() []byte {
-	return ii._object.ToArray()
+func (this *Interop) GetByteArray() []byte {
+	return this._object.ToArray()
 }
 
-func (ii *InteropInterface) GetInterface() interfaces.IInteropInterface {
-	return ii._object
+func (this *Interop) GetInterface() interfaces.Interop {
+	return this._object
 }
 
-func (ii *InteropInterface) GetArray() []StackItemInterface {
-	return []StackItemInterface{ii}
+func (this *Interop) GetArray() []StackItems {
+	return []StackItems{this}
 }
 
-func (ii *InteropInterface) GetStruct() []StackItemInterface {
-	return []StackItemInterface{ii}
+func (this *Interop) GetStruct() []StackItems {
+	return []StackItems{this}
 }
 

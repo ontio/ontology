@@ -21,16 +21,16 @@ package neovm
 import "github.com/Ontology/vm/neovm/types"
 
 type StackItem struct {
-	_object types.StackItemInterface
+	_object types.StackItems
 }
 
-func NewStackItem(object types.StackItemInterface) *StackItem {
+func NewStackItem(object types.StackItems) *StackItem {
 	var stackItem StackItem
 	stackItem._object = object
 	return &stackItem
 }
 
-func (s *StackItem) GetStackItem() types.StackItemInterface {
+func (s *StackItem) GetStackItem() types.StackItems {
 	return s._object
 }
 
