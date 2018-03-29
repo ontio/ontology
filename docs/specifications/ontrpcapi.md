@@ -9,7 +9,7 @@
 Request parameter description:
 
 | Field | Type | Description |
-| :--- | :--- | :--- |
+| :---| :---| :---|
 | jsonrpc | string | jsonrpc version |
 | method | string | method name |
 | params | string | method required parameters |
@@ -18,7 +18,7 @@ Request parameter description:
 Response parameter description:
 
 | Field | Type | Description |
-| :--- | :--- | :--- |
+| :---| :---| :---|
 | desc| string | resopnse description |
 | error | int64 | error code |
 | jsonrpc | string | jsonrpc version |
@@ -31,52 +31,60 @@ Block field description
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| Version | int | version number |
-| PrevBlock | UInt256 | The hash of the previous block |
-| TransactionsRoot | UInt256 | The root of the Merkle tree for all transactions in this block |
-| BlockRoot | UInt256 | blockroot |
+| Header | *Header |  |
+| Transactions | []*Transaction ||
+| hash | *Uint256 | |
+
+Header field description
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| Version | uint32 | version number |
+| PrevBlockHash | Uint256 | The hash of the previous block |
+| TransactionsRoot | Uint256 | The root of the Merkle tree for all transactions in this block |
+| BlockRoot | Uint256 | blockroot |
 | Timestamp | int | block timestamp,uinix timestamp |
 | Height | int | block height |
-| NextBookKeeper | UInt160 | Accounting contract hash value for the next block |
-| BookKeepers |  ||
-| SigData |||
-| Hash | Program | Script to verify the block |
-| Transactions | Transaction[] | List of transactions in this block |
+| ConsensusData | uint64 |  |
+| NextBookKeeper | Address | Accounting contract hash value for the next block |
+| BookKeepers | []*crypto.PubKey ||
+| SigData | [][]byte ||
+| Hash | Uint256 | Script to verify the block |
 
 Transaction field description
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| Version| int | version number |
+| Version| byte | version number |
 | TxType | TransactionType | transaction type |
 | Payload | Payload | payload |
-| Nounce | int | random number |
-| Attributes | Transactions |  |
-| Fee | Fee[] | transaction fees  |
-| NetworkFee | long | neitwork fees |
-| Sigs | Sign[] | signature array |
-| Hash | string | transaction hash |
+| Nonce | uint32 | random number |
+| Attributes | []*TxAttribute |  |
+| Fee | []*Fee | transaction fees  |
+| NetworkFee | Fixed64 | neitwork fees |
+| Sigs | []*Sig | signature array |
+| Hash | *Uint256 | transaction hash |
 
 ## Rpc api list
 
 | Method | Parameters | Description | Note |
-| :--- | :--- | :--- | :--- |
+| :---| :---| :---| :---|
 | getbestblockhash |  | get the hash of the highest height block in the main chain |  |
-| getblock | <height> or <blockhash> [verbose] | get block by block height or block height | verbose can be 0 or 1,response is different |
+| getblock | height or blockhash,[verbose] | get block by block height or block hash | verbose can be 0 or 1,response is different |
 | getblockcount |  | get the number of blocks |  |
-| getblockhash | <index> | get block hash by index |  |
-| getconnectioncount |  | get the current number of connections for the node |  |
-| getrawmempool |  | Get a list of unconfirmed transactions in memory |  |
-| getrawtransaction | <transactionhash> | Returns the corresponding transaction information based on the specified hash value. |  |
-| sendrawtransaction | <hex> | Broadcast transaction. | Serialized signed transactions constructed in the program into hexadecimal strings |
-| getstorage | <script_hash> | Returns the stored value according to the contract script hashes and stored key. |  |
+| getblockhash | height | get block hash by block height |  |
+| getconnectioncount|  | get the current number of connections for the node |  |
+| getgenerateblocktime|  | The time required to create a new block |  |
+| getrawtransaction | transactionhash | Returns the corresponding transaction information based on the specified hash value. |  |
+| sendrawtransaction | hex | Broadcast transaction. | Serialized signed transactions constructed in the program into hexadecimal strings |
+| getstorage | script_hash | Returns the stored value according to the contract script hashes and stored key. |  |
 | getversion |  | Get the version information of the query node |  |
 | getblocksysfee |  | According to the specified index, return the system fee before the block. |  |
-| getcontractstate | <script_hash> | According to the contract script hash, query the contract information. |  |
-| getmempooltxstate | <tx_hash> | Query the transaction status in the memory pool. |  |
+| getcontractstate | script_hash | According to the contract script hash, query the contract information. |  |
+| getmempooltxstate | tx_hash | Query the transaction status in the memory pool. |  |
 | getsmartcodeevent |  | Get smartcode event |  |
-| getblockheightbytxhash | <tx_hash> | return balance of base58 account address. |  |
-| getbalance | <address> | return balance of base58 account address. |  |
+| getblockheightbytxhash | tx_hash | get blockheight of txhash|  |
+| getbalance | address | return balance of base58 account address. |  |
 
 
 ### 1. getbestblockhash
@@ -164,26 +172,23 @@ Response when verbose = 1:
     "id": 1,
     "jsonpc": "2.0",
     "result": {
-        "Hash": "71d614dd1594c0e4cc615e12678f6357c3686387519731b8231699301960c39d",
+        "Hash": "95555da65d6feaa7cde13d6bf12131f750b670569d98c63813441cf24a99c0d2",
         "Header": {
             "Version": 0,
-            "PrevBlockHash": "a12bc630d58af7c7ef94cc5339567f9042c95a9b5722d58dc3b87dd30bc6154e",
-            "TransactionsRoot": "291026c1df3183e96839d0f0caf8c2640919de6b79114a026d35f73b4b6b3b48",
-            "BlockRoot": "8f592ec921a950553be88a2f575b5c52f1ff0b9d5f263fbae86a5d1abd557dba",
-            "Timestamp": 1521703551,
-            "Height": 4,
-            "ConsensusData": 17166119660593720000,
-            "NextBookKeeper": "027c557d2e735b9a369d20dd099bfd42db5cdb74",
-            "BookKeepers": [
-                {
-                    "X": "11045594958442581564679839478917319740817938700262919124154204990772552987783",
-                    "Y": "28445199876541353997545685344458930058882115795876754515124389392470701852812"
-                }
+            "PrevBlockHash": "205c905493c7c1e3be7cd58542e45aafb007edcb8363f8ff555f63745f1b7ce5",
+            "TransactionsRoot": "4452db2634d81e80048002c2f327b25ded4e547ebfcc1b28f28608938b9d2154",
+            "BlockRoot": "42e01a2b27c182d4e115883c3b166a0fbc019efe2498b568b7febcc83a35346e",
+            "Timestamp": 1522295648,
+            "Height": 2,
+            "ConsensusData": 10322907760044199803,
+            "NextBookkeeper": "TAAr9AH4NqxXSKur7XTUbmP8wsKD4KPL2t",
+            "Bookkeepers": [
+                "120203e45fe0189a36b284e6080c6983cf12879d239886ecee1e257ab992970ecaa000"
             ],
             "SigData": [
-                "e8f2333b43ead2af0890edb8f104b5bba0b57a7192c30919ca8cc50dcc54890483f026c7733544d877fcf4ed76bc00dac90a000a4067347c99e593067e32bf19"
+                "014ed021011a6e0a4e9771b0be9fd156f9fc411968ce1dc4aed18382c85f6827d50373f3e3931966066cdc7dfab52823b79c80df8af25569c33ddf8140df5385b6"
             ],
-            "Hash": "71d614dd1594c0e4cc615e12678f6357c3686387519731b8231699301960c39d"
+            "Hash": "95555da65d6feaa7cde13d6bf12131f750b670569d98c63813441cf24a99c0d2"
         },
         "Transactions": [
             {
@@ -191,30 +196,23 @@ Response when verbose = 1:
                 "Nonce": 0,
                 "TxType": 0,
                 "Payload": {
-                    "Nonce": 1521703551136164000,
-                    "Issuer": {
-                        "X": "",
-                        "Y": ""
-                    }
+                    "Nonce": 1522295648487066000
                 },
-                "Attributes": [ ],
-                "Fee": null,
+                "Attributes": [],
+                "Fee": [],
                 "NetworkFee": 0,
                 "Sigs": [
                     {
                         "PubKeys": [
-                            {
-                                "X": "11045594958442581564679839478917319740817938700262919124154204990772552987783",
-                                "Y": "28445199876541353997545685344458930058882115795876754515124389392470701852812"
-                            }
+                            "120203e45fe0189a36b284e6080c6983cf12879d239886ecee1e257ab992970ecaa000"
                         ],
                         "M": 1,
                         "SigData": [
-                            "2531945f93ee57b651ef94bd91f10bc75dc539ff1f0afba32adfa59778b8f67ce4865094100e9697d4523e8a533791d2e0aa893d0a941a997add1f2ed5dfa338"
+                            "01021197ad4140a50442b700ad814aeb2595578bf4d97e187a69aacf35917be4a27f76bc1dad2ee9bb386be79ca9638e78e14c869edbc3556499b06cc9c9b9452e"
                         ]
                     }
                 ],
-                "Hash": "291026c1df3183e96839d0f0caf8c2640919de6b79114a026d35f73b4b6b3b48"
+                "Hash": "4452db2634d81e80048002c2f327b25ded4e547ebfcc1b28f28608938b9d2154"
             }
         ]
     }
@@ -382,7 +380,93 @@ Response:
   "id": 1,
   "result": "80000001195876cb34364dc38b730077156c6bc3a7fc570044a66fbfeeea56f71327e8ab0000029b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc500c65eaf440000000f9a23e06f74cf86b8827a9108ec2e0f89ad956c9b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc50092e14b5e00000030aab52ad93f6ce17ca07fa88fc191828c58cb71014140915467ecd359684b2dc358024ca750609591aa731a0b309c7fb3cab5cd0836ad3992aa0a24da431f43b68883ea5651d548feb6bd3c8e16376e6e426f91f84c58232103322f35c7819267e721335948d385fae5be66e7ba8c748ac15467dcca0693692dac"
 }
+
+```
+
 or
+
+```
+{
+    "desc": "SUCCESS",
+    "error": 0,
+    "id": 1,
+    "jsonpc": "2.0",
+    "result": {
+        "Version": 0,
+        "Nonce": 3377520203,
+        "TxType": 209,
+        "Payload": {
+            "Code": "00ff00000000000000000000000000000000000001087472616e736665722d000100017d439492af400d014c2b0cc4975d7252868d8001c484de9cde9d10c3bf49362e6d66a6c3b196b70164",
+            "GasLimit": 0,
+            "VmType": 255
+        },
+        "Attributes": [
+            {
+                "Usage": 0,
+                "Data": "34336234663163352d373764392d346634342d626262662d326539396136656538376237"
+            }
+        ],
+        "Fee": [
+            {
+                "Amount": 0,
+                "Payer": "017d439492af400d014c2b0cc4975d7252868d80"
+            }
+        ],
+        "NetworkFee": 0,
+        "Sigs": [
+            {
+                "PubKeys": [
+                    "12020206b47806887dfb13679ae884e7843ef263f54a861792502100f6bb3f5bd896cc"
+                ],
+                "M": 1,
+                "SigData": [
+                    "012a0623b31b681c74866c9e72c255ac026a1fcc61867b3f1dc7a25266939e73a24c87c2aceda41174b85a872b11dbf7020a4d52dffbbfefdb704406738dd042bf"
+                ]
+            }
+        ],
+        "Hash": "a724c0215afa1aeb31be857f2fc69038cf557b4748941bfed8281473b39152e7"
+    }
+}
+```
+
+
+
+#### 8. sendrawtransaction
+
+Broadcast transaction.
+
+#### Parameter instruction
+
+Hex: Serialized signed transactions constructed in the program into hexadecimal strings.
+
+#### Example
+
+Request:
+
+```
+{
+  "jsonrpc": "2.0",
+  "method": "sendrawtransaction",
+  "params": ["80000001195876cb34364dc38b730077156c6bc3a7fc570044a66fbfeeea56f71327e8ab0000029b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc500c65eaf440000000f9a23e06f74cf86b8827a9108ec2e0f89ad956c9b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc50092e14b5e00000030aab52ad93f6ce17ca07fa88fc191828c58cb71014140915467ecd359684b2dc358024ca750609591aa731a0b309c7fb3cab5cd0836ad3992aa0a24da431f43b68883ea5651d548feb6bd3c8e16376e6e426f91f84c58232103322f35c7819267e721335948d385fae5be66e7ba8c748ac15467dcca0693692dac"],
+  "id": 1
+}
+```
+
+Response:
+
+```
+{
+  "desc":"SUCCESS",
+  "error":0,
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": false
+}
+```
+
+or
+
+```
 {
   "desc":"SUCCESS",
   "error":0,
@@ -429,38 +513,7 @@ or
 }
 ```
 
-#### 8. sendrawtransaction
 
-Broadcast transaction.
-
-#### Parameter instruction
-
-Hex: Serialized signed transactions constructed in the program into hexadecimal strings.
-
-#### Example
-
-Request:
-
-```
-{
-  "jsonrpc": "2.0",
-  "method": "sendrawtransaction",
-  "params": ["80000001195876cb34364dc38b730077156c6bc3a7fc570044a66fbfeeea56f71327e8ab0000029b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc500c65eaf440000000f9a23e06f74cf86b8827a9108ec2e0f89ad956c9b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc50092e14b5e00000030aab52ad93f6ce17ca07fa88fc191828c58cb71014140915467ecd359684b2dc358024ca750609591aa731a0b309c7fb3cab5cd0836ad3992aa0a24da431f43b68883ea5651d548feb6bd3c8e16376e6e426f91f84c58232103322f35c7819267e721335948d385fae5be66e7ba8c748ac15467dcca0693692dac"],
-  "id": 1
-}
-```
-
-Response:
-
-```
-{
-  "desc":"SUCCESS",
-  "error":0,
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": false
-}
-```
 
 Response instruction:
 
@@ -504,6 +557,7 @@ Response:
     "result": "4c696e"
 }
 ```
+> result: Hexadecimal string
 
 #### 10. getversion
 
@@ -546,7 +600,7 @@ Get smartcode event.
 
 blockheight: getsmartcodeevent by blockheight
 or
-txHash: getsmartcodeevent by blockheight
+txHash: getsmartcodeevent by txhash
 
 #### Example
 
@@ -636,7 +690,7 @@ Request:
 {
   "jsonrpc": "2.0",
   "method": "getcontractstate",
-  "params": ["8a4d2865d01ec8e6add72e3dfdd20c12f44834e3"],
+  "params": ["fff49c809d302a2956e9dc0012619a452d4b846c"],
   "id": 1
 }
 ```
@@ -645,32 +699,19 @@ Response:
 
 ```
 {
-    "desc":"SUCCESS",
-    "error":0,
-    "jsonrpc": "2.0",
+    "desc": "SUCCESS",
+    "error": 0,
     "id": 1,
+    "jsonpc": "2.0",
     "result": {
-        "version": 0,
-        "code": {
-            "hash": "8a4d2865d01ec8e6add72e3dfdd20c12f44834e3",
-            "script": "746b4c04000000004c04000000004c04000000004c04000000004c04000000004c04000000004c04000000004c04000000004c04000000004c04000000004c04000000004c04000000004c04000000004c04000000004c04000000004c04000000004c04000000004c04000000004c04000000004c04000000004c04000000004c04000000004c04000000004c04000000004c040000000061744c0403000000936c766b9479744c0406000000936c766b9479617cac744c0406000000948c6c766b947275744c0406000000948c6c766b9479641b004c0401000000744c0407000000948c6c766b94727562b207744c0400000000936c766b9479744c0406000000936c766b9479617cac4c04000000009c744c0408000000948c6c766b947275744c0408000000948c6c766b9479641b004c0400000000744c0407000000948c6c766b947275625607744c0404000000936c766b9479744c0409000000948c6c766b947275744c0409000000948c6c766b947964400061744c0401000000936c766b9479744c0400000000948c6c766b947275744c0402000000936c766b9479744c0401000000948c6c766b94727561623d0061744c0402000000936c766b9479744c0400000000948c6c766b947275744c0401000000936c766b9479744c0401000000948c6c766b947275614c0400000000744c0402000000948c6c766b9472754c0400000000744c0403000000948c6c766b94727561682953797374656d2e457865637574696f6e456e67696e652e476574536372697074436f6e7461696e6572616823416e745368617265732e5472616e73616374696f6e2e4765745265666572656e636573744c0404000000948c6c766b94727561744c0404000000948c6c766b9479744c040a000000948c6c766b9472754c0400000000744c040b000000948c6c766b947275629501744c040a000000948c6c766b9479744c040b000000948c6c766b9479c3744c040c000000948c6c766b94727561744c040c000000948c6c766b947961681e416e745368617265732e4f75747075742e4765745363726970744861736861682953797374656d2e457865637574696f6e456e67696e652e476574456e7472795363726970744861736887744c040d000000948c6c766b947275744c040d000000948c6c766b947964c70061744c040c000000948c6c766b947961681b416e745368617265732e4f75747075742e47657441737365744964744c0400000000948c6c766b9479874c04000000009c744c040e000000948c6c766b947275744c040e000000948c6c766b9479641b004c0400000000744c0407000000948c6c766b94727562cd04744c0402000000948c6c766b9479744c040c000000948c6c766b9479616819416e745368617265732e4f75747075742e47657456616c756593744c0402000000948c6c766b9472756161744c040b000000948c6c766b94794c040100000093744c040b000000948c6c766b947275744c040b000000948c6c766b9479744c040a000000948c6c766b9479c09f6350fe61682953797374656d2e457865637574696f6e456e67696e652e476574536372697074436f6e7461696e6572616820416e745368617265732e5472616e73616374696f6e2e4765744f757470757473744c0405000000948c6c766b94727561744c0405000000948c6c766b9479744c040f000000948c6c766b9472754c0400000000744c0410000000948c6c766b947275621c02744c040f000000948c6c766b9479744c0410000000948c6c766b9479c3744c0411000000948c6c766b94727561744c0411000000948c6c766b947961681e416e745368617265732e4f75747075742e4765745363726970744861736861682953797374656d2e457865637574696f6e456e67696e652e476574456e7472795363726970744861736887744c0412000000948c6c766b947275744c0412000000948c6c766b9479644e0161744c0411000000948c6c766b947961681b416e745368617265732e4f75747075742e47657441737365744964744c0400000000948c6c766b947987744c0413000000948c6c766b947275744c0413000000948c6c766b9479644e00744c0402000000948c6c766b9479744c0411000000948c6c766b9479616819416e745368617265732e4f75747075742e47657456616c756594744c0402000000948c6c766b94727562a600744c0411000000948c6c766b947961681b416e745368617265732e4f75747075742e47657441737365744964744c0401000000948c6c766b947987744c0414000000948c6c766b947275744c0414000000948c6c766b9479644b00744c0403000000948c6c766b9479744c0411000000948c6c766b9479616819416e745368617265732e4f75747075742e47657456616c756593744c0403000000948c6c766b9472756161744c0410000000948c6c766b94794c040100000093744c0410000000948c6c766b947275744c0410000000948c6c766b9479744c040f000000948c6c766b9479c09f63c9fd744c0402000000948c6c766b94794c0400000000a1744c0415000000948c6c766b947275744c0415000000948c6c766b9479641b004c0401000000744c0407000000948c6c766b947275622301744c0404000000936c766b9479744c0416000000948c6c766b947275744c0416000000948c6c766b947964720061744c0403000000948c6c766b94794c0400e1f50595744c0402000000948c6c766b9479744c0405000000936c766b9479959f744c0417000000948c6c766b947275744c0417000000948c6c766b9479641b004c0400000000744c0407000000948c6c766b947275628b0061626f0061744c0402000000948c6c766b94794c0400e1f50595744c0403000000948c6c766b9479744c0405000000936c766b947995a0744c0418000000948c6c766b947275744c0418000000948c6c766b9479641b004c0400000000744c0407000000948c6c766b947275621c00614c0401000000744c0407000000948c6c766b947275620300744c0407000000948c6c766b947961748c6c766b946d748c6c766b946d748c6c766b946d748c6c766b946d748c6c766b946d748c6c766b946d748c6c766b946d748c6c766b946d748c6c766b946d748c6c766b946d748c6c766b946d748c6c766b946d748c6c766b946d748c6c766b946d748c6c766b946d748c6c766b946d748c6c766b946d748c6c766b946d748c6c766b946d748c6c766b946d748c6c766b946d748c6c766b946d748c6c766b946d748c6c766b946d748c6c766b946d746c768c6b946d746c768c6b946d746c768c6b946d746c768c6b946d746c768c6b946d746c768c6b946d746c768c6b946d6c7566",
-            "parameters": [
-                "Hash160",
-                "Hash256",
-                "Hash256",
-                "Hash160",
-                "Boolean",
-                "Integer",
-                "Signature"
-            ],
-            "returntype": "Boolean"
-        },
-        "storage": false,
-        "name": "AgencyContract",
-        "code_version": "2.0.1-preview1",
-        "author": "Erik Zhang",
-        "email": "erik@antshares.org",
-        "description": "Agency Contract 2.0"
+        "VmType": 255,
+        "Code": "4f4e5420546f6b656e",
+        "NeedStorage": true,
+        "Name": "ONT",
+        "CodeVersion": "1.0",
+        "Author": "Ontology Team",
+        "Email": "contact@ont.io",
+        "Description": "Ontology Network ONT Token"
     }
 }
 ```
@@ -709,39 +750,6 @@ Response:
 }
 ```
 
-#### 15. getsmartcodeevent
-
-Get smartcontract event.
-
-#### Parameter instruction
-
-Height: block height.
-
-#### Example
-
-Request:
-
-```
-{
-  "jsonrpc": "2.0",
-  "method": "getsmartcodeevent",
-  "params": [101],
-  "id": 1
-}
-```
-
-Response:
-
-```
-{
-    "desc":"SUCCESS",
-    "error":0,
-    "jsonrpc": "2.0",
-    "id": 1,
-    "result": {
-    }
-}
-```
 #### 15. getblockheightbytxhash
 get blockheight by txhash
 #### Parameter instruction
@@ -753,9 +761,20 @@ Request:
 ```
 {
   "jsonrpc": "2.0",
-  "method": "getblocksysfee",
-  "params": ["TA5uYzLU2vBvvfCMxyV2sdzc9kPqJzGZWq"],
+  "method": "getblockheightbytxhash",
+  "params": ["c453557af780fe403db6e954ebc9adeafd5818c596c6c60e5cc42851c5b41884"],
   "id": 1
+}
+```
+
+Response:
+```
+{
+    "desc": "SUCCESS",
+    "error": 0,
+    "id": 1,
+    "jsonpc": "2.0",
+    "result": 10
 }
 ```
 
@@ -774,7 +793,7 @@ Request:
 ```
 {
   "jsonrpc": "2.0",
-  "method": "getblocksysfee",
+  "method": "getbalance",
   "params": ["TA5uYzLU2vBvvfCMxyV2sdzc9kPqJzGZWq"],
   "id": 1
 }
@@ -794,10 +813,6 @@ Response:
        }
 }
 ```
-
-Response instruction:
-
-Result: The system fee before the block and the unit is OntGas.
 
 ## Error code
 
@@ -820,6 +835,3 @@ errorcode instruction
 | 44003 | int64 | UNKNOWN\_BLOCK: unknown block |
 | 45001 | int64 | INTERNAL\_ERROR: internel error |
 | 47001 | int64 | SMARTCODE\_ERROR: smartcode error |
-
-
-

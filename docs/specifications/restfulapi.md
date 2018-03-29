@@ -1,42 +1,40 @@
-# Ontology RESTful API
+# Ontology Restful API
 
 * [Introduction](#Introduction)
-* [Restful api list](#Restful api list)
+* [Restful API list](#Restful API list)
 * [Errorcode](#Errorcode)
 
 ## Introduction
 
-This document describes the RESTful API format for the http/https used in Ontology.
+This document describes the restful api format for the http/https used in the Onchain Ontology.
 
-## Restful api list
+## Restful API list
 
-### 1. Get the generate block time
-
-Note: get the generate block time
-
-##### GET
-
-```
-/api/v1/node/generateblocktime
-```
-
-#### Example usage:
-
-```
-curl -i http://server:port/api/v1/node/generateblocktime
-```
-
-#### Response
+### Response参数说明
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
 | Action | string | action name |
 | Desc | string | description |
 | Error | int64 | error code |
-| Result | int | execute result |
+| Result | int/string/object | execute result |
 | Version | string | version information |
 
-#### Response example
+### 1. Get the generate block time
+return the time required to create a new block
+
+##### GET
+
+```
+/api/v1/node/generateblocktime
+```
+#### Request Example:
+
+```
+curl -i http://server:port/api/v1/node/generateblocktime
+```
+
+#### Response example:
 
 ```
 {
@@ -47,10 +45,9 @@ curl -i http://server:port/api/v1/node/generateblocktime
     "Version": "1.0.0"
 }
 ```
+### 2 Get the number of connected node
 
-### 2. Get the number of connected node
-
-Note: get the number of connected node
+get the current number of connections for the node
 
 GET
 
@@ -58,23 +55,13 @@ GET
 /api/v1/node/connectioncount
 ```
 
-#### Example usage:
+#### Request Example:
 
 ```
 curl -i http://server:port/api/v1/node/connectioncount
 ```
 
-#### Response
-
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| Action | string | action name |
-| Desc | string | description information |
-| Error | int64 | error code |
-| Result | uint | program execution result |
-| Version | string | version information |
-
-#### Response example
+#### Response Example:
 
 ```
 {
@@ -85,8 +72,9 @@ curl -i http://server:port/api/v1/node/connectioncount
     "Version": "1.0.0"
 }
 ```
+### 3 Get transactions by block height
 
-### 3. Get transactions by block height
+return all transaction hash contained in the block corresponding to this height
 
 GET
 
@@ -94,41 +82,32 @@ GET
 /api/v1/block/transactions/height/:height
 ```
 
-#### Example usage:
+#### Request Example:
 
 ```
 curl -i http://server:port/api/v1/block/transactions/height/100
 ```
 
-#### Response
-
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| Action | string | action name |
-| Desc | string | description |
-| Error | int64 | error code |
-| Result | object | program execution result |
-| Version | string | version information |
-
-#### Response example
+#### Response Example:
 
 ```
 {
-    "Action": "getblocktransactionsbyheight",
+    "Action": "getblocktxsbyheight",
     "Desc": "SUCCESS",
     "Error": 0,
     "Result": {
-        "Hash": "8723534588ea3202c0949ce5e39876cfcec83f3e9a3ed20168133714944d1227",
-        "Height": 22,
+        "Hash": "ea5e5219d2f1591f4feef89885c3f38c83d3a3474a5622cf8cd3de1b93849603",
+        "Height": 100,
         "Transactions": [
-        "8c4a7568701fe58211adfe2cba2a7a5438f0670af5f24be8442c57f36e625996"
+            "37e017cb9de93aa93ef817e82c555812a0a6d5c3f7d6c521c7808a5a77fc93c7"
         ]
     },
     "Version": "1.0.0"
 }
 ```
+### 4 Get the block by block height
 
-### 4. Get the block by block height
+return block details based on block height
 
 GET
 
@@ -136,23 +115,13 @@ GET
 /api/v1/block/details/height/:height
 ```
 
-#### Example usage:
+#### Request Example:
 
 ```
 curl -i http://server:port/api/v1/block/details/height/22
 ```
 
-#### Response
-
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| Action | string | action name |
-| Desc | string | description |
-| Error | int64 | error code |
-| Result | object | program execution result |
-| Version | string | version information |
-
-#### Response example
+#### Response Example:
 
 ```
 {
@@ -160,27 +129,23 @@ curl -i http://server:port/api/v1/block/details/height/22
     "Desc": "SUCCESS",
     "Error": 0,
     "Result": {
-        "Hash": "8723534588ea3202c0949ce5e39876cfcec83f3e9a3ed20168133714944d1227",
-        "BlockData": {
+        "Hash": "ea5e5219d2f1591f4feef89885c3f38c83d3a3474a5622cf8cd3de1b93849603",
+        "Header": {
             "Version": 0,
-            "PrevBlockHash": "a26c7b7659069b1ccf40793c8d5af1af7ca44e55ffc0aadc5e51ec1ee0b5bf92",
-            "TransactionsRoot": "8c4a7568701fe58211adfe2cba2a7a5438f0670af5f24be8442c57f36e625996",
-            "BlockRoot": "1ce9d347ddc4e03b587d10e89f96c0d0c8f2f9b4f0ab12c212198e7cbd12d68f",
-            "StateRoot": "49c6405eae477bb053406c0a4f56a830289798e2d70dc77e0a1d927fa9fb93c4",
-            "Timestamp": 1521432329,
-            "Height": 22,
-            "ConsensusData": 11160228784438648574,
-            "NextBookKeeper": "027c557d2e735b9a369d20dd099bfd42db5cdb74",
-            "BookKeepers": [
-                {
-                    "X": "11045594958442581564679839478917319740817938700262919124154204990772552987783",
-                    "Y": "28445199876541353997545685344458930058882115795876754515124389392470701852812"
-                }
+            "PrevBlockHash": "fc3066adb581c5aee8edaa47eecda2b7cc039c8662757f8b1e3c3aed60314353",
+            "TransactionsRoot": "37e017cb9de93aa93ef817e82c555812a0a6d5c3f7d6c521c7808a5a77fc93c7",
+            "BlockRoot": "7154a6dcb3c23254334bc1f5d8f054c143a39ff28f46fdeb8a9c7488147ccec6",
+            "Timestamp": 1522313652,
+            "Height": 100,
+            "ConsensusData": 18012644264110396442,
+            "NextBookkeeper": "TABrSU6ABhj6Rdw5KozV53wvZNSUATgKHW",
+            "Bookkeepers": [
+                "120203fe4f9ba2022b68595dd163f4a92ac80f918919674de2d6e2a7e04a10c59d0066"
             ],
             "SigData": [
-                "2c9a4c3ed2663cf542e58be466350f5244b2792e4e23f2e0bdc06f1ef69a9382c33ab7f31d1f8658f2ca90d578f1e55c20377659c62ce2ff0a526c6ac14cff41"
+                "01a2369280b0ff75bed85f351d3ef0dd58add118328c1ed2f7d3320df32cb4bd55541f1bb8e11ad093bd24da3de4cd12464800310bfdb49dc62d42d97ca0549762"
             ],
-            "Hash": "8723534588ea3202c0949ce5e39876cfcec83f3e9a3ed20168133714944d1227"
+            "Hash": "ea5e5219d2f1591f4feef89885c3f38c83d3a3474a5622cf8cd3de1b93849603"
         },
         "Transactions": [
             {
@@ -188,25 +153,32 @@ curl -i http://server:port/api/v1/block/details/height/22
                 "Nonce": 0,
                 "TxType": 0,
                 "Payload": {
-                    "Nonce": 1521432329060775000,
-                    "Issuer": {
-                        "X": "",
-                        "Y": ""
-                    }
+                    "Nonce": 1522313652068190000
                 },
                 "Attributes": [],
-                "Fee": null,
-                "NetworkFee": "0",
-                "Sigs": null,
-                "Hash": "8c4a7568701fe58211adfe2cba2a7a5438f0670af5f24be8442c57f36e625996"
+                "Fee": [],
+                "NetworkFee": 0,
+                "Sigs": [
+                    {
+                        "PubKeys": [
+                            "120203fe4f9ba2022b68595dd163f4a92ac80f918919674de2d6e2a7e04a10c59d0066"
+                        ],
+                        "M": 1,
+                        "SigData": [
+                            "017d3641607c894dd85f455c71a94afaea2661acbe372ff8f3f4c7921b0c768756e3a6e9308a4c4c8b1b58e717f1486a2f10f5bc809b803a27c10a2cd579778a54"
+                        ]
+                    }
+                ],
+                "Hash": "37e017cb9de93aa93ef817e82c555812a0a6d5c3f7d6c521c7808a5a77fc93c7"
             }
         ]
     },
     "Version": "1.0.0"
 }
 ```
+### 5 Get block by blockhash
 
-### 5. Get block by blockhash
+return block details based on block hash
 
 GET
 
@@ -214,23 +186,13 @@ GET
 /api/v1/block/details/hash/:hash
 ```
 
-#### Example usage:
+#### Request Example:
 
 ```
-curl -i http://server:port/api/v1/block/details/hash/8723534588ea3202c0949ce5e39876cfcec83f3e9a3ed20168133714944d1227
+curl -i http://server:port/api/v1/block/details/hash/ea5e5219d2f1591f4feef89885c3f38c83d3a3474a5622cf8cd3de1b93849603
 ```
 
-#### Response
-
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| Action | string | action name |
-| Desc | string | description |
-| Error | int64 | error code |
-| Result | object | program execution result |
-| Version | string | version information |
-
-#### Response example
+#### Response Example:
 
 ```
 {
@@ -238,27 +200,23 @@ curl -i http://server:port/api/v1/block/details/hash/8723534588ea3202c0949ce5e39
     "Desc": "SUCCESS",
     "Error": 0,
     "Result": {
-        "Hash": "8723534588ea3202c0949ce5e39876cfcec83f3e9a3ed20168133714944d1227",
-        "BlockData": {
+        "Hash": "ea5e5219d2f1591f4feef89885c3f38c83d3a3474a5622cf8cd3de1b93849603",
+        "Header": {
             "Version": 0,
-            "PrevBlockHash": "a26c7b7659069b1ccf40793c8d5af1af7ca44e55ffc0aadc5e51ec1ee0b5bf92",
-            "TransactionsRoot": "8c4a7568701fe58211adfe2cba2a7a5438f0670af5f24be8442c57f36e625996",
-            "BlockRoot": "1ce9d347ddc4e03b587d10e89f96c0d0c8f2f9b4f0ab12c212198e7cbd12d68f",
-            "StateRoot": "49c6405eae477bb053406c0a4f56a830289798e2d70dc77e0a1d927fa9fb93c4",
-            "Timestamp": 1521432329,
-            "Height": 22,
-            "ConsensusData": 11160228784438648574,
-            "NextBookKeeper": "027c557d2e735b9a369d20dd099bfd42db5cdb74",
-            "BookKeepers": [
-                {
-                    "X": "11045594958442581564679839478917319740817938700262919124154204990772552987783",
-                    "Y": "28445199876541353997545685344458930058882115795876754515124389392470701852812"
-                }
+            "PrevBlockHash": "fc3066adb581c5aee8edaa47eecda2b7cc039c8662757f8b1e3c3aed60314353",
+            "TransactionsRoot": "37e017cb9de93aa93ef817e82c555812a0a6d5c3f7d6c521c7808a5a77fc93c7",
+            "BlockRoot": "7154a6dcb3c23254334bc1f5d8f054c143a39ff28f46fdeb8a9c7488147ccec6",
+            "Timestamp": 1522313652,
+            "Height": 100,
+            "ConsensusData": 18012644264110396442,
+            "NextBookkeeper": "TABrSU6ABhj6Rdw5KozV53wvZNSUATgKHW",
+            "Bookkeepers": [
+                "120203fe4f9ba2022b68595dd163f4a92ac80f918919674de2d6e2a7e04a10c59d0066"
             ],
             "SigData": [
-                "2c9a4c3ed2663cf542e58be466350f5244b2792e4e23f2e0bdc06f1ef69a9382c33ab7f31d1f8658f2ca90d578f1e55c20377659c62ce2ff0a526c6ac14cff41"
+                "01a2369280b0ff75bed85f351d3ef0dd58add118328c1ed2f7d3320df32cb4bd55541f1bb8e11ad093bd24da3de4cd12464800310bfdb49dc62d42d97ca0549762"
             ],
-            "Hash": "8723534588ea3202c0949ce5e39876cfcec83f3e9a3ed20168133714944d1227"
+            "Hash": "ea5e5219d2f1591f4feef89885c3f38c83d3a3474a5622cf8cd3de1b93849603"
         },
         "Transactions": [
             {
@@ -266,17 +224,23 @@ curl -i http://server:port/api/v1/block/details/hash/8723534588ea3202c0949ce5e39
                 "Nonce": 0,
                 "TxType": 0,
                 "Payload": {
-                    "Nonce": 1521432329060775000,
-                    "Issuer": {
-                        "X": "",
-                        "Y": ""
-                    }
+                    "Nonce": 1522313652068190000
                 },
                 "Attributes": [],
-                "Fee": null,
-                "NetworkFee": "0",
-                "Sigs": null,
-                "Hash": "8c4a7568701fe58211adfe2cba2a7a5438f0670af5f24be8442c57f36e625996"
+                "Fee": [],
+                "NetworkFee": 0,
+                "Sigs": [
+                    {
+                        "PubKeys": [
+                            "120203fe4f9ba2022b68595dd163f4a92ac80f918919674de2d6e2a7e04a10c59d0066"
+                        ],
+                        "M": 1,
+                        "SigData": [
+                            "017d3641607c894dd85f455c71a94afaea2661acbe372ff8f3f4c7921b0c768756e3a6e9308a4c4c8b1b58e717f1486a2f10f5bc809b803a27c10a2cd579778a54"
+                        ]
+                    }
+                ],
+                "Hash": "37e017cb9de93aa93ef817e82c555812a0a6d5c3f7d6c521c7808a5a77fc93c7"
             }
         ]
     },
@@ -284,7 +248,9 @@ curl -i http://server:port/api/v1/block/details/hash/8723534588ea3202c0949ce5e39
 }
 ```
 
-### 6. Get the current block height
+### 6 Get the current block height
+
+return the current block height
 
 GET
 
@@ -292,23 +258,14 @@ GET
 /api/v1/block/height
 ```
 
-#### Example usage:
+#### Request Example:
 
 ```
 curl -i http://server:port/api/v1/block/height
 ```
 
-#### Response
 
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| Action | string | action name |
-| Desc | string | description |
-| Error | int64 | error code |
-| Result | uint32 | program execution result |
-| Version | string | version information |
-
-#### Response example
+#### Response Example:
 
 ```
 {
@@ -320,7 +277,9 @@ curl -i http://server:port/api/v1/block/height
 }
 ```
 
-### 7. Get blockhash by block height
+### 7 Get blockhash by block height
+
+return block hash based on block height
 
 GET
 
@@ -328,23 +287,13 @@ GET
 /api/v1/block/hash/:height
 ```
 
-#### Example usage:
+#### Request Example:
 
 ```
 curl -i http://server:port/api/v1/block/hash/100
 ```
 
-#### Response
-
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| Action | string | action name |
-| Desc | string | description |
-| Error | int64 | error code |
-| Result | string | program execution result |
-| Version | string | version information |
-
-#### Response example
+#### Response Example:
 
 ```
 {
@@ -356,7 +305,9 @@ curl -i http://server:port/api/v1/block/hash/100
 }
 ```
 
-### 8. Get transaction by transaction hash \(unsolved\)
+### 8 get transaction by transaction hash
+
+get transaction details based on transaction hash
 
 GET
 
@@ -364,22 +315,12 @@ GET
 /api/v1/transaction/:hash
 ```
 
-#### Example usage:
+####Request Example:
 
 ```
 curl -i http://server:port/api/v1/transaction/c5e0d387c6a97aef12f1750840d24b53d9fe7f22f16c7b7703d4a93a28370baa
 ```
-
-#### Response
-
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| Action | string | action name |
-| Desc | string | description |
-| Error | int64 | error code |
-| Result | object | program execution result |
-
-#### Response example
+#### Response Example:
 
 ```
 {
@@ -391,23 +332,31 @@ curl -i http://server:port/api/v1/transaction/c5e0d387c6a97aef12f1750840d24b53d9
         "Nonce": 0,
         "TxType": 0,
         "Payload": {
-            "Nonce": 1521531787756094000,
-            "Issuer": {
-                "X": "",
-                "Y": ""
-            }
+            "Nonce": 1522313652068190000
         },
         "Attributes": [],
-        "Fee": null,
+        "Fee": [],
         "NetworkFee": 0,
-        "Sigs": null,
-        "Hash": "c5e0d387c6a97aef12f1750840d24b53d9fe7f22f16c7b7703d4a93a28370baa"
+        "Sigs": [
+            {
+                "PubKeys": [
+                    "120203fe4f9ba2022b68595dd163f4a92ac80f918919674de2d6e2a7e04a10c59d0066"
+                ],
+                "M": 1,
+                "SigData": [
+                    "017d3641607c894dd85f455c71a94afaea2661acbe372ff8f3f4c7921b0c768756e3a6e9308a4c4c8b1b58e717f1486a2f10f5bc809b803a27c10a2cd579778a54"
+                ]
+            }
+        ],
+        "Hash": "37e017cb9de93aa93ef817e82c555812a0a6d5c3f7d6c521c7808a5a77fc93c7"
     },
     "Version": "1.0.0"
 }
 ```
 
-### 9. Send transaction
+### 9 send transaction
+
+send transaction.
 
 POST
 
@@ -415,13 +364,13 @@ POST
 /api/v1/transaction
 ```
 
-#### Example usage:
+#### Request Example:
 
 ```
 curl  -H "Content-Type: application/json"  -X POST -d '{}'  http://server:port/api/v1/transaction
 ```
 
-#### Request example:
+#### Post Params:
 
 ```
 {
@@ -431,105 +380,58 @@ curl  -H "Content-Type: application/json"  -X POST -d '{}'  http://server:port/a
 }
 ```
 
-#### Parameter
-
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| Action | string | action name |
-| Version | string | version information |
-| Data | string | transaction data |
-
-### 10. Get ONG \(unsolved\)
-
-#### Claim ONG
-
-POST
-
-```
-/api/v1/claim
-```
-
-### 11. Get contract \(unsolved\)
-
-GET
-
-```
-/api/v1/contract/:hash
-```
-
-#### Example
-
-```
-curl -i http://server:port/api/v1/block/details/hash/:hash
-```
-#### Response example:
+#### Response
 ```
 {
-    "Action": "getsmartcodeeventbyhash",
+    "Action": "sendrawtransaction",
     "Desc": "SUCCESS",
     "Error": 0,
-    "Result": null,
+    "Result": "22471ab3f4b4307a99f00c9a717dbf8b26f5bf63bf47f9c560477da8181de777",
     "Version": "1.0.0"
 }
 ```
-#### 12. Get contract event by height or txHash
+> Result: txhash
+
+### 10 getStorage
+
+Returns the stored value according to the contract script hashes and stored key.
 
 GET
-
 ```
-/api/v1/smartcode/event/:height
+/api/v1/storage/:hash/:key
 ```
-
-#### Example usage:
-
+Request Example
 ```
-curl -i http://server:port/api/v1/smartcode/event/height/9
+curl -i http://localhost:20384/api/v1/storage/ff00000000000000000000000000000000000001/0144587c1094f6929ed7362d6328cffff4fb4da2
 ```
-or
+#### Response
 ```
-curl -i http://server:port/api/v1/smartcode/event/txhash/3ba4b4e463a717635614595378f2aac78feacc7d4dfda075bfcf9328cbbcdb7c
+{
+    "Action": "getstorage",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": "58d15e17628000",
+    "Version": "1.0.0"
+}
 ```
+> Result:Returns the stored value according to the contract script hashes and stored key.
 
+### 11 GetBalanceByAddr
 
-### 13. WebSocket configuration \(unsolved\)
-
-POST
-
-```
-/api/v1/config/websocket/state
-```
-
-#### Example usage:
-
-```
-curl -i http://server:port/api/v1/config/websocket/state
-```
-
-### 14. Get ont balance by address
+return balance of base58 account address.
 
 GET
-
 ```
-/api/v1/balance/:hash
+/api/v1/balance/:addr
 ```
+> addr: Base58 encoded account address
 
-#### Example usage:
-
+Request Example
 ```
-curl -i http://server:port/api/v1/transaction/TA5uYzLU2vBvvfCMxyV2sdzc9kPqJzGZWq
+curl -i http://localhost:20384/api/v1/balance/TA5uYzLU2vBvvfCMxyV2sdzc9kPqJzGZWq
 ```
 
 #### Response
-
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| Action | string | action name |
-| Desc | string | description |
-| Error | int64 | error code |
-| Result | object | program execution result |
-
-#### Response example
-
 ```
 {
     "Action": "getbalance",
@@ -541,6 +443,252 @@ curl -i http://server:port/api/v1/transaction/TA5uYzLU2vBvvfCMxyV2sdzc9kPqJzGZWq
     },
     "Version": "1.0.0"
 }
+```
+### 12 Api_Restart
+GET
+```
+/api/v1/restart
+```
+#### Request Example
+```
+curl -i http://localhost:20384/api/v1/restart
+```
+
+#### Response
+```
+{
+    "Action": "restart",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": "",
+    "Version": "1.0.0"
+}
+```
+### 13 get contractstate
+
+According to the contract script hash, query the contract information.
+
+GET
+
+```
+/api/v1/contract/:hash
+```
+
+#### Request Example:
+
+```
+curl -i http://server:port/api/v1/contract/fff49c809d302a2956e9dc0012619a452d4b846c
+```
+
+#### Response Example:
+
+```
+{
+    "desc": "SUCCESS",
+    "error": 0,
+    "id": 1,
+    "jsonpc": "2.0",
+    "result": {
+        "VmType": 255,
+        "Code": "4f4e5420546f6b656e",
+        "NeedStorage": true,
+        "Name": "ONT",
+        "CodeVersion": "1.0",
+        "Author": "Ontology Team",
+        "Email": "contact@ont.io",
+        "Description": "Ontology Network ONT Token"
+    }
+}
+```
+
+#### 14 get contract event by height
+
+GET
+
+```
+/api/v1/smartcode/event/transactions/:height
+```
+
+#### Example usage:
+
+```
+curl -i http://localhost:20384/api/v1/smartcode/event/transactions/900
+```
+
+#### response
+```
+{
+    "Action": "getsmartcodeeventbyheight",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": [
+        "592d83c739d9d167b74b385161fee09bfe820eae5bc4a69411f8e00f4847b833"
+    ],
+    "Version": "1.0.0"
+}
+```
+> Note: result is the txHash list.
+
+### 15 get contract event by txhash
+
+GET
+```
+/api/v1/smartcode/event/txhash/:hash
+```
+#### Request Example:
+```
+curl -i http://localhost:20384/api/v1/smartcode/event/txhash/3e23cf222a47739d4141255da617cd42925a12638ac19cadcc85501f907972c8
+```
+#### Response:
+```
+{
+    "desc": "SUCCESS",
+    "error": 0,
+    "id": 1,
+    "jsonpc": "2.0",
+    "result": [
+        {
+            "CodeHash": [
+                255,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1
+            ],
+            "States": [
+                "transfer",
+                [
+                    1,
+                    244,
+                    149,
+                    61,
+                    108,
+                    40,
+                    239,
+                    222,
+                    202,
+                    110,
+                    207,
+                    9,
+                    30,
+                    145,
+                    251,
+                    12,
+                    243,
+                    231,
+                    143,
+                    25
+                ],
+                [
+                    1,
+                    211,
+                    140,
+                    123,
+                    200,
+                    98,
+                    120,
+                    251,
+                    191,
+                    70,
+                    26,
+                    255,
+                    222,
+                    168,
+                    211,
+                    95,
+                    153,
+                    188,
+                    122,
+                    84
+                ],
+                100
+            ],
+            "TxHash": [
+                89,
+                45,
+                131,
+                199,
+                57,
+                217,
+                209,
+                103,
+                183,
+                75,
+                56,
+                81,
+                97,
+                254,
+                224,
+                155,
+                254,
+                130,
+                14,
+                174,
+                91,
+                196,
+                166,
+                148,
+                17,
+                248,
+                224,
+                15,
+                72,
+                71,
+                184,
+                51
+            ]
+        }
+    ]
+}
+```
+### 16 Api_GetBlkHeightByTxHash
+get blockheight of txhash
+
+GET
+```
+/api/v1/block/height/txhash/:hash
+```
+#### Request Example:
+```
+curl -i http://localhost:20384/api/v1/block/height/txhash/3e23cf222a47739d4141255da617cd42925a12638ac19cadcc85501f907972c8
+```
+#### Response
+```
+{
+    "Action": "getblockheightbytxhash",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": 0,
+    "Version": "1.0.0"
+}
+```
+### 17 websocket configuration（unsolved）
+
+POST
+
+```
+/api/v1/config/websocket/state
+```
+
+#### Request Example
+
+```
+curl -i http://server:port/api/v1/config/websocket/state
 ```
 
 ## Errorcode
@@ -562,4 +710,3 @@ curl -i http://server:port/api/v1/transaction/TA5uYzLU2vBvvfCMxyV2sdzc9kPqJzGZWq
 | 44003 | int64 | UNKNOWN\_BLOCK: unknown block |
 | 45001 | int64 | INTERNAL\_ERROR: internel error |
 | 47001 | int64 | SMARTCODE\_ERROR: smartcode error |
-
