@@ -69,7 +69,8 @@ func walletAction(c *cli.Context) error {
 	}
 	var wallet *account.ClientImpl
 	if create {
-		wallet = account.Create(name, []byte(passwd))
+		encrypt := c.String("encrypt")
+		wallet = account.Create(name, encrypt, []byte(passwd))
 	} else {
 		// list wallet or change wallet password
 		wallet = account.Open(name, []byte(passwd))
@@ -155,6 +156,15 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "asset, a",
 				Usage: "asset uniq ID",
+			},
+			cli.StringFlag{
+				Name: "encrypt, e",
+				Usage: `encrypt type,just as:
+				SHA224withECDSA, SHA256withECDSA,
+				SHA384withECDSA, SHA512withECDSA,
+				SHA3-224withECDSA, SHA3-256withECDSA,
+				SHA3-384withECDSA, SHA3-512withECDSA,
+				RIPEMD160withECDSA, SM3withSM2, SHA512withEdDSA`,
 			},
 			cli.StringFlag{
 				Name:  "name, n",

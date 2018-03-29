@@ -33,13 +33,19 @@ type Account struct {
 	Address    common.Address
 }
 
-func NewAccount() *Account {
+func NewAccount(encrypt string) *Account {
 	// Determine the public key algorithm and parameters according to
 	// the config file.
 	// FIXME: better to decouple from config file by inputing as arguments.
 	var pkAlgorithm keypair.KeyType
 	var params interface{}
-	scheme, err := s.GetScheme(config.Parameters.SignatureScheme)
+	var scheme s.SignatureScheme
+	var err error
+	if "" != encrypt {
+		scheme, err = s.GetScheme(encrypt)
+	} else {
+		scheme, err = s.GetScheme(config.Parameters.SignatureScheme)
+	}
 	if err != nil {
 		log.Warn("unknown signature scheme, use SHA256withECDSA as default.")
 		scheme = s.SHA256withECDSA

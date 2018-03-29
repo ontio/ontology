@@ -75,10 +75,10 @@ type ClientImpl struct {
 }
 
 //TODO: adjust contract folder structure
-func Create(path string, passwordKey []byte) *ClientImpl {
+func Create(path string, encrypt string, passwordKey []byte) *ClientImpl {
 	cl := NewClient(path, passwordKey, true)
 
-	_, err := cl.CreateAccount()
+	_, err := cl.CreateAccount(encrypt)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -276,8 +276,8 @@ func (cl *ClientImpl) ContainsAccount(pubKey keypair.PublicKey) bool {
 	}
 }
 
-func (cl *ClientImpl) CreateAccount() (*Account, error) {
-	ac := NewAccount()
+func (cl *ClientImpl) CreateAccount(encrypt string) (*Account, error) {
+	ac := NewAccount(encrypt)
 
 	cl.mu.Lock()
 	cl.accounts[ac.Address] = ac
