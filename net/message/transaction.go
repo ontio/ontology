@@ -48,8 +48,6 @@ func (msg trn) Handle(node Noder) error {
 	tx := &msg.txn
 	if !node.LocalNode().ExistedID(tx.Hash()) {
 		actor.AddTransaction(&msg.txn)
-		// Fixme
-		//node.LocalNode().IncRxTxnCnt()
 		log.Debug("RX Transaction message hash", msg.txn.Hash())
 	}
 
@@ -59,9 +57,6 @@ func (msg trn) Handle(node Noder) error {
 func reqTxnData(node Noder, hash common.Uint256) error {
 	var msg dataReq
 	msg.dataType = common.TRANSACTION
-	// TODO handle the hash array case
-	//msg.hash = hash
-
 	buf, _ := msg.Serialization()
 	go node.Tx(buf)
 	return nil
@@ -132,7 +127,7 @@ func NewTxn(txn *types.Transaction) ([]byte, error) {
 	s := sha256.Sum256(b.Bytes())
 	s2 := s[:]
 	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
+	buf := bytes.NewBuffer(s[:CHECKSUM_LEN])
 	binary.Read(buf, binary.LittleEndian, &(msg.msgHdr.Checksum))
 	msg.msgHdr.Length = uint32(len(b.Bytes()))
 	log.Debug("The message payload length is ", msg.msgHdr.Length)

@@ -24,7 +24,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
-
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
@@ -41,10 +40,8 @@ type ConsensusPayload struct {
 	BookkeeperIndex uint16
 	Timestamp       uint32
 	Data            []byte
-
 	Owner     keypair.PublicKey
 	Signature []byte
-
 	hash common.Uint256
 }
 
@@ -65,7 +62,6 @@ func (cp *ConsensusPayload) Verify() error {
 		log.Error(err.Error())
 		err = errors.New("consensus failed: signature verification failed")
 	}
-
 	return err
 }
 
@@ -80,7 +76,6 @@ func (cp *ConsensusPayload) InvertoryType() common.InventoryType {
 }
 
 func (cp *ConsensusPayload) GetMessage() []byte {
-	//TODO: GetMessage
 	return []byte{}
 }
 
@@ -95,17 +90,13 @@ func (msg consensus) Handle(node Noder) error {
 func reqConsensusData(node Noder, hash common.Uint256) error {
 	var msg dataReq
 	msg.dataType = common.CONSENSUS
-	// TODO handle the hash array case
 	msg.hash = hash
-
 	buf, _ := msg.Serialization()
 	go node.Tx(buf)
-
 	return nil
 }
-func (cp *ConsensusPayload) Type() common.InventoryType {
 
-	//TODO:Temporary add for Interface signature.SignableData use.
+func (cp *ConsensusPayload) Type() common.InventoryType {
 	return common.CONSENSUS
 }
 
@@ -117,7 +108,6 @@ func (cp *ConsensusPayload) SerializeUnsigned(w io.Writer) error {
 	serialization.WriteUint32(w, cp.Timestamp)
 	serialization.WriteVarBytes(w, cp.Data)
 	return nil
-
 }
 
 func (cp *ConsensusPayload) Serialize(w io.Writer) error {
@@ -154,40 +144,40 @@ func (cp *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
 	var err error
 	cp.Version, err = serialization.ReadUint32(r)
 	if err != nil {
-		log.Warn("consensus item Version Deserialize failed.")
-		return errors.New("consensus item Version Deserialize failed.")
+		log.Warn("Consensus item Version Deserialize failed.")
+		return errors.New("Consensus item Version Deserialize failed.")
 	}
 
 	preBlock := new(common.Uint256)
 	err = preBlock.Deserialize(r)
 	if err != nil {
-		log.Warn("consensus item preHash Deserialize failed.")
-		return errors.New("consensus item preHash Deserialize failed.")
+		log.Warn("Consensus item preHash Deserialize failed.")
+		return errors.New("Consensus item preHash Deserialize failed.")
 	}
 	cp.PrevHash = *preBlock
 
 	cp.Height, err = serialization.ReadUint32(r)
 	if err != nil {
-		log.Warn("consensus item Height Deserialize failed.")
-		return errors.New("consensus item Height Deserialize failed.")
+		log.Warn("Consensus item Height Deserialize failed.")
+		return errors.New("Consensus item Height Deserialize failed.")
 	}
 
 	cp.BookkeeperIndex, err = serialization.ReadUint16(r)
 	if err != nil {
-		log.Warn("consensus item BookkeeperIndex Deserialize failed.")
-		return errors.New("consensus item BookkeeperIndex Deserialize failed.")
+		log.Warn("Consensus item BookkeeperIndex Deserialize failed.")
+		return errors.New("Consensus item BookkeeperIndex Deserialize failed.")
 	}
 
 	cp.Timestamp, err = serialization.ReadUint32(r)
 	if err != nil {
-		log.Warn("consensus item Timestamp Deserialize failed.")
-		return errors.New("consensus item Timestamp Deserialize failed.")
+		log.Warn("Consensus item Timestamp Deserialize failed.")
+		return errors.New("Consensus item Timestamp Deserialize failed.")
 	}
 
 	cp.Data, err = serialization.ReadVarBytes(r)
 	if err != nil {
-		log.Warn("consensus item Data Deserialize failed.")
-		return errors.New("consensus item Data Deserialize failed.")
+		log.Warn("Consensus item Data Deserialize failed.")
+		return errors.New("Consensus item Data Deserialize failed.")
 	}
 
 	return nil
@@ -198,19 +188,19 @@ func (cp *ConsensusPayload) Deserialize(r io.Reader) error {
 
 	buf, err := serialization.ReadVarBytes(r)
 	if err != nil {
-		log.Warn("consensus item Owner deserialize failed, " + err.Error())
-		return errors.New("consensus item Owner deserialize failed.")
+		log.Warn("Consensus item Owner deserialize failed, " + err.Error())
+		return errors.New("Consensus item Owner deserialize failed.")
 	}
 	cp.Owner, err = keypair.DeserializePublicKey(buf)
 	if err != nil {
-		log.Warn("consensus item Owner deserialize failed, " + err.Error())
-		return errors.New("consensus item Owner deserialize failed.")
+		log.Warn("Consensus item Owner deserialize failed, " + err.Error())
+		return errors.New("Consensus item Owner deserialize failed.")
 	}
 
 	cp.Signature, err = serialization.ReadVarBytes(r)
 	if err != nil {
-		log.Warn("consensus item Signature deserialize failed, " + err.Error())
-		return errors.New("consensus item Signature deserialize failed.")
+		log.Warn("Consensus item Signature deserialize failed, " + err.Error())
+		return errors.New("Consensus item Signature deserialize failed.")
 	}
 
 	return err
@@ -246,7 +236,7 @@ func NewConsensus(cp *ConsensusPayload) ([]byte, error) {
 	s := sha256.Sum256(b.Bytes())
 	s2 := s[:]
 	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
+	buf := bytes.NewBuffer(s[:CHECKSUM_LEN])
 	binary.Read(buf, binary.LittleEndian, &(msg.msgHdr.Checksum))
 	msg.msgHdr.Length = uint32(len(b.Bytes()))
 	log.Debug("NewConsensus The message payload length is ", msg.msgHdr.Length)

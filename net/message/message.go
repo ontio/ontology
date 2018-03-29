@@ -39,7 +39,6 @@ type Messager interface {
 // The network communication message header
 type msgHdr struct {
 	Magic uint32
-	//ID	 uint64
 	CMD      [MSG_CMD_LEN]byte // The message type
 	Length   uint32
 	Checksum [CHECKSUM_LEN]byte
@@ -58,17 +57,14 @@ type varStr struct {
 
 type filteradd struct {
 	msgHdr
-	//TBD
 }
 
 type filterclear struct {
 	msgHdr
-	//TBD
 }
 
 type filterload struct {
 	msgHdr
-	//TBD
 }
 
 // Alloc different message stucture
@@ -86,7 +82,6 @@ func AllocMsg(t string, length int) Messager {
 		return &msg
 	case "version":
 		var msg version
-		// TODO fill the header and type
 		copy(msg.Hdr.CMD[0:len(t)], t)
 		return &msg
 	case "verack":
@@ -95,7 +90,6 @@ func AllocMsg(t string, length int) Messager {
 		return &msg
 	case "getheaders":
 		var msg headersReq
-		// TODO fill the header and type
 		copy(msg.hdr.CMD[0:len(t)], t)
 		return &msg
 	case "headers":
@@ -189,7 +183,6 @@ func MsgType(buf []byte) (string, error) {
 	return s, nil
 }
 
-// TODO combine all of message alloc in one function via interface
 func NewMsg(t string, n Noder) ([]byte, error) {
 	switch t {
 	case "version":
@@ -200,13 +193,11 @@ func NewMsg(t string, n Noder) ([]byte, error) {
 		return NewHeadersReq()
 	case "getaddr":
 		return newGetAddr()
-
 	default:
 		return nil, fmt.Errorf("Unknown message type %v", t)
 	}
 }
 
-// FIXME the length exceed int32 case?
 func HandleNodeMsg(node Noder, buf []byte, len int) error {
 	if len < MSG_HDR_LEN {
 		log.Warn("Unexpected size of received message")
@@ -228,8 +219,7 @@ func HandleNodeMsg(node Noder, buf []byte, len int) error {
 		log.Error(fmt.Sprintf("Allocation message %s failed", s))
 		return errors.New("Allocation message failed")
 	}
-	// Todo attach a node pointer to each message
-	// Todo drop the message when verify/deseria packet error
+
 	msg.Deserialization(buf[:len])
 	msg.Verify(buf[MSG_HDR_LEN:len])
 
@@ -288,7 +278,6 @@ func (hdr *msgHdr) init(cmd string, checksum []byte, length uint32) {
 	copy(hdr.CMD[0:uint32(len(cmd))], cmd)
 	copy(hdr.Checksum[:], checksum[:CHECKSUM_LEN])
 	hdr.Length = length
-	//hdr.ID = id
 }
 
 // Verify the message header information
@@ -317,8 +306,6 @@ func (msg *msgHdr) Deserialization(p []byte) error {
 	return err
 }
 
-// FIXME how to avoid duplicate serial/deserial function as
-// most of them are the same
 func (hdr msgHdr) Serialization() ([]byte, error) {
 	var buf bytes.Buffer
 	err := binary.Write(&buf, binary.LittleEndian, hdr)
@@ -331,6 +318,5 @@ func (hdr msgHdr) Serialization() ([]byte, error) {
 
 func (hdr msgHdr) Handle(n Noder) error {
 	log.Debug()
-	// TBD
 	return nil
 }

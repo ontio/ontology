@@ -20,28 +20,24 @@ const (
 	HTTP_INFO_FLAG = 0
 )
 
-type version struct {
-	Hdr msgHdr
-	P   struct {
-		Version      uint32
-		Services     uint64
-		TimeStamp    uint32
-		Port         uint16
-		HttpInfoPort uint16
-		Cap          [32]byte
-		Nonce        uint64
-		// TODO remove tempory to get serilization function passed
-		UserAgent   uint8
-		StartHeight uint64
-		// FIXME check with the specify relay type length
-		Relay       uint8
-		IsConsensus bool
-	}
-	pk keypair.PublicKey
+type versionPayload struct {
+	Version      uint32
+	Services     uint64
+	TimeStamp    uint32
+	Port         uint16
+	HttpInfoPort uint16
+	Cap          [32]byte
+	Nonce        uint64
+	UserAgent   uint8
+	StartHeight uint64
+	Relay       uint8
+	IsConsensus bool
 }
 
-func (msg *version) init(n Noder) {
-	// Do the init
+type version struct {
+	Hdr msgHdr
+	P	versionPayload
+	pk	keypair.PublicKey
 }
 
 func NewVersion(n Noder) ([]byte, error) {
@@ -72,8 +68,6 @@ func NewVersion(n Noder) ([]byte, error) {
 
 	msg.pk = n.GetBookkeeperAddr()
 	log.Debug("new version msg.pk is ", msg.pk)
-	// TODO the function to wrap below process
-	// msg.HDR.init("version", n.GetID(), uint32(len(p.Bytes())))
 
 	msg.Hdr.Magic = NET_MAGIC
 	copy(msg.Hdr.CMD[0:7], "version")
@@ -87,7 +81,7 @@ func NewVersion(n Noder) ([]byte, error) {
 	s := sha256.Sum256(p.Bytes())
 	s2 := s[:]
 	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
+	buf := bytes.NewBuffer(s[:CHECKSUM_LEN])
 	binary.Read(buf, binary.LittleEndian, &(msg.Hdr.Checksum))
 	msg.Hdr.Length = uint32(len(p.Bytes()))
 	log.Debug("The message payload length is ", msg.Hdr.Length)
@@ -103,8 +97,6 @@ func NewVersion(n Noder) ([]byte, error) {
 
 func (msg version) Verify(buf []byte) error {
 	err := msg.Hdr.Verify(buf)
-	// TODO verify the message Content
-	// TODO check version compatible or not
 	return err
 }
 
@@ -154,22 +146,6 @@ func (msg *version) Deserialization(p []byte) error {
 	return err
 }
 
-/*
- * The node state switch table after rx message, there is time limitation for each action
- * The Handshake status will switch to INIT after TIMEOUT if not received the VerACK
- * in this time window
- *  _______________________________________________________________________
- * |          |    INIT         | HANDSHAKE |  ESTABLISH | INACTIVITY      |
- * |-----------------------------------------------------------------------|
- * | version  | HANDSHAKE(timer)|           |            | HANDSHAKE(timer)|
- * |          | if helloTime > 3| Tx verack | Depend on  | if helloTime > 3|
- * |          | Tx version      |           | node update| Tx version      |
- * |          | then Tx verack  |           |            | then Tx verack  |
- * |-----------------------------------------------------------------------|
- * | verack   |                 | ESTABLISH |            |                 |
- * |          |   No Action     |           | No Action  | No Action       |
- * |------------------------------------------------------------------------
- */
 func (msg version) Handle(node Noder) error {
 	log.Debug()
 	localNode := node.LocalNode()

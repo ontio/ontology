@@ -44,7 +44,7 @@ func newGetAddr() ([]byte, error) {
 	var msg addrReq
 	// Fixme the check is the []byte{0} instead of 0
 	var sum []byte
-	sum = []byte{0x5d, 0xf6, 0xe0, 0xe2}
+	sum = []byte{0x5d, 0xf6, 0xe0, 0xe2}  //modify ===
 	msg.Hdr.init("getaddr", sum, 0)
 
 	buf, err := msg.Serialization()
@@ -80,7 +80,7 @@ func NewAddrs(nodeaddrs []NodeAddr, count uint64) ([]byte, error) {
 	s := sha256.Sum256(p.Bytes())
 	s2 := s[:]
 	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
+	buf := bytes.NewBuffer(s[:CHECKSUM_LEN])
 	binary.Read(buf, binary.LittleEndian, &(msg.hdr.Checksum))
 	msg.hdr.Length = uint32(len(p.Bytes()))
 	log.Debug("The message payload length is ", msg.hdr.Length)
@@ -102,11 +102,10 @@ func (msg addrReq) Verify(buf []byte) error {
 
 func (msg addrReq) Handle(node Noder) error {
 	log.Debug()
-	// lock
-	var addrstr []NodeAddr
+	var addrStr []NodeAddr
 	var count uint64
-	addrstr, count = node.LocalNode().GetNeighborAddrs()
-	buf, err := NewAddrs(addrstr, count)
+	addrStr, count = node.LocalNode().GetNeighborAddrs()
+	buf, err := NewAddrs(addrStr, count)
 	if err != nil {
 		return err
 	}
@@ -133,7 +132,6 @@ func (msg *addrReq) Deserialization(p []byte) error {
 func (msg addr) Serialization() ([]byte, error) {
 	var buf bytes.Buffer
 	err := binary.Write(&buf, binary.LittleEndian, msg.hdr)
-
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +167,6 @@ err:
 
 func (msg addr) Verify(buf []byte) error {
 	err := msg.hdr.Verify(buf)
-	// TODO Verify the message Content, check the ipaddr number
 	return err
 }
 

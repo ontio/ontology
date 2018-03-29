@@ -59,7 +59,7 @@ const (
 	MAX_INV_HDR_CNT      = 500
 	DIV_HASH_LEN         = 5
 	MAX_REQ_BLK_ONCE     = 16
-	TIMES_OF_UPDATE_TIME = 2
+	UPDATE_RATE_PER_BLOCK = 2
 )
 
 const (
@@ -73,7 +73,7 @@ const (
 	KEEPALIVE_TIMEOUT  = 3
 	DIAL_TIMEOUT       = 6
 	CONN_MONITOR       = 6
-	CONN_MAX_BACK      = 4000
+	CONN_MAX_BACK      = 4000 // ms
 	MAX_RETRY_COUNT    = 3
 	MAX_SYNC_HDR_REQ   = 2 //Max Concurrent Sync Header Request
 )

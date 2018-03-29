@@ -26,10 +26,9 @@ import (
 	"sync"
 )
 
-// The neigbor node list
+// The neighbor node list
 type nbrNodes struct {
 	sync.RWMutex
-	// Todo using the Pool structure
 	List map[uint64]*node
 }
 

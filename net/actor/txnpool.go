@@ -28,6 +28,8 @@ import (
 	"time"
 )
 
+const txnPoolReqTimeout = 5* time.Second
+
 var txnPoolPid *actor.PID
 
 func SetTxnPoolPid(txnPid *actor.PID) {
@@ -43,7 +45,7 @@ func AddTransaction(transaction *types.Transaction) {
 }
 
 func GetTxnPool(byCount bool) ([]*tc.TXEntry, error) {
-	future := txnPoolPid.RequestFuture(&tc.GetTxnPoolReq{ByCount: byCount}, 5*time.Second)
+	future := txnPoolPid.RequestFuture(&tc.GetTxnPoolReq{ByCount: byCount}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
@@ -53,7 +55,7 @@ func GetTxnPool(byCount bool) ([]*tc.TXEntry, error) {
 }
 
 func GetTransaction(hash common.Uint256) (*types.Transaction, error) {
-	future := txnPoolPid.RequestFuture(&tc.GetTxnReq{Hash: hash}, 5*time.Second)
+	future := txnPoolPid.RequestFuture(&tc.GetTxnReq{Hash: hash}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
@@ -63,7 +65,7 @@ func GetTransaction(hash common.Uint256) (*types.Transaction, error) {
 }
 
 func CheckTransaction(hash common.Uint256) (bool, error) {
-	future := txnPoolPid.RequestFuture(&tc.CheckTxnReq{Hash: hash}, 5*time.Second)
+	future := txnPoolPid.RequestFuture(&tc.CheckTxnReq{Hash: hash}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
@@ -73,7 +75,7 @@ func CheckTransaction(hash common.Uint256) (bool, error) {
 }
 
 func GetTransactionStatus(hash common.Uint256) ([]*tc.TXAttr, error) {
-	future := txnPoolPid.RequestFuture(&tc.GetTxnStatusReq{Hash: hash}, 5*time.Second)
+	future := txnPoolPid.RequestFuture(&tc.GetTxnStatusReq{Hash: hash}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
@@ -83,7 +85,7 @@ func GetTransactionStatus(hash common.Uint256) ([]*tc.TXAttr, error) {
 }
 
 func GetPendingTxn(byCount bool) ([]*types.Transaction, error) {
-	future := txnPoolPid.RequestFuture(&tc.GetPendingTxnReq{ByCount: byCount}, 5*time.Second)
+	future := txnPoolPid.RequestFuture(&tc.GetPendingTxnReq{ByCount: byCount}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
@@ -93,7 +95,7 @@ func GetPendingTxn(byCount bool) ([]*types.Transaction, error) {
 }
 
 func VerifyBlock(height uint32, txs []*types.Transaction) ([]*tc.VerifyTxResult, error) {
-	future := txnPoolPid.RequestFuture(&tc.VerifyBlockReq{Height: height, Txs: txs}, 5*time.Second)
+	future := txnPoolPid.RequestFuture(&tc.VerifyBlockReq{Height: height, Txs: txs}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
@@ -103,7 +105,7 @@ func VerifyBlock(height uint32, txs []*types.Transaction) ([]*tc.VerifyTxResult,
 }
 
 func GetTransactionStats(hash common.Uint256) ([]uint64, error) {
-	future := txnPoolPid.RequestFuture(&tc.GetTxnStats{}, 5*time.Second)
+	future := txnPoolPid.RequestFuture(&tc.GetTxnStats{}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)

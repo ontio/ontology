@@ -28,20 +28,21 @@ import (
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
 	"io"
-	//	"github.com/Ontology/ledger"
 	"github.com/Ontology/net/actor"
 	. "github.com/Ontology/net/protocol"
 )
 
 var LastInvHash Uint256
 
+type hashReq struct {
+	HeaderHashCount uint8
+	hashStart       [HASH_LEN]byte
+	hashStop        [HASH_LEN]byte
+}
+
 type blocksReq struct {
 	msgHdr
-	p struct {
-		HeaderHashCount uint8
-		hashStart       [HASH_LEN]byte
-		hashStop        [HASH_LEN]byte
-	}
+	p	hashReq
 }
 
 type InvPayload struct {
@@ -58,11 +59,8 @@ type Inv struct {
 func NewBlocksReq(n Noder) ([]byte, error) {
 	var h blocksReq
 	log.Debug("request block hash")
-	// Fixme correct with the exactly request length
 	h.p.HeaderHashCount = 1
-	//Fixme! Should get the remote Node height.
 	buf, _ := actor.GetCurrentBlockHash()
-
 	copy(h.p.hashStart[:], reverse(buf[:]))
 
 	p := new(bytes.Buffer)
@@ -74,15 +72,12 @@ func NewBlocksReq(n Noder) ([]byte, error) {
 
 	s := checkSum(p.Bytes())
 	h.msgHdr.init("getblocks", s, uint32(len(p.Bytes())))
-
 	m, err := h.Serialization()
 
 	return m, err
 }
 
 func (msg blocksReq) Verify(buf []byte) error {
-
-	// TODO verify the message Content
 	err := msg.msgHdr.Verify(buf)
 	return err
 }
@@ -90,12 +85,12 @@ func (msg blocksReq) Verify(buf []byte) error {
 func (msg blocksReq) Handle(node Noder) error {
 	log.Debug()
 	log.Debug("handle blocks request")
-	var starthash Uint256
-	var stophash Uint256
-	starthash = msg.p.hashStart
-	stophash = msg.p.hashStop
-	//FIXME if HeaderHashCount > 1
-	inv, err := GetInvFromBlockHash(starthash, stophash)
+	var startHash Uint256
+	var stopHash Uint256
+	startHash = msg.p.hashStart
+	stopHash = msg.p.hashStop
+
+	inv, err := GetInvFromBlockHash(startHash, stopHash)
 	if err != nil {
 		return err
 	}
@@ -125,7 +120,6 @@ func (msg *blocksReq) Deserialization(p []byte) error {
 }
 
 func (msg Inv) Verify(buf []byte) error {
-	// TODO verify the message Content
 	err := msg.Hdr.Verify(buf)
 	return err
 }
@@ -141,7 +135,6 @@ func (msg Inv) Handle(node Noder) error {
 	switch invType {
 	case TRANSACTION:
 		log.Debug("RX TRX message")
-		// TODO check the ID queue
 		id.Deserialize(bytes.NewReader(msg.P.Blk[:32]))
 		if !node.ExistedID(id) {
 			reqTxnData(node, id)
@@ -153,7 +146,6 @@ func (msg Inv) Handle(node Noder) error {
 		log.Debug("RX inv-block message, hash is ", msg.P.Blk)
 		for i = 0; i < count; i++ {
 			id.Deserialize(bytes.NewReader(msg.P.Blk[HASH_LEN*i:]))
-			// TODO check the ID queue
 			isContainBlock, _ := actor.IsContainBlock(id)
 			if !isContainBlock && LastInvHash != id {
 				LastInvHash = id
@@ -215,8 +207,8 @@ func GetInvFromBlockHash(starthash Uint256, stophash Uint256) (*InvPayload, erro
 	var count uint32 = 0
 	var i uint32
 	var empty Uint256
-	var startheight uint32
-	var stopheight uint32
+	var startHeight uint32
+	var stopHeight uint32
 	curHeight, _ := actor.GetCurrentBlockHeight()
 	if starthash == empty {
 		if stophash == empty {
@@ -226,46 +218,45 @@ func GetInvFromBlockHash(starthash Uint256, stophash Uint256) (*InvPayload, erro
 				count = curHeight
 			}
 		} else {
-			bkstop, err := actor.GetHeaderByHash(stophash)
-			if err != nil || bkstop == nil {
+			bkStop, err := actor.GetHeaderByHash(stophash)
+			if err != nil || bkStop == nil {
 				return nil, err
 			}
-			stopheight = bkstop.Height
-			count = curHeight - stopheight
+			stopHeight = bkStop.Height
+			count = curHeight - stopHeight
 			if curHeight > MAX_INV_HDR_CNT {
 				count = MAX_INV_HDR_CNT
 			}
 		}
 	} else {
-		bkstart, err := actor.GetHeaderByHash(starthash)
-		if err != nil || bkstart == nil {
+		bkStart, err := actor.GetHeaderByHash(starthash)
+		if err != nil || bkStart == nil {
 			return nil, err
 		}
-		startheight = bkstart.Height
+		startHeight = bkStart.Height
 		if stophash != empty {
-			bkstop, err := actor.GetHeaderByHash(stophash)
-			if err != nil || bkstop == nil {
+			bkStop, err := actor.GetHeaderByHash(stophash)
+			if err != nil || bkStop == nil {
 				return nil, err
 			}
-			stopheight = bkstop.Height
-			count = startheight - stopheight
+			stopHeight = bkStop.Height
+			count = startHeight - stopHeight
 			if count >= MAX_INV_HDR_CNT {
 				count = MAX_INV_HDR_CNT
-				stopheight = startheight + MAX_INV_HDR_CNT
+				stopHeight = startHeight + MAX_INV_HDR_CNT
 			}
 		} else {
-
-			if startheight > MAX_INV_HDR_CNT {
+			if startHeight > MAX_INV_HDR_CNT {
 				count = MAX_INV_HDR_CNT
 			} else {
-				count = startheight
+				count = startHeight
 			}
 		}
 	}
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	for i = 1; i <= count; i++ {
 		//FIXME need add error handle for GetBlockWithHash
-		hash, _ := actor.GetBlockHashByHeight(stopheight + i)
+		hash, _ := actor.GetBlockHashByHeight(stopHeight + i)
 		log.Debug("GetInvFromBlockHash i is ", i, " , hash is ", hash)
 		hash.Serialize(tmpBuffer)
 	}
@@ -302,7 +293,7 @@ func NewInv(inv *InvPayload) ([]byte, error) {
 	s := sha256.Sum256(b.Bytes())
 	s2 := s[:]
 	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
+	buf := bytes.NewBuffer(s[:CHECKSUM_LEN])
 	binary.Read(buf, binary.LittleEndian, &(msg.Hdr.Checksum))
 	msg.Hdr.Length = uint32(len(b.Bytes()))
 

@@ -58,7 +58,6 @@ func (s Semaphore) release() {
 }
 
 type node struct {
-	//sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
 	state     uint32   // node state
 	id        uint64   // The nodes's id
 	cap       [32]byte // The node capability set
@@ -69,16 +68,12 @@ type node struct {
 	txnCnt    uint64   // The transactions be transmit by this node
 	rxTxnCnt  uint64   // The transaction received by this node
 	publicKey keypair.PublicKey
-	// TODO does this channel should be a buffer channel
 	chF        chan func() error // Channel used to operate the node without lock
 	link                         // The link status and infomation
 	local      *node             // The pointer to local node
 	nbrNodes                     // The neighbor node connect with currently node except itself
 	eventQueue                   // The event queue to notice notice other modules
 	idCache                      // The buffer to store the id of the items which already be processed
-	/*
-	 * |--|--|--|--|--|--|isSyncFailed|isSyncHeaders|
-	 */
 	flightHeights            []uint32
 	lastContact              time.Time
 	nodeDisconnectSubscriber events.Subscriber
@@ -118,9 +113,9 @@ func (node *node) IsAddrInNbrList(addr string) bool {
 	defer node.nbrNodes.RUnlock()
 	for _, n := range node.nbrNodes.List {
 		if n.GetState() == HAND || n.GetState() == HAND_SHAKE || n.GetState() == ESTABLISH {
-			addr_new := n.GetAddr()
+			addrNew := n.GetAddr()
 			port := n.GetPort()
-			na := addr_new + ":" + strconv.Itoa(int(port))
+			na := addrNew + ":" + strconv.Itoa(int(port))
 			if strings.Compare(na, addr) == 0 {
 				return true
 			}
@@ -196,7 +191,6 @@ func InitNode(pubKey keypair.PublicKey) Noder {
 
 	n.link.port = uint16(Parameters.NodePort)
 	n.relay = true
-	// TODO is it neccessary to init the rand seed here?
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	key := keypair.SerializePublicKey(pubKey)
@@ -208,7 +202,6 @@ func InitNode(pubKey keypair.PublicKey) Noder {
 	n.nbrNodes.init()
 	n.local = n
 	n.publicKey = pubKey
-	//n.TXNPool.init()
 	n.eventQueue.init()
 	n.nodeDisconnectSubscriber = n.eventQueue.GetEvent("disconnect").Subscribe(events.EventNodeDisconnect, n.NodeDisconnect)
 	go n.initConnection()
@@ -230,7 +223,6 @@ func rmNode(node *node) {
 	log.Debug(fmt.Sprintf("Remove unused/deuplicate node: 0x%0x", node.id))
 }
 
-// TODO pass pointer to method only need modify it
 func (node *node) backend() {
 	for f := range node.chF {
 		f()
@@ -376,7 +368,6 @@ func (node *node) Xmit(message interface{}) error {
 		log.Warnf("Unknown Xmit message %v , type %v", message, reflect.TypeOf(message))
 		return errors.New("Unknown Xmit message type")
 	}
-
 	node.nbrNodes.Broadcast(buffer)
 
 	return nil
@@ -415,8 +406,8 @@ func (node *node) GetBookkeepersAddrs() ([]keypair.PublicKey, uint64) {
 	//TODO read lock
 	for _, n := range node.nbrNodes.List {
 		if n.GetState() == ESTABLISH && n.services != SERVICE_NODE {
-			pktmp := n.GetBookkeeperAddr()
-			pks = append(pks, pktmp)
+			pkTmp := n.GetBookkeeperAddr()
+			pks = append(pks, pkTmp)
 			i++
 		}
 	}
@@ -447,7 +438,7 @@ func (node *node) WaitForSyncBlkFinish() {
 		if currentBlkHeight >= headerHeight {
 			break
 		}
-		<-time.After(2 * time.Second)
+		<-time.After(PERIOD_UPDATE_TIME * time.Second)
 	}
 }
 func (node *node) WaitForPeersStart() {
@@ -456,7 +447,7 @@ func (node *node) WaitForPeersStart() {
 		if node.IsUptoMinNodeCount() {
 			break
 		}
-		<-time.After(2 * time.Second)
+		<-time.After(PERIOD_UPDATE_TIME * time.Second)
 	}
 }
 
@@ -526,8 +517,8 @@ func (node *node) RemoveFromRetryList(addr string) {
 			log.Debug("remove addr from retry list", addr)
 		}
 	}
-
 }
+
 func (node *node) AcqSyncReqSem() {
 	node.SyncReqSem.acquire()
 }

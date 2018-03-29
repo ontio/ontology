@@ -44,7 +44,6 @@ func (msg block) Handle(node Noder) error {
 	hash := msg.blk.Hash()
 	if con, _ := actor.IsContainBlock(hash); con != true {
 		actor.AddBlock(&msg.blk)
-		//FIXME if AddBlock successfully, removeFlightHeight
 		node.RemoveFlightHeight(msg.blk.Header.Height)
 	} else {
 		log.Debug("Receive duplicated block")
@@ -113,7 +112,7 @@ func NewBlock(bk *types.Block) ([]byte, error) {
 	s := sha256.Sum256(p.Bytes())
 	s2 := s[:]
 	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
+	buf := bytes.NewBuffer(s[:CHECKSUM_LEN])
 	binary.Read(buf, binary.LittleEndian, &(msg.msgHdr.Checksum))
 	msg.msgHdr.Length = uint32(len(p.Bytes()))
 	log.Debug("The message payload length is ", msg.msgHdr.Length)
@@ -144,7 +143,7 @@ func ReqBlkData(node Noder, hash common.Uint256) error {
 	s := sha256.Sum256(p.Bytes())
 	s2 := s[:]
 	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
+	buf := bytes.NewBuffer(s[:CHECKSUM_LEN])
 	binary.Read(buf, binary.LittleEndian, &(msg.msgHdr.Checksum))
 	msg.msgHdr.Length = uint32(len(p.Bytes()))
 	log.Debug("The message payload length is ", msg.msgHdr.Length)
@@ -154,15 +153,12 @@ func ReqBlkData(node Noder, hash common.Uint256) error {
 		log.Error("Error Convert net message ", err.Error())
 		return err
 	}
-
 	node.Tx(sendBuf)
-
 	return nil
 }
 
 func (msg block) Verify(buf []byte) error {
 	err := msg.msgHdr.Verify(buf)
-	// TODO verify the message Content
 	return err
 }
 

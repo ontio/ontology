@@ -44,7 +44,6 @@ type RxBuff struct {
 }
 
 type link struct {
-	//Todo Add lock here
 	addr         string    // The address of the node
 	conn         net.Conn  // Connect socket with the peer node
 	port         uint16    // The server port of the node
@@ -77,7 +76,6 @@ func unpackNodeBuf(node *node, buf []byte) {
 			node.rxBuf.p = nil
 			node.rxBuf.len = 0
 			log.Warn("Get error message header, TODO: relocate the msg header")
-			// TODO Relocate the message header
 			return
 		}
 
@@ -160,12 +158,11 @@ func (n *node) initConnection() {
 		n.link.connCnt++
 
 		node := NewNode()
-		node.addr, err = parseIPaddr(conn.RemoteAddr().String())
+		node.addr, err = parseIPAddr(conn.RemoteAddr().String())
 		node.local = n
 		node.conn = conn
 		go node.rx()
 	}
-	//TODO Release the net listen resouce
 }
 
 func initNonTlsListen() (net.Listener, error) {
@@ -215,7 +212,7 @@ func initTlsListen() (net.Listener, error) {
 	return listener, nil
 }
 
-func parseIPaddr(s string) (string, error) {
+func parseIPAddr(s string) (string, error) {
 	i := strings.Index(s, ":")
 	if i < 0 {
 		log.Warn("Split IP address&port error")
@@ -256,7 +253,7 @@ func (node *node) Connect(nodeAddr string) error {
 	node.link.connCnt++
 	n := NewNode()
 	n.conn = conn
-	n.addr, err = parseIPaddr(conn.RemoteAddr().String())
+	n.addr, err = parseIPAddr(conn.RemoteAddr().String())
 	n.local = node
 
 	log.Info(fmt.Sprintf("Connect node %s connect with %s with %s",

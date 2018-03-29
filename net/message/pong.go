@@ -51,7 +51,7 @@ func NewPongMsg() ([]byte, error) {
 	s := sha256.Sum256(b.Bytes())
 	s2 := s[:]
 	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
+	buf := bytes.NewBuffer(s[:CHECKSUM_LEN])
 	binary.Read(buf, binary.LittleEndian, &(msg.msgHdr.Checksum))
 	msg.msgHdr.Length = uint32(len(b.Bytes()))
 
@@ -65,7 +65,6 @@ func NewPongMsg() ([]byte, error) {
 
 func (msg pong) Verify(buf []byte) error {
 	err := msg.msgHdr.Verify(buf)
-	// TODO verify the message Content
 	return err
 }
 
