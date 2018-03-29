@@ -19,14 +19,15 @@
 package native
 
 import (
+	"bytes"
+	"math/big"
+
 	scommon "github.com/Ontology/core/store/common"
 	"github.com/Ontology/errors"
 	"github.com/Ontology/core/genesis"
 	ctypes "github.com/Ontology/core/types"
-	"math/big"
 	"github.com/Ontology/smartcontract/service/native/states"
 	cstates "github.com/Ontology/core/states"
-	"bytes"
 	"github.com/Ontology/account"
 	"github.com/Ontology/common"
 )

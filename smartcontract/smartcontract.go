@@ -28,7 +28,6 @@ import (
 	"github.com/Ontology/vm/neovm"
 	"github.com/Ontology/smartcontract/context"
 	"github.com/Ontology/smartcontract/event"
-
 	"github.com/Ontology/common"
 	"github.com/Ontology/smartcontract/service/wasm"
 	"github.com/Ontology/vm/wasmvm/exec"

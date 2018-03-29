@@ -21,6 +21,7 @@ package neovm
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/core/states"
 	scommon "github.com/Ontology/core/store/common"

@@ -19,11 +19,12 @@
 package states
 
 import (
+	"io"
+	"math/big"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/errors"
-	"io"
-	"math/big"
 )
 
 type Transfers struct {

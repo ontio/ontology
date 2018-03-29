@@ -19,10 +19,11 @@
 package common
 
 import (
-	"github.com/Ontology/vm/neovm/types"
-	"github.com/Ontology/common"
 	"fmt"
 	"reflect"
+
+	"github.com/Ontology/vm/neovm/types"
+	"github.com/Ontology/common"
 )
 
 type States struct {

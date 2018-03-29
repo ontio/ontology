@@ -19,8 +19,9 @@
 package states
 
 import (
-	"github.com/Ontology/common"
 	"io"
+
+	"github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/errors"
 )
