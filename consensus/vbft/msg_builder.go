@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"time"
 
-	. "github.com/Ontology/common"
+	common "github.com/Ontology/common"
 	vconfig "github.com/Ontology/consensus/vbft/config"
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/types"
@@ -177,7 +177,7 @@ func (self *Server) constructProposalMsg(blkNum uint64, txs []*types.Transaction
 		return nil, fmt.Errorf("failed to get prevBlock (%d)", blkNum)
 	}
 
-	txHash := []Uint256{}
+	txHash := []common.Uint256{}
 	for _, t := range txs {
 		txHash = append(txHash, t.Hash())
 	}
@@ -216,7 +216,7 @@ func (self *Server) constructProposalMsg(blkNum uint64, txs []*types.Transaction
 		},
 		Info: vbftBlkInfo,
 	}
-	blk.Block.Hash()			// update block header hash
+	blk.Block.Hash() // update block header hash
 	msg := &blockProposalMsg{
 		Block: blk,
 	}
@@ -237,7 +237,7 @@ func (self *Server) constructProposalMsg(blkNum uint64, txs []*types.Transaction
 	return msg, nil
 }
 
-func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, blkHash Uint256, forEmpty bool) (*blockEndorseMsg, error) {
+func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, blkHash common.Uint256, forEmpty bool) (*blockEndorseMsg, error) {
 
 	// TODO, support faultyMsg reporting
 
@@ -256,7 +256,7 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, blkHash Uint
 	return msg, nil
 }
 
-func (self *Server) constructCommitMsg(proposal *blockProposalMsg, blkHash Uint256, forEmpty bool) (*blockCommitMsg, error) {
+func (self *Server) constructCommitMsg(proposal *blockProposalMsg, blkHash common.Uint256, forEmpty bool) (*blockCommitMsg, error) {
 
 	// TODO, support faultyMsg reporting
 
@@ -289,7 +289,7 @@ func (self *Server) constructBlockFetchMsg(blkNum uint64) (*blockFetchMsg, error
 	return msg, nil
 }
 
-func (self *Server) constructBlockFetchRespMsg(blkNum uint64, blk *Block, blkHash Uint256) (*BlockFetchRespMsg, error) {
+func (self *Server) constructBlockFetchRespMsg(blkNum uint64, blk *Block, blkHash common.Uint256) (*BlockFetchRespMsg, error) {
 	msg := &BlockFetchRespMsg{
 		BlockNumber: blkNum,
 		BlockHash:   blkHash,

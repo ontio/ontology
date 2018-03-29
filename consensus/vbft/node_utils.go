@@ -20,8 +20,9 @@ package vbft
 
 import (
 	"fmt"
-	vconfig "github.com/Ontology/consensus/vbft/config"
 	"math"
+
+	vconfig "github.com/Ontology/consensus/vbft/config"
 	p2pmsg "github.com/Ontology/net/message"
 )
 

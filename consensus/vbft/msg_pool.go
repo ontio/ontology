@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"sync"
 
-	. "github.com/Ontology/common"
+	common "github.com/Ontology/common"
 )
 
 type ConsensusRoundMsgs map[MsgType][]ConsensusMsg // indexed by MsgType (proposal, endorsement, ...)
@@ -30,7 +30,7 @@ type ConsensusRoundMsgs map[MsgType][]ConsensusMsg // indexed by MsgType (propos
 type ConsensusRound struct {
 	blockNum uint64
 	msgs     map[MsgType][]ConsensusMsg
-	msgHashs map[Uint256]interface{} // for msg-dup checking
+	msgHashs map[common.Uint256]interface{} // for msg-dup checking
 }
 
 func newConsensusRound(num uint64) *ConsensusRound {
@@ -38,7 +38,7 @@ func newConsensusRound(num uint64) *ConsensusRound {
 	r := &ConsensusRound{
 		blockNum: num,
 		msgs:     make(map[MsgType][]ConsensusMsg),
-		msgHashs: make(map[Uint256]interface{}),
+		msgHashs: make(map[common.Uint256]interface{}),
 	}
 
 	r.msgs[blockProposalMessage] = make([]ConsensusMsg, 0)

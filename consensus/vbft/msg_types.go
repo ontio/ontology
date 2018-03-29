@@ -23,7 +23,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	. "github.com/Ontology/common"
+	common "github.com/Ontology/common"
 	vconfig "github.com/Ontology/consensus/vbft/config"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
@@ -99,14 +99,14 @@ func (msg *blockProposalMsg) MarshalJSON() ([]byte, error) {
 
 type FaultyReport struct {
 	FaultyID      uint32  `json:"faulty_id"`
-	FaultyMsgHash Uint256 `json:"faulty_block_hash"`
+	FaultyMsgHash common.Uint256 `json:"faulty_block_hash"`
 }
 
 type blockEndorseMsg struct {
 	Endorser          uint32          `json:"endorser"`
 	EndorsedProposer  uint32          `json:"endorsed_proposer"`
 	BlockNum          uint64          `json:"block_num"`
-	EndorsedBlockHash Uint256         `json:"endorsed_block_hash"`
+	EndorsedBlockHash common.Uint256         `json:"endorsed_block_hash"`
 	EndorseForEmpty   bool            `json:"endorse_for_empty"`
 	FaultyProposals   []*FaultyReport `json:"faulty_proposals"`
 	Sig               []byte          `json:"sig"`
@@ -145,7 +145,7 @@ type blockCommitMsg struct {
 	Committer       uint32          `json:"committer"`
 	BlockProposer   uint32          `json:"block_proposer"`
 	BlockNum        uint64          `json:"block_num"`
-	CommitBlockHash Uint256         `json:"commit_block_hash"`
+	CommitBlockHash common.Uint256         `json:"commit_block_hash"`
 	CommitForEmpty  bool            `json:"commit_for_empty"`
 	FaultyVerifies  []*FaultyReport `json:"faulty_verifies"`
 	Sig             []byte          `json:"sig"`
@@ -182,7 +182,7 @@ func (msg *blockCommitMsg) Serialize() ([]byte, error) {
 
 type peerHandshakeMsg struct {
 	CommittedBlockNumber uint64               `json:"committed_block_number"`
-	CommittedBlockHash   Uint256              `json:"committed_block_hash"`
+	CommittedBlockHash   common.Uint256              `json:"committed_block_hash"`
 	CommittedBlockLeader uint32               `json:"committed_block_leader"`
 	ChainConfig          *vconfig.ChainConfig `json:"chain_config"`
 	Sig                  []byte               `json:"sig"`
@@ -219,7 +219,7 @@ func (msg *peerHandshakeMsg) Serialize() ([]byte, error) {
 
 type peerHeartbeatMsg struct {
 	CommittedBlockNumber uint64  `json:"committed_block_number"`
-	CommittedBlockHash   Uint256 `json:"committed_block_hash"`
+	CommittedBlockHash   common.Uint256 `json:"committed_block_hash"`
 	CommittedBlockLeader uint32  `json:"committed_block_leader"`
 	ChainConfigView      uint32  `json:"chain_config_view"`
 	Sig                  []byte  `json:"sig"`
@@ -365,7 +365,7 @@ func (msg *blockFetchMsg) Serialize() ([]byte, error) {
 
 type BlockFetchRespMsg struct {
 	BlockNumber uint64  `json:"block_number"`
-	BlockHash   Uint256 `json:"block_hash"`
+	BlockHash   common.Uint256 `json:"block_hash"`
 	BlockData   *Block  `json:"block_data"`
 	Sig         []byte  `json:"sig"`
 }
