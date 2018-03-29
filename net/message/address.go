@@ -28,7 +28,7 @@ import (
 	"strconv"
 
 	"github.com/Ontology/common/log"
-	. "github.com/Ontology/net/protocol"
+	"github.com/Ontology/net/protocol"
 )
 
 type addrReq struct {
@@ -38,7 +38,7 @@ type addrReq struct {
 type addr struct {
 	hdr       msgHdr
 	nodeCnt   uint64
-	nodeAddrs []NodeAddr
+	nodeAddrs []protocol.NodeAddr
 }
 
 func newGetAddr() ([]byte, error) {
@@ -59,11 +59,11 @@ func newGetAddr() ([]byte, error) {
 	return buf, err
 }
 
-func NewAddrs(nodeaddrs []NodeAddr, count uint64) ([]byte, error) {
+func NewAddrs(nodeaddrs []protocol.NodeAddr, count uint64) ([]byte, error) {
 	var msg addr
 	msg.nodeAddrs = nodeaddrs
 	msg.nodeCnt = count
-	msg.hdr.Magic = NET_MAGIC
+	msg.hdr.Magic = protocol.NET_MAGIC
 	cmd := "addr"
 	copy(msg.hdr.CMD[0:7], cmd)
 	p := new(bytes.Buffer)
@@ -81,7 +81,7 @@ func NewAddrs(nodeaddrs []NodeAddr, count uint64) ([]byte, error) {
 	s := sha256.Sum256(p.Bytes())
 	s2 := s[:]
 	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:CHECKSUM_LEN])
+	buf := bytes.NewBuffer(s[:protocol.CHECKSUM_LEN])
 	binary.Read(buf, binary.LittleEndian, &(msg.hdr.Checksum))
 	msg.hdr.Length = uint32(len(p.Bytes()))
 	log.Debug("The message payload length is ", msg.hdr.Length)
@@ -101,9 +101,9 @@ func (msg addrReq) Verify(buf []byte) error {
 	return err
 }
 
-func (msg addrReq) Handle(node Noder) error {
+func (msg addrReq) Handle(node protocol.Noder) error {
 	log.Debug()
-	var addrStr []NodeAddr
+	var addrStr []protocol.NodeAddr
 	var count uint64
 	addrStr, count = node.LocalNode().GetNeighborAddrs()
 	buf, err := NewAddrs(addrStr, count)
@@ -155,7 +155,7 @@ func (msg *addr) Deserialization(p []byte) error {
 	err := binary.Read(buf, binary.LittleEndian, &(msg.hdr))
 	err = binary.Read(buf, binary.LittleEndian, &(msg.nodeCnt))
 	log.Debug("The address count is ", msg.nodeCnt)
-	msg.nodeAddrs = make([]NodeAddr, msg.nodeCnt)
+	msg.nodeAddrs = make([]protocol.NodeAddr, msg.nodeCnt)
 	for i := 0; i < int(msg.nodeCnt); i++ {
 		err := binary.Read(buf, binary.LittleEndian, &(msg.nodeAddrs[i]))
 		if err != nil {
@@ -171,7 +171,7 @@ func (msg addr) Verify(buf []byte) error {
 	return err
 }
 
-func (msg addr) Handle(node Noder) error {
+func (msg addr) Handle(node protocol.Noder) error {
 	log.Debug()
 	for _, v := range msg.nodeAddrs {
 		var ip net.IP

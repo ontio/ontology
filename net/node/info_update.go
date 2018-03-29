@@ -27,8 +27,8 @@ import (
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/net/actor"
-	. "github.com/Ontology/net/message"
-	. "github.com/Ontology/net/protocol"
+	"github.com/Ontology/net/message"
+	"github.com/Ontology/net/protocol"
 )
 
 func (node *node) GetBlkHdrs() {
@@ -39,7 +39,7 @@ func (node *node) GetBlkHdrs() {
 	if len(noders) == 0 {
 		return
 	}
-	nodeList := []Noder{}
+	nodeList := []protocol.Noder{}
 	for _, v := range noders {
 		height, _ := actor.GetCurrentHeaderHeight()
 		if uint64(height) < v.GetHeight() {
@@ -53,7 +53,7 @@ func (node *node) GetBlkHdrs() {
 	rand.Seed(time.Now().UnixNano())
 	index := rand.Intn(nCount)
 	n := nodeList[index]
-	SendMsgSyncHeaders(n)
+	message.SendMsgSyncHeaders(n)
 }
 
 func (node *node) SyncBlk() {
@@ -72,7 +72,7 @@ func (node *node) SyncBlk() {
 			continue
 		}
 		n.RemoveFlightHeightLessThan(currentBlkHeight)
-		count := MAX_REQ_BLK_ONCE - uint32(n.GetFlightHeightCnt())
+		count := protocol.MAX_REQ_BLK_ONCE - uint32(n.GetFlightHeightCnt())
 		dValue = int32(headerHeight - currentBlkHeight - reqCnt)
 		flights := n.GetFlightHeights()
 		if count == 0 {
@@ -80,7 +80,7 @@ func (node *node) SyncBlk() {
 				hash, _ := actor.GetBlockHashByHeight(f)
 				isContainBlock, _ := actor.IsContainBlock(hash)
 				if isContainBlock == false {
-					ReqBlkData(n, hash)
+					message.ReqBlkData(n, hash)
 				}
 			}
 
@@ -89,7 +89,7 @@ func (node *node) SyncBlk() {
 			hash, _ := actor.GetBlockHashByHeight(currentBlkHeight + reqCnt)
 			isContainBlock, _ := actor.IsContainBlock(hash)
 			if isContainBlock == false {
-				ReqBlkData(n, hash)
+				message.ReqBlkData(n, hash)
 				n.StoreFlightHeight(currentBlkHeight + reqCnt)
 			}
 			reqCnt++
@@ -101,8 +101,8 @@ func (node *node) SyncBlk() {
 func (node *node) SendPingToNbr() {
 	noders := node.local.GetNeighborNoder()
 	for _, n := range noders {
-		if n.GetState() == ESTABLISH {
-			buf, err := NewPingMsg()
+		if n.GetState() == protocol.ESTABLISH {
+			buf, err := message.NewPingMsg()
 			if err != nil {
 				log.Error("failed build a new ping message")
 			} else {
@@ -116,16 +116,16 @@ func (node *node) HeartBeatMonitor() {
 	noders := node.local.GetNeighborNoder()
 	var periodUpdateTime uint
 	if config.Parameters.GenBlockTime > config.MIN_GEN_BLOCK_TIME {
-		periodUpdateTime = config.Parameters.GenBlockTime / UPDATE_RATE_PER_BLOCK
+		periodUpdateTime = config.Parameters.GenBlockTime / protocol.UPDATE_RATE_PER_BLOCK
 	} else {
-		periodUpdateTime = config.DEFAULT_GEN_BLOCK_TIME / UPDATE_RATE_PER_BLOCK
+		periodUpdateTime = config.DEFAULT_GEN_BLOCK_TIME / protocol.UPDATE_RATE_PER_BLOCK
 	}
 	for _, n := range noders {
-		if n.GetState() == ESTABLISH {
+		if n.GetState() == protocol.ESTABLISH {
 			t := n.GetLastRXTime()
-			if t.Before(time.Now().Add(-1 * time.Second * time.Duration(periodUpdateTime) * KEEPALIVE_TIMEOUT)) {
+			if t.Before(time.Now().Add(-1 * time.Second * time.Duration(periodUpdateTime) * protocol.KEEPALIVE_TIMEOUT)) {
 				log.Warn("keepalive timeout!!!")
-				n.SetState(INACTIVITY)
+				n.SetState(protocol.INACTIVITY)
 				n.CloseConn()
 			}
 		}
@@ -133,7 +133,7 @@ func (node *node) HeartBeatMonitor() {
 }
 
 func (node *node) ReqNeighborList() {
-	buf, _ := NewMsg("getaddr", node.local)
+	buf, _ := message.NewMsg("getaddr", node.local)
 	go node.Tx(buf)
 }
 
@@ -144,7 +144,7 @@ func (node *node) ConnectSeeds() {
 	seedNodes := config.Parameters.SeedList
 	for _, nodeAddr := range seedNodes {
 		found := false
-		var n Noder
+		var n protocol.Noder
 		var ip net.IP
 		node.nbrNodes.Lock()
 		for _, tn := range node.nbrNodes.List {
@@ -159,7 +159,7 @@ func (node *node) ConnectSeeds() {
 		}
 		node.nbrNodes.Unlock()
 		if found {
-			if n.GetState() == ESTABLISH {
+			if n.GetState() == protocol.ESTABLISH {
 				n.ReqNeighborList()
 			}
 		} else {
@@ -168,8 +168,8 @@ func (node *node) ConnectSeeds() {
 	}
 }
 
-func getNodeAddr(n *node) NodeAddr {
-	var addr NodeAddr
+func getNodeAddr(n *node) protocol.NodeAddr {
+	var addr protocol.NodeAddr
 	addr.IpAddr, _ = n.GetAddr16()
 	addr.Time = n.GetTime()
 	addr.Services = n.Services()
@@ -186,10 +186,10 @@ func (node *node) reconnect() {
 		node.RetryAddrs[addr] = node.RetryAddrs[addr] + 1
 		rand.Seed(time.Now().UnixNano())
 		log.Trace("Try to reconnect peer, peer addr is ", addr)
-		<-time.After(time.Duration(rand.Intn(CONN_MAX_BACK)) * time.Millisecond)
+		<-time.After(time.Duration(rand.Intn(protocol.CONN_MAX_BACK)) * time.Millisecond)
 		log.Trace("Back off time`s up, start connect node")
 		node.Connect(addr)
-		if node.RetryAddrs[addr] < MAX_RETRY_COUNT {
+		if node.RetryAddrs[addr] < protocol.MAX_RETRY_COUNT {
 			lst[addr] = node.RetryAddrs[addr]
 		}
 	}
@@ -212,7 +212,7 @@ func (n *node) fetchRetryNodeFromNeighborList() int {
 		addr := getNodeAddr(tn)
 		ip = addr.IpAddr[:]
 		nodeAddr := ip.To16().String() + ":" + strconv.Itoa(int(addr.Port))
-		if tn.GetState() == INACTIVITY {
+		if tn.GetState() == protocol.INACTIVITY {
 			//add addr to retry list
 			n.AddInRetryList(nodeAddr)
 			//close legacy node
@@ -232,9 +232,9 @@ func (n *node) fetchRetryNodeFromNeighborList() int {
 func (node *node) updateNodeInfo() {
 	var periodUpdateTime uint
 	if config.Parameters.GenBlockTime > config.MIN_GEN_BLOCK_TIME {
-		periodUpdateTime = config.Parameters.GenBlockTime / UPDATE_RATE_PER_BLOCK
+		periodUpdateTime = config.Parameters.GenBlockTime / protocol.UPDATE_RATE_PER_BLOCK
 	} else {
-		periodUpdateTime = config.DEFAULT_GEN_BLOCK_TIME / UPDATE_RATE_PER_BLOCK
+		periodUpdateTime = config.DEFAULT_GEN_BLOCK_TIME / protocol.UPDATE_RATE_PER_BLOCK
 	}
 	ticker := time.NewTicker(time.Second * (time.Duration(periodUpdateTime)))
 	quit := make(chan struct{})
@@ -253,14 +253,14 @@ func (node *node) updateNodeInfo() {
 }
 
 func (node *node) updateConnection() {
-	t := time.NewTimer(time.Second * CONN_MONITOR)
+	t := time.NewTimer(time.Second * protocol.CONN_MONITOR)
 	for {
 		select {
 		case <-t.C:
 			node.ConnectSeeds()
 			node.TryConnect()
 			t.Stop()
-			t.Reset(time.Second * CONN_MONITOR)
+			t.Reset(time.Second * protocol.CONN_MONITOR)
 		}
 	}
 }

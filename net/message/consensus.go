@@ -30,7 +30,7 @@ import (
 	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/core/signature"
 	"github.com/Ontology/net/actor"
-	. "github.com/Ontology/net/protocol"
+	"github.com/Ontology/net/protocol"
 	"github.com/ontio/ontology-crypto/keypair"
 )
 
@@ -80,7 +80,7 @@ func (cp *ConsensusPayload) GetMessage() []byte {
 	return []byte{}
 }
 
-func (msg consensus) Handle(node Noder) error {
+func (msg consensus) Handle(node protocol.Noder) error {
 	log.Debug()
 	if actor.ConsensusPid != nil {
 		actor.ConsensusPid.Tell(&msg.cons)
@@ -88,7 +88,7 @@ func (msg consensus) Handle(node Noder) error {
 	return nil
 }
 
-func reqConsensusData(node Noder, hash common.Uint256) error {
+func reqConsensusData(node protocol.Noder, hash common.Uint256) error {
 	var msg dataReq
 	msg.dataType = common.CONSENSUS
 	msg.hash = hash
@@ -222,7 +222,7 @@ func (msg *consensus) Deserialization(p []byte) error {
 func NewConsensus(cp *ConsensusPayload) ([]byte, error) {
 	log.Debug()
 	var msg consensus
-	msg.msgHdr.Magic = NET_MAGIC
+	msg.msgHdr.Magic = protocol.NET_MAGIC
 	cmd := "consensus"
 	copy(msg.msgHdr.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})
@@ -237,7 +237,7 @@ func NewConsensus(cp *ConsensusPayload) ([]byte, error) {
 	s := sha256.Sum256(b.Bytes())
 	s2 := s[:]
 	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:CHECKSUM_LEN])
+	buf := bytes.NewBuffer(s[:protocol.CHECKSUM_LEN])
 	binary.Read(buf, binary.LittleEndian, &(msg.msgHdr.Checksum))
 	msg.msgHdr.Length = uint32(len(b.Bytes()))
 	log.Debug("NewConsensus The message payload length is ", msg.msgHdr.Length)

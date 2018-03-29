@@ -26,7 +26,7 @@ import (
 
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
-	. "github.com/Ontology/net/protocol"
+	"github.com/Ontology/net/protocol"
 )
 
 type notFound struct {
@@ -38,7 +38,7 @@ func NewNotFound(hash common.Uint256) ([]byte, error) {
 	log.Debug()
 	var msg notFound
 	msg.hash = hash
-	msg.msgHdr.Magic = NET_MAGIC
+	msg.msgHdr.Magic = protocol.NET_MAGIC
 	cmd := "notfound"
 	copy(msg.msgHdr.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})
@@ -52,7 +52,7 @@ func NewNotFound(hash common.Uint256) ([]byte, error) {
 	s := sha256.Sum256(p.Bytes())
 	s2 := s[:]
 	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:CHECKSUM_LEN])
+	buf := bytes.NewBuffer(s[:protocol.CHECKSUM_LEN])
 	binary.Read(buf, binary.LittleEndian, &(msg.msgHdr.Checksum))
 	msg.msgHdr.Length = uint32(len(p.Bytes()))
 	log.Debug("The message payload length is ", msg.msgHdr.Length)
@@ -100,7 +100,7 @@ func (msg *notFound) Deserialization(p []byte) error {
 	return err
 }
 
-func (msg notFound) Handle(node Noder) error {
+func (msg notFound) Handle(node protocol.Noder) error {
 	log.Debug("RX notfound message, hash is ", msg.hash)
 	return nil
 }

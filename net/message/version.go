@@ -12,7 +12,7 @@ import (
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/net/actor"
-	. "github.com/Ontology/net/protocol"
+	"github.com/Ontology/net/protocol"
 	"github.com/ontio/ontology-crypto/keypair"
 )
 
@@ -40,7 +40,7 @@ type version struct {
 	pk  keypair.PublicKey
 }
 
-func NewVersion(n Noder) ([]byte, error) {
+func NewVersion(n protocol.Noder) ([]byte, error) {
 	log.Debug()
 	var msg version
 
@@ -69,7 +69,7 @@ func NewVersion(n Noder) ([]byte, error) {
 	msg.pk = n.GetBookkeeperAddr()
 	log.Debug("new version msg.pk is ", msg.pk)
 
-	msg.Hdr.Magic = NET_MAGIC
+	msg.Hdr.Magic = protocol.NET_MAGIC
 	copy(msg.Hdr.CMD[0:7], "version")
 	p := bytes.NewBuffer([]byte{})
 	err := binary.Write(p, binary.LittleEndian, &(msg.P))
@@ -81,7 +81,7 @@ func NewVersion(n Noder) ([]byte, error) {
 	s := sha256.Sum256(p.Bytes())
 	s2 := s[:]
 	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:CHECKSUM_LEN])
+	buf := bytes.NewBuffer(s[:protocol.CHECKSUM_LEN])
 	binary.Read(buf, binary.LittleEndian, &(msg.Hdr.Checksum))
 	msg.Hdr.Length = uint32(len(p.Bytes()))
 	log.Debug("The message payload length is ", msg.Hdr.Length)
@@ -146,7 +146,7 @@ func (msg *version) Deserialization(p []byte) error {
 	return err
 }
 
-func (msg version) Handle(node Noder) error {
+func (msg version) Handle(node protocol.Noder) error {
 	log.Debug()
 	localNode := node.LocalNode()
 
@@ -158,7 +158,7 @@ func (msg version) Handle(node Noder) error {
 	}
 
 	s := node.GetState()
-	if s != INIT && s != HAND {
+	if s != protocol.INIT && s != protocol.HAND {
 		log.Warn("Unknow status to received version")
 		return errors.New("Unknow status to received version")
 	}
@@ -168,7 +168,7 @@ func (msg version) Handle(node Noder) error {
 	if ret == true {
 		log.Info(fmt.Sprintf("Node reconnect 0x%x", msg.P.Nonce))
 		// Close the connection and release the node soure
-		n.SetState(INACTIVITY)
+		n.SetState(protocol.INACTIVITY)
 		n.CloseConn()
 	}
 
@@ -185,11 +185,11 @@ func (msg version) Handle(node Noder) error {
 	localNode.AddNbrNode(node)
 
 	var buf []byte
-	if s == INIT {
-		node.SetState(HAND_SHAKE)
+	if s == protocol.INIT {
+		node.SetState(protocol.HAND_SHAKE)
 		buf, _ = NewVersion(localNode)
-	} else if s == HAND {
-		node.SetState(HAND_SHAKED)
+	} else if s == protocol.HAND {
+		node.SetState(protocol.HAND_SHAKED)
 		buf, _ = NewVerack()
 	}
 	node.Tx(buf)

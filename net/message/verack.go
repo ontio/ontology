@@ -24,7 +24,7 @@ import (
 	"strconv"
 
 	"github.com/Ontology/common/log"
-	. "github.com/Ontology/net/protocol"
+	"github.com/Ontology/net/protocol"
 )
 
 type verACK struct {
@@ -48,18 +48,18 @@ func NewVerack() ([]byte, error) {
 	return buf, err
 }
 
-func (msg verACK) Handle(node Noder) error {
+func (msg verACK) Handle(node protocol.Noder) error {
 	log.Debug()
 
 	s := node.GetState()
-	if s != HAND_SHAKE && s != HAND_SHAKED {
+	if s != protocol.HAND_SHAKE && s != protocol.HAND_SHAKED {
 		log.Warn("Unknow status to received verack")
 		return errors.New("Unknow status to received verack")
 	}
 
-	node.SetState(ESTABLISH)
+	node.SetState(protocol.ESTABLISH)
 
-	if s == HAND_SHAKE {
+	if s == protocol.HAND_SHAKE {
 		buf, _ := NewVerack()
 		node.Tx(buf)
 	}

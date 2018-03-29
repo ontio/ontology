@@ -24,7 +24,7 @@ import (
 	"sync"
 
 	"github.com/Ontology/common/config"
-	. "github.com/Ontology/net/protocol"
+	"github.com/Ontology/net/protocol"
 )
 
 // The neighbor node list
@@ -37,7 +37,7 @@ func (nm *nbrNodes) Broadcast(buf []byte) {
 	nm.RLock()
 	defer nm.RUnlock()
 	for _, node := range nm.List {
-		if node.state == ESTABLISH && node.relay == true {
+		if node.state == protocol.ESTABLISH && node.relay == true {
 			node.Tx(buf)
 		}
 	}
@@ -48,7 +48,7 @@ func (nm *nbrNodes) NodeExisted(uid uint64) bool {
 	return ok
 }
 
-func (nm *nbrNodes) AddNbrNode(n Noder) {
+func (nm *nbrNodes) AddNbrNode(n protocol.Noder) {
 	nm.Lock()
 	defer nm.Unlock()
 
@@ -64,7 +64,7 @@ func (nm *nbrNodes) AddNbrNode(n Noder) {
 	}
 }
 
-func (nm *nbrNodes) DelNbrNode(id uint64) (Noder, bool) {
+func (nm *nbrNodes) DelNbrNode(id uint64) (protocol.Noder, bool) {
 	nm.Lock()
 	defer nm.Unlock()
 
@@ -82,7 +82,7 @@ func (nm *nbrNodes) GetConnectionCnt() uint {
 
 	var cnt uint
 	for _, node := range nm.List {
-		if node.state == ESTABLISH {
+		if node.state == protocol.ESTABLISH {
 			cnt++
 		}
 	}
@@ -102,24 +102,24 @@ func (nm *nbrNodes) NodeEstablished(id uint64) bool {
 		return false
 	}
 
-	if n.state != ESTABLISH {
+	if n.state != protocol.ESTABLISH {
 		return false
 	}
 
 	return true
 }
 
-func (node *node) GetNeighborAddrs() ([]NodeAddr, uint64) {
+func (node *node) GetNeighborAddrs() ([]protocol.NodeAddr, uint64) {
 	node.nbrNodes.RLock()
 	defer node.nbrNodes.RUnlock()
 
 	var i uint64
-	var addrs []NodeAddr
+	var addrs []protocol.NodeAddr
 	for _, n := range node.nbrNodes.List {
-		if n.GetState() != ESTABLISH {
+		if n.GetState() != protocol.ESTABLISH {
 			continue
 		}
-		var addr NodeAddr
+		var addr protocol.NodeAddr
 		addr.IpAddr, _ = n.GetAddr16()
 		addr.Time = n.GetTime()
 		addr.Services = n.Services()
@@ -140,7 +140,7 @@ func (node *node) GetNeighborHeights() ([]uint64, uint64) {
 	var i uint64
 	heights := []uint64{}
 	for _, n := range node.nbrNodes.List {
-		if n.GetState() == ESTABLISH {
+		if n.GetState() == protocol.ESTABLISH {
 			height := n.GetHeight()
 			heights = append(heights, height)
 			i++
@@ -149,13 +149,13 @@ func (node *node) GetNeighborHeights() ([]uint64, uint64) {
 	return heights, i
 }
 
-func (node *node) GetNeighborNoder() []Noder {
+func (node *node) GetNeighborNoder() []protocol.Noder {
 	node.nbrNodes.RLock()
 	defer node.nbrNodes.RUnlock()
 
-	nodes := []Noder{}
+	nodes := []protocol.Noder{}
 	for _, n := range node.nbrNodes.List {
-		if n.GetState() == ESTABLISH {
+		if n.GetState() == protocol.ESTABLISH {
 			node := n
 			nodes = append(nodes, node)
 		}
@@ -168,7 +168,7 @@ func (node *node) GetNbrNodeCnt() uint32 {
 	defer node.nbrNodes.RUnlock()
 	var count uint32
 	for _, n := range node.nbrNodes.List {
-		if n.GetState() == ESTABLISH {
+		if n.GetState() == protocol.ESTABLISH {
 			count++
 		}
 	}

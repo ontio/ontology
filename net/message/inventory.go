@@ -26,19 +26,19 @@ import (
 	"fmt"
 	"io"
 
-	. "github.com/Ontology/common"
+	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/net/actor"
-	. "github.com/Ontology/net/protocol"
+	"github.com/Ontology/net/protocol"
 )
 
-var LastInvHash Uint256
+var LastInvHash common.Uint256
 
 type hashReq struct {
 	HeaderHashCount uint8
-	hashStart       [HASH_LEN]byte
-	hashStop        [HASH_LEN]byte
+	hashStart       [protocol.HASH_LEN]byte
+	hashStop        [protocol.HASH_LEN]byte
 }
 
 type blocksReq struct {
@@ -47,7 +47,7 @@ type blocksReq struct {
 }
 
 type InvPayload struct {
-	InvType InventoryType
+	InvType common.InventoryType
 	Cnt     uint32
 	Blk     []byte
 }
@@ -57,7 +57,7 @@ type Inv struct {
 	P   InvPayload
 }
 
-func NewBlocksReq(n Noder) ([]byte, error) {
+func NewBlocksReq(n protocol.Noder) ([]byte, error) {
 	var h blocksReq
 	log.Debug("request block hash")
 	h.p.HeaderHashCount = 1
@@ -83,11 +83,11 @@ func (msg blocksReq) Verify(buf []byte) error {
 	return err
 }
 
-func (msg blocksReq) Handle(node Noder) error {
+func (msg blocksReq) Handle(node protocol.Noder) error {
 	log.Debug()
 	log.Debug("handle blocks request")
-	var startHash Uint256
-	var stopHash Uint256
+	var startHash common.Uint256
+	var stopHash common.Uint256
 	startHash = msg.p.hashStart
 	stopHash = msg.p.hashStop
 
@@ -125,28 +125,28 @@ func (msg Inv) Verify(buf []byte) error {
 	return err
 }
 
-func (msg Inv) Handle(node Noder) error {
+func (msg Inv) Handle(node protocol.Noder) error {
 	log.Debug()
-	var id Uint256
+	var id common.Uint256
 	str := hex.EncodeToString(msg.P.Blk)
 	log.Debug(fmt.Sprintf("The inv type: 0x%x block len: %d, %s\n",
 		msg.P.InvType, len(msg.P.Blk), str))
 
-	invType := InventoryType(msg.P.InvType)
+	invType := common.InventoryType(msg.P.InvType)
 	switch invType {
-	case TRANSACTION:
+	case common.TRANSACTION:
 		log.Debug("RX TRX message")
 		id.Deserialize(bytes.NewReader(msg.P.Blk[:32]))
 		if !node.ExistedID(id) {
 			reqTxnData(node, id)
 		}
-	case BLOCK:
+	case common.BLOCK:
 		log.Debug("RX block message")
 		var i uint32
 		count := msg.P.Cnt
 		log.Debug("RX inv-block message, hash is ", msg.P.Blk)
 		for i = 0; i < count; i++ {
-			id.Deserialize(bytes.NewReader(msg.P.Blk[HASH_LEN*i:]))
+			id.Deserialize(bytes.NewReader(msg.P.Blk[protocol.HASH_LEN*i:]))
 			isContainBlock, _ := actor.IsContainBlock(id)
 			if !isContainBlock && LastInvHash != id {
 				LastInvHash = id
@@ -156,7 +156,7 @@ func (msg Inv) Handle(node Noder) error {
 			}
 
 		}
-	case CONSENSUS:
+	case common.CONSENSUS:
 		log.Debug("RX consensus message")
 		id.Deserialize(bytes.NewReader(msg.P.Blk[:32]))
 		reqConsensusData(node, id)
@@ -183,38 +183,38 @@ func (msg *Inv) Deserialization(p []byte) error {
 		return err
 	}
 
-	buf := bytes.NewBuffer(p[MSG_HDR_LEN:])
+	buf := bytes.NewBuffer(p[protocol.MSG_HDR_LEN:])
 	invType, err := serialization.ReadUint8(buf)
 	if err != nil {
 		return err
 	}
-	msg.P.InvType = InventoryType(invType)
+	msg.P.InvType = common.InventoryType(invType)
 	msg.P.Cnt, err = serialization.ReadUint32(buf)
 	if err != nil {
 		return err
 	}
 
-	msg.P.Blk = make([]byte, msg.P.Cnt*HASH_LEN)
+	msg.P.Blk = make([]byte, msg.P.Cnt*protocol.HASH_LEN)
 	err = binary.Read(buf, binary.LittleEndian, &(msg.P.Blk))
 
 	return err
 }
 
-func (msg Inv) invType() InventoryType {
+func (msg Inv) invType() common.InventoryType {
 	return msg.P.InvType
 }
 
-func GetInvFromBlockHash(starthash Uint256, stophash Uint256) (*InvPayload, error) {
+func GetInvFromBlockHash(starthash common.Uint256, stophash common.Uint256) (*InvPayload, error) {
 	var count uint32 = 0
 	var i uint32
-	var empty Uint256
+	var empty common.Uint256
 	var startHeight uint32
 	var stopHeight uint32
 	curHeight, _ := actor.GetCurrentBlockHeight()
 	if starthash == empty {
 		if stophash == empty {
-			if curHeight > MAX_BLK_HDR_CNT {
-				count = MAX_BLK_HDR_CNT
+			if curHeight > protocol.MAX_BLK_HDR_CNT {
+				count = protocol.MAX_BLK_HDR_CNT
 			} else {
 				count = curHeight
 			}
@@ -225,8 +225,8 @@ func GetInvFromBlockHash(starthash Uint256, stophash Uint256) (*InvPayload, erro
 			}
 			stopHeight = bkStop.Height
 			count = curHeight - stopHeight
-			if curHeight > MAX_INV_HDR_CNT {
-				count = MAX_INV_HDR_CNT
+			if curHeight > protocol.MAX_INV_HDR_CNT {
+				count = protocol.MAX_INV_HDR_CNT
 			}
 		}
 	} else {
@@ -242,13 +242,13 @@ func GetInvFromBlockHash(starthash Uint256, stophash Uint256) (*InvPayload, erro
 			}
 			stopHeight = bkStop.Height
 			count = startHeight - stopHeight
-			if count >= MAX_INV_HDR_CNT {
-				count = MAX_INV_HDR_CNT
-				stopHeight = startHeight + MAX_INV_HDR_CNT
+			if count >= protocol.MAX_INV_HDR_CNT {
+				count = protocol.MAX_INV_HDR_CNT
+				stopHeight = startHeight + protocol.MAX_INV_HDR_CNT
 			}
 		} else {
-			if startHeight > MAX_INV_HDR_CNT {
-				count = MAX_INV_HDR_CNT
+			if startHeight > protocol.MAX_INV_HDR_CNT {
+				count = protocol.MAX_INV_HDR_CNT
 			} else {
 				count = startHeight
 			}
@@ -262,10 +262,10 @@ func GetInvFromBlockHash(starthash Uint256, stophash Uint256) (*InvPayload, erro
 		hash.Serialize(tmpBuffer)
 	}
 	log.Debug("GetInvFromBlockHash hash is ", tmpBuffer.Bytes())
-	return NewInvPayload(BLOCK, count, tmpBuffer.Bytes()), nil
+	return NewInvPayload(common.BLOCK, count, tmpBuffer.Bytes()), nil
 }
 
-func NewInvPayload(invType InventoryType, count uint32, msg []byte) *InvPayload {
+func NewInvPayload(invType common.InventoryType, count uint32, msg []byte) *InvPayload {
 	return &InvPayload{
 		InvType: invType,
 		Cnt:     count,
@@ -279,7 +279,7 @@ func NewInv(inv *InvPayload) ([]byte, error) {
 	msg.P.Blk = inv.Blk
 	msg.P.InvType = inv.InvType
 	msg.P.Cnt = inv.Cnt
-	msg.Hdr.Magic = NET_MAGIC
+	msg.Hdr.Magic = protocol.NET_MAGIC
 	cmd := "inv"
 	copy(msg.Hdr.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})
@@ -294,7 +294,7 @@ func NewInv(inv *InvPayload) ([]byte, error) {
 	s := sha256.Sum256(b.Bytes())
 	s2 := s[:]
 	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:CHECKSUM_LEN])
+	buf := bytes.NewBuffer(s[:protocol.CHECKSUM_LEN])
 	binary.Read(buf, binary.LittleEndian, &(msg.Hdr.Checksum))
 	msg.Hdr.Length = uint32(len(b.Bytes()))
 

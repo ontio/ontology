@@ -26,7 +26,7 @@ import (
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/net/actor"
-	. "github.com/Ontology/net/protocol"
+	"github.com/Ontology/net/protocol"
 )
 
 type pong struct {
@@ -36,7 +36,7 @@ type pong struct {
 
 func NewPongMsg() ([]byte, error) {
 	var msg pong
-	msg.msgHdr.Magic = NET_MAGIC
+	msg.msgHdr.Magic = protocol.NET_MAGIC
 	copy(msg.msgHdr.CMD[0:7], "pong")
 	height, _ := actor.GetCurrentHeaderHeight()
 	msg.height = uint64(height)
@@ -51,7 +51,7 @@ func NewPongMsg() ([]byte, error) {
 	s := sha256.Sum256(b.Bytes())
 	s2 := s[:]
 	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:CHECKSUM_LEN])
+	buf := bytes.NewBuffer(s[:protocol.CHECKSUM_LEN])
 	binary.Read(buf, binary.LittleEndian, &(msg.msgHdr.Checksum))
 	msg.msgHdr.Length = uint32(len(b.Bytes()))
 
@@ -68,7 +68,7 @@ func (msg pong) Verify(buf []byte) error {
 	return err
 }
 
-func (msg pong) Handle(node Noder) error {
+func (msg pong) Handle(node protocol.Noder) error {
 	node.SetHeight(msg.height)
 	return nil
 }

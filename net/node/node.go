@@ -33,14 +33,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	. "github.com/Ontology/common"
-	. "github.com/Ontology/common/config"
+	"github.com/Ontology/common"
+	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/events"
 	"github.com/Ontology/net/actor"
-	. "github.com/Ontology/net/message"
-	. "github.com/Ontology/net/protocol"
+	msg "github.com/Ontology/net/message"
+	"github.com/Ontology/net/protocol"
 	"github.com/ontio/ontology-crypto/keypair"
 )
 
@@ -112,7 +112,7 @@ func (node *node) IsAddrInNbrList(addr string) bool {
 	node.nbrNodes.RLock()
 	defer node.nbrNodes.RUnlock()
 	for _, n := range node.nbrNodes.List {
-		if n.GetState() == HAND || n.GetState() == HAND_SHAKE || n.GetState() == ESTABLISH {
+		if n.GetState() == protocol.HAND || n.GetState() == protocol.HAND_SHAKE || n.GetState() == protocol.ESTABLISH {
 			addrNew := n.GetAddr()
 			port := n.GetPort()
 			na := addrNew + ":" + strconv.Itoa(int(port))
@@ -166,7 +166,7 @@ func (node *node) UpdateInfo(t time.Time, version uint32, services uint64,
 
 func NewNode() *node {
 	n := node{
-		state: INIT,
+		state: protocol.INIT,
 		chF:   make(chan func() error),
 	}
 	runtime.SetFinalizer(&n, rmNode)
@@ -174,22 +174,22 @@ func NewNode() *node {
 	return &n
 }
 
-func InitNode(pubKey keypair.PublicKey) Noder {
+func InitNode(pubKey keypair.PublicKey) protocol.Noder {
 	n := NewNode()
-	n.version = PROTOCOL_VERSION
-	if Parameters.NodeType == SERVICE_NODE_NAME {
-		n.services = uint64(SERVICE_NODE)
-	} else if Parameters.NodeType == VERIFY_NODE_NAME {
-		n.services = uint64(VERIFY_NODE)
+	n.version = protocol.PROTOCOL_VERSION
+	if config.Parameters.NodeType == protocol.SERVICE_NODE_NAME {
+		n.services = uint64(protocol.SERVICE_NODE)
+	} else if config.Parameters.NodeType == protocol.VERIFY_NODE_NAME {
+		n.services = uint64(protocol.VERIFY_NODE)
 	}
 
-	if Parameters.MaxHdrSyncReqs <= 0 {
-		n.SyncReqSem = MakeSemaphore(MAX_SYNC_HDR_REQ)
+	if config.Parameters.MaxHdrSyncReqs <= 0 {
+		n.SyncReqSem = MakeSemaphore(protocol.MAX_SYNC_HDR_REQ)
 	} else {
-		n.SyncReqSem = MakeSemaphore(Parameters.MaxHdrSyncReqs)
+		n.SyncReqSem = MakeSemaphore(config.Parameters.MaxHdrSyncReqs)
 	}
 
-	n.link.port = uint16(Parameters.NodePort)
+	n.link.port = uint16(config.Parameters.NodePort)
 	n.relay = true
 	rand.Seed(time.Now().UTC().UnixNano())
 
@@ -213,7 +213,7 @@ func InitNode(pubKey keypair.PublicKey) Noder {
 
 func (n *node) NodeDisconnect(v interface{}) {
 	if node, ok := v.(*node); ok {
-		node.SetState(INACTIVITY)
+		node.SetState(protocol.INACTIVITY)
 		conn := node.getConn()
 		conn.Close()
 	}
@@ -254,7 +254,7 @@ func (node *node) SetHttpInfoPort(nodeInfoPort uint16) {
 }
 
 func (node *node) GetHttpInfoState() bool {
-	if node.cap[HTTP_INFO_FLAG] == 0x01 {
+	if node.cap[msg.HTTP_INFO_FLAG] == 0x01 {
 		return true
 	} else {
 		return false
@@ -263,9 +263,9 @@ func (node *node) GetHttpInfoState() bool {
 
 func (node *node) SetHttpInfoState(nodeInfo bool) {
 	if nodeInfo {
-		node.cap[HTTP_INFO_FLAG] = 0x01
+		node.cap[msg.HTTP_INFO_FLAG] = 0x01
 	} else {
-		node.cap[HTTP_INFO_FLAG] = 0x00
+		node.cap[msg.HTTP_INFO_FLAG] = 0x00
 	}
 }
 
@@ -305,7 +305,7 @@ func (node *node) CompareAndSetState(old, new uint32) bool {
 	return atomic.CompareAndSwapUint32(&(node.state), old, new)
 }
 
-func (node *node) LocalNode() Noder {
+func (node *node) LocalNode() protocol.Noder {
 	return node.local
 }
 
@@ -330,7 +330,7 @@ func (node *node) Xmit(message interface{}) error {
 	case *types.Transaction:
 		log.Debug("TX transaction message")
 		txn := message.(*types.Transaction)
-		buffer, err = NewTxn(txn)
+		buffer, err = msg.NewTxn(txn)
 		if err != nil {
 			log.Error("Error New Tx message: ", err)
 			return err
@@ -339,27 +339,27 @@ func (node *node) Xmit(message interface{}) error {
 	case *types.Block:
 		log.Debug("TX block message")
 		block := message.(*types.Block)
-		buffer, err = NewBlock(block)
+		buffer, err = msg.NewBlock(block)
 		if err != nil {
 			log.Error("Error New Block message: ", err)
 			return err
 		}
-	case *ConsensusPayload:
+	case *msg.ConsensusPayload:
 		log.Debug("TX consensus message")
-		consensusPayload := message.(*ConsensusPayload)
-		buffer, err = NewConsensus(consensusPayload)
+		consensusPayload := message.(*msg.ConsensusPayload)
+		buffer, err = msg.NewConsensus(consensusPayload)
 		if err != nil {
 			log.Error("Error New consensus message: ", err)
 			return err
 		}
-	case Uint256:
+	case common.Uint256:
 		log.Debug("TX block hash message")
-		hash := message.(Uint256)
+		hash := message.(common.Uint256)
 		buf := bytes.NewBuffer([]byte{})
 		hash.Serialize(buf)
 		// construct inv message
-		invPayload := NewInvPayload(BLOCK, 1, buf.Bytes())
-		buffer, err = NewInv(invPayload)
+		invPayload := msg.NewInvPayload(common.BLOCK, 1, buf.Bytes())
+		buffer, err = msg.NewInv(invPayload)
 		if err != nil {
 			log.Error("Error New inv message")
 			return err
@@ -405,7 +405,7 @@ func (node *node) GetBookkeepersAddrs() ([]keypair.PublicKey, uint64) {
 	i = 1
 	//TODO read lock
 	for _, n := range node.nbrNodes.List {
-		if n.GetState() == ESTABLISH && n.services != SERVICE_NODE {
+		if n.GetState() == protocol.ESTABLISH && n.services != protocol.SERVICE_NODE {
 			pkTmp := n.GetBookkeeperAddr()
 			pks = append(pks, pkTmp)
 			i++
@@ -422,7 +422,7 @@ func (node *node) SyncNodeHeight() {
 	for {
 		heights, _ := node.GetNeighborHeights()
 		height, _ := actor.GetCurrentBlockHeight()
-		if CompareHeight(uint64(height), heights) {
+		if common.CompareHeight(uint64(height), heights) {
 			break
 		}
 		<-time.After(5 * time.Second)
@@ -438,7 +438,7 @@ func (node *node) WaitForSyncBlkFinish() {
 		if currentBlkHeight >= headerHeight {
 			break
 		}
-		<-time.After(PERIOD_UPDATE_TIME * time.Second)
+		<-time.After(protocol.PERIOD_UPDATE_TIME * time.Second)
 	}
 }
 func (node *node) WaitForPeersStart() {
@@ -447,7 +447,7 @@ func (node *node) WaitForPeersStart() {
 		if node.IsUptoMinNodeCount() {
 			break
 		}
-		<-time.After(PERIOD_UPDATE_TIME * time.Second)
+		<-time.After(protocol.PERIOD_UPDATE_TIME * time.Second)
 	}
 }
 

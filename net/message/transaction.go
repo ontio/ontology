@@ -28,7 +28,7 @@ import (
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/net/actor"
-	. "github.com/Ontology/net/protocol"
+	"github.com/Ontology/net/protocol"
 )
 
 type dataReq struct {
@@ -43,7 +43,7 @@ type trn struct {
 	txn types.Transaction
 }
 
-func (msg trn) Handle(node Noder) error {
+func (msg trn) Handle(node protocol.Noder) error {
 	log.Debug()
 	log.Debug("RX Transaction message")
 	tx := &msg.txn
@@ -55,7 +55,7 @@ func (msg trn) Handle(node Noder) error {
 	return nil
 }
 
-func reqTxnData(node Noder, hash common.Uint256) error {
+func reqTxnData(node protocol.Noder, hash common.Uint256) error {
 	var msg dataReq
 	msg.dataType = common.TRANSACTION
 	buf, _ := msg.Serialization()
@@ -113,7 +113,7 @@ func NewTxn(txn *types.Transaction) ([]byte, error) {
 	log.Debug()
 	var msg trn
 
-	msg.msgHdr.Magic = NET_MAGIC
+	msg.msgHdr.Magic = protocol.NET_MAGIC
 	cmd := "tx"
 	copy(msg.msgHdr.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})
@@ -128,7 +128,7 @@ func NewTxn(txn *types.Transaction) ([]byte, error) {
 	s := sha256.Sum256(b.Bytes())
 	s2 := s[:]
 	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:CHECKSUM_LEN])
+	buf := bytes.NewBuffer(s[:protocol.CHECKSUM_LEN])
 	binary.Read(buf, binary.LittleEndian, &(msg.msgHdr.Checksum))
 	msg.msgHdr.Length = uint32(len(b.Bytes()))
 	log.Debug("The message payload length is ", msg.msgHdr.Length)

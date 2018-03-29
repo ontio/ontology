@@ -29,13 +29,13 @@ import (
 	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/net/actor"
-	. "github.com/Ontology/net/protocol"
+	"github.com/Ontology/net/protocol"
 )
 
 type hdrHashReq struct {
 	len       uint8
-	hashStart [HASH_LEN]byte
-	hashEnd   [HASH_LEN]byte
+	hashStart [protocol.HASH_LEN]byte
+	hashEnd   [protocol.HASH_LEN]byte
 }
 
 type headersReq struct {
@@ -167,16 +167,16 @@ blkHdrErr:
 	return err
 }
 
-func (msg headersReq) Handle(node Noder) error {
+func (msg headersReq) Handle(node protocol.Noder) error {
 	log.Debug()
 	node.LocalNode().AcqSyncReqSem()
 	defer node.LocalNode().RelSyncReqSem()
-	var startHash [HASH_LEN]byte
-	var stopHash [HASH_LEN]byte
+	var startHash [protocol.HASH_LEN]byte
+	var stopHash [protocol.HASH_LEN]byte
 	startHash = msg.p.hashStart
 	stopHash = msg.p.hashEnd
 	headers, cnt, err := GetHeadersFromHash(startHash, stopHash)
-	if err != nil || headers == nil || cnt < 1 {
+	if err != nil || headers == nil {
 		return err
 	}
 	buf, err := NewHeaders(headers, cnt)
@@ -187,7 +187,7 @@ func (msg headersReq) Handle(node Noder) error {
 	return nil
 }
 
-func SendMsgSyncHeaders(node Noder) {
+func SendMsgSyncHeaders(node protocol.Noder) {
 	buf, err := NewHeadersReq()
 	if err != nil {
 		log.Error("failed build a new headersReq")
@@ -196,7 +196,7 @@ func SendMsgSyncHeaders(node Noder) {
 	}
 }
 
-func (msg blkHeader) Handle(node Noder) error {
+func (msg blkHeader) Handle(node protocol.Noder) error {
 	var blkHdr []*types.Header
 	var i uint32
 	for i = 0; i < msg.cnt; i++ {
@@ -208,15 +208,15 @@ func (msg blkHeader) Handle(node Noder) error {
 
 func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]types.Header, uint32, error) {
 	var count uint32 = 0
-	var empty [HASH_LEN]byte
+	var empty [protocol.HASH_LEN]byte
 	headers := []types.Header{}
 	var startHeight uint32
 	var stopHeight uint32
 	curHeight, _ := actor.GetCurrentHeaderHeight()
 	if startHash == empty {
 		if stopHash == empty {
-			if curHeight > MAX_BLK_HDR_CNT {
-				count = MAX_BLK_HDR_CNT
+			if curHeight > protocol.MAX_BLK_HDR_CNT {
+				count = protocol.MAX_BLK_HDR_CNT
 			} else {
 				count = curHeight
 			}
@@ -227,8 +227,8 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]ty
 			}
 			stopHeight = bkStop.Height
 			count = curHeight - stopHeight
-			if count > MAX_BLK_HDR_CNT {
-				count = MAX_BLK_HDR_CNT
+			if count > protocol.MAX_BLK_HDR_CNT {
+				count = protocol.MAX_BLK_HDR_CNT
 			}
 		}
 	} else {
@@ -250,14 +250,14 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]ty
 			}
 			count = startHeight - stopHeight
 
-			if count >= MAX_BLK_HDR_CNT {
-				count = MAX_BLK_HDR_CNT
-				stopHeight = startHeight - MAX_BLK_HDR_CNT
+			if count >= protocol.MAX_BLK_HDR_CNT {
+				count = protocol.MAX_BLK_HDR_CNT
+				stopHeight = startHeight - protocol.MAX_BLK_HDR_CNT
 			}
 		} else {
 
-			if startHeight > MAX_BLK_HDR_CNT {
-				count = MAX_BLK_HDR_CNT
+			if startHeight > protocol.MAX_BLK_HDR_CNT {
+				count = protocol.MAX_BLK_HDR_CNT
 			} else {
 				count = startHeight
 			}
@@ -286,7 +286,7 @@ func NewHeaders(headers []types.Header, count uint32) ([]byte, error) {
 	var msg blkHeader
 	msg.cnt = count
 	msg.blkHdr = headers
-	msg.hdr.Magic = NET_MAGIC
+	msg.hdr.Magic = protocol.NET_MAGIC
 	cmd := "headers"
 	copy(msg.hdr.CMD[0:len(cmd)], cmd)
 
@@ -304,7 +304,7 @@ func NewHeaders(headers []types.Header, count uint32) ([]byte, error) {
 	s := sha256.Sum256(b.Bytes())
 	s2 := s[:]
 	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:CHECKSUM_LEN])
+	buf := bytes.NewBuffer(s[:protocol.CHECKSUM_LEN])
 	binary.Read(buf, binary.LittleEndian, &(msg.hdr.Checksum))
 	msg.hdr.Length = uint32(len(b.Bytes()))
 
