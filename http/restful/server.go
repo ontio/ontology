@@ -19,12 +19,12 @@
 package restful
 
 import (
-	. "github.com/Ontology/http/restful/restful"
+	"github.com/Ontology/http/restful/restful"
 )
 
 func StartServer() {
 	func() {
-		rt := InitRestServer()
+		rt := restful.InitRestServer()
 		go rt.Start()
 	}()
 }
