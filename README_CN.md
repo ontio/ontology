@@ -1,11 +1,13 @@
 
 <h1 align="center">Ontology </h1>
-<h4 align="center">Version V0.6.0 </h4>
+<h4 align="center">Version 0.6.0 </h4>
 
 [![GoDoc](https://godoc.org/github.com/ontio/ontology?status.svg)](https://godoc.org/github.com/ontio/ontology)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ontio/ontology)](https://goreportcard.com/report/github.com/ontio/ontology)
 [![Travis](https://travis-ci.org/ontio/ontology.svg?branch=master)](https://travis-ci.org/ontio/ontology)
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/ontio/ontology?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
+[English](README.md) | 中文
 
 欢迎来到Ontology的源码库！ 
 
@@ -58,6 +60,7 @@ Ontology致力于创建一个组件化、可自由配置、跨链支持、高性
 ## 获取ontology
 ### 从源码获取
 克隆ontology仓库到$GOPATH/src目录
+
 ```shell
 $ git clone https://github.com/ontio/ontology.git
 ```
@@ -88,12 +91,15 @@ $ make
 钱包创建的时候，支持用户手动选择签名方案；如果用户没有手动选择，将会使用config.json中的默认配置项(SignatureScheme); 如果以上两种方式都没有配置，或者使用了系统不支持的签名方案，系统将会提供最终的默认签名方案(SHA256withECDSA). 
 
 创建钱包示例如下：
+
 ```shell
 $ ./nodectl wallet --create --name wallet.dat --password passwordtest --encrypt=SHA512withEdDSA
 ```
-        注：通过-p参数设置钱包密码
+
+注：通过-p参数设置钱包密码
 
 展示钱包示例(需要输入密码)：
+
 ```shell
 $ ./nodectl wallet --list account
 
@@ -138,6 +144,7 @@ ONT可签名方案说明( <hash>with<dsa> 前面是散列算法，后面是签�
 
 单机配置的例子如下：
 - 目录结构
+
 ```shell
 $ tree
 └── node
@@ -190,6 +197,7 @@ config.json ontology nodectl wallet.dat
 
 ### 在公共测试网上部署节点
 按照以下配置文件启动可以连接到ont目前的测试网络。
+
 ```shell
 $ cat config.json
 {
@@ -239,10 +247,11 @@ $ - 输入你的钱包口令
 
 ## ONT转账调用示例
 
- ```shell
+```shell
   ./nodectl transfer --contract ff00000000000000000000000000000000000001 --value 10 --from 0181beb9cfba23c777421eaf57e357e0fc331cbf --to 01f3aecd2ba7a5b704fbd5bac673e141d5109e3e
+  
   contract:合约地址； - from: 转出地址； - to: 转入地址； - value: 资产转移数量；
- ```
+```
 
 # 贡献代码
 

@@ -1,11 +1,13 @@
 
 <h1 align="center">Ontology </h1>
-<h4 align="center">Version V0.6.0 </h4> 
+<h4 align="center">Version 0.6.0 </h4>
 
 [![GoDoc](https://godoc.org/github.com/ontio/ontology?status.svg)](https://godoc.org/github.com/ontio/ontology)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ontio/ontology)](https://goreportcard.com/report/github.com/ontio/ontology)
 [![Travis](https://travis-ci.org/ontio/ontology.svg?branch=master)](https://travis-ci.org/ontio/ontology)
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/ontio/ontology?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
+English | [中文](README_CN.md)
 
 Welcome to Ontology's source code library!
 
@@ -62,7 +64,6 @@ Clone the Ontology repository into the appropriate $GOPATH/src directory.
 
 ```
 $ git clone https://github.com/ontio/ontology.git
-
 ```
 
 Fetch the dependent third party packages with glide.
@@ -70,14 +71,12 @@ Fetch the dependent third party packages with glide.
 ```
 $ cd ontology
 $ glide install
-
 ```
 
 Build the source code with make.
 
 ```
 $ make
-
 ```
 
 After building the source code sucessfully, you should see two executable programs:
@@ -91,12 +90,12 @@ After building the source code sucessfully, you should see two executable progra
 ONT supports multiple encryption methods for generating accounts, but can set a default in config.json such as SHA256withECDSA. 
 
 Create wallet cmd:
+
 ```shell
 $ ./nodectl wallet --create --name wallet.dat --password passwordtest --encrypt=SHA512withEdDSA
+```
 
 Note: Set wallet password by parameter -p.
-
-```
 
 To show the wallet info:
 
@@ -195,7 +194,6 @@ Now multi-host configuration is completed, directory structure of each node is a
 ```
 $ ls
 config.json ontology nodectl wallet.dat
-
 ```
 
 A configuration file fragment is as follows, you refer to the config.json file in the root directory.
@@ -234,8 +232,6 @@ $ cat config.json
     "MultiCoreNum": 4
   }
 }
-
-
 ```
 
 ### Implement
@@ -245,7 +241,6 @@ Run each node program in any order and enter the node's wallet password after th
 ```
 $ ./ontology
 $ - Input your wallet password
-
 ```
 
 Run `./nodectl --h` for details.
@@ -256,11 +251,12 @@ Run `./nodectl --h` for details.
 
 ## ONT transfer sample
 
- ```shell
+```shell
   ./nodectl transfer --contract ff00000000000000000000000000000000000001 --value 10 --from 0181beb9cfba23c777421eaf57e357e0fc331cbf --to 01f3aecd2ba7a5b704fbd5bac673e141d5109e3e
 
   contract:contract address； - from: transfer from； - to: transfer to； - value: amount；
- ```
+```
+
 # Contributions
 
 Please open a pull request with a signed commit. We appreciate your help! You can also send your code as emails to the developer mailing list. You're welcome to join the Ontology mailing list or developer forum.
