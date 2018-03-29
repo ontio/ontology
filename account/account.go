@@ -19,7 +19,7 @@
 package account
 
 import (
-	. "github.com/Ontology/common"
+	"github.com/Ontology/common"
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/types"
@@ -30,7 +30,7 @@ import (
 type Account struct {
 	PrivateKey keypair.PrivateKey
 	PublicKey  keypair.PublicKey
-	Address    Address
+	Address    common.Address
 }
 
 func NewAccount() *Account {

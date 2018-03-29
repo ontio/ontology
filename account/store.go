@@ -19,18 +19,18 @@
 package account
 
 import (
-	. "github.com/Ontology/common"
+	"github.com/Ontology/common"
 	ct "github.com/Ontology/core/contract"
 )
 
-type IClientStore interface {
+type ClientStore interface {
 	BuildDatabase(path string)
 
 	SaveStoredData(name string, value []byte)
 
 	LoadStoredData(name string) []byte
 
-	LoadAccount() map[Address]*Account
+	LoadAccount() map[common.Address]*Account
 
-	LoadContracts() map[Address]*ct.Contract
+	LoadContracts() map[common.Address]*ct.Contract
 }

@@ -23,10 +23,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	ct "github.com/Ontology/core/contract"
-	. "github.com/Ontology/errors"
 	"io/ioutil"
 	"os"
+
+	ct "github.com/Ontology/core/contract"
+	ontErrors "github.com/Ontology/errors"
 )
 
 type FileData struct {
@@ -63,13 +64,13 @@ func (cs *FileStore) readDB() ([]byte, error) {
 		return data, nil
 
 	} else {
-		return nil, NewDetailErr(errors.New("[readDB] file handle is nil"), ErrNoCode, "")
+		return nil, ontErrors.NewDetailErr(errors.New("[readDB] file handle is nil"), ontErrors.ErrNoCode, "")
 	}
 }
 
 func (cs *FileStore) writeDB(data []byte) error {
 	var err error
-	cs.file, err = os.OpenFile(cs.path, os.O_CREATE | os.O_WRONLY, 0666)
+	cs.file, err = os.OpenFile(cs.path, os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
 		return err
 	}
@@ -148,7 +149,7 @@ func (cs *FileStore) LoadStoredData(name string) ([]byte, error) {
 		return hex.DecodeString(cs.fd.PasswordHash)
 	}
 
-	return nil, NewDetailErr(errors.New("Can't find the key: " + name), ErrNoCode, "")
+	return nil, ontErrors.NewDetailErr(errors.New("Can't find the key: "+name), ontErrors.ErrNoCode, "")
 }
 
 func (cs *FileStore) SaveAccountData(pubkeyhash []byte, prikeyenc []byte) error {
