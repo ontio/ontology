@@ -142,7 +142,11 @@ Request:
   "params": ["773dd2dae4a9c9275290f89b56e67d7363ea4826dfd4fc13cc01cf73a44b0d0e"],
   "id": 1
 }
+```
+
 or
+
+```
 {
   "jsonrpc": "2.0",
   "method": "getblock",
@@ -433,7 +437,7 @@ or
 
 #### 8. sendrawtransaction
 
-Broadcast transaction.
+send transaction.
 
 #### Parameter instruction
 
@@ -452,76 +456,19 @@ Request:
 }
 ```
 
-Response:
+Reponse
 
 ```
 {
-  "desc":"SUCCESS",
-  "error":0,
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": false
+    "desc": "SUCCESS",
+    "error": 0,
+    "id": 1,
+    "jsonpc": "2.0",
+    "result": "498db60e96828581eff991c58fa46abbfd97d2f4a4f9915a11f85c54f2a2fedf"
 }
 ```
 
-or
-
-```
-{
-  "desc":"SUCCESS",
-  "error":0,
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": {
-    "txid": "f4250dab094c38d8265acc15c366dc508d2e14bf5699e12d9df26577ed74d657",
-    "size": 262,
-    "type": "ContractTransaction",
-    "version": 0,
-    "attributes": [],
-    "vin": [
-      {
-        "txid": "abe82713f756eaeebf6fa6440057fca7c36b6c157700738bc34d3634cb765819",
-        "vout": 0
-      }
-    ],
-    "vout": [
-      {
-        "n": 0,
-        "asset": "c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b",
-        "value": "2950",
-        "address": "AHCNSDkh2Xs66SzmyKGdoDKY752uyeXDrt"
-      },
-      {
-        "n": 1,
-        "asset": "c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b",
-        "value": "4050",
-        "address": "ALDCagdWUVV4wYoEzCcJ4dtHqtWhsNEEaR"
-      }
-    ],
-    "sys_fee": "0",
-    "net_fee": "0",
-    "scripts": [
-      {
-        "invocation": "40915467ecd359684b2dc358024ca750609591aa731a0b309c7fb3cab5cd0836ad3992aa0a24da431f43b68883ea5651d548feb6bd3c8e16376e6e426f91f84c58",
-        "verification": "2103322f35c7819267e721335948d385fae5be66e7ba8c748ac15467dcca0693692dac"
-      }
-    ],
-    "blockhash": "9c814276156d33f5dbd4e1bd4e279bb4da4ca73ea7b7f9f0833231854648a72c",
-    "confirmations": 144,
-    "blocktime": 1496719422
-  }
-}
-```
-
-
-
-Response instruction:
-
-When result is true, the current transaction broadcast is successful.
-
-When result is false, it means that the current transaction broadcast failed because of double costs, incomplete signatures, etc.
-
-In this example, a confirmed transaction was broadcast, the broadcast failed because of double costs.
+> Note:result is txhash
 
 #### 9. getstorage
 
@@ -636,6 +583,127 @@ Response:
   }
 }
 ```
+
+or
+
+```
+{
+    "desc": "SUCCESS",
+    "error": 0,
+    "id": 1,
+    "jsonpc": "2.0",
+    "result": [
+        {
+            "CodeHash": [
+                255,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1
+            ],
+            "States": [
+                "transfer",
+                [
+                    1,
+                    244,
+                    149,
+                    61,
+                    108,
+                    40,
+                    239,
+                    222,
+                    202,
+                    110,
+                    207,
+                    9,
+                    30,
+                    145,
+                    251,
+                    12,
+                    243,
+                    231,
+                    143,
+                    25
+                ],
+                [
+                    1,
+                    211,
+                    140,
+                    123,
+                    200,
+                    98,
+                    120,
+                    251,
+                    191,
+                    70,
+                    26,
+                    255,
+                    222,
+                    168,
+                    211,
+                    95,
+                    153,
+                    188,
+                    122,
+                    84
+                ],
+                100
+            ],
+            "TxHash": [
+                85,
+                0,
+                133,
+                232,
+                119,
+                96,
+                166,
+                202,
+                252,
+                53,
+                150,
+                254,
+                6,
+                220,
+                216,
+                223,
+                253,
+                10,
+                121,
+                122,
+                120,
+                246,
+                9,
+                198,
+                81,
+                42,
+                42,
+                243,
+                120,
+                86,
+                20,
+                100
+            ]
+        }
+    ]
+}
+```
+
+> Note: If params is a number, the response result will be the txhash list. If params is txhash, the response result will be smartcode event.
 
 #### 12. getblocksysfee
 

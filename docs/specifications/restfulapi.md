@@ -10,7 +10,7 @@ This document describes the restful api format for the http/https used in the On
 
 ## Restful API list
 
-### Response参数说明
+### Response parameters descri
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
@@ -367,7 +367,7 @@ POST
 #### Request Example:
 
 ```
-curl  -H "Content-Type: application/json"  -X POST -d '{}'  http://server:port/api/v1/transaction
+curl  -H "Content-Type: application/json"  -X POST -d '{"Action":"sendrawtransaction", "Version":"1.0.0","Data":"00d00000000080fdcf2b0138c56b6c766b00527ac46c766b51527ac46151c56c766b52527ac46c766b00c31052656749644279507..."}'  http://server:port/api/v1/transaction
 ```
 
 #### Post Params:
@@ -444,27 +444,7 @@ curl -i http://localhost:20384/api/v1/balance/TA5uYzLU2vBvvfCMxyV2sdzc9kPqJzGZWq
     "Version": "1.0.0"
 }
 ```
-### 12 Api_Restart
-GET
-```
-/api/v1/restart
-```
-#### Request Example
-```
-curl -i http://localhost:20384/api/v1/restart
-```
-
-#### Response
-```
-{
-    "Action": "restart",
-    "Desc": "SUCCESS",
-    "Error": 0,
-    "Result": "",
-    "Version": "1.0.0"
-}
-```
-### 13 get contractstate
+### 12 get contractstate
 
 According to the contract script hash, query the contract information.
 
@@ -501,7 +481,9 @@ curl -i http://server:port/api/v1/contract/fff49c809d302a2956e9dc0012619a452d4b8
 }
 ```
 
-#### 14 get contract event by height
+#### 13 get txhash list by height
+
+Get a list of transaction hash with smartevent based on height
 
 GET
 
@@ -529,7 +511,7 @@ curl -i http://localhost:20384/api/v1/smartcode/event/transactions/900
 ```
 > Note: result is the txHash list.
 
-### 15 get contract event by txhash
+### 14 get contract event by txhash
 
 GET
 ```
@@ -656,7 +638,7 @@ curl -i http://localhost:20384/api/v1/smartcode/event/txhash/3e23cf222a47739d414
     ]
 }
 ```
-### 16 Api_GetBlkHeightByTxHash
+### 15 Api_GetBlkHeightByTxHash
 get blockheight of txhash
 
 GET
@@ -677,7 +659,8 @@ curl -i http://localhost:20384/api/v1/block/height/txhash/3e23cf222a47739d414125
     "Version": "1.0.0"
 }
 ```
-### 17 websocket configuration（unsolved）
+
+### 16 websocket configuration（unsolved）
 
 POST
 
