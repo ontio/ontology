@@ -110,6 +110,9 @@ func getBlock(hash common.Uint256, getTxBytes bool) (interface{}, int64) {
 	if err != nil {
 		return nil, berr.UNKNOWN_BLOCK
 	}
+	if block == nil {
+		return nil, berr.UNKNOWN_BLOCK
+	}
 	if block.Header == nil {
 		return nil, berr.UNKNOWN_BLOCK
 	}
