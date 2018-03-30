@@ -68,7 +68,7 @@ type filterload struct {
 	msgHdr
 }
 
-// Alloc different message stucture
+// Alloc different message structure
 // @t the message name or type
 // @len the message length only valid for varible length structure
 //
@@ -108,7 +108,7 @@ func AllocMsg(t string, length int) Messager {
 	case "inv":
 		var msg Inv
 		copy(msg.Hdr.CMD[0:len(t)], t)
-		// the 1 is the inv type lenght
+		// the 1 is the inv type length
 		msg.P.Blk = make([]byte, length-protocol.MSG_HDR_LEN-1)
 		return &msg
 	case "getdata":

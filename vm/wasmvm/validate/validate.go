@@ -47,7 +47,7 @@ func verifyBody(fn *wasm.FunctionSig, body *wasm.FunctionBody, module *wasm.Modu
 
 	localVariables := []operand{}
 
-	// Paramters count as local variables too
+	// Parameters count as local variables too
 	// This comment explains how local variables work: https://github.com/WebAssembly/design/issues/1037#issuecomment-293505798
 	for _, entry := range fn.ParamTypes {
 		localVariables = append(localVariables, operand{entry})

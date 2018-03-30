@@ -41,13 +41,13 @@ type mockVM struct {
 
 	code *bytes.Reader
 
-	polymorphic bool    // whether the base implict block has a polymorphic stack
+	polymorphic bool    // whether the base implicit block has a polymorphic stack
 	blocks      []block // a stack of encountered blocks
 
 	curFunc *wasm.FunctionSig
 }
 
-// a block reprsents an instruction sequence preceeded by a control flow operator
+// a block reprsents an instruction sequence preceded by a control flow operator
 // it is used to verify that the block signature set by the operator is the correct
 // one when the block ends
 type block struct {

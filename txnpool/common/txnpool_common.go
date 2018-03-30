@@ -74,7 +74,7 @@ type TxnStatsType uint8
 const (
 	_              TxnStatsType = iota
 	RcvStats                    // The count that the tx pool receive from the actor bus
-	SuccessStats                // The count that the transctions are verified successfully
+	SuccessStats                // The count that the transactions are verified successfully
 	FailureStats                // The count that the transactions are invalid
 	DuplicateStats              // The count that the transactions are duplicated input
 	SigErrStats                 // The count that the transactions' signature error

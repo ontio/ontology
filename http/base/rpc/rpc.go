@@ -56,8 +56,8 @@ func SetDefaultFunc(def func(http.ResponseWriter, *http.Request)) {
 	mainMux.defaultFunction = def
 }
 
-//this is the funciton that should be called in order to answer an rpc call
-//should be registered like "http.HandleFunc("/", httpjsonrpc.Handle)"
+// this is the function that should be called in order to answer an rpc call
+// should be registered like "http.HandleFunc("/", httpjsonrpc.Handle)"
 func Handle(w http.ResponseWriter, r *http.Request) {
 	mainMux.RLock()
 	defer mainMux.RUnlock()

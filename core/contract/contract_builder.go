@@ -29,7 +29,7 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 )
 
-//create a Single Singature contract for owner
+// create a Single Signature contract for owner
 func CreateSignatureContract(ownerPubKey keypair.PublicKey) (*Contract, error) {
 	temp := keypair.SerializePublicKey(ownerPubKey)
 	signatureRedeemScript, err := CreateSignatureRedeemScript(ownerPubKey)
@@ -54,7 +54,7 @@ func CreateSignatureRedeemScript(pubkey keypair.PublicKey) ([]byte, error) {
 	return sb.ToArray(), nil
 }
 
-//create a Multi Singature contract for owner  。
+// create a Multi Signature contract for owner  。
 func CreateMultiSigContract(publicKeyHash common.Address, m int, publicKeys []keypair.PublicKey) (*Contract, error) {
 
 	params := make([]ContractParameterType, m)

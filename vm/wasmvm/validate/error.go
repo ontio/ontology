@@ -88,5 +88,5 @@ func (e InvalidElementIndexError) Error() string {
 type NoSectionError wasm.SectionID
 
 func (e NoSectionError) Error() string {
-	return fmt.Sprintf("reference to non existant section (id %d) in module", wasm.SectionID(e))
+	return fmt.Sprintf("reference to non existent section (id %d) in module", wasm.SectionID(e))
 }

@@ -69,7 +69,7 @@ type node struct {
 	rxTxnCnt                 uint64   // The transaction received by this node
 	publicKey                keypair.PublicKey
 	chF                      chan func() error // Channel used to operate the node without lock
-	link                                       // The link status and infomation
+	link                                       // The link status and information
 	local                    *node             // The pointer to local node
 	nbrNodes                                   // The neighbor node connect with currently node except itself
 	eventQueue                                 // The event queue to notice notice other modules

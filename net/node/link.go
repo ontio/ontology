@@ -38,7 +38,7 @@ import (
 )
 
 type RxBuff struct {
-	// The RX buffer of this node to solve mutliple packets problem
+	// The RX buffer of this node to solve multiple packets problem
 	p   []byte
 	len int
 }

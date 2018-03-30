@@ -540,7 +540,7 @@ func (this *LedgerStoreImp) verifyBlock(block *types.Block) error {
 		return nil
 	}
 	if len(block.Transactions) == 0 {
-		return fmt.Errorf("transaction is emtpy")
+		return fmt.Errorf("transaction is empty")
 	}
 	txs := block.Transactions
 	size := len(txs)

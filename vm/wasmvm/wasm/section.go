@@ -741,7 +741,7 @@ func readLocalEntry(r io.Reader) (LocalEntry, error) {
 	return l, nil
 }
 
-// SectionData describes the intial values of a module's linear memory
+// SectionData describes the initial values of a module's linear memory
 type SectionData struct {
 	Section
 	Entries []DataSegment

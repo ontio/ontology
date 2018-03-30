@@ -310,7 +310,7 @@ func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) (retur
 	defer func() {
 		if err := recover(); err != nil {
 			returnbytes = nil
-			er = errors.New("[Call]error happend")
+			er = errors.New("[Call] error happened")
 		}
 	}()
 
