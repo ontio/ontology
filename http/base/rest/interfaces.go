@@ -333,9 +333,9 @@ func GetSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{
 	}
 	var evs []map[string]interface{}
 	for _, v := range eventInfos {
-		evs = append(evs, map[string]interface{}{"CodeHash": v.CodeHash,
+		evs = append(evs, map[string]interface{}{"CodeHash": v.CodeHash.ToHexString(),
 			"States": v.States,
-			"TxHash": v.TxHash})
+			"TxHash": common.ToHexString(v.TxHash[:])})
 	}
 	resp["Result"] = evs
 	return resp
