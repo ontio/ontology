@@ -119,6 +119,7 @@ func (i *WasmStateReader) RuntimeNotify(engine *exec.ExecutionEngine) (bool, err
 	txid := tran.Hash()
 
 	i.Notifications = append(i.Notifications, &event.NotifyEventInfo{TxHash: txid, ContractAddress: hash, States: []interface{}{common.ToHexString([]byte(returnStr))}})
+
 	vm.RestoreCtx()
 
 	return true, nil

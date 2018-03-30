@@ -26,6 +26,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/vm/wasmvm/memory"
 	"github.com/ontio/ontology/vm/wasmvm/util"
 )
@@ -70,6 +71,8 @@ func NewInteropService() *InteropService {
 	service.Register("RawUnmashal", rawUnmashal)
 	service.Register("JsonUnmashal", jsonUnmashal)
 	service.Register("JsonMashal", jsonMashal)
+	service.Register("JsonMashalParams", jsonMashalParams)
+	service.Register("RawMashalParams", rawMashalParams)
 	service.Register("GetCaller", GetCaller)
 	service.Register("GetSelfAddress", GetCodeHash)
 
@@ -662,4 +665,142 @@ func GetCodeHash(engine *ExecutionEngine) (bool, error) {
 		engine.vm.pushUint64(uint64(idx))
 	}
 	return true, nil
+}
+
+func jsonMashalParams(engine *ExecutionEngine) (bool, error) {
+	envCall := engine.vm.envCall
+	params := envCall.envParams
+	if len(params) != 1 {
+		return false, errors.New("[jsonMashalParams]parameter count error")
+	}
+
+	addr := params[0]
+
+	bytes, err := engine.vm.GetPointerMemory(addr)
+	if err != nil {
+		return false, errors.New("[jsonMashalParams] GetPointerMemory err:" + err.Error())
+	}
+
+	var pars []Param
+
+	bytesLen := len(bytes)
+	for i := 0; i < bytesLen; i++ {
+		typeIdx := binary.LittleEndian.Uint32(bytes[i : i+4])
+		typeBytes, err := engine.vm.GetPointerMemory(uint64(typeIdx))
+		if err != nil {
+			return false, errors.New("[jsonMashalParams] GetPointerMemory err:" + err.Error())
+		}
+
+		sType := strings.ToLower(util.TrimBuffToString(typeBytes))
+
+		param := Param{Ptype: sType}
+
+		switch sType {
+		case "int":
+			intBytes := int(binary.LittleEndian.Uint32(bytes[i+4 : i+8]))
+			param.Pval = strconv.Itoa(intBytes)
+			i += 7
+		case "int64":
+			intBytes := int64(binary.LittleEndian.Uint64(bytes[i+4 : i+12]))
+			param.Pval = strconv.FormatInt(intBytes, 10)
+			i += 11
+		case "string":
+			intBytes := uint64(binary.LittleEndian.Uint32(bytes[i+4 : i+8]))
+			str, err := engine.vm.GetPointerMemory(intBytes)
+			if err != nil {
+				return false, errors.New("[jsonMashalParams] GetPointerMemory err:" + err.Error())
+			}
+			param.Pval = util.TrimBuffToString(str)
+			i += 7
+		default:
+			return false, errors.New("[jsonMashalParams]  not support type :" + string(typeBytes))
+		}
+
+		pars = append(pars, param)
+	}
+
+	arg := &Args{Params: pars}
+	argJson, err := json.Marshal(arg)
+	if err != nil {
+		return false, errors.New("[jsonMashalParams] json.Marshal err:" + err.Error())
+	}
+
+	argIdx, err := engine.vm.SetPointerMemory(argJson)
+	if err != nil {
+		return false, errors.New("[jsonMashalParams] SetPointerMemory err:" + err.Error())
+	}
+	engine.vm.ctx = envCall.envPreCtx
+	if envCall.envReturns {
+		engine.vm.pushUint64(uint64(argIdx))
+	}
+
+	return true, nil
+
+}
+
+func rawMashalParams(engine *ExecutionEngine) (bool, error) {
+	envCall := engine.vm.envCall
+	params := envCall.envParams
+	if len(params) != 1 {
+		return false, errors.New("[jsonMashalParams]parameter count error")
+	}
+
+	addr := params[0]
+
+	pBytes, err := engine.vm.GetPointerMemory(addr)
+	if err != nil {
+		return false, errors.New("[jsonMashalParams] GetPointerMemory err:" + err.Error())
+	}
+	bf := bytes.NewBuffer(nil)
+
+	bytesLen := len(pBytes)
+	for i := 0; i < bytesLen; i++ {
+		typeIdx := binary.LittleEndian.Uint32(pBytes[i : i+4])
+		typeBytes, err := engine.vm.GetPointerMemory(uint64(typeIdx))
+		if err != nil {
+			return false, errors.New("[jsonMashalParams] GetPointerMemory err:" + err.Error())
+		}
+
+		sType := strings.ToLower(util.TrimBuffToString(typeBytes))
+
+		switch sType {
+		case "int":
+			intBytes := binary.LittleEndian.Uint32(pBytes[i+4 : i+8])
+			tmpBytes := make([]byte, 4)
+			binary.LittleEndian.PutUint32(tmpBytes, intBytes)
+			bf.Write(tmpBytes)
+			i += 7
+		case "int64":
+			intBytes := binary.LittleEndian.Uint64(pBytes[i+4 : i+12])
+			tmpBytes := make([]byte, 8)
+			binary.LittleEndian.PutUint64(tmpBytes, intBytes)
+			bf.Write(tmpBytes)
+			i += 11
+		case "string":
+			intBytes := uint64(binary.LittleEndian.Uint32(pBytes[i+4 : i+8]))
+			str, err := engine.vm.GetPointerMemory(intBytes)
+			if err != nil {
+				return false, errors.New("[jsonMashalParams] GetPointerMemory err:" + err.Error())
+			}
+
+			tmp := bytes.NewBuffer(nil)
+			serialization.WriteVarString(tmp, util.TrimBuffToString(str))
+			bf.Write(tmp.Bytes())
+			i += 7
+		default:
+			return false, errors.New("[jsonMashalParams]  not support type :" + string(typeBytes))
+		}
+
+	}
+
+	argIdx, err := engine.vm.SetPointerMemory(bf.Bytes())
+	if err != nil {
+		return false, errors.New("[jsonMashalParams] SetPointerMemory err:" + err.Error())
+	}
+	engine.vm.ctx = envCall.envPreCtx
+	if envCall.envReturns {
+		engine.vm.pushUint64(uint64(argIdx))
+	}
+	return true, nil
+
 }

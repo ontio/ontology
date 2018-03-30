@@ -828,3 +828,45 @@ func TestString(t *testing.T) {
 	}
 
 }
+
+func TestStructParams(t *testing.T) {
+	engine := NewExecutionEngine(nil, nil, nil, nil, "test")
+	//test
+	code, err := ioutil.ReadFile("./test_data2/structparams.wasm")
+	if err != nil {
+		fmt.Println("error in read file", err.Error())
+		return
+	}
+
+	input := make([]interface{}, 1)
+	input[0] = "invoke"
+
+	res, err := engine.CallInf(common.Address{}, code, input, nil)
+	if err != nil {
+		fmt.Println("call error!", err.Error())
+	}
+	fmt.Printf("res:%v\n", res)
+
+}
+
+func TestRawStructParams(t *testing.T) {
+	engine := NewExecutionEngine(nil, nil, nil, nil, "test")
+	//test
+	code, err := ioutil.ReadFile("./test_data2/rawstructparams.wasm")
+	if err != nil {
+		fmt.Println("error in read file", err.Error())
+		return
+	}
+
+	input := make([]interface{}, 1)
+	input[0] = "invoke"
+
+	res, err := engine.CallInf(common.Address{}, code, input, nil)
+	if err != nil {
+		fmt.Println("call error!", err.Error())
+	}
+	fmt.Printf("res:%v\n", res)
+	bytes, _ := engine.vm.GetPointerMemory(uint64(binary.LittleEndian.Uint32(res)))
+	fmt.Println(bytes)
+
+}

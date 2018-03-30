@@ -41,6 +41,10 @@ const (
 	PUnkown
 )
 
+const (
+	VM_NIL_POINTER = math.MaxInt64
+)
+
 type TypeLength struct {
 	Ptype  PType
 	Length int
@@ -99,7 +103,7 @@ func (vm *VMmemory) copyMemAndGetIdx(b []byte, p_type PType) (int, error) {
 
 func (vm *VMmemory) GetPointerMemSize(addr uint64) int {
 	//nil case
-	if addr == uint64(math.MaxInt64) {
+	if addr == uint64(VM_NIL_POINTER) {
 		return 0
 	}
 
@@ -114,7 +118,7 @@ func (vm *VMmemory) GetPointerMemSize(addr uint64) int {
 //when wasm returns a pointer, call this function to get the pointed memory
 func (vm *VMmemory) GetPointerMemory(addr uint64) ([]byte, error) {
 	//nil case
-	if addr == uint64(math.MaxInt64) {
+	if addr == uint64(VM_NIL_POINTER) {
 		return nil, nil
 	}
 
@@ -130,7 +134,7 @@ func (vm *VMmemory) SetPointerMemory(val interface{}) (int, error) {
 
 	////nil case
 	if val == nil {
-		return math.MaxInt64, nil
+		return VM_NIL_POINTER, nil
 	}
 
 	switch reflect.TypeOf(val).Kind() {

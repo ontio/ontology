@@ -139,8 +139,16 @@ func (this *SmartContract) Execute() error {
 			return errors.NewErr("get contract  error")
 		}
 
-		input := ctx.Code.Code[len(contractCode) + 1:]
-		res, err := engine.Call(ctx.ContractAddress, dpcode, input)
+
+		input := ctx.Code.Code[len(contractCode)+1:]
+		var caller common.Address
+		if this.CallingContext() == nil{
+			caller = common.Address{}
+		}else{
+			caller = this.CallingContext().ContractAddress
+		}
+		res, err := engine.Call(caller, dpcode, input)
+
 		if err != nil {
 			return err
 		}

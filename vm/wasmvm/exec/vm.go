@@ -334,10 +334,8 @@ func (vm *VM) ExecCode(insideCall bool, fnIndex int64, args ...uint64) (interfac
 	for i, arg := range args {
 		vm.ctx.locals[i] = arg
 	}
-
 	var rtrn interface{}
 	res := vm.execCode(insideCall, compiled)
-
 	// for the call contract case
 	if insideCall {
 		return res, nil
@@ -445,7 +443,7 @@ outer:
 }
 
 //start a new vm
-func (vm *VM) CallProductContract(module *wasm.Module, actionName []byte, arg []byte) (uint64, error) {
+func (vm *VM) CallProductContract(caller common.Address,codeHash common.Address,module *wasm.Module, actionName []byte, arg []byte) (uint64, error) {
 
 	methodName := CONTRACT_METHOD_NAME
 
@@ -463,6 +461,9 @@ func (vm *VM) CallProductContract(module *wasm.Module, actionName []byte, arg []
 	if err != nil {
 		return uint64(0), err
 	}
+
+	newvm.Caller = caller
+	newvm.CodeHash = codeHash
 	newvm.Services = vm.Services
 
 	engine := vm.Engine
@@ -478,7 +479,6 @@ func (vm *VM) CallProductContract(module *wasm.Module, actionName []byte, arg []
 	if err != nil {
 		return uint64(0), err
 	}
-
 	res, err := newvm.ExecCode(true, int64(index), uint64(actionIdx), uint64(argIdx))
 	if err != nil {
 		return uint64(0), err

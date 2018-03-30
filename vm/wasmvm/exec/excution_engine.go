@@ -305,12 +305,14 @@ func (e *ExecutionEngine) Create(caller common.Address, code []byte) ([]byte, er
 func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) (returnbytes []byte, er error) {
 
 	//catch the panic to avoid crash the whole node
-	defer func() {
-		if err := recover(); err != nil {
-			returnbytes = nil
-			er = errors.New("[Call] error happened")
-		}
-	}()
+	/*
+		defer func() {
+			if err := recover(); err != nil {
+				returnbytes = nil
+				er = errors.New("[Call] error happened")
+			}
+		}()
+	*/
 
 	if e.version != "test" {
 		methodName := CONTRACT_METHOD_NAME //fix to "invoke"
