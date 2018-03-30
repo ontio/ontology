@@ -25,7 +25,7 @@ The public test network is described below. We sincerely welcome and hope more d
 - Multiple encryption algorithm support
 - Highly optimized transaction processing speed
 - P2P link layer encryption (optional module)
-- Multiple consensus algorithm support (VBFT/DBFT/RBFT/SBFT)
+- Multiple consensus algorithm support (VBFT/DBFT/RBFT/SBFT/PoW)
 - Quick block generation time
 
 
