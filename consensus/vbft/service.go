@@ -38,6 +38,7 @@ import (
 	p2pmsg "github.com/Ontology/net/message"
 	"reflect"
 	"github.com/Ontology/events"
+	"github.com/Ontology/validator/increment"
 )
 
 type BftActionType uint8
@@ -68,12 +69,13 @@ type BlockParticipantConfig struct {
 }
 
 type Server struct {
-	Index     uint32
-	account   *account.Account
-	poolActor *actorTypes.TxPoolActor
-	p2p       *actorTypes.P2PActor
-	ledger    *actorTypes.LedgerActor
-	pid       *actor.PID
+	Index         uint32
+	account       *account.Account
+	poolActor     *actorTypes.TxPoolActor
+	p2p           *actorTypes.P2PActor
+	ledger        *actorTypes.LedgerActor
+	incrValidator *increment.IncrementValidator
+	pid           *actor.PID
 
 	privateKey keypair.PrivateKey
 
@@ -110,6 +112,7 @@ func NewVbftServer(account *account.Account, txpool, ledger, p2p *actor.PID) (*S
 		poolActor:          &actorTypes.TxPoolActor{Pool: txpool},
 		p2p:                &actorTypes.P2PActor{P2P: p2p},
 		ledger:             &actorTypes.LedgerActor{Ledger: ledger},
+		incrValidator:      increment.NewIncrementValidator(10),
 	}
 	server.stateMgr = newStateMgr(server)
 
@@ -203,6 +206,8 @@ func (self *Server) handlePeerStateUpdate(peer *p2pmsg.PeerStateUpdate) {
 
 func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 	log.Infof("persist block: %x", block.Hash())
+
+	self.incrValidator.AddBlock(block)
 
 	// TODO: why this?
 	//self.p2p.Broadcast(block.Hash())
@@ -362,7 +367,12 @@ func (self *Server) start() error {
 func (self *Server) stop() error {
 
 	// TODO
+<<<<<<< HEAD
 	self.sub.Unsubscribe(message.TopicSaveBlockComplete)
+=======
+	self.incrValidator.Clean()
+	self.sub.Unsubscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
+>>>>>>> 44663ad... add tx validator
 	return nil
 }
 
@@ -1704,12 +1714,24 @@ func (self *Server) createBookkeepingTransaction(nonce uint64, fee uint64) *type
 func (self *Server) makeProposal(blkNum uint64, forEmpty bool) error {
 	var txs []*types.Transaction
 
+	height := uint32(blkNum) - 1
+	validHeight := height
+	start, end := self.incrValidator.BlockRange()
+	if height+1 == end {
+		validHeight = start
+	} else {
+		self.incrValidator.Clean()
+	}
+
 	// FIXME: self.index as nonce??
+	// FIXME: fix feesum calculation
 	txBookkeeping := self.createBookkeepingTransaction(uint64(self.Index), 0)
 	txs = append(txs, txBookkeeping)
 	if !forEmpty {
-		for _, e := range self.poolActor.GetTxnPool(true, uint32(blkNum-1)) {
-			txs = append(txs, e.Tx)
+		for _, e := range self.poolActor.GetTxnPool(true, uint32(validHeight)) {
+			if err := self.incrValidator.Verify(e.Tx, uint32(validHeight)); err == nil {
+				txs = append(txs, e.Tx)
+			}
 		}
 	}
 
