@@ -82,8 +82,8 @@ func (msg dataReq) Handle(node protocol.Noder) error {
 
 func NewBlockFromHash(hash common.Uint256) (*types.Block, error) {
 	bk, err := actor.GetBlockByHash(hash)
-	if err != nil {
-		log.Errorf("Get Block error: %s, block hash: %x", err.Error(), hash)
+	if err != nil || bk == nil {
+		log.Errorf("Get Block error: %s, block hash: %x", err, hash)
 		return nil, err
 	}
 	if bk == nil {
