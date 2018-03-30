@@ -31,7 +31,7 @@ The public test network is described below. We sincerely welcome and hope more d
 
 * [Build development environment](#build-development-environment)
 * [Deployment and test](#deployment-and-test)
-	* [Get ontology](#get-ontology)
+	* [Get Ontology](#get-ontology)
 		* [Get from source code](#get-from-source-code)
 	* [Create ONT wallet file](#create-ont-wallet-file)
 	* [Server deployment](#server-deployment)
@@ -55,10 +55,10 @@ The requirements to build Ontology are:
 - Golang supported operating system
 
 # Deployment and test
-## Get ontology
+## Get Ontology
 ### Get from source code
 
-Clone the ontology repository into the appropriate $GOPATH/src directory.
+Clone the Ontology repository into the appropriate $GOPATH/src directory.
 
 ```
 $ git clone https://github.com/ontio/ontology.git
@@ -87,10 +87,10 @@ After building the source code sucessfully, you should see two executable progra
 
 ## Create ONT wallet file
 
-## Create ontology wallet
+## Create Ontology wallet
 ONT supports multiple encryption methods for generating accounts, but can set a default in config.json such as SHA256withECDSA. 
 
-Create wallet cmd：
+Create wallet cmd:
 ```shell
 $ ./nodectl wallet --create --name wallet.dat --password passwordtest --encrypt=SHA512withEdDSA
 
@@ -98,7 +98,7 @@ Note: Set wallet password by parameter -p.
 
 ```
 
-To show the wallet info：
+To show the wallet info:
 
 ```shell
 $ ./nodectl wallet --list account
@@ -128,7 +128,7 @@ ONT supported crypto (<hash>with<dsa>):
 
 ## Server deployment
 
-To run ontology successfully,  nodes can be deployed by two ways:
+To run Ontology successfully,  nodes can be deployed by two ways:
 
 - Single-host deployment
 - Multi-hosts deployment
@@ -159,7 +159,7 @@ $ tree
 
 We can perform a quick deployment by modifying the default configuration file `config.json`.
 
-1. Copy related file into target host, including：
+1. Copy related file into target host, including:
 
    - Default configuration file`config.json`
    - Node program`ontology`
