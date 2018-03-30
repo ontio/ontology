@@ -41,9 +41,9 @@ func newConsensusRound(num uint64) *ConsensusRound {
 		msgHashs: make(map[common.Uint256]interface{}),
 	}
 
-	r.msgs[blockProposalMessage] = make([]ConsensusMsg, 0)
-	r.msgs[blockEndorseMessage] = make([]ConsensusMsg, 0)
-	r.msgs[blockCommitMessage] = make([]ConsensusMsg, 0)
+	r.msgs[BlockProposalMessage] = make([]ConsensusMsg, 0)
+	r.msgs[BlockEndorseMessage] = make([]ConsensusMsg, 0)
+	r.msgs[BlockCommitMessage] = make([]ConsensusMsg, 0)
 
 	return r
 }
@@ -136,7 +136,7 @@ func (pool *MsgPool) GetProposalMsgs(blocknum uint64) []ConsensusMsg {
 	if !ok {
 		return nil
 	}
-	msgs, ok := roundMsgs.msgs[blockProposalMessage]
+	msgs, ok := roundMsgs.msgs[BlockProposalMessage]
 	if !ok {
 		return nil
 	}
@@ -151,7 +151,7 @@ func (pool *MsgPool) GetEndorsementsMsgs(blocknum uint64) []ConsensusMsg {
 	if !ok {
 		return nil
 	}
-	msgs, ok := roundMsgs.msgs[blockEndorseMessage]
+	msgs, ok := roundMsgs.msgs[BlockEndorseMessage]
 	if !ok {
 		return nil
 	}
@@ -166,7 +166,7 @@ func (pool *MsgPool) GetCommitMsgs(blocknum uint64) []ConsensusMsg {
 	if !ok {
 		return nil
 	}
-	msg, ok := roundMsgs.msgs[blockCommitMessage]
+	msg, ok := roundMsgs.msgs[BlockCommitMessage]
 	if !ok {
 		return nil
 	}

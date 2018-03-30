@@ -43,12 +43,12 @@ import (
 type BftActionType uint8
 
 const (
-	makeProposal BftActionType = iota
-	endorseBlock
-	commitBlock
-	sealBlock
-	fastForward // for syncer catch up
-	reBroadcast
+	MakeProposal BftActionType = iota
+	EndorseBlock
+	CommitBlock
+	SealBlock
+	FastForward // for syncer catch up
+	ReBroadcast
 )
 
 type BftAction struct {
@@ -259,7 +259,7 @@ func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
 	endorseBlockTimeout = time.Duration(cfg.HashMsgDelay * 2)
 	commitBlockTimeout = time.Duration(cfg.HashMsgDelay * 3)
 	peerHandshakeTimeout = time.Duration(cfg.PeerHandshakeTimeout)
-	zeroTxBlockTimeout = time.Duration(cfg.BlockMsgDelay *3)
+	zeroTxBlockTimeout = time.Duration(cfg.BlockMsgDelay * 3)
 	// TODO: load sealed blocks from chainStore
 
 	// protected by server.metaLock
@@ -553,7 +553,7 @@ func (self *Server) packProposal(blkNum uint64) error {
 		self.log.Infof("server %d, proposer for block %d", self.Index, blkNum)
 		// FIXME: possible deadlock on channel
 		self.bftActionC <- &BftAction{
-			Type:     makeProposal,
+			Type:     MakeProposal,
 			forEmpty: false,
 		}
 	} else if self.is2ndProposer(blkNum, self.Index) {
@@ -576,7 +576,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 	}
 
 	switch msg.Type() {
-	case blockProposalMessage:
+	case BlockProposalMessage:
 		pMsg, ok := msg.(*blockProposalMsg)
 		if !ok {
 			self.log.Error("invalid msg with proposal msg type")
@@ -603,7 +603,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 		} else if msgBlkNum < self.GetCurrentBlockNo() {
 
 			if msgBlkNum <= self.GetCommittedBlockNo() {
-				if msgBlkNum+maxSyncingCheckBlkNum < self.GetCommittedBlockNo() {
+				if msgBlkNum+MAX_SYNCING_CHECK_BLK_NUM < self.GetCommittedBlockNo() {
 					self.log.Infof("server %d get proposal msg for block %d, from %d, current committed %d",
 						self.Index, msgBlkNum, pMsg.Block.getProposer(), self.GetCommittedBlockNo())
 					self.timer.C <- &TimerEvent{
@@ -630,7 +630,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 			self.processConsensusMsg(msg)
 		}
 
-	case blockEndorseMessage:
+	case BlockEndorseMessage:
 		pMsg, ok := msg.(*blockEndorseMsg)
 		if !ok {
 			self.log.Error("invalid msg with endorse msg type")
@@ -657,7 +657,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 			}
 		} else if msgBlkNum < self.GetCurrentBlockNo() {
 			if msgBlkNum <= self.GetCommittedBlockNo() {
-				if msgBlkNum+maxSyncingCheckBlkNum < self.GetCommittedBlockNo() {
+				if msgBlkNum+MAX_SYNCING_CHECK_BLK_NUM < self.GetCommittedBlockNo() {
 					self.log.Infof("server %d get endorse msg for block %d, from %d, current committed %d",
 						self.Index, msgBlkNum, pMsg.Endorser, self.GetCommittedBlockNo())
 					self.timer.C <- &TimerEvent{
@@ -685,7 +685,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 			self.processConsensusMsg(msg)
 		}
 
-	case blockCommitMessage:
+	case BlockCommitMessage:
 		pMsg, ok := msg.(*blockCommitMsg)
 		if !ok {
 			self.log.Error("invalid msg with commit msg type")
@@ -712,7 +712,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 
 		} else if msgBlkNum < self.GetCurrentBlockNo() {
 			if msgBlkNum <= self.GetCommittedBlockNo() {
-				if msgBlkNum+maxSyncingCheckBlkNum < self.GetCommittedBlockNo() {
+				if msgBlkNum+MAX_SYNCING_CHECK_BLK_NUM < self.GetCommittedBlockNo() {
 					self.log.Infof("server %d get commit msg for block %d, from %d, current committed %d",
 						self.Index, msgBlkNum, pMsg.Committer, self.GetCommittedBlockNo())
 					self.timer.C <- &TimerEvent{
@@ -738,7 +738,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 			}
 			self.processConsensusMsg(msg)
 		}
-	case peerHeartbeatMessage:
+	case PeerHeartbeatMessage:
 		pMsg, ok := msg.(*peerHeartbeatMsg)
 		if !ok {
 			self.log.Errorf("invalid msg with heartbeat msg type")
@@ -747,7 +747,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 		if err := self.processHeartbeatMsg(peerIdx, pMsg); err != nil {
 			self.log.Errorf("server %d, failed to process heartbeat %d: %s", self.Index, peerIdx, err)
 		}
-		if pMsg.CommittedBlockNumber+maxSyncingCheckBlkNum < self.GetCommittedBlockNo() {
+		if pMsg.CommittedBlockNumber+MAX_SYNCING_CHECK_BLK_NUM < self.GetCommittedBlockNo() {
 			// delayed peer detected, response heartbeat with our chain Info
 			self.timer.C <- &TimerEvent{
 				evtType:  EventPeerHeartbeat,
@@ -755,7 +755,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 			}
 		}
 
-	case proposalFetchMessage:
+	case ProposalFetchMessage:
 		pMsg, ok := msg.(*proposalFetchMsg)
 		if !ok {
 			self.log.Errorf("invalid msg with proposal fetch msg type")
@@ -790,7 +790,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 				self.Index, pMsg.BlockNum, peerIdx)
 		}
 
-	case blockFetchMessage:
+	case BlockFetchMessage:
 		// handle block fetch msg
 		pMsg, ok := msg.(*blockFetchMsg)
 		if !ok {
@@ -809,13 +809,13 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 			}
 		}
 
-	case blockFetchRespMessage:
+	case BlockFetchRespMessage:
 		self.syncer.syncMsgC <- &SyncMsg{
 			fromPeer: peerIdx,
 			msg:      msg,
 		}
 
-	case blockInfoFetchMessage:
+	case BlockInfoFetchMessage:
 		// handle block Info fetch msg
 		pMsg, ok := msg.(*BlockInfoFetchMsg)
 		if !ok {
@@ -851,7 +851,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 			}
 		}
 
-	case blockInfoFetchRespMessage:
+	case BlockInfoFetchRespMessage:
 		self.syncer.syncMsgC <- &SyncMsg{
 			fromPeer: peerIdx,
 			msg:      msg,
@@ -873,7 +873,7 @@ func (self *Server) processMsgEvent() error {
 			self.Index, msg.GetBlockNum(), msg.Type(), self.GetCurrentBlockNo())
 
 		switch msg.Type() {
-		case blockProposalMessage:
+		case BlockProposalMessage:
 			pMsg := msg.(*blockProposalMsg)
 
 			if err := self.validateTxsInProposal(pMsg); err != nil {
@@ -927,7 +927,7 @@ func (self *Server) processMsgEvent() error {
 				// TODO
 			}
 
-		case blockEndorseMessage:
+		case BlockEndorseMessage:
 			pMsg := msg.(*blockEndorseMsg)
 			msgBlkNum := pMsg.GetBlockNum()
 
@@ -985,7 +985,7 @@ func (self *Server) processMsgEvent() error {
 				// 2. endorsed proposal is from next potential-leader
 			}
 
-		case blockCommitMessage:
+		case BlockCommitMessage:
 			pMsg := msg.(*blockCommitMsg)
 			msgBlkNum := pMsg.GetBlockNum()
 
@@ -1038,7 +1038,7 @@ func (self *Server) actionLoop() {
 		select {
 		case action := <-self.bftActionC:
 			switch action.Type {
-			case makeProposal:
+			case MakeProposal:
 				// this may triggered when block sealed or random backoff of 2nd proposer
 				blkNum := self.GetCurrentBlockNo()
 				if err := self.makeProposal(blkNum, action.forEmpty); err != nil {
@@ -1046,7 +1046,7 @@ func (self *Server) actionLoop() {
 						self.Index, blkNum, err)
 				}
 
-			case endorseBlock:
+			case EndorseBlock:
 				// endorse the proposal
 				blkNum := action.Proposal.GetBlockNum()
 				if err := self.endorseBlock(action.Proposal, action.forEmpty); err != nil {
@@ -1055,14 +1055,14 @@ func (self *Server) actionLoop() {
 					continue
 				}
 
-			case commitBlock:
+			case CommitBlock:
 				blkNum := action.Proposal.GetBlockNum()
 				if err := self.commitBlock(action.Proposal, action.forEmpty); err != nil {
 					self.log.Errorf("server %d failed to commit block proposal (%d): %s",
 						self.Index, blkNum, err)
 					continue
 				}
-			case sealBlock:
+			case SealBlock:
 				if action.Proposal.GetBlockNum() < self.GetCurrentBlockNo() {
 					continue
 				}
@@ -1070,7 +1070,7 @@ func (self *Server) actionLoop() {
 					self.log.Errorf("%d failed to seal block (%d): %s",
 						self.Index, action.Proposal.GetBlockNum(), err)
 				}
-			case fastForward:
+			case FastForward:
 				// 1. from current block num, check commit msgs in msg pool
 				// 2. if commit consensused, seal the proposal
 				for {
@@ -1164,7 +1164,7 @@ func (self *Server) actionLoop() {
 					}
 				}
 
-			case reBroadcast:
+			case ReBroadcast:
 				blkNum := self.GetCurrentBlockNo()
 				proposals := make([]*blockProposalMsg, 0)
 				for _, msg := range self.msgPool.GetProposalMsgs(blkNum) {
@@ -1767,7 +1767,7 @@ func (self *Server) makeSealed(proposal *blockProposalMsg, forEmpty bool) error 
 
 	// seal the block
 	self.bftActionC <- &BftAction{
-		Type:     sealBlock,
+		Type:     SealBlock,
 		Proposal: proposal,
 		forEmpty: forEmpty,
 	}
@@ -1776,14 +1776,14 @@ func (self *Server) makeSealed(proposal *blockProposalMsg, forEmpty bool) error 
 
 func (self *Server) makeFastForward() error {
 	self.bftActionC <- &BftAction{
-		Type: fastForward,
+		Type: FastForward,
 	}
 	return nil
 }
 
 func (self *Server) reBroadcastCurrentRoundMsgs() error {
 	self.bftActionC <- &BftAction{
-		Type: reBroadcast,
+		Type: ReBroadcast,
 	}
 	return nil
 }
@@ -1844,7 +1844,7 @@ func (self *Server) handleProposalTimeout(evt *TimerEvent) error {
 		}
 
 		self.bftActionC <- &BftAction{
-			Type:     endorseBlock,
+			Type:     EndorseBlock,
 			Proposal: proposal,
 			forEmpty: false,
 		}

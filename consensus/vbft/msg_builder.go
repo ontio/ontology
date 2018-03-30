@@ -47,61 +47,61 @@ func DeserializeVbftMsg(msgPayload []byte) (ConsensusMsg, error) {
 	}
 
 	switch m.Type {
-	case blockProposalMessage:
+	case BlockProposalMessage:
 		t := &blockProposalMsg{}
 		if err := t.UnmarshalJSON(m.Payload); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
 		}
 		return t, nil
-	case blockEndorseMessage:
+	case BlockEndorseMessage:
 		t := &blockEndorseMsg{}
 		if err := json.Unmarshal(m.Payload, t); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
 		}
 		return t, nil
-	case blockCommitMessage:
+	case BlockCommitMessage:
 		t := &blockCommitMsg{}
 		if err := json.Unmarshal(m.Payload, t); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
 		}
 		return t, nil
-	case peerHandshakeMessage:
+	case PeerHandshakeMessage:
 		t := &peerHandshakeMsg{}
 		if err := json.Unmarshal(m.Payload, t); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
 		}
 		return t, nil
-	case peerHeartbeatMessage:
+	case PeerHeartbeatMessage:
 		t := &peerHeartbeatMsg{}
 		if err := json.Unmarshal(m.Payload, t); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
 		}
 		return t, nil
-	case blockInfoFetchMessage:
+	case BlockInfoFetchMessage:
 		t := &BlockInfoFetchMsg{}
 		if err := json.Unmarshal(m.Payload, t); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
 		}
 		return t, nil
-	case blockInfoFetchRespMessage:
+	case BlockInfoFetchRespMessage:
 		t := &BlockInfoFetchRespMsg{}
 		if err := json.Unmarshal(m.Payload, t); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
 		}
 		return t, nil
-	case blockFetchMessage:
+	case BlockFetchMessage:
 		t := &blockFetchMsg{}
 		if err := json.Unmarshal(m.Payload, t); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
 		}
 		return t, nil
-	case blockFetchRespMessage:
+	case BlockFetchRespMessage:
 		t := &BlockFetchRespMsg{}
 		if err := t.Deserialize(m.Payload); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
 		}
 		return t, nil
-	case proposalFetchMessage:
+	case ProposalFetchMessage:
 		t := &proposalFetchMsg{}
 		if err := json.Unmarshal(m.Payload, t); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)

@@ -34,15 +34,15 @@ func generTestData() []byte {
 	chainPeers = append(chainPeers, peerconfig)
 
 	tests := &ChainConfig{
-		Version:       1,
-		View:          12,
-		N:             4,
-		F:             3,
-		BlockMsgDelay: 1000,
-		HashMsgDelay:  1000,
-		PeerHandshakeTimeout:10000,
-		Peers:         chainPeers,
-		PosTable:      []uint32{2, 3, 1, 3, 1, 3, 2, 3, 2, 3, 2, 1, 3},
+		Version:              1,
+		View:                 12,
+		N:                    4,
+		F:                    3,
+		BlockMsgDelay:        1000,
+		HashMsgDelay:         1000,
+		PeerHandshakeTimeout: 10000,
+		Peers:                chainPeers,
+		PosTable:             []uint32{2, 3, 1, 3, 1, 3, 2, 3, 2, 3, 2, 1, 3},
 	}
 	cc := new(bytes.Buffer)
 	tests.Serialize(cc)
@@ -57,11 +57,8 @@ func TestDeserialize(t *testing.T) {
 	res := generTestData()
 	test := &ChainConfig{}
 	err := test.Deserialize(bytes.NewReader(res))
-
 	if err != nil {
 		t.Log("test failed ")
 	}
 	fmt.Printf("version: %d, F:%d \n", test.Version, test.F)
-	fmt.Println("peers:      ", test.Peers[0].ID.String())
-	fmt.Println("dpostable:", test.PosTable[0])
 }

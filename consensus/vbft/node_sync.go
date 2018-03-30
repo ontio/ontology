@@ -360,7 +360,7 @@ func (self *PeerSyncer) requestBlock(blkNum uint64) (*Block, error) {
 	select {
 	case msg := <-self.msgC:
 		switch msg.Type() {
-		case blockFetchRespMessage:
+		case BlockFetchRespMessage:
 			pMsg, ok := msg.(*BlockFetchRespMsg)
 			if !ok {
 				// log error
@@ -390,7 +390,7 @@ func (self *PeerSyncer) requestBlockInfo(startBlkNum uint64) ([]*BlockInfo_, err
 	select {
 	case msg := <-self.msgC:
 		switch msg.Type() {
-		case blockInfoFetchRespMessage:
+		case BlockInfoFetchRespMessage:
 			pMsg, ok := msg.(*BlockInfoFetchRespMsg)
 			if !ok {
 				// log error

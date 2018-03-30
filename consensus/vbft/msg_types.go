@@ -24,6 +24,7 @@ import (
 	"fmt"
 
 	common "github.com/Ontology/common"
+	"github.com/Ontology/common/serialization"
 	vconfig "github.com/Ontology/consensus/vbft/config"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
@@ -33,18 +34,18 @@ import (
 type MsgType uint8
 
 const (
-	blockProposalMessage MsgType = iota
-	blockEndorseMessage
-	blockCommitMessage
+	BlockProposalMessage MsgType = iota
+	BlockEndorseMessage
+	BlockCommitMessage
 
-	peerHandshakeMessage
-	peerHeartbeatMessage
+	PeerHandshakeMessage
+	PeerHeartbeatMessage
 
-	blockInfoFetchMessage
-	blockInfoFetchRespMessage
-	proposalFetchMessage
-	blockFetchMessage
-	blockFetchRespMessage
+	BlockInfoFetchMessage
+	BlockInfoFetchRespMessage
+	ProposalFetchMessage
+	BlockFetchMessage
+	BlockFetchRespMessage
 )
 
 type ConsensusMsg interface {
@@ -59,13 +60,12 @@ type blockProposalMsg struct {
 }
 
 func (msg *blockProposalMsg) Type() MsgType {
-	return blockProposalMessage
+	return BlockProposalMessage
 }
 
 func (msg *blockProposalMsg) Verify(pub *crypto.PubKey) error {
 
 	// FIXME
-
 	return nil
 }
 
@@ -98,7 +98,7 @@ func (msg *blockProposalMsg) MarshalJSON() ([]byte, error) {
 }
 
 type FaultyReport struct {
-	FaultyID      uint32  `json:"faulty_id"`
+	FaultyID      uint32         `json:"faulty_id"`
 	FaultyMsgHash common.Uint256 `json:"faulty_block_hash"`
 }
 
@@ -106,14 +106,14 @@ type blockEndorseMsg struct {
 	Endorser          uint32          `json:"endorser"`
 	EndorsedProposer  uint32          `json:"endorsed_proposer"`
 	BlockNum          uint64          `json:"block_num"`
-	EndorsedBlockHash common.Uint256         `json:"endorsed_block_hash"`
+	EndorsedBlockHash common.Uint256  `json:"endorsed_block_hash"`
 	EndorseForEmpty   bool            `json:"endorse_for_empty"`
 	FaultyProposals   []*FaultyReport `json:"faulty_proposals"`
 	Sig               []byte          `json:"sig"`
 }
 
 func (msg *blockEndorseMsg) Type() MsgType {
-	return blockEndorseMessage
+	return BlockEndorseMessage
 }
 
 func (msg *blockEndorseMsg) Verify(pub *crypto.PubKey) error {
@@ -145,14 +145,14 @@ type blockCommitMsg struct {
 	Committer       uint32          `json:"committer"`
 	BlockProposer   uint32          `json:"block_proposer"`
 	BlockNum        uint64          `json:"block_num"`
-	CommitBlockHash common.Uint256         `json:"commit_block_hash"`
+	CommitBlockHash common.Uint256  `json:"commit_block_hash"`
 	CommitForEmpty  bool            `json:"commit_for_empty"`
 	FaultyVerifies  []*FaultyReport `json:"faulty_verifies"`
 	Sig             []byte          `json:"sig"`
 }
 
 func (msg *blockCommitMsg) Type() MsgType {
-	return blockCommitMessage
+	return BlockCommitMessage
 }
 
 func (msg *blockCommitMsg) Verify(pub *crypto.PubKey) error {
@@ -182,14 +182,14 @@ func (msg *blockCommitMsg) Serialize() ([]byte, error) {
 
 type peerHandshakeMsg struct {
 	CommittedBlockNumber uint64               `json:"committed_block_number"`
-	CommittedBlockHash   common.Uint256              `json:"committed_block_hash"`
+	CommittedBlockHash   common.Uint256       `json:"committed_block_hash"`
 	CommittedBlockLeader uint32               `json:"committed_block_leader"`
 	ChainConfig          *vconfig.ChainConfig `json:"chain_config"`
 	Sig                  []byte               `json:"sig"`
 }
 
 func (msg *peerHandshakeMsg) Type() MsgType {
-	return peerHandshakeMessage
+	return PeerHandshakeMessage
 }
 
 func (msg *peerHandshakeMsg) Verify(pub *crypto.PubKey) error {
@@ -218,15 +218,15 @@ func (msg *peerHandshakeMsg) Serialize() ([]byte, error) {
 }
 
 type peerHeartbeatMsg struct {
-	CommittedBlockNumber uint64  `json:"committed_block_number"`
+	CommittedBlockNumber uint64         `json:"committed_block_number"`
 	CommittedBlockHash   common.Uint256 `json:"committed_block_hash"`
-	CommittedBlockLeader uint32  `json:"committed_block_leader"`
-	ChainConfigView      uint32  `json:"chain_config_view"`
-	Sig                  []byte  `json:"sig"`
+	CommittedBlockLeader uint32         `json:"committed_block_leader"`
+	ChainConfigView      uint32         `json:"chain_config_view"`
+	Sig                  []byte         `json:"sig"`
 }
 
 func (msg *peerHeartbeatMsg) Type() MsgType {
-	return peerHeartbeatMessage
+	return PeerHeartbeatMessage
 }
 
 func (msg *peerHeartbeatMsg) Verify(pub *crypto.PubKey) error {
@@ -260,7 +260,7 @@ type BlockInfoFetchMsg struct {
 }
 
 func (msg *BlockInfoFetchMsg) Type() MsgType {
-	return blockInfoFetchMessage
+	return BlockInfoFetchMessage
 }
 
 func (msg *BlockInfoFetchMsg) Verify(pub *crypto.PubKey) error {
@@ -300,7 +300,7 @@ type BlockInfoFetchRespMsg struct {
 }
 
 func (msg *BlockInfoFetchRespMsg) Type() MsgType {
-	return blockInfoFetchRespMessage
+	return BlockInfoFetchRespMessage
 }
 
 func (msg *BlockInfoFetchRespMsg) Verify(pub *crypto.PubKey) error {
@@ -335,7 +335,7 @@ type blockFetchMsg struct {
 }
 
 func (msg *blockFetchMsg) Type() MsgType {
-	return blockFetchMessage
+	return BlockFetchMessage
 }
 
 func (msg *blockFetchMsg) Verify(pub *crypto.PubKey) error {
@@ -364,14 +364,14 @@ func (msg *blockFetchMsg) Serialize() ([]byte, error) {
 }
 
 type BlockFetchRespMsg struct {
-	BlockNumber uint64  `json:"block_number"`
+	BlockNumber uint64         `json:"block_number"`
 	BlockHash   common.Uint256 `json:"block_hash"`
-	BlockData   *Block  `json:"block_data"`
-	Sig         []byte  `json:"sig"`
+	BlockData   *Block         `json:"block_data"`
+	Sig         []byte         `json:"sig"`
 }
 
 func (msg *BlockFetchRespMsg) Type() MsgType {
-	return blockFetchRespMessage
+	return BlockFetchRespMessage
 }
 
 func (msg *BlockFetchRespMsg) Verify(pub *crypto.PubKey) error {
@@ -397,15 +397,15 @@ func (msg *BlockFetchRespMsg) GetBlockNum() uint64 {
 
 func (msg *BlockFetchRespMsg) Serialize() ([]byte, error) {
 	buffer := bytes.NewBuffer([]byte{})
-	serialization.WriteUint64(buffer,msg.BlockNumber)
+	serialization.WriteUint64(buffer, msg.BlockNumber)
 	msg.BlockHash.Serialize(buffer)
-	blockbuff,err := msg.BlockData.Serialize()
+	blockbuff, err := msg.BlockData.Serialize()
 	if err != nil {
-		return nil ,err
+		return nil, err
 	}
 	buffer.Write(blockbuff)
-	serialization.WriteVarBytes(buffer,msg.Sig)
-	return buffer.Bytes(),nil
+	serialization.WriteVarBytes(buffer, msg.Sig)
+	return buffer.Bytes(), nil
 }
 
 func (msg *BlockFetchRespMsg) Deserialize(data []byte) error {
@@ -443,7 +443,7 @@ type proposalFetchMsg struct {
 }
 
 func (msg *proposalFetchMsg) Type() MsgType {
-	return proposalFetchMessage
+	return ProposalFetchMessage
 }
 
 func (msg *proposalFetchMsg) Verify(pub *crypto.PubKey) error {
