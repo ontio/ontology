@@ -24,6 +24,7 @@ import (
 	"math/rand"
 	"sync"
 	"time"
+
 	"github.com/Ontology/common/log"
 )
 
@@ -49,8 +50,8 @@ var (
 	endorseBlockTimeout    = 100 * time.Millisecond
 	commitBlockTimeout     = 200 * time.Millisecond
 	peerHandshakeTimeout   = 10 * time.Second
-	txPooltimeout		   = 1 *  time.Second
-	zeroTxBlockTimeout 	   = 10 * time.Second
+	txPooltimeout          = 1 * time.Second
+	zeroTxBlockTimeout     = 10 * time.Second
 )
 
 type SendMsgEvent struct {
@@ -346,7 +347,7 @@ func (self *EventTimer) StartTxBlockTimeout(blockNum uint64) error {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
-	return self.startEventTimer(EventTxBlockTimeout,blockNum)
+	return self.startEventTimer(EventTxBlockTimeout, blockNum)
 }
 
 func (self *EventTimer) CancelTxBlockTimeout(blockNum uint64) error {
@@ -387,7 +388,6 @@ func (self *EventTimer) stopPeerTicker(peerIdx uint32) error {
 	}
 	return nil
 }
-
 
 func (self *EventTimer) startTxTicker(blockNum uint64) error {
 	self.lock.Lock()
