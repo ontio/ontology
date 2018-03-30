@@ -20,6 +20,7 @@ package vbft
 
 import (
 	"time"
+
 	"github.com/Ontology/common/log"
 )
 
