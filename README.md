@@ -60,16 +60,19 @@ The requirements to build Ontology are:
 ## Get Ontology
 ### Get from source code
 
-Clone the Ontology repository into the appropriate $GOPATH/src directory.
+Clone the Ontology repository into the appropriate $GOPATH/src/github.com/ontio directory.
 
 ```
 $ git clone https://github.com/ontio/ontology.git
 ```
-
+or
+```
+$ go get github.com/ontio/ontology
+```
 Fetch the dependent third party packages with glide.
 
 ```
-$ cd ontology
+$ cd $GOPATH/src/github.com/ontio/ontology
 $ glide install
 ```
 
