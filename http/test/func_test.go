@@ -38,7 +38,7 @@ import (
 )
 
 func TestCodeHash(t *testing.T) {
-	code, _ := common.HexToBytes("aa")
+	code, _ := common.HexToBytes("")
 	vmcode := vmtypes.VmCode{vmtypes.NEOVM, code}
 	codehash := vmcode.AddressFromVmCode()
 	fmt.Println(codehash.ToHexString())
@@ -80,7 +80,7 @@ func TestMultiPubKeysAddress(t *testing.T) {
 		fmt.Println(err)
 		os.Exit(0)
 	}
-	ui60, _ := types.AddressFromMultiPubKeys([]*keypair.PublicKey{pk, pk2}, 1)
+	ui60, _ := types.AddressFromMultiPubKeys([]keypair.PublicKey{pk, pk2}, 1)
 	addr := common.ToHexString(ui60[:])
 	fmt.Println(addr)
 	fmt.Println(ui60.ToBase58())
@@ -121,7 +121,6 @@ func TestInvokefunction(t *testing.T) {
 	common.ToHexString(txbf.Bytes())
 }
 func BuildSmartContractParamInter(builder *neovm.ParamsBuilder, smartContractParams []interface{}) error {
-	//虚拟机参数入栈时会反序
 	for i := len(smartContractParams) - 1; i >= 0; i-- {
 		switch v := smartContractParams[i].(type) {
 		case bool:

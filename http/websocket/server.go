@@ -31,13 +31,14 @@ import (
 	Err "github.com/ontio/ontology/http/base/error"
 	"github.com/ontio/ontology/http/base/rest"
 	"github.com/ontio/ontology/http/websocket/websocket"
+	"github.com/ontio/ontology/smartcontract/event"
 )
 
 var ws *websocket.WsServer
 var (
-	pushBlockFlag    bool = false
-	pushRawBlockFlag bool = false
-	pushBlockTxsFlag bool = false
+	pushBlockFlag    = false
+	pushRawBlockFlag = false
+	pushBlockTxsFlag = false
 )
 
 func StartServer() {
@@ -100,17 +101,32 @@ func SetTxHashMap(txhash string, sessionid string) {
 }
 
 func PushSmartCodeEvent(v interface{}) {
-	if ws != nil {
-		log.Info("[PushSmartCodeEvent]", v)
-		rs, ok := v.(types.SmartCodeEvent)
-		if !ok {
-			log.Errorf("[PushSmartCodeEvent]", "SmartCodeEvent err")
-			return
-		}
-		go func() {
-			PushEvent(rs.TxHash, rs.Error, rs.Action, rs.Result)
-		}()
+	if ws == nil {
+		return
 	}
+	rs, ok := v.(types.SmartCodeEvent)
+	if !ok {
+		log.Errorf("[PushSmartCodeEvent]", "SmartCodeEvent err")
+		return
+	}
+	go func() {
+		switch object := rs.Result.(type) {
+		case []*event.NotifyEventInfo:
+			type notifyEventInfo struct {
+				TxHash   string
+				CodeHash string
+				States   interface{}
+			}
+			evts := []notifyEventInfo{}
+			for _, v := range object {
+				txhash := v.TxHash
+				evts = append(evts, notifyEventInfo{common.ToHexString(txhash[:]), v.CodeHash.ToHexString(), v.States})
+			}
+			PushEvent(rs.TxHash, rs.Error, rs.Action, evts)
+		default:
+			PushEvent(rs.TxHash, rs.Error, rs.Action, rs.Result)
+		}
+	}()
 }
 
 func PushEvent(txHash string, errcode int64, action string, result interface{}) {
