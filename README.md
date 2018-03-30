@@ -6,22 +6,22 @@
 
 Welcome to Ontology's source code library!
 
-Ontology is dedicated to creating a freely configurable, componentized, interoperability across chains, high-performance, and horizontally scalable blockchain infrastructure system. Ontology makes deploying and calling Decentralization applications even more easier.
+Ontology is dedicated to creating a modularized, freely configurable, interoperable cross-chain, high-performance, and horizontally scalable blockchain infrastructure system. Ontology makes deploying and invoking decentralized applications even more easier.
 
-The code is currently alpha-quality, but in the rapid development process. The master code may be unstable, stable versions can be downloaded in the release page.
+The code is currently alpha quality, but is in the process of rapid development. The master code may be unstable; stable versions can be downloaded in the release page.
 
-The public test network described in the page below, and we sincerely welcome and hope more developers to join Ontology.
+The public test network is described below. We sincerely welcome and hope more developers to join Ontology.
 
 ## Features
 
-- Scalable Lightweight Universal Smart Contract
-- Scalable WASM Contract support
-- Crosschain Interactive Protocol (Processing)
-- Multiple Encryption Algorithm Support
+- Scalable lightweight universal smart contract
+- Scalable WASM contract support
+- Crosschain interactive protocol (processing)
+- Multiple encryption algorithm support
 - Highly optimized transaction processing speed
-- P2P Link Layer Encryption (optional module)
-- Multiple Consensus Algorithm Support (VBFT/DBFT/RBFT/SBFT)
-- quick block generation time
+- P2P link layer encryption (optional module)
+- Multiple consensus algorithm support (VBFT/DBFT/RBFT/SBFT)
+- Quick block generation time
 
 
 ## Contents
@@ -31,25 +31,25 @@ The public test network described in the page below, and we sincerely welcome an
 	* [Get ontology](#get-ontology)
 		* [Get from source code](#get-from-source-code)
 	* [Create ONT wallet file](#create-ont-wallet-file)
-	* [Server Deployment](#server-deployment)
+	* [Server deployment](#server-deployment)
 		* [Single-host deployment configuration](#single-host-deployment-configuration)
 		* [Multi-hosts deployment configuration](#multi-hosts-deployment-configuration)
 		* [Deploy nodes on public test network](#deploy-nodes-on-public-test-network)
-		* [Inplement](#inplement)
+		* [Implement](#implement)
 * [Examples](#Examples)
-* [Contributing](#contributing)
+* [Contributions](#contributing)
 * [Open source community](#open-source-community)
 	* [Site](#site)
 * [License](#license)
 
 # Build development environment
 
-The requirements to build ontology are:
+The requirements to build Ontology are:
 
 - Golang version 1.9 or later
-- Glide (a third-party package management tool)
+- Glide (a third party package management tool)
 - Properly configured Go language environment
-- Golang supported operating systems
+- Golang supported operating system
 
 # Deployment and test
 ## Get ontology
@@ -62,7 +62,7 @@ $ git clone https://github.com/ontio/ontology.git
 
 ```
 
-Fetch the dependent third-party packages with glide.
+Fetch the dependent third party packages with glide.
 
 ```
 $ cd ontology
@@ -84,8 +84,8 @@ After building the source code sucessfully, you should see two executable progra
 
 ## Create ONT wallet file
 
-## create ontology wallet
-ont supports multiple encryption methods for generating accounts, but can set a default in config.json such as SHA256withECDSA, 
+## Create ontology wallet
+ONT supports multiple encryption methods for generating accounts, but can set a default in config.json such as SHA256withECDSA. 
 
 Create wallet cmd：
 ```shell
@@ -110,7 +110,7 @@ ont: 248965536
 * with -b cmd will show the ont amount this account have.
 ```
 
-ONT supported crypto( <hash>with<dsa> ):
+ONT supported crypto (<hash>with<dsa>):
  - SHA224withECDSA 
  - SHA256withECDSA
  - SHA384withECDSA
@@ -123,26 +123,26 @@ ONT supported crypto( <hash>with<dsa> ):
  - SM3withSM2
  - SHA512withEdDSA
 
-## Server Deployment
+## Server deployment
 
-To run ontology successfully,  nodes can be deployed by the following two way:
+To run ontology successfully,  nodes can be deployed by two ways:
 
 - Single-host deployment
 - Multi-hosts deployment
-  - Deploy nodes on public test network
+  - Deploy nodes on the public test network
 
 ### Single-host deployment configuration
 
 Create a directory on the host and store the following files in the directory:
 
 - Default configuration file `config.json`
-- node program`ontology`
-- node control program`nodectl`
-- wallet file`wallet.dat`, copy the contents of the configuration file config-solo.config in the root directory to config.json and start the node.
+- Node program `ontology`
+- Node control program `nodectl`
+- Wallet file`wallet.dat`, copy the contents of the configuration file config-solo.config in the root directory to config.json and start the node.
 
-Here's a example of Single-host configuration:
+Here's a example of single-host configuration:
 
-- directory structure `
+- Directory structure
 ```shell
 $ tree
 └── ontology
@@ -156,38 +156,38 @@ $ tree
 
 We can perform a quick deployment by modifying the default configuration file `config.json`.
 
-1. Copy related file into target host，including：
+1. Copy related file into target host, including：
 
-   - default configuration file`config.json`
-   - node program`ontology`
-   - node control program`nodectl`
+   - Default configuration file`config.json`
+   - Node program`ontology`
+   - Node control program`nodectl`
 
-2. Set the network connection port number for each node(recommend using the default port configuration, instead of modifying)
+2. Set the network connection port number for each node (recommend using the default port configuration, instead of modifying)
 
-   - `NodePort`is P2P connection port number（default: 20338）
-   - `HttpJsonPort` and `HttpLocalPort` are RPC port number（default: 20336，20337）
+   - `NodePort`is P2P connection port number (default: 20338)
+   - `HttpJsonPort` and `HttpLocalPort` are RPC port number (default: 20336，20337)
 
 3. Seed nodes configuration
 
-   - Select at least one seed node out of 4 hosts and fill seed node address into the `SeelList` of each configuration file, format is `Seed node IP address + Seed node NodePort`
+   - Select at least one seed node out of 4 hosts and fill the seed node address into the `SeelList` of each configuration file. The format is `Seed node IP address + Seed node NodePort`
 
 4. Create wallet file
 
-   - Through command line program，on each host create wallet wallet.dat needed for node implement.
+   - Through command line program, on each host create wallet wallet.dat needed for node implementation.
 
      `$ ./nodectl wallet -c -p password`
 
-     Note：Set wallet password by parameter -p.
+     Note: Set wallet password by parameter -p.
 
 5. Bookkeepers configuration
 
-   - While creating wallet for each node, the public key information of the wallet will be displayed. Fill in the public key information of all nodes in the `Bookkeepers` field of each node's configuration file.
+   - While creating a wallet for each node, the public key information of the wallet will be displayed. Fill in the public key information of all nodes in the `Bookkeepers` field of each node's configuration file.
 
-     Note：The public key information for each node's wallet can also be viewed via the command line program:
+     Note: The public key information for each node's wallet can also be viewed via the command line program:
 
      `$ ./nodectl wallet -l -p password`
 
-Now multi-hosts configuration is cpmpleted, directory structure of each node is as follow:
+Now multi-host configuration is completed, directory structure of each node is as follows:
 
 ```
 $ ls
@@ -195,11 +195,11 @@ config.json ontology nodectl wallet.dat
 
 ```
 
-A configuration file fragment is as follows, refer to the config.json file in the root directory.
+A configuration file fragment is as follows, you refer to the config.json file in the root directory.
 
 ### Deploy nodes on public test network
 
-Start with the following configuration file to connect to ont the current test network.
+Start with the following configuration file to connect to the current ONT test network.
 
 ```
 $ cat config.json
@@ -237,7 +237,7 @@ $ cat config.json
 
 ### Inplement
 
-Run each node program in any order and enter the node's wallet password after the `Password:` prompt appears
+Run each node program in any order and enter the node's wallet password after the `Password:` prompt appears.
 
 ```
 $ ./ontology
@@ -249,7 +249,7 @@ Run `./nodectl --h` for details.
 
 # Examples
 ## Contract
-[Smart Contract guide](https://github.com/ontio/documentation/tree/master/smart-contract-tutorial)
+[Smart contract guide](https://github.com/ontio/documentation/tree/master/smart-contract-tutorial)
 
 ## ONT transfer sample
 
@@ -258,21 +258,22 @@ Run `./nodectl --h` for details.
 
   contract:contract address； - from: transfer from； - to: transfer to； - value: amount；
  ```
-# Contributing
+# Contributions
 
-Please open a pull request with signed-off commits. We appreciate your help! You can also send your codes as emails to the developer mailing list. You're welcomed to join the Ontology mailing list or developer forum.
+Please open a pull request with a signed commit. We appreciate your help! You can also send your code as emails to the developer mailing list. You're welcome to join the Ontology mailing list or developer forum.
 
-Besides, please provide detailed submission information when you want to contribute code for this project. The format is as follows:
+Please provide detailed submission information when you want to contribute code for this project. The format is as follows:
 
-Header line: explain the commit in one line (use the imperative)
+Header line: explain the commit in one line (use the imperative).
 
-Body of commit message is a few lines of text, explaining things  in more detail, possibly giving some background about the issue  being fixed, etc etc.
+Body of commit message is a few lines of text, explaining things  in more detail, possibly giving some background about the issue  being fixed, etc.
 
-The body of the commit message can be several paragraphs, and  please do proper word-wrap and keep columns shorter than about  74 characters or so. That way "git log" will show things  nicely even when it's indented.
+The body of the commit message can be several paragraphs. Please do proper word-wrap and keep columns shorter than 74 characters or so. That way "git log" will show things  nicely even when it is indented.
 
-Make sure you explain your solution and why you're doing what you're  doing, as opposed to describing what you're doing. Reviewers and your  future self can read the patch, but might not understand why a  particular solution was implemented.
+Make sure you explain your solution and why you are doing what you are  doing, as opposed to describing what you are doing. Reviewers and your  future self can read the patch, but might not understand why a  particular solution was implemented.
 
-Reported-by: whoever-reported-it  Signed-off-by: Your Name [youremail@yourhost.com](mailto:youremail@yourhost.com)
+Reported-by: whoever-reported-it 
+Signed-off-by: Your Name [youremail@yourhost.com](mailto:youremail@yourhost.com)
 
 # Open source community
 ## Site
