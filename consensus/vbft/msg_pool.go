@@ -23,6 +23,7 @@ import (
 	"sync"
 
 	common "github.com/Ontology/common"
+	"github.com/Ontology/common/log"
 )
 
 type ConsensusRoundMsgs map[MsgType][]ConsensusMsg // indexed by MsgType (proposal, endorsement, ...)
@@ -113,7 +114,7 @@ func (pool *MsgPool) HasMsg(msg ConsensusMsg) bool {
 		return false
 	} else {
 		if present, err := roundMsgs.hasMsg(msg); err != nil {
-			pool.server.log.Errorf("msgpool failed to check msg avail: %s", err)
+			log.Errorf("msgpool failed to check msg avail: %s", err)
 			return false
 		} else {
 			return present

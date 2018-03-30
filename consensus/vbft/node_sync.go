@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"sync"
 	"time"
+	"github.com/Ontology/common/log"
 )
 
 type SyncCheckReq struct {
@@ -104,15 +105,15 @@ func (self *Syncer) run() {
 				continue
 			}
 
-			self.server.log.Infof("server %d, got sync req(%d, %d) to %d",
+			log.Infof("server %d, got sync req(%d, %d) to %d",
 				self.server.Index, req.startBlockNum, req.targetBlockNum, req.targetPeers)
 			if req.startBlockNum <= self.server.GetCommittedBlockNo() {
 				req.startBlockNum = self.server.GetCommittedBlockNo() + 1
-				self.server.log.Infof("server %d, sync req start change to %d",
+				log.Infof("server %d, sync req start change to %d",
 					self.server.Index, req.startBlockNum)
 			}
 			if err := self.onNewBlockSyncReq(req); err != nil {
-				self.server.log.Errorf("server %d failed to handle new block sync req: %s", self.server.Index, err)
+				log.Errorf("server %d failed to handle new block sync req: %s", self.server.Index, err)
 			}
 
 		case syncMsg := <-self.syncMsgC:
@@ -132,7 +133,7 @@ func (self *Syncer) run() {
 				continue
 			}
 
-			self.server.log.Infof("server %d, next: %d, target: %d,  from syncer %d, blk %d, proposer %d",
+			log.Infof("server %d, next: %d, target: %d,  from syncer %d, blk %d, proposer %d",
 				self.server.Index, self.nextReqBlkNum, self.targetBlkNum, blkMsgFromPeer.fromPeer, blkNum, blkMsgFromPeer.block.getProposer())
 			if _, present := self.pendingBlocks[blkNum]; !present {
 				self.pendingBlocks[blkNum] = make(BlockFromPeers)
@@ -148,7 +149,7 @@ func (self *Syncer) run() {
 					break
 				}
 				prevHash := blk.getPrevBlockHash()
-				self.server.log.Debugf("server %d syncer, sealed block %d, proposer %d, prevhash: %s",
+				log.Debugf("server %d syncer, sealed block %d, proposer %d, prevhash: %s",
 					self.server.Index, self.nextReqBlkNum, blk.getProposer(), hex.EncodeToString(prevHash.ToArray()[:4]))
 				self.server.fastForwardBlock(blk)
 				delete(self.pendingBlocks, self.nextReqBlkNum)
@@ -224,7 +225,7 @@ func (self *Syncer) cancelFetcherForPeer(peer *PeerSyncer) error {
 
 func (self *Syncer) onNewBlockSyncReq(req *BlockSyncReq) error {
 	if req.startBlockNum < self.nextReqBlkNum {
-		self.server.log.Errorf("server %d new blockSyncReq startblkNum %d vs %d",
+		log.Errorf("server %d new blockSyncReq startblkNum %d vs %d",
 			self.server.Index, req.startBlockNum, self.nextReqBlkNum)
 	}
 	if req.targetBlockNum <= self.targetBlkNum {
@@ -274,12 +275,12 @@ func (self *PeerSyncer) run() {
 	//				wait block fetch rsp from peer
 	//				notify syncer
 
-	self.server.log.Infof("server %d, syncer %d started, start %d, target %d",
+	log.Infof("server %d, syncer %d started, start %d, target %d",
 		self.server.Index, self.peerIdx, self.nextReqBlkNum, self.targetBlkNum)
 
 	errQuit := true
 	defer func() {
-		self.server.log.Infof("server %d, syncer %d quit, start %d, target %d",
+		log.Infof("server %d, syncer %d quit, start %d, target %d",
 			self.server.Index, self.peerIdx, self.nextReqBlkNum, self.targetBlkNum)
 		self.stop(errQuit)
 	}()
@@ -291,7 +292,7 @@ func (self *PeerSyncer) run() {
 		if _, present := blkProposers[blkNum]; !present {
 			blkInfos, err := self.requestBlockInfo(blkNum)
 			if err != nil {
-				self.server.log.Errorf("server %d failed to construct blockinfo fetch msg to peer %d: %s",
+				log.Errorf("server %d failed to construct blockinfo fetch msg to peer %d: %s",
 					self.server.Index, self.peerIdx, err)
 				return
 			}
@@ -300,7 +301,7 @@ func (self *PeerSyncer) run() {
 			}
 		}
 		if _, present := blkProposers[blkNum]; !present {
-			self.server.log.Errorf("server %d failed to get block %d proposer from %d", self.server.Index,
+			log.Errorf("server %d failed to get block %d proposer from %d", self.server.Index,
 				blkNum, self.peerIdx)
 			return
 		}
@@ -319,13 +320,13 @@ func (self *PeerSyncer) run() {
 
 		if proposalBlock == nil {
 			if proposalBlock, err = self.requestBlock(blkNum); err != nil {
-				self.server.log.Errorf("failed to get block %d from peer %d: %s", blkNum, self.peerIdx, err)
+				log.Errorf("failed to get block %d from peer %d: %s", blkNum, self.peerIdx, err)
 				return
 			}
 		}
 
 		if err := self.fetchedBlock(blkNum, proposalBlock); err != nil {
-			self.server.log.Errorf("failed to commit block %d from peer syncer %d to syncer: %s",
+			log.Errorf("failed to commit block %d from peer syncer %d to syncer: %s",
 				blkNum, self.peerIdx, err)
 		}
 		delete(blkProposers, blkNum)

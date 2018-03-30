@@ -24,6 +24,7 @@ import (
 
 	vconfig "github.com/Ontology/consensus/vbft/config"
 	p2pmsg "github.com/Ontology/net/message"
+	"github.com/Ontology/common/log"
 )
 
 func (self *Server) GetCurrentBlockNo() uint64 {
@@ -154,7 +155,7 @@ func (self *Server) getProposerRankLocked(blockNum uint64, peerIdx uint32) int {
 			}
 		}
 	} else {
-		self.log.Errorf("todo: get proposer config for non-current blocknum:%d, current.BlockNum%d,peerIdx:", blockNum, self.currentParticipantConfig.BlockNum, peerIdx)
+		log.Errorf("todo: get proposer config for non-current blocknum:%d, current.BlockNum%d,peerIdx:", blockNum, self.currentParticipantConfig.BlockNum, peerIdx)
 	}
 	return -1
 }
@@ -167,7 +168,7 @@ func (self *Server) getHighestRankProposal(blockNum uint64, proposals []*blockPr
 	var proposal *blockProposalMsg
 	for _, p := range proposals {
 		if p.GetBlockNum() != blockNum {
-			self.log.Errorf("server %d, diff blockNum found when get highest rank proposal,blockNum:%d", self.Index, blockNum)
+			log.Errorf("server %d, diff blockNum found when get highest rank proposal,blockNum:%d", self.Index, blockNum)
 			continue
 		}
 
@@ -222,7 +223,7 @@ func (self *Server) buildParticipantConfig(blkNum uint64, chainCfg *vconfig.Chai
 	s += vconfig.MAX_ENDORSER_COUNT
 	cfg.Committers = calcParticipantPeers(cfg, chainCfg, s, s+vconfig.MAX_COMMITTER_COUNT)
 
-	self.log.Infof("server %d, blkNum: %d, state: %d, participants config: %v, %v, %v", self.Index, blkNum,
+	log.Infof("server %d, blkNum: %d, state: %d, participants config: %v, %v, %v", self.Index, blkNum,
 		self.getState(), cfg.Proposers, cfg.Endorsers, cfg.Committers)
 
 	return cfg, nil
@@ -316,7 +317,7 @@ func (self *Server) sendToPeer(peerIdx uint32, data []byte) error {
 	}
 	buffer, err := p2pmsg.NewConsensus(msg)
 	if err != nil {
-		self.log.Error("Error NewConsensus: ", err)
+		log.Error("Error NewConsensus: ", err)
 		return err
 	}
 	self.p2p.Transmit(peer.PubKey, buffer)

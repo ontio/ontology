@@ -23,7 +23,8 @@ import (
 	"time"
 
 	"github.com/Ontology/consensus/vbft/config"
-	"github.com/Ontology/crypto"
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/Ontology/common/log"
 )
 
 type Peer struct {
@@ -184,7 +185,7 @@ func (pool *PeerPool) isPeerAlive(peerIdx uint32) bool {
 	}
 	if time.Now().Sub(p.LastUpdateTime) > peerHandshakeTimeout*2 {
 		if p.LastUpdateTime.Unix() > 0 {
-			pool.server.log.Errorf("server %d: peer %d seems disconnected, %v, %v", pool.server.Index, time.Now(), p.LastUpdateTime)
+			log.Errorf("server %d: peer %d seems disconnected, %v, %v", pool.server.Index, time.Now(), p.LastUpdateTime)
 		}
 		return false
 	}

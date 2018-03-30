@@ -26,6 +26,7 @@ import (
 	"sync"
 
 	common "github.com/Ontology/common"
+	"github.com/Ontology/common/log"
 )
 
 type BlockList []*Block
@@ -451,6 +452,7 @@ func (pool *BlockPool) getSealedBlock(blockNum uint64) (*Block, common.Uint256) 
 	// get from chainstore
 	blk, err := pool.chainStore.GetBlock(blockNum)
 	if err != nil {
+		log.Errorf("getSealedBlock err:",err)
 		return nil, common.Uint256{}
 	}
 	hash, _ := HashBlock(blk)
