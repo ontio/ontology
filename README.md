@@ -9,11 +9,11 @@
 
 Welcome to Ontology's source code library!
 
-Ontology is dedicated to creating a modularized, freely configurable, interoperable cross-chain, high-performance, and horizontally scalable blockchain infrastructure system. Ontology makes deploying and invoking decentralized applications even more easier.
+Ontology is dedicated to creating a modularized, freely configurable, interoperable cross-chain, high-performance, and horizontally scalable blockchain infrastructure system. Ontology makes deploying and invoking decentralized applications easier.
 
 The code is currently alpha quality, but is in the process of rapid development. The master code may be unstable; stable versions can be downloaded in the release page.
 
-The public test network is described below. We sincerely welcome and hope more developers to join Ontology.
+The public test network is described below. We sincerely welcome and hope more developers join Ontology.
 
 ## Features
 
@@ -36,7 +36,7 @@ The public test network is described below. We sincerely welcome and hope more d
 	* [Create ONT wallet file](#create-ont-wallet-file)
 	* [Server deployment](#server-deployment)
 		* [Single-host deployment configuration](#single-host-deployment-configuration)
-		* [Multi-hosts deployment configuration](#multi-hosts-deployment-configuration)
+		* [Multi-host deployment configuration](#multi-hosts-deployment-configuration)
 		* [Deploy nodes on public test network](#deploy-nodes-on-public-test-network)
 		* [Implement](#implement)
 * [Examples](#Examples)
@@ -168,11 +168,11 @@ We can perform a quick deployment by modifying the default configuration file `c
 2. Set the network connection port number for each node (recommend using the default port configuration, instead of modifying)
 
    - `NodePort`is P2P connection port number (default: 20338)
-   - `HttpJsonPort` and `HttpLocalPort` are RPC port number (default: 20336，20337)
+   - `HttpJsonPort` and `HttpLocalPort` are RPC port numbers (default: 20336, 20337)
 
 3. Seed nodes configuration
 
-   - Select at least one seed node out of 4 hosts and fill the seed node address into the `SeelList` of each configuration file. The format is `Seed node IP address + Seed node NodePort`
+   - Select at least one seed node out of 4 hosts and fill the seed node address into the `SeelList` of each configuration file. The format is `Seed node IP address + Seed node NodePort`.
 
 4. Create wallet file
 
@@ -238,7 +238,7 @@ $ cat config.json
 
 ```
 
-### Inplement
+### Implement
 
 Run each node program in any order and enter the node's wallet password after the `Password:` prompt appears.
 
@@ -275,7 +275,7 @@ The body of the commit message can be several paragraphs. Please do proper word-
 
 Make sure you explain your solution and why you are doing what you are  doing, as opposed to describing what you are doing. Reviewers and your  future self can read the patch, but might not understand why a  particular solution was implemented.
 
-Reported-by: whoever-reported-it 
+Reported-by: whoever-reported-it &
 Signed-off-by: Your Name [youremail@yourhost.com](mailto:youremail@yourhost.com)
 
 # Open source community
