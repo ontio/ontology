@@ -22,12 +22,13 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/ontio/ontology-eventbus/actor"
+
 	"github.com/ontio/ontology/common/log"
 	tx "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events/message"
 	tc "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology/validator/types"
-	"github.com/ontio/ontology-eventbus/actor"
 )
 
 func NewTxActor(s *TXPoolServer) *TxActor {
