@@ -92,7 +92,7 @@ ONT supports multiple encryption methods for generating accounts, but can set a 
 Create wallet cmd:
 
 ```shell
-$ ./nodectl wallet --create --name wallet.dat --password passwordtest --encrypt=SHA512withEdDSA
+$ ./nodectl wallet --create --name wallet.dat --password passwordtest
 ```
 
 Note: Set wallet password by parameter -p.

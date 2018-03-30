@@ -93,7 +93,7 @@ $ make
 创建钱包示例如下：
 
 ```shell
-$ ./nodectl wallet --create --name wallet.dat --password passwordtest --encrypt=SHA512withEdDSA
+$ ./nodectl wallet --create --name wallet.dat --password passwordtest
 ```
 
 注：通过-p参数设置钱包密码
