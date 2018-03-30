@@ -551,7 +551,7 @@ func jsonMashal(engine *ExecutionEngine) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		ret.Pval = string(tmp)
+		ret.Pval = util.TrimBuffToString(tmp)
 
 	case "int_array":
 		tmp, err := engine.vm.GetPointerMemory(val)

@@ -17,10 +17,14 @@
 package smartcontract
 
 import (
+	"bytes"
+	"encoding/binary"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/store"
 	scommon "github.com/ontio/ontology/core/store/common"
 	ctypes "github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -115,8 +119,8 @@ func (sc *SmartContract) Execute() error {
 		stateMachine.CloneCache.Commit()
 		sc.Notifications = append(sc.Notifications, stateMachine.Notifications...)
 	case vmtypes.WASMVM:
+		//todo refactor following code to match Neovm
 		stateMachine := wasm.NewWasmStateMachine(sc.Config.Store, sc.Config.DBCache, stypes.Application, sc.Config.Time)
-
 		engine := exec.NewExecutionEngine(
 			sc.Config.Tx,
 			new(util.ECDsaCrypto),
@@ -124,10 +128,35 @@ func (sc *SmartContract) Execute() error {
 			stateMachine,
 			"product",
 		)
-		//todo how to get the input
-		input := []byte{}
-		engine.Call(ctx.ContractAddress, ctx.Code.Code, input)
-		//fmt.Println(engine)
+
+		tmpcodes := bytes.Split(ctx.Code.Code, []byte(exec.PARAM_SPLITER))
+		if len(tmpcodes) != 3 {
+			return errors.NewErr("Wasm paramter count error")
+		}
+		contractCode := tmpcodes[0]
+
+		addr, err := common.AddressParseFromBytes(contractCode)
+		if err != nil {
+			return errors.NewErr("get contract address error")
+		}
+
+		dpcode, err := stateMachine.GetContractCodeFromAddress(addr)
+		if err != nil {
+			return errors.NewErr("get contract  error")
+		}
+
+		input := ctx.Code.Code[len(contractCode)+1:]
+		res, err := engine.Call(ctx.ContractAddress, dpcode, input)
+		if err != nil {
+			return err
+		}
+
+		//todo how to deal with the result???
+		_, err = engine.GetVM().GetPointerMemory(uint64(binary.LittleEndian.Uint32(res)))
+		if err != nil {
+			return err
+		}
+
 		stateMachine.CloneCache.Commit()
 		sc.Notifications = append(sc.Notifications, stateMachine.Notifications...)
 	}
