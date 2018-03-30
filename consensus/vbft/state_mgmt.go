@@ -182,7 +182,7 @@ func (self *StateMgr) onPeerUpdate(peerState *PeerState) error {
 		if isActive(self.currentState) && peerState.committedBlockNum > self.server.GetCurrentBlockNo()+MAX_SYNCING_CHECK_BLK_NUM {
 			log.Warnf("server %d seems lost sync: %d(%d) vs %d", self.server.Index,
 				peerState.committedBlockNum, peerState.peerIdx, self.server.GetCurrentBlockNo())
-			if err := self.checkStartSyncing(self.server.GetCommittedBlockNo() + MAX_SYNCING_CHECK_BLK_NUM); err != nil {
+			if err := self.checkStartSyncing(self.server.GetCommittedBlockNo() + MAX_SYNCING_CHECK_BLK_NUM, false); err != nil {
 				log.Errorf("server %d start syncing check failed", self.server.Index)
 			}
 			return nil
@@ -210,7 +210,7 @@ func (self *StateMgr) onPeerUpdate(peerState *PeerState) error {
 				if fastforward {
 					self.server.makeFastForward()
 				} else {
-					self.checkStartSyncing(self.server.GetCommittedBlockNo())
+					self.checkStartSyncing(self.server.GetCommittedBlockNo(), false)
 				}
 			}
 		}
@@ -235,7 +235,7 @@ func (self *StateMgr) onPeerUpdate(peerState *PeerState) error {
 		if self.isSyncedReady() {
 			self.setSyncedReady()
 		} else {
-			self.checkStartSyncing(self.server.GetCommittedBlockNo() + MAX_SYNCING_CHECK_BLK_NUM)
+			self.checkStartSyncing(self.server.GetCommittedBlockNo()+MAX_SYNCING_CHECK_BLK_NUM, false)
 		}
 	}
 
@@ -344,7 +344,7 @@ func (self *StateMgr) setSyncedReady() error {
 	return nil
 }
 
-func (self *StateMgr) checkStartSyncing(startBlkNum uint64) error {
+func (self *StateMgr) checkStartSyncing(startBlkNum uint64, forceSync bool) error {
 
 	var maxCommitted uint64
 	peers := make(map[uint64][]uint32)
@@ -365,9 +365,13 @@ func (self *StateMgr) checkStartSyncing(startBlkNum uint64) error {
 		}
 	}
 
-	if maxCommitted > startBlkNum {
+	if maxCommitted > startBlkNum || forceSync {
 		self.currentState = Syncing
 		startBlkNum = self.server.GetCommittedBlockNo() + 1
+		if maxCommitted <= startBlkNum {
+			maxCommitted = startBlkNum + 1
+		}
+
 		log.Infof("server %d, start syncing %d - %d, with %v", self.server.Index, startBlkNum, maxCommitted, peers)
 		self.server.syncer.blockSyncReqC <- &BlockSyncReq{
 			targetPeers:    peers[maxCommitted],
@@ -387,7 +391,7 @@ func (self *Server) restartSyncing() {
 	// send sync request to self.sync, go syncing-state immediately
 	// stop all bft timers
 
-	log.Errorf("todo: server %d restart syncing", self.Index)
+	self.stateMgr.checkStartSyncing(self.GetCommittedBlockNo(), true)
 
 }
 
