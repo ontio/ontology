@@ -24,8 +24,8 @@ import (
 
 const (
 	// TODO: move to config file
-	maxPeerConnections    = 100
-	maxSyncingCheckBlkNum = 10
+	MAX_PEER_CONNECTIONS      = 100
+	MAX_SYNCING_CHECK_BLK_NUM = 10
 )
 
 type ServerState int
@@ -177,10 +177,10 @@ func (self *StateMgr) onPeerUpdate(peerState *PeerState) error {
 	self.peers[peerIdx] = peerState
 
 	if !newPeer {
-		if isActive(self.currentState) && peerState.committedBlockNum > self.server.GetCurrentBlockNo()+maxSyncingCheckBlkNum {
+		if isActive(self.currentState) && peerState.committedBlockNum > self.server.GetCurrentBlockNo()+MAX_SYNCING_CHECK_BLK_NUM {
 			self.server.log.Warnf("server %d seems lost sync: %d(%d) vs %d", self.server.Index,
 				peerState.committedBlockNum, peerState.peerIdx, self.server.GetCurrentBlockNo())
-			if err := self.checkStartSyncing(self.server.GetCommittedBlockNo() + maxSyncingCheckBlkNum); err != nil {
+			if err := self.checkStartSyncing(self.server.GetCommittedBlockNo() + MAX_SYNCING_CHECK_BLK_NUM); err != nil {
 				self.server.log.Errorf("server %d start syncing check failed", self.server.Index)
 			}
 			return nil
@@ -233,7 +233,7 @@ func (self *StateMgr) onPeerUpdate(peerState *PeerState) error {
 		if self.isSyncedReady() {
 			self.setSyncedReady()
 		} else {
-			self.checkStartSyncing(self.server.GetCommittedBlockNo() + maxSyncingCheckBlkNum)
+			self.checkStartSyncing(self.server.GetCommittedBlockNo() + MAX_SYNCING_CHECK_BLK_NUM)
 		}
 	}
 
@@ -280,9 +280,9 @@ func (self *StateMgr) onLiveTick(evt *StateEvent) error {
 
 func (self *StateMgr) getMinActivePeerCount() int {
 	n := int(self.server.config.F) * 2 // plus self
-	if n > maxPeerConnections {
+	if n > MAX_PEER_CONNECTIONS {
 		// FIXME: F vs. maxConnections
-		return maxPeerConnections
+		return MAX_PEER_CONNECTIONS
 	}
 	return n
 }
@@ -424,7 +424,7 @@ func (self *StateMgr) canFastForward(targetBlkNum uint64) bool {
 		return false
 	}
 
-	if targetBlkNum > self.server.GetCommittedBlockNo()+maxSyncingCheckBlkNum*8 {
+	if targetBlkNum > self.server.GetCommittedBlockNo()+MAX_SYNCING_CHECK_BLK_NUM*8 {
 		return false
 	}
 

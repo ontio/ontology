@@ -45,24 +45,24 @@ type ChainConfig struct {
 	BlockMsgDelay        time.Duration `json:"block_msg_delay"`
 	HashMsgDelay         time.Duration `json:"hash_msg_delay"`
 	PeerHandshakeTimeout time.Duration `json:"peer_handshake_timeout"`
-	Peers         []*PeerConfig `json:"peers"`
-	PosTable      []uint32      `json:"pos_table"`
+	Peers                []*PeerConfig `json:"peers"`
+	PosTable             []uint32      `json:"pos_table"`
 }
 
 type VbftBlockInfo struct {
-	Proposer           uint32               `json:"leader"`
-	LastConfigBlockNum uint64               `json:"last_config_block_num"`
+	Proposer           uint32       `json:"leader"`
+	LastConfigBlockNum uint64       `json:"last_config_block_num"`
 	NewChainConfig     *ChainConfig `json:"new_chain_config"`
 }
 
 const (
-	VrfSize           = 64 // bytes
-	MaxProposerCount  = 32
-	MaxEndorserCount  = 240
-	MaxCommitterCount = 240
+	VRF_SIZE            = 64 // bytes
+	MAX_PROPOSER_COUNT  = 32
+	MAX_ENDORSER_COUNT  = 240
+	MAX_COMMITTER_COUNT = 240
 )
 
-type VRFValue [VrfSize]byte
+type VRFValue [VRF_SIZE]byte
 
 var NilVRF = VRFValue{}
 
@@ -97,7 +97,15 @@ func (cc *ChainConfig) Serialize(w io.Writer) error {
 }
 
 func (cc *ChainConfig) Deserialize(r io.Reader) error {
-	return fmt.Errorf("not implemented")
+	buffer := []byte{}
+	if _, err := r.Read(buffer); err != nil {
+		return err
+	}
+	if err := json.Unmarshal(buffer, &cc); err != nil {
+		return err
+	}
+	fmt.Println("content:", cc.F)
+	return nil
 }
 
 func (pc *PeerConfig) Serialize(w io.Writer) error {

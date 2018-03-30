@@ -27,11 +27,11 @@ import (
 	"github.com/Ontology/crypto"
 )
 
-const NodeIDBits = 534
+const NODE_ID_BITS = 534
 
 // NodeID is a unique identifier for each node.
 // The node identifier is a marshaled elliptic curve public key.
-type NodeID [NodeIDBits / 8]byte
+type NodeID [NODE_ID_BITS / 8]byte
 
 // Bytes returns a byte slice representation of the NodeID
 func (n NodeID) Bytes() []byte {
