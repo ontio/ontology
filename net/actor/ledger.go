@@ -56,6 +56,10 @@ func GetTxnFromLedger(hash common.Uint256) (*types.Transaction, error) {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return nil, err
 	}
+	if result.(*ledger.GetTransactionRsp).Tx == nil {
+		log.Errorf("Get Transaction error: txn is nil for hash: %x", hash)
+		return nil, errors.NewErr("GetTxnFromLedger error: txn is nil")
+	}
 	return result.(*ledger.GetTransactionRsp).Tx, result.(*ledger.GetTransactionRsp).Error
 }
 
@@ -96,6 +100,10 @@ func GetHeaderByHeight(height uint32) (*types.Header, error) {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return nil, err
 	}
+	if result.(*ledger.GetHeaderByHeightRsp).Header == nil {
+		log.Errorf("Get Header error: header is nil for height: %d", height)
+		return nil, errors.NewErr("GetHeaderByHeight error: header is nil")
+	}
 	return result.(*ledger.GetHeaderByHeightRsp).Header, result.(*ledger.GetHeaderByHeightRsp).Error
 }
 
@@ -105,6 +113,10 @@ func GetBlockByHeight(height uint32) (*types.Block, error) {
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return nil, err
+	}
+	if result.(*ledger.GetBlockByHeightRsp).Block == nil {
+		log.Errorf("Get Block error: block is nil for height: %d", height)
+		return nil, errors.NewErr("GetBlockByHeight error: block is nil")
 	}
 	return result.(*ledger.GetBlockByHeightRsp).Block, result.(*ledger.GetBlockByHeightRsp).Error
 }
@@ -116,6 +128,10 @@ func GetHeaderByHash(hash common.Uint256) (*types.Header, error) {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return nil, err
 	}
+	if result.(*ledger.GetHeaderByHashRsp).Header == nil {
+		log.Errorf("Get Header error: header is nil for hash: %d", hash)
+		return nil, errors.NewErr("GetHeaderByHash error: header is nil")
+	}
 	return result.(*ledger.GetHeaderByHashRsp).Header, result.(*ledger.GetHeaderByHashRsp).Error
 }
 
@@ -125,6 +141,10 @@ func GetBlockByHash(hash common.Uint256) (*types.Block, error) {
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return nil, err
+	}
+	if result.(*ledger.GetBlockByHashRsp).Block == nil {
+		log.Errorf("Get Block error: block is nil for hash: %d", hash)
+		return nil, errors.NewErr("GetBlockByHash error: block is nil")
 	}
 	return result.(*ledger.GetBlockByHashRsp).Block, result.(*ledger.GetBlockByHashRsp).Error
 }
