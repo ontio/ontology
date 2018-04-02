@@ -167,6 +167,28 @@ func (pool *BlockPool) endorsedForBlock(blkNum uint64) bool {
 	return c.EndorsedProposal != nil || c.EndorsedEmptyProposal != nil
 }
 
+func (pool *BlockPool) getEndorsedProposal(blkNum uint64) (*blockProposalMsg, bool) {
+	if !pool.endorsedForBlock(blkNum) {
+		return nil, false
+	}
+
+	pool.lock.RLock()
+	defer pool.lock.RUnlock()
+
+	c := pool.candidateBlocks[blkNum]
+	if c == nil {
+		return nil, false
+	}
+
+	if c.EndorsedProposal != nil {
+		return c.EndorsedProposal, false
+	} else if c.EndorsedEmptyProposal != nil {
+		return c.EndorsedEmptyProposal, true
+	}
+
+	return nil, false
+}
+
 func (pool *BlockPool) endorsedForEmptyBlock(blkNum uint64) bool {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
