@@ -55,7 +55,7 @@ func (self *ChainStore) AddBlock(block *Block, blockHash common.Uint256) error {
 	}
 
 	if block.getBlockNum() <= self.GetChainedBlockNum() {
-		log.Warnf("chain store adding chained block(%d)", block.getBlockNum())
+		log.Warnf("chain store adding chained block(%d, %d)", block.getBlockNum(), self.GetChainedBlockNum())
 		return nil
 	}
 
@@ -67,10 +67,17 @@ func (self *ChainStore) AddBlock(block *Block, blockHash common.Uint256) error {
 	blkNum := self.GetChainedBlockNum() + 1
 	for {
 		if blk, present := self.pendingBlocks[blkNum]; blk != nil && present {
+			log.Infof("ledger adding chained block (%d, %d)", blkNum, self.GetChainedBlockNum())
+
 			err := ledger.DefLedger.AddBlock(blk.Block)
-			self.chainedBlockNum = uint64(ledger.DefLedger.GetCurrentBlockHeight())
 			if err != nil && blkNum > self.GetChainedBlockNum() {
 				return fmt.Errorf("ledger add blk (%d, %d) failed: %s", blkNum, self.GetChainedBlockNum(), err)
+			}
+
+			self.chainedBlockNum = blkNum
+			if blkNum != uint64(ledger.DefLedger.GetCurrentBlockHeight()) {
+				log.Errorf("!!! chain store added chained block (%d, %d): %s",
+					blkNum, ledger.DefLedger.GetCurrentBlockHeight(), err)
 			}
 
 			delete(self.pendingBlocks, blkNum)
