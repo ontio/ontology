@@ -65,11 +65,9 @@ func AddressParseFromBytes(f []byte) (Address, error) {
 		return Address{}, errors.New("[Common]: Uint160ParseFromBytes err, len != 20")
 	}
 
-	var hash [20]uint8
-	for i := 0; i < 20; i++ {
-		hash[i] = f[i]
-	}
-	return Address(hash), nil
+	var addr Address
+	copy(addr[:], f)
+	return addr, nil
 }
 
 func AddressFromBase58(encoded string) (Address, error) {
@@ -80,7 +78,11 @@ func AddressFromBase58(encoded string) (Address, error) {
 
 	x, _ := new(big.Int).SetString(string(decoded), 10)
 
-	ph, err := AddressParseFromBytes(x.Bytes()[1:21])
+	buf := x.Bytes()
+	if len(buf) != 1+ADDR_LEN+4 || buf[0] != byte(0x41) {
+		return Address{}, errors.New("wrong encoded address")
+	}
+	ph, err := AddressParseFromBytes(buf[1:21])
 	if err != nil {
 		return Address{}, err
 	}
