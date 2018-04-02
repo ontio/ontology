@@ -20,9 +20,8 @@ package peer
 
 import (
 	"fmt"
-	"sync"
 	types "github.com/Ontology/p2pserver/common"
-	msg "github.com/Ontology/p2pserver/message"
+	"sync"
 )
 
 //NbrPeers: The neigbor list
@@ -45,7 +44,15 @@ func (nm *NbrPeers) NodeExisted(uid uint64) bool {
 	_, ok := nm.List[uid]
 	return ok
 }
-
+func (nm *NbrPeers) GetPeer(id uint64) *Peer {
+	nm.Lock()
+	n, ok := nm.List[id]
+	if ok == false {
+		return nil
+	}
+	delete(nm.List, id)
+	return n
+}
 func (nm *NbrPeers) AddNbrNode(p *Peer) {
 	nm.Lock()
 	defer nm.Unlock()
@@ -102,17 +109,17 @@ func (nm *NbrPeers) NodeEstablished(id uint64) bool {
 	return true
 }
 
-func (nm *NbrPeers) GetNeighborAddrs() ([]msg.PeerAddr, uint64) {
+func (nm *NbrPeers) GetNeighborAddrs() ([]types.PeerAddr, uint64) {
 	nm.RLock()
 	defer nm.RUnlock()
 
 	var i uint64
-	var addrs []msg.PeerAddr
+	var addrs []types.PeerAddr
 	for _, p := range nm.List {
 		if p.GetState() != types.ESTABLISH {
 			continue
 		}
-		var addr msg.PeerAddr
+		var addr types.PeerAddr
 		addr.IpAddr, _ = p.GetAddr16()
 		addr.Time = p.GetTime()
 		addr.Services = p.Services()

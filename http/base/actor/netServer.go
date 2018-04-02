@@ -5,7 +5,7 @@ import (
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/eventbus/actor"
 	ac "github.com/Ontology/p2pserver/actor/server"
-	msg "github.com/Ontology/p2pserver/message"
+	types "github.com/Ontology/p2pserver/common"
 	"time"
 )
 
@@ -34,7 +34,7 @@ func GetConnectionCnt() (uint32, error) {
 	return r.Cnt, nil
 }
 
-func GetNeighborAddrs() ([]msg.PeerAddr, uint64) {
+func GetNeighborAddrs() ([]types.PeerAddr, uint64) {
 	future := netServerPid.RequestFuture(&ac.GetNeighborAddrsReq{}, ReqTimeout*time.Second)
 	result, err := future.Result()
 	if err != nil {

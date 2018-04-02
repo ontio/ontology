@@ -6,14 +6,13 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"github.com/Ontology/common/log"
-	. "github.com/Ontology/p2pserver/common"
+	types "github.com/Ontology/p2pserver/common"
 )
 
 type AddrReq struct {
 	Hdr msgHdr
 }
-
-type PeerAddr struct {
+type NodeAddr struct {
 	Time          int64
 	Services      uint64
 	IpAddr        [16]byte
@@ -25,7 +24,7 @@ type PeerAddr struct {
 type Addr struct {
 	hdr       msgHdr
 	nodeCnt   uint64
-	nodeAddrs []PeerAddr
+	nodeAddrs []types.PeerAddr
 }
 
 const (
@@ -49,11 +48,11 @@ func NewGetAddr() ([]byte, error) {
 	return buf, err
 }
 
-func NewAddrs(nodeAddrs []PeerAddr, count uint64) ([]byte, error) {
+func NewAddrs(nodeAddrs []types.PeerAddr, count uint64) ([]byte, error) {
 	var msg Addr
 	msg.nodeAddrs = nodeAddrs
 	msg.nodeCnt = count
-	msg.hdr.Magic = NETMAGIC
+	msg.hdr.Magic = types.NETMAGIC
 	cmd := "addr"
 	copy(msg.hdr.CMD[0:7], cmd)
 	p := new(bytes.Buffer)
@@ -130,7 +129,7 @@ func (msg *Addr) Deserialization(p []byte) error {
 	err := binary.Read(buf, binary.LittleEndian, &(msg.hdr))
 	err = binary.Read(buf, binary.LittleEndian, &(msg.nodeCnt))
 	log.Debug("The address count is ", msg.nodeCnt)
-	msg.nodeAddrs = make([]PeerAddr, msg.nodeCnt)
+	msg.nodeAddrs = make([]types.PeerAddr, msg.nodeCnt)
 	for i := 0; i < int(msg.nodeCnt); i++ {
 		err := binary.Read(buf, binary.LittleEndian, &(msg.nodeAddrs[i]))
 		if err != nil {
@@ -141,13 +140,13 @@ err:
 	return err
 }
 
-func (msg *PeerAddr) Deserialization(p []byte) error {
+func (msg *NodeAddr) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, msg)
 	return err
 }
 
-func (msg PeerAddr) Serialization() ([]byte, error) {
+func (msg NodeAddr) Serialization() ([]byte, error) {
 	var buf bytes.Buffer
 	err := binary.Write(&buf, binary.LittleEndian, msg)
 	if err != nil {

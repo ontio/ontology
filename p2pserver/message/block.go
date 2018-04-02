@@ -7,7 +7,7 @@ import (
 	"errors"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/types"
-	. "github.com/Ontology/p2pserver/common"
+	p2ptypes "github.com/Ontology/p2pserver/common"
 )
 
 type BlockReq struct {
@@ -26,7 +26,7 @@ func NewBlock(bk *types.Block) ([]byte, error) {
 	log.Debug()
 	var msg Block
 	msg.Blk = *bk
-	msg.msgHdr.Magic = NETMAGIC
+	msg.msgHdr.Magic = p2ptypes.NETMAGIC
 	cmd := "block"
 	copy(msg.msgHdr.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})

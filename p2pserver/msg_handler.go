@@ -4,25 +4,25 @@ import (
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/types"
-	msg "github.com/Ontology/p2pserver/message"
 	actor "github.com/Ontology/p2pserver/actor/req"
 	msgCommon "github.com/Ontology/p2pserver/common"
+	msg "github.com/Ontology/p2pserver/message"
 )
 
-func AddrReqHandle(addrReq msg.AddrReq, p2p P2PServer) error {
+func AddrReqHandle(id uint64, addrReq msg.AddrReq, p2p P2PServer) error {
 	log.Debug("RX addr request message")
-	var addrStr []msg.PeerAddr
+	var addrStr []msgCommon.PeerAddr
 	var count uint64
 	addrStr, count = p2p.GetNeighborAddrs()
 	buf, err := msg.NewAddrs(addrStr, count)
 	if err != nil {
 		return err
 	}
-	go p2p.self.Send(buf)
+	go p2p.Send(id, buf)
 	return nil
 }
 
-func HeadersReqHandle(headReq msg.HeadersReq, p2p P2PServer) error {
+func HeadersReqHandle(id uint64, headReq msg.HeadersReq, p2p P2PServer) error {
 	log.Debug("RX headers request message")
 
 	//Fix me:
@@ -42,11 +42,11 @@ func HeadersReqHandle(headReq msg.HeadersReq, p2p P2PServer) error {
 	if err != nil {
 		return err
 	}
-	go p2p.self.Send(buf)
+	go p2p.Send(id, buf)
 	return nil
 }
 
-func BlocksReqHandle(blocksReq msg.BlocksReq, p2p P2PServer) error {
+func BlocksReqHandle(id uint64, blocksReq msg.BlocksReq, p2p P2PServer) error {
 	log.Debug("RX blocks request message")
 	var startHash common.Uint256
 	var stopHash common.Uint256
@@ -62,19 +62,19 @@ func BlocksReqHandle(blocksReq msg.BlocksReq, p2p P2PServer) error {
 	if err != nil {
 		return err
 	}
-	go p2p.self.Send(buf)
+	go p2p.Send(id, buf)
 	return nil
 }
 
-func PingHandle(ping msg.Ping, p2p P2PServer) error {
+func PingHandle(id uint64, ping msg.Ping, p2p P2PServer) error {
 	log.Debug("RX ping message")
 	//Fix me: Which peer's height should be set.
-	p2p.self.SetHeight(ping.Height)
-	buf, err := msg.NewPongMsg(p2p.self.GetHeight())
+	p2p.Self.SetHeight(ping.Height)
+	buf, err := msg.NewPongMsg(p2p.Self.GetHeight())
 	if err != nil {
 		log.Error("failed build a new pong message")
 	} else {
-		go p2p.self.Send(buf)
+		go p2p.Send(id, buf)
 	}
 	return err
 }
@@ -82,7 +82,7 @@ func PingHandle(ping msg.Ping, p2p P2PServer) error {
 func PongHandle(pong msg.Pong, p2p P2PServer) error {
 	log.Debug("RX pong message")
 	//Fix me: Which peer's height should be set.
-	p2p.self.SetHeight(pong.Height)
+	p2p.Self.SetHeight(pong.Height)
 	return nil
 }
 
@@ -890,7 +890,6 @@ func (msg *version) init(n Noder) {
 }
 
 */
-
 
 func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]types.Header, uint32, error) {
 	return nil, 0, nil

@@ -5,17 +5,16 @@ import (
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
 	//actor "github.com/Ontology/p2pserver/actor/req"
+	"bytes"
+	"encoding/binary"
+	"errors"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/events"
 	types "github.com/Ontology/p2pserver/common"
 	conn "github.com/Ontology/p2pserver/link"
-	//"math/rand"
-	"bytes"
-	"encoding/binary"
-	"errors"
 	"net"
 	"runtime"
-	//"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -30,16 +29,14 @@ type Peer struct {
 	height                   uint64
 	txnCnt                   uint64
 	rxTxnCnt                 uint64
-	ReceiveChan              chan types.MsgPayload
 	publicKey                *crypto.PubKey
 	chF                      chan func() error // Channel used to operate the node without lock
 	eventQueue                                 // The event queue to notice other modules
-	flightHeights            []uint32
 	lastContact              time.Time
-	nodeDisconnectSubscriber events.Subscriber
+	peerDisconnectSubscriber events.Subscriber
+	notifyFunc               func(v interface{})
 	tryCount                 uint32
-	//connectingNodes
-	//retryConnAddrs
+	Np                       *NbrPeers
 }
 
 func (p *Peer) backend() {
@@ -78,7 +75,7 @@ func NewPeer(pubKey *crypto.PubKey) (*Peer, error) {
 	log.Info(fmt.Sprintf("Init peer ID to 0x%x", p.id))
 	p.publicKey = pubKey
 	p.eventQueue.init()
-	p.nodeDisconnectSubscriber = p.eventQueue.GetEvent("disconnect").Subscribe(events.EventNodeDisconnect, p.NodeDisconnect)
+	p.peerDisconnectSubscriber = p.eventQueue.GetEvent("disconnect").Subscribe(events.EventNodeDisconnect, p.notifyFunc)
 
 	return p, nil
 }
@@ -86,7 +83,9 @@ func NewPeer(pubKey *crypto.PubKey) (*Peer, error) {
 func rmPeer(p *Peer) {
 	log.Debug(fmt.Sprintf("Remove unused peer: 0x%0x", p.id))
 }
-
+func (p *Peer) GetPubKey() *crypto.PubKey {
+	return p.publicKey
+}
 func (p *Peer) Version() uint32 {
 	return p.version
 }
@@ -98,6 +97,9 @@ func (p *Peer) SetHeight(height uint64) {
 }
 func (p *Peer) GetState() uint32 {
 	return p.state
+}
+func (p *Peer) SetState(state uint32) {
+	atomic.StoreUint32(&(p.state), state)
 }
 func (p *Peer) GetID() uint64 {
 	return p.id
@@ -117,6 +119,9 @@ func (p *Peer) GetTime() int64 {
 func (p *Peer) GetPort() uint16 {
 	return p.LinkConn.GetPort()
 }
+func (p *Peer) GetConsensusPort() uint16 {
+	return p.LinkConn.GetConsensusPort()
+}
 func (p *Peer) Send(buf []byte) {
 	p.LinkConn.Tx(buf)
 }
@@ -134,10 +139,15 @@ func (p *Peer) GetAddr16() ([16]byte, error) {
 	copy(result[:], ip[:16])
 	return result, nil
 }
-
-func (p *Peer) NodeDisconnect(v interface{}) {
+func (p *Peer) Close() {
+	p.SetState(types.INACTIVITY)
+	conn := p.LinkConn.GetConn()
+	conn.Close()
+}
+func (p *Peer) AttachChan(msgchan chan types.MsgPayload) {
+	p.LinkConn.SetChan(msgchan)
 }
 
-func (p *Peer) HandleMsg(buf []byte, len int) error {
-	return nil
+func (p *Peer) AttachEvent(fn func(v interface{})) {
+	p.notifyFunc = fn
 }

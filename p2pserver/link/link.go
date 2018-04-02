@@ -25,7 +25,6 @@ type ConnectingNodes struct {
 	sync.RWMutex
 	ConnectingAddrs []string
 }
-
 type RxBuf struct {
 	// The RX buffer of this node to solve mutliple packets problem
 	p   []byte
@@ -51,9 +50,13 @@ type Link struct {
 	consensusPort  uint16
 	consensusConn  net.Conn // Connect socket with the peer node
 	consensusRxBuf RxBuf
+	recvChan       chan MsgPayload
 	ConnectingNodes
 }
 
+func (link *Link) SetChan(msgchan chan MsgPayload) {
+	link.recvChan = msgchan
+}
 func (link *Link) GetAddr() string {
 	return link.addr
 }
@@ -63,7 +66,10 @@ func (link *Link) SetPort(p uint16) {
 func (link *Link) GetPort() uint16 {
 	return link.port
 }
-func (link *Link) getConn() net.Conn {
+func (link *Link) GetConsensusPort() uint16 {
+	return link.consensusPort
+}
+func (link *Link) GetConn() net.Conn {
 	return link.getconn(false)
 }
 
