@@ -28,9 +28,9 @@ type ConsensusPayload struct {
 	hash common.Uint256
 }
 
-type consensus struct {
+type Consensus struct {
 	msgHdr
-	cons ConsensusPayload
+	Cons ConsensusPayload
 	//event *events.Event
 	//TBD
 }
@@ -100,13 +100,13 @@ func (cp *ConsensusPayload) Serialize(w io.Writer) error {
 	return err
 }
 
-func (msg *consensus) Serialization() ([]byte, error) {
+func (msg *Consensus) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.msgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	err = msg.cons.Serialize(buf)
+	err = msg.Cons.Serialize(buf)
 
 	return buf.Bytes(), err
 }
@@ -170,23 +170,23 @@ func (cp *ConsensusPayload) Deserialize(r io.Reader) error {
 	return err
 }
 
-func (msg *consensus) Deserialization(p []byte) error {
+func (msg *Consensus) Deserialization(p []byte) error {
 	log.Debug()
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.msgHdr))
-	err = msg.cons.Deserialize(buf)
+	err = msg.Cons.Deserialize(buf)
 	return err
 }
 
 func NewConsensus(cp *ConsensusPayload) ([]byte, error) {
 	log.Debug()
-	var msg consensus
+	var msg Consensus
 	msg.msgHdr.Magic = NETMAGIC
 	cmd := "consensus"
 	copy(msg.msgHdr.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	cp.Serialize(tmpBuffer)
-	msg.cons = *cp
+	msg.Cons = *cp
 	b := new(bytes.Buffer)
 	err := binary.Write(b, binary.LittleEndian, tmpBuffer.Bytes())
 	if err != nil {

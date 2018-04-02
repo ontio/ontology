@@ -20,7 +20,7 @@ import (
 )
 
 type Peer struct {
-	link                     *conn.Link
+	LinkConn                 *conn.Link
 	id                       uint64
 	state                    uint32
 	version                  uint32
@@ -47,6 +47,7 @@ func (p *Peer) backend() {
 		f()
 	}
 }
+
 func NewPeer(pubKey *crypto.PubKey) (*Peer, error) {
 	p := &Peer{
 		state: types.INIT,
@@ -61,7 +62,7 @@ func NewPeer(pubKey *crypto.PubKey) (*Peer, error) {
 	} else if config.Parameters.NodeType == types.VERIFYNODENAME {
 		p.services = uint64(types.VERIFYNODE)
 	}
-	p.link.SetPort(uint16(config.Parameters.NodePort))
+	p.LinkConn.SetPort(uint16(config.Parameters.NodePort))
 	p.relay = true
 
 	key, err := pubKey.EncodePoint(true)
@@ -92,6 +93,9 @@ func (p *Peer) Version() uint32 {
 func (p *Peer) GetHeight() uint64 {
 	return p.height
 }
+func (p *Peer) SetHeight(height uint64) {
+	p.height = height
+}
 func (p *Peer) GetState() uint32 {
 	return p.state
 }
@@ -111,13 +115,13 @@ func (p *Peer) GetTime() int64 {
 	return p.lastContact.UnixNano()
 }
 func (p *Peer) GetPort() uint16 {
-	return p.link.GetPort()
+	return p.LinkConn.GetPort()
 }
 func (p *Peer) Send(buf []byte) {
-	p.link.Tx(buf)
+	p.LinkConn.Tx(buf)
 }
 func (p *Peer) GetAddr() string {
-	return p.link.GetAddr()
+	return p.LinkConn.GetAddr()
 }
 func (p *Peer) GetAddr16() ([16]byte, error) {
 	var result [16]byte

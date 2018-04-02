@@ -10,22 +10,22 @@ import (
 	. "github.com/Ontology/p2pserver/common"
 )
 
-type blockReq struct {
+type BlockReq struct {
 	msgHdr
 	//TBD
 }
 
-type block struct {
+type Block struct {
 	msgHdr
-	blk types.Block
+	Blk types.Block
 	// TBD
 	//event *events.Event
 }
 
 func NewBlock(bk *types.Block) ([]byte, error) {
 	log.Debug()
-	var msg block
-	msg.blk = *bk
+	var msg Block
+	msg.Blk = *bk
 	msg.msgHdr.Magic = NETMAGIC
 	cmd := "block"
 	copy(msg.msgHdr.CMD[0:len(cmd)], cmd)
@@ -54,24 +54,24 @@ func NewBlock(bk *types.Block) ([]byte, error) {
 	return m, nil
 }
 
-func (msg block) Verify(buf []byte) error {
+func (msg Block) Verify(buf []byte) error {
 	err := msg.msgHdr.Verify(buf)
 	// TODO verify the message Content
 	return err
 }
 
-func (msg block) Serialization() ([]byte, error) {
+func (msg Block) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.msgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	msg.blk.Serialize(buf)
+	msg.Blk.Serialize(buf)
 
 	return buf.Bytes(), err
 }
 
-func (msg *block) Deserialization(p []byte) error {
+func (msg *Block) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 
 	err := binary.Read(buf, binary.LittleEndian, &(msg.msgHdr))
@@ -80,7 +80,7 @@ func (msg *block) Deserialization(p []byte) error {
 		return errors.New("Parse block message hdr error")
 	}
 
-	err = msg.blk.Deserialize(buf)
+	err = msg.Blk.Deserialize(buf)
 	if err != nil {
 		log.Warn("Parse block message error")
 		return errors.New("Parse block message error")

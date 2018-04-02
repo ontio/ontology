@@ -1,12 +1,13 @@
 package p2pserver
 
 import (
+	"strings"
 	"errors"
+
 	"github.com/Ontology/account"
 	"github.com/Ontology/common/config"
-	types "github.com/Ontology/p2pserver/common"
 	"github.com/Ontology/p2pserver/peer"
-	"strings"
+	msg "github.com/Ontology/p2pserver/message"
 )
 
 type P2PServer struct {
@@ -67,7 +68,7 @@ func (p2p *P2PServer) GetTime() int64 {
 	}
 	return 0
 }
-func (p2p *P2PServer) GetNeighborAddrs() ([]types.PeerAddr, uint64) {
+func (p2p *P2PServer) GetNeighborAddrs() ([]msg.PeerAddr, uint64) {
 	return p2p.nbrPeers.GetNeighborAddrs()
 }
 func (p2p *P2PServer) Xmit(interface{}) error {

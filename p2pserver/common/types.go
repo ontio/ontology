@@ -52,14 +52,6 @@ const (
 )
 
 var ReceiveDuplicateBlockCnt uint64 //an index to detecting networking status
-type PeerAddr struct {
-	Time          int64
-	Services      uint64
-	IpAddr        [16]byte
-	Port          uint16
-	ConsensusPort uint16
-	ID            uint64 // Unique ID
-}
 
 type MsgPayload struct {
 	Id      uint64

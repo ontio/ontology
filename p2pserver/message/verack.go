@@ -10,18 +10,18 @@ import (
 	. "github.com/Ontology/p2pserver/common"
 )
 
-type verACK struct {
+type VerACK struct {
 	msgHdr
-	isConsensus bool
+	IsConsensus bool
 }
 
 func NewVerack(isConsensus bool) ([]byte, error) {
-	var msg verACK
+	var msg VerACK
 	msg.msgHdr.Magic = NETMAGIC
 	copy(msg.msgHdr.CMD[0:7], "verack")
-	msg.isConsensus = isConsensus
+	msg.IsConsensus = isConsensus
 	tmpBuffer := bytes.NewBuffer([]byte{})
-	serialization.WriteBool(tmpBuffer, msg.isConsensus)
+	serialization.WriteBool(tmpBuffer, msg.IsConsensus)
 	b := new(bytes.Buffer)
 	err := binary.Write(b, binary.LittleEndian, tmpBuffer.Bytes())
 	if err != nil {
@@ -43,13 +43,13 @@ func NewVerack(isConsensus bool) ([]byte, error) {
 	return m, nil
 }
 
-func (msg verACK) Serialization() ([]byte, error) {
+func (msg VerACK) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.msgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	err = serialization.WriteBool(buf, msg.isConsensus)
+	err = serialization.WriteBool(buf, msg.IsConsensus)
 	if err != nil {
 		return nil, err
 	}
@@ -57,13 +57,13 @@ func (msg verACK) Serialization() ([]byte, error) {
 
 }
 
-func (msg *verACK) Deserialization(p []byte) error {
+func (msg *VerACK) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.msgHdr))
 	if err != nil {
 		return err
 	}
 
-	msg.isConsensus, err = serialization.ReadBool(buf)
+	msg.IsConsensus, err = serialization.ReadBool(buf)
 	return err
 }

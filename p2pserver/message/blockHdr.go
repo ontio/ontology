@@ -12,49 +12,49 @@ import (
 	. "github.com/Ontology/p2pserver/common"
 )
 
-type headersReq struct {
+type HeadersReq struct {
 	hdr msgHdr
-	p   struct {
-		len       uint8
-		hashStart [HASHLEN]byte
-		hashEnd   [HASHLEN]byte
+	P   struct {
+		Len       uint8
+		HashStart [HASHLEN]byte
+		HashEnd   [HASHLEN]byte
 	}
 }
 
-type blkHeader struct {
+type BlkHeader struct {
 	hdr    msgHdr
-	cnt    uint32
-	blkHdr []types.Header
+	Cnt    uint32
+	BlkHdr []types.Header
 }
 
-func (msg headersReq) Verify(buf []byte) error {
+func (msg HeadersReq) Verify(buf []byte) error {
 	// TODO Verify the message Content
 	err := msg.hdr.Verify(buf)
 	return err
 }
 
-func (msg blkHeader) Verify(buf []byte) error {
+func (msg BlkHeader) Verify(buf []byte) error {
 	// TODO Verify the message Content
 	err := msg.hdr.Verify(buf)
 	return err
 }
 
-func (msg headersReq) Serialization() ([]byte, error) {
+func (msg HeadersReq) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.hdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	err = binary.Write(buf, binary.LittleEndian, msg.p.len)
+	err = binary.Write(buf, binary.LittleEndian, msg.P.Len)
 	if err != nil {
 		return nil, err
 	}
-	err = binary.Write(buf, binary.LittleEndian, msg.p.hashStart)
+	err = binary.Write(buf, binary.LittleEndian, msg.P.HashStart)
 	if err != nil {
 		return nil, err
 	}
 
-	err = binary.Write(buf, binary.LittleEndian, msg.p.hashEnd)
+	err = binary.Write(buf, binary.LittleEndian, msg.P.HashEnd)
 	if err != nil {
 		return nil, err
 	}
@@ -62,60 +62,60 @@ func (msg headersReq) Serialization() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
-func (msg *headersReq) Deserialization(p []byte) error {
+func (msg *HeadersReq) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.hdr))
 	if err != nil {
 		return err
 	}
 
-	err = binary.Read(buf, binary.LittleEndian, &(msg.p.len))
+	err = binary.Read(buf, binary.LittleEndian, &(msg.P.Len))
 	if err != nil {
 		return err
 	}
 
-	err = binary.Read(buf, binary.LittleEndian, &(msg.p.hashStart))
+	err = binary.Read(buf, binary.LittleEndian, &(msg.P.HashStart))
 	if err != nil {
 		return err
 	}
 
-	err = binary.Read(buf, binary.LittleEndian, &(msg.p.hashEnd))
+	err = binary.Read(buf, binary.LittleEndian, &(msg.P.HashEnd))
 	return err
 }
 
-func (msg blkHeader) Serialization() ([]byte, error) {
+func (msg BlkHeader) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.hdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	err = binary.Write(buf, binary.LittleEndian, msg.cnt)
+	err = binary.Write(buf, binary.LittleEndian, msg.Cnt)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, header := range msg.blkHdr {
+	for _, header := range msg.BlkHdr {
 		header.Serialize(buf)
 	}
 	return buf.Bytes(), err
 }
 
-func (msg *blkHeader) Deserialization(p []byte) error {
+func (msg *BlkHeader) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.hdr))
 	if err != nil {
 		return err
 	}
 
-	err = binary.Read(buf, binary.LittleEndian, &(msg.cnt))
+	err = binary.Read(buf, binary.LittleEndian, &(msg.Cnt))
 	if err != nil {
 		return err
 	}
 
-	for i := 0; i < int(msg.cnt); i++ {
+	for i := 0; i < int(msg.Cnt); i++ {
 		var headers types.Header
 		err := (&headers).Deserialize(buf)
-		msg.blkHdr = append(msg.blkHdr, headers)
+		msg.BlkHdr = append(msg.BlkHdr, headers)
 		if err != nil {
 			log.Debug("blkHeader Deserialization failed")
 			goto blkHdrErr
@@ -127,15 +127,15 @@ blkHdrErr:
 }
 
 func NewHeaders(headers []types.Header, count uint32) ([]byte, error) {
-	var msg blkHeader
-	msg.cnt = count
-	msg.blkHdr = headers
+	var msg BlkHeader
+	msg.Cnt = count
+	msg.BlkHdr = headers
 	msg.hdr.Magic = NETMAGIC
 	cmd := "headers"
 	copy(msg.hdr.CMD[0:len(cmd)], cmd)
 
 	tmpBuffer := bytes.NewBuffer([]byte{})
-	serialization.WriteUint32(tmpBuffer, msg.cnt)
+	serialization.WriteUint32(tmpBuffer, msg.Cnt)
 	for _, header := range headers {
 		header.Serialize(tmpBuffer)
 	}

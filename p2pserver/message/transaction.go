@@ -18,11 +18,11 @@ type dataReq struct {
 }
 
 // Transaction message
-type trn struct {
+type Trn struct {
 	msgHdr
 	// TBD
 	//txn []byte
-	txn types.Transaction
+	Txn types.Transaction
 	//hash common.Uint256
 }
 
@@ -65,14 +65,14 @@ func (msg *dataReq) Deserialization(p []byte) error {
 
 func NewTxn(txn *types.Transaction) ([]byte, error) {
 	log.Debug()
-	var msg trn
+	var msg Trn
 
 	msg.msgHdr.Magic = NETMAGIC
 	cmd := "tx"
 	copy(msg.msgHdr.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	txn.Serialize(tmpBuffer)
-	msg.txn = *txn
+	msg.Txn = *txn
 	b := new(bytes.Buffer)
 	err := binary.Write(b, binary.LittleEndian, tmpBuffer.Bytes())
 	if err != nil {
@@ -96,21 +96,21 @@ func NewTxn(txn *types.Transaction) ([]byte, error) {
 	return m, nil
 }
 
-func (msg trn) Serialization() ([]byte, error) {
+func (msg Trn) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.msgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	msg.txn.Serialize(buf)
+	msg.Txn.Serialize(buf)
 
 	return buf.Bytes(), err
 }
 
-func (msg *trn) Deserialization(p []byte) error {
+func (msg *Trn) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.msgHdr))
-	err = msg.txn.Deserialize(buf)
+	err = msg.Txn.Deserialize(buf)
 	if err != nil {
 		return err
 	}

@@ -16,12 +16,12 @@ import (
 
 var LastInvHash Uint256
 
-type blocksReq struct {
+type BlocksReq struct {
 	msgHdr
-	p struct {
+	P struct {
 		HeaderHashCount uint8
-		hashStart       [HASHLEN]byte
-		hashStop        [HASHLEN]byte
+		HashStart       [HASHLEN]byte
+		HashStop        [HASHLEN]byte
 	}
 }
 
@@ -36,14 +36,14 @@ type Inv struct {
 	P   InvPayload
 }
 
-func (msg blocksReq) Verify(buf []byte) error {
+func (msg BlocksReq) Verify(buf []byte) error {
 
 	// TODO verify the message Content
 	err := msg.msgHdr.Verify(buf)
 	return err
 }
 
-func (msg blocksReq) Serialization() ([]byte, error) {
+func (msg BlocksReq) Serialization() ([]byte, error) {
 	var buf bytes.Buffer
 
 	err := binary.Write(&buf, binary.LittleEndian, msg)
@@ -54,7 +54,7 @@ func (msg blocksReq) Serialization() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
-func (msg *blocksReq) Deserialization(p []byte) error {
+func (msg *BlocksReq) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &msg)
 	return err

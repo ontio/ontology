@@ -10,20 +10,20 @@ import (
 	. "github.com/Ontology/p2pserver/common"
 )
 
-type notFound struct {
+type NotFound struct {
 	msgHdr
-	hash common.Uint256
+	Hash common.Uint256
 }
 
 func NewNotFound(hash common.Uint256) ([]byte, error) {
 	log.Debug()
-	var msg notFound
-	msg.hash = hash
+	var msg NotFound
+	msg.Hash = hash
 	msg.msgHdr.Magic = NETMAGIC
 	cmd := "notfound"
 	copy(msg.msgHdr.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})
-	msg.hash.Serialize(tmpBuffer)
+	msg.Hash.Serialize(tmpBuffer)
 	p := new(bytes.Buffer)
 	err := binary.Write(p, binary.LittleEndian, tmpBuffer.Bytes())
 	if err != nil {
@@ -47,24 +47,24 @@ func NewNotFound(hash common.Uint256) ([]byte, error) {
 	return m, nil
 }
 
-func (msg notFound) Verify(buf []byte) error {
+func (msg NotFound) Verify(buf []byte) error {
 	err := msg.msgHdr.Verify(buf)
 	// TODO verify the message Content
 	return err
 }
 
-func (msg notFound) Serialization() ([]byte, error) {
+func (msg NotFound) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.msgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	msg.hash.Serialize(buf)
+	msg.Hash.Serialize(buf)
 
 	return buf.Bytes(), err
 }
 
-func (msg *notFound) Deserialization(p []byte) error {
+func (msg *NotFound) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 
 	err := binary.Read(buf, binary.LittleEndian, &(msg.msgHdr))
@@ -73,7 +73,7 @@ func (msg *notFound) Deserialization(p []byte) error {
 		return errors.New("Parse notfound message hdr error")
 	}
 
-	err = msg.hash.Deserialize(buf)
+	err = msg.Hash.Deserialize(buf)
 	if err != nil {
 		log.Warn("Parse notfound message error")
 		return errors.New("Parse notfound message error")

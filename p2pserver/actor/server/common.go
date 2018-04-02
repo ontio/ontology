@@ -1,7 +1,7 @@
 package server
 
 import (
-	types "github.com/Ontology/p2pserver/common"
+	msg "github.com/Ontology/p2pserver/message"
 )
 
 type StartServerReq struct {
@@ -81,7 +81,7 @@ type GetRelayStateRsp struct {
 type GetNeighborAddrsReq struct {
 }
 type GetNeighborAddrsRsp struct {
-	Addrs []types.PeerAddr
+	Addrs []msg.PeerAddr
 	Count uint64
 }
 

@@ -11,7 +11,7 @@ import (
 	. "github.com/Ontology/p2pserver/common"
 )
 
-type Messager interface {
+type Message interface {
 	Verify([]byte) error
 	Serialization() ([]byte, error)
 	Deserialization([]byte) error
@@ -60,35 +60,35 @@ type filterload struct {
 // @messager the messager interface
 // @error  error code
 // FixMe fix the ugly multiple return.
-func AllocMsg(t string, length int) Messager {
+func AllocMsg(t string, length int) Message {
 	switch t {
 	case "msgheader":
 		var msg msgHdr
 		return &msg
 	case "version":
-		var msg version
+		var msg Version
 		// TODO fill the header and type
 		copy(msg.Hdr.CMD[0:len(t)], t)
 		return &msg
 	case "verack":
-		var msg verACK
+		var msg VerACK
 		copy(msg.msgHdr.CMD[0:len(t)], t)
 		return &msg
 	case "getheaders":
-		var msg headersReq
+		var msg HeadersReq
 		// TODO fill the header and type
 		copy(msg.hdr.CMD[0:len(t)], t)
 		return &msg
 	case "headers":
-		var msg blkHeader
+		var msg BlkHeader
 		copy(msg.hdr.CMD[0:len(t)], t)
 		return &msg
 	case "getaddr":
-		var msg addrReq
+		var msg AddrReq
 		copy(msg.Hdr.CMD[0:len(t)], t)
 		return &msg
 	case "addr":
-		var msg addr
+		var msg Addr
 		copy(msg.hdr.CMD[0:len(t)], t)
 		return &msg
 	case "inv":
@@ -102,17 +102,17 @@ func AllocMsg(t string, length int) Messager {
 		copy(msg.msgHdr.CMD[0:len(t)], t)
 		return &msg
 	case "block":
-		var msg block
+		var msg Block
 		copy(msg.msgHdr.CMD[0:len(t)], t)
 		return &msg
 	case "tx":
-		var msg trn
+		var msg Trn
 		copy(msg.msgHdr.CMD[0:len(t)], t)
 		//if (message.Payload.Length <= 1024 * 1024)
 		//OnInventoryReceived(Transaction.DeserializeFrom(message.Payload));
 		return &msg
 	case "consensus":
-		var msg consensus
+		var msg Consensus
 		copy(msg.msgHdr.CMD[0:len(t)], t)
 		return &msg
 	case "filteradd":
@@ -128,7 +128,7 @@ func AllocMsg(t string, length int) Messager {
 		copy(msg.msgHdr.CMD[0:len(t)], t)
 		return &msg
 	case "getblocks":
-		var msg blocksReq
+		var msg BlocksReq
 		copy(msg.msgHdr.CMD[0:len(t)], t)
 		return &msg
 	case "txnpool":
@@ -142,15 +142,15 @@ func AllocMsg(t string, length int) Messager {
 		log.Warn("Not supported message type - merkleblock")
 		return nil
 	case "notfound":
-		var msg notFound
+		var msg NotFound
 		copy(msg.msgHdr.CMD[0:len(t)], t)
 		return &msg
 	case "ping":
-		var msg ping
+		var msg Ping
 		copy(msg.msgHdr.CMD[0:len(t)], t)
 		return &msg
 	case "pong":
-		var msg pong
+		var msg Pong
 		copy(msg.msgHdr.CMD[0:len(t)], t)
 		return &msg
 	case "reject":

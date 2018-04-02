@@ -5,19 +5,15 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
-	//"fmt"
 	"github.com/Ontology/common/log"
 	. "github.com/Ontology/p2pserver/common"
-	//"net"
-	//"strconv"
 )
 
-type addrReq struct {
+type AddrReq struct {
 	Hdr msgHdr
-	// No payload
 }
 
-type NodeAddr struct {
+type PeerAddr struct {
 	Time          int64
 	Services      uint64
 	IpAddr        [16]byte
@@ -26,18 +22,18 @@ type NodeAddr struct {
 	ID            uint64 // Unique ID
 }
 
-type addr struct {
+type Addr struct {
 	hdr       msgHdr
 	nodeCnt   uint64
-	nodeAddrs []NodeAddr
+	nodeAddrs []PeerAddr
 }
 
 const (
 	NODEADDRSIZE = 30
 )
 
-func newGetAddr() ([]byte, error) {
-	var msg addrReq
+func NewGetAddr() ([]byte, error) {
+	var msg AddrReq
 	// Fixme the check is the []byte{0} instead of 0
 	var sum []byte
 	sum = []byte{0x5d, 0xf6, 0xe0, 0xe2}
@@ -50,13 +46,12 @@ func newGetAddr() ([]byte, error) {
 
 	str := hex.EncodeToString(buf)
 	log.Debug("The message get addr length is: ", len(buf), " ", str)
-
 	return buf, err
 }
 
-func NewAddrs(nodeaddrs []NodeAddr, count uint64) ([]byte, error) {
-	var msg addr
-	msg.nodeAddrs = nodeaddrs
+func NewAddrs(nodeAddrs []PeerAddr, count uint64) ([]byte, error) {
+	var msg Addr
+	msg.nodeAddrs = nodeAddrs
 	msg.nodeCnt = count
 	msg.hdr.Magic = NETMAGIC
 	cmd := "addr"
@@ -86,33 +81,31 @@ func NewAddrs(nodeaddrs []NodeAddr, count uint64) ([]byte, error) {
 		log.Error("Error Convert net message ", err.Error())
 		return nil, err
 	}
-
 	return m, nil
 }
 
-func (msg addrReq) Verify(buf []byte) error {
+func (msg AddrReq) Verify(buf []byte) error {
 	// TODO Verify the message Content
 	err := msg.Hdr.Verify(buf)
 	return err
 }
 
-func (msg addrReq) Serialization() ([]byte, error) {
+func (msg AddrReq) Serialization() ([]byte, error) {
 	var buf bytes.Buffer
 	err := binary.Write(&buf, binary.LittleEndian, msg)
 	if err != nil {
 		return nil, err
 	}
-
 	return buf.Bytes(), err
 }
 
-func (msg *addrReq) Deserialization(p []byte) error {
+func (msg *AddrReq) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, msg)
 	return err
 }
 
-func (msg addr) Serialization() ([]byte, error) {
+func (msg Addr) Serialization() ([]byte, error) {
 	var buf bytes.Buffer
 	err := binary.Write(&buf, binary.LittleEndian, msg.hdr)
 
@@ -129,16 +122,15 @@ func (msg addr) Serialization() ([]byte, error) {
 			return nil, err
 		}
 	}
-
 	return buf.Bytes(), err
 }
 
-func (msg *addr) Deserialization(p []byte) error {
+func (msg *Addr) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.hdr))
 	err = binary.Read(buf, binary.LittleEndian, &(msg.nodeCnt))
 	log.Debug("The address count is ", msg.nodeCnt)
-	msg.nodeAddrs = make([]NodeAddr, msg.nodeCnt)
+	msg.nodeAddrs = make([]PeerAddr, msg.nodeCnt)
 	for i := 0; i < int(msg.nodeCnt); i++ {
 		err := binary.Read(buf, binary.LittleEndian, &(msg.nodeAddrs[i]))
 		if err != nil {
@@ -148,13 +140,14 @@ func (msg *addr) Deserialization(p []byte) error {
 err:
 	return err
 }
-func (msg *NodeAddr) Deserialization(p []byte) error {
+
+func (msg *PeerAddr) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, msg)
 	return err
 }
 
-func (msg NodeAddr) Serialization() ([]byte, error) {
+func (msg PeerAddr) Serialization() ([]byte, error) {
 	var buf bytes.Buffer
 	err := binary.Write(&buf, binary.LittleEndian, msg)
 	if err != nil {
@@ -164,7 +157,7 @@ func (msg NodeAddr) Serialization() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
-func (msg addr) Verify(buf []byte) error {
+func (msg Addr) Verify(buf []byte) error {
 	err := msg.hdr.Verify(buf)
 	// TODO Verify the message Content, check the ipaddr number
 	return err
