@@ -1,14 +1,14 @@
-# Ontology Restful API
+# Ontology Websocket API
 
 * [Introduction](#Introduction)
-* [Restful API list](#Restful API list)
+* [Websocket API list](#Websocket API list)
 * [Errorcode](#Errorcode)
 
 ## Introduction
 
-This document describes the restful api format for the http/https used in the Onchain Ontology.
+This document describes the Websocket api format for the ws/wss used in the Onchain Ontology.
 
-## Restful API list
+## Websocket API list
 
 ### Response parameters descri
 
@@ -20,18 +20,49 @@ This document describes the restful api format for the http/https used in the On
 | Result | int/string/object | execute result |
 | Version | string | version information |
 
-### 1. Get the generate block time
-return the time required to create a new block
+###  heartbeat
+if don't send heartbeat, the session expire after 5min
 
-##### GET
-
-```
-/api/v1/node/generateblocktime
-```
 #### Request Example:
 
 ```
-curl -i http://server:port/api/v1/node/generateblocktime
+{
+    "Action": "heartbeat",
+    "Version": "1.0.0",
+    "SubscribeEvent":false, //optional
+    "SubscribeJsonBlock":false, //optional
+    "SubscribeRawBlock":false, //optional
+    "SubscribeBlockTxHashs":false //optional
+}
+```
+
+#### Response example:
+
+```
+{
+    "Action": "heartbeat",
+    "Desc": "SUCCESS"
+    "Error": 0,
+    "Result": {
+        "SubscribeEvent":false,
+        "SubscribeJsonBlock":false,
+        "SubscribeRawBlock":false,
+        "SubscribeBlockTxHashs":false
+    }
+    "Version": "1.0.0"
+}
+
+### 1. Get the generate block time
+return the time required to create a new block
+
+
+#### Request Example:
+
+```
+{
+    "Action": "getgenerateblocktime",
+    "Version": "1.0.0"
+}
 ```
 
 #### Response example:
@@ -49,16 +80,14 @@ curl -i http://server:port/api/v1/node/generateblocktime
 
 get the current number of connections for the node
 
-GET
-
-```
-/api/v1/node/connectioncount
-```
 
 #### Request Example:
 
 ```
-curl -i http://server:port/api/v1/node/connectioncount
+{
+    "Action": "getconnectioncount",
+    "Version": "1.0.0"
+}
 ```
 
 #### Response Example:
@@ -68,7 +97,7 @@ curl -i http://server:port/api/v1/node/connectioncount
     "Action": "getconnectioncount",
     "Desc": "SUCCESS",
     "Error": 0,
-    "Result": 0,
+    "Result": 4,
     "Version": "1.0.0"
 }
 ```
@@ -76,16 +105,15 @@ curl -i http://server:port/api/v1/node/connectioncount
 
 return all transaction hash contained in the block corresponding to this height
 
-GET
-
-```
-/api/v1/block/transactions/height/:height
-```
 
 #### Request Example:
 
 ```
-curl -i http://server:port/api/v1/block/transactions/height/100
+{
+    "Action": "getblocktxsbyheight",
+    "Version": "1.0.0",
+    "Height": 100
+}
 ```
 
 #### Response Example:
@@ -109,16 +137,16 @@ curl -i http://server:port/api/v1/block/transactions/height/100
 
 return block details based on block height
 
-GET
-
-```
-/api/v1/block/details/height/:height
-```
 
 #### Request Example:
 
 ```
-curl -i http://server:port/api/v1/block/details/height/22
+{
+    "Action": "getblockbyheight",
+    "Version": "1.0.0",
+    "Raw": "0",
+    "Height": 100
+}
 ```
 
 #### Response Example:
@@ -180,16 +208,16 @@ curl -i http://server:port/api/v1/block/details/height/22
 
 return block details based on block hash
 
-GET
-
-```
-/api/v1/block/details/hash/:hash
-```
 
 #### Request Example:
 
 ```
-curl -i http://server:port/api/v1/block/details/hash/ea5e5219d2f1591f4feef89885c3f38c83d3a3474a5622cf8cd3de1b93849603
+{
+    "Action": "getblockbyhash",
+    "Version": "1.0.0",
+    "Raw": "0",
+    "Hash": "7c3e38afb62db28c7360af7ef3c1baa66aeec27d7d2f60cd22c13ca85b2fd4f3"
+}
 ```
 
 #### Response Example:
@@ -252,16 +280,14 @@ curl -i http://server:port/api/v1/block/details/hash/ea5e5219d2f1591f4feef89885c
 
 return the current block height
 
-GET
-
-```
-/api/v1/block/height
-```
 
 #### Request Example:
 
 ```
-curl -i http://server:port/api/v1/block/height
+{
+    "Action": "getblockheight",
+    "Version": "1.0.0"
+}
 ```
 
 
@@ -281,16 +307,15 @@ curl -i http://server:port/api/v1/block/height
 
 return block hash based on block height
 
-GET
-
-```
-/api/v1/block/hash/:height
-```
 
 #### Request Example:
 
 ```
-curl -i http://server:port/api/v1/block/hash/100
+{
+    "Action": "getblockhash",
+    "Version": "1.0.0",
+    "Height": 100
+}
 ```
 
 #### Response Example:
@@ -309,16 +334,16 @@ curl -i http://server:port/api/v1/block/hash/100
 
 get transaction details based on transaction hash
 
-GET
-
-```
-/api/v1/transaction/:hash
-```
 
 ####Request Example:
 
 ```
-curl -i http://server:port/api/v1/transaction/c5e0d387c6a97aef12f1750840d24b53d9fe7f22f16c7b7703d4a93a28370baa
+{
+    "Action": "gettransaction",
+    "Version": "1.0.0",
+    "Hash": "3b90ddc4d33c4954c3d87736120e94915f963546861987757f358c9376422255",
+    "Raw": "0"
+}
 ```
 #### Response Example:
 
@@ -358,19 +383,8 @@ curl -i http://server:port/api/v1/transaction/c5e0d387c6a97aef12f1750840d24b53d9
 
 send transaction.
 
-POST
-
-```
-/api/v1/transaction
-```
 
 #### Request Example:
-
-```
-curl  -H "Content-Type: application/json"  -X POST -d '{"Action":"sendrawtransaction", "Version":"1.0.0","Data":"00d00000000080fdcf2b0138c56b6c766b00527ac46c766b51527ac46151c56c766b52527ac46c766b00c31052656749644279507..."}'  http://server:port/api/v1/transaction
-```
-
-#### Post Params:
 
 ```
 {
@@ -380,7 +394,7 @@ curl  -H "Content-Type: application/json"  -X POST -d '{"Action":"sendrawtransac
 }
 ```
 
-#### Response
+#### Response Example:
 ```
 {
     "Action": "sendrawtransaction",
@@ -396,13 +410,14 @@ curl  -H "Content-Type: application/json"  -X POST -d '{"Action":"sendrawtransac
 
 Returns the stored value according to the contract script hashes and stored key.
 
-GET
-```
-/api/v1/storage/:hash/:key
-```
 Request Example
 ```
-curl -i http://localhost:20384/api/v1/storage/ff00000000000000000000000000000000000001/0144587c1094f6929ed7362d6328cffff4fb4da2
+{
+    "Action": "getstorage",
+    "Version": "1.0.0",
+    "Hash": "0144587c1094f6929ed7362d6328cffff4fb4da2",
+    "Key" : "4587c1094f6"
+}
 ```
 #### Response
 ```
@@ -418,17 +433,16 @@ curl -i http://localhost:20384/api/v1/storage/ff00000000000000000000000000000000
 
 ### 11 GetBalanceByAddr
 
-return balance of base58 account address.
+return the balance of base58 account address.
 
-GET
-```
-/api/v1/balance/:addr
-```
-> addr: Base58 encoded account address
 
 Request Example
 ```
-curl -i http://localhost:20384/api/v1/balance/TA5uYzLU2vBvvfCMxyV2sdzc9kPqJzGZWq
+{
+    "Action": "getbalance",
+    "Version": "1.0.0",
+    "Addr": "TA63xZXqdPLtDeznWQ6Ns4UsbqprLrrLJk"
+}
 ```
 
 #### Response
@@ -448,16 +462,15 @@ curl -i http://localhost:20384/api/v1/balance/TA5uYzLU2vBvvfCMxyV2sdzc9kPqJzGZWq
 
 According to the contract script hash, query the contract information.
 
-GET
-
-```
-/api/v1/contract/:hash
-```
 
 #### Request Example:
 
 ```
-curl -i http://server:port/api/v1/contract/fff49c809d302a2956e9dc0012619a452d4b846c
+{
+    "Action": "gettransaction",
+    "Version": "1.0.0",
+    "Hash": "fff49c809d302a2956e9dc0012619a452d4b846c"
+}
 ```
 
 #### Response Example:
@@ -485,16 +498,15 @@ curl -i http://server:port/api/v1/contract/fff49c809d302a2956e9dc0012619a452d4b8
 
 Get a list of transaction hash with smartevent based on height
 
-GET
-
-```
-/api/v1/smartcode/event/transactions/:height
-```
 
 #### Example usage:
 
 ```
-curl -i http://localhost:20384/api/v1/smartcode/event/transactions/900
+{
+    "Action": "getsmartcodeeventbyheight",
+    "Version": "1.0.0",
+    "Height": 100
+}
 ```
 
 #### response
@@ -511,15 +523,16 @@ curl -i http://localhost:20384/api/v1/smartcode/event/transactions/900
 ```
 > Note: result is the txHash list.
 
-### 14 get contract event by txhash
+### 14 get smart contract event by txhash
 
-GET
-```
-/api/v1/smartcode/event/txhash/:hash
-```
+
 #### Request Example:
 ```
-curl -i http://localhost:20384/api/v1/smartcode/event/txhash/3e23cf222a47739d4141255da617cd42925a12638ac19cadcc85501f907972c8
+{
+    "Action": "getsmartcodeeventbyhash",
+    "Version": "1.0.0",
+    "Hash": "3e23cf222a47739d4141255da617cd42925a12638ac19cadcc85501f907972c8"
+}
 ```
 #### Response:
 ```
@@ -545,13 +558,13 @@ curl -i http://localhost:20384/api/v1/smartcode/event/txhash/3e23cf222a47739d414
 ### 15 Get block height by transaction hash
 get blockheight of txhash
 
-GET
-```
-/api/v1/block/height/txhash/:hash
-```
 #### Request Example:
 ```
-curl -i http://localhost:20384/api/v1/block/height/txhash/3e23cf222a47739d4141255da617cd42925a12638ac19cadcc85501f907972c8
+{
+    "Action": "getblockheightbytxhash",
+    "Version": "1.0.0",
+    "Hash": "3e23cf222a47739d4141255da617cd42925a12638ac19cadcc85501f907972c8"
+}
 ```
 #### Response
 ```
@@ -559,24 +572,15 @@ curl -i http://localhost:20384/api/v1/block/height/txhash/3e23cf222a47739d414125
     "Action": "getblockheightbytxhash",
     "Desc": "SUCCESS",
     "Error": 0,
-    "Result": 0,
+    "Result": 100,
     "Version": "1.0.0"
 }
 ```
 
 ### 16 websocket configuration（unsolved）
 
-POST
 
-```
-/api/v1/config/websocket/state
-```
 
-#### Request Example
-
-```
-curl -i http://server:port/api/v1/config/websocket/state
-```
 
 ## Errorcode
 

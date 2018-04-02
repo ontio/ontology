@@ -31,52 +31,52 @@ type Session struct {
 	sync.Mutex
 	mConnection *websocket.Conn
 	nLastActive int64
-	sSessionId  string
+	sessionId  string
 }
 
-const SESSION_TIMEOUT int64 = 600
+const SESSION_TIMEOUT int64 = 300
 
 func newSession(wsConn *websocket.Conn) (session *Session, err error) {
-	sSessionId := uuid.NewUUID().String()
+	sessionid := uuid.NewUUID().String()
 	session = &Session{
 		mConnection: wsConn,
 		nLastActive: time.Now().Unix(),
-		sSessionId:  sSessionId,
+		sessionId:  sessionid,
 	}
 	return session, nil
 }
 
-func (this *Session) GetSessionId() string {
-	return this.sSessionId
+func (self *Session) GetSessionId() string {
+	return self.sessionId
 }
 
-func (this *Session) close() {
-	if this.mConnection != nil {
-		this.mConnection.Close()
-		this.mConnection = nil
+func (self *Session) close() {
+	if self.mConnection != nil {
+		self.mConnection.Close()
+		self.mConnection = nil
 	}
-	this.sSessionId = ""
+	self.sessionId = ""
 }
 
-func (this *Session) UpdateActiveTime() {
-	this.Lock()
-	defer this.Unlock()
-	this.nLastActive = time.Now().Unix()
+func (self *Session) UpdateActiveTime() {
+	self.Lock()
+	defer self.Unlock()
+	self.nLastActive = time.Now().Unix()
 }
 
-func (this *Session) Send(data []byte) error {
-	if this.mConnection == nil {
+func (self *Session) Send(data []byte) error {
+	if self.mConnection == nil {
 		return errors.New("WebSocket is null")
 	}
-	this.Lock()
-	defer this.Unlock()
-	return this.mConnection.WriteMessage(websocket.TextMessage, data)
+	self.Lock()
+	defer self.Unlock()
+	return self.mConnection.WriteMessage(websocket.TextMessage, data)
 }
 
-func (this *Session) SessionTimeoverCheck() bool {
+func (self *Session) SessionTimeoverCheck() bool {
 
 	nCurTime := time.Now().Unix()
-	if nCurTime-this.nLastActive > SESSION_TIMEOUT {
+	if nCurTime-self.nLastActive > SESSION_TIMEOUT {
 		//sec
 		return true
 	}

@@ -318,32 +318,6 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 	return responseSuccess(common.ToHexString(hash.ToArray()))
 }
 
-// A JSON example for submitblock method as following:
-//   {"jsonrpc": "2.0", "method": "submitblock", "params": ["raw block in hex"], "id": 0}
-func SubmitBlock(params []interface{}) map[string]interface{} {
-	if len(params) < 1 {
-		return responsePack(berr.INVALID_PARAMS, nil)
-	}
-	switch params[0].(type) {
-	case string:
-		str := params[0].(string)
-		hex, _ := hex.DecodeString(str)
-		var block types.Block
-		if err := block.Deserialize(bytes.NewReader(hex)); err != nil {
-			return responsePack(berr.INVALID_BLOCK, "")
-		}
-		if err := bactor.AddBlock(&block); err != nil {
-			return responsePack(berr.INVALID_BLOCK, "")
-		}
-		if err := bactor.Xmit(&block); err != nil {
-			return responsePack(berr.INTERNAL_ERROR, "internal error")
-		}
-	default:
-		return responsePack(berr.INVALID_PARAMS, "")
-	}
-	return responsePack(berr.SUCCESS, true)
-}
-
 func GetNodeVersion(params []interface{}) map[string]interface{} {
 	return responseSuccess(config.Parameters.Version)
 }
@@ -495,58 +469,3 @@ func GetBalance(params []interface{}) map[string]interface{} {
 	return responseSuccess(rsp)
 }
 
-func RegDataFile(params []interface{}) map[string]interface{} {
-	if len(params) < 1 {
-		return responsePack(berr.INVALID_PARAMS, nil)
-	}
-	var hash common.Uint256
-	switch params[0].(type) {
-	case string:
-		str := params[0].(string)
-		hex, err := hex.DecodeString(str)
-		if err != nil {
-			return responsePack(berr.INVALID_PARAMS, "")
-		}
-		var txn types.Transaction
-		if err := txn.Deserialize(bytes.NewReader(hex)); err != nil {
-			return responsePack(berr.INVALID_BLOCK, "")
-		}
-
-		hash = txn.Hash()
-		if errCode := bcomn.VerifyAndSendTx(&txn); errCode != ontErrors.ErrNoError {
-			return responsePack(berr.INTERNAL_ERROR, "internal error")
-		}
-	default:
-		return responsePack(berr.INVALID_PARAMS, "")
-	}
-	return responseSuccess(common.ToHexString(hash.ToArray()))
-}
-
-func CatDataRecord(params []interface{}) map[string]interface{} {
-	if len(params) < 1 {
-		return responsePack(berr.INVALID_PARAMS, nil)
-	}
-	switch params[0].(type) {
-	case string:
-		str := params[0].(string)
-		b, err := hex.DecodeString(str)
-		if err != nil {
-			return responsePack(berr.INVALID_PARAMS, "")
-		}
-		var hash common.Uint256
-		err = hash.Deserialize(bytes.NewReader(b))
-		if err != nil {
-			return responsePack(berr.INVALID_TRANSACTION, "")
-		}
-		tx, err := bactor.GetTransaction(hash)
-		if err != nil {
-			return responsePack(berr.UNKNOWN_TRANSACTION, "unknown transaction")
-		}
-		tran := bcomn.TransArryByteToHexString(tx)
-		info := tran.Payload.(*bcomn.DataFileInfo)
-		//ref := string(record.RecordData[:])
-		return responseSuccess(info)
-	default:
-		return responsePack(berr.INVALID_PARAMS, "")
-	}
-}

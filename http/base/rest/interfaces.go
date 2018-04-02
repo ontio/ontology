@@ -282,11 +282,6 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	}
 	resp["Result"] = common.ToHexString(hash.ToArray())
 
-	if txn.TxType == types.Invoke {
-		if userid, ok := cmd["Userid"].(string); ok && len(userid) > 0 {
-			resp["Userid"] = userid
-		}
-	}
 	return resp
 }
 

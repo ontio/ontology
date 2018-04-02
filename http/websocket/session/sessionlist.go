@@ -20,9 +20,11 @@ package session
 
 import (
 	"sync"
-
 	"github.com/gorilla/websocket"
+	"errors"
 )
+
+const MAX_SESSION_COUNT = 3000
 
 type SessionList struct {
 	sync.RWMutex
@@ -34,62 +36,65 @@ func NewSessionList() *SessionList {
 		mapOnlineList: make(map[string]*Session),
 	}
 }
-func (this *SessionList) NewSession(wsConn *websocket.Conn) (session *Session, err error) {
+func (self *SessionList) NewSession(wsConn *websocket.Conn) (session *Session, err error) {
+	if self.GetSessionCount() > MAX_SESSION_COUNT {
+		return nil, errors.New("over MAX_SESSION_COUNT")
+	}
 	session, err = newSession(wsConn)
 	if err == nil {
-		this.addOnlineSession(session)
+		self.addOnlineSession(session)
 	}
 	return session, err
 }
-func (this *SessionList) CloseSession(session *Session) {
+func (self *SessionList) CloseSession(session *Session) {
 	if session == nil {
 		return
 	}
-	this.removeSession(session)
+	self.removeSession(session)
 	session.close()
 }
-func (this *SessionList) addOnlineSession(session *Session) {
+func (self *SessionList) addOnlineSession(session *Session) {
 	if session.GetSessionId() == "" {
 		return
 	}
-	this.Lock()
-	defer this.Unlock()
-	this.mapOnlineList[session.GetSessionId()] = session
+	self.Lock()
+	defer self.Unlock()
+	self.mapOnlineList[session.GetSessionId()] = session
 }
 
-func (this *SessionList) removeSession(iSession *Session) (err error) {
-	return this.removeSessionById(iSession.GetSessionId())
+func (self *SessionList) removeSession(iSession *Session) (err error) {
+	return self.removeSessionById(iSession.GetSessionId())
 }
 
-func (this *SessionList) removeSessionById(sSessionId string) (err error) {
+func (self *SessionList) removeSessionById(sSessionId string) (err error) {
 
 	if sSessionId == "" {
 		return err
 	}
-	this.Lock()
-	defer this.Unlock()
-	delete(this.mapOnlineList, sSessionId)
+	self.Lock()
+	defer self.Unlock()
+	delete(self.mapOnlineList, sSessionId)
 	return nil
 }
 
-func (this *SessionList) GetSessionById(sSessionId string) *Session {
-	this.RLock()
-	defer this.RUnlock()
-	if session, ok := this.mapOnlineList[sSessionId]; ok {
+func (self *SessionList) GetSessionById(sSessionId string) *Session {
+	self.RLock()
+	defer self.RUnlock()
+	if session, ok := self.mapOnlineList[sSessionId]; ok {
 		return session
 	}
 	return nil
 
 }
-func (this *SessionList) GetSessionCount() int {
-	this.RLock()
-	defer this.RUnlock()
-	return len(this.mapOnlineList)
+func (self *SessionList) GetSessionCount() int {
+	self.RLock()
+	defer self.RUnlock()
+	return len(self.mapOnlineList)
 }
-func (this *SessionList) ForEachSession(visit func(*Session)) {
-	this.RLock()
-	defer this.RUnlock()
-	for _, v := range this.mapOnlineList {
+func (self *SessionList) ForEachSession(visit func(*Session)) {
+	self.RLock()
+	defer self.RUnlock()
+	for _, v := range self.mapOnlineList {
 		visit(v)
 	}
 }

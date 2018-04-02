@@ -28,7 +28,6 @@ import (
 	"strconv"
 	"sync"
 	"time"
-
 	cfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	Err "github.com/ontio/ontology/http/base/error"
@@ -37,12 +36,24 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+const (
+	WSTOPIC_EVENT      = 1
+	WSTOPIC_JSON_BLOCK = 2
+	WSTOPIC_RAW_BLOCK  = 3
+	WSTOPIC_TXHASHS    = 4
+)
+
 type handler func(map[string]interface{}) map[string]interface{}
 type Handler struct {
 	handler  handler
 	pushFlag bool
 }
-
+type subscribe struct {
+	subscribeEvent        bool `json:"SubscribeEvent"`
+	subscribeJsonBlock    bool `json:"SubscribeJsonBlock"`
+	subscribeRawBlock     bool `json:"SubscribeRawBlock"`
+	subscribeBlockTxHashs bool `json:"SubscribeBlockTxHashs"`
+}
 type WsServer struct {
 	sync.RWMutex
 	Upgrader     websocket.Upgrader
@@ -51,7 +62,7 @@ type WsServer struct {
 	SessionList  *session.SessionList
 	ActionMap    map[string]Handler
 	TxHashMap    map[string]string //key: txHash   value:sessionid
-	BroadcastMap map[string]string
+	SubscribeMap map[string]subscribe
 }
 
 func InitWsServer() *WsServer {
@@ -59,42 +70,42 @@ func InitWsServer() *WsServer {
 		Upgrader:     websocket.Upgrader{},
 		SessionList:  session.NewSessionList(),
 		TxHashMap:    make(map[string]string),
-		BroadcastMap: make(map[string]string),
+		SubscribeMap: make(map[string]subscribe),
 	}
 	return ws
 }
 
-func (this *WsServer) Start() error {
+func (self *WsServer) Start() error {
 	if cfg.Parameters.HttpWsPort == 0 {
 		log.Error("Not configure HttpWsPort port ")
 		return nil
 	}
-	this.registryMethod()
-	this.Upgrader.CheckOrigin = func(r *http.Request) bool {
+	self.registryMethod()
+	self.Upgrader.CheckOrigin = func(r *http.Request) bool {
 		return true
 	}
 
 	tlsFlag := false
 	if tlsFlag || cfg.Parameters.HttpWsPort%1000 == rest.TLS_PORT {
 		var err error
-		this.listener, err = this.initTlsListen()
+		self.listener, err = self.initTlsListen()
 		if err != nil {
 			log.Error("Https Cert: ", err.Error())
 			return err
 		}
 	} else {
 		var err error
-		this.listener, err = net.Listen("tcp", ":"+strconv.Itoa(cfg.Parameters.HttpWsPort))
+		self.listener, err = net.Listen("tcp", ":"+strconv.Itoa(cfg.Parameters.HttpWsPort))
 		if err != nil {
 			log.Fatal("net.Listen: ", err.Error())
 			return err
 		}
 	}
 	var done = make(chan bool)
-	go this.checkSessionsTimeout(done)
+	go self.checkSessionsTimeout(done)
 
-	this.server = &http.Server{Handler: http.HandlerFunc(this.webSocketHandler)}
-	err := this.server.Serve(this.listener)
+	self.server = &http.Server{Handler: http.HandlerFunc(self.webSocketHandler)}
+	err := self.server.Serve(self.listener)
 
 	done <- true
 	if err != nil {
@@ -105,87 +116,91 @@ func (this *WsServer) Start() error {
 
 }
 
-func (this *WsServer) registryMethod() {
-	gettxhashmap := func(cmd map[string]interface{}) map[string]interface{} {
-		resp := rest.ResponsePack(Err.SUCCESS)
-		this.Lock()
-		defer this.Unlock()
-		resp["Result"] = len(this.TxHashMap)
-		return resp
-	}
-	sendRawTransaction := func(cmd map[string]interface{}) map[string]interface{} {
-		resp := rest.SendRawTransaction(cmd)
-		if userid, ok := resp["Userid"].(string); ok && len(userid) > 0 {
-			if result, ok := resp["Result"].(string); ok {
-				this.SetTxHashMap(result, userid)
-			}
-			delete(resp, "Userid")
-		}
-		return resp
-	}
+func (self *WsServer) registryMethod() {
+
 	heartbeat := func(cmd map[string]interface{}) map[string]interface{} {
 		resp := rest.ResponsePack(Err.SUCCESS)
-		if b, ok := cmd["Broadcast"].(bool); ok && b == true {
-			if userid, ok := cmd["Userid"].(string); ok {
-				this.BroadcastMap[userid] = userid
-			}
+		self.Lock()
+		defer self.Unlock()
+
+		userid, _ := cmd["Userid"].(string)
+		sub := self.SubscribeMap[userid]
+		if b, ok := cmd["SubscribeEvent"].(bool); ok {
+			sub.subscribeEvent = b
 		}
+		if b, ok := cmd["SubscribeJsonBlock"].(bool); ok {
+			sub.subscribeJsonBlock = b
+		}
+		if b, ok := cmd["SubscribeRawBlock"].(bool); ok {
+			sub.subscribeRawBlock = b
+		}
+		if b, ok := cmd["SubscribeBlockTxHashs"].(bool); ok {
+			sub.subscribeBlockTxHashs = b
+		}
+		self.SubscribeMap[userid] = sub
+
 		resp["Action"] = "heartbeat"
-		resp["Result"] = cmd["Userid"]
+		resp["Result"] = sub
 		return resp
 	}
 	getsessioncount := func(cmd map[string]interface{}) map[string]interface{} {
 		resp := rest.ResponsePack(Err.SUCCESS)
 		resp["Action"] = "getsessioncount"
-		resp["Result"] = this.SessionList.GetSessionCount()
+		resp["Result"] = self.SessionList.GetSessionCount()
 		return resp
 	}
 	actionMap := map[string]Handler{
-		"getconnectioncount": {handler: rest.GetConnectionCount},
-		"getblockbyheight":   {handler: rest.GetBlockByHeight},
-		"getblockbyhash":     {handler: rest.GetBlockByHash},
-		"getblockheight":     {handler: rest.GetBlockHeight},
-		"gettransaction":     {handler: rest.GetTransactionByHash},
-		"sendrawtransaction": {handler: sendRawTransaction},
-		"heartbeat":          {handler: heartbeat},
+		"getblockheightbytxhash": {handler: rest.GetBlockHeightByTxHash},
+		"getsmartcodeevent":      {handler: rest.GetSmartCodeEventByTxHash},
+		"getsmartcodeeventtxs":   {handler: rest.GetSmartCodeEventTxsByHeight},
+		"getcontract":            {handler: rest.GetContractState},
+		"getbalance":             {handler: rest.GetBalance},
+		"getconnectioncount":     {handler: rest.GetConnectionCount},
+		"getblockbyheight":       {handler: rest.GetBlockByHeight},
+		"getblockbyhash":         {handler: rest.GetBlockByHash},
+		"getblockheight":         {handler: rest.GetBlockHeight},
+		"getgenerateblocktime":   {handler: rest.GetGenerateBlockTime},
+		"gettransaction":         {handler: rest.GetTransactionByHash},
+		"sendrawtransaction":     {handler: rest.SendRawTransaction},
+		"heartbeat":              {handler: heartbeat},
+		"getstorage":             {handler: rest.GetStorage},
 
-		"gettxhashmap":    {handler: gettxhashmap},
 		"getsessioncount": {handler: getsessioncount},
 	}
-	this.ActionMap = actionMap
+	self.ActionMap = actionMap
 }
 
-func (this *WsServer) Stop() {
-	if this.server != nil {
-		this.server.Shutdown(context.Background())
+func (self *WsServer) Stop() {
+	if self.server != nil {
+		self.server.Shutdown(context.Background())
 		log.Error("Close websocket ")
 	}
 }
-func (this *WsServer) Restart() {
+func (self *WsServer) Restart() {
 	go func() {
 		time.Sleep(time.Second)
-		this.Stop()
+		self.Stop()
 		time.Sleep(time.Second)
-		go this.Start()
+		go self.Start()
 	}()
 }
 
-func (this *WsServer) checkSessionsTimeout(done chan bool) {
+func (self *WsServer) checkSessionsTimeout(done chan bool) {
 	ticker := time.NewTicker(time.Second * 10)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
 			var closeList []*session.Session
-			this.SessionList.ForEachSession(func(v *session.Session) {
+			self.SessionList.ForEachSession(func(v *session.Session) {
 				if v.SessionTimeoverCheck() {
 					resp := rest.ResponsePack(Err.SESSION_EXPIRED)
-					this.response(v.GetSessionId(), resp)
+					self.response(v.GetSessionId(), resp)
 					closeList = append(closeList, v)
 				}
 			})
 			for _, s := range closeList {
-				this.SessionList.CloseSession(s)
+				self.SessionList.CloseSession(s)
 			}
 
 		case <-done:
@@ -195,23 +210,24 @@ func (this *WsServer) checkSessionsTimeout(done chan bool) {
 
 }
 
-func (this *WsServer) webSocketHandler(w http.ResponseWriter, r *http.Request) {
-	wsConn, err := this.Upgrader.Upgrade(w, r, nil)
+func (self *WsServer) webSocketHandler(w http.ResponseWriter, r *http.Request) {
+	wsConn, err := self.Upgrader.Upgrade(w, r, nil)
 
 	if err != nil {
 		log.Error("websocket Upgrader: ", err)
 		return
 	}
 	defer wsConn.Close()
-	nsSession, err := this.SessionList.NewSession(wsConn)
+	nsSession, err := self.SessionList.NewSession(wsConn)
 	if err != nil {
 		log.Error("websocket NewSession:", err)
 		return
 	}
 
 	defer func() {
-		this.deleteTxHashs(nsSession.GetSessionId())
-		this.SessionList.CloseSession(nsSession)
+		self.deleteTxHashs(nsSession.GetSessionId())
+		self.deleteSubscribe(nsSession.GetSessionId())
+		self.SessionList.CloseSession(nsSession)
 		if err := recover(); err != nil {
 			log.Fatal("websocket recover:", err)
 		}
@@ -220,7 +236,7 @@ func (this *WsServer) webSocketHandler(w http.ResponseWriter, r *http.Request) {
 	for {
 		_, bysMsg, err := wsConn.ReadMessage()
 		if err == nil {
-			if this.OnDataHandle(nsSession, bysMsg, r) {
+			if self.OnDataHandle(nsSession, bysMsg, r) {
 				nsSession.UpdateActiveTime()
 			}
 			continue
@@ -232,7 +248,7 @@ func (this *WsServer) webSocketHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
-func (this *WsServer) IsValidMsg(reqMsg map[string]interface{}) bool {
+func (self *WsServer) IsValidMsg(reqMsg map[string]interface{}) bool {
 	if _, ok := reqMsg["Hash"].(string); !ok && reqMsg["Hash"] != nil {
 		return false
 	}
@@ -244,31 +260,31 @@ func (this *WsServer) IsValidMsg(reqMsg map[string]interface{}) bool {
 	}
 	return true
 }
-func (this *WsServer) OnDataHandle(curSession *session.Session, bysMsg []byte, r *http.Request) bool {
+func (self *WsServer) OnDataHandle(curSession *session.Session, bysMsg []byte, r *http.Request) bool {
 
 	var req = make(map[string]interface{})
 
 	if err := json.Unmarshal(bysMsg, &req); err != nil {
 		resp := rest.ResponsePack(Err.ILLEGAL_DATAFORMAT)
-		this.response(curSession.GetSessionId(), resp)
+		self.response(curSession.GetSessionId(), resp)
 		log.Error("websocket OnDataHandle:", err)
 		return false
 	}
 	actionName, ok := req["Action"].(string)
 	if !ok {
 		resp := rest.ResponsePack(Err.INVALID_METHOD)
-		this.response(curSession.GetSessionId(), resp)
+		self.response(curSession.GetSessionId(), resp)
 		return false
 	}
-	action, ok := this.ActionMap[actionName]
+	action, ok := self.ActionMap[actionName]
 	if !ok {
 		resp := rest.ResponsePack(Err.INVALID_METHOD)
-		this.response(curSession.GetSessionId(), resp)
+		self.response(curSession.GetSessionId(), resp)
 		return false
 	}
-	if !this.IsValidMsg(req) {
+	if !self.IsValidMsg(req) {
 		resp := rest.ResponsePack(Err.INVALID_PARAMS)
-		this.response(curSession.GetSessionId(), resp)
+		self.response(curSession.GetSessionId(), resp)
 		return true
 	}
 	if height, ok := req["Height"].(float64); ok {
@@ -282,64 +298,84 @@ func (this *WsServer) OnDataHandle(curSession *session.Session, bysMsg []byte, r
 	resp := action.handler(req)
 	resp["Action"] = actionName
 	if txHash, ok := resp["Result"].(string); ok && action.pushFlag {
-		this.Lock()
-		defer this.Unlock()
-		this.TxHashMap[txHash] = curSession.GetSessionId()
+		self.Lock()
+		defer self.Unlock()
+		self.TxHashMap[txHash] = curSession.GetSessionId()
 	}
-	this.response(curSession.GetSessionId(), resp)
+	self.response(curSession.GetSessionId(), resp)
 
 	return true
 }
-func (this *WsServer) SetTxHashMap(txhash string, sessionid string) {
-	this.Lock()
-	defer this.Unlock()
-	this.TxHashMap[txhash] = sessionid
+func (self *WsServer) SetTxHashMap(txhash string, sessionid string) {
+	self.Lock()
+	defer self.Unlock()
+	self.TxHashMap[txhash] = sessionid
 }
-func (this *WsServer) deleteTxHashs(sSessionId string) {
-	this.Lock()
-	defer this.Unlock()
-	for k, v := range this.TxHashMap {
-		if v == sSessionId {
-			delete(this.TxHashMap, k)
+func (self *WsServer) deleteTxHashs(sessionId string) {
+	self.Lock()
+	defer self.Unlock()
+	for k, v := range self.TxHashMap {
+		if v == sessionId {
+			delete(self.TxHashMap, k)
 		}
 	}
 }
-func (this *WsServer) response(sSessionId string, resp map[string]interface{}) {
+func (this *WsServer) deleteSubscribe(sessionId string) {
+	this.Lock()
+	defer this.Unlock()
+	for k, _ := range this.SubscribeMap {
+		if k == sessionId {
+			delete(this.SubscribeMap, k)
+		}
+	}
+}
+func (self *WsServer) response(sessionId string, resp map[string]interface{}) {
 	resp["Desc"] = Err.ErrMap[resp["Error"].(int64)]
 	data, err := json.Marshal(resp)
 	if err != nil {
 		log.Error("Websocket response:", err)
 		return
 	}
-	this.send(sSessionId, data)
+	self.send(sessionId, data)
 }
-func (this *WsServer) PushTxResult(txHashStr string, resp map[string]interface{}) {
-	this.Lock()
-	defer this.Unlock()
-	sSessionId := this.TxHashMap[txHashStr]
-	delete(this.TxHashMap, txHashStr)
-	if len(sSessionId) > 0 {
-		this.response(sSessionId, resp)
-	}
-	//broadcast BroadcastMap
-	for _, v := range this.BroadcastMap {
-		this.response(v, resp)
+func (self *WsServer) PushTxResult(txHashStr string, resp map[string]interface{}) {
+	self.Lock()
+	defer self.Unlock()
+	sessionId := self.TxHashMap[txHashStr]
+	delete(self.TxHashMap, txHashStr)
+	if len(sessionId) > 0 {
+		self.response(sessionId, resp)
 	}
 }
-
-func (this *WsServer) BroadcastResult(resp map[string]interface{}) {
+func (self *WsServer) BroadcastToSubscribers(sub int, resp map[string]interface{}) {
+	//broadcast SubscribeMap
+	self.Lock()
+	defer self.Unlock()
+	for k, v := range self.SubscribeMap {
+		if sub == WSTOPIC_JSON_BLOCK && v.subscribeJsonBlock == true {
+			self.response(k, resp)
+		} else if sub == WSTOPIC_RAW_BLOCK && v.subscribeRawBlock {
+			self.response(k, resp)
+		} else if sub == WSTOPIC_EVENT && v.subscribeEvent {
+			self.response(k, resp)
+		} else if sub == WSTOPIC_TXHASHS && v.subscribeBlockTxHashs {
+			self.response(k, resp)
+		}
+	}
+}
+func (self *WsServer) BroadcastResult(resp map[string]interface{}) {
 	resp["Desc"] = Err.ErrMap[resp["Error"].(int64)]
 	data, err := json.Marshal(resp)
 	if err != nil {
 		log.Error("Websocket PushResult:", err)
 		return
 	}
-	this.broadcast(data)
+	self.broadcast(data)
 }
-func (this *WsServer) send(sSessionId string, data []byte) error {
-	session := this.SessionList.GetSessionById(sSessionId)
+func (this *WsServer) send(sessionId string, data []byte) error {
+	session := this.SessionList.GetSessionById(sessionId)
 	if session == nil {
-		return errors.New("websocket sessionId Not Exist:" + sSessionId)
+		return errors.New("websocket sessionId Not Exist:" + sessionId)
 	}
 	return session.Send(data)
 }
@@ -350,7 +386,7 @@ func (this *WsServer) broadcast(data []byte) error {
 	return nil
 }
 
-func (this *WsServer) initTlsListen() (net.Listener, error) {
+func (self *WsServer) initTlsListen() (net.Listener, error) {
 
 	certPath := cfg.Parameters.RestCertPath
 	keyPath := cfg.Parameters.RestKeyPath

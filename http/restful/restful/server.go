@@ -29,12 +29,10 @@ import (
 	"strings"
 	"sync"
 	"time"
-
 	cfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	berr "github.com/ontio/ontology/http/base/error"
 	"github.com/ontio/ontology/http/base/rest"
-	"github.com/ontio/ontology/http/websocket"
 )
 
 type handler func(map[string]interface{}) map[string]interface{}
@@ -68,7 +66,6 @@ const (
 	GET_BLK_HGT_BY_TXHASH = "/api/v1/block/height/txhash/:hash"
 
 	POST_RAW_TX          = "/api/v1/transaction"
-	POST_WEBWOCKET_STATE = "/api/v1/config/websocket/state"
 )
 
 func InitRestServer() rest.ApiServer {
@@ -113,39 +110,7 @@ func (this *restServer) Start() error {
 
 	return nil
 }
-func (this *restServer) setWebsocketState(cmd map[string]interface{}) map[string]interface{} {
-	resp := rest.ResponsePack(berr.SUCCESS)
-	startFlag, ok := cmd["Open"].(bool)
-	if !ok {
-		resp["Error"] = berr.INVALID_PARAMS
-		return resp
-	}
-	if b, ok := cmd["PushBlock"].(bool); ok {
-		websocket.SetWsPushBlockFlag(b)
-	}
-	if b, ok := cmd["PushRawBlock"].(bool); ok {
-		websocket.SetPushRawBlockFlag(b)
-	}
-	if b, ok := cmd["PushBlockTxs"].(bool); ok {
-		websocket.SetPushBlockTxsFlag(b)
-	}
-	if wsPort, ok := cmd["Port"].(float64); ok && wsPort != 0 {
-		cfg.Parameters.HttpWsPort = int(wsPort)
-	}
-	if startFlag {
-		websocket.ReStartServer()
-	} else {
-		websocket.Stop()
-	}
-	var result = make(map[string]interface{})
-	result["Open"] = startFlag
-	result["Port"] = cfg.Parameters.HttpWsPort
-	result["PushBlock"] = websocket.GetWsPushBlockFlag()
-	result["PushRawBlock"] = websocket.GetPushRawBlockFlag()
-	result["PushBlockTxs"] = websocket.GetPushBlockTxsFlag()
-	resp["Result"] = result
-	return resp
-}
+
 func (this *restServer) registryMethod() {
 
 	getMethodMap := map[string]Action{
@@ -165,19 +130,8 @@ func (this *restServer) registryMethod() {
 		GET_BALANCE:           {name: "getbalance", handler: rest.GetBalance},
 	}
 
-	sendRawTransaction := func(cmd map[string]interface{}) map[string]interface{} {
-		resp := rest.SendRawTransaction(cmd)
-		if userid, ok := resp["Userid"].(string); ok && len(userid) > 0 {
-			if result, ok := resp["Result"].(string); ok {
-				websocket.SetTxHashMap(result, userid)
-			}
-			delete(resp, "Userid")
-		}
-		return resp
-	}
 	postMethodMap := map[string]Action{
-		POST_RAW_TX:          {name: "sendrawtransaction", handler: sendRawTransaction},
-		POST_WEBWOCKET_STATE: {name: "setwebsocketstate", handler: this.setWebsocketState},
+		POST_RAW_TX:          {name: "sendrawtransaction", handler: rest.SendRawTransaction},
 	}
 	this.postMap = postMethodMap
 	this.getMap = getMethodMap
@@ -243,7 +197,6 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["Hash"] = getParam(r, "hash")
 	case GET_BALANCE:
 		req["Addr"] = getParam(r, "addr")
-	case POST_WEBWOCKET_STATE:
 	default:
 	}
 	return req
