@@ -972,7 +972,7 @@ func (self *Server) processMsgEvent() error {
 
 						if proposal == nil {
 							self.fetchProposal(msgBlkNum, proposer)
-							log.Errorf("server %d endorse %d done without proposal", self.Index, msgBlkNum)
+							log.Infof("server %d endorse %d done without proposal, fetching proposal", self.Index, msgBlkNum)
 						} else if self.isCommitter(msgBlkNum, self.Index) {
 							// make endorsement
 							if err := self.makeCommitment(proposal, msgBlkNum); err != nil {
@@ -1049,9 +1049,20 @@ func (self *Server) actionLoop() {
 			case MakeProposal:
 				// this may triggered when block sealed or random backoff of 2nd proposer
 				blkNum := self.GetCurrentBlockNo()
-				if err := self.makeProposal(blkNum, action.forEmpty); err != nil {
-					log.Errorf("server %d failed to making proposal (%d): %s",
-						self.Index, blkNum, err)
+
+				var proposal *blockProposalMsg
+				msgs := self.msgPool.GetProposalMsgs(blkNum)
+				for _, m := range msgs {
+					if p, ok := m.(*blockProposalMsg); ok && p.Block.getProposer() == self.Index {
+						proposal = p
+						break
+					}
+				}
+				if proposal == nil {
+					if err := self.makeProposal(blkNum, action.forEmpty); err != nil {
+						log.Errorf("server %d failed to making proposal (%d): %s",
+							self.Index, blkNum, err)
+					}
 				}
 
 			case EndorseBlock:
@@ -1208,7 +1219,16 @@ func (self *Server) actionLoop() {
 								log.Errorf("server %d rebroadcasting failed to endorse (%d): %s",
 									self.Index, blkNum, err)
 							}
+						} else {
+							log.Errorf("server %d rebroadcasting failed to endorse(%d), no proposal found(%d)",
+								self.Index, blkNum, len(proposals))
 						}
+					}
+				} else if proposal, forEmpty := self.blockPool.getEndorsedProposal(blkNum); proposal != nil {
+					// construct endorse msg
+					blkHash, _ := HashBlock(proposal.Block)
+					if endorseMsg, _ := self.constructEndorseMsg(proposal, blkHash, forEmpty); endorseMsg != nil {
+						self.broadcast(endorseMsg)
 					}
 				}
 				if self.isCommitter(blkNum, self.Index) {

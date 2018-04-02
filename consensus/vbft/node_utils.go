@@ -180,6 +180,13 @@ func (self *Server) getHighestRankProposal(blockNum uint64, proposals []*blockPr
 		}
 	}
 
+	if proposal == nil && len(proposals) > 0 {
+		for _, p := range proposals {
+			log.Errorf("blk %d, proposer %d", p.Block.getBlockNum(), p.Block.getProposer())
+		}
+		panic("ERR")
+	}
+
 	return proposal
 }
 
