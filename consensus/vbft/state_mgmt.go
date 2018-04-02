@@ -101,12 +101,12 @@ func (self *StateMgr) getState() ServerState {
 }
 
 func (self *StateMgr) run() {
-	self.liveTicker = time.AfterFunc(peerHandshakeTimeout, func() {
+	self.liveTicker = time.AfterFunc(peerHandshakeTimeout * 5, func() {
 		self.StateEventC <- &StateEvent{
 			Type:     LiveTick,
 			blockNum: self.server.GetCommittedBlockNo(),
 		}
-		self.liveTicker.Reset(peerHandshakeTimeout)
+		self.liveTicker.Reset(peerHandshakeTimeout * 5)
 	})
 
 	// wait config done
@@ -227,9 +227,9 @@ func (self *StateMgr) onPeerUpdate(peerState *PeerState) error {
 	case Synced:
 		committedBlkNum, ok := self.getConsensusedCommittedBlockNum()
 		if ok && committedBlkNum > self.server.GetCommittedBlockNo()+1 {
-			self.server.makeFastForward()
 			log.Infof("server %d synced try fastforward from %d",
 				self.server.Index, self.server.GetCommittedBlockNo())
+			self.server.makeFastForward()
 		}
 	case SyncingCheck:
 		if self.isSyncedReady() {
@@ -271,11 +271,6 @@ func (self *StateMgr) onLiveTick(evt *StateEvent) error {
 	}
 
 	if self.getState() != Synced {
-		return nil
-	}
-
-	committed, ok := self.getConsensusedCommittedBlockNum()
-	if ok && committed <= evt.blockNum {
 		return nil
 	}
 
