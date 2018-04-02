@@ -41,10 +41,11 @@ The public test network is described below. We sincerely welcome and hope more d
 		* [Multi-host deployment configuration](#multi-hosts-deployment-configuration)
 		* [Deploy nodes on public test network](#deploy-nodes-on-public-test-network)
 		* [Implement](#implement)
-* [Examples](#Examples)
-* [Contributions](#contributing)
+* [Examples](#examples)
+* [Contributions](#contributions)
 * [Open source community](#open-source-community)
 	* [Site](#site)
+	* [Developer Discord Group](#developer-discord-group)
 * [License](#license)
 
 # Build development environment
@@ -281,6 +282,10 @@ Signed-off-by: Your Name [youremail@yourhost.com](mailto:youremail@yourhost.com)
 ## Site
 
 - <https://ont.io/>
+
+## Developer Discord Group
+
+- <https://discord.gg/4TQujHj/>
 
 # License
 
