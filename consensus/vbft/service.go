@@ -180,16 +180,17 @@ func (self *Server) handlePeerStateUpdate(peer *p2pmsg.PeerStateUpdate) {
 		log.Errorf("server %d, invalid peer state update (no pk)", self.Index)
 		return
 	}
-	if peer.Connected {
-		peerID, err := vconfig.PubkeyID(peer.PeerPubKey)
-		if err != nil {
-			log.Errorf("failed to get peer ID for pubKey: %v", peer.PeerPubKey)
-		}
-		peerIdx, present := self.peerPool.GetPeerIndex(peerID)
-		if !present {
-			log.Errorf("invalid consensus node: %s", peerID.String())
-		}
+	peerID, err := vconfig.PubkeyID(peer.PeerPubKey)
+	if err != nil {
+		log.Errorf("failed to get peer ID for pubKey: %v", peer.PeerPubKey)
+	}
+	peerIdx, present := self.peerPool.GetPeerIndex(peerID)
+	if !present {
+		log.Errorf("invalid consensus node: %s", peerID.String())
+	}
 
+	log.Infof("peer state update: %d, connect: %t", peerIdx, peer.Connected)
+	if peer.Connected {
 		if _, present := self.msgRecvC[peerIdx]; !present {
 			self.msgRecvC[peerIdx] = make(chan *p2pmsg.ConsensusPayload, 1024)
 		}
@@ -201,6 +202,10 @@ func (self *Server) handlePeerStateUpdate(peer *p2pmsg.PeerStateUpdate) {
 					self.Index, peerIdx, err)
 			}
 		}()
+	} else {
+		if C, present := self.msgRecvC[peerIdx]; present {
+			C <- nil
+		}
 	}
 }
 
@@ -224,6 +229,8 @@ func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 	}
 	if C, present := self.msgRecvC[peerIdx]; present {
 		C <- payload
+	} else {
+		log.Errorf("consensus msg without receiver: %d node: %s", peerIdx, peerID.String())
 	}
 }
 
@@ -385,7 +392,6 @@ func (self *Server) run(peerPubKey *crypto.PubKey) error {
 	if !present {
 		return fmt.Errorf("invalid consensus node: %s", peerID.String())
 	}
-
 	if self.peerPool.isNewPeer(peerIdx) {
 		if err := self.peerPool.peerConnected(peerIdx); err != nil {
 			return err
@@ -426,6 +432,7 @@ func (self *Server) run(peerPubKey *crypto.PubKey) error {
 				connected: false,
 			},
 		}
+		delete(self.msgRecvC, peerIdx)
 	}()
 
 	errC := make(chan error)
@@ -1909,23 +1916,29 @@ func (self *Server) initHandshake(peerIdx uint32, peerPubKey *crypto.PubKey) err
 	errC := make(chan error)
 	msgC := make(chan *peerHandshakeMsg)
 	go func() {
-		// FIXME: peer receive with timeout
-		msgData, err := self.receiveFromPeer(peerIdx)
-		if err != nil {
-			errC <- fmt.Errorf("read initHandshake msg from peer: %s", err)
-		}
-		msg, err := DeserializeVbftMsg(msgData)
-		if err != nil {
-			errC <- fmt.Errorf("unmarshal msg failed: %s", err)
-		}
-
-		if err := msg.Verify(peerPubKey); err != nil {
-			errC <- fmt.Errorf("msg verify failed in initHandshake: %s", err)
-		}
-
-		if shakeMsg, ok := msg.(*peerHandshakeMsg); ok {
-			self.sendToPeer(peerIdx, msgPayload)
-			msgC <- shakeMsg
+		for {
+			// FIXME: peer receive with timeout
+			msgData, err := self.receiveFromPeer(peerIdx)
+			if err != nil {
+				log.Errorf("read initHandshake msg from peer: %s", err)
+				errC <- fmt.Errorf("read initHandshake msg from peer: %s", err)
+			}
+			msg, err := DeserializeVbftMsg(msgData)
+			if err != nil {
+				log.Errorf("unmarshal msg failed: %s", err)
+				errC <- fmt.Errorf("unmarshal msg failed: %s", err)
+			}
+			if err := msg.Verify(peerPubKey); err != nil {
+				log.Errorf("msg verify failed in initHandshake: %s", err)
+				errC <- fmt.Errorf("msg verify failed in initHandshake: %s", err)
+			}
+			if msg.Type() == PeerHandshakeMessage {
+				if shakeMsg, ok := msg.(*peerHandshakeMsg); ok {
+					self.sendToPeer(peerIdx, msgPayload)
+					msgC <- shakeMsg
+				}
+				break;
+			}
 		}
 	}()
 	if err := self.sendToPeer(peerIdx, msgPayload); err != nil {
