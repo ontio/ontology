@@ -19,9 +19,9 @@
 package session
 
 import (
-	"errors"
 	"sync"
 	"time"
+	"errors"
 
 	"github.com/gorilla/websocket"
 	"github.com/pborman/uuid"
@@ -31,26 +31,28 @@ type Session struct {
 	sync.Mutex
 	mConnection *websocket.Conn
 	nLastActive int64
-	sessionId  string
+	sessionId   string
 }
 
 const SESSION_TIMEOUT int64 = 300
 
-func newSession(wsConn *websocket.Conn) (session *Session, err error) {
+func newSession(wsConn *websocket.Conn)  *Session {
 	sessionid := uuid.NewUUID().String()
-	session = &Session{
+	session := &Session{
 		mConnection: wsConn,
 		nLastActive: time.Now().Unix(),
 		sessionId:  sessionid,
 	}
-	return session, nil
+	return session
 }
 
 func (self *Session) GetSessionId() string {
 	return self.sessionId
 }
 
-func (self *Session) close() {
+func (self *Session) Close() {
+	self.Lock()
+	defer self.Unlock()
 	if self.mConnection != nil {
 		self.mConnection.Close()
 		self.mConnection = nil
@@ -65,16 +67,19 @@ func (self *Session) UpdateActiveTime() {
 }
 
 func (self *Session) Send(data []byte) error {
-	if self.mConnection == nil {
-		return errors.New("WebSocket is null")
+	if len(data) == 0 {
+		return nil
 	}
 	self.Lock()
 	defer self.Unlock()
+	if self.mConnection == nil {
+		return errors.New("WebSocket is null")
+	}
+
 	return self.mConnection.WriteMessage(websocket.TextMessage, data)
 }
 
 func (self *Session) SessionTimeoverCheck() bool {
-
 	nCurTime := time.Now().Unix()
 	if nCurTime-self.nLastActive > SESSION_TIMEOUT {
 		//sec

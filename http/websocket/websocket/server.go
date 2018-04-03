@@ -22,12 +22,12 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"net"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
+
 	cfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	Err "github.com/ontio/ontology/http/base/error"
@@ -195,7 +195,7 @@ func (self *WsServer) checkSessionsTimeout(done chan bool) {
 			self.SessionList.ForEachSession(func(v *session.Session) {
 				if v.SessionTimeoverCheck() {
 					resp := rest.ResponsePack(Err.SESSION_EXPIRED)
-					self.response(v.GetSessionId(), resp)
+					v.Send(marshalResp(resp))
 					closeList = append(closeList, v)
 				}
 			})
@@ -225,7 +225,7 @@ func (self *WsServer) webSocketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer func() {
-		self.deleteTxHashs(nsSession.GetSessionId())
+		self.deleteTxHashes(nsSession.GetSessionId())
 		self.deleteSubscribe(nsSession.GetSessionId())
 		self.SessionList.CloseSession(nsSession)
 		if err := recover(); err != nil {
@@ -266,25 +266,25 @@ func (self *WsServer) OnDataHandle(curSession *session.Session, bysMsg []byte, r
 
 	if err := json.Unmarshal(bysMsg, &req); err != nil {
 		resp := rest.ResponsePack(Err.ILLEGAL_DATAFORMAT)
-		self.response(curSession.GetSessionId(), resp)
+		curSession.Send(marshalResp(resp))
 		log.Error("websocket OnDataHandle:", err)
 		return false
 	}
 	actionName, ok := req["Action"].(string)
 	if !ok {
 		resp := rest.ResponsePack(Err.INVALID_METHOD)
-		self.response(curSession.GetSessionId(), resp)
+		curSession.Send(marshalResp(resp))
 		return false
 	}
 	action, ok := self.ActionMap[actionName]
 	if !ok {
 		resp := rest.ResponsePack(Err.INVALID_METHOD)
-		self.response(curSession.GetSessionId(), resp)
+		curSession.Send(marshalResp(resp))
 		return false
 	}
 	if !self.IsValidMsg(req) {
 		resp := rest.ResponsePack(Err.INVALID_PARAMS)
-		self.response(curSession.GetSessionId(), resp)
+		curSession.Send(marshalResp(resp))
 		return true
 	}
 	if height, ok := req["Height"].(float64); ok {
@@ -302,7 +302,7 @@ func (self *WsServer) OnDataHandle(curSession *session.Session, bysMsg []byte, r
 		defer self.Unlock()
 		self.TxHashMap[txHash] = curSession.GetSessionId()
 	}
-	self.response(curSession.GetSessionId(), resp)
+	curSession.Send(marshalResp(resp))
 
 	return true
 }
@@ -311,7 +311,7 @@ func (self *WsServer) SetTxHashMap(txhash string, sessionid string) {
 	defer self.Unlock()
 	self.TxHashMap[txhash] = sessionid
 }
-func (self *WsServer) deleteTxHashs(sessionId string) {
+func (self *WsServer) deleteTxHashes(sessionId string) {
 	self.Lock()
 	defer self.Unlock()
 	for k, v := range self.TxHashMap {
@@ -320,70 +320,51 @@ func (self *WsServer) deleteTxHashs(sessionId string) {
 		}
 	}
 }
-func (this *WsServer) deleteSubscribe(sessionId string) {
-	this.Lock()
-	defer this.Unlock()
-	for k, _ := range this.SubscribeMap {
-		if k == sessionId {
-			delete(this.SubscribeMap, k)
-		}
-	}
+func (self *WsServer) deleteSubscribe(sessionId string) {
+	self.Lock()
+	defer self.Unlock()
+	delete(self.SubscribeMap, sessionId)
 }
-func (self *WsServer) response(sessionId string, resp map[string]interface{}) {
+
+func marshalResp(resp map[string]interface{}) []byte {
 	resp["Desc"] = Err.ErrMap[resp["Error"].(int64)]
 	data, err := json.Marshal(resp)
 	if err != nil {
-		log.Error("Websocket response:", err)
-		return
+		log.Error("Websocket marshal json error:", err)
+		return nil
 	}
-	self.send(sessionId, data)
+
+	return data
 }
+
 func (self *WsServer) PushTxResult(txHashStr string, resp map[string]interface{}) {
 	self.Lock()
-	defer self.Unlock()
 	sessionId := self.TxHashMap[txHashStr]
 	delete(self.TxHashMap, txHashStr)
-	if len(sessionId) > 0 {
-		self.response(sessionId, resp)
+	self.Unlock()
+
+	s := self.SessionList.GetSessionById(sessionId)
+	if s != nil {
+		s.Send(marshalResp(resp))
 	}
 }
 func (self *WsServer) BroadcastToSubscribers(sub int, resp map[string]interface{}) {
-	//broadcast SubscribeMap
+	// broadcast SubscribeMap
 	self.Lock()
 	defer self.Unlock()
-	for k, v := range self.SubscribeMap {
-		if sub == WSTOPIC_JSON_BLOCK && v.subscribeJsonBlock == true {
-			self.response(k, resp)
+	data := marshalResp(resp)
+	for sid, v := range self.SubscribeMap {
+		s := self.SessionList.GetSessionById(sid)
+		if sub == WSTOPIC_JSON_BLOCK && v.subscribeJsonBlock {
+			s.Send(data)
 		} else if sub == WSTOPIC_RAW_BLOCK && v.subscribeRawBlock {
-			self.response(k, resp)
+			s.Send(data)
 		} else if sub == WSTOPIC_EVENT && v.subscribeEvent {
-			self.response(k, resp)
+			s.Send(data)
 		} else if sub == WSTOPIC_TXHASHS && v.subscribeBlockTxHashs {
-			self.response(k, resp)
+			s.Send(data)
 		}
 	}
-}
-func (self *WsServer) BroadcastResult(resp map[string]interface{}) {
-	resp["Desc"] = Err.ErrMap[resp["Error"].(int64)]
-	data, err := json.Marshal(resp)
-	if err != nil {
-		log.Error("Websocket PushResult:", err)
-		return
-	}
-	self.broadcast(data)
-}
-func (this *WsServer) send(sessionId string, data []byte) error {
-	session := this.SessionList.GetSessionById(sessionId)
-	if session == nil {
-		return errors.New("websocket sessionId Not Exist:" + sessionId)
-	}
-	return session.Send(data)
-}
-func (this *WsServer) broadcast(data []byte) error {
-	this.SessionList.ForEachSession(func(v *session.Session) {
-		v.Send(data)
-	})
-	return nil
 }
 
 func (self *WsServer) initTlsListen() (net.Listener, error) {
