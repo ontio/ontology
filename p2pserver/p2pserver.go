@@ -8,8 +8,9 @@ import (
 )
 
 type P2PServer struct {
-	Self    *peer.Peer
-	network P2P
+	Self      *peer.Peer
+	network   P2P
+	msgRouter *MessageRouter
 	//TODO: add infoupdater and syncer
 }
 
@@ -24,6 +25,11 @@ func NewServer(acc *account.Account) (*P2PServer, error) {
 		Self:    self,
 		network: n,
 	}
+
+	p.msgRouter = NewMsgRouter(p)
+
+	// Fixme: implement the message handler for each msg type
+	p.msgRouter.RegisterMsgHandler(types.VERSION_TYPE, DefaultMsgHandler)
 
 	return p, nil
 }

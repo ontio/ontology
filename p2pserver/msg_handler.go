@@ -9,6 +9,82 @@ import (
 	msg "github.com/Ontology/p2pserver/message"
 )
 
+type MessageHandler func(msg interface{}, p2p *P2PServer) error
+
+func DefaultMsgHandler(msg interface{}, p2p *P2PServer) error {
+	return nil
+}
+
+type MessageRouter struct {
+	msgHandlers map[string]MessageHandler
+	ReceiveChan chan *msgCommon.MsgPayload
+	stopCh      chan bool
+	p2p         *P2PServer
+}
+
+func NewMsgRouter(p2p *P2PServer) *MessageRouter {
+	msgRouter := &MessageRouter{}
+	msgRouter.init(p2p)
+	return msgRouter
+}
+
+func (self *MessageRouter) init(p2p *P2PServer) {
+	self.msgHandlers = make(map[string]MessageHandler)
+	self.ReceiveChan = make(chan *msgCommon.MsgPayload)
+	self.stopCh = make(chan bool)
+	self.p2p = p2p
+}
+
+func (self *MessageRouter) RegisterMsgHandler(key string, handler MessageHandler) {
+	self.msgHandlers[key] = handler
+}
+
+func (self *MessageRouter) UnRegisterMsgHandler(key string) {
+	delete(self.msgHandlers, key)
+}
+
+func (self *MessageRouter) Start() {
+	for {
+		select {
+		case data, ok := <-self.ReceiveChan:
+			if ok {
+				msgType, err := msg.MsgType(data.Payload)
+				if err != nil {
+					log.Info("failed to get msg type")
+					continue
+				}
+
+				handler, ok := self.msgHandlers[msgType]
+				if ok {
+					go handler(data, self.p2p)
+				} else {
+					log.Info("Unkown message handler for the msg: ", msgType)
+				}
+			}
+		case <-self.stopCh:
+			return
+		}
+	}
+}
+
+func (self *MessageRouter) Stop() {
+	if self.ReceiveChan != nil {
+		close(self.ReceiveChan)
+	}
+
+	if self.stopCh != nil {
+		self.stopCh <- true
+	}
+}
+
+func (self *MessageRouter) Xmit(msg interface{}) {
+
+}
+
+func (self *MessageRouter) Tx(peerId uint64, msg interface{}) {
+
+}
+
 func AddrReqHandle(id uint64, addrReq msg.AddrReq, p2p P2PServer) error {
 	log.Debug("RX addr request message")
 	var addrStr []msgCommon.PeerAddr
