@@ -493,7 +493,7 @@ func (cl *ClientImpl) GetBookkeepers() ([]keypair.PublicKey, error) {
 		k, err := keypair.DeserializePublicKey(pubKey)
 		if err != nil {
 			log.Error("Incorrectly book keepers key")
-			return nil, fmt.Errorf("Incorrectly book keepers key:%s")
+			return nil, fmt.Errorf("Incorrectly book keepers key:%s", key)
 		}
 		pubKeys = append(pubKeys, k)
 	}

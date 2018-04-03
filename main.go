@@ -23,6 +23,7 @@ import (
 	"os/signal"
 	"runtime"
 	"sort"
+	"strings"
 	"syscall"
 	"time"
 
@@ -73,8 +74,9 @@ func main() {
 	var noder protocol.Noder
 	log.Trace("Node version: ", config.Version)
 
-	if len(config.Parameters.Bookkeepers) < account.DEFAULT_BOOKKEEPER_COUNT {
-		log.Fatal("At least ", account.DEFAULT_BOOKKEEPER_COUNT, " Bookkeepers should be set at config.json")
+	consensusType := strings.ToLower(config.Parameters.ConsensusType)
+	if consensusType == "dbft" && len(config.Parameters.Bookkeepers) < account.DEFAULT_BOOKKEEPER_COUNT {
+		log.Fatal("With dbft consensus type, at least ", account.DEFAULT_BOOKKEEPER_COUNT, " Bookkeepers should be set in config.json")
 		os.Exit(1)
 	}
 
