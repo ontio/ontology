@@ -24,7 +24,7 @@ package exec
 
 import (
 	"errors"
-	"fmt"
+	"github.com/ontio/ontology/common/log"
 )
 
 func (vm *VM) doCall(compiled compiledFunction, index int64) {
@@ -64,11 +64,10 @@ func (vm *VM) doCall(compiled compiledFunction, index int64) {
 		if ok {
 			rtn, err := v(vm.Engine)
 			if err != nil || !rtn {
-				fmt.Println("call method failed!" + compiled.name)
-				//panic("call method failed!" + compiled.name)
+				log.Errorf("call method :%s failed\n", compiled.name)
 			}
 		} else {
-			fmt.Println("can't find method " + compiled.name)
+			log.Errorf("method :%s doesnot exists\n", compiled.name)
 			vm.ctx = prevCtxt
 			if compiled.returns {
 				vm.pushUint64(0)

@@ -68,13 +68,13 @@ func NewInteropService() *InteropService {
 	service.Register("ReadInt32Param", readInt32Param)
 	service.Register("ReadInt64Param", readInt64Param)
 	service.Register("ReadStringParam", readStringParam)
-	service.Register("RawUnmashal", rawUnmashal)
-	service.Register("JsonUnmashal", jsonUnmashal)
-	service.Register("JsonMashal", jsonMashal)
+	//service.Register("RawUnmashalInput", rawUnmashal)
+	service.Register("JsonUnmashalInput", jsonUnmashal)
+	service.Register("JsonMashalResult", jsonMashal)
 	service.Register("JsonMashalParams", jsonMashalParams)
 	service.Register("RawMashalParams", rawMashalParams)
-	service.Register("GetCaller", GetCaller)
-	service.Register("GetSelfAddress", GetCodeHash)
+	service.Register("GetCaller", getCaller)
+	service.Register("GetSelfAddress", getCodeHash)
 
 	//===================add block apis below==================
 	return &service
@@ -387,7 +387,8 @@ func readStringParam(engine *ExecutionEngine) (bool, error) {
 }
 
 //todo solve the struct{char *} case
-func rawUnmashal(engine *ExecutionEngine) (bool, error) {
+//todo remove this method
+/*func rawUnmashal(engine *ExecutionEngine) (bool, error) {
 
 	envCall := engine.vm.envCall
 	params := envCall.envParams
@@ -407,7 +408,7 @@ func rawUnmashal(engine *ExecutionEngine) (bool, error) {
 	copy(engine.vm.memory.Memory[addr:int(addr)+len(rawBytes)], rawBytes)
 
 	return true, nil
-}
+}*/
 
 func jsonUnmashal(engine *ExecutionEngine) (bool, error) {
 
@@ -511,12 +512,11 @@ func jsonUnmashal(engine *ExecutionEngine) (bool, error) {
 		//todo this case is not an error, sizeof doesn't means actual memory length,so the size parameter should be removed.
 		//fmt.Printf("length is not same! size :%d, length:%d\n", size, len(bytes))
 	}
-	//todo add more check
 
-	if int(addr)+len(bytes) > len(engine.vm.memory.Memory) {
-		return false, errors.New("out of memory")
-	}
+	//todo move to SetMemory method
+	engine.vm.Malloc(len(bytes))
 	copy(engine.vm.memory.Memory[int(addr):int(addr)+len(bytes)], bytes)
+
 	engine.vm.ctx = envCall.envPreCtx
 	return true, nil
 }
@@ -637,7 +637,7 @@ func stringcmp(engine *ExecutionEngine) (bool, error) {
 	return true, nil
 }
 
-func GetCaller(engine *ExecutionEngine) (bool, error) {
+func getCaller(engine *ExecutionEngine) (bool, error) {
 	envCall := engine.vm.envCall
 
 	caller := engine.vm.Caller
@@ -652,7 +652,7 @@ func GetCaller(engine *ExecutionEngine) (bool, error) {
 	return true, nil
 }
 
-func GetCodeHash(engine *ExecutionEngine) (bool, error) {
+func getCodeHash(engine *ExecutionEngine) (bool, error) {
 	envCall := engine.vm.envCall
 
 	codeHash := engine.vm.CodeHash

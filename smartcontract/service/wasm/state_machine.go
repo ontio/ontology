@@ -71,7 +71,6 @@ func (s *WasmStateMachine) putstore(engine *exec.ExecutionEngine) (bool, error) 
 	if err != nil {
 		return false, err
 	}
-
 	if len(key) > 1024 {
 		return false, errors.NewErr("[putstore] Get Storage key to long")
 	}
@@ -80,7 +79,6 @@ func (s *WasmStateMachine) putstore(engine *exec.ExecutionEngine) (bool, error) 
 	if err != nil {
 		return false, err
 	}
-
 	k, err := serializeStorageKey(vm.CodeHash, key)
 	if err != nil {
 		return false, err
@@ -208,7 +206,7 @@ func (s *WasmStateMachine) callContract(engine *exec.ExecutionEngine) (bool, err
 	if err != nil {
 		return false, errors.NewErr("[callContract]get Contract arg failed")
 	}
-	res, err := vm.CallProductContract(vm.CodeHash, codeHash, module, methodName, arg)
+	res, err := vm.CallContract(vm.CodeHash, codeHash, module, methodName, arg)
 	if err != nil {
 		return false, errors.NewErr("[callContract]CallProductContract failed")
 	}

@@ -31,7 +31,7 @@ import (
 )
 
 func TestContract1(t *testing.T) {
-	engine := NewExecutionEngine(nil, nil, nil, nil, "product")
+	engine := NewExecutionEngine(nil, nil, nil, nil)
 	//test
 	code, err := ioutil.ReadFile("./test_data2/contract.wasm")
 	if err != nil {
@@ -86,7 +86,7 @@ func TestContract1(t *testing.T) {
 }
 
 func TestContract2(t *testing.T) {
-	engine := NewExecutionEngine(nil, nil, nil, nil, "product")
+	engine := NewExecutionEngine(nil, nil, nil, nil)
 	//test
 	code, err := ioutil.ReadFile("./test_data2/contract.wasm")
 	if err != nil {
@@ -106,13 +106,7 @@ func TestContract2(t *testing.T) {
 	}
 	fmt.Println(string(jbytes))
 
-	bf := bytes.NewBufferString("add")
-	bf.WriteString("|")
-	bf.Write(jbytes)
-
-	fmt.Printf("input is %v\n", bf.Bytes())
-
-	res, err := engine.Call(common.Address{}, code, bf.Bytes())
+	res, err := engine.Call(common.Address{}, code, "add",jbytes,1)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}
@@ -140,7 +134,7 @@ func TestContract2(t *testing.T) {
 }
 
 func TestContract3(t *testing.T) {
-	engine := NewExecutionEngine(nil, nil, nil, nil, "product")
+	engine := NewExecutionEngine(nil, nil, nil, nil)
 	//test
 	code, err := ioutil.ReadFile("./test_data2/contract.wasm")
 	if err != nil {
@@ -160,13 +154,8 @@ func TestContract3(t *testing.T) {
 	}
 	fmt.Println(string(jbytes))
 
-	bf := bytes.NewBufferString("concat")
-	bf.WriteString("|")
-	bf.Write(jbytes)
 
-	fmt.Printf("input is %v\n", bf.Bytes())
-
-	res, err := engine.Call(common.Address{}, code, bf.Bytes())
+	res, err := engine.Call(common.Address{}, code,"concat", jbytes,1)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}
@@ -190,7 +179,7 @@ func TestContract3(t *testing.T) {
 }
 
 func TestContract4(t *testing.T) {
-	engine := NewExecutionEngine(nil, nil, nil, nil, "product")
+	engine := NewExecutionEngine(nil, nil, nil, nil)
 	//test
 	code, err := ioutil.ReadFile("./test_data2/contract.wasm")
 	if err != nil {
@@ -210,13 +199,7 @@ func TestContract4(t *testing.T) {
 	}
 	fmt.Println(string(jbytes))
 
-	bf := bytes.NewBufferString("sumArray")
-	bf.WriteString("|")
-	bf.Write(jbytes)
-
-	fmt.Printf("input is %v\n", bf.Bytes())
-
-	res, err := engine.Call(common.Address{}, code, bf.Bytes())
+	res, err := engine.Call(common.Address{}, code, "sumArray",jbytes,1)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}
@@ -240,24 +223,19 @@ func TestContract4(t *testing.T) {
 }
 
 func TestRawContract(t *testing.T) {
-	engine := NewExecutionEngine(nil, nil, nil, nil, "product")
+	engine := NewExecutionEngine(nil, nil, nil, nil)
 	//test
 	code, err := ioutil.ReadFile("./test_data2/rawcontract.wasm")
 	if err != nil {
 		fmt.Println("error in read file", err.Error())
 		return
 	}
-	bf := bytes.NewBufferString("add")
-	bf.WriteString("|")
 
 	tmp := make([]byte, 8)
 	binary.LittleEndian.PutUint32(tmp[:4], uint32(10))
 	binary.LittleEndian.PutUint32(tmp[4:], uint32(20))
-	bf.Write(tmp)
 
-	fmt.Printf("input is %v\n", bf.Bytes())
-
-	res, err := engine.Call(common.Address{}, code, bf.Bytes())
+	res, err := engine.Call(common.Address{}, code, "add",tmp,1)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}
@@ -281,15 +259,15 @@ func TestRawContract(t *testing.T) {
 }
 
 func TestRawContract2(t *testing.T) {
-	engine := NewExecutionEngine(nil, nil, nil, nil, "product")
+	engine := NewExecutionEngine(nil, nil, nil, nil)
 	//test
 	code, err := ioutil.ReadFile("./test_data2/rawcontract.wasm")
 	if err != nil {
 		fmt.Println("error in read file", err.Error())
 		return
 	}
-	bf := bytes.NewBufferString("concat")
-	bf.WriteString("|")
+	bf := bytes.NewBuffer(nil)
+
 
 	tmp := bytes.NewBuffer(nil)
 	serialization.WriteVarString(tmp, "hello ")
@@ -301,7 +279,7 @@ func TestRawContract2(t *testing.T) {
 
 	fmt.Printf("input is %v\n", bf.Bytes())
 
-	res, err := engine.Call(common.Address{}, code, bf.Bytes())
+	res, err := engine.Call(common.Address{}, code, "concat",bf.Bytes(),1)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 		t.Fatal("errors:" + err.Error())
@@ -326,15 +304,15 @@ func TestRawContract2(t *testing.T) {
 }
 
 func TestRawContract3(t *testing.T) {
-	engine := NewExecutionEngine(nil, nil, nil, nil, "product")
+	engine := NewExecutionEngine(nil, nil, nil, nil)
 	//test
 	code, err := ioutil.ReadFile("./test_data2/rawcontract2.wasm")
 	if err != nil {
 		fmt.Println("error in read file", err.Error())
 		return
 	}
-	bf := bytes.NewBufferString("concat")
-	bf.WriteString("|")
+	bf := bytes.NewBuffer(nil)
+
 
 	tmp := bytes.NewBuffer(nil)
 	serialization.WriteVarString(tmp, "hello ")
@@ -346,7 +324,7 @@ func TestRawContract3(t *testing.T) {
 
 	fmt.Printf("input is %v\n", bf.Bytes())
 
-	res, err := engine.Call(common.Address{}, code, bf.Bytes())
+	res, err := engine.Call(common.Address{}, code, "concat",bf.Bytes(),1)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 		t.Fatal("errors:" + err.Error())
@@ -371,15 +349,15 @@ func TestRawContract3(t *testing.T) {
 }
 
 func TestRawContract4(t *testing.T) {
-	engine := NewExecutionEngine(nil, nil, nil, nil, "product")
+	engine := NewExecutionEngine(nil, nil, nil, nil)
 	//test
 	code, err := ioutil.ReadFile("./test_data2/rawcontract2.wasm")
 	if err != nil {
 		fmt.Println("error in read file", err.Error())
 		return
 	}
-	bf := bytes.NewBufferString("add")
-	bf.WriteString("|")
+	bf := bytes.NewBuffer(nil)
+
 
 	tmp := make([]byte, 8)
 	binary.LittleEndian.PutUint32(tmp[:4], uint32(10))
@@ -388,7 +366,7 @@ func TestRawContract4(t *testing.T) {
 
 	fmt.Printf("input is %v\n", bf.Bytes())
 
-	res, err := engine.Call(common.Address{}, code, bf.Bytes())
+	res, err := engine.Call(common.Address{}, code,"add", bf.Bytes(),1)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}

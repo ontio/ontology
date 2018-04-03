@@ -71,13 +71,13 @@ func newStack(depth int) *vmstack {
 }
 
 //todo add parameters
-func NewExecutionEngine(container interfaces.CodeContainer, crypto interfaces.Crypto, service InteropServiceInterface, ver string) *ExecutionEngine {
+func NewExecutionEngine(container interfaces.CodeContainer, crypto interfaces.Crypto,  service InteropServiceInterface) *ExecutionEngine {
+
 
 	engine := &ExecutionEngine{
 		crypto:        crypto,
 		CodeContainer: container,
 		service:       NewInteropService(),
-		version:       ver,
 	}
 	if service != nil {
 		engine.service.MergeMap(service.GetServiceMap())
@@ -92,9 +92,7 @@ type ExecutionEngine struct {
 	service       *InteropService
 	CodeContainer interfaces.CodeContainer
 	vm            *VM
-	//todo ,move to contract info later
-	version  string //for test different contracts
-	backupVM *vmstack
+	backupVM      *vmstack
 }
 
 func (e *ExecutionEngine) GetVM() *VM {
@@ -301,26 +299,20 @@ func (e *ExecutionEngine) Create(caller common.Address, code []byte) ([]byte, er
 	return code, nil
 }
 
-//the input format should be "methodname | args"
-func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) (returnbytes []byte, er error) {
+//the input format should be
+//ver = 0 : test case
+func (e *ExecutionEngine) Call(caller common.Address, code []byte, actionName string, input []byte, ver byte) (returnbytes []byte, er error) {
 
 	//catch the panic to avoid crash the whole node
-	/*
-		defer func() {
-			if err := recover(); err != nil {
-				returnbytes = nil
-				er = errors.New("[Call] error happened")
-			}
-		}()
-	*/
-
-	if e.version != "test" {
-		methodName := CONTRACT_METHOD_NAME //fix to "invoke"
-
-		tmparr := bytes.Split(input, []byte(PARAM_SPLITER))
-		if len(tmparr) != 2 {
-			return nil, errors.New("[Call]input format is not right!")
+	defer func() {
+		if err := recover(); err != nil {
+			returnbytes = nil
+			er = errors.New("[Call] error happened while call wasmvm")
 		}
+	}()
+
+	if ver > 0 {
+		methodName := CONTRACT_METHOD_NAME //fix to "invoke"
 
 		//1. read code
 		bf := bytes.NewBuffer(code)
@@ -355,6 +347,7 @@ func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) (retur
 		vm.CodeHash = common.ToCodeHash(code)
 
 		entry, ok := m.Export.Entries[methodName]
+
 		if ok == false {
 			return nil, errors.New("[Call]Method:" + methodName + " does not exist!")
 		}
@@ -369,14 +362,13 @@ func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) (retur
 		//method ,param bytes
 		params := make([]uint64, 2)
 
-		actionName := string(tmparr[0])
 		actIdx, err := vm.SetPointerMemory(actionName)
 		if err != nil {
 			return nil, err
 		}
 		params[0] = uint64(actIdx)
 
-		args := tmparr[1]
+		args := input
 		argIdx, err := vm.SetPointerMemory(args)
 		if err != nil {
 			return nil, err

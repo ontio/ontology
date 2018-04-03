@@ -120,19 +120,11 @@ func (this *SmartContract) Execute() error {
 			this.Config.Tx,
 			new(util.ECDsaCrypto),
 			stateMachine,
-			"product",
 		)
 
-		tmpcodes := bytes.Split(ctx.Code.Code, []byte(exec.PARAM_SPLITER))
-		if len(tmpcodes) != 3 {
-			return errors.NewErr("Wasm paramter count error")
-		}
-		contractCode := tmpcodes[0]
-
-		addr, err := common.AddressParseFromBytes(contractCode)
-		if err != nil {
-			return errors.NewErr("get contract address error")
-		}
+		contract := &states.Contract{}
+		contract.Deserialize(bytes.NewBuffer(ctx.Code.Code))
+		addr := contract.Address
 
 		dpcode, err := stateMachine.GetContractCodeFromAddress(addr)
 		if err != nil {
@@ -140,14 +132,13 @@ func (this *SmartContract) Execute() error {
 		}
 
 
-		input := ctx.Code.Code[len(contractCode)+1:]
 		var caller common.Address
-		if this.CallingContext() == nil{
+		if this.CallingContext() == nil {
 			caller = common.Address{}
-		}else{
+		} else {
 			caller = this.CallingContext().ContractAddress
 		}
-		res, err := engine.Call(caller, dpcode, input)
+		res, err := engine.Call(caller, dpcode, contract.Method, contract.Args, contract.Version)
 
 		if err != nil {
 			return err

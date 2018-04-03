@@ -8,7 +8,7 @@
   (import "env" "memory" (memory (;0;) 1))
   (import "env" "memoryBase" (global (;0;) i32))
   (import "env" "GetStorage" (func (;0;) (type 0)))
-  (import "env" "JsonMashal" (func (;1;) (type 1)))
+  (import "env" "JsonMashalResult" (func (;1;) (type 1)))
   (import "env" "PutStorage" (func (;2;) (type 2)))
   (import "env" "ReadInt32Param" (func (;3;) (type 0)))
   (import "env" "ReadStringParam" (func (;4;) (type 0)))

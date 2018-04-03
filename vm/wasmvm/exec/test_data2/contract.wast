@@ -10,8 +10,8 @@
   (import "env" "memoryBase" (global (;0;) i32))
   (import "env" "DeleteStorage" (func (;0;) (type 0)))
   (import "env" "GetStorage" (func (;1;) (type 1)))
-  (import "env" "JsonMashal" (func (;2;) (type 2)))
-  (import "env" "JsonUnmashal" (func (;3;) (type 3)))
+  (import "env" "JsonMashalResult" (func (;2;) (type 2)))
+  (import "env" "JsonUnmashalInput" (func (;3;) (type 3)))
   (import "env" "PutStorage" (func (;4;) (type 4)))
   (import "env" "RuntimeNotify" (func (;5;) (type 0)))
   (import "env" "arrayLen" (func (;6;) (type 1)))
@@ -291,17 +291,6 @@
     get_local 3
     set_global 1
     get_local 0)
-  (func (;14;) (type 6)
-    nop)
-  (func (;15;) (type 6)
-    get_global 0
-    i32.const 96
-    i32.add
-    set_global 1
-    get_global 1
-    i32.const 5242880
-    i32.add
-    set_global 2)
   (global (;1;) (mut i32) (i32.const 0))
   (global (;2;) (mut i32) (i32.const 0))
   (export "invoke" (func 13))
