@@ -63,4 +63,11 @@ type PeerAddr struct {
 type MsgPayload struct {
 	Id      uint64
 	Payload []byte
+	Len     int
 }
+
+const (
+	CONNECT    = 0
+	DISCONNECT = 1
+	P2PMSG     = 2
+)

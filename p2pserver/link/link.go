@@ -100,7 +100,7 @@ func (link *Link) UpdateRXTime(t time.Time) {
 //@Return @1 the start header of next message, the left length of the next message
 func unpackNodeBuf(link *Link, buf []byte, isConsensusChannel bool) {
 	var msgLen int
-	//var msgBuf []byte
+	var msgBuf []byte
 
 	if len(buf) == 0 {
 		return
@@ -136,20 +136,30 @@ func unpackNodeBuf(link *Link, buf []byte, isConsensusChannel bool) {
 
 	msgLen = rxBuf.len
 	if len(buf) == msgLen {
-		//msgBuf = append(rxBuf.p, buf[:]...)
-		//TODO !! need change HandleNodeMsg in message.go
+		msgBuf = append(rxBuf.p, buf[:]...)
 		//go msg.HandleNodeMsg(msgBuf, len(msgBuf))
-
+		//use channel to send p2p message
+		p2pMsg := MsgPayload{
+			Id:      P2PMSG,
+			Payload: msgBuf,
+			Len:     len(msgBuf),
+		}
+		link.recvChan <- p2pMsg
 		rxBuf.p = nil
 		rxBuf.len = 0
 	} else if len(buf) < msgLen {
 		rxBuf.p = append(rxBuf.p, buf[:]...)
 		rxBuf.len = msgLen - len(buf)
 	} else {
-		//msgBuf = append(rxBuf.p, buf[0:msgLen]...)
-		//TODO !! need change HandleNodeMsg in message.go
+		msgBuf = append(rxBuf.p, buf[0:msgLen]...)
 		//go msg.HandleNodeMsg(msgBuf, len(msgBuf))
-
+		//use channel to send p2p message
+		p2pMsg := MsgPayload{
+			Id:      P2PMSG,
+			Payload: msgBuf,
+			Len:     len(msgBuf),
+		}
+		link.recvChan <- p2pMsg
 		rxBuf.p = nil
 		rxBuf.len = 0
 
@@ -181,11 +191,20 @@ func (link *Link) rx(isConsensusChannel bool) {
 
 DISCONNECT:
 	if isConsensusChannel {
-		//TODO
 		//node.local.eventQueue.GetEvent("disconnect").Notify(events.EventNodeConsensusDisconnect, node)
+		//use channel to send message
+		disconnectMsg := MsgPayload{
+			Id: DISCONNECT,
+		}
+		link.recvChan <- disconnectMsg
+
 	} else {
-		//TODO
 		//node.local.eventQueue.GetEvent("disconnect").Notify(events.EventNodeDisconnect, node)
+		//use channel to send message
+		disconnectMsg := MsgPayload{
+			Id: DISCONNECT,
+		}
+		link.recvChan <- disconnectMsg
 	}
 }
 
@@ -394,11 +413,19 @@ func (link *Link) Connect(nodeAddr string, isConsensusChannel bool) error {
 	go link.rx(isConsensusChannel)
 
 	if isConsensusChannel {
-		//TODO need get peer layer function
 		//nbrNode.SetConsensusState(HAND)
+		//use channel to send message, let upper layer state to HAND
+		connectMsg := MsgPayload{
+			Id: CONNECT,
+		}
+		link.recvChan <- connectMsg
 	} else {
-		//TODO need get peer layer function
 		//nbrNode.SetState(HAND)
+		//use channel to send message to set, let upper layer state to HAND
+		connectMsg := MsgPayload{
+			Id: CONNECT,
+		}
+		link.recvChan <- connectMsg
 	}
 	//TODO need get msg layer function
 	//buf, _ := msg.NewVersion(n, isConsensusChannel)
@@ -467,15 +494,23 @@ func (link *Link) tx(buf []byte, isConsensusChannel bool) {
 		_, err := link.consensusConn.Write(buf)
 		if err != nil {
 			log.Error("Error sending messge to peer node ", err.Error())
-			//TODO
 			//node.local.eventQueue.GetEvent("disconnect").Notify(events.EventNodeConsensusDisconnect, node)
+			//use channel to send message
+			disconnectMsg := MsgPayload{
+				Id: DISCONNECT,
+			}
+			link.recvChan <- disconnectMsg
 		}
 	} else {
 		_, err := link.conn.Write(buf)
 		if err != nil {
 			log.Error("Error sending messge to peer node ", err.Error())
-			//TODO
 			//node.local.eventQueue.GetEvent("disconnect").Notify(events.EventNodeDisconnect, node)
+			//use channel to send message
+			disconnectMsg := MsgPayload{
+				Id: DISCONNECT,
+			}
+			link.recvChan <- disconnectMsg
 		}
 	}
 }
