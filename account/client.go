@@ -20,17 +20,18 @@ package account
 
 import (
 	"bytes"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"math/rand"
 	"os"
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
+	"github.com/ontio/ontology-crypto/aes"
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -40,8 +41,6 @@ import (
 	sig "github.com/ontio/ontology/core/signature"
 	ontErrors "github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/net/protocol"
-	"github.com/ontio/ontology-crypto/aes"
-	"github.com/ontio/ontology-crypto/keypair"
 )
 
 const (
@@ -122,12 +121,15 @@ func NewClient(path string, password []byte, create bool) *ClientImpl {
 		newClient.currentHeight = 0
 
 		//generate random number for iv/masterkey
-		r := rand.New(rand.NewSource(time.Now().UnixNano()))
-		for i := 0; i < 16; i++ {
-			newClient.iv[i] = byte(r.Intn(256))
+		_, err := rand.Read(newClient.iv)
+		if err != nil {
+			log.Error(err)
+			return nil
 		}
-		for i := 0; i < 32; i++ {
-			newClient.masterKey[i] = byte(r.Intn(256))
+		_, err = rand.Read(newClient.masterKey)
+		if err != nil {
+			log.Error(err)
+			return nil
 		}
 
 		//new client store (build DB)
@@ -135,7 +137,7 @@ func NewClient(path string, password []byte, create bool) *ClientImpl {
 
 		// SaveStoredData
 		pwdhash := sha256.Sum256(passwordKey)
-		err := newClient.SaveStoredData("PasswordHash", pwdhash[:])
+		err = newClient.SaveStoredData("PasswordHash", pwdhash[:])
 		if err != nil {
 			log.Error(err)
 			return nil
