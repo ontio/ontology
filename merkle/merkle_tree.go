@@ -266,9 +266,13 @@ func (self *CompactMerkleTree) subproof(m, n uint32, b bool) []common.Uint256 {
 
 // proof d[m] in D[0:n]
 // m zero based index, n size 1-based
-func (self *CompactMerkleTree) InclusionProof(m, n uint32) []common.Uint256 {
-	if m >= n || self.treeSize < n || self.hashStore == nil {
-		return nil
+func (self *CompactMerkleTree) InclusionProof(m, n uint32) ([]common.Uint256, error) {
+	if m >= n {
+		return nil, errors.New("wrong paramaters")
+	} else if self.treeSize < n {
+		return nil, errors.New("not available yet")
+	} else if self.hashStore == nil {
+		return nil, errors.New("hash store not available")
 	}
 
 	offset := uint32(0)
@@ -296,11 +300,11 @@ func (self *CompactMerkleTree) InclusionProof(m, n uint32) []common.Uint256 {
 
 	length := len(hashes)
 	reverse := make([]common.Uint256, length, length)
-	for k, _ := range reverse {
+	for k := range reverse {
 		reverse[k] = hashes[length-k-1]
 	}
 
-	return reverse
+	return reverse, nil
 }
 
 type MerkleVerifier struct {

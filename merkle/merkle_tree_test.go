@@ -37,7 +37,7 @@ func TestMerkleLeaf3(t *testing.T) {
 	if tree.Root() != sha256.Sum256(nil) {
 		t.Fatal("root error")
 	}
-	for i, _ := range leafs {
+	for i := range leafs {
 		tree.Append([]byte{byte(i + 1)})
 	}
 
@@ -147,7 +147,7 @@ func TestGetSubTreeSize(t *testing.T) {
 
 // zero based return merkle root of D[0:n]
 func TestMerkleIncludeProof(t *testing.T) {
-	n := uint32(8)
+	n := uint32(9)
 	store, _ := NewFileHashStore("merkletree.db", 0)
 	tree := NewTree(0, nil, store)
 	for i := uint32(0); i < n; i++ {
@@ -158,7 +158,7 @@ func TestMerkleIncludeProof(t *testing.T) {
 
 	root := tree.Root()
 	for i := uint32(0); i < n; i++ {
-		proof := tree.InclusionProof(i, n)
+		proof, _ := tree.InclusionProof(i, n)
 		leaf_hash := tree.hasher.hash_leaf([]byte{byte(i + 1)})
 		res := verify.VerifyLeafHashInclusion(leaf_hash, i, proof, root, n)
 		if res != nil {

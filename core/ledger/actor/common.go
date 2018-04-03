@@ -200,6 +200,16 @@ type GetContractStateReq struct {
 	ContractHash common.Address
 }
 
+type GetMerkleProofReq struct {
+	ProofHeight uint32
+	RootHeight uint32
+}
+
+type GetMerkleProofRsp struct {
+	Proof []common.Uint256
+	Error error
+}
+
 type GetContractStateRsp struct {
 	ContractState *payload.DeployCode
 	Error         error

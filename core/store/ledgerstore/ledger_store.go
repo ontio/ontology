@@ -639,6 +639,7 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block) error {
 			return fmt.Errorf("handleTransaction error %s", err)
 		}
 	}
+
 	err := this.stateStore.AddMerkleTreeRoot(block.Header.TransactionsRoot)
 	if err != nil {
 		return fmt.Errorf("AddMerkleTreeRoot error %s", err)
@@ -855,6 +856,10 @@ func (this *LedgerStoreImp) GetBlockByHeight(height uint32) (*types.Block, error
 
 func (this *LedgerStoreImp) GetBookkeeperState() (*states.BookkeeperState, error) {
 	return this.stateStore.GetBookkeeperState()
+}
+
+func (this *LedgerStoreImp) GetMerkleProof(proofHeight, rootHeight uint32) ([]common.Uint256, error) {
+	return this.stateStore.GetMerkleProof(proofHeight, rootHeight)
 }
 
 func (this *LedgerStoreImp) GetContractState(contractHash common.Address) (*payload.DeployCode, error) {

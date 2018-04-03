@@ -68,32 +68,29 @@ func NewStateStore(dbDir, merklePath string) (*StateStore, error) {
 	return stateStore, nil
 }
 
-func (this *StateStore) NewBatch() {
-	this.store.NewBatch()
+func (self *StateStore) NewBatch() {
+	self.store.NewBatch()
 }
 
-func (this *StateStore) init(currBlockHeight uint32) error {
-	treeSize, hashes, err := this.GetMerkleTree()
+func (self *StateStore) init(currBlockHeight uint32) error {
+	treeSize, hashes, err := self.GetMerkleTree()
 	if err != nil {
 		return err
 	}
 	if treeSize > 0 && treeSize != currBlockHeight+1 {
 		return fmt.Errorf("merkle tree size is inconsistent with blockheight: %d", currBlockHeight+1)
 	}
-	this.merkleHashStore, err = merkle.NewFileHashStore(this.merklePath, treeSize)
+	self.merkleHashStore, err = merkle.NewFileHashStore(self.merklePath, treeSize)
 	if err != nil {
 		return fmt.Errorf("merkle store is inconsistent with ChainStore. persistence will be disabled")
 	}
-	this.merkleTree = merkle.NewTree(treeSize, hashes, this.merkleHashStore)
+	self.merkleTree = merkle.NewTree(treeSize, hashes, self.merkleHashStore)
 	return nil
 }
 
-func (this *StateStore) GetMerkleTree() (uint32, []common.Uint256, error) {
-	key, err := this.getMerkleTreeKey()
-	if err != nil {
-		return 0, nil, err
-	}
-	data, err := this.store.Get(key)
+func (self *StateStore) GetMerkleTree() (uint32, []common.Uint256, error) {
+	key := self.getMerkleTreeKey()
+	data, err := self.store.Get(key)
 	if err != nil {
 		if err == leveldb.ErrNotFound {
 			return 0, nil, nil
@@ -118,18 +115,16 @@ func (this *StateStore) GetMerkleTree() (uint32, []common.Uint256, error) {
 	return treeSize, hashes, nil
 }
 
-func (this *StateStore) AddMerkleTreeRoot(txRoot common.Uint256) error {
-	key, err := this.getMerkleTreeKey()
+func (self *StateStore) AddMerkleTreeRoot(txRoot common.Uint256) error {
+	key:= self.getMerkleTreeKey()
+
+	self.merkleTree.AppendHash(txRoot)
+	err := self.merkleHashStore.Flush()
 	if err != nil {
 		return err
 	}
-	this.merkleTree.AppendHash(txRoot)
-	err = this.merkleHashStore.Flush()
-	if err != nil {
-		return err
-	}
-	treeSize := this.merkleTree.TreeSize()
-	hashes := this.merkleTree.Hashes()
+	treeSize := self.merkleTree.TreeSize()
+	hashes := self.merkleTree.Hashes()
 	value := bytes.NewBuffer(make([]byte, 0, 4+len(hashes)*common.UINT256_SIZE))
 	err = serialization.WriteUint32(value, treeSize)
 	if err != nil {
@@ -141,25 +136,29 @@ func (this *StateStore) AddMerkleTreeRoot(txRoot common.Uint256) error {
 			return err
 		}
 	}
-	this.store.BatchPut(key, value.Bytes())
+	self.store.BatchPut(key, value.Bytes())
 	return nil
 }
 
-func (this *StateStore) NewStateBatch() *statestore.StateBatch {
-	return statestore.NewStateStoreBatch(statestore.NewMemDatabase(), this.store)
+func (self *StateStore) GetMerkleProof(proofHeight, rootHeight uint32) ([]common.Uint256, error) {
+	return self.merkleTree.InclusionProof(proofHeight, rootHeight + 1)
 }
 
-func (this *StateStore) CommitTo() error {
-	return this.store.BatchCommit()
+func (self *StateStore) NewStateBatch() *statestore.StateBatch {
+	return statestore.NewStateStoreBatch(statestore.NewMemDatabase(), self.store)
 }
 
-func (this *StateStore) GetContractState(contractHash common.Address) (*payload.DeployCode, error) {
-	key, err := this.getContractStateKey(contractHash)
+func (self *StateStore) CommitTo() error {
+	return self.store.BatchCommit()
+}
+
+func (self *StateStore) GetContractState(contractHash common.Address) (*payload.DeployCode, error) {
+	key, err := self.getContractStateKey(contractHash)
 	if err != nil {
 		return nil, err
 	}
 
-	value, err := this.store.Get(key)
+	value, err := self.store.Get(key)
 	if err != nil {
 		if err == leveldb.ErrNotFound {
 			return nil, nil
@@ -175,13 +174,13 @@ func (this *StateStore) GetContractState(contractHash common.Address) (*payload.
 	return contractState, nil
 }
 
-func (this *StateStore) GetBookkeeperState() (*states.BookkeeperState, error) {
-	key, err := this.getBookkeeperKey()
+func (self *StateStore) GetBookkeeperState() (*states.BookkeeperState, error) {
+	key, err := self.getBookkeeperKey()
 	if err != nil {
 		return nil, err
 	}
 
-	value, err := this.store.Get(key)
+	value, err := self.store.Get(key)
 	if err != nil {
 		if err == leveldb.ErrNotFound {
 			return nil, nil
@@ -197,8 +196,8 @@ func (this *StateStore) GetBookkeeperState() (*states.BookkeeperState, error) {
 	return bookkeeperState, nil
 }
 
-func (this *StateStore) SaveBookkeeperState(bookkeeperState *states.BookkeeperState) error {
-	key, err := this.getBookkeeperKey()
+func (self *StateStore) SaveBookkeeperState(bookkeeperState *states.BookkeeperState) error {
+	key, err := self.getBookkeeperKey()
 	if err != nil {
 		return err
 	}
@@ -208,16 +207,16 @@ func (this *StateStore) SaveBookkeeperState(bookkeeperState *states.BookkeeperSt
 		return err
 	}
 
-	return this.store.Put(key, value.Bytes())
+	return self.store.Put(key, value.Bytes())
 }
 
-func (this *StateStore) GetStorageState(key *states.StorageKey) (*states.StorageItem, error) {
-	storeKey, err := this.getStorageKey(key)
+func (self *StateStore) GetStorageState(key *states.StorageKey) (*states.StorageItem, error) {
+	storeKey, err := self.getStorageKey(key)
 	if err != nil {
 		return nil, err
 	}
 
-	data, err := this.store.Get(storeKey)
+	data, err := self.store.Get(storeKey)
 	if err != nil {
 		if err == leveldb.ErrNotFound {
 			return nil, nil
@@ -233,9 +232,9 @@ func (this *StateStore) GetStorageState(key *states.StorageKey) (*states.Storage
 	return storageState, nil
 }
 
-func (this *StateStore) GetVoteStates() (map[common.Address]*states.VoteState, error) {
+func (self *StateStore) GetVoteStates() (map[common.Address]*states.VoteState, error) {
 	votes := make(map[common.Address]*states.VoteState)
-	iter := this.store.NewIterator([]byte{byte(scom.ST_VOTE)})
+	iter := self.store.NewIterator([]byte{byte(scom.ST_VOTE)})
 	for iter.Next() {
 		rk := bytes.NewReader(iter.Key())
 		// read prefix
@@ -257,9 +256,9 @@ func (this *StateStore) GetVoteStates() (map[common.Address]*states.VoteState, e
 	return votes, nil
 }
 
-func (this *StateStore) GetCurrentBlock() (common.Uint256, uint32, error) {
-	key := this.getCurrentBlockKey()
-	data, err := this.store.Get(key)
+func (self *StateStore) GetCurrentBlock() (common.Uint256, uint32, error) {
+	key := self.getCurrentBlockKey()
+	data, err := self.store.Get(key)
 	if err != nil {
 		if err == leveldb.ErrNotFound {
 			return common.Uint256{}, 0, nil
@@ -279,27 +278,27 @@ func (this *StateStore) GetCurrentBlock() (common.Uint256, uint32, error) {
 	return blockHash, height, nil
 }
 
-func (this *StateStore) SaveCurrentBlock(height uint32, blockHash common.Uint256) error {
-	key := this.getCurrentBlockKey()
+func (self *StateStore) SaveCurrentBlock(height uint32, blockHash common.Uint256) error {
+	key := self.getCurrentBlockKey()
 	value := bytes.NewBuffer(nil)
 	blockHash.Serialize(value)
 	serialization.WriteUint32(value, height)
-	this.store.BatchPut(key, value.Bytes())
+	self.store.BatchPut(key, value.Bytes())
 	return nil
 }
 
-func (this *StateStore) getCurrentBlockKey() []byte {
+func (self *StateStore) getCurrentBlockKey() []byte {
 	return []byte{byte(scom.SYS_CURRENT_BLOCK)}
 }
 
-func (this *StateStore) getBookkeeperKey() ([]byte, error) {
+func (self *StateStore) getBookkeeperKey() ([]byte, error) {
 	key := make([]byte, 1+len(BookerKeeper))
 	key[0] = byte(scom.ST_BOOKKEEPER)
 	copy(key[1:], []byte(BookerKeeper))
 	return key, nil
 }
 
-func (this *StateStore) getContractStateKey(contractHash common.Address) ([]byte, error) {
+func (self *StateStore) getContractStateKey(contractHash common.Address) ([]byte, error) {
 	data := contractHash[:]
 	key := make([]byte, 1+len(data))
 	key[0] = byte(scom.ST_CONTRACT)
@@ -307,7 +306,7 @@ func (this *StateStore) getContractStateKey(contractHash common.Address) ([]byte
 	return key, nil
 }
 
-func (this *StateStore) getStorageKey(key *states.StorageKey) ([]byte, error) {
+func (self *StateStore) getStorageKey(key *states.StorageKey) ([]byte, error) {
 	buf := bytes.NewBuffer(nil)
 	buf.WriteByte(byte(scom.ST_STORAGE))
 	buf.Write(key.CodeHash[:])
@@ -315,24 +314,24 @@ func (this *StateStore) getStorageKey(key *states.StorageKey) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (this *StateStore) GetBlockRootWithNewTxRoot(txRoot common.Uint256) common.Uint256 {
-	return this.merkleTree.GetRootWithNewLeaf(txRoot)
+func (self *StateStore) GetBlockRootWithNewTxRoot(txRoot common.Uint256) common.Uint256 {
+	return self.merkleTree.GetRootWithNewLeaf(txRoot)
 }
 
-func (this *StateStore) getMerkleTreeKey() ([]byte, error) {
-	return []byte{byte(scom.SYS_BLOCK_MERKLE_TREE)}, nil
+func (self *StateStore) getMerkleTreeKey() []byte{
+	return []byte{byte(scom.SYS_BLOCK_MERKLE_TREE)}
 }
 
-func (this *StateStore) ClearAll() error {
-	this.store.NewBatch()
-	iter := this.store.NewIterator(nil)
+func (self *StateStore) ClearAll() error {
+	self.store.NewBatch()
+	iter := self.store.NewIterator(nil)
 	for iter.Next() {
-		this.store.BatchDelete(iter.Key())
+		self.store.BatchDelete(iter.Key())
 	}
 	iter.Release()
-	return this.store.BatchCommit()
+	return self.store.BatchCommit()
 }
 
-func (this *StateStore) Close() error {
-	return this.store.Close()
+func (self *StateStore) Close() error {
+	return self.store.Close()
 }

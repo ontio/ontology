@@ -39,7 +39,7 @@ const (
 	INVOKE_TRANSACTION = "InvokeTransaction"
 )
 
-func (this *StateStore) HandleDeployTransaction(stateBatch *statestore.StateBatch, tx *types.Transaction) error {
+func (self *StateStore) HandleDeployTransaction(stateBatch *statestore.StateBatch, tx *types.Transaction) error {
 	deploy := tx.Payload.(*payload.DeployCode)
 
 	originAddress := deploy.Code.AddressFromVmCode()
@@ -73,7 +73,7 @@ func (this *StateStore) HandleDeployTransaction(stateBatch *statestore.StateBatc
 	return nil
 }
 
-func (this *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBatch *statestore.StateBatch, tx *types.Transaction, block *types.Block, eventStore scommon.EventStore) error {
+func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBatch *statestore.StateBatch, tx *types.Transaction, block *types.Block, eventStore scommon.EventStore) error {
 	invoke := tx.Payload.(*payload.InvokeCode)
 	txHash := tx.Hash()
 
@@ -115,12 +115,12 @@ func (this *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	return nil
 }
 
-func (this *StateStore) HandleClaimTransaction(stateBatch *statestore.StateBatch, tx *types.Transaction) error {
+func (self *StateStore) HandleClaimTransaction(stateBatch *statestore.StateBatch, tx *types.Transaction) error {
 	//TODO
 	return nil
 }
 
-func (this *StateStore) HandleVoteTransaction(stateBatch *statestore.StateBatch, tx *types.Transaction) error {
+func (self *StateStore) HandleVoteTransaction(stateBatch *statestore.StateBatch, tx *types.Transaction) error {
 	vote := tx.Payload.(*payload.Vote)
 	buf := new(bytes.Buffer)
 	vote.Account.Serialize(buf)
