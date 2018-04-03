@@ -21,7 +21,7 @@ package vbft
 import (
 	"fmt"
 
-	common "github.com/Ontology/common"
+	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/consensus/actor"
 	"github.com/Ontology/core/ledger"
@@ -105,6 +105,10 @@ func (self *ChainStore) SetBlock(block *Block, blockHash common.Uint256) error {
 }
 
 func (self *ChainStore) GetBlock(blockNum uint64) (*Block, error) {
+
+	if blk, present := self.pendingBlocks[blockNum]; present {
+		return blk, nil
+	}
 
 	block, err := ledger.DefLedger.GetBlockByHeight(uint32(blockNum))
 	if err != nil {
