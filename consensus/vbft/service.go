@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/Ontology/account"
+	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	actorTypes "github.com/Ontology/consensus/actor"
 	vconfig "github.com/Ontology/consensus/vbft/config"
@@ -1678,6 +1679,10 @@ func (self *Server) sealBlock(block *Block, empty bool) error {
 	self.msgPool.onBlockSealed(sealedBlkNum)
 
 	_, h := self.blockPool.getSealedBlock(sealedBlkNum)
+	if h.CompareTo(common.Uint256{}) == 0 {
+		return fmt.Errorf("failed to seal proposal: nil hash")
+	}
+
 	prevBlkHash := block.getPrevBlockHash()
 	log.Infof("server %d, sealed block %d, proposer %d, prevhash: %s, hash: %s", self.Index,
 		sealedBlkNum, block.getProposer(),
@@ -1937,7 +1942,7 @@ func (self *Server) initHandshake(peerIdx uint32, peerPubKey *crypto.PubKey) err
 					self.sendToPeer(peerIdx, msgPayload)
 					msgC <- shakeMsg
 				}
-				break;
+				break
 			}
 		}
 	}()
