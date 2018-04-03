@@ -245,9 +245,15 @@ func (self *Syncer) onNewBlockSyncReq(req *BlockSyncReq) error {
 
 	for _, peerIdx := range req.targetPeers {
 		if p, present := self.peers[peerIdx]; !present || !p.active {
+			nextBlkNum := self.nextReqBlkNum
+			if p != nil && p.nextReqBlkNum > nextBlkNum {
+				log.Infof("server %d, syncer with peer %d start from %d, vs %d",
+					self.server.incrValidator, peerIdx, p.nextReqBlkNum, self.nextReqBlkNum)
+				nextBlkNum = p.nextReqBlkNum
+			}
 			self.peers[peerIdx] = &PeerSyncer{
 				peerIdx:       peerIdx,
-				nextReqBlkNum: self.nextReqBlkNum,
+				nextReqBlkNum: nextBlkNum,
 				targetBlkNum:  self.targetBlkNum,
 				active:        false,
 				server:        self.server,
