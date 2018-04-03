@@ -33,11 +33,11 @@ import (
 	"github.com/ontio/ontology/vm/wasmvm/util"
 	"github.com/ontio/ontology/vm/wasmvm/validate"
 	"github.com/ontio/ontology/vm/wasmvm/wasm"
+	"github.com/ontio/ontology/smartcontract/types"
 )
 
 const (
 	CONTRACT_METHOD_NAME = "invoke"
-	PARAM_SPLITER        = "|"
 	VM_STACK_DEPTH       = 10
 )
 
@@ -73,7 +73,6 @@ func newStack(depth int) *vmstack {
 //todo add parameters
 func NewExecutionEngine(container interfaces.CodeContainer, crypto interfaces.Crypto,  service InteropServiceInterface) *ExecutionEngine {
 
-
 	engine := &ExecutionEngine{
 		crypto:        crypto,
 		CodeContainer: container,
@@ -95,6 +94,7 @@ type ExecutionEngine struct {
 	backupVM      *vmstack
 }
 
+//GetVM return vm pointer
 func (e *ExecutionEngine) GetVM() *VM {
 	return e.vm
 }
@@ -125,7 +125,10 @@ func (e *ExecutionEngine) RestoreVM() error {
 }
 
 //use this method just for test
-func (e *ExecutionEngine) CallInf(caller common.Address, code []byte, input []interface{}, message []interface{}) ([]byte, error) {
+func (e *ExecutionEngine) CallInf(caller common.Address,
+									code []byte,
+									input []interface{},
+									message []interface{}) ([]byte, error) {
 	methodName := input[0].(string)
 
 	//1. read code
@@ -160,7 +163,8 @@ func (e *ExecutionEngine) CallInf(caller common.Address, code []byte, input []in
 	vm.SetMessage(message)
 
 	vm.Caller = caller
-	vm.CodeHash = common.ToCodeHash(code)
+	//this is only for test
+	//vm.CodeHash = common.ToCodeHash(code)
 
 	entry, ok := m.Export.Entries[methodName]
 	if ok == false {
@@ -299,9 +303,17 @@ func (e *ExecutionEngine) Create(caller common.Address, code []byte) ([]byte, er
 	return code, nil
 }
 
-//the input format should be
-//ver = 0 : test case
-func (e *ExecutionEngine) Call(caller common.Address, code []byte, actionName string, input []byte, ver byte) (returnbytes []byte, er error) {
+//
+//Call Main interface of wasm vm excution engine
+// caller      common.Address :call address
+// code        []byte         :wasm smart contract code
+// actionName  string         :action name of the contract
+// input       []byte         :arguments
+// ver         byte           :contract version  require > 0 for production
+func (e *ExecutionEngine) Call(caller common.Address,
+								code []byte,
+								actionName string,
+								input []byte, ver byte) (returnbytes []byte, er error) {
 
 	//catch the panic to avoid crash the whole node
 	defer func() {
@@ -311,7 +323,7 @@ func (e *ExecutionEngine) Call(caller common.Address, code []byte, actionName st
 		}
 	}()
 
-	if ver > 0 {
+	if ver > 0 { //production contract version
 		methodName := CONTRACT_METHOD_NAME //fix to "invoke"
 
 		//1. read code
@@ -344,7 +356,9 @@ func (e *ExecutionEngine) Call(caller common.Address, code []byte, actionName st
 		// vm.SetMessage(message)
 
 		vm.Caller = caller
-		vm.CodeHash = common.ToCodeHash(code)
+
+		vmcode := types.VmCode{VmType:types.WASMVM,Code:code}
+		vm.CodeHash = vmcode.AddressFromVmCode()
 
 		entry, ok := m.Export.Entries[methodName]
 
@@ -401,7 +415,7 @@ func (e *ExecutionEngine) Call(caller common.Address, code []byte, actionName st
 		}
 
 	} else {
-		//for test
+		//for test contract version
 		methodName, err := getCallMethodName(input)
 		if err != nil {
 			return nil, err

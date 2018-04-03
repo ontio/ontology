@@ -68,12 +68,11 @@ func NewInteropService() *InteropService {
 	service.Register("ReadInt32Param", readInt32Param)
 	service.Register("ReadInt64Param", readInt64Param)
 	service.Register("ReadStringParam", readStringParam)
-	//service.Register("RawUnmashalInput", rawUnmashal)
 	service.Register("JsonUnmashalInput", jsonUnmashal)
 	service.Register("JsonMashalResult", jsonMashal)
 	service.Register("JsonMashalParams", jsonMashalParams)
 	service.Register("RawMashalParams", rawMashalParams)
-	service.Register("GetCaller", getCaller)
+	service.Register("GetCallerAddress", getCaller)
 	service.Register("GetSelfAddress", getCodeHash)
 
 	//===================add block apis below==================

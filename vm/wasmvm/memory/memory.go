@@ -58,6 +58,7 @@ type VMmemory struct {
 	MemPoints       map[uint64]*TypeLength
 }
 
+//Alloc memory for base types, return the address in memory
 func (vm *VMmemory) Malloc(size int) (int, error) {
 	if vm.Memory == nil || len(vm.Memory) == 0 {
 		return 0, errors.New("memory is not initialized")
@@ -76,6 +77,7 @@ func (vm *VMmemory) Malloc(size int) (int, error) {
 	return offset, nil
 }
 
+//Alloc memory for pointer types, return the address in memory
 func (vm *VMmemory) MallocPointer(size int, p_type PType) (int, error) {
 	if vm.Memory == nil || len(vm.Memory) == 0 {
 		return 0, errors.New("memory is not initialized")
@@ -101,6 +103,7 @@ func (vm *VMmemory) copyMemAndGetIdx(b []byte, p_type PType) (int, error) {
 	return idx, nil
 }
 
+//return pointed memory size
 func (vm *VMmemory) GetPointerMemSize(addr uint64) int {
 	//nil case
 	if addr == uint64(VM_NIL_POINTER) {
@@ -115,6 +118,7 @@ func (vm *VMmemory) GetPointerMemSize(addr uint64) int {
 	}
 }
 
+//return pointed memory
 //when wasm returns a pointer, call this function to get the pointed memory
 func (vm *VMmemory) GetPointerMemory(addr uint64) ([]byte, error) {
 	//nil case
@@ -130,6 +134,7 @@ func (vm *VMmemory) GetPointerMemory(addr uint64) ([]byte, error) {
 	}
 }
 
+//set pointer types into memory, return address of memory
 func (vm *VMmemory) SetPointerMemory(val interface{}) (int, error) {
 
 	////nil case
@@ -193,6 +198,7 @@ func (vm *VMmemory) SetPointerMemory(val interface{}) (int, error) {
 
 }
 
+//set struct into memory , return address of memory
 func (vm *VMmemory) SetStructMemory(val interface{}) (int, error) {
 
 	if reflect.TypeOf(val).Kind() != reflect.Struct {
@@ -262,6 +268,7 @@ func (vm *VMmemory) SetStructMemory(val interface{}) (int, error) {
 
 }
 
+//set base types into memory, return address of memory
 func (vm *VMmemory) SetMemory(val interface{}) (int, error) {
 
 	switch val.(type) {
