@@ -31,18 +31,22 @@ import (
 	"github.com/ontio/ontology/validator/types"
 )
 
+// NewTxActor creates an actor to handle the transaction-based messages from
+// network and http
 func NewTxActor(s *TXPoolServer) *TxActor {
 	a := &TxActor{}
 	a.setServer(s)
 	return a
 }
 
+// NewTxPoolActor creates an actor to handle the messages from the consensus
 func NewTxPoolActor(s *TXPoolServer) *TxPoolActor {
 	a := &TxPoolActor{}
 	a.setServer(s)
 	return a
 }
 
+// NewVerifyRspActor creates an actor to handle the verified result from validators
 func NewVerifyRspActor(s *TXPoolServer) *VerifyRspActor {
 	a := &VerifyRspActor{}
 	a.setServer(s)
@@ -54,7 +58,7 @@ type TxActor struct {
 	server *TXPoolServer
 }
 
-// Handle a new transaction
+// handleTransaction handles a transaction from network and http
 func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 	txn *tx.Transaction) {
 	ta.server.increaseStats(tc.RcvStats)
@@ -78,6 +82,7 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 	}
 }
 
+// Receive implements the actor interface
 func (ta *TxActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
@@ -154,6 +159,7 @@ type TxPoolActor struct {
 	server *TXPoolServer
 }
 
+// Receive implements the actor interface
 func (tpa *TxPoolActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
@@ -215,6 +221,7 @@ type VerifyRspActor struct {
 	server *TXPoolServer
 }
 
+// Receive implements the actor interface
 func (vpa *VerifyRspActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:

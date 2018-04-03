@@ -37,6 +37,7 @@ const (
 	MAX_LIMITATION  = 10000                            // The length of pending tx from net and http
 )
 
+// ActorType enumerates the kind of actor
 type ActorType uint8
 
 const (
@@ -48,6 +49,7 @@ const (
 	MaxActor
 )
 
+// SenderType enumerates the kind of tx submitter
 type SenderType uint8
 
 const (
@@ -69,6 +71,7 @@ func (sender SenderType) Sender() string {
 	}
 }
 
+// TxnStatsType enumerates the kind of tx statistics
 type TxnStatsType uint8
 
 const (
@@ -83,83 +86,112 @@ const (
 	MaxStats
 )
 
+// TxStatus contains the attributes of a transaction
 type TxStatus struct {
 	Hash  common.Uint256 // transaction hash
 	Attrs []*TXAttr      // transaction's status
 }
 
+// TxReq specifies the api that how to submit a new transaction.
+// Input: transacton and submitter type
 type TxReq struct {
 	Tx     *types.Transaction
 	Sender SenderType
 }
 
+// TxRsp returns the result of submitting tx, including
+// a transaction hash and error code.
 type TxRsp struct {
 	Hash    common.Uint256
 	ErrCode errors.ErrCode
 }
 
 // restful api
+
+// GetTxnReq specifies the api that how to get the transaction.
+// Input: a transaction hash
 type GetTxnReq struct {
 	Hash common.Uint256
 }
 
+// GetTxnRsp returns a transaction for the specified tx hash.
 type GetTxnRsp struct {
 	Txn *types.Transaction
 }
 
+// CheckTxnReq specifies the api that how to check whether a
+// transaction in the pool.
+// Input: a transaction hash
 type CheckTxnReq struct {
 	Hash common.Uint256
 }
 
+// CheckTxnRsp returns a value for the CheckTxnReq, if the
+// transaction in the pool, value is true, or false.
 type CheckTxnRsp struct {
 	Ok bool
 }
 
+// GetTxnStatusReq specifies the api that how to get a transaction
+// status.
+// Input: a transaction hash.
 type GetTxnStatusReq struct {
 	Hash common.Uint256
 }
 
+// GetTxnStatusRsp returns a transaction status for GetTxnStatusReq.
+// Output: a transaction hash and it's verified result.
 type GetTxnStatusRsp struct {
 	Hash     common.Uint256
 	TxStatus []*TXAttr
 }
 
+// GetTxnStats specifies the api that how to get the tx statistics.
 type GetTxnStats struct {
 }
 
+// GetTxnStatsRso returns the tx statistics.
 type GetTxnStatsRsp struct {
 	Count []uint64
 }
 
+// GetPendingTxnReq specifies the api that how to get a pending tx list
+// in the pool.
 type GetPendingTxnReq struct {
 	ByCount bool
 }
 
+// GetPendingTxnRsp returns a transaction list for GetPendingTxnReq.
 type GetPendingTxnRsp struct {
 	Txs []*types.Transaction
 }
 
 // consensus messages
+// GetTxnPoolReq specifies the api that how to get the valid transaction list.
 type GetTxnPoolReq struct {
 	ByCount bool
 	Height  uint32
 }
 
+// GetTxnPoolRsp returns a transaction list for GetTxnPoolReq.
 type GetTxnPoolRsp struct {
 	TxnPool []*TXEntry
 }
 
+// VerifyBlockReq specifies that api that how to verify a block from consensus.
 type VerifyBlockReq struct {
 	Height uint32
 	Txs    []*types.Transaction
 }
 
+// VerifyTxResult returns a single transaction's verified result.
 type VerifyTxResult struct {
 	Height  uint32
 	Tx      *types.Transaction
 	ErrCode errors.ErrCode
 }
 
+// VerifyBlockRsp returns a verified result for VerifyBlockReq.
 type VerifyBlockRsp struct {
 	TxnPool []*VerifyTxResult
 }

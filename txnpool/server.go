@@ -19,14 +19,16 @@
 package txnpool
 
 import (
+	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
 	tc "github.com/ontio/ontology/txnpool/common"
 	tp "github.com/ontio/ontology/txnpool/proc"
-	"github.com/ontio/ontology-eventbus/actor"
 )
 
+// startActor starts an actor with the proxy and unique id,
+// and return the pid.
 func startActor(obj interface{}, id string) *actor.PID {
 	props := actor.FromProducer(func() actor.Actor {
 		return obj.(actor.Actor)
@@ -40,6 +42,9 @@ func startActor(obj interface{}, id string) *actor.PID {
 	return pid
 }
 
+// StartTxnPoolServer starts the txnpool server and registers
+// actors to handle the msgs from the network, http, consensus
+// and validators. Meanwhile subscribes the block complete  event.
 func StartTxnPoolServer() *tp.TXPoolServer {
 	var s *tp.TXPoolServer
 

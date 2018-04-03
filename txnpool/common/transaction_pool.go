@@ -42,17 +42,26 @@ type TXEntry struct {
 	Attrs []*TXAttr          // the result from each validator
 }
 
+// TXPool contains all currently valid transactions. Transactions
+// enter the pool when they are valid from the network,
+// consensus or submitted. They exit the pool when they are included
+// in the ledger.
 type TXPool struct {
 	sync.RWMutex
 	txList map[common.Uint256]*TXEntry // Transactions which have been verified
 }
 
+// Init creates a new transaction pool to gather.
 func (tp *TXPool) Init() {
 	tp.Lock()
 	defer tp.Unlock()
 	tp.txList = make(map[common.Uint256]*TXEntry)
 }
 
+// AddTxList adds a valid transaction to the transaction pool. If the
+// transaction is already in the pool, just return false. Parameter
+// txEntry includes transaction, fee, and verified information(height,
+// validator, error code).
 func (tp *TXPool) AddTxList(txEntry *TXEntry) bool {
 	tp.Lock()
 	defer tp.Unlock()
@@ -66,7 +75,7 @@ func (tp *TXPool) AddTxList(txEntry *TXEntry) bool {
 	return true
 }
 
-// clean the trasaction Pool with committed transactions.
+// CleanTransactionList cleans the transaction list included in the ledger.
 func (tp *TXPool) CleanTransactionList(txs []*types.Transaction) error {
 	cleaned := 0
 	txsNum := len(txs)
@@ -88,6 +97,7 @@ func (tp *TXPool) CleanTransactionList(txs []*types.Transaction) error {
 	return nil
 }
 
+// DelTxList removes a single transaction from the pool.
 func (tp *TXPool) DelTxList(tx *types.Transaction) bool {
 	tp.Lock()
 	defer tp.Unlock()
@@ -99,6 +109,9 @@ func (tp *TXPool) DelTxList(tx *types.Transaction) bool {
 	return true
 }
 
+// GetTxPool gets the transaction lists from the pool for the consensus,
+// if the byCount is marked, return the configured number at most; if the
+// the byCount is not marked, return all of the current transaction pool.
 func (tp *TXPool) GetTxPool(byCount bool) []*TXEntry {
 	tp.RLock()
 	defer tp.RUnlock()
@@ -123,6 +136,8 @@ func (tp *TXPool) GetTxPool(byCount bool) []*TXEntry {
 	return txList
 }
 
+// GetTransaction returns a transaction if it is contained in the pool
+// and nil otherwise.
 func (tp *TXPool) GetTransaction(hash common.Uint256) *types.Transaction {
 	tp.RLock()
 	defer tp.RUnlock()
@@ -132,6 +147,8 @@ func (tp *TXPool) GetTransaction(hash common.Uint256) *types.Transaction {
 	return tp.txList[hash].Tx
 }
 
+// GetTxStatus returns a transaction status if it is contained in the pool
+// and nil otherwise.
 func (tp *TXPool) GetTxStatus(hash common.Uint256) *TxStatus {
 	tp.RLock()
 	defer tp.RUnlock()
@@ -146,6 +163,7 @@ func (tp *TXPool) GetTxStatus(hash common.Uint256) *TxStatus {
 	return ret
 }
 
+// GetTransactionCount returns the tx number of the pool.
 func (tp *TXPool) GetTransactionCount() int {
 	tp.RLock()
 	defer tp.RUnlock()

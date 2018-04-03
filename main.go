@@ -27,6 +27,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -47,7 +48,6 @@ import (
 	tc "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology/validator/statefull"
 	"github.com/ontio/ontology/validator/stateless"
-	"github.com/ontio/ontology-crypto/keypair"
 )
 
 const (

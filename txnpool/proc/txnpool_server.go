@@ -22,13 +22,13 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	tx "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	tc "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology/validator/types"
-	"github.com/ontio/ontology-eventbus/actor"
 )
 
 type txStats struct {
@@ -60,6 +60,7 @@ type registerValidators struct {
 	state   roundRobinState                                 // For loadbance
 }
 
+// TXPoolServer contains all api to external modules
 type TXPoolServer struct {
 	mu            sync.RWMutex                        // Sync mutex
 	wg            sync.WaitGroup                      // Worker sync
@@ -73,12 +74,15 @@ type TXPoolServer struct {
 	stats         txStats                             // The transaction statstics
 }
 
+// NewTxPoolServer creates a new tx pool server to schedule workers to
+// handle and filter inbound transactions from the network, http, and consensus.
 func NewTxPoolServer(num uint8) *TXPoolServer {
 	s := &TXPoolServer{}
 	s.init(num)
 	return s
 }
 
+// init initializes the server with the configured settings
 func (s *TXPoolServer) init(num uint8) {
 	// Initial txnPool
 	s.txPool = &tc.TXPool{}
@@ -112,6 +116,9 @@ func (s *TXPoolServer) init(num uint8) {
 	}
 }
 
+// checkPendingBlockOk checks whether a block from consensus is verified.
+// If some transaction is invalid, return the result directly at once, no
+// need to wait for verifying the complete block.
 func (s *TXPoolServer) checkPendingBlockOk(hash common.Uint256,
 	err errors.ErrCode) {
 
@@ -158,12 +165,17 @@ func (s *TXPoolServer) checkPendingBlockOk(hash common.Uint256,
 	}
 }
 
+// getPendingListSize return the length of the pending tx list.
 func (s *TXPoolServer) getPendingListSize() int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return len(s.allPendingTxs)
 }
 
+// removePendingTx removes a transaction from the pending list
+// when it is handled. And if the submitter of the valid transaction
+// is from http, broadcast it to the network. Meanwhile, check if it
+// is in the block from consensus.
 func (s *TXPoolServer) removePendingTx(hash common.Uint256,
 	err errors.ErrCode) {
 
@@ -191,6 +203,8 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256,
 	s.checkPendingBlockOk(hash, err)
 }
 
+// setPendingTx adds a transaction to the pending list, if the
+// transaction is already in the pending list, just return false.
 func (s *TXPoolServer) setPendingTx(tx *tx.Transaction,
 	sender tc.SenderType) bool {
 
@@ -211,6 +225,7 @@ func (s *TXPoolServer) setPendingTx(tx *tx.Transaction,
 	return true
 }
 
+// assignTxToWorker assigns a new transaction to a worker by LB
 func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction,
 	sender tc.SenderType) (assign bool) {
 
@@ -241,6 +256,8 @@ func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction,
 	return true
 }
 
+// assignRspToWorker assigns a check response from the validator to
+// the correct worker.
 func (s *TXPoolServer) assignRspToWorker(rsp *types.CheckResponse) (
 	assign bool) {
 
@@ -271,6 +288,8 @@ func (s *TXPoolServer) assignRspToWorker(rsp *types.CheckResponse) (
 	return true
 }
 
+// GetPID returns an actor pid with the actor type, If the type
+// doesn't exist, return nil.
 func (s *TXPoolServer) GetPID(actor tc.ActorType) *actor.PID {
 	if actor < tc.TxActor || actor >= tc.MaxActor {
 		return nil
@@ -279,14 +298,17 @@ func (s *TXPoolServer) GetPID(actor tc.ActorType) *actor.PID {
 	return s.actors[actor]
 }
 
+// RegisterActor registers an actor with the actor type and pid.
 func (s *TXPoolServer) RegisterActor(actor tc.ActorType, pid *actor.PID) {
 	s.actors[actor] = pid
 }
 
+// UnRegisterActor cancels the actor with the actor type.
 func (s *TXPoolServer) UnRegisterActor(actor tc.ActorType) {
 	delete(s.actors, actor)
 }
 
+// registerValidator registers a validator to verify a transaction.
 func (s *TXPoolServer) registerValidator(v *types.RegisterValidator) {
 	s.validators.Lock()
 	defer s.validators.Unlock()
@@ -299,6 +321,7 @@ func (s *TXPoolServer) registerValidator(v *types.RegisterValidator) {
 	s.validators.entries[v.Type] = append(s.validators.entries[v.Type], v)
 }
 
+// unRegisterValidator cancels a validator with the verify type and id.
 func (s *TXPoolServer) unRegisterValidator(checkType types.VerifyType,
 	id string) {
 
@@ -325,6 +348,8 @@ func (s *TXPoolServer) unRegisterValidator(checkType types.VerifyType,
 	}
 }
 
+// getNextValidatorPIDs returns the next pids to verify the transaction using
+// roundRobin LB.
 func (s *TXPoolServer) getNextValidatorPIDs() []*actor.PID {
 	s.validators.Lock()
 	defer s.validators.Unlock()
@@ -343,6 +368,7 @@ func (s *TXPoolServer) getNextValidatorPIDs() []*actor.PID {
 	return ret
 }
 
+// getNextValidatorPID returns the next pid with the verify type using roundRobin LB
 func (s *TXPoolServer) getNextValidatorPID(key types.VerifyType) *actor.PID {
 	s.validators.Lock()
 	defer s.validators.Unlock()
@@ -359,6 +385,7 @@ func (s *TXPoolServer) getNextValidatorPID(key types.VerifyType) *actor.PID {
 	return entries[next].Sender
 }
 
+// Stop stops server and workers.
 func (s *TXPoolServer) Stop() {
 	for _, v := range s.actors {
 		v.Stop()
@@ -370,14 +397,17 @@ func (s *TXPoolServer) Stop() {
 	s.wg.Wait()
 }
 
+// getTransaction returns a transaction with the transaction hash.
 func (s *TXPoolServer) getTransaction(hash common.Uint256) *tx.Transaction {
 	return s.txPool.GetTransaction(hash)
 }
 
+// getTxPool returns a tx list for consensus.
 func (s *TXPoolServer) getTxPool(byCount bool) []*tc.TXEntry {
 	return s.txPool.GetTxPool(byCount)
 }
 
+// getPendingTxs returns a currently pending tx list
 func (s *TXPoolServer) getPendingTxs(byCount bool) []*tx.Transaction {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -388,14 +418,17 @@ func (s *TXPoolServer) getPendingTxs(byCount bool) []*tx.Transaction {
 	return ret
 }
 
+// cleanTransactionList cleans the txs in the block from the ledger
 func (s *TXPoolServer) cleanTransactionList(txs []*tx.Transaction) error {
 	return s.txPool.CleanTransactionList(txs)
 }
 
+// delTransaction deletes a transaction in the tx pool.
 func (s *TXPoolServer) delTransaction(t *tx.Transaction) {
 	s.txPool.DelTxList(t)
 }
 
+// addTxList adds a valid transaction to the tx pool.
 func (s *TXPoolServer) addTxList(txEntry *tc.TXEntry) bool {
 	ret := s.txPool.AddTxList(txEntry)
 	if !ret {
@@ -404,12 +437,14 @@ func (s *TXPoolServer) addTxList(txEntry *tc.TXEntry) bool {
 	return ret
 }
 
+// increaseStats increases the count with the stats type
 func (s *TXPoolServer) increaseStats(v tc.TxnStatsType) {
 	s.stats.Lock()
 	defer s.stats.Unlock()
 	s.stats.count[v-1]++
 }
 
+// getStats returns the transaction statistics
 func (s *TXPoolServer) getStats() []uint64 {
 	s.stats.RLock()
 	defer s.stats.RUnlock()
@@ -420,6 +455,8 @@ func (s *TXPoolServer) getStats() []uint64 {
 	return ret
 }
 
+// checkTx checks whether a transaction is in the pending list or
+// the transacton pool
 func (s *TXPoolServer) checkTx(hash common.Uint256) bool {
 	// Check if the tx is in pending list
 	s.mu.RLock()
@@ -437,6 +474,7 @@ func (s *TXPoolServer) checkTx(hash common.Uint256) bool {
 	return false
 }
 
+// getTxStatusReq returns a transaction's status with the transaction hash.
 func (s *TXPoolServer) getTxStatusReq(hash common.Uint256) *tc.TxStatus {
 	for i := uint8(0); i < s.workersNum; i++ {
 		ret := s.workers[i].GetTxStatus(hash)
@@ -448,10 +486,12 @@ func (s *TXPoolServer) getTxStatusReq(hash common.Uint256) *tc.TxStatus {
 	return s.txPool.GetTxStatus(hash)
 }
 
+// getTransactionCount returns the tx size of the transaction pool.
 func (s *TXPoolServer) getTransactionCount() int {
 	return s.txPool.GetTransactionCount()
 }
 
+// reVerifyStateful re-verify a transaction's stateful data.
 func (s *TXPoolServer) reVerifyStateful(tx *tx.Transaction, sender tc.SenderType) {
 	if ok := s.setPendingTx(tx, sender); !ok {
 		s.increaseStats(tc.DuplicateStats)
@@ -471,6 +511,7 @@ func (s *TXPoolServer) reVerifyStateful(tx *tx.Transaction, sender tc.SenderType
 	s.workers[lb[0].WorkerID].stfTxCh <- tx
 }
 
+// sendBlkResult2Consensus sends the result of verifying block to  consensus
 func (s *TXPoolServer) sendBlkResult2Consensus() {
 	rsp := &tc.VerifyBlockRsp{
 		TxnPool: make([]*tc.VerifyTxResult,
@@ -490,6 +531,12 @@ func (s *TXPoolServer) sendBlkResult2Consensus() {
 	}
 }
 
+// verifyBlock verifies the block from consensus.
+// There are three cases to handle.
+// 1, for those unverified txs, assign them to the available worker;
+// 2, for those verified txs whose height >= block's height, nothing to do;
+// 3, for those verified txs whose height < block's height, re-verify their
+// stateful data.
 func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 	if req == nil || len(req.Txs) == 0 {
 		return
