@@ -67,7 +67,8 @@ type MsgPayload struct {
 }
 
 const (
-	CONNECT    = 0
-	DISCONNECT = 1
-	P2PMSG     = 2
+	CONNECT      = 0
+	DISCONNECT   = 1
+	P2PMSG       = 2
+	VERSION_TYPE = "version"
 )

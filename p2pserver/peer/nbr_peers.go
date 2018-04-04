@@ -122,7 +122,7 @@ func (nm *NbrPeers) GetNeighborAddrs() ([]types.PeerAddr, uint64) {
 		var addr types.PeerAddr
 		addr.IpAddr, _ = p.GetAddr16()
 		addr.Time = p.GetTime()
-		addr.Services = p.Services()
+		addr.Services = p.GetServices()
 		addr.Port = p.GetPort()
 		addr.ID = p.GetID()
 		addrs = append(addrs, addr)

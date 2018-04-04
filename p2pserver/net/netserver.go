@@ -58,7 +58,7 @@ func (n *NetServer) Connectseeds() {
 }
 
 func (n *NetServer) GetVersion() uint32 {
-	return n.Self.Version()
+	return n.Self.GetVersion()
 }
 func (n *NetServer) GetPort() uint16 {
 	return n.Self.GetPort()
@@ -76,7 +76,7 @@ func (n *NetServer) GetState() uint32 {
 	return n.Self.GetState()
 }
 func (n *NetServer) GetServices() uint64 {
-	return n.Self.Services()
+	return n.Self.GetServices()
 }
 func (n *NetServer) GetNeighborAddrs() ([]types.PeerAddr, uint64) {
 	return n.Self.Np.GetNeighborAddrs()

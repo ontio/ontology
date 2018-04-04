@@ -12,6 +12,7 @@ import (
 	"github.com/Ontology/events"
 	types "github.com/Ontology/p2pserver/common"
 	conn "github.com/Ontology/p2pserver/link"
+	"github.com/Ontology/p2pserver/message"
 	"net"
 	"runtime"
 	"sync/atomic"
@@ -29,6 +30,7 @@ type Peer struct {
 	height                   uint64
 	txnCnt                   uint64
 	rxTxnCnt                 uint64
+	httpInfoPort             uint16
 	publicKey                *crypto.PubKey
 	chF                      chan func() error // Channel used to operate the node without lock
 	eventQueue                                 // The event queue to notice other modules
@@ -86,7 +88,7 @@ func rmPeer(p *Peer) {
 func (p *Peer) GetPubKey() *crypto.PubKey {
 	return p.publicKey
 }
-func (p *Peer) Version() uint32 {
+func (p *Peer) GetVersion() uint32 {
 	return p.version
 }
 func (p *Peer) GetHeight() uint64 {
@@ -107,7 +109,7 @@ func (p *Peer) GetID() uint64 {
 func (p *Peer) GetRelay() bool {
 	return p.relay
 }
-func (p *Peer) Services() uint64 {
+func (p *Peer) GetServices() uint64 {
 	return p.services
 }
 func (p *Peer) GetConnectionState() uint32 {
@@ -150,4 +152,56 @@ func (p *Peer) AttachChan(msgchan chan types.MsgPayload) {
 
 func (p *Peer) AttachEvent(fn func(v interface{})) {
 	p.notifyFunc = fn
+}
+
+func (p *Peer) DelNbrNode(id uint64) (*Peer, bool) {
+	return p.Np.DelNbrNode(id)
+}
+
+func (p *Peer) CloseConn() {
+	p.LinkConn.CloseConn()
+}
+
+func (p *Peer) Tx(buf []byte) {
+	p.LinkConn.Tx(buf)
+}
+
+func (p *Peer) SetHttpInfoState(httpInfo bool) {
+	if httpInfo {
+		p.cap[message.HTTP_INFO_FLAG] = 0x01
+	} else {
+		p.cap[message.HTTP_INFO_FLAG] = 0x00
+	}
+}
+
+func (p *Peer) GetHttpInfoPort() uint16 {
+	return p.httpInfoPort
+}
+
+func (p *Peer) SetHttpInfoPort(port uint16) {
+	p.httpInfoPort = port
+}
+
+func (p *Peer) SetBookkeeperAddr(pk *crypto.PubKey) {
+	p.publicKey = pk
+}
+
+func (p *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
+	port uint16, nonce uint64, relay uint8, height uint64) {
+
+	p.LinkConn.UpdateRXTime(t)
+	p.id = nonce
+	p.version = version
+	p.services = services
+	p.LinkConn.SetPort(port)
+	if relay == 0 {
+		p.relay = false
+	} else {
+		p.relay = true
+	}
+	p.height = uint64(height)
+}
+
+func (p *Peer) AddNbrNode(remotePeer *Peer) {
+	p.Np.AddNbrNode(remotePeer)
 }

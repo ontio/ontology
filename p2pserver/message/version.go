@@ -2,17 +2,16 @@ package message
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"errors"
-	"crypto/sha256"
-
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/crypto"
 	msgCommon "github.com/Ontology/p2pserver/common"
 )
 
 const (
-	HTTPINFOFLAG = 0
+	HTTP_INFO_FLAG = 0
 )
 
 type VersionPayload struct {
@@ -33,43 +32,42 @@ type VersionPayload struct {
 }
 type Version struct {
 	Hdr msgHdr
-	P	VersionPayload
-	pk *crypto.PubKey
+	P   VersionPayload
+	PK  *crypto.PubKey
 }
-
 
 func NewVersion(vpl VersionPayload, pk *crypto.PubKey) ([]byte, error) {
 	log.Debug()
 	var msg Version
 
-/*	msg.P.Version = n.Version()
-	msg.P.Services = n.Services()
-	msg.P.HttpInfoPort = config.Parameters.HttpInfoPort
-	msg.P.ConsensusPort = n.GetConsensusPort()
-	msg.P.IsConsensus = isConsensus
-	if config.Parameters.HttpInfoStart {
-		msg.P.Cap[HTTPINFOFLAG] = 0x01
-	} else {
-		msg.P.Cap[HTTPINFOFLAG] = 0x00
-	}
+	/*	msg.P.Version = n.Version()
+		msg.P.Services = n.Services()
+		msg.P.HttpInfoPort = config.Parameters.HttpInfoPort
+		msg.P.ConsensusPort = n.GetConsensusPort()
+		msg.P.IsConsensus = isConsensus
+		if config.Parameters.HttpInfoStart {
+			msg.P.Cap[HTTPINFOFLAG] = 0x01
+		} else {
+			msg.P.Cap[HTTPINFOFLAG] = 0x00
+		}
 
-	// FIXME Time overflow
-	msg.P.TimeStamp = uint32(time.Now().UTC().UnixNano())
-	msg.P.Port = n.GetPort()
-	msg.P.Nonce = n.GetID()
-	msg.P.UserAgent = 0x00
-	height, _ := actor.GetCurrentBlockHeight()
-	msg.P.StartHeight = uint64(height)
-	if n.GetRelay() {
-		msg.P.Relay = 1
-	} else {
-		msg.P.Relay = 0
-	}
-	msg.pk = n.GetBookKeeperAddr()
-*/
+		// FIXME Time overflow
+		msg.P.TimeStamp = uint32(time.Now().UTC().UnixNano())
+		msg.P.Port = n.GetPort()
+		msg.P.Nonce = n.GetID()
+		msg.P.UserAgent = 0x00
+		height, _ := actor.GetCurrentBlockHeight()
+		msg.P.StartHeight = uint64(height)
+		if n.GetRelay() {
+			msg.P.Relay = 1
+		} else {
+			msg.P.Relay = 0
+		}
+		msg.pk = n.GetBookKeeperAddr()
+	*/
 	msg.P = vpl
-	msg.pk = pk
-	log.Debug("new version msg.pk is ", msg.pk)
+	msg.PK = pk
+	log.Debug("new version msg.pk is ", msg.PK)
 	// TODO the function to wrap below process
 	// msg.HDR.init("version", n.GetID(), uint32(len(p.Bytes())))
 
@@ -77,7 +75,7 @@ func NewVersion(vpl VersionPayload, pk *crypto.PubKey) ([]byte, error) {
 	copy(msg.Hdr.CMD[0:7], "version")
 	p := bytes.NewBuffer([]byte{})
 	err := binary.Write(p, binary.LittleEndian, &(msg.P))
-	msg.pk.Serialize(p)
+	msg.PK.Serialize(p)
 	if err != nil {
 		log.Error("Binary Write failed at new Msg")
 		return nil, err
@@ -116,7 +114,7 @@ func (msg Version) Serialization() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	msg.pk.Serialize(buf)
+	msg.PK.Serialize(buf)
 
 	return buf.Bytes(), err
 }
@@ -141,6 +139,6 @@ func (msg *Version) Deserialization(p []byte) error {
 	if err != nil {
 		return errors.New("Parse pubkey Deserialize failed.")
 	}
-	msg.pk = pk
+	msg.PK = pk
 	return err
 }

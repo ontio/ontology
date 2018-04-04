@@ -39,13 +39,12 @@ type ConsensusLink struct {
 
 type Link struct {
 	//Todo Add lock here
-	addr         string   // The address of the node
-	conn         net.Conn // Connect socket with the peer node
-	port         uint16   // The server port of the node
-	rxBuf        RxBuf
-	httpInfoPort uint16    // The node information server port of the node
-	time         time.Time // The latest time the node activity
-	connCnt      uint64    // The connection count
+	addr    string   // The address of the node
+	conn    net.Conn // Connect socket with the peer node
+	port    uint16   // The server port of the node
+	rxBuf   RxBuf
+	time    time.Time // The latest time the node activity
+	connCnt uint64    // The connection count
 	//ConsensusLink
 	consensusPort  uint16
 	consensusConn  net.Conn // Connect socket with the peer node

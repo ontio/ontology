@@ -29,7 +29,7 @@ func NewServer(acc *account.Account) (*P2PServer, error) {
 	p.msgRouter = NewMsgRouter(p)
 
 	// Fixme: implement the message handler for each msg type
-	p.msgRouter.RegisterMsgHandler(types.VERSION_TYPE, DefaultMsgHandler)
+	p.msgRouter.RegisterMsgHandler(types.VERSION_TYPE, VersionHandle)
 
 	return p, nil
 }
