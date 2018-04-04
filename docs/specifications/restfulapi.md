@@ -17,7 +17,7 @@ This document describes the restful api format for the http/https used in the On
 | Action | string | action name |
 | Desc | string | description |
 | Error | int64 | error code |
-| Result | int/string/object | execute result |
+| Result | object | execute result |
 | Version | string | version information |
 
 ### 1. Get the generate block time
@@ -564,18 +564,48 @@ curl -i http://localhost:20384/api/v1/block/height/txhash/3e23cf222a47739d414125
 }
 ```
 
-### 16 websocket configuration（unsolved）
+### 16 getmerkleproof
 
-POST
+get merkle proof
 
+GET
 ```
-/api/v1/config/websocket/state
+/api/v1/merkleproof/:hash
 ```
-
-#### Request Example
-
+#### Request Example:
 ```
-curl -i http://server:port/api/v1/config/websocket/state
+curl -i http://localhost:20384/api/v1/merkleproof/3e23cf222a47739d4141255da617cd42925a12638ac19cadcc85501f907972c8
+```
+#### Response
+```
+{
+    "Action": "getmerkleproof",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": {
+        "Type": "MerkleProof",
+        "TransactionsRoot": "fe3a4ee8a44e3e588de55de1b8fe08f08b6184d9c062cf7316fb9481eb57b9e6",
+        "BlockHeight": 600,
+        "CurBlockRoot": "57476eba688531dec8555cb712835c7eda48a478431a2cfd3372aeee5298e711",
+        "CurBlockHeight": 6478,
+        "TargetHashes": [
+            "270cd10ea235cc18cba83a070fdf18ae576983b6b9a7bb9a3fec540b3786c85c",
+            "24e4697f9dd6cb944d0736bd3e11b64f64edec94fb599e25d4e5461d54174f0e",
+            "9a47ab04acf6bba7bb97b83eddeb0db20e11c0627b8079b40b60031d5bd63154",
+            "d1b513810b9b983014c9f8b7084b8ea8744eca8e7c942586c2b7c63f910363ca",
+            "54e88360efedcf5dbbc486ea0267724a98b027b3ba780617e32569bb3fbe56e8",
+            "e0c5ebca3ca191617d42e11db64778b047cd9a520538efd95d5a688cbba0c8d5",
+            "52bfb23b6456cac4e5e7143287e1518dd923c5b5d32d0bfe8d825dc8195ea62b",
+            "86d6be166ae1a53c052adc40b9b66c4f95f5e3b6ecc88afaea3750e1cbe98276",
+            "5588530cfc4d92e979717f8ae399ac4553a76e7537a981e8eaf078d60f1d39a6",
+            "3f15bec38bcf054e4f32efe475a09d3e80c2e90d3345a1428aaa262606f13267",
+            "f238ed8ceb1c10a08f7eaa390cdde44ed7d160abbde4702028407b55671e7aa8",
+            "b4813f1f27c0457726b58f8bf20bee70c100a4d5c5f1805e53dcd20f38479615",
+            "83893713ea8ace9214b28af854b75671c8aaa62bb74b0d43ad6fb83e3dee42db"
+        ]
+    },
+    "Version": "1.0.0"
+}
 ```
 
 ## Errorcode

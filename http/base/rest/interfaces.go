@@ -208,11 +208,17 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	index := uint32(height)
-	hash, err := bactor.GetBlockHashFromStore(index)
+	block, err := bactor.GetBlockByHeight(index)
 	if err != nil {
 		return ResponsePack(berr.UNKNOWN_BLOCK)
 	}
-	resp["Result"], resp["Error"] = getBlock(hash, getTxBytes)
+	if getTxBytes {
+		w := bytes.NewBuffer(nil)
+		block.Serialize(w)
+		resp["Result"] =  common.ToHexString(w.Bytes())
+	} else {
+		resp["Result"] = bcomn.GetBlockInfo(block)
+	}
 	return resp
 }
 
@@ -424,5 +430,55 @@ func GetBalance(cmd map[string]interface{}) map[string]interface{} {
 		OngAppove: appove.String(),
 	}
 	resp["Result"] = rsp
+	return resp
+}
+
+func GetMerkleProof(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(berr.SUCCESS)
+	str := cmd["Hash"].(string)
+	bys, err := common.HexToBytes(str)
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	var hash common.Uint256
+	err = hash.Deserialize(bytes.NewReader(bys))
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	height, err := bactor.GetBlockHeightByTxHashFromStore(hash)
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	header, err := bactor.GetHeaderByHeight(height)
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+
+	curHeight, err := bactor.BlockHeight()
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	curHeader, err := bactor.GetHeaderByHeight(curHeight)
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	proof, err := bactor.GetMerkleProof(uint32(height), uint32(curHeight))
+	if err != nil {
+		return ResponsePack(berr.INTERNAL_ERROR)
+	}
+	var hashes []string
+	for _, v := range proof {
+		hashes = append(hashes, common.ToHexString(v[:]))
+	}
+	type merkleProof struct {
+		Type             string
+		TransactionsRoot string
+		BlockHeight      uint32
+		CurBlockRoot     string
+		CurBlockHeight   uint32
+		TargetHashes     []string
+	}
+	resp["Result"] = merkleProof{"MerkleProof", common.ToHexString(header.TransactionsRoot[:]), height,
+		common.ToHexString(curHeader.BlockRoot[:]), curHeight, hashes}
 	return resp
 }

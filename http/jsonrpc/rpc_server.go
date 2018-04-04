@@ -51,6 +51,7 @@ func StartRPCServer() {
 	rpc.HandleFunc("getblockheightbytxhash", rpc.GetBlockHeightByTxHash)
 
 	rpc.HandleFunc("getbalance", rpc.GetBalance)
+	rpc.HandleFunc("getmerkleproof", rpc.GetMerkleProof)
 
 	err := http.ListenAndServe(":"+strconv.Itoa(cfg.Parameters.HttpJsonPort), nil)
 	if err != nil {

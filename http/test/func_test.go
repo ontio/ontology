@@ -26,16 +26,61 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
 	ctypes "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
+	"github.com/ontio/ontology/merkle"
 	"github.com/ontio/ontology/vm/neovm"
 	vmtypes "github.com/ontio/ontology/vm/types"
-	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/stretchr/testify/assert"
 )
+
+func TestMerkleVerifier(t *testing.T) {
+	type merkleProof struct {
+		Type             string
+		TransactionsRoot string
+		BlockHeight      uint32
+		CurBlockRoot     string
+		CurBlockHeight   uint32
+		TargetHashes     []string
+	}
+	proof := merkleProof{
+		Type:             "MerkleProof",
+		TransactionsRoot: "4b74e15973ce3964ba4a33ddaf92efbff922ea2225bca7676f62eab05829f11f",
+		BlockHeight:      2,
+		CurBlockRoot:     "a5094c1daeeceab46319ce62b600c68a7accc806bd9fe2fdb869560bf66b5251",
+		CurBlockHeight:   6,
+		TargetHashes: []string{
+			"c7ac8087b4ce292d654001b1ab1bfe5e68fa6f7b8492a5b2f83560f8ac28f5fa",
+			"5205a22b07c6072d60d28b41f1321ab993799d70693a3bb70bab7e58b49acc30",
+			"c0de7f3035a7960450ec9a64e7835b958b0fec1ddb90cbeb0779073c0a9a8f53",
+		},
+	}
+
+	verify := merkle.NewMerkleVerifier()
+	var leaf_hash common.Uint256
+	bys, _ := common.HexToBytes(proof.TransactionsRoot)
+	leaf_hash.Deserialize(bytes.NewReader(bys))
+
+	var root_hash common.Uint256
+	bys, _ = common.HexToBytes(proof.CurBlockRoot)
+	root_hash.Deserialize(bytes.NewReader(bys))
+
+	var hashes []common.Uint256
+	for _, v := range proof.TargetHashes {
+		var hash common.Uint256
+		bys, _ = common.HexToBytes(v)
+		hash.Deserialize(bytes.NewReader(bys))
+		hashes = append(hashes, hash)
+	}
+	res := verify.VerifyLeafHashInclusion(leaf_hash, proof.BlockHeight, hashes, root_hash, proof.CurBlockHeight+1)
+	assert.Nil(t, res)
+
+}
 
 func TestCodeHash(t *testing.T) {
 	code, _ := common.HexToBytes("")

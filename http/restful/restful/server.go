@@ -64,8 +64,9 @@ const (
 	GET_SMTCOCE_EVT_TXS   = "/api/v1/smartcode/event/transactions/:height"
 	GET_SMTCOCE_EVTS      = "/api/v1/smartcode/event/txhash/:hash"
 	GET_BLK_HGT_BY_TXHASH = "/api/v1/block/height/txhash/:hash"
+	GET_MERKLE_PROOF      = "/api/v1/merkleproof/:hash"
 
-	POST_RAW_TX          = "/api/v1/transaction"
+	POST_RAW_TX = "/api/v1/transaction"
 )
 
 func InitRestServer() rest.ApiServer {
@@ -128,6 +129,7 @@ func (this *restServer) registryMethod() {
 		GET_BLK_HGT_BY_TXHASH: {name: "getblockheightbytxhash", handler: rest.GetBlockHeightByTxHash},
 		GET_STORAGE:           {name: "getstorage", handler: rest.GetStorage},
 		GET_BALANCE:           {name: "getbalance", handler: rest.GetBalance},
+		GET_MERKLE_PROOF:     {name: "getmerkleproof", handler: rest.GetMerkleProof},
 	}
 
 	postMethodMap := map[string]Action{
@@ -160,6 +162,8 @@ func (this *restServer) getPath(url string) string {
 		return GET_STORAGE
 	} else if strings.Contains(url, strings.TrimRight(GET_BALANCE, ":addr")) {
 		return GET_BALANCE
+	} else if strings.Contains(url, strings.TrimRight(GET_MERKLE_PROOF, ":hash")) {
+		return GET_MERKLE_PROOF
 	}
 	return url
 }
@@ -197,6 +201,8 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["Hash"] = getParam(r, "hash")
 	case GET_BALANCE:
 		req["Addr"] = getParam(r, "addr")
+	case GET_MERKLE_PROOF:
+		req["Hash"] = getParam(r, "hash")
 	default:
 	}
 	return req
