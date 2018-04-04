@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"time"
 
-	common "github.com/Ontology/common"
+	"github.com/Ontology/common"
 	vconfig "github.com/Ontology/consensus/vbft/config"
 	"github.com/Ontology/core/ledger"
 	"github.com/Ontology/core/types"

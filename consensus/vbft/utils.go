@@ -24,7 +24,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	common "github.com/Ontology/common"
+	"github.com/Ontology/common"
 	"github.com/Ontology/consensus/vbft/config"
 	"github.com/Ontology/crypto"
 )
@@ -58,10 +58,10 @@ func HashMsg(msg ConsensusMsg) (common.Uint256, error) {
 }
 
 type vrfData struct {
-	BlockNum          uint64  `json:"block_num"`
+	BlockNum          uint64         `json:"block_num"`
 	PrevBlockHash     common.Uint256 `json:"prev_block_hash"`
-	PrevBlockProposer uint32  `json:"prev_block_proposer"` // TODO: change to NodeID
-	PrevBlockSig      []byte  `json:"prev_block_sig"`
+	PrevBlockProposer uint32         `json:"prev_block_proposer"` // TODO: change to NodeID
+	PrevBlockSig      []byte         `json:"prev_block_sig"`
 }
 
 func vrf(block *Block, hash common.Uint256) vconfig.VRFValue {

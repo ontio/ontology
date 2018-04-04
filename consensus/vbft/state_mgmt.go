@@ -101,7 +101,7 @@ func (self *StateMgr) getState() ServerState {
 }
 
 func (self *StateMgr) run() {
-	self.liveTicker = time.AfterFunc(peerHandshakeTimeout * 5, func() {
+	self.liveTicker = time.AfterFunc(peerHandshakeTimeout*5, func() {
 		self.StateEventC <- &StateEvent{
 			Type:     LiveTick,
 			blockNum: self.server.GetCommittedBlockNo(),
@@ -182,7 +182,7 @@ func (self *StateMgr) onPeerUpdate(peerState *PeerState) error {
 		if isActive(self.currentState) && peerState.committedBlockNum > self.server.GetCurrentBlockNo()+MAX_SYNCING_CHECK_BLK_NUM {
 			log.Warnf("server %d seems lost sync: %d(%d) vs %d", self.server.Index,
 				peerState.committedBlockNum, peerState.peerIdx, self.server.GetCurrentBlockNo())
-			if err := self.checkStartSyncing(self.server.GetCommittedBlockNo() + MAX_SYNCING_CHECK_BLK_NUM, false); err != nil {
+			if err := self.checkStartSyncing(self.server.GetCommittedBlockNo()+MAX_SYNCING_CHECK_BLK_NUM, false); err != nil {
 				log.Errorf("server %d start syncing check failed", self.server.Index)
 			}
 			return nil
