@@ -96,15 +96,14 @@ func (cc *ChainConfig) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (cc *ChainConfig) Deserialize(r io.Reader) error {
-	buffer := []byte{}
-	if _, err := r.Read(buffer); err != nil {
+func (cc *ChainConfig) Deserialize(r io.Reader,length int) error {
+	buf := make([]byte, length)
+	if _, err := r.Read(buf[:]); err != nil {
 		return err
 	}
-	if err := json.Unmarshal(buffer, &cc); err != nil {
+	if err := json.Unmarshal(buf[:], &cc); err != nil {
 		return err
 	}
-	fmt.Println("content:", cc.F)
 	return nil
 }
 
