@@ -84,14 +84,6 @@ func HexToBytes(value string) ([]byte, error) {
 	return hex.DecodeString(value)
 }
 
-func CompareHeight(blockHeight uint64, heights []uint64) bool {
-	for _, height := range heights {
-		if blockHeight < height {
-			return false
-		}
-	}
-	return true
-}
 
 func FileExisted(filename string) bool {
 	_, err := os.Stat(filename)

@@ -418,11 +418,20 @@ func (node *node) SetBookkeeperAddr(pk keypair.PublicKey) {
 	node.publicKey = pk
 }
 
+func compareHeight(blockHeight uint64, heights []uint64) bool {
+	for _, height := range heights {
+		if blockHeight < height {
+			return false
+		}
+	}
+	return true
+}
+
 func (node *node) SyncNodeHeight() {
 	for {
 		heights, _ := node.GetNeighborHeights()
 		height, _ := actor.GetCurrentBlockHeight()
-		if common.CompareHeight(uint64(height), heights) {
+		if compareHeight(uint64(height), heights) {
 			break
 		}
 		<-time.After(5 * time.Second)
