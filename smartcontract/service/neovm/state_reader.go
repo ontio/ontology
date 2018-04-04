@@ -20,7 +20,6 @@ package neovm
 
 import (
 	"fmt"
-	"math/big"
 	"strings"
 
 	"github.com/ontio/ontology/common"
@@ -221,8 +220,8 @@ func (s *StateReader) BlockChainGetHeader(e *vm.ExecutionEngine) (bool, error) {
 	)
 	l := len(data)
 	if l <= 5 {
-		b := new(big.Int)
-		height := uint32(b.SetBytes(common.BytesReverse(data)).Int64())
+		b := vmtypes.ConvertBytesToBigInteger(data)
+		height := uint32(b.Int64())
 		hash := s.ldgerStore.GetBlockHash(height)
 		header, err = s.ldgerStore.GetHeaderByHash(hash)
 		if err != nil {
@@ -252,8 +251,8 @@ func (s *StateReader) BlockChainGetBlock(e *vm.ExecutionEngine) (bool, error) {
 	)
 	l := len(data)
 	if l <= 5 {
-		b := new(big.Int)
-		height := uint32(b.SetBytes(common.BytesReverse(data)).Int64())
+		b := vmtypes.ConvertBytesToBigInteger(data)
+		height := uint32(b.Int64())
 		var err error
 		block, err = s.ldgerStore.GetBlockByHeight(height)
 		if err != nil {

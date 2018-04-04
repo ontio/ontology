@@ -182,7 +182,7 @@ func GetBlockTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(berr.UNKNOWN_BLOCK)
 	}
-	if hash.CompareTo(common.Uint256{}) == 0 {
+	if hash == common.UINT256_EMPTY {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	block, err := bactor.GetBlockFromStore(hash)
@@ -199,7 +199,7 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 	if len(param) == 0 {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	var getTxBytes bool = false
+	var getTxBytes = false
 	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
 		getTxBytes = true
 	}

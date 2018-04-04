@@ -27,7 +27,9 @@ import (
 
 const UINT256_SIZE = 32
 
-type Uint256 [UINT256_SIZE]uint8
+type Uint256 [UINT256_SIZE]byte
+
+var UINT256_EMPTY  = Uint256{}
 
 func (u *Uint256) CompareTo(o Uint256) int {
 	x := u.ToArray()

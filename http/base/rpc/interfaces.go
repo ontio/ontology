@@ -67,7 +67,7 @@ func GetBlock(params []interface{}) map[string]interface{} {
 			log.Errorf("GetBlock GetBlockHashFromStore Height:%v error:%s", index, err)
 			return responsePack(berr.UNKNOWN_BLOCK, "unknown block")
 		}
-		if hash.CompareTo(common.Uint256{}) == 0 {
+		if hash == common.UINT256_EMPTY {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
 		// block hash

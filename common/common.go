@@ -84,13 +84,6 @@ func HexToBytes(value string) ([]byte, error) {
 	return hex.DecodeString(value)
 }
 
-func BytesReverse(u []byte) []byte {
-	for i, j := 0, len(u)-1; i < j; i, j = i+1, j-1 {
-		u[i], u[j] = u[j], u[i]
-	}
-	return u
-}
-
 func CompareHeight(blockHeight uint64, heights []uint64) bool {
 	for _, height := range heights {
 		if blockHeight < height {
