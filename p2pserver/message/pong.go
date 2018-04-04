@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/common/log"
+	"github.com/Ontology/common/serialization"
 	. "github.com/Ontology/p2pserver/common"
-
 )
 
 type Pong struct {

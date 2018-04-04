@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Ontology/common/log"
-	. "github.com/Ontology/p2pserver/common"
+	common "github.com/Ontology/p2pserver/common"
 )
 
 type Message interface {
@@ -21,9 +21,9 @@ type Message interface {
 type msgHdr struct {
 	Magic uint32
 	//ID	 uint64
-	CMD      [MSGCMDLEN]byte // The message type
+	CMD      [common.MSGCMDLEN]byte // The message type
 	Length   uint32
-	Checksum [CHECKSUMLEN]byte
+	Checksum [common.CHECKSUMLEN]byte
 }
 
 // The message body and header
@@ -37,135 +37,10 @@ type varStr struct {
 	buf []byte
 }
 
-type filteradd struct {
-	msgHdr
-	//TBD
-}
-
-type filterclear struct {
-	msgHdr
-	//TBD
-}
-
-type filterload struct {
-	msgHdr
-	//TBD
-}
-
-// Alloc different message stucture
-// @t the message name or type
-// @len the message length only valid for varible length structure
-//
-// Return:
-// @messager the messager interface
-// @error  error code
-// FixMe fix the ugly multiple return.
-func AllocMsg(t string, length int) Message {
-	switch t {
-	case "msgheader":
-		var msg msgHdr
-		return &msg
-	case "version":
-		var msg Version
-		// TODO fill the header and type
-		copy(msg.Hdr.CMD[0:len(t)], t)
-		return &msg
-	case "verack":
-		var msg VerACK
-		copy(msg.msgHdr.CMD[0:len(t)], t)
-		return &msg
-	case "getheaders":
-		var msg HeadersReq
-		// TODO fill the header and type
-		copy(msg.hdr.CMD[0:len(t)], t)
-		return &msg
-	case "headers":
-		var msg BlkHeader
-		copy(msg.hdr.CMD[0:len(t)], t)
-		return &msg
-	case "getaddr":
-		var msg AddrReq
-		copy(msg.Hdr.CMD[0:len(t)], t)
-		return &msg
-	case "addr":
-		var msg Addr
-		copy(msg.hdr.CMD[0:len(t)], t)
-		return &msg
-	case "inv":
-		var msg Inv
-		copy(msg.Hdr.CMD[0:len(t)], t)
-		// the 1 is the inv type lenght
-		msg.P.Blk = make([]byte, length-MSGHDRLEN-1)
-		return &msg
-	case "getdata":
-		var msg dataReq
-		copy(msg.msgHdr.CMD[0:len(t)], t)
-		return &msg
-	case "block":
-		var msg Block
-		copy(msg.msgHdr.CMD[0:len(t)], t)
-		return &msg
-	case "tx":
-		var msg Trn
-		copy(msg.msgHdr.CMD[0:len(t)], t)
-		//if (message.Payload.Length <= 1024 * 1024)
-		//OnInventoryReceived(Transaction.DeserializeFrom(message.Payload));
-		return &msg
-	case "consensus":
-		var msg Consensus
-		copy(msg.msgHdr.CMD[0:len(t)], t)
-		return &msg
-	case "filteradd":
-		var msg filteradd
-		copy(msg.msgHdr.CMD[0:len(t)], t)
-		return &msg
-	case "filterclear":
-		var msg filterclear
-		copy(msg.msgHdr.CMD[0:len(t)], t)
-		return &msg
-	case "filterload":
-		var msg filterload
-		copy(msg.msgHdr.CMD[0:len(t)], t)
-		return &msg
-	case "getblocks":
-		var msg BlocksReq
-		copy(msg.msgHdr.CMD[0:len(t)], t)
-		return &msg
-	case "txnpool":
-		var msg txnPool
-		copy(msg.msgHdr.CMD[0:len(t)], t)
-		return &msg
-	case "alert":
-		log.Warn("Not supported message type - alert")
-		return nil
-	case "merkleblock":
-		log.Warn("Not supported message type - merkleblock")
-		return nil
-	case "notfound":
-		var msg NotFound
-		copy(msg.msgHdr.CMD[0:len(t)], t)
-		return &msg
-	case "ping":
-		var msg Ping
-		copy(msg.msgHdr.CMD[0:len(t)], t)
-		return &msg
-	case "pong":
-		var msg Pong
-		copy(msg.msgHdr.CMD[0:len(t)], t)
-		return &msg
-	case "reject":
-		log.Warn("Not supported message type - reject")
-		return nil
-	default:
-		log.Warn("Unknown message type", t)
-		return nil
-	}
-}
-
 func MsgType(buf []byte) (string, error) {
-	cmd := buf[CMDOFFSET : CMDOFFSET+MSGCMDLEN]
+	cmd := buf[common.CMDOFFSET : common.CMDOFFSET+common.MSGCMDLEN]
 	n := bytes.IndexByte(cmd, 0)
-	if n < 0 || n >= MSGCMDLEN {
+	if n < 0 || n >= common.MSGCMDLEN {
 		return "", errors.New("Unexpected length of CMD command")
 	}
 	s := string(cmd[:n])
@@ -173,7 +48,7 @@ func MsgType(buf []byte) (string, error) {
 }
 
 func magicVerify(magic uint32) bool {
-	if magic != NETMAGIC {
+	if magic != common.NETMAGIC {
 		return false
 	}
 	return true
@@ -194,7 +69,7 @@ func PayloadLen(buf []byte) int {
 
 func LocateMsgHdr(buf []byte) []byte {
 	var h msgHdr
-	for i := 0; i <= len(buf)-MSGHDRLEN; i++ {
+	for i := 0; i <= len(buf)-common.MSGHDRLEN; i++ {
 		if magicVerify(binary.LittleEndian.Uint32(buf[i:])) {
 			buf = append(buf[:0], buf[i:]...)
 			h.Deserialization(buf)
@@ -209,7 +84,7 @@ func checkSum(p []byte) []byte {
 	s := sha256.Sum256(t[:])
 
 	// Currently we only need the front 4 bytes as checksum
-	return s[:CHECKSUMLEN]
+	return s[:common.CHECKSUMLEN]
 }
 
 func reverse(input []byte) []byte {
@@ -220,9 +95,9 @@ func reverse(input []byte) []byte {
 }
 
 func (hdr *msgHdr) init(cmd string, checksum []byte, length uint32) {
-	hdr.Magic = NETMAGIC
+	hdr.Magic = common.NETMAGIC
 	copy(hdr.CMD[0:uint32(len(cmd))], cmd)
-	copy(hdr.Checksum[:], checksum[:CHECKSUMLEN])
+	copy(hdr.Checksum[:], checksum[:common.CHECKSUMLEN])
 	hdr.Length = length
 	//hdr.ID = id
 }
@@ -248,7 +123,7 @@ func (hdr msgHdr) Verify(buf []byte) error {
 
 func (msg *msgHdr) Deserialization(p []byte) error {
 
-	buf := bytes.NewBuffer(p[0:MSGHDRLEN])
+	buf := bytes.NewBuffer(p[0:common.MSGHDRLEN])
 	err := binary.Read(buf, binary.LittleEndian, msg)
 	return err
 }
