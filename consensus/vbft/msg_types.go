@@ -23,12 +23,12 @@ import (
 	"encoding/json"
 	"fmt"
 
-	common "github.com/Ontology/common"
+	"github.com/Ontology/common"
 	"github.com/Ontology/common/serialization"
 	vconfig "github.com/Ontology/consensus/vbft/config"
 	"github.com/Ontology/core/types"
-	"github.com/Ontology/crypto"
-	"github.com/Ontology/common/serialization"
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology-crypto/signature"
 )
 
 type MsgType uint8
@@ -50,7 +50,7 @@ const (
 
 type ConsensusMsg interface {
 	Type() MsgType
-	Verify(pub *crypto.PubKey) error
+	Verify(pub *keypair.PublicKey) error
 	GetBlockNum() uint64
 	Serialize() ([]byte, error)
 }
@@ -63,7 +63,7 @@ func (msg *blockProposalMsg) Type() MsgType {
 	return BlockProposalMessage
 }
 
-func (msg *blockProposalMsg) Verify(pub *crypto.PublicKey) error {
+func (msg *blockProposalMsg) Verify(pub *keypair.PublicKey) error {
 	sigData := msg.Block.Block.Header.SigData
 	msg.Block.Block.Header.SigData = nil
 
@@ -167,8 +167,8 @@ func (msg *blockEndorseMsg) Type() MsgType {
 	return BlockEndorseMessage
 }
 
-func (msg *blockEndorseMsg) Verify(pub *crypto.PubKey) error {
-	sig := msg.Sig
+func (msg *blockEndorseMsg) Verify(pub *keypair.PublicKey) error {
+	sigData := msg.Sig
 	msg.Sig = nil
 
 	defer func() {
@@ -206,8 +206,8 @@ func (msg *blockCommitMsg) Type() MsgType {
 	return BlockCommitMessage
 }
 
-func (msg *blockCommitMsg) Verify(pub *crypto.PubKey) error {
-	sig := msg.Sig
+func (msg *blockCommitMsg) Verify(pub *keypair.PublicKey) error {
+	sigData := msg.Sig
 	msg.Sig = nil
 
 	defer func() {
@@ -243,8 +243,8 @@ func (msg *peerHandshakeMsg) Type() MsgType {
 	return PeerHandshakeMessage
 }
 
-func (msg *peerHandshakeMsg) Verify(pub *crypto.PubKey) error {
-	sig := msg.Sig
+func (msg *peerHandshakeMsg) Verify(pub *keypair.PublicKey) error {
+	sigData := msg.Sig
 	msg.Sig = nil
 
 	defer func() {
@@ -280,8 +280,8 @@ func (msg *peerHeartbeatMsg) Type() MsgType {
 	return PeerHeartbeatMessage
 }
 
-func (msg *peerHeartbeatMsg) Verify(pub *crypto.PubKey) error {
-	sig := msg.Sig
+func (msg *peerHeartbeatMsg) Verify(pub *keypair.PublicKey) error {
+	sigData := msg.Sig
 	msg.Sig = nil
 
 	defer func() {
@@ -314,8 +314,8 @@ func (msg *BlockInfoFetchMsg) Type() MsgType {
 	return BlockInfoFetchMessage
 }
 
-func (msg *BlockInfoFetchMsg) Verify(pub *crypto.PubKey) error {
-	sig := msg.Sig
+func (msg *BlockInfoFetchMsg) Verify(pub *keypair.PublicKey) error {
+	sigData := msg.Sig
 	msg.Sig = nil
 
 	defer func() {
@@ -354,8 +354,8 @@ func (msg *BlockInfoFetchRespMsg) Type() MsgType {
 	return BlockInfoFetchRespMessage
 }
 
-func (msg *BlockInfoFetchRespMsg) Verify(pub *crypto.PubKey) error {
-	sig := msg.Sig
+func (msg *BlockInfoFetchRespMsg) Verify(pub *keypair.PublicKey) error {
+	sigData := msg.Sig
 	msg.Sig = nil
 
 	defer func() {
@@ -389,8 +389,8 @@ func (msg *blockFetchMsg) Type() MsgType {
 	return BlockFetchMessage
 }
 
-func (msg *blockFetchMsg) Verify(pub *crypto.PubKey) error {
-	sig := msg.Sig
+func (msg *blockFetchMsg) Verify(pub *keypair.PublicKey) error {
+	sigData := msg.Sig
 	msg.Sig = nil
 
 	defer func() {
@@ -425,8 +425,8 @@ func (msg *BlockFetchRespMsg) Type() MsgType {
 	return BlockFetchRespMessage
 }
 
-func (msg *BlockFetchRespMsg) Verify(pub *crypto.PubKey) error {
-	sig := msg.Sig
+func (msg *BlockFetchRespMsg) Verify(pub *keypair.PublicKey) error {
+	sigData := msg.Sig
 	msg.Sig = nil
 
 	defer func() {
@@ -497,8 +497,8 @@ func (msg *proposalFetchMsg) Type() MsgType {
 	return ProposalFetchMessage
 }
 
-func (msg *proposalFetchMsg) Verify(pub *crypto.PubKey) error {
-	sig := msg.Sig
+func (msg *proposalFetchMsg) Verify(pub *keypair.PublicKey) error {
+	sigData := msg.Sig
 	msg.Sig = nil
 
 	defer func() {

@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"sync"
 
-	common "github.com/Ontology/common"
+	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 )
 

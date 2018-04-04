@@ -25,7 +25,7 @@ import (
 	"math"
 	"sync"
 
-	common "github.com/Ontology/common"
+	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 )
 
@@ -48,8 +48,8 @@ type CandidateInfo struct {
 
 	// server sealed block for this round
 	SealedBlock     *Block
-	SealedBlockHash common.Uint256  // updated when block sealed
-	Participants    []uint32 // updated when block sealed
+	SealedBlockHash common.Uint256 // updated when block sealed
+	Participants    []uint32       // updated when block sealed
 
 	// candidate msgs for this round
 	Proposals   []*blockProposalMsg
@@ -474,7 +474,7 @@ func (pool *BlockPool) getSealedBlock(blockNum uint64) (*Block, common.Uint256) 
 	// get from chainstore
 	blk, err := pool.chainStore.GetBlock(blockNum)
 	if err != nil {
-		log.Errorf("getSealedBlock err:",err)
+		log.Errorf("getSealedBlock err:", err)
 		return nil, common.Uint256{}
 	}
 	hash, _ := HashBlock(blk)
