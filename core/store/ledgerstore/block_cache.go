@@ -27,8 +27,8 @@ import (
 )
 
 const (
-	BLOCK_CAHE_SIZE        = 1000
-	TRANSACTION_CACHE_SIZE = 100000
+	BLOCK_CAHE_SIZE        = 10
+	TRANSACTION_CACHE_SIZE = 10000
 )
 
 type TransactionCacheaValue struct {
