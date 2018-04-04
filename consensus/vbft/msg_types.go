@@ -72,7 +72,7 @@ func (msg *blockProposalMsg) Verify(pub *crypto.PublicKey) error {
 	}()
 
 	if len(sigData) != 2 {
-		return fmt.Errorf("verify sigData error",)
+		return fmt.Errorf("verify sigData error")
 	}
 	blkHeader := &types.Header{
 		PrevBlockHash:    msg.Block.Block.Header.PrevBlockHash,

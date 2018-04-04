@@ -50,7 +50,7 @@ type Configuration struct {
 	BlockMsgDelay        uint32           `json:"block_msg_delay"`
 	HashMsgDelay         uint32           `json:"hash_msg_delay"`
 	PeerHandshakeTimeout uint32           `json:"peer_handshake_timeout"`
-	Peers            []*PeerStakeInfo     `json:"peers"`
+	Peers                []*PeerStakeInfo `json:"peers"`
 }
 
 func shuffle_hash(txid uint64, ts uint64, id string, idx int) (uint64, error) {
@@ -85,7 +85,6 @@ func genConsensusPayload(configFilename string) ([]byte, error) {
 		log.Errorf("Failed to unmarshal json file: %s", err)
 		os.Exit(1)
 	}
-
 	// pos config sanity checks
 	if int(config.K) > len(config.Peers) {
 		log.Error("peer count is less than K")
@@ -170,15 +169,15 @@ func genConsensusPayload(configFilename string) ([]byte, error) {
 	log.Debugf("shuffled pos table: %v", posTable)
 	// generate chain config, and save to ChainConfigFile
 	chainConfig := &ChainConfig{
-		Version:             Version,
-		View:                config.View,
-		N:                   config.N,
-		F:                   config.F,
-		BlockMsgDelay:       time.Duration(config.BlockMsgDelay) * time.Millisecond,
-		HashMsgDelay:        time.Duration(config.HashMsgDelay) * time.Millisecond,
-		PeerHandshakeTimeout:time.Duration(config.PeerHandshakeTimeout) * time.Second,
-		Peers:         chainPeers,
-		PosTable:      posTable,
+		Version:              Version,
+		View:                 config.View,
+		N:                    config.N,
+		F:                    config.F,
+		BlockMsgDelay:        time.Duration(config.BlockMsgDelay) * time.Millisecond,
+		HashMsgDelay:         time.Duration(config.HashMsgDelay) * time.Millisecond,
+		PeerHandshakeTimeout: time.Duration(config.PeerHandshakeTimeout) * time.Second,
+		Peers:                chainPeers,
+		PosTable:             posTable,
 	}
 
 	vbftBlockInfo := &VbftBlockInfo{
