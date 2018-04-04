@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 )
 
 type ConsensusRoundMsgs map[MsgType][]ConsensusMsg // indexed by MsgType (proposal, endorsement, ...)

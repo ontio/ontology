@@ -22,8 +22,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/consensus/vbft/config"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology-crypto/keypair"
 )
 

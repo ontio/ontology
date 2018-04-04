@@ -21,7 +21,7 @@ package vconfig
 import (
 	"testing"
 
-	"github.com/Ontology/common/log"
+	"github.com/ontio/ontology/common/log"
 )
 
 const (

@@ -23,10 +23,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/serialization"
-	vconfig "github.com/Ontology/consensus/vbft/config"
-	"github.com/Ontology/core/types"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/serialization"
+	vconfig "github.com/ontio/ontology/consensus/vbft/config"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/signature"
 )

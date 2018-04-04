@@ -24,9 +24,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/consensus/vbft/config"
-	"github.com/Ontology/crypto"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/consensus/vbft/config"
+	"github.com/ontio/ontology/core/signature"
+	"github.com/ontio/ontology-crypto/keypair"
 )
 
 func SignMsg(sk []byte, msg ConsensusMsg) ([]byte, error) {
