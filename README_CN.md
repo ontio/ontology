@@ -60,16 +60,20 @@ Ontology致力于创建一个组件化、可自由配置、跨链支持、高性
 # 部署及测试
 ## 获取ontology
 ### 从源码获取
-克隆ontology仓库到$GOPATH/src目录
+克隆ontology仓库到 **$GOPATH/src/github.com/ontio** 目录
 
 ```shell
 $ git clone https://github.com/ontio/ontology.git
+```
+或者
+```shell
+$ go get github.com/ontio/ontology
 ```
 
 用第三方包管理工具glide拉取依赖库
 
 ````shell
-$ cd ontology
+$ cd $GOPATH/src/github.com/ontio/ontology
 $ glide install
 ````
 
