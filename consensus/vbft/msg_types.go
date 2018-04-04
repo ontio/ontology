@@ -63,9 +63,60 @@ func (msg *blockProposalMsg) Type() MsgType {
 	return BlockProposalMessage
 }
 
-func (msg *blockProposalMsg) Verify(pub *crypto.PubKey) error {
+func (msg *blockProposalMsg) Verify(pub *crypto.PublicKey) error {
+	sigData := msg.Block.Block.Header.SigData
+	msg.Block.Block.Header.SigData = nil
 
-	// FIXME
+	defer func() {
+		msg.Block.Block.Header.SigData = sigData
+	}()
+
+	if len(sigData) != 2 {
+		return fmt.Errorf("verify sigData error",)
+	}
+	blkHeader := &types.Header{
+		PrevBlockHash:    msg.Block.Block.Header.PrevBlockHash,
+		TransactionsRoot: msg.Block.Block.Header.TransactionsRoot,
+		BlockRoot:        msg.Block.Block.Header.BlockRoot,
+		Timestamp:        msg.Block.Block.Header.Timestamp,
+		Height:           msg.Block.Block.Header.Height,
+		ConsensusData:    msg.Block.Block.Header.ConsensusData,
+		ConsensusPayload: msg.Block.Block.Header.ConsensusPayload,
+		SigData:          [][]byte{{}, {}},
+	}
+	blk := &Block{
+		Block: &types.Block{
+			Header: blkHeader,
+		},
+		Info: msg.Block.Info,
+	}
+	blk.Block.Hash()
+	msgdata := &blockProposalMsg{
+		Block: blk,
+	}
+
+	sigone, err := signature.Deserialize(sigData[1])
+	if err != nil {
+		return fmt.Errorf("failed to deserialize proposal msg sigone: %s", err)
+	}
+
+	if data, err := msgdata.Serialize(); err != nil {
+		return fmt.Errorf("failed to serialize proposal msg sigone: %s", err)
+	} else if !signature.Verify(*pub, data, sigone) {
+		return fmt.Errorf("failed to verify proposal msg sigone")
+	}
+
+	blk.Block.Transactions = msg.Block.Block.Transactions
+
+	sig, err := signature.Deserialize(sigData[0])
+	if err != nil {
+		return fmt.Errorf("failed to deserialize proposal msg sig: %s", err)
+	}
+	if data, err := msgdata.Serialize(); err != nil {
+		return fmt.Errorf("failed to serialize proposal msg: %s", err)
+	} else if !signature.Verify(*pub, data, sig) {
+		return fmt.Errorf("failed to verify proposal msg sig")
+	}
 	return nil
 }
 
