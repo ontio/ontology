@@ -63,7 +63,14 @@ func NewInteropService() *InteropService {
 	service.Register("malloc", malloc)
 	service.Register("arrayLen", arrayLen)
 	service.Register("memcpy", memcpy)
+	service.Register("memset", memset)
 	service.Register("read_message", readMessage)
+
+	//todo add basic apis
+	service.Register("Atoi", strToInt)
+	service.Register("Atoi64", strToInt64)
+	service.Register("Itoa", intToString)
+	service.Register("I64toa", int64ToString)
 
 	service.Register("ReadInt32Param", readInt32Param)
 	service.Register("ReadInt64Param", readInt64Param)
@@ -223,6 +230,32 @@ func memcpy(engine *ExecutionEngine) (bool, error) {
 	}
 
 	copy(engine.vm.memory.Memory[dest:dest+length], engine.vm.memory.Memory[src:src+length])
+
+	//1. recover the vm context
+	//2. if the call returns value,push the result to the stack
+	engine.vm.ctx = envCall.envPreCtx
+	if envCall.envReturns {
+		engine.vm.pushUint64(uint64(1))
+	}
+
+	return true, nil //this return will be dropped in wasm
+}
+
+func memset(engine *ExecutionEngine) (bool, error) {
+	envCall := engine.vm.envCall
+	params := envCall.envParams
+	if len(params) != 3 {
+		return false, errors.New("parameter count error while call memcpy")
+	}
+	dest := int(params[0])
+	char := int(params[1])
+	cnt := int(params[2])
+
+	tmp := make([]byte, cnt)
+	for i := 0; i < cnt; i++ {
+		tmp[i] = byte(char)
+	}
+	copy(engine.vm.Memory()[dest:dest+cnt], tmp)
 
 	//1. recover the vm context
 	//2. if the call returns value,push the result to the stack
