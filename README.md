@@ -110,7 +110,7 @@ public key:    1202021401156f187ec23ce631a489c3fa17f292171009c6c3162ef642406d3d0
 hex address:  018f0dcf09ec2f0040e6e8d7e54635dba40f7d63
 base58 address:       TA7T3p6ikRG5s2pAaehUH2XvRCCzvsFmwE
 
-$ ./nodectl wallet --list account -b
+$ ./nodectl wallet --list -b
 ont: 248965536
 
 * with -b cmd will show the ont amount this account have.
