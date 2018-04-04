@@ -26,20 +26,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Ontology/account"
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
-	actorTypes "github.com/Ontology/consensus/actor"
-	vconfig "github.com/Ontology/consensus/vbft/config"
-	"github.com/Ontology/core/payload"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/crypto"
-	"github.com/Ontology/eventbus/actor"
-	"github.com/Ontology/events/message"
-	p2pmsg "github.com/Ontology/net/message"
-	"reflect"
-	"github.com/Ontology/events"
-	"github.com/Ontology/validator/increment"
+	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	actorTypes "github.com/ontio/ontology/consensus/actor"
+	vconfig "github.com/ontio/ontology/consensus/vbft/config"
+	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/events"
+	"github.com/ontio/ontology/events/message"
+	p2pmsg "github.com/ontio/ontology/net/message"
+	"github.com/ontio/ontology/validator/increment"
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology-eventbus/actor"
 )
 
 type BftActionType uint8
@@ -375,12 +374,8 @@ func (self *Server) start() error {
 func (self *Server) stop() error {
 
 	// TODO
-<<<<<<< HEAD
-	self.sub.Unsubscribe(message.TopicSaveBlockComplete)
-=======
 	self.incrValidator.Clean()
 	self.sub.Unsubscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
->>>>>>> 44663ad... add tx validator
 	return nil
 }
 

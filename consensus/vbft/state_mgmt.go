@@ -21,7 +21,7 @@ package vbft
 import (
 	"time"
 
-	"github.com/Ontology/common/log"
+	"github.com/ontio/ontology/common/log"
 )
 
 const (

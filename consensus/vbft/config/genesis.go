@@ -29,8 +29,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
 )
 
 type PeerStakeInfo struct {

@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/Ontology/common/log"
-	vconfig "github.com/Ontology/consensus/vbft/config"
-	p2pmsg "github.com/Ontology/net/message"
+	"github.com/ontio/ontology/common/log"
+	vconfig "github.com/ontio/ontology/consensus/vbft/config"
+	p2pmsg "github.com/ontio/ontology/net/message"
 )
 
 func (self *Server) GetCurrentBlockNo() uint64 {

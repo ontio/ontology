@@ -21,10 +21,10 @@ package vbft
 import (
 	"fmt"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/consensus/actor"
-	"github.com/Ontology/core/ledger"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/consensus/actor"
+	"github.com/ontio/ontology/core/ledger"
 )
 
 type ChainStore struct {

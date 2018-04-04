@@ -25,7 +25,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/Ontology/common/serialization"
+	"github.com/ontio/ontology/common/serialization"
 )
 
 var (
