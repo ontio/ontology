@@ -4,16 +4,13 @@ import (
 	types "github.com/Ontology/p2pserver/common"
 	P2Pnet "github.com/Ontology/p2pserver/net"
 	"github.com/Ontology/p2pserver/peer"
-	"net"
 )
 
+//P2P represent the net interface of p2p package
 type P2P interface {
+	Start()
 	Halt()
-	InitNonTLSListen() (net.Listener, net.Listener, error)
-	InitTLSListen() (net.Listener, error)
-	NonTLSDial(addr string) (net.Conn, error)
-	TLSDial(addr string) (net.Conn, error)
-	Connectseeds()
+	Connect(addr string)
 	GetVersion() uint32
 	GetPort() uint16
 	GetConsensusPort() uint16
@@ -25,10 +22,10 @@ type P2P interface {
 	GetConnectionCnt() uint32
 	IsPeerEstablished(uint64) bool
 	GetMsgCh() chan types.MsgPayload
-	Xmit(msg interface{}) error
 	Tx(id uint64, data []byte)
 }
 
+//NewNetServer return the net object in p2p
 func NewNetServer(p *peer.Peer) P2P {
 	p.AttachEvent(P2Pnet.DisconnectNotify)
 	n := &P2Pnet.NetServer{

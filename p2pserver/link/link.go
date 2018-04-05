@@ -232,7 +232,7 @@ func (link *Link) CloseConsensusConn() {
 	link.closeConn(true)
 }
 
-func (link *Link) initConnection() {
+func (link *Link) InitConnection() {
 	isTls := Parameters.IsTLS
 	var listener, listenerConsensus net.Listener
 	var err error

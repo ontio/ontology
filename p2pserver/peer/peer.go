@@ -78,7 +78,6 @@ func NewPeer(pubKey *crypto.PubKey) (*Peer, error) {
 	p.publicKey = pubKey
 	p.eventQueue.init()
 	p.peerDisconnectSubscriber = p.eventQueue.GetEvent("disconnect").Subscribe(events.EventNodeDisconnect, p.notifyFunc)
-
 	return p, nil
 }
 
@@ -204,4 +203,8 @@ func (p *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
 
 func (p *Peer) AddNbrNode(remotePeer *Peer) {
 	p.Np.AddNbrNode(remotePeer)
+}
+
+func (p *Peer) StartListen() {
+	p.LinkConn.InitConnection()
 }

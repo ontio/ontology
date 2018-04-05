@@ -39,8 +39,7 @@ func (this *P2PServer) GetConnectionCnt() uint32 {
 }
 func (this *P2PServer) Start(isSync bool) error {
 	if this != nil {
-		this.network.Connectseeds()
-		//TODO: setup listen
+		this.network.Start()
 	}
 	return nil
 }
