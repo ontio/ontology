@@ -113,7 +113,7 @@ func unpackNodeBuf(link *Link, buf []byte, isConsensusChannel bool) {
 	}
 
 	if rxBuf.len == 0 {
-		length := MSGHDRLEN - len(rxBuf.p)
+		length := MSG_HDR_LEN - len(rxBuf.p)
 		if length > len(buf) {
 			length = len(buf)
 			rxBuf.p = append(rxBuf.p, buf[0:length]...)
@@ -168,10 +168,10 @@ func unpackNodeBuf(link *Link, buf []byte, isConsensusChannel bool) {
 
 func (link *Link) rx(isConsensusChannel bool) {
 	conn := link.getconn(isConsensusChannel)
-	buf := make([]byte, MAXBUFLEN)
+	buf := make([]byte, MAX_BUF_LEN)
 	for {
-		len, err := conn.Read(buf[0:(MAXBUFLEN - 1)])
-		buf[MAXBUFLEN-1] = 0 //Prevent overflow
+		len, err := conn.Read(buf[0:(MAX_BUF_LEN - 1)])
+		buf[MAX_BUF_LEN-1] = 0 //Prevent overflow
 		switch err {
 		case nil:
 			if !isConsensusChannel {
@@ -435,7 +435,7 @@ func (link *Link) Connect(nodeAddr string, isConsensusChannel bool) error {
 
 func NonTLSDial(nodeAddr string) (net.Conn, error) {
 	log.Debug()
-	conn, err := net.DialTimeout("tcp", nodeAddr, time.Second*DIALTIMEOUT)
+	conn, err := net.DialTimeout("tcp", nodeAddr, time.Second*DIAL_TIMEOUT)
 	if err != nil {
 		return nil, err
 	}
@@ -466,7 +466,7 @@ func TLSDial(nodeAddr string) (net.Conn, error) {
 	}
 
 	var dialer net.Dialer
-	dialer.Timeout = time.Second * DIALTIMEOUT
+	dialer.Timeout = time.Second * DIAL_TIMEOUT
 	conn, err := tls.DialWithDialer(&dialer, "tcp", nodeAddr, conf)
 	if err != nil {
 		return nil, err

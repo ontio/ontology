@@ -51,7 +51,7 @@ func VersionHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	copy(ver.Hdr.CMD[0:len(msgCommon.VERSION_TYPE)], msgCommon.VERSION_TYPE)
 
 	ver.Deserialization(data.Payload[:length])
-	ver.Verify(data.Payload[msgCommon.MSGHDRLEN:length])
+	ver.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
 
 	localPeer := p2p.Self
 	remotePeer := p2p.Self.Np.GetPeer(data.Id)

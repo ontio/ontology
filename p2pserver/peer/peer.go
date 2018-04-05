@@ -55,11 +55,11 @@ func NewPeer(pubKey *crypto.PubKey) (*Peer, error) {
 	runtime.SetFinalizer(&p, rmPeer)
 	go p.backend()
 
-	p.version = types.PROTOCOLVERSION
-	if config.Parameters.NodeType == types.SERVICENODENAME {
-		p.services = uint64(types.SERVICENODE)
-	} else if config.Parameters.NodeType == types.VERIFYNODENAME {
-		p.services = uint64(types.VERIFYNODE)
+	p.version = types.PROTOCOL_VERSION
+	if config.Parameters.NodeType == types.SERVICE_NODE_NAME {
+		p.services = uint64(types.SERVICE_NODE)
+	} else if config.Parameters.NodeType == types.VERIFY_NODE_NAME {
+		p.services = uint64(types.VERIFY_NODE)
 	}
 	p.LinkConn.SetPort(uint16(config.Parameters.NodePort))
 	p.relay = true

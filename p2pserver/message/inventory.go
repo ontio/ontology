@@ -20,8 +20,8 @@ type BlocksReq struct {
 	msgHdr
 	P struct {
 		HeaderHashCount uint8
-		HashStart       [HASHLEN]byte
-		HashStop        [HASHLEN]byte
+		HashStart       [HASH_LEN]byte
+		HashStop        [HASH_LEN]byte
 	}
 }
 
@@ -83,7 +83,7 @@ func (msg *Inv) Deserialization(p []byte) error {
 		return err
 	}
 
-	buf := bytes.NewBuffer(p[MSGHDRLEN:])
+	buf := bytes.NewBuffer(p[MSG_HDR_LEN:])
 	invType, err := serialization.ReadUint8(buf)
 	if err != nil {
 		return err
@@ -94,7 +94,7 @@ func (msg *Inv) Deserialization(p []byte) error {
 		return err
 	}
 
-	msg.P.Blk = make([]byte, msg.P.Cnt*HASHLEN)
+	msg.P.Blk = make([]byte, msg.P.Cnt*HASH_LEN)
 	err = binary.Read(buf, binary.LittleEndian, &(msg.P.Blk))
 
 	return err

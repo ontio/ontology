@@ -138,7 +138,7 @@ func main() {
 	// noder.SyncNodeHeight()
 	// noder.WaitForPeersStart()
 	// noder.WaitForSyncBlkFinish()
-	if nettypes.SERVICENODENAME != config.Parameters.NodeType {
+	if nettypes.SERVICE_NODE_NAME != config.Parameters.NodeType {
 		log.Info("5. Start Consensus Services")
 		pool := txPoolServer.GetPID(tc.TxPoolActor)
 		consensusService, _ := consensus.NewConsensusService(acct, pool, nil, p2pPid)

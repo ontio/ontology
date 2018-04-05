@@ -1,42 +1,46 @@
 package common
 
-//node info const
+//peer capability
 const (
-	VERIFYNODE      = 1
-	SERVICENODE     = 2
-	VERIFYNODENAME  = "verify"
-	SERVICENODENAME = "service"
-	PROTOCOLVERSION = 0
+	VERIFY_NODE  = 1
+	SERVICE_NODE = 2
+)
+
+//config const
+const (
+	VERIFY_NODE_NAME  = "verify"
+	SERVICE_NODE_NAME = "service"
 )
 
 //msg const
 const (
-	MSGCMDLEN         = 12
-	CMDOFFSET         = 4
-	CHECKSUMLEN       = 4
-	HASHLEN           = 32 // hash length in byte
-	MSGHDRLEN         = 24
-	NETMAGIC          = 0x74746e41
-	DIVHASHLEN        = 5
-	MAXREQBLKONCE     = 16
-	TIMESOFUPDATETIME = 2
+	MSG_CMD_LEN           = 12
+	CMD_OFFSET            = 4
+	CHECKSUM_LEN          = 4
+	HASH_LEN              = 32 // hash length in byte
+	MSG_HDR_LEN           = 24
+	MAX_BLK_HDR_CNT       = 500
+	MAX_INV_HDR_CNT       = 500
+	NETMAGIC              = 0x74746e41
+	DIV_HASH_LEN          = 5
+	MAX_REQ_BLK_ONCE      = 16
+	UPDATE_RATE_PER_BLOCK = 2
 )
 
 //info update const
 const (
-	HELLOTIMEOUT     = 3 // Seconds
-	MAXHELLORETYR    = 3
-	MAXBUFLEN        = 1024 * 16 // Fixme The maximum buffer to receive message
-	MAXCHANBUF       = 512
-	MAXBLKHDRCNT     = 500
-	MAXINVHDRCNT     = 500
-	PERIODUPDATETIME = 3 // Time to update and sync information with other nodes
-	HEARTBEAT        = 2
-	KEEPALIVETIMEOUT = 3
-	DIALTIMEOUT      = 6
-	CONNMONITOR      = 6
-	CONNMAXBACK      = 4000
-	MAXRETRYCOUNT    = 3
+	PROTOCOL_VERSION   = 0
+	HELLO_TIMEOUT      = 3 // Seconds
+	MAX_HELLO_RETYR    = 3
+	MAX_BUF_LEN        = 1024 * 16 // Fixme The maximum buffer to receive message
+	MAX_CHAN_BUF       = 512
+	PERIOD_UPDATE_TIME = 3 // Time to update and sync information with other nodes
+	HEARTBEAT          = 2
+	KEEPALIVE_TIMEOUT  = 3
+	DIAL_TIMEOUT       = 6
+	CONN_MONITOR       = 6
+	CONN_MAX_BACK      = 4000
+	MAX_RETRY_COUNT    = 3
 )
 
 // The peer state
@@ -48,8 +52,6 @@ const (
 	ESTABLISH  = 4
 	INACTIVITY = 5
 )
-
-var ReceiveDuplicateBlockCnt uint64 //an index to detecting networking status
 
 type PeerAddr struct {
 	Time          int64
@@ -66,6 +68,7 @@ type MsgPayload struct {
 	Len     int
 }
 
+//const msg id and type
 const (
 	CONNECT      = 0
 	DISCONNECT   = 1

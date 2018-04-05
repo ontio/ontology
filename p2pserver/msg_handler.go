@@ -23,8 +23,8 @@ func AddrReqHandle(id uint64, addrReq msg.AddrReq, p2p P2PServer) error {
 }
 
 func HeadersReqHandle(id uint64, headReq msg.HeadersReq, p2p P2PServer) error {
-	var startHash [msgCommon.HASHLEN]byte
-	var stopHash [msgCommon.HASHLEN]byte
+	var startHash [msgCommon.HASH_LEN]byte
+	var stopHash [msgCommon.HASH_LEN]byte
 	startHash = headReq.P.HashStart
 	stopHash = headReq.P.HashEnd
 	headers, cnt, err := GetHeadersFromHash(startHash, stopHash)

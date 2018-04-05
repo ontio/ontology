@@ -502,9 +502,9 @@ func clientIsDefaultBookKeeper(publicKey string) bool {
 
 func nodeType(typeName string) int {
 	if "service" == config.Parameters.NodeType {
-		return net_type.SERVICENODE
+		return net_type.SERVICE_NODE
 	} else {
-		return net_type.VERIFYNODE
+		return net_type.VERIFY_NODE
 	}
 }
 

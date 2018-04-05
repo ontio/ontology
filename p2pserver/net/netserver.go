@@ -164,14 +164,14 @@ func (n *NetServer) retryInactivePeer() {
 
 //keepConnection
 func (n *NetServer) keepConnection() {
-	t := time.NewTimer(time.Second * types.CONNMONITOR)
+	t := time.NewTimer(time.Second * types.CONN_MONITOR)
 	for {
 		select {
 		case <-t.C:
 			n.connectSeeds()
 			n.retryInactivePeer()
 			t.Stop()
-			t.Reset(time.Second * types.CONNMONITOR)
+			t.Reset(time.Second * types.CONN_MONITOR)
 		}
 	}
 }

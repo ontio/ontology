@@ -16,8 +16,8 @@ type HeadersReq struct {
 	hdr msgHdr
 	P   struct {
 		Len       uint8
-		HashStart [HASHLEN]byte
-		HashEnd   [HASHLEN]byte
+		HashStart [HASH_LEN]byte
+		HashEnd   [HASH_LEN]byte
 	}
 }
 

@@ -21,9 +21,9 @@ type Message interface {
 type msgHdr struct {
 	Magic uint32
 	//ID	 uint64
-	CMD      [common.MSGCMDLEN]byte // The message type
+	CMD      [common.MSG_CMD_LEN]byte // The message type
 	Length   uint32
-	Checksum [common.CHECKSUMLEN]byte
+	Checksum [common.CHECKSUM_LEN]byte
 }
 
 // The message body and header
@@ -38,9 +38,9 @@ type varStr struct {
 }
 
 func MsgType(buf []byte) (string, error) {
-	cmd := buf[common.CMDOFFSET : common.CMDOFFSET+common.MSGCMDLEN]
+	cmd := buf[common.CMD_OFFSET : common.CMD_OFFSET+common.MSG_CMD_LEN]
 	n := bytes.IndexByte(cmd, 0)
-	if n < 0 || n >= common.MSGCMDLEN {
+	if n < 0 || n >= common.MSG_CMD_LEN {
 		return "", errors.New("Unexpected length of CMD command")
 	}
 	s := string(cmd[:n])
@@ -69,7 +69,7 @@ func PayloadLen(buf []byte) int {
 
 func LocateMsgHdr(buf []byte) []byte {
 	var h msgHdr
-	for i := 0; i <= len(buf)-common.MSGHDRLEN; i++ {
+	for i := 0; i <= len(buf)-common.MSG_HDR_LEN; i++ {
 		if magicVerify(binary.LittleEndian.Uint32(buf[i:])) {
 			buf = append(buf[:0], buf[i:]...)
 			h.Deserialization(buf)
@@ -84,7 +84,7 @@ func checkSum(p []byte) []byte {
 	s := sha256.Sum256(t[:])
 
 	// Currently we only need the front 4 bytes as checksum
-	return s[:common.CHECKSUMLEN]
+	return s[:common.CHECKSUM_LEN]
 }
 
 func reverse(input []byte) []byte {
@@ -97,7 +97,7 @@ func reverse(input []byte) []byte {
 func (hdr *msgHdr) init(cmd string, checksum []byte, length uint32) {
 	hdr.Magic = common.NETMAGIC
 	copy(hdr.CMD[0:uint32(len(cmd))], cmd)
-	copy(hdr.Checksum[:], checksum[:common.CHECKSUMLEN])
+	copy(hdr.Checksum[:], checksum[:common.CHECKSUM_LEN])
 	hdr.Length = length
 	//hdr.ID = id
 }
@@ -123,7 +123,7 @@ func (hdr msgHdr) Verify(buf []byte) error {
 
 func (msg *msgHdr) Deserialization(p []byte) error {
 
-	buf := bytes.NewBuffer(p[0:common.MSGHDRLEN])
+	buf := bytes.NewBuffer(p[0:common.MSG_HDR_LEN])
 	err := binary.Read(buf, binary.LittleEndian, msg)
 	return err
 }
