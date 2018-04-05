@@ -20,7 +20,8 @@ import (
 )
 
 type Peer struct {
-	LinkConn                 *conn.Link
+	Conn                     *conn.Link
+	ConsensusConn            *conn.Link
 	id                       uint64
 	state                    uint32
 	version                  uint32
@@ -61,7 +62,12 @@ func NewPeer(pubKey *crypto.PubKey) (*Peer, error) {
 	} else if config.Parameters.NodeType == types.VERIFY_NODE_NAME {
 		p.services = uint64(types.VERIFY_NODE)
 	}
-	p.LinkConn.SetPort(uint16(config.Parameters.NodePort))
+	p.Conn.SetPort(config.Parameters.NodePort)
+	if config.Parameters.NodeConsensusPort != 0 &&
+		config.Parameters.NodeConsensusPort != config.Parameters.NodePort {
+		p.ConsensusConn.SetPort(config.Parameters.NodeConsensusPort)
+	}
+
 	p.relay = true
 
 	key, err := pubKey.EncodePoint(true)
@@ -112,22 +118,19 @@ func (p *Peer) GetServices() uint64 {
 	return p.services
 }
 func (p *Peer) GetConnectionState() uint32 {
-	return 0
+	return p.state
 }
 func (p *Peer) GetTime() int64 {
 	return p.lastContact.UnixNano()
 }
 func (p *Peer) GetPort() uint16 {
-	return p.LinkConn.GetPort()
+	return p.Conn.GetPort()
 }
 func (p *Peer) GetConsensusPort() uint16 {
-	return p.LinkConn.GetConsensusPort()
-}
-func (p *Peer) Send(buf []byte) {
-	p.LinkConn.Tx(buf)
+	return p.ConsensusConn.GetPort()
 }
 func (p *Peer) GetAddr() string {
-	return p.LinkConn.GetAddr()
+	return p.Conn.GetAddr()
 }
 func (p *Peer) GetAddr16() ([16]byte, error) {
 	var result [16]byte
@@ -142,11 +145,11 @@ func (p *Peer) GetAddr16() ([16]byte, error) {
 }
 func (p *Peer) Close() {
 	p.SetState(types.INACTIVITY)
-	conn := p.LinkConn.GetConn()
+	conn := p.Conn.GetConn()
 	conn.Close()
 }
 func (p *Peer) AttachChan(msgchan chan types.MsgPayload) {
-	p.LinkConn.SetChan(msgchan)
+	p.Conn.SetChan(msgchan)
 }
 
 func (p *Peer) AttachEvent(fn func(v interface{})) {
@@ -158,11 +161,18 @@ func (p *Peer) DelNbrNode(id uint64) (*Peer, bool) {
 }
 
 func (p *Peer) CloseConn() {
-	p.LinkConn.CloseConn()
+	p.Conn.CloseConn()
 }
 
-func (p *Peer) Tx(buf []byte) {
-	p.LinkConn.Tx(buf)
+func (p *Peer) CloseConsensusConn() {
+	p.ConsensusConn.CloseConn()
+}
+
+func (p *Peer) Send(buf []byte, isConsensus bool) {
+	if isConsensus && p.ConsensusConn.Valid() {
+		p.ConsensusConn.Tx(buf)
+	}
+	p.Conn.Tx(buf)
 }
 
 func (p *Peer) SetHttpInfoState(httpInfo bool) {
@@ -188,11 +198,11 @@ func (p *Peer) SetBookkeeperAddr(pk *crypto.PubKey) {
 func (p *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
 	port uint16, nonce uint64, relay uint8, height uint64) {
 
-	p.LinkConn.UpdateRXTime(t)
+	p.Conn.UpdateRXTime(t)
 	p.id = nonce
 	p.version = version
 	p.services = services
-	p.LinkConn.SetPort(port)
+	p.Conn.SetPort(port)
 	if relay == 0 {
 		p.relay = false
 	} else {
@@ -206,5 +216,9 @@ func (p *Peer) AddNbrNode(remotePeer *Peer) {
 }
 
 func (p *Peer) StartListen() {
-	p.LinkConn.InitConnection()
+	p.Conn.InitConnection()
+	if p.ConsensusConn.GetPort() != 0 {
+		p.ConsensusConn.InitConnection()
+	}
+
 }

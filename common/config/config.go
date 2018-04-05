@@ -31,8 +31,8 @@ type Configuration struct {
 	HttpWsPort        int              `json:"HttpWsPort"`
 	HttpJsonPort      int              `json:"HttpJsonPort"`
 	HttpLocalPort     int              `json:"HttpLocalPort"`
-	NodePort          int              `json:"NodePort"`
-	NodeConsensusPort int              `json:"NodeConsensusPort"`
+	NodePort          uint16           `json:"NodePort"`
+	NodeConsensusPort uint16           `json:"NodeConsensusPort"`
 	NodeType          string           `json:"NodeType"`
 	WebSocketPort     int              `json:"WebSocketPort"`
 	PrintLevel        int              `json:"PrintLevel"`

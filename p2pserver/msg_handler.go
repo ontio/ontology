@@ -18,7 +18,7 @@ func AddrReqHandle(id uint64, addrReq msg.AddrReq, p2p P2PServer) error {
 	if err != nil {
 		return err
 	}
-	go p2p.Send(id, buf)
+	go p2p.Send(id, buf, false)
 	return nil
 }
 
@@ -35,7 +35,7 @@ func HeadersReqHandle(id uint64, headReq msg.HeadersReq, p2p P2PServer) error {
 	if err != nil {
 		return err
 	}
-	go p2p.Send(id, buf)
+	go p2p.Send(id, buf, false)
 	return nil
 }
 
@@ -55,7 +55,7 @@ func BlocksReqHandle(id uint64, blocksReq msg.BlocksReq, p2p P2PServer) error {
 	if err != nil {
 		return err
 	}
-	go p2p.Send(id, buf)
+	go p2p.Send(id, buf, false)
 	return nil
 }
 
@@ -67,7 +67,7 @@ func PingHandle(id uint64, ping msg.Ping, p2p P2PServer) error {
 	if err != nil {
 		log.Error("failed build a new pong message")
 	} else {
-		go p2p.Send(id, buf)
+		go p2p.Send(id, buf, false)
 	}
 	return err
 }

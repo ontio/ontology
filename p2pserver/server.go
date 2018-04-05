@@ -22,7 +22,7 @@ type P2P interface {
 	GetConnectionCnt() uint32
 	IsPeerEstablished(uint64) bool
 	GetMsgCh() chan types.MsgPayload
-	Tx(id uint64, data []byte)
+	Send(id uint64, data []byte, isConsensus bool)
 }
 
 //NewNetServer return the net object in p2p

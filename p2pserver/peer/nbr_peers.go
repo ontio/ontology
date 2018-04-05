@@ -30,12 +30,12 @@ type NbrPeers struct {
 	List map[uint64]*Peer
 }
 
-func (nm *NbrPeers) Broadcast(buf []byte) {
+func (nm *NbrPeers) Broadcast(buf []byte, isConsensus bool) {
 	nm.RLock()
 	defer nm.RUnlock()
 	for _, node := range nm.List {
 		if node.state == types.ESTABLISH && node.GetRelay() == true {
-			node.Send(buf)
+			node.Send(buf, isConsensus)
 		}
 	}
 }

@@ -62,9 +62,9 @@ func (this *P2PServer) GetNeighborAddrs() ([]types.PeerAddr, uint64) {
 func (this *P2PServer) Xmit(msg interface{}) error {
 	return nil
 }
-func (this *P2PServer) Send(id uint64, buf []byte) {
+func (this *P2PServer) Send(id uint64, buf []byte, isConsensus bool) {
 	if this.network.IsPeerEstablished(id) {
-		this.network.Tx(id, buf)
+		this.network.Send(id, buf, isConsensus)
 	}
 	log.Errorf("P2PServer send error: peer %x is not established.", id)
 }

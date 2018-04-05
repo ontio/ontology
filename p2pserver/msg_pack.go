@@ -98,7 +98,7 @@ func VersionHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		remotePeer.SetState(msgCommon.HANDSHAKED)
 		buf, _ = msg.NewVerack(false)
 	}
-	remotePeer.Tx(buf)
+	remotePeer.Send(buf, false)
 
 	return nil
 }

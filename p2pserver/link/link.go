@@ -53,6 +53,10 @@ type Link struct {
 	ConnectingNodes
 }
 
+func (link *Link) Valid() bool {
+	return link.conn != nil
+}
+
 func (link *Link) SetChan(msgchan chan MsgPayload) {
 	link.recvChan = msgchan
 }
@@ -277,12 +281,12 @@ func (link *Link) waitForConnect(listener net.Listener, isConsensusChannel bool)
 
 func initNonTlsListen() (net.Listener, net.Listener, error) {
 	log.Debug()
-	listener, err := net.Listen("tcp", ":"+strconv.Itoa(Parameters.NodePort))
+	listener, err := net.Listen("tcp", ":"+strconv.Itoa(int(Parameters.NodePort)))
 	if err != nil {
 		log.Error("Error listening\n", err.Error())
 		return nil, nil, err
 	}
-	listenerConsensus, err := net.Listen("tcp", ":"+strconv.Itoa(Parameters.NodeConsensusPort))
+	listenerConsensus, err := net.Listen("tcp", ":"+strconv.Itoa(int(Parameters.NodeConsensusPort)))
 	if err != nil {
 		log.Error("Error listening\n", err.Error())
 		return nil, nil, err
@@ -320,8 +324,8 @@ func initTlsListen() (net.Listener, error) {
 		ClientCAs:    pool,
 	}
 
-	log.Info("TLS listen port is ", strconv.Itoa(Parameters.NodePort))
-	listener, err := tls.Listen("tcp", ":"+strconv.Itoa(Parameters.NodePort), tlsConfig)
+	log.Info("TLS listen port is ", strconv.Itoa(int(Parameters.NodePort)))
+	listener, err := tls.Listen("tcp", ":"+strconv.Itoa(int(Parameters.NodePort)), tlsConfig)
 	if err != nil {
 		log.Error(err)
 		return nil, err

@@ -75,11 +75,11 @@ func (n *NetServer) GetMsgCh() chan types.MsgPayload {
 	return n.ReceiveChan
 }
 
-//Tx send data buf to specil peer
-func (n *NetServer) Tx(id uint64, data []byte) {
+//Tx send data buf to peer
+func (n *NetServer) Send(id uint64, data []byte, isConsensus bool) {
 	node, ok := n.Self.Np.List[id]
 	if ok == true {
-		node.Send(data)
+		node.Send(data, isConsensus)
 	}
 }
 
