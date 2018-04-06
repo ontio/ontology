@@ -191,10 +191,12 @@ func (p *Peer) SetHttpInfoPort(port uint16) {
 	p.httpInfoPort = port
 }
 
+//SetBookkeeperAddr set peer`s publickey
 func (p *Peer) SetBookkeeperAddr(pk *crypto.PubKey) {
 	p.publicKey = pk
 }
 
+//UpdateInfo update peer`s information
 func (p *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
 	port uint16, nonce uint64, relay uint8, height uint64) {
 
@@ -211,14 +213,32 @@ func (p *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
 	p.height = uint64(height)
 }
 
+//AddNbrNode add peer to nbr peer list
 func (p *Peer) AddNbrNode(remotePeer *Peer) {
 	p.Np.AddNbrNode(remotePeer)
 }
 
+//StartListen init link layer for listenning
 func (p *Peer) StartListen() {
 	p.Conn.InitConnection()
 	if p.ConsensusConn.GetPort() != 0 {
 		p.ConsensusConn.InitConnection()
 	}
 
+}
+
+//Dump print a peer`s information
+func (p *Peer) Dump() {
+	log.Info("Peer info:")
+	log.Info("\t state = ", p.state)
+	log.Info(fmt.Sprintf("\t id = 0x%x", p.id))
+	log.Info("\t addr = ", p.Conn.GetAddr())
+	log.Info("\t cap = ", p.cap)
+	log.Info("\t version = ", p.version)
+	log.Info("\t services = ", p.services)
+	log.Info("\t port = ", p.Conn.GetPort())
+	log.Info("\t consensus port = ", p.ConsensusConn.GetPort())
+	log.Info("\t relay = ", p.relay)
+	log.Info("\t height = ", p.height)
+	log.Info("\t conn cnt = ", p.Np.GetConnectionCnt())
 }

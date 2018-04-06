@@ -134,10 +134,10 @@ func main() {
 	hserver.SetTxnPoolPid(txPoolServer.GetPID(tc.TxPoolActor))
 	hserver.SetTxPid(txPoolServer.GetPID(tc.TxActor))
 	go restful.StartServer()
-	//TODO how to info consencus module
-	// noder.SyncNodeHeight()
-	// noder.WaitForPeersStart()
-	// noder.WaitForSyncBlkFinish()
+
+	p2p.WaitForPeersStart()
+	p2p.WaitForSyncBlkFinish()
+
 	if nettypes.SERVICE_NODE_NAME != config.Parameters.NodeType {
 		log.Info("5. Start Consensus Services")
 		pool := txPoolServer.GetPID(tc.TxPoolActor)

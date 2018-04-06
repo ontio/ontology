@@ -12,7 +12,7 @@ const (
 	SERVICE_NODE_NAME = "service"
 )
 
-//msg const
+//msg cmd const
 const (
 	MSG_CMD_LEN           = 12
 	CMD_OFFSET            = 4
@@ -53,6 +53,7 @@ const (
 	INACTIVITY = 5
 )
 
+//PeerAddr represent peer`s net information
 type PeerAddr struct {
 	Time          int64
 	Services      uint64
@@ -62,13 +63,14 @@ type PeerAddr struct {
 	ID            uint64 // Unique ID
 }
 
+//MsgPayload in link channel
 type MsgPayload struct {
 	Id      uint64
 	Payload []byte
 	Len     int
 }
 
-//const msg id and type
+//const channel msg id and type
 const (
 	CONNECT      = 0
 	DISCONNECT   = 1
