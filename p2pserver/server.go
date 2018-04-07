@@ -20,9 +20,9 @@ type P2P interface {
 	GetServices() uint64
 	GetNeighborAddrs() ([]types.PeerAddr, uint64)
 	GetConnectionCnt() uint32
-	IsPeerEstablished(uint64) bool
+	IsPeerEstablished(p *peer.Peer) bool
 	GetMsgCh() chan types.MsgPayload
-	Send(id uint64, data []byte, isConsensus bool)
+	Send(p *peer.Peer, data []byte, isConsensus bool) error
 }
 
 //NewNetServer return the net object in p2p

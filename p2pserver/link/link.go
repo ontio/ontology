@@ -478,15 +478,15 @@ func TLSDial(nodeAddr string) (net.Conn, error) {
 	return conn, nil
 }
 
-func (link *Link) Tx(buf []byte) {
-	link.tx(buf, false)
+func (link *Link) Tx(buf []byte) error {
+	return link.tx(buf, false)
 }
 
-func (link *Link) ConsensusTx(buf []byte) {
-	link.tx(buf, true)
+func (link *Link) ConsensusTx(buf []byte) error {
+	return link.tx(buf, true)
 }
 
-func (link *Link) tx(buf []byte, isConsensusChannel bool) {
+func (link *Link) tx(buf []byte, isConsensusChannel bool) error {
 	log.Debugf("TX buf length: %d\n%x", len(buf), buf)
 
 	//TODO need get peer layer function
@@ -503,6 +503,7 @@ func (link *Link) tx(buf []byte, isConsensusChannel bool) {
 				Id: DISCONNECT,
 			}
 			link.recvChan <- disconnectMsg
+			return err
 		}
 	} else {
 		_, err := link.conn.Write(buf)
@@ -514,6 +515,8 @@ func (link *Link) tx(buf []byte, isConsensusChannel bool) {
 				Id: DISCONNECT,
 			}
 			link.recvChan <- disconnectMsg
+			return err
 		}
 	}
+	return nil
 }

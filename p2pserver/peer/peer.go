@@ -168,11 +168,11 @@ func (p *Peer) CloseConsensusConn() {
 	p.ConsensusConn.CloseConn()
 }
 
-func (p *Peer) Send(buf []byte, isConsensus bool) {
+func (p *Peer) Send(buf []byte, isConsensus bool) error {
 	if isConsensus && p.ConsensusConn.Valid() {
-		p.ConsensusConn.Tx(buf)
+		return p.ConsensusConn.Tx(buf)
 	}
-	p.Conn.Tx(buf)
+	return p.Conn.Tx(buf)
 }
 
 func (p *Peer) SetHttpInfoState(httpInfo bool) {

@@ -1,14 +1,18 @@
 package p2pserver
 
 import (
-	"errors"
-	"fmt"
+	"bytes"
+	"crypto/sha256"
+	"encoding/binary"
 	"time"
 
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
+	"github.com/Ontology/common/serialization"
+	core "github.com/Ontology/core/types"
 	actor "github.com/Ontology/p2pserver/actor/req"
 	msgCommon "github.com/Ontology/p2pserver/common"
+	types "github.com/Ontology/p2pserver/common"
 	msg "github.com/Ontology/p2pserver/message"
 	"github.com/Ontology/p2pserver/peer"
 )
@@ -39,66 +43,119 @@ func constructVersionPayload(p *peer.Peer) msg.VersionPayload {
 	return vpl
 }
 
-func VersionHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
-	length := len(data.Payload)
+func NewVersion(n *peer.Peer) ([]byte, error) {
+	log.Debug()
+	var msg msg.Version
+	vpl := constructVersionPayload(n)
+	msg.P = vpl
+	msg.PK = n.GetPubKey()
+	log.Debug("new version msg.pk is ", msg.PK)
 
-	if length == 0 {
-		log.Error(fmt.Sprintf("nil message for %s", msgCommon.VERSION_TYPE))
-		return errors.New("nil message")
+	msg.Hdr.Magic = msgCommon.NETMAGIC
+	copy(msg.Hdr.CMD[0:7], "version")
+	p := bytes.NewBuffer([]byte{})
+	err := binary.Write(p, binary.LittleEndian, &(msg.P))
+	msg.PK.Serialize(p)
+	if err != nil {
+		log.Error("Binary Write failed at new Msg")
+		return nil, err
+	}
+	s := sha256.Sum256(p.Bytes())
+	s2 := s[:]
+	s = sha256.Sum256(s2)
+	buf := bytes.NewBuffer(s[:4])
+	binary.Read(buf, binary.LittleEndian, &(msg.Hdr.Checksum))
+	msg.Hdr.Length = uint32(len(p.Bytes()))
+	log.Debug("The message payload length is ", msg.Hdr.Length)
+
+	m, err := msg.Serialization()
+	if err != nil {
+		log.Error("Error Convert net message ", err.Error())
+		return nil, err
 	}
 
-	ver := msg.Version{}
-	copy(ver.Hdr.CMD[0:len(msgCommon.VERSION_TYPE)], msgCommon.VERSION_TYPE)
+	return m, nil
+}
 
-	ver.Deserialization(data.Payload[:length])
-	ver.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
+func NewPingMsg(height uint64) ([]byte, error) {
+	var msg msg.Ping
+	msg.Hdr.Magic = types.NETMAGIC
+	copy(msg.Hdr.CMD[0:7], "ping")
+	msg.Height = height
+	tmpBuffer := bytes.NewBuffer([]byte{})
+	serialization.WriteUint64(tmpBuffer, msg.Height)
+	b := new(bytes.Buffer)
+	err := binary.Write(b, binary.LittleEndian, tmpBuffer.Bytes())
+	if err != nil {
+		log.Error("Binary Write failed at new Msg")
+		return nil, err
+	}
+	s := sha256.Sum256(b.Bytes())
+	s2 := s[:]
+	s = sha256.Sum256(s2)
+	buf := bytes.NewBuffer(s[:4])
+	binary.Read(buf, binary.LittleEndian, &(msg.Hdr.Checksum))
+	msg.Hdr.Length = uint32(len(b.Bytes()))
 
-	localPeer := p2p.Self
-	remotePeer := p2p.Self.Np.GetPeer(data.Id)
+	m, err := msg.Serialization()
+	if err != nil {
+		log.Error("Error Convert net message ", err.Error())
+		return nil, err
+	}
+	return m, nil
+}
 
-	if ver.P.Nonce == localPeer.GetID() {
-		log.Warn("The node handshake with itself")
-		return errors.New("The node handshake with itself")
+func NewHeadersReq() ([]byte, error) {
+	var h msg.HeadersReq
+	h.P.Len = 1
+	buf, _ := actor.GetCurrentHeaderHash()
+	copy(h.P.HashEnd[:], buf[:])
+
+	p := new(bytes.Buffer)
+	err := binary.Write(p, binary.LittleEndian, &(h.P))
+	if err != nil {
+		log.Error("Binary Write failed at new HeadersReq")
+		return nil, err
 	}
 
-	s := remotePeer.GetState()
-	if s != msgCommon.INIT && s != msgCommon.HAND {
-		log.Warn("Unknow status to received version")
-		return errors.New("Unknow status to received version")
-	}
+	s := msg.CheckSum(p.Bytes())
+	h.Hdr.Init("getheaders", s, uint32(len(p.Bytes())))
 
-	// Obsolete node
-	n, ret := localPeer.DelNbrNode(ver.P.Nonce)
-	if ret == true {
-		log.Info(fmt.Sprintf("Node reconnect 0x%x", ver.P.Nonce))
-		// Close the connection and release the node soure
-		n.SetState(msgCommon.INACTIVITY)
-		n.CloseConn()
-	}
+	m, err := h.Serialization()
+	return m, err
+	return []byte{}, nil
+}
 
-	log.Debug("handle version msg.pk is ", ver.PK)
-	if ver.P.Cap[msg.HTTP_INFO_FLAG] == 0x01 {
-		remotePeer.SetHttpInfoState(true)
-	} else {
-		remotePeer.SetHttpInfoState(false)
-	}
-	remotePeer.SetHttpInfoPort(ver.P.HttpInfoPort)
-	remotePeer.SetBookkeeperAddr(ver.PK)
-	// Todo: too much parameters, wrapper them as a paramter
-	remotePeer.UpdateInfo(time.Now(), ver.P.Version, ver.P.Services,
-		ver.P.Port, ver.P.Nonce, ver.P.Relay, ver.P.StartHeight)
-	localPeer.AddNbrNode(remotePeer)
+func NewHeaders(headers []core.Header, count uint32) ([]byte, error) {
+	var msg msg.BlkHeader
+	msg.Cnt = count
+	msg.BlkHdr = headers
+	msg.Hdr.Magic = types.NETMAGIC
+	cmd := "headers"
+	copy(msg.Hdr.CMD[0:len(cmd)], cmd)
 
-	var buf []byte
-	if s == msgCommon.INIT {
-		remotePeer.SetState(msgCommon.HANDSHAKE)
-		versionPayload := constructVersionPayload(localPeer)
-		buf, _ = msg.NewVersion(versionPayload, localPeer.GetPubKey())
-	} else if s == msgCommon.HAND {
-		remotePeer.SetState(msgCommon.HANDSHAKED)
-		buf, _ = msg.NewVerack(false)
+	tmpBuffer := bytes.NewBuffer([]byte{})
+	serialization.WriteUint32(tmpBuffer, msg.Cnt)
+	for _, header := range headers {
+		header.Serialize(tmpBuffer)
 	}
-	remotePeer.Send(buf, false)
+	b := new(bytes.Buffer)
+	err := binary.Write(b, binary.LittleEndian, tmpBuffer.Bytes())
+	if err != nil {
+		log.Error("Binary Write failed at new Msg")
+		return nil, err
+	}
+	s := sha256.Sum256(b.Bytes())
+	s2 := s[:]
+	s = sha256.Sum256(s2)
+	buf := bytes.NewBuffer(s[:4])
+	binary.Read(buf, binary.LittleEndian, &(msg.Hdr.Checksum))
+	msg.Hdr.Length = uint32(len(b.Bytes()))
 
-	return nil
+	m, err := msg.Serialization()
+	if err != nil {
+		log.Error("Error Convert net message ", err.Error())
+		return nil, err
+	}
+	return m, nil
 }

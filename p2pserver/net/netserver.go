@@ -1,8 +1,10 @@
 package netserver
 
 import (
+	"errors"
 	"sync"
 
+	"github.com/Ontology/common/log"
 	types "github.com/Ontology/p2pserver/common"
 	"github.com/Ontology/p2pserver/peer"
 )
@@ -75,11 +77,12 @@ func (n *NetServer) GetMsgCh() chan types.MsgPayload {
 }
 
 //Tx send data buf to peer
-func (n *NetServer) Send(id uint64, data []byte, isConsensus bool) {
-	node, ok := n.Self.Np.List[id]
-	if ok == true {
-		node.Send(data, isConsensus)
+func (n *NetServer) Send(p *peer.Peer, data []byte, isConsensus bool) error {
+	if p != nil {
+		return p.Send(data, isConsensus)
 	}
+	log.Error("send to a invalid peer")
+	return errors.New("send to a invalid peer")
 }
 
 //DisconnectNotify called when disconnect event trigger
@@ -90,8 +93,12 @@ func DisconnectNotify(v interface{}) {
 }
 
 //IsPeerEstablished return the establise state of given peer`s id
-func (n *NetServer) IsPeerEstablished(id uint64) bool {
-	return n.Self.Np.NodeEstablished(id)
+func (n *NetServer) IsPeerEstablished(p *peer.Peer) bool {
+	if p != nil {
+		return n.Self.Np.NodeEstablished(p.GetID())
+	}
+	return false
+
 }
 
 //Connect begin the connect thread to given adderss

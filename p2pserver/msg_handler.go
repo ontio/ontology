@@ -1,15 +1,82 @@
 package p2pserver
 
 import (
+	"errors"
+	"fmt"
+	"time"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/types"
 	actor "github.com/Ontology/p2pserver/actor/req"
 	msgCommon "github.com/Ontology/p2pserver/common"
 	msg "github.com/Ontology/p2pserver/message"
+	"github.com/Ontology/p2pserver/peer"
 )
 
-func AddrReqHandle(id uint64, addrReq msg.AddrReq, p2p P2PServer) error {
+func VersionHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
+	length := len(data.Payload)
+
+	if length == 0 {
+		log.Error(fmt.Sprintf("nil message for %s", msgCommon.VERSION_TYPE))
+		return errors.New("nil message")
+	}
+
+	ver := msg.Version{}
+	copy(ver.Hdr.CMD[0:len(msgCommon.VERSION_TYPE)], msgCommon.VERSION_TYPE)
+
+	ver.Deserialization(data.Payload[:length])
+	ver.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
+
+	localPeer := p2p.Self
+	remotePeer := p2p.Self.Np.GetPeer(data.Id)
+
+	if ver.P.Nonce == localPeer.GetID() {
+		log.Warn("The node handshake with itself")
+		return errors.New("The node handshake with itself")
+	}
+
+	s := remotePeer.GetState()
+	if s != msgCommon.INIT && s != msgCommon.HAND {
+		log.Warn("Unknow status to received version")
+		return errors.New("Unknow status to received version")
+	}
+
+	// Obsolete node
+	n, ret := localPeer.DelNbrNode(ver.P.Nonce)
+	if ret == true {
+		log.Info(fmt.Sprintf("Node reconnect 0x%x", ver.P.Nonce))
+		// Close the connection and release the node soure
+		n.SetState(msgCommon.INACTIVITY)
+		n.CloseConn()
+	}
+
+	log.Debug("handle version msg.pk is ", ver.PK)
+	if ver.P.Cap[msg.HTTP_INFO_FLAG] == 0x01 {
+		remotePeer.SetHttpInfoState(true)
+	} else {
+		remotePeer.SetHttpInfoState(false)
+	}
+	remotePeer.SetHttpInfoPort(ver.P.HttpInfoPort)
+	remotePeer.SetBookkeeperAddr(ver.PK)
+	// Todo: too much parameters, wrapper them as a paramter
+	remotePeer.UpdateInfo(time.Now(), ver.P.Version, ver.P.Services,
+		ver.P.Port, ver.P.Nonce, ver.P.Relay, ver.P.StartHeight)
+	localPeer.AddNbrNode(remotePeer)
+
+	var buf []byte
+	if s == msgCommon.INIT {
+		remotePeer.SetState(msgCommon.HANDSHAKE)
+		buf, _ = NewVersion(localPeer)
+	} else if s == msgCommon.HAND {
+		remotePeer.SetState(msgCommon.HANDSHAKED)
+		buf, _ = msg.NewVerack(false)
+	}
+	remotePeer.Send(buf, false)
+
+	return nil
+}
+func AddrReqHandle(p *peer.Peer, addrReq msg.AddrReq, p2p P2PServer) error {
 	log.Debug("RX addr request message")
 	var addrStr []msgCommon.PeerAddr
 	var count uint64
@@ -18,11 +85,11 @@ func AddrReqHandle(id uint64, addrReq msg.AddrReq, p2p P2PServer) error {
 	if err != nil {
 		return err
 	}
-	go p2p.Send(id, buf, false)
+	go p2p.Send(p, buf, false)
 	return nil
 }
 
-func HeadersReqHandle(id uint64, headReq msg.HeadersReq, p2p P2PServer) error {
+func HeadersReqHandle(p *peer.Peer, headReq msg.HeadersReq, p2p P2PServer) error {
 	var startHash [msgCommon.HASH_LEN]byte
 	var stopHash [msgCommon.HASH_LEN]byte
 	startHash = headReq.P.HashStart
@@ -31,15 +98,15 @@ func HeadersReqHandle(id uint64, headReq msg.HeadersReq, p2p P2PServer) error {
 	if err != nil {
 		return err
 	}
-	buf, err := msg.NewHeaders(headers, cnt)
+	buf, err := NewHeaders(headers, cnt)
 	if err != nil {
 		return err
 	}
-	go p2p.Send(id, buf, false)
+	go p2p.Send(p, buf, false)
 	return nil
 }
 
-func BlocksReqHandle(id uint64, blocksReq msg.BlocksReq, p2p P2PServer) error {
+func BlocksReqHandle(p *peer.Peer, blocksReq msg.BlocksReq, p2p P2PServer) error {
 	log.Debug("RX blocks request message")
 	var startHash common.Uint256
 	var stopHash common.Uint256
@@ -55,11 +122,11 @@ func BlocksReqHandle(id uint64, blocksReq msg.BlocksReq, p2p P2PServer) error {
 	if err != nil {
 		return err
 	}
-	go p2p.Send(id, buf, false)
+	go p2p.Send(p, buf, false)
 	return nil
 }
 
-func PingHandle(id uint64, ping msg.Ping, p2p P2PServer) error {
+func PingHandle(p *peer.Peer, ping msg.Ping, p2p P2PServer) error {
 	log.Debug("RX ping message")
 	//Fix me: Which peer's height should be set.
 	p2p.Self.SetHeight(ping.Height)
@@ -67,7 +134,7 @@ func PingHandle(id uint64, ping msg.Ping, p2p P2PServer) error {
 	if err != nil {
 		log.Error("failed build a new pong message")
 	} else {
-		go p2p.Send(id, buf, false)
+		go p2p.Send(p, buf, false)
 	}
 	return err
 }
@@ -798,28 +865,7 @@ func reqConsensusData(node Noder, hash common.Uint256) error {
 
 	return nil
 }
-func NewHeadersReq() ([]byte, error) {
-	var h headersReq
 
-	h.p.len = 1
-	//buf := ledger.DefaultLedger.Store.GetCurrentHeaderHash()
-	buf, _ := actor.GetCurrentHeaderHash()
-	copy(h.p.hashEnd[:], buf[:])
-
-	p := new(bytes.Buffer)
-	err := binary.Write(p, binary.LittleEndian, &(h.p))
-	if err != nil {
-		log.Error("Binary Write failed at new headersReq")
-		return nil, err
-	}
-
-	s := checkSum(p.Bytes())
-	h.hdr.init("getheaders", s, uint32(len(p.Bytes())))
-
-	m, err := h.Serialization()
-	return m, err
-	return []byte{}, nil
-}
 func NewBlocksReq(n Noder) ([]byte, error) {
 	var h blocksReq
 	log.Debug("request block hash")

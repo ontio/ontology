@@ -79,7 +79,7 @@ func LocateMsgHdr(buf []byte) []byte {
 	return nil
 }
 
-func checkSum(p []byte) []byte {
+func CheckSum(p []byte) []byte {
 	t := sha256.Sum256(p)
 	s := sha256.Sum256(t[:])
 
@@ -94,7 +94,7 @@ func reverse(input []byte) []byte {
 	return append(reverse(input[1:]), input[0])
 }
 
-func (hdr *msgHdr) init(cmd string, checksum []byte, length uint32) {
+func (hdr *msgHdr) Init(cmd string, checksum []byte, length uint32) {
 	hdr.Magic = common.NETMAGIC
 	copy(hdr.CMD[0:uint32(len(cmd))], cmd)
 	copy(hdr.Checksum[:], checksum[:common.CHECKSUM_LEN])
@@ -109,7 +109,7 @@ func (hdr msgHdr) Verify(buf []byte) error {
 		log.Warn(fmt.Sprintf("Unmatched magic number 0x%0x", hdr.Magic))
 		return errors.New("Unmatched magic number")
 	}
-	checkSum := checkSum(buf)
+	checkSum := CheckSum(buf)
 	if bytes.Equal(hdr.Checksum[:], checkSum[:]) == false {
 		str1 := hex.EncodeToString(hdr.Checksum[:])
 		str2 := hex.EncodeToString(checkSum[:])

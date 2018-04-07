@@ -1,6 +1,8 @@
 package p2pserver
 
 import (
+	"errors"
+	"math/rand"
 	"net"
 	"strconv"
 	"strings"
@@ -52,9 +54,9 @@ func (this *P2PServer) Start(isSync bool) error {
 	if this != nil {
 		this.network.Start()
 	}
-	go this.keepOnline()
-	go this.heartBeat()
-	go this.syncBlock()
+	go this.keepOnlineService()
+	go this.heartBeatService()
+	go this.keepOnlineService()
 	return nil
 }
 func (this *P2PServer) Stop() error {
@@ -76,11 +78,12 @@ func (this *P2PServer) GetNeighborAddrs() ([]types.PeerAddr, uint64) {
 func (this *P2PServer) Xmit(msg interface{}) error {
 	return nil
 }
-func (this *P2PServer) Send(id uint64, buf []byte, isConsensus bool) {
-	if this.network.IsPeerEstablished(id) {
-		this.network.Send(id, buf, isConsensus)
+func (this *P2PServer) Send(p *peer.Peer, buf []byte, isConsensus bool) error {
+	if this.network.IsPeerEstablished(p) {
+		return this.network.Send(p, buf, isConsensus)
 	}
-	log.Errorf("P2PServer send error: peer %x is not established.", id)
+	log.Errorf("P2PServer send to a not ESTABLISH peer 0x%x", p.GetID())
+	return errors.New("send to a not ESTABLISH peer")
 }
 func (this *P2PServer) GetId() uint64 {
 	return this.network.GetId()
@@ -94,7 +97,7 @@ func (this *P2PServer) GetTime() int64 {
 func (this *P2PServer) blockSyncFinished() bool {
 	peers := this.Self.Np.GetNeighbors()
 	if len(peers) == 0 {
-		return true
+		return false
 	}
 
 	blockHeight, err := actor.GetCurrentBlockHeight()
@@ -187,7 +190,7 @@ func (this *P2PServer) retryInactivePeer() {
 }
 
 //keepOnline make sure seed peer be connected and try connect lost peer
-func (this *P2PServer) keepOnline() {
+func (this *P2PServer) keepOnlineService() {
 	t := time.NewTimer(time.Second * types.CONN_MONITOR)
 	for {
 		select {
@@ -209,7 +212,7 @@ func (this *P2PServer) reqNbrList(*peer.Peer) {
 }
 
 //heartBeat send ping to nbr peers and check the timeout
-func (this *P2PServer) heartBeat() {
+func (this *P2PServer) heartBeatService() {
 	var periodTime uint
 	if config.Parameters.GenBlockTime > config.MINGENBLOCKTIME {
 		periodTime = config.Parameters.GenBlockTime / types.UPDATE_RATE_PER_BLOCK
@@ -232,7 +235,22 @@ func (this *P2PServer) heartBeat() {
 
 //ping send pkg to get pong msg from others
 func (this *P2PServer) ping() {
-
+	peers := this.Self.Np.GetNeighbors()
+	for _, p := range peers {
+		if p.GetState() == types.ESTABLISH {
+			height, err := actor.GetCurrentBlockHeight()
+			if err != nil {
+				log.Error("failed get current height! Ping faild!")
+				return
+			}
+			buf, err := NewPingMsg(uint64(height))
+			if err != nil {
+				log.Error("failed build a new ping message")
+			} else {
+				go this.Send(p, buf, false)
+			}
+		}
+	}
 }
 
 //timeout trace whether some peer be long time no response
@@ -240,7 +258,109 @@ func (this *P2PServer) timeout() {
 
 }
 
-//syncBlock start sync up block
-func (this *P2PServer) syncBlock() {
+//syncBlock start sync up hdr & block
+func (this *P2PServer) syncService() {
+	var periodTime uint
+	if config.Parameters.GenBlockTime > config.MINGENBLOCKTIME {
+		periodTime = config.Parameters.GenBlockTime / types.UPDATE_RATE_PER_BLOCK
+	} else {
+		periodTime = config.DEFAULTGENBLOCKTIME / types.UPDATE_RATE_PER_BLOCK
+	}
+	t := time.NewTicker(time.Second * (time.Duration(periodTime)))
 
+	for {
+		select {
+		case <-t.C:
+			this.syncBlockHdr()
+			this.syncBlock()
+		case <-this.quitHeartBeat:
+			t.Stop()
+			break
+		}
+	}
+}
+
+//syncBlockHdr send synchdr cmd to peers
+func (this *P2PServer) syncBlockHdr() {
+	if !this.reachMinConnection() {
+		return
+	}
+	peers := this.Self.Np.GetNeighbors()
+	if len(peers) == 0 {
+		return
+	}
+	p := this.randPeer(peers)
+	if p == nil {
+		return
+	}
+	buf, err := NewHeadersReq()
+	if err != nil {
+		log.Error("failed build a new headersReq")
+	} else {
+		go this.Send(p, buf, false)
+	}
+}
+
+//syncBlock send reqblk cmd to peers
+func (this *P2PServer) syncBlock() {
+	headerHeight, _ := actor.GetCurrentHeaderHeight()
+	currentBlkHeight, _ := actor.GetCurrentBlockHeight()
+	if currentBlkHeight >= headerHeight {
+		return
+	}
+	//TODO
+	//var dValue int32
+	//var reqCnt uint32
+	//var i uint32
+	//nodes := this.Self.Np.GetNeighbors()
+	/*
+		for _, n := range nodes {
+			if uint32(n.GetHeight()) <= currentBlkHeight {
+				continue
+			}
+			n.RemoveFlightHeightLessThan(currentBlkHeight)
+			count := types.MAX_REQ_BLK_ONCE - uint32(n.GetFlightHeightCnt())
+			dValue = int32(headerHeight - currentBlkHeight - reqCnt)
+			flights := n.GetFlightHeights()
+			if count == 0 {
+				for _, f := range flights {
+					hash, _ := actor.GetBlockHashByHeight(f)
+					isContainBlock, _ := actor.IsContainBlock(hash)
+					if isContainBlock == false {
+						message.ReqBlkData(n, hash)
+					}
+				}
+
+			}
+			for i = 1; i <= count && dValue >= 0; i++ {
+				hash, _ := actor.GetBlockHashByHeight(currentBlkHeight + reqCnt)
+				isContainBlock, _ := actor.IsContainBlock(hash)
+				if isContainBlock == false {
+					message.ReqBlkData(n, hash)
+					n.StoreFlightHeight(currentBlkHeight + reqCnt)
+				}
+				reqCnt++
+				dValue--
+			}
+		}
+	*/
+}
+
+//
+func (this *P2PServer) randPeer(plist []*peer.Peer) *peer.Peer {
+	selectList := []*peer.Peer{}
+	for _, v := range plist {
+		height, _ := actor.GetCurrentHeaderHeight()
+		if uint64(height) < v.GetHeight() {
+			selectList = append(selectList, v)
+		}
+	}
+	nCount := len(selectList)
+	if nCount == 0 {
+		return nil
+	}
+	rand.Seed(time.Now().UnixNano())
+	index := rand.Intn(nCount)
+
+	return selectList[index]
 }
