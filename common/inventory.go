@@ -10,7 +10,6 @@ const (
 
 //TODO: temp inventory
 type Inventory interface {
-	//sig.SignableData
 	Hash() Uint256
 	Verify() error
 	Type() InventoryType

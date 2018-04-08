@@ -1,13 +1,17 @@
 package req
 
 import (
+	"time"
+	"bytes"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
-	ledger "github.com/Ontology/core/ledger/actor"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/errors"
 	"github.com/Ontology/eventbus/actor"
-	"time"
+	ledger "github.com/Ontology/core/ledger/actor"
+	msg "github.com/Ontology/p2pserver/message"
+	msgCommon "github.com/Ontology/p2pserver/common"
 )
 
 var DefLedgerPid *actor.PID
@@ -137,3 +141,143 @@ func IsContainBlock(hash common.Uint256) (bool, error) {
 	}
 	return result.(*ledger.IsContainBlockRsp).IsContain, result.(*ledger.IsContainBlockRsp).Error
 }
+
+func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]types.Header, uint32, error) {
+	var count uint32 = 0
+	var empty [msgCommon.HASH_LEN]byte
+	headers := []types.Header{}
+	var startHeight uint32
+	var stopHeight uint32
+	curHeight, _ := GetCurrentHeaderHeight()
+	if startHash == empty {
+		if stopHash == empty {
+			if curHeight > msgCommon.MAX_BLK_HDR_CNT {
+				count = msgCommon.MAX_BLK_HDR_CNT
+			} else {
+				count = curHeight
+			}
+		} else {
+			bkStop, err := GetHeaderByHash(stopHash)
+			if err != nil {
+				return nil, 0, err
+			}
+			stopHeight = bkStop.Height
+			count = curHeight - stopHeight
+			if count > msgCommon.MAX_BLK_HDR_CNT {
+				count = msgCommon.MAX_BLK_HDR_CNT
+			}
+		}
+	} else {
+		bkStart, err := GetHeaderByHash(startHash)
+		if err != nil {
+			return nil, 0, err
+		}
+		startHeight = bkStart.Height
+		if stopHash != empty {
+			bkStop, err := GetHeaderByHash(stopHash)
+			if err != nil {
+				return nil, 0, err
+			}
+			stopHeight = bkStop.Height
+
+			// avoid unsigned integer underflow
+			if startHeight < stopHeight {
+				return nil, 0, errors.NewErr("do not have header to send")
+			}
+			count = startHeight - stopHeight
+
+			if count >= msgCommon.MAX_BLK_HDR_CNT {
+				count = msgCommon.MAX_BLK_HDR_CNT
+				stopHeight = startHeight - msgCommon.MAX_BLK_HDR_CNT
+			}
+		} else {
+
+			if startHeight > msgCommon.MAX_BLK_HDR_CNT {
+				count = msgCommon.MAX_BLK_HDR_CNT
+			} else {
+				count = startHeight
+			}
+		}
+	}
+
+	var i uint32
+	for i = 1; i <= count; i++ {
+		hash, err := GetBlockHashByHeight(stopHeight + i)
+		hd, err := GetHeaderByHash(hash)
+		if err != nil {
+			log.Errorf("GetBlockWithHeight failed with err=%s, hash=%x,height=%d\n", err.Error(), hash, stopHeight+i)
+			return nil, 0, err
+		}
+		headers = append(headers, *hd)
+	}
+
+	return headers, count, nil
+}
+
+func GetInvFromBlockHash(startHash common.Uint256, stopHash common.Uint256) (*msg.InvPayload, error) {
+	var count uint32 = 0
+	var i uint32
+	var empty common.Uint256
+	var startHeight uint32
+	var stopHeight uint32
+	curHeight, _ := GetCurrentBlockHeight()
+	if startHash == empty {
+		if stopHash == empty {
+			if curHeight > msgCommon.MAX_BLK_HDR_CNT {
+				count = msgCommon.MAX_BLK_HDR_CNT
+			} else {
+				count = curHeight
+			}
+		} else {
+			bkStop, err := GetHeaderByHash(stopHash)
+			if err != nil {
+				return nil, err
+			}
+			stopHeight = bkStop.Height
+			count = curHeight - stopHeight
+			if curHeight > msgCommon.MAX_INV_HDR_CNT {
+				count = msgCommon.MAX_INV_HDR_CNT
+			}
+		}
+	} else {
+		bkStart, err := GetHeaderByHash(startHash)
+		if err != nil {
+			return nil, err
+		}
+		startHeight = bkStart.Height
+		if stopHash != empty {
+			bkStop, err := GetHeaderByHash(stopHash)
+			if err != nil {
+				return nil, err
+			}
+			stopHeight = bkStop.Height
+			count = startHeight - stopHeight
+			if count >= msgCommon.MAX_INV_HDR_CNT {
+				count = msgCommon.MAX_INV_HDR_CNT
+				stopHeight = startHeight + msgCommon.MAX_INV_HDR_CNT
+			}
+		} else {
+
+			if startHeight > msgCommon.MAX_INV_HDR_CNT {
+				count = msgCommon.MAX_INV_HDR_CNT
+			} else {
+				count = startHeight
+			}
+		}
+	}
+	tmpBuffer := bytes.NewBuffer([]byte{})
+	for i = 1; i <= count; i++ {
+		//FIXME need add error handle for GetBlockWithHash
+		hash, _ := GetBlockHashByHeight(stopHeight + i)
+		log.Debug("GetInvFromBlockHash i is ", i, " , hash is ", hash)
+		hash.Serialize(tmpBuffer)
+	}
+	log.Debug("GetInvFromBlockHash hash is ", tmpBuffer.Bytes())
+
+	return &msg.InvPayload{
+		InvType: common.BLOCK,
+		Cnt:     count,
+		Blk:     tmpBuffer.Bytes(),
+	}, nil
+}
+

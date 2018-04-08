@@ -37,8 +37,6 @@ type Version struct {
 
 func (msg Version) Verify(buf []byte) error {
 	err := msg.Hdr.Verify(buf)
-	// TODO verify the message Content
-	// TODO check version compatible or not
 	return err
 }
 

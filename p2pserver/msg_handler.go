@@ -48,7 +48,7 @@ func HeadersReqHandle(headReq msg.HeadersReq, peer peer.Peer, p2p P2PServer) err
 	startHash = headReq.P.HashStart
 	stopHash = headReq.P.HashEnd
 	//FIXME if HeaderHashCount > 1
-	headers, cnt, err := GetHeadersFromHash(startHash, stopHash)
+	headers, cnt, err := actor.GetHeadersFromHash(startHash, stopHash)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func BlocksReqHandle(blocksReq msg.BlocksReq, peer peer.Peer, p2p P2PServer) err
 	stopHash = blocksReq.P.HashStop
 
 	//FIXME if HeaderHashCount > 1
-	inv, err := GetInvFromBlockHash(startHash, stopHash)
+	inv, err := actor.GetInvFromBlockHash(startHash, stopHash)
 	if err != nil {
 		return err
 	}
@@ -166,16 +166,6 @@ func VersionHandle(version msg.Version, peer peer.Peer, p2p P2PServer) error {
 			return errors.New("Unknown status to received version ")
 		}
 
-		//	n, ok := LocalNode.GetNbrNode(version.P.Nonce)
-		//	if ok == false {
-		//		log.Warn("nbr node is not exist")
-		//		return errors.New("nbr node is not exist")
-		//	}
-
-		//	n.SetConsensusConn(node.GetConsensusConn())
-		//	n.SetConsensusPort(node.GetConsensusPort())
-		//	n.SetConsensusState(node.GetConsensusState())
-
 		peer.UpdateInfo(time.Now(), version.P.Version, version.P.Services,
 			version.P.Port, version.P.Nonce, version.P.Relay, version.P.StartHeight)
 		peer.SetConsPort(version.P.ConsensusPort)
@@ -219,6 +209,7 @@ func VersionHandle(version msg.Version, peer peer.Peer, p2p P2PServer) error {
 	peer.SetHttpInfoPort(version.P.HttpInfoPort)
 	peer.SetConsPort(version.P.ConsensusPort)
 	peer.SetBookKeeperAddr(version.PK)
+
 	// if  version.P.Port == version.P.ConsensusPort don't updateInfo
 	peer.UpdateInfo(time.Now(), version.P.Version, version.P.Services,
 		version.P.Port, version.P.Nonce, version.P.Relay, version.P.StartHeight)
@@ -260,8 +251,6 @@ func VerAckHandle(verAck msg.VerACK, peer peer.Peer, p2p P2PServer) error {
 		peer.SetConsState(msgCommon.ESTABLISH)
 		n.SetConsState(peer.GetConsState())
 		n.SetConsConn(peer.GetConsConn())
-		//	n.SetConsensusPort(node.GetConsensusPort())
-		//	n.SetConsensusState(node.GetConsensusState())
 
 		if s == msgCommon.HANDSHAKE {
 			buf, _ := NewVerAck(true)
@@ -287,7 +276,6 @@ func VerAckHandle(verAck msg.VerACK, peer peer.Peer, p2p P2PServer) error {
 	// but it doesn't matter to access the invalid
 	// node which will trigger a warning
 	//TODO JQ: only master p2p port request neighbor list
-	//peer.ReqNeighborList()
 	buf, _ := NewAddrReq()
 	go peer.SendToSync(buf)
 
@@ -296,8 +284,8 @@ func VerAckHandle(verAck msg.VerACK, peer peer.Peer, p2p P2PServer) error {
 	nodeAddr := addr + ":" + strconv.Itoa(int(port))
 	//TODO JQ： only master p2p port remove the list
 	p2p.Self.SyncLink.RemoveAddrInConnectingList(nodeAddr)
-	//connect consensus port
 
+	//connect consensus port
 	if s == msgCommon.HANDSHAKED {
 		consensusPort := peer.GetConsPort()
 		nodeConsensusAddr := addr + ":" + strconv.Itoa(int(consensusPort))
@@ -385,7 +373,7 @@ func InvHandle(inv msg.Inv, peer peer.Peer, p2p P2PServer) error {
 
 		trn, err := actor.GetTransaction(id)
 		if trn == nil || err != nil {
-			txnDataReq, _ := NewTxnDataReq(peer, id)
+			txnDataReq, _ := NewTxnDataReq(id)
 			peer.SendToSync(txnDataReq)
 		}
 	case common.BLOCK:
@@ -396,39 +384,22 @@ func InvHandle(inv msg.Inv, peer peer.Peer, p2p P2PServer) error {
 		for i = 0; i < count; i++ {
 			id.Deserialize(bytes.NewReader(inv.P.Blk[msgCommon.HASH_LEN*i:]))
 			// TODO check the ID queue
-			//if !ledger.DefaultLedger.Store.BlockInCache(id) &&
-			//	!ledger.DefaultLedger.BlockInLedger(id) &&
-			//	LastInvHash != id {
-			//	LastInvHash = id
-			//	// send the block request
-			//	log.Infof("inv request block hash: %x", id)
-			//	ReqBlkData(node, id)
-			//}
 			isContainBlock, _ := actor.IsContainBlock(id)
 			if !isContainBlock && msg.LastInvHash != id {
 				msg.LastInvHash = id
 				// send the block request
 				log.Infof("inv request block hash: %x", id)
-				blkDataReq, _ := NewBlkDataReq(peer, id)
+				blkDataReq, _ := NewBlkDataReq(id)
 				peer.SendToSync(blkDataReq)
 			}
 		}
 	case common.CONSENSUS:
 		log.Debug("RX consensus message")
 		id.Deserialize(bytes.NewReader(inv.P.Blk[:32]))
-		consDataReq, _ := NewConsensusDataReq(peer, id)
+		consDataReq, _ := NewConsensusDataReq(id)
 		peer.SendToCons(consDataReq)
 	default:
 		log.Warn("RX unknown inventory message")
 	}
 	return nil
-}
-
-
-func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]types.Header, uint32, error) {
-	return nil, 0, nil
-}
-
-func GetInvFromBlockHash(startHash common.Uint256, stopHash common.Uint256) (*msg.InvPayload, error) {
-	return nil, nil
 }

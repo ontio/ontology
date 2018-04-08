@@ -13,7 +13,6 @@ import (
 	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
-	"github.com/Ontology/p2pserver/peer"
 	msgCommon "github.com/Ontology/p2pserver/common"
 	msg "github.com/Ontology/p2pserver/message"
 )
@@ -85,6 +84,7 @@ func NewBlock(bk *types.Block) ([]byte, error) {
 		log.Error("Binary Write failed at new Msg")
 		return nil, err
 	}
+
 	s := sha256.Sum256(p.Bytes())
 	s2 := s[:]
 	s = sha256.Sum256(s2)
@@ -98,7 +98,6 @@ func NewBlock(bk *types.Block) ([]byte, error) {
 		log.Error("Error Convert net message ", err.Error())
 		return nil, err
 	}
-
 	return m, nil
 }
 
@@ -211,17 +210,8 @@ func NewConsensus(cp *msg.ConsensusPayload) ([]byte, error) {
 	return m, nil
 }
 
-func NewInvPayload(invType common.InventoryType, count uint32, blk []byte) *msg.InvPayload {
-	 return &msg.InvPayload{
-		InvType: invType,
-		Cnt:     count,
-		Blk:     blk,
-	}
-}
-
 func NewInv(invPayload *msg.InvPayload) ([]byte, error) {
 	var inv msg.Inv
-
 	inv.P.Blk = invPayload.Blk
 	inv.P.InvType = invPayload.InvType
 	inv.P.Cnt = invPayload.Cnt
@@ -311,7 +301,6 @@ func NewPingMsg(height uint64) ([]byte, error) {
 	}
 	return m, nil
 }
-
 
 func NewPongMsg(height uint64) ([]byte, error) {
 	var pong msg.Pong
@@ -435,32 +424,6 @@ func NewVersionPayload(version uint32, service uint64, port uint16,
 func NewVersion(vpl msg.VersionPayload, pk *crypto.PubKey) ([]byte, error) {
 	log.Debug()
 	var version msg.Version
-
-	/*	msg.P.Version = n.Version()
-		msg.P.Services = n.Services()
-		msg.P.HttpInfoPort = config.Parameters.HttpInfoPort
-		msg.P.ConsensusPort = n.GetConsensusPort()
-		msg.P.IsConsensus = isConsensus
-		if config.Parameters.HttpInfoStart {
-			msg.P.Cap[HTTPINFOFLAG] = 0x01
-		} else {
-			msg.P.Cap[HTTPINFOFLAG] = 0x00
-		}
-
-		// FIXME Time overflow
-		msg.P.TimeStamp = uint32(time.Now().UTC().UnixNano())
-		msg.P.Port = n.GetPort()
-		msg.P.Nonce = n.GetID()
-		msg.P.UserAgent = 0x00
-		height, _ := actor.GetCurrentBlockHeight()
-		msg.P.StartHeight = uint64(height)
-		if n.GetRelay() {
-			msg.P.Relay = 1
-		} else {
-			msg.P.Relay = 0
-		}
-		msg.pk = n.GetBookKeeperAddr()
-	*/
 	version.P = vpl
 	version.PK = pk
 	log.Debug("new version msg.pk is ", version.PK)
@@ -493,7 +456,7 @@ func NewVersion(vpl msg.VersionPayload, pk *crypto.PubKey) ([]byte, error) {
 	return m, nil
 }
 
-func NewTxnDataReq(peer peer.Peer, hash common.Uint256)  ([]byte, error) {
+func NewTxnDataReq(hash common.Uint256)  ([]byte, error) {
 	var dataReq msg.DataReq
 	dataReq.DataType = common.TRANSACTION
 	// TODO handle the hash array case
@@ -503,7 +466,7 @@ func NewTxnDataReq(peer peer.Peer, hash common.Uint256)  ([]byte, error) {
 	return buf, nil
 }
 
-func NewBlkDataReq(peer peer.Peer, hash common.Uint256) ([]byte, error) {
+func NewBlkDataReq(hash common.Uint256) ([]byte, error) {
 	var dataReq msg.DataReq
 	dataReq.DataType = common.BLOCK
 	dataReq.Hash = hash
@@ -532,12 +495,12 @@ func NewBlkDataReq(peer peer.Peer, hash common.Uint256) ([]byte, error) {
 	}
 	return sendBuf, nil
 }
-func NewConsensusDataReq(peer peer.Peer, hash common.Uint256) ([]byte, error) {
+
+func NewConsensusDataReq(hash common.Uint256) ([]byte, error) {
 	var dataReq msg.DataReq
 	dataReq.DataType = common.CONSENSUS
 	// TODO handle the hash array case
 	dataReq.Hash = hash
-
 	buf, _ := dataReq.Serialization()
 	return buf, nil
 }
