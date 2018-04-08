@@ -79,12 +79,15 @@ func (tp *TXPool) AddTxList(txEntry *TXEntry) bool {
 func (tp *TXPool) CleanTransactionList(txs []*types.Transaction) error {
 	cleaned := 0
 	txsNum := len(txs)
+	tp.Lock()
+	defer tp.Unlock()
 	for _, tx := range txs {
 		if tx.TxType == types.BookKeeping {
 			txsNum = txsNum - 1
 			continue
 		}
-		if tp.DelTxList(tx) {
+		if _, ok := tp.txList[tx.Hash()]; ok {
+			delete(tp.txList, tx.Hash())
 			cleaned++
 		}
 	}
@@ -93,7 +96,7 @@ func (tp *TXPool) CleanTransactionList(txs []*types.Transaction) error {
 			txsNum, cleaned))
 	}
 	log.Debug(fmt.Sprintf("[cleanTransactionList],transaction %d Requested,%d cleaned, Remains %d in TxPool",
-		txsNum, cleaned, tp.GetTransactionCount()))
+		txsNum, cleaned, len(tp.txList)))
 	return nil
 }
 
@@ -109,10 +112,24 @@ func (tp *TXPool) DelTxList(tx *types.Transaction) bool {
 	return true
 }
 
+// compareTxHeight compares a verifed transaction's height with the next
+// block height from consensus. If the height is less than the next block
+// height, re-verify it.
+func (tp *TXPool) compareTxHeight(txEntry *TXEntry, height uint32) bool {
+	for _, v := range txEntry.Attrs {
+		if v.Type == vt.Statefull &&
+			v.Height < height {
+			return false
+		}
+	}
+	return true
+}
+
 // GetTxPool gets the transaction lists from the pool for the consensus,
 // if the byCount is marked, return the configured number at most; if the
 // the byCount is not marked, return all of the current transaction pool.
-func (tp *TXPool) GetTxPool(byCount bool) []*TXEntry {
+func (tp *TXPool) GetTxPool(byCount bool, height uint32) ([]*TXEntry,
+	[]*types.Transaction) {
 	tp.RLock()
 	defer tp.RUnlock()
 
@@ -125,15 +142,21 @@ func (tp *TXPool) GetTxPool(byCount bool) []*TXEntry {
 	}
 
 	var num int
-	txList := make([]*TXEntry, count)
+	txList := make([]*TXEntry, 0, count)
+	oldTxList := make([]*types.Transaction, 0)
 	for _, txEntry := range tp.txList {
-		txList[num] = txEntry
+		if !tp.compareTxHeight(txEntry, height) {
+			oldTxList = append(oldTxList, txEntry.Tx)
+			continue
+		}
+		txList = append(txList, txEntry)
 		num++
 		if num >= count {
 			break
 		}
 	}
-	return txList
+
+	return txList, oldTxList
 }
 
 // GetTransaction returns a transaction if it is contained in the pool

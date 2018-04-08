@@ -22,10 +22,10 @@ import (
 	"errors"
 	"time"
 
+	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
 	txpool "github.com/ontio/ontology/txnpool/common"
-	"github.com/ontio/ontology-eventbus/actor"
 )
 
 type TxPoolActor struct {
@@ -33,7 +33,7 @@ type TxPoolActor struct {
 }
 
 func (self *TxPoolActor) GetTxnPool(byCount bool, height uint32) []*txpool.TXEntry {
-	poolmsg := &txpool.GetTxnPoolReq{ByCount: byCount}
+	poolmsg := &txpool.GetTxnPoolReq{ByCount: byCount, Height: height}
 	future := self.Pool.RequestFuture(poolmsg, time.Second*10)
 	entry, err := future.Result()
 	if err != nil {

@@ -65,7 +65,6 @@ type TXPoolServer struct {
 	mu            sync.RWMutex                        // Sync mutex
 	wg            sync.WaitGroup                      // Worker sync
 	workers       []txPoolWorker                      // Worker pool
-	workersNum    uint8                               // The number of concurrent workers
 	txPool        *tc.TXPool                          // The tx pool that holds the valid transaction
 	allPendingTxs map[common.Uint256]*serverPendingTx // The txs that server is processing
 	pendingBlock  *pendingBlock                       // The block that server is processing
@@ -107,9 +106,9 @@ func (s *TXPoolServer) init(num uint8) {
 
 	// Create the given concurrent workers
 	s.workers = make([]txPoolWorker, num)
-	s.workersNum = num
 	// Initial and start the workers
-	for i := uint8(0); i < num; i++ {
+	var i uint8
+	for i = 0; i < num; i++ {
 		s.wg.Add(1)
 		s.workers[i].init(i, s)
 		go s.workers[i].start()
@@ -227,16 +226,10 @@ func (s *TXPoolServer) setPendingTx(tx *tx.Transaction,
 
 // assignTxToWorker assigns a new transaction to a worker by LB
 func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction,
-	sender tc.SenderType) (assign bool) {
-
-	defer func() {
-		if recover() != nil {
-			assign = false
-		}
-	}()
+	sender tc.SenderType) bool {
 
 	if tx == nil {
-		return
+		return false
 	}
 
 	if ok := s.setPendingTx(tx, sender); !ok {
@@ -244,10 +237,10 @@ func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction,
 		return false
 	}
 	// Add the rcvTxn to the worker
-	lb := make(tc.LBSlice, s.workersNum)
-	for i := uint8(0); i < s.workersNum; i++ {
+	lb := make(tc.LBSlice, len(s.workers))
+	for i := 0; i < len(s.workers); i++ {
 		entry := tc.LB{Size: len(s.workers[i].pendingTxList),
-			WorkerID: i,
+			WorkerID: uint8(i),
 		}
 		lb[i] = entry
 	}
@@ -258,20 +251,13 @@ func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction,
 
 // assignRspToWorker assigns a check response from the validator to
 // the correct worker.
-func (s *TXPoolServer) assignRspToWorker(rsp *types.CheckResponse) (
-	assign bool) {
-
-	defer func() {
-		if recover() != nil {
-			assign = false
-		}
-	}()
+func (s *TXPoolServer) assignRspToWorker(rsp *types.CheckResponse) bool {
 
 	if rsp == nil {
-		return
+		return false
 	}
 
-	if rsp.WorkerId >= 0 && rsp.WorkerId < s.workersNum {
+	if rsp.WorkerId >= 0 && rsp.WorkerId < uint8(len(s.workers)) {
 		s.workers[rsp.WorkerId].rspCh <- rsp
 	}
 
@@ -391,7 +377,7 @@ func (s *TXPoolServer) Stop() {
 		v.Stop()
 	}
 	//Stop worker
-	for i := uint8(0); i < s.workersNum; i++ {
+	for i := 0; i < len(s.workers); i++ {
 		s.workers[i].stop()
 	}
 	s.wg.Wait()
@@ -403,8 +389,15 @@ func (s *TXPoolServer) getTransaction(hash common.Uint256) *tx.Transaction {
 }
 
 // getTxPool returns a tx list for consensus.
-func (s *TXPoolServer) getTxPool(byCount bool) []*tc.TXEntry {
-	return s.txPool.GetTxPool(byCount)
+func (s *TXPoolServer) getTxPool(byCount bool, height uint32) []*tc.TXEntry {
+	avlTxList, oldTxList := s.txPool.GetTxPool(byCount, height)
+
+	for _, t := range oldTxList {
+		s.delTransaction(t)
+		s.reVerifyStateful(t, tc.NilSender)
+	}
+
+	return avlTxList
 }
 
 // getPendingTxs returns a currently pending tx list
@@ -476,7 +469,7 @@ func (s *TXPoolServer) checkTx(hash common.Uint256) bool {
 
 // getTxStatusReq returns a transaction's status with the transaction hash.
 func (s *TXPoolServer) getTxStatusReq(hash common.Uint256) *tc.TxStatus {
-	for i := uint8(0); i < s.workersNum; i++ {
+	for i := 0; i < len(s.workers); i++ {
 		ret := s.workers[i].GetTxStatus(hash)
 		if ret != nil {
 			return ret
@@ -499,10 +492,10 @@ func (s *TXPoolServer) reVerifyStateful(tx *tx.Transaction, sender tc.SenderType
 	}
 
 	// Add the rcvTxn to the worker
-	lb := make(tc.LBSlice, s.workersNum)
-	for i := uint8(0); i < s.workersNum; i++ {
+	lb := make(tc.LBSlice, len(s.workers))
+	for i := 0; i < len(s.workers); i++ {
 		entry := tc.LB{Size: len(s.workers[i].pendingTxList),
-			WorkerID: i,
+			WorkerID: uint8(i),
 		}
 		lb[i] = entry
 	}

@@ -176,7 +176,7 @@ func (tpa *TxPoolActor) Receive(context actor.Context) {
 
 		log.Debug("txpool actor Receives getting tx pool req from ", sender)
 
-		res := tpa.server.getTxPool(msg.ByCount)
+		res := tpa.server.getTxPool(msg.ByCount, msg.Height)
 		if sender != nil {
 			sender.Request(&tc.GetTxnPoolRsp{TxnPool: res}, context.Self())
 		}

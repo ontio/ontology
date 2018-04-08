@@ -220,13 +220,7 @@ func (worker *txPoolWorker) reVerifyTx(txHash common.Uint256) {
 }
 
 // sendReq2Validator sends a check request to the validators
-func (worker *txPoolWorker) sendReq2Validator(req *types.CheckTx) (send bool) {
-	defer func() {
-		if recover() != nil {
-			send = false
-		}
-	}()
-
+func (worker *txPoolWorker) sendReq2Validator(req *types.CheckTx) bool {
 	rspPid := worker.server.GetPID(tc.VerifyRspActor)
 	if rspPid == nil {
 		log.Info("VerifyRspActor not exist")
@@ -280,7 +274,7 @@ func (worker *txPoolWorker) verifyStateful(tx *tx.Transaction) {
 
 	retAttr := &tc.TXAttr{
 		Height:  0,
-		Type:    types.Statefull,
+		Type:    types.Stateless,
 		ErrCode: errors.ErrNoError,
 	}
 
