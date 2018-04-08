@@ -43,27 +43,37 @@ type Link struct {
 	ConnectingNodes
 }
 
+//If there is connection return true
 func (link *Link) Valid() bool {
 	return link.conn != nil
 }
 
+//set message channel for link layer
 func (link *Link) SetChan(msgchan chan MsgPayload) {
 	link.recvChan = msgchan
 }
+
+//get address
 func (link *Link) GetAddr() string {
 	return link.addr
 }
+
+//set port number
 func (link *Link) SetPort(p uint16) {
 	link.port = p
 }
+
+//get port number
 func (link *Link) GetPort() uint16 {
 	return link.port
 }
 
+//get connection
 func (link *Link) GetConn() net.Conn {
 	return link.getConn()
 }
 
+//get connection count in total
 func (link *Link) GetConnCnt() uint64 {
 	return link.connCnt
 }
@@ -71,6 +81,7 @@ func (link *Link) getConn() net.Conn {
 	return link.conn
 }
 
+//record latest getting message time
 func (link *Link) UpdateRXTime(t time.Time) {
 	link.time = t
 }
@@ -184,10 +195,12 @@ func (link *Link) closeConn() {
 	link.conn.Close()
 }
 
+//close connection
 func (link *Link) CloseConn() {
 	link.closeConn()
 }
 
+//establishing the connection to remote peers and listening for incoming peers
 func (link *Link) InitConnection() {
 	isTls := Parameters.IsTLS
 	var listener net.Listener
@@ -285,6 +298,7 @@ func parseIPaddr(s string) (string, error) {
 	return s[:i], nil
 }
 
+//record the peer which is going to be dialed and sent version message but not in establish state
 func (link *Link) SetAddrInConnectingList(addr string) (added bool) {
 	link.ConnectingNodes.Lock()
 	defer link.ConnectingNodes.Unlock()
@@ -297,6 +311,7 @@ func (link *Link) SetAddrInConnectingList(addr string) (added bool) {
 	return true
 }
 
+//Remove the peer from connecting list if the connection is established
 func (link *Link) RemoveAddrInConnectingList(addr string) {
 	link.ConnectingNodes.Lock()
 	defer link.ConnectingNodes.Unlock()
@@ -409,11 +424,6 @@ func (link *Link) Tx(buf []byte) error {
 
 func (link *Link) tx(buf []byte) error {
 	log.Debugf("TX buf length: %d\n%x", len(buf), buf)
-
-	//TODO need get peer layer function
-	//if node.GetState() == INACTIVITY {
-	//	return
-	//}
 
 	_, err := link.conn.Write(buf)
 	if err != nil {
