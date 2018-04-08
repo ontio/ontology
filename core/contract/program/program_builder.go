@@ -20,9 +20,9 @@ package program
 
 import (
 	"bytes"
+	"encoding/binary"
 	"math/big"
 
-	"github.com/ontio/ontology/common"
 	vm "github.com/ontio/ontology/vm/neovm"
 )
 
@@ -32,7 +32,7 @@ type ProgramBuilder struct {
 
 func NewProgramBuilder() *ProgramBuilder {
 	return &ProgramBuilder{
-	//TODO: add sync pool for create ProgramBuilder
+		//TODO: add sync pool for create ProgramBuilder
 	}
 }
 
@@ -60,6 +60,13 @@ func (pb *ProgramBuilder) PushNumber(number *big.Int) {
 	pb.PushData(number.Bytes())
 }
 
+func intToBytes(n int) []byte {
+	tmp := int32(n)
+	bytesBuffer := bytes.NewBuffer([]byte{})
+	binary.Write(bytesBuffer, binary.LittleEndian, tmp)
+	return bytesBuffer.Bytes()
+}
+
 func (pb *ProgramBuilder) PushData(data []byte) {
 	if data == nil {
 		return //TODO: add error
@@ -74,12 +81,12 @@ func (pb *ProgramBuilder) PushData(data []byte) {
 		pb.buffer.Write(data[0:len(data)])
 	} else if len(data) < 0x10000 {
 		pb.AddOp(vm.PUSHDATA2)
-		dataByte := common.IntToBytes(len(data))
+		dataByte := intToBytes(len(data))
 		pb.buffer.Write(dataByte[0:2])
 		pb.buffer.Write(data[0:len(data)])
 	} else {
 		pb.AddOp(vm.PUSHDATA4)
-		dataByte := common.IntToBytes(len(data))
+		dataByte := intToBytes(len(data))
 		pb.buffer.Write(dataByte[0:4])
 		pb.buffer.Write(data[0:len(data)])
 	}

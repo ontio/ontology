@@ -19,9 +19,9 @@
 package types
 
 import (
+	"bytes"
 	"math/big"
 
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/vm/neovm/interfaces"
 )
 
@@ -39,7 +39,7 @@ func (this *Interop) Equals(other StackItems) bool {
 	if _, ok := other.(*Interop); !ok {
 		return false
 	}
-	if !common.IsEqualBytes(this._object.ToArray(), other.GetInterface().ToArray()) {
+	if !bytes.Equal(this._object.ToArray(), other.GetInterface().ToArray()) {
 		return false
 	}
 	return true

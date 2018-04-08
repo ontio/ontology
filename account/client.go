@@ -360,7 +360,7 @@ func (cl *ClientImpl) verifyPasswordKey(passwordKey []byte) bool {
 	}
 	passwordHash := sha256.Sum256(passwordKey)
 	///ClearBytes(passwordKey, len(passwordKey))
-	if !common.IsEqualBytes(savedPasswordHash, passwordHash[:]) {
+	if !bytes.Equal(savedPasswordHash, passwordHash[:]) {
 		fmt.Println("error: password wrong")
 		return false
 	}

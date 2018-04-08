@@ -20,6 +20,7 @@ package contract
 
 import (
 	"bytes"
+	"encoding/binary"
 	"io"
 
 	"github.com/ontio/ontology/common"
@@ -79,7 +80,7 @@ func (c *Contract) IsMultiSigContract() bool {
 		break
 	case 2:
 		i++
-		m = common.BytesToInt16(c.Code[i:])
+		m = bytesToInt16(c.Code[i:])
 		i += 2
 		break
 	default:
@@ -113,7 +114,7 @@ func (c *Contract) IsMultiSigContract() bool {
 		break
 	case 2:
 		i++
-		if n != common.BytesToInt16(c.Code[i:]) {
+		if n != bytesToInt16(c.Code[i:]) {
 			return false
 		}
 		i += 2
@@ -135,6 +136,13 @@ func (c *Contract) IsMultiSigContract() bool {
 	}
 
 	return true
+}
+
+func bytesToInt16(b []byte) int16 {
+	bytesBuffer := bytes.NewBuffer(b)
+	var tmp int16
+	binary.Read(bytesBuffer, binary.BigEndian, &tmp)
+	return int16(tmp)
 }
 
 func (c *Contract) GetType() ContractType {
