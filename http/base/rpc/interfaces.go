@@ -330,6 +330,7 @@ func GetContractState(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return responsePack(berr.INVALID_PARAMS, nil)
 	}
+	var contract *payload.DeployCode
 	switch params[0].(type) {
 	case string:
 		str := params[0].(string)
@@ -341,18 +342,32 @@ func GetContractState(params []interface{}) map[string]interface{} {
 		if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
-		contract, err := bactor.GetContractStateFromStore(hash)
+		c, err := bactor.GetContractStateFromStore(hash)
 		if err != nil {
 			log.Errorf("GetContractState GetContractStateFromStore hash:%x error:%s", hash, err)
 			return responsePack(berr.INTERNAL_ERROR, "internal error")
 		}
-		if contract == nil {
+		if c == nil {
 			return responsePack(berr.UNKNWN_CONTRACT, "unknow contract")
 		}
-		return responseSuccess(bcomn.TransPayloadToHex(contract))
+		contract = c
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
+	if len(params) >= 2 {
+		switch (params[1]).(type) {
+		case float64:
+			json := uint32(params[1].(float64))
+			if json == 1 {
+				return responseSuccess(bcomn.TransPayloadToHex(contract))
+			}
+		default:
+			return responsePack(berr.INVALID_PARAMS, "")
+		}
+	}
+	w := bytes.NewBuffer(nil)
+	contract.Serialize(w)
+	return responseSuccess(common.ToHexString(w.Bytes()))
 }
 
 func GetSmartCodeEvent(params []interface{}) map[string]interface{} {

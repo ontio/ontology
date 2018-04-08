@@ -21,113 +21,99 @@ package test
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"testing"
+	"github.com/stretchr/testify/assert"
 )
-
+var addr = "http://127.0.0.1:20334"
 func TestGenerateblocktime(t *testing.T) {
-	resp, err := Request("GET", nil, "http://127.0.0.1:20384/api/v1/node/generateblocktime")
+	resp, err := Request("GET", nil, addr+"/api/v1/node/generateblocktime")
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+		assert.Error(t,err)
 	}
 	r, _ := json.Marshal(resp)
-	fmt.Println(string(r))
+	assert.Contains(t,string(r),"SUCCESS")
 }
 func TestConnectioncount(t *testing.T) {
-	resp, err := Request("GET", nil, "http://127.0.0.1:20384/api/v1/node/connectioncount")
+	resp, err := Request("GET", nil, addr+"/api/v1/node/connectioncount")
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+		assert.Error(t,err)
 	}
 	r, _ := json.Marshal(resp)
-	fmt.Println(string(r))
+	assert.Contains(t,string(r),"SUCCESS")
 }
 func TestGetBlockTxs(t *testing.T) {
-	resp, err := Request("GET", nil, "http://127.0.0.1:20384/api/v1/block/transactions/height/3000")
+	resp, err := Request("GET", nil, addr+"/api/v1/block/transactions/height/3000")
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+		assert.Error(t,err)
 	}
 	r, _ := json.Marshal(resp)
-	fmt.Println(string(r))
+	assert.Contains(t,string(r),"SUCCESS")
 }
 func TestGetBlockByHeight(t *testing.T) {
-	resp, err := Request("GET", nil, "http://127.0.0.1:20384/api/v1/block/details/height/13?raw=0")
+	resp, err := Request("GET", nil, addr+"/api/v1/block/details/height/13?raw=0")
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+		assert.Error(t,err)
 	}
 	r, _ := json.Marshal(resp)
-	fmt.Println(string(r))
+	assert.Contains(t,string(r),"SUCCESS")
 }
 func TestGetBlockByHash(t *testing.T) {
-	resp, err := Request("GET", nil, "http://127.0.0.1:20384/api/v1/block/details/hash/6e2c2afacc0ac9e5699bc7f92194ca37d23340ebfc6c9301aa74dc70eb69c280")
+	resp, err := Request("GET", nil, addr+"/api/v1/block/details/hash/6e2c2afacc0ac9e5699bc7f92194ca37d23340ebfc6c9301aa74dc70eb69c280")
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+		assert.Error(t,err)
 	}
 	r, _ := json.Marshal(resp)
-	fmt.Println(string(r))
+	assert.Contains(t,string(r),"SUCCESS")
 }
 func TestGetBlockHeight(t *testing.T) {
-	resp, err := Request("GET", nil, "http://127.0.0.1:20384/api/v1/block/height")
+	resp, err := Request("GET", nil, addr+"/api/v1/block/height")
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+		assert.Error(t,err)
 	}
 	r, _ := json.Marshal(resp)
-	fmt.Println(string(r))
+	assert.Contains(t,string(r),"SUCCESS")
 }
 func TestGetTx(t *testing.T) {
-	resp, err := Request("GET", nil, "http://127.0.0.1:20384/api/v1/transaction/7372a2ea037c13e9b0d8f020b07b8c041acde3f6e7c8326c8ff638c08120bee9")
+	resp, err := Request("GET", nil, addr+"/api/v1/transaction/7372a2ea037c13e9b0d8f020b07b8c041acde3f6e7c8326c8ff638c08120bee9")
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+		assert.Error(t,err)
 	}
 	r, _ := json.Marshal(resp)
-	fmt.Println(string(r))
+	assert.Contains(t,string(r),"SUCCESS")
 }
 func TestGetContract(t *testing.T) {
-	resp, err := Request("GET", nil, "http://127.0.0.1:20384/api/v1/contract/ff00000000000000000000000000000000000001")
+	resp, err := Request("GET", nil, addr+"/api/v1/contract/ff00000000000000000000000000000000000001")
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+		assert.Error(t,err)
 	}
 	r, _ := json.Marshal(resp)
-	fmt.Println(string(r))
+	assert.Contains(t,string(r),"SUCCESS")
 }
 func TestGetEventByHeight(t *testing.T) {
-	resp, err := Request("GET", nil, "http://127.0.0.1:20384/api/v1/smartcode/event/transactions/11")
+	resp, err := Request("GET", nil, addr+"/api/v1/smartcode/event/transactions/11")
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+		assert.Error(t,err)
 	}
 	r, _ := json.Marshal(resp)
-	fmt.Println(string(r))
+	assert.Contains(t,string(r),"SUCCESS")
 }
 func TestTxBlockHeight(t *testing.T) {
-	resp, err := Request("GET", nil, "http://127.0.0.1:20384/api/v1/block/height/txhash/d0378f808ecc19d61143ade0be0044203666851f9cfe254d748958c790901ca7")
+	resp, err := Request("GET", nil, addr+"/api/v1/block/height/txhash/d0378f808ecc19d61143ade0be0044203666851f9cfe254d748958c790901ca7")
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+		assert.Error(t,err)
 	}
 	r, _ := json.Marshal(resp)
-	fmt.Println(string(r))
+	assert.Contains(t,string(r),"SUCCESS")
 }
 func TestGetStorage(t *testing.T) {
-	resp, err := Request("GET", nil, "http://127.0.0.1:20384/api/v1/storage/ff00000000000000000000000000000000000001/0121dca8ffcba308e697ee9e734ce686f4181658")
+	resp, err := Request("GET", nil, addr+"/api/v1/storage/ff00000000000000000000000000000000000001/0121dca8ffcba308e697ee9e734ce686f4181658")
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+		assert.Error(t,err)
 	}
 	r, _ := json.Marshal(resp)
-	fmt.Println(string(r))
-	//value, _ := common.HexToBytes(resp["Result"].(string))
-	//fmt.Println(new(big.Int).SetBytes(value))
+	assert.Contains(t,string(r),"SUCCESS")
 }
 func TestSendRawTx(t *testing.T) {
 	var req = map[string]interface{}{
@@ -135,15 +121,12 @@ func TestSendRawTx(t *testing.T) {
 		"Version": "1.0.0",
 		"Data":    "",
 	}
-	q, _ := json.Marshal(req)
-	fmt.Println(string(q))
-	resp, err := Request("POST", req, "http://127.0.0.1:20384/api/v1/transaction")
+	resp, err := Request("POST", req, addr+"/api/v1/transaction")
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+		assert.Error(t,err)
 	}
 	r, _ := json.Marshal(resp)
-	fmt.Println(string(r))
+	assert.Contains(t,string(r),"SUCCESS")
 }
 func TestAll(t *testing.T) {
 	TestGenerateblocktime(t)

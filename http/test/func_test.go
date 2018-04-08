@@ -86,57 +86,46 @@ func TestCodeHash(t *testing.T) {
 	code, _ := common.HexToBytes("")
 	vmcode := vmtypes.VmCode{vmtypes.NEOVM, code}
 	codehash := vmcode.AddressFromVmCode()
-	fmt.Println(codehash.ToHexString())
-	os.Exit(0)
+	assert.Contains(t,codehash.ToHexString(),"")
 }
 
 func TestTxDeserialize(t *testing.T) {
 	bys, _ := common.HexToBytes("")
 	var txn types.Transaction
-	if err := txn.Deserialize(bytes.NewReader(bys)); err != nil {
-		fmt.Print("Deserialize Err:", err)
-		os.Exit(0)
-	}
-	fmt.Printf("TxType:%x\n", txn.TxType)
-	os.Exit(0)
+	err := txn.Deserialize(bytes.NewReader(bys));
+	assert.Nil(t, err)
+
+	assert.Contains(t,txn.TxType,0)
 }
 func TestAddress(t *testing.T) {
 	pubkey, _ := common.HexToBytes("120203a4e50edc1e59979442b83f327030a56bffd08c2de3e0a404cefb4ed2cc04ca3e")
 	pk, err := keypair.DeserializePublicKey(pubkey)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
-	}
+	assert.Nil(t, err)
+
 	ui60 := types.AddressFromPubKey(pk)
 	addr := common.ToHexString(ui60[:])
-	fmt.Println(addr)
-	fmt.Println(ui60.ToBase58())
+	assert.Contains(t,addr,0)
 }
 func TestMultiPubKeysAddress(t *testing.T) {
 	pubkey, _ := common.HexToBytes("120203a4e50edc1e59979442b83f327030a56bffd08c2de3e0a404cefb4ed2cc04ca3e")
 	pk, err := keypair.DeserializePublicKey(pubkey)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
-	}
+	assert.Nil(t, err)
+
 	pubkey2, _ := common.HexToBytes("12020225c98cc5f82506fb9d01bad15a7be3da29c97a279bb6b55da1a3177483ab149b")
 	pk2, err := keypair.DeserializePublicKey(pubkey2)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
-	}
+	assert.Nil(t, err)
+
 	ui60, _ := types.AddressFromMultiPubKeys([]keypair.PublicKey{pk, pk2}, 1)
 	addr := common.ToHexString(ui60[:])
-	fmt.Println(addr)
-	fmt.Println(ui60.ToBase58())
+	assert.Contains(t,addr,0)
 }
 
 func TestInvokefunction(t *testing.T) {
 	var funcName string
 	builder := neovm.NewParamsBuilder(new(bytes.Buffer))
 	err := BuildSmartContractParamInter(builder, []interface{}{funcName, "", ""})
-	if err != nil {
-	}
+	assert.Nil(t, err)
+
 	codeParams := builder.ToArray()
 	tx := utils.NewInvokeTransaction(vmtypes.VmCode{
 		VmType: vmtypes.Native,
@@ -146,10 +135,7 @@ func TestInvokefunction(t *testing.T) {
 
 	acct := account.Open(account.WALLET_FILENAME, []byte("passwordtest"))
 	acc, err := acct.GetDefaultAccount()
-	if err != nil {
-		fmt.Println("GetDefaultAccount error:", err)
-		os.Exit(1)
-	}
+	assert.Nil(t, err)
 	hash := tx.Hash()
 	sign, _ := signature.Sign(acc.PrivateKey, hash[:])
 	tx.Sigs = append(tx.Sigs, &ctypes.Sig{
@@ -159,10 +145,8 @@ func TestInvokefunction(t *testing.T) {
 	})
 
 	txbf := new(bytes.Buffer)
-	if err := tx.Serialize(txbf); err != nil {
-		fmt.Println("Serialize transaction error.")
-		os.Exit(1)
-	}
+	err = tx.Serialize(txbf);
+	assert.Nil(t, err)
 	common.ToHexString(txbf.Bytes())
 }
 func BuildSmartContractParamInter(builder *neovm.ParamsBuilder, smartContractParams []interface{}) error {

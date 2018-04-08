@@ -358,6 +358,12 @@ func GetContractState(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil || contract == nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
+	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
+		w := bytes.NewBuffer(nil)
+		contract.Serialize(w)
+		resp["Result"] = common.ToHexString(w.Bytes())
+		return resp
+	}
 	resp["Result"] = bcomn.TransPayloadToHex(contract)
 	return resp
 }

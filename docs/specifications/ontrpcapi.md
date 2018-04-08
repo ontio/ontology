@@ -662,7 +662,7 @@ Request:
 {
   "jsonrpc": "2.0",
   "method": "getcontractstate",
-  "params": ["fff49c809d302a2956e9dc0012619a452d4b846c"],
+  "params": ["fff49c809d302a2956e9dc0012619a452d4b846c",1],
   "id": 1
 }
 ```

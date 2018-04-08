@@ -20,11 +20,10 @@ package test
 
 import (
 	"encoding/json"
-	"fmt"
-	"os"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
-
+var rpcaddr = "http://127.0.0.1:20336"
 func reqPacking(method string, params []interface{}) map[string]interface{} {
 	resp := map[string]interface{}{
 		"jsonrpc": "2.0",
@@ -37,126 +36,94 @@ func reqPacking(method string, params []interface{}) map[string]interface{} {
 
 func TestRpcConnectioncount(t *testing.T) {
 	var req = reqPacking("getblockcount", []interface{}{})
-	q, _ := json.Marshal(req)
-	fmt.Println(string(q))
-	resp, err := Request("POST", req, "http://127.0.0.1:20386")
+	resp, err := Request("POST", req, rpcaddr)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+		assert.Error(t,err)
 	}
 	r, _ := json.Marshal(resp)
-	fmt.Println(string(r))
+	assert.Contains(t,string(r),"SUCCESS")
 }
 
 func TestRpcGetBlockByHeight(t *testing.T) {
 	var req = reqPacking("getblock", []interface{}{1})
-	q, _ := json.Marshal(req)
-	fmt.Println(string(q))
-	resp, err := Request("POST", req, "http://127.0.0.1:20386")
+	resp, err := Request("POST", req, rpcaddr)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+		assert.Error(t,err)
 	}
 	r, _ := json.Marshal(resp)
-	fmt.Println(string(r))
+	assert.Contains(t,string(r),"SUCCESS")
 }
 func TestRpcGetBlockByHash(t *testing.T) {
 	var req = reqPacking("getblock", []interface{}{"ce536bccd56a5a26781b38845ea95551c1a9b622905bde724d0a08fa11c3fb04"})
-	q, _ := json.Marshal(req)
-	fmt.Println(string(q))
-	resp, err := Request("POST", req, "http://127.0.0.1:20386")
+	resp, err := Request("POST", req, rpcaddr)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+		assert.Error(t,err)
 	}
 	r, _ := json.Marshal(resp)
-	fmt.Println(string(r))
+	assert.Contains(t,string(r),"SUCCESS")
 }
 func TestRpcGetBlockHeight(t *testing.T) {
 	var req = reqPacking("getblockcount", []interface{}{})
-	q, _ := json.Marshal(req)
-	fmt.Println(string(q))
-	resp, err := Request("POST", req, "http://127.0.0.1:20386")
+	resp, err := Request("POST", req, rpcaddr)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+		assert.Error(t,err)
 	}
 	r, _ := json.Marshal(resp)
-	fmt.Println(string(r))
+	assert.Contains(t,string(r),"SUCCESS")
 }
 func TestRpcGetTx(t *testing.T) {
 	var req = reqPacking("getrawtransaction", []interface{}{"9661a4ae48b98c92e73ce2f685dfd1dabe878bfa6b3c73cd2892124ea1c9985e"})
-	q, _ := json.Marshal(req)
-	fmt.Println(string(q))
-	resp, err := Request("POST", req, "http://127.0.0.1:20386")
+	resp, err := Request("POST", req, rpcaddr)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+		assert.Error(t,err)
 	}
 	r, _ := json.Marshal(resp)
-	fmt.Println(string(r))
+	assert.Contains(t,string(r),"SUCCESS")
 }
 func TestRpcGetContract(t *testing.T) {
 	var req = reqPacking("getcontractstate", []interface{}{"ff00000000000000000000000000000000000001"})
-	q, _ := json.Marshal(req)
-	fmt.Println(string(q))
-	resp, err := Request("POST", req, "http://127.0.0.1:20386")
+	resp, err := Request("POST", req, rpcaddr)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+		assert.Error(t,err)
 	}
 	r, _ := json.Marshal(resp)
-	fmt.Println(string(r))
+	assert.Contains(t,string(r),"SUCCESS")
 }
 func TestRpcGetEventByHeight(t *testing.T) {
-	var req = reqPacking("getcontractstate", []interface{}{1})
-	q, _ := json.Marshal(req)
-	fmt.Println(string(q))
-	resp, err := Request("POST", req, "http://127.0.0.1:20386")
+	var req = reqPacking("getsmartcodeevent", []interface{}{1})
+	resp, err := Request("POST", req, rpcaddr)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+		assert.Error(t,err)
 	}
 	r, _ := json.Marshal(resp)
-	fmt.Println(string(r))
+	assert.Contains(t,string(r),"SUCCESS")
 }
 func TestRpcTxBlockHeight(t *testing.T) {
 	var req = reqPacking("getblockheightbytxhash", []interface{}{"aa"})
-	q, _ := json.Marshal(req)
-	fmt.Println(string(q))
-	resp, err := Request("POST", req, "http://127.0.0.1:20386")
+	resp, err := Request("POST", req, rpcaddr)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+		assert.Error(t,err)
 	}
 	r, _ := json.Marshal(resp)
-	fmt.Println(string(r))
+	assert.Contains(t,string(r),"SUCCESS")
 }
 func TestRpcGetStorage(t *testing.T) {
 	var req = reqPacking("getstorage", []interface{}{"ff00000000000000000000000000000000000001", "0121dca8ffcba308e697ee9e734ce686f4181658"})
-	q, _ := json.Marshal(req)
-	fmt.Println(string(q))
-	resp, err := Request("POST", req, "http://127.0.0.1:20386")
+	resp, err := Request("POST", req, rpcaddr)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+		assert.Error(t,err)
 	}
 	r, _ := json.Marshal(resp)
-	fmt.Println(string(r))
-	//value, _ := common.HexToBytes(resp["Result"].(string))
-	//fmt.Println(new(big.Int).SetBytes(value))
+	assert.Contains(t,string(r),"SUCCESS")
 }
 func TestRpcSendRawTx(t *testing.T) {
 	var req = reqPacking("sendrawtransaction", []interface{}{""})
-	q, _ := json.Marshal(req)
-	fmt.Println(string(q))
-	resp, err := Request("POST", req, "http://127.0.0.1:20386")
+	resp, err := Request("POST", req, rpcaddr)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+		assert.Error(t,err)
 	}
 	r, _ := json.Marshal(resp)
-	fmt.Println(string(r))
+	assert.Contains(t,string(r),"SUCCESS")
 }
 func TestRpcAll(t *testing.T) {
 	TestRpcConnectioncount(t)
