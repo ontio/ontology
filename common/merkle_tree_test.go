@@ -19,7 +19,7 @@ package common
  */
 import (
 	"crypto/sha256"
-	"fmt"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -36,7 +36,7 @@ func TestHash(t *testing.T) {
 	data = append(data, a3)
 	data = append(data, a4)
 	data = append(data, a5)
-	x, _ := ComputeRoot(data)
-	fmt.Printf("[Root Hash]:%x\n", x)
+	_, err := ComputeRoot(data)
+	assert.Nil(t, err)
 
 }
