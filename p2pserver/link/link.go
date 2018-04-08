@@ -86,6 +86,11 @@ func (link *Link) UpdateRXTime(t time.Time) {
 	link.time = t
 }
 
+//UpdateRXTime return the latest message time
+func (link *Link) GetRXTime() time.Time {
+	return link.time
+}
+
 // Shrinking the buf to the exactly reading in byte length
 //@Return @1 the start header of next message, the left length of the next message
 func unpackNodeBuf(link *Link, buf []byte) {
@@ -325,7 +330,7 @@ func (link *Link) RemoveAddrInConnectingList(addr string) {
 }
 
 //Connect
-func (link *Link) Connect(nodeAddr string, isConsensusChannel bool) error {
+func (link *Link) Connect(nodeAddr string) error {
 	log.Debug()
 
 	if added := link.SetAddrInConnectingList(nodeAddr); added == false {
@@ -361,18 +366,10 @@ func (link *Link) Connect(nodeAddr string, isConsensusChannel bool) error {
 		conn.RemoteAddr().Network()))
 
 	go link.rx()
-
-	//nbrNode.SetState(HAND)
-	//use channel to send message to set, let upper layer state to HAND
 	connectMsg := MsgPayload{
 		Id: CONNECT,
 	}
 	link.recvChan <- connectMsg
-
-	//TODO need get msg layer function
-	//buf, _ := msg.NewVersion(n, isConsensusChannel)
-	//link.tx(buf)
-
 	return nil
 }
 

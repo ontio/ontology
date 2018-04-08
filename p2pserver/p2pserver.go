@@ -6,25 +6,35 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Ontology/account"
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
-	"github.com/Ontology/p2pserver/peer"
 	actor "github.com/Ontology/p2pserver/actor/req"
 	types "github.com/Ontology/p2pserver/common"
+	"github.com/Ontology/p2pserver/peer"
 )
 
 type P2PServer struct {
-	Self          *peer.Peer
-	network       P2P
-	msgRouter     *MessageRouter
+	Self      *peer.Peer
+	network   P2P
+	msgRouter *MessageRouter
+	ReconnectAddrs
+	flightHeights map[uint64][]uint32
 	quitOnline    chan bool
 	quitHeartBeat chan bool
 	quitSyncBlk   chan bool
 }
 
+//reconnectAddrs contain addr need to reconnect
+type ReconnectAddrs struct {
+	sync.RWMutex
+	RetryAddrs map[string]int
+}
+
+//NewServer return a new p2pserver according to the pubkey
 func NewServer(acc *account.Account) (*P2PServer, error) {
 	self, err := peer.NewPeer(acc.PubKey())
 	if err != nil {
@@ -41,6 +51,7 @@ func NewServer(acc *account.Account) (*P2PServer, error) {
 
 	// Fixme: implement the message handler for each msg type
 	//p.msgRouter.RegisterMsgHandler(types.VERSION_TYPE, VersionHandle)
+	p.flightHeights = make(map[uint64][]uint32)
 	p.quitOnline = make(chan bool)
 	p.quitHeartBeat = make(chan bool)
 	p.quitSyncBlk = make(chan bool)
@@ -186,7 +197,47 @@ func (this *P2PServer) reachMinConnection() bool {
 
 //retryInactivePeer try to connect peer in INACTIVITY state
 func (this *P2PServer) retryInactivePeer() {
+	this.Self.Np.Lock()
+	var ip net.IP
+	neighborPeers := make(map[uint64]*peer.Peer)
+	for _, p := range this.Self.Np.List {
+		addr, _ := p.GetAddr16()
+		ip = addr[:]
+		nodeAddr := ip.To16().String() + ":" + strconv.Itoa(int(p.GetSyncPort()))
+		if p.GetSyncState() == types.INACTIVITY {
+			//add addr to retry list
+			this.addToRetryList(nodeAddr)
+			//close legacy node
+			p.CloseSync()
+			p.CloseCons()
+		} else {
+			//add others to tmp node map
+			this.removeFromRetryList(nodeAddr)
+			neighborPeers[p.GetID()] = p
+		}
+	}
 
+	this.Self.Np.List = neighborPeers
+	this.Self.Np.Unlock()
+	//try connect
+	if len(this.RetryAddrs) > 0 {
+		this.ReconnectAddrs.Lock()
+
+		list := make(map[string]int)
+		for addr := range this.RetryAddrs {
+			this.RetryAddrs[addr] = this.RetryAddrs[addr] + 1
+			rand.Seed(time.Now().UnixNano())
+			log.Trace("Try to reconnect peer, peer addr is ", addr)
+			<-time.After(time.Duration(rand.Intn(types.CONN_MAX_BACK)) * time.Millisecond)
+			log.Trace("Back off time`s up, start connect node")
+			this.network.Connect(addr)
+			if this.RetryAddrs[addr] < types.MAX_RETRY_COUNT {
+				list[addr] = this.RetryAddrs[addr]
+			}
+		}
+		this.RetryAddrs = list
+		this.ReconnectAddrs.Unlock()
+	}
 }
 
 //keepOnline make sure seed peer be connected and try connect lost peer
@@ -207,8 +258,9 @@ func (this *P2PServer) keepOnlineService() {
 }
 
 //reqNbrList ask the peer for its neighbor list
-func (this *P2PServer) reqNbrList(*peer.Peer) {
-
+func (this *P2PServer) reqNbrList(p *peer.Peer) {
+	buf, _ := NewAddrReq()
+	go this.Send(p, buf, false)
 }
 
 //heartBeat send ping to nbr peers and check the timeout
@@ -255,7 +307,25 @@ func (this *P2PServer) ping() {
 
 //timeout trace whether some peer be long time no response
 func (this *P2PServer) timeout() {
-
+	peers := this.Self.Np.GetNeighbors()
+	var periodTime uint
+	if config.Parameters.GenBlockTime > config.MINGENBLOCKTIME {
+		periodTime = config.Parameters.GenBlockTime / types.UPDATE_RATE_PER_BLOCK
+	} else {
+		periodTime = config.DEFAULTGENBLOCKTIME / types.UPDATE_RATE_PER_BLOCK
+	}
+	for _, p := range peers {
+		if p.GetSyncState() == types.ESTABLISH {
+			t := p.GetContactTime()
+			if t.Before(time.Now().Add(-1 * time.Second * time.Duration(periodTime) * types.KEEPALIVE_TIMEOUT)) {
+				log.Warn("Keep alive timeout!!!")
+				p.SetSyncState(types.INACTIVITY)
+				p.SetConsState(types.INACTIVITY)
+				p.CloseSync()
+				p.CloseCons()
+			}
+		}
+	}
 }
 
 //syncBlock start sync up hdr & block
@@ -289,7 +359,7 @@ func (this *P2PServer) syncBlockHdr() {
 	if len(peers) == 0 {
 		return
 	}
-	p := this.randPeer(peers)
+	p := randPeer(peers)
 	if p == nil {
 		return
 	}
@@ -304,51 +374,99 @@ func (this *P2PServer) syncBlockHdr() {
 
 //syncBlock send reqblk cmd to peers
 func (this *P2PServer) syncBlock() {
-	headerHeight, _ := actor.GetCurrentHeaderHeight()
+	var dValue int32
+	var reqCnt uint32
+
+	currentHdrHeight, _ := actor.GetCurrentHeaderHeight()
 	currentBlkHeight, _ := actor.GetCurrentBlockHeight()
-	if currentBlkHeight >= headerHeight {
+	if currentBlkHeight >= currentHdrHeight {
 		return
 	}
-	//TODO
-	//var dValue int32
-	//var reqCnt uint32
-	//var i uint32
-	//nodes := this.Self.Np.GetNeighbors()
-	/*
-		for _, n := range nodes {
-			if uint32(n.GetHeight()) <= currentBlkHeight {
-				continue
-			}
-			n.RemoveFlightHeightLessThan(currentBlkHeight)
-			count := types.MAX_REQ_BLK_ONCE - uint32(n.GetFlightHeightCnt())
-			dValue = int32(headerHeight - currentBlkHeight - reqCnt)
-			flights := n.GetFlightHeights()
-			if count == 0 {
-				for _, f := range flights {
-					hash, _ := actor.GetBlockHashByHeight(f)
-					isContainBlock, _ := actor.IsContainBlock(hash)
-					if isContainBlock == false {
-						message.ReqBlkData(n, hash)
+
+	peers := this.Self.Np.GetNeighbors()
+
+	for _, p := range peers {
+		if uint32(p.GetHeight()) <= currentBlkHeight {
+			continue
+		}
+		this.removeFlightHeightLessThan(p, currentBlkHeight)
+		count := types.MAX_REQ_BLK_ONCE - uint32(len(this.flightHeights[p.GetID()]))
+		dValue = int32(currentHdrHeight - currentBlkHeight - reqCnt)
+		flights := this.flightHeights[p.GetID()]
+		if count == 0 {
+			for _, f := range flights {
+				hash, _ := actor.GetBlockHashByHeight(f)
+				isContainBlock, _ := actor.IsContainBlock(hash)
+				if isContainBlock == false {
+					reqBuf, err := NewBlkDataReq(hash)
+					if err != nil {
+						log.Error("syncBlock error:", err)
+						break
+					}
+					err = this.Send(p, reqBuf, false)
+					if err != nil {
+						log.Error("Send error:", err)
+						break
 					}
 				}
-
 			}
-			for i = 1; i <= count && dValue >= 0; i++ {
+
+		} else {
+			for i := uint32(1); i <= count && dValue >= 0; i++ {
 				hash, _ := actor.GetBlockHashByHeight(currentBlkHeight + reqCnt)
 				isContainBlock, _ := actor.IsContainBlock(hash)
 				if isContainBlock == false {
-					message.ReqBlkData(n, hash)
-					n.StoreFlightHeight(currentBlkHeight + reqCnt)
+					reqBuf, err := NewBlkDataReq(hash)
+					if err != nil {
+						log.Error("syncBlock error:", err)
+					}
+					err = this.Send(p, reqBuf, false)
+					if err != nil {
+						log.Error("Send error:", err)
+						break
+					}
+					//store the flghtheight
+					flights = append(flights, currentBlkHeight+reqCnt)
 				}
 				reqCnt++
 				dValue--
 			}
 		}
-	*/
+		this.flightHeights[p.GetID()] = flights
+	}
+
 }
 
-//
-func (this *P2PServer) randPeer(plist []*peer.Peer) *peer.Peer {
+//removeFlightHeightLessThan remove peer`s flightheight less than given height
+func (this *P2PServer) removeFlightHeightLessThan(p *peer.Peer, h uint32) {
+	heights := this.flightHeights[p.GetID()]
+	nCnt := len(heights)
+	i := 0
+
+	for i < nCnt {
+		if heights[i] < h {
+			nCnt--
+			heights[nCnt], heights[i] = heights[i], heights[nCnt]
+		} else {
+			i++
+		}
+	}
+	this.flightHeights[p.GetID()] = heights[:nCnt]
+}
+
+//RemoveFlightHeight remove given height in flights
+func (this *P2PServer) RemoveFlightHeight(p *peer.Peer, height uint32) []uint32 {
+	heights := this.flightHeights[p.GetID()]
+	for i, v := range heights {
+		if v == height {
+			return append(heights[:i], heights[i+1:]...)
+		}
+	}
+	return heights
+}
+
+//randPeer choose a random peer from given peers
+func randPeer(plist []*peer.Peer) *peer.Peer {
 	selectList := []*peer.Peer{}
 	for _, v := range plist {
 		height, _ := actor.GetCurrentHeaderHeight()
@@ -364,4 +482,29 @@ func (this *P2PServer) randPeer(plist []*peer.Peer) *peer.Peer {
 	index := rand.Intn(nCount)
 
 	return selectList[index]
+}
+
+//addToRetryList add retry address to ReconnectAddrs
+func (this *P2PServer) addToRetryList(addr string) {
+	this.ReconnectAddrs.Lock()
+	defer this.ReconnectAddrs.Unlock()
+	if this.RetryAddrs == nil {
+		this.RetryAddrs = make(map[string]int)
+	}
+	if _, ok := this.RetryAddrs[addr]; ok {
+		delete(this.RetryAddrs, addr)
+	}
+	//alway set retry to 0
+	this.RetryAddrs[addr] = 0
+}
+
+//removeFromRetryList remove connected address from ReconnectAddrs
+func (this *P2PServer) removeFromRetryList(addr string) {
+	this.ReconnectAddrs.Lock()
+	defer this.ReconnectAddrs.Unlock()
+	if len(this.RetryAddrs) > 0 {
+		if _, ok := this.RetryAddrs[addr]; ok {
+			delete(this.RetryAddrs, addr)
+		}
+	}
 }

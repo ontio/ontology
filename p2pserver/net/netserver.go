@@ -2,7 +2,6 @@ package netserver
 
 import (
 	"errors"
-	"sync"
 
 	"github.com/Ontology/common/log"
 	types "github.com/Ontology/p2pserver/common"
@@ -13,13 +12,6 @@ import (
 type NetServer struct {
 	Self        *peer.Peer
 	ReceiveChan chan types.MsgPayload
-	reconnectAddrs
-}
-
-//reconnectAddrs contain addr need to reconnect
-type reconnectAddrs struct {
-	sync.RWMutex
-	RetryAddrs map[string]int
 }
 
 //InitListen start listening on the config port and keep on line
@@ -49,7 +41,7 @@ func (n *NetServer) GetId() uint64 {
 
 //GetTime return the last contact time of self peer
 func (n *NetServer) GetTime() int64 {
-	return n.Self.GetTime()
+	return n.Self.GetTimeStamp()
 }
 
 //GetState return the self peer`s state
@@ -103,10 +95,16 @@ func (n *NetServer) IsPeerEstablished(p *peer.Peer) bool {
 
 //Connect begin the connect thread to given adderss
 func (n *NetServer) Connect(addr string) {
-
+	n.Self.SyncLink.Connect(addr)
 }
 
 //Halt stop all net layer logic
 func (n *NetServer) Halt() {
-
+	peers := n.Self.Np.GetNeighbors()
+	for _, p := range peers {
+		p.CloseSync()
+		p.CloseCons()
+	}
+	n.Self.CloseSync()
+	n.Self.CloseCons()
 }

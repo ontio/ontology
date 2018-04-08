@@ -1,21 +1,21 @@
 package p2pserver
 
 import (
-	"net"
 	"bytes"
-	"strconv"
 	"encoding/hex"
-	"fmt"
-	"time"
 	"errors"
+	"fmt"
+	"net"
+	"strconv"
+	"time"
 
-	"github.com/Ontology/p2pserver/peer"
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/core/types"
 	actor "github.com/Ontology/p2pserver/actor/req"
 	msgCommon "github.com/Ontology/p2pserver/common"
 	msg "github.com/Ontology/p2pserver/message"
+	"github.com/Ontology/p2pserver/peer"
 )
 
 func MsgHdrHandle(hdr msg.MsgHdr, peer peer.Peer, p2p P2PServer) error {
@@ -174,7 +174,7 @@ func VersionHandle(version msg.Version, peer peer.Peer, p2p P2PServer) error {
 		if s == msgCommon.INIT {
 			peer.SetConsState(msgCommon.HANDSHAKE)
 			height, _ := actor.GetCurrentBlockHeight()
-			vpl := NewVersionPayload(p2p.Self.GetVersion(), p2p.Self.GetServices(),p2p.Self.GetSyncPort(),
+			vpl := NewVersionPayload(p2p.Self.GetVersion(), p2p.Self.GetServices(), p2p.Self.GetSyncPort(),
 				p2p.Self.GetConsPort(), p2p.Self.GetID(), uint64(height), peer.GetRelay(), true)
 			buf, _ = NewVersion(vpl, p2p.Self.GetPubKey())
 		} else if s == msgCommon.HAND {
@@ -220,7 +220,7 @@ func VersionHandle(version msg.Version, peer peer.Peer, p2p P2PServer) error {
 	if s == msgCommon.INIT {
 		peer.SetSyncState(msgCommon.HANDSHAKE)
 		height, _ := actor.GetCurrentBlockHeight()
-		vpl := NewVersionPayload(p2p.Self.GetVersion(), p2p.Self.GetServices(),p2p.Self.GetSyncPort(),
+		vpl := NewVersionPayload(p2p.Self.GetVersion(), p2p.Self.GetServices(), p2p.Self.GetSyncPort(),
 			p2p.Self.GetConsPort(), p2p.Self.GetID(), uint64(height), peer.GetRelay(), false)
 		buf, _ = NewVersion(vpl, p2p.Self.GetPubKey())
 	} else if s == msgCommon.HAND {
@@ -290,7 +290,7 @@ func VerAckHandle(verAck msg.VerACK, peer peer.Peer, p2p P2PServer) error {
 		consensusPort := peer.GetConsPort()
 		nodeConsensusAddr := addr + ":" + strconv.Itoa(int(consensusPort))
 		//Fix me:
-		go peer.ConsLink.Connect(nodeConsensusAddr, true)
+		go peer.ConsLink.Connect(nodeConsensusAddr)
 	}
 	return nil
 }
@@ -315,7 +315,7 @@ func AddrHandle(addr msg.Addr, peer peer.Peer, p2p P2PServer) error {
 			continue
 		}
 
-		go peer.SyncLink.Connect(address, false)
+		go peer.SyncLink.Connect(address)
 	}
 	return nil
 }

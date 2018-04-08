@@ -36,7 +36,6 @@ type Peer struct {
 	publicKey                *crypto.PubKey
 	chF                      chan func() error // Channel used to operate the node without lock
 	eventQueue                                 // The event queue to notice other modules
-	lastContact              time.Time
 	peerDisconnectSubscriber events.Subscriber
 	notifyFunc               func(v interface{})
 	tryCount                 uint32
@@ -158,12 +157,17 @@ func (p *Peer) SendToCons(buf []byte) {
 func (p *Peer) CloseSync() {
 	p.SetSyncState(types.INACTIVITY)
 	conn := p.SyncLink.GetConn()
-	conn.Close()
+	if conn != nil {
+		conn.Close()
+	}
+
 }
 func (p *Peer) CloseCons() {
 	p.SetConsState(types.INACTIVITY)
 	conn := p.ConsLink.GetConn()
-	conn.Close()
+	if conn != nil {
+		conn.Close()
+	}
 }
 
 func (p *Peer) GetID() uint64 {
@@ -175,8 +179,11 @@ func (p *Peer) GetRelay() bool {
 func (p *Peer) GetServices() uint64 {
 	return p.services
 }
-func (p *Peer) GetTime() int64 {
-	return p.lastContact.UnixNano()
+func (p *Peer) GetTimeStamp() int64 {
+	return p.SyncLink.GetRXTime().UnixNano()
+}
+func (p *Peer) GetContactTime() time.Time {
+	return p.SyncLink.GetRXTime()
 }
 func (p *Peer) GetAddr() string {
 	return p.SyncLink.GetAddr()
