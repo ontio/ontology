@@ -383,7 +383,7 @@ func testModules(t *testing.T, dir string) {
 
 func BenchmarkModules(b *testing.B) {
 	files := []file{}
-	file, err := os.Open(filepath.Join("testdata/spec", "modules.json"))
+	file, err := os.Open(filepath.Join("test_data/spec", "modules.json"))
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -395,7 +395,7 @@ func BenchmarkModules(b *testing.B) {
 	}
 
 	for _, file := range files {
-		fileName := filepath.Join("testdata/spec", file.FileName)
+		fileName := filepath.Join("test_data/spec", file.FileName)
 		testCases := file.Tests
 		b.Run(fileName, func(b *testing.B) {
 			path, err := filepath.Abs(fileName)

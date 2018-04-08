@@ -370,52 +370,6 @@ func TestIfII(t *testing.T) {
 
 }
 
-func TestUI256Addr(t *testing.T) {
-	engine := NewExecutionEngine(nil, nil, nil, nil)
-	//test
-	code, err := ioutil.ReadFile("./test_data2/ui256Test.wasm")
-	if err != nil {
-		fmt.Println("error in read file", err.Error())
-		return
-	}
-	method := "getAddress"
-
-	input := make([]byte, 100)
-	input[0] = byte(len(method))
-	copy(input[1:len(method)+1], []byte(method))
-	input[len(method)+1] = byte(4)
-	input[len(method)+2] = byte(8)
-	input[len(method)+3] = byte(8)
-	input[len(method)+4] = byte(8)
-	input[len(method)+5] = byte(8)
-
-	s := "abcdefghijklmnopqrstuvwxyz123456"
-	bytes := []byte(s)
-	u256, _ := common.Uint256ParseFromBytes(bytes)
-
-	fmt.Println(u256.ToString())
-
-	copy(input[len(method)+6:], bytes)
-
-	fmt.Printf("bytes is %v\n", bytes)
-	//fmt.Printf("before call ,vm.mem len is %d\n", len(engine.vm.memory.Memory))
-	res, err :=  engine.Call(common.Address{}, code, "",input,0)
-	if err != nil {
-		fmt.Println("call error!", err.Error())
-	}
-	fmt.Printf("res:%v\n", res)
-	fmt.Println(engine.vm.memory)
-	addr, _ := common.Uint256ParseFromBytes(engine.vm.memory.Memory[:32])
-	fmt.Printf("after bytes:%v\n", engine.vm.memory.Memory[:32])
-	fmt.Println("afterf:", addr.ToString())
-	if addr.ToString() != u256.ToString() {
-		t.Fatal("the address before is not same as after!")
-	}
-
-	if binary.LittleEndian.Uint32(res) != uint32(0) {
-		t.Error("the result should be 0")
-	}
-}
 
 func TestStrings(t *testing.T) {
 	engine := NewExecutionEngine(nil, nil, nil, nil)
@@ -548,52 +502,9 @@ func TestSimplestruct2(t *testing.T) {
 	if string(engine.vm.memory.Memory[idx:idx+length]) != "jack" {
 		t.Fatal("the res should be jack")
 	}
-	/*	if binary.LittleEndian.Uint32(res) != 185 {
-		t.Fatal("the res should be 185")
-	}*/
+
 
 }
-
-//FIXME failed test
-/*
-
-func TestComplexstruct(t *testing.T) {
-	engine := NewExecutionEngine(nil,nil,nil,nil,"test")
-	//test
-	code, err := ioutil.ReadFile("./test_data2/complexStruct.wasm")
-	if err != nil {
-		fmt.Println("error in read file", err.Error())
-		return
-	}
-
-	type acct struct{
-		Acct1 []int
-		Acct2 []int
-
-	}
-
-	s := acct{Acct1:[]int{10,20,30,40}}
-
-	input := make([]interface{}, 3)
-	input[0] = "sumAcct1"
-	input[1] = s
-	input[2] = 4
-
-	fmt.Printf("input is %v\n", input)
-
-	res, err := engine.CallInf(common.Address{}, code, input,nil)
-	if err != nil {
-		fmt.Println("call error!", err.Error())
-	}
-	fmt.Printf("res:%v\n", res)
-	fmt.Println(engine.vm.memory.Memory[:20])
-	tmp:= binary.LittleEndian.Uint32(engine.vm.memory.Memory[0:4])
-	fmt.Println(engine.vm.memory.Memory[tmp:tmp+20])
-	if binary.LittleEndian.Uint32(res) != 100 {
-		t.Fatal("the res should be 100")
-	}
-}
-*/
 
 func TestFloatSum(t *testing.T) {
 	engine := NewExecutionEngine(nil, nil, nil, nil)

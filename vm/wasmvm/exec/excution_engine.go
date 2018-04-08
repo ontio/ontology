@@ -21,7 +21,6 @@ package exec
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -34,10 +33,12 @@ import (
 	"github.com/ontio/ontology/vm/wasmvm/validate"
 	"github.com/ontio/ontology/vm/wasmvm/wasm"
 	"github.com/ontio/ontology/smartcontract/types"
+	"github.com/ontio/ontology/errors"
 )
 
 const (
 	CONTRACT_METHOD_NAME = "invoke"
+	CONTRACT_INIT_METHOD = "init"
 	VM_STACK_DEPTH       = 10
 )
 
@@ -49,7 +50,7 @@ type vmstack struct {
 
 func (s *vmstack) push(vm *VM) error {
 	if s.top == len(s.stack) {
-		return errors.New(fmt.Sprintf("[vm stack push] stack is full, only support %d contracts calls", VM_STACK_DEPTH))
+		return errors.NewErr(fmt.Sprintf("[vm stack push] stack is full, only support %d contracts calls", VM_STACK_DEPTH))
 	}
 	s.stack[s.top+1] = vm
 	s.top += 1
@@ -58,7 +59,7 @@ func (s *vmstack) push(vm *VM) error {
 
 func (s *vmstack) pop() (*VM, error) {
 	if s.top == 0 {
-		return nil, errors.New("[vm stack pop] stack is empty")
+		return nil, errors.NewErr("[vm stack pop] stack is empty")
 	}
 
 	retvm := s.stack[s.top]
@@ -137,7 +138,7 @@ func (e *ExecutionEngine) CallInf(caller common.Address,
 	//2. read module
 	m, err := wasm.ReadModule(bf, importer)
 	if err != nil {
-		return nil, errors.New("Verify wasm failed!" + err.Error())
+		return nil, errors.NewErr("Verify wasm failed!" + err.Error())
 	}
 
 	//3. verify the module
@@ -146,7 +147,7 @@ func (e *ExecutionEngine) CallInf(caller common.Address,
 	//4. check the export
 	//every wasm should have at least 1 export
 	if m.Export == nil {
-		return nil, errors.New("No export in wasm!")
+		return nil, errors.NewErr("No export in wasm!")
 	}
 
 	vm, err := NewVM(m)
@@ -168,7 +169,7 @@ func (e *ExecutionEngine) CallInf(caller common.Address,
 
 	entry, ok := m.Export.Entries[methodName]
 	if ok == false {
-		return nil, errors.New("Method:" + methodName + " does not exist!")
+		return nil, errors.NewErr("Method:" + methodName + " does not exist!")
 	}
 	//get entry index
 	index := int64(entry.Index)
@@ -181,7 +182,7 @@ func (e *ExecutionEngine) CallInf(caller common.Address,
 
 	paramlength := len(input) - 1
 	if len(ftype.ParamTypes) != paramlength {
-		return nil, errors.New("parameter count is not right")
+		return nil, errors.NewErr("parameter count is not right")
 	}
 	params := make([]uint64, paramlength)
 	for i, param := range input[1:] {
@@ -272,7 +273,7 @@ func (e *ExecutionEngine) CallInf(caller common.Address,
 
 	res, err := vm.ExecCode(false, index, params...)
 	if err != nil {
-		return nil, errors.New("ExecCode error!" + err.Error())
+		return nil, errors.NewErr("ExecCode error!" + err.Error())
 	}
 
 	if len(ftype.ReturnTypes) == 0 {
@@ -289,7 +290,7 @@ func (e *ExecutionEngine) CallInf(caller common.Address,
 	case wasm.ValueTypeF64:
 		return util.Float64ToBytes(res.(float64)), nil
 	default:
-		return nil, errors.New("the return type is not supported")
+		return nil, errors.NewErr("the return type is not supported")
 	}
 
 	return nil, nil
@@ -313,26 +314,63 @@ func (e *ExecutionEngine) Create(caller common.Address, code []byte) ([]byte, er
 func (e *ExecutionEngine) Call(caller common.Address,
 								code []byte,
 								actionName string,
-								input []byte, ver byte) (returnbytes []byte, er error) {
+								input []byte,
+								ver byte) (returnbytes []byte, er error) {
 
 	//catch the panic to avoid crash the whole node
 	defer func() {
 		if err := recover(); err != nil {
 			returnbytes = nil
-			er = errors.New("[Call] error happened while call wasmvm")
+			er = errors.NewErr("[Call] error happened while call wasmvm")
 		}
 	}()
 
+/*	if actionName == CONTRACT_INIT_METHOD{
+		return nil,errors.NewErr("[Call] init method can only be called in Deployment")
+	}*/
+	return e.call(caller,code,input,actionName,ver)
+
+}
+
+
+//Call init method on deployment
+// caller      common.Address :call address
+// code        []byte         :wasm smart contract code
+// input       []byte         :arguments
+// ver         byte           :contract version  require > 0 for production
+//TODO TBD whether we need to call init method after deploy automatically
+func (e *ExecutionEngine) InitCall(caller common.Address,
+									code []byte,
+									input []byte,
+									ver byte) (returnbytes []byte, er error) {
+
+	//catch the panic to avoid crash the whole node
+	defer func() {
+		if err := recover(); err != nil {
+			returnbytes = nil
+			er = errors.NewErr("[Call] error happened while call wasmvm")
+		}
+	}()
+
+	return e.call(caller,code,input,CONTRACT_INIT_METHOD,ver)
+
+}
+
+// call to execute wasm vm
+func (e *ExecutionEngine)call(caller common.Address,
+							code []byte,
+							input []byte,
+							actionName string,
+							ver byte)(returnbytes []byte, er error){
 	if ver > 0 { //production contract version
 		methodName := CONTRACT_METHOD_NAME //fix to "invoke"
-
 		//1. read code
 		bf := bytes.NewBuffer(code)
 
 		//2. read module
 		m, err := wasm.ReadModule(bf, importer)
 		if err != nil {
-			return nil, errors.New("[Call]Verify wasm failed!" + err.Error())
+			return nil, errors.NewErr("[Call]Verify wasm failed!" + err.Error())
 		}
 		//3. verify the module
 		//already verified in step 2
@@ -340,7 +378,7 @@ func (e *ExecutionEngine) Call(caller common.Address,
 		//4. check the export
 		//every wasm should have at least 1 export
 		if m.Export == nil {
-			return nil, errors.New("[Call]No export in wasm!")
+			return nil, errors.NewErr("[Call]No export in wasm!")
 		}
 
 		vm, err := NewVM(m)
@@ -363,7 +401,7 @@ func (e *ExecutionEngine) Call(caller common.Address,
 		entry, ok := m.Export.Entries[methodName]
 
 		if ok == false {
-			return nil, errors.New("[Call]Method:" + methodName + " does not exist!")
+			return nil, errors.NewErr("[Call]Method:" + methodName + " does not exist!")
 		}
 		//get entry index
 		index := int64(entry.Index)
@@ -394,7 +432,7 @@ func (e *ExecutionEngine) Call(caller common.Address,
 
 		res, err := vm.ExecCode(false, index, params...)
 		if err != nil {
-			return nil, errors.New("[Call]ExecCode error!" + err.Error())
+			return nil, errors.NewErr("[Call]ExecCode error!" + err.Error())
 		}
 
 		if len(ftype.ReturnTypes) == 0 {
@@ -411,7 +449,7 @@ func (e *ExecutionEngine) Call(caller common.Address,
 		case wasm.ValueTypeF64:
 			return util.Float64ToBytes(res.(float64)), nil
 		default:
-			return nil, errors.New("[Call]the return type is not supported")
+			return nil, errors.NewErr("[Call]the return type is not supported")
 		}
 
 	} else {
@@ -427,7 +465,7 @@ func (e *ExecutionEngine) Call(caller common.Address,
 		//2. read module
 		m, err := wasm.ReadModule(bf, importer)
 		if err != nil {
-			return nil, errors.New("[Call]Verify wasm failed!" + err.Error())
+			return nil, errors.NewErr("[Call]Verify wasm failed!" + err.Error())
 		}
 
 		//3. verify the module
@@ -436,7 +474,7 @@ func (e *ExecutionEngine) Call(caller common.Address,
 		//4. check the export
 		//every wasm should have at least 1 export
 		if m.Export == nil {
-			return nil, errors.New("[Call]No export in wasm!")
+			return nil, errors.NewErr("[Call]No export in wasm!")
 		}
 
 		vm, err := NewVM(m)
@@ -448,11 +486,9 @@ func (e *ExecutionEngine) Call(caller common.Address,
 		}
 		e.vm = vm
 		vm.Engine = e
-		//todo add message from input
-		//vm.SetMessage(message)
 		entry, ok := m.Export.Entries[methodName]
 		if ok == false {
-			return nil, errors.New("[Call]Method:" + methodName + " does not exist!")
+			return nil, errors.NewErr("[Call]Method:" + methodName + " does not exist!")
 		}
 		//get entry index
 		index := int64(entry.Index)
@@ -471,12 +507,12 @@ func (e *ExecutionEngine) Call(caller common.Address,
 		}
 
 		if len(params) != len(ftype.ParamTypes) {
-			return nil, errors.New("[Call]Parameters count is not right")
+			return nil, errors.NewErr("[Call]Parameters count is not right")
 		}
 
 		res, err := vm.ExecCode(false, index, params...)
 		if err != nil {
-			return nil, errors.New("[Call]ExecCode error!" + err.Error())
+			return nil, errors.NewErr("[Call]ExecCode error!" + err.Error())
 		}
 
 		if len(ftype.ReturnTypes) == 0 {
@@ -493,12 +529,12 @@ func (e *ExecutionEngine) Call(caller common.Address,
 		case wasm.ValueTypeF64:
 			return util.Float64ToBytes(res.(float64)), nil
 		default:
-			return nil, errors.New("[Call]the return type is not supported")
+			return nil, errors.NewErr("[Call]the return type is not supported")
 		}
 
 	}
-
 }
+
 
 //FIXME NOT IN USE BUT DON'T DELETE IT
 //current we only support the ONT SYSTEM module import
@@ -506,7 +542,7 @@ func (e *ExecutionEngine) Call(caller common.Address,
 func importer(name string) (*wasm.Module, error) {
 	//TODO add the path into config file
 	if name != "ONT" {
-		return nil, errors.New("import [" + name + "] is not supported! ")
+		return nil, errors.NewErr("import [" + name + "] is not supported! ")
 	}
 	f, err := os.Open(name + ".wasm")
 	if err != nil {
@@ -529,13 +565,13 @@ func importer(name string) (*wasm.Module, error) {
 func getCallMethodName(input []byte) (string, error) {
 
 	if len(input) <= 1 {
-		return "", errors.New("[Call]input format error!")
+		return "", errors.NewErr("[Call]input format error!")
 	}
 
 	length := int(input[0])
 
 	if length > len(input[1:]) {
-		return "", errors.New("[Call]input method name length error!")
+		return "", errors.NewErr("[Call]input method name length error!")
 	}
 
 	return string(input[1 : length+1]), nil
@@ -558,7 +594,7 @@ func getParams(input []byte) ([]uint64, error) {
 		pl := int(paramlengthSlice[i])
 
 		if (i+1)*pl > len(paramSlice) {
-			return nil, errors.New("[Call]get param failed!")
+			return nil, errors.NewErr("[Call]get param failed!")
 		}
 		param := paramSlice[i*pl : (i+1)*pl]
 

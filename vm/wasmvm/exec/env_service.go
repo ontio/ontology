@@ -64,7 +64,6 @@ func NewInteropService() *InteropService {
 	service.Register("arrayLen", arrayLen)
 	service.Register("memcpy", memcpy)
 	service.Register("memset", memset)
-	service.Register("read_message", readMessage)
 
 	//todo add basic apis
 	service.Register("Atoi", strToInt)

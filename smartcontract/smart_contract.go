@@ -114,8 +114,8 @@ func (this *SmartContract) Execute() error {
 			return err
 		}
 	case stypes.WASMVM:
-		//todo refactor following code to match Neovm
-		stateMachine := wasm.NewWasmStateMachine(this.Config.Store, this.Config.DBCache, this.Config.Time)
+		stateMachine := wasm.NewWasmStateMachine(this.Config.Store, this.Config.DBCache,  this.Config.Time)
+
 		engine := exec.NewExecutionEngine(
 			this.Config.Tx,
 			new(util.ECDsaCrypto),
@@ -144,7 +144,7 @@ func (this *SmartContract) Execute() error {
 			return err
 		}
 
-		//todo how to deal with the result???
+		//get the return message
 		_, err = engine.GetVM().GetPointerMemory(uint64(binary.LittleEndian.Uint32(res)))
 		if err != nil {
 			return err
