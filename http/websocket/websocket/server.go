@@ -29,6 +29,7 @@ import (
 	"time"
 
 	cfg "github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	Err "github.com/ontio/ontology/http/base/error"
 	"github.com/ontio/ontology/http/base/rest"
@@ -161,7 +162,7 @@ func (self *WsServer) registryMethod() {
 		"getblockheight":         {handler: rest.GetBlockHeight},
 		"getgenerateblocktime":   {handler: rest.GetGenerateBlockTime},
 		"gettransaction":         {handler: rest.GetTransactionByHash},
-		"sendrawtransaction":     {handler: rest.SendRawTransaction},
+		"sendrawtransaction":     {handler: rest.SendRawTransaction, pushFlag: true},
 		"heartbeat":              {handler: heartbeat},
 		"getstorage":             {handler: rest.GetStorage},
 
@@ -293,20 +294,30 @@ func (self *WsServer) OnDataHandle(curSession *session.Session, bysMsg []byte, r
 	if raw, ok := req["Raw"].(float64); ok {
 		req["Raw"] = strconv.FormatInt(int64(raw), 10)
 	}
-
-	req["Userid"] = curSession.GetSessionId()
 	resp := action.handler(req)
 	resp["Action"] = actionName
-	if txHash, ok := resp["Result"].(string); ok && action.pushFlag {
-		self.Lock()
-		defer self.Unlock()
-		self.TxHashMap[txHash] = curSession.GetSessionId()
+	resp["Id"] = req["Id"]
+	if action.pushFlag {
+		if error, _ := resp["Error"].(int64); ok && error == 0 {
+			if txHash, ok := resp["Result"].(string); ok && len(txHash) == common.UINT256_SIZE*2 {
+				//delete timeover txhashs
+				txhashs := curSession.RemoveTimeoverTxHashes()
+				self.Lock()
+				defer self.Unlock()
+				for _, v := range txhashs {
+					delete(self.TxHashMap, v.TxHash)
+				}
+				//add new txhash
+				self.TxHashMap[txHash] = curSession.GetSessionId()
+				curSession.AppendTxHash(txHash)
+			}
+		}
 	}
 	curSession.Send(marshalResp(resp))
 
 	return true
 }
-func (self *WsServer) SetTxHashMap(txhash string, sessionid string) {
+func (self *WsServer) InsertTxHashMap(txhash string, sessionid string) {
 	self.Lock()
 	defer self.Unlock()
 	self.TxHashMap[txhash] = sessionid

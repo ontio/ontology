@@ -25,23 +25,31 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/pborman/uuid"
+	cfg "github.com/ontio/ontology/common/config"
 )
+
+type TxHashInfo struct {
+	TxHash    string
+	StartTime int64
+}
 
 type Session struct {
 	sync.Mutex
 	mConnection *websocket.Conn
 	nLastActive int64
 	sessionId   string
+	TxHashArr   []TxHashInfo
 }
 
 const SESSION_TIMEOUT int64 = 300
 
-func newSession(wsConn *websocket.Conn)  *Session {
+func newSession(wsConn *websocket.Conn) *Session {
 	sessionid := uuid.NewUUID().String()
 	session := &Session{
 		mConnection: wsConn,
 		nLastActive: time.Now().Unix(),
-		sessionId:  sessionid,
+		sessionId:   sessionid,
+		TxHashArr:   []TxHashInfo{},
 	}
 	return session
 }
@@ -86,4 +94,26 @@ func (self *Session) SessionTimeoverCheck() bool {
 		return true
 	}
 	return false
+}
+
+func (self *Session) RemoveTimeoverTxHashes() (remove []TxHashInfo) {
+	self.Lock()
+	defer self.Unlock()
+	index := len(self.TxHashArr)
+	now := time.Now().Unix()
+	for k, v := range self.TxHashArr {
+		if ( now - v.StartTime) < int64(cfg.DEFAULT_GEN_BLOCK_TIME*10) {
+			index = k
+			break
+		}
+	}
+	remove = self.TxHashArr[0:index]
+	self.TxHashArr = self.TxHashArr[index:]
+	return remove
+}
+
+func (self *Session) AppendTxHash(txhash string) {
+	self.Lock()
+	defer self.Unlock()
+	self.TxHashArr = append(self.TxHashArr, TxHashInfo{txhash, time.Now().Unix()})
 }
