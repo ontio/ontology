@@ -31,25 +31,15 @@ type RxBuf struct {
 	len int
 }
 
-type ConsensusLink struct {
-	consensusPort  uint16
-	consensusConn  net.Conn // Connect socket with the peer node
-	consensusRxBuf RxBuf
-}
-
 type Link struct {
 	//Todo Add lock here
-	addr    string   // The address of the node
-	conn    net.Conn // Connect socket with the peer node
-	port    uint16   // The server port of the node
-	rxBuf   RxBuf
-	time    time.Time // The latest time the node activity
-	connCnt uint64    // The connection count
-	//ConsensusLink
-	consensusPort  uint16
-	consensusConn  net.Conn // Connect socket with the peer node
-	consensusRxBuf RxBuf
-	recvChan       chan MsgPayload
+	addr     string   // The address of the node
+	conn     net.Conn // Connect socket with the peer node
+	port     uint16   // The server port of the node
+	rxBuf    RxBuf
+	time     time.Time // The latest time the node activity
+	connCnt  uint64    // The connection count
+	recvChan chan MsgPayload
 	ConnectingNodes
 }
 
@@ -69,35 +59,16 @@ func (link *Link) SetPort(p uint16) {
 func (link *Link) GetPort() uint16 {
 	return link.port
 }
-func (link *Link) GetConsensusPort() uint16 {
-	return link.consensusPort
-}
-func (link *Link) SetConsensusPort(p uint16) {
-	link.consensusPort = p
-}
+
 func (link *Link) GetConn() net.Conn {
-	return link.getconn(false)
+	return link.getConn()
 }
 
-func (link *Link) GetConsensusConn() net.Conn {
-	return link.getconn(true)
-}
-func (link *Link) getConsensusConn() net.Conn {
-	return link.getconn(true)
-}
-
-func (link *Link) SetConsensusConn(conn net.Conn) {
-	link.consensusConn = conn
-}
-func (link *Link) GetConnCnt() uint64{
+func (link *Link) GetConnCnt() uint64 {
 	return link.connCnt
 }
-func (link *Link) getconn(isConsensusChannel bool) net.Conn {
-	if isConsensusChannel {
-		return link.consensusConn
-	} else {
-		return link.conn
-	}
+func (link *Link) getConn() net.Conn {
+	return link.conn
 }
 
 func (link *Link) UpdateRXTime(t time.Time) {
@@ -106,7 +77,7 @@ func (link *Link) UpdateRXTime(t time.Time) {
 
 // Shrinking the buf to the exactly reading in byte length
 //@Return @1 the start header of next message, the left length of the next message
-func unpackNodeBuf(link *Link, buf []byte, isConsensusChannel bool) {
+func unpackNodeBuf(link *Link, buf []byte) {
 	var msgLen int
 	var msgBuf []byte
 
@@ -115,11 +86,7 @@ func unpackNodeBuf(link *Link, buf []byte, isConsensusChannel bool) {
 	}
 
 	var rxBuf *RxBuf
-	if isConsensusChannel {
-		rxBuf = &link.consensusRxBuf
-	} else {
-		rxBuf = &link.rxBuf
-	}
+	rxBuf = &link.rxBuf
 
 	if rxBuf.len == 0 {
 		length := MSG_HDR_LEN - len(rxBuf.p)
@@ -171,23 +138,21 @@ func unpackNodeBuf(link *Link, buf []byte, isConsensusChannel bool) {
 		rxBuf.p = nil
 		rxBuf.len = 0
 
-		unpackNodeBuf(link, buf[msgLen:], isConsensusChannel)
+		unpackNodeBuf(link, buf[msgLen:])
 	}
 }
 
-func (link *Link) rx(isConsensusChannel bool) {
-	conn := link.getconn(isConsensusChannel)
+func (link *Link) rx() {
+	conn := link.getConn()
 	buf := make([]byte, MAX_BUF_LEN)
 	for {
 		len, err := conn.Read(buf[0:(MAX_BUF_LEN - 1)])
 		buf[MAX_BUF_LEN-1] = 0 //Prevent overflow
 		switch err {
 		case nil:
-			if !isConsensusChannel {
-				t := time.Now()
-				link.UpdateRXTime(t)
-			}
-			unpackNodeBuf(link, buf[0:len], isConsensusChannel)
+			t := time.Now()
+			link.UpdateRXTime(t)
+			unpackNodeBuf(link, buf[0:len])
 		case io.EOF:
 			//log.Error("Rx io.EOF: ", err, ", node id is ", node.GetID())
 			goto DISCONNECT
@@ -198,22 +163,12 @@ func (link *Link) rx(isConsensusChannel bool) {
 	}
 
 DISCONNECT:
-	if isConsensusChannel {
-		//node.local.eventQueue.GetEvent("disconnect").Notify(events.EventNodeConsensusDisconnect, node)
-		//use channel to send message
-		disconnectMsg := MsgPayload{
-			Id: DISCONNECT,
-		}
-		link.recvChan <- disconnectMsg
-
-	} else {
-		//node.local.eventQueue.GetEvent("disconnect").Notify(events.EventNodeDisconnect, node)
-		//use channel to send message
-		disconnectMsg := MsgPayload{
-			Id: DISCONNECT,
-		}
-		link.recvChan <- disconnectMsg
+	//node.local.eventQueue.GetEvent("disconnect").Notify(events.EventNodeConsensusDisconnect, node)
+	//use channel to send message
+	disconnectMsg := MsgPayload{
+		Id: DISCONNECT,
 	}
+	link.recvChan <- disconnectMsg
 }
 
 func printIPAddr() {
@@ -225,25 +180,17 @@ func printIPAddr() {
 		}
 	}
 }
-func (link *Link) closeConn(isConsensusChannel bool) {
-	if !isConsensusChannel {
-		link.conn.Close()
-	} else {
-		link.consensusConn.Close()
-	}
+func (link *Link) closeConn() {
+	link.conn.Close()
 }
 
 func (link *Link) CloseConn() {
-	link.closeConn(false)
-}
-
-func (link *Link) CloseConsensusConn() {
-	link.closeConn(true)
+	link.closeConn()
 }
 
 func (link *Link) InitConnection() {
 	isTls := Parameters.IsTLS
-	var listener, listenerConsensus net.Listener
+	var listener net.Listener
 	var err error
 	if isTls {
 		listener, err = initTlsListen()
@@ -252,18 +199,17 @@ func (link *Link) InitConnection() {
 			return
 		}
 	} else {
-		listener, listenerConsensus, err = initNonTlsListen()
+		listener, err = initNonTlsListen()
 		if err != nil {
 			log.Error("non TLS listen failed")
 			return
 		}
 	}
-	go link.waitForConnect(listener, false)
-	go link.waitForConnect(listenerConsensus, true)
+	go link.waitForConnect(listener)
 	//TODO Release the net listen resouce
 }
 
-func (link *Link) waitForConnect(listener net.Listener, isConsensusChannel bool) {
+func (link *Link) waitForConnect(listener net.Listener) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -274,29 +220,21 @@ func (link *Link) waitForConnect(listener net.Listener, isConsensusChannel bool)
 
 		link.connCnt++
 
-		if !isConsensusChannel {
-			link.addr, err = parseIPaddr(conn.RemoteAddr().String())
-			link.conn = conn
-		} else {
-			link.consensusConn = conn
-		}
-		go link.rx(isConsensusChannel)
+		link.addr, err = parseIPaddr(conn.RemoteAddr().String())
+		link.conn = conn
+
+		go link.rx()
 	}
 }
 
-func initNonTlsListen() (net.Listener, net.Listener, error) {
+func initNonTlsListen() (net.Listener, error) {
 	log.Debug()
 	listener, err := net.Listen("tcp", ":"+strconv.Itoa(int(Parameters.NodePort)))
 	if err != nil {
 		log.Error("Error listening\n", err.Error())
-		return nil, nil, err
+		return nil, err
 	}
-	listenerConsensus, err := net.Listen("tcp", ":"+strconv.Itoa(int(Parameters.NodeConsensusPort)))
-	if err != nil {
-		log.Error("Error listening\n", err.Error())
-		return nil, nil, err
-	}
-	return listener, listenerConsensus, nil
+	return listener, nil
 }
 
 func initTlsListen() (net.Listener, error) {
@@ -371,18 +309,12 @@ func (link *Link) RemoveAddrInConnectingList(addr string) {
 	link.ConnectingAddrs = addrs
 }
 
+//Connect
 func (link *Link) Connect(nodeAddr string, isConsensusChannel bool) error {
 	log.Debug()
 
-	//TODO consensusChannel judgement
-	if !isConsensusChannel {
-		//TODO rewrite IsAddrInNbrList function
-		//if n.IsAddrInNbrList(nodeAddr) == true {
-		//	return nil
-		//}
-		if added := link.SetAddrInConnectingList(nodeAddr); added == false {
-			return errors.New("node exist in connecting list, cancel")
-		}
+	if added := link.SetAddrInConnectingList(nodeAddr); added == false {
+		return errors.New("node exist in connecting list, cancel")
 	}
 
 	isTls := Parameters.IsTLS
@@ -406,38 +338,25 @@ func (link *Link) Connect(nodeAddr string, isConsensusChannel bool) error {
 	}
 	link.connCnt++
 
-	if isConsensusChannel {
-		//TODO localnode is being or not
-		link.consensusConn = conn
-	} else {
-		link.conn = conn
-		link.addr, err = parseIPaddr(conn.RemoteAddr().String())
-	}
+	link.conn = conn
+	link.addr, err = parseIPaddr(conn.RemoteAddr().String())
 
 	log.Info(fmt.Sprintf("Connect node %s connect with %s with %s",
 		conn.LocalAddr().String(), conn.RemoteAddr().String(),
 		conn.RemoteAddr().Network()))
 
-	go link.rx(isConsensusChannel)
+	go link.rx()
 
-	if isConsensusChannel {
-		//nbrNode.SetConsensusState(HAND)
-		//use channel to send message, let upper layer state to HAND
-		connectMsg := MsgPayload{
-			Id: CONNECT,
-		}
-		link.recvChan <- connectMsg
-	} else {
-		//nbrNode.SetState(HAND)
-		//use channel to send message to set, let upper layer state to HAND
-		connectMsg := MsgPayload{
-			Id: CONNECT,
-		}
-		link.recvChan <- connectMsg
+	//nbrNode.SetState(HAND)
+	//use channel to send message to set, let upper layer state to HAND
+	connectMsg := MsgPayload{
+		Id: CONNECT,
 	}
+	link.recvChan <- connectMsg
+
 	//TODO need get msg layer function
 	//buf, _ := msg.NewVersion(n, isConsensusChannel)
-	//link.tx(buf, isConsensusChannel)
+	//link.tx(buf)
 
 	return nil
 }
@@ -451,6 +370,7 @@ func NonTLSDial(nodeAddr string) (net.Conn, error) {
 	return conn, nil
 }
 
+//Dial with TLS
 func TLSDial(nodeAddr string) (net.Conn, error) {
 	CertPath := Parameters.CertPath
 	KeyPath := Parameters.KeyPath
@@ -484,44 +404,28 @@ func TLSDial(nodeAddr string) (net.Conn, error) {
 }
 
 func (link *Link) Tx(buf []byte) error {
-	return link.tx(buf, false)
+	return link.tx(buf)
 }
 
-func (link *Link) ConsensusTx(buf []byte) error {
-	return link.tx(buf, true)
-}
-
-func (link *Link) tx(buf []byte, isConsensusChannel bool) error {
+func (link *Link) tx(buf []byte) error {
 	log.Debugf("TX buf length: %d\n%x", len(buf), buf)
 
 	//TODO need get peer layer function
 	//if node.GetState() == INACTIVITY {
 	//	return
 	//}
-	if isConsensusChannel {
-		_, err := link.consensusConn.Write(buf)
-		if err != nil {
-			log.Error("Error sending messge to peer node ", err.Error())
-			//node.local.eventQueue.GetEvent("disconnect").Notify(events.EventNodeConsensusDisconnect, node)
-			//use channel to send message
-			disconnectMsg := MsgPayload{
-				Id: DISCONNECT,
-			}
-			link.recvChan <- disconnectMsg
-			return err
+
+	_, err := link.conn.Write(buf)
+	if err != nil {
+		log.Error("Error sending messge to peer node ", err.Error())
+		//node.local.eventQueue.GetEvent("disconnect").Notify(events.EventNodeDisconnect, node)
+		//use channel to send message
+		disconnectMsg := MsgPayload{
+			Id: DISCONNECT,
 		}
-	} else {
-		_, err := link.conn.Write(buf)
-		if err != nil {
-			log.Error("Error sending messge to peer node ", err.Error())
-			//node.local.eventQueue.GetEvent("disconnect").Notify(events.EventNodeDisconnect, node)
-			//use channel to send message
-			disconnectMsg := MsgPayload{
-				Id: DISCONNECT,
-			}
-			link.recvChan <- disconnectMsg
-			return err
-		}
+		link.recvChan <- disconnectMsg
+		return err
 	}
+
 	return nil
 }

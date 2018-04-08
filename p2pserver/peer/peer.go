@@ -1,22 +1,22 @@
 package peer
 
 import (
+	"bytes"
+	"encoding/binary"
+	"errors"
 	"fmt"
 	"net"
 	"runtime"
 	"sync/atomic"
 	"time"
-	"bytes"
-	"encoding/binary"
-	"errors"
 
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
 	"github.com/Ontology/crypto"
 	"github.com/Ontology/events"
-	"github.com/Ontology/p2pserver/message"
 	types "github.com/Ontology/p2pserver/common"
 	conn "github.com/Ontology/p2pserver/link"
+	"github.com/Ontology/p2pserver/message"
 )
 
 type Peer struct {
@@ -53,7 +53,7 @@ func NewPeer(pubKey *crypto.PubKey) (*Peer, error) {
 	p := &Peer{
 		syncState: types.INIT,
 		consState: types.INIT,
-		chF:   make(chan func() error),
+		chF:       make(chan func() error),
 	}
 	runtime.SetFinalizer(&p, rmPeer)
 	go p.backend()
@@ -144,10 +144,10 @@ func (p *Peer) GetSyncPort() uint16 {
 	return p.SyncLink.GetPort()
 }
 func (p *Peer) GetConsPort() uint16 {
-	return p.ConsLink.GetConsensusPort()
+	return p.ConsLink.GetPort()
 }
 func (p *Peer) SetConsPort(port uint16) {
-	p.ConsLink.SetConsensusPort(port)
+	p.ConsLink.SetPort(port)
 }
 func (p *Peer) SendToSync(buf []byte) {
 	p.SyncLink.Tx(buf)
@@ -165,8 +165,6 @@ func (p *Peer) CloseCons() {
 	conn := p.ConsLink.GetConn()
 	conn.Close()
 }
-
-
 
 func (p *Peer) GetID() uint64 {
 	return p.id
