@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"github.com/Ontology/common/log"
+
 	"github.com/Ontology/crypto"
+	"github.com/Ontology/common/log"
 )
 
 const (
@@ -29,7 +30,7 @@ type VersionPayload struct {
 	IsConsensus bool
 }
 type Version struct {
-	Hdr msgHdr
+	Hdr MsgHdr
 	P   VersionPayload
 	PK  *crypto.PubKey
 }

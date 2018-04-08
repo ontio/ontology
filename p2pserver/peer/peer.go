@@ -2,28 +2,29 @@ package peer
 
 import (
 	"fmt"
-	"github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
-	//actor "github.com/Ontology/p2pserver/actor/req"
-	"bytes"
-	"encoding/binary"
-	"errors"
-	"github.com/Ontology/crypto"
-	"github.com/Ontology/events"
-	types "github.com/Ontology/p2pserver/common"
-	conn "github.com/Ontology/p2pserver/link"
-	"github.com/Ontology/p2pserver/message"
 	"net"
 	"runtime"
 	"sync/atomic"
 	"time"
+	"bytes"
+	"encoding/binary"
+	"errors"
+
+	"github.com/Ontology/common/config"
+	"github.com/Ontology/common/log"
+	"github.com/Ontology/crypto"
+	"github.com/Ontology/events"
+	"github.com/Ontology/p2pserver/message"
+	types "github.com/Ontology/p2pserver/common"
+	conn "github.com/Ontology/p2pserver/link"
 )
 
 type Peer struct {
-	Conn                     *conn.Link
-	ConsensusConn            *conn.Link
+	SyncLink                 *conn.Link
+	ConsLink                 *conn.Link
+	syncState                uint32
+	consState                uint32
 	id                       uint64
-	state                    uint32
 	version                  uint32
 	cap                      [32]byte
 	services                 uint64
@@ -50,7 +51,8 @@ func (p *Peer) backend() {
 
 func NewPeer(pubKey *crypto.PubKey) (*Peer, error) {
 	p := &Peer{
-		state: types.INIT,
+		syncState: types.INIT,
+		consState: types.INIT,
 		chF:   make(chan func() error),
 	}
 	runtime.SetFinalizer(&p, rmPeer)
@@ -62,10 +64,10 @@ func NewPeer(pubKey *crypto.PubKey) (*Peer, error) {
 	} else if config.Parameters.NodeType == types.VERIFY_NODE_NAME {
 		p.services = uint64(types.VERIFY_NODE)
 	}
-	p.Conn.SetPort(config.Parameters.NodePort)
+	p.SyncLink.SetPort(config.Parameters.NodePort)
 	if config.Parameters.NodeConsensusPort != 0 &&
 		config.Parameters.NodeConsensusPort != config.Parameters.NodePort {
-		p.ConsensusConn.SetPort(config.Parameters.NodeConsensusPort)
+		p.ConsLink.SetPort(config.Parameters.NodeConsensusPort)
 	}
 
 	p.relay = true
@@ -90,6 +92,24 @@ func NewPeer(pubKey *crypto.PubKey) (*Peer, error) {
 func rmPeer(p *Peer) {
 	log.Debug(fmt.Sprintf("Remove unused peer: 0x%0x", p.id))
 }
+func (p *Peer) DumpInfo() {
+	log.Info("Node info:")
+	log.Info("\t syncState = ", p.syncState)
+	log.Info("\t consState = ", p.consState)
+	log.Info(fmt.Sprintf("\t id = 0x%x", p.id))
+	log.Info("\t addr = ", p.SyncLink.GetAddr())
+	log.Info("\t cap = ", p.cap)
+	log.Info("\t version = ", p.version)
+	log.Info("\t services = ", p.services)
+	log.Info("\t syncPort = ", p.SyncLink.GetPort())
+	log.Info("\t consPort = ", p.ConsLink.GetPort())
+	log.Info("\t relay = ", p.relay)
+	log.Info("\t height = ", p.height)
+	log.Info("\t conn cnt = ", p.SyncLink.GetConnCnt())
+}
+func (p *Peer) SetBookKeeperAddr(pubKey *crypto.PubKey) {
+	p.publicKey = pubKey
+}
 func (p *Peer) GetPubKey() *crypto.PubKey {
 	return p.publicKey
 }
@@ -102,12 +122,52 @@ func (p *Peer) GetHeight() uint64 {
 func (p *Peer) SetHeight(height uint64) {
 	p.height = height
 }
-func (p *Peer) GetState() uint32 {
-	return p.state
+func (p *Peer) GetConsConn() *conn.Link {
+	return p.ConsLink
 }
-func (p *Peer) SetState(state uint32) {
-	atomic.StoreUint32(&(p.state), state)
+func (p *Peer) SetConsConn(consLink *conn.Link) {
+	p.ConsLink = consLink
 }
+func (p *Peer) GetSyncState() uint32 {
+	return p.syncState
+}
+func (p *Peer) SetSyncState(state uint32) {
+	atomic.StoreUint32(&(p.syncState), state)
+}
+func (p *Peer) GetConsState() uint32 {
+	return p.consState
+}
+func (p *Peer) SetConsState(state uint32) {
+	atomic.StoreUint32(&(p.consState), state)
+}
+func (p *Peer) GetSyncPort() uint16 {
+	return p.SyncLink.GetPort()
+}
+func (p *Peer) GetConsPort() uint16 {
+	return p.ConsLink.GetConsensusPort()
+}
+func (p *Peer) SetConsPort(port uint16) {
+	p.ConsLink.SetConsensusPort(port)
+}
+func (p *Peer) SendToSync(buf []byte) {
+	p.SyncLink.Tx(buf)
+}
+func (p *Peer) SendToCons(buf []byte) {
+	p.ConsLink.Tx(buf)
+}
+func (p *Peer) CloseSync() {
+	p.SetSyncState(types.INACTIVITY)
+	conn := p.SyncLink.GetConn()
+	conn.Close()
+}
+func (p *Peer) CloseCons() {
+	p.SetConsState(types.INACTIVITY)
+	conn := p.ConsLink.GetConn()
+	conn.Close()
+}
+
+
+
 func (p *Peer) GetID() uint64 {
 	return p.id
 }
@@ -117,20 +177,11 @@ func (p *Peer) GetRelay() bool {
 func (p *Peer) GetServices() uint64 {
 	return p.services
 }
-func (p *Peer) GetConnectionState() uint32 {
-	return p.state
-}
 func (p *Peer) GetTime() int64 {
 	return p.lastContact.UnixNano()
 }
-func (p *Peer) GetPort() uint16 {
-	return p.Conn.GetPort()
-}
-func (p *Peer) GetConsensusPort() uint16 {
-	return p.ConsensusConn.GetPort()
-}
 func (p *Peer) GetAddr() string {
-	return p.Conn.GetAddr()
+	return p.SyncLink.GetAddr()
 }
 func (p *Peer) GetAddr16() ([16]byte, error) {
 	var result [16]byte
@@ -143,13 +194,9 @@ func (p *Peer) GetAddr16() ([16]byte, error) {
 	copy(result[:], ip[:16])
 	return result, nil
 }
-func (p *Peer) Close() {
-	p.SetState(types.INACTIVITY)
-	conn := p.Conn.GetConn()
-	conn.Close()
-}
+
 func (p *Peer) AttachChan(msgchan chan types.MsgPayload) {
-	p.Conn.SetChan(msgchan)
+	p.ConsLink.SetChan(msgchan)
 }
 
 func (p *Peer) AttachEvent(fn func(v interface{})) {
@@ -160,19 +207,11 @@ func (p *Peer) DelNbrNode(id uint64) (*Peer, bool) {
 	return p.Np.DelNbrNode(id)
 }
 
-func (p *Peer) CloseConn() {
-	p.Conn.CloseConn()
-}
-
-func (p *Peer) CloseConsensusConn() {
-	p.ConsensusConn.CloseConn()
-}
-
 func (p *Peer) Send(buf []byte, isConsensus bool) error {
-	if isConsensus && p.ConsensusConn.Valid() {
-		return p.ConsensusConn.Tx(buf)
+	if isConsensus && p.ConsLink.Valid() {
+		return p.ConsLink.Tx(buf)
 	}
-	return p.Conn.Tx(buf)
+	return p.SyncLink.Tx(buf)
 }
 
 func (p *Peer) SetHttpInfoState(httpInfo bool) {
@@ -200,11 +239,11 @@ func (p *Peer) SetBookkeeperAddr(pk *crypto.PubKey) {
 func (p *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
 	port uint16, nonce uint64, relay uint8, height uint64) {
 
-	p.Conn.UpdateRXTime(t)
+	p.SyncLink.UpdateRXTime(t)
 	p.id = nonce
 	p.version = version
 	p.services = services
-	p.Conn.SetPort(port)
+	p.SyncLink.SetPort(port)
 	if relay == 0 {
 		p.relay = false
 	} else {
@@ -220,25 +259,9 @@ func (p *Peer) AddNbrNode(remotePeer *Peer) {
 
 //StartListen init link layer for listenning
 func (p *Peer) StartListen() {
-	p.Conn.InitConnection()
-	if p.ConsensusConn.GetPort() != 0 {
-		p.ConsensusConn.InitConnection()
+	p.SyncLink.InitConnection()
+	if p.ConsLink.GetPort() != 0 {
+		p.ConsLink.InitConnection()
 	}
 
-}
-
-//Dump print a peer`s information
-func (p *Peer) Dump() {
-	log.Info("Peer info:")
-	log.Info("\t state = ", p.state)
-	log.Info(fmt.Sprintf("\t id = 0x%x", p.id))
-	log.Info("\t addr = ", p.Conn.GetAddr())
-	log.Info("\t cap = ", p.cap)
-	log.Info("\t version = ", p.version)
-	log.Info("\t services = ", p.services)
-	log.Info("\t port = ", p.Conn.GetPort())
-	log.Info("\t consensus port = ", p.ConsensusConn.GetPort())
-	log.Info("\t relay = ", p.relay)
-	log.Info("\t height = ", p.height)
-	log.Info("\t conn cnt = ", p.Np.GetConnectionCnt())
 }

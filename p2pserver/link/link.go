@@ -72,6 +72,9 @@ func (link *Link) GetPort() uint16 {
 func (link *Link) GetConsensusPort() uint16 {
 	return link.consensusPort
 }
+func (link *Link) SetConsensusPort(p uint16) {
+	link.consensusPort = p
+}
 func (link *Link) GetConn() net.Conn {
 	return link.getconn(false)
 }
@@ -86,7 +89,9 @@ func (link *Link) getConsensusConn() net.Conn {
 func (link *Link) SetConsensusConn(conn net.Conn) {
 	link.consensusConn = conn
 }
-
+func (link *Link) GetConnCnt() uint64{
+	return link.connCnt
+}
 func (link *Link) getconn(isConsensusChannel bool) net.Conn {
 	if isConsensusChannel {
 		return link.consensusConn

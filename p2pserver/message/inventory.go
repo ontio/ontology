@@ -1,69 +1,42 @@
 package message
 
 import (
-	"bytes"
-	"crypto/sha256"
-	"encoding/binary"
-	//"encoding/hex"
-	//"fmt"
-	. "github.com/Ontology/common"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/common/serialization"
 	"io"
-	//	"github.com/Ontology/ledger"
-	. "github.com/Ontology/p2pserver/common"
+	"bytes"
+	"encoding/binary"
+
+	"github.com/Ontology/common"
+	"github.com/Ontology/common/serialization"
+	p2pCommon "github.com/Ontology/p2pserver/common"
 )
 
-var LastInvHash Uint256
-
-type BlocksReq struct {
-	msgHdr
-	P struct {
-		HeaderHashCount uint8
-		HashStart       [HASH_LEN]byte
-		HashStop        [HASH_LEN]byte
-	}
-}
+var LastInvHash common.Uint256
 
 type InvPayload struct {
-	InvType InventoryType
+	InvType common.InventoryType
 	Cnt     uint32
 	Blk     []byte
 }
 
 type Inv struct {
-	Hdr msgHdr
+	Hdr MsgHdr
 	P   InvPayload
 }
 
-func (msg BlocksReq) Verify(buf []byte) error {
+func (msg *InvPayload) Serialization(w io.Writer) {
+	serialization.WriteUint8(w, uint8(msg.InvType))
+	serialization.WriteUint32(w, msg.Cnt)
 
-	// TODO verify the message Content
-	err := msg.msgHdr.Verify(buf)
-	return err
-}
-
-func (msg BlocksReq) Serialization() ([]byte, error) {
-	var buf bytes.Buffer
-
-	err := binary.Write(&buf, binary.LittleEndian, msg)
-	if err != nil {
-		return nil, err
-	}
-
-	return buf.Bytes(), err
-}
-
-func (msg *BlocksReq) Deserialization(p []byte) error {
-	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &msg)
-	return err
+	binary.Write(w, binary.LittleEndian, msg.Blk)
 }
 
 func (msg Inv) Verify(buf []byte) error {
-	// TODO verify the message Content
 	err := msg.Hdr.Verify(buf)
 	return err
+}
+
+func (msg Inv) invType() common.InventoryType {
+	return msg.P.InvType
 }
 
 func (msg Inv) Serialization() ([]byte, error) {
@@ -83,72 +56,19 @@ func (msg *Inv) Deserialization(p []byte) error {
 		return err
 	}
 
-	buf := bytes.NewBuffer(p[MSG_HDR_LEN:])
+	buf := bytes.NewBuffer(p[p2pCommon.MSG_HDR_LEN:])
 	invType, err := serialization.ReadUint8(buf)
 	if err != nil {
 		return err
 	}
-	msg.P.InvType = InventoryType(invType)
+	msg.P.InvType = common.InventoryType(invType)
 	msg.P.Cnt, err = serialization.ReadUint32(buf)
 	if err != nil {
 		return err
 	}
 
-	msg.P.Blk = make([]byte, msg.P.Cnt*HASH_LEN)
+	msg.P.Blk = make([]byte, msg.P.Cnt*p2pCommon.HASH_LEN)
 	err = binary.Read(buf, binary.LittleEndian, &(msg.P.Blk))
 
 	return err
-}
-
-func (msg Inv) invType() InventoryType {
-	return msg.P.InvType
-}
-
-func NewInvPayload(invType InventoryType, count uint32, msg []byte) *InvPayload {
-	return &InvPayload{
-		InvType: invType,
-		Cnt:     count,
-		Blk:     msg,
-	}
-}
-
-func NewInv(inv *InvPayload) ([]byte, error) {
-	var msg Inv
-
-	msg.P.Blk = inv.Blk
-	msg.P.InvType = inv.InvType
-	msg.P.Cnt = inv.Cnt
-	msg.Hdr.Magic = NETMAGIC
-	cmd := "inv"
-	copy(msg.Hdr.CMD[0:len(cmd)], cmd)
-	tmpBuffer := bytes.NewBuffer([]byte{})
-	inv.Serialization(tmpBuffer)
-
-	b := new(bytes.Buffer)
-	err := binary.Write(b, binary.LittleEndian, tmpBuffer.Bytes())
-	if err != nil {
-		log.Error("Binary Write failed at new Msg", err.Error())
-		return nil, err
-	}
-	s := sha256.Sum256(b.Bytes())
-	s2 := s[:]
-	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(msg.Hdr.Checksum))
-	msg.Hdr.Length = uint32(len(b.Bytes()))
-
-	m, err := msg.Serialization()
-	if err != nil {
-		log.Error("Error Convert net message ", err.Error())
-		return nil, err
-	}
-
-	return m, nil
-}
-
-func (msg *InvPayload) Serialization(w io.Writer) {
-	serialization.WriteUint8(w, uint8(msg.InvType))
-	serialization.WriteUint32(w, msg.Cnt)
-
-	binary.Write(w, binary.LittleEndian, msg.Blk)
 }

@@ -34,12 +34,12 @@ func (n *NetServer) GetVersion() uint32 {
 
 //GetPort return self peer`s txn port
 func (n *NetServer) GetPort() uint16 {
-	return n.Self.GetPort()
+	return n.Self.GetSyncPort()
 }
 
 //GetConsensusPort return self peer`s consensus port
 func (n *NetServer) GetConsensusPort() uint16 {
-	return n.Self.GetConsensusPort()
+	return n.Self.GetConsPort()
 }
 
 //GetId return peer`s id
@@ -54,7 +54,7 @@ func (n *NetServer) GetTime() int64 {
 
 //GetState return the self peer`s state
 func (n *NetServer) GetState() uint32 {
-	return n.Self.GetState()
+	return n.Self.GetSyncState()
 }
 
 //GetServices return the service state of self peer
@@ -88,7 +88,7 @@ func (n *NetServer) Send(p *peer.Peer, data []byte, isConsensus bool) error {
 //DisconnectNotify called when disconnect event trigger
 func DisconnectNotify(v interface{}) {
 	if p, ok := v.(*peer.Peer); ok {
-		p.Close()
+		p.CloseSync()
 	}
 }
 

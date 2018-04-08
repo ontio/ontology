@@ -3,17 +3,18 @@ package message
 import (
 	"bytes"
 	"encoding/binary"
+
 	"github.com/Ontology/common/serialization"
 )
 
 type Ping struct {
-	Hdr    msgHdr
+	Hdr    MsgHdr
 	Height uint64
 }
 
+
 func (msg Ping) Verify(buf []byte) error {
 	err := msg.Hdr.Verify(buf)
-	// TODO verify the message Content
 	return err
 }
 

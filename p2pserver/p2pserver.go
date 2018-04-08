@@ -11,9 +11,9 @@ import (
 	"github.com/Ontology/account"
 	"github.com/Ontology/common/config"
 	"github.com/Ontology/common/log"
+	"github.com/Ontology/p2pserver/peer"
 	actor "github.com/Ontology/p2pserver/actor/req"
 	types "github.com/Ontology/p2pserver/common"
-	"github.com/Ontology/p2pserver/peer"
 )
 
 type P2PServer struct {
@@ -40,7 +40,7 @@ func NewServer(acc *account.Account) (*P2PServer, error) {
 	p.msgRouter = NewMsgRouter(p)
 
 	// Fixme: implement the message handler for each msg type
-	p.msgRouter.RegisterMsgHandler(types.VERSION_TYPE, VersionHandle)
+	//p.msgRouter.RegisterMsgHandler(types.VERSION_TYPE, VersionHandle)
 	p.quitOnline = make(chan bool)
 	p.quitHeartBeat = make(chan bool)
 	p.quitSyncBlk = make(chan bool)
@@ -151,8 +151,8 @@ func (this *P2PServer) connectSeeds() {
 		for _, tn := range this.Self.Np.List {
 			ipAddr, _ := tn.GetAddr16()
 			ip = ipAddr[:]
-			addrstring := ip.To16().String() + ":" + strconv.Itoa(int(tn.GetPort()))
-			if nodeAddr == addrstring {
+			addrString := ip.To16().String() + ":" + strconv.Itoa(int(tn.GetSyncPort()))
+			if nodeAddr == addrString {
 				p = tn
 				found = true
 				break
@@ -160,7 +160,7 @@ func (this *P2PServer) connectSeeds() {
 		}
 		this.Self.Np.Unlock()
 		if found {
-			if p.GetState() == types.ESTABLISH {
+			if p.GetSyncState() == types.ESTABLISH {
 				this.reqNbrList(p)
 			}
 		} else { //not found
@@ -237,7 +237,7 @@ func (this *P2PServer) heartBeatService() {
 func (this *P2PServer) ping() {
 	peers := this.Self.Np.GetNeighbors()
 	for _, p := range peers {
-		if p.GetState() == types.ESTABLISH {
+		if p.GetSyncState() == types.ESTABLISH {
 			height, err := actor.GetCurrentBlockHeight()
 			if err != nil {
 				log.Error("failed get current height! Ping faild!")
@@ -293,7 +293,8 @@ func (this *P2PServer) syncBlockHdr() {
 	if p == nil {
 		return
 	}
-	buf, err := NewHeadersReq()
+	headerHash, _ := actor.GetCurrentHeaderHash()
+	buf, err := NewHeadersReq(headerHash)
 	if err != nil {
 		log.Error("failed build a new headersReq")
 	} else {

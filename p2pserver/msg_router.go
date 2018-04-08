@@ -2,11 +2,12 @@ package p2pserver
 
 import (
 	"github.com/Ontology/common/log"
+	"github.com/Ontology/p2pserver/peer"
 	msgCommon "github.com/Ontology/p2pserver/common"
 	msg "github.com/Ontology/p2pserver/message"
 )
 
-type MessageHandler func(data msgCommon.MsgPayload, p2p *P2PServer) error
+type MessageHandler func(data msgCommon.MsgPayload, peer peer.Peer, p2p *P2PServer) error
 
 func DefaultMsgHandler(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	return nil
@@ -55,7 +56,7 @@ func (self *MessageRouter) Start() {
 
 				handler, ok := self.msgHandlers[msgType]
 				if ok {
-					go handler(data, self.p2p)
+					go handler(data, peer.Peer{}, self.p2p)
 				} else {
 					log.Info("Unkown message handler for the msg: ", msgType)
 				}

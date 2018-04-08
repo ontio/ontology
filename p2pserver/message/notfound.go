@@ -2,59 +2,27 @@ package message
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/binary"
 	"errors"
+
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/log"
-	. "github.com/Ontology/p2pserver/common"
 )
 
 type NotFound struct {
-	msgHdr
+	MsgHdr
 	Hash common.Uint256
 }
 
-func NewNotFound(hash common.Uint256) ([]byte, error) {
-	log.Debug()
-	var msg NotFound
-	msg.Hash = hash
-	msg.msgHdr.Magic = NETMAGIC
-	cmd := "notfound"
-	copy(msg.msgHdr.CMD[0:len(cmd)], cmd)
-	tmpBuffer := bytes.NewBuffer([]byte{})
-	msg.Hash.Serialize(tmpBuffer)
-	p := new(bytes.Buffer)
-	err := binary.Write(p, binary.LittleEndian, tmpBuffer.Bytes())
-	if err != nil {
-		log.Error("Binary Write failed at new notfound Msg")
-		return nil, err
-	}
-	s := sha256.Sum256(p.Bytes())
-	s2 := s[:]
-	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(msg.msgHdr.Checksum))
-	msg.msgHdr.Length = uint32(len(p.Bytes()))
-	log.Debug("The message payload length is ", msg.msgHdr.Length)
 
-	m, err := msg.Serialization()
-	if err != nil {
-		log.Error("Error Convert net message ", err.Error())
-		return nil, err
-	}
-
-	return m, nil
-}
 
 func (msg NotFound) Verify(buf []byte) error {
-	err := msg.msgHdr.Verify(buf)
-	// TODO verify the message Content
+	err := msg.MsgHdr.Verify(buf)
 	return err
 }
 
 func (msg NotFound) Serialization() ([]byte, error) {
-	hdrBuf, err := msg.msgHdr.Serialization()
+	hdrBuf, err := msg.MsgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
@@ -67,16 +35,16 @@ func (msg NotFound) Serialization() ([]byte, error) {
 func (msg *NotFound) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 
-	err := binary.Read(buf, binary.LittleEndian, &(msg.msgHdr))
+	err := binary.Read(buf, binary.LittleEndian, &(msg.MsgHdr))
 	if err != nil {
-		log.Warn("Parse notfound message hdr error")
-		return errors.New("Parse notfound message hdr error")
+		log.Warn("Parse notFound message hdr error")
+		return errors.New("Parse notFound message hdr error ")
 	}
 
 	err = msg.Hash.Deserialize(buf)
 	if err != nil {
-		log.Warn("Parse notfound message error")
-		return errors.New("Parse notfound message error")
+		log.Warn("Parse notFound message error")
+		return errors.New("Parse notFound message error ")
 	}
 
 	return err

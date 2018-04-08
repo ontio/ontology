@@ -20,8 +20,9 @@ package peer
 
 import (
 	"fmt"
-	types "github.com/Ontology/p2pserver/common"
 	"sync"
+
+	types "github.com/Ontology/p2pserver/common"
 )
 
 //NbrPeers: The neigbor list
@@ -34,7 +35,7 @@ func (nm *NbrPeers) Broadcast(buf []byte, isConsensus bool) {
 	nm.RLock()
 	defer nm.RUnlock()
 	for _, node := range nm.List {
-		if node.state == types.ESTABLISH && node.GetRelay() == true {
+		if node.syncState == types.ESTABLISH && node.GetRelay() == true {
 			node.Send(buf, isConsensus)
 		}
 	}
@@ -82,7 +83,7 @@ func (nm *NbrPeers) GetConnectionCnt() uint {
 
 	var cnt uint
 	for _, node := range nm.List {
-		if node.state == types.ESTABLISH {
+		if node.syncState == types.ESTABLISH {
 			cnt++
 		}
 	}
@@ -102,7 +103,7 @@ func (nm *NbrPeers) NodeEstablished(id uint64) bool {
 		return false
 	}
 
-	if n.state != types.ESTABLISH {
+	if n.syncState != types.ESTABLISH {
 		return false
 	}
 
@@ -116,14 +117,14 @@ func (nm *NbrPeers) GetNeighborAddrs() ([]types.PeerAddr, uint64) {
 	var i uint64
 	var addrs []types.PeerAddr
 	for _, p := range nm.List {
-		if p.GetState() != types.ESTABLISH {
+		if p.GetSyncState() != types.ESTABLISH {
 			continue
 		}
 		var addr types.PeerAddr
 		addr.IpAddr, _ = p.GetAddr16()
 		addr.Time = p.GetTime()
 		addr.Services = p.GetServices()
-		addr.Port = p.GetPort()
+		addr.Port = p.GetSyncPort()
 		addr.ID = p.GetID()
 		addrs = append(addrs, addr)
 
@@ -139,7 +140,7 @@ func (nm *NbrPeers) GetNeighborHeights() map[uint64]uint64 {
 
 	hm := make(map[uint64]uint64)
 	for _, n := range nm.List {
-		if n.GetState() == types.ESTABLISH {
+		if n.GetSyncState() == types.ESTABLISH {
 			hm[n.id] = n.height
 		}
 	}
@@ -151,7 +152,7 @@ func (nm *NbrPeers) GetNeighbors() []*Peer {
 	defer nm.RUnlock()
 	peers := []*Peer{}
 	for _, n := range nm.List {
-		if n.GetState() == types.ESTABLISH {
+		if n.GetSyncState() == types.ESTABLISH {
 			node := n
 			peers = append(peers, node)
 		}
@@ -164,7 +165,7 @@ func (nm *NbrPeers) GetNbrNodeCnt() uint32 {
 	defer nm.RUnlock()
 	var count uint32
 	for _, n := range nm.List {
-		if n.GetState() == types.ESTABLISH {
+		if n.GetSyncState() == types.ESTABLISH {
 			count++
 		}
 	}
