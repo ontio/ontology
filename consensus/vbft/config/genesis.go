@@ -42,7 +42,7 @@ type PeerStakeInfo struct {
 type Configuration struct {
 	View                 uint32           `json:"view"`
 	N                    uint32           `json:"n"`
-	F                    uint32           `json:"f"`
+	C                    uint32           `json:"c"`
 	K                    uint32           `json:"k"`
 	L                    uint32           `json:"l"`
 	InitTxid             uint64           `json:"init_txid"`
@@ -90,8 +90,8 @@ func genConsensusPayload(configFilename string) ([]byte, error) {
 		log.Error("peer count is less than K")
 		os.Exit(1)
 	}
-	if config.K < 2*config.F+1 {
-		log.Errorf("invalid config, K: %d, F: %d", config.K, config.F)
+	if config.K < 2*config.C+1 {
+		log.Errorf("invalid config, K: %d, C: %d", config.K, config.C)
 		os.Exit(1)
 	}
 	if config.L%config.K != 0 || config.L < config.K*2 {
@@ -172,7 +172,7 @@ func genConsensusPayload(configFilename string) ([]byte, error) {
 		Version:              Version,
 		View:                 config.View,
 		N:                    config.N,
-		F:                    config.F,
+		C:                    config.C,
 		BlockMsgDelay:        time.Duration(config.BlockMsgDelay) * time.Millisecond,
 		HashMsgDelay:         time.Duration(config.HashMsgDelay) * time.Millisecond,
 		PeerHandshakeTimeout: time.Duration(config.PeerHandshakeTimeout) * time.Second,

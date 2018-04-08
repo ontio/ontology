@@ -177,7 +177,7 @@ func (self *Syncer) blockConsensusDone(blks BlockFromPeers) *Block {
 		proposers[blk.getProposer()] += 1
 	}
 	for proposerId, cnt := range proposers {
-		if cnt > int(self.server.config.F) {
+		if cnt > int(self.server.config.C) {
 			// find the block
 			for _, blk := range blks {
 				if blk.getProposer() == proposerId {
@@ -248,7 +248,7 @@ func (self *Syncer) onNewBlockSyncReq(req *BlockSyncReq) error {
 			nextBlkNum := self.nextReqBlkNum
 			if p != nil && p.nextReqBlkNum > nextBlkNum {
 				log.Infof("server %d, syncer with peer %d start from %d, vs %d",
-					self.server.incrValidator, peerIdx, p.nextReqBlkNum, self.nextReqBlkNum)
+					self.server.Index, peerIdx, p.nextReqBlkNum, self.nextReqBlkNum)
 				nextBlkNum = p.nextReqBlkNum
 			}
 			self.peers[peerIdx] = &PeerSyncer{

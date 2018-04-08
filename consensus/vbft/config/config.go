@@ -41,7 +41,7 @@ type ChainConfig struct {
 	Version              uint32        `json:"version"` // software version
 	View                 uint32        `json:"view"`    // config-updated version
 	N                    uint32        `json:"n"`       // network size
-	F                    uint32        `json:"f"`       // tolerated fault peers
+	C                    uint32        `json:"c"`       // consensus quorum
 	BlockMsgDelay        time.Duration `json:"block_msg_delay"`
 	HashMsgDelay         time.Duration `json:"hash_msg_delay"`
 	PeerHandshakeTimeout time.Duration `json:"peer_handshake_timeout"`

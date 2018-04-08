@@ -114,7 +114,7 @@ func (self *Server) isEndorser(blockNum uint64, peerIdx uint32) bool {
 			}
 			if self.isPeerActive(id, blockNum) {
 				activeN++
-				if activeN > self.config.F*2 {
+				if activeN > self.config.C*2 {
 					break
 				}
 			}
@@ -137,7 +137,7 @@ func (self *Server) isCommitter(blockNum uint64, peerIdx uint32) bool {
 			}
 			if self.isPeerActive(id, blockNum) {
 				activeN++
-				if activeN > self.config.F*2 {
+				if activeN > self.config.C*2 {
 					break
 				}
 			}
@@ -250,7 +250,7 @@ func calcParticipantPeers(cfg *BlockParticipantConfig, chain *vconfig.ChainConfi
 			peerMap[peerId] = true
 			cnt++
 
-			if cnt > chain.F*3 {
+			if cnt > chain.C*3 || cnt >= chain.N {
 				return peers
 			}
 		}
@@ -282,7 +282,7 @@ func calcParticipant(vrf vconfig.VRFValue, dposTable []uint32, k uint32) uint32 
 	return dposTable[v]
 }
 
-func getCommitConsensus(commitMsgs []*blockCommitMsg, F int) (uint32, bool) {
+func getCommitConsensus(commitMsgs []*blockCommitMsg, C int) (uint32, bool) {
 	commitCount := make(map[uint32]int)
 	emptyCommitCount := 0
 	for _, c := range commitMsgs {
@@ -291,8 +291,8 @@ func getCommitConsensus(commitMsgs []*blockCommitMsg, F int) (uint32, bool) {
 		}
 
 		commitCount[c.BlockProposer] += 1
-		if commitCount[c.BlockProposer] > F {
-			return c.BlockProposer, emptyCommitCount > F
+		if commitCount[c.BlockProposer] > C {
+			return c.BlockProposer, emptyCommitCount > C
 		}
 	}
 

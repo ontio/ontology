@@ -38,33 +38,36 @@ const (
 var Version string
 
 type Configuration struct {
-	Magic             int64            `json:"Magic"`
-	Version           int              `json:"Version"`
-	SeedList          []string         `json:"SeedList"`
-	Bookkeepers       []string         `json:"Bookkeepers"` // The default book keepers' publickey
-	HttpRestPort      int              `json:"HttpRestPort"`
-	HttpCertPath      string           `json:"HttpCertPath"`
-	HttpKeyPath       string           `json:"HttpKeyPath"`
-	HttpInfoPort      uint16           `json:"HttpInfoPort"`
-	HttpWsPort        int              `json:"HttpWsPort"`
-	HttpJsonPort      int              `json:"HttpJsonPort"`
-	HttpLocalPort     int              `json:"HttpLocalPort"`
-	NodePort          int              `json:"NodePort"`
-	NodeConsensusPort int              `json:"NodeConsensusPort"`
-	NodeType          string           `json:"NodeType"`
-	PrintLevel        int              `json:"PrintLevel"`
-	IsTLS             bool             `json:"IsTLS"`
-	CertPath          string           `json:"CertPath"`
-	KeyPath           string           `json:"KeyPath"`
-	CAPath            string           `json:"CAPath"`
-	GenBlockTime      uint             `json:"GenBlockTime"`
-	MultiCoreNum      uint             `json:"MultiCoreNum"`
-	MaxLogSize        int64            `json:"MaxLogSize"`
-	MaxTxInBlock      int              `json:"MaxTransactionInBlock"`
-	MaxHdrSyncReqs    int              `json:"MaxConcurrentSyncHeaderReqs"`
-	ConsensusType     string           `json:"ConsensusType"`
+	Magic               int64            `json:"Magic"`
+	Version             int              `json:"Version"`
+	SeedList            []string         `json:"SeedList"`
+	Bookkeepers         []string         `json:"Bookkeepers"` // The default book keepers' publickey
+	HttpRestPort        int              `json:"HttpRestPort"`
+	RestCertPath        string           `json:"RestCertPath"`
+	RestKeyPath         string           `json:"RestKeyPath"`
+	HttpInfoPort        uint16           `json:"HttpInfoPort"`
+	HttpInfoStart       bool             `json:"HttpInfoStart"`
+	HttpWsPort          int              `json:"HttpWsPort"`
+	HttpJsonPort        int              `json:"HttpJsonPort"`
+	HttpLocalPort       int              `json:"HttpLocalPort"`
+	NodePort            int              `json:"NodePort"`
+	NodeConsensusPort   int              `json:"NodeConsensusPort"`
+	NodeType            string           `json:"NodeType"`
+	WebSocketPort       int              `json:"WebSocketPort"`
+	PrintLevel          int              `json:"PrintLevel"`
+	IsTLS               bool             `json:"IsTLS"`
+	CertPath            string           `json:"CertPath"`
+	KeyPath             string           `json:"KeyPath"`
+	CAPath              string           `json:"CAPath"`
+	GenBlockTime        uint             `json:"GenBlockTime"`
+	MultiCoreNum        uint             `json:"MultiCoreNum"`
+	SignatureScheme     string           `json:"SignatureScheme"`
+	MaxLogSize          int64            `json:"MaxLogSize"`
+	MaxTxInBlock        int              `json:"MaxTransactionInBlock"`
+	MaxHdrSyncReqs      int              `json:"MaxConcurrentSyncHeaderReqs"`
+	ConsensusType       string           `json:"ConsensusType"`
 	ConsensusConfigPath string           `json:"ConsensusConfigPath"`
-	SystemFee         map[string]int64 `json:"SystemFee"`
+	SystemFee           map[string]int64 `json:"SystemFee"`
 }
 
 type configFile struct {

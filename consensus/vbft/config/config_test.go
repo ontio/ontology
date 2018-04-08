@@ -37,7 +37,7 @@ func generTestData() []byte {
 		Version:              1,
 		View:                 12,
 		N:                    4,
-		F:                    3,
+		C:                    3,
 		BlockMsgDelay:        1000,
 		HashMsgDelay:         1000,
 		PeerHandshakeTimeout: 10000,
@@ -60,5 +60,5 @@ func TestDeserialize(t *testing.T) {
 	if err != nil {
 		t.Log("test failed ")
 	}
-	fmt.Printf("version: %d, F:%d \n", test.Version, test.F)
+	fmt.Printf("version: %d, C:%d \n", test.Version, test.C)
 }
