@@ -23,7 +23,7 @@ import (
 )
 
 type LogEventArgs struct {
-	Container common.Uint256
-	CodeHash  common.Address
-	Message   string
+	TxHash          common.Uint256
+	ContractAddress common.Address
+	Message         string
 }
