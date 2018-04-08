@@ -19,51 +19,9 @@
 package common
 
 import (
-	"fmt"
-	"reflect"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/vm/neovm/types"
 )
-
-type States struct {
-	Value interface{}
-}
-
-func ConvertTypes(item types.StackItems) (results []States) {
-	if item == nil {
-		return
-	}
-	switch v := item.(type) {
-	case *types.ByteArray:
-		results = append(results, States{common.ToHexString(v.GetByteArray())})
-	case *types.Integer:
-		if v.GetBigInteger().Sign() == 0 {
-			results = append(results, States{common.ToHexString([]byte{0})})
-		} else {
-			results = append(results, States{common.ToHexString(types.ConvertBigIntegerToBytes(v.GetBigInteger()))})
-		}
-	case *types.Boolean:
-		if v.GetBoolean() {
-			results = append(results, States{common.ToHexString([]byte{1})})
-		} else {
-			results = append(results, States{common.ToHexString([]byte{0})})
-		}
-	case *types.Array:
-		var arr []States
-		for _, val := range v.GetArray() {
-			arr = append(arr, ConvertTypes(val)...)
-		}
-		results = append(results, States{arr})
-	case *types.Interop:
-		results = append(results, States{common.ToHexString(v.GetInterface().ToArray())})
-	case types.StackItems:
-		ConvertTypes(v)
-	default:
-		panic(fmt.Sprintf("[ConvertTypes] Invalid Types: %v", reflect.TypeOf(v)))
-	}
-	return
-}
 
 func ConvertReturnTypes(item types.StackItems) (results []interface{}) {
 	if item == nil {
@@ -73,9 +31,17 @@ func ConvertReturnTypes(item types.StackItems) (results []interface{}) {
 	case *types.ByteArray:
 		results = append(results, common.ToHexString(v.GetByteArray()))
 	case *types.Integer:
-		results = append(results, v.GetBigInteger())
+		if item.GetBigInteger().Sign() == 0 {
+			results = append(results, common.ToHexString([]byte{0}))
+		} else {
+			results = append(results, common.ToHexString(types.ConvertBigIntegerToBytes(v.GetBigInteger())))
+		}
 	case *types.Boolean:
-		results = append(results, v.GetBoolean())
+		if v.GetBoolean() {
+			results = append(results, common.ToHexString([]byte{1}))
+		} else {
+			results = append(results, common.ToHexString([]byte{0}))
+		}
 	case *types.Array:
 		var arr []interface{}
 		for _, val := range v.GetArray() {
@@ -85,9 +51,10 @@ func ConvertReturnTypes(item types.StackItems) (results []interface{}) {
 	case *types.Interop:
 		results = append(results, common.ToHexString(v.GetInterface().ToArray()))
 	case types.StackItems:
-		ConvertTypes(v)
+		ConvertReturnTypes(v)
 	default:
 		panic("[ConvertTypes] Invalid Types!")
 	}
 	return
 }
+
