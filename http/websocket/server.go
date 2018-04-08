@@ -86,7 +86,7 @@ func pushSmartCodeEvent(v interface{}) {
 			evts := []notifyEventInfo{}
 			for _, v := range object {
 				txhash := v.TxHash
-				evts = append(evts, notifyEventInfo{common.ToHexString(txhash[:]), v.CodeHash.ToHexString(), v.States})
+				evts = append(evts, notifyEventInfo{common.ToHexString(txhash[:]), v.ContractAddress.ToHexString(), v.States})
 			}
 			pushEvent(rs.TxHash, rs.Error, rs.Action, evts)
 		case event.LogEventArgs:
@@ -95,8 +95,8 @@ func pushSmartCodeEvent(v interface{}) {
 				CodeHash string
 				Message  string
 			}
-			hash := object.Container
-			pushEvent(rs.TxHash, rs.Error, rs.Action, logEventArgs{common.ToHexString(hash[:]), object.CodeHash.ToHexString(), object.Message})
+			hash := object.TxHash
+			pushEvent(rs.TxHash, rs.Error, rs.Action, logEventArgs{common.ToHexString(hash[:]), object.ContractAddress.ToHexString(), object.Message})
 		default:
 			pushEvent(rs.TxHash, rs.Error, rs.Action, rs.Result)
 		}

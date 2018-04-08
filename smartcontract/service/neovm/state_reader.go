@@ -140,7 +140,7 @@ func (s *StateReader) RuntimeNotify(e *vm.ExecutionEngine) (bool, error) {
 		return false, err
 	}
 	txid := tran.Hash()
-	s.Notifications = append(s.Notifications, &event.NotifyEventInfo{TxHash: txid, CodeHash: hash, States: scommon.ConvertReturnTypes(item)})
+	s.Notifications = append(s.Notifications, &event.NotifyEventInfo{TxHash: txid, ContractAddress: hash, States: scommon.ConvertReturnTypes(item)})
 	return true, nil
 }
 

@@ -390,7 +390,7 @@ func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 		}
 		var evs []map[string]interface{}
 		for _, v := range eventInfos {
-			evs = append(evs, map[string]interface{}{"CodeHash": v.CodeHash,
+			evs = append(evs, map[string]interface{}{"CodeHash": v.ContractAddress,
 				"States": v.States,
 				"TxHash": v.TxHash})
 		}
