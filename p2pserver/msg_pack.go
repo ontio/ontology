@@ -3,7 +3,6 @@ package p2pserver
 import (
 	"time"
 	"bytes"
-	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
 
@@ -21,9 +20,7 @@ func NewAddrs(nodeAddrs []msgCommon.PeerAddr, count uint64) ([]byte, error) {
 	var addr msg.Addr
 	addr.NodeAddrs = nodeAddrs
 	addr.NodeCnt = count
-	addr.Hdr.Magic = msgCommon.NETMAGIC
-	cmd := "addr"
-	copy(addr.Hdr.CMD[0:7], cmd)
+
 	p := new(bytes.Buffer)
 	err := binary.Write(p, binary.LittleEndian, addr.NodeCnt)
 	if err != nil {
@@ -36,12 +33,9 @@ func NewAddrs(nodeAddrs []msgCommon.PeerAddr, count uint64) ([]byte, error) {
 		log.Error("Binary Write failed at new Msg: ", err.Error())
 		return nil, err
 	}
-	s := sha256.Sum256(p.Bytes())
-	s2 := s[:]
-	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(addr.Hdr.Checksum))
-	addr.Hdr.Length = uint32(len(p.Bytes()))
+
+	checkSumBuf := msg.CheckSum(p.Bytes())
+	addr.Hdr.Init("addr", checkSumBuf, uint32(len(p.Bytes())))
 	log.Debug("The message payload length is ", addr.Hdr.Length)
 
 	m, err := addr.Serialization()
@@ -73,11 +67,10 @@ func NewBlock(bk *types.Block) ([]byte, error) {
 	log.Debug()
 	var blk msg.Block
 	blk.Blk = *bk
-	blk.MsgHdr.Magic = msgCommon.NETMAGIC
-	cmd := "block"
-	copy(blk.MsgHdr.CMD[0:len(cmd)], cmd)
+
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	bk.Serialize(tmpBuffer)
+
 	p := new(bytes.Buffer)
 	err := binary.Write(p, binary.LittleEndian, tmpBuffer.Bytes())
 	if err != nil {
@@ -85,13 +78,9 @@ func NewBlock(bk *types.Block) ([]byte, error) {
 		return nil, err
 	}
 
-	s := sha256.Sum256(p.Bytes())
-	s2 := s[:]
-	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(blk.MsgHdr.Checksum))
-	blk.MsgHdr.Length = uint32(len(p.Bytes()))
-	log.Debug("The message payload length is ", blk.MsgHdr.Length)
+	checkSumBuf := msg.CheckSum(p.Bytes())
+	blk.Init("block", checkSumBuf, uint32(len(p.Bytes())))
+	log.Debug("The message payload length is ", blk.Length)
 
 	m, err := blk.Serialization()
 	if err != nil {
@@ -105,9 +94,6 @@ func NewHeaders(headers []types.Header, count uint32) ([]byte, error) {
 	var blkHdr msg.BlkHeader
 	blkHdr.Cnt = count
 	blkHdr.BlkHdr = headers
-	blkHdr.Hdr.Magic = msgCommon.NETMAGIC
-	cmd := "headers"
-	copy(blkHdr.Hdr.CMD[0:len(cmd)], cmd)
 
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	serialization.WriteUint32(tmpBuffer, blkHdr.Cnt)
@@ -120,12 +106,10 @@ func NewHeaders(headers []types.Header, count uint32) ([]byte, error) {
 		log.Error("Binary Write failed at new Msg")
 		return nil, err
 	}
-	s := sha256.Sum256(b.Bytes())
-	s2 := s[:]
-	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(blkHdr.Hdr.Checksum))
-	blkHdr.Hdr.Length = uint32(len(b.Bytes()))
+
+	checkSumBuf := msg.CheckSum(b.Bytes())
+	blkHdr.Hdr.Init("headers", checkSumBuf, uint32(len(b.Bytes())))
+	log.Debug("The message payload length is ", blkHdr.Hdr.Length)
 
 	m, err := blkHdr.Serialization()
 	if err != nil {
@@ -137,7 +121,6 @@ func NewHeaders(headers []types.Header, count uint32) ([]byte, error) {
 
 func NewHeadersReq(curHdrHash common.Uint256) ([]byte, error) {
 	var h msg.HeadersReq
-
 	h.P.Len = 1
 	buf := curHdrHash
 	copy(h.P.HashEnd[:], buf[:])
@@ -162,7 +145,6 @@ func NewBlocksReq(curBlkHash common.Uint256) ([]byte, error) {
 	// Fixme correct with the exactly request length
 	h.P.HeaderHashCount = 1
 	//Fixme! Should get the remote Node height.
-
 	buf := curBlkHash
 	copy(h.P.HashStart[:], msg.Reverse(buf[:]))
 
@@ -182,9 +164,7 @@ func NewBlocksReq(curBlkHash common.Uint256) ([]byte, error) {
 func NewConsensus(cp *msg.ConsensusPayload) ([]byte, error) {
 	log.Debug()
 	var cons msg.Consensus
-	cons.MsgHdr.Magic = msgCommon.NETMAGIC
-	cmd := "consensus"
-	copy(cons.MsgHdr.CMD[0:len(cmd)], cmd)
+
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	cp.Serialize(tmpBuffer)
 	cons.Cons = *cp
@@ -194,13 +174,10 @@ func NewConsensus(cp *msg.ConsensusPayload) ([]byte, error) {
 		log.Error("Binary Write failed at new Msg")
 		return nil, err
 	}
-	s := sha256.Sum256(b.Bytes())
-	s2 := s[:]
-	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(cons.MsgHdr.Checksum))
-	cons.MsgHdr.Length = uint32(len(b.Bytes()))
-	log.Debug("NewConsensus The message payload length is ", cons.MsgHdr.Length)
+
+	checkSumBuf := msg.CheckSum(b.Bytes())
+	cons.Init("consensus", checkSumBuf, uint32(len(b.Bytes())))
+	log.Debug("NewConsensus The message payload length is ", cons.Length)
 
 	m, err := cons.Serialization()
 	if err != nil {
@@ -215,9 +192,7 @@ func NewInv(invPayload *msg.InvPayload) ([]byte, error) {
 	inv.P.Blk = invPayload.Blk
 	inv.P.InvType = invPayload.InvType
 	inv.P.Cnt = invPayload.Cnt
-	inv.Hdr.Magic = msgCommon.NETMAGIC
-	cmd := "inv"
-	copy(inv.Hdr.CMD[0:len(cmd)], cmd)
+
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	invPayload.Serialization(tmpBuffer)
 
@@ -227,12 +202,10 @@ func NewInv(invPayload *msg.InvPayload) ([]byte, error) {
 		log.Error("Binary Write failed at new Msg", err.Error())
 		return nil, err
 	}
-	s := sha256.Sum256(b.Bytes())
-	s2 := s[:]
-	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(inv.Hdr.Checksum))
-	inv.Hdr.Length = uint32(len(b.Bytes()))
+
+	checkSumBuf := msg.CheckSum(b.Bytes())
+	inv.Hdr.Init("inv", checkSumBuf, uint32(len(b.Bytes())))
+	log.Debug("NewInv The message payload length is ", inv.Hdr.Length)
 
 	m, err := inv.Serialization()
 	if err != nil {
@@ -246,9 +219,7 @@ func NewNotFound(hash common.Uint256) ([]byte, error) {
 	log.Debug()
 	var notFound msg.NotFound
 	notFound.Hash = hash
-	notFound.MsgHdr.Magic = msgCommon.NETMAGIC
-	cmd := "notfound"
-	copy(notFound.MsgHdr.CMD[0:len(cmd)], cmd)
+
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	notFound.Hash.Serialize(tmpBuffer)
 	p := new(bytes.Buffer)
@@ -257,12 +228,9 @@ func NewNotFound(hash common.Uint256) ([]byte, error) {
 		log.Error("Binary Write failed at new notfound Msg")
 		return nil, err
 	}
-	s := sha256.Sum256(p.Bytes())
-	s2 := s[:]
-	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(notFound.MsgHdr.Checksum))
-	notFound.MsgHdr.Length = uint32(len(p.Bytes()))
+
+	checkSumBuf := msg.CheckSum(p.Bytes())
+	notFound.Init("notfound", checkSumBuf, uint32(len(p.Bytes())))
 	log.Debug("The message payload length is ", notFound.MsgHdr.Length)
 
 	m, err := notFound.Serialization()
@@ -275,10 +243,10 @@ func NewNotFound(hash common.Uint256) ([]byte, error) {
 }
 
 func NewPingMsg(height uint64) ([]byte, error) {
+	log.Debug()
 	var ping msg.Ping
-	ping.Hdr.Magic = msgCommon.NETMAGIC
-	copy(ping.Hdr.CMD[0:7], "ping")
 	ping.Height = uint64(height)
+
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	serialization.WriteUint64(tmpBuffer, ping.Height)
 	b := new(bytes.Buffer)
@@ -287,12 +255,10 @@ func NewPingMsg(height uint64) ([]byte, error) {
 		log.Error("Binary Write failed at new Msg")
 		return nil, err
 	}
-	s := sha256.Sum256(b.Bytes())
-	s2 := s[:]
-	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(ping.Hdr.Checksum))
-	ping.Hdr.Length = uint32(len(b.Bytes()))
+
+	checkSumBuf := msg.CheckSum(b.Bytes())
+	ping.Hdr.Init("ping", checkSumBuf, uint32(len(b.Bytes())))
+	log.Debug("NewPingMsg The message payload length is ", ping.Hdr.Length)
 
 	m, err := ping.Serialization()
 	if err != nil {
@@ -303,10 +269,10 @@ func NewPingMsg(height uint64) ([]byte, error) {
 }
 
 func NewPongMsg(height uint64) ([]byte, error) {
+	log.Debug()
 	var pong msg.Pong
-	pong.MsgHdr.Magic = msgCommon.NETMAGIC
-	copy(pong.MsgHdr.CMD[0:7], "pong")
 	pong.Height = uint64(height)
+
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	serialization.WriteUint64(tmpBuffer, pong.Height)
 	b := new(bytes.Buffer)
@@ -315,12 +281,10 @@ func NewPongMsg(height uint64) ([]byte, error) {
 		log.Error("Binary Write failed at new Msg")
 		return nil, err
 	}
-	s := sha256.Sum256(b.Bytes())
-	s2 := s[:]
-	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(pong.MsgHdr.Checksum))
-	pong.MsgHdr.Length = uint32(len(b.Bytes()))
+
+	checkSumBuf := msg.CheckSum(b.Bytes())
+	pong.Init("pong", checkSumBuf, uint32(len(b.Bytes())))
+	log.Debug("NewPongMsg The message payload length is ", pong.Length)
 
 	m, err := pong.Serialization()
 	if err != nil {
@@ -334,9 +298,6 @@ func NewTxn(txn *types.Transaction) ([]byte, error) {
 	log.Debug()
 	var trn msg.Trn
 
-	trn.MsgHdr.Magic = msgCommon.NETMAGIC
-	cmd := "tx"
-	copy(trn.MsgHdr.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	txn.Serialize(tmpBuffer)
 	trn.Txn = *txn
@@ -346,13 +307,10 @@ func NewTxn(txn *types.Transaction) ([]byte, error) {
 		log.Error("Binary Write failed at new Msg")
 		return nil, err
 	}
-	s := sha256.Sum256(b.Bytes())
-	s2 := s[:]
-	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(trn.MsgHdr.Checksum))
-	trn.MsgHdr.Length = uint32(len(b.Bytes()))
-	log.Debug("The message payload length is ", trn.MsgHdr.Length)
+
+	checkSumBuf := msg.CheckSum(b.Bytes())
+	trn.Init("tx", checkSumBuf, uint32(len(b.Bytes())))
+	log.Debug("NewTxn The message payload length is ", trn.Length)
 
 	m, err := trn.Serialization()
 	if err != nil {
@@ -365,9 +323,8 @@ func NewTxn(txn *types.Transaction) ([]byte, error) {
 
 func NewVerAck(isConsensus bool) ([]byte, error) {
 	var verAck msg.VerACK
-	verAck.MsgHdr.Magic = msgCommon.NETMAGIC
-	copy(verAck.MsgHdr.CMD[0:7], "verack")
 	verAck.IsConsensus = isConsensus
+
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	serialization.WriteBool(tmpBuffer, verAck.IsConsensus)
 	b := new(bytes.Buffer)
@@ -376,12 +333,10 @@ func NewVerAck(isConsensus bool) ([]byte, error) {
 		log.Error("Binary Write failed at new Msg")
 		return nil, err
 	}
-	s := sha256.Sum256(b.Bytes())
-	s2 := s[:]
-	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(verAck.MsgHdr.Checksum))
-	verAck.MsgHdr.Length = uint32(len(b.Bytes()))
+
+	checkSumBuf := msg.CheckSum(b.Bytes())
+	verAck.Init("verack", checkSumBuf, uint32(len(b.Bytes())))
+	log.Debug("NewVerAck The message payload length is ", verAck.Length)
 
 	m, err := verAck.Serialization()
 	if err != nil {
@@ -427,11 +382,7 @@ func NewVersion(vpl msg.VersionPayload, pk *crypto.PubKey) ([]byte, error) {
 	version.P = vpl
 	version.PK = pk
 	log.Debug("new version msg.pk is ", version.PK)
-	// TODO the function to wrap below process
-	// msg.HDR.init("version", n.GetID(), uint32(len(p.Bytes())))
 
-	version.Hdr.Magic = msgCommon.NETMAGIC
-	copy(version.Hdr.CMD[0:7], "version")
 	p := bytes.NewBuffer([]byte{})
 	err := binary.Write(p, binary.LittleEndian, &(version.P))
 	version.PK.Serialize(p)
@@ -439,13 +390,10 @@ func NewVersion(vpl msg.VersionPayload, pk *crypto.PubKey) ([]byte, error) {
 		log.Error("Binary Write failed at new Msg")
 		return nil, err
 	}
-	s := sha256.Sum256(p.Bytes())
-	s2 := s[:]
-	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(version.Hdr.Checksum))
-	version.Hdr.Length = uint32(len(p.Bytes()))
-	log.Debug("The message payload length is ", version.Hdr.Length)
+
+	checkSumBuf := msg.CheckSum(p.Bytes())
+	version.Hdr.Init("version", checkSumBuf, uint32(len(p.Bytes())))
+	log.Debug("NewVersion The message payload length is ", version.Hdr.Length)
 
 	m, err := version.Serialization()
 	if err != nil {
@@ -471,8 +419,6 @@ func NewBlkDataReq(hash common.Uint256) ([]byte, error) {
 	dataReq.DataType = common.BLOCK
 	dataReq.Hash = hash
 
-	dataReq.MsgHdr.Magic = msgCommon.NETMAGIC
-	copy(dataReq.MsgHdr.CMD[0:7], "getdata")
 	p := bytes.NewBuffer([]byte{})
 	err := binary.Write(p, binary.LittleEndian, &(dataReq.DataType))
 	dataReq.Hash.Serialize(p)
@@ -480,13 +426,10 @@ func NewBlkDataReq(hash common.Uint256) ([]byte, error) {
 		log.Error("Binary Write failed at new getdata Msg")
 		return nil, err
 	}
-	s := sha256.Sum256(p.Bytes())
-	s2 := s[:]
-	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(dataReq.MsgHdr.Checksum))
-	dataReq.MsgHdr.Length = uint32(len(p.Bytes()))
-	log.Debug("The message payload length is ", dataReq.MsgHdr.Length)
+
+	checkSumBuf := msg.CheckSum(p.Bytes())
+	dataReq.Init("getdata", checkSumBuf, uint32(len(p.Bytes())))
+	log.Debug("NewBlkDataReq The message payload length is ", dataReq.Length)
 
 	sendBuf, err := dataReq.Serialization()
 	if err != nil {

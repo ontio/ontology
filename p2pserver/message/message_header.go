@@ -19,13 +19,11 @@ type MsgHdr struct {
 	Checksum [common.CHECKSUM_LEN]byte
 }
 
-
 func (hdr *MsgHdr) Init(cmd string, checksum []byte, length uint32) {
 	hdr.Magic = common.NETMAGIC
 	copy(hdr.CMD[0:uint32(len(cmd))], cmd)
 	copy(hdr.Checksum[:], checksum[:common.CHECKSUM_LEN])
 	hdr.Length = length
-	//hdr.ID = id
 }
 
 // Verify the message header information
