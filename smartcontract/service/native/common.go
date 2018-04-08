@@ -31,8 +31,8 @@ import (
 )
 
 var (
-	ADDRESS_HEIGHT    = []byte("addressHeight")
-	TRANSFER_NAME     = "transfer"
+	ADDRESS_HEIGHT = []byte("addressHeight")
+	TRANSFER_NAME = "transfer"
 	TOTAL_SUPPLY_NAME = []byte("totalSupply")
 )
 
@@ -209,7 +209,7 @@ func addNotifications(native *NativeService, contract common.Address, state *sta
 	native.Notifications = append(native.Notifications,
 		&event.NotifyEventInfo{
 			TxHash:   native.Tx.Hash(),
-			CodeHash: contract,
-			States:   []interface{}{TRANSFER_NAME, state.From, state.To, state.Value},
+			ContractAddress: contract,
+			States:   []interface{}{TRANSFER_NAME, state.From.ToBase58(), state.To.ToBase58(), state.Value},
 		})
 }
