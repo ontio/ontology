@@ -55,6 +55,7 @@ func (self TreeHasher) HashFullTreeWithLeafHash(leaves []common.Uint256) common.
 
 	return root_hash
 }
+
 func (self TreeHasher) HashFullTree(leaves [][]byte) common.Uint256 {
 	length := uint32(len(leaves))
 	leafhashes := make([]common.Uint256, length, length)

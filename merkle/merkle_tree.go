@@ -33,6 +33,7 @@ import (
 
 var EMPTY_HASH = common.Uint256{}
 
+// CompactMerkleTree calculate merkle tree with compact hash store in HashStore
 type CompactMerkleTree struct {
 	mintree_h uint
 	hashes    []common.Uint256
@@ -42,6 +43,7 @@ type CompactMerkleTree struct {
 	treeSize  uint32
 }
 
+// NewTree returns a CompactMerkleTree instance
 func NewTree(tree_size uint32, hashes []common.Uint256, store HashStore) *CompactMerkleTree {
 
 	tree := &CompactMerkleTree{
@@ -103,6 +105,7 @@ func (self *CompactMerkleTree) _update(tree_size uint32, hashes []common.Uint256
 
 }
 
+// Root returns root hash of merkle tree
 func (self *CompactMerkleTree) Root() common.Uint256 {
 	if self.rootHash == EMPTY_HASH {
 		if len(self.hashes) != 0 {
@@ -114,6 +117,7 @@ func (self *CompactMerkleTree) Root() common.Uint256 {
 	return self.rootHash
 }
 
+// GetRootWithNewLeaf returns the new root hash if newLeaf is appended to the merkle tree
 func (self *CompactMerkleTree) GetRootWithNewLeaf(newLeaf common.Uint256) common.Uint256 {
 	hashes := append(self.hashes, newLeaf)
 	root := self.hasher._hash_fold(hashes)
@@ -121,12 +125,14 @@ func (self *CompactMerkleTree) GetRootWithNewLeaf(newLeaf common.Uint256) common
 	return root
 }
 
+// Append appends a leaf to the merkle tree and returns the audit path
 func (self *CompactMerkleTree) Append(leafv []byte) []common.Uint256 {
 	leaf := self.hasher.hash_leaf(leafv)
 
 	return self.AppendHash(leaf)
 }
 
+// AppendHash appends a leaf hash to the merkle tree and returns the audit path
 func (self *CompactMerkleTree) AppendHash(leaf common.Uint256) []common.Uint256 {
 	size := len(self.hashes)
 	auditPath := make([]common.Uint256, size, size)
@@ -210,6 +216,7 @@ func (self *CompactMerkleTree) merkleRoot(n uint32) common.Uint256 {
 	return self.hasher._hash_fold(hashes)
 }
 
+// ConsistencyProof returns consistency proof
 func (self *CompactMerkleTree) ConsistencyProof(m, n uint32) []common.Uint256 {
 	if m > n || self.treeSize < n || self.hashStore == nil {
 		return nil
@@ -264,7 +271,7 @@ func (self *CompactMerkleTree) subproof(m, n uint32, b bool) []common.Uint256 {
 	return reverse
 }
 
-// proof d[m] in D[0:n]
+// InclusionProof returns the proof d[m] in D[0:n]
 // m zero based index, n size 1-based
 func (self *CompactMerkleTree) InclusionProof(m, n uint32) ([]common.Uint256, error) {
 	if m >= n {
@@ -307,6 +314,7 @@ func (self *CompactMerkleTree) InclusionProof(m, n uint32) ([]common.Uint256, er
 	return reverse, nil
 }
 
+// MerkleVerifier verify inclusion and consist proof
 type MerkleVerifier struct {
 	hasher TreeHasher
 }
@@ -329,7 +337,6 @@ func NewMerkleVerifier() *MerkleVerifier {
    Returns:
        nil when the proof is valid
 */
-
 func (self *MerkleVerifier) VerifyLeafHashInclusion(leaf_hash common.Uint256,
 	leaf_index uint32, proof []common.Uint256, root_hash common.Uint256, tree_size uint32) error {
 
@@ -432,7 +439,6 @@ Verify the consistency between two root hashes.
         ProofError: the proof is invalid.
         ValueError: supplied tree sizes are invalid.
 */
-
 func (self *MerkleVerifier) VerifyConsistency(old_tree_size,
 	new_tree_size uint32, old_root, new_root common.Uint256, proof []common.Uint256) error {
 	old_size := old_tree_size

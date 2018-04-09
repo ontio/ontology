@@ -26,6 +26,7 @@ import (
 	stypes "github.com/ontio/ontology/smartcontract/types"
 )
 
+// InvokeCode is an implementation of transaction payload for invoke smartcontract
 type InvokeCode struct {
 	GasLimit common.Fixed64
 	Code     stypes.VmCode

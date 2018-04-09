@@ -26,7 +26,7 @@ import (
 	"github.com/ontio/ontology/common/serialization"
 	stypes "github.com/ontio/ontology/smartcontract/types"
 )
-
+// DeployCode is an implementation of transaction payload for deploy smartcontract
 type DeployCode struct {
 	Code        stypes.VmCode
 	NeedStorage bool

@@ -24,6 +24,7 @@ import (
 	"github.com/ontio/ontology/common/serialization"
 )
 
+// Bookkeeping is an implementation of transaction payload for bookkeeper rewards
 type BookKeeping struct {
 	Nonce uint64
 }

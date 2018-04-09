@@ -19,8 +19,6 @@
 package signature
 
 import (
-	"bytes"
-	"crypto/sha256"
 	"errors"
 	"io"
 
@@ -31,33 +29,22 @@ import (
 	"github.com/ontio/ontology/vm/neovm/interfaces"
 )
 
-//SignableData describe the data need be signed.
+// SignableData describe the data need be signed.
 type SignableData interface {
 	interfaces.CodeContainer
 
-	////Get the the SignableData's program hashes
+	// Get the the SignableData's program hashes
 	GetProgramHashes() ([]common.Address, error)
 
 	SetPrograms([]*program.Program)
 
 	GetPrograms() []*program.Program
 
-	//TODO: add SerializeUnsigned
+	// TODO: add SerializeUnsigned
 	SerializeUnsigned(io.Writer) error
 }
 
-func SignBySigner(data SignableData, signer Signer) ([]byte, error) {
-	return Sign(signer, getHashData(data))
-}
-
-func getHashData(data SignableData) []byte {
-	buf := new(bytes.Buffer)
-	data.SerializeUnsigned(buf)
-	temp := sha256.Sum256(buf.Bytes())
-	hash := sha256.Sum256(temp[:])
-	return hash[:]
-}
-
+// Sign returns the signature of data using privKey
 func Sign(signer Signer, data []byte) ([]byte, error) {
 	signature, err := s.Sign(signer.Scheme(), signer.PrivKey(), data, nil)
 	if err != nil {
@@ -67,6 +54,7 @@ func Sign(signer Signer, data []byte) ([]byte, error) {
 	return s.Serialize(signature)
 }
 
+// Verify check the signature of data using pubKey
 func Verify(pubKey keypair.PublicKey, data, signature []byte) error {
 	sigObj, err := s.Deserialize(signature)
 	if err != nil {
@@ -80,6 +68,7 @@ func Verify(pubKey keypair.PublicKey, data, signature []byte) error {
 	return nil
 }
 
+// VerifyMultiSignature check whether more than m sigs are signed by the keys
 func VerifyMultiSignature(data []byte, keys []keypair.PublicKey, m int, sigs [][]byte) error {
 	n := len(keys)
 

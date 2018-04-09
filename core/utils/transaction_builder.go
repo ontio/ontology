@@ -23,7 +23,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 	stypes "github.com/ontio/ontology/smartcontract/types"
 )
-
+// NewDeployTransaction returns a deploy Transaction
 func NewDeployTransaction(code stypes.VmCode, name, version, author, email, desp string, needStorage bool) *types.Transaction {
 	//TODO: check arguments
 	DeployCodePayload := &payload.DeployCode{
@@ -43,6 +43,7 @@ func NewDeployTransaction(code stypes.VmCode, name, version, author, email, desp
 	}
 }
 
+// NewInvokeTransaction returns an invoke Transaction
 func NewInvokeTransaction(vmcode stypes.VmCode) *types.Transaction {
 	//TODO: check arguments
 	invokeCodePayload := &payload.InvokeCode{

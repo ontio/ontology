@@ -43,7 +43,7 @@ type StateStore struct {
 	store           scom.PersistStore
 	merklePath      string
 	merkleTree      *merkle.CompactMerkleTree
-	merkleHashStore *merkle.FileHashStore
+	merkleHashStore merkle.HashStore
 }
 
 func NewStateStore(dbDir, merklePath string) (*StateStore, error) {
@@ -116,7 +116,7 @@ func (self *StateStore) GetMerkleTree() (uint32, []common.Uint256, error) {
 }
 
 func (self *StateStore) AddMerkleTreeRoot(txRoot common.Uint256) error {
-	key:= self.getMerkleTreeKey()
+	key := self.getMerkleTreeKey()
 
 	self.merkleTree.AppendHash(txRoot)
 	err := self.merkleHashStore.Flush()
@@ -141,7 +141,7 @@ func (self *StateStore) AddMerkleTreeRoot(txRoot common.Uint256) error {
 }
 
 func (self *StateStore) GetMerkleProof(proofHeight, rootHeight uint32) ([]common.Uint256, error) {
-	return self.merkleTree.InclusionProof(proofHeight, rootHeight + 1)
+	return self.merkleTree.InclusionProof(proofHeight, rootHeight+1)
 }
 
 func (self *StateStore) NewStateBatch() *statestore.StateBatch {
@@ -318,7 +318,7 @@ func (self *StateStore) GetBlockRootWithNewTxRoot(txRoot common.Uint256) common.
 	return self.merkleTree.GetRootWithNewLeaf(txRoot)
 }
 
-func (self *StateStore) getMerkleTreeKey() []byte{
+func (self *StateStore) getMerkleTreeKey() []byte {
 	return []byte{byte(scom.SYS_BLOCK_MERKLE_TREE)}
 }
 

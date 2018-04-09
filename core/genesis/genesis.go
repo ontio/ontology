@@ -23,13 +23,13 @@ import (
 	"errors"
 	"time"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/smartcontract/states"
 	stypes "github.com/ontio/ontology/smartcontract/types"
-	"github.com/ontio/ontology-crypto/keypair"
 )
 
 const (
@@ -41,8 +41,8 @@ var (
 	OntContractAddress, _ = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})
 	OngContractAddress, _ = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02})
 
-	ONTToken   = NewGoverningToken()
-	ONGToken   = NewUtilityToken()
+	ONTToken   = newGoverningToken()
+	ONGToken   = newUtilityToken()
 	ONTTokenID = ONTToken.Hash()
 	ONGTokenID = ONGToken.Hash()
 )
@@ -51,6 +51,7 @@ var GenBlockTime = (config.DEFAULT_GEN_BLOCK_TIME * time.Second)
 
 var GenesisBookkeepers []keypair.PublicKey
 
+// GenesisBlockInit returns the genesis block with default consensus bookkeeper list
 func GenesisBlockInit(defaultBookkeeper []keypair.PublicKey) (*types.Block, error) {
 	//getBookkeeper
 	GenesisBookkeepers = defaultBookkeeper
@@ -73,35 +74,35 @@ func GenesisBlockInit(defaultBookkeeper []keypair.PublicKey) (*types.Block, erro
 	}
 
 	//block
-	ont := NewGoverningToken()
-	ong := NewUtilityToken()
+	ont := newGoverningToken()
+	ong := newUtilityToken()
 
 	genesisBlock := &types.Block{
 		Header: genesisHeader,
 		Transactions: []*types.Transaction{
 			ont,
 			ong,
-			NewGoverningInit(),
-			NewUtilityInit(),
+			newGoverningInit(),
+			newUtilityInit(),
 		},
 	}
 	genesisBlock.RebuildMerkleRoot()
 	return genesisBlock, nil
 }
 
-func NewGoverningToken() *types.Transaction {
+func newGoverningToken() *types.Transaction {
 	tx := utils.NewDeployTransaction(stypes.VmCode{Code: OntContractAddress[:], VmType: stypes.Native}, "ONT", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network ONT Token", true)
 	return tx
 }
 
-func NewUtilityToken() *types.Transaction {
+func newUtilityToken() *types.Transaction {
 	tx := utils.NewDeployTransaction(stypes.VmCode{Code: OngContractAddress[:], VmType: stypes.Native}, "ONG", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network ONG Token", true)
 	return tx
 }
 
-func NewGoverningInit() *types.Transaction {
+func newGoverningInit() *types.Transaction {
 	init := states.Contract{
 		Address: OntContractAddress,
 		Method:  "init",
@@ -116,7 +117,7 @@ func NewGoverningInit() *types.Transaction {
 	return tx
 }
 
-func NewUtilityInit() *types.Transaction {
+func newUtilityInit() *types.Transaction {
 	init := states.Contract{
 		Address: OngContractAddress,
 		Method:  "init",

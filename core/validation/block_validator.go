@@ -28,6 +28,7 @@ import (
 	ontErrors "github.com/ontio/ontology/errors"
 )
 
+// VerifyBlock checks whether the block is valid
 func VerifyBlock(block *types.Block, ld *ledger.Ledger, completely bool) error {
 	header := block.Header
 	if header.Height == 0 {

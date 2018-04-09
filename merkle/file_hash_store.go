@@ -26,6 +26,7 @@ import (
 	"github.com/ontio/ontology/common"
 )
 
+// HashStore is an interface for persist hash
 type HashStore interface {
 	Append(hash []common.Uint256) error
 	Flush() error
@@ -33,17 +34,18 @@ type HashStore interface {
 	GetHash(pos uint32) (common.Uint256, error)
 }
 
-type FileHashStore struct {
+type fileHashStore struct {
 	file_name string
 	file      *os.File
 }
 
-func NewFileHashStore(name string, tree_size uint32) (*FileHashStore, error) {
+// NewFileHashStore returns a HashStore implement in file
+func NewFileHashStore(name string, tree_size uint32) (HashStore, error) {
 	f, err := os.OpenFile(name, os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
 		return nil, err
 	}
-	store := &FileHashStore{
+	store := &fileHashStore{
 		file_name: name,
 		file:      f,
 	}
@@ -73,7 +75,7 @@ func getStoredHashNum(tree_size uint32) int64 {
 	return sum
 }
 
-func (self *FileHashStore) checkConsistence(tree_size uint32) error {
+func (self *fileHashStore) checkConsistence(tree_size uint32) error {
 	num_hashes := getStoredHashNum(tree_size)
 
 	stat, err := self.file.Stat()
@@ -86,7 +88,7 @@ func (self *FileHashStore) checkConsistence(tree_size uint32) error {
 	return nil
 }
 
-func (self *FileHashStore) Append(hash []common.Uint256) error {
+func (self *fileHashStore) Append(hash []common.Uint256) error {
 	if self == nil {
 		return nil
 	}
@@ -98,21 +100,21 @@ func (self *FileHashStore) Append(hash []common.Uint256) error {
 	return err
 }
 
-func (self *FileHashStore) Flush() error {
+func (self *fileHashStore) Flush() error {
 	if self == nil {
 		return nil
 	}
 	return self.file.Sync()
 }
 
-func (self *FileHashStore) Close() {
+func (self *fileHashStore) Close() {
 	if self == nil {
 		return
 	}
 	self.file.Close()
 }
 
-func (self *FileHashStore) GetHash(pos uint32) (common.Uint256, error) {
+func (self *fileHashStore) GetHash(pos uint32) (common.Uint256, error) {
 	if self == nil {
 		return EMPTY_HASH, errors.New("FileHashstore is nil")
 	}
@@ -125,21 +127,26 @@ func (self *FileHashStore) GetHash(pos uint32) (common.Uint256, error) {
 	return hash, nil
 }
 
-type MemHashStore struct {
+type memHashStore struct {
 	hashes []common.Uint256
 }
 
-func (self *MemHashStore) Append(hash []common.Uint256) error {
+// NewMemHashStore returns a HashStore implement in memory
+func NewMemHashStore() HashStore {
+	return &memHashStore{}
+}
+
+func (self *memHashStore) Append(hash []common.Uint256) error {
 	self.hashes = append(self.hashes, hash...)
 	return nil
 }
 
-func (self *MemHashStore) GetHash(pos uint32) (common.Uint256, error) {
+func (self *memHashStore) GetHash(pos uint32) (common.Uint256, error) {
 	return self.hashes[pos], nil
 }
 
-func (self *MemHashStore) Flush() error {
+func (self *memHashStore) Flush() error {
 	return nil
 }
 
-func (self *MemHashStore) Close() {}
+func (self *memHashStore) Close() {}

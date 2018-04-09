@@ -35,6 +35,7 @@ const (
 	BookkeeperAction_SUB BookkeeperAction = 1
 )
 
+// Bookkeeper is an implementation of transaction payload for consensus bookkeeper list modification
 type Bookkeeper struct {
 	PubKey keypair.PublicKey
 	Action BookkeeperAction

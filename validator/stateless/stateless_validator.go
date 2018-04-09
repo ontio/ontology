@@ -27,9 +27,13 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 )
 
+// Validator wraps validator actor's pid
 type Validator interface {
+	// Register send a register message to poolId
 	Register(poolId *actor.PID)
+	// UnRegister send an unregister message to poolId
 	UnRegister(poolId *actor.PID)
+	// VerifyType returns the type of validator
 	VerifyType() vatypes.VerifyType
 }
 
@@ -38,6 +42,7 @@ type validator struct {
 	id  string
 }
 
+// NewValidator spawns a validator actor and return its pid wraped in Validator
 func NewValidator(id string) (Validator, error) {
 	validator := &validator{id: id}
 	props := actor.FromProducer(func() actor.Actor {
