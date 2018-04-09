@@ -551,14 +551,15 @@ func (self *Server) startNewRound() error {
 
 	txpool := self.poolActor.GetTxnPool(true, uint32(blkNum-1))
 	if len(txpool) != 0 {
-		self.packProposal(blkNum)
+		self.startNewProposal(blkNum)
 	} else {
 		self.timer.startTxTicker(blkNum)
+		self.timer.StartTxBlockTimeout(blkNum)
 	}
 	return nil
 }
 
-func (self *Server) packProposal(blkNum uint64) error {
+func (self *Server) startNewProposal(blkNum uint64) error {
 	// make proposal
 	if self.isProposer(blkNum, self.Index) {
 		log.Infof("server %d, proposer for block %d", self.Index, blkNum)
@@ -1466,15 +1467,14 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 		blockNum := self.GetCurrentBlockNo()
 		txpool := self.poolActor.GetTxnPool(true, uint32(blockNum-1))
 		if len(txpool) != 0 {
-			self.packProposal(blockNum)
 			self.timer.stopTxTicker()
-		} else {
-			self.timer.stopTxTicker()
-			self.timer.StartTxBlockTimeout(blockNum)
+			self.timer.CancelTxBlockTimeout(blockNum)
+			self.startNewProposal(blockNum)
 		}
 	case EventTxBlockTimeout:
-		self.packProposal(evt.blockNum)
-		if err := self.timer.CancelTxBlockTimeout(evt.blockNum); err != nil {
+		self.timer.stopTxTicker()
+		self.timer.CancelTxBlockTimeout(evt.blockNum)
+		if err := self.startNewProposal(evt.blockNum); err != nil {
 			log.Errorf("failed to cancel txBlockTimeout timer, blockNum %d, err: %s", evt.blockNum, err)
 		}
 	}
