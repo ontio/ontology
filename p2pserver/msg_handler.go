@@ -234,21 +234,13 @@ func VersionHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		return errors.New("nbr node is not exist ")
 	}
 
-	// Exclude the node itself
-	if version.P.Nonce == localPeer.GetID() {
-		if version.P.IsConsensus == false {
-			log.Warn("The node handshake with itself")
-			remotePeer.CloseSync()
-			return errors.New("The node handshake with itself ")
-		}
-		if version.P.IsConsensus == true {
+	if version.P.IsConsensus == true {
+		if version.P.Nonce == p2p.Self.GetID(){
 			log.Warn("The node handshake with itself")
 			remotePeer.CloseCons()
 			return errors.New("The node handshake with itself ")
 		}
-	}
 
-	if version.P.IsConsensus == true {
 		s := remotePeer.GetConsState()
 		if s != msgCommon.INIT && s != msgCommon.HAND {
 			log.Warn("Unknown status to received version")
@@ -256,8 +248,8 @@ func VersionHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		}
 
 		remotePeer.UpdateInfo(time.Now(), version.P.Version, version.P.Services,
-			version.P.Port, version.P.Nonce, version.P.Relay, version.P.StartHeight)
-		remotePeer.SetConsPort(version.P.ConsensusPort)
+			version.P.SyncPort, version.P.ConsPort, version.P.Nonce,
+			version.P.Relay, version.P.StartHeight)
 
 		var buf []byte
 		if s == msgCommon.INIT {
@@ -270,56 +262,62 @@ func VersionHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		}
 		remotePeer.SendToCons(buf)
 		return nil
+	}else{
+		if version.P.Nonce == p2p.Self.GetID(){
+			log.Warn("The node handshake with itself")
+			remotePeer.CloseSync()
+			return errors.New("The node handshake with itself ")
+		}
+
+		s := remotePeer.GetSyncState()
+		if s != msgCommon.INIT && s != msgCommon.HAND {
+			log.Warn("Unknown status to received version")
+			return errors.New("Unknown status to received version")
+		}
+
+		// Obsolete node
+		n, ret := p2p.Self.Np.DelNbrNode(version.P.Nonce)
+		if ret == true {
+			log.Info(fmt.Sprintf("Node reconnect 0x%x", version.P.Nonce))
+			// Close the connection and release the node source
+			n.SetSyncState(msgCommon.INACTIVITY)
+			n.CloseSync()
+		}
+
+		log.Debug("handle version version.pk is ", version.PK)
+		if version.P.Cap[msg.HTTP_INFO_FLAG] == 0x01 {
+			remotePeer.SetHttpInfoState(true)
+		} else {
+			remotePeer.SetHttpInfoState(false)
+		}
+		remotePeer.SetHttpInfoPort(version.P.HttpInfoPort)
+		remotePeer.SetBookKeeperAddr(version.PK)
+
+		// if  version.P.Port == version.P.ConsensusPort don't updateInfo
+		remotePeer.UpdateInfo(time.Now(), version.P.Version, version.P.Services,
+			version.P.SyncPort, version.P.ConsPort, version.P.Nonce,
+			version.P.Relay, version.P.StartHeight)
+
+		p2p.Self.Np.AddNbrNode(remotePeer)
+
+		var buf []byte
+		if s == msgCommon.INIT {
+			remotePeer.SetSyncState(msgCommon.HANDSHAKE)
+			vpl := NewVersionPayload(localPeer, false)
+			buf, _ = NewVersion(vpl, p2p.Self.GetPubKey())
+		} else if s == msgCommon.HAND {
+			remotePeer.SetSyncState(msgCommon.HANDSHAKED)
+			buf, _ = NewVerAck(false)
+		}
+		remotePeer.SendToSync(buf)
+		return nil
 	}
-
-	s := remotePeer.GetSyncState()
-	if s != msgCommon.INIT && s != msgCommon.HAND {
-		log.Warn("Unknown status to received version")
-		return errors.New("Unknown status to received version")
-	}
-
-	// Obsolete node
-	n, ret := localPeer.Np.DelNbrNode(version.P.Nonce)
-	if ret == true {
-		log.Info(fmt.Sprintf("Node reconnect 0x%x", version.P.Nonce))
-		// Close the connection and release the node source
-		n.SetSyncState(msgCommon.INACTIVITY)
-		n.CloseSync()
-	}
-
-	log.Debug("handle version version.pk is ", version.PK)
-	if version.P.Cap[msg.HTTP_INFO_FLAG] == 0x01 {
-		remotePeer.SetHttpInfoState(true)
-	} else {
-		remotePeer.SetHttpInfoState(false)
-	}
-	remotePeer.SetHttpInfoPort(version.P.HttpInfoPort)
-	remotePeer.SetConsPort(version.P.ConsensusPort)
-	remotePeer.SetBookKeeperAddr(version.PK)
-
-	// if  version.P.Port == version.P.ConsensusPort don't updateInfo
-	remotePeer.UpdateInfo(time.Now(), version.P.Version, version.P.Services,
-		version.P.Port, version.P.Nonce, version.P.Relay, version.P.StartHeight)
-
-	localPeer.Np.AddNbrNode(remotePeer)
-
-	var buf []byte
-	if s == msgCommon.INIT {
-		remotePeer.SetSyncState(msgCommon.HANDSHAKE)
-		vpl := NewVersionPayload(localPeer, false)
-		buf, _ = NewVersion(vpl, p2p.Self.GetPubKey())
-	} else if s == msgCommon.HAND {
-		remotePeer.SetSyncState(msgCommon.HANDSHAKED)
-		buf, _ = NewVerAck(false)
-	}
-	remotePeer.SendToSync(buf)
-
 	return nil
 }
 
 // VerAckHandle handles the version ack from peer
 func VerAckHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
-	log.Debug("RX verack message")
+	log.Debug("RX verAck message")
 
 	length := len(data.Payload)
 
@@ -328,8 +326,8 @@ func VerAckHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		return errors.New("nil message")
 	}
 
-	verack := msg.VerACK{}
-	verack.Deserialization(data.Payload[:length])
+	verAck := msg.VerACK{}
+	verAck.Deserialization(data.Payload[:length])
 
 	localPeer := p2p.Self
 	remotePeer := localPeer.Np.GetPeer(data.Id)
@@ -339,7 +337,61 @@ func VerAckHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		return errors.New("nbr node is not exist ")
 	}
 
-	if verack.IsConsensus == true {
+	if verAck.IsConsensus == true {
+		s := remotePeer.GetConsState()
+		if s != msgCommon.HANDSHAKE && s != msgCommon.HANDSHAKED {
+			log.Warn("Unknown status to received verAck")
+			return errors.New("Unknown status to received verAck")
+		}
+
+		remotePeer.SetConsState(msgCommon.ESTABLISH)
+		remotePeer.SetConsConn(remotePeer.GetConsConn())
+
+		if s == msgCommon.HANDSHAKE {
+			buf, _ := NewVerAck(true)
+			remotePeer.SendToCons(buf)
+		}
+		return nil
+	} else {
+		s := remotePeer.GetSyncState()
+		if s != msgCommon.HANDSHAKE && s != msgCommon.HANDSHAKED {
+			log.Warn("Unknown status to received verAck")
+			return errors.New("Unknown status to received verAck ")
+		}
+
+		remotePeer.SetSyncState(msgCommon.ESTABLISH)
+
+		if s == msgCommon.HANDSHAKE {
+			buf, _ := NewVerAck(false)
+			remotePeer.SendToSync(buf)
+		}
+
+		remotePeer.DumpInfo()
+		// Fixme, there is a race condition here,
+		// but it doesn't matter to access the invalid
+		// node which will trigger a warning
+		//TODO JQ: only master p2p port request neighbor list
+		buf, _ := NewAddrReq()
+		go remotePeer.SendToSync(buf)
+
+		addr := remotePeer.GetAddr()
+		port := remotePeer.GetSyncPort()
+		nodeAddr := addr + ":" + strconv.Itoa(int(port))
+		//TODO JQ： only master p2p port remove the list
+		p2p.Self.SyncLink.RemoveAddrInConnectingList(nodeAddr)
+
+		//connect consensus port
+		if s == msgCommon.HANDSHAKED {
+			consensusPort := remotePeer.GetConsPort()
+			nodeConsensusAddr := addr + ":" + strconv.Itoa(int(consensusPort))
+			//Fix me:
+			go remotePeer.ConsLink.Connect(nodeConsensusAddr)
+		}
+		return nil
+	}
+/*
+
+	if verAck.IsConsensus == true {
 		s := localPeer.GetConsState()
 		if s != msgCommon.HANDSHAKE && s != msgCommon.HANDSHAKED {
 			log.Warn("Unknown status to received verAck")
@@ -395,7 +447,7 @@ func VerAckHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		nodeConsensusAddr := addr + ":" + strconv.Itoa(int(consensusPort))
 		//Fix me:
 		go remotePeer.ConsLink.Connect(nodeConsensusAddr)
-	}
+	}*/
 	return nil
 }
 

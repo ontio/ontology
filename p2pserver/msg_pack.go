@@ -352,8 +352,8 @@ func NewVersionPayload(p *peer.Peer, isCons bool) msg.VersionPayload {
 	vpl := msg.VersionPayload{
 		Version:       p.GetVersion(),
 		Services:      p.GetServices(),
-		Port:          p.GetSyncPort(),
-		ConsensusPort: p.GetConsPort(),
+		SyncPort:      p.GetSyncPort(),
+		ConsPort:      p.GetConsPort(),
 		Nonce:         p.GetID(),
 		IsConsensus:   isCons,
 		HttpInfoPort:  p.GetHttpInfoPort(),

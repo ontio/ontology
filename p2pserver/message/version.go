@@ -17,9 +17,9 @@ type VersionPayload struct {
 	Version       uint32
 	Services      uint64
 	TimeStamp     uint32
-	Port          uint16
+	SyncPort      uint16
 	HttpInfoPort  uint16
-	ConsensusPort uint16
+	ConsPort      uint16
 	Cap           [32]byte
 	Nonce         uint64
 	// TODO remove tempory to get serilization function passed

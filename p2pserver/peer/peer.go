@@ -242,13 +242,14 @@ func (p *Peer) SetBookkeeperAddr(pk *crypto.PubKey) {
 
 //UpdateInfo update peer`s information
 func (p *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
-	port uint16, nonce uint64, relay uint8, height uint64) {
+	syncPort uint16, consPort uint16, nonce uint64, relay uint8, height uint64) {
 
 	p.SyncLink.UpdateRXTime(t)
 	p.id = nonce
 	p.version = version
 	p.services = services
-	p.SyncLink.SetPort(port)
+	p.SyncLink.SetPort(syncPort)
+	p.ConsLink.SetPort(consPort)
 	if relay == 0 {
 		p.relay = false
 	} else {
