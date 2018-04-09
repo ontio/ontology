@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package p2pserver
 
 import (
@@ -235,7 +253,7 @@ func VersionHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	}
 
 	if version.P.IsConsensus == true {
-		if version.P.Nonce == p2p.Self.GetID(){
+		if version.P.Nonce == p2p.Self.GetID() {
 			log.Warn("The node handshake with itself")
 			remotePeer.CloseCons()
 			return errors.New("The node handshake with itself ")
@@ -262,8 +280,8 @@ func VersionHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		}
 		remotePeer.SendToCons(buf)
 		return nil
-	}else{
-		if version.P.Nonce == p2p.Self.GetID(){
+	} else {
+		if version.P.Nonce == p2p.Self.GetID() {
 			log.Warn("The node handshake with itself")
 			remotePeer.CloseSync()
 			return errors.New("The node handshake with itself ")
@@ -389,65 +407,65 @@ func VerAckHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		}
 		return nil
 	}
-/*
+	/*
 
-	if verAck.IsConsensus == true {
-		s := localPeer.GetConsState()
+		if verAck.IsConsensus == true {
+			s := localPeer.GetConsState()
+			if s != msgCommon.HANDSHAKE && s != msgCommon.HANDSHAKED {
+				log.Warn("Unknown status to received verAck")
+				return errors.New("Unknown status to received verAck")
+			}
+
+			n := localPeer.Np.GetPeer(remotePeer.GetID())
+			if n == nil {
+				log.Warn("nbr node is not exist")
+				return errors.New("nbr node is not exist ")
+			}
+
+			remotePeer.SetConsState(msgCommon.ESTABLISH)
+			n.SetConsState(remotePeer.GetConsState())
+			n.SetConsConn(remotePeer.GetConsConn())
+
+			if s == msgCommon.HANDSHAKE {
+				buf, _ := NewVerAck(true)
+				remotePeer.SendToCons(buf)
+			}
+			return nil
+		}
+		s := remotePeer.GetSyncState()
 		if s != msgCommon.HANDSHAKE && s != msgCommon.HANDSHAKED {
 			log.Warn("Unknown status to received verAck")
-			return errors.New("Unknown status to received verAck")
+			return errors.New("Unknown status to received verAck ")
 		}
 
-		n := localPeer.Np.GetPeer(remotePeer.GetID())
-		if n == nil {
-			log.Warn("nbr node is not exist")
-			return errors.New("nbr node is not exist ")
-		}
-
-		remotePeer.SetConsState(msgCommon.ESTABLISH)
-		n.SetConsState(remotePeer.GetConsState())
-		n.SetConsConn(remotePeer.GetConsConn())
+		remotePeer.SetSyncState(msgCommon.ESTABLISH)
 
 		if s == msgCommon.HANDSHAKE {
-			buf, _ := NewVerAck(true)
-			remotePeer.SendToCons(buf)
+			buf, _ := NewVerAck(false)
+			remotePeer.SendToSync(buf)
 		}
-		return nil
-	}
-	s := remotePeer.GetSyncState()
-	if s != msgCommon.HANDSHAKE && s != msgCommon.HANDSHAKED {
-		log.Warn("Unknown status to received verAck")
-		return errors.New("Unknown status to received verAck ")
-	}
 
-	remotePeer.SetSyncState(msgCommon.ESTABLISH)
+		remotePeer.DumpInfo()
+		// Fixme, there is a race condition here,
+		// but it doesn't matter to access the invalid
+		// node which will trigger a warning
+		//TODO JQ: only master p2p port request neighbor list
+		buf, _ := NewAddrReq()
+		go remotePeer.SendToSync(buf)
 
-	if s == msgCommon.HANDSHAKE {
-		buf, _ := NewVerAck(false)
-		remotePeer.SendToSync(buf)
-	}
+		addr := remotePeer.GetAddr()
+		port := remotePeer.GetSyncPort()
+		nodeAddr := addr + ":" + strconv.Itoa(int(port))
+		//TODO JQ： only master p2p port remove the list
+		p2p.Self.SyncLink.RemoveAddrInConnectingList(nodeAddr)
 
-	remotePeer.DumpInfo()
-	// Fixme, there is a race condition here,
-	// but it doesn't matter to access the invalid
-	// node which will trigger a warning
-	//TODO JQ: only master p2p port request neighbor list
-	buf, _ := NewAddrReq()
-	go remotePeer.SendToSync(buf)
-
-	addr := remotePeer.GetAddr()
-	port := remotePeer.GetSyncPort()
-	nodeAddr := addr + ":" + strconv.Itoa(int(port))
-	//TODO JQ： only master p2p port remove the list
-	p2p.Self.SyncLink.RemoveAddrInConnectingList(nodeAddr)
-
-	//connect consensus port
-	if s == msgCommon.HANDSHAKED {
-		consensusPort := remotePeer.GetConsPort()
-		nodeConsensusAddr := addr + ":" + strconv.Itoa(int(consensusPort))
-		//Fix me:
-		go remotePeer.ConsLink.Connect(nodeConsensusAddr)
-	}*/
+		//connect consensus port
+		if s == msgCommon.HANDSHAKED {
+			consensusPort := remotePeer.GetConsPort()
+			nodeConsensusAddr := addr + ":" + strconv.Itoa(int(consensusPort))
+			//Fix me:
+			go remotePeer.ConsLink.Connect(nodeConsensusAddr)
+		}*/
 	return nil
 }
 
