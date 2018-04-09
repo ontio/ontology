@@ -208,6 +208,9 @@ func GetRawTransaction(params []interface{}) map[string]interface{} {
 			return responsePack(berr.INVALID_TRANSACTION, "")
 		}
 		t, err := bactor.GetTransaction(hash)
+		if t == nil {
+			return responsePack(berr.UNKNOWN_TRANSACTION, "unknown transaction")
+		}
 		if err != nil {
 			log.Errorf("GetRawTransaction GetTransaction error:%s", err)
 			return responsePack(berr.UNKNOWN_TRANSACTION, "unknown transaction")
@@ -403,11 +406,9 @@ func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 		if err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
-		var evs []map[string]interface{}
+		var evs []bcomn.NotifyEventInfo
 		for _, v := range eventInfos {
-			evs = append(evs, map[string]interface{}{"CodeHash": v.ContractAddress,
-				"States": v.States,
-				"TxHash": v.TxHash})
+			evs = append(evs, bcomn.NotifyEventInfo{common.ToHexString(v.TxHash[:]),v.ContractAddress.ToHexString(), v.States})
 		}
 		return responseSuccess(evs)
 	default:
@@ -433,8 +434,11 @@ func GetBlockHeightByTxHash(params []interface{}) map[string]interface{} {
 		if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
-		height, err := bactor.GetBlockHeightByTxHashFromStore(hash)
+		height, tx, err := bactor.GetTxnWithHeightByTxHash(hash)
 		if err != nil {
+			return responsePack(berr.INVALID_PARAMS, "")
+		}
+		if tx == nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
 		return responseSuccess(height)
@@ -497,8 +501,11 @@ func GetMerkleProof(params []interface{}) map[string]interface{} {
 	if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
-	height, err := bactor.GetBlockHeightByTxHashFromStore(hash)
+	height, tx, err := bactor.GetTxnWithHeightByTxHash(hash)
 	if err != nil {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	if tx == nil {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
 	header, err := bactor.GetHeaderByHeight(height)
@@ -522,15 +529,7 @@ func GetMerkleProof(params []interface{}) map[string]interface{} {
 	for _, v := range proof {
 		hashes = append(hashes, common.ToHexString(v[:]))
 	}
-	type merkleProof struct {
-		Type             string
-		TransactionsRoot string
-		BlockHeight      uint32
-		CurBlockRoot     string
-		CurBlockHeight   uint32
-		TargetHashes     []string
-	}
-	return responseSuccess(merkleProof{"MerkleProof", common.ToHexString(header.TransactionsRoot[:]), height,
+	return responseSuccess(bcomn.MerkleProof{"MerkleProof", common.ToHexString(header.TransactionsRoot[:]), height,
 		common.ToHexString(curHeader.BlockRoot[:]), curHeight, hashes})
 }
 

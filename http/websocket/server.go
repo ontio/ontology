@@ -78,22 +78,17 @@ func pushSmartCodeEvent(v interface{}) {
 	go func() {
 		switch object := rs.Result.(type) {
 		case []*event.NotifyEventInfo:
-			type notifyEventInfo struct {
-				TxHash   string
-				CodeHash string
-				States   interface{}
-			}
-			evts := []notifyEventInfo{}
+			evts := []bcomn.NotifyEventInfo{}
 			for _, v := range object {
 				txhash := v.TxHash
-				evts = append(evts, notifyEventInfo{common.ToHexString(txhash[:]), v.ContractAddress.ToHexString(), v.States})
+				evts = append(evts, bcomn.NotifyEventInfo{common.ToHexString(txhash[:]), v.ContractAddress.ToHexString(), v.States})
 			}
 			pushEvent(rs.TxHash, rs.Error, rs.Action, evts)
 		case event.LogEventArgs:
 			type logEventArgs struct {
-				TxHash   string
-				CodeHash string
-				Message  string
+				TxHash          string
+				ContractAddress string
+				Message         string
 			}
 			hash := object.TxHash
 			pushEvent(rs.TxHash, rs.Error, rs.Action, logEventArgs{common.ToHexString(hash[:]), object.ContractAddress.ToHexString(), object.Message})

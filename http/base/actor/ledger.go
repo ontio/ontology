@@ -167,17 +167,19 @@ func GetContractStateFromStore(hash common.Address) (*payload.DeployCode, error)
 	}
 }
 
-func GetBlockHeightByTxHashFromStore(hash common.Uint256) (uint32, error) {
+func GetTxnWithHeightByTxHash(hash common.Uint256) (uint32, *types.Transaction, error) {
 	future := defLedgerPid.RequestFuture(&lactor.GetTransactionWithHeightReq{hash}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ERR_ACTOR_COMM, err)
-		return 0, err
+		return 0, nil, err
 	}
 	if rsp, ok := result.(*lactor.GetTransactionWithHeightRsp); !ok {
-		return 0, errors.New("fail")
+		return 0, nil, errors.New("fail")
+	} else if rsp.Tx == nil {
+		return 0, nil, nil
 	} else {
-		return rsp.Height, rsp.Error
+		return rsp.Height, rsp.Tx, rsp.Error
 	}
 }
 

@@ -33,6 +33,21 @@ type BalanceOfRsp struct {
 	OngAppove string `json:"ong_appove"`
 }
 
+type MerkleProof struct {
+	Type             string
+	TransactionsRoot string
+	BlockHeight      uint32
+	CurBlockRoot     string
+	CurBlockHeight   uint32
+	TargetHashes     []string
+}
+
+type NotifyEventInfo struct {
+	TxHash          string
+	ContractAddress string
+	States          interface{}
+}
+
 type TxAttributeInfo struct {
 	Usage types.TransactionAttributeUsage
 	Data  string
