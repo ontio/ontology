@@ -50,10 +50,10 @@ type Handler struct {
 	pushFlag bool
 }
 type subscribe struct {
-	subscribeEvent        bool `json:"SubscribeEvent"`
-	subscribeJsonBlock    bool `json:"SubscribeJsonBlock"`
-	subscribeRawBlock     bool `json:"SubscribeRawBlock"`
-	subscribeBlockTxHashs bool `json:"SubscribeBlockTxHashs"`
+	SubscribeEvent        bool `json:"SubscribeEvent"`
+	SubscribeJsonBlock    bool `json:"SubscribeJsonBlock"`
+	SubscribeRawBlock     bool `json:"SubscribeRawBlock"`
+	SubscribeBlockTxHashs bool `json:"SubscribeBlockTxHashs"`
 }
 type WsServer struct {
 	sync.RWMutex
@@ -124,21 +124,21 @@ func (self *WsServer) registryMethod() {
 		self.Lock()
 		defer self.Unlock()
 
-		userid, _ := cmd["Userid"].(string)
-		sub := self.SubscribeMap[userid]
+		sessionId, _ := cmd["SessionId"].(string)
+		sub := self.SubscribeMap[sessionId]
 		if b, ok := cmd["SubscribeEvent"].(bool); ok {
-			sub.subscribeEvent = b
+			sub.SubscribeEvent = b
 		}
 		if b, ok := cmd["SubscribeJsonBlock"].(bool); ok {
-			sub.subscribeJsonBlock = b
+			sub.SubscribeJsonBlock = b
 		}
 		if b, ok := cmd["SubscribeRawBlock"].(bool); ok {
-			sub.subscribeRawBlock = b
+			sub.SubscribeRawBlock = b
 		}
 		if b, ok := cmd["SubscribeBlockTxHashs"].(bool); ok {
-			sub.subscribeBlockTxHashs = b
+			sub.SubscribeBlockTxHashs = b
 		}
-		self.SubscribeMap[userid] = sub
+		self.SubscribeMap[sessionId] = sub
 
 		resp["Action"] = "heartbeat"
 		resp["Result"] = sub
@@ -295,6 +295,7 @@ func (self *WsServer) OnDataHandle(curSession *session.Session, bysMsg []byte, r
 	if raw, ok := req["Raw"].(float64); ok {
 		req["Raw"] = strconv.FormatInt(int64(raw), 10)
 	}
+	req["SessionId"] = curSession.GetSessionId()
 	resp := action.handler(req)
 	resp["Action"] = actionName
 	resp["Id"] = req["Id"]
@@ -367,13 +368,16 @@ func (self *WsServer) BroadcastToSubscribers(sub int, resp map[string]interface{
 	data := marshalResp(resp)
 	for sid, v := range self.SubscribeMap {
 		s := self.SessionList.GetSessionById(sid)
-		if sub == WSTOPIC_JSON_BLOCK && v.subscribeJsonBlock {
+		if s == nil {
+			continue
+		}
+		if sub == WSTOPIC_JSON_BLOCK && v.SubscribeJsonBlock {
 			s.Send(data)
-		} else if sub == WSTOPIC_RAW_BLOCK && v.subscribeRawBlock {
+		} else if sub == WSTOPIC_RAW_BLOCK && v.SubscribeRawBlock {
 			s.Send(data)
-		} else if sub == WSTOPIC_EVENT && v.subscribeEvent {
+		} else if sub == WSTOPIC_EVENT && v.SubscribeEvent {
 			s.Send(data)
-		} else if sub == WSTOPIC_TXHASHS && v.subscribeBlockTxHashs {
+		} else if sub == WSTOPIC_TXHASHS && v.SubscribeBlockTxHashs {
 			s.Send(data)
 		}
 	}
