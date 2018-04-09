@@ -23,38 +23,37 @@ import (
 	"github.com/ontio/ontology/vm/neovm/types"
 )
 
-func ConvertReturnTypes(item types.StackItems) (results []interface{}) {
+func ConvertReturnTypes(item types.StackItems) interface{} {
 	if item == nil {
-		return
+		return nil
 	}
 	switch v := item.(type) {
 	case *types.ByteArray:
-		results = append(results, common.ToHexString(v.GetByteArray()))
+		return common.ToHexString(v.GetByteArray())
 	case *types.Integer:
 		if item.GetBigInteger().Sign() == 0 {
-			results = append(results, common.ToHexString([]byte{0}))
+			return common.ToHexString([]byte{0})
 		} else {
-			results = append(results, common.ToHexString(types.ConvertBigIntegerToBytes(v.GetBigInteger())))
+			return common.ToHexString(types.ConvertBigIntegerToBytes(v.GetBigInteger()))
 		}
 	case *types.Boolean:
 		if v.GetBoolean() {
-			results = append(results, common.ToHexString([]byte{1}))
+			return common.ToHexString([]byte{1})
 		} else {
-			results = append(results, common.ToHexString([]byte{0}))
+			return common.ToHexString([]byte{0})
 		}
 	case *types.Array:
 		var arr []interface{}
 		for _, val := range v.GetArray() {
-			arr = append(arr, ConvertReturnTypes(val)...)
+			arr = append(arr, ConvertReturnTypes(val))
 		}
-		results = append(results, arr)
+		return arr
 	case *types.Interop:
-		results = append(results, common.ToHexString(v.GetInterface().ToArray()))
+		return common.ToHexString(v.GetInterface().ToArray())
 	case types.StackItems:
 		ConvertReturnTypes(v)
 	default:
 		panic("[ConvertTypes] Invalid Types!")
 	}
-	return
+	return nil
 }
-

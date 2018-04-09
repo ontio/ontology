@@ -878,7 +878,7 @@ func (this *LedgerStoreImp) GetEventNotifyByBlock(height uint32) ([]common.Uint2
 	return this.eventStore.GetEventNotifyByBlock(height)
 }
 
-func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) ([]interface{}, error) {
+func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface{}, error) {
 	if tx.TxType != types.Invoke {
 		return nil, fmt.Errorf("transaction type error")
 	}

@@ -160,7 +160,7 @@ func (self *Ledger) GetMerkleProof(proofHeight, rootHeight uint32) ([]common.Uin
 	return self.ldgStore.GetMerkleProof(proofHeight, rootHeight)
 }
 
-func (self *Ledger) PreExecuteContract(tx *types.Transaction) ([]interface{}, error) {
+func (self *Ledger) PreExecuteContract(tx *types.Transaction) (interface{}, error) {
 	return self.ldgStore.PreExecuteContract(tx)
 }
 

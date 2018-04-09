@@ -220,7 +220,7 @@ type PreExecuteContractReq struct {
 }
 
 type PreExecuteContractRsp struct {
-	Result []interface{}
+	Result interface{}
 	Error  error
 }
 
