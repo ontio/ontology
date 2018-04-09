@@ -43,6 +43,12 @@ const(
 	Error
 )
 
+type ParamType byte
+const(
+	Json ParamType = iota
+	Raw
+)
+
 type WasmStateMachine struct {
 	*WasmStateReader
 	ldgerStore store.LedgerStore
