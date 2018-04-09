@@ -82,7 +82,7 @@ type EventTimer struct {
 	// other timers
 	normalTimers map[uint64]*time.Timer
 	//tx timer
-	txTickers *time.Timer
+	txTicker *time.Timer
 }
 
 func NewEventTimer(server *Server) *EventTimer {
@@ -393,12 +393,12 @@ func (self *EventTimer) startTxTicker(blockNum uint64) error {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 	timeout := self.getEventTimeout(EventTxPool)
-	self.txTickers = time.AfterFunc(timeout, func() {
+	self.txTicker = time.AfterFunc(timeout, func() {
 		self.C <- &TimerEvent{
 			evtType:  EventTxPool,
 			blockNum: blockNum,
 		}
-		self.txTickers.Reset(timeout)
+		self.txTicker.Reset(timeout)
 	})
 	return nil
 }
@@ -406,7 +406,7 @@ func (self *EventTimer) startTxTicker(blockNum uint64) error {
 func (self *EventTimer) stopTxTicker() error {
 	self.lock.Lock()
 	defer self.lock.Unlock()
-	self.txTickers.Stop()
+	self.txTicker.Stop()
 	return nil
 }
 
