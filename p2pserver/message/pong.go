@@ -30,11 +30,13 @@ type Pong struct {
 	Height uint64
 }
 
+//Check whether header is correct
 func (msg Pong) Verify(buf []byte) error {
 	err := msg.MsgHdr.Verify(buf)
 	return err
 }
 
+//Serialize message payload
 func (msg Pong) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.MsgHdr.Serialization()
 	if err != nil {
@@ -49,6 +51,7 @@ func (msg Pong) Serialization() ([]byte, error) {
 
 }
 
+//Deserialize message payload
 func (msg *Pong) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.MsgHdr))

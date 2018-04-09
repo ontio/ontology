@@ -30,11 +30,13 @@ type Ping struct {
 	Height uint64
 }
 
+//Check whether header is correct
 func (msg Ping) Verify(buf []byte) error {
 	err := msg.Hdr.Verify(buf)
 	return err
 }
 
+//Serialize message payload
 func (msg Ping) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.Hdr.Serialization()
 	if err != nil {
@@ -49,6 +51,7 @@ func (msg Ping) Serialization() ([]byte, error) {
 
 }
 
+//Deserialize message payload
 func (msg *Ping) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.Hdr))

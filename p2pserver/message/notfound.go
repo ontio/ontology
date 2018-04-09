@@ -32,11 +32,13 @@ type NotFound struct {
 	Hash common.Uint256
 }
 
+//Check whether header is correct
 func (msg NotFound) Verify(buf []byte) error {
 	err := msg.MsgHdr.Verify(buf)
 	return err
 }
 
+//Serialize message payload
 func (msg NotFound) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.MsgHdr.Serialization()
 	if err != nil {
@@ -48,6 +50,7 @@ func (msg NotFound) Serialization() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
+//Deserialize message payload
 func (msg *NotFound) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 

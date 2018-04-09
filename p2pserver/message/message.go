@@ -21,7 +21,6 @@ package message
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/binary"
 	"errors"
 
 	"github.com/Ontology/common/log"
@@ -180,6 +179,7 @@ func MsgType(buf []byte) (string, error) {
 	return s, nil
 }
 
+//check netmagic value
 func magicVerify(magic uint32) bool {
 	if magic != common.NETMAGIC {
 		return false
@@ -187,6 +187,7 @@ func magicVerify(magic uint32) bool {
 	return true
 }
 
+//check wether header is valid
 func ValidMsgHdr(buf []byte) bool {
 	var h MsgHdr
 	h.Deserialization(buf)
@@ -194,24 +195,14 @@ func ValidMsgHdr(buf []byte) bool {
 	return magicVerify(h.Magic)
 }
 
+//caculate payload length
 func PayloadLen(buf []byte) int {
 	var h MsgHdr
 	h.Deserialization(buf)
 	return int(h.Length)
 }
 
-func LocateMsgHdr(buf []byte) []byte {
-	var h MsgHdr
-	for i := 0; i <= len(buf)-common.MSG_HDR_LEN; i++ {
-		if magicVerify(binary.LittleEndian.Uint32(buf[i:])) {
-			buf = append(buf[:0], buf[i:]...)
-			h.Deserialization(buf)
-			return buf
-		}
-	}
-	return nil
-}
-
+//caculate checksum value
 func CheckSum(p []byte) []byte {
 	t := sha256.Sum256(p)
 	s := sha256.Sum256(t[:])
@@ -220,6 +211,7 @@ func CheckSum(p []byte) []byte {
 	return s[:common.CHECKSUM_LEN]
 }
 
+// reverse the input
 func Reverse(input []byte) []byte {
 	if len(input) == 0 {
 		return input

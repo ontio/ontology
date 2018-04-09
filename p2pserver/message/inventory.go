@@ -48,6 +48,7 @@ func (msg *InvPayload) Serialization(w io.Writer) {
 	binary.Write(w, binary.LittleEndian, msg.Blk)
 }
 
+//Check whether header is correct
 func (msg Inv) Verify(buf []byte) error {
 	err := msg.Hdr.Verify(buf)
 	return err
@@ -57,6 +58,7 @@ func (msg Inv) invType() common.InventoryType {
 	return msg.P.InvType
 }
 
+//Serialize message payload
 func (msg Inv) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.Hdr.Serialization()
 	if err != nil {
@@ -68,6 +70,7 @@ func (msg Inv) Serialization() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
+//Deserialize message payload
 func (msg *Inv) Deserialization(p []byte) error {
 	err := msg.Hdr.Deserialization(p)
 	if err != nil {

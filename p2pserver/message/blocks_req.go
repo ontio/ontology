@@ -34,11 +34,13 @@ type BlocksReq struct {
 	}
 }
 
+//Check whether header is correct
 func (msg BlocksReq) Verify(buf []byte) error {
 	err := msg.MsgHdr.Verify(buf)
 	return err
 }
 
+//Serialize message payload
 func (msg BlocksReq) Serialization() ([]byte, error) {
 	var buf bytes.Buffer
 	err := binary.Write(&buf, binary.LittleEndian, msg)
@@ -48,6 +50,7 @@ func (msg BlocksReq) Serialization() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
+//Deserialize message payload
 func (msg *BlocksReq) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &msg)

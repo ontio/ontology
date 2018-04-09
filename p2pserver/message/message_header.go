@@ -37,6 +37,7 @@ type MsgHdr struct {
 	Checksum [common.CHECKSUM_LEN]byte
 }
 
+//initialize the header, assign netmagic and checksume value
 func (hdr *MsgHdr) Init(cmd string, checksum []byte, length uint32) {
 	hdr.Magic = common.NETMAGIC
 	copy(hdr.CMD[0:uint32(len(cmd))], cmd)
@@ -65,6 +66,7 @@ func (hdr MsgHdr) Verify(buf []byte) error {
 
 // FIXME how to avoid duplicate serial/deserial function as
 // most of them are the same
+//serialize the header
 func (hdr MsgHdr) Serialization() ([]byte, error) {
 	var buf bytes.Buffer
 	err := binary.Write(&buf, binary.LittleEndian, hdr)
@@ -75,6 +77,7 @@ func (hdr MsgHdr) Serialization() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
+//deserialize the header
 func (hdr *MsgHdr) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p[0:common.MSG_HDR_LEN])
 	err := binary.Read(buf, binary.LittleEndian, hdr)

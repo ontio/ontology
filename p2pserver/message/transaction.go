@@ -31,6 +31,7 @@ type Trn struct {
 	Txn types.Transaction
 }
 
+//Serialize message payload
 func (msg Trn) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.MsgHdr.Serialization()
 	if err != nil {
@@ -42,6 +43,7 @@ func (msg Trn) Serialization() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
+//Deserialize message payload
 func (msg *Trn) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.MsgHdr))

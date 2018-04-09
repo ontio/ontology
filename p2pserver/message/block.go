@@ -32,11 +32,13 @@ type Block struct {
 	Blk types.Block
 }
 
+//Check whether header is correct
 func (msg Block) Verify(buf []byte) error {
 	err := msg.MsgHdr.Verify(buf)
 	return err
 }
 
+//Serialize message payload
 func (msg Block) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.MsgHdr.Serialization()
 	if err != nil {
@@ -48,6 +50,7 @@ func (msg Block) Serialization() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
+//Deserialize message payload
 func (msg *Block) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.MsgHdr))

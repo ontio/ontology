@@ -41,11 +41,13 @@ type Addr struct {
 	NodeAddrs []types.PeerAddr
 }
 
+//Check whether header is correct
 func (msg Addr) Verify(buf []byte) error {
 	err := msg.Hdr.Verify(buf)
 	return err
 }
 
+//Serialize message payload
 func (msg Addr) Serialization() ([]byte, error) {
 	var buf bytes.Buffer
 	err := binary.Write(&buf, binary.LittleEndian, msg.Hdr)
@@ -66,6 +68,7 @@ func (msg Addr) Serialization() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
+//Deserialize message payload
 func (msg *Addr) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.Hdr))

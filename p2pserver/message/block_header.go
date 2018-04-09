@@ -32,11 +32,13 @@ type BlkHeader struct {
 	BlkHdr []types.Header
 }
 
+//Check whether header is correct
 func (msg BlkHeader) Verify(buf []byte) error {
 	err := msg.Hdr.Verify(buf)
 	return err
 }
 
+//Serialize message payload
 func (msg BlkHeader) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.Hdr.Serialization()
 	if err != nil {
@@ -54,6 +56,7 @@ func (msg BlkHeader) Serialization() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
+//Deserialize message payload
 func (msg *BlkHeader) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.Hdr))

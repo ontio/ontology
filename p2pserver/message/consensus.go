@@ -30,6 +30,7 @@ type Consensus struct {
 	Cons ConsensusPayload
 }
 
+//Serialize message payload
 func (msg *Consensus) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.MsgHdr.Serialization()
 	if err != nil {
@@ -40,6 +41,7 @@ func (msg *Consensus) Serialization() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
+//Deserialize message payload
 func (msg *Consensus) Deserialization(p []byte) error {
 	log.Debug()
 	buf := bytes.NewBuffer(p)

@@ -33,6 +33,7 @@ type DataReq struct {
 	Hash     common.Uint256
 }
 
+//Serialize message payload
 func (msg DataReq) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.MsgHdr.Serialization()
 	if err != nil {
@@ -47,6 +48,7 @@ func (msg DataReq) Serialization() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
+//Deserialize message payload
 func (msg *DataReq) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.MsgHdr))

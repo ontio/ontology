@@ -34,11 +34,13 @@ type HeadersReq struct {
 	}
 }
 
+//Check whether header is correct
 func (msg HeadersReq) Verify(buf []byte) error {
 	err := msg.Hdr.Verify(buf)
 	return err
 }
 
+//Serialize message payload
 func (msg HeadersReq) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.Hdr.Serialization()
 	if err != nil {
@@ -62,6 +64,7 @@ func (msg HeadersReq) Serialization() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
+//Deserialize message payload
 func (msg *HeadersReq) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.Hdr))

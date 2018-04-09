@@ -41,10 +41,12 @@ type ConsensusPayload struct {
 	hash            common.Uint256
 }
 
+//get the consensus payload hash
 func (cp *ConsensusPayload) Hash() common.Uint256 {
 	return common.Uint256{}
 }
 
+//Check whether header is correct
 func (cp *ConsensusPayload) Verify() error {
 	buf := new(bytes.Buffer)
 	cp.SerializeUnsigned(buf)
@@ -54,12 +56,14 @@ func (cp *ConsensusPayload) Verify() error {
 	return err
 }
 
+//serialize the consensus payload
 func (cp *ConsensusPayload) ToArray() []byte {
 	b := new(bytes.Buffer)
 	cp.Serialize(b)
 	return b.Bytes()
 }
 
+//return inventory type
 func (cp *ConsensusPayload) InventoryType() common.InventoryType {
 	return common.CONSENSUS
 }
@@ -76,6 +80,7 @@ func (cp *ConsensusPayload) Type() common.InventoryType {
 	return common.CONSENSUS
 }
 
+//Serialize message payload
 func (cp *ConsensusPayload) Serialize(w io.Writer) error {
 	err := cp.SerializeUnsigned(w)
 	if err != nil {
@@ -94,6 +99,7 @@ func (cp *ConsensusPayload) Serialize(w io.Writer) error {
 	return err
 }
 
+//Deserialize message payload
 func (cp *ConsensusPayload) Deserialize(r io.Reader) error {
 	err := cp.DeserializeUnsigned(r)
 
@@ -108,6 +114,7 @@ func (cp *ConsensusPayload) Deserialize(r io.Reader) error {
 	return err
 }
 
+//Serialize message payload
 func (cp *ConsensusPayload) SerializeUnsigned(w io.Writer) error {
 	serialization.WriteUint32(w, cp.Version)
 	cp.PrevHash.Serialize(w)
@@ -118,6 +125,7 @@ func (cp *ConsensusPayload) SerializeUnsigned(w io.Writer) error {
 	return nil
 }
 
+//Deserialize message payload
 func (cp *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
 	var err error
 	cp.Version, err = serialization.ReadUint32(r)

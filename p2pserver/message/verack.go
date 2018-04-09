@@ -30,6 +30,7 @@ type VerACK struct {
 	IsConsensus bool
 }
 
+//Serialize message payload
 func (msg VerACK) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.MsgHdr.Serialization()
 	if err != nil {
@@ -43,6 +44,7 @@ func (msg VerACK) Serialization() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
+//Deserialize message payload
 func (msg *VerACK) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.MsgHdr))

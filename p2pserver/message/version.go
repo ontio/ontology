@@ -53,11 +53,13 @@ type Version struct {
 	PK  *crypto.PubKey
 }
 
+//Check whether header is correct
 func (msg Version) Verify(buf []byte) error {
 	err := msg.Hdr.Verify(buf)
 	return err
 }
 
+//Serialize message payload
 func (msg Version) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.Hdr.Serialization()
 	if err != nil {
@@ -73,6 +75,7 @@ func (msg Version) Serialization() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
+//Deserialize message payload
 func (msg *Version) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 
