@@ -72,8 +72,25 @@ type MsgPayload struct {
 
 //const channel msg id and type
 const (
-	CONNECT      = 0
-	DISCONNECT   = 1
-	P2PMSG       = 2
-	VERSION_TYPE = "version"
+	CONNECT           = 0
+	DISCONNECT        = 1
+	P2PMSG            = 2
+	VERSION_TYPE      = "version"
+	VERACK_TYPE       = "verack"
+	GetADDR_TYPE      = "getaddr"
+	ADDR_TYPE         = "addr"
+	PING_TYPE         = "ping"
+	PONG_TYPE         = "pong"
+	GET_HEADERS_TYPE  = "getheaders"
+	HEADERS_TYPE      = "headers"
+	INV_TYPE          = "inv"
+	GET_DATA_TYPE     = "getdata"
+	BLOCK_TYPE        = "block"
+	TX_TYPE           = "tx"
+	CONSENSUS_TYPE    = "consensus"
+	FILTER_ADD_TYPE   = "filteradd"
+	FILTER_CLEAR_TYPE = "filterclear"
+	FILTER_LOAD_TYPE  = "filterload"
+	GET_BLOCKS_TYPE   = "getblocks"
+	NOT_FOUND_TYPE    = "notfound"
 )

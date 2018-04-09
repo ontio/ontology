@@ -1,10 +1,10 @@
 package p2pserver
 
 import (
-	"time"
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"time"
 
 	"github.com/Ontology/common"
 	"github.com/Ontology/common/config"
@@ -12,8 +12,10 @@ import (
 	"github.com/Ontology/common/serialization"
 	"github.com/Ontology/core/types"
 	"github.com/Ontology/crypto"
+	"github.com/Ontology/p2pserver/actor/req"
 	msgCommon "github.com/Ontology/p2pserver/common"
 	msg "github.com/Ontology/p2pserver/message"
+	"github.com/Ontology/p2pserver/peer"
 )
 
 func NewAddrs(nodeAddrs []msgCommon.PeerAddr, count uint64) ([]byte, error) {
@@ -346,19 +348,20 @@ func NewVerAck(isConsensus bool) ([]byte, error) {
 	return m, nil
 }
 
-func NewVersionPayload(version uint32, service uint64, port uint16,
-	consPort uint16,  nonce uint64, startHeight uint64,
-	relay bool, isCons bool) msg.VersionPayload {
-	vpl :=  msg.VersionPayload{
-		Version:       version,
-		Services:      service,
-		Port:          port,
-		ConsensusPort: consPort,
-		Nonce:         nonce,
-		StartHeight:   startHeight,
+func NewVersionPayload(p *peer.Peer, isCons bool) msg.VersionPayload {
+	vpl := msg.VersionPayload{
+		Version:       p.GetVersion(),
+		Services:      p.GetServices(),
+		Port:          p.GetSyncPort(),
+		ConsensusPort: p.GetConsPort(),
+		Nonce:         p.GetID(),
 		IsConsensus:   isCons,
+		HttpInfoPort:  p.GetHttpInfoPort(),
 	}
-	if relay {
+
+	height, _ := req.GetCurrentBlockHeight()
+	vpl.StartHeight = uint64(height)
+	if p.GetRelay() {
 		vpl.Relay = 1
 	} else {
 		vpl.Relay = 0
@@ -370,7 +373,6 @@ func NewVersionPayload(version uint32, service uint64, port uint16,
 	}
 
 	vpl.UserAgent = 0x00
-	vpl.HttpInfoPort = config.Parameters.HttpInfoPort
 	vpl.TimeStamp = uint32(time.Now().UTC().UnixNano())
 
 	return vpl
@@ -404,7 +406,7 @@ func NewVersion(vpl msg.VersionPayload, pk *crypto.PubKey) ([]byte, error) {
 	return m, nil
 }
 
-func NewTxnDataReq(hash common.Uint256)  ([]byte, error) {
+func NewTxnDataReq(hash common.Uint256) ([]byte, error) {
 	var dataReq msg.DataReq
 	dataReq.DataType = common.TRANSACTION
 	// TODO handle the hash array case
@@ -447,4 +449,3 @@ func NewConsensusDataReq(hash common.Uint256) ([]byte, error) {
 	buf, _ := dataReq.Serialization()
 	return buf, nil
 }
-

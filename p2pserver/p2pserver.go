@@ -49,7 +49,23 @@ func NewServer(acc *account.Account) (*P2PServer, error) {
 
 	p.msgRouter = NewMsgRouter(p)
 
-	// Fixme: implement the message handler for each msg type
+	// Register message handler
+	p.msgRouter.RegisterMsgHandler(types.VERSION_TYPE, VersionHandle)
+	p.msgRouter.RegisterMsgHandler(types.VERACK_TYPE, VerAckHandle)
+	p.msgRouter.RegisterMsgHandler(types.GetADDR_TYPE, AddrReqHandle)
+	p.msgRouter.RegisterMsgHandler(types.ADDR_TYPE, AddrHandle)
+	p.msgRouter.RegisterMsgHandler(types.PING_TYPE, PingHandle)
+	p.msgRouter.RegisterMsgHandler(types.PONG_TYPE, PongHandle)
+	p.msgRouter.RegisterMsgHandler(types.GET_HEADERS_TYPE, HeadersReqHandle)
+	p.msgRouter.RegisterMsgHandler(types.HEADERS_TYPE, BlkHeaderHandle)
+	p.msgRouter.RegisterMsgHandler(types.GET_BLOCKS_TYPE, BlocksReqHandle)
+	p.msgRouter.RegisterMsgHandler(types.INV_TYPE, InvHandle)
+	p.msgRouter.RegisterMsgHandler(types.GET_DATA_TYPE, DataReqHandle)
+	p.msgRouter.RegisterMsgHandler(types.BLOCK_TYPE, BlockHandle)
+	p.msgRouter.RegisterMsgHandler(types.CONSENSUS_TYPE, ConsensusHandle)
+	p.msgRouter.RegisterMsgHandler(types.NOT_FOUND_TYPE, NotFoundHandle)
+	p.msgRouter.RegisterMsgHandler(types.TX_TYPE, TransactionHandle)
+
 	//p.msgRouter.RegisterMsgHandler(types.VERSION_TYPE, VersionHandle)
 	p.flightHeights = make(map[uint64][]uint32)
 	p.quitOnline = make(chan bool)
