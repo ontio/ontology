@@ -79,7 +79,7 @@ func NewInteropService() *InteropService {
 	service.Register("JsonMashalParams", jsonMashalParams)
 	service.Register("RawMashalParams", rawMashalParams)
 	service.Register("GetCallerAddress", getCaller)
-	service.Register("GetSelfAddress", getCodeHash)
+	service.Register("GetSelfAddress", getContractAddress)
 
 	//===================add block apis below==================
 	return &service
@@ -683,11 +683,11 @@ func getCaller(engine *ExecutionEngine) (bool, error) {
 	return true, nil
 }
 
-func getCodeHash(engine *ExecutionEngine) (bool, error) {
+func getContractAddress(engine *ExecutionEngine) (bool, error) {
 	envCall := engine.vm.envCall
 
-	codeHash := engine.vm.CodeHash
-	idx, err := engine.vm.SetPointerMemory(codeHash.ToHexString())
+	contractAddress := engine.vm.ContractAddress
+	idx, err := engine.vm.SetPointerMemory(contractAddress.ToHexString())
 	if err != nil {
 		return false, err
 	}

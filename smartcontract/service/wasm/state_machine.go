@@ -92,7 +92,7 @@ func (s *WasmStateMachine) putstore(engine *exec.ExecutionEngine) (bool, error) 
 	if err != nil {
 		return false, err
 	}
-	k, err := serializeStorageKey(vm.CodeHash, key)
+	k, err := serializeStorageKey(vm.ContractAddress, key)
 	if err != nil {
 		return false, err
 	}
@@ -118,7 +118,7 @@ func (s *WasmStateMachine) getstore(engine *exec.ExecutionEngine) (bool, error) 
 	if err != nil {
 		return false, err
 	}
-	k, err := serializeStorageKey(vm.CodeHash, key)
+	k, err := serializeStorageKey(vm.ContractAddress, key)
 	if err != nil {
 		return false, err
 	}
@@ -162,7 +162,7 @@ func (s *WasmStateMachine) deletestore(engine *exec.ExecutionEngine) (bool, erro
 		return false, err
 	}
 
-	k, err := serializeStorageKey(vm.CodeHash, key)
+	k, err := serializeStorageKey(vm.ContractAddress, key)
 	if err != nil {
 		return false, err
 	}
@@ -203,7 +203,7 @@ func (s *WasmStateMachine) callContract(engine *exec.ExecutionEngine) (bool, err
 		return false, err
 	}
 	vmcode := types.VmCode{VmType:types.WASMVM,Code:contractBytes}
-	codeHash := vmcode.AddressFromVmCode()
+	contractAddress := vmcode.AddressFromVmCode()
 	bf := bytes.NewBuffer(contractBytes)
 
 	module, err := wasm.ReadModule(bf, emptyImporter)
@@ -220,7 +220,7 @@ func (s *WasmStateMachine) callContract(engine *exec.ExecutionEngine) (bool, err
 	if err != nil {
 		return false, errors.NewErr("[callContract]get Contract arg failed")
 	}
-	res, err := vm.CallContract(vm.CodeHash, codeHash, module, methodName, arg)
+	res, err := vm.CallContract(vm.ContractAddress, contractAddress, module, methodName, arg)
 	if err != nil {
 		return false, errors.NewErr("[callContract]CallProductContract failed")
 	}
@@ -277,7 +277,7 @@ func contractLog(lv LogLevel,engine *exec.ExecutionEngine ) (bool, error){
 		return false, errors.NewErr("get Contract address failed")
 	}
 
-	msg := fmt.Sprintf("[WASM Contract] Address:%s message:%s",vm.CodeHash.ToHexString(),util.TrimBuffToString(addr))
+	msg := fmt.Sprintf("[WASM Contract] Address:%s message:%s",vm.ContractAddress.ToHexString(),util.TrimBuffToString(addr))
 
 	switch lv {
 	case Debug:
@@ -291,9 +291,9 @@ func contractLog(lv LogLevel,engine *exec.ExecutionEngine ) (bool, error){
 
 }
 
-func serializeStorageKey(codeHash common.Address, key []byte) ([]byte, error) {
+func serializeStorageKey(contractAddress common.Address, key []byte) ([]byte, error) {
 	bf := new(bytes.Buffer)
-	storageKey := &states.StorageKey{CodeHash: codeHash, Key: key}
+	storageKey := &states.StorageKey{CodeHash: contractAddress, Key: key}
 	if _, err := storageKey.Serialize(bf); err != nil {
 		return []byte{}, errors.NewErr("[serializeStorageKey] StorageKey serialize error!")
 	}

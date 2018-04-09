@@ -396,7 +396,7 @@ func (e *ExecutionEngine)call(caller common.Address,
 		vm.Caller = caller
 
 		vmcode := types.VmCode{VmType:types.WASMVM,Code:code}
-		vm.CodeHash = vmcode.AddressFromVmCode()
+		vm.ContractAddress = vmcode.AddressFromVmCode()
 
 		entry, ok := m.Export.Entries[methodName]
 

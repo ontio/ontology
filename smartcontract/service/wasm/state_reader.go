@@ -210,7 +210,7 @@ func (i *WasmStateReader) RuntimeNotify(engine *exec.ExecutionEngine) (bool, err
 		return false, errors.NewErr("[RuntimeNotify] Container not transaction!")
 	}
 
-	hash := engine.GetVM().CodeHash
+	hash := engine.GetVM().ContractAddress
 
 	txid := tran.Hash()
 
