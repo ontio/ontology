@@ -20,29 +20,9 @@ package signature
 
 import (
 	"errors"
-	"io"
-
 	"github.com/ontio/ontology-crypto/keypair"
 	s "github.com/ontio/ontology-crypto/signature"
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/contract/program"
-	"github.com/ontio/ontology/vm/neovm/interfaces"
 )
-
-// SignableData describe the data need be signed.
-type SignableData interface {
-	interfaces.CodeContainer
-
-	// Get the the SignableData's program hashes
-	GetProgramHashes() ([]common.Address, error)
-
-	SetPrograms([]*program.Program)
-
-	GetPrograms() []*program.Program
-
-	// TODO: add SerializeUnsigned
-	SerializeUnsigned(io.Writer) error
-}
 
 // Sign returns the signature of data using privKey
 func Sign(signer Signer, data []byte) ([]byte, error) {

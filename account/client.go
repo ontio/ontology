@@ -37,8 +37,6 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/password"
-	"github.com/ontio/ontology/core/contract"
-	ct "github.com/ontio/ontology/core/contract"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/net/protocol"
@@ -63,8 +61,7 @@ type ClientImpl struct {
 	iv        []byte
 	masterKey []byte
 
-	accounts  map[common.Address]*Account
-	contracts map[common.Address]*ct.Contract
+	accounts map[common.Address]*Account
 
 	watchOnly     []common.Address
 	currentHeight uint32
@@ -96,10 +93,6 @@ func Open(path string, passwordKey []byte) *ClientImpl {
 	if cl.accounts == nil {
 		log.Error("Load accounts failure")
 	}
-	cl.contracts = cl.LoadContracts()
-	if cl.contracts == nil {
-		log.Error("Load contracts failure")
-	}
 	return cl
 }
 
@@ -107,7 +100,6 @@ func NewClient(path string, password []byte, create bool) *ClientImpl {
 	newClient := &ClientImpl{
 		path:      path,
 		accounts:  map[common.Address]*Account{},
-		contracts: map[common.Address]*ct.Contract{},
 		FileStore: FileStore{path: path},
 		isrunning: true,
 	}
@@ -215,17 +207,6 @@ func (cl *ClientImpl) GetAccountByAddress(address common.Address) *Account {
 	return nil
 }
 
-func (cl *ClientImpl) GetContract(programHash common.Address) *ct.Contract {
-	log.Debug()
-	cl.mu.Lock()
-	defer cl.mu.Unlock()
-
-	if contract, ok := cl.contracts[programHash]; ok {
-		return contract
-	}
-	return nil
-}
-
 func (cl *ClientImpl) ChangePassword(oldPassword []byte, newPassword []byte) bool {
 	// check password
 	oldPasswordKey := doubleHash(oldPassword)
@@ -279,14 +260,6 @@ func (cl *ClientImpl) CreateAccount(encrypt string) (*Account, error) {
 		return nil, err
 	}
 
-	ct, err := contract.CreateSignatureContract(ac.PublicKey)
-	if err == nil {
-		cl.AddContract(ct)
-		address := ct.ProgramHash.ToBase58()
-		log.Info("[CreateContract] Address: ", address)
-	}
-
-	log.Info("Create account Success")
 	return ac, nil
 }
 
@@ -397,45 +370,6 @@ func (cl *ClientImpl) LoadAccount() map[common.Address]*Account {
 	}
 
 	return accounts
-}
-
-func (cl *ClientImpl) LoadContracts() map[common.Address]*ct.Contract {
-	i := 0
-	contracts := map[common.Address]*ct.Contract{}
-
-	for true {
-		ph, _, rd, err := cl.LoadContractData(i)
-		if err != nil {
-			fmt.Println(err)
-			break
-		}
-
-		rdreader := bytes.NewReader(rd)
-		ct := new(ct.Contract)
-		ct.Deserialize(rdreader)
-
-		programhash, err := common.AddressParseFromBytes(ph)
-		ct.ProgramHash = programhash
-		contracts[ct.ProgramHash] = ct
-		i++
-		break
-	}
-
-	return contracts
-}
-
-func (cl *ClientImpl) AddContract(ct *contract.Contract) error {
-	cl.mu.Lock()
-	defer cl.mu.Unlock()
-
-	if cl.accounts[ct.ProgramHash] == nil {
-		return ontErrors.NewDetailErr(errors.New("AddContract(): contract.OwnerPubkeyHash not in []accounts"), ontErrors.ErrNoCode, "")
-	}
-
-	cl.contracts[ct.ProgramHash] = ct
-
-	err := cl.SaveContractData(ct)
-	return err
 }
 
 func (cl *ClientImpl) GetBookkeepers() ([]keypair.PublicKey, error) {

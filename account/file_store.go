@@ -26,7 +26,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	ct "github.com/ontio/ontology/core/contract"
 	ontErrors "github.com/ontio/ontology/errors"
 )
 
@@ -190,46 +189,4 @@ func (cs *FileStore) LoadAccountData(index int) ([]byte, []byte, error) {
 	privatekeyEncrypted, err := hex.DecodeString(cs.fd.PrivateKeyEncrypted)
 
 	return publickeyHash, privatekeyEncrypted, err
-}
-
-func (cs *FileStore) LoadContractData(index int) ([]byte, []byte, []byte, error) {
-	jsondata, err := cs.readDB()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	err = json.Unmarshal(jsondata, &cs.fd)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-
-	scriptHash, err := hex.DecodeString(cs.fd.ScriptHash)
-	publickeyHash, err := hex.DecodeString(cs.fd.PublicKeyHash)
-	rawData, err := hex.DecodeString(cs.fd.RawData)
-
-	return scriptHash, publickeyHash, rawData, err
-}
-
-func (cs *FileStore) SaveContractData(ct *ct.Contract) error {
-	jsondata, err := cs.readDB()
-	if err != nil {
-		return err
-	}
-
-	err = json.Unmarshal(jsondata, &cs.fd)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-
-	cs.fd.ScriptHash = fmt.Sprintf("%x", ct.ProgramHash[:])
-	cs.fd.PublicKeyHash = fmt.Sprintf("%x", ct.OwnerPubkeyHash[:])
-	cs.fd.RawData = fmt.Sprintf("%x", ct.ToArray())
-
-	jsonblob, err := json.Marshal(cs.fd)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-
-	cs.writeDB(jsonblob)
-	return nil
 }

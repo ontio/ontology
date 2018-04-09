@@ -20,7 +20,6 @@ package account
 
 import (
 	"github.com/ontio/ontology/common"
-	ct "github.com/ontio/ontology/core/contract"
 )
 
 type ClientStore interface {
@@ -31,6 +30,4 @@ type ClientStore interface {
 	LoadStoredData(name string) []byte
 
 	LoadAccount() map[common.Address]*Account
-
-	LoadContracts() map[common.Address]*ct.Contract
 }
