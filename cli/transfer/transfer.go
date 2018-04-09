@@ -29,6 +29,7 @@ import (
 
 	"github.com/urfave/cli"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	clicommon "github.com/ontio/ontology/cli/common"
 	"github.com/ontio/ontology/common"
@@ -38,7 +39,6 @@ import (
 	"github.com/ontio/ontology/http/base/rpc"
 	"github.com/ontio/ontology/smartcontract/service/native/states"
 	vmtypes "github.com/ontio/ontology/vm/types"
-	"github.com/ontio/ontology-crypto/keypair"
 )
 
 func transferAction(c *cli.Context) error {
@@ -154,7 +154,7 @@ func transferAction(c *cli.Context) error {
 
 func signTransaction(signer *account.Account, tx *ctypes.Transaction) error {
 	hash := tx.Hash()
-	sign, _ := signature.Sign(signer.PrivateKey, hash[:])
+	sign, _ := signature.Sign(signer, hash[:])
 	tx.Sigs = append(tx.Sigs, &ctypes.Sig{
 		PubKeys: []keypair.PublicKey{signer.PublicKey},
 		M:       1,

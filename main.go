@@ -34,7 +34,6 @@ import (
 	"github.com/ontio/ontology/consensus"
 	"github.com/ontio/ontology/core/ledger"
 	ldgactor "github.com/ontio/ontology/core/ledger/actor"
-	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/events"
 	hserver "github.com/ontio/ontology/http/base/actor"
 	"github.com/ontio/ontology/http/jsonrpc"
@@ -78,12 +77,6 @@ func main() {
 	if consensusType == "dbft" && len(config.Parameters.Bookkeepers) < account.DEFAULT_BOOKKEEPER_COUNT {
 		log.Fatal("With dbft consensus type, at least ", account.DEFAULT_BOOKKEEPER_COUNT, " Bookkeepers should be set in config.json")
 		os.Exit(1)
-	}
-
-	// Set default signature scheme
-	err = signature.SetDefaultScheme(config.Parameters.SignatureScheme)
-	if err != nil {
-		log.Warn("Config error: ", err)
 	}
 
 	log.Info("0. Open the account")

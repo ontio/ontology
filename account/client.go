@@ -32,6 +32,7 @@ import (
 
 	"github.com/ontio/ontology-crypto/aes"
 	"github.com/ontio/ontology-crypto/keypair"
+	s "github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -397,6 +398,7 @@ func (cl *ClientImpl) SaveAccount(ac *Account) error {
 	}
 
 	ClearBytes(buf, len(buf))
+	encryptedPrivateKey = append(encryptedPrivateKey, byte(ac.SigScheme))
 
 	err = cl.SaveAccountData(ac.Address[:], encryptedPrivateKey)
 	if err != nil {
@@ -416,6 +418,9 @@ func (cl *ClientImpl) LoadAccount() map[common.Address]*Account {
 			break
 		}
 
+		length := len(prikeyenc)
+		scheme := prikeyenc[length-1]
+		prikeyenc = prikeyenc[:length-1]
 		buf, err := cl.DecryptPrivateKey(prikeyenc)
 		if err != nil {
 			log.Error(err)
@@ -427,6 +432,7 @@ func (cl *ClientImpl) LoadAccount() map[common.Address]*Account {
 			log.Error(err)
 			break
 		}
+		ac.SigScheme = s.SignatureScheme(scheme)
 		accounts[ac.Address] = ac
 		i++
 		break

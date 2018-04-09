@@ -19,18 +19,18 @@
 package account
 
 import (
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology-crypto/keypair"
 	s "github.com/ontio/ontology-crypto/signature"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/types"
 )
 
 type Account struct {
 	PrivateKey keypair.PrivateKey
 	PublicKey  keypair.PublicKey
 	Address    common.Address
+	SigScheme  s.SignatureScheme
 }
 
 func NewAccount(encrypt string) *Account {
@@ -44,7 +44,7 @@ func NewAccount(encrypt string) *Account {
 	if "" != encrypt {
 		scheme, err = s.GetScheme(encrypt)
 	} else {
-		scheme, err = s.GetScheme(config.Parameters.SignatureScheme)
+		scheme = s.SHA256withECDSA
 	}
 	if err != nil {
 		log.Warn("unknown signature scheme, use SHA256withECDSA as default.")
@@ -77,6 +77,7 @@ func NewAccount(encrypt string) *Account {
 		PrivateKey: pri,
 		PublicKey:  pub,
 		Address:    address,
+		SigScheme:  scheme,
 	}
 }
 
@@ -100,4 +101,8 @@ func (ac *Account) PrivKey() keypair.PrivateKey {
 
 func (ac *Account) PubKey() keypair.PublicKey {
 	return ac.PublicKey
+}
+
+func (ac *Account) Scheme() s.SignatureScheme {
+	return ac.SigScheme
 }

@@ -24,6 +24,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -40,7 +41,6 @@ import (
 	"github.com/ontio/ontology/events/message"
 	p2pmsg "github.com/ontio/ontology/net/message"
 	"github.com/ontio/ontology/validator/increment"
-	"github.com/ontio/ontology-eventbus/actor"
 )
 
 type DbftService struct {
@@ -527,7 +527,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 		return
 	}
 
-	sig, err := signature.Sign(ds.Account.PrivKey(), blockHash[:])
+	sig, err := signature.Sign(ds.Account, blockHash[:])
 	if err != nil {
 		log.Error("[DbftService] signing failed")
 		return
@@ -643,7 +643,7 @@ func (ds *DbftService) RequestChangeView() {
 func (ds *DbftService) SignAndRelay(payload *p2pmsg.ConsensusPayload) {
 	buf := new(bytes.Buffer)
 	payload.SerializeUnsigned(buf)
-	payload.Signature, _ = signature.Sign(ds.Account.PrivKey(), buf.Bytes())
+	payload.Signature, _ = signature.Sign(ds.Account, buf.Bytes())
 
 	ds.p2p.Xmit(payload)
 }
@@ -738,7 +738,7 @@ func (ds *DbftService) Timeout() {
 			//build block and sign
 			block := ds.context.MakeHeader()
 			blockHash := block.Hash()
-			ds.context.Signatures[ds.context.BookkeeperIndex], _ = signature.Sign(ds.Account.PrivKey(), blockHash[:])
+			ds.context.Signatures[ds.context.BookkeeperIndex], _ = signature.Sign(ds.Account, blockHash[:])
 		}
 		payload := ds.context.MakePrepareRequest()
 		ds.SignAndRelay(payload)
