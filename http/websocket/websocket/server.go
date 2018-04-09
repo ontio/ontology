@@ -354,6 +354,11 @@ func (self *WsServer) PushTxResult(txHashStr string, resp map[string]interface{}
 	self.Lock()
 	sessionId := self.TxHashMap[txHashStr]
 	delete(self.TxHashMap, txHashStr)
+	//avoid twice, will send in BroadcastToSubscribers
+	if self.SubscribeMap[sessionId].SubscribeEvent {
+		self.Unlock()
+		return
+	}
 	self.Unlock()
 
 	s := self.SessionList.GetSessionById(sessionId)
