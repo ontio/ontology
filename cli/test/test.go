@@ -61,9 +61,9 @@ func testAction(c *cli.Context) (err error) {
 	genFile := c.Bool("gen")
 
 	acct := account.Open(account.WALLET_FILENAME, []byte(passwd))
-	acc, err := acct.GetDefaultAccount()
-	if err != nil {
-		fmt.Println("GetDefaultAccount error:", err)
+	acc := acct.GetDefaultAccount()
+	if acc == nil {
+		fmt.Println(" can not get default account")
 		os.Exit(1)
 	}
 	if genFile {

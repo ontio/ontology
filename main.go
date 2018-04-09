@@ -85,9 +85,9 @@ func main() {
 		log.Fatal("Can't get local account.")
 		os.Exit(1)
 	}
-	acct, err = client.GetDefaultAccount()
-	if err != nil {
-		log.Fatal(err)
+	acct = client.GetDefaultAccount()
+	if acct == nil {
+		log.Fatal("can not get default account")
 		os.Exit(1)
 	}
 	log.Debug("The Node's PublicKey ", acct.PublicKey)

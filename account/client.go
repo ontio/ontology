@@ -39,6 +39,7 @@ import (
 	"github.com/ontio/ontology/common/password"
 	"github.com/ontio/ontology/core/contract"
 	ct "github.com/ontio/ontology/core/contract"
+	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/net/protocol"
 )
@@ -50,8 +51,8 @@ const (
 
 type Client interface {
 	ContainsAccount(pubKey keypair.PublicKey) bool
-	GetAccount(pubKey keypair.PublicKey) (*Account, error)
-	GetDefaultAccount() (*Account, error)
+	GetAccount(pubKey keypair.PublicKey) *Account
+	GetDefaultAccount() *Account
 	GetBookkeepers() ([]keypair.PublicKey, error)
 }
 
@@ -111,7 +112,7 @@ func NewClient(path string, password []byte, create bool) *ClientImpl {
 		isrunning: true,
 	}
 
-	passwordKey := DoubleHash(password)
+	passwordKey := doubleHash(password)
 	if create {
 		//create new client
 		newClient.iv = make([]byte, 16)
@@ -166,7 +167,7 @@ func NewClient(path string, password []byte, create bool) *ClientImpl {
 			return nil
 		}
 	}
-	ClearBytes(passwordKey, len(passwordKey))
+	clearBytes(passwordKey, len(passwordKey))
 	return newClient
 }
 
@@ -190,28 +191,25 @@ func (cl *ClientImpl) loadClient(passwordKey []byte) error {
 	return nil
 }
 
-func (cl *ClientImpl) GetDefaultAccount() (*Account, error) {
-	for programHash, _ := range cl.accounts {
-		return cl.GetAccountByProgramHash(programHash), nil
+func (cl *ClientImpl) GetDefaultAccount() *Account {
+	// todo the iteration of map is not ordered
+	for programHash := range cl.accounts {
+		return cl.GetAccountByAddress(programHash)
 	}
 
-	return nil, ontErrors.NewDetailErr(errors.New("Can't load default account."), ontErrors.ErrNoCode, "")
+	return nil
 }
 
-func (cl *ClientImpl) GetAccount(pubKey keypair.PublicKey) (*Account, error) {
-	signatureRedeemScript, err := contract.CreateSignatureRedeemScript(pubKey)
-	if err != nil {
-		return nil, ontErrors.NewDetailErr(err, ontErrors.ErrNoCode, "CreateSignatureRedeemScript failed")
-	}
-	programHash := common.ToCodeHash(signatureRedeemScript)
-	return cl.GetAccountByProgramHash(programHash), nil
+func (cl *ClientImpl) GetAccount(pubKey keypair.PublicKey) *Account {
+	address := types.AddressFromPubKey(pubKey)
+	return cl.GetAccountByAddress(address)
 }
 
-func (cl *ClientImpl) GetAccountByProgramHash(programHash common.Address) *Account {
+func (cl *ClientImpl) GetAccountByAddress(address common.Address) *Account {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
 
-	if account, ok := cl.accounts[programHash]; ok {
+	if account, ok := cl.accounts[address]; ok {
 		return account
 	}
 	return nil
@@ -230,7 +228,7 @@ func (cl *ClientImpl) GetContract(programHash common.Address) *ct.Contract {
 
 func (cl *ClientImpl) ChangePassword(oldPassword []byte, newPassword []byte) bool {
 	// check password
-	oldPasswordKey := DoubleHash(oldPassword)
+	oldPasswordKey := doubleHash(oldPassword)
 	if !cl.verifyPasswordKey(oldPasswordKey) {
 		fmt.Println("error: password verification failed")
 		return false
@@ -241,7 +239,7 @@ func (cl *ClientImpl) ChangePassword(oldPassword []byte, newPassword []byte) boo
 	}
 
 	// encrypt master key with new password
-	newPasswordKey := DoubleHash(newPassword)
+	newPasswordKey := doubleHash(newPassword)
 	newMasterKey, err := aes.AesEncrypt(cl.masterKey, newPasswordKey, cl.iv)
 	if err != nil {
 		fmt.Println("error: set new password failed")
@@ -258,23 +256,15 @@ func (cl *ClientImpl) ChangePassword(oldPassword []byte, newPassword []byte) boo
 		fmt.Println("error: wallet update failed (encrypted master key)")
 		return false
 	}
-	ClearBytes(newPasswordKey, len(newPasswordKey))
-	ClearBytes(cl.masterKey, len(cl.masterKey))
+	clearBytes(newPasswordKey, len(newPasswordKey))
+	clearBytes(cl.masterKey, len(cl.masterKey))
 
 	return true
 }
 
 func (cl *ClientImpl) ContainsAccount(pubKey keypair.PublicKey) bool {
-	signatureRedeemScript, err := contract.CreateSignatureRedeemScript(pubKey)
-	if err != nil {
-		return false
-	}
-	programHash := common.ToCodeHash(signatureRedeemScript)
-	if cl.GetAccountByProgramHash(programHash) != nil {
-		return true
-	} else {
-		return false
-	}
+	addr := types.AddressFromPubKey(pubKey)
+	return cl.GetAccountByAddress(addr) != nil
 }
 
 func (cl *ClientImpl) CreateAccount(encrypt string) (*Account, error) {
@@ -328,7 +318,7 @@ func (cl *ClientImpl) verifyPasswordKey(passwordKey []byte) bool {
 		return false
 	}
 	passwordHash := sha256.Sum256(passwordKey)
-	///ClearBytes(passwordKey, len(passwordKey))
+	///clearBytes(passwordKey, len(passwordKey))
 	if !bytes.Equal(savedPasswordHash, passwordHash[:]) {
 		fmt.Println("error: password wrong")
 		return false
@@ -365,7 +355,7 @@ func (cl *ClientImpl) SaveAccount(ac *Account) error {
 		return err
 	}
 
-	ClearBytes(buf, len(buf))
+	clearBytes(buf, len(buf))
 	encryptedPrivateKey = append(encryptedPrivateKey, byte(ac.SigScheme))
 
 	err = cl.SaveAccountData(ac.Address[:], encryptedPrivateKey)
@@ -452,9 +442,9 @@ func (cl *ClientImpl) GetBookkeepers() ([]keypair.PublicKey, error) {
 	var pubKeys = []keypair.PublicKey{}
 	consensusType := config.Parameters.ConsensusType
 	if consensusType == "solo" {
-		ac, err := cl.GetDefaultAccount()
-		if err != nil {
-			return nil, fmt.Errorf("GetDefaultAccount error:%s", err)
+		ac := cl.GetDefaultAccount()
+		if ac == nil {
+			return nil, fmt.Errorf("GetDefaultAccount error")
 		}
 		pubKeys = append(pubKeys, ac.PublicKey)
 		return pubKeys, nil
@@ -527,18 +517,18 @@ func GetBookkeepers() []keypair.PublicKey {
 	return pubKeys
 }
 
-func DoubleHash(pwd []byte) []byte {
+func doubleHash(pwd []byte) []byte {
 	pwdhash := sha256.Sum256(pwd)
 	pwdhash2 := sha256.Sum256(pwdhash[:])
 
 	// Fixme clean the password buffer
-	// ClearBytes(pwd,len(pwd))
-	ClearBytes(pwdhash[:], 32)
+	// clearBytes(pwd,len(pwd))
+	clearBytes(pwdhash[:], 32)
 
 	return pwdhash2[:]
 }
 
-func ClearBytes(arr []byte, len int) {
+func clearBytes(arr []byte, len int) {
 	for i := 0; i < len; i++ {
 		arr[i] = 0
 	}

@@ -23,12 +23,12 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	cliCommon "github.com/ontio/ontology/cli/common"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/password"
 	"github.com/ontio/ontology/http/base/rpc"
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/urfave/cli"
 )
 
@@ -88,7 +88,11 @@ func walletAction(c *cli.Context) error {
 		fmt.Println("password changed")
 		return nil
 	}
-	account, _ := wallet.GetDefaultAccount()
+	account := wallet.GetDefaultAccount()
+	if account == nil {
+		fmt.Println(" can not get default account")
+		os.Exit(1)
+	}
 	pubKey := account.PubKey()
 	address := account.Address
 

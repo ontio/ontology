@@ -114,9 +114,9 @@ func transferAction(c *cli.Context) error {
 	passwd := c.String("password")
 
 	acct := account.Open(account.WALLET_FILENAME, []byte(passwd))
-	acc, err := acct.GetDefaultAccount()
-	if err != nil {
-		fmt.Println("GetDefaultAccount error:", err)
+	acc := acct.GetDefaultAccount()
+	if acc == nil {
+		fmt.Println(" can not get default account")
 		os.Exit(1)
 	}
 
