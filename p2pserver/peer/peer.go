@@ -69,6 +69,9 @@ func NewPeer() *Peer {
 		consState: types.INIT,
 		chF:       make(chan func() error),
 	}
+	p.SyncLink = conn.NewLink()
+	p.ConsLink = conn.NewLink()
+
 	runtime.SetFinalizer(&p, rmPeer)
 	go p.backend()
 	return p

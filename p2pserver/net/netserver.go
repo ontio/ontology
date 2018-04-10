@@ -263,10 +263,10 @@ func (n *NetServer) startSyncAccept(listener net.Listener) {
 		log.Info("Remote node connect with ", conn.RemoteAddr(), conn.LocalAddr())
 
 		remotePeer := peer.NewPeer()
-		addr, err := parseIPAddr(conn.RemoteAddr().String())
+		addr := conn.RemoteAddr().String()
 		n.PeerSyncAddress[addr] = remotePeer
 		if err != nil {
-			log.Errorf("Error parse remote ip:%s", conn.RemoteAddr().String())
+			log.Errorf("Error parse remote ip:%s", addr)
 			return
 		}
 		remotePeer.SyncLink.SetAddr(addr)
@@ -287,10 +287,10 @@ func (n *NetServer) startConsAccept(listener net.Listener) {
 		log.Info("Remote node connect with ", conn.RemoteAddr(), conn.LocalAddr())
 
 		remotePeer := peer.NewPeer()
-		addr, err := parseIPAddr(conn.RemoteAddr().String())
+		addr := conn.RemoteAddr().String()
 		n.PeerConsAddress[addr] = remotePeer
 		if err != nil {
-			log.Errorf("Error parse remote ip:%s", conn.RemoteAddr().String())
+			log.Errorf("Error parse remote ip:%s", addr)
 			return
 		}
 		remotePeer.ConsLink.SetAddr(addr)
