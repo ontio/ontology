@@ -17,8 +17,8 @@
 package smartcontract
 
 import (
+	"fmt"
 	"bytes"
-	"encoding/binary"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/store"
@@ -28,18 +28,19 @@ import (
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	sneovm "github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/service/wasm"
 	stypes "github.com/ontio/ontology/smartcontract/types"
-	"github.com/ontio/ontology/vm/neovm"
-	"github.com/ontio/ontology/vm/neovm/interfaces"
-	vmtypes "github.com/ontio/ontology/vm/types"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
 	"github.com/ontio/ontology/vm/wasmvm/util"
+	"github.com/ontio/ontology/smartcontract/service/neovm"
+	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/smartcontract/states"
+	vm "github.com/ontio/ontology/vm/neovm"
+	"encoding/binary"
 )
 
 type SmartContract struct {
-	Context       []*context.Context
+	Contexts       []*context.Context
 	Config        *Config
 	Engine        Engine
 	Notifications []*event.NotifyEventInfo
@@ -49,82 +50,74 @@ type Config struct {
 	Time    uint32
 	Height  uint32
 	Tx      *ctypes.Transaction
-	Table   interfaces.CodeTable
 	DBCache scommon.StateStore
 	Store   store.LedgerStore
 }
 
 type Engine interface {
-	StepInto()
+	Invoke()
 }
 
 //put current context to smart contract
-func (sc *SmartContract) PushContext(context *context.Context) {
-	sc.Context = append(sc.Context, context)
+func (this *SmartContract) PushContext(context *context.Context) {
+	this.Contexts = append(this.Contexts, context)
 }
 
 //get smart contract current context
-func (sc *SmartContract) CurrentContext() *context.Context {
-	if len(sc.Context) < 1 {
+func (this *SmartContract) CurrentContext() *context.Context {
+	if len(this.Contexts) < 1 {
 		return nil
 	}
-	return sc.Context[len(sc.Context)-1]
+	return this.Contexts[len(this.Contexts) - 1]
 }
 
 //get smart contract caller context
-func (sc *SmartContract) CallingContext() *context.Context {
-	if len(sc.Context) < 2 {
+func (this *SmartContract) CallingContext() *context.Context {
+	if len(this.Contexts) < 2 {
 		return nil
 	}
-	return sc.Context[len(sc.Context)-2]
+	return this.Contexts[len(this.Contexts) - 2]
 }
 
 //get smart contract entry entrance context
-func (sc *SmartContract) EntryContext() *context.Context {
-	if len(sc.Context) < 1 {
+func (this *SmartContract) EntryContext() *context.Context {
+	if len(this.Contexts) < 1 {
 		return nil
 	}
-	return sc.Context[0]
+	return this.Contexts[0]
 }
 
 //pop smart contract current context
-func (sc *SmartContract) PopContext() {
-	sc.Context = sc.Context[:len(sc.Context)-1]
+func (this *SmartContract) PopContext() {
+	if len(this.Contexts) > 0 {
+		this.Contexts = this.Contexts[:len(this.Contexts) - 1]
+	}
 }
 
-func (sc *SmartContract) PushNotifications(notifications []*event.NotifyEventInfo) {
-	sc.Notifications = append(sc.Notifications, notifications...)
+func (this *SmartContract) PushNotifications(notifications []*event.NotifyEventInfo) {
+	this.Notifications = append(this.Notifications, notifications...)
 }
 
-func (sc *SmartContract) Execute() error {
-	ctx := sc.CurrentContext()
+func (this *SmartContract) Execute() error {
+	ctx := this.CurrentContext()
 	switch ctx.Code.VmType {
-	case vmtypes.Native:
-		service := native.NewNativeService(sc.Config.DBCache, sc.Config.Height, sc.Config.Tx, sc)
+	case stypes.Native:
+		service := native.NewNativeService(this.Config.DBCache, this.Config.Height, this.Config.Tx, this)
 		if err := service.Invoke(); err != nil {
 			return err
 		}
-	case vmtypes.NEOVM:
-		stateMachine := sneovm.NewStateMachine(sc.Config.Store, sc.Config.DBCache, stypes.Application, sc.Config.Time)
-		engine := neovm.NewExecutionEngine(
-			sc.Config.Tx,
-			new(neovm.ECDsaCrypto),
-			sc.Config.Table,
-			stateMachine,
-		)
-		engine.LoadCode(ctx.Code.Code, false)
-		if err := engine.Execute(); err != nil {
+	case stypes.NEOVM:
+		service := neovm.NewNeoVmService(this.Config.Store, this.Config.DBCache, this.Config.Tx, this.Config.Time, this)
+		if err := service.Invoke(); err != nil {
+			fmt.Println("execute neovm error:", err)
 			return err
 		}
-		stateMachine.CloneCache.Commit()
-		sc.Notifications = append(sc.Notifications, stateMachine.Notifications...)
-	case vmtypes.WASMVM:
+	case stypes.WASMVM:
 		//todo refactor following code to match Neovm
-		stateMachine := wasm.NewWasmStateMachine(sc.Config.Store, sc.Config.DBCache, stypes.Application, sc.Config.Time)
+		stateMachine := wasm.NewWasmStateMachine(this.Config.Store, this.Config.DBCache, this.Config.Time)
 		engine := exec.NewExecutionEngine(
-			sc.Config.Tx,
+			this.Config.Tx,
 			new(util.ECDsaCrypto),
-			sc.Config.Table,
 			stateMachine,
 			"product",
 		)
@@ -158,20 +151,74 @@ func (sc *SmartContract) Execute() error {
 		}
 
 		stateMachine.CloneCache.Commit()
-		sc.Notifications = append(sc.Notifications, stateMachine.Notifications...)
+		this.Notifications = append(this.Notifications, stateMachine.Notifications...)
 	}
 	return nil
 }
 
-func (sc *SmartContract) CheckWitness(address common.Address) bool {
-	if vmtypes.IsVmCodeAddress(address) {
-		for _, v := range sc.Context {
+func (this *SmartContract) AppCall(address common.Address, method string, codes, args []byte, isLoad bool) error {
+	var code []byte
+	if isLoad {
+		c, err := this.getContract(address[:]); if err != nil {
+			return err
+		}
+		code = c.Code.Code
+	}
+
+	vmType := stypes.VmType(address[0])
+
+	switch vmType {
+	case stypes.Native:
+		bf := new(bytes.Buffer)
+		c := states.Contract{
+			Address: address,
+			Method: method,
+			Args: args,
+		}
+		if err := c.Serialize(bf); err != nil {
+			return err
+		}
+		code = bf.Bytes()
+	case stypes.NEOVM:
+		var temp []byte
+		build := vm.NewParamsBuilder(new(bytes.Buffer))
+		if method != "" {
+			build.EmitPushByteArray([]byte(method))
+		}
+		temp = append(args, build.ToArray()...)
+		if isLoad {
+			code = append(temp, code...)
+		} else {
+			code = append(temp, codes...)
+		}
+	case stypes.WASMVM:
+	}
+
+	this.PushContext(&context.Context{
+		Code: stypes.VmCode{
+			Code: code,
+			VmType: vmType,
+		},
+		ContractAddress: address,
+	})
+
+	if err := this.Execute(); err != nil {
+		return err
+	}
+
+	this.PopContext()
+	return nil
+}
+
+func (this *SmartContract) CheckWitness(address common.Address) bool {
+	if stypes.IsVmCodeAddress(address) {
+		for _, v := range this.Contexts {
 			if v.ContractAddress == address {
 				return true
 			}
 		}
 	} else {
-		addresses := sc.Config.Tx.GetSignatureAddresses()
+		addresses := this.Config.Tx.GetSignatureAddresses()
 		for _, v := range addresses {
 			if v == address {
 				return true
@@ -180,4 +227,15 @@ func (sc *SmartContract) CheckWitness(address common.Address) bool {
 	}
 
 	return false
+}
+
+func (this *SmartContract) getContract(address []byte) (*payload.DeployCode, error) {
+	item, err := this.Config.DBCache.TryGet(scommon.ST_CONTRACT, address[:]);
+	if err != nil || item == nil || item.Value == nil {
+		return nil, errors.NewErr("[getContract] Get context doesn't exist!")
+	}
+	contract, ok := item.Value.(*payload.DeployCode); if !ok {
+		return nil, errors.NewErr("[getContract] Type error!")
+	}
+	return contract, nil
 }
