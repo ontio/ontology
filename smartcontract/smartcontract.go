@@ -40,18 +40,18 @@ import (
 )
 
 type SmartContract struct {
-	Contexts      []*context.Context
+	Contexts      []*context.Context // all execute smart contract context
 	Config        *Config
 	Engine        Engine
-	Notifications []*event.NotifyEventInfo
+	Notifications []*event.NotifyEventInfo // all execute smart contract event notify info
 }
 
 type Config struct {
-	Time    uint32
-	Height  uint32
-	Tx      *ctypes.Transaction
-	DBCache scommon.StateStore
-	Store   store.LedgerStore
+	Time    uint32	// now block timestamp
+	Height  uint32  // now block height
+	Tx      *ctypes.Transaction // current transaction
+	DBCache scommon.StateStore // db states cache
+	Store   store.LedgerStore // ledger store
 }
 
 type Engine interface {
@@ -94,6 +94,7 @@ func (this *SmartContract) PopContext() {
 	}
 }
 
+// push smart contract event info
 func (this *SmartContract) PushNotifications(notifications []*event.NotifyEventInfo) {
 	this.Notifications = append(this.Notifications, notifications...)
 }
@@ -156,6 +157,13 @@ func (this *SmartContract) Execute() error {
 	return nil
 }
 
+// When you want to call a contract use this function, if contract exist in blockchain, you should set isLoad true,
+// Otherwise, you can set execute code, and set isLoad false.
+// param address: smart contract address
+// param method: invoke smart contract method name
+// param codes: invoke smart contract whether need to load code
+// param args: invoke smart contract args
+// param idLoad: if true, you can get contract code from block chain, else, you need to load code from param codes
 func (this *SmartContract) AppCall(address common.Address, method string, codes, args []byte, isLoad bool) error {
 	var code []byte
 	if isLoad {
@@ -210,6 +218,10 @@ func (this *SmartContract) AppCall(address common.Address, method string, codes,
 	return nil
 }
 
+// check authorization correct
+// if address is wallet address, check whether in the signature addressed list
+// else check whether address is calling contract address
+// param address: wallet address or contract address
 func (this *SmartContract) CheckWitness(address common.Address) bool {
 	if stypes.IsVmCodeAddress(address) {
 		if this.CallingContext() != nil && this.CallingContext().ContractAddress == address {

@@ -26,12 +26,12 @@ func RuntimeCheckWitness(service *NeoVmService, engine *vm.ExecutionEngine) erro
 		if err != nil {
 			return err
 		}
-		result = checkWitnessAddress(service, address)
+		result = service.ContextRef.CheckWitness(address)
 	} else {
 		pk, err := keypair.DeserializePublicKey(data); if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[RuntimeCheckWitness] data invalid.")
 		}
-		result = checkWitnessPublicKey(service, pk)
+		result = service.ContextRef.CheckWitness(types.AddressFromPubKey(pk))
 	}
 
 	vm.PushData(engine, result)
@@ -53,13 +53,6 @@ func RuntimeLog(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	return nil
 }
 
-func checkWitnessAddress(service *NeoVmService, address common.Address) bool {
-	return service.ContextRef.CheckWitness(address)
-}
-
-func checkWitnessPublicKey(service *NeoVmService, publicKey keypair.PublicKey) bool {
-	return checkWitnessAddress(service, types.AddressFromPubKey(publicKey))
-}
 
 
 

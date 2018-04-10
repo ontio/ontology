@@ -24,6 +24,9 @@ import (
 	"github.com/ontio/ontology/common/log"
 )
 
+// When you execute finish neovm, you can get stack element
+// According item types convert to hex string value
+// Now neovm support type contain: ByteArray/Integer/Boolean/Array/Struct/Interop/StackItems
 func ConvertReturnTypes(item types.StackItems) interface{} {
 	if item == nil {
 		return nil
@@ -46,6 +49,12 @@ func ConvertReturnTypes(item types.StackItems) interface{} {
 	case *types.Array:
 		var arr []interface{}
 		for _, val := range v.GetArray() {
+			arr = append(arr, ConvertReturnTypes(val))
+		}
+		return arr
+	case *types.Struct:
+		var arr []interface{}
+		for _, val := range v.GetStruct() {
 			arr = append(arr, ConvertReturnTypes(val))
 		}
 		return arr

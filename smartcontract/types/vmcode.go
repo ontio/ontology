@@ -27,6 +27,7 @@ import (
 	"golang.org/x/crypto/ripemd160"
 )
 
+// Prefix of address
 type VmType byte
 
 const (
@@ -59,6 +60,7 @@ func (self *VmCode) Deserialize(r io.Reader) error {
 	return nil
 }
 
+// According contract code and type generate address
 func (self *VmCode) AddressFromVmCode() common.Address {
 	var addr common.Address
 	temp := sha256.Sum256(self.Code)
@@ -70,6 +72,7 @@ func (self *VmCode) AddressFromVmCode() common.Address {
 	return addr
 }
 
+// Check whether address is smart contract address
 func IsVmCodeAddress(addr common.Address) bool {
 	vmType := addr[0]
 	if vmType == byte(Native) || vmType == byte(NEOVM) || vmType == byte(WASMVM) {
