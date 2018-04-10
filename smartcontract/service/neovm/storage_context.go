@@ -23,15 +23,15 @@ import (
 )
 
 type StorageContext struct {
-	codeHash common.Address
+	address common.Address
 }
 
-func NewStorageContext(codeHash common.Address) *StorageContext {
+func NewStorageContext(address common.Address) *StorageContext {
 	var storageContext StorageContext
-	storageContext.codeHash = codeHash
+	storageContext.address = address
 	return &storageContext
 }
 
-func (sc *StorageContext) ToArray() []byte {
-	return sc.codeHash[:]
+func (this *StorageContext) ToArray() []byte {
+	return this.address[:]
 }

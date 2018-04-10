@@ -34,9 +34,9 @@ import (
 
 var (
 	DECREMENT_INTERVAL = uint32(2000000)
-	GENERATION_AMOUNT  = [17]uint32{80, 70, 60, 50, 40, 30, 20, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10}
-	GL                 = uint32(len(GENERATION_AMOUNT))
-	ONT_TOTAL_SUPPLY   = big.NewInt(1000000000)
+	GENERATION_AMOUNT = [17]uint32{80, 70, 60, 50, 40, 30, 20, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10}
+	GL = uint32(len(GENERATION_AMOUNT))
+	ONT_TOTAL_SUPPLY = big.NewInt(1000000000)
 )
 
 func OntInit(native *NativeService) error {
@@ -155,7 +155,7 @@ func grantOng(native *NativeService, contract, address common.Address, balance *
 		return err
 	}
 
-	if err := native.AppCall(genesis.OngContractAddress, "approve", args); err != nil {
+	if err := native.ContextRef.AppCall(genesis.OngContractAddress, "approve", []byte{}, args, false); err != nil {
 		return err
 	}
 
