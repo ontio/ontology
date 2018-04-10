@@ -21,9 +21,9 @@ package server
 import (
 	"reflect"
 
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/eventbus/actor"
-	"github.com/Ontology/p2pserver"
+	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/p2pserver"
 )
 
 type P2PActor struct {

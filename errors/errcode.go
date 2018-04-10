@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package errors
 
 import (
@@ -27,6 +45,8 @@ const (
 	ErrSummaryAsset         ErrCode = 45012
 	ErrXmitFail             ErrCode = 45013
 	ErrNoAccount            ErrCode = 45014
+	ErrRetryExhausted       ErrCode = 45015
+	ErrTxPoolFull           ErrCode = 45016
 )
 
 func (err ErrCode) Error() string {
@@ -61,6 +81,10 @@ func (err ErrCode) Error() string {
 		return "invalid summary asset"
 	case ErrXmitFail:
 		return "transmit error"
+	case ErrRetryExhausted:
+		return "retry exhausted"
+	case ErrTxPoolFull:
+		return "tx pool full"
 	}
 
 	return fmt.Sprintf("Unknown error? Error code = %d", err)

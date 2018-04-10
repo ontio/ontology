@@ -30,11 +30,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
-	types "github.com/Ontology/p2pserver/common"
-	"github.com/Ontology/p2pserver/msg_pack"
-	"github.com/Ontology/p2pserver/peer"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
+	types "github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/p2pserver/msg_pack"
+	"github.com/ontio/ontology/p2pserver/peer"
 )
 
 //NetServer represent all the actions in net layer

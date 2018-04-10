@@ -1,14 +1,33 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package statefull
 
 import (
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/ledger"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/errors"
-	"github.com/Ontology/eventbus/actor"
-	"github.com/Ontology/validator/db"
-	vatypes "github.com/Ontology/validator/types"
 	"reflect"
+
+	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/ledger"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/validator/db"
+	vatypes "github.com/ontio/ontology/validator/types"
 )
 
 type Validator interface {

@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"sync"
 
-	types "github.com/Ontology/p2pserver/common"
+	types "github.com/ontio/ontology/p2pserver/common"
 )
 
 //NbrPeers: The neigbor list

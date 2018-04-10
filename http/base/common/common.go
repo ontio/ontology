@@ -1,14 +1,37 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package common
 
 import (
-	. "github.com/Ontology/common"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/types"
-	. "github.com/Ontology/errors"
-	. "github.com/Ontology/http/base/actor"
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/types"
+	ontErrors "github.com/ontio/ontology/errors"
+	bactor "github.com/ontio/ontology/http/base/actor"
 )
 
-//multiplexer that keeps track of every function to be called on specific rpc call
+type BalanceOfRsp struct {
+	Ont       string `json:"ont"`
+	Ong       string `json:"ong"`
+	OngAppove string `json:"ong_appove"`
+}
 
 type TxAttributeInfo struct {
 	Usage types.TransactionAttributeUsage
@@ -16,19 +39,17 @@ type TxAttributeInfo struct {
 }
 
 type AmountMap struct {
-	Key   Uint256
-	Value Fixed64
+	Key   common.Uint256
+	Value common.Fixed64
 }
 
 type Fee struct {
-	Amount Fixed64
+	Amount common.Fixed64
 	Payer  string
 }
-type PubKeyInfo struct {
-	X, Y string
-}
+
 type Sig struct {
-	PubKeys []PubKeyInfo
+	PubKeys []string
 	M       uint8
 	SigData []string
 }
@@ -39,7 +60,7 @@ type Transactions struct {
 	Payload    PayloadInfo
 	Attributes []TxAttributeInfo
 	Fee        []Fee
-	NetworkFee Fixed64
+	NetworkFee common.Fixed64
 	Sigs       []Sig
 	Hash       string
 }
@@ -52,9 +73,9 @@ type BlockHead struct {
 	Timestamp        uint32
 	Height           uint32
 	ConsensusData    uint64
-	NextBookKeeper   string
+	NextBookkeeper   string
 
-	BookKeepers []PubKeyInfo
+	Bookkeepers []string
 	SigData     []string
 
 	Hash string
@@ -62,7 +83,7 @@ type BlockHead struct {
 
 type BlockInfo struct {
 	Hash         string
-	Header    *BlockHead
+	Header       *BlockHead
 	Transactions []*Transactions
 }
 
@@ -104,19 +125,22 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 	trans.Attributes = make([]TxAttributeInfo, len(ptx.Attributes))
 	for i, v := range ptx.Attributes {
 		trans.Attributes[i].Usage = v.Usage
-		trans.Attributes[i].Data = ToHexString(v.Data)
+		trans.Attributes[i].Data = common.ToHexString(v.Data)
 	}
+	trans.Fee = []Fee{}
 	for _, fee := range ptx.Fee {
-		e := Fee{fee.Amount, ToHexString(fee.Payer.ToArray())}
+		e := Fee{fee.Amount, common.ToHexString(fee.Payer[:])}
 		trans.Fee = append(trans.Fee, e)
 	}
+	trans.Sigs = []Sig{}
 	for _, sig := range ptx.Sigs {
 		e := Sig{M: sig.M}
 		for i := 0; i < len(sig.PubKeys); i++ {
-			e.PubKeys = append(e.PubKeys, PubKeyInfo{sig.PubKeys[i].X.String(), sig.PubKeys[i].Y.String()})
+			key := keypair.SerializePublicKey(sig.PubKeys[i])
+			e.PubKeys = append(e.PubKeys, common.ToHexString(key))
 		}
-		for i := 0; i < len(sig.SigData);i ++{
-			e.SigData = append(e.SigData, ToHexString(sig.SigData[i]))
+		for i := 0; i < len(sig.SigData); i++ {
+			e.SigData = append(e.SigData, common.ToHexString(sig.SigData[i]))
 		}
 		trans.Sigs = append(trans.Sigs, e)
 	}
@@ -124,49 +148,45 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 	trans.NetworkFee = networkfee
 
 	mhash := ptx.Hash()
-	trans.Hash = ToHexString(mhash.ToArray())
+	trans.Hash = common.ToHexString(mhash.ToArray())
 	return trans
 }
 
-func VerifyAndSendTx(txn *types.Transaction) ErrCode {
+func VerifyAndSendTx(txn *types.Transaction) ontErrors.ErrCode {
 	// if transaction is verified unsucessfully then will not put it into transaction pool
-	if errCode := AppendTxToPool(txn); errCode != ErrNoError {
+	if errCode := bactor.AppendTxToPool(txn); errCode != ontErrors.ErrNoError {
 		log.Warn("Can NOT add the transaction to TxnPool")
-		log.Info("[httpjsonrpc] VerifyTransaction failed when AppendTxnPool.")
 		return errCode
 	}
-
-	if err := Xmit(txn); err != nil {
-		log.Error("Xmit Tx Error:Xmit transaction failed.", err)
-		return ErrXmitFail
-	}
-	return ErrNoError
+	return ontErrors.ErrNoError
 }
 
 func GetBlockInfo(block *types.Block) BlockInfo {
 	hash := block.Hash()
-	var bookKeepers = []PubKeyInfo{}
+	var bookKeepers = []string{}
 	var sigData = []string{}
 	for i := 0; i < len(block.Header.SigData); i++ {
-		s := ToHexString(block.Header.SigData[i])
+		s := common.ToHexString(block.Header.SigData[i])
 		sigData = append(sigData, s)
 	}
-	for i := 0; i < len(block.Header.BookKeepers); i++ {
-		e := block.Header.BookKeepers[i]
-		bookKeepers = append(bookKeepers, PubKeyInfo{e.X.String(), e.Y.String()})
+	for i := 0; i < len(block.Header.Bookkeepers); i++ {
+		e := block.Header.Bookkeepers[i]
+		key := keypair.SerializePublicKey(e)
+		bookKeepers = append(bookKeepers, common.ToHexString(key))
 	}
+
 	blockHead := &BlockHead{
 		Version:          block.Header.Version,
-		PrevBlockHash:    ToHexString(block.Header.PrevBlockHash.ToArray()),
-		TransactionsRoot: ToHexString(block.Header.TransactionsRoot.ToArray()),
-		BlockRoot:        ToHexString(block.Header.BlockRoot.ToArray()),
+		PrevBlockHash:    common.ToHexString(block.Header.PrevBlockHash.ToArray()),
+		TransactionsRoot: common.ToHexString(block.Header.TransactionsRoot.ToArray()),
+		BlockRoot:        common.ToHexString(block.Header.BlockRoot.ToArray()),
 		Timestamp:        block.Header.Timestamp,
 		Height:           block.Header.Height,
 		ConsensusData:    block.Header.ConsensusData,
-		NextBookKeeper:   ToHexString(block.Header.NextBookKeeper[:]),
-		BookKeepers: bookKeepers,
-		SigData:     sigData,
-		Hash: ToHexString(hash.ToArray()),
+		NextBookkeeper:   block.Header.NextBookkeeper.ToBase58(),
+		Bookkeepers:      bookKeepers,
+		SigData:          sigData,
+		Hash:             common.ToHexString(hash.ToArray()),
 	}
 
 	trans := make([]*Transactions, len(block.Transactions))
@@ -175,8 +195,8 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 	}
 
 	b := BlockInfo{
-		Hash:         ToHexString(hash.ToArray()),
-		Header:    blockHead,
+		Hash:         common.ToHexString(hash.ToArray()),
+		Header:       blockHead,
 		Transactions: trans,
 	}
 	return b

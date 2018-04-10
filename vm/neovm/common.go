@@ -1,15 +1,31 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package neovm
 
 import (
 	"crypto/sha1"
 	"crypto/sha256"
-	"encoding/binary"
-	"github.com/Ontology/vm/neovm/errors"
-	"github.com/Ontology/vm/neovm/interfaces"
-	"github.com/Ontology/vm/neovm/types"
 	"hash"
 	"math/big"
-	"reflect"
+
+	"github.com/ontio/ontology/vm/neovm/interfaces"
+	"github.com/ontio/ontology/vm/neovm/types"
 )
 
 type BigIntSorter []big.Int
@@ -63,73 +79,6 @@ func ToBigInt(data interface{}) *big.Int {
 	return &bi
 }
 
-//common func
-func SumBigInt(ints []big.Int) big.Int {
-	sum := big.NewInt(0)
-	for _, v := range ints {
-		sum = sum.Add(sum, &v)
-	}
-	return *sum
-}
-
-func MinBigInt(ints []big.Int) big.Int {
-	minimum := ints[0]
-
-	for _, d := range ints {
-		if d.Cmp(&minimum) < 0 {
-			minimum = d
-		}
-	}
-
-	return minimum
-}
-
-func MaxBigInt(ints []big.Int) big.Int {
-	max := ints[0]
-
-	for _, d := range ints {
-		if d.Cmp(&max) > 0 {
-			max = d
-		}
-	}
-
-	return max
-}
-
-func MinInt64(datas []int64) int64 {
-
-	var minimum int64
-	for i, d := range datas {
-		// Unit Test modify
-		if i == 0 {
-			minimum = d
-		}
-		if d < minimum {
-			minimum = d
-		}
-	}
-
-	return minimum
-}
-
-func MaxInt64(datas []int64) int64 {
-
-	var maximum int64
-	//i := 0
-	for i, d := range datas {
-		// Unit Test modify
-		if i == 0 {
-			maximum = d
-			//i++
-		}
-		if d > maximum {
-			maximum = d
-		}
-	}
-
-	return maximum
-}
-
 func Concat(array1 []byte, array2 []byte) []byte {
 	var r []byte
 	r = append(r, array1...)
@@ -151,22 +100,6 @@ func BigIntOp(bi *big.Int, op OpCode) *big.Int {
 		nb.Set(bi)
 	}
 	return nb
-}
-
-func AsInt64(b []byte) (int64, error) {
-	if len(b) == 0 {
-		return 0, nil
-	}
-	if len(b) > 8 {
-		return 0, errors.ErrBadValue
-	}
-
-	var bs [8]byte
-	copy(bs[:], b)
-
-	res := binary.LittleEndian.Uint64(bs[:])
-
-	return int64(res), nil
 }
 
 func BigIntZip(ints1 *big.Int, ints2 *big.Int, op OpCode) *big.Int {
@@ -249,74 +182,18 @@ func BoolZip(bi1 bool, bi2 bool, op OpCode) bool {
 	return nb
 }
 
-func BoolArrayOp(bools []bool, op OpCode) []bool {
-	bls := []bool{}
-	for _, b := range bools {
-		var nb bool
-
-		switch op {
-		case NOT:
-			nb = !b
-		default:
-			nb = b
-		}
-		bls = append(bls, nb)
-	}
-
-	return bls
-}
-
-func IsEqualBytes(b1 []byte, b2 []byte) bool {
-	len1 := len(b1)
-	len2 := len(b2)
-	if len1 != len2 {
-		return false
-	}
-
-	for i := 0; i < len1; i++ {
-		if b1[i] != b2[i] {
-			return false
-		}
-	}
-
-	return true
-}
-
-func IsEqual(v1 interface{}, v2 interface{}) bool {
-
-	if reflect.TypeOf(v1) != reflect.TypeOf(v2) {
-		return false
-	}
-	switch t1 := v1.(type) {
-	case []byte:
-		switch t2 := v2.(type) {
-		case []byte:
-			return IsEqualBytes(t1, t2)
-		}
-	case int8, int16, int32, int64:
-		if v1 == v2 {
-			return true
-		}
-		return false
-	default:
-		return false
-	}
-
-	return false
-}
-
 func WithInOp(int1 *big.Int, int2 *big.Int, int3 *big.Int) bool {
 	b1 := BigIntMultiComp(int1, int2, GTE)
 	b2 := BigIntMultiComp(int1, int3, LT)
 	return BoolZip(b1, b2, BOOLAND)
 }
 
-func NewStackItems() []types.StackItemInterface {
-	return make([]types.StackItemInterface, 0)
+func NewStackItems() []types.StackItems {
+	return make([]types.StackItems, 0)
 }
 
-func NewStackItemInterface(data interface{}) types.StackItemInterface {
-	var stackItem types.StackItemInterface
+func NewStackItemInterface(data interface{}) types.StackItems {
+	var stackItem types.StackItems
 	switch data.(type) {
 	case int8, int16, int32, int64, int, uint8, uint16, uint32, uint64, *big.Int, big.Int:
 		stackItem = types.NewInteger(ToBigInt(data))
@@ -334,12 +211,12 @@ func NewStackItemInterface(data interface{}) types.StackItemInterface {
 		stackItem = types.NewBoolean(data.(bool))
 	case []byte:
 		stackItem = types.NewByteArray(data.([]byte))
-	case []types.StackItemInterface:
-		stackItem = types.NewArray(data.([]types.StackItemInterface))
-	case types.StackItemInterface:
-		stackItem = data.(types.StackItemInterface)
-	case interfaces.IInteropInterface:
-		stackItem = types.NewInteropInterface(data.(interfaces.IInteropInterface))
+	case []types.StackItems:
+		stackItem = types.NewArray(data.([]types.StackItems))
+	case types.StackItems:
+		stackItem = data.(types.StackItems)
+	case interfaces.Interop:
+		stackItem = types.NewInteropInterface(data.(interfaces.Interop))
 	default:
 		panic("NewStackItemInterface Invalid Type!")
 	}
@@ -382,12 +259,12 @@ func PopBoolean(e *ExecutionEngine) bool {
 	return x.GetBoolean()
 }
 
-func PopArray(e *ExecutionEngine) []types.StackItemInterface {
+func PopArray(e *ExecutionEngine) []types.StackItems {
 	x := PopStackItem(e)
 	return x.GetArray()
 }
 
-func PopInteropInterface(e *ExecutionEngine) interfaces.IInteropInterface {
+func PopInteropInterface(e *ExecutionEngine) interfaces.Interop {
 	x := PopStackItem(e)
 	return x.GetInterface()
 }
@@ -397,7 +274,7 @@ func PopByteArray(e *ExecutionEngine) []byte {
 	return x.GetByteArray()
 }
 
-func PopStackItem(e *ExecutionEngine) types.StackItemInterface {
+func PopStackItem(e *ExecutionEngine) types.StackItems {
 	return Pop(e).GetStackItem()
 }
 
@@ -405,12 +282,12 @@ func Pop(e *ExecutionEngine) Element {
 	return e.evaluationStack.Pop()
 }
 
-func PeekArray(e *ExecutionEngine) []types.StackItemInterface {
+func PeekArray(e *ExecutionEngine) []types.StackItems {
 	x := PeekStackItem(e)
 	return x.GetArray()
 }
 
-func PeekInteropInterface(e *ExecutionEngine) interfaces.IInteropInterface {
+func PeekInteropInterface(e *ExecutionEngine) interfaces.Interop {
 	x := PeekStackItem(e)
 	return x.GetInterface()
 }
@@ -426,7 +303,7 @@ func PeekBigInteger(e *ExecutionEngine) *big.Int {
 	return x.GetBigInteger()
 }
 
-func PeekStackItem(e *ExecutionEngine) types.StackItemInterface {
+func PeekStackItem(e *ExecutionEngine) types.StackItems {
 	return Peek(e).GetStackItem()
 }
 
@@ -446,7 +323,7 @@ func PeekNByteArray(i int, e *ExecutionEngine) []byte {
 	return x.GetByteArray()
 }
 
-func PeekNStackItem(i int, e *ExecutionEngine) types.StackItemInterface {
+func PeekNStackItem(i int, e *ExecutionEngine) types.StackItems {
 	return PeekN(i, e).GetStackItem()
 }
 

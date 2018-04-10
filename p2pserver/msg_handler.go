@@ -28,14 +28,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/types"
-	actor "github.com/Ontology/p2pserver/actor/req"
-	msgCommon "github.com/Ontology/p2pserver/common"
-	msg "github.com/Ontology/p2pserver/message"
-	"github.com/Ontology/p2pserver/msg_pack"
-	"github.com/Ontology/p2pserver/peer"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/types"
+	actor "github.com/ontio/ontology/p2pserver/actor/req"
+	msgCommon "github.com/ontio/ontology/p2pserver/common"
+	msg "github.com/ontio/ontology/p2pserver/message"
+	"github.com/ontio/ontology/p2pserver/msg_pack"
+	"github.com/ontio/ontology/p2pserver/peer"
 )
 
 func MsgHdrHandle(hdr msg.MsgHdr, peer peer.Peer, p2p P2PServer) error {

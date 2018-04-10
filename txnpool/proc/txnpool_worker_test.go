@@ -1,28 +1,47 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package proc
 
 import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/Ontology/common"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/errors"
-	tc "github.com/Ontology/txnpool/common"
-	vt "github.com/Ontology/validator/types"
 	"testing"
 	"time"
+
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/errors"
+	tc "github.com/ontio/ontology/txnpool/common"
+	vt "github.com/ontio/ontology/validator/types"
 )
 
 func TestWorker(t *testing.T) {
 	fmt.Println("Starting worker test")
-	s := NewTxPoolServer(tc.MAXWORKERNUM)
+	s := NewTxPoolServer(tc.MAX_WORKER_NUM)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
 	}
 
 	worker := &txPoolWorker{}
-	worker.init(tc.MAXWORKERNUM, s)
+	worker.init(tc.MAX_WORKER_NUM, s)
 
 	s.wg.Add(1)
 
@@ -36,7 +55,7 @@ func TestWorker(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	statelessRsp := &vt.CheckResponse{
-		WorkerId: tc.MAXWORKERNUM,
+		WorkerId: tc.MAX_WORKER_NUM,
 		ErrCode:  errors.ErrNoError,
 		Hash:     txn.Hash(),
 		Type:     vt.Stateless,
@@ -44,7 +63,7 @@ func TestWorker(t *testing.T) {
 	}
 
 	statefulRsp := &vt.CheckResponse{
-		WorkerId: tc.MAXWORKERNUM,
+		WorkerId: tc.MAX_WORKER_NUM,
 		ErrCode:  errors.ErrNoError,
 		Hash:     txn.Hash(),
 		Type:     vt.Statefull,
@@ -73,7 +92,7 @@ func TestWorker(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	statelessRsp = &vt.CheckResponse{
-		WorkerId: tc.MAXWORKERNUM,
+		WorkerId: tc.MAX_WORKER_NUM,
 		ErrCode:  errors.ErrUnknown,
 		Hash:     txn.Hash(),
 		Type:     vt.Stateless,
@@ -81,7 +100,7 @@ func TestWorker(t *testing.T) {
 	}
 
 	statefulRsp = &vt.CheckResponse{
-		WorkerId: tc.MAXWORKERNUM,
+		WorkerId: tc.MAX_WORKER_NUM,
 		ErrCode:  errors.ErrUnknown,
 		Hash:     txn.Hash(),
 		Type:     vt.Statefull,
@@ -95,7 +114,7 @@ func TestWorker(t *testing.T) {
 	 */
 	time.Sleep(2 * time.Second)
 	statelessRsp = &vt.CheckResponse{
-		WorkerId: tc.MAXWORKERNUM,
+		WorkerId: tc.MAX_WORKER_NUM,
 		ErrCode:  errors.ErrUnknown,
 		Hash:     txn.Hash(),
 		Type:     vt.Stateless,
@@ -103,7 +122,7 @@ func TestWorker(t *testing.T) {
 	}
 
 	statefulRsp = &vt.CheckResponse{
-		WorkerId: tc.MAXWORKERNUM + 1,
+		WorkerId: tc.MAX_WORKER_NUM + 1,
 		ErrCode:  errors.ErrUnknown,
 		Hash:     txn.Hash(),
 		Type:     vt.Statefull,

@@ -22,7 +22,7 @@ import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/Ontology/core/types"
+	"github.com/ontio/ontology/core/types"
 )
 
 // Transaction message

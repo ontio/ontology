@@ -28,13 +28,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/crypto"
-	"github.com/Ontology/events"
-	types "github.com/Ontology/p2pserver/common"
-	conn "github.com/Ontology/p2pserver/link"
-	//"github.com/Ontology/p2pserver/message"
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/events"
+	types "github.com/ontio/ontology/p2pserver/common"
+	conn "github.com/ontio/ontology/p2pserver/link"
+	//"github.com/ontio/ontology/p2pserver/message"
 )
 
 type Peer struct {
@@ -51,7 +51,7 @@ type Peer struct {
 	txnCnt                   uint64
 	rxTxnCnt                 uint64
 	httpInfoPort             uint16
-	publicKey                *crypto.PubKey
+	publicKey                keypair.PublicKey
 	chF                      chan func() error // Channel used to operate the node without lock
 	peerDisconnectSubscriber events.Subscriber
 	Np                       *NbrPeers
@@ -74,7 +74,7 @@ func NewPeer() *Peer {
 	return p
 }
 
-func (p *Peer) InitPeer(pubKey *crypto.PubKey) error {
+func (p *Peer) InitPeer(pubKey keypair.PublicKey) error {
 	p.version = types.PROTOCOL_VERSION
 	if config.Parameters.NodeType == types.SERVICE_NODE_NAME {
 		p.services = uint64(types.SERVICE_NODE)
@@ -89,17 +89,15 @@ func (p *Peer) InitPeer(pubKey *crypto.PubKey) error {
 
 	p.relay = true
 
-	key, err := pubKey.EncodePoint(true)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-	err = binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(p.id))
+	key := keypair.SerializePublicKey(pubKey)
+
+	err := binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(p.id))
 	if err != nil {
 		log.Error(err)
 		return err
 	}
 	log.Info(fmt.Sprintf("Init peer ID to 0x%x", p.id))
+	p.Np.init()
 	p.publicKey = pubKey
 	p.SyncLink.SetID(p.id)
 	p.ConsLink.SetID(p.id)
@@ -123,10 +121,10 @@ func (p *Peer) DumpInfo() {
 	log.Info("\t relay = ", p.relay)
 	log.Info("\t height = ", p.height)
 }
-func (p *Peer) SetBookKeeperAddr(pubKey *crypto.PubKey) {
+func (p *Peer) SetBookKeeperAddr(pubKey keypair.PublicKey) {
 	p.publicKey = pubKey
 }
-func (p *Peer) GetPubKey() *crypto.PubKey {
+func (p *Peer) GetPubKey() keypair.PublicKey {
 	return p.publicKey
 }
 func (p *Peer) GetVersion() uint32 {
@@ -243,6 +241,10 @@ func (p *Peer) SetHttpInfoState(httpInfo bool) {
 	}
 }
 
+func (p *Peer) GetHttpInfoState() bool {
+	return p.cap[types.HTTP_INFO_FLAG] == 1
+}
+
 func (p *Peer) GetHttpInfoPort() uint16 {
 	return p.httpInfoPort
 }
@@ -252,7 +254,7 @@ func (p *Peer) SetHttpInfoPort(port uint16) {
 }
 
 //SetBookkeeperAddr set peer`s publickey
-func (p *Peer) SetBookkeeperAddr(pk *crypto.PubKey) {
+func (p *Peer) SetBookkeeperAddr(pk *keypair.PublicKey) {
 	p.publicKey = pk
 }
 

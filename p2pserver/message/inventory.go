@@ -23,9 +23,9 @@ import (
 	"encoding/binary"
 	"io"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/serialization"
-	p2pCommon "github.com/Ontology/p2pserver/common"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/serialization"
+	p2pCommon "github.com/ontio/ontology/p2pserver/common"
 )
 
 var LastInvHash common.Uint256

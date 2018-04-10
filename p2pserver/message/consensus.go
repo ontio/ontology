@@ -22,7 +22,7 @@ import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/Ontology/common/log"
+	"github.com/ontio/ontology/common/log"
 )
 
 type Consensus struct {

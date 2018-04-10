@@ -1,18 +1,36 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package account
 
 import (
-	. "github.com/Ontology/common"
-	ct "github.com/Ontology/core/contract"
+	"github.com/ontio/ontology/common"
+	ct "github.com/ontio/ontology/core/contract"
 )
 
-type IClientStore interface {
+type ClientStore interface {
 	BuildDatabase(path string)
 
 	SaveStoredData(name string, value []byte)
 
 	LoadStoredData(name string) []byte
 
-	LoadAccount() map[Uint160]*Account
+	LoadAccount() map[common.Address]*Account
 
-	LoadContracts() map[Uint160]*ct.Contract
+	LoadContracts() map[common.Address]*ct.Contract
 }

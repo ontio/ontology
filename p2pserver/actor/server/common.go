@@ -19,7 +19,7 @@
 package server
 
 import (
-	types "github.com/Ontology/p2pserver/common"
+	types "github.com/ontio/ontology/p2pserver/common"
 )
 
 type StartServerReq struct {

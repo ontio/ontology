@@ -1,42 +1,49 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package proc
 
 import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/payload"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/crypto"
-	"github.com/Ontology/errors"
-	"github.com/Ontology/eventbus/actor"
-	tc "github.com/Ontology/txnpool/common"
-	"github.com/Ontology/validator/stateless"
-	vt "github.com/Ontology/validator/types"
 	"testing"
 	"time"
+
+	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/errors"
+	tc "github.com/ontio/ontology/txnpool/common"
+	"github.com/ontio/ontology/validator/stateless"
+	vt "github.com/ontio/ontology/validator/types"
 )
 
 var (
 	txn    *types.Transaction
 	topic  string
-	sender *actor.PID
+	sender tc.SenderType
 )
 
-type testActor struct {
-}
-
-func (this *testActor) Receive(context actor.Context) {
-	switch msg := context.Message().(type) {
-	default:
-		log.Info(msg)
-	}
-}
-
 func init() {
-	crypto.SetAlg("")
-	log.Init(log.Path, log.Stdout)
+	log.Init(log.PATH, log.Stdout)
 	topic = "TXN"
 
 	bookKeepingPayload := &payload.BookKeeping{
@@ -46,7 +53,7 @@ func init() {
 	txn = &types.Transaction{
 		Version:    0,
 		Attributes: []*types.TxAttribute{},
-		TxType:     types.BookKeeper,
+		TxType:     types.Bookkeeper,
 		Payload:    bookKeepingPayload,
 	}
 
@@ -56,11 +63,7 @@ func init() {
 	hash.Deserialize(bytes.NewReader(hex))
 	txn.SetHash(hash)
 
-	object := &testActor{}
-	sender = startActor(object)
-	if sender == nil {
-		panic("failed to start actor")
-	}
+	sender = tc.NilSender
 }
 
 func startActor(obj interface{}) *actor.PID {
@@ -79,7 +82,7 @@ func startActor(obj interface{}) *actor.PID {
 func TestTxn(t *testing.T) {
 	fmt.Println("Starting test tx")
 	var s *TXPoolServer
-	s = NewTxPoolServer(tc.MAXWORKERNUM)
+	s = NewTxPoolServer(tc.MAX_WORKER_NUM)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -129,7 +132,7 @@ func TestTxn(t *testing.T) {
 func TestAssignRsp2Worker(t *testing.T) {
 	fmt.Println("Starting assign response to the worker testing")
 	var s *TXPoolServer
-	s = NewTxPoolServer(tc.MAXWORKERNUM)
+	s = NewTxPoolServer(tc.MAX_WORKER_NUM)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -172,7 +175,7 @@ func TestAssignRsp2Worker(t *testing.T) {
 func TestActor(t *testing.T) {
 	fmt.Println("Starting actor testing")
 	var s *TXPoolServer
-	s = NewTxPoolServer(tc.MAXWORKERNUM)
+	s = NewTxPoolServer(tc.MAX_WORKER_NUM)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -228,7 +231,7 @@ func TestActor(t *testing.T) {
 		return
 	}
 
-	pid = s.GetPID(tc.MAXACTOR)
+	pid = s.GetPID(tc.MaxActor)
 	if pid != nil {
 		t.Error("Invalid PID")
 		return
@@ -240,7 +243,7 @@ func TestActor(t *testing.T) {
 func TestValidator(t *testing.T) {
 	fmt.Println("Starting validator testing")
 	var s *TXPoolServer
-	s = NewTxPoolServer(tc.MAXWORKERNUM)
+	s = NewTxPoolServer(tc.MAX_WORKER_NUM)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return

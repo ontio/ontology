@@ -1,19 +1,35 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package wallet
 
 import (
-	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
 
-	"github.com/Ontology/account"
-	. "github.com/Ontology/cli/common"
-	. "github.com/Ontology/common"
-	"github.com/Ontology/common/password"
-	"github.com/Ontology/core/contract"
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/account"
+	cliCommon "github.com/ontio/ontology/cli/common"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/password"
+	"github.com/ontio/ontology/http/base/rpc"
 	"github.com/urfave/cli"
-	"github.com/Ontology/http/base/rpc"
 )
 
 func walletAction(c *cli.Context) error {
@@ -30,7 +46,7 @@ func walletAction(c *cli.Context) error {
 		fmt.Println("Invalid wallet name.")
 		os.Exit(1)
 	}
-	if FileExisted(name) && create {
+	if common.FileExisted(name) && create {
 		fmt.Printf("CAUTION: '%s' already exists!\n", name)
 		os.Exit(1)
 	}
@@ -51,7 +67,8 @@ func walletAction(c *cli.Context) error {
 	}
 	var wallet *account.ClientImpl
 	if create {
-		wallet = account.Create(name, []byte(passwd))
+		encrypt := c.String("encrypt")
+		wallet = account.Create(name, encrypt, []byte(passwd))
 	} else {
 		// list wallet or change wallet password
 		wallet = account.Open(name, []byte(passwd))
@@ -73,22 +90,16 @@ func walletAction(c *cli.Context) error {
 	}
 	account, _ := wallet.GetDefaultAccount()
 	pubKey := account.PubKey()
-	signatureRedeemScript, _ := contract.CreateSignatureRedeemScript(pubKey)
-	programHash:= ToCodeHash(signatureRedeemScript)
-	encodedPubKey, _ := pubKey.EncodePoint(true)
-	address, _ := programHash.ToAddress()
-	fmt.Println("public key:   ", ToHexString(encodedPubKey))
-	fmt.Println("program hash: ", ToHexString(programHash.ToArray()))
-	fmt.Println("address:      ", address)
-	asset := c.String("asset")
-	if list && asset != "" {
-		var buffer bytes.Buffer
-		_, err := programHash.Serialize(&buffer)
-		if err != nil {
-			return err
-		}
-		resp, err := rpc.Call(Address(), "getunspendoutput", 0,
-			[]interface{}{hex.EncodeToString(buffer.Bytes()), asset})
+	address := account.Address
+
+	pubKeyBytes := keypair.SerializePublicKey(pubKey)
+	fmt.Println("public key:   ", common.ToHexString(pubKeyBytes))
+	fmt.Println("hex address: ", common.ToHexString(address[:]))
+	fmt.Println("base58 address:      ", address.ToBase58())
+	balance := c.Bool("balance")
+	if list && balance {
+		resp, err := rpc.Call(cliCommon.RpcAddress(), "getbalance", 0,
+			[]interface{}{address.ToBase58()})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return err
@@ -99,17 +110,15 @@ func walletAction(c *cli.Context) error {
 			fmt.Println("Unmarshal JSON failed")
 			return err
 		}
-		switch r["result"].(type) {
+
+		switch res := r["result"].(type) {
 		case map[string]interface{}:
-			ammount := 0
-			unspend := r["result"].(map[string]interface{})
-			for _, v := range unspend {
-				out := v.(map[string]interface{})
-				ammount += int(out["Value"].(float64))
+			for k, v := range res {
+				fmt.Printf("%s: %v\n", k, v)
 			}
-			fmt.Println("Ammount: ", ammount)
+			return nil
 		case string:
-			fmt.Println(r["result"].(string))
+			fmt.Println(res)
 			return nil
 		}
 	}
@@ -135,14 +144,23 @@ func NewCommand() *cli.Command {
 				Name:  "changepassword",
 				Usage: "change wallet password",
 			},
+			cli.BoolFlag{
+				Name:  "balance, b",
+				Usage: "get ont/ong balance",
+			},
 			cli.StringFlag{
-				Name:  "asset, a",
-				Usage: "asset uniq ID",
+				Name: "encrypt, e",
+				Usage: `encrypt type,just as:
+				SHA224withECDSA, SHA256withECDSA,
+				SHA384withECDSA, SHA512withECDSA,
+				SHA3-224withECDSA, SHA3-256withECDSA,
+				SHA3-384withECDSA, SHA3-512withECDSA,
+				RIPEMD160withECDSA, SM3withSM2, SHA512withEdDSA`,
 			},
 			cli.StringFlag{
 				Name:  "name, n",
 				Usage: "wallet name",
-				Value: account.WalletFileName,
+				Value: account.WALLET_FILENAME,
 			},
 			cli.StringFlag{
 				Name:  "password, p",
@@ -151,7 +169,7 @@ func NewCommand() *cli.Command {
 		},
 		Action: walletAction,
 		OnUsageError: func(c *cli.Context, err error, isSubcommand bool) error {
-			PrintError(c, err, "wallet")
+			cliCommon.PrintError(c, err, "wallet")
 			return cli.NewExitError("", 1)
 		},
 	}

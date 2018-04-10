@@ -1,30 +1,48 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package genesis
 
 import (
+	"bytes"
 	"errors"
 	"time"
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/config"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/core/utils"
-	"github.com/Ontology/crypto"
-	vmtypes "github.com/Ontology/vm/types"
+
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/core/utils"
+	"github.com/ontio/ontology/smartcontract/service/native/states"
+	vmtypes "github.com/ontio/ontology/vm/types"
 )
 
 const (
-	BlockVersion      uint32 = 0
-	GenesisNonce      uint64 = 2083236893
-	DecrementInterval uint32 = 2000000
+	BlockVersion uint32 = 0
+	GenesisNonce uint64 = 2083236893
 
 	OntRegisterAmount = 1000000000
 	OngRegisterAmount = 1000000000
 )
 
 var (
-	GenerationAmount = [17]uint32{80, 70, 60, 50, 40, 30, 20, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10}
-
-	OntContractAddress, _ = common.Uint160ParseFromBytes([]byte{0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1})
-	OngContractAddress, _ = common.Uint160ParseFromBytes([]byte{0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2})
+	OntContractAddress, _ = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})
+	OngContractAddress, _ = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02})
 
 	ONTToken   = NewGoverningToken()
 	ONGToken   = NewUtilityToken()
@@ -32,16 +50,16 @@ var (
 	ONGTokenID = ONGToken.Hash()
 )
 
-var GenBlockTime = (config.DEFAULTGENBLOCKTIME * time.Second)
+var GenBlockTime = (config.DEFAULT_GEN_BLOCK_TIME * time.Second)
 
-var GenesisBookKeepers []*crypto.PubKey
+var GenesisBookkeepers []keypair.PublicKey
 
-func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*types.Block, error) {
+func GenesisBlockInit(defaultBookkeeper []keypair.PublicKey) (*types.Block, error) {
 	//getBookKeeper
-	GenesisBookKeepers = defaultBookKeeper
-	nextBookKeeper, err := types.AddressFromBookKeepers(defaultBookKeeper)
+	GenesisBookkeepers = defaultBookkeeper
+	nextBookkeeper, err := types.AddressFromBookkeepers(defaultBookkeeper)
 	if err != nil {
-		return nil, errors.New("[Block],GenesisBlockInit err with GetBookKeeperAddress")
+		return nil, errors.New("[Block],GenesisBlockInit err with GetBookkeeperAddress")
 	}
 	//blockdata
 	genesisHeader := &types.Header{
@@ -51,9 +69,9 @@ func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*types.Block, error) 
 		Timestamp:        uint32(uint32(time.Date(2017, time.February, 23, 0, 0, 0, 0, time.UTC).Unix())),
 		Height:           uint32(0),
 		ConsensusData:    GenesisNonce,
-		NextBookKeeper:   nextBookKeeper,
+		NextBookkeeper:   nextBookkeeper,
 
-		BookKeepers: nil,
+		Bookkeepers: nil,
 		SigData:     nil,
 	}
 
@@ -67,27 +85,52 @@ func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*types.Block, error) 
 			ont,
 			ong,
 			NewGoverningInit(),
+			NewUtilityInit(),
 		},
 	}
+	genesisBlock.RebuildMerkleRoot()
 	return genesisBlock, nil
 }
 
 func NewGoverningToken() *types.Transaction {
-	tx := utils.NewDeployTransaction([]byte("ONT Token"), "ONT", "1.0",
-		"Ontology Team", "contact@ont.io", "Ontology Network ONT Token", vmtypes.NativeVM, true)
+	tx := utils.NewDeployTransaction(&vmtypes.VmCode{Code: OntContractAddress[:], VmType: vmtypes.Native}, "ONT", "1.0",
+		"Ontology Team", "contact@ont.io", "Ontology Network ONT Token", true)
 	return tx
 }
 
 func NewUtilityToken() *types.Transaction {
-	tx := utils.NewDeployTransaction([]byte("ONT Token"), "ONG", "1.0",
-		"Ontology Team", "contact@ont.io", "Ontology Network ONG Token", vmtypes.NativeVM, true)
+	tx := utils.NewDeployTransaction(&vmtypes.VmCode{Code: OngContractAddress[:], VmType: vmtypes.Native}, "ONG", "1.0",
+		"Ontology Team", "contact@ont.io", "Ontology Network ONG Token", true)
 	return tx
 }
 
 func NewGoverningInit() *types.Transaction {
+	init := states.Contract{
+		Address: OntContractAddress,
+		Method:  "init",
+		Args:    []byte{},
+	}
+	bf := new(bytes.Buffer)
+	init.Serialize(bf)
 	vmCode := vmtypes.VmCode{
-		VmType: vmtypes.NativeVM,
-		Code: []byte{14, 84, 111, 107, 101, 110, 46, 79, 110, 116, 46, 73, 110, 105, 116},
+		VmType: vmtypes.Native,
+		Code:   bf.Bytes(),
+	}
+	tx := utils.NewInvokeTransaction(vmCode)
+	return tx
+}
+
+func NewUtilityInit() *types.Transaction {
+	init := states.Contract{
+		Address: OngContractAddress,
+		Method:  "init",
+		Args:    []byte{},
+	}
+	bf := new(bytes.Buffer)
+	init.Serialize(bf)
+	vmCode := vmtypes.VmCode{
+		VmType: vmtypes.Native,
+		Code:   bf.Bytes(),
 	}
 	tx := utils.NewInvokeTransaction(vmCode)
 	return tx

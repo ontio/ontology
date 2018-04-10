@@ -1,44 +1,62 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package types
 
 import (
 	"bytes"
 	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io"
 
-	. "github.com/Ontology/common"
-	"github.com/Ontology/common/serialization"
-	"github.com/Ontology/crypto"
-	. "github.com/Ontology/errors"
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/serialization"
 )
 
 type Header struct {
 	Version          uint32
-	PrevBlockHash    Uint256
-	TransactionsRoot Uint256
-	BlockRoot        Uint256
+	PrevBlockHash    common.Uint256
+	TransactionsRoot common.Uint256
+	BlockRoot        common.Uint256
 	Timestamp        uint32
 	Height           uint32
 	ConsensusData    uint64
-	NextBookKeeper   Uint160
+	NextBookkeeper   common.Address
 
 	//Program *program.Program
-	BookKeepers []*crypto.PubKey
+	Bookkeepers []keypair.PublicKey
 	SigData     [][]byte
 
-	hash Uint256
+	hash common.Uint256
 }
 
 //Serialize the blockheader
 func (bd *Header) Serialize(w io.Writer) error {
 	bd.SerializeUnsigned(w)
 
-	err := serialization.WriteVarUint(w, uint64(len(bd.BookKeepers)))
+	err := serialization.WriteVarUint(w, uint64(len(bd.Bookkeepers)))
 	if err != nil {
 		return errors.New("serialize sig pubkey length failed")
 	}
-	for _, pubkey := range bd.BookKeepers {
-		err = pubkey.Serialize(w)
+	for _, pubkey := range bd.Bookkeepers {
+		err := serialization.WriteVarBytes(w, keypair.SerializePublicKey(pubkey))
 		if err != nil {
 			return err
 		}
@@ -68,7 +86,7 @@ func (bd *Header) SerializeUnsigned(w io.Writer) error {
 	serialization.WriteUint32(w, bd.Timestamp)
 	serialization.WriteUint32(w, bd.Height)
 	serialization.WriteUint64(w, bd.ConsensusData)
-	bd.NextBookKeeper.Serialize(w)
+	bd.NextBookkeeper.Serialize(w)
 	return nil
 }
 
@@ -83,14 +101,16 @@ func (bd *Header) Deserialize(r io.Reader) error {
 		return err
 	}
 
-	bd.BookKeepers = make([]*crypto.PubKey, n)
+	bd.Bookkeepers = make([]keypair.PublicKey, n)
 	for i := 0; i < int(n); i++ {
-		pubkey := new(crypto.PubKey)
-		err = pubkey.DeSerialize(r)
+		buf, err := serialization.ReadVarBytes(r)
 		if err != nil {
 			return err
 		}
-		bd.BookKeepers[i] = pubkey
+		bd.Bookkeepers[i], err = keypair.DeserializePublicKey(buf)
+		if err != nil {
+			return err
+		}
 	}
 
 	m, err := serialization.ReadVarUint(r, 0)
@@ -114,14 +134,14 @@ func (bd *Header) DeserializeUnsigned(r io.Reader) error {
 	//Version
 	temp, err := serialization.ReadUint32(r)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Header item Version Deserialize failed.")
+		return fmt.Errorf("Header item Version Deserialize failed: %s", err)
 	}
 	bd.Version = temp
 
 	//PrevBlockHash
 	err = bd.PrevBlockHash.Deserialize(r)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Header item preBlock Deserialize failed.")
+		return fmt.Errorf("Header item preBlock Deserialize failed: %s", err)
 	}
 
 	//TransactionsRoot
@@ -129,7 +149,7 @@ func (bd *Header) DeserializeUnsigned(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	
+
 	err = bd.BlockRoot.Deserialize(r)
 	if err != nil {
 		return err
@@ -146,13 +166,13 @@ func (bd *Header) DeserializeUnsigned(r io.Reader) error {
 	//consensusData
 	bd.ConsensusData, _ = serialization.ReadUint64(r)
 
-	//NextBookKeeper
-	err = bd.NextBookKeeper.Deserialize(r)
+	//NextBookkeeper
+	err = bd.NextBookkeeper.Deserialize(r)
 
 	return err
 }
 
-func (bd *Header) Hash() Uint256 {
+func (bd *Header) Hash() common.Uint256 {
 	buf := new(bytes.Buffer)
 	bd.SerializeUnsigned(buf)
 	temp := sha256.Sum256(buf.Bytes())

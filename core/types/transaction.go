@@ -1,18 +1,35 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package types
 
 import (
 	"bytes"
 	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io"
 
-	"fmt"
-	. "github.com/Ontology/common"
-	. "github.com/Ontology/common/config"
-	"github.com/Ontology/common/serialization"
-	"github.com/Ontology/core/payload"
-	"github.com/Ontology/crypto"
-	. "github.com/Ontology/errors"
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/payload"
 )
 
 type Transaction struct {
@@ -22,14 +39,14 @@ type Transaction struct {
 	Payload    Payload
 	Attributes []*TxAttribute
 	Fee        []*Fee
-	NetWorkFee Fixed64
+	NetWorkFee common.Fixed64
 	Sigs       []*Sig
 
-	hash *Uint256
+	hash *common.Uint256
 }
 
 type Sig struct {
-	PubKeys []*crypto.PubKey
+	PubKeys []keypair.PublicKey
 	M       uint8
 	SigData [][]byte
 }
@@ -40,14 +57,16 @@ func (self *Sig) Deserialize(r io.Reader) error {
 		return err
 	}
 
-	self.PubKeys = make([]*crypto.PubKey, n)
+	self.PubKeys = make([]keypair.PublicKey, n)
 	for i := 0; i < int(n); i++ {
-		pubkey := new(crypto.PubKey)
-		err = pubkey.DeSerialize(r)
+		buf, err := serialization.ReadVarBytes(r)
 		if err != nil {
 			return err
 		}
-		self.PubKeys[i] = pubkey
+		self.PubKeys[i], err = keypair.DeserializePublicKey(buf)
+		if err != nil {
+			return err
+		}
 	}
 
 	self.M, err = serialization.ReadUint8(r)
@@ -72,8 +91,8 @@ func (self *Sig) Deserialize(r io.Reader) error {
 	return nil
 }
 
-func (self *Transaction) GetSignatureAddresses() []Uint160{
-	address := make([]Uint160, 0, len(self.Sigs))
+func (self *Transaction) GetSignatureAddresses() []common.Address {
+	address := make([]common.Address, 0, len(self.Sigs))
 	for _, sig := range self.Sigs {
 		m := int(sig.M)
 		n := len(sig.PubKeys)
@@ -94,8 +113,8 @@ func (self *Sig) Serialize(w io.Writer) error {
 	if err != nil {
 		return errors.New("serialize sig pubkey length failed")
 	}
-	for _, pubkey := range self.PubKeys {
-		err = pubkey.Serialize(w)
+	for _, key := range self.PubKeys {
+		err := serialization.WriteVarBytes(w, keypair.SerializePublicKey(key))
 		if err != nil {
 			return err
 		}
@@ -122,8 +141,8 @@ func (self *Sig) Serialize(w io.Writer) error {
 }
 
 type Fee struct {
-	Amount Fixed64
-	Payer  Uint160
+	Amount common.Fixed64
+	Payer  common.Address
 }
 
 type TransactionType byte
@@ -131,7 +150,7 @@ type TransactionType byte
 const (
 	BookKeeping    TransactionType = 0x00
 	IssueAsset     TransactionType = 0x01
-	BookKeeper     TransactionType = 0x02
+	Bookkeeper     TransactionType = 0x02
 	Claim          TransactionType = 0x03
 	PrivacyPayload TransactionType = 0x20
 	RegisterAsset  TransactionType = 0x40
@@ -147,7 +166,7 @@ const (
 var TxName = map[TransactionType]string{
 	BookKeeping:    "BookKeeping",
 	IssueAsset:     "IssueAsset",
-	BookKeeper:     "BookKeeper",
+	Bookkeeper:     "Bookkeeper",
 	Claim:          "Claim",
 	PrivacyPayload: "PrivacyPayload",
 	RegisterAsset:  "RegisterAsset",
@@ -160,11 +179,9 @@ var TxName = map[TransactionType]string{
 	Vote:           "Vote",
 }
 
-//Payload define the func for loading the payload data
-//base on payload type which have different struture
+// Payload define the func for loading the payload data
+// base on payload type which have different struture
 type Payload interface {
-	//  Get payload data
-	Data() []byte
 
 	//Serialize payload data
 	Serialize(w io.Writer) error
@@ -172,17 +189,17 @@ type Payload interface {
 	Deserialize(r io.Reader) error
 }
 
-//Serialize the Transaction
+// Serialize the Transaction
 func (tx *Transaction) Serialize(w io.Writer) error {
 
 	err := tx.SerializeUnsigned(w)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Transaction txSerializeUnsigned Serialize failed.")
+		return fmt.Errorf("Transaction txSerializeUnsigned Serialize failed: %s", err)
 	}
 
 	err = serialization.WriteVarUint(w, uint64(len(tx.Sigs)))
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "serialize tx sigs length failed")
+		return fmt.Errorf("serialize tx sigs length failed: %s", err)
 	}
 	for _, sig := range tx.Sigs {
 		err = sig.Serialize(w)
@@ -194,8 +211,8 @@ func (tx *Transaction) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (tx *Transaction) GetTotalFee() Fixed64 {
-	sum := Fixed64(0)
+func (tx *Transaction) GetTotalFee() common.Fixed64 {
+	sum := common.Fixed64(0)
 	for _, fee := range tx.Fee {
 		sum += fee.Amount
 	}
@@ -215,7 +232,7 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 	//[]*txAttribute
 	err := serialization.WriteVarUint(w, uint64(len(tx.Attributes)))
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Transaction item txAttribute length serialization failed.")
+		return fmt.Errorf("Transaction item txAttribute length serialization failed: %s", err)
 	}
 	for _, attr := range tx.Attributes {
 		attr.Serialize(w)
@@ -223,7 +240,7 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 
 	err = serialization.WriteVarUint(w, uint64(len(tx.Fee)))
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "serialize tx fee length failed")
+		return fmt.Errorf("serialize tx fee length failed: %s", err)
 	}
 	for _, fee := range tx.Fee {
 		fee.Amount.Serialize(w)
@@ -235,18 +252,18 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 	return nil
 }
 
-//deserialize the Transaction
+// deserialize the Transaction
 func (tx *Transaction) Deserialize(r io.Reader) error {
 	// tx deserialize
 	err := tx.DeserializeUnsigned(r)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "transaction Deserialize error")
+		return fmt.Errorf("transaction Deserialize error: %s", err)
 	}
 
 	// tx sigs
 	length, err := serialization.ReadVarUint(r, 0)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "transaction sigs deserialize error")
+		return fmt.Errorf("transaction sigs deserialize error: %s", err)
 	}
 
 	tx.Sigs = make([]*Sig, 0, length)
@@ -286,7 +303,7 @@ func (tx *Transaction) DeserializeUnsigned(r io.Reader) error {
 
 	err = tx.Payload.Deserialize(r)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Payload Parse error")
+		return fmt.Errorf("Payload Parse error: %s", err)
 	}
 
 	//attributes
@@ -339,23 +356,23 @@ func (tx *Transaction) ToArray() []byte {
 	return b.Bytes()
 }
 
-func (tx *Transaction) Hash() Uint256 {
+func (tx *Transaction) Hash() common.Uint256 {
 	if tx.hash == nil {
 		buf := bytes.Buffer{}
 		tx.SerializeUnsigned(&buf)
 		temp := sha256.Sum256(buf.Bytes())
-		f := Uint256(sha256.Sum256(temp[:]))
+		f := common.Uint256(sha256.Sum256(temp[:]))
 		tx.hash = &f
 	}
 	return *tx.hash
 }
 
-func (tx *Transaction) SetHash(hash Uint256) {
+func (tx *Transaction) SetHash(hash common.Uint256) {
 	tx.hash = &hash
 }
 
-func (tx *Transaction) Type() InventoryType {
-	return TRANSACTION
+func (tx *Transaction) Type() common.InventoryType {
+	return common.TRANSACTION
 }
 
 func (tx *Transaction) Verify() error {
@@ -363,11 +380,10 @@ func (tx *Transaction) Verify() error {
 	return nil
 }
 
-func (tx *Transaction) GetSysFee() Fixed64 {
-	return Fixed64(Parameters.SystemFee[TxName[tx.TxType]])
+func (tx *Transaction) GetSysFee() common.Fixed64 {
+	return common.Fixed64(config.Parameters.SystemFee[TxName[tx.TxType]])
 }
 
-func (tx *Transaction) GetNetworkFee() Fixed64 {
+func (tx *Transaction) GetNetworkFee() common.Fixed64 {
 	return tx.NetWorkFee
 }
-

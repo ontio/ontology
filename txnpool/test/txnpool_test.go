@@ -1,23 +1,39 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package txnpool
 
 import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/payload"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/crypto"
-	"github.com/Ontology/eventbus/actor"
-	tc "github.com/Ontology/txnpool/common"
-	tp "github.com/Ontology/txnpool/proc"
-	//"github.com/Ontology/validator/db"
-	//"github.com/Ontology/validator/statefull"
-	"github.com/Ontology/validator/stateless"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/types"
+	tc "github.com/ontio/ontology/txnpool/common"
+	tp "github.com/ontio/ontology/txnpool/proc"
+	"github.com/ontio/ontology/validator/stateless"
 )
 
 var (
@@ -26,8 +42,7 @@ var (
 )
 
 func init() {
-	crypto.SetAlg("")
-	log.Init(log.Path, log.Stdout)
+	log.Init(log.PATH, log.Stdout)
 	topic = "TXN"
 
 	bookKeepingPayload := &payload.BookKeeping{
@@ -66,7 +81,7 @@ func Test_RCV(t *testing.T) {
 	var wg sync.WaitGroup
 
 	// Start txnpool server to receive msgs from p2p, consensus and valdiators
-	s = tp.NewTxPoolServer(tc.MAXWORKERNUM)
+	s = tp.NewTxPoolServer(tc.MAX_WORKER_NUM)
 
 	// Initialize an actor to handle the msgs from valdiators
 	rspActor := tp.NewVerifyRspActor(s)

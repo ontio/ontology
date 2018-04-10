@@ -1,8 +1,27 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package types
 
 import (
-	"github.com/Ontology/vm/neovm/interfaces"
 	"math/big"
+
+	"github.com/ontio/ontology/vm/neovm/interfaces"
 )
 
 type ByteArray struct {
@@ -10,16 +29,16 @@ type ByteArray struct {
 }
 
 func NewByteArray(value []byte) *ByteArray {
-	var ba ByteArray
-	ba.value = value
-	return &ba
+	var this ByteArray
+	this.value = value
+	return &this
 }
 
-func (ba *ByteArray) Equals(other StackItemInterface) bool {
+func (this *ByteArray) Equals(other StackItems) bool {
 	if _, ok := other.(*ByteArray); !ok {
 		return false
 	}
-	a1 := ba.value
+	a1 := this.value
 	a2 := other.GetByteArray()
 	l1 := len(a1)
 	l2 := len(a2)
@@ -34,12 +53,12 @@ func (ba *ByteArray) Equals(other StackItemInterface) bool {
 	return true
 }
 
-func (ba *ByteArray) GetBigInteger() *big.Int {
-	return ConvertBytesToBigInteger(ba.value)
+func (this *ByteArray) GetBigInteger() *big.Int {
+	return ConvertBytesToBigInteger(this.value)
 }
 
-func (ba *ByteArray) GetBoolean() bool {
-	for _, b := range ba.value {
+func (this *ByteArray) GetBoolean() bool {
+	for _, b := range this.value {
 		if b != 0 {
 			return true
 		}
@@ -47,19 +66,18 @@ func (ba *ByteArray) GetBoolean() bool {
 	return false
 }
 
-func (ba *ByteArray) GetByteArray() []byte {
-	return ba.value
+func (this *ByteArray) GetByteArray() []byte {
+	return this.value
 }
 
-func (ba *ByteArray) GetInterface() interfaces.IInteropInterface {
+func (this *ByteArray) GetInterface() interfaces.Interop {
 	return nil
 }
 
-func (ba *ByteArray) GetArray() []StackItemInterface {
-	return []StackItemInterface{ba}
+func (this *ByteArray) GetArray() []StackItems {
+	return []StackItems{this}
 }
 
-func (ba *ByteArray) GetStruct() []StackItemInterface {
-	return []StackItemInterface{ba}
+func (this *ByteArray) GetStruct() []StackItems {
+	return []StackItems{this}
 }
-

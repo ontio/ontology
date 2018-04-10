@@ -22,7 +22,7 @@ import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/Ontology/p2pserver/common"
+	"github.com/ontio/ontology/p2pserver/common"
 )
 
 type BlocksReq struct {

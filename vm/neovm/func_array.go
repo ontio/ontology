@@ -1,8 +1,27 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package neovm
 
 import (
-	"github.com/Ontology/vm/neovm/types"
 	"math/big"
+
+	"github.com/ontio/ontology/vm/neovm/types"
 )
 
 func opArraySize(e *ExecutionEngine) (VMState, error) {
@@ -56,7 +75,7 @@ func opSetItem(e *ExecutionEngine) (VMState, error) {
 
 func opNewArray(e *ExecutionEngine) (VMState, error) {
 	count := PopBigInt(e)
-	items := NewStackItems();
+	items := NewStackItems()
 	for i := 0; count.Cmp(big.NewInt(int64(i))) > 0; i++ {
 		items = append(items, types.NewBoolean(false))
 	}
@@ -66,7 +85,7 @@ func opNewArray(e *ExecutionEngine) (VMState, error) {
 
 func opNewStruct(e *ExecutionEngine) (VMState, error) {
 	count := PopBigInt(e)
-	items := NewStackItems();
+	items := NewStackItems()
 	for i := 0; count.Cmp(big.NewInt(int64(i))) > 0; i++ {
 		items = append(items, types.NewBoolean(false))
 	}
@@ -86,9 +105,8 @@ func opAppend(e *ExecutionEngine) (VMState, error) {
 
 func opReverse(e *ExecutionEngine) (VMState, error) {
 	itemArr := PopArray(e)
-	for i, j := 0, len(itemArr) - 1; i < j; i, j = i + 1, j - 1 {
+	for i, j := 0, len(itemArr)-1; i < j; i, j = i+1, j-1 {
 		itemArr[i], itemArr[j] = itemArr[j], itemArr[i]
 	}
 	return NONE, nil
 }
-

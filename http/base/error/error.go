@@ -1,6 +1,24 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package error
 
-import . "github.com/Ontology/errors"
+import ontErrors "github.com/ontio/ontology/errors"
 
 const (
 	SUCCESS            int64 = 0
@@ -19,6 +37,7 @@ const (
 	UNKNOWN_TRANSACTION int64 = 44001
 	UNKNOWN_ASSET       int64 = 44002
 	UNKNOWN_BLOCK       int64 = 44003
+	UNKNWN_CONTRACT     int64 = 44004
 
 	INTERNAL_ERROR  int64 = 45001
 	SMARTCODE_ERROR int64 = 47001
@@ -42,19 +61,19 @@ var ErrMap = map[int64]string{
 	UNKNOWN_ASSET:       "UNKNOWN ASSET",
 	UNKNOWN_BLOCK:       "UNKNOWN BLOCK",
 
-	INTERNAL_ERROR:                 "INTERNAL ERROR",
-	SMARTCODE_ERROR:                "SMARTCODE EXEC ERROR",
-	int64(ErrDuplicatedTx):         "INTERNAL ERROR, ErrDuplicatedTx",
-	int64(ErrDuplicateInput):       "INTERNAL ERROR, ErrDuplicateInput",
-	int64(ErrAssetPrecision):       "INTERNAL ERROR, ErrAssetPrecision",
-	int64(ErrTransactionBalance):   "INTERNAL ERROR, ErrTransactionBalance",
-	int64(ErrAttributeProgram):     "INTERNAL ERROR, ErrAttributeProgram",
-	int64(ErrTransactionContracts): "INTERNAL ERROR, ErrTransactionContracts",
-	int64(ErrTransactionPayload):   "INTERNAL ERROR, ErrTransactionPayload",
-	int64(ErrDoubleSpend):          "INTERNAL ERROR, ErrDoubleSpend",
-	int64(ErrTxHashDuplicate):      "INTERNAL ERROR, ErrTxHashDuplicate",
-	int64(ErrStateUpdaterVaild):    "INTERNAL ERROR, ErrStateUpdaterVaild",
-	int64(ErrSummaryAsset):         "INTERNAL ERROR, ErrSummaryAsset",
-	int64(ErrXmitFail):             "INTERNAL ERROR, ErrXmitFail",
-	int64(ErrNoAccount):            "INTERNAL ERROR, ErrNoAccount",
+	INTERNAL_ERROR:                           "INTERNAL ERROR",
+	SMARTCODE_ERROR:                          "SMARTCODE EXEC ERROR",
+	int64(ontErrors.ErrDuplicatedTx):         "INTERNAL ERROR, ErrDuplicatedTx",
+	int64(ontErrors.ErrDuplicateInput):       "INTERNAL ERROR, ErrDuplicateInput",
+	int64(ontErrors.ErrAssetPrecision):       "INTERNAL ERROR, ErrAssetPrecision",
+	int64(ontErrors.ErrTransactionBalance):   "INTERNAL ERROR, ErrTransactionBalance",
+	int64(ontErrors.ErrAttributeProgram):     "INTERNAL ERROR, ErrAttributeProgram",
+	int64(ontErrors.ErrTransactionContracts): "INTERNAL ERROR, ErrTransactionContracts",
+	int64(ontErrors.ErrTransactionPayload):   "INTERNAL ERROR, ErrTransactionPayload",
+	int64(ontErrors.ErrDoubleSpend):          "INTERNAL ERROR, ErrDoubleSpend",
+	int64(ontErrors.ErrTxHashDuplicate):      "INTERNAL ERROR, ErrTxHashDuplicate",
+	int64(ontErrors.ErrStateUpdaterVaild):    "INTERNAL ERROR, ErrStateUpdaterVaild",
+	int64(ontErrors.ErrSummaryAsset):         "INTERNAL ERROR, ErrSummaryAsset",
+	int64(ontErrors.ErrXmitFail):             "INTERNAL ERROR, ErrXmitFail",
+	int64(ontErrors.ErrNoAccount):            "INTERNAL ERROR, ErrNoAccount",
 }

@@ -1,14 +1,33 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package rpc
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Ontology/common/log"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/ontio/ontology/common/log"
 )
 
 func init() {
@@ -21,7 +40,7 @@ var mainMux ServeMux
 //multiplexer that keeps track of every function to be called on specific rpc call
 type ServeMux struct {
 	sync.RWMutex
-	m map[string]func([]interface{}) map[string]interface{}
+	m               map[string]func([]interface{}) map[string]interface{}
 	defaultFunction func(http.ResponseWriter, *http.Request)
 }
 
@@ -42,6 +61,12 @@ func SetDefaultFunc(def func(http.ResponseWriter, *http.Request)) {
 func Handle(w http.ResponseWriter, r *http.Request) {
 	mainMux.RLock()
 	defer mainMux.RUnlock()
+	if r.Method == "OPTIONS" {
+		w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("content-type", "application/json;charset=utf-8")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		return
+	}
 	//JSON RPC commands should be POSTs
 	if r.Method != "POST" {
 		if mainMux.defaultFunction != nil {
@@ -78,7 +103,10 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		log.Error("HTTP JSON RPC Handle - json.Unmarshal: ", err)
 		return
 	}
-
+	if request["method"] == nil {
+		log.Error("HTTP JSON RPC Handle - method not found: ")
+		return
+	}
 	//get the corresponding function
 	function, ok := mainMux.m[request["method"].(string)]
 	if ok {
@@ -94,6 +122,9 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 			log.Error("HTTP JSON RPC Handle - json.Marshal: ", err)
 			return
 		}
+		w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("content-type", "application/json;charset=utf-8")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Write(data)
 	} else {
 		//if the function does not exist
@@ -111,6 +142,9 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 			log.Error("HTTP JSON RPC Handle - json.Marshal: ", err)
 			return
 		}
+		w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("content-type", "application/json;charset=utf-8")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Write(data)
 	}
 }
@@ -126,6 +160,7 @@ func Call(address string, method string, id interface{}, params []interface{}) (
 		fmt.Fprintf(os.Stderr, "Marshal JSON request: %v\n", err)
 		return nil, err
 	}
+
 	resp, err := http.Post(address, "application/json", strings.NewReader(string(data)))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "POST request: %v\n", err)

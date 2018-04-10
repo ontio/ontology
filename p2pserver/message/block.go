@@ -23,8 +23,8 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/types"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/types"
 )
 
 type Block struct {

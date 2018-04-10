@@ -24,16 +24,16 @@ import (
 	"encoding/hex"
 	"time"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/common/serialization"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/crypto"
-	"github.com/Ontology/p2pserver/actor/req"
-	msgCommon "github.com/Ontology/p2pserver/common"
-	msg "github.com/Ontology/p2pserver/message"
-	"github.com/Ontology/p2pserver/peer"
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/p2pserver/actor/req"
+	msgCommon "github.com/ontio/ontology/p2pserver/common"
+	msg "github.com/ontio/ontology/p2pserver/message"
+	"github.com/ontio/ontology/p2pserver/peer"
 )
 
 func NewAddrs(nodeAddrs []msgCommon.PeerAddr, count uint64) ([]byte, error) {
@@ -396,7 +396,7 @@ func NewVersionPayload(p *peer.Peer, isCons bool) msg.VersionPayload {
 	return vpl
 }
 
-func NewVersion(vpl msg.VersionPayload, pk *crypto.PubKey) ([]byte, error) {
+func NewVersion(vpl msg.VersionPayload, pk keypair.PublicKey) ([]byte, error) {
 	log.Debug()
 	var version msg.Version
 	version.P = vpl
@@ -405,7 +405,7 @@ func NewVersion(vpl msg.VersionPayload, pk *crypto.PubKey) ([]byte, error) {
 
 	p := bytes.NewBuffer([]byte{})
 	err := binary.Write(p, binary.LittleEndian, &(version.P))
-	version.PK.Serialize(p)
+	serialization.WriteVarBytes(p, keypair.SerializePublicKey(version.PK))
 	if err != nil {
 		log.Error("Binary Write failed at new Msg")
 		return nil, err

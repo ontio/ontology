@@ -19,9 +19,9 @@
 package p2pserver
 
 import (
-	types "github.com/Ontology/p2pserver/common"
-	P2Pnet "github.com/Ontology/p2pserver/net"
-	"github.com/Ontology/p2pserver/peer"
+	types "github.com/ontio/ontology/p2pserver/common"
+	P2Pnet "github.com/ontio/ontology/p2pserver/net"
+	"github.com/ontio/ontology/p2pserver/peer"
 )
 
 //P2P represent the net interface of p2p package

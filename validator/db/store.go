@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package db
 
 import (
@@ -8,20 +26,20 @@ import (
 
 	pool "github.com/valyala/bytebufferpool"
 
-	"github.com/Ontology/common"
-	storcomm"github.com/Ontology/core/store/common"
-	leveldb "github.com/Ontology/core/store/leveldbstore"
-	"github.com/Ontology/core/types"
-	tx "github.com/Ontology/core/types"
+	"github.com/ontio/ontology/common"
+	storcomm "github.com/ontio/ontology/core/store/common"
+	leveldb "github.com/ontio/ontology/core/store/leveldbstore"
+	"github.com/ontio/ontology/core/types"
+	tx "github.com/ontio/ontology/core/types"
 
-	"github.com/Ontology/common/serialization"
+	"github.com/ontio/ontology/common/serialization"
 )
 
 var keyPool pool.Pool
 var valuePool pool.Pool
 
 type Store struct {
-	db storcomm.IStore
+	db storcomm.PersistStore
 
 	mutex           sync.RWMutex // guard the following var
 	bestBlockHeader *types.Header
@@ -44,7 +62,7 @@ func NewStore(path string) (*Store, error) {
 }
 
 func (self *Store) init() error {
-	prefix := []byte{byte(SYS_Version)}
+	prefix := []byte{byte(SYS_VERSION)}
 	version, err := self.db.Get(prefix)
 	if err != nil {
 		version = []byte{0x00}
@@ -52,7 +70,7 @@ func (self *Store) init() error {
 
 	if version[0] == 0x01 {
 		//test if genesis block in db
-		genesis, err := self.db.Get([]byte{byte(SYS_GenesisBlock)})
+		genesis, err := self.db.Get([]byte{byte(SYS_GENESIS_BLOCK)})
 		if err != nil {
 			self.bestBlockHeader = nil
 			self.genesisBlock = nil
@@ -66,7 +84,7 @@ func (self *Store) init() error {
 			return errors.New(fmt.Sprint("inconsist db: genesis block deserialize failed. cause of:\n ", err.Error()))
 		}
 
-		best, err := self.db.Get([]byte{byte(SYS_BestBlockHeader)})
+		best, err := self.db.Get([]byte{byte(SYS_BEST_BLOCK_HEADER)})
 		if err != nil {
 			return errors.New("inconsist db: best blockheader not in db")
 		}
@@ -168,7 +186,7 @@ func (self *Store) Close() error {
 }
 
 func (self *Store) saveTransaction(tx *tx.Transaction, height uint32) error {
-	// generate key with DATA_Transaction prefix
+	// generate key with DATA_TRANSACTION prefix
 	key := GenDataTransactionKey(tx.Hash())
 	defer keyPool.Put(key)
 	value := valuePool.Get()
@@ -178,8 +196,8 @@ func (self *Store) saveTransaction(tx *tx.Transaction, height uint32) error {
 	tx.Serialize(value)
 
 	// put value
-	err := self.db.BatchPut(key.Bytes(), value.Bytes())
-	return err
+	self.db.BatchPut(key.Bytes(), value.Bytes())
+	return nil
 }
 
 func (self *Store) PersistBlock(block *types.Block) error {

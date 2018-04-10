@@ -22,8 +22,8 @@ import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/Ontology/common/log"
-	types "github.com/Ontology/p2pserver/common"
+	"github.com/ontio/ontology/common/log"
+	types "github.com/ontio/ontology/p2pserver/common"
 )
 
 type NodeAddr struct {

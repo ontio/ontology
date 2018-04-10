@@ -22,14 +22,14 @@ import (
 	"bytes"
 	"time"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
-	ledger "github.com/Ontology/core/ledger/actor"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/errors"
-	"github.com/Ontology/eventbus/actor"
-	msgCommon "github.com/Ontology/p2pserver/common"
-	msg "github.com/Ontology/p2pserver/message"
+	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	ledger "github.com/ontio/ontology/core/ledger/actor"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/errors"
+	msgCommon "github.com/ontio/ontology/p2pserver/common"
+	msg "github.com/ontio/ontology/p2pserver/message"
 )
 
 var DefLedgerPid *actor.PID

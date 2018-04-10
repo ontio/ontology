@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package serialization
 
 import (
@@ -11,24 +29,13 @@ import (
 var ErrRange = errors.New("value out of range")
 var ErrEof = errors.New("got EOF, can not get the next byte")
 
-//SerializableData describe the data need be serialized.
+// SerializableData describe the data need be serialized.
 type SerializableData interface {
-	//Write data to writer
+	// Write data to writer
 	Serialize(w io.Writer) error
 
-	//read data to reader
+	// read data to reader
 	Deserialize(r io.Reader) error
-}
-
-func WriteDataList(w io.Writer, list []SerializableData) error {
-	len := uint64(len(list))
-	WriteVarUint(w, len)
-
-	for _, data := range list {
-		data.Serialize(w)
-	}
-
-	return nil
 }
 
 /*
@@ -222,11 +229,6 @@ func ReadUint64(reader io.Reader) (uint64, error) {
 	return binary.LittleEndian.Uint64(p[:]), nil
 }
 
-func ReadDataList(reader io.Reader) ([]SerializableData, error) {
-
-	return nil, nil
-}
-
 func WriteUint8(writer io.Writer, val uint8) error {
 	var p [1]byte
 	p[0] = byte(val)
@@ -256,9 +258,9 @@ func WriteUint64(writer io.Writer, val uint64) error {
 }
 
 func ToArray(data SerializableData) []byte {
-	b_buf := new(bytes.Buffer)
-	data.Serialize(b_buf)
-	return b_buf.Bytes()
+	buf := new(bytes.Buffer)
+	data.Serialize(buf)
+	return buf.Bytes()
 }
 
 //**************************************************************************
@@ -269,6 +271,9 @@ func ToArray(data SerializableData) []byte {
 //**************************************************************************
 
 func byteXReader(reader io.Reader, x uint64) ([]byte, error) {
+	if x == 0 {
+		return nil, nil
+	}
 	p := make([]byte, x)
 	n, err := reader.Read(p)
 	if n > 0 {
@@ -303,4 +308,3 @@ func ReadByte(reader io.Reader) (byte, error) {
 	}
 	return b[0], nil
 }
-

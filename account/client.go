@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package account
 
 import (
@@ -13,29 +31,30 @@ import (
 	"sync"
 	"time"
 
-	. "github.com/Ontology/common"
-	"github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/common/password"
-	"github.com/Ontology/core/contract"
-	ct "github.com/Ontology/core/contract"
-	sig "github.com/Ontology/core/signature"
-	"github.com/Ontology/crypto"
-	. "github.com/Ontology/errors"
-	net_type "github.com/Ontology/p2pserver/common"
+	"github.com/ontio/ontology-crypto/aes"
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/common/password"
+	"github.com/ontio/ontology/core/contract"
+	ct "github.com/ontio/ontology/core/contract"
+	sig "github.com/ontio/ontology/core/signature"
+	ontErrors "github.com/ontio/ontology/errors"
+	net_type "github.com/ontio/ontology/p2pserver/common"
 )
 
 const (
-	DefaultBookKeeperCount = 4
-	WalletFileName         = "wallet.dat"
+	DEFAULT_BOOKKEEPER_COUNT = 4
+	WALLET_FILENAME          = "wallet.dat"
 )
 
 type Client interface {
 	Sign(context *ct.ContractContext) bool
-	ContainsAccount(pubKey *crypto.PubKey) bool
-	GetAccount(pubKey *crypto.PubKey) (*Account, error)
+	ContainsAccount(pubKey keypair.PublicKey) bool
+	GetAccount(pubKey keypair.PublicKey) (*Account, error)
 	GetDefaultAccount() (*Account, error)
-	GetBookKeepers() ([]*crypto.PubKey, error)
+	GetBookkeepers() ([]keypair.PublicKey, error)
 }
 
 type ClientImpl struct {
@@ -45,10 +64,10 @@ type ClientImpl struct {
 	iv        []byte
 	masterKey []byte
 
-	accounts  map[Uint160]*Account
-	contracts map[Uint160]*ct.Contract
+	accounts  map[common.Address]*Account
+	contracts map[common.Address]*ct.Contract
 
-	watchOnly     []Uint160
+	watchOnly     []common.Address
 	currentHeight uint32
 
 	FileStore
@@ -56,10 +75,10 @@ type ClientImpl struct {
 }
 
 //TODO: adjust contract folder structure
-func Create(path string, passwordKey []byte) *ClientImpl {
+func Create(path string, encrypt string, passwordKey []byte) *ClientImpl {
 	cl := NewClient(path, passwordKey, true)
 
-	_, err := cl.CreateAccount()
+	_, err := cl.CreateAccount(encrypt)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -88,18 +107,18 @@ func Open(path string, passwordKey []byte) *ClientImpl {
 func NewClient(path string, password []byte, create bool) *ClientImpl {
 	newClient := &ClientImpl{
 		path:      path,
-		accounts:  map[Uint160]*Account{},
-		contracts: map[Uint160]*ct.Contract{},
+		accounts:  map[common.Address]*Account{},
+		contracts: map[common.Address]*ct.Contract{},
 		FileStore: FileStore{path: path},
 		isrunning: true,
 	}
 
-	passwordKey := crypto.ToAesKey(password)
+	passwordKey := DoubleHash(password)
 	if create {
 		//create new client
 		newClient.iv = make([]byte, 16)
 		newClient.masterKey = make([]byte, 32)
-		newClient.watchOnly = []Uint160{}
+		newClient.watchOnly = []common.Address{}
 		newClient.currentHeight = 0
 
 		//generate random number for iv/masterkey
@@ -127,7 +146,7 @@ func NewClient(path string, password []byte, create bool) *ClientImpl {
 			return nil
 		}
 
-		aesmk, err := crypto.AesEncrypt(newClient.masterKey[:], passwordKey, newClient.iv)
+		aesmk, err := aes.AesEncrypt(newClient.masterKey[:], passwordKey, newClient.iv)
 		if err == nil {
 			err = newClient.SaveStoredData("MasterKey", aesmk)
 			if err != nil {
@@ -162,7 +181,7 @@ func (cl *ClientImpl) loadClient(passwordKey []byte) error {
 		fmt.Println("error: failed to load master key")
 		return err
 	}
-	cl.masterKey, err = crypto.AesDecrypt(encryptedMasterKey, passwordKey, cl.iv)
+	cl.masterKey, err = aes.AesDecrypt(encryptedMasterKey, passwordKey, cl.iv)
 	if err != nil {
 		fmt.Println("error: failed to decrypt master key")
 		return err
@@ -175,19 +194,19 @@ func (cl *ClientImpl) GetDefaultAccount() (*Account, error) {
 		return cl.GetAccountByProgramHash(programHash), nil
 	}
 
-	return nil, NewDetailErr(errors.New("Can't load default account."), ErrNoCode, "")
+	return nil, ontErrors.NewDetailErr(errors.New("Can't load default account."), ontErrors.ErrNoCode, "")
 }
 
-func (cl *ClientImpl) GetAccount(pubKey *crypto.PubKey) (*Account, error) {
+func (cl *ClientImpl) GetAccount(pubKey keypair.PublicKey) (*Account, error) {
 	signatureRedeemScript, err := contract.CreateSignatureRedeemScript(pubKey)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "CreateSignatureRedeemScript failed")
+		return nil, ontErrors.NewDetailErr(err, ontErrors.ErrNoCode, "CreateSignatureRedeemScript failed")
 	}
-	programHash := ToCodeHash(signatureRedeemScript)
+	programHash := common.ToCodeHash(signatureRedeemScript)
 	return cl.GetAccountByProgramHash(programHash), nil
 }
 
-func (cl *ClientImpl) GetAccountByProgramHash(programHash Uint160) *Account {
+func (cl *ClientImpl) GetAccountByProgramHash(programHash common.Address) *Account {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
 
@@ -197,7 +216,7 @@ func (cl *ClientImpl) GetAccountByProgramHash(programHash Uint160) *Account {
 	return nil
 }
 
-func (cl *ClientImpl) GetContract(programHash Uint160) *ct.Contract {
+func (cl *ClientImpl) GetContract(programHash common.Address) *ct.Contract {
 	log.Debug()
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
@@ -210,7 +229,7 @@ func (cl *ClientImpl) GetContract(programHash Uint160) *ct.Contract {
 
 func (cl *ClientImpl) ChangePassword(oldPassword []byte, newPassword []byte) bool {
 	// check password
-	oldPasswordKey := crypto.ToAesKey(oldPassword)
+	oldPasswordKey := DoubleHash(oldPassword)
 	if !cl.verifyPasswordKey(oldPasswordKey) {
 		fmt.Println("error: password verification failed")
 		return false
@@ -221,8 +240,8 @@ func (cl *ClientImpl) ChangePassword(oldPassword []byte, newPassword []byte) boo
 	}
 
 	// encrypt master key with new password
-	newPasswordKey := crypto.ToAesKey(newPassword)
-	newMasterKey, err := crypto.AesEncrypt(cl.masterKey, newPasswordKey, cl.iv)
+	newPasswordKey := DoubleHash(newPassword)
+	newMasterKey, err := aes.AesEncrypt(cl.masterKey, newPasswordKey, cl.iv)
 	if err != nil {
 		fmt.Println("error: set new password failed")
 		return false
@@ -244,12 +263,12 @@ func (cl *ClientImpl) ChangePassword(oldPassword []byte, newPassword []byte) boo
 	return true
 }
 
-func (cl *ClientImpl) ContainsAccount(pubKey *crypto.PubKey) bool {
+func (cl *ClientImpl) ContainsAccount(pubKey keypair.PublicKey) bool {
 	signatureRedeemScript, err := contract.CreateSignatureRedeemScript(pubKey)
 	if err != nil {
 		return false
 	}
-	programHash := ToCodeHash(signatureRedeemScript)
+	programHash := common.ToCodeHash(signatureRedeemScript)
 	if cl.GetAccountByProgramHash(programHash) != nil {
 		return true
 	} else {
@@ -257,8 +276,8 @@ func (cl *ClientImpl) ContainsAccount(pubKey *crypto.PubKey) bool {
 	}
 }
 
-func (cl *ClientImpl) CreateAccount() (*Account, error) {
-	ac := NewAccount()
+func (cl *ClientImpl) CreateAccount(encrypt string) (*Account, error) {
+	ac := NewAccount(encrypt)
 
 	cl.mu.Lock()
 	cl.accounts[ac.Address] = ac
@@ -272,7 +291,7 @@ func (cl *ClientImpl) CreateAccount() (*Account, error) {
 	ct, err := contract.CreateSignatureContract(ac.PublicKey)
 	if err == nil {
 		cl.AddContract(ct)
-		address, _ := ct.ProgramHash.ToAddress()
+		address := ct.ProgramHash.ToBase58()
 		log.Info("[CreateContract] Address: ", address)
 	}
 
@@ -339,7 +358,7 @@ func (cl *ClientImpl) verifyPasswordKey(passwordKey []byte) bool {
 	}
 	passwordHash := sha256.Sum256(passwordKey)
 	///ClearBytes(passwordKey, len(passwordKey))
-	if !IsEqualBytes(savedPasswordHash, passwordHash[:]) {
+	if !common.IsEqualBytes(savedPasswordHash, passwordHash[:]) {
 		fmt.Println("error: password wrong")
 		return false
 	}
@@ -347,7 +366,7 @@ func (cl *ClientImpl) verifyPasswordKey(passwordKey []byte) bool {
 }
 
 func (cl *ClientImpl) EncryptPrivateKey(prikey []byte) ([]byte, error) {
-	enc, err := crypto.AesEncrypt(prikey, cl.masterKey, cl.iv)
+	enc, err := aes.AesEncrypt(prikey, cl.masterKey, cl.iv)
 	if err != nil {
 		return nil, err
 	}
@@ -357,13 +376,10 @@ func (cl *ClientImpl) EncryptPrivateKey(prikey []byte) ([]byte, error) {
 
 func (cl *ClientImpl) DecryptPrivateKey(prikey []byte) ([]byte, error) {
 	if prikey == nil {
-		return nil, NewDetailErr(errors.New("The PriKey is nil"), ErrNoCode, "")
-	}
-	if len(prikey) != 96 {
-		return nil, NewDetailErr(errors.New("The len of PriKeyEnc is not 96bytes"), ErrNoCode, "")
+		return nil, ontErrors.NewDetailErr(errors.New("The PriKey is nil"), ontErrors.ErrNoCode, "")
 	}
 
-	dec, err := crypto.AesDecrypt(prikey, cl.masterKey, cl.iv)
+	dec, err := aes.AesDecrypt(prikey, cl.masterKey, cl.iv)
 	if err != nil {
 		return nil, err
 	}
@@ -372,27 +388,15 @@ func (cl *ClientImpl) DecryptPrivateKey(prikey []byte) ([]byte, error) {
 }
 
 func (cl *ClientImpl) SaveAccount(ac *Account) error {
-	decryptedPrivateKey := make([]byte, 96)
-	temp, err := ac.PublicKey.EncodePoint(false)
-	if err != nil {
-		return err
-	}
-	for i := 1; i <= 64; i++ {
-		decryptedPrivateKey[i-1] = temp[i]
-	}
-
-	for i := len(ac.PrivateKey) - 1; i >= 0; i-- {
-		decryptedPrivateKey[96+i-len(ac.PrivateKey)] = ac.PrivateKey[i]
-	}
-
-	encryptedPrivateKey, err := cl.EncryptPrivateKey(decryptedPrivateKey)
+	buf := keypair.SerializePrivateKey(ac.PrivateKey)
+	encryptedPrivateKey, err := cl.EncryptPrivateKey(buf)
 	if err != nil {
 		return err
 	}
 
-	ClearBytes(decryptedPrivateKey, 96)
+	ClearBytes(buf, len(buf))
 
-	err = cl.SaveAccountData(ac.Address.ToArray(), encryptedPrivateKey)
+	err = cl.SaveAccountData(ac.Address[:], encryptedPrivateKey)
 	if err != nil {
 		return err
 	}
@@ -400,22 +404,27 @@ func (cl *ClientImpl) SaveAccount(ac *Account) error {
 	return nil
 }
 
-func (cl *ClientImpl) LoadAccount() map[Uint160]*Account {
+func (cl *ClientImpl) LoadAccount() map[common.Address]*Account {
 	i := 0
-	accounts := map[Uint160]*Account{}
+	accounts := map[common.Address]*Account{}
 	for true {
 		_, prikeyenc, err := cl.LoadAccountData(i)
 		if err != nil {
-			// TODO: report the error
+			log.Error(err)
+			break
 		}
 
-		decryptedPrivateKey, err := cl.DecryptPrivateKey(prikeyenc)
+		buf, err := cl.DecryptPrivateKey(prikeyenc)
 		if err != nil {
 			log.Error(err)
+			break
 		}
 
-		prikey := decryptedPrivateKey[64:96]
-		ac, err := NewAccountWithPrivatekey(prikey)
+		ac, err := NewAccountWithPrivatekey(buf)
+		if err != nil {
+			log.Error(err)
+			break
+		}
 		accounts[ac.Address] = ac
 		i++
 		break
@@ -424,9 +433,9 @@ func (cl *ClientImpl) LoadAccount() map[Uint160]*Account {
 	return accounts
 }
 
-func (cl *ClientImpl) LoadContracts() map[Uint160]*ct.Contract {
+func (cl *ClientImpl) LoadContracts() map[common.Address]*ct.Contract {
 	i := 0
-	contracts := map[Uint160]*ct.Contract{}
+	contracts := map[common.Address]*ct.Contract{}
 
 	for true {
 		ph, _, rd, err := cl.LoadContractData(i)
@@ -439,7 +448,7 @@ func (cl *ClientImpl) LoadContracts() map[Uint160]*ct.Contract {
 		ct := new(ct.Contract)
 		ct.Deserialize(rdreader)
 
-		programhash, err := Uint160ParseFromBytes(ph)
+		programhash, err := common.AddressParseFromBytes(ph)
 		ct.ProgramHash = programhash
 		contracts[ct.ProgramHash] = ct
 		i++
@@ -454,7 +463,7 @@ func (cl *ClientImpl) AddContract(ct *contract.Contract) error {
 	defer cl.mu.Unlock()
 
 	if cl.accounts[ct.ProgramHash] == nil {
-		return NewDetailErr(errors.New("AddContract(): contract.OwnerPubkeyHash not in []accounts"), ErrNoCode, "")
+		return ontErrors.NewDetailErr(errors.New("AddContract(): contract.OwnerPubkeyHash not in []accounts"), ontErrors.ErrNoCode, "")
 	}
 
 	cl.contracts[ct.ProgramHash] = ct
@@ -463,8 +472,8 @@ func (cl *ClientImpl) AddContract(ct *contract.Contract) error {
 	return err
 }
 
-func (cl *ClientImpl) GetBookKeepers() ([]*crypto.PubKey, error) {
-	var pubKeys = []*crypto.PubKey{}
+func (cl *ClientImpl) GetBookkeepers() ([]keypair.PublicKey, error) {
+	var pubKeys = []keypair.PublicKey{}
 	consensusType := config.Parameters.ConsensusType
 	if consensusType == "solo" {
 		ac, err := cl.GetDefaultAccount()
@@ -475,12 +484,11 @@ func (cl *ClientImpl) GetBookKeepers() ([]*crypto.PubKey, error) {
 		return pubKeys, nil
 	}
 
-	sort.Strings(config.Parameters.BookKeepers)
-	for _, key := range config.Parameters.BookKeepers {
-		pubKey := []byte(key)
+	sort.Strings(config.Parameters.Bookkeepers)
+	for _, key := range config.Parameters.Bookkeepers {
+		//pubKey := []byte(key)
 		pubKey, err := hex.DecodeString(key)
-		// TODO Convert the key string to byte
-		k, err := crypto.DecodePoint(pubKey)
+		k, err := keypair.DeserializePublicKey(pubKey)
 		if err != nil {
 			log.Error("Incorrectly book keepers key")
 			return nil, fmt.Errorf("Incorrectly book keepers key:%s")
@@ -491,9 +499,9 @@ func (cl *ClientImpl) GetBookKeepers() ([]*crypto.PubKey, error) {
 	return pubKeys, nil
 }
 
-func clientIsDefaultBookKeeper(publicKey string) bool {
-	for _, bookKeeper := range config.Parameters.BookKeepers {
-		if strings.Compare(bookKeeper, publicKey) == 0 {
+func clientIsDefaultBookkeeper(publicKey string) bool {
+	for _, bookkeeper := range config.Parameters.Bookkeepers {
+		if strings.Compare(bookkeeper, publicKey) == 0 {
 			return true
 		}
 	}
@@ -509,8 +517,8 @@ func nodeType(typeName string) int {
 }
 
 func GetClient() Client {
-	if !FileExisted(WalletFileName) {
-		log.Fatal(fmt.Sprintf("No %s detected, please create a wallet by using command line.", WalletFileName))
+	if !common.FileExisted(WALLET_FILENAME) {
+		log.Fatal(fmt.Sprintf("No %s detected, please create a wallet by using command line.", WALLET_FILENAME))
 		os.Exit(1)
 	}
 	passwd, err := password.GetAccountPassword()
@@ -518,21 +526,21 @@ func GetClient() Client {
 		log.Fatal("Get password error.")
 		os.Exit(1)
 	}
-	c := Open(WalletFileName, passwd)
+	c := Open(WALLET_FILENAME, passwd)
 	if c == nil {
 		return nil
 	}
 	return c
 }
 
-func GetBookKeepers() []*crypto.PubKey {
-	var pubKeys = []*crypto.PubKey{}
-	sort.Strings(config.Parameters.BookKeepers)
-	for _, key := range config.Parameters.BookKeepers {
+func GetBookkeepers() []keypair.PublicKey {
+	var pubKeys = []keypair.PublicKey{}
+	sort.Strings(config.Parameters.Bookkeepers)
+	for _, key := range config.Parameters.Bookkeepers {
 		pubKey := []byte(key)
 		pubKey, err := hex.DecodeString(key)
 		// TODO Convert the key string to byte
-		k, err := crypto.DecodePoint(pubKey)
+		k, err := keypair.DeserializePublicKey(pubKey)
 		if err != nil {
 			log.Error("Incorrectly book keepers key")
 			return nil
@@ -541,4 +549,21 @@ func GetBookKeepers() []*crypto.PubKey {
 	}
 
 	return pubKeys
+}
+
+func DoubleHash(pwd []byte) []byte {
+	pwdhash := sha256.Sum256(pwd)
+	pwdhash2 := sha256.Sum256(pwdhash[:])
+
+	// Fixme clean the password buffer
+	// ClearBytes(pwd,len(pwd))
+	ClearBytes(pwdhash[:], 32)
+
+	return pwdhash2[:]
+}
+
+func ClearBytes(arr []byte, len int) {
+	for i := 0; i < len; i++ {
+		arr[i] = 0
+	}
 }

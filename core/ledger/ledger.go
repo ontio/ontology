@@ -1,22 +1,41 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package ledger
 
 import (
 	"fmt"
-	"github.com/Ontology/common"
-	"github.com/Ontology/core/genesis"
-	"github.com/Ontology/core/states"
-	"github.com/Ontology/core/store"
-	"github.com/Ontology/core/store/ledgerstore"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/crypto"
-	"github.com/Ontology/core/payload"
+
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/genesis"
+	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/core/store"
+	"github.com/ontio/ontology/core/store/ledgerstore"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/event"
 )
 
 var DefLedger *Ledger
 
-// Ledger - the struct for onchainDNA ledger
 type Ledger struct {
-	ldgStore store.ILedgerStore
+	ldgStore store.LedgerStore
 }
 
 func NewLedger() (*Ledger, error) {
@@ -29,16 +48,16 @@ func NewLedger() (*Ledger, error) {
 	}, nil
 }
 
-func (this *Ledger) GetStore() store.ILedgerStore {
+func (this *Ledger) GetStore() store.LedgerStore {
 	return this.ldgStore
 }
 
-func (this *Ledger) Init(defaultBookKeeper []*crypto.PubKey) error {
-	genesisBlock, err := genesis.GenesisBlockInit(defaultBookKeeper)
+func (this *Ledger) Init(defaultBookkeeper []keypair.PublicKey) error {
+	genesisBlock, err := genesis.GenesisBlockInit(defaultBookkeeper)
 	if err != nil {
 		return fmt.Errorf("genesisBlock error %s", err)
 	}
-	err = this.ldgStore.InitLedgerStoreWithGenesisBlock(genesisBlock, defaultBookKeeper)
+	err = this.ldgStore.InitLedgerStoreWithGenesisBlock(genesisBlock, defaultBookkeeper)
 	if err != nil {
 		return fmt.Errorf("InitLedgerStoreWithGenesisBlock error %s", err)
 	}
@@ -110,80 +129,17 @@ func (this *Ledger) IsContainBlock(blockHash common.Uint256) (bool, error) {
 	return this.ldgStore.IsContainBlock(blockHash)
 }
 
-func (this *Ledger) IsDoubleSpend(tx *types.Transaction) (bool, error) {
-	//txInputs := tx.UTXOInputs
-	//if len(txInputs) == 0 {
-	//	return false, nil
-	//}
-	//groups := this.groupInputIndex(txInputs)
-	//for refTx, intputs := range groups {
-	//	coinState, err := this.ldgStore.GetUnspentCoinState(&refTx)
-	//	if err != nil {
-	//		return false, fmt.Errorf("GetUnspentCoinState tx %x error %s", refTx, err)
-	//	}
-	//	if coinState == nil {
-	//		return true, nil
-	//	}
-	//	for _, index := range intputs {
-	//		if int(index) >= len(coinState.Item) || coinState.Item[index] == states.Spent {
-	//			return true, nil
-	//		}
-	//	}
-	//}
-	return false, nil
-}
-
 func (this *Ledger) GetCurrentStateRoot() (common.Uint256, error) {
 	return common.Uint256{}, nil
 }
 
-func (this *Ledger) GetBookKeeperState() (*states.BookKeeperState, error) {
-	return this.ldgStore.GetBookKeeperState()
+func (this *Ledger) GetBookkeeperState() (*states.BookkeeperState, error) {
+	return this.ldgStore.GetBookkeeperState()
 }
 
-//
-//func (this *Ledger) GetBookKeeperAddress() (*common.Uint160, error) {
-//	bookState, err := this.GetBookKeeperState()
-//	if err != nil {
-//		return nil, fmt.Errorf("GetBookKeeperState error %s", err)
-//	}
-//	address, err := this.MakeBookKeeperAddress(bookState.CurrBookKeeper)
-//	if err != nil {
-//		return nil, fmt.Errorf("makeBookKeeperAddress error %s", err)
-//	}
-//	return address, err
-//}
-
-//func (this *Ledger) GetUnclaimed(txHash common.Uint256) (map[uint16]*utxo.SpentCoin, error) {
-//tx, err := this.GetTransaction(txHash)
-//if err != nil {
-//	return nil, fmt.Errorf("GetTransaction error %s", err)
-//}
-//if tx == nil {
-//	return nil, fmt.Errorf("cannot get tx by %x", txHash)
-//}
-//spentState, err := this.ldgStore.GetSpentCoinState(txHash)
-//if err != nil {
-//	return nil, fmt.Errorf("GetSpentCoinState error %s", err)
-//}
-//if spentState == nil {
-//	return nil, fmt.Errorf("cannot get spent coin state by %x", tx)
-//}
-//claimable := make(map[uint16]*utxo.SpentCoin, len(spentState.Items))
-//for _, spent := range spentState.Items{
-//	index := spent.PrevIndex
-//	claimable[index] = &utxo.SpentCoin{
-//		Output:tx.Outputs[index],
-//		StartHeight:spentState.TransactionHeight,
-//		EndHeight:spent.EndHeight,
-//	}
-//}
-//return claimable, nil
-//}
-
-func (this *Ledger) GetStorageItem(codeHash *common.Uint160, key []byte) ([]byte, error) {
+func (this *Ledger) GetStorageItem(codeHash common.Address, key []byte) ([]byte, error) {
 	storageKey := &states.StorageKey{
-		CodeHash: *codeHash,
+		CodeHash: codeHash,
 		Key:      key,
 	}
 	storageItem, err := this.ldgStore.GetStorageItem(storageKey)
@@ -191,12 +147,12 @@ func (this *Ledger) GetStorageItem(codeHash *common.Uint160, key []byte) ([]byte
 		return nil, fmt.Errorf("GetStorageItem error %s", err)
 	}
 	if storageItem == nil {
-		return nil, fmt.Errorf("cannot get storage item by codehash %x Key %x", codeHash, key)
+		return nil, nil
 	}
 	return storageItem.Value, nil
 }
 
-func (this *Ledger) GetContractState(contractHash common.Uint160) (*payload.DeployCode, error) {
+func (this *Ledger) GetContractState(contractHash common.Address) (*payload.DeployCode, error) {
 	return this.ldgStore.GetContractState(contractHash)
 }
 
@@ -204,32 +160,10 @@ func (this *Ledger) PreExecuteContract(tx *types.Transaction) ([]interface{}, er
 	return this.ldgStore.PreExecuteContract(tx)
 }
 
-//
-//func (this *Ledger) GetAllAssetState() (map[common.Uint256]*states.AssetState, error) {
-//	return this.ldgStore.GetAllAssetState()
-//}
-//
-//func (this *Ledger) MakeBookKeeperAddress(bookKeepers []*crypto.PubKey) (*common.Uint160, error) {
-//	bookSize := len(bookKeepers)
-//	if bookSize == 0 {
-//		return nil, fmt.Errorf("bookKeeper is empty")
-//	}
-//	var script []byte
-//	var err error
-//	if bookSize == 1 {
-//		script, err = contract.CreateSignatureRedeemScript(bookKeepers[0])
-//		if err != nil {
-//			return nil, fmt.Errorf("CreateSignatureRedeemScript error %s", err)
-//		}
-//	} else {
-//		script, err = contract.CreateMultiSigRedeemScript(bookSize-(bookSize-1)/3, bookKeepers)
-//		if err != nil {
-//			return nil, fmt.Errorf("CreateMultiSigRedeemScript error %s", err)
-//		}
-//	}
-//	codeHash, err := common.ToCodeHash(script)
-//	if err != nil {
-//		return nil, fmt.Errorf("ToCodeHash error %s", err)
-//	}
-//	return &codeHash, nil
-//}
+func (this *Ledger) GetEventNotifyByTx(tx common.Uint256) ([]*event.NotifyEventInfo, error) {
+	return this.ldgStore.GetEventNotifyByTx(tx)
+}
+
+func (this *Ledger) GetEventNotifyByBlock(height uint32) ([]common.Uint256, error) {
+	return this.ldgStore.GetEventNotifyByBlock(height)
+}

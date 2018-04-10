@@ -1,19 +1,36 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package websocket
 
 import (
 	"bytes"
-	. "github.com/Ontology/common"
-	. "github.com/Ontology/common/config"
-	"github.com/Ontology/core/ledger"
-	"github.com/Ontology/core/types"
-	. "github.com/Ontology/http/base/actor"
-	. "github.com/Ontology/http/base/rest"
-	Err "github.com/Ontology/http/base/error"
-	"github.com/Ontology/http/websocket/websocket"
-	sc "github.com/Ontology/smartcontract/common"
-	. "github.com/Ontology/http/base/common"
-	"github.com/Ontology/smartcontract/event"
-	"github.com/Ontology/events/message"
+
+	"github.com/ontio/ontology/common"
+	cfg "github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/events/message"
+	bactor "github.com/ontio/ontology/http/base/actor"
+	bcomn "github.com/ontio/ontology/http/base/common"
+	Err "github.com/ontio/ontology/http/base/error"
+	"github.com/ontio/ontology/http/base/rest"
+	"github.com/ontio/ontology/http/websocket/websocket"
 )
 
 var ws *websocket.WsServer
@@ -24,20 +41,20 @@ var (
 )
 
 func StartServer() {
-	SubscribeEvent(message.TopicSaveBlockComplete,SendBlock2WSclient)
-	SubscribeEvent(message.TopicSmartCodeEvent,PushSmartCodeEvent)
+	bactor.SubscribeEvent(message.TOPIC_SAVE_BLOCK_COMPLETE, SendBlock2WSclient)
+	bactor.SubscribeEvent(message.TOPIC_SMART_CODE_EVENT, PushSmartCodeEvent)
 	go func() {
 		ws = websocket.InitWsServer()
 		ws.Start()
 	}()
 }
 func SendBlock2WSclient(v interface{}) {
-	if Parameters.HttpWsPort != 0 && pushBlockFlag {
+	if cfg.Parameters.HttpWsPort != 0 && pushBlockFlag {
 		go func() {
 			PushBlock(v)
 		}()
 	}
-	if Parameters.HttpWsPort != 0 && pushBlockTxsFlag {
+	if cfg.Parameters.HttpWsPort != 0 && pushBlockTxsFlag {
 		go func() {
 			PushBlockTransactions(v)
 		}()
@@ -84,53 +101,21 @@ func SetTxHashMap(txhash string, sessionid string) {
 
 func PushSmartCodeEvent(v interface{}) {
 	if ws != nil {
-		rs, ok := v.(map[string]interface{})
+		log.Info("[PushSmartCodeEvent]", v)
+		rs, ok := v.(types.SmartCodeEvent)
 		if !ok {
+			log.Errorf("[PushSmartCodeEvent]", "SmartCodeEvent err")
 			return
 		}
 		go func() {
-			switch object := rs["Result"].(type) {
-			case event.LogEventArgs:
-				type LogEventArgsInfo struct {
-					Container   string
-					CodeHash    string
-					Message     string
-					BlockHeight uint32
-				}
-				msg := LogEventArgsInfo{
-					Container:   ToHexString(object.Container.ToArray()),
-					CodeHash:    ToHexString(object.CodeHash.ToArray()),
-					Message:     object.Message,
-					BlockHeight: ledger.DefLedger.GetCurrentBlockHeight() + 1,
-				}
-				PushEvent(rs["TxHash"].(string), rs["Error"].(int64), rs["Action"].(string), msg)
-				return
-			case event.NotifyEventArgs:
-				type NotifyEventArgsInfo struct {
-					Container   string
-					CodeHash    string
-					State       []sc.States
-					BlockHeight uint32
-				}
-				msg := NotifyEventArgsInfo{
-					Container:   ToHexString(object.Container.ToArray()),
-					CodeHash:    ToHexString(object.CodeHash.ToArray()),
-					State:       sc.ConvertTypes(object.States),
-					BlockHeight: ledger.DefLedger.GetCurrentBlockHeight() + 1,
-				}
-				PushEvent(rs["TxHash"].(string), rs["Error"].(int64), rs["Action"].(string), msg)
-				return
-			default:
-				PushEvent(rs["TxHash"].(string), rs["Error"].(int64), rs["Action"].(string), rs["Result"])
-				return
-			}
+			PushEvent(rs.TxHash, rs.Error, rs.Action, rs.Result)
 		}()
 	}
 }
 
 func PushEvent(txHash string, errcode int64, action string, result interface{}) {
 	if ws != nil {
-		resp := ResponsePack(Err.SUCCESS)
+		resp := rest.ResponsePack(Err.SUCCESS)
 		resp["Result"] = result
 		resp["Error"] = errcode
 		resp["Action"] = action
@@ -144,14 +129,14 @@ func PushBlock(v interface{}) {
 	if ws == nil {
 		return
 	}
-	resp := ResponsePack(Err.SUCCESS)
+	resp := rest.ResponsePack(Err.SUCCESS)
 	if block, ok := v.(*types.Block); ok {
 		if pushRawBlockFlag {
 			w := bytes.NewBuffer(nil)
 			block.Serialize(w)
-			resp["Result"] = ToHexString(w.Bytes())
+			resp["Result"] = common.ToHexString(w.Bytes())
 		} else {
-			resp["Result"] = GetBlockInfo(block)
+			resp["Result"] = bcomn.GetBlockInfo(block)
 		}
 		resp["Action"] = "sendrawblock"
 		ws.BroadcastResult(resp)
@@ -161,10 +146,10 @@ func PushBlockTransactions(v interface{}) {
 	if ws == nil {
 		return
 	}
-	resp := ResponsePack(Err.SUCCESS)
+	resp := rest.ResponsePack(Err.SUCCESS)
 	if block, ok := v.(*types.Block); ok {
 		if pushBlockTxsFlag {
-			resp["Result"] = GetBlockTransactions(block)
+			resp["Result"] = rest.GetBlockTransactions(block)
 		}
 		resp["Action"] = "sendblocktransactions"
 		ws.BroadcastResult(resp)

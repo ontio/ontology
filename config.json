@@ -3,15 +3,13 @@
     "Magic": 7630401,
     "Version": 23,
     "SeedList": [
-      "139.219.65.178:10338",
-      "139.219.99.201:10338",
-      "139.219.96.154:10338"
+      "127.0.0.1:10338"
     ],
-    "BookKeepers": [
-      "03ccbfeb4fcf8bee8cd65b55b9fc7ff114df8e0fd377f6235f1b55625a958b0cd1",
-      "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
-      "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
-      "03d36828a99547184452276116f1b5171861931ff439a6da2316fddf1f3f428850"
+    "Bookkeepers": [
+      "120203a4e50edc1e59979442b83f327030a56bffd08c2de3e0a404cefb4ed2cc04ca3e",
+      "12020225c98cc5f82506fb9d01bad15a7be3da29c97a279bb6b55da1a3177483ab149b",
+      "12020225c98cc5f82506fb9d01bad15a7be3da29c97a279bb6b55da1a3177483ab149b",
+      "12020225c98cc5f82506fb9d01bad15a7be3da29c97a279bb6b55da1a3177483ab149b"
     ],
     "HttpInfoPort": 20383,
     "HttpInfoStart": true,
@@ -31,6 +29,7 @@
       "RegisterAsset": 10000,
       "IssueAsset": 10000
     },
+    "SignatureScheme": "SHA256withECDSA",
     "ConsensusType":"solo"
   }
 }

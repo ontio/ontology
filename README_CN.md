@@ -1,43 +1,69 @@
-[![Build Status](https://travis-ci.org/DNAProject/DNA.svg?branch=master)](https://travis-ci.org/DNAProject/DNA)
 
-# DNA (Distributed Networks Architecture)
+<h1 align="center">Ontology </h1>
+<h4 align="center">Version 0.6.0 </h4>
 
-DNA是go语言实现的基于区块链技术的去中心化的分布式网络协议。可以用来数字化资产和金融相关业务包括资产注册，发行，转账等。
+[English](README.md) | 中文
+
+欢迎来到Ontology的源码库！ 
+
+Ontology致力于创建一个组件化、可自由配置、跨链支持、高性能、横向可扩展的区块链底层基础设施。 让部署及调用去中心化应用变得更加非常简单。
+
+目前代码还处于内部测试阶段，但处于快速的开发过程中，master代码可能是不稳定的，稳定的版本可以在releases中下载。
+
+公开的测试网可以在下面找到，也非常欢迎及希望能有更多的开发者加入到ontology中来。
 
 ## 特性
 
 * 可扩展的轻量级通用智能合约
+* 可扩展的WASM合约的支持
 * 跨链交互协议（进行中）
-* 抗量子密码算法 (可选择模块)
-* 中国商用密码算法 (可选择模块)
+* 多种加密算法支持 
 * 高度优化的交易处理速度
-* 基于IPFS的分布式存储和文件共享解决方案
-* 节点访问权限控制
-* P2P连接链路加密
-* 多种共识算法支持 (DBFT/RBFT/SBFT)
-* 可配置区块生成时间
-* 可配置电子货币模型
-* 可配置的分区共识(进行中)
+* P2P连接链路加密(可选择模块)
+* 多种共识算法支持 (VBFT/DBFT/SBFT/SOLO...)
+* 快速的区块生成时间
 
-# 编译
-成功编译DNA需要以下准备：
+## 目录
 
-* Go版本在1.8及以上
+* [构建开发环境](#构建开发环境)
+* [部署及测试](#部署及测试)
+  * [获取ontology](#获取ontology)
+    * [从源码获取](#从源码获取)
+    * [从release获取](#从release获取)
+  * [创建ONT钱包文件](#创建ont钱包文件)
+  * [服务器部署](#服务器部署)
+    * [单机部署配置](#单机部署配置)
+    * [多机部署配置](#多机部署配置)
+    * [在公共测试网上部署节点](#在公共测试网上部署节点)
+    * [运行](#运行)
+* [简单示例](#简单示例)
+  * [ONT转账调用示例](#ont转账调用示例)
+* [贡献代码](#贡献代码)
+* [开源社区](#开源社区)
+  * [网站](#网站)
+* [许可证](#许可证)
+
+# 构建开发环境
+成功编译Ontology需要以下准备：
+
+* Golang版本在1.9及以上
 * 安装第三方包管理工具glide
 * 正确的Go语言开发环境
+* Golang所支持的操作系统
 
-克隆DNA仓库到$GOPATH/src目录
-
+# 部署及测试
+## 获取ontology
+### 从源码获取
+克隆Ontology仓库到$GOPATH/src目录
 
 ```shell
-$ git clone https://github.com/DNAProject/DNA.git
+$ git clone https://github.com/ontio/ontology.git
 ```
 
 用第三方包管理工具glide拉取依赖库
 
-
 ````shell
-$ cd DNA
+$ cd ontology
 $ glide install
 ````
 
@@ -49,23 +75,79 @@ $ make
 
 成功编译后会生成两个可以执行程序
 
-* `node`: 节点程序
+* `ontology`: 节点程序
 * `nodectl`: 以命令行方式提供的节点控制程序
 
-# 部署
+### 从release获取
+//TODO 将和release版本同步更新
 
-成功运行DNA需要至少4个节点，可以通过两种方式进行部署
+## 创建ONT钱包文件
+## ONT钱包创建示例
+钱包创建的时候，支持用户手动选择签名方案；如果用户没有手动选择，将会使用config.json中的默认配置项(SignatureScheme); 如果以上两种方式都没有配置，或者使用了系统不支持的签名方案，系统将会提供最终的默认签名方案(SHA256withECDSA). 
 
-* 多机部署
+创建钱包示例如下：
+
+```shell
+$ ./nodectl wallet --create --name wallet.dat --password passwordtest --encrypt=SHA512withEdDSA
+```
+
+注：通过-p参数设置钱包密码
+
+展示钱包示例(需要输入密码)：
+
+```shell
+$ ./nodectl wallet --list account
+```
+
+ONT可签名方案说明( <hash>with<dsa> 前面是散列算法，后面是签名算法):
+ - SHA224withECDSA 
+ - SHA256withECDSA
+ - SHA384withECDSA
+ - SHA512withECDSA
+ - SHA3-224withECDSA
+ - SHA3-256withECDSA
+ - SHA3-384withECDSA
+ - SHA3-512withECDSA
+ - RIPEMD160withECDSA
+ - SM3withSM2
+ - SHA512withEdDSA
+
+## 服务器部署
+成功运行Ontology可以通过以下两种方式进行部署
+
 * 单机部署
+* 多机部署
+ * 在公共测试网上部署节点
 
-## 多机部署配置
+### 单机部署配置
 
+在单机上创建一个目录，在目录下存放以下文件：
+- 默认配置文件`config.json`
+- 节点程序`ontology`
+- 节点控制程序`nodectl`
+- 钱包文件`wallet.dat`
+把source根目录下的config-solo.config配置文件的内容复制到config.json内，然后启动节点即可。
+
+单机配置的例子如下：
+- 目录结构
+
+```shell
+$ tree
+└── node
+    ├── config.json
+    ├── ontology
+    ├── nodectl
+    └── wallet.dat
+```
+
+### 多机部署配置
+
+网络环境下，最少需要4个节点（共识节点）完成部署。
 我们可以通过修改默认的配置文件`config.json`进行快速部署。
 
 1. 将相关文件复制到目标主机，包括：
     - 默认配置文件`config.json`
-    - 节点程序`node`
+    - 节点程序`ontology`
     - 节点控制程序`nodectl`
 
 2. 设置每个节点网络连接的端口号（推荐不做修改，使用默认端口配置）
@@ -83,7 +165,7 @@ $ make
         注：通过-p参数设置钱包密码
 
 5. 记账人配置
-    - 为每个节点创建钱包时会显示钱包的公钥信息，将所有节点的公钥信息分别填写到每个节点的配置文件的`BookKeepers`项中
+    - 为每个节点创建钱包时会显示钱包的公钥信息，将所有节点的公钥信息分别填写到每个节点的配置文件的`Bookkeepers`项中
     
         注：每个节点的钱包公钥信息也可以通过命令行程序查看：
     
@@ -94,284 +176,101 @@ $ make
 
 ```shell
 $ ls
-config.json node nodectl wallet.dat
+config.json ontology nodectl wallet.dat
 ```
 
-一个配置文件片段如下, 其中10.0.1.100、10.0.1.101等都是种子节点地址:
+一个配置文件片段如下, 可以参考根目录下的config.json文件。
+
+### 在公共测试网上部署节点
+按照以下配置文件启动可以连接到ont目前的测试网络。
+
 ```shell
 $ cat config.json
-    ...
+{
+  "Configuration": {
+    "Magic": 7630401,
+    "Version": 23,
     "SeedList": [
-      "10.0.1.100:10338",
-      "10.0.1.101:10338",
-      "10.0.1.102:10338"
+     "139.219.108.204:20338",
+     "139.219.111.50:20338",
+     "139.219.69.70:20338",
+     "40.125.165.118:20338"
     ],
     "BookKeepers": [
-      "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
-      "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
-      "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
-      "03d36828a99547184452276116f1b5171861931ff439a6da2316fddf1f3f428850"
+"1202021c6750d2c5d99813997438cee0740b04a73e42664c444e778e001196eed96c9d",
+"12020339541a43af2206358714cf6bd385fc9ac8b5df554fec5497d9e947d583f985fc",
+"120203bdf0d966f98ff4af5c563c4a3e2fe499d98542115e1ffd75fbca44b12c56a591",
+"1202021401156f187ec23ce631a489c3fa17f292171009c6c3162ef642406d3d09c74d"
     ],
-    "HttpInfoPort": 10333,
-    "HttpInfoStart": true,    
-    "HttpRestPort": 10334,
-    "HttpWsPort": 10335,
-    "HttpJsonPort": 10336,
-    "HttpLocalPort": 10337,
-    "NoticeServerUrl":"",
-    "OauthServerUrl":"",
-    "NodePort": 10338,
-    ...
-```
-## 单机部署配置
-
-在单机上创建4个不同的目录，类似多机部署的方法分别在每个目录下存放以下文件：
-- 默认配置文件`config.json`
-- 节点程序`node`
-- 节点控制程序`nodectl`
-- 钱包文件`wallet.dat`
-与多机配置不同的是，需要保证本机上端口不冲突, 请使用者自行修改个端口值。
-
-单机配置的例子如下：
-- 目录结构
-```shell
-$ tree
-├── node1
-│   ├── config.json
-│   ├── node
-│   ├── nodectl
-│   └── wallet.dat
-├── node2
-│   ├── config.json
-│   ├── node
-│   ├── nodectl
-│   └── wallet.dat
-├── node3
-│   ├── config.json
-│   ├── node
-│   ├── nodectl
-│   └── wallet.dat
-└── node4
-    ├── config.json
-    ├── node
-    ├── nodectl
-    └── wallet.dat
-```
-- 配置文件参考
-```shell
-$ cat node[1234]/config.json
-    ...
-    "SeedList": [
-      "10.0.1.100:10338",
-      "10.0.1.100:20338",
-      "10.0.1.100:30338",
-      "10.0.1.100:40338"
-    ],
-    "BookKeepers": [
-      "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
-      "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
-      "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
-      "03d36828a99547184452276116f1b5171861931ff439a6da2316fddf1f3f428850"
-    ],
-    "HttpInfoPort": 10333,
-    "HttpInfoStart": true,    
-    "HttpRestPort": 10334,
-    "HttpWsPort": 10335,
-    "HttpJsonPort": 10336,
-    "HttpLocalPort": 10337,
-    "NoticeServerUrl":"",
-    "OauthServerUrl":"",
-    "NodePort": 10338,
-    ...
-
-    "SeedList": [
-      "10.0.1.100:10338",
-      "10.0.1.100:20338",
-      "10.0.1.100:30338",
-      "10.0.1.100:40338"
-    ],
-    "BookKeepers": [
-      "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
-      "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
-      "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
-      "03d36828a99547184452276116f1b5171861931ff439a6da2316fddf1f3f428850"
-    ],
-    "HttpInfoPort": 20333,
-    "HttpInfoStart": true,    
     "HttpRestPort": 20334,
-    "HttpWsPort": 20335,
+    "HttpWsPort":20335,
     "HttpJsonPort": 20336,
     "HttpLocalPort": 20337,
-    "NoticeServerUrl":"",
-    "OauthServerUrl":"",
     "NodePort": 20338,
-    ...
+    "NodeConsensusPort": 20339,
+    "PrintLevel": 1,
+    "IsTLS": false,
+    "MaxTransactionInBlock": 60000,
+    "MultiCoreNum": 4
+  }
+}
 
-    "SeedList": [
-      "10.0.1.100:10338",
-      "10.0.1.100:20338",
-      "10.0.1.100:30338",
-      "10.0.1.100:40338"
-    ],
-    "BookKeepers": [
-      "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
-      "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
-      "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
-      "03d36828a99547184452276116f1b5171861931ff439a6da2316fddf1f3f428850"
-    ],
-    "HttpInfoPort": 30333,
-    "HttpInfoStart": true,    
-    "HttpRestPort": 30334,
-    "HttpWsPort": 30335,
-    "HttpJsonPort": 30336,
-    "HttpLocalPort": 30337,
-    "NoticeServerUrl":"",
-    "OauthServerUrl":"",
-    "NodePort": 30338,
-    ...
-
-    "SeedList": [
-      "10.0.1.100:10338",
-      "10.0.1.100:20338",
-      "10.0.1.100:30338",
-      "10.0.1.100:40338"
-    ],
-    "BookKeepers": [
-      "0322cfdb6a20401c2e44ede40b5282b2925fcff21cdc3814d782fd26026f1d023d",
-      "02b639c019537839ba30b7c8c0396095da8838993492c07fe6ca11a5cf7b8fd2ca",
-      "032c842494feba4e3dec3b9b7d9ad080ce63c81a41f7d79d2bbb5d499d16322907",
-      "03d36828a99547184452276116f1b5171861931ff439a6da2316fddf1f3f428850"
-    ],
-    "HttpInfoPort": 40333,
-    "HttpInfoStart": true,    
-    "HttpRestPort": 40334,
-    "HttpWsPort": 40335,
-    "HttpJsonPort": 40336,
-    "HttpLocalPort": 40337,
-    "NoticeServerUrl":"",
-    "OauthServerUrl":"",
-    "NodePort": 40338,
-    ...
-    
 ```
 
-## 运行
+### 运行
 以任意顺序运行每个节点node程序，并在出现`Password:`提示后输入节点的钱包密码
 
 ```shell
-$ ./node
+$ ./ontology
 $ - 输入你的钱包口令
 ```
 
-## 在开放公共环境中测试DNA
- 
-1. 交易 :
-```
-./nodectl --ip 139.219.65.178 --port 10336 test -tx perf -num 10
-```
-
-2. 注册,分发,交易资产 :
-```
-./nodectl --ip 139.219.65.178 --port 10336 test -tx full
-```
-
-3. 查询区块信息 :
-```
-./nodectl --ip 139.219.65.178 --port 10336 info -height 10
-```
-
-4. 查询交易信息 :
-```
-./nodectl --ip 139.219.65.178 --port 10336 info -txhash d438896f07786b74281bc70259b0caaccb87460171104ea17473b5e802033a98
-```
-
-......
-
 了解更多请运行 `./nodectl --h`.
 
-## 测试环境
+# 简单示例
+## 合约
+[请看这里](https://github.com/ontio/documentation/tree/master/smart-contract-tutorial)
 
-我们在云上部署了DNA供大家使用
+## ONT转账调用示例
 
-主要功能包括：
-1. 区块链相关信息查询
-    - 区块信息
-    - 交易信息
-    - 节点信息
-2. 资产操作
-    - 注册资产
-    - 发型资产
-    - 转账
-3. 测试交易发送
-
-使用方式参见：
-
-[forum.DNAProject.com/DNA节点控制工具](https://forum.dnaproject.org/t/dna-nodectl/57)
-
-可用节点如下：
+```shell
+  ./nodectl transfer --contract ff00000000000000000000000000000000000001 --value 10 --from 0181beb9cfba23c777421eaf57e357e0fc331cbf --to 01f3aecd2ba7a5b704fbd5bac673e141d5109e3e
+  
+  contract:合约地址； - from: 转出地址； - to: 转入地址； - value: 资产转移数量；
 ```
-IP               PORT
-----------------------
-139.219.65.178:  10336
-139.219.99.201:  10336
-139.219.96.154:  10336
-```
-
-注：以上环境仅供测试使用，数据可能丢失或重置，我们不保证测试数据安全，请用户注意备份数据。
 
 # 贡献代码
 
 请您以签过名的commit发送pull request请求，我们期待您的加入！
-您也可以通过邮件的方式发送你的代码到开发者邮件列表，欢迎加入DNA邮件列表和开发者论坛。
+您也可以通过邮件的方式发送你的代码到开发者邮件列表，欢迎加入Ontology邮件列表和开发者论坛。
 
 另外，在您想为本项目贡献代码时请提供详细的提交信息，格式参考如下：
 
-	Header line: explain the commit in one line (use the imperative)
+  Header line: explain the commit in one line (use the imperative)
 
-	Body of commit message is a few lines of text, explaining things
-	in more detail, possibly giving some background about the issue
-	being fixed, etc etc.
+  Body of commit message is a few lines of text, explaining things
+  in more detail, possibly giving some background about the issue
+  being fixed, etc etc.
 
-	The body of the commit message can be several paragraphs, and
-	please do proper word-wrap and keep columns shorter than about
-	74 characters or so. That way "git log" will show things
-	nicely even when it's indented.
+  The body of the commit message can be several paragraphs, and
+  please do proper word-wrap and keep columns shorter than about
+  74 characters or so. That way "git log" will show things
+  nicely even when it's indented.
 
-	Make sure you explain your solution and why you're doing what you're
-	doing, as opposed to describing what you're doing. Reviewers and your
-	future self can read the patch, but might not understand why a
-	particular solution was implemented.
+  Make sure you explain your solution and why you're doing what you're
+  doing, as opposed to describing what you're doing. Reviewers and your
+  future self can read the patch, but might not understand why a
+  particular solution was implemented.
 
-	Reported-by: whoever-reported-it
-	Signed-off-by: Your Name <youremail@yourhost.com>
+  Reported-by: whoever-reported-it
+  Signed-off-by: Your Name <youremail@yourhost.com>
 
 # 开源社区
 
-## 邮件列表
-
-我们为开发者提供了一下邮件列表
-
-- OnchainDNA@googlegroups.com
-
-可以通过两种方式订阅并参与讨论
-
-- 发送任何内容到邮箱地址 OnchainDNA+subscribe@googlegroups.com
-
-- 登录 https://groups.google.com/forum/#!forum/OnchainDNA 
-
-
 ## 网站
 
-- https://www.DNAproject.org
-
-## 论坛
-
-- https://forum.DNAproject.org
-
-## Wiki
-
-- https://wiki.DNAproject.org
+- https://ont.io/
 
 # 许可证
 
-DNA遵守Apache License, 版本2.0。 详细信息请查看项目根目录下的LICENSE文件。
+Ontology遵守GNU Lesser General Public License, 版本3.0。 详细信息请查看项目根目录下的LICENSE文件。

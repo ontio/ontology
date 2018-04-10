@@ -1,55 +1,76 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package types
 
 import (
 	"bytes"
 	"crypto/sha256"
-	"github.com/Ontology/crypto"
-	. "github.com/Ontology/common"
-	"golang.org/x/crypto/ripemd160"
 	"errors"
-	"github.com/Ontology/common/serialization"
 	"sort"
+
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/serialization"
+	"golang.org/x/crypto/ripemd160"
 )
 
-func AddressFromPubKey(pubkey *crypto.PubKey) Uint160 {
-	buf := bytes.Buffer{}
-	pubkey.Serialize(&buf)
+func AddressFromPubKey(pubkey keypair.PublicKey) common.Address {
+	buf := keypair.SerializePublicKey(pubkey)
 
-	var u160 Uint160
-	temp := sha256.Sum256(buf.Bytes())
+	var addr common.Address
+	temp := sha256.Sum256(buf)
 	md := ripemd160.New()
 	md.Write(temp[:])
-	md.Sum(u160[:0])
+	md.Sum(addr[:0])
 
-	u160[0] = 0x01
+	addr[0] = 0x01
 
-	return u160
+	return addr
 }
 
-func AddressFromMultiPubKeys(pubkeys []*crypto.PubKey, m int) (Uint160, error) {
-	var u160 Uint160
+func AddressFromMultiPubKeys(pubkeys []keypair.PublicKey, m int) (common.Address, error) {
+	var addr common.Address
 	n := len(pubkeys)
 	if m <= 0 || m > n || n > 24 {
-		return u160, errors.New("wrong multi-sig param")
+		return addr, errors.New("wrong multi-sig param")
 	}
-	sort.Sort(crypto.PubKeySlice(pubkeys))
-	buf := bytes.Buffer{}
+	list := keypair.NewPublicList(pubkeys)
+	sort.Sort(list)
+	var buf bytes.Buffer
 	serialization.WriteUint8(&buf, uint8(n))
 	serialization.WriteUint8(&buf, uint8(m))
-	for _, pubkey := range pubkeys {
-		pubkey.Serialize(&buf)
+	for _, key := range list {
+		err := serialization.WriteVarBytes(&buf, key)
+		if err != nil {
+			return addr, err
+		}
 	}
 
 	temp := sha256.Sum256(buf.Bytes())
 	md := ripemd160.New()
 	md.Write(temp[:])
-	md.Sum(u160[:0])
-	u160[0] = 0x02
+	md.Sum(addr[:0])
+	addr[0] = 0x02
 
-	return u160, nil
+	return addr, nil
 }
 
-func AddressFromBookKeepers(bookKeepers []*crypto.PubKey) (Uint160, error) {
-	return AddressFromMultiPubKeys(bookKeepers, len(bookKeepers)-(len(bookKeepers)-1)/3)
+func AddressFromBookkeepers(bookkeepers []keypair.PublicKey) (common.Address, error) {
+	return AddressFromMultiPubKeys(bookkeepers, len(bookkeepers)-(len(bookkeepers)-1)/3)
 }
-

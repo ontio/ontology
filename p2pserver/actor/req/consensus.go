@@ -19,7 +19,7 @@
 package req
 
 import (
-	"github.com/Ontology/eventbus/actor"
+	"github.com/ontio/ontology-eventbus/actor"
 )
 
 var ConsensusPid *actor.PID

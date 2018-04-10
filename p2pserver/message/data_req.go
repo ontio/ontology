@@ -23,8 +23,8 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 )
 
 type DataReq struct {

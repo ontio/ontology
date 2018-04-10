@@ -26,9 +26,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/Ontology/common/log"
-	types "github.com/Ontology/p2pserver/common"
-	msg "github.com/Ontology/p2pserver/message"
+	"github.com/ontio/ontology/common/log"
+	types "github.com/ontio/ontology/p2pserver/common"
+	msg "github.com/ontio/ontology/p2pserver/message"
 )
 
 type RxBuf struct {

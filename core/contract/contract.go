@@ -1,14 +1,30 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package contract
 
 import (
 	"bytes"
-	"errors"
 	"io"
 
-	. "github.com/Ontology/common"
-	"github.com/Ontology/common/serialization"
-	. "github.com/Ontology/errors"
-	vm "github.com/Ontology/vm/neovm"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/serialization"
+	vm "github.com/ontio/ontology/vm/neovm"
 )
 
 //Contract address is the hash of contract program .
@@ -17,17 +33,17 @@ import (
 //Contract include the program codes with parameters which can be executed on specific evnrioment
 type Contract struct {
 	//the contract program code,which will be run on VM or specific envrionment
-	Code            []byte
+	Code []byte
 
 	//the Contract Parameter type list
 	// describe the number of contract program parameters and the parameter type
-	Parameters      []ContractParameterType
+	Parameters []ContractParameterType
 
 	//The program hash as contract address
-	ProgramHash     Uint160
+	ProgramHash common.Address
 
 	//owner's pubkey hash indicate the owner of contract
-	OwnerPubkeyHash Uint160
+	OwnerPubkeyHash common.Address
 }
 
 func (c *Contract) IsStandard() bool {
@@ -63,7 +79,7 @@ func (c *Contract) IsMultiSigContract() bool {
 		break
 	case 2:
 		i++
-		m = BytesToInt16(c.Code[i:])
+		m = common.BytesToInt16(c.Code[i:])
 		i += 2
 		break
 	default:
@@ -97,7 +113,7 @@ func (c *Contract) IsMultiSigContract() bool {
 		break
 	case 2:
 		i++
-		if n != BytesToInt16(c.Code[i:]) {
+		if n != common.BytesToInt16(c.Code[i:]) {
 			return false
 		}
 		i += 2
@@ -149,12 +165,9 @@ func (c *Contract) Deserialize(r io.Reader) error {
 }
 
 func (c *Contract) Serialize(w io.Writer) error {
-	len, err := c.OwnerPubkeyHash.Serialize(w)
+	err := c.OwnerPubkeyHash.Serialize(w)
 	if err != nil {
 		return err
-	}
-	if len != 20 {
-		return NewDetailErr(errors.New("PubkeyHash.Serialize(): len != len(Uint160)"), ErrNoCode, "")
 	}
 
 	err = serialization.WriteVarBytes(w, ContractParameterTypeToByte(c.Parameters))

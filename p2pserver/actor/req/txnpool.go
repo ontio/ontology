@@ -21,12 +21,12 @@ package req
 import (
 	"time"
 
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/errors"
-	"github.com/Ontology/eventbus/actor"
-	txnpool "github.com/Ontology/txnpool/common"
+	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/errors"
+	txnpool "github.com/ontio/ontology/txnpool/common"
 )
 
 var TxnPoolPid *actor.PID
@@ -99,7 +99,7 @@ func VerifyBlock(height uint32, txs []*types.Transaction) ([]*txnpool.VerifyTxRe
 	return result.(txnpool.VerifyBlockRsp).TxnPool, nil
 }
 
-func GetTransactionStats(hash common.Uint256) (*[]uint64, error) {
+func GetTransactionStats(hash common.Uint256) ([]uint64, error) {
 	future := TxnPoolPid.RequestFuture(&txnpool.GetTxnStats{}, 5*time.Second)
 	result, err := future.Result()
 	if err != nil {

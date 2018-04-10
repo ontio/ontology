@@ -27,13 +27,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Ontology/account"
-	"github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
-	actor "github.com/Ontology/p2pserver/actor/req"
-	types "github.com/Ontology/p2pserver/common"
-	"github.com/Ontology/p2pserver/msg_pack"
-	"github.com/Ontology/p2pserver/peer"
+	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
+	actor "github.com/ontio/ontology/p2pserver/actor/req"
+	types "github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/p2pserver/msg_pack"
+	"github.com/ontio/ontology/p2pserver/peer"
 )
 
 type P2PServer struct {
@@ -56,7 +56,7 @@ type ReconnectAddrs struct {
 //NewServer return a new p2pserver according to the pubkey
 func NewServer(acc *account.Account) (*P2PServer, error) {
 	self := peer.NewPeer()
-	err := self.InitPeer(acc.PubKey())
+	err := self.InitPeer(acc.PubKey)
 	if err != nil {
 		return nil, err
 	}
@@ -229,11 +229,11 @@ func (this *P2PServer) reachMinConnection() bool {
 	if consensusType == "" {
 		consensusType = "dbft"
 	}
-	minCount := config.DBFTMINNODENUM
+	minCount := config.DBFT_MIN_NODE_NUM
 	switch consensusType {
 	case "dbft":
 	case "solo":
-		minCount = config.SOLOMINNODENUM
+		minCount = config.SOLO_MIN_NODE_NUM
 	}
 	return int(this.GetConnectionCnt())+1 >= minCount
 }
@@ -308,10 +308,10 @@ func (this *P2PServer) reqNbrList(p *peer.Peer) {
 //heartBeat send ping to nbr peers and check the timeout
 func (this *P2PServer) heartBeatService() {
 	var periodTime uint
-	if config.Parameters.GenBlockTime > config.MINGENBLOCKTIME {
+	if config.Parameters.GenBlockTime > config.MIN_GEN_BLOCK_TIME {
 		periodTime = config.Parameters.GenBlockTime / types.UPDATE_RATE_PER_BLOCK
 	} else {
-		periodTime = config.DEFAULTGENBLOCKTIME / types.UPDATE_RATE_PER_BLOCK
+		periodTime = config.DEFAULT_GEN_BLOCK_TIME / types.UPDATE_RATE_PER_BLOCK
 	}
 	t := time.NewTicker(time.Second * (time.Duration(periodTime)))
 
@@ -351,10 +351,10 @@ func (this *P2PServer) ping() {
 func (this *P2PServer) timeout() {
 	peers := this.Self.Np.GetNeighbors()
 	var periodTime uint
-	if config.Parameters.GenBlockTime > config.MINGENBLOCKTIME {
+	if config.Parameters.GenBlockTime > config.MIN_GEN_BLOCK_TIME {
 		periodTime = config.Parameters.GenBlockTime / types.UPDATE_RATE_PER_BLOCK
 	} else {
-		periodTime = config.DEFAULTGENBLOCKTIME / types.UPDATE_RATE_PER_BLOCK
+		periodTime = config.DEFAULT_GEN_BLOCK_TIME / types.UPDATE_RATE_PER_BLOCK
 	}
 	for _, p := range peers {
 		if p.GetSyncState() == types.ESTABLISH {
@@ -373,10 +373,10 @@ func (this *P2PServer) timeout() {
 //syncBlock start sync up hdr & block
 func (this *P2PServer) syncService() {
 	var periodTime uint
-	if config.Parameters.GenBlockTime > config.MINGENBLOCKTIME {
+	if config.Parameters.GenBlockTime > config.MIN_GEN_BLOCK_TIME {
 		periodTime = config.Parameters.GenBlockTime / types.UPDATE_RATE_PER_BLOCK
 	} else {
-		periodTime = config.DEFAULTGENBLOCKTIME / types.UPDATE_RATE_PER_BLOCK
+		periodTime = config.DEFAULT_GEN_BLOCK_TIME / types.UPDATE_RATE_PER_BLOCK
 	}
 	t := time.NewTicker(time.Second * (time.Duration(periodTime)))
 

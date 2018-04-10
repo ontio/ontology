@@ -1,27 +1,44 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package types
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 
-	. "github.com/Ontology/common"
-	"github.com/Ontology/common/serialization"
-	"github.com/Ontology/crypto"
-	. "github.com/Ontology/errors"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/serialization"
 )
 
 type Block struct {
 	Header       *Header
 	Transactions []*Transaction
 
-	hash *Uint256
+	hash *common.Uint256
 }
 
 func (b *Block) Serialize(w io.Writer) error {
 	b.Header.Serialize(w)
 	err := serialization.WriteUint32(w, uint32(len(b.Transactions)))
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Block item Transactions length serialization failed.")
+		return fmt.Errorf("Block item Transactions length serialization failed: %s", err)
 	}
 
 	for _, transaction := range b.Transactions {
@@ -42,7 +59,7 @@ func (b *Block) Deserialize(r io.Reader) error {
 		return err
 	}
 
-	var tharray = make([]Uint256, 0, length)
+	var tharray = make([]common.Uint256, 0, length)
 	for i := uint32(0); i < length; i++ {
 		transaction := new(Transaction)
 		transaction.Deserialize(r)
@@ -51,9 +68,9 @@ func (b *Block) Deserialize(r io.Reader) error {
 		tharray = append(tharray, txhash)
 	}
 
-	b.Header.TransactionsRoot, err = crypto.ComputeRoot(tharray)
+	b.Header.TransactionsRoot, err = common.ComputeRoot(tharray)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Block Deserialize merkleTree compute failed")
+		return fmt.Errorf("Block Deserialize merkleTree compute failed: %s", err)
 	}
 
 	return nil
@@ -63,7 +80,7 @@ func (b *Block) Trim(w io.Writer) error {
 	b.Header.Serialize(w)
 	err := serialization.WriteUint32(w, uint32(len(b.Transactions)))
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Block item Transactions length serialization failed.")
+		return fmt.Errorf("Block item Transactions length serialization failed: %s", err)
 	}
 	for _, transaction := range b.Transactions {
 		temp := *transaction
@@ -85,8 +102,8 @@ func (b *Block) FromTrimmedData(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	var txhash Uint256
-	var tharray []Uint256
+	var txhash common.Uint256
+	var tharray []common.Uint256
 	for i = 0; i < Len; i++ {
 		txhash.Deserialize(r)
 		transaction := new(Transaction)
@@ -95,9 +112,9 @@ func (b *Block) FromTrimmedData(r io.Reader) error {
 		tharray = append(tharray, txhash)
 	}
 
-	b.Header.TransactionsRoot, err = crypto.ComputeRoot(tharray)
+	b.Header.TransactionsRoot, err = common.ComputeRoot(tharray)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Block Deserialize merkleTree compute failed")
+		return fmt.Errorf("Block Deserialize merkleTree compute failed: %s", err)
 	}
 
 	return nil
@@ -115,27 +132,27 @@ func (b *Block) ToArray() []byte {
 	return bf.Bytes()
 }
 
-func (b *Block) Hash() Uint256 {
+func (b *Block) Hash() common.Uint256 {
 	if b.hash == nil {
-		b.hash = new(Uint256)
+		b.hash = new(common.Uint256)
 		*b.hash = b.Header.Hash()
 	}
 	return *b.hash
 }
 
-func (b *Block) Type() InventoryType {
-	return BLOCK
+func (b *Block) Type() common.InventoryType {
+	return common.BLOCK
 }
 
 func (b *Block) RebuildMerkleRoot() error {
 	txs := b.Transactions
-	transactionHashes := []Uint256{}
+	transactionHashes := []common.Uint256{}
 	for _, tx := range txs {
 		transactionHashes = append(transactionHashes, tx.Hash())
 	}
-	hash, err := crypto.ComputeRoot(transactionHashes)
+	hash, err := common.ComputeRoot(transactionHashes)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "[Block] , RebuildMerkleRoot ComputeRoot failed.")
+		return fmt.Errorf("[Block] , RebuildMerkleRoot ComputeRoot failed: %s", err)
 	}
 	b.Header.TransactionsRoot = hash
 	return nil

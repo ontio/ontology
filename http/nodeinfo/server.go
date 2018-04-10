@@ -1,14 +1,34 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package nodeinfo
 
 import (
 	"fmt"
-	"github.com/Ontology/common/config"
-	"github.com/Ontology/core/ledger"
-	. "github.com/Ontology/p2pserver/protocol"
 	"html/template"
 	"net/http"
 	"sort"
 	"strconv"
+
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/core/ledger"
+	"github.com/ontio/ontology/p2pserver/peer"
 )
 
 type Info struct {
@@ -20,21 +40,21 @@ type Info struct {
 	HttpWsPort    int
 	HttpJsonPort  int
 	HttpLocalPort int
-	NodePort      int
+	NodePort      uint16
 	NodeId        string
 	NodeType      string
 }
 
 const (
-	verifyNode  = "Verify Node"
-	serviceNode = "Service Node"
+	VERIFYNODE  = "Verify Node"
+	SERVICENODE = "Service Node"
 )
 
-var node Noder
+var node *peer.Peer
 
-var templates = template.Must(template.New("info").Parse(page))
+var templates = template.Must(template.New("info").Parse(TEMPLATE_PAGE))
 
-func newNgbNodeInfo(ngbId string, ngbType string, ngbAddr string, httpInfoAddr string, httpInfoPort int, httpInfoStart bool) *NgbNodeInfo {
+func newNgbNodeInfo(ngbId string, ngbType string, ngbAddr string, httpInfoAddr string, httpInfoPort uint16, httpInfoStart bool) *NgbNodeInfo {
 	return &NgbNodeInfo{NgbId: ngbId, NgbType: ngbType, NgbAddr: ngbAddr, HttpInfoAddr: httpInfoAddr,
 		HttpInfoPort: httpInfoPort, HttpInfoStart: httpInfoStart}
 }
@@ -56,28 +76,28 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	var ngbId string
 	var ngbAddr string
 	var ngbType string
-	var ngbInfoPort int
+	var ngbInfoPort uint16
 	var ngbInfoState bool
 	var ngbHttpInfoAddr string
 
-	curNodeType := serviceNode
-	bookKeeperState, _ := ledger.DefLedger.GetBookKeeperState()
-	bookKeepers := bookKeeperState.CurrBookKeeper
-	bookKeeperLen := len(bookKeepers)
-	for i := 0; i < bookKeeperLen; i++ {
-		if node.GetPubKey().X.Cmp(bookKeepers[i].X) == 0 {
-			curNodeType = verifyNode
+	curNodeType := SERVICENODE
+	bookkeeperState, _ := ledger.DefLedger.GetBookkeeperState()
+	bookkeepers := bookkeeperState.CurrBookkeeper
+	bookkeeperLen := len(bookkeepers)
+	for i := 0; i < bookkeeperLen; i++ {
+		if keypair.ComparePublicKey(node.GetPubKey(), bookkeepers[i]) {
+			curNodeType = VERIFYNODE
 			break
 		}
 	}
 
-	ngbrNoders := node.GetNeighborNoder()
+	ngbrNoders := node.Np.GetNeighbors()
 	ngbrsLen := len(ngbrNoders)
 	for i := 0; i < ngbrsLen; i++ {
-		ngbType = serviceNode
-		for j := 0; j < bookKeeperLen; j++ {
-			if ngbrNoders[i].GetPubKey().X.Cmp(bookKeepers[j].X) == 0 {
-				ngbType = verifyNode
+		ngbType = SERVICENODE
+		for j := 0; j < bookkeeperLen; j++ {
+			if keypair.ComparePublicKey(ngbrNoders[i].GetPubKey(), bookkeepers[j]) {
+				ngbType = VERIFYNODE
 				break
 			}
 		}
@@ -85,7 +105,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 		ngbAddr = ngbrNoders[i].GetAddr()
 		ngbInfoPort = ngbrNoders[i].GetHttpInfoPort()
 		ngbInfoState = ngbrNoders[i].GetHttpInfoState()
-		ngbHttpInfoAddr = ngbAddr + ":" + strconv.Itoa(ngbInfoPort)
+		ngbHttpInfoAddr = ngbAddr + ":" + strconv.Itoa(int(ngbInfoPort))
 		ngbId = fmt.Sprintf("0x%x", ngbrNoders[i].GetID())
 
 		ngbrInfo := newNgbNodeInfo(ngbId, ngbType, ngbAddr, ngbHttpInfoAddr, ngbInfoPort, ngbInfoState)
@@ -106,7 +126,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func StartServer(n Noder) {
+func StartServer(n *peer.Peer) {
 	node = n
 	port := int(config.Parameters.HttpInfoPort)
 	http.HandleFunc("/info", viewHandler)

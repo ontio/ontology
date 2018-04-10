@@ -1,9 +1,28 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package neovm
 
 import (
-	. "github.com/Ontology/vm/neovm/errors"
-	"github.com/Ontology/common/log"
 	"fmt"
+
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/vm/neovm/errors"
 )
 
 func opNop(e *ExecutionEngine) (VMState, error) {
@@ -17,14 +36,14 @@ func opJmp(e *ExecutionEngine) (VMState, error) {
 
 	if offset < 0 || offset > len(e.context.Code) {
 		log.Error(fmt.Sprintf("[opJmp] offset:%v > e.contex.Code len:%v error", offset, len(e.context.Code)))
-		return FAULT, ErrFault
+		return FAULT, errors.ERR_FAULT
 	}
 	var fValue = true
 
 	if e.opCode > JMP {
 		if EvaluationStackCount(e) < 1 {
 			log.Error(fmt.Sprintf("[opJmp] stack count:%v > 1 error", EvaluationStackCount(e)))
-			return FAULT, ErrUnderStackLen
+			return FAULT, errors.ERR_UNDER_STACK_LEN
 		}
 		fValue = PopBoolean(e)
 		if e.opCode == JMPIFNOT {

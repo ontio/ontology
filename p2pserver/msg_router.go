@@ -19,10 +19,10 @@
 package p2pserver
 
 import (
-	"github.com/Ontology/common/log"
-	msgCommon "github.com/Ontology/p2pserver/common"
-	msg "github.com/Ontology/p2pserver/message"
-	_ "github.com/Ontology/p2pserver/peer"
+	"github.com/ontio/ontology/common/log"
+	msgCommon "github.com/ontio/ontology/p2pserver/common"
+	msg "github.com/ontio/ontology/p2pserver/message"
+	_ "github.com/ontio/ontology/p2pserver/peer"
 )
 
 type MessageHandler func(data msgCommon.MsgPayload, p2p *P2PServer) error

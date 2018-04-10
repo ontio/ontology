@@ -22,7 +22,7 @@ import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/Ontology/common/serialization"
+	"github.com/ontio/ontology/common/serialization"
 )
 
 type Ping struct {

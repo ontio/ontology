@@ -1,25 +1,44 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package types
 
 import (
 	"math/big"
-	"github.com/Ontology/vm/neovm/interfaces"
+
+	"github.com/ontio/ontology/vm/neovm/interfaces"
 )
 
 type Struct struct {
-	_array []StackItemInterface
+	_array []StackItems
 }
 
-func NewStruct(value []StackItemInterface) *Struct {
-	var s Struct
-	s._array = value
-	return &s
+func NewStruct(value []StackItems) *Struct {
+	var this Struct
+	this._array = value
+	return &this
 }
 
-func (s *Struct) Equals(other StackItemInterface) bool {
+func (this *Struct) Equals(other StackItems) bool {
 	if _, ok := other.(*Struct); !ok {
 		return false
 	}
-	a1 := s._array
+	a1 := this._array
 	a2 := other.GetStruct()
 	l1 := len(a1)
 	l2 := len(a2)
@@ -34,44 +53,44 @@ func (s *Struct) Equals(other StackItemInterface) bool {
 	return true
 }
 
-func (s *Struct) GetBigInteger() *big.Int {
-	if len(s._array) == 0 {
+func (this *Struct) GetBigInteger() *big.Int {
+	if len(this._array) == 0 {
 		return big.NewInt(0)
 	}
-	return s._array[0].GetBigInteger()
+	return this._array[0].GetBigInteger()
 }
 
-func (s *Struct) GetBoolean() bool {
-	if len(s._array) == 0 {
+func (this *Struct) GetBoolean() bool {
+	if len(this._array) == 0 {
 		return false
 	}
-	return s._array[0].GetBoolean()
+	return this._array[0].GetBoolean()
 }
 
-func (s *Struct) GetByteArray() []byte {
-	if len(s._array) == 0 {
+func (this *Struct) GetByteArray() []byte {
+	if len(this._array) == 0 {
 		return []byte{}
 	}
-	return s._array[0].GetByteArray()
+	return this._array[0].GetByteArray()
 }
 
-func (s *Struct) GetInterface() interfaces.IInteropInterface {
-	if len(s._array) == 0 {
+func (this *Struct) GetInterface() interfaces.Interop {
+	if len(this._array) == 0 {
 		return nil
 	}
-	return s._array[0].GetInterface()
+	return this._array[0].GetInterface()
 }
 
-func (s *Struct) GetArray() []StackItemInterface {
+func (s *Struct) GetArray() []StackItems {
 	return s._array
 }
 
-func (s *Struct) GetStruct() []StackItemInterface {
+func (s *Struct) GetStruct() []StackItems {
 	return s._array
 }
 
-func (s *Struct) Clone() StackItemInterface {
-	var arr []StackItemInterface
+func (s *Struct) Clone() StackItems {
+	var arr []StackItems
 	for _, v := range s._array {
 		if value, ok := v.(*Struct); ok {
 			arr = append(arr, value.Clone())

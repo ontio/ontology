@@ -17,16 +17,15 @@
 package neovm
 
 import (
-	"github.com/Ontology/vm/neovm/interfaces"
 	"io"
-	_ "math/big"
-	_ "sort"
-	. "github.com/Ontology/vm/neovm/errors"
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
+
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/vm/neovm/errors"
+	"github.com/ontio/ontology/vm/neovm/interfaces"
 )
 
-func NewExecutionEngine(container interfaces.ICodeContainer, crypto interfaces.ICrypto, table interfaces.ICodeTable, service IInteropService) *ExecutionEngine {
+func NewExecutionEngine(container interfaces.CodeContainer, crypto interfaces.Crypto, table interfaces.CodeTable, service InteropServices) *ExecutionEngine {
 	var engine ExecutionEngine
 
 	engine.crypto = crypto
@@ -52,11 +51,11 @@ func NewExecutionEngine(container interfaces.ICodeContainer, crypto interfaces.I
 }
 
 type ExecutionEngine struct {
-	crypto          interfaces.ICrypto
-	table           interfaces.ICodeTable
-	service         *InteropService
+	crypto  interfaces.Crypto
+	table   interfaces.CodeTable
+	service *InteropService
 
-	codeContainer   interfaces.ICodeContainer
+	codeContainer   interfaces.CodeContainer
 	invocationStack *RandomAccessStack
 	opCount         int
 
@@ -64,18 +63,18 @@ type ExecutionEngine struct {
 	altStack        *RandomAccessStack
 	state           VMState
 
-	context         *ExecutionContext
+	context *ExecutionContext
 
 	//current opcode
-	opCode          OpCode
-	gas             int64
+	opCode OpCode
+	gas    int64
 }
 
-func (e *ExecutionEngine) Create(caller common.Uint160, code []byte) ([]byte, error) {
+func (e *ExecutionEngine) Create(caller common.Address, code []byte) ([]byte, error) {
 	return code, nil
 }
 
-func (e *ExecutionEngine) Call(caller common.Uint160, code, input []byte) ([]byte, error) {
+func (e *ExecutionEngine) Call(caller common.Address, code, input []byte) ([]byte, error) {
 	e.LoadCode(code, false)
 	e.LoadCode(input, false)
 	err := e.Execute()
@@ -85,7 +84,7 @@ func (e *ExecutionEngine) Call(caller common.Uint160, code, input []byte) ([]byt
 	return nil, nil
 }
 
-func (e *ExecutionEngine) GetCodeContainer() interfaces.ICodeContainer {
+func (e *ExecutionEngine) GetCodeContainer() interfaces.CodeContainer {
 	return e.codeContainer
 }
 
@@ -111,11 +110,11 @@ func (e *ExecutionEngine) GetExecuteResult() bool {
 func (e *ExecutionEngine) CurrentContext() (*ExecutionContext, error) {
 	if e.invocationStack.Count() < 1 {
 		log.Error("[CurrentContext], Get current context fail!")
-		return nil, ErrOverStackLen
+		return nil, errors.ERR_OVER_STACK_LEN
 	}
 	context := e.invocationStack.Peek(0).GetExecutionContext()
 	if context == nil {
-		return nil, ErrCurrentContextNil
+		return nil, errors.ERR_CURRENT_CONTEXT_NIL
 	}
 	return context, nil
 }
@@ -123,11 +122,11 @@ func (e *ExecutionEngine) CurrentContext() (*ExecutionContext, error) {
 func (e *ExecutionEngine) CallingContext() (*ExecutionContext, error) {
 	if e.invocationStack.Count() < 2 {
 		log.Error("[CallingContext], Get calling context fail!")
-		return nil, ErrOverStackLen
+		return nil, errors.ERR_OVER_STACK_LEN
 	}
 	context := e.invocationStack.Peek(1).GetExecutionContext()
 	if context == nil {
-		return nil, ErrCallingContextNil
+		return nil, errors.ERR_CALLING_CONTEXT_NIL
 	}
 	return context, nil
 }
@@ -135,11 +134,11 @@ func (e *ExecutionEngine) CallingContext() (*ExecutionContext, error) {
 func (e *ExecutionEngine) EntryContext() (*ExecutionContext, error) {
 	if e.invocationStack.Count() < 1 {
 		log.Error("[EntryContext], Get entry context fail!")
-		return nil, ErrOverStackLen
+		return nil, errors.ERR_OVER_STACK_LEN
 	}
 	context := e.invocationStack.Peek(e.invocationStack.Count() - 1).GetExecutionContext()
 	if context == nil {
-		return nil, ErrEntryContextNil
+		return nil, errors.ERR_ENTRY_CONTEXT_NIL
 	}
 	return context, nil
 }
@@ -186,7 +185,7 @@ func (e *ExecutionEngine) StepInto() error {
 	e.opCode = opCode
 	e.context = context
 	if !e.checkStackSize() {
-		return ErrOverLimitStack
+		return errors.ERR_OVER_LIMIT_STACK
 	}
 	state, err := e.ExecuteOp()
 
@@ -205,7 +204,7 @@ func (e *ExecutionEngine) StepInto() error {
 
 func (e *ExecutionEngine) ExecuteOp() (VMState, error) {
 	if e.opCode > PUSH16 && e.opCode != RET && e.context.PushOnly {
-		return FAULT, ErrBadValue
+		return FAULT, errors.ERR_BAD_VALUE
 	}
 
 	if e.opCode >= PUSHBYTES1 && e.opCode <= PUSHBYTES75 {
@@ -215,7 +214,7 @@ func (e *ExecutionEngine) ExecuteOp() (VMState, error) {
 
 	opExec := OpExecList[e.opCode]
 	if opExec.Exec == nil {
-		return FAULT, ErrNotSupportOpCode
+		return FAULT, errors.ERR_NOT_SUPPORT_OPCODE
 	}
 
 	if opExec.Validator != nil {
@@ -287,7 +286,7 @@ func (e *ExecutionEngine) checkStackSize() bool {
 		}
 	}
 	size += e.evaluationStack.Count() + e.altStack.Count()
-	if uint32(size) > StackLimit {
+	if uint32(size) > Stack_LIMIT {
 		return false
 	}
 	return true

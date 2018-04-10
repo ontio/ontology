@@ -1,127 +1,154 @@
-// Copyright 2017 The Onchain Authors
-// This file is part of the Onchain library.
+// Copyright 2017 The Ontology Authors
+// This file is part of the Ontology library.
 //
-// The Onchain library is free software: you can redistribute it and/or modify
+// The Ontology library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The Onchain library is distributed in the hope that it will be useful,
+// The Ontology library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the Onchain library. If not, see <http://www.gnu.org/licenses/>.
+// along with the Ontology library. If not, see <http://www.gnu.org/licenses/>.
 
 package smartcontract
 
 import (
-	"github.com/Ontology/common"
-	"github.com/Ontology/core/contract"
-	"github.com/Ontology/smartcontract/service"
-	vmtypes "github.com/Ontology/vm/types"
-	"reflect"
-	"github.com/Ontology/vm/neovm"
-	"github.com/Ontology/errors"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/store"
-	scommon "github.com/Ontology/core/store/common"
-	"github.com/Ontology/core/types"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/store"
+	scommon "github.com/ontio/ontology/core/store/common"
+	ctypes "github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/context"
+	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/native"
+	sneovm "github.com/ontio/ontology/smartcontract/service/neovm"
+	"github.com/ontio/ontology/smartcontract/service/wasm"
+	stypes "github.com/ontio/ontology/smartcontract/types"
+	"github.com/ontio/ontology/vm/neovm"
+	"github.com/ontio/ontology/vm/neovm/interfaces"
+	vmtypes "github.com/ontio/ontology/vm/types"
+	"github.com/ontio/ontology/vm/wasmvm/exec"
+	"github.com/ontio/ontology/vm/wasmvm/util"
 )
 
-type Context struct {
-	LedgerStore store.ILedgerStore
-	Code vmtypes.VmCode
-	DBCache scommon.IStateStore
-	TX *types.Transaction
-	Time uint32
+type SmartContract struct {
+	Context       []*context.Context
+	Config        *Config
+	Engine        Engine
+	Notifications []*event.NotifyEventInfo
 }
 
-type SmartContract struct {
-	Input          []byte
-	VMType         vmtypes.VmType
+type Config struct {
+	Time    uint32
+	Height  uint32
+	Tx      *ctypes.Transaction
+	Table   interfaces.CodeTable
+	DBCache scommon.StateStore
+	Store   store.LedgerStore
 }
 
 type Engine interface {
-	Create(caller common.Uint160, code []byte) ([]byte, error)
-	Call(caller common.Uint160, code, input []byte) ([]byte, error)
+	StepInto()
 }
 
-func NewSmartContract(context *Context) (*SmartContract, error) {
-	var e Engine
-	switch context.Code.VmType {
+//put current context to smart contract
+func (sc *SmartContract) PushContext(context *context.Context) {
+	sc.Context = append(sc.Context, context)
+}
+
+//get smart contract current context
+func (sc *SmartContract) CurrentContext() *context.Context {
+	if len(sc.Context) < 1 {
+		return nil
+	}
+	return sc.Context[len(sc.Context)-1]
+}
+
+//get smart contract caller context
+func (sc *SmartContract) CallingContext() *context.Context {
+	if len(sc.Context) < 2 {
+		return nil
+	}
+	return sc.Context[len(sc.Context)-2]
+}
+
+//get smart contract entry entrance context
+func (sc *SmartContract) EntryContext() *context.Context {
+	if len(sc.Context) < 1 {
+		return nil
+	}
+	return sc.Context[0]
+}
+
+//pop smart contract current context
+func (sc *SmartContract) PopContext() {
+	sc.Context = sc.Context[:len(sc.Context)-1]
+}
+
+func (sc *SmartContract) PushNotifications(notifications []*event.NotifyEventInfo) {
+	sc.Notifications = append(sc.Notifications, notifications...)
+}
+
+func (sc *SmartContract) Execute() error {
+	ctx := sc.CurrentContext()
+	switch ctx.Code.VmType {
+	case vmtypes.Native:
+		service := native.NewNativeService(sc.Config.DBCache, sc.Config.Height, sc.Config.Tx, sc)
+		if err := service.Invoke(); err != nil {
+			return err
+		}
 	case vmtypes.NEOVM:
-		stateMachine := service.NewStateMachine(context.LedgerStore, context.DBCache, vmtypes.Application, context.Time)
-		e = neovm.NewExecutionEngine(
-			context.TX,
+		stateMachine := sneovm.NewStateMachine(sc.Config.Store, sc.Config.DBCache, stypes.Application, sc.Config.Time)
+		engine := neovm.NewExecutionEngine(
+			sc.Config.Tx,
 			new(neovm.ECDsaCrypto),
-			context.CacheCodeTable,
-			context.StateMachine,
+			sc.Config.Table,
+			stateMachine,
 		)
-	default:
-		return nil, errors.NewErr("[NewSmartContract] Invalid vm type!")
+		engine.LoadCode(ctx.Code.Code, false)
+		if err := engine.Execute(); err != nil {
+			return err
+		}
+		stateMachine.CloneCache.Commit()
+		sc.Notifications = append(sc.Notifications, stateMachine.Notifications...)
+	case vmtypes.WASMVM:
+		stateMachine := wasm.NewWasmStateMachine(sc.Config.Store, sc.Config.DBCache, stypes.Application, sc.Config.Time)
+
+		engine := exec.NewExecutionEngine(
+			sc.Config.Tx,
+			new(util.ECDsaCrypto),
+			sc.Config.Table,
+			stateMachine,
+			"product",
+		)
+		//todo how to get the input
+		input := []byte{}
+		engine.Call(ctx.ContractAddress, ctx.Code.Code, input)
+		//fmt.Println(engine)
+		stateMachine.CloneCache.Commit()
+		sc.Notifications = append(sc.Notifications, stateMachine.Notifications...)
 	}
-	return &SmartContract{
-		Engine:         e,
-		Code:           context.Code,
-		CodeHash:       context.CodeHash,
-		Input:          context.Input,
-		Caller:         context.Caller,
-		VMType:         context.VmType,
-		ReturnType:     context.ReturnType,
-		ParameterTypes: context.ParameterTypes,
-	}, nil
+	return nil
 }
 
-func (sc *SmartContract) DeployContract() ([]byte, error) {
-	return sc.Engine.Create(sc.Caller, sc.Code)
-}
-
-func (sc *SmartContract) InvokeContract() (interface{}, error) {
-	_, err := sc.Engine.Call(sc.Caller, sc.Code, sc.Input)
-	if err != nil {
-		return nil, err
-	}
-	return sc.InvokeResult()
-}
-
-
-func (sc *SmartContract) InvokeResult() (interface{}, error) {
-	switch sc.VMType {
-	case types.NEOVM:
-		engine := sc.Engine.(*neovm.ExecutionEngine)
-		if engine.GetEvaluationStackCount() > 0 && neovm.Peek(engine).GetStackItem() != nil {
-			switch sc.ReturnType {
-			case contract.Boolean:
-				return neovm.PopBoolean(engine), nil
-			case contract.Integer:
-				log.Error(reflect.TypeOf(neovm.Peek(engine).GetStackItem().GetByteArray()))
-				return neovm.PopBigInt(engine).Int64(), nil
-			case contract.ByteArray:
-				return common.ToHexString(neovm.PopByteArray(engine)), nil
-			case contract.String:
-				return string(neovm.PopByteArray(engine)), nil
-			case contract.Hash160, contract.Hash256:
-				return common.ToHexString(neovm.PopByteArray(engine)), nil
-			case contract.PublicKey:
-				return common.ToHexString(neovm.PopByteArray(engine)), nil
-			case contract.InteropInterface:
-				if neovm.PeekInteropInterface(engine) != nil {
-					return common.ToHexString(neovm.PopInteropInterface(engine).ToArray()), nil
-				}
-				return nil, nil
-			case contract.Array:
-				var states []interface{}
-				arr := neovm.PeekArray(engine)
-				for _, v := range arr {
-					states = append(states, scommon.ConvertReturnTypes(v)...)
-				}
-				return states, nil
-			default:
-				return common.ToHexString(neovm.PopByteArray(engine)), nil
+func (sc *SmartContract) CheckWitness(address common.Address) bool {
+	if vmtypes.IsVmCodeAddress(address) {
+		for _, v := range sc.Context {
+			if v.ContractAddress == address {
+				return true
+			}
+		}
+	} else {
+		addresses := sc.Config.Tx.GetSignatureAddresses()
+		for _, v := range addresses {
+			if v == address {
+				return true
 			}
 		}
 	}
-	return nil, nil
+
+	return false
 }

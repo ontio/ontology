@@ -25,8 +25,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/p2pserver/common"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/p2pserver/common"
 )
 
 // The network communication message header

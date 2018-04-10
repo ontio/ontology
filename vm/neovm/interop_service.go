@@ -1,11 +1,28 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package neovm
 
 import (
-	. "github.com/Ontology/vm/neovm/errors"
-	"github.com/Ontology/common/log"
+	"github.com/ontio/ontology/vm/neovm/errors"
 )
 
-type IInteropService interface {
+type InteropServices interface {
 	Register(method string, handler func(*ExecutionEngine) (bool, error)) bool
 	GetServiceMap() map[string]func(*ExecutionEngine) (bool, error)
 }
@@ -46,10 +63,9 @@ func (i *InteropService) GetServiceMap() map[string]func(*ExecutionEngine) (bool
 
 func (i *InteropService) Invoke(methodName string, engine *ExecutionEngine) (bool, error) {
 	if v, ok := i.serviceMap[methodName]; ok {
-		log.Error("Invoke MethodName:", methodName)
 		return v(engine)
 	}
-	return false, ErrNotSupportService
+	return false, errors.ERR_NOT_SUPPORT_SERVICE
 }
 
 func (i *InteropService) GetCodeContainer(engine *ExecutionEngine) (bool, error) {
@@ -66,7 +82,7 @@ func (i *InteropService) GetExecutingCodeHash(engine *ExecutionEngine) (bool, er
 	if err != nil {
 		return false, err
 	}
-	PushData(engine, codeHash.ToArray())
+	PushData(engine, codeHash[:])
 	return true, nil
 }
 
@@ -79,7 +95,7 @@ func (i *InteropService) GetCallingCodeHash(engine *ExecutionEngine) (bool, erro
 	if err != nil {
 		return false, err
 	}
-	PushData(engine, codeHash.ToArray())
+	PushData(engine, codeHash[:])
 	return true, nil
 }
 func (i *InteropService) GetEntryCodeHash(engine *ExecutionEngine) (bool, error) {
@@ -91,6 +107,6 @@ func (i *InteropService) GetEntryCodeHash(engine *ExecutionEngine) (bool, error)
 	if err != nil {
 		return false, err
 	}
-	PushData(engine, codeHash.ToArray())
+	PushData(engine, codeHash[:])
 	return true, nil
 }

@@ -23,8 +23,9 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/crypto"
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/common/serialization"
 )
 
 type VersionPayload struct {
@@ -46,7 +47,7 @@ type VersionPayload struct {
 type Version struct {
 	Hdr MsgHdr
 	P   VersionPayload
-	PK  *crypto.PubKey
+	PK  keypair.PublicKey
 }
 
 //Check whether header is correct
@@ -66,7 +67,11 @@ func (msg Version) Serialization() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	msg.PK.Serialize(buf)
+	keyBuf := keypair.SerializePublicKey(msg.PK)
+	err = serialization.WriteVarBytes(buf, keyBuf)
+	if err != nil {
+		return nil, err
+	}
 
 	return buf.Bytes(), err
 }
@@ -87,8 +92,11 @@ func (msg *Version) Deserialization(p []byte) error {
 		return errors.New("Parse version P message error")
 	}
 
-	pk := new(crypto.PubKey)
-	err = pk.DeSerialize(buf)
+	keyBuf, err := serialization.ReadVarBytes(buf)
+	if err != nil {
+		return errors.New("Parse pubkey Deserialize failed.")
+	}
+	pk, err := keypair.DeserializePublicKey(keyBuf)
 	if err != nil {
 		return errors.New("Parse pubkey Deserialize failed.")
 	}

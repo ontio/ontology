@@ -1,11 +1,24 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package restful
 
 import (
-	. "github.com/Ontology/common/config"
-	"github.com/Ontology/common/log"
-	. "github.com/Ontology/http/base/rest"
-	Err "github.com/Ontology/http/base/error"
-	"github.com/Ontology/http/websocket"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -16,6 +29,12 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	cfg "github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
+	berr "github.com/ontio/ontology/http/base/error"
+	"github.com/ontio/ontology/http/base/rest"
+	"github.com/ontio/ontology/http/websocket"
 )
 
 type handler func(map[string]interface{}) map[string]interface{}
@@ -25,33 +44,34 @@ type Action struct {
 	handler handler
 }
 type restServer struct {
-	router           *Router
-	listener         net.Listener
-	server           *http.Server
-	postMap          map[string]Action
-	getMap           map[string]Action
+	router   *Router
+	listener net.Listener
+	server   *http.Server
+	postMap  map[string]Action
+	getMap   map[string]Action
 }
 
 const (
-	Api_GetGenBlockTime = "/api/v1/node/generateblocktime"
-	Api_GetconnCount  = "/api/v1/node/connectioncount"
-	Api_GetblkTxsByHeight = "/api/v1/block/transactions/height/:height"
-	Api_Getblkbyheight = "/api/v1/block/details/height/:height"
-	Api_Getblkbyhash = "/api/v1/block/details/hash/:hash"
-	Api_Getblkheight = "/api/v1/block/height"
-	Api_Getblkhash = "/api/v1/block/hash/:height"
+	GET_GEN_BLK_TIME      = "/api/v1/node/generateblocktime"
+	GET_CONN_COUNT        = "/api/v1/node/connectioncount"
+	GET_BLK_TXS_BY_HEIGHT = "/api/v1/block/transactions/height/:height"
+	GET_BLK_BY_HEIGHT     = "/api/v1/block/details/height/:height"
+	GET_BLK_BY_HASH       = "/api/v1/block/details/hash/:hash"
+	GET_BLK_HEIGHT        = "/api/v1/block/height"
+	GET_BLK_HASH          = "/api/v1/block/hash/:height"
+	GET_TX                = "/api/v1/transaction/:hash"
+	GET_STORAGE           = "/api/v1/storage/:hash/:key"
+	GET_BALANCE           = "/api/v1/balance/:addr"
+	GET_CONTRACT_STATE    = "/api/v1/contract/:hash"
+	GET_SMTCOCE_EVT_TXS   = "/api/v1/smartcode/event/transactions/:height"
+	GET_SMTCOCE_EVTS      = "/api/v1/smartcode/event/txhash/:hash"
+	GET_BLK_HGT_BY_TXHASH = "/api/v1/block/height/txhash/:hash"
 
-	Api_GetTransaction = "/api/v1/transaction/:hash"
-
-	Api_SendRawTx = "/api/v1/transaction"
-	Api_WebsocketState = "/api/v1/config/websocket/state"
-	Api_Restart = "/api/v1/restart"
-	Api_GetContractState = "/api/v1/contract/:hash"
-	Api_GetSmartCodeEvent = "/api/v1/smartcode/event/:height"
-	Api_GetTxBlockHeight = "/api/v1/block/height/txhash/:hash"
+	POST_RAW_TX          = "/api/v1/transaction"
+	POST_WEBWOCKET_STATE = "/api/v1/config/websocket/state"
 )
 
-func InitRestServer() ApiServer {
+func InitRestServer() rest.ApiServer {
 	rt := &restServer{}
 
 	rt.router = NewRouter()
@@ -61,30 +81,30 @@ func InitRestServer() ApiServer {
 	return rt
 }
 
-func (rt *restServer) Start() error {
-	if Parameters.HttpRestPort == 0 {
+func (this *restServer) Start() error {
+	if cfg.Parameters.HttpRestPort == 0 {
 		log.Fatal("Not configure HttpRestPort port ")
 		return nil
 	}
 
 	tlsFlag := false
-	if tlsFlag || Parameters.HttpRestPort % 1000 == TlsPort {
+	if tlsFlag || cfg.Parameters.HttpRestPort%1000 == rest.TLS_PORT {
 		var err error
-		rt.listener, err = rt.initTlsListen()
+		this.listener, err = this.initTlsListen()
 		if err != nil {
 			log.Error("Https Cert: ", err.Error())
 			return err
 		}
 	} else {
 		var err error
-		rt.listener, err = net.Listen("tcp", ":" + strconv.Itoa(Parameters.HttpRestPort))
+		this.listener, err = net.Listen("tcp", ":"+strconv.Itoa(cfg.Parameters.HttpRestPort))
 		if err != nil {
 			log.Fatal("net.Listen: ", err.Error())
 			return err
 		}
 	}
-	rt.server = &http.Server{Handler: rt.router}
-	err := rt.server.Serve(rt.listener)
+	this.server = &http.Server{Handler: this.router}
+	err := this.server.Serve(this.listener)
 
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err.Error())
@@ -93,11 +113,11 @@ func (rt *restServer) Start() error {
 
 	return nil
 }
-func (rt *restServer) setWebsocketState(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
+func (this *restServer) setWebsocketState(cmd map[string]interface{}) map[string]interface{} {
+	resp := rest.ResponsePack(berr.SUCCESS)
 	startFlag, ok := cmd["Open"].(bool)
 	if !ok {
-		resp["Error"] = Err.INVALID_PARAMS
+		resp["Error"] = berr.INVALID_PARAMS
 		return resp
 	}
 	if b, ok := cmd["PushBlock"].(bool); ok {
@@ -110,7 +130,7 @@ func (rt *restServer) setWebsocketState(cmd map[string]interface{}) map[string]i
 		websocket.SetPushBlockTxsFlag(b)
 	}
 	if wsPort, ok := cmd["Port"].(float64); ok && wsPort != 0 {
-		Parameters.HttpWsPort = int(wsPort)
+		cfg.Parameters.HttpWsPort = int(wsPort)
 	}
 	if startFlag {
 		websocket.ReStartServer()
@@ -119,32 +139,34 @@ func (rt *restServer) setWebsocketState(cmd map[string]interface{}) map[string]i
 	}
 	var result = make(map[string]interface{})
 	result["Open"] = startFlag
-	result["Port"] = Parameters.HttpWsPort
+	result["Port"] = cfg.Parameters.HttpWsPort
 	result["PushBlock"] = websocket.GetWsPushBlockFlag()
 	result["PushRawBlock"] = websocket.GetPushRawBlockFlag()
 	result["PushBlockTxs"] = websocket.GetPushBlockTxsFlag()
 	resp["Result"] = result
 	return resp
 }
-func (rt *restServer) registryMethod() {
+func (this *restServer) registryMethod() {
 
 	getMethodMap := map[string]Action{
-		Api_GetGenBlockTime:  {name: "getgenerateblocktime", handler: GetGenerateBlockTime},
-		Api_GetconnCount:  {name: "getconnectioncount", handler: GetConnectionCount},
-		Api_GetblkTxsByHeight: {name: "getblocktxsbyheight", handler: GetBlockTxsByHeight},
-		Api_Getblkbyheight:    {name: "getblockbyheight", handler: GetBlockByHeight},
-		Api_Getblkbyhash:      {name: "getblockbyhash", handler: GetBlockByHash},
-		Api_Getblkheight:      {name: "getblockheight", handler: GetBlockHeight},
-		Api_Getblkhash:        {name: "getblockhash", handler: GetBlockHash},
-		Api_GetTransaction:      {name: "gettransaction", handler: GetTransactionByHash},
-		Api_GetContractState:         {name: "getcontract", handler: GetContractState},
-		Api_Restart:             {name: "restart", handler: rt.Restart},
-		Api_GetSmartCodeEvent:{name: "getsmartcodeevent", handler: GetSmartCodeEventByHeight},
-		Api_GetTxBlockHeight:{name: "gettxblockheight", handler: GetTxBlockHeight},
+		GET_GEN_BLK_TIME:      {name: "getgenerateblocktime", handler: rest.GetGenerateBlockTime},
+		GET_CONN_COUNT:        {name: "getconnectioncount", handler: rest.GetConnectionCount},
+		GET_BLK_TXS_BY_HEIGHT: {name: "getblocktxsbyheight", handler: rest.GetBlockTxsByHeight},
+		GET_BLK_BY_HEIGHT:     {name: "getblockbyheight", handler: rest.GetBlockByHeight},
+		GET_BLK_BY_HASH:       {name: "getblockbyhash", handler: rest.GetBlockByHash},
+		GET_BLK_HEIGHT:        {name: "getblockheight", handler: rest.GetBlockHeight},
+		GET_BLK_HASH:          {name: "getblockhash", handler: rest.GetBlockHash},
+		GET_TX:                {name: "gettransaction", handler: rest.GetTransactionByHash},
+		GET_CONTRACT_STATE:    {name: "getcontract", handler: rest.GetContractState},
+		GET_SMTCOCE_EVT_TXS:   {name: "getsmartcodeeventbyheight", handler: rest.GetSmartCodeEventTxsByHeight},
+		GET_SMTCOCE_EVTS:      {name: "getsmartcodeeventbyhash", handler: rest.GetSmartCodeEventByTxHash},
+		GET_BLK_HGT_BY_TXHASH: {name: "getblockheightbytxhash", handler: rest.GetBlockHeightByTxHash},
+		GET_STORAGE:           {name: "getstorage", handler: rest.GetStorage},
+		GET_BALANCE:           {name: "getbalance", handler: rest.GetBalance},
 	}
 
 	sendRawTransaction := func(cmd map[string]interface{}) map[string]interface{} {
-		resp := SendRawTransaction(cmd)
+		resp := rest.SendRawTransaction(cmd)
 		if userid, ok := resp["Userid"].(string); ok && len(userid) > 0 {
 			if result, ok := resp["Result"].(string); ok {
 				websocket.SetTxHashMap(result, userid)
@@ -154,90 +176,101 @@ func (rt *restServer) registryMethod() {
 		return resp
 	}
 	postMethodMap := map[string]Action{
-		Api_SendRawTx:          {name: "sendrawtransaction", handler: sendRawTransaction},
-		Api_WebsocketState:     {name: "setwebsocketstate", handler: rt.setWebsocketState},
+		POST_RAW_TX:          {name: "sendrawtransaction", handler: sendRawTransaction},
+		POST_WEBWOCKET_STATE: {name: "setwebsocketstate", handler: this.setWebsocketState},
 	}
-	rt.postMap = postMethodMap
-	rt.getMap = getMethodMap
+	this.postMap = postMethodMap
+	this.getMap = getMethodMap
 }
-func (rt *restServer) getPath(url string) string {
+func (this *restServer) getPath(url string) string {
 
-	if strings.Contains(url, strings.TrimRight(Api_GetblkTxsByHeight, ":height")) {
-		return Api_GetblkTxsByHeight
-	} else if strings.Contains(url, strings.TrimRight(Api_Getblkbyheight, ":height")) {
-		return Api_Getblkbyheight
-	} else if strings.Contains(url, strings.TrimRight(Api_Getblkhash, ":height")) {
-		return Api_Getblkhash
-	} else if strings.Contains(url, strings.TrimRight(Api_Getblkbyhash, ":hash")) {
-		return Api_Getblkbyhash
-	} else if strings.Contains(url, strings.TrimRight(Api_GetTransaction, ":hash")) {
-		return Api_GetTransaction
-	} else if strings.Contains(url, strings.TrimRight(Api_GetContractState, ":hash")) {
-		return Api_GetContractState
-	} else if strings.Contains(url, strings.TrimRight(Api_GetSmartCodeEvent, ":height")) {
-		return Api_GetSmartCodeEvent
-	} else if strings.Contains(url, strings.TrimRight(Api_GetTxBlockHeight, ":hash")) {
-		return Api_GetTxBlockHeight
+	if strings.Contains(url, strings.TrimRight(GET_BLK_TXS_BY_HEIGHT, ":height")) {
+		return GET_BLK_TXS_BY_HEIGHT
+	} else if strings.Contains(url, strings.TrimRight(GET_BLK_BY_HEIGHT, ":height")) {
+		return GET_BLK_BY_HEIGHT
+	} else if strings.Contains(url, strings.TrimRight(GET_BLK_HASH, ":height")) {
+		return GET_BLK_HASH
+	} else if strings.Contains(url, strings.TrimRight(GET_BLK_BY_HASH, ":hash")) {
+		return GET_BLK_BY_HASH
+	} else if strings.Contains(url, strings.TrimRight(GET_TX, ":hash")) {
+		return GET_TX
+	} else if strings.Contains(url, strings.TrimRight(GET_CONTRACT_STATE, ":hash")) {
+		return GET_CONTRACT_STATE
+	} else if strings.Contains(url, strings.TrimRight(GET_SMTCOCE_EVT_TXS, ":height")) {
+		return GET_SMTCOCE_EVT_TXS
+	} else if strings.Contains(url, strings.TrimRight(GET_SMTCOCE_EVTS, ":hash")) {
+		return GET_SMTCOCE_EVTS
+	} else if strings.Contains(url, strings.TrimRight(GET_BLK_HGT_BY_TXHASH, ":hash")) {
+		return GET_BLK_HGT_BY_TXHASH
+	} else if strings.Contains(url, strings.TrimRight(GET_STORAGE, ":hash/:key")) {
+		return GET_STORAGE
+	} else if strings.Contains(url, strings.TrimRight(GET_BALANCE, ":addr")) {
+		return GET_BALANCE
 	}
 	return url
 }
-func (rt *restServer) getParams(r *http.Request, url string, req map[string]interface{}) map[string]interface{} {
+func (this *restServer) getParams(r *http.Request, url string, req map[string]interface{}) map[string]interface{} {
 	switch url {
-	case Api_GetGenBlockTime:
-	case Api_GetconnCount:
-	case Api_GetblkTxsByHeight:
+	case GET_GEN_BLK_TIME:
+	case GET_CONN_COUNT:
+	case GET_BLK_TXS_BY_HEIGHT:
 		req["Height"] = getParam(r, "height")
-	case Api_Getblkbyheight:
+	case GET_BLK_BY_HEIGHT:
 		req["Raw"], req["Height"] = r.FormValue("raw"), getParam(r, "height")
-	case Api_Getblkbyhash:
+	case GET_BLK_BY_HASH:
 		req["Raw"], req["Hash"] = r.FormValue("raw"), getParam(r, "hash")
-	case Api_Getblkheight:
-	case Api_Getblkhash:
+	case GET_BLK_HEIGHT:
+	case GET_BLK_HASH:
 		req["Height"] = getParam(r, "height")
-	case Api_GetTransaction:
+	case GET_TX:
 		req["Hash"], req["Raw"] = getParam(r, "hash"), r.FormValue("raw")
-	case Api_GetContractState:
+	case GET_CONTRACT_STATE:
 		req["Hash"], req["Raw"] = getParam(r, "hash"), r.FormValue("raw")
-	case Api_Restart:
-	case Api_SendRawTx:
+	case POST_RAW_TX:
 		userid := r.FormValue("userid")
 		req["Userid"] = userid
 		if len(userid) == 0 {
 			req["Userid"] = getParam(r, "userid")
 		}
 		req["PreExec"] = r.FormValue("preExec")
-	case Api_GetSmartCodeEvent:
+	case GET_STORAGE:
+		req["Hash"], req["Key"] = getParam(r, "hash"), getParam(r, "key")
+	case GET_SMTCOCE_EVT_TXS:
 		req["Height"] = getParam(r, "height")
-	case Api_GetTxBlockHeight:
+	case GET_SMTCOCE_EVTS:
 		req["Hash"] = getParam(r, "hash")
-	case Api_WebsocketState:
+	case GET_BLK_HGT_BY_TXHASH:
+		req["Hash"] = getParam(r, "hash")
+	case GET_BALANCE:
+		req["Addr"] = getParam(r, "addr")
+	case POST_WEBWOCKET_STATE:
 	default:
 	}
 	return req
 }
-func (rt *restServer) initGetHandler() {
+func (this *restServer) initGetHandler() {
 
-	for k, _ := range rt.getMap {
-		rt.router.Get(k, func(w http.ResponseWriter, r *http.Request) {
+	for k := range this.getMap {
+		this.router.Get(k, func(w http.ResponseWriter, r *http.Request) {
 
 			var req = make(map[string]interface{})
 			var resp map[string]interface{}
 
-			url := rt.getPath(r.URL.Path)
-			if h, ok := rt.getMap[url]; ok {
-				req = rt.getParams(r, url, req)
+			url := this.getPath(r.URL.Path)
+			if h, ok := this.getMap[url]; ok {
+				req = this.getParams(r, url, req)
 				resp = h.handler(req)
 				resp["Action"] = h.name
 			} else {
-				resp = RspInvalidMethod
+				resp = rest.ResponsePack(berr.INVALID_METHOD)
 			}
-			rt.response(w, resp)
+			this.response(w, resp)
 		})
 	}
 }
-func (rt *restServer) initPostHandler() {
-	for k, _ := range rt.postMap {
-		rt.router.Post(k, func(w http.ResponseWriter, r *http.Request) {
+func (this *restServer) initPostHandler() {
+	for k := range this.postMap {
+		this.router.Post(k, func(w http.ResponseWriter, r *http.Request) {
 
 			body, _ := ioutil.ReadAll(r.Body)
 			defer r.Body.Close()
@@ -245,69 +278,69 @@ func (rt *restServer) initPostHandler() {
 			var req = make(map[string]interface{})
 			var resp map[string]interface{}
 
-			url := rt.getPath(r.URL.Path)
-			if h, ok := rt.postMap[url]; ok {
+			url := this.getPath(r.URL.Path)
+			if h, ok := this.postMap[url]; ok {
 				if err := json.Unmarshal(body, &req); err == nil {
-					req = rt.getParams(r, url, req)
+					req = this.getParams(r, url, req)
 					resp = h.handler(req)
 					resp["Action"] = h.name
 				} else {
-					resp = RspIllegalDataFormat
+					resp = rest.ResponsePack(berr.ILLEGAL_DATAFORMAT)
 					resp["Action"] = h.name
 				}
 			} else {
-				resp = RspInvalidMethod
+				resp = rest.ResponsePack(berr.INVALID_METHOD)
 			}
-			rt.response(w, resp)
+			this.response(w, resp)
 		})
 	}
 	//Options
-	for k, _ := range rt.postMap {
-		rt.router.Options(k, func(w http.ResponseWriter, r *http.Request) {
-			rt.write(w, []byte{})
+	for k := range this.postMap {
+		this.router.Options(k, func(w http.ResponseWriter, r *http.Request) {
+			this.write(w, []byte{})
 		})
 	}
 
 }
-func (rt *restServer) write(w http.ResponseWriter, data []byte) {
+func (this *restServer) write(w http.ResponseWriter, data []byte) {
 	w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
 	w.Header().Set("content-type", "application/json;charset=utf-8")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(data)
 }
-func (rt *restServer) response(w http.ResponseWriter, resp map[string]interface{}) {
-	resp["Desc"] = Err.ErrMap[resp["Error"].(int64)]
+func (this *restServer) response(w http.ResponseWriter, resp map[string]interface{}) {
+	resp["Desc"] = berr.ErrMap[resp["Error"].(int64)]
 	data, err := json.Marshal(resp)
 	if err != nil {
 		log.Fatal("HTTP Handle - json.Marshal: %v", err)
 		return
 	}
-	rt.write(w, data)
+	this.write(w, data)
 }
-func (rt *restServer) Stop() {
-	if rt.server != nil {
-		rt.server.Shutdown(context.Background())
+func (this *restServer) Stop() {
+	if this.server != nil {
+		this.server.Shutdown(context.Background())
 		log.Error("Close restful ")
 	}
 }
-func (rt *restServer) Restart(cmd map[string]interface{}) map[string]interface{} {
+func (this *restServer) Restart(cmd map[string]interface{}) map[string]interface{} {
 	go func() {
 		time.Sleep(time.Second)
-		rt.Stop()
+		this.Stop()
 		time.Sleep(time.Second)
-		go rt.Start()
+		go this.Start()
 	}()
 
-	var resp = ResponsePack(Err.SUCCESS)
+	var resp = rest.ResponsePack(berr.SUCCESS)
 	return resp
 }
-func (rt *restServer) initTlsListen() (net.Listener, error) {
+func (this *restServer) initTlsListen() (net.Listener, error) {
 
-	CertPath := Parameters.RestCertPath
-	KeyPath := Parameters.RestKeyPath
+	certPath := cfg.Parameters.RestCertPath
+	keyPath := cfg.Parameters.RestKeyPath
 
 	// load cert
-	cert, err := tls.LoadX509KeyPair(CertPath, KeyPath)
+	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
 	if err != nil {
 		log.Error("load keys fail", err)
 		return nil, err
@@ -317,8 +350,8 @@ func (rt *restServer) initTlsListen() (net.Listener, error) {
 		Certificates: []tls.Certificate{cert},
 	}
 
-	log.Info("TLS listen port is ", strconv.Itoa(Parameters.HttpRestPort))
-	listener, err := tls.Listen("tcp", ":" + strconv.Itoa(Parameters.HttpRestPort), tlsConfig)
+	log.Info("TLS listen port is ", strconv.Itoa(cfg.Parameters.HttpRestPort))
+	listener, err := tls.Listen("tcp", ":"+strconv.Itoa(cfg.Parameters.HttpRestPort), tlsConfig)
 	if err != nil {
 		log.Error(err)
 		return nil, err

@@ -10,5 +10,5 @@ package vm implemented a blockchain virtual machine, which provide following mai
 - apiservice for external interaction API with triggered by opcode
 - crypto for external crypto implementations with triggered by opcode
 -
- */
+*/
 package neovm

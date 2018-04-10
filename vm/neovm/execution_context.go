@@ -1,11 +1,30 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package neovm
 
 import (
-	"github.com/Ontology/common"
-	"github.com/Ontology/vm/neovm/types"
-	"github.com/Ontology/vm/neovm/utils"
 	"io"
-	vmtypes "github.com/Ontology/vm/types"
+
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/vm/neovm/types"
+	"github.com/ontio/ontology/vm/neovm/utils"
+	vmtypes "github.com/ontio/ontology/vm/types"
 )
 
 type ExecutionContext struct {
@@ -14,7 +33,7 @@ type ExecutionContext struct {
 	PushOnly           bool
 	BreakPoints        []uint
 	InstructionPointer int
-	CodeHash           common.Uint160
+	CodeHash           common.Address
 	engine             *ExecutionEngine
 }
 
@@ -37,10 +56,11 @@ func (ec *ExecutionContext) SetInstructionPointer(offset int64) {
 	ec.OpReader.Seek(offset, io.SeekStart)
 }
 
-func (ec *ExecutionContext) GetCodeHash() (common.Uint160, error) {
-	if ec.CodeHash.CompareTo(common.Uint160{}) == 0 {
+func (ec *ExecutionContext) GetCodeHash() (common.Address, error) {
+	empty := common.Address{}
+	if ec.CodeHash == empty {
 		code := &vmtypes.VmCode{
-			Code: ec.Code,
+			Code:   ec.Code,
 			VmType: vmtypes.NEOVM,
 		}
 		ec.CodeHash = code.AddressFromVmCode()
@@ -59,7 +79,7 @@ func (ec *ExecutionContext) Clone() *ExecutionContext {
 	return executionContext
 }
 
-func (ec *ExecutionContext) GetStackItem() types.StackItemInterface {
+func (ec *ExecutionContext) GetStackItem() types.StackItems {
 	return nil
 }
 

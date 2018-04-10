@@ -1,17 +1,36 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package common
 
 import (
-	"github.com/Ontology/vm/neovm/types"
-	"github.com/Ontology/common"
 	"fmt"
 	"reflect"
+
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/vm/neovm/types"
 )
 
 type States struct {
 	Value interface{}
 }
 
-func ConvertTypes(item types.StackItemInterface) (results []States) {
+func ConvertTypes(item types.StackItems) (results []States) {
 	if item == nil {
 		return
 	}
@@ -36,9 +55,9 @@ func ConvertTypes(item types.StackItemInterface) (results []States) {
 			arr = append(arr, ConvertTypes(val)...)
 		}
 		results = append(results, States{arr})
-	case *types.InteropInterface:
+	case *types.Interop:
 		results = append(results, States{common.ToHexString(v.GetInterface().ToArray())})
-	case types.StackItemInterface:
+	case types.StackItems:
 		ConvertTypes(v)
 	default:
 		panic(fmt.Sprintf("[ConvertTypes] Invalid Types: %v", reflect.TypeOf(v)))
@@ -46,7 +65,7 @@ func ConvertTypes(item types.StackItemInterface) (results []States) {
 	return
 }
 
-func ConvertReturnTypes(item types.StackItemInterface) (results []interface{}) {
+func ConvertReturnTypes(item types.StackItems) (results []interface{}) {
 	if item == nil {
 		return
 	}
@@ -63,9 +82,9 @@ func ConvertReturnTypes(item types.StackItemInterface) (results []interface{}) {
 			arr = append(arr, ConvertReturnTypes(val)...)
 		}
 		results = append(results, arr)
-	case *types.InteropInterface:
+	case *types.Interop:
 		results = append(results, common.ToHexString(v.GetInterface().ToArray()))
-	case types.StackItemInterface:
+	case types.StackItems:
 		ConvertTypes(v)
 	default:
 		panic("[ConvertTypes] Invalid Types!")

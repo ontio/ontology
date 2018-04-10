@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package config
 
 import (
@@ -9,11 +27,11 @@ import (
 )
 
 const (
-	DefaultConfigFilename = "./config.json"
-	MINGENBLOCKTIME       = 2
-	DEFAULTGENBLOCKTIME   = 6
-	DBFTMINNODENUM        = 4 //min node number of dbft consensus
-	SOLOMINNODENUM        = 1 //min node number of solo consensus
+	DEFAULT_CONFIG_FILE_NAME = "./config.json"
+	MIN_GEN_BLOCK_TIME       = 2
+	DEFAULT_GEN_BLOCK_TIME   = 6
+	DBFT_MIN_NODE_NUM        = 4 //min node number of dbft consensus
+	SOLO_MIN_NODE_NUM        = 1 //min node number of solo consensus
 )
 
 var Version string
@@ -22,7 +40,7 @@ type Configuration struct {
 	Magic             int64            `json:"Magic"`
 	Version           int              `json:"Version"`
 	SeedList          []string         `json:"SeedList"`
-	BookKeepers       []string         `json:"BookKeepers"` // The default book keepers' publickey
+	Bookkeepers       []string         `json:"Bookkeepers"` // The default book keepers' publickey
 	HttpRestPort      int              `json:"HttpRestPort"`
 	RestCertPath      string           `json:"RestCertPath"`
 	RestKeyPath       string           `json:"RestKeyPath"`
@@ -42,7 +60,7 @@ type Configuration struct {
 	CAPath            string           `json:"CAPath"`
 	GenBlockTime      uint             `json:"GenBlockTime"`
 	MultiCoreNum      uint             `json:"MultiCoreNum"`
-	EncryptAlg        string           `json:"EncryptAlg"`
+	SignatureScheme   string           `json:"SignatureScheme"`
 	MaxLogSize        int64            `json:"MaxLogSize"`
 	MaxTxInBlock      int              `json:"MaxTransactionInBlock"`
 	MaxHdrSyncReqs    int              `json:"MaxConcurrentSyncHeaderReqs"`
@@ -57,7 +75,7 @@ type ConfigFile struct {
 var Parameters *Configuration
 
 func init() {
-	file, e := ioutil.ReadFile(DefaultConfigFilename)
+	file, e := ioutil.ReadFile(DEFAULT_CONFIG_FILE_NAME)
 	if e != nil {
 		log.Fatalf("File error: %v\n", e)
 		os.Exit(1)

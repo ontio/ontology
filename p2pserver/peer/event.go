@@ -20,7 +20,7 @@ package peer
 
 import (
 	"fmt"
-	"github.com/Ontology/events"
+	"github.com/ontio/ontology/events"
 )
 
 type eventQueue struct {

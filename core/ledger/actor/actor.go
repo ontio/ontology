@@ -1,12 +1,32 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package actor
 
 import (
-	"github.com/Ontology/common"
-	"github.com/Ontology/common/log"
-	"github.com/Ontology/core/ledger"
-	"github.com/Ontology/core/types"
-	"github.com/Ontology/eventbus/actor"
+	"fmt"
 	"reflect"
+
+	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/ledger"
+	"github.com/ontio/ontology/core/types"
 )
 
 var DefLedgerPid *actor.PID
@@ -21,12 +41,18 @@ func NewLedgerActor() *LedgerActor {
 
 func (this *LedgerActor) Start() *actor.PID {
 	this.props = actor.FromProducer(func() actor.Actor { return this })
-	DefLedgerPid = actor.Spawn(this.props)
+	var err error
+	DefLedgerPid, err = actor.SpawnNamed(this.props, "LedgerActor")
+	if err != nil {
+		panic(fmt.Errorf("LedgerActor SpawnNamed error:%s", err))
+	}
 	return DefLedgerPid
 }
 
 func (this *LedgerActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
+	case *actor.Started:
+	case *actor.Stop:
 	case *AddHeaderReq:
 		this.handleAddHeaderReq(ctx, msg)
 	case *AddHeadersReq:
@@ -59,8 +85,8 @@ func (this *LedgerActor) Receive(ctx actor.Context) {
 		this.handleGetContractStateReq(ctx, msg)
 	case *GetStorageItemReq:
 		this.handleGetStorageItemReq(ctx, msg)
-	case *GetBookKeeperStateReq:
-		this.handleGetBookKeeperStateReq(ctx, msg)
+	case *GetBookkeeperStateReq:
+		this.handleGetBookkeeperStateReq(ctx, msg)
 	case *GetCurrentStateRootReq:
 		this.handleGetCurrentStateRootReq(ctx, msg)
 	case *IsContainTransactionReq:
@@ -71,6 +97,10 @@ func (this *LedgerActor) Receive(ctx actor.Context) {
 		this.handleGetBlockRootWithNewTxRootReq(ctx, msg)
 	case *PreExecuteContractReq:
 		this.handlePreExecuteContractReq(ctx, msg)
+	case *GetEventNotifyByTxReq:
+		this.handleGetEventNotifyByTx(ctx, msg)
+	case *GetEventNotifyByBlockReq:
+		this.handleGetEventNotifyByBlock(ctx, msg)
 	default:
 		log.Warnf("LedgerActor cannot deal with type: %v %v", msg, reflect.TypeOf(msg))
 	}
@@ -109,7 +139,7 @@ func (this *LedgerActor) handleAddBlockReq(ctx actor.Context, req *AddBlockReq) 
 	if ctx.Sender() != nil {
 		hash := req.Block.Hash()
 		resp := &AddBlockRsp{
-			BlockHash:hash,
+			BlockHash: hash,
 			Error:     err,
 		}
 		ctx.Sender().Request(resp, ctx.Self())
@@ -188,11 +218,11 @@ func (this *LedgerActor) handleGetCurrentHeaderHeightReq(ctx actor.Context, req 
 	ctx.Sender().Request(resp, ctx.Self())
 }
 
-func (this *LedgerActor) handleGetCurrentHeaderHashReq(ctx actor.Context, req *GetCurrentHeaderHashReq){
+func (this *LedgerActor) handleGetCurrentHeaderHashReq(ctx actor.Context, req *GetCurrentHeaderHashReq) {
 	curHeaderHash := ledger.DefLedger.GetCurrentHeaderHash()
 	resp := &GetCurrentHeaderHashRsp{
-		BlockHash:curHeaderHash,
-		Error:nil,
+		BlockHash: curHeaderHash,
+		Error:     nil,
 	}
 	ctx.Sender().Request(resp, ctx.Self())
 }
@@ -252,9 +282,9 @@ func (this *LedgerActor) handleGetCurrentStateRootReq(ctx actor.Context, req *Ge
 	ctx.Sender().Request(resp, ctx.Self())
 }
 
-func (this *LedgerActor) handleGetBookKeeperStateReq(ctx actor.Context, req *GetBookKeeperStateReq) {
-	bookKeep, err := ledger.DefLedger.GetBookKeeperState()
-	resp := &GetBookKeeperStateRsp{
+func (this *LedgerActor) handleGetBookkeeperStateReq(ctx actor.Context, req *GetBookkeeperStateReq) {
+	bookKeep, err := ledger.DefLedger.GetBookkeeperState()
+	resp := &GetBookkeeperStateRsp{
 		BookKeepState: bookKeep,
 		Error:         err,
 	}
@@ -284,6 +314,24 @@ func (this *LedgerActor) handlePreExecuteContractReq(ctx actor.Context, req *Pre
 	resp := &PreExecuteContractRsp{
 		Result: result,
 		Error:  err,
+	}
+	ctx.Sender().Request(resp, ctx.Self())
+}
+
+func (this *LedgerActor) handleGetEventNotifyByTx(ctx actor.Context, req *GetEventNotifyByTxReq) {
+	result, err := ledger.DefLedger.GetEventNotifyByTx(req.Tx)
+	resp := &GetEventNotifyByTxRsp{
+		Notifies: result,
+		Error:    err,
+	}
+	ctx.Sender().Request(resp, ctx.Self())
+}
+
+func (this *LedgerActor) handleGetEventNotifyByBlock(ctx actor.Context, req *GetEventNotifyByBlockReq) {
+	result, err := ledger.DefLedger.GetEventNotifyByBlock(req.Height)
+	resp := &GetEventNotifyByBlockRsp{
+		TxHashes: result,
+		Error:    err,
 	}
 	ctx.Sender().Request(resp, ctx.Self())
 }
