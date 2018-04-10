@@ -517,7 +517,7 @@ func GetMerkleProof(params []interface{}) map[string]interface{} {
 	if err != nil {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
-	curHeader, err := bactor.GetHeaderByHeight(height)
+	curHeader, err := bactor.GetHeaderByHeight(curHeight)
 	if err != nil {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}

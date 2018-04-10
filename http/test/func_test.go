@@ -36,6 +36,7 @@ import (
 	"github.com/ontio/ontology/vm/neovm"
 	vmtypes "github.com/ontio/ontology/smartcontract/types"
 	"github.com/stretchr/testify/assert"
+	"encoding/json"
 )
 
 func TestMerkleVerifier(t *testing.T) {
@@ -120,23 +121,27 @@ func TestMultiPubKeysAddress(t *testing.T) {
 }
 
 func TestInvokefunction(t *testing.T) {
-	var funcName string
+	var funcName = "Get"
 	builder := neovm.NewParamsBuilder(new(bytes.Buffer))
-	err := BuildSmartContractParamInter(builder, []interface{}{funcName, "", ""})
+	err := BuildSmartContractParamInter(builder, []interface{}{funcName, []interface{}{[]byte("key")}})
 	assert.Nil(t, err)
 
 	codeParams := builder.ToArray()
+	op_verify,_ := common.HexToBytes("69")
+	codeaddress,_ := common.HexToBytes("809690ff6a5244cca5e64face79914d59daef527")
+
 	tx := utils.NewInvokeTransaction(vmtypes.VmCode{
-		VmType: vmtypes.Native,
-		Code:   codeParams,
+		VmType: vmtypes.NEOVM,
+		Code:   bytes.Join([][]byte{codeParams},bytes.Join([][]byte{op_verify},codeaddress)),
 	})
 	tx.Nonce = uint32(time.Now().Unix())
 
 	acct := account.Open(account.WALLET_FILENAME, []byte("passwordtest"))
 	acc, err := acct.GetDefaultAccount()
+	//pubkey := keypair.SerializePublicKey(acc.PubKey())
 	assert.Nil(t, err)
 	hash := tx.Hash()
-	sign, _ := signature.Sign(acc.PrivateKey, hash[:])
+	sign, _ := signature.Sign(acc, hash[:])
 	tx.Sigs = append(tx.Sigs, &ctypes.Sig{
 		PubKeys: []keypair.PublicKey{acc.PublicKey},
 		M:       1,
@@ -146,7 +151,18 @@ func TestInvokefunction(t *testing.T) {
 	txbf := new(bytes.Buffer)
 	err = tx.Serialize(txbf);
 	assert.Nil(t, err)
-	common.ToHexString(txbf.Bytes())
+
+	var req = map[string]interface{}{
+		"Action":  "sendrawtransaction",
+		"Version": "1.0.0",
+		"Data":    common.ToHexString(txbf.Bytes()),
+	}
+	resp, err := Request("POST", req, addr+"/api/v1/transaction?preExec=1")
+	if err != nil {
+		assert.Error(t,err)
+	}
+	r, _ := json.Marshal(resp)
+	assert.Contains(t,string(r),"SUCCESS")
 }
 func BuildSmartContractParamInter(builder *neovm.ParamsBuilder, smartContractParams []interface{}) error {
 	for i := len(smartContractParams) - 1; i >= 0; i-- {
