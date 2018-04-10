@@ -379,6 +379,85 @@ curl  -H "Content-Type: application/json"  -X POST -d '{"Action":"sendrawtransac
     "Data":"80000001195876cb34364dc38b730077156c6bc3a7fc570044a66fbfeeea56f71327e8ab0000029b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc500c65eaf440000000f9a23e06f74cf86b8827a9108ec2e0f89ad956c9b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc50092e14b5e00000030aab52ad93f6ce17ca07fa88fc191828c58cb71014140915467ecd359684b2dc358024ca750609591aa731a0b309c7fb3cab5cd0836ad3992aa0a24da431f43b68883ea5651d548feb6bd3c8e16376e6e426f91f84c58232103322f35c7819267e721335948d385fae5be66e7ba8c748ac15467dcca0693692dac"
 }
 ```
+Take the "AddAttribute" in the IdContract contract as an example
+
+1. build parameter
+
+```
+acct := account.Open(account.WALLET_FILENAME, []byte("passwordtest"))
+acc, err := acct.GetDefaultAccount()
+pubkey := keypair.SerializePublicKey(acc.PubKey())
+funcName := "AddAttribute"
+paras := []interface{}{[]byte("did:ont:" + acc.Address.ToBase58()),[]byte("key1"),[]byte("bytes"),[]byte("value1"),pubkey}
+builder := neovm.NewParamsBuilder(new(bytes.Buffer))
+err = BuildSmartContractParamInter(builder, []interface{}{funcName, params})
+codeParams := builder.ToArray()
+op_verify,_ := common.HexToBytes("69")
+codeaddress,_ := common.HexToBytes("8055b362904715fd84536e754868f4c8d27ca3f6")
+codeParams = BytesCombine(codeParams,op_verify)
+codeParams = BytesCombine(codeParams,codeaddress)
+
+func BytesCombine(pBytes ...[]byte) []byte {
+	len := len(pBytes)
+	s := make([][]byte, len)
+	for index := 0; index < len; index++ {
+		s[index] = pBytes[index]
+	}
+	sep := []byte("")
+	return bytes.Join(s, sep)
+}
+```
+funcName:the smartcontract function name to be called, params: contract function required parameters, codeAddress: smartcontract address
+
+2. build transaction
+```
+tx := utils.NewInvokeTransaction(vmtypes.VmCode{
+		VmType: vmtypes.NEOVM,
+		Code:   codeParams,
+	})
+	tx.Nonce = uint32(time.Now().Unix())
+```
+
+3. sign transaction
+
+```
+hash := tx.Hash()
+sign, _ := signature.Sign(acc.PrivateKey, hash[:])
+tx.Sigs = append(tx.Sigs, &ctypes.Sig{
+    PubKeys: []keypair.PublicKey{acc.PublicKey},
+    M:       1,
+    SigData: [][]byte{sign},
+})
+```
+
+4. Convert transactions to hexadecimal strings
+```
+txbf := new(bytes.Buffer)
+err = tx.Serialize(txbf);
+common.ToHexString(txbf.Bytes())
+```
+
+Related struct
+```
+type Transaction struct {
+	Version    byte
+	TxType     TransactionType
+	Nonce      uint32
+	Payload    Payload
+	Attributes []*TxAttribute
+	Fee        []*Fee
+	NetWorkFee common.Fixed64
+	Sigs       []*Sig
+
+	hash *common.Uint256
+}
+
+type Sig struct {
+	PubKeys []keypair.PublicKey
+	M       uint8
+	SigData [][]byte
+}
+```
 
 #### Response
 ```
