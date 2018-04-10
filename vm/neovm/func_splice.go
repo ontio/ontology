@@ -52,7 +52,7 @@ func opRight(e *ExecutionEngine) (VMState, error) {
 }
 
 func opSize(e *ExecutionEngine) (VMState, error) {
-	x := Peek(e).GetStackItem()
+	x := PeekStackItem(e)
 	PushData(e, len(x.GetByteArray()))
 	return NONE, nil
 }

@@ -188,11 +188,7 @@ func WithInOp(int1 *big.Int, int2 *big.Int, int3 *big.Int) bool {
 	return BoolZip(b1, b2, BOOLAND)
 }
 
-func NewStackItems() []types.StackItems {
-	return make([]types.StackItems, 0)
-}
-
-func NewStackItemInterface(data interface{}) types.StackItems {
+func NewStackItem(data interface{}) types.StackItems {
 	var stackItem types.StackItems
 	switch data.(type) {
 	case int8, int16, int32, int64, int, uint8, uint16, uint32, uint64, *big.Int, big.Int:
@@ -226,7 +222,7 @@ func NewStackItemInterface(data interface{}) types.StackItems {
 func Hash(b []byte, e *ExecutionEngine) []byte {
 	var sh hash.Hash
 	var bt []byte
-	switch e.opCode {
+	switch e.OpCode {
 	case SHA1:
 		sh = sha1.New()
 		sh.Write(b)
@@ -235,10 +231,6 @@ func Hash(b []byte, e *ExecutionEngine) []byte {
 		sh = sha256.New()
 		sh.Write(b)
 		bt = sh.Sum(nil)
-	case HASH160:
-		bt = e.crypto.Hash160(b)
-	case HASH256:
-		bt = e.crypto.Hash256(b)
 	}
 	return bt
 }
@@ -275,11 +267,7 @@ func PopByteArray(e *ExecutionEngine) []byte {
 }
 
 func PopStackItem(e *ExecutionEngine) types.StackItems {
-	return Pop(e).GetStackItem()
-}
-
-func Pop(e *ExecutionEngine) Element {
-	return e.evaluationStack.Pop()
+	return e.EvaluationStack.Pop()
 }
 
 func PeekArray(e *ExecutionEngine) []types.StackItems {
@@ -304,7 +292,7 @@ func PeekBigInteger(e *ExecutionEngine) *big.Int {
 }
 
 func PeekStackItem(e *ExecutionEngine) types.StackItems {
-	return Peek(e).GetStackItem()
+	return e.EvaluationStack.Peek(0)
 }
 
 func PeekNInt(i int, e *ExecutionEngine) int {
@@ -324,30 +312,21 @@ func PeekNByteArray(i int, e *ExecutionEngine) []byte {
 }
 
 func PeekNStackItem(i int, e *ExecutionEngine) types.StackItems {
-	return PeekN(i, e).GetStackItem()
-}
-
-func PeekN(i int, e *ExecutionEngine) Element {
-	return e.evaluationStack.Peek(i)
-}
-
-func Peek(e *ExecutionEngine) Element {
-	return e.evaluationStack.Peek(0)
+	return e.EvaluationStack.Peek(i)
 }
 
 func EvaluationStackCount(e *ExecutionEngine) int {
-	return e.evaluationStack.Count()
+	return e.EvaluationStack.Count()
 }
 
-func Push(e *ExecutionEngine, element Element) {
-	e.evaluationStack.Push(element)
+func Push(e *ExecutionEngine, element types.StackItems) {
+	e.EvaluationStack.Push(element)
 }
 
 func Count(e *ExecutionEngine) int {
-	return e.evaluationStack.Count()
+	return e.EvaluationStack.Count()
 }
 
 func PushData(e *ExecutionEngine, data interface{}) {
-	d := NewStackItemInterface(data)
-	e.evaluationStack.Push(NewStackItem(d))
+	e.EvaluationStack.Push(NewStackItem(data))
 }

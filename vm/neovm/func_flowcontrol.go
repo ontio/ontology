@@ -30,76 +30,42 @@ func opNop(e *ExecutionEngine) (VMState, error) {
 }
 
 func opJmp(e *ExecutionEngine) (VMState, error) {
-	offset := int(e.context.OpReader.ReadInt16())
+	offset := int(e.Context.OpReader.ReadInt16())
 
-	offset = e.context.GetInstructionPointer() + offset - 3
+	offset = e.Context.GetInstructionPointer() + offset - 3
 
-	if offset < 0 || offset > len(e.context.Code) {
-		log.Error(fmt.Sprintf("[opJmp] offset:%v > e.contex.Code len:%v error", offset, len(e.context.Code)))
+	if offset < 0 || offset > len(e.Context.Code) {
+		log.Error(fmt.Sprintf("[opJmp] offset:%v > e.contex.Code len:%v error", offset, len(e.Context.Code)))
 		return FAULT, errors.ERR_FAULT
 	}
 	var fValue = true
 
-	if e.opCode > JMP {
+	if e.OpCode > JMP {
 		if EvaluationStackCount(e) < 1 {
 			log.Error(fmt.Sprintf("[opJmp] stack count:%v > 1 error", EvaluationStackCount(e)))
 			return FAULT, errors.ERR_UNDER_STACK_LEN
 		}
 		fValue = PopBoolean(e)
-		if e.opCode == JMPIFNOT {
+		if e.OpCode == JMPIFNOT {
 			fValue = !fValue
 		}
 	}
 
 	if fValue {
-		e.context.SetInstructionPointer(int64(offset))
+		e.Context.SetInstructionPointer(int64(offset))
 	}
 	return NONE, nil
 }
 
 func opCall(e *ExecutionEngine) (VMState, error) {
-
-	e.invocationStack.Push(e.context.Clone())
-	e.context.SetInstructionPointer(int64(e.context.GetInstructionPointer() + 2))
-	e.opCode = JMP
-	context, err := e.CurrentContext()
-	if err != nil {
-		return FAULT, err
-	}
-	e.context = context
+	context := e.Context.Clone()
+	e.Context.SetInstructionPointer(int64(e.Context.GetInstructionPointer() + 2))
+	e.OpCode = JMP
+	e.PushContext(context)
 	return opJmp(e)
 }
 
 func opRet(e *ExecutionEngine) (VMState, error) {
-	e.invocationStack.Pop()
+	e.PopContext()
 	return NONE, nil
-}
-
-func opAppCall(e *ExecutionEngine) (VMState, error) {
-	codeHash := e.context.OpReader.ReadBytes(20)
-	if len(codeHash) == 0 {
-		codeHash = PopByteArray(e)
-	}
-
-	code, err := e.table.GetCode(codeHash)
-	if code == nil {
-		return FAULT, err
-	}
-
-	if e.opCode == TAILCALL {
-		e.invocationStack.Pop()
-	}
-	e.LoadCode(code, false)
-	return NONE, nil
-}
-
-func opSysCall(e *ExecutionEngine) (VMState, error) {
-	s := e.context.OpReader.ReadVarString()
-
-	success, err := e.service.Invoke(s, e)
-	if success {
-		return NONE, nil
-	} else {
-		return FAULT, err
-	}
 }

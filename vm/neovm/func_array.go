@@ -37,7 +37,7 @@ func opArraySize(e *ExecutionEngine) (VMState, error) {
 
 func opPack(e *ExecutionEngine) (VMState, error) {
 	size := PopInt(e)
-	items := NewStackItems()
+	var items []types.StackItems
 	for i := 0; i < size; i++ {
 		items = append(items, PopStackItem(e))
 	}
@@ -49,7 +49,7 @@ func opUnpack(e *ExecutionEngine) (VMState, error) {
 	arr := PopArray(e)
 	l := len(arr)
 	for i := l - 1; i >= 0; i-- {
-		Push(e, NewStackItem(arr[i]))
+		Push(e, arr[i])
 	}
 	PushData(e, l)
 	return NONE, nil
@@ -74,9 +74,9 @@ func opSetItem(e *ExecutionEngine) (VMState, error) {
 }
 
 func opNewArray(e *ExecutionEngine) (VMState, error) {
-	count := PopBigInt(e)
-	items := NewStackItems()
-	for i := 0; count.Cmp(big.NewInt(int64(i))) > 0; i++ {
+	count := PopInt(e)
+	var items []types.StackItems
+	for i := 0; i < count; i++ {
 		items = append(items, types.NewBoolean(false))
 	}
 	PushData(e, types.NewArray(items))
@@ -85,7 +85,7 @@ func opNewArray(e *ExecutionEngine) (VMState, error) {
 
 func opNewStruct(e *ExecutionEngine) (VMState, error) {
 	count := PopBigInt(e)
-	items := NewStackItems()
+	var items []types.StackItems
 	for i := 0; count.Cmp(big.NewInt(int64(i))) > 0; i++ {
 		items = append(items, types.NewBoolean(false))
 	}

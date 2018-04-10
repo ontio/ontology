@@ -96,14 +96,14 @@ func validateShift(e *ExecutionEngine) error {
 }
 
 func validatorPushData4(e *ExecutionEngine) error {
-	index := e.context.GetInstructionPointer()
-	if index+4 >= len(e.context.Code) {
+	index := e.Context.GetInstructionPointer()
+	if index+4 >= len(e.Context.Code) {
 		return errors.ERR_OVER_CODE_LEN
 	}
-	bytesBuffer := bytes.NewBuffer(e.context.Code[index : index+4])
+	bytesBuffer := bytes.NewBuffer(e.Context.Code[index : index+4])
 	var l uint32
 	binary.Read(bytesBuffer, binary.LittleEndian, &l)
-	if l > MAX_ITEN_SIZE {
+	if l > MAX_ITEM_SIZE {
 		return errors.ERR_OVER_MAX_ITEM_SIZE
 	}
 	return nil
@@ -117,25 +117,8 @@ func validateCall(e *ExecutionEngine) error {
 }
 
 func validateInvocationStack(e *ExecutionEngine) error {
-	if uint32(e.invocationStack.Count()) >= MAX_INVOCATION_STACK_SIZE {
+	if uint32(len(e.Contexts)) >= MAX_INVOCATION_STACK_SIZE {
 		return errors.ERR_OVER_STACK_LEN
-	}
-	return nil
-}
-
-func validateAppCall(e *ExecutionEngine) error {
-	if err := validateInvocationStack(e); err != nil {
-		return err
-	}
-	if e.table == nil {
-		return errors.ERR_TABLE_IS_NIL
-	}
-	return nil
-}
-
-func validateSysCall(e *ExecutionEngine) error {
-	if e.service == nil {
-		return errors.ERR_SERVICE_IS_NIL
 	}
 	return nil
 }
@@ -181,7 +164,7 @@ func validateCat(e *ExecutionEngine) error {
 		return err
 	}
 	l := len(PeekNByteArray(0, e)) + len(PeekNByteArray(1, e))
-	if uint32(l) > MAX_ITEN_SIZE {
+	if uint32(l) > MAX_ITEM_SIZE {
 		log.Error("[validateCat] uint32(l) > MaxItemSize")
 		return errors.ERR_OVER_MAX_ITEM_SIZE
 	}
@@ -397,17 +380,16 @@ func validatePickItem(e *ExecutionEngine) error {
 		log.Error("[validatePickItem] index < 0")
 		return errors.ERR_BAD_VALUE
 	}
-	item := PeekN(1, e)
+	item := PeekNStackItem(1, e)
 	if item == nil {
 		log.Error("[validatePickItem] item = nil")
 		return errors.ERR_BAD_VALUE
 	}
-	stackItem := item.GetStackItem()
-	if _, ok := stackItem.(*types.Array); !ok {
+	if _, ok := item.(*types.Array); !ok {
 		log.Error("[validatePickItem] ErrNotArray")
 		return errors.ERR_NOT_ARRAY
 	}
-	if index.Cmp(big.NewInt(int64(len(stackItem.GetArray())))) >= 0 {
+	if index.Cmp(big.NewInt(int64(len(item.GetArray())))) >= 0 {
 		log.Error("[validatePickItem] index >= len(stackItem.GetArray())")
 		return errors.ERR_OVER_MAX_ARRAY_SIZE
 	}
@@ -418,7 +400,7 @@ func validatorSetItem(e *ExecutionEngine) error {
 	if err := LogStackTrace(e, 3, "[validatorSetItem]"); err != nil {
 		return err
 	}
-	newItem := PeekN(0, e)
+	newItem := PeekNStackItem(0, e)
 	if newItem == nil {
 		log.Error("[validatorSetItem] newItem = nil")
 		return errors.ERR_BAD_VALUE
@@ -428,12 +410,11 @@ func validatorSetItem(e *ExecutionEngine) error {
 		log.Error("[validatorSetItem] index < 0")
 		return errors.ERR_BAD_VALUE
 	}
-	arrItem := PeekN(2, e)
-	if arrItem == nil {
+	item := PeekNStackItem(2, e)
+	if item == nil {
 		log.Error("[validatorSetItem] arrItem = nil")
 		return errors.ERR_BAD_VALUE
 	}
-	item := arrItem.GetStackItem()
 	if _, ok := item.(*types.Array); !ok {
 		return errors.ERR_NOT_ARRAY
 	}

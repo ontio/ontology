@@ -20,7 +20,7 @@ package neovm
 
 func opBigInt(e *ExecutionEngine) (VMState, error) {
 	x := PopBigInt(e)
-	PushData(e, BigIntOp(x, e.opCode))
+	PushData(e, BigIntOp(x, e.OpCode))
 	return NONE, nil
 }
 
@@ -38,14 +38,14 @@ func opNot(e *ExecutionEngine) (VMState, error) {
 
 func opNz(e *ExecutionEngine) (VMState, error) {
 	x := PopBigInt(e)
-	PushData(e, BigIntComp(x, e.opCode))
+	PushData(e, BigIntComp(x, e.OpCode))
 	return NONE, nil
 }
 
 func opBigIntZip(e *ExecutionEngine) (VMState, error) {
 	x2 := PopBigInt(e)
 	x1 := PopBigInt(e)
-	b := BigIntZip(x1, x2, e.opCode)
+	b := BigIntZip(x1, x2, e.OpCode)
 	PushData(e, b)
 	return NONE, nil
 }
@@ -53,14 +53,14 @@ func opBigIntZip(e *ExecutionEngine) (VMState, error) {
 func opBoolZip(e *ExecutionEngine) (VMState, error) {
 	x2 := PopBoolean(e)
 	x1 := PopBoolean(e)
-	PushData(e, BoolZip(x1, x2, e.opCode))
+	PushData(e, BoolZip(x1, x2, e.OpCode))
 	return NONE, nil
 }
 
 func opBigIntComp(e *ExecutionEngine) (VMState, error) {
 	x2 := PopBigInt(e)
 	x1 := PopBigInt(e)
-	PushData(e, BigIntMultiComp(x1, x2, e.opCode))
+	PushData(e, BigIntMultiComp(x1, x2, e.OpCode))
 	return NONE, nil
 }
 

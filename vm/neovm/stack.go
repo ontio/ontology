@@ -22,18 +22,13 @@ import (
 	"github.com/ontio/ontology/vm/neovm/types"
 )
 
-type Element interface {
-	GetStackItem() types.StackItems
-	GetExecutionContext() *ExecutionContext
-}
-
 type RandomAccessStack struct {
-	e []Element
+	e []types.StackItems
 }
 
 func NewRandAccessStack() *RandomAccessStack {
 	var ras RandomAccessStack
-	ras.e = make([]Element, 0)
+	ras.e = make([]types.StackItems, 0)
 	return &ras
 }
 
@@ -41,7 +36,7 @@ func (r *RandomAccessStack) Count() int {
 	return len(r.e)
 }
 
-func (r *RandomAccessStack) Insert(index int, t Element) {
+func (r *RandomAccessStack) Insert(index int, t types.StackItems) {
 	if t == nil {
 		return
 	}
@@ -49,7 +44,7 @@ func (r *RandomAccessStack) Insert(index int, t Element) {
 	if index > l {
 		return
 	}
-	var array []Element
+	var array []types.StackItems
 	index = l - index
 	array = append(array, r.e[:index]...)
 	array = append(array, t)
@@ -57,7 +52,7 @@ func (r *RandomAccessStack) Insert(index int, t Element) {
 	r.e = array
 }
 
-func (r *RandomAccessStack) Peek(index int) Element {
+func (r *RandomAccessStack) Peek(index int) types.StackItems {
 	l := len(r.e)
 	if index >= l {
 		return nil
@@ -66,20 +61,20 @@ func (r *RandomAccessStack) Peek(index int) Element {
 	return r.e[index-1]
 }
 
-func (r *RandomAccessStack) Remove(index int) Element {
+func (r *RandomAccessStack) Remove(index int) types.StackItems {
 	l := len(r.e)
 	if index >= l {
 		return nil
 	}
 	index = l - index
 	e := r.e[index-1]
-	var si []Element
+	var si []types.StackItems
 	si = append(r.e[:index-1], r.e[index:]...)
 	r.e = si
 	return e
 }
 
-func (r *RandomAccessStack) Set(index int, t Element) {
+func (r *RandomAccessStack) Set(index int, t types.StackItems) {
 	l := len(r.e)
 	if index >= l {
 		return
@@ -87,11 +82,11 @@ func (r *RandomAccessStack) Set(index int, t Element) {
 	r.e[index] = t
 }
 
-func (r *RandomAccessStack) Push(t Element) {
+func (r *RandomAccessStack) Push(t types.StackItems) {
 	r.Insert(0, t)
 }
 
-func (r *RandomAccessStack) Pop() Element {
+func (r *RandomAccessStack) Pop() types.StackItems {
 	return r.Remove(0)
 }
 
