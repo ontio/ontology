@@ -85,6 +85,7 @@ func NewServer(acc *account.Account) (*P2PServer, error) {
 	p.msgRouter.RegisterMsgHandler(types.CONSENSUS_TYPE, ConsensusHandle)
 	p.msgRouter.RegisterMsgHandler(types.NOT_FOUND_TYPE, NotFoundHandle)
 	p.msgRouter.RegisterMsgHandler(types.TX_TYPE, TransactionHandle)
+	p.msgRouter.RegisterMsgHandler(types.DISCONNECT_TYPE, DisconnectHandle)
 
 	p.msgRouter.Start()
 	p.flightHeights = make(map[uint64][]uint32)

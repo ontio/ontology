@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Ontology/common"
@@ -563,6 +564,22 @@ func InvHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 }
 
 //
-func DisconnectHandle(data msgCommon.MsgPayload, p2p *P2PServer) {
-
+func DisconnectHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
+	remotePeer := p2p.Self.Np.GetPeer(data.Id)
+	i := strings.Index(data.Addr, ":")
+	if i < 0 {
+		log.Error("link address format error", data.Addr)
+	}
+	port, err := strconv.Atoi(data.Addr[i:])
+	if err != nil {
+		log.Error("Split port error", data.Addr[i:])
+	}
+	if remotePeer.SyncLink.GetPort() == uint16(port) {
+		remotePeer.CloseSync()
+		remotePeer.CloseCons()
+	}
+	if remotePeer.ConsLink.GetPort() == uint16(port) {
+		remotePeer.CloseCons()
+	}
+	return nil
 }
