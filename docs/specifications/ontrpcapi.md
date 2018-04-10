@@ -441,7 +441,91 @@ send transaction.
 
 #### Parameter instruction
 
-Hex: Serialized signed transactions constructed in the program into hexadecimal strings.
+Hex: Serialized signed transactions constructed in the program into hexadecimal strings.Building the parameter,please refer to TestInvokefunction in ontology/http/func_test.go.
+
+How to build the parameter?
+
+Take the "AddAttribute" in the IdContract contract as an example
+
+1. build parameter
+
+```
+acct := account.Open(account.WALLET_FILENAME, []byte("passwordtest"))
+acc, err := acct.GetDefaultAccount()
+pubkey := keypair.SerializePublicKey(acc.PubKey())
+funcName := "AddAttribute"
+paras := []interface{}{[]byte("did:ont:" + acc.Address.ToBase58()),[]byte("key1"),[]byte("bytes"),[]byte("value1"),pubkey}
+builder := neovm.NewParamsBuilder(new(bytes.Buffer))
+err = BuildSmartContractParamInter(builder, []interface{}{funcName, params})
+codeParams := builder.ToArray()
+op_verify,_ := common.HexToBytes("69")
+codeaddress,_ := common.HexToBytes("8055b362904715fd84536e754868f4c8d27ca3f6")
+codeParams = BytesCombine(codeParams,op_verify)
+codeParams = BytesCombine(codeParams,codeaddress)
+
+func BytesCombine(pBytes ...[]byte) []byte {
+	len := len(pBytes)
+	s := make([][]byte, len)
+	for index := 0; index < len; index++ {
+		s[index] = pBytes[index]
+	}
+	sep := []byte("")
+	return bytes.Join(s, sep)
+}
+```
+funcName:the smartcontract function name to be called, params: contract function required parameters, codeAddress: smartcontract address
+
+2. build transaction
+```
+tx := utils.NewInvokeTransaction(vmtypes.VmCode{
+		VmType: vmtypes.NEOVM,
+		Code:   codeParams,
+	})
+	tx.Nonce = uint32(time.Now().Unix())
+```
+
+3. sign transaction
+
+```
+hash := tx.Hash()
+sign, _ := signature.Sign(acc.PrivateKey, hash[:])
+tx.Sigs = append(tx.Sigs, &ctypes.Sig{
+    PubKeys: []keypair.PublicKey{acc.PublicKey},
+    M:       1,
+    SigData: [][]byte{sign},
+})
+```
+
+4. Convert transactions to hexadecimal strings
+```
+txbf := new(bytes.Buffer)
+err = tx.Serialize(txbf);
+common.ToHexString(txbf.Bytes())
+```
+
+Related struct
+```
+type Transaction struct {
+	Version    byte
+	TxType     TransactionType
+	Nonce      uint32
+	Payload    Payload
+	Attributes []*TxAttribute
+	Fee        []*Fee
+	NetWorkFee common.Fixed64
+	Sigs       []*Sig
+
+	hash *common.Uint256
+}
+
+type Sig struct {
+	PubKeys []keypair.PublicKey
+	M       uint8
+	SigData [][]byte
+}
+```
+
+
 
 #### Example
 
