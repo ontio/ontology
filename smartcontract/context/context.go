@@ -32,7 +32,7 @@ type ContextRef interface {
 	PopContext()
 	CheckWitness(address common.Address) bool
 	PushNotifications(notifications []*event.NotifyEventInfo)
-	AppCall(address common.Address, method string, codes, args []byte, isLoad bool) error
+	AppCall(address common.Address, method string, codes, args []byte) error
 }
 
 type Context struct {

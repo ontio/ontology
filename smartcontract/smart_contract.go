@@ -40,18 +40,18 @@ import (
 )
 
 type SmartContract struct {
-	Contexts      []*context.Context // all execute smart contract context
+	Contexts      []*context.Context       // all execute smart contract context
 	Config        *Config
 	Engine        Engine
 	Notifications []*event.NotifyEventInfo // all execute smart contract event notify info
 }
 
 type Config struct {
-	Time    uint32	// now block timestamp
-	Height  uint32  // now block height
+	Time    uint32              // current block timestamp
+	Height  uint32              // current block height
 	Tx      *ctypes.Transaction // current transaction
-	DBCache scommon.StateStore // db states cache
-	Store   store.LedgerStore // ledger store
+	DBCache scommon.StateStore  // db states cache
+	Store   store.LedgerStore   // ledger store
 }
 
 type Engine interface {
@@ -156,23 +156,36 @@ func (this *SmartContract) Execute() error {
 	return nil
 }
 
-// When you want to call a contract use this function, if contract exist in blockchain, you should set isLoad true,
+// When you want to call a contract use this function, if contract exist in block chain, you should set isLoad true,
 // Otherwise, you can set execute code, and set isLoad false.
 // param address: smart contract address
 // param method: invoke smart contract method name
 // param codes: invoke smart contract whether need to load code
 // param args: invoke smart contract args
-// param idLoad: if true, you can get contract code from block chain, else, you need to load code from param codes
-func (this *SmartContract) AppCall(address common.Address, method string, codes, args []byte, isLoad bool) error {
-	var code []byte
+func (this *SmartContract) AppCall(address common.Address, method string, codes, args []byte) error {
+	var (
+		code []byte
+		isLoad bool = false
+	)
+
+	if codes == nil || len(codes) == 0 {
+		isLoad = true
+	}
+
+	vmType := stypes.VmType(address[0])
+
 	if isLoad {
 		c, err := this.getContract(address[:]); if err != nil {
 			return err
 		}
 		code = c.Code.Code
+	} else {
+		vmCode := stypes.VmCode{
+			Code: codes,
+			VmType: vmType,
+		}
+		address = vmCode.AddressFromVmCode()
 	}
-
-	vmType := stypes.VmType(address[0])
 
 	switch vmType {
 	case stypes.Native:

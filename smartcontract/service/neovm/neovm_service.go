@@ -155,7 +155,7 @@ func (this *NeoVmService) Invoke() error {
 			if err := c.Deserialize(engine.Context.OpReader.Reader()); err != nil {
 				return errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] get contract parameters error!")
 			}
-			if err := this.ContextRef.AppCall(c.Address, c.Method, []byte{}, c.Args, true); err != nil {
+			if err := this.ContextRef.AppCall(c.Address, c.Method, c.Code, c.Args); err != nil {
 				return errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] service app call error!")
 			}
 		default:

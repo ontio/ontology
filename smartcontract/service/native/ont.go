@@ -155,7 +155,7 @@ func grantOng(native *NativeService, contract, address common.Address, balance *
 		return err
 	}
 
-	if err := native.ContextRef.AppCall(genesis.OngContractAddress, "approve", []byte{}, args, false); err != nil {
+	if err := native.ContextRef.AppCall(genesis.OngContractAddress, "approve", []byte{}, args); err != nil {
 		return err
 	}
 
