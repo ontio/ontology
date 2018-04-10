@@ -29,7 +29,7 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/vote"
-	msg "github.com/ontio/ontology/p2pserver/message"
+	msg "github.com/ontio/ontology/p2pserver/message/types"
 )
 
 const ContextVersion uint32 = 0

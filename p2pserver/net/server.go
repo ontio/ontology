@@ -16,11 +16,10 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package p2pserver
+package netserver
 
 import (
-	"github.com/ontio/ontology/p2pserver/common"
-	P2Pnet "github.com/ontio/ontology/p2pserver/net"
+	types "github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/peer"
 )
 
@@ -36,23 +35,23 @@ type P2P interface {
 	GetTime() int64
 	GetState() uint32
 	GetServices() uint64
-	GetNeighborAddrs() ([]common.PeerAddr, uint64)
+	GetNeighborAddrs() ([]types.PeerAddr, uint64)
 	GetConnectionCnt() uint32
 	IsPeerEstablished(p *peer.Peer) bool
 	Send(p *peer.Peer, data []byte, isConsensus bool) error
-	GetMsgChan(isConsensus bool) chan common.MsgPayload
+	GetMsgChan(isConsensus bool) chan types.MsgPayload
 	GetPeerFromAddr(addr string) *peer.Peer
 }
 
 //NewNetServer return the net object in p2p
 func NewNetServer(p *peer.Peer) P2P {
 
-	n := &P2Pnet.NetServer{
+	n := &NetServer{
 		Self:            p,
 		PeerSyncAddress: make(map[string]*peer.Peer),
 		PeerConsAddress: make(map[string]*peer.Peer),
-		SyncChan:        make(chan common.MsgPayload, common.CHAN_CAPABILITY),
-		ConsChan:        make(chan common.MsgPayload, common.CHAN_CAPABILITY),
+		SyncChan:        make(chan types.MsgPayload, types.CHAN_CAPABILITY),
+		ConsChan:        make(chan types.MsgPayload, types.CHAN_CAPABILITY),
 	}
 
 	p.AttachSyncChan(n.SyncChan)

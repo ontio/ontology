@@ -33,12 +33,13 @@ import (
 	actor "github.com/ontio/ontology/p2pserver/actor/req"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
+	p2pnet "github.com/ontio/ontology/p2pserver/net"
 	"github.com/ontio/ontology/p2pserver/peer"
 )
 
 type P2PServer struct {
 	Self      *peer.Peer
-	network   P2P
+	network   p2pnet.P2P
 	msgRouter *MessageRouter
 	ReconnectAddrs
 	flightHeights map[uint64][]uint32
@@ -60,7 +61,7 @@ func NewServer(acc *account.Account) (*P2PServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	n := NewNetServer(self)
+	n := p2pnet.NewNetServer(self)
 
 	p := &P2PServer{
 		Self:    self,
