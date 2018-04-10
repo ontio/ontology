@@ -40,7 +40,7 @@ import (
 )
 
 type SmartContract struct {
-	Contexts       []*context.Context
+	Contexts      []*context.Context
 	Config        *Config
 	Engine        Engine
 	Notifications []*event.NotifyEventInfo
@@ -138,7 +138,7 @@ func (this *SmartContract) Execute() error {
 			return errors.NewErr("get contract  error")
 		}
 
-		input := ctx.Code.Code[len(contractCode)+1:]
+		input := ctx.Code.Code[len(contractCode) + 1:]
 		res, err := engine.Call(ctx.ContractAddress, dpcode, input)
 		if err != nil {
 			return err
@@ -212,10 +212,8 @@ func (this *SmartContract) AppCall(address common.Address, method string, codes,
 
 func (this *SmartContract) CheckWitness(address common.Address) bool {
 	if stypes.IsVmCodeAddress(address) {
-		for _, v := range this.Contexts {
-			if v.ContractAddress == address {
-				return true
-			}
+		if this.CallingContext() != nil && this.CallingContext().ContractAddress == address {
+			return true
 		}
 	} else {
 		addresses := this.Config.Tx.GetSignatureAddresses()
