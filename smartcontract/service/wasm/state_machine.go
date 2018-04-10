@@ -33,7 +33,7 @@ import (
 	"github.com/ontio/ontology/vm/wasmvm/util"
 	"github.com/ontio/ontology/vm/wasmvm/wasm"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/vm/types"
+	"github.com/ontio/ontology/smartcontract/types"
 )
 
 type LogLevel byte
