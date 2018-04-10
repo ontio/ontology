@@ -47,6 +47,12 @@ type Link struct {
 	recvChan chan types.MsgPayload
 }
 
+func NewLink() *Link {
+	link := &Link{}
+
+	return link
+}
+
 func (link *Link) SetID(id uint64) {
 	link.id = id
 }
