@@ -155,7 +155,7 @@ func (self *Server) getProposerRankLocked(blockNum uint64, peerIdx uint32) int {
 			}
 		}
 	} else {
-		log.Errorf("todo: get proposer config for non-current blocknum:%d, current.BlockNum%d,peerIdx:", blockNum, self.currentParticipantConfig.BlockNum, peerIdx)
+		log.Errorf("todo: get proposer config for non-current blocknum:%d, current.BlockNum%d,peerIdx:%d", blockNum, self.currentParticipantConfig.BlockNum, peerIdx)
 	}
 	return -1
 }
