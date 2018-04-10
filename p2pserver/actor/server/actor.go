@@ -45,15 +45,15 @@ func (this *P2PActor) Start(p2pServer *p2pserver.P2PServer) (*actor.PID, error) 
 func (this *P2PActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Restarting:
-		log.Warn("p2p actor restarting")
+		log.Info("p2p actor restarting")
 	case *actor.Stopping:
-		log.Warn("p2p actor stopping")
+		log.Info("p2p actor stopping")
 	case *actor.Stopped:
-		log.Warn("p2p actor stopped")
+		log.Info("p2p actor stopped")
 	case *actor.Started:
-		log.Warn("p2p actor started")
+		log.Info("p2p actor started")
 	case *actor.Restart:
-		log.Warn("p2p actor restart")
+		log.Info("p2p actor restart")
 	case *StartServerReq:
 		this.handleStartServerReq(ctx, msg)
 	case *StopServerReq:

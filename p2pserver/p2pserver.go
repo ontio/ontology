@@ -56,7 +56,7 @@ type ReconnectAddrs struct {
 //NewServer return a new p2pserver according to the pubkey
 func NewServer(acc *account.Account) (*P2PServer, error) {
 	self := peer.NewPeer()
-	err := self.InitPeer(acc.PubKey)
+	err := self.InitPeer(acc.PubKey())
 	if err != nil {
 		return nil, err
 	}
@@ -169,6 +169,10 @@ func (this *P2PServer) blockSyncFinished() bool {
 }
 
 func (this *P2PServer) WaitForSyncBlkFinish() {
+	consensusType := strings.ToLower(config.Parameters.ConsensusType)
+	if consensusType == "solo" {
+		return
+	}
 	for {
 		headerHeight, _ := actor.GetCurrentHeaderHeight()
 		currentBlkHeight, _ := actor.GetCurrentBlockHeight()
@@ -183,7 +187,7 @@ func (this *P2PServer) WaitForSyncBlkFinish() {
 
 func (this *P2PServer) WaitForPeersStart() {
 	for {
-		log.Info("Wait for default connection...")
+		log.Info("Wait for minimum connection...")
 		if this.reachMinConnection() {
 			break
 		}

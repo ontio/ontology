@@ -66,7 +66,7 @@ func (self *MessageRouter) UnRegisterMsgHandler(key string) {
 func (self *MessageRouter) Start() {
 	go self.hookChan(self.RecvSyncChan, self.stopSyncCh)
 	go self.hookChan(self.RecvConsChan, self.stopConsCh)
-	log.Info("Start to read p2p message...")
+	log.Info("MessageRouter start to parse p2p message...")
 }
 
 func (self *MessageRouter) hookChan(channel chan msgCommon.MsgPayload, stopCh chan bool) {

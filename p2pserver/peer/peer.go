@@ -72,7 +72,7 @@ func NewPeer() *Peer {
 	p.SyncLink = conn.NewLink()
 	p.ConsLink = conn.NewLink()
 
-	runtime.SetFinalizer(&p, rmPeer)
+	runtime.SetFinalizer(p, rmPeer)
 	go p.backend()
 	return p
 }
@@ -84,11 +84,13 @@ func (p *Peer) InitPeer(pubKey keypair.PublicKey) error {
 	} else if config.Parameters.NodeType == types.VERIFY_NODE_NAME {
 		p.services = uint64(types.VERIFY_NODE)
 	}
-	p.SyncLink.SetPort(config.Parameters.NodePort)
-	if config.Parameters.NodeConsensusPort != 0 &&
-		config.Parameters.NodeConsensusPort != config.Parameters.NodePort {
-		p.ConsLink.SetPort(config.Parameters.NodeConsensusPort)
+	if config.Parameters.NodeConsensusPort == 0 || config.Parameters.NodePort == 0 ||
+		config.Parameters.NodeConsensusPort == config.Parameters.NodePort {
+		log.Error("Network port invalid, please check config.json")
+		return errors.New("Invalid port")
 	}
+	p.SyncLink.SetPort(config.Parameters.NodePort)
+	p.ConsLink.SetPort(config.Parameters.NodeConsensusPort)
 
 	p.relay = true
 
@@ -100,7 +102,7 @@ func (p *Peer) InitPeer(pubKey keypair.PublicKey) error {
 		return err
 	}
 	log.Info(fmt.Sprintf("Init peer ID to 0x%x", p.id))
-	p.Np.init()
+	p.Np = &NbrPeers{}
 	p.publicKey = pubKey
 	p.SyncLink.SetID(p.id)
 	p.ConsLink.SetID(p.id)

@@ -247,7 +247,7 @@ func (n *NetServer) InitConnection() error {
 			}
 		}
 		go n.startConsAccept(conslistener)
-		log.Infof("Start listen on sync port %d", syncPort)
+		log.Infof("Start listen on consensus port %d", consPort)
 	}
 	return nil
 }
