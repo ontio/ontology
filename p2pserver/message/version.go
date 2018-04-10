@@ -27,10 +27,6 @@ import (
 	"github.com/Ontology/crypto"
 )
 
-const (
-	HTTP_INFO_FLAG = 0
-)
-
 type VersionPayload struct {
 	Version      uint32
 	Services     uint64

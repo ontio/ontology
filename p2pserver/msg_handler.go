@@ -33,6 +33,7 @@ import (
 	actor "github.com/Ontology/p2pserver/actor/req"
 	msgCommon "github.com/Ontology/p2pserver/common"
 	msg "github.com/Ontology/p2pserver/message"
+	"github.com/Ontology/p2pserver/msg_pack"
 	"github.com/Ontology/p2pserver/peer"
 )
 
@@ -49,7 +50,7 @@ func AddrReqHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	var addrStr []msgCommon.PeerAddr
 	var count uint64
 	addrStr, count = p2p.GetNeighborAddrs()
-	buf, err := NewAddrs(addrStr, count)
+	buf, err := msgpack.NewAddrs(addrStr, count)
 	if err != nil {
 		return err
 	}
@@ -79,7 +80,7 @@ func HeadersReqHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	if err != nil {
 		return err
 	}
-	buf, err := NewHeaders(headers, cnt)
+	buf, err := msgpack.NewHeaders(headers, cnt)
 	if err != nil {
 		return err
 	}
@@ -108,7 +109,7 @@ func BlocksReqHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	if err != nil {
 		return err
 	}
-	buf, err := NewInv(inv)
+	buf, err := msgpack.NewInv(inv)
 	if err != nil {
 		return err
 	}
@@ -129,7 +130,7 @@ func PingHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	remotePeer := p2p.Self.Np.GetPeer(data.Id)
 
 	remotePeer.SetHeight(ping.Height)
-	buf, err := NewPongMsg(localPeer.GetHeight())
+	buf, err := msgpack.NewPongMsg(localPeer.GetHeight())
 
 	if err != nil {
 		log.Error("failed build a new pong message")
@@ -245,14 +246,26 @@ func VersionHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	version.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
 
 	localPeer := p2p.Self
-	remotePeer := localPeer.Np.GetPeer(data.Id)
-
-	if remotePeer == nil {
-		log.Warn("nbr node is not exist")
-		return errors.New("nbr node is not exist ")
-	}
 
 	if version.P.IsConsensus == true {
+		remotePeer := p2p.network.GetPeerFromAddr(data.Addr)
+
+		if remotePeer == nil {
+			log.Warn(" peer is not exist")
+			return errors.New("peer is not exist ")
+		}
+		p := p2p.Self.Np.GetPeer(version.P.Nonce)
+
+		if p == nil {
+			log.Warn("sync link is not exist")
+			return errors.New("sync link is not exist")
+		} else {
+			//p synclink must exist,merged
+			p.ConsLink = remotePeer.ConsLink
+			p.SetConsState(remotePeer.GetConsState())
+			remotePeer = p
+
+		}
 		if version.P.Nonce == p2p.Self.GetID() {
 			log.Warn("The node handshake with itself")
 			remotePeer.CloseCons()
@@ -272,15 +285,21 @@ func VersionHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		var buf []byte
 		if s == msgCommon.INIT {
 			remotePeer.SetConsState(msgCommon.HANDSHAKE)
-			vpl := NewVersionPayload(localPeer, true)
-			buf, _ = NewVersion(vpl, p2p.Self.GetPubKey())
+			vpl := msgpack.NewVersionPayload(localPeer, true)
+			buf, _ = msgpack.NewVersion(vpl, p2p.Self.GetPubKey())
 		} else if s == msgCommon.HAND {
 			remotePeer.SetConsState(msgCommon.HANDSHAKED)
-			buf, _ = NewVerAck(true)
+			buf, _ = msgpack.NewVerAck(true)
 		}
 		remotePeer.SendToCons(buf)
 		return nil
 	} else {
+		remotePeer := p2p.network.GetPeerFromAddr(data.Addr)
+
+		if remotePeer == nil {
+			log.Warn("peer is not exist")
+			return errors.New("peer is not exist ")
+		}
 		if version.P.Nonce == p2p.Self.GetID() {
 			log.Warn("The node handshake with itself")
 			remotePeer.CloseSync()
@@ -296,14 +315,14 @@ func VersionHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		// Obsolete node
 		n, ret := p2p.Self.Np.DelNbrNode(version.P.Nonce)
 		if ret == true {
-			log.Info(fmt.Sprintf("Node reconnect 0x%x", version.P.Nonce))
+			log.Info(fmt.Sprintf("Peer reconnect 0x%x", version.P.Nonce))
 			// Close the connection and release the node source
 			n.SetSyncState(msgCommon.INACTIVITY)
 			n.CloseSync()
 		}
 
 		log.Debug("handle version version.pk is ", version.PK)
-		if version.P.Cap[msg.HTTP_INFO_FLAG] == 0x01 {
+		if version.P.Cap[msgCommon.HTTP_INFO_FLAG] == 0x01 {
 			remotePeer.SetHttpInfoState(true)
 		} else {
 			remotePeer.SetHttpInfoState(false)
@@ -321,11 +340,11 @@ func VersionHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		var buf []byte
 		if s == msgCommon.INIT {
 			remotePeer.SetSyncState(msgCommon.HANDSHAKE)
-			vpl := NewVersionPayload(localPeer, false)
-			buf, _ = NewVersion(vpl, p2p.Self.GetPubKey())
+			vpl := msgpack.NewVersionPayload(localPeer, false)
+			buf, _ = msgpack.NewVersion(vpl, p2p.Self.GetPubKey())
 		} else if s == msgCommon.HAND {
 			remotePeer.SetSyncState(msgCommon.HANDSHAKED)
-			buf, _ = NewVerAck(false)
+			buf, _ = msgpack.NewVerAck(false)
 		}
 		remotePeer.SendToSync(buf)
 		return nil
@@ -366,7 +385,7 @@ func VerAckHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		remotePeer.SetConsConn(remotePeer.GetConsConn())
 
 		if s == msgCommon.HANDSHAKE {
-			buf, _ := NewVerAck(true)
+			buf, _ := msgpack.NewVerAck(true)
 			remotePeer.SendToCons(buf)
 		}
 		return nil
@@ -380,92 +399,30 @@ func VerAckHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		remotePeer.SetSyncState(msgCommon.ESTABLISH)
 
 		if s == msgCommon.HANDSHAKE {
-			buf, _ := NewVerAck(false)
+			buf, _ := msgpack.NewVerAck(false)
 			remotePeer.SendToSync(buf)
 		}
 
 		remotePeer.DumpInfo()
-		// Fixme, there is a race condition here,
-		// but it doesn't matter to access the invalid
-		// node which will trigger a warning
-		//TODO JQ: only master p2p port request neighbor list
-		buf, _ := NewAddrReq()
+
+		buf, _ := msgpack.NewAddrReq()
 		go remotePeer.SendToSync(buf)
 
 		addr := remotePeer.GetAddr()
-		port := remotePeer.GetSyncPort()
-		nodeAddr := addr + ":" + strconv.Itoa(int(port))
-		//TODO JQ： only master p2p port remove the list
-		p2p.Self.SyncLink.RemoveAddrInConnectingList(nodeAddr)
+		// port := remotePeer.GetSyncPort()
+		// nodeAddr := addr + ":" + strconv.Itoa(int(port))
+
+		// p2p.Self.SyncLink.RemoveAddrInConnectingList(nodeAddr)
 
 		//connect consensus port
 		if s == msgCommon.HANDSHAKED {
 			consensusPort := remotePeer.GetConsPort()
 			nodeConsensusAddr := addr + ":" + strconv.Itoa(int(consensusPort))
 			//Fix me:
-			go remotePeer.ConsLink.Connect(nodeConsensusAddr)
+			go p2p.network.Connect(nodeConsensusAddr, true)
 		}
 		return nil
 	}
-	/*
-
-		if verAck.IsConsensus == true {
-			s := localPeer.GetConsState()
-			if s != msgCommon.HANDSHAKE && s != msgCommon.HANDSHAKED {
-				log.Warn("Unknown status to received verAck")
-				return errors.New("Unknown status to received verAck")
-			}
-
-			n := localPeer.Np.GetPeer(remotePeer.GetID())
-			if n == nil {
-				log.Warn("nbr node is not exist")
-				return errors.New("nbr node is not exist ")
-			}
-
-			remotePeer.SetConsState(msgCommon.ESTABLISH)
-			n.SetConsState(remotePeer.GetConsState())
-			n.SetConsConn(remotePeer.GetConsConn())
-
-			if s == msgCommon.HANDSHAKE {
-				buf, _ := NewVerAck(true)
-				remotePeer.SendToCons(buf)
-			}
-			return nil
-		}
-		s := remotePeer.GetSyncState()
-		if s != msgCommon.HANDSHAKE && s != msgCommon.HANDSHAKED {
-			log.Warn("Unknown status to received verAck")
-			return errors.New("Unknown status to received verAck ")
-		}
-
-		remotePeer.SetSyncState(msgCommon.ESTABLISH)
-
-		if s == msgCommon.HANDSHAKE {
-			buf, _ := NewVerAck(false)
-			remotePeer.SendToSync(buf)
-		}
-
-		remotePeer.DumpInfo()
-		// Fixme, there is a race condition here,
-		// but it doesn't matter to access the invalid
-		// node which will trigger a warning
-		//TODO JQ: only master p2p port request neighbor list
-		buf, _ := NewAddrReq()
-		go remotePeer.SendToSync(buf)
-
-		addr := remotePeer.GetAddr()
-		port := remotePeer.GetSyncPort()
-		nodeAddr := addr + ":" + strconv.Itoa(int(port))
-		//TODO JQ： only master p2p port remove the list
-		p2p.Self.SyncLink.RemoveAddrInConnectingList(nodeAddr)
-
-		//connect consensus port
-		if s == msgCommon.HANDSHAKED {
-			consensusPort := remotePeer.GetConsPort()
-			nodeConsensusAddr := addr + ":" + strconv.Itoa(int(consensusPort))
-			//Fix me:
-			go remotePeer.ConsLink.Connect(nodeConsensusAddr)
-		}*/
 	return nil
 }
 
@@ -498,7 +455,7 @@ func AddrHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 			continue
 		}
 
-		go localPeer.SyncLink.Connect(address)
+		go p2p.network.Connect(address, false)
 	}
 	return nil
 }
@@ -521,12 +478,12 @@ func DataReqHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		block, err := actor.GetBlockByHash(hash)
 		if err != nil {
 			log.Debug("Can't get block by hash: ", hash, " ,send not found message")
-			b, err := NewNotFound(hash)
+			b, err := msgpack.NewNotFound(hash)
 			remotePeer.SendToSync(b)
 			return err
 		}
 		log.Debug("block height is ", block.Header.Height, " ,hash is ", hash)
-		buf, err := NewBlock(block)
+		buf, err := msgpack.NewBlock(block)
 		if err != nil {
 			return err
 		}
@@ -536,11 +493,11 @@ func DataReqHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		txn, err := actor.GetTxnFromLedger(hash)
 		if err != nil {
 			log.Debug("Can't get transaction by hash: ", hash, " ,send not found message")
-			b, err := NewNotFound(hash)
+			b, err := msgpack.NewNotFound(hash)
 			remotePeer.SendToSync(b)
 			return err
 		}
-		buf, err := NewTxn(txn)
+		buf, err := msgpack.NewTxn(txn)
 		if err != nil {
 			return err
 		}
@@ -574,7 +531,7 @@ func InvHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 
 		trn, err := actor.GetTransaction(id)
 		if trn == nil || err != nil {
-			txnDataReq, _ := NewTxnDataReq(id)
+			txnDataReq, _ := msgpack.NewTxnDataReq(id)
 			remotePeer.SendToSync(txnDataReq)
 		}
 	case common.BLOCK:
@@ -590,14 +547,14 @@ func InvHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 				msg.LastInvHash = id
 				// send the block request
 				log.Infof("inv request block hash: %x", id)
-				blkDataReq, _ := NewBlkDataReq(id)
+				blkDataReq, _ := msgpack.NewBlkDataReq(id)
 				remotePeer.SendToSync(blkDataReq)
 			}
 		}
 	case common.CONSENSUS:
 		log.Debug("RX consensus message")
 		id.Deserialize(bytes.NewReader(inv.P.Blk[:32]))
-		consDataReq, _ := NewConsensusDataReq(id)
+		consDataReq, _ := msgpack.NewConsensusDataReq(id)
 		remotePeer.SendToCons(consDataReq)
 	default:
 		log.Warn("RX unknown inventory message")

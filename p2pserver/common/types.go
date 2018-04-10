@@ -71,6 +71,11 @@ const (
 	INACTIVITY = 5
 )
 
+//cap flag
+const (
+	HTTP_INFO_FLAG = 0
+)
+
 //PeerAddr represent peer`s net information
 type PeerAddr struct {
 	Time          int64
@@ -83,16 +88,13 @@ type PeerAddr struct {
 
 //MsgPayload in link channel
 type MsgPayload struct {
-	Id      uint64
+	Id      uint64 //peer ID
+	Addr    string //link address
 	Payload []byte
-	Len     int
 }
 
 //const channel msg id and type
 const (
-	CONNECT           = 0
-	DISCONNECT        = 1
-	P2PMSG            = 2
 	VERSION_TYPE      = "version"
 	VERACK_TYPE       = "verack"
 	GetADDR_TYPE      = "getaddr"
@@ -111,4 +113,5 @@ const (
 	FILTER_LOAD_TYPE  = "filterload"
 	GET_BLOCKS_TYPE   = "getblocks"
 	NOT_FOUND_TYPE    = "notfound"
+	DISCONNECT_TYPE   = "disconnect"
 )

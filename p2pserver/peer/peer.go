@@ -34,7 +34,7 @@ import (
 	"github.com/Ontology/events"
 	types "github.com/Ontology/p2pserver/common"
 	conn "github.com/Ontology/p2pserver/link"
-	"github.com/Ontology/p2pserver/message"
+	//"github.com/Ontology/p2pserver/message"
 )
 
 type Peer struct {
@@ -53,10 +53,7 @@ type Peer struct {
 	httpInfoPort             uint16
 	publicKey                *crypto.PubKey
 	chF                      chan func() error // Channel used to operate the node without lock
-	eventQueue                                 // The event queue to notice other modules
 	peerDisconnectSubscriber events.Subscriber
-	notifyFunc               func(v interface{})
-	tryCount                 uint32
 	Np                       *NbrPeers
 }
 
@@ -66,7 +63,7 @@ func (p *Peer) backend() {
 	}
 }
 
-func NewPeer(pubKey *crypto.PubKey) (*Peer, error) {
+func NewPeer() *Peer {
 	p := &Peer{
 		syncState: types.INIT,
 		consState: types.INIT,
@@ -74,7 +71,10 @@ func NewPeer(pubKey *crypto.PubKey) (*Peer, error) {
 	}
 	runtime.SetFinalizer(&p, rmPeer)
 	go p.backend()
+	return p
+}
 
+func (p *Peer) InitPeer(pubKey *crypto.PubKey) error {
 	p.version = types.PROTOCOL_VERSION
 	if config.Parameters.NodeType == types.SERVICE_NODE_NAME {
 		p.services = uint64(types.SERVICE_NODE)
@@ -92,18 +92,18 @@ func NewPeer(pubKey *crypto.PubKey) (*Peer, error) {
 	key, err := pubKey.EncodePoint(true)
 	if err != nil {
 		log.Error(err)
-		return nil, err
+		return err
 	}
 	err = binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(p.id))
 	if err != nil {
 		log.Error(err)
-		return nil, err
+		return err
 	}
 	log.Info(fmt.Sprintf("Init peer ID to 0x%x", p.id))
 	p.publicKey = pubKey
-	p.eventQueue.init()
-	p.peerDisconnectSubscriber = p.eventQueue.GetEvent("disconnect").Subscribe(events.EventNodeDisconnect, p.notifyFunc)
-	return p, nil
+	p.SyncLink.SetID(p.id)
+	p.ConsLink.SetID(p.id)
+	return nil
 }
 
 func rmPeer(p *Peer) {
@@ -122,7 +122,6 @@ func (p *Peer) DumpInfo() {
 	log.Info("\t consPort = ", p.ConsLink.GetPort())
 	log.Info("\t relay = ", p.relay)
 	log.Info("\t height = ", p.height)
-	log.Info("\t conn cnt = ", p.SyncLink.GetConnCnt())
 }
 func (p *Peer) SetBookKeeperAddr(pubKey *crypto.PubKey) {
 	p.publicKey = pubKey
@@ -218,12 +217,11 @@ func (p *Peer) GetAddr16() ([16]byte, error) {
 	return result, nil
 }
 
-func (p *Peer) AttachChan(msgchan chan types.MsgPayload) {
-	p.ConsLink.SetChan(msgchan)
+func (p *Peer) AttachSyncChan(msgchan chan types.MsgPayload) {
+	p.SyncLink.SetChan(msgchan)
 }
-
-func (p *Peer) AttachEvent(fn func(v interface{})) {
-	p.notifyFunc = fn
+func (p *Peer) AttachConsChan(msgchan chan types.MsgPayload) {
+	p.ConsLink.SetChan(msgchan)
 }
 
 func (p *Peer) DelNbrNode(id uint64) (*Peer, bool) {
@@ -239,9 +237,9 @@ func (p *Peer) Send(buf []byte, isConsensus bool) error {
 
 func (p *Peer) SetHttpInfoState(httpInfo bool) {
 	if httpInfo {
-		p.cap[message.HTTP_INFO_FLAG] = 0x01
+		p.cap[types.HTTP_INFO_FLAG] = 0x01
 	} else {
-		p.cap[message.HTTP_INFO_FLAG] = 0x00
+		p.cap[types.HTTP_INFO_FLAG] = 0x00
 	}
 }
 
@@ -279,13 +277,4 @@ func (p *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
 //AddNbrNode add peer to nbr peer list
 func (p *Peer) AddNbrNode(remotePeer *Peer) {
 	p.Np.AddNbrNode(remotePeer)
-}
-
-//StartListen init link layer for listenning
-func (p *Peer) StartListen() {
-	p.SyncLink.InitConnection()
-	if p.ConsLink.GetPort() != 0 {
-		p.ConsLink.InitConnection()
-	}
-
 }

@@ -32,6 +32,7 @@ import (
 	"github.com/Ontology/common/log"
 	actor "github.com/Ontology/p2pserver/actor/req"
 	types "github.com/Ontology/p2pserver/common"
+	"github.com/Ontology/p2pserver/msg_pack"
 	"github.com/Ontology/p2pserver/peer"
 )
 
@@ -54,7 +55,8 @@ type ReconnectAddrs struct {
 
 //NewServer return a new p2pserver according to the pubkey
 func NewServer(acc *account.Account) (*P2PServer, error) {
-	self, err := peer.NewPeer(acc.PubKey())
+	self := peer.NewPeer()
+	err := self.InitPeer(acc.PubKey())
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +215,7 @@ func (this *P2PServer) connectSeeds() {
 				this.reqNbrList(p)
 			}
 		} else { //not found
-			go this.network.Connect(nodeAddr)
+			go this.network.Connect(nodeAddr, false)
 		}
 	}
 }
@@ -245,7 +247,6 @@ func (this *P2PServer) retryInactivePeer() {
 		if p.GetSyncState() == types.INACTIVITY {
 			//add addr to retry list
 			this.addToRetryList(nodeAddr)
-			//close legacy node
 			p.CloseSync()
 			p.CloseCons()
 		} else {
@@ -268,7 +269,7 @@ func (this *P2PServer) retryInactivePeer() {
 			log.Trace("Try to reconnect peer, peer addr is ", addr)
 			<-time.After(time.Duration(rand.Intn(types.CONN_MAX_BACK)) * time.Millisecond)
 			log.Trace("Back off time`s up, start connect node")
-			this.network.Connect(addr)
+			this.network.Connect(addr, false)
 			if this.RetryAddrs[addr] < types.MAX_RETRY_COUNT {
 				list[addr] = this.RetryAddrs[addr]
 			}
@@ -297,7 +298,7 @@ func (this *P2PServer) keepOnlineService() {
 
 //reqNbrList ask the peer for its neighbor list
 func (this *P2PServer) reqNbrList(p *peer.Peer) {
-	buf, _ := NewAddrReq()
+	buf, _ := msgpack.NewAddrReq()
 	go this.Send(p, buf, false)
 }
 
@@ -333,7 +334,7 @@ func (this *P2PServer) ping() {
 				log.Error("failed get current height! Ping faild!")
 				return
 			}
-			buf, err := NewPingMsg(uint64(height))
+			buf, err := msgpack.NewPingMsg(uint64(height))
 			if err != nil {
 				log.Error("failed build a new ping message")
 			} else {
@@ -402,7 +403,7 @@ func (this *P2PServer) syncBlockHdr() {
 		return
 	}
 	headerHash, _ := actor.GetCurrentHeaderHash()
-	buf, err := NewHeadersReq(headerHash)
+	buf, err := msgpack.NewHeadersReq(headerHash)
 	if err != nil {
 		log.Error("failed build a new headersReq")
 	} else {
@@ -436,7 +437,7 @@ func (this *P2PServer) syncBlock() {
 				hash, _ := actor.GetBlockHashByHeight(f)
 				isContainBlock, _ := actor.IsContainBlock(hash)
 				if isContainBlock == false {
-					reqBuf, err := NewBlkDataReq(hash)
+					reqBuf, err := msgpack.NewBlkDataReq(hash)
 					if err != nil {
 						log.Error("syncBlock error:", err)
 						break
@@ -454,7 +455,7 @@ func (this *P2PServer) syncBlock() {
 				hash, _ := actor.GetBlockHashByHeight(currentBlkHeight + reqCnt)
 				isContainBlock, _ := actor.IsContainBlock(hash)
 				if isContainBlock == false {
-					reqBuf, err := NewBlkDataReq(hash)
+					reqBuf, err := msgpack.NewBlkDataReq(hash)
 					if err != nil {
 						log.Error("syncBlock error:", err)
 					}

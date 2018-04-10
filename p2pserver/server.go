@@ -28,7 +28,7 @@ import (
 type P2P interface {
 	Start()
 	Halt()
-	Connect(addr string)
+	Connect(addr string, isConsensus bool) error
 	GetVersion() uint32
 	GetPort() uint16
 	GetConsensusPort() uint16
@@ -39,16 +39,22 @@ type P2P interface {
 	GetNeighborAddrs() ([]types.PeerAddr, uint64)
 	GetConnectionCnt() uint32
 	IsPeerEstablished(p *peer.Peer) bool
-	GetMsgCh() chan types.MsgPayload
 	Send(p *peer.Peer, data []byte, isConsensus bool) error
+	GetPeerFromAddr(addr string) *peer.Peer
 }
 
 //NewNetServer return the net object in p2p
 func NewNetServer(p *peer.Peer) P2P {
-	p.AttachEvent(P2Pnet.DisconnectNotify)
+
 	n := &P2Pnet.NetServer{
-		Self:        p,
-		ReceiveChan: make(chan types.MsgPayload),
+		Self:            p,
+		PeerSyncAddress: make(map[string]*peer.Peer),
+		PeerConsAddress: make(map[string]*peer.Peer),
+		SyncChan:        make(chan types.MsgPayload, 100000),
+		ConsChan:        make(chan types.MsgPayload, 100000),
 	}
+
+	p.AttachSyncChan(n.SyncChan)
+	p.AttachConsChan(n.ConsChan)
 	return n
 }

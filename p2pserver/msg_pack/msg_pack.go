@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package p2pserver
+package msgpack
 
 import (
 	"bytes"
@@ -385,9 +385,9 @@ func NewVersionPayload(p *peer.Peer, isCons bool) msg.VersionPayload {
 		vpl.Relay = 0
 	}
 	if config.Parameters.HttpInfoStart {
-		vpl.Cap[msg.HTTP_INFO_FLAG] = 0x01
+		vpl.Cap[msgCommon.HTTP_INFO_FLAG] = 0x01
 	} else {
-		vpl.Cap[msg.HTTP_INFO_FLAG] = 0x00
+		vpl.Cap[msgCommon.HTTP_INFO_FLAG] = 0x00
 	}
 
 	vpl.UserAgent = 0x00
