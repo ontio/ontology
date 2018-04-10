@@ -41,6 +41,8 @@ type P2P interface {
 	Send(p *peer.Peer, data []byte, isConsensus bool) error
 	GetMsgChan(isConsensus bool) chan types.MsgPayload
 	GetPeerFromAddr(addr string) *peer.Peer
+	AddInConnectingList(addr string) (added bool)
+	RemoveFromConnectingList(addr string)
 }
 
 //NewNetServer return the net object in p2p

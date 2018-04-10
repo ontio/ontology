@@ -206,6 +206,13 @@ func NewConsensus(cp *mt.ConsensusPayload) ([]byte, error) {
 	}
 	return m, nil
 }
+func NewInvPayload(invType common.InventoryType, count uint32, msg []byte) *mt.InvPayload {
+	return &mt.InvPayload{
+		InvType: invType,
+		Cnt:     count,
+		Blk:     msg,
+	}
+}
 
 func NewInv(invPayload *mt.InvPayload) ([]byte, error) {
 	var inv mt.Inv

@@ -286,11 +286,11 @@ func VersionHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 
 		var buf []byte
 		if s == msgCommon.INIT {
-			remotePeer.SetConsState(msgCommon.HANDSHAKE)
+			remotePeer.SetConsState(msgCommon.HAND_SHAKE)
 			vpl := msgpack.NewVersionPayload(localPeer, true)
 			buf, _ = msgpack.NewVersion(vpl, p2p.Self.GetPubKey())
 		} else if s == msgCommon.HAND {
-			remotePeer.SetConsState(msgCommon.HANDSHAKED)
+			remotePeer.SetConsState(msgCommon.HAND_SHAKED)
 			buf, _ = msgpack.NewVerAck(true)
 		}
 		remotePeer.SendToCons(buf)
@@ -341,11 +341,11 @@ func VersionHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 
 		var buf []byte
 		if s == msgCommon.INIT {
-			remotePeer.SetSyncState(msgCommon.HANDSHAKE)
+			remotePeer.SetSyncState(msgCommon.HAND_SHAKE)
 			vpl := msgpack.NewVersionPayload(localPeer, false)
 			buf, _ = msgpack.NewVersion(vpl, p2p.Self.GetPubKey())
 		} else if s == msgCommon.HAND {
-			remotePeer.SetSyncState(msgCommon.HANDSHAKED)
+			remotePeer.SetSyncState(msgCommon.HAND_SHAKED)
 			buf, _ = msgpack.NewVerAck(false)
 		}
 		remotePeer.SendToSync(buf)
@@ -378,7 +378,7 @@ func VerAckHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 
 	if verAck.IsConsensus == true {
 		s := remotePeer.GetConsState()
-		if s != msgCommon.HANDSHAKE && s != msgCommon.HANDSHAKED {
+		if s != msgCommon.HAND_SHAKE && s != msgCommon.HAND_SHAKED {
 			log.Warn("Unknown status to received verAck")
 			return errors.New("Unknown status to received verAck")
 		}
@@ -386,21 +386,23 @@ func VerAckHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		remotePeer.SetConsState(msgCommon.ESTABLISH)
 		remotePeer.SetConsConn(remotePeer.GetConsConn())
 
-		if s == msgCommon.HANDSHAKE {
+		if s == msgCommon.HAND_SHAKE {
 			buf, _ := msgpack.NewVerAck(true)
 			remotePeer.SendToCons(buf)
 		}
+		addr := remotePeer.ConsLink.GetAddr()
+		p2p.network.RemoveFromConnectingList(addr)
 		return nil
 	} else {
 		s := remotePeer.GetSyncState()
-		if s != msgCommon.HANDSHAKE && s != msgCommon.HANDSHAKED {
+		if s != msgCommon.HAND_SHAKE && s != msgCommon.HAND_SHAKED {
 			log.Warn("Unknown status to received verAck")
 			return errors.New("Unknown status to received verAck ")
 		}
 
 		remotePeer.SetSyncState(msgCommon.ESTABLISH)
 
-		if s == msgCommon.HANDSHAKE {
+		if s == msgCommon.HAND_SHAKE {
 			buf, _ := msgpack.NewVerAck(false)
 			remotePeer.SendToSync(buf)
 		}
@@ -410,17 +412,17 @@ func VerAckHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		buf, _ := msgpack.NewAddrReq()
 		go remotePeer.SendToSync(buf)
 
-		addr := remotePeer.GetAddr()
+		addr := remotePeer.SyncLink.GetAddr()
+		p2p.network.RemoveFromConnectingList(addr)
 
-		if s == msgCommon.HANDSHAKED {
-			i := strings.Index(addr, ":")
-			if i < 0 {
-				log.Warn("Split IP address error")
-				return nil
-			}
-			nodeConsensusAddr := addr[:i] + ":" + strconv.Itoa(int(remotePeer.GetConsPort()))
-			go p2p.network.Connect(nodeConsensusAddr, true)
+		i := strings.Index(addr, ":")
+		if i < 0 {
+			log.Warn("Split IP address error")
+			return nil
 		}
+		nodeConsensusAddr := addr[:i] + ":" + strconv.Itoa(int(remotePeer.GetConsPort()))
+		go p2p.network.Connect(nodeConsensusAddr, true)
+
 		return nil
 	}
 	return nil
@@ -454,7 +456,7 @@ func AddrHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		if v.Port == 0 {
 			continue
 		}
-
+		log.Info("Connect ipaddr ：", address)
 		go p2p.network.Connect(address, false)
 	}
 	return nil

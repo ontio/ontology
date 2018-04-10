@@ -19,24 +19,30 @@
 package p2pserver
 
 import (
+	"bytes"
 	"errors"
 	"math/rand"
 	"net"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/ontio/ontology/account"
+	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/types"
 	actor "github.com/ontio/ontology/p2pserver/actor/req"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
+	msgtypes "github.com/ontio/ontology/p2pserver/message/types"
 	p2pnet "github.com/ontio/ontology/p2pserver/net"
 	"github.com/ontio/ontology/p2pserver/peer"
 )
 
+//P2PServer control all network activities
 type P2PServer struct {
 	Self      *peer.Peer
 	network   p2pnet.P2P
@@ -48,7 +54,7 @@ type P2PServer struct {
 	quitSyncBlk   chan bool
 }
 
-//reconnectAddrs contain addr need to reconnect
+//ReconnectAddrs contain addr need to reconnect
 type ReconnectAddrs struct {
 	sync.RWMutex
 	RetryAddrs map[string]int
@@ -96,9 +102,12 @@ func NewServer(acc *account.Account) (*P2PServer, error) {
 	return p, nil
 }
 
+//GetConnectionCnt return the established connect count
 func (this *P2PServer) GetConnectionCnt() uint32 {
 	return this.network.GetConnectionCnt()
 }
+
+//Start create all services
 func (this *P2PServer) Start(isSync bool) error {
 	if this != nil {
 		this.network.Start()
@@ -110,6 +119,8 @@ func (this *P2PServer) Start(isSync bool) error {
 	}
 	return nil
 }
+
+//Stop halt all service by send signal to channels
 func (this *P2PServer) Stop() error {
 	this.network.Halt()
 	this.quitOnline <- true
@@ -130,7 +141,55 @@ func (this *P2PServer) GetVersion() uint32 {
 func (this *P2PServer) GetNeighborAddrs() ([]common.PeerAddr, uint64) {
 	return this.network.GetNeighborAddrs()
 }
-func (this *P2PServer) Xmit(msg interface{}) error {
+func (this *P2PServer) Xmit(message interface{}) error {
+	log.Debug()
+	var buffer []byte
+	var err error
+	isConsensus := false
+	switch message.(type) {
+	case *types.Transaction:
+		log.Debug("TX transaction message")
+		txn := message.(*types.Transaction)
+		buffer, err = msgpack.NewTxn(txn)
+		if err != nil {
+			log.Error("Error New Tx message: ", err)
+			return err
+		}
+
+	case *types.Block:
+		log.Debug("TX block message")
+		block := message.(*types.Block)
+		buffer, err = msgpack.NewBlock(block)
+		if err != nil {
+			log.Error("Error New Block message: ", err)
+			return err
+		}
+	case *msgtypes.ConsensusPayload:
+		log.Debug("TX consensus message")
+		consensusPayload := message.(*msgtypes.ConsensusPayload)
+		buffer, err = msgpack.NewConsensus(consensusPayload)
+		if err != nil {
+			log.Error("Error New consensus message: ", err)
+			return err
+		}
+		isConsensus = true
+	case comm.Uint256:
+		log.Debug("TX block hash message")
+		hash := message.(comm.Uint256)
+		buf := bytes.NewBuffer([]byte{})
+		hash.Serialize(buf)
+		// construct inv message
+		invPayload := msgpack.NewInvPayload(comm.BLOCK, 1, buf.Bytes())
+		buffer, err = msgpack.NewInv(invPayload)
+		if err != nil {
+			log.Error("Error New inv message")
+			return err
+		}
+	default:
+		log.Warnf("Unknown Xmit message %v , type %v", message, reflect.TypeOf(message))
+		return errors.New("Unknown Xmit message type")
+	}
+	this.Self.Np.Broadcast(buffer, isConsensus)
 	return nil
 }
 func (this *P2PServer) Send(p *peer.Peer, buf []byte, isConsensus bool) error {

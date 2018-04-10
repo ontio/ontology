@@ -64,12 +64,12 @@ const (
 
 // The peer state
 const (
-	INIT       = 0
-	HAND       = 1
-	HANDSHAKE  = 2
-	HANDSHAKED = 3
-	ESTABLISH  = 4
-	INACTIVITY = 5
+	INIT        = 0
+	HAND        = 1
+	HAND_SHAKE  = 2
+	HAND_SHAKED = 3
+	ESTABLISH   = 4
+	INACTIVITY  = 5
 )
 
 //cap flag

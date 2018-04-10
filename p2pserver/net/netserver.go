@@ -130,8 +130,11 @@ func (n *NetServer) IsPeerEstablished(p *peer.Peer) bool {
 }
 
 func (n *NetServer) Connect(addr string, isConsensus bool) error {
-
-	if added := n.addInConnectingList(addr); added == false {
+	if n.IsNbrPeerAddr(addr) && !isConsensus {
+		return nil
+	}
+	if added := n.AddInConnectingList(addr); added == false {
+		log.Info("node exist in connecting list, cancel")
 		return errors.New("node exist in connecting list, cancel")
 	}
 
@@ -142,18 +145,19 @@ func (n *NetServer) Connect(addr string, isConsensus bool) error {
 	if isTls {
 		conn, err = TLSDial(addr)
 		if err != nil {
-			n.removeFromConnectingList(addr)
+			n.RemoveFromConnectingList(addr)
 			log.Error("TLS connect failed: ", err)
 			return err
 		}
 	} else {
 		conn, err = nonTLSDial(addr)
 		if err != nil {
-			n.removeFromConnectingList(addr)
+			n.RemoveFromConnectingList(addr)
 			log.Error("non TLS connect failed: ", err)
 			return err
 		}
 	}
+
 	addr = conn.RemoteAddr().String()
 	log.Info(fmt.Sprintf("peer %s connect with %s with %s",
 		conn.LocalAddr().String(), conn.RemoteAddr().String(),
@@ -300,7 +304,7 @@ func (n *NetServer) startConsAccept(listener net.Listener) {
 }
 
 //record the peer which is going to be dialed and sent version message but not in establish state
-func (n *NetServer) addInConnectingList(addr string) (added bool) {
+func (n *NetServer) AddInConnectingList(addr string) (added bool) {
 	n.ConnectingNodes.Lock()
 	defer n.ConnectingNodes.Unlock()
 	for _, a := range n.ConnectingAddrs {
@@ -313,7 +317,7 @@ func (n *NetServer) addInConnectingList(addr string) (added bool) {
 }
 
 //Remove the peer from connecting list if the connection is established
-func (n *NetServer) removeFromConnectingList(addr string) {
+func (n *NetServer) RemoveFromConnectingList(addr string) {
 	n.ConnectingNodes.Lock()
 	defer n.ConnectingNodes.Unlock()
 	addrs := []string{}
@@ -428,4 +432,20 @@ func TLSDial(nodeAddr string) (net.Conn, error) {
 		return nil, err
 	}
 	return conn, nil
+}
+
+func (n *NetServer) IsNbrPeerAddr(addr string) bool {
+	n.Self.Np.RLock()
+	defer n.Self.Np.RUnlock()
+	for _, p := range n.Self.Np.List {
+		if p.GetSyncState() == common.HAND || p.GetSyncState() == common.HAND_SHAKE ||
+			p.GetSyncState() == common.ESTABLISH {
+			addrNew := p.SyncLink.GetAddr()
+			if strings.Compare(addrNew, addr) == 0 {
+				return true
+			}
+		}
+	}
+	return false
+
 }
