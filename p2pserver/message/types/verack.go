@@ -16,44 +16,42 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package message
+package types
 
 import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/common/serialization"
 )
 
-// Transaction message
-type Trn struct {
+type VerACK struct {
 	MsgHdr
-	Txn types.Transaction
+	IsConsensus bool
 }
 
 //Serialize message payload
-func (msg Trn) Serialization() ([]byte, error) {
+func (msg VerACK) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.MsgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	msg.Txn.Serialize(buf)
-
+	err = serialization.WriteBool(buf, msg.IsConsensus)
+	if err != nil {
+		return nil, err
+	}
 	return buf.Bytes(), err
 }
 
 //Deserialize message payload
-func (msg *Trn) Deserialization(p []byte) error {
+func (msg *VerACK) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.MsgHdr))
-	err = msg.Txn.Deserialize(buf)
 	if err != nil {
 		return err
 	}
-	return nil
-}
 
-type txnPool struct {
-	MsgHdr
+	msg.IsConsensus, err = serialization.ReadBool(buf)
+	return err
 }

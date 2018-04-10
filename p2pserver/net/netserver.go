@@ -32,16 +32,16 @@ import (
 
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	types "github.com/ontio/ontology/p2pserver/common"
-	"github.com/ontio/ontology/p2pserver/msg_pack"
+	"github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	"github.com/ontio/ontology/p2pserver/peer"
 )
 
 //NetServer represent all the actions in net layer
 type NetServer struct {
 	Self     *peer.Peer
-	SyncChan chan types.MsgPayload
-	ConsChan chan types.MsgPayload
+	SyncChan chan common.MsgPayload
+	ConsChan chan common.MsgPayload
 	ConnectingNodes
 	PeerSyncAddress map[string]*peer.Peer
 	PeerConsAddress map[string]*peer.Peer
@@ -93,7 +93,7 @@ func (n *NetServer) GetServices() uint64 {
 }
 
 //GetNeighborAddrs return all the nbr peer`s addr
-func (n *NetServer) GetNeighborAddrs() ([]types.PeerAddr, uint64) {
+func (n *NetServer) GetNeighborAddrs() ([]common.PeerAddr, uint64) {
 	return n.Self.Np.GetNeighborAddrs()
 }
 
@@ -103,7 +103,7 @@ func (n *NetServer) GetConnectionCnt() uint32 {
 }
 
 //
-func (n *NetServer) GetMsgChan(isConsensus bool) chan types.MsgPayload {
+func (n *NetServer) GetMsgChan(isConsensus bool) chan common.MsgPayload {
 	if isConsensus {
 		return n.ConsChan
 	} else {
@@ -167,7 +167,7 @@ func (n *NetServer) Connect(addr string, isConsensus bool) error {
 		remotePeer.SyncLink.SetConn(conn)
 		remotePeer.AttachSyncChan(n.ConsChan)
 		go remotePeer.SyncLink.Rx()
-		remotePeer.SetSyncState(types.HAND)
+		remotePeer.SetSyncState(common.HAND)
 		vpl := msgpack.NewVersionPayload(n.Self, false)
 		buf, _ := msgpack.NewVersion(vpl, n.Self.GetPubKey())
 		remotePeer.SyncLink.Tx(buf)
@@ -178,7 +178,7 @@ func (n *NetServer) Connect(addr string, isConsensus bool) error {
 		remotePeer.ConsLink.SetConn(conn)
 		remotePeer.AttachConsChan(n.ConsChan)
 		go remotePeer.ConsLink.Rx()
-		remotePeer.SetConsState(types.HAND)
+		remotePeer.SetConsState(common.HAND)
 		vpl := msgpack.NewVersionPayload(n.Self, true)
 		buf, _ := msgpack.NewVersion(vpl, n.Self.GetPubKey())
 		remotePeer.ConsLink.Tx(buf)
@@ -400,7 +400,7 @@ func parseIPAddr(s string) (string, error) {
 
 func nonTLSDial(addr string) (net.Conn, error) {
 	log.Debug()
-	conn, err := net.DialTimeout("tcp", addr, time.Second*types.DIAL_TIMEOUT)
+	conn, err := net.DialTimeout("tcp", addr, time.Second*common.DIAL_TIMEOUT)
 	if err != nil {
 		return nil, err
 	}
@@ -432,7 +432,7 @@ func TLSDial(nodeAddr string) (net.Conn, error) {
 	}
 
 	var dialer net.Dialer
-	dialer.Timeout = time.Second * types.DIAL_TIMEOUT
+	dialer.Timeout = time.Second * common.DIAL_TIMEOUT
 	conn, err := tls.DialWithDialer(&dialer, "tcp", nodeAddr, conf)
 	if err != nil {
 		return nil, err

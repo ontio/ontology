@@ -16,36 +16,49 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package message
+package types
 
 import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/common/serialization"
 )
 
-type Consensus struct {
+type Pong struct {
 	MsgHdr
-	Cons ConsensusPayload
+	Height uint64
+}
+
+//Check whether header is correct
+func (msg Pong) Verify(buf []byte) error {
+	err := msg.MsgHdr.Verify(buf)
+	return err
 }
 
 //Serialize message payload
-func (msg *Consensus) Serialization() ([]byte, error) {
+func (msg Pong) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.MsgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	err = msg.Cons.Serialize(buf)
+	err = serialization.WriteUint64(buf, msg.Height)
+	if err != nil {
+		return nil, err
+	}
 	return buf.Bytes(), err
+
 }
 
 //Deserialize message payload
-func (msg *Consensus) Deserialization(p []byte) error {
-	log.Debug()
+func (msg *Pong) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.MsgHdr))
-	err = msg.Cons.Deserialize(buf)
+	if err != nil {
+		return err
+	}
+
+	msg.Height, err = serialization.ReadUint64(buf)
 	return err
 }

@@ -21,7 +21,7 @@ package p2pserver
 import (
 	"github.com/ontio/ontology/common/log"
 	msgCommon "github.com/ontio/ontology/p2pserver/common"
-	msg "github.com/ontio/ontology/p2pserver/message"
+	msgTypes "github.com/ontio/ontology/p2pserver/message/types"
 	_ "github.com/ontio/ontology/p2pserver/peer"
 )
 
@@ -74,7 +74,7 @@ func (self *MessageRouter) hookChan(channel chan msgCommon.MsgPayload, stopCh ch
 		select {
 		case data, ok := <-channel:
 			if ok {
-				msgType, err := msg.MsgType(data.Payload)
+				msgType, err := msgTypes.MsgType(data.Payload)
 				if err != nil {
 					log.Info("failed to get msg type")
 					continue

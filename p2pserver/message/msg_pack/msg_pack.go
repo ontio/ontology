@@ -29,15 +29,15 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/types"
+	ct "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/p2pserver/actor/req"
 	msgCommon "github.com/ontio/ontology/p2pserver/common"
-	msg "github.com/ontio/ontology/p2pserver/message"
+	mt "github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/peer"
 )
 
 func NewAddrs(nodeAddrs []msgCommon.PeerAddr, count uint64) ([]byte, error) {
-	var addr msg.Addr
+	var addr mt.Addr
 	addr.NodeAddrs = nodeAddrs
 	addr.NodeCnt = count
 
@@ -54,7 +54,7 @@ func NewAddrs(nodeAddrs []msgCommon.PeerAddr, count uint64) ([]byte, error) {
 		return nil, err
 	}
 
-	checkSumBuf := msg.CheckSum(p.Bytes())
+	checkSumBuf := mt.CheckSum(p.Bytes())
 	addr.Hdr.Init("addr", checkSumBuf, uint32(len(p.Bytes())))
 	log.Debug("The message payload length is ", addr.Hdr.Length)
 
@@ -67,7 +67,7 @@ func NewAddrs(nodeAddrs []msgCommon.PeerAddr, count uint64) ([]byte, error) {
 }
 
 func NewAddrReq() ([]byte, error) {
-	var msg msg.AddrReq
+	var msg mt.AddrReq
 	// Fixme the check is the []byte{0} instead of 0
 	var sum []byte
 	sum = []byte{0x5d, 0xf6, 0xe0, 0xe2}
@@ -83,9 +83,9 @@ func NewAddrReq() ([]byte, error) {
 	return buf, err
 }
 
-func NewBlock(bk *types.Block) ([]byte, error) {
+func NewBlock(bk *ct.Block) ([]byte, error) {
 	log.Debug()
-	var blk msg.Block
+	var blk mt.Block
 	blk.Blk = *bk
 
 	tmpBuffer := bytes.NewBuffer([]byte{})
@@ -98,7 +98,7 @@ func NewBlock(bk *types.Block) ([]byte, error) {
 		return nil, err
 	}
 
-	checkSumBuf := msg.CheckSum(p.Bytes())
+	checkSumBuf := mt.CheckSum(p.Bytes())
 	blk.Init("block", checkSumBuf, uint32(len(p.Bytes())))
 	log.Debug("The message payload length is ", blk.Length)
 
@@ -110,8 +110,8 @@ func NewBlock(bk *types.Block) ([]byte, error) {
 	return m, nil
 }
 
-func NewHeaders(headers []types.Header, count uint32) ([]byte, error) {
-	var blkHdr msg.BlkHeader
+func NewHeaders(headers []ct.Header, count uint32) ([]byte, error) {
+	var blkHdr mt.BlkHeader
 	blkHdr.Cnt = count
 	blkHdr.BlkHdr = headers
 
@@ -127,7 +127,7 @@ func NewHeaders(headers []types.Header, count uint32) ([]byte, error) {
 		return nil, err
 	}
 
-	checkSumBuf := msg.CheckSum(b.Bytes())
+	checkSumBuf := mt.CheckSum(b.Bytes())
 	blkHdr.Hdr.Init("headers", checkSumBuf, uint32(len(b.Bytes())))
 	log.Debug("The message payload length is ", blkHdr.Hdr.Length)
 
@@ -140,7 +140,7 @@ func NewHeaders(headers []types.Header, count uint32) ([]byte, error) {
 }
 
 func NewHeadersReq(curHdrHash common.Uint256) ([]byte, error) {
-	var h msg.HeadersReq
+	var h mt.HeadersReq
 	h.P.Len = 1
 	buf := curHdrHash
 	copy(h.P.HashEnd[:], buf[:])
@@ -152,7 +152,7 @@ func NewHeadersReq(curHdrHash common.Uint256) ([]byte, error) {
 		return nil, err
 	}
 
-	s := msg.CheckSum(p.Bytes())
+	s := mt.CheckSum(p.Bytes())
 	h.Hdr.Init("getheaders", s, uint32(len(p.Bytes())))
 
 	m, err := h.Serialization()
@@ -161,12 +161,12 @@ func NewHeadersReq(curHdrHash common.Uint256) ([]byte, error) {
 
 func NewBlocksReq(curBlkHash common.Uint256) ([]byte, error) {
 	log.Debug("request block hash")
-	var h msg.BlocksReq
+	var h mt.BlocksReq
 	// Fixme correct with the exactly request length
 	h.P.HeaderHashCount = 1
 	//Fixme! Should get the remote Node height.
 	buf := curBlkHash
-	copy(h.P.HashStart[:], msg.Reverse(buf[:]))
+	copy(h.P.HashStart[:], mt.Reverse(buf[:]))
 
 	p := new(bytes.Buffer)
 	err := binary.Write(p, binary.LittleEndian, &(h.P))
@@ -175,15 +175,15 @@ func NewBlocksReq(curBlkHash common.Uint256) ([]byte, error) {
 		return nil, err
 	}
 
-	s := msg.CheckSum(p.Bytes())
+	s := mt.CheckSum(p.Bytes())
 	h.MsgHdr.Init("getblocks", s, uint32(len(p.Bytes())))
 	m, err := h.Serialization()
 	return m, err
 }
 
-func NewConsensus(cp *msg.ConsensusPayload) ([]byte, error) {
+func NewConsensus(cp *mt.ConsensusPayload) ([]byte, error) {
 	log.Debug()
-	var cons msg.Consensus
+	var cons mt.Consensus
 
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	cp.Serialize(tmpBuffer)
@@ -195,7 +195,7 @@ func NewConsensus(cp *msg.ConsensusPayload) ([]byte, error) {
 		return nil, err
 	}
 
-	checkSumBuf := msg.CheckSum(b.Bytes())
+	checkSumBuf := mt.CheckSum(b.Bytes())
 	cons.Init("consensus", checkSumBuf, uint32(len(b.Bytes())))
 	log.Debug("NewConsensus The message payload length is ", cons.Length)
 
@@ -207,8 +207,8 @@ func NewConsensus(cp *msg.ConsensusPayload) ([]byte, error) {
 	return m, nil
 }
 
-func NewInv(invPayload *msg.InvPayload) ([]byte, error) {
-	var inv msg.Inv
+func NewInv(invPayload *mt.InvPayload) ([]byte, error) {
+	var inv mt.Inv
 	inv.P.Blk = invPayload.Blk
 	inv.P.InvType = invPayload.InvType
 	inv.P.Cnt = invPayload.Cnt
@@ -223,7 +223,7 @@ func NewInv(invPayload *msg.InvPayload) ([]byte, error) {
 		return nil, err
 	}
 
-	checkSumBuf := msg.CheckSum(b.Bytes())
+	checkSumBuf := mt.CheckSum(b.Bytes())
 	inv.Hdr.Init("inv", checkSumBuf, uint32(len(b.Bytes())))
 	log.Debug("NewInv The message payload length is ", inv.Hdr.Length)
 
@@ -237,7 +237,7 @@ func NewInv(invPayload *msg.InvPayload) ([]byte, error) {
 
 func NewNotFound(hash common.Uint256) ([]byte, error) {
 	log.Debug()
-	var notFound msg.NotFound
+	var notFound mt.NotFound
 	notFound.Hash = hash
 
 	tmpBuffer := bytes.NewBuffer([]byte{})
@@ -249,7 +249,7 @@ func NewNotFound(hash common.Uint256) ([]byte, error) {
 		return nil, err
 	}
 
-	checkSumBuf := msg.CheckSum(p.Bytes())
+	checkSumBuf := mt.CheckSum(p.Bytes())
 	notFound.Init("notfound", checkSumBuf, uint32(len(p.Bytes())))
 	log.Debug("The message payload length is ", notFound.MsgHdr.Length)
 
@@ -264,7 +264,7 @@ func NewNotFound(hash common.Uint256) ([]byte, error) {
 
 func NewPingMsg(height uint64) ([]byte, error) {
 	log.Debug()
-	var ping msg.Ping
+	var ping mt.Ping
 	ping.Height = uint64(height)
 
 	tmpBuffer := bytes.NewBuffer([]byte{})
@@ -276,7 +276,7 @@ func NewPingMsg(height uint64) ([]byte, error) {
 		return nil, err
 	}
 
-	checkSumBuf := msg.CheckSum(b.Bytes())
+	checkSumBuf := mt.CheckSum(b.Bytes())
 	ping.Hdr.Init("ping", checkSumBuf, uint32(len(b.Bytes())))
 	log.Debug("NewPingMsg The message payload length is ", ping.Hdr.Length)
 
@@ -290,7 +290,7 @@ func NewPingMsg(height uint64) ([]byte, error) {
 
 func NewPongMsg(height uint64) ([]byte, error) {
 	log.Debug()
-	var pong msg.Pong
+	var pong mt.Pong
 	pong.Height = uint64(height)
 
 	tmpBuffer := bytes.NewBuffer([]byte{})
@@ -302,7 +302,7 @@ func NewPongMsg(height uint64) ([]byte, error) {
 		return nil, err
 	}
 
-	checkSumBuf := msg.CheckSum(b.Bytes())
+	checkSumBuf := mt.CheckSum(b.Bytes())
 	pong.Init("pong", checkSumBuf, uint32(len(b.Bytes())))
 	log.Debug("NewPongMsg The message payload length is ", pong.Length)
 
@@ -314,9 +314,9 @@ func NewPongMsg(height uint64) ([]byte, error) {
 	return m, nil
 }
 
-func NewTxn(txn *types.Transaction) ([]byte, error) {
+func NewTxn(txn *ct.Transaction) ([]byte, error) {
 	log.Debug()
-	var trn msg.Trn
+	var trn mt.Trn
 
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	txn.Serialize(tmpBuffer)
@@ -328,7 +328,7 @@ func NewTxn(txn *types.Transaction) ([]byte, error) {
 		return nil, err
 	}
 
-	checkSumBuf := msg.CheckSum(b.Bytes())
+	checkSumBuf := mt.CheckSum(b.Bytes())
 	trn.Init("tx", checkSumBuf, uint32(len(b.Bytes())))
 	log.Debug("NewTxn The message payload length is ", trn.Length)
 
@@ -342,7 +342,7 @@ func NewTxn(txn *types.Transaction) ([]byte, error) {
 }
 
 func NewVerAck(isConsensus bool) ([]byte, error) {
-	var verAck msg.VerACK
+	var verAck mt.VerACK
 	verAck.IsConsensus = isConsensus
 
 	tmpBuffer := bytes.NewBuffer([]byte{})
@@ -354,7 +354,7 @@ func NewVerAck(isConsensus bool) ([]byte, error) {
 		return nil, err
 	}
 
-	checkSumBuf := msg.CheckSum(b.Bytes())
+	checkSumBuf := mt.CheckSum(b.Bytes())
 	verAck.Init("verack", checkSumBuf, uint32(len(b.Bytes())))
 	log.Debug("NewVerAck The message payload length is ", verAck.Length)
 
@@ -366,8 +366,8 @@ func NewVerAck(isConsensus bool) ([]byte, error) {
 	return m, nil
 }
 
-func NewVersionPayload(p *peer.Peer, isCons bool) msg.VersionPayload {
-	vpl := msg.VersionPayload{
+func NewVersionPayload(p *peer.Peer, isCons bool) mt.VersionPayload {
+	vpl := mt.VersionPayload{
 		Version:      p.GetVersion(),
 		Services:     p.GetServices(),
 		SyncPort:     p.GetSyncPort(),
@@ -396,9 +396,9 @@ func NewVersionPayload(p *peer.Peer, isCons bool) msg.VersionPayload {
 	return vpl
 }
 
-func NewVersion(vpl msg.VersionPayload, pk keypair.PublicKey) ([]byte, error) {
+func NewVersion(vpl mt.VersionPayload, pk keypair.PublicKey) ([]byte, error) {
 	log.Debug()
-	var version msg.Version
+	var version mt.Version
 	version.P = vpl
 	version.PK = pk
 	log.Debug("new version msg.pk is ", version.PK)
@@ -411,7 +411,7 @@ func NewVersion(vpl msg.VersionPayload, pk keypair.PublicKey) ([]byte, error) {
 		return nil, err
 	}
 
-	checkSumBuf := msg.CheckSum(p.Bytes())
+	checkSumBuf := mt.CheckSum(p.Bytes())
 	version.Hdr.Init("version", checkSumBuf, uint32(len(p.Bytes())))
 	log.Debug("NewVersion The message payload length is ", version.Hdr.Length)
 
@@ -425,7 +425,7 @@ func NewVersion(vpl msg.VersionPayload, pk keypair.PublicKey) ([]byte, error) {
 }
 
 func NewTxnDataReq(hash common.Uint256) ([]byte, error) {
-	var dataReq msg.DataReq
+	var dataReq mt.DataReq
 	dataReq.DataType = common.TRANSACTION
 	// TODO handle the hash array case
 	dataReq.Hash = hash
@@ -435,7 +435,7 @@ func NewTxnDataReq(hash common.Uint256) ([]byte, error) {
 }
 
 func NewBlkDataReq(hash common.Uint256) ([]byte, error) {
-	var dataReq msg.DataReq
+	var dataReq mt.DataReq
 	dataReq.DataType = common.BLOCK
 	dataReq.Hash = hash
 
@@ -447,7 +447,7 @@ func NewBlkDataReq(hash common.Uint256) ([]byte, error) {
 		return nil, err
 	}
 
-	checkSumBuf := msg.CheckSum(p.Bytes())
+	checkSumBuf := mt.CheckSum(p.Bytes())
 	dataReq.Init("getdata", checkSumBuf, uint32(len(p.Bytes())))
 	log.Debug("NewBlkDataReq The message payload length is ", dataReq.Length)
 
@@ -460,7 +460,7 @@ func NewBlkDataReq(hash common.Uint256) ([]byte, error) {
 }
 
 func NewConsensusDataReq(hash common.Uint256) ([]byte, error) {
-	var dataReq msg.DataReq
+	var dataReq mt.DataReq
 	dataReq.DataType = common.CONSENSUS
 	// TODO handle the hash array case
 	dataReq.Hash = hash

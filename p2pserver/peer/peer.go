@@ -32,7 +32,7 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/events"
-	types "github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/p2pserver/common"
 	conn "github.com/ontio/ontology/p2pserver/link"
 	//"github.com/ontio/ontology/p2pserver/message"
 )
@@ -65,8 +65,8 @@ func (p *Peer) backend() {
 
 func NewPeer() *Peer {
 	p := &Peer{
-		syncState: types.INIT,
-		consState: types.INIT,
+		syncState: common.INIT,
+		consState: common.INIT,
 		chF:       make(chan func() error),
 	}
 	p.SyncLink = conn.NewLink()
@@ -78,17 +78,21 @@ func NewPeer() *Peer {
 }
 
 func (p *Peer) InitPeer(pubKey keypair.PublicKey) error {
-	p.version = types.PROTOCOL_VERSION
-	if config.Parameters.NodeType == types.SERVICE_NODE_NAME {
-		p.services = uint64(types.SERVICE_NODE)
-	} else if config.Parameters.NodeType == types.VERIFY_NODE_NAME {
-		p.services = uint64(types.VERIFY_NODE)
+	p.version = common.PROTOCOL_VERSION
+	if config.Parameters.NodeType == common.SERVICE_NODE_NAME {
+		p.services = uint64(common.SERVICE_NODE)
+	} else if config.Parameters.NodeType == common.VERIFY_NODE_NAME {
+		p.services = uint64(common.VERIFY_NODE)
 	}
+
 	if config.Parameters.NodeConsensusPort == 0 || config.Parameters.NodePort == 0 ||
 		config.Parameters.NodeConsensusPort == config.Parameters.NodePort {
 		log.Error("Network port invalid, please check config.json")
 		return errors.New("Invalid port")
 	}
+	p.SyncLink.SetPort(config.Parameters.NodePort)
+	p.ConsLink.SetPort(config.Parameters.NodeConsensusPort)
+
 	p.SyncLink.SetPort(config.Parameters.NodePort)
 	p.ConsLink.SetPort(config.Parameters.NodeConsensusPort)
 
@@ -103,6 +107,8 @@ func (p *Peer) InitPeer(pubKey keypair.PublicKey) error {
 	}
 	log.Info(fmt.Sprintf("Init peer ID to 0x%x", p.id))
 	p.Np = &NbrPeers{}
+	p.Np.init()
+
 	p.publicKey = pubKey
 	p.SyncLink.SetID(p.id)
 	p.ConsLink.SetID(p.id)
@@ -175,7 +181,7 @@ func (p *Peer) SendToCons(buf []byte) {
 	p.ConsLink.Tx(buf)
 }
 func (p *Peer) CloseSync() {
-	p.SetSyncState(types.INACTIVITY)
+	p.SetSyncState(common.INACTIVITY)
 	conn := p.SyncLink.GetConn()
 	if conn != nil {
 		conn.Close()
@@ -183,7 +189,7 @@ func (p *Peer) CloseSync() {
 
 }
 func (p *Peer) CloseCons() {
-	p.SetConsState(types.INACTIVITY)
+	p.SetConsState(common.INACTIVITY)
 	conn := p.ConsLink.GetConn()
 	if conn != nil {
 		conn.Close()
@@ -220,10 +226,10 @@ func (p *Peer) GetAddr16() ([16]byte, error) {
 	return result, nil
 }
 
-func (p *Peer) AttachSyncChan(msgchan chan types.MsgPayload) {
+func (p *Peer) AttachSyncChan(msgchan chan common.MsgPayload) {
 	p.SyncLink.SetChan(msgchan)
 }
-func (p *Peer) AttachConsChan(msgchan chan types.MsgPayload) {
+func (p *Peer) AttachConsChan(msgchan chan common.MsgPayload) {
 	p.ConsLink.SetChan(msgchan)
 }
 
@@ -240,14 +246,14 @@ func (p *Peer) Send(buf []byte, isConsensus bool) error {
 
 func (p *Peer) SetHttpInfoState(httpInfo bool) {
 	if httpInfo {
-		p.cap[types.HTTP_INFO_FLAG] = 0x01
+		p.cap[common.HTTP_INFO_FLAG] = 0x01
 	} else {
-		p.cap[types.HTTP_INFO_FLAG] = 0x00
+		p.cap[common.HTTP_INFO_FLAG] = 0x00
 	}
 }
 
 func (p *Peer) GetHttpInfoState() bool {
-	return p.cap[types.HTTP_INFO_FLAG] == 1
+	return p.cap[common.HTTP_INFO_FLAG] == 1
 }
 
 func (p *Peer) GetHttpInfoPort() uint16 {

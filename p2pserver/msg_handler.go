@@ -33,12 +33,12 @@ import (
 	"github.com/ontio/ontology/core/types"
 	actor "github.com/ontio/ontology/p2pserver/actor/req"
 	msgCommon "github.com/ontio/ontology/p2pserver/common"
-	msg "github.com/ontio/ontology/p2pserver/message"
-	"github.com/ontio/ontology/p2pserver/msg_pack"
+	"github.com/ontio/ontology/p2pserver/message/msg_pack"
+	msgTypes "github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/peer"
 )
 
-func MsgHdrHandle(hdr msg.MsgHdr, peer peer.Peer, p2p P2PServer) error {
+func MsgHdrHandle(hdr msgTypes.MsgHdr, peer peer.Peer, p2p P2PServer) error {
 	log.Debug("RX MsgHdr message")
 	return nil
 }
@@ -65,7 +65,7 @@ func HeadersReqHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 
 	length := len(data.Payload)
 
-	var headersReq msg.HeadersReq
+	var headersReq msgTypes.HeadersReq
 	headersReq.Deserialization(data.Payload[:length])
 	headersReq.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
 	//Fix me:
@@ -96,7 +96,7 @@ func BlocksReqHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 
 	length := len(data.Payload)
 
-	var blocksReq msg.BlocksReq
+	var blocksReq msgTypes.BlocksReq
 	blocksReq.Deserialization(data.Payload[:length])
 	blocksReq.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
 
@@ -123,7 +123,7 @@ func PingHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	log.Debug("RX ping message")
 	length := len(data.Payload)
 
-	var ping msg.Ping
+	var ping msgTypes.Ping
 	ping.Deserialization(data.Payload[:length])
 	ping.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
 
@@ -145,7 +145,7 @@ func PongHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	log.Debug("RX pong message")
 	length := len(data.Payload)
 
-	var pong msg.Pong
+	var pong msgTypes.Pong
 	pong.Deserialization(data.Payload[:length])
 	pong.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
 
@@ -158,7 +158,7 @@ func PongHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 func BlkHeaderHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	log.Debug("RX block header message")
 	length := len(data.Payload)
-	var blkHeader msg.BlkHeader
+	var blkHeader msgTypes.BlkHeader
 	blkHeader.Deserialization(data.Payload[:length])
 	blkHeader.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
 
@@ -176,7 +176,7 @@ func BlockHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	log.Debug("RX block message")
 	length := len(data.Payload)
 
-	var block msg.Block
+	var block msgTypes.Block
 	block.Deserialization(data.Payload[:length])
 	block.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
 
@@ -194,7 +194,7 @@ func ConsensusHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	log.Debug("RX consensus message")
 	length := len(data.Payload)
 
-	var consensus msg.Consensus
+	var consensus msgTypes.Consensus
 	consensus.Deserialization(data.Payload[:length])
 	consensus.Cons.Verify()
 
@@ -208,7 +208,7 @@ func ConsensusHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 func NotFoundHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	length := len(data.Payload)
 
-	var notFound msg.NotFound
+	var notFound msgTypes.NotFound
 	notFound.Deserialization(data.Payload[:length])
 	log.Debug("RX notFound message, hash is ", notFound.Hash)
 	return nil
@@ -219,7 +219,7 @@ func TransactionHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	log.Debug("RX transaction message")
 	length := len(data.Payload)
 
-	var trn msg.Trn
+	var trn msgTypes.Trn
 	trn.Deserialization(data.Payload[:length])
 
 	tx := &trn.Txn
@@ -240,7 +240,7 @@ func VersionHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		return errors.New("nil message")
 	}
 
-	version := msg.Version{}
+	version := msgTypes.Version{}
 	copy(version.Hdr.CMD[0:len(msgCommon.VERSION_TYPE)], msgCommon.VERSION_TYPE)
 
 	version.Deserialization(data.Payload[:length])
@@ -364,7 +364,7 @@ func VerAckHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		return errors.New("nil message")
 	}
 
-	verAck := msg.VerACK{}
+	verAck := msgTypes.VerACK{}
 	verAck.Deserialization(data.Payload[:length])
 
 	localPeer := p2p.Self
@@ -434,7 +434,7 @@ func AddrHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	//remotePeer := p2p.Self.Np.GetPeer(data.Id)
 	length := len(data.Payload)
 
-	var msg msg.Addr
+	var msg msgTypes.Addr
 	msg.Deserialization(data.Payload[:length])
 	msg.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
 
@@ -466,7 +466,7 @@ func DataReqHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	log.Debug("RX data req message")
 	length := len(data.Payload)
 
-	var dataReq msg.DataReq
+	var dataReq msgTypes.DataReq
 	dataReq.Deserialization(data.Payload[:length])
 
 	//localPeer := p2p.Self
@@ -511,7 +511,7 @@ func DataReqHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 func InvHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	log.Debug("RX inv message")
 	length := len(data.Payload)
-	var inv msg.Inv
+	var inv msgTypes.Inv
 	inv.Deserialization(data.Payload[:length])
 	inv.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
 
@@ -544,8 +544,8 @@ func InvHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 			id.Deserialize(bytes.NewReader(inv.P.Blk[msgCommon.HASH_LEN*i:]))
 			// TODO check the ID queue
 			isContainBlock, _ := actor.IsContainBlock(id)
-			if !isContainBlock && msg.LastInvHash != id {
-				msg.LastInvHash = id
+			if !isContainBlock && msgTypes.LastInvHash != id {
+				msgTypes.LastInvHash = id
 				// send the block request
 				log.Infof("inv request block hash: %x", id)
 				blkDataReq, _ := msgpack.NewBlkDataReq(id)

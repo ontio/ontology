@@ -16,72 +16,55 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package message
+package types
 
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 
-	"github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 )
 
-type HeadersReq struct {
-	Hdr MsgHdr
-	P   struct {
-		Len       uint8
-		HashStart [common.HASH_LEN]byte
-		HashEnd   [common.HASH_LEN]byte
-	}
+type NotFound struct {
+	MsgHdr
+	Hash common.Uint256
 }
 
 //Check whether header is correct
-func (msg HeadersReq) Verify(buf []byte) error {
-	err := msg.Hdr.Verify(buf)
+func (msg NotFound) Verify(buf []byte) error {
+	err := msg.MsgHdr.Verify(buf)
 	return err
 }
 
 //Serialize message payload
-func (msg HeadersReq) Serialization() ([]byte, error) {
-	hdrBuf, err := msg.Hdr.Serialization()
+func (msg NotFound) Serialization() ([]byte, error) {
+	hdrBuf, err := msg.MsgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	err = binary.Write(buf, binary.LittleEndian, msg.P.Len)
-	if err != nil {
-		return nil, err
-	}
-	err = binary.Write(buf, binary.LittleEndian, msg.P.HashStart)
-	if err != nil {
-		return nil, err
-	}
-
-	err = binary.Write(buf, binary.LittleEndian, msg.P.HashEnd)
-	if err != nil {
-		return nil, err
-	}
+	msg.Hash.Serialize(buf)
 
 	return buf.Bytes(), err
 }
 
 //Deserialize message payload
-func (msg *HeadersReq) Deserialization(p []byte) error {
+func (msg *NotFound) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(msg.Hdr))
+
+	err := binary.Read(buf, binary.LittleEndian, &(msg.MsgHdr))
 	if err != nil {
-		return err
+		log.Warn("Parse notFound message hdr error")
+		return errors.New("Parse notFound message hdr error ")
 	}
 
-	err = binary.Read(buf, binary.LittleEndian, &(msg.P.Len))
+	err = msg.Hash.Deserialize(buf)
 	if err != nil {
-		return err
+		log.Warn("Parse notFound message error")
+		return errors.New("Parse notFound message error ")
 	}
 
-	err = binary.Read(buf, binary.LittleEndian, &(msg.P.HashStart))
-	if err != nil {
-		return err
-	}
-
-	err = binary.Read(buf, binary.LittleEndian, &(msg.P.HashEnd))
 	return err
 }

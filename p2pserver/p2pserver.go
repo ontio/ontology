@@ -31,8 +31,8 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	actor "github.com/ontio/ontology/p2pserver/actor/req"
-	types "github.com/ontio/ontology/p2pserver/common"
-	"github.com/ontio/ontology/p2pserver/msg_pack"
+	"github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	"github.com/ontio/ontology/p2pserver/peer"
 )
 
@@ -70,22 +70,22 @@ func NewServer(acc *account.Account) (*P2PServer, error) {
 	p.msgRouter = NewMsgRouter(p)
 
 	// Register message handler
-	p.msgRouter.RegisterMsgHandler(types.VERSION_TYPE, VersionHandle)
-	p.msgRouter.RegisterMsgHandler(types.VERACK_TYPE, VerAckHandle)
-	p.msgRouter.RegisterMsgHandler(types.GetADDR_TYPE, AddrReqHandle)
-	p.msgRouter.RegisterMsgHandler(types.ADDR_TYPE, AddrHandle)
-	p.msgRouter.RegisterMsgHandler(types.PING_TYPE, PingHandle)
-	p.msgRouter.RegisterMsgHandler(types.PONG_TYPE, PongHandle)
-	p.msgRouter.RegisterMsgHandler(types.GET_HEADERS_TYPE, HeadersReqHandle)
-	p.msgRouter.RegisterMsgHandler(types.HEADERS_TYPE, BlkHeaderHandle)
-	p.msgRouter.RegisterMsgHandler(types.GET_BLOCKS_TYPE, BlocksReqHandle)
-	p.msgRouter.RegisterMsgHandler(types.INV_TYPE, InvHandle)
-	p.msgRouter.RegisterMsgHandler(types.GET_DATA_TYPE, DataReqHandle)
-	p.msgRouter.RegisterMsgHandler(types.BLOCK_TYPE, BlockHandle)
-	p.msgRouter.RegisterMsgHandler(types.CONSENSUS_TYPE, ConsensusHandle)
-	p.msgRouter.RegisterMsgHandler(types.NOT_FOUND_TYPE, NotFoundHandle)
-	p.msgRouter.RegisterMsgHandler(types.TX_TYPE, TransactionHandle)
-	p.msgRouter.RegisterMsgHandler(types.DISCONNECT_TYPE, DisconnectHandle)
+	p.msgRouter.RegisterMsgHandler(common.VERSION_TYPE, VersionHandle)
+	p.msgRouter.RegisterMsgHandler(common.VERACK_TYPE, VerAckHandle)
+	p.msgRouter.RegisterMsgHandler(common.GetADDR_TYPE, AddrReqHandle)
+	p.msgRouter.RegisterMsgHandler(common.ADDR_TYPE, AddrHandle)
+	p.msgRouter.RegisterMsgHandler(common.PING_TYPE, PingHandle)
+	p.msgRouter.RegisterMsgHandler(common.PONG_TYPE, PongHandle)
+	p.msgRouter.RegisterMsgHandler(common.GET_HEADERS_TYPE, HeadersReqHandle)
+	p.msgRouter.RegisterMsgHandler(common.HEADERS_TYPE, BlkHeaderHandle)
+	p.msgRouter.RegisterMsgHandler(common.GET_BLOCKS_TYPE, BlocksReqHandle)
+	p.msgRouter.RegisterMsgHandler(common.INV_TYPE, InvHandle)
+	p.msgRouter.RegisterMsgHandler(common.GET_DATA_TYPE, DataReqHandle)
+	p.msgRouter.RegisterMsgHandler(common.BLOCK_TYPE, BlockHandle)
+	p.msgRouter.RegisterMsgHandler(common.CONSENSUS_TYPE, ConsensusHandle)
+	p.msgRouter.RegisterMsgHandler(common.NOT_FOUND_TYPE, NotFoundHandle)
+	p.msgRouter.RegisterMsgHandler(common.TX_TYPE, TransactionHandle)
+	p.msgRouter.RegisterMsgHandler(common.DISCONNECT_TYPE, DisconnectHandle)
 
 	p.msgRouter.Start()
 	p.flightHeights = make(map[uint64][]uint32)
@@ -126,7 +126,7 @@ func (this *P2PServer) GetPort() (uint16, uint16) {
 func (this *P2PServer) GetVersion() uint32 {
 	return this.network.GetVersion()
 }
-func (this *P2PServer) GetNeighborAddrs() ([]types.PeerAddr, uint64) {
+func (this *P2PServer) GetNeighborAddrs() ([]common.PeerAddr, uint64) {
 	return this.network.GetNeighborAddrs()
 }
 func (this *P2PServer) Xmit(msg interface{}) error {
@@ -173,6 +173,7 @@ func (this *P2PServer) WaitForSyncBlkFinish() {
 	if consensusType == "solo" {
 		return
 	}
+
 	for {
 		headerHeight, _ := actor.GetCurrentHeaderHeight()
 		currentBlkHeight, _ := actor.GetCurrentBlockHeight()
@@ -181,7 +182,7 @@ func (this *P2PServer) WaitForSyncBlkFinish() {
 		if this.blockSyncFinished() {
 			break
 		}
-		<-time.After(types.PERIOD_UPDATE_TIME * time.Second)
+		<-time.After(common.PERIOD_UPDATE_TIME * time.Second)
 	}
 }
 
@@ -191,7 +192,7 @@ func (this *P2PServer) WaitForPeersStart() {
 		if this.reachMinConnection() {
 			break
 		}
-		<-time.After(types.PERIOD_UPDATE_TIME * time.Second)
+		<-time.After(common.PERIOD_UPDATE_TIME * time.Second)
 	}
 }
 
@@ -218,7 +219,7 @@ func (this *P2PServer) connectSeeds() {
 		}
 		this.Self.Np.Unlock()
 		if found {
-			if p.GetSyncState() == types.ESTABLISH {
+			if p.GetSyncState() == common.ESTABLISH {
 				this.reqNbrList(p)
 			}
 		} else { //not found
@@ -251,7 +252,7 @@ func (this *P2PServer) retryInactivePeer() {
 		addr, _ := p.GetAddr16()
 		ip = addr[:]
 		nodeAddr := ip.To16().String() + ":" + strconv.Itoa(int(p.GetSyncPort()))
-		if p.GetSyncState() == types.INACTIVITY {
+		if p.GetSyncState() == common.INACTIVITY {
 			//add addr to retry list
 			this.addToRetryList(nodeAddr)
 			p.CloseSync()
@@ -274,10 +275,10 @@ func (this *P2PServer) retryInactivePeer() {
 			this.RetryAddrs[addr] = this.RetryAddrs[addr] + 1
 			rand.Seed(time.Now().UnixNano())
 			log.Trace("Try to reconnect peer, peer addr is ", addr)
-			<-time.After(time.Duration(rand.Intn(types.CONN_MAX_BACK)) * time.Millisecond)
+			<-time.After(time.Duration(rand.Intn(common.CONN_MAX_BACK)) * time.Millisecond)
 			log.Trace("Back off time`s up, start connect node")
 			this.network.Connect(addr, false)
-			if this.RetryAddrs[addr] < types.MAX_RETRY_COUNT {
+			if this.RetryAddrs[addr] < common.MAX_RETRY_COUNT {
 				list[addr] = this.RetryAddrs[addr]
 			}
 		}
@@ -288,14 +289,14 @@ func (this *P2PServer) retryInactivePeer() {
 
 //keepOnline make sure seed peer be connected and try connect lost peer
 func (this *P2PServer) keepOnlineService() {
-	t := time.NewTimer(time.Second * types.CONN_MONITOR)
+	t := time.NewTimer(time.Second * common.CONN_MONITOR)
 	for {
 		select {
 		case <-t.C:
 			this.connectSeeds()
 			this.retryInactivePeer()
 			t.Stop()
-			t.Reset(time.Second * types.CONN_MONITOR)
+			t.Reset(time.Second * common.CONN_MONITOR)
 		case <-this.quitOnline:
 			t.Stop()
 			break
@@ -313,9 +314,9 @@ func (this *P2PServer) reqNbrList(p *peer.Peer) {
 func (this *P2PServer) heartBeatService() {
 	var periodTime uint
 	if config.Parameters.GenBlockTime > config.MIN_GEN_BLOCK_TIME {
-		periodTime = config.Parameters.GenBlockTime / types.UPDATE_RATE_PER_BLOCK
+		periodTime = config.Parameters.GenBlockTime / common.UPDATE_RATE_PER_BLOCK
 	} else {
-		periodTime = config.DEFAULT_GEN_BLOCK_TIME / types.UPDATE_RATE_PER_BLOCK
+		periodTime = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
 	}
 	t := time.NewTicker(time.Second * (time.Duration(periodTime)))
 
@@ -335,7 +336,7 @@ func (this *P2PServer) heartBeatService() {
 func (this *P2PServer) ping() {
 	peers := this.Self.Np.GetNeighbors()
 	for _, p := range peers {
-		if p.GetSyncState() == types.ESTABLISH {
+		if p.GetSyncState() == common.ESTABLISH {
 			height, err := actor.GetCurrentBlockHeight()
 			if err != nil {
 				log.Error("failed get current height! Ping faild!")
@@ -356,17 +357,17 @@ func (this *P2PServer) timeout() {
 	peers := this.Self.Np.GetNeighbors()
 	var periodTime uint
 	if config.Parameters.GenBlockTime > config.MIN_GEN_BLOCK_TIME {
-		periodTime = config.Parameters.GenBlockTime / types.UPDATE_RATE_PER_BLOCK
+		periodTime = config.Parameters.GenBlockTime / common.UPDATE_RATE_PER_BLOCK
 	} else {
-		periodTime = config.DEFAULT_GEN_BLOCK_TIME / types.UPDATE_RATE_PER_BLOCK
+		periodTime = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
 	}
 	for _, p := range peers {
-		if p.GetSyncState() == types.ESTABLISH {
+		if p.GetSyncState() == common.ESTABLISH {
 			t := p.GetContactTime()
-			if t.Before(time.Now().Add(-1 * time.Second * time.Duration(periodTime) * types.KEEPALIVE_TIMEOUT)) {
+			if t.Before(time.Now().Add(-1 * time.Second * time.Duration(periodTime) * common.KEEPALIVE_TIMEOUT)) {
 				log.Warn("Keep alive timeout!!!")
-				p.SetSyncState(types.INACTIVITY)
-				p.SetConsState(types.INACTIVITY)
+				p.SetSyncState(common.INACTIVITY)
+				p.SetConsState(common.INACTIVITY)
 				p.CloseSync()
 				p.CloseCons()
 			}
@@ -378,9 +379,9 @@ func (this *P2PServer) timeout() {
 func (this *P2PServer) syncService() {
 	var periodTime uint
 	if config.Parameters.GenBlockTime > config.MIN_GEN_BLOCK_TIME {
-		periodTime = config.Parameters.GenBlockTime / types.UPDATE_RATE_PER_BLOCK
+		periodTime = config.Parameters.GenBlockTime / common.UPDATE_RATE_PER_BLOCK
 	} else {
-		periodTime = config.DEFAULT_GEN_BLOCK_TIME / types.UPDATE_RATE_PER_BLOCK
+		periodTime = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
 	}
 	t := time.NewTicker(time.Second * (time.Duration(periodTime)))
 
@@ -436,7 +437,7 @@ func (this *P2PServer) syncBlock() {
 			continue
 		}
 		this.removeFlightHeightLessThan(p, currentBlkHeight)
-		count := types.MAX_REQ_BLK_ONCE - uint32(len(this.flightHeights[p.GetID()]))
+		count := common.MAX_REQ_BLK_ONCE - uint32(len(this.flightHeights[p.GetID()]))
 		dValue = int32(currentHdrHeight - currentBlkHeight - reqCnt)
 		flights := this.flightHeights[p.GetID()]
 		if count == 0 {

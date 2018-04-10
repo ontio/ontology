@@ -16,57 +16,44 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package message
+package types
 
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/types"
 )
 
-type DataReq struct {
+// Transaction message
+type Trn struct {
 	MsgHdr
-	DataType common.InventoryType
-	Hash     common.Uint256
+	Txn types.Transaction
 }
 
 //Serialize message payload
-func (msg DataReq) Serialization() ([]byte, error) {
+func (msg Trn) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.MsgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	err = binary.Write(buf, binary.LittleEndian, msg.DataType)
-	if err != nil {
-		return nil, err
-	}
-	msg.Hash.Serialize(buf)
+	msg.Txn.Serialize(buf)
+
 	return buf.Bytes(), err
 }
 
 //Deserialize message payload
-func (msg *DataReq) Deserialization(p []byte) error {
+func (msg *Trn) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.MsgHdr))
+	err = msg.Txn.Deserialize(buf)
 	if err != nil {
-		log.Warn("Parse dataReq message hdr error")
-		return errors.New("Parse dataReq message hdr error ")
-	}
-
-	err = binary.Read(buf, binary.LittleEndian, &(msg.DataType))
-	if err != nil {
-		log.Warn("Parse dataReq message dataType error")
-		return errors.New("Parse dataReq message dataType error ")
-	}
-
-	err = msg.Hash.Deserialize(buf)
-	if err != nil {
-		log.Warn("Parse dataReq message hash error")
-		return errors.New("Parse dataReq message hash error ")
+		return err
 	}
 	return nil
+}
+
+type txnPool struct {
+	MsgHdr
 }

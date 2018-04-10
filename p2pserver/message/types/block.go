@@ -16,42 +16,54 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package message
+package types
 
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 
-	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/common/log"
+	ct "github.com/ontio/ontology/core/types"
 )
 
-type VerACK struct {
+type Block struct {
 	MsgHdr
-	IsConsensus bool
+	Blk ct.Block
+}
+
+//Check whether header is correct
+func (msg Block) Verify(buf []byte) error {
+	err := msg.MsgHdr.Verify(buf)
+	return err
 }
 
 //Serialize message payload
-func (msg VerACK) Serialization() ([]byte, error) {
+func (msg Block) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.MsgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
+
 	buf := bytes.NewBuffer(hdrBuf)
-	err = serialization.WriteBool(buf, msg.IsConsensus)
-	if err != nil {
-		return nil, err
-	}
+	msg.Blk.Serialize(buf)
 	return buf.Bytes(), err
 }
 
 //Deserialize message payload
-func (msg *VerACK) Deserialization(p []byte) error {
+func (msg *Block) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.MsgHdr))
 	if err != nil {
-		return err
+		log.Warn("Parse block message hdr error")
+		return errors.New("Parse block message hdr error ")
 	}
 
-	msg.IsConsensus, err = serialization.ReadBool(buf)
+	err = msg.Blk.Deserialize(buf)
+	if err != nil {
+		log.Warn("Parse block message error")
+		return errors.New("Parse block message error ")
+	}
+
 	return err
 }

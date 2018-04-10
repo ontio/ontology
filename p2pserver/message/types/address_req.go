@@ -16,32 +16,25 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package message
+package types
 
 import (
 	"bytes"
 	"encoding/binary"
-
-	"github.com/ontio/ontology/p2pserver/common"
 )
 
-type BlocksReq struct {
-	MsgHdr
-	P struct {
-		HeaderHashCount uint8
-		HashStart       [common.HASH_LEN]byte
-		HashStop        [common.HASH_LEN]byte
-	}
+type AddrReq struct {
+	Hdr MsgHdr
 }
 
 //Check whether header is correct
-func (msg BlocksReq) Verify(buf []byte) error {
-	err := msg.MsgHdr.Verify(buf)
+func (msg AddrReq) Verify(buf []byte) error {
+	err := msg.Hdr.Verify(buf)
 	return err
 }
 
 //Serialize message payload
-func (msg BlocksReq) Serialization() ([]byte, error) {
+func (msg AddrReq) Serialization() ([]byte, error) {
 	var buf bytes.Buffer
 	err := binary.Write(&buf, binary.LittleEndian, msg)
 	if err != nil {
@@ -51,8 +44,8 @@ func (msg BlocksReq) Serialization() ([]byte, error) {
 }
 
 //Deserialize message payload
-func (msg *BlocksReq) Deserialization(p []byte) error {
+func (msg *AddrReq) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &msg)
+	err := binary.Read(buf, binary.LittleEndian, msg)
 	return err
 }

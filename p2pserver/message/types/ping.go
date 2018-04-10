@@ -16,54 +16,49 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package message
+package types
 
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/common/serialization"
 )
 
-type Block struct {
-	MsgHdr
-	Blk types.Block
+type Ping struct {
+	Hdr    MsgHdr
+	Height uint64
 }
 
 //Check whether header is correct
-func (msg Block) Verify(buf []byte) error {
-	err := msg.MsgHdr.Verify(buf)
+func (msg Ping) Verify(buf []byte) error {
+	err := msg.Hdr.Verify(buf)
 	return err
 }
 
 //Serialize message payload
-func (msg Block) Serialization() ([]byte, error) {
-	hdrBuf, err := msg.MsgHdr.Serialization()
+func (msg Ping) Serialization() ([]byte, error) {
+	hdrBuf, err := msg.Hdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
-
 	buf := bytes.NewBuffer(hdrBuf)
-	msg.Blk.Serialize(buf)
+	err = serialization.WriteUint64(buf, msg.Height)
+	if err != nil {
+		return nil, err
+	}
 	return buf.Bytes(), err
+
 }
 
 //Deserialize message payload
-func (msg *Block) Deserialization(p []byte) error {
+func (msg *Ping) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(msg.MsgHdr))
+	err := binary.Read(buf, binary.LittleEndian, &(msg.Hdr))
 	if err != nil {
-		log.Warn("Parse block message hdr error")
-		return errors.New("Parse block message hdr error ")
+		return err
 	}
 
-	err = msg.Blk.Deserialize(buf)
-	if err != nil {
-		log.Warn("Parse block message error")
-		return errors.New("Parse block message error ")
-	}
-
+	msg.Height, err = serialization.ReadUint64(buf)
 	return err
 }

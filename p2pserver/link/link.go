@@ -27,8 +27,8 @@ import (
 	"time"
 
 	"github.com/ontio/ontology/common/log"
-	types "github.com/ontio/ontology/p2pserver/common"
-	msg "github.com/ontio/ontology/p2pserver/message"
+	"github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/p2pserver/message/types"
 )
 
 type RxBuf struct {
@@ -44,7 +44,7 @@ type Link struct {
 	port     uint16   // The server port of the node
 	rxBuf    RxBuf
 	time     time.Time // The latest time the node activity
-	recvChan chan types.MsgPayload
+	recvChan chan common.MsgPayload
 }
 
 func NewLink() *Link {
@@ -67,7 +67,7 @@ func (link *Link) Valid() bool {
 }
 
 //set message channel for link layer
-func (link *Link) SetChan(msgchan chan types.MsgPayload) {
+func (link *Link) SetChan(msgchan chan common.MsgPayload) {
 	link.recvChan = msgchan
 }
 
@@ -125,7 +125,7 @@ func unpackNodeBuf(link *Link, buf []byte) {
 	rxBuf = &link.rxBuf
 
 	if rxBuf.len == 0 {
-		length := types.MSG_HDR_LEN - len(rxBuf.p)
+		length := common.MSG_HDR_LEN - len(rxBuf.p)
 		if length > len(buf) {
 			length = len(buf)
 			rxBuf.p = append(rxBuf.p, buf[0:length]...)
@@ -133,7 +133,7 @@ func unpackNodeBuf(link *Link, buf []byte) {
 		}
 
 		rxBuf.p = append(rxBuf.p, buf[0:length]...)
-		if msg.ValidMsgHdr(rxBuf.p) == false {
+		if types.ValidMsgHdr(rxBuf.p) == false {
 			rxBuf.p = nil
 			rxBuf.len = 0
 			log.Warn("Get error message header, TODO: relocate the msg header")
@@ -141,7 +141,7 @@ func unpackNodeBuf(link *Link, buf []byte) {
 			return
 		}
 
-		rxBuf.len = msg.PayloadLen(rxBuf.p)
+		rxBuf.len = types.PayloadLen(rxBuf.p)
 		buf = buf[length:]
 	}
 
@@ -165,7 +165,7 @@ func unpackNodeBuf(link *Link, buf []byte) {
 }
 
 func (link *Link) pushdata(buf []byte) {
-	p2pMsg := types.MsgPayload{
+	p2pMsg := common.MsgPayload{
 		Id:      link.id,
 		Addr:    link.addr,
 		Payload: buf,
@@ -175,10 +175,10 @@ func (link *Link) pushdata(buf []byte) {
 
 func (link *Link) Rx() {
 	conn := link.conn
-	buf := make([]byte, types.MAX_BUF_LEN)
+	buf := make([]byte, common.MAX_BUF_LEN)
 	for {
-		len, err := conn.Read(buf[0:(types.MAX_BUF_LEN - 1)])
-		buf[types.MAX_BUF_LEN-1] = 0 //Prevent overflow
+		len, err := conn.Read(buf[0:(common.MAX_BUF_LEN - 1)])
+		buf[common.MAX_BUF_LEN-1] = 0 //Prevent overflow
 		switch err {
 		case nil:
 			t := time.Now()
@@ -198,15 +198,15 @@ DISCONNECT:
 }
 
 func (link *Link) disconnectNotify() {
-	var m msg.MsgCont
-	cmd := types.DISCONNECT_TYPE
-	m.Hdr.Magic = types.NETMAGIC
+	var m types.MsgCont
+	cmd := common.DISCONNECT_TYPE
+	m.Hdr.Magic = common.NETMAGIC
 	copy(m.Hdr.CMD[0:uint32(len(cmd))], cmd)
 	var buf bytes.Buffer
 	binary.Write(&buf, binary.LittleEndian, m.Hdr)
 	msgbuf := buf.Bytes()
 
-	discMsg := types.MsgPayload{
+	discMsg := common.MsgPayload{
 		Id:      link.id,
 		Addr:    link.addr,
 		Payload: msgbuf,

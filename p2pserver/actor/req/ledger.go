@@ -29,7 +29,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	msgCommon "github.com/ontio/ontology/p2pserver/common"
-	msg "github.com/ontio/ontology/p2pserver/message"
+	msg "github.com/ontio/ontology/p2pserver/message/types"
 )
 
 var DefLedgerPid *actor.PID

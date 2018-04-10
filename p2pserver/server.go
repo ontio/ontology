@@ -19,7 +19,7 @@
 package p2pserver
 
 import (
-	types "github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/p2pserver/common"
 	P2Pnet "github.com/ontio/ontology/p2pserver/net"
 	"github.com/ontio/ontology/p2pserver/peer"
 )
@@ -36,11 +36,11 @@ type P2P interface {
 	GetTime() int64
 	GetState() uint32
 	GetServices() uint64
-	GetNeighborAddrs() ([]types.PeerAddr, uint64)
+	GetNeighborAddrs() ([]common.PeerAddr, uint64)
 	GetConnectionCnt() uint32
 	IsPeerEstablished(p *peer.Peer) bool
 	Send(p *peer.Peer, data []byte, isConsensus bool) error
-	GetMsgChan(isConsensus bool) chan types.MsgPayload
+	GetMsgChan(isConsensus bool) chan common.MsgPayload
 	GetPeerFromAddr(addr string) *peer.Peer
 }
 
@@ -51,8 +51,8 @@ func NewNetServer(p *peer.Peer) P2P {
 		Self:            p,
 		PeerSyncAddress: make(map[string]*peer.Peer),
 		PeerConsAddress: make(map[string]*peer.Peer),
-		SyncChan:        make(chan types.MsgPayload, types.CHAN_CAPABILITY),
-		ConsChan:        make(chan types.MsgPayload, types.CHAN_CAPABILITY),
+		SyncChan:        make(chan common.MsgPayload, common.CHAN_CAPABILITY),
+		ConsChan:        make(chan common.MsgPayload, common.CHAN_CAPABILITY),
 	}
 
 	p.AttachSyncChan(n.SyncChan)
