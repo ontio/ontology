@@ -60,8 +60,6 @@ func ConvertReturnTypes(item types.StackItems) interface{} {
 		return arr
 	case *types.Interop:
 		return common.ToHexString(v.GetInterface().ToArray())
-	case types.StackItems:
-		return ConvertReturnTypes(v)
 	default:
 		log.Error("[ConvertTypes] Invalid Types!")
 		return nil
