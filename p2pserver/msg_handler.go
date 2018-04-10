@@ -561,3 +561,8 @@ func InvHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	}
 	return nil
 }
+
+//
+func DisconnectHandle(data msgCommon.MsgPayload, p2p *P2PServer) {
+
+}

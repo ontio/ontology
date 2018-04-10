@@ -59,6 +59,7 @@ const (
 	CONN_MONITOR       = 6
 	CONN_MAX_BACK      = 4000
 	MAX_RETRY_COUNT    = 3
+	CHAN_CAPABILITY    = 10000
 )
 
 // The peer state

@@ -32,12 +32,12 @@ func DefaultMsgHandler(data msgCommon.MsgPayload, p2p *P2PServer) error {
 }
 
 type MessageRouter struct {
-	msgHandlers map[string]MessageHandler
-	ReceiveChan chan msgCommon.MsgPayload
-
-	//Actors       map[string]actor
-	stopCh chan bool
-	p2p    *P2PServer
+	msgHandlers  map[string]MessageHandler
+	RecvSyncChan chan msgCommon.MsgPayload
+	RecvConsChan chan msgCommon.MsgPayload
+	stopSyncCh   chan bool
+	stopConsCh   chan bool
+	p2p          *P2PServer
 }
 
 func NewMsgRouter(p2p *P2PServer) *MessageRouter {
@@ -48,8 +48,10 @@ func NewMsgRouter(p2p *P2PServer) *MessageRouter {
 
 func (self *MessageRouter) init(p2p *P2PServer) {
 	self.msgHandlers = make(map[string]MessageHandler)
-	self.ReceiveChan = make(chan msgCommon.MsgPayload, 10000)
-	self.stopCh = make(chan bool)
+	self.RecvSyncChan = p2p.network.GetMsgChan(false)
+	self.RecvConsChan = p2p.network.GetMsgChan(true)
+	self.stopSyncCh = make(chan bool)
+	self.stopConsCh = make(chan bool)
 	self.p2p = p2p
 }
 
@@ -62,9 +64,15 @@ func (self *MessageRouter) UnRegisterMsgHandler(key string) {
 }
 
 func (self *MessageRouter) Start() {
+	go self.hookChan(self.RecvSyncChan, self.stopSyncCh)
+	go self.hookChan(self.RecvConsChan, self.stopConsCh)
+	log.Info("Start to read p2p message...")
+}
+
+func (self *MessageRouter) hookChan(channel chan msgCommon.MsgPayload, stopCh chan bool) {
 	for {
 		select {
-		case data, ok := <-self.ReceiveChan:
+		case data, ok := <-channel:
 			if ok {
 				msgType, err := msg.MsgType(data.Payload)
 				if err != nil {
@@ -79,18 +87,18 @@ func (self *MessageRouter) Start() {
 					log.Info("Unkown message handler for the msg: ", msgType)
 				}
 			}
-		case <-self.stopCh:
+		case <-stopCh:
 			return
 		}
 	}
 }
 
 func (self *MessageRouter) Stop() {
-	if self.ReceiveChan != nil {
-		close(self.ReceiveChan)
-	}
 
-	if self.stopCh != nil {
-		self.stopCh <- true
+	if self.stopSyncCh != nil {
+		self.stopSyncCh <- true
+	}
+	if self.stopConsCh != nil {
+		self.stopConsCh <- true
 	}
 }

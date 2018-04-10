@@ -102,6 +102,15 @@ func (n *NetServer) GetConnectionCnt() uint32 {
 	return n.Self.Np.GetNbrNodeCnt()
 }
 
+//
+func (n *NetServer) GetMsgChan(isConsensus bool) chan types.MsgPayload {
+	if isConsensus {
+		return n.ConsChan
+	} else {
+		return n.SyncChan
+	}
+}
+
 //Tx send data buf to peer
 func (n *NetServer) Send(p *peer.Peer, data []byte, isConsensus bool) error {
 	if p != nil {

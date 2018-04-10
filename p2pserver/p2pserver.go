@@ -86,7 +86,7 @@ func NewServer(acc *account.Account) (*P2PServer, error) {
 	p.msgRouter.RegisterMsgHandler(types.NOT_FOUND_TYPE, NotFoundHandle)
 	p.msgRouter.RegisterMsgHandler(types.TX_TYPE, TransactionHandle)
 
-	//p.msgRouter.RegisterMsgHandler(types.VERSION_TYPE, VersionHandle)
+	p.msgRouter.Start()
 	p.flightHeights = make(map[uint64][]uint32)
 	p.quitOnline = make(chan bool)
 	p.quitHeartBeat = make(chan bool)
@@ -103,7 +103,9 @@ func (this *P2PServer) Start(isSync bool) error {
 	}
 	go this.keepOnlineService()
 	go this.heartBeatService()
-	go this.keepOnlineService()
+	if isSync {
+		go this.syncService()
+	}
 	return nil
 }
 func (this *P2PServer) Stop() error {
@@ -111,7 +113,7 @@ func (this *P2PServer) Stop() error {
 	this.quitOnline <- true
 	this.quitHeartBeat <- true
 	this.quitSyncBlk <- true
-
+	this.msgRouter.Stop()
 	return nil
 }
 func (this *P2PServer) IsSyncing() bool {

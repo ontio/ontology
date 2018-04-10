@@ -40,6 +40,7 @@ type P2P interface {
 	GetConnectionCnt() uint32
 	IsPeerEstablished(p *peer.Peer) bool
 	Send(p *peer.Peer, data []byte, isConsensus bool) error
+	GetMsgChan(isConsensus bool) chan types.MsgPayload
 	GetPeerFromAddr(addr string) *peer.Peer
 }
 
@@ -50,8 +51,8 @@ func NewNetServer(p *peer.Peer) P2P {
 		Self:            p,
 		PeerSyncAddress: make(map[string]*peer.Peer),
 		PeerConsAddress: make(map[string]*peer.Peer),
-		SyncChan:        make(chan types.MsgPayload, 100000),
-		ConsChan:        make(chan types.MsgPayload, 100000),
+		SyncChan:        make(chan types.MsgPayload, types.CHAN_CAPABILITY),
+		ConsChan:        make(chan types.MsgPayload, types.CHAN_CAPABILITY),
 	}
 
 	p.AttachSyncChan(n.SyncChan)
