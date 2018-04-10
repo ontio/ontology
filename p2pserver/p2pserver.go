@@ -254,6 +254,7 @@ func (this *P2PServer) retryInactivePeer() {
 		ip = addr[:]
 		nodeAddr := ip.To16().String() + ":" + strconv.Itoa(int(p.GetSyncPort()))
 		if p.GetSyncState() == common.INACTIVITY {
+			log.Infof(" try reconnect %s", nodeAddr)
 			//add addr to retry list
 			this.addToRetryList(nodeAddr)
 			p.CloseSync()

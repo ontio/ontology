@@ -25,6 +25,8 @@ import (
 	"fmt"
 	"net"
 	"runtime"
+	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -216,9 +218,13 @@ func (p *Peer) GetAddr() string {
 }
 func (p *Peer) GetAddr16() ([16]byte, error) {
 	var result [16]byte
-	ip := net.ParseIP(p.GetAddr()).To16()
+	addrIp, err := parseIPAddr(p.GetAddr())
+	if err != nil {
+		return result, err
+	}
+	ip := net.ParseIP(addrIp).To16()
 	if ip == nil {
-		log.Error("Parse IP address error\n")
+		log.Error("Parse IP address error\n", p.GetAddr())
 		return result, errors.New("Parse IP address error")
 	}
 
@@ -290,4 +296,21 @@ func (p *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
 //AddNbrNode add peer to nbr peer list
 func (p *Peer) AddNbrNode(remotePeer *Peer) {
 	p.Np.AddNbrNode(remotePeer)
+}
+
+func parseIPAddr(s string) (string, error) {
+	i := strings.Index(s, ":")
+	if i < 0 {
+		log.Warn("Split IP address error")
+		return s, errors.New("Split IP address error")
+	}
+	return s[:i], nil
+}
+func parseIPPort(s string) (int, error) {
+	i := strings.Index(s, ":")
+	if i < 0 {
+		log.Warn("Split IP port error")
+		return 0, errors.New("Split IP port error")
+	}
+	return strconv.Atoi(s[i+1:])
 }

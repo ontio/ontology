@@ -263,6 +263,7 @@ func VersionHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		} else {
 			//p synclink must exist,merged
 			p.ConsLink = remotePeer.ConsLink
+			p.ConsLink.SetID(version.P.Nonce)
 			p.SetConsState(remotePeer.GetConsState())
 			remotePeer = p
 
@@ -335,7 +336,7 @@ func VersionHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		remotePeer.UpdateInfo(time.Now(), version.P.Version, version.P.Services,
 			version.P.SyncPort, version.P.ConsPort, version.P.Nonce,
 			version.P.Relay, version.P.StartHeight)
-
+		remotePeer.SyncLink.SetID(version.P.Nonce)
 		p2p.Self.Np.AddNbrNode(remotePeer)
 
 		var buf []byte
@@ -410,16 +411,14 @@ func VerAckHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		go remotePeer.SendToSync(buf)
 
 		addr := remotePeer.GetAddr()
-		// port := remotePeer.GetSyncPort()
-		// nodeAddr := addr + ":" + strconv.Itoa(int(port))
 
-		// p2p.Self.SyncLink.RemoveAddrInConnectingList(nodeAddr)
-
-		//connect consensus port
 		if s == msgCommon.HANDSHAKED {
-			consensusPort := remotePeer.GetConsPort()
-			nodeConsensusAddr := addr + ":" + strconv.Itoa(int(consensusPort))
-			//Fix me:
+			i := strings.Index(addr, ":")
+			if i < 0 {
+				log.Warn("Split IP address error")
+				return nil
+			}
+			nodeConsensusAddr := addr[:i] + ":" + strconv.Itoa(int(remotePeer.GetConsPort()))
 			go p2p.network.Connect(nodeConsensusAddr, true)
 		}
 		return nil
@@ -566,13 +565,18 @@ func InvHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 //
 func DisconnectHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	remotePeer := p2p.Self.Np.GetPeer(data.Id)
+	if remotePeer == nil {
+		return nil
+	}
 	i := strings.Index(data.Addr, ":")
 	if i < 0 {
 		log.Error("link address format error", data.Addr)
+		return errors.New("link address format error")
 	}
-	port, err := strconv.Atoi(data.Addr[i:])
+	port, err := strconv.Atoi(data.Addr[i+1:])
 	if err != nil {
-		log.Error("Split port error", data.Addr[i:])
+		log.Error("Split port error", data.Addr[i+1:])
+		return errors.New("Split port error")
 	}
 	if remotePeer.SyncLink.GetPort() == uint16(port) {
 		remotePeer.CloseSync()

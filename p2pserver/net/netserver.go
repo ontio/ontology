@@ -130,7 +130,6 @@ func (n *NetServer) IsPeerEstablished(p *peer.Peer) bool {
 }
 
 func (n *NetServer) Connect(addr string, isConsensus bool) error {
-	log.Debug()
 
 	if added := n.addInConnectingList(addr); added == false {
 		return errors.New("node exist in connecting list, cancel")
@@ -155,8 +154,8 @@ func (n *NetServer) Connect(addr string, isConsensus bool) error {
 			return err
 		}
 	}
-	addr, err = parseIPAddr(conn.RemoteAddr().String())
-	log.Info(fmt.Sprintf("Connect node %s connect with %s with %s",
+	addr = conn.RemoteAddr().String()
+	log.Info(fmt.Sprintf("peer %s connect with %s with %s",
 		conn.LocalAddr().String(), conn.RemoteAddr().String(),
 		conn.RemoteAddr().Network()))
 
@@ -165,7 +164,7 @@ func (n *NetServer) Connect(addr string, isConsensus bool) error {
 		n.PeerSyncAddress[addr] = remotePeer
 		remotePeer.SyncLink.SetAddr(addr)
 		remotePeer.SyncLink.SetConn(conn)
-		remotePeer.AttachSyncChan(n.ConsChan)
+		remotePeer.AttachSyncChan(n.SyncChan)
 		go remotePeer.SyncLink.Rx()
 		remotePeer.SetSyncState(common.HAND)
 		vpl := msgpack.NewVersionPayload(n.Self, false)
@@ -260,7 +259,7 @@ func (n *NetServer) startSyncAccept(listener net.Listener) {
 			log.Error("Error accepting ", err.Error())
 			return
 		}
-		log.Info("Remote node connect with ", conn.RemoteAddr(), conn.LocalAddr())
+		log.Info("Remote sync node connect with ", conn.RemoteAddr(), conn.LocalAddr())
 
 		remotePeer := peer.NewPeer()
 		addr := conn.RemoteAddr().String()
@@ -284,7 +283,7 @@ func (n *NetServer) startConsAccept(listener net.Listener) {
 			log.Error("Error accepting ", err.Error())
 			return
 		}
-		log.Info("Remote node connect with ", conn.RemoteAddr(), conn.LocalAddr())
+		log.Info("Remote cons node connect with ", conn.RemoteAddr(), conn.LocalAddr())
 
 		remotePeer := peer.NewPeer()
 		addr := conn.RemoteAddr().String()
@@ -387,15 +386,6 @@ func initTlsListen(port uint16) (net.Listener, error) {
 		return nil, err
 	}
 	return listener, nil
-}
-
-func parseIPAddr(s string) (string, error) {
-	i := strings.Index(s, ":")
-	if i < 0 {
-		log.Warn("Split IP address&port error")
-		return s, errors.New("Split IP address&port error")
-	}
-	return s[:i], nil
 }
 
 func nonTLSDial(addr string) (net.Conn, error) {

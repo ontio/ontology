@@ -47,11 +47,11 @@ func (nm *NbrPeers) NodeExisted(uid uint64) bool {
 }
 func (nm *NbrPeers) GetPeer(id uint64) *Peer {
 	nm.Lock()
+	defer nm.Unlock()
 	n, ok := nm.List[id]
 	if ok == false {
 		return nil
 	}
-	delete(nm.List, id)
 	return n
 }
 func (nm *NbrPeers) AddNbrNode(p *Peer) {
