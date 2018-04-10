@@ -32,7 +32,7 @@ import (
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
-	vmtypes "github.com/ontio/ontology/vm/types"
+	stypes "github.com/ontio/ontology/smartcontract/types"
 )
 
 const (
@@ -45,7 +45,7 @@ func (self *StateStore) HandleDeployTransaction(stateBatch *statestore.StateBatc
 	originAddress := deploy.Code.AddressFromVmCode()
 
 	// mapping native contract origin address to target address
-	if deploy.Code.VmType == vmtypes.Native {
+	if deploy.Code.VmType == stypes.Native {
 		targetAddress, err := common.AddressParseFromBytes(deploy.Code.Code)
 		if err != nil {
 			return fmt.Errorf("Invalid native contract address:%v", err)
@@ -82,7 +82,6 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 		Time:    block.Header.Timestamp,
 		Height:  block.Header.Height,
 		Tx:      tx,
-		Table:   &CacheCodeTable{stateBatch},
 		DBCache: stateBatch,
 		Store:   store,
 	}

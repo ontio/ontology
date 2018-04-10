@@ -23,12 +23,12 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common"
-	vmtypes "github.com/ontio/ontology/vm/types"
+	stypes "github.com/ontio/ontology/smartcontract/types"
 )
 
 type InvokeCode struct {
 	GasLimit common.Fixed64
-	Code     vmtypes.VmCode
+	Code     stypes.VmCode
 }
 
 func (self *InvokeCode) Serialize(w io.Writer) error {

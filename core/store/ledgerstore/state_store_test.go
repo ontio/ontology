@@ -25,7 +25,7 @@ import (
 	"github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/statestore"
-	vmtypes "github.com/ontio/ontology/vm/types"
+	vmtypes "github.com/ontio/ontology/smartcontract/types"
 	"github.com/ontio/ontology-crypto/keypair"
 )
 

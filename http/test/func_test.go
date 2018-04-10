@@ -22,7 +22,6 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
-	"os"
 	"testing"
 	"time"
 
@@ -35,7 +34,7 @@ import (
 	"github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/merkle"
 	"github.com/ontio/ontology/vm/neovm"
-	vmtypes "github.com/ontio/ontology/vm/types"
+	vmtypes "github.com/ontio/ontology/smartcontract/types"
 	"github.com/stretchr/testify/assert"
 )
 
