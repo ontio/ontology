@@ -774,7 +774,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 			return
 		}
 		var pmsg *blockProposalMsg
-		pMsgs := self.msgPool.GetProposalMsgs(self.GetCurrentBlockNo())
+		pMsgs := self.msgPool.GetProposalMsgs(pMsg.BlockNum)
 		for _, msg := range pMsgs {
 			p := msg.(*blockProposalMsg)
 			if p != nil && p.Block.getProposer() == self.Index {
