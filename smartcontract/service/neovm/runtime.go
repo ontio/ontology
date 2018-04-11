@@ -10,11 +10,14 @@ import (
 	scommon "github.com/ontio/ontology/smartcontract/common"
 )
 
+// get current time
 func RuntimeGetTime(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	vm.PushData(engine, int(service.Time))
 	return nil
 }
 
+// check permissions
+// if param address isn't exist in authorization list, check fail
 func RuntimeCheckWitness(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[RuntimeCheckWitness] Too few input parameters ")
@@ -38,6 +41,7 @@ func RuntimeCheckWitness(service *NeoVmService, engine *vm.ExecutionEngine) erro
 	return nil
 }
 
+// smart contract execute event notify
 func RuntimeNotify(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	item := vm.PopStackItem(engine)
 	context := service.ContextRef.CurrentContext()
@@ -45,6 +49,7 @@ func RuntimeNotify(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	return nil
 }
 
+// smart contract execute log
 func RuntimeLog(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	item := vm.PopByteArray(engine)
 	context := service.ContextRef.CurrentContext()

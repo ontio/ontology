@@ -40,6 +40,7 @@ const (
 )
 
 var (
+	// register all service for smart contract execute
 	ServiceMap = map[string]Service{
 		"Neo.Attribute.GetUsage": {Execute: AttributeGetUsage, Validator: validatorAttribute},
 		"Neo.Attribute.GetData": {Execute: AttributeGetData, Validator: validatorAttribute},

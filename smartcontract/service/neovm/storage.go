@@ -10,6 +10,7 @@ import (
 	"github.com/ontio/ontology/common"
 )
 
+// put value to contract storage
 func StoragePut(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	context, err := getContext(engine); if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StoragePut] get pop context error!")
@@ -28,6 +29,7 @@ func StoragePut(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	return nil
 }
 
+// delete value in contract storage
 func StorageDelete(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	context, err := getContext(engine); if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StorageDelete] get pop context error!")
@@ -41,6 +43,7 @@ func StorageDelete(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	return nil
 }
 
+// get value from contract storage
 func StorageGet(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	context, err := getContext(engine); if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StorageGet] get pop context error!")
@@ -58,6 +61,7 @@ func StorageGet(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	return nil
 }
 
+// put current contract context to stack
 func StorageGetContext(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	vm.PushData(engine, NewStorageContext(service.ContextRef.CurrentContext().ContractAddress))
 	return nil

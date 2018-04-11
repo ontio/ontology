@@ -7,6 +7,7 @@ import (
 	vmtypes "github.com/ontio/ontology/vm/neovm/types"
 )
 
+// get hash from transaction
 func TransactionGetHash(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[TransactionGetHash] Too few input parameters ")
@@ -23,6 +24,7 @@ func TransactionGetHash(service *NeoVmService, engine *vm.ExecutionEngine) error
 	return nil
 }
 
+// get type from transaction
 func TransactionGetType(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[TransactionGetType] Too few input parameters ")
@@ -37,6 +39,7 @@ func TransactionGetType(service *NeoVmService, engine *vm.ExecutionEngine) error
 	return nil
 }
 
+// get attributes from transaction
 func TransactionGetAttributes(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[TransactionGetAttributes] Too few input parameters ")

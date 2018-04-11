@@ -8,11 +8,13 @@ import (
 	vmtypes "github.com/ontio/ontology/vm/neovm/types"
 )
 
+// get height from blockchain
 func BlockChainGetHeight(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	vm.PushData(engine, service.Store.GetCurrentBlockHeight())
 	return nil
 }
 
+// get header from blockchain
 func BlockChainGetHeader(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[BlockChainGetHeader] Too few input parameters ")
@@ -44,6 +46,7 @@ func BlockChainGetHeader(service *NeoVmService, engine *vm.ExecutionEngine) erro
 	return nil
 }
 
+// get block from blockchain
 func BlockChainGetBlock(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[BlockChainGetBlock] Too few input parameters ")
@@ -75,6 +78,7 @@ func BlockChainGetBlock(service *NeoVmService, engine *vm.ExecutionEngine) error
 	return nil
 }
 
+// get transaction from blockchain
 func BlockChainGetTransaction(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[BlockChainGetTransaction] Too few input parameters ")
@@ -90,6 +94,7 @@ func BlockChainGetTransaction(service *NeoVmService, engine *vm.ExecutionEngine)
 	return nil
 }
 
+// get contract from blockchain
 func BlockChainGetContract(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[GetContract] Too few input parameters ")

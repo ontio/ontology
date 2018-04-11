@@ -6,6 +6,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 )
 
+// get hash from header
 func HeaderGetHash(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[HeaderGetHash] Too few input parameters ")
@@ -26,6 +27,7 @@ func HeaderGetHash(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	return nil
 }
 
+// get version from header
 func HeaderGetVersion(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[HeaderGetVersion] Too few input parameters ")
@@ -45,6 +47,7 @@ func HeaderGetVersion(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	return nil
 }
 
+// get prevhash from header
 func HeaderGetPrevHash(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[HeaderGetPrevHash] Too few input parameters ")
@@ -64,6 +67,7 @@ func HeaderGetPrevHash(service *NeoVmService, engine *vm.ExecutionEngine) error 
 	return nil
 }
 
+// get merkle root from header
 func HeaderGetMerkleRoot(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[HeaderGetMerkleRoot] Too few input parameters ")
@@ -83,6 +87,7 @@ func HeaderGetMerkleRoot(service *NeoVmService, engine *vm.ExecutionEngine) erro
 	return nil
 }
 
+// get height from header
 func HeaderGetIndex(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[HeaderGetIndex] Too few input parameters ")
@@ -102,6 +107,7 @@ func HeaderGetIndex(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	return nil
 }
 
+// get timestamp from header
 func HeaderGetTimestamp(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[HeaderGetTimestamp] Too few input parameters ")
@@ -121,6 +127,7 @@ func HeaderGetTimestamp(service *NeoVmService, engine *vm.ExecutionEngine) error
 	return nil
 }
 
+// get consensus data from header
 func HeaderGetConsensusData(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[HeaderGetConsensusData] Too few input parameters ")
@@ -140,6 +147,7 @@ func HeaderGetConsensusData(service *NeoVmService, engine *vm.ExecutionEngine) e
 	return nil
 }
 
+// get next consensus address from header
 func HeaderGetNextConsensus(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[HeaderGetNextConsensus] Too few input parameters ")
