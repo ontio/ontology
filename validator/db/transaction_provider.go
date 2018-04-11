@@ -19,65 +19,9 @@
 package db
 
 import (
-	"io"
-
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/types"
 )
-
-type TransactionMeta struct {
-	BlockHeight uint32
-	Spend       *FixedBitMap
-}
-
-func NewTransactionMeta(height uint32, outputs uint32) TransactionMeta {
-	return TransactionMeta{
-		BlockHeight: height,
-		Spend:       NewFixedBitMap(outputs),
-	}
-}
-
-func (self *TransactionMeta) DenoteSpent(index uint32) {
-	self.Spend.Set(index)
-}
-
-func (self *TransactionMeta) DenoteUnspent(index uint32) {
-	self.Spend.Unset(index)
-}
-
-func (self *TransactionMeta) Height() uint32 {
-	return self.BlockHeight
-}
-func (self *TransactionMeta) IsSpent(idx uint32) bool {
-	return self.Spend.Get(idx)
-}
-
-func (self *TransactionMeta) IsFullSpent() bool {
-	return self.Spend.IsFullSet()
-}
-
-func (self *TransactionMeta) Serialize(w io.Writer) error {
-	err := serialization.WriteUint32(w, self.BlockHeight)
-	if err != nil {
-		return err
-	}
-
-	err = self.Spend.Serialize(w)
-
-	return err
-}
-
-func (self *TransactionMeta) Deserialize(r io.Reader) error {
-	height, err := serialization.ReadUint32(r)
-	if err != nil {
-		return err
-	}
-	self.BlockHeight = height
-	self.Spend = &FixedBitMap{}
-	err = self.Spend.Deserialize(r)
-	return err
-}
 
 type TransactionProvider interface {
 	BestStateProvider
@@ -85,9 +29,4 @@ type TransactionProvider interface {
 	GetTransactionBytes(hash common.Uint256) ([]byte, error)
 	GetTransaction(hash common.Uint256) (*types.Transaction, error)
 	PersistBlock(block *types.Block) error
-}
-
-type TransactionMetaProvider interface {
-	BestStateProvider
-	GetTransactionMeta(hash common.Uint256) (TransactionMeta, error)
 }

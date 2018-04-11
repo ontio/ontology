@@ -161,24 +161,6 @@ func (self *Store) GetTransaction(hash common.Uint256) (*tx.Transaction, error) 
 	return txn, nil
 }
 
-//implement  TransactionMetaProvider interface
-func (self *Store) GetTransactionMeta(hash common.Uint256) (TransactionMeta, error) {
-	key := GenTxMetaKey(hash)
-	defer keyPool.Put(key)
-	txbuf, err := self.db.Get(key.Bytes())
-	if err != nil {
-		return TransactionMeta{}, err
-	}
-
-	txMeta := TransactionMeta{}
-	err = txMeta.Deserialize(bytes.NewBuffer(txbuf))
-	if err != nil {
-		return TransactionMeta{}, err
-	}
-
-	return txMeta, nil
-}
-
 func (self *Store) Close() error {
 	err := self.db.Close()
 	self.db = nil

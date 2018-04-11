@@ -39,8 +39,6 @@ const (
 	//DATA_Block KeyPrefix = iota
 	//DATA_Header
 	DATA_TRANSACTION KeyPrefix = 10 // key: prefix+txid, value: height + tx
-
-	TX_META KeyPrefix = 20 // key: TX_META + txid, value: height + spend bits
 )
 
 func GenGenesisBlockKey() *pool.ByteBuffer {
@@ -59,13 +57,5 @@ func GenDataTransactionKey(hash common.Uint256) *pool.ByteBuffer {
 	key := keyPool.Get()
 	key.WriteByte(byte(DATA_TRANSACTION))
 	key.Write(hash.ToArray())
-	return key
-}
-
-func GenTxMetaKey(hash common.Uint256) *pool.ByteBuffer {
-	key := keyPool.Get()
-	key.WriteByte(byte(TX_META))
-	key.Write(hash.ToArray())
-
 	return key
 }
