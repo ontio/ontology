@@ -19,6 +19,7 @@ package smartcontract
 import (
 	"fmt"
 	"bytes"
+	"encoding/binary"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/store"
@@ -36,7 +37,12 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/smartcontract/states"
 	vm "github.com/ontio/ontology/vm/neovm"
-	"encoding/binary"
+)
+
+var (
+	CONTRACT_NOT_EXIST = errors.NewErr("[AppCall] Get contract context nil")
+	DEPLOYCODE_TYPE_ERROR = errors.NewErr("[AppCall] DeployCode type error!")
+	INVOKE_CODE_EXIST = errors.NewErr("[AppCall] Invoke codes exist!")
 )
 
 type SmartContract struct {
@@ -168,24 +174,29 @@ func (this *SmartContract) AppCall(address common.Address, method string, codes,
 		isLoad bool = false
 	)
 
-	if codes == nil || len(codes) == 0 {
+	if len(codes) == 0 {
 		isLoad = true
 	}
 
-	vmType := stypes.VmType(address[0])
+	item, err := this.getContract(address[:]); if err != nil {
+		return err
+	}
 
 	if isLoad {
-		c, err := this.getContract(address[:]); if err != nil {
-			return err
+		if item == nil {
+			return CONTRACT_NOT_EXIST
 		}
-		code = c.Code.Code
+		contract, ok := item.Value.(*payload.DeployCode); if !ok {
+			return DEPLOYCODE_TYPE_ERROR
+		}
+		code = contract.Code.Code
 	} else {
-		vmCode := stypes.VmCode{
-			Code: codes,
-			VmType: vmType,
+		if item != nil {
+			return INVOKE_CODE_EXIST
 		}
-		address = vmCode.AddressFromVmCode()
 	}
+
+	vmType := stypes.VmType(address[0])
 
 	switch vmType {
 	case stypes.Native:
@@ -251,13 +262,10 @@ func (this *SmartContract) CheckWitness(address common.Address) bool {
 	return false
 }
 
-func (this *SmartContract) getContract(address []byte) (*payload.DeployCode, error) {
+func (this *SmartContract) getContract(address []byte) (*scommon.StateItem, error) {
 	item, err := this.Config.DBCache.TryGet(scommon.ST_CONTRACT, address[:]);
-	if err != nil || item == nil || item.Value == nil {
-		return nil, errors.NewErr("[getContract] Get context doesn't exist!")
+	if err != nil {
+		return nil, errors.NewErr("[getContract] Get contract context error!")
 	}
-	contract, ok := item.Value.(*payload.DeployCode); if !ok {
-		return nil, errors.NewErr("[getContract] Type error!")
-	}
-	return contract, nil
+	return item, nil
 }
