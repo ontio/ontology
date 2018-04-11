@@ -47,6 +47,7 @@ type NetServer struct {
 	PeerConsAddress map[string]*peer.Peer
 }
 
+//ConnectingNodes include all addr in connecting state
 type ConnectingNodes struct {
 	sync.RWMutex
 	ConnectingAddrs []string
@@ -102,7 +103,7 @@ func (n *NetServer) GetConnectionCnt() uint32 {
 	return n.Self.Np.GetNbrNodeCnt()
 }
 
-//
+//GetMsgChan return sync or consensus channel when msgrouter need msg input
 func (n *NetServer) GetMsgChan(isConsensus bool) chan common.MsgPayload {
 	if isConsensus {
 		return n.ConsChan
@@ -129,6 +130,7 @@ func (n *NetServer) IsPeerEstablished(p *peer.Peer) bool {
 
 }
 
+//Connect used to connect net address under sync or cons mode
 func (n *NetServer) Connect(addr string, isConsensus bool) error {
 	if n.IsNbrPeerAddr(addr, isConsensus) {
 		return nil
@@ -343,6 +345,7 @@ func (n *NetServer) GetPeerFromAddr(addr string) *peer.Peer {
 	return nil
 }
 
+//initNonTlsListen return net.Listener with nonTls mode
 func initNonTlsListen(port uint16) (net.Listener, error) {
 	log.Debug()
 	listener, err := net.Listen("tcp", ":"+strconv.Itoa(int(port)))
@@ -353,6 +356,7 @@ func initNonTlsListen(port uint16) (net.Listener, error) {
 	return listener, nil
 }
 
+//initTlsListen return net.Listener with Tls mode
 func initTlsListen(port uint16) (net.Listener, error) {
 	CertPath := config.Parameters.CertPath
 	KeyPath := config.Parameters.KeyPath
@@ -392,6 +396,7 @@ func initTlsListen(port uint16) (net.Listener, error) {
 	return listener, nil
 }
 
+//nonTLSDial return net.Conn with nonTls
 func nonTLSDial(addr string) (net.Conn, error) {
 	log.Debug()
 	conn, err := net.DialTimeout("tcp", addr, time.Second*common.DIAL_TIMEOUT)
@@ -401,7 +406,7 @@ func nonTLSDial(addr string) (net.Conn, error) {
 	return conn, nil
 }
 
-//Dial with TLS
+//TLSDial return net.Conn with TLS
 func TLSDial(nodeAddr string) (net.Conn, error) {
 	CertPath := config.Parameters.CertPath
 	KeyPath := config.Parameters.KeyPath
@@ -434,6 +439,7 @@ func TLSDial(nodeAddr string) (net.Conn, error) {
 	return conn, nil
 }
 
+//IsNbrPeerAddr return result whether the address is under connecting
 func (n *NetServer) IsNbrPeerAddr(addr string, isConsensus bool) bool {
 	var addrNew string
 	n.Self.Np.RLock()

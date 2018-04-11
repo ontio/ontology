@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"net"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -36,9 +35,9 @@ import (
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/p2pserver/common"
 	conn "github.com/ontio/ontology/p2pserver/link"
-	//"github.com/ontio/ontology/p2pserver/message"
 )
 
+//Peer represent the node in p2p
 type Peer struct {
 	SyncLink                 *conn.Link
 	ConsLink                 *conn.Link
@@ -54,17 +53,19 @@ type Peer struct {
 	rxTxnCnt                 uint64
 	httpInfoPort             uint16
 	publicKey                keypair.PublicKey
-	chF                      chan func() error // Channel used to operate the node without lock
+	chF                      chan func() error
 	peerDisconnectSubscriber events.Subscriber
 	Np                       *NbrPeers
 }
 
+//backend run function in backend
 func (p *Peer) backend() {
 	for f := range p.chF {
 		f()
 	}
 }
 
+//NewPeer return new peer without publickey initial
 func NewPeer() *Peer {
 	p := &Peer{
 		syncState: common.INIT,
@@ -79,6 +80,7 @@ func NewPeer() *Peer {
 	return p
 }
 
+//InitPeer initial all member of given peer
 func (p *Peer) InitPeer(pubKey keypair.PublicKey) error {
 	p.version = common.PROTOCOL_VERSION
 	if config.Parameters.NodeType == common.SERVICE_NODE_NAME {
@@ -101,7 +103,7 @@ func (p *Peer) InitPeer(pubKey keypair.PublicKey) error {
 	p.relay = true
 
 	key := keypair.SerializePublicKey(pubKey)
-
+	log.Infof("key %v", key)
 	err := binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(p.id))
 	if err != nil {
 		log.Error(err)
@@ -117,9 +119,12 @@ func (p *Peer) InitPeer(pubKey keypair.PublicKey) error {
 	return nil
 }
 
+//rmPeer print a debug log when peer be finalized by system
 func rmPeer(p *Peer) {
 	log.Debug(fmt.Sprintf("Remove unused peer: 0x%0x", p.id))
 }
+
+//DumpInfo print all information of peer
 func (p *Peer) DumpInfo() {
 	log.Info("Node info:")
 	log.Info("\t syncState = ", p.syncState)
@@ -134,54 +139,88 @@ func (p *Peer) DumpInfo() {
 	log.Info("\t relay = ", p.relay)
 	log.Info("\t height = ", p.height)
 }
+
+//SetBookKeeperAddr set pubKey to peer
 func (p *Peer) SetBookKeeperAddr(pubKey keypair.PublicKey) {
 	p.publicKey = pubKey
 }
+
+//GetPubKey return publickey of peer
 func (p *Peer) GetPubKey() keypair.PublicKey {
 	return p.publicKey
 }
+
+//GetVersion return peer`s version
 func (p *Peer) GetVersion() uint32 {
 	return p.version
 }
+
+//GetHeight return peer`s block height
 func (p *Peer) GetHeight() uint64 {
 	return p.height
 }
+
+//SetHeight set height to peer
 func (p *Peer) SetHeight(height uint64) {
 	p.height = height
 }
+
+//GetConsConn return consensus link
 func (p *Peer) GetConsConn() *conn.Link {
 	return p.ConsLink
 }
+
+//SetConsConn set consensue link to peer
 func (p *Peer) SetConsConn(consLink *conn.Link) {
 	p.ConsLink = consLink
 }
+
+//GetSyncState return sync state
 func (p *Peer) GetSyncState() uint32 {
 	return p.syncState
 }
+
+//SetSyncState set sync state to peer
 func (p *Peer) SetSyncState(state uint32) {
 	atomic.StoreUint32(&(p.syncState), state)
 }
+
+//GetConsState return peer`s consensus state
 func (p *Peer) GetConsState() uint32 {
 	return p.consState
 }
+
+//SetConsState set consensus state to peer
 func (p *Peer) SetConsState(state uint32) {
 	atomic.StoreUint32(&(p.consState), state)
 }
+
+//GetSyncPort return peer`s sync port
 func (p *Peer) GetSyncPort() uint16 {
 	return p.SyncLink.GetPort()
 }
+
+//GetConsPort return peer`s consensus port
 func (p *Peer) GetConsPort() uint16 {
 	return p.ConsLink.GetPort()
 }
+
+//SetConsPort set peer`s consensus port
 func (p *Peer) SetConsPort(port uint16) {
 	p.ConsLink.SetPort(port)
 }
+
+//SendToSync call sync link to send buffer
 func (p *Peer) SendToSync(buf []byte) {
 	p.SyncLink.Tx(buf)
 }
+
+//SendToCons call consensus link to send buffer
 func (p *Peer) SendToCons(buf []byte) {
 	p.ConsLink.Tx(buf)
 }
+
+//CloseSync halt sync connection
 func (p *Peer) CloseSync() {
 	p.SetSyncState(common.INACTIVITY)
 	conn := p.SyncLink.GetConn()
@@ -190,6 +229,8 @@ func (p *Peer) CloseSync() {
 	}
 
 }
+
+//CloseCons halt consensus connection
 func (p *Peer) CloseCons() {
 	p.SetConsState(common.INACTIVITY)
 	conn := p.ConsLink.GetConn()
@@ -198,24 +239,37 @@ func (p *Peer) CloseCons() {
 	}
 }
 
+//GetID return peer`s id
 func (p *Peer) GetID() uint64 {
 	return p.id
 }
+
+//GetRelay return peer`s relay state
 func (p *Peer) GetRelay() bool {
 	return p.relay
 }
+
+//GetServices return peer`s service state
 func (p *Peer) GetServices() uint64 {
 	return p.services
 }
+
+//GetTimeStamp return peer`s latest contact time in ticks
 func (p *Peer) GetTimeStamp() int64 {
 	return p.SyncLink.GetRXTime().UnixNano()
 }
+
+//GetContactTime return peer`s latest contact time in Time struct
 func (p *Peer) GetContactTime() time.Time {
 	return p.SyncLink.GetRXTime()
 }
+
+//GetAddr return peer`s sync link address
 func (p *Peer) GetAddr() string {
 	return p.SyncLink.GetAddr()
 }
+
+//GetAddr16 return peer`s sync link address in []byte
 func (p *Peer) GetAddr16() ([16]byte, error) {
 	var result [16]byte
 	addrIp, err := parseIPAddr(p.GetAddr())
@@ -232,17 +286,22 @@ func (p *Peer) GetAddr16() ([16]byte, error) {
 	return result, nil
 }
 
+//AttachSyncChan set msg chan to sync link
 func (p *Peer) AttachSyncChan(msgchan chan common.MsgPayload) {
 	p.SyncLink.SetChan(msgchan)
 }
+
+//AttachConsChan set msg chan to consensus link
 func (p *Peer) AttachConsChan(msgchan chan common.MsgPayload) {
 	p.ConsLink.SetChan(msgchan)
 }
 
+//DelNbrNode delete nbr peer by id
 func (p *Peer) DelNbrNode(id uint64) (*Peer, bool) {
 	return p.Np.DelNbrNode(id)
 }
 
+//Send transfer buffer by sync or cons link
 func (p *Peer) Send(buf []byte, isConsensus bool) error {
 	if isConsensus && p.ConsLink.Valid() {
 		return p.ConsLink.Tx(buf)
@@ -250,6 +309,7 @@ func (p *Peer) Send(buf []byte, isConsensus bool) error {
 	return p.SyncLink.Tx(buf)
 }
 
+//SetHttpInfoState set peer`s httpinfo state
 func (p *Peer) SetHttpInfoState(httpInfo bool) {
 	if httpInfo {
 		p.cap[common.HTTP_INFO_FLAG] = 0x01
@@ -258,14 +318,17 @@ func (p *Peer) SetHttpInfoState(httpInfo bool) {
 	}
 }
 
+//GetHttpInfoState return peer`s httpinfo state
 func (p *Peer) GetHttpInfoState() bool {
 	return p.cap[common.HTTP_INFO_FLAG] == 1
 }
 
+//GetHttpInfoPort return peer`s httpinfo port
 func (p *Peer) GetHttpInfoPort() uint16 {
 	return p.httpInfoPort
 }
 
+//SetHttpInfoPort set peer`s httpinfo port
 func (p *Peer) SetHttpInfoPort(port uint16) {
 	p.httpInfoPort = port
 }
@@ -298,6 +361,7 @@ func (p *Peer) AddNbrNode(remotePeer *Peer) {
 	p.Np.AddNbrNode(remotePeer)
 }
 
+//parseIPAddr return ip address
 func parseIPAddr(s string) (string, error) {
 	i := strings.Index(s, ":")
 	if i < 0 {
@@ -305,12 +369,4 @@ func parseIPAddr(s string) (string, error) {
 		return s, errors.New("Split IP address error")
 	}
 	return s[:i], nil
-}
-func parseIPPort(s string) (int, error) {
-	i := strings.Index(s, ":")
-	if i < 0 {
-		log.Warn("Split IP port error")
-		return 0, errors.New("Split IP port error")
-	}
-	return strconv.Atoi(s[i+1:])
 }
