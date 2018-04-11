@@ -26,15 +26,6 @@ import (
 	comm "github.com/ontio/ontology/p2pserver/common"
 )
 
-type NodeAddr struct {
-	Time          int64
-	Services      uint64
-	IpAddr        [16]byte
-	Port          uint16
-	ConsensusPort uint16
-	ID            uint64 // Unique ID
-}
-
 type Addr struct {
 	Hdr       MsgHdr
 	NodeCnt   uint64
