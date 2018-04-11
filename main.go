@@ -147,8 +147,8 @@ func main() {
 		log.Fatalf("p2p sevice start error %s", err)
 		os.Exit(1)
 	}
-	p2pActor := p2pactor.NewP2PActor()
-	p2pPID, err := p2pActor.Start(p2p)
+	p2pActor := p2pactor.NewP2PActor(p2p)
+	p2pPID, err := p2pActor.Start()
 	if err != nil {
 		log.Fatalf("p2pActor init error %s", err)
 		os.Exit(1)

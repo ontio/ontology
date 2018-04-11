@@ -31,14 +31,15 @@ type P2PActor struct {
 	server *p2pserver.P2PServer
 }
 
-func NewP2PActor() *P2PActor {
-	return &P2PActor{}
+func NewP2PActor(p2pServer *p2pserver.P2PServer) *P2PActor {
+	return &P2PActor{
+		server: p2pServer,
+	}
 }
 
-func (this *P2PActor) Start(p2pServer *p2pserver.P2PServer) (*actor.PID, error) {
-	this.props = actor.FromProducer(func() actor.Actor { return &P2PActor{} })
+func (this *P2PActor) Start() (*actor.PID, error) {
+	this.props = actor.FromProducer(func() actor.Actor { return this })
 	p2pPid, err := actor.SpawnNamed(this.props, "net_server")
-	this.server = p2pServer
 	return p2pPid, err
 }
 
