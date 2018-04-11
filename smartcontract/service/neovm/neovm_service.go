@@ -78,7 +78,7 @@ var (
 		"Neo.Storage.Delete": {Execute: StorageDelete},
 		"Neo.Storage.GetContext": {Execute: StorageGetContext},
 		"System.ExecutionEngine.GetScriptContainer": {Execute: GetCodeContainer},
-		"System.ExecutionEngine.GetExecutingScriptHash": {Execute: GetExecutingAddress, Validator: validatorExecute},
+		"System.ExecutionEngine.GetExecutingScriptHash": {Execute: GetExecutingAddress},
 		"System.ExecutionEngine.GetCallingScriptHash": {Execute: GetCallingAddress},
 		"System.ExecutionEngine.GetEntryScriptHash": {Execute: GetEntryAddress},
 	}
