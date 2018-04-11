@@ -32,6 +32,8 @@ type StateItem struct {
 
 type Memory map[string]*StateItem
 
+// smart contract execute cache, it contain transaction cache and block cache
+// when smart contract execute finish, need to commit transaction cache to block cache
 type CloneCache struct {
 	Memory Memory
 	Store  common.StateStore
@@ -44,6 +46,7 @@ func NewCloneCache(store common.StateStore) *CloneCache {
 	}
 }
 
+// commit current transaction cache to block cache
 func (cloneCache *CloneCache) Commit() {
 	for _, v := range cloneCache.Memory {
 		if v.State == common.Deleted {
@@ -54,6 +57,7 @@ func (cloneCache *CloneCache) Commit() {
 	}
 }
 
+// add item to cache
 func (cloneCache *CloneCache) Add(prefix common.DataEntryPrefix, key []byte, value states.StateValue) {
 	cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))] = &StateItem{
 		Prefix: prefix,
@@ -63,6 +67,8 @@ func (cloneCache *CloneCache) Add(prefix common.DataEntryPrefix, key []byte, val
 	}
 }
 
+// if item has existed, return it
+// else add it to cache
 func (cloneCache *CloneCache) GetOrAdd(prefix common.DataEntryPrefix, key []byte, value states.StateValue) (states.StateValue, error) {
 	if v, ok := cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))]; ok {
 		if v.State == common.Deleted {
@@ -82,6 +88,7 @@ func (cloneCache *CloneCache) GetOrAdd(prefix common.DataEntryPrefix, key []byte
 	return value, nil
 }
 
+// get item by key
 func (cloneCache *CloneCache) Get(prefix common.DataEntryPrefix, key []byte) (states.StateValue, error) {
 	if v, ok := cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))]; ok {
 		if v.State == common.Deleted {
@@ -99,6 +106,7 @@ func (cloneCache *CloneCache) Get(prefix common.DataEntryPrefix, key []byte) (st
 	return item.Value, nil
 }
 
+// delete item from cache
 func (cloneCache *CloneCache) Delete(prefix common.DataEntryPrefix, key []byte) {
 	if v, ok := cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))]; ok {
 		v.State = common.Deleted

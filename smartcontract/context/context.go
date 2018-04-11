@@ -24,6 +24,12 @@ import (
 	stypes "github.com/ontio/ontology/smartcontract/types"
 )
 
+// smart context execute contexts
+// when need call a contract, push current context to smart contract contexts
+// when execute smart contract finish, pop current context from smart contract contexts
+// when need to check authorization, use CheckWitness
+// when smart contract execute trigger event, use PushNotifications push it to smart contract notifications
+// when need to invoke a smart contract, use AppCall to invoke it
 type ContextRef interface {
 	PushContext(context *Context)
 	CurrentContext() *Context
@@ -35,6 +41,7 @@ type ContextRef interface {
 	AppCall(address common.Address, method string, codes, args []byte) error
 }
 
+// smart contract execute context struct
 type Context struct {
 	ContractAddress common.Address
 	Code            stypes.VmCode
