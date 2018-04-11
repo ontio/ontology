@@ -95,7 +95,7 @@ func (s *Struct) Clone() StackItems {
 		if value, ok := v.(*Struct); ok {
 			arr = append(arr, value.Clone())
 		} else {
-			arr = append(arr, value)
+			arr = append(arr, v)
 		}
 	}
 	return &Struct{arr}
