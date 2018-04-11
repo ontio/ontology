@@ -793,14 +793,14 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 			}
 		}
 		if pmsg != nil {
-			log.Infof("server %d, handle proposal fetch %d from %d: %s",
+			log.Infof("server %d, handle proposal fetch %d from %d",
 				self.Index, pMsg.BlockNum, peerIdx)
 			self.msgSendC <- &SendMsgEvent{
 				ToPeer: peerIdx,
 				Msg:    pmsg,
 			}
 		} else {
-			log.Errorf("server %d, failed to handle proposal fetch %d from %d: %s",
+			log.Errorf("server %d, failed to handle proposal fetch %d from %d",
 				self.Index, pMsg.BlockNum, peerIdx)
 		}
 

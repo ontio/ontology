@@ -468,13 +468,16 @@ func (pool *BlockPool) getSealedBlock(blockNum uint64) (*Block, common.Uint256) 
 	// get from cached candidate blocks
 	c := pool.candidateBlocks[blockNum]
 	if c != nil {
-		return c.SealedBlock, c.SealedBlockHash
+		if c.SealedBlockHash.CompareTo(common.Uint256{}) != 0 {
+			return c.SealedBlock, c.SealedBlockHash
+		}
+		log.Errorf("nil hash founded in block pool sealed cache, blk: %d", blockNum)
 	}
 
 	// get from chainstore
 	blk, err := pool.chainStore.GetBlock(blockNum)
 	if err != nil {
-		log.Errorf("getSealedBlock err:%v", err)
+		log.Errorf("getSealedBlock %d err:%v", blockNum, err)
 		return nil, common.Uint256{}
 	}
 	hash, _ := HashBlock(blk)
