@@ -130,7 +130,7 @@ func (n *NetServer) IsPeerEstablished(p *peer.Peer) bool {
 }
 
 func (n *NetServer) Connect(addr string, isConsensus bool) error {
-	if n.IsNbrPeerAddr(addr) && !isConsensus {
+	if n.IsNbrPeerAddr(addr, isConsensus) {
 		return nil
 	}
 	if added := n.AddInConnectingList(addr); added == false {
@@ -434,18 +434,22 @@ func TLSDial(nodeAddr string) (net.Conn, error) {
 	return conn, nil
 }
 
-func (n *NetServer) IsNbrPeerAddr(addr string) bool {
+func (n *NetServer) IsNbrPeerAddr(addr string, isConsensus bool) bool {
+	var addrNew string
 	n.Self.Np.RLock()
 	defer n.Self.Np.RUnlock()
 	for _, p := range n.Self.Np.List {
 		if p.GetSyncState() == common.HAND || p.GetSyncState() == common.HAND_SHAKE ||
 			p.GetSyncState() == common.ESTABLISH {
-			addrNew := p.SyncLink.GetAddr()
+			if isConsensus {
+				addrNew = p.ConsLink.GetAddr()
+			} else {
+				addrNew = p.SyncLink.GetAddr()
+			}
 			if strings.Compare(addrNew, addr) == 0 {
 				return true
 			}
 		}
 	}
 	return false
-
 }
