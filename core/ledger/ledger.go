@@ -21,7 +21,9 @@ package ledger
 import (
 	"fmt"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
@@ -29,7 +31,6 @@ import (
 	"github.com/ontio/ontology/core/store/ledgerstore"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
-	"github.com/ontio/ontology-crypto/keypair"
 )
 
 var DefLedger *Ledger
@@ -69,7 +70,11 @@ func (self *Ledger) AddHeaders(headers []*types.Header) error {
 }
 
 func (self *Ledger) AddBlock(block *types.Block) error {
-	return self.ldgStore.AddBlock(block)
+	err := self.ldgStore.AddBlock(block)
+	if err != nil {
+		log.Errorf("Ledger AddBlock BlockHeight:%d BlockHash:%x error:%s", block.Header.Height, block.Hash(), err)
+	}
+	return err
 }
 
 func (self *Ledger) GetBlockRootWithNewTxRoot(txRoot common.Uint256) common.Uint256 {
