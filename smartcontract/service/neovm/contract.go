@@ -91,16 +91,7 @@ func ContractGetStorageContext(service *NeoVmService, engine *vm.ExecutionEngine
 
 // get contract code
 func ContractGetCode(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	if vm.EvaluationStackCount(engine) < 1 {
-		return errors.NewErr("[ContractGetCode] Too few input parameters ")
-	}
-	d := vm.PopInteropInterface(engine); if d == nil {
-		return errors.NewErr("[ContractGetCode] Pop contractState nil!")
-	}
-	contractState, ok := d.(*payload.DeployCode); if ok == false {
-		return errors.NewErr("[ContractGetCode] Wrong type!")
-	}
-	vm.PushData(engine, contractState.Code)
+	vm.PushData(engine, vm.PopInteropInterface(engine).(*payload.DeployCode).Code)
 	return nil
 }
 

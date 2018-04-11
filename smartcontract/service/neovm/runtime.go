@@ -8,6 +8,7 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/smartcontract/event"
 	scommon "github.com/ontio/ontology/smartcontract/common"
+	"github.com/ontio/ontology/core/signature"
 )
 
 // get current time
@@ -19,9 +20,6 @@ func RuntimeGetTime(service *NeoVmService, engine *vm.ExecutionEngine) error {
 // check permissions
 // if param address isn't exist in authorization list, check fail
 func RuntimeCheckWitness(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	if vm.EvaluationStackCount(engine) < 1 {
-		return errors.NewErr("[RuntimeCheckWitness] Too few input parameters ")
-	}
 	data := vm.PopByteArray(engine)
 	var result bool
 	if len(data) == 20 {
@@ -56,6 +54,13 @@ func RuntimeLog(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	txHash := service.Tx.Hash()
 	event.PushSmartCodeEvent(txHash, 0, "InvokeTransaction", &event.LogEventArgs{TxHash:txHash, ContractAddress: context.ContractAddress, Message: string(item)})
 	return nil
+}
+
+func RuntimeCheckSig(service *NeoVmService, engine *vm.ExecutionEngine) error {
+	pubKey := vm.PopByteArray(engine)
+	data := vm.PopByteArray(engine)
+	sig := vm.PopByteArray(engine)
+	return signature.Verify(pubKey, data, sig)
 }
 
 

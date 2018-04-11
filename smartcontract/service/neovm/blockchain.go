@@ -16,9 +16,6 @@ func BlockChainGetHeight(service *NeoVmService, engine *vm.ExecutionEngine) erro
 
 // get header from blockchain
 func BlockChainGetHeader(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	if vm.EvaluationStackCount(engine) < 1 {
-		return errors.NewErr("[BlockChainGetHeader] Too few input parameters ")
-	}
 	data := vm.PopByteArray(engine)
 	var (
 		header *types.Header
@@ -80,9 +77,6 @@ func BlockChainGetBlock(service *NeoVmService, engine *vm.ExecutionEngine) error
 
 // get transaction from blockchain
 func BlockChainGetTransaction(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	if vm.EvaluationStackCount(engine) < 1 {
-		return errors.NewErr("[BlockChainGetTransaction] Too few input parameters ")
-	}
 	d := vm.PopByteArray(engine)
 	hash, err := common.Uint256ParseFromBytes(d); if err != nil {
 		return err
