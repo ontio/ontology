@@ -37,7 +37,7 @@ var (
 	ERR_NOT_ARRAY                = errors.New("not array")
 	ERR_TABLE_IS_NIL             = errors.New("table is nil")
 	ERR_SERVICE_IS_NIL           = errors.New("service is nil")
-	ERR_DIV_MOD_BY_ZERO          = errors.New("div or mod by zore")
+	ERR_DIV_MOD_BY_ZERO          = errors.New("div or mod by zero")
 	ERR_SHIFT_BY_NEG             = errors.New("shift by negtive value")
 	ERR_EXECUTION_CONTEXT_NIL    = errors.New("execution context is nil")
 	ERR_CURRENT_CONTEXT_NIL      = errors.New("current context is nil")
