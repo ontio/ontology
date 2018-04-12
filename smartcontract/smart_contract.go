@@ -40,6 +40,7 @@ var (
 	INVOKE_CODE_EXIST = errors.NewErr("[AppCall] Invoke codes exist!")
 )
 
+// SmartContract describe smart contract execute engine
 type SmartContract struct {
 	Contexts      []*context.Context       // all execute smart contract context
 	Config        *Config
@@ -47,6 +48,7 @@ type SmartContract struct {
 	Notifications []*event.NotifyEventInfo // all execute smart contract event notify info
 }
 
+// Config describe smart contract need parameters configuration
 type Config struct {
 	Time    uint32              // current block timestamp
 	Height  uint32              // current block height
@@ -59,12 +61,12 @@ type Engine interface {
 	Invoke()
 }
 
-//put current context to smart contract
+// PushContext push current context to smart contract
 func (this *SmartContract) PushContext(context *context.Context) {
 	this.Contexts = append(this.Contexts, context)
 }
 
-//get smart contract current context
+// CurrentContext return smart contract current context
 func (this *SmartContract) CurrentContext() *context.Context {
 	if len(this.Contexts) < 1 {
 		return nil
@@ -72,7 +74,7 @@ func (this *SmartContract) CurrentContext() *context.Context {
 	return this.Contexts[len(this.Contexts) - 1]
 }
 
-//get smart contract caller context
+// CallingContext return smart contract caller context
 func (this *SmartContract) CallingContext() *context.Context {
 	if len(this.Contexts) < 2 {
 		return nil
@@ -80,7 +82,7 @@ func (this *SmartContract) CallingContext() *context.Context {
 	return this.Contexts[len(this.Contexts) - 2]
 }
 
-//get smart contract entry entrance context
+// EntryContext return smart contract entry entrance context
 func (this *SmartContract) EntryContext() *context.Context {
 	if len(this.Contexts) < 1 {
 		return nil
@@ -88,49 +90,50 @@ func (this *SmartContract) EntryContext() *context.Context {
 	return this.Contexts[0]
 }
 
-//pop smart contract current context
+// PopContext pop smart contract current context
 func (this *SmartContract) PopContext() {
 	if len(this.Contexts) > 0 {
 		this.Contexts = this.Contexts[:len(this.Contexts) - 1]
 	}
 }
 
-// push smart contract event info
+// PushNotifications push smart contract event info
 func (this *SmartContract) PushNotifications(notifications []*event.NotifyEventInfo) {
 	this.Notifications = append(this.Notifications, notifications...)
 }
 
-func (this *SmartContract) Execute() ([]byte,error) {
+// Execute is smart contract execute manager
+// According different vm type to launch different service
+func (this *SmartContract) Execute() ([]byte, error) {
 	ctx := this.CurrentContext()
 	switch ctx.Code.VmType {
 	case stypes.Native:
 		service := native.NewNativeService(this.Config.DBCache, this.Config.Height, this.Config.Tx, this)
 		if err := service.Invoke(); err != nil {
-			return nil,err
+			return nil, err
 		}
 	case stypes.NEOVM:
 		service := neovm.NewNeoVmService(this.Config.Store, this.Config.DBCache, this.Config.Tx, this.Config.Time, this)
 		if err := service.Invoke(); err != nil {
 			//fmt.Println("execute neovm error:", err)
-			return nil,err
+			return nil, err
 		}
 	case stypes.WASMVM:
-		service := wasmvm.NewWasmVmService(this.Config.Store,this.Config.DBCache,this.Config.Tx,this.Config.Time,this)
-		result,err := service.Invoke()
+		service := wasmvm.NewWasmVmService(this.Config.Store, this.Config.DBCache, this.Config.Tx, this.Config.Time, this)
+		result, err := service.Invoke()
 		if err != nil {
-			return nil,err
+			return nil, err
 		}
-		return result,nil
+		return result, nil
 	}
-	return nil,nil
+	return nil, nil
 }
 
-// When you want to call a contract use this function, if contract exist in block chain, you should set isLoad true,
-// Otherwise, you can set execute code, and set isLoad false.
-// param address: smart contract address
-// param method: invoke smart contract method name
-// param codes: invoke smart contract whether need to load code
-// param args: invoke smart contract args
+// AppCall a smart contract, if contract exist on blockchain, you should set the address
+// Param address: invoke smart contract on blockchain according contract address
+// Param method: invoke smart contract method name
+// Param codes: invoke smart contract off blockchain
+// Param args: invoke smart contract args
 func (this *SmartContract) AppCall(address common.Address, method string, codes, args []byte) ([]byte, error) {
 	var code []byte
 
@@ -145,13 +148,13 @@ func (this *SmartContract) AppCall(address common.Address, method string, codes,
 			Args: args,
 		}
 		if err := c.Serialize(bf); err != nil {
-			return nil,err
+			return nil, err
 		}
 		code = bf.Bytes()
 	case stypes.NEOVM:
 		code, err := this.loadCode(address, codes)
 		if err != nil {
-			return nil,nil
+			return nil, err
 		}
 		var temp []byte
 		build := vm.NewParamsBuilder(new(bytes.Buffer))
@@ -170,7 +173,7 @@ func (this *SmartContract) AppCall(address common.Address, method string, codes,
 			Code:codes,
 		}
 		if err := c.Serialize(bf); err != nil {
-			return nil,err
+			return nil, err
 		}
 		code = bf.Bytes()
 	}
@@ -182,18 +185,18 @@ func (this *SmartContract) AppCall(address common.Address, method string, codes,
 		},
 		ContractAddress: address,
 	})
-	res,err := this.Execute()
+	res, err := this.Execute()
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	this.PopContext()
-	return res,nil
+	return res, nil
 }
 
-// check authorization correct
-// if address is wallet address, check whether in the signature addressed list
-// else check whether address is calling contract address
-// param address: wallet address or contract address
+// CheckWitness check whether authorization correct
+// If address is wallet address, check whether in the signature addressed list
+// Else check whether address is calling contract address
+// Param address: wallet address or contract address
 func (this *SmartContract) CheckWitness(address common.Address) bool {
 	if stypes.IsVmCodeAddress(address) {
 		if this.CallingContext() != nil && this.CallingContext().ContractAddress == address {
@@ -211,11 +214,11 @@ func (this *SmartContract) CheckWitness(address common.Address) bool {
 	return false
 }
 
-// load smart contract execute code
-// param address, invoke onchain smart contract address
-// param codes, invoke offchain smart contract code
-// if you invoke offchain smart contract, you can set address is codes address
-// but this address cann't find in blockchain
+// loadCode load smart contract execute code
+// Param address, invoke on blockchain smart contract address
+// Param codes, invoke off blockchain smart contract code
+// If you invoke off blockchain smart contract, you can set address is codes address
+// But this address doesn't deployed on blockchain
 func (this *SmartContract) loadCode(address common.Address, codes []byte) ([]byte, error) {
 	isLoad := false
 	if len(codes) == 0 {
