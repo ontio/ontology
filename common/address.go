@@ -32,15 +32,18 @@ const ADDR_LEN = 20
 
 type Address [ADDR_LEN]byte
 
+// ToHexString returns  hex string representation of Address
 func (self *Address) ToHexString() string {
 	return fmt.Sprintf("%x", self[:])
 }
 
+// Serialize serialize Address into io.Writer
 func (self *Address) Serialize(w io.Writer) error {
 	_, err := w.Write(self[:])
 	return err
 }
 
+// Deserialize deserialize Address from io.Reader
 func (self *Address) Deserialize(r io.Reader) error {
 	n, err := r.Read(self[:])
 	if n != len(self[:]) || err != nil {
@@ -49,6 +52,7 @@ func (self *Address) Deserialize(r io.Reader) error {
 	return nil
 }
 
+// ToBase58 returns base58 encoded address string
 func (f *Address) ToBase58() string {
 	data := append([]byte{0x41}, f[:]...)
 	temp := sha256.Sum256(data)
@@ -60,6 +64,7 @@ func (f *Address) ToBase58() string {
 	return string(encoded)
 }
 
+// AddressParseFromBytes returns parsed Address
 func AddressParseFromBytes(f []byte) (Address, error) {
 	if len(f) != ADDR_LEN {
 		return Address{}, errors.New("[Common]: Uint160ParseFromBytes err, len != 20")
@@ -70,6 +75,7 @@ func AddressParseFromBytes(f []byte) (Address, error) {
 	return addr, nil
 }
 
+// AddressFromBase58 returns Address from encoded base58 string
 func AddressFromBase58(encoded string) (Address, error) {
 	decoded, err := base58.BitcoinEncoding.Decode([]byte(encoded))
 	if err != nil {
