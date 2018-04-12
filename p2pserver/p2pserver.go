@@ -52,6 +52,7 @@ type P2PServer struct {
 	quitOnline    chan bool
 	quitHeartBeat chan bool
 	quitSyncBlk   chan bool
+	isSync        bool
 }
 
 //ReconnectAddrs contain addr need to reconnect
@@ -72,6 +73,7 @@ func NewServer(acc *account.Account) (*P2PServer, error) {
 	p := &P2PServer{
 		Self:    self,
 		network: n,
+		isSync:  false,
 	}
 
 	p.msgRouter = NewMsgRouter(p)
@@ -129,18 +131,28 @@ func (this *P2PServer) Stop() error {
 	this.msgRouter.Stop()
 	return nil
 }
+
+//IsSyncing return whether p2p is syncing
 func (this *P2PServer) IsSyncing() bool {
-	return false
+	return this.isSync
 }
+
+//GetPort return two network port
 func (this *P2PServer) GetPort() (uint16, uint16) {
 	return this.network.GetPort(), this.network.GetConsensusPort()
 }
+
+//GetVersion return self version
 func (this *P2PServer) GetVersion() uint32 {
 	return this.network.GetVersion()
 }
+
+//GetNeighborAddrs return all nbr`s address
 func (this *P2PServer) GetNeighborAddrs() ([]common.PeerAddr, uint64) {
 	return this.network.GetNeighborAddrs()
 }
+
+//Xmit called by other module to broadcast msg
 func (this *P2PServer) Xmit(message interface{}) error {
 	log.Debug()
 	var buffer []byte
@@ -192,6 +204,8 @@ func (this *P2PServer) Xmit(message interface{}) error {
 	this.Self.Np.Broadcast(buffer, isConsensus)
 	return nil
 }
+
+//Send tranfer buffer to peer
 func (this *P2PServer) Send(p *peer.Peer, buf []byte, isConsensus bool) error {
 	if this.network.IsPeerEstablished(p) {
 		return this.network.Send(p, buf, isConsensus)
@@ -199,15 +213,23 @@ func (this *P2PServer) Send(p *peer.Peer, buf []byte, isConsensus bool) error {
 	log.Errorf("P2PServer send to a not ESTABLISH peer 0x%x", p.GetID())
 	return errors.New("send to a not ESTABLISH peer")
 }
+
+//GetId return self peer`s id
 func (this *P2PServer) GetId() uint64 {
 	return this.network.GetId()
 }
+
+//GetConnectionState return the network state
 func (this *P2PServer) GetConnectionState() uint32 {
 	return this.network.GetState()
 }
+
+//GetTime return lastet contact time
 func (this *P2PServer) GetTime() int64 {
 	return this.network.GetTime()
 }
+
+//blockSyncFinished compare all nbr peers and self height at beginning
 func (this *P2PServer) blockSyncFinished() bool {
 	peers := this.Self.Np.GetNeighbors()
 	if len(peers) == 0 {
@@ -225,9 +247,11 @@ func (this *P2PServer) blockSyncFinished() bool {
 			return false
 		}
 	}
+	this.isSync = false
 	return true
 }
 
+//WaitForSyncBlkFinish compare the height of self and remote peer in loop
 func (this *P2PServer) WaitForSyncBlkFinish() {
 	consensusType := strings.ToLower(config.Parameters.ConsensusType)
 	if consensusType == "solo" {
@@ -246,6 +270,7 @@ func (this *P2PServer) WaitForSyncBlkFinish() {
 	}
 }
 
+//WaitForPeersStart check whether enough peer linked in loop
 func (this *P2PServer) WaitForPeersStart() {
 	for {
 		log.Info("Wait for minimum connection...")
@@ -493,9 +518,10 @@ func (this *P2PServer) syncBlock() {
 	currentHdrHeight, _ := actor.GetCurrentHeaderHeight()
 	currentBlkHeight, _ := actor.GetCurrentBlockHeight()
 	if currentBlkHeight >= currentHdrHeight {
+		this.isSync = false
 		return
 	}
-
+	this.isSync = true
 	peers := this.Self.Np.GetNeighbors()
 	for _, p := range peers {
 		if uint32(p.GetHeight()) <= currentBlkHeight {

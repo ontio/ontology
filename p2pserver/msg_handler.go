@@ -70,15 +70,12 @@ func HeadersReqHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	var headersReq msgTypes.HeadersReq
 	headersReq.Deserialization(data.Payload[:length])
 	headersReq.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
-	//Fix me:
-	//node.LocalNode().AcqSyncReqSem()
-	//defer node.LocalNode().RelSyncReqSem()
 
 	var startHash [msgCommon.HASH_LEN]byte
 	var stopHash [msgCommon.HASH_LEN]byte
 	startHash = headersReq.P.HashStart
 	stopHash = headersReq.P.HashEnd
-	//FIXME if HeaderHashCount > 1
+
 	headers, cnt, err := actor.GetHeadersFromHash(startHash, stopHash)
 	if err != nil {
 		return err
@@ -107,7 +104,6 @@ func BlocksReqHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	startHash = blocksReq.P.HashStart
 	stopHash = blocksReq.P.HashStop
 
-	//FIXME if HeaderHashCount > 1
 	inv, err := actor.GetInvFromBlockHash(startHash, stopHash)
 	if err != nil {
 		return err
@@ -121,6 +117,7 @@ func BlocksReqHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	return nil
 }
 
+//PingHandle handle ping msg from peer
 func PingHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	log.Debug("RX ping message")
 	length := len(data.Payload)
@@ -148,6 +145,7 @@ func PingHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	return err
 }
 
+///PongHandle handle pong msg from peer
 func PongHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	log.Debug("RX pong message")
 	length := len(data.Payload)
