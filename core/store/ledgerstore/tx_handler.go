@@ -49,17 +49,9 @@ func (self *StateStore) HandleDeployTransaction(stateBatch *statestore.StateBatc
 		targetAddress, err := common.AddressParseFromBytes(deploy.Code.Code)
 		if err != nil {
 			return fmt.Errorf("Invalid native contract address:%v", err)
+
 		}
-		if err := stateBatch.TryGetOrAdd(
-			scommon.ST_CONTRACT,
-			targetAddress[:],
-			&states.ContractMapping{
-				OriginAddress: originAddress,
-				TargetAddress: targetAddress,
-			},
-			false); err != nil {
-			return fmt.Errorf("TryGetOrAdd contract error %s", err)
-		}
+		originAddress = targetAddress
 	}
 
 	// store contract message
@@ -109,7 +101,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 		if err := eventStore.SaveEventNotifyByTx(txHash, sc.Notifications); err != nil {
 			return fmt.Errorf("SaveEventNotifyByTx error %s", err)
 		}
-		event.PushSmartCodeEvent(txHash, 0, INVOKE_TRANSACTION, sc.Notifications)
+		event.PushSmartCodeEvent(txHash, 0, "Notify", sc.Notifications)
 	}
 	return nil
 }
