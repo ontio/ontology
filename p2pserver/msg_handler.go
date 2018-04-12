@@ -47,7 +47,9 @@ func MsgHdrHandle(hdr msgTypes.MsgHdr, peer peer.Peer, p2p P2PServer) error {
 func AddrReqHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	log.Debug("RX addr request message")
 	remotePeer := p2p.Self.Np.GetPeer(data.Id)
-
+	if remotePeer == nil {
+		return errors.New("remotePeer invalid in AddrReqHandle")
+	}
 	var addrStr []msgCommon.PeerAddr
 	var count uint64
 	addrStr, count = p2p.GetNeighborAddrs()
@@ -131,7 +133,12 @@ func PingHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	remotePeer := p2p.Self.Np.GetPeer(data.Id)
 
 	remotePeer.SetHeight(ping.Height)
-	buf, err := msgpack.NewPongMsg(localPeer.GetHeight())
+	height, err := actor.GetCurrentBlockHeight()
+	if err != nil {
+		return err
+	}
+	localPeer.SetHeight(uint64(height))
+	buf, err := msgpack.NewPongMsg(uint64(height))
 
 	if err != nil {
 		log.Error("failed build a new pong message")
@@ -259,6 +266,7 @@ func VersionHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 
 		if p == nil {
 			log.Warn("sync link is not exist")
+			p2p.network.RemovePeerConsAddress(data.Addr)
 			return errors.New("sync link is not exist")
 		} else {
 			//p synclink must exist,merged
@@ -271,12 +279,13 @@ func VersionHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		if version.P.Nonce == p2p.Self.GetID() {
 			log.Warn("The node handshake with itself")
 			remotePeer.CloseCons()
+			p2p.network.RemovePeerConsAddress(data.Addr)
 			return errors.New("The node handshake with itself ")
 		}
 
 		s := remotePeer.GetConsState()
 		if s != msgCommon.INIT && s != msgCommon.HAND {
-			log.Warn("Unknown status to received version")
+			log.Warn("Unknown status to received version", s)
 			return errors.New("Unknown status to received version ")
 		}
 
@@ -300,17 +309,19 @@ func VersionHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 
 		if remotePeer == nil {
 			log.Warn("peer is not exist")
+			p2p.network.RemovePeerSyncAddress(data.Addr)
 			return errors.New("peer is not exist ")
 		}
 		if version.P.Nonce == p2p.Self.GetID() {
 			log.Warn("The node handshake with itself")
 			remotePeer.CloseSync()
+			p2p.network.RemovePeerSyncAddress(data.Addr)
 			return errors.New("The node handshake with itself ")
 		}
 
 		s := remotePeer.GetSyncState()
 		if s != msgCommon.INIT && s != msgCommon.HAND {
-			log.Warn("Unknown status to received version")
+			log.Warn("Unknown status to received version", s)
 			return errors.New("Unknown status to received version")
 		}
 
@@ -321,6 +332,10 @@ func VersionHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 			// Close the connection and release the node source
 			n.SetSyncState(msgCommon.INACTIVITY)
 			n.CloseSync()
+			n.SetConsState(msgCommon.INACTIVITY)
+			n.CloseCons()
+			p2p.network.RemovePeerSyncAddress(data.Addr)
+			p2p.network.RemovePeerConsAddress(data.Addr)
 		}
 
 		log.Debug("handle version version.pk is ", version.PK)
@@ -417,7 +432,7 @@ func VerAckHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 
 		i := strings.Index(addr, ":")
 		if i < 0 {
-			log.Warn("Split IP address error")
+			log.Warn("Split IP address error", addr)
 			return nil
 		}
 		nodeConsensusAddr := addr[:i] + ":" + strconv.Itoa(int(remotePeer.GetConsPort()))
@@ -580,6 +595,10 @@ func DisconnectHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 		log.Error("Split port error", data.Addr[i+1:])
 		return errors.New("Split port error")
 	}
+
+	p2p.network.RemovePeerSyncAddress(data.Addr)
+	p2p.network.RemovePeerConsAddress(data.Addr)
+
 	if remotePeer.SyncLink.GetPort() == uint16(port) {
 		remotePeer.CloseSync()
 		remotePeer.CloseCons()

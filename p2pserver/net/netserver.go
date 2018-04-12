@@ -43,14 +43,20 @@ type NetServer struct {
 	SyncChan chan common.MsgPayload
 	ConsChan chan common.MsgPayload
 	ConnectingNodes
-	PeerSyncAddress map[string]*peer.Peer
-	PeerConsAddress map[string]*peer.Peer
+	PeerAddrMap
 }
 
 //ConnectingNodes include all addr in connecting state
 type ConnectingNodes struct {
 	sync.RWMutex
 	ConnectingAddrs []string
+}
+
+//PeerAddrMap include all addr-peer list
+type PeerAddrMap struct {
+	sync.RWMutex
+	PeerSyncAddress map[string]*peer.Peer
+	PeerConsAddress map[string]*peer.Peer
 }
 
 //InitListen start listening on the config port
@@ -167,7 +173,7 @@ func (n *NetServer) Connect(addr string, isConsensus bool) error {
 
 	if !isConsensus {
 		remotePeer = peer.NewPeer()
-		n.PeerSyncAddress[addr] = remotePeer
+		n.AddPeerSyncAddress(addr, remotePeer)
 		remotePeer.SyncLink.SetAddr(addr)
 		remotePeer.SyncLink.SetConn(conn)
 		remotePeer.AttachSyncChan(n.SyncChan)
@@ -178,7 +184,7 @@ func (n *NetServer) Connect(addr string, isConsensus bool) error {
 		remotePeer.SyncLink.Tx(buf)
 	} else {
 		remotePeer = peer.NewPeer() //would merge with a exist peer in versionhandle
-		n.PeerConsAddress[addr] = remotePeer
+		n.AddPeerConsAddress(addr, remotePeer)
 		remotePeer.ConsLink.SetAddr(addr)
 		remotePeer.ConsLink.SetConn(conn)
 		remotePeer.AttachConsChan(n.ConsChan)
@@ -269,7 +275,7 @@ func (n *NetServer) startSyncAccept(listener net.Listener) {
 
 		remotePeer := peer.NewPeer()
 		addr := conn.RemoteAddr().String()
-		n.PeerSyncAddress[addr] = remotePeer
+		n.AddPeerSyncAddress(addr, remotePeer)
 		if err != nil {
 			log.Errorf("Error parse remote ip:%s", addr)
 			return
@@ -293,7 +299,7 @@ func (n *NetServer) startConsAccept(listener net.Listener) {
 
 		remotePeer := peer.NewPeer()
 		addr := conn.RemoteAddr().String()
-		n.PeerConsAddress[addr] = remotePeer
+		n.AddPeerConsAddress(addr, remotePeer)
 		if err != nil {
 			log.Errorf("Error parse remote ip:%s", addr)
 			return
@@ -334,6 +340,9 @@ func (n *NetServer) RemoveFromConnectingList(addr string) {
 //find exist peer from addr map
 func (n *NetServer) GetPeerFromAddr(addr string) *peer.Peer {
 	var p *peer.Peer
+	n.PeerAddrMap.Lock()
+	defer n.PeerAddrMap.Unlock()
+
 	p, ok := n.PeerSyncAddress[addr]
 	if ok {
 		return p
@@ -458,4 +467,36 @@ func (n *NetServer) IsNbrPeerAddr(addr string, isConsensus bool) bool {
 		}
 	}
 	return false
+}
+
+//AddPeerSyncAddress add sync addr to peer-addr map
+func (n *NetServer) AddPeerSyncAddress(addr string, p *peer.Peer) {
+	n.PeerAddrMap.Lock()
+	defer n.PeerAddrMap.Unlock()
+	n.PeerSyncAddress[addr] = p
+}
+
+//AddPeerConsAddress add cons addr to peer-addr map
+func (n *NetServer) AddPeerConsAddress(addr string, p *peer.Peer) {
+	n.PeerAddrMap.Lock()
+	defer n.PeerAddrMap.Unlock()
+	n.PeerConsAddress[addr] = p
+}
+
+//RemovePeerSyncAddress remove sync addr from peer-addr map
+func (n *NetServer) RemovePeerSyncAddress(addr string) {
+	n.PeerAddrMap.Lock()
+	defer n.PeerAddrMap.Unlock()
+	if _, ok := n.PeerSyncAddress[addr]; ok {
+		n.PeerSyncAddress[addr] = nil
+	}
+}
+
+//RemovePeerConsAddress remove cons addr from peer-addr map
+func (n *NetServer) RemovePeerConsAddress(addr string) {
+	n.PeerAddrMap.Lock()
+	defer n.PeerAddrMap.Unlock()
+	if _, ok := n.PeerConsAddress[addr]; ok {
+		n.PeerConsAddress[addr] = nil
+	}
 }

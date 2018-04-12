@@ -43,19 +43,22 @@ type P2P interface {
 	GetPeerFromAddr(addr string) *peer.Peer
 	AddInConnectingList(addr string) (added bool)
 	RemoveFromConnectingList(addr string)
+	AddPeerSyncAddress(addr string, p *peer.Peer)
+	AddPeerConsAddress(addr string, p *peer.Peer)
+	RemovePeerSyncAddress(addr string)
+	RemovePeerConsAddress(addr string)
 }
 
 //NewNetServer return the net object in p2p
 func NewNetServer(p *peer.Peer) P2P {
 
 	n := &NetServer{
-		Self:            p,
-		PeerSyncAddress: make(map[string]*peer.Peer),
-		PeerConsAddress: make(map[string]*peer.Peer),
-		SyncChan:        make(chan common.MsgPayload, common.CHAN_CAPABILITY),
-		ConsChan:        make(chan common.MsgPayload, common.CHAN_CAPABILITY),
+		Self:     p,
+		SyncChan: make(chan common.MsgPayload, common.CHAN_CAPABILITY),
+		ConsChan: make(chan common.MsgPayload, common.CHAN_CAPABILITY),
 	}
-
+	n.PeerAddrMap.PeerSyncAddress = make(map[string]*peer.Peer)
+	n.PeerAddrMap.PeerConsAddress = make(map[string]*peer.Peer)
 	p.AttachSyncChan(n.SyncChan)
 	p.AttachConsChan(n.ConsChan)
 	return n

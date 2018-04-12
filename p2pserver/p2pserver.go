@@ -444,14 +444,16 @@ func (this *P2PServer) syncService() {
 	} else {
 		periodTime = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
 	}
-	t := time.NewTicker(time.Second * (time.Duration(periodTime)))
+	t := time.NewTimer(time.Second * (time.Duration(periodTime)))
 
 	for {
 		select {
 		case <-t.C:
 			this.syncBlockHdr()
 			this.syncBlock()
-		case <-this.quitHeartBeat:
+			t.Stop()
+			t.Reset(time.Second * (time.Duration(periodTime)))
+		case <-this.quitSyncBlk:
 			t.Stop()
 			break
 		}
@@ -482,9 +484,12 @@ func (this *P2PServer) syncBlockHdr() {
 
 //syncBlock send reqblk cmd to peers
 func (this *P2PServer) syncBlock() {
+	if !this.reachMinConnection() {
+		return
+	}
+
 	var dValue int32
 	var reqCnt uint32
-
 	currentHdrHeight, _ := actor.GetCurrentHeaderHeight()
 	currentBlkHeight, _ := actor.GetCurrentBlockHeight()
 	if currentBlkHeight >= currentHdrHeight {
@@ -492,15 +497,14 @@ func (this *P2PServer) syncBlock() {
 	}
 
 	peers := this.Self.Np.GetNeighbors()
-
 	for _, p := range peers {
 		if uint32(p.GetHeight()) <= currentBlkHeight {
 			continue
 		}
 		this.removeFlightHeightLessThan(p, currentBlkHeight)
-		count := common.MAX_REQ_BLK_ONCE - uint32(len(this.flightHeights[p.GetID()]))
-		dValue = int32(currentHdrHeight - currentBlkHeight - reqCnt)
 		flights := this.flightHeights[p.GetID()]
+		count := common.MAX_REQ_BLK_ONCE - uint32(len(flights))
+		dValue = int32(currentHdrHeight - currentBlkHeight - reqCnt)
 		if count == 0 {
 			for _, f := range flights {
 				hash, _ := actor.GetBlockHashByHeight(f)
