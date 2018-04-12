@@ -4,6 +4,28 @@
 * [Restful API list](#Restful API list)
 * [Errorcode](#Errorcode)
 
+Restful API list
+
+| Method | url |
+| :---| :---|
+| get_gen_blk_time | GET /api/v1/node/generateblocktime |
+| get_conn_count | GET /api/v1/node/connectioncount |
+| get_blk_txs_by_height | GET /api/v1/block/transactions/height/:height |
+| get_blk_by_height | GET /api/v1/block/details/height/:height |
+| get_blk_by_hash | GET /api/v1/block/details/hash/:hash |
+| get_blk_height | GET /api/v1/block/height |
+| get_blk_hash | GET /api/v1/block/hash/:height |
+| get_tx | GET /api/v1/transaction/:hash |
+| get_storage | GET /api/v1/storage/:hash/:key|
+| get_balance | GET /api/v1/balance/:addr |
+| get_contract_state | GET /api/v1/contract/:hash |
+| get_smtcode_evt_txs | GET /api/v1/smartcode/event/transactions/:height |
+| get_smtcode_evts | GET /api/v1/smartcode/event/txhash/:hash |
+| get_blk_hgt_by_txhash | GET /api/v1/block/height/txhash/:hash |
+| get_merkle_proof | GET /api/v1/merkleproof/:hash|
+| post_raw_tx | post /api/v1/transaction |
+
+
 ## Introduction
 
 This document describes the restful api format for the http/https used in the Onchain Ontology.
@@ -20,8 +42,9 @@ This document describes the restful api format for the http/https used in the On
 | Result | object | execute result |
 | Version | string | version information |
 
-### 1. Get the generate block time
-return the time required to create a new block
+### 1. get_gen_blk_time
+
+Get the generate block time
 
 ##### GET
 
@@ -45,9 +68,10 @@ curl -i http://server:port/api/v1/node/generateblocktime
     "Version": "1.0.0"
 }
 ```
-### 2 Get the number of connected node
+### 2 get_conn_count
 
-get the current number of connections for the node
+Get the number of connected node
+
 
 GET
 
@@ -72,8 +96,9 @@ curl -i http://server:port/api/v1/node/connectioncount
     "Version": "1.0.0"
 }
 ```
-### 3 Get transactions by block height
+### 3 get_blk_txs_by_height
 
+Get transactions by block height
 return all transaction hash contained in the block corresponding to this height
 
 GET
@@ -105,8 +130,9 @@ curl -i http://server:port/api/v1/block/transactions/height/100
     "Version": "1.0.0"
 }
 ```
-### 4 Get the block by block height
+### 4 get_blk_by_height
 
+Get the block by block height
 return block details based on block height
 
 GET
@@ -176,8 +202,9 @@ curl -i http://server:port/api/v1/block/details/height/22
     "Version": "1.0.0"
 }
 ```
-### 5 Get block by blockhash
+### 5 get_blk_by_hash
 
+Get block by blockhash
 return block details based on block hash
 
 GET
@@ -248,9 +275,10 @@ curl -i http://server:port/api/v1/block/details/hash/ea5e5219d2f1591f4feef89885c
 }
 ```
 
-### 6 Get the current block height
+### 6 get_blk_height
 
-return the current block height
+Get the current block height
+
 
 GET
 
@@ -277,9 +305,9 @@ curl -i http://server:port/api/v1/block/height
 }
 ```
 
-### 7 Get blockhash by block height
+### 7 get_blk_hash
 
-return block hash based on block height
+Get blockhash by block height
 
 GET
 
@@ -305,9 +333,9 @@ curl -i http://server:port/api/v1/block/hash/100
 }
 ```
 
-### 8 get transaction by transaction hash
+### 8 get_tx
 
-get transaction details based on transaction hash
+get transaction by transaction hash
 
 GET
 
@@ -354,7 +382,7 @@ curl -i http://server:port/api/v1/transaction/c5e0d387c6a97aef12f1750840d24b53d9
 }
 ```
 
-### 9 send transaction
+### 9 post_raw_tx
 
 send transaction.
 
@@ -471,7 +499,7 @@ type Sig struct {
 ```
 > Result: txhash
 
-### 10 getStorage
+### 10 get_storage
 
 Returns the stored value according to the contract script hashes and stored key.
 
@@ -495,7 +523,7 @@ curl -i http://localhost:20384/api/v1/storage/ff00000000000000000000000000000000
 ```
 > Result:Returns the stored value according to the contract script hashes and stored key.
 
-### 11 GetBalanceByAddr
+### 11 get_balance
 
 return balance of base58 account address.
 
@@ -523,7 +551,7 @@ curl -i http://localhost:20384/api/v1/balance/TA5uYzLU2vBvvfCMxyV2sdzc9kPqJzGZWq
     "Version": "1.0.0"
 }
 ```
-### 12 get contractstate
+### 12 get_contract_state
 
 According to the contract script hash, query the contract information.
 
@@ -560,8 +588,9 @@ curl -i http://server:port/api/v1/contract/fff49c809d302a2956e9dc0012619a452d4b8
 }
 ```
 
-#### 13 get smart contract event txhash list by height
+#### 13 get_smtcode_evt_txs
 
+get smart contract event txhash list by height
 Get a list of transaction hash with smartevent based on height
 
 GET
@@ -590,7 +619,9 @@ curl -i http://localhost:20384/api/v1/smartcode/event/transactions/900
 ```
 > Note: result is the txHash list.
 
-### 14 get contract event by txhash
+### 14 get_smtcode_evts
+
+get contract event by txhash
 
 GET
 ```
@@ -621,8 +652,9 @@ curl -i http://localhost:20384/api/v1/smartcode/event/txhash/3e23cf222a47739d414
     ]
 }
 ```
-### 15 Get block height by transaction hash
-get blockheight of txhash
+### 15 get_blk_hgt_by_txhash
+
+Get block height by transaction hash
 
 GET
 ```
@@ -643,7 +675,7 @@ curl -i http://localhost:20384/api/v1/block/height/txhash/3e23cf222a47739d414125
 }
 ```
 
-### 16 getmerkleproof
+### 16 get_merkle_proof
 
 get merkle proof
 
