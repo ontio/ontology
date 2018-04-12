@@ -208,12 +208,17 @@ func (p *Peer) SetConsPort(port uint16) {
 
 //SendToSync call sync link to send buffer
 func (p *Peer) SendToSync(buf []byte) {
-	p.SyncLink.Tx(buf)
+	if p.SyncLink != nil && p.SyncLink.Valid() {
+		p.SyncLink.Tx(buf)
+	}
+
 }
 
 //SendToCons call consensus link to send buffer
 func (p *Peer) SendToCons(buf []byte) {
-	p.ConsLink.Tx(buf)
+	if p.ConsLink != nil && p.ConsLink.Valid() {
+		p.ConsLink.Tx(buf)
+	}
 }
 
 //CloseSync halt sync connection
