@@ -84,7 +84,7 @@ func TestAddressSerializationDeserialization(t *testing.T) {
 	} else {
 		t.Log("ping Test_Deserialization sucessful")
 	}
-	for _, v := range msg.NodeAddrs {
+	for _, v := range demsg.NodeAddrs {
 		t.Log("new addr message after deserialize time = ", v.Time)
 		t.Log("new addr message after deserialize Services = ", v.Services)
 		var ip net.IP

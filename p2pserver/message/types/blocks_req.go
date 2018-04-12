@@ -53,6 +53,6 @@ func (msg BlocksReq) Serialization() ([]byte, error) {
 //Deserialize message payload
 func (msg *BlocksReq) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &msg)
+	err := binary.Read(buf, binary.LittleEndian, msg)
 	return err
 }
