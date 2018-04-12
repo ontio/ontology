@@ -22,7 +22,6 @@ import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/ontio/ontology/common/log"
 	comm "github.com/ontio/ontology/p2pserver/common"
 )
 
@@ -64,7 +63,6 @@ func (msg *Addr) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(msg.Hdr))
 	err = binary.Read(buf, binary.LittleEndian, &(msg.NodeCnt))
-	log.Debug("The address count is ", msg.NodeCnt)
 	msg.NodeAddrs = make([]comm.PeerAddr, msg.NodeCnt)
 	for i := 0; i < int(msg.NodeCnt); i++ {
 		err := binary.Read(buf, binary.LittleEndian, &(msg.NodeAddrs[i]))
