@@ -120,12 +120,6 @@ func (b *Block) FromTrimmedData(r io.Reader) error {
 	return nil
 }
 
-func (b *Block) GetMessage() []byte {
-	bf := new(bytes.Buffer)
-	b.SerializeUnsigned(bf)
-	return bf.Bytes()
-}
-
 func (b *Block) ToArray() []byte {
 	bf := new(bytes.Buffer)
 	b.Serialize(bf)
