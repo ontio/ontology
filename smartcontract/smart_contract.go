@@ -17,10 +17,7 @@
 package smartcontract
 
 import (
-	"fmt"
 	"bytes"
-	"encoding/binary"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/store"
 	scommon "github.com/ontio/ontology/core/store/common"
@@ -29,14 +26,12 @@ import (
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/wasm"
 	stypes "github.com/ontio/ontology/smartcontract/types"
-	"github.com/ontio/ontology/vm/wasmvm/exec"
-	"github.com/ontio/ontology/vm/wasmvm/util"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/smartcontract/states"
 	vm "github.com/ontio/ontology/vm/neovm"
+	"github.com/ontio/ontology/smartcontract/service/wasmvm"
 )
 
 var (
@@ -105,60 +100,29 @@ func (this *SmartContract) PushNotifications(notifications []*event.NotifyEventI
 	this.Notifications = append(this.Notifications, notifications...)
 }
 
-func (this *SmartContract) Execute() error {
+func (this *SmartContract) Execute() ([]byte,error) {
 	ctx := this.CurrentContext()
 	switch ctx.Code.VmType {
 	case stypes.Native:
 		service := native.NewNativeService(this.Config.DBCache, this.Config.Height, this.Config.Tx, this)
 		if err := service.Invoke(); err != nil {
-			return err
+			return nil,err
 		}
 	case stypes.NEOVM:
 		service := neovm.NewNeoVmService(this.Config.Store, this.Config.DBCache, this.Config.Tx, this.Config.Time, this)
 		if err := service.Invoke(); err != nil {
-			fmt.Println("execute neovm error:", err)
-			return err
+			//fmt.Println("execute neovm error:", err)
+			return nil,err
 		}
 	case stypes.WASMVM:
-		stateMachine := wasm.NewWasmStateMachine(this.Config.Store, this.Config.DBCache, this.Config.Time)
-
-		engine := exec.NewExecutionEngine(
-			this.Config.Tx,
-			new(util.ECDsaCrypto),
-			stateMachine,
-		)
-
-		contract := &states.Contract{}
-		contract.Deserialize(bytes.NewBuffer(ctx.Code.Code))
-		addr := contract.Address
-
-		dpcode, err := stateMachine.GetContractCodeFromAddress(addr)
+		service := wasmvm.NewWasmVmService(this.Config.Store,this.Config.DBCache,this.Config.Tx,this.Config.Time,this)
+		result,err := service.Invoke()
 		if err != nil {
-			return errors.NewErr("get contract  error")
+			return nil,err
 		}
-
-		var caller common.Address
-		if this.CallingContext() == nil {
-			caller = common.Address{}
-		} else {
-			caller = this.CallingContext().ContractAddress
-		}
-		res, err := engine.Call(caller, dpcode, contract.Method, contract.Args, contract.Version)
-
-		if err != nil {
-			return err
-		}
-
-		//get the return message
-		_, err = engine.GetVM().GetPointerMemory(uint64(binary.LittleEndian.Uint32(res)))
-		if err != nil {
-			return err
-		}
-
-		stateMachine.CloneCache.Commit()
-		this.Notifications = append(this.Notifications, stateMachine.Notifications...)
+		return result,nil
 	}
-	return nil
+	return nil,nil
 }
 
 // When you want to call a contract use this function, if contract exist in block chain, you should set isLoad true,
@@ -167,7 +131,7 @@ func (this *SmartContract) Execute() error {
 // param method: invoke smart contract method name
 // param codes: invoke smart contract whether need to load code
 // param args: invoke smart contract args
-func (this *SmartContract) AppCall(address common.Address, method string, codes, args []byte) error {
+func (this *SmartContract) AppCall(address common.Address, method string, codes, args []byte) ([]byte, error) {
 	var code []byte
 
 	vmType := stypes.VmType(address[0])
@@ -181,13 +145,13 @@ func (this *SmartContract) AppCall(address common.Address, method string, codes,
 			Args: args,
 		}
 		if err := c.Serialize(bf); err != nil {
-			return err
+			return nil,err
 		}
 		code = bf.Bytes()
 	case stypes.NEOVM:
-		code, err := this.loadCode(address, codes);
+		code, err := this.loadCode(address, codes)
 		if err != nil {
-			return nil
+			return nil,nil
 		}
 		var temp []byte
 		build := vm.NewParamsBuilder(new(bytes.Buffer))
@@ -197,6 +161,18 @@ func (this *SmartContract) AppCall(address common.Address, method string, codes,
 		temp = append(args, build.ToArray()...)
 		code = append(temp, code...)
 	case stypes.WASMVM:
+		bf := new(bytes.Buffer)
+		c := states.Contract{
+			Version:1, //fix to > 0
+			Address: address,
+			Method: method,
+			Args: args,
+			Code:codes,
+		}
+		if err := c.Serialize(bf); err != nil {
+			return nil,err
+		}
+		code = bf.Bytes()
 	}
 
 	this.PushContext(&context.Context{
@@ -206,13 +182,12 @@ func (this *SmartContract) AppCall(address common.Address, method string, codes,
 		},
 		ContractAddress: address,
 	})
-
-	if err := this.Execute(); err != nil {
-		return err
+	res,err := this.Execute()
+	if err != nil {
+		return nil,err
 	}
-
 	this.PopContext()
-	return nil
+	return res,nil
 }
 
 // check authorization correct

@@ -101,7 +101,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	sc.PushContext(ctx)
 
 	//start the smart contract executive function
-	if err := sc.Execute(); err != nil {
+	if _,err := sc.Execute(); err != nil {
 		return err
 	}
 
