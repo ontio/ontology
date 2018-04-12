@@ -24,7 +24,7 @@ import (
 	stypes "github.com/ontio/ontology/smartcontract/types"
 )
 
-// smart context execute contexts
+// ContextRef is a interface of smart context
 // when need call a contract, push current context to smart contract contexts
 // when execute smart contract finish, pop current context from smart contract contexts
 // when need to check authorization, use CheckWitness
@@ -41,7 +41,7 @@ type ContextRef interface {
 	AppCall(address common.Address, method string, codes, args []byte) ([]byte,error)
 }
 
-// smart contract execute context struct
+// Context describe smart contract execute context struct
 type Context struct {
 	ContractAddress common.Address
 	Code            stypes.VmCode

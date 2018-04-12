@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package neovm
 
 import (
@@ -12,7 +30,7 @@ import (
 	"github.com/ontio/ontology/common"
 )
 
-// create a new contract
+// ContractCreate create a new smart contract on blockchain, and put it to vm stack
 func ContractCreate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	contract, err := isContractParamValid(engine); if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] contract parameters invalid!")
@@ -26,7 +44,7 @@ func ContractCreate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	return nil
 }
 
-// migrate older contract to new contract
+// ContractMigrate migrate old smart contract to a new contract, and destory old contract
 func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	contract, err := isContractParamValid(engine); if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractMigrate] contract parameters invalid!")
@@ -45,7 +63,7 @@ func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	return ContractDestory(service, engine)
 }
 
-// destory a contract
+// ContractDestory destory a contract
 func ContractDestory(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	context := service.ContextRef.CurrentContext(); if context == nil {
 		return errors.NewErr("[ContractDestory] current contract context invalid!")
@@ -66,7 +84,7 @@ func ContractDestory(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	return nil
 }
 
-// get contract storage context
+// ContractGetStorageContext put contract storage context to vm stack
 func ContractGetStorageContext(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[GetStorageContext] Too few input parameter!")
@@ -89,7 +107,7 @@ func ContractGetStorageContext(service *NeoVmService, engine *vm.ExecutionEngine
 	return nil
 }
 
-// get contract code
+// ContractGetCode put contract to vm stack
 func ContractGetCode(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	vm.PushData(engine, vm.PopInteropInterface(engine).(*payload.DeployCode).Code)
 	return nil

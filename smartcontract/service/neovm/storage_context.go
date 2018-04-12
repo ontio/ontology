@@ -22,16 +22,19 @@ import (
 	"github.com/ontio/ontology/common"
 )
 
+// StorageContext store smart contract address
 type StorageContext struct {
 	address common.Address
 }
 
+// NewStorageContext return a new smart contract storage context
 func NewStorageContext(address common.Address) *StorageContext {
 	var storageContext StorageContext
 	storageContext.address = address
 	return &storageContext
 }
 
+// ToArray return address byte array
 func (this *StorageContext) ToArray() []byte {
 	return this.address[:]
 }

@@ -25,6 +25,7 @@ import (
 	"github.com/ontio/ontology/events/message"
 )
 
+// PushSmartCodeEvent push event content to socket.io
 func PushSmartCodeEvent(txHash common.Uint256, errcode int64, action string, result interface{}) {
 	smartCodeEvt := &types.SmartCodeEvent{
 		TxHash: common.ToHexString(txHash.ToArray()),

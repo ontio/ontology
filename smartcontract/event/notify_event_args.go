@@ -23,12 +23,14 @@ import (
 	"github.com/ontio/ontology/vm/neovm/types"
 )
 
+// NotifyEventArgs describe smart contract event notify arguments struct
 type NotifyEventArgs struct {
 	TxHash          common.Uint256
 	ContractAddress common.Address
 	States          types.StackItems
 }
 
+// NotifyEventInfo describe smart contract event notify info struct
 type NotifyEventInfo struct {
 	TxHash          common.Uint256
 	ContractAddress common.Address

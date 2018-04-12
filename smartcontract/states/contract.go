@@ -26,6 +26,12 @@ import (
 	"github.com/ontio/ontology/errors"
 )
 
+// Invoke smart contract struct
+// Param Version: invoke smart contract version, default 0
+// Param Code: invoke off blockchain code
+// Param Address: invoke on blockchain smart contract by address
+// Param Method: invoke smart contract method, default ""
+// Param Args: invoke smart contract arguments
 type Contract struct {
 	Version byte
 	Code    []byte
@@ -34,6 +40,7 @@ type Contract struct {
 	Args    []byte
 }
 
+// Serialize contract
 func (this *Contract) Serialize(w io.Writer) error {
 	if err := serialization.WriteByte(w, this.Version); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[Contract] Version serialize error!")
@@ -53,6 +60,7 @@ func (this *Contract) Serialize(w io.Writer) error {
 	return nil
 }
 
+// Deserialize contract
 func (this *Contract) Deserialize(r io.Reader) error {
 	var err error
 	this.Version, err = serialization.ReadByte(r); if err != nil {

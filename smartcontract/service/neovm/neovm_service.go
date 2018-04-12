@@ -40,7 +40,7 @@ const (
 )
 
 var (
-	// register all service for smart contract execute
+	// Register all service for smart contract execute
 	ServiceMap = map[string]Service{
 		"Neo.Attribute.GetUsage": {Execute: AttributeGetUsage, Validator: validatorAttribute},
 		"Neo.Attribute.GetData": {Execute: AttributeGetData, Validator: validatorAttribute},
@@ -102,6 +102,7 @@ type Service struct {
 	Validator Validator
 }
 
+// NeoVmService is a struct for smart contract provide interop service
 type NeoVmService struct {
 	Store         store.LedgerStore
 	CloneCache    *storage.CloneCache
@@ -111,6 +112,7 @@ type NeoVmService struct {
 	Time          uint32
 }
 
+// NewNeoVmService return a new neovm service
 func NewNeoVmService(store store.LedgerStore, dbCache scommon.StateStore, tx *types.Transaction, time uint32, ctxRef context.ContextRef) *NeoVmService {
 	var service NeoVmService
 	service.Store = store
@@ -121,6 +123,7 @@ func NewNeoVmService(store store.LedgerStore, dbCache scommon.StateStore, tx *ty
 	return &service
 }
 
+// Invoke a smart contract
 func (this *NeoVmService) Invoke() error {
 	engine := vm.NewExecutionEngine()
 	ctx := this.ContextRef.CurrentContext()
@@ -176,6 +179,7 @@ func (this *NeoVmService) Invoke() error {
 	return nil
 }
 
+// SystemCall provide register service for smart contract to interaction with blockchian
 func (this *NeoVmService) SystemCall(engine *vm.ExecutionEngine) error {
 	serviceName := engine.Context.OpReader.ReadVarString()
 	service, ok := ServiceMap[serviceName]

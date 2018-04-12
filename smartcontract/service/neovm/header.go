@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package neovm
 
 import (
@@ -6,7 +24,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 )
 
-// get hash from header
+// HeaderGetHash put header's hash to vm stack
 func HeaderGetHash(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	d := vm.PopInteropInterface(engine)
 	var data *types.Header
@@ -22,7 +40,7 @@ func HeaderGetHash(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	return nil
 }
 
-// get version from header
+// HeaderGetVersion put header's version to vm stack
 func HeaderGetVersion(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	d := vm.PopInteropInterface(engine)
 	var data *types.Header
@@ -37,7 +55,7 @@ func HeaderGetVersion(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	return nil
 }
 
-// get prevhash from header
+// HeaderGetPrevHash put header's prevblockhash to vm stack
 func HeaderGetPrevHash(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	d := vm.PopInteropInterface(engine)
 	var data *types.Header
@@ -52,7 +70,7 @@ func HeaderGetPrevHash(service *NeoVmService, engine *vm.ExecutionEngine) error 
 	return nil
 }
 
-// get merkle root from header
+// HeaderGetMerkleRoot put header's merkleroot to vm stack
 func HeaderGetMerkleRoot(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	d := vm.PopInteropInterface(engine)
 	var data *types.Header
@@ -67,7 +85,7 @@ func HeaderGetMerkleRoot(service *NeoVmService, engine *vm.ExecutionEngine) erro
 	return nil
 }
 
-// get height from header
+// HeaderGetIndex put header's height to vm stack
 func HeaderGetIndex(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	d := vm.PopInteropInterface(engine)
 	var data *types.Header
@@ -82,7 +100,7 @@ func HeaderGetIndex(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	return nil
 }
 
-// get timestamp from header
+// HeaderGetTimestamp put header's timestamp to vm stack
 func HeaderGetTimestamp(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	d := vm.PopInteropInterface(engine)
 	var data *types.Header
@@ -97,7 +115,7 @@ func HeaderGetTimestamp(service *NeoVmService, engine *vm.ExecutionEngine) error
 	return nil
 }
 
-// get consensus data from header
+// HeaderGetConsensusData put header's consensus data to vm stack
 func HeaderGetConsensusData(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	d := vm.PopInteropInterface(engine)
 	var data *types.Header
@@ -112,7 +130,7 @@ func HeaderGetConsensusData(service *NeoVmService, engine *vm.ExecutionEngine) e
 	return nil
 }
 
-// get next consensus address from header
+// HeaderGetNextConsensus put header's consensus to vm stack
 func HeaderGetNextConsensus(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	d := vm.PopInteropInterface(engine)
 	var data *types.Header

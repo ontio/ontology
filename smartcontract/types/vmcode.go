@@ -37,6 +37,7 @@ const (
 	// EVM = VmType(0x90)
 )
 
+// VmCode describe smart contract code and vm type
 type VmCode struct {
 	VmType VmType
 	Code   []byte
@@ -60,7 +61,7 @@ func (self *VmCode) Deserialize(r io.Reader) error {
 	return nil
 }
 
-// According contract code and type generate address
+// AddressFromVmCode return address of contract
 func (self *VmCode) AddressFromVmCode() common.Address {
 	var addr common.Address
 	temp := sha256.Sum256(self.Code)
@@ -72,7 +73,7 @@ func (self *VmCode) AddressFromVmCode() common.Address {
 	return addr
 }
 
-// Check whether address is smart contract address
+// IsVmCodeAddress check whether address is smart contract address
 func IsVmCodeAddress(addr common.Address) bool {
 	vmType := addr[0]
 	if vmType == byte(Native) || vmType == byte(NEOVM) || vmType == byte(WASMVM) {

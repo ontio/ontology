@@ -45,6 +45,8 @@ var (
 	}
 )
 
+// Native service struct
+// Invoke a native smart contract, new a native service
 type NativeService struct {
 	CloneCache    *storage.CloneCache
 	ServiceMap    map[string]Handler
@@ -55,6 +57,7 @@ type NativeService struct {
 	ContextRef    context.ContextRef
 }
 
+// New native service
 func NewNativeService(dbCache scommon.StateStore, height uint32, tx *types.Transaction, ctxRef context.ContextRef) *NativeService {
 	var nativeService NativeService
 	nativeService.CloneCache = storage.NewCloneCache(dbCache)

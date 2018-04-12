@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package neovm
 
 import (
@@ -10,7 +28,7 @@ import (
 	"github.com/ontio/ontology/common"
 )
 
-// put value to contract storage
+// StoragePut put smart contract storage item to cache
 func StoragePut(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	context, err := getContext(engine); if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StoragePut] get pop context error!")
@@ -29,7 +47,7 @@ func StoragePut(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	return nil
 }
 
-// delete value in contract storage
+// StorageDelete delete smart contract storage item from cache
 func StorageDelete(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	context, err := getContext(engine); if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StorageDelete] get pop context error!")
@@ -43,7 +61,7 @@ func StorageDelete(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	return nil
 }
 
-// get value from contract storage
+// StorageGet push smart contract storage item from cache to vm stack
 func StorageGet(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	context, err := getContext(engine); if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StorageGet] get pop context error!")
@@ -61,7 +79,7 @@ func StorageGet(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	return nil
 }
 
-// put current contract context to stack
+// StorageGetContext push smart contract storage context to vm stack
 func StorageGetContext(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	vm.PushData(engine, NewStorageContext(service.ContextRef.CurrentContext().ContractAddress))
 	return nil
