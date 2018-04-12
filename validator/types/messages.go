@@ -55,6 +55,7 @@ type CheckResponse struct {
 	ErrCode  errors.ErrCode
 }
 
+// VerifyType of validator
 type VerifyType uint8
 
 const (

@@ -38,9 +38,9 @@ func (u *Uint256) ToArray() []byte {
 	return x
 }
 
-func (u *Uint256) Serialize(w io.Writer) (int, error) {
-	n, err := w.Write(u[:])
-	return n, err
+func (u *Uint256) Serialize(w io.Writer) error {
+	_, err := w.Write(u[:])
+	return err
 }
 
 func (u *Uint256) Deserialize(r io.Reader) error {

@@ -74,7 +74,7 @@ func (this *EventStore) SaveEventNotifyByBlock(height uint32, txHashs []common.U
 		return err
 	}
 	for _, txHash := range txHashs {
-		_, err = txHash.Serialize(values)
+		err = txHash.Serialize(values)
 		if err != nil {
 			return err
 		}

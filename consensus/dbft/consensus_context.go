@@ -104,7 +104,7 @@ func (ctx *ConsensusContext) MakeHeader() *types.Block {
 		for _, t := range ctx.Transactions {
 			txHash = append(txHash, t.Hash())
 		}
-		txRoot, err := common.ComputeRoot(txHash)
+		txRoot, err := common.ComputeMerkleRoot(txHash)
 		if err != nil {
 			return nil
 		}

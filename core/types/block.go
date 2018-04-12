@@ -68,7 +68,7 @@ func (b *Block) Deserialize(r io.Reader) error {
 		tharray = append(tharray, txhash)
 	}
 
-	b.Header.TransactionsRoot, err = common.ComputeRoot(tharray)
+	b.Header.TransactionsRoot, err = common.ComputeMerkleRoot(tharray)
 	if err != nil {
 		return fmt.Errorf("Block Deserialize merkleTree compute failed: %s", err)
 	}
@@ -112,7 +112,7 @@ func (b *Block) FromTrimmedData(r io.Reader) error {
 		tharray = append(tharray, txhash)
 	}
 
-	b.Header.TransactionsRoot, err = common.ComputeRoot(tharray)
+	b.Header.TransactionsRoot, err = common.ComputeMerkleRoot(tharray)
 	if err != nil {
 		return fmt.Errorf("Block Deserialize merkleTree compute failed: %s", err)
 	}
@@ -144,9 +144,9 @@ func (b *Block) RebuildMerkleRoot() error {
 	for _, tx := range txs {
 		transactionHashes = append(transactionHashes, tx.Hash())
 	}
-	hash, err := common.ComputeRoot(transactionHashes)
+	hash, err := common.ComputeMerkleRoot(transactionHashes)
 	if err != nil {
-		return fmt.Errorf("[Block] , RebuildMerkleRoot ComputeRoot failed: %s", err)
+		return fmt.Errorf("[Block] , RebuildMerkleRoot ComputeMerkleRoot failed: %s", err)
 	}
 	b.Header.TransactionsRoot = hash
 	return nil

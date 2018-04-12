@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common/serialization"
 )
 
 const BookkeeperPayloadVersion byte = 0x00
@@ -43,6 +43,7 @@ type Bookkeeper struct {
 	Issuer keypair.PublicKey
 }
 
+// Serialize serialize Bookkeeper into io.Writer
 func (self *Bookkeeper) Serialize(w io.Writer) error {
 	err := serialization.WriteVarBytes(w, keypair.SerializePublicKey(self.PubKey))
 	if err != nil {
@@ -63,6 +64,7 @@ func (self *Bookkeeper) Serialize(w io.Writer) error {
 	return nil
 }
 
+// Deserialize deserialize Bookkeeper from io.Reader
 func (self *Bookkeeper) Deserialize(r io.Reader) error {
 	buf, err := serialization.ReadVarBytes(r)
 	if err != nil {

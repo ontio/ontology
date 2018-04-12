@@ -36,7 +36,7 @@ func TestHash(t *testing.T) {
 	data = append(data, a3)
 	data = append(data, a4)
 	data = append(data, a5)
-	_, err := ComputeRoot(data)
+	_, err := ComputeMerkleRoot(data)
 	assert.Nil(t, err)
 
 }

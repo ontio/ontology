@@ -182,7 +182,7 @@ func (this *BlockStore) SaveHeader(block *types.Block, sysFee common.Fixed64) er
 	serialization.WriteUint32(value, uint32(len(block.Transactions)))
 	for _, tx := range block.Transactions {
 		txHash := tx.Hash()
-		_, err = txHash.Serialize(value)
+		err = txHash.Serialize(value)
 		if err != nil {
 			return err
 		}

@@ -209,9 +209,9 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	for _, t := range transactions {
 		txHash = append(txHash, t.Hash())
 	}
-	txRoot, err := common.ComputeRoot(txHash)
+	txRoot, err := common.ComputeMerkleRoot(txHash)
 	if err != nil {
-		return nil, fmt.Errorf("ComputeRoot error:%s", err)
+		return nil, fmt.Errorf("ComputeMerkleRoot error:%s", err)
 	}
 
 	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoot(txRoot)

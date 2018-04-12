@@ -131,7 +131,7 @@ func (self *StateStore) AddMerkleTreeRoot(txRoot common.Uint256) error {
 		return err
 	}
 	for _, hash := range hashes {
-		_, err = hash.Serialize(value)
+		err = hash.Serialize(value)
 		if err != nil {
 			return err
 		}

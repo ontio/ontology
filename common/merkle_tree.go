@@ -33,23 +33,23 @@ func doubleSha256(s []Uint256) Uint256 {
 	return Uint256(f)
 }
 
-type MerkleTree struct {
+type merkleTree struct {
 	Depth uint
-	Root  *MerkleTreeNode
+	Root  *merkleTreeNode
 }
 
-type MerkleTreeNode struct {
+type merkleTreeNode struct {
 	Hash  Uint256
-	Left  *MerkleTreeNode
-	Right *MerkleTreeNode
+	Left  *merkleTreeNode
+	Right *merkleTreeNode
 }
 
-func (t *MerkleTreeNode) IsLeaf() bool {
+func (t *merkleTreeNode) IsLeaf() bool {
 	return t.Left == nil && t.Right == nil
 }
 
-//use []Uint256 to create a new MerkleTree
-func NewMerkleTree(hashes []Uint256) (*MerkleTree, error) {
+//use []Uint256 to create a new merkleTree
+func newMerkleTree(hashes []Uint256) (*merkleTree, error) {
 	if len(hashes) == 0 {
 		return nil, errors.New("NewMerkleTree input no item error.")
 	}
@@ -61,7 +61,7 @@ func NewMerkleTree(hashes []Uint256) (*MerkleTree, error) {
 		nodes = levelUp(nodes)
 		height += 1
 	}
-	mt := &MerkleTree{
+	mt := &merkleTree{
 		Root:  nodes[0],
 		Depth: height,
 	}
@@ -70,10 +70,10 @@ func NewMerkleTree(hashes []Uint256) (*MerkleTree, error) {
 }
 
 //Generate the leaves nodes
-func generateLeaves(hashes []Uint256) []*MerkleTreeNode {
-	var leaves []*MerkleTreeNode
+func generateLeaves(hashes []Uint256) []*merkleTreeNode {
+	var leaves []*merkleTreeNode
 	for _, d := range hashes {
-		node := &MerkleTreeNode{
+		node := &merkleTreeNode{
 			Hash: d,
 		}
 		leaves = append(leaves, node)
@@ -82,14 +82,14 @@ func generateLeaves(hashes []Uint256) []*MerkleTreeNode {
 }
 
 //calc the next level's hash use double sha256
-func levelUp(nodes []*MerkleTreeNode) []*MerkleTreeNode {
-	var nextLevel []*MerkleTreeNode
+func levelUp(nodes []*merkleTreeNode) []*merkleTreeNode {
+	var nextLevel []*merkleTreeNode
 	for i := 0; i < len(nodes)/2; i++ {
 		var data []Uint256
 		data = append(data, nodes[i*2].Hash)
 		data = append(data, nodes[i*2+1].Hash)
 		hash := doubleSha256(data)
-		node := &MerkleTreeNode{
+		node := &merkleTreeNode{
 			Hash:  hash,
 			Left:  nodes[i*2],
 			Right: nodes[i*2+1],
@@ -101,7 +101,7 @@ func levelUp(nodes []*MerkleTreeNode) []*MerkleTreeNode {
 		data = append(data, nodes[len(nodes)-1].Hash)
 		data = append(data, nodes[len(nodes)-1].Hash)
 		hash := doubleSha256(data)
-		node := &MerkleTreeNode{
+		node := &merkleTreeNode{
 			Hash:  hash,
 			Left:  nodes[len(nodes)-1],
 			Right: nodes[len(nodes)-1],
@@ -111,14 +111,14 @@ func levelUp(nodes []*MerkleTreeNode) []*MerkleTreeNode {
 	return nextLevel
 }
 
-//input a []uint256, create a MerkleTree & calc the root hash
-func ComputeRoot(hashes []Uint256) (Uint256, error) {
+//input a []uint256, create a merkleTree & calc the root hash
+func ComputeMerkleRoot(hashes []Uint256) (Uint256, error) {
 	if len(hashes) == 0 {
 		return Uint256{}, errors.New("NewMerkleTree input no item error.")
 	}
 	if len(hashes) == 1 {
 		return hashes[0], nil
 	}
-	tree, _ := NewMerkleTree(hashes)
+	tree, _ := newMerkleTree(hashes)
 	return tree.Root.Hash, nil
 }

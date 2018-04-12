@@ -21,10 +21,10 @@ package stateless
 import (
 	"reflect"
 
+	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/validation"
 	vatypes "github.com/ontio/ontology/validator/types"
-	"github.com/ontio/ontology-eventbus/actor"
 )
 
 // Validator wraps validator actor's pid
@@ -90,6 +90,7 @@ func (self *validator) VerifyType() vatypes.VerifyType {
 	return vatypes.Stateless
 }
 
+// Register send RegisterValidator message to txpool
 func (self *validator) Register(poolId *actor.PID) {
 	poolId.Tell(&vatypes.RegisterValidator{
 		Sender: self.pid,
@@ -98,6 +99,7 @@ func (self *validator) Register(poolId *actor.PID) {
 	})
 }
 
+// UnRegister send UnRegisterValidator message to txpool
 func (self *validator) UnRegister(poolId *actor.PID) {
 	poolId.Tell(&vatypes.UnRegisterValidator{
 		Id: self.id,

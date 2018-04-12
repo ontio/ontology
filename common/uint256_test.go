@@ -10,7 +10,7 @@ func TestUint256_Serialize(t *testing.T) {
 	var val Uint256
 	val[1] = 245
 	buf := bytes.NewBuffer(nil)
-	_, err := val.Serialize(buf)
+	err := val.Serialize(buf)
 	assert.NotNil(t, err)
 }
 

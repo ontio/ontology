@@ -26,6 +26,7 @@ import (
 	"github.com/ontio/ontology/common/serialization"
 	stypes "github.com/ontio/ontology/smartcontract/types"
 )
+
 // DeployCode is an implementation of transaction payload for deploy smartcontract
 type DeployCode struct {
 	Code        stypes.VmCode
@@ -79,14 +80,10 @@ func (dc *DeployCode) Serialize(w io.Writer) error {
 }
 
 func (dc *DeployCode) Deserialize(r io.Reader) error {
-	var err error
-	code := new(stypes.VmCode)
-
-	err = code.Deserialize(r)
+	err := dc.Code.Deserialize(r)
 	if err != nil {
 		return fmt.Errorf("DeployCode Code Deserialize failed: %s", err)
 	}
-	dc.Code = *code
 
 	dc.NeedStorage, err = serialization.ReadBool(r)
 	if err != nil {
