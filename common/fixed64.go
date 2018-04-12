@@ -34,27 +34,12 @@ const (
 
 func (f *Fixed64) Serialize(w io.Writer) error {
 	err := binary.Write(w, binary.LittleEndian, int64(*f))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (f *Fixed64) Deserialize(r io.Reader) error {
-	p := make([]byte, 8)
-	n, err := r.Read(p)
-	if n <= 0 || err != nil {
-		return err
-	}
-	b_buf := bytes.NewBuffer(p)
-	var x int64
-	err = binary.Read(b_buf, binary.LittleEndian, &x)
-	if err != nil {
-		return err
-	}
-	*f = Fixed64(x)
-	return nil
+	err := binary.Read(r, binary.LittleEndian, f)
+	return err
 }
 
 func FromDecimal(value int64) Fixed64 {
