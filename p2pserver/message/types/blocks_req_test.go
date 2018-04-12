@@ -40,7 +40,7 @@ func TestBlkReqSerializationDeserialization(t *testing.T) {
 	p := new(bytes.Buffer)
 	err := binary.Write(p, binary.LittleEndian, &(msg.P))
 	if err != nil {
-		t.Error("Binary Write failed at new blocksReq")
+		t.Error("Binary Write failed at new getblocks")
 		return
 	}
 	s := sha256.Sum256(p.Bytes())
@@ -61,7 +61,7 @@ func TestBlkReqSerializationDeserialization(t *testing.T) {
 		t.Error(err)
 		return
 	} else {
-		t.Log("ping Test_Deserialization sucessful")
+		t.Log("getblocks Test_Deserialization sucessful")
 	}
 
 	t.Log("new getblocks message after deserialize HeaderHashCount = ", demsg.P.HeaderHashCount)

@@ -20,12 +20,12 @@ package types
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"testing"
-	"crypto/sha256"
 
-	"github.com/ontio/ontology/p2pserver/common"	
-	cm "github.com/ontio/ontology/common"	
+	cm "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/p2pserver/common"
 )
 
 func Uint256ParseFromBytes(f []byte) cm.Uint256 {
@@ -44,7 +44,7 @@ func TestNotFoundSerializationDeserialization(t *testing.T) {
 	var msg NotFound
 	str := "123456"
 	hash := []byte(str)
-	msg.Hash = Uint256ParseFromBytes(hash)		
+	msg.Hash = Uint256ParseFromBytes(hash)
 	msg.MsgHdr.Magic = common.NETMAGIC
 	cmd := "notfound"
 	copy(msg.MsgHdr.CMD[0:len(cmd)], cmd)
@@ -54,7 +54,7 @@ func TestNotFoundSerializationDeserialization(t *testing.T) {
 	err := binary.Write(p, binary.LittleEndian, tmpBuffer.Bytes())
 	if err != nil {
 		t.Error("Binary Write failed at new notfound Msg")
-		return 
+		return
 	}
 	s := sha256.Sum256(p.Bytes())
 	s2 := s[:]
@@ -66,17 +66,15 @@ func TestNotFoundSerializationDeserialization(t *testing.T) {
 	m, err := msg.Serialization()
 	if err != nil {
 		t.Error("Error Convert net message ", err.Error())
-		return 
+		return
 	}
-	var demsg NotFound	
+	var demsg NotFound
 	err = demsg.Deserialization(m)
-			
+
 	if err != nil {
 		t.Error(err)
 		return
-	}else {
+	} else {
 		t.Log("Notfound Test_Deserialization sucessful")
-	}	
+	}
 }
-
-	

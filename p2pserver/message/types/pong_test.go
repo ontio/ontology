@@ -20,11 +20,11 @@ package types
 
 import (
 	"bytes"
-	"encoding/binary"
 	"crypto/sha256"
+	"encoding/binary"
 	"testing"
-	
-	"github.com/ontio/ontology/common/serialization"	
+
+	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/p2pserver/common"
 )
 
@@ -52,16 +52,16 @@ func TestPongSerializationDeserialization(t *testing.T) {
 	p, err := msg.Serialization()
 	if err != nil {
 		t.Error("Error Convert net message ", err.Error())
-		return 
+		return
 	}
-	var demsg Pong	
-	err = demsg.Deserialization(p)		
+	var demsg Pong
+	err = demsg.Deserialization(p)
 	if err != nil {
 		t.Error(err)
 		return
-	}else {
+	} else {
 		t.Log("pong Test_Deserialization sucessful")
 	}
-	
-	t.Log("deserialize pong message, msg.Height = ",demsg.Height)
+
+	t.Log("deserialize pong message, msg.Height = ", demsg.Height)
 }

@@ -19,14 +19,13 @@
 package types
 
 import (
-	"crypto/sha256"
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"testing"
-	
+
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/p2pserver/common"
-	
 )
 
 func TestVerackSerializationDeserialization(t *testing.T) {
@@ -53,17 +52,17 @@ func TestVerackSerializationDeserialization(t *testing.T) {
 	p, err := msg.Serialization()
 	if err != nil {
 		t.Error("Error Convert net message ", err.Error())
-		return 
+		return
 	}
 
-	var demsg VerACK	
+	var demsg VerACK
 	err = demsg.Deserialization(p)
-			
+
 	if err != nil {
 		t.Error(err)
 		return
-	}else {
+	} else {
 		t.Log("VerACK Test_Deserialization sucessful")
 	}
-	t.Log("deserialize verack message, msg.IsConsensus = ",demsg.IsConsensus)
+	t.Log("deserialize verack message, msg.IsConsensus = ", demsg.IsConsensus)
 }

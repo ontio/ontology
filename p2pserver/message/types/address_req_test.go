@@ -29,13 +29,13 @@ func TestAddrReqSerializationDeserialization(t *testing.T) {
 	msg.Hdr.Init("getaddr", sum, 0)
 
 	buf, err := msg.Serialization()
-	
-	var demsg AddrReq	
-	err = demsg.Deserialization(buf)		
+
+	var demsg AddrReq
+	err = demsg.Deserialization(buf)
 	if err != nil {
 		t.Error(err)
 		return
-	}else {
-		t.Log("pong Test_Deserialization sucessful")
+	} else {
+		t.Log("getaddr Test_Deserialization sucessful")
 	}
 }
