@@ -1478,9 +1478,7 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 	case EventTxBlockTimeout:
 		self.timer.stopTxTicker()
 		self.timer.CancelTxBlockTimeout(evt.blockNum)
-		if err := self.startNewProposal(evt.blockNum); err != nil {
-			log.Errorf("failed to cancel txBlockTimeout timer, blockNum %d, err: %s", evt.blockNum, err)
-		}
+		self.startNewProposal(evt.blockNum)
 	}
 	return nil
 }
@@ -1676,6 +1674,7 @@ func (self *Server) sealBlock(block *Block, empty bool) error {
 	// notify other modules that block sealed
 	self.timer.onBlockSealed(sealedBlkNum)
 	self.msgPool.onBlockSealed(sealedBlkNum)
+	self.blockPool.onBlockSealed(sealedBlkNum)
 
 	_, h := self.blockPool.getSealedBlock(sealedBlkNum)
 	if h.CompareTo(common.Uint256{}) == 0 {
