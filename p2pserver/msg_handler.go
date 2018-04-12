@@ -379,7 +379,7 @@ func VerAckHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	if verAck.IsConsensus == true {
 		s := remotePeer.GetConsState()
 		if s != msgCommon.HAND_SHAKE && s != msgCommon.HAND_SHAKED {
-			log.Warn("Unknown status to received verAck")
+			log.Warn("Unknown status to received verAck", s)
 			return errors.New("Unknown status to received verAck")
 		}
 
@@ -396,7 +396,7 @@ func VerAckHandle(data msgCommon.MsgPayload, p2p *P2PServer) error {
 	} else {
 		s := remotePeer.GetSyncState()
 		if s != msgCommon.HAND_SHAKE && s != msgCommon.HAND_SHAKED {
-			log.Warn("Unknown status to received verAck")
+			log.Warn("Unknown status to received verAck", s)
 			return errors.New("Unknown status to received verAck ")
 		}
 

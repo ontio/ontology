@@ -77,6 +77,11 @@ const (
 	HTTP_INFO_FLAG = 0
 )
 
+//actor const
+const (
+	ACTOR_TIMEOUT = 5 //actor request timeout in secs
+)
+
 //PeerAddr represent peer`s net information
 type PeerAddr struct {
 	Time          int64

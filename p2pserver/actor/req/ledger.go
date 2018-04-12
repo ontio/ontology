@@ -51,110 +51,110 @@ func AddBlock(block *types.Block) {
 }
 
 func GetTxnFromLedger(hash common.Uint256) (*types.Transaction, error) {
-	future := DefLedgerPid.RequestFuture(&ledger.GetTransactionReq{TxHash: hash}, 5*time.Second)
+	future := DefLedgerPid.RequestFuture(&ledger.GetTransactionReq{TxHash: hash}, msgCommon.ACTOR_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Error(errors.NewErr("p2p GetTxnFromLedger ERROR: "), err)
 		return nil, err
 	}
 	return result.(*ledger.GetTransactionRsp).Tx, result.(*ledger.GetTransactionRsp).Error
 }
 
 func GetCurrentBlockHash() (common.Uint256, error) {
-	future := DefLedgerPid.RequestFuture(&ledger.GetCurrentBlockHashReq{}, 5*time.Second)
+	future := DefLedgerPid.RequestFuture(&ledger.GetCurrentBlockHashReq{}, msgCommon.ACTOR_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Error(errors.NewErr("p2p GetCurrentBlockHash ERROR: "), err)
 		return common.Uint256{}, err
 	}
 	return result.(*ledger.GetCurrentBlockHashRsp).BlockHash, result.(*ledger.GetCurrentBlockHashRsp).Error
 }
 
 func GetCurrentHeaderHash() (common.Uint256, error) {
-	future := DefLedgerPid.RequestFuture(&ledger.GetCurrentHeaderHashReq{}, 5*time.Second)
+	future := DefLedgerPid.RequestFuture(&ledger.GetCurrentHeaderHashReq{}, msgCommon.ACTOR_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Error(errors.NewErr("p2p GetCurrentHeaderHash ERROR: "), err)
 		return common.Uint256{}, err
 	}
 	return result.(*ledger.GetCurrentHeaderHashRsp).BlockHash, result.(*ledger.GetCurrentHeaderHashRsp).Error
 }
 
 func GetBlockHashByHeight(height uint32) (common.Uint256, error) {
-	future := DefLedgerPid.RequestFuture(&ledger.GetBlockHashReq{Height: height}, 5*time.Second)
+	future := DefLedgerPid.RequestFuture(&ledger.GetBlockHashReq{Height: height}, msgCommon.ACTOR_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Error(errors.NewErr("p2p GetBlockHashByHeight ERROR: "), err)
 		return common.Uint256{}, err
 	}
 	return result.(*ledger.GetBlockHashRsp).BlockHash, result.(*ledger.GetBlockHashRsp).Error
 }
 
 func GetHeaderByHeight(height uint32) (*types.Header, error) {
-	future := DefLedgerPid.RequestFuture(&ledger.GetHeaderByHeightReq{Height: height}, 5*time.Second)
+	future := DefLedgerPid.RequestFuture(&ledger.GetHeaderByHeightReq{Height: height}, msgCommon.ACTOR_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Error(errors.NewErr("p2p GetHeaderByHeight ERROR: "), err)
 		return nil, err
 	}
 	return result.(*ledger.GetHeaderByHeightRsp).Header, result.(*ledger.GetHeaderByHeightRsp).Error
 }
 
 func GetBlockByHeight(height uint32) (*types.Block, error) {
-	future := DefLedgerPid.RequestFuture(&ledger.GetBlockByHeightReq{Height: height}, 5*time.Second)
+	future := DefLedgerPid.RequestFuture(&ledger.GetBlockByHeightReq{Height: height}, msgCommon.ACTOR_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Error(errors.NewErr("p2p GetBlockByHeight ERROR: "), err)
 		return nil, err
 	}
 	return result.(*ledger.GetBlockByHeightRsp).Block, result.(*ledger.GetBlockByHeightRsp).Error
 }
 
 func GetHeaderByHash(hash common.Uint256) (*types.Header, error) {
-	future := DefLedgerPid.RequestFuture(&ledger.GetHeaderByHashReq{BlockHash: hash}, 5*time.Second)
+	future := DefLedgerPid.RequestFuture(&ledger.GetHeaderByHashReq{BlockHash: hash}, msgCommon.ACTOR_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Error(errors.NewErr("p2p GetHeaderByHash ERROR: "), err)
 		return nil, err
 	}
 	return result.(*ledger.GetHeaderByHashRsp).Header, result.(*ledger.GetHeaderByHashRsp).Error
 }
 
 func GetBlockByHash(hash common.Uint256) (*types.Block, error) {
-	future := DefLedgerPid.RequestFuture(&ledger.GetBlockByHashReq{BlockHash: hash}, 5*time.Second)
+	future := DefLedgerPid.RequestFuture(&ledger.GetBlockByHashReq{BlockHash: hash}, msgCommon.ACTOR_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Error(errors.NewErr("p2p GetBlockByHash ERROR: "), err)
 		return nil, err
 	}
 	return result.(*ledger.GetBlockByHashRsp).Block, result.(*ledger.GetBlockByHashRsp).Error
 }
 
 func GetCurrentHeaderHeight() (uint32, error) {
-	future := DefLedgerPid.RequestFuture(&ledger.GetCurrentHeaderHeightReq{}, 5*time.Second)
+	future := DefLedgerPid.RequestFuture(&ledger.GetCurrentHeaderHeightReq{}, msgCommon.ACTOR_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Error(errors.NewErr("p2p GetCurrentHeaderHeight ERROR: "), err)
 		return 0, err
 	}
 	return result.(*ledger.GetCurrentHeaderHeightRsp).Height, result.(*ledger.GetCurrentHeaderHeightRsp).Error
 }
 
 func GetCurrentBlockHeight() (uint32, error) {
-	future := DefLedgerPid.RequestFuture(&ledger.GetCurrentBlockHeightReq{}, 5*time.Second)
+	future := DefLedgerPid.RequestFuture(&ledger.GetCurrentBlockHeightReq{}, msgCommon.ACTOR_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Error(errors.NewErr("p2p GetCurrentBlockHeight ERROR: "), err)
 		return 0, err
 	}
 	return result.(*ledger.GetCurrentBlockHeightRsp).Height, result.(*ledger.GetCurrentBlockHeightRsp).Error
 }
 
 func IsContainBlock(hash common.Uint256) (bool, error) {
-	future := DefLedgerPid.RequestFuture(&ledger.IsContainBlockReq{BlockHash: hash}, 5*time.Second)
+	future := DefLedgerPid.RequestFuture(&ledger.IsContainBlockReq{BlockHash: hash}, msgCommon.ACTOR_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Error(errors.NewErr("p2p IsContainBlock ERROR: "), err)
 		return false, err
 	}
 	return result.(*ledger.IsContainBlockRsp).IsContain, result.(*ledger.IsContainBlockRsp).Error

@@ -97,13 +97,9 @@ func (p *Peer) InitPeer(pubKey keypair.PublicKey) error {
 	p.SyncLink.SetPort(config.Parameters.NodePort)
 	p.ConsLink.SetPort(config.Parameters.NodeConsensusPort)
 
-	p.SyncLink.SetPort(config.Parameters.NodePort)
-	p.ConsLink.SetPort(config.Parameters.NodeConsensusPort)
-
 	p.relay = true
 
 	key := keypair.SerializePublicKey(pubKey)
-	log.Infof("key %v", key)
 	err := binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(p.id))
 	if err != nil {
 		log.Error(err)

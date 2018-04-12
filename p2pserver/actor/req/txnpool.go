@@ -26,6 +26,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
+	p2pcommon "github.com/ontio/ontology/p2pserver/common"
 	txnpool "github.com/ontio/ontology/txnpool/common"
 )
 
@@ -40,70 +41,70 @@ func AddTransaction(transaction *types.Transaction) {
 }
 
 func GetTxnPool(byCount bool) ([]*txnpool.TXEntry, error) {
-	future := TxnPoolPid.RequestFuture(&txnpool.GetTxnPoolReq{ByCount: byCount}, 5*time.Second)
+	future := TxnPoolPid.RequestFuture(&txnpool.GetTxnPoolReq{ByCount: byCount}, p2pcommon.ACTOR_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Error(errors.NewErr("p2p GetTxnPool ERROR: "), err)
 		return nil, err
 	}
 	return result.(txnpool.GetTxnPoolRsp).TxnPool, nil
 }
 
 func GetTransaction(hash common.Uint256) (*types.Transaction, error) {
-	future := TxnPoolPid.RequestFuture(&txnpool.GetTxnReq{Hash: hash}, 5*time.Second)
+	future := TxnPoolPid.RequestFuture(&txnpool.GetTxnReq{Hash: hash}, p2pcommon.ACTOR_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Error(errors.NewErr("p2p GetTransaction ERROR: "), err)
 		return nil, err
 	}
 	return result.(txnpool.GetTxnRsp).Txn, nil
 }
 
 func CheckTransaction(hash common.Uint256) (bool, error) {
-	future := TxnPoolPid.RequestFuture(&txnpool.CheckTxnReq{Hash: hash}, 5*time.Second)
+	future := TxnPoolPid.RequestFuture(&txnpool.CheckTxnReq{Hash: hash}, p2pcommon.ACTOR_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Error(errors.NewErr("p2p CheckTransaction ERROR: "), err)
 		return false, err
 	}
 	return result.(txnpool.CheckTxnRsp).Ok, nil
 }
 
 func GetTransactionStatus(hash common.Uint256) ([]*txnpool.TXAttr, error) {
-	future := TxnPoolPid.RequestFuture(&txnpool.GetTxnStatusReq{Hash: hash}, 5*time.Second)
+	future := TxnPoolPid.RequestFuture(&txnpool.GetTxnStatusReq{Hash: hash}, p2pcommon.ACTOR_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Error(errors.NewErr("p2p GetTransactionStatus ERROR: "), err)
 		return nil, err
 	}
 	return result.(txnpool.GetTxnStatusRsp).TxStatus, nil
 }
 
 func GetPendingTxn(byCount bool) ([]*types.Transaction, error) {
-	future := TxnPoolPid.RequestFuture(&txnpool.GetPendingTxnReq{ByCount: byCount}, 5*time.Second)
+	future := TxnPoolPid.RequestFuture(&txnpool.GetPendingTxnReq{ByCount: byCount}, p2pcommon.ACTOR_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Error(errors.NewErr("p2p GetPendingTxn ERROR: "), err)
 		return nil, err
 	}
 	return result.(txnpool.GetPendingTxnRsp).Txs, nil
 }
 
 func VerifyBlock(height uint32, txs []*types.Transaction) ([]*txnpool.VerifyTxResult, error) {
-	future := TxnPoolPid.RequestFuture(&txnpool.VerifyBlockReq{Height: height, Txs: txs}, 5*time.Second)
+	future := TxnPoolPid.RequestFuture(&txnpool.VerifyBlockReq{Height: height, Txs: txs}, p2pcommon.ACTOR_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Error(errors.NewErr("p2p VerifyBlock ERROR: "), err)
 		return nil, err
 	}
 	return result.(txnpool.VerifyBlockRsp).TxnPool, nil
 }
 
 func GetTransactionStats(hash common.Uint256) ([]uint64, error) {
-	future := TxnPoolPid.RequestFuture(&txnpool.GetTxnStats{}, 5*time.Second)
+	future := TxnPoolPid.RequestFuture(&txnpool.GetTxnStats{}, p2pcommon.ACTOR_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Error(errors.NewErr("p2p GetTransactionStats ERROR: "), err)
 		return nil, err
 	}
 	return result.(txnpool.GetTxnStatsRsp).Count, nil
