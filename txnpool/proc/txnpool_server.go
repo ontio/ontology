@@ -16,6 +16,8 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Package proc privides functions for handle messages from
+// consensus/ledger/net/http/validators
 package proc
 
 import (
@@ -71,6 +73,7 @@ type TXPoolServer struct {
 	actors        map[tc.ActorType]*actor.PID         // The actors running in the server
 	validators    *registerValidators                 // The registered validators
 	stats         txStats                             // The transaction statstics
+	slots         chan struct{}                       // The limited slots for the new transaction
 }
 
 // NewTxPoolServer creates a new tx pool server to schedule workers to
@@ -103,6 +106,11 @@ func (s *TXPoolServer) init(num uint8) {
 	}
 
 	s.stats = txStats{count: make([]uint64, tc.MaxStats-1)}
+
+	s.slots = make(chan struct{}, tc.MAX_LIMITATION)
+	for i := 0; i < tc.MAX_LIMITATION; i++ {
+		s.slots <- struct{}{}
+	}
 
 	// Create the given concurrent workers
 	s.workers = make([]txPoolWorker, num)
@@ -194,6 +202,14 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256,
 	}
 
 	delete(s.allPendingTxs, hash)
+
+	if len(s.allPendingTxs) < tc.MAX_LIMITATION {
+		select {
+		case s.slots <- struct{}{}:
+		default:
+			log.Debug("slots is full")
+		}
+	}
 
 	s.mu.Unlock()
 
@@ -381,6 +397,10 @@ func (s *TXPoolServer) Stop() {
 		s.workers[i].stop()
 	}
 	s.wg.Wait()
+
+	if s.slots != nil {
+		close(s.slots)
+	}
 }
 
 // getTransaction returns a transaction with the transaction hash.

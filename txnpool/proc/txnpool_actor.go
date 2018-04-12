@@ -73,12 +73,8 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 
 		ta.server.increaseStats(tc.FailureStats)
 	} else {
-		for {
-			if ta.server.getPendingListSize() < tc.MAX_LIMITATION {
-				ta.server.assignTxToWorker(txn, sender)
-				break
-			}
-		}
+		<-ta.server.slots
+		ta.server.assignTxToWorker(txn, sender)
 	}
 }
 
