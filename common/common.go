@@ -19,25 +19,10 @@
 package common
 
 import (
-	"crypto/sha256"
 	"encoding/hex"
-	"io"
 	"math/rand"
 	"os"
-
-	"golang.org/x/crypto/ripemd160"
 )
-
-// todo : deprecate this function
-func ToCodeHash(code []byte) Address {
-	temp := sha256.Sum256(code)
-	md := ripemd160.New()
-	io.WriteString(md, string(temp[:]))
-	f := md.Sum(nil)
-
-	hash, _ := AddressParseFromBytes(f) // err will never occur
-	return hash
-}
 
 func GetNonce() uint64 {
 	// Fixme replace with the real random number generator
