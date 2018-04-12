@@ -35,10 +35,6 @@ import (
 	stypes "github.com/ontio/ontology/smartcontract/types"
 )
 
-const (
-	INVOKE_TRANSACTION = "InvokeTransaction"
-)
-
 func (self *StateStore) HandleDeployTransaction(stateBatch *statestore.StateBatch, tx *types.Transaction) error {
 	deploy := tx.Payload.(*payload.DeployCode)
 
@@ -101,7 +97,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 		if err := eventStore.SaveEventNotifyByTx(txHash, sc.Notifications); err != nil {
 			return fmt.Errorf("SaveEventNotifyByTx error %s", err)
 		}
-		event.PushSmartCodeEvent(txHash, 0, "Notify", sc.Notifications)
+		event.PushSmartCodeEvent(txHash, 0, event.EVENT_NOTIFY, sc.Notifications)
 	}
 	return nil
 }

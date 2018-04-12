@@ -25,6 +25,11 @@ import (
 	"github.com/ontio/ontology/events/message"
 )
 
+const (
+	EVENT_LOG = "Log"
+	EVENT_NOTIFY = "Notify"
+)
+
 // PushSmartCodeEvent push event content to socket.io
 func PushSmartCodeEvent(txHash common.Uint256, errcode int64, action string, result interface{}) {
 	smartCodeEvt := &types.SmartCodeEvent{

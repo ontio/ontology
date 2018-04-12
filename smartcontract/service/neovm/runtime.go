@@ -29,10 +29,6 @@ import (
 	"github.com/ontio/ontology/core/signature"
 )
 
-const (
-	EVENT_LOG = "Log"
-)
-
 // HeaderGetNextConsensus put current block time to vm stack
 func RuntimeGetTime(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	vm.PushData(engine, int(service.Time))
@@ -74,7 +70,7 @@ func RuntimeLog(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	item := vm.PopByteArray(engine)
 	context := service.ContextRef.CurrentContext()
 	txHash := service.Tx.Hash()
-	event.PushSmartCodeEvent(txHash, 0, "Log", &event.LogEventArgs{TxHash:txHash, ContractAddress: context.ContractAddress, Message: string(item)})
+	event.PushSmartCodeEvent(txHash, 0, event.EVENT_LOG, &event.LogEventArgs{TxHash:txHash, ContractAddress: context.ContractAddress, Message: string(item)})
 	return nil
 }
 
