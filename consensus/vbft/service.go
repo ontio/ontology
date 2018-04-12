@@ -932,7 +932,17 @@ func (self *Server) processMsgEvent() error {
 						}
 					}
 				} else {
-					// nothing to do.
+					if self.isProposer(msgBlkNum, self.Index) {
+						for _, msg := range self.msgPool.GetProposalMsgs(msgBlkNum) {
+							p := msg.(*blockProposalMsg)
+							if p != nil && p.Block.getProposer() == self.Index {
+								log.Infof("server %d rebroadcast proposal to %d, blk %d",
+									self.Index, pMsg.Block.getProposer(), msgBlkNum)
+								self.broadcast(msg)
+								break
+							}
+						}
+					}
 					// makeProposalTimeout handles non-leader proposals
 				}
 			} else {
@@ -988,6 +998,13 @@ func (self *Server) processMsgEvent() error {
 							}
 						}
 					} else {
+						if self.blockPool.endorseFailed(msgBlkNum, self.config.C) {
+							// endorse failed, start empty endorsing
+							self.timer.C <- &TimerEvent{
+								evtType:  EventEndorseBlockTimeout,
+								blockNum: msgBlkNum,
+							}
+						}
 						// wait until endorse timeout
 					}
 
@@ -1262,6 +1279,12 @@ func (self *Server) actionLoop() {
 							} else if err := self.makeCommitment(proposal, blkNum); err != nil {
 								log.Errorf("server %d failed to commit block %d on rebroadcasting: %s",
 									self.Index, blkNum, err)
+							}
+						} else if self.blockPool.endorseFailed(blkNum, self.config.C) {
+							// endorse failed, start empty endorsing
+							self.timer.C <- &TimerEvent{
+								evtType:  EventEndorseBlockTimeout,
+								blockNum: blkNum,
 							}
 						}
 					}

@@ -313,6 +313,40 @@ func (pool *BlockPool) endorseDone(blkNum uint64, C uint32) (*blockProposalMsg, 
 	return nil, math.MaxUint32, false
 }
 
+func (pool *BlockPool) endorseFailed(blkNum uint64, C uint32) bool {
+	pool.lock.RLock()
+	defer pool.lock.RUnlock()
+
+	endorseCount := make(map[uint32]uint32)
+	candidate := pool.candidateBlocks[blkNum]
+	if candidate == nil {
+		return false
+	}
+
+	if len(candidate.EndorseMsgs) < int(C+1) {
+		return false
+	}
+
+	for _, e := range candidate.EndorseMsgs {
+		if !e.EndorseForEmpty {
+			endorseCount[e.EndorsedProposer] += 1
+		}
+	}
+
+	if uint32(len(endorseCount)) > 2*C {
+		return false
+	}
+
+	l := 2*C + 1 - uint32(len(endorseCount))
+	for _, v := range endorseCount {
+		if v+l > C {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (pool *BlockPool) committedForBlock(blockNum uint64) bool {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
