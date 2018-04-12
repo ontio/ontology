@@ -96,7 +96,7 @@ func validatorHeader(engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[validatorHeader] Too few input parameters ")
 	}
-	item := vm.PopInteropInterface(engine); if item == nil {
+	item := vm.PeekInteropInterface(engine); if item == nil {
 		return errors.NewErr("[validatorHeader] Blockdata is nil!")
 	}
 	return nil
@@ -106,7 +106,7 @@ func validatorTransaction(engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[validatorTransaction] Too few input parameters ")
 	}
-	item := vm.PopInteropInterface(engine); if item == nil {
+	item := vm.PeekInteropInterface(engine); if item == nil {
 		return errors.NewErr("[validatorTransaction] Blockdata is nil!")
 	}
 	_, ok := item.(*types.Transaction); if !ok {
