@@ -16,19 +16,36 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package common
+package types
 
-type InventoryType byte
+import (
+	"bytes"
+	"encoding/binary"
 
-const (
-	TRANSACTION InventoryType = 0x01
-	BLOCK       InventoryType = 0x02
-	CONSENSUS   InventoryType = 0xe0
+	"github.com/ontio/ontology/common/log"
 )
 
-//TODO: temp inventory
-type Inventory interface {
-	Hash() Uint256
-	Verify() error
-	Type() InventoryType
+type Consensus struct {
+	MsgHdr
+	Cons ConsensusPayload
+}
+
+//Serialize message payload
+func (msg *Consensus) Serialization() ([]byte, error) {
+	hdrBuf, err := msg.MsgHdr.Serialization()
+	if err != nil {
+		return nil, err
+	}
+	buf := bytes.NewBuffer(hdrBuf)
+	err = msg.Cons.Serialize(buf)
+	return buf.Bytes(), err
+}
+
+//Deserialize message payload
+func (msg *Consensus) Deserialization(p []byte) error {
+	log.Debug()
+	buf := bytes.NewBuffer(p)
+	err := binary.Read(buf, binary.LittleEndian, &(msg.MsgHdr))
+	err = msg.Cons.Deserialize(buf)
+	return err
 }

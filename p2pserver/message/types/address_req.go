@@ -16,19 +16,36 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package common
+package types
 
-type InventoryType byte
-
-const (
-	TRANSACTION InventoryType = 0x01
-	BLOCK       InventoryType = 0x02
-	CONSENSUS   InventoryType = 0xe0
+import (
+	"bytes"
+	"encoding/binary"
 )
 
-//TODO: temp inventory
-type Inventory interface {
-	Hash() Uint256
-	Verify() error
-	Type() InventoryType
+type AddrReq struct {
+	Hdr MsgHdr
+}
+
+//Check whether header is correct
+func (msg AddrReq) Verify(buf []byte) error {
+	err := msg.Hdr.Verify(buf)
+	return err
+}
+
+//Serialize message payload
+func (msg AddrReq) Serialization() ([]byte, error) {
+	var buf bytes.Buffer
+	err := binary.Write(&buf, binary.LittleEndian, msg)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), err
+}
+
+//Deserialize message payload
+func (msg *AddrReq) Deserialization(p []byte) error {
+	buf := bytes.NewBuffer(p)
+	err := binary.Read(buf, binary.LittleEndian, msg)
+	return err
 }
