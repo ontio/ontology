@@ -56,11 +56,11 @@ type SerializableData interface {
  *      other else,        read this byte as uint8
  * 3. WriteVarBytes func, this func will output two item as serialization.
  *      length of bytes (uint8/uint16/uint32/uint64)  +  bytes
- * 4. WriteVarString func, this func will output two item as serialization.
+ * 4. WriteString func, this func will output two item as serialization.
  *      length of string(uint8/uint16/uint32/uint64)  +  bytes(string)
  * 5. ReadVarBytes func, this func will first read a uint to identify the
  *    length of bytes, and use it to get the next length's bytes to return.
- * 6. ReadVarString func, this func will first read a uint to identify the
+ * 6. ReadString func, this func will first read a uint to identify the
  *    length of string, and use it to get the next bytes as a string.
  * 7. GetVarUintSize func, this func will return the length of a uint when it
  *    serialized by the WriteVarUint func.
@@ -141,16 +141,8 @@ func WriteVarBytes(writer io.Writer, value []byte) error {
 	return err
 }
 
-func WriteVarString(writer io.Writer, value string) error {
-	err := WriteVarUint(writer, uint64(len(value)))
-	if err != nil {
-		return err
-	}
-	_, err = writer.Write([]byte(value))
-	if err != nil {
-		return err
-	}
-	return nil
+func WriteString(writer io.Writer, value string) error {
+	return WriteVarBytes(writer, []byte(value))
 }
 
 func ReadVarBytes(reader io.Reader) ([]byte, error) {
@@ -165,7 +157,7 @@ func ReadVarBytes(reader io.Reader) ([]byte, error) {
 	return str, nil
 }
 
-func ReadVarString(reader io.Reader) (string, error) {
+func ReadString(reader io.Reader) (string, error) {
 	val, err := ReadVarBytes(reader)
 	if err != nil {
 		return "", err
@@ -196,7 +188,7 @@ func ReadBytes(reader io.Reader, length uint64) ([]byte, error) {
 func ReadUint8(reader io.Reader) (uint8, error) {
 	var p [1]byte
 	n, err := reader.Read(p[:])
-	if n <= 0 || err != nil {
+	if n != 1 || err != nil {
 		return 0, ErrEof
 	}
 	return uint8(p[0]), nil
@@ -205,7 +197,7 @@ func ReadUint8(reader io.Reader) (uint8, error) {
 func ReadUint16(reader io.Reader) (uint16, error) {
 	var p [2]byte
 	n, err := reader.Read(p[:])
-	if n <= 0 || err != nil {
+	if n != 2 || err != nil {
 		return 0, ErrEof
 	}
 	return binary.LittleEndian.Uint16(p[:]), nil
@@ -214,7 +206,7 @@ func ReadUint16(reader io.Reader) (uint16, error) {
 func ReadUint32(reader io.Reader) (uint32, error) {
 	var p [4]byte
 	n, err := reader.Read(p[:])
-	if n <= 0 || err != nil {
+	if n != 4 || err != nil {
 		return 0, ErrEof
 	}
 	return binary.LittleEndian.Uint32(p[:]), nil
@@ -223,7 +215,7 @@ func ReadUint32(reader io.Reader) (uint32, error) {
 func ReadUint64(reader io.Reader) (uint64, error) {
 	var p [8]byte
 	n, err := reader.Read(p[:])
-	if n <= 0 || err != nil {
+	if n != 8 || err != nil {
 		return 0, ErrEof
 	}
 	return binary.LittleEndian.Uint64(p[:]), nil
@@ -276,10 +268,10 @@ func byteXReader(reader io.Reader, x uint64) ([]byte, error) {
 	}
 	p := make([]byte, x)
 	n, err := reader.Read(p)
-	if n > 0 {
-		return p[:], nil
+	if n != int(x) || err != nil {
+		return nil, ErrEof
 	}
-	return p, err
+	return p, nil
 }
 
 func WriteBool(writer io.Writer, val bool) error {

@@ -45,7 +45,7 @@ func BenchmarkWriteVarString(b *testing.B) {
 	s := "jim"
 	buf := new(bytes.Buffer)
 	for i := 0; i < b.N; i++ {
-		WriteVarString(buf, s)
+		WriteString(buf, s)
 	}
 }
 
@@ -69,7 +69,7 @@ func BenchmarkReadVarString(b *testing.B) {
 	data := []byte{10, 11, 12}
 	for i := 0; i < b.N; i++ {
 		r := bytes.NewReader(data)
-		ReadVarString(r)
+		ReadString(r)
 	}
 }
 
@@ -90,7 +90,7 @@ func BenchmarkSerialize(ben *testing.B) {
 		WriteVarUint(b, uint64(a6))
 		WriteVarUint(b, uint64(a7))
 		WriteVarBytes(b, a8)
-		WriteVarString(b, a9)
+		WriteString(b, a9)
 
 		ReadVarUint(b, math.MaxUint64)
 		ReadVarUint(b, math.MaxUint64)
@@ -98,7 +98,7 @@ func BenchmarkSerialize(ben *testing.B) {
 		ReadVarUint(b, math.MaxUint64)
 		ReadVarUint(b, math.MaxUint32)
 		ReadVarBytes(b)
-		ReadVarString(b)
+		ReadString(b)
 
 		GetVarUintSize(uint64(100))
 		GetVarUintSize(uint64(65535))
@@ -129,7 +129,7 @@ func TestSerialize(t *testing.T) {
 	WriteVarUint(b, uint64(a6))
 	WriteVarUint(b, uint64(a7))
 	WriteVarBytes(b, a8)
-	WriteVarString(b, a9)
+	WriteString(b, a9)
 
 	fmt.Println(ReadVarUint(b, math.MaxUint64))
 	fmt.Println(ReadVarUint(b, math.MaxUint64))
@@ -137,7 +137,7 @@ func TestSerialize(t *testing.T) {
 	fmt.Println(ReadVarUint(b, math.MaxUint64))
 	fmt.Println(ReadVarUint(b, math.MaxUint32))
 	fmt.Println(ReadVarBytes(b))
-	fmt.Println(ReadVarString(b))
+	fmt.Println(ReadString(b))
 
 	fmt.Printf("100 size is %d byte.\t\n", GetVarUintSize(uint64(100)))
 	fmt.Printf("65535 size is %d byte.\t\n", GetVarUintSize(uint64(65535)))

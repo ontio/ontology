@@ -815,7 +815,7 @@ func rawMashalParams(engine *ExecutionEngine) (bool, error) {
 			}
 
 			tmp := bytes.NewBuffer(nil)
-			serialization.WriteVarString(tmp, util.TrimBuffToString(str))
+			serialization.WriteString(tmp, util.TrimBuffToString(str))
 			bf.Write(tmp.Bytes())
 			i += 7
 		default:

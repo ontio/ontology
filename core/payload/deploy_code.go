@@ -51,27 +51,27 @@ func (dc *DeployCode) Serialize(w io.Writer) error {
 		return fmt.Errorf("DeployCode NeedStorage Serialize failed: %s", err)
 	}
 
-	err = serialization.WriteVarString(w, dc.Name)
+	err = serialization.WriteString(w, dc.Name)
 	if err != nil {
 		return fmt.Errorf("DeployCode Name Serialize failed: %s", err)
 	}
 
-	err = serialization.WriteVarString(w, dc.Version)
+	err = serialization.WriteString(w, dc.Version)
 	if err != nil {
 		return fmt.Errorf("DeployCode Version Serialize failed: %s", err)
 	}
 
-	err = serialization.WriteVarString(w, dc.Author)
+	err = serialization.WriteString(w, dc.Author)
 	if err != nil {
 		return fmt.Errorf("DeployCode Author Serialize failed: %s", err)
 	}
 
-	err = serialization.WriteVarString(w, dc.Email)
+	err = serialization.WriteString(w, dc.Email)
 	if err != nil {
 		return fmt.Errorf("DeployCode Email Serialize failed: %s", err)
 	}
 
-	err = serialization.WriteVarString(w, dc.Description)
+	err = serialization.WriteString(w, dc.Description)
 	if err != nil {
 		return fmt.Errorf("DeployCode Description Serialize failed: %s", err)
 	}
@@ -90,27 +90,27 @@ func (dc *DeployCode) Deserialize(r io.Reader) error {
 		return fmt.Errorf("DeployCode NeedStorage Deserialize failed: %s", err)
 	}
 
-	dc.Name, err = serialization.ReadVarString(r)
+	dc.Name, err = serialization.ReadString(r)
 	if err != nil {
 		return fmt.Errorf("DeployCode Name Deserialize failed: %s", err)
 	}
 
-	dc.Version, err = serialization.ReadVarString(r)
+	dc.Version, err = serialization.ReadString(r)
 	if err != nil {
 		return fmt.Errorf("DeployCode CodeVersion Deserialize failed: %s", err)
 	}
 
-	dc.Author, err = serialization.ReadVarString(r)
+	dc.Author, err = serialization.ReadString(r)
 	if err != nil {
 		return fmt.Errorf("DeployCode Author Deserialize failed: %s", err)
 	}
 
-	dc.Email, err = serialization.ReadVarString(r)
+	dc.Email, err = serialization.ReadString(r)
 	if err != nil {
 		return fmt.Errorf("DeployCode Email Deserialize failed: %s", err)
 	}
 
-	dc.Description, err = serialization.ReadVarString(r)
+	dc.Description, err = serialization.ReadString(r)
 	if err != nil {
 		return fmt.Errorf("DeployCode Description Deserialize failed: %s", err)
 	}
