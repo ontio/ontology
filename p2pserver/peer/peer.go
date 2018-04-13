@@ -29,11 +29,11 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/p2pserver/common"
 	conn "github.com/ontio/ontology/p2pserver/link"
 )
 
+// PeerCom provides the basic information of a peer
 type PeerCom struct {
 	id           uint64
 	version      uint32
@@ -46,92 +46,107 @@ type PeerCom struct {
 	publicKey    keypair.PublicKey
 }
 
+// SetID sets a peer's id
 func (pc *PeerCom) SetID(id uint64) {
 	pc.id = id
 }
 
+// GetID returns a peer's id
 func (pc *PeerCom) GetID() uint64 {
 	return pc.id
 }
 
+// SetVersion sets a peer's version
 func (pc *PeerCom) SetVersion(version uint32) {
 	pc.version = version
 }
 
+// GetVersion returns a peer's version
 func (pc *PeerCom) GetVersion() uint32 {
 	return pc.version
 }
 
+// SetServices sets a peer's services
 func (pc *PeerCom) SetServices(services uint64) {
 	pc.services = services
 }
 
+// GetServices returns a peer's services
 func (pc *PeerCom) GetServices() uint64 {
 	return pc.services
 }
 
+// SerRelay sets a peer's relay
 func (pc *PeerCom) SetRelay(relay bool) {
 	pc.relay = relay
 }
 
+// GetRelay returns a peer's relay
 func (pc *PeerCom) GetRelay() bool {
 	return pc.relay
 }
 
+// SetSyncPort sets a peer's sync port
 func (pc *PeerCom) SetSyncPort(port uint16) {
 	pc.syncPort = port
 }
 
+// GetSyncPort returns a peer's sync port
 func (pc *PeerCom) GetSyncPort() uint16 {
 	return pc.syncPort
 }
 
+// SetConsPort sets a peer's consensus port
 func (pc *PeerCom) SetConsPort(port uint16) {
 	pc.consPort = port
 }
 
+// GetConsPort returns a peer's consensus port
 func (pc *PeerCom) GetConsPort() uint16 {
 	return pc.consPort
 }
 
+// SetHttpInfoPort sets a peer's http info port
 func (pc *PeerCom) SetHttpInfoPort(port uint16) {
 	pc.httpInfoPort = port
 }
 
+// GetHttpInfoPort returns a peer's http info port
 func (pc *PeerCom) GetHttpInfoPort() uint16 {
 	return pc.httpInfoPort
 }
 
+// SetHeight sets a peer's height
 func (pc *PeerCom) SetHeight(height uint64) {
 	pc.height = height
 }
 
+// GetHeight returns a peer's height
 func (pc *PeerCom) GetHeight() uint64 {
 	return pc.height
 }
 
+// SetPubKey sets a peer's public key
 func (pc *PeerCom) SetPubKey(pubKey keypair.PublicKey) {
 	pc.publicKey = pubKey
 }
 
+// GetPubKey returns a peer's public key
 func (pc *PeerCom) GetPubKey() keypair.PublicKey {
 	return pc.publicKey
 }
 
 //Peer represent the node in p2p
 type Peer struct {
-	base                     PeerCom
-	cap                      [32]byte
-	SyncLink                 *conn.Link
-	ConsLink                 *conn.Link
-	syncState                uint32
-	consState                uint32
-	txnCnt                   uint64
-	rxTxnCnt                 uint64
-	publicKey                keypair.PublicKey
-	chF                      chan func() error
-	peerDisconnectSubscriber events.Subscriber
-	Np                       *NbrPeers
+	base      PeerCom
+	cap       [32]byte
+	SyncLink  *conn.Link
+	ConsLink  *conn.Link
+	syncState uint32
+	consState uint32
+	txnCnt    uint64
+	rxTxnCnt  uint64
+	chF       chan func() error
 }
 
 //backend run function in backend
@@ -338,11 +353,6 @@ func (p *Peer) AttachConsChan(msgchan chan common.MsgPayload) {
 	p.ConsLink.SetChan(msgchan)
 }
 
-//DelNbrNode delete nbr peer by id
-func (p *Peer) DelNbrNode(id uint64) (*Peer, bool) {
-	return p.Np.DelNbrNode(id)
-}
-
 //Send transfer buffer by sync or cons link
 func (p *Peer) Send(buf []byte, isConsensus bool) error {
 	if isConsensus && p.ConsLink.Valid() {
@@ -393,11 +403,6 @@ func (p *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
 		p.base.SetRelay(true)
 	}
 	p.SetHeight(uint64(height))
-}
-
-//AddNbrNode add peer to nbr peer list
-func (p *Peer) AddNbrNode(remotePeer *Peer) {
-	p.Np.AddNbrNode(remotePeer)
 }
 
 //parseIPAddr return ip address
