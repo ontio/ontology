@@ -1971,8 +1971,10 @@ func (self *Server) initHandshake(peerIdx uint32, peerPubKey *crypto.PubKey) err
 		return fmt.Errorf("send initHandshake msg: %s", err)
 	}
 
-	timeout := time.NewTimer(peerHandshakeTimeout)
-	defer timeout.Stop()
+	// removed handshake time
+	// when peer reconnected, remote peer may be busy with ledger syncing,
+	// so init handshake timeout is hard to predicate.  If remote peer failed
+	// when initHandshake, receiving error will handle it.
 
 	select {
 	case msg := <-msgC:
@@ -1981,8 +1983,6 @@ func (self *Server) initHandshake(peerIdx uint32, peerPubKey *crypto.PubKey) err
 		}
 	case err := <-errC:
 		return fmt.Errorf("peer initHandshake failed: %s", err)
-	case <-timeout.C:
-		return fmt.Errorf("peer initHandshake timeout")
 	}
 
 	return nil
