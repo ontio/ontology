@@ -34,18 +34,20 @@ import (
 )
 
 var (
-	CurrentStateRoot = []byte("Current-State-Root")
-	BookerKeeper     = []byte("Booker-Keeper")
+	CurrentStateRoot = []byte("Current-State-Root") //CurrentStateRoot store key
+	BookerKeeper     = []byte("Booker-Keeper")      //BookerKeeper store key
 )
 
+//StateStore saving the data of ledger states. Like balance of account, and the execution result of smart contract
 type StateStore struct {
-	dbDir           string
-	store           scom.PersistStore
-	merklePath      string
-	merkleTree      *merkle.CompactMerkleTree
+	dbDir           string                    //Store file path
+	store           scom.PersistStore         //Store handler
+	merklePath      string                    //Merkle tree store path
+	merkleTree      *merkle.CompactMerkleTree //Merkle tree of block root
 	merkleHashStore merkle.HashStore
 }
 
+//NewStateStore return state store instance
 func NewStateStore(dbDir, merklePath string) (*StateStore, error) {
 	var err error
 	store, err := leveldbstore.NewLevelDBStore(dbDir)
@@ -68,6 +70,7 @@ func NewStateStore(dbDir, merklePath string) (*StateStore, error) {
 	return stateStore, nil
 }
 
+//NewBatch start new commit batch
 func (self *StateStore) NewBatch() {
 	self.store.NewBatch()
 }
@@ -88,6 +91,7 @@ func (self *StateStore) init(currBlockHeight uint32) error {
 	return nil
 }
 
+//GetMerkleTree return merkle tree size an tree node
 func (self *StateStore) GetMerkleTree() (uint32, []common.Uint256, error) {
 	key := self.getMerkleTreeKey()
 	data, err := self.store.Get(key)
@@ -115,6 +119,7 @@ func (self *StateStore) GetMerkleTree() (uint32, []common.Uint256, error) {
 	return treeSize, hashes, nil
 }
 
+//AddMerkleTreeRoot add a new tree root
 func (self *StateStore) AddMerkleTreeRoot(txRoot common.Uint256) error {
 	key := self.getMerkleTreeKey()
 
@@ -140,18 +145,22 @@ func (self *StateStore) AddMerkleTreeRoot(txRoot common.Uint256) error {
 	return nil
 }
 
+//GetMerkleProof return merkle proof of block
 func (self *StateStore) GetMerkleProof(proofHeight, rootHeight uint32) ([]common.Uint256, error) {
 	return self.merkleTree.InclusionProof(proofHeight, rootHeight+1)
 }
 
+//NewStateBatch return state commit bathe. Usually using in smart contract execution
 func (self *StateStore) NewStateBatch() *statestore.StateBatch {
 	return statestore.NewStateStoreBatch(statestore.NewMemDatabase(), self.store)
 }
 
+//CommitTo commit state batch to state store
 func (self *StateStore) CommitTo() error {
 	return self.store.BatchCommit()
 }
 
+//GetContractState return contract by contract address
 func (self *StateStore) GetContractState(contractHash common.Address) (*payload.DeployCode, error) {
 	key, err := self.getContractStateKey(contractHash)
 	if err != nil {
@@ -174,6 +183,7 @@ func (self *StateStore) GetContractState(contractHash common.Address) (*payload.
 	return contractState, nil
 }
 
+//GetBookkeeperState return current book keeper states
 func (self *StateStore) GetBookkeeperState() (*states.BookkeeperState, error) {
 	key, err := self.getBookkeeperKey()
 	if err != nil {
@@ -196,6 +206,7 @@ func (self *StateStore) GetBookkeeperState() (*states.BookkeeperState, error) {
 	return bookkeeperState, nil
 }
 
+//SaveBookkeeperState persist book keeper state to store
 func (self *StateStore) SaveBookkeeperState(bookkeeperState *states.BookkeeperState) error {
 	key, err := self.getBookkeeperKey()
 	if err != nil {
@@ -210,6 +221,7 @@ func (self *StateStore) SaveBookkeeperState(bookkeeperState *states.BookkeeperSt
 	return self.store.Put(key, value.Bytes())
 }
 
+//GetStorageItem return the storage value of the key in smart contract.
 func (self *StateStore) GetStorageState(key *states.StorageKey) (*states.StorageItem, error) {
 	storeKey, err := self.getStorageKey(key)
 	if err != nil {
@@ -232,6 +244,7 @@ func (self *StateStore) GetStorageState(key *states.StorageKey) (*states.Storage
 	return storageState, nil
 }
 
+//GetVoteStates return vote states
 func (self *StateStore) GetVoteStates() (map[common.Address]*states.VoteState, error) {
 	votes := make(map[common.Address]*states.VoteState)
 	iter := self.store.NewIterator([]byte{byte(scom.ST_VOTE)})
@@ -256,6 +269,7 @@ func (self *StateStore) GetVoteStates() (map[common.Address]*states.VoteState, e
 	return votes, nil
 }
 
+//GetCurrentBlock return current block height and current hash in state store
 func (self *StateStore) GetCurrentBlock() (common.Uint256, uint32, error) {
 	key := self.getCurrentBlockKey()
 	data, err := self.store.Get(key)
@@ -278,6 +292,7 @@ func (self *StateStore) GetCurrentBlock() (common.Uint256, uint32, error) {
 	return blockHash, height, nil
 }
 
+//SaveCurrentBlock persist current block to state store
 func (self *StateStore) SaveCurrentBlock(height uint32, blockHash common.Uint256) error {
 	key := self.getCurrentBlockKey()
 	value := bytes.NewBuffer(nil)
@@ -322,6 +337,7 @@ func (self *StateStore) getMerkleTreeKey() []byte {
 	return []byte{byte(scom.SYS_BLOCK_MERKLE_TREE)}
 }
 
+//ClearAll clear all data in state store
 func (self *StateStore) ClearAll() error {
 	self.store.NewBatch()
 	iter := self.store.NewIterator(nil)
@@ -332,6 +348,7 @@ func (self *StateStore) ClearAll() error {
 	return self.store.BatchCommit()
 }
 
+//Close state store
 func (self *StateStore) Close() error {
 	return self.store.Close()
 }
