@@ -45,11 +45,12 @@ import (
 func NewNetServer(pubKey keypair.PublicKey) p2p.P2P {
 
 	n := &NetServer{
-		PeerSyncAddress: make(map[string]*peer.Peer),
-		PeerConsAddress: make(map[string]*peer.Peer),
-		SyncChan:        make(chan common.MsgPayload, common.CHAN_CAPABILITY),
-		ConsChan:        make(chan common.MsgPayload, common.CHAN_CAPABILITY),
+		SyncChan: make(chan common.MsgPayload, common.CHAN_CAPABILITY),
+		ConsChan: make(chan common.MsgPayload, common.CHAN_CAPABILITY),
 	}
+
+	n.PeerAddrMap.PeerSyncAddress = make(map[string]*peer.Peer)
+	n.PeerAddrMap.PeerConsAddress = make(map[string]*peer.Peer)
 
 	n.init(pubKey)
 	return n
@@ -61,13 +62,8 @@ type NetServer struct {
 	SyncChan chan common.MsgPayload
 	ConsChan chan common.MsgPayload
 	ConnectingNodes
-<<<<<<< HEAD:p2pserver/net/netserver.go
 	PeerAddrMap
-=======
-	PeerSyncAddress map[string]*peer.Peer
-	PeerConsAddress map[string]*peer.Peer
-	Np              *peer.NbrPeers
->>>>>>> clean up code logic and move neighbor peers from peer to netserver:p2pserver/net/netserver/netserver.go
+	Np *peer.NbrPeers
 }
 
 //ConnectingNodes include all addr in connecting state
@@ -76,13 +72,13 @@ type ConnectingNodes struct {
 	ConnectingAddrs []string
 }
 
-<<<<<<< HEAD:p2pserver/net/netserver.go
 //PeerAddrMap include all addr-peer list
 type PeerAddrMap struct {
 	sync.RWMutex
 	PeerSyncAddress map[string]*peer.Peer
 	PeerConsAddress map[string]*peer.Peer
-=======
+}
+
 func (n *NetServer) init(pubKey keypair.PublicKey) error {
 	n.base.SetVersion(common.PROTOCOL_VERSION)
 	if config.Parameters.NodeType == common.SERVICE_NODE_NAME {
@@ -116,7 +112,6 @@ func (n *NetServer) init(pubKey keypair.PublicKey) error {
 
 	n.base.SetPubKey(pubKey)
 	return nil
->>>>>>> clean up code logic and move neighbor peers from peer to netserver:p2pserver/net/netserver/netserver.go
 }
 
 //InitListen start listening on the config port
@@ -132,6 +127,11 @@ func (n *NetServer) GetVersion() uint32 {
 //GetId return peer`s id
 func (n *NetServer) GetID() uint64 {
 	return n.base.GetID()
+}
+
+// SetHeight sets the local's height
+func (n *NetServer) SetHeight(height uint64) {
+	n.base.SetHeight(height)
 }
 
 // GetHeight return peer's heigh

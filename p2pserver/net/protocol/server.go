@@ -44,36 +44,19 @@ type P2P interface {
 	GetConnectionCnt() uint32
 	GetNp() *peer.NbrPeers
 	GetPeer(uint64) *peer.Peer
+	SetHeight(uint64)
 	IsPeerEstablished(p *peer.Peer) bool
 	Send(p *peer.Peer, data []byte, isConsensus bool) error
 	GetMsgChan(isConsensus bool) chan common.MsgPayload
 	GetPeerFromAddr(addr string) *peer.Peer
 	AddInConnectingList(addr string) (added bool)
 	RemoveFromConnectingList(addr string)
-<<<<<<< HEAD:p2pserver/net/server.go
 	AddPeerSyncAddress(addr string, p *peer.Peer)
 	AddPeerConsAddress(addr string, p *peer.Peer)
 	RemovePeerSyncAddress(addr string)
 	RemovePeerConsAddress(addr string)
-}
-
-//NewNetServer return the net object in p2p
-func NewNetServer(p *peer.Peer) P2P {
-
-	n := &NetServer{
-		Self:     p,
-		SyncChan: make(chan common.MsgPayload, common.CHAN_CAPABILITY),
-		ConsChan: make(chan common.MsgPayload, common.CHAN_CAPABILITY),
-	}
-	n.PeerAddrMap.PeerSyncAddress = make(map[string]*peer.Peer)
-	n.PeerAddrMap.PeerConsAddress = make(map[string]*peer.Peer)
-	p.AttachSyncChan(n.SyncChan)
-	p.AttachConsChan(n.ConsChan)
-	return n
-=======
 	AddNbrNode(*peer.Peer)
 	DelNbrNode(id uint64) (*peer.Peer, bool)
 	NodeEstablished(uint64) bool
 	Xmit([]byte, bool)
->>>>>>> clean up code logic and move neighbor peers from peer to netserver:p2pserver/net/protocol/server.go
 }

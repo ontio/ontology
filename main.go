@@ -181,7 +181,7 @@ func main() {
 	go jsonrpc.StartRPCServer()
 	go websocket.StartServer()
 	if config.Parameters.HttpInfoStart {
-		go nodeinfo.StartServer(p2p.Self)
+		go nodeinfo.StartServer(p2p.GetNetWork())
 	}
 
 	go logCurrBlockHeight()
