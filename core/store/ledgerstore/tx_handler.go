@@ -35,6 +35,7 @@ import (
 	stypes "github.com/ontio/ontology/smartcontract/types"
 )
 
+//HandleDeployTransaction deal with smart contract deploy transaction
 func (self *StateStore) HandleDeployTransaction(stateBatch *statestore.StateBatch, tx *types.Transaction) error {
 	deploy := tx.Payload.(*payload.DeployCode)
 
@@ -61,6 +62,7 @@ func (self *StateStore) HandleDeployTransaction(stateBatch *statestore.StateBatc
 	return nil
 }
 
+//HandleInvokeTransaction deal with smart contract invoke transaction
 func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBatch *statestore.StateBatch, tx *types.Transaction, block *types.Block, eventStore scommon.EventStore) error {
 	invoke := tx.Payload.(*payload.InvokeCode)
 	txHash := tx.Hash()
@@ -89,7 +91,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	sc.PushContext(ctx)
 
 	//start the smart contract executive function
-	if _,err := sc.Execute(); err != nil {
+	if _, err := sc.Execute(); err != nil {
 		return err
 	}
 
@@ -102,11 +104,13 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	return nil
 }
 
+//HandleClaimTransaction deal with ong claim transaction
 func (self *StateStore) HandleClaimTransaction(stateBatch *statestore.StateBatch, tx *types.Transaction) error {
 	//TODO
 	return nil
 }
 
+//HandleVoteTransaction deal with vote transaction
 func (self *StateStore) HandleVoteTransaction(stateBatch *statestore.StateBatch, tx *types.Transaction) error {
 	vote := tx.Payload.(*payload.Vote)
 	buf := new(bytes.Buffer)
