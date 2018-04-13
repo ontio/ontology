@@ -19,8 +19,6 @@
 package peer
 
 import (
-	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"net"
@@ -30,28 +28,106 @@ import (
 	"time"
 
 	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/p2pserver/common"
 	conn "github.com/ontio/ontology/p2pserver/link"
 )
 
+type PeerCom struct {
+	id           uint64
+	version      uint32
+	services     uint64
+	relay        bool
+	httpInfoPort uint16
+	syncPort     uint16
+	consPort     uint16
+	height       uint64
+	publicKey    keypair.PublicKey
+}
+
+func (pc *PeerCom) SetID(id uint64) {
+	pc.id = id
+}
+
+func (pc *PeerCom) GetID() uint64 {
+	return pc.id
+}
+
+func (pc *PeerCom) SetVersion(version uint32) {
+	pc.version = version
+}
+
+func (pc *PeerCom) GetVersion() uint32 {
+	return pc.version
+}
+
+func (pc *PeerCom) SetServices(services uint64) {
+	pc.services = services
+}
+
+func (pc *PeerCom) GetServices() uint64 {
+	return pc.services
+}
+
+func (pc *PeerCom) SetRelay(relay bool) {
+	pc.relay = relay
+}
+
+func (pc *PeerCom) GetRelay() bool {
+	return pc.relay
+}
+
+func (pc *PeerCom) SetSyncPort(port uint16) {
+	pc.syncPort = port
+}
+
+func (pc *PeerCom) GetSyncPort() uint16 {
+	return pc.syncPort
+}
+
+func (pc *PeerCom) SetConsPort(port uint16) {
+	pc.consPort = port
+}
+
+func (pc *PeerCom) GetConsPort() uint16 {
+	return pc.consPort
+}
+
+func (pc *PeerCom) SetHttpInfoPort(port uint16) {
+	pc.httpInfoPort = port
+}
+
+func (pc *PeerCom) GetHttpInfoPort() uint16 {
+	return pc.httpInfoPort
+}
+
+func (pc *PeerCom) SetHeight(height uint64) {
+	pc.height = height
+}
+
+func (pc *PeerCom) GetHeight() uint64 {
+	return pc.height
+}
+
+func (pc *PeerCom) SetPubKey(pubKey keypair.PublicKey) {
+	pc.publicKey = pubKey
+}
+
+func (pc *PeerCom) GetPubKey() keypair.PublicKey {
+	return pc.publicKey
+}
+
 //Peer represent the node in p2p
 type Peer struct {
+	base                     PeerCom
+	cap                      [32]byte
 	SyncLink                 *conn.Link
 	ConsLink                 *conn.Link
 	syncState                uint32
 	consState                uint32
-	id                       uint64
-	version                  uint32
-	cap                      [32]byte
-	services                 uint64
-	relay                    bool
-	height                   uint64
 	txnCnt                   uint64
 	rxTxnCnt                 uint64
-	httpInfoPort             uint16
 	publicKey                keypair.PublicKey
 	chF                      chan func() error
 	peerDisconnectSubscriber events.Subscriber
@@ -81,7 +157,7 @@ func NewPeer() *Peer {
 }
 
 //InitPeer initial all member of given peer
-func (p *Peer) InitPeer(pubKey keypair.PublicKey) error {
+/*func (p *Peer) InitPeer(pubKey keypair.PublicKey) error {
 	p.version = common.PROTOCOL_VERSION
 	if config.Parameters.NodeType == common.SERVICE_NODE_NAME {
 		p.services = uint64(common.SERVICE_NODE)
@@ -106,18 +182,18 @@ func (p *Peer) InitPeer(pubKey keypair.PublicKey) error {
 		return err
 	}
 	log.Info(fmt.Sprintf("Init peer ID to 0x%x", p.id))
-	p.Np = &NbrPeers{}
-	p.Np.init()
+	//p.Np = &NbrPeers{}
+	//p.Np.init()
 
 	p.publicKey = pubKey
 	p.SyncLink.SetID(p.id)
 	p.ConsLink.SetID(p.id)
 	return nil
-}
+}*/
 
 //rmPeer print a debug log when peer be finalized by system
 func rmPeer(p *Peer) {
-	log.Debug(fmt.Sprintf("Remove unused peer: 0x%0x", p.id))
+	log.Debug(fmt.Sprintf("Remove unused peer: 0x%0x", p.GetID()))
 }
 
 //DumpInfo print all information of peer
@@ -125,40 +201,40 @@ func (p *Peer) DumpInfo() {
 	log.Info("Node info:")
 	log.Info("\t syncState = ", p.syncState)
 	log.Info("\t consState = ", p.consState)
-	log.Info(fmt.Sprintf("\t id = 0x%x", p.id))
+	log.Info(fmt.Sprintf("\t id = 0x%x", p.GetID()))
 	log.Info("\t addr = ", p.SyncLink.GetAddr())
 	log.Info("\t cap = ", p.cap)
-	log.Info("\t version = ", p.version)
-	log.Info("\t services = ", p.services)
-	log.Info("\t syncPort = ", p.SyncLink.GetPort())
-	log.Info("\t consPort = ", p.ConsLink.GetPort())
-	log.Info("\t relay = ", p.relay)
-	log.Info("\t height = ", p.height)
+	log.Info("\t version = ", p.GetVersion())
+	log.Info("\t services = ", p.GetServices())
+	log.Info("\t syncPort = ", p.GetSyncPort())
+	log.Info("\t consPort = ", p.GetConsPort())
+	log.Info("\t relay = ", p.GetRelay())
+	log.Info("\t height = ", p.GetHeight())
 }
 
 //SetBookKeeperAddr set pubKey to peer
 func (p *Peer) SetBookKeeperAddr(pubKey keypair.PublicKey) {
-	p.publicKey = pubKey
+	p.base.SetPubKey(pubKey)
 }
 
 //GetPubKey return publickey of peer
 func (p *Peer) GetPubKey() keypair.PublicKey {
-	return p.publicKey
+	return p.base.GetPubKey()
 }
 
 //GetVersion return peer`s version
 func (p *Peer) GetVersion() uint32 {
-	return p.version
+	return p.base.GetVersion()
 }
 
 //GetHeight return peer`s block height
 func (p *Peer) GetHeight() uint64 {
-	return p.height
+	return p.base.GetHeight()
 }
 
 //SetHeight set height to peer
 func (p *Peer) SetHeight(height uint64) {
-	p.height = height
+	p.base.SetHeight(height)
 }
 
 //GetConsConn return consensus link
@@ -242,17 +318,17 @@ func (p *Peer) CloseCons() {
 
 //GetID return peer`s id
 func (p *Peer) GetID() uint64 {
-	return p.id
+	return p.base.GetID()
 }
 
 //GetRelay return peer`s relay state
 func (p *Peer) GetRelay() bool {
-	return p.relay
+	return p.base.GetRelay()
 }
 
 //GetServices return peer`s service state
 func (p *Peer) GetServices() uint64 {
-	return p.services
+	return p.base.GetServices()
 }
 
 //GetTimeStamp return peer`s latest contact time in ticks
@@ -326,17 +402,12 @@ func (p *Peer) GetHttpInfoState() bool {
 
 //GetHttpInfoPort return peer`s httpinfo port
 func (p *Peer) GetHttpInfoPort() uint16 {
-	return p.httpInfoPort
+	return p.base.GetHttpInfoPort()
 }
 
 //SetHttpInfoPort set peer`s httpinfo port
 func (p *Peer) SetHttpInfoPort(port uint16) {
-	p.httpInfoPort = port
-}
-
-//SetBookkeeperAddr set peer`s publickey
-func (p *Peer) SetBookkeeperAddr(pk *keypair.PublicKey) {
-	p.publicKey = pk
+	p.base.SetHttpInfoPort(port)
 }
 
 //UpdateInfo update peer`s information
@@ -344,17 +415,19 @@ func (p *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
 	syncPort uint16, consPort uint16, nonce uint64, relay uint8, height uint64) {
 
 	p.SyncLink.UpdateRXTime(t)
-	p.id = nonce
-	p.version = version
-	p.services = services
+	p.base.SetID(nonce)
+	p.base.SetVersion(version)
+	p.base.SetServices(services)
+	p.base.SetSyncPort(syncPort)
+	p.base.SetConsPort(consPort)
 	p.SyncLink.SetPort(syncPort)
 	p.ConsLink.SetPort(consPort)
 	if relay == 0 {
-		p.relay = false
+		p.base.SetRelay(false)
 	} else {
-		p.relay = true
+		p.base.SetRelay(true)
 	}
-	p.height = uint64(height)
+	p.SetHeight(uint64(height))
 }
 
 //AddNbrNode add peer to nbr peer list

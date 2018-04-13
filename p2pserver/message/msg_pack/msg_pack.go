@@ -33,7 +33,8 @@ import (
 	"github.com/ontio/ontology/p2pserver/actor/req"
 	msgCommon "github.com/ontio/ontology/p2pserver/common"
 	mt "github.com/ontio/ontology/p2pserver/message/types"
-	"github.com/ontio/ontology/p2pserver/peer"
+	p2pnet "github.com/ontio/ontology/p2pserver/net/protocol"
+	//"github.com/ontio/ontology/p2pserver/peer"
 )
 
 func NewAddrs(nodeAddrs []msgCommon.PeerAddr, count uint64) ([]byte, error) {
@@ -373,20 +374,20 @@ func NewVerAck(isConsensus bool) ([]byte, error) {
 	return m, nil
 }
 
-func NewVersionPayload(p *peer.Peer, isCons bool) mt.VersionPayload {
+func NewVersionPayload(n p2pnet.P2P, isCons bool) mt.VersionPayload {
 	vpl := mt.VersionPayload{
-		Version:      p.GetVersion(),
-		Services:     p.GetServices(),
-		SyncPort:     p.GetSyncPort(),
-		ConsPort:     p.GetConsPort(),
-		Nonce:        p.GetID(),
+		Version:      n.GetVersion(),
+		Services:     n.GetServices(),
+		SyncPort:     n.GetSyncPort(),
+		ConsPort:     n.GetConsPort(),
+		Nonce:        n.GetID(),
 		IsConsensus:  isCons,
-		HttpInfoPort: p.GetHttpInfoPort(),
+		HttpInfoPort: n.GetHttpInfoPort(),
 	}
 
 	height, _ := req.GetCurrentBlockHeight()
 	vpl.StartHeight = uint64(height)
-	if p.GetRelay() {
+	if n.GetRelay() {
 		vpl.Relay = 1
 	} else {
 		vpl.Relay = 0

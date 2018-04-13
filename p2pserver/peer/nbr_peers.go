@@ -90,7 +90,7 @@ func (nm *NbrPeers) GetConnectionCnt() uint {
 	return cnt
 }
 
-func (nm *NbrPeers) init() {
+func (nm *NbrPeers) Init() {
 	nm.List = make(map[uint64]*Peer)
 }
 
@@ -141,7 +141,7 @@ func (nm *NbrPeers) GetNeighborHeights() map[uint64]uint64 {
 	hm := make(map[uint64]uint64)
 	for _, n := range nm.List {
 		if n.GetSyncState() == common.ESTABLISH {
-			hm[n.id] = n.height
+			hm[n.GetID()] = n.GetHeight()
 		}
 	}
 	return hm

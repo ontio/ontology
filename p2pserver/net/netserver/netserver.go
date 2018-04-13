@@ -19,8 +19,10 @@
 package netserver
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -30,20 +32,42 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
+	"github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/p2pserver/peer"
 )
 
+//NewNetServer return the net object in p2p
+func NewNetServer(pubKey keypair.PublicKey) p2p.P2P {
+
+	n := &NetServer{
+		PeerSyncAddress: make(map[string]*peer.Peer),
+		PeerConsAddress: make(map[string]*peer.Peer),
+		SyncChan:        make(chan common.MsgPayload, common.CHAN_CAPABILITY),
+		ConsChan:        make(chan common.MsgPayload, common.CHAN_CAPABILITY),
+	}
+
+	n.init(pubKey)
+	return n
+}
+
 //NetServer represent all the actions in net layer
 type NetServer struct {
-	Self     *peer.Peer
+	base     peer.PeerCom
 	SyncChan chan common.MsgPayload
 	ConsChan chan common.MsgPayload
 	ConnectingNodes
+<<<<<<< HEAD:p2pserver/net/netserver.go
 	PeerAddrMap
+=======
+	PeerSyncAddress map[string]*peer.Peer
+	PeerConsAddress map[string]*peer.Peer
+	Np              *peer.NbrPeers
+>>>>>>> clean up code logic and move neighbor peers from peer to netserver:p2pserver/net/netserver/netserver.go
 }
 
 //ConnectingNodes include all addr in connecting state
@@ -52,11 +76,47 @@ type ConnectingNodes struct {
 	ConnectingAddrs []string
 }
 
+<<<<<<< HEAD:p2pserver/net/netserver.go
 //PeerAddrMap include all addr-peer list
 type PeerAddrMap struct {
 	sync.RWMutex
 	PeerSyncAddress map[string]*peer.Peer
 	PeerConsAddress map[string]*peer.Peer
+=======
+func (n *NetServer) init(pubKey keypair.PublicKey) error {
+	n.base.SetVersion(common.PROTOCOL_VERSION)
+	if config.Parameters.NodeType == common.SERVICE_NODE_NAME {
+		n.base.SetServices(uint64(common.SERVICE_NODE))
+	} else if config.Parameters.NodeType == common.VERIFY_NODE_NAME {
+		n.base.SetServices(uint64(common.VERIFY_NODE))
+	}
+
+	if config.Parameters.NodeConsensusPort == 0 || config.Parameters.NodePort == 0 ||
+		config.Parameters.NodeConsensusPort == config.Parameters.NodePort {
+		log.Error("Network port invalid, please check config.json")
+		return errors.New("Invalid port")
+	}
+	n.base.SetSyncPort(config.Parameters.NodePort)
+	n.base.SetConsPort(config.Parameters.NodeConsensusPort)
+
+	n.base.SetRelay(true)
+
+	var id uint64
+	key := keypair.SerializePublicKey(pubKey)
+	err := binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(id))
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	n.base.SetID(id)
+
+	log.Info(fmt.Sprintf("Init peer ID to 0x%x", n.base.GetID()))
+	n.Np = &peer.NbrPeers{}
+	n.Np.Init()
+
+	n.base.SetPubKey(pubKey)
+	return nil
+>>>>>>> clean up code logic and move neighbor peers from peer to netserver:p2pserver/net/netserver/netserver.go
 }
 
 //InitListen start listening on the config port
@@ -66,47 +126,89 @@ func (n *NetServer) Start() {
 
 //GetVersion return self peer`s version
 func (n *NetServer) GetVersion() uint32 {
-	return n.Self.GetVersion()
-}
-
-//GetPort return self peer`s txn port
-func (n *NetServer) GetPort() uint16 {
-	return n.Self.GetSyncPort()
-}
-
-//GetConsensusPort return self peer`s consensus port
-func (n *NetServer) GetConsensusPort() uint16 {
-	return n.Self.GetConsPort()
+	return n.base.GetVersion()
 }
 
 //GetId return peer`s id
-func (n *NetServer) GetId() uint64 {
-	return n.Self.GetID()
+func (n *NetServer) GetID() uint64 {
+	return n.base.GetID()
+}
+
+// GetHeight return peer's heigh
+func (n *NetServer) GetHeight() uint64 {
+	return n.base.GetHeight()
 }
 
 //GetTime return the last contact time of self peer
 func (n *NetServer) GetTime() int64 {
-	return n.Self.GetTimeStamp()
-}
-
-//GetState return the self peer`s state
-func (n *NetServer) GetState() uint32 {
-	return n.Self.GetSyncState()
+	t := time.Now()
+	return t.UnixNano()
 }
 
 //GetServices return the service state of self peer
 func (n *NetServer) GetServices() uint64 {
-	return n.Self.GetServices()
+	return n.base.GetServices()
+}
+
+func (n *NetServer) GetSyncPort() uint16 {
+	return n.base.GetSyncPort()
+}
+
+func (n *NetServer) GetConsPort() uint16 {
+	return n.base.GetConsPort()
+}
+
+func (n *NetServer) GetHttpInfoPort() uint16 {
+	return n.base.GetHttpInfoPort()
+}
+
+func (n *NetServer) GetRelay() bool {
+	return n.base.GetRelay()
+}
+
+func (n *NetServer) GetPubKey() keypair.PublicKey {
+	return n.base.GetPubKey()
+}
+
+// GetPeer returns a peer with the peer id
+func (n *NetServer) GetPeer(id uint64) *peer.Peer {
+	return n.Np.GetPeer(id)
+}
+
+func (n *NetServer) GetNp() *peer.NbrPeers {
+	return n.Np
 }
 
 //GetNeighborAddrs return all the nbr peer`s addr
 func (n *NetServer) GetNeighborAddrs() ([]common.PeerAddr, uint64) {
-	return n.Self.Np.GetNeighborAddrs()
+	return n.Np.GetNeighborAddrs()
 }
 
 //GetConnectionCnt return the total number of valid connections
 func (n *NetServer) GetConnectionCnt() uint32 {
-	return n.Self.Np.GetNbrNodeCnt()
+	return n.Np.GetNbrNodeCnt()
+}
+
+//AddNbrNode add peer to nbr peer list
+func (n *NetServer) AddNbrNode(remotePeer *peer.Peer) {
+	n.Np.AddNbrNode(remotePeer)
+}
+
+//DelNbrNode delete nbr peer by id
+func (n *NetServer) DelNbrNode(id uint64) (*peer.Peer, bool) {
+	return n.Np.DelNbrNode(id)
+}
+
+func (n *NetServer) GetNeighbors() []*peer.Peer {
+	return n.Np.GetNeighbors()
+}
+
+func (n *NetServer) NodeEstablished(id uint64) bool {
+	return n.Np.NodeEstablished(id)
+}
+
+func (n *NetServer) Xmit(buf []byte, isCons bool) {
+	n.Np.Broadcast(buf, isCons)
 }
 
 //GetMsgChan return sync or consensus channel when msgrouter need msg input
@@ -130,7 +232,7 @@ func (n *NetServer) Send(p *peer.Peer, data []byte, isConsensus bool) error {
 //IsPeerEstablished return the establise state of given peer`s id
 func (n *NetServer) IsPeerEstablished(p *peer.Peer) bool {
 	if p != nil {
-		return n.Self.Np.NodeEstablished(p.GetID())
+		return n.Np.NodeEstablished(p.GetID())
 	}
 	return false
 
@@ -179,8 +281,8 @@ func (n *NetServer) Connect(addr string, isConsensus bool) error {
 		remotePeer.AttachSyncChan(n.SyncChan)
 		go remotePeer.SyncLink.Rx()
 		remotePeer.SetSyncState(common.HAND)
-		vpl := msgpack.NewVersionPayload(n.Self, false)
-		buf, _ := msgpack.NewVersion(vpl, n.Self.GetPubKey())
+		vpl := msgpack.NewVersionPayload(n, false)
+		buf, _ := msgpack.NewVersion(vpl, n.GetPubKey())
 		remotePeer.SyncLink.Tx(buf)
 	} else {
 		remotePeer = peer.NewPeer() //would merge with a exist peer in versionhandle
@@ -190,8 +292,8 @@ func (n *NetServer) Connect(addr string, isConsensus bool) error {
 		remotePeer.AttachConsChan(n.ConsChan)
 		go remotePeer.ConsLink.Rx()
 		remotePeer.SetConsState(common.HAND)
-		vpl := msgpack.NewVersionPayload(n.Self, true)
-		buf, _ := msgpack.NewVersion(vpl, n.Self.GetPubKey())
+		vpl := msgpack.NewVersionPayload(n, true)
+		buf, _ := msgpack.NewVersion(vpl, n.GetPubKey())
 		remotePeer.ConsLink.Tx(buf)
 	}
 
@@ -200,13 +302,14 @@ func (n *NetServer) Connect(addr string, isConsensus bool) error {
 
 //Halt stop all net layer logic
 func (n *NetServer) Halt() {
-	peers := n.Self.Np.GetNeighbors()
+	peers := n.Np.GetNeighbors()
 	for _, p := range peers {
 		p.CloseSync()
 		p.CloseCons()
 	}
-	n.Self.CloseSync()
-	n.Self.CloseCons()
+	// Fixme: check whether to close local connect
+	//n.Self.CloseSync()
+	//n.Self.CloseCons()
 }
 
 //establishing the connection to remote peers and listening for incoming peers
@@ -216,8 +319,8 @@ func (n *NetServer) InitConnection() error {
 	var conslistener net.Listener
 	var err error
 
-	syncPort := n.Self.SyncLink.GetPort()
-	consPort := n.Self.ConsLink.GetPort()
+	syncPort := n.base.GetSyncPort()
+	consPort := n.base.GetConsPort()
 
 	if syncPort == 0 {
 		log.Error("Sync Port invalid")
@@ -451,9 +554,9 @@ func TLSDial(nodeAddr string) (net.Conn, error) {
 //IsNbrPeerAddr return result whether the address is under connecting
 func (n *NetServer) IsNbrPeerAddr(addr string, isConsensus bool) bool {
 	var addrNew string
-	n.Self.Np.RLock()
-	defer n.Self.Np.RUnlock()
-	for _, p := range n.Self.Np.List {
+	n.Np.RLock()
+	defer n.Np.RUnlock()
+	for _, p := range n.Np.List {
 		if p.GetSyncState() == common.HAND || p.GetSyncState() == common.HAND_SHAKE ||
 			p.GetSyncState() == common.ESTABLISH {
 			if isConsensus {

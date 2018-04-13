@@ -16,9 +16,10 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package netserver
+package p2p
 
 import (
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/peer"
 )
@@ -28,21 +29,28 @@ type P2P interface {
 	Start()
 	Halt()
 	Connect(addr string, isConsensus bool) error
+	GetID() uint64
 	GetVersion() uint32
-	GetPort() uint16
-	GetConsensusPort() uint16
-	GetId() uint64
+	GetSyncPort() uint16
+	GetConsPort() uint16
+	GetHttpInfoPort() uint16
+	GetRelay() bool
+	GetHeight() uint64
 	GetTime() int64
-	GetState() uint32
 	GetServices() uint64
+	GetPubKey() keypair.PublicKey
+	GetNeighbors() []*peer.Peer
 	GetNeighborAddrs() ([]common.PeerAddr, uint64)
 	GetConnectionCnt() uint32
+	GetNp() *peer.NbrPeers
+	GetPeer(uint64) *peer.Peer
 	IsPeerEstablished(p *peer.Peer) bool
 	Send(p *peer.Peer, data []byte, isConsensus bool) error
 	GetMsgChan(isConsensus bool) chan common.MsgPayload
 	GetPeerFromAddr(addr string) *peer.Peer
 	AddInConnectingList(addr string) (added bool)
 	RemoveFromConnectingList(addr string)
+<<<<<<< HEAD:p2pserver/net/server.go
 	AddPeerSyncAddress(addr string, p *peer.Peer)
 	AddPeerConsAddress(addr string, p *peer.Peer)
 	RemovePeerSyncAddress(addr string)
@@ -62,4 +70,10 @@ func NewNetServer(p *peer.Peer) P2P {
 	p.AttachSyncChan(n.SyncChan)
 	p.AttachConsChan(n.ConsChan)
 	return n
+=======
+	AddNbrNode(*peer.Peer)
+	DelNbrNode(id uint64) (*peer.Peer, bool)
+	NodeEstablished(uint64) bool
+	Xmit([]byte, bool)
+>>>>>>> clean up code logic and move neighbor peers from peer to netserver:p2pserver/net/protocol/server.go
 }

@@ -28,7 +28,7 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/p2pserver/peer"
+	"github.com/ontio/ontology/p2pserver/net/protocol"
 )
 
 type Info struct {
@@ -50,7 +50,7 @@ const (
 	SERVICENODE = "Service Node"
 )
 
-var node *peer.Peer
+var node p2p.P2P
 
 var templates = template.Must(template.New("info").Parse(TEMPLATE_PAGE))
 
@@ -91,7 +91,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	ngbrNoders := node.Np.GetNeighbors()
+	ngbrNoders := node.GetNeighbors()
 	ngbrsLen := len(ngbrNoders)
 	for i := 0; i < ngbrsLen; i++ {
 		ngbType = SERVICENODE
@@ -126,7 +126,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func StartServer(n *peer.Peer) {
+func StartServer(n p2p.P2P) {
 	node = n
 	port := int(config.Parameters.HttpInfoPort)
 	http.HandleFunc("/info", viewHandler)

@@ -38,13 +38,13 @@ import (
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	msgtypes "github.com/ontio/ontology/p2pserver/message/types"
-	p2pnet "github.com/ontio/ontology/p2pserver/net"
+	"github.com/ontio/ontology/p2pserver/net/netserver"
+	p2pnet "github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/p2pserver/peer"
 )
 
 //P2PServer control all network activities
 type P2PServer struct {
-	Self      *peer.Peer
 	network   p2pnet.P2P
 	msgRouter *MessageRouter
 	ReconnectAddrs
@@ -63,15 +63,10 @@ type ReconnectAddrs struct {
 
 //NewServer return a new p2pserver according to the pubkey
 func NewServer(acc *account.Account) (*P2PServer, error) {
-	self := peer.NewPeer()
-	err := self.InitPeer(acc.PubKey())
-	if err != nil {
-		return nil, err
-	}
-	n := p2pnet.NewNetServer(self)
+	n := netserver.NewNetServer(acc.PubKey())
 
 	p := &P2PServer{
-		Self:    self,
+		//Self:    self,
 		network: n,
 		isSync:  false,
 	}
@@ -132,6 +127,11 @@ func (this *P2PServer) Stop() error {
 	return nil
 }
 
+// GetNetWork returns the low level netserver
+func (this *P2PServer) GetNetWork() p2pnet.P2P {
+	return this.network
+}
+
 //IsSyncing return whether p2p is syncing
 func (this *P2PServer) IsSyncing() bool {
 	return this.isSync
@@ -139,7 +139,7 @@ func (this *P2PServer) IsSyncing() bool {
 
 //GetPort return two network port
 func (this *P2PServer) GetPort() (uint16, uint16) {
-	return this.network.GetPort(), this.network.GetConsensusPort()
+	return this.network.GetSyncPort(), this.network.GetConsPort()
 }
 
 //GetVersion return self version
@@ -201,7 +201,7 @@ func (this *P2PServer) Xmit(message interface{}) error {
 		log.Warnf("Unknown Xmit message %v , type %v", message, reflect.TypeOf(message))
 		return errors.New("Unknown Xmit message type")
 	}
-	this.Self.Np.Broadcast(buffer, isConsensus)
+	this.network.Xmit(buffer, isConsensus)
 	return nil
 }
 
@@ -214,14 +214,14 @@ func (this *P2PServer) Send(p *peer.Peer, buf []byte, isConsensus bool) error {
 	return errors.New("send to a not ESTABLISH peer")
 }
 
-//GetId return self peer`s id
-func (this *P2PServer) GetId() uint64 {
-	return this.network.GetId()
+func (this *P2PServer) GetID() uint64 {
+	return this.network.GetID()
 }
 
-//GetConnectionState return the network state
+// Todo: remove it if no use
 func (this *P2PServer) GetConnectionState() uint32 {
-	return this.network.GetState()
+	return common.INIT
+	//return this.network.GetState()
 }
 
 //GetTime return lastet contact time
@@ -231,7 +231,7 @@ func (this *P2PServer) GetTime() int64 {
 
 //blockSyncFinished compare all nbr peers and self height at beginning
 func (this *P2PServer) blockSyncFinished() bool {
-	peers := this.Self.Np.GetNeighbors()
+	peers := this.network.GetNeighbors()
 	if len(peers) == 0 {
 		return false
 	}
@@ -291,8 +291,9 @@ func (this *P2PServer) connectSeeds() {
 		found := false
 		var p *peer.Peer
 		var ip net.IP
-		this.Self.Np.Lock()
-		for _, tn := range this.Self.Np.List {
+		np := this.network.GetNp()
+		np.Lock()
+		for _, tn := range np.List {
 			ipAddr, _ := tn.GetAddr16()
 			ip = ipAddr[:]
 			addrString := ip.To16().String() + ":" + strconv.Itoa(int(tn.GetSyncPort()))
@@ -302,7 +303,7 @@ func (this *P2PServer) connectSeeds() {
 				break
 			}
 		}
-		this.Self.Np.Unlock()
+		np.Unlock()
 		if found {
 			if p.GetSyncState() == common.ESTABLISH {
 				this.reqNbrList(p)
@@ -330,10 +331,11 @@ func (this *P2PServer) reachMinConnection() bool {
 
 //retryInactivePeer try to connect peer in INACTIVITY state
 func (this *P2PServer) retryInactivePeer() {
-	this.Self.Np.Lock()
+	np := this.network.GetNp()
+	np.Lock()
 	var ip net.IP
 	neighborPeers := make(map[uint64]*peer.Peer)
-	for _, p := range this.Self.Np.List {
+	for _, p := range np.List {
 		addr, _ := p.GetAddr16()
 		ip = addr[:]
 		nodeAddr := ip.To16().String() + ":" + strconv.Itoa(int(p.GetSyncPort()))
@@ -350,8 +352,8 @@ func (this *P2PServer) retryInactivePeer() {
 		}
 	}
 
-	this.Self.Np.List = neighborPeers
-	this.Self.Np.Unlock()
+	np.List = neighborPeers
+	np.Unlock()
 	//try connect
 	if len(this.RetryAddrs) > 0 {
 		this.ReconnectAddrs.Lock()
@@ -420,7 +422,7 @@ func (this *P2PServer) heartBeatService() {
 
 //ping send pkg to get pong msg from others
 func (this *P2PServer) ping() {
-	peers := this.Self.Np.GetNeighbors()
+	peers := this.network.GetNeighbors()
 	for _, p := range peers {
 		if p.GetSyncState() == common.ESTABLISH {
 			height, err := actor.GetCurrentBlockHeight()
@@ -440,7 +442,7 @@ func (this *P2PServer) ping() {
 
 //timeout trace whether some peer be long time no response
 func (this *P2PServer) timeout() {
-	peers := this.Self.Np.GetNeighbors()
+	peers := this.network.GetNeighbors()
 	var periodTime uint
 	if config.Parameters.GenBlockTime > config.MIN_GEN_BLOCK_TIME {
 		periodTime = config.Parameters.GenBlockTime / common.UPDATE_RATE_PER_BLOCK
@@ -490,7 +492,7 @@ func (this *P2PServer) syncBlockHdr() {
 	if !this.reachMinConnection() {
 		return
 	}
-	peers := this.Self.Np.GetNeighbors()
+	peers := this.network.GetNeighbors()
 	if len(peers) == 0 {
 		return
 	}
@@ -521,8 +523,10 @@ func (this *P2PServer) syncBlock() {
 		this.isSync = false
 		return
 	}
+
 	this.isSync = true
-	peers := this.Self.Np.GetNeighbors()
+	peers := this.network.GetNeighbors()
+
 	for _, p := range peers {
 		if uint32(p.GetHeight()) <= currentBlkHeight {
 			continue

@@ -72,7 +72,7 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 	case *GetConsPortReq:
 		this.handleGetConsPortReq(ctx, msg)
 	case *GetIdReq:
-		this.handleGetIdReq(ctx, msg)
+		this.handleGetIDReq(ctx, msg)
 	case *GetConnectionStateReq:
 		this.handleGetConnectionStateReq(ctx, msg)
 	case *GetTimeReq:
@@ -171,8 +171,8 @@ func (this *P2PActor) handleGetConsPortReq(ctx actor.Context, req *GetConsPortRe
 	}
 }
 
-func (this *P2PActor) handleGetIdReq(ctx actor.Context, req *GetIdReq) {
-	id := this.server.GetId()
+func (this *P2PActor) handleGetIDReq(ctx actor.Context, req *GetIdReq) {
+	id := this.server.GetID()
 	if ctx.Sender() != nil {
 		resp := &GetIdRsp{
 			Id: id,
