@@ -22,6 +22,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 )
 
+//Iterator of leveldb. Warp struct of leveldb iterator
 type Iterator struct {
 	iter iterator.Iterator
 }

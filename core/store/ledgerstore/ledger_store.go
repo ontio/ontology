@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+//Storage of ledger
 package ledgerstore
 
 import (
@@ -38,14 +38,15 @@ import (
 )
 
 const (
-	SYSTEM_VERSION          = byte(1)
-	HEADER_INDEX_BATCH_SIZE = uint32(2000)
-	BLOCK_CACHE_TIMEOUT     = time.Minute * 30
-	MAX_HEADER_CACHE_SIZE   = 10000
-	MAX_BLOCK_CACHE_SIZE    = 1000
+	SYSTEM_VERSION          = byte(1)          //Version of ledger store
+	HEADER_INDEX_BATCH_SIZE = uint32(2000)     //Bath size of saving header index
+	BLOCK_CACHE_TIMEOUT     = time.Minute * 15 //Cache time for block to save in sync block
+	MAX_HEADER_CACHE_SIZE   = 5000             //Max cache size of block header in sync block
+	MAX_BLOCK_CACHE_SIZE    = 500              //Max cache size of block in sync block
 )
 
 var (
+	//Storage save path.
 	DBDirEvent          = "Chain/ledgerevent"
 	DBDirBlock          = "Chain/block"
 	DBDirState          = "Chain/states"
@@ -57,21 +58,23 @@ type ledgerCacheItem struct {
 	cacheTime time.Time
 }
 
+//LedgerStoreImp is main store struct fo ledger
 type LedgerStoreImp struct {
-	blockStore       *BlockStore
-	stateStore       *StateStore
-	eventStore       *EventStore
-	storedIndexCount uint32
-	currBlockHeight  uint32
-	currBlockHash    common.Uint256
-	headerCache      map[common.Uint256]*ledgerCacheItem
-	blockCache       map[common.Uint256]*ledgerCacheItem
-	headerIndex      map[uint32]common.Uint256
-	savingBlock      bool
+	blockStore       *BlockStore                         //BlockStore for saving block & transaction data
+	stateStore       *StateStore                         //StateStore for saving state data, like balance, smart contract execution result, and so on.
+	eventStore       *EventStore                         //EventStore for saving log those gen after smart contract executed.
+	storedIndexCount uint32                              //record the count of have saved block index
+	currBlockHeight  uint32                              //Current block height
+	currBlockHash    common.Uint256                      //Current block hash
+	headerCache      map[common.Uint256]*ledgerCacheItem //Cache header to saving in sync block. BlockHash => Header
+	blockCache       map[common.Uint256]*ledgerCacheItem //Cache block to saving in sync block. BlockHash => Block
+	headerIndex      map[uint32]common.Uint256           //Header index, Mapping header height => block hash
+	savingBlock      bool                                //is saving block now
 	lock             sync.RWMutex
 	exitCh           chan interface{}
 }
 
+//NewLedgerStore return LedgerStoreImp instance
 func NewLedgerStore() (*LedgerStoreImp, error) {
 	ledgerStore := &LedgerStoreImp{
 		exitCh:      make(chan interface{}, 0),
@@ -107,6 +110,7 @@ func NewLedgerStore() (*LedgerStoreImp, error) {
 	return ledgerStore, nil
 }
 
+//InitLedgerStoreWithGenesisBlock init the ledger store with genesis block. It's the first operation after NewLedgerStore.
 func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.Block, defaultBookkeeper []keypair.PublicKey) error {
 	hasInit, err := this.hasAlreadyInitGenesisBlock()
 	if err != nil {
@@ -367,6 +371,8 @@ func (this *LedgerStoreImp) getHeaderIndex(height uint32) common.Uint256 {
 	return blockHash
 }
 
+//GetCurrentHeaderHeight return the current header height.
+//In block sync states, Header height is usually higher than block height that is has already committed to storage
 func (this *LedgerStoreImp) GetCurrentHeaderHeight() uint32 {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
@@ -377,6 +383,7 @@ func (this *LedgerStoreImp) GetCurrentHeaderHeight() uint32 {
 	return uint32(size) - 1
 }
 
+//GetCurrentHeaderHash return the current header hash. The current header means the latest header.
 func (this *LedgerStoreImp) GetCurrentHeaderHash() common.Uint256 {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
@@ -395,18 +402,22 @@ func (this *LedgerStoreImp) setCurrentBlock(height uint32, blockHash common.Uint
 	return
 }
 
+//GetCurrentBlock return the current block height, and block hash.
+//Current block means the latest block in store.
 func (this *LedgerStoreImp) GetCurrentBlock() (uint32, common.Uint256) {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	return this.currBlockHeight, this.currBlockHash
 }
 
+//GetCurrentBlockHash return the current block hash
 func (this *LedgerStoreImp) GetCurrentBlockHash() common.Uint256 {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	return this.currBlockHash
 }
 
+//GetCurrentBlockHeight return the current block height
 func (this *LedgerStoreImp) GetCurrentBlockHeight() uint32 {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
@@ -512,7 +523,7 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header) error {
 	return nil
 }
 
-//sync block header
+//AddHeader add header to cache, and add the mapping of block height to block hash. Using in block sync
 func (this *LedgerStoreImp) AddHeader(header *types.Header) error {
 	nextHeaderHeight := this.GetCurrentHeaderHeight() + 1
 	if header.Height != nextHeaderHeight {
@@ -529,6 +540,7 @@ func (this *LedgerStoreImp) AddHeader(header *types.Header) error {
 	return nil
 }
 
+//AddHeaders bath add header.
 func (this *LedgerStoreImp) AddHeaders(headers []*types.Header) error {
 	sort.Slice(headers, func(i, j int) bool {
 		return headers[i].Height < headers[j].Height
@@ -564,6 +576,8 @@ func (this *LedgerStoreImp) verifyBlock(block *types.Block) error {
 	return nil
 }
 
+//AddBlock add the block to store.
+//When the block is not the next block, it will be cache. until the missing block arrived
 func (this *LedgerStoreImp) AddBlock(block *types.Block) error {
 	currBlockHeight := this.GetCurrentBlockHeight()
 	blockHeight := block.Header.Height
@@ -692,6 +706,7 @@ func (this *LedgerStoreImp) resetSavingBlock() {
 	this.savingBlock = false
 }
 
+//saveBlock do the job of execution samrt contract and commit block to store.
 func (this *LedgerStoreImp) saveBlock(block *types.Block) error {
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
@@ -788,6 +803,7 @@ func (this *LedgerStoreImp) saveHeaderIndexList() error {
 	return nil
 }
 
+//IsContainBlock return whether the block is in store
 func (this *LedgerStoreImp) IsContainBlock(blockHash common.Uint256) (bool, error) {
 	block := this.getFromBlockCache(blockHash)
 	if block != nil {
@@ -796,18 +812,22 @@ func (this *LedgerStoreImp) IsContainBlock(blockHash common.Uint256) (bool, erro
 	return this.blockStore.ContainBlock(blockHash)
 }
 
+//IsContainTransaction return whether the transaction is in store. Wrap function of BlockStore.ContainTransaction
 func (this *LedgerStoreImp) IsContainTransaction(txHash common.Uint256) (bool, error) {
 	return this.blockStore.ContainTransaction(txHash)
 }
 
+//GetBlockRootWithNewTxRoot return the block root(merkle root of blocks) after add a new tx root of block
 func (this *LedgerStoreImp) GetBlockRootWithNewTxRoot(txRoot common.Uint256) common.Uint256 {
 	return this.stateStore.GetBlockRootWithNewTxRoot(txRoot)
 }
 
+//GetBlockHash return the block hash by block height
 func (this *LedgerStoreImp) GetBlockHash(height uint32) common.Uint256 {
 	return this.getHeaderIndex(height)
 }
 
+//GetHeaderByHash return the block header by block hash
 func (this *LedgerStoreImp) GetHeaderByHash(blockHash common.Uint256) (*types.Header, error) {
 	header := this.getFromHeaderCache(blockHash)
 	if header != nil {
@@ -816,6 +836,7 @@ func (this *LedgerStoreImp) GetHeaderByHash(blockHash common.Uint256) (*types.He
 	return this.blockStore.GetHeader(blockHash)
 }
 
+//GetHeaderByHash return the block header by block height
 func (this *LedgerStoreImp) GetHeaderByHeight(height uint32) (*types.Header, error) {
 	blockHash := this.GetBlockHash(height)
 	var empty common.Uint256
@@ -825,14 +846,17 @@ func (this *LedgerStoreImp) GetHeaderByHeight(height uint32) (*types.Header, err
 	return this.GetHeaderByHash(blockHash)
 }
 
+//GetSysFeeAmount return the sys fee for block by block hash. Wrap function of BlockStore.GetSysFeeAmount
 func (this *LedgerStoreImp) GetSysFeeAmount(blockHash common.Uint256) (common.Fixed64, error) {
 	return this.blockStore.GetSysFeeAmount(blockHash)
 }
 
+//GetTransaction return transaction by transaction hash. Wrap function of BlockStore.GetTransaction
 func (this *LedgerStoreImp) GetTransaction(txHash common.Uint256) (*types.Transaction, uint32, error) {
 	return this.blockStore.GetTransaction(txHash)
 }
 
+//GetBlockByHash return block by block hash. Wrap function of BlockStore.GetBlockByHash
 func (this *LedgerStoreImp) GetBlockByHash(blockHash common.Uint256) (*types.Block, error) {
 	block := this.getFromBlockCache(blockHash)
 	if block != nil {
@@ -841,6 +865,7 @@ func (this *LedgerStoreImp) GetBlockByHash(blockHash common.Uint256) (*types.Blo
 	return this.blockStore.GetBlock(blockHash)
 }
 
+//GetBlockByHeight return block by height.
 func (this *LedgerStoreImp) GetBlockByHeight(height uint32) (*types.Block, error) {
 	blockHash := this.GetBlockHash(height)
 	var empty common.Uint256
@@ -850,58 +875,66 @@ func (this *LedgerStoreImp) GetBlockByHeight(height uint32) (*types.Block, error
 	return this.GetBlockByHash(blockHash)
 }
 
+//GetBookkeeperState return the bookkeeper state. Wrap function of StateStore.GetBookkeeperState
 func (this *LedgerStoreImp) GetBookkeeperState() (*states.BookkeeperState, error) {
 	return this.stateStore.GetBookkeeperState()
 }
 
+//GetMerkleProof return the block merkle proof. Wrap function of StateStore.GetMerkleProof
 func (this *LedgerStoreImp) GetMerkleProof(proofHeight, rootHeight uint32) ([]common.Uint256, error) {
 	return this.stateStore.GetMerkleProof(proofHeight, rootHeight)
 }
 
+//GetContractState return contract by contract address. Wrap function of StateStore.GetContractState
 func (this *LedgerStoreImp) GetContractState(contractHash common.Address) (*payload.DeployCode, error) {
 	return this.stateStore.GetContractState(contractHash)
 }
 
+//GetStorageItem return the storage value of the key in smart contract. Wrap function of StateStore.GetStorageState
 func (this *LedgerStoreImp) GetStorageItem(key *states.StorageKey) (*states.StorageItem, error) {
 	return this.stateStore.GetStorageState(key)
 }
 
+//GetEventNotifyByTx return the events notify gen by executing of smart contract.  Wrap function of EventStore.GetEventNotifyByTx
 func (this *LedgerStoreImp) GetEventNotifyByTx(tx common.Uint256) ([]*event.NotifyEventInfo, error) {
 	return this.eventStore.GetEventNotifyByTx(tx)
 }
 
+//GetEventNotifyByBlock return the transaction hash which have event notice after execution of smart contract. Wrap function of EventStore.GetEventNotifyByBlock
 func (this *LedgerStoreImp) GetEventNotifyByBlock(height uint32) ([]common.Uint256, error) {
 	return this.eventStore.GetEventNotifyByBlock(height)
 }
 
+//PreExecuteContract return the result of smart contract execution without commit to store
 func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface{}, error) {
-//	if tx.TxType != types.Invoke {
-//		return nil, fmt.Errorf("transaction type error")
-//	}
-//	invokeCode, ok := tx.Payload.(*payload.InvokeCode)
-//	if !ok {
-//		return nil, fmt.Errorf("transaction type error")
-//	}
-//
-//	stateBatch := this.stateStore.NewStateBatch()
-//
-//	stateMachine := neoservice.NewStateMachine(this, stateBatch, stypes.Application, 0)
-//	se := neovm.NewExecutionEngine(tx, new(neovm.ECDsaCrypto), &CacheCodeTable{stateBatch}, stateMachine)
-//	se.LoadCode(invokeCode.Code.Code, false)
-//	err := se.Execute()
-//	if err != nil {
-//		return nil, err
-//	}
-//	if se.GetEvaluationStackCount() == 0 {
-//		return nil, err
-//	}
-//	if neovm.Peek(se).GetStackItem() == nil {
-//		return nil, err
-//	}
-//	return scommon.ConvertReturnTypes(neovm.Peek(se).GetStackItem()), nil
+	//	if tx.TxType != types.Invoke {
+	//		return nil, fmt.Errorf("transaction type error")
+	//	}
+	//	invokeCode, ok := tx.Payload.(*payload.InvokeCode)
+	//	if !ok {
+	//		return nil, fmt.Errorf("transaction type error")
+	//	}
+	//
+	//	stateBatch := this.stateStore.NewStateBatch()
+	//
+	//	stateMachine := neoservice.NewStateMachine(this, stateBatch, stypes.Application, 0)
+	//	se := neovm.NewExecutionEngine(tx, new(neovm.ECDsaCrypto), &CacheCodeTable{stateBatch}, stateMachine)
+	//	se.LoadCode(invokeCode.Code.Code, false)
+	//	err := se.Execute()
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	if se.GetEvaluationStackCount() == 0 {
+	//		return nil, err
+	//	}
+	//	if neovm.Peek(se).GetStackItem() == nil {
+	//		return nil, err
+	//	}
+	//	return scommon.ConvertReturnTypes(neovm.Peek(se).GetStackItem()), nil
 	return nil, nil
 }
 
+//Close ledger store.
 func (this *LedgerStoreImp) Close() error {
 	close(this.exitCh)
 	err := this.blockStore.Close()
