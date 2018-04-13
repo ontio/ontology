@@ -164,13 +164,17 @@ func (this *SmartContract) AppCall(address common.Address, method string, codes,
 		temp = append(args, build.ToArray()...)
 		code = append(temp, c...)
 	case stypes.WASMVM:
+		tmpcode, err := this.loadCode(address, codes)
+		if err != nil {
+			return nil, err
+		}
 		bf := new(bytes.Buffer)
 		c := states.Contract{
 			Version:1, //fix to > 0
 			Address: address,
 			Method: method,
 			Args: args,
-			Code:codes,
+			Code:tmpcode,
 		}
 		if err := c.Serialize(bf); err != nil {
 			return nil, err
