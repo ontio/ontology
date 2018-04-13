@@ -42,10 +42,9 @@ type Configuration struct {
 	SeedList          []string         `json:"SeedList"`
 	Bookkeepers       []string         `json:"Bookkeepers"` // The default book keepers' publickey
 	HttpRestPort      int              `json:"HttpRestPort"`
-	RestCertPath      string           `json:"RestCertPath"`
-	RestKeyPath       string           `json:"RestKeyPath"`
+	HttpCertPath      string           `json:"HttpCertPath"`
+	HttpKeyPath       string           `json:"HttpKeyPath"`
 	HttpInfoPort      uint16           `json:"HttpInfoPort"`
-	HttpInfoStart     bool             `json:"HttpInfoStart"`
 	HttpWsPort        int              `json:"HttpWsPort"`
 	HttpJsonPort      int              `json:"HttpJsonPort"`
 	HttpLocalPort     int              `json:"HttpLocalPort"`

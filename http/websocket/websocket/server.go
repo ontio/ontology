@@ -390,8 +390,8 @@ func (self *WsServer) BroadcastToSubscribers(sub int, resp map[string]interface{
 
 func (self *WsServer) initTlsListen() (net.Listener, error) {
 
-	certPath := cfg.Parameters.RestCertPath
-	keyPath := cfg.Parameters.RestKeyPath
+	certPath := cfg.Parameters.HttpCertPath
+	keyPath := cfg.Parameters.HttpKeyPath
 
 	// load cert
 	cert, err := tls.LoadX509KeyPair(certPath, keyPath)

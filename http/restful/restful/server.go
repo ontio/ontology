@@ -295,8 +295,8 @@ func (this *restServer) Restart(cmd map[string]interface{}) map[string]interface
 }
 func (this *restServer) initTlsListen() (net.Listener, error) {
 
-	certPath := cfg.Parameters.RestCertPath
-	keyPath := cfg.Parameters.RestKeyPath
+	certPath := cfg.Parameters.HttpCertPath
+	keyPath := cfg.Parameters.HttpKeyPath
 
 	// load cert
 	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
