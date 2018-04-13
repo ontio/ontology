@@ -45,7 +45,6 @@ type Configuration struct {
 	HttpCertPath      string           `json:"HttpCertPath"`
 	HttpKeyPath       string           `json:"HttpKeyPath"`
 	HttpInfoPort      uint16           `json:"HttpInfoPort"`
-	HttpInfoStart     bool             `json:"HttpInfoStart"`
 	HttpWsPort        int              `json:"HttpWsPort"`
 	HttpJsonPort      int              `json:"HttpJsonPort"`
 	HttpLocalPort     int              `json:"HttpLocalPort"`

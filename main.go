@@ -169,7 +169,7 @@ func main() {
 	log.Info("--Start the RPC interface")
 	go jsonrpc.StartRPCServer()
 	go websocket.StartServer()
-	if config.Parameters.HttpInfoStart {
+	if config.Parameters.HttpInfoPort >0 {
 		go nodeinfo.StartServer(noder)
 	}
 
