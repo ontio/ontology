@@ -7,7 +7,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/store"
-	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/context"
@@ -30,23 +29,18 @@ type WasmVmService struct {
 	Time          uint32
 }
 
-func NewWasmVmService(store store.LedgerStore,
-	dbCache scommon.StateStore,
-	tx *types.Transaction,
-	time uint32,
-	ctxRef context.ContextRef) *WasmVmService {
+func NewWasmVmService(store store.LedgerStore, cache *storage.CloneCache, tx *types.Transaction,
+time uint32, ctxRef context.ContextRef) *WasmVmService {
 	var service WasmVmService
 	service.Store = store
-	service.CloneCache = storage.NewCloneCache(dbCache)
+	service.CloneCache = cache
 	service.Time = time
 	service.Tx = tx
 	service.ContextRef = ctxRef
 	return &service
 }
 
-// Invoke
-// invoke wasm vm contract
-func (this *WasmVmService) Invoke() ([]byte, error) {
+func (this *WasmVmService) Invoke() (interface{}, error) {
 	stateMachine := NewWasmStateMachine(this.Store, this.CloneCache, this.Time)
 	//register the "CallContract" function
 	stateMachine.Register("CallContract", this.callContract)
@@ -62,6 +56,7 @@ func (this *WasmVmService) Invoke() ([]byte, error) {
 	contract := &states.Contract{}
 	contract.Deserialize(bytes.NewBuffer(ctx.Code.Code))
 	addr := contract.Address
+
 	if contract.Code == nil {
 		dpcode, err := this.GetContractCodeFromAddress(addr)
 		if err != nil {
@@ -69,6 +64,7 @@ func (this *WasmVmService) Invoke() ([]byte, error) {
 		}
 		contract.Code = dpcode
 	}
+
 	var caller common.Address
 	if this.ContextRef.CallingContext() == nil {
 		caller = common.Address{}
@@ -76,6 +72,7 @@ func (this *WasmVmService) Invoke() ([]byte, error) {
 		caller = this.ContextRef.CallingContext().ContractAddress
 	}
 	res, err := engine.Call(caller, contract.Code, contract.Method, contract.Args, contract.Version)
+
 	if err != nil {
 		return nil, err
 	}
