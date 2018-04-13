@@ -114,17 +114,10 @@ func (this *SmartContract) Execute() ([]byte, error) {
 		}
 	case stypes.NEOVM:
 		service := neovm.NewNeoVmService(this.Config.Store, this.Config.DBCache, this.Config.Tx, this.Config.Time, this)
-		if err := service.Invoke(); err != nil {
-			//fmt.Println("execute neovm error:", err)
-			return nil, err
-		}
+		return service.Invoke()
 	case stypes.WASMVM:
 		service := wasmvm.NewWasmVmService(this.Config.Store, this.Config.DBCache, this.Config.Tx, this.Config.Time, this)
-		result, err := service.Invoke()
-		if err != nil {
-			return nil, err
-		}
-		return result, nil
+		return service.Invoke()
 	}
 	return nil, nil
 }
