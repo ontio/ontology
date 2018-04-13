@@ -25,9 +25,9 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology-crypto/keypair"
 )
 
 type Header struct {
@@ -131,20 +131,17 @@ func (bd *Header) Deserialize(r io.Reader) error {
 }
 
 func (bd *Header) DeserializeUnsigned(r io.Reader) error {
-	//Version
-	temp, err := serialization.ReadUint32(r)
+	var err error
+	bd.Version, err = serialization.ReadUint32(r)
 	if err != nil {
 		return fmt.Errorf("Header item Version Deserialize failed: %s", err)
 	}
-	bd.Version = temp
 
-	//PrevBlockHash
 	err = bd.PrevBlockHash.Deserialize(r)
 	if err != nil {
 		return fmt.Errorf("Header item preBlock Deserialize failed: %s", err)
 	}
 
-	//TransactionsRoot
 	err = bd.TransactionsRoot.Deserialize(r)
 	if err != nil {
 		return err
@@ -155,18 +152,21 @@ func (bd *Header) DeserializeUnsigned(r io.Reader) error {
 		return err
 	}
 
-	//Timestamp
-	temp, _ = serialization.ReadUint32(r)
-	bd.Timestamp = uint32(temp)
+	bd.Timestamp, err = serialization.ReadUint32(r)
+	if err != nil {
+		return err
+	}
 
-	//Height
-	temp, _ = serialization.ReadUint32(r)
-	bd.Height = uint32(temp)
+	bd.Height, err = serialization.ReadUint32(r)
+	if err != nil {
+		return err
+	}
 
-	//consensusData
-	bd.ConsensusData, _ = serialization.ReadUint64(r)
+	bd.ConsensusData, err = serialization.ReadUint64(r)
+	if err != nil {
+		return err
+	}
 
-	//NextBookkeeper
 	err = bd.NextBookkeeper.Deserialize(r)
 
 	return err
