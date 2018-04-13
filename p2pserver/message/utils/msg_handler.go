@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/types"
 	actor "github.com/ontio/ontology/p2pserver/actor/req"
@@ -60,7 +61,7 @@ func AddrReqHandle(data msgCommon.MsgPayload, p2p p2p.P2P) error {
 	if err != nil {
 		return err
 	}
-	remotePeer.SendToSync(buf)
+	p2p.Send(remotePeer, buf, false)
 	return nil
 }
 
@@ -88,7 +89,7 @@ func HeadersReqHandle(data msgCommon.MsgPayload, p2p p2p.P2P) error {
 		return err
 	}
 	remotePeer := p2p.GetPeer(data.Id)
-	remotePeer.SendToSync(buf)
+	p2p.Send(remotePeer, buf, false)
 	return nil
 }
 
@@ -116,7 +117,7 @@ func BlocksReqHandle(data msgCommon.MsgPayload, p2p p2p.P2P) error {
 		return err
 	}
 	remotePeer := p2p.GetPeer(data.Id)
-	remotePeer.SendToSync(buf)
+	p2p.Send(remotePeer, buf, false)
 	return nil
 }
 
@@ -143,7 +144,7 @@ func PingHandle(data msgCommon.MsgPayload, p2p p2p.P2P) error {
 	if err != nil {
 		log.Error("failed build a new pong message")
 	} else {
-		remotePeer.SendToSync(buf)
+		p2p.Send(remotePeer, buf, false)
 	}
 	return err
 }
@@ -253,6 +254,10 @@ func VersionHandle(data msgCommon.MsgPayload, p2p p2p.P2P) error {
 	version.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
 
 	if version.P.IsConsensus == true {
+		if config.Parameters.DualPortSurpport == false {
+			log.Warn("consensus port not surpport")
+			return errors.New("consensus port not surpport")
+		}
 		remotePeer := p2p.GetPeerFromAddr(data.Addr)
 
 		if remotePeer == nil {
@@ -301,7 +306,7 @@ func VersionHandle(data msgCommon.MsgPayload, p2p p2p.P2P) error {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKED)
 			buf, _ = msgpack.NewVerAck(true)
 		}
-		remotePeer.SendToCons(buf)
+		p2p.Send(remotePeer, buf, true)
 		return nil
 	} else {
 		remotePeer := p2p.GetPeerFromAddr(data.Addr)
@@ -363,7 +368,7 @@ func VersionHandle(data msgCommon.MsgPayload, p2p p2p.P2P) error {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKED)
 			buf, _ = msgpack.NewVerAck(false)
 		}
-		remotePeer.SendToSync(buf)
+		p2p.Send(remotePeer, buf, false)
 		return nil
 	}
 	return nil
@@ -391,6 +396,10 @@ func VerAckHandle(data msgCommon.MsgPayload, p2p p2p.P2P) error {
 	}
 
 	if verAck.IsConsensus == true {
+		if config.Parameters.DualPortSurpport == false {
+			log.Warn("consensus port not surpport")
+			return errors.New("consensus port not surpport")
+		}
 		s := remotePeer.GetConsState()
 		if s != msgCommon.HAND_SHAKE && s != msgCommon.HAND_SHAKED {
 			log.Warn("Unknown status to received verAck", s)
@@ -402,7 +411,7 @@ func VerAckHandle(data msgCommon.MsgPayload, p2p p2p.P2P) error {
 
 		if s == msgCommon.HAND_SHAKE {
 			buf, _ := msgpack.NewVerAck(true)
-			remotePeer.SendToCons(buf)
+			p2p.Send(remotePeer, buf, true)
 		}
 		addr := remotePeer.ConsLink.GetAddr()
 		p2p.RemoveFromConnectingList(addr)
@@ -418,16 +427,20 @@ func VerAckHandle(data msgCommon.MsgPayload, p2p p2p.P2P) error {
 
 		if s == msgCommon.HAND_SHAKE {
 			buf, _ := msgpack.NewVerAck(false)
-			remotePeer.SendToSync(buf)
+			p2p.Send(remotePeer, buf, false)
 		}
 
 		remotePeer.DumpInfo()
 
 		buf, _ := msgpack.NewAddrReq()
-		go remotePeer.SendToSync(buf)
+		go p2p.Send(remotePeer, buf, false)
 
 		addr := remotePeer.SyncLink.GetAddr()
 		p2p.RemoveFromConnectingList(addr)
+		//consensus port connect
+		if config.Parameters.DualPortSurpport == false {
+			return nil
+		}
 
 		i := strings.Index(addr, ":")
 		if i < 0 {
@@ -497,7 +510,7 @@ func DataReqHandle(data msgCommon.MsgPayload, p2p p2p.P2P) error {
 			log.Debug("Can't get block by hash: ", hash,
 				" ,send not found message")
 			b, err := msgpack.NewNotFound(hash)
-			remotePeer.SendToSync(b)
+			p2p.Send(remotePeer, b, false)
 			return err
 		}
 		log.Debug("block height is ", block.Header.Height,
@@ -506,7 +519,7 @@ func DataReqHandle(data msgCommon.MsgPayload, p2p p2p.P2P) error {
 		if err != nil {
 			return err
 		}
-		remotePeer.SendToSync(buf)
+		p2p.Send(remotePeer, buf, false)
 
 	case common.TRANSACTION:
 		txn, err := actor.GetTxnFromLedger(hash)
@@ -514,14 +527,14 @@ func DataReqHandle(data msgCommon.MsgPayload, p2p p2p.P2P) error {
 			log.Debug("Can't get transaction by hash: ",
 				hash, " ,send not found message")
 			b, err := msgpack.NewNotFound(hash)
-			remotePeer.SendToSync(b)
+			p2p.Send(remotePeer, b, false)
 			return err
 		}
 		buf, err := msgpack.NewTxn(txn)
 		if err != nil {
 			return err
 		}
-		remotePeer.SendToSync(buf)
+		p2p.Send(remotePeer, buf, false)
 	}
 	return nil
 }
@@ -553,7 +566,7 @@ func InvHandle(data msgCommon.MsgPayload, p2p p2p.P2P) error {
 		trn, err := actor.GetTransaction(id)
 		if trn == nil || err != nil {
 			txnDataReq, _ := msgpack.NewTxnDataReq(id)
-			remotePeer.SendToSync(txnDataReq)
+			p2p.Send(remotePeer, txnDataReq, false)
 		}
 	case common.BLOCK:
 		log.Debug("RX block message")
@@ -569,14 +582,14 @@ func InvHandle(data msgCommon.MsgPayload, p2p p2p.P2P) error {
 				// send the block request
 				log.Infof("inv request block hash: %x", id)
 				blkDataReq, _ := msgpack.NewBlkDataReq(id)
-				remotePeer.SendToSync(blkDataReq)
+				p2p.Send(remotePeer, blkDataReq, false)
 			}
 		}
 	case common.CONSENSUS:
 		log.Debug("RX consensus message")
 		id.Deserialize(bytes.NewReader(inv.P.Blk[:32]))
 		consDataReq, _ := msgpack.NewConsensusDataReq(id)
-		remotePeer.SendToCons(consDataReq)
+		p2p.Send(remotePeer, consDataReq, true)
 	default:
 		log.Warn("RX unknown inventory message")
 	}

@@ -223,6 +223,9 @@ func (n *NetServer) GetMsgChan(isConsensus bool) chan common.MsgPayload {
 //Tx send data buf to peer
 func (n *NetServer) Send(p *peer.Peer, data []byte, isConsensus bool) error {
 	if p != nil {
+		if config.Parameters.DualPortSurpport == false {
+			return p.Send(data, false)
+		}
 		return p.Send(data, isConsensus)
 	}
 	log.Error("send to a invalid peer")
@@ -343,9 +346,13 @@ func (n *NetServer) InitConnection() error {
 	log.Infof("Start listen on sync port %d", syncPort)
 
 	//consensus
-	if consPort == 0 {
+	if config.Parameters.DualPortSurpport == false {
+		log.Info("Dual port mode not supported,keep single link")
+		return nil
+	}
+	if consPort == 0 || consPort == syncPort {
 		//still work
-		log.Error("Consensus Port invalid")
+		log.Error("Consensus Port invalid,keep single link")
 	} else {
 		if isTls {
 			conslistener, err = initTlsListen(consPort)
