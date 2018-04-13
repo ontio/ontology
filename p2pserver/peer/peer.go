@@ -156,41 +156,6 @@ func NewPeer() *Peer {
 	return p
 }
 
-//InitPeer initial all member of given peer
-/*func (p *Peer) InitPeer(pubKey keypair.PublicKey) error {
-	p.version = common.PROTOCOL_VERSION
-	if config.Parameters.NodeType == common.SERVICE_NODE_NAME {
-		p.services = uint64(common.SERVICE_NODE)
-	} else if config.Parameters.NodeType == common.VERIFY_NODE_NAME {
-		p.services = uint64(common.VERIFY_NODE)
-	}
-
-	if config.Parameters.NodeConsensusPort == 0 || config.Parameters.NodePort == 0 ||
-		config.Parameters.NodeConsensusPort == config.Parameters.NodePort {
-		log.Error("Network port invalid, please check config.json")
-		return errors.New("Invalid port")
-	}
-	p.SyncLink.SetPort(config.Parameters.NodePort)
-	p.ConsLink.SetPort(config.Parameters.NodeConsensusPort)
-
-	p.relay = true
-
-	key := keypair.SerializePublicKey(pubKey)
-	err := binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(p.id))
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-	log.Info(fmt.Sprintf("Init peer ID to 0x%x", p.id))
-	//p.Np = &NbrPeers{}
-	//p.Np.init()
-
-	p.publicKey = pubKey
-	p.SyncLink.SetID(p.id)
-	p.ConsLink.SetID(p.id)
-	return nil
-}*/
-
 //rmPeer print a debug log when peer be finalized by system
 func rmPeer(p *Peer) {
 	log.Debug(fmt.Sprintf("Remove unused peer: 0x%0x", p.GetID()))

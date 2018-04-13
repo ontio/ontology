@@ -22,30 +22,36 @@ import (
 	"github.com/ontio/ontology/common/log"
 	msgCommon "github.com/ontio/ontology/p2pserver/common"
 	msgTypes "github.com/ontio/ontology/p2pserver/message/types"
-	_ "github.com/ontio/ontology/p2pserver/peer"
+	"github.com/ontio/ontology/p2pserver/net/protocol"
 )
 
-type MessageHandler func(data msgCommon.MsgPayload, p2p *P2PServer) error
+// MessageHandler defines the unified api for each net message
+type MessageHandler func(data msgCommon.MsgPayload, p2p p2p.P2P) error
 
-func DefaultMsgHandler(data msgCommon.MsgPayload, p2p *P2PServer) error {
+// DefaultMsgHandler defines the default message handler
+func DefaultMsgHandler(data msgCommon.MsgPayload, p2p p2p.P2P) error {
 	return nil
 }
 
+// MessageRouter mostly route different message type-based to the
+// related message handler
 type MessageRouter struct {
-	msgHandlers  map[string]MessageHandler
-	RecvSyncChan chan msgCommon.MsgPayload
-	RecvConsChan chan msgCommon.MsgPayload
-	stopSyncCh   chan bool
-	stopConsCh   chan bool
-	p2p          *P2PServer
+	msgHandlers  map[string]MessageHandler // Msg handler mapped to msg type
+	RecvSyncChan chan msgCommon.MsgPayload // The channel to handle sync msg
+	RecvConsChan chan msgCommon.MsgPayload // The channel to handle consensus msg
+	stopSyncCh   chan bool                 // To stop sync channel
+	stopConsCh   chan bool                 // To stop consensus channel
+	p2p          *P2PServer                // Pointer to the p2p server
 }
 
+// NewMsgRouter returns a message router object
 func NewMsgRouter(p2p *P2PServer) *MessageRouter {
 	msgRouter := &MessageRouter{}
 	msgRouter.init(p2p)
 	return msgRouter
 }
 
+// init initializes the message router's attributes
 func (self *MessageRouter) init(p2p *P2PServer) {
 	self.msgHandlers = make(map[string]MessageHandler)
 	self.RecvSyncChan = p2p.network.GetMsgChan(false)
@@ -55,21 +61,28 @@ func (self *MessageRouter) init(p2p *P2PServer) {
 	self.p2p = p2p
 }
 
-func (self *MessageRouter) RegisterMsgHandler(key string, handler MessageHandler) {
+// RegisterMsgHandler registers msg handler with the msg type
+func (self *MessageRouter) RegisterMsgHandler(key string,
+	handler MessageHandler) {
 	self.msgHandlers[key] = handler
 }
 
+// UnRegisterMsgHandler un-registers the msg handler with
+// the msg type
 func (self *MessageRouter) UnRegisterMsgHandler(key string) {
 	delete(self.msgHandlers, key)
 }
 
+// Start starts the loop to handle the message from the network
 func (self *MessageRouter) Start() {
 	go self.hookChan(self.RecvSyncChan, self.stopSyncCh)
 	go self.hookChan(self.RecvConsChan, self.stopConsCh)
 	log.Info("MessageRouter start to parse p2p message...")
 }
 
-func (self *MessageRouter) hookChan(channel chan msgCommon.MsgPayload, stopCh chan bool) {
+// hookChan loops to handle the message from the network
+func (self *MessageRouter) hookChan(channel chan msgCommon.MsgPayload,
+	stopCh chan bool) {
 	for {
 		select {
 		case data, ok := <-channel:
@@ -82,9 +95,10 @@ func (self *MessageRouter) hookChan(channel chan msgCommon.MsgPayload, stopCh ch
 
 				handler, ok := self.msgHandlers[msgType]
 				if ok {
-					go handler(data, self.p2p)
+					go handler(data, self.p2p.network)
 				} else {
-					log.Info("Unkown message handler for the msg: ", msgType)
+					log.Info("Unkown message handler for the msg: ",
+						msgType)
 				}
 			}
 		case <-stopCh:
@@ -93,6 +107,7 @@ func (self *MessageRouter) hookChan(channel chan msgCommon.MsgPayload, stopCh ch
 	}
 }
 
+// Stop stops the message router's loop
 func (self *MessageRouter) Stop() {
 
 	if self.stopSyncCh != nil {

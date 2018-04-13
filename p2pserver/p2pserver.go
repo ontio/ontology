@@ -198,7 +198,8 @@ func (this *P2PServer) Xmit(message interface{}) error {
 			return err
 		}
 	default:
-		log.Warnf("Unknown Xmit message %v , type %v", message, reflect.TypeOf(message))
+		log.Warnf("Unknown Xmit message %v , type %v", message,
+			reflect.TypeOf(message))
 		return errors.New("Unknown Xmit message type")
 	}
 	this.network.Xmit(buffer, isConsensus)
@@ -206,11 +207,13 @@ func (this *P2PServer) Xmit(message interface{}) error {
 }
 
 //Send tranfer buffer to peer
-func (this *P2PServer) Send(p *peer.Peer, buf []byte, isConsensus bool) error {
+func (this *P2PServer) Send(p *peer.Peer, buf []byte,
+	isConsensus bool) error {
 	if this.network.IsPeerEstablished(p) {
 		return this.network.Send(p, buf, isConsensus)
 	}
-	log.Errorf("P2PServer send to a not ESTABLISH peer 0x%x", p.GetID())
+	log.Errorf("P2PServer send to a not ESTABLISH peer 0x%x",
+		p.GetID())
 	return errors.New("send to a not ESTABLISH peer")
 }
 
@@ -261,7 +264,8 @@ func (this *P2PServer) WaitForSyncBlkFinish() {
 	for {
 		headerHeight, _ := actor.GetCurrentHeaderHeight()
 		currentBlkHeight, _ := actor.GetCurrentBlockHeight()
-		log.Info("WaitForSyncBlkFinish... current block height is ", currentBlkHeight, " ,current header height is ", headerHeight)
+		log.Info("WaitForSyncBlkFinish... current block height is ",
+			currentBlkHeight, " ,current header height is ", headerHeight)
 
 		if this.blockSyncFinished() {
 			break
@@ -296,7 +300,8 @@ func (this *P2PServer) connectSeeds() {
 		for _, tn := range np.List {
 			ipAddr, _ := tn.GetAddr16()
 			ip = ipAddr[:]
-			addrString := ip.To16().String() + ":" + strconv.Itoa(int(tn.GetSyncPort()))
+			addrString := ip.To16().String() + ":" +
+				strconv.Itoa(int(tn.GetSyncPort()))
 			if nodeAddr == addrString {
 				p = tn
 				found = true
@@ -338,7 +343,8 @@ func (this *P2PServer) retryInactivePeer() {
 	for _, p := range np.List {
 		addr, _ := p.GetAddr16()
 		ip = addr[:]
-		nodeAddr := ip.To16().String() + ":" + strconv.Itoa(int(p.GetSyncPort()))
+		nodeAddr := ip.To16().String() + ":" +
+			strconv.Itoa(int(p.GetSyncPort()))
 		if p.GetSyncState() == common.INACTIVITY {
 			log.Infof(" try reconnect %s", nodeAddr)
 			//add addr to retry list
@@ -363,7 +369,8 @@ func (this *P2PServer) retryInactivePeer() {
 			this.RetryAddrs[addr] = this.RetryAddrs[addr] + 1
 			rand.Seed(time.Now().UnixNano())
 			log.Trace("Try to reconnect peer, peer addr is ", addr)
-			<-time.After(time.Duration(rand.Intn(common.CONN_MAX_BACK)) * time.Millisecond)
+			<-time.After(time.Duration(rand.Intn(common.CONN_MAX_BACK)) *
+				time.Millisecond)
 			log.Trace("Back off time`s up, start connect node")
 			this.network.Connect(addr, false)
 			if this.RetryAddrs[addr] < common.MAX_RETRY_COUNT {
@@ -452,7 +459,8 @@ func (this *P2PServer) timeout() {
 	for _, p := range peers {
 		if p.GetSyncState() == common.ESTABLISH {
 			t := p.GetContactTime()
-			if t.Before(time.Now().Add(-1 * time.Second * time.Duration(periodTime) * common.KEEPALIVE_TIMEOUT)) {
+			if t.Before(time.Now().Add(-1 * time.Second *
+				time.Duration(periodTime) * common.KEEPALIVE_TIMEOUT)) {
 				log.Warn("Keep alive timeout!!!")
 				p.SetSyncState(common.INACTIVITY)
 				p.SetConsState(common.INACTIVITY)
