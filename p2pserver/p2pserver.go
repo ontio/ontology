@@ -38,6 +38,7 @@ import (
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	msgtypes "github.com/ontio/ontology/p2pserver/message/types"
+	"github.com/ontio/ontology/p2pserver/message/utils"
 	"github.com/ontio/ontology/p2pserver/net/netserver"
 	p2pnet "github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/p2pserver/peer"
@@ -46,7 +47,7 @@ import (
 //P2PServer control all network activities
 type P2PServer struct {
 	network   p2pnet.P2P
-	msgRouter *MessageRouter
+	msgRouter *utils.MessageRouter
 	ReconnectAddrs
 	flightHeights map[uint64][]uint32
 	quitOnline    chan bool
@@ -66,32 +67,13 @@ func NewServer(acc *account.Account) (*P2PServer, error) {
 	n := netserver.NewNetServer(acc.PubKey())
 
 	p := &P2PServer{
-		//Self:    self,
 		network: n,
 		isSync:  false,
 	}
 
-	p.msgRouter = NewMsgRouter(p)
-
-	// Register message handler
-	p.msgRouter.RegisterMsgHandler(common.VERSION_TYPE, VersionHandle)
-	p.msgRouter.RegisterMsgHandler(common.VERACK_TYPE, VerAckHandle)
-	p.msgRouter.RegisterMsgHandler(common.GetADDR_TYPE, AddrReqHandle)
-	p.msgRouter.RegisterMsgHandler(common.ADDR_TYPE, AddrHandle)
-	p.msgRouter.RegisterMsgHandler(common.PING_TYPE, PingHandle)
-	p.msgRouter.RegisterMsgHandler(common.PONG_TYPE, PongHandle)
-	p.msgRouter.RegisterMsgHandler(common.GET_HEADERS_TYPE, HeadersReqHandle)
-	p.msgRouter.RegisterMsgHandler(common.HEADERS_TYPE, BlkHeaderHandle)
-	p.msgRouter.RegisterMsgHandler(common.GET_BLOCKS_TYPE, BlocksReqHandle)
-	p.msgRouter.RegisterMsgHandler(common.INV_TYPE, InvHandle)
-	p.msgRouter.RegisterMsgHandler(common.GET_DATA_TYPE, DataReqHandle)
-	p.msgRouter.RegisterMsgHandler(common.BLOCK_TYPE, BlockHandle)
-	p.msgRouter.RegisterMsgHandler(common.CONSENSUS_TYPE, ConsensusHandle)
-	p.msgRouter.RegisterMsgHandler(common.NOT_FOUND_TYPE, NotFoundHandle)
-	p.msgRouter.RegisterMsgHandler(common.TX_TYPE, TransactionHandle)
-	p.msgRouter.RegisterMsgHandler(common.DISCONNECT_TYPE, DisconnectHandle)
-
+	p.msgRouter = utils.NewMsgRouter(p.network)
 	p.msgRouter.Start()
+
 	p.flightHeights = make(map[uint64][]uint32)
 	p.quitOnline = make(chan bool)
 	p.quitHeartBeat = make(chan bool)

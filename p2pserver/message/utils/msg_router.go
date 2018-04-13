@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package p2pserver
+package utils
 
 import (
 	"github.com/ontio/ontology/common/log"
@@ -41,24 +41,42 @@ type MessageRouter struct {
 	RecvConsChan chan msgCommon.MsgPayload // The channel to handle consensus msg
 	stopSyncCh   chan bool                 // To stop sync channel
 	stopConsCh   chan bool                 // To stop consensus channel
-	p2p          *P2PServer                // Pointer to the p2p server
+	p2p          p2p.P2P                   // Refer to the p2p network
 }
 
 // NewMsgRouter returns a message router object
-func NewMsgRouter(p2p *P2PServer) *MessageRouter {
+func NewMsgRouter(p2p p2p.P2P) *MessageRouter {
 	msgRouter := &MessageRouter{}
 	msgRouter.init(p2p)
 	return msgRouter
 }
 
 // init initializes the message router's attributes
-func (self *MessageRouter) init(p2p *P2PServer) {
+func (self *MessageRouter) init(p2p p2p.P2P) {
 	self.msgHandlers = make(map[string]MessageHandler)
-	self.RecvSyncChan = p2p.network.GetMsgChan(false)
-	self.RecvConsChan = p2p.network.GetMsgChan(true)
+	self.RecvSyncChan = p2p.GetMsgChan(false)
+	self.RecvConsChan = p2p.GetMsgChan(true)
 	self.stopSyncCh = make(chan bool)
 	self.stopConsCh = make(chan bool)
 	self.p2p = p2p
+
+	// Register message handler
+	self.RegisterMsgHandler(msgCommon.VERSION_TYPE, VersionHandle)
+	self.RegisterMsgHandler(msgCommon.VERACK_TYPE, VerAckHandle)
+	self.RegisterMsgHandler(msgCommon.GetADDR_TYPE, AddrReqHandle)
+	self.RegisterMsgHandler(msgCommon.ADDR_TYPE, AddrHandle)
+	self.RegisterMsgHandler(msgCommon.PING_TYPE, PingHandle)
+	self.RegisterMsgHandler(msgCommon.PONG_TYPE, PongHandle)
+	self.RegisterMsgHandler(msgCommon.GET_HEADERS_TYPE, HeadersReqHandle)
+	self.RegisterMsgHandler(msgCommon.HEADERS_TYPE, BlkHeaderHandle)
+	self.RegisterMsgHandler(msgCommon.GET_BLOCKS_TYPE, BlocksReqHandle)
+	self.RegisterMsgHandler(msgCommon.INV_TYPE, InvHandle)
+	self.RegisterMsgHandler(msgCommon.GET_DATA_TYPE, DataReqHandle)
+	self.RegisterMsgHandler(msgCommon.BLOCK_TYPE, BlockHandle)
+	self.RegisterMsgHandler(msgCommon.CONSENSUS_TYPE, ConsensusHandle)
+	self.RegisterMsgHandler(msgCommon.NOT_FOUND_TYPE, NotFoundHandle)
+	self.RegisterMsgHandler(msgCommon.TX_TYPE, TransactionHandle)
+	self.RegisterMsgHandler(msgCommon.DISCONNECT_TYPE, DisconnectHandle)
 }
 
 // RegisterMsgHandler registers msg handler with the msg type
@@ -95,7 +113,7 @@ func (self *MessageRouter) hookChan(channel chan msgCommon.MsgPayload,
 
 				handler, ok := self.msgHandlers[msgType]
 				if ok {
-					go handler(data, self.p2p.network)
+					go handler(data, self.p2p)
 				} else {
 					log.Info("Unkown message handler for the msg: ",
 						msgType)

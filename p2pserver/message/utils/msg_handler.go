@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package p2pserver
+package utils
 
 import (
 	"bytes"
@@ -40,7 +40,7 @@ import (
 )
 
 // MsgHdrHandle handles the message header
-func MsgHdrHandle(hdr msgTypes.MsgHdr, peer peer.Peer, p2p P2PServer) error {
+func MsgHdrHandle(hdr msgTypes.MsgHdr, peer peer.Peer, p2p p2p.P2P) error {
 	log.Debug("RX MsgHdr message")
 	return nil
 }
