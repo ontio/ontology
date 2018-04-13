@@ -152,7 +152,7 @@ func (this *SmartContract) AppCall(address common.Address, method string, codes,
 		}
 		code = bf.Bytes()
 	case stypes.NEOVM:
-		code, err := this.loadCode(address, codes)
+		c, err := this.loadCode(address, codes)
 		if err != nil {
 			return nil, err
 		}
@@ -162,7 +162,7 @@ func (this *SmartContract) AppCall(address common.Address, method string, codes,
 			build.EmitPushByteArray([]byte(method))
 		}
 		temp = append(args, build.ToArray()...)
-		code = append(temp, code...)
+		code = append(temp, c...)
 	case stypes.WASMVM:
 		bf := new(bytes.Buffer)
 		c := states.Contract{
