@@ -70,3 +70,22 @@ func TestGetCommitMsgs(t *testing.T) {
 	consensusmsgs := msgpool.GetCommitMsgs(uint64(1))
 	t.Logf("TestGetCommitMsgs: %v", len(consensusmsgs))
 }
+
+func TestOnBlockSealed(t *testing.T) {
+	blk, err := constructBlock()
+	if err != nil {
+		t.Errorf("constructBlock failed: %v", err)
+		return
+	}
+	blockproposalmsg := &blockProposalMsg{
+		Block: blk,
+	}
+	server := constructServer()
+	msgpool := newMsgPool(server, uint64(1))
+	t.Logf("TestOnBlockSealed,len:%v", len(msgpool.rounds))
+	if !msgpool.HasMsg(blockproposalmsg) {
+		msgpool.AddMsg(blockproposalmsg)
+		msgpool.onBlockSealed(blockproposalmsg.GetBlockNum())
+		t.Logf("TestOnBlockSealed,len:%v", len(msgpool.rounds))
+	}
+}
