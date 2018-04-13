@@ -612,7 +612,7 @@ func DisconnectHandle(data msgCommon.MsgPayload, p2p p2p.P2P) error {
 		log.Error("Split port error", data.Addr[i+1:])
 		return errors.New("Split port error")
 	}
-
+	p2p.RemoveFromConnectingList(data.Addr)
 	p2p.RemovePeerSyncAddress(data.Addr)
 	p2p.RemovePeerConsAddress(data.Addr)
 

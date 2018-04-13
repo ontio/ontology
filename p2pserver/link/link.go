@@ -21,6 +21,7 @@ package link
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"io"
 	"net"
 	"os"
@@ -198,6 +199,8 @@ DISCONNECT:
 }
 
 func (link *Link) disconnectNotify() {
+	link.CloseConn()
+
 	var m types.MsgCont
 	cmd := common.DISCONNECT_TYPE
 	m.Hdr.Magic = common.NETMAGIC
@@ -223,18 +226,20 @@ func printIPAddr() {
 		}
 	}
 }
-func (link *Link) closeConn() {
-	link.conn.Close()
-}
 
 //close connection
 func (link *Link) CloseConn() {
-	link.closeConn()
+	if link.conn != nil {
+		link.conn.Close()
+		link.conn = nil
+	}
 }
 
 func (link *Link) Tx(buf []byte) error {
 	log.Debugf("TX buf length: %d\n%x", len(buf), buf)
-
+	if link.conn == nil {
+		return errors.New("tx link invalid")
+	}
 	_, err := link.conn.Write(buf)
 	if err != nil {
 		log.Error("Error sending messge to peer node ", err.Error())

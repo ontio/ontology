@@ -247,8 +247,8 @@ func (n *NetServer) Connect(addr string, isConsensus bool) error {
 		return nil
 	}
 	if added := n.AddInConnectingList(addr); added == false {
-		log.Info("node exist in connecting list, cancel")
-		return errors.New("node exist in connecting list, cancel")
+		log.Info("node exist in connecting list", addr)
+		return errors.New("node exist in connecting list")
 	}
 
 	isTls := config.Parameters.IsTLS
