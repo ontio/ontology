@@ -104,7 +104,7 @@ func TestBlockHash(t *testing.T) {
 }
 
 func TestSaveTransaction(t *testing.T) {
-	bookKeepingPayload := &payload.BookKeeping{
+	bookKeepingPayload := &payload.Bookkeeping{
 		Nonce: uint64(time.Now().UnixNano()),
 	}
 	tx := &types.Transaction{
@@ -235,7 +235,7 @@ func TestSaveHeader(t *testing.T) {
 	}
 	tx1 := &types.Transaction{
 		TxType: types.BookKeeping,
-		Payload: &payload.BookKeeping{
+		Payload: &payload.Bookkeeping{
 			Nonce: 123456789,
 		},
 		Attributes: []*types.TxAttribute{},
@@ -310,14 +310,14 @@ func TestBlock(t *testing.T) {
 	}
 	tx1 := &types.Transaction{
 		TxType: types.BookKeeping,
-		Payload: &payload.BookKeeping{
+		Payload: &payload.Bookkeeping{
 			Nonce: 1234567890,
 		},
 		Attributes: []*types.TxAttribute{},
 	}
 	tx2 := &types.Transaction{
 		TxType: types.BookKeeping,
-		Payload: &payload.BookKeeping{
+		Payload: &payload.Bookkeeping{
 			Nonce: 1234567890,
 		},
 		Attributes: []*types.TxAttribute{},
