@@ -47,7 +47,7 @@ func NewVersion(n protocol.Noder) ([]byte, error) {
 	msg.P.Version = n.Version()
 	msg.P.Services = n.Services()
 	msg.P.HttpInfoPort = config.Parameters.HttpInfoPort
-	if config.Parameters.HttpInfoStart {
+	if config.Parameters.HttpInfoPort > 0 {
 		msg.P.Cap[HTTP_INFO_FLAG] = 0x01
 	} else {
 		msg.P.Cap[HTTP_INFO_FLAG] = 0x00
