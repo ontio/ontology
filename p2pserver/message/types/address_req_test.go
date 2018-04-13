@@ -16,19 +16,26 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package common
+package types
 
-type InventoryType byte
-
-const (
-	TRANSACTION InventoryType = 0x01
-	BLOCK       InventoryType = 0x02
-	CONSENSUS   InventoryType = 0xe0
+import (
+	"testing"
 )
 
-//TODO: temp inventory
-type Inventory interface {
-	Hash() Uint256
-	Verify() error
-	Type() InventoryType
+func TestAddrReqSerializationDeserialization(t *testing.T) {
+	var msg AddrReq
+	var sum []byte
+	sum = []byte{0x5d, 0xf6, 0xe0, 0xe2}
+	msg.Hdr.Init("getaddr", sum, 0)
+
+	buf, err := msg.Serialization()
+
+	var demsg AddrReq
+	err = demsg.Deserialization(buf)
+	if err != nil {
+		t.Error(err)
+		return
+	} else {
+		t.Log("getaddr Test_Deserialization sucessful")
+	}
 }

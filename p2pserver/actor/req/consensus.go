@@ -16,19 +16,14 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package common
+package req
 
-type InventoryType byte
-
-const (
-	TRANSACTION InventoryType = 0x01
-	BLOCK       InventoryType = 0x02
-	CONSENSUS   InventoryType = 0xe0
+import (
+	"github.com/ontio/ontology-eventbus/actor"
 )
 
-//TODO: temp inventory
-type Inventory interface {
-	Hash() Uint256
-	Verify() error
-	Type() InventoryType
+var ConsensusPid *actor.PID
+
+func SetConsensusPid(conPid *actor.PID) {
+	ConsensusPid = conPid
 }

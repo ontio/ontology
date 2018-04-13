@@ -16,19 +16,42 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package common
+package types
 
-type InventoryType byte
+import (
+	"bytes"
+	"encoding/binary"
 
-const (
-	TRANSACTION InventoryType = 0x01
-	BLOCK       InventoryType = 0x02
-	CONSENSUS   InventoryType = 0xe0
+	"github.com/ontio/ontology/common/serialization"
 )
 
-//TODO: temp inventory
-type Inventory interface {
-	Hash() Uint256
-	Verify() error
-	Type() InventoryType
+type VerACK struct {
+	MsgHdr
+	IsConsensus bool
+}
+
+//Serialize message payload
+func (msg VerACK) Serialization() ([]byte, error) {
+	hdrBuf, err := msg.MsgHdr.Serialization()
+	if err != nil {
+		return nil, err
+	}
+	buf := bytes.NewBuffer(hdrBuf)
+	err = serialization.WriteBool(buf, msg.IsConsensus)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), err
+}
+
+//Deserialize message payload
+func (msg *VerACK) Deserialization(p []byte) error {
+	buf := bytes.NewBuffer(p)
+	err := binary.Read(buf, binary.LittleEndian, &(msg.MsgHdr))
+	if err != nil {
+		return err
+	}
+
+	msg.IsConsensus, err = serialization.ReadBool(buf)
+	return err
 }
