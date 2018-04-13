@@ -80,7 +80,7 @@ type VoteInfo struct {
 
 func TransPayloadToHex(p types.Payload) PayloadInfo {
 	switch object := p.(type) {
-	case *payload.BookKeeping:
+	case *payload.Bookkeeping:
 		obj := new(BookKeepingInfo)
 		obj.Nonce = object.Nonce
 		return obj

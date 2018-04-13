@@ -246,7 +246,7 @@ func (ds *DbftService) CheckSignatures() error {
 func (ds *DbftService) CreateBookkeepingTransaction(nonce uint64, fee common.Fixed64) *types.Transaction {
 	log.Debug()
 	//TODO: sysfee
-	bookKeepingPayload := &payload.BookKeeping{
+	bookKeepingPayload := &payload.Bookkeeping{
 		Nonce: uint64(time.Now().UnixNano()),
 	}
 	return &types.Transaction{

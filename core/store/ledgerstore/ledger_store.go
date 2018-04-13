@@ -567,10 +567,10 @@ func (this *LedgerStoreImp) verifyBlock(block *types.Block) error {
 	for i := 0; i < size; i++ {
 		tx := txs[i]
 		if i == 0 && tx.TxType != types.BookKeeping {
-			return fmt.Errorf("first transaction type is not BookKeeping")
+			return fmt.Errorf("first transaction type is not Bookkeeping")
 		}
 		if i > 0 && tx.TxType == types.BookKeeping {
-			return fmt.Errorf("too many BookKeeping transaction in block")
+			return fmt.Errorf("too many Bookkeeping transaction in block")
 		}
 	}
 	return nil

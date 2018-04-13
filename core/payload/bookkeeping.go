@@ -25,23 +25,17 @@ import (
 )
 
 // Bookkeeping is an implementation of transaction payload for bookkeeper rewards
-type BookKeeping struct {
+type Bookkeeping struct {
 	Nonce uint64
 }
 
-func (a *BookKeeping) Serialize(w io.Writer) error {
+func (a *Bookkeeping) Serialize(w io.Writer) error {
 	err := serialization.WriteUint64(w, a.Nonce)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
-func (a *BookKeeping) Deserialize(r io.Reader) error {
+func (a *Bookkeeping) Deserialize(r io.Reader) error {
 	var err error
 	a.Nonce, err = serialization.ReadUint64(r)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }

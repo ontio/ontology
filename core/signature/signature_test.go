@@ -15,26 +15,47 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-package types
+package signature
 
 import (
-	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/account"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestAddressFromBookkeepers(t *testing.T) {
-	_, pubKey1, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
-	_, pubKey2, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
-	_, pubKey3, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
-	pubkeys := []keypair.PublicKey{pubKey1, pubKey2, pubKey3}
+func TestSign(t *testing.T) {
+	acc := account.NewAccount("")
+	data := []byte{1, 2, 3}
+	sig, err := Sign(acc, data)
+	assert.Nil(t, err)
 
-	addr, _ := AddressFromBookkeepers(pubkeys)
-	addr2, _ := AddressFromMultiPubKeys(pubkeys, 3)
-	assert.Equal(t, addr, addr2)
+	err = Verify(acc.PublicKey, data, sig)
+	assert.Nil(t, err)
+}
 
-	pubkeys = []keypair.PublicKey{pubKey3, pubKey2, pubKey1}
-	addr3, _ := AddressFromMultiPubKeys(pubkeys, 3)
+func TestVerifyMultiSignature(t *testing.T) {
+	data := []byte{1, 2, 3}
+	accs := make([]*account.Account, 0)
+	pubkeys := make([]keypair.PublicKey, 0)
+	N := 4
+	for i := 0; i < N; i++ {
+		accs = append(accs, account.NewAccount(""))
+	}
+	sigs := make([][]byte, 0)
 
-	assert.Equal(t, addr2, addr3)
+	for _, acc := range accs {
+		sig, _ := Sign(acc, data)
+		sigs = append(sigs, sig)
+		pubkeys = append(pubkeys, acc.PublicKey)
+	}
+
+	err := VerifyMultiSignature(data, pubkeys, N, sigs)
+	assert.Nil(t, err)
+
+	pubkeys[0], pubkeys[1] = pubkeys[1], pubkeys[0]
+	err = VerifyMultiSignature(data, pubkeys, N, sigs)
+	assert.Nil(t, err)
+
 }

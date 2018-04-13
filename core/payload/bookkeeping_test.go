@@ -15,26 +15,27 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-package types
+package payload
 
 import (
-	"github.com/ontio/ontology-crypto/keypair"
+	"bytes"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
-func TestAddressFromBookkeepers(t *testing.T) {
-	_, pubKey1, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
-	_, pubKey2, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
-	_, pubKey3, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
-	pubkeys := []keypair.PublicKey{pubKey1, pubKey2, pubKey3}
+func TestBookkeeping_Serialize(t *testing.T) {
+	bk := Bookkeeping{
+		Nonce: 123,
+	}
 
-	addr, _ := AddressFromBookkeepers(pubkeys)
-	addr2, _ := AddressFromMultiPubKeys(pubkeys, 3)
-	assert.Equal(t, addr, addr2)
+	buf := bytes.NewBuffer(nil)
+	bk.Serialize(buf)
+	bs := buf.Bytes()
+	var bk2 Bookkeeping
+	bk2.Deserialize(buf)
+	assert.Equal(t, bk, bk2)
 
-	pubkeys = []keypair.PublicKey{pubKey3, pubKey2, pubKey1}
-	addr3, _ := AddressFromMultiPubKeys(pubkeys, 3)
-
-	assert.Equal(t, addr2, addr3)
+	buf = bytes.NewBuffer(bs[:len(bs)-1])
+	err := bk2.Deserialize(buf)
+	assert.NotNil(t, err)
 }

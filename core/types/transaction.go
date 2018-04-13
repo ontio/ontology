@@ -164,7 +164,7 @@ const (
 )
 
 var TxName = map[TransactionType]string{
-	BookKeeping:    "BookKeeping",
+	BookKeeping:    "Bookkeeping",
 	IssueAsset:     "IssueAsset",
 	Bookkeeper:     "Bookkeeper",
 	Claim:          "Claim",
@@ -294,7 +294,7 @@ func (tx *Transaction) DeserializeUnsigned(r io.Reader) error {
 	case Invoke:
 		tx.Payload = new(payload.InvokeCode)
 	case BookKeeping:
-		tx.Payload = new(payload.BookKeeping)
+		tx.Payload = new(payload.Bookkeeping)
 	case Deploy:
 		tx.Payload = new(payload.DeployCode)
 	default:

@@ -245,7 +245,7 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 func (self *SoloService) createBookkeepingTransaction(nonce uint64, fee common.Fixed64) *types.Transaction {
 	log.Debug()
 	//TODO: sysfee
-	bookKeepingPayload := &payload.BookKeeping{
+	bookKeepingPayload := &payload.Bookkeeping{
 		Nonce: uint64(time.Now().UnixNano()),
 	}
 	tx := &types.Transaction{

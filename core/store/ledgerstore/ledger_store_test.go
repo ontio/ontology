@@ -104,7 +104,7 @@ func TestInitLedgerStoreWithGenesisBlock(t *testing.T) {
 	}
 	tx1 := &types.Transaction{
 		TxType: types.BookKeeping,
-		Payload: &payload.BookKeeping{
+		Payload: &payload.Bookkeeping{
 			Nonce: 1234567890,
 		},
 		Attributes: []*types.TxAttribute{},
