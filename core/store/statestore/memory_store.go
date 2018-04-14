@@ -23,6 +23,7 @@ import (
 	"github.com/ontio/ontology/core/store/common"
 )
 
+//MemoryStore implement of
 type MemoryStore struct {
 	memory map[string]*common.StateItem
 }
