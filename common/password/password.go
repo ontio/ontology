@@ -19,7 +19,6 @@
 package password
 
 import (
-	"flag"
 	"fmt"
 	"os"
 
@@ -65,20 +64,9 @@ func GetConfirmedPassword() ([]byte, error) {
 func GetAccountPassword() ([]byte, error) {
 	var passwd []byte
 	var err error
-	if len(os.Args) == 1 {
-		passwd, err = GetPassword()
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		var pstr string
-		flag.StringVar(&pstr, "p", "", "wallet password")
-		flag.Parse()
-		if pstr == "" {
-			fmt.Println("Invaild parameter, use '-p <password>' to specify a not nil wallet password.")
-			os.Exit(1)
-		}
-		passwd = []byte(pstr)
+	passwd, err = GetPassword()
+	if err != nil {
+		return nil, err
 	}
 
 	return passwd, nil

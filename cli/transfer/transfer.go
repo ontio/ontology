@@ -29,6 +29,7 @@ import (
 
 	"github.com/urfave/cli"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	clicommon "github.com/ontio/ontology/cli/common"
 	"github.com/ontio/ontology/common"
@@ -36,10 +37,9 @@ import (
 	ctypes "github.com/ontio/ontology/core/types"
 	cutils "github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/http/base/rpc"
-	"github.com/ontio/ontology/smartcontract/states"
 	nstates "github.com/ontio/ontology/smartcontract/service/native/states"
+	"github.com/ontio/ontology/smartcontract/states"
 	vmtypes "github.com/ontio/ontology/smartcontract/types"
-	"github.com/ontio/ontology-crypto/keypair"
 )
 
 func transferAction(c *cli.Context) error {
