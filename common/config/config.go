@@ -24,6 +24,9 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+
+	"github.com/ontio/ontology/cmd/utils"
+	"github.com/urfave/cli"
 )
 
 const (
@@ -73,12 +76,20 @@ type ConfigFile struct {
 
 var Parameters *Configuration
 
-func init() {
-	file, e := ioutil.ReadFile(DEFAULT_CONFIG_FILE_NAME)
+func Init(ctx *cli.Context) {
+	var file []byte
+	var e error
+	configDir := ctx.GlobalString(utils.ConfigUsedFlag.Name)
+	if "" == configDir {
+		file, e = ioutil.ReadFile(DEFAULT_CONFIG_FILE_NAME)
+	} else {
+		file, e = ioutil.ReadFile(configDir)
+	}
 	if e != nil {
 		log.Fatalf("File error: %v\n", e)
 		os.Exit(1)
 	}
+
 	// Remove the UTF-8 Byte Order Mark
 	file = bytes.TrimPrefix(file, []byte("\xef\xbb\xbf"))
 
