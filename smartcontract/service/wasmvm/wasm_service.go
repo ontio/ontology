@@ -3,7 +3,6 @@ package wasmvm
 import (
 	"bytes"
 	"encoding/binary"
-
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/smartcontract/storage"
 	"github.com/ontio/ontology/smartcontract/context"
@@ -15,6 +14,9 @@ import (
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
 	"github.com/ontio/ontology/vm/wasmvm/util"
+
+	"github.com/ontio/ontology-go-sdk/utils"
+	stype  "github.com/ontio/ontology/smartcontract/types"
 )
 
 type WasmVmService struct {
@@ -55,7 +57,6 @@ func (this *WasmVmService)Invoke() ([]byte,error){
 	contract := &states.Contract{}
 	contract.Deserialize(bytes.NewBuffer(ctx.Code.Code))
 	addr := contract.Address
-
 	if contract.Code == nil{
 		dpcode, err := this.GetContractCodeFromAddress(addr)
 		if err != nil {
@@ -63,7 +64,6 @@ func (this *WasmVmService)Invoke() ([]byte,error){
 		}
 		contract.Code = dpcode
 	}
-
 	var caller common.Address
 	if this.ContextRef.CallingContext() == nil {
 		caller = common.Address{}
@@ -71,7 +71,6 @@ func (this *WasmVmService)Invoke() ([]byte,error){
 		caller = this.ContextRef.CallingContext().ContractAddress
 	}
 	res, err := engine.Call(caller, contract.Code, contract.Method, contract.Args, contract.Version)
-
 	if err != nil {
 		return nil,err
 	}
@@ -81,43 +80,25 @@ func (this *WasmVmService)Invoke() ([]byte,error){
 	if err != nil {
 		return nil,err
 	}
-
 	this.CloneCache.Commit()
 	this.ContextRef.PushNotifications(stateMachine.Notifications)
 	return result,nil
 }
 
+//call contract will need 4 paramters
+//0: contract address / contract code
+//1: method name
+//2: args
+//3: isOffChain  "true" / "false"
 func(this *WasmVmService)callContract(engine *exec.ExecutionEngine)(bool,error){
 
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
-	if len(params) != 3 {
+	if len(params) != 4 {
 		return false, errors.NewErr("[callContract]parameter count error while call readMessage")
 	}
 	contractAddressIdx := params[0]
-	addr, err := vm.GetPointerMemory(contractAddressIdx)
-	if err != nil {
-		return false, errors.NewErr("[callContract]get Contract address failed:" + err.Error())
-	}
-	//the contract codes
-	//contractBytes, err := this.getContractFromAddr(addr)
-	//if err != nil {
-	//	return false, err
-	//}
-
-	addrbytes, err := common.HexToBytes(util.TrimBuffToString(addr))
-	if err != nil {
-		return false, errors.NewErr("[callContract]get contract address error:" + err.Error())
-	}
-	contractAddress, err := common.AddressParseFromBytes(addrbytes)
-	if err != nil {
-		return false, errors.NewErr("[callContract]get contract address error:" + err.Error())
-	}
-
-	//vmcode := stype.VmCode{VmType:stype.WASMVM,Code:contractBytes}
-	//contractAddress := vmcode.AddressFromVmCode()
-
 	methodName, err := vm.GetPointerMemory(params[1])
 	if err != nil {
 		return false, errors.NewErr("[callContract]get Contract methodName failed:" + err.Error())
@@ -127,11 +108,50 @@ func(this *WasmVmService)callContract(engine *exec.ExecutionEngine)(bool,error){
 	if err != nil {
 		return false, errors.NewErr("[callContract]get Contract arg failed:" + err.Error())
 	}
-	//todo get result from AppCall
-	//res := 0
-	result ,err := this.ContextRef.AppCall(contractAddress,util.TrimBuffToString(methodName),nil,arg)
+
+
+	isoffchain,err := vm.GetPointerMemory(params[3])
 	if err != nil {
-		return false, errors.NewErr("[callContract]AppCall failed:" + err.Error())
+		return false, errors.NewErr("[callContract]get Contract methodName failed:" + err.Error())
+	}
+
+	var result []byte
+	if util.TrimBuffToString(isoffchain) == "false" {
+
+		addr, err := vm.GetPointerMemory(contractAddressIdx)
+		if err != nil {
+			return false, errors.NewErr("[callContract]get Contract address failed:" + err.Error())
+		}
+		addrbytes, err := common.HexToBytes(util.TrimBuffToString(addr))
+		if err != nil {
+			return false, errors.NewErr("[callContract]get contract address error:" + err.Error())
+		}
+		contractAddress, err := common.AddressParseFromBytes(addrbytes)
+		if err != nil {
+			return false, errors.NewErr("[callContract]get contract address error:" + err.Error())
+		}
+
+		result ,err = this.ContextRef.AppCall(contractAddress,util.TrimBuffToString(methodName),nil,arg)
+		if err != nil {
+			return false, errors.NewErr("[callContract]AppCall failed:" + err.Error())
+		}
+	}else{
+		offchainContractCode, err := vm.GetPointerMemory(contractAddressIdx)
+		if err != nil {
+			return false, errors.NewErr("[callContract]get Contract address failed:" + err.Error())
+		}
+
+		codestring := util.TrimBuffToString(offchainContractCode)
+		codeAddress := utils.GetContractAddress(codestring,stype.WASMVM)
+
+		contractBytes,err := common.HexToBytes(util.TrimBuffToString(offchainContractCode))
+		if err != nil {
+			 return false ,err
+		}
+		result ,err = this.ContextRef.AppCall(codeAddress,util.TrimBuffToString(methodName),contractBytes,arg)
+		if err != nil {
+			return false, errors.NewErr("[callContract]AppCall failed:" + err.Error())
+		}
 	}
 
 	vm.RestoreCtx()
@@ -151,6 +171,10 @@ func (this *WasmVmService) GetContractCodeFromAddress(address common.Address) ([
 	dcode, err := this.Store.GetContractState(address)
 	if err != nil {
 		return nil, err
+	}
+
+	if dcode == nil {
+		return nil,errors.NewErr("[GetContractCodeFromAddress] deployed code is nil")
 	}
 
 	return dcode.Code.Code, nil
