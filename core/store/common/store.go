@@ -49,20 +49,19 @@ type PersistStore interface {
 }
 
 type StateStore interface {
-	TryAdd(prefix DataEntryPrefix, key []byte, value states.StateValue, trie bool)
-	TryGetOrAdd(prefix DataEntryPrefix, key []byte, value states.StateValue, trie bool) error
+	TryAdd(prefix DataEntryPrefix, key []byte, value states.StateValue)
+	TryGetOrAdd(prefix DataEntryPrefix, key []byte, value states.StateValue) error
 	TryGet(prefix DataEntryPrefix, key []byte) (*StateItem, error)
-	TryGetAndChange(prefix DataEntryPrefix, key []byte, trie bool) (states.StateValue, error)
+	TryGetAndChange(prefix DataEntryPrefix, key []byte) (states.StateValue, error)
 	TryDelete(prefix DataEntryPrefix, key []byte)
 	Find(prefix DataEntryPrefix, key []byte) ([]*StateItem, error)
 }
 
 type MemoryCacheStore interface {
-	Put(prefix byte, key []byte, value states.StateValue, state ItemState, trie bool)
+	Put(prefix byte, key []byte, value states.StateValue, state ItemState)
 	Get(prefix byte, key []byte) *StateItem
 	Delete(prefix byte, key []byte)
 	GetChangeSet() map[string]*StateItem
-	Change(prefix byte, key []byte, trie bool)
 }
 
 type EventStore interface {
@@ -84,7 +83,6 @@ type StateItem struct {
 	Key   string
 	Value states.StateValue
 	State ItemState
-	Trie  bool
 }
 
 func (e *StateItem) copy() *StateItem {

@@ -33,12 +33,11 @@ func NewMemDatabase() *MemoryStore {
 	}
 }
 
-func (db *MemoryStore) Put(prefix byte, key []byte, value states.StateValue, state common.ItemState, trie bool) {
+func (db *MemoryStore) Put(prefix byte, key []byte, value states.StateValue, state common.ItemState) {
 	db.memory[string(append([]byte{prefix}, key...))] = &common.StateItem{
 		Key:   string(key),
 		Value: value,
 		State: state,
-		Trie:  trie,
 	}
 }
 
@@ -59,11 +58,6 @@ func (db *MemoryStore) Delete(prefix byte, key []byte) {
 		}
 	}
 
-}
-
-func (db *MemoryStore) Change(prefix byte, key []byte, trie bool) {
-	db.memory[string(append([]byte{prefix}, key...))].State = common.Changed
-	db.memory[string(append([]byte{prefix}, key...))].Trie = trie
 }
 
 func (db *MemoryStore) GetChangeSet() map[string]*common.StateItem {

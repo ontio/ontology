@@ -55,15 +55,15 @@ func (self *StateBatch) Find(prefix common.DataEntryPrefix, key []byte) ([]*comm
 	return states, nil
 }
 
-func (self *StateBatch) TryAdd(prefix common.DataEntryPrefix, key []byte, value states.StateValue, trie bool) {
-	self.setStateObject(byte(prefix), key, value, common.Changed, trie)
+func (self *StateBatch) TryAdd(prefix common.DataEntryPrefix, key []byte, value states.StateValue) {
+	self.setStateObject(byte(prefix), key, value, common.Changed)
 }
 
-func (self *StateBatch) TryGetOrAdd(prefix common.DataEntryPrefix, key []byte, value states.StateValue, trie bool) error {
+func (self *StateBatch) TryGetOrAdd(prefix common.DataEntryPrefix, key []byte, value states.StateValue) error {
 	state := self.memoryStore.Get(byte(prefix), key)
 	if state != nil {
 		if state.State == common.Deleted {
-			self.setStateObject(byte(prefix), key, value, common.Changed, trie)
+			self.setStateObject(byte(prefix), key, value, common.Changed)
 			return nil
 		}
 		return nil
@@ -75,7 +75,7 @@ func (self *StateBatch) TryGetOrAdd(prefix common.DataEntryPrefix, key []byte, v
 	if item != nil {
 		return nil
 	}
-	self.setStateObject(byte(prefix), key, value, common.Changed, trie)
+	self.setStateObject(byte(prefix), key, value, common.Changed)
 	return nil
 }
 
@@ -99,11 +99,11 @@ func (self *StateBatch) TryGet(prefix common.DataEntryPrefix, key []byte) (*comm
 	if err != nil {
 		return nil, err
 	}
-	self.setStateObject(byte(prefix), key, stateVal, common.None, false)
+	self.setStateObject(byte(prefix), key, stateVal, common.None)
 	return &common.StateItem{Key: string(append([]byte{byte(prefix)}, key...)), Value: stateVal, State: common.None}, nil
 }
 
-func (self *StateBatch) TryGetAndChange(prefix common.DataEntryPrefix, key []byte, trie bool) (states.StateValue, error) {
+func (self *StateBatch) TryGetAndChange(prefix common.DataEntryPrefix, key []byte) (states.StateValue, error) {
 	state := self.memoryStore.Get(byte(prefix), key)
 	if state != nil {
 		if state.State == common.Deleted {
@@ -127,7 +127,7 @@ func (self *StateBatch) TryGetAndChange(prefix common.DataEntryPrefix, key []byt
 	if err != nil {
 		return nil, err
 	}
-	self.setStateObject(byte(prefix), key, val, common.Changed, trie)
+	self.setStateObject(byte(prefix), key, val, common.Changed)
 	return val, nil
 }
 
@@ -151,12 +151,8 @@ func (self *StateBatch) CommitTo() error {
 	return nil
 }
 
-func (this *StateBatch) Change(prefix byte, key []byte, trie bool) {
-	this.memoryStore.Change(prefix, key, trie)
-}
-
-func (self *StateBatch) setStateObject(prefix byte, key []byte, value states.StateValue, state common.ItemState, trie bool) {
-	self.memoryStore.Put(prefix, key, value, state, trie)
+func (self *StateBatch) setStateObject(prefix byte, key []byte, value states.StateValue, state common.ItemState) {
+	self.memoryStore.Put(prefix, key, value, state)
 }
 
 func getStateObject(prefix common.DataEntryPrefix, enc []byte) (states.StateValue, error) {

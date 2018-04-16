@@ -54,7 +54,7 @@ func (cloneCache *CloneCache) Commit() {
 		if v.State == common.Deleted {
 			cloneCache.Store.TryDelete(v.Prefix, []byte(v.Key))
 		} else if v.State == common.Changed {
-			cloneCache.Store.TryAdd(v.Prefix, []byte(v.Key), v.Value, true)
+			cloneCache.Store.TryAdd(v.Prefix, []byte(v.Key), v.Value)
 		}
 	}
 }
