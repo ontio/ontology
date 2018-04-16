@@ -319,15 +319,12 @@ func readInt64Param(engine *ExecutionEngine) (bool, error) {
 	if len(params) != 1 {
 		return false, errors.New("parameter count error while call readInt64Param")
 	}
-
 	addr := params[0]
 	paramBytes, err := engine.vm.GetPointerMemory(addr)
 	if err != nil {
 		return false, err
 	}
-
 	pidx := engine.vm.memory.ParamIndex
-
 	if pidx+8 > len(paramBytes) {
 		return false, errors.New("read params error")
 	}
@@ -356,7 +353,6 @@ func readStringParam(engine *ExecutionEngine) (bool, error) {
 		return false, err
 	}
 	var length int
-
 	pidx := engine.vm.memory.ParamIndex
 	switch paramBytes[pidx] {
 	case 0xfd: //uint16
