@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"math/big"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/store"
@@ -17,7 +18,8 @@ import (
 	vmtypes "github.com/ontio/ontology/smartcontract/types"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
 	"github.com/ontio/ontology/vm/wasmvm/util"
-	"math/big"
+	vmtype "github.com/ontio/ontology/smartcontract/types"
+	sccommon "github.com/ontio/ontology/smartcontract/common"
 )
 
 type WasmVmService struct {
@@ -38,6 +40,7 @@ time uint32, ctxRef context.ContextRef) *WasmVmService {
 	service.Tx = tx
 	service.ContextRef = ctxRef
 	return &service
+
 }
 
 func (this *WasmVmService) Invoke() (interface{}, error) {
@@ -242,6 +245,9 @@ func (this *WasmVmService) callContract(engine *exec.ExecutionEngine) (bool, err
 
 	vm.RestoreCtx()
 	if envCall.GetReturns() {
+		if contractAddress[0] == byte(vmtype.NEOVM) {
+			result = sccommon.ConvertNeoVmReturnTypes(result)
+		}
 		idx, err := vm.SetPointerMemory(result)
 		if err != nil {
 			return false, errors.NewErr("[callContract]SetPointerMemory failed:" + err.Error())
