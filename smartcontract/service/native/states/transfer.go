@@ -86,6 +86,9 @@ func (this *State) Serialize(w io.Writer) error {
 	if err := this.To.Serialize(w); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[State] Serialize To error!")
 	}
+	if this.Value == nil {
+		this.Value = new(big.Int)
+	}
 	if err := serialization.WriteVarBytes(w, this.Value.Bytes()); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[State] Serialize Value error!")
 	}
