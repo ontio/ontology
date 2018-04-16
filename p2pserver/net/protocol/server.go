@@ -42,7 +42,7 @@ type P2P interface {
 	GetNeighbors() []*peer.Peer
 	GetNeighborAddrs() ([]common.PeerAddr, uint64)
 	GetConnectionCnt() uint32
-	GetNp()
+	GetNp() *peer.NbrPeers
 	GetPeer(uint64) *peer.Peer
 	SetHeight(uint64)
 	IsPeerEstablished(p *peer.Peer) bool
