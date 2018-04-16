@@ -79,7 +79,6 @@ func (s *WasmStateMachine) putstore(engine *exec.ExecutionEngine) (bool, error) 
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
-
 	if len(params) != 2 {
 		return false, errors.NewErr("[putstore] parameter count error")
 	}
@@ -96,7 +95,7 @@ func (s *WasmStateMachine) putstore(engine *exec.ExecutionEngine) (bool, error) 
 	if err != nil {
 		return false, err
 	}
-	k, err := serializeStorageKey(vm.ContractAddress, key)
+	k, err := serializeStorageKey(vm.ContractAddress, []byte(util.TrimBuffToString(key)))
 	if err != nil {
 		return false, err
 	}
@@ -122,7 +121,7 @@ func (s *WasmStateMachine) getstore(engine *exec.ExecutionEngine) (bool, error) 
 	if err != nil {
 		return false, err
 	}
-	k, err := serializeStorageKey(vm.ContractAddress, key)
+	k, err := serializeStorageKey(vm.ContractAddress, []byte(util.TrimBuffToString(key)))
 	if err != nil {
 		return false, err
 	}
@@ -138,7 +137,6 @@ func (s *WasmStateMachine) getstore(engine *exec.ExecutionEngine) (bool, error) 
 		}
 		return true, nil
 	}
-
 	idx, err := vm.SetPointerMemory(item.(*states.StorageItem).Value)
 	if err != nil {
 		return false, err
@@ -166,7 +164,7 @@ func (s *WasmStateMachine) deletestore(engine *exec.ExecutionEngine) (bool, erro
 		return false, err
 	}
 
-	k, err := serializeStorageKey(vm.ContractAddress, key)
+	k, err := serializeStorageKey(vm.ContractAddress, []byte(util.TrimBuffToString(key)))
 	if err != nil {
 		return false, err
 	}
