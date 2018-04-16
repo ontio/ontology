@@ -111,7 +111,7 @@ func (pc *PeerConfig) Serialize(w io.Writer) error {
 	if err := serialization.WriteUint32(w, pc.Index); err != nil {
 		return fmt.Errorf("ChainConfig peer index length serialization failed %s", err)
 	}
-	if err := serialization.WriteVarString(w, pc.ID.String()); err != nil {
+	if err := serialization.WriteString(w, pc.ID.String()); err != nil {
 		return fmt.Errorf("ChainConfig peer ID length serialization failed %s", err)
 	}
 	return nil
@@ -121,7 +121,7 @@ func (pc *PeerConfig) Deserialize(r io.Reader) error {
 	index, _ := serialization.ReadUint32(r)
 	pc.Index = index
 
-	nodeinfo, _ := serialization.ReadVarString(r)
+	nodeinfo, _ := serialization.ReadString(r)
 	nodeid, _ := StringID(nodeinfo)
 	pc.ID = nodeid
 	return nil

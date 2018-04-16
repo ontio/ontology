@@ -27,7 +27,6 @@ import (
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/crypto"
 )
 
 type ConsensusMsgPayload struct {
@@ -140,7 +139,7 @@ func (self *Server) constructHandshakeMsg() (*peerHandshakeMsg, error) {
 		ChainConfig:          self.config,
 	}
 
-	sig, err := SignMsg(self.privateKey, msg)
+	sig, err := SignMsg(self.account, msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign handshake msg: %s", err)
 	}
@@ -162,7 +161,7 @@ func (self *Server) constructHeartbeatMsg() (*peerHeartbeatMsg, error) {
 		ChainConfigView:      self.config.View,
 	}
 
-	sig, err := SignMsg(self.privateKey, msg)
+	sig, err := SignMsg(self.account, msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign heartbeat msg: %s", err)
 	}
@@ -181,7 +180,7 @@ func (self *Server) constructProposalMsg(blkNum uint64, txs []*types.Transaction
 	for _, t := range txs {
 		txHash = append(txHash, t.Hash())
 	}
-	txRoot, err := crypto.ComputeRoot(txHash)
+	txRoot, err := common.ComputeMerkleRoot(txHash)
 	if err != nil {
 		return nil, fmt.Errorf("compute hash root: %s", err)
 	}
@@ -221,13 +220,13 @@ func (self *Server) constructProposalMsg(blkNum uint64, txs []*types.Transaction
 		Block: blk,
 	}
 
-	emptySig, err := SignMsg(self.privateKey, msg)
+	emptySig, err := SignMsg(self.account, msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign empty proposal: %s", err)
 	}
 
 	blk.Block.Transactions = txs
-	sig, err := SignMsg(self.privateKey, msg)
+	sig, err := SignMsg(self.account, msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign proposal: %s", err)
 	}
@@ -248,7 +247,7 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, blkHash comm
 		EndorsedBlockHash: blkHash,
 		EndorseForEmpty:   forEmpty,
 	}
-	sig, err := SignMsg(self.privateKey, msg)
+	sig, err := SignMsg(self.account, msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign endorse msg: %s", err)
 	}
@@ -268,7 +267,7 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, blkHash commo
 		CommitForEmpty:  forEmpty,
 	}
 
-	sig, err := SignMsg(self.privateKey, msg)
+	sig, err := SignMsg(self.account, msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign commit msg: %s", err)
 	}
@@ -280,7 +279,7 @@ func (self *Server) constructBlockFetchMsg(blkNum uint64) (*blockFetchMsg, error
 	msg := &blockFetchMsg{
 		BlockNum: blkNum,
 	}
-	sig, err := SignMsg(self.privateKey, msg)
+	sig, err := SignMsg(self.account, msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign blockfetch msg: %s", err)
 	}
@@ -295,7 +294,7 @@ func (self *Server) constructBlockFetchRespMsg(blkNum uint64, blk *Block, blkHas
 		BlockHash:   blkHash,
 		BlockData:   blk,
 	}
-	sig, err := SignMsg(self.privateKey, msg)
+	sig, err := SignMsg(self.account, msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign blockfetch-rsp msg: %s", err)
 	}
@@ -308,7 +307,7 @@ func (self *Server) constructBlockInfoFetchMsg(startBlkNum uint64) (*BlockInfoFe
 	msg := &BlockInfoFetchMsg{
 		StartBlockNum: startBlkNum,
 	}
-	sig, err := SignMsg(self.privateKey, msg)
+	sig, err := SignMsg(self.account, msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign blockinfo fetch req msg: %s", err)
 	}
@@ -320,7 +319,7 @@ func (self *Server) constructBlockInfoFetchRespMsg(blockInfos []*BlockInfo_) (*B
 	msg := &BlockInfoFetchRespMsg{
 		Blocks: blockInfos,
 	}
-	sig, err := SignMsg(self.privateKey, msg)
+	sig, err := SignMsg(self.account, msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign blockinfo fetch rsp msg: %s", err)
 	}
@@ -332,7 +331,7 @@ func (self *Server) constructProposalFetchMsg(blkNum uint64) (*proposalFetchMsg,
 	msg := &proposalFetchMsg{
 		BlockNum: blkNum,
 	}
-	sig, err := SignMsg(self.privateKey, msg)
+	sig, err := SignMsg(self.account, msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign proposalFetch msg: %s", err)
 	}
