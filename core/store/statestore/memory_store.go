@@ -60,6 +60,14 @@ func (db *MemoryStore) Delete(prefix byte, key []byte) {
 
 }
 
+func (db *MemoryStore) Find() []*common.StateItem {
+	var memory []*common.StateItem
+	for _, v := range db.memory {
+		memory = append(memory, v)
+	}
+	return memory
+}
+
 func (db *MemoryStore) GetChangeSet() map[string]*common.StateItem {
 	m := make(map[string]*common.StateItem)
 	for k, v := range db.memory {
