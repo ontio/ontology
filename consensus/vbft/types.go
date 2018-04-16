@@ -74,6 +74,10 @@ func (blk *Block) Serialize() ([]byte, error) {
 }
 
 func initVbftBlock(block *types.Block) (*Block, error) {
+	if block == nil {
+		return nil, fmt.Errorf("nil block in initVbftBlock")
+	}
+
 	blkInfo := &vconfig.VbftBlockInfo{}
 	if err := json.Unmarshal(block.Header.ConsensusPayload, blkInfo); err != nil {
 		return nil, fmt.Errorf("unmarshal blockInfo: %s", err)
