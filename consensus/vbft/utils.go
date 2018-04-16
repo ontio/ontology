@@ -24,20 +24,20 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/signature"
-	"github.com/ontio/ontology-crypto/keypair"
 )
 
-func SignMsg(sk []byte, msg ConsensusMsg) ([]byte, error) {
+func SignMsg(account *account.Account, msg ConsensusMsg) ([]byte, error) {
 
 	data, err := msg.Serialize()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal msg when signing: %s", err)
 	}
 
-	return crypto.Sign(sk, data)
+	return signature.Sign(account, data)
 }
 
 func HashBlock(blk *Block) (common.Uint256, error) {

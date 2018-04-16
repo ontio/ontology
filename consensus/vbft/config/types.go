@@ -27,7 +27,7 @@ import (
 	"github.com/Ontology/crypto"
 )
 
-const NODE_ID_BITS = 534
+const NODE_ID_BITS = 296
 
 // NodeID is a unique identifier for each node.
 // The node identifier is a marshaled elliptic curve public key.
@@ -54,8 +54,8 @@ func StringID(in string) (NodeID, error) {
 	b, err := hex.DecodeString(strings.TrimPrefix(in, "0x"))
 	if err != nil {
 		return id, err
-	} else if len(b) != len(id) {
-		return id, fmt.Errorf("wrong length, want %d hex chars", len(id)*2)
+	} else if len(b) > len(id) {
+		return id, fmt.Errorf("wrong length, want %d hex chars", len(b)*2)
 	}
 	copy(id[:], b)
 	return id, nil

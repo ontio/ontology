@@ -141,7 +141,7 @@ func genConsensusPayload(configFilename string) ([]byte, error) {
 	for i := 0; i < int(config.K); i++ {
 		nodeId, err := StringID(peers[i].NodeID)
 		if err != nil {
-			log.Errorf("Failed to format NodeID, index: %d", peers[i].Index)
+			log.Errorf("Failed to format NodeID, index: %d: %s", peers[i].Index, err)
 			os.Exit(1)
 		}
 		chainPeers = append(chainPeers, &PeerConfig{

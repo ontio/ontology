@@ -408,7 +408,7 @@ func (pool *BlockPool) newBlockCommitment(msg *blockCommitMsg) error {
 	// check dup-commit
 	for _, c := range candidate.CommitMsgs {
 		if c.Committer == msg.Committer {
-			if c.CommitBlockHash.CompareTo(msg.CommitBlockHash) == 0 {
+			if bytes.Compare(c.CommitBlockHash[:], msg.CommitBlockHash[:]) == 0 {
 				return nil
 			}
 			// one committer, one commit
@@ -502,7 +502,7 @@ func (pool *BlockPool) getSealedBlock(blockNum uint64) (*Block, common.Uint256) 
 	// get from cached candidate blocks
 	c := pool.candidateBlocks[blockNum]
 	if c != nil {
-		if c.SealedBlockHash.CompareTo(common.Uint256{}) != 0 {
+		if bytes.Compare(c.SealedBlockHash[:], common.UINT256_EMPTY[:]) != 0 {
 			return c.SealedBlock, c.SealedBlockHash
 		}
 		log.Errorf("nil hash founded in block pool sealed cache, blk: %d", blockNum)

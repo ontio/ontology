@@ -77,8 +77,6 @@ type Server struct {
 	incrValidator *increment.IncrementValidator
 	pid           *actor.PID
 
-	privateKey keypair.PrivateKey
-
 	// some config
 	msgHistoryDuration uint64
 
@@ -303,10 +301,12 @@ func (self *Server) updateChainConfig() error {
 func (self *Server) start() error {
 	// TODO: load config from chain
 
-	// load private key from node config
-	self.privateKey = self.account.PrivateKey
-
 	// TODO: configurable log
+	selfNodeId, err := vconfig.PubkeyID(&self.account.PublicKey)
+	if err != nil {
+		return fmt.Errorf("faied to get account pubkey: %s", err)
+	}
+	log.Infof("server: %s starting", selfNodeId.String())
 
 	store, err := OpenBlockStore(self.ledger)
 	if err != nil {
@@ -1700,7 +1700,7 @@ func (self *Server) sealBlock(block *Block, empty bool) error {
 	self.blockPool.onBlockSealed(sealedBlkNum)
 
 	_, h := self.blockPool.getSealedBlock(sealedBlkNum)
-	if h.CompareTo(common.Uint256{}) == 0 {
+	if bytes.Compare(h[:], common.UINT256_EMPTY[:]) == 0 {
 		return fmt.Errorf("failed to seal proposal: nil hash")
 	}
 
