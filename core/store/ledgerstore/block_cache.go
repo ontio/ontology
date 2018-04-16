@@ -32,7 +32,7 @@ const (
 )
 
 //Value of transaction cache
-type TransactionCacheaValue struct {
+type TransactionCachedValue struct {
 	Tx     *types.Transaction
 	Height uint32
 }
@@ -82,7 +82,7 @@ func (this *BlockCache) ContainBlock(blockHash common.Uint256) bool {
 //AddTransaction add transaction to block cache
 func (this *BlockCache) AddTransaction(tx *types.Transaction, height uint32) {
 	txHash := tx.Hash()
-	this.transactionCache.Add(string(txHash.ToArray()), &TransactionCacheaValue{
+	this.transactionCache.Add(string(txHash.ToArray()), &TransactionCachedValue{
 		Tx:     tx,
 		Height: height,
 	})
@@ -94,7 +94,7 @@ func (this *BlockCache) GetTransaction(txHash common.Uint256) (*types.Transactio
 	if !ok {
 		return nil, 0
 	}
-	txValue := value.(*TransactionCacheaValue)
+	txValue := value.(*TransactionCachedValue)
 	return txValue.Tx, txValue.Height
 }
 
