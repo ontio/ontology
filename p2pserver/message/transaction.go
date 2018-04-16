@@ -27,8 +27,8 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/net/actor"
-	"github.com/ontio/ontology/net/protocol"
+	"github.com/ontio/ontology/p2pserver/actor"
+	"github.com/ontio/ontology/p2pserver/protocol"
 )
 
 type dataReq struct {

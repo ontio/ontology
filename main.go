@@ -41,8 +41,8 @@ import (
 	"github.com/ontio/ontology/http/nodeinfo"
 	"github.com/ontio/ontology/http/restful"
 	"github.com/ontio/ontology/http/websocket"
-	"github.com/ontio/ontology/net"
-	"github.com/ontio/ontology/net/protocol"
+	"github.com/ontio/ontology/p2pserver"
+	"github.com/ontio/ontology/p2pserver/protocol"
 	"github.com/ontio/ontology/txnpool"
 	tc "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology/validator/statefull"
@@ -131,14 +131,14 @@ func main() {
 
 	log.Info("4. Start the P2P networks")
 
-	net.SetLedgerPid(ledgerPID)
-	net.SetTxnPoolPid(txPoolServer.GetPID(tc.TxActor))
-	noder = net.StartProtocol(acct.PublicKey)
+	p2pserver.SetLedgerPid(ledgerPID)
+	p2pserver.SetTxnPoolPid(txPoolServer.GetPID(tc.TxActor))
+	noder = p2pserver.StartProtocol(acct.PublicKey)
 	if err != nil {
 		log.Fatalf("Net StartProtocol error %s", err)
 		os.Exit(1)
 	}
-	p2pActor, err := net.InitNetServerActor(noder)
+	p2pActor, err := p2pserver.InitNetServerActor(noder)
 	if err != nil {
 		log.Fatalf("Net InitNetServerActor error %s", err)
 		os.Exit(1)
@@ -159,7 +159,7 @@ func main() {
 		log.Info("5. Start Consensus Services")
 		pool := txPoolServer.GetPID(tc.TxPoolActor)
 		consensusService, _ := consensus.NewConsensusService(acct, pool, nil, p2pActor)
-		net.SetConsensusPid(consensusService.GetPID())
+		p2pserver.SetConsensusPid(consensusService.GetPID())
 		go consensusService.Start()
 		time.Sleep(5 * time.Second)
 		hserver.SetConsensusPid(consensusService.GetPID())
@@ -169,7 +169,7 @@ func main() {
 	log.Info("--Start the RPC interface")
 	go jsonrpc.StartRPCServer()
 	go websocket.StartServer()
-	if config.Parameters.HttpInfoPort >0 {
+	if config.Parameters.HttpInfoPort > 0 {
 		go nodeinfo.StartServer(noder)
 	}
 
