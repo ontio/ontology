@@ -20,6 +20,7 @@
     "HttpLocalPort": 20337,
     "NodePort": 20338,
     "NodeConsensusPort": 20339,
+    "DualPortSurpport":true,
     "PrintLevel": 1,
     "IsTLS": false,
     "MaxTransactionInBlock": 60000,
