@@ -30,7 +30,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/signature"
-	"github.com/ontio/ontology/p2pserver/actor"
+	actor "github.com/ontio/ontology/p2pserver/actor/req"
 	"github.com/ontio/ontology/p2pserver/protocol"
 )
 

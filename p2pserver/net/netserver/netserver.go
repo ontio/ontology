@@ -16,35 +16,28 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package p2pserver
+package netserver
 
 import (
 	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology-eventbus/actor"
-	ns "github.com/ontio/ontology/p2pserver/actor/req"
-	"github.com/ontio/ontology/p2pserver/node"
-	"github.com/ontio/ontology/p2pserver/protocol"
+
+	"github.com/ontio/ontology/p2pserver/net/protocol"
+	"github.com/ontio/ontology/p2pserver/peer"
 )
 
-func SetTxnPoolPid(txnPid *actor.PID) {
-	ns.SetTxnPoolPid(txnPid)
+//NewNetServer return the net object in p2p
+func NewNetServer(pubKey keypair.PublicKey) p2p.P2P {
+
+	return nil
 }
 
-func SetConsensusPid(conPid *actor.PID) {
-	ns.SetConsensusPid(conPid)
+//NetServer represent all the actions in net layer
+type NetServer struct {
+	base peer.PeerCom
 }
 
-func SetLedgerPid(conPid *actor.PID) {
-	ns.SetLedgerPid(conPid)
-}
+//init initializes attribute of network server
+func (n *NetServer) init(pubKey keypair.PublicKey) error {
 
-func InitNetServerActor(noder protocol.Noder) (*actor.PID, error) {
-	//netServerPid, err := ns.InitNetServer(noder)
-	return nil, nil
-}
-
-func StartProtocol(pubKey keypair.PublicKey) protocol.Noder {
-	net := node.InitNode(pubKey)
-	net.ConnectSeeds()
-	return net
+	return nil
 }

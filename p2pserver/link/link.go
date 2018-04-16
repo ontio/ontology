@@ -16,35 +16,28 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package p2pserver
+package link
 
 import (
-	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology-eventbus/actor"
-	ns "github.com/ontio/ontology/p2pserver/actor/req"
-	"github.com/ontio/ontology/p2pserver/node"
-	"github.com/ontio/ontology/p2pserver/protocol"
+	"net"
+	"time"
+
+	"github.com/ontio/ontology/p2pserver/common"
 )
 
-func SetTxnPoolPid(txnPid *actor.PID) {
-	ns.SetTxnPoolPid(txnPid)
+// The RX buffer of this node to solve mutliple packets problem
+type RxBuf struct {
+	p   []byte //buffer
+	len int    //patload length in buffer
 }
 
-func SetConsensusPid(conPid *actor.PID) {
-	ns.SetConsensusPid(conPid)
-}
-
-func SetLedgerPid(conPid *actor.PID) {
-	ns.SetLedgerPid(conPid)
-}
-
-func InitNetServerActor(noder protocol.Noder) (*actor.PID, error) {
-	//netServerPid, err := ns.InitNetServer(noder)
-	return nil, nil
-}
-
-func StartProtocol(pubKey keypair.PublicKey) protocol.Noder {
-	net := node.InitNode(pubKey)
-	net.ConnectSeeds()
-	return net
+//Link used to establish
+type Link struct {
+	id       uint64
+	addr     string    // The address of the node
+	conn     net.Conn  // Connect socket with the peer node
+	port     uint16    // The server port of the node
+	rxBuf    RxBuf     // recv buffer
+	time     time.Time // The latest time the node activity
+	recvChan chan common.MsgPayload
 }

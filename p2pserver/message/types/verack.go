@@ -16,35 +16,42 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package p2pserver
+package types
 
 import (
-	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology-eventbus/actor"
-	ns "github.com/ontio/ontology/p2pserver/actor/req"
-	"github.com/ontio/ontology/p2pserver/node"
-	"github.com/ontio/ontology/p2pserver/protocol"
+	"bytes"
+	"encoding/binary"
+
+	"github.com/ontio/ontology/common/serialization"
 )
 
-func SetTxnPoolPid(txnPid *actor.PID) {
-	ns.SetTxnPoolPid(txnPid)
+type VerACK struct {
+	MsgHdr
+	IsConsensus bool
 }
 
-func SetConsensusPid(conPid *actor.PID) {
-	ns.SetConsensusPid(conPid)
+//Serialize message payload
+func (msg VerACK) Serialization() ([]byte, error) {
+	hdrBuf, err := msg.MsgHdr.Serialization()
+	if err != nil {
+		return nil, err
+	}
+	buf := bytes.NewBuffer(hdrBuf)
+	err = serialization.WriteBool(buf, msg.IsConsensus)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), err
 }
 
-func SetLedgerPid(conPid *actor.PID) {
-	ns.SetLedgerPid(conPid)
-}
+//Deserialize message payload
+func (msg *VerACK) Deserialization(p []byte) error {
+	buf := bytes.NewBuffer(p)
+	err := binary.Read(buf, binary.LittleEndian, &(msg.MsgHdr))
+	if err != nil {
+		return err
+	}
 
-func InitNetServerActor(noder protocol.Noder) (*actor.PID, error) {
-	//netServerPid, err := ns.InitNetServer(noder)
-	return nil, nil
-}
-
-func StartProtocol(pubKey keypair.PublicKey) protocol.Noder {
-	net := node.InitNode(pubKey)
-	net.ConnectSeeds()
-	return net
+	msg.IsConsensus, err = serialization.ReadBool(buf)
+	return err
 }
