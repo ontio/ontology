@@ -43,6 +43,7 @@ func NewStateStoreBatch(memoryStore common.MemoryCacheStore, store common.Persis
 func (self *StateBatch) Find(prefix common.DataEntryPrefix, key []byte) ([]*common.StateItem, error) {
 	var states []*common.StateItem
 	iter := self.store.NewIterator(append([]byte{byte(prefix)}, key...))
+	defer iter.Release()
 	for iter.Next() {
 		key := iter.Key()
 		value := iter.Value()
