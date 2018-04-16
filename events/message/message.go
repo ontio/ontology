@@ -21,7 +21,7 @@ package message
 import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/net/protocol"
+	"github.com/ontio/ontology/p2pserver/protocol"
 )
 
 const (

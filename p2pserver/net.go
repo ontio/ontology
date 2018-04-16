@@ -16,29 +16,35 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package node
+package p2pserver
 
 import (
-	"sync"
-
-	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology-eventbus/actor"
+	ns "github.com/ontio/ontology/p2pserver/actor"
+	"github.com/ontio/ontology/p2pserver/node"
+	"github.com/ontio/ontology/p2pserver/protocol"
 )
 
-type idCache struct {
-	sync.RWMutex
-	list map[common.Uint256]bool
+func SetTxnPoolPid(txnPid *actor.PID) {
+	ns.SetTxnPoolPid(txnPid)
 }
 
-func (c *idCache) init() {
+func SetConsensusPid(conPid *actor.PID) {
+	ns.SetConsensusPid(conPid)
 }
 
-func (c *idCache) add() {
+func SetLedgerPid(conPid *actor.PID) {
+	ns.SetLedgerPid(conPid)
 }
 
-func (c *idCache) del() {
+func InitNetServerActor(noder protocol.Noder) (*actor.PID, error) {
+	netServerPid, err := ns.InitNetServer(noder)
+	return netServerPid, err
 }
 
-func (c *idCache) ExistedID(id common.Uint256) bool {
-	// TODO
-	return false
+func StartProtocol(pubKey keypair.PublicKey) protocol.Noder {
+	net := node.InitNode(pubKey)
+	net.ConnectSeeds()
+	return net
 }

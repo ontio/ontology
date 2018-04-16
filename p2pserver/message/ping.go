@@ -25,8 +25,8 @@ import (
 
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/net/actor"
-	"github.com/ontio/ontology/net/protocol"
+	"github.com/ontio/ontology/p2pserver/actor"
+	"github.com/ontio/ontology/p2pserver/protocol"
 )
 
 type ping struct {

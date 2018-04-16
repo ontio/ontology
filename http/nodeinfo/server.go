@@ -25,10 +25,10 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/net/protocol"
-	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/p2pserver/protocol"
 )
 
 type Info struct {

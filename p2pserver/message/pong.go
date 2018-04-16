@@ -22,85 +22,78 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"errors"
 
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/net/protocol"
+	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/p2pserver/actor"
+	"github.com/ontio/ontology/p2pserver/protocol"
 )
 
-type notFound struct {
+type pong struct {
 	msgHdr
-	hash common.Uint256
+	height uint64
 }
 
-func NewNotFound(hash common.Uint256) ([]byte, error) {
-	log.Debug()
-	var msg notFound
-	msg.hash = hash
+func NewPongMsg() ([]byte, error) {
+	var msg pong
 	msg.msgHdr.Magic = protocol.NET_MAGIC
-	cmd := "notfound"
-	copy(msg.msgHdr.CMD[0:len(cmd)], cmd)
+	copy(msg.msgHdr.CMD[0:7], "pong")
+	height, _ := actor.GetCurrentHeaderHeight()
+	msg.height = uint64(height)
 	tmpBuffer := bytes.NewBuffer([]byte{})
-	msg.hash.Serialize(tmpBuffer)
-	p := new(bytes.Buffer)
-	err := binary.Write(p, binary.LittleEndian, tmpBuffer.Bytes())
+	serialization.WriteUint64(tmpBuffer, msg.height)
+	b := new(bytes.Buffer)
+	err := binary.Write(b, binary.LittleEndian, tmpBuffer.Bytes())
 	if err != nil {
-		log.Error("Binary Write failed at new notfound Msg")
+		log.Error("Binary Write failed at new Msg")
 		return nil, err
 	}
-	s := sha256.Sum256(p.Bytes())
+	s := sha256.Sum256(b.Bytes())
 	s2 := s[:]
 	s = sha256.Sum256(s2)
 	buf := bytes.NewBuffer(s[:protocol.CHECKSUM_LEN])
 	binary.Read(buf, binary.LittleEndian, &(msg.msgHdr.Checksum))
-	msg.msgHdr.Length = uint32(len(p.Bytes()))
-	log.Debug("The message payload length is ", msg.msgHdr.Length)
+	msg.msgHdr.Length = uint32(len(b.Bytes()))
 
 	m, err := msg.Serialization()
 	if err != nil {
 		log.Error("Error Convert net message ", err.Error())
 		return nil, err
 	}
-
 	return m, nil
 }
 
-func (msg notFound) Verify(buf []byte) error {
+func (msg pong) Verify(buf []byte) error {
 	err := msg.msgHdr.Verify(buf)
 	return err
 }
 
-func (msg notFound) Serialization() ([]byte, error) {
+func (msg pong) Handle(node protocol.Noder) error {
+	node.SetHeight(msg.height)
+	return nil
+}
+
+func (msg pong) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.msgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	msg.hash.Serialize(buf)
-
+	err = serialization.WriteUint64(buf, msg.height)
+	if err != nil {
+		return nil, err
+	}
 	return buf.Bytes(), err
+
 }
 
-func (msg *notFound) Deserialization(p []byte) error {
+func (msg *pong) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-
 	err := binary.Read(buf, binary.LittleEndian, &(msg.msgHdr))
 	if err != nil {
-		log.Warn("Parse notfound message hdr error")
-		return errors.New("Parse notfound message hdr error")
+		return err
 	}
 
-	err = msg.hash.Deserialize(buf)
-	if err != nil {
-		log.Warn("Parse notfound message error")
-		return errors.New("Parse notfound message error")
-	}
-
+	msg.height, err = serialization.ReadUint64(buf)
 	return err
-}
-
-func (msg notFound) Handle(node protocol.Noder) error {
-	log.Debug("RX notfound message, hash is ", msg.hash)
-	return nil
 }

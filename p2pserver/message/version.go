@@ -8,12 +8,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/net/actor"
-	"github.com/ontio/ontology/net/protocol"
-	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/p2pserver/actor"
+	"github.com/ontio/ontology/p2pserver/protocol"
 )
 
 const (
