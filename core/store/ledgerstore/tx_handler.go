@@ -55,8 +55,7 @@ func (self *StateStore) HandleDeployTransaction(stateBatch *statestore.StateBatc
 	if err := stateBatch.TryGetOrAdd(
 		scommon.ST_CONTRACT,
 		originAddress[:],
-		deploy,
-		false); err != nil {
+		deploy); err != nil {
 		return fmt.Errorf("TryGetOrAdd contract error %s", err)
 	}
 	return nil
@@ -115,6 +114,6 @@ func (self *StateStore) HandleVoteTransaction(stateBatch *statestore.StateBatch,
 	vote := tx.Payload.(*payload.Vote)
 	buf := new(bytes.Buffer)
 	vote.Account.Serialize(buf)
-	stateBatch.TryAdd(scommon.ST_VOTE, buf.Bytes(), &states.VoteState{PublicKeys: vote.PubKeys}, false)
+	stateBatch.TryAdd(scommon.ST_VOTE, buf.Bytes(), &states.VoteState{PublicKeys: vote.PubKeys})
 	return nil
 }
