@@ -21,7 +21,7 @@ package p2pserver
 import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
-	ns "github.com/ontio/ontology/p2pserver/actor"
+	ns "github.com/ontio/ontology/p2pserver/actor/req"
 	"github.com/ontio/ontology/p2pserver/node"
 	"github.com/ontio/ontology/p2pserver/protocol"
 )
@@ -39,8 +39,8 @@ func SetLedgerPid(conPid *actor.PID) {
 }
 
 func InitNetServerActor(noder protocol.Noder) (*actor.PID, error) {
-	netServerPid, err := ns.InitNetServer(noder)
-	return netServerPid, err
+	//netServerPid, err := ns.InitNetServer(noder)
+	return nil, nil
 }
 
 func StartProtocol(pubKey keypair.PublicKey) protocol.Noder {
