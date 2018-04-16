@@ -16,35 +16,14 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package p2pserver
+package req
 
 import (
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
-	ns "github.com/ontio/ontology/p2pserver/actor/req"
-	"github.com/ontio/ontology/p2pserver/node"
-	"github.com/ontio/ontology/p2pserver/protocol"
 )
 
-func SetTxnPoolPid(txnPid *actor.PID) {
-	ns.SetTxnPoolPid(txnPid)
-}
+var ConsensusPid *actor.PID
 
 func SetConsensusPid(conPid *actor.PID) {
-	ns.SetConsensusPid(conPid)
-}
-
-func SetLedgerPid(conPid *actor.PID) {
-	ns.SetLedgerPid(conPid)
-}
-
-func InitNetServerActor(noder protocol.Noder) (*actor.PID, error) {
-	//netServerPid, err := ns.InitNetServer(noder)
-	return nil, nil
-}
-
-func StartProtocol(pubKey keypair.PublicKey) protocol.Noder {
-	net := node.InitNode(pubKey)
-	net.ConnectSeeds()
-	return net
+	ConsensusPid = conPid
 }

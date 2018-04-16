@@ -16,35 +16,36 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package p2pserver
+package types
 
 import (
-	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology-eventbus/actor"
-	ns "github.com/ontio/ontology/p2pserver/actor/req"
-	"github.com/ontio/ontology/p2pserver/node"
-	"github.com/ontio/ontology/p2pserver/protocol"
+	"bytes"
+	"encoding/binary"
 )
 
-func SetTxnPoolPid(txnPid *actor.PID) {
-	ns.SetTxnPoolPid(txnPid)
+type AddrReq struct {
+	Hdr MsgHdr
 }
 
-func SetConsensusPid(conPid *actor.PID) {
-	ns.SetConsensusPid(conPid)
+//Check whether header is correct
+func (msg AddrReq) Verify(buf []byte) error {
+	err := msg.Hdr.Verify(buf)
+	return err
 }
 
-func SetLedgerPid(conPid *actor.PID) {
-	ns.SetLedgerPid(conPid)
+//Serialize message payload
+func (msg AddrReq) Serialization() ([]byte, error) {
+	var buf bytes.Buffer
+	err := binary.Write(&buf, binary.LittleEndian, msg)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), err
 }
 
-func InitNetServerActor(noder protocol.Noder) (*actor.PID, error) {
-	//netServerPid, err := ns.InitNetServer(noder)
-	return nil, nil
-}
-
-func StartProtocol(pubKey keypair.PublicKey) protocol.Noder {
-	net := node.InitNode(pubKey)
-	net.ConnectSeeds()
-	return net
+//Deserialize message payload
+func (msg *AddrReq) Deserialization(p []byte) error {
+	buf := bytes.NewBuffer(p)
+	err := binary.Read(buf, binary.LittleEndian, msg)
+	return err
 }
