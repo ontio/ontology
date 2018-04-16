@@ -126,6 +126,17 @@ func (self *WsServer) registryMethod() {
 
 		sessionId, _ := cmd["SessionId"].(string)
 		sub := self.SubscribeMap[sessionId]
+		resp["Action"] = "heartbeat"
+		resp["Result"] = sub
+		return resp
+	}
+	subscribe := func(cmd map[string]interface{}) map[string]interface{} {
+		resp := rest.ResponsePack(Err.SUCCESS)
+		self.Lock()
+		defer self.Unlock()
+
+		sessionId, _ := cmd["SessionId"].(string)
+		sub := self.SubscribeMap[sessionId]
 		if b, ok := cmd["SubscribeEvent"].(bool); ok {
 			sub.SubscribeEvent = b
 		}
@@ -140,7 +151,7 @@ func (self *WsServer) registryMethod() {
 		}
 		self.SubscribeMap[sessionId] = sub
 
-		resp["Action"] = "heartbeat"
+		resp["Action"] = "subscribe"
 		resp["Result"] = sub
 		return resp
 	}
@@ -164,6 +175,7 @@ func (self *WsServer) registryMethod() {
 		"gettransaction":         {handler: rest.GetTransactionByHash},
 		"sendrawtransaction":     {handler: rest.SendRawTransaction, pushFlag: true},
 		"heartbeat":              {handler: heartbeat},
+		"subscribe":              {handler: subscribe},
 		"getstorage":             {handler: rest.GetStorage},
 		"getmerkleproof":        {handler: rest.GetMerkleProof},
 

@@ -21,7 +21,7 @@ This document describes the Websocket api format for the ws/wss used in the Onch
 | Version | string | version information |
 | Id | int | req Id|
 
-###  heartbeat
+###  1. heartbeat
 if don't send heartbeat, the session expire after 5min
 
 #### Request Example:
@@ -29,11 +29,7 @@ if don't send heartbeat, the session expire after 5min
 ```
 {
     "Action": "heartbeat",
-    "Version": "1.0.0",
-    "SubscribeEvent":false, //optional
-    "SubscribeJsonBlock":false, //optional
-    "SubscribeRawBlock":false, //optional
-    "SubscribeBlockTxHashs":false //optional
+    "Version": "1.0.0"
 }
 ```
 
@@ -54,7 +50,40 @@ if don't send heartbeat, the session expire after 5min
 }
 ```
 
-### 1. Get the generate block time
+###  2. subscribe
+subscribe service
+
+#### Request Example:
+
+```
+{
+    "Action": "subscribe",
+    "Version": "1.0.0",
+    "SubscribeEvent":false, //optional
+    "SubscribeJsonBlock":true, //optional
+    "SubscribeRawBlock":false, //optional
+    "SubscribeBlockTxHashs":false //optional
+}
+```
+
+#### Response example:
+
+```
+{
+    "Action": "subscribe",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": {
+        "SubscribeEvent":false,
+        "SubscribeJsonBlock":true,
+        "SubscribeRawBlock":false,
+        "SubscribeBlockTxHashs":false
+    }
+    "Version": "1.0.0"
+}
+```
+
+### 3. Get the generate block time
 return the time required to create a new block
 
 
@@ -78,7 +107,7 @@ return the time required to create a new block
     "Version": "1.0.0"
 }
 ```
-### 2 Get the number of connected node
+### 4 Get the number of connected node
 
 get the current number of connections for the node
 
@@ -103,7 +132,7 @@ get the current number of connections for the node
     "Version": "1.0.0"
 }
 ```
-### 3 Get transactions by block height
+### 5 Get transactions by block height
 
 return all transaction hash contained in the block corresponding to this height
 
@@ -135,7 +164,7 @@ return all transaction hash contained in the block corresponding to this height
     "Version": "1.0.0"
 }
 ```
-### 4 Get the block by block height
+### 6. Get the block by block height
 
 return block details based on block height
 
@@ -206,7 +235,7 @@ return block details based on block height
     "Version": "1.0.0"
 }
 ```
-### 5 Get block by blockhash
+### 7. Get block by blockhash
 
 return block details based on block hash
 
@@ -278,7 +307,7 @@ return block details based on block hash
 }
 ```
 
-### 6 Get the current block height
+### 8. Get the current block height
 
 return the current block height
 
@@ -305,7 +334,7 @@ return the current block height
 }
 ```
 
-### 7 Get blockhash by block height
+### 9. Get blockhash by block height
 
 return block hash based on block height
 
@@ -332,7 +361,7 @@ return block hash based on block height
 }
 ```
 
-### 8 get transaction by transaction hash
+### 10. get transaction by transaction hash
 
 get transaction details based on transaction hash
 
@@ -381,7 +410,7 @@ get transaction details based on transaction hash
 }
 ```
 
-### 9 send transaction
+### 11. send transaction
 
 send transaction.
 
@@ -408,7 +437,7 @@ send transaction.
 ```
 > Result: txhash
 
-### 10 getStorage
+### 12. getStorage
 
 Returns the stored value according to the contract script hashes and stored key.
 
@@ -433,7 +462,7 @@ Request Example
 ```
 > Result:Returns the stored value according to the contract script hashes and stored key.
 
-### 11 GetBalanceByAddr
+### 13. GetBalanceByAddr
 
 return the balance of base58 account address.
 
@@ -460,7 +489,7 @@ Request Example
     "Version": "1.0.0"
 }
 ```
-### 12 get contractstate
+### 14. get contractstate
 
 According to the contract script hash, query the contract information.
 
@@ -496,7 +525,7 @@ According to the contract script hash, query the contract information.
 }
 ```
 
-#### 13 get smart contract event txhash list by height
+#### 15. get smart contract event txhash list by height
 
 Get a list of transaction hash with smartevent based on height
 
@@ -525,7 +554,7 @@ Get a list of transaction hash with smartevent based on height
 ```
 > Note: result is the txHash list.
 
-### 14 get smart contract event by txhash
+### 16. get smart contract event by txhash
 
 
 #### Request Example:
@@ -557,7 +586,7 @@ Get a list of transaction hash with smartevent based on height
     ]
 }
 ```
-### 15 Get block height by transaction hash
+### 17. Get block height by transaction hash
 get blockheight of txhash
 
 #### Request Example:
@@ -580,7 +609,7 @@ get blockheight of txhash
 ```
 
 
-### 16 getmerkleproof
+### 18. getmerkleproof
 
 get merkle proof
 
