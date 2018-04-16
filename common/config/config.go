@@ -42,8 +42,8 @@ type Configuration struct {
 	SeedList          []string         `json:"SeedList"`
 	Bookkeepers       []string         `json:"Bookkeepers"` // The default book keepers' publickey
 	HttpRestPort      int              `json:"HttpRestPort"`
-	RestCertPath      string           `json:"RestCertPath"`
-	RestKeyPath       string           `json:"RestKeyPath"`
+	HttpCertPath      string           `json:"HttpCertPath"`
+	HttpKeyPath       string           `json:"HttpKeyPath"`
 	HttpInfoPort      uint16           `json:"HttpInfoPort"`
 	HttpInfoStart     bool             `json:"HttpInfoStart"`
 	HttpWsPort        int              `json:"HttpWsPort"`
@@ -52,7 +52,6 @@ type Configuration struct {
 	NodePort          int              `json:"NodePort"`
 	NodeConsensusPort int              `json:"NodeConsensusPort"`
 	NodeType          string           `json:"NodeType"`
-	WebSocketPort     int              `json:"WebSocketPort"`
 	PrintLevel        int              `json:"PrintLevel"`
 	IsTLS             bool             `json:"IsTLS"`
 	CertPath          string           `json:"CertPath"`
@@ -67,8 +66,27 @@ type Configuration struct {
 	SystemFee         map[string]int64 `json:"SystemFee"`
 }
 
-type ConfigFile struct {
+type configFile struct {
 	ConfigFile Configuration `json:"Configuration"`
+}
+
+func newDefaultConfig() *Configuration {
+	return &Configuration{
+		Magic:             12345,
+		Version:           0,
+		HttpRestPort:      20334,
+		HttpWsPort:        20335,
+		HttpJsonPort:      20336,
+		HttpLocalPort:     20337,
+		NodePort:          20338,
+		NodeConsensusPort: 20339,
+		PrintLevel:        1,
+		GenBlockTime:      6,
+		MultiCoreNum:      4,
+		MaxTxInBlock:      5000,
+		ConsensusType:     "solo",
+		SystemFee:         make(map[string]int64),
+	}
 }
 
 var Parameters *Configuration
@@ -76,13 +94,14 @@ var Parameters *Configuration
 func init() {
 	file, e := ioutil.ReadFile(DEFAULT_CONFIG_FILE_NAME)
 	if e != nil {
-		log.Fatalf("File error: %v\n", e)
-		os.Exit(1)
+		log.Printf("[ERROR] %v, use default config\n", DEFAULT_CONFIG_FILE_NAME, e)
+		Parameters = newDefaultConfig()
+		return
 	}
 	// Remove the UTF-8 Byte Order Mark
 	file = bytes.TrimPrefix(file, []byte("\xef\xbb\xbf"))
 
-	config := ConfigFile{}
+	config := configFile{}
 	e = json.Unmarshal(file, &config)
 	if e != nil {
 		log.Fatalf("Unmarshal json file erro %v", e)
