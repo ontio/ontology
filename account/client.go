@@ -442,9 +442,6 @@ func GetClient(ctx *cli.Context) Client {
 		client = Open(WALLET_FILENAME, passwd)
 	}
 
-	if client == nil {
-		return nil
-	}
 	return client
 }
 

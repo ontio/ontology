@@ -40,14 +40,14 @@ import (
 var blockCommandSet = cli.Command{
 	Action:      utils.MigrateFlags(blockInfoCommand),
 	Name:        "block",
-	Usage:       "register asset",
+	Usage:       "./ontology info block [OPTION]",
 	Flags:       append(NodeFlags, InfoFlags...),
 	Category:    "INFO COMMANDS",
 	Description: ``,
 	Subcommands: []cli.Command{
 		{
 			Action:      utils.MigrateFlags(getCurrentBlockHeight),
-			Name:        "height",
+			Name:        "./ontology info block --height=value",
 			Usage:       "issue asset by command",
 			Category:    "INFO COMMANDS",
 			Description: ``,
@@ -76,7 +76,7 @@ var trxCommandSet = cli.Command{
 var versionCommand = cli.Command{
 	Action:      utils.MigrateFlags(versionInfoCommand),
 	Name:        "version",
-	Usage:       "./ontology version",
+	Usage:       "./ontology info version",
 	Category:    "INFO COMMANDS",
 	Description: ``,
 }
@@ -98,6 +98,7 @@ var (
 )
 
 func versionInfoCommand(ctx *cli.Context) error {
+	config.Init(ctx)
 	fmt.Println("Node version: ", config.Parameters.Version)
 	return nil
 }
