@@ -21,10 +21,9 @@ package actor
 import (
 	"reflect"
 
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/net/protocol"
 	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/p2pserver/protocol"
 )
 
 var netServerPid *actor.PID
@@ -94,11 +93,6 @@ type GetNeighborAddrsRsp struct {
 	Count uint64
 }
 
-type TransmitConsensusMsgReq struct {
-	Target *keypair.PublicKey
-	Msg    []byte
-}
-
 func (state *NetServer) Receive(context actor.Context) {
 	switch context.Message().(type) {
 	case *actor.Restarting:
@@ -141,13 +135,6 @@ func (state *NetServer) Receive(context actor.Context) {
 	case *GetNeighborAddrsReq:
 		addrs, count := node.GetNeighborAddrs()
 		context.Sender().Request(&GetNeighborAddrsRsp{Addrs: addrs, Count: count}, context.Self())
-	case *TransmitConsensusMsgReq:
-		req := context.Message().(*TransmitConsensusMsgReq)
-		for _, peer := range node.GetNeighborNoder() {
-			if keypair.ComparePublicKey(*req.Target, peer.GetPubKey()) {
-				peer.Tx(req.Msg)
-			}
-		}
 	default:
 		err := node.Xmit(context.Message())
 		if nil != err {

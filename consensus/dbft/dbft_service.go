@@ -39,7 +39,7 @@ import (
 	"github.com/ontio/ontology/core/vote"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
-	p2pmsg "github.com/ontio/ontology/net/message"
+	p2pmsg "github.com/ontio/ontology/p2pserver/message"
 	"github.com/ontio/ontology/validator/increment"
 )
 
