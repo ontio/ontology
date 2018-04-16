@@ -64,12 +64,16 @@ func NewInteropService() *InteropService {
 	service.Register("arrayLen", arrayLen)
 	service.Register("memcpy", memcpy)
 	service.Register("memset", memset)
+	service.Register("getTempRet0", getTempRet0)
 
 	//todo add basic apis
 	service.Register("Atoi", strToInt)
 	service.Register("Atoi64", strToInt64)
 	service.Register("Itoa", intToString)
 	service.Register("I64toa", int64ToString)
+	service.Register("i64add", int64Add)
+	service.Register("i64Subtract", int64Subtract)
+
 
 	service.Register("ReadInt32Param", readInt32Param)
 	service.Register("ReadInt64Param", readInt64Param)
@@ -263,6 +267,16 @@ func memset(engine *ExecutionEngine) (bool, error) {
 		engine.vm.pushUint64(uint64(1))
 	}
 
+	return true, nil //this return will be dropped in wasm
+}
+
+func getTempRet0(engine *ExecutionEngine) (bool, error) {
+	envCall := engine.vm.envCall
+
+	engine.vm.RestoreCtx()
+	if envCall.envReturns {
+		engine.vm.pushUint64(uint64(0))
+	}
 	return true, nil //this return will be dropped in wasm
 }
 
