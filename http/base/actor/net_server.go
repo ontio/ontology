@@ -25,12 +25,12 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"
 	ac "github.com/ontio/ontology/p2pserver/actor/server"
-	"github.com/ontio/ontology/p2pserver/protocol"
+	"github.com/ontio/ontology/p2pserver/common"
 )
 
 var netServerPid *actor.PID
 
-func SetNetServerPid(actr *actor.PID) {
+func SetNetServerPID(actr *actor.PID) {
 	netServerPid = actr
 }
 
@@ -39,7 +39,7 @@ func Xmit(msg interface{}) error {
 	return nil
 }
 
-func GetConnectionCnt() (uint, error) {
+func GetConnectionCnt() (uint32, error) {
 	future := netServerPid.RequestFuture(&ac.GetConnectionCntReq{}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
@@ -53,7 +53,7 @@ func GetConnectionCnt() (uint, error) {
 	return r.Cnt, nil
 }
 
-func GetNeighborAddrs() ([]protocol.NodeAddr, uint64) {
+func GetNeighborAddrs() ([]common.PeerAddr, uint64) {
 	future := netServerPid.RequestFuture(&ac.GetNeighborAddrsReq{}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
@@ -82,13 +82,13 @@ func GetConnectionState() (uint32, error) {
 }
 
 func GetNodeTime() (int64, error) {
-	future := netServerPid.RequestFuture(&ac.GetNodeTimeReq{}, REQ_TIMEOUT*time.Second)
+	future := netServerPid.RequestFuture(&ac.GetTimeReq{}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ERR_ACTOR_COMM, err)
 		return 0, err
 	}
-	r, ok := result.(*ac.GetNodeTimeRsp)
+	r, ok := result.(*ac.GetTimeRsp)
 	if !ok {
 		return 0, errors.New("fail")
 	}
@@ -96,27 +96,27 @@ func GetNodeTime() (int64, error) {
 }
 
 func GetNodePort() (uint16, error) {
-	future := netServerPid.RequestFuture(&ac.GetNodePortReq{}, REQ_TIMEOUT*time.Second)
+	future := netServerPid.RequestFuture(&ac.GetPortReq{}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ERR_ACTOR_COMM, err)
 		return 0, err
 	}
-	r, ok := result.(*ac.GetNodePortRsp)
+	r, ok := result.(*ac.GetPortRsp)
 	if !ok {
 		return 0, errors.New("fail")
 	}
-	return r.Port, nil
+	return r.SyncPort, nil
 }
 
 func GetID() (uint64, error) {
-	future := netServerPid.RequestFuture(&ac.GetNodeIdReq{}, REQ_TIMEOUT*time.Second)
+	future := netServerPid.RequestFuture(&ac.GetIdReq{}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ERR_ACTOR_COMM, err)
 		return 0, err
 	}
-	r, ok := result.(*ac.GetNodeIdRsp)
+	r, ok := result.(*ac.GetIdRsp)
 	if !ok {
 		return 0, errors.New("fail")
 	}
@@ -138,13 +138,13 @@ func GetRelayState() (bool, error) {
 }
 
 func GetVersion() (uint32, error) {
-	future := netServerPid.RequestFuture(&ac.GetNodeVersionReq{}, REQ_TIMEOUT*time.Second)
+	future := netServerPid.RequestFuture(&ac.GetVersionReq{}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ERR_ACTOR_COMM, err)
 		return 0, err
 	}
-	r, ok := result.(*ac.GetNodeVersionRsp)
+	r, ok := result.(*ac.GetVersionRsp)
 	if !ok {
 		return 0, errors.New("fail")
 	}

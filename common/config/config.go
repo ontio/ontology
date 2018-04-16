@@ -48,8 +48,9 @@ type Configuration struct {
 	HttpWsPort        int              `json:"HttpWsPort"`
 	HttpJsonPort      int              `json:"HttpJsonPort"`
 	HttpLocalPort     int              `json:"HttpLocalPort"`
-	NodePort          int              `json:"NodePort"`
-	NodeConsensusPort int              `json:"NodeConsensusPort"`
+	NodePort          uint16           `json:"NodePort"`
+	NodeConsensusPort uint16           `json:"NodeConsensusPort"`
+	DualPortSurpport  bool             `json:"DualPortSurpport"`
 	NodeType          string           `json:"NodeType"`
 	PrintLevel        int              `json:"PrintLevel"`
 	IsTLS             bool             `json:"IsTLS"`
