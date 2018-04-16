@@ -21,15 +21,16 @@ package statefull
 import (
 	"reflect"
 
+	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/validator/db"
 	vatypes "github.com/ontio/ontology/validator/types"
-	"github.com/ontio/ontology-eventbus/actor"
 )
 
+// Validator is an interface for tx validation actor
 type Validator interface {
 	Register(poolId *actor.PID)
 	UnRegister(poolId *actor.PID)
@@ -42,6 +43,7 @@ type validator struct {
 	bestBlock db.BestBlock
 }
 
+// NewValidator returns Validator for stateful check of tx
 func NewValidator(id string) (Validator, error) {
 
 	validator := &validator{id: id}
