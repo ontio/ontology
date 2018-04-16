@@ -109,7 +109,7 @@ func ContractGetStorageContext(service *NeoVmService, engine *vm.ExecutionEngine
 
 // ContractGetCode put contract to vm stack
 func ContractGetCode(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	vm.PushData(engine, vm.PopInteropInterface(engine).(*payload.DeployCode).Code)
+	vm.PushData(engine, vm.PopInteropInterface(engine).(*payload.DeployCode).Code.Code)
 	return nil
 }
 
