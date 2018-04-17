@@ -30,9 +30,9 @@ import (
 func TestSignMsg(t *testing.T) {
 	passwd := string("passwordtest")
 	acct := account.Open(account.WALLET_FILENAME, []byte(passwd))
-	acc, err := acct.GetDefaultAccount()
-	if err != nil {
-		fmt.Println("GetDefaultAccount error:", err)
+	acc := acct.GetDefaultAccount()
+	if acc == nil {
+		fmt.Println("GetDefaultAccount error: acc is nil")
 		os.Exit(1)
 	}
 	msg, err := constructProposalMsg(acc)
@@ -40,9 +40,9 @@ func TestSignMsg(t *testing.T) {
 		t.Errorf("constructProposalMsg failed: %v", err)
 		return
 	}
-	_, err = SignMsg(acc.PrivateKey, msg)
+	_, err = SignMsg(acc, msg)
 	if err != nil {
-		t.Error("TestSignMsg Failed: %v", err)
+		t.Errorf("TestSignMsg Failed: %v", err)
 		return
 	}
 	t.Log("TestSignMsg succ")

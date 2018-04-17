@@ -29,9 +29,9 @@ import (
 func constructMsg() *blockProposalMsg {
 	passwd := string("passwordtest")
 	acct := account.Open(account.WALLET_FILENAME, []byte(passwd))
-	acc, err := acct.GetDefaultAccount()
-	if err != nil {
-		fmt.Println("GetDefaultAccount error:", err)
+	acc := acct.GetDefaultAccount()
+	if acc == nil {
+		fmt.Println("GetDefaultAccount error: account is nil")
 		os.Exit(1)
 	}
 	msg, err := constructProposalMsg(acc)
