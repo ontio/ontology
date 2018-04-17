@@ -152,7 +152,11 @@ func (self *Syncer) run() {
 				prevHash := blk.getPrevBlockHash()
 				log.Debugf("server %d syncer, sealed block %d, proposer %d, prevhash: %s",
 					self.server.Index, self.nextReqBlkNum, blk.getProposer(), hex.EncodeToString(prevHash.ToArray()[:4]))
-				self.server.fastForwardBlock(blk)
+				if err := self.server.fastForwardBlock(blk); err != nil {
+					log.Errorf("server %d syncer, fastforward block %d failed %s",
+						self.server.incrValidator, self.nextReqBlkNum, err)
+					break
+				}
 				delete(self.pendingBlocks, self.nextReqBlkNum)
 				self.nextReqBlkNum++
 			}
