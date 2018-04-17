@@ -26,6 +26,7 @@ import (
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/syndtr/goleveldb/leveldb"
+	"strings"
 )
 
 type StateBatch struct {
@@ -42,15 +43,25 @@ func NewStateStoreBatch(memoryStore common.MemoryCacheStore, store common.Persis
 
 func (self *StateBatch) Find(prefix common.DataEntryPrefix, key []byte) ([]*common.StateItem, error) {
 	var states []*common.StateItem
-	iter := self.store.NewIterator(append([]byte{byte(prefix)}, key...))
+	bp := []byte{byte(prefix)}
+	iter := self.store.NewIterator(append(bp, key...))
 	for iter.Next() {
 		key := iter.Key()
-		value := iter.Value()
-		state, err := getStateObject(prefix, value)
-		if err != nil {
-			return nil, err
+		keyV := key[1:]
+		if self.memoryStore.Get(byte(prefix), keyV) == nil {
+			value := iter.Value()
+			state, err := getStateObject(prefix, value)
+			if err != nil {
+				return nil, err
+			}
+			states = append(states, &common.StateItem{Key: string(keyV), Value: state})
 		}
-		states = append(states, &common.StateItem{Key: string(key[1:]), Value: state})
+	}
+	keyP := string(append(bp, key...))
+	for _, v := range self.memoryStore.Find() {
+		if v.State != common.Deleted && strings.HasPrefix(v.Key, keyP) {
+			states = append(states, v.Copy())
+		}
 	}
 	return states, nil
 }

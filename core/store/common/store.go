@@ -76,6 +76,8 @@ type MemoryCacheStore interface {
 	Delete(prefix byte, key []byte)
 	//Get all updated key-value set
 	GetChangeSet() map[string]*StateItem
+	// Get all key-value in store
+	Find() []*StateItem
 }
 
 //EventStore save event notify
@@ -108,7 +110,7 @@ type StateItem struct {
 	Trie  bool              //no use
 }
 
-func (e *StateItem) copy() *StateItem {
+func (e *StateItem) Copy() *StateItem {
 	c := *e
 	return &c
 }
