@@ -212,7 +212,7 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 	}
 	index := uint32(height)
 	block, err := bactor.GetBlockByHeight(index)
-	if err != nil {
+	if err != nil || block == nil {
 		return ResponsePack(berr.UNKNOWN_BLOCK)
 	}
 	if getTxBytes {
@@ -392,7 +392,6 @@ func GetStorage(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	log.Info("[GetStorage] ", str, key)
 	value, err := bactor.GetStorageItem(hash, item)
 	if err != nil || value == nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
