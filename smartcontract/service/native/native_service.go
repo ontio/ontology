@@ -72,34 +72,34 @@ func (this *NativeService) Register(methodName string, handler Handler) {
 	this.ServiceMap[methodName] = handler
 }
 
-func (this *NativeService) Invoke() error {
+func (this *NativeService) Invoke() (interface{}, error) {
 	ctx := this.ContextRef.CurrentContext()
 	if ctx == nil {
-		return errors.NewErr("[Invoke] Native service current context doesn't exist!")
+		return false, errors.NewErr("[Invoke] Native service current context doesn't exist!")
 	}
 	bf := bytes.NewBuffer(ctx.Code.Code)
 	contract := new(sstates.Contract)
 	if err := contract.Deserialize(bf); err != nil {
-		return err
+		return false, err
 	}
 	services, ok := Contracts[contract.Address]
 	if !ok {
-		return fmt.Errorf("Native contract address %x haven't been registered.", contract.Address)
+		return false, fmt.Errorf("Native contract address %x haven't been registered.", contract.Address)
 	}
 	services(this)
 	service, ok := this.ServiceMap[contract.Method]
 	if !ok {
-		return fmt.Errorf("Native contract %x doesn't support this function %s.", contract.Address, contract.Method)
+		return false, fmt.Errorf("Native contract %x doesn't support this function %s.", contract.Address, contract.Method)
 	}
 	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address})
 	this.Input = contract.Args
 	if err := service(this); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[Invoke] Native serivce function execute error!")
+		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[Invoke] Native serivce function execute error!")
 	}
 	this.ContextRef.PopContext()
 	this.ContextRef.PushNotifications(this.Notifications)
 	this.CloneCache.Commit()
-	return nil
+	return true, nil
 }
 
 func RegisterOntContract(native *NativeService) {
