@@ -74,6 +74,7 @@ func init() {
 func setupAPP() *cli.App {
 	app := cli.NewApp()
 	app.Action = ontMain
+	app.Version = "0.6.0"
 	app.Copyright = "Copyright in 2018 The Ontology Authors"
 	app.Commands = []cli.Command{
 		cmd.WalletCommand,
@@ -201,7 +202,7 @@ func ontMain(ctx *cli.Context) {
 	log.Info("--Start the RPC interface")
 	go jsonrpc.StartRPCServer()
 	go websocket.StartServer()
-	if config.Parameters.HttpInfoPort >0 {
+	if config.Parameters.HttpInfoPort > 0 {
 		go nodeinfo.StartServer(noder)
 	}
 

@@ -54,7 +54,7 @@ var blockCommandSet = cli.Command{
 var chainCommandSet = cli.Command{
 	Action:      utils.MigrateFlags(chainInfoCommand),
 	Name:        "chain",
-	Usage:       "./ontology info chain [OPTION]",
+	Usage:       "ontology info chain [OPTION]\n",
 	Flags:       append(NodeFlags, InfoFlags...),
 	Category:    "INFO COMMANDS",
 	Description: ``,
@@ -63,7 +63,7 @@ var chainCommandSet = cli.Command{
 var trxCommandSet = cli.Command{
 	Action:      utils.MigrateFlags(trxInfoCommand),
 	Name:        "trx",
-	Usage:       "./ontology info trx [OPTION]",
+	Usage:       "ontology info trx [OPTION]\n",
 	Flags:       append(NodeFlags, InfoFlags...),
 	Category:    "INFO COMMANDS",
 	Description: ``,
@@ -72,7 +72,7 @@ var trxCommandSet = cli.Command{
 var versionCommand = cli.Command{
 	Action:      utils.MigrateFlags(versionInfoCommand),
 	Name:        "version",
-	Usage:       "./ontology info version",
+	Usage:       "ontology info version\n",
 	Category:    "INFO COMMANDS",
 	Description: ``,
 }
@@ -81,7 +81,7 @@ var (
 	InfoCommand = cli.Command{
 		//Action:   utils.MigrateFlags(infoCommand),
 		Name:     "info",
-		Usage:    "show block/chain/transaction info",
+		Usage:    " ontology info [block|chain|transaction|version] [OPTION]\n",
 		Category: "INFO COMMANDS",
 		Subcommands: []cli.Command{
 			blockCommandSet,

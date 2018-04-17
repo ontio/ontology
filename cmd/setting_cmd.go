@@ -34,14 +34,14 @@ import (
 var (
 	SettingCommand = cli.Command{
 		Name:        "set",
-		Usage:       "./ontology set debug/consensus [OPTION]",
+		Usage:       "ontology set [debug|consensus] [OPTION]\n",
 		Category:    "Setting COMMANDS",
 		Description: ``,
 		Subcommands: []cli.Command{
 			{
 				Action:      utils.MigrateFlags(debugCommand),
 				Name:        "debug",
-				Usage:       "./ontology set debug [OPTION]",
+				Usage:       "ontology set debug [OPTION]\n",
 				Flags:       append(append(NodeFlags, RpcFlags...), ContractFlags...),
 				Category:    "SETTING COMMANDS",
 				Description: ``,
@@ -49,7 +49,7 @@ var (
 			{
 				Action:      utils.MigrateFlags(consensusCommand),
 				Name:        "consensus",
-				Usage:       "./ontology set consensus [OPTION]",
+				Usage:       "ontology set consensus [OPTION]\n",
 				Flags:       append(append(NodeFlags, RpcFlags...), ContractFlags...),
 				Category:    "SETTING COMMANDS",
 				Description: ``,

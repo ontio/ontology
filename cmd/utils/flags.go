@@ -44,7 +44,6 @@ var (
 	DataDirFlag = DirectoryFlag{
 		Name:  "datadir",
 		Usage: "Data directory for the databases and keystore",
-		Value: DirectoryString{DefaultDataDir()},
 	}
 
 	EncryptTypeFlag = cli.StringFlag{
@@ -58,110 +57,135 @@ var (
 	}
 
 	WalletAddrFlag = cli.StringFlag{
-		Name: "addr",
+		Name:  "addr",
+		Usage: "wallet address string(base58)",
 	}
 
 	WalletNameFlag = cli.StringFlag{
-		Name: "name",
+		Name:  "name",
+		Usage: "wallet name",
 	}
 
 	WalletPwdFlag = cli.StringFlag{
-		Name: "pwd",
+		Name:  "pwd",
+		Usage: "wallet password when used",
 	}
 
 	WalletUsedFlag = cli.StringFlag{
-		Name: "wallet",
+		Name:  "wallet",
+		Usage: "which wallet will be used",
 	}
 
 	ConfigUsedFlag = cli.StringFlag{
-		Name: "config",
+		Name:  "config",
+		Usage: "which config file will be used",
 	}
 
 	// RPC settings
 	RPCEnabledFlag = cli.BoolFlag{
-		Name: "rpc",
+		Name:  "rpc",
+		Usage: "enable rpc server? true or false",
 	}
 
 	WsEnabledFlag = cli.BoolFlag{
-		Name: "ws",
+		Name:  "ws",
+		Usage: "enable websocket server? true or false",
 	}
 
 	//information cmd settings
 	BHashInfoFlag = cli.StringFlag{
-		Name: "bhash",
+		Name:  "bhash",
+		Usage: "block hash value",
 	}
 
 	BTrxInfoFlag = cli.StringFlag{
-		Name: "hash",
+		Name:  "hash",
+		Usage: "transaction hash value",
 	}
 
 	HeightInfoFlag = cli.StringFlag{
-		Name: "height",
+		Name:  "height",
+		Usage: "block height value",
 	}
 
 	//send raw transaction
 	ContractAddrFlag = cli.StringFlag{
-		Name: "addr",
+		Name:  "addr",
+		Usage: "contract address that will be used when send raw transaction",
 	}
 
 	TransactionFromFlag = cli.StringFlag{
-		Name: "from",
+		Name:  "from",
+		Usage: "address which transfer from",
 	}
 	TransactionToFlag = cli.StringFlag{
-		Name: "to",
+		Name:  "to",
+		Usage: "address which transfer to",
 	}
 	TransactionValueFlag = cli.Int64Flag{
-		Name: "value",
+		Name:  "value",
+		Usage: "transfer value",
 	}
 	UserPasswordFlag = cli.StringFlag{
-		Name: "password",
+		Name:  "password",
+		Usage: "used when transfer",
 	}
 
 	DebugLevelFlag = cli.UintFlag{
-		Name: "level",
+		Name:  "level",
+		Usage: "debug level(0~6) will be set",
 	}
 
 	ConsensusLevelFlag = cli.UintFlag{
-		Name: "on",
+		Name:  "on",
+		Usage: "consensus turn on/off",
 	}
 
 	//contract deploy
 	ContractVmTypeFlag = cli.UintFlag{
-		Name: "type",
+		Name:  "type",
+		Usage: "contract type ,value: NEOVM | NATIVE | SWAM",
 	}
 
 	ContractStorageFlag = cli.BoolFlag{
-		Name: "store",
+		Name:  "store",
+		Usage: "does this contract will be stored, value: true or false",
 	}
 
 	ContractCodeFlag = cli.StringFlag{
-		Name: "code",
+		Name:  "code",
+		Usage: "directory of smart contract that will be deployed",
 	}
 
 	ContractNameFlag = cli.StringFlag{
-		Name: "cname",
+		Name:  "cname",
+		Usage: "contract name that will be deployed",
 	}
 
 	ContractVersionFlag = cli.StringFlag{
-		Name: "cversion",
+		Name:  "cversion",
+		Usage: "contract version which will be deployed",
 	}
 
 	ContractAuthorFlag = cli.StringFlag{
-		Name: "author",
+		Name:  "author",
+		Usage: "owner of deployed smart contract",
 	}
 
 	ContractEmailFlag = cli.StringFlag{
-		Name: "email",
+		Name:  "email",
+		Usage: "owner email when deploy a smart contract",
 	}
 
 	ContractDescFlag = cli.StringFlag{
-		Name: "desc",
+		Name:  "desc",
+		Usage: "contract description when deploy one",
 	}
 
 	ContractParamsFlag = cli.StringFlag{
-		Name: "params",
+		Name:  "params",
+		Usage: "contract parameter needed when invoded",
 	}
-
 	//contract invoke
 )
 

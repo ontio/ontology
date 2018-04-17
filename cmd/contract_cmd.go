@@ -36,14 +36,14 @@ import (
 var (
 	ContractCommand = cli.Command{
 		Name:        "contract",
-		Usage:       "controll contract,just as deploy/invoke.etc",
+		Usage:       "ontology contract [invoke|deploy] [OPTION]\n",
 		Category:    "CONTRACT COMMANDS",
 		Description: `account command`,
 		Subcommands: []cli.Command{
 			{
 				Action:      utils.MigrateFlags(invokeContract),
 				Name:        "invoke",
-				Usage:       "./ontology invoke [OPTION]",
+				Usage:       "ontology invoke [OPTION]\n",
 				Flags:       append(append(NodeFlags, RpcFlags...), ContractFlags...),
 				Category:    "CONTRACT COMMANDS",
 				Description: ``,
@@ -51,7 +51,7 @@ var (
 			{
 				Action:      utils.MigrateFlags(deployContract),
 				Name:        "deploy",
-				Usage:       "./ontology deploy [OPTION]",
+				Usage:       "ontology deploy [OPTION]\n",
 				Flags:       append(append(NodeFlags, RpcFlags...), ContractFlags...),
 				Category:    "CONTRACT COMMANDS",
 				Description: ``,

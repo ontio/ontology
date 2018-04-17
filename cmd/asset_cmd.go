@@ -44,7 +44,7 @@ import (
 var (
 	AssetCommand = cli.Command{
 		Name:        "asset",
-		Usage:       "controll wallet,just as create delete action .etc",
+		Usage:       "ontology asset [transfer] [OPTION]\n",
 		ArgsUsage:   "",
 		Category:    "ASSET COMMANDS",
 		Description: `asset controll`,
@@ -52,7 +52,7 @@ var (
 			{
 				Action:      utils.MigrateFlags(transferAsset),
 				Name:        "transfer",
-				Usage:       "transfer asset",
+				Usage:       "ontology asset transfer [OPTION]\n",
 				Flags:       append(append(NodeFlags, RpcFlags...), ContractFlags...),
 				Category:    "ASSET COMMANDS",
 				Description: ``,

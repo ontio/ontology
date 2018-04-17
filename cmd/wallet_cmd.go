@@ -34,7 +34,7 @@ import (
 var (
 	WalletCommand = cli.Command{
 		Name:        "wallet",
-		Usage:       "controll wallet,just as create delete action .etc",
+		Usage:       "ontology wallet [create|show|balance] [OPTION]\n",
 		ArgsUsage:   "",
 		Category:    "WALLET COMMANDS",
 		Description: `[create/show]`,
@@ -42,7 +42,7 @@ var (
 			{
 				Action:      utils.MigrateFlags(walletCreate),
 				Name:        "create",
-				Usage:       "./ontology wallet create [OPTION]",
+				Usage:       "ontology wallet create [OPTION]\n",
 				Flags:       append(append(NodeFlags, RpcFlags...), ContractFlags...),
 				Category:    "WALLET COMMANDS",
 				Description: ``,
@@ -50,7 +50,7 @@ var (
 			{
 				Action:      utils.MigrateFlags(walletShow),
 				Name:        "show",
-				Usage:       "./ontology wallet show [OPTION]",
+				Usage:       "ontology wallet show [OPTION]\n",
 				Flags:       append(append(NodeFlags, RpcFlags...), ContractFlags...),
 				Category:    "WALLET COMMANDS",
 				Description: ``,
@@ -58,7 +58,7 @@ var (
 			{
 				Action:      utils.MigrateFlags(walletBalance),
 				Name:        "balance",
-				Usage:       "./ontology wallet balance",
+				Usage:       "ontology wallet balance\n",
 				Flags:       append(append(NodeFlags, RpcFlags...), ContractFlags...),
 				Category:    "WALLET COMMANDS",
 				Description: ``,

@@ -17,6 +17,7 @@ vendor/*
 Chain/*
 /config/*
 nodectl
+ontology
 cscope*
 *.exe
 **/*.log
