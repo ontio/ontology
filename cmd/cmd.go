@@ -19,35 +19,18 @@
 package cmd
 
 import (
-	"github.com/ontio/ontology/cmd/utils"
-	"github.com/urfave/cli"
+	sdk "github.com/ontio/ontology-go-sdk"
 )
 
-var (
-	NodeFlags = []cli.Flag{
-		utils.DataDirFlag,
-		utils.WalletNameFlag,
-		utils.WalletAddrFlag,
-		utils.WalletPwdFlag,
-		utils.DebugLevelFlag,
-		utils.ConsensusLevelFlag,
-		utils.TransactionValueFlag,
-		utils.TransactionToFlag,
-		utils.TransactionFromFlag,
-		utils.UserPasswordFlag,
-	}
+var ontSdk *sdk.OntologySdk
 
-	RpcFlags = []cli.Flag{
-		utils.RPCEnabledFlag,
-		utils.WsEnabledFlag,
-	}
+func rpcAddress() string {
+	//index := rand.Intn(len(config.Parameters.SeedList))
+	//return (strings.Split(config.Parameters.SeedList[index], ":"))[0] + strconv.Itoa(config.Parameters.HttpJsonPort)
+	return "http://139.219.108.204:20336"
+}
 
-	WhisperFlags = []cli.Flag{}
-
-	// flag for infomation command
-	InfoFlags = []cli.Flag{
-		utils.HeightInfoFlag,
-		utils.BTrxInfoFlag,
-		utils.BHashInfoFlag,
-	}
-)
+func init() {
+	ontSdk = sdk.NewOntologySdk()
+	ontSdk.Rpc.SetAddress(rpcAddress())
+}

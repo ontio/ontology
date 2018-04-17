@@ -24,9 +24,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-
-	"github.com/ontio/ontology/cmd/utils"
-	"github.com/urfave/cli"
 )
 
 const (
@@ -93,17 +90,10 @@ func newDefaultConfig() *Configuration {
 
 var Parameters *Configuration
 
-func Init(ctx *cli.Context) {
-	var file []byte
-	var e error
-	configDir := ctx.GlobalString(utils.ConfigUsedFlag.Name)
-	if "" == configDir {
-		file, e = ioutil.ReadFile(DEFAULT_CONFIG_FILE_NAME)
-	} else {
-		file, e = ioutil.ReadFile(configDir)
-	}
+func init() {
+	file, e := ioutil.ReadFile(DEFAULT_CONFIG_FILE_NAME)
 	if e != nil {
-		log.Printf("[ERROR] %v, use default config\n", DEFAULT_CONFIG_FILE_NAME, e)
+		log.Printf("[ERROR] %v, use default config\n", DEFAULT_CONFIG_FILE_NAME)
 		Parameters = newDefaultConfig()
 		return
 	}

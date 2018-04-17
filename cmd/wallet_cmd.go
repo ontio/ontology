@@ -20,19 +20,14 @@ package cmd
 
 import (
 	"fmt"
-	"math/big"
 	"os"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
-	"github.com/ontio/ontology/cmd/actor"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/password"
-	"github.com/ontio/ontology/core/genesis"
-	"github.com/ontio/ontology/core/ledger"
-	ldgactor "github.com/ontio/ontology/core/ledger/actor"
 	"github.com/urfave/cli"
 )
 
@@ -105,39 +100,32 @@ func walletCreate(ctx *cli.Context) error {
 }
 
 func walletShow(ctx *cli.Context) error {
-	fmt.Println("Hello show wallet")
+	client := account.GetClient(ctx)
+	if client == nil {
+		log.Fatal("Can't get local account.")
+	}
+
+	acct := client.GetDefaultAccount()
+	if acct == nil {
+		log.Fatal("can not get default account")
+	}
+
+	pubKey := acct.PubKey()
+	address := acct.Address
+
+	pubKeyBytes := keypair.SerializePublicKey(pubKey)
+	fmt.Println("public key:   ", common.ToHexString(pubKeyBytes))
+	fmt.Println("hex address: ", common.ToHexString(address[:]))
+	fmt.Println("base58 address:      ", address.ToBase58())
 	return nil
 }
 
 func walletBalance(ctx *cli.Context) error {
-	ledger.DefLedger, _ = ledger.NewLedger()
-	ldgerActor := ldgactor.NewLedgerActor()
-	ledgerPID := ldgerActor.Start()
-	actor.SetLedgerPid(ledgerPID)
-	addrBase58 := ctx.GlobalString(utils.WalletAddrFlag.Name)
-
-	address, err := common.AddressFromBase58(addrBase58)
-	if err != nil {
-		//
+	addr := ctx.GlobalString(utils.WalletAddrFlag.Name)
+	balance, err := ontSdk.Rpc.GetBalanceWithBase58(addr)
+	if nil != err {
+		log.Fatal("Get Balance with base58 err: ", err.Error())
 	}
-	ont := new(big.Int)
-	ong := new(big.Int)
-	appove := big.NewInt(0)
-
-	ontBalance, err := actor.GetStorageItem(genesis.OntContractAddress, address[:])
-	if err != nil {
-		log.Errorf("GetOntBalanceOf GetStorageItem ont address:%s error:%s", addrBase58, err)
-	}
-	if ontBalance != nil {
-		ont.SetBytes(ontBalance)
-	}
-
-	appoveKey := append(genesis.OntContractAddress[:], address[:]...)
-	ongappove, err := actor.GetStorageItem(genesis.OngContractAddress, appoveKey[:])
-
-	if ongappove != nil {
-		appove.SetBytes(ongappove)
-	}
-	fmt.Printf("Ont:    %s\nOng:    %s\nOngAppove:    %s\n", ont.String(), ong.String(), appove.String())
+	fmt.Printf("ONT: %d; ONG: %d; ONGAppove: %d\n", balance.Ont.Int64(), balance.Ong.Int64(), balance.OngAppove.Int64())
 	return nil
 }

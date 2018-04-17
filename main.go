@@ -57,6 +57,20 @@ const (
 	DefaultMultiCoreNum = 4
 )
 
+func init() {
+	log.Init(log.PATH, log.Stdout)
+	// Todo: If the actor bus uses a different log lib, remove it
+
+	var coreNum int
+	if config.Parameters.MultiCoreNum > DefaultMultiCoreNum {
+		coreNum = int(config.Parameters.MultiCoreNum)
+	} else {
+		coreNum = DefaultMultiCoreNum
+	}
+	log.Debug("The Core number is ", coreNum)
+	runtime.GOMAXPROCS(coreNum)
+}
+
 func setupAPP() *cli.App {
 	app := cli.NewApp()
 	app.Action = ontMain
@@ -88,19 +102,6 @@ func ontMain(ctx *cli.Context) {
 	var acct *account.Account
 	var err error
 	var noder protocol.Noder
-
-	config.Init(ctx)
-	log.Init(log.PATH, log.Stdout)
-	// Todo: If the actor bus uses a different log lib, remove it
-
-	var coreNum int
-	if config.Parameters.MultiCoreNum > DefaultMultiCoreNum {
-		coreNum = int(config.Parameters.MultiCoreNum)
-	} else {
-		coreNum = DefaultMultiCoreNum
-	}
-	log.Debug("The Core number is ", coreNum)
-	runtime.GOMAXPROCS(coreNum)
 
 	log.Trace("Node version: ", config.Version)
 

@@ -129,6 +129,7 @@ var (
 	ContractAddrFlag = cli.StringFlag{
 		Name: "addr",
 	}
+
 	TransactionFromFlag = cli.StringFlag{
 		Name: "from",
 	}

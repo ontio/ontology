@@ -26,14 +26,10 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/ontio/ontology/cmd/actor"
+	sdkutils "github.com/ontio/ontology-go-sdk/utils"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/ledger"
-	ldgactor "github.com/ontio/ontology/core/ledger/actor"
-	bcomn "github.com/ontio/ontology/http/base/common"
 	"github.com/urfave/cli"
 )
 
@@ -47,7 +43,7 @@ var blockCommandSet = cli.Command{
 	Subcommands: []cli.Command{
 		{
 			Action:      utils.MigrateFlags(getCurrentBlockHeight),
-			Name:        "./ontology info block --height=value",
+			Name:        "height",
 			Usage:       "issue asset by command",
 			Category:    "INFO COMMANDS",
 			Description: ``,
@@ -98,85 +94,74 @@ var (
 )
 
 func versionInfoCommand(ctx *cli.Context) error {
-	config.Init(ctx)
-	fmt.Println("Node version: ", config.Parameters.Version)
+	version, err := ontSdk.Rpc.GetVersion()
+	if nil != err {
+		log.Fatalf("Get version iformation is error:  %s", err.Error())
+	}
+	fmt.Println("Node version: ", version)
 	return nil
 }
 
 func getCurrentBlockHeight(ctx *cli.Context) error {
-	ledger.DefLedger, _ = ledger.NewLedger()
-	ldgerActor := ldgactor.NewLedgerActor()
-	ledgerPID := ldgerActor.Start()
-	actor.SetLedgerPid(ledgerPID)
-	height, _ := actor.CurrentBlockHeight()
+	height, err := ontSdk.Rpc.GetBlockCount()
+	if nil != err {
+		log.Fatalf("Get block height iformation is error:  %s", err.Error())
+	}
 	fmt.Println("Current blockchain height: ", height)
 	return nil
 }
 
-func blockInfoCommand(ctx *cli.Context) error {
-	/*init ledger actor for info command*/
-	ledger.DefLedger, _ = ledger.NewLedger()
-	ldgerActor := ldgactor.NewLedgerActor()
-	ledgerPID := ldgerActor.Start()
-	actor.SetLedgerPid(ledgerPID)
+func echoBlockGracefully(block interface{}) {
+	jsons, errs := json.Marshal(block)
+	if errs != nil {
+		log.Fatalf("Marshal json err:%s", errs.Error())
+	}
 
+	var out bytes.Buffer
+	err := json.Indent(&out, jsons, "", "\t")
+	if err != nil {
+		log.Fatalf("Gracefully format json err: %s", err.Error())
+	}
+	out.WriteTo(os.Stdout)
+}
+
+func blockInfoCommand(ctx *cli.Context) error {
 	val := ctx.GlobalString(utils.HeightInfoFlag.Name)
 	height, _ := strconv.Atoi(val)
 	blockHash := ctx.GlobalString(utils.BHashInfoFlag.Name)
 
 	switch {
 	case height >= 0:
-		hash, _ := actor.GetBlockHashFromStore(uint32(height))
-		block, err := actor.GetBlockFromStore(hash)
+		block, err := ontSdk.Rpc.GetBlockByHeight(uint32(height))
 
 		if err != nil {
-			log.Errorf("GetBlock GetBlockFromStore BlockHash:%x error:%s", hash, err)
-			return nil
+			log.Fatalf("Get block by height(%d) is error:%s", height, err.Error())
 		}
 		if block == nil || block.Header == nil {
-			return nil
-		}
-		jsons, errs := json.Marshal(bcomn.GetBlockInfo(block))
-		if errs != nil {
-			fmt.Println(errs.Error())
+			log.Fatalf("Get block by height(%d), the block or block.Header is nil", height)
 		}
 
-		var out bytes.Buffer
-		err = json.Indent(&out, jsons, "", "\t")
-		if err != nil {
-			return nil
-		}
-		out.WriteTo(os.Stdout)
+		echoBlockGracefully(block)
 		return nil
 
 	case "" != blockHash:
 		var hash common.Uint256
 		hex, err := hex.DecodeString(blockHash)
 		if err != nil {
-			log.Errorf("")
+			log.Fatalf("Decode string error, blockHash:%s, err:%s", blockHash, err.Error())
 		}
 		if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
-			log.Errorf("")
+			log.Fatalf("Deserialize hex error,hex:%s, err:%s", hex, err.Error())
 		}
-		block, err := actor.GetBlockFromStore(hash)
+		block, err := ontSdk.Rpc.GetBlockByHash(hash)
 		if err != nil {
-			log.Errorf("GetBlock GetBlockFromStore BlockHash:%x error:%s", hash, err)
-			return nil
+			log.Fatalf("GetBlock GetBlockFromStore BlockHash:%x error:%s", hash, err)
 		}
 		if block == nil || block.Header == nil {
 			return nil
 		}
-		jsons, errs := json.Marshal(bcomn.GetBlockInfo(block))
-		if errs != nil {
-			fmt.Println(errs.Error())
-		}
 
-		var out bytes.Buffer
-		err = json.Indent(&out, jsons, "", "\t")
-		if err != nil {
-			return nil
-		}
-		out.WriteTo(os.Stdout)
+		echoBlockGracefully(block)
 		return nil
 
 	default:
@@ -185,35 +170,17 @@ func blockInfoCommand(ctx *cli.Context) error {
 }
 
 func trxInfoCommand(ctx *cli.Context) error {
-	ledger.DefLedger, _ = ledger.NewLedger()
-	ldgerActor := ldgactor.NewLedgerActor()
-	ledgerPID := ldgerActor.Start()
-	actor.SetLedgerPid(ledgerPID)
-
 	trxHash := ctx.GlobalString(utils.BTrxInfoFlag.Name)
-
-	hex, err := hex.DecodeString(trxHash)
+	ontInitTx, err := sdkutils.ParseUint256FromHexString(trxHash)
 	if err != nil {
-		log.Errorf("error for trxHash")
+		log.Errorf("ParseUint256FromHexString error:%s", err)
 	}
-	var hash common.Uint256
-	err = hash.Deserialize(bytes.NewReader(hex))
+	tx, err := ontSdk.Rpc.GetRawTransaction(ontInitTx)
 	if err != nil {
-	}
-	trx, err := actor.GetTransaction(hash)
-	bcomn.TransArryByteToHexString(trx)
-
-	jsons, errs := json.Marshal(bcomn.TransArryByteToHexString(trx))
-	if errs != nil {
-		fmt.Println(errs.Error())
+		log.Errorf("GetRawTransaction error:%s", err)
 	}
 
-	var out bytes.Buffer
-	err = json.Indent(&out, jsons, "", "\t")
-	if err != nil {
-		return nil
-	}
-	out.WriteTo(os.Stdout)
+	echoBlockGracefully(tx)
 	return nil
 }
 

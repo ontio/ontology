@@ -31,7 +31,6 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/signature"
 	ctypes "github.com/ontio/ontology/core/types"
 	cutils "github.com/ontio/ontology/core/utils"
@@ -48,24 +47,8 @@ var (
 		Usage:       "controll wallet,just as create delete action .etc",
 		ArgsUsage:   "",
 		Category:    "ASSET COMMANDS",
-		Description: `[reg/issue/transfer]`,
+		Description: `asset controll`,
 		Subcommands: []cli.Command{
-			{
-				Action:      utils.MigrateFlags(regAsset),
-				Name:        "reg",
-				Usage:       "register asset",
-				Flags:       append(append(NodeFlags, RpcFlags...), WhisperFlags...),
-				Category:    "ASSET COMMANDS",
-				Description: ``,
-			},
-			{
-				Action:      utils.MigrateFlags(issueAsset),
-				Name:        "issue",
-				Usage:       "issue asset by command",
-				Flags:       append(append(NodeFlags, RpcFlags...), WhisperFlags...),
-				Category:    "ASSET COMMANDS",
-				Description: ``,
-			},
 			{
 				Action:      utils.MigrateFlags(transferAsset),
 				Name:        "transfer",
@@ -77,16 +60,6 @@ var (
 		},
 	}
 )
-
-func regAsset(ctx *cli.Context) error {
-	//TODO
-	return nil
-}
-
-func issueAsset(ctx *cli.Context) error {
-	//TODO
-	return nil
-}
 
 func signTransaction(signer *account.Account, tx *ctypes.Transaction) error {
 	hash := tx.Hash()
@@ -100,7 +73,6 @@ func signTransaction(signer *account.Account, tx *ctypes.Transaction) error {
 }
 
 func transferAsset(ctx *cli.Context) error {
-	config.Init(ctx)
 	contract := ctx.GlobalString(utils.ContractAddrFlag.Name)
 	if contract == "" {
 		fmt.Println("Invalid contract address: ", contract)
@@ -179,7 +151,7 @@ func transferAsset(ctx *cli.Context) error {
 		fmt.Println("Serialize transaction error.")
 		os.Exit(1)
 	}
-	resp, err := jrpc.Call(localRpcAddress(), "sendrawtransaction", 0, []interface{}{hex.EncodeToString(txbf.Bytes())})
+	resp, err := jrpc.Call(rpcAddress(), "sendrawtransaction", 0, []interface{}{hex.EncodeToString(txbf.Bytes())})
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

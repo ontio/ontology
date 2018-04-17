@@ -23,8 +23,10 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
 	jrpc "github.com/ontio/ontology/http/base/rpc"
 	"github.com/urfave/cli"
 )
@@ -57,16 +59,19 @@ var (
 )
 
 func localRpcAddress() string {
-	return "http://127.0.0.1:" + strconv.Itoa(config.Parameters.HttpLocalPort)
-
+	return "http://localhost:" + strconv.Itoa(config.Parameters.HttpJsonPort)
 }
 
 func debugCommand(ctx *cli.Context) error {
-	config.Init(ctx)
+	client := account.GetClient(ctx)
+	if client == nil {
+		log.Fatal("Can't get local account.")
+	}
+
 	level := ctx.GlobalUint(utils.DebugLevelFlag.Name)
 	resp, err := jrpc.Call(localRpcAddress(), "setdebuginfo", 0, []interface{}{level})
 	if nil != err {
-
+		return err
 	}
 	r := make(map[string]interface{})
 	json.Unmarshal(resp, &r)
@@ -75,18 +80,24 @@ func debugCommand(ctx *cli.Context) error {
 }
 
 func consensusCommand(ctx *cli.Context) error {
-	config.Init(ctx)
+	client := account.GetClient(ctx)
+	if client == nil {
+		log.Fatal("Can't get local account.")
+	}
+
 	on := ctx.GlobalUint(utils.ConsensusLevelFlag.Name)
-	var err error
 	var resp []byte
+	var err error
 	switch on {
 	case 1:
 		resp, err = jrpc.Call(localRpcAddress(), "startconsensus", 0, []interface{}{on})
 	case 0:
 		resp, err = jrpc.Call(localRpcAddress(), "stopconsensus", 0, []interface{}{on})
+	default:
+		fmt.Println("Start:1; Stop:0; Pls enter valid value between 0 and 1.")
 	}
 	if nil != err {
-		//log.Errorf("Set consensus error: %v", err)
+		return err
 	}
 	r := make(map[string]interface{})
 	json.Unmarshal(resp, &r)
