@@ -19,18 +19,19 @@
 package proc
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/events/message"
 	tc "github.com/ontio/ontology/txnpool/common"
 	vt "github.com/ontio/ontology/validator/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTxActor(t *testing.T) {
-	fmt.Println("Starting tx actor test")
+	t.Log("Starting tx actor test")
 	s := NewTxPoolServer(tc.MAX_WORKER_NUM)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
@@ -45,26 +46,30 @@ func TestTxActor(t *testing.T) {
 		return
 	}
 
-	txReq := &txReq{
+	txReq := &tc.TxReq{
 		Tx:     txn,
 		Sender: tc.NilSender,
 	}
-	txPid.RequestFuture(txn)
+	txPid.Tell(txReq)
+
+	time.Sleep(1 * time.Second)
 
 	future := txPid.RequestFuture(&tc.GetTxnReq{Hash: txn.Hash()}, 1*time.Second)
 	result, err := future.Result()
-	fmt.Println(result, err)
+	assert.Nil(t, err)
+	rsp := (result).(*tc.GetTxnRsp)
+	assert.Nil(t, rsp.Txn)
 
 	future = txPid.RequestFuture(&tc.GetTxnStats{}, 2*time.Second)
 	result, err = future.Result()
-	fmt.Println(result, err)
+	assert.Nil(t, err)
 	future = txPid.RequestFuture(&tc.CheckTxnReq{Hash: txn.Hash()}, 1*time.Second)
 	result, err = future.Result()
-	fmt.Println(result, err)
+	assert.Nil(t, err)
 
 	future = txPid.RequestFuture(&tc.GetTxnStatusReq{Hash: txn.Hash()}, 1*time.Second)
 	result, err = future.Result()
-	fmt.Println(result, err)
+	assert.Nil(t, err)
 
 	// Given the tx in the pool, test again
 	txEntry := &tc.TXEntry{
@@ -73,32 +78,29 @@ func TestTxActor(t *testing.T) {
 		Fee:   txn.GetTotalFee(),
 	}
 	s.addTxList(txEntry)
-	future = txPid.RequestFuture(txn, 5*time.Second)
-	result, err = future.Result()
-	fmt.Println(result, err)
 
 	future = txPid.RequestFuture(&tc.GetTxnReq{Hash: txn.Hash()}, 1*time.Second)
 	result, err = future.Result()
-	fmt.Println(result, err)
+	assert.Nil(t, err)
 
 	future = txPid.RequestFuture(&tc.GetTxnStats{}, 2*time.Second)
 	result, err = future.Result()
-	fmt.Println(result, err)
+	assert.Nil(t, err)
 	future = txPid.RequestFuture(&tc.CheckTxnReq{Hash: txn.Hash()}, 1*time.Second)
 	result, err = future.Result()
-	fmt.Println(result, err)
+	assert.Nil(t, err)
 
 	future = txPid.RequestFuture(&tc.GetTxnStatusReq{Hash: txn.Hash()}, 1*time.Second)
 	result, err = future.Result()
-	fmt.Println(result, err)
+	assert.Nil(t, err)
 
 	txPid.Tell("test")
 	s.Stop()
-	fmt.Println("Ending tx actor test")
+	t.Log("Ending tx actor test")
 }
 
 func TestTxPoolActor(t *testing.T) {
-	fmt.Println("Starting tx pool actor test")
+	t.Log("Starting tx pool actor test")
 	s := NewTxPoolServer(tc.MAX_WORKER_NUM)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
@@ -113,33 +115,47 @@ func TestTxPoolActor(t *testing.T) {
 		return
 	}
 
-	txPoolPid.Tell(txn)
+	txEntry := &tc.TXEntry{
+		Tx:    txn,
+		Attrs: []*tc.TXAttr{},
+		Fee:   txn.GetTotalFee(),
+	}
+
+	retAttr := &tc.TXAttr{
+		Height:  0,
+		Type:    vt.Statefull,
+		ErrCode: errors.ErrNoError,
+	}
+	txEntry.Attrs = append(txEntry.Attrs, retAttr)
+	s.addTxList(txEntry)
 
 	future := txPoolPid.RequestFuture(&tc.GetTxnPoolReq{ByCount: false}, 2*time.Second)
 	result, err := future.Result()
-	fmt.Println(result, err)
+	assert.Nil(t, err)
+	rsp := (result).(*tc.GetTxnPoolRsp)
+	assert.NotNil(t, rsp.TxnPool)
 
 	future = txPoolPid.RequestFuture(&tc.GetPendingTxnReq{ByCount: false}, 2*time.Second)
 	result, err = future.Result()
-	fmt.Println(result, err)
+	assert.Nil(t, err)
 
 	bk := &tc.VerifyBlockReq{
-		Height: 1,
+		Height: 0,
 		Txs:    []*types.Transaction{txn},
 	}
 	future = txPoolPid.RequestFuture(bk, 10*time.Second)
 	result, err = future.Result()
-	fmt.Println(result, err)
+	assert.Nil(t, err)
 
 	sbc := &message.SaveBlockCompleteMsg{}
 	txPoolPid.Tell(sbc)
 
 	s.Stop()
-	fmt.Println("Ending tx pool actor test")
+	t.Log("Ending tx pool actor test")
 }
 
 func TestVerifyRspActor(t *testing.T) {
-	fmt.Println("Starting validator response actor test")
+	t.Log("Starting validator response actor test")
 	s := NewTxPoolServer(tc.MAX_WORKER_NUM)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
@@ -165,6 +181,7 @@ func TestVerifyRspActor(t *testing.T) {
 	rsp := &vt.CheckResponse{}
 	validatorPid.Tell(rsp)
 
+	time.Sleep(1 * time.Second)
 	s.Stop()
-	fmt.Println("Ending validator response actor test")
+	t.Log("Ending validator response actor test")
 }

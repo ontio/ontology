@@ -21,7 +21,6 @@ package proc
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"testing"
 	"time"
 
@@ -30,10 +29,11 @@ import (
 	"github.com/ontio/ontology/errors"
 	tc "github.com/ontio/ontology/txnpool/common"
 	vt "github.com/ontio/ontology/validator/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestWorker(t *testing.T) {
-	fmt.Println("Starting worker test")
+	t.Log("Starting worker test")
 	s := NewTxPoolServer(tc.MAX_WORKER_NUM)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
@@ -74,8 +74,8 @@ func TestWorker(t *testing.T) {
 
 	time.Sleep(1 * time.Second)
 	ret := worker.server.getTransaction(txn.Hash())
-	fmt.Println(ret)
-
+	assert.NotNil(t, ret)
+	assert.Equal(t, ret.Hash(), txn.Hash())
 	/* Case 2: Duplicate input tx, worker should reject
 	 * it with the log
 	 */
@@ -152,7 +152,9 @@ func TestWorker(t *testing.T) {
 	 */
 	time.Sleep(1 * time.Second)
 	txStatus := worker.GetTxStatus(txn.Hash())
-	fmt.Println(txStatus)
+	t.Log(txStatus)
+	assert.NotNil(t, txStatus)
+	assert.Equal(t, txStatus.Hash, txn.Hash())
 	/* Case 8: Given the invalid hash, worker should return nil
 	 */
 	tempStr := "3369930accc1ddd067245e8edadcd9bea207ba5e1753ac18a51df77a343bfe83"
@@ -160,9 +162,9 @@ func TestWorker(t *testing.T) {
 	var hash common.Uint256
 	hash.Deserialize(bytes.NewReader(hex))
 	txStatus = worker.GetTxStatus(hash)
-	fmt.Println(txStatus)
+	assert.Nil(t, txStatus)
 
 	worker.stop()
 	s.Stop()
-	fmt.Println("Ending worker test")
+	t.Log("Ending worker test")
 }

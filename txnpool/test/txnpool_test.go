@@ -21,19 +21,20 @@ package txnpool
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	tc "github.com/ontio/ontology/txnpool/common"
 	tp "github.com/ontio/ontology/txnpool/proc"
+	"github.com/ontio/ontology/validator/statefull"
 	"github.com/ontio/ontology/validator/stateless"
-	"github.com/ontio/ontology-eventbus/actor"
 )
 
 var (
@@ -69,16 +70,14 @@ func startActor(obj interface{}) *actor.PID {
 	})
 
 	pid := actor.Spawn(props)
-	if pid == nil {
-		fmt.Println("Fail to start actor")
-		return nil
-	}
 	return pid
 }
 
 func Test_RCV(t *testing.T) {
 	var s *tp.TXPoolServer
 	var wg sync.WaitGroup
+
+	ledger.DefLedger, _ = ledger.NewLedger()
 
 	// Start txnpool server to receive msgs from p2p, consensus and valdiators
 	s = tp.NewTxPoolServer(tc.MAX_WORKER_NUM)
@@ -87,7 +86,7 @@ func Test_RCV(t *testing.T) {
 	rspActor := tp.NewVerifyRspActor(s)
 	rspPid := startActor(rspActor)
 	if rspPid == nil {
-		fmt.Println("Fail to start verify rsp actor")
+		t.Error("Fail to start verify rsp actor")
 		return
 	}
 	s.RegisterActor(tc.VerifyRspActor, rspPid)
@@ -96,7 +95,7 @@ func Test_RCV(t *testing.T) {
 	tpa := tp.NewTxPoolActor(s)
 	txPoolPid := startActor(tpa)
 	if txPoolPid == nil {
-		fmt.Println("Fail to start txnpool actor")
+		t.Error("Fail to start txnpool actor")
 		return
 	}
 	s.RegisterActor(tc.TxPoolActor, txPoolPid)
@@ -105,7 +104,7 @@ func Test_RCV(t *testing.T) {
 	ta := tp.NewTxActor(s)
 	txPid := startActor(ta)
 	if txPid == nil {
-		fmt.Println("Fail to start txn actor")
+		t.Error("Fail to start txn actor")
 		return
 	}
 	s.RegisterActor(tc.TxActor, txPid)
@@ -113,38 +112,32 @@ func Test_RCV(t *testing.T) {
 	// Start stateless validator
 	statelessV, err := stateless.NewValidator("stateless")
 	if err != nil {
-		fmt.Println("failed to new stateless valdiator", err)
+		t.Errorf("failed to new stateless valdiator", err)
 		return
 	}
 	statelessV.Register(rspPid)
 
 	statelessV2, err := stateless.NewValidator("stateless2")
 	if err != nil {
-		fmt.Println("failed to new stateless valdiator", err)
+		t.Errorf("failed to new stateless valdiator", err)
 		return
 	}
 	statelessV2.Register(rspPid)
 
 	statelessV3, err := stateless.NewValidator("stateless3")
 	if err != nil {
-		fmt.Println("failed to new stateless valdiator", err)
+		t.Errorf("failed to new stateless valdiator", err)
 		return
 	}
 	statelessV3.Register(rspPid)
-	// Todo: depending on ledger db sync, when ledger db ready, enable it
-	// Start stateful validator
-	/*store, err := db.NewStore("temp.db")
-		if err != nil {
-			fmt.Println("failed to new store",err)
-			return
-		}
 
-		statefulV, err := statefull.NewValidator("stateful", store)
-		if err != nil {
-			fmt.Println("failed to new stateful validator", err)
-			return
-		}
-	    statefulV.Register(rspPid)*/
+	statefulV, err := statefull.NewValidator("stateful")
+	if err != nil {
+		t.Errorf("failed to new stateful valdiator", err)
+		return
+	}
+	statefulV.Register(rspPid)
+
 	for i := 0; i < 2; i++ {
 		wg.Add(1)
 		go func() {
@@ -152,7 +145,11 @@ func Test_RCV(t *testing.T) {
 			defer wg.Done()
 			for {
 				j++
-				txPid.Tell(tx)
+				txReq := &tc.TxReq{
+					Tx:     tx,
+					Sender: tc.NilSender,
+				}
+				txPid.Tell(txReq)
 
 				if j >= 4 {
 					return
@@ -170,6 +167,6 @@ func Test_RCV(t *testing.T) {
 	statelessV.UnRegister(rspPid)
 	statelessV2.UnRegister(rspPid)
 	statelessV3.UnRegister(rspPid)
-	//statefulV.UnRegister(rspPid)
+	statefulV.UnRegister(rspPid)
 	s.Stop()
 }

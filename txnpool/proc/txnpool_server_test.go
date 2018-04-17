@@ -21,10 +21,10 @@ package proc
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"testing"
 	"time"
 
+	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/payload"
@@ -33,7 +33,7 @@ import (
 	tc "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology/validator/stateless"
 	vt "github.com/ontio/ontology/validator/types"
-	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -72,15 +72,12 @@ func startActor(obj interface{}) *actor.PID {
 	})
 
 	pid := actor.Spawn(props)
-	if pid == nil {
-		fmt.Println("Fail to start actor")
-		return nil
-	}
+
 	return pid
 }
 
 func TestTxn(t *testing.T) {
-	fmt.Println("Starting test tx")
+	t.Log("Starting test tx")
 	var s *TXPoolServer
 	s = NewTxPoolServer(tc.MAX_WORKER_NUM)
 	if s == nil {
@@ -90,18 +87,18 @@ func TestTxn(t *testing.T) {
 	defer s.Stop()
 
 	// Case 1: Send nil txn to the server, server should reject it
-	s.assginTXN2Worker(nil, sender)
+	s.assignTxToWorker(nil, sender)
 	/* Case 2: send non-nil txn to the server, server should assign
 	 * it to the worker
 	 */
-	s.assginTXN2Worker(txn, sender)
+	s.assignTxToWorker(txn, sender)
 
 	/* Case 3: Duplicate input the tx, server should reject the second
 	 * one
 	 */
 	time.Sleep(10 * time.Second)
-	s.assginTXN2Worker(txn, sender)
-	s.assginTXN2Worker(txn, sender)
+	s.assignTxToWorker(txn, sender)
+	s.assignTxToWorker(txn, sender)
 
 	/* Case 4: Given the tx is in the tx pool, server can get the tx
 	 * with the invalid hash
@@ -126,11 +123,11 @@ func TestTxn(t *testing.T) {
 		return
 	}
 
-	fmt.Println("Ending test tx")
+	t.Log("Ending test tx")
 }
 
 func TestAssignRsp2Worker(t *testing.T) {
-	fmt.Println("Starting assign response to the worker testing")
+	t.Log("Starting assign response to the worker testing")
 	var s *TXPoolServer
 	s = NewTxPoolServer(tc.MAX_WORKER_NUM)
 	if s == nil {
@@ -140,7 +137,7 @@ func TestAssignRsp2Worker(t *testing.T) {
 
 	defer s.Stop()
 
-	s.assignRsp2Worker(nil)
+	s.assignRspToWorker(nil)
 
 	statelessRsp := &vt.CheckResponse{
 		WorkerId: 0,
@@ -157,8 +154,8 @@ func TestAssignRsp2Worker(t *testing.T) {
 		Type:     vt.Statefull,
 		Height:   0,
 	}
-	s.assignRsp2Worker(statelessRsp)
-	s.assignRsp2Worker(statefulRsp)
+	s.assignRspToWorker(statelessRsp)
+	s.assignRspToWorker(statefulRsp)
 
 	statelessRsp = &vt.CheckResponse{
 		WorkerId: 0,
@@ -167,13 +164,13 @@ func TestAssignRsp2Worker(t *testing.T) {
 		Type:     vt.Stateless,
 		Height:   0,
 	}
-	s.assignRsp2Worker(statelessRsp)
+	s.assignRspToWorker(statelessRsp)
 
-	fmt.Println("Ending assign response to the worker testing")
+	t.Log("Ending assign response to the worker testing")
 }
 
 func TestActor(t *testing.T) {
-	fmt.Println("Starting actor testing")
+	t.Log("Starting actor testing")
 	var s *TXPoolServer
 	s = NewTxPoolServer(tc.MAX_WORKER_NUM)
 	if s == nil {
@@ -237,11 +234,11 @@ func TestActor(t *testing.T) {
 		return
 	}
 
-	fmt.Println("Ending actor testing")
+	t.Log("Ending actor testing")
 }
 
 func TestValidator(t *testing.T) {
-	fmt.Println("Starting validator testing")
+	t.Log("Starting validator testing")
 	var s *TXPoolServer
 	s = NewTxPoolServer(tc.MAX_WORKER_NUM)
 	if s == nil {
@@ -277,12 +274,12 @@ func TestValidator(t *testing.T) {
 
 	ret := s.getNextValidatorPIDs()
 	for _, v := range ret {
-		fmt.Println(v)
+		assert.NotNil(t, v)
 	}
 
 	ret = s.getNextValidatorPIDs()
 	for _, v := range ret {
-		fmt.Println(v)
+		assert.NotNil(t, v)
 	}
 
 	statelessV1.UnRegister(rspPid)
@@ -292,8 +289,8 @@ func TestValidator(t *testing.T) {
 
 	ret = s.getNextValidatorPIDs()
 	for _, v := range ret {
-		fmt.Println(v)
+		assert.NotNil(t, v)
 	}
 
-	fmt.Println("Ending validator testing")
+	t.Log("Ending validator testing")
 }
