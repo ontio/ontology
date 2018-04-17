@@ -87,7 +87,7 @@ func setupAPP() *cli.App {
 		utils.ConfigUsedFlag,
 	}
 
-	app.Flags = append(append(append(append(app.Flags, cmd.NodeFlags...), cmd.RpcFlags...), cmd.WhisperFlags...), cmd.InfoFlags...)
+	app.Flags = append(append(append(append(app.Flags, cmd.NodeFlags...), cmd.RpcFlags...), cmd.ContractFlags...), cmd.InfoFlags...)
 	app.Flags = append(app.Flags, startFlags...)
 	return app
 }

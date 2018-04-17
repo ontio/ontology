@@ -44,7 +44,7 @@ var (
 				Action:      utils.MigrateFlags(invokeContract),
 				Name:        "invoke",
 				Usage:       "./ontology invoke [OPTION]",
-				Flags:       append(append(NodeFlags, RpcFlags...), WhisperFlags...),
+				Flags:       append(append(NodeFlags, RpcFlags...), ContractFlags...),
 				Category:    "CONTRACT COMMANDS",
 				Description: ``,
 			},
@@ -52,7 +52,7 @@ var (
 				Action:      utils.MigrateFlags(deployContract),
 				Name:        "deploy",
 				Usage:       "./ontology deploy [OPTION]",
-				Flags:       append(append(NodeFlags, RpcFlags...), WhisperFlags...),
+				Flags:       append(append(NodeFlags, RpcFlags...), ContractFlags...),
 				Category:    "CONTRACT COMMANDS",
 				Description: ``,
 			},
@@ -75,10 +75,10 @@ func invokeContract(ctx *cli.Context) error {
 		log.Fatal("contract address does not allow empty")
 	}
 
-	addr58, _ := common.AddressFromBase58(contractAddr)
-	txHash, err := ontSdk.Rpc.InvokeNeoVMSmartContract(acct, new(big.Int), addr58, []interface{}{params})
+	addr, _ := common.AddressFromBase58(contractAddr)
+	txHash, err := ontSdk.Rpc.InvokeNeoVMSmartContract(acct, new(big.Int), addr, []interface{}{params})
 	if err != nil {
-		log.Fatalf("TestInvokeSmartContract InvokeNeoVMSmartContract error:%s", err)
+		log.Fatalf("InvokeSmartContract InvokeNeoVMSmartContract error:%s", err)
 	} else {
 		log.Print("invoke transaction hash:", txHash)
 	}
@@ -86,7 +86,7 @@ func invokeContract(ctx *cli.Context) error {
 	//WaitForGenerateBlock
 	_, err = ontSdk.Rpc.WaitForGenerateBlock(30*time.Second, 1)
 	if err != nil {
-		log.Fatalf("TestInvokeSmartContract WaitForGenerateBlock error:%s", err)
+		log.Fatalf("InvokeSmartContract WaitForGenerateBlock error:%s", err)
 	}
 	return nil
 }
@@ -129,14 +129,17 @@ func deployContract(ctx *cli.Context) error {
 	email := ctx.GlobalString(utils.ContractEmailFlag.Name)
 	desc := ctx.GlobalString(utils.ContractDescFlag.Name)
 	if "" == name || "" == version || "" == author || "" == email || "" == desc {
-		log.Fatal("Params are not put completely: which contain code name version author email desc")
+		log.Fatal("Params are not put completely: which contain code, name, version, author, email, desc")
 	}
-	ontSdk.Rpc.DeploySmartContract(acct, vmType, store, fmt.Sprintf("%s", code), name, version, author, email, desc)
+
+	trHash, err := ontSdk.Rpc.DeploySmartContract(acct, vmType, store, fmt.Sprintf("%s", code), name, version, author, email, desc)
 
 	//WaitForGenerateBlock
 	_, err = ontSdk.Rpc.WaitForGenerateBlock(30*time.Second, 1)
 	if err != nil {
-		log.Fatalf("TestDeploySmartContract WaitForGenerateBlock error:%s", err)
+		log.Fatalf("DeploySmartContract WaitForGenerateBlock error:%s", err)
+	} else {
+		fmt.Printf("Deploy smartContract transaction hash: %+v\n", trHash)
 	}
 
 	return nil

@@ -19,15 +19,20 @@
 package cmd
 
 import (
+	"math/rand"
+	"strconv"
+	"strings"
+
 	sdk "github.com/ontio/ontology-go-sdk"
+	"github.com/ontio/ontology/common/config"
 )
 
 var ontSdk *sdk.OntologySdk
 
 func rpcAddress() string {
-	//index := rand.Intn(len(config.Parameters.SeedList))
-	//return (strings.Split(config.Parameters.SeedList[index], ":"))[0] + strconv.Itoa(config.Parameters.HttpJsonPort)
-	return "http://139.219.108.204:20336"
+	//return "http://139.219.108.204:20336"
+	index := rand.Intn(len(config.Parameters.SeedList))
+	return "http://" + (strings.Split(config.Parameters.SeedList[index], ":"))[0] + ":" + strconv.Itoa(config.Parameters.HttpJsonPort)
 }
 
 func init() {

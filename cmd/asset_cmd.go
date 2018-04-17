@@ -53,7 +53,7 @@ var (
 				Action:      utils.MigrateFlags(transferAsset),
 				Name:        "transfer",
 				Usage:       "transfer asset",
-				Flags:       append(append(NodeFlags, RpcFlags...), WhisperFlags...),
+				Flags:       append(append(NodeFlags, RpcFlags...), ContractFlags...),
 				Category:    "ASSET COMMANDS",
 				Description: ``,
 			},

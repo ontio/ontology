@@ -37,12 +37,22 @@ var (
 		utils.UserPasswordFlag,
 	}
 
+	ContractFlags = []cli.Flag{
+		utils.ContractVmTypeFlag,
+		utils.ContractStorageFlag,
+		utils.ContractCodeFlag,
+		utils.ContractNameFlag,
+		utils.ContractVersionFlag,
+		utils.ContractAuthorFlag,
+		utils.ContractEmailFlag,
+		utils.ContractDescFlag,
+		utils.ContractParamsFlag,
+	}
+
 	RpcFlags = []cli.Flag{
 		utils.RPCEnabledFlag,
 		utils.WsEnabledFlag,
 	}
-
-	WhisperFlags = []cli.Flag{}
 
 	// flag for infomation command
 	InfoFlags = []cli.Flag{

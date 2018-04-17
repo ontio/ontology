@@ -41,32 +41,6 @@ type DirectoryFlag struct {
 }
 
 var (
-	JSpathFlag = cli.StringFlag{
-		Name:  "jspath",
-		Usage: "JavaScript root path for `loadScript`",
-		Value: ".",
-	}
-
-	ExecFlag = cli.StringFlag{
-		Name:  "exec",
-		Usage: "Execute JavaScript statement",
-	}
-
-	PreloadJSFlag = cli.StringFlag{
-		Name:  "preload",
-		Usage: "Comma separated list of JavaScript files to preload into the console",
-	}
-
-	TestnetFlag = cli.BoolFlag{
-		Name:  "testnet",
-		Usage: "Ropsten network: pre-configured proof-of-work test network",
-	}
-
-	RinkebyFlag = cli.BoolFlag{
-		Name:  "rinkeby",
-		Usage: "Rinkeby network: pre-configured proof-of-authority test network",
-	}
-
 	DataDirFlag = DirectoryFlag{
 		Name:  "datadir",
 		Usage: "Data directory for the databases and keystore",
@@ -165,11 +139,11 @@ var (
 	}
 
 	ContractNameFlag = cli.StringFlag{
-		Name: "name",
+		Name: "cname",
 	}
 
 	ContractVersionFlag = cli.StringFlag{
-		Name: "version",
+		Name: "cversion",
 	}
 
 	ContractAuthorFlag = cli.StringFlag{
@@ -256,45 +230,11 @@ func MigrateFlags(action func(ctx *cli.Context) error) func(*cli.Context) error 
 	}
 }
 
-// MakeDataDir retrieves the currently requested data directory, terminating
-// if none (or the empty string) is specified. If the node is starting a testnet,
-// the a subdirectory of the specified datadir will be used.
-func MakeDataDir(ctx *cli.Context) string {
-	if path := ctx.GlobalString(DataDirFlag.Name); path != "" {
-		if ctx.GlobalBool(TestnetFlag.Name) {
-			return filepath.Join(path, "testnet")
-		}
-		if ctx.GlobalBool(RinkebyFlag.Name) {
-			return filepath.Join(path, "rinkeby")
-		}
-		return path
-	}
-	fmt.Println("Cannot determine default data directory, please set manually (--datadir)")
-	return ""
-}
-
 func absolutePath(Datadir string, filename string) string {
 	if filepath.IsAbs(filename) {
 		return filename
 	}
 	return filepath.Join(Datadir, filename)
-}
-
-// MakeConsolePreloads retrieves the absolute paths for the console JavaScript
-// scripts to preload before starting.
-func MakeConsolePreloads(ctx *cli.Context) []string {
-	// Skip preloading if there's nothing to preload
-	if ctx.GlobalString(PreloadJSFlag.Name) == "" {
-		return nil
-	}
-	// Otherwise resolve absolute paths and return them
-	preloads := []string{}
-
-	assets := ctx.GlobalString(JSpathFlag.Name)
-	for _, file := range strings.Split(ctx.GlobalString(PreloadJSFlag.Name), ",") {
-		preloads = append(preloads, absolutePath(assets, strings.TrimSpace(file)))
-	}
-	return preloads
 }
 
 func eachName(longName string, fn func(string)) {
