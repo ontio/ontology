@@ -77,11 +77,11 @@ func GetTxFromPool(hash common.Uint256) (tcomn.TXEntry, error) {
 		log.Errorf(ERR_ACTOR_COMM, err)
 		return tcomn.TXEntry{}, err
 	}
-	txn, ok := result.(*tcomn.GetTxnRsp)
+	rsp, ok := result.(*tcomn.GetTxnRsp)
 	if !ok {
 		return tcomn.TXEntry{}, errors.New("fail")
 	}
-	if txn == nil {
+	if rsp.Txn == nil {
 		return tcomn.TXEntry{}, errors.New("fail")
 	}
 
@@ -95,7 +95,7 @@ func GetTxFromPool(hash common.Uint256) (tcomn.TXEntry, error) {
 	if !ok {
 		return tcomn.TXEntry{}, errors.New("fail")
 	}
-	txnEntry := tcomn.TXEntry{txn.Txn, 0, txStatus.TxStatus}
+	txnEntry := tcomn.TXEntry{rsp.Txn, 0, txStatus.TxStatus}
 	return txnEntry, nil
 }
 
