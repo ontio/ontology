@@ -248,6 +248,7 @@ func (self *StateStore) GetStorageState(key *states.StorageKey) (*states.Storage
 func (self *StateStore) GetVoteStates() (map[common.Address]*states.VoteState, error) {
 	votes := make(map[common.Address]*states.VoteState)
 	iter := self.store.NewIterator([]byte{byte(scom.ST_VOTE)})
+	defer iter.Release()
 	for iter.Next() {
 		rk := bytes.NewReader(iter.Key())
 		// read prefix

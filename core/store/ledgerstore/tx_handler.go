@@ -33,6 +33,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
 	stypes "github.com/ontio/ontology/smartcontract/types"
+	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/smartcontract/storage"
 )
 
@@ -101,7 +102,9 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 		if err := eventStore.SaveEventNotifyByTx(txHash, sc.Notifications); err != nil {
 			return fmt.Errorf("SaveEventNotifyByTx error %s", err)
 		}
-		event.PushSmartCodeEvent(txHash, 0, event.EVENT_NOTIFY, sc.Notifications)
+		if events.DefActorPublisher != nil {
+			event.PushSmartCodeEvent(txHash, 0, event.EVENT_NOTIFY, sc.Notifications)
+		}
 	}
 	return nil
 }
