@@ -998,19 +998,17 @@ func (self *Server) processMsgEvent() error {
 							}
 						}
 					} else {
-						if self.blockPool.endorseFailed(msgBlkNum, self.config.C) {
-							// endorse failed, start empty endorsing
-							self.timer.C <- &TimerEvent{
-								evtType:  EventEndorseBlockTimeout,
-								blockNum: msgBlkNum,
-							}
-						}
 						// wait until endorse timeout
 					}
-
 				} else {
-					// nothing to do
 					// makeEndorsementTimeout handles non-endorser endorsements
+				}
+				if self.blockPool.endorseFailed(msgBlkNum, self.config.C) {
+					// endorse failed, start empty endorsing
+					self.timer.C <- &TimerEvent{
+						evtType:  EventEndorseBlockTimeout,
+						blockNum: msgBlkNum,
+					}
 				}
 			} else {
 				// process new endorsement when
@@ -1558,6 +1556,13 @@ func (self *Server) endorseBlock(proposal *blockProposalMsg, forEmpty bool) erro
 	blkHash, err := HashBlock(proposal.Block)
 	if err != nil {
 		return fmt.Errorf("failed to hash proposal block: %s", err)
+	}
+
+	if !forEmpty {
+		if self.blockPool.endorseFailed(blkNum, self.config.C) {
+			forEmpty = true
+			log.Errorf("server %d, endorsing %d, changed from true to false", self.Index, blkNum)
+		}
 	}
 
 	// build endorsement msg

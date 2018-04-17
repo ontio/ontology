@@ -180,10 +180,10 @@ func (pool *BlockPool) getEndorsedProposal(blkNum uint64) (*blockProposalMsg, bo
 		return nil, false
 	}
 
-	if c.EndorsedProposal != nil {
-		return c.EndorsedProposal, false
-	} else if c.EndorsedEmptyProposal != nil {
+	if c.EndorsedEmptyProposal != nil {
 		return c.EndorsedEmptyProposal, true
+	} else if c.EndorsedProposal != nil {
+		return c.EndorsedProposal, false
 	}
 
 	return nil, false
