@@ -18,7 +18,6 @@ import (
 	vmtypes "github.com/ontio/ontology/smartcontract/types"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
 	"github.com/ontio/ontology/vm/wasmvm/util"
-	vmtype "github.com/ontio/ontology/smartcontract/types"
 	sccommon "github.com/ontio/ontology/smartcontract/common"
 )
 
@@ -40,7 +39,6 @@ time uint32, ctxRef context.ContextRef) *WasmVmService {
 	service.Tx = tx
 	service.ContextRef = ctxRef
 	return &service
-
 }
 
 func (this *WasmVmService) Invoke() (interface{}, error) {
@@ -210,16 +208,20 @@ func (this *WasmVmService) callContract(engine *exec.ExecutionEngine) (bool, err
 	}
 
 	//get contract code
+
 	codeIdx := params[1]
+
 	offchainContractCode, err := vm.GetPointerMemory(codeIdx)
 	if err != nil {
 		return false, errors.NewErr("[callContract]get Contract address failed:" + err.Error())
 	}
 
-	if offchainContractCode != nil {
-		contractBytes, err = common.HexToBytes(util.TrimBuffToString(offchainContractCode))
+
+	if offchainContractCode != nil{
+		contractBytes,err = common.HexToBytes(util.TrimBuffToString(offchainContractCode))
 		if err != nil {
-			return false, err
+			return false ,err
+
 		}
 		//compute the offchain code address
 		codestring := util.TrimBuffToString(offchainContractCode)
@@ -245,7 +247,7 @@ func (this *WasmVmService) callContract(engine *exec.ExecutionEngine) (bool, err
 
 	vm.RestoreCtx()
 	if envCall.GetReturns() {
-		if contractAddress[0] == byte(vmtype.NEOVM) {
+		if contractAddress[0] == byte(vmtypes.NEOVM) {
 			result = sccommon.ConvertNeoVmReturnTypes(result)
 		}
 		idx, err := vm.SetPointerMemory(result)
