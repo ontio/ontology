@@ -518,7 +518,7 @@ func (vm *VM) loadModule(module *wasm.Module) error {
 		vm.memory.Memory = make([]byte, 1*wasmPageSize)
 	}
 
-	vm.memory.AllocedMemIdex = -1 //init the allocated memory offset
+	//vm.memory.AllocedMemIdex = -1 //init the allocated memory offset
 
 	vm.memory.MemPoints = make(map[uint64]*memory.TypeLength) //init the pointer map
 
@@ -552,12 +552,16 @@ func (vm *VM) loadModule(module *wasm.Module) error {
 			}
 		}
 		//
-		vm.memory.PointedMemIndex = tmpIdx + 1
+		vm.memory.AllocedMemIdex = tmpIdx
+		vm.memory.PointedMemIndex = (len(vm.memory.Memory) + tmpIdx) / 2
 	} else {
 		//default pointed memory
 		//todo define the magic number
+		vm.memory.AllocedMemIdex = -1
 		vm.memory.PointedMemIndex = len(vm.memory.Memory) / 2 //the second half memory is reserved for the pointed objects,string,array,structs
 	}
+
+	//vm.memory.AllocedMemIdex = -1 //init the allocated memory offset
 
 	vm.compiledFuncs = make([]compiledFunction, len(module.FunctionIndexSpace))
 	vm.globals = make([]uint64, len(module.GlobalIndexSpace))
