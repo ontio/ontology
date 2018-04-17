@@ -47,11 +47,28 @@ const (
 	WALLET_FILENAME          = "wallet.dat"
 )
 
+//Client help user manager their wallet and accounts
 type Client interface {
+	//Whether wallet contain specify account
 	ContainsAccount(pubKey keypair.PublicKey) bool
+	//GetAccount return specify account, if the account doesn't exist, return nil
 	GetAccount(pubKey keypair.PublicKey) *Account
+	//GetDefaultAccount return the first account create by wallet, if the account doesn't exist, return nil
 	GetDefaultAccount() *Account
+	//GetAccountByIndex return the account by create order no. Index is start from zero, if the account doesn't exist, return nil
+	GetAccountByIndex(index int) *Account
+	//GetAccountByAddress return specify account, if the account doesn't exist, return nil
+	GetAccountByAddress(address common.Address) *Account
+	//GetBookkeepers return bookkeepers' public key
 	GetBookkeepers() ([]keypair.PublicKey, error)
+	//CreateAccount return a new account instance.param encrypt is encrypt scheme, if encrypt is empty string, using SHA256withECDSA instead.
+	CreateAccount(encrypt string) (*Account, error)
+	//CreateAccountByPrivateKey return an account by specify private key
+	CreateAccountByPrivateKey(privateKey []byte) (*Account, error)
+	//GetAccountNum return the number of account in the client.
+	GetAccountNum() int
+	//ChangePassword change the password of client. If change failed, return false
+	ChangePassword(oldPassword []byte, newPassword []byte) bool
 }
 
 type ClientImpl struct {
@@ -61,7 +78,8 @@ type ClientImpl struct {
 	iv        []byte
 	masterKey []byte
 
-	accounts map[common.Address]*Account
+	accounts    map[common.Address]*Account
+	accountList []*Account
 
 	watchOnly     []common.Address
 	currentHeight uint32
@@ -98,10 +116,11 @@ func Open(path string, passwordKey []byte) *ClientImpl {
 
 func NewClient(path string, password []byte, create bool) *ClientImpl {
 	newClient := &ClientImpl{
-		path:      path,
-		accounts:  map[common.Address]*Account{},
-		FileStore: FileStore{path: path},
-		isrunning: true,
+		path:        path,
+		accounts:    map[common.Address]*Account{},
+		accountList: make([]*Account, 0),
+		FileStore:   FileStore{path: path},
+		isrunning:   true,
 	}
 
 	passwordKey := doubleHash(password)
@@ -184,12 +203,17 @@ func (cl *ClientImpl) loadClient(passwordKey []byte) error {
 }
 
 func (cl *ClientImpl) GetDefaultAccount() *Account {
-	// todo the iteration of map is not ordered
-	for programHash := range cl.accounts {
-		return cl.GetAccountByAddress(programHash)
-	}
+	return cl.GetAccountByIndex(0)
+}
 
-	return nil
+func (cl *ClientImpl) GetAccountByIndex(index int) *Account {
+	cl.mu.Lock()
+	defer cl.mu.Unlock()
+	size := len(cl.accountList)
+	if index >= size {
+		return nil
+	}
+	return cl.accountList[index]
 }
 
 func (cl *ClientImpl) GetAccount(pubKey keypair.PublicKey) *Account {
@@ -205,6 +229,12 @@ func (cl *ClientImpl) GetAccountByAddress(address common.Address) *Account {
 		return account
 	}
 	return nil
+}
+
+func (cl *ClientImpl) GetAccountNum() int {
+	cl.mu.Lock()
+	defer cl.mu.Unlock()
+	return len(cl.accountList)
 }
 
 func (cl *ClientImpl) ChangePassword(oldPassword []byte, newPassword []byte) bool {
@@ -253,6 +283,7 @@ func (cl *ClientImpl) CreateAccount(encrypt string) (*Account, error) {
 
 	cl.mu.Lock()
 	cl.accounts[ac.Address] = ac
+	cl.accountList = append(cl.accountList, ac)
 	cl.mu.Unlock()
 
 	err := cl.SaveAccount(ac)
@@ -273,6 +304,7 @@ func (cl *ClientImpl) CreateAccountByPrivateKey(privateKey []byte) (*Account, er
 	}
 
 	cl.accounts[ac.Address] = ac
+	cl.accountList = append(cl.accountList, ac)
 	err = cl.SaveAccount(ac)
 	if err != nil {
 		return nil, err
@@ -365,6 +397,7 @@ func (cl *ClientImpl) LoadAccount() map[common.Address]*Account {
 		}
 		ac.SigScheme = s.SignatureScheme(scheme)
 		accounts[ac.Address] = ac
+		cl.accountList = append(cl.accountList, ac)
 		i++
 		break
 	}
