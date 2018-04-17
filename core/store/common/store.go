@@ -24,65 +24,88 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 )
 
+//Store iterator for iterate store
 type StoreIterator interface {
-	Next() bool
-	Prev() bool
-	First() bool
-	Last() bool
-	Seek(key []byte) bool
-	Key() []byte
-	Value() []byte
-	Release()
+	Next() bool           //Next item. If item available return true, otherwise return false
+	Prev() bool           //previous item. If item available return true, otherwise return false
+	First() bool          //First item. If item available return true, otherwise return false
+	Last() bool           //Last item. If item available return true, otherwise return false
+	Seek(key []byte) bool //Seek key. If item available return true, otherwise return false
+	Key() []byte          //Return the current item key
+	Value() []byte        //Return the current item value
+	Release()             //Close iterator
 }
 
+//PersistStore of ledger
 type PersistStore interface {
-	Put(key []byte, value []byte) error
-	Get(key []byte) ([]byte, error)
-	Has(key []byte) (bool, error)
-	Delete(key []byte) error
-	NewBatch()
-	BatchPut(key []byte, value []byte)
-	BatchDelete(key []byte)
-	BatchCommit() error
-	Close() error
-	NewIterator(prefix []byte) StoreIterator
+	Put(key []byte, value []byte) error      //Put the key-value pair to store
+	Get(key []byte) ([]byte, error)          //Get the value if key in store
+	Has(key []byte) (bool, error)            //Whether the key is exist in store
+	Delete(key []byte) error                 //Delete the key in store
+	NewBatch()                               //Start commit batch
+	BatchPut(key []byte, value []byte)       //Put a key-value pair to batch
+	BatchDelete(key []byte)                  //Delete the key in batch
+	BatchCommit() error                      //Commit batch to store
+	Close() error                            //Close store
+	NewIterator(prefix []byte) StoreIterator //Return the iterator of store
 }
 
+//StateStore save result of smart contract execution, before commit to store
 type StateStore interface {
+	//Add key-value pair to store
 	TryAdd(prefix DataEntryPrefix, key []byte, value states.StateValue)
+	//Get key from state store, if not exist, add it to store
 	TryGetOrAdd(prefix DataEntryPrefix, key []byte, value states.StateValue) error
+	//Get key from state store
 	TryGet(prefix DataEntryPrefix, key []byte) (*StateItem, error)
+	//Get key from store, and will change later
 	TryGetAndChange(prefix DataEntryPrefix, key []byte) (states.StateValue, error)
+	//Delete key in store
 	TryDelete(prefix DataEntryPrefix, key []byte)
+	//iterator key in store
 	Find(prefix DataEntryPrefix, key []byte) ([]*StateItem, error)
 }
 
+//MemoryCacheStore
 type MemoryCacheStore interface {
+	//Put the key-value pair to store
 	Put(prefix byte, key []byte, value states.StateValue, state ItemState)
+	//Get the value if key in store
 	Get(prefix byte, key []byte) *StateItem
+	//Delete the key in store
 	Delete(prefix byte, key []byte)
+	//Get all updated key-value set
 	GetChangeSet() map[string]*StateItem
 }
 
+//EventStore save event notify
 type EventStore interface {
+	//SaveEventNotifyByTx save event notify gen by smart contract execution
 	SaveEventNotifyByTx(txHash common.Uint256, notifies []*event.NotifyEventInfo) error
+	//Save transaction hashes which have event notify gen
 	SaveEventNotifyByBlock(height uint32, txHashs []common.Uint256) error
+	//GetEventNotifyByTx return event notify by transaction hash
 	GetEventNotifyByTx(txHash common.Uint256) ([]*event.NotifyEventInfo, error)
+	//Commit event notify to store
 	CommitTo() error
 }
 
+//State item type
 type ItemState byte
 
+//Status of item
 const (
-	None ItemState = iota
-	Changed
-	Deleted
+	None    ItemState = iota //no change
+	Changed                  //which was be mark delete
+	Deleted                  //which wad be mark delete
 )
 
+//State item struct
 type StateItem struct {
-	Key   string
-	Value states.StateValue
-	State ItemState
+	Key   string            //State key
+	Value states.StateValue //State value
+	State ItemState         //Status
+	Trie  bool              //no use
 }
 
 func (e *StateItem) copy() *StateItem {
