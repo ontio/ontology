@@ -19,6 +19,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"runtime"
@@ -29,6 +30,8 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/cmd"
+	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus"
@@ -47,13 +50,46 @@ import (
 	tc "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology/validator/statefull"
 	"github.com/ontio/ontology/validator/stateless"
+	"github.com/urfave/cli"
 )
 
 const (
 	DefaultMultiCoreNum = 4
 )
 
-func init() {
+func setupAPP() *cli.App {
+	app := cli.NewApp()
+	app.Action = ontMain
+	app.Copyright = "Copyright in 2018 The Ontology Authors"
+	app.Commands = []cli.Command{
+		cmd.WalletCommand,
+		cmd.InfoCommand,
+		cmd.AssetCommand,
+		cmd.SettingCommand,
+		cmd.ContractCommand,
+	}
+	startFlags := []cli.Flag{
+		utils.WalletUsedFlag,
+		utils.ConfigUsedFlag,
+	}
+
+	app.Flags = append(append(append(append(app.Flags, cmd.NodeFlags...), cmd.RpcFlags...), cmd.WhisperFlags...), cmd.InfoFlags...)
+	app.Flags = append(app.Flags, startFlags...)
+	return app
+}
+
+func main() {
+	if err := setupAPP().Run(os.Args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+func ontMain(ctx *cli.Context) {
+	var acct *account.Account
+	var err error
+	var noder protocol.Noder
+
+	config.Init(ctx)
 	log.Init(log.PATH, log.Stdout)
 	// Todo: If the actor bus uses a different log lib, remove it
 
@@ -65,12 +101,7 @@ func init() {
 	}
 	log.Debug("The Core number is ", coreNum)
 	runtime.GOMAXPROCS(coreNum)
-}
 
-func main() {
-	var acct *account.Account
-	var err error
-	var noder protocol.Noder
 	log.Trace("Node version: ", config.Version)
 
 	consensusType := strings.ToLower(config.Parameters.ConsensusType)
@@ -80,7 +111,7 @@ func main() {
 	}
 
 	log.Info("0. Open the account")
-	client := account.GetClient()
+	client := account.GetClient(ctx)
 	if client == nil {
 		log.Fatal("Can't get local account.")
 		os.Exit(1)
