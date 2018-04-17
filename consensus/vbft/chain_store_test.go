@@ -26,21 +26,15 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
 	"github.com/ontio/ontology/core/ledger"
 	ldgactor "github.com/ontio/ontology/core/ledger/actor"
-	"github.com/ontio/ontology/core/signature"
 )
 
 func newChainStore() *ChainStore {
 	log.Init(log.PATH, log.Stdout)
 	var err error
-	err = signature.SetDefaultScheme(config.Parameters.SignatureScheme)
-	if err != nil {
-		log.Warn("Config error: ", err)
-	}
 	passwd := string("passwordtest")
 	acct := account.Open(account.WALLET_FILENAME, []byte(passwd))
 
