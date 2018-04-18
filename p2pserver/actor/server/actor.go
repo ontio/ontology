@@ -83,6 +83,10 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		this.handleGetTimeReq(ctx, msg)
 	case *GetNeighborAddrsReq:
 		this.handleGetNeighborAddrsReq(ctx, msg)
+	case *GetRelayStateReq:
+		this.handleGetRelayStateReq(ctx, msg)
+	case *GetNodeTypeReq:
+		this.handleGetNodeTypeReq(ctx, msg)
 	default:
 		err := this.server.Xmit(ctx.Message())
 		if nil != err {
@@ -93,7 +97,7 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 
 //start handler
 func (this *P2PActor) handleStartServerReq(ctx actor.Context, req *StartServerReq) {
-	startSync := ctx.Message().(StartServerReq).StartSync
+	startSync := ctx.Message().(*StartServerReq).StartSync
 	err := this.server.Start(startSync)
 	if ctx.Sender() != nil {
 		resp := &StartServerRsp{
@@ -223,6 +227,28 @@ func (this *P2PActor) handleGetNeighborAddrsReq(ctx actor.Context, req *GetNeigh
 		resp := &GetNeighborAddrsRsp{
 			Addrs: addrs,
 			Count: cnt,
+		}
+		ctx.Sender().Request(resp, ctx.Self())
+	}
+}
+
+//peer`s relay state handler
+func (this *P2PActor) handleGetRelayStateReq(ctx actor.Context, req *GetRelayStateReq) {
+	ret := this.server.GetNetWork().GetRelay()
+	if ctx.Sender() != nil {
+		resp := &GetRelayStateRsp{
+			Relay: ret,
+		}
+		ctx.Sender().Request(resp, ctx.Self())
+	}
+}
+
+//peer`s service type handler
+func (this *P2PActor) handleGetNodeTypeReq(ctx actor.Context, req *GetNodeTypeReq) {
+	ret := this.server.GetNetWork().GetServices()
+	if ctx.Sender() != nil {
+		resp := &GetNodeTypeRsp{
+			NodeType: ret,
 		}
 		ctx.Sender().Request(resp, ctx.Self())
 	}
