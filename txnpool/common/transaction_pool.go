@@ -193,3 +193,46 @@ func (tp *TXPool) GetTransactionCount() int {
 	defer tp.RUnlock()
 	return len(tp.txList)
 }
+
+// GetUnverifiedTxs checks the tx list in the block from consensus,
+// and returns verified tx list, unverified tx list, and
+// the tx list to be re-verified
+func (tp *TXPool) GetUnverifiedTxs(txs []*types.Transaction,
+	height uint32) *CheckBlkResult {
+	tp.Lock()
+	defer tp.Unlock()
+	res := &CheckBlkResult{
+		VerifiedTxs:   make([]*VerifyTxResult, 0, len(txs)),
+		UnverifiedTxs: make([]*types.Transaction, 0),
+		OldTxs:        make([]*types.Transaction, 0),
+	}
+	for _, tx := range txs {
+		txEntry := tp.txList[tx.Hash()]
+		if txEntry == nil {
+			res.UnverifiedTxs = append(res.UnverifiedTxs,
+				tx)
+			continue
+		}
+
+		if !tp.compareTxHeight(txEntry, height) {
+			delete(tp.txList, tx.Hash())
+			res.OldTxs = append(res.OldTxs, txEntry.Tx)
+			continue
+		}
+
+		for _, v := range txEntry.Attrs {
+			if v.Type == vt.Statefull {
+				entry := &VerifyTxResult{
+					Tx:      tx,
+					Height:  v.Height,
+					ErrCode: v.ErrCode,
+				}
+				res.VerifiedTxs = append(res.VerifiedTxs,
+					entry)
+				break
+			}
+		}
+	}
+
+	return res
+}
