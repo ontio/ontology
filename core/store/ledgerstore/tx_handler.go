@@ -33,6 +33,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
 	stypes "github.com/ontio/ontology/smartcontract/types"
+	"github.com/ontio/ontology/smartcontract/storage"
 )
 
 //HandleDeployTransaction deal with smart contract deploy transaction
@@ -67,12 +68,10 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	txHash := tx.Hash()
 
 	// init smart contract configuration info
-	config := &smartcontract.Config{
+	config := &smartcontract.Config {
 		Time:    block.Header.Timestamp,
 		Height:  block.Header.Height,
 		Tx:      tx,
-		DBCache: stateBatch,
-		Store:   store,
 	}
 
 	//init smart contract context info
@@ -84,6 +83,8 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	//init smart contract info
 	sc := smartcontract.SmartContract{
 		Config: config,
+		CloneCache: storage.NewCloneCache(stateBatch),
+		Store:   store,
 	}
 
 	//load current context to smart contract
@@ -93,6 +94,8 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	if _, err := sc.Execute(); err != nil {
 		return err
 	}
+
+	sc.CloneCache.Commit()
 
 	if len(sc.Notifications) > 0 {
 		if err := eventStore.SaveEventNotifyByTx(txHash, sc.Notifications); err != nil {

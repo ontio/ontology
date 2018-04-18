@@ -21,7 +21,6 @@ package neovm
 import (
 	"math/big"
 
-	scommon "github.com/ontio/ontology/core/store/common"
 	vmtype "github.com/ontio/ontology/vm/neovm/types"
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/smartcontract/storage"
@@ -113,10 +112,10 @@ type NeoVmService struct {
 }
 
 // NewNeoVmService return a new neovm service
-func NewNeoVmService(store store.LedgerStore, dbCache scommon.StateStore, tx *types.Transaction, time uint32, ctxRef context.ContextRef) *NeoVmService {
+func NewNeoVmService(store store.LedgerStore, cache *storage.CloneCache, tx *types.Transaction, time uint32, ctxRef context.ContextRef) *NeoVmService {
 	var service NeoVmService
 	service.Store = store
-	service.CloneCache = storage.NewCloneCache(dbCache)
+	service.CloneCache = cache
 	service.Time = time
 	service.Tx = tx
 	service.ContextRef = ctxRef
@@ -179,7 +178,6 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 		}
 	}
 	this.ContextRef.PushNotifications(this.Notifications)
-	this.CloneCache.Commit()
 	if engine.EvaluationStack.Count() != 0 {
 		return engine.EvaluationStack.Peek(0), nil
 	}

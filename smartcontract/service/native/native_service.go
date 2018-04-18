@@ -24,7 +24,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/genesis"
-	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/context"
@@ -58,9 +57,9 @@ type NativeService struct {
 }
 
 // New native service
-func NewNativeService(dbCache scommon.StateStore, height uint32, tx *types.Transaction, ctxRef context.ContextRef) *NativeService {
+func NewNativeService(cache *storage.CloneCache, height uint32, tx *types.Transaction, ctxRef context.ContextRef) *NativeService {
 	var nativeService NativeService
-	nativeService.CloneCache = storage.NewCloneCache(dbCache)
+	nativeService.CloneCache = cache
 	nativeService.Tx = tx
 	nativeService.Height = height
 	nativeService.ContextRef = ctxRef
@@ -98,7 +97,6 @@ func (this *NativeService) Invoke() (interface{}, error) {
 	}
 	this.ContextRef.PopContext()
 	this.ContextRef.PushNotifications(this.Notifications)
-	this.CloneCache.Commit()
 	return true, nil
 }
 
