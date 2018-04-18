@@ -33,11 +33,12 @@ import (
 
 var (
 	WalletCommand = cli.Command{
+		Action:      utils.MigrateFlags(walletCommand),
 		Name:        "wallet",
 		Usage:       "ontology wallet [create|show|balance] [OPTION]\n",
 		ArgsUsage:   "",
 		Category:    "WALLET COMMANDS",
-		Description: `[create/show]`,
+		Description: `[create/show/balance]`,
 		Subcommands: []cli.Command{
 			{
 				Action:      utils.MigrateFlags(walletCreate),
@@ -67,10 +68,37 @@ var (
 	}
 )
 
-func walletCreate(ctx *cli.Context) error {
-	encrypt := ctx.GlobalString(utils.EncryptTypeFlag.Name)
+func showWalletHelp() {
+	var walletHelp = `
+   Name:
+      ontology wallet                  User wallet operation
 
-	name := ctx.GlobalString(utils.WalletNameFlag.Name)
+   Usage:
+      ontology wallet [command options] [args]
+
+   Description:
+      With ontology wallet, you could control your account.
+
+   Command:
+      create
+         --name value                  wallet name (default: "wallet.dat")
+
+      show
+
+      balance
+`
+	fmt.Println(walletHelp)
+}
+
+func walletCommand(context *cli.Context) error {
+	showWalletHelp()
+	return nil
+}
+
+func walletCreate(ctx *cli.Context) error {
+	encrypt := ctx.String(utils.EncryptTypeFlag.Name)
+
+	name := ctx.String(utils.WalletNameFlag.Name)
 	if name == "" {
 		fmt.Println("Invalid wallet name.")
 		os.Exit(1)
@@ -79,22 +107,22 @@ func walletCreate(ctx *cli.Context) error {
 		fmt.Printf("CAUTION: '%s' already exists!\n", name)
 		os.Exit(1)
 	}
-	tmppasswd, err := password.GetConfirmedPassword()
+	tmpPassword, err := password.GetConfirmedPassword()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	passwd := string(tmppasswd)
-	wallet := account.Create(name, encrypt, []byte(passwd))
+	password := string(tmpPassword)
+	wallet := account.Create(name, encrypt, []byte(password))
 	account := wallet.GetDefaultAccount()
 
 	pubKey := account.PubKey()
 	address := account.Address
 
 	pubKeyBytes := keypair.SerializePublicKey(pubKey)
-	fmt.Println("public key:   ", common.ToHexString(pubKeyBytes))
-	fmt.Println("hex address: ", common.ToHexString(address[:]))
-	fmt.Println("base58 address:      ", address.ToBase58())
+	fmt.Println("public key:     \t", common.ToHexString(pubKeyBytes))
+	fmt.Println("hex address:    \t", common.ToHexString(address[:]))
+	fmt.Println("base58 address: \t", address.ToBase58())
 
 	return nil
 }
@@ -114,17 +142,28 @@ func walletShow(ctx *cli.Context) error {
 	address := acct.Address
 
 	pubKeyBytes := keypair.SerializePublicKey(pubKey)
-	fmt.Println("public key:   ", common.ToHexString(pubKeyBytes))
-	fmt.Println("hex address: ", common.ToHexString(address[:]))
-	fmt.Println("base58 address:      ", address.ToBase58())
+	fmt.Println("public key:     \t", common.ToHexString(pubKeyBytes))
+	fmt.Println("hex address:    \t", common.ToHexString(address[:]))
+	fmt.Println("base58 address: \t", address.ToBase58())
 	return nil
 }
 
 func walletBalance(ctx *cli.Context) error {
-	addr := ctx.GlobalString(utils.WalletAddrFlag.Name)
-	balance, err := ontSdk.Rpc.GetBalanceWithBase58(addr)
+	client := account.GetClient(ctx)
+	if client == nil {
+		log.Fatal("Can't get local account.")
+	}
+
+	acct := client.GetDefaultAccount()
+	if acct == nil {
+		log.Fatal("can not get default account")
+	}
+
+	base58Addr := acct.Address.ToBase58()
+	balance, err := ontSdk.Rpc.GetBalanceWithBase58(base58Addr)
 	if nil != err {
 		log.Fatal("Get Balance with base58 err: ", err.Error())
+		return err
 	}
 	fmt.Printf("ONT: %d; ONG: %d; ONGAppove: %d\n", balance.Ont.Int64(), balance.Ong.Int64(), balance.OngAppove.Int64())
 	return nil
