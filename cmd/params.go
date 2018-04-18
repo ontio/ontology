@@ -27,7 +27,6 @@ var (
 	NodeFlags = []cli.Flag{
 		utils.WalletNameFlag,
 		utils.WalletAddrFlag,
-		utils.WalletPwdFlag,
 		utils.DebugLevelFlag,
 		utils.ConsensusLevelFlag,
 		utils.TransactionValueFlag,
@@ -46,11 +45,7 @@ var (
 		utils.ContractEmailFlag,
 		utils.ContractDescFlag,
 		utils.ContractParamsFlag,
-	}
-
-	RpcFlags = []cli.Flag{
-		utils.RPCEnabledFlag,
-		utils.WsEnabledFlag,
+		utils.ContractAddrFlag,
 	}
 
 	// flag for infomation command

@@ -53,7 +53,7 @@ var (
 				Action:      utils.MigrateFlags(transferAsset),
 				Name:        "transfer",
 				Usage:       "ontology asset transfer [OPTION]\n",
-				Flags:       append(append(NodeFlags, RpcFlags...), ContractFlags...),
+				Flags:       append(NodeFlags, ContractFlags...),
 				Category:    "ASSET COMMANDS",
 				Description: ``,
 			},

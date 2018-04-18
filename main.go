@@ -59,6 +59,7 @@ const (
 
 func init() {
 	log.Init(log.PATH, log.Stdout)
+	cmd.HelpUsage()
 	// Todo: If the actor bus uses a different log lib, remove it
 
 	var coreNum int
@@ -88,7 +89,7 @@ func setupAPP() *cli.App {
 		utils.ConfigUsedFlag,
 	}
 
-	app.Flags = append(append(append(append(app.Flags, cmd.NodeFlags...), cmd.RpcFlags...), cmd.ContractFlags...), cmd.InfoFlags...)
+	app.Flags = append(append(append(app.Flags, cmd.NodeFlags...), cmd.ContractFlags...), cmd.InfoFlags...)
 	app.Flags = append(app.Flags, startFlags...)
 	return app
 }

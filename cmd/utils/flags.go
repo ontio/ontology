@@ -43,11 +43,6 @@ var (
 		Usage: "wallet name",
 	}
 
-	WalletPwdFlag = cli.StringFlag{
-		Name:  "pwd",
-		Usage: "wallet password when used",
-	}
-
 	WalletUsedFlag = cli.StringFlag{
 		Name:  "wallet",
 		Usage: "which wallet will be used",
@@ -87,7 +82,7 @@ var (
 
 	//send raw transaction
 	ContractAddrFlag = cli.StringFlag{
-		Name:  "addr",
+		Name:  "caddr",
 		Usage: "contract address that will be used when send raw transaction",
 	}
 
@@ -162,6 +157,10 @@ var (
 	ContractParamsFlag = cli.StringFlag{
 		Name:  "params",
 		Usage: "contract parameter needed when invoded",
+	}
+	NonOptionFlag = cli.StringFlag{
+		Name:  "optiion",
+		Usage: "this command does not need option, please run directly",
 	}
 )
 

@@ -19,12 +19,15 @@
 package cmd
 
 import (
+	"io"
 	"math/rand"
 	"strconv"
 	"strings"
 
 	sdk "github.com/ontio/ontology-go-sdk"
+	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common/config"
+	"github.com/urfave/cli"
 )
 
 var ontSdk *sdk.OntologySdk
@@ -38,4 +41,204 @@ func rpcAddress() string {
 func init() {
 	ontSdk = sdk.NewOntologySdk()
 	ontSdk.Rpc.SetAddress(rpcAddress())
+}
+
+// AppHelpTemplate is the test template for the default, global app help topic.
+var AppHelpTemplate = `NAME:
+   {{.App.Name}} - {{.App.Usage}}
+
+USAGE:
+   {{.App.HelpName}} {{if .App.Commands}} command [command options]{{end}} {{if .App.ArgsUsage}}{{.App.ArgsUsage}}{{else}}[arguments...]{{end}}
+   {{if .App.Version}}
+VERSION:
+   {{.App.Version}}
+   {{end}}{{if len .App.Authors}}
+AUTHOR(S):
+   {{range .App.Authors}}{{ . }}{{end}}
+   {{end}}{{if .App.Commands}}
+COMMANDS:
+   {{range .App.Commands}}{{join .Names ", "}}{{ "\t" }}{{.Usage}}
+   {{end}}{{end}}{{if .FlagGroups}}
+{{range .FlagGroups}}{{.Name}} OPTIONS:
+  {{range .Flags}}{{.}}
+  {{end}}
+{{end}}{{end}}{{if .App.Copyright }}
+COPYRIGHT:
+   {{.App.Copyright}}
+   {{end}}
+`
+
+// flagGroup is a collection of flags belonging to a single topic.
+type flagGroup struct {
+	Name  string
+	Flags []cli.Flag
+}
+
+// AppHelpFlagGroups is the application flags, grouped by functionality.
+var AppHelpFlagGroups = []flagGroup{
+	{
+		Name: "ONTOLOGY WALLET CREATE",
+		Flags: []cli.Flag{
+			utils.WalletNameFlag,
+		},
+	},
+
+	{
+		Name: "ONTOLOGY WALLET SHOW",
+		Flags: []cli.Flag{
+			utils.NonOptionFlag,
+		},
+	},
+
+	{
+		Name: "ONTOLOGY WALLET BALANCE",
+		Flags: []cli.Flag{
+			utils.WalletAddrFlag,
+		},
+	},
+
+	{
+		Name: "ONTOLOGY INFO BLOCK",
+		Flags: []cli.Flag{
+			utils.BHashInfoFlag,
+			utils.HeightInfoFlag,
+		},
+	},
+
+	{
+		Name: "ONTOLOGY INFO TRANSACTION",
+		Flags: []cli.Flag{
+			utils.BTrxInfoFlag,
+		},
+	},
+
+	{
+		Name: "ONTOLOGY INFO VERSION",
+		Flags: []cli.Flag{
+			utils.NonOptionFlag,
+		},
+	},
+
+	{
+		Name: "ONTOLOGY INFO BLOCK HEIGHT",
+		Flags: []cli.Flag{
+			utils.NonOptionFlag,
+		},
+	},
+
+	{
+		Name: "ONTOLOGY ASSET TRANSFER",
+		Flags: []cli.Flag{
+			utils.TransactionFromFlag,
+			utils.TransactionToFlag,
+			utils.TransactionValueFlag,
+			utils.ContractAddrFlag,
+			utils.UserPasswordFlag,
+		},
+	},
+
+	{
+		Name: "ONTOLOGY SET DEBUG",
+		Flags: []cli.Flag{
+			utils.DebugLevelFlag,
+		},
+	},
+
+	{
+		Name: "ONTOLOGY SET CONSENSUS",
+		Flags: []cli.Flag{
+			utils.ConsensusLevelFlag,
+		},
+	},
+
+	{
+		Name: "ONTOLOGY CONTRACT DEPLOY",
+		Flags: []cli.Flag{
+			utils.ContractVmTypeFlag,
+			utils.ContractStorageFlag,
+			utils.ContractCodeFlag,
+			utils.ContractNameFlag,
+			utils.ContractVersionFlag,
+			utils.ContractAuthorFlag,
+			utils.ContractDescFlag,
+			utils.ContractEmailFlag,
+		},
+	},
+
+	{
+		Name: "ONTOLOGY CONTRACT INVOKE",
+		Flags: []cli.Flag{
+			utils.ContractAddrFlag,
+			utils.ContractParamsFlag,
+		},
+	},
+
+	{
+		Name: "MISC",
+	},
+}
+
+type byCategory []flagGroup
+
+func (a byCategory) Len() int      { return len(a) }
+func (a byCategory) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a byCategory) Less(i, j int) bool {
+	iCat, jCat := a[i].Name, a[j].Name
+	iIdx, jIdx := len(AppHelpFlagGroups), len(AppHelpFlagGroups) // ensure non categorized flags come last
+
+	for i, group := range AppHelpFlagGroups {
+		if iCat == group.Name {
+			iIdx = i
+		}
+		if jCat == group.Name {
+			jIdx = i
+		}
+	}
+
+	return iIdx < jIdx
+}
+
+func HelpUsage() {
+	cli.AppHelpTemplate = AppHelpTemplate
+
+	// Define a one shot struct to pass to the usage template
+	type helpData struct {
+		App        interface{}
+		FlagGroups []flagGroup
+	}
+
+	// Override the default app help printer, but only for the global app help
+	originalHelpPrinter := cli.HelpPrinter
+	cli.HelpPrinter = func(w io.Writer, tmpl string, data interface{}) {
+		if tmpl == AppHelpTemplate {
+			// Iterate over all the flags and add any uncategorized ones
+			categorized := make(map[string]struct{})
+			for _, group := range AppHelpFlagGroups {
+				for _, flag := range group.Flags {
+					categorized[flag.String()] = struct{}{}
+				}
+			}
+			uncategorized := []cli.Flag{}
+			for _, flag := range data.(*cli.App).Flags {
+				if _, ok := categorized[flag.String()]; !ok {
+					if strings.HasPrefix(flag.GetName(), "dashboard") {
+						continue
+					}
+					uncategorized = append(uncategorized, flag)
+				}
+			}
+			if len(uncategorized) > 0 {
+				// Append all ungategorized options to the misc group
+				miscs := len(AppHelpFlagGroups[len(AppHelpFlagGroups)-1].Flags)
+				AppHelpFlagGroups[len(AppHelpFlagGroups)-1].Flags = append(AppHelpFlagGroups[len(AppHelpFlagGroups)-1].Flags, uncategorized...)
+
+				// Make sure they are removed afterwards
+				defer func() {
+					AppHelpFlagGroups[len(AppHelpFlagGroups)-1].Flags = AppHelpFlagGroups[len(AppHelpFlagGroups)-1].Flags[:miscs]
+				}()
+			}
+			// Render out custom usage screen
+			originalHelpPrinter(w, tmpl, helpData{data, AppHelpFlagGroups})
+		}
+	}
 }
