@@ -35,6 +35,11 @@ import (
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/smartcontract"
+	"github.com/ontio/ontology/smartcontract/context"
+	vmtype "github.com/ontio/ontology/smartcontract/types"
+	scommon "github.com/ontio/ontology/smartcontract/common"
 )
 
 const (
@@ -907,31 +912,56 @@ func (this *LedgerStoreImp) GetEventNotifyByBlock(height uint32) ([]common.Uint2
 
 //PreExecuteContract return the result of smart contract execution without commit to store
 func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface{}, error) {
-	//	if tx.TxType != types.Invoke {
-	//		return nil, fmt.Errorf("transaction type error")
-	//	}
-	//	invokeCode, ok := tx.Payload.(*payload.InvokeCode)
-	//	if !ok {
-	//		return nil, fmt.Errorf("transaction type error")
-	//	}
-	//
-	//	stateBatch := this.stateStore.NewStateBatch()
-	//
-	//	stateMachine := neoservice.NewStateMachine(this, stateBatch, stypes.Application, 0)
-	//	se := neovm.NewExecutionEngine(tx, new(neovm.ECDsaCrypto), &CacheCodeTable{stateBatch}, stateMachine)
-	//	se.LoadCode(invokeCode.Code.Code, false)
-	//	err := se.Execute()
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	if se.GetEvaluationStackCount() == 0 {
-	//		return nil, err
-	//	}
-	//	if neovm.Peek(se).GetStackItem() == nil {
-	//		return nil, err
-	//	}
-	//	return scommon.ConvertReturnTypes(neovm.Peek(se).GetStackItem()), nil
-	return nil, nil
+	if tx.TxType != types.Invoke {
+		return nil, errors.NewErr("transaction type error")
+	}
+
+	invoke, ok := tx.Payload.(*payload.InvokeCode)
+	if !ok {
+		return nil, errors.NewErr("transaction type error")
+	}
+
+	header, err := this.GetHeaderByHeight(this.GetCurrentBlockHeight()); if err != nil {
+		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[PreExecuteContract] Get current block error!")
+	}
+	// init smart contract configuration info
+	config := &smartcontract.Config{
+		Time:    header.Timestamp,
+		Height:  header.Height,
+		Tx:      tx,
+		DBCache: this.stateStore.NewStateBatch(),
+		Store:   this,
+	}
+
+	//init smart contract context info
+	ctx := &context.Context{
+		Code:            invoke.Code,
+		ContractAddress: invoke.Code.AddressFromVmCode(),
+	}
+
+	//init smart contract info
+	sc := smartcontract.SmartContract{
+		Config: config,
+	}
+
+	//load current context to smart contract
+	sc.PushContext(ctx)
+
+	//start the smart contract executive function
+	result, err := sc.Execute(); if err != nil {
+		return nil, err
+	}
+
+	prefix := ctx.ContractAddress[0]
+	if prefix == byte(vmtype.NEOVM) {
+		result = scommon.ConvertNeoVmTypeHexString(result)
+	} else if prefix == byte(vmtype.WASMVM){
+		if v, ok := result.([]byte); ok {
+			result = common.ToHexString(v)
+		}
+	}
+	return result, nil
+
 }
 
 //Close ledger store.

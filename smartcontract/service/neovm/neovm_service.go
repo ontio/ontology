@@ -124,14 +124,14 @@ func NewNeoVmService(store store.LedgerStore, dbCache scommon.StateStore, tx *ty
 }
 
 // Invoke a smart contract
-func (this *NeoVmService) Invoke() error {
+func (this *NeoVmService) Invoke() (interface{}, error) {
 	engine := vm.NewExecutionEngine()
 	ctx := this.ContextRef.CurrentContext()
 	if ctx == nil {
-		return ERR_CURRENT_CONTEXT_NIL
+		return nil, ERR_CURRENT_CONTEXT_NIL
 	}
 	if len(ctx.Code.Code) == 0 {
-		return ERR_EXECUTE_CODE
+		return nil, ERR_EXECUTE_CODE
 	}
 	engine.PushContext(vm.NewExecutionContext(engine, ctx.Code.Code))
 	for {
@@ -142,41 +142,48 @@ func (this *NeoVmService) Invoke() error {
 			break
 		}
 		if err := engine.ExecuteCode(); err != nil {
-			return err
+			return nil, err
 		}
 		if engine.Context.GetInstructionPointer() < len(engine.Context.Code) {
 			if ok := checkStackSize(engine); !ok {
-				return ERR_CHECK_STACK_SIZE
+				return nil, ERR_CHECK_STACK_SIZE
 			}
 			if ok := checkArraySize(engine); !ok {
-				return ERR_CHECK_ARRAY_SIZE
+				return nil, ERR_CHECK_ARRAY_SIZE
 			}
 			if ok := checkBigIntegers(engine); !ok {
-				return ERR_CHECK_BIGINTEGER
+				return nil, ERR_CHECK_BIGINTEGER
 			}
 		}
 		switch engine.OpCode {
 		case vm.SYSCALL:
 			if err := this.SystemCall(engine); err != nil {
-				return errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] service system call error!")
+				return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] service system call error!")
 			}
 		case vm.APPCALL:
 			c := new(states.Contract)
 			if err := c.Deserialize(engine.Context.OpReader.Reader()); err != nil {
-				return errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] get contract parameters error!")
+				return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] get contract parameters error!")
 			}
-			if _,err := this.ContextRef.AppCall(c.Address, c.Method, c.Code, c.Args); err != nil {
-				return errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] service app call error!")
+			result, err := this.ContextRef.AppCall(c.Address, c.Method, c.Code, c.Args)
+			if err != nil {
+				return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] service app call error!")
+			}
+			if result != nil {
+				vm.PushData(engine, result)
 			}
 		default:
 			if err := engine.StepInto(); err != nil {
-				return errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] vm execute error!")
+				return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] vm execute error!")
 			}
 		}
 	}
 	this.ContextRef.PushNotifications(this.Notifications)
 	this.CloneCache.Commit()
-	return nil
+	if engine.EvaluationStack.Count() != 0 {
+		return engine.EvaluationStack.Peek(0), nil
+	}
+	return nil, nil
 }
 
 // SystemCall provide register service for smart contract to interaction with blockchian

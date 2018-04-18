@@ -27,7 +27,7 @@ import (
 // ConvertReturnTypes return neovm stack element value
 // According item types convert to hex string value
 // Now neovm support type contain: ByteArray/Integer/Boolean/Array/Struct/Interop/StackItems
-func ConvertReturnTypes(item types.StackItems) interface{} {
+func ConvertNeoVmTypeHexString(item interface{}) interface{} {
 	if item == nil {
 		return nil
 	}
@@ -35,7 +35,7 @@ func ConvertReturnTypes(item types.StackItems) interface{} {
 	case *types.ByteArray:
 		return common.ToHexString(v.GetByteArray())
 	case *types.Integer:
-		if item.GetBigInteger().Sign() == 0 {
+		if v.GetBigInteger().Sign() == 0 {
 			return common.ToHexString([]byte{0})
 		} else {
 			return common.ToHexString(types.ConvertBigIntegerToBytes(v.GetBigInteger()))
@@ -49,13 +49,13 @@ func ConvertReturnTypes(item types.StackItems) interface{} {
 	case *types.Array:
 		var arr []interface{}
 		for _, val := range v.GetArray() {
-			arr = append(arr, ConvertReturnTypes(val))
+			arr = append(arr, ConvertNeoVmTypeHexString(val))
 		}
 		return arr
 	case *types.Struct:
 		var arr []interface{}
 		for _, val := range v.GetStruct() {
-			arr = append(arr, ConvertReturnTypes(val))
+			arr = append(arr, ConvertNeoVmTypeHexString(val))
 		}
 		return arr
 	case *types.Interop:
@@ -65,4 +65,40 @@ func ConvertReturnTypes(item types.StackItems) interface{} {
 		return nil
 	}
 }
+
+func ConvertNeoVmReturnTypes(item interface{}) interface{} {
+	if item == nil {
+		return nil
+	}
+	switch v := item.(type) {
+	case *types.ByteArray:
+		return v.GetByteArray()
+	case *types.Integer:
+		return types.ConvertBigIntegerToBytes(v.GetBigInteger())
+	case *types.Boolean:
+		if v.GetBoolean() {
+			return []byte{1}
+		}else {
+			return []byte{0}
+		}
+	case *types.Array:
+		var arr []interface{}
+		for _, val := range v.GetArray() {
+			arr = append(arr, ConvertNeoVmReturnTypes(val))
+		}
+		return arr
+	case *types.Struct:
+		var arr []interface{}
+		for _, val := range v.GetStruct() {
+			arr = append(arr, ConvertNeoVmReturnTypes(val))
+		}
+		return arr
+	case *types.Interop:
+		return v.GetInterface().ToArray()
+	default:
+		log.Error("[ConvertTypes] Invalid Types!")
+		return nil
+	}
+}
+
 

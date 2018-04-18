@@ -38,7 +38,7 @@ type ContextRef interface {
 	PopContext()
 	CheckWitness(address common.Address) bool
 	PushNotifications(notifications []*event.NotifyEventInfo)
-	AppCall(address common.Address, method string, codes, args []byte) ([]byte,error)
+	AppCall(address common.Address, method string, codes, args []byte) (interface{}, error)
 }
 
 // Context describe smart contract execute context struct
