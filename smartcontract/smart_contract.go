@@ -33,6 +33,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/states"
 	vm "github.com/ontio/ontology/vm/neovm"
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
+	"github.com/ontio/ontology/smartcontract/storage"
 )
 
 var (
@@ -45,6 +46,8 @@ var (
 // SmartContract describe smart contract execute engine
 type SmartContract struct {
 	Contexts      []*context.Context       // all execute smart contract context
+	CloneCache    *storage.CloneCache      // state cache
+	Store         store.LedgerStore        // ledger store
 	Config        *Config
 	Engine        Engine
 	Notifications []*event.NotifyEventInfo // all execute smart contract event notify info
@@ -52,11 +55,9 @@ type SmartContract struct {
 
 // Config describe smart contract need parameters configuration
 type Config struct {
-	Time    uint32              // current block timestamp
-	Height  uint32              // current block height
-	Tx      *ctypes.Transaction // current transaction
-	DBCache scommon.StateStore  // db states cache
-	Store   store.LedgerStore   // ledger store
+	Time   uint32              // current block timestamp
+	Height uint32              // current block height
+	Tx     *ctypes.Transaction // current transaction
 }
 
 type Engine interface {
@@ -111,11 +112,11 @@ func (this *SmartContract) Execute() (interface{}, error) {
 	var engine Engine
 	switch ctx.Code.VmType {
 	case stypes.Native:
-		engine = native.NewNativeService(this.Config.DBCache, this.Config.Height, this.Config.Tx, this)
+		engine = native.NewNativeService(this.CloneCache, this.Config.Height, this.Config.Tx, this)
 	case stypes.NEOVM:
-		engine = neovm.NewNeoVmService(this.Config.Store, this.Config.DBCache, this.Config.Tx, this.Config.Time, this)
+		engine = neovm.NewNeoVmService(this.Store, this.CloneCache, this.Config.Tx, this.Config.Time, this)
 	case stypes.WASMVM:
-		engine = wasmvm.NewWasmVmService(this.Config.Store, this.Config.DBCache, this.Config.Tx, this.Config.Time, this)
+		engine = wasmvm.NewWasmVmService(this.Store, this.CloneCache, this.Config.Tx, this.Config.Time, this)
 	default:
 		return nil, ENGINE_NOT_SUPPORT
 	}
@@ -241,7 +242,7 @@ func (this *SmartContract) loadCode(address common.Address, codes []byte) ([]byt
 }
 
 func (this *SmartContract) getContract(address []byte) (*scommon.StateItem, error) {
-	item, err := this.Config.DBCache.TryGet(scommon.ST_CONTRACT, address[:]);
+	item, err := this.CloneCache.Store.TryGet(scommon.ST_CONTRACT, address[:]);
 	if err != nil {
 		return nil, errors.NewErr("[getContract] Get contract context error!")
 	}

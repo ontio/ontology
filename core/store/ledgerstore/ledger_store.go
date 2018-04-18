@@ -40,21 +40,22 @@ import (
 	"github.com/ontio/ontology/smartcontract/context"
 	vmtype "github.com/ontio/ontology/smartcontract/types"
 	scommon "github.com/ontio/ontology/smartcontract/common"
+	"github.com/ontio/ontology/smartcontract/storage"
 )
 
 const (
-	SYSTEM_VERSION          = byte(1)          //Version of ledger store
+	SYSTEM_VERSION = byte(1)          //Version of ledger store
 	HEADER_INDEX_BATCH_SIZE = uint32(2000)     //Bath size of saving header index
-	BLOCK_CACHE_TIMEOUT     = time.Minute * 15 //Cache time for block to save in sync block
-	MAX_HEADER_CACHE_SIZE   = 5000             //Max cache size of block header in sync block
-	MAX_BLOCK_CACHE_SIZE    = 500              //Max cache size of block in sync block
+	BLOCK_CACHE_TIMEOUT = time.Minute * 15 //Cache time for block to save in sync block
+	MAX_HEADER_CACHE_SIZE = 5000             //Max cache size of block header in sync block
+	MAX_BLOCK_CACHE_SIZE = 500              //Max cache size of block in sync block
 )
 
 var (
 	//Storage save path.
-	DBDirEvent          = "Chain/ledgerevent"
-	DBDirBlock          = "Chain/block"
-	DBDirState          = "Chain/states"
+	DBDirEvent = "Chain/ledgerevent"
+	DBDirBlock = "Chain/block"
+	DBDirState = "Chain/states"
 	MerkleTreeStorePath = "Chain/merkle_tree.db"
 )
 
@@ -396,7 +397,7 @@ func (this *LedgerStoreImp) GetCurrentHeaderHash() common.Uint256 {
 	if size == 0 {
 		return common.Uint256{}
 	}
-	return this.headerIndex[uint32(size)-1]
+	return this.headerIndex[uint32(size) - 1]
 }
 
 func (this *LedgerStoreImp) setCurrentBlock(height uint32, blockHash common.Uint256) {
@@ -502,7 +503,7 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header) error {
 		return fmt.Errorf("cannot find pre header by blockHash %x", prevHeaderHash)
 	}
 
-	if prevHeader.Height+1 != header.Height {
+	if prevHeader.Height + 1 != header.Height {
 		return fmt.Errorf("block height is incorrect")
 	}
 
@@ -518,7 +519,7 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header) error {
 		return fmt.Errorf("bookkeeper address error")
 	}
 
-	m := len(header.Bookkeepers) - (len(header.Bookkeepers)-1)/3
+	m := len(header.Bookkeepers) - (len(header.Bookkeepers) - 1) / 3
 	hash := header.Hash()
 	err = signature.VerifyMultiSignature(hash[:], header.Bookkeepers, m, header.SigData)
 	if err != nil {
@@ -715,7 +716,7 @@ func (this *LedgerStoreImp) resetSavingBlock() {
 func (this *LedgerStoreImp) saveBlock(block *types.Block) error {
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
-	if this.isSavingBlock() || (blockHeight > 0 && blockHeight != (this.GetCurrentBlockHeight()+1)) {
+	if this.isSavingBlock() || (blockHeight > 0 && blockHeight != (this.GetCurrentBlockHeight() + 1)) {
 		//hash already saved or is saving
 		return nil
 	}
@@ -785,7 +786,7 @@ func (this *LedgerStoreImp) saveHeaderIndexList() error {
 	this.lock.RLock()
 	storeCount := this.storedIndexCount
 	currHeight := this.currBlockHeight
-	if currHeight-storeCount < HEADER_INDEX_BATCH_SIZE {
+	if currHeight - storeCount < HEADER_INDEX_BATCH_SIZE {
 		this.lock.RUnlock()
 		return nil
 	}
@@ -929,8 +930,6 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface
 		Time:    header.Timestamp,
 		Height:  header.Height,
 		Tx:      tx,
-		DBCache: this.stateStore.NewStateBatch(),
-		Store:   this,
 	}
 
 	//init smart contract context info
@@ -942,6 +941,8 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface
 	//init smart contract info
 	sc := smartcontract.SmartContract{
 		Config: config,
+		Store: this,
+		CloneCache: storage.NewCloneCache(this.stateStore.NewStateBatch()),
 	}
 
 	//load current context to smart contract
@@ -955,7 +956,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface
 	prefix := ctx.ContractAddress[0]
 	if prefix == byte(vmtype.NEOVM) {
 		result = scommon.ConvertNeoVmTypeHexString(result)
-	} else if prefix == byte(vmtype.WASMVM){
+	} else if prefix == byte(vmtype.WASMVM) {
 		if v, ok := result.([]byte); ok {
 			result = common.ToHexString(v)
 		}
