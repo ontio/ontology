@@ -20,7 +20,6 @@ package cmd
 
 import (
 	"io"
-	"math/rand"
 	"strconv"
 	"strings"
 
@@ -33,9 +32,7 @@ import (
 var ontSdk *sdk.OntologySdk
 
 func rpcAddress() string {
-	//return "http://139.219.108.204:20336"
-	index := rand.Intn(len(config.Parameters.SeedList))
-	return "http://" + (strings.Split(config.Parameters.SeedList[index], ":"))[0] + ":" + strconv.Itoa(config.Parameters.HttpJsonPort)
+	return "http://localhost:" + strconv.Itoa(config.Parameters.HttpJsonPort)
 }
 
 func init() {
