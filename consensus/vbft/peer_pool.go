@@ -185,7 +185,7 @@ func (pool *PeerPool) isPeerAlive(peerIdx uint32) bool {
 	}
 	if time.Now().Sub(p.LastUpdateTime) > peerHandshakeTimeout*2 {
 		if p.LastUpdateTime.Unix() > 0 {
-			log.Errorf("server %d: peer %d seems disconnected, %v, %v", pool.server.Index, peerIdx, time.Now(), p.LastUpdateTime)
+			log.Errorf("server %d: peer %d sems disconnected, %v, %v", pool.server.Index, peerIdx, time.Now(), p.LastUpdateTime)
 		}
 		return false
 	}
