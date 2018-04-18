@@ -138,7 +138,7 @@ func (module *Module) resolveImports(resolve ResolveFunc) error {
 					glb := &GlobalEntry{Type: &GlobalVar{Type: ValueTypeI32, Mutable: false},
 						Init:    []byte{getGlobal, byte(0), end}, //global 0 end
 						//InitVal: uint64(65536 / 4),               // pagesize/4
-						InitVal: 0,               // reset to 0 for fiddle case
+						InitVal: 1,               // reset to 1 for fiddle case,0 reserve for NULL
 						IsEnv:   true}
 					module.GlobalIndexSpace = append(module.GlobalIndexSpace, *glb)
 					module.imports.Globals++
