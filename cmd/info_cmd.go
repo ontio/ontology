@@ -24,7 +24,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
 
 	sdkutils "github.com/ontio/ontology-go-sdk/utils"
 	"github.com/ontio/ontology/cmd/utils"
@@ -38,12 +37,13 @@ var blockCommandSet = cli.Command{
 	Name:        "block",
 	Usage:       "./ontology info block [OPTION]",
 	Flags:       append(NodeFlags, InfoFlags...),
+	OnUsageError:BlockInfoUsageError,
 	Category:    "INFO COMMANDS",
 	Description: ``,
 	Subcommands: []cli.Command{
 		{
 			Action:      utils.MigrateFlags(getCurrentBlockHeight),
-			Name:        "height",
+			Name:        "count",
 			Usage:       "issue asset by command",
 			Category:    "INFO COMMANDS",
 			Description: ``,
@@ -82,6 +82,7 @@ var (
 		//Action:   utils.MigrateFlags(infoCommand),
 		Name:     "info",
 		Usage:    " ontology info [block|chain|transaction|version] [OPTION]\n",
+		Flags:       append(NodeFlags, InfoFlags...),
 		Category: "INFO COMMANDS",
 		Subcommands: []cli.Command{
 			blockCommandSet,
@@ -125,48 +126,75 @@ func echoBlockGracefully(block interface{}) {
 	out.WriteTo(os.Stdout)
 }
 
+
+var blockInfoHelp = `
+   Name:
+      ontology info block            Show blockchain information
+
+   Usage:
+      ontology info block [command options] [args]
+
+   Description:
+      With this command, you can look up block information.
+
+   Options:
+      --blockhash value                block hash value
+      --height value                   block height value
+`
+
+func BlockInfoUsageError(context *cli.Context, err error, isSubcommand bool) error {
+	fmt.Println(err.Error())
+	ShowBlockInfoHelp()
+	return nil
+}
+
+func ShowBlockInfoHelp() {
+	fmt.Println(blockInfoHelp)
+}
+
 func blockInfoCommand(ctx *cli.Context) error {
-	val := ctx.GlobalString(utils.HeightInfoFlag.Name)
-	height, _ := strconv.Atoi(val)
-	blockHash := ctx.GlobalString(utils.BHashInfoFlag.Name)
+	if ctx.IsSet(utils.HeightInfoFlag.Name) {
+		height := ctx.Int(utils.HeightInfoFlag.Name)
+		fmt.Println("blockInfo height: ", height)
+		if height >= 0 {
+			block, err := ontSdk.Rpc.GetBlockByHeight(uint32(height))
 
-	switch {
-	case height >= 0:
-		block, err := ontSdk.Rpc.GetBlockByHeight(uint32(height))
+			if err != nil {
+				log.Fatalf("Get block by height(%d) is error:%s", height, err.Error())
+			}
+			if block == nil || block.Header == nil {
+				log.Fatalf("Get block by height(%d), the block or block.Header is nil", height)
+			}
 
-		if err != nil {
-			log.Fatalf("Get block by height(%d) is error:%s", height, err.Error())
-		}
-		if block == nil || block.Header == nil {
-			log.Fatalf("Get block by height(%d), the block or block.Header is nil", height)
-		}
-
-		echoBlockGracefully(block)
-		return nil
-
-	case "" != blockHash:
-		var hash common.Uint256
-		hex, err := hex.DecodeString(blockHash)
-		if err != nil {
-			log.Fatalf("Decode string error, blockHash:%s, err:%s", blockHash, err.Error())
-		}
-		if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
-			log.Fatalf("Deserialize hex error,hex:%s, err:%s", hex, err.Error())
-		}
-		block, err := ontSdk.Rpc.GetBlockByHash(hash)
-		if err != nil {
-			log.Fatalf("GetBlock GetBlockFromStore BlockHash:%x error:%s", hash, err)
-		}
-		if block == nil || block.Header == nil {
+			echoBlockGracefully(block)
 			return nil
 		}
+	} else if ctx.IsSet(utils.BHashInfoFlag.Name) {
+		blockHash := ctx.String(utils.BHashInfoFlag.Name)
+		fmt.Println("blockInfo blockHash: ", blockHash)
+		if "" != blockHash {
+			var hash common.Uint256
+			hex, err := hex.DecodeString(blockHash)
+			if err != nil {
+				log.Fatalf("Decode string error, blockHash:%s, err:%s", blockHash, err.Error())
+			}
+			if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
+				log.Fatalf("Deserialize hex error,hex:%s, err:%s", hex, err.Error())
+			}
+			block, err := ontSdk.Rpc.GetBlockByHash(hash)
+			if err != nil {
+				log.Fatalf("GetBlock GetBlockFromStore BlockHash:%x error:%s", hash, err)
+			}
+			if block == nil || block.Header == nil {
+				return nil
+			}
 
-		echoBlockGracefully(block)
-		return nil
-
-	default:
-		return nil
+			echoBlockGracefully(block)
+			return nil
+		}
 	}
+	ShowBlockInfoHelp()
+	return nil
 }
 
 func trxInfoCommand(ctx *cli.Context) error {
