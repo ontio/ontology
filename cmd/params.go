@@ -28,7 +28,7 @@ var (
 		utils.WalletNameFlag,
 		utils.WalletAddrFlag,
 		utils.DebugLevelFlag,
-		utils.ConsensusLevelFlag,
+		utils.ConsensusFlag,
 		utils.TransactionValueFlag,
 		utils.TransactionToFlag,
 		utils.TransactionFromFlag,

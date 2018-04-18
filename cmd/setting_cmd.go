@@ -34,41 +34,85 @@ import (
 var (
 	SettingCommand = cli.Command{
 		Name:        "set",
-		Usage:       "ontology set [debug|consensus] [OPTION]\n",
+		Action:      utils.MigrateFlags(settingCommand),
+		Usage:       "ontology set [OPTION]\n",
+		Flags:       append(NodeFlags, ContractFlags...),
 		Category:    "Setting COMMANDS",
 		Description: ``,
-		Subcommands: []cli.Command{
-			{
-				Action:      utils.MigrateFlags(debugCommand),
-				Name:        "debug",
-				Usage:       "ontology set debug [OPTION]\n",
-				Flags:       append(NodeFlags, ContractFlags...),
-				Category:    "SETTING COMMANDS",
-				Description: ``,
-			},
-			{
-				Action:      utils.MigrateFlags(consensusCommand),
-				Name:        "consensus",
-				Usage:       "ontology set consensus [OPTION]\n",
-				Flags:       append(NodeFlags, ContractFlags...),
-				Category:    "SETTING COMMANDS",
-				Description: ``,
-			},
-		},
 	}
 )
+
+func settingCommand(ctx *cli.Context) error {
+	if ctx.IsSet(utils.DebugLevelFlag.Name) {
+		level := ctx.Uint(utils.DebugLevelFlag.Name)
+		resp, err := jrpc.Call(localRpcAddress(), "setdebuginfo", 0, []interface{}{level})
+		if nil != err {
+			return err
+		}
+		r := make(map[string]interface{})
+		json.Unmarshal(resp, &r)
+		fmt.Printf("%v\n", r)
+	} else if ctx.IsSet(utils.ConsensusFlag.Name) {
+		consensusSwitch := ctx.String(utils.ConsensusFlag.Name)
+		client := account.GetClient(ctx)
+		if client == nil {
+			log.Fatal("Can't get local account.")
+		}
+		var resp []byte
+		var err error
+		fmt.Println("consensusSwitch:", consensusSwitch)
+		switch consensusSwitch {
+		case "on":
+			resp, err = jrpc.Call(localRpcAddress(), "startconsensus", 0, []interface{}{1})
+		case "off":
+			resp, err = jrpc.Call(localRpcAddress(), "stopconsensus", 0, []interface{}{0})
+		default:
+			fmt.Println("Start:1; Stop:0; Pls enter valid value between 0 and 1.")
+		}
+		if nil != err {
+			return err
+		}
+		r := make(map[string]interface{})
+		json.Unmarshal(resp, &r)
+		fmt.Printf("%v\n", r)
+		return nil
+	}
+
+	showSettingHelp()
+	return nil
+}
+
+
+func showSettingHelp() {
+	var settingHelp = `
+   Name:
+      ontology set                       Show blockchain information
+
+   Usage:
+      ontology set [command options] [args]
+
+   Description:
+      With ontology set, you can configure the node.
+
+   Command:
+      --debuglevel value                 debug level(0~6) will be set
+      --consensus value                  [ on / off ]
+`
+	fmt.Println(settingHelp)
+}
+
 
 func localRpcAddress() string {
 	return "http://localhost:" + strconv.Itoa(config.Parameters.HttpJsonPort)
 }
-
+/*
 func debugCommand(ctx *cli.Context) error {
 	client := account.GetClient(ctx)
 	if client == nil {
 		log.Fatal("Can't get local account.")
 	}
 
-	level := ctx.GlobalUint(utils.DebugLevelFlag.Name)
+	level := ctx.Uint(utils.DebugLevelFlag.Name)
 	resp, err := jrpc.Call(localRpcAddress(), "setdebuginfo", 0, []interface{}{level})
 	if nil != err {
 		return err
@@ -80,19 +124,19 @@ func debugCommand(ctx *cli.Context) error {
 }
 
 func consensusCommand(ctx *cli.Context) error {
+	consensusSwitch := ctx.String(utils.ConsensusSwitchFlag.Name)
 	client := account.GetClient(ctx)
 	if client == nil {
 		log.Fatal("Can't get local account.")
 	}
-
-	on := ctx.GlobalUint(utils.ConsensusLevelFlag.Name)
 	var resp []byte
 	var err error
-	switch on {
-	case 1:
-		resp, err = jrpc.Call(localRpcAddress(), "startconsensus", 0, []interface{}{on})
-	case 0:
-		resp, err = jrpc.Call(localRpcAddress(), "stopconsensus", 0, []interface{}{on})
+	fmt.Println("consensusSwitch:", consensusSwitch)
+	switch consensusSwitch {
+	case "on":
+		resp, err = jrpc.Call(localRpcAddress(), "startconsensus", 0, []interface{}{1})
+	case "off":
+		resp, err = jrpc.Call(localRpcAddress(), "stopconsensus", 0, []interface{}{0})
 	default:
 		fmt.Println("Start:1; Stop:0; Pls enter valid value between 0 and 1.")
 	}
@@ -104,3 +148,4 @@ func consensusCommand(ctx *cli.Context) error {
 	fmt.Printf("%v\n", r)
 	return nil
 }
+*/

@@ -144,7 +144,7 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name: "ONTOLOGY SET CONSENSUS",
 		Flags: []cli.Flag{
-			utils.ConsensusLevelFlag,
+			utils.ConsensusFlag,
 		},
 	},
 

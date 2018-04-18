@@ -99,12 +99,12 @@ var (
 	}
 
 	DebugLevelFlag = cli.UintFlag{
-		Name:  "level",
+		Name:  "debuglevel",
 		Usage: "debug level(0~6) will be set",
 	}
 
-	ConsensusLevelFlag = cli.UintFlag{
-		Name:  "on",
+	ConsensusFlag = cli.StringFlag{
+		Name:  "consensus",
 		Usage: "consensus turn on/off",
 	}
 
