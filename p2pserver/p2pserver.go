@@ -77,7 +77,8 @@ func NewServer(acc *account.Account) (*P2PServer, error) {
 	p.flightHeights = make(map[uint64][]uint32)
 	p.quitOnline = make(chan bool)
 	p.quitHeartBeat = make(chan bool)
-	p.quitSyncBlk = make(chan bool)
+	//syncService maybe not running, set buffer for non-blocking when exit
+	p.quitSyncBlk = make(chan bool, 1)
 	return p, nil
 }
 
