@@ -48,10 +48,25 @@ func constructServer() *Server {
 		Endorsers:  []uint32{1, 2, 3},
 		Committers: []uint32{1, 2, 3},
 	}
+	chainconfig := &vconfig.ChainConfig{
+		Version:              1,
+		View:                 12,
+		N:                    4,
+		C:                    3,
+		BlockMsgDelay:        1000,
+		HashMsgDelay:         1000,
+		PeerHandshakeTimeout: 10000,
+		PosTable:             []uint32{2, 3, 1, 3, 1, 3, 2, 3, 2, 3, 2, 1, 3},
+	}
+	chainstore := &ChainStore{
+		chainedBlockNum: uint64(2),
+	}
 	server := &Server{
 		Index:                    uint32(1),
 		stateMgr:                 statemgr,
 		currentParticipantConfig: blockparticipantconfig,
+		config:     chainconfig,
+		chainStore: chainstore,
 	}
 	return server
 }
