@@ -39,8 +39,8 @@ import:
 - package: google.golang.org/grpc
   repo: https://github.com/grpc/grpc-go.git
 - package: github.com/hashicorp/golang-lru
+- package: github.com/ontio/ontology-go-sdk
 - package: google.golang.org/genproto
   repo: https://github.com/google/go-genproto.git
 ignore:
   - golang.org/x/sys/unix
--	package: github.com/ontio/ontology-go-sdk
