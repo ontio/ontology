@@ -32,14 +32,75 @@ import (
 	"github.com/urfave/cli"
 )
 
+var (
+	InfoCommand = cli.Command{
+		Action:   utils.MigrateFlags(infoCommand),
+		Name:     "info",
+		Usage:    " ontology info [block|chain|transaction|version] [OPTION]\n",
+		Flags:    append(NodeFlags, InfoFlags...),
+		Category: "INFO COMMANDS",
+		Subcommands: []cli.Command{
+			blockCommandSet,
+			txCommandSet,
+			versionCommand,
+		},
+		Description: ``,
+	}
+)
+
+func showInfoHelp() {
+	var infoHelp = `
+   Name:
+      ontology info                    Show blockchain information
+
+   Usage:
+      ontology info [command options] [args]
+
+   Description:
+      With ontology info, you can look up blocks, transactions, etc.
+
+   Command:
+      version
+
+      block
+         --hash value                  block hash value
+         --height value                block height value
+
+      tx
+         --hash value                  transaction hash value
+
+`
+	fmt.Println(infoHelp)
+}
+
+func infoCommand(context *cli.Context) error {
+	showInfoHelp()
+	return nil
+}
+
+func blockInfoUsageError(context *cli.Context, err error, isSubcommand bool) error {
+	fmt.Println("Error:", err.Error())
+	showBlockInfoHelp()
+	return nil
+}
+
+func getCurrentBlockHeight(ctx *cli.Context) error {
+	height, err := ontSdk.Rpc.GetBlockCount()
+	if nil != err {
+		log.Fatalf("Get block height information is error:  %s", err.Error())
+	}
+	fmt.Println("Current blockchain height: ", height)
+	return nil
+}
+
 var blockCommandSet = cli.Command{
-	Action:      utils.MigrateFlags(blockInfoCommand),
-	Name:        "block",
-	Usage:       "./ontology info block [OPTION]",
-	Flags:       append(NodeFlags, InfoFlags...),
-	OnUsageError:BlockInfoUsageError,
-	Category:    "INFO COMMANDS",
-	Description: ``,
+	Action:       utils.MigrateFlags(blockInfoCommand),
+	Name:         "block",
+	Usage:        "./ontology info block [OPTION]",
+	Flags:        append(NodeFlags, InfoFlags...),
+	OnUsageError: blockInfoUsageError,
+	Category:     "INFO COMMANDS",
+	Description:  ``,
 	Subcommands: []cli.Command{
 		{
 			Action:      utils.MigrateFlags(getCurrentBlockHeight),
@@ -51,85 +112,67 @@ var blockCommandSet = cli.Command{
 	},
 }
 
-var chainCommandSet = cli.Command{
-	Action:      utils.MigrateFlags(chainInfoCommand),
-	Name:        "chain",
-	Usage:       "ontology info chain [OPTION]\n",
-	Flags:       append(NodeFlags, InfoFlags...),
-	Category:    "INFO COMMANDS",
-	Description: ``,
+func txInfoUsageError(context *cli.Context, err error, isSubcommand bool) error {
+	fmt.Println("Error:", err.Error())
+	showTxInfoHelp()
+	return nil
 }
 
-var trxCommandSet = cli.Command{
-	Action:      utils.MigrateFlags(trxInfoCommand),
-	Name:        "trx",
-	Usage:       "ontology info trx [OPTION]\n",
-	Flags:       append(NodeFlags, InfoFlags...),
-	Category:    "INFO COMMANDS",
-	Description: ``,
+var txCommandSet = cli.Command{
+	Action:       utils.MigrateFlags(txInfoCommand),
+	Name:         "tx",
+	Usage:        "ontology info tx [OPTION]\n",
+	Flags:        append(NodeFlags, InfoFlags...),
+	OnUsageError: txInfoUsageError,
+	Category:     "INFO COMMANDS",
+	Description:  ``,
+}
+
+func versionInfoUsageError(context *cli.Context, err error, isSubcommand bool) error {
+	fmt.Println("Error:", err.Error())
+	showVersionInfoHelp()
+	return nil
 }
 
 var versionCommand = cli.Command{
 	Action:      utils.MigrateFlags(versionInfoCommand),
 	Name:        "version",
 	Usage:       "ontology info version\n",
+	OnUsageError: versionInfoUsageError,
 	Category:    "INFO COMMANDS",
 	Description: ``,
 }
 
-var (
-	InfoCommand = cli.Command{
-		//Action:   utils.MigrateFlags(infoCommand),
-		Name:     "info",
-		Usage:    " ontology info [block|chain|transaction|version] [OPTION]\n",
-		Flags:       append(NodeFlags, InfoFlags...),
-		Category: "INFO COMMANDS",
-		Subcommands: []cli.Command{
-			blockCommandSet,
-			chainCommandSet,
-			trxCommandSet,
-			versionCommand,
-		},
-		Description: ``,
-	}
-)
+
+
+func showVersionInfoHelp() {
+	var versionInfoHelp = `
+   Name:
+      ontology info version            Show ontology node version
+
+   Usage:
+      ontology info version
+
+   Description:
+      With this command, you can look up the ontology node version.
+
+`
+	fmt.Println(versionInfoHelp)
+}
 
 func versionInfoCommand(ctx *cli.Context) error {
 	version, err := ontSdk.Rpc.GetVersion()
 	if nil != err {
-		log.Fatalf("Get version iformation is error:  %s", err.Error())
+		log.Fatalf("Get version information is error:  %s", err.Error())
 	}
 	fmt.Println("Node version: ", version)
 	return nil
 }
 
-func getCurrentBlockHeight(ctx *cli.Context) error {
-	height, err := ontSdk.Rpc.GetBlockCount()
-	if nil != err {
-		log.Fatalf("Get block height iformation is error:  %s", err.Error())
-	}
-	fmt.Println("Current blockchain height: ", height)
-	return nil
-}
-
-func echoBlockGracefully(block interface{}) {
-	jsons, errs := json.Marshal(block)
-	if errs != nil {
-		log.Fatalf("Marshal json err:%s", errs.Error())
-	}
-
-	var out bytes.Buffer
-	err := json.Indent(&out, jsons, "", "\t")
-	if err != nil {
-		log.Fatalf("Gracefully format json err: %s", err.Error())
-	}
-	out.WriteTo(os.Stdout)
-}
-
-
-var blockInfoHelp = `
+func showBlockInfoHelp() {
+	var blockInfoHelp = `
    Name:
-      ontology info block            Show blockchain information
+      ontology info block             Show blockchain information
 
    Usage:
       ontology info block [command options] [args]
@@ -138,17 +181,9 @@ var blockInfoHelp = `
       With this command, you can look up block information.
 
    Options:
-      --blockhash value                block hash value
-      --height value                   block height value
+      --hash value                    block hash value
+      --height value                  block height value
 `
-
-func BlockInfoUsageError(context *cli.Context, err error, isSubcommand bool) error {
-	fmt.Println(err.Error())
-	ShowBlockInfoHelp()
-	return nil
-}
-
-func ShowBlockInfoHelp() {
 	fmt.Println(blockInfoHelp)
 }
 
@@ -169,8 +204,8 @@ func blockInfoCommand(ctx *cli.Context) error {
 			echoBlockGracefully(block)
 			return nil
 		}
-	} else if ctx.IsSet(utils.BHashInfoFlag.Name) {
-		blockHash := ctx.String(utils.BHashInfoFlag.Name)
+	} else if ctx.IsSet(utils.HashInfoFlag.Name) {
+		blockHash := ctx.String(utils.HashInfoFlag.Name)
 		fmt.Println("blockInfo blockHash: ", blockHash)
 		if "" != blockHash {
 			var hash common.Uint256
@@ -193,25 +228,60 @@ func blockInfoCommand(ctx *cli.Context) error {
 			return nil
 		}
 	}
-	ShowBlockInfoHelp()
+	showBlockInfoHelp()
 	return nil
 }
 
-func trxInfoCommand(ctx *cli.Context) error {
-	trxHash := ctx.GlobalString(utils.BTrxInfoFlag.Name)
-	ontInitTx, err := sdkutils.ParseUint256FromHexString(trxHash)
-	if err != nil {
-		log.Errorf("ParseUint256FromHexString error:%s", err)
-	}
-	tx, err := ontSdk.Rpc.GetRawTransaction(ontInitTx)
-	if err != nil {
-		log.Errorf("GetRawTransaction error:%s", err)
-	}
+func showTxInfoHelp() {
+	var txInfoHelp = `
+   Name:
+      ontology info tx               Show transaction information
 
-	echoBlockGracefully(tx)
+   Usage:
+      ontology info tx [command options] [args]
+
+   Description:
+      With this command, you can look up transaction information.
+
+   Options:
+      --hash value                   transaction hash value
+
+`
+	fmt.Println(txInfoHelp)
+}
+
+func txInfoCommand(ctx *cli.Context) error {
+	if ctx.IsSet(utils.HashInfoFlag.Name) {
+		txHash := ctx.String(utils.HashInfoFlag.Name)
+		ontInitTx, err := sdkutils.ParseUint256FromHexString(txHash)
+		if err != nil {
+			log.Errorf("ParseUint256FromHexString error:%s", err)
+			return err
+		}
+
+		tx, err := ontSdk.Rpc.GetRawTransaction(ontInitTx)
+		if err != nil {
+			log.Errorf("GetRawTransaction error:%s", err)
+			return err
+		}
+
+		echoBlockGracefully(tx)
+		return nil
+	}
+	showTxInfoHelp()
 	return nil
 }
 
-func chainInfoCommand(ctx *cli.Context) error {
-	return nil
+func echoBlockGracefully(block interface{}) {
+	jsons, errs := json.Marshal(block)
+	if errs != nil {
+		log.Fatalf("Marshal json err:%s", errs.Error())
+	}
+
+	var out bytes.Buffer
+	err := json.Indent(&out, jsons, "", "\t")
+	if err != nil {
+		log.Fatalf("Gracefully format json err: %s", err.Error())
+	}
+	out.WriteTo(os.Stdout)
 }

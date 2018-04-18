@@ -48,10 +48,8 @@ var (
 		utils.ContractAddrFlag,
 	}
 
-	// flag for infomation command
 	InfoFlags = []cli.Flag{
 		utils.HeightInfoFlag,
-		utils.BTrxInfoFlag,
-		utils.BHashInfoFlag,
+		utils.HashInfoFlag,
 	}
 )

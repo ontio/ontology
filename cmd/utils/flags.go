@@ -65,14 +65,9 @@ var (
 	}
 
 	//information cmd settings
-	BHashInfoFlag = cli.StringFlag{
-		Name:  "bhash",
-		Usage: "block hash value",
-	}
-
-	BTrxInfoFlag = cli.StringFlag{
+	HashInfoFlag = cli.StringFlag{
 		Name:  "hash",
-		Usage: "transaction hash value",
+		Usage: "transaction or block hash value",
 	}
 
 	HeightInfoFlag = cli.StringFlag{

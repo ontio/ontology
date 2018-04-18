@@ -97,7 +97,7 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name: "ONTOLOGY INFO BLOCK",
 		Flags: []cli.Flag{
-			utils.BHashInfoFlag,
+			utils.HashInfoFlag,
 			utils.HeightInfoFlag,
 		},
 	},
@@ -105,7 +105,7 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name: "ONTOLOGY INFO TRANSACTION",
 		Flags: []cli.Flag{
-			utils.BTrxInfoFlag,
+			utils.HashInfoFlag,
 		},
 	},
 
