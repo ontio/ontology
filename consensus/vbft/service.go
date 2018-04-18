@@ -1224,18 +1224,19 @@ func (self *Server) actionLoop() {
 					}
 				}
 				if self.isEndorser(blkNum, self.Index) {
-					endorsed := false
+					rebroadcasted := false
+					endorseFailed := self.blockPool.endorseFailed(blkNum, self.config.C)
 					eMsgs := self.msgPool.GetEndorsementsMsgs(blkNum)
 					for _, msg := range eMsgs {
 						e := msg.(*blockEndorseMsg)
-						if e != nil && e.Endorser == self.Index {
+						if e != nil && e.Endorser == self.Index && e.EndorseForEmpty == endorseFailed {
 							log.Infof("server %d rebroadcast endorse, blk %d for %d, %t",
 								self.Index, e.GetBlockNum(), e.EndorsedProposer, e.EndorseForEmpty)
 							self.broadcast(e)
-							endorsed = true
+							rebroadcasted = true
 						}
 					}
-					if !endorsed {
+					if !rebroadcasted {
 						proposal := self.getHighestRankProposal(blkNum, proposals)
 						if proposal != nil {
 							if err := self.endorseBlock(proposal, false); err != nil {
