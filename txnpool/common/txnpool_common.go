@@ -86,6 +86,15 @@ const (
 	MaxStats
 )
 
+// CheckBlkResult contains a verifed tx list,
+// an unverified tx list and an old tx list
+// to be re-verifed
+type CheckBlkResult struct {
+	VerifiedTxs   []*VerifyTxResult
+	UnverifiedTxs []*types.Transaction
+	OldTxs        []*types.Transaction
+}
+
 // TxStatus contains the attributes of a transaction
 type TxStatus struct {
 	Hash  common.Uint256 // transaction hash

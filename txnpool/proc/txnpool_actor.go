@@ -137,8 +137,13 @@ func (ta *TxActor) Receive(context actor.Context) {
 
 		res := ta.server.getTxStatusReq(msg.Hash)
 		if sender != nil {
-			sender.Request(&tc.GetTxnStatusRsp{Hash: res.Hash,
-				TxStatus: res.Attrs}, context.Self())
+			if res == nil {
+				sender.Request(&tc.GetTxnStatusRsp{Hash: msg.Hash,
+					TxStatus: nil}, context.Self())
+			} else {
+				sender.Request(&tc.GetTxnStatusRsp{Hash: res.Hash,
+					TxStatus: res.Attrs}, context.Self())
+			}
 		}
 
 	default:

@@ -21,7 +21,6 @@ package common
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"testing"
 	"time"
 
@@ -29,6 +28,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -78,9 +78,13 @@ func TestTxPool(t *testing.T) {
 		return
 	}
 
-	txList := txPool.GetTxPool(true)
+	txList, oldTxList := txPool.GetTxPool(true, 0)
 	for _, v := range txList {
-		fmt.Println(v)
+		assert.NotNil(t, v)
+	}
+
+	for _, v := range oldTxList {
+		assert.NotNil(t, v)
 	}
 
 	entry := txPool.GetTransaction(txn.Hash())
@@ -89,14 +93,18 @@ func TestTxPool(t *testing.T) {
 		return
 	}
 
+	assert.Equal(t, txn.Hash(), entry.Hash())
+
 	status := txPool.GetTxStatus(txn.Hash())
 	if status == nil {
 		t.Error("failed to get the status")
 		return
 	}
 
+	assert.Equal(t, txn.Hash(), status.Hash)
+
 	count := txPool.GetTransactionCount()
-	fmt.Println(count)
+	assert.Equal(t, count, 1)
 
 	err := txPool.CleanTransactionList([]*types.Transaction{txn})
 	if err != nil {

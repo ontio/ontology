@@ -569,41 +569,20 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 	s.pendingBlock.sender = sender
 	s.pendingBlock.height = req.Height
 
-	for _, t := range req.Txs {
-		/* Check if the tx is in the tx pool, if not, send it to
-		 * valdiator to verify and add it to pending block list
-		 */
-		ret := s.txPool.GetTxStatus(t.Hash())
-		if ret == nil {
-			s.assignTxToWorker(t, tc.NilSender)
-			s.pendingBlock.unProcessedTxs[t.Hash()] = t
-			continue
-		}
+	checkBlkResult := s.txPool.GetUnverifiedTxs(req.Txs, req.Height)
 
-		/* Check the verified height >= the block height, if yes,
-		 * add it to the response list.
-		 */
-		ok := false
-		for _, v := range ret.Attrs {
-			if v.Type == types.Statefull &&
-				v.Height >= req.Height {
-				entry := &tc.VerifyTxResult{
-					Tx:      t,
-					Height:  v.Height,
-					ErrCode: v.ErrCode,
-				}
-				s.pendingBlock.processedTxs[t.Hash()] = entry
-				ok = true
-				break
-			}
-		}
+	for _, t := range checkBlkResult.UnverifiedTxs {
+		s.assignTxToWorker(t, tc.NilSender)
+		s.pendingBlock.unProcessedTxs[t.Hash()] = t
+	}
 
-		// Re-verify it
-		if !ok {
-			s.delTransaction(t)
-			s.reVerifyStateful(t, tc.NilSender)
-			s.pendingBlock.unProcessedTxs[t.Hash()] = t
-		}
+	for _, t := range checkBlkResult.OldTxs {
+		s.reVerifyStateful(t, tc.NilSender)
+		s.pendingBlock.unProcessedTxs[t.Hash()] = t
+	}
+
+	for _, t := range checkBlkResult.VerifiedTxs {
+		s.pendingBlock.processedTxs[t.Tx.Hash()] = t
 	}
 
 	/* If all the txs in the blocks are verified, send response
