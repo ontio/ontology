@@ -21,7 +21,6 @@ package memory
 import (
 	"encoding/binary"
 	"errors"
-	"math"
 	"reflect"
 
 	"github.com/ontio/ontology/vm/wasmvm/util"
@@ -42,7 +41,8 @@ const (
 )
 
 const (
-	VM_NIL_POINTER = math.MaxInt64
+	//VM_NIL_POINTER = math.MaxInt64
+	VM_NIL_POINTER = 0
 )
 
 type TypeLength struct {
