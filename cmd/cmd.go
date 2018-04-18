@@ -41,27 +41,25 @@ func init() {
 }
 
 // AppHelpTemplate is the test template for the default, global app help topic.
-var AppHelpTemplate = `NAME:
-   {{.App.Name}} - {{.App.Usage}}
+var AppHelpTemplate = `
+   Name:
+      {{.App.Name}} - {{.App.Usage}}
 
-USAGE:
-   {{.App.HelpName}} {{if .App.Commands}} command [command options]{{end}} {{if .App.ArgsUsage}}{{.App.ArgsUsage}}{{else}}[arguments...]{{end}}
-   {{if .App.Version}}
-VERSION:
-   {{.App.Version}}
-   {{end}}{{if len .App.Authors}}
-AUTHOR(S):
-   {{range .App.Authors}}{{ . }}{{end}}
-   {{end}}{{if .App.Commands}}
-COMMANDS:
-   {{range .App.Commands}}{{join .Names ", "}}{{ "\t" }}{{.Usage}}
-   {{end}}{{end}}{{if .FlagGroups}}
-{{range .FlagGroups}}{{.Name}} OPTIONS:
-  {{range .Flags}}{{.}}
-  {{end}}
-{{end}}{{end}}{{if .App.Copyright }}
-COPYRIGHT:
-   {{.App.Copyright}}
+   Usage:
+      {{.App.HelpName}} {{if .App.Commands}} command [command options]{{end}} {{if .App.ArgsUsage}}{{.App.ArgsUsage}}{{else}}[arguments...]{{end}}
+      {{if .App.Version}}
+   Version:
+      {{.App.Version}}
+      {{end}}{{if len .App.Authors}}
+   Author(S):
+      {{range .App.Authors}}{{ . }}{{end}}
+      {{end}}{{if .App.Commands}}
+   Commands:
+      {{range .App.Commands}}{{join .Names ", "}}{{ "\t" }}{{.Usage}}
+      {{end}}{{end}}{{if .FlagGroups}}
+      {{end}}{{if .App.Copyright }}
+   CopyRight:
+      {{.App.Copyright}}
    {{end}}
 `
 

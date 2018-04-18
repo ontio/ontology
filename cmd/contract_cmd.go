@@ -36,7 +36,8 @@ import (
 var (
 	ContractCommand = cli.Command{
 		Name:         "contract",
-		Usage:        "ontology contract [invoke|deploy] [OPTION]\n",
+		Action:       utils.MigrateFlags(contractCommand),
+		Usage:        "ontology contract [invoke|deploy] [OPTION]",
 		Category:     "CONTRACT COMMANDS",
 		OnUsageError: contractUsageError,
 		Description:  `account command`,
@@ -44,7 +45,7 @@ var (
 			{
 				Action:       utils.MigrateFlags(invokeContract),
 				Name:         "invoke",
-				OnUsageError: contractUsageError,
+				OnUsageError: invokeUsageError,
 				Usage:        "ontology invoke [OPTION]\n",
 				Flags:        append(NodeFlags, ContractFlags...),
 				Category:     "CONTRACT COMMANDS",
@@ -52,7 +53,7 @@ var (
 			},
 			{
 				Action:       utils.MigrateFlags(deployContract),
-				OnUsageError: contractUsageError,
+				OnUsageError: deployUsageError,
 				Name:         "deploy",
 				Usage:        "ontology deploy [OPTION]\n",
 				Flags:        append(NodeFlags, ContractFlags...),
@@ -63,6 +64,11 @@ var (
 	}
 )
 
+func contractCommand(ctx *cli.Context) error {
+	showContractHelp()
+	return nil
+}
+
 func showContractHelp() {
 	var contractUsingHelp = `
    Name:
@@ -71,14 +77,14 @@ func showContractHelp() {
       ontology contract [command options] [args]
 
    Description:
-      With this command, you can transfer asset from one account to another
+      With this command, you can invoke a smart contract
 
    Command:
-     deploy
+     invoke
        --caddr      value               smart contract address that will be invoke
        --params     value               params will be  
 			
-     invoke
+     deploy
        --type       value               contract type ,value: NEOVM | NATIVE | SWAM
        --store      value               does this contract will be stored, value: true or false
        --code       value               directory of smart contract that will be deployed
@@ -97,9 +103,32 @@ func contractUsageError(context *cli.Context, err error, isSubcommand bool) erro
 	return nil
 }
 
+func showInvokeHelp() {
+	var invokeHelp = `
+   Name:
+      ontology contract invoke          invoke a smart contract by this command
+   Usage:
+      ontology contract invoke [command options] [args]
+
+   Description:
+      With this command, you can invoke a smart contract
+
+   Command:
+      --caddr      value                smart contract address that will be invoke
+      --params     value                params will be
+`
+	fmt.Println(invokeHelp)
+}
+
+func invokeUsageError(context *cli.Context, err error, isSubcommand bool) error {
+	fmt.Println(err.Error())
+	showInvokeHelp()
+	return nil
+}
+
 func invokeContract(ctx *cli.Context) error {
 	if !ctx.IsSet(utils.ContractAddrFlag.Name) || !ctx.IsSet(utils.ContractParamsFlag.Name) {
-		showContractHelp()
+		showInvokeHelp()
 		return nil
 	}
 
@@ -111,8 +140,8 @@ func invokeContract(ctx *cli.Context) error {
 
 	acct := client.GetDefaultAccount()
 
-	contractAddr := ctx.GlobalString(utils.ContractAddrFlag.Name)
-	params := ctx.GlobalString(utils.ContractParamsFlag.Name)
+	contractAddr := ctx.String(utils.ContractAddrFlag.Name)
+	params := ctx.String(utils.ContractParamsFlag.Name)
 	if "" == contractAddr {
 		log.Fatal("contract address does not allow empty")
 	}
@@ -146,12 +175,41 @@ func getVmType(vmType uint) types.VmType {
 	}
 }
 
+func showDeployHelp() {
+	var deployHelp = `
+   Name:
+      ontology contract deploy        deploy a smart contract by this command
+   Usage:
+      ontology contract deploy [command options] [args]
+
+   Description:
+      With this command, you can deploy a smart contract
+
+   Command:
+      --type       value              contract type ,value: NEOVM | NATIVE | SWAM
+      --store      value              does this contract will be stored, value: true or false
+      --code       value              directory of smart contract that will be deployed
+      --cname      value              contract name that will be deployed
+      --cversion   value              contract version which will be deployed
+      --author     value              owner of deployed smart contract
+      --email      value              owner email who deploy the smart contract
+      --desc       value              contract description when deploy one
+`
+	fmt.Println(deployHelp)
+}
+
+func deployUsageError(context *cli.Context, err error, isSubcommand bool) error {
+	fmt.Println(err.Error())
+	showDeployHelp()
+	return nil
+}
+
 func deployContract(ctx *cli.Context) error {
 	if !ctx.IsSet(utils.ContractStorageFlag.Name) || !ctx.IsSet(utils.ContractVmTypeFlag.Name) ||
 		!ctx.IsSet(utils.ContractCodeFlag.Name) || !ctx.IsSet(utils.ContractNameFlag.Name) ||
 		!ctx.IsSet(utils.ContractVersionFlag.Name) || !ctx.IsSet(utils.ContractAuthorFlag.Name) ||
 		!ctx.IsSet(utils.ContractEmailFlag.Name) || !ctx.IsSet(utils.ContractDescFlag.Name) {
-		showContractHelp()
+		showDeployHelp()
 		return nil
 	}
 
@@ -162,10 +220,10 @@ func deployContract(ctx *cli.Context) error {
 
 	acct := client.GetDefaultAccount()
 
-	store := ctx.GlobalBool(utils.ContractStorageFlag.Name)
-	vmType := getVmType(ctx.GlobalUint(utils.ContractVmTypeFlag.Name))
+	store := ctx.Bool(utils.ContractStorageFlag.Name)
+	vmType := getVmType(ctx.Uint(utils.ContractVmTypeFlag.Name))
 
-	codeDir := ctx.GlobalString(utils.ContractCodeFlag.Name)
+	codeDir := ctx.String(utils.ContractCodeFlag.Name)
 	if "" == codeDir {
 		log.Fatal("code dir is error, value does not allow null")
 	}
@@ -173,11 +231,11 @@ func deployContract(ctx *cli.Context) error {
 	if err != nil {
 		log.Fatal("error in read file", err.Error())
 	}
-	name := ctx.GlobalString(utils.ContractNameFlag.Name)
-	version := ctx.GlobalString(utils.ContractVersionFlag.Name)
-	author := ctx.GlobalString(utils.ContractAuthorFlag.Name)
-	email := ctx.GlobalString(utils.ContractEmailFlag.Name)
-	desc := ctx.GlobalString(utils.ContractDescFlag.Name)
+	name := ctx.String(utils.ContractNameFlag.Name)
+	version := ctx.String(utils.ContractVersionFlag.Name)
+	author := ctx.String(utils.ContractAuthorFlag.Name)
+	email := ctx.String(utils.ContractEmailFlag.Name)
+	desc := ctx.String(utils.ContractDescFlag.Name)
 	if "" == name || "" == version || "" == author || "" == email || "" == desc {
 		log.Fatal("Params are not put completely: which contain code, name, version, author, email, desc")
 	}

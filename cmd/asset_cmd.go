@@ -44,10 +44,11 @@ import (
 var (
 	AssetCommand = cli.Command{
 		Name:         "asset",
-		Usage:        "ontology asset [transfer] [OPTION]\n",
+		Action:       utils.MigrateFlags(assetCommand),
+		Usage:        "ontology asset [transfer] [OPTION]",
 		ArgsUsage:    "",
 		Category:     "ASSET COMMANDS",
-		OnUsageError: transferAssetUsageError,
+		OnUsageError: assetUsageError,
 		Description:  `asset controll`,
 		Subcommands: []cli.Command{
 			{
@@ -63,31 +64,64 @@ var (
 	}
 )
 
-func showAssetTransferHelp() {
-	var assetTransferHelp = `
+func assetUsageError(context *cli.Context, err error, isSubcommand bool) error {
+	fmt.Println(err.Error())
+	showAssetHelp()
+	return nil
+}
+
+func assetCommand(ctx *cli.Context) error {
+	showAssetHelp()
+	return nil
+}
+
+func showAssetHelp() {
+	var assetHelp = `
    Name:
-      ontology asset transfer            Show blockchain information
+      ontology asset                       asset operation
 
    Usage:
-      ontology asset transfer [command options] [args]
+      ontology asset [command options] [args]
 
    Description:
-      With this command, you can transfer asset from one account to another
+      With this command, you can control assert through transaction.
 
-   Options:
-      --caddr     value               smart contract address
-      --from      value               wallet address base58, which will transfer from
-      --to        value               wallet address base58, which will transfer to 
-      --value     value               how many asset will be transfered
-      --password  value               use password who transfer from
+   Command:
+      transfer
+         --caddr     value                 smart contract address
+         --from      value                 wallet address base58, which will transfer from
+         --to        value                 wallet address base58, which will transfer to
+         --value     value                 how much asset will be transfered
+         --password  value                 use password who transfer from
 `
-	fmt.Println(assetTransferHelp)
+	fmt.Println(assetHelp)
 }
 
 func transferAssetUsageError(context *cli.Context, err error, isSubcommand bool) error {
 	fmt.Println(err.Error())
 	showAssetTransferHelp()
 	return nil
+}
+
+func showAssetTransferHelp() {
+	var assetTransferHelp = `
+   Name:
+      ontology asset transfer              asset transfer
+
+   Usage:
+      ontology asset transfer [command options] [args]
+
+   Description:
+      With this command, you can transfer assert through transaction.
+
+   Command:
+      --caddr     value                    smart contract address
+      --from      value                    wallet address base58, which will transfer from
+      --to        value                    wallet address base58, which will transfer to
+      --value     value                    how much asset will be transfered
+      --password  value                    use password who transfer from
+`
+	fmt.Println(assetTransferHelp)
 }
 
 func signTransaction(signer *account.Account, tx *ctypes.Transaction) error {
@@ -106,28 +140,28 @@ func transferAsset(ctx *cli.Context) error {
 		showAssetTransferHelp()
 		return nil
 	}
-	contract := ctx.GlobalString(utils.ContractAddrFlag.Name)
+	contract := ctx.String(utils.ContractAddrFlag.Name)
 	if contract == "" {
 		fmt.Println("Invalid contract address: ", contract)
 		os.Exit(1)
 	}
 	ct, _ := common.HexToBytes(contract)
 	ctu, _ := common.AddressParseFromBytes(ct)
-	from := ctx.GlobalString(utils.TransactionFromFlag.Name)
+	from := ctx.String(utils.TransactionFromFlag.Name)
 	if from == "" {
 		fmt.Println("Invalid sender address: ", from)
 		os.Exit(1)
 	}
 	f, _ := common.HexToBytes(from)
 	fu, _ := common.AddressParseFromBytes(f)
-	to := ctx.GlobalString(utils.TransactionToFlag.Name)
+	to := ctx.String(utils.TransactionToFlag.Name)
 	if to == "" {
 		fmt.Println("Invalid revicer address: ", to)
 		os.Exit(1)
 	}
 	t, _ := common.HexToBytes(to)
 	tu, _ := common.AddressParseFromBytes(t)
-	value := ctx.GlobalInt64(utils.TransactionValueFlag.Name)
+	value := ctx.Int64(utils.TransactionValueFlag.Name)
 	if value <= 0 {
 		fmt.Println("Invalid ont amount: ", value)
 		os.Exit(1)
@@ -169,7 +203,7 @@ func transferAsset(ctx *cli.Context) error {
 
 	tx.Nonce = uint32(time.Now().Unix())
 
-	passwd := ctx.GlobalString(utils.UserPasswordFlag.Name)
+	passwd := ctx.String(utils.UserPasswordFlag.Name)
 
 	acct := account.Open(account.WALLET_FILENAME, []byte(passwd))
 	acc := acct.GetDefaultAccount()

@@ -29,13 +29,15 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/password"
 	"github.com/urfave/cli"
+	"errors"
+	"reflect"
 )
 
 var (
 	WalletCommand = cli.Command{
 		Action:      utils.MigrateFlags(walletCommand),
 		Name:        "wallet",
-		Usage:       "ontology wallet [create|show|balance] [OPTION]\n",
+		Usage:       "ontology wallet [create|show|balance] [OPTION]",
 		ArgsUsage:   "",
 		Category:    "WALLET COMMANDS",
 		Description: `[create/show/balance]`,
@@ -82,10 +84,10 @@ func showWalletHelp() {
    Command:
       create
          --name value                  wallet name (default: "wallet.dat")
-
       show
-
+         no option
       balance
+         no option
 `
 	fmt.Println(walletHelp)
 }
@@ -129,13 +131,15 @@ func walletCreate(ctx *cli.Context) error {
 
 func walletShow(ctx *cli.Context) error {
 	client := account.GetClient(ctx)
-	if client == nil {
+	cli := reflect.ValueOf(client)
+	if !cli.IsValid() || cli.IsNil() || nil == client{
 		log.Fatal("Can't get local account.")
+		return errors.New("Can't get local account. ")
 	}
-
 	acct := client.GetDefaultAccount()
 	if acct == nil {
 		log.Fatal("can not get default account")
+		return errors.New("can not get default account")
 	}
 
 	pubKey := acct.PubKey()
@@ -152,11 +156,13 @@ func walletBalance(ctx *cli.Context) error {
 	client := account.GetClient(ctx)
 	if client == nil {
 		log.Fatal("Can't get local account.")
+		return errors.New("Can't get local account. ")
 	}
 
 	acct := client.GetDefaultAccount()
 	if acct == nil {
 		log.Fatal("can not get default account")
+		return errors.New("can not get default account")
 	}
 
 	base58Addr := acct.Address.ToBase58()

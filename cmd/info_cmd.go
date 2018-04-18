@@ -30,13 +30,14 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/urfave/cli"
+	"errors"
 )
 
 var (
 	InfoCommand = cli.Command{
 		Action:   utils.MigrateFlags(infoCommand),
 		Name:     "info",
-		Usage:    " ontology info [block|chain|transaction|version] [OPTION]\n",
+		Usage:    "ontology info [block|chain|transaction|version] [OPTION]",
 		Flags:    append(NodeFlags, InfoFlags...),
 		Category: "INFO COMMANDS",
 		Subcommands: []cli.Command{
@@ -88,6 +89,7 @@ func getCurrentBlockHeight(ctx *cli.Context) error {
 	height, err := ontSdk.Rpc.GetBlockCount()
 	if nil != err {
 		log.Fatalf("Get block height information is error:  %s", err.Error())
+		return err
 	}
 	fmt.Println("Current blockchain height: ", height)
 	return nil
@@ -162,6 +164,7 @@ func versionInfoCommand(ctx *cli.Context) error {
 	version, err := ontSdk.Rpc.GetVersion()
 	if nil != err {
 		log.Fatalf("Get version information is error:  %s", err.Error())
+		return err
 	}
 	fmt.Println("Node version: ", version)
 	return nil
@@ -194,9 +197,11 @@ func blockInfoCommand(ctx *cli.Context) error {
 
 			if err != nil {
 				log.Fatalf("Get block by height(%d) is error:%s", height, err.Error())
+				return err
 			}
 			if block == nil || block.Header == nil {
 				log.Fatalf("Get block by height(%d), the block or block.Header is nil", height)
+				return errors.New("GetBlockByHeight: the block or block.Header is nil ")
 			}
 
 			echoBlockGracefully(block)
@@ -210,16 +215,19 @@ func blockInfoCommand(ctx *cli.Context) error {
 			hex, err := hex.DecodeString(blockHash)
 			if err != nil {
 				log.Fatalf("Decode string error, blockHash:%s, err:%s", blockHash, err.Error())
+				return err
 			}
 			if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
 				log.Fatalf("Deserialize hex error,hex:%s, err:%s", hex, err.Error())
+				return err
 			}
 			block, err := ontSdk.Rpc.GetBlockByHash(hash)
 			if err != nil {
 				log.Fatalf("GetBlock GetBlockFromStore BlockHash:%x error:%s", hash, err)
+				return err
 			}
 			if block == nil || block.Header == nil {
-				return nil
+				return errors.New("GetBlockByHash: the block or block.Header is nil ")
 			}
 
 			echoBlockGracefully(block)

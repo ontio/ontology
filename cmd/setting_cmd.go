@@ -35,7 +35,7 @@ var (
 	SettingCommand = cli.Command{
 		Name:        "set",
 		Action:      utils.MigrateFlags(settingCommand),
-		Usage:       "ontology set [OPTION]\n",
+		Usage:       "ontology set [OPTION]",
 		Flags:       append(NodeFlags, ContractFlags...),
 		Category:    "Setting COMMANDS",
 		Description: ``,
@@ -52,6 +52,7 @@ func settingCommand(ctx *cli.Context) error {
 		r := make(map[string]interface{})
 		json.Unmarshal(resp, &r)
 		fmt.Printf("%v\n", r)
+		return nil
 	} else if ctx.IsSet(utils.ConsensusFlag.Name) {
 		consensusSwitch := ctx.String(utils.ConsensusFlag.Name)
 		client := account.GetClient(ctx)
@@ -105,47 +106,3 @@ func showSettingHelp() {
 func localRpcAddress() string {
 	return "http://localhost:" + strconv.Itoa(config.Parameters.HttpJsonPort)
 }
-/*
-func debugCommand(ctx *cli.Context) error {
-	client := account.GetClient(ctx)
-	if client == nil {
-		log.Fatal("Can't get local account.")
-	}
-
-	level := ctx.Uint(utils.DebugLevelFlag.Name)
-	resp, err := jrpc.Call(localRpcAddress(), "setdebuginfo", 0, []interface{}{level})
-	if nil != err {
-		return err
-	}
-	r := make(map[string]interface{})
-	json.Unmarshal(resp, &r)
-	fmt.Printf("%v\n", r)
-	return nil
-}
-
-func consensusCommand(ctx *cli.Context) error {
-	consensusSwitch := ctx.String(utils.ConsensusSwitchFlag.Name)
-	client := account.GetClient(ctx)
-	if client == nil {
-		log.Fatal("Can't get local account.")
-	}
-	var resp []byte
-	var err error
-	fmt.Println("consensusSwitch:", consensusSwitch)
-	switch consensusSwitch {
-	case "on":
-		resp, err = jrpc.Call(localRpcAddress(), "startconsensus", 0, []interface{}{1})
-	case "off":
-		resp, err = jrpc.Call(localRpcAddress(), "stopconsensus", 0, []interface{}{0})
-	default:
-		fmt.Println("Start:1; Stop:0; Pls enter valid value between 0 and 1.")
-	}
-	if nil != err {
-		return err
-	}
-	r := make(map[string]interface{})
-	json.Unmarshal(resp, &r)
-	fmt.Printf("%v\n", r)
-	return nil
-}
-*/
