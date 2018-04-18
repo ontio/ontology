@@ -35,32 +35,74 @@ import (
 
 var (
 	ContractCommand = cli.Command{
-		Name:        "contract",
-		Usage:       "ontology contract [invoke|deploy] [OPTION]\n",
-		Category:    "CONTRACT COMMANDS",
-		Description: `account command`,
+		Name:         "contract",
+		Usage:        "ontology contract [invoke|deploy] [OPTION]\n",
+		Category:     "CONTRACT COMMANDS",
+		OnUsageError: contractUsageError,
+		Description:  `account command`,
 		Subcommands: []cli.Command{
 			{
-				Action:      utils.MigrateFlags(invokeContract),
-				Name:        "invoke",
-				Usage:       "ontology invoke [OPTION]\n",
-				Flags:       append(NodeFlags, ContractFlags...),
-				Category:    "CONTRACT COMMANDS",
-				Description: ``,
+				Action:       utils.MigrateFlags(invokeContract),
+				Name:         "invoke",
+				OnUsageError: contractUsageError,
+				Usage:        "ontology invoke [OPTION]\n",
+				Flags:        append(NodeFlags, ContractFlags...),
+				Category:     "CONTRACT COMMANDS",
+				Description:  ``,
 			},
 			{
-				Action:      utils.MigrateFlags(deployContract),
-				Name:        "deploy",
-				Usage:       "ontology deploy [OPTION]\n",
-				Flags:       append(NodeFlags, ContractFlags...),
-				Category:    "CONTRACT COMMANDS",
-				Description: ``,
+				Action:       utils.MigrateFlags(deployContract),
+				OnUsageError: contractUsageError,
+				Name:         "deploy",
+				Usage:        "ontology deploy [OPTION]\n",
+				Flags:        append(NodeFlags, ContractFlags...),
+				Category:     "CONTRACT COMMANDS",
+				Description:  ``,
 			},
 		},
 	}
 )
 
+func showContractHelp() {
+	var contractUsingHelp = `
+   Name:
+      ontology contract      deploy or invoke a smart contract by this command
+   Usage:
+      ontology contract [command options] [args]
+
+   Description:
+      With this command, you can transfer asset from one account to another
+
+   Command:
+     deploy
+       --caddr      value               smart contract address that will be invoke
+       --params     value               params will be  
+			
+     invoke
+       --type       value               contract type ,value: NEOVM | NATIVE | SWAM
+       --store      value               does this contract will be stored, value: true or false
+       --code       value               directory of smart contract that will be deployed
+       --cname      value               contract name that will be deployed
+       --cversion   value               contract version which will be deployed
+       --author     value               owner of deployed smart contract
+       --email      value               owner email who deploy the smart contract
+       --desc       value               contract description when deploy one
+`
+	fmt.Println(contractUsingHelp)
+}
+
+func contractUsageError(context *cli.Context, err error, isSubcommand bool) error {
+	fmt.Println(err.Error())
+	showContractHelp()
+	return nil
+}
+
 func invokeContract(ctx *cli.Context) error {
+	if !ctx.IsSet(utils.ContractAddrFlag.Name) || !ctx.IsSet(utils.ContractParamsFlag.Name) {
+		showContractHelp()
+		return nil
+	}
+
 	client := account.GetClient(ctx)
 	if client == nil {
 		log.Fatal("Can't get local account.")
@@ -105,6 +147,14 @@ func getVmType(vmType uint) types.VmType {
 }
 
 func deployContract(ctx *cli.Context) error {
+	if !ctx.IsSet(utils.ContractStorageFlag.Name) || !ctx.IsSet(utils.ContractVmTypeFlag.Name) ||
+		!ctx.IsSet(utils.ContractCodeFlag.Name) || !ctx.IsSet(utils.ContractNameFlag.Name) ||
+		!ctx.IsSet(utils.ContractVersionFlag.Name) || !ctx.IsSet(utils.ContractAuthorFlag.Name) ||
+		!ctx.IsSet(utils.ContractEmailFlag.Name) || !ctx.IsSet(utils.ContractDescFlag.Name) {
+		showContractHelp()
+		return nil
+	}
+
 	client := account.GetClient(ctx)
 	if nil == client {
 		log.Fatal("Can't get local account.")

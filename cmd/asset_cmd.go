@@ -43,23 +43,52 @@ import (
 
 var (
 	AssetCommand = cli.Command{
-		Name:        "asset",
-		Usage:       "ontology asset [transfer] [OPTION]\n",
-		ArgsUsage:   "",
-		Category:    "ASSET COMMANDS",
-		Description: `asset controll`,
+		Name:         "asset",
+		Usage:        "ontology asset [transfer] [OPTION]\n",
+		ArgsUsage:    "",
+		Category:     "ASSET COMMANDS",
+		OnUsageError: transferAssetUsageError,
+		Description:  `asset controll`,
 		Subcommands: []cli.Command{
 			{
-				Action:      utils.MigrateFlags(transferAsset),
-				Name:        "transfer",
-				Usage:       "ontology asset transfer [OPTION]\n",
-				Flags:       append(NodeFlags, ContractFlags...),
-				Category:    "ASSET COMMANDS",
-				Description: ``,
+				Action:       utils.MigrateFlags(transferAsset),
+				OnUsageError: transferAssetUsageError,
+				Name:         "transfer",
+				Usage:        "ontology asset transfer [OPTION]\n",
+				Flags:        append(NodeFlags, ContractFlags...),
+				Category:     "ASSET COMMANDS",
+				Description:  ``,
 			},
 		},
 	}
 )
+
+func showAssetTransferHelp() {
+	var assetTransferHelp = `
+   Name:
+      ontology asset transfer            Show blockchain information
+
+   Usage:
+      ontology asset transfer [command options] [args]
+
+   Description:
+      With this command, you can transfer asset from one account to another
+
+   Options:
+      --caddr     value               smart contract address
+      --from      value               wallet address base58, which will transfer from
+      --to        value               wallet address base58, which will transfer to 
+      --value     value               how many asset will be transfered
+      --password  value               use password who transfer from
+`
+	fmt.Println(assetTransferHelp)
+}
+
+func transferAssetUsageError(context *cli.Context, err error, isSubcommand bool) error {
+	fmt.Println(err.Error())
+	showAssetTransferHelp()
+	return nil
+}
 
 func signTransaction(signer *account.Account, tx *ctypes.Transaction) error {
 	hash := tx.Hash()
@@ -73,6 +102,10 @@ func signTransaction(signer *account.Account, tx *ctypes.Transaction) error {
 }
 
 func transferAsset(ctx *cli.Context) error {
+	if !ctx.IsSet(utils.ContractAddrFlag.Name) || !ctx.IsSet(utils.TransactionFromFlag.Name) || !ctx.IsSet(utils.TransactionToFlag.Name) || !ctx.IsSet(utils.TransactionValueFlag.Name) || !ctx.IsSet(utils.UserPasswordFlag.Name) {
+		showAssetTransferHelp()
+		return nil
+	}
 	contract := ctx.GlobalString(utils.ContractAddrFlag.Name)
 	if contract == "" {
 		fmt.Println("Invalid contract address: ", contract)

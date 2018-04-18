@@ -135,15 +135,13 @@ func versionInfoUsageError(context *cli.Context, err error, isSubcommand bool) e
 }
 
 var versionCommand = cli.Command{
-	Action:      utils.MigrateFlags(versionInfoCommand),
-	Name:        "version",
-	Usage:       "ontology info version\n",
+	Action:       utils.MigrateFlags(versionInfoCommand),
+	Name:         "version",
+	Usage:        "ontology info version\n",
 	OnUsageError: versionInfoUsageError,
-	Category:    "INFO COMMANDS",
-	Description: ``,
+	Category:     "INFO COMMANDS",
+	Description:  ``,
 }
-
-
 
 func showVersionInfoHelp() {
 	var versionInfoHelp = `
