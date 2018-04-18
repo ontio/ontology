@@ -19,33 +19,10 @@
 package utils
 
 import (
-	"flag"
-	"fmt"
-	"os"
-	"path"
-	"path/filepath"
-	"runtime"
-	"strings"
-
 	"github.com/urfave/cli"
 )
 
-type DirectoryString struct {
-	Value string
-}
-
-type DirectoryFlag struct {
-	Name  string
-	Value DirectoryString
-	Usage string
-}
-
 var (
-	DataDirFlag = DirectoryFlag{
-		Name:  "datadir",
-		Usage: "Data directory for the databases and keystore",
-	}
-
 	EncryptTypeFlag = cli.StringFlag{
 		Name: "encrypt",
 		Usage: `assign encrypt type when use create wallet, just as:
@@ -186,63 +163,8 @@ var (
 		Name:  "params",
 		Usage: "contract parameter needed when invoded",
 	}
-	//contract invoke
 )
 
-func (self *DirectoryFlag) Set(value string) {
-	self.Value.Value = value
-}
-
-// Expands a file path
-// 1. replace tilde with users home dir
-// 2. expands embedded environment variables
-// 3. cleans the path, e.g. /a/b/../c -> /a/c
-// Note, it has limitations, e.g. ~someuser/tmp will not be expanded
-func expandPath(p string) string {
-	if strings.HasPrefix(p, "~/") || strings.HasPrefix(p, "~\\") {
-		if home := os.Getenv("HOME"); home != "" {
-			p = home + p[1:]
-		}
-	}
-	return path.Clean(os.ExpandEnv(p))
-}
-
-func (self *DirectoryString) Set(value string) error {
-	self.Value = expandPath(value)
-	return nil
-}
-
-// DefaultDataDir is the default data directory to use for the databases and other
-// persistence requirements.
-func DefaultDataDir() string {
-	// Try to place the data folder in the user's home dir
-	home := os.Getenv("HOME")
-	if home != "" {
-		if runtime.GOOS == "darwin" {
-			return filepath.Join(home, "Library", "Ontology")
-		} else if runtime.GOOS == "windows" {
-			return filepath.Join(home, "AppData", "Roaming", "Ontology")
-		} else {
-			return filepath.Join(home, ".ontology")
-		}
-	}
-	// As we cannot guess a stable location, return empty and handle later
-	return ""
-}
-
-// MigrateFlags sets the global flag from a local flag when it's set.
-// This is a temporary function used for migrating old command/flags to the
-// new format.
-//
-// e.g. geth account new --keystore /tmp/mykeystore --lightkdf
-//
-// is equivalent after calling this method with:
-//
-// geth --keystore /tmp/mykeystore --lightkdf account new
-//
-// This allows the use of the existing configuration functionality.
-// When all flags are migrated this function can be removed and the existing
-// configuration functionality must be changed that is uses local flags
 func MigrateFlags(action func(ctx *cli.Context) error) func(*cli.Context) error {
 	return func(ctx *cli.Context) error {
 		for _, name := range ctx.FlagNames() {
@@ -252,65 +174,4 @@ func MigrateFlags(action func(ctx *cli.Context) error) func(*cli.Context) error 
 		}
 		return action(ctx)
 	}
-}
-
-func absolutePath(Datadir string, filename string) string {
-	if filepath.IsAbs(filename) {
-		return filename
-	}
-	return filepath.Join(Datadir, filename)
-}
-
-func eachName(longName string, fn func(string)) {
-	parts := strings.Split(longName, ",")
-	for _, name := range parts {
-		name = strings.Trim(name, " ")
-		fn(name)
-	}
-}
-
-func (self DirectoryFlag) GetName() string {
-	return self.Name
-}
-
-func (self *DirectoryString) String() string {
-	return self.Value
-}
-
-func prefixFor(name string) (prefix string) {
-	if len(name) == 1 {
-		prefix = "-"
-	} else {
-		prefix = "--"
-	}
-
-	return
-}
-
-func prefixedNames(fullName string) (prefixed string) {
-	parts := strings.Split(fullName, ",")
-	for i, name := range parts {
-		name = strings.Trim(name, " ")
-		prefixed += prefixFor(name) + name
-		if i < len(parts)-1 {
-			prefixed += ", "
-		}
-	}
-	return
-}
-
-func (self DirectoryFlag) String() string {
-	fmtString := "%s %v\t%v"
-	if len(self.Value.Value) > 0 {
-		fmtString = "%s \"%v\"\t%v"
-	}
-	return fmt.Sprintf(fmtString, prefixedNames(self.Name), self.Value.Value, self.Usage)
-}
-
-// called by cli library, grabs variable from environment (if in env)
-// and adds variable to flag set for parsing.
-func (self DirectoryFlag) Apply(set *flag.FlagSet) {
-	eachName(self.Name, func(name string) {
-		set.Var(&self.Value, self.Name, self.Usage)
-	})
 }

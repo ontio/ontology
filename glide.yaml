@@ -43,3 +43,4 @@ import:
   repo: https://github.com/google/go-genproto.git
 ignore:
   - golang.org/x/sys/unix
+-	package: github.com/ontio/ontology-go-sdk

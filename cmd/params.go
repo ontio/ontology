@@ -25,7 +25,6 @@ import (
 
 var (
 	NodeFlags = []cli.Flag{
-		utils.DataDirFlag,
 		utils.WalletNameFlag,
 		utils.WalletAddrFlag,
 		utils.WalletPwdFlag,
