@@ -31,8 +31,16 @@ import (
 
 var ontSdk *sdk.OntologySdk
 
+func localRpcAddress() string {
+	return "http://localhost:" + strconv.Itoa(config.Parameters.HttpJsonPort)
+}
+
 func rpcAddress() string {
 	return "http://localhost:" + strconv.Itoa(config.Parameters.HttpJsonPort)
+}
+
+func restfulAddr() string {
+	return "http://localhost:" + strconv.Itoa(config.Parameters.HttpRestPort)
 }
 
 func init() {

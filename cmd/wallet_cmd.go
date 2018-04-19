@@ -22,6 +22,9 @@ import (
 	"fmt"
 	"os"
 
+	"errors"
+	"reflect"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd/utils"
@@ -29,8 +32,6 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/password"
 	"github.com/urfave/cli"
-	"errors"
-	"reflect"
 )
 
 var (
@@ -69,28 +70,6 @@ var (
 		},
 	}
 )
-
-func showWalletHelp() {
-	var walletHelp = `
-   Name:
-      ontology wallet                  User wallet operation
-
-   Usage:
-      ontology wallet [command options] [args]
-
-   Description:
-      With ontology wallet, you could control your account.
-
-   Command:
-      create
-         --name value                  wallet name (default: "wallet.dat")
-      show
-         no option
-      balance
-         no option
-`
-	fmt.Println(walletHelp)
-}
 
 func walletCommand(context *cli.Context) error {
 	showWalletHelp()
@@ -132,7 +111,7 @@ func walletCreate(ctx *cli.Context) error {
 func walletShow(ctx *cli.Context) error {
 	client := account.GetClient(ctx)
 	cli := reflect.ValueOf(client)
-	if !cli.IsValid() || cli.IsNil() || nil == client{
+	if !cli.IsValid() || cli.IsNil() || nil == client {
 		log.Fatal("Can't get local account.")
 		return errors.New("Can't get local account. ")
 	}
@@ -171,6 +150,6 @@ func walletBalance(ctx *cli.Context) error {
 		log.Fatal("Get Balance with base58 err: ", err.Error())
 		return err
 	}
-	fmt.Printf("ONT: %d; ONG: %d; ONGAppove: %d\n", balance.Ont.Int64(), balance.Ong.Int64(), balance.OngAppove.Int64())
+	fmt.Printf("ONT: %d; ONG: %d; ONGAppove: %d\n Address(base58): %s\n", balance.Ont.Int64(), balance.Ong.Int64(), balance.OngAppove.Int64(), base58Addr)
 	return nil
 }

@@ -75,53 +75,10 @@ func assetCommand(ctx *cli.Context) error {
 	return nil
 }
 
-func showAssetHelp() {
-	var assetHelp = `
-   Name:
-      ontology asset                       asset operation
-
-   Usage:
-      ontology asset [command options] [args]
-
-   Description:
-      With this command, you can control assert through transaction.
-
-   Command:
-      transfer
-         --caddr     value                 smart contract address
-         --from      value                 wallet address base58, which will transfer from
-         --to        value                 wallet address base58, which will transfer to
-         --value     value                 how much asset will be transfered
-         --password  value                 use password who transfer from
-`
-	fmt.Println(assetHelp)
-}
-
 func transferAssetUsageError(context *cli.Context, err error, isSubcommand bool) error {
 	fmt.Println(err.Error())
 	showAssetTransferHelp()
 	return nil
-}
-
-func showAssetTransferHelp() {
-	var assetTransferHelp = `
-   Name:
-      ontology asset transfer              asset transfer
-
-   Usage:
-      ontology asset transfer [command options] [args]
-
-   Description:
-      With this command, you can transfer assert through transaction.
-
-   Command:
-      --caddr     value                    smart contract address
-      --from      value                    wallet address base58, which will transfer from
-      --to        value                    wallet address base58, which will transfer to
-      --value     value                    how much asset will be transfered
-      --password  value                    use password who transfer from
-`
-	fmt.Println(assetTransferHelp)
 }
 
 func signTransaction(signer *account.Account, tx *ctypes.Transaction) error {

@@ -21,11 +21,9 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd/utils"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	jrpc "github.com/ontio/ontology/http/base/rpc"
 	"github.com/urfave/cli"
@@ -81,28 +79,4 @@ func settingCommand(ctx *cli.Context) error {
 
 	showSettingHelp()
 	return nil
-}
-
-
-func showSettingHelp() {
-	var settingHelp = `
-   Name:
-      ontology set                       Show blockchain information
-
-   Usage:
-      ontology set [command options] [args]
-
-   Description:
-      With ontology set, you can configure the node.
-
-   Command:
-      --debuglevel value                 debug level(0~6) will be set
-      --consensus value                  [ on / off ]
-`
-	fmt.Println(settingHelp)
-}
-
-
-func localRpcAddress() string {
-	return "http://localhost:" + strconv.Itoa(config.Parameters.HttpJsonPort)
 }

@@ -19,6 +19,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -95,18 +96,26 @@ func setupAPP() *cli.App {
 }
 
 func main() {
+	defer func() {
+		if p := recover(); p != nil {
+			if str, ok := p.(string); ok {
+				log.Warn("Leave gracefully. ", errors.New(str))
+			}
+		}
+	}()
+
 	if err := setupAPP().Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
+
 func ontMain(ctx *cli.Context) {
 	var acct *account.Account
 	var err error
 	var noder protocol.Noder
 
 	log.Trace("Node version: ", config.Version)
-
 	consensusType := strings.ToLower(config.Parameters.ConsensusType)
 	if consensusType == "dbft" && len(config.Parameters.Bookkeepers) < account.DEFAULT_BOOKKEEPER_COUNT {
 		log.Fatal("With dbft consensus type, at least ", account.DEFAULT_BOOKKEEPER_COUNT, " Bookkeepers should be set in config.json")

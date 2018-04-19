@@ -69,55 +69,10 @@ func contractCommand(ctx *cli.Context) error {
 	return nil
 }
 
-func showContractHelp() {
-	var contractUsingHelp = `
-   Name:
-      ontology contract      deploy or invoke a smart contract by this command
-   Usage:
-      ontology contract [command options] [args]
-
-   Description:
-      With this command, you can invoke a smart contract
-
-   Command:
-     invoke
-       --caddr      value               smart contract address that will be invoke
-       --params     value               params will be  
-			
-     deploy
-       --type       value               contract type ,value: NEOVM | NATIVE | SWAM
-       --store      value               does this contract will be stored, value: true or false
-       --code       value               directory of smart contract that will be deployed
-       --cname      value               contract name that will be deployed
-       --cversion   value               contract version which will be deployed
-       --author     value               owner of deployed smart contract
-       --email      value               owner email who deploy the smart contract
-       --desc       value               contract description when deploy one
-`
-	fmt.Println(contractUsingHelp)
-}
-
 func contractUsageError(context *cli.Context, err error, isSubcommand bool) error {
 	fmt.Println(err.Error())
 	showContractHelp()
 	return nil
-}
-
-func showInvokeHelp() {
-	var invokeHelp = `
-   Name:
-      ontology contract invoke          invoke a smart contract by this command
-   Usage:
-      ontology contract invoke [command options] [args]
-
-   Description:
-      With this command, you can invoke a smart contract
-
-   Command:
-      --caddr      value                smart contract address that will be invoke
-      --params     value                params will be
-`
-	fmt.Println(invokeHelp)
 }
 
 func invokeUsageError(context *cli.Context, err error, isSubcommand bool) error {
@@ -151,7 +106,7 @@ func invokeContract(ctx *cli.Context) error {
 	if err != nil {
 		log.Fatalf("InvokeSmartContract InvokeNeoVMSmartContract error:%s", err)
 	} else {
-		log.Print("invoke transaction hash:", txHash)
+		fmt.Printf("invoke transaction hash:%s", common.ToHexString(txHash[:]))
 	}
 
 	//WaitForGenerateBlock
@@ -173,29 +128,6 @@ func getVmType(vmType uint) types.VmType {
 	default:
 		return types.Native
 	}
-}
-
-func showDeployHelp() {
-	var deployHelp = `
-   Name:
-      ontology contract deploy        deploy a smart contract by this command
-   Usage:
-      ontology contract deploy [command options] [args]
-
-   Description:
-      With this command, you can deploy a smart contract
-
-   Command:
-      --type       value              contract type ,value: NEOVM | NATIVE | SWAM
-      --store      value              does this contract will be stored, value: true or false
-      --code       value              directory of smart contract that will be deployed
-      --cname      value              contract name that will be deployed
-      --cversion   value              contract version which will be deployed
-      --author     value              owner of deployed smart contract
-      --email      value              owner email who deploy the smart contract
-      --desc       value              contract description when deploy one
-`
-	fmt.Println(deployHelp)
 }
 
 func deployUsageError(context *cli.Context, err error, isSubcommand bool) error {
@@ -249,7 +181,7 @@ func deployContract(ctx *cli.Context) error {
 	if err != nil {
 		log.Fatalf("DeploySmartContract WaitForGenerateBlock error:%s", err)
 	} else {
-		fmt.Printf("Deploy smartContract transaction hash: %+v\n", trHash)
+		fmt.Printf("Deploy smartContract transaction hash: %s\n", common.ToHexString(trHash[:]))
 	}
 
 	return nil
