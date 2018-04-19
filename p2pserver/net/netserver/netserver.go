@@ -58,9 +58,11 @@ func NewNetServer(pubKey keypair.PublicKey) p2p.P2P {
 
 //NetServer represent all the actions in net layer
 type NetServer struct {
-	base     peer.PeerCom
-	SyncChan chan common.MsgPayload
-	ConsChan chan common.MsgPayload
+	base         peer.PeerCom
+	synclistener net.Listener
+	conslistener net.Listener
+	SyncChan     chan common.MsgPayload
+	ConsChan     chan common.MsgPayload
 	ConnectingNodes
 	PeerAddrMap
 	Np *peer.NbrPeers
@@ -320,16 +322,19 @@ func (n *NetServer) Halt() {
 		p.CloseSync()
 		p.CloseCons()
 	}
-	// Fixme: check whether to close local connect
-	//n.Self.CloseSync()
-	//n.Self.CloseCons()
+	if n.synclistener != nil {
+		n.synclistener.Close()
+	}
+	if n.conslistener != nil {
+		n.conslistener.Close()
+	}
+
 }
 
 //establishing the connection to remote peers and listening for incoming peers
 func (n *NetServer) InitConnection() error {
 	isTls := config.Parameters.IsTLS
-	var synclistener net.Listener
-	var conslistener net.Listener
+
 	var err error
 
 	syncPort := n.base.GetSyncPort()
@@ -340,19 +345,19 @@ func (n *NetServer) InitConnection() error {
 		return errors.New("Sync Port invalid")
 	}
 	if isTls {
-		synclistener, err = initTlsListen(syncPort)
+		n.synclistener, err = initTlsListen(syncPort)
 		if err != nil {
 			log.Error("TLS listen failed")
 			return errors.New("Sync TLS listen failed")
 		}
 	} else {
-		synclistener, err = initNonTlsListen(syncPort)
+		n.synclistener, err = initNonTlsListen(syncPort)
 		if err != nil {
 			log.Error("Sync non TLS listen failed")
 			return errors.New("Sync non TLS listen failed")
 		}
 	}
-	go n.startSyncAccept(synclistener)
+	go n.startSyncAccept(n.synclistener)
 	log.Infof("Start listen on sync port %d", syncPort)
 
 	//consensus
@@ -365,19 +370,19 @@ func (n *NetServer) InitConnection() error {
 		log.Error("Consensus Port invalid,keep single link")
 	} else {
 		if isTls {
-			conslistener, err = initTlsListen(consPort)
+			n.conslistener, err = initTlsListen(consPort)
 			if err != nil {
 				log.Error("TLS listen failed")
 				return errors.New("Sync TLS listen failed")
 			}
 		} else {
-			conslistener, err = initNonTlsListen(consPort)
+			n.conslistener, err = initNonTlsListen(consPort)
 			if err != nil {
 				log.Error("Sync non TLS listen failed")
 				return errors.New("Sync non TLS listen failed")
 			}
 		}
-		go n.startConsAccept(conslistener)
+		go n.startConsAccept(n.conslistener)
 		log.Infof("Start listen on consensus port %d", consPort)
 	}
 	return nil
