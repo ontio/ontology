@@ -8,9 +8,9 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/store"
-
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
+	sccommon "github.com/ontio/ontology/smartcontract/common"
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
 	nstates "github.com/ontio/ontology/smartcontract/service/native/states"
@@ -19,8 +19,6 @@ import (
 	vmtypes "github.com/ontio/ontology/smartcontract/types"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
 	"github.com/ontio/ontology/vm/wasmvm/util"
-	sccommon "github.com/ontio/ontology/smartcontract/common"
-
 )
 
 type WasmVmService struct {
@@ -32,9 +30,8 @@ type WasmVmService struct {
 	Time          uint32
 }
 
-
 func NewWasmVmService(store store.LedgerStore, cache *storage.CloneCache, tx *types.Transaction,
-time uint32, ctxRef context.ContextRef) *WasmVmService {
+	time uint32, ctxRef context.ContextRef) *WasmVmService {
 	var service WasmVmService
 	service.Store = store
 	service.CloneCache = cache
@@ -43,7 +40,6 @@ time uint32, ctxRef context.ContextRef) *WasmVmService {
 	service.ContextRef = ctxRef
 	return &service
 }
-
 
 func (this *WasmVmService) Invoke() (interface{}, error) {
 	stateMachine := NewWasmStateMachine(this.Store, this.CloneCache, this.Time)
@@ -220,11 +216,10 @@ func (this *WasmVmService) callContract(engine *exec.ExecutionEngine) (bool, err
 		return false, errors.NewErr("[callContract]get Contract address failed:" + err.Error())
 	}
 
-
-	if offchainContractCode != nil{
-		contractBytes,err = common.HexToBytes(util.TrimBuffToString(offchainContractCode))
+	if offchainContractCode != nil {
+		contractBytes, err = common.HexToBytes(util.TrimBuffToString(offchainContractCode))
 		if err != nil {
-			return false ,err
+			return false, err
 
 		}
 		//compute the offchain code address
@@ -248,13 +243,25 @@ func (this *WasmVmService) callContract(engine *exec.ExecutionEngine) (bool, err
 	if err != nil {
 		return false, errors.NewErr("[callContract]AppCall failed:" + err.Error())
 	}
-
 	vm.RestoreCtx()
 	if envCall.GetReturns() {
 		if contractAddress[0] == byte(vmtypes.NEOVM) {
 			result = sccommon.ConvertNeoVmReturnTypes(result)
 		}
-		idx, err := vm.SetPointerMemory(result)
+		if contractAddress[0] == byte(vmtypes.Native) {
+			bresult := result.(bool)
+			if bresult == true {
+				result = "true"
+			} else {
+				result = false
+			}
+
+		}
+		if contractAddress[0] == byte(vmtypes.WASMVM) {
+			//reserve for further process
+		}
+
+		idx, err := vm.SetPointerMemory(result.(string))
 		if err != nil {
 			return false, errors.NewErr("[callContract]SetPointerMemory failed:" + err.Error())
 		}
