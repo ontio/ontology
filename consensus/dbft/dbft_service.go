@@ -707,7 +707,7 @@ func (ds *DbftService) Timeout() {
 				log.Infof("incr validator block height %v != ledger block height %v", end-1, height)
 			}
 
-			log.Infof("current block Height %v, incrValidateHeight %v", height, validHeight)
+			log.Infof("current block Height %v, increment validator block cache size %v", height, height+1-validHeight)
 			txs := ds.poolActor.GetTxnPool(true, validHeight)
 			// todo : fix feesum calcuation
 			feeSum := common.Fixed64(0)
