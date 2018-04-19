@@ -241,7 +241,9 @@ func deployContract(ctx *cli.Context) error {
 	}
 
 	trHash, err := ontSdk.Rpc.DeploySmartContract(acct, vmType, store, fmt.Sprintf("%s", code), name, version, author, email, desc)
-
+	if err != nil {
+		log.Fatal("Deploy smart error: ", err)
+	}
 	//WaitForGenerateBlock
 	_, err = ontSdk.Rpc.WaitForGenerateBlock(30*time.Second, 1)
 	if err != nil {
