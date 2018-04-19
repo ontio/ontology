@@ -20,6 +20,7 @@ import (
 	"bytes"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/store"
 	scommon "github.com/ontio/ontology/core/store/common"
 	ctypes "github.com/ontio/ontology/core/types"
@@ -27,27 +28,26 @@ import (
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	stypes "github.com/ontio/ontology/smartcontract/types"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
-	"github.com/ontio/ontology/core/payload"
-	"github.com/ontio/ontology/smartcontract/states"
-	vm "github.com/ontio/ontology/vm/neovm"
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
+	"github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
+	stypes "github.com/ontio/ontology/smartcontract/types"
+	vm "github.com/ontio/ontology/vm/neovm"
 )
 
 var (
-	CONTRACT_NOT_EXIST = errors.NewErr("[AppCall] Get contract context nil")
+	CONTRACT_NOT_EXIST    = errors.NewErr("[AppCall] Get contract context nil")
 	DEPLOYCODE_TYPE_ERROR = errors.NewErr("[AppCall] DeployCode type error!")
-	INVOKE_CODE_EXIST = errors.NewErr("[AppCall] Invoke codes exist!")
-	ENGINE_NOT_SUPPORT = errors.NewErr("[Execute] Engine doesn't support!")
+	INVOKE_CODE_EXIST     = errors.NewErr("[AppCall] Invoke codes exist!")
+	ENGINE_NOT_SUPPORT    = errors.NewErr("[Execute] Engine doesn't support!")
 )
 
 // SmartContract describe smart contract execute engine
 type SmartContract struct {
-	Contexts      []*context.Context       // all execute smart contract context
-	CloneCache    *storage.CloneCache      // state cache
-	Store         store.LedgerStore        // ledger store
+	Contexts      []*context.Context  // all execute smart contract context
+	CloneCache    *storage.CloneCache // state cache
+	Store         store.LedgerStore   // ledger store
 	Config        *Config
 	Engine        Engine
 	Notifications []*event.NotifyEventInfo // all execute smart contract event notify info
@@ -74,7 +74,7 @@ func (this *SmartContract) CurrentContext() *context.Context {
 	if len(this.Contexts) < 1 {
 		return nil
 	}
-	return this.Contexts[len(this.Contexts) - 1]
+	return this.Contexts[len(this.Contexts)-1]
 }
 
 // CallingContext return smart contract caller context
@@ -82,7 +82,7 @@ func (this *SmartContract) CallingContext() *context.Context {
 	if len(this.Contexts) < 2 {
 		return nil
 	}
-	return this.Contexts[len(this.Contexts) - 2]
+	return this.Contexts[len(this.Contexts)-2]
 }
 
 // EntryContext return smart contract entry entrance context
@@ -96,7 +96,7 @@ func (this *SmartContract) EntryContext() *context.Context {
 // PopContext pop smart contract current context
 func (this *SmartContract) PopContext() {
 	if len(this.Contexts) > 0 {
-		this.Contexts = this.Contexts[:len(this.Contexts) - 1]
+		this.Contexts = this.Contexts[:len(this.Contexts)-1]
 	}
 }
 
@@ -131,14 +131,13 @@ func (this *SmartContract) Execute() (interface{}, error) {
 func (this *SmartContract) AppCall(address common.Address, method string, codes, args []byte) (interface{}, error) {
 	var code []byte
 	vmType := stypes.VmType(address[0])
-
 	switch vmType {
 	case stypes.Native:
 		bf := new(bytes.Buffer)
 		c := states.Contract{
 			Address: address,
-			Method: method,
-			Args: args,
+			Method:  method,
+			Args:    args,
 		}
 		if err := c.Serialize(bf); err != nil {
 			return nil, err
@@ -165,9 +164,9 @@ func (this *SmartContract) AppCall(address common.Address, method string, codes,
 		contract := states.Contract{
 			Version: 1, //fix to > 0
 			Address: address,
-			Method: method,
-			Args: args,
-			Code: c,
+			Method:  method,
+			Args:    args,
+			Code:    c,
 		}
 		if err := contract.Serialize(bf); err != nil {
 			return nil, err
@@ -177,7 +176,7 @@ func (this *SmartContract) AppCall(address common.Address, method string, codes,
 
 	this.PushContext(&context.Context{
 		Code: stypes.VmCode{
-			Code: code,
+			Code:   code,
 			VmType: vmType,
 		},
 		ContractAddress: address,
@@ -221,14 +220,16 @@ func (this *SmartContract) loadCode(address common.Address, codes []byte) ([]byt
 	if len(codes) == 0 {
 		isLoad = true
 	}
-	item, err := this.getContract(address[:]); if err != nil {
+	item, err := this.getContract(address[:])
+	if err != nil {
 		return nil, err
 	}
 	if isLoad {
 		if item == nil {
 			return nil, CONTRACT_NOT_EXIST
 		}
-		contract, ok := item.Value.(*payload.DeployCode); if !ok {
+		contract, ok := item.Value.(*payload.DeployCode)
+		if !ok {
 			return nil, DEPLOYCODE_TYPE_ERROR
 		}
 		return contract.Code.Code, nil
@@ -241,7 +242,7 @@ func (this *SmartContract) loadCode(address common.Address, codes []byte) ([]byt
 }
 
 func (this *SmartContract) getContract(address []byte) (*scommon.StateItem, error) {
-	item, err := this.CloneCache.Store.TryGet(scommon.ST_CONTRACT, address[:]);
+	item, err := this.CloneCache.Store.TryGet(scommon.ST_CONTRACT, address[:])
 	if err != nil {
 		return nil, errors.NewErr("[getContract] Get contract context error!")
 	}
