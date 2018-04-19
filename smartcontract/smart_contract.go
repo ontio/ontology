@@ -130,7 +130,6 @@ func (this *SmartContract) Execute() (interface{}, error) {
 // Param args: invoke smart contract args
 func (this *SmartContract) AppCall(address common.Address, method string, codes, args []byte) (interface{}, error) {
 	var code []byte
-
 	vmType := stypes.VmType(address[0])
 
 	switch vmType {
