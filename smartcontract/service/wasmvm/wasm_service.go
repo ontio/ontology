@@ -19,6 +19,7 @@ import (
 	vmtypes "github.com/ontio/ontology/smartcontract/types"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
 	"github.com/ontio/ontology/vm/wasmvm/util"
+	"fmt"
 )
 
 type WasmVmService struct {
@@ -121,6 +122,7 @@ func (this *WasmVmService) marshalNativeParams(engine *exec.ExecutionEngine) (bo
 	if err != nil {
 		return false, err
 	}
+	fmt.Printf("statesbytes is %v\n",statesbytes)
 	//statesbytes is slice of struct with states.
 	//type State struct {
 	//	Version byte            -------->i32 4 bytes
@@ -134,12 +136,14 @@ func (this *WasmVmService) marshalNativeParams(engine *exec.ExecutionEngine) (bo
 
 	for i := 0; i < statecnt; i++ {
 		tmpbytes := statesbytes[i*24 : (i+1)*24]
+		fmt.Printf("tmpbytes is %v\n",tmpbytes)
 		state := &nstates.State{}
 		state.Version = byte(binary.LittleEndian.Uint32(tmpbytes[:4]))
 		fromAddessBytes, err := vm.GetPointerMemory(uint64(binary.LittleEndian.Uint32(tmpbytes[4:8])))
 		if err != nil {
 			return false, err
 		}
+		fmt.Printf("fromAddessBytes is %s\n ",fromAddessBytes)
 		fromAddress, err := common.AddressFromBase58(util.TrimBuffToString(fromAddessBytes))
 		if err != nil {
 			return false, err
@@ -150,11 +154,13 @@ func (this *WasmVmService) marshalNativeParams(engine *exec.ExecutionEngine) (bo
 		if err != nil {
 			return false, err
 		}
-
+		fmt.Printf("toAddressBytes is %s\n ",toAddressBytes)
 		toAddress, err := common.AddressFromBase58(util.TrimBuffToString(toAddressBytes))
 		state.To = toAddress
 		//tmpbytes[12:16] is padding
+		fmt.Printf("padding is %d\n", binary.LittleEndian.Uint64(tmpbytes[12:20]))
 		amount := binary.LittleEndian.Uint64(tmpbytes[16:])
+		fmt.Printf("amount is %d\n ",amount)
 		state.Value = big.NewInt(int64(amount))
 		states[i] = state
 	}
