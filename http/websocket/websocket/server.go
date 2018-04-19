@@ -50,10 +50,11 @@ type Handler struct {
 	pushFlag bool
 }
 type subscribe struct {
-	SubscribeEvent        bool `json:"SubscribeEvent"`
-	SubscribeJsonBlock    bool `json:"SubscribeJsonBlock"`
-	SubscribeRawBlock     bool `json:"SubscribeRawBlock"`
-	SubscribeBlockTxHashs bool `json:"SubscribeBlockTxHashs"`
+	ConstractsFilter      []string `json:"ConstractsFilter"`
+	SubscribeEvent        bool     `json:"SubscribeEvent"`
+	SubscribeJsonBlock    bool     `json:"SubscribeJsonBlock"`
+	SubscribeRawBlock     bool     `json:"SubscribeRawBlock"`
+	SubscribeBlockTxHashs bool     `json:"SubscribeBlockTxHashs"`
 }
 type WsServer struct {
 	sync.RWMutex
@@ -148,6 +149,14 @@ func (self *WsServer) registryMethod() {
 		}
 		if b, ok := cmd["SubscribeBlockTxHashs"].(bool); ok {
 			sub.SubscribeBlockTxHashs = b
+		}
+		if ctsf, ok := cmd["ConstractsFilter"].([]interface{}); ok {
+			sub.ConstractsFilter = []string{}
+			for _,v := range ctsf{
+				if addr,k := v.(string);k{
+					sub.ConstractsFilter = append(sub.ConstractsFilter,addr)
+				}
+			}
 		}
 		self.SubscribeMap[sessionId] = sub
 
@@ -362,14 +371,23 @@ func marshalResp(resp map[string]interface{}) []byte {
 	return data
 }
 
-func (self *WsServer) PushTxResult(txHashStr string, resp map[string]interface{}) {
+func (self *WsServer) PushTxResult(contractAddrs map[string]bool,txHashStr string, resp map[string]interface{}) {
 	self.Lock()
 	sessionId := self.TxHashMap[txHashStr]
 	delete(self.TxHashMap, txHashStr)
 	//avoid twice, will send in BroadcastToSubscribers
-	if self.SubscribeMap[sessionId].SubscribeEvent {
-		self.Unlock()
-		return
+	sub := self.SubscribeMap[sessionId]
+	if sub.SubscribeEvent {
+		if len(sub.ConstractsFilter) == 0 {
+			self.Unlock()
+			return
+		}
+		for _, addr := range sub.ConstractsFilter {
+			if contractAddrs[addr] {
+				self.Unlock()
+				return
+			}
+		}
 	}
 	self.Unlock()
 
@@ -378,7 +396,7 @@ func (self *WsServer) PushTxResult(txHashStr string, resp map[string]interface{}
 		s.Send(marshalResp(resp))
 	}
 }
-func (self *WsServer) BroadcastToSubscribers(sub int, resp map[string]interface{}) {
+func (self *WsServer) BroadcastToSubscribers(contractAddrs map[string]bool,sub int, resp map[string]interface{}) {
 	// broadcast SubscribeMap
 	self.Lock()
 	defer self.Unlock()
@@ -392,10 +410,19 @@ func (self *WsServer) BroadcastToSubscribers(sub int, resp map[string]interface{
 			s.Send(data)
 		} else if sub == WSTOPIC_RAW_BLOCK && v.SubscribeRawBlock {
 			s.Send(data)
-		} else if sub == WSTOPIC_EVENT && v.SubscribeEvent {
-			s.Send(data)
 		} else if sub == WSTOPIC_TXHASHS && v.SubscribeBlockTxHashs {
 			s.Send(data)
+		} else if sub == WSTOPIC_EVENT && v.SubscribeEvent {
+			if len(v.ConstractsFilter) == 0 {
+				s.Send(data)
+				continue
+			}
+			for _, addr := range v.ConstractsFilter {
+				if contractAddrs[addr] {
+					s.Send(data)
+					break
+				}
+			}
 		}
 	}
 }
