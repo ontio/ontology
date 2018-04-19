@@ -22,6 +22,7 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/errors"
 )
 
 type StateBase struct {
@@ -34,12 +35,9 @@ func (this *StateBase) Serialize(w io.Writer) error {
 }
 
 func (this *StateBase) Deserialize(r io.Reader) error {
-	if this == nil {
-		this = new(StateBase)
-	}
 	stateVersion, err := serialization.ReadByte(r)
 	if err != nil {
-		return err
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[StateBase], StateBase Deserialize failed.")
 	}
 	this.StateVersion = stateVersion
 	return nil
