@@ -29,7 +29,6 @@ import (
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/vm/wasmvm/memory"
 	"github.com/ontio/ontology/vm/wasmvm/util"
-	"fmt"
 )
 
 type Args struct {
@@ -408,7 +407,6 @@ func jsonUnmashal(engine *ExecutionEngine) (bool, error) {
 
 	addr := params[0]
 	size := int(params[1])
-	fmt.Printf("size is %v\n",size)
 	jsonaddr := params[2]
 	jsonbytes, err := engine.vm.GetPointerMemory(jsonaddr)
 	if err != nil {
@@ -416,7 +414,6 @@ func jsonUnmashal(engine *ExecutionEngine) (bool, error) {
 	}
 	arg := &Args{}
 	err = json.Unmarshal(jsonbytes, arg)
-	fmt.Printf("arg is %v\n",arg)
 	if err != nil {
 		return false, err
 	}
@@ -491,7 +488,6 @@ func jsonUnmashal(engine *ExecutionEngine) (bool, error) {
 			tmp := make([]byte, 4)
 			binary.LittleEndian.PutUint32(tmp, uint32(idx))
 			buff.Write(tmp)
-			fmt.Println("write string .....")
 			count -= 4
 
 		default:
@@ -499,7 +495,6 @@ func jsonUnmashal(engine *ExecutionEngine) (bool, error) {
 		}
 		//to fit the C / C++ Data structure alignment problem ,we need to add padding
 		if (count % 8 != 0) && (i+1 <=len(arg.Params)) && (arg.Params[i+1].Ptype == "int64") && (tmparg.Ptype != "int64") {
-			fmt.Println("write string write padding ....")
 			buff.Write(make([]byte,4))
 			count -= 4
 		}
@@ -513,9 +508,7 @@ func jsonUnmashal(engine *ExecutionEngine) (bool, error) {
 	bytes := buff.Bytes()
 	if len(bytes) != size {
 		return false ,errors.New("JsonUnmasal input error!")
-		//fmt.Printf("length is not same! size :%d, length:%d\n", size, len(bytes))
 	}
-	fmt.Printf("bytes is %v\n",bytes)
 	engine.vm.Malloc(len(bytes))
 	copy(engine.vm.memory.Memory[int(addr):int(addr)+len(bytes)], bytes)
 
