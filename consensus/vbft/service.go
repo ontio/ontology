@@ -81,6 +81,7 @@ type Server struct {
 	msgHistoryDuration uint64
 
 	metaLock                 sync.RWMutex
+	completedBlockNum        uint64 // ledger SaveBlockCompleted block num
 	currentBlockNum          uint64
 	config                   *vconfig.ChainConfig
 	currentParticipantConfig *BlockParticipantConfig
@@ -208,12 +209,16 @@ func (self *Server) handlePeerStateUpdate(peer *p2pmsg.PeerStateUpdate) {
 }
 
 func (self *Server) handleBlockPersistCompleted(block *types.Block) {
-	log.Infof("persist block: %x", block.Hash())
+	log.Infof("persist block: %d, %x", block.Header.Height, block.Hash())
 
 	self.incrValidator.AddBlock(block)
 
-	// TODO: why this?
-	//self.p2p.Broadcast(block.Hash())
+	if uint64(block.Header.Height) > self.completedBlockNum {
+		self.completedBlockNum = uint64(block.Header.Height)
+	} else {
+		log.Errorf("server %d, persist block %d, vs completed %d",
+			self.Index, block.Header.Height, self.completedBlockNum)
+	}
 }
 
 func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
@@ -272,6 +277,7 @@ func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
 	// TODO: load sealed blocks from chainStore
 
 	// protected by server.metaLock
+	self.completedBlockNum = self.GetCommittedBlockNo()
 	self.currentBlockNum = self.GetCommittedBlockNo() + 1
 
 	log.Infof("committed: %d, current block no: %d", self.GetCommittedBlockNo(), self.GetCurrentBlockNo())
@@ -551,7 +557,13 @@ func (self *Server) startNewRound() error {
 
 	txpool := self.poolActor.GetTxnPool(true, uint32(blkNum-1))
 	if len(txpool) != 0 {
-		self.startNewProposal(blkNum)
+		if self.completedBlockNum+1 == self.currentBlockNum {
+			self.startNewProposal(blkNum)
+		} else {
+			// FIXME: cleanup all history msgs, update current block num, and restart new round
+			log.Infof("server %d, round %d, block %d has persisted",
+				self.Index, self.currentBlockNum, self.completedBlockNum)
+		}
 	} else {
 		self.timer.startTxTicker(blkNum)
 		self.timer.StartTxBlockTimeout(blkNum)
@@ -1495,7 +1507,13 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 		if len(txpool) != 0 {
 			self.timer.stopTxTicker()
 			self.timer.CancelTxBlockTimeout(blockNum)
-			self.startNewProposal(blockNum)
+			if self.completedBlockNum+1 == self.currentBlockNum {
+				self.startNewProposal(blockNum)
+			} else {
+				// FIXME: clean up history msgs, reset currentBlockNum, then restart from forwarding?
+				log.Errorf("server %d, skipped proposing, round %d, persisted %d",
+					self.Index, self.currentBlockNum, self.completedBlockNum)
+			}
 		}
 	case EventTxBlockTimeout:
 		self.timer.stopTxTicker()
