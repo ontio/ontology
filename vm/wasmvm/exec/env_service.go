@@ -29,6 +29,7 @@ import (
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/vm/wasmvm/memory"
 	"github.com/ontio/ontology/vm/wasmvm/util"
+	"fmt"
 )
 
 type Args struct {
@@ -407,7 +408,7 @@ func jsonUnmashal(engine *ExecutionEngine) (bool, error) {
 
 	addr := params[0]
 	size := int(params[1])
-
+	fmt.Printf("size is %v\n",size)
 	jsonaddr := params[2]
 	jsonbytes, err := engine.vm.GetPointerMemory(jsonaddr)
 	if err != nil {
@@ -415,36 +416,38 @@ func jsonUnmashal(engine *ExecutionEngine) (bool, error) {
 	}
 	arg := &Args{}
 	err = json.Unmarshal(jsonbytes, arg)
-
+	fmt.Printf("arg is %v\n",arg)
 	if err != nil {
 		return false, err
 	}
 
 	buff := bytes.NewBuffer(nil)
+	count := size
+	for i, tmparg := range arg.Params {
 
-	for _, arg := range arg.Params {
-
-		switch strings.ToLower(arg.Ptype) {
+		switch strings.ToLower(tmparg.Ptype) {
 		case "int":
 			tmp := make([]byte, 4)
-			val, err := strconv.Atoi(arg.Pval)
+			val, err := strconv.Atoi(tmparg.Pval)
 			if err != nil {
 				return false, err
 			}
 			binary.LittleEndian.PutUint32(tmp, uint32(val))
 			buff.Write(tmp)
+			count -= 4
 
 		case "int64":
 			tmp := make([]byte, 8)
-			val, err := strconv.ParseInt(arg.Pval, 10, 64)
+			val, err := strconv.ParseInt(tmparg.Pval, 10, 64)
 			if err != nil {
 				return false, err
 			}
 			binary.LittleEndian.PutUint64(tmp, uint64(val))
 			buff.Write(tmp)
+			count -= 8
 
 		case "int_array":
-			arr := strings.Split(arg.Pval, ",")
+			arr := strings.Split(tmparg.Pval, ",")
 			tmparr := make([]int, len(arr))
 			for i, str := range arr {
 				tmparr[i], err = strconv.Atoi(str)
@@ -459,9 +462,10 @@ func jsonUnmashal(engine *ExecutionEngine) (bool, error) {
 			tmp := make([]byte, 4)
 			binary.LittleEndian.PutUint32(tmp, uint32(idx))
 			buff.Write(tmp)
+			count -= 4
 
 		case "int64_array":
-			arr := strings.Split(arg.Pval, ",")
+			arr := strings.Split(tmparg.Pval, ",")
 			tmparr := make([]int64, len(arr))
 			for i, str := range arr {
 				tmparr[i], err = strconv.ParseInt(str, 10, 64)
@@ -474,33 +478,44 @@ func jsonUnmashal(engine *ExecutionEngine) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			tmp := make([]byte, 8)
-			binary.LittleEndian.PutUint64(tmp, uint64(idx))
+			tmp := make([]byte, 4)
+			binary.LittleEndian.PutUint32(tmp, uint32(idx))
 			buff.Write(tmp)
+			count -= 4
 
 		case "string":
-			idx, err := engine.vm.SetPointerMemory(arg.Pval)
+			idx, err := engine.vm.SetPointerMemory(tmparg.Pval)
 			if err != nil {
 				return false, err
 			}
 			tmp := make([]byte, 4)
 			binary.LittleEndian.PutUint32(tmp, uint32(idx))
 			buff.Write(tmp)
+			fmt.Println("write string .....")
+			count -= 4
 
 		default:
-			return false, errors.New("unsupported type :" + arg.Ptype)
+			return false, errors.New("unsupported type :" + tmparg.Ptype)
 		}
-
+		//to fit the C / C++ Data structure alignment problem ,we need to add padding
+		if (count % 8 != 0) && (i+1 <=len(arg.Params)) && (arg.Params[i+1].Ptype == "int64") && (tmparg.Ptype != "int64") {
+			fmt.Println("write string write padding ....")
+			buff.Write(make([]byte,4))
+			count -= 4
+		}
+		if(i == len(arg.Params)) && (count > 0){
+			//count should be 4 here
+			buff.Write(make([]byte,count))
+			count = 0
+		}
 	}
 
 	bytes := buff.Bytes()
 	if len(bytes) != size {
-		//return false ,errors.New("")
-		//todo this case is not an error, sizeof doesn't means actual memory length,so the size parameter should be removed.
+		return false ,errors.New("JsonUnmasal input error!")
 		//fmt.Printf("length is not same! size :%d, length:%d\n", size, len(bytes))
 	}
-
-	//todo move to SetMemory method
+	fmt.Printf("bytes is %v\n",bytes)
 	engine.vm.Malloc(len(bytes))
 	copy(engine.vm.memory.Memory[int(addr):int(addr)+len(bytes)], bytes)
 
@@ -688,6 +703,11 @@ func jsonMashalParams(engine *ExecutionEngine) (bool, error) {
 			param.Pval = strconv.Itoa(intBytes)
 			i += 7
 		case "int64":
+			//add padding
+			if i % 8 != 0{
+				i += 4
+			}
+
 			intBytes := int64(binary.LittleEndian.Uint64(bytes[i+4 : i+12]))
 			param.Pval = strconv.FormatInt(intBytes, 10)
 			i += 11
