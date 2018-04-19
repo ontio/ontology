@@ -32,6 +32,9 @@ const (
 
 // PushSmartCodeEvent push event content to socket.io
 func PushSmartCodeEvent(txHash common.Uint256, errcode int64, action string, result interface{}) {
+	if events.DefActorPublisher == nil {
+		return
+	}
 	smartCodeEvt := &types.SmartCodeEvent{
 		TxHash: common.ToHexString(txHash.ToArray()),
 		Action: action,
