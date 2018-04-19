@@ -40,8 +40,9 @@ const (
 )
 
 var (
-	OntContractAddress, _ = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})
-	OngContractAddress, _ = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02})
+	OntContractAddress, _   = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})
+	OngContractAddress, _   = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02})
+	ParamContractAddress, _ = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04})
 
 	ONTToken   = newGoverningToken()
 	ONGToken   = newUtilityToken()
@@ -85,14 +86,17 @@ func GenesisBlockInit(defaultBookkeeper []keypair.PublicKey) (*types.Block, erro
 	//block
 	ont := newGoverningToken()
 	ong := newUtilityToken()
+	param := newParamContract()
 
 	genesisBlock := &types.Block{
 		Header: genesisHeader,
 		Transactions: []*types.Transaction{
 			ont,
 			ong,
+			param,
 			newGoverningInit(),
 			newUtilityInit(),
+			newParamInit(),
 		},
 	}
 	genesisBlock.RebuildMerkleRoot()
@@ -108,6 +112,13 @@ func newGoverningToken() *types.Transaction {
 func newUtilityToken() *types.Transaction {
 	tx := utils.NewDeployTransaction(stypes.VmCode{Code: OngContractAddress[:], VmType: stypes.Native}, "ONG", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network ONG Token", true)
+	return tx
+}
+
+func newParamContract() *types.Transaction {
+	tx := utils.NewDeployTransaction(stypes.VmCode{Code: ParamContractAddress[:], VmType: stypes.Native},
+		"ParamConfig", "1.0", "Ontology Team", "contact@ont.io",
+		"Chain Global Enviroment Variables Manager ", true)
 	return tx
 }
 
@@ -129,6 +140,21 @@ func newGoverningInit() *types.Transaction {
 func newUtilityInit() *types.Transaction {
 	init := states.Contract{
 		Address: OngContractAddress,
+		Method:  "init",
+	}
+	bf := new(bytes.Buffer)
+	init.Serialize(bf)
+	vmCode := stypes.VmCode{
+		VmType: stypes.Native,
+		Code:   bf.Bytes(),
+	}
+	tx := utils.NewInvokeTransaction(vmCode)
+	return tx
+}
+
+func newParamInit() *types.Transaction {
+	init := states.Contract{
+		Address: ParamContractAddress,
 		Method:  "init",
 	}
 	bf := new(bytes.Buffer)

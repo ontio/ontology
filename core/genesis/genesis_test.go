@@ -14,3 +14,10 @@ func TestGenesisBlockInit(t *testing.T) {
 	assert.NotNil(t, block)
 	assert.NotEqual(t, block.Header.TransactionsRoot, common.UINT256_EMPTY)
 }
+
+func TestNewParamDeployAndInit(t *testing.T) {
+	deployTx := newParamContract()
+	initTx := newParamInit()
+	assert.NotNil(t, deployTx)
+	assert.NotNil(t, initTx)
+}
