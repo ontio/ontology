@@ -41,6 +41,7 @@ var (
 	Contracts = map[common.Address]RegisterService{
 		genesis.OntContractAddress: RegisterOntContract,
 		genesis.OngContractAddress: RegisterOngContract,
+		genesis.OracleContractAddress: RegisterOracleContract,
 	}
 )
 
@@ -112,4 +113,11 @@ func RegisterOngContract(native *NativeService) {
 	native.Register("transfer", OngTransfer)
 	native.Register("approve", OngApprove)
 	native.Register("transferFrom", OngTransferFrom)
+}
+
+func RegisterOracleContract(native *NativeService) {
+	native.Register("createOracleRequest", CreateOracleRequest)
+	native.Register("setOracleOutcome", SetOracleOutcome)
+	native.Register("setOracleCronOutcome", SetOracleCronOutcome)
+	native.Register("changeCronView", ChangeCronView)
 }
