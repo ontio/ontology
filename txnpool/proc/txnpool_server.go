@@ -49,7 +49,6 @@ type pendingBlock struct {
 	height         uint32                                // The block height
 	processedTxs   map[common.Uint256]*tc.VerifyTxResult // Transaction which has been processed
 	unProcessedTxs map[common.Uint256]*tx.Transaction    // Transaction which is not processed
-	stopCh         chan bool                             // Sync call, right now, server only can handle one by one
 }
 
 type roundRobinState struct {
@@ -102,7 +101,6 @@ func (s *TXPoolServer) init(num uint8) {
 	s.pendingBlock = &pendingBlock{
 		processedTxs:   make(map[common.Uint256]*tc.VerifyTxResult, 0),
 		unProcessedTxs: make(map[common.Uint256]*tx.Transaction, 0),
-		stopCh:         make(chan bool),
 	}
 
 	s.stats = txStats{count: make([]uint64, tc.MaxStats-1)}
@@ -149,26 +147,9 @@ func (s *TXPoolServer) checkPendingBlockOk(hash common.Uint256,
 	delete(s.pendingBlock.unProcessedTxs, hash)
 
 	// if the tx is invalid, send the response at once
-	if err != errors.ErrNoError {
+	if err != errors.ErrNoError ||
+		len(s.pendingBlock.unProcessedTxs) == 0 {
 		s.sendBlkResult2Consensus()
-		for k := range s.pendingBlock.unProcessedTxs {
-			delete(s.pendingBlock.unProcessedTxs, k)
-		}
-
-		if s.pendingBlock.stopCh != nil {
-			s.pendingBlock.stopCh <- true
-		}
-		return
-	}
-
-	// Check if the block has been verified, if yes,
-	// send rsp to the actor bus
-	if len(s.pendingBlock.unProcessedTxs) == 0 {
-		s.sendBlkResult2Consensus()
-
-		if s.pendingBlock.stopCh != nil {
-			s.pendingBlock.stopCh <- true
-		}
 	}
 }
 
@@ -556,18 +537,12 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 	}
 
 	s.pendingBlock.mu.Lock()
-
-	// Clear the list for the next block verify req
-	for k := range s.pendingBlock.processedTxs {
-		delete(s.pendingBlock.processedTxs, k)
-	}
-
-	for k := range s.pendingBlock.unProcessedTxs {
-		delete(s.pendingBlock.unProcessedTxs, k)
-	}
+	defer s.pendingBlock.mu.Unlock()
 
 	s.pendingBlock.sender = sender
 	s.pendingBlock.height = req.Height
+	s.pendingBlock.processedTxs = make(map[common.Uint256]*tc.VerifyTxResult, len(req.Txs))
+	s.pendingBlock.unProcessedTxs = make(map[common.Uint256]*tx.Transaction, 0)
 
 	checkBlkResult := s.txPool.GetUnverifiedTxs(req.Txs, req.Height)
 
@@ -590,11 +565,5 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 	 */
 	if len(s.pendingBlock.unProcessedTxs) == 0 {
 		s.sendBlkResult2Consensus()
-		s.pendingBlock.mu.Unlock()
-		return
 	}
-
-	s.pendingBlock.mu.Unlock()
-
-	<-s.pendingBlock.stopCh
 }
