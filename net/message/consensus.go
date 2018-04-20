@@ -35,15 +35,15 @@ import (
 )
 
 type PeerStateUpdate struct {
-	PeerPubKey *crypto.PubKey
+	PeerPubKey *keypair.PublicKey
 	Connected  bool
 }
 
-func NotifyPeerState(peer *crypto.PubKey, connected bool) error {
+func NotifyPeerState(peer keypair.PublicKey, connected bool) error {
 	log.Debug()
 	if actor.ConsensusPid != nil {
 		actor.ConsensusPid.Tell(&PeerStateUpdate{
-			PeerPubKey: peer,
+			PeerPubKey: &peer,
 			Connected:  connected,
 		})
 	}

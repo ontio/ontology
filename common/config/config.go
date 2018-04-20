@@ -32,7 +32,7 @@ const (
 	DEFAULT_GEN_BLOCK_TIME   = 6
 	DBFT_MIN_NODE_NUM        = 4 //min node number of dbft consensus
 	SOLO_MIN_NODE_NUM        = 1 //min node number of solo consensus
-	VBFTMINNODENUM           = 4 //min node number of vbft consensus
+	VBFT_MIN_NODE_NUM        = 4 //min node number of vbft consensus
 )
 
 var Version string
@@ -43,17 +43,15 @@ type Configuration struct {
 	SeedList            []string         `json:"SeedList"`
 	Bookkeepers         []string         `json:"Bookkeepers"` // The default book keepers' publickey
 	HttpRestPort        int              `json:"HttpRestPort"`
-	RestCertPath        string           `json:"RestCertPath"`
-	RestKeyPath         string           `json:"RestKeyPath"`
+	HttpCertPath        string           `json:"HttpCertPath"`
+	HttpKeyPath         string           `json:"HttpKeyPath"`
 	HttpInfoPort        uint16           `json:"HttpInfoPort"`
-	HttpInfoStart       bool             `json:"HttpInfoStart"`
 	HttpWsPort          int              `json:"HttpWsPort"`
 	HttpJsonPort        int              `json:"HttpJsonPort"`
 	HttpLocalPort       int              `json:"HttpLocalPort"`
 	NodePort            int              `json:"NodePort"`
 	NodeConsensusPort   int              `json:"NodeConsensusPort"`
 	NodeType            string           `json:"NodeType"`
-	WebSocketPort       int              `json:"WebSocketPort"`
 	PrintLevel          int              `json:"PrintLevel"`
 	IsTLS               bool             `json:"IsTLS"`
 	CertPath            string           `json:"CertPath"`
@@ -61,7 +59,6 @@ type Configuration struct {
 	CAPath              string           `json:"CAPath"`
 	GenBlockTime        uint             `json:"GenBlockTime"`
 	MultiCoreNum        uint             `json:"MultiCoreNum"`
-	SignatureScheme     string           `json:"SignatureScheme"`
 	MaxLogSize          int64            `json:"MaxLogSize"`
 	MaxTxInBlock        int              `json:"MaxTransactionInBlock"`
 	MaxHdrSyncReqs      int              `json:"MaxConcurrentSyncHeaderReqs"`

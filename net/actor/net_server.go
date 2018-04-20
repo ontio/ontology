@@ -22,9 +22,9 @@ import (
 	"reflect"
 
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/crypto"
-	"github.com/ontio/ontology/eventbus/actor"
 	"github.com/ontio/ontology/net/protocol"
+	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology-crypto/keypair"
 )
 
 var netServerPid *actor.PID
@@ -95,7 +95,7 @@ type GetNeighborAddrsRsp struct {
 }
 
 type TransmitConsensusMsgReq struct {
-	Target *crypto.PubKey
+	Target *keypair.PublicKey
 	Msg    []byte
 }
 
@@ -144,8 +144,8 @@ func (state *NetServer) Receive(context actor.Context) {
 	case *TransmitConsensusMsgReq:
 		req := context.Message().(*TransmitConsensusMsgReq)
 		for _, peer := range node.GetNeighborNoder() {
-			if crypto.Equal(req.Target, peer.GetPubKey()) {
-				peer.ConsensusTx(req.Msg)
+			if keypair.ComparePublicKey(*req.Target, peer.GetPubKey()) {
+				peer.Tx(req.Msg)
 			}
 		}
 	default:
