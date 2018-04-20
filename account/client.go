@@ -33,6 +33,7 @@ import (
 	"github.com/ontio/ontology-crypto/aes"
 	"github.com/ontio/ontology-crypto/keypair"
 	s "github.com/ontio/ontology-crypto/signature"
+	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -40,6 +41,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/net/protocol"
+	"github.com/urfave/cli"
 )
 
 const (
@@ -416,8 +418,14 @@ func nodeType(typeName string) int {
 	}
 }
 
-func GetClient() Client {
-	if !common.FileExisted(WALLET_FILENAME) {
+func GetClient(ctx *cli.Context) Client {
+	wallet := ctx.GlobalString(utils.WalletNameFlag.Name)
+	if "" != wallet && !common.FileExisted(wallet) {
+		log.Fatal(fmt.Sprintf("No %s detected, please use a wallet existed.", wallet))
+		os.Exit(1)
+	}
+
+	if "" == wallet && !common.FileExisted(WALLET_FILENAME) {
 		log.Fatal(fmt.Sprintf("No %s detected, please create a wallet by using command line.", WALLET_FILENAME))
 		os.Exit(1)
 	}
@@ -426,11 +434,15 @@ func GetClient() Client {
 		log.Fatal("Get password error.")
 		os.Exit(1)
 	}
-	c := Open(WALLET_FILENAME, passwd)
-	if c == nil {
-		return nil
+
+	var client Client
+	if "" != wallet {
+		client = Open(wallet, passwd)
+	} else {
+		client = Open(WALLET_FILENAME, passwd)
 	}
-	return c
+
+	return client
 }
 
 func GetBookkeepers() []keypair.PublicKey {
@@ -455,8 +467,6 @@ func doubleHash(pwd []byte) []byte {
 	pwdhash := sha256.Sum256(pwd)
 	pwdhash2 := sha256.Sum256(pwdhash[:])
 
-	// Fixme clean the password buffer
-	// clearBytes(pwd,len(pwd))
 	clearBytes(pwdhash[:], 32)
 
 	return pwdhash2[:]

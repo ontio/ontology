@@ -93,10 +93,11 @@ var Parameters *Configuration
 func init() {
 	file, e := ioutil.ReadFile(DEFAULT_CONFIG_FILE_NAME)
 	if e != nil {
-		log.Printf("[ERROR] %v, use default config\n", DEFAULT_CONFIG_FILE_NAME, e)
+		log.Printf("[ERROR] %v, use default config\n", DEFAULT_CONFIG_FILE_NAME)
 		Parameters = newDefaultConfig()
 		return
 	}
+
 	// Remove the UTF-8 Byte Order Mark
 	file = bytes.TrimPrefix(file, []byte("\xef\xbb\xbf"))
 

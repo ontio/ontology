@@ -322,7 +322,7 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 }
 
 func GetNodeVersion(params []interface{}) map[string]interface{} {
-	return responseSuccess(config.Parameters.Version)
+	return responseSuccess(config.Version)
 }
 
 func GetSystemFee(params []interface{}) map[string]interface{} {
@@ -408,7 +408,7 @@ func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 		}
 		var evs []bcomn.NotifyEventInfo
 		for _, v := range eventInfos {
-			evs = append(evs, bcomn.NotifyEventInfo{common.ToHexString(v.TxHash[:]),v.ContractAddress.ToHexString(), v.States})
+			evs = append(evs, bcomn.NotifyEventInfo{common.ToHexString(v.TxHash[:]), v.ContractAddress.ToHexString(), v.States})
 		}
 		return responseSuccess(evs)
 	default:
@@ -532,4 +532,3 @@ func GetMerkleProof(params []interface{}) map[string]interface{} {
 	return responseSuccess(bcomn.MerkleProof{"MerkleProof", common.ToHexString(header.TransactionsRoot[:]), height,
 		common.ToHexString(curHeader.BlockRoot[:]), curHeight, hashes})
 }
-

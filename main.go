@@ -19,6 +19,8 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"os/signal"
 	"runtime"
@@ -29,6 +31,8 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/cmd"
+	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus"
@@ -47,6 +51,7 @@ import (
 	tc "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology/validator/statefull"
 	"github.com/ontio/ontology/validator/stateless"
+	"github.com/urfave/cli"
 )
 
 const (
@@ -55,6 +60,7 @@ const (
 
 func init() {
 	log.Init(log.PATH, log.Stdout)
+	cmd.HelpUsage()
 	// Todo: If the actor bus uses a different log lib, remove it
 
 	var coreNum int
@@ -67,12 +73,49 @@ func init() {
 	runtime.GOMAXPROCS(coreNum)
 }
 
+func setupAPP() *cli.App {
+	app := cli.NewApp()
+	app.Action = ontMain
+	app.Version = "0.6.0"
+	app.Copyright = "Copyright in 2018 The Ontology Authors"
+	app.Commands = []cli.Command{
+		cmd.WalletCommand,
+		cmd.InfoCommand,
+		cmd.AssetCommand,
+		cmd.SettingCommand,
+		cmd.ContractCommand,
+	}
+	startFlags := []cli.Flag{
+		utils.WalletUsedFlag,
+		utils.ConfigUsedFlag,
+	}
+
+	app.Flags = append(append(append(app.Flags, cmd.NodeFlags...), cmd.ContractFlags...), cmd.InfoFlags...)
+	app.Flags = append(app.Flags, startFlags...)
+	return app
+}
+
 func main() {
+	defer func() {
+		if p := recover(); p != nil {
+			if str, ok := p.(string); ok {
+				log.Warn("Leave gracefully. ", errors.New(str))
+			}
+		}
+	}()
+
+	if err := setupAPP().Run(os.Args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+func ontMain(ctx *cli.Context) {
 	var acct *account.Account
 	var err error
 	var noder protocol.Noder
-	log.Trace("Node version: ", config.Version)
 
+	log.Trace("Node version: ", config.Version)
 	consensusType := strings.ToLower(config.Parameters.ConsensusType)
 	if consensusType == "dbft" && len(config.Parameters.Bookkeepers) < account.DEFAULT_BOOKKEEPER_COUNT {
 		log.Fatal("With dbft consensus type, at least ", account.DEFAULT_BOOKKEEPER_COUNT, " Bookkeepers should be set in config.json")
@@ -80,7 +123,7 @@ func main() {
 	}
 
 	log.Info("0. Open the account")
-	client := account.GetClient()
+	client := account.GetClient(ctx)
 	if client == nil {
 		log.Fatal("Can't get local account.")
 		os.Exit(1)
@@ -169,7 +212,7 @@ func main() {
 	log.Info("--Start the RPC interface")
 	go jsonrpc.StartRPCServer()
 	go websocket.StartServer()
-	if config.Parameters.HttpInfoPort >0 {
+	if config.Parameters.HttpInfoPort > 0 {
 		go nodeinfo.StartServer(noder)
 	}
 
