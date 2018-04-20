@@ -182,10 +182,10 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 		validHeight = start
 	} else {
 		self.incrValidator.Clean()
-		log.Infof("incr validator block height %v != ledger block height %v", end-1, height)
+		log.Infof("increment validator block height %v != ledger block height %v", end-1, height)
 	}
 
-	log.Infof("current block Height %v, incrValidateHeight %v", height, validHeight)
+	log.Infof("current block Height %v, increment validator block cache size %v", height, height+1-validHeight)
 
 	txs := self.poolActor.GetTxnPool(true, validHeight)
 	// todo : fix feesum calcuation
