@@ -31,6 +31,7 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/signature"
 	ctypes "github.com/ontio/ontology/core/types"
 	cutils "github.com/ontio/ontology/core/utils"
@@ -98,17 +99,35 @@ func transferAsset(ctx *cli.Context) error {
 		return nil
 	}
 	contract := ctx.GlobalString(utils.ContractAddrFlag.Name)
-	ct, _ := common.HexToBytes(contract)
-	ctu, _ := common.AddressParseFromBytes(ct)
+	ct, err := common.HexToBytes(contract)
+	if err != nil {
+		log.Error("Parase contract address error, from hex to bytes")
+		os.Exit(1)
+	}
+
+	ctu, err := common.AddressParseFromBytes(ct)
+	if err != nil {
+		log.Error("Parase contract address error, please use correct smart contract address")
+		os.Exit(1)
+	}
 
 	from := ctx.GlobalString(utils.TransactionFromFlag.Name)
-	fu, _ := common.AddressFromBase58(from)
+	fu, err := common.AddressFromBase58(from)
+	if err != nil {
+		log.Error("Parase transfer-from address error, make sure you are using base58 address")
+		os.Exit(1)
+	}
 
 	to := ctx.GlobalString(utils.TransactionToFlag.Name)
-	tu, _ := common.AddressFromBase58(to)
+	tu, err := common.AddressFromBase58(to)
+	if err != nil {
+		log.Error("Parase transfer-to address error, make sure you are using base58 address")
+		os.Exit(1)
+	}
+
 	value := ctx.Int64(utils.TransactionValueFlag.Name)
 	if value <= 0 {
-		fmt.Println("Invalid ont amount: ", value)
+		fmt.Println("Value must be int type and bigger than zero. Invalid ont amount: ", value)
 		os.Exit(1)
 	}
 

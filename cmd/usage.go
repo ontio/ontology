@@ -78,7 +78,7 @@ func showContractHelp() {
        --params     value               params will be  
 			
      deploy
-       --type       value               contract type ,value: NEOVM | NATIVE | SWAM
+       --type       value               contract type ,value: 1 (NEOVM) | 2 (WASM)
        --store      value               does this contract will be stored, value: true or false
        --code       value               directory of smart contract that will be deployed
        --cname      value               contract name that will be deployed

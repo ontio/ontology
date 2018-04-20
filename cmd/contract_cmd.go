@@ -89,7 +89,7 @@ func invokeContract(ctx *cli.Context) error {
 
 	client := account.GetClient(ctx)
 	if client == nil {
-		log.Fatal("Can't get local account.")
+		log.Fatal("Can't get local account")
 		os.Exit(1)
 	}
 
@@ -101,10 +101,16 @@ func invokeContract(ctx *cli.Context) error {
 		log.Fatal("contract address does not allow empty")
 	}
 
-	addr, _ := common.AddressFromBase58(contractAddr)
+	addr, err := common.AddressFromBase58(contractAddr)
+	if err != nil {
+		log.Fatalf("Parase contract address error, please use correct smart contract address")
+		os.Exit(1)
+	}
+
 	txHash, err := ontSdk.Rpc.InvokeNeoVMSmartContract(acct, new(big.Int), addr, []interface{}{params})
 	if err != nil {
 		log.Fatalf("InvokeSmartContract InvokeNeoVMSmartContract error:%s", err)
+		os.Exit(1)
 	} else {
 		fmt.Printf("invoke transaction hash:%s", common.ToHexString(txHash[:]))
 	}
@@ -148,33 +154,39 @@ func deployContract(ctx *cli.Context) error {
 	client := account.GetClient(ctx)
 	if nil == client {
 		log.Fatal("Can't get local account.")
+		os.Exit(1)
 	}
 
 	acct := client.GetDefaultAccount()
 
 	store := ctx.Bool(utils.ContractStorageFlag.Name)
 	vmType := getVmType(ctx.Uint(utils.ContractVmTypeFlag.Name))
+	if vmType == types.Native {
+		log.Fatal("Smartcontact type must be 1 (NEOVM) or 2 (WASM)")
+		os.Exit(1)
+	}
 
 	codeDir := ctx.String(utils.ContractCodeFlag.Name)
 	if "" == codeDir {
-		log.Fatal("code dir is error, value does not allow null")
+		log.Fatal("Code dir is error, value does not allow null")
+		os.Exit(1)
 	}
 	code, err := ioutil.ReadFile(codeDir)
 	if err != nil {
-		log.Fatal("error in read file", err.Error())
+		log.Fatal("Error in read file", err.Error())
+		os.Exit(1)
 	}
+
 	name := ctx.String(utils.ContractNameFlag.Name)
 	version := ctx.String(utils.ContractVersionFlag.Name)
 	author := ctx.String(utils.ContractAuthorFlag.Name)
 	email := ctx.String(utils.ContractEmailFlag.Name)
 	desc := ctx.String(utils.ContractDescFlag.Name)
-	if "" == name || "" == version || "" == author || "" == email || "" == desc {
-		log.Fatal("Params are not put completely: which contain code, name, version, author, email, desc")
-	}
 
 	trHash, err := ontSdk.Rpc.DeploySmartContract(acct, vmType, store, fmt.Sprintf("%s", code), name, version, author, email, desc)
 	if err != nil {
 		log.Fatal("Deploy smart error: ", err)
+		return err
 	}
 	//WaitForGenerateBlock
 	_, err = ontSdk.Rpc.WaitForGenerateBlock(30*time.Second, 1)

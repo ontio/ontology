@@ -173,12 +173,14 @@ func echoBlockGracefully(block interface{}) {
 	jsons, errs := json.Marshal(block)
 	if errs != nil {
 		log.Fatalf("Marshal json err:%s", errs.Error())
+		return
 	}
 
 	var out bytes.Buffer
 	err := json.Indent(&out, jsons, "", "\t")
 	if err != nil {
 		log.Fatalf("Gracefully format json err: %s", err.Error())
+		return
 	}
 	out.WriteTo(os.Stdout)
 }
