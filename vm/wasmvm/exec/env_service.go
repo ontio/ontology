@@ -29,6 +29,7 @@ import (
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/vm/wasmvm/memory"
 	"github.com/ontio/ontology/vm/wasmvm/util"
+	"fmt"
 )
 
 type Args struct {
@@ -399,15 +400,17 @@ func readStringParam(engine *ExecutionEngine) (bool, error) {
 }
 
 func jsonUnmashal(engine *ExecutionEngine) (bool, error) {
-
+	fmt.Println("====jsonUnmashal start ========")
 	envCall := engine.vm.envCall
 	params := envCall.envParams
+	fmt.Printf("params is %v\n",params)
 	if len(params) != 3 {
 		return false, errors.New("parameter count error while call jsonUnmashal")
 	}
 
 	addr := params[0]
 	size := int(params[1])
+	fmt.Printf("size is %d\n",size)
 	jsonaddr := params[2]
 	jsonbytes, err := engine.vm.GetPointerMemory(jsonaddr)
 	if err != nil {
@@ -418,7 +421,7 @@ func jsonUnmashal(engine *ExecutionEngine) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
+	fmt.Printf("arg is %v\n",arg)
 	buff := bytes.NewBuffer(nil)
 	count := size
 	for i, tmparg := range arg.Params {
@@ -507,6 +510,7 @@ func jsonUnmashal(engine *ExecutionEngine) (bool, error) {
 	}
 
 	bytes := buff.Bytes()
+	fmt.Printf("bytes is %v\n",bytes)
 	if len(bytes) != size {
 		return false ,errors.New("JsonUnmasal input error!")
 	}
@@ -639,7 +643,8 @@ func getCaller(engine *ExecutionEngine) (bool, error) {
 	envCall := engine.vm.envCall
 
 	caller := engine.vm.Caller
-	idx, err := engine.vm.SetPointerMemory(caller.ToHexString())
+
+	idx, err := engine.vm.SetPointerMemory(caller.ToBase58())
 	if err != nil {
 		return false, err
 	}
@@ -654,7 +659,7 @@ func getContractAddress(engine *ExecutionEngine) (bool, error) {
 	envCall := engine.vm.envCall
 
 	contractAddress := engine.vm.ContractAddress
-	idx, err := engine.vm.SetPointerMemory(contractAddress.ToHexString())
+	idx, err := engine.vm.SetPointerMemory(contractAddress.ToBase58())
 	if err != nil {
 		return false, err
 	}
