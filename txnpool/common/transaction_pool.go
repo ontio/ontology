@@ -92,10 +92,7 @@ func (tp *TXPool) CleanTransactionList(txs []*types.Transaction) error {
 			cleaned++
 		}
 	}
-	if txsNum != cleaned {
-		log.Info(fmt.Sprintf("The Transactions num Unmatched. Expect %d,got %d .\n",
-			txsNum, cleaned))
-	}
+
 	log.Debug(fmt.Sprintf("[cleanTransactionList],transaction %d Requested,%d cleaned, Remains %d in TxPool",
 		txsNum, cleaned, len(tp.txList)))
 	return nil
