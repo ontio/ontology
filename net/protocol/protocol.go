@@ -22,9 +22,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"time"
+
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/events"
-	"github.com/ontio/ontology-crypto/keypair"
 )
 
 type NodeAddr struct {
@@ -56,7 +57,7 @@ const (
 	MAX_BLK_HDR_CNT       = 500
 	MAX_INV_HDR_CNT       = 500
 	DIV_HASH_LEN          = 5
-	MAX_REQ_BLK_ONCE      = 16
+	MAX_REQ_BLK_ONCE      = 32
 	UPDATE_RATE_PER_BLOCK = 2
 )
 
