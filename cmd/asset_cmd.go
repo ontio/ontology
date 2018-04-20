@@ -98,26 +98,14 @@ func transferAsset(ctx *cli.Context) error {
 		return nil
 	}
 	contract := ctx.GlobalString(utils.ContractAddrFlag.Name)
-	if contract == "" {
-		fmt.Println("Invalid contract address: ", contract)
-		os.Exit(1)
-	}
 	ct, _ := common.HexToBytes(contract)
 	ctu, _ := common.AddressParseFromBytes(ct)
+
 	from := ctx.GlobalString(utils.TransactionFromFlag.Name)
-	if from == "" {
-		fmt.Println("Invalid sender address: ", from)
-		os.Exit(1)
-	}
-	f, _ := common.HexToBytes(from)
-	fu, _ := common.AddressParseFromBytes(f)
+	fu, _ := common.AddressFromBase58(from)
+
 	to := ctx.GlobalString(utils.TransactionToFlag.Name)
-	if to == "" {
-		fmt.Println("Invalid revicer address: ", to)
-		os.Exit(1)
-	}
-	t, _ := common.HexToBytes(to)
-	tu, _ := common.AddressParseFromBytes(t)
+	tu, _ := common.AddressFromBase58(to)
 	value := ctx.Int64(utils.TransactionValueFlag.Name)
 	if value <= 0 {
 		fmt.Println("Invalid ont amount: ", value)
