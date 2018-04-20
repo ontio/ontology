@@ -43,6 +43,7 @@ type Param struct {
 type Result struct {
 	Ptype string `json:"type"`
 	Pval  string `json:"value"`
+	Psucceed int `json:"succeed"`
 }
 
 type InteropServiceInterface interface {
@@ -509,7 +510,7 @@ func jsonUnmashal(engine *ExecutionEngine) (bool, error) {
 	if len(bytes) != size {
 		return false ,errors.New("JsonUnmasal input error!")
 	}
-	engine.vm.Malloc(len(bytes))
+
 	copy(engine.vm.memory.Memory[int(addr):int(addr)+len(bytes)], bytes)
 
 	engine.vm.RestoreCtx()
@@ -520,18 +521,20 @@ func jsonMashal(engine *ExecutionEngine) (bool, error) {
 	envCall := engine.vm.envCall
 	params := envCall.envParams
 
-	if len(params) != 2 {
+	if len(params) != 3 {
 		return false, errors.New("parameter count error while call jsonUnmashal")
 	}
 
 	val := params[0]
 	ptype := params[1] //type
+	succeed := int(params[2])
 	tpstr, err := engine.vm.GetPointerMemory(ptype)
 	if err != nil {
 		return false, err
 	}
 
 	ret := &Result{}
+	ret.Psucceed = succeed
 
 	pstype := strings.ToLower(util.TrimBuffToString(tpstr))
 	ret.Ptype = pstype
