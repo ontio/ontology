@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Ontology/crypto"
+	"github.com/ontio/ontology-crypto/keypair"
 )
 
 const NODE_ID_BITS = 296
@@ -62,24 +62,18 @@ func StringID(in string) (NodeID, error) {
 }
 
 // PubkeyID returns a marshaled representation of the given public key.
-func PubkeyID(pub *crypto.PubKey) (NodeID, error) {
-	buf := bytes.NewBuffer([]byte(""))
-	err := pub.Serialize(buf)
-	if err != nil {
-		return NilID, fmt.Errorf("serialize publickey: %s", err)
-	}
+func PubkeyID(pub *keypair.PublicKey) (NodeID, error) {
+	keyData := keypair.SerializePublicKey(*pub)
 	var id NodeID
-	copy(id[:], buf.Bytes())
+	copy(id[:], keyData)
 	return id, nil
 }
 
-func (id NodeID) Pubkey() (*crypto.PubKey, error) {
-	buf := bytes.NewBuffer(id[:])
-	pubKey := new(crypto.PubKey)
-	err := pubKey.DeSerialize(buf)
+func (id NodeID) Pubkey() (*keypair.PublicKey, error) {
+	pk, err := keypair.DeserializePublicKey(id[:])
 	if err != nil {
 		return nil, fmt.Errorf("deserialize failed: %s", err)
 	}
 
-	return pubKey, err
+	return &pk, err
 }

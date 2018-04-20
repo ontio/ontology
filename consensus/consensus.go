@@ -21,12 +21,12 @@ package consensus
 import (
 	"strings"
 
+	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus/dbft"
 	"github.com/ontio/ontology/consensus/solo"
-	"github.com/ontio/ontology/eventbus/actor"
 	"github.com/ontio/ontology/consensus/vbft"
 )
 

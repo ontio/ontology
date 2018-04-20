@@ -88,7 +88,7 @@ func (bd *Header) SerializeUnsigned(w io.Writer) error {
 	serialization.WriteUint32(w, bd.Height)
 	serialization.WriteUint64(w, bd.ConsensusData)
 	serialization.WriteVarBytes(w, bd.ConsensusPayload)
-	bd.NextBookKeeper.Serialize(w)
+	bd.NextBookkeeper.Serialize(w)
 	return nil
 }
 
@@ -170,9 +170,9 @@ func (bd *Header) DeserializeUnsigned(r io.Reader) error {
 	}
 
 	bd.ConsensusPayload, err = serialization.ReadVarBytes(r)
-    if err != nil {
+	if err != nil {
 		return err
-    }
+	}
 
 	err = bd.NextBookkeeper.Deserialize(r)
 

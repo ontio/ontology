@@ -29,7 +29,7 @@ import (
 
 type Peer struct {
 	Index          uint32
-	PubKey         *crypto.PubKey
+	PubKey         *keypair.PublicKey
 	handShake      *peerHandshakeMsg
 	LatestInfo     *peerHeartbeatMsg // latest heartbeat msg
 	LastUpdateTime time.Time         // time received heartbeat from peer
