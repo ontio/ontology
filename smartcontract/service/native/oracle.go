@@ -23,14 +23,21 @@ import (
 	"encoding/json"
 	"math/big"
 
-	"github.com/ontio/ontology/common"
 	cstates "github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/core/genesis"
+	"github.com/ontio/ontology/smartcontract/service/native/states"
 )
 
 const (
+	//function name
+	CREATE_ORACLE_REQUEST = "createOracleRequest"
+	SET_ORACLE_OUTCOME = "setOracleOutcome"
+	SET_ORACLE_CRON_OUTCOME = "setOracleCronOutcome"
+	CHANGE_CRON_VIEW = "changeCronView"
+
+	//keyPrefix
 	UNDO_TXHASH         = "UndoTxHash"
 	ORACLE_NUM          = "OracleNum"
 	REQUEST             = "Request"
@@ -41,18 +48,19 @@ const (
 	FINAL_CRON_OUTCOME  = "FinalCronOutcome"
 )
 
-type CreateOracleRequestParam struct {
-	Request   string   `json:"request"`
-	OracleNum *big.Int `json:"oracleNum"`
-	Address   string   `json:"address"`
+func init() {
+	Contracts[genesis.OracleContractAddress] = RegisterOracleContract
 }
 
-type UndoRequests struct {
-	Requests map[string]interface{} `json:"requests"`
+func RegisterOracleContract(native *NativeService) {
+	native.Register(CREATE_ORACLE_REQUEST, CreateOracleRequest)
+	native.Register(SET_ORACLE_OUTCOME, SetOracleOutcome)
+	native.Register(SET_ORACLE_CRON_OUTCOME, SetOracleCronOutcome)
+	native.Register(CHANGE_CRON_VIEW, ChangeCronView)
 }
 
 func CreateOracleRequest(native *NativeService) error {
-	params := new(CreateOracleRequestParam)
+	params := new(states.CreateOracleRequestParam)
 	err := json.Unmarshal(native.Input, &params)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[createOracleRequest] Contract params Unmarshal error!")
@@ -72,7 +80,7 @@ func CreateOracleRequest(native *NativeService) error {
 	txHash := native.Tx.Hash()
 	txHashBytes := txHash.ToArray()
 	txHashHex := hex.EncodeToString(txHashBytes)
-	undoRequests := &UndoRequests{
+	undoRequests := &states.UndoRequests{
 		Requests: make(map[string]interface{}),
 	}
 
@@ -105,18 +113,8 @@ func CreateOracleRequest(native *NativeService) error {
 	return nil
 }
 
-type SetOracleOutcomeParam struct {
-	TxHash  string      `json:"txHash"`
-	Owner   string      `json:"owner"`
-	Outcome interface{} `json:"outcome"`
-}
-
-type OutcomeRecord struct {
-	OutcomeRecord map[string]interface{} `json:"outcomeRecord"`
-}
-
 func SetOracleOutcome(native *NativeService) error {
-	params := new(SetOracleOutcomeParam)
+	params := new(states.SetOracleOutcomeParam)
 	err := json.Unmarshal(native.Input, &params)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[setOracleOutcome] Contract params Unmarshal error!")
@@ -135,7 +133,7 @@ func SetOracleOutcome(native *NativeService) error {
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	outcomeRecord := &OutcomeRecord{
+	outcomeRecord := &states.OutcomeRecord{
 		OutcomeRecord: make(map[string]interface{}),
 	}
 
@@ -156,6 +154,9 @@ func SetOracleOutcome(native *NativeService) error {
 	oracleNum, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(ORACLE_NUM), txHash))
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[setOracleOutcome] Get OracleNum error!")
+	}
+	if oracleNum == nil {
+		return errors.NewErr("[setOracleOutcome] Get nil OracleNum, check input txHash!")
 	}
 	item, _ := oracleNum.(*cstates.StorageItem)
 	quorum := new(big.Int).SetBytes(item.Value)
@@ -183,7 +184,7 @@ func SetOracleOutcome(native *NativeService) error {
 	//quorum achieved
 	if newNum.Cmp(quorum) == 0 {
 		//remove txHash from undoRequests
-		undoRequests := &UndoRequests{
+		undoRequests := &states.UndoRequests{
 			Requests: make(map[string]interface{}),
 		}
 
@@ -227,18 +228,8 @@ func SetOracleOutcome(native *NativeService) error {
 	return nil
 }
 
-type SetOracleCronOutcomeParam struct {
-	TxHash  string      `json:"txHash"`
-	Owner   string      `json:"owner"`
-	Outcome interface{} `json:"outcome"`
-}
-
-type CronOutcomeRecord struct {
-	CronOutcomeRecord map[string]interface{} `json:"cronOutcomeRecord"`
-}
-
 func SetOracleCronOutcome(native *NativeService) error {
-	params := new(SetOracleCronOutcomeParam)
+	params := new(states.SetOracleCronOutcomeParam)
 	err := json.Unmarshal(native.Input, &params)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[setOracleCronOutcome] Contract params Unmarshal error!")
@@ -257,7 +248,7 @@ func SetOracleCronOutcome(native *NativeService) error {
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	cronOutcomeRecord := &CronOutcomeRecord{
+	cronOutcomeRecord := &states.CronOutcomeRecord{
 		CronOutcomeRecord: make(map[string]interface{}),
 	}
 
@@ -290,6 +281,9 @@ func SetOracleCronOutcome(native *NativeService) error {
 	oracleNum, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(ORACLE_NUM), txHash))
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[setOracleCronOutcome] Get OracleNum error!")
+	}
+	if oracleNum == nil {
+		return errors.NewErr("[setOracleCronOutcome] Get nil OracleNum, check input txHash!")
 	}
 	item, _ := oracleNum.(*cstates.StorageItem)
 	quorum := new(big.Int).SetBytes(item.Value)
@@ -337,13 +331,8 @@ func SetOracleCronOutcome(native *NativeService) error {
 	return nil
 }
 
-type ChangeCronViewParam struct {
-	TxHash string `json:"txHash"`
-	Owner  string `json:"owner"`
-}
-
 func ChangeCronView(native *NativeService) error {
-	params := new(ChangeCronViewParam)
+	params := new(states.ChangeCronViewParam)
 	err := json.Unmarshal(native.Input, &params)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[changeCronView] Contract params Unmarshal error!")
@@ -364,13 +353,13 @@ func ChangeCronView(native *NativeService) error {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	//check if is request owner
-	request := new(CreateOracleRequestParam)
+	request := new(states.CreateOracleRequestParam)
 	requestBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(REQUEST), txHash))
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[changeCronView] Get Request error!")
 	}
 	if requestBytes == nil {
-		return errors.NewErr("[changeCronView] Request of this txHash is nil!")
+		return errors.NewErr("[changeCronView] Request of this txHash is nil, check input txHash!")
 	}
 	item, _ := requestBytes.(*cstates.StorageItem)
 	err = json.Unmarshal(item.Value, &request)
@@ -400,63 +389,4 @@ func ChangeCronView(native *NativeService) error {
 	changeCronViewEvent(native, contract, newCronView)
 
 	return nil
-}
-
-func concatKey(contract common.Address, args ...[]byte) []byte {
-	temp := contract[:]
-	for _, arg := range args {
-		temp = append(temp, arg...)
-	}
-	return temp
-}
-
-func validateOwner(native *NativeService, address string) error {
-	addrBytes, err := hex.DecodeString(address)
-	if err != nil {
-		return errors.NewErr("[validateOwner] Decode address hex string to bytes failed!")
-	}
-	addr, err := common.AddressParseFromBytes(addrBytes)
-	if err != nil {
-		return errors.NewErr("[validateOwner] Decode bytes to address failed!")
-	}
-	if native.ContextRef.CheckWitness(addr) == false {
-		return errors.NewErr("[validateOwner] Authentication failed!")
-	}
-	return nil
-}
-
-func createOracleRequestEvent(native *NativeService, contract common.Address, reuqest string) {
-	native.Notifications = append(native.Notifications,
-		&event.NotifyEventInfo{
-			TxHash:          native.Tx.Hash(),
-			ContractAddress: contract,
-			States:          []interface{}{"createOracleRequest", reuqest},
-		})
-}
-
-func setOracleOutcomeEvent(native *NativeService, contract common.Address, ok bool) {
-	native.Notifications = append(native.Notifications,
-		&event.NotifyEventInfo{
-			TxHash:          native.Tx.Hash(),
-			ContractAddress: contract,
-			States:          []interface{}{"setOracleOutcome", ok},
-		})
-}
-
-func setOracleCronOutcomeEvent(native *NativeService, contract common.Address, ok bool) {
-	native.Notifications = append(native.Notifications,
-		&event.NotifyEventInfo{
-			TxHash:          native.Tx.Hash(),
-			ContractAddress: contract,
-			States:          []interface{}{"setOracleCronOutcome", ok},
-		})
-}
-
-func changeCronViewEvent(native *NativeService, contract common.Address, newCronView *big.Int) {
-	native.Notifications = append(native.Notifications,
-		&event.NotifyEventInfo{
-			TxHash:          native.Tx.Hash(),
-			ContractAddress: contract,
-			States:          []interface{}{"changeCronView", newCronView},
-		})
 }
