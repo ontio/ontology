@@ -16,38 +16,14 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package message
+package req
 
 import (
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/p2pserver/protocol"
+	"github.com/ontio/ontology-eventbus/actor"
 )
 
-const (
-	TOPIC_SAVE_BLOCK_COMPLETE       = "svblkcmp"
-	TOPIC_NEW_INVENTORY             = "newinv"
-	TOPIC_NODE_DISCONNECT           = "noddis"
-	TOPIC_NODE_CONSENSUS_DISCONNECT = "nodcnsdis"
-	TOPIC_SMART_CODE_EVENT          = "scevt"
-)
+var ConsensusPid *actor.PID
 
-type SaveBlockCompleteMsg struct {
-	Block *types.Block
-}
-
-type NewInventoryMsg struct {
-	Inventory *common.Inventory
-}
-
-type NodeDisconnectMsg struct {
-	Node protocol.Noder
-}
-
-type NodeConsensusDisconnectMsg struct {
-	Node protocol.Noder
-}
-
-type SmartCodeEventMsg struct {
-	Event *types.SmartCodeEvent
+func SetConsensusPid(conPid *actor.PID) {
+	ConsensusPid = conPid
 }

@@ -16,38 +16,40 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package message
+package types
 
 import (
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/p2pserver/protocol"
+	"bytes"
+	"encoding/binary"
 )
 
-const (
-	TOPIC_SAVE_BLOCK_COMPLETE       = "svblkcmp"
-	TOPIC_NEW_INVENTORY             = "newinv"
-	TOPIC_NODE_DISCONNECT           = "noddis"
-	TOPIC_NODE_CONSENSUS_DISCONNECT = "nodcnsdis"
-	TOPIC_SMART_CODE_EVENT          = "scevt"
-)
-
-type SaveBlockCompleteMsg struct {
-	Block *types.Block
+type AddrReq struct {
+	Hdr MsgHdr
 }
 
-type NewInventoryMsg struct {
-	Inventory *common.Inventory
+//Check whether header is correct
+func (msg AddrReq) Verify(buf []byte) error {
+	err := msg.Hdr.Verify(buf)
+	return err
 }
 
-type NodeDisconnectMsg struct {
-	Node protocol.Noder
+//Serialize message payload
+func (msg AddrReq) Serialization() ([]byte, error) {
+	var buf bytes.Buffer
+	var sum []byte
+	sum = []byte{0x5d, 0xf6, 0xe0, 0xe2}
+	msg.Hdr.Init("getaddr", sum, 0)
+
+	err := binary.Write(&buf, binary.LittleEndian, msg)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), err
 }
 
-type NodeConsensusDisconnectMsg struct {
-	Node protocol.Noder
-}
-
-type SmartCodeEventMsg struct {
-	Event *types.SmartCodeEvent
+//Deserialize message payload
+func (msg *AddrReq) Deserialization(p []byte) error {
+	buf := bytes.NewBuffer(p)
+	err := binary.Read(buf, binary.LittleEndian, msg)
+	return err
 }

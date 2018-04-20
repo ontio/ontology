@@ -16,38 +16,26 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package message
+package types
 
 import (
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/p2pserver/protocol"
+	"testing"
 )
 
-const (
-	TOPIC_SAVE_BLOCK_COMPLETE       = "svblkcmp"
-	TOPIC_NEW_INVENTORY             = "newinv"
-	TOPIC_NODE_DISCONNECT           = "noddis"
-	TOPIC_NODE_CONSENSUS_DISCONNECT = "nodcnsdis"
-	TOPIC_SMART_CODE_EVENT          = "scevt"
-)
+func TestAddrReqSerializationDeserialization(t *testing.T) {
+	var msg AddrReq
+	var sum []byte
+	sum = []byte{0x5d, 0xf6, 0xe0, 0xe2}
+	msg.Hdr.Init("getaddr", sum, 0)
 
-type SaveBlockCompleteMsg struct {
-	Block *types.Block
-}
+	buf, err := msg.Serialization()
 
-type NewInventoryMsg struct {
-	Inventory *common.Inventory
-}
-
-type NodeDisconnectMsg struct {
-	Node protocol.Noder
-}
-
-type NodeConsensusDisconnectMsg struct {
-	Node protocol.Noder
-}
-
-type SmartCodeEventMsg struct {
-	Event *types.SmartCodeEvent
+	var demsg AddrReq
+	err = demsg.Deserialization(buf)
+	if err != nil {
+		t.Error(err)
+		return
+	} else {
+		t.Log("getaddr Test_Deserialization sucessful")
+	}
 }
