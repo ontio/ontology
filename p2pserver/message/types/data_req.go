@@ -35,16 +35,25 @@ type DataReq struct {
 
 //Serialize message payload
 func (msg DataReq) Serialization() ([]byte, error) {
+	p := bytes.NewBuffer([]byte{})
+	err := binary.Write(p, binary.LittleEndian, &(msg.DataType))
+	msg.Hash.Serialize(p)
+	if err != nil {
+		return nil, err
+	}
+
+	checkSumBuf := CheckSum(p.Bytes())
+	msg.Init("getdata", checkSumBuf, uint32(len(p.Bytes())))
+
 	hdrBuf, err := msg.MsgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	err = binary.Write(buf, binary.LittleEndian, msg.DataType)
+	err = binary.Write(buf, binary.LittleEndian, p.Bytes())
 	if err != nil {
 		return nil, err
 	}
-	msg.Hash.Serialize(buf)
 	return buf.Bytes(), err
 }
 

@@ -42,21 +42,21 @@ func (msg HeadersReq) Verify(buf []byte) error {
 
 //Serialize message payload
 func (msg HeadersReq) Serialization() ([]byte, error) {
+	p := new(bytes.Buffer)
+	err := binary.Write(p, binary.LittleEndian, &(msg.P))
+	if err != nil {
+		return nil, err
+	}
+
+	s := CheckSum(p.Bytes())
+	msg.Hdr.Init("getheaders", s, uint32(len(p.Bytes())))
+
 	hdrBuf, err := msg.Hdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	err = binary.Write(buf, binary.LittleEndian, msg.P.Len)
-	if err != nil {
-		return nil, err
-	}
-	err = binary.Write(buf, binary.LittleEndian, msg.P.HashStart)
-	if err != nil {
-		return nil, err
-	}
-
-	err = binary.Write(buf, binary.LittleEndian, msg.P.HashEnd)
+	err = binary.Write(buf, binary.LittleEndian, p.Bytes())
 	if err != nil {
 		return nil, err
 	}

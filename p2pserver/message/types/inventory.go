@@ -60,12 +60,22 @@ func (msg Inv) invType() common.InventoryType {
 
 //Serialize message payload
 func (msg Inv) Serialization() ([]byte, error) {
+
+	tmpBuffer := bytes.NewBuffer([]byte{})
+	msg.P.Serialization(tmpBuffer)
+
+	checkSumBuf := CheckSum(tmpBuffer.Bytes())
+	msg.Hdr.Init("inv", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
+
 	hdrBuf, err := msg.Hdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	msg.P.Serialization(buf)
+	err = binary.Write(buf, binary.LittleEndian, tmpBuffer.Bytes())
+	if err != nil {
+		return nil, err
+	}
 
 	return buf.Bytes(), err
 }
