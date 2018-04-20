@@ -93,15 +93,8 @@ func NewBlock(bk *ct.Block) ([]byte, error) {
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	bk.Serialize(tmpBuffer)
 
-	p := new(bytes.Buffer)
-	err := binary.Write(p, binary.LittleEndian, tmpBuffer.Bytes())
-	if err != nil {
-		log.Error("Binary Write failed at new Msg")
-		return nil, err
-	}
-
-	checkSumBuf := mt.CheckSum(p.Bytes())
-	blk.Init("block", checkSumBuf, uint32(len(p.Bytes())))
+	checkSumBuf := mt.CheckSum(tmpBuffer.Bytes())
+	blk.Init("block", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
 	log.Debug("The message payload length is ", blk.Length)
 
 	m, err := blk.Serialization()
@@ -123,15 +116,9 @@ func NewHeaders(headers []ct.Header, count uint32) ([]byte, error) {
 	for _, header := range headers {
 		header.Serialize(tmpBuffer)
 	}
-	b := new(bytes.Buffer)
-	err := binary.Write(b, binary.LittleEndian, tmpBuffer.Bytes())
-	if err != nil {
-		log.Error("Binary Write failed at new Msg")
-		return nil, err
-	}
 
-	checkSumBuf := mt.CheckSum(b.Bytes())
-	blkHdr.Hdr.Init("headers", checkSumBuf, uint32(len(b.Bytes())))
+	checkSumBuf := mt.CheckSum(tmpBuffer.Bytes())
+	blkHdr.Hdr.Init("headers", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
 	log.Debug("The message payload length is ", blkHdr.Hdr.Length)
 
 	m, err := blkHdr.Serialization()
@@ -192,15 +179,9 @@ func NewConsensus(cp *mt.ConsensusPayload) ([]byte, error) {
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	cp.Serialize(tmpBuffer)
 	cons.Cons = *cp
-	b := new(bytes.Buffer)
-	err := binary.Write(b, binary.LittleEndian, tmpBuffer.Bytes())
-	if err != nil {
-		log.Error("Binary Write failed at new Msg")
-		return nil, err
-	}
 
-	checkSumBuf := mt.CheckSum(b.Bytes())
-	cons.Init("consensus", checkSumBuf, uint32(len(b.Bytes())))
+	checkSumBuf := mt.CheckSum(tmpBuffer.Bytes())
+	cons.Init("consensus", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
 	log.Debug("NewConsensus The message payload length is ", cons.Length)
 
 	m, err := cons.Serialization()
@@ -230,15 +211,8 @@ func NewInv(invPayload *mt.InvPayload) ([]byte, error) {
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	invPayload.Serialization(tmpBuffer)
 
-	b := new(bytes.Buffer)
-	err := binary.Write(b, binary.LittleEndian, tmpBuffer.Bytes())
-	if err != nil {
-		log.Error("Binary Write failed at new Msg", err.Error())
-		return nil, err
-	}
-
-	checkSumBuf := mt.CheckSum(b.Bytes())
-	inv.Hdr.Init("inv", checkSumBuf, uint32(len(b.Bytes())))
+	checkSumBuf := mt.CheckSum(tmpBuffer.Bytes())
+	inv.Hdr.Init("inv", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
 	log.Debug("NewInv The message payload length is ", inv.Hdr.Length)
 
 	m, err := inv.Serialization()
@@ -257,15 +231,9 @@ func NewNotFound(hash common.Uint256) ([]byte, error) {
 
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	notFound.Hash.Serialize(tmpBuffer)
-	p := new(bytes.Buffer)
-	err := binary.Write(p, binary.LittleEndian, tmpBuffer.Bytes())
-	if err != nil {
-		log.Error("Binary Write failed at new notfound Msg")
-		return nil, err
-	}
 
-	checkSumBuf := mt.CheckSum(p.Bytes())
-	notFound.Init("notfound", checkSumBuf, uint32(len(p.Bytes())))
+	checkSumBuf := mt.CheckSum(tmpBuffer.Bytes())
+	notFound.Init("notfound", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
 	log.Debug("The message payload length is ", notFound.MsgHdr.Length)
 
 	m, err := notFound.Serialization()
@@ -285,15 +253,9 @@ func NewPingMsg(height uint64) ([]byte, error) {
 
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	serialization.WriteUint64(tmpBuffer, ping.Height)
-	b := new(bytes.Buffer)
-	err := binary.Write(b, binary.LittleEndian, tmpBuffer.Bytes())
-	if err != nil {
-		log.Error("Binary Write failed at new Msg")
-		return nil, err
-	}
 
-	checkSumBuf := mt.CheckSum(b.Bytes())
-	ping.Hdr.Init("ping", checkSumBuf, uint32(len(b.Bytes())))
+	checkSumBuf := mt.CheckSum(tmpBuffer.Bytes())
+	ping.Hdr.Init("ping", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
 	log.Debug("NewPingMsg The message payload length is ", ping.Hdr.Length)
 
 	m, err := ping.Serialization()
@@ -312,15 +274,9 @@ func NewPongMsg(height uint64) ([]byte, error) {
 
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	serialization.WriteUint64(tmpBuffer, pong.Height)
-	b := new(bytes.Buffer)
-	err := binary.Write(b, binary.LittleEndian, tmpBuffer.Bytes())
-	if err != nil {
-		log.Error("Binary Write failed at new Msg")
-		return nil, err
-	}
 
-	checkSumBuf := mt.CheckSum(b.Bytes())
-	pong.Init("pong", checkSumBuf, uint32(len(b.Bytes())))
+	checkSumBuf := mt.CheckSum(tmpBuffer.Bytes())
+	pong.Init("pong", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
 	log.Debug("NewPongMsg The message payload length is ", pong.Length)
 
 	m, err := pong.Serialization()
@@ -339,15 +295,9 @@ func NewTxn(txn *ct.Transaction) ([]byte, error) {
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	txn.Serialize(tmpBuffer)
 	trn.Txn = *txn
-	b := new(bytes.Buffer)
-	err := binary.Write(b, binary.LittleEndian, tmpBuffer.Bytes())
-	if err != nil {
-		log.Error("Binary Write failed at new Msg")
-		return nil, err
-	}
 
-	checkSumBuf := mt.CheckSum(b.Bytes())
-	trn.Init("tx", checkSumBuf, uint32(len(b.Bytes())))
+	checkSumBuf := mt.CheckSum(tmpBuffer.Bytes())
+	trn.Init("tx", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
 	log.Debug("NewTxn The message payload length is ", trn.Length)
 
 	m, err := trn.Serialization()
@@ -366,15 +316,9 @@ func NewVerAck(isConsensus bool) ([]byte, error) {
 
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	serialization.WriteBool(tmpBuffer, verAck.IsConsensus)
-	b := new(bytes.Buffer)
-	err := binary.Write(b, binary.LittleEndian, tmpBuffer.Bytes())
-	if err != nil {
-		log.Error("Binary Write failed at new Msg")
-		return nil, err
-	}
 
-	checkSumBuf := mt.CheckSum(b.Bytes())
-	verAck.Init("verack", checkSumBuf, uint32(len(b.Bytes())))
+	checkSumBuf := mt.CheckSum(tmpBuffer.Bytes())
+	verAck.Init("verack", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
 	log.Debug("NewVerAck The message payload length is ", verAck.Length)
 
 	m, err := verAck.Serialization()
