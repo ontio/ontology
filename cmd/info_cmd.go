@@ -24,11 +24,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strconv"
 
+	"github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/cmd/utils"
-	"github.com/ontio/ontology/common/log"
 	"github.com/urfave/cli"
 )
 
@@ -62,7 +61,7 @@ func blockInfoUsageError(context *cli.Context, err error, isSubcommand bool) err
 func getCurrentBlockHeight(ctx *cli.Context) error {
 	height, err := ontSdk.Rpc.GetBlockCount()
 	if nil != err {
-		log.Fatalf("Get block height information is error:  %s", err.Error())
+		fmt.Printf("Get block height information is error:  %s", err.Error())
 		return err
 	}
 	fmt.Println("Current blockchain height: ", height)
@@ -122,7 +121,7 @@ var versionCommand = cli.Command{
 func versionInfoCommand(ctx *cli.Context) error {
 	version, err := ontSdk.Rpc.GetVersion()
 	if nil != err {
-		log.Fatalf("Get version information is error:  %s", err.Error())
+		fmt.Printf("Get version information is error:  %s", err.Error())
 		return err
 	}
 	fmt.Println("Node version: ", version)
@@ -136,7 +135,7 @@ func txInfoCommand(ctx *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		echoBlockGracefully(resp)
+		common.EchoJsonDataGracefully(resp)
 		return nil
 	}
 	showTxInfoHelp()
@@ -151,7 +150,7 @@ func blockInfoCommand(ctx *cli.Context) error {
 			if err != nil {
 				return err
 			}
-			echoBlockGracefully(resp)
+			common.EchoJsonDataGracefully(resp)
 			return nil
 		}
 	} else if ctx.IsSet(utils.HashInfoFlag.Name) {
@@ -161,28 +160,12 @@ func blockInfoCommand(ctx *cli.Context) error {
 			if err != nil {
 				return err
 			}
-			echoBlockGracefully(resp)
+			common.EchoJsonDataGracefully(resp)
 			return nil
 		}
 	}
 	showBlockInfoHelp()
 	return nil
-}
-
-func echoBlockGracefully(block interface{}) {
-	jsons, errs := json.Marshal(block)
-	if errs != nil {
-		log.Fatalf("Marshal json err:%s", errs.Error())
-		return
-	}
-
-	var out bytes.Buffer
-	err := json.Indent(&out, jsons, "", "\t")
-	if err != nil {
-		log.Fatalf("Gracefully format json err: %s", err.Error())
-		return
-	}
-	out.WriteTo(os.Stdout)
 }
 
 func request(method string, cmd map[string]interface{}, url string) (map[string]interface{}, error) {

@@ -37,8 +37,28 @@ func showAssetHelp() {
          --to        value                 wallet address base58, which will transfer to
          --value     value                 how much asset will be transfered
          --password  value                 use password who transfer from
+
+      status
+         --hash     value                  transfer transaction hash
 `
 	fmt.Println(assetHelp)
+}
+
+func showQueryAssetTransferHelp() {
+	var queryAssetTransferHelp = `
+   Name:
+      ontology asset query              asset transfer resule query
+
+   Usage:
+      ontology asset query [command options] [args]
+
+   Description:
+      With this command, you can query transfer assert status.
+
+   Command:
+      --hash     value                    transfer transaction hash
+`
+	fmt.Println(queryAssetTransferHelp)
 }
 
 func showAssetTransferHelp() {

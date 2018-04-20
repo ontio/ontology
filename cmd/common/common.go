@@ -17,3 +17,26 @@
  */
 
 package common
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"os"
+)
+
+func EchoJsonDataGracefully(block interface{}) {
+	jsons, errs := json.Marshal(block)
+	if errs != nil {
+		fmt.Printf("Marshal json err:%s", errs.Error())
+		return
+	}
+
+	var out bytes.Buffer
+	err := json.Indent(&out, jsons, "", "\t")
+	if err != nil {
+		fmt.Printf("Gracefully format json err: %s", err.Error())
+		return
+	}
+	out.WriteTo(os.Stdout)
+}

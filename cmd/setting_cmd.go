@@ -24,7 +24,6 @@ import (
 
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd/utils"
-	"github.com/ontio/ontology/common/log"
 	jrpc "github.com/ontio/ontology/http/base/rpc"
 	"github.com/urfave/cli"
 )
@@ -55,7 +54,7 @@ func settingCommand(ctx *cli.Context) error {
 		consensusSwitch := ctx.String(utils.ConsensusFlag.Name)
 		client := account.GetClient(ctx)
 		if client == nil {
-			log.Fatal("Can't get local account.")
+			fmt.Println("Can't get local account.")
 		}
 		var resp []byte
 		var err error

@@ -19,11 +19,10 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math/big"
-	"os"
 	"time"
 
 	"github.com/ontio/ontology/account"
@@ -89,8 +88,8 @@ func invokeContract(ctx *cli.Context) error {
 
 	client := account.GetClient(ctx)
 	if client == nil {
-		log.Fatal("Can't get local account")
-		os.Exit(1)
+		fmt.Println("Can't get local account")
+		return errors.New("Get client is nil")
 	}
 
 	acct := client.GetDefaultAccount()
@@ -98,19 +97,19 @@ func invokeContract(ctx *cli.Context) error {
 	contractAddr := ctx.String(utils.ContractAddrFlag.Name)
 	params := ctx.String(utils.ContractParamsFlag.Name)
 	if "" == contractAddr {
-		log.Fatal("contract address does not allow empty")
+		fmt.Println("contract address does not allow empty")
 	}
 
 	addr, err := common.AddressFromBase58(contractAddr)
 	if err != nil {
-		log.Fatalf("Parase contract address error, please use correct smart contract address")
-		os.Exit(1)
+		fmt.Println("Parase contract address error, please use correct smart contract address")
+		return err
 	}
 
 	txHash, err := ontSdk.Rpc.InvokeNeoVMSmartContract(acct, new(big.Int), addr, []interface{}{params})
 	if err != nil {
-		log.Fatalf("InvokeSmartContract InvokeNeoVMSmartContract error:%s", err)
-		os.Exit(1)
+		fmt.Printf("InvokeSmartContract InvokeNeoVMSmartContract error:%s", err)
+		return err
 	} else {
 		fmt.Printf("invoke transaction hash:%s", common.ToHexString(txHash[:]))
 	}
@@ -118,21 +117,19 @@ func invokeContract(ctx *cli.Context) error {
 	//WaitForGenerateBlock
 	_, err = ontSdk.Rpc.WaitForGenerateBlock(30*time.Second, 1)
 	if err != nil {
-		log.Fatalf("InvokeSmartContract WaitForGenerateBlock error:%s", err)
+		fmt.Printf("InvokeSmartContract WaitForGenerateBlock error:%s", err)
 	}
-	return nil
+	return err
 }
 
 func getVmType(vmType uint) types.VmType {
 	switch vmType {
-	case 0:
-		return types.Native
 	case 1:
 		return types.NEOVM
 	case 2:
 		return types.WASMVM
 	default:
-		return types.Native
+		return types.NEOVM
 	}
 }
 
@@ -148,33 +145,29 @@ func deployContract(ctx *cli.Context) error {
 		!ctx.IsSet(utils.ContractVersionFlag.Name) || !ctx.IsSet(utils.ContractAuthorFlag.Name) ||
 		!ctx.IsSet(utils.ContractEmailFlag.Name) || !ctx.IsSet(utils.ContractDescFlag.Name) {
 		showDeployHelp()
-		return nil
+		return errors.New("Parameter is err")
 	}
 
 	client := account.GetClient(ctx)
 	if nil == client {
-		log.Fatal("Can't get local account.")
-		os.Exit(1)
+		fmt.Println("Can't get local account.")
+		return errors.New("Get client return nil")
 	}
 
 	acct := client.GetDefaultAccount()
 
 	store := ctx.Bool(utils.ContractStorageFlag.Name)
 	vmType := getVmType(ctx.Uint(utils.ContractVmTypeFlag.Name))
-	if vmType == types.Native {
-		log.Fatal("Smartcontact type must be 1 (NEOVM) or 2 (WASM)")
-		os.Exit(1)
-	}
 
 	codeDir := ctx.String(utils.ContractCodeFlag.Name)
 	if "" == codeDir {
-		log.Fatal("Code dir is error, value does not allow null")
-		os.Exit(1)
+		fmt.Println("Code dir is error, value does not allow null")
+		return errors.New("Smart contract code dir does not allow empty")
 	}
 	code, err := ioutil.ReadFile(codeDir)
 	if err != nil {
-		log.Fatal("Error in read file", err.Error())
-		os.Exit(1)
+		fmt.Printf("Error in read file,%s", err.Error())
+		return err
 	}
 
 	name := ctx.String(utils.ContractNameFlag.Name)
@@ -185,13 +178,14 @@ func deployContract(ctx *cli.Context) error {
 
 	trHash, err := ontSdk.Rpc.DeploySmartContract(acct, vmType, store, fmt.Sprintf("%s", code), name, version, author, email, desc)
 	if err != nil {
-		log.Fatal("Deploy smart error: ", err)
+		fmt.Printf("Deploy smart error: %s", err.Error())
 		return err
 	}
 	//WaitForGenerateBlock
 	_, err = ontSdk.Rpc.WaitForGenerateBlock(30*time.Second, 1)
 	if err != nil {
-		log.Fatalf("DeploySmartContract WaitForGenerateBlock error:%s", err)
+		fmt.Printf("DeploySmartContract WaitForGenerateBlock error:%s", err.Error())
+		return err
 	} else {
 		fmt.Printf("Deploy smartContract transaction hash: %s\n", common.ToHexString(trHash[:]))
 	}

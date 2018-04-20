@@ -20,7 +20,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"errors"
 	"reflect"
@@ -29,7 +28,6 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/password"
 	"github.com/urfave/cli"
 )
@@ -82,16 +80,16 @@ func walletCreate(ctx *cli.Context) error {
 	name := ctx.String(utils.WalletNameFlag.Name)
 	if name == "" {
 		fmt.Println("Invalid wallet name.")
-		os.Exit(1)
+		return errors.New("Wallet name is necessary")
 	}
 	if common.FileExisted(name) {
 		fmt.Printf("CAUTION: '%s' already exists!\n", name)
-		os.Exit(1)
+		return errors.New("File alreay exists")
 	}
 	tmpPassword, err := password.GetConfirmedPassword()
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 	password := string(tmpPassword)
 	wallet := account.Create(name, encrypt, []byte(password))
@@ -112,12 +110,12 @@ func walletShow(ctx *cli.Context) error {
 	client := account.GetClient(ctx)
 	cli := reflect.ValueOf(client)
 	if !cli.IsValid() || cli.IsNil() || nil == client {
-		log.Fatal("Can't get local account.")
+		fmt.Println("Can't get local account.")
 		return errors.New("Can't get local account. ")
 	}
 	acct := client.GetDefaultAccount()
 	if acct == nil {
-		log.Fatal("can not get default account")
+		fmt.Println("can not get default account")
 		return errors.New("can not get default account")
 	}
 
@@ -134,20 +132,20 @@ func walletShow(ctx *cli.Context) error {
 func walletBalance(ctx *cli.Context) error {
 	client := account.GetClient(ctx)
 	if client == nil {
-		log.Fatal("Can't get local account.")
+		fmt.Println("Can't get local account.")
 		return errors.New("Can't get local account. ")
 	}
 
 	acct := client.GetDefaultAccount()
 	if acct == nil {
-		log.Fatal("can not get default account")
+		fmt.Println("can not get default account")
 		return errors.New("can not get default account")
 	}
 
 	base58Addr := acct.Address.ToBase58()
 	balance, err := ontSdk.Rpc.GetBalanceWithBase58(base58Addr)
 	if nil != err {
-		log.Fatal("Get Balance with base58 err: ", err.Error())
+		fmt.Printf("Get Balance with base58 err: %s", err.Error())
 		return err
 	}
 	fmt.Printf("ONT: %d; ONG: %d; ONGAppove: %d\n Address(base58): %s\n", balance.Ont.Int64(), balance.Ong.Int64(), balance.OngAppove.Int64(), base58Addr)

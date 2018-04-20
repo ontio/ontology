@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -29,9 +30,9 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
+	cmdCom "github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/signature"
 	ctypes "github.com/ontio/ontology/core/types"
 	cutils "github.com/ontio/ontology/core/utils"
@@ -58,6 +59,15 @@ var (
 				Name:         "transfer",
 				Usage:        "ontology asset transfer [OPTION]\n",
 				Flags:        append(NodeFlags, ContractFlags...),
+				Category:     "ASSET COMMANDS",
+				Description:  ``,
+			},
+			{
+				Action:       utils.MigrateFlags(queryTransferStatus),
+				OnUsageError: transferAssetUsageError,
+				Name:         "status",
+				Usage:        "ontology asset status [OPTION]\n",
+				Flags:        append(append(NodeFlags, ContractFlags...), InfoFlags...),
 				Category:     "ASSET COMMANDS",
 				Description:  ``,
 			},
@@ -101,34 +111,34 @@ func transferAsset(ctx *cli.Context) error {
 	contract := ctx.GlobalString(utils.ContractAddrFlag.Name)
 	ct, err := common.HexToBytes(contract)
 	if err != nil {
-		log.Error("Parase contract address error, from hex to bytes")
-		os.Exit(1)
+		fmt.Println("Parase contract address error, from hex to bytes")
+		return err
 	}
 
 	ctu, err := common.AddressParseFromBytes(ct)
 	if err != nil {
-		log.Error("Parase contract address error, please use correct smart contract address")
-		os.Exit(1)
+		fmt.Println("Parase contract address error, please use correct smart contract address")
+		return err
 	}
 
 	from := ctx.GlobalString(utils.TransactionFromFlag.Name)
 	fu, err := common.AddressFromBase58(from)
 	if err != nil {
-		log.Error("Parase transfer-from address error, make sure you are using base58 address")
-		os.Exit(1)
+		fmt.Println("Parase transfer-from address error, make sure you are using base58 address")
+		return err
 	}
 
 	to := ctx.GlobalString(utils.TransactionToFlag.Name)
 	tu, err := common.AddressFromBase58(to)
 	if err != nil {
-		log.Error("Parase transfer-to address error, make sure you are using base58 address")
-		os.Exit(1)
+		fmt.Println("Parase transfer-to address error, make sure you are using base58 address")
+		return err
 	}
 
 	value := ctx.Int64(utils.TransactionValueFlag.Name)
 	if value <= 0 {
 		fmt.Println("Value must be int type and bigger than zero. Invalid ont amount: ", value)
-		os.Exit(1)
+		return errors.New("Value is invalid")
 	}
 
 	var sts []*nstates.State
@@ -144,7 +154,7 @@ func transferAsset(ctx *cli.Context) error {
 
 	if err := transfers.Serialize(bf); err != nil {
 		fmt.Println("Serialize transfers struct error.")
-		os.Exit(1)
+		return err
 	}
 
 	cont := &states.Contract{
@@ -157,7 +167,7 @@ func transferAsset(ctx *cli.Context) error {
 
 	if err := cont.Serialize(ff); err != nil {
 		fmt.Println("Serialize contract struct error.")
-		os.Exit(1)
+		return err
 	}
 
 	tx := cutils.NewInvokeTransaction(vmtypes.VmCode{
@@ -174,13 +184,13 @@ func transferAsset(ctx *cli.Context) error {
 
 	if err := signTransaction(acc, tx); err != nil {
 		fmt.Println("signTransaction error:", err)
-		os.Exit(1)
+		return err
 	}
 
 	txbf := new(bytes.Buffer)
 	if err := tx.Serialize(txbf); err != nil {
 		fmt.Println("Serialize transaction error.")
-		os.Exit(1)
+		return err
 	}
 
 	resp, err := jrpc.Call(rpcAddress(), "sendrawtransaction", 0,
@@ -194,15 +204,39 @@ func transferAsset(ctx *cli.Context) error {
 	err = json.Unmarshal(resp, &r)
 	if err != nil {
 		fmt.Println("Unmarshal JSON failed")
-		os.Exit(1)
+		return err
 	}
+
 	switch r["result"].(type) {
 	case map[string]interface{}:
 
 	case string:
-		fmt.Println(r["result"].(string))
-		os.Exit(1)
+		time.Sleep(10 * time.Second)
+		resp, err := ontSdk.Rpc.GetSmartContractEventWithHexString(r["result"].(string))
+		if err != nil {
+			fmt.Printf("Please query transfer status manually by hash :%s", r["result"].(string))
+			return err
+		}
+		fmt.Println("\nAsset Transfer Result:")
+		cmdCom.EchoJsonDataGracefully(resp)
+		return nil
 	}
 
+	fmt.Printf("Please query transfer status manually by hash :%s", r["result"].(string))
+	return nil
+}
+
+func queryTransferStatus(ctx *cli.Context) error {
+	if !ctx.IsSet(utils.HashInfoFlag.Name) {
+		showQueryAssetTransferHelp()
+	}
+
+	trHash := ctx.GlobalString(utils.HashInfoFlag.Name)
+	resp, err := ontSdk.Rpc.GetSmartContractEventWithHexString(trHash)
+	if err != nil {
+		fmt.Println("Parase contract address error, from hex to bytes")
+		return err
+	}
+	cmdCom.EchoJsonDataGracefully(resp)
 	return nil
 }
