@@ -58,21 +58,27 @@ func (msg Version) Verify(buf []byte) error {
 
 //Serialize message payload
 func (msg Version) Serialization() ([]byte, error) {
+	p := bytes.NewBuffer([]byte{})
+	err := binary.Write(p, binary.LittleEndian, &(msg.P))
+	serialization.WriteVarBytes(p, keypair.SerializePublicKey(msg.PK))
+	if err != nil {
+		log.Error("Binary Write failed at new Msg")
+		return nil, err
+	}
+
+	checkSumBuf := CheckSum(p.Bytes())
+	msg.Hdr.Init("version", checkSumBuf, uint32(len(p.Bytes())))
+	log.Debug("NewVersion The message payload length is ", msg.Hdr.Length)
+
 	hdrBuf, err := msg.Hdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	err = binary.Write(buf, binary.LittleEndian, msg.P)
+	err = binary.Write(buf, binary.LittleEndian, p.Bytes())
 	if err != nil {
 		return nil, err
 	}
-	keyBuf := keypair.SerializePublicKey(msg.PK)
-	err = serialization.WriteVarBytes(buf, keyBuf)
-	if err != nil {
-		return nil, err
-	}
-
 	return buf.Bytes(), err
 }
 

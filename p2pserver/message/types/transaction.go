@@ -33,12 +33,20 @@ type Trn struct {
 
 //Serialize message payload
 func (msg Trn) Serialization() ([]byte, error) {
+	tmpBuffer := bytes.NewBuffer([]byte{})
+	msg.Txn.Serialize(tmpBuffer)
+	checkSumBuf := CheckSum(tmpBuffer.Bytes())
+	msg.MsgHdr.Init("tx", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
+
 	hdrBuf, err := msg.MsgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	msg.Txn.Serialize(buf)
+	err = binary.Write(buf, binary.LittleEndian, tmpBuffer.Bytes())
+	if err != nil {
+		return nil, err
+	}
 
 	return buf.Bytes(), err
 }

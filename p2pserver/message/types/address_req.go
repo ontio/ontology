@@ -36,6 +36,10 @@ func (msg AddrReq) Verify(buf []byte) error {
 //Serialize message payload
 func (msg AddrReq) Serialization() ([]byte, error) {
 	var buf bytes.Buffer
+	var sum []byte
+	sum = []byte{0x5d, 0xf6, 0xe0, 0xe2}
+	msg.Hdr.Init("getaddr", sum, 0)
+
 	err := binary.Write(&buf, binary.LittleEndian, msg)
 	if err != nil {
 		return nil, err

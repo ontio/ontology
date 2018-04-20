@@ -40,12 +40,22 @@ func (msg NotFound) Verify(buf []byte) error {
 
 //Serialize message payload
 func (msg NotFound) Serialization() ([]byte, error) {
+
+	tmpBuffer := bytes.NewBuffer([]byte{})
+	msg.Hash.Serialize(tmpBuffer)
+
+	checkSumBuf := CheckSum(tmpBuffer.Bytes())
+	msg.MsgHdr.Init("notfound", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
+
 	hdrBuf, err := msg.MsgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	msg.Hash.Serialize(buf)
+	err = binary.Write(buf, binary.LittleEndian, tmpBuffer.Bytes())
+	if err != nil {
+		return nil, err
+	}
 
 	return buf.Bytes(), err
 }

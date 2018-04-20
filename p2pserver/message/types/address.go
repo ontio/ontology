@@ -39,21 +39,29 @@ func (msg Addr) Verify(buf []byte) error {
 
 //Serialize message payload
 func (msg Addr) Serialization() ([]byte, error) {
+	p := new(bytes.Buffer)
+	err := binary.Write(p, binary.LittleEndian, msg.NodeCnt)
+	if err != nil {
+		return nil, err
+	}
+
+	err = binary.Write(p, binary.LittleEndian, msg.NodeAddrs)
+	if err != nil {
+		return nil, err
+	}
+
+	checkSumBuf := CheckSum(p.Bytes())
+	msg.Hdr.Init("addr", checkSumBuf, uint32(len(p.Bytes())))
+
 	var buf bytes.Buffer
-	err := binary.Write(&buf, binary.LittleEndian, msg.Hdr)
+	err = binary.Write(&buf, binary.LittleEndian, msg.Hdr)
 
 	if err != nil {
 		return nil, err
 	}
-	err = binary.Write(&buf, binary.LittleEndian, msg.NodeCnt)
+	err = binary.Write(&buf, binary.LittleEndian, p.Bytes())
 	if err != nil {
 		return nil, err
-	}
-	for _, v := range msg.NodeAddrs {
-		err = binary.Write(&buf, binary.LittleEndian, v)
-		if err != nil {
-			return nil, err
-		}
 	}
 	return buf.Bytes(), err
 }

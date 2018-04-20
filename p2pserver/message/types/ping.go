@@ -38,12 +38,18 @@ func (msg Ping) Verify(buf []byte) error {
 
 //Serialize message payload
 func (msg Ping) Serialization() ([]byte, error) {
+	tmpBuffer := bytes.NewBuffer([]byte{})
+	serialization.WriteUint64(tmpBuffer, msg.Height)
+
+	checkSumBuf := CheckSum(tmpBuffer.Bytes())
+	msg.Hdr.Init("ping", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
+
 	hdrBuf, err := msg.Hdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	err = serialization.WriteUint64(buf, msg.Height)
+	err = binary.Write(buf, binary.LittleEndian, tmpBuffer.Bytes())
 	if err != nil {
 		return nil, err
 	}
