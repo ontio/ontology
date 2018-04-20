@@ -59,6 +59,7 @@ subscribe service
 {
     "Action": "subscribe",
     "Version": "1.0.0",
+    "ConstractsFilter":["constractAddress"], //optional
     "SubscribeEvent":false, //optional
     "SubscribeJsonBlock":true, //optional
     "SubscribeRawBlock":false, //optional
@@ -74,6 +75,7 @@ subscribe service
     "Desc": "SUCCESS",
     "Error": 0,
     "Result": {
+        "ConstractsFilter":["constractAddress"],
         "SubscribeEvent":false,
         "SubscribeJsonBlock":true,
         "SubscribeRawBlock":false,
