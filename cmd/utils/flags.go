@@ -111,7 +111,7 @@ var (
 	//contract deploy
 	ContractVmTypeFlag = cli.UintFlag{
 		Name:  "type",
-		Usage: "contract type ,value: NEOVM | NATIVE | SWAM",
+		Usage: "contract type ,value: NEOVM | WASM",
 	}
 
 	ContractStorageFlag = cli.BoolFlag{
