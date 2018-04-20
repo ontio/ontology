@@ -97,21 +97,21 @@ func transferAsset(ctx *cli.Context) error {
 		showAssetTransferHelp()
 		return nil
 	}
-	contract := ctx.String(utils.ContractAddrFlag.Name)
+	contract := ctx.GlobalString(utils.ContractAddrFlag.Name)
 	if contract == "" {
 		fmt.Println("Invalid contract address: ", contract)
 		os.Exit(1)
 	}
 	ct, _ := common.HexToBytes(contract)
 	ctu, _ := common.AddressParseFromBytes(ct)
-	from := ctx.String(utils.TransactionFromFlag.Name)
+	from := ctx.GlobalString(utils.TransactionFromFlag.Name)
 	if from == "" {
 		fmt.Println("Invalid sender address: ", from)
 		os.Exit(1)
 	}
 	f, _ := common.HexToBytes(from)
 	fu, _ := common.AddressParseFromBytes(f)
-	to := ctx.String(utils.TransactionToFlag.Name)
+	to := ctx.GlobalString(utils.TransactionToFlag.Name)
 	if to == "" {
 		fmt.Println("Invalid revicer address: ", to)
 		os.Exit(1)
@@ -160,7 +160,7 @@ func transferAsset(ctx *cli.Context) error {
 
 	tx.Nonce = uint32(time.Now().Unix())
 
-	passwd := ctx.String(utils.UserPasswordFlag.Name)
+	passwd := ctx.GlobalString(utils.UserPasswordFlag.Name)
 
 	acct := account.Open(account.WALLET_FILENAME, []byte(passwd))
 	acc := acct.GetDefaultAccount()
@@ -175,7 +175,9 @@ func transferAsset(ctx *cli.Context) error {
 		fmt.Println("Serialize transaction error.")
 		os.Exit(1)
 	}
-	resp, err := jrpc.Call(rpcAddress(), "sendrawtransaction", 0, []interface{}{hex.EncodeToString(txbf.Bytes())})
+
+	resp, err := jrpc.Call(rpcAddress(), "sendrawtransaction", 0,
+		[]interface{}{hex.EncodeToString(txbf.Bytes())})
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

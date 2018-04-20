@@ -419,7 +419,7 @@ func nodeType(typeName string) int {
 }
 
 func GetClient(ctx *cli.Context) Client {
-	wallet := ctx.GlobalString(utils.WalletUsedFlag.Name)
+	wallet := ctx.GlobalString(utils.WalletNameFlag.Name)
 	if "" != wallet && !common.FileExisted(wallet) {
 		log.Fatal(fmt.Sprintf("No %s detected, please use a wallet existed.", wallet))
 		os.Exit(1)
@@ -467,8 +467,6 @@ func doubleHash(pwd []byte) []byte {
 	pwdhash := sha256.Sum256(pwd)
 	pwdhash2 := sha256.Sum256(pwdhash[:])
 
-	// Fixme clean the password buffer
-	// clearBytes(pwd,len(pwd))
 	clearBytes(pwdhash[:], 32)
 
 	return pwdhash2[:]

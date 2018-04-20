@@ -236,11 +236,11 @@ func showWalletHelp() {
 
    Command:
       create
-         --name value                  wallet name
+      --name value                     wallet name
       show
-         no option
+      --name value                     wallet name (default: wallet.dat)
       balance
-         no option
+      --name value                     wallet name (default: wallet.dat)
 `
 	fmt.Println(walletHelp)
 }
