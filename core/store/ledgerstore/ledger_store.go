@@ -716,11 +716,14 @@ func (this *LedgerStoreImp) resetSavingBlock() {
 func (this *LedgerStoreImp) saveBlock(block *types.Block) error {
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
-	if this.isSavingBlock() || (blockHeight > 0 && blockHeight != (this.GetCurrentBlockHeight() + 1)) {
+	if this.isSavingBlock(){
 		//hash already saved or is saving
 		return nil
 	}
 	defer this.resetSavingBlock()
+	if (blockHeight > 0 && blockHeight != (this.GetCurrentBlockHeight()+1)) {
+		return nil
+	}
 
 	this.blockStore.NewBatch()
 	this.stateStore.NewBatch()

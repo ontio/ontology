@@ -45,6 +45,7 @@ func (self *StateBatch) Find(prefix common.DataEntryPrefix, key []byte) ([]*comm
 	var states []*common.StateItem
 	bp := []byte{byte(prefix)}
 	iter := self.store.NewIterator(append(bp, key...))
+	defer iter.Release()
 	for iter.Next() {
 		key := iter.Key()
 		keyV := key[1:]

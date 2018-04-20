@@ -288,6 +288,7 @@ func (this *BlockStore) SaveCurrentBlock(height uint32, blockHash common.Uint256
 func (this *BlockStore) GetHeaderIndexList() (map[uint32]common.Uint256, error) {
 	result := make(map[uint32]common.Uint256)
 	iter := this.store.NewIterator([]byte{byte(scom.IX_HEADER_HASH_LIST)})
+	defer iter.Release()
 	for iter.Next() {
 		startCount, err := this.getStartHeightByHeaderIndexKey(iter.Key())
 		if err != nil {
@@ -308,7 +309,6 @@ func (this *BlockStore) GetHeaderIndexList() (map[uint32]common.Uint256, error) 
 			result[height] = blockHash
 		}
 	}
-	iter.Release()
 	return result, nil
 }
 
