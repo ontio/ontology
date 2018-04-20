@@ -40,13 +40,23 @@ func (msg Block) Verify(buf []byte) error {
 
 //Serialize message payload
 func (msg Block) Serialization() ([]byte, error) {
+
+	tmpBuffer := bytes.NewBuffer([]byte{})
+	msg.Blk.Serialize(tmpBuffer)
+
+	checkSumBuf := CheckSum(tmpBuffer.Bytes())
+	msg.Init("block", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
+	log.Debug("The message payload length is ", msg.Length)
+
 	hdrBuf, err := msg.MsgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
-
 	buf := bytes.NewBuffer(hdrBuf)
-	msg.Blk.Serialize(buf)
+	err = binary.Write(buf, binary.LittleEndian, tmpBuffer.Bytes())
+	if err != nil {
+		return nil, err
+	}
 	return buf.Bytes(), err
 }
 

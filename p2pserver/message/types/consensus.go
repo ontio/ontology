@@ -32,12 +32,22 @@ type Consensus struct {
 
 //Serialize message payload
 func (msg *Consensus) Serialization() ([]byte, error) {
+
+	tmpBuffer := bytes.NewBuffer([]byte{})
+	msg.Cons.Serialize(tmpBuffer)
+	checkSumBuf := CheckSum(tmpBuffer.Bytes())
+	msg.MsgHdr.Init("consensus", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
+	log.Debug("NewConsensus The message payload length is ", msg.MsgHdr.Length)
+
 	hdrBuf, err := msg.MsgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	err = msg.Cons.Serialize(buf)
+	err = binary.Write(buf, binary.LittleEndian, tmpBuffer.Bytes())
+	if err != nil {
+		return nil, err
+	}
 	return buf.Bytes(), err
 }
 

@@ -42,8 +42,22 @@ func (msg BlocksReq) Verify(buf []byte) error {
 
 //Serialize message payload
 func (msg BlocksReq) Serialization() ([]byte, error) {
-	var buf bytes.Buffer
-	err := binary.Write(&buf, binary.LittleEndian, msg)
+	p := new(bytes.Buffer)
+	err := binary.Write(p, binary.LittleEndian, &(msg.P))
+	if err != nil {
+		return nil, err
+	}
+
+	s := CheckSum(p.Bytes())
+	msg.MsgHdr.Init("getblocks", s, uint32(len(p.Bytes())))
+
+	hdrBuf, err := msg.MsgHdr.Serialization()
+	if err != nil {
+		return nil, err
+	}
+	buf := bytes.NewBuffer(hdrBuf)
+
+	err = binary.Write(buf, binary.LittleEndian, p.Bytes())
 	if err != nil {
 		return nil, err
 	}

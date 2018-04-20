@@ -23,6 +23,7 @@ import (
 	"encoding/binary"
 
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/common/serialization"
 	ct "github.com/ontio/ontology/core/types"
 )
 
@@ -40,19 +41,26 @@ func (msg BlkHeader) Verify(buf []byte) error {
 
 //Serialize message payload
 func (msg BlkHeader) Serialization() ([]byte, error) {
+	tmpBuffer := bytes.NewBuffer([]byte{})
+	serialization.WriteUint32(tmpBuffer, msg.Cnt)
+	for _, header := range msg.BlkHdr {
+		header.Serialize(tmpBuffer)
+	}
+
+	checkSumBuf := CheckSum(tmpBuffer.Bytes())
+	msg.Hdr.Init("headers", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
+	log.Debug("The message payload length is ", msg.Hdr.Length)
+
 	hdrBuf, err := msg.Hdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	err = binary.Write(buf, binary.LittleEndian, msg.Cnt)
+	err = binary.Write(buf, binary.LittleEndian, tmpBuffer.Bytes())
 	if err != nil {
 		return nil, err
 	}
 
-	for _, header := range msg.BlkHdr {
-		header.Serialize(buf)
-	}
 	return buf.Bytes(), err
 }
 
