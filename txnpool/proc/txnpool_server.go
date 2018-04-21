@@ -72,7 +72,7 @@ type TXPoolServer struct {
 	actors        map[tc.ActorType]*actor.PID         // The actors running in the server
 	validators    *registerValidators                 // The registered validators
 	stats         txStats                             // The transaction statstics
-	slots         chan struct{}                       // The limited slots for the new transaction
+	Slots         chan struct{}                       // The limited slots for the new transaction
 }
 
 // NewTxPoolServer creates a new tx pool server to schedule workers to
@@ -105,9 +105,9 @@ func (s *TXPoolServer) init(num uint8) {
 
 	s.stats = txStats{count: make([]uint64, tc.MaxStats-1)}
 
-	s.slots = make(chan struct{}, tc.MAX_LIMITATION)
+	s.Slots = make(chan struct{}, tc.MAX_LIMITATION)
 	for i := 0; i < tc.MAX_LIMITATION; i++ {
-		s.slots <- struct{}{}
+		s.Slots <- struct{}{}
 	}
 
 	// Create the given concurrent workers
@@ -186,7 +186,7 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256,
 
 	if len(s.allPendingTxs) < tc.MAX_LIMITATION {
 		select {
-		case s.slots <- struct{}{}:
+		case s.Slots <- struct{}{}:
 		default:
 			log.Debug("slots is full")
 		}
@@ -222,7 +222,7 @@ func (s *TXPoolServer) setPendingTx(tx *tx.Transaction,
 }
 
 // assignTxToWorker assigns a new transaction to a worker by LB
-func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction,
+func (s *TXPoolServer) AssignTxToWorker(tx *tx.Transaction,
 	sender tc.SenderType) bool {
 
 	if tx == nil {
@@ -230,13 +230,13 @@ func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction,
 	}
 
 	if ok := s.setPendingTx(tx, sender); !ok {
-		s.increaseStats(tc.DuplicateStats)
+		s.IncreaseStats(tc.DuplicateStats)
 		return false
 	}
 	// Add the rcvTxn to the worker
 	lb := make(tc.LBSlice, len(s.workers))
 	for i := 0; i < len(s.workers); i++ {
-		entry := tc.LB{Size: len(s.workers[i].pendingTxList),
+		entry := tc.LB{Size: len(s.workers[i].pendingTxs),
 			WorkerID: uint8(i),
 		}
 		lb[i] = entry
@@ -248,7 +248,7 @@ func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction,
 
 // assignRspToWorker assigns a check response from the validator to
 // the correct worker.
-func (s *TXPoolServer) assignRspToWorker(rsp *types.CheckResponse) bool {
+func (s *TXPoolServer) AssignValidateRspToWorker(rsp *types.CheckTxRsp) bool {
 
 	if rsp == nil {
 		return false
@@ -259,13 +259,13 @@ func (s *TXPoolServer) assignRspToWorker(rsp *types.CheckResponse) bool {
 	}
 
 	if rsp.ErrCode == errors.ErrNoError {
-		s.increaseStats(tc.SuccessStats)
+		s.IncreaseStats(tc.SuccessStats)
 	} else {
-		s.increaseStats(tc.FailureStats)
+		s.IncreaseStats(tc.FailureStats)
 		if rsp.Type == types.Stateless {
-			s.increaseStats(tc.SigErrStats)
+			s.IncreaseStats(tc.SigErrStats)
 		} else {
-			s.increaseStats(tc.StateErrStats)
+			s.IncreaseStats(tc.StateErrStats)
 		}
 	}
 	return true
@@ -292,7 +292,7 @@ func (s *TXPoolServer) UnRegisterActor(actor tc.ActorType) {
 }
 
 // registerValidator registers a validator to verify a transaction.
-func (s *TXPoolServer) registerValidator(v *types.RegisterValidator) {
+func (s *TXPoolServer) RegisterValidator(v *types.RegisterValidator) {
 	s.validators.Lock()
 	defer s.validators.Unlock()
 
@@ -305,7 +305,7 @@ func (s *TXPoolServer) registerValidator(v *types.RegisterValidator) {
 }
 
 // unRegisterValidator cancels a validator with the verify type and id.
-func (s *TXPoolServer) unRegisterValidator(checkType types.VerifyType,
+func (s *TXPoolServer) UnRegisterValidator(checkType types.VerifyType,
 	id string) {
 
 	s.validators.Lock()
@@ -379,18 +379,18 @@ func (s *TXPoolServer) Stop() {
 	}
 	s.wg.Wait()
 
-	if s.slots != nil {
-		close(s.slots)
+	if s.Slots != nil {
+		close(s.Slots)
 	}
 }
 
 // getTransaction returns a transaction with the transaction hash.
-func (s *TXPoolServer) getTransaction(hash common.Uint256) *tx.Transaction {
+func (s *TXPoolServer) GetTransaction(hash common.Uint256) *tx.Transaction {
 	return s.txPool.GetTransaction(hash)
 }
 
 // getTxPool returns a tx list for consensus.
-func (s *TXPoolServer) getTxPool(byCount bool, height uint32) []*tc.TXEntry {
+func (s *TXPoolServer) GetTxPool(byCount bool, height uint32) []*tc.TXEntry {
 	avlTxList, oldTxList := s.txPool.GetTxPool(byCount, height)
 
 	for _, t := range oldTxList {
@@ -402,7 +402,7 @@ func (s *TXPoolServer) getTxPool(byCount bool, height uint32) []*tc.TXEntry {
 }
 
 // getPendingTxs returns a currently pending tx list
-func (s *TXPoolServer) getPendingTxs(byCount bool) []*tx.Transaction {
+func (s *TXPoolServer) GetPendingTxs(byCount bool) []*tx.Transaction {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	ret := make([]*tx.Transaction, 0, len(s.allPendingTxs))
@@ -413,7 +413,7 @@ func (s *TXPoolServer) getPendingTxs(byCount bool) []*tx.Transaction {
 }
 
 // cleanTransactionList cleans the txs in the block from the ledger
-func (s *TXPoolServer) cleanTransactionList(txs []*tx.Transaction) error {
+func (s *TXPoolServer) CleanTransactionList(txs []*tx.Transaction) error {
 	return s.txPool.CleanTransactionList(txs)
 }
 
@@ -426,20 +426,20 @@ func (s *TXPoolServer) delTransaction(t *tx.Transaction) {
 func (s *TXPoolServer) addTxList(txEntry *tc.TXEntry) bool {
 	ret := s.txPool.AddTxList(txEntry)
 	if !ret {
-		s.increaseStats(tc.DuplicateStats)
+		s.IncreaseStats(tc.DuplicateStats)
 	}
 	return ret
 }
 
 // increaseStats increases the count with the stats type
-func (s *TXPoolServer) increaseStats(v tc.TxnStatsType) {
+func (s *TXPoolServer) IncreaseStats(v tc.TxnStatsType) {
 	s.stats.Lock()
 	defer s.stats.Unlock()
 	s.stats.count[v-1]++
 }
 
 // getStats returns the transaction statistics
-func (s *TXPoolServer) getStats() []uint64 {
+func (s *TXPoolServer) GetStats() []uint64 {
 	s.stats.RLock()
 	defer s.stats.RUnlock()
 	ret := make([]uint64, 0, len(s.stats.count))
@@ -451,7 +451,7 @@ func (s *TXPoolServer) getStats() []uint64 {
 
 // checkTx checks whether a transaction is in the pending list or
 // the transacton pool
-func (s *TXPoolServer) checkTx(hash common.Uint256) bool {
+func (s *TXPoolServer) CheckTx(hash common.Uint256) bool {
 	// Check if the tx is in pending list
 	s.mu.RLock()
 	if ok := s.allPendingTxs[hash]; ok != nil {
@@ -469,7 +469,7 @@ func (s *TXPoolServer) checkTx(hash common.Uint256) bool {
 }
 
 // getTxStatusReq returns a transaction's status with the transaction hash.
-func (s *TXPoolServer) getTxStatusReq(hash common.Uint256) *tc.TxStatus {
+func (s *TXPoolServer) GetTxStatusReq(hash common.Uint256) *tc.TxStatus {
 	for i := 0; i < len(s.workers); i++ {
 		ret := s.workers[i].GetTxStatus(hash)
 		if ret != nil {
@@ -481,21 +481,21 @@ func (s *TXPoolServer) getTxStatusReq(hash common.Uint256) *tc.TxStatus {
 }
 
 // getTransactionCount returns the tx size of the transaction pool.
-func (s *TXPoolServer) getTransactionCount() int {
+func (s *TXPoolServer) GetTransactionCount() int {
 	return s.txPool.GetTransactionCount()
 }
 
 // reVerifyStateful re-verify a transaction's stateful data.
 func (s *TXPoolServer) reVerifyStateful(tx *tx.Transaction, sender tc.SenderType) {
 	if ok := s.setPendingTx(tx, sender); !ok {
-		s.increaseStats(tc.DuplicateStats)
+		s.IncreaseStats(tc.DuplicateStats)
 		return
 	}
 
 	// Add the rcvTxn to the worker
 	lb := make(tc.LBSlice, len(s.workers))
 	for i := 0; i < len(s.workers); i++ {
-		entry := tc.LB{Size: len(s.workers[i].pendingTxList),
+		entry := tc.LB{Size: len(s.workers[i].pendingTxs),
 			WorkerID: uint8(i),
 		}
 		lb[i] = entry
@@ -531,7 +531,7 @@ func (s *TXPoolServer) sendBlkResult2Consensus() {
 // 2, for those verified txs whose height >= block's height, nothing to do;
 // 3, for those verified txs whose height < block's height, re-verify their
 // stateful data.
-func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
+func (s *TXPoolServer) VerifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 	if req == nil || len(req.Txs) == 0 {
 		return
 	}
@@ -547,7 +547,7 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 	checkBlkResult := s.txPool.GetUnverifiedTxs(req.Txs, req.Height)
 
 	for _, t := range checkBlkResult.UnverifiedTxs {
-		s.assignTxToWorker(t, tc.NilSender)
+		s.AssignTxToWorker(t, tc.NilSender)
 		s.pendingBlock.unProcessedTxs[t.Hash()] = t
 	}
 

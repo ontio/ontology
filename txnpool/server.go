@@ -25,8 +25,9 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
-	tc "github.com/ontio/ontology/txnpool/common"
-	tp "github.com/ontio/ontology/txnpool/proc"
+	tcomn "github.com/ontio/ontology/txnpool/common"
+	"github.com/ontio/ontology/txnpool/proc"
+	tactor "github.com/ontio/ontology/txnpool/actor"
 )
 
 // startActor starts an actor with the proxy and unique id,
@@ -47,43 +48,43 @@ func startActor(obj interface{}, id string) *actor.PID {
 // StartTxnPoolServer starts the txnpool server and registers
 // actors to handle the msgs from the network, http, consensus
 // and validators. Meanwhile subscribes the block complete  event.
-func StartTxnPoolServer() *tp.TXPoolServer {
-	var s *tp.TXPoolServer
+func StartTxnPoolServer() *proc.TXPoolServer {
+	var svr *proc.TXPoolServer
 
 	/* Start txnpool server to receive msgs from p2p,
 	 * consensus and valdiators
 	 */
-	s = tp.NewTxPoolServer(tc.MAX_WORKER_NUM)
+	svr = proc.NewTxPoolServer(tcomn.MAX_WORKER_NUM)
 
 	// Initialize an actor to handle the msgs from valdiators
-	rspActor := tp.NewVerifyRspActor(s)
+	rspActor := tactor.NewVerifyRspActor(svr)
 	rspPid := startActor(rspActor, "txVerifyRsp")
 	if rspPid == nil {
 		log.Error("Fail to start verify rsp actor")
 		return nil
 	}
-	s.RegisterActor(tc.VerifyRspActor, rspPid)
+	svr.RegisterActor(tcomn.VerifyRspActor, rspPid)
 
 	// Initialize an actor to handle the msgs from consensus
-	tpa := tp.NewTxPoolActor(s)
+	tpa := tactor.NewTxPoolActor(svr)
 	txPoolPid := startActor(tpa, "txPool")
 	if txPoolPid == nil {
 		log.Error("Fail to start txnpool actor")
 		return nil
 	}
-	s.RegisterActor(tc.TxPoolActor, txPoolPid)
+	svr.RegisterActor(tcomn.TxPoolActor, txPoolPid)
 
 	// Initialize an actor to handle the msgs from p2p and api
-	ta := tp.NewTxActor(s)
+	ta := tactor.NewTxActor(svr)
 	txPid := startActor(ta, "tx")
 	if txPid == nil {
 		log.Error("Fail to start txn actor")
 		return nil
 	}
-	s.RegisterActor(tc.TxActor, txPid)
+	svr.RegisterActor(tcomn.TxActor, txPid)
 
 	// Subscribe the block complete event
 	var sub = events.NewActorSubscriber(txPoolPid)
 	sub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
-	return s
+	return svr
 }

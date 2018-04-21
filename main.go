@@ -123,10 +123,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	stlValidator, _ := stateless.NewValidator("stateless_validator")
+	stlValidator, _ := stateless.NewStatelessValidator("stateless_validator")
 	stlValidator.Register(txPoolServer.GetPID(tc.VerifyRspActor))
 
-	stfValidator, _ := statefull.NewValidator("statefull_validator")
+	stfValidator, _ := statefull.NewStatefulValidator("statefull_validator")
 	stfValidator.Register(txPoolServer.GetPID(tc.VerifyRspActor))
 
 	log.Info("4. Start the P2P networks")

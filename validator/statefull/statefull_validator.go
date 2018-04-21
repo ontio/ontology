@@ -29,34 +29,25 @@ import (
 	"github.com/ontio/ontology/validator/db"
 	vatypes "github.com/ontio/ontology/validator/types"
 )
-
-// Validator is an interface for tx validation actor
-type Validator interface {
-	Register(poolId *actor.PID)
-	UnRegister(poolId *actor.PID)
-	VerifyType() vatypes.VerifyType
-}
-
-type validator struct {
-	pid       *actor.PID
-	id        string
+type StatefulValidator struct {
+	vatypes.ValidatorActor
 	bestBlock db.BestBlock
 }
-
 // NewValidator returns Validator for stateful check of tx
-func NewValidator(id string) (Validator, error) {
+func NewStatefulValidator(id string) (vatypes.Validator, error) {
 
-	validator := &validator{id: id}
+	validator := &StatefulValidator{}
+	validator.Id = id
 	props := actor.FromProducer(func() actor.Actor {
 		return validator
 	})
 
 	pid, err := actor.SpawnNamed(props, id)
-	validator.pid = pid
+	validator.Pid = pid
 	return validator, err
 }
 
-func (self *validator) Receive(context actor.Context) {
+func (self *StatefulValidator) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
 		log.Info("statefull-validator: started and be ready to receive txn")
@@ -64,7 +55,7 @@ func (self *validator) Receive(context actor.Context) {
 		log.Info("statefull-validator: stopping")
 	case *actor.Restarting:
 		log.Info("statefull-validator: restarting")
-	case *vatypes.CheckTx:
+	case *vatypes.CheckTxReq:
 		log.Debugf("statefull-validator: receive tx %x", msg.Tx.Hash())
 		sender := context.Sender()
 		height := ledger.DefLedger.GetCurrentBlockHeight()
@@ -80,7 +71,7 @@ func (self *validator) Receive(context actor.Context) {
 			errCode = errors.ErrDuplicatedTx
 		}
 
-		response := &vatypes.CheckResponse{
+		response := &vatypes.CheckTxRsp{
 			WorkerId: msg.WorkerId,
 			Type:     self.VerifyType(),
 			Hash:     msg.Tx.Hash(),
@@ -106,20 +97,20 @@ func (self *validator) Receive(context actor.Context) {
 
 }
 
-func (self *validator) VerifyType() vatypes.VerifyType {
+func (self *StatefulValidator) VerifyType() vatypes.VerifyType {
 	return vatypes.Statefull
 }
 
-func (self *validator) Register(poolId *actor.PID) {
+func (self *StatefulValidator) Register(poolId *actor.PID) {
 	poolId.Tell(&vatypes.RegisterValidator{
-		Sender: self.pid,
+		Sender: self.Pid,
 		Type:   self.VerifyType(),
-		Id:     self.id,
+		Id:     self.Id,
 	})
 }
 
-func (self *validator) UnRegister(poolId *actor.PID) {
+func (self *StatefulValidator) UnRegister(poolId *actor.PID) {
 	poolId.Tell(&vatypes.UnRegisterValidator{
-		Id: self.id,
+		Id: self.Id,
 	})
 }

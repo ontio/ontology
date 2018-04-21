@@ -42,12 +42,12 @@ type UnRegisterAck struct {
 	Type VerifyType
 }
 
-type CheckTx struct {
+type CheckTxReq struct {
 	WorkerId uint8
 	Tx       types.Transaction
 }
 
-type CheckResponse struct {
+type CheckTxRsp struct {
 	WorkerId uint8
 	Type     VerifyType
 	Hash     common.Uint256
