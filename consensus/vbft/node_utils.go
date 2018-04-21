@@ -300,17 +300,17 @@ func getCommitConsensus(commitMsgs []*blockCommitMsg, C int) (uint32, bool) {
 }
 
 func (self *Server) validateTxsInProposal(proposal *blockProposalMsg) error {
-	// TODO
+	// TODO: add VBFT specific verifications
 	return nil
 }
 
-func (self *Server) receiveFromPeer(peerIdx uint32) ([]byte, error) {
+func (self *Server) receiveFromPeer(peerIdx uint32) (uint32, []byte, error) {
 	payload := <-self.msgRecvC[peerIdx]
 	if payload != nil {
-		return payload.Data, nil
+		return payload.fromPeer, payload.payload.Data, nil
 	}
 
-	return nil, fmt.Errorf("nil consensus payload")
+	return 0, nil, fmt.Errorf("nil consensus payload")
 }
 
 func (self *Server) sendToPeer(peerIdx uint32, data []byte) error {

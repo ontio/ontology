@@ -19,6 +19,7 @@
 package vbft
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -72,10 +73,15 @@ func (pool *PeerPool) addPeer(config *vconfig.PeerConfig) error {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
+	peerPK, err := config.ID.Pubkey()
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal peer pubkey: %s", err)
+	}
 	pool.configs[config.Index] = config
 	pool.IDMap[config.ID] = config.Index
 	pool.peers[config.Index] = &Peer{
 		Index:          config.Index,
+		PubKey:         peerPK,
 		LastUpdateTime: time.Unix(0, 0),
 		connected:      false,
 	}
@@ -102,6 +108,7 @@ func (pool *PeerPool) peerConnected(peerIdx uint32) error {
 	// new peer, rather than modify
 	pool.peers[peerIdx] = &Peer{
 		Index:     peerIdx,
+		PubKey:    pool.peers[peerIdx].PubKey,
 		connected: true,
 	}
 	return nil
@@ -118,6 +125,7 @@ func (pool *PeerPool) peerDisconnected(peerIdx uint32) error {
 
 	pool.peers[peerIdx] = &Peer{
 		Index:          peerIdx,
+		PubKey:         pool.peers[peerIdx].PubKey,
 		LastUpdateTime: lastUpdateTime,
 		connected:      false,
 	}
@@ -130,6 +138,7 @@ func (pool *PeerPool) peerHandshake(peerIdx uint32, msg *peerHandshakeMsg) error
 
 	pool.peers[peerIdx] = &Peer{
 		Index:          peerIdx,
+		PubKey:         pool.peers[peerIdx].PubKey,
 		handShake:      msg,
 		LatestInfo:     pool.peers[peerIdx].LatestInfo,
 		LastUpdateTime: time.Now(),
@@ -145,6 +154,7 @@ func (pool *PeerPool) peerHeartbeat(peerIdx uint32, msg *peerHeartbeatMsg) error
 
 	pool.peers[peerIdx] = &Peer{
 		Index:          peerIdx,
+		PubKey:         pool.peers[peerIdx].PubKey,
 		handShake:      pool.peers[peerIdx].handShake,
 		LatestInfo:     msg,
 		LastUpdateTime: time.Now(),
@@ -175,6 +185,17 @@ func (pool *PeerPool) GetPeerIndex(nodeId vconfig.NodeID) (uint32, bool) {
 	return idx, present
 }
 
+func (pool *PeerPool) GetPeerPubKey(peerIdx uint32) *keypair.PublicKey {
+	pool.lock.RLock()
+	pool.lock.RUnlock()
+
+	if p, present := pool.peers[peerIdx]; present && p != nil {
+		return p.PubKey
+	}
+
+	return nil
+}
+
 func (pool *PeerPool) isPeerAlive(peerIdx uint32) bool {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
@@ -198,8 +219,9 @@ func (pool *PeerPool) getPeer(idx uint32) *Peer {
 
 	peer := pool.peers[idx]
 	if peer != nil {
-		peerPK, _ := pool.configs[idx].ID.Pubkey()
-		peer.PubKey = peerPK
+		if peer.PubKey == nil {
+			peer.PubKey, _ = pool.configs[idx].ID.Pubkey()
+		}
 		return peer
 	}
 
