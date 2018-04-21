@@ -69,6 +69,11 @@ type BlockParticipantConfig struct {
 	Committers  []uint32
 }
 
+type p2pMsgPayload struct {
+	fromPeer uint32
+	payload  *p2pmsg.ConsensusPayload
+}
+
 type Server struct {
 	Index         uint32
 	account       *account.Account
@@ -95,7 +100,7 @@ type Server struct {
 	stateMgr   *StateMgr
 	timer      *EventTimer
 
-	msgRecvC   map[uint32]chan *p2pmsg.ConsensusPayload
+	msgRecvC   map[uint32]chan *p2pMsgPayload
 	msgC       chan ConsensusMsg
 	bftActionC chan *BftAction
 	msgSendC   chan *SendMsgEvent
@@ -191,7 +196,7 @@ func (self *Server) handlePeerStateUpdate(peer *p2pmsg.PeerStateUpdate) {
 	log.Infof("peer state update: %d, connect: %t", peerIdx, peer.Connected)
 	if peer.Connected {
 		if _, present := self.msgRecvC[peerIdx]; !present {
-			self.msgRecvC[peerIdx] = make(chan *p2pmsg.ConsensusPayload, 1024)
+			self.msgRecvC[peerIdx] = make(chan *p2pMsgPayload, 1024)
 		}
 
 		go func() {
@@ -231,7 +236,10 @@ func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 		log.Errorf("invalid consensus node: %s", peerID.String())
 	}
 	if C, present := self.msgRecvC[peerIdx]; present {
-		C <- payload
+		C <- &p2pMsgPayload{
+			fromPeer: peerIdx,
+			payload:  payload,
+		}
 	} else {
 		log.Errorf("consensus msg without receiver: %d node: %s", peerIdx, peerID.String())
 	}
@@ -332,7 +340,7 @@ func (self *Server) start() error {
 	self.timer = NewEventTimer(self)
 	self.syncer = newSyncer(self)
 
-	self.msgRecvC = make(map[uint32]chan *p2pmsg.ConsensusPayload)
+	self.msgRecvC = make(map[uint32]chan *p2pMsgPayload)
 	self.msgC = make(chan ConsensusMsg, 64)
 	self.bftActionC = make(chan *BftAction, 8)
 	self.msgSendC = make(chan *SendMsgEvent, 16)
@@ -345,7 +353,9 @@ func (self *Server) start() error {
 
 	// add all consensus peers to peer_pool
 	for _, p := range self.config.Peers {
-		self.peerPool.addPeer(p)
+		if err := self.peerPool.addPeer(p); err != nil {
+			return fmt.Errorf("failed to add peer %d: %s", p.Index, err)
+		}
 		log.Infof("added peer: %s", p.ID.String())
 	}
 
@@ -385,6 +395,9 @@ func (self *Server) stop() error {
 	return nil
 }
 
+//
+// go routine per net connection
+//
 func (self *Server) run(peerPubKey *keypair.PublicKey) error {
 	peerID, err := vconfig.PubkeyID(peerPubKey)
 	if err != nil {
@@ -440,7 +453,7 @@ func (self *Server) run(peerPubKey *keypair.PublicKey) error {
 	errC := make(chan error)
 	go func() {
 		for {
-			msgData, err := self.receiveFromPeer(peerIdx)
+			fromPeer, msgData, err := self.receiveFromPeer(peerIdx)
 			if err != nil {
 				errC <- err
 				return
@@ -450,7 +463,12 @@ func (self *Server) run(peerPubKey *keypair.PublicKey) error {
 			if err != nil {
 				log.Errorf("server %d failed to deserialize vbft msg (len %d): %s", self.Index, len(msgData), err)
 			} else {
-				if err := msg.Verify(peerPubKey); err != nil {
+				pk := self.peerPool.GetPeerPubKey(fromPeer)
+				if pk == nil {
+					log.Errorf("server %d failed to get peer %d pubkey", self.Index, fromPeer)
+					continue
+				}
+				if err := msg.Verify(pk); err != nil {
 					log.Errorf("server %d failed to verify msg, type %d, err: %s",
 						self.Index, msg.Type(), err)
 					return
@@ -459,7 +477,7 @@ func (self *Server) run(peerPubKey *keypair.PublicKey) error {
 				if msg.Type() < 4 {
 					log.Debugf("server %d received consensus msg, type: %d", self.Index, msg.Type())
 				}
-				self.onConsensusMsg(peerIdx, msg)
+				self.onConsensusMsg(fromPeer, msg)
 			}
 		}
 	}()
@@ -1968,10 +1986,14 @@ func (self *Server) initHandshake(peerIdx uint32, peerPubKey *keypair.PublicKey)
 	go func() {
 		for {
 			// FIXME: peer receive with timeout
-			msgData, err := self.receiveFromPeer(peerIdx)
+			fromPeer, msgData, err := self.receiveFromPeer(peerIdx)
 			if err != nil {
-				log.Errorf("read initHandshake msg from peer: %s", err)
 				errC <- fmt.Errorf("read initHandshake msg from peer: %s", err)
+				break
+			}
+			if fromPeer != peerIdx {
+				// skip msg not from peeIdx
+				continue
 			}
 			msg, err := DeserializeVbftMsg(msgData)
 			if err != nil {
