@@ -6,7 +6,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology-eventbus/actor"
 	ctypes "github.com/ontio/ontology/core/types"
-	tcomn "github.com/ontio/ontology/txnpool/common"
+	ttypes "github.com/ontio/ontology/txnpool/types"
 	"github.com/ontio/ontology/txnpool/proc"
 )
 
@@ -25,19 +25,19 @@ func NewTxActor(s *proc.TXPoolServer) *TxActor {
 }
 
 // handleTransaction handles a transaction from network and http
-func (self *TxActor) handleTransaction(sender tcomn.SenderType, pid *actor.PID,
+func (self *TxActor) handleTransaction(sender ttypes.SenderType, pid *actor.PID,
 	txn *ctypes.Transaction) {
-	self.server.IncreaseStats(tcomn.RcvStats)
+	self.server.IncreaseStats(ttypes.RcvStats)
 
-	if self.server.GetTransaction(txn.Hash()) != nil {
+	if self.server.GetTransactionFromPool(txn.Hash()) != nil {
 		log.Debug(fmt.Sprintf("Transaction %x already in the txn pool",
 			txn.Hash()))
 
-		self.server.IncreaseStats(tcomn.DuplicateStats)
-	} else if self.server.GetTransactionCount() >= tcomn.MAX_CAPACITY {
+		self.server.IncreaseStats(ttypes.DuplicateStats)
+	} else if self.server.GetTransactionCountFromPool() >= ttypes.MAX_CAPACITY {
 		log.Warn("Transaction pool is full", txn.Hash())
 
-		self.server.IncreaseStats(tcomn.FailureStats)
+		self.server.IncreaseStats(ttypes.FailureStats)
 	} else {
 		<-self.server.Slots
 		self.server.AssignTxToWorker(txn, sender)
@@ -56,59 +56,59 @@ func (self *TxActor) Receive(context actor.Context) {
 	case *actor.Restarting:
 		log.Warn("txpool-tx actor Restarting")
 
-	case *tcomn.TxReq:
+	case *ttypes.AppendTxReq:
 		sender := msg.Sender
 
 		log.Debug("txpool-tx actor Receives tx from ", sender.Sender())
 
 		self.handleTransaction(sender, context.Self(), msg.Tx)
 
-	case *tcomn.GetTxnReq:
+	case *ttypes.GetTxnReq:
 		sender := context.Sender()
 
 		log.Debug("txpool-tx actor Receives getting tx req from ", sender)
 
-		res := self.server.GetTransaction(msg.Hash)
+		res := self.server.GetTransactionFromPool(msg.Hash)
 		if sender != nil {
-			sender.Request(&tcomn.GetTxnRsp{Txn: res},
+			sender.Request(&ttypes.GetTxnRsp{Txn: res},
 				context.Self())
 		}
 
-	case *tcomn.GetTxnStats:
+	case *ttypes.GetTxnStats:
 		sender := context.Sender()
 
 		log.Debug("txpool-tx actor Receives getting tx stats from ", sender)
 
 		res := self.server.GetStats()
 		if sender != nil {
-			sender.Request(&tcomn.GetTxnStatsRsp{Count: res},
+			sender.Request(&ttypes.GetTxnStatsRsp{Count: res},
 				context.Self())
 		}
 
-	case *tcomn.CheckTxnReq:
+	case *ttypes.CheckTxnReq:
 		sender := context.Sender()
 
 		log.Debug("txpool-tx actor Receives checking tx req from ", sender)
 
-		res := self.server.CheckTx(msg.Hash)
+		res := self.server.IsContainTx(msg.Hash)
 		if sender != nil {
-			sender.Request(&tcomn.CheckTxnRsp{Ok: res},
+			sender.Request(&ttypes.CheckTxnRsp{Ok: res},
 				context.Self())
 		}
 
-	case *tcomn.GetTxnStatusReq:
+	case *ttypes.GetTxnStatusReq:
 		sender := context.Sender()
 
 		log.Debug("txpool-tx actor Receives getting tx status req from ", sender)
 
-		res := self.server.GetTxStatusReq(msg.Hash)
+		res := self.server.GetTxStatus(msg.Hash)
 		if sender != nil {
 			if res == nil {
-				sender.Request(&tcomn.GetTxnStatusRsp{Hash: msg.Hash,
-					TxStatus: nil}, context.Self())
+				sender.Request(&ttypes.GetTxnStatusRsp{Hash: msg.Hash,
+					VerifyResults: nil}, context.Self())
 			} else {
-				sender.Request(&tcomn.GetTxnStatusRsp{Hash: res.Hash,
-					TxStatus: res.Attrs}, context.Self())
+				sender.Request(&ttypes.GetTxnStatusRsp{Hash: res.Hash,
+					VerifyResults: res.Attrs}, context.Self())
 			}
 		}
 

@@ -25,7 +25,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
-	tcomn "github.com/ontio/ontology/txnpool/common"
+	ttypes "github.com/ontio/ontology/txnpool/types"
 	"github.com/ontio/ontology/txnpool/proc"
 	tactor "github.com/ontio/ontology/txnpool/actor"
 )
@@ -54,7 +54,7 @@ func StartTxnPoolServer() *proc.TXPoolServer {
 	/* Start txnpool server to receive msgs from p2p,
 	 * consensus and valdiators
 	 */
-	svr = proc.NewTxPoolServer(tcomn.MAX_WORKER_NUM)
+	svr = proc.NewTxPoolServer(ttypes.MAX_WORKER_NUM)
 
 	// Initialize an actor to handle the msgs from valdiators
 	rspActor := tactor.NewVerifyRspActor(svr)
@@ -63,7 +63,7 @@ func StartTxnPoolServer() *proc.TXPoolServer {
 		log.Error("Fail to start verify rsp actor")
 		return nil
 	}
-	svr.RegisterActor(tcomn.VerifyRspActor, rspPid)
+	svr.RegisterActor(ttypes.VerifyRspActor, rspPid)
 
 	// Initialize an actor to handle the msgs from consensus
 	tpa := tactor.NewTxPoolActor(svr)
@@ -72,7 +72,7 @@ func StartTxnPoolServer() *proc.TXPoolServer {
 		log.Error("Fail to start txnpool actor")
 		return nil
 	}
-	svr.RegisterActor(tcomn.TxPoolActor, txPoolPid)
+	svr.RegisterActor(ttypes.TxPoolActor, txPoolPid)
 
 	// Initialize an actor to handle the msgs from p2p and api
 	ta := tactor.NewTxActor(svr)
@@ -81,7 +81,7 @@ func StartTxnPoolServer() *proc.TXPoolServer {
 		log.Error("Fail to start txn actor")
 		return nil
 	}
-	svr.RegisterActor(tcomn.TxActor, txPid)
+	svr.RegisterActor(ttypes.TxActor, txPid)
 
 	// Subscribe the block complete event
 	var sub = events.NewActorSubscriber(txPoolPid)

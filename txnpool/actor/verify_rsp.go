@@ -32,19 +32,19 @@ func (self *VerifyRspActor) Receive(context actor.Context) {
 	case *actor.Restarting:
 		log.Warn("txpool-verify actor: Restarting")
 
-	case *types.RegisterValidator:
+	case *types.RegisterValidatorReq:
 		log.Debugf("txpool-verify actor:: validator %v connected", msg.Sender)
 		self.server.RegisterValidator(msg)
 
-	case *types.UnRegisterValidator:
+	case *types.UnRegisterValidatorReq:
 		log.Debugf("txpool-verify actor:: validator %d:%v disconnected", msg.Type, msg.Id)
 
 		self.server.UnRegisterValidator(msg.Type, msg.Id)
 
-	case *types.CheckTxRsp:
+	case *types.VerifyTxRsp:
 		log.Debug("txpool-verify actor:: Receives verify rsp message")
 
-		self.server.AssignValidateRspToWorker(msg)
+		self.server.AssignVerifyRspToWorker(msg)
 
 	default:
 		log.Warn("txpool-verify actor:Unknown msg ", msg, "type", reflect.TypeOf(msg))

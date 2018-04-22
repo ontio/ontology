@@ -55,12 +55,12 @@ func (self *StatelessValidator) Receive(context actor.Context) {
 		log.Info("stateless-validator: restarting")
 	case *actor.Stopped:
 		log.Info("stateless-validator: stopped")
-	case *vatypes.CheckTxReq:
+	case *vatypes.VerifyTxReq:
 		log.Debugf("stateless-validator receive tx %x", msg.Tx.Hash())
 		sender := context.Sender()
 		errCode := validation.VerifyTransaction(&msg.Tx)
 
-		response := &vatypes.CheckTxRsp{
+		response := &vatypes.VerifyTxRsp{
 			WorkerId: msg.WorkerId,
 			ErrCode:  errCode,
 			Hash:     msg.Tx.Hash(),
@@ -69,7 +69,7 @@ func (self *StatelessValidator) Receive(context actor.Context) {
 		}
 
 		sender.Tell(response)
-	case *vatypes.UnRegisterAck:
+	case *vatypes.UnRegisterValidatorRsp:
 		context.Self().Stop()
 	default:
 		log.Info("stateless-validator: unknown msg ", msg, "type", reflect.TypeOf(msg))
@@ -83,7 +83,7 @@ func (self *StatelessValidator) VerifyType() vatypes.VerifyType {
 
 // Register send RegisterValidator message to txpool
 func (self *StatelessValidator) Register(poolId *actor.PID) {
-	poolId.Tell(&vatypes.RegisterValidator{
+	poolId.Tell(&vatypes.RegisterValidatorReq{
 		Sender: self.Pid,
 		Type:   self.VerifyType(),
 		Id:     self.Id,
@@ -92,7 +92,7 @@ func (self *StatelessValidator) Register(poolId *actor.PID) {
 
 // UnRegister send UnRegisterValidator message to txpool
 func (self *StatelessValidator) UnRegister(poolId *actor.PID) {
-	poolId.Tell(&vatypes.UnRegisterValidator{
+	poolId.Tell(&vatypes.UnRegisterValidatorReq{
 		Id: self.Id,
 	})
 

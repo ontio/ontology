@@ -15,13 +15,13 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-package common
+package types
 
 import (
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/errors"
+"github.com/ontio/ontology/common"
+"github.com/ontio/ontology/core/types"
+"github.com/ontio/ontology/errors"
+	vt "github.com/ontio/ontology/validator/types"
 )
 
 const (
@@ -86,31 +86,43 @@ const (
 	MaxStats
 )
 
+type VerifyResult struct {
+	Height  uint32         // The height in which tx was verified
+	Type    vt.VerifyType  // The validator flag: stateless/stateful
+	ErrCode errors.ErrCode // Verified result
+}
+
+type TxEntry struct {
+	Tx    *types.Transaction // transaction which has been verified
+	Fee   common.Fixed64     // Total fee per transaction
+	Attrs []*VerifyResult          // the result from each validator
+}
+
 // CheckBlkResult contains a verifed tx list,
 // an unverified tx list and an old tx list
 // to be re-verifed
-type CheckBlkResult struct {
+type VerifyBlkResult struct {
 	VerifiedTxs   []*VerifyTxResult
-	UnverifiedTxs []*types.Transaction
-	OldTxs        []*types.Transaction
+	UnVerifiedTxs []*types.Transaction
+	ReVerifyTxs        []*types.Transaction
 }
 
 // TxStatus contains the attributes of a transaction
 type TxStatus struct {
 	Hash  common.Uint256 // transaction hash
-	Attrs []*TXAttr      // transaction's status
+	Attrs []*VerifyResult      // transaction's status
 }
 
 // TxReq specifies the api that how to submit a new transaction.
 // Input: transacton and submitter type
-type TxReq struct {
+type AppendTxReq struct {
 	Tx     *types.Transaction
 	Sender SenderType
 }
 
 // TxRsp returns the result of submitting tx, including
 // a transaction hash and error code.
-type TxRsp struct {
+type AppendTxRsp struct {
 	Hash    common.Uint256
 	ErrCode errors.ErrCode
 }
@@ -152,7 +164,7 @@ type GetTxnStatusReq struct {
 // Output: a transaction hash and it's verified result.
 type GetTxnStatusRsp struct {
 	Hash     common.Uint256
-	TxStatus []*TXAttr
+	VerifyResults []*VerifyResult
 }
 
 // GetTxnStats specifies the api that how to get the tx statistics.
@@ -184,7 +196,7 @@ type GetTxnPoolReq struct {
 
 // GetTxnPoolRsp returns a transaction list for GetTxnPoolReq.
 type GetTxnPoolRsp struct {
-	TxnPool []*TXEntry
+	TxnPool []*TxEntry
 }
 
 // VerifyBlockReq specifies that api that how to verify a block from consensus.
@@ -202,7 +214,7 @@ type VerifyTxResult struct {
 
 // VerifyBlockRsp returns a verified result for VerifyBlockReq.
 type VerifyBlockRsp struct {
-	TxnPool []*VerifyTxResult
+	TxResults []*VerifyTxResult
 }
 
 /*
@@ -227,3 +239,4 @@ func (this LBSlice) Swap(i, j int) {
 func (this LBSlice) Less(i, j int) bool {
 	return this[i].Size < this[j].Size
 }
+

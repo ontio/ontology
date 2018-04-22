@@ -55,7 +55,7 @@ func (self *StatefulValidator) Receive(context actor.Context) {
 		log.Info("statefull-validator: stopping")
 	case *actor.Restarting:
 		log.Info("statefull-validator: restarting")
-	case *vatypes.CheckTxReq:
+	case *vatypes.VerifyTxReq:
 		log.Debugf("statefull-validator: receive tx %x", msg.Tx.Hash())
 		sender := context.Sender()
 		height := ledger.DefLedger.GetCurrentBlockHeight()
@@ -71,7 +71,7 @@ func (self *StatefulValidator) Receive(context actor.Context) {
 			errCode = errors.ErrDuplicatedTx
 		}
 
-		response := &vatypes.CheckTxRsp{
+		response := &vatypes.VerifyTxRsp{
 			WorkerId: msg.WorkerId,
 			Type:     self.VerifyType(),
 			Hash:     msg.Tx.Hash(),
@@ -80,7 +80,7 @@ func (self *StatefulValidator) Receive(context actor.Context) {
 		}
 
 		sender.Tell(response)
-	case *vatypes.UnRegisterAck:
+	case *vatypes.UnRegisterValidatorRsp:
 		context.Self().Stop()
 	case *types.Block:
 
@@ -102,7 +102,7 @@ func (self *StatefulValidator) VerifyType() vatypes.VerifyType {
 }
 
 func (self *StatefulValidator) Register(poolId *actor.PID) {
-	poolId.Tell(&vatypes.RegisterValidator{
+	poolId.Tell(&vatypes.RegisterValidatorReq{
 		Sender: self.Pid,
 		Type:   self.VerifyType(),
 		Id:     self.Id,
@@ -110,7 +110,7 @@ func (self *StatefulValidator) Register(poolId *actor.PID) {
 }
 
 func (self *StatefulValidator) UnRegister(poolId *actor.PID) {
-	poolId.Tell(&vatypes.UnRegisterValidator{
+	poolId.Tell(&vatypes.UnRegisterValidatorReq{
 		Id: self.Id,
 	})
 }

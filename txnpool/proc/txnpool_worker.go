@@ -27,48 +27,48 @@ import (
 	"github.com/ontio/ontology/common/log"
 	tx "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
-	tc "github.com/ontio/ontology/txnpool/common"
-	"github.com/ontio/ontology/validator/types"
+	vtypes "github.com/ontio/ontology/validator/types"
+	ttypes "github.com/ontio/ontology/txnpool/types"
 )
 
 // pendingTx contains the transaction, the time of starting verifying,
 // the cache of check request, the flag indicating the verified status,
 // the verified result and retry mechanism
-type pendingTx struct {
-	tx      *tx.Transaction // That is unverified or on the verifying process
-	valTime time.Time       // The start time
-	req     *types.CheckTxReq  // Req cache
-	flag    uint8           // For different types of verification
-	retries uint8           // For resend to validator when time out before verified
-	ret     []*tc.TXAttr    // verified results
+type pendingTxInfo struct {
+	tx      *tx.Transaction    // That is unverified or on the verifying process
+	valTime time.Time          // The start time
+	req     *vtypes.VerifyTxReq // Req cache
+	flag    uint8              // For different types of verification
+	retries uint8              // For resend to validator when time out before verified
+	ret     []*ttypes.VerifyResult       // verified results
 }
 
 // txPoolWorker handles the tasks scheduled by server
 type txPoolWorker struct {
-	mu            sync.RWMutex
-	workId        uint8                         // Worker ID
-	rcvTXCh       chan *tx.Transaction          // The channel of receive transaction
-	stfTxCh       chan *tx.Transaction          // The channel of txs to be re-verified stateful
-	rspCh         chan *types.CheckTxRsp     // The channel of verified response
-	server        *TXPoolServer                 // The txn pool server pointer
-	timer         *time.Timer                   // The timer of reverifying
-	stopCh        chan bool                     // stop routine
-	pendingTxs map[common.Uint256]*pendingTx // The transaction on the verifying process
+	mu         sync.RWMutex
+	workId     uint8                             // Worker ID
+	rcvTxCh    chan *tx.Transaction              // The channel of receive transaction
+	stfTxCh    chan *tx.Transaction              // The channel of txs to be re-verified stateful
+	rspCh      chan *vtypes.VerifyTxRsp           // The channel of verified response
+	server     *TXPoolServer                     // The txn pool server pointer
+	timer      *time.Timer                       // The timer of reverifying
+	stopCh     chan bool                         // stop routine
+	pendingTxs map[common.Uint256]*pendingTxInfo // The transaction on the verifying process
 }
 
 // init initializes the worker with the configured settings
 func (worker *txPoolWorker) init(workID uint8, s *TXPoolServer) {
-	worker.rcvTXCh = make(chan *tx.Transaction, tc.MAX_PENDING_TXN)
-	worker.stfTxCh = make(chan *tx.Transaction, tc.MAX_PENDING_TXN)
-	worker.pendingTxs = make(map[common.Uint256]*pendingTx)
-	worker.rspCh = make(chan *types.CheckTxRsp, tc.MAX_PENDING_TXN)
+	worker.rcvTxCh = make(chan *tx.Transaction, ttypes.MAX_PENDING_TXN)
+	worker.stfTxCh = make(chan *tx.Transaction, ttypes.MAX_PENDING_TXN)
+	worker.pendingTxs = make(map[common.Uint256]*pendingTxInfo)
+	worker.rspCh = make(chan *vtypes.VerifyTxRsp, ttypes.MAX_PENDING_TXN)
 	worker.stopCh = make(chan bool)
 	worker.workId = workID
 	worker.server = s
 }
 
 // GetTxStatus returns the status in the pending list with the transaction hash
-func (worker *txPoolWorker) GetTxStatus(hash common.Uint256) *tc.TxStatus {
+func (worker *txPoolWorker) GetTxStatus(hash common.Uint256) *ttypes.TxStatus {
 	worker.mu.RLock()
 	defer worker.mu.RUnlock()
 
@@ -77,7 +77,7 @@ func (worker *txPoolWorker) GetTxStatus(hash common.Uint256) *tc.TxStatus {
 		return nil
 	}
 
-	txStatus := &tc.TxStatus{
+	txStatus := &ttypes.TxStatus{
 		Hash:  hash,
 		Attrs: pt.ret,
 	}
@@ -87,7 +87,7 @@ func (worker *txPoolWorker) GetTxStatus(hash common.Uint256) *tc.TxStatus {
 // handleRsp handles the verified response from the validator and if
 // the tx is valid, add it to the tx pool, or remove it from the pending
 // list
-func (worker *txPoolWorker) handleRsp(rsp *types.CheckTxRsp) {
+func (worker *txPoolWorker) handleRsp(rsp *vtypes.VerifyTxRsp) {
 	if rsp.WorkerId != worker.workId {
 		return
 	}
@@ -109,7 +109,7 @@ func (worker *txPoolWorker) handleRsp(rsp *types.CheckTxRsp) {
 	}
 
 	if pt.flag&(0x1<<rsp.Type) == 0 {
-		retAttr := &tc.TXAttr{
+		retAttr := &ttypes.VerifyResult{
 			Height:  rsp.Height,
 			Type:    rsp.Type,
 			ErrCode: rsp.ErrCode,
@@ -118,7 +118,7 @@ func (worker *txPoolWorker) handleRsp(rsp *types.CheckTxRsp) {
 		pt.ret = append(pt.ret, retAttr)
 	}
 
-	if pt.flag&0xf == tc.VERIFY_MASK {
+	if pt.flag&0xf == ttypes.VERIFY_MASK {
 		worker.putTxPool(pt)
 		delete(worker.pendingTxs, rsp.Hash)
 	}
@@ -138,9 +138,9 @@ func (worker *txPoolWorker) handleTimeoutEvent() {
 	 * resend them to the validators
 	 */
 	for k, v := range worker.pendingTxs {
-		if v.flag&0xf != tc.VERIFY_MASK && (time.Now().Sub(v.valTime)/time.Second) >=
-			tc.EXPIRE_INTERVAL {
-			if v.retries < tc.MAX_RETRIES {
+		if v.flag&0xf != ttypes.VERIFY_MASK && (time.Now().Sub(v.valTime)/time.Second) >=
+			ttypes.EXPIRE_INTERVAL {
+			if v.retries < ttypes.MAX_RETRIES {
 				worker.reVerifyTx(k)
 				v.retries++
 			} else {
@@ -156,20 +156,20 @@ func (worker *txPoolWorker) handleTimeoutEvent() {
 
 // putTxPool adds a valid transaction to the tx pool and removes it from
 // the pending list.
-func (worker *txPoolWorker) putTxPool(pt *pendingTx) bool {
-	txEntry := &tc.TXEntry{
+func (worker *txPoolWorker) putTxPool(pt *pendingTxInfo) bool {
+	txEntry := &ttypes.TxEntry{
 		Tx:    pt.tx,
 		Attrs: pt.ret,
 		Fee:   pt.tx.GetTotalFee(),
 	}
-	worker.server.addTxList(txEntry)
+	worker.server.appendTxEntry2Pool(txEntry)
 	worker.server.removePendingTx(pt.tx.Hash(), errors.ErrNoError)
 	return true
 }
 
 // verifyTx prepares a check request and sends it to the validators.
 func (worker *txPoolWorker) verifyTx(tx *tx.Transaction) {
-	if tx := worker.server.GetTransaction(tx.Hash()); tx != nil {
+	if tx := worker.server.GetTransactionFromPool(tx.Hash()); tx != nil {
 		log.Info(fmt.Sprintf("Transaction %x already in the txn pool",
 			tx.Hash()))
 		worker.server.removePendingTx(tx.Hash(), errors.ErrDuplicateInput)
@@ -182,15 +182,15 @@ func (worker *txPoolWorker) verifyTx(tx *tx.Transaction) {
 		return
 	}
 	// Construct the request and send it to each validator server to verify
-	req := &types.CheckTxReq{
+	req := &vtypes.VerifyTxReq{
 		WorkerId: worker.workId,
 		Tx:       *tx,
 	}
 
-	worker.sendReq2Validator(req)
+	worker.sendStatelessVerifyTxReq(req)
 
 	// Construct the pending transaction
-	pt := &pendingTx{
+	pt := &pendingTxInfo{
 		tx:      tx,
 		req:     req,
 		flag:    0,
@@ -211,8 +211,8 @@ func (worker *txPoolWorker) reVerifyTx(txHash common.Uint256) {
 		return
 	}
 
-	if pt.flag&0xf != tc.VERIFY_MASK {
-		worker.sendReq2Validator(pt.req)
+	if pt.flag&0xf != ttypes.VERIFY_MASK {
+		worker.sendStatelessVerifyTxReq(pt.req)
 	}
 
 	// Update the verifying time
@@ -220,8 +220,8 @@ func (worker *txPoolWorker) reVerifyTx(txHash common.Uint256) {
 }
 
 // sendReq2Validator sends a check request to the validators
-func (worker *txPoolWorker) sendReq2Validator(req *types.CheckTxReq) bool {
-	rspPid := worker.server.GetPID(tc.VerifyRspActor)
+func (worker *txPoolWorker) sendStatelessVerifyTxReq(req *vtypes.VerifyTxReq) bool {
+	rspPid := worker.server.GetPID(ttypes.VerifyRspActor)
 	if rspPid == nil {
 		log.Info("VerifyRspActor not exist")
 		return false
@@ -239,14 +239,14 @@ func (worker *txPoolWorker) sendReq2Validator(req *types.CheckTxReq) bool {
 }
 
 // sendReq2StatefulV sends a check request to the stateful validator
-func (worker *txPoolWorker) sendReq2StatefulV(req *types.CheckTxReq) {
-	rspPid := worker.server.GetPID(tc.VerifyRspActor)
+func (worker *txPoolWorker) sendStatefulVerifyTxReq(req *vtypes.VerifyTxReq) {
+	rspPid := worker.server.GetPID(ttypes.VerifyRspActor)
 	if rspPid == nil {
 		log.Info("VerifyRspActor not exist")
 		return
 	}
 
-	pid := worker.server.getNextValidatorPID(types.Statefull)
+	pid := worker.server.getNextValidatorPID(vtypes.Statefull)
 	log.Info("worker send tx to the stateful")
 	if pid == nil {
 		return
@@ -259,46 +259,46 @@ func (worker *txPoolWorker) sendReq2StatefulV(req *types.CheckTxReq) {
 // verifyStateful prepares a check request and sends it to the
 // stateful validator
 func (worker *txPoolWorker) verifyStateful(tx *tx.Transaction) {
-	req := &types.CheckTxReq{
+	req := &vtypes.VerifyTxReq{
 		WorkerId: worker.workId,
 		Tx:       *tx,
 	}
 
 	// Construct the pending transaction
-	pt := &pendingTx{
+	pt := &pendingTxInfo{
 		tx:      tx,
 		req:     req,
 		retries: 0,
 		valTime: time.Now(),
 	}
 
-	retAttr := &tc.TXAttr{
+	retAttr := &ttypes.VerifyResult{
 		Height:  0,
-		Type:    types.Stateless,
+		Type:    vtypes.Stateless,
 		ErrCode: errors.ErrNoError,
 	}
 
 	pt.ret = append(pt.ret, retAttr)
 	// Since the signature has been already verified, mark stateless as true
-	pt.flag |= tc.STATELESS_MASK
+	pt.flag |= ttypes.STATELESS_MASK
 
 	// Add it to the pending transaction list
 	worker.mu.Lock()
 	worker.pendingTxs[tx.Hash()] = pt
 	worker.mu.Unlock()
 
-	worker.sendReq2StatefulV(req)
+	worker.sendStatefulVerifyTxReq(req)
 }
 
 // Start is the main event loop.
 func (worker *txPoolWorker) start() {
-	worker.timer = time.NewTimer(time.Second * tc.EXPIRE_INTERVAL)
+	worker.timer = time.NewTimer(time.Second * ttypes.EXPIRE_INTERVAL)
 	for {
 		select {
 		case <-worker.stopCh:
 			worker.server.wg.Done()
 			return
-		case rcvTx, ok := <-worker.rcvTXCh:
+		case rcvTx, ok := <-worker.rcvTxCh:
 			if ok {
 				// Verify rcvTxn
 				worker.verifyTx(rcvTx)
@@ -310,7 +310,7 @@ func (worker *txPoolWorker) start() {
 		case <-worker.timer.C:
 			worker.handleTimeoutEvent()
 			worker.timer.Stop()
-			worker.timer.Reset(time.Second * tc.EXPIRE_INTERVAL)
+			worker.timer.Reset(time.Second * ttypes.EXPIRE_INTERVAL)
 		case rsp, ok := <-worker.rspCh:
 			if ok {
 				/* Handle the response from validator, if all of cases
@@ -327,8 +327,8 @@ func (worker *txPoolWorker) stop() {
 	if worker.timer != nil {
 		worker.timer.Stop()
 	}
-	if worker.rcvTXCh != nil {
-		close(worker.rcvTXCh)
+	if worker.rcvTxCh != nil {
+		close(worker.rcvTxCh)
 	}
 	if worker.stfTxCh != nil {
 		close(worker.stfTxCh)
