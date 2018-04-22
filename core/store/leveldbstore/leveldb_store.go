@@ -42,8 +42,9 @@ func NewLevelDBStore(file string) (*LevelDBStore, error) {
 
 	// default Options
 	o := opt.Options{
-		NoSync: false,
-		Filter: filter.NewBloomFilter(BITSPERKEY),
+		NoSync:             false,
+		BlockCacheCapacity: 256 << 20,
+		Filter:             filter.NewBloomFilter(BITSPERKEY),
 	}
 
 	db, err := leveldb.OpenFile(file, &o)
