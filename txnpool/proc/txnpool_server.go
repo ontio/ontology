@@ -236,7 +236,8 @@ func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction,
 	// Add the rcvTxn to the worker
 	lb := make(tc.LBSlice, len(s.workers))
 	for i := 0; i < len(s.workers); i++ {
-		entry := tc.LB{Size: len(s.workers[i].pendingTxList),
+		entry := tc.LB{Size: len(s.workers[i].rcvTXCh) +
+			len(s.workers[i].pendingTxList),
 			WorkerID: uint8(i),
 		}
 		lb[i] = entry
@@ -495,7 +496,8 @@ func (s *TXPoolServer) reVerifyStateful(tx *tx.Transaction, sender tc.SenderType
 	// Add the rcvTxn to the worker
 	lb := make(tc.LBSlice, len(s.workers))
 	for i := 0; i < len(s.workers); i++ {
-		entry := tc.LB{Size: len(s.workers[i].pendingTxList),
+		entry := tc.LB{Size: len(s.workers[i].stfTxCh) +
+			len(s.workers[i].pendingTxList),
 			WorkerID: uint8(i),
 		}
 		lb[i] = entry
