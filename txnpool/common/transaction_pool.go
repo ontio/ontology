@@ -27,21 +27,9 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/errors"
 	vt "github.com/ontio/ontology/validator/types"
+	ttypes "github.com/ontio/ontology/txnpool/types"
 )
-
-type TXAttr struct {
-	Height  uint32         // The height in which tx was verified
-	Type    vt.VerifyType  // The validator flag: stateless/stateful
-	ErrCode errors.ErrCode // Verified result
-}
-
-type TXEntry struct {
-	Tx    *types.Transaction // transaction which has been verified
-	Fee   common.Fixed64     // Total fee per transaction
-	Attrs []*TXAttr          // the result from each validator
-}
 
 // TXPool contains all currently valid transactions. Transactions
 // enter the pool when they are valid from the network,
@@ -49,71 +37,71 @@ type TXEntry struct {
 // in the ledger.
 type TXPool struct {
 	sync.RWMutex
-	txList map[common.Uint256]*TXEntry // Transactions which have been verified
+	txEntrys map[common.Uint256]*ttypes.TxEntry // Transactions which have been verified
 }
 
 // Init creates a new transaction pool to gather.
-func (tp *TXPool) Init() {
-	tp.Lock()
-	defer tp.Unlock()
-	tp.txList = make(map[common.Uint256]*TXEntry)
+func (self *TXPool) Init() {
+	self.Lock()
+	defer self.Unlock()
+	self.txEntrys = make(map[common.Uint256]*ttypes.TxEntry)
 }
 
 // AddTxList adds a valid transaction to the transaction pool. If the
 // transaction is already in the pool, just return false. Parameter
 // txEntry includes transaction, fee, and verified information(height,
 // validator, error code).
-func (tp *TXPool) AddTxList(txEntry *TXEntry) bool {
-	tp.Lock()
-	defer tp.Unlock()
+func (self *TXPool) AppendTxEntry(txEntry *ttypes.TxEntry) bool {
+	self.Lock()
+	defer self.Unlock()
 	txHash := txEntry.Tx.Hash()
-	if _, ok := tp.txList[txHash]; ok {
+	if _, ok := self.txEntrys[txHash]; ok {
 		log.Info("Transaction %x already existed in the pool\n", txHash)
 		return false
 	}
 
-	tp.txList[txHash] = txEntry
+	self.txEntrys[txHash] = txEntry
 	return true
 }
 
 // CleanTransactionList cleans the transaction list included in the ledger.
-func (tp *TXPool) CleanTransactionList(txs []*types.Transaction) error {
+func (self *TXPool) RemoveTransactions(txs []*types.Transaction) error {
 	cleaned := 0
 	txsNum := len(txs)
-	tp.Lock()
-	defer tp.Unlock()
+	self.Lock()
+	defer self.Unlock()
 	for _, tx := range txs {
 		if tx.TxType == types.BookKeeping {
 			txsNum = txsNum - 1
 			continue
 		}
-		if _, ok := tp.txList[tx.Hash()]; ok {
-			delete(tp.txList, tx.Hash())
+		if _, ok := self.txEntrys[tx.Hash()]; ok {
+			delete(self.txEntrys, tx.Hash())
 			cleaned++
 		}
 	}
 
 	log.Debug(fmt.Sprintf("[cleanTransactionList],transaction %d Requested,%d cleaned, Remains %d in TxPool",
-		txsNum, cleaned, len(tp.txList)))
+		txsNum, cleaned, len(self.txEntrys)))
 	return nil
 }
 
 // DelTxList removes a single transaction from the pool.
-func (tp *TXPool) DelTxList(tx *types.Transaction) bool {
-	tp.Lock()
-	defer tp.Unlock()
+func (self *TXPool) DeleteTransaction(tx *types.Transaction) bool {
+	self.Lock()
+	defer self.Unlock()
 	txHash := tx.Hash()
-	if _, ok := tp.txList[txHash]; !ok {
+	if _, ok := self.txEntrys[txHash]; !ok {
 		return false
 	}
-	delete(tp.txList, txHash)
+	delete(self.txEntrys, txHash)
 	return true
 }
 
 // compareTxHeight compares a verifed transaction's height with the next
 // block height from consensus. If the height is less than the next block
 // height, re-verify it.
-func (tp *TXPool) compareTxHeight(txEntry *TXEntry, height uint32) bool {
+func (self *TXPool) compareTxHeight(txEntry *ttypes.TxEntry, height uint32) bool {
 	for _, v := range txEntry.Attrs {
 		if v.Type == vt.Statefull &&
 			v.Height < height {
@@ -126,24 +114,24 @@ func (tp *TXPool) compareTxHeight(txEntry *TXEntry, height uint32) bool {
 // GetTxPool gets the transaction lists from the pool for the consensus,
 // if the byCount is marked, return the configured number at most; if the
 // the byCount is not marked, return all of the current transaction pool.
-func (tp *TXPool) GetTxPool(byCount bool, height uint32) ([]*TXEntry,
+func (self *TXPool) GetTxPool(byCount bool, height uint32) ([]*ttypes.TxEntry,
 	[]*types.Transaction) {
-	tp.RLock()
-	defer tp.RUnlock()
+	self.RLock()
+	defer self.RUnlock()
 
 	count := config.Parameters.MaxTxInBlock
 	if count <= 0 {
 		byCount = false
 	}
-	if len(tp.txList) < count || !byCount {
-		count = len(tp.txList)
+	if len(self.txEntrys) < count || !byCount {
+		count = len(self.txEntrys)
 	}
 
 	var num int
-	txList := make([]*TXEntry, 0, count)
+	txList := make([]*ttypes.TxEntry, 0, count)
 	oldTxList := make([]*types.Transaction, 0)
-	for _, txEntry := range tp.txList {
-		if !tp.compareTxHeight(txEntry, height) {
+	for _, txEntry := range self.txEntrys {
+		if !self.compareTxHeight(txEntry, height) {
 			oldTxList = append(oldTxList, txEntry.Tx)
 			continue
 		}
@@ -159,25 +147,25 @@ func (tp *TXPool) GetTxPool(byCount bool, height uint32) ([]*TXEntry,
 
 // GetTransaction returns a transaction if it is contained in the pool
 // and nil otherwise.
-func (tp *TXPool) GetTransaction(hash common.Uint256) *types.Transaction {
-	tp.RLock()
-	defer tp.RUnlock()
-	if tx := tp.txList[hash]; tx == nil {
+func (self *TXPool) GetTransaction(hash common.Uint256) *types.Transaction {
+	self.RLock()
+	defer self.RUnlock()
+	if tx := self.txEntrys[hash]; tx == nil {
 		return nil
 	}
-	return tp.txList[hash].Tx
+	return self.txEntrys[hash].Tx
 }
 
 // GetTxStatus returns a transaction status if it is contained in the pool
 // and nil otherwise.
-func (tp *TXPool) GetTxStatus(hash common.Uint256) *TxStatus {
-	tp.RLock()
-	defer tp.RUnlock()
-	txEntry, ok := tp.txList[hash]
+func (self *TXPool) GetTxStatus(hash common.Uint256) *ttypes.TxStatus {
+	self.RLock()
+	defer self.RUnlock()
+	txEntry, ok := self.txEntrys[hash]
 	if !ok {
 		return nil
 	}
-	ret := &TxStatus{
+	ret := &ttypes.TxStatus{
 		Hash:  hash,
 		Attrs: txEntry.Attrs,
 	}
@@ -185,41 +173,41 @@ func (tp *TXPool) GetTxStatus(hash common.Uint256) *TxStatus {
 }
 
 // GetTransactionCount returns the tx number of the pool.
-func (tp *TXPool) GetTransactionCount() int {
-	tp.RLock()
-	defer tp.RUnlock()
-	return len(tp.txList)
+func (self *TXPool) GetTransactionCount() int {
+	self.RLock()
+	defer self.RUnlock()
+	return len(self.txEntrys)
 }
 
 // GetUnverifiedTxs checks the tx list in the block from consensus,
 // and returns verified tx list, unverified tx list, and
 // the tx list to be re-verified
-func (tp *TXPool) GetUnverifiedTxs(txs []*types.Transaction,
-	height uint32) *CheckBlkResult {
-	tp.Lock()
-	defer tp.Unlock()
-	res := &CheckBlkResult{
-		VerifiedTxs:   make([]*VerifyTxResult, 0, len(txs)),
-		UnverifiedTxs: make([]*types.Transaction, 0),
-		OldTxs:        make([]*types.Transaction, 0),
+func (self *TXPool) GetVerifyBlkResult(txs []*types.Transaction,
+	height uint32) *ttypes.VerifyBlkResult {
+	self.Lock()
+	defer self.Unlock()
+	res := &ttypes.VerifyBlkResult{
+		VerifiedTxs:   make([]*ttypes.VerifyTxResult, 0, len(txs)),
+		UnVerifiedTxs: make([]*types.Transaction, 0),
+		ReVerifyTxs:        make([]*types.Transaction, 0),
 	}
 	for _, tx := range txs {
-		txEntry := tp.txList[tx.Hash()]
+		txEntry := self.txEntrys[tx.Hash()]
 		if txEntry == nil {
-			res.UnverifiedTxs = append(res.UnverifiedTxs,
+			res.UnVerifiedTxs = append(res.UnVerifiedTxs,
 				tx)
 			continue
 		}
 
-		if !tp.compareTxHeight(txEntry, height) {
-			delete(tp.txList, tx.Hash())
-			res.OldTxs = append(res.OldTxs, txEntry.Tx)
+		if !self.compareTxHeight(txEntry, height) {
+			delete(self.txEntrys, tx.Hash())
+			res.ReVerifyTxs = append(res.ReVerifyTxs, txEntry.Tx)
 			continue
 		}
 
 		for _, v := range txEntry.Attrs {
 			if v.Type == vt.Statefull {
-				entry := &VerifyTxResult{
+				entry := &ttypes.VerifyTxResult{
 					Tx:      tx,
 					Height:  v.Height,
 					ErrCode: v.ErrCode,

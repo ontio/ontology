@@ -26,28 +26,28 @@ import (
 )
 
 // message
-type RegisterValidator struct {
+type RegisterValidatorReq struct {
 	Sender *actor.PID
 	Type   VerifyType
 	Id     string
 }
 
-type UnRegisterValidator struct {
+type UnRegisterValidatorReq struct {
 	Id   string
 	Type VerifyType
 }
 
-type UnRegisterAck struct {
+type UnRegisterValidatorRsp struct {
 	Id   string
 	Type VerifyType
 }
 
-type CheckTx struct {
+type VerifyTxReq struct {
 	WorkerId uint8
 	Tx       types.Transaction
 }
 
-type CheckResponse struct {
+type VerifyTxRsp struct {
 	WorkerId uint8
 	Type     VerifyType
 	Hash     common.Uint256

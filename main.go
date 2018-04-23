@@ -48,7 +48,7 @@ import (
 	"github.com/ontio/ontology/net"
 	"github.com/ontio/ontology/net/protocol"
 	"github.com/ontio/ontology/txnpool"
-	tc "github.com/ontio/ontology/txnpool/common"
+	ttypes "github.com/ontio/ontology/txnpool/types"
 	"github.com/ontio/ontology/validator/statefull"
 	"github.com/ontio/ontology/validator/stateless"
 	"github.com/urfave/cli"
@@ -166,16 +166,16 @@ func ontMain(ctx *cli.Context) {
 		os.Exit(1)
 	}
 
-	stlValidator, _ := stateless.NewValidator("stateless_validator")
-	stlValidator.Register(txPoolServer.GetPID(tc.VerifyRspActor))
+	stlValidator, _ := stateless.NewStatelessValidator("stateless_validator")
+	stlValidator.Register(txPoolServer.GetPID(ttypes.VerifyRspActor))
 
-	stfValidator, _ := statefull.NewValidator("statefull_validator")
-	stfValidator.Register(txPoolServer.GetPID(tc.VerifyRspActor))
+	stfValidator, _ := statefull.NewStatefulValidator("statefull_validator")
+	stfValidator.Register(txPoolServer.GetPID(ttypes.VerifyRspActor))
 
 	log.Info("4. Start the P2P networks")
 
 	net.SetLedgerPid(ledgerPID)
-	net.SetTxnPoolPid(txPoolServer.GetPID(tc.TxActor))
+	net.SetTxnPoolPid(txPoolServer.GetPID(ttypes.TxActor))
 	noder = net.StartProtocol(acct.PublicKey)
 	if err != nil {
 		log.Fatalf("Net StartProtocol error %s", err)
@@ -187,12 +187,12 @@ func ontMain(ctx *cli.Context) {
 		os.Exit(1)
 	}
 
-	txPoolServer.RegisterActor(tc.NetActor, p2pActor)
+	txPoolServer.RegisterActor(ttypes.NetActor, p2pActor)
 
 	hserver.SetNetServerPid(p2pActor)
 	hserver.SetLedgerPid(ledgerPID)
-	hserver.SetTxnPoolPid(txPoolServer.GetPID(tc.TxPoolActor))
-	hserver.SetTxPid(txPoolServer.GetPID(tc.TxActor))
+	hserver.SetTxnPoolPid(txPoolServer.GetPID(ttypes.TxPoolActor))
+	hserver.SetTxPid(txPoolServer.GetPID(ttypes.TxActor))
 	go restful.StartServer()
 
 	noder.SyncNodeHeight()
@@ -200,7 +200,7 @@ func ontMain(ctx *cli.Context) {
 	noder.WaitForSyncBlkFinish()
 	if protocol.SERVICE_NODE_NAME != config.Parameters.NodeType {
 		log.Info("5. Start Consensus Services")
-		pool := txPoolServer.GetPID(tc.TxPoolActor)
+		pool := txPoolServer.GetPID(ttypes.TxPoolActor)
 		consensusService, _ := consensus.NewConsensusService(acct, pool, nil, p2pActor)
 		net.SetConsensusPid(consensusService.GetPID())
 		go consensusService.Start()

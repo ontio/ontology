@@ -25,7 +25,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
-	tc "github.com/ontio/ontology/txnpool/common"
+	ttypes "github.com/ontio/ontology/txnpool/types"
 	"github.com/ontio/ontology-eventbus/actor"
 )
 
@@ -38,79 +38,79 @@ func SetTxnPoolPid(txnPid *actor.PID) {
 }
 
 func AddTransaction(transaction *types.Transaction) {
-	txReq := &tc.TxReq{
+	txReq := &ttypes.AppendTxReq{
 		Tx:     transaction,
-		Sender: tc.NetSender,
+		Sender: ttypes.NetSender,
 	}
 	txnPoolPid.Tell(txReq)
 }
 
-func GetTxnPool(byCount bool) ([]*tc.TXEntry, error) {
-	future := txnPoolPid.RequestFuture(&tc.GetTxnPoolReq{ByCount: byCount}, txnPoolReqTimeout)
+func GetTxnPool(byCount bool) ([]*ttypes.TxEntry, error) {
+	future := txnPoolPid.RequestFuture(&ttypes.GetTxnPoolReq{ByCount: byCount}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return nil, err
 	}
-	return result.(tc.GetTxnPoolRsp).TxnPool, nil
+	return result.(ttypes.GetTxnPoolRsp).TxnPool, nil
 }
 
 func GetTransaction(hash common.Uint256) (*types.Transaction, error) {
-	future := txnPoolPid.RequestFuture(&tc.GetTxnReq{Hash: hash}, txnPoolReqTimeout)
+	future := txnPoolPid.RequestFuture(&ttypes.GetTxnReq{Hash: hash}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return nil, err
 	}
-	return result.(tc.GetTxnRsp).Txn, nil
+	return result.(ttypes.GetTxnRsp).Txn, nil
 }
 
 func CheckTransaction(hash common.Uint256) (bool, error) {
-	future := txnPoolPid.RequestFuture(&tc.CheckTxnReq{Hash: hash}, txnPoolReqTimeout)
+	future := txnPoolPid.RequestFuture(&ttypes.CheckTxnReq{Hash: hash}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return false, err
 	}
-	return result.(tc.CheckTxnRsp).Ok, nil
+	return result.(ttypes.CheckTxnRsp).Ok, nil
 }
 
-func GetTransactionStatus(hash common.Uint256) ([]*tc.TXAttr, error) {
-	future := txnPoolPid.RequestFuture(&tc.GetTxnStatusReq{Hash: hash}, txnPoolReqTimeout)
+func GetTransactionStatus(hash common.Uint256) ([]*ttypes.VerifyResult, error) {
+	future := txnPoolPid.RequestFuture(&ttypes.GetTxnStatusReq{Hash: hash}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return nil, err
 	}
-	return result.(tc.GetTxnStatusRsp).TxStatus, nil
+	return result.(ttypes.GetTxnStatusRsp).VerifyResults, nil
 }
 
 func GetPendingTxn(byCount bool) ([]*types.Transaction, error) {
-	future := txnPoolPid.RequestFuture(&tc.GetPendingTxnReq{ByCount: byCount}, txnPoolReqTimeout)
+	future := txnPoolPid.RequestFuture(&ttypes.GetPendingTxnReq{ByCount: byCount}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return nil, err
 	}
-	return result.(tc.GetPendingTxnRsp).Txs, nil
+	return result.(ttypes.GetPendingTxnRsp).Txs, nil
 }
 
-func VerifyBlock(height uint32, txs []*types.Transaction) ([]*tc.VerifyTxResult, error) {
-	future := txnPoolPid.RequestFuture(&tc.VerifyBlockReq{Height: height, Txs: txs}, txnPoolReqTimeout)
+func VerifyBlock(height uint32, txs []*types.Transaction) ([]*ttypes.VerifyTxResult, error) {
+	future := txnPoolPid.RequestFuture(&ttypes.VerifyBlockReq{Height: height, Txs: txs}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return nil, err
 	}
-	return result.(tc.VerifyBlockRsp).TxnPool, nil
+	return result.(ttypes.VerifyBlockRsp).TxResults, nil
 }
 
 func GetTransactionStats(hash common.Uint256) ([]uint64, error) {
-	future := txnPoolPid.RequestFuture(&tc.GetTxnStats{}, txnPoolReqTimeout)
+	future := txnPoolPid.RequestFuture(&ttypes.GetTxnStats{}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return nil, err
 	}
-	return result.(tc.GetTxnStatsRsp).Count, nil
+	return result.(ttypes.GetTxnStatsRsp).Count, nil
 }
