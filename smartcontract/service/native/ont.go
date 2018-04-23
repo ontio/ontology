@@ -39,6 +39,10 @@ var (
 	ONT_TOTAL_SUPPLY = big.NewInt(1000000000)
 )
 
+func init() {
+	Contracts[genesis.OntContractAddress] = RegisterOntContract
+}
+
 func OntInit(native *NativeService) error {
 	booKeepers := account.GetBookkeepers()
 
@@ -182,4 +186,11 @@ func getApproveArgs(native *NativeService, contract, ongContract, address common
 		return nil, err
 	}
 	return bf.Bytes(), nil
+}
+
+func RegisterOntContract(native *NativeService) {
+	native.Register("init", OntInit)
+	native.Register("transfer", OntTransfer)
+	native.Register("approve", OntApprove)
+	native.Register("transferFrom", OntTransferFrom)
 }
