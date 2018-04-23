@@ -41,7 +41,7 @@ func OpenBlockStore(lgr *actor.LedgerActor) (*ChainStore, error) {
 	}, nil
 }
 
-func (self *ChainStore) Close() {
+func (self *ChainStore) close() {
 	// TODO: any action on ledger actor??
 }
 

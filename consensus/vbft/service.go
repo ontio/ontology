@@ -105,8 +105,9 @@ type Server struct {
 	bftActionC chan *BftAction
 	msgSendC   chan *SendMsgEvent
 	sub        *events.ActorSubscriber
-	quitC      chan interface{}
+	quitC      chan struct{}
 	quit       bool
+	quitWg     sync.WaitGroup
 }
 
 func NewVbftServer(account *account.Account, txpool, ledger, p2p *actor.PID) (*Server, error) {
@@ -344,7 +345,7 @@ func (self *Server) start() error {
 	self.msgC = make(chan ConsensusMsg, 64)
 	self.bftActionC = make(chan *BftAction, 8)
 	self.msgSendC = make(chan *SendMsgEvent, 16)
-	self.quitC = make(chan interface{})
+	self.quitC = make(chan struct{})
 	if err := self.LoadChainConfig(store); err != nil {
 		log.Errorf("failed to load config: %s", err)
 		return fmt.Errorf("failed to load config: %s", err)
@@ -368,6 +369,9 @@ func (self *Server) start() error {
 	go self.timerLoop()
 	go self.actionLoop()
 	go func() {
+		self.quitWg.Add(1)
+		defer self.quitWg.Done()
+
 		for {
 			if err := self.processMsgEvent(); err != nil {
 				log.Errorf("server %d: %s", self.Index, err)
@@ -384,14 +388,28 @@ func (self *Server) start() error {
 
 	log.Infof("peer %d started", self.Index)
 
+	// TODO: start peer-conn-handlers
+
 	return nil
 }
 
 func (self *Server) stop() error {
 
-	// TODO
 	self.incrValidator.Clean()
 	self.sub.Unsubscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
+
+	// stop syncer, statemgr, msgSendLoop, timer, actionLoop, msgProcessingLoop
+	self.quit = true
+	close(self.quitC)
+	self.quitWg.Wait()
+
+	self.syncer.stop()
+	self.timer.stop()
+	self.msgPool.clean()
+	self.blockPool.clean()
+	self.chainStore.close()
+	self.peerPool.clean()
+
 	return nil
 }
 
@@ -1088,13 +1106,17 @@ func (self *Server) processMsgEvent() error {
 				// FIXME: add msg from msg-pool to block-pool when starting new block-round
 			}
 		}
+
 	case <-self.quitC:
-		self.quit = true
+		return fmt.Errorf("server %d, processMsgEvent loop quit", self.Index)
 	}
 	return nil
 }
 
 func (self *Server) actionLoop() {
+	self.quitWg.Add(1)
+	defer self.quitWg.Done()
+
 	for {
 		select {
 		case action := <-self.bftActionC:
@@ -1319,11 +1341,17 @@ func (self *Server) actionLoop() {
 					}
 				}
 			}
+
+		case <-self.quitC:
+			break
 		}
 	}
 }
 
 func (self *Server) timerLoop() {
+	self.quitWg.Add(1)
+	defer self.quitWg.Done()
+
 	for {
 		select {
 		case evt := <-self.timer.C:
@@ -1765,6 +1793,9 @@ func (self *Server) sealBlock(block *Block, empty bool) error {
 }
 
 func (self *Server) msgSendLoop() {
+	self.quitWg.Add(1)
+	defer self.quitWg.Done()
+
 	for {
 		select {
 		case evt := <-self.msgSendC:
@@ -1786,6 +1817,7 @@ func (self *Server) msgSendLoop() {
 			}
 
 		case <-self.quitC:
+			log.Infof("server %d msg send loop quit", self.Index)
 			break
 		}
 	}

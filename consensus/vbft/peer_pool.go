@@ -58,6 +58,15 @@ func NewPeerPool(maxSize int, server *Server) *PeerPool {
 	}
 }
 
+func (pool *PeerPool) clean() {
+	pool.lock.Lock()
+	defer pool.lock.Unlock()
+
+	pool.configs = make(map[uint32]*vconfig.PeerConfig)
+	pool.IDMap = make(map[vconfig.NodeID]uint32)
+	pool.peers = make(map[uint32]*Peer)
+}
+
 func (pool *PeerPool) isNewPeer(peerIdx uint32) bool {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()

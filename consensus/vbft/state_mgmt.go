@@ -110,6 +110,9 @@ func (self *StateMgr) run() {
 	})
 
 	// wait config done
+	self.server.quitWg.Add(1)
+	defer self.server.quitWg.Done()
+
 	for {
 		select {
 		case evt := <-self.StateEventC:
@@ -161,6 +164,10 @@ func (self *StateMgr) run() {
 					log.Errorf("server %d, live ticker: %s", self.server.Index, err)
 				}
 			}
+
+		case <-self.server.quitC:
+			log.Infof("server %d, state mgr quit", self.server.Index)
+			return
 		}
 	}
 }

@@ -108,7 +108,7 @@ func stopAllTimers(timers map[uint64]*time.Timer) {
 	}
 }
 
-func (self *EventTimer) Stop() {
+func (self *EventTimer) stop() {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 

@@ -93,6 +93,13 @@ func newBlockPool(historyLen uint64, store *ChainStore) (*BlockPool, error) {
 	return pool, nil
 }
 
+func (pool *BlockPool) clean() {
+	pool.lock.Lock()
+	defer pool.lock.Unlock()
+
+	pool.candidateBlocks = make(map[uint64]*CandidateInfo)
+}
+
 func (pool *BlockPool) getCandidateInfoLocked(blkNum uint64) *CandidateInfo {
 
 	// NOTE: call this function only when pool.lock locked
