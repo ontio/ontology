@@ -93,7 +93,23 @@ func newSyncer(server *Server) *Syncer {
 	}
 }
 
+func (self *Syncer) stop() {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+
+	close(self.syncCheckReqC)
+	close(self.blockSyncReqC)
+	close(self.syncMsgC)
+	close(self.blockFromPeerC)
+
+	self.peers = make(map[uint32]*PeerSyncer)
+	self.pendingBlocks = make(map[uint64]BlockFromPeers)
+}
+
 func (self *Syncer) run() {
+	self.server.quitWg.Add(1)
+	defer self.server.quitWg.Done()
+
 	for {
 		select {
 		case <-self.syncCheckReqC:
@@ -154,7 +170,7 @@ func (self *Syncer) run() {
 					self.server.Index, self.nextReqBlkNum, blk.getProposer(), hex.EncodeToString(prevHash.ToArray()[:4]))
 				if err := self.server.fastForwardBlock(blk); err != nil {
 					log.Errorf("server %d syncer, fastforward block %d failed %s",
-						self.server.incrValidator, self.nextReqBlkNum, err)
+						self.server.Index, self.nextReqBlkNum, err)
 					break
 				}
 				delete(self.pendingBlocks, self.nextReqBlkNum)
@@ -170,6 +186,10 @@ func (self *Syncer) run() {
 				self.nextReqBlkNum = 1
 				self.targetBlkNum = 0
 			}
+
+		case <-self.server.quitC:
+			log.Infof("server %d, syncer quit", self.server.Index)
+			return
 		}
 	}
 }
@@ -381,6 +401,8 @@ func (self *PeerSyncer) requestBlock(blkNum uint64) (*Block, error) {
 		}
 	case <-t.C:
 		return nil, fmt.Errorf("timeout fetch block %d from peer %d", blkNum, self.peerIdx)
+	case <-self.server.quitC:
+		return nil, fmt.Errorf("server %d quit, failed fetching Block %d", self.server.Index, blkNum)
 	}
 	return nil, fmt.Errorf("failed to get Block %d from peer %d", blkNum, self.peerIdx)
 }
@@ -411,6 +433,8 @@ func (self *PeerSyncer) requestBlockInfo(startBlkNum uint64) ([]*BlockInfo_, err
 		}
 	case <-t.C:
 		return nil, fmt.Errorf("timeout fetch blockInfo %d from peer %d", startBlkNum, self.peerIdx)
+	case <-self.server.quitC:
+		return nil, fmt.Errorf("server %d quit, failed fetching BlockInfo %d", self.server.Index, startBlkNum)
 	}
 	return nil, nil
 }

@@ -91,6 +91,13 @@ func newMsgPool(server *Server, historyLen uint64) *MsgPool {
 	}
 }
 
+func (pool *MsgPool) clean() {
+	pool.lock.Lock()
+	defer pool.lock.Unlock()
+
+	pool.rounds = make(map[uint64]*ConsensusRound)
+}
+
 func (pool *MsgPool) AddMsg(msg ConsensusMsg) error {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
