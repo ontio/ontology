@@ -90,11 +90,52 @@ func newDefaultConfig() *Configuration {
 
 var Parameters *Configuration
 
+// Polaris test net config
+func newPolarisConfig() *Configuration {
+	testnet := ` {
+  "Configuration": {
+    "Magic": 7630401,
+    "Version": 23,
+    "SeedList": [
+      "polaris1.ont.io:20338",
+      "polaris2.ont.io:20338",
+      "polaris3.ont.io:20338",
+      "polaris4.ont.io:20338"
+    ],
+    "Bookkeepers": [
+	  "12020384d843c02ecef233d3dd3bc266ee0d1a67cf2a1666dc1b2fb455223efdee7452",
+	  "120203fab19438e18d8a5bebb6cd3ede7650539e024d7cc45c88b95ab13f8266ce9570",
+	  "120203c43f136596ee666416fedb90cde1e0aee59a79ec18ab70e82b73dd297767eddf",
+	  "120202a76a434b18379e3bda651b7c04e972dadc4760d1156b5c86b3c4d27da48c91a1"
+    ],
+    "HttpRestPort": 20334,
+    "HttpWsPort":20335,
+    "HttpJsonPort": 20336,
+    "HttpLocalPort": 20337,
+    "NodePort": 20338,
+    "NodeConsensusPort": 20339,
+    "PrintLevel": 1,
+    "IsTLS": false,
+    "MaxTransactionInBlock": 60000,
+    "ConsensusType":"dbft",
+    "MultiCoreNum": 4
+  }
+} `
+
+	config := configFile{}
+	e := json.Unmarshal([]byte(testnet), &config)
+	if e != nil {
+		panic("wrong config file")
+	}
+
+	return &config.ConfigFile
+}
+
 func init() {
 	file, e := ioutil.ReadFile(DEFAULT_CONFIG_FILE_NAME)
 	if e != nil {
-		log.Printf("[ERROR] %v, use default config\n", DEFAULT_CONFIG_FILE_NAME)
-		Parameters = newDefaultConfig()
+		log.Printf("[WARN] %v, use default config\n", e)
+		Parameters = newPolarisConfig()
 		return
 	}
 
