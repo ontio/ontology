@@ -47,7 +47,7 @@ type pendingTxInfo struct {
 type txPoolWorker struct {
 	mu            sync.RWMutex
 	workId        uint8                             // Worker ID
-	receivedTxCh  chan *tx.Transaction              // The channel of receive transaction
+	statelessTxCh chan *tx.Transaction              // The channel of receive transaction
 	statefulTxCh  chan *tx.Transaction              // The channel of txs to be re-verified stateful
 	verifyTxRspCh chan *vtypes.VerifyTxRsp          // The channel of verified response
 	txPoolServer  *TxPoolServer                     // The txn pool server pointer
@@ -58,7 +58,7 @@ type txPoolWorker struct {
 
 // init initializes the worker with the configured settings
 func (self *txPoolWorker) init(workID uint8, s *TxPoolServer) {
-	self.receivedTxCh = make(chan *tx.Transaction, ttypes.MAX_PENDING_TXN)
+	self.statelessTxCh = make(chan *tx.Transaction, ttypes.MAX_PENDING_TXN)
 	self.statefulTxCh = make(chan *tx.Transaction, ttypes.MAX_PENDING_TXN)
 	self.pendingTxs = make(map[common.Uint256]*pendingTxInfo)
 	self.verifyTxRspCh = make(chan *vtypes.VerifyTxRsp, ttypes.MAX_PENDING_TXN)
@@ -97,15 +97,15 @@ func (self *txPoolWorker) handleValidatorRsp(rsp *vtypes.VerifyTxRsp) {
 	if rsp.ErrCode != errors.ErrNoError {
 		//Verify fail
 		log.Info(fmt.Sprintf("Validator %d: Transaction %x invalid: %s",
-			rsp.Type, rsp.Hash, rsp.ErrCode.Error()))
+			rsp.VerifyType, rsp.Hash, rsp.ErrCode.Error()))
 		delete(self.pendingTxs, rsp.Hash)
 		self.txPoolServer.removePendingTx(rsp.Hash, rsp.ErrCode)
 		return
 	}
 
-	if ptx.flag&(0x1<<rsp.Type) == 0 {
-		ptx.flag |= (0x1 << rsp.Type)
-		ptx.verifyResults = append(ptx.verifyResults, &ttypes.VerifyResult{rsp.Height, rsp.Type, rsp.ErrCode})
+	if ptx.flag&(0x1<<rsp.VerifyType) == 0 {
+		ptx.flag |= (0x1 << rsp.VerifyType)
+		ptx.verifyResults = append(ptx.verifyResults, &ttypes.VerifyResult{rsp.Height, rsp.VerifyType, rsp.ErrCode})
 	}
 
 	if ptx.flag&0xf == ttypes.VERIFY_MASK {
@@ -131,7 +131,7 @@ func (self *txPoolWorker) handleTimeoutEvent() {
 		if v.flag&0xf != ttypes.VERIFY_MASK && (time.Now().Sub(v.verifyTime)/time.Second) >=
 			ttypes.EXPIRE_INTERVAL {
 			if v.retries < ttypes.MAX_RETRIES {
-				self.reVerifyTx(k)
+				self.reVerifyStatelessTx(k)
 				v.retries++
 			} else {
 				log.Infof("Retry to verify transaction exhausted %x", k.ToArray())
@@ -145,7 +145,7 @@ func (self *txPoolWorker) handleTimeoutEvent() {
 }
 
 // verifyTx prepares a check request and sends it to the validators.
-func (self *txPoolWorker) verifyTx(tx *tx.Transaction) {
+func (self *txPoolWorker) verifyStatelessTx(tx *tx.Transaction) {
 	if tx := self.txPoolServer.GetTxFromPool(tx.Hash()); tx != nil {
 		log.Info(fmt.Sprintf("Transaction %x already in the txn pool",
 			tx.Hash()))
@@ -164,7 +164,7 @@ func (self *txPoolWorker) verifyTx(tx *tx.Transaction) {
 		Tx:       *tx,
 	}
 
-	self.txPoolServer.sendVerifyStatelessTxReq(req)
+	self.txPoolServer.sender.SendVerifyTxReq(vtypes.Stateless, req)
 
 	// Construct the pending transaction
 	ptx := &pendingTxInfo{
@@ -181,14 +181,14 @@ func (self *txPoolWorker) verifyTx(tx *tx.Transaction) {
 }
 
 // reVerifyTx re-sends a check request to the validators.
-func (self *txPoolWorker) reVerifyTx(txHash common.Uint256) {
+func (self *txPoolWorker) reVerifyStatelessTx(txHash common.Uint256) {
 	pt, ok := self.pendingTxs[txHash]
 	if !ok {
 		return
 	}
 
 	if pt.flag&0xf != ttypes.VERIFY_MASK {
-		self.txPoolServer.sendVerifyStatelessTxReq(pt.req)
+		self.txPoolServer.sender.SendVerifyTxReq(vtypes.Stateless, pt.req)
 	}
 
 	// Update the verifying time
@@ -226,7 +226,7 @@ func (self *txPoolWorker) verifyStatefulTx(tx *tx.Transaction) {
 	self.pendingTxs[tx.Hash()] = pendingtx
 	self.mu.Unlock()
 
-	self.txPoolServer.sendVerifyStatefulTxReq(req)
+	self.txPoolServer.sender.SendVerifyTxReq(vtypes.Stateless, req)
 }
 
 // Start is the main event loop.
@@ -237,14 +237,14 @@ func (self *txPoolWorker) start() {
 		case <-self.stopCh:
 			self.txPoolServer.wg.Done()
 			return
-		case rcvTx, ok := <-self.receivedTxCh:
+		case tx, ok := <-self.statelessTxCh:
 			if ok {
 				// Verify rcvTxn
-				self.verifyTx(rcvTx)
+				self.verifyStatelessTx(tx)
 			}
-		case stfTx, ok := <-self.statefulTxCh:
+		case tx, ok := <-self.statefulTxCh:
 			if ok {
-				self.verifyStatefulTx(stfTx)
+				self.verifyStatefulTx(tx)
 			}
 		case <-self.timer.C:
 			self.handleTimeoutEvent()
@@ -266,8 +266,8 @@ func (self *txPoolWorker) stop() {
 	if self.timer != nil {
 		self.timer.Stop()
 	}
-	if self.receivedTxCh != nil {
-		close(self.receivedTxCh)
+	if self.statelessTxCh != nil {
+		close(self.statelessTxCh)
 	}
 	if self.statefulTxCh != nil {
 		close(self.statefulTxCh)

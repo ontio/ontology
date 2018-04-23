@@ -15,8 +15,8 @@ const (
 	MAX_RETRIES     = 0                                // The retry times to verify tx
 	EXPIRE_INTERVAL = 9                                // The timeout that verify tx
 	STATELESS_MASK  = 0x1                              // The mask of stateless validator
-	STATEFULL_MASK  = 0x2                              // The mask of stateful validator
-	VERIFY_MASK     = STATELESS_MASK | STATEFULL_MASK  // The mask that indicates tx valid
+	STATEFUL_MASK  = 0x2                              // The mask of stateful validator
+	VERIFY_MASK     = STATELESS_MASK | STATEFUL_MASK  // The mask that indicates tx valid
 	MAX_LIMITATION  = 10000                            // The length of pending tx from net and http
 )
 
@@ -25,7 +25,6 @@ type ActorType uint8
 
 const (
 	_              ActorType = iota
-	TxStatusActor   // Actor that handles new transaction
 	TxPoolActor     // Actor that handles consensus msg
 	VerifyRspActor  // Actor that handles the response from valdiators
 	NetActor        // Actor to send msg to the net actor

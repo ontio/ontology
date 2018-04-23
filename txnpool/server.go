@@ -28,6 +28,7 @@ import (
 	ttypes "github.com/ontio/ontology/txnpool/types"
 	"github.com/ontio/ontology/txnpool/proc"
 	tactor "github.com/ontio/ontology/txnpool/actor"
+	tcomn "github.com/ontio/ontology/txnpool/common"
 )
 
 // startActor starts an actor with the proxy and unique id,
@@ -48,22 +49,23 @@ func startActor(obj interface{}, id string) *actor.PID {
 // StartTxnPoolServer starts the txnpool server and registers
 // actors to handle the msgs from the network, http, consensus
 // and validators. Meanwhile subscribes the block complete  event.
-func StartTxnPoolServer() *proc.TxPoolServer {
+func StartTxnPoolServer() *tcomn.Sender {
 	var svr *proc.TxPoolServer
 
+	sender := tcomn.NewSender()
 	/* Start txnpool server to receive msgs from p2p,
 	 * consensus and valdiators
 	 */
-	svr = proc.NewTxPoolServer(ttypes.MAX_WORKER_NUM)
+	svr = proc.NewTxPoolServer(sender,ttypes.MAX_WORKER_NUM)
 
 	// Initialize an actor to handle the msgs from valdiators
-	rspActor := tactor.NewVerifyRspActor(svr)
+	rspActor := tactor.NewVerifyRspActor(sender,svr)
 	rspPid := startActor(rspActor, "txVerifyRsp")
 	if rspPid == nil {
 		log.Error("Fail to start verify rsp actor")
 		return nil
 	}
-	svr.RegisterActor(ttypes.VerifyRspActor, rspPid)
+	sender.RegisterActor(ttypes.VerifyRspActor, rspPid)
 
 	// Initialize an actor to handle the msgs from consensus
 	tpa := tactor.NewTxPoolActor(svr)
@@ -72,19 +74,10 @@ func StartTxnPoolServer() *proc.TxPoolServer {
 		log.Error("Fail to start txnpool actor")
 		return nil
 	}
-	svr.RegisterActor(ttypes.TxPoolActor, txPoolPid)
-
-	// Initialize an actor to handle the msgs from p2p and api
-	ta := tactor.NewTxActor(svr)
-	txPid := startActor(ta, "tx")
-	if txPid == nil {
-		log.Error("Fail to start txn actor")
-		return nil
-	}
-	svr.RegisterActor(ttypes.TxStatusActor, txPid)
+	sender.RegisterActor(ttypes.TxPoolActor, txPoolPid)
 
 	// Subscribe the block complete event
 	var sub = events.NewActorSubscriber(txPoolPid)
 	sub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
-	return svr
+	return sender
 }

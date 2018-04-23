@@ -64,7 +64,7 @@ func (self *StatelessValidator) Receive(context actor.Context) {
 			WorkerId: msg.WorkerId,
 			ErrCode:  errCode,
 			Hash:     msg.Tx.Hash(),
-			Type:     self.VerifyType(),
+			VerifyType:     self.VerifyType(),
 			Height:   0,
 		}
 

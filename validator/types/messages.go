@@ -41,13 +41,13 @@ type RegisterValidatorReq struct {
 }
 
 type UnRegisterValidatorReq struct {
-	Id   string
-	Type VerifyType
+	Id         string
+	VerifyType VerifyType
 }
 
 type UnRegisterValidatorRsp struct {
-	Id   string
-	Type VerifyType
+	Id         string
+	VerifyType VerifyType
 }
 
 type VerifyTxReq struct {
@@ -56,9 +56,9 @@ type VerifyTxReq struct {
 }
 
 type VerifyTxRsp struct {
-	WorkerId uint8
-	Type     VerifyType
-	Hash     common.Uint256
-	Height   uint32
-	ErrCode  errors.ErrCode
+	WorkerId   uint8
+	VerifyType VerifyType
+	Hash       common.Uint256
+	Height     uint32
+	ErrCode    errors.ErrCode
 }

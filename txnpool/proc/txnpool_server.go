@@ -52,38 +52,23 @@ type pendingBlock struct {
 	unProcessedTxs map[common.Uint256]*ctypes.Transaction // Transaction which is not processed
 }
 
-type validator struct {
-	Validator *actor.PID
-	Type      vtypes.VerifyType
-	Id        string
-}
-type validators struct {
-	sync.RWMutex
-	entries    map[vtypes.VerifyType][]*validator // Registered validator container
-	robinState map[vtypes.VerifyType]int          // Keep the round robin index for each verify type
-}
-
 // TXPoolServer contains all api to external modules
 type TxPoolServer struct {
-	mu             sync.RWMutex               // Sync mutex
-	wg             sync.WaitGroup             // Worker sync
-	workers        []txPoolWorker             // Worker pool
-	txPool         *TxPool                    // The tx pool that holds the valid transaction
-	pendingTxs     map[common.Uint256]*TxInfo // The txs that server is processing
-	pendingBlock   *pendingBlock              // The block that server is processing
-	txPoolActor    *actor.PID
-	txStatusActor  *actor.PID
-	verifyRspActor *actor.PID
-	netActor       *actor.PID
-	validatorActor *validators   // The registered validators
-	txStatistics   statistics    // The transaction statstics
-	Slots          chan struct{} // The limited slots for the new transaction
+	mu           sync.RWMutex               // Sync mutex
+	wg           sync.WaitGroup             // Worker sync
+	workers      []txPoolWorker             // Worker pool
+	txPool       *TxPool                    // The tx pool that holds the valid transaction
+	pendingTxs   map[common.Uint256]*TxInfo // The txs that server is processing
+	pendingBlock *pendingBlock              // The block that server is processing
+	sender       *tcomn.Sender
+	txStatistics statistics    // The transaction statstics
+	Slots        chan struct{} // The limited slots for the new transaction
 }
 
 // NewTxPoolServer creates a new tx pool server to schedule workers to
 // handle and filter inbound transactions from the network, http, and consensus.
-func NewTxPoolServer(num uint8) *TxPoolServer {
-	s := &TxPoolServer{}
+func NewTxPoolServer(sender *tcomn.Sender, num uint8) *TxPoolServer {
+	s := &TxPoolServer{sender: sender}
 	s.init(num)
 	return s
 }
@@ -95,11 +80,6 @@ func (self *TxPoolServer) init(num uint8) {
 	self.txPool.Init()
 	self.pendingTxs = make(map[common.Uint256]*TxInfo)
 	//self.actors = make(map[ttypes.ActorType]*actor.PID)
-
-	self.validatorActor = &validators{
-		entries:    make(map[vtypes.VerifyType][]*validator),
-		robinState: make(map[vtypes.VerifyType]int),
-	}
 
 	self.pendingBlock = &pendingBlock{
 		processedTxs:   make(map[common.Uint256]*ttypes.TxResult, 0),
@@ -179,10 +159,7 @@ func (self *TxPoolServer) removePendingTx(hash common.Uint256,
 	}
 
 	if err == errors.ErrNoError && pt.from == ttypes.HttpSender {
-		pid := self.netActor
-		if pid != nil {
-			pid.Tell(pt.tx)
-		}
+		self.sender.SendTxToNetActor(pt.tx)
 	}
 
 	delete(self.pendingTxs, hash)
@@ -215,27 +192,15 @@ func (self *TxPoolServer) putPendingTx(tx *ctypes.Transaction,
 		return false
 	}
 
-	pt := &TxInfo{
+	ptx := &TxInfo{
 		tx:   tx,
 		from: from,
 	}
 
-	self.pendingTxs[tx.Hash()] = pt
+	self.pendingTxs[tx.Hash()] = ptx
 	return true
 }
-
-// assignTxToWorker assigns a new transaction to a worker by LB
-func (self *TxPoolServer) AssignTxToWorker(tx *ctypes.Transaction,
-	sender ttypes.SenderType) bool {
-
-	if tx == nil {
-		return false
-	}
-
-	if ok := self.putPendingTx(tx, sender); !ok {
-		self.Increase(ttypes.Duplicate)
-		return false
-	}
+func (self *TxPoolServer) getWorkId() uint8 {
 	// Add the rcvTxn to the worker
 	lb := make(tcomn.LoadBalances, len(self.workers))
 	for i := 0; i < len(self.workers); i++ {
@@ -245,14 +210,33 @@ func (self *TxPoolServer) AssignTxToWorker(tx *ctypes.Transaction,
 		lb[i] = entry
 	}
 	sort.Sort(lb)
-	self.workers[lb[0].WorkerID].receivedTxCh <- tx
+	return lb[0].WorkerID
+}
+func (self *TxPoolServer) PutTransaction(tx *ctypes.Transaction,
+	from ttypes.SenderType) bool {
+	return self.assignTxToWorker(tx, from)
+}
+
+// assignTxToWorker assigns a new transaction to a worker by LB
+func (self *TxPoolServer) assignTxToWorker(tx *ctypes.Transaction,
+	from ttypes.SenderType) bool {
+
+	if tx == nil {
+		return false
+	}
+
+	if ok := self.putPendingTx(tx, from); !ok {
+		self.Increase(ttypes.Duplicate)
+		return false
+	}
+	id := self.getWorkId()
+	self.workers[id].statelessTxCh <- tx
 	return true
 }
 
 // assignRspToWorker assigns a check response from the validator to
 // the correct worker.
-func (self *TxPoolServer) AssignRspToWorker(rsp *vtypes.VerifyTxRsp) bool {
-
+func (self *TxPoolServer) PutVerifyTxRsp(rsp *vtypes.VerifyTxRsp) bool {
 	if rsp == nil {
 		return false
 	}
@@ -265,131 +249,13 @@ func (self *TxPoolServer) AssignRspToWorker(rsp *vtypes.VerifyTxRsp) bool {
 		self.Increase(ttypes.Success)
 	} else {
 		self.Increase(ttypes.Failure)
-		if rsp.Type == vtypes.Stateless {
+		if rsp.VerifyType == vtypes.Stateless {
 			self.Increase(ttypes.SigErr)
 		} else {
 			self.Increase(ttypes.StateErr)
 		}
 	}
 	return true
-}
-
-// GetPID returns an actor pid with the actor type, If the type
-// doesn't exist, return nil.
-func (self *TxPoolServer) GetPid(tpe ttypes.ActorType) *actor.PID {
-	if tpe == ttypes.TxStatusActor {
-		return self.txStatusActor
-	} else if tpe == ttypes.TxPoolActor {
-		return self.txPoolActor
-	} else if tpe == ttypes.VerifyRspActor {
-		return self.txPoolActor
-	} else if tpe == ttypes.NetActor {
-		return self.netActor
-	}
-	return nil
-}
-
-// RegisterActor registers an actor with the actor type and pid.
-func (self *TxPoolServer) RegisterActor(tpe ttypes.ActorType, pid *actor.PID) {
-	if tpe == ttypes.TxStatusActor {
-		self.txStatusActor = pid
-	} else if tpe == ttypes.TxPoolActor {
-		self.txPoolActor = pid
-	} else if tpe == ttypes.VerifyRspActor {
-		self.txPoolActor = pid
-	} else if tpe == ttypes.NetActor {
-		self.netActor = pid
-	}
-}
-
-// UnRegisterActor cancels the actor with the actor type.
-func (self *TxPoolServer) UnRegisterActor(tpe ttypes.ActorType) {
-	if tpe == ttypes.TxStatusActor {
-		self.txStatusActor = nil
-	} else if tpe == ttypes.TxPoolActor {
-		self.txPoolActor = nil
-	} else if tpe == ttypes.VerifyRspActor {
-		self.txPoolActor = nil
-	} else if tpe == ttypes.NetActor {
-		self.netActor = nil
-	}
-}
-
-// registerValidator registers a validator to verify a transaction.
-func (self *TxPoolServer) RegisterValidator(pid *actor.PID, tpe vtypes.VerifyType, id string) {
-	self.validatorActor.Lock()
-	defer self.validatorActor.Unlock()
-
-	_, ok := self.validatorActor.entries[tpe]
-
-	if !ok {
-		self.validatorActor.entries[tpe] = make([]*validator, 0, 1)
-	}
-	self.validatorActor.entries[tpe] = append(self.validatorActor.entries[tpe], &validator{pid, tpe, id})
-}
-
-// unRegisterValidator cancels a validator with the verify type and id.
-func (self *TxPoolServer) UnRegisterValidator(verifyType vtypes.VerifyType,
-	id string) {
-
-	self.validatorActor.Lock()
-	defer self.validatorActor.Unlock()
-
-	tmpSlice, ok := self.validatorActor.entries[verifyType]
-	if !ok {
-		log.Error("No validator on check type:%d\n", verifyType)
-		return
-	}
-
-	for i, v := range tmpSlice {
-		if v.Id == id {
-			self.validatorActor.entries[verifyType] =
-				append(tmpSlice[0:i], tmpSlice[i+1:]...)
-			if v.Validator != nil {
-				v.Validator.Tell(&vtypes.UnRegisterValidatorRsp{Id: id, Type: verifyType})
-			}
-			if len(self.validatorActor.entries[verifyType]) == 0 {
-				delete(self.validatorActor.entries, verifyType)
-			}
-		}
-	}
-}
-
-// sendReq2Validator sends a check request to the validators
-func (self *TxPoolServer) sendVerifyStatelessTxReq(req *vtypes.VerifyTxReq) bool {
-	rspPid := self.verifyRspActor
-	if rspPid == nil {
-		log.Info("VerifyRspActor not exist")
-		return false
-	}
-
-	pids := self.getNextValidator()
-	if pids == nil {
-		return false
-	}
-	for _, pid := range pids {
-		pid.Request(req, rspPid)
-	}
-
-	return true
-}
-
-// sendReq2StatefulV sends a check request to the stateful validator
-func (self *TxPoolServer) sendVerifyStatefulTxReq(req *vtypes.VerifyTxReq) {
-	rspPid := self.verifyRspActor
-	if rspPid == nil {
-		log.Info("VerifyRspActor not exist")
-		return
-	}
-
-	pid := self.getNextValidatorByType(vtypes.Statefull)
-	log.Info("worker send tx to the stateful")
-	if pid == nil {
-		return
-	}
-
-	pid.Request(req, rspPid)
-
 }
 
 // putTxPool adds a valid transaction to the tx pool and removes it from
@@ -405,50 +271,9 @@ func (self *TxPoolServer) moveTx2Pool(pt *pendingTxInfo) bool {
 	return true
 }
 
-// getNextValidatorPIDs returns the next pids to verify the transaction using
-// roundRobin LB.
-//return two stateful and stateless validoter
-func (self *TxPoolServer) getNextValidator() []*actor.PID {
-	self.validatorActor.Lock()
-	defer self.validatorActor.Unlock()
-
-	if len(self.validatorActor.entries) == 0 {
-		return nil
-	}
-
-	pids := make([]*actor.PID, 0, len(self.validatorActor.entries))
-	for k, v := range self.validatorActor.entries {
-		preIndex := self.validatorActor.robinState[k]
-		nextIndex := (preIndex + 1) % len(v)
-		self.validatorActor.robinState[k] = nextIndex
-		pids = append(pids, v[nextIndex].Validator)
-	}
-	return pids
-}
-
-// getNextValidatorPID returns the next pid with the verify type using roundRobin LB
-func (self *TxPoolServer) getNextValidatorByType(key vtypes.VerifyType) *actor.PID {
-	self.validatorActor.Lock()
-	defer self.validatorActor.Unlock()
-
-	length := len(self.validatorActor.entries[key])
-	if length == 0 {
-		return nil
-	}
-
-	entries := self.validatorActor.entries[key]
-	preIndex := self.validatorActor.robinState[key]
-	nextIndex := (preIndex + 1) % length
-	self.validatorActor.robinState[key] = nextIndex
-	return entries[nextIndex].Validator
-}
-
 // Stop stops server and workers.
 func (self *TxPoolServer) Stop() {
-	self.netActor.Stop()
-	self.txPoolActor.Stop()
-	self.txStatusActor.Stop()
-	self.netActor.Stop()
+	self.sender.Stop()
 	//Stop worker
 	for i := 0; i < len(self.workers); i++ {
 		self.workers[i].stop()
@@ -567,18 +392,8 @@ func (self *TxPoolServer) reVerifyStatefulTx(tx *ctypes.Transaction, sender ttyp
 		self.Increase(ttypes.Duplicate)
 		return
 	}
-
-	// Add the rcvTxn to the worker
-	lb := make(tcomn.LoadBalances, len(self.workers))
-	for i := 0; i < len(self.workers); i++ {
-		entry := tcomn.LoadBalance{Size: len(self.workers[i].pendingTxs),
-			WorkerID: uint8(i),
-		}
-		lb[i] = entry
-	}
-
-	sort.Sort(lb)
-	self.workers[lb[0].WorkerID].statefulTxCh <- tx
+	id := self.getWorkId()
+	self.workers[id].statefulTxCh <- tx
 }
 
 // sendBlkResult2Consensus sends the result of verifying block to  consensus
@@ -623,7 +438,7 @@ func (self *TxPoolServer) AddVerifyBlock(height uint32, txs []*ctypes.Transactio
 	blkResult := self.txPool.getVerifyBlockResult(txs, height)
 
 	for _, t := range blkResult.UnVerifiedTxs {
-		self.AssignTxToWorker(t, ttypes.NilSender)
+		self.assignTxToWorker(t, ttypes.NilSender)
 		self.pendingBlock.unProcessedTxs[t.Hash()] = t
 	}
 

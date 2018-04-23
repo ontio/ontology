@@ -30,12 +30,8 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 )
 
-var txnPid *actor.PID
 var txnPoolPid *actor.PID
 
-func SetTxPid(actr *actor.PID) {
-	txnPid = actr
-}
 func SetTxnPoolPid(actr *actor.PID) {
 	txnPoolPid = actr
 }
@@ -44,7 +40,7 @@ func AppendTxToPool(txn *types.Transaction) ontErrors.ErrCode {
 		Tx:     txn,
 		Sender: ttypes.HttpSender,
 	}
-	txnPid.Tell(txReq)
+	txnPoolPid.Tell(txReq)
 	return ontErrors.ErrNoError
 }
 
@@ -71,7 +67,7 @@ func GetTxsFromPool(byCount bool) (map[common.Uint256]*types.Transaction, common
 
 func GetTxFromPool(hash common.Uint256) (ttypes.TxEntry, error) {
 
-	future := txnPid.RequestFuture(&ttypes.GetTxFromPoolReq{hash}, REQ_TIMEOUT*time.Second)
+	future := txnPoolPid.RequestFuture(&ttypes.GetTxFromPoolReq{hash}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ERR_ACTOR_COMM, err)
@@ -85,7 +81,7 @@ func GetTxFromPool(hash common.Uint256) (ttypes.TxEntry, error) {
 		return ttypes.TxEntry{}, errors.New("fail")
 	}
 
-	future = txnPid.RequestFuture(&ttypes.GetTxVerifyResultReq{hash}, REQ_TIMEOUT*time.Second)
+	future = txnPoolPid.RequestFuture(&ttypes.GetTxVerifyResultReq{hash}, REQ_TIMEOUT*time.Second)
 	result, err = future.Result()
 	if err != nil {
 		log.Errorf(ERR_ACTOR_COMM, err)
@@ -100,7 +96,7 @@ func GetTxFromPool(hash common.Uint256) (ttypes.TxEntry, error) {
 }
 
 func GetTxCount() ([]uint64, error) {
-	future := txnPid.RequestFuture(&ttypes.GetTxVerifyResultStaticsReq{}, REQ_TIMEOUT*time.Second)
+	future := txnPoolPid.RequestFuture(&ttypes.GetTxVerifyResultStaticsReq{}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ERR_ACTOR_COMM, err)

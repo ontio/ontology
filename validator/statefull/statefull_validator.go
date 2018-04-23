@@ -73,7 +73,7 @@ func (self *StatefulValidator) Receive(context actor.Context) {
 
 		response := &vatypes.VerifyTxRsp{
 			WorkerId: msg.WorkerId,
-			Type:     self.VerifyType(),
+			VerifyType:     self.VerifyType(),
 			Hash:     msg.Tx.Hash(),
 			Height:   height,
 			ErrCode:  errCode,
