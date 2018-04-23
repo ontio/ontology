@@ -11,11 +11,11 @@ import (
 
 // TxnPoolActor: Handle the high priority request from Consensus
 type TxPoolActor struct {
-	server *proc.TXPoolServer
+	txPoolServer *proc.TxPoolServer
 }
 
 // NewTxPoolActor creates an actor to handle the messages from the consensus
-func NewTxPoolActor(svr *proc.TXPoolServer) *TxPoolActor {
+func NewTxPoolActor(svr *proc.TxPoolServer) *TxPoolActor {
 	a := &TxPoolActor{}
 	a.setServer(svr)
 	return a
@@ -38,7 +38,7 @@ func (self *TxPoolActor) Receive(context actor.Context) {
 
 		log.Debug("txpool actor Receives getting tx pool req from ", sender)
 
-		res := self.server.GetTxEntrysFromPool(msg.ByCount, msg.Height)
+		res := self.txPoolServer.GetTxEntrysFromPool(msg.ByCount, msg.Height)
 		if sender != nil {
 			sender.Request(&ttypes.GetTxnPoolRsp{TxnPool: res}, context.Self())
 		}
@@ -48,7 +48,7 @@ func (self *TxPoolActor) Receive(context actor.Context) {
 
 		log.Debug("txpool actor Receives getting pedning tx req from ", sender)
 
-		res := self.server.GetPendingTxs(msg.ByCount)
+		res := self.txPoolServer.GetPendingTxs(msg.ByCount)
 		if sender != nil {
 			sender.Request(&ttypes.GetPendingTxnRsp{Txs: res}, context.Self())
 		}
@@ -57,8 +57,10 @@ func (self *TxPoolActor) Receive(context actor.Context) {
 		sender := context.Sender()
 
 		log.Debug("txpool actor Receives verifying block req from ", sender)
-
-		self.server.HandleVerifyBlockReq(msg, sender)
+		if msg == nil || len(msg.Txs) == 0 {
+			return
+		}
+		self.txPoolServer.AddVerifyBlock(msg.Height,msg.Txs, sender)
 
 	case *message.SaveBlockCompleteMsg:
 		sender := context.Sender()
@@ -66,7 +68,7 @@ func (self *TxPoolActor) Receive(context actor.Context) {
 		log.Debug("txpool actor Receives block complete event from ", sender)
 
 		if msg.Block != nil {
-			self.server.RemoveTransactionsFromPool(msg.Block.Transactions)
+			self.txPoolServer.RemoveTransactionsFromPool(msg.Block.Transactions)
 		}
 
 	default:
@@ -74,7 +76,7 @@ func (self *TxPoolActor) Receive(context actor.Context) {
 	}
 }
 
-func (self *TxPoolActor) setServer(svr *proc.TXPoolServer) {
-	self.server = svr
+func (self *TxPoolActor) setServer(svr *proc.TxPoolServer) {
+	self.txPoolServer = svr
 }
 

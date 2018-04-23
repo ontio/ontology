@@ -17,7 +17,7 @@
  */
 
 // Package common privides constants, common types for other packages
-package common
+package proc
 
 import (
 	"fmt"
@@ -35,13 +35,13 @@ import (
 // enter the pool when they are valid from the network,
 // consensus or submitted. They exit the pool when they are included
 // in the ledger.
-type TXPool struct {
+type TxPool struct {
 	sync.RWMutex
 	txEntrys map[common.Uint256]*ttypes.TxEntry // Transactions which have been verified
 }
 
 // Init creates a new transaction pool to gather.
-func (self *TXPool) Init() {
+func (self *TxPool) Init() {
 	self.Lock()
 	defer self.Unlock()
 	self.txEntrys = make(map[common.Uint256]*ttypes.TxEntry)
@@ -51,7 +51,7 @@ func (self *TXPool) Init() {
 // transaction is already in the pool, just return false. Parameter
 // txEntry includes transaction, fee, and verified information(height,
 // validator, error code).
-func (self *TXPool) AppendTxEntry(txEntry *ttypes.TxEntry) bool {
+func (self *TxPool) appendTxEntry(txEntry *ttypes.TxEntry) bool {
 	self.Lock()
 	defer self.Unlock()
 	txHash := txEntry.Tx.Hash()
@@ -65,7 +65,7 @@ func (self *TXPool) AppendTxEntry(txEntry *ttypes.TxEntry) bool {
 }
 
 // CleanTransactionList cleans the transaction list included in the ledger.
-func (self *TXPool) RemoveTransactions(txs []*types.Transaction) error {
+func (self *TxPool) removeTransactions(txs []*types.Transaction) error {
 	cleaned := 0
 	txsNum := len(txs)
 	self.Lock()
@@ -87,7 +87,7 @@ func (self *TXPool) RemoveTransactions(txs []*types.Transaction) error {
 }
 
 // DelTxList removes a single transaction from the pool.
-func (self *TXPool) DeleteTransaction(tx *types.Transaction) bool {
+func (self *TxPool) deleteTransaction(tx *types.Transaction) bool {
 	self.Lock()
 	defer self.Unlock()
 	txHash := tx.Hash()
@@ -101,8 +101,8 @@ func (self *TXPool) DeleteTransaction(tx *types.Transaction) bool {
 // compareTxHeight compares a verifed transaction's height with the next
 // block height from consensus. If the height is less than the next block
 // height, re-verify it.
-func (self *TXPool) compareTxHeight(txEntry *ttypes.TxEntry, height uint32) bool {
-	for _, v := range txEntry.Attrs {
+func (self *TxPool) compareTxHeight(txEntry *ttypes.TxEntry, height uint32) bool {
+	for _, v := range txEntry.VerifyResults {
 		if v.Type == vt.Statefull &&
 			v.Height < height {
 			return false
@@ -114,7 +114,7 @@ func (self *TXPool) compareTxHeight(txEntry *ttypes.TxEntry, height uint32) bool
 // GetTxPool gets the transaction lists from the pool for the consensus,
 // if the byCount is marked, return the configured number at most; if the
 // the byCount is not marked, return all of the current transaction pool.
-func (self *TXPool) GetTxPool(byCount bool, height uint32) ([]*ttypes.TxEntry,
+func (self *TxPool) getTransactions(byCount bool, height uint32) ([]*ttypes.TxEntry,
 	[]*types.Transaction) {
 	self.RLock()
 	defer self.RUnlock()
@@ -147,7 +147,7 @@ func (self *TXPool) GetTxPool(byCount bool, height uint32) ([]*ttypes.TxEntry,
 
 // GetTransaction returns a transaction if it is contained in the pool
 // and nil otherwise.
-func (self *TXPool) GetTransaction(hash common.Uint256) *types.Transaction {
+func (self *TxPool) getTransaction(hash common.Uint256) *types.Transaction {
 	self.RLock()
 	defer self.RUnlock()
 	if tx := self.txEntrys[hash]; tx == nil {
@@ -158,22 +158,22 @@ func (self *TXPool) GetTransaction(hash common.Uint256) *types.Transaction {
 
 // GetTxStatus returns a transaction status if it is contained in the pool
 // and nil otherwise.
-func (self *TXPool) GetTxStatus(hash common.Uint256) *ttypes.TxStatus {
+func (self *TxPool) getTxVerifyStatus(hash common.Uint256) *ttypes.TxVerifyStatus {
 	self.RLock()
 	defer self.RUnlock()
 	txEntry, ok := self.txEntrys[hash]
 	if !ok {
 		return nil
 	}
-	ret := &ttypes.TxStatus{
+	ret := &ttypes.TxVerifyStatus{
 		Hash:  hash,
-		Attrs: txEntry.Attrs,
+		VerifyResults: txEntry.VerifyResults,
 	}
 	return ret
 }
 
 // GetTransactionCount returns the tx number of the pool.
-func (self *TXPool) GetTransactionCount() int {
+func (self *TxPool) getTransactionCount() int {
 	self.RLock()
 	defer self.RUnlock()
 	return len(self.txEntrys)
@@ -182,12 +182,12 @@ func (self *TXPool) GetTransactionCount() int {
 // GetUnverifiedTxs checks the tx list in the block from consensus,
 // and returns verified tx list, unverified tx list, and
 // the tx list to be re-verified
-func (self *TXPool) GetVerifyBlkResult(txs []*types.Transaction,
-	height uint32) *ttypes.VerifyBlkResult {
+func (self *TxPool) getVerifyBlockResult(txs []*types.Transaction,
+	height uint32) *ttypes.BlockVerifyStatus {
 	self.Lock()
 	defer self.Unlock()
-	res := &ttypes.VerifyBlkResult{
-		VerifiedTxs:   make([]*ttypes.VerifyTxResult, 0, len(txs)),
+	res := &ttypes.BlockVerifyStatus{
+		VerifiedTxs:   make([]*ttypes.TxResult, 0, len(txs)),
 		UnVerifiedTxs: make([]*types.Transaction, 0),
 		ReVerifyTxs:        make([]*types.Transaction, 0),
 	}
@@ -205,9 +205,9 @@ func (self *TXPool) GetVerifyBlkResult(txs []*types.Transaction,
 			continue
 		}
 
-		for _, v := range txEntry.Attrs {
+		for _, v := range txEntry.VerifyResults {
 			if v.Type == vt.Statefull {
-				entry := &ttypes.VerifyTxResult{
+				entry := &ttypes.TxResult{
 					Tx:      tx,
 					Height:  v.Height,
 					ErrCode: v.ErrCode,

@@ -56,33 +56,33 @@ func GetTxnPool(byCount bool) ([]*ttypes.TxEntry, error) {
 }
 
 func GetTransaction(hash common.Uint256) (*types.Transaction, error) {
-	future := txnPoolPid.RequestFuture(&ttypes.GetTxnReq{Hash: hash}, txnPoolReqTimeout)
+	future := txnPoolPid.RequestFuture(&ttypes.GetTxFromPoolReq{Hash: hash}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return nil, err
 	}
-	return result.(ttypes.GetTxnRsp).Txn, nil
+	return result.(ttypes.GetTxFromPoolRsp).Txn, nil
 }
 
 func CheckTransaction(hash common.Uint256) (bool, error) {
-	future := txnPoolPid.RequestFuture(&ttypes.CheckTxnReq{Hash: hash}, txnPoolReqTimeout)
+	future := txnPoolPid.RequestFuture(&ttypes.IsTxInPoolReq{Hash: hash}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return false, err
 	}
-	return result.(ttypes.CheckTxnRsp).Ok, nil
+	return result.(ttypes.IsTxInPoolRsp).Ok, nil
 }
 
 func GetTransactionStatus(hash common.Uint256) ([]*ttypes.VerifyResult, error) {
-	future := txnPoolPid.RequestFuture(&ttypes.GetTxnStatusReq{Hash: hash}, txnPoolReqTimeout)
+	future := txnPoolPid.RequestFuture(&ttypes.GetTxVerifyResultReq{Hash: hash}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return nil, err
 	}
-	return result.(ttypes.GetTxnStatusRsp).VerifyResults, nil
+	return result.(ttypes.GetTxVerifyResultRsp).VerifyResults, nil
 }
 
 func GetPendingTxn(byCount bool) ([]*types.Transaction, error) {
@@ -95,7 +95,7 @@ func GetPendingTxn(byCount bool) ([]*types.Transaction, error) {
 	return result.(ttypes.GetPendingTxnRsp).Txs, nil
 }
 
-func VerifyBlock(height uint32, txs []*types.Transaction) ([]*ttypes.VerifyTxResult, error) {
+func VerifyBlock(height uint32, txs []*types.Transaction) ([]*ttypes.TxResult, error) {
 	future := txnPoolPid.RequestFuture(&ttypes.VerifyBlockReq{Height: height, Txs: txs}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
@@ -106,11 +106,11 @@ func VerifyBlock(height uint32, txs []*types.Transaction) ([]*ttypes.VerifyTxRes
 }
 
 func GetTransactionStats(hash common.Uint256) ([]uint64, error) {
-	future := txnPoolPid.RequestFuture(&ttypes.GetTxnStats{}, txnPoolReqTimeout)
+	future := txnPoolPid.RequestFuture(&ttypes.GetTxVerifyResultStaticsReq{}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
 		log.Error(errors.NewErr("ERROR: "), err)
 		return nil, err
 	}
-	return result.(ttypes.GetTxnStatsRsp).Count, nil
+	return result.(ttypes.GetTxVerifyResultStaticsRsp).Count, nil
 }

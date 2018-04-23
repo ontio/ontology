@@ -103,7 +103,7 @@ func (self *StatefulValidator) VerifyType() vatypes.VerifyType {
 
 func (self *StatefulValidator) Register(poolId *actor.PID) {
 	poolId.Tell(&vatypes.RegisterValidatorReq{
-		Sender: self.Pid,
+		Validator: self.Pid,
 		Type:   self.VerifyType(),
 		Id:     self.Id,
 	})

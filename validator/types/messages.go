@@ -25,11 +25,19 @@ import (
 	"github.com/ontio/ontology/errors"
 )
 
+// VerifyType of validator
+type VerifyType uint8
+
+const (
+	Stateless VerifyType = iota
+	Statefull VerifyType = iota
+)
+
 // message
 type RegisterValidatorReq struct {
-	Sender *actor.PID
-	Type   VerifyType
-	Id     string
+	Validator *actor.PID
+	Type      VerifyType
+	Id        string
 }
 
 type UnRegisterValidatorReq struct {
@@ -54,11 +62,3 @@ type VerifyTxRsp struct {
 	Height   uint32
 	ErrCode  errors.ErrCode
 }
-
-// VerifyType of validator
-type VerifyType uint8
-
-const (
-	Stateless VerifyType = iota
-	Statefull VerifyType = iota
-)

@@ -78,7 +78,7 @@ func GetNodeState(params []interface{}) map[string]interface{} {
 	if err != nil {
 		return responsePack(berr.INTERNAL_ERROR, false)
 	}
-	txnCnt, err := bactor.GetTxnCnt()
+	txnCnt, err := bactor.GetTxCount()
 	if err != nil {
 		return responsePack(berr.INTERNAL_ERROR, false)
 	}

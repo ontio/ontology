@@ -71,13 +71,13 @@ func GetTxsFromPool(byCount bool) (map[common.Uint256]*types.Transaction, common
 
 func GetTxFromPool(hash common.Uint256) (ttypes.TxEntry, error) {
 
-	future := txnPid.RequestFuture(&ttypes.GetTxnReq{hash}, REQ_TIMEOUT*time.Second)
+	future := txnPid.RequestFuture(&ttypes.GetTxFromPoolReq{hash}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ERR_ACTOR_COMM, err)
 		return ttypes.TxEntry{}, err
 	}
-	rsp, ok := result.(*ttypes.GetTxnRsp)
+	rsp, ok := result.(*ttypes.GetTxFromPoolRsp)
 	if !ok {
 		return ttypes.TxEntry{}, errors.New("fail")
 	}
@@ -85,13 +85,13 @@ func GetTxFromPool(hash common.Uint256) (ttypes.TxEntry, error) {
 		return ttypes.TxEntry{}, errors.New("fail")
 	}
 
-	future = txnPid.RequestFuture(&ttypes.GetTxnStatusReq{hash}, REQ_TIMEOUT*time.Second)
+	future = txnPid.RequestFuture(&ttypes.GetTxVerifyResultReq{hash}, REQ_TIMEOUT*time.Second)
 	result, err = future.Result()
 	if err != nil {
 		log.Errorf(ERR_ACTOR_COMM, err)
 		return ttypes.TxEntry{}, err
 	}
-	txStatus, ok := result.(*ttypes.GetTxnStatusRsp)
+	txStatus, ok := result.(*ttypes.GetTxVerifyResultRsp)
 	if !ok {
 		return ttypes.TxEntry{}, errors.New("fail")
 	}
@@ -99,14 +99,14 @@ func GetTxFromPool(hash common.Uint256) (ttypes.TxEntry, error) {
 	return txnEntry, nil
 }
 
-func GetTxnCnt() ([]uint64, error) {
-	future := txnPid.RequestFuture(&ttypes.GetTxnStats{}, REQ_TIMEOUT*time.Second)
+func GetTxCount() ([]uint64, error) {
+	future := txnPid.RequestFuture(&ttypes.GetTxVerifyResultStaticsReq{}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ERR_ACTOR_COMM, err)
 		return []uint64{}, err
 	}
-	txnCnt, ok := result.(*ttypes.GetTxnStatsRsp)
+	txnCnt, ok := result.(*ttypes.GetTxVerifyResultStaticsRsp)
 	if !ok {
 		return []uint64{}, errors.New("fail")
 	}

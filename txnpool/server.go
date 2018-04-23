@@ -48,8 +48,8 @@ func startActor(obj interface{}, id string) *actor.PID {
 // StartTxnPoolServer starts the txnpool server and registers
 // actors to handle the msgs from the network, http, consensus
 // and validators. Meanwhile subscribes the block complete  event.
-func StartTxnPoolServer() *proc.TXPoolServer {
-	var svr *proc.TXPoolServer
+func StartTxnPoolServer() *proc.TxPoolServer {
+	var svr *proc.TxPoolServer
 
 	/* Start txnpool server to receive msgs from p2p,
 	 * consensus and valdiators
@@ -81,7 +81,7 @@ func StartTxnPoolServer() *proc.TXPoolServer {
 		log.Error("Fail to start txn actor")
 		return nil
 	}
-	svr.RegisterActor(ttypes.TxActor, txPid)
+	svr.RegisterActor(ttypes.TxStatusActor, txPid)
 
 	// Subscribe the block complete event
 	var sub = events.NewActorSubscriber(txPoolPid)

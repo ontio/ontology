@@ -178,7 +178,7 @@ func GetMemPoolTxState(params []interface{}) map[string]interface{} {
 		}
 		tran := bcomn.TransArryByteToHexString(txEntry.Tx)
 		attrs := []bcomn.TXNAttrInfo{}
-		for _, t := range txEntry.Attrs {
+		for _, t := range txEntry.VerifyResults {
 			attrs = append(attrs, bcomn.TXNAttrInfo{t.Height, int(t.Type), int(t.ErrCode)})
 		}
 		info := bcomn.TXNEntryInfo{*tran, int64(txEntry.Fee), attrs}

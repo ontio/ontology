@@ -13,12 +13,12 @@ import (
 
 // TxnActor: Handle the low priority msg from P2P and API
 type TxActor struct {
-	server *proc.TXPoolServer
+	txPoolServer *proc.TxPoolServer
 }
 
 // NewTxActor creates an actor to handle the transaction-based messages from
 // network and http
-func NewTxActor(s *proc.TXPoolServer) *TxActor {
+func NewTxActor(s *proc.TxPoolServer) *TxActor {
 	a := &TxActor{}
 	a.setServer(s)
 	return a
@@ -27,20 +27,20 @@ func NewTxActor(s *proc.TXPoolServer) *TxActor {
 // handleTransaction handles a transaction from network and http
 func (self *TxActor) handleTransaction(sender ttypes.SenderType, pid *actor.PID,
 	txn *ctypes.Transaction) {
-	self.server.IncreaseStats(ttypes.RcvStats)
+	self.txPoolServer.Increase(ttypes.Received)
 
-	if self.server.GetTransactionFromPool(txn.Hash()) != nil {
+	if self.txPoolServer.GetTxFromPool(txn.Hash()) != nil {
 		log.Debug(fmt.Sprintf("Transaction %x already in the txn pool",
 			txn.Hash()))
 
-		self.server.IncreaseStats(ttypes.DuplicateStats)
-	} else if self.server.GetTransactionCountFromPool() >= ttypes.MAX_CAPACITY {
+		self.txPoolServer.Increase(ttypes.Duplicate)
+	} else if self.txPoolServer.GetTxCountFromPool() >= ttypes.MAX_CAPACITY {
 		log.Warn("Transaction pool is full", txn.Hash())
 
-		self.server.IncreaseStats(ttypes.FailureStats)
+		self.txPoolServer.Increase(ttypes.Failure)
 	} else {
-		<-self.server.Slots
-		self.server.AssignTxToWorker(txn, sender)
+		<-self.txPoolServer.Slots
+		self.txPoolServer.AssignTxToWorker(txn, sender)
 	}
 }
 
@@ -63,52 +63,52 @@ func (self *TxActor) Receive(context actor.Context) {
 
 		self.handleTransaction(sender, context.Self(), msg.Tx)
 
-	case *ttypes.GetTxnReq:
+	case *ttypes.GetTxFromPoolReq:
 		sender := context.Sender()
 
 		log.Debug("txpool-tx actor Receives getting tx req from ", sender)
 
-		res := self.server.GetTransactionFromPool(msg.Hash)
+		res := self.txPoolServer.GetTxFromPool(msg.Hash)
 		if sender != nil {
-			sender.Request(&ttypes.GetTxnRsp{Txn: res},
+			sender.Request(&ttypes.GetTxFromPoolRsp{Txn: res},
 				context.Self())
 		}
 
-	case *ttypes.GetTxnStats:
+	case *ttypes.GetTxVerifyResultStaticsReq:
 		sender := context.Sender()
 
 		log.Debug("txpool-tx actor Receives getting tx stats from ", sender)
 
-		res := self.server.GetStats()
+		res := self.txPoolServer.GetVerifyResultStatistics()
 		if sender != nil {
-			sender.Request(&ttypes.GetTxnStatsRsp{Count: res},
+			sender.Request(&ttypes.GetTxVerifyResultStaticsRsp{Count: res},
 				context.Self())
 		}
 
-	case *ttypes.CheckTxnReq:
+	case *ttypes.IsTxInPoolReq:
 		sender := context.Sender()
 
 		log.Debug("txpool-tx actor Receives checking tx req from ", sender)
 
-		res := self.server.IsContainTx(msg.Hash)
+		res := self.txPoolServer.IsContainTx(msg.Hash)
 		if sender != nil {
-			sender.Request(&ttypes.CheckTxnRsp{Ok: res},
+			sender.Request(&ttypes.IsTxInPoolRsp{Ok: res},
 				context.Self())
 		}
 
-	case *ttypes.GetTxnStatusReq:
+	case *ttypes.GetTxVerifyResultReq:
 		sender := context.Sender()
 
 		log.Debug("txpool-tx actor Receives getting tx status req from ", sender)
 
-		res := self.server.GetTxStatus(msg.Hash)
+		res := self.txPoolServer.GetTxVerifyStatus(msg.Hash)
 		if sender != nil {
 			if res == nil {
-				sender.Request(&ttypes.GetTxnStatusRsp{Hash: msg.Hash,
+				sender.Request(&ttypes.GetTxVerifyResultRsp{Hash: msg.Hash,
 					VerifyResults: nil}, context.Self())
 			} else {
-				sender.Request(&ttypes.GetTxnStatusRsp{Hash: res.Hash,
-					VerifyResults: res.Attrs}, context.Self())
+				sender.Request(&ttypes.GetTxVerifyResultRsp{Hash: res.Hash,
+					VerifyResults: res.VerifyResults}, context.Self())
 			}
 		}
 
@@ -117,7 +117,7 @@ func (self *TxActor) Receive(context actor.Context) {
 	}
 }
 
-func (self *TxActor) setServer(s *proc.TXPoolServer) {
-	self.server = s
+func (self *TxActor) setServer(s *proc.TxPoolServer) {
+	self.txPoolServer = s
 }
 

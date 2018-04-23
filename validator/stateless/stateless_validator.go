@@ -84,7 +84,7 @@ func (self *StatelessValidator) VerifyType() vatypes.VerifyType {
 // Register send RegisterValidator message to txpool
 func (self *StatelessValidator) Register(poolId *actor.PID) {
 	poolId.Tell(&vatypes.RegisterValidatorReq{
-		Sender: self.Pid,
+		Validator: self.Pid,
 		Type:   self.VerifyType(),
 		Id:     self.Id,
 	})

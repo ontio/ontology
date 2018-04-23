@@ -124,15 +124,15 @@ func main() {
 	}
 
 	stlValidator, _ := stateless.NewStatelessValidator("stateless_validator")
-	stlValidator.Register(txPoolServer.GetPID(ttypes.VerifyRspActor))
+	stlValidator.Register(txPoolServer.GetPid(ttypes.VerifyRspActor))
 
 	stfValidator, _ := statefull.NewStatefulValidator("statefull_validator")
-	stfValidator.Register(txPoolServer.GetPID(ttypes.VerifyRspActor))
+	stfValidator.Register(txPoolServer.GetPid(ttypes.VerifyRspActor))
 
 	log.Info("4. Start the P2P networks")
 
 	net.SetLedgerPid(ledgerPID)
-	net.SetTxnPoolPid(txPoolServer.GetPID(ttypes.TxActor))
+	net.SetTxnPoolPid(txPoolServer.GetPid(ttypes.TxStatusActor))
 	noder = net.StartProtocol(acct.PublicKey)
 	if err != nil {
 		log.Fatalf("Net StartProtocol error %s", err)
@@ -148,8 +148,8 @@ func main() {
 
 	hserver.SetNetServerPid(p2pActor)
 	hserver.SetLedgerPid(ledgerPID)
-	hserver.SetTxnPoolPid(txPoolServer.GetPID(ttypes.TxPoolActor))
-	hserver.SetTxPid(txPoolServer.GetPID(ttypes.TxActor))
+	hserver.SetTxnPoolPid(txPoolServer.GetPid(ttypes.TxPoolActor))
+	hserver.SetTxPid(txPoolServer.GetPid(ttypes.TxStatusActor))
 	go restful.StartServer()
 
 	noder.SyncNodeHeight()
@@ -157,7 +157,7 @@ func main() {
 	noder.WaitForSyncBlkFinish()
 	if protocol.SERVICE_NODE_NAME != config.Parameters.NodeType {
 		log.Info("5. Start Consensus Services")
-		pool := txPoolServer.GetPID(ttypes.TxPoolActor)
+		pool := txPoolServer.GetPid(ttypes.TxPoolActor)
 		consensusService, _ := consensus.NewConsensusService(acct, pool, nil, p2pActor)
 		net.SetConsensusPid(consensusService.GetPID())
 		go consensusService.Start()
