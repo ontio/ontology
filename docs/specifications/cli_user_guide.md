@@ -57,7 +57,7 @@ If without wallet name, the default value wallet.dat will be used.
 
 ### Example for wallet balance
 ```
-$ ./ontology wallet show --name wallet.dat
+$ ./ontology wallet balance --name wallet.dat
 After input password correctly, result will show as follow:
 ONT: 1000000000; ONG: 0; ONGAppove: 0
 Address(base58): TA6VvtGekMfinP97CTL9SH5WTowChUungL
@@ -388,7 +388,7 @@ Command:
 
 ### Example for contract deploy
 ```
-$ ./contract deploy --type=1 --store=true --code=./deploy.txt --cname=testContract --cversion=0.0.1 --author=Yihen --desc="this is my first test contract" --email="name@emailaddr.com"
+$ ./ontology contract deploy --type=1 --store=true --code=./deploy.txt --cname=testContract --cversion=0.0.1 --author=Yihen --desc="this is my first test contract" --email="name@emailaddr.com"
 User need to input password, when deployed succeed, the result will show as follow:
 Deploy smartContract transaction hash: b68307e7659a53a10d3061a3e4721b5a152bd4e6e80b75002f5cc8b5294be493
 ```
