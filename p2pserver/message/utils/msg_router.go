@@ -26,22 +26,22 @@ import (
 )
 
 // MessageHandler defines the unified api for each net message
-type MessageHandler func(data msgCommon.MsgPayload, p2p p2p.P2P) error
+type MessageHandler func(data *msgCommon.MsgPayload, p2p p2p.P2P) error
 
 // DefaultMsgHandler defines the default message handler
-func DefaultMsgHandler(data msgCommon.MsgPayload, p2p p2p.P2P) error {
+func DefaultMsgHandler(data *msgCommon.MsgPayload, p2p p2p.P2P) error {
 	return nil
 }
 
 // MessageRouter mostly route different message type-based to the
 // related message handler
 type MessageRouter struct {
-	msgHandlers  map[string]MessageHandler // Msg handler mapped to msg type
-	RecvSyncChan chan msgCommon.MsgPayload // The channel to handle sync msg
-	RecvConsChan chan msgCommon.MsgPayload // The channel to handle consensus msg
-	stopSyncCh   chan bool                 // To stop sync channel
-	stopConsCh   chan bool                 // To stop consensus channel
-	p2p          p2p.P2P                   // Refer to the p2p network
+	msgHandlers  map[string]MessageHandler  // Msg handler mapped to msg type
+	RecvSyncChan chan *msgCommon.MsgPayload // The channel to handle sync msg
+	RecvConsChan chan *msgCommon.MsgPayload // The channel to handle consensus msg
+	stopSyncCh   chan bool                  // To stop sync channel
+	stopConsCh   chan bool                  // To stop consensus channel
+	p2p          p2p.P2P                    // Refer to the p2p network
 }
 
 // NewMsgRouter returns a message router object
@@ -99,7 +99,7 @@ func (self *MessageRouter) Start() {
 }
 
 // hookChan loops to handle the message from the network
-func (self *MessageRouter) hookChan(channel chan msgCommon.MsgPayload,
+func (self *MessageRouter) hookChan(channel chan *msgCommon.MsgPayload,
 	stopCh chan bool) {
 	for {
 		select {

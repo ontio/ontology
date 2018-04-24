@@ -344,12 +344,12 @@ func (p *Peer) GetAddr16() ([16]byte, error) {
 }
 
 //AttachSyncChan set msg chan to sync link
-func (p *Peer) AttachSyncChan(msgchan chan common.MsgPayload) {
+func (p *Peer) AttachSyncChan(msgchan chan *common.MsgPayload) {
 	p.SyncLink.SetChan(msgchan)
 }
 
 //AttachConsChan set msg chan to consensus link
-func (p *Peer) AttachConsChan(msgchan chan common.MsgPayload) {
+func (p *Peer) AttachConsChan(msgchan chan *common.MsgPayload) {
 	p.ConsLink.SetChan(msgchan)
 }
 

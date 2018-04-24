@@ -45,8 +45,8 @@ import (
 func NewNetServer(pubKey keypair.PublicKey) p2p.P2P {
 
 	n := &NetServer{
-		SyncChan: make(chan common.MsgPayload, common.CHAN_CAPABILITY),
-		ConsChan: make(chan common.MsgPayload, common.CHAN_CAPABILITY),
+		SyncChan: make(chan *common.MsgPayload, common.CHAN_CAPABILITY),
+		ConsChan: make(chan *common.MsgPayload, common.CHAN_CAPABILITY),
 	}
 
 	n.PeerAddrMap.PeerSyncAddress = make(map[string]*peer.Peer)
@@ -61,8 +61,8 @@ type NetServer struct {
 	base         peer.PeerCom
 	synclistener net.Listener
 	conslistener net.Listener
-	SyncChan     chan common.MsgPayload
-	ConsChan     chan common.MsgPayload
+	SyncChan     chan *common.MsgPayload
+	ConsChan     chan *common.MsgPayload
 	ConnectingNodes
 	PeerAddrMap
 	Np *peer.NbrPeers
@@ -224,7 +224,7 @@ func (n *NetServer) Xmit(buf []byte, isCons bool) {
 }
 
 //GetMsgChan return sync or consensus channel when msgrouter need msg input
-func (n *NetServer) GetMsgChan(isConsensus bool) chan common.MsgPayload {
+func (n *NetServer) GetMsgChan(isConsensus bool) chan *common.MsgPayload {
 	if isConsensus {
 		return n.ConsChan
 	} else {
