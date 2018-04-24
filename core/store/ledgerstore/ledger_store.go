@@ -32,30 +32,30 @@ import (
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store/statestore"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
-	"github.com/ontio/ontology/smartcontract/event"
-	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract"
-	"github.com/ontio/ontology/smartcontract/context"
-	vmtype "github.com/ontio/ontology/smartcontract/types"
 	scommon "github.com/ontio/ontology/smartcontract/common"
+	"github.com/ontio/ontology/smartcontract/context"
+	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/storage"
+	vmtype "github.com/ontio/ontology/smartcontract/types"
 )
 
 const (
-	SYSTEM_VERSION = byte(1)          //Version of ledger store
+	SYSTEM_VERSION          = byte(1)          //Version of ledger store
 	HEADER_INDEX_BATCH_SIZE = uint32(2000)     //Bath size of saving header index
-	BLOCK_CACHE_TIMEOUT = time.Minute * 15 //Cache time for block to save in sync block
-	MAX_HEADER_CACHE_SIZE = 5000             //Max cache size of block header in sync block
-	MAX_BLOCK_CACHE_SIZE = 500              //Max cache size of block in sync block
+	BLOCK_CACHE_TIMEOUT     = time.Minute * 15 //Cache time for block to save in sync block
+	MAX_HEADER_CACHE_SIZE   = 5000             //Max cache size of block header in sync block
+	MAX_BLOCK_CACHE_SIZE    = 500              //Max cache size of block in sync block
 )
 
 var (
 	//Storage save path.
-	DBDirEvent = "Chain/ledgerevent"
-	DBDirBlock = "Chain/block"
-	DBDirState = "Chain/states"
+	DBDirEvent          = "Chain/ledgerevent"
+	DBDirBlock          = "Chain/block"
+	DBDirState          = "Chain/states"
 	MerkleTreeStorePath = "Chain/merkle_tree.db"
 )
 
@@ -397,7 +397,7 @@ func (this *LedgerStoreImp) GetCurrentHeaderHash() common.Uint256 {
 	if size == 0 {
 		return common.Uint256{}
 	}
-	return this.headerIndex[uint32(size) - 1]
+	return this.headerIndex[uint32(size)-1]
 }
 
 func (this *LedgerStoreImp) setCurrentBlock(height uint32, blockHash common.Uint256) {
@@ -503,7 +503,7 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header) error {
 		return fmt.Errorf("cannot find pre header by blockHash %x", prevHeaderHash)
 	}
 
-	if prevHeader.Height + 1 != header.Height {
+	if prevHeader.Height+1 != header.Height {
 		return fmt.Errorf("block height is incorrect")
 	}
 
@@ -519,7 +519,7 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header) error {
 		return fmt.Errorf("bookkeeper address error")
 	}
 
-	m := len(header.Bookkeepers) - (len(header.Bookkeepers) - 1) / 3
+	m := len(header.Bookkeepers) - (len(header.Bookkeepers)-1)/3
 	hash := header.Hash()
 	err = signature.VerifyMultiSignature(hash[:], header.Bookkeepers, m, header.SigData)
 	if err != nil {
@@ -537,7 +537,7 @@ func (this *LedgerStoreImp) AddHeader(header *types.Header) error {
 	}
 	err := this.verifyHeader(header)
 	if err != nil {
-		fmt.Errorf("verifyHeader error %s", err)
+		return fmt.Errorf("verifyHeader error %s", err)
 	}
 	blockHash := header.Hash()
 	if this.addToHeaderCache(header) {
@@ -716,12 +716,12 @@ func (this *LedgerStoreImp) resetSavingBlock() {
 func (this *LedgerStoreImp) saveBlock(block *types.Block) error {
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
-	if this.isSavingBlock(){
+	if this.isSavingBlock() {
 		//hash already saved or is saving
 		return nil
 	}
 	defer this.resetSavingBlock()
-	if (blockHeight > 0 && blockHeight != (this.GetCurrentBlockHeight()+1)) {
+	if blockHeight > 0 && blockHeight != (this.GetCurrentBlockHeight()+1) {
 		return nil
 	}
 
@@ -789,7 +789,7 @@ func (this *LedgerStoreImp) saveHeaderIndexList() error {
 	this.lock.RLock()
 	storeCount := this.storedIndexCount
 	currHeight := this.currBlockHeight
-	if currHeight - storeCount < HEADER_INDEX_BATCH_SIZE {
+	if currHeight-storeCount < HEADER_INDEX_BATCH_SIZE {
 		this.lock.RUnlock()
 		return nil
 	}
@@ -925,14 +925,15 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface
 		return nil, errors.NewErr("transaction type error")
 	}
 
-	header, err := this.GetHeaderByHeight(this.GetCurrentBlockHeight()); if err != nil {
+	header, err := this.GetHeaderByHeight(this.GetCurrentBlockHeight())
+	if err != nil {
 		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[PreExecuteContract] Get current block error!")
 	}
 	// init smart contract configuration info
 	config := &smartcontract.Config{
-		Time:    header.Timestamp,
-		Height:  header.Height,
-		Tx:      tx,
+		Time:   header.Timestamp,
+		Height: header.Height,
+		Tx:     tx,
 	}
 
 	//init smart contract context info
@@ -943,8 +944,8 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface
 
 	//init smart contract info
 	sc := smartcontract.SmartContract{
-		Config: config,
-		Store: this,
+		Config:     config,
+		Store:      this,
 		CloneCache: storage.NewCloneCache(this.stateStore.NewStateBatch()),
 	}
 
@@ -952,7 +953,8 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface
 	sc.PushContext(ctx)
 
 	//start the smart contract executive function
-	result, err := sc.Execute(); if err != nil {
+	result, err := sc.Execute()
+	if err != nil {
 		return nil, err
 	}
 
