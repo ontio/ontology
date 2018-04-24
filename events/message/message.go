@@ -21,7 +21,6 @@ package message
 import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/p2pserver/protocol"
 )
 
 const (
@@ -38,14 +37,6 @@ type SaveBlockCompleteMsg struct {
 
 type NewInventoryMsg struct {
 	Inventory *common.Inventory
-}
-
-type NodeDisconnectMsg struct {
-	Node protocol.Noder
-}
-
-type NodeConsensusDisconnectMsg struct {
-	Node protocol.Noder
 }
 
 type SmartCodeEventMsg struct {

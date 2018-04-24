@@ -38,7 +38,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/p2pserver/protocol"
+	p2pcommon "github.com/ontio/ontology/p2pserver/common"
 )
 
 const (
@@ -255,9 +255,9 @@ func clientIsDefaultBookkeeper(publicKey string) bool {
 
 func nodeType(typeName string) int {
 	if "service" == config.Parameters.NodeType {
-		return protocol.SERVICE_NODE
+		return p2pcommon.SERVICE_NODE
 	} else {
-		return protocol.VERIFY_NODE
+		return p2pcommon.VERIFY_NODE
 	}
 }
 
