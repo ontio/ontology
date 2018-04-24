@@ -64,7 +64,6 @@ func NewWasmStateMachine(ldgerStore store.LedgerStore, cloneCache *storage.Clone
 	stateMachine.Register("PutStorage", stateMachine.putstore)
 	stateMachine.Register("GetStorage", stateMachine.getstore)
 	stateMachine.Register("DeleteStorage", stateMachine.deletestore)
-	//stateMachine.Register("CallContract", stateMachine.callContract)
 	stateMachine.Register("ContractLogDebug", stateMachine.contractLogDebug)
 	stateMachine.Register("ContractLogInfo", stateMachine.contractLogInfo)
 	stateMachine.Register("ContractLogError", stateMachine.contractLogError)
