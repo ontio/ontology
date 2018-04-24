@@ -60,6 +60,9 @@ func OngTransfer(native *NativeService) error {
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	for _, v := range transfers.States {
+		if v.Value.Sign() == 0 {
+			continue
+		}
 		if _, _, err := transfer(native, contract, v); err != nil {
 			return err
 		}
@@ -73,6 +76,12 @@ func OngApprove(native *NativeService) error {
 	if err := state.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[OngApprove] state deserialize error!")
 	}
+	if err := isApproveValid(native, state); err != nil {
+		return err
+	}
+	if state.Value.Sign() == 0 {
+		return nil
+	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	native.CloneCache.Add(scommon.ST_STORAGE, getApproveKey(contract, state), &cstates.StorageItem{Value: state.Value.Bytes()})
 	return nil
@@ -82,6 +91,9 @@ func OngTransferFrom(native *NativeService) error {
 	state := new(states.TransferFrom)
 	if err := state.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[OntTransferFrom] State deserialize error!")
+	}
+	if state.Value.Sign() == 0 {
+		return nil
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	if err := transferFrom(native, contract, state); err != nil {

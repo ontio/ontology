@@ -74,6 +74,9 @@ func OntTransfer(native *NativeService) error {
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	for _, v := range transfers.States {
+		if v.Value.Sign() == 0 {
+			continue
+		}
 		fromBalance, toBalance, err := transfer(native, contract, v)
 		if err != nil {
 			return err
@@ -107,6 +110,9 @@ func OntTransferFrom(native *NativeService) error {
 	if err := state.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[OntTransferFrom] State deserialize error!")
 	}
+	if state.Value.Sign() == 0 {
+		return nil
+	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	if err := transferFrom(native, contract, state); err != nil {
 		return err
@@ -119,6 +125,9 @@ func OntApprove(native *NativeService) error {
 	state := new(states.State)
 	if err := state.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[OngApprove] state deserialize error!")
+	}
+	if state.Value.Sign() == 0 {
+		return nil
 	}
 	if err := isApproveValid(native, state); err != nil {
 		return err
