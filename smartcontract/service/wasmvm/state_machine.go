@@ -99,7 +99,6 @@ func (s *WasmStateMachine) putstore(engine *exec.ExecutionEngine) (bool, error) 
 	if err != nil {
 		return false, err
 	}
-
 	s.CloneCache.Add(scommon.ST_STORAGE, k, &states.StorageItem{Value: value})
 
 	vm.RestoreCtx()
