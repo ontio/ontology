@@ -72,7 +72,6 @@ type ClientImpl struct {
 //TODO need redesign
 func Create(path string, encrypt string, passwordKey []byte) *ClientImpl {
 	cl := NewClient(path, passwordKey, true)
-
 	return cl
 }
 
