@@ -215,7 +215,7 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]ty
 			}
 		} else {
 			bkStop, err := GetHeaderByHash(stopHash)
-			if err != nil {
+			if err != nil || bkStop == nil {
 				return nil, 0, err
 			}
 			stopHeight = bkStop.Height
@@ -226,13 +226,13 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]ty
 		}
 	} else {
 		bkStart, err := GetHeaderByHash(startHash)
-		if err != nil {
+		if err != nil || bkStart == nil {
 			return nil, 0, err
 		}
 		startHeight = bkStart.Height
 		if stopHash != empty {
 			bkStop, err := GetHeaderByHash(stopHash)
-			if err != nil {
+			if err != nil || bkStop == nil {
 				return nil, 0, err
 			}
 			stopHeight = bkStop.Height
@@ -288,7 +288,7 @@ func GetInvFromBlockHash(startHash common.Uint256, stopHash common.Uint256) (*ms
 			}
 		} else {
 			bkStop, err := GetHeaderByHash(stopHash)
-			if err != nil {
+			if err != nil || bkStop == nil {
 				return nil, err
 			}
 			stopHeight = bkStop.Height
@@ -299,13 +299,13 @@ func GetInvFromBlockHash(startHash common.Uint256, stopHash common.Uint256) (*ms
 		}
 	} else {
 		bkStart, err := GetHeaderByHash(startHash)
-		if err != nil {
+		if err != nil || bkStart == nil {
 			return nil, err
 		}
 		startHeight = bkStart.Height
 		if stopHash != empty {
 			bkStop, err := GetHeaderByHash(stopHash)
-			if err != nil {
+			if err != nil || bkStop == nil {
 				return nil, err
 			}
 			stopHeight = bkStop.Height
