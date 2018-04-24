@@ -170,8 +170,8 @@ var (
 		Usage: "Specifies the `<password>` for encrypting the private key",
 	}
 	AccountDefaultFlag = cli.BoolFlag{
-		Name:  "default",
-		Usage: "With the default parameters",
+		Name:  "default,d",
+		Usage: "Set to default account",
 	}
 	AccountFileFlag = cli.StringFlag{
 		Name:  "file,f",

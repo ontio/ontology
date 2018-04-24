@@ -69,14 +69,9 @@ type ClientImpl struct {
 	isrunning bool
 }
 
-//TODO: adjust contract folder structure
+//TODO need redesign
 func Create(path string, encrypt string, passwordKey []byte) *ClientImpl {
 	cl := NewClient(path, passwordKey, true)
-
-	_, err := cl.CreateAccount(encrypt)
-	if err != nil {
-		fmt.Println(err)
-	}
 
 	return cl
 }
@@ -112,6 +107,7 @@ func Open(path string, passwordKey []byte) *ClientImpl {
 	return cl
 }
 
+//TODO need redesign
 func NewClient(path string, password []byte, create bool) *ClientImpl {
 	defer clearBytes(password, len(password))
 	newClient := &ClientImpl{
@@ -121,56 +117,7 @@ func NewClient(path string, password []byte, create bool) *ClientImpl {
 	}
 
 	passwordKey := password
-	if create { /*
-			//create new client
-			newClient.iv = make([]byte, 16)
-			newClient.masterKey = make([]byte, 32)
-			newClient.watchOnly = []common.Address{}
-			newClient.currentHeight = 0
-
-			//generate random number for iv/masterkey
-			_, err := rand.Read(newClient.iv)
-			if err != nil {
-				log.Error(err)
-				return nil
-			}
-			_, err = rand.Read(newClient.masterKey)
-			if err != nil {
-				log.Error(err)
-				return nil
-			}
-
-			//new client store (build DB)
-			newClient.BuildDatabase(path)
-
-			// SaveStoredData
-			pwdhash := sha256.Sum256(passwordKey)
-			err = newClient.SaveStoredData("PasswordHash", pwdhash[:])
-			if err != nil {
-				log.Error(err)
-				return nil
-			}
-			err = newClient.SaveStoredData("IV", newClient.iv[:])
-			if err != nil {
-				log.Error(err)
-				return nil
-			}
-
-			aesmk, err := aes.AesEncrypt(newClient.masterKey[:], passwordKey, newClient.iv)
-			if err == nil {
-				err = newClient.SaveStoredData("MasterKey", aesmk)
-				if err != nil {
-					log.Error(err)
-					return nil
-				}
-			} else {
-				log.Error(err)
-				return nil
-			}*/
-	} else {
-		//if b := newClient.verifyPasswordKey(passwordKey); b == false {
-		//	return nil
-		//}
+	if !create {
 		if err := newClient.loadClient(passwordKey); err != nil {
 			fmt.Println(err)
 			return nil
@@ -232,7 +179,11 @@ func (cl *ClientImpl) GetAccountByAddress(address common.Address) *Account {
 }
 
 func (cl *ClientImpl) GetDefaultAccount() *Account {
-	addr := cl.WalletData.GetDefaultAccount().Address
+	ac := cl.WalletData.GetDefaultAccount()
+	if ac == nil {
+		return nil
+	}
+	addr := ac.Address
 	for _, v := range cl.accounts {
 		if v.Address.ToBase58() == addr {
 			return v
@@ -241,103 +192,10 @@ func (cl *ClientImpl) GetDefaultAccount() *Account {
 	return nil
 }
 
-// Deprecated
-func (cl *ClientImpl) ChangePassword(oldPassword []byte, newPassword []byte) bool {
-
-	/*
-		// check password
-		oldPasswordKey := doubleHash(oldPassword)
-		if !cl.verifyPasswordKey(oldPasswordKey) {
-			fmt.Println("error: password verification failed")
-			return false
-		}
-		if err := cl.loadClient(oldPasswordKey); err != nil {
-			fmt.Println("error: load wallet info failed")
-			return false
-		}
-
-		// encrypt master key with new password
-		newPasswordKey := doubleHash(newPassword)
-		newMasterKey, err := aes.AesEncrypt(cl.masterKey, newPasswordKey, cl.iv)
-		if err != nil {
-			fmt.Println("error: set new password failed")
-			return false
-		}
-
-		// update wallet file
-		newPasswordHash := sha256.Sum256(newPasswordKey)
-		if err := cl.SaveStoredData("PasswordHash", newPasswordHash[:]); err != nil {
-			fmt.Println("error: wallet update failed(password hash)")
-			return false
-		}
-		if err := cl.SaveStoredData("MasterKey", newMasterKey); err != nil {
-			fmt.Println("error: wallet update failed (encrypted master key)")
-			return false
-		}
-		defer clearBytes(newPasswordKey, len(newPasswordKey))
-		defer clearBytes(cl.masterKey, len(cl.masterKey))
-	*/
-
-	return true
-}
-
 func (cl *ClientImpl) ContainsAccount(pubKey keypair.PublicKey) bool {
 	addr := types.AddressFromPubKey(pubKey)
 	return cl.GetAccountByAddress(addr) != nil
 }
-
-// Deprecated
-func (cl *ClientImpl) CreateAccount(encrypt string) (*Account, error) {
-	ac := NewAccount(encrypt)
-
-	cl.mu.Lock()
-	cl.accounts[ac.Address] = ac
-	cl.mu.Unlock()
-
-	//err := cl.SaveAccount(ac)
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	return ac, nil
-}
-
-/*
-func (cl *ClientImpl) CreateAccountByPrivateKey(privateKey []byte) (*Account, error) {
-	ac, err := NewAccountWithPrivatekey(privateKey)
-	cl.mu.Lock()
-	defer cl.mu.Unlock()
-
-	if err != nil {
-		return nil, err
-	}
-
-	cl.accounts[ac.Address] = ac
-	err = cl.SaveAccount(ac)
-	if err != nil {
-		return nil, err
-	}
-	return ac, nil
-}
-
-func (cl *ClientImpl) verifyPasswordKey(passwordKey []byte) bool {
-	savedPasswordHash, err := cl.LoadStoredData("PasswordHash")
-	if err != nil {
-		fmt.Println("error: failed to load password hash")
-		return false
-	}
-	if savedPasswordHash == nil {
-		fmt.Println("error: saved password hash is nil")
-		return false
-	}
-	passwordHash := sha256.Sum256(passwordKey)
-	///clearBytes(passwordKey, len(passwordKey))
-	if !bytes.Equal(savedPasswordHash, passwordHash[:]) {
-		fmt.Println("error: password wrong")
-		return false
-	}
-	return true
-}*/
 
 func (cl *ClientImpl) EncryptPrivateKey(prikey []byte) ([]byte, error) {
 	enc, err := aes.AesEncrypt(prikey, cl.masterKey, cl.iv)
@@ -360,60 +218,6 @@ func (cl *ClientImpl) DecryptPrivateKey(prikey []byte) ([]byte, error) {
 
 	return dec, nil
 }
-
-/*
-func (cl *ClientImpl) SaveAccount(ac *Account) error {
-	buf := keypair.SerializePrivateKey(ac.PrivateKey)
-	encryptedPrivateKey, err := cl.EncryptPrivateKey(buf)
-	if err != nil {
-		return err
-	}
-
-	clearBytes(buf, len(buf))
-	encryptedPrivateKey = append(encryptedPrivateKey, byte(ac.SigScheme))
-
-	err = cl.SaveAccountData(ac.Address[:], encryptedPrivateKey)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}*/
-
-/*
-func (cl *ClientImpl) LoadAccount() map[common.Address]*Account {
-		i := 0
-		accounts := map[common.Address]*Account{}
-		for true {
-			_, prikeyenc, err := cl.LoadAccountData(i)
-			if err != nil {
-				log.Error(err)
-				break
-			}
-
-			length := len(prikeyenc)
-			scheme := prikeyenc[length-1]
-			prikeyenc = prikeyenc[:length-1]
-			buf, err := cl.DecryptPrivateKey(prikeyenc)
-			if err != nil {
-				log.Error(err)
-				break
-			}
-
-			ac, err := NewAccountWithPrivatekey(buf)
-			if err != nil {
-				log.Error(err)
-				break
-			}
-			ac.SigScheme = s.SignatureScheme(scheme)
-			accounts[ac.Address] = ac
-			i++
-			break
-		}
-
-		return accounts
-}
-*/
 
 func (cl *ClientImpl) GetBookkeepers() ([]keypair.PublicKey, error) {
 	var pubKeys = []keypair.PublicKey{}

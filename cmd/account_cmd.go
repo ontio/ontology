@@ -353,36 +353,36 @@ func accountSet(ctx *cli.Context) error {
 	}
 
 	find := false
-	reader := bufio.NewReader(os.Stdin)
-	var inputSchemeInfo schemeInfo
 
 	if ctx.IsSet("default") {
-		fmt.Printf("use default value for all options \n")
-		inputSchemeInfo = schemeMap[""]
+		fmt.Printf("Set account %d to the default account\n", index)
+		for _, v := range wallet.Accounts {
+			if v.IsDefault {
+				v.IsDefault = false
+			}
+		}
+		wallet.Accounts[index-1].IsDefault = true
 	} else {
 		if ctx.IsSet("signature-scheme") {
 			for key, val := range schemeMap {
 				if val.name == ctx.String("signature-scheme") {
-					inputSchemeInfo = schemeMap[key]
+					inputSchemeInfo := schemeMap[key]
 					find = true
 					fmt.Printf("%s is selected. \n", inputSchemeInfo.name)
+					wallet.Accounts[index-1].SigSch = inputSchemeInfo.name
 					break
 				}
 			}
 			fmt.Printf("%s is not a valid content for option -s \n", ctx.String("signature-scheme"))
 		}
 		if !find {
-			fmt.Printf("use default value for all options. \n")
-			inputSchemeInfo = chooseScheme(reader)
+			fmt.Printf("Invalid arguments! Nothing changed.\n")
 		}
 	}
-
-	wallet.Accounts[index-1].SigSch = inputSchemeInfo.name
 
 	if wallet.Save(wFilePath) != nil {
 		fmt.Println("Wallet file save failed.")
 	}
-	fmt.Printf("Modify account %v successfully.\n", index)
 	return nil
 }
 
