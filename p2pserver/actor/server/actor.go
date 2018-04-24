@@ -24,6 +24,7 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver"
+	"github.com/ontio/ontology/p2pserver/common"
 )
 
 type P2PActor struct {
@@ -87,6 +88,8 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		this.handleGetRelayStateReq(ctx, msg)
 	case *GetNodeTypeReq:
 		this.handleGetNodeTypeReq(ctx, msg)
+	case *common.RemoveFlightHeight:
+		this.server.RemoveFlightHeight(msg.Id, msg.Height)
 	default:
 		err := this.server.Xmit(ctx.Message())
 		if nil != err {

@@ -204,7 +204,7 @@ func ontMain(ctx *cli.Context) {
 		os.Exit(1)
 	}
 	netreqactor.SetLedgerPid(ledgerPID)
-	netreqactor.SetTxnPoolPid(txPoolServer.GetPID(tc.TxPoolActor))
+	netreqactor.SetTxnPoolPid(txPoolServer.GetPID(tc.TxActor))
 
 	txPoolServer.RegisterActor(tc.NetActor, p2pPID)
 	hserver.SetNetServerPID(p2pPID)

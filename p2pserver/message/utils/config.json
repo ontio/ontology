@@ -1,0 +1,30 @@
+﻿{
+  "Configuration": {
+    "Magic": 7630401,
+    "Version": 23,
+    "SeedList": [
+      "139.219.108.204:20338",
+      "139.219.111.50:20338",
+      "139.219.69.70:20338",
+      "40.125.165.118:20338"
+    ],
+    "Bookkeepers": [
+      "1202021c6750d2c5d99813997438cee0740b04a73e42664c444e778e001196eed96c9d",
+      "12020339541a43af2206358714cf6bd385fc9ac8b5df554fec5497d9e947d583f985fc",
+      "120203bdf0d966f98ff4af5c563c4a3e2fe499d98542115e1ffd75fbca44b12c56a591",
+      "1202021401156f187ec23ce631a489c3fa17f292171009c6c3162ef642406d3d09c74d"
+    ],
+    "HttpRestPort": 20334,
+    "HttpWsPort":20335,
+    "HttpJsonPort": 20336,
+    "HttpLocalPort": 20337,
+    "NodePort": 20338,
+    "NodeConsensusPort": 20389,
+    "DualPortSurpport":true,
+    "PrintLevel": 1,
+    "IsTLS": false,
+    "MaxTransactionInBlock": 60000,
+    "ConsensusType":"dbft",
+    "MultiCoreNum": 4
+  }
+}

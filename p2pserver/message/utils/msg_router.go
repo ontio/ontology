@@ -19,6 +19,7 @@
 package utils
 
 import (
+	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"
 	msgCommon "github.com/ontio/ontology/p2pserver/common"
 	msgTypes "github.com/ontio/ontology/p2pserver/message/types"
@@ -26,10 +27,10 @@ import (
 )
 
 // MessageHandler defines the unified api for each net message
-type MessageHandler func(data *msgCommon.MsgPayload, p2p p2p.P2P) error
+type MessageHandler func(data *msgCommon.MsgPayload, args ...interface{}) error
 
 // DefaultMsgHandler defines the default message handler
-func DefaultMsgHandler(data *msgCommon.MsgPayload, p2p p2p.P2P) error {
+func DefaultMsgHandler(data *msgCommon.MsgPayload, args ...interface{}) error {
 	return nil
 }
 
@@ -42,6 +43,7 @@ type MessageRouter struct {
 	stopSyncCh   chan bool                  // To stop sync channel
 	stopConsCh   chan bool                  // To stop consensus channel
 	p2p          p2p.P2P                    // Refer to the p2p network
+	pid          *actor.PID                 // P2P actor
 }
 
 // NewMsgRouter returns a message router object
@@ -69,7 +71,6 @@ func (self *MessageRouter) init(p2p p2p.P2P) {
 	self.RegisterMsgHandler(msgCommon.PONG_TYPE, PongHandle)
 	self.RegisterMsgHandler(msgCommon.GET_HEADERS_TYPE, HeadersReqHandle)
 	self.RegisterMsgHandler(msgCommon.HEADERS_TYPE, BlkHeaderHandle)
-	self.RegisterMsgHandler(msgCommon.GET_BLOCKS_TYPE, BlocksReqHandle)
 	self.RegisterMsgHandler(msgCommon.INV_TYPE, InvHandle)
 	self.RegisterMsgHandler(msgCommon.GET_DATA_TYPE, DataReqHandle)
 	self.RegisterMsgHandler(msgCommon.BLOCK_TYPE, BlockHandle)
@@ -89,6 +90,11 @@ func (self *MessageRouter) RegisterMsgHandler(key string,
 // the msg type
 func (self *MessageRouter) UnRegisterMsgHandler(key string) {
 	delete(self.msgHandlers, key)
+}
+
+// SetPID sets p2p actor
+func (self *MessageRouter) SetPID(pid *actor.PID) {
+	self.pid = pid
 }
 
 // Start starts the loop to handle the message from the network
@@ -113,7 +119,7 @@ func (self *MessageRouter) hookChan(channel chan *msgCommon.MsgPayload,
 
 				handler, ok := self.msgHandlers[msgType]
 				if ok {
-					go handler(data, self.p2p)
+					go handler(data, self.p2p, self.pid)
 				} else {
 					log.Info("Unkown message handler for the msg: ",
 						msgType)
