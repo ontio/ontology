@@ -325,9 +325,6 @@ func (e *ExecutionEngine) Call(caller common.Address,
 		}
 	}()
 
-/*	if actionName == CONTRACT_INIT_METHOD{
-		return nil,errors.NewErr("[Call] init method can only be called in Deployment")
-	}*/
 	return e.call(caller,code,input,actionName,ver)
 
 }
@@ -396,6 +393,7 @@ func (e *ExecutionEngine)call(caller common.Address,
 		vm.Caller = caller
 
 		vmcode := types.VmCode{VmType:types.WASMVM,Code:code}
+		vm.VMCode = vmcode
 		vm.ContractAddress = vmcode.AddressFromVmCode()
 
 		entry, ok := m.Export.Entries[methodName]
