@@ -29,6 +29,8 @@ import (
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/vm/wasmvm/memory"
 	"github.com/ontio/ontology/vm/wasmvm/util"
+	"crypto/sha1"
+	"crypto/sha256"
 )
 
 type Args struct {
@@ -74,7 +76,8 @@ func NewInteropService() *InteropService {
 	service.Register("I64toa", int64ToString)
 	service.Register("i64add", int64Add)
 	service.Register("i64Subtract", int64Subtract)
-
+	service.Register("SHA1", hashSha1)
+	service.Register("SHA256", hashSha256)
 
 	service.Register("ReadInt32Param", readInt32Param)
 	service.Register("ReadInt64Param", readInt64Param)
@@ -85,6 +88,7 @@ func NewInteropService() *InteropService {
 	service.Register("RawMashalParams", rawMashalParams)
 	service.Register("GetCallerAddress", getCaller)
 	service.Register("GetSelfAddress", getContractAddress)
+
 
 	//===================add block apis below==================
 	return &service
@@ -795,7 +799,6 @@ func rawMashalParams(engine *ExecutionEngine) (bool, error) {
 		}
 
 	}
-
 	argIdx, err := engine.vm.SetPointerMemory(bf.Bytes())
 	if err != nil {
 		return false, errors.New("[jsonMashalParams] SetPointerMemory err:" + err.Error())
@@ -806,4 +809,49 @@ func rawMashalParams(engine *ExecutionEngine) (bool, error) {
 	}
 	return true, nil
 
+}
+
+func hashSha1(engine *ExecutionEngine) (bool, error) {
+	vm := engine.GetVM()
+	envCall := vm.envCall
+	params := envCall.envParams
+	if len(params) != 1 {
+		return false, errors.New("[hashSha1]parameter count error")
+	}
+
+	item,err := vm.GetPointerMemory(params[0])
+	if err != nil{
+		return false,err
+	}
+	sh := sha1.New()
+	sh.Write(item)
+	bt := sh.Sum(nil)
+
+	idx,err := vm.SetPointerMemory(bt)
+	vm.RestoreCtx()
+	vm.PushResult(uint64(idx))
+	return true,nil
+
+}
+
+func hashSha256(engine *ExecutionEngine) (bool, error) {
+	vm := engine.GetVM()
+	envCall := vm.envCall
+	params := envCall.envParams
+	if len(params) != 1 {
+		return false, errors.New("[hashSha1]parameter count error")
+	}
+
+	item,err := vm.GetPointerMemory(params[0])
+	if err != nil{
+		return false,err
+	}
+	sh := sha256.New()
+	sh.Write(item)
+	bt := sh.Sum(nil)
+
+	idx,err := vm.SetPointerMemory(bt)
+	vm.RestoreCtx()
+	vm.PushResult(uint64(idx))
+	return true,nil
 }
