@@ -8,7 +8,7 @@ DBUILD=docker build
 DRUN=docker run
 DOCKER_NS ?= ontio
 DOCKER_TAG=$(ARCH)-$(VERSION)
-CONFIG_FILES=$(shell ls *.json)
+ONT_CFG_IN_DOCKER=config-solo.json
 WALLET_FILE=wallet.dat
 
 all: ontology
@@ -22,12 +22,14 @@ format:
 $(WALLET_FILE): nodectl
 	./nodectl wallet -c -p passwordtest -n $(WALLET_FILE) 
 
-docker/payload: docker/build/bin/ontology docker/Dockerfile $(CONFIG_FILES) $(WALLET_FILE)
+docker/payload: docker/build/bin/ontology docker/Dockerfile $(ONT_CFG_IN_DOCKER) $(WALLET_FILE)
 	@echo "Building ontology payload"
 	@mkdir -p $@
 	@cp docker/Dockerfile $@
 	@cp docker/build/bin/ontology $@
-	@tar czf $@/config.tgz $(CONFIG_FILES) $(WALLET_FILE)
+	@cp -f $(ONT_CFG_IN_DOCKER) $@/config.json
+	@cp -f $(WALLET_FILE) $@
+	@tar czf $@/config.tgz -C $@ config.json $(WALLET_FILE)
 	@touch $@
 
 docker/build/bin/%: Makefile
