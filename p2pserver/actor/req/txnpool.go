@@ -27,93 +27,99 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	p2pcommon "github.com/ontio/ontology/p2pserver/common"
-	txnpool "github.com/ontio/ontology/txnpool/common"
+	tc "github.com/ontio/ontology/txnpool/common"
 )
 
-var TxnPoolPid *actor.PID
+const txnPoolReqTimeout = p2pcommon.ACTOR_TIMEOUT * time.Second
+
+var txnPoolPid *actor.PID
 
 func SetTxnPoolPid(txnPid *actor.PID) {
-	TxnPoolPid = txnPid
+	txnPoolPid = txnPid
 }
 
 //add txn to txnpool
 func AddTransaction(transaction *types.Transaction) {
-	TxnPoolPid.Tell(transaction)
+	txReq := &tc.TxReq{
+		Tx:     transaction,
+		Sender: tc.NetSender,
+	}
+	txnPoolPid.Tell(txReq)
 }
 
 //get all txns
-func GetTxnPool(byCount bool) ([]*txnpool.TXEntry, error) {
-	future := TxnPoolPid.RequestFuture(&txnpool.GetTxnPoolReq{ByCount: byCount}, p2pcommon.ACTOR_TIMEOUT*time.Second)
+func GetTxnPool(byCount bool) ([]*tc.TXEntry, error) {
+	future := txnPoolPid.RequestFuture(&tc.GetTxnPoolReq{ByCount: byCount}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("p2p GetTxnPool ERROR: "), err)
+		log.Error(errors.NewErr("net_server GetTxnPool ERROR: "), err)
 		return nil, err
 	}
-	return result.(txnpool.GetTxnPoolRsp).TxnPool, nil
+	return result.(tc.GetTxnPoolRsp).TxnPool, nil
 }
 
 //get txn according to hash
 func GetTransaction(hash common.Uint256) (*types.Transaction, error) {
-	future := TxnPoolPid.RequestFuture(&txnpool.GetTxnReq{Hash: hash}, p2pcommon.ACTOR_TIMEOUT*time.Second)
+	future := txnPoolPid.RequestFuture(&tc.GetTxnReq{Hash: hash}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("p2p GetTransaction ERROR: "), err)
+		log.Error(errors.NewErr("net_server GetTransaction ERROR: "), err)
 		return nil, err
 	}
-	return result.(txnpool.GetTxnRsp).Txn, nil
+	return result.(tc.GetTxnRsp).Txn, nil
 }
 
 //check whether txn in txnpool
 func CheckTransaction(hash common.Uint256) (bool, error) {
-	future := TxnPoolPid.RequestFuture(&txnpool.CheckTxnReq{Hash: hash}, p2pcommon.ACTOR_TIMEOUT*time.Second)
+	future := txnPoolPid.RequestFuture(&tc.CheckTxnReq{Hash: hash}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("p2p CheckTransaction ERROR: "), err)
+		log.Error(errors.NewErr("net_server CheckTransaction ERROR: "), err)
 		return false, err
 	}
-	return result.(txnpool.CheckTxnRsp).Ok, nil
+	return result.(tc.CheckTxnRsp).Ok, nil
 }
 
 //get tx status according to hash
-func GetTransactionStatus(hash common.Uint256) ([]*txnpool.TXAttr, error) {
-	future := TxnPoolPid.RequestFuture(&txnpool.GetTxnStatusReq{Hash: hash}, p2pcommon.ACTOR_TIMEOUT*time.Second)
+func GetTransactionStatus(hash common.Uint256) ([]*tc.TXAttr, error) {
+	future := txnPoolPid.RequestFuture(&tc.GetTxnStatusReq{Hash: hash}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("p2p GetTransactionStatus ERROR: "), err)
+		log.Error(errors.NewErr("net_server GetTransactionStatus ERROR: "), err)
 		return nil, err
 	}
-	return result.(txnpool.GetTxnStatusRsp).TxStatus, nil
+	return result.(tc.GetTxnStatusRsp).TxStatus, nil
 }
 
 //get pending txn by count
 func GetPendingTxn(byCount bool) ([]*types.Transaction, error) {
-	future := TxnPoolPid.RequestFuture(&txnpool.GetPendingTxnReq{ByCount: byCount}, p2pcommon.ACTOR_TIMEOUT*time.Second)
+	future := txnPoolPid.RequestFuture(&tc.GetPendingTxnReq{ByCount: byCount}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("p2p GetPendingTxn ERROR: "), err)
+		log.Error(errors.NewErr("net_server GetPendingTxn ERROR: "), err)
 		return nil, err
 	}
-	return result.(txnpool.GetPendingTxnRsp).Txs, nil
+	return result.(tc.GetPendingTxnRsp).Txs, nil
 }
 
 //get veritfy block result from txnpool
-func VerifyBlock(height uint32, txs []*types.Transaction) ([]*txnpool.VerifyTxResult, error) {
-	future := TxnPoolPid.RequestFuture(&txnpool.VerifyBlockReq{Height: height, Txs: txs}, p2pcommon.ACTOR_TIMEOUT*time.Second)
+func VerifyBlock(height uint32, txs []*types.Transaction) ([]*tc.VerifyTxResult, error) {
+	future := txnPoolPid.RequestFuture(&tc.VerifyBlockReq{Height: height, Txs: txs}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("p2p VerifyBlock ERROR: "), err)
+		log.Error(errors.NewErr("net_server VerifyBlock ERROR: "), err)
 		return nil, err
 	}
-	return result.(txnpool.VerifyBlockRsp).TxnPool, nil
+	return result.(tc.VerifyBlockRsp).TxnPool, nil
 }
 
 //get txn stats according to hash
 func GetTransactionStats(hash common.Uint256) ([]uint64, error) {
-	future := TxnPoolPid.RequestFuture(&txnpool.GetTxnStats{}, p2pcommon.ACTOR_TIMEOUT*time.Second)
+	future := txnPoolPid.RequestFuture(&tc.GetTxnStats{}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("p2p GetTransactionStats ERROR: "), err)
+		log.Error(errors.NewErr("net_server GetTransactionStats ERROR: "), err)
 		return nil, err
 	}
-	return result.(txnpool.GetTxnStatsRsp).Count, nil
+	return result.(tc.GetTxnStatsRsp).Count, nil
 }
