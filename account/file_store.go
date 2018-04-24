@@ -19,174 +19,106 @@
 package account
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"io/ioutil"
-	"os"
 
-	ontErrors "github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology-crypto/keypair"
 )
 
-type FileData struct {
-	PublicKeyHash       string
-	PrivateKeyEncrypted string
-	Address             string
-	ScriptHash          string
-	RawData             string
-	PasswordHash        string
-	IV                  string
-	MasterKey           string
+type Accountx struct {
+	keypair.ProtectedKey
+
+	Label     string `json:"label"`
+	SigSch    string `json:"signatureScheme"`
+	IsDefault bool   `json:"isDefault"`
+	Lock      bool   `json:"lock"`
+	PassHash  string `json:"passwordHash"`
 }
 
-type FileStore struct {
-	fd   FileData
-	file *os.File
-	path string
+func (this *Accountx) SetKeyPair(keyinfo *keypair.ProtectedKey) {
+	this.Address = keyinfo.Address
+	this.EncAlg = keyinfo.EncAlg
+	this.Alg = keyinfo.Alg
+	this.Hash = keyinfo.Hash
+	this.Key = keyinfo.Key
+	this.Param = keyinfo.Param
 }
-
-func (cs *FileStore) readDB() ([]byte, error) {
-	var err error
-	cs.file, err = os.OpenFile(cs.path, os.O_RDONLY, 0666)
-	if err != nil {
-		return nil, err
+func (this *Accountx) GetKeyPair() *keypair.ProtectedKey {
+	var keyinfo = new(keypair.ProtectedKey)
+	keyinfo.Address = this.Address
+	keyinfo.EncAlg = this.EncAlg
+	keyinfo.Alg = this.Alg
+	keyinfo.Hash = this.Hash
+	keyinfo.Key = this.Key
+	keyinfo.Param = this.Param
+	return keyinfo
+}
+func (this *Accountx) VerifyPassword(pwd []byte) bool {
+	passwordHash := sha256.Sum256(pwd)
+	if this.PassHash != hex.EncodeToString(passwordHash[:]) {
+		return false
 	}
-	defer cs.closeDB()
+	return true
+}
 
-	if cs.file != nil {
-		data, err := ioutil.ReadAll(cs.file)
-		if err != nil {
-			return nil, err
+type WalletData struct {
+	Name       string               `json:"name"`
+	Version    string               `json:"version"`
+	Scrypt     *keypair.ScryptParam `json:"scrypt"`
+	Identities []Identity           `json:"identities"`
+	Accounts   []*Accountx          `json:"accounts"`
+	Extra      string               `json:"extra"`
+}
+
+//TODO:: for temporary use, these params should be set by user?
+func (this *WalletData) Inititalize() {
+	this.Name = "MyWallet"
+	this.Version = "1.1"
+	this.Scrypt = keypair.GetScryptParameters()
+	this.Identities = nil
+	this.Extra = "null"
+	this.Accounts = make([]*Accountx, 0, 0)
+}
+
+func (this *WalletData) AddAccount(acc *Accountx) {
+	if len(this.Accounts) == 0 {
+		acc.IsDefault = true
+	}
+	this.Accounts = append(this.Accounts, acc)
+}
+
+func (this *WalletData) DelAccount(index int) string {
+	addr := this.Accounts[index-1].Address
+	this.Accounts = append(this.Accounts[:index-1], this.Accounts[index:]...)
+	return addr
+}
+
+func (this *WalletData) GetDefaultAccount() *Accountx {
+	for _, i := range this.Accounts {
+		if i.IsDefault {
+			return i
 		}
-
-		return data, nil
-
-	} else {
-		return nil, ontErrors.NewDetailErr(errors.New("[readDB] file handle is nil"), ontErrors.ErrNoCode, "")
 	}
-}
-
-func (cs *FileStore) writeDB(data []byte) error {
-	var err error
-	cs.file, err = os.OpenFile(cs.path, os.O_CREATE|os.O_WRONLY, 0666)
-	if err != nil {
-		return err
-	}
-	defer cs.closeDB()
-
-	if cs.file != nil {
-		cs.file.Write(data)
-	}
-
 	return nil
 }
 
-func (cs *FileStore) closeDB() {
-	if cs.file != nil {
-		cs.file.Close()
-		cs.file = nil
-	}
-}
-
-func (cs *FileStore) BuildDatabase(path string) {
-	err := os.Remove(path)
-	if err != nil {
-		//FIXME ignore this error
-	}
-
-	jsonBlob := []byte("{\"PublicKeyHash\":\"\", \"PrivateKeyEncrypted\":\"\", \"Address\":\"\", \"ScriptHash\":\"\", \"RawData\":\"\", \"PasswordHash\":\"\", \"IV\":\"\", \"MasterKey\":\"\"}")
-
-	cs.writeDB(jsonBlob)
-}
-
-func (cs *FileStore) SaveStoredData(name string, value []byte) error {
-	jsondata, err := cs.readDB()
+func (this *WalletData) Save(path string) error {
+	data, err := json.Marshal(this)
 	if err != nil {
 		return err
 	}
-
-	err = json.Unmarshal(jsondata, &cs.fd)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-
-	if name == "IV" {
-		cs.fd.IV = fmt.Sprintf("%x", value)
-	} else if name == "MasterKey" {
-		cs.fd.MasterKey = fmt.Sprintf("%x", value)
-	} else if name == "PasswordHash" {
-		cs.fd.PasswordHash = fmt.Sprintf("%x", value)
-	}
-
-	jsonblob, err := json.Marshal(cs.fd)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-
-	cs.writeDB(jsonblob)
-
-	return nil
+	return ioutil.WriteFile(path, data, 0644)
 }
 
-func (cs *FileStore) LoadStoredData(name string) ([]byte, error) {
-	jsondata, err := cs.readDB()
-	if err != nil {
-		return nil, err
-	}
-
-	err = json.Unmarshal(jsondata, &cs.fd)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-
-	if name == "IV" {
-		return hex.DecodeString(cs.fd.IV)
-	} else if name == "MasterKey" {
-		return hex.DecodeString(cs.fd.MasterKey)
-	} else if name == "PasswordHash" {
-		return hex.DecodeString(cs.fd.PasswordHash)
-	}
-
-	return nil, ontErrors.NewDetailErr(errors.New("Can't find the key: "+name), ontErrors.ErrNoCode, "")
-}
-
-func (cs *FileStore) SaveAccountData(pubkeyhash []byte, prikeyenc []byte) error {
-	jsondata, err := cs.readDB()
+func (this *WalletData) Load(path string) error {
+	msh, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
 	}
-
-	err = json.Unmarshal(jsondata, &cs.fd)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-
-	cs.fd.PublicKeyHash = fmt.Sprintf("%x", pubkeyhash)
-	cs.fd.PrivateKeyEncrypted = fmt.Sprintf("%x", prikeyenc)
-
-	jsonblob, err := json.Marshal(cs.fd)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-
-	cs.writeDB(jsonblob)
-	return nil
+	return json.Unmarshal(msh, this)
 }
 
-func (cs *FileStore) LoadAccountData(index int) ([]byte, []byte, error) {
-	jsondata, err := cs.readDB()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	err = json.Unmarshal(jsondata, &cs.fd)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-
-	publickeyHash, err := hex.DecodeString(cs.fd.PublicKeyHash)
-	privatekeyEncrypted, err := hex.DecodeString(cs.fd.PrivateKeyEncrypted)
-
-	return publickeyHash, privatekeyEncrypted, err
-}
+//TODO:: determine identity structure
+type Identity struct{}

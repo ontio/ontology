@@ -1,7 +1,7 @@
 
 ## Ontology CLI User Guide
 
-- [CLI Wallet Command](#cli-wallet-cmd)
+- [CLI Account Command](#cli-account-cmd)
 - [CLI Info Show Command](#cli-info-show-cmd)
 - [CLI ASSET Command](#cli-asset-cmd)
 - [CLI Setting Command](#cli-setting-cmd)
@@ -16,57 +16,148 @@ $./ontology --help
 ```
 --- 
 
-## <a name="cli-wallet-cmd"></a> CLI Wallet Command
+## <a name="cli-account-cmd"></a> CLI Account Command
+
+### Add account
+
+Create a new account contains a key pair and an address.
+
+First select the key type, which could be specified via `-t` option.
 
 ```
-Usage:
-    ontology wallet [command options] [args]
+$ ontology account add
 
-Description:
-    With ontology wallet, you could control your account.
+Select a signature algorithm from the following:
 
-Command:
-    create
-      --name value                     wallet name
-    show
-      --name value                     wallet name (default: wallet.dat)
-    balance
-      --name value                     wallet name (default: wallet.dat)
-```
-### Example for wallet create 
+  1  ECDSA
+  2  SM2
+  3  Ed25519
 
-```
-$ ./ontology wallet create --name wallet.dat
-After input password twice correctly, result will show as follow:
-public key:     	 120202a03fbdb1ee609353f6b98a28bb82b166ed1fef126fa31ab9302c24aa5ecf49d2
-hex address:    	 01cde971fcedd97fba7babd19516a6d90db1ed97
-base58 address: 	 TA8kMG3QZu37NmPNCPuP1xNPYbmiFTX973
+[default is 1]: 
 ```
 
-### Example for wallet show
-```
-$ ./ontology wallet show --name wallet.dat
-After input password correctly, result will show as follow:
-public key:     	 120202a03fbdb1ee609353f6b98a28bb82b166ed1fef126fa31ab9302c24aa5ecf49d2
-hex address:    	 01cde971fcedd97fba7babd19516a6d90db1ed97
-base58 address: 	 TA8kMG3QZu37NmPNCPuP1xNPYbmiFTX973
+If SM2 or EdDSA is selected, the parameters are auto set since each of the two only supports one default setting.
 
-NOTE: 
-If without wallet name, the default value wallet.dat will be used.
 ```
-
-### Example for wallet balance
+SM2 is selected.
+Use curve sm2p256v1 with key length of 256 bits and SM3withSM2 as the signature scheme.
 ```
-$ ./ontology wallet balance --name wallet.dat
-After input password correctly, result will show as follow:
-ONT: 1000000000; ONG: 0; ONGAppove: 0
-Address(base58): TA6VvtGekMfinP97CTL9SH5WTowChUungL
+or
 
-NOTE: 
-If without wallet name, the default value wallet.dat will be used.
+```
+Ed25519 is selected.
+Use curve 25519 with key length of 256 bits and Ed25519 as the signature scheme.
 ```
 
---- 
+If ECDSA is selected, the next step is to select the curve:
+
+```
+Select a curve from the following:
+
+    | NAME  | KEY LENGTH (bits)
+ ---|-------|------------------
+  1 | P-224 | 224
+  2 | P-256 | 256
+  3 | P-384 | 384
+  4 | P-521 | 521
+
+This determines the length of the private key [default is 2]: 
+```
+
+The curves determine the key length of 224, 256, 384 and 521 respectively.
+This parameter could be specified via `-b` option.
+
+Then select a signature scheme:
+
+```
+Select a signature scheme from the following:
+
+  1  SHA224withECDSA
+  2  SHA256withECDSA
+  3  SHA384withECDSA
+  4  SHA512withECDSA
+  5  SHA3-224withECDSA
+  6  SHA3-256withECDSA
+  7  SHA3-384withECDSA
+  8  SHA3-512withECDSA
+  9  RIPEMD160withECDSA
+
+This can be changed later [default is 2]: 
+```
+
+The above selections can be skipped by adding `--default` option, while using the default parameters.
+
+The private key needs be encrypted. This requires a password:
+
+```
+Enter a password for encrypting the private key:
+Re-enter password:
+```
+
+The private key can be re-encrypted using the `encrypt` command.
+
+After all the parameters are selected, it will generate a key pair. 
+
+The public key will be converted to generate the address. Then output the public informations.
+
+```
+Create account successfully.
+Address: `base58-address-string`
+Public key: `hex-string`
+Signature scheme: SHA256withECDSA
+```
+
+### List existing account
+
+```
+$ ontology account list
+* 1  xxxxx
+  2  xxxxx
+```
+
+The `*` indicates the default account.
+
+With `-v` option, details of each account would be displayed.
+
+```
+$ ontology account list -v
+* 1 xxxxx
+    Signature algorithm: ECDSA
+    Curve: P-256
+    Key length: 256 bits
+    Public key: xxxx
+    Signature Scheme: SHA256withECDSA
+
+  ...
+```
+
+### Modify account
+
+Modify the account settings, such as the signature scheme.
+Account is specified by the index displaying in the list command.
+
+
+### Delete account
+
+Delete an existing account by specifying the index.
+
+
+### Re-encrypt account
+
+Change the password for an account.
+
+```
+$ ontology account encrypt 1
+
+Please enter the original password:
+```
+
+Then input the new password if the original password is correct.
+
+```
+Enter a password for encrypting the private key:
+Re-enter password:
+```
 
 ## <a name="cli-info-show-cmd"></a>CLI Info Show Command
 ```

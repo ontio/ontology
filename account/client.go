@@ -19,29 +19,26 @@
 package account
 
 import (
-	"bytes"
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 	"sync"
+	"syscall"
+
+	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/ontio/ontology-crypto/aes"
 	"github.com/ontio/ontology-crypto/keypair"
 	s "github.com/ontio/ontology-crypto/signature"
-	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/password"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/net/protocol"
-	"github.com/urfave/cli"
 )
 
 const (
@@ -68,7 +65,7 @@ type ClientImpl struct {
 	watchOnly     []common.Address
 	currentHeight uint32
 
-	FileStore
+	WalletData
 	isrunning bool
 }
 
@@ -85,112 +82,137 @@ func Create(path string, encrypt string, passwordKey []byte) *ClientImpl {
 }
 
 func Open(path string, passwordKey []byte) *ClientImpl {
+	if "" == path {
+		path = WALLET_FILENAME
+	}
+	if !common.FileExisted(path) {
+		log.Error(fmt.Sprintf("No %s detected, please create a wallet first.", path))
+		return nil
+	}
+
+	defer clearBytes(passwordKey, len(passwordKey))
+
+	if len(passwordKey) == 0 {
+		fmt.Printf("Please enter password:")
+		passwd, err := terminal.ReadPassword(int(syscall.Stdin))
+		if err != nil {
+			log.Error("Get password error.")
+			return nil
+		}
+		fmt.Println("")
+		passwordKey = passwd
+	}
+
 	cl := NewClient(path, passwordKey, false)
 	if cl == nil {
 		log.Error("Alloc new client failure")
 		return nil
 	}
 
-	cl.accounts = cl.LoadAccount()
-	if cl.accounts == nil {
-		log.Error("Load accounts failure")
-	}
 	return cl
 }
 
 func NewClient(path string, password []byte, create bool) *ClientImpl {
+	defer clearBytes(password, len(password))
 	newClient := &ClientImpl{
 		path:      path,
 		accounts:  map[common.Address]*Account{},
-		FileStore: FileStore{path: path},
 		isrunning: true,
 	}
 
-	passwordKey := doubleHash(password)
-	if create {
-		//create new client
-		newClient.iv = make([]byte, 16)
-		newClient.masterKey = make([]byte, 32)
-		newClient.watchOnly = []common.Address{}
-		newClient.currentHeight = 0
+	passwordKey := password
+	if create { /*
+			//create new client
+			newClient.iv = make([]byte, 16)
+			newClient.masterKey = make([]byte, 32)
+			newClient.watchOnly = []common.Address{}
+			newClient.currentHeight = 0
 
-		//generate random number for iv/masterkey
-		_, err := rand.Read(newClient.iv)
-		if err != nil {
-			log.Error(err)
-			return nil
-		}
-		_, err = rand.Read(newClient.masterKey)
-		if err != nil {
-			log.Error(err)
-			return nil
-		}
-
-		//new client store (build DB)
-		newClient.BuildDatabase(path)
-
-		// SaveStoredData
-		pwdhash := sha256.Sum256(passwordKey)
-		err = newClient.SaveStoredData("PasswordHash", pwdhash[:])
-		if err != nil {
-			log.Error(err)
-			return nil
-		}
-		err = newClient.SaveStoredData("IV", newClient.iv[:])
-		if err != nil {
-			log.Error(err)
-			return nil
-		}
-
-		aesmk, err := aes.AesEncrypt(newClient.masterKey[:], passwordKey, newClient.iv)
-		if err == nil {
-			err = newClient.SaveStoredData("MasterKey", aesmk)
+			//generate random number for iv/masterkey
+			_, err := rand.Read(newClient.iv)
 			if err != nil {
 				log.Error(err)
 				return nil
 			}
-		} else {
-			log.Error(err)
-			return nil
-		}
+			_, err = rand.Read(newClient.masterKey)
+			if err != nil {
+				log.Error(err)
+				return nil
+			}
+
+			//new client store (build DB)
+			newClient.BuildDatabase(path)
+
+			// SaveStoredData
+			pwdhash := sha256.Sum256(passwordKey)
+			err = newClient.SaveStoredData("PasswordHash", pwdhash[:])
+			if err != nil {
+				log.Error(err)
+				return nil
+			}
+			err = newClient.SaveStoredData("IV", newClient.iv[:])
+			if err != nil {
+				log.Error(err)
+				return nil
+			}
+
+			aesmk, err := aes.AesEncrypt(newClient.masterKey[:], passwordKey, newClient.iv)
+			if err == nil {
+				err = newClient.SaveStoredData("MasterKey", aesmk)
+				if err != nil {
+					log.Error(err)
+					return nil
+				}
+			} else {
+				log.Error(err)
+				return nil
+			}*/
 	} else {
-		if b := newClient.verifyPasswordKey(passwordKey); b == false {
-			return nil
-		}
+		//if b := newClient.verifyPasswordKey(passwordKey); b == false {
+		//	return nil
+		//}
 		if err := newClient.loadClient(passwordKey); err != nil {
+			fmt.Println(err)
 			return nil
 		}
 	}
-	clearBytes(passwordKey, len(passwordKey))
 	return newClient
 }
 
 func (cl *ClientImpl) loadClient(passwordKey []byte) error {
 	var err error
-	cl.iv, err = cl.LoadStoredData("IV")
+	err = cl.Load(cl.path)
 	if err != nil {
-		fmt.Println("error: failed to load iv")
+		fmt.Println("error: failed load wallet")
 		return err
-	}
-	encryptedMasterKey, err := cl.LoadStoredData("MasterKey")
-	if err != nil {
-		fmt.Println("error: failed to load master key")
-		return err
-	}
-	cl.masterKey, err = aes.AesDecrypt(encryptedMasterKey, passwordKey, cl.iv)
-	if err != nil {
-		fmt.Println("error: failed to decrypt master key")
-		return err
-	}
-	return nil
-}
-
-func (cl *ClientImpl) GetDefaultAccount() *Account {
-	// todo the iteration of map is not ordered
-	for programHash := range cl.accounts {
-		return cl.GetAccountByAddress(programHash)
 	}
 
+	for i, v := range cl.Accounts {
+		if !v.VerifyPassword(passwordKey) {
+			fmt.Println("error: incorrect password for account", i)
+			continue
+		}
+		ac := new(Account)
+		ac.PrivateKey, err = keypair.DecryptPrivateKey(&v.ProtectedKey, passwordKey)
+		if err != nil {
+			fmt.Println("error: failed load account", i+1)
+			continue
+		}
+
+		ac.PublicKey = ac.PrivateKey.Public()
+		ac.Address = types.AddressFromPubKey(ac.PublicKey)
+		if ac.Address.ToBase58() != v.Address {
+			fmt.Println("warning: incorrect address of account", i)
+		}
+
+		scheme, err := s.GetScheme(v.SigSch)
+		if err != nil {
+			fmt.Println("error: invalid signature scheme of account", i)
+			continue
+		}
+		ac.SigScheme = scheme
+		cl.accounts[ac.Address] = ac
+	}
 	return nil
 }
 
@@ -209,38 +231,52 @@ func (cl *ClientImpl) GetAccountByAddress(address common.Address) *Account {
 	return nil
 }
 
+func (cl *ClientImpl) GetDefaultAccount() *Account {
+	addr := cl.WalletData.GetDefaultAccount().Address
+	for _, v := range cl.accounts {
+		if v.Address.ToBase58() == addr {
+			return v
+		}
+	}
+	return nil
+}
+
+// Deprecated
 func (cl *ClientImpl) ChangePassword(oldPassword []byte, newPassword []byte) bool {
-	// check password
-	oldPasswordKey := doubleHash(oldPassword)
-	if !cl.verifyPasswordKey(oldPasswordKey) {
-		fmt.Println("error: password verification failed")
-		return false
-	}
-	if err := cl.loadClient(oldPasswordKey); err != nil {
-		fmt.Println("error: load wallet info failed")
-		return false
-	}
 
-	// encrypt master key with new password
-	newPasswordKey := doubleHash(newPassword)
-	newMasterKey, err := aes.AesEncrypt(cl.masterKey, newPasswordKey, cl.iv)
-	if err != nil {
-		fmt.Println("error: set new password failed")
-		return false
-	}
+	/*
+		// check password
+		oldPasswordKey := doubleHash(oldPassword)
+		if !cl.verifyPasswordKey(oldPasswordKey) {
+			fmt.Println("error: password verification failed")
+			return false
+		}
+		if err := cl.loadClient(oldPasswordKey); err != nil {
+			fmt.Println("error: load wallet info failed")
+			return false
+		}
 
-	// update wallet file
-	newPasswordHash := sha256.Sum256(newPasswordKey)
-	if err := cl.SaveStoredData("PasswordHash", newPasswordHash[:]); err != nil {
-		fmt.Println("error: wallet update failed(password hash)")
-		return false
-	}
-	if err := cl.SaveStoredData("MasterKey", newMasterKey); err != nil {
-		fmt.Println("error: wallet update failed (encrypted master key)")
-		return false
-	}
-	clearBytes(newPasswordKey, len(newPasswordKey))
-	clearBytes(cl.masterKey, len(cl.masterKey))
+		// encrypt master key with new password
+		newPasswordKey := doubleHash(newPassword)
+		newMasterKey, err := aes.AesEncrypt(cl.masterKey, newPasswordKey, cl.iv)
+		if err != nil {
+			fmt.Println("error: set new password failed")
+			return false
+		}
+
+		// update wallet file
+		newPasswordHash := sha256.Sum256(newPasswordKey)
+		if err := cl.SaveStoredData("PasswordHash", newPasswordHash[:]); err != nil {
+			fmt.Println("error: wallet update failed(password hash)")
+			return false
+		}
+		if err := cl.SaveStoredData("MasterKey", newMasterKey); err != nil {
+			fmt.Println("error: wallet update failed (encrypted master key)")
+			return false
+		}
+		defer clearBytes(newPasswordKey, len(newPasswordKey))
+		defer clearBytes(cl.masterKey, len(cl.masterKey))
+	*/
 
 	return true
 }
@@ -250,6 +286,7 @@ func (cl *ClientImpl) ContainsAccount(pubKey keypair.PublicKey) bool {
 	return cl.GetAccountByAddress(addr) != nil
 }
 
+// Deprecated
 func (cl *ClientImpl) CreateAccount(encrypt string) (*Account, error) {
 	ac := NewAccount(encrypt)
 
@@ -257,14 +294,15 @@ func (cl *ClientImpl) CreateAccount(encrypt string) (*Account, error) {
 	cl.accounts[ac.Address] = ac
 	cl.mu.Unlock()
 
-	err := cl.SaveAccount(ac)
-	if err != nil {
-		return nil, err
-	}
+	//err := cl.SaveAccount(ac)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	return ac, nil
 }
 
+/*
 func (cl *ClientImpl) CreateAccountByPrivateKey(privateKey []byte) (*Account, error) {
 	ac, err := NewAccountWithPrivatekey(privateKey)
 	cl.mu.Lock()
@@ -299,7 +337,7 @@ func (cl *ClientImpl) verifyPasswordKey(passwordKey []byte) bool {
 		return false
 	}
 	return true
-}
+}*/
 
 func (cl *ClientImpl) EncryptPrivateKey(prikey []byte) ([]byte, error) {
 	enc, err := aes.AesEncrypt(prikey, cl.masterKey, cl.iv)
@@ -323,6 +361,7 @@ func (cl *ClientImpl) DecryptPrivateKey(prikey []byte) ([]byte, error) {
 	return dec, nil
 }
 
+/*
 func (cl *ClientImpl) SaveAccount(ac *Account) error {
 	buf := keypair.SerializePrivateKey(ac.PrivateKey)
 	encryptedPrivateKey, err := cl.EncryptPrivateKey(buf)
@@ -339,40 +378,42 @@ func (cl *ClientImpl) SaveAccount(ac *Account) error {
 	}
 
 	return nil
-}
+}*/
 
+/*
 func (cl *ClientImpl) LoadAccount() map[common.Address]*Account {
-	i := 0
-	accounts := map[common.Address]*Account{}
-	for true {
-		_, prikeyenc, err := cl.LoadAccountData(i)
-		if err != nil {
-			log.Error(err)
+		i := 0
+		accounts := map[common.Address]*Account{}
+		for true {
+			_, prikeyenc, err := cl.LoadAccountData(i)
+			if err != nil {
+				log.Error(err)
+				break
+			}
+
+			length := len(prikeyenc)
+			scheme := prikeyenc[length-1]
+			prikeyenc = prikeyenc[:length-1]
+			buf, err := cl.DecryptPrivateKey(prikeyenc)
+			if err != nil {
+				log.Error(err)
+				break
+			}
+
+			ac, err := NewAccountWithPrivatekey(buf)
+			if err != nil {
+				log.Error(err)
+				break
+			}
+			ac.SigScheme = s.SignatureScheme(scheme)
+			accounts[ac.Address] = ac
+			i++
 			break
 		}
 
-		length := len(prikeyenc)
-		scheme := prikeyenc[length-1]
-		prikeyenc = prikeyenc[:length-1]
-		buf, err := cl.DecryptPrivateKey(prikeyenc)
-		if err != nil {
-			log.Error(err)
-			break
-		}
-
-		ac, err := NewAccountWithPrivatekey(buf)
-		if err != nil {
-			log.Error(err)
-			break
-		}
-		ac.SigScheme = s.SignatureScheme(scheme)
-		accounts[ac.Address] = ac
-		i++
-		break
-	}
-
-	return accounts
+		return accounts
 }
+*/
 
 func (cl *ClientImpl) GetBookkeepers() ([]keypair.PublicKey, error) {
 	var pubKeys = []keypair.PublicKey{}
@@ -416,33 +457,6 @@ func nodeType(typeName string) int {
 	} else {
 		return protocol.VERIFY_NODE
 	}
-}
-
-func GetClient(ctx *cli.Context) Client {
-	wallet := ctx.GlobalString(utils.WalletNameFlag.Name)
-	if "" != wallet && !common.FileExisted(wallet) {
-		log.Fatal(fmt.Sprintf("No %s detected, please use a wallet existed.", wallet))
-		os.Exit(1)
-	}
-
-	if "" == wallet && !common.FileExisted(WALLET_FILENAME) {
-		log.Fatal(fmt.Sprintf("No %s detected, please create a wallet by using command line.", WALLET_FILENAME))
-		os.Exit(1)
-	}
-	passwd, err := password.GetAccountPassword()
-	if err != nil {
-		log.Fatal("Get password error.")
-		os.Exit(1)
-	}
-
-	var client Client
-	if "" != wallet {
-		client = Open(wallet, passwd)
-	} else {
-		client = Open(WALLET_FILENAME, passwd)
-	}
-
-	return client
 }
 
 func GetBookkeepers() []keypair.PublicKey {

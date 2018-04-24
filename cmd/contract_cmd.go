@@ -36,27 +36,24 @@ var (
 	ContractCommand = cli.Command{
 		Name:         "contract",
 		Action:       utils.MigrateFlags(contractCommand),
-		Usage:        "ontology contract [invoke|deploy] [OPTION]",
-		Category:     "CONTRACT COMMANDS",
+		Usage:        "Deploy or invoke smart contract",
 		OnUsageError: contractUsageError,
-		Description:  `account command`,
+		Description:  `Deploy or invoke smart contract`,
 		Subcommands: []cli.Command{
 			{
 				Action:       utils.MigrateFlags(invokeContract),
 				Name:         "invoke",
 				OnUsageError: invokeUsageError,
-				Usage:        "ontology invoke [OPTION]\n",
+				Usage:        "Invoke a deployed smart contract",
 				Flags:        append(NodeFlags, ContractFlags...),
-				Category:     "CONTRACT COMMANDS",
 				Description:  ``,
 			},
 			{
 				Action:       utils.MigrateFlags(deployContract),
 				OnUsageError: deployUsageError,
 				Name:         "deploy",
-				Usage:        "ontology deploy [OPTION]\n",
+				Usage:        "Deploy a smart contract to the chain",
 				Flags:        append(NodeFlags, ContractFlags...),
-				Category:     "CONTRACT COMMANDS",
 				Description:  ``,
 			},
 		},
@@ -86,7 +83,8 @@ func invokeContract(ctx *cli.Context) error {
 		return nil
 	}
 
-	client := account.GetClient(ctx)
+	wallet := ctx.GlobalString(utils.WalletNameFlag.Name)
+	client := account.Open(wallet, nil)
 	if client == nil {
 		fmt.Println("Can't get local account")
 		return errors.New("Get client is nil")
@@ -148,7 +146,8 @@ func deployContract(ctx *cli.Context) error {
 		return errors.New("Parameter is err")
 	}
 
-	client := account.GetClient(ctx)
+	wallet := ctx.GlobalString(utils.WalletNameFlag.Name)
+	client := account.Open(wallet, nil)
 	if nil == client {
 		fmt.Println("Can't get local account.")
 		return errors.New("Get client return nil")
