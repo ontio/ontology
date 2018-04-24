@@ -19,7 +19,6 @@ import (
 	vmtypes "github.com/ontio/ontology/smartcontract/types"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
 	"github.com/ontio/ontology/vm/wasmvm/util"
-	"fmt"
 )
 
 type WasmVmService struct {
@@ -47,7 +46,6 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	contract := &states.Contract{}
 	contract.Deserialize(bytes.NewBuffer(this.Code))
 	addr := contract.Address
-
 	if contract.Code == nil {
 		dpcode, err := this.GetContractCodeFromAddress(addr)
 		if err != nil {
@@ -110,6 +108,7 @@ func (this *WasmVmService) marshalNativeParams(engine *exec.ExecutionEngine) (bo
 	if err != nil {
 		return false, err
 	}
+
 	//statesbytes is slice of struct with states.
 	//type State struct {
 	//	Version byte            -------->i32 4 bytes
@@ -145,6 +144,7 @@ func (this *WasmVmService) marshalNativeParams(engine *exec.ExecutionEngine) (bo
 		amount := binary.LittleEndian.Uint64(tmpbytes[16:])
 		state.Value = big.NewInt(int64(amount))
 		states[i] = state
+
 	}
 
 	transfer.States = states
@@ -161,30 +161,28 @@ func (this *WasmVmService) marshalNativeParams(engine *exec.ExecutionEngine) (bo
 }
 
 func (this *WasmVmService) CheckWitness(engine *exec.ExecutionEngine) (bool, error) {
-	fmt.Println("=====CheckWitness start======")
 	vm := engine.GetVM()
 
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
 	if len(params) != 1 {
-		return false ,errors.NewErr("[CheckWitness]get parameter count error!")
+		return false, errors.NewErr("[CheckWitness]get parameter count error!")
 	}
 
-	data,err := vm.GetPointerMemory(params[0])
+	data, err := vm.GetPointerMemory(params[0])
 	if err != nil {
-		return false ,errors.NewErr("[CheckWitness]" + err.Error())
+		return false, errors.NewErr("[CheckWitness]" + err.Error())
 	}
 	address, err := common.AddressFromBase58(util.TrimBuffToString(data))
 	if err != nil {
-		return false ,errors.NewErr("[CheckWitness]" + err.Error())
+		return false, errors.NewErr("[CheckWitness]" + err.Error())
 	}
 	chkRes := this.ContextRef.CheckWitness(address)
 
 	res := 0
-	if chkRes == true{
+	if chkRes == true {
 		res = 1
 	}
-	fmt.Printf("=====CheckWitness res is %d======",res)
 	vm.RestoreCtx()
 	if vm.GetEnvCall().GetReturns() {
 		vm.PushResult(uint64(res))
@@ -192,23 +190,18 @@ func (this *WasmVmService) CheckWitness(engine *exec.ExecutionEngine) (bool, err
 	return true, nil
 }
 
-
-
-
 // callContract will need 4 paramters
 //0: contract address
 //1: contract code
 //2: method name
 //3: args
 func (this *WasmVmService) callContract(engine *exec.ExecutionEngine) (bool, error) {
-
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
 	if len(params) != 4 {
 		return false, errors.NewErr("[callContract]parameter count error while call readMessage")
 	}
-
 	var contractAddress common.Address
 	var contractBytes []byte
 	//get contract address
@@ -231,14 +224,12 @@ func (this *WasmVmService) callContract(engine *exec.ExecutionEngine) (bool, err
 	}
 
 	//get contract code
-
 	codeIdx := params[1]
 
 	offchainContractCode, err := vm.GetPointerMemory(codeIdx)
 	if err != nil {
 		return false, errors.NewErr("[callContract]get Contract address failed:" + err.Error())
 	}
-
 	if offchainContractCode != nil {
 		contractBytes, err = common.HexToBytes(util.TrimBuffToString(offchainContractCode))
 		if err != nil {
@@ -249,20 +240,24 @@ func (this *WasmVmService) callContract(engine *exec.ExecutionEngine) (bool, err
 		codestring := util.TrimBuffToString(offchainContractCode)
 		contractAddress = GetContractAddress(codestring, vmtypes.WASMVM)
 	}
-
 	//get method
 	methodName, err := vm.GetPointerMemory(params[2])
 	if err != nil {
 		return false, errors.NewErr("[callContract]get Contract methodName failed:" + err.Error())
 	}
-
 	//get args
 	arg, err := vm.GetPointerMemory(params[3])
+
 	if err != nil {
 		return false, errors.NewErr("[callContract]get Contract arg failed:" + err.Error())
 	}
 
+	this.ContextRef.PushContext(&context.Context{
+		Code: vm.VMCode,
+		ContractAddress: vm.ContractAddress})
 	result, err := this.ContextRef.AppCall(contractAddress, util.TrimBuffToString(methodName), contractBytes, arg)
+	this.ContextRef.PopContext()
+
 	if err != nil {
 		return false, errors.NewErr("[callContract]AppCall failed:" + err.Error())
 	}

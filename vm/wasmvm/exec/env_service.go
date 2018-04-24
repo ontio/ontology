@@ -29,7 +29,6 @@ import (
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/vm/wasmvm/memory"
 	"github.com/ontio/ontology/vm/wasmvm/util"
-	"fmt"
 )
 
 type Args struct {
@@ -159,9 +158,10 @@ func malloc(engine *ExecutionEngine) (bool, error) {
 	envCall := engine.vm.envCall
 	params := envCall.envParams
 	if len(params) != 1 {
-		return false, errors.New("parameter count error while call calloc")
+		return false, errors.New("parameter count error while call malloc")
 	}
 	size := int(params[0])
+
 	//we don't know whats the alloc type here
 	index, err := engine.vm.memory.MallocPointer(size, memory.PUnkown)
 	if err != nil {
@@ -400,17 +400,14 @@ func readStringParam(engine *ExecutionEngine) (bool, error) {
 }
 
 func jsonUnmashal(engine *ExecutionEngine) (bool, error) {
-	fmt.Println("====jsonUnmashal start ========")
 	envCall := engine.vm.envCall
 	params := envCall.envParams
-	fmt.Printf("params is %v\n",params)
 	if len(params) != 3 {
 		return false, errors.New("parameter count error while call jsonUnmashal")
 	}
 
 	addr := params[0]
 	size := int(params[1])
-	fmt.Printf("size is %d\n",size)
 	jsonaddr := params[2]
 	jsonbytes, err := engine.vm.GetPointerMemory(jsonaddr)
 	if err != nil {
@@ -421,7 +418,6 @@ func jsonUnmashal(engine *ExecutionEngine) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	fmt.Printf("arg is %v\n",arg)
 	buff := bytes.NewBuffer(nil)
 	count := size
 	for i, tmparg := range arg.Params {
@@ -510,7 +506,6 @@ func jsonUnmashal(engine *ExecutionEngine) (bool, error) {
 	}
 
 	bytes := buff.Bytes()
-	fmt.Printf("bytes is %v\n",bytes)
 	if len(bytes) != size {
 		return false ,errors.New("JsonUnmasal input error!")
 	}
