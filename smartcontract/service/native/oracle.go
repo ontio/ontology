@@ -23,19 +23,19 @@ import (
 	"encoding/json"
 	"math/big"
 
+	"github.com/ontio/ontology/core/genesis"
 	cstates "github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/smartcontract/service/native/states"
 )
 
 const (
 	//function name
-	CREATE_ORACLE_REQUEST = "createOracleRequest"
-	SET_ORACLE_OUTCOME = "setOracleOutcome"
+	CREATE_ORACLE_REQUEST   = "createOracleRequest"
+	SET_ORACLE_OUTCOME      = "setOracleOutcome"
 	SET_ORACLE_CRON_OUTCOME = "setOracleCronOutcome"
-	CHANGE_CRON_VIEW = "changeCronView"
+	CHANGE_CRON_VIEW        = "changeCronView"
 
 	//keyPrefix
 	UNDO_TXHASH         = "UndoTxHash"
@@ -61,7 +61,7 @@ func RegisterOracleContract(native *NativeService) {
 
 func CreateOracleRequest(native *NativeService) error {
 	params := new(states.CreateOracleRequestParam)
-	err := json.Unmarshal(native.Input, &params)
+	err := json.Unmarshal(native.Input, params)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[createOracleRequest] Contract params Unmarshal error!")
 	}
@@ -84,14 +84,14 @@ func CreateOracleRequest(native *NativeService) error {
 		Requests: make(map[string]interface{}),
 	}
 
-	undoRequestsBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, append(contract[:], []byte(UNDO_TXHASH)...))
+	undoRequestsBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(UNDO_TXHASH)))
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[createOracleRequest] Get UndoRequests error!")
 	}
 
 	if undoRequestsBytes != nil {
 		item, _ := undoRequestsBytes.(*cstates.StorageItem)
-		err = json.Unmarshal(item.Value, &undoRequests)
+		err = json.Unmarshal(item.Value, undoRequests)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[createOracleRequest] Unmarshal UndoRequests error")
 		}
@@ -105,17 +105,17 @@ func CreateOracleRequest(native *NativeService) error {
 	}
 
 	native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(ORACLE_NUM), txHashBytes), &cstates.StorageItem{Value: params.OracleNum.Bytes()})
-	native.CloneCache.Add(scommon.ST_STORAGE, append(contract[:], []byte(UNDO_TXHASH)...), &cstates.StorageItem{Value: value})
+	native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(UNDO_TXHASH)), &cstates.StorageItem{Value: value})
 	native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(REQUEST), txHashBytes), &cstates.StorageItem{Value: native.Input})
 
-	createOracleRequestEvent(native, contract, params.Request)
+	addCommonEvent(native, contract, CREATE_ORACLE_REQUEST, params)
 
 	return nil
 }
 
 func SetOracleOutcome(native *NativeService) error {
 	params := new(states.SetOracleOutcomeParam)
-	err := json.Unmarshal(native.Input, &params)
+	err := json.Unmarshal(native.Input, params)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[setOracleOutcome] Contract params Unmarshal error!")
 	}
@@ -144,7 +144,7 @@ func SetOracleOutcome(native *NativeService) error {
 
 	if outcomeRecordBytes != nil {
 		item, _ := outcomeRecordBytes.(*cstates.StorageItem)
-		err = json.Unmarshal(item.Value, &outcomeRecord)
+		err = json.Unmarshal(item.Value, outcomeRecord)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[setOracleOutcome] Unmarshal OutcomeRecord error")
 		}
@@ -188,14 +188,14 @@ func SetOracleOutcome(native *NativeService) error {
 			Requests: make(map[string]interface{}),
 		}
 
-		undoRequestsBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, append(contract[:], []byte(UNDO_TXHASH)...))
+		undoRequestsBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(UNDO_TXHASH)))
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[setOracleOutcome] Get UndoRequests error!")
 		}
 
 		if undoRequestsBytes != nil {
 			item, _ := undoRequestsBytes.(*cstates.StorageItem)
-			err = json.Unmarshal(item.Value, &undoRequests)
+			err = json.Unmarshal(item.Value, undoRequests)
 			if err != nil {
 				return errors.NewDetailErr(err, errors.ErrNoCode, "[setOracleOutcome] Unmarshal UndoRequests error")
 			}
@@ -205,7 +205,7 @@ func SetOracleOutcome(native *NativeService) error {
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[setOracleOutcome] Marshal UndoRequests error")
 		}
-		native.CloneCache.Add(scommon.ST_STORAGE, append(contract[:], []byte(UNDO_TXHASH)...), &cstates.StorageItem{Value: value})
+		native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(UNDO_TXHASH)), &cstates.StorageItem{Value: value})
 
 		//aggregate result
 		consensus := true
@@ -223,14 +223,14 @@ func SetOracleOutcome(native *NativeService) error {
 		}
 
 	}
-	setOracleOutcomeEvent(native, contract, true)
+	addCommonEvent(native, contract, SET_ORACLE_OUTCOME, params)
 
 	return nil
 }
 
 func SetOracleCronOutcome(native *NativeService) error {
 	params := new(states.SetOracleCronOutcomeParam)
-	err := json.Unmarshal(native.Input, &params)
+	err := json.Unmarshal(native.Input, params)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[setOracleCronOutcome] Contract params Unmarshal error!")
 	}
@@ -271,7 +271,7 @@ func SetOracleCronOutcome(native *NativeService) error {
 
 	if outcomeRecordBytes != nil {
 		item, _ := outcomeRecordBytes.(*cstates.StorageItem)
-		err = json.Unmarshal(item.Value, &cronOutcomeRecord)
+		err = json.Unmarshal(item.Value, cronOutcomeRecord)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[setOracleCronOutcome] Unmarshal CronOutcomeRecord error")
 		}
@@ -326,14 +326,14 @@ func SetOracleCronOutcome(native *NativeService) error {
 		}
 
 	}
-	setOracleCronOutcomeEvent(native, contract, true)
+	addCommonEvent(native, contract, SET_ORACLE_CRON_OUTCOME, params)
 
 	return nil
 }
 
 func ChangeCronView(native *NativeService) error {
 	params := new(states.ChangeCronViewParam)
-	err := json.Unmarshal(native.Input, &params)
+	err := json.Unmarshal(native.Input, params)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[changeCronView] Contract params Unmarshal error!")
 	}
@@ -362,7 +362,7 @@ func ChangeCronView(native *NativeService) error {
 		return errors.NewErr("[changeCronView] Request of this txHash is nil, check input txHash!")
 	}
 	item, _ := requestBytes.(*cstates.StorageItem)
-	err = json.Unmarshal(item.Value, &request)
+	err = json.Unmarshal(item.Value, request)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[setOracleCronOutcome] Unmarshal CronOutcomeRecord error")
 	}
@@ -386,7 +386,7 @@ func ChangeCronView(native *NativeService) error {
 	newCronView := new(big.Int).Add(cronView, new(big.Int).SetInt64(1))
 	native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(CRON_VIEW), txHash), &cstates.StorageItem{Value: newCronView.Bytes()})
 
-	changeCronViewEvent(native, contract, newCronView)
+	addCommonEvent(native, contract, CHANGE_CRON_VIEW, newCronView)
 
 	return nil
 }
