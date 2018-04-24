@@ -52,7 +52,11 @@ func (self *LedgerActor) Start() *actor.PID {
 func (self *LedgerActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Started:
+		log.Infof("LedgerActor actor.Started")
 	case *actor.Stop:
+		log.Infof("LedgerActor actor.Stop")
+	case *actor.Restart:
+		log.Infof("LedgerActor actor.Restart")
 	case *AddHeaderReq:
 		self.handleAddHeaderReq(ctx, msg)
 	case *AddHeadersReq:
