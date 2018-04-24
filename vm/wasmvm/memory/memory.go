@@ -191,6 +191,33 @@ func (vm *VMmemory) SetPointerMemory(val interface{}) (int, error) {
 			}
 			return vm.copyMemAndGetIdx(floatBytes, PFloat64)
 
+		case []string:
+			sbytes := make([]byte,len(val.([]string))*4)  //address is 4 bytes
+			for i,s := range val.([]string) {
+				idx,err := vm.SetPointerMemory(s)
+				if err != nil{
+					return 0,err
+				}
+				tmp := make([]byte,4)
+				binary.LittleEndian.PutUint32(tmp,uint32(idx))
+				copy(sbytes[i*4:(i+1)*4], tmp)
+			}
+			return vm.copyMemAndGetIdx(sbytes, PInt32)
+
+		case [][]byte:
+			bbytes := make([]byte,len(val.([][]byte))*4)  //address is 4 bytes
+			for i,b := range val.([][]byte) {
+				idx,err := vm.SetPointerMemory(b)
+				if err != nil{
+					return 0,err
+				}
+				tmp := make([]byte,4)
+				binary.LittleEndian.PutUint32(tmp,uint32(idx))
+				copy(bbytes[i*4:(i+1)*4], tmp)
+			}
+			return vm.copyMemAndGetIdx(bbytes, PInt32)
+
+
 		default:
 			return 0, errors.New("Not supported slice type")
 		}

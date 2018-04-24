@@ -36,7 +36,11 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	//register the "CallContract" function
 	stateMachine.Register("CallContract", this.callContract)
 	stateMachine.Register("MarshalNativeParams", this.marshalNativeParams)
-	stateMachine.Register("CheckWitness", this.CheckWitness)
+	stateMachine.Register("CheckWitness", this.runtimeCheckWitness)
+	stateMachine.Register("RuntimeNotify", this.runtimeNotify)
+	stateMachine.Register("RuntimeCheckSig", this.runtimeCheckSig)
+	stateMachine.Register("RuntimeLog", this.runtimeLog)
+
 	engine := exec.NewExecutionEngine(
 		this.Tx,
 		new(util.ECDsaCrypto),
@@ -160,37 +164,9 @@ func (this *WasmVmService) marshalNativeParams(engine *exec.ExecutionEngine) (bo
 	return true, nil
 }
 
-func (this *WasmVmService) CheckWitness(engine *exec.ExecutionEngine) (bool, error) {
-	vm := engine.GetVM()
 
-	envCall := vm.GetEnvCall()
-	params := envCall.GetParams()
-	if len(params) != 1 {
-		return false, errors.NewErr("[CheckWitness]get parameter count error!")
-	}
-
-	data, err := vm.GetPointerMemory(params[0])
-	if err != nil {
-		return false, errors.NewErr("[CheckWitness]" + err.Error())
-	}
-	address, err := common.AddressFromBase58(util.TrimBuffToString(data))
-	if err != nil {
-		return false, errors.NewErr("[CheckWitness]" + err.Error())
-	}
-	chkRes := this.ContextRef.CheckWitness(address)
-
-	res := 0
-	if chkRes == true {
-		res = 1
-	}
-	vm.RestoreCtx()
-	if vm.GetEnvCall().GetReturns() {
-		vm.PushResult(uint64(res))
-	}
-	return true, nil
-}
-
-// callContract will need 4 paramters
+// callContract
+// need 4 paramters
 //0: contract address
 //1: contract code
 //2: method name

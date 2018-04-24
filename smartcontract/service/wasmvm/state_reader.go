@@ -20,9 +20,7 @@ package wasmvm
 
 import (
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/store"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
@@ -43,7 +41,6 @@ func NewWasmStateReader(ldgerStore store.LedgerStore) *WasmStateReader {
 	i.Register("GetBlockHeight", i.Getblockheight)
 	i.Register("GetBlockHashByNumber", i.GetblockhashbyNumber)
 	i.Register("GetTimeStamp", i.GetblockTimestamp)
-	i.Register("RuntimeNotify", i.RuntimeNotify)
 
 	return i
 }
@@ -132,38 +129,6 @@ func (i *WasmStateReader) GetblockhashbyNumber(engine *exec.ExecutionEngine) (bo
 		vm.PushResult(uint64(hashIdx))
 	}
 	return true, nil
-}
-
-func (i *WasmStateReader) RuntimeNotify(engine *exec.ExecutionEngine) (bool, error) {
-	vm := engine.GetVM()
-	envCall := vm.GetEnvCall()
-	params := envCall.GetParams()
-
-	if len(params) != 1 {
-		return false, errors.NewErr("[RuntimeNotify] get Parameter count error!")
-	}
-
-	returnStr, err := vm.GetPointerMemory(params[0])
-	if err != nil {
-		return false, err
-	}
-
-	tran, ok := engine.CodeContainer.(*types.Transaction)
-	if !ok {
-		log.Error("[RuntimeNotify] Container not transaction!")
-		return false, errors.NewErr("[RuntimeNotify] Container not transaction!")
-	}
-
-	hash := engine.GetVM().ContractAddress
-
-	txid := tran.Hash()
-
-	i.Notifications = append(i.Notifications, &event.NotifyEventInfo{TxHash: txid, ContractAddress: hash, States: []interface{}{common.ToHexString([]byte(returnStr))}})
-
-	vm.RestoreCtx()
-
-	return true, nil
-
 }
 
 func contains(addresses []common.Address, address common.Address) bool {
