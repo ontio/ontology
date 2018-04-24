@@ -28,6 +28,7 @@ import (
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native/states"
 	"math/big"
+	"fmt"
 )
 
 const (
@@ -37,7 +38,8 @@ const (
 	QUIT_CANDIDATE     = "quitCandidate"
 	REGISTER_SYNC_NODE = "registerSyncNode"
 	QUIT_SYNC_NODE     = "quitSyncNode"
-	VOTE_FORP_EER        = "voteForPeer"
+	VOTE_FORP_EER      = "voteForPeer"
+	COMMIT_DPOS        = "commitDpos"
 
 	//key prefix
 	GOVERNANCE_VIEW = "governanceView"
@@ -59,6 +61,7 @@ func RegisterGovernanceContract(native *NativeService) {
 	native.Register(REGISTER_SYNC_NODE, RegisterSyncNode)
 	native.Register(QUIT_SYNC_NODE, QuitSyncNode)
 	native.Register(VOTE_FORP_EER, VoteForPeer)
+	native.Register(COMMIT_DPOS, CommitDpos)
 }
 
 func RegisterCandidate(native *NativeService) error {
@@ -126,12 +129,6 @@ func ApproveCandidate(native *NativeService) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[approveCandidate] PeerPubkey format error!")
 	}
 
-	//get current view
-	view, err := getGovernanceView(native, contract)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[approveCandidate] Get view error!")
-	}
-
 	//get registerPool
 	registerPoolBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(REGISTER_POOL), peerPubkeyPrefix))
 	if err != nil {
@@ -172,7 +169,7 @@ func ApproveCandidate(native *NativeService) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[approveCandidate] Marshal candidatePool error")
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(CANDIDITE_POOL), view.Bytes(), peerPubkeyPrefix), &cstates.StorageItem{Value: value})
+	native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(CANDIDITE_POOL), peerPubkeyPrefix), &cstates.StorageItem{Value: value})
 
 	//update candidateIndex
 	newCandidateIndex := new(big.Int).Add(candidateIndex, new(big.Int).SetInt64(1))
@@ -205,14 +202,8 @@ func QuitCandidate(native *NativeService) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[quitCandidate] PeerPubkey format error!")
 	}
 
-	//get current view
-	view, err := getGovernanceView(native, contract)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[approveCandidate] Get view error!")
-	}
-
 	//get candidatePool
-	candidatePoolBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(CANDIDITE_POOL), view.Bytes(), peerPubkeyPrefix))
+	candidatePoolBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(CANDIDITE_POOL), peerPubkeyPrefix))
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[quitCandidate] Get candidatePoolBytes error!")
 	}
@@ -231,7 +222,7 @@ func QuitCandidate(native *NativeService) error {
 	}
 
 	//delete candidatePool
-	native.CloneCache.Delete(scommon.ST_STORAGE, concatKey(contract, []byte(CANDIDITE_POOL), view.Bytes(), peerPubkeyPrefix))
+	native.CloneCache.Delete(scommon.ST_STORAGE, concatKey(contract, []byte(CANDIDITE_POOL), peerPubkeyPrefix))
 
 	addCommonEvent(native, contract, QUIT_CANDIDATE, params)
 
@@ -257,12 +248,6 @@ func RegisterSyncNode(native *NativeService) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[registerSyncNode] PeerPubkey format error!")
 	}
 
-	//get current view
-	view, err := getGovernanceView(native, contract)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[registerSyncNode] Get view error!")
-	}
-
 	//syncNodePool storage
 	//check syncNodePool
 	v, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(SYNC_NODE_POOL), peerPubkeyPrefix))
@@ -279,7 +264,7 @@ func RegisterSyncNode(native *NativeService) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[registerSyncNode] Marshal syncNodePool error")
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(SYNC_NODE_POOL), view.Bytes(), peerPubkeyPrefix), &cstates.StorageItem{Value: value})
+	native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(SYNC_NODE_POOL), peerPubkeyPrefix), &cstates.StorageItem{Value: value})
 
 	addCommonEvent(native, contract, REGISTER_SYNC_NODE, params)
 
@@ -305,14 +290,8 @@ func QuitSyncNode(native *NativeService) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[quitSyncNode] PeerPubkey format error!")
 	}
 
-	//get current view
-	view, err := getGovernanceView(native, contract)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[quitSyncNode] Get view error!")
-	}
-
 	//get syncNodePool
-	syncNodePoolBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(SYNC_NODE_POOL), view.Bytes(), peerPubkeyPrefix))
+	syncNodePoolBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(SYNC_NODE_POOL), peerPubkeyPrefix))
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[quitSyncNode] Get syncNodePoolBytes error!")
 	}
@@ -331,7 +310,7 @@ func QuitSyncNode(native *NativeService) error {
 	}
 
 	//delete syncNodePool
-	native.CloneCache.Delete(scommon.ST_STORAGE, concatKey(contract, []byte(SYNC_NODE_POOL), view.Bytes(), peerPubkeyPrefix))
+	native.CloneCache.Delete(scommon.ST_STORAGE, concatKey(contract, []byte(SYNC_NODE_POOL), peerPubkeyPrefix))
 
 	addCommonEvent(native, contract, QUIT_SYNC_NODE, params)
 
@@ -389,9 +368,9 @@ func VoteForPeer(native *NativeService) error {
 	//TODO: transfer ont(newTotal)
 
 	newVoteInfoPool := &states.VoteInfoPool{
-		Address:params.Address,
-		Total:newTotal,
-		VoteTable:params.VoteTable,
+		Address:   params.Address,
+		Total:     newTotal,
+		VoteTable: params.VoteTable,
 	}
 	value, err := json.Marshal(newVoteInfoPool)
 	if err != nil {
@@ -399,11 +378,61 @@ func VoteForPeer(native *NativeService) error {
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(VOTE_INFO_POOL), view.Bytes(), addressPrefix), &cstates.StorageItem{Value: value})
 
+	
+
 	addCommonEvent(native, contract, VOTE_FORP_EER, params)
 
 	return nil
 }
 
 func CommitDpos(native *NativeService) error {
+	//TODO: check witness
+	//err = validateOwner(native, params.Address)
+	//if err != nil {
+	//	return errors.NewDetailErr(err, errors.ErrNoCode, "[registerCandidate] CheckWitness error!")
+	//}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+
+	//get current view
+	view, err := getGovernanceView(native, contract)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Get view error!")
+	}
+
+	//get all candidatePool
+	candidatePoolBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(CANDIDITE_POOL), peerPubkeyPrefix))
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[quitCandidate] Get candidatePoolBytes error!")
+	}
+	candidatePool := new(states.CandidatePool)
+	if candidatePoolBytes != nil {
+		candidatePoolStore, _ := candidatePoolBytes.(*cstates.StorageItem)
+		err := json.Unmarshal(candidatePoolStore.Value, candidatePool)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "[quitCandidate] Unmarshal candidatePool error!")
+		}
+	} else {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[quitCandidate] PeerPubkey is not in candidatePool!")
+	}
+
+	//get all voteInfoPool
+	stateValues, err := native.CloneCache.Store.Find(scommon.ST_STORAGE, concatKey(contract, []byte(VOTE_INFO_POOL), view.Bytes()))
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Get all voteInfoPool error!")
+	}
+	voteInfoPool := new(states.VoteInfoPool)
+	for _, v := range stateValues {
+		voteInfoPoolStore, _ := v.Value.(*cstates.StorageItem)
+		err = json.Unmarshal(voteInfoPoolStore.Value, voteInfoPool)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Unmarshal voteInfoPool error!")
+		}
+		for peerPubkey, pos := range voteInfoPool.VoteTable {
+
+		}
+	}
+
+	addCommonEvent(native, contract, COMMIT_DPOS, true)
+
 	return nil
 }
