@@ -271,14 +271,14 @@ func (n *NetServer) Connect(addr string, isConsensus bool) error {
 		conn, err = TLSDial(addr)
 		if err != nil {
 			n.RemoveFromConnectingList(addr)
-			log.Error("TLS connect failed: ", err)
+			log.Error("connect failed: ", err)
 			return err
 		}
 	} else {
 		conn, err = nonTLSDial(addr)
 		if err != nil {
 			n.RemoveFromConnectingList(addr)
-			log.Error("non TLS connect failed: ", err)
+			log.Error("connect failed: ", err)
 			return err
 		}
 	}
@@ -347,14 +347,14 @@ func (n *NetServer) InitConnection() error {
 	if isTls {
 		n.synclistener, err = initTlsListen(syncPort)
 		if err != nil {
-			log.Error("TLS listen failed")
-			return errors.New("Sync TLS listen failed")
+			log.Error("Sync listen failed")
+			return errors.New("Sync listen failed")
 		}
 	} else {
 		n.synclistener, err = initNonTlsListen(syncPort)
 		if err != nil {
-			log.Error("Sync non TLS listen failed")
-			return errors.New("Sync non TLS listen failed")
+			log.Error("Sync listen failed")
+			return errors.New("Sync listen failed")
 		}
 	}
 	go n.startSyncAccept(n.synclistener)
@@ -372,14 +372,14 @@ func (n *NetServer) InitConnection() error {
 		if isTls {
 			n.conslistener, err = initTlsListen(consPort)
 			if err != nil {
-				log.Error("TLS listen failed")
-				return errors.New("Sync TLS listen failed")
+				log.Error("Cons listen failed")
+				return errors.New("Cons listen failed")
 			}
 		} else {
 			n.conslistener, err = initNonTlsListen(consPort)
 			if err != nil {
-				log.Error("Sync non TLS listen failed")
-				return errors.New("Sync non TLS listen failed")
+				log.Error("Cons listen failed")
+				return errors.New("Cons listen failed")
 			}
 		}
 		go n.startConsAccept(n.conslistener)
