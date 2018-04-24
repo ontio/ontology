@@ -47,7 +47,7 @@ type P2P interface {
 	SetHeight(uint64)
 	IsPeerEstablished(p *peer.Peer) bool
 	Send(p *peer.Peer, data []byte, isConsensus bool) error
-	GetMsgChan(isConsensus bool) chan common.MsgPayload
+	GetMsgChan(isConsensus bool) chan *common.MsgPayload
 	GetPeerFromAddr(addr string) *peer.Peer
 	AddInConnectingList(addr string) (added bool)
 	RemoveFromConnectingList(addr string)

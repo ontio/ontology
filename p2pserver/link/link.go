@@ -45,7 +45,7 @@ type Link struct {
 	port     uint16    // The server port of the node
 	rxBuf    RxBuf     // recv buffer
 	time     time.Time // The latest time the node activity
-	recvChan chan common.MsgPayload
+	recvChan chan *common.MsgPayload
 }
 
 func NewLink() *Link {
@@ -70,7 +70,7 @@ func (link *Link) Valid() bool {
 }
 
 //set message channel for link layer
-func (link *Link) SetChan(msgchan chan common.MsgPayload) {
+func (link *Link) SetChan(msgchan chan *common.MsgPayload) {
 	link.recvChan = msgchan
 }
 
@@ -169,7 +169,7 @@ func unpackNodeBuf(link *Link, buf []byte) {
 
 //pushdata send packed data to channel
 func (link *Link) pushdata(buf []byte) {
-	p2pMsg := common.MsgPayload{
+	p2pMsg := &common.MsgPayload{
 		Id:      link.id,
 		Addr:    link.addr,
 		Payload: buf,
@@ -214,7 +214,7 @@ func (link *Link) disconnectNotify() {
 	binary.Write(&buf, binary.LittleEndian, m.Hdr)
 	msgbuf := buf.Bytes()
 
-	discMsg := common.MsgPayload{
+	discMsg := &common.MsgPayload{
 		Id:      link.id,
 		Addr:    link.addr,
 		Payload: msgbuf,
