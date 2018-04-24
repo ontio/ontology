@@ -18,33 +18,12 @@
 
 package states
 
-import "math/big"
+import (
+	"math/big"
+	"time"
+)
 
-type RegisterCandidateParam struct {
-	PeerPubkey string   `json:"peerPubkey"`
-	Address    string   `json:"address"`
-	InitPos    *big.Int `json:"initPos"`
-}
-
-type RegisterPool struct {
-	Address string   `json:"address"`
-	InitPos *big.Int `json:"initPos"`
-}
-
-type ApproveCandidateParam struct {
-	PeerPubkey string `json:"peerPubkey"`
-}
-
-type CandidatePool struct {
-	Index   *big.Int `json:"index"`
-	Address string   `json:"address"`
-	InitPos *big.Int `json:"initPos"`
-}
-
-type QuitCandidateParam struct {
-	PeerPubkey string `json:"peerPubkey"`
-	Address    string `json:"address"`
-}
+type Status int
 
 type RegisterSyncNodeParam struct {
 	PeerPubkey string   `json:"peerPubkey"`
@@ -52,12 +31,38 @@ type RegisterSyncNodeParam struct {
 	InitPos    *big.Int `json:"initPos"`
 }
 
-type SyncNodePool struct {
-	Address string   `json:"address"`
-	InitPos *big.Int `json:"initPos"`
+type ApproveSyncNodeParam struct {
+	PeerPubkey string `json:"peerPubkey"`
 }
 
 type QuitSyncNodeParam struct {
+	PeerPubkey string `json:"peerPubkey"`
+	Address    string `json:"address"`
+}
+
+type RegisterCandidateParam struct {
+	PeerPubkey string `json:"peerPubkey"`
+	Address    string `json:"address"`
+}
+
+type ApproveCandidateParam struct {
+	PeerPubkey string `json:"peerPubkey"`
+}
+
+type InitPeerPool struct {
+	Peers []*PeerPool `json:"peers"`
+}
+
+type PeerPool struct {
+	Index      *big.Int `json:"index"`
+	PeerPubkey string   `json:"peerPubkey"`
+	Status     Status   `json:"status"`
+	Address    string   `json:"address"`
+	InitPos    *big.Int `json:"initPos"`
+	TotalPos   *big.Int `json:"totalPos"`
+}
+
+type QuitCandidateParam struct {
 	PeerPubkey string `json:"peerPubkey"`
 	Address    string `json:"address"`
 }
@@ -68,7 +73,30 @@ type VoteForPeerParam struct {
 }
 
 type VoteInfoPool struct {
-	Address   string              `json:"address"`
-	Total     *big.Int            `json:"total"`
-	VoteTable map[string]*big.Int `json:"voteTable"`
+	PeerPubkey string   `json:"peerPubkey"`
+	Address    string   `json:"address"`
+	PrePos     *big.Int `json:"prePos"`
+	FreezePos  *big.Int `json:"freezePos"`
+	NewPos     *big.Int `json:"newPos"`
+}
+
+type PeerStakeInfo struct {
+	Index      uint64 `json:"index"`
+	PeerPubkey string `json:"peerPubkey"`
+	Stake      uint64 `json:"stake"`
+}
+
+type Configuration struct {
+	N                    uint32        `json:"n"`
+	C                    uint32        `json:"c"`
+	K                    uint32        `json:"k"`
+	L                    uint32        `json:"l"`
+	BlockMsgDelay        time.Duration `json:"block_msg_delay"`
+	HashMsgDelay         time.Duration `json:"hash_msg_delay"`
+	PeerHandshakeTimeout time.Duration `json:"peer_handshake_timeout"`
+}
+
+type VoteCommitDposParam struct {
+	Address string   `json:"address"`
+	Pos     *big.Int `json:"pos"`
 }

@@ -22,18 +22,20 @@ import (
 	"fmt"
 	"math/big"
 
+	"encoding/hex"
+	"encoding/json"
 	"github.com/ontio/ontology/common"
 	cstates "github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native/states"
-	"encoding/hex"
+	"hash/fnv"
 )
 
 var (
-	ADDRESS_HEIGHT = []byte("addressHeight")
-	TRANSFER_NAME = "transfer"
+	ADDRESS_HEIGHT    = []byte("addressHeight")
+	TRANSFER_NAME     = "transfer"
 	TOTAL_SUPPLY_NAME = []byte("totalSupply")
 )
 
@@ -209,9 +211,9 @@ func getStorageBigInt(native *NativeService, key []byte) (*big.Int, error) {
 func addNotifications(native *NativeService, contract common.Address, state *states.State) {
 	native.Notifications = append(native.Notifications,
 		&event.NotifyEventInfo{
-			TxHash:   native.Tx.Hash(),
+			TxHash:          native.Tx.Hash(),
 			ContractAddress: contract,
-			States:   []interface{}{TRANSFER_NAME, state.From.ToBase58(), state.To.ToBase58(), state.Value},
+			States:          []interface{}{TRANSFER_NAME, state.From.ToBase58(), state.To.ToBase58(), state.Value},
 		})
 }
 
@@ -260,4 +262,20 @@ func addCommonEvent(native *NativeService, contract common.Address, name string,
 			ContractAddress: contract,
 			States:          []interface{}{name, params},
 		})
+}
+
+func my_hash(txid common.Uint256, ts uint32, id string, idx int) (uint64, error) {
+	data, err := json.Marshal(struct {
+		Txid           common.Uint256 `json:"txid"`
+		BlockTimestamp uint32         `json:"block_timestamp"`
+		NodeID         string         `json:"node_id"`
+		Index          int            `json:"index"`
+	}{txid, ts, id, idx})
+	if err != nil {
+		return 0, err
+	}
+
+	hash := fnv.New64a()
+	hash.Write(data)
+	return hash.Sum64(), nil
 }
