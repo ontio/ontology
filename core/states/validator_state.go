@@ -41,9 +41,6 @@ func (this *ValidatorState) Serialize(w io.Writer) error {
 }
 
 func (this *ValidatorState) Deserialize(r io.Reader) error {
-	if this == nil {
-		this = new(ValidatorState)
-	}
 	err := this.StateBase.Deserialize(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ValidatorState], StateBase Deserialize failed.")

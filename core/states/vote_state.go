@@ -46,9 +46,6 @@ func (this *VoteState) Serialize(w io.Writer) error {
 }
 
 func (this *VoteState) Deserialize(r io.Reader) error {
-	if this == nil {
-		this = new(VoteState)
-	}
 	err := this.StateBase.Deserialize(r)
 	if err != nil {
 		return err

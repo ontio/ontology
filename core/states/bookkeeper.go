@@ -54,9 +54,6 @@ func (this *BookkeeperState) Serialize(w io.Writer) error {
 }
 
 func (this *BookkeeperState) Deserialize(r io.Reader) error {
-	if this == nil {
-		this = new(BookkeeperState)
-	}
 	err := this.StateBase.Deserialize(r)
 	if err != nil {
 		return err

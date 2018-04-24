@@ -34,6 +34,10 @@ var (
 	ONG_TOTAL_SUPPLY = new(big.Int).Mul(big.NewInt(1000000000), (new(big.Int).Exp(big.NewInt(10), DECIMALS, nil)))
 )
 
+func init() {
+	Contracts[genesis.OngContractAddress] = RegisterOngContract
+}
+
 func OngInit(native *NativeService) error {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	amount, err := getStorageBigInt(native, getTotalSupplyKey(contract))
@@ -89,4 +93,11 @@ func OngTransferFrom(native *NativeService) error {
 
 func getOntContext() []byte {
 	return genesis.OntContractAddress[:]
+}
+
+func RegisterOngContract(native *NativeService) {
+	native.Register("init", OngInit)
+	native.Register("transfer", OngTransfer)
+	native.Register("approve", OngApprove)
+	native.Register("transferFrom", OngTransferFrom)
 }

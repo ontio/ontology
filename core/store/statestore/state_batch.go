@@ -27,6 +27,7 @@ import (
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/syndtr/goleveldb/leveldb"
 	"strings"
+	"github.com/ontio/ontology/errors"
 )
 
 type StateBatch struct {
@@ -82,7 +83,7 @@ func (self *StateBatch) TryGetOrAdd(prefix common.DataEntryPrefix, key []byte, v
 	}
 	item, err := self.store.Get(append([]byte{byte(prefix)}, key...))
 	if err != nil && err != leveldb.ErrNotFound {
-		return err
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[TryGetOrAdd], leveldb store get data failed.")
 	}
 	if item != nil {
 		return nil
@@ -101,7 +102,7 @@ func (self *StateBatch) TryGet(prefix common.DataEntryPrefix, key []byte) (*comm
 	}
 	enc, err := self.store.Get(append([]byte{byte(prefix)}, key...))
 	if err != nil && err != leveldb.ErrNotFound {
-		return nil, err
+		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[TryGet], leveldb store get data failed.")
 	}
 
 	if enc == nil {
@@ -128,7 +129,7 @@ func (self *StateBatch) TryGetAndChange(prefix common.DataEntryPrefix, key []byt
 	k := append([]byte{byte(prefix)}, key...)
 	enc, err := self.store.Get(k)
 	if err != nil && err != leveldb.ErrNotFound {
-		return nil, err
+		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[TryGetAndChange], leveldb store get data failed.")
 	}
 
 	if enc == nil {
