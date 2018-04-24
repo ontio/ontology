@@ -486,7 +486,7 @@ func DataReqHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 	switch reqType {
 	case common.BLOCK:
 		block, err := actor.GetBlockByHash(hash)
-		if err != nil {
+		if err != nil || block == nil {
 			log.Debug("Can't get block by hash: ", hash,
 				" ,send not found message")
 			b, err := msgpack.NewNotFound(hash)
