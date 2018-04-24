@@ -509,6 +509,12 @@ func (this *P2PServer) syncBlockHdr() {
 	if !this.reachMinConnection() {
 		return
 	}
+	currentHdrHeight, _ := actor.GetCurrentHeaderHeight()
+	currentBlkHeight, _ := actor.GetCurrentBlockHeight()
+	//reduce ledger hdr cache stress
+	if currentHdrHeight-currentBlkHeight > 4000 {
+		return
+	}
 	peers := this.network.GetNeighbors()
 	if len(peers) == 0 {
 		return
