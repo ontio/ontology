@@ -238,38 +238,26 @@ func validateOwner(native *NativeService, address string) error {
 	return nil
 }
 
-func createOracleRequestEvent(native *NativeService, contract common.Address, reuqest string) {
-	native.Notifications = append(native.Notifications,
-		&event.NotifyEventInfo{
-			TxHash:          native.Tx.Hash(),
-			ContractAddress: contract,
-			States:          []interface{}{CREATE_ORACLE_REQUEST, reuqest},
-		})
+func getGovernanceView(native *NativeService, contract common.Address) (*big.Int, error) {
+	viewBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(GOVERNANCE_VIEW)))
+	if err != nil {
+		return new(big.Int), errors.NewDetailErr(err, errors.ErrNoCode, "[getGovernanceView] Get viewBytes error!")
+	}
+	var view *big.Int
+	if viewBytes == nil {
+		view = new(big.Int).SetInt64(1)
+	} else {
+		candidateIndexStore, _ := viewBytes.(*cstates.StorageItem)
+		view = new(big.Int).SetBytes(candidateIndexStore.Value)
+	}
+	return view, nil
 }
 
-func setOracleOutcomeEvent(native *NativeService, contract common.Address, ok bool) {
+func addCommonEvent(native *NativeService, contract common.Address, name string, params interface{}) {
 	native.Notifications = append(native.Notifications,
 		&event.NotifyEventInfo{
 			TxHash:          native.Tx.Hash(),
 			ContractAddress: contract,
-			States:          []interface{}{SET_ORACLE_OUTCOME, ok},
-		})
-}
-
-func setOracleCronOutcomeEvent(native *NativeService, contract common.Address, ok bool) {
-	native.Notifications = append(native.Notifications,
-		&event.NotifyEventInfo{
-			TxHash:          native.Tx.Hash(),
-			ContractAddress: contract,
-			States:          []interface{}{SET_ORACLE_CRON_OUTCOME, ok},
-		})
-}
-
-func changeCronViewEvent(native *NativeService, contract common.Address, newCronView *big.Int) {
-	native.Notifications = append(native.Notifications,
-		&event.NotifyEventInfo{
-			TxHash:          native.Tx.Hash(),
-			ContractAddress: contract,
-			States:          []interface{}{CHANGE_CRON_VIEW, newCronView},
+			States:          []interface{}{name, params},
 		})
 }
