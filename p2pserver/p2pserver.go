@@ -29,6 +29,7 @@ import (
 	"sync"
 	"time"
 
+	evtActor "github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
 	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -48,6 +49,7 @@ import (
 type P2PServer struct {
 	network   p2pnet.P2P
 	msgRouter *utils.MessageRouter
+	pid       *evtActor.PID
 	ReconnectAddrs
 	flightHeights map[uint64][]uint32
 	quitOnline    chan bool
@@ -72,8 +74,6 @@ func NewServer(acc *account.Account) (*P2PServer, error) {
 	}
 
 	p.msgRouter = utils.NewMsgRouter(p.network)
-	p.msgRouter.Start()
-
 	p.flightHeights = make(map[uint64][]uint32)
 	p.quitOnline = make(chan bool)
 	p.quitHeartBeat = make(chan bool)
@@ -91,6 +91,9 @@ func (this *P2PServer) GetConnectionCnt() uint32 {
 func (this *P2PServer) Start(isSync bool) error {
 	if this != nil {
 		this.network.Start()
+	}
+	if this.msgRouter != nil {
+		this.msgRouter.Start()
 	}
 	go this.keepOnlineService()
 	go this.heartBeatService()
@@ -213,6 +216,17 @@ func (this *P2PServer) GetConnectionState() uint32 {
 //GetTime return lastet contact time
 func (this *P2PServer) GetTime() int64 {
 	return this.network.GetTime()
+}
+
+// SetPID sets p2p actor
+func (this *P2PServer) SetPID(pid *evtActor.PID) {
+	this.pid = pid
+	this.msgRouter.SetPID(pid)
+}
+
+// GetPID returns p2p actor
+func (this *P2PServer) GetPID() *evtActor.PID {
+	return this.pid
 }
 
 //blockSyncFinished compare all nbr peers and self height at beginning
@@ -600,14 +614,15 @@ func (this *P2PServer) removeFlightHeightLessThan(p *peer.Peer, h uint32) {
 }
 
 //RemoveFlightHeight remove given height in flights
-func (this *P2PServer) RemoveFlightHeight(p *peer.Peer, height uint32) []uint32 {
-	heights := this.flightHeights[p.GetID()]
-	for i, v := range heights {
-		if v == height {
-			return append(heights[:i], heights[i+1:]...)
+func (this *P2PServer) RemoveFlightHeight(id uint64, height uint32) {
+	for id, heights := range this.flightHeights {
+		for i, v := range heights {
+			if v == height {
+				this.flightHeights[id] = append(heights[:i], heights[i+1:]...)
+				break
+			}
 		}
 	}
-	return heights
 }
 
 //randPeer choose a random peer from given peers

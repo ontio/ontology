@@ -113,3 +113,9 @@ const (
 	NOT_FOUND_TYPE   = "notfound"   //peer can`t find blk according to the hash
 	DISCONNECT_TYPE  = "disconnect" //peer disconnect info raise by link
 )
+
+// RemoveFlightHeight contains peer id and height
+type RemoveFlightHeight struct {
+	Id     uint64 // The peer id
+	Height uint32 // The height to be removed
+}
