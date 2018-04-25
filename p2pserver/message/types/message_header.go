@@ -38,23 +38,23 @@ type MsgHdr struct {
 }
 
 //initialize the header, assign netmagic and checksume value
-func (hdr *MsgHdr) Init(cmd string, checksum []byte, length uint32) {
-	hdr.Magic = common.NETMAGIC
-	copy(hdr.CMD[0:uint32(len(cmd))], cmd)
-	copy(hdr.Checksum[:], checksum[:common.CHECKSUM_LEN])
-	hdr.Length = length
+func (this *MsgHdr) Init(cmd string, checksum []byte, length uint32) {
+	this.Magic = common.NETMAGIC
+	copy(this.CMD[0:uint32(len(cmd))], cmd)
+	copy(this.Checksum[:], checksum[:common.CHECKSUM_LEN])
+	this.Length = length
 }
 
 // Verify the message header information
 // @p payload of the message
-func (hdr MsgHdr) Verify(buf []byte) error {
-	if magicVerify(hdr.Magic) == false {
-		log.Warn(fmt.Sprintf("Unmatched magic number 0x%0x", hdr.Magic))
+func (this MsgHdr) Verify(buf []byte) error {
+	if magicVerify(this.Magic) == false {
+		log.Warn(fmt.Sprintf("Unmatched magic number 0x%0x", this.Magic))
 		return errors.New("Unmatched magic number ")
 	}
 	checkSum := CheckSum(buf)
-	if bytes.Equal(hdr.Checksum[:], checkSum[:]) == false {
-		str1 := hex.EncodeToString(hdr.Checksum[:])
+	if bytes.Equal(this.Checksum[:], checkSum[:]) == false {
+		str1 := hex.EncodeToString(this.Checksum[:])
 		str2 := hex.EncodeToString(checkSum[:])
 		log.Warn(fmt.Sprintf("Message Checksum error, Received checksum %s Wanted checksum: %s",
 			str1, str2))
@@ -65,9 +65,9 @@ func (hdr MsgHdr) Verify(buf []byte) error {
 }
 
 //serialize the header
-func (hdr MsgHdr) Serialization() ([]byte, error) {
+func (this MsgHdr) Serialization() ([]byte, error) {
 	var buf bytes.Buffer
-	err := binary.Write(&buf, binary.LittleEndian, hdr)
+	err := binary.Write(&buf, binary.LittleEndian, this)
 	if err != nil {
 		return nil, err
 	}
@@ -76,8 +76,8 @@ func (hdr MsgHdr) Serialization() ([]byte, error) {
 }
 
 //deserialize the header
-func (hdr *MsgHdr) Deserialization(p []byte) error {
+func (this *MsgHdr) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p[0:common.MSG_HDR_LEN])
-	err := binary.Read(buf, binary.LittleEndian, hdr)
+	err := binary.Read(buf, binary.LittleEndian, this)
 	return err
 }

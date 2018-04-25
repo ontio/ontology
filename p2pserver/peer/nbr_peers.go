@@ -32,10 +32,10 @@ type NbrPeers struct {
 }
 
 //Broadcast tranfer msg buffer to all establish peer
-func (nm *NbrPeers) Broadcast(buf []byte, isConsensus bool) {
-	nm.RLock()
-	defer nm.RUnlock()
-	for _, node := range nm.List {
+func (this *NbrPeers) Broadcast(buf []byte, isConsensus bool) {
+	this.RLock()
+	defer this.RUnlock()
+	for _, node := range this.List {
 		if node.syncState == common.ESTABLISH && node.GetRelay() == true {
 			node.Send(buf, isConsensus)
 		}
@@ -43,16 +43,16 @@ func (nm *NbrPeers) Broadcast(buf []byte, isConsensus bool) {
 }
 
 //NodeExisted return when peer in nbr list
-func (nm *NbrPeers) NodeExisted(uid uint64) bool {
-	_, ok := nm.List[uid]
+func (this *NbrPeers) NodeExisted(uid uint64) bool {
+	_, ok := this.List[uid]
 	return ok
 }
 
 //GetPeer return peer according to id
-func (nm *NbrPeers) GetPeer(id uint64) *Peer {
-	nm.Lock()
-	defer nm.Unlock()
-	n, ok := nm.List[id]
+func (this *NbrPeers) GetPeer(id uint64) *Peer {
+	this.Lock()
+	defer this.Unlock()
+	n, ok := this.List[id]
 	if ok == false {
 		return nil
 	}
@@ -60,41 +60,41 @@ func (nm *NbrPeers) GetPeer(id uint64) *Peer {
 }
 
 //AddNbrNode add peer to nbr list
-func (nm *NbrPeers) AddNbrNode(p *Peer) {
-	nm.Lock()
-	defer nm.Unlock()
+func (this *NbrPeers) AddNbrNode(p *Peer) {
+	this.Lock()
+	defer this.Unlock()
 
-	if nm.NodeExisted(p.GetID()) {
+	if this.NodeExisted(p.GetID()) {
 		fmt.Printf("Insert a existed node\n")
 	} else {
-		nm.List[p.GetID()] = p
+		this.List[p.GetID()] = p
 	}
 }
 
 //DelNbrNode delete peer from nbr list
-func (nm *NbrPeers) DelNbrNode(id uint64) (*Peer, bool) {
-	nm.Lock()
-	defer nm.Unlock()
+func (this *NbrPeers) DelNbrNode(id uint64) (*Peer, bool) {
+	this.Lock()
+	defer this.Unlock()
 
-	n, ok := nm.List[id]
+	n, ok := this.List[id]
 	if ok == false {
 		return nil, false
 	}
-	delete(nm.List, id)
+	delete(this.List, id)
 	return n, true
 }
 
 //initialize nbr list
-func (nm *NbrPeers) Init() {
-	nm.List = make(map[uint64]*Peer)
+func (this *NbrPeers) Init() {
+	this.List = make(map[uint64]*Peer)
 }
 
 //NodeEstablished whether peer established according to id
-func (nm *NbrPeers) NodeEstablished(id uint64) bool {
-	nm.RLock()
-	defer nm.RUnlock()
+func (this *NbrPeers) NodeEstablished(id uint64) bool {
+	this.RLock()
+	defer this.RUnlock()
 
-	n, ok := nm.List[id]
+	n, ok := this.List[id]
 	if ok == false {
 		return false
 	}
@@ -107,13 +107,13 @@ func (nm *NbrPeers) NodeEstablished(id uint64) bool {
 }
 
 //GetNeighborAddrs return all establish peer address
-func (nm *NbrPeers) GetNeighborAddrs() ([]common.PeerAddr, uint64) {
-	nm.RLock()
-	defer nm.RUnlock()
+func (this *NbrPeers) GetNeighborAddrs() ([]common.PeerAddr, uint64) {
+	this.RLock()
+	defer this.RUnlock()
 
 	var i uint64
 	var addrs []common.PeerAddr
-	for _, p := range nm.List {
+	for _, p := range this.List {
 		if p.GetSyncState() != common.ESTABLISH {
 			continue
 		}
@@ -132,12 +132,12 @@ func (nm *NbrPeers) GetNeighborAddrs() ([]common.PeerAddr, uint64) {
 }
 
 //GetNeighborHeights return the id-height map of nbr peers
-func (nm *NbrPeers) GetNeighborHeights() map[uint64]uint64 {
-	nm.RLock()
-	defer nm.RUnlock()
+func (this *NbrPeers) GetNeighborHeights() map[uint64]uint64 {
+	this.RLock()
+	defer this.RUnlock()
 
 	hm := make(map[uint64]uint64)
-	for _, n := range nm.List {
+	for _, n := range this.List {
 		if n.GetSyncState() == common.ESTABLISH {
 			hm[n.GetID()] = n.GetHeight()
 		}
@@ -146,11 +146,11 @@ func (nm *NbrPeers) GetNeighborHeights() map[uint64]uint64 {
 }
 
 //GetNeighbors return all establish peers in nbr list
-func (nm *NbrPeers) GetNeighbors() []*Peer {
-	nm.RLock()
-	defer nm.RUnlock()
+func (this *NbrPeers) GetNeighbors() []*Peer {
+	this.RLock()
+	defer this.RUnlock()
 	peers := []*Peer{}
-	for _, n := range nm.List {
+	for _, n := range this.List {
 		if n.GetSyncState() == common.ESTABLISH {
 			node := n
 			peers = append(peers, node)
@@ -160,11 +160,11 @@ func (nm *NbrPeers) GetNeighbors() []*Peer {
 }
 
 //GetNbrNodeCnt return count of establish peers in nbrlist
-func (nm *NbrPeers) GetNbrNodeCnt() uint32 {
-	nm.RLock()
-	defer nm.RUnlock()
+func (this *NbrPeers) GetNbrNodeCnt() uint32 {
+	this.RLock()
+	defer this.RUnlock()
 	var count uint32
-	for _, n := range nm.List {
+	for _, n := range this.List {
 		if n.GetSyncState() == common.ESTABLISH {
 			count++
 		}

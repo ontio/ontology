@@ -33,21 +33,21 @@ type NotFound struct {
 }
 
 //Check whether header is correct
-func (msg NotFound) Verify(buf []byte) error {
-	err := msg.MsgHdr.Verify(buf)
+func (this NotFound) Verify(buf []byte) error {
+	err := this.MsgHdr.Verify(buf)
 	return err
 }
 
 //Serialize message payload
-func (msg NotFound) Serialization() ([]byte, error) {
+func (this NotFound) Serialization() ([]byte, error) {
 
 	tmpBuffer := bytes.NewBuffer([]byte{})
-	msg.Hash.Serialize(tmpBuffer)
+	this.Hash.Serialize(tmpBuffer)
 
 	checkSumBuf := CheckSum(tmpBuffer.Bytes())
-	msg.MsgHdr.Init("notfound", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
+	this.MsgHdr.Init("notfound", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
 
-	hdrBuf, err := msg.MsgHdr.Serialization()
+	hdrBuf, err := this.MsgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
@@ -61,16 +61,16 @@ func (msg NotFound) Serialization() ([]byte, error) {
 }
 
 //Deserialize message payload
-func (msg *NotFound) Deserialization(p []byte) error {
+func (this *NotFound) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 
-	err := binary.Read(buf, binary.LittleEndian, &(msg.MsgHdr))
+	err := binary.Read(buf, binary.LittleEndian, &(this.MsgHdr))
 	if err != nil {
 		log.Warn("Parse notFound message hdr error")
 		return errors.New("Parse notFound message hdr error ")
 	}
 
-	err = msg.Hash.Deserialize(buf)
+	err = this.Hash.Deserialize(buf)
 	if err != nil {
 		log.Warn("Parse notFound message error")
 		return errors.New("Parse notFound message error ")

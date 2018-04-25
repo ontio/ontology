@@ -28,19 +28,19 @@ type AddrReq struct {
 }
 
 //Check whether header is correct
-func (msg AddrReq) Verify(buf []byte) error {
-	err := msg.Hdr.Verify(buf)
+func (this AddrReq) Verify(buf []byte) error {
+	err := this.Hdr.Verify(buf)
 	return err
 }
 
 //Serialize message payload
-func (msg AddrReq) Serialization() ([]byte, error) {
+func (this AddrReq) Serialization() ([]byte, error) {
 	var buf bytes.Buffer
 	var sum []byte
 	sum = []byte{0x5d, 0xf6, 0xe0, 0xe2}
-	msg.Hdr.Init("getaddr", sum, 0)
+	this.Hdr.Init("getaddr", sum, 0)
 
-	err := binary.Write(&buf, binary.LittleEndian, msg)
+	err := binary.Write(&buf, binary.LittleEndian, this)
 	if err != nil {
 		return nil, err
 	}
@@ -48,8 +48,8 @@ func (msg AddrReq) Serialization() ([]byte, error) {
 }
 
 //Deserialize message payload
-func (msg *AddrReq) Deserialization(p []byte) error {
+func (this *AddrReq) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, msg)
+	err := binary.Read(buf, binary.LittleEndian, this)
 	return err
 }

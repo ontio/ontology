@@ -41,33 +41,33 @@ type Inv struct {
 	P   InvPayload
 }
 
-func (msg *InvPayload) Serialization(w io.Writer) {
-	serialization.WriteUint8(w, uint8(msg.InvType))
-	serialization.WriteUint32(w, msg.Cnt)
+func (this *InvPayload) Serialization(w io.Writer) {
+	serialization.WriteUint8(w, uint8(this.InvType))
+	serialization.WriteUint32(w, this.Cnt)
 
-	binary.Write(w, binary.LittleEndian, msg.Blk)
+	binary.Write(w, binary.LittleEndian, this.Blk)
 }
 
 //Check whether header is correct
-func (msg Inv) Verify(buf []byte) error {
-	err := msg.Hdr.Verify(buf)
+func (this Inv) Verify(buf []byte) error {
+	err := this.Hdr.Verify(buf)
 	return err
 }
 
-func (msg Inv) invType() common.InventoryType {
-	return msg.P.InvType
+func (this Inv) invType() common.InventoryType {
+	return this.P.InvType
 }
 
 //Serialize message payload
-func (msg Inv) Serialization() ([]byte, error) {
+func (this Inv) Serialization() ([]byte, error) {
 
 	tmpBuffer := bytes.NewBuffer([]byte{})
-	msg.P.Serialization(tmpBuffer)
+	this.P.Serialization(tmpBuffer)
 
 	checkSumBuf := CheckSum(tmpBuffer.Bytes())
-	msg.Hdr.Init("inv", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
+	this.Hdr.Init("inv", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
 
-	hdrBuf, err := msg.Hdr.Serialization()
+	hdrBuf, err := this.Hdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
@@ -81,8 +81,8 @@ func (msg Inv) Serialization() ([]byte, error) {
 }
 
 //Deserialize message payload
-func (msg *Inv) Deserialization(p []byte) error {
-	err := msg.Hdr.Deserialization(p)
+func (this *Inv) Deserialization(p []byte) error {
+	err := this.Hdr.Deserialization(p)
 	if err != nil {
 		return err
 	}
@@ -92,14 +92,14 @@ func (msg *Inv) Deserialization(p []byte) error {
 	if err != nil {
 		return err
 	}
-	msg.P.InvType = common.InventoryType(invType)
-	msg.P.Cnt, err = serialization.ReadUint32(buf)
+	this.P.InvType = common.InventoryType(invType)
+	this.P.Cnt, err = serialization.ReadUint32(buf)
 	if err != nil {
 		return err
 	}
 
-	msg.P.Blk = make([]byte, msg.P.Cnt*p2pCommon.HASH_LEN)
-	err = binary.Read(buf, binary.LittleEndian, &(msg.P.Blk))
+	this.P.Blk = make([]byte, this.P.Cnt*p2pCommon.HASH_LEN)
+	err = binary.Read(buf, binary.LittleEndian, &(this.P.Blk))
 
 	return err
 }

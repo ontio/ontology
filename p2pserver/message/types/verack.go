@@ -31,14 +31,14 @@ type VerACK struct {
 }
 
 //Serialize message payload
-func (msg VerACK) Serialization() ([]byte, error) {
+func (this VerACK) Serialization() ([]byte, error) {
 	tmpBuffer := bytes.NewBuffer([]byte{})
-	serialization.WriteBool(tmpBuffer, msg.IsConsensus)
+	serialization.WriteBool(tmpBuffer, this.IsConsensus)
 
 	checkSumBuf := CheckSum(tmpBuffer.Bytes())
-	msg.Init("verack", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
+	this.Init("verack", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
 
-	hdrBuf, err := msg.MsgHdr.Serialization()
+	hdrBuf, err := this.MsgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
@@ -51,13 +51,13 @@ func (msg VerACK) Serialization() ([]byte, error) {
 }
 
 //Deserialize message payload
-func (msg *VerACK) Deserialization(p []byte) error {
+func (this *VerACK) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(msg.MsgHdr))
+	err := binary.Read(buf, binary.LittleEndian, &(this.MsgHdr))
 	if err != nil {
 		return err
 	}
 
-	msg.IsConsensus, err = serialization.ReadBool(buf)
+	this.IsConsensus, err = serialization.ReadBool(buf)
 	return err
 }

@@ -31,15 +31,15 @@ type Consensus struct {
 }
 
 //Serialize message payload
-func (msg *Consensus) Serialization() ([]byte, error) {
+func (this *Consensus) Serialization() ([]byte, error) {
 
 	tmpBuffer := bytes.NewBuffer([]byte{})
-	msg.Cons.Serialize(tmpBuffer)
+	this.Cons.Serialize(tmpBuffer)
 	checkSumBuf := CheckSum(tmpBuffer.Bytes())
-	msg.MsgHdr.Init("consensus", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
-	log.Debug("NewConsensus The message payload length is ", msg.MsgHdr.Length)
+	this.MsgHdr.Init("consensus", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
+	log.Debug("NewConsensus The message payload length is ", this.MsgHdr.Length)
 
-	hdrBuf, err := msg.MsgHdr.Serialization()
+	hdrBuf, err := this.MsgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
@@ -52,10 +52,10 @@ func (msg *Consensus) Serialization() ([]byte, error) {
 }
 
 //Deserialize message payload
-func (msg *Consensus) Deserialization(p []byte) error {
+func (this *Consensus) Deserialization(p []byte) error {
 	log.Debug()
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(msg.MsgHdr))
-	err = msg.Cons.Deserialize(buf)
+	err := binary.Read(buf, binary.LittleEndian, &(this.MsgHdr))
+	err = this.Cons.Deserialize(buf)
 	return err
 }

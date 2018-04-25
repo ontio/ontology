@@ -43,57 +43,57 @@ type ConsensusPayload struct {
 }
 
 //get the consensus payload hash
-func (cp *ConsensusPayload) Hash() common.Uint256 {
+func (this *ConsensusPayload) Hash() common.Uint256 {
 	return common.Uint256{}
 }
 
 //Check whether header is correct
-func (cp *ConsensusPayload) Verify() error {
+func (this *ConsensusPayload) Verify() error {
 	buf := new(bytes.Buffer)
-	cp.SerializeUnsigned(buf)
+	this.SerializeUnsigned(buf)
 
-	err := signature.Verify(cp.Owner, buf.Bytes(), cp.Signature)
+	err := signature.Verify(this.Owner, buf.Bytes(), this.Signature)
 
 	return err
 }
 
 //serialize the consensus payload
-func (cp *ConsensusPayload) ToArray() []byte {
+func (this *ConsensusPayload) ToArray() []byte {
 	b := new(bytes.Buffer)
-	cp.Serialize(b)
+	this.Serialize(b)
 	return b.Bytes()
 }
 
 //return inventory type
-func (cp *ConsensusPayload) InventoryType() common.InventoryType {
+func (this *ConsensusPayload) InventoryType() common.InventoryType {
 	return common.CONSENSUS
 }
 
-func (cp *ConsensusPayload) GetMessage() []byte {
+func (this *ConsensusPayload) GetMessage() []byte {
 	//TODO: GetMessage
 	//return sig.GetHashData(cp)
 	return []byte{}
 }
 
-func (cp *ConsensusPayload) Type() common.InventoryType {
+func (this *ConsensusPayload) Type() common.InventoryType {
 
 	//TODO:Temporary add for Interface signature.SignableData use.
 	return common.CONSENSUS
 }
 
 //Serialize message payload
-func (cp *ConsensusPayload) Serialize(w io.Writer) error {
-	err := cp.SerializeUnsigned(w)
+func (this *ConsensusPayload) Serialize(w io.Writer) error {
+	err := this.SerializeUnsigned(w)
 	if err != nil {
 		return err
 	}
-	buf := keypair.SerializePublicKey(cp.Owner)
+	buf := keypair.SerializePublicKey(this.Owner)
 	err = serialization.WriteVarBytes(w, buf)
 	if err != nil {
 		return err
 	}
 
-	err = serialization.WriteVarBytes(w, cp.Signature)
+	err = serialization.WriteVarBytes(w, this.Signature)
 	if err != nil {
 		return err
 	}
@@ -102,21 +102,21 @@ func (cp *ConsensusPayload) Serialize(w io.Writer) error {
 }
 
 //Deserialize message payload
-func (cp *ConsensusPayload) Deserialize(r io.Reader) error {
-	err := cp.DeserializeUnsigned(r)
+func (this *ConsensusPayload) Deserialize(r io.Reader) error {
+	err := this.DeserializeUnsigned(r)
 
 	buf, err := serialization.ReadVarBytes(r)
 	if err != nil {
 		log.Warn("Consensus item Owner deserialize failed, " + err.Error())
 		return errors.New("Consensus item Owner deserialize failed.")
 	}
-	cp.Owner, err = keypair.DeserializePublicKey(buf)
+	this.Owner, err = keypair.DeserializePublicKey(buf)
 	if err != nil {
 		log.Warn("Consensus item Owner deserialize failed, " + err.Error())
 		return errors.New("Consensus item Owner deserialize failed.")
 	}
 
-	cp.Signature, err = serialization.ReadVarBytes(r)
+	this.Signature, err = serialization.ReadVarBytes(r)
 	if err != nil {
 		log.Warn("Consensus item Signature deserialize failed, " + err.Error())
 		return errors.New("Consensus item Signature deserialize failed.")
@@ -126,20 +126,20 @@ func (cp *ConsensusPayload) Deserialize(r io.Reader) error {
 }
 
 //Serialize message payload
-func (cp *ConsensusPayload) SerializeUnsigned(w io.Writer) error {
-	serialization.WriteUint32(w, cp.Version)
-	cp.PrevHash.Serialize(w)
-	serialization.WriteUint32(w, cp.Height)
-	serialization.WriteUint16(w, cp.BookkeeperIndex)
-	serialization.WriteUint32(w, cp.Timestamp)
-	serialization.WriteVarBytes(w, cp.Data)
+func (this *ConsensusPayload) SerializeUnsigned(w io.Writer) error {
+	serialization.WriteUint32(w, this.Version)
+	this.PrevHash.Serialize(w)
+	serialization.WriteUint32(w, this.Height)
+	serialization.WriteUint16(w, this.BookkeeperIndex)
+	serialization.WriteUint32(w, this.Timestamp)
+	serialization.WriteVarBytes(w, this.Data)
 	return nil
 }
 
 //Deserialize message payload
-func (cp *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
+func (this *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
 	var err error
-	cp.Version, err = serialization.ReadUint32(r)
+	this.Version, err = serialization.ReadUint32(r)
 	if err != nil {
 		log.Warn("consensus item Version Deserialize failed.")
 		return errors.New("consensus item Version Deserialize failed. ")
@@ -151,27 +151,27 @@ func (cp *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
 		log.Warn("consensus item preHash Deserialize failed.")
 		return errors.New("consensus item preHash Deserialize failed. ")
 	}
-	cp.PrevHash = *preBlock
+	this.PrevHash = *preBlock
 
-	cp.Height, err = serialization.ReadUint32(r)
+	this.Height, err = serialization.ReadUint32(r)
 	if err != nil {
 		log.Warn("consensus item Height Deserialize failed.")
 		return errors.New("consensus item Height Deserialize failed. ")
 	}
 
-	cp.BookkeeperIndex, err = serialization.ReadUint16(r)
+	this.BookkeeperIndex, err = serialization.ReadUint16(r)
 	if err != nil {
 		log.Warn("consensus item BookKeeperIndex Deserialize failed.")
 		return errors.New("consensus item BookKeeperIndex Deserialize failed. ")
 	}
 
-	cp.Timestamp, err = serialization.ReadUint32(r)
+	this.Timestamp, err = serialization.ReadUint32(r)
 	if err != nil {
 		log.Warn("consensus item Timestamp Deserialize failed.")
 		return errors.New("consensus item Timestamp Deserialize failed. ")
 	}
 
-	cp.Data, err = serialization.ReadVarBytes(r)
+	this.Data, err = serialization.ReadVarBytes(r)
 	if err != nil {
 		log.Warn("consensus item Data Deserialize failed.")
 		return errors.New("consensus item Data Deserialize failed. ")
