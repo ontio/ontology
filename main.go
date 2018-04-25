@@ -203,6 +203,8 @@ func ontMain(ctx *cli.Context) {
 		log.Fatalf("p2pActor init error %s", err)
 		os.Exit(1)
 	}
+	p2p.SetPID(p2pPID)
+
 	netreqactor.SetLedgerPid(ledgerPID)
 	netreqactor.SetTxnPoolPid(txPoolServer.GetPID(tc.TxActor))
 
