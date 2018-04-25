@@ -210,6 +210,10 @@ func transferAsset(ctx *cli.Context) error {
 		return err
 	}
 	acc := acct.GetAccountByAddress(addr)
+	if nil == acc {
+		fmt.Println("Get account by address error")
+		return errors.New("Get Account Error")
+	}
 
 	if err := signTransaction(acc, tx); err != nil {
 		fmt.Println("signTransaction error:", err)
