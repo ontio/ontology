@@ -19,7 +19,6 @@
 package wasmvm
 
 import (
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/event"
@@ -38,9 +37,9 @@ func NewWasmStateReader(ldgerStore store.LedgerStore) *WasmStateReader {
 		serviceMap: make(map[string]func(*exec.ExecutionEngine) (bool, error)),
 	}
 
-	i.Register("GetBlockHeight", i.Getblockheight)
-	i.Register("GetBlockHashByNumber", i.GetblockhashbyNumber)
-	i.Register("GetTimeStamp", i.GetblockTimestamp)
+	//i.Register("GetBlockHeight", i.Getblockheight)
+	//i.Register("GetBlockHashByNumber", i.GetblockhashbyNumber)
+	//i.Register("GetTimeStamp", i.GetblockTimestamp)
 
 	return i
 }
@@ -81,7 +80,7 @@ func (i *WasmStateReader) Exists(name string) bool {
 }
 
 //============================block apis below============================/
-func (i *WasmStateReader) Getblockheight(engine *exec.ExecutionEngine) (bool, error) {
+/*func (i *WasmStateReader) Getblockheight(engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 
 	h := i.ldgerStore.GetCurrentBlockHeight()
@@ -139,3 +138,4 @@ func contains(addresses []common.Address, address common.Address) bool {
 	}
 	return false
 }
+*/
