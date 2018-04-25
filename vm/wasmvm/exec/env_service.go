@@ -26,11 +26,11 @@ import (
 	"strconv"
 	"strings"
 
+	"crypto/sha1"
+	"crypto/sha256"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/vm/wasmvm/memory"
 	"github.com/ontio/ontology/vm/wasmvm/util"
-	"crypto/sha1"
-	"crypto/sha256"
 )
 
 type Args struct {
@@ -43,9 +43,9 @@ type Param struct {
 }
 
 type Result struct {
-	Ptype string `json:"type"`
-	Pval  string `json:"value"`
-	Psucceed int `json:"succeed"`
+	Ptype    string `json:"type"`
+	Pval     string `json:"value"`
+	Psucceed int    `json:"succeed"`
 }
 
 type InteropServiceInterface interface {
@@ -62,14 +62,15 @@ func NewInteropService() *InteropService {
 
 	//init some system functions
 	service.Register("calloc", calloc)
-	service.Register("strcmp", stringcmp)
 	service.Register("malloc", malloc)
 	service.Register("arrayLen", arrayLen)
 	service.Register("memcpy", memcpy)
 	service.Register("memset", memset)
 	service.Register("getTempRet0", getTempRet0)
 
-	//todo add basic apis
+	//utility apis
+	service.Register("strcmp", stringcmp)
+	service.Register("strconcat", stringconcat)
 	service.Register("Atoi", strToInt)
 	service.Register("Atoi64", strToInt64)
 	service.Register("Itoa", intToString)
@@ -79,6 +80,7 @@ func NewInteropService() *InteropService {
 	service.Register("SHA1", hashSha1)
 	service.Register("SHA256", hashSha256)
 
+	//parameter apis
 	service.Register("ONT_ReadInt32Param", readInt32Param)
 	service.Register("ONT_ReadInt64Param", readInt64Param)
 	service.Register("ONT_ReadStringParam", readStringParam)
@@ -493,20 +495,20 @@ func jsonUnmashal(engine *ExecutionEngine) (bool, error) {
 			return false, errors.New("unsupported type :" + tmparg.Ptype)
 		}
 		//to fit the C / C++ Data structure alignment problem ,we need to add padding
-		if (count % 8 != 0) && (i+1 <=len(arg.Params)) && (arg.Params[i+1].Ptype == "int64") && (tmparg.Ptype != "int64") {
-			buff.Write(make([]byte,4))
+		if (count%8 != 0) && (i+1 <= len(arg.Params)) && (arg.Params[i+1].Ptype == "int64") && (tmparg.Ptype != "int64") {
+			buff.Write(make([]byte, 4))
 			count -= 4
 		}
-		if(i == len(arg.Params)) && (count > 0){
+		if (i == len(arg.Params)) && (count > 0) {
 			//count should be 4 here
-			buff.Write(make([]byte,count))
+			buff.Write(make([]byte, count))
 			count = 0
 		}
 	}
 
 	bytes := buff.Bytes()
 	if len(bytes) != size {
-		return false ,errors.New("JsonUnmasal input error!")
+		return false, errors.New("JsonUnmasal input error!")
 	}
 
 	copy(engine.vm.memory.Memory[int(addr):int(addr)+len(bytes)], bytes)
@@ -633,6 +635,42 @@ func stringcmp(engine *ExecutionEngine) (bool, error) {
 	return true, nil
 }
 
+func stringconcat(engine *ExecutionEngine) (bool, error) {
+
+	envCall := engine.vm.envCall
+	params := envCall.envParams
+	if len(params) != 1 {
+		return false, errors.New("parameter count error while call strcmp")
+	}
+
+	//input should be a string array
+	addrbytes, err := engine.vm.GetPointerMemory(params[0])
+	if err != nil {
+		return false, err
+	}
+
+	cnt := len(addrbytes) / 4
+	bf := bytes.NewBuffer(nil)
+	for i := 0; i < cnt; i++ {
+		tmpaddr := addrbytes[i*4 : i*4+4]
+		tmpBytes, err := engine.vm.GetPointerMemory(uint64(binary.LittleEndian.Uint32(tmpaddr)))
+		if err != nil {
+			return false, err
+		}
+		bf.Write(tmpBytes)
+	}
+
+	idx, err := engine.vm.SetPointerMemory(bf.Bytes())
+	if err != nil {
+		return false, err
+	}
+	engine.vm.RestoreCtx()
+	if envCall.envReturns {
+		engine.vm.pushUint64(uint64(idx))
+	}
+	return true, nil
+}
+
 func getCaller(engine *ExecutionEngine) (bool, error) {
 	envCall := engine.vm.envCall
 
@@ -699,7 +737,7 @@ func jsonMashalParams(engine *ExecutionEngine) (bool, error) {
 			i += 7
 		case "int64":
 			//add padding
-			if i % 8 != 0{
+			if i%8 != 0 {
 				i += 4
 			}
 
@@ -814,18 +852,18 @@ func hashSha1(engine *ExecutionEngine) (bool, error) {
 		return false, errors.New("[hashSha1]parameter count error")
 	}
 
-	item,err := vm.GetPointerMemory(params[0])
-	if err != nil{
-		return false,err
+	item, err := vm.GetPointerMemory(params[0])
+	if err != nil {
+		return false, err
 	}
 	sh := sha1.New()
 	sh.Write(item)
 	bt := sh.Sum(nil)
 
-	idx,err := vm.SetPointerMemory(bt)
+	idx, err := vm.SetPointerMemory(bt)
 	vm.RestoreCtx()
 	vm.PushResult(uint64(idx))
-	return true,nil
+	return true, nil
 
 }
 
@@ -837,16 +875,16 @@ func hashSha256(engine *ExecutionEngine) (bool, error) {
 		return false, errors.New("[hashSha1]parameter count error")
 	}
 
-	item,err := vm.GetPointerMemory(params[0])
-	if err != nil{
-		return false,err
+	item, err := vm.GetPointerMemory(params[0])
+	if err != nil {
+		return false, err
 	}
 	sh := sha256.New()
 	sh.Write(item)
 	bt := sh.Sum(nil)
 
-	idx,err := vm.SetPointerMemory(bt)
+	idx, err := vm.SetPointerMemory(bt)
 	vm.RestoreCtx()
 	vm.PushResult(uint64(idx))
-	return true,nil
+	return true, nil
 }

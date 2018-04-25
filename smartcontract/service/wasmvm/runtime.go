@@ -86,21 +86,19 @@ func (this *WasmVmService) runtimeCheckSig(engine *exec.ExecutionEngine) (bool, 
 }
 
 func (this *WasmVmService)runtimeNotify(engine *exec.ExecutionEngine)  (bool, error) {
-
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
 	if len(params) != 1 {
 		return false, errors.NewErr("[RuntimeNotify]parameter count error ")
 	}
-
 	item ,err := vm.GetPointerMemory(params[0])
 	if err != nil {
 		return false, err
 	}
 	context := this.ContextRef.CurrentContext()
-	this.Notifications = append(this.Notifications, &event.NotifyEventInfo{TxHash: this.Tx.Hash(), ContractAddress: context.ContractAddress, States:common.ToHexString([]byte(item))})
 
+	this.Notifications = append(this.Notifications, &event.NotifyEventInfo{TxHash: this.Tx.Hash(), ContractAddress: context.ContractAddress, States:[]string{string(item)}})
 	vm.RestoreCtx()
 	return true ,nil
 }

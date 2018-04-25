@@ -117,8 +117,9 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	this.ContextRef.PopContext()
-	this.ContextRef.PushNotifications(stateMachine.Notifications)
+	this.ContextRef.PushNotifications(this.Notifications)
 	return result, nil
 }
 
@@ -268,13 +269,11 @@ func (this *WasmVmService) callContract(engine *exec.ExecutionEngine) (bool, err
 	if err != nil {
 		return false, errors.NewErr("[callContract]get Contract arg failed:" + err.Error())
 	}
-
 	this.ContextRef.PushContext(&context.Context{
 		Code: vm.VMCode,
 		ContractAddress: vm.ContractAddress})
 	result, err := this.ContextRef.AppCall(contractAddress, util.TrimBuffToString(methodName), contractBytes, arg)
 	this.ContextRef.PopContext()
-
 	if err != nil {
 		return false, errors.NewErr("[callContract]AppCall failed:" + err.Error())
 	}
