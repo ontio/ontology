@@ -37,7 +37,6 @@ import (
 	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract"
 	scommon "github.com/ontio/ontology/smartcontract/common"
-	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vmtype "github.com/ontio/ontology/smartcontract/types"
@@ -936,21 +935,13 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface
 		Tx:     tx,
 	}
 
-	//init smart contract context info
-	ctx := &context.Context{
-		Code:            invoke.Code,
-		ContractAddress: invoke.Code.AddressFromVmCode(),
-	}
-
 	//init smart contract info
 	sc := smartcontract.SmartContract{
 		Config:     config,
 		Store:      this,
 		CloneCache: storage.NewCloneCache(this.stateStore.NewStateBatch()),
+		Code:       invoke.Code,
 	}
-
-	//load current context to smart contract
-	sc.PushContext(ctx)
 
 	//start the smart contract executive function
 	result, err := sc.Execute()
@@ -958,10 +949,10 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface
 		return nil, err
 	}
 
-	prefix := ctx.ContractAddress[0]
-	if prefix == byte(vmtype.NEOVM) {
+	prefix := invoke.Code.VmType
+	if prefix == vmtype.NEOVM {
 		result = scommon.ConvertNeoVmTypeHexString(result)
-	} else if prefix == byte(vmtype.WASMVM) {
+	} else if prefix == vmtype.WASMVM {
 		if v, ok := result.([]byte); ok {
 			result = common.ToHexString(v)
 		}
