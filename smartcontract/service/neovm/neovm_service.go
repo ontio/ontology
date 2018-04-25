@@ -20,6 +20,7 @@ package neovm
 
 import (
 	"math/big"
+	"fmt"
 
 	vmtype "github.com/ontio/ontology/vm/neovm/types"
 	"github.com/ontio/ontology/core/store"
@@ -107,32 +108,18 @@ type NeoVmService struct {
 	CloneCache    *storage.CloneCache
 	ContextRef    context.ContextRef
 	Notifications []*event.NotifyEventInfo
+	Code          []byte
 	Tx            *types.Transaction
 	Time          uint32
-}
-
-// NewNeoVmService return a new neovm service
-func NewNeoVmService(store store.LedgerStore, cache *storage.CloneCache, tx *types.Transaction, time uint32, ctxRef context.ContextRef) *NeoVmService {
-	var service NeoVmService
-	service.Store = store
-	service.CloneCache = cache
-	service.Time = time
-	service.Tx = tx
-	service.ContextRef = ctxRef
-	return &service
 }
 
 // Invoke a smart contract
 func (this *NeoVmService) Invoke() (interface{}, error) {
 	engine := vm.NewExecutionEngine()
-	ctx := this.ContextRef.CurrentContext()
-	if ctx == nil {
-		return nil, ERR_CURRENT_CONTEXT_NIL
-	}
-	if len(ctx.Code.Code) == 0 {
+	if len(this.Code) == 0 {
 		return nil, ERR_EXECUTE_CODE
 	}
-	engine.PushContext(vm.NewExecutionContext(engine, ctx.Code.Code))
+	engine.PushContext(vm.NewExecutionContext(engine, this.Code))
 	for {
 		if len(engine.Contexts) == 0 || engine.Context == nil {
 			break
@@ -159,7 +146,7 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 			if err := this.SystemCall(engine); err != nil {
 				return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] service system call error!")
 			}
-		case vm.APPCALL:
+		case vm.APPCALL, vm.TAILCALL:
 			c := new(states.Contract)
 			if err := c.Deserialize(engine.Context.OpReader.Reader()); err != nil {
 				return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] get contract parameters error!")
@@ -189,7 +176,7 @@ func (this *NeoVmService) SystemCall(engine *vm.ExecutionEngine) error {
 	serviceName := engine.Context.OpReader.ReadVarString()
 	service, ok := ServiceMap[serviceName]
 	if !ok {
-		return errors.NewErr("[SystemCall] service not support!")
+		return errors.NewErr(fmt.Sprintf("[SystemCall] service not support: %s", serviceName))
 	}
 	if service.Validator != nil {
 		if err := service.Validator(engine); err != nil {

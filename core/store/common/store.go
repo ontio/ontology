@@ -58,8 +58,6 @@ type StateStore interface {
 	TryGetOrAdd(prefix DataEntryPrefix, key []byte, value states.StateValue) error
 	//Get key from state store
 	TryGet(prefix DataEntryPrefix, key []byte) (*StateItem, error)
-	//Get key from store, and will change later
-	TryGetAndChange(prefix DataEntryPrefix, key []byte) (states.StateValue, error)
 	//Delete key in store
 	TryDelete(prefix DataEntryPrefix, key []byte)
 	//iterator key in store

@@ -76,11 +76,11 @@ func OngApprove(native *NativeService) error {
 	if err := state.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[OngApprove] state deserialize error!")
 	}
-	if err := isApproveValid(native, state); err != nil {
-		return err
-	}
 	if state.Value.Sign() == 0 {
 		return nil
+	}
+	if err := isApproveValid(native, state); err != nil {
+		return err
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	native.CloneCache.Add(scommon.ST_STORAGE, getApproveKey(contract, state), &cstates.StorageItem{Value: state.Value.Bytes()})

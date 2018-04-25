@@ -83,12 +83,13 @@ func (self *StateBatch) TryGetOrAdd(prefix common.DataEntryPrefix, key []byte, v
 		}
 		return nil
 	}
-	_, err := self.store.Get(append(aPrefix, key...))
-	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return nil
-		}
+	item, err := self.store.Get(append(aPrefix, key...))
+	if err != nil && err != leveldb.ErrNotFound {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TryGetOrAdd], leveldb store get data failed.")
+	}
+
+	if len(item) != 0 {
+		return nil
 	}
 
 	self.setStateObject(bPrefix, key, value, common.Changed)
@@ -120,35 +121,6 @@ func (self *StateBatch) TryGet(prefix common.DataEntryPrefix, key []byte) (*comm
 	}
 	self.setStateObject(bPrefix, key, stateVal, common.None)
 	return &common.StateItem{Key: string(pk), Value: stateVal, State: common.None}, nil
-}
-
-func (self *StateBatch) TryGetAndChange(prefix common.DataEntryPrefix, key []byte) (states.StateValue, error) {
-	bPrefix := byte(prefix)
-	aPrefix := []byte{bPrefix}
-	state := self.memoryStore.Get(bPrefix, key)
-	if state != nil {
-		if state.State == common.Deleted {
-			return nil, nil
-		} else if state.State == common.None {
-			state.State = common.Changed
-		}
-		return state.Value, nil
-	}
-	k := append(aPrefix, key...)
-	enc, err := self.store.Get(k)
-	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return nil, nil
-		}
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[TryGetAndChange], leveldb store get data failed.")
-	}
-
-	val, err := getStateObject(prefix, enc)
-	if err != nil {
-		return nil, err
-	}
-	self.setStateObject(bPrefix, key, val, common.Changed)
-	return val, nil
 }
 
 func (self *StateBatch) TryDelete(prefix common.DataEntryPrefix, key []byte) {
