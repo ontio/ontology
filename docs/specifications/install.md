@@ -9,8 +9,7 @@
 
 
 English | [中文](install_CN.md) 
-# Build development environment
-
+## Build development environment
 The requirements to build Ontology are:
 
 - Golang version 1.9 or later
@@ -18,8 +17,7 @@ The requirements to build Ontology are:
 - Properly configured Go language environment
 - Golang supported operating system
 
-# Deployment and test
-## Get Ontology
+## Deployment|Get Ontology
 ### Get from source code
 
 Clone the Ontology repository into the appropriate $GOPATH/src/github.com/ontio directory.

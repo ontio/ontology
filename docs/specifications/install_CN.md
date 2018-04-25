@@ -9,7 +9,7 @@
 
 [English](install.md) | 中文
 
-# 构建开发环境
+## 构建开发环境
 成功编译ontology需要以下准备：
 
 * Golang版本在1.9及以上
@@ -17,8 +17,7 @@
 * 正确的Go语言开发环境
 * Golang所支持的操作系统
 
-# 部署
-## 获取ontology
+## 部署|获取ontology
 ### 从源码获取
 克隆ontology仓库到 **$GOPATH/src/github.com/ontio** 目录
 
