@@ -286,7 +286,7 @@ func (this *LedgerStoreImp) initStore() error {
 }
 
 func (this *LedgerStoreImp) start() {
-	ticker := time.NewTicker(time.Second * 10)
+	ticker := time.NewTicker(time.Second * 3)
 	defer ticker.Stop()
 	timeoutTicker := time.NewTicker(time.Minute)
 	defer timeoutTicker.Stop()

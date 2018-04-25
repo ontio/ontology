@@ -35,6 +35,12 @@ func (node *node) GetBlkHdrs() {
 	if !node.IsUptoMinNodeCount() {
 		return
 	}
+	currentHdrHeight, _ := actor.GetCurrentHeaderHeight()
+	currentBlkHeight, _ := actor.GetCurrentBlockHeight()
+	//reduce ledger hdr cache stress
+	if currentHdrHeight-currentBlkHeight > 2000 {
+		return
+	}
 	noders := node.local.GetNeighborNoder()
 	if len(noders) == 0 {
 		return
