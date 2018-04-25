@@ -69,13 +69,24 @@ var (
 				Flags:        append(append(NodeFlags, ContractFlags...), InfoFlags...),
 				Description:  ``,
 			},
+			{
+				Action:       ontBalance,
+				OnUsageError: balanceUsageError,
+				Name:         "ont-balance",
+				Usage:        "Show balance of ont and ong of specified account",
+				ArgsUsage:    "[address]",
+				Flags: []cli.Flag{
+					utils.UserPasswordFlag,
+					utils.AccountFileFlag,
+				},
+			},
 		},
 	}
 )
 
 func assetUsageError(context *cli.Context, err error, isSubcommand bool) error {
 	fmt.Println(err.Error())
-	showAssetHelp()
+	cli.ShowSubcommandHelp(context)
 	return nil
 }
 
@@ -86,6 +97,12 @@ func assetCommand(ctx *cli.Context) error {
 
 func transferAssetUsageError(context *cli.Context, err error, isSubcommand bool) error {
 	fmt.Println(err.Error())
+	showAssetTransferHelp()
+	return nil
+}
+
+func balanceUsageError(context *cli.Context, err error, isSubcommand bool) error {
+	fmt.Println(err)
 	showAssetTransferHelp()
 	return nil
 }
@@ -186,7 +203,11 @@ func transferAsset(ctx *cli.Context) error {
 		}
 	}
 
-	acct := account.Open(account.WALLET_FILENAME, passwd)
+	var filename string = account.WALLET_FILENAME
+	if ctx.IsSet(utils.AccountFileFlag.Name) {
+		filename = ctx.String(utils.AccountFileFlag.Name)
+	}
+	acct := account.Open(filename, passwd)
 	acc := acct.GetDefaultAccount()
 
 	if err := signTransaction(acc, tx); err != nil {
@@ -245,5 +266,38 @@ func queryTransferStatus(ctx *cli.Context) error {
 		return err
 	}
 	cmdCom.EchoJsonDataGracefully(resp)
+	return nil
+}
+
+func ontBalance(ctx *cli.Context) error {
+	var filename string = account.WALLET_FILENAME
+	if ctx.IsSet(utils.AccountFileFlag.Name) {
+		filename = ctx.String(utils.AccountFileFlag.Name)
+	}
+
+	var base58Addr string
+	if ctx.NArg() == 0 {
+		var passwd []byte
+		var err error
+		if ctx.IsSet(utils.UserPasswordFlag.Name) {
+			passwd = []byte(ctx.GlobalString(utils.UserPasswordFlag.Name))
+		} else {
+			passwd, err = password.GetAccountPassword()
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				return errors.New("input password error")
+			}
+		}
+		acct := account.Open(filename, passwd)
+		base58Addr = acct.GetDefaultAccount().Address.ToBase58()
+	} else {
+		base58Addr = ctx.Args().First()
+	}
+	balance, err := ontSdk.Rpc.GetBalanceWithBase58(base58Addr)
+	if nil != err {
+		fmt.Printf("Get Balance with base58 err: %s", err.Error())
+		return err
+	}
+	fmt.Printf("ONT: %d; ONG: %d; ONGAppove: %d\n Address(base58): %s\n", balance.Ont.Int64(), balance.Ong.Int64(), balance.OngAppove.Int64(), base58Addr)
 	return nil
 }
