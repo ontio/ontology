@@ -79,18 +79,16 @@ func NewInteropService() *InteropService {
 	service.Register("SHA1", hashSha1)
 	service.Register("SHA256", hashSha256)
 
-	service.Register("ReadInt32Param", readInt32Param)
-	service.Register("ReadInt64Param", readInt64Param)
-	service.Register("ReadStringParam", readStringParam)
-	service.Register("JsonUnmashalInput", jsonUnmashal)
-	service.Register("JsonMashalResult", jsonMashal)
-	service.Register("JsonMashalParams", jsonMashalParams)
-	service.Register("RawMashalParams", rawMashalParams)
-	service.Register("GetCallerAddress", getCaller)
-	service.Register("GetSelfAddress", getContractAddress)
+	service.Register("ONT_ReadInt32Param", readInt32Param)
+	service.Register("ONT_ReadInt64Param", readInt64Param)
+	service.Register("ONT_ReadStringParam", readStringParam)
+	service.Register("ONT_JsonUnmashalInput", jsonUnmashal)
+	service.Register("ONT_JsonMashalResult", jsonMashal)
+	service.Register("ONT_JsonMashalParams", jsonMashalParams)
+	service.Register("ONT_RawMashalParams", rawMashalParams)
+	service.Register("ONT_GetCallerAddress", getCaller)
+	service.Register("ONT_GetSelfAddress", getContractAddress)
 
-
-	//===================add block apis below==================
 	return &service
 }
 
@@ -127,9 +125,6 @@ func (i *InteropService) Exists(name string) bool {
 func (i *InteropService) GetServiceMap() map[string]func(*ExecutionEngine) (bool, error) {
 	return i.serviceMap
 }
-
-//******************* basic functions ***************************
-//TODO decide to replace the P_UNKNOW type
 
 //for the c language "calloc" function
 func calloc(engine *ExecutionEngine) (bool, error) {
