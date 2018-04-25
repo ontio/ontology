@@ -46,6 +46,40 @@ var (
 	}
 )
 
+var blockCommandSet = cli.Command{
+	Action:       utils.MigrateFlags(blockInfoCommand),
+	Name:         "block",
+	Usage:        "Display block informations",
+	Flags:        append(NodeFlags, InfoFlags...),
+	OnUsageError: blockInfoUsageError,
+	Description:  ``,
+	Subcommands: []cli.Command{
+		{
+			Action:      utils.MigrateFlags(getCurrentBlockHeight),
+			Name:        "count",
+			Usage:       "issue asset by command",
+			Description: ``,
+		},
+	},
+}
+
+var txCommandSet = cli.Command{
+	Action:       utils.MigrateFlags(txInfoCommand),
+	Name:         "tx",
+	Usage:        "Display transaction informations",
+	Flags:        append(NodeFlags, InfoFlags...),
+	OnUsageError: txInfoUsageError,
+	Description:  ``,
+}
+
+var versionCommand = cli.Command{
+	Action:       utils.MigrateFlags(versionInfoCommand),
+	Name:         "version",
+	Usage:        "Display the version",
+	OnUsageError: versionInfoUsageError,
+	Description:  ``,
+}
+
 func infoCommand(context *cli.Context) error {
 	showInfoHelp()
 	return nil
@@ -67,50 +101,16 @@ func getCurrentBlockHeight(ctx *cli.Context) error {
 	return nil
 }
 
-var blockCommandSet = cli.Command{
-	Action:       utils.MigrateFlags(blockInfoCommand),
-	Name:         "block",
-	Usage:        "Display block informations",
-	Flags:        append(NodeFlags, InfoFlags...),
-	OnUsageError: blockInfoUsageError,
-	Description:  ``,
-	Subcommands: []cli.Command{
-		{
-			Action:      utils.MigrateFlags(getCurrentBlockHeight),
-			Name:        "count",
-			Usage:       "issue asset by command",
-			Description: ``,
-		},
-	},
-}
-
 func txInfoUsageError(context *cli.Context, err error, isSubcommand bool) error {
 	fmt.Println("Error:", err.Error())
 	showTxInfoHelp()
 	return nil
 }
 
-var txCommandSet = cli.Command{
-	Action:       utils.MigrateFlags(txInfoCommand),
-	Name:         "tx",
-	Usage:        "Display transaction informations",
-	Flags:        append(NodeFlags, InfoFlags...),
-	OnUsageError: txInfoUsageError,
-	Description:  ``,
-}
-
 func versionInfoUsageError(context *cli.Context, err error, isSubcommand bool) error {
 	fmt.Println("Error:", err.Error())
 	showVersionInfoHelp()
 	return nil
-}
-
-var versionCommand = cli.Command{
-	Action:       utils.MigrateFlags(versionInfoCommand),
-	Name:         "version",
-	Usage:        "Display the version",
-	OnUsageError: versionInfoUsageError,
-	Description:  ``,
 }
 
 func versionInfoCommand(ctx *cli.Context) error {
