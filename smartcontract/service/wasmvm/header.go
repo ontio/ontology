@@ -42,8 +42,8 @@ func(this *WasmVmService)headerGetHash(engine *exec.ExecutionEngine)(bool ,error
 		return false,err
 	}
 
-	hash := header.Hash().ToArray()
-	idx,err := vm.SetPointerMemory(hash)
+	hash := header.Hash()
+	idx,err := vm.SetPointerMemory(hash.ToArray())
 	if err != nil{
 		return false,err
 	}
