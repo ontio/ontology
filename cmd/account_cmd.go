@@ -246,7 +246,7 @@ func accountCreate(ctx *cli.Context) error {
 	}
 
 	var password, repeatPassword []byte
-	for wait := true; wait; {
+	for {
 		fmt.Print("Enter a password for encrypting the private key:")
 		password = enterPassword(false)
 		fmt.Print("Re-enter password:")
@@ -479,11 +479,8 @@ func encrypt(ctx *cli.Context) error {
 		password[i] = 0
 	}
 
-	var accJson = new(account.Accountx)
-	accJson.SetKeyPair(prvSectet)
-	accJson.PassHash = hex.EncodeToString(h[:])
-
-	wallet.Accounts[index-1] = accJson
+	wallet.Accounts[index-1].SetKeyPair(prvSectet)
+	wallet.Accounts[index-1].PassHash = hex.EncodeToString(h[:])
 
 	if wallet.Save(wFilePath) != nil {
 		fmt.Println("Wallet file save failed.")
