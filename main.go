@@ -35,6 +35,7 @@ import (
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/common/password"
 	"github.com/ontio/ontology/consensus"
 	"github.com/ontio/ontology/core/ledger"
 	ldgactor "github.com/ontio/ontology/core/ledger/actor"
@@ -77,7 +78,7 @@ func setupAPP() *cli.App {
 	app := cli.NewApp()
 	app.Usage = "Ontology CLI"
 	app.Action = ontMain
-	app.Version = "0.6.0"
+	app.Version = "0.7.0"
 	app.Copyright = "Copyright in 2018 The Ontology Authors"
 	app.Commands = []cli.Command{
 		cmd.AccountCommand,
@@ -124,8 +125,19 @@ func ontMain(ctx *cli.Context) {
 	}
 
 	log.Info("0. Open the account")
+	var pwd []byte = nil
+	if ctx.IsSet("password") {
+		pwd = []byte(ctx.String("password"))
+	} else {
+		pwd, err = password.GetAccountPassword()
+		if err != nil {
+			log.Fatal("Password error")
+			os.Exit(1)
+		}
+	}
+
 	wallet := ctx.GlobalString(utils.WalletNameFlag.Name)
-	client := account.Open(wallet, nil)
+	client := account.Open(wallet, pwd)
 	if client == nil {
 		log.Fatal("Can't get local account.")
 		os.Exit(1)

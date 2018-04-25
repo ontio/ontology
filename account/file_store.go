@@ -31,6 +31,7 @@ type Accountx struct {
 	keypair.ProtectedKey
 
 	Label     string `json:"label"`
+	PubKey    string `json:"publicKey"`
 	SigSch    string `json:"signatureScheme"`
 	IsDefault bool   `json:"isDefault"`
 	Lock      bool   `json:"lock"`
