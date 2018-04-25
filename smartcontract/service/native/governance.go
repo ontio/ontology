@@ -552,13 +552,12 @@ func CommitDpos(native *NativeService) error {
 			native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(PEER_POOL), peerPubkeyPrefix), &cstates.StorageItem{Value: value})
 		}
 		if peerPool.Status == QuitStatus {
-			
+
 		}
 		if peerPool.Status == CandidateStatus || peerPool.Status == ConsensusStatus {
 			fmt.Println(peerPool)
 			stake := new(big.Int).Add(peerPool.TotalPos, peerPool.InitPos)
 			peers = append(peers, &states.PeerStakeInfo{
-
 				Index:      peerPool.Index.Uint64(),
 				PeerPubkey: peerPool.PeerPubkey,
 				Stake:      stake.Uint64(),
