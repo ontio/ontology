@@ -29,8 +29,8 @@ func (this *WasmVmService)blockGetCurrentHeaderHash(engine *exec.ExecutionEngine
 	vm := engine.GetVM()
 	vm.RestoreCtx()
 
-	headerHash:= this.Store.GetCurrentHeaderHash().ToArray()
-	idx,err:= vm.SetPointerMemory(headerHash)
+	headerHash:= this.Store.GetCurrentHeaderHash()
+	idx,err:= vm.SetPointerMemory(headerHash.ToArray())
 	if err != nil{
 		return false,err
 	}
@@ -52,8 +52,8 @@ func (this *WasmVmService)blockGetCurrentBlockHash(engine *exec.ExecutionEngine)
 	vm := engine.GetVM()
 	vm.RestoreCtx()
 
-	bHash:= this.Store.GetCurrentBlockHash().ToArray()
-	idx,err:= vm.SetPointerMemory(bHash)
+	bHash:= this.Store.GetCurrentBlockHash()
+	idx,err:= vm.SetPointerMemory(bHash.ToArray())
 	if err != nil{
 		return false,err
 	}

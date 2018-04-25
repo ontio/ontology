@@ -42,8 +42,8 @@ func (this * WasmVmService)transactionGetHash(engine *exec.ExecutionEngine)(bool
 	if err != nil{
 		return false,err
 	}
-	hash := trans.Hash().ToArray()
-	idx,err := vm.SetPointerMemory(hash)
+	hash := trans.Hash()
+	idx,err := vm.SetPointerMemory(hash.ToArray())
 	if err != nil{
 		return false,err
 	}

@@ -97,7 +97,7 @@ func (this *SmartContract) EntryContext() *context.Context {
 // PopContext pop smart contract current context
 func (this *SmartContract) PopContext() {
 	if len(this.Contexts) > 1 {
-		this.Contexts = this.Contexts[:len(this.Contexts)-2]
+		this.Contexts = this.Contexts[:len(this.Contexts)-1]
 	}
 }
 
@@ -213,7 +213,6 @@ func (this *SmartContract) AppCall(address common.Address, method string, codes,
 // Else check whether address is calling contract address
 // Param address: wallet address or contract address
 func (this *SmartContract) CheckWitness(address common.Address) bool {
-
 	if stypes.IsVmCodeAddress(address) {
 		if this.CallingContext() != nil && this.CallingContext().ContractAddress == address {
 			return true
