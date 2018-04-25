@@ -154,7 +154,6 @@ var (
 	}
 	AccountTypeFlag = cli.StringFlag{
 		Name:  "type,t",
-		Value: "ecdsa",
 		Usage: "Specifies the `<key-type>` by signature algorithm",
 	}
 	AccountKeylenFlag = cli.StringFlag{
@@ -171,10 +170,15 @@ var (
 	}
 	AccountDefaultFlag = cli.BoolFlag{
 		Name:  "default,d",
-		Usage: "Set to default account",
+		Usage: "Use default settings",
+	}
+	AccountSetDefaultFlag = cli.BoolFlag{
+		Name:  "to-default,d",
+		Usage: "Set the specified account to default",
 	}
 	AccountFileFlag = cli.StringFlag{
 		Name:  "file,f",
+		Value: "wallet.dat",
 		Usage: "Specifies the `<filename>` of wallet.",
 	}
 )
