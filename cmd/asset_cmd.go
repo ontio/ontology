@@ -208,7 +208,13 @@ func transferAsset(ctx *cli.Context) error {
 		filename = ctx.String(utils.AccountFileFlag.Name)
 	}
 	acct := account.Open(filename, passwd)
+	if acct != nil {
+		return errors.New("open wallet error")
+	}
 	acc := acct.GetDefaultAccount()
+	if acc == nil {
+		return errors.New("cannot get the default account")
+	}
 
 	if err := signTransaction(acc, tx); err != nil {
 		fmt.Println("signTransaction error:", err)
@@ -289,7 +295,14 @@ func ontBalance(ctx *cli.Context) error {
 			}
 		}
 		acct := account.Open(filename, passwd)
-		base58Addr = acct.GetDefaultAccount().Address.ToBase58()
+		if acct == nil {
+			return errors.New("open wallet error")
+		}
+		dac := acct.GetDefaultAccount()
+		if dac == nil {
+			return errors.New("cannot get the default account")
+		}
+		base58Addr = dac.Address.ToBase58()
 	} else {
 		base58Addr = ctx.Args().First()
 	}
