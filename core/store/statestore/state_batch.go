@@ -5,7 +5,7 @@
  * The ontology is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * (at y:wqour option) any later version.
  *
  * The ontology is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -43,7 +43,7 @@ func NewStateStoreBatch(memoryStore common.MemoryCacheStore, store common.Persis
 }
 
 func (self *StateBatch) Find(prefix common.DataEntryPrefix, key []byte) ([]*common.StateItem, error) {
-	var states []*common.StateItem
+	var sts []*common.StateItem
 	bp := []byte{byte(prefix)}
 	iter := self.store.NewIterator(append(bp, key...))
 	defer iter.Release()
@@ -56,16 +56,16 @@ func (self *StateBatch) Find(prefix common.DataEntryPrefix, key []byte) ([]*comm
 			if err != nil {
 				return nil, err
 			}
-			states = append(states, &common.StateItem{Key: string(keyV), Value: state})
+			sts = append(sts, &common.StateItem{Key: string(keyV), Value: state})
 		}
 	}
 	keyP := string(append(bp, key...))
 	for _, v := range self.memoryStore.Find() {
 		if v.State != common.Deleted && strings.HasPrefix(v.Key, keyP) {
-			states = append(states, v.Copy())
+			sts = append(sts, v.Copy())
 		}
 	}
-	return states, nil
+	return sts, nil
 }
 
 func (self *StateBatch) TryAdd(prefix common.DataEntryPrefix, key []byte, value states.StateValue) {
@@ -73,51 +73,59 @@ func (self *StateBatch) TryAdd(prefix common.DataEntryPrefix, key []byte, value 
 }
 
 func (self *StateBatch) TryGetOrAdd(prefix common.DataEntryPrefix, key []byte, value states.StateValue) error {
-	state := self.memoryStore.Get(byte(prefix), key)
+	bPrefix := byte(prefix)
+	aPrefix := []byte{bPrefix}
+	state := self.memoryStore.Get(bPrefix, key)
 	if state != nil {
 		if state.State == common.Deleted {
-			self.setStateObject(byte(prefix), key, value, common.Changed)
+			self.setStateObject(bPrefix, key, value, common.Changed)
 			return nil
 		}
 		return nil
 	}
-	item, err := self.store.Get(append([]byte{byte(prefix)}, key...))
-	if err != nil && err != leveldb.ErrNotFound {
+	_, err := self.store.Get(append(aPrefix, key...))
+	if err != nil {
+		if err == leveldb.ErrNotFound {
+			return nil
+		}
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TryGetOrAdd], leveldb store get data failed.")
 	}
-	if item != nil {
-		return nil
-	}
-	self.setStateObject(byte(prefix), key, value, common.Changed)
+
+	self.setStateObject(bPrefix, key, value, common.Changed)
 	return nil
 }
 
 func (self *StateBatch) TryGet(prefix common.DataEntryPrefix, key []byte) (*common.StateItem, error) {
-	state := self.memoryStore.Get(byte(prefix), key)
+	bPrefix := byte(prefix)
+	aPrefix := []byte{bPrefix}
+	pk := append(aPrefix, key...)
+	state := self.memoryStore.Get(bPrefix, key)
 	if state != nil {
 		if state.State == common.Deleted {
 			return nil, nil
 		}
 		return state, nil
 	}
-	enc, err := self.store.Get(append([]byte{byte(prefix)}, key...))
-	if err != nil && err != leveldb.ErrNotFound {
+	enc, err := self.store.Get(pk)
+	if err != nil {
+		if err == leveldb.ErrNotFound {
+			return nil, nil
+		}
 		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[TryGet], leveldb store get data failed.")
 	}
 
-	if enc == nil {
-		return nil, nil
-	}
 	stateVal, err := getStateObject(prefix, enc)
 	if err != nil {
 		return nil, err
 	}
-	self.setStateObject(byte(prefix), key, stateVal, common.None)
-	return &common.StateItem{Key: string(append([]byte{byte(prefix)}, key...)), Value: stateVal, State: common.None}, nil
+	self.setStateObject(bPrefix, key, stateVal, common.None)
+	return &common.StateItem{Key: string(pk), Value: stateVal, State: common.None}, nil
 }
 
 func (self *StateBatch) TryGetAndChange(prefix common.DataEntryPrefix, key []byte) (states.StateValue, error) {
-	state := self.memoryStore.Get(byte(prefix), key)
+	bPrefix := byte(prefix)
+	aPrefix := []byte{bPrefix}
+	state := self.memoryStore.Get(bPrefix, key)
 	if state != nil {
 		if state.State == common.Deleted {
 			return nil, nil
@@ -126,21 +134,20 @@ func (self *StateBatch) TryGetAndChange(prefix common.DataEntryPrefix, key []byt
 		}
 		return state.Value, nil
 	}
-	k := append([]byte{byte(prefix)}, key...)
+	k := append(aPrefix, key...)
 	enc, err := self.store.Get(k)
-	if err != nil && err != leveldb.ErrNotFound {
+	if err != nil {
+		if err == leveldb.ErrNotFound {
+			return nil, nil
+		}
 		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[TryGetAndChange], leveldb store get data failed.")
-	}
-
-	if enc == nil {
-		return nil, nil
 	}
 
 	val, err := getStateObject(prefix, enc)
 	if err != nil {
 		return nil, err
 	}
-	self.setStateObject(byte(prefix), key, val, common.Changed)
+	self.setStateObject(bPrefix, key, val, common.Changed)
 	return val, nil
 }
 
