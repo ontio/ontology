@@ -210,7 +210,10 @@ func GetInvFromBlockHash(starthash common.Uint256, stophash common.Uint256) (*In
 	var empty common.Uint256
 	var startHeight uint32
 	var stopHeight uint32
-	curHeight, _ := actor.GetCurrentBlockHeight()
+	curHeight, err := actor.GetCurrentBlockHeight()
+	if err != nil {
+		return nil, fmt.Errorf("GetCurrentBlockHeight error:%s", err)
+	}
 	if starthash == empty {
 		if stophash == empty {
 			if curHeight > protocol.MAX_BLK_HDR_CNT {
@@ -257,7 +260,14 @@ func GetInvFromBlockHash(starthash common.Uint256, stophash common.Uint256) (*In
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	for i = 1; i <= count; i++ {
 		//FIXME need add error handle for GetBlockWithHash
-		hash, _ := actor.GetBlockHashByHeight(stopHeight + i)
+		hash, err := actor.GetBlockHashByHeight(stopHeight + i)
+		if err != nil {
+			log.Errorf("GetInvFromBlockHash GetBlockHashByHeight height:%d error:%s",stopHeight + i,err )
+			continue
+		}
+		if hash == common.UINT256_EMPTY{
+			continue
+		}
 		log.Debug("GetInvFromBlockHash i is ", i, " , hash is ", hash)
 		hash.Serialize(tmpBuffer)
 	}

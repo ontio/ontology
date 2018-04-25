@@ -30,6 +30,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/net/actor"
 	"github.com/ontio/ontology/net/protocol"
+	"fmt"
 )
 
 type hdrHashReq struct {
@@ -55,7 +56,6 @@ func NewHeadersReq() ([]byte, error) {
 	h.p.len = 1
 	buf, _ := actor.GetCurrentHeaderHash()
 	copy(h.p.hashEnd[:], buf[:])
-
 	p := new(bytes.Buffer)
 	err := binary.Write(p, binary.LittleEndian, &(h.p))
 	if err != nil {
@@ -169,8 +169,6 @@ blkHdrErr:
 
 func (msg headersReq) Handle(node protocol.Noder) error {
 	log.Debug()
-	node.LocalNode().AcqSyncReqSem()
-	defer node.LocalNode().RelSyncReqSem()
 	var startHash [protocol.HASH_LEN]byte
 	var stopHash [protocol.HASH_LEN]byte
 	startHash = msg.p.hashStart
@@ -202,7 +200,7 @@ func (msg blkHeader) Handle(node protocol.Noder) error {
 	for i = 0; i < msg.cnt; i++ {
 		blkHdr = append(blkHdr, &msg.blkHdr[i])
 	}
-	actor.AddHeaders(blkHdr)
+	node.LocalNode().OnHeaderReceive(blkHdr)
 	return nil
 }
 
@@ -212,7 +210,10 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]ty
 	headers := []types.Header{}
 	var startHeight uint32
 	var stopHeight uint32
-	curHeight, _ := actor.GetCurrentHeaderHeight()
+	curHeight, err := actor.GetCurrentHeaderHeight()
+	if err != nil {
+		return nil, 0, fmt.Errorf("GetCurrentHeaderHeight error:%s", err)
+	}
 	if startHash == empty {
 		if stopHash == empty {
 			if curHeight > protocol.MAX_BLK_HDR_CNT {
@@ -270,6 +271,9 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]ty
 		if err != nil {
 			log.Errorf("GetBlockHashByHeight failed with err=%s, hash=%x,height=%d\n", err.Error(), hash, stopHeight+i)
 			return nil, 0, err
+		}
+		if hash == common.UINT256_EMPTY{
+			break
 		}
 		hd, err := actor.GetHeaderByHash(hash)
 		if err != nil || hd == nil {

@@ -42,13 +42,7 @@ type block struct {
 
 func (msg block) Handle(node protocol.Noder) error {
 	log.Debug("RX block message")
-	hash := msg.blk.Hash()
-	if con, _ := actor.IsContainBlock(hash); con != true {
-		actor.AddBlock(&msg.blk)
-		node.RemoveFlightHeight(msg.blk.Header.Height)
-	} else {
-		log.Debug("Receive duplicated block")
-	}
+	node.LocalNode().OnBlockReceive(&msg.blk)
 	return nil
 }
 
