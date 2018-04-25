@@ -61,6 +61,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	} else {
 		caller = this.ContextRef.CallingContext().ContractAddress
 	}
+	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address})
 	res, err := engine.Call(caller, contract.Code, contract.Method, contract.Args, contract.Version)
 
 	if err != nil {
@@ -72,8 +73,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	//commit outside
-	//this.CloneCache.Commit()
+	this.ContextRef.PopContext()
 	this.ContextRef.PushNotifications(stateMachine.Notifications)
 	return result, nil
 }
