@@ -19,6 +19,7 @@
 package password
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 
@@ -42,20 +43,24 @@ func GetConfirmedPassword() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	if 0 == len(first) {
+		fmt.Println("User have to input password.")
+		os.Exit(1)
+	}
+
 	fmt.Printf("Re-enter Password:")
 	second, err := gopass.GetPasswd()
 	if err != nil {
 		return nil, err
 	}
-	if len(first) != len(second) {
-		fmt.Println("Unmatched Password")
+	if 0 == len(second) {
+		fmt.Println("User have to input password.")
 		os.Exit(1)
 	}
-	for i, v := range first {
-		if v != second[i] {
-			fmt.Println("Unmatched Password")
-			os.Exit(1)
-		}
+
+	if !bytes.Equal(first, second) {
+		fmt.Println("Unmatched Password")
+		os.Exit(1)
 	}
 	return first, nil
 }
