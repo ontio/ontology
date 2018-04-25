@@ -51,17 +51,19 @@ func NewCloneCache(store common.StateStore) *CloneCache {
 // Commit current transaction cache to block cache
 func (cloneCache *CloneCache) Commit() {
 	for _, v := range cloneCache.Memory {
+		vk := []byte(v.Key)
 		if v.State == common.Deleted {
-			cloneCache.Store.TryDelete(v.Prefix, []byte(v.Key))
+			cloneCache.Store.TryDelete(v.Prefix, vk)
 		} else if v.State == common.Changed {
-			cloneCache.Store.TryAdd(v.Prefix, []byte(v.Key), v.Value)
+			cloneCache.Store.TryAdd(v.Prefix, vk, v.Value)
 		}
 	}
 }
 
 // Add item to cache
 func (cloneCache *CloneCache) Add(prefix common.DataEntryPrefix, key []byte, value states.StateValue) {
-	cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))] = &StateItem{
+	pk := string(append([]byte{byte(prefix)}, key...))
+	cloneCache.Memory[pk] = &StateItem{
 		Prefix: prefix,
 		Key:    string(key),
 		Value:  value,
@@ -73,9 +75,10 @@ func (cloneCache *CloneCache) Add(prefix common.DataEntryPrefix, key []byte, val
 // If item has existed, return it
 // Else add it to cache
 func (cloneCache *CloneCache) GetOrAdd(prefix common.DataEntryPrefix, key []byte, value states.StateValue) (states.StateValue, error) {
-	if v, ok := cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))]; ok {
+	pk := string(append([]byte{byte(prefix)}, key...))
+	if v, ok := cloneCache.Memory[pk]; ok {
 		if v.State == common.Deleted {
-			cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))] = &StateItem{Prefix: prefix, Key: string(key), Value: value, State: common.Changed}
+			cloneCache.Memory[pk] = &StateItem{Prefix: prefix, Key: string(key), Value: value, State: common.Changed}
 			return value, nil
 		}
 		return v.Value, nil
@@ -87,13 +90,14 @@ func (cloneCache *CloneCache) GetOrAdd(prefix common.DataEntryPrefix, key []byte
 	if item != nil && item.State != common.Deleted {
 		return item.Value, nil
 	}
-	cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))] = &StateItem{Prefix: prefix, Key: string(key), Value: value, State: common.Changed}
+	cloneCache.Memory[pk] = &StateItem{Prefix: prefix, Key: string(key), Value: value, State: common.Changed}
 	return value, nil
 }
 
 // Get item by key
 func (cloneCache *CloneCache) Get(prefix common.DataEntryPrefix, key []byte) (states.StateValue, error) {
-	if v, ok := cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))]; ok {
+	pk := string(append([]byte{byte(prefix)}, key...))
+	if v, ok := cloneCache.Memory[pk]; ok {
 		if v.State == common.Deleted {
 			return nil, nil
 		}
@@ -111,10 +115,11 @@ func (cloneCache *CloneCache) Get(prefix common.DataEntryPrefix, key []byte) (st
 
 // Delete item from cache
 func (cloneCache *CloneCache) Delete(prefix common.DataEntryPrefix, key []byte) {
-	if v, ok := cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))]; ok {
+	pk := string(append([]byte{byte(prefix)}, key...))
+	if v, ok := cloneCache.Memory[pk]; ok {
 		v.State = common.Deleted
 	} else {
-		cloneCache.Memory[string(append([]byte{byte(prefix)}, key...))] = &StateItem{
+		cloneCache.Memory[pk] = &StateItem{
 			Prefix: prefix,
 			Key:    string(key),
 			State:  common.Deleted,
