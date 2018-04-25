@@ -36,9 +36,11 @@ type ApproveCandidateParam struct {
 }
 
 type CandidatePool struct {
-	Index   *big.Int `json:"index"`
-	Address string   `json:"address"`
-	InitPos *big.Int `json:"initPos"`
+	Index      *big.Int `json:"index"`
+	PeerPubkey string   `json:"peerPubkey"`
+	Address    string   `json:"address"`
+	InitPos    *big.Int `json:"initPos"`
+	TotalPos   *big.Int `json:"totalPos"`
 }
 
 type QuitCandidateParam struct {
@@ -53,8 +55,9 @@ type RegisterSyncNodeParam struct {
 }
 
 type SyncNodePool struct {
-	Address string   `json:"address"`
-	InitPos *big.Int `json:"initPos"`
+	Address  string   `json:"address"`
+	InitPos  *big.Int `json:"initPos"`
+	TotalPos *big.Int `json:"totalPos"`
 }
 
 type QuitSyncNodeParam struct {
@@ -67,8 +70,8 @@ type VoteForPeerParam struct {
 	VoteTable map[string]*big.Int `json:"voteTable"`
 }
 
-type VoteInfoPool struct {
-	Address   string              `json:"address"`
-	Total     *big.Int            `json:"total"`
-	VoteTable map[string]*big.Int `json:"voteTable"`
+type PeerStakeInfo struct {
+	Index      uint64 `json:"index"`
+	PeerPubkey string `json:"peerPubkey"`
+	Stake      uint64 `json:"stake"`
 }
