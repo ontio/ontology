@@ -19,8 +19,8 @@ ontology:
 format:
 	$(GOFMT) -w main.go
 
-$(WALLET_FILE): nodectl
-	./nodectl wallet -c -p passwordtest -n $(WALLET_FILE) 
+$(WALLET_FILE):
+	@if [ ! -e $(WALLET_FILE) ]; then $(error Please create wallet file first) ; fi
 
 docker/payload: docker/build/bin/ontology docker/Dockerfile $(ONT_CFG_IN_DOCKER) $(WALLET_FILE)
 	@echo "Building ontology payload"
@@ -52,5 +52,5 @@ docker: Makefile docker/payload docker/Dockerfile
 
 clean:
 	rm -rf *.8 *.o *.out *.6
-	rm -rf ontology nodectl docker/payload docker/build
+	rm -rf ontology docker/payload docker/build
 
