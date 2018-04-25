@@ -54,58 +54,58 @@ func NewMsgRouter(p2p p2p.P2P) *MessageRouter {
 }
 
 // init initializes the message router's attributes
-func (self *MessageRouter) init(p2p p2p.P2P) {
-	self.msgHandlers = make(map[string]MessageHandler)
-	self.RecvSyncChan = p2p.GetMsgChan(false)
-	self.RecvConsChan = p2p.GetMsgChan(true)
-	self.stopSyncCh = make(chan bool)
-	self.stopConsCh = make(chan bool)
-	self.p2p = p2p
+func (this *MessageRouter) init(p2p p2p.P2P) {
+	this.msgHandlers = make(map[string]MessageHandler)
+	this.RecvSyncChan = p2p.GetMsgChan(false)
+	this.RecvConsChan = p2p.GetMsgChan(true)
+	this.stopSyncCh = make(chan bool)
+	this.stopConsCh = make(chan bool)
+	this.p2p = p2p
 
 	// Register message handler
-	self.RegisterMsgHandler(msgCommon.VERSION_TYPE, VersionHandle)
-	self.RegisterMsgHandler(msgCommon.VERACK_TYPE, VerAckHandle)
-	self.RegisterMsgHandler(msgCommon.GetADDR_TYPE, AddrReqHandle)
-	self.RegisterMsgHandler(msgCommon.ADDR_TYPE, AddrHandle)
-	self.RegisterMsgHandler(msgCommon.PING_TYPE, PingHandle)
-	self.RegisterMsgHandler(msgCommon.PONG_TYPE, PongHandle)
-	self.RegisterMsgHandler(msgCommon.GET_HEADERS_TYPE, HeadersReqHandle)
-	self.RegisterMsgHandler(msgCommon.HEADERS_TYPE, BlkHeaderHandle)
-	self.RegisterMsgHandler(msgCommon.INV_TYPE, InvHandle)
-	self.RegisterMsgHandler(msgCommon.GET_DATA_TYPE, DataReqHandle)
-	self.RegisterMsgHandler(msgCommon.BLOCK_TYPE, BlockHandle)
-	self.RegisterMsgHandler(msgCommon.CONSENSUS_TYPE, ConsensusHandle)
-	self.RegisterMsgHandler(msgCommon.NOT_FOUND_TYPE, NotFoundHandle)
-	self.RegisterMsgHandler(msgCommon.TX_TYPE, TransactionHandle)
-	self.RegisterMsgHandler(msgCommon.DISCONNECT_TYPE, DisconnectHandle)
+	this.RegisterMsgHandler(msgCommon.VERSION_TYPE, VersionHandle)
+	this.RegisterMsgHandler(msgCommon.VERACK_TYPE, VerAckHandle)
+	this.RegisterMsgHandler(msgCommon.GetADDR_TYPE, AddrReqHandle)
+	this.RegisterMsgHandler(msgCommon.ADDR_TYPE, AddrHandle)
+	this.RegisterMsgHandler(msgCommon.PING_TYPE, PingHandle)
+	this.RegisterMsgHandler(msgCommon.PONG_TYPE, PongHandle)
+	this.RegisterMsgHandler(msgCommon.GET_HEADERS_TYPE, HeadersReqHandle)
+	this.RegisterMsgHandler(msgCommon.HEADERS_TYPE, BlkHeaderHandle)
+	this.RegisterMsgHandler(msgCommon.INV_TYPE, InvHandle)
+	this.RegisterMsgHandler(msgCommon.GET_DATA_TYPE, DataReqHandle)
+	this.RegisterMsgHandler(msgCommon.BLOCK_TYPE, BlockHandle)
+	this.RegisterMsgHandler(msgCommon.CONSENSUS_TYPE, ConsensusHandle)
+	this.RegisterMsgHandler(msgCommon.NOT_FOUND_TYPE, NotFoundHandle)
+	this.RegisterMsgHandler(msgCommon.TX_TYPE, TransactionHandle)
+	this.RegisterMsgHandler(msgCommon.DISCONNECT_TYPE, DisconnectHandle)
 }
 
 // RegisterMsgHandler registers msg handler with the msg type
-func (self *MessageRouter) RegisterMsgHandler(key string,
+func (this *MessageRouter) RegisterMsgHandler(key string,
 	handler MessageHandler) {
-	self.msgHandlers[key] = handler
+	this.msgHandlers[key] = handler
 }
 
 // UnRegisterMsgHandler un-registers the msg handler with
 // the msg type
-func (self *MessageRouter) UnRegisterMsgHandler(key string) {
-	delete(self.msgHandlers, key)
+func (this *MessageRouter) UnRegisterMsgHandler(key string) {
+	delete(this.msgHandlers, key)
 }
 
 // SetPID sets p2p actor
-func (self *MessageRouter) SetPID(pid *actor.PID) {
-	self.pid = pid
+func (this *MessageRouter) SetPID(pid *actor.PID) {
+	this.pid = pid
 }
 
 // Start starts the loop to handle the message from the network
-func (self *MessageRouter) Start() {
-	go self.hookChan(self.RecvSyncChan, self.stopSyncCh)
-	go self.hookChan(self.RecvConsChan, self.stopConsCh)
+func (this *MessageRouter) Start() {
+	go this.hookChan(this.RecvSyncChan, this.stopSyncCh)
+	go this.hookChan(this.RecvConsChan, this.stopConsCh)
 	log.Info("MessageRouter start to parse p2p message...")
 }
 
 // hookChan loops to handle the message from the network
-func (self *MessageRouter) hookChan(channel chan *msgCommon.MsgPayload,
+func (this *MessageRouter) hookChan(channel chan *msgCommon.MsgPayload,
 	stopCh chan bool) {
 	for {
 		select {
@@ -117,9 +117,9 @@ func (self *MessageRouter) hookChan(channel chan *msgCommon.MsgPayload,
 					continue
 				}
 
-				handler, ok := self.msgHandlers[msgType]
+				handler, ok := this.msgHandlers[msgType]
 				if ok {
-					go handler(data, self.p2p, self.pid)
+					go handler(data, this.p2p, this.pid)
 				} else {
 					log.Info("Unkown message handler for the msg: ",
 						msgType)
@@ -132,12 +132,12 @@ func (self *MessageRouter) hookChan(channel chan *msgCommon.MsgPayload,
 }
 
 // Stop stops the message router's loop
-func (self *MessageRouter) Stop() {
+func (this *MessageRouter) Stop() {
 
-	if self.stopSyncCh != nil {
-		self.stopSyncCh <- true
+	if this.stopSyncCh != nil {
+		this.stopSyncCh <- true
 	}
-	if self.stopConsCh != nil {
-		self.stopConsCh <- true
+	if this.stopConsCh != nil {
+		this.stopConsCh <- true
 	}
 }

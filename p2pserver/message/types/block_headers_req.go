@@ -35,23 +35,23 @@ type HeadersReq struct {
 }
 
 //Check whether header is correct
-func (msg HeadersReq) Verify(buf []byte) error {
-	err := msg.Hdr.Verify(buf)
+func (this HeadersReq) Verify(buf []byte) error {
+	err := this.Hdr.Verify(buf)
 	return err
 }
 
 //Serialize message payload
-func (msg HeadersReq) Serialization() ([]byte, error) {
+func (this HeadersReq) Serialization() ([]byte, error) {
 	p := new(bytes.Buffer)
-	err := binary.Write(p, binary.LittleEndian, &(msg.P))
+	err := binary.Write(p, binary.LittleEndian, &(this.P))
 	if err != nil {
 		return nil, err
 	}
 
 	s := CheckSum(p.Bytes())
-	msg.Hdr.Init("getheaders", s, uint32(len(p.Bytes())))
+	this.Hdr.Init("getheaders", s, uint32(len(p.Bytes())))
 
-	hdrBuf, err := msg.Hdr.Serialization()
+	hdrBuf, err := this.Hdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
@@ -65,23 +65,23 @@ func (msg HeadersReq) Serialization() ([]byte, error) {
 }
 
 //Deserialize message payload
-func (msg *HeadersReq) Deserialization(p []byte) error {
+func (this *HeadersReq) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(msg.Hdr))
+	err := binary.Read(buf, binary.LittleEndian, &(this.Hdr))
 	if err != nil {
 		return err
 	}
 
-	err = binary.Read(buf, binary.LittleEndian, &(msg.P.Len))
+	err = binary.Read(buf, binary.LittleEndian, &(this.P.Len))
 	if err != nil {
 		return err
 	}
 
-	err = binary.Read(buf, binary.LittleEndian, &(msg.P.HashStart))
+	err = binary.Read(buf, binary.LittleEndian, &(this.P.HashStart))
 	if err != nil {
 		return err
 	}
 
-	err = binary.Read(buf, binary.LittleEndian, &(msg.P.HashEnd))
+	err = binary.Read(buf, binary.LittleEndian, &(this.P.HashEnd))
 	return err
 }

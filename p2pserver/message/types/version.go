@@ -51,26 +51,26 @@ type Version struct {
 }
 
 //Check whether header is correct
-func (msg Version) Verify(buf []byte) error {
-	err := msg.Hdr.Verify(buf)
+func (this Version) Verify(buf []byte) error {
+	err := this.Hdr.Verify(buf)
 	return err
 }
 
 //Serialize message payload
-func (msg Version) Serialization() ([]byte, error) {
+func (this Version) Serialization() ([]byte, error) {
 	p := bytes.NewBuffer([]byte{})
-	err := binary.Write(p, binary.LittleEndian, &(msg.P))
-	serialization.WriteVarBytes(p, keypair.SerializePublicKey(msg.PK))
+	err := binary.Write(p, binary.LittleEndian, &(this.P))
+	serialization.WriteVarBytes(p, keypair.SerializePublicKey(this.PK))
 	if err != nil {
 		log.Error("Binary Write failed at new Msg")
 		return nil, err
 	}
 
 	checkSumBuf := CheckSum(p.Bytes())
-	msg.Hdr.Init("version", checkSumBuf, uint32(len(p.Bytes())))
-	log.Debug("NewVersion The message payload length is ", msg.Hdr.Length)
+	this.Hdr.Init("version", checkSumBuf, uint32(len(p.Bytes())))
+	log.Debug("NewVersion The message payload length is ", this.Hdr.Length)
 
-	hdrBuf, err := msg.Hdr.Serialization()
+	hdrBuf, err := this.Hdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
@@ -83,16 +83,16 @@ func (msg Version) Serialization() ([]byte, error) {
 }
 
 //Deserialize message payload
-func (msg *Version) Deserialization(p []byte) error {
+func (this *Version) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 
-	err := binary.Read(buf, binary.LittleEndian, &(msg.Hdr))
+	err := binary.Read(buf, binary.LittleEndian, &(this.Hdr))
 	if err != nil {
 		log.Warn("Parse version message hdr error")
 		return errors.New("Parse version message hdr error")
 	}
 
-	err = binary.Read(buf, binary.LittleEndian, &(msg.P))
+	err = binary.Read(buf, binary.LittleEndian, &(this.P))
 	if err != nil {
 		log.Warn("Parse version P message error")
 		return errors.New("Parse version P message error")
@@ -106,6 +106,6 @@ func (msg *Version) Deserialization(p []byte) error {
 	if err != nil {
 		return errors.New("Parse pubkey Deserialize failed.")
 	}
-	msg.PK = pk
+	this.PK = pk
 	return err
 }

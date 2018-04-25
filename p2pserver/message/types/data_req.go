@@ -34,18 +34,18 @@ type DataReq struct {
 }
 
 //Serialize message payload
-func (msg DataReq) Serialization() ([]byte, error) {
+func (this DataReq) Serialization() ([]byte, error) {
 	p := bytes.NewBuffer([]byte{})
-	err := binary.Write(p, binary.LittleEndian, &(msg.DataType))
-	msg.Hash.Serialize(p)
+	err := binary.Write(p, binary.LittleEndian, &(this.DataType))
+	this.Hash.Serialize(p)
 	if err != nil {
 		return nil, err
 	}
 
 	checkSumBuf := CheckSum(p.Bytes())
-	msg.Init("getdata", checkSumBuf, uint32(len(p.Bytes())))
+	this.Init("getdata", checkSumBuf, uint32(len(p.Bytes())))
 
-	hdrBuf, err := msg.MsgHdr.Serialization()
+	hdrBuf, err := this.MsgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
@@ -58,21 +58,21 @@ func (msg DataReq) Serialization() ([]byte, error) {
 }
 
 //Deserialize message payload
-func (msg *DataReq) Deserialization(p []byte) error {
+func (this *DataReq) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(msg.MsgHdr))
+	err := binary.Read(buf, binary.LittleEndian, &(this.MsgHdr))
 	if err != nil {
 		log.Warn("Parse dataReq message hdr error")
 		return errors.New("Parse dataReq message hdr error ")
 	}
 
-	err = binary.Read(buf, binary.LittleEndian, &(msg.DataType))
+	err = binary.Read(buf, binary.LittleEndian, &(this.DataType))
 	if err != nil {
 		log.Warn("Parse dataReq message dataType error")
 		return errors.New("Parse dataReq message dataType error ")
 	}
 
-	err = msg.Hash.Deserialize(buf)
+	err = this.Hash.Deserialize(buf)
 	if err != nil {
 		log.Warn("Parse dataReq message hash error")
 		return errors.New("Parse dataReq message hash error ")

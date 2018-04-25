@@ -31,20 +31,20 @@ type Ping struct {
 }
 
 //Check whether header is correct
-func (msg Ping) Verify(buf []byte) error {
-	err := msg.Hdr.Verify(buf)
+func (this Ping) Verify(buf []byte) error {
+	err := this.Hdr.Verify(buf)
 	return err
 }
 
 //Serialize message payload
-func (msg Ping) Serialization() ([]byte, error) {
+func (this Ping) Serialization() ([]byte, error) {
 	tmpBuffer := bytes.NewBuffer([]byte{})
-	serialization.WriteUint64(tmpBuffer, msg.Height)
+	serialization.WriteUint64(tmpBuffer, this.Height)
 
 	checkSumBuf := CheckSum(tmpBuffer.Bytes())
-	msg.Hdr.Init("ping", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
+	this.Hdr.Init("ping", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
 
-	hdrBuf, err := msg.Hdr.Serialization()
+	hdrBuf, err := this.Hdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
@@ -58,13 +58,13 @@ func (msg Ping) Serialization() ([]byte, error) {
 }
 
 //Deserialize message payload
-func (msg *Ping) Deserialization(p []byte) error {
+func (this *Ping) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(msg.Hdr))
+	err := binary.Read(buf, binary.LittleEndian, &(this.Hdr))
 	if err != nil {
 		return err
 	}
 
-	msg.Height, err = serialization.ReadUint64(buf)
+	this.Height, err = serialization.ReadUint64(buf)
 	return err
 }

@@ -32,29 +32,29 @@ type Addr struct {
 }
 
 //Check whether header is correct
-func (msg Addr) Verify(buf []byte) error {
-	err := msg.Hdr.Verify(buf)
+func (this Addr) Verify(buf []byte) error {
+	err := this.Hdr.Verify(buf)
 	return err
 }
 
 //Serialize message payload
-func (msg Addr) Serialization() ([]byte, error) {
+func (this Addr) Serialization() ([]byte, error) {
 	p := new(bytes.Buffer)
-	err := binary.Write(p, binary.LittleEndian, msg.NodeCnt)
+	err := binary.Write(p, binary.LittleEndian, this.NodeCnt)
 	if err != nil {
 		return nil, err
 	}
 
-	err = binary.Write(p, binary.LittleEndian, msg.NodeAddrs)
+	err = binary.Write(p, binary.LittleEndian, this.NodeAddrs)
 	if err != nil {
 		return nil, err
 	}
 
 	checkSumBuf := CheckSum(p.Bytes())
-	msg.Hdr.Init("addr", checkSumBuf, uint32(len(p.Bytes())))
+	this.Hdr.Init("addr", checkSumBuf, uint32(len(p.Bytes())))
 
 	var buf bytes.Buffer
-	err = binary.Write(&buf, binary.LittleEndian, msg.Hdr)
+	err = binary.Write(&buf, binary.LittleEndian, this.Hdr)
 
 	if err != nil {
 		return nil, err
@@ -67,13 +67,13 @@ func (msg Addr) Serialization() ([]byte, error) {
 }
 
 //Deserialize message payload
-func (msg *Addr) Deserialization(p []byte) error {
+func (this *Addr) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(msg.Hdr))
-	err = binary.Read(buf, binary.LittleEndian, &(msg.NodeCnt))
-	msg.NodeAddrs = make([]comm.PeerAddr, msg.NodeCnt)
-	for i := 0; i < int(msg.NodeCnt); i++ {
-		err := binary.Read(buf, binary.LittleEndian, &(msg.NodeAddrs[i]))
+	err := binary.Read(buf, binary.LittleEndian, &(this.Hdr))
+	err = binary.Read(buf, binary.LittleEndian, &(this.NodeCnt))
+	this.NodeAddrs = make([]comm.PeerAddr, this.NodeCnt)
+	for i := 0; i < int(this.NodeCnt); i++ {
+		err := binary.Read(buf, binary.LittleEndian, &(this.NodeAddrs[i]))
 		if err != nil {
 			goto err
 		}

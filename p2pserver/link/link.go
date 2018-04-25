@@ -55,68 +55,68 @@ func NewLink() *Link {
 }
 
 //SetID set peer id to link
-func (link *Link) SetID(id uint64) {
-	link.id = id
+func (this *Link) SetID(id uint64) {
+	this.id = id
 }
 
 //GetID return if from peer
-func (link *Link) GetID() uint64 {
-	return link.id
+func (this *Link) GetID() uint64 {
+	return this.id
 }
 
 //If there is connection return true
-func (link *Link) Valid() bool {
-	return link.conn != nil
+func (this *Link) Valid() bool {
+	return this.conn != nil
 }
 
 //set message channel for link layer
-func (link *Link) SetChan(msgchan chan *common.MsgPayload) {
-	link.recvChan = msgchan
+func (this *Link) SetChan(msgchan chan *common.MsgPayload) {
+	this.recvChan = msgchan
 }
 
 //get address
-func (link *Link) GetAddr() string {
-	return link.addr
+func (this *Link) GetAddr() string {
+	return this.addr
 }
 
 //set address
-func (link *Link) SetAddr(addr string) {
-	link.addr = addr
+func (this *Link) SetAddr(addr string) {
+	this.addr = addr
 }
 
 //set port number
-func (link *Link) SetPort(p uint16) {
-	link.port = p
+func (this *Link) SetPort(p uint16) {
+	this.port = p
 }
 
 //get port number
-func (link *Link) GetPort() uint16 {
-	return link.port
+func (this *Link) GetPort() uint16 {
+	return this.port
 }
 
 //get connection
-func (link *Link) GetConn() net.Conn {
-	return link.conn
+func (this *Link) GetConn() net.Conn {
+	return this.conn
 }
 
 //set connection
-func (link *Link) SetConn(conn net.Conn) {
-	link.conn = conn
+func (this *Link) SetConn(conn net.Conn) {
+	this.conn = conn
 }
 
 //record latest getting message time
-func (link *Link) UpdateRXTime(t time.Time) {
-	link.time = t
+func (this *Link) UpdateRXTime(t time.Time) {
+	this.time = t
 }
 
 //UpdateRXTime return the latest message time
-func (link *Link) GetRXTime() time.Time {
-	return link.time
+func (this *Link) GetRXTime() time.Time {
+	return this.time
 }
 
 // Shrinking the buf to the exactly reading in byte length
 //@Return @1 the start header of next message, the left length of the next message
-func unpackNodeBuf(link *Link, buf []byte) {
+func unpackNodeBuf(this *Link, buf []byte) {
 	var msgLen int
 	var msgBuf []byte
 
@@ -125,7 +125,7 @@ func unpackNodeBuf(link *Link, buf []byte) {
 	}
 
 	var rxBuf *RxBuf
-	rxBuf = &link.rxBuf
+	rxBuf = &this.rxBuf
 
 	if rxBuf.len == 0 {
 		length := common.MSG_HDR_LEN - len(rxBuf.p)
@@ -151,7 +151,7 @@ func unpackNodeBuf(link *Link, buf []byte) {
 	msgLen = rxBuf.len
 	if len(buf) == msgLen {
 		msgBuf = append(rxBuf.p, buf[:]...)
-		link.pushdata(msgBuf)
+		this.pushdata(msgBuf)
 		rxBuf.p = nil
 		rxBuf.len = 0
 	} else if len(buf) < msgLen {
@@ -159,27 +159,27 @@ func unpackNodeBuf(link *Link, buf []byte) {
 		rxBuf.len = msgLen - len(buf)
 	} else {
 		msgBuf = append(rxBuf.p, buf[0:msgLen]...)
-		link.pushdata(msgBuf)
+		this.pushdata(msgBuf)
 		rxBuf.p = nil
 		rxBuf.len = 0
 
-		unpackNodeBuf(link, buf[msgLen:])
+		unpackNodeBuf(this, buf[msgLen:])
 	}
 }
 
 //pushdata send packed data to channel
-func (link *Link) pushdata(buf []byte) {
+func (this *Link) pushdata(buf []byte) {
 	p2pMsg := &common.MsgPayload{
-		Id:      link.id,
-		Addr:    link.addr,
+		Id:      this.id,
+		Addr:    this.addr,
 		Payload: buf,
 	}
-	link.recvChan <- p2pMsg
+	this.recvChan <- p2pMsg
 }
 
 //Rx read conn byte then call unpackNodeBuf to parse data
-func (link *Link) Rx() {
-	conn := link.conn
+func (this *Link) Rx() {
+	conn := this.conn
 	buf := make([]byte, common.MAX_BUF_LEN)
 	for {
 		len, err := conn.Read(buf[0:(common.MAX_BUF_LEN - 1)])
@@ -187,8 +187,8 @@ func (link *Link) Rx() {
 		switch err {
 		case nil:
 			t := time.Now()
-			link.UpdateRXTime(t)
-			unpackNodeBuf(link, buf[0:len])
+			this.UpdateRXTime(t)
+			unpackNodeBuf(this, buf[0:len])
 		case io.EOF:
 			//log.Error("Rx io.EOF: ", err, ", node id is ", node.GetID())
 			goto DISCONNECT
@@ -199,12 +199,12 @@ func (link *Link) Rx() {
 	}
 
 DISCONNECT:
-	link.disconnectNotify()
+	this.disconnectNotify()
 }
 
 //disconnectNotify push disconnect msg to channel
-func (link *Link) disconnectNotify() {
-	link.CloseConn()
+func (this *Link) disconnectNotify() {
+	this.CloseConn()
 
 	var m types.MsgCont
 	cmd := common.DISCONNECT_TYPE
@@ -215,31 +215,31 @@ func (link *Link) disconnectNotify() {
 	msgbuf := buf.Bytes()
 
 	discMsg := &common.MsgPayload{
-		Id:      link.id,
-		Addr:    link.addr,
+		Id:      this.id,
+		Addr:    this.addr,
 		Payload: msgbuf,
 	}
-	link.recvChan <- discMsg
+	this.recvChan <- discMsg
 }
 
 //close connection
-func (link *Link) CloseConn() {
-	if link.conn != nil {
-		link.conn.Close()
-		link.conn = nil
+func (this *Link) CloseConn() {
+	if this.conn != nil {
+		this.conn.Close()
+		this.conn = nil
 	}
 }
 
 //Tx write data to link conn
-func (link *Link) Tx(buf []byte) error {
+func (this *Link) Tx(buf []byte) error {
 	log.Debugf("TX buf length: %d\n%x", len(buf), buf)
-	if link.conn == nil {
+	if this.conn == nil {
 		return errors.New("tx link invalid")
 	}
-	_, err := link.conn.Write(buf)
+	_, err := this.conn.Write(buf)
 	if err != nil {
 		log.Error("Error sending messge to peer node ", err.Error())
-		link.disconnectNotify()
+		this.disconnectNotify()
 		return err
 	}
 

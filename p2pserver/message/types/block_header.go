@@ -34,24 +34,24 @@ type BlkHeader struct {
 }
 
 //Check whether header is correct
-func (msg BlkHeader) Verify(buf []byte) error {
-	err := msg.Hdr.Verify(buf)
+func (this BlkHeader) Verify(buf []byte) error {
+	err := this.Hdr.Verify(buf)
 	return err
 }
 
 //Serialize message payload
-func (msg BlkHeader) Serialization() ([]byte, error) {
+func (this BlkHeader) Serialization() ([]byte, error) {
 	tmpBuffer := bytes.NewBuffer([]byte{})
-	serialization.WriteUint32(tmpBuffer, msg.Cnt)
-	for _, header := range msg.BlkHdr {
+	serialization.WriteUint32(tmpBuffer, this.Cnt)
+	for _, header := range this.BlkHdr {
 		header.Serialize(tmpBuffer)
 	}
 
 	checkSumBuf := CheckSum(tmpBuffer.Bytes())
-	msg.Hdr.Init("headers", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
-	log.Debug("The message payload length is ", msg.Hdr.Length)
+	this.Hdr.Init("headers", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
+	log.Debug("The message payload length is ", this.Hdr.Length)
 
-	hdrBuf, err := msg.Hdr.Serialization()
+	hdrBuf, err := this.Hdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
@@ -65,22 +65,22 @@ func (msg BlkHeader) Serialization() ([]byte, error) {
 }
 
 //Deserialize message payload
-func (msg *BlkHeader) Deserialization(p []byte) error {
+func (this *BlkHeader) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(msg.Hdr))
+	err := binary.Read(buf, binary.LittleEndian, &(this.Hdr))
 	if err != nil {
 		return err
 	}
 
-	err = binary.Read(buf, binary.LittleEndian, &(msg.Cnt))
+	err = binary.Read(buf, binary.LittleEndian, &(this.Cnt))
 	if err != nil {
 		return err
 	}
 
-	for i := 0; i < int(msg.Cnt); i++ {
+	for i := 0; i < int(this.Cnt); i++ {
 		var headers ct.Header
 		err := (&headers).Deserialize(buf)
-		msg.BlkHdr = append(msg.BlkHdr, headers)
+		this.BlkHdr = append(this.BlkHdr, headers)
 		if err != nil {
 			log.Debug("blkHeader Deserialization failed")
 			goto blkHdrErr

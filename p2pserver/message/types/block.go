@@ -33,22 +33,22 @@ type Block struct {
 }
 
 //Check whether header is correct
-func (msg Block) Verify(buf []byte) error {
-	err := msg.MsgHdr.Verify(buf)
+func (this Block) Verify(buf []byte) error {
+	err := this.MsgHdr.Verify(buf)
 	return err
 }
 
 //Serialize message payload
-func (msg Block) Serialization() ([]byte, error) {
+func (this Block) Serialization() ([]byte, error) {
 
 	tmpBuffer := bytes.NewBuffer([]byte{})
-	msg.Blk.Serialize(tmpBuffer)
+	this.Blk.Serialize(tmpBuffer)
 
 	checkSumBuf := CheckSum(tmpBuffer.Bytes())
-	msg.Init("block", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
-	log.Debug("The message payload length is ", msg.Length)
+	this.Init("block", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
+	log.Debug("The message payload length is ", this.Length)
 
-	hdrBuf, err := msg.MsgHdr.Serialization()
+	hdrBuf, err := this.MsgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
@@ -61,15 +61,15 @@ func (msg Block) Serialization() ([]byte, error) {
 }
 
 //Deserialize message payload
-func (msg *Block) Deserialization(p []byte) error {
+func (this *Block) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(msg.MsgHdr))
+	err := binary.Read(buf, binary.LittleEndian, &(this.MsgHdr))
 	if err != nil {
 		log.Warn("Parse block message hdr error")
 		return errors.New("Parse block message hdr error ")
 	}
 
-	err = msg.Blk.Deserialize(buf)
+	err = this.Blk.Deserialize(buf)
 	if err != nil {
 		log.Warn("Parse block message error")
 		return errors.New("Parse block message error ")
