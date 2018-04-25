@@ -32,24 +32,23 @@ The public test network is described below. We sincerely welcome and hope more d
 ## Contents
 
 * [Build development environment](#build-development-environment)
-* [Deployment and test](#deployment-and-test)
-	* [Get Ontology](#get-ontology)
-		* [Get from source code](#get-from-source-code)
-	* [Create ONT wallet file](#create-ont-wallet-file)
-	* [Server deployment](#server-deployment)
+* [Get Ontology](#get-ontology)
+	* [Get from source code](#get-from-source-code)
+	* [get from release](#get-from-release)
+* [Server deployment](#server-deployment)
+	* [Select network](#select-network)
+		* [Public test network Polaris sync node deployment](#public-test-network-polaris-sync-node-deployment)
 		* [Single-host deployment configuration](#single-host-deployment-configuration)
-		* [Multi-host deployment configuration](#multi-hosts-deployment-configuration)
-		* [Deploy nodes on public test network](#deploy-nodes-on-public-test-network)
-		* [Implement](#implement)
-* [Examples](#examples)
+		* [Multi-hosts deployment configuration](#multi-hosts-deployment-configuration)
+	* [Implement](#implement)
+	* [ONT transfer sample](#ont-transfer-sample)
 * [Contributions](#contributions)
 * [Open source community](#open-source-community)
 	* [Site](#site)
 	* [Developer Discord Group](#developer-discord-group)
 * [License](#license)
 
-# Build development environment
-
+## Build development environment
 The requirements to build Ontology are:
 
 - Golang version 1.9 or later
@@ -57,7 +56,6 @@ The requirements to build Ontology are:
 - Properly configured Go language environment
 - Golang supported operating system
 
-# Deployment and test
 ## Get Ontology
 ### Get from source code
 
@@ -85,86 +83,71 @@ $ make
 
 After building the source code sucessfully, you should see two executable programs:
 
-- `ontology`: the node program
-- `nodectl`: command line program for node control
+- `ontology`: the node program/command line program for node control
 
-## Create ONT wallet file
-
-## Create Ontology wallet
-ONT supports multiple encryption methods for generating accounts, but can set a default in config.json such as SHA256withECDSA. 
-
-Create wallet cmd:
-
-```shell
-$ ./nodectl wallet --create --name wallet.dat --password passwordtest
-```
-
-Note: Set wallet password by parameter -p.
-
-To show the wallet info:
-
-```shell
-$ ./nodectl wallet --list account
-
-public key:    1202021401156f187ec23ce631a489c3fa17f292171009c6c3162ef642406d3d09c74d
-hex address:  018f0dcf09ec2f0040e6e8d7e54635dba40f7d63
-base58 address:       TA7T3p6ikRG5s2pAaehUH2XvRCCzvsFmwE
-
-$ ./nodectl wallet --list -b
-ont: 248965536
-
-* with -b cmd will show the ont amount this account have.
-```
-
-ONT supported crypto (<hash>with<dsa>):
- - SHA224withECDSA 
- - SHA256withECDSA
- - SHA384withECDSA
- - SHA512withECDSA
- - SHA3-224withECDSA
- - SHA3-256withECDSA
- - SHA3-384withECDSA
- - SHA3-512withECDSA
- - RIPEMD160withECDSA
- - SM3withSM2
- - SHA512withEdDSA
+### get from release
+You can download at [release page](https://github.com/ontio/ontology/releases).
 
 ## Server deployment
-
+### Select network
 To run Ontology successfully,  nodes can be deployed by two ways:
 
+- Public test network Polaris sync node deployment
 - Single-host deployment
 - Multi-hosts deployment
-  - Deploy nodes on the public test network
 
-### Single-host deployment configuration
+#### Public test network Polaris sync node deployment
+1.Create account
+- Through command line program, create wallet wallet.dat needed for node implementation.
+    ```
+    $ .\ontology account add -d
+    use default value for all options
+    Enter a password for encrypting the private key:
+    Re-enter password:
+    
+    Create account successfully.
+    Address:  TA9TVuR4Ynn4VotfpExY5SaEy8a99obFPr
+    Public key: 120202a1cfbe3a0a04183d6c25ceff1e34957ace6e4899e4361c2e1a2bc3c817f90936
+    Signature scheme: SHA256withECDSA
+    ```
+    Here's a example of host configuration:
+   
+    Directory structure
+    ```shell
+    $ tree
+    └── ontology
+        ├── ontology
+        └── wallet.dat
+    ```        
+2.Start ontology  
+  PS: There is no need of config.json file, will use the default setting.
+
+#### Single-host deployment configuration
 
 Create a directory on the host and store the following files in the directory:
 
 - Default configuration file `config.json`
-- Node program `ontology`
-- Node control program `nodectl`
+- Node program + Node control program  `ontology`
 - Wallet file`wallet.dat`, copy the contents of the configuration file config-solo.config in the root directory to config.json and start the node.
-- Edit the config.json file and replace the bookkeeper entries with the public key of your wallet (created above). Use `$ ./nodectl wallet -l -p password` to get your public key.
+- Edit the config.json file and replace the bookkeeper entries with the public key of your wallet (created above). Use `$ ./ontology wallet show --name=wallet.dat` to get your public key.
 
 Here's a example of single-host configuration:
 
 - Directory structure
-```shell
-$ tree
-└── ontology
-    ├── config.json
-    ├── ontology
-    ├── nodectl
-    └── wallet.dat
-```
+    ```shell
+    $ tree
+    └── ontology
+        ├── config.json
+        ├── ontology
+        └── wallet.dat
+    ```
 
-Bookkeepers in the config.json file:
-```
-"Bookkeepers": [ "1202021c6750d2c5d99813997438cee0740b04a73e42664c444e778e001196eed96c9d" ],
-```
+- Set bookkeepers in the config.json file:
+    ```shell
+    "Bookkeepers": [ "(public key of your account)1202021c6750d2c5d99813997438cee0740b04a73e42664c444e778e001196eed96c9d" ],
+    ```
 
-### Multi-hosts deployment configuration
+#### Multi-hosts deployment configuration
 
 We can perform a quick deployment by modifying the default configuration file `config.json`.
 
@@ -172,7 +155,6 @@ We can perform a quick deployment by modifying the default configuration file `c
 
    - Default configuration file`config.json`
    - Node program`ontology`
-   - Node control program`nodectl`
 
 2. Set the network connection port number for each node (recommend using the default port configuration, instead of modifying)
 
@@ -186,10 +168,17 @@ We can perform a quick deployment by modifying the default configuration file `c
 4. Create wallet file
 
    - Through command line program, on each host create wallet wallet.dat needed for node implementation.
-
-     `$ ./nodectl wallet -c -p password`
-
-     Note: Set wallet password by parameter -p.
+        ```
+        $ .\ontology account add -d
+        use default value for all options
+        Enter a password for encrypting the private key:
+        Re-enter password:
+        
+        Create account successfully.
+        Address:  TA9TVuR4Ynn4VotfpExY5SaEy8a99obFPr
+        Public key: 120202a1cfbe3a0a04183d6c25ceff1e34957ace6e4899e4361c2e1a2bc3c817f90936
+        Signature scheme: SHA256withECDSA
+        ```
 
 5. Bookkeepers configuration
 
@@ -197,77 +186,56 @@ We can perform a quick deployment by modifying the default configuration file `c
 
      Note: The public key information for each node's wallet can also be viewed via the command line program:
 
-     `$ ./nodectl wallet -l -p password`
+        ```
+        $ .\ontology account list -v
+        * 1     TA9TVuR4Ynn4VotfpExY5SaEy8a99obFPr
+                Signature algorithm: ECDSA
+                Curve: P-256
+                Key length: 256 bit
+                Public key: 120202a1cfbe3a0a04183d6c25ceff1e34957ace6e4899e4361c2e1a2bc3c817f90936 bit
+                Signature scheme: SHA256withECDSA
+        ```
 
-Now multi-host configuration is completed, directory structure of each node is as follows:
+        Now multi-host configuration is completed, directory structure of each node is as follows:
+        ```
+        $ ls
+        config.json ontology wallet.dat
+        ```
 
-```
-$ ls
-config.json ontology nodectl wallet.dat
-```
-
-A configuration file fragment is as follows, you refer to the config.json file in the root directory.
-
-### Deploy nodes on public test network
-
-Start with the following configuration file to connect to the current ONT test network.
-
-```
-$ cat config.json
-{
-  "Configuration": {
-    "Magic": 7630401,
-    "Version": 23,
-    "SeedList": [
-	   "139.219.108.204:20338",
-	   "139.219.111.50:20338",
-	   "139.219.69.70:20338",
-	   "40.125.165.118:20338"
-    ],
-    "Bookkeepers": [
-"1202021c6750d2c5d99813997438cee0740b04a73e42664c444e778e001196eed96c9d",
-"12020339541a43af2206358714cf6bd385fc9ac8b5df554fec5497d9e947d583f985fc",
-"120203bdf0d966f98ff4af5c563c4a3e2fe499d98542115e1ffd75fbca44b12c56a591",
-"1202021401156f187ec23ce631a489c3fa17f292171009c6c3162ef642406d3d09c74d"
-    ],
-    "HttpRestPort": 20334,
-    "HttpWsPort":20335,
-    "HttpJsonPort": 20336,
-    "HttpLocalPort": 20337,
-    "NodePort": 20338,
-    "NodeConsensusPort": 20339,
-    "PrintLevel": 1,
-    "IsTLS": false,
-    "MaxTransactionInBlock": 60000,
-    "MultiCoreNum": 4
-  }
-}
-```
+A configuration file fragment can refer to the config-dbft.json file in the root directory.
 
 ### Implement
 
 Run each node program in any order and enter the node's wallet password after the `Password:` prompt appears.
-
 ```
 $ ./ontology
 $ - Input your wallet password
 ```
 
-Run `./nodectl --h` for details.
+Run `./ontology --help` for details.
 
-# Examples
-## Contract
-[Smart contract guide](https://github.com/ontio/documentation/tree/master/smart-contract-tutorial)
-
-## ONT transfer sample
-
+### ONT transfer sample
+contract:contract address； - from: transfer from； - to: transfer to； - value: amount；
 ```shell
-  ./nodectl transfer --contract ff00000000000000000000000000000000000001 --value 10 --from 0181beb9cfba23c777421eaf57e357e0fc331cbf --to 01f3aecd2ba7a5b704fbd5bac673e141d5109e3e
-
-  contract:contract address； - from: transfer from； - to: transfer to； - value: amount；
+  .\ontology asset transfer --caddr=ff00000000000000000000000000000000000001 --value=500 --from  TA6nAAdX77wcsAnuBQxG61zXg3vJUAPpgk  --to TA6Hsjww86b9KBbXFyKEayMcVVafoTGH4K  --password=xxx
+```
+If transfer asset successd, the result will show as follow:
+```
+[
+  {
+    "ContractAddress": "ff00000000000000000000000000000000000001",
+    "TxHash": "e0ba3d5807289eac243faceb1a2ac63e8dee4eba208ceac193b0bd606861b729",
+    "States": [
+      "transfer",
+      "TA6nAAdX77wcsAnuBQxG61zXg3vJUAPpgk",
+      "TA6Hsjww86b9KBbXFyKEayMcVVafoTGH4K",
+      500
+    ]
+  }
+]
 ```
 
-# Contributions
+## Contributions
 
 Please open a pull request with a signed commit. We appreciate your help! You can also send your code as emails to the developer mailing list. You're welcome to join the Ontology mailing list or developer forum.
 
@@ -284,15 +252,15 @@ Make sure you explain your solution and why you are doing what you are  doing, a
 Reported-by: whoever-reported-it &
 Signed-off-by: Your Name [youremail@yourhost.com](mailto:youremail@yourhost.com)
 
-# Open source community
-## Site
+## Open source community
+### Site
 
 - <https://ont.io/>
 
-## Developer Discord Group
+### Developer Discord Group
 
 - <https://discord.gg/4TQujHj/>
 
-# License
+## License
 
 The Ontology library is licensed under the GNU Lesser General Public License v3.0, read the LICENSE file in the root directory of the project for details.
