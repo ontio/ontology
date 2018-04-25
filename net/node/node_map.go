@@ -76,6 +76,16 @@ func (nm *nbrNodes) DelNbrNode(id uint64) (protocol.Noder, bool) {
 	return n, true
 }
 
+func (nm *nbrNodes) GetNodeById(id uint64)*node{
+	nm.Lock()
+	defer nm.Unlock()
+	n, ok := nm.List[id]
+	if !ok {
+		return nil
+	}
+	return n
+}
+
 func (nm *nbrNodes) GetConnectionCnt() uint {
 	nm.RLock()
 	defer nm.RUnlock()

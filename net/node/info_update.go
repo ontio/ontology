@@ -26,77 +26,9 @@ import (
 
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/net/actor"
 	"github.com/ontio/ontology/net/message"
 	"github.com/ontio/ontology/net/protocol"
 )
-
-func (node *node) GetBlkHdrs() {
-	if !node.IsUptoMinNodeCount() {
-		return
-	}
-	noders := node.local.GetNeighborNoder()
-	if len(noders) == 0 {
-		return
-	}
-	nodeList := []protocol.Noder{}
-	for _, v := range noders {
-		height, _ := actor.GetCurrentHeaderHeight()
-		if uint64(height) < v.GetHeight() {
-			nodeList = append(nodeList, v)
-		}
-	}
-	nCount := len(nodeList)
-	if nCount == 0 {
-		return
-	}
-	rand.Seed(time.Now().UnixNano())
-	index := rand.Intn(nCount)
-	n := nodeList[index]
-	message.SendMsgSyncHeaders(n)
-}
-
-func (node *node) SyncBlk() {
-	headerHeight, _ := actor.GetCurrentHeaderHeight()
-	currentBlkHeight, _ := actor.GetCurrentBlockHeight()
-	if currentBlkHeight >= headerHeight {
-		return
-	}
-	var dValue int32
-	var reqCnt uint32
-	var i uint32
-	noders := node.local.GetNeighborNoder()
-
-	for _, n := range noders {
-		if uint32(n.GetHeight()) <= currentBlkHeight {
-			continue
-		}
-		n.RemoveFlightHeightLessThan(currentBlkHeight)
-		count := protocol.MAX_REQ_BLK_ONCE - uint32(n.GetFlightHeightCnt())
-		dValue = int32(headerHeight - currentBlkHeight - reqCnt)
-		flights := n.GetFlightHeights()
-		if count == 0 {
-			for _, f := range flights {
-				hash, _ := actor.GetBlockHashByHeight(f)
-				isContainBlock, _ := actor.IsContainBlock(hash)
-				if isContainBlock == false {
-					message.ReqBlkData(n, hash)
-				}
-			}
-
-		}
-		for i = 1; i <= count && dValue >= 0; i++ {
-			hash, _ := actor.GetBlockHashByHeight(currentBlkHeight + reqCnt)
-			isContainBlock, _ := actor.IsContainBlock(hash)
-			if isContainBlock == false {
-				message.ReqBlkData(n, hash)
-				n.StoreFlightHeight(currentBlkHeight + reqCnt)
-			}
-			reqCnt++
-			dValue--
-		}
-	}
-}
 
 func (node *node) SendPingToNbr() {
 	noders := node.local.GetNeighborNoder()
@@ -242,8 +174,6 @@ func (node *node) updateNodeInfo() {
 		select {
 		case <-ticker.C:
 			node.SendPingToNbr()
-			node.GetBlkHdrs()
-			node.SyncBlk()
 			node.HeartBeatMonitor()
 		case <-quit:
 			ticker.Stop()

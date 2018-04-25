@@ -209,7 +209,6 @@ func ontMain(ctx *cli.Context) {
 	hserver.SetTxPid(txPoolServer.GetPID(tc.TxActor))
 	go restful.StartServer()
 
-	noder.SyncNodeHeight()
 	noder.WaitForPeersStart()
 	noder.WaitForSyncBlkFinish()
 	if protocol.SERVICE_NODE_NAME != config.Parameters.NodeType {
