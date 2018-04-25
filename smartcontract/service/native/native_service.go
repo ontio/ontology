@@ -46,21 +46,15 @@ type NativeService struct {
 	CloneCache    *storage.CloneCache
 	ServiceMap    map[string]Handler
 	Notifications []*event.NotifyEventInfo
+	Code          []byte
 	Input         []byte
 	Tx            *types.Transaction
 	Height        uint32
 	ContextRef    context.ContextRef
 }
 
-// New native service
-func NewNativeService(cache *storage.CloneCache, height uint32, tx *types.Transaction, ctxRef context.ContextRef) *NativeService {
-	var nativeService NativeService
-	nativeService.CloneCache = cache
-	nativeService.Tx = tx
-	nativeService.Height = height
-	nativeService.ContextRef = ctxRef
-	nativeService.ServiceMap = make(map[string]Handler)
-	return &nativeService
+func (this *NativeService) InitService() {
+	this.ServiceMap = make(map[string]Handler)
 }
 
 func (this *NativeService) Register(methodName string, handler Handler) {
@@ -68,11 +62,7 @@ func (this *NativeService) Register(methodName string, handler Handler) {
 }
 
 func (this *NativeService) Invoke() (interface{}, error) {
-	ctx := this.ContextRef.CurrentContext()
-	if ctx == nil {
-		return false, errors.NewErr("[Invoke] Native service current context doesn't exist!")
-	}
-	bf := bytes.NewBuffer(ctx.Code.Code)
+	bf := bytes.NewBuffer(this.Code)
 	contract := new(sstates.Contract)
 	if err := contract.Deserialize(bf); err != nil {
 		return false, err
@@ -86,8 +76,8 @@ func (this *NativeService) Invoke() (interface{}, error) {
 	if !ok {
 		return false, fmt.Errorf("Native contract %x doesn't support this function %s.", contract.Address, contract.Method)
 	}
-	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address})
 	this.Input = contract.Args
+	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address})
 	if err := service(this); err != nil {
 		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[Invoke] Native serivce function execute error!")
 	}

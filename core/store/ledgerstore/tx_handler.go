@@ -30,7 +30,6 @@ import (
 	"github.com/ontio/ontology/core/store/statestore"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract"
-	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/storage"
 	stypes "github.com/ontio/ontology/smartcontract/types"
@@ -74,21 +73,13 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 		Tx:     tx,
 	}
 
-	//init smart contract context info
-	ctx := &context.Context{
-		Code:            invoke.Code,
-		ContractAddress: invoke.Code.AddressFromVmCode(),
-	}
-
 	//init smart contract info
 	sc := smartcontract.SmartContract{
 		Config:     config,
 		CloneCache: storage.NewCloneCache(stateBatch),
 		Store:      store,
+		Code:       invoke.Code,
 	}
-
-	//load current context to smart contract
-	sc.PushContext(ctx)
 
 	//start the smart contract executive function
 	if _, err := sc.Execute(); err != nil {

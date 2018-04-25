@@ -26,19 +26,9 @@ type WasmVmService struct {
 	CloneCache    *storage.CloneCache
 	ContextRef    context.ContextRef
 	Notifications []*event.NotifyEventInfo
+	Code          []byte
 	Tx            *types.Transaction
 	Time          uint32
-}
-
-func NewWasmVmService(store store.LedgerStore, cache *storage.CloneCache, tx *types.Transaction,
-	time uint32, ctxRef context.ContextRef) *WasmVmService {
-	var service WasmVmService
-	service.Store = store
-	service.CloneCache = cache
-	service.Time = time
-	service.Tx = tx
-	service.ContextRef = ctxRef
-	return &service
 }
 
 func (this *WasmVmService) Invoke() (interface{}, error) {
@@ -47,7 +37,6 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	stateMachine.Register("CallContract", this.callContract)
 	stateMachine.Register("MarshalNativeParams", this.marshalNativeParams)
 
-	ctx := this.ContextRef.CurrentContext()
 	engine := exec.NewExecutionEngine(
 		this.Tx,
 		new(util.ECDsaCrypto),
@@ -55,7 +44,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	)
 
 	contract := &states.Contract{}
-	contract.Deserialize(bytes.NewBuffer(ctx.Code.Code))
+	contract.Deserialize(bytes.NewBuffer(this.Code))
 	addr := contract.Address
 
 	if contract.Code == nil {
@@ -132,7 +121,7 @@ func (this *WasmVmService) marshalNativeParams(engine *exec.ExecutionEngine) (bo
 	states := make([]*nstates.State, statecnt)
 
 	for i := 0; i < statecnt; i++ {
-		tmpbytes := statesbytes[i*24 : (i+1)*24]
+		tmpbytes := statesbytes[i * 24 : (i + 1) * 24]
 		state := &nstates.State{}
 		state.Version = byte(binary.LittleEndian.Uint32(tmpbytes[:4]))
 		fromAddessBytes, err := vm.GetPointerMemory(uint64(binary.LittleEndian.Uint32(tmpbytes[4:8])))
