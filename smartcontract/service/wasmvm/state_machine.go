@@ -19,6 +19,11 @@
 package wasmvm
 
 import (
+	"bytes"
+	"fmt"
+
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store"
 	scommon "github.com/ontio/ontology/core/store/common"
@@ -26,22 +31,20 @@ import (
 	"github.com/ontio/ontology/smartcontract/storage"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
 	"github.com/ontio/ontology/vm/wasmvm/memory"
-	"fmt"
 	"github.com/ontio/ontology/vm/wasmvm/util"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common"
-	"bytes"
 )
 
 type LogLevel byte
-const(
+
+const (
 	Debug LogLevel = iota
 	Info
 	Error
 )
 
 type ParamType byte
-const(
+
+const (
 	Json ParamType = iota
 	Raw
 )
@@ -61,13 +64,13 @@ func NewWasmStateMachine(ldgerStore store.LedgerStore, cloneCache *storage.Clone
 	stateMachine.WasmStateReader = NewWasmStateReader(ldgerStore)
 	stateMachine.time = time
 
+	//todo remove the following later
 	stateMachine.Register("PutStorage", stateMachine.putstore)
 	stateMachine.Register("GetStorage", stateMachine.getstore)
 	stateMachine.Register("DeleteStorage", stateMachine.deletestore)
 	stateMachine.Register("ContractLogDebug", stateMachine.contractLogDebug)
 	stateMachine.Register("ContractLogInfo", stateMachine.contractLogInfo)
 	stateMachine.Register("ContractLogError", stateMachine.contractLogError)
-
 
 	return &stateMachine
 }
@@ -174,10 +177,10 @@ func (s *WasmStateMachine) deletestore(engine *exec.ExecutionEngine) (bool, erro
 }
 
 func (s *WasmStateMachine) contractLogDebug(engine *exec.ExecutionEngine) (bool, error) {
-	 _ ,err := contractLog(Debug,engine)
-	 if err!= nil{
-	 	return false,err
-	 }
+	_, err := contractLog(Debug, engine)
+	if err != nil {
+		return false, err
+	}
 
 	engine.GetVM().RestoreCtx()
 	return true, nil
@@ -194,18 +197,16 @@ func (s *WasmStateMachine) contractLogInfo(engine *exec.ExecutionEngine) (bool, 
 }
 
 func (s *WasmStateMachine) contractLogError(engine *exec.ExecutionEngine) (bool, error) {
-	_ ,err := contractLog(Error,engine)
-	if err!= nil{
-		return false,err
+	_, err := contractLog(Error, engine)
+	if err != nil {
+		return false, err
 	}
 
 	engine.GetVM().RestoreCtx()
 	return true, nil
 }
 
-
-
-func contractLog(lv LogLevel,engine *exec.ExecutionEngine ) (bool, error){
+func contractLog(lv LogLevel, engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
@@ -219,7 +220,7 @@ func contractLog(lv LogLevel,engine *exec.ExecutionEngine ) (bool, error){
 		return false, errors.NewErr("get Contract address failed")
 	}
 
-	msg := fmt.Sprintf("[WASM Contract] Address:%s message:%s",vm.ContractAddress.ToHexString(),util.TrimBuffToString(addr))
+	msg := fmt.Sprintf("[WASM Contract] Address:%s message:%s", vm.ContractAddress.ToHexString(), util.TrimBuffToString(addr))
 
 	switch lv {
 	case Debug:
@@ -229,7 +230,7 @@ func contractLog(lv LogLevel,engine *exec.ExecutionEngine ) (bool, error){
 	case Error:
 		log.Error(msg)
 	}
-	return true ,nil
+	return true, nil
 
 }
 
@@ -241,4 +242,3 @@ func serializeStorageKey(contractAddress common.Address, key []byte) ([]byte, er
 	}
 	return bf.Bytes(), nil
 }
-

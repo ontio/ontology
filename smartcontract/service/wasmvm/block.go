@@ -39,7 +39,7 @@ func (this *WasmVmService)blockGetCurrentHeaderHash(engine *exec.ExecutionEngine
 	return true,nil
 }
 
-func (this *WasmVmService)blockGetCurrentHeaderHight(engine *exec.ExecutionEngine) (bool, error) {
+func (this *WasmVmService)blockGetCurrentHeaderHeight(engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 	vm.RestoreCtx()
 	headerHight:= this.Store.GetCurrentHeaderHeight()
@@ -62,7 +62,7 @@ func (this *WasmVmService)blockGetCurrentBlockHash(engine *exec.ExecutionEngine)
 	return true,nil
 }
 
-func (this *WasmVmService)blockGetCurrentBlockHight(engine *exec.ExecutionEngine) (bool, error) {
+func (this *WasmVmService)blockGetCurrentBlockHeight(engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 	vm.RestoreCtx()
 	bHight:= this.Store.GetCurrentBlockHeight()
@@ -126,7 +126,7 @@ func (this *WasmVmService)blockGetTransactionCount(engine *exec.ExecutionEngine)
 }
 
 // BlockGetTransactions put block's transactions to vm stack
-func (this *WasmVmService)BlockGetTransactions( engine *exec.ExecutionEngine)  (bool, error)  {
+func (this *WasmVmService)blockGetTransactions( engine *exec.ExecutionEngine)  (bool, error)  {
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
