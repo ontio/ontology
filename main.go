@@ -60,7 +60,7 @@ const (
 
 func init() {
 	log.Init(log.PATH, log.Stdout)
-	cmd.HelpUsage()
+	//cmd.HelpUsage()
 	// Todo: If the actor bus uses a different log lib, remove it
 
 	var coreNum int
@@ -75,11 +75,12 @@ func init() {
 
 func setupAPP() *cli.App {
 	app := cli.NewApp()
+	app.Usage = "Ontology CLI"
 	app.Action = ontMain
 	app.Version = "0.6.0"
 	app.Copyright = "Copyright in 2018 The Ontology Authors"
 	app.Commands = []cli.Command{
-		cmd.WalletCommand,
+		cmd.AccountCommand,
 		cmd.InfoCommand,
 		cmd.AssetCommand,
 		cmd.SettingCommand,
@@ -123,7 +124,8 @@ func ontMain(ctx *cli.Context) {
 	}
 
 	log.Info("0. Open the account")
-	client := account.GetClient(ctx)
+	wallet := ctx.GlobalString(utils.WalletNameFlag.Name)
+	client := account.Open(wallet, nil)
 	if client == nil {
 		log.Fatal("Can't get local account.")
 		os.Exit(1)

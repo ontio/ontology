@@ -79,13 +79,7 @@ func walletAction(c *cli.Context) error {
 	}
 	fmt.Printf("Wallet File: '%s'\n", name)
 	if c.Bool("changepassword") {
-		fmt.Println("# input new password #")
-		newPassword, _ := password.GetConfirmedPassword()
-		if ok := wallet.ChangePassword([]byte(passwd), newPassword); !ok {
-			fmt.Println("error: failed to change password")
-			os.Exit(1)
-		}
-		fmt.Println("password changed")
+		//TODO change to new function
 		return nil
 	}
 	account := wallet.GetDefaultAccount()

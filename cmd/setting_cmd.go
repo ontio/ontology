@@ -32,9 +32,8 @@ var (
 	SettingCommand = cli.Command{
 		Name:        "set",
 		Action:      utils.MigrateFlags(settingCommand),
-		Usage:       "ontology set [OPTION]",
+		Usage:       "Set node configurations",
 		Flags:       append(NodeFlags, ContractFlags...),
-		Category:    "Setting COMMANDS",
 		Description: ``,
 	}
 )
@@ -52,7 +51,8 @@ func settingCommand(ctx *cli.Context) error {
 		return nil
 	} else if ctx.IsSet(utils.ConsensusFlag.Name) {
 		consensusSwitch := ctx.String(utils.ConsensusFlag.Name)
-		client := account.GetClient(ctx)
+		wallet := ctx.GlobalString(utils.WalletNameFlag.Name)
+		client := account.Open(wallet, nil)
 		if client == nil {
 			fmt.Println("Can't get local account.")
 		}

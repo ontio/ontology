@@ -23,16 +23,6 @@ import (
 )
 
 var (
-	EncryptTypeFlag = cli.StringFlag{
-		Name: "encrypt",
-		Usage: `assign encrypt type when use create wallet, just as:
-						SHA224withECDSA, SHA256withECDSA,
-						SHA384withECDSA, SHA512withECDSA,
-						SHA3-224withECDSA, SHA3-256withECDSA,
-						SHA3-384withECDSA, SHA3-512withECDSA,
-						RIPEMD160withECDSA, SM3withSM2, SHA512withEdDSA`,
-	}
-
 	WalletAddrFlag = cli.StringFlag{
 		Name:  "addr",
 		Usage: "wallet address string(base58)",
@@ -156,6 +146,36 @@ var (
 	NonOptionFlag = cli.StringFlag{
 		Name:  "optiion",
 		Usage: "this command does not need option, please run directly",
+	}
+	//account management
+	AccountVerboseFlag = cli.BoolFlag{
+		Name:  "verbose,v",
+		Usage: "Display accounts with details",
+	}
+	AccountTypeFlag = cli.StringFlag{
+		Name:  "type,t",
+		Value: "ecdsa",
+		Usage: "Specifies the `<key-type>` by signature algorithm",
+	}
+	AccountKeylenFlag = cli.StringFlag{
+		Name:  "bit-length,b",
+		Usage: "Specifies the `<bit-length>` of key",
+	}
+	AccountSigSchemeFlag = cli.StringFlag{
+		Name:  "signature-scheme,s",
+		Usage: "Specifies the `<scheme>`",
+	}
+	AccountPassFlag = cli.StringFlag{
+		Name:  "password,p",
+		Usage: "Specifies the `<password>` for encrypting the private key",
+	}
+	AccountDefaultFlag = cli.BoolFlag{
+		Name:  "default,d",
+		Usage: "Set to default account",
+	}
+	AccountFileFlag = cli.StringFlag{
+		Name:  "file,f",
+		Usage: "Specifies the `<filename>` of wallet.",
 	}
 )
 

@@ -52,4 +52,25 @@ var (
 		utils.HeightInfoFlag,
 		utils.HashInfoFlag,
 	}
+
+	listFlags = []cli.Flag{
+		utils.AccountVerboseFlag,
+		utils.AccountFileFlag,
+	}
+	setFlags = []cli.Flag{
+		utils.AccountSigSchemeFlag,
+		utils.AccountDefaultFlag,
+		utils.AccountFileFlag,
+	}
+	addFlags = []cli.Flag{
+		utils.AccountTypeFlag,
+		utils.AccountKeylenFlag,
+		utils.AccountSigSchemeFlag,
+		utils.AccountPassFlag,
+		utils.AccountDefaultFlag,
+		utils.AccountFileFlag,
+	}
+	fileFlags = []cli.Flag{
+		utils.AccountFileFlag,
+	}
 )
