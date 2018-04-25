@@ -42,5 +42,6 @@ import:
 - package: github.com/ontio/ontology-go-sdk
 - package: google.golang.org/genproto
   repo: https://github.com/google/go-genproto.git
+- package: github.com/ontio/ontology-crypto
 ignore:
   - golang.org/x/sys/unix

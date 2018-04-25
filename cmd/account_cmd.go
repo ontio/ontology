@@ -97,7 +97,7 @@ var (
 		Name:        "account",
 		Usage:       "Manage accounts",
 		ArgsUsage:   " ",
-		Description: `manage accounts stored in the wallet`,
+		Description: `Manage accounts stored in the wallet`,
 		Subcommands: []cli.Command{
 			{
 				Action:      utils.MigrateFlags(accountCreate),
@@ -325,8 +325,8 @@ func accountShow(ctx *cli.Context) error {
 			}
 			fmt.Printf("	Signature algorithm: %v\n", acc.Alg)
 			fmt.Printf("	Curve: %v\n", acc.Param["curve"])
-			fmt.Printf("	Key length: %v bit\n", len(acc.Key)*8)
-			fmt.Printf("	Public key: %v bit\n", acc.PubKey)
+			fmt.Printf("	Key length: %v bits\n", len(acc.Key)*8)
+			fmt.Printf("	Public key: %v\n", acc.PubKey)
 			fmt.Printf("	Signature scheme: %v\n", acc.SigSch)
 			fmt.Println()
 		}

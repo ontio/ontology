@@ -33,6 +33,7 @@ import (
 	cmdCom "github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/password"
 	"github.com/ontio/ontology/core/signature"
 	ctypes "github.com/ontio/ontology/core/types"
 	cutils "github.com/ontio/ontology/core/utils"
@@ -101,7 +102,7 @@ func signTransaction(signer *account.Account, tx *ctypes.Transaction) error {
 }
 
 func transferAsset(ctx *cli.Context) error {
-	if !ctx.IsSet(utils.ContractAddrFlag.Name) || !ctx.IsSet(utils.TransactionFromFlag.Name) || !ctx.IsSet(utils.TransactionToFlag.Name) || !ctx.IsSet(utils.TransactionValueFlag.Name) || !ctx.IsSet(utils.UserPasswordFlag.Name) {
+	if !ctx.IsSet(utils.ContractAddrFlag.Name) || !ctx.IsSet(utils.TransactionFromFlag.Name) || !ctx.IsSet(utils.TransactionToFlag.Name) || !ctx.IsSet(utils.TransactionValueFlag.Name) {
 		showAssetTransferHelp()
 		return nil
 	}
@@ -174,9 +175,18 @@ func transferAsset(ctx *cli.Context) error {
 
 	tx.Nonce = uint32(time.Now().Unix())
 
-	passwd := ctx.GlobalString(utils.UserPasswordFlag.Name)
+	var passwd []byte
+	if ctx.IsSet(utils.UserPasswordFlag.Name) {
+		passwd = []byte(ctx.GlobalString(utils.UserPasswordFlag.Name))
+	} else {
+		passwd, err = password.GetAccountPassword()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return errors.New("input password error")
+		}
+	}
 
-	acct := account.Open(account.WALLET_FILENAME, []byte(passwd))
+	acct := account.Open(account.WALLET_FILENAME, passwd)
 	acc := acct.GetDefaultAccount()
 
 	if err := signTransaction(acc, tx); err != nil {

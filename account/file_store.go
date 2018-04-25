@@ -114,7 +114,7 @@ func (this *WalletData) Save(path string) error {
 	}
 	if common.FileExisted(path) {
 		filename := path + "~"
-		err := ioutil.WriteFile(path, data, 0644)
+		err := ioutil.WriteFile(filename, data, 0644)
 		if err != nil {
 			return err
 		}

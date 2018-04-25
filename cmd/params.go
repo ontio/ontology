@@ -59,7 +59,7 @@ var (
 	}
 	setFlags = []cli.Flag{
 		utils.AccountSigSchemeFlag,
-		utils.AccountDefaultFlag,
+		utils.AccountSetDefaultFlag,
 		utils.AccountFileFlag,
 	}
 	addFlags = []cli.Flag{
