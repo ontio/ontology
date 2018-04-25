@@ -83,12 +83,13 @@ func (self *StateBatch) TryGetOrAdd(prefix common.DataEntryPrefix, key []byte, v
 		}
 		return nil
 	}
-	_, err := self.store.Get(append(aPrefix, key...))
-	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return nil
-		}
+	item, err := self.store.Get(append(aPrefix, key...))
+	if err != nil && err != leveldb.ErrNotFound {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TryGetOrAdd], leveldb store get data failed.")
+	}
+
+	if len(item) != 0 {
+		return nil
 	}
 
 	self.setStateObject(bPrefix, key, value, common.Changed)
