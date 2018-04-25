@@ -23,14 +23,17 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"io/ioutil"
+	"os"
 
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common"
 )
 
 type Accountx struct {
 	keypair.ProtectedKey
 
 	Label     string `json:"label"`
+	PubKey    string `json:"publicKey"`
 	SigSch    string `json:"signatureScheme"`
 	IsDefault bool   `json:"isDefault"`
 	Lock      bool   `json:"lock"`
@@ -109,7 +112,16 @@ func (this *WalletData) Save(path string) error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(path, data, 0644)
+	if common.FileExisted(path) {
+		filename := path + "~"
+		err := ioutil.WriteFile(path, data, 0644)
+		if err != nil {
+			return err
+		}
+		return os.Rename(filename, path)
+	} else {
+		return ioutil.WriteFile(path, data, 0644)
+	}
 }
 
 func (this *WalletData) Load(path string) error {

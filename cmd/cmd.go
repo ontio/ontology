@@ -29,6 +29,26 @@ import (
 	"github.com/urfave/cli"
 )
 
+// AppHelpTemplate is the test template for the default, global app help topic.
+var AppHelpTemplate = `NAME:
+   {{.Name}} - {{.Usage}}
+
+USAGE:
+   {{if .UsageText}}{{.UsageText}}{{else}}{{.HelpName}} {{if .VisibleFlags}}[global options]{{end}}{{if .Commands}} command [command options]{{end}} {{if .ArgsUsage}}{{.ArgsUsage}}{{end}}{{end}}{{if .Description}}
+
+DESCRIPTION:
+   {{.Description}}{{end}}{{if .VisibleCommands}}
+
+COMMANDS:{{range .Commands}}
+   {{join .Names ", "}}{{ "\t" }}{{.Usage}}{{end}}{{end}}{{if .Version}}
+
+VERSION:
+   {{.Version}}{{end}}{{if .Copyright }}
+
+COPYRIGHT:
+   {{.Copyright}}{{end}}
+`
+
 var ontSdk *sdk.OntologySdk
 
 func localRpcAddress() string {
@@ -46,30 +66,8 @@ func restfulAddr() string {
 func init() {
 	ontSdk = sdk.NewOntologySdk()
 	ontSdk.Rpc.SetAddress(rpcAddress())
+	cli.AppHelpTemplate = AppHelpTemplate
 }
-
-// AppHelpTemplate is the test template for the default, global app help topic.
-var AppHelpTemplate = `
-   Name:
-      {{.App.Name}} - {{.App.Usage}}
-
-   Usage:
-      {{.App.HelpName}} {{if .App.Commands}} command [command options]{{end}} {{if .App.ArgsUsage}}{{.App.ArgsUsage}}{{else}}[arguments...]{{end}}
-      {{if .App.Version}}
-   Version:
-      {{.App.Version}}
-      {{end}}{{if len .App.Authors}}
-   Author(S):
-      {{range .App.Authors}}{{ . }}{{end}}
-      {{end}}{{if .App.Commands}}
-   Commands:
-      {{range .App.Commands}}{{join .Names ", "}}{{ "\t" }}{{.Usage}}
-      {{end}}{{end}}{{if .FlagGroups}}
-      {{end}}{{if .App.Copyright }}
-   CopyRight:
-      {{.App.Copyright}}
-   {{end}}
-`
 
 // flagGroup is a collection of flags belonging to a single topic.
 type flagGroup struct {

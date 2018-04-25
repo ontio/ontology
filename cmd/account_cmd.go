@@ -246,7 +246,7 @@ func accountCreate(ctx *cli.Context) error {
 	}
 
 	var password, repeatPassword []byte
-	for wait := true; wait; {
+	for {
 		fmt.Print("Enter a password for encrypting the private key:")
 		password = enterPassword(false)
 		fmt.Print("Re-enter password:")
@@ -263,14 +263,15 @@ func accountCreate(ctx *cli.Context) error {
 	address := ta.ToBase58()
 
 	prvSectet, _ := keypair.EncryptPrivateKey(prvkey, address, password)
-
-	var acc = new(account.Accountx)
-	acc.SetKeyPair(prvSectet)
-	acc.SigSch = inputSchemeInfo.name
 	h := sha256.Sum256(password)
 	for i := 0; i < len(password); i++ {
 		password[i] = 0
 	}
+
+	var acc = new(account.Accountx)
+	acc.SetKeyPair(prvSectet)
+	acc.SigSch = inputSchemeInfo.name
+	acc.PubKey = hex.EncodeToString(keypair.SerializePublicKey(pubkey))
 	acc.PassHash = hex.EncodeToString(h[:])
 
 	wallet := new(account.WalletData)
@@ -313,6 +314,7 @@ func accountShow(ctx *cli.Context) error {
 				fmt.Printf("  %v\t%v\n", i+1, acc.Address)
 			}
 		}
+		fmt.Println("\nUse -v or --verbose option to display details.")
 	} else {
 		// look for every account and show address only
 		for i, acc := range wallet.Accounts {
@@ -324,6 +326,7 @@ func accountShow(ctx *cli.Context) error {
 			fmt.Printf("	Signature algorithm: %v\n", acc.Alg)
 			fmt.Printf("	Curve: %v\n", acc.Param["curve"])
 			fmt.Printf("	Key length: %v bit\n", len(acc.Key)*8)
+			fmt.Printf("	Public key: %v bit\n", acc.PubKey)
 			fmt.Printf("	Signature scheme: %v\n", acc.SigSch)
 			fmt.Println()
 		}
@@ -466,21 +469,18 @@ func encrypt(ctx *cli.Context) error {
 		if bytes.Equal(password, repeatPassword) {
 			break
 		} else {
-			fmt.Println("passwords you have enter are not equal, pls try again!")
+			fmt.Println("inputs not match, please try again!")
 		}
 	}
 
 	prvSectet, _ := keypair.EncryptPrivateKey(prv, wallet.Accounts[index-1].Address, password)
-
-	var accJson = new(account.Accountx)
-	accJson.SetKeyPair(prvSectet)
 	h := sha256.Sum256(password)
 	for i := 0; i < len(password); i++ {
 		password[i] = 0
 	}
-	accJson.PassHash = hex.EncodeToString(h[:])
 
-	wallet.Accounts[index-1] = accJson
+	wallet.Accounts[index-1].SetKeyPair(prvSectet)
+	wallet.Accounts[index-1].PassHash = hex.EncodeToString(h[:])
 
 	if wallet.Save(wFilePath) != nil {
 		fmt.Println("Wallet file save failed.")
