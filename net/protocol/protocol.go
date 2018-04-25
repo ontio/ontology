@@ -23,6 +23,7 @@ import (
 	"encoding/binary"
 	"time"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology-crypto/keypair"
 )
@@ -105,8 +106,8 @@ type Noder interface {
 	CompareAndSetState(old, new uint32) bool
 	UpdateRXTime(t time.Time)
 	LocalNode() Noder
-	DelNbrNode(id uint64) (Noder, bool)
-	AddNbrNode(Noder)
+	OnDelNode(id uint64) (Noder, bool)
+	OnAddNode(Noder)
 	CloseConn()
 	GetHeight() uint64
 	GetConnectionCnt() uint
@@ -131,26 +132,21 @@ type Noder interface {
 	GetBookkeepersAddrs() ([]keypair.PublicKey, uint64)
 	SetBookkeeperAddr(pk keypair.PublicKey)
 	GetNeighborHeights() ([]uint64, uint64)
-	SyncNodeHeight()
 
 	GetNeighborNoder() []Noder
 	GetNbrNodeCnt() uint32
-	StoreFlightHeight(height uint32)
-	GetFlightHeightCnt() int
-	RemoveFlightHeightLessThan(height uint32)
-	RemoveFlightHeight(height uint32)
 	GetLastRXTime() time.Time
 	SetHeight(height uint64)
 	WaitForPeersStart()
 	WaitForSyncBlkFinish()
-	GetFlightHeights() []uint32
 	IsAddrInNbrList(addr string) bool
 	SetAddrInConnectingList(addr string) bool
 	RemoveAddrInConnectingList(addr string)
 	AddInRetryList(addr string)
 	RemoveFromRetryList(addr string)
-	AcqSyncReqSem()
-	RelSyncReqSem()
+
+	OnHeaderReceive(headers []*types.Header)
+	OnBlockReceive(block *types.Block)
 }
 
 func (msg *NodeAddr) Deserialization(p []byte) error {

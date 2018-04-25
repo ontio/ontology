@@ -164,7 +164,7 @@ func (msg version) Handle(node protocol.Noder) error {
 	}
 
 	// Obsolete node
-	n, ret := localNode.DelNbrNode(msg.P.Nonce)
+	n, ret := localNode.OnDelNode(msg.P.Nonce)
 	if ret == true {
 		log.Info(fmt.Sprintf("Node reconnect 0x%x", msg.P.Nonce))
 		// Close the connection and release the node soure
@@ -182,7 +182,7 @@ func (msg version) Handle(node protocol.Noder) error {
 	node.SetBookkeeperAddr(msg.pk)
 	node.UpdateInfo(time.Now(), msg.P.Version, msg.P.Services,
 		msg.P.Port, msg.P.Nonce, msg.P.Relay, msg.P.StartHeight)
-	localNode.AddNbrNode(node)
+	localNode.OnAddNode(node)
 
 	var buf []byte
 	if s == protocol.INIT {

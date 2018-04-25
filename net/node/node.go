@@ -33,6 +33,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -41,21 +42,7 @@ import (
 	"github.com/ontio/ontology/net/actor"
 	msg "github.com/ontio/ontology/net/message"
 	"github.com/ontio/ontology/net/protocol"
-	"github.com/ontio/ontology-crypto/keypair"
 )
-
-type Semaphore chan struct{}
-
-func MakeSemaphore(n int) Semaphore {
-	return make(chan struct{}, n)
-}
-
-func (s Semaphore) acquire() {
-	s <- struct{}{}
-}
-func (s Semaphore) release() {
-	<-s
-}
 
 type node struct {
 	state                    uint32   // node state
@@ -80,7 +67,7 @@ type node struct {
 	tryTimes                 uint32
 	ConnectingNodes
 	RetryConnAddrs
-	SyncReqSem Semaphore
+	blockSync  *BlockSyncMgr
 }
 
 type RetryConnAddrs struct {
@@ -183,12 +170,6 @@ func InitNode(pubKey keypair.PublicKey) protocol.Noder {
 		n.services = uint64(protocol.VERIFY_NODE)
 	}
 
-	if config.Parameters.MaxHdrSyncReqs <= 0 {
-		n.SyncReqSem = MakeSemaphore(protocol.MAX_SYNC_HDR_REQ)
-	} else {
-		n.SyncReqSem = MakeSemaphore(config.Parameters.MaxHdrSyncReqs)
-	}
-
 	n.link.port = uint16(config.Parameters.NodePort)
 	n.relay = true
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -204,10 +185,11 @@ func InitNode(pubKey keypair.PublicKey) protocol.Noder {
 	n.publicKey = pubKey
 	n.eventQueue.init()
 	n.nodeDisconnectSubscriber = n.eventQueue.GetEvent("disconnect").Subscribe(events.EventNodeDisconnect, n.NodeDisconnect)
+	n.blockSync = NewBlockSyncMgr(n)
 	go n.initConnection()
 	go n.updateConnection()
 	go n.updateNodeInfo()
-
+	go n.blockSync.Start()
 	return n
 }
 
@@ -438,8 +420,7 @@ func (node *node) SyncNodeHeight() {
 	}
 }
 
-
-func (node *node) isBlockSyncFinish()bool{
+func (node *node) isBlockSyncFinish() bool {
 	noders := node.local.GetNeighborNoder()
 	if len(noders) == 0 {
 		return true
@@ -550,12 +531,20 @@ func (node *node) RemoveFromRetryList(addr string) {
 	}
 }
 
-func (node *node) AcqSyncReqSem() {
-	node.SyncReqSem.acquire()
-}
 
-func (node *node) RelSyncReqSem() {
-	node.SyncReqSem.release()
+func (node *node) OnAddNode(n protocol.Noder){
+	node.AddNbrNode(n)
+	node.blockSync.OnAddNode(n.GetID())
+}
+func (node *node) OnDelNode(nodeId uint64) (protocol.Noder, bool){
+	node.blockSync.OnDelNode(nodeId)
+	return node.DelNbrNode(nodeId)
+}
+func (node *node) OnHeaderReceive(headers []*types.Header) {
+	node.blockSync.OnHeaderReceive(headers)
+}
+func (node *node) OnBlockReceive(block *types.Block) {
+	node.blockSync.OnBlockReceive(block)
 }
 
 func sliceRemove(slice []uint32, h uint32) []uint32 {
