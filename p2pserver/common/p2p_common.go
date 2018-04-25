@@ -49,7 +49,7 @@ const (
 	PROTOCOL_VERSION      = 0         //protocol verison
 	MAX_BUF_LEN           = 1024 * 16 //the maximum buffer to receive message
 	UPDATE_RATE_PER_BLOCK = 2         //info update rate in one generate block period
-	KEEPALIVE_TIMEOUT     = 3         //contact timeout in sec
+	KEEPALIVE_TIMEOUT     = 15        //contact timeout in sec
 	DIAL_TIMEOUT          = 6         //connect timeout in sec
 	CONN_MONITOR          = 6         //time to retry connect in sec
 	CONN_MAX_BACK         = 4000      //max backoff time in micro sec
