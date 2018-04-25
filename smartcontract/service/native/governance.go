@@ -68,7 +68,7 @@ const (
 
 	//global
 	ConsensusNum = 7
-	CandidateNum = 7 * 6
+	CandidateNum = 7 * 7
 	SyncNodeNum  = 7 * 7 * 6
 )
 
@@ -167,9 +167,10 @@ func RegisterSyncNode(native *NativeService) error {
 	}
 
 	peerPool := &states.PeerPool{
-		Address: params.Address,
-		InitPos: params.InitPos,
-		Status:  RegisterSyncNodeStatus,
+		PeerPubkey: params.PeerPubkey,
+		Address:    params.Address,
+		InitPos:    params.InitPos,
+		Status:     RegisterSyncNodeStatus,
 	}
 	value, err := json.Marshal(peerPool)
 	if err != nil {
@@ -429,6 +430,7 @@ func VoteForPeer(native *NativeService) error {
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
+
 	addressPrefix, err := hex.DecodeString(params.Address)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[voteForPeer] Address format error!")
@@ -470,32 +472,72 @@ func VoteForPeer(native *NativeService) error {
 		voteInfoPool := &states.VoteInfoPool{
 			PeerPubkey: peerPubkey,
 			Address:    params.Address,
-			Pos:        new(big.Int),
+			PrePos:     new(big.Int),
+			FreezePos:  new(big.Int),
+			NewPos:     new(big.Int),
 		}
-		if voteInfoPoolBytes != nil {
-			voteInfoPoolStore, _ := voteInfoPoolBytes.(*cstates.StorageItem)
-			err = json.Unmarshal(voteInfoPoolStore.Value, voteInfoPool)
-			if err != nil {
-				return errors.NewDetailErr(err, errors.ErrNoCode, "[voteForPeer] Unmarshal voteInfoPool error!")
+		if pos.Cmp(new(big.Int)) >= 0 {
+			if voteInfoPoolBytes != nil {
+				voteInfoPoolStore, _ := voteInfoPoolBytes.(*cstates.StorageItem)
+				err = json.Unmarshal(voteInfoPoolStore.Value, voteInfoPool)
+				if err != nil {
+					return errors.NewDetailErr(err, errors.ErrNoCode, "[voteForPeer] Unmarshal voteInfoPool error!")
+				}
+				voteInfoPool.NewPos = new(big.Int).Add(voteInfoPool.NewPos, pos)
+			} else {
+				voteInfoPool.NewPos = pos
 			}
-			voteInfoPool.Pos = new(big.Int).Add(voteInfoPool.Pos, pos)
-		}
+			total = new(big.Int).Add(total, pos)
+			peerPool.TotalPos = new(big.Int).Add(peerPool.TotalPos, pos)
 
-		if voteInfoPool.Pos.Cmp(new(big.Int)) >= 0 {
 			value, err := json.Marshal(voteInfoPool)
 			if err != nil {
-				return errors.NewDetailErr(err, errors.ErrNoCode, "[quitSyncNode] Marshal peerPool error")
+				return errors.NewDetailErr(err, errors.ErrNoCode, "[quitSyncNode] Marshal voteInfoPool error")
 			}
 			native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(VOTE_INFO_POOL), view.Bytes(),
 				peerPubkeyPrefix, addressPrefix), &cstates.StorageItem{Value: value})
 
-			total = new(big.Int).Add(total, pos)
-			peerPool.TotalPos = new(big.Int).Add(peerPool.TotalPos, pos)
 			value, err = json.Marshal(peerPool)
 			if err != nil {
-				return errors.NewDetailErr(err, errors.ErrNoCode, "[voteForPeer] Marshal candidatePool error")
+				return errors.NewDetailErr(err, errors.ErrNoCode, "[voteForPeer] Marshal peerPool error")
 			}
 			native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(PEER_POOL), peerPubkeyPrefix), &cstates.StorageItem{Value: value})
+		} else {
+			if voteInfoPoolBytes != nil {
+				voteInfoPoolStore, _ := voteInfoPoolBytes.(*cstates.StorageItem)
+				err = json.Unmarshal(voteInfoPoolStore.Value, voteInfoPool)
+				if err != nil {
+					return errors.NewDetailErr(err, errors.ErrNoCode, "[voteForPeer] Unmarshal voteInfoPool error!")
+				}
+				temp := new(big.Int).Add(voteInfoPool.NewPos, pos)
+				if temp.Cmp(new(big.Int)) < 0 {
+					voteInfoPool.PrePos = new(big.Int).Sub(voteInfoPool.PrePos, temp)
+					if voteInfoPool.PrePos.Cmp(new(big.Int)) < 0 {
+						continue
+					}
+					voteInfoPool.FreezePos = new(big.Int).Add(voteInfoPool.FreezePos, temp)
+					total = new(big.Int).Sub(total, voteInfoPool.NewPos)
+					voteInfoPool.NewPos = new(big.Int)
+					peerPool.TotalPos = new(big.Int).Sub(peerPool.TotalPos, voteInfoPool.NewPos)
+				} else {
+					voteInfoPool.NewPos = new(big.Int).Add(voteInfoPool.NewPos, pos)
+					total = new(big.Int).Add(total, pos)
+					peerPool.TotalPos = new(big.Int).Add(peerPool.TotalPos, pos)
+				}
+
+				value, err := json.Marshal(voteInfoPool)
+				if err != nil {
+					return errors.NewDetailErr(err, errors.ErrNoCode, "[quitSyncNode] Marshal voteInfoPool error")
+				}
+				native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(VOTE_INFO_POOL), view.Bytes(),
+					peerPubkeyPrefix, addressPrefix), &cstates.StorageItem{Value: value})
+
+				value, err = json.Marshal(peerPool)
+				if err != nil {
+					return errors.NewDetailErr(err, errors.ErrNoCode, "[voteForPeer] Marshal peerPool error")
+				}
+				native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(PEER_POOL), peerPubkeyPrefix), &cstates.StorageItem{Value: value})
+			}
 		}
 	}
 	if total.Cmp(new(big.Int)) > 0 {
@@ -543,6 +585,11 @@ func CommitDpos(native *NativeService) error {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] PeerPubkey format error!")
 		}
 
+		if peerPool.Status == QuitStatus {
+			//TODO: Draw back init pos
+			//TODO: Draw back vote pos
+			native.CloneCache.Delete(scommon.ST_STORAGE, concatKey(contract, []byte(PEER_POOL), peerPubkeyPrefix))
+		}
 		if peerPool.Status == QuitConsensusStatus {
 			peerPool.Status = QuitStatus
 			value, err := json.Marshal(peerPool)
@@ -551,9 +598,7 @@ func CommitDpos(native *NativeService) error {
 			}
 			native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(PEER_POOL), peerPubkeyPrefix), &cstates.StorageItem{Value: value})
 		}
-		if peerPool.Status == QuitStatus {
 
-		}
 		if peerPool.Status == CandidateStatus || peerPool.Status == ConsensusStatus {
 			fmt.Println(peerPool)
 			stake := new(big.Int).Add(peerPool.TotalPos, peerPool.InitPos)
@@ -563,31 +608,6 @@ func CommitDpos(native *NativeService) error {
 				Stake:      stake.Uint64(),
 			})
 		}
-	}
-
-	//copy voteInfoPool
-	stateValues, err = native.CloneCache.Store.Find(scommon.ST_STORAGE, concatKey(contract, []byte(VOTE_INFO_POOL), view.Bytes()))
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Get all peerPool error!")
-	}
-	voteInfoPool := new(states.VoteInfoPool)
-	for _, v := range stateValues {
-		voteInfoPoolStore, _ := v.Value.(*cstates.StorageItem)
-		err = json.Unmarshal(voteInfoPoolStore.Value, voteInfoPool)
-		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Unmarshal voteInfoPool error!")
-		}
-		peerPubkeyPrefix, err := hex.DecodeString(voteInfoPool.PeerPubkey)
-		if err != nil {
-			errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] PeerPubkey format error!")
-		}
-		addressPrefix, err := hex.DecodeString(voteInfoPool.Address)
-		if err != nil {
-			errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Address format error!")
-		}
-		newView := new(big.Int).Add(view, new(big.Int).SetInt64(1))
-		native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(VOTE_INFO_POOL), newView.Bytes(),
-			peerPubkeyPrefix, addressPrefix), v.Value)
 	}
 
 	// get config
@@ -620,6 +640,104 @@ func CommitDpos(native *NativeService) error {
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] PeerPubkey format error!")
 		}
+		peerPoolBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(PEER_POOL), peerPubkeyPrefix))
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Get peerPoolBytes error!")
+		}
+
+		peerPool := new(states.PeerPool)
+		if peerPoolBytes == nil {
+			return errors.NewErr("[commitDpos] PeerPoolBytes consensus is nil!")
+		}
+		peerPoolStore, _ := peerPoolBytes.(*cstates.StorageItem)
+		err = json.Unmarshal(peerPoolStore.Value, peerPool)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Unmarshal peerPool error!")
+		}
+
+		if peerPool.Status == ConsensusStatus {
+			//update voteInfoPool
+			stateValues, err = native.CloneCache.Store.Find(scommon.ST_STORAGE, concatKey(contract, []byte(VOTE_INFO_POOL), view.Bytes(), peerPubkeyPrefix))
+			if err != nil {
+				return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Get all peerPool error!")
+			}
+			voteInfoPool := new(states.VoteInfoPool)
+			for _, v := range stateValues {
+				voteInfoPoolStore, _ := v.Value.(*cstates.StorageItem)
+				err = json.Unmarshal(voteInfoPoolStore.Value, voteInfoPool)
+				if err != nil {
+					return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Unmarshal voteInfoPool error!")
+				}
+				peerPubkeyPrefix, err := hex.DecodeString(voteInfoPool.PeerPubkey)
+				if err != nil {
+					errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] PeerPubkey format error!")
+				}
+				addressPrefix, err := hex.DecodeString(voteInfoPool.Address)
+				if err != nil {
+					errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Address format error!")
+				}
+				newView := new(big.Int).Add(view, new(big.Int).SetInt64(1))
+				freezePos := voteInfoPool.FreezePos
+				newPos := voteInfoPool.NewPos
+				voteInfoPool.PrePos = new(big.Int).Add(voteInfoPool.PrePos, newPos)
+				voteInfoPool.NewPos = freezePos
+				voteInfoPool.FreezePos = new(big.Int)
+
+				value, err := json.Marshal(voteInfoPool)
+				if err != nil {
+					return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Marshal voteInfoPool error")
+				}
+				native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(VOTE_INFO_POOL), newView.Bytes(),
+					peerPubkeyPrefix, addressPrefix), &cstates.StorageItem{Value: value})
+			}
+		} else {
+			//update voteInfoPool
+			stateValues, err = native.CloneCache.Store.Find(scommon.ST_STORAGE, concatKey(contract, []byte(VOTE_INFO_POOL), view.Bytes()))
+			if err != nil {
+				return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Get all peerPool error!")
+			}
+			voteInfoPool := new(states.VoteInfoPool)
+			for _, v := range stateValues {
+				voteInfoPoolStore, _ := v.Value.(*cstates.StorageItem)
+				err = json.Unmarshal(voteInfoPoolStore.Value, voteInfoPool)
+				if err != nil {
+					return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Unmarshal voteInfoPool error!")
+				}
+				peerPubkeyPrefix, err := hex.DecodeString(voteInfoPool.PeerPubkey)
+				if err != nil {
+					errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] PeerPubkey format error!")
+				}
+				addressPrefix, err := hex.DecodeString(voteInfoPool.Address)
+				if err != nil {
+					errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Address format error!")
+				}
+				newView := new(big.Int).Add(view, new(big.Int).SetInt64(1))
+				voteInfoPool.PrePos = voteInfoPool.NewPos
+				voteInfoPool.NewPos = new(big.Int)
+
+				value, err := json.Marshal(voteInfoPool)
+				if err != nil {
+					return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Marshal voteInfoPool error")
+				}
+				native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(VOTE_INFO_POOL), newView.Bytes(),
+					peerPubkeyPrefix, addressPrefix), &cstates.StorageItem{Value: value})
+			}
+		}
+		peerPool.Status = ConsensusStatus
+		value, err := json.Marshal(peerPool)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Marshal peerPool error")
+		}
+		native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(PEER_POOL), peerPubkeyPrefix), &cstates.StorageItem{Value: value})
+	}
+
+	//non consensus peers
+	for i := int(config.K); i < len(peers); i++ {
+		//change peerPool status
+		peerPubkeyPrefix, err := hex.DecodeString(peers[i].PeerPubkey)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] PeerPubkey format error!")
+		}
 
 		peerPoolBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(PEER_POOL), peerPubkeyPrefix))
 		if err != nil {
@@ -627,14 +745,84 @@ func CommitDpos(native *NativeService) error {
 		}
 		peerPool := new(states.PeerPool)
 		if peerPoolBytes == nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] PeerPoolBytes is nil!")
+			return errors.NewErr("[commitDpos] PeerPoolBytes non consensus is nil!")
 		}
 		peerPoolStore, _ := peerPoolBytes.(*cstates.StorageItem)
 		err = json.Unmarshal(peerPoolStore.Value, peerPool)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Unmarshal peerPool error!")
 		}
-		peerPool.Status = ConsensusStatus
+		if peerPool.Status == ConsensusStatus {
+			//update voteInfoPool
+			stateValues, err = native.CloneCache.Store.Find(scommon.ST_STORAGE, concatKey(contract, []byte(VOTE_INFO_POOL), view.Bytes(), peerPubkeyPrefix))
+			if err != nil {
+				return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Get all peerPool error!")
+			}
+			voteInfoPool := new(states.VoteInfoPool)
+			for _, v := range stateValues {
+				voteInfoPoolStore, _ := v.Value.(*cstates.StorageItem)
+				err = json.Unmarshal(voteInfoPoolStore.Value, voteInfoPool)
+				if err != nil {
+					return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Unmarshal voteInfoPool error!")
+				}
+				peerPubkeyPrefix, err := hex.DecodeString(voteInfoPool.PeerPubkey)
+				if err != nil {
+					errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] PeerPubkey format error!")
+				}
+				addressPrefix, err := hex.DecodeString(voteInfoPool.Address)
+				if err != nil {
+					errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Address format error!")
+				}
+				newView := new(big.Int).Add(view, new(big.Int).SetInt64(1))
+				prePos := voteInfoPool.PrePos
+				freezePos := voteInfoPool.FreezePos
+				voteInfoPool.NewPos = new(big.Int).Add(voteInfoPool.NewPos, freezePos)
+				voteInfoPool.FreezePos = prePos
+				voteInfoPool.PrePos = new(big.Int)
+
+				value, err := json.Marshal(voteInfoPool)
+				if err != nil {
+					return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Marshal voteInfoPool error")
+				}
+				native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(VOTE_INFO_POOL), newView.Bytes(),
+					peerPubkeyPrefix, addressPrefix), &cstates.StorageItem{Value: value})
+			}
+		} else {
+			//update voteInfoPool
+			stateValues, err = native.CloneCache.Store.Find(scommon.ST_STORAGE, concatKey(contract, []byte(VOTE_INFO_POOL), view.Bytes()))
+			if err != nil {
+				return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Get all peerPool error!")
+			}
+			voteInfoPool := new(states.VoteInfoPool)
+			for _, v := range stateValues {
+				voteInfoPoolStore, _ := v.Value.(*cstates.StorageItem)
+				err = json.Unmarshal(voteInfoPoolStore.Value, voteInfoPool)
+				if err != nil {
+					return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Unmarshal voteInfoPool error!")
+				}
+				peerPubkeyPrefix, err := hex.DecodeString(voteInfoPool.PeerPubkey)
+				if err != nil {
+					errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] PeerPubkey format error!")
+				}
+				addressPrefix, err := hex.DecodeString(voteInfoPool.Address)
+				if err != nil {
+					errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Address format error!")
+				}
+				newView := new(big.Int).Add(view, new(big.Int).SetInt64(1))
+				voteInfoPool.NewPos = new(big.Int).Add(voteInfoPool.NewPos, voteInfoPool.PrePos)
+				voteInfoPool.NewPos = new(big.Int).Add(voteInfoPool.NewPos, voteInfoPool.FreezePos)
+				voteInfoPool.PrePos = new(big.Int)
+				voteInfoPool.FreezePos = new(big.Int)
+
+				value, err := json.Marshal(voteInfoPool)
+				if err != nil {
+					return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Marshal voteInfoPool error")
+				}
+				native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(VOTE_INFO_POOL), newView.Bytes(),
+					peerPubkeyPrefix, addressPrefix), &cstates.StorageItem{Value: value})
+			}
+		}
+		peerPool.Status = CandidateStatus
 		value, err := json.Marshal(peerPool)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Marshal peerPool error")

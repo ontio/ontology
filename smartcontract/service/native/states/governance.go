@@ -75,7 +75,9 @@ type VoteForPeerParam struct {
 type VoteInfoPool struct {
 	PeerPubkey string   `json:"peerPubkey"`
 	Address    string   `json:"address"`
-	Pos        *big.Int `json:"pos"`
+	PrePos     *big.Int `json:"prePos"`
+	FreezePos  *big.Int `json:"freezePos"`
+	NewPos     *big.Int `json:"newPos"`
 }
 
 type PeerStakeInfo struct {
