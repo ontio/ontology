@@ -21,15 +21,14 @@ package actor
 import (
 	"time"
 
+	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	ledger "github.com/ontio/ontology/core/ledger/actor"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology-eventbus/actor"
 )
 
-const ledgerReqTimeout = 5 * time.Second
+const ledgerReqTimeout = 10 * time.Second
 
 var defLedgerPid *actor.PID
 
@@ -37,28 +36,39 @@ func SetLedgerPid(ledgerPid *actor.PID) {
 	defLedgerPid = ledgerPid
 }
 
-func AddHeader(header *types.Header) {
-	defLedgerPid.Tell(&ledger.AddHeaderReq{Header: header})
+func AddHeader(header *types.Header) error {
+	future := defLedgerPid.RequestFuture(&ledger.AddHeaderReq{Header: header}, ledgerReqTimeout)
+	result, err := future.Result()
+	if err != nil {
+		return err
+	}
+	return result.(*ledger.AddHeadersRsp).Error
 }
 
-func AddHeaders(headers []*types.Header) {
-	defLedgerPid.Tell(&ledger.AddHeadersReq{Headers: headers})
+func AddHeaders(headers []*types.Header) error {
+	future := defLedgerPid.RequestFuture(&ledger.AddHeadersReq{Headers: headers}, ledgerReqTimeout)
+	result, err := future.Result()
+	if err != nil {
+		return err
+	}
+	return result.(*ledger.AddHeadersRsp).Error
 }
 
-func AddBlock(block *types.Block) {
-	defLedgerPid.Tell(&ledger.AddBlockReq{Block: block})
+func AddBlock(block *types.Block) error {
+	future := defLedgerPid.RequestFuture(&ledger.AddBlockReq{Block: block}, ledgerReqTimeout)
+	result, err := future.Result()
+	if err != nil {
+		return err
+	}
+	return result.(*ledger.AddBlockRsp).Error
 }
 
 func GetTxnFromLedger(hash common.Uint256) (*types.Transaction, error) {
 	future := defLedgerPid.RequestFuture(&ledger.GetTransactionReq{TxHash: hash}, ledgerReqTimeout)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Errorf("GetTxnFromLedger Hash:%x defLedgerPid.RequestFuture error:%s", hash, err)
 		return nil, err
-	}
-	if result.(*ledger.GetTransactionRsp).Tx == nil {
-		log.Errorf("Get Transaction error: txn is nil for hash: %x", hash)
-		return nil, errors.NewErr("GetTxnFromLedger error: txn is nil")
 	}
 	return result.(*ledger.GetTransactionRsp).Tx, result.(*ledger.GetTransactionRsp).Error
 }
@@ -67,7 +77,7 @@ func GetCurrentBlockHash() (common.Uint256, error) {
 	future := defLedgerPid.RequestFuture(&ledger.GetCurrentBlockHashReq{}, ledgerReqTimeout)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Errorf("GetCurrentBlockHash defLedgerPid.RequestFuture error:%s", err)
 		return common.Uint256{}, err
 	}
 	return result.(*ledger.GetCurrentBlockHashRsp).BlockHash, result.(*ledger.GetCurrentBlockHashRsp).Error
@@ -77,7 +87,7 @@ func GetCurrentHeaderHash() (common.Uint256, error) {
 	future := defLedgerPid.RequestFuture(&ledger.GetCurrentHeaderHashReq{}, ledgerReqTimeout)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Errorf("GetCurrentHeaderHash defLedgerPid.RequestFuture error:%s", err)
 		return common.Uint256{}, err
 	}
 	return result.(*ledger.GetCurrentHeaderHashRsp).BlockHash, result.(*ledger.GetCurrentHeaderHashRsp).Error
@@ -87,7 +97,7 @@ func GetBlockHashByHeight(height uint32) (common.Uint256, error) {
 	future := defLedgerPid.RequestFuture(&ledger.GetBlockHashReq{Height: height}, ledgerReqTimeout)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Errorf("GetBlockHashByHeight Height:%d defLedgerPid.RequestFuture error:%s", height, err)
 		return common.Uint256{}, err
 	}
 	return result.(*ledger.GetBlockHashRsp).BlockHash, result.(*ledger.GetBlockHashRsp).Error
@@ -97,12 +107,8 @@ func GetHeaderByHeight(height uint32) (*types.Header, error) {
 	future := defLedgerPid.RequestFuture(&ledger.GetHeaderByHeightReq{Height: height}, ledgerReqTimeout)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Errorf("GetHeaderByHeight Height:%d defLedgerPid.RequestFuture error:%s", height, err)
 		return nil, err
-	}
-	if result.(*ledger.GetHeaderByHeightRsp).Header == nil {
-		log.Errorf("Get Header error: header is nil for height: %d", height)
-		return nil, errors.NewErr("GetHeaderByHeight error: header is nil")
 	}
 	return result.(*ledger.GetHeaderByHeightRsp).Header, result.(*ledger.GetHeaderByHeightRsp).Error
 }
@@ -111,12 +117,8 @@ func GetBlockByHeight(height uint32) (*types.Block, error) {
 	future := defLedgerPid.RequestFuture(&ledger.GetBlockByHeightReq{Height: height}, ledgerReqTimeout)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Errorf("GetBlockByHeight Height:%d defLedgerPid.RequestFuture error:%s", height, err)
 		return nil, err
-	}
-	if result.(*ledger.GetBlockByHeightRsp).Block == nil {
-		log.Errorf("Get Block error: block is nil for height: %d", height)
-		return nil, errors.NewErr("GetBlockByHeight error: block is nil")
 	}
 	return result.(*ledger.GetBlockByHeightRsp).Block, result.(*ledger.GetBlockByHeightRsp).Error
 }
@@ -125,12 +127,8 @@ func GetHeaderByHash(hash common.Uint256) (*types.Header, error) {
 	future := defLedgerPid.RequestFuture(&ledger.GetHeaderByHashReq{BlockHash: hash}, ledgerReqTimeout)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Errorf("GetHeaderByHash Hash:%x defLedgerPid.RequestFuture error:%s", hash, err)
 		return nil, err
-	}
-	if result.(*ledger.GetHeaderByHashRsp).Header == nil {
-		log.Errorf("Get Header error: header is nil for hash: %d", hash)
-		return nil, errors.NewErr("GetHeaderByHash error: header is nil")
 	}
 	return result.(*ledger.GetHeaderByHashRsp).Header, result.(*ledger.GetHeaderByHashRsp).Error
 }
@@ -139,12 +137,8 @@ func GetBlockByHash(hash common.Uint256) (*types.Block, error) {
 	future := defLedgerPid.RequestFuture(&ledger.GetBlockByHashReq{BlockHash: hash}, ledgerReqTimeout)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Errorf("GetBlockByHash Hash:%x defLedgerPid.RequestFuture error:%s", hash, err)
 		return nil, err
-	}
-	if result.(*ledger.GetBlockByHashRsp).Block == nil {
-		log.Errorf("Get Block error: block is nil for hash: %d", hash)
-		return nil, errors.NewErr("GetBlockByHash error: block is nil")
 	}
 	return result.(*ledger.GetBlockByHashRsp).Block, result.(*ledger.GetBlockByHashRsp).Error
 }
@@ -153,7 +147,7 @@ func GetCurrentHeaderHeight() (uint32, error) {
 	future := defLedgerPid.RequestFuture(&ledger.GetCurrentHeaderHeightReq{}, ledgerReqTimeout)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Errorf("GetCurrentHeaderHeight defLedgerPid.RequestFuture error:%s", err)
 		return 0, err
 	}
 	return result.(*ledger.GetCurrentHeaderHeightRsp).Height, result.(*ledger.GetCurrentHeaderHeightRsp).Error
@@ -163,7 +157,7 @@ func GetCurrentBlockHeight() (uint32, error) {
 	future := defLedgerPid.RequestFuture(&ledger.GetCurrentBlockHeightReq{}, ledgerReqTimeout)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Errorf("GetCurrentBlockHeight defLedgerPid.RequestFuture: %s", err)
 		return 0, err
 	}
 	return result.(*ledger.GetCurrentBlockHeightRsp).Height, result.(*ledger.GetCurrentBlockHeightRsp).Error
@@ -173,7 +167,7 @@ func IsContainBlock(hash common.Uint256) (bool, error) {
 	future := defLedgerPid.RequestFuture(&ledger.IsContainBlockReq{BlockHash: hash}, ledgerReqTimeout)
 	result, err := future.Result()
 	if err != nil {
-		log.Error(errors.NewErr("ERROR: "), err)
+		log.Errorf("IsContainBlock Hash:%x defLedgerPid.RequestFuture: %s", hash, err)
 		return false, err
 	}
 	return result.(*ledger.IsContainBlockRsp).IsContain, result.(*ledger.IsContainBlockRsp).Error
