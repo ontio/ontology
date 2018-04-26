@@ -93,7 +93,6 @@ func Open(path string, passwordKey []byte) *ClientImpl {
 			log.Error("Get password error.")
 			return nil
 		}
-		fmt.Println("")
 		passwordKey = passwd
 	}
 

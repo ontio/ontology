@@ -204,6 +204,11 @@ func transferAsset(ctx *cli.Context) error {
 	}
 
 	acct := account.Open(account.WALLET_FILENAME, passwd)
+	if nil == acct {
+		fmt.Println("Open account failed, please check your input password and make sure your wallet.dat exist")
+		return errors.New("Get Account Error")
+	}
+
 	addr, err := common.AddressFromBase58(from)
 	if nil != err {
 		fmt.Println("Parase address from base58 error")
