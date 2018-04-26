@@ -84,6 +84,9 @@ func HeadersReqHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 		return err
 	}
 	remotePeer := p2p.GetPeer(data.Id)
+	if remotePeer == nil {
+		return errors.New("remotePeer invalid in HeadersReqHandle")
+	}
 	p2p.Send(remotePeer, buf, false)
 	return nil
 }
@@ -99,7 +102,9 @@ func PingHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 	ping.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
 
 	remotePeer := p2p.GetPeer(data.Id)
-
+	if remotePeer == nil {
+		return errors.New("remotePeer invalid in PingHandle")
+	}
 	remotePeer.SetHeight(ping.Height)
 
 	height, err := actor.GetCurrentBlockHeight()
@@ -128,6 +133,9 @@ func PongHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 	pong.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
 
 	remotePeer := p2p.GetPeer(data.Id)
+	if remotePeer == nil {
+		return errors.New("remotePeer invalid in PongHandle")
+	}
 	remotePeer.SetHeight(pong.Height)
 	return nil
 }
@@ -487,7 +495,9 @@ func DataReqHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 
 	//localPeer := p2p.Self
 	remotePeer := p2p.GetPeer(data.Id)
-
+	if remotePeer == nil {
+		return errors.New("remotePeer invalid in DataReqHandle")
+	}
 	reqType := common.InventoryType(dataReq.DataType)
 	hash := dataReq.Hash
 	switch reqType {
@@ -538,7 +548,9 @@ func InvHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 
 	//localPeer := p2p.Self
 	remotePeer := p2p.GetPeer(data.Id)
-
+	if remotePeer == nil {
+		return errors.New("remotePeer invalid in InvHandle")
+	}
 	var id common.Uint256
 	str := hex.EncodeToString(inv.P.Blk)
 	log.Debug(fmt.Sprintf("The inv type: 0x%x block len: %d, %s\n",
@@ -591,25 +603,16 @@ func DisconnectHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 	if remotePeer == nil {
 		return nil
 	}
-	i := strings.Index(data.Addr, ":")
-	if i < 0 {
-		log.Error("link address format error", data.Addr)
-		return errors.New("link address format error")
-	}
-	port, err := strconv.Atoi(data.Addr[i+1:])
-	if err != nil {
-		log.Error("Split port error", data.Addr[i+1:])
-		return errors.New("Split port error")
-	}
+
 	p2p.RemoveFromConnectingList(data.Addr)
 	p2p.RemovePeerSyncAddress(data.Addr)
 	p2p.RemovePeerConsAddress(data.Addr)
 
-	if remotePeer.SyncLink.GetPort() == uint16(port) {
+	if remotePeer.SyncLink.GetAddr() == data.Addr {
 		remotePeer.CloseSync()
 		remotePeer.CloseCons()
 	}
-	if remotePeer.ConsLink.GetPort() == uint16(port) {
+	if remotePeer.ConsLink.GetAddr() == data.Addr {
 		remotePeer.CloseCons()
 	}
 	return nil
