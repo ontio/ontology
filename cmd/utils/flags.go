@@ -23,35 +23,20 @@ import (
 )
 
 var (
-	WalletAddrFlag = cli.StringFlag{
-		Name:  "addr",
-		Usage: "wallet address string(base58)",
-	}
-
-	WalletNameFlag = cli.StringFlag{
-		Name:  "name",
-		Usage: "wallet name",
-	}
-
-	WalletUsedFlag = cli.StringFlag{
-		Name:  "wallet",
-		Usage: "which wallet will be used",
-	}
-
 	ConfigUsedFlag = cli.StringFlag{
 		Name:  "config",
-		Usage: "which config file will be used",
+		Usage: "Use `<filename>` as the config file",
 	}
 
 	// RPC settings
 	RPCEnabledFlag = cli.BoolFlag{
 		Name:  "rpc",
-		Usage: "enable rpc server? true or false",
+		Usage: "Enable rpc server",
 	}
 
 	WsEnabledFlag = cli.BoolFlag{
 		Name:  "ws",
-		Usage: "enable websocket server? true or false",
+		Usage: "Enable websocket server",
 	}
 
 	//information cmd settings
@@ -68,80 +53,77 @@ var (
 	//send raw transaction
 	ContractAddrFlag = cli.StringFlag{
 		Name:  "caddr",
-		Usage: "contract address that will be used when send raw transaction",
+		Usage: "contract `<address>` of the asset",
 	}
 
 	TransactionFromFlag = cli.StringFlag{
 		Name:  "from",
-		Usage: "address which transfer from",
+		Usage: "`<address>` which sends the asset",
 	}
 	TransactionToFlag = cli.StringFlag{
 		Name:  "to",
-		Usage: "address which transfer to",
+		Usage: "`<address>` which receives the asset",
 	}
 	TransactionValueFlag = cli.Int64Flag{
 		Name:  "value",
-		Usage: "transfer value",
-	}
-	UserPasswordFlag = cli.StringFlag{
-		Name:  "password",
-		Usage: "used when transfer",
+		Usage: "Specifies `<value>` as the transferred amount",
 	}
 
 	DebugLevelFlag = cli.UintFlag{
 		Name:  "debuglevel",
-		Usage: "debug level(0~6) will be set",
+		Usage: "Set the log level to `<level>` (0~6)",
 	}
 
 	ConsensusFlag = cli.StringFlag{
 		Name:  "consensus",
-		Usage: "consensus turn on/off",
+		Usage: "Turn `<on | off>` the consensus",
 	}
 
 	//contract deploy
-	ContractVmTypeFlag = cli.UintFlag{
+	ContractVmTypeFlag = cli.StringFlag{
 		Name:  "type",
-		Usage: "contract type ,value: NEOVM | WASM",
+		Value: "neovm",
+		Usage: "Specifies contract type to one of `<neovm|wasm>`",
 	}
 
 	ContractStorageFlag = cli.BoolFlag{
 		Name:  "store",
-		Usage: "does this contract will be stored, value: true or false",
+		Usage: "Store the contract",
 	}
 
 	ContractCodeFlag = cli.StringFlag{
 		Name:  "code",
-		Usage: "directory of smart contract that will be deployed",
+		Usage: "Input contracts from `<path>`",
 	}
 
 	ContractNameFlag = cli.StringFlag{
 		Name:  "cname",
-		Usage: "contract name that will be deployed",
+		Usage: "Specifies contract name to `<name>`",
 	}
 
 	ContractVersionFlag = cli.StringFlag{
 		Name:  "cversion",
-		Usage: "contract version which will be deployed",
+		Usage: "Specifies contract version to `<ver>`",
 	}
 
 	ContractAuthorFlag = cli.StringFlag{
 		Name:  "author",
-		Usage: "owner of deployed smart contract",
+		Usage: "Set `<address>` as the contract owner",
 	}
 
 	ContractEmailFlag = cli.StringFlag{
 		Name:  "email",
-		Usage: "owner email when deploy a smart contract",
+		Usage: "Set `<email>` owner's email address",
 	}
 
 	ContractDescFlag = cli.StringFlag{
 		Name:  "desc",
-		Usage: "contract description when deploy one",
+		Usage: "Set `<text>` as the description of the contract",
 	}
 
 	ContractParamsFlag = cli.StringFlag{
 		Name:  "params",
-		Usage: "contract parameter needed when invoded",
+		Usage: "Specifies contract parameters `<list>` when invoked",
 	}
 	NonOptionFlag = cli.StringFlag{
 		Name:  "optiion",
@@ -162,24 +144,25 @@ var (
 	}
 	AccountSigSchemeFlag = cli.StringFlag{
 		Name:  "signature-scheme,s",
-		Usage: "Specifies the `<scheme>`",
+		Usage: "Specifies the signature scheme `<scheme>`",
 	}
 	AccountPassFlag = cli.StringFlag{
-		Name:  "password,p",
-		Usage: "Specifies the `<password>` for encrypting the private key",
+		Name:   "password,p",
+		Hidden: true,
+		Usage:  "Specifies `<password>` for the account",
 	}
 	AccountDefaultFlag = cli.BoolFlag{
 		Name:  "default,d",
-		Usage: "Use default settings",
+		Usage: "Use default settings (equal to '-t ecdsa -b 256 -s SHA256withECDSA')",
 	}
 	AccountSetDefaultFlag = cli.BoolFlag{
-		Name:  "to-default,d",
+		Name:  "as-default,d",
 		Usage: "Set the specified account to default",
 	}
 	AccountFileFlag = cli.StringFlag{
 		Name:  "file,f",
 		Value: "wallet.dat",
-		Usage: "Specifies the `<filename>` of wallet.",
+		Usage: "Use `<filename>` as the wallet",
 	}
 )
 

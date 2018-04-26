@@ -30,10 +30,14 @@ import (
 
 var (
 	SettingCommand = cli.Command{
-		Name:        "set",
-		Action:      utils.MigrateFlags(settingCommand),
-		Usage:       "Set node configurations",
-		Flags:       append(NodeFlags, ContractFlags...),
+		Name:      "set",
+		Action:    utils.MigrateFlags(settingCommand),
+		Usage:     "Set node configurations",
+		ArgsUsage: " ",
+		Flags: []cli.Flag{
+			utils.ConsensusFlag,
+			utils.DebugLevelFlag,
+		},
 		Description: ``,
 	}
 )
@@ -51,7 +55,7 @@ func settingCommand(ctx *cli.Context) error {
 		return nil
 	} else if ctx.IsSet(utils.ConsensusFlag.Name) {
 		consensusSwitch := ctx.String(utils.ConsensusFlag.Name)
-		wallet := ctx.GlobalString(utils.WalletNameFlag.Name)
+		wallet := ctx.GlobalString("file")
 		client := account.Open(wallet, nil)
 		if client == nil {
 			fmt.Println("Can't get local account.")
@@ -75,7 +79,6 @@ func settingCommand(ctx *cli.Context) error {
 		fmt.Printf("%v\n", r)
 		return nil
 	}
-
-	showSettingHelp()
+	cli.ShowSubcommandHelp(ctx)
 	return nil
 }

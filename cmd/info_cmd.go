@@ -33,10 +33,9 @@ import (
 
 var (
 	InfoCommand = cli.Command{
-		Action: utils.MigrateFlags(infoCommand),
+		Action: infoCommand,
 		Name:   "info",
 		Usage:  "Display informations about the chain",
-		Flags:  append(NodeFlags, InfoFlags...),
 		Subcommands: []cli.Command{
 			blockCommandSet,
 			txCommandSet,
@@ -47,10 +46,13 @@ var (
 )
 
 var blockCommandSet = cli.Command{
-	Action:       utils.MigrateFlags(blockInfoCommand),
-	Name:         "block",
-	Usage:        "Display block informations",
-	Flags:        append(NodeFlags, InfoFlags...),
+	Action: utils.MigrateFlags(blockInfoCommand),
+	Name:   "block",
+	Usage:  "Display block informations",
+	Flags: []cli.Flag{
+		utils.HashInfoFlag,
+		utils.HeightInfoFlag,
+	},
 	OnUsageError: blockInfoUsageError,
 	Description:  ``,
 	Subcommands: []cli.Command{
@@ -64,10 +66,12 @@ var blockCommandSet = cli.Command{
 }
 
 var txCommandSet = cli.Command{
-	Action:       utils.MigrateFlags(txInfoCommand),
-	Name:         "tx",
-	Usage:        "Display transaction informations",
-	Flags:        append(NodeFlags, InfoFlags...),
+	Action: utils.MigrateFlags(txInfoCommand),
+	Name:   "tx",
+	Usage:  "Display transaction informations",
+	Flags: []cli.Flag{
+		utils.HashInfoFlag,
+	},
 	OnUsageError: txInfoUsageError,
 	Description:  ``,
 }
@@ -81,13 +85,13 @@ var versionCommand = cli.Command{
 }
 
 func infoCommand(context *cli.Context) error {
-	showInfoHelp()
+	cli.ShowSubcommandHelp(context)
 	return nil
 }
 
 func blockInfoUsageError(context *cli.Context, err error, isSubcommand bool) error {
-	fmt.Println("Error:", err.Error())
-	showBlockInfoHelp()
+	fmt.Println("Error:", err.Error(), "\n")
+	cli.ShowSubcommandHelp(context)
 	return nil
 }
 
@@ -102,14 +106,14 @@ func getCurrentBlockHeight(ctx *cli.Context) error {
 }
 
 func txInfoUsageError(context *cli.Context, err error, isSubcommand bool) error {
-	fmt.Println("Error:", err.Error())
-	showTxInfoHelp()
+	fmt.Println("Error:", err.Error(), "\n")
+	cli.ShowSubcommandHelp(context)
 	return nil
 }
 
 func versionInfoUsageError(context *cli.Context, err error, isSubcommand bool) error {
-	fmt.Println("Error:", err.Error())
-	showVersionInfoHelp()
+	fmt.Println("Error:", err.Error(), "\n")
+	cli.ShowSubcommandHelp(context)
 	return nil
 }
 
@@ -133,7 +137,7 @@ func txInfoCommand(ctx *cli.Context) error {
 		common.EchoJsonDataGracefully(resp)
 		return nil
 	}
-	showTxInfoHelp()
+	cli.ShowSubcommandHelp(ctx)
 	return nil
 }
 
@@ -159,7 +163,8 @@ func blockInfoCommand(ctx *cli.Context) error {
 			return nil
 		}
 	}
-	showBlockInfoHelp()
+
+	cli.ShowSubcommandHelp(ctx)
 	return nil
 }
 

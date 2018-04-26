@@ -87,13 +87,12 @@ func setupAPP() *cli.App {
 		cmd.SettingCommand,
 		cmd.ContractCommand,
 	}
-	startFlags := []cli.Flag{
-		utils.WalletUsedFlag,
+	app.Flags = []cli.Flag{
+		utils.AccountFileFlag,
+		utils.AccountPassFlag,
 		utils.ConfigUsedFlag,
 	}
 
-	app.Flags = append(append(append(app.Flags, cmd.NodeFlags...), cmd.ContractFlags...), cmd.InfoFlags...)
-	app.Flags = append(app.Flags, startFlags...)
 	return app
 }
 
@@ -136,7 +135,7 @@ func ontMain(ctx *cli.Context) {
 		}
 	}
 
-	wallet := ctx.GlobalString(utils.WalletNameFlag.Name)
+	wallet := ctx.GlobalString("file")
 	client := account.Open(wallet, pwd)
 	if client == nil {
 		log.Fatal("Can't get local account.")

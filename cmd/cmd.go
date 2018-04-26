@@ -66,7 +66,7 @@ func restfulAddr() string {
 func init() {
 	ontSdk = sdk.NewOntologySdk()
 	ontSdk.Rpc.SetAddress(rpcAddress())
-	cli.AppHelpTemplate = AppHelpTemplate
+	//cli.AppHelpTemplate = AppHelpTemplate
 }
 
 // flagGroup is a collection of flags belonging to a single topic.
@@ -77,27 +77,6 @@ type flagGroup struct {
 
 // AppHelpFlagGroups is the application flags, grouped by functionality.
 var AppHelpFlagGroups = []flagGroup{
-	{
-		Name: "ONTOLOGY WALLET CREATE",
-		Flags: []cli.Flag{
-			utils.WalletNameFlag,
-		},
-	},
-
-	{
-		Name: "ONTOLOGY WALLET SHOW",
-		Flags: []cli.Flag{
-			utils.NonOptionFlag,
-		},
-	},
-
-	{
-		Name: "ONTOLOGY WALLET BALANCE",
-		Flags: []cli.Flag{
-			utils.WalletAddrFlag,
-		},
-	},
-
 	{
 		Name: "ONTOLOGY INFO BLOCK",
 		Flags: []cli.Flag{
@@ -134,7 +113,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.TransactionToFlag,
 			utils.TransactionValueFlag,
 			utils.ContractAddrFlag,
-			utils.UserPasswordFlag,
+			utils.AccountPassFlag,
 		},
 	},
 

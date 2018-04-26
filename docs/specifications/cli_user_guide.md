@@ -7,12 +7,17 @@
 - [CLI Setting Command](#cli-setting-cmd)
 - [CLI Contract Command](#cli-contract-cmd)
 
-```
 User can start ontology directly,by the command as follow:
-$./ontology
 
-If want to know the command that ontology contains, user can run ontology with --help:
-$./ontology --help
+```sh
+$./ontology
+```
+
+The following commands will print the usage of the command or subcommand:
+
+```
+./ontology help
+./ontology <command> help
 ```
 --- 
 
@@ -24,7 +29,7 @@ Create a new account contains a key pair and an address.
 
 First select the key type, which could be specified via `-t` option.
 
-```
+```sh
 $ ontology account add
 
 Select a signature algorithm from the following:
@@ -38,20 +43,20 @@ Select a signature algorithm from the following:
 
 If SM2 or EdDSA is selected, the parameters are auto set since each of the two only supports one default setting.
 
-```
+```sh
 SM2 is selected.
 Use curve sm2p256v1 with key length of 256 bits and SM3withSM2 as the signature scheme.
 ```
 or
 
-```
+```sh
 Ed25519 is selected.
 Use curve 25519 with key length of 256 bits and Ed25519 as the signature scheme.
 ```
 
 If ECDSA is selected, the next step is to select the curve:
 
-```
+```sh
 Select a curve from the following:
 
     | NAME  | KEY LENGTH (bits)
@@ -69,7 +74,7 @@ This parameter could be specified via `-b` option.
 
 Then select a signature scheme:
 
-```
+```sh
 Select a signature scheme from the following:
 
   1  SHA224withECDSA
@@ -85,22 +90,23 @@ Select a signature scheme from the following:
 This can be changed later [default is 2]: 
 ```
 
-The above selections can be skipped by adding `--default` option, while using the default parameters.
+The above selections can be skipped by adding `-d` or `--default` option, which
+means using the default parameters.
 
-The private key needs be encrypted. This requires a password:
+The private key needs to be encrypted and requires a password:
 
-```
+```sh
 Enter a password for encrypting the private key:
 Re-enter password:
 ```
 
-The private key can be re-encrypted using the `encrypt` command.
+It can be re-encrypted later using the `encrypt` command.
 
 After all the parameters are selected, it will generate a key pair. 
 
 The public key will be converted to generate the address. Then output the public informations.
 
-```
+```sh
 Create account successfully.
 Address: `base58-address-string`
 Public key: `hex-string`
@@ -109,7 +115,7 @@ Signature scheme: SHA256withECDSA
 
 ### List existing account
 
-```
+```sh
 $ ontology account list
 * 1  xxxxx
   2  xxxxx
@@ -119,7 +125,7 @@ The `*` indicates the default account.
 
 With `-v` option, details of each account would be displayed.
 
-```
+```sh
 $ ontology account list -v
 * 1 xxxxx
     Signature algorithm: ECDSA
@@ -133,20 +139,35 @@ $ ontology account list -v
 
 ### Modify account
 
-Modify the account settings, such as the signature scheme.
-Account is specified by the index displaying in the list command.
+Modify the account settings, such as the signature scheme, or set the account
+as default.
+
+Account is specified by the index displayed in the `list` command.
+
+```sh
+$ ontology account set -s SHA256withECDSA 1
+SHA256withECDSA is selected.
+
+$ ontology account set -d 2
+Set account 2 as the default account
+```
 
 
 ### Delete account
 
 Delete an existing account by specifying the index.
 
+```sh
+$ ontology account del 1
+Delete account successfully.
+index = 1, address = xxx
+```
 
 ### Re-encrypt account
 
 Change the password for an account.
 
-```
+```sh
 $ ontology account encrypt 1
 
 Please enter the original password:
@@ -154,12 +175,13 @@ Please enter the original password:
 
 Then input the new password if the original password is correct.
 
-```
+```sh
 Enter a password for encrypting the private key:
 Re-enter password:
 ```
 
 ## <a name="cli-info-show-cmd"></a>CLI Info Show Command
+
 ```
 Usage:
     ontology info [command options] [args]

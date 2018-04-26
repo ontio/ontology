@@ -113,14 +113,18 @@ To run Ontology successfully,  nodes can be deployed by two ways:
     Here's a example of host configuration:
    
     Directory structure
+
     ```shell
     $ tree
     └── ontology
         ├── ontology
         └── wallet.dat
     ```        
+
 2.Start ontology  
   PS: There is no need of config.json file, will use the default setting.
+
+**NOTE**: The format of wallet file has been changed. Old wallets can not be used now. Please generate new wallet.
 
 #### Single-host deployment configuration
 
@@ -129,7 +133,7 @@ Create a directory on the host and store the following files in the directory:
 - Default configuration file `config.json`
 - Node program + Node control program  `ontology`
 - Wallet file`wallet.dat`, copy the contents of the configuration file config-solo.config in the root directory to config.json and start the node.
-- Edit the config.json file and replace the bookkeeper entries with the public key of your wallet (created above). Use `$ ./ontology wallet show --name=wallet.dat` to get your public key.
+- Edit the config.json file and replace the bookkeeper entries with the public key of your wallet (created above). Use `$ ./ontology account list -v` to get your public key.
 
 Here's a example of single-host configuration:
 
@@ -154,7 +158,7 @@ We can perform a quick deployment by modifying the default configuration file `c
 1. Copy related file into target host, including:
 
    - Default configuration file`config.json`
-   - Node program`ontology`
+   - Node program `ontology`
 
 2. Set the network connection port number for each node (recommend using the default port configuration, instead of modifying)
 
