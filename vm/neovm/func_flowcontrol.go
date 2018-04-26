@@ -19,9 +19,6 @@
 package neovm
 
 import (
-	"fmt"
-
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/vm/neovm/errors"
 )
 
@@ -35,14 +32,12 @@ func opJmp(e *ExecutionEngine) (VMState, error) {
 	offset = e.Context.GetInstructionPointer() + offset - 3
 
 	if offset < 0 || offset > len(e.Context.Code) {
-		log.Error(fmt.Sprintf("[opJmp] offset:%v > e.contex.Code len:%v error", offset, len(e.Context.Code)))
 		return FAULT, errors.ERR_FAULT
 	}
 	var fValue = true
 
 	if e.OpCode > JMP {
 		if EvaluationStackCount(e) < 1 {
-			log.Error(fmt.Sprintf("[opJmp] stack count:%v > 1 error", EvaluationStackCount(e)))
 			return FAULT, errors.ERR_UNDER_STACK_LEN
 		}
 		fValue = PopBoolean(e)
