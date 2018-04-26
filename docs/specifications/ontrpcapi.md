@@ -320,7 +320,7 @@ Response:
 
 #### 6. getgenerateblocktime
 
-Get a list of unconfirmed transactions in memory.
+The time required to create a new block
 
 #### Example
 
@@ -343,13 +343,9 @@ Reponse:
   "error":0,
   "jsonrpc": "2.0",
   "id": 1,
-  "result": [
-    "b4534f6d4c17cda008a76a1968b7fa6256cd90ca448739eae8e828698ccc44e7"
-  ]
+  "result": 6
 }
 ```
-
-These are the undetermined transactions received by the node, that is, those with zero confirmed transactions.
 
 #### 7. getrawtransaction
 
