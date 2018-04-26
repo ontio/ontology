@@ -160,6 +160,9 @@ type TxPoolActor struct {
 	server *TXPoolServer
 }
 
+// Static (compile time) check that TxPoolActor satisfies the actor.Actor interface.
+var _ actor.Actor = (*TxPoolActor)(nil)
+
 // Receive implements the actor interface
 func (tpa *TxPoolActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {

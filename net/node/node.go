@@ -67,8 +67,11 @@ type node struct {
 	tryTimes                 uint32
 	ConnectingNodes
 	RetryConnAddrs
-	blockSync  *BlockSyncMgr
+	blockSync *BlockSyncMgr
 }
+
+// Static (compile time) check that node satisfies the protocol.Noder interface.
+var _ protocol.Noder = (*node)(nil)
 
 type RetryConnAddrs struct {
 	sync.RWMutex
@@ -531,12 +534,11 @@ func (node *node) RemoveFromRetryList(addr string) {
 	}
 }
 
-
-func (node *node) OnAddNode(n protocol.Noder){
+func (node *node) OnAddNode(n protocol.Noder) {
 	node.AddNbrNode(n)
 	node.blockSync.OnAddNode(n.GetID())
 }
-func (node *node) OnDelNode(nodeId uint64) (protocol.Noder, bool){
+func (node *node) OnDelNode(nodeId uint64) (protocol.Noder, bool) {
 	node.blockSync.OnDelNode(nodeId)
 	return node.DelNbrNode(nodeId)
 }

@@ -39,6 +39,9 @@ type Ledger struct {
 	ldgStore store.LedgerStore
 }
 
+// Static (compile time) check that ledgerstore.LedgerStoreImp satisfies the store.LedgerStore interface.
+var _ store.LedgerStore = (*ledgerstore.LedgerStoreImp)(nil)
+
 func NewLedger() (*Ledger, error) {
 	ldgStore, err := ledgerstore.NewLedgerStore()
 	if err != nil {

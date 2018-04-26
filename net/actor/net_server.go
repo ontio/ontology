@@ -21,9 +21,9 @@ package actor
 import (
 	"reflect"
 
+	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/net/protocol"
-	"github.com/ontio/ontology-eventbus/actor"
 )
 
 var netServerPid *actor.PID
@@ -31,6 +31,9 @@ var netServerPid *actor.PID
 var node protocol.Noder
 
 type NetServer struct{}
+
+// Static (compile time) check that NetServer satisfies the actor.Actor interface.
+var _ actor.Actor = (*NetServer)(nil)
 
 type GetNodeVersionReq struct {
 }
