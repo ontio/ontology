@@ -253,7 +253,6 @@ func (this *P2PServer) blockSyncFinished() bool {
 
 //WaitForSyncBlkFinish compare the height of self and remote peer in loop
 func (this *P2PServer) WaitForSyncBlkFinish() {
-	var periodTime uint
 	consensusType := strings.ToLower(config.Parameters.ConsensusType)
 	if consensusType == "solo" {
 		return
@@ -268,12 +267,8 @@ func (this *P2PServer) WaitForSyncBlkFinish() {
 		if this.blockSyncFinished() {
 			break
 		}
-		if config.Parameters.GenBlockTime > config.MIN_GEN_BLOCK_TIME {
-			periodTime = config.Parameters.GenBlockTime / common.UPDATE_RATE_PER_BLOCK
-		} else {
-			periodTime = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
-		}
-		<-time.After(time.Second * (time.Duration(periodTime)))
+
+		<-time.After(time.Second * (time.Duration(common.SYNC_BLK_WAIT)))
 	}
 }
 

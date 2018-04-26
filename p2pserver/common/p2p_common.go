@@ -55,6 +55,7 @@ const (
 	CONN_MAX_BACK         = 4000      //max backoff time in micro sec
 	MAX_RETRY_COUNT       = 3         //max reconnect time of remote peer
 	CHAN_CAPABILITY       = 10000     //chhannel capability of recv link
+	SYNC_BLK_WAIT         = 2         //time interval for blk sync check
 )
 
 // The peer state
