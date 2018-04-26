@@ -406,31 +406,33 @@ func VerAckHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 
 		remotePeer.SetSyncState(msgCommon.ESTABLISH)
 
+		remotePeer.DumpInfo()
+
+		addr := remotePeer.SyncLink.GetAddr()
+
 		if s == msgCommon.HAND_SHAKE {
 			buf, _ := msgpack.NewVerAck(false)
 			p2p.Send(remotePeer, buf, false)
-		}
 
-		remotePeer.DumpInfo()
+		} else {
+			//consensus port connect
+			if config.Parameters.DualPortSurpport {
+				i := strings.Index(addr, ":")
+				if i < 0 {
+					log.Warn("Split IP address error", addr)
+					return nil
+				}
+				nodeConsensusAddr := addr[:i] + ":" +
+					strconv.Itoa(int(remotePeer.GetConsPort()))
+				go p2p.Connect(nodeConsensusAddr, true)
+			}
+
+		}
 
 		buf, _ := msgpack.NewAddrReq()
 		go p2p.Send(remotePeer, buf, false)
 
-		addr := remotePeer.SyncLink.GetAddr()
 		p2p.RemoveFromConnectingList(addr)
-		//consensus port connect
-		if config.Parameters.DualPortSurpport == false {
-			return nil
-		}
-
-		i := strings.Index(addr, ":")
-		if i < 0 {
-			log.Warn("Split IP address error", addr)
-			return nil
-		}
-		nodeConsensusAddr := addr[:i] + ":" +
-			strconv.Itoa(int(remotePeer.GetConsPort()))
-		go p2p.Connect(nodeConsensusAddr, true)
 
 		return nil
 	}
