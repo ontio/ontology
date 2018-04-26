@@ -431,7 +431,7 @@ func (this *NetServer) startConsAccept(listener net.Listener) {
 		}
 		remotePeer.ConsLink.SetAddr(addr)
 		remotePeer.ConsLink.SetConn(conn)
-		remotePeer.AttachSyncChan(this.ConsChan)
+		remotePeer.AttachConsChan(this.ConsChan)
 		go remotePeer.ConsLink.Rx()
 	}
 }
