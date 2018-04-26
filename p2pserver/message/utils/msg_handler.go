@@ -42,7 +42,7 @@ import (
 
 // AddrReqHandle hadnles the neighbor address request from peer
 func AddrReqHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
-	log.Debug("RX addr request message")
+	log.Debug("RX addr request message", data.Addr, data.Id)
 	p2p := args[0].(p2p.P2P)
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
@@ -62,7 +62,7 @@ func AddrReqHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 
 // HeaderReqHandle handles the header sync req from peer
 func HeadersReqHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
-	log.Debug("RX headers request message")
+	log.Debug("RX headers request message", data.Addr, data.Id)
 	p2p := args[0].(p2p.P2P)
 	length := len(data.Payload)
 
@@ -90,7 +90,7 @@ func HeadersReqHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 
 //PingHandle handle ping msg from peer
 func PingHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
-	log.Debug("RX ping message")
+	log.Debug("RX ping message", data.Addr, data.Id)
 	p2p := args[0].(p2p.P2P)
 	length := len(data.Payload)
 
@@ -119,7 +119,7 @@ func PingHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 
 ///PongHandle handle pong msg from peer
 func PongHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
-	log.Debug("RX pong message")
+	log.Debug("RX pong message", data.Addr, data.Id)
 	p2p := args[0].(p2p.P2P)
 	length := len(data.Payload)
 
@@ -134,7 +134,7 @@ func PongHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 
 // BlkHeaderHandle handles the sync headers from peer
 func BlkHeaderHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
-	log.Debug("RX block header message")
+	log.Debug("RX block header message", data.Addr, data.Id)
 	length := len(data.Payload)
 	var blkHeader msgTypes.BlkHeader
 	blkHeader.Deserialization(data.Payload[:length])
@@ -151,7 +151,7 @@ func BlkHeaderHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 
 // BlockHandle handles the block message from peer
 func BlockHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
-	log.Debug("RX block message from ", data.Id)
+	log.Debug("RX block message from ", data.Addr, data.Id)
 	var pid *evtActor.PID
 	if args[1] != nil {
 		pid = args[1].(*evtActor.PID)
@@ -180,7 +180,7 @@ func BlockHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 
 // ConsensusHandle handles the consensus message from peer
 func ConsensusHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
-	log.Debug("RX consensus message")
+	log.Debug("RX consensus message", data.Addr, data.Id)
 	length := len(data.Payload)
 
 	var consensus msgTypes.Consensus
@@ -205,7 +205,7 @@ func NotFoundHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 
 // TransactionHandle handles the transaction message from peer
 func TransactionHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
-	log.Debug("RX transaction message")
+	log.Debug("RX transaction message", data.Addr, data.Id)
 	length := len(data.Payload)
 
 	var trn msgTypes.Trn
@@ -220,7 +220,8 @@ func TransactionHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 
 // VersionHandle handles version handshake protocol from peer
 func VersionHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
-	log.Debug("RX version message")
+	log.Debug("RX version message", data.Addr, data.Id)
+
 	p2p := args[0].(p2p.P2P)
 	length := len(data.Payload)
 
@@ -241,13 +242,13 @@ func VersionHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 		remotePeer := p2p.GetPeerFromAddr(data.Addr)
 
 		if remotePeer == nil {
-			log.Warn(" peer is not exist")
+			log.Warn(" peer is not exist", data.Addr)
 			return errors.New("peer is not exist ")
 		}
 		p := p2p.GetPeer(version.P.Nonce)
 
 		if p == nil {
-			log.Warn("sync link is not exist")
+			log.Warn("sync link is not exist", version.P.Nonce)
 			p2p.RemovePeerConsAddress(data.Addr)
 			return errors.New("sync link is not exist")
 		} else {
@@ -292,7 +293,7 @@ func VersionHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 		remotePeer := p2p.GetPeerFromAddr(data.Addr)
 
 		if remotePeer == nil {
-			log.Warn("peer is not exist")
+			log.Warn("peer is not exist", data.Addr)
 			p2p.RemovePeerSyncAddress(data.Addr)
 			return errors.New("peer is not exist ")
 		}
@@ -318,8 +319,8 @@ func VersionHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 			n.CloseSync()
 			n.SetConsState(msgCommon.INACTIVITY)
 			n.CloseCons()
-			p2p.RemovePeerSyncAddress(data.Addr)
-			p2p.RemovePeerConsAddress(data.Addr)
+			p2p.RemovePeerSyncAddress(n.GetAddr())
+			p2p.RemovePeerConsAddress(n.GetAddr())
 		}
 
 		log.Debug("handle version version.pk is ", version.PK)
@@ -356,7 +357,7 @@ func VersionHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 
 // VerAckHandle handles the version ack from peer
 func VerAckHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
-	log.Debug("RX verAck message")
+	log.Debug("RX verAck message from ", data.Addr, data.Id)
 	p2p := args[0].(p2p.P2P)
 	length := len(data.Payload)
 	p2p.RemoveFromConnectingList(data.Addr)
@@ -371,7 +372,7 @@ func VerAckHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 	remotePeer := p2p.GetPeer(data.Id)
 
 	if remotePeer == nil {
-		log.Warn("nbr node is not exist")
+		log.Warn("nbr node is not exist", data.Id, data.Addr)
 		return errors.New("nbr node is not exist ")
 	}
 
@@ -438,7 +439,7 @@ func VerAckHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 
 // AddrHandle handles the neighbor address response message from peer
 func AddrHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
-	log.Debug("Handle addr message")
+	log.Debug("Handle addr message", data.Addr, data.Id)
 	p2p := args[0].(p2p.P2P)
 	length := len(data.Payload)
 
@@ -460,6 +461,10 @@ func AddrHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 			continue
 		}
 
+		if ret := p2p.GetPeerFromAddr(address); ret != nil {
+			continue
+		}
+
 		if v.Port == 0 {
 			continue
 		}
@@ -471,7 +476,7 @@ func AddrHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 
 // DataReqHandle handles the data req(block/Transaction) from peer
 func DataReqHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
-	log.Debug("RX data req message")
+	log.Debug("RX data req message", data.Addr, data.Id)
 	p2p := args[0].(p2p.P2P)
 	length := len(data.Payload)
 
@@ -522,7 +527,7 @@ func DataReqHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 // InvHandle handles the inventory message(block,
 // transaction and consensus) from peer.
 func InvHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
-	log.Debug("RX inv message")
+	log.Debug("RX inv message", data.Addr, data.Id)
 	p2p := args[0].(p2p.P2P)
 	length := len(data.Payload)
 	var inv msgTypes.Inv
