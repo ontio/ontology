@@ -23,11 +23,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/big"
+	"os"
 	"time"
 
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/password"
 	"github.com/ontio/ontology/smartcontract/types"
 	"github.com/urfave/cli"
 )
@@ -37,6 +39,7 @@ var (
 		Name:         "contract",
 		Action:       utils.MigrateFlags(contractCommand),
 		Usage:        "Deploy or invoke smart contract",
+		ArgsUsage:    " ",
 		OnUsageError: contractUsageError,
 		Description:  `Deploy or invoke smart contract`,
 		Subcommands: []cli.Command{
@@ -45,52 +48,92 @@ var (
 				Name:         "invoke",
 				OnUsageError: invokeUsageError,
 				Usage:        "Invoke a deployed smart contract",
-				Flags:        append(NodeFlags, ContractFlags...),
-				Description:  ``,
+				ArgsUsage:    " ",
+				Flags: []cli.Flag{
+					utils.ContractAddrFlag,
+					utils.ContractParamsFlag,
+					utils.AccountFileFlag,
+					utils.AccountPassFlag,
+				},
+				Description: ``,
 			},
 			{
 				Action:       utils.MigrateFlags(deployContract),
 				OnUsageError: deployUsageError,
 				Name:         "deploy",
 				Usage:        "Deploy a smart contract to the chain",
-				Flags:        append(NodeFlags, ContractFlags...),
-				Description:  ``,
+				ArgsUsage:    " ",
+				Flags: []cli.Flag{
+					utils.ContractVmTypeFlag,
+					utils.ContractStorageFlag,
+					utils.ContractCodeFlag,
+					utils.ContractNameFlag,
+					utils.ContractVersionFlag,
+					utils.ContractAuthorFlag,
+					utils.ContractEmailFlag,
+					utils.ContractDescFlag,
+					utils.AccountFileFlag,
+					utils.AccountPassFlag,
+				},
+				Description: ``,
 			},
 		},
 	}
 )
 
 func contractCommand(ctx *cli.Context) error {
-	showContractHelp()
+	cli.ShowSubcommandHelp(ctx)
 	return nil
 }
 
 func contractUsageError(context *cli.Context, err error, isSubcommand bool) error {
-	fmt.Println(err.Error())
-	showContractHelp()
+	fmt.Println(err.Error(), "\n")
+	cli.ShowSubcommandHelp(context)
 	return nil
 }
 
 func invokeUsageError(context *cli.Context, err error, isSubcommand bool) error {
-	fmt.Println(err.Error())
-	showInvokeHelp()
+	fmt.Println(err.Error(), "\n")
+	cli.ShowSubcommandHelp(context)
 	return nil
 }
 
 func invokeContract(ctx *cli.Context) error {
 	if !ctx.IsSet(utils.ContractAddrFlag.Name) || !ctx.IsSet(utils.ContractParamsFlag.Name) {
-		showInvokeHelp()
+		fmt.Println("Missing argument.\n")
+		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
 
-	wallet := ctx.GlobalString(utils.WalletNameFlag.Name)
-	client := account.Open(wallet, nil)
+	var wallet = account.WALLET_FILENAME
+	if ctx.IsSet("file") {
+		wallet = ctx.String("file")
+	}
+	var passwd []byte
+	var err error
+	if ctx.IsSet("password") {
+		passwd = []byte(ctx.String("password"))
+	} else {
+		passwd, err = password.GetAccountPassword()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return errors.New("input password error")
+		}
+	}
+	client := account.Open(wallet, passwd)
+	for i, _ := range passwd {
+		passwd[i] = 0
+	}
 	if client == nil {
 		fmt.Println("Can't get local account")
 		return errors.New("Get client is nil")
 	}
 
 	acct := client.GetDefaultAccount()
+	if acct == nil {
+		fmt.Println("Can't get default account.")
+		return errors.New("Deploy contract failed.")
+	}
 
 	contractAddr := ctx.String(utils.ContractAddrFlag.Name)
 	params := ctx.String(utils.ContractParamsFlag.Name)
@@ -120,11 +163,11 @@ func invokeContract(ctx *cli.Context) error {
 	return err
 }
 
-func getVmType(vmType uint) types.VmType {
+func getVmType(vmType string) types.VmType {
 	switch vmType {
-	case 1:
+	case "neovm":
 		return types.NEOVM
-	case 2:
+	case "wasm":
 		return types.WASMVM
 	default:
 		return types.NEOVM
@@ -132,8 +175,8 @@ func getVmType(vmType uint) types.VmType {
 }
 
 func deployUsageError(context *cli.Context, err error, isSubcommand bool) error {
-	fmt.Println(err.Error())
-	showDeployHelp()
+	fmt.Println(err.Error(), "\n")
+	cli.ShowSubcommandHelp(context)
 	return nil
 }
 
@@ -142,21 +185,43 @@ func deployContract(ctx *cli.Context) error {
 		!ctx.IsSet(utils.ContractCodeFlag.Name) || !ctx.IsSet(utils.ContractNameFlag.Name) ||
 		!ctx.IsSet(utils.ContractVersionFlag.Name) || !ctx.IsSet(utils.ContractAuthorFlag.Name) ||
 		!ctx.IsSet(utils.ContractEmailFlag.Name) || !ctx.IsSet(utils.ContractDescFlag.Name) {
-		showDeployHelp()
+		fmt.Println("Missing argument.\n")
+		cli.ShowSubcommandHelp(ctx)
 		return errors.New("Parameter is err")
 	}
 
-	wallet := ctx.GlobalString(utils.WalletNameFlag.Name)
-	client := account.Open(wallet, nil)
+	var wallet = account.WALLET_FILENAME
+	if ctx.IsSet("file") {
+		wallet = ctx.String("file")
+	}
+	var passwd []byte
+	var err error
+	if ctx.IsSet("password") {
+		passwd = []byte(ctx.String("password"))
+	} else {
+		passwd, err = password.GetAccountPassword()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return errors.New("input password error")
+		}
+	}
+	client := account.Open(wallet, passwd)
+	for i, _ := range passwd {
+		passwd[i] = 0
+	}
 	if nil == client {
-		fmt.Println("Can't get local account.")
+		fmt.Println("Error load wallet file", wallet)
 		return errors.New("Get client return nil")
 	}
 
 	acct := client.GetDefaultAccount()
+	if acct == nil {
+		fmt.Println("Can't get default account.")
+		return errors.New("Deploy contract failed.")
+	}
 
 	store := ctx.Bool(utils.ContractStorageFlag.Name)
-	vmType := getVmType(ctx.Uint(utils.ContractVmTypeFlag.Name))
+	vmType := getVmType(ctx.String(utils.ContractVmTypeFlag.Name))
 
 	codeDir := ctx.String(utils.ContractCodeFlag.Name)
 	if "" == codeDir {

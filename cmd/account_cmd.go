@@ -100,7 +100,7 @@ var (
 		Description: `Manage accounts stored in the wallet`,
 		Subcommands: []cli.Command{
 			{
-				Action:      utils.MigrateFlags(accountCreate),
+				Action:      accountCreate,
 				Name:        "add",
 				Usage:       "Add a new account",
 				ArgsUsage:   " ",
@@ -108,7 +108,7 @@ var (
 				Description: `Add a new account`,
 			},
 			{
-				Action:      utils.MigrateFlags(accountShow),
+				Action:      accountShow,
 				Name:        "list",
 				Usage:       "List existing accounts",
 				ArgsUsage:   " ",
@@ -116,29 +116,29 @@ var (
 				Description: `List existing accounts`,
 			},
 			{
-				Action:      utils.MigrateFlags(accountSet),
+				Action:      accountSet,
 				Name:        "set",
 				Usage:       "Modify an account",
 				ArgsUsage:   "<index>",
 				Flags:       setFlags,
-				Description: `Modify an account`,
+				Description: `Modify settings for an account. Account is specified by index. This can be showed by the 'list' command.`,
 			},
 			{
-				Action:      utils.MigrateFlags(accountDelete),
+				Action:      accountDelete,
 				Name:        "del",
 				Usage:       "Delete an account",
 				ArgsUsage:   "<index>",
 				Flags:       fileFlags,
-				Description: `Delete an account`,
+				Description: `Delete an account specified by index. The index can be showed by the 'list' command`,
 			},
 
 			{
-				Action:      utils.MigrateFlags(encrypt),
+				Action:      encrypt,
 				Name:        "encrypt",
 				ArgsUsage:   "<index>",
-				Usage:       "Encrypt the specified private key",
+				Usage:       "Encrypt the specified account",
 				Flags:       fileFlags,
-				Description: `Encrypt the specified private key`,
+				Description: `Encrypt the specified account using new password. Account is specified by index. This can be showed by the 'list' command.`,
 			},
 		},
 	}
@@ -167,7 +167,7 @@ func accountCreate(ctx *cli.Context) error {
 		find := false
 		if ctx.IsSet("type") {
 			for key, val := range keyTypeMap {
-				if val.name == ctx.String("type") {
+				if val.name == ctx.String("signature-scheme") {
 					inputKeyTypeInfo = keyTypeMap[key]
 					find = true
 					fmt.Printf("%s is selected. \n", inputKeyTypeInfo.name)
@@ -187,7 +187,7 @@ func accountCreate(ctx *cli.Context) error {
 			find := false
 			if (!defaultFlag) && ctx.IsSet("bit-length") {
 				for key, val := range curveMap {
-					if val.name == ctx.String("bit-length") {
+					if val.name == ctx.String(utils.AccountKeylenFlag.Name) {
 						inputCurveInfo = curveMap[key]
 						find = true
 						fmt.Printf("%s is selected. \n", inputCurveInfo.name)
@@ -205,7 +205,7 @@ func accountCreate(ctx *cli.Context) error {
 			find = false
 			if (!defaultFlag) && ctx.IsSet("signature-scheme") {
 				for key, val := range schemeMap {
-					if val.name == ctx.String("signature-scheme") {
+					if val.name == ctx.String(utils.AccountSigSchemeFlag.Name) {
 						inputSchemeInfo = schemeMap[key]
 						find = true
 						fmt.Printf("%s is selected. \n", inputSchemeInfo.name)
@@ -245,16 +245,27 @@ func accountCreate(ctx *cli.Context) error {
 
 	}
 
-	var password, repeatPassword []byte
-	for {
-		fmt.Print("Enter a password for encrypting the private key:")
-		password = enterPassword(false)
-		fmt.Print("Re-enter password:")
-		repeatPassword = enterPassword(true)
-		if bytes.Equal(password, repeatPassword) {
-			break
-		} else {
-			fmt.Println("passwords you have enter are not equal, pls try again!")
+	var password []byte = nil
+	if ctx.IsSet(utils.AccountPassFlag.Name) {
+		password = []byte(ctx.String(utils.AccountPassFlag.Name))
+	} else {
+		var input0, input1 []byte
+		for i := 0; i < 3; i++ {
+			fmt.Print("Enter a password for encrypting the private key:")
+			input0 = enterPassword(false)
+			fmt.Print("Re-enter password:")
+			input1 = enterPassword(true)
+			if bytes.Equal(input0, input1) {
+				password = input0
+				break
+			} else {
+				fmt.Println("Passwords not match, please try again!")
+			}
+		}
+
+		if password == nil {
+			fmt.Println("Input password error")
+			return errors.New("Add account failed")
 		}
 	}
 
@@ -295,6 +306,7 @@ func accountCreate(ctx *cli.Context) error {
 }
 
 func accountShow(ctx *cli.Context) error {
+	checkFileName(ctx)
 	wallet := new(account.WalletData)
 	err := wallet.Load(wFilePath)
 	if err != nil {
@@ -306,7 +318,7 @@ func accountShow(ctx *cli.Context) error {
 	}
 
 	if !ctx.Bool("verbose") {
-		// look for every account and show details
+		// look for every account and show address
 		for i, acc := range wallet.Accounts {
 			if acc.IsDefault {
 				fmt.Printf("* %v\t%v\n", i+1, acc.Address)
@@ -316,7 +328,7 @@ func accountShow(ctx *cli.Context) error {
 		}
 		fmt.Println("\nUse -v or --verbose option to display details.")
 	} else {
-		// look for every account and show address only
+		// look for every account and show details
 		for i, acc := range wallet.Accounts {
 			if acc.IsDefault {
 				fmt.Printf("* %v\t%v\n", i+1, acc.Address)
@@ -336,47 +348,48 @@ func accountShow(ctx *cli.Context) error {
 
 //set signature scheme for an account
 func accountSet(ctx *cli.Context) error {
-	if len(ctx.Args()) < 1 {
-		fmt.Printf("Please enter an index of account, for index list please use 'account list' command.\n")
+	if ctx.NArg() < 1 {
+		fmt.Println("Missing argument.\n")
+		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-	index, err := strconv.Atoi(ctx.Args()[0])
+	index, err := strconv.Atoi(ctx.Args().First())
 	if err != nil {
-		fmt.Printf("Your input is not an number.\n")
+		fmt.Println("Invalid argument. Account index expected.\n")
+		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
+	checkFileName(ctx)
 	wallet := new(account.WalletData)
 	if wallet.Load(wFilePath) != nil {
 		wallet.Inititalize()
 	}
 
-	if index < 1 || index > len(wallet.Accounts) {
-		fmt.Printf("Your input is out of index range.\n")
+	index -= 1
+	if index < 0 || index >= len(wallet.Accounts) {
+		fmt.Printf("Index out of range.\n")
 		return nil
 	}
 
-	find := false
-
-	if ctx.IsSet("default") {
-		fmt.Printf("Set account %d to the default account\n", index)
+	if ctx.Bool("as-default") {
+		fmt.Printf("Set account %d as the default account\n", index+1)
 		for _, v := range wallet.Accounts {
 			if v.IsDefault {
 				v.IsDefault = false
 			}
 		}
-		wallet.Accounts[index-1].IsDefault = true
-	} else {
-		if ctx.IsSet("signature-scheme") {
-			for key, val := range schemeMap {
-				if val.name == ctx.String("signature-scheme") {
-					inputSchemeInfo := schemeMap[key]
-					find = true
-					fmt.Printf("%s is selected. \n", inputSchemeInfo.name)
-					wallet.Accounts[index-1].SigSch = inputSchemeInfo.name
-					break
-				}
+		wallet.Accounts[index].IsDefault = true
+	}
+	if ctx.IsSet("signature-scheme") {
+		find := false
+		for key, val := range schemeMap {
+			if val.name == ctx.String("signature-scheme") {
+				inputSchemeInfo := schemeMap[key]
+				find = true
+				fmt.Printf("%s is selected. \n", inputSchemeInfo.name)
+				wallet.Accounts[index].SigSch = inputSchemeInfo.name
+				break
 			}
-			fmt.Printf("%s is not a valid content for option -s \n", ctx.String("signature-scheme"))
 		}
 		if !find {
 			fmt.Printf("Invalid arguments! Nothing changed.\n")
@@ -391,16 +404,18 @@ func accountSet(ctx *cli.Context) error {
 
 //delete an account by index from 'list'
 func accountDelete(ctx *cli.Context) error {
-	if len(ctx.Args()) < 1 {
-		fmt.Printf("Please enter an index of account, for index list please use 'account list' command.\n")
+	if ctx.NArg() < 1 {
+		fmt.Println("Missing argument.\n")
+		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-	index, err := strconv.Atoi(ctx.Args()[0])
+	index, err := strconv.Atoi(ctx.Args().First())
 	if err != nil {
-		fmt.Printf("Your input is not an number.\n")
+		fmt.Println("Invalid aragument. Account index expected.\n")
+		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-
+	checkFileName(ctx)
 	wallet := new(account.WalletData)
 	if wallet.Load(wFilePath) != nil {
 		wallet.Inititalize()
@@ -423,15 +438,18 @@ func accountDelete(ctx *cli.Context) error {
 
 //change password
 func encrypt(ctx *cli.Context) error {
-	if len(ctx.Args()) < 1 {
-		fmt.Printf("Please enter an index of account, for index list please use 'account list' command.\n")
+	if ctx.NArg() < 1 {
+		fmt.Println("Missing argument.\n")
+		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-	index, err := strconv.Atoi(ctx.Args()[0])
+	index, err := strconv.Atoi(ctx.Args().First())
 	if err != nil {
-		fmt.Printf("Your input is not an number.\n")
+		fmt.Println("Invalid aragument. Account index expected.\n")
+		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
+	checkFileName(ctx)
 	wallet := new(account.WalletData)
 	if wallet.Load(wFilePath) != nil {
 		wallet.Inititalize()

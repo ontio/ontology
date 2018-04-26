@@ -25,14 +25,10 @@ import (
 
 var (
 	NodeFlags = []cli.Flag{
-		utils.WalletNameFlag,
-		utils.WalletAddrFlag,
 		utils.DebugLevelFlag,
 		utils.ConsensusFlag,
-		utils.TransactionValueFlag,
-		utils.TransactionToFlag,
-		utils.TransactionFromFlag,
-		utils.UserPasswordFlag,
+		utils.AccountFileFlag,
+		utils.AccountPassFlag,
 	}
 
 	ContractFlags = []cli.Flag{
@@ -57,6 +53,7 @@ var (
 		utils.AccountVerboseFlag,
 		utils.AccountFileFlag,
 	}
+
 	setFlags = []cli.Flag{
 		utils.AccountSigSchemeFlag,
 		utils.AccountSetDefaultFlag,

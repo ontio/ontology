@@ -34,6 +34,7 @@ import (
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/password"
+	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/signature"
 	ctypes "github.com/ontio/ontology/core/types"
 	cutils "github.com/ontio/ontology/core/utils"
@@ -49,34 +50,47 @@ var (
 		Name:         "asset",
 		Action:       utils.MigrateFlags(assetCommand),
 		Usage:        "Handle assets",
-		ArgsUsage:    "",
 		OnUsageError: assetUsageError,
 		Description:  `asset control`,
 		Subcommands: []cli.Command{
 			{
-				Action:       utils.MigrateFlags(transferAsset),
+				Action:       transferAsset,
 				OnUsageError: transferAssetUsageError,
 				Name:         "transfer",
 				Usage:        "Transfer asset to another account",
-				Flags:        append(NodeFlags, ContractFlags...),
-				Description:  ``,
+				ArgsUsage:    " ",
+				Description:  `Transfer some asset to another account. Asset type is specified by its contract address. Default is the ont contract.`,
+				Flags: []cli.Flag{
+					utils.ContractAddrFlag,
+					utils.TransactionFromFlag,
+					utils.TransactionToFlag,
+					utils.TransactionValueFlag,
+					utils.AccountPassFlag,
+					utils.AccountFileFlag,
+				},
 			},
 			{
-				Action:       utils.MigrateFlags(queryTransferStatus),
+				Action:       queryTransferStatus,
 				OnUsageError: transferAssetUsageError,
 				Name:         "status",
 				Usage:        "Display asset status",
-				Flags:        append(append(NodeFlags, ContractFlags...), InfoFlags...),
-				Description:  ``,
+				ArgsUsage:    "[address]",
+				Description:  `Display asset transfer status of [address] or the default account if not specified.`,
+				Flags: []cli.Flag{
+					cli.StringFlag{
+						Name:  "hash",
+						Usage: "Specifies transaction hash `<hash>`",
+					},
+				},
 			},
 			{
 				Action:       ontBalance,
 				OnUsageError: balanceUsageError,
-				Name:         "ont-balance",
+				Name:         "balance",
 				Usage:        "Show balance of ont and ong of specified account",
 				ArgsUsage:    "[address]",
 				Flags: []cli.Flag{
-					utils.UserPasswordFlag,
+					utils.AccountPassFlag,
 					utils.AccountFileFlag,
 				},
 			},
@@ -86,24 +100,28 @@ var (
 
 func assetUsageError(context *cli.Context, err error, isSubcommand bool) error {
 	fmt.Println(err.Error())
+	fmt.Println("")
 	cli.ShowSubcommandHelp(context)
 	return nil
 }
 
 func assetCommand(ctx *cli.Context) error {
-	showAssetHelp()
+	fmt.Println("Error usage.\n")
+	cli.ShowSubcommandHelp(ctx)
 	return nil
 }
 
 func transferAssetUsageError(context *cli.Context, err error, isSubcommand bool) error {
 	fmt.Println(err.Error())
-	showAssetTransferHelp()
+	fmt.Println("")
+	cli.ShowSubcommandHelp(context)
 	return nil
 }
 
 func balanceUsageError(context *cli.Context, err error, isSubcommand bool) error {
 	fmt.Println(err)
-	showAssetTransferHelp()
+	fmt.Println("")
+	cli.ShowSubcommandHelp(context)
 	return nil
 }
 
@@ -119,41 +137,78 @@ func signTransaction(signer *account.Account, tx *ctypes.Transaction) error {
 }
 
 func transferAsset(ctx *cli.Context) error {
-	if !ctx.IsSet(utils.ContractAddrFlag.Name) || !ctx.IsSet(utils.TransactionFromFlag.Name) || !ctx.IsSet(utils.TransactionToFlag.Name) || !ctx.IsSet(utils.TransactionValueFlag.Name) {
-		showAssetTransferHelp()
+	if !ctx.IsSet(utils.TransactionFromFlag.Name) || !ctx.IsSet(utils.TransactionToFlag.Name) || !ctx.IsSet(utils.TransactionValueFlag.Name) {
+		fmt.Println("Missing argument.\n")
+		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-	contract := ctx.GlobalString(utils.ContractAddrFlag.Name)
-	ct, err := common.HexToBytes(contract)
-	if err != nil {
-		fmt.Println("Parase contract address error, from hex to bytes")
-		return err
+	ctu := genesis.OntContractAddress
+	if ctx.IsSet(utils.ContractAddrFlag.Name) {
+		contract := ctx.String(utils.ContractAddrFlag.Name)
+		ct, err := common.HexToBytes(contract)
+		if err != nil {
+			fmt.Println("Parase contract address error, from hex to bytes")
+			return err
+		}
+
+		ctu, err = common.AddressParseFromBytes(ct)
+		if err != nil {
+			fmt.Println("Parase contract address error, please use correct smart contract address")
+			return err
+		}
 	}
 
-	ctu, err := common.AddressParseFromBytes(ct)
-	if err != nil {
-		fmt.Println("Parase contract address error, please use correct smart contract address")
-		return err
-	}
-
-	from := ctx.GlobalString(utils.TransactionFromFlag.Name)
+	from := ctx.String(utils.TransactionFromFlag.Name)
 	fu, err := common.AddressFromBase58(from)
 	if err != nil {
 		fmt.Println("Parase transfer-from address error, make sure you are using base58 address")
 		return err
 	}
 
-	to := ctx.GlobalString(utils.TransactionToFlag.Name)
+	to := ctx.String(utils.TransactionToFlag.Name)
 	tu, err := common.AddressFromBase58(to)
 	if err != nil {
 		fmt.Println("Parase transfer-to address error, make sure you are using base58 address")
 		return err
 	}
 
-	value := ctx.Int64(utils.TransactionValueFlag.Name)
+	value := ctx.Int64("value")
 	if value <= 0 {
 		fmt.Println("Value must be int type and bigger than zero. Invalid ont amount: ", value)
 		return errors.New("Value is invalid")
+	}
+
+	var passwd []byte
+	var filename string = account.WALLET_FILENAME
+	if ctx.IsSet("file") {
+		filename = ctx.String("file")
+	}
+	if !common.FileExisted(filename) {
+		fmt.Println(filename, "not found.")
+		return errors.New("Asset transfer failed.")
+	}
+	if ctx.IsSet("password") {
+		passwd = []byte(ctx.String("password"))
+	} else {
+		passwd, err = password.GetAccountPassword()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return errors.New("input password error")
+		}
+	}
+	acct := account.Open(filename, passwd)
+	for i, _ := range passwd {
+		passwd[i] = 0
+	}
+	if nil == acct {
+		fmt.Println("Open account failed, please check your input password and make sure your wallet.dat exist")
+		return errors.New("Get Account Error")
+	}
+
+	acc := acct.GetAccountByAddress(fu)
+	if nil == acc {
+		fmt.Println("Get account by address error")
+		return errors.New("Get Account Error")
 	}
 
 	var sts []*nstates.State
@@ -191,34 +246,6 @@ func transferAsset(ctx *cli.Context) error {
 	})
 
 	tx.Nonce = uint32(time.Now().Unix())
-
-	var passwd []byte
-	if ctx.IsSet(utils.UserPasswordFlag.Name) {
-		passwd = []byte(ctx.GlobalString(utils.UserPasswordFlag.Name))
-	} else {
-		passwd, err = password.GetAccountPassword()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return errors.New("input password error")
-		}
-	}
-
-	acct := account.Open(account.WALLET_FILENAME, passwd)
-	if nil == acct {
-		fmt.Println("Open account failed, please check your input password and make sure your wallet.dat exist")
-		return errors.New("Get Account Error")
-	}
-
-	addr, err := common.AddressFromBase58(from)
-	if nil != err {
-		fmt.Println("Parse address from base58 error")
-		return err
-	}
-	acc := acct.GetAccountByAddress(addr)
-	if nil == acc {
-		fmt.Println("Get account by address error")
-		return errors.New("Get Account Error")
-	}
 
 	if err := signTransaction(acc, tx); err != nil {
 		fmt.Println("signTransaction error:", err)
@@ -265,11 +292,12 @@ func transferAsset(ctx *cli.Context) error {
 }
 
 func queryTransferStatus(ctx *cli.Context) error {
-	if !ctx.IsSet(utils.HashInfoFlag.Name) {
-		showQueryAssetTransferHelp()
+	if !ctx.IsSet("hash") {
+		fmt.Println("Missing transaction hash.")
+		cli.ShowSubcommandHelp(ctx)
 	}
 
-	trHash := ctx.GlobalString(utils.HashInfoFlag.Name)
+	trHash := ctx.String("hash")
 	resp, err := ontSdk.Rpc.GetSmartContractEventWithHexString(trHash)
 	if err != nil {
 		fmt.Println("Parase contract address error, from hex to bytes")
@@ -281,16 +309,16 @@ func queryTransferStatus(ctx *cli.Context) error {
 
 func ontBalance(ctx *cli.Context) error {
 	var filename string = account.WALLET_FILENAME
-	if ctx.IsSet(utils.AccountFileFlag.Name) {
-		filename = ctx.String(utils.AccountFileFlag.Name)
+	if ctx.IsSet("file") {
+		filename = ctx.String("file")
 	}
 
 	var base58Addr string
 	if ctx.NArg() == 0 {
 		var passwd []byte
 		var err error
-		if ctx.IsSet(utils.UserPasswordFlag.Name) {
-			passwd = []byte(ctx.GlobalString(utils.UserPasswordFlag.Name))
+		if ctx.IsSet("password") {
+			passwd = []byte(ctx.String("password"))
 		} else {
 			passwd, err = password.GetAccountPassword()
 			if err != nil {
@@ -299,6 +327,9 @@ func ontBalance(ctx *cli.Context) error {
 			}
 		}
 		acct := account.Open(filename, passwd)
+		for i, _ := range passwd {
+			passwd[i] = 0
+		}
 		if acct == nil {
 			return errors.New("open wallet error")
 		}
