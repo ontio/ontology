@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"sort"
 	"sync"
-	"time"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
@@ -43,11 +42,8 @@ import (
 )
 
 const (
-	SYSTEM_VERSION          = byte(1)          //Version of ledger store
-	HEADER_INDEX_BATCH_SIZE = uint32(2000)     //Bath size of saving header index
-	BLOCK_CACHE_TIMEOUT     = time.Minute * 15 //Cache time for block to save in sync block
-	MAX_HEADER_CACHE_SIZE   = 5000             //Max cache size of block header in sync block
-	MAX_BLOCK_CACHE_SIZE    = 500              //Max cache size of block in sync block
+	SYSTEM_VERSION          = byte(1)      //Version of ledger store
+	HEADER_INDEX_BATCH_SIZE = uint32(2000) //Bath size of saving header index
 )
 
 var (
@@ -58,34 +54,25 @@ var (
 	MerkleTreeStorePath = "Chain/merkle_tree.db"
 )
 
-type ledgerCacheItem struct {
-	item      interface{}
-	cacheTime time.Time
-}
-
 //LedgerStoreImp is main store struct fo ledger
 type LedgerStoreImp struct {
-	blockStore       *BlockStore                         //BlockStore for saving block & transaction data
-	stateStore       *StateStore                         //StateStore for saving state data, like balance, smart contract execution result, and so on.
-	eventStore       *EventStore                         //EventStore for saving log those gen after smart contract executed.
-	storedIndexCount uint32                              //record the count of have saved block index
-	currBlockHeight  uint32                              //Current block height
-	currBlockHash    common.Uint256                      //Current block hash
-	headerCache      map[common.Uint256]*ledgerCacheItem //Cache header to saving in sync block. BlockHash => Header
-	blockCache       map[common.Uint256]*ledgerCacheItem //Cache block to saving in sync block. BlockHash => Block
-	headerIndex      map[uint32]common.Uint256           //Header index, Mapping header height => block hash
-	savingBlock      bool                                //is saving block now
+	blockStore       *BlockStore                      //BlockStore for saving block & transaction data
+	stateStore       *StateStore                      //StateStore for saving state data, like balance, smart contract execution result, and so on.
+	eventStore       *EventStore                      //EventStore for saving log those gen after smart contract executed.
+	storedIndexCount uint32                           //record the count of have saved block index
+	currBlockHeight  uint32                           //Current block height
+	currBlockHash    common.Uint256                   //Current block hash
+	headerCache      map[common.Uint256]*types.Header //BlockHash => Header
+	headerIndex      map[uint32]common.Uint256        //Header index, Mapping header height => block hash
+	savingBlock      bool                             //is saving block now
 	lock             sync.RWMutex
-	exitCh           chan interface{}
 }
 
 //NewLedgerStore return LedgerStoreImp instance
 func NewLedgerStore() (*LedgerStoreImp, error) {
 	ledgerStore := &LedgerStoreImp{
-		exitCh:      make(chan interface{}, 0),
 		headerIndex: make(map[uint32]common.Uint256),
-		headerCache: make(map[common.Uint256]*ledgerCacheItem),
-		blockCache:  make(map[common.Uint256]*ledgerCacheItem),
+		headerCache: make(map[common.Uint256]*types.Header, 0),
 	}
 
 	blockStore, err := NewBlockStore(DBDirBlock, true)
@@ -111,7 +98,6 @@ func NewLedgerStore() (*LedgerStoreImp, error) {
 		return nil, fmt.Errorf("init error %s", err)
 	}
 
-	go ledgerStore.start()
 	return ledgerStore, nil
 }
 
@@ -284,82 +270,6 @@ func (this *LedgerStoreImp) initStore() error {
 	return nil
 }
 
-func (this *LedgerStoreImp) start() {
-	ticker := time.NewTicker(time.Second * 10)
-	defer ticker.Stop()
-	timeoutTicker := time.NewTicker(time.Minute)
-	defer timeoutTicker.Stop()
-	for {
-		select {
-		case <-this.exitCh:
-			return
-		case <-ticker.C:
-			go this.clearBlockCache()
-		case <-timeoutTicker.C:
-			go this.clearTimeoutBlock()
-		}
-	}
-}
-
-func (this *LedgerStoreImp) clearBlockCache() {
-	this.lock.Lock()
-	blocks := make([]*types.Block, 0)
-	currentBlockHeight := this.currBlockHeight
-	for blockHash, cacheItem := range this.headerCache {
-		header := cacheItem.item.(*types.Header)
-		if header.Height > currentBlockHeight {
-			continue
-		}
-		delete(this.headerCache, blockHash)
-	}
-	for blockHash, cacheItem := range this.blockCache {
-		block := cacheItem.item.(*types.Block)
-		if block.Header.Height > currentBlockHeight {
-			continue
-		}
-		delete(this.blockCache, blockHash)
-	}
-	for nextBlockHeight := currentBlockHeight + 1; ; nextBlockHeight++ {
-		nextBlockHash, ok := this.headerIndex[nextBlockHeight]
-		if !ok {
-			break
-		}
-		cacheItem := this.blockCache[nextBlockHash]
-		if cacheItem == nil {
-			break
-		}
-		block := cacheItem.item.(*types.Block)
-		blocks = append(blocks, block)
-	}
-	this.lock.Unlock()
-
-	for _, block := range blocks {
-		err := this.saveBlock(block)
-		if err != nil {
-			blockHash := block.Hash()
-			this.delFromBlockHash(blockHash)
-			log.Errorf("saveBlock in cache height:%d error %s", block.Header.Height, err)
-			break
-		}
-	}
-}
-
-func (this *LedgerStoreImp) clearTimeoutBlock() {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	timeoutBlocks := make([]common.Uint256, 0)
-	now := time.Now()
-	for blockHash, cacheItem := range this.blockCache {
-		if now.Sub(cacheItem.cacheTime) < BLOCK_CACHE_TIMEOUT {
-			continue
-		}
-		timeoutBlocks = append(timeoutBlocks, blockHash)
-	}
-	for _, blockHash := range timeoutBlocks {
-		delete(this.blockCache, blockHash)
-	}
-}
-
 func (this *LedgerStoreImp) setHeaderIndex(height uint32, blockHash common.Uint256) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
@@ -429,62 +339,26 @@ func (this *LedgerStoreImp) GetCurrentBlockHeight() uint32 {
 	return this.currBlockHeight
 }
 
-func (this *LedgerStoreImp) addToHeaderCache(header *types.Header) bool {
+func (this *LedgerStoreImp) addHeaderCache(header *types.Header) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-
-	if len(this.headerCache) > MAX_HEADER_CACHE_SIZE {
-		return false
-	}
-
-	cacheItem := &ledgerCacheItem{
-		item:      header,
-		cacheTime: time.Now(),
-	}
-	this.headerCache[header.Hash()] = cacheItem
-	return true
+	this.headerCache[header.Hash()] = header
 }
 
-func (this *LedgerStoreImp) getFromHeaderCache(blockHash common.Uint256) *types.Header {
+func (this *LedgerStoreImp) delHeaderCache(blockHash common.Uint256) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	delete(this.headerCache, blockHash)
+}
+
+func (this *LedgerStoreImp) getHeaderCache(blockHash common.Uint256) *types.Header {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
-	cacheItem, ok := this.headerCache[blockHash]
+	header, ok := this.headerCache[blockHash]
 	if !ok {
 		return nil
 	}
-	return cacheItem.item.(*types.Header)
-}
-
-func (this *LedgerStoreImp) addToBlockCache(block *types.Block) bool {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-
-	if len(this.blockCache) > MAX_BLOCK_CACHE_SIZE {
-		return false
-	}
-
-	cacheItem := &ledgerCacheItem{
-		item:      block,
-		cacheTime: time.Now(),
-	}
-	this.blockCache[block.Hash()] = cacheItem
-	return true
-}
-
-func (this *LedgerStoreImp) getFromBlockCache(blockHash common.Uint256) *types.Block {
-	this.lock.RLock()
-	defer this.lock.RUnlock()
-	cacheItem, ok := this.blockCache[blockHash]
-	if !ok {
-		return nil
-	}
-	return cacheItem.item.(*types.Block)
-}
-
-func (this *LedgerStoreImp) delFromBlockHash(blockHash common.Uint256) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	delete(this.blockCache, blockHash)
+	return header
 }
 
 func (this *LedgerStoreImp) verifyHeader(header *types.Header) error {
@@ -538,10 +412,8 @@ func (this *LedgerStoreImp) AddHeader(header *types.Header) error {
 	if err != nil {
 		return fmt.Errorf("verifyHeader error %s", err)
 	}
-	blockHash := header.Hash()
-	if this.addToHeaderCache(header) {
-		this.setHeaderIndex(header.Height, blockHash)
-	}
+	this.addHeaderCache(header)
+	this.setHeaderIndex(header.Height, header.Hash())
 	return nil
 }
 
@@ -589,12 +461,9 @@ func (this *LedgerStoreImp) AddBlock(block *types.Block) error {
 	if blockHeight <= currBlockHeight {
 		return nil
 	}
-
 	nextBlockHeight := currBlockHeight + 1
-	blockHash := this.getHeaderIndex(blockHeight)
-	var empty common.Uint256
-	if blockHeight > nextBlockHeight && blockHash == empty {
-		return fmt.Errorf("block height %d larger than next block height %d", blockHeight, nextBlockHeight)
+	if blockHeight != nextBlockHeight {
+		return fmt.Errorf("block height %d not equal next block height %d", blockHeight, nextBlockHeight)
 	}
 
 	err := this.verifyHeader(block.Header)
@@ -606,18 +475,11 @@ func (this *LedgerStoreImp) AddBlock(block *types.Block) error {
 		return fmt.Errorf("verifyBlock error %s", err)
 	}
 
-	if blockHeight != nextBlockHeight {
-		//sync block
-		this.addToBlockCache(block)
-		return nil
-	}
-
 	err = this.saveBlock(block)
 	if err != nil {
 		return fmt.Errorf("saveBlock error %s", err)
 	}
-
-	go this.clearBlockCache()
+	this.delHeaderCache(block.Hash())
 	return nil
 }
 
@@ -813,10 +675,6 @@ func (this *LedgerStoreImp) saveHeaderIndexList() error {
 
 //IsContainBlock return whether the block is in store
 func (this *LedgerStoreImp) IsContainBlock(blockHash common.Uint256) (bool, error) {
-	block := this.getFromBlockCache(blockHash)
-	if block != nil {
-		return true, nil
-	}
 	return this.blockStore.ContainBlock(blockHash)
 }
 
@@ -837,7 +695,7 @@ func (this *LedgerStoreImp) GetBlockHash(height uint32) common.Uint256 {
 
 //GetHeaderByHash return the block header by block hash
 func (this *LedgerStoreImp) GetHeaderByHash(blockHash common.Uint256) (*types.Header, error) {
-	header := this.getFromHeaderCache(blockHash)
+	header := this.getHeaderCache(blockHash)
 	if header != nil {
 		return header, nil
 	}
@@ -866,10 +724,6 @@ func (this *LedgerStoreImp) GetTransaction(txHash common.Uint256) (*types.Transa
 
 //GetBlockByHash return block by block hash. Wrap function of BlockStore.GetBlockByHash
 func (this *LedgerStoreImp) GetBlockByHash(blockHash common.Uint256) (*types.Block, error) {
-	block := this.getFromBlockCache(blockHash)
-	if block != nil {
-		return block, nil
-	}
 	return this.blockStore.GetBlock(blockHash)
 }
 
@@ -963,7 +817,6 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface
 
 //Close ledger store.
 func (this *LedgerStoreImp) Close() error {
-	close(this.exitCh)
 	err := this.blockStore.Close()
 	if err != nil {
 		return fmt.Errorf("blockStore close error %s", err)

@@ -283,7 +283,7 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]ty
 		headers = append(headers, *hd)
 	}
 
-	return headers, count, nil
+	return headers, uint32(len(headers)), nil
 }
 
 func NewHeaders(headers []types.Header, count uint32) ([]byte, error) {
