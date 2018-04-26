@@ -331,7 +331,7 @@ Result will show as follow:
 NOTE:
 If a invalid value of block hash is given, the result will show as follow:
 {
-	"Action": "getblockbyheight",
+	"Action": "getblockbyhash",
 	"Desc": "UNKNOWN BLOCK",
 	"Error": 44003,
 	"Result": "",
