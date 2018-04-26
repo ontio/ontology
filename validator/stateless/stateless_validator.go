@@ -42,6 +42,9 @@ type validator struct {
 	id  string
 }
 
+// Static (compile time) check that validator satisfies the Validator interface.
+var _ Validator = (*validator)(nil)
+
 // NewValidator spawns a validator actor and return its pid wraped in Validator
 func NewValidator(id string) (Validator, error) {
 	validator := &validator{id: id}

@@ -44,17 +44,13 @@ func GetConfirmedPassword() ([]byte, error) {
 		return nil, err
 	}
 	if 0 == len(first) {
-		fmt.Println("User have to input password.")
+		fmt.Println("Please input correct password.")
 		os.Exit(1)
 	}
-
 	fmt.Printf("Re-enter Password:")
 	second, err := gopass.GetPasswd()
-	if err != nil {
-		return nil, err
-	}
 	if 0 == len(second) {
-		fmt.Println("User have to input password.")
+		fmt.Println("Please input correct password.")
 		os.Exit(1)
 	}
 
@@ -62,6 +58,7 @@ func GetConfirmedPassword() ([]byte, error) {
 		fmt.Println("Unmatched Password")
 		os.Exit(1)
 	}
+
 	return first, nil
 }
 

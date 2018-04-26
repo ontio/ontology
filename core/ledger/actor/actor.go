@@ -22,11 +22,11 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology-eventbus/actor"
 )
 
 var DefLedgerPid *actor.PID
@@ -34,6 +34,9 @@ var DefLedgerPid *actor.PID
 type LedgerActor struct {
 	props *actor.Props
 }
+
+// Static (compile time) check that LedgerActor satisfies the actor.Actor interface.
+var _ actor.Actor = (*LedgerActor)(nil)
 
 func NewLedgerActor() *LedgerActor {
 	return &LedgerActor{}

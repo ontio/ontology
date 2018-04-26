@@ -22,10 +22,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"time"
+
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events"
-	"github.com/ontio/ontology-crypto/keypair"
 )
 
 type NodeAddr struct {

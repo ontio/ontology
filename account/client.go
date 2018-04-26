@@ -69,6 +69,9 @@ type ClientImpl struct {
 	isrunning bool
 }
 
+// Static (compile time) check that ClientImpl satisfies the Client interface.
+var _ Client = (*ClientImpl)(nil)
+
 //TODO need redesign
 func Create(path string, encrypt string, passwordKey []byte) *ClientImpl {
 	cl := NewClient(path, passwordKey, true)
