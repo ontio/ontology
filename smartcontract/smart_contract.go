@@ -118,8 +118,8 @@ func (this *SmartContract) Execute() (interface{}, error) {
 			Tx:         this.Config.Tx,
 			Height:     this.Config.Height,
 			ContextRef: this,
+			ServiceMap: make(map[string]native.Handler),
 		}
-		service.InitService()
 		engine = service
 	case stypes.NEOVM:
 		engine = &neovm.NeoVmService{

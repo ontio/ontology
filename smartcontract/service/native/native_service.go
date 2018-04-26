@@ -53,10 +53,6 @@ type NativeService struct {
 	ContextRef    context.ContextRef
 }
 
-func (this *NativeService) InitService() {
-	this.ServiceMap = make(map[string]Handler)
-}
-
 func (this *NativeService) Register(methodName string, handler Handler) {
 	this.ServiceMap[methodName] = handler
 }
