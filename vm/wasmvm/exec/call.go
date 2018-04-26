@@ -67,7 +67,6 @@ func (vm *VM) doCall(compiled compiledFunction, index int64) {
 				log.Errorf("call method :%s failed\n", compiled.name)
 			}
 		} else {
-			log.Errorf("method :%s doesnot exists\n", compiled.name)
 			vm.ctx = prevCtxt
 			if compiled.returns {
 				vm.pushUint64(0)

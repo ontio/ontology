@@ -21,10 +21,8 @@ package neovm
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"math/big"
 
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/vm/neovm/errors"
 	"github.com/ontio/ontology/vm/neovm/types"
 )
@@ -126,13 +124,11 @@ func validateInvocationStack(e *ExecutionEngine) error {
 func validateOpStack(e *ExecutionEngine, desc string) error {
 	total := EvaluationStackCount(e)
 	if total < 1 {
-		log.Error(desc, total, 1)
 		return errors.ERR_UNDER_STACK_LEN
 	}
 	index := PeekBigInteger(e)
 	count := big.NewInt(0)
 	if index.Sign() < 0 || count.Add(index, big.NewInt(2)).Cmp(big.NewInt(int64(total))) > 0 {
-		log.Error(desc, " index < 0 || index > EvaluationStackCount(e)-2")
 		return errors.ERR_BAD_VALUE
 	}
 
@@ -165,7 +161,6 @@ func validateCat(e *ExecutionEngine) error {
 	}
 	l := len(PeekNByteArray(0, e)) + len(PeekNByteArray(1, e))
 	if uint32(l) > MAX_ITEM_SIZE {
-		log.Error("[validateCat] uint32(l) > MaxItemSize")
 		return errors.ERR_OVER_MAX_ITEM_SIZE
 	}
 	return nil
@@ -177,12 +172,10 @@ func validateSubStr(e *ExecutionEngine) error {
 	}
 	count := PeekNBigInt(0, e)
 	if count.Sign() < 0 {
-		log.Error("[validateSubStr] count < 0")
 		return errors.ERR_BAD_VALUE
 	}
 	index := PeekNBigInt(1, e)
 	if index.Sign() < 0 {
-		log.Error("[validateSubStr] index < 0")
 		return errors.ERR_BAD_VALUE
 	}
 	arr := PeekNByteArray(2, e)
@@ -190,7 +183,6 @@ func validateSubStr(e *ExecutionEngine) error {
 	temp.Add(index, count)
 
 	if big.NewInt(int64(len(arr))).Cmp(temp) < 0 {
-		log.Error("[validateSubStr] len(arr) < index + count")
 		return errors.ERR_OVER_MAX_ARRAY_SIZE
 	}
 	return nil
@@ -202,12 +194,10 @@ func validateLeft(e *ExecutionEngine) error {
 	}
 	count := PeekNBigInt(0, e)
 	if count.Sign() < 0 {
-		log.Error("[validateLeft] count < 0")
 		return errors.ERR_BAD_VALUE
 	}
 	arr := PeekNByteArray(1, e)
 	if big.NewInt(int64(len(arr))).Cmp(count) < 0 {
-		log.Error("[validateLeft] len(arr) < count")
 		return errors.ERR_OVER_MAX_ARRAY_SIZE
 	}
 	return nil
@@ -219,12 +209,10 @@ func validateRight(e *ExecutionEngine) error {
 	}
 	count := PeekNBigInt(0, e)
 	if count.Sign() < 0 {
-		log.Error("[validateRight] count < 0")
 		return errors.ERR_BAD_VALUE
 	}
 	arr := PeekNByteArray(1, e)
 	if big.NewInt(int64(len(arr))).Cmp(count) < 0 {
-		log.Error("[validateRight] len(arr) < count")
 		return errors.ERR_OVER_MAX_ARRAY_SIZE
 	}
 	return nil
@@ -236,7 +224,6 @@ func validateInc(e *ExecutionEngine) error {
 	}
 	x := PeekBigInteger(e)
 	if !CheckBigInteger(x) || !CheckBigInteger(new(big.Int).Add(x, big.NewInt(1))) {
-		log.Error("[validateInc] CheckBigInteger fail")
 		return errors.ERR_BAD_VALUE
 	}
 	return nil
@@ -248,7 +235,6 @@ func validateDec(e *ExecutionEngine) error {
 	}
 	x := PeekBigInteger(e)
 	if !CheckBigInteger(x) || (x.Sign() <= 0 && !CheckBigInteger(new(big.Int).Sub(x, big.NewInt(1)))) {
-		log.Error("[validateDec] CheckBigInteger fail")
 		return errors.ERR_BAD_VALUE
 	}
 	return nil
@@ -268,7 +254,6 @@ func validateAdd(e *ExecutionEngine) error {
 	x2 := PeekBigInteger(e)
 	x1 := PeekNBigInt(1, e)
 	if !CheckBigInteger(x1) || !CheckBigInteger(x2) || !CheckBigInteger(new(big.Int).Add(x1, x2)) {
-		log.Error("[validateAdd] CheckBigInteger fail")
 		return errors.ERR_BAD_VALUE
 	}
 
@@ -282,7 +267,6 @@ func validateSub(e *ExecutionEngine) error {
 	x2 := PeekBigInteger(e)
 	x1 := PeekNBigInt(1, e)
 	if !CheckBigInteger(x1) || !CheckBigInteger(x2) || !CheckBigInteger(new(big.Int).Sub(x1, x2)) {
-		log.Error("[validateAdd] CheckBigInteger fail")
 		return errors.ERR_OVER_MAX_BIGINTEGER_SIZE
 	}
 	return nil
@@ -297,7 +281,6 @@ func validateMul(e *ExecutionEngine) error {
 	lx2 := len(types.ConvertBigIntegerToBytes(x2))
 	lx1 := len(types.ConvertBigIntegerToBytes(x1))
 	if lx2 > MAX_SIZE_FOR_BIGINTEGER || lx1 > MAX_SIZE_FOR_BIGINTEGER || (lx1+lx2) > MAX_SIZE_FOR_BIGINTEGER {
-		log.Error("[validateMul] CheckBigInteger fail")
 		return errors.ERR_OVER_MAX_BIGINTEGER_SIZE
 	}
 	return nil
@@ -310,7 +293,6 @@ func validateDiv(e *ExecutionEngine) error {
 	x2 := PeekBigInteger(e)
 	x1 := PeekNBigInt(1, e)
 	if !CheckBigInteger(x2) || !CheckBigInteger(x1) {
-		log.Error("[validateDiv] CheckBigInteger fail")
 		return errors.ERR_OVER_MAX_BIGINTEGER_SIZE
 	}
 	if x2.Sign() == 0 {
@@ -326,7 +308,6 @@ func validateMod(e *ExecutionEngine) error {
 	x2 := PeekBigInteger(e)
 	x1 := PeekNBigInt(1, e)
 	if !CheckBigInteger(x2) || !CheckBigInteger(x1) {
-		log.Error("[validateMod] CheckBigInteger fail")
 		return errors.ERR_OVER_MAX_BIGINTEGER_SIZE
 	}
 	if x2.Sign() == 0 {
@@ -349,12 +330,10 @@ func validatePack(e *ExecutionEngine) error {
 	}
 
 	if count.Cmp(big.NewInt(int64(MAX_ARRAY_SIZE))) > 0 {
-		log.Error("[validateRight] uint32(count) > MaxArraySize")
 		return errors.ERR_OVER_MAX_ARRAY_SIZE
 	}
 	count.Add(count, big.NewInt(1))
 	if count.Cmp(big.NewInt(int64(total))) > 0 {
-		log.Error("[validateRight] count+2 > EvaluationStackCount(e)")
 		return errors.ERR_OVER_STACK_LEN
 	}
 	return nil
@@ -377,20 +356,16 @@ func validatePickItem(e *ExecutionEngine) error {
 	}
 	index := PeekBigInteger(e)
 	if index.Sign() < 0 {
-		log.Error("[validatePickItem] index < 0")
 		return errors.ERR_BAD_VALUE
 	}
 	item := PeekNStackItem(1, e)
 	if item == nil {
-		log.Error("[validatePickItem] item = nil")
 		return errors.ERR_BAD_VALUE
 	}
 	if _, ok := item.(*types.Array); !ok {
-		log.Error("[validatePickItem] ErrNotArray")
 		return errors.ERR_NOT_ARRAY
 	}
 	if index.Cmp(big.NewInt(int64(len(item.GetArray())))) >= 0 {
-		log.Error("[validatePickItem] index >= len(stackItem.GetArray())")
 		return errors.ERR_OVER_MAX_ARRAY_SIZE
 	}
 	return nil
@@ -402,24 +377,20 @@ func validatorSetItem(e *ExecutionEngine) error {
 	}
 	newItem := PeekNStackItem(0, e)
 	if newItem == nil {
-		log.Error("[validatorSetItem] newItem = nil")
 		return errors.ERR_BAD_VALUE
 	}
 	index := PeekNBigInt(1, e)
 	if index.Sign() < 0 {
-		log.Error("[validatorSetItem] index < 0")
 		return errors.ERR_BAD_VALUE
 	}
 	item := PeekNStackItem(2, e)
 	if item == nil {
-		log.Error("[validatorSetItem] arrItem = nil")
 		return errors.ERR_BAD_VALUE
 	}
 	if _, ok := item.(*types.Array); !ok {
 		return errors.ERR_NOT_ARRAY
 	}
 	if index.Cmp(big.NewInt(int64(len(item.GetArray())))) >= 0 {
-		log.Error("[validatorSetItem] index >= len(item.GetArray())")
 		return errors.ERR_OVER_MAX_ARRAY_SIZE
 	}
 	return nil
@@ -435,7 +406,6 @@ func validateNewArray(e *ExecutionEngine) error {
 		return errors.ERR_BAD_VALUE
 	}
 	if count.Cmp(big.NewInt(int64(MAX_ARRAY_SIZE))) > 0 {
-		log.Error("[validateNewArray] uint32(count) > MaxArraySize ")
 		return errors.ERR_OVER_MAX_ARRAY_SIZE
 	}
 	return nil
@@ -451,7 +421,6 @@ func validateNewStruct(e *ExecutionEngine) error {
 		return errors.ERR_BAD_VALUE
 	}
 	if count.Cmp(big.NewInt(int64(MAX_ARRAY_SIZE))) > 0 {
-		log.Error("[validateNewStruct] uint32(count) > MaxArraySize ")
 		return errors.ERR_OVER_MAX_ARRAY_SIZE
 	}
 	return nil
@@ -499,7 +468,6 @@ func CheckBigInteger(value *big.Int) bool {
 func LogStackTrace(e *ExecutionEngine, needStackCount int, desc string) error {
 	stackCount := EvaluationStackCount(e)
 	if stackCount < needStackCount {
-		log.Error(fmt.Sprintf("%s lack of parametes, actual: %v need: %x", desc, stackCount, needStackCount))
 		return errors.ERR_UNDER_STACK_LEN
 	}
 	return nil
