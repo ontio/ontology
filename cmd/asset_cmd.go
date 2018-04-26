@@ -211,7 +211,7 @@ func transferAsset(ctx *cli.Context) error {
 
 	addr, err := common.AddressFromBase58(from)
 	if nil != err {
-		fmt.Println("Parase address from base58 error")
+		fmt.Println("Parse address from base58 error")
 		return err
 	}
 	acc := acct.GetAccountByAddress(addr)
