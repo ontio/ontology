@@ -18,18 +18,19 @@
 package wasmvm
 
 import (
-	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/vm/wasmvm/util"
-	"github.com/ontio/ontology/core/states"
-	"github.com/ontio/ontology/vm/wasmvm/exec"
-	scommon "github.com/ontio/ontology/core/store/common"
+	"bytes"
 
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/states"
+	scommon "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/vm/wasmvm/exec"
 	"github.com/ontio/ontology/vm/wasmvm/memory"
+	"github.com/ontio/ontology/vm/wasmvm/util"
 )
 
 //======================store apis here============================================
 func (this *WasmVmService) putstore(engine *exec.ExecutionEngine) (bool, error) {
-
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
@@ -60,8 +61,7 @@ func (this *WasmVmService) putstore(engine *exec.ExecutionEngine) (bool, error) 
 	return true, nil
 }
 
-func (this *WasmVmService)getstore(engine *exec.ExecutionEngine) (bool, error) {
-
+func (this *WasmVmService) getstore(engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
@@ -128,3 +128,11 @@ func (this *WasmVmService) deletestore(engine *exec.ExecutionEngine) (bool, erro
 	return true, nil
 }
 
+func serializeStorageKey(contractAddress common.Address, key []byte) ([]byte, error) {
+	bf := new(bytes.Buffer)
+	storageKey := &states.StorageKey{CodeHash: contractAddress, Key: key}
+	if _, err := storageKey.Serialize(bf); err != nil {
+		return []byte{}, errors.NewErr("[serializeStorageKey] StorageKey serialize error!")
+	}
+	return bf.Bytes(), nil
+}

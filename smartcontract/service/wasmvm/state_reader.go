@@ -36,11 +36,6 @@ func NewWasmStateReader(ldgerStore store.LedgerStore) *WasmStateReader {
 		ldgerStore: ldgerStore,
 		serviceMap: make(map[string]func(*exec.ExecutionEngine) (bool, error)),
 	}
-
-	//i.Register("GetBlockHeight", i.Getblockheight)
-	//i.Register("GetBlockHashByNumber", i.GetblockhashbyNumber)
-	//i.Register("GetTimeStamp", i.GetblockTimestamp)
-
 	return i
 }
 
@@ -78,64 +73,3 @@ func (i *WasmStateReader) Exists(name string) bool {
 	_, ok := i.serviceMap[name]
 	return ok
 }
-
-//============================block apis below============================/
-/*func (i *WasmStateReader) Getblockheight(engine *exec.ExecutionEngine) (bool, error) {
-	vm := engine.GetVM()
-
-	h := i.ldgerStore.GetCurrentBlockHeight()
-	vm.RestoreCtx()
-	if vm.GetEnvCall().GetReturns() {
-		vm.PushResult(uint64(h))
-	}
-	return true, nil
-}
-
-
-func (i *WasmStateReader) GetblockTimestamp(engine *exec.ExecutionEngine) (bool, error) {
-	vm := engine.GetVM()
-
-	hash := i.ldgerStore.GetCurrentBlockHash()
-	header, err := i.ldgerStore.GetHeaderByHash(hash)
-	if err != nil {
-		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[RuntimeGetTime] GetHeader error!.")
-	}
-
-	if vm.GetEnvCall().GetReturns() {
-		vm.PushResult(uint64(header.Timestamp))
-	}
-	return true, nil
-}
-
-func (i *WasmStateReader) GetblockhashbyNumber(engine *exec.ExecutionEngine) (bool, error) {
-	vm := engine.GetVM()
-
-	envCall := vm.GetEnvCall()
-	params := envCall.GetParams()
-	if len(params) != 1 {
-		return false ,errors.NewErr("[GetblockhashbyNumber]get parameter count error!")
-	}
-
-	h := i.ldgerStore.GetBlockHash(uint32(params[0]))
-
-	hashIdx,err := vm.SetPointerMemory(h.ToArray())
-	if err != nil{
-		return false ,errors.NewErr("[GetblockhashbyNumber]SetPointerMemory error!")
-	}
-
-	vm.RestoreCtx()
-	if vm.GetEnvCall().GetReturns() {
-		vm.PushResult(uint64(hashIdx))
-	}
-	return true, nil
-}
-
-func contains(addresses []common.Address, address common.Address) bool {
-	for _, v := range addresses {
-		if v == address {
-			return true
-		}
-	}
-	return false
-}
-*/
