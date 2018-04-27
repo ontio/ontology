@@ -225,7 +225,6 @@ func (this *SmartContract) CheckWitness(address common.Address) bool {
 			}
 		}
 	}
-
 	return false
 }
 

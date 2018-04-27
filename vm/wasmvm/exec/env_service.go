@@ -20,14 +20,14 @@ package exec
 
 import (
 	"bytes"
+	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"strconv"
 	"strings"
 
-	"crypto/sha1"
-	"crypto/sha256"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/vm/wasmvm/memory"
 	"github.com/ontio/ontology/vm/wasmvm/util"
@@ -162,7 +162,6 @@ func malloc(engine *ExecutionEngine) (bool, error) {
 		return false, errors.New("parameter count error while call malloc")
 	}
 	size := int(params[0])
-
 	//we don't know whats the alloc type here
 	index, err := engine.vm.memory.MallocPointer(size, memory.PUnkown)
 	if err != nil {
@@ -494,11 +493,13 @@ func jsonUnmashal(engine *ExecutionEngine) (bool, error) {
 		default:
 			return false, errors.New("unsupported type :" + tmparg.Ptype)
 		}
+
 		//to fit the C / C++ Data structure alignment problem ,we need to add padding
-		if (count%8 != 0) && (i+1 <= len(arg.Params)) && (arg.Params[i+1].Ptype == "int64") && (tmparg.Ptype != "int64") {
+		if (count > 0) && (count%8 != 0) && (i+1 <= len(arg.Params)) && (arg.Params[i+1].Ptype == "int64") && (tmparg.Ptype != "int64") {
 			buff.Write(make([]byte, 4))
 			count -= 4
 		}
+
 		if (i == len(arg.Params)) && (count > 0) {
 			//count should be 4 here
 			buff.Write(make([]byte, count))
@@ -512,7 +513,6 @@ func jsonUnmashal(engine *ExecutionEngine) (bool, error) {
 	}
 
 	copy(engine.vm.memory.Memory[int(addr):int(addr)+len(bytes)], bytes)
-
 	engine.vm.RestoreCtx()
 	return true, nil
 }
@@ -598,7 +598,6 @@ func jsonMashal(engine *ExecutionEngine) (bool, error) {
 }
 
 func stringcmp(engine *ExecutionEngine) (bool, error) {
-
 	envCall := engine.vm.envCall
 	params := envCall.envParams
 	if len(params) != 2 {
@@ -636,19 +635,46 @@ func stringcmp(engine *ExecutionEngine) (bool, error) {
 }
 
 func stringconcat(engine *ExecutionEngine) (bool, error) {
+	envCall := engine.vm.envCall
+	params := envCall.envParams
+	if len(params) != 2 {
+		return false, errors.New("parameter count error while call strcmp")
+	}
 
+	str1, err := engine.vm.GetPointerMemory(params[0])
+	if err != nil {
+		return false, err
+	}
+
+	str2, err := engine.vm.GetPointerMemory(params[1])
+	if err != nil {
+		return false, err
+	}
+
+	newString := util.TrimBuffToString(str1) + util.TrimBuffToString(str2)
+
+	idx, err := engine.vm.SetPointerMemory(newString)
+	if err != nil {
+		return false, err
+	}
+	engine.vm.RestoreCtx()
+	if envCall.envReturns {
+		engine.vm.pushUint64(uint64(idx))
+	}
+	return true, nil
+}
+
+/*func stringconcat(engine *ExecutionEngine) (bool, error) {
 	envCall := engine.vm.envCall
 	params := envCall.envParams
 	if len(params) != 1 {
 		return false, errors.New("parameter count error while call strcmp")
 	}
-
 	//input should be a string array
 	addrbytes, err := engine.vm.GetPointerMemory(params[0])
 	if err != nil {
 		return false, err
 	}
-
 	cnt := len(addrbytes) / 4
 	bf := bytes.NewBuffer(nil)
 	for i := 0; i < cnt; i++ {
@@ -659,7 +685,6 @@ func stringconcat(engine *ExecutionEngine) (bool, error) {
 		}
 		bf.Write(tmpBytes)
 	}
-
 	idx, err := engine.vm.SetPointerMemory(bf.Bytes())
 	if err != nil {
 		return false, err
@@ -669,7 +694,7 @@ func stringconcat(engine *ExecutionEngine) (bool, error) {
 		engine.vm.pushUint64(uint64(idx))
 	}
 	return true, nil
-}
+}*/
 
 func getCaller(engine *ExecutionEngine) (bool, error) {
 	envCall := engine.vm.envCall
