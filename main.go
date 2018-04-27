@@ -116,7 +116,7 @@ func ontMain(ctx *cli.Context) {
 	var err error
 	var noder protocol.Noder
 
-	log.Trace("Node version: ", config.Version)
+	log.Info("Node version: ", config.Version)
 	consensusType := strings.ToLower(config.Parameters.ConsensusType)
 	if consensusType == "dbft" && len(config.Parameters.Bookkeepers) < account.DEFAULT_BOOKKEEPER_COUNT {
 		log.Fatal("With dbft consensus type, at least ", account.DEFAULT_BOOKKEEPER_COUNT, " Bookkeepers should be set in config.json")
