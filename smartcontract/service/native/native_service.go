@@ -50,6 +50,7 @@ type NativeService struct {
 	Input         []byte
 	Tx            *types.Transaction
 	Height        uint32
+	Time          uint32
 	ContextRef    context.ContextRef
 }
 

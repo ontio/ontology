@@ -117,6 +117,7 @@ func (this *SmartContract) Execute() (interface{}, error) {
 			Code:       this.Code.Code,
 			Tx:         this.Config.Tx,
 			Height:     this.Config.Height,
+			Time:       this.Config.Time,
 			ContextRef: this,
 			ServiceMap: make(map[string]native.Handler),
 		}
