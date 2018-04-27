@@ -83,17 +83,18 @@ type VoteInfoPool struct {
 type PeerStakeInfo struct {
 	Index      uint64 `json:"index"`
 	PeerPubkey string `json:"peerPubkey"`
-	Stake      uint64 `json:"stake"`
+	Stake      uint64 `json:"initPos"`
 }
 
 type Configuration struct {
-	N                    uint32        `json:"n"`
-	C                    uint32        `json:"c"`
-	K                    uint32        `json:"k"`
-	L                    uint32        `json:"l"`
-	BlockMsgDelay        time.Duration `json:"block_msg_delay"`
-	HashMsgDelay         time.Duration `json:"hash_msg_delay"`
-	PeerHandshakeTimeout time.Duration `json:"peer_handshake_timeout"`
+	N                    uint32           `json:"n"`
+	C                    uint32           `json:"c"`
+	K                    uint32           `json:"k"`
+	L                    uint32           `json:"l"`
+	BlockMsgDelay        time.Duration    `json:"block_msg_delay"`
+	HashMsgDelay         time.Duration    `json:"hash_msg_delay"`
+	PeerHandshakeTimeout time.Duration    `json:"peer_handshake_timeout"`
+	Peers                []*PeerStakeInfo `json:"peers"`
 }
 
 type VoteCommitDposParam struct {

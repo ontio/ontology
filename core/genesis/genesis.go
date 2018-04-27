@@ -65,12 +65,10 @@ func GenesisBlockInit(defaultBookkeeper []keypair.PublicKey) (*types.Block, erro
 	if err != nil {
 		return nil, errors.New("[Block],GenesisBlockInit err with GetBookkeeperAddress")
 	}
-
 	consensusPayload, err := vconfig.GenesisConsensusPayload()
 	if err != nil {
 		return nil, fmt.Errorf("consensus genesus init failed: %s", err)
 	}
-
 	//blockdata
 	genesisHeader := &types.Header{
 		Version:          BlockVersion,
@@ -92,6 +90,7 @@ func GenesisBlockInit(defaultBookkeeper []keypair.PublicKey) (*types.Block, erro
 	param := newParamContract()
 	oid := deployOntIDContract()
 	auth := deployAuthContract()
+	config := newConfig()
 
 	genesisBlock := &types.Block{
 		Header: genesisHeader,
@@ -101,6 +100,7 @@ func GenesisBlockInit(defaultBookkeeper []keypair.PublicKey) (*types.Block, erro
 			param,
 			oid,
 			auth,
+			config,
 			newGoverningInit(),
 			newUtilityInit(),
 			newParamInit(),
@@ -126,6 +126,9 @@ func newParamContract() *types.Transaction {
 	tx := utils.NewDeployTransaction(stypes.VmCode{Code: ParamContractAddress[:], VmType: stypes.Native},
 		"ParamConfig", "1.0", "Ontology Team", "contact@ont.io",
 		"Chain Global Enviroment Variables Manager ", true)
+func newConfig() *types.Transaction {
+	tx := utils.NewDeployTransaction(stypes.VmCode{Code: GovernanceContractAddress[:], VmType: stypes.Native}, "CONFIG", "1.0",
+		"Ontology Team", "contact@ont.io", "Ontology Network Consensus Config", true)
 	return tx
 }
 
@@ -175,6 +178,21 @@ func newParamInit() *types.Transaction {
 	init := states.Contract{
 		Address: ParamContractAddress,
 		Method:  "init",
+	}
+	bf := new(bytes.Buffer)
+	init.Serialize(bf)
+	vmCode := stypes.VmCode{
+		VmType: stypes.Native,
+		Code:   bf.Bytes(),
+	}
+	tx := utils.NewInvokeTransaction(vmCode)
+	return tx
+}
+
+func newConfigInit() *types.Transaction {
+	init := states.Contract{
+		Address: GovernanceContractAddress,
+		Method:  "initConfig",
 	}
 	bf := new(bytes.Buffer)
 	init.Serialize(bf)
