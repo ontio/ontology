@@ -207,7 +207,7 @@ func (this *BlockSyncMgr) checkTimeout() {
 		}
 		flightInfo.ResetStartTime()
 		flightInfo.MarkFailedNode()
-		log.Infof("BlockSyncMgr checkTimeout sync height:%d block:%x timeout after:%d s times:%d", blockHash, flightInfo.Height, SYNC_BLOCK_REQUEST_TIMEOUT, flightInfo.GetTotalFailedTimes())
+		log.Debugf("BlockSyncMgr checkTimeout sync height:%x block:%x timeout after:%d s times:%d", blockHash, flightInfo.Height, SYNC_BLOCK_REQUEST_TIMEOUT, flightInfo.GetTotalFailedTimes())
 		reqNode := this.getNodeWithMinFailedTimes(flightInfo, curBlockHeight)
 		if reqNode == nil {
 			break
@@ -337,7 +337,14 @@ func (this *BlockSyncMgr) OnHeaderReceive(headers []*types.Header) {
 	}
 	err := actor.AddHeaders(headers)
 	if err != nil {
-		log.Errorf("BlockSyncMgr AddHeaders error:%s", err)
+		headerHeight, errInternal := actor.GetCurrentHeaderHeight()
+		if errInternal != nil {
+			log.Error("BlockSyncMgr GetCurrentHeaderHeight  failed:%s", err)
+			return
+		}
+		if headers[len(headers)-1].Height <= headerHeight  {
+			log.Warnf("BlockSyncMgr AddHeaders error:%s", err)
+		}
 		return
 	}
 	this.syncHeader()
