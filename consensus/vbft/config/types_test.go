@@ -36,7 +36,7 @@ func TestStringID(t *testing.T) {
 }
 
 func TestPubkeyID(t *testing.T) {
-	bookkeeper := "1202027df359dff69eea8dd7d807b669dd9635292b1aae97d03ed32cb36ff30fb7e4d9"
+	bookkeeper := "120202c924ed1a67fd1719020ce599d723d09d48362376836e04b0be72dfe825e24d81"
 	pubKey, err := hex.DecodeString(bookkeeper)
 	if err != nil {
 		t.Errorf("DecodeString failed: %v", err)
