@@ -55,6 +55,7 @@ type P2PServer struct {
 	quitOnline    chan bool
 	quitHeartBeat chan bool
 	quitSyncBlk   chan bool
+	flightlock    sync.RWMutex
 	isSync        bool
 }
 
@@ -553,6 +554,7 @@ func (this *P2PServer) syncBlock() {
 		flights := this.flightHeights[p.GetID()]
 		count := common.MAX_REQ_BLK_ONCE - uint32(len(flights))
 		dValue = int32(currentHdrHeight - currentBlkHeight - reqCnt)
+		this.flightlock.Lock()
 		if count == 0 {
 			for _, f := range flights {
 				hash, _ := actor.GetBlockHashByHeight(f)
@@ -593,12 +595,15 @@ func (this *P2PServer) syncBlock() {
 			}
 		}
 		this.flightHeights[p.GetID()] = flights
+		this.flightlock.Unlock()
 	}
 
 }
 
 //removeFlightHeightLessThan remove peer`s flightheight less than given height
 func (this *P2PServer) removeFlightHeightLessThan(p *peer.Peer, h uint32) {
+	this.flightlock.Lock()
+	defer this.flightlock.Unlock()
 	heights := this.flightHeights[p.GetID()]
 	nCnt := len(heights)
 	i := 0
@@ -616,6 +621,8 @@ func (this *P2PServer) removeFlightHeightLessThan(p *peer.Peer, h uint32) {
 
 //RemoveFlightHeight remove given height in flights
 func (this *P2PServer) RemoveFlightHeight(id uint64, height uint32) {
+	this.flightlock.Lock()
+	defer this.flightlock.Unlock()
 	for id, heights := range this.flightHeights {
 		for i, v := range heights {
 			if v == height {
