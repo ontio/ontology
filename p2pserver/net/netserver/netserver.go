@@ -613,7 +613,7 @@ func (this *NetServer) RemovePeerSyncAddress(addr string) {
 	this.PeerAddrMap.Lock()
 	defer this.PeerAddrMap.Unlock()
 	if _, ok := this.PeerSyncAddress[addr]; ok {
-		this.PeerSyncAddress[addr] = nil
+		delete(this.PeerSyncAddress, addr)
 	}
 }
 
@@ -622,6 +622,6 @@ func (this *NetServer) RemovePeerConsAddress(addr string) {
 	this.PeerAddrMap.Lock()
 	defer this.PeerAddrMap.Unlock()
 	if _, ok := this.PeerConsAddress[addr]; ok {
-		this.PeerConsAddress[addr] = nil
+		delete(this.PeerConsAddress, addr)
 	}
 }
