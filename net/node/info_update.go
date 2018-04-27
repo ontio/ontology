@@ -112,21 +112,25 @@ func getNodeAddr(n *node) protocol.NodeAddr {
 
 func (node *node) reconnect() {
 	node.RetryConnAddrs.Lock()
-	defer node.RetryConnAddrs.Unlock()
 	lst := make(map[string]int)
-	for addr := range node.RetryAddrs {
-		node.RetryAddrs[addr] = node.RetryAddrs[addr] + 1
-		rand.Seed(time.Now().UnixNano())
-		log.Trace("Try to reconnect peer, peer addr is ", addr)
-		<-time.After(time.Duration(rand.Intn(protocol.CONN_MAX_BACK)) * time.Millisecond)
-		log.Trace("Back off time`s up, start connect node")
-		node.Connect(addr)
-		if node.RetryAddrs[addr] < protocol.MAX_RETRY_COUNT {
-			lst[addr] = node.RetryAddrs[addr]
+	addrs := make([]string, 0, len(node.RetryAddrs))
+	for addr, v := range node.RetryAddrs {
+		v += 1
+		addrs = append(addrs, addr)
+		if v < protocol.MAX_RETRY_COUNT {
+			lst[addr] = v
 		}
 	}
 	node.RetryAddrs = lst
+	node.RetryConnAddrs.Unlock()
 
+	for _, addr := range addrs {
+		rand.Seed(time.Now().UnixNano())
+		log.Info("Try to reconnect peer, peer addr is ", addr)
+		<-time.After(time.Duration(rand.Intn(protocol.CONN_MAX_BACK)) * time.Millisecond)
+		log.Info("Back off time`s up, start connect node")
+		node.Connect(addr)
+	}
 }
 
 func (n *node) TryConnect() {
