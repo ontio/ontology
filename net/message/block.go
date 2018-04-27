@@ -87,7 +87,7 @@ func NewBlockFromHash(hash common.Uint256) (*types.Block, error) {
 		return nil, err
 	}
 	if bk == nil {
-		log.Errorf("Get Block error: block is nil for hash: %x", hash)
+		log.Debugf("Get Block error: block is nil for hash: %x", hash)
 		return nil, errors.New("block is nil for hash")
 	}
 	return bk, nil
