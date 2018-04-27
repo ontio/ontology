@@ -24,13 +24,14 @@ import (
 
 	"encoding/hex"
 	"encoding/json"
+	"hash/fnv"
+
 	"github.com/ontio/ontology/common"
 	cstates "github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native/states"
-	"hash/fnv"
 )
 
 var (
