@@ -18,11 +18,11 @@
 package wasmvm
 
 import (
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/vm/wasmvm/util"
 )
 
@@ -85,22 +85,22 @@ func (this *WasmVmService) runtimeCheckSig(engine *exec.ExecutionEngine) (bool, 
 	return true, nil
 }
 
-func (this *WasmVmService)runtimeNotify(engine *exec.ExecutionEngine)  (bool, error) {
+func (this *WasmVmService) runtimeNotify(engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
 	if len(params) != 1 {
 		return false, errors.NewErr("[RuntimeNotify]parameter count error ")
 	}
-	item ,err := vm.GetPointerMemory(params[0])
+	item, err := vm.GetPointerMemory(params[0])
 	if err != nil {
 		return false, err
 	}
 	context := this.ContextRef.CurrentContext()
 
-	this.Notifications = append(this.Notifications, &event.NotifyEventInfo{TxHash: this.Tx.Hash(), ContractAddress: context.ContractAddress, States:[]string{string(item)}})
+	this.Notifications = append(this.Notifications, &event.NotifyEventInfo{TxHash: this.Tx.Hash(), ContractAddress: context.ContractAddress, States: []string{string(item)}})
 	vm.RestoreCtx()
-	return true ,nil
+	return true, nil
 }
 
 func (this *WasmVmService) runtimeCheckWitness(engine *exec.ExecutionEngine) (bool, error) {
@@ -111,7 +111,6 @@ func (this *WasmVmService) runtimeCheckWitness(engine *exec.ExecutionEngine) (bo
 	if len(params) != 1 {
 		return false, errors.NewErr("[CheckWitness]get parameter count error!")
 	}
-
 	data, err := vm.GetPointerMemory(params[0])
 	if err != nil {
 		return false, errors.NewErr("[CheckWitness]" + err.Error())
@@ -121,7 +120,6 @@ func (this *WasmVmService) runtimeCheckWitness(engine *exec.ExecutionEngine) (bo
 		return false, errors.NewErr("[CheckWitness]" + err.Error())
 	}
 	chkRes := this.ContextRef.CheckWitness(address)
-
 	res := 0
 	if chkRes == true {
 		res = 1
