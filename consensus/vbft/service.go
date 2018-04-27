@@ -284,9 +284,19 @@ func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
 	return nil
 }
 
+//updateChainCofig
 func (self *Server) updateChainConfig() error {
 	self.metaLock.Lock()
 	defer self.metaLock.Unlock()
+	config, err := self.chainStore.GetVbftConfigInfo()
+	if err != nil {
+		return fmt.Errorf("failed to get chainconfig from leveldb: %s", err)
+	}
+	cfg, err := vconfig.GenesisChainConfig(config)
+	if err != nil {
+		return fmt.Errorf("GenesisChainConfig failed: %s", err)
+	}
+	self.config = cfg
 	// TODO
 	// 1. update peer pool
 	// 2. reset all peer connections, create new connections with new peers
@@ -1867,10 +1877,22 @@ func (self *Server) creategovernaceTransaction() *types.Transaction {
 	return tx
 }
 
+//checkNeedUpdateChainConfig use blockcount
 func (self *Server) checkNeedUpdateChainConfig() bool {
-	log.Infof("blockcount: %d", self.config.BlockCount)
+	log.Debugf("blockcount: %d", self.config.BlockCount)
 	//todo
 	return false
+}
+
+//checkForceUpdateChainConfig query leveldb check is force update
+func (self *Server) checkForceUpdateChainConfig() bool {
+	force, err := self.chainStore.GetForceUpdate()
+	if err != nil {
+		log.Errorf("checkNeedUpdateChainConfig err:%s", err)
+		return false
+	}
+	log.Debugf("checkNeedUpdateChainConfig force: %v", force)
+	return force
 }
 
 func (self *Server) makeProposal(blkNum uint64, forEmpty bool) error {
@@ -1894,8 +1916,9 @@ func (self *Server) makeProposal(blkNum uint64, forEmpty bool) error {
 	// FIXME: fix feesum calculation
 	txBookkeeping := self.createBookkeepingTransaction(uint64(self.Index), 0)
 	txs = append(txs, txBookkeeping)
+
 	//check need upate chainconfig
-	if self.checkNeedUpdateChainConfig() {
+	if self.checkNeedUpdateChainConfig() || self.checkForceUpdateChainConfig() {
 		err := self.updateChainConfig()
 		if err != nil {
 			log.Errorf("updateChainConfig failed:%s", err)

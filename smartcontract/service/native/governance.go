@@ -30,6 +30,7 @@ import (
 	"sort"
 
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/genesis"
 	cstates "github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
@@ -853,14 +854,14 @@ func CommitDpos(native *NativeService) error {
 
 	// shuffle
 	for i := len(dposTable) - 1; i > 0; i-- {
-		h, err := my_hash(native.Tx.Hash(), native.Height, peers[dposTable[i]-1].PeerPubkey, i)
+		h, err := Shufflehash(native.Tx.Hash(), native.Height, peers[dposTable[i]].PeerPubkey, i)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Failed to calculate hash value!")
 		}
 		j := h % uint64(i)
 		dposTable[i], dposTable[j] = dposTable[j], dposTable[i]
 	}
-	fmt.Println("DPOS table is:", dposTable)
+	log.Debugf("DPOS table is:", dposTable)
 
 	//update view
 	view = new(big.Int).Add(view, new(big.Int).SetInt64(1))
