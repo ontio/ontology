@@ -258,21 +258,23 @@ func GetInvFromBlockHash(starthash common.Uint256, stophash common.Uint256) (*In
 		}
 	}
 	tmpBuffer := bytes.NewBuffer([]byte{})
+	c := uint32(0)
 	for i = 1; i <= count; i++ {
 		//FIXME need add error handle for GetBlockWithHash
 		hash, err := actor.GetBlockHashByHeight(stopHeight + i)
 		if err != nil {
 			log.Errorf("GetInvFromBlockHash GetBlockHashByHeight height:%d error:%s",stopHeight + i,err )
-			continue
+			break
 		}
 		if hash == common.UINT256_EMPTY{
-			continue
+			break
 		}
 		log.Debug("GetInvFromBlockHash i is ", i, " , hash is ", hash)
 		hash.Serialize(tmpBuffer)
+		c++
 	}
 	log.Debug("GetInvFromBlockHash hash is ", tmpBuffer.Bytes())
-	return NewInvPayload(common.BLOCK, count, tmpBuffer.Bytes()), nil
+	return NewInvPayload(common.BLOCK, c, tmpBuffer.Bytes()), nil
 }
 
 func NewInvPayload(invType common.InventoryType, count uint32, msg []byte) *InvPayload {
