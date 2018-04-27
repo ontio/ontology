@@ -116,7 +116,6 @@ func main() {
 func ontMain(ctx *cli.Context) {
 	var acct *account.Account
 	var err error
-	var noder protocol.Noder
 
 	log.Info("Node version: ", config.Version)
 	consensusType := strings.ToLower(config.Parameters.ConsensusType)
