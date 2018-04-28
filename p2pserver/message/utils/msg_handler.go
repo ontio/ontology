@@ -28,7 +28,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ontio/ontology-crypto/keypair"
 	evtActor "github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -40,17 +39,6 @@ import (
 	msgTypes "github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/net/protocol"
 )
-
-func NotifyPeerState(peer keypair.PublicKey, connected bool) error {
-	log.Debug()
-	if actor.ConsensusPid != nil {
-		actor.ConsensusPid.Tell(&msgTypes.PeerStateUpdate{
-			PeerPubKey: &peer,
-			Connected:  connected,
-		})
-	}
-	return nil
-}
 
 // AddrReqHandle hadnles the neighbor address request from peer
 func AddrReqHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) error {
@@ -325,7 +313,6 @@ func VersionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 			// Close the connection and release the node source
 			n.CloseSync()
 			n.CloseCons()
-			NotifyPeerState(n.GetPubKey(), false)
 			p2p.RemovePeerSyncAddress(n.GetAddr())
 			p2p.RemovePeerConsAddress(n.GetAddr())
 			if pid != nil {
@@ -424,7 +411,6 @@ func VerAckHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		}
 
 		remotePeer.SetSyncState(msgCommon.ESTABLISH)
-		NotifyPeerState(remotePeer.GetPubKey(), true)
 
 		remotePeer.DumpInfo()
 
@@ -615,7 +601,6 @@ func DisconnectHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID
 	p2p.RemoveFromConnectingList(data.Addr)
 	p2p.RemovePeerSyncAddress(data.Addr)
 	p2p.RemovePeerConsAddress(data.Addr)
-	NotifyPeerState(remotePeer.GetPubKey(), false)
 
 	if remotePeer.SyncLink.GetAddr() == data.Addr {
 		remotePeer.CloseSync()
