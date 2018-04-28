@@ -26,7 +26,7 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
-	netActor "github.com/ontio/ontology/net/actor"
+	netActor "github.com/ontio/ontology/p2pserver/actor/server"
 	txpool "github.com/ontio/ontology/txnpool/common"
 )
 

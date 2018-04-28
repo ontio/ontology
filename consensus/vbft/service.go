@@ -38,7 +38,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
-	p2pmsg "github.com/ontio/ontology/net/message"
+	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/validator/increment"
 )
 
