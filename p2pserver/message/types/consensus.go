@@ -22,12 +22,18 @@ import (
 	"bytes"
 	"encoding/binary"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common/log"
 )
 
 type Consensus struct {
 	MsgHdr
 	Cons ConsensusPayload
+}
+
+type PeerStateUpdate struct {
+	PeerPubKey *keypair.PublicKey
+	Connected  bool
 }
 
 //Serialize message payload

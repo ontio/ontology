@@ -86,7 +86,7 @@ func (this *P2PServer) GetConnectionCnt() uint32 {
 
 //Start create all services
 func (this *P2PServer) Start(isSync bool) error {
-	if this != nil {
+	if this.network != nil {
 		this.network.Start()
 	}
 	if this.msgRouter != nil {
@@ -345,6 +345,9 @@ func (this *P2PServer) reachMinConnection() bool {
 	case "dbft":
 	case "solo":
 		minCount = config.SOLO_MIN_NODE_NUM
+	case "vbft":
+		minCount = config.VBFT_MIN_NODE_NUM
+
 	}
 	return int(this.GetConnectionCnt())+1 >= minCount
 }
@@ -486,33 +489,13 @@ func (this *P2PServer) timeout() {
 			if t.Before(time.Now().Add(-1 * time.Second *
 				time.Duration(periodTime) * common.KEEPALIVE_TIMEOUT)) {
 				log.Warn("Keep alive timeout!!!")
-				p.SetSyncState(common.INACTIVITY)
-				p.SetConsState(common.INACTIVITY)
+				utils.NotifyPeerState(p.GetPubKey(), false)
 				p.CloseSync()
 				p.CloseCons()
 			}
 		}
 	}
 }
-
-//randPeer choose a random peer from given peers
-/*func randPeer(plist []*peer.Peer) *peer.Peer {
-	selectList := []*peer.Peer{}
-	for _, v := range plist {
-		height, _ := actor.GetCurrentHeaderHeight()
-		if uint64(height) < v.GetHeight() {
-			selectList = append(selectList, v)
-		}
-	}
-	nCount := len(selectList)
-	if nCount == 0 {
-		return nil
-	}
-	rand.Seed(time.Now().UnixNano())
-	index := rand.Intn(nCount)
-
-	return selectList[index]
-}*/
 
 //addToRetryList add retry address to ReconnectAddrs
 func (this *P2PServer) addToRetryList(addr string) {

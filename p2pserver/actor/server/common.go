@@ -19,6 +19,7 @@
 package server
 
 import (
+	"github.com/ontio/ontology-crypto/keypair"
 	types "github.com/ontio/ontology/p2pserver/common"
 )
 
@@ -137,4 +138,9 @@ type GetNeighborAddrsReq struct {
 type GetNeighborAddrsRsp struct {
 	Addrs []types.PeerAddr
 	Count uint64
+}
+
+type TransmitConsensusMsgReq struct {
+	Target *keypair.PublicKey
+	Msg    []byte
 }
