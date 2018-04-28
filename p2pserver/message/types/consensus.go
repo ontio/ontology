@@ -39,10 +39,10 @@ type PeerStateUpdate struct {
 //Serialize message payload
 func (this *Consensus) Serialization() ([]byte, error) {
 
-	tmpBuffer := bytes.NewBuffer([]byte{})
-	this.Cons.Serialize(tmpBuffer)
-	checkSumBuf := CheckSum(tmpBuffer.Bytes())
-	this.MsgHdr.Init("consensus", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
+	p := bytes.NewBuffer([]byte{})
+	this.Cons.Serialize(p)
+	checkSumBuf := CheckSum(p.Bytes())
+	this.MsgHdr.Init("consensus", checkSumBuf, uint32(len(p.Bytes())))
 	log.Debug("NewConsensus The message payload length is ", this.MsgHdr.Length)
 
 	hdrBuf, err := this.MsgHdr.Serialization()
@@ -50,11 +50,8 @@ func (this *Consensus) Serialization() ([]byte, error) {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	err = binary.Write(buf, binary.LittleEndian, tmpBuffer.Bytes())
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), err
+	data := append(buf.Bytes(), p.Bytes()...)
+	return data, nil
 }
 
 //Deserialize message payload

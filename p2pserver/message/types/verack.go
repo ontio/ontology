@@ -32,22 +32,19 @@ type VerACK struct {
 
 //Serialize message payload
 func (this VerACK) Serialization() ([]byte, error) {
-	tmpBuffer := bytes.NewBuffer([]byte{})
-	serialization.WriteBool(tmpBuffer, this.IsConsensus)
+	p := bytes.NewBuffer([]byte{})
+	serialization.WriteBool(p, this.IsConsensus)
 
-	checkSumBuf := CheckSum(tmpBuffer.Bytes())
-	this.Init("verack", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
+	checkSumBuf := CheckSum(p.Bytes())
+	this.Init("verack", checkSumBuf, uint32(len(p.Bytes())))
 
 	hdrBuf, err := this.MsgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	err = binary.Write(buf, binary.LittleEndian, tmpBuffer.Bytes())
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), err
+	data := append(buf.Bytes(), p.Bytes()...)
+	return data, nil
 }
 
 //Deserialize message payload

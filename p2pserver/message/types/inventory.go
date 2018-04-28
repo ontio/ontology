@@ -61,23 +61,19 @@ func (this Inv) invType() common.InventoryType {
 //Serialize message payload
 func (this Inv) Serialization() ([]byte, error) {
 
-	tmpBuffer := bytes.NewBuffer([]byte{})
-	this.P.Serialization(tmpBuffer)
+	p := bytes.NewBuffer([]byte{})
+	this.P.Serialization(p)
 
-	checkSumBuf := CheckSum(tmpBuffer.Bytes())
-	this.Hdr.Init("inv", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
+	checkSumBuf := CheckSum(p.Bytes())
+	this.Hdr.Init("inv", checkSumBuf, uint32(len(p.Bytes())))
 
 	hdrBuf, err := this.Hdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	err = binary.Write(buf, binary.LittleEndian, tmpBuffer.Bytes())
-	if err != nil {
-		return nil, err
-	}
-
-	return buf.Bytes(), err
+	data := append(buf.Bytes(), p.Bytes()...)
+	return data, nil
 }
 
 //Deserialize message payload
