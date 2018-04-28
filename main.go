@@ -191,11 +191,6 @@ func ontMain(ctx *cli.Context) {
 		log.Fatalf("p2pserver NewServer error %s", err)
 		os.Exit(1)
 	}
-	err = p2p.Start(true)
-	if err != nil {
-		log.Fatalf("p2p sevice start error %s", err)
-		os.Exit(1)
-	}
 	p2pActor := p2pactor.NewP2PActor(p2p)
 	p2pPID, err := p2pActor.Start()
 	if err != nil {
@@ -203,6 +198,11 @@ func ontMain(ctx *cli.Context) {
 		os.Exit(1)
 	}
 	p2p.SetPID(p2pPID)
+	err = p2p.Start(true)
+	if err != nil {
+		log.Fatalf("p2p sevice start error %s", err)
+		os.Exit(1)
+	}
 
 	netreqactor.SetLedgerPid(ledgerPID)
 	netreqactor.SetTxnPoolPid(txPoolServer.GetPID(tc.TxActor))
