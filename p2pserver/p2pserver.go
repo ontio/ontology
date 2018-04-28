@@ -50,13 +50,12 @@ type P2PServer struct {
 	network   p2pnet.P2P
 	msgRouter *utils.MessageRouter
 	pid       *evtActor.PID
+	blockSync *BlockSyncMgr
 	ReconnectAddrs
-	flightHeights map[uint64][]uint32
 	quitOnline    chan bool
 	quitHeartBeat chan bool
-	quitSyncBlk   chan bool
-	flightlock    sync.RWMutex
-	isSync        bool
+	//quitSyncBlk   chan bool
+	//isSync        bool
 }
 
 //ReconnectAddrs contain addr need to reconnect
@@ -71,15 +70,12 @@ func NewServer(acc *account.Account) (*P2PServer, error) {
 
 	p := &P2PServer{
 		network: n,
-		isSync:  false,
 	}
 
 	p.msgRouter = utils.NewMsgRouter(p.network)
-	p.flightHeights = make(map[uint64][]uint32)
+	p.blockSync = NewBlockSyncMgr(p)
 	p.quitOnline = make(chan bool)
 	p.quitHeartBeat = make(chan bool)
-	//syncService maybe not running, set buffer for non-blocking when exit
-	p.quitSyncBlk = make(chan bool, 1)
 	return p, nil
 }
 
@@ -98,9 +94,8 @@ func (this *P2PServer) Start(isSync bool) error {
 	}
 	go this.keepOnlineService()
 	go this.heartBeatService()
-	if isSync {
-		go this.syncService()
-	}
+	go this.blockSync.Start()
+
 	return nil
 }
 
@@ -109,19 +104,14 @@ func (this *P2PServer) Stop() error {
 	this.network.Halt()
 	this.quitOnline <- true
 	this.quitHeartBeat <- true
-	this.quitSyncBlk <- true
 	this.msgRouter.Stop()
+	this.blockSync.Close()
 	return nil
 }
 
 // GetNetWork returns the low level netserver
 func (this *P2PServer) GetNetWork() p2pnet.P2P {
 	return this.network
-}
-
-//IsSyncing return whether p2p is syncing
-func (this *P2PServer) IsSyncing() bool {
-	return this.isSync
 }
 
 //GetPort return two network port
@@ -204,8 +194,29 @@ func (this *P2PServer) Send(p *peer.Peer, buf []byte,
 	return errors.New("send to a not ESTABLISH peer")
 }
 
+// GetID returns local node id
 func (this *P2PServer) GetID() uint64 {
 	return this.network.GetID()
+}
+
+// OnAddNode adds the peer id to the block sync mgr
+func (this *P2PServer) OnAddNode(id uint64) {
+	this.blockSync.OnAddNode(id)
+}
+
+// OnDelNode removes the peer id from the block sync mgr
+func (this *P2PServer) OnDelNode(id uint64) {
+	this.blockSync.OnDelNode(id)
+}
+
+// OnHeaderReceive adds the header list from network
+func (this *P2PServer) OnHeaderReceive(headers []*types.Header) {
+	this.blockSync.OnHeaderReceive(headers)
+}
+
+// OnBlockReceive adds the block from network
+func (this *P2PServer) OnBlockReceive(block *types.Block) {
+	this.blockSync.OnBlockReceive(block)
 }
 
 // Todo: remove it if no use
@@ -248,7 +259,6 @@ func (this *P2PServer) blockSyncFinished() bool {
 			return false
 		}
 	}
-	this.isSync = false
 	return true
 }
 
@@ -337,6 +347,11 @@ func (this *P2PServer) reachMinConnection() bool {
 		minCount = config.SOLO_MIN_NODE_NUM
 	}
 	return int(this.GetConnectionCnt())+1 >= minCount
+}
+
+//reachMinConnection return whether net layer have enough link under different config
+func (this *P2PServer) getNode(id uint64) *peer.Peer {
+	return this.network.GetPeer(id)
 }
 
 //retryInactivePeer try to connect peer in INACTIVITY state
@@ -480,165 +495,8 @@ func (this *P2PServer) timeout() {
 	}
 }
 
-//syncBlock start sync up hdr & block
-func (this *P2PServer) syncService() {
-	var periodTime uint
-	if config.Parameters.GenBlockTime > config.MIN_GEN_BLOCK_TIME {
-		periodTime = config.Parameters.GenBlockTime / common.UPDATE_RATE_PER_BLOCK
-	} else {
-		periodTime = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
-	}
-	t := time.NewTimer(time.Second * (time.Duration(periodTime)))
-
-	for {
-		select {
-		case <-t.C:
-			this.syncBlockHdr()
-			this.syncBlock()
-			t.Stop()
-			t.Reset(time.Second * (time.Duration(periodTime)))
-		case <-this.quitSyncBlk:
-			t.Stop()
-			break
-		}
-	}
-}
-
-//syncBlockHdr send synchdr cmd to peers
-func (this *P2PServer) syncBlockHdr() {
-	if !this.reachMinConnection() {
-		return
-	}
-	currentHdrHeight, _ := actor.GetCurrentHeaderHeight()
-	currentBlkHeight, _ := actor.GetCurrentBlockHeight()
-	//reduce ledger hdr cache stress
-	if currentHdrHeight-currentBlkHeight > 4000 {
-		return
-	}
-	peers := this.network.GetNeighbors()
-	if len(peers) == 0 {
-		return
-	}
-	p := randPeer(peers)
-	if p == nil {
-		return
-	}
-	headerHash, _ := actor.GetCurrentHeaderHash()
-	buf, err := msgpack.NewHeadersReq(headerHash)
-	if err != nil {
-		log.Error("failed build a new headersReq")
-	} else {
-		go this.Send(p, buf, false)
-	}
-}
-
-//syncBlock send reqblk cmd to peers
-func (this *P2PServer) syncBlock() {
-	if !this.reachMinConnection() {
-		return
-	}
-
-	var dValue int32
-	var reqCnt uint32
-	currentHdrHeight, _ := actor.GetCurrentHeaderHeight()
-	currentBlkHeight, _ := actor.GetCurrentBlockHeight()
-	if currentBlkHeight >= currentHdrHeight {
-		this.isSync = false
-		return
-	}
-
-	this.isSync = true
-	peers := this.network.GetNeighbors()
-
-	for _, p := range peers {
-		if uint32(p.GetHeight()) <= currentBlkHeight {
-			continue
-		}
-		this.removeFlightHeightLessThan(p, currentBlkHeight)
-		flights := this.flightHeights[p.GetID()]
-		count := common.MAX_REQ_BLK_ONCE - uint32(len(flights))
-		dValue = int32(currentHdrHeight - currentBlkHeight - reqCnt)
-		this.flightlock.Lock()
-		if count == 0 {
-			for _, f := range flights {
-				hash, _ := actor.GetBlockHashByHeight(f)
-				isContainBlock, _ := actor.IsContainBlock(hash)
-				if isContainBlock == false {
-					reqBuf, err := msgpack.NewBlkDataReq(hash)
-					if err != nil {
-						log.Error("syncBlock error:", err)
-						break
-					}
-					err = this.Send(p, reqBuf, false)
-					if err != nil {
-						log.Error("Send error:", err)
-						break
-					}
-				}
-			}
-
-		} else {
-			for i := uint32(1); i <= count && dValue >= 0; i++ {
-				hash, _ := actor.GetBlockHashByHeight(currentBlkHeight + reqCnt)
-				isContainBlock, _ := actor.IsContainBlock(hash)
-				if isContainBlock == false {
-					reqBuf, err := msgpack.NewBlkDataReq(hash)
-					if err != nil {
-						log.Error("syncBlock error:", err)
-					}
-					err = this.Send(p, reqBuf, false)
-					if err != nil {
-						log.Error("Send error:", err)
-						break
-					}
-					//store the flghtheight
-					flights = append(flights, currentBlkHeight+reqCnt)
-				}
-				reqCnt++
-				dValue--
-			}
-		}
-		this.flightHeights[p.GetID()] = flights
-		this.flightlock.Unlock()
-	}
-
-}
-
-//removeFlightHeightLessThan remove peer`s flightheight less than given height
-func (this *P2PServer) removeFlightHeightLessThan(p *peer.Peer, h uint32) {
-	this.flightlock.Lock()
-	defer this.flightlock.Unlock()
-	heights := this.flightHeights[p.GetID()]
-	nCnt := len(heights)
-	i := 0
-
-	for i < nCnt {
-		if heights[i] < h {
-			nCnt--
-			heights[nCnt], heights[i] = heights[i], heights[nCnt]
-		} else {
-			i++
-		}
-	}
-	this.flightHeights[p.GetID()] = heights[:nCnt]
-}
-
-//RemoveFlightHeight remove given height in flights
-func (this *P2PServer) RemoveFlightHeight(id uint64, height uint32) {
-	this.flightlock.Lock()
-	defer this.flightlock.Unlock()
-	for id, heights := range this.flightHeights {
-		for i, v := range heights {
-			if v == height {
-				this.flightHeights[id] = append(heights[:i], heights[i+1:]...)
-				break
-			}
-		}
-	}
-}
-
 //randPeer choose a random peer from given peers
-func randPeer(plist []*peer.Peer) *peer.Peer {
+/*func randPeer(plist []*peer.Peer) *peer.Peer {
 	selectList := []*peer.Peer{}
 	for _, v := range plist {
 		height, _ := actor.GetCurrentHeaderHeight()
@@ -654,7 +512,7 @@ func randPeer(plist []*peer.Peer) *peer.Peer {
 	index := rand.Intn(nCount)
 
 	return selectList[index]
-}
+}*/
 
 //addToRetryList add retry address to ReconnectAddrs
 func (this *P2PServer) addToRetryList(addr string) {

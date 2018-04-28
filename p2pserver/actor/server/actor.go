@@ -64,8 +64,6 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		this.handleStartServerReq(ctx, msg)
 	case *StopServerReq:
 		this.handleStopServerReq(ctx, msg)
-	case *IsSyncingReq:
-		this.handleIsSyncingReq(ctx, msg)
 	case *GetPortReq:
 		this.handleGetPortReq(ctx, msg)
 	case *GetVersionReq:
@@ -88,8 +86,16 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		this.handleGetRelayStateReq(ctx, msg)
 	case *GetNodeTypeReq:
 		this.handleGetNodeTypeReq(ctx, msg)
-	case *common.RemoveFlightHeight:
-		this.server.RemoveFlightHeight(msg.Id, msg.Height)
+	case *common.AppendPeerID:
+		this.server.OnAddNode(msg.ID)
+	case *common.RemovePeerID:
+		this.server.OnDelNode(msg.ID)
+	case *common.AppendHeaders:
+		this.server.OnHeaderReceive(msg.Headers)
+	case *common.AppendBlock:
+		this.server.OnBlockReceive(msg.Block)
+	//case *common.RemoveFlightHeight:
+	//	this.server.RemoveFlightHeight(msg.Id, msg.Height)
 	default:
 		err := this.server.Xmit(ctx.Message())
 		if nil != err {
@@ -116,17 +122,6 @@ func (this *P2PActor) handleStopServerReq(ctx actor.Context, req *StopServerReq)
 	if ctx.Sender() != nil {
 		resp := &StopServerRsp{
 			Error: err,
-		}
-		ctx.Sender().Request(resp, ctx.Self())
-	}
-}
-
-//sync handler
-func (this *P2PActor) handleIsSyncingReq(ctx actor.Context, req *IsSyncingReq) {
-	isSyncing := this.server.IsSyncing()
-	if ctx.Sender() != nil {
-		resp := &IsSyncingRsp{
-			IsSyncing: isSyncing,
 		}
 		ctx.Sender().Request(resp, ctx.Self())
 	}

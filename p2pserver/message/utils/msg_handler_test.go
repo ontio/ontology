@@ -344,10 +344,10 @@ func TestBlkHeaderHandle(t *testing.T) {
 	hash, err := netreqactor.GetBlockHashByHeight(0)
 	assert.Nil(t, err)
 
-	headers, cnt, err := netreqactor.GetHeadersFromHash(hash, hash)
+	headers, err := netreqactor.GetHeadersFromHash(hash, hash)
 	assert.Nil(t, err)
 
-	buf, err := msgpack.NewHeaders(headers, cnt)
+	buf, err := msgpack.NewHeaders(headers)
 	assert.Nil(t, err)
 
 	msg := &msgCommon.MsgPayload{
@@ -522,7 +522,7 @@ func TestDataReqHandle(t *testing.T) {
 		Payload: buf,
 	}
 
-	err = DataReqHandle(msg, network)
+	err = DataReqHandle(msg, network, nil)
 	assert.Nil(t, err)
 
 	tempStr := "3369930accc1ddd067245e8edadcd9bea207ba5e1753ac18a51df77a343bfe92"

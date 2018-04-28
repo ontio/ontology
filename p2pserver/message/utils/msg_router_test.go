@@ -20,14 +20,16 @@ package utils
 
 import (
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"
 	msgCommon "github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/net/netserver"
+	"github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
-func testHandler(data *msgCommon.MsgPayload, args ...interface{}) error {
+func testHandler(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *actor.PID, args ...interface{}) error {
 	log.Info("Test handler")
 	return nil
 }

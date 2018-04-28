@@ -72,9 +72,9 @@ func NewBlock(bk *ct.Block) ([]byte, error) {
 }
 
 //blk hdr package
-func NewHeaders(headers []ct.Header, count uint32) ([]byte, error) {
+func NewHeaders(headers []ct.Header) ([]byte, error) {
 	var blkHdr mt.BlkHeader
-	blkHdr.Cnt = count
+	blkHdr.Cnt = uint32(len(headers))
 	blkHdr.BlkHdr = headers
 
 	m, err := blkHdr.Serialization()

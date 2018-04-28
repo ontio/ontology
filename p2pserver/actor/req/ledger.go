@@ -25,6 +25,7 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	ldg "github.com/ontio/ontology/core/ledger"
 	ledger "github.com/ontio/ontology/core/ledger/actor"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -44,13 +45,13 @@ func AddHeader(header *types.Header) {
 }
 
 //add hdrs to ledger
-func AddHeaders(headers []*types.Header) {
-	DefLedgerPid.Tell(&ledger.AddHeadersReq{Headers: headers})
+func AddHeaders(headers []*types.Header) error {
+	return ldg.DefLedger.AddHeaders(headers)
 }
 
 //add blk to ledger
-func AddBlock(block *types.Block) {
-	DefLedgerPid.Tell(&ledger.AddBlockReq{Block: block})
+func AddBlock(block *types.Block) error {
+	return ldg.DefLedger.AddBlock(block)
 }
 
 //get txn according to hash
@@ -199,7 +200,7 @@ func IsContainBlock(hash common.Uint256) (bool, error) {
 }
 
 //get blk hdrs from starthash to stophash
-func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]types.Header, uint32, error) {
+func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]types.Header, error) {
 	var count uint32 = 0
 	var empty [msgCommon.HASH_LEN]byte
 	headers := []types.Header{}
@@ -216,7 +217,7 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]ty
 		} else {
 			bkStop, err := GetHeaderByHash(stopHash)
 			if err != nil || bkStop == nil {
-				return nil, 0, err
+				return nil, err
 			}
 			stopHeight = bkStop.Height
 			count = curHeight - stopHeight
@@ -227,19 +228,19 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]ty
 	} else {
 		bkStart, err := GetHeaderByHash(startHash)
 		if err != nil || bkStart == nil {
-			return nil, 0, err
+			return nil, err
 		}
 		startHeight = bkStart.Height
 		if stopHash != empty {
 			bkStop, err := GetHeaderByHash(stopHash)
 			if err != nil || bkStop == nil {
-				return nil, 0, err
+				return nil, err
 			}
 			stopHeight = bkStop.Height
 
 			// avoid unsigned integer underflow
 			if startHeight < stopHeight {
-				return nil, 0, errors.NewErr("do not have header to send")
+				return nil, errors.NewErr("do not have header to send")
 			}
 			count = startHeight - stopHeight
 
@@ -263,12 +264,12 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]ty
 		hd, err := GetHeaderByHash(hash)
 		if err != nil {
 			log.Errorf("net_server GetBlockWithHeight failed with err=%s, hash=%x,height=%d\n", err.Error(), hash, stopHeight+i)
-			return nil, 0, err
+			return nil, err
 		}
 		headers = append(headers, *hd)
 	}
 
-	return headers, count, nil
+	return headers, nil
 }
 
 //get blocks from starthash to stophash
@@ -324,17 +325,26 @@ func GetInvFromBlockHash(startHash common.Uint256, stopHash common.Uint256) (*ms
 		}
 	}
 	tmpBuffer := bytes.NewBuffer([]byte{})
+	c := uint32(0)
 	for i = 1; i <= count; i++ {
 		//FIXME need add error handle for GetBlockWithHash
-		hash, _ := GetBlockHashByHeight(stopHeight + i)
-		log.Debug("net_server GetInvFromBlockHash i is ", i, " , hash is ", hash)
+		hash, err := GetBlockHashByHeight(stopHeight + i)
+		if err != nil {
+			log.Errorf("GetBlockHashByHeight height:%d error:%s", stopHeight+i, err)
+			break
+		}
+		if hash == common.UINT256_EMPTY {
+			break
+		}
+		log.Debug("GetInvFromBlockHash i is ", i, " , hash is ", hash)
 		hash.Serialize(tmpBuffer)
+		c++
 	}
-	log.Debug("net_server GetInvFromBlockHash hash is ", tmpBuffer.Bytes())
+	log.Debug("GetInvFromBlockHash hash is ", tmpBuffer.Bytes())
 
 	return &msg.InvPayload{
 		InvType: common.BLOCK,
-		Cnt:     count,
+		Cnt:     c,
 		Blk:     tmpBuffer.Bytes(),
 	}, nil
 }
