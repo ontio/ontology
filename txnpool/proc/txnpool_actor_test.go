@@ -123,7 +123,7 @@ func TestTxPoolActor(t *testing.T) {
 
 	retAttr := &tc.TXAttr{
 		Height:  0,
-		Type:    vt.Statefull,
+		Type:    vt.Stateful,
 		ErrCode: errors.ErrNoError,
 	}
 	txEntry.Attrs = append(txEntry.Attrs, retAttr)

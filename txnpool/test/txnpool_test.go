@@ -33,7 +33,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 	tc "github.com/ontio/ontology/txnpool/common"
 	tp "github.com/ontio/ontology/txnpool/proc"
-	"github.com/ontio/ontology/validator/statefull"
+	"github.com/ontio/ontology/validator/stateful"
 	"github.com/ontio/ontology/validator/stateless"
 )
 
@@ -131,7 +131,7 @@ func Test_RCV(t *testing.T) {
 	}
 	statelessV3.Register(rspPid)
 
-	statefulV, err := statefull.NewValidator("stateful")
+	statefulV, err := stateful.NewValidator("stateful")
 	if err != nil {
 		t.Errorf("failed to new stateful valdiator", err)
 		return

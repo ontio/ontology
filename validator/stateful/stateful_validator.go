@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package statefull
+package stateful
 
 import (
 	"reflect"
@@ -59,13 +59,13 @@ func NewValidator(id string) (Validator, error) {
 func (self *validator) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
-		log.Info("statefull-validator: started and be ready to receive txn")
+		log.Info("stateful-validator: started and be ready to receive txn")
 	case *actor.Stopping:
-		log.Info("statefull-validator: stopping")
+		log.Info("stateful-validator: stopping")
 	case *actor.Restarting:
-		log.Info("statefull-validator: restarting")
+		log.Info("stateful-validator: restarting")
 	case *vatypes.CheckTx:
-		log.Debugf("statefull-validator: receive tx %x", msg.Tx.Hash())
+		log.Debugf("stateful-validator: receive tx %x", msg.Tx.Hash())
 		sender := context.Sender()
 		height := ledger.DefLedger.GetCurrentBlockHeight()
 
@@ -101,13 +101,13 @@ func (self *validator) Receive(context actor.Context) {
 		//}
 
 	default:
-		log.Info("statefull-validator: unknown msg ", msg, "type", reflect.TypeOf(msg))
+		log.Info("stateful-validator: unknown msg ", msg, "type", reflect.TypeOf(msg))
 	}
 
 }
 
 func (self *validator) VerifyType() vatypes.VerifyType {
-	return vatypes.Statefull
+	return vatypes.Stateful
 }
 
 func (self *validator) Register(poolId *actor.PID) {
