@@ -19,11 +19,23 @@
 package req
 
 import (
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
+	msgTypes "github.com/ontio/ontology/p2pserver/message/types"
 )
 
 var ConsensusPid *actor.PID
 
 func SetConsensusPid(conPid *actor.PID) {
 	ConsensusPid = conPid
+}
+
+func NotifyPeerState(peer keypair.PublicKey, connected bool) error {
+	if ConsensusPid != nil {
+		ConsensusPid.Tell(&msgTypes.PeerStateUpdate{
+			PeerPubKey: &peer,
+			Connected:  connected,
+		})
+	}
+	return nil
 }

@@ -19,6 +19,9 @@
 package p2pserver
 
 import (
+	"sync"
+	"time"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/types"
@@ -26,8 +29,6 @@ import (
 	p2pComm "github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	"github.com/ontio/ontology/p2pserver/peer"
-	"sync"
-	"time"
 )
 
 const (

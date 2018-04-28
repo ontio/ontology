@@ -489,7 +489,6 @@ func (this *P2PServer) timeout() {
 			if t.Before(time.Now().Add(-1 * time.Second *
 				time.Duration(periodTime) * common.KEEPALIVE_TIMEOUT)) {
 				log.Warn("Keep alive timeout!!!")
-				utils.NotifyPeerState(p.GetPubKey(), false)
 				p.CloseSync()
 				p.CloseCons()
 			}
