@@ -38,22 +38,19 @@ func (this Pong) Verify(buf []byte) error {
 
 //Serialize message payload
 func (this Pong) Serialization() ([]byte, error) {
-	tmpBuffer := bytes.NewBuffer([]byte{})
-	serialization.WriteUint64(tmpBuffer, this.Height)
+	p := bytes.NewBuffer([]byte{})
+	serialization.WriteUint64(p, this.Height)
 
-	checkSumBuf := CheckSum(tmpBuffer.Bytes())
-	this.MsgHdr.Init("pong", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
+	checkSumBuf := CheckSum(p.Bytes())
+	this.MsgHdr.Init("pong", checkSumBuf, uint32(len(p.Bytes())))
 
 	hdrBuf, err := this.MsgHdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	err = binary.Write(buf, binary.LittleEndian, tmpBuffer.Bytes())
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), err
+	data := append(buf.Bytes(), p.Bytes()...)
+	return data, nil
 
 }
 

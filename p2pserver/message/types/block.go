@@ -41,11 +41,11 @@ func (this Block) Verify(buf []byte) error {
 //Serialize message payload
 func (this Block) Serialization() ([]byte, error) {
 
-	tmpBuffer := bytes.NewBuffer([]byte{})
-	this.Blk.Serialize(tmpBuffer)
+	p := bytes.NewBuffer([]byte{})
+	this.Blk.Serialize(p)
 
-	checkSumBuf := CheckSum(tmpBuffer.Bytes())
-	this.Init("block", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
+	checkSumBuf := CheckSum(p.Bytes())
+	this.Init("block", checkSumBuf, uint32(len(p.Bytes())))
 	log.Debug("The message payload length is ", this.Length)
 
 	hdrBuf, err := this.MsgHdr.Serialization()
@@ -53,11 +53,8 @@ func (this Block) Serialization() ([]byte, error) {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	err = binary.Write(buf, binary.LittleEndian, tmpBuffer.Bytes())
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), err
+	data := append(buf.Bytes(), p.Bytes()...)
+	return data, nil
 }
 
 //Deserialize message payload

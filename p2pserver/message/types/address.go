@@ -59,11 +59,8 @@ func (this Addr) Serialization() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = binary.Write(&buf, binary.LittleEndian, p.Bytes())
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), err
+	data := append(buf.Bytes(), p.Bytes()...)
+	return data, nil
 }
 
 //Deserialize message payload

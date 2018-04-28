@@ -41,14 +41,14 @@ func (this BlkHeader) Verify(buf []byte) error {
 
 //Serialize message payload
 func (this BlkHeader) Serialization() ([]byte, error) {
-	tmpBuffer := bytes.NewBuffer([]byte{})
-	serialization.WriteUint32(tmpBuffer, this.Cnt)
+	p := bytes.NewBuffer([]byte{})
+	serialization.WriteUint32(p, this.Cnt)
 	for _, header := range this.BlkHdr {
-		header.Serialize(tmpBuffer)
+		header.Serialize(p)
 	}
 
-	checkSumBuf := CheckSum(tmpBuffer.Bytes())
-	this.Hdr.Init("headers", checkSumBuf, uint32(len(tmpBuffer.Bytes())))
+	checkSumBuf := CheckSum(p.Bytes())
+	this.Hdr.Init("headers", checkSumBuf, uint32(len(p.Bytes())))
 	log.Debug("The message payload length is ", this.Hdr.Length)
 
 	hdrBuf, err := this.Hdr.Serialization()
@@ -56,12 +56,8 @@ func (this BlkHeader) Serialization() ([]byte, error) {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	err = binary.Write(buf, binary.LittleEndian, tmpBuffer.Bytes())
-	if err != nil {
-		return nil, err
-	}
-
-	return buf.Bytes(), err
+	data := append(buf.Bytes(), p.Bytes()...)
+	return data, nil
 }
 
 //Deserialize message payload

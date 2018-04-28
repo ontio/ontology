@@ -57,11 +57,8 @@ func (this BlocksReq) Serialization() ([]byte, error) {
 	}
 	buf := bytes.NewBuffer(hdrBuf)
 
-	err = binary.Write(buf, binary.LittleEndian, p.Bytes())
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), err
+	data := append(buf.Bytes(), p.Bytes()...)
+	return data, nil
 }
 
 //Deserialize message payload
