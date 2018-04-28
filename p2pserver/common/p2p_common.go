@@ -18,6 +18,10 @@
 
 package common
 
+import (
+	"github.com/ontio/ontology/core/types"
+)
+
 //peer capability
 const (
 	VERIFY_NODE  = 1 //peer involved in consensus
@@ -115,8 +119,18 @@ const (
 	DISCONNECT_TYPE  = "disconnect" //peer disconnect info raise by link
 )
 
-// RemoveFlightHeight contains peer id and height
-type RemoveFlightHeight struct {
-	Id     uint64 // The peer id
-	Height uint32 // The height to be removed
+type AppendPeerID struct {
+	ID uint64 // The peer id
+}
+
+type RemovePeerID struct {
+	ID uint64 // The peer id
+}
+
+type AppendHeaders struct {
+	Headers []*types.Header // Headers to be added to the ledger
+}
+
+type AppendBlock struct {
+	Block *types.Block // Block to be added to the ledger
 }

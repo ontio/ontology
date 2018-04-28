@@ -41,9 +41,8 @@ import (
 )
 
 // AddrReqHandle hadnles the neighbor address request from peer
-func AddrReqHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
+func AddrReqHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) error {
 	log.Debug("RX addr request message", data.Addr, data.Id)
-	p2p := args[0].(p2p.P2P)
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
 		return errors.New("remotePeer invalid in AddrReqHandle")
@@ -61,9 +60,8 @@ func AddrReqHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 }
 
 // HeaderReqHandle handles the header sync req from peer
-func HeadersReqHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
+func HeadersReqHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) error {
 	log.Debug("RX headers request message", data.Addr, data.Id)
-	p2p := args[0].(p2p.P2P)
 	length := len(data.Payload)
 
 	var headersReq msgTypes.HeadersReq
@@ -75,11 +73,11 @@ func HeadersReqHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 	startHash = headersReq.P.HashStart
 	stopHash = headersReq.P.HashEnd
 
-	headers, cnt, err := actor.GetHeadersFromHash(startHash, stopHash)
+	headers, err := actor.GetHeadersFromHash(startHash, stopHash)
 	if err != nil {
 		return err
 	}
-	buf, err := msgpack.NewHeaders(headers, cnt)
+	buf, err := msgpack.NewHeaders(headers)
 	if err != nil {
 		return err
 	}
@@ -92,9 +90,8 @@ func HeadersReqHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 }
 
 //PingHandle handle ping msg from peer
-func PingHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
+func PingHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) error {
 	log.Debug("RX ping message", data.Addr, data.Id)
-	p2p := args[0].(p2p.P2P)
 	length := len(data.Payload)
 
 	var ping msgTypes.Ping
@@ -123,9 +120,8 @@ func PingHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 }
 
 ///PongHandle handle pong msg from peer
-func PongHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
+func PongHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) error {
 	log.Debug("RX pong message", data.Addr, data.Id)
-	p2p := args[0].(p2p.P2P)
 	length := len(data.Payload)
 
 	var pong msgTypes.Pong
@@ -141,7 +137,7 @@ func PongHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 }
 
 // BlkHeaderHandle handles the sync headers from peer
-func BlkHeaderHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
+func BlkHeaderHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) error {
 	log.Debug("RX block header message", data.Addr, data.Id)
 	length := len(data.Payload)
 	var blkHeader msgTypes.BlkHeader
@@ -153,41 +149,35 @@ func BlkHeaderHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 	for i = 0; i < blkHeader.Cnt; i++ {
 		blkHdr = append(blkHdr, &blkHeader.BlkHdr[i])
 	}
-	actor.AddHeaders(blkHdr)
+	if pid != nil {
+		input := &msgCommon.AppendHeaders{
+			Headers: blkHdr,
+		}
+		pid.Tell(input)
+	}
 	return nil
 }
 
 // BlockHandle handles the block message from peer
-func BlockHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
+func BlockHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) error {
 	log.Debug("RX block message from ", data.Addr, data.Id)
-	var pid *evtActor.PID
-	if args[1] != nil {
-		pid = args[1].(*evtActor.PID)
-	}
 	length := len(data.Payload)
 
 	var block msgTypes.Block
 	block.Deserialization(data.Payload[:length])
 	block.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
 
-	hash := block.Blk.Hash()
-	if con, _ := actor.IsContainBlock(hash); con != true {
-		actor.AddBlock(&block.Blk)
-		if pid != nil {
-			input := &msgCommon.RemoveFlightHeight{
-				Id:     data.Id,
-				Height: block.Blk.Header.Height,
-			}
-			pid.Tell(input)
+	if pid != nil {
+		input := &msgCommon.AppendBlock{
+			Block: &block.Blk,
 		}
-	} else {
-		log.Debug("Receive duplicated block")
+		pid.Tell(input)
 	}
 	return nil
 }
 
 // ConsensusHandle handles the consensus message from peer
-func ConsensusHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
+func ConsensusHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) error {
 	log.Debug("RX consensus message", data.Addr, data.Id)
 	length := len(data.Payload)
 
@@ -202,7 +192,7 @@ func ConsensusHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 }
 
 // NotFoundHandle handles the not found message from peer
-func NotFoundHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
+func NotFoundHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) error {
 	length := len(data.Payload)
 
 	var notFound msgTypes.NotFound
@@ -212,7 +202,7 @@ func NotFoundHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 }
 
 // TransactionHandle handles the transaction message from peer
-func TransactionHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
+func TransactionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) error {
 	log.Debug("RX transaction message", data.Addr, data.Id)
 	length := len(data.Payload)
 
@@ -227,10 +217,8 @@ func TransactionHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 }
 
 // VersionHandle handles version handshake protocol from peer
-func VersionHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
+func VersionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) error {
 	log.Debug("RX version message", data.Addr, data.Id)
-
-	p2p := args[0].(p2p.P2P)
 	length := len(data.Payload)
 
 	if length == 0 {
@@ -329,6 +317,12 @@ func VersionHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 			n.CloseCons()
 			p2p.RemovePeerSyncAddress(n.GetAddr())
 			p2p.RemovePeerConsAddress(n.GetAddr())
+			if pid != nil {
+				input := &msgCommon.RemovePeerID{
+					ID: version.P.Nonce,
+				}
+				pid.Tell(input)
+			}
 		}
 
 		log.Debug("handle version version.pk is ", version.PK)
@@ -348,6 +342,13 @@ func VersionHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 		remotePeer.SyncLink.SetID(version.P.Nonce)
 		p2p.AddNbrNode(remotePeer)
 
+		if pid != nil {
+			input := &msgCommon.AppendPeerID{
+				ID: version.P.Nonce,
+			}
+			pid.Tell(input)
+		}
+
 		var buf []byte
 		if s == msgCommon.INIT {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKE)
@@ -364,9 +365,8 @@ func VersionHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 }
 
 // VerAckHandle handles the version ack from peer
-func VerAckHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
+func VerAckHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) error {
 	log.Debug("RX verAck message from ", data.Addr, data.Id)
-	p2p := args[0].(p2p.P2P)
 	length := len(data.Payload)
 	p2p.RemoveFromConnectingList(data.Addr)
 	if length == 0 {
@@ -448,9 +448,8 @@ func VerAckHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 }
 
 // AddrHandle handles the neighbor address response message from peer
-func AddrHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
+func AddrHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) error {
 	log.Debug("Handle addr message", data.Addr, data.Id)
-	p2p := args[0].(p2p.P2P)
 	length := len(data.Payload)
 
 	var msg msgTypes.Addr
@@ -485,9 +484,8 @@ func AddrHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 }
 
 // DataReqHandle handles the data req(block/Transaction) from peer
-func DataReqHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
+func DataReqHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) error {
 	log.Debug("RX data req message", data.Addr, data.Id)
-	p2p := args[0].(p2p.P2P)
 	length := len(data.Payload)
 
 	var dataReq msgTypes.DataReq
@@ -538,9 +536,8 @@ func DataReqHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 
 // InvHandle handles the inventory message(block,
 // transaction and consensus) from peer.
-func InvHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
+func InvHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) error {
 	log.Debug("RX inv message", data.Addr, data.Id)
-	p2p := args[0].(p2p.P2P)
 	length := len(data.Payload)
 	var inv msgTypes.Inv
 	inv.Deserialization(data.Payload[:length])
@@ -597,8 +594,7 @@ func InvHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
 }
 
 // DisconnectHandle handles the disconnect events
-func DisconnectHandle(data *msgCommon.MsgPayload, args ...interface{}) error {
-	p2p := args[0].(p2p.P2P)
+func DisconnectHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) error {
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
 		return nil

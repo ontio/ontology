@@ -138,12 +138,3 @@ type GetNeighborAddrsRsp struct {
 	Addrs []types.PeerAddr
 	Count uint64
 }
-
-//whether net is syncing requet
-type IsSyncingReq struct {
-}
-
-//response of whether net is syncing
-type IsSyncingRsp struct {
-	IsSyncing bool
-}
