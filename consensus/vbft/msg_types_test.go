@@ -103,7 +103,7 @@ func TestBlockProposalMsgVerify(t *testing.T) {
 		t.Errorf("constructProposalMsg failed:%v", err)
 		return
 	}
-	err = msg.Verify(&acc.PublicKey)
+	err = msg.Verify(acc.PublicKey)
 	if err != nil {
 		t.Errorf("blockPropoaslMsg Verify Failed: %v", err)
 		return
@@ -142,7 +142,7 @@ func TestBlockEndorseMsg(t *testing.T) {
 		t.Errorf("TestBlockEndorseMsg failed: %v", err)
 		return
 	}
-	err = endorsemsg.Verify(&acc.PublicKey)
+	err = endorsemsg.Verify(acc.PublicKey)
 	if err != nil {
 		t.Errorf("TestBlockEndorseMsg Verify failed: %v", err)
 		return
@@ -181,7 +181,7 @@ func TestBlockCommitMsg(t *testing.T) {
 		t.Errorf("TestBlockCommitMsg failed: %v", err)
 		return
 	}
-	err = commitmsg.Verify(&acc.PublicKey)
+	err = commitmsg.Verify(acc.PublicKey)
 	if err != nil {
 		t.Errorf("TestBlockCommitMsg Verify failed: %v", err)
 		return
@@ -213,7 +213,7 @@ func TestPeerHandshakeMsg(t *testing.T) {
 		t.Errorf("constructHandshakeMsg failed: %v", err)
 		return
 	}
-	err = msg.Verify(&acc.PublicKey)
+	err = msg.Verify(acc.PublicKey)
 	if err != nil {
 		t.Errorf("peerHandshakeMsg Verify failed: %v\n", err)
 		return
@@ -245,7 +245,7 @@ func TestPeerHeartbeatMsg(t *testing.T) {
 		t.Errorf("constructHeartbeatMsg failed %v", err)
 		return
 	}
-	err = msg.Verify(&acc.PublicKey)
+	err = msg.Verify(acc.PublicKey)
 	if err != nil {
 		t.Errorf("TestPeerHeartbeatMsg Verify failed %v", err)
 		return
@@ -274,7 +274,7 @@ func TestBlockInfoFetchMsg(t *testing.T) {
 		t.Errorf("constructBlockInfoFetchMsg failed: %v", err)
 		return
 	}
-	err = msg.Verify(&acc.PublicKey)
+	err = msg.Verify(acc.PublicKey)
 	if err != nil {
 		t.Errorf("TestBlockInfoFetchMsg Verify failed %v", err)
 		return
@@ -309,7 +309,7 @@ func TestBlockInfoFetchRespMsg(t *testing.T) {
 		t.Errorf("constructBlockInfoFetchRespMsg failed: %v", err)
 		return
 	}
-	err = msg.Verify(&acc.PublicKey)
+	err = msg.Verify(acc.PublicKey)
 	if err != nil {
 		t.Errorf("TestBlockInfoFetchRespMsg Verify failed %v", err)
 		return
@@ -338,7 +338,7 @@ func TestBlockFetchMsg(t *testing.T) {
 		t.Errorf("constructBlockFetchMsg failed: %v", err)
 		return
 	}
-	err = msg.Verify(&acc.PublicKey)
+	err = msg.Verify(acc.PublicKey)
 	if err != nil {
 		t.Errorf("TestBlockFetchMsg Verify failed %v", err)
 		return
@@ -374,7 +374,7 @@ func TestBlockFetchRespMsg(t *testing.T) {
 		t.Errorf("constructBlockFetchMsg failed :%v", err)
 		return
 	}
-	err = respmsg.Verify(&acc.PublicKey)
+	err = respmsg.Verify(acc.PublicKey)
 	if err != nil {
 		t.Errorf("blockFetchRespMsg Verify Failed: %v", err)
 		return
@@ -403,7 +403,7 @@ func TestProposalFetchMsg(t *testing.T) {
 		t.Errorf("constructProposalFetchMsg failed: %v", err)
 		return
 	}
-	err = msg.Verify(&acc.PublicKey)
+	err = msg.Verify(acc.PublicKey)
 	if err != nil {
 		t.Errorf("TestProposalFetchMsg Verify failed %v", err)
 		return

@@ -30,7 +30,7 @@ import (
 
 type Peer struct {
 	Index          uint32
-	PubKey         *keypair.PublicKey
+	PubKey         keypair.PublicKey
 	handShake      *peerHandshakeMsg
 	LatestInfo     *peerHeartbeatMsg // latest heartbeat msg
 	LastUpdateTime time.Time         // time received heartbeat from peer
@@ -194,7 +194,7 @@ func (pool *PeerPool) GetPeerIndex(nodeId vconfig.NodeID) (uint32, bool) {
 	return idx, present
 }
 
-func (pool *PeerPool) GetPeerPubKey(peerIdx uint32) *keypair.PublicKey {
+func (pool *PeerPool) GetPeerPubKey(peerIdx uint32) keypair.PublicKey {
 	pool.lock.RLock()
 	pool.lock.RUnlock()
 

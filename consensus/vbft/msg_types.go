@@ -50,7 +50,7 @@ const (
 
 type ConsensusMsg interface {
 	Type() MsgType
-	Verify(pub *keypair.PublicKey) error
+	Verify(pub keypair.PublicKey) error
 	GetBlockNum() uint64
 	Serialize() ([]byte, error)
 }
@@ -63,7 +63,7 @@ func (msg *blockProposalMsg) Type() MsgType {
 	return BlockProposalMessage
 }
 
-func (msg *blockProposalMsg) Verify(pub *keypair.PublicKey) error {
+func (msg *blockProposalMsg) Verify(pub keypair.PublicKey) error {
 	sigData := msg.Block.Block.Header.SigData
 	msg.Block.Block.Header.SigData = nil
 
@@ -102,7 +102,7 @@ func (msg *blockProposalMsg) Verify(pub *keypair.PublicKey) error {
 
 	if data, err := msgdata.Serialize(); err != nil {
 		return fmt.Errorf("failed to serialize proposal msg sigone: %s", err)
-	} else if !signature.Verify(*pub, data, sigone) {
+	} else if !signature.Verify(pub, data, sigone) {
 		return fmt.Errorf("failed to verify proposal msg sigone")
 	}
 
@@ -114,7 +114,7 @@ func (msg *blockProposalMsg) Verify(pub *keypair.PublicKey) error {
 	}
 	if data, err := msgdata.Serialize(); err != nil {
 		return fmt.Errorf("failed to serialize proposal msg: %s", err)
-	} else if !signature.Verify(*pub, data, sig) {
+	} else if !signature.Verify(pub, data, sig) {
 		return fmt.Errorf("failed to verify proposal msg sig")
 	}
 	return nil
@@ -167,7 +167,7 @@ func (msg *blockEndorseMsg) Type() MsgType {
 	return BlockEndorseMessage
 }
 
-func (msg *blockEndorseMsg) Verify(pub *keypair.PublicKey) error {
+func (msg *blockEndorseMsg) Verify(pub keypair.PublicKey) error {
 	sigData := msg.Sig
 	msg.Sig = nil
 
@@ -182,7 +182,7 @@ func (msg *blockEndorseMsg) Verify(pub *keypair.PublicKey) error {
 
 	if data, err := msg.Serialize(); err != nil {
 		return fmt.Errorf("failed to serialize endorse msg: %s", err)
-	} else if !signature.Verify(*pub, data, sig) {
+	} else if !signature.Verify(pub, data, sig) {
 		return fmt.Errorf("failed to verify endorse msg")
 	}
 
@@ -211,7 +211,7 @@ func (msg *blockCommitMsg) Type() MsgType {
 	return BlockCommitMessage
 }
 
-func (msg *blockCommitMsg) Verify(pub *keypair.PublicKey) error {
+func (msg *blockCommitMsg) Verify(pub keypair.PublicKey) error {
 	sigData := msg.Sig
 	msg.Sig = nil
 
@@ -226,7 +226,7 @@ func (msg *blockCommitMsg) Verify(pub *keypair.PublicKey) error {
 
 	if data, err := msg.Serialize(); err != nil {
 		return fmt.Errorf("failed to serialize commit msg: %s", err)
-	} else if !signature.Verify(*pub, data, sig) {
+	} else if !signature.Verify(pub, data, sig) {
 		return fmt.Errorf("failed to verify commit msg")
 	}
 
@@ -253,7 +253,7 @@ func (msg *peerHandshakeMsg) Type() MsgType {
 	return PeerHandshakeMessage
 }
 
-func (msg *peerHandshakeMsg) Verify(pub *keypair.PublicKey) error {
+func (msg *peerHandshakeMsg) Verify(pub keypair.PublicKey) error {
 	sigData := msg.Sig
 	msg.Sig = nil
 
@@ -268,7 +268,7 @@ func (msg *peerHandshakeMsg) Verify(pub *keypair.PublicKey) error {
 
 	if data, err := msg.Serialize(); err != nil {
 		return fmt.Errorf("failed to serialize handshake msg: %s", err)
-	} else if !signature.Verify(*pub, data, sig) {
+	} else if !signature.Verify(pub, data, sig) {
 		return fmt.Errorf("failed to verify handshake msg")
 	}
 
@@ -295,7 +295,7 @@ func (msg *peerHeartbeatMsg) Type() MsgType {
 	return PeerHeartbeatMessage
 }
 
-func (msg *peerHeartbeatMsg) Verify(pub *keypair.PublicKey) error {
+func (msg *peerHeartbeatMsg) Verify(pub keypair.PublicKey) error {
 	sigData := msg.Sig
 	msg.Sig = nil
 
@@ -310,7 +310,7 @@ func (msg *peerHeartbeatMsg) Verify(pub *keypair.PublicKey) error {
 
 	if data, err := msg.Serialize(); err != nil {
 		return fmt.Errorf("failed to serialize heartbeat msg: %s", err)
-	} else if !signature.Verify(*pub, data, sig) {
+	} else if !signature.Verify(pub, data, sig) {
 		return fmt.Errorf("failed to verify heartbeat msg")
 	}
 
@@ -334,7 +334,7 @@ func (msg *BlockInfoFetchMsg) Type() MsgType {
 	return BlockInfoFetchMessage
 }
 
-func (msg *BlockInfoFetchMsg) Verify(pub *keypair.PublicKey) error {
+func (msg *BlockInfoFetchMsg) Verify(pub keypair.PublicKey) error {
 	sigData := msg.Sig
 	msg.Sig = nil
 
@@ -349,7 +349,7 @@ func (msg *BlockInfoFetchMsg) Verify(pub *keypair.PublicKey) error {
 
 	if data, err := msg.Serialize(); err != nil {
 		return fmt.Errorf("failed to serialize blockinfo fetch msg: %s", err)
-	} else if !signature.Verify(*pub, data, sig) {
+	} else if !signature.Verify(pub, data, sig) {
 		return fmt.Errorf("failed to verify blockinfo fetch msg")
 	}
 
@@ -379,7 +379,7 @@ func (msg *BlockInfoFetchRespMsg) Type() MsgType {
 	return BlockInfoFetchRespMessage
 }
 
-func (msg *BlockInfoFetchRespMsg) Verify(pub *keypair.PublicKey) error {
+func (msg *BlockInfoFetchRespMsg) Verify(pub keypair.PublicKey) error {
 	sigData := msg.Sig
 	msg.Sig = nil
 
@@ -394,7 +394,7 @@ func (msg *BlockInfoFetchRespMsg) Verify(pub *keypair.PublicKey) error {
 
 	if data, err := msg.Serialize(); err != nil {
 		return fmt.Errorf("failed to serialize blockinfo resp msg: %s", err)
-	} else if !signature.Verify(*pub, data, sig) {
+	} else if !signature.Verify(pub, data, sig) {
 		return fmt.Errorf("failed to verify blockinfo resp msg")
 	}
 
@@ -419,7 +419,7 @@ func (msg *blockFetchMsg) Type() MsgType {
 	return BlockFetchMessage
 }
 
-func (msg *blockFetchMsg) Verify(pub *keypair.PublicKey) error {
+func (msg *blockFetchMsg) Verify(pub keypair.PublicKey) error {
 	sigData := msg.Sig
 	msg.Sig = nil
 
@@ -434,7 +434,7 @@ func (msg *blockFetchMsg) Verify(pub *keypair.PublicKey) error {
 
 	if data, err := msg.Serialize(); err != nil {
 		return fmt.Errorf("failed to serialize blockfetch msg: %s", err)
-	} else if !signature.Verify(*pub, data, sig) {
+	} else if !signature.Verify(pub, data, sig) {
 		return fmt.Errorf("failed to verify blockfetch msg: %s", err)
 	}
 
@@ -460,7 +460,7 @@ func (msg *BlockFetchRespMsg) Type() MsgType {
 	return BlockFetchRespMessage
 }
 
-func (msg *BlockFetchRespMsg) Verify(pub *keypair.PublicKey) error {
+func (msg *BlockFetchRespMsg) Verify(pub keypair.PublicKey) error {
 	sigData := msg.Sig
 	msg.Sig = nil
 
@@ -475,7 +475,7 @@ func (msg *BlockFetchRespMsg) Verify(pub *keypair.PublicKey) error {
 
 	if data, err := msg.Serialize(); err != nil {
 		return fmt.Errorf("failed to serialize blockfetch rsp msg: %s", err)
-	} else if !signature.Verify(*pub, data, sig) {
+	} else if !signature.Verify(pub, data, sig) {
 		return fmt.Errorf("failed to verify blockfetch rsp msg")
 	}
 
@@ -537,7 +537,7 @@ func (msg *proposalFetchMsg) Type() MsgType {
 	return ProposalFetchMessage
 }
 
-func (msg *proposalFetchMsg) Verify(pub *keypair.PublicKey) error {
+func (msg *proposalFetchMsg) Verify(pub keypair.PublicKey) error {
 	sigData := msg.Sig
 	msg.Sig = nil
 
@@ -552,7 +552,7 @@ func (msg *proposalFetchMsg) Verify(pub *keypair.PublicKey) error {
 
 	if data, err := msg.Serialize(); err != nil {
 		return fmt.Errorf("failed to serialize proposalFetch msg: %s", err)
-	} else if !signature.Verify(*pub, data, sig) {
+	} else if !signature.Verify(pub, data, sig) {
 		return fmt.Errorf("failed to verify proposalFetch msg")
 	}
 
