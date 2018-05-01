@@ -66,7 +66,9 @@ func HeadersReqHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID
 
 	var headersReq msgTypes.HeadersReq
 	headersReq.Deserialization(data.Payload[:length])
-	headersReq.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
+	if err := headersReq.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]); err != nil {
+		return err
+	}
 
 	var startHash [msgCommon.HASH_LEN]byte
 	var stopHash [msgCommon.HASH_LEN]byte
@@ -96,7 +98,9 @@ func PingHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 
 	var ping msgTypes.Ping
 	ping.Deserialization(data.Payload[:length])
-	ping.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
+	if err := ping.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]); err != nil {
+		return err
+	}
 
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
@@ -126,7 +130,9 @@ func PongHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 
 	var pong msgTypes.Pong
 	pong.Deserialization(data.Payload[:length])
-	pong.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
+	if err := pong.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]); err != nil {
+		return err
+	}
 
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
@@ -142,7 +148,9 @@ func BlkHeaderHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 	length := len(data.Payload)
 	var blkHeader msgTypes.BlkHeader
 	blkHeader.Deserialization(data.Payload[:length])
-	blkHeader.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
+	if err := blkHeader.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]); err != nil {
+		return err
+	}
 
 	var blkHdr []*types.Header
 	var i uint32
@@ -165,7 +173,9 @@ func BlockHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, arg
 
 	var block msgTypes.Block
 	block.Deserialization(data.Payload[:length])
-	block.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
+	if err := block.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]); err != nil {
+		return err
+	}
 
 	if pid != nil {
 		input := &msgCommon.AppendBlock{
@@ -183,7 +193,9 @@ func ConsensusHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 
 	var consensus msgTypes.Consensus
 	consensus.Deserialization(data.Payload[:length])
-	consensus.Cons.Verify()
+	if err := consensus.Cons.Verify(); err != nil {
+		return err
+	}
 
 	if actor.ConsensusPid != nil {
 		actor.ConsensusPid.Tell(&consensus.Cons)
@@ -228,7 +240,9 @@ func VersionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 
 	version := msgTypes.Version{}
 	version.Deserialization(data.Payload[:length])
-	version.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
+	if err := version.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]); err != nil {
+		return err
+	}
 
 	if version.P.IsConsensus == true {
 		if config.Parameters.DualPortSurpport == false {
@@ -452,7 +466,9 @@ func AddrHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 
 	var msg msgTypes.Addr
 	msg.Deserialization(data.Payload[:length])
-	msg.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
+	if err := msg.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]); err != nil {
+		return err
+	}
 
 	for _, v := range msg.NodeAddrs {
 		var ip net.IP
@@ -539,7 +555,9 @@ func InvHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 	length := len(data.Payload)
 	var inv msgTypes.Inv
 	inv.Deserialization(data.Payload[:length])
-	inv.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length])
+	if err := inv.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]) ; err != nil {
+		return err
+	}
 
 	//localPeer := p2p.Self
 	remotePeer := p2p.GetPeer(data.Id)
