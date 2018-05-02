@@ -30,12 +30,12 @@ import (
 	"sort"
 
 	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/genesis"
 	cstates "github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native/states"
+	vbftconfig "github.com/ontio/ontology/consensus/vbft/config"
 )
 
 const (
@@ -62,7 +62,7 @@ const (
 	VOTE_COMMIT_INFO = "voteCommitInfo"
 
 	//status
-	RegisterSyncNodeStatus states.Status = 0
+	RegisterSyncNodeStatus states.Status = iota
 	SyncNodeStatus
 	RegisterCandidateStatus
 	CandidateStatus
@@ -602,7 +602,7 @@ func CommitDpos(native *NativeService) error {
 			fmt.Println(peerPool)
 			stake := new(big.Int).Add(peerPool.TotalPos, peerPool.InitPos)
 			peers = append(peers, &states.PeerStakeInfo{
-				Index:      peerPool.Index.Uint64(),
+				Index:      uint32(peerPool.Index.Uint64()),
 				PeerPubkey: peerPool.PeerPubkey,
 				Stake:      stake.Uint64(),
 			})
@@ -844,24 +844,34 @@ func CommitDpos(native *NativeService) error {
 		peerRanks = append(peerRanks, s)
 	}
 
-	// calculate dpos table
-	dposTable := make([]uint64, 0)
+	// calculate pos table
+	chainPeers := make(map[uint32]*vbftconfig.PeerConfig, 0)
+	posTable := make([]uint32, 0)
 	for i := 0; i < int(config.K); i++ {
+		nodeId, err := vbftconfig.StringID(peers[i].PeerPubkey)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, fmt.Sprintf("[commitDpos] Failed to format NodeID, index: %d: %s", peers[i].Index, err))
+		}
+		chainPeers[peers[i].Index] = &vbftconfig.PeerConfig{
+			Index: peers[i].Index,
+			ID:    nodeId,
+		}
 		for j := uint64(0); j < peerRanks[i]; j++ {
-			dposTable = append(dposTable, peers[i].Index)
+			posTable = append(posTable, peers[i].Index)
 		}
 	}
 
 	// shuffle
-	for i := len(dposTable) - 1; i > 0; i-- {
-		h, err := Shufflehash(native.Tx.Hash(), native.Height, peers[dposTable[i]].PeerPubkey, i)
+	for i := len(posTable) - 1; i > 0; i-- {
+		h, err := Shufflehash(native.Tx.Hash(), native.Height, peers[posTable[i]].PeerPubkey, i)
 		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Failed to calculate hash value!")
+			return  errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Failed to calculate hash value")
 		}
 		j := h % uint64(i)
-		dposTable[i], dposTable[j] = dposTable[j], dposTable[i]
+		posTable[i], posTable[j] = posTable[j], posTable[i]
 	}
-	log.Debugf("DPOS table is:", dposTable)
+
+	fmt.Println("DPOS table is:", posTable)
 
 	//update view
 	view = new(big.Int).Add(view, new(big.Int).SetInt64(1))
