@@ -244,12 +244,14 @@ func VersionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 	if version.P.IsConsensus == true {
 		if config.DefConfig.P2PNode.DualPortSupport == false {
 			log.Warn("consensus port not surpport")
+			p2p.RemoveFromConnectingList(data.Addr)
 			return errors.New("consensus port not surpport")
 		}
 		remotePeer := p2p.GetPeerFromAddr(data.Addr)
 
 		if remotePeer == nil {
 			log.Warn(" peer is not exist", data.Addr)
+			p2p.RemoveFromConnectingList(data.Addr)
 			return errors.New("peer is not exist ")
 		}
 		p := p2p.GetPeer(version.P.Nonce)
@@ -257,6 +259,7 @@ func VersionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 		if p == nil {
 			log.Warn("sync link is not exist", version.P.Nonce)
 			p2p.RemovePeerConsAddress(data.Addr)
+			p2p.RemoveFromConnectingList(data.Addr)
 			return errors.New("sync link is not exist")
 		} else {
 			//p synclink must exist,merged
@@ -270,12 +273,14 @@ func VersionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 			log.Warn("The node handshake with itself")
 			remotePeer.CloseCons()
 			p2p.RemovePeerConsAddress(data.Addr)
+			p2p.RemoveFromConnectingList(data.Addr)
 			return errors.New("The node handshake with itself ")
 		}
 
 		s := remotePeer.GetConsState()
 		if s != msgCommon.INIT && s != msgCommon.HAND {
 			log.Warn("Unknown status to received version", s)
+			p2p.RemoveFromConnectingList(data.Addr)
 			return errors.New("Unknown status to received version ")
 		}
 
@@ -302,18 +307,21 @@ func VersionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 		if remotePeer == nil {
 			log.Warn("peer is not exist", data.Addr)
 			p2p.RemovePeerSyncAddress(data.Addr)
+			p2p.RemoveFromConnectingList(data.Addr)
 			return errors.New("peer is not exist ")
 		}
 		if version.P.Nonce == p2p.GetID() {
 			log.Warn("The node handshake with itself")
 			remotePeer.CloseSync()
 			p2p.RemovePeerSyncAddress(data.Addr)
+			p2p.RemoveFromConnectingList(data.Addr)
 			return errors.New("The node handshake with itself ")
 		}
 
 		s := remotePeer.GetSyncState()
 		if s != msgCommon.INIT && s != msgCommon.HAND {
 			log.Warn("Unknown status to received version", s)
+			p2p.RemoveFromConnectingList(data.Addr)
 			return errors.New("Unknown status to received version")
 		}
 
@@ -326,6 +334,7 @@ func VersionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 			n.CloseCons()
 			p2p.RemovePeerSyncAddress(n.GetAddr())
 			p2p.RemovePeerConsAddress(n.GetAddr())
+			p2p.RemoveFromConnectingList(data.Addr)
 			if pid != nil {
 				input := &msgCommon.RemovePeerID{
 					ID: version.P.Nonce,
@@ -343,7 +352,6 @@ func VersionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 		remotePeer.SetHttpInfoPort(version.P.HttpInfoPort)
 		remotePeer.SetBookKeeperAddr(version.PK)
 
-		// if  version.P.Port == version.P.ConsensusPort don't updateInfo
 		remotePeer.UpdateInfo(time.Now(), version.P.Version,
 			version.P.Services, version.P.SyncPort,
 			version.P.ConsPort, version.P.Nonce,
@@ -411,8 +419,7 @@ func VerAckHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 			buf, _ := msgpack.NewVerAck(true)
 			p2p.Send(remotePeer, buf, true)
 		}
-		addr := remotePeer.ConsLink.GetAddr()
-		p2p.RemoveFromConnectingList(addr)
+
 		return nil
 	} else {
 		s := remotePeer.GetSyncState()
@@ -448,8 +455,6 @@ func VerAckHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 
 		buf, _ := msgpack.NewAddrReq()
 		go p2p.Send(remotePeer, buf, false)
-
-		p2p.RemoveFromConnectingList(addr)
 
 		return nil
 	}
