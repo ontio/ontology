@@ -164,7 +164,7 @@ func (self *Ledger) FindStorageItem(codeHash common.Address, key []byte) ([][]by
 	}
 	storageItem, err := self.ldgStore.FindStorageItem(storageKey)
 	if err != nil {
-		return nil, fmt.Errorf("GetStorageItem error %s", err)
+		return nil, fmt.Errorf("FindStorageItem error %s", err)
 	}
 	var value [][]byte
 	for _, storageitem := range storageItem {
