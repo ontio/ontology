@@ -475,7 +475,7 @@ func VoteForPeer(native *NativeService) error {
 			FreezePos:  new(big.Int),
 			NewPos:     new(big.Int),
 		}
-		if pos.Cmp(new(big.Int)) >= 0 {
+		if pos.Sign() >= 0 {
 			if voteInfoPoolBytes != nil {
 				voteInfoPoolStore, _ := voteInfoPoolBytes.(*cstates.StorageItem)
 				err = json.Unmarshal(voteInfoPoolStore.Value, voteInfoPool)
@@ -509,9 +509,9 @@ func VoteForPeer(native *NativeService) error {
 					return errors.NewDetailErr(err, errors.ErrNoCode, "[voteForPeer] Unmarshal voteInfoPool error!")
 				}
 				temp := new(big.Int).Add(voteInfoPool.NewPos, pos)
-				if temp.Cmp(new(big.Int)) < 0 {
+				if temp.Sign() < 0 {
 					voteInfoPool.PrePos = new(big.Int).Sub(voteInfoPool.PrePos, temp)
-					if voteInfoPool.PrePos.Cmp(new(big.Int)) < 0 {
+					if voteInfoPool.PrePos.Sign() < 0 {
 						continue
 					}
 					voteInfoPool.FreezePos = new(big.Int).Add(voteInfoPool.FreezePos, temp)
@@ -539,10 +539,10 @@ func VoteForPeer(native *NativeService) error {
 			}
 		}
 	}
-	if total.Cmp(new(big.Int)) > 0 {
+	if total.Sign() > 0 {
 		//TODO: pay
 	}
-	if total.Cmp(new(big.Int)) < 0 {
+	if total.Sign() < 0 {
 		//TODO: withdraw
 	}
 
@@ -863,7 +863,7 @@ func CommitDpos(native *NativeService) error {
 
 	// shuffle
 	for i := len(posTable) - 1; i > 0; i-- {
-		h, err := Shufflehash(native.Tx.Hash(), native.Height, peers[posTable[i]].PeerPubkey, i)
+		h, err := Shufflehash(native.Tx.Hash(), native.Height, chainPeers[posTable[i]].ID.Bytes(), i)
 		if err != nil {
 			return  errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Failed to calculate hash value")
 		}
@@ -919,7 +919,7 @@ func VoteCommitDpos(native *NativeService) error {
 		voteCommitInfo = new(big.Int).SetBytes(voteCommitStore.Value)
 	}
 	newVoteCommitInfo := new(big.Int).Add(voteCommitInfo, params.Pos)
-	if newVoteCommitInfo.Cmp(new(big.Int)) < 0 {
+	if newVoteCommitInfo.Sign() < 0 {
 		return errors.NewErr("[voteCommitDpos] Remain pos is negative!")
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(VOTE_COMMIT_INFO), view.Bytes(), addressPrefix), &cstates.StorageItem{Value: newVoteCommitInfo.Bytes()})
