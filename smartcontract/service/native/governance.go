@@ -30,12 +30,23 @@ import (
 	"sort"
 
 	"github.com/ontio/ontology/common/config"
+	vbftconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/genesis"
 	cstates "github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native/states"
-	vbftconfig "github.com/ontio/ontology/consensus/vbft/config"
+)
+
+const (
+	//status
+	RegisterSyncNodeStatus states.Status = iota
+	SyncNodeStatus
+	RegisterCandidateStatus
+	CandidateStatus
+	ConsensusStatus
+	QuitStatus
+	QuitConsensusStatus
 )
 
 const (
@@ -61,15 +72,6 @@ const (
 	FORCE_COMMIT     = "forceCommit"
 	VOTE_COMMIT_INFO = "voteCommitInfo"
 
-	//status
-	RegisterSyncNodeStatus states.Status = iota
-	SyncNodeStatus
-	RegisterCandidateStatus
-	CandidateStatus
-	ConsensusStatus
-	QuitStatus
-	QuitConsensusStatus
-
 	//global
 	ConsensusNum = 7
 	CandidateNum = 7 * 7
@@ -91,6 +93,7 @@ func RegisterGovernanceContract(native *NativeService) {
 	native.Register(COMMIT_DPOS, CommitDpos)
 	native.Register(VOTE_COMMIT_DPOS, VoteCommitDpos)
 	native.Register(UPDATE_CONFIG, UpdateConfig)
+	native.Register("dataQuery", DataQuery)
 }
 
 func InitConfig(native *NativeService) error {
@@ -115,7 +118,7 @@ func InitConfig(native *NativeService) error {
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(VBFT_CONFIG)), &cstates.StorageItem{Value: value})
 
-	initPeerPool := &states.InitPeerPool{}
+	initPeerPool := &states.PeerPoolList{}
 	if err := json.Unmarshal(file, initPeerPool); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[initConfig] Failed to unmarshal config file!")
 	}
@@ -135,6 +138,16 @@ func InitConfig(native *NativeService) error {
 	}
 
 	native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(CANDIDITE_INDEX)), &cstates.StorageItem{Value: new(big.Int).SetInt64(8).Bytes()})
+
+	governanceView := &states.GovernanceView{
+		View:       new(big.Int).SetInt64(1),
+		VoteCommit: false,
+	}
+	v, err := json.Marshal(governanceView)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[initConfig] Marshal governanceView error")
+	}
+	native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(GOVERNANCE_VIEW)), &cstates.StorageItem{Value: v})
 
 	addCommonEvent(native, contract, INIT_CONFIG, true)
 	return nil
@@ -865,7 +878,7 @@ func CommitDpos(native *NativeService) error {
 	for i := len(posTable) - 1; i > 0; i-- {
 		h, err := Shufflehash(native.Tx.Hash(), native.Height, chainPeers[posTable[i]].ID.Bytes(), i)
 		if err != nil {
-			return  errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Failed to calculate hash value")
+			return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Failed to calculate hash value")
 		}
 		j := h % uint64(i)
 		posTable[i], posTable[j] = posTable[j], posTable[i]
@@ -875,7 +888,15 @@ func CommitDpos(native *NativeService) error {
 
 	//update view
 	view = new(big.Int).Add(view, new(big.Int).SetInt64(1))
-	native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(GOVERNANCE_VIEW)), &cstates.StorageItem{Value: view.Bytes()})
+	governanceView := &states.GovernanceView{
+		View:       view,
+		VoteCommit: false,
+	}
+	v, err := json.Marshal(governanceView)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Marshal governanceView error")
+	}
+	native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(GOVERNANCE_VIEW)), &cstates.StorageItem{Value: v})
 
 	addCommonEvent(native, contract, COMMIT_DPOS, true)
 
@@ -934,7 +955,15 @@ func VoteCommitDpos(native *NativeService) error {
 	newPosCommit := new(big.Int).Add(posCommit, params.Pos)
 
 	if newPosCommit.Cmp(new(big.Int).SetInt64(100000)) >= 0 {
-		native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(FORCE_COMMIT), view.Bytes()), &cstates.StorageItem{Value: new(big.Int).SetInt64(1).Bytes()})
+		governanceView := &states.GovernanceView{
+			View:       view,
+			VoteCommit: true,
+		}
+		v, err := json.Marshal(governanceView)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "[voteCommitDpos] Marshal governanceView error")
+		}
+		native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(GOVERNANCE_VIEW)), &cstates.StorageItem{Value: v})
 	}
 
 	return nil
@@ -957,6 +986,47 @@ func UpdateConfig(native *NativeService) error {
 	native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(VBFT_CONFIG)), &cstates.StorageItem{Value: value})
 
 	addCommonEvent(native, contract, UPDATE_CONFIG, config)
+
+	return nil
+}
+
+func DataQuery(native *NativeService) error {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	//get all peerPool
+	stateValues, err := native.CloneCache.Store.Find(scommon.ST_STORAGE, concatKey(contract, []byte(PEER_POOL)))
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[DataQuery] Get all peerPool error!")
+	}
+
+	peerPool := new(states.PeerPool)
+	for _, v := range stateValues {
+		peerPoolStore, _ := v.Value.(*cstates.StorageItem)
+		err = json.Unmarshal(peerPoolStore.Value, peerPool)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "[DataQuery] Unmarshal peerPool error!")
+		}
+		fmt.Println("PeerPool is : ", peerPool)
+	}
+
+	//get current view
+	view, err := getGovernanceView(native, contract)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[DataQuery] Get view error!")
+	}
+	//update voteInfoPool
+	stateValues, err = native.CloneCache.Store.Find(scommon.ST_STORAGE, concatKey(contract, []byte(VOTE_INFO_POOL), view.Bytes()))
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[DataQuery] Get all peerPool error!")
+	}
+	voteInfoPool := new(states.VoteInfoPool)
+	for _, v := range stateValues {
+		voteInfoPoolStore, _ := v.Value.(*cstates.StorageItem)
+		err = json.Unmarshal(voteInfoPoolStore.Value, voteInfoPool)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "[DataQuery] Unmarshal voteInfoPool error!")
+		}
+		fmt.Println("VoteInfoPool is : ", peerPool)
+	}
 
 	return nil
 }

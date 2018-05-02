@@ -20,7 +20,6 @@ package states
 
 import (
 	"math/big"
-	"time"
 )
 
 type Status int
@@ -49,7 +48,7 @@ type ApproveCandidateParam struct {
 	PeerPubkey string `json:"peerPubkey"`
 }
 
-type InitPeerPool struct {
+type PeerPoolList struct {
 	Peers []*PeerPool `json:"peers"`
 }
 
@@ -83,21 +82,25 @@ type VoteInfoPool struct {
 type PeerStakeInfo struct {
 	Index      uint32 `json:"index"`
 	PeerPubkey string `json:"peerPubkey"`
-	Stake      uint64 `json:"initPos"`
+	Stake      uint64 `json:"stake"`
 }
 
 type Configuration struct {
-	N                    uint32           `json:"n"`
-	C                    uint32           `json:"c"`
-	K                    uint32           `json:"k"`
-	L                    uint32           `json:"l"`
-	BlockMsgDelay        time.Duration    `json:"block_msg_delay"`
-	HashMsgDelay         time.Duration    `json:"hash_msg_delay"`
-	PeerHandshakeTimeout time.Duration    `json:"peer_handshake_timeout"`
-	Peers                []*PeerStakeInfo `json:"peers"`
+	N                    uint32 `json:"n"`
+	C                    uint32 `json:"c"`
+	K                    uint32 `json:"k"`
+	L                    uint32 `json:"l"`
+	BlockMsgDelay        uint32 `json:"block_msg_delay"`
+	HashMsgDelay         uint32 `json:"hash_msg_delay"`
+	PeerHandshakeTimeout uint32 `json:"peer_handshake_timeout"`
 }
 
 type VoteCommitDposParam struct {
 	Address string   `json:"address"`
 	Pos     *big.Int `json:"pos"`
+}
+
+type GovernanceView struct {
+	View       *big.Int `json:"view"`
+	VoteCommit bool     `json:"voteCommit"`
 }
