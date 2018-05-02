@@ -136,9 +136,6 @@ func (self *ChainStore) GetVbftConfigInfo() (*govcon.Configuration, error) {
 	if err := json.Unmarshal(vbft, chainconfig); err != nil {
 		return nil, fmt.Errorf("unmarshal chainconfig: %s", err)
 	}
-	if chainconfig.K > uint32(len(chainconfig.Peers)) {
-		return nil, fmt.Errorf("GetVbftConfigInfo k must be less than or equal to Peers size")
-	}
 	return chainconfig, nil
 }
 
