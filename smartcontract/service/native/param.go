@@ -26,7 +26,7 @@ var GLOBAL_PARAM = map[string]string{
 }
 
 var paramCache *ParamCache
-var admin common.Address
+var admin *states.Admin
 
 func init() {
 	Contracts[genesis.ParamContractAddress] = RegisterParamContract
@@ -42,65 +42,55 @@ func ParamInit(native *NativeService) error {
 		native.CloneCache.Add(scommon.ST_STORAGE, getParamKey(contract, k), getParamStorageItem(v))
 		paramCache.Params[k] = v
 	}
-	admin = ctypes.AddressFromPubKey(account.GetBookkeepers()[0])
+	admin = new(states.Admin)
+	admin.Address = ctypes.AddressFromPubKey(account.GetBookkeepers()[0])
 	native.CloneCache.Add(scommon.ST_STORAGE, getAdminKey(contract), getAdminStorageItem(admin))
 	return nil
 }
 
 func TransferAdmin(native *NativeService) error {
-	destinationAdmin := new(common.Address)
+	destinationAdmin := new(states.Admin)
 	if err := destinationAdmin.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return errors.NewErr("[Transfer Admin]Deserialize Admins failed!")
 	}
-	if !native.ContextRef.CheckWitness(*destinationAdmin) {
+	if !native.ContextRef.CheckWitness(destinationAdmin.Address) {
 		return errors.NewErr("[Transfer Admin]Authentication failed!")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	transferAdmin, err := getTransferAdmin(native, getTransferAdminKey(contract, *destinationAdmin))
-	if err != nil || transferAdmin != *destinationAdmin {
+	initAdmin(native, contract)
+	transferAdmin, err := getStorageAdmin(native, getTransferAdminKey(contract, admin.Address, destinationAdmin.Address))
+	if err != nil || transferAdmin.Address != destinationAdmin.Address {
 		return errors.NewDetailErr(err, errors.ErrNoCode,
 			"[Transfer Admin] Destination account hasn't been approved!")
 	}
 	// delete transfer admin item
-	native.CloneCache.Delete(scommon.ST_STORAGE, getTransferAdminKey(contract, *destinationAdmin))
+	native.CloneCache.Delete(scommon.ST_STORAGE, getTransferAdminKey(contract, admin.Address, destinationAdmin.Address))
 	// modify admin in database
-	native.CloneCache.Add(scommon.ST_STORAGE, getAdminKey(contract), getAdminStorageItem(*destinationAdmin))
+	native.CloneCache.Add(scommon.ST_STORAGE, getAdminKey(contract), getAdminStorageItem(destinationAdmin))
 
-	admin = *destinationAdmin
+	admin = destinationAdmin
 	return nil
 }
 
 func ApproveAdmin(native *NativeService) error {
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	if admin == *new(common.Address) {
-		var err error
-		admin, err = getAdmin(native, getAdminKey(contract)) // get admin from database
-		if err != nil { // there are no admin in database
-			admin = ctypes.AddressFromPubKey(account.GetBookkeepers()[0])
-		}
-	}
-	if !native.ContextRef.CheckWitness(admin) {
+	initAdmin(native, contract)
+	if !native.ContextRef.CheckWitness(admin.Address) {
 		return errors.NewErr("[Approve Admin]Authentication failed!")
 	}
-	destinationAdmin := new(common.Address)
+	destinationAdmin := new(states.Admin)
 	if err := destinationAdmin.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return errors.NewErr("[Approve Admin]Deserialize Admins failed!")
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, getTransferAdminKey(contract, *destinationAdmin),
-		getAdminStorageItem(*destinationAdmin))
+	native.CloneCache.Add(scommon.ST_STORAGE, getTransferAdminKey(contract, admin.Address, destinationAdmin.Address),
+		getAdminStorageItem(destinationAdmin))
 	return nil
 }
 
 func SetParam(native *NativeService) error {
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	if admin == *new(common.Address) {
-		var err error
-		admin, err = getAdmin(native, getAdminKey(contract))
-		if err != nil { // there are no admin in database
-			admin = ctypes.AddressFromPubKey(account.GetBookkeepers()[0])
-		}
-	}
-	if !native.ContextRef.CheckWitness(admin) {
+	initAdmin(native, contract)
+	if !native.ContextRef.CheckWitness(admin.Address) {
 		return errors.NewErr("[Set Param]Authentication failed!")
 	}
 	params := new(states.Params)
@@ -113,6 +103,16 @@ func SetParam(native *NativeService) error {
 		notifyParamSetSucess(native, contract, param)
 	}
 	return nil
+}
+
+func initAdmin(native *NativeService, contract common.Address){
+	if admin.Address == *new(common.Address) {
+		var err error
+		admin, err = getStorageAdmin(native, getAdminKey(contract)) // get admin from database
+		if err != nil { // there are no admin in database
+			admin.Address = ctypes.AddressFromPubKey(account.GetBookkeepers()[0])
+		}
+	}
 }
 
 func deleteParamInCache(key string) {

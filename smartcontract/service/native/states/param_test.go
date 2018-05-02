@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 	"testing"
+	"github.com/ontio/ontology/core/genesis"
+	"github.com/stretchr/testify/assert"
 )
 
 
@@ -43,4 +45,19 @@ func TestParams_Serialize_Deserialize(t *testing.T) {
 			t.Fatal("params deserialize error")
 		}
 	}
+}
+
+func TestAdmin_Serialize_Deserialize(t *testing.T) {
+	admin := new(Admin)
+	admin.Version = 0x2d
+	admin.Address = genesis.ParamContractAddress
+	bf := new(bytes.Buffer)
+	if err:= admin.Serialize(bf); err != nil{
+		t.Fatalf("admin serialize error: %v", err)
+	}
+	deserializeAdmin := new(Admin)
+	if err:= deserializeAdmin.Deserialize(bf); err != nil{
+		t.Fatal("admin version deserialize error")
+	}
+	assert.Equal(t, admin, deserializeAdmin)
 }

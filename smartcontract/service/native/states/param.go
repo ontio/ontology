@@ -4,6 +4,7 @@ import (
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
 	"io"
+	"github.com/ontio/ontology/common"
 )
 
 type Param struct { // ontology network environment variables
@@ -15,6 +16,11 @@ type Param struct { // ontology network environment variables
 type Params struct {
 	Version   byte
 	ParamList []*Param
+}
+
+type Admin struct {
+	Version byte
+	Address common.Address
 }
 
 func (param *Param) Serialize(w io.Writer) error {
@@ -95,5 +101,31 @@ func (params *Params) Deserialize(r io.Reader) error {
 		}
 		params.ParamList = append(params.ParamList, param)
 	}
+	return nil
+}
+
+func (admin *Admin) Serialize(w io.Writer) error {
+	if err := serialization.WriteByte(w, byte(admin.Version)); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[Param Config] Admin serialize version error!")
+	}
+
+	if err := admin.Address.Serialize(w); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[Param Config] Admin serialize param name error!")
+	}
+	return nil
+}
+
+func (admin *Admin) Deserialize(r io.Reader) error {
+	version, err := serialization.ReadByte(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[Param Config] Deserialize version error!")
+	}
+	admin.Version = version
+
+	address := new(common.Address)
+	if err := address.Deserialize(r); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[Param Config] Deserialize parm name error!")
+	}
+	admin.Address = *address
 	return nil
 }
