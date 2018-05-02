@@ -736,6 +736,11 @@ func (this *LedgerStoreImp) GetStorageItem(key *states.StorageKey) (*states.Stor
 	return this.stateStore.GetStorageState(key)
 }
 
+//FindStorageItem return the storage value of the key in smart contract. Wrap function of StateStore.GetStorageState
+func (this *LedgerStoreImp) FindStorageItem(key *states.StorageKey) ([]*states.StorageItem, error) {
+	return this.stateStore.FindStorageState(key)
+}
+
 //GetEventNotifyByTx return the events notify gen by executing of smart contract.  Wrap function of EventStore.GetEventNotifyByTx
 func (this *LedgerStoreImp) GetEventNotifyByTx(tx common.Uint256) (*event.ExecuteNotify, error) {
 	return this.eventStore.GetEventNotifyByTx(tx)
