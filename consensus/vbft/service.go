@@ -253,7 +253,13 @@ func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
 	if err != nil {
 		return fmt.Errorf("failed to get chainconfig from leveldb: %s", err)
 	}
-	cfg, err := vconfig.GenesisChainConfig(config)
+
+	peersinfo, err := chainStore.GetPeersConfig()
+	if err != nil {
+		return fmt.Errorf("failed to get peersinfo from leveldb: %s", err)
+	}
+
+	cfg, err := vconfig.GenesisChainConfig(config, peersinfo)
 	if err != nil {
 		return fmt.Errorf("GenesisChainConfig failed: %s", err)
 	}
@@ -288,20 +294,6 @@ func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
 func (self *Server) updateChainConfig() error {
 	self.metaLock.Lock()
 	defer self.metaLock.Unlock()
-	config, err := self.chainStore.GetVbftConfigInfo()
-	if err != nil {
-		return fmt.Errorf("failed to get chainconfig from leveldb: %s", err)
-	}
-	cfg, err := vconfig.GenesisChainConfig(config)
-	if err != nil {
-		return fmt.Errorf("GenesisChainConfig failed: %s", err)
-	}
-	self.config = cfg
-	// TODO
-	// 1. update peer pool
-	// 2. reset all peer connections, create new connections with new peers
-	// 3. check connections num for state-mgmt
-	// 4. update chainStore
 
 	return nil
 }

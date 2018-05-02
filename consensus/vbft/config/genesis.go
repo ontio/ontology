@@ -66,7 +66,7 @@ func genConsensusPayload(cfg *config.VBFTConfig) ([]byte, error) {
 		return peers[i].Stake > peers[j].Stake
 	})
 
-	log.Debugf("sorted peers: %v", peers)
+	log.Infof("sorted peers: %v", peers)
 
 	// get stake sum of top-k peers
 	var sum uint64
@@ -96,7 +96,6 @@ func genConsensusPayload(cfg *config.VBFTConfig) ([]byte, error) {
 
 	// calculate pos table
 	posTable := make([]uint32, 0)
-<<<<<<< HEAD
 	for i := 0; i < int(cfg.K); i++ {
 		nodeId, err := StringID(peers[i].NodeID)
 		if err != nil {
@@ -106,79 +105,29 @@ func genConsensusPayload(cfg *config.VBFTConfig) ([]byte, error) {
 			Index: peers[i].Index,
 			ID:    nodeId,
 		}
-=======
-	for i := 0; i < int(config.K); i++ {
->>>>>>> 79a59a3... contract deploy in genesis-block,load config from db
 		for j := uint64(0); j < peerRanks[i]; j++ {
 			posTable = append(posTable, uint32(peers[i].Index))
 		}
 	}
-	log.Debugf("init pos table: %v", posTable)
-
+	log.Infof("init pos table: %v", posTable)
+	log.Infof("len:%d", len(peers))
 	// shuffle
 	for i := len(posTable) - 1; i > 0; i-- {
-<<<<<<< HEAD
 		h, err := shuffle_hash(cfg.InitTxid, cfg.GenesisTimestamp, chainPeers[posTable[i]].ID.Bytes(), i)
-=======
-		h, err := shuffle_hash(0, 0, peers[posTable[i]].PeerPubkey, i)
-		//h, err := shuffle_hash(config.InitTxid, config.GenesisTimestamp, peers[posTable[i]].NodeID, i)
->>>>>>> 79a59a3... contract deploy in genesis-block,load config from db
 		if err != nil {
 			return nil, fmt.Errorf("Failed to calculate hash value: %s", err)
 		}
 		j := h % uint64(i)
 		posTable[i], posTable[j] = posTable[j], posTable[i]
 	}
-	return posTable, nil
-}
 
-func genConsensusPayload() ([]byte, error) {
-	chainConfig := &ChainConfig{}
-
-	vbftBlockInfo := &VbftBlockInfo{
-		Proposer:           math.MaxUint32,
-		LastConfigBlockNum: math.MaxUint64,
-		NewChainConfig:     chainConfig,
-	}
-
-	return json.Marshal(vbftBlockInfo)
-}
-
-<<<<<<< HEAD
 	// generate chain config, and save to ChainConfigFile
 	peerCfgs := make([]*PeerConfig, 0)
 	for i := 0; i < int(cfg.K); i++ {
 		peerCfgs = append(peerCfgs, chainPeers[peers[i].Index])
-=======
-//GenesisChainConfig return chainconfig
-func GenesisChainConfig(config *govcon.Configuration) (*ChainConfig, error) {
-	peers := config.Peers
-	sort.Slice(peers, func(i, j int) bool {
-		return peers[i].Stake > peers[j].Stake
-	})
-	log.Debugf("sorted peers: %v", peers)
-
-	posTable, err := GetPosTable(config)
-	if err != nil {
-		return nil, fmt.Errorf("generate postable error %s", err)
-	}
-
-	chainPeers := make([]*PeerConfig, 0)
-	for i := 0; i < int(config.K); i++ {
-		nodeID, err := StringID(peers[i].PeerPubkey)
-		if err != nil {
-			log.Errorf("Failed to format NodeID, index: %d: %s", peers[i].Index, err)
-			return nil, fmt.Errorf("Failed to format NodeID, index: %d: %s", peers[i].Index, err)
-		}
-		chainPeers = append(chainPeers, &PeerConfig{
-			Index: uint32(peers[i].Index),
-			ID:    nodeID,
-		})
->>>>>>> 79a59a3... contract deploy in genesis-block,load config from db
 	}
 
 	chainConfig := &ChainConfig{
-<<<<<<< HEAD
 		Version:              Version,
 		View:                 cfg.View,
 		N:                    cfg.N,
@@ -186,15 +135,6 @@ func GenesisChainConfig(config *govcon.Configuration) (*ChainConfig, error) {
 		BlockMsgDelay:        time.Duration(cfg.BlockMsgDelay) * time.Millisecond,
 		HashMsgDelay:         time.Duration(cfg.HashMsgDelay) * time.Millisecond,
 		PeerHandshakeTimeout: time.Duration(cfg.PeerHandshakeTimeout) * time.Second,
-=======
-		Version:              1,
-		View:                 1,
-		N:                    config.N,
-		C:                    config.C,
-		BlockMsgDelay:        time.Duration(config.BlockMsgDelay) * time.Millisecond,
-		HashMsgDelay:         time.Duration(config.HashMsgDelay) * time.Millisecond,
-		PeerHandshakeTimeout: time.Duration(config.PeerHandshakeTimeout) * time.Second,
->>>>>>> 79a59a3... contract deploy in genesis-block,load config from db
 		Peers:                peerCfgs,
 		PosTable:             posTable,
 	}
@@ -202,18 +142,11 @@ func GenesisChainConfig(config *govcon.Configuration) (*ChainConfig, error) {
 }
 
 func GenesisConsensusPayload() ([]byte, error) {
-<<<<<<< HEAD
 	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
 
 	switch consensusType {
 	case "vbft":
 		return genConsensusPayload(config.DefConfig.Genesis.VBFT)
-=======
-	consensusType := strings.ToLower(config.Parameters.ConsensusType)
-	switch consensusType {
-	case "vbft":
-		return genConsensusPayload()
->>>>>>> 79a59a3... contract deploy in genesis-block,load config from db
 	}
 	return nil, nil
 }
