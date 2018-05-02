@@ -265,7 +265,7 @@ func addCommonEvent(native *NativeService, contract common.Address, name string,
 		})
 }
 
-func Shufflehash(txid common.Uint256, ts uint32, id string, idx int) (uint64, error) {
+func Shufflehash(txid common.Uint256, ts uint32, id []byte, idx int) (uint64, error) {
 	data, err := json.Marshal(struct {
 		Txid           common.Uint256 `json:"txid"`
 		BlockTimestamp uint32         `json:"block_timestamp"`
