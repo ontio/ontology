@@ -81,7 +81,7 @@ type VoteInfoPool struct {
 }
 
 type PeerStakeInfo struct {
-	Index      uint64 `json:"index"`
+	Index      uint32 `json:"index"`
 	PeerPubkey string `json:"peerPubkey"`
 	Stake      uint64 `json:"initPos"`
 }
