@@ -29,7 +29,6 @@ import (
 
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	govcon "github.com/ontio/ontology/smartcontract/service/native/states"
 )
 
 func shuffle_hash(txid uint64, ts uint64, id []byte, idx int) (uint64, error) {

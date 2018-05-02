@@ -19,12 +19,12 @@
 package vbft
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/states"
@@ -123,7 +123,7 @@ func (self *ChainStore) GetBlock(blockNum uint64) (*Block, error) {
 	return initVbftBlock(block)
 }
 
-func (self *ChainStore) GetVbftConfigInfo() (*govcon.Configuration, error) {
+func (self *ChainStore) GetVbftConfigInfo() (*vconfig.Configuration, error) {
 	storageKey := &states.StorageKey{
 		CodeHash: genesis.GovernanceContractAddress,
 		Key:      append([]byte(gov.VBFT_CONFIG)),
@@ -132,16 +132,47 @@ func (self *ChainStore) GetVbftConfigInfo() (*govcon.Configuration, error) {
 	if err != nil {
 		return nil, err
 	}
-	chainconfig := &govcon.Configuration{}
-	if err := json.Unmarshal(vbft, chainconfig); err != nil {
-		return nil, fmt.Errorf("unmarshal chainconfig: %s", err)
+	config := &govcon.Configuration{}
+	if err := json.Unmarshal(vbft, config); err != nil {
+		return nil, fmt.Errorf("unmarshal config: %s", err)
+	}
+	chainconfig := &vconfig.Configuration{
+		View:                 uint32(1),
+		N:                    config.N,
+		C:                    config.C,
+		K:                    config.K,
+		L:                    config.L,
+		BlockMsgDelay:        config.BlockMsgDelay,
+		HashMsgDelay:         config.HashMsgDelay,
+		PeerHandshakeTimeout: config.PeerHandshakeTimeout,
 	}
 	return chainconfig, nil
 }
 
-func (self *ChainStore) GetPeersConfig() ([]*govcon.PeerStakeInfo, error) {
-	//todo
-	return nil, nil
+func (self *ChainStore) GetPeersConfig() ([]*vconfig.PeerStakeInfo, error) {
+	storageKey := &states.StorageKey{
+		CodeHash: genesis.GovernanceContractAddress,
+		Key:      append([]byte(gov.PEER_POOL)),
+	}
+	peers, err := ledger.DefLedger.FindStorageItem(storageKey.CodeHash, storageKey.Key)
+	if err != nil {
+		return nil, err
+	}
+	var peerstakes []*vconfig.PeerStakeInfo
+	for _, peer := range peers {
+		peersconfig := &govcon.PeerPool{}
+		if err := json.Unmarshal(peer, peersconfig); err != nil {
+			return nil, fmt.Errorf("unmarshal peersconfig: %s", err)
+		}
+
+		config := &vconfig.PeerStakeInfo{
+			Index:  uint32(peersconfig.Index.Uint64()),
+			NodeID: peersconfig.PeerPubkey,
+			Stake:  (peersconfig.InitPos.Uint64() + peersconfig.TotalPos.Uint64()),
+		}
+		peerstakes = append(peerstakes, config)
+	}
+	return peerstakes, nil
 }
 
 func (self *ChainStore) GetForceUpdate() (bool, error) {
@@ -149,12 +180,13 @@ func (self *ChainStore) GetForceUpdate() (bool, error) {
 		CodeHash: genesis.GovernanceContractAddress,
 		Key:      append([]byte(gov.FORCE_COMMIT)),
 	}
-	isforce, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
+	force, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
 	if err != nil {
 		return false, err
 	}
-	if bytes.Compare(isforce, []byte{1}) == 0 {
-		return true, nil
+	config := &govcon.GovernanceView{}
+	if err := json.Unmarshal(force, config); err != nil {
+		return false, fmt.Errorf("unmarshal config: %s", err)
 	}
-	return false, nil
+	return config.VoteCommit, nil
 }
