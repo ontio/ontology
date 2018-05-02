@@ -327,9 +327,10 @@ func (self *Server) constructBlockInfoFetchRespMsg(blockInfos []*BlockInfo_) (*B
 	return msg, nil
 }
 
-func (self *Server) constructProposalFetchMsg(blkNum uint64) (*proposalFetchMsg, error) {
+func (self *Server) constructProposalFetchMsg(blkNum uint64, proposer uint32) (*proposalFetchMsg, error) {
 	msg := &proposalFetchMsg{
-		BlockNum: blkNum,
+		ProposerID: proposer,
+		BlockNum:   blkNum,
 	}
 	sig, err := SignMsg(self.account, msg)
 	if err != nil {

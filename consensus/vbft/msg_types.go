@@ -529,8 +529,9 @@ func (msg *BlockFetchRespMsg) Deserialize(data []byte) error {
 
 // proposal fetch msg is to fetch proposal when peer failed to get proposal locally
 type proposalFetchMsg struct {
-	BlockNum uint64 `json:"block_num"`
-	Sig      []byte `json:"sig"`
+	ProposerID uint32 `json:"proposer_id"`
+	BlockNum   uint64 `json:"block_num"`
+	Sig        []byte `json:"sig"`
 }
 
 func (msg *proposalFetchMsg) Type() MsgType {
