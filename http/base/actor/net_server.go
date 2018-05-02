@@ -53,18 +53,18 @@ func GetConnectionCnt() (uint32, error) {
 	return r.Cnt, nil
 }
 
-func GetNeighborAddrs() ([]common.PeerAddr, uint64) {
+func GetNeighborAddrs() []common.PeerAddr {
 	future := netServerPid.RequestFuture(&ac.GetNeighborAddrsReq{}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ERR_ACTOR_COMM, err)
-		return nil, 0
+		return nil
 	}
 	r, ok := result.(*ac.GetNeighborAddrsRsp)
 	if !ok {
-		return nil, 0
+		return nil
 	}
-	return r.Addrs, r.Count
+	return r.Addrs
 }
 
 func GetConnectionState() (uint32, error) {

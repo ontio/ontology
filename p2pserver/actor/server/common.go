@@ -137,7 +137,6 @@ type GetNeighborAddrsReq struct {
 //response of all nbr`s address
 type GetNeighborAddrsRsp struct {
 	Addrs []types.PeerAddr
-	Count uint64
 }
 
 type TransmitConsensusMsgReq struct {

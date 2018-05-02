@@ -49,9 +49,8 @@ func AddrReqHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 	}
 
 	var addrStr []msgCommon.PeerAddr
-	var count uint64
-	addrStr, count = p2p.GetNeighborAddrs()
-	buf, err := msgpack.NewAddrs(addrStr, count)
+	addrStr = p2p.GetNeighborAddrs()
+	buf, err := msgpack.NewAddrs(addrStr)
 	if err != nil {
 		return err
 	}
