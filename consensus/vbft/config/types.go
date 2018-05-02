@@ -55,7 +55,7 @@ func StringID(in string) (NodeID, error) {
 	if err != nil {
 		return id, err
 	} else if len(b) > len(id) {
-		return id, fmt.Errorf("wrong length, want %d hex chars", len(b)*2)
+		return id, fmt.Errorf("wrong length, want %d hex chars, get %d hex chars", len(b)*2, len(id)*2)
 	}
 	copy(id[:], b)
 	return id, nil
