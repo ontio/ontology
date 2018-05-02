@@ -27,7 +27,7 @@ import (
 )
 
 func peerPool() *PeerPool {
-	nodeId, _ := vconfig.StringID("206520e7475798520164487f7e4586bb55790097ceb786aab6d5bc889d12991a5a204c6298bef1bf43c20680a3979a213392b99c97042ebae27d2a7af6442aa7c008")
+	nodeId, _ := vconfig.StringID("120202c924ed1a67fd1719020ce599d723d09d48362376836e04b0be72dfe825e24d81")
 	peerconfig := &vconfig.PeerConfig{
 		Index: uint32(1),
 		ID:    nodeId,
