@@ -50,6 +50,7 @@ type LedgerStore interface {
 	GetContractState(contractHash common.Address) (*payload.DeployCode, error)
 	GetBookkeeperState() (*states.BookkeeperState, error)
 	GetStorageItem(key *states.StorageKey) (*states.StorageItem, error)
+	FindStorageItem(key *states.StorageKey) ([]*states.StorageItem, error)
 	PreExecuteContract(tx *types.Transaction) (interface{}, error)
 	GetEventNotifyByTx(tx common.Uint256) (*event.ExecuteNotify, error)
 	GetEventNotifyByBlock(height uint32) ([]common.Uint256, error)
