@@ -244,7 +244,7 @@ func VersionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 	}
 
 	if version.P.IsConsensus == true {
-		if config.Parameters.DualPortSurpport == false {
+		if config.DefConfig.P2PNode.DualPortSupport == false {
 			log.Warn("consensus port not surpport")
 			return errors.New("consensus port not surpport")
 		}
@@ -396,7 +396,7 @@ func VerAckHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 	}
 
 	if verAck.IsConsensus == true {
-		if config.Parameters.DualPortSurpport == false {
+		if config.DefConfig.P2PNode.DualPortSupport == false {
 			log.Warn("consensus port not surpport")
 			return errors.New("consensus port not surpport")
 		}
@@ -435,7 +435,7 @@ func VerAckHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 
 		} else {
 			//consensus port connect
-			if config.Parameters.DualPortSurpport {
+			if config.DefConfig.P2PNode.DualPortSupport {
 				i := strings.Index(addr, ":")
 				if i < 0 {
 					log.Warn("Split IP address error", addr)

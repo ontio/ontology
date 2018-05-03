@@ -96,14 +96,13 @@ var (
 		Action:      cli.ShowSubcommandHelp,
 		Name:        "account",
 		Usage:       "Manage accounts",
-		ArgsUsage:   " ",
 		Description: `Manage accounts stored in the wallet`,
 		Subcommands: []cli.Command{
 			{
 				Action:      accountCreate,
 				Name:        "add",
 				Usage:       "Add a new account",
-				ArgsUsage:   " ",
+				ArgsUsage:   "",
 				Flags:       addFlags,
 				Description: `Add a new account`,
 			},
