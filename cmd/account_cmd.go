@@ -301,7 +301,6 @@ func encrypt(ctx *cli.Context) error {
 		return nil
 	}
 
-	fmt.Printf("Please enter the original password of account %v:", index)
 	oldPass, _ := password.GetPassword()
 	h := sha256.Sum256(oldPass)
 
@@ -408,21 +407,15 @@ func checkNumber(ctx *cli.Context) uint {
 }
 func checkType(ctx *cli.Context, reader *bufio.Reader) string {
 	t := ""
-	find := false
 	if ctx.IsSet("type") {
-		for _, val := range account.KeyTypeMap {
-			if val.Name == ctx.String("type ") {
-				t = val.Name
-				find = true
-				fmt.Printf("%s is selected. \n", t)
-				break
-			}
-		}
-		if !find {
+		if _, ok := account.KeyTypeMap[ctx.String("type")]; ok {
+			t = account.KeyTypeMap[ctx.String("type")].Name
+			fmt.Printf("%s is selected. \n", t)
+		} else {
 			fmt.Printf("%s is not a valid content for option -t \n", ctx.String("type"))
+			t = chooseKeyType(reader)
 		}
-	}
-	if !find {
+	} else {
 		t = chooseKeyType(reader)
 	}
 	return t
@@ -431,21 +424,15 @@ func checkCurve(ctx *cli.Context, reader *bufio.Reader, t *string) string {
 	c := ""
 	switch *t {
 	case "ecdsa":
-		find := false
 		if ctx.IsSet("bit-length") {
-			for _, val := range account.CurveMap {
-				if val.Name == ctx.String("bit-length") {
-					c = val.Name
-					find = true
-					fmt.Printf("%s is selected. \n", c)
-					break
-				}
-			}
-			if !find {
+			if _, ok := account.CurveMap[ctx.String("bit-length")]; ok {
+				c = account.CurveMap[ctx.String("bit-length")].Name
+				fmt.Printf("%s is selected. \n", c)
+			} else {
 				fmt.Printf("%s is not a valid content for option -b \n", ctx.String("bit-length"))
+				c = chooseCurve(reader)
 			}
-		}
-		if !find {
+		} else {
 			c = chooseCurve(reader)
 		}
 		break
@@ -466,21 +453,15 @@ func checkScheme(ctx *cli.Context, reader *bufio.Reader, t *string) string {
 	s := ""
 	switch *t {
 	case "ecdsa":
-		find := false
-		if ctx.IsSet("signature-scheme") {
-			for _, val := range account.SchemeMap {
-				if val.Name == ctx.String("signature-scheme") {
-					s = val.Name
-					find = true
-					fmt.Printf("%s is selected. \n", s)
-					break
-				}
-			}
-			if !find {
+		if ctx.IsSet("bit-length") {
+			if _, ok := account.SchemeMap[ctx.String("signature-scheme")]; ok {
+				s = account.SchemeMap[ctx.String("signature-scheme")].Name
+				fmt.Printf("%s is selected. \n", s)
+			} else {
 				fmt.Printf("%s is not a valid content for option -s \n", ctx.String("signature-scheme"))
+				s = chooseScheme(reader)
 			}
-		}
-		if !find {
+		} else {
 			s = chooseScheme(reader)
 		}
 		break
