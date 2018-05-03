@@ -306,14 +306,16 @@ func (self *Server) validateTxsInProposal(proposal *blockProposalMsg) error {
 }
 
 func (self *Server) receiveFromPeer(peerIdx uint32) (uint32, []byte, error) {
-	select {
-	case payload := <-self.msgRecvC[peerIdx]:
-		if payload != nil {
-			return payload.fromPeer, payload.payload.Data, nil
-		}
+	if C, present := self.msgRecvC[peerIdx]; present {
+		select {
+		case payload := <-C:
+			if payload != nil {
+				return payload.fromPeer, payload.payload.Data, nil
+			}
 
-	case <-self.quitC:
-		return 0, nil, fmt.Errorf("server %d quit", self.Index)
+		case <-self.quitC:
+			return 0, nil, fmt.Errorf("server %d quit", self.Index)
+		}
 	}
 
 	return 0, nil, fmt.Errorf("nil consensus payload")

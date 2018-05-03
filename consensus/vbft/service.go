@@ -386,6 +386,7 @@ func (self *Server) start() error {
 		Type: ConfigLoaded,
 	}
 
+	self.timer.startPeerTicker(math.MaxUint32)
 	log.Infof("peer %d started", self.Index)
 
 	// TODO: start peer-conn-handlers
@@ -440,7 +441,6 @@ func (self *Server) run(peerPubKey keypair.PublicKey) error {
 			peerID.String())
 
 		// new peer connected
-		self.timer.startPeerTicker(peerIdx)
 		self.stateMgr.StateEventC <- &StateEvent{
 			Type: UpdatePeerState,
 			peerState: &PeerState{
@@ -457,6 +457,10 @@ func (self *Server) run(peerPubKey keypair.PublicKey) error {
 	defer func() {
 		// TODO: handle peer disconnection here
 
+		log.Errorf("server %d: disconnected with peer %d", self.Index, peerIdx)
+		close(self.msgRecvC[peerIdx])
+		delete(self.msgRecvC, peerIdx)
+
 		self.peerPool.peerDisconnected(peerIdx)
 		self.stateMgr.StateEventC <- &StateEvent{
 			Type: UpdatePeerState,
@@ -465,7 +469,6 @@ func (self *Server) run(peerPubKey keypair.PublicKey) error {
 				connected: false,
 			},
 		}
-		delete(self.msgRecvC, peerIdx)
 	}()
 
 	errC := make(chan error)
@@ -486,14 +489,21 @@ func (self *Server) run(peerPubKey keypair.PublicKey) error {
 					log.Errorf("server %d failed to get peer %d pubkey", self.Index, fromPeer)
 					continue
 				}
+
+				if msg.Type() == BlockProposalMessage {
+					if proposal := msg.(*blockProposalMsg); proposal != nil {
+						pk = self.peerPool.GetPeerPubKey(proposal.Block.getProposer())
+					}
+				}
+
 				if err := msg.Verify(pk); err != nil {
 					log.Errorf("server %d failed to verify msg, type %d, err: %s",
 						self.Index, msg.Type(), err)
-					return
+					continue
 				}
 
 				if msg.Type() < 4 {
-					log.Debugf("server %d received consensus msg, type: %d", self.Index, msg.Type())
+					log.Infof("server %d received consensus msg, type: %d from %d", self.Index, msg.Type(), fromPeer)
 				}
 				self.onConsensusMsg(fromPeer, msg)
 			}
@@ -831,7 +841,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 				pmsg = p
 			}
 		}
-		if self.Index != pMsg.ProposerID {
+		if self.Index == pMsg.ProposerID {
 			if pmsg == nil {
 				blk, _ := self.blockPool.getSealedBlock(pMsg.BlockNum)
 				if blk != nil {
@@ -1545,7 +1555,7 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 
 		//	send to peer
 		self.msgSendC <- &SendMsgEvent{
-			ToPeer: uint32(evt.blockNum),
+			ToPeer: math.MaxUint32,
 			Msg:    msg,
 		}
 	case EventTxPool:

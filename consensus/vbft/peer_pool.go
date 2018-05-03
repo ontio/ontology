@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus/vbft/config"
 )
 
@@ -213,12 +212,9 @@ func (pool *PeerPool) isPeerAlive(peerIdx uint32) bool {
 	if p == nil || !p.connected {
 		return false
 	}
-	if time.Now().Sub(p.LastUpdateTime) > peerHandshakeTimeout*2 {
-		if p.LastUpdateTime.Unix() > 0 {
-			log.Errorf("server %d: peer %d sems disconnected, %v, %v", pool.server.Index, peerIdx, time.Now(), p.LastUpdateTime)
-		}
-		return false
-	}
+
+	// p2pserver keeps peer alive
+
 	return true
 }
 
