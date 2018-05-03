@@ -648,8 +648,8 @@ func (this *BlockSyncMgr) isBlockOnFlight(blockHash common.Uint256) bool {
 
 //Using polling for load balance
 func (this *BlockSyncMgr) getNextNodeId() uint64 {
-	this.lock.RLock()
-	defer this.lock.RUnlock()
+	this.lock.Lock()
+	defer this.lock.Unlock()
 	num := len(this.nodeList)
 	if num == 0 {
 		return 0
