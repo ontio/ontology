@@ -28,6 +28,7 @@ import (
 	"io/ioutil"
 	"sort"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/genesis"
 	cstates "github.com/ontio/ontology/core/states"
@@ -71,9 +72,11 @@ const (
 	VOTE_COMMIT_INFO = "voteCommitInfo"
 
 	//global
-	ConsensusNum = 7
-	CandidateNum = 7 * 7
-	SyncNodeNum  = 7 * 7 * 6
+	SYNC_NODE_FEE = 50
+	CANDIDATE_FEE = 500
+	ConsensusNum  = 7
+	CandidateNum  = 7 * 7
+	SyncNodeNum   = 7 * 7 * 6
 )
 
 func init() {
@@ -103,14 +106,19 @@ func InitConfig(native *NativeService) error {
 	}
 	file = bytes.TrimPrefix(file, []byte("\xef\xbb\xbf"))
 
-	config := new(states.Configuration)
-	err = json.Unmarshal(file, config)
+	configuration := new(states.Configuration)
+	err = json.Unmarshal(file, configuration)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[initConfig] Contract params Unmarshal error!")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	//TODO: check the config
-	value, err := json.Marshal(config)
+
+	//check the configuration
+	if configuration.L < 16*configuration.K {
+		return errors.NewErr("[initConfig] L is less than 16*K in config!")
+	}
+
+	value, err := json.Marshal(configuration)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[initConfig] Marshal candidatePool error!")
 	}
@@ -187,6 +195,25 @@ func RegisterSyncNode(native *NativeService) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[registerSyncNode] Marshal peerPool error")
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(PEER_POOL), peerPubkeyPrefix), &cstates.StorageItem{Value: value})
+
+	addressBytes, err := hex.DecodeString(params.Address)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[registerSyncNode] Address format error!")
+	}
+	address, err := common.AddressParseFromBytes(addressBytes)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[registerSyncNode] Address format error!")
+	}
+	//ont transfer
+	err = appCallTransferOnt(native, address, genesis.GovernanceContractAddress, params.InitPos)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[registerSyncNode] Ont transfer error!")
+	}
+	//ong transfer
+	err = appCallTransferOng(native, address, genesis.GovernanceContractAddress, new(big.Int).SetInt64(SYNC_NODE_FEE))
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[registerSyncNode] Ong transfer error!")
+	}
 
 	addCommonEvent(native, contract, REGISTER_SYNC_NODE, params)
 
@@ -293,6 +320,20 @@ func RegisterCandidate(native *NativeService) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[registerCandidate] Marshal syncNodePool error")
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(PEER_POOL), peerPubkeyPrefix), &cstates.StorageItem{Value: value})
+
+	addressBytes, err := hex.DecodeString(params.Address)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[registerCandidate] Address format error!")
+	}
+	address, err := common.AddressParseFromBytes(addressBytes)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[registerCandidate] Address format error!")
+	}
+	//ong transfer
+	err = appCallTransferOng(native, address, genesis.GovernanceContractAddress, new(big.Int).SetInt64(CANDIDATE_FEE))
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[registerCandidate] Ong transfer error!")
+	}
 
 	addCommonEvent(native, contract, REGISTER_CANDIDATE, params)
 
@@ -559,11 +600,29 @@ func VoteForPeer(native *NativeService) error {
 		}
 	}
 	fmt.Println("Total is :", total)
+
+	addressBytes, err := hex.DecodeString(params.Address)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[voteForPeer] Address format error!")
+	}
+	address, err := common.AddressParseFromBytes(addressBytes)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[voteForPeer] Address format error!")
+	}
+
 	if total.Sign() > 0 {
-		//TODO: pay
+		//ont transfer
+		err = appCallTransferOnt(native, address, genesis.GovernanceContractAddress, total)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "[voteForPeer] Ont transfer error!")
+		}
 	}
 	if total.Sign() < 0 {
-		//TODO: withdraw
+		//ont transfer
+		err = appCallTransferOnt(native, genesis.GovernanceContractAddress, address, new(big.Int).Abs(total))
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "[voteForPeer] Ont transfer error!")
+		}
 	}
 
 	addCommonEvent(native, contract, VOTE_FOR_PEER, params)
@@ -625,11 +684,22 @@ func CommitDpos(native *NativeService) error {
 			quitView := peerPool.QuitView
 
 			//draw back init pos
-			//TODO: Draw back init pos
+			addressBytes, err := hex.DecodeString(peerPool.Address)
+			if err != nil {
+				return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Address format error!")
+			}
+			address, err := common.AddressParseFromBytes(addressBytes)
+			if err != nil {
+				return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Address format error!")
+			}
+			//ont transfer
+			err = appCallTransferOnt(native, genesis.GovernanceContractAddress, address, peerPool.InitPos)
+			if err != nil {
+				return errors.NewDetailErr(err, errors.ErrNoCode, "[voteForPeer] Ont transfer error!")
+			}
 			fmt.Printf("############################## draw back init pos %v, to address %v \n", peerPool.InitPos, peerPool.Address)
 
 			//draw back vote pos
-			//TODO: Draw back vote pos
 			stateValues, err = native.CloneCache.Store.Find(scommon.ST_STORAGE, concatKey(contract, []byte(VOTE_INFO_POOL), quitView.Bytes(), peerPubkeyPrefix))
 			if err != nil {
 				return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Get all peerPool error!")
@@ -644,6 +714,20 @@ func CommitDpos(native *NativeService) error {
 				pos1 := new(big.Int).Add(voteInfoPool.PrePos, voteInfoPool.PreFreezePos)
 				pos2 := new(big.Int).Add(voteInfoPool.FreezePos, voteInfoPool.NewPos)
 				pos := new(big.Int).Add(pos1, pos2)
+
+				addressBytes, err := hex.DecodeString(voteInfoPool.Address)
+				if err != nil {
+					return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Address format error!")
+				}
+				address, err := common.AddressParseFromBytes(addressBytes)
+				if err != nil {
+					return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Address format error!")
+				}
+				//ont transfer
+				err = appCallTransferOnt(native, genesis.GovernanceContractAddress, address, pos)
+				if err != nil {
+					return errors.NewDetailErr(err, errors.ErrNoCode, "[voteForPeer] Ont transfer error!")
+				}
 				fmt.Printf("########################### draw back vote pos %v, to address %v \n", pos, voteInfoPool.Address)
 			}
 
@@ -878,6 +962,35 @@ func CommitDpos(native *NativeService) error {
 		native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(PEER_POOL), peerPubkeyPrefix), &cstates.StorageItem{Value: value})
 	}
 
+	//get all vote for commit info
+	stateValues, err = native.CloneCache.Store.Find(scommon.ST_STORAGE, concatKey(contract, []byte(VOTE_COMMIT_INFO), view.Bytes()))
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Get all peerPool error!")
+	}
+
+	voteCommitInfoPool := new(states.VoteCommitInfoPool)
+	for _, v := range stateValues {
+		voteCommitInfoPoolStore, _ := v.Value.(*cstates.StorageItem)
+		err = json.Unmarshal(voteCommitInfoPoolStore.Value, voteCommitInfoPool)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Unmarshal voteCommitInfoPool error!")
+		}
+
+		addressBytes, err := hex.DecodeString(voteCommitInfoPool.Address)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Address format error!")
+		}
+		address, err := common.AddressParseFromBytes(addressBytes)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Address format error!")
+		}
+		//ont transfer
+		err = appCallTransferOnt(native, genesis.GovernanceContractAddress, address, voteCommitInfoPool.Pos)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "[voteForPeer] Ont transfer error!")
+		}
+	}
+
 	//update view
 	governanceView := &states.GovernanceView{
 		View:       newView,
@@ -921,20 +1034,27 @@ func VoteCommitDpos(native *NativeService) error {
 	}
 
 	//get voteCommitInfo
-	voteCommitInfo := new(big.Int)
-	voteCommitInfoBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(VOTE_COMMIT_INFO), view.Bytes(), addressPrefix))
+	voteCommitInfoPool := new(states.VoteCommitInfoPool)
+	voteCommitInfoPoolBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(VOTE_COMMIT_INFO), view.Bytes(), addressPrefix))
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[voteCommitDpos] Get voteCommitInfoBytes error!")
 	}
-	if voteCommitInfoBytes != nil {
-		voteCommitStore, _ := voteCommitInfoBytes.(*cstates.StorageItem)
-		voteCommitInfo = new(big.Int).SetBytes(voteCommitStore.Value)
+	if voteCommitInfoPoolBytes != nil {
+		voteCommitInfoPoolStore, _ := voteCommitInfoPoolBytes.(*cstates.StorageItem)
+		err = json.Unmarshal(voteCommitInfoPoolStore.Value, voteCommitInfoPool)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "[voteCommitDpos] Unmarshal voteCommitInfoPool error!")
+		}
 	}
-	newVoteCommitInfo := new(big.Int).Add(voteCommitInfo, params.Pos)
-	if newVoteCommitInfo.Sign() < 0 {
+	voteCommitInfoPool.Pos = new(big.Int).Add(voteCommitInfoPool.Pos, params.Pos)
+	if voteCommitInfoPool.Pos.Sign() < 0 {
 		return errors.NewErr("[voteCommitDpos] Remain pos is negative!")
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(VOTE_COMMIT_INFO), view.Bytes(), addressPrefix), &cstates.StorageItem{Value: newVoteCommitInfo.Bytes()})
+	v, err := json.Marshal(voteCommitInfoPool)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Marshal governanceView error")
+	}
+	native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(VOTE_COMMIT_INFO), view.Bytes(), addressPrefix), &cstates.StorageItem{Value: v})
 
 	//get total pos for commit
 	posCommitBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(POS_FOR_COMMIT), view.Bytes()))
@@ -957,26 +1077,43 @@ func VoteCommitDpos(native *NativeService) error {
 		native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(GOVERNANCE_VIEW)), &cstates.StorageItem{Value: v})
 	}
 
+	addressBytes, err := hex.DecodeString(params.Address)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[voteCommitDpos] Address format error!")
+	}
+	address, err := common.AddressParseFromBytes(addressBytes)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[voteCommitDpos] Address format error!")
+	}
+	//ont transfer
+	err = appCallTransferOnt(native, address, genesis.GovernanceContractAddress, params.Pos)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[voteCommitDpos] Ont transfer error!")
+	}
+
 	return nil
 }
 
 func UpdateConfig(native *NativeService) error {
-	config := new(states.Configuration)
-	err := json.Unmarshal(native.Input, config)
+	configuration := new(states.Configuration)
+	err := json.Unmarshal(native.Input, configuration)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[updateConfig] Contract params Unmarshal error!")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
-	//TODO: check the config
+	//check the configuration
+	if configuration.L < 16*configuration.K {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[updateConfig] L is less than 16*K in config!")
+	}
 
-	value, err := json.Marshal(config)
+	value, err := json.Marshal(configuration)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[updateConfig] Marshal config error!")
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(VBFT_CONFIG)), &cstates.StorageItem{Value: value})
 
-	addCommonEvent(native, contract, UPDATE_CONFIG, config)
+	addCommonEvent(native, contract, UPDATE_CONFIG, configuration)
 
 	return nil
 }
