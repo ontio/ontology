@@ -186,8 +186,9 @@ func genConsensusPayload(configFilename string) ([]byte, error) {
 }
 
 func GenesisConsensusPayload() ([]byte, error) {
-	consensusType := strings.ToLower(config.Parameters.ConsensusType)
-	consensusConfigFile := config.Parameters.ConsensusConfigPath
+	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
+	//TODO vbft config will be integration with config.DefConfig.Genesis
+	consensusConfigFile := ""
 
 	switch consensusType {
 	case "vbft":

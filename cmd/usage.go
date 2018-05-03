@@ -17,250 +17,212 @@
  */
 package cmd
 
-import "fmt"
+import (
+	"github.com/ontio/ontology/cmd/utils"
+	"github.com/urfave/cli"
+	"io"
+	"sort"
+)
 
-func showAssetHelp() {
-	var assetHelp = `
-   Name:
-      ontology asset                       asset operation
+// AppHelpTemplate is the test template for the default, global app help topic.
+var (
+	AppHelpTemplate = `NAME:
+   {{.App.Name}} - {{.App.Usage}}
 
-   Usage:
-      ontology asset [command options] [args]
-
-   Description:
-      With this command, you can control assert through transaction.
-
-   Command:
-      transfer
-         --caddr     value                 smart contract address
-         --from      value                 wallet address base58, which will transfer from
-         --to        value                 wallet address base58, which will transfer to
-         --value     value                 how much asset will be transfered
-         --password  value                 use password who transfer from
-
-      status
-         --hash     value                  transfer transaction hash
+USAGE:
+	{{.App.HelpName}} [options]{{if .App.Commands}} command [command options] {{end}}{{if .App.ArgsUsage}}{{.App.ArgsUsage}}{{else}}[arguments...]{{end}}
+	{{if .App.Version}}
+VERSION:
+	{{.App.Version}}
+	{{end}}{{if len .App.Authors}}
+AUTHOR(S):
+	{{range .App.Authors}}{{ . }}{{end}}
+	{{end}}{{if .App.Commands}}
+COMMANDS:
+	{{range .App.Commands}}{{join .Names ", "}}{{ "\t" }}{{.Usage}}
+	{{end}}{{end}}{{if .FlagGroups}}
+{{range .FlagGroups}}{{.Name}} OPTIONS:
+	{{range .Flags}}{{.}}
+	{{end}}
+{{end}}{{end}}{{if .App.Copyright }}COPYRIGHT:
+	{{.App.Copyright}}
+{{end}}
 `
-	fmt.Println(assetHelp)
+
+	CommandHelpTemplate = `
+USAGE:
+	{{if .cmd.UsageText}}{{.cmd.UsageText}}{{else}}{{.cmd.HelpName}}{{if .cmd.VisibleFlags}} [command options]{{end}} {{if .cmd.ArgsUsage}}{{.cmd.ArgsUsage}}{{else}}[arguments...]{{end}}{{end}}{{if .cmd.Description}}
+
+DESCRIPTION:
+	{{.cmd.Description}}
+	{{end}}{{if .cmd.Subcommands}}
+SUBCOMMANDS:
+	{{range .cmd.Subcommands}}{{.Name}}{{with .ShortName}}, {{.}}{{end}}{{ "\t" }}{{.Usage}}
+	{{end}}{{end}}{{if .categorizedFlags}}
+{{range $idx, $categorized := .categorizedFlags}}{{$categorized.Name}} OPTIONS:
+{{range $categorized.Flags}}{{"\t"}}{{.}}
+{{end}}
+{{end}}{{end}}`
+)
+
+//flagGroup is a collection of flags belonging to a single topic.
+type flagGroup struct {
+	Name  string
+	Flags []cli.Flag
 }
 
-func showQueryAssetTransferHelp() {
-	var queryAssetTransferHelp = `
-   Name:
-      ontology asset query              asset transfer resule query
-
-   Usage:
-      ontology asset query [command options] [args]
-
-   Description:
-      With this command, you can query transfer assert status.
-
-   Command:
-      --hash     value                    transfer transaction hash
-`
-	fmt.Println(queryAssetTransferHelp)
+var AppHelpFlagGroups = []flagGroup{
+	{
+		Name: "ONTOLOGY",
+		Flags: []cli.Flag{
+			utils.ConfigFlag,
+			utils.LogLevelFlag,
+			utils.WalletFileFlag,
+			utils.AccountPassFlag,
+			utils.MaxTxInBlockFlag,
+			utils.DisableEventLogFlag,
+		},
+	},
+	{
+		Name: "P2P NODE",
+		Flags: []cli.Flag{
+			utils.NodePortFlag,
+			utils.DualPortSupportFlag,
+			utils.ConsensusPortFlag,
+		},
+	},
+	{
+		Name: "TEST MODE",
+		Flags: []cli.Flag{
+			utils.EnableTestModeFlag,
+			utils.TestModeGenBlockTimeFlag,
+		},
+	},
+	{
+		Name: "RPC",
+		Flags: []cli.Flag{
+			utils.RPCEnabledFlag,
+			utils.RPCPortFlag,
+			utils.RPCLocalEnableFlag,
+			utils.RPCLocalProtFlag,
+		},
+	},
+	{
+		Name: "RESTFUL",
+		Flags: []cli.Flag{
+			utils.RestfulEnableFlag,
+			utils.RestfulPortFlag,
+		},
+	},
+	{
+		Name: "WEB SOCKET",
+		Flags: []cli.Flag{
+			utils.WsEnabledFlag,
+			utils.WsPortFlag,
+		},
+	},
+	{
+		Name: "ACCOUNT",
+		Flags: []cli.Flag{
+			utils.AccountDefaultFlag,
+			utils.AccountKeylenFlag,
+			utils.AccountSetDefaultFlag,
+			utils.AccountSigSchemeFlag,
+			utils.AccountTypeFlag,
+			utils.AccountVerboseFlag,
+			utils.AccountAddressFlag,
+		},
+	},
+	{
+		Name: "MISC",
+	},
 }
 
-func showAssetTransferHelp() {
-	var assetTransferHelp = `
-   Name:
-      ontology asset transfer              asset transfer
+// byCategory sorts flagGroup by Name in in the order of AppHelpFlagGroups.
+type byCategory []flagGroup
 
-   Usage:
-      ontology asset transfer [command options] [args]
+func (a byCategory) Len() int      { return len(a) }
+func (a byCategory) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a byCategory) Less(i, j int) bool {
+	iCat, jCat := a[i].Name, a[j].Name
+	iIdx, jIdx := len(AppHelpFlagGroups), len(AppHelpFlagGroups) // ensure non categorized flags come last
 
-   Description:
-      With this command, you can transfer assert through transaction.
+	for i, group := range AppHelpFlagGroups {
+		if iCat == group.Name {
+			iIdx = i
+		}
+		if jCat == group.Name {
+			jIdx = i
+		}
+	}
 
-   Command:
-      --caddr     value                    smart contract address
-      --from      value                    wallet address base58, which will transfer from
-      --to        value                    wallet address base58, which will transfer to
-      --value     value                    how much asset will be transfered
-      --password  value                    use password who transfer from
-`
-	fmt.Println(assetTransferHelp)
+	return iIdx < jIdx
 }
 
-func showContractHelp() {
-	var contractUsingHelp = `
-   Name:
-      ontology contract      deploy or invoke a smart contract by this command
-   Usage:
-      ontology contract [command options] [args]
-
-   Description:
-      With this command, you can invoke a smart contract
-
-   Command:
-     invoke
-       --caddr      value               smart contract address that will be invoke
-       --params     value               params will be  
-			
-     deploy
-       --type       value               contract type ,value: 1 (NEOVM) | 2 (WASM)
-       --store      value               does this contract will be stored, value: true or false
-       --code       value               directory of smart contract that will be deployed
-       --cname      value               contract name that will be deployed
-       --cversion   value               contract version which will be deployed
-       --author     value               owner of deployed smart contract
-       --email      value               owner email who deploy the smart contract
-       --desc       value               contract description when deploy one
-`
-	fmt.Println(contractUsingHelp)
+func flagCategory(flag cli.Flag) string {
+	for _, category := range AppHelpFlagGroups {
+		for _, flg := range category.Flags {
+			if flg.GetName() == flag.GetName() {
+				return category.Name
+			}
+		}
+	}
+	return "MISC"
 }
 
-func showDeployHelp() {
-	var deployHelp = `
-   Name:
-      ontology contract deploy        deploy a smart contract by this command
-   Usage:
-      ontology contract deploy [command options] [args]
-
-   Description:
-      With this command, you can deploy a smart contract
-
-   Command:
-      --type       value              contract type ,value: 1 (NEOVM) | 2 (WASM)
-      --store      value              does this contract will be stored, value: true or false
-      --code       value              directory of smart contract that will be deployed
-      --cname      value              contract name that will be deployed
-      --cversion   value              contract version which will be deployed
-      --author     value              owner of deployed smart contract
-      --email      value              owner email who deploy the smart contract
-      --desc       value              contract description when deploy one
-`
-	fmt.Println(deployHelp)
-}
-func showInvokeHelp() {
-	var invokeHelp = `
-   Name:
-      ontology contract invoke          invoke a smart contract by this command
-   Usage:
-      ontology contract invoke [command options] [args]
-
-   Description:
-      With this command, you can invoke a smart contract
-
-   Command:
-      --caddr      value                smart contract address that will be invoke
-      --params     value                params will be
-`
-	fmt.Println(invokeHelp)
+type cusHelpData struct {
+	App        interface{}
+	FlagGroups []flagGroup
 }
 
-func showInfoHelp() {
-	var infoHelp = `
-   Name:
-      ontology info                    Show blockchain information
+func init() {
+	//Using customize AppHelpTemplate
+	cli.AppHelpTemplate = AppHelpTemplate
+	cli.CommandHelpTemplate = CommandHelpTemplate
 
-   Usage:
-      ontology info [command options] [args]
+	oriHelpPrinter := cli.HelpPrinter
+	cusHelpPrinter := func(w io.Writer, tmpl string, data interface{}) {
+		if tmpl == AppHelpTemplate {
+			categorized := make(map[string][]cli.Flag)
+			for _, flag := range data.(*cli.App).Flags {
+				_, ok := categorized[flag.String()]
+				if !ok {
+					gName := flagCategory(flag)
+					categorized[gName] = append(categorized[gName], flag)
+				}
+			}
+			sorted := make([]flagGroup, 0, len(categorized))
+			for cat, flgs := range categorized {
+				sorted = append(sorted, flagGroup{cat, flgs})
+			}
+			sort.Sort(byCategory(sorted))
+			cusData := &cusHelpData{
+				App:        data,
+				FlagGroups: sorted,
+			}
+			oriHelpPrinter(w, tmpl, cusData)
+		} else if tmpl == CommandHelpTemplate {
+			categorized := make(map[string][]cli.Flag)
+			for _, flag := range data.(cli.Command).Flags {
+				_, ok := categorized[flag.String()]
+				if !ok {
+					categorized[flagCategory(flag)] = append(categorized[flagCategory(flag)], flag)
+				}
+			}
+			sorted := make([]flagGroup, 0, len(categorized))
+			for cat, flgs := range categorized {
+				sorted = append(sorted, flagGroup{cat, flgs})
+			}
+			sort.Sort(byCategory(sorted))
+			oriHelpPrinter(w, tmpl, map[string]interface{}{
+				"cmd":              data,
+				"categorizedFlags": sorted,
+			})
+		} else {
+			oriHelpPrinter(w, tmpl, data)
+		}
+	}
 
-   Description:
-      With ontology info, you can look up blocks, transactions, etc.
-
-   Command:
-      version
-
-      block
-         --hash value                  block hash value
-         --height value                block height value
-
-      tx
-         --hash value                  transaction hash value
-
-`
-	fmt.Println(infoHelp)
-}
-
-func showVersionInfoHelp() {
-	var versionInfoHelp = `
-   Name:
-      ontology info version            Show ontology node version
-
-   Usage:
-      ontology info version
-
-   Description:
-      With this command, you can look up the ontology node version.
-
-`
-	fmt.Println(versionInfoHelp)
-}
-
-func showBlockInfoHelp() {
-	var blockInfoHelp = `
-   Name:
-      ontology info block             Show blockchain information
-
-   Usage:
-      ontology info block [command options] [args]
-
-   Description:
-      With this command, you can look up block information.
-
-   Options:
-      --hash value                    block hash value
-      --height value                  block height value
-`
-	fmt.Println(blockInfoHelp)
-}
-
-func showTxInfoHelp() {
-	var txInfoHelp = `
-   Name:
-      ontology info tx               Show transaction information
-
-   Usage:
-      ontology info tx [command options] [args]
-
-   Description:
-      With this command, you can look up transaction information.
-
-   Options:
-      --hash value                   transaction hash value
-
-`
-	fmt.Println(txInfoHelp)
-}
-
-func showSettingHelp() {
-	var settingHelp = `
-   Name:
-      ontology set                       Show blockchain information
-
-   Usage:
-      ontology set [command options] [args]
-
-   Description:
-      With ontology set, you can configure the node.
-
-   Command:
-      --debuglevel value                 debug level(0~6) will be set
-      --consensus value                  [ on / off ]
-`
-	fmt.Println(settingHelp)
-}
-
-func showWalletHelp() {
-	var walletHelp = `
-   Name:
-      ontology wallet                  User wallet operation
-
-   Usage:
-      ontology wallet [command options] [args]
-
-   Description:
-      With ontology wallet, you could control your account.
-
-   Command:
-      create
-      --name value                     wallet name
-      show
-      --name value                     wallet name (default: wallet.dat)
-      balance
-      --name value                     wallet name (default: wallet.dat)
-`
-	fmt.Println(walletHelp)
+	//Override the default global app help printer
+	cli.HelpPrinter = cusHelpPrinter
 }
