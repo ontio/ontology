@@ -34,7 +34,7 @@ type ApproveSyncNodeParam struct {
 	PeerPubkey string `json:"peerPubkey"`
 }
 
-type QuitSyncNodeParam struct {
+type QuitNodeParam struct {
 	PeerPubkey string `json:"peerPubkey"`
 	Address    string `json:"address"`
 }
@@ -56,6 +56,7 @@ type PeerPool struct {
 	Index      *big.Int `json:"index"`
 	PeerPubkey string   `json:"peerPubkey"`
 	Status     Status   `json:"status"`
+	QuitView   *big.Int `json:"quitView"`
 	Address    string   `json:"address"`
 	InitPos    *big.Int `json:"initPos"`
 	TotalPos   *big.Int `json:"totalPos"`
@@ -72,11 +73,12 @@ type VoteForPeerParam struct {
 }
 
 type VoteInfoPool struct {
-	PeerPubkey string   `json:"peerPubkey"`
-	Address    string   `json:"address"`
-	PrePos     *big.Int `json:"prePos"`
-	FreezePos  *big.Int `json:"freezePos"`
-	NewPos     *big.Int `json:"newPos"`
+	PeerPubkey   string   `json:"peerPubkey"`
+	Address      string   `json:"address"`
+	PrePos       *big.Int `json:"prePos"`
+	FreezePos    *big.Int `json:"freezePos"`
+	NewPos       *big.Int `json:"newPos"`
+	PreFreezePos *big.Int `json:"preFreezePos"`
 }
 
 type PeerStakeInfo struct {
