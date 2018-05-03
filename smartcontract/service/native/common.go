@@ -24,14 +24,14 @@ import (
 
 	"encoding/hex"
 	"encoding/json"
-	"hash/fnv"
-
 	"github.com/ontio/ontology/common"
 	cstates "github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native/states"
+	"github.com/ontio/ontology/core/genesis"
+	"bytes"
 )
 
 var (
@@ -268,18 +268,46 @@ func addCommonEvent(native *NativeService, contract common.Address, name string,
 		})
 }
 
-func Shufflehash(txid common.Uint256, ts uint32, id []byte, idx int) (uint64, error) {
-	data, err := json.Marshal(struct {
-		Txid           common.Uint256 `json:"txid"`
-		BlockTimestamp uint32         `json:"block_timestamp"`
-		NodeID         []byte         `json:"node_id"`
-		Index          int            `json:"index"`
-	}{txid, ts, id, idx})
+func appCallTransferOng(native *NativeService, from common.Address, to common.Address, amount *big.Int) error {
+	buf := bytes.NewBuffer(nil)
+	var sts []*states.State
+	sts = append(sts, &states.State{
+		From:  from,
+		To:    to,
+		Value: amount,
+	})
+	transfers := &states.Transfers{
+		States: sts,
+	}
+	err := transfers.Serialize(buf)
 	if err != nil {
-		return 0, err
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[appCallTransferOng] transfers.Serialize error!")
 	}
 
-	hash := fnv.New64a()
-	hash.Write(data)
-	return hash.Sum64(), nil
+	if _, err := native.ContextRef.AppCall(genesis.OngContractAddress, "transfer", []byte{}, buf.Bytes()); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[appCallTransferOng] appCall error!")
+	}
+	return nil
+}
+
+func appCallTransferOnt(native *NativeService, from common.Address, to common.Address, amount *big.Int) error {
+	buf := bytes.NewBuffer(nil)
+	var sts []*states.State
+	sts = append(sts, &states.State{
+		From:  from,
+		To:    to,
+		Value: amount,
+	})
+	transfers := &states.Transfers{
+		States: sts,
+	}
+	err := transfers.Serialize(buf)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[appCallTransferOnt] transfers.Serialize error!")
+	}
+
+	if _, err := native.ContextRef.AppCall(genesis.OntContractAddress, "transfer", []byte{}, buf.Bytes()); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[appCallTransferOnt] appCall error!")
+	}
+	return nil
 }
