@@ -102,6 +102,11 @@ type VoteCommitDposParam struct {
 	Pos     *big.Int `json:"pos"`
 }
 
+type VoteCommitInfoPool struct {
+	Address string   `json:"address"`
+	Pos     *big.Int `json:"pos"`
+}
+
 type GovernanceView struct {
 	View       *big.Int `json:"view"`
 	VoteCommit bool     `json:"voteCommit"`
