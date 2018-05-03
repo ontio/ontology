@@ -664,38 +664,6 @@ func stringconcat(engine *ExecutionEngine) (bool, error) {
 	return true, nil
 }
 
-/*func stringconcat(engine *ExecutionEngine) (bool, error) {
-	envCall := engine.vm.envCall
-	params := envCall.envParams
-	if len(params) != 1 {
-		return false, errors.New("parameter count error while call strcmp")
-	}
-	//input should be a string array
-	addrbytes, err := engine.vm.GetPointerMemory(params[0])
-	if err != nil {
-		return false, err
-	}
-	cnt := len(addrbytes) / 4
-	bf := bytes.NewBuffer(nil)
-	for i := 0; i < cnt; i++ {
-		tmpaddr := addrbytes[i*4 : i*4+4]
-		tmpBytes, err := engine.vm.GetPointerMemory(uint64(binary.LittleEndian.Uint32(tmpaddr)))
-		if err != nil {
-			return false, err
-		}
-		bf.Write(tmpBytes)
-	}
-	idx, err := engine.vm.SetPointerMemory(bf.Bytes())
-	if err != nil {
-		return false, err
-	}
-	engine.vm.RestoreCtx()
-	if envCall.envReturns {
-		engine.vm.pushUint64(uint64(idx))
-	}
-	return true, nil
-}*/
-
 func getCaller(engine *ExecutionEngine) (bool, error) {
 	envCall := engine.vm.envCall
 
@@ -728,7 +696,8 @@ func getContractAddress(engine *ExecutionEngine) (bool, error) {
 }
 
 func jsonMashalParams(engine *ExecutionEngine) (bool, error) {
-	envCall := engine.vm.envCall
+	vm := engine.vm
+	envCall := vm.envCall
 	params := envCall.envParams
 	if len(params) != 1 {
 		return false, errors.New("[jsonMashalParams]parameter count error")
@@ -736,52 +705,26 @@ func jsonMashalParams(engine *ExecutionEngine) (bool, error) {
 
 	addr := params[0]
 
-	bytes, err := engine.vm.GetPointerMemory(addr)
+	argbytes, err := engine.vm.GetPointerMemory(addr)
 	if err != nil {
 		return false, errors.New("[jsonMashalParams] GetPointerMemory err:" + err.Error())
 	}
+	bytesLen := len(argbytes)
+	var pars = make([]Param, bytesLen/8)
+	icount := 0
 
-	var pars []Param
-
-	bytesLen := len(bytes)
-	for i := 0; i < bytesLen; i++ {
-		typeIdx := binary.LittleEndian.Uint32(bytes[i : i+4])
-		typeBytes, err := engine.vm.GetPointerMemory(uint64(typeIdx))
+	for i := 0; i < bytesLen; i += 8 {
+		tmpBytes := argbytes[i : i+8]
+		ptype, err := vm.GetPointerMemory(uint64(binary.LittleEndian.Uint32(tmpBytes[:4])))
 		if err != nil {
-			return false, errors.New("[jsonMashalParams] GetPointerMemory err:" + err.Error())
+			return false, err
 		}
-
-		sType := strings.ToLower(util.TrimBuffToString(typeBytes))
-
-		param := Param{Ptype: sType}
-
-		switch sType {
-		case "int":
-			intBytes := int(binary.LittleEndian.Uint32(bytes[i+4 : i+8]))
-			param.Pval = strconv.Itoa(intBytes)
-			i += 7
-		case "int64":
-			//add padding
-			if i%8 != 0 {
-				i += 4
-			}
-
-			intBytes := int64(binary.LittleEndian.Uint64(bytes[i+4 : i+12]))
-			param.Pval = strconv.FormatInt(intBytes, 10)
-			i += 11
-		case "string":
-			intBytes := uint64(binary.LittleEndian.Uint32(bytes[i+4 : i+8]))
-			str, err := engine.vm.GetPointerMemory(intBytes)
-			if err != nil {
-				return false, errors.New("[jsonMashalParams] GetPointerMemory err:" + err.Error())
-			}
-			param.Pval = util.TrimBuffToString(str)
-			i += 7
-		default:
-			return false, errors.New("[jsonMashalParams]  not support type :" + string(typeBytes))
+		pvalue, err := vm.GetPointerMemory(uint64(binary.LittleEndian.Uint32(tmpBytes[4:8])))
+		if err != nil {
+			return false, err
 		}
-
-		pars = append(pars, param)
+		pars[icount] = Param{Ptype: util.TrimBuffToString(ptype), Pval: util.TrimBuffToString(pvalue)}
+		icount++
 	}
 
 	arg := &Args{Params: pars}
@@ -798,9 +741,7 @@ func jsonMashalParams(engine *ExecutionEngine) (bool, error) {
 	if envCall.envReturns {
 		engine.vm.pushUint64(uint64(argIdx))
 	}
-
 	return true, nil
-
 }
 
 func rawMashalParams(engine *ExecutionEngine) (bool, error) {

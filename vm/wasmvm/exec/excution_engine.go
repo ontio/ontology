@@ -27,13 +27,13 @@ import (
 	"reflect"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/smartcontract/types"
 	"github.com/ontio/ontology/vm/neovm/interfaces"
 	"github.com/ontio/ontology/vm/wasmvm/memory"
 	"github.com/ontio/ontology/vm/wasmvm/util"
 	"github.com/ontio/ontology/vm/wasmvm/validate"
 	"github.com/ontio/ontology/vm/wasmvm/wasm"
-	"github.com/ontio/ontology/smartcontract/types"
-	"github.com/ontio/ontology/errors"
 )
 
 const (
@@ -49,7 +49,7 @@ type vmstack struct {
 }
 
 func (s *vmstack) push(vm *VM) error {
-	if s.top == len(s.stack) {
+	if s.top+1 == len(s.stack) {
 		return errors.NewErr(fmt.Sprintf("[vm stack push] stack is full, only support %d contracts calls", VM_STACK_DEPTH))
 	}
 	s.stack[s.top+1] = vm
@@ -58,7 +58,7 @@ func (s *vmstack) push(vm *VM) error {
 }
 
 func (s *vmstack) pop() (*VM, error) {
-	if s.top == 0 {
+	if s.top == -1 {
 		return nil, errors.NewErr("[vm stack pop] stack is empty")
 	}
 
@@ -68,11 +68,11 @@ func (s *vmstack) pop() (*VM, error) {
 }
 
 func newStack(depth int) *vmstack {
-	return &vmstack{top: 0, stack: make([]*VM, depth)}
+	return &vmstack{top: -1, stack: make([]*VM, depth)}
 }
 
 //todo add parameters
-func NewExecutionEngine(container interfaces.CodeContainer, crypto interfaces.Crypto,  service InteropServiceInterface) *ExecutionEngine {
+func NewExecutionEngine(container interfaces.CodeContainer, crypto interfaces.Crypto, service InteropServiceInterface) *ExecutionEngine {
 
 	engine := &ExecutionEngine{
 		crypto:        crypto,
@@ -127,9 +127,9 @@ func (e *ExecutionEngine) RestoreVM() error {
 
 //use this method just for test
 func (e *ExecutionEngine) CallInf(caller common.Address,
-									code []byte,
-									input []interface{},
-									message []interface{}) ([]byte, error) {
+	code []byte,
+	input []interface{},
+	message []interface{}) ([]byte, error) {
 	methodName := input[0].(string)
 
 	//1. read code
@@ -312,10 +312,10 @@ func (e *ExecutionEngine) Create(caller common.Address, code []byte) ([]byte, er
 // input       []byte         :arguments
 // ver         byte           :contract version  require > 0 for production
 func (e *ExecutionEngine) Call(caller common.Address,
-								code []byte,
-								actionName string,
-								input []byte,
-								ver byte) (returnbytes []byte, er error) {
+	code []byte,
+	actionName string,
+	input []byte,
+	ver byte) (returnbytes []byte, er error) {
 
 	//catch the panic to avoid crash the whole node
 	defer func() {
@@ -325,10 +325,9 @@ func (e *ExecutionEngine) Call(caller common.Address,
 		}
 	}()
 
-	return e.call(caller,code,input,actionName,ver)
+	return e.call(caller, code, input, actionName, ver)
 
 }
-
 
 //Call init method on deployment
 // caller      common.Address :call address
@@ -337,9 +336,9 @@ func (e *ExecutionEngine) Call(caller common.Address,
 // ver         byte           :contract version  require > 0 for production
 //TODO TBD whether we need to call init method after deploy automatically
 func (e *ExecutionEngine) InitCall(caller common.Address,
-									code []byte,
-									input []byte,
-									ver byte) (returnbytes []byte, er error) {
+	code []byte,
+	input []byte,
+	ver byte) (returnbytes []byte, er error) {
 
 	//catch the panic to avoid crash the whole node
 	defer func() {
@@ -349,16 +348,16 @@ func (e *ExecutionEngine) InitCall(caller common.Address,
 		}
 	}()
 
-	return e.call(caller,code,input,CONTRACT_INIT_METHOD,ver)
+	return e.call(caller, code, input, CONTRACT_INIT_METHOD, ver)
 
 }
 
 // call to execute wasm vm
-func (e *ExecutionEngine)call(caller common.Address,
-							code []byte,
-							input []byte,
-							actionName string,
-							ver byte)(returnbytes []byte, er error){
+func (e *ExecutionEngine) call(caller common.Address,
+	code []byte,
+	input []byte,
+	actionName string,
+	ver byte) (returnbytes []byte, er error) {
 	if ver > 0 { //production contract version
 		methodName := CONTRACT_METHOD_NAME //fix to "invoke"
 		//1. read code
@@ -392,7 +391,7 @@ func (e *ExecutionEngine)call(caller common.Address,
 
 		vm.Caller = caller
 
-		vmcode := types.VmCode{VmType:types.WASMVM,Code:code}
+		vmcode := types.VmCode{VmType: types.WASMVM, Code: code}
 		vm.VMCode = vmcode
 		vm.ContractAddress = vmcode.AddressFromVmCode()
 
@@ -533,7 +532,6 @@ func (e *ExecutionEngine)call(caller common.Address,
 	}
 }
 
-
 //FIXME NOT IN USE BUT DON'T DELETE IT
 //current we only support the ONT SYSTEM module import
 //other imports will raise an error
@@ -556,6 +554,7 @@ func importer(name string) (*wasm.Module, error) {
 
 }
 
+// getCallMethodName only used for testing case
 //get call method name from the input bytes
 //the input should be:[Namelength][methodName][paramcount][param1Length][param2Length].....[param1Data][Param2Data][....]
 //input[0] should be the name length
