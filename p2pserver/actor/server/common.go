@@ -23,16 +23,6 @@ import (
 	types "github.com/ontio/ontology/p2pserver/common"
 )
 
-//start net server request
-type StartServerReq struct {
-	StartSync bool
-}
-
-//response of start request
-type StartServerRsp struct {
-	Error error
-}
-
 //stop net server
 type StopServerReq struct {
 }
