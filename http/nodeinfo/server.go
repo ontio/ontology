@@ -63,11 +63,11 @@ func initPageInfo(blockHeight uint32, curNodeType string, ngbrCnt int, ngbrsInfo
 	id := fmt.Sprintf("0x%x", node.GetID())
 	return &Info{NodeVersion: config.Version, BlockHeight: blockHeight,
 		NeighborCnt: ngbrCnt, Neighbors: ngbrsInfo,
-		HttpRestPort:  config.Parameters.HttpRestPort,
-		HttpWsPort:    config.Parameters.HttpWsPort,
-		HttpJsonPort:  config.Parameters.HttpJsonPort,
-		HttpLocalPort: config.Parameters.HttpLocalPort,
-		NodePort:      config.Parameters.NodePort,
+		HttpRestPort:  int(config.DefConfig.Restful.HttpRestPort),
+		HttpWsPort:    int(config.DefConfig.Ws.HttpWsPort),
+		HttpJsonPort:  int(config.DefConfig.Rpc.HttpJsonPort),
+		HttpLocalPort: int(config.DefConfig.Rpc.HttpLocalPort),
+		NodePort:      uint16(config.DefConfig.P2PNode.NodePort),
 		NodeId:        id, NodeType: curNodeType}, nil
 }
 
@@ -128,7 +128,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 
 func StartServer(n p2p.P2P) {
 	node = n
-	port := int(config.Parameters.HttpInfoPort)
+	port := int(config.DefConfig.P2PNode.HttpInfoPort)
 	http.HandleFunc("/info", viewHandler)
 	http.ListenAndServe(":"+strconv.Itoa(port), nil)
 }

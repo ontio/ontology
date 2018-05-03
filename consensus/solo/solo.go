@@ -43,8 +43,6 @@ import (
 /*
 *Simple consensus for solo node in test environment.
  */
-var GenBlockTime = (config.DEFAULT_GEN_BLOCK_TIME * time.Second)
-
 const ContextVersion uint32 = 0
 
 type SoloService struct {
@@ -53,7 +51,7 @@ type SoloService struct {
 	ledgerActor   *actorTypes.LedgerActor
 	incrValidator *increment.IncrementValidator
 	existCh       chan interface{}
-
+	genBlockInterval time.Duration
 	pid *actor.PID
 	sub *events.ActorSubscriber
 }
@@ -64,6 +62,7 @@ func NewSoloService(bkAccount *account.Account, txpool *actor.PID, ledger *actor
 		poolActor:     &actorTypes.TxPoolActor{Pool: txpool},
 		ledgerActor:   &actorTypes.LedgerActor{Ledger: ledger},
 		incrValidator: increment.NewIncrementValidator(10),
+		genBlockInterval:time.Duration(config.DefConfig.Genesis.SOLO.GenBlockTime) * time.Second,
 	}
 
 	props := actor.FromProducer(func() actor.Actor {
@@ -80,24 +79,24 @@ func NewSoloService(bkAccount *account.Account, txpool *actor.PID, ledger *actor
 func (self *SoloService) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Restarting:
-		log.Warn("solo actor restarting")
+		log.Info("solo actor restarting")
 	case *actor.Stopping:
-		log.Warn("solo actor stopping")
+		log.Info("solo actor stopping")
 	case *actor.Stopped:
-		log.Warn("solo actor stopped")
+		log.Info("solo actor stopped")
 	case *actor.Started:
-		log.Warn("solo actor started")
+		log.Info("solo actor started")
 	case *actor.Restart:
-		log.Warn("solo actor restart")
+		log.Info("solo actor restart")
 	case *actorTypes.StartConsensus:
 		if self.existCh != nil {
-			log.Warn("consensus have started")
+			log.Info("consensus have started")
 			return
 		}
 
 		self.sub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
 
-		timer := time.NewTicker(GenBlockTime)
+		timer := time.NewTicker(self.genBlockInterval)
 		self.existCh = make(chan interface{})
 		go func() {
 			defer timer.Stop()
@@ -119,7 +118,7 @@ func (self *SoloService) Receive(context actor.Context) {
 			self.sub.Unsubscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
 		}
 	case *message.SaveBlockCompleteMsg:
-		log.Info("solo actor receives block complete event. block height=", msg.Block.Header.Height)
+		log.Infof("solo actor receives block complete event. block height=%d txnum=%d", msg.Block.Header.Height, len(msg.Block.Transactions))
 		self.incrValidator.AddBlock(msg.Block)
 
 	case *actorTypes.TimeOut:
