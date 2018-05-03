@@ -104,10 +104,8 @@ func accountCreate(ctx *cli.Context) error {
 		optionScheme = checkScheme(ctx, reader, &optionType)
 	}
 
-	//let user enter password with double check
-	pass := password.DoubleEnterPassword()
+	pass, _ := password.GetConfirmedPassword()
 
-	//read and save wallet data
 	wallet := new(account.WalletData)
 	err := wallet.Load(optionFile)
 	if err != nil {
@@ -116,8 +114,7 @@ func accountCreate(ctx *cli.Context) error {
 	}
 
 	for i := 0; i < optionNumber; i++ {
-		// here can create multiple accounts.
-		acc := account.CreateAccount(&optionType, &optionCurve, &optionScheme, pass)
+		acc := account.CreateAccount(&optionType, &optionCurve, &optionScheme, &pass)
 		wallet.AddAccount(acc)
 		fmt.Println("Address: ", acc.Address)
 		fmt.Println("Public key:", acc.PubKey)
@@ -125,11 +122,10 @@ func accountCreate(ctx *cli.Context) error {
 		fmt.Println("")
 	}
 
-	// clear password
-	for i := 0; i < len(*pass); i++ {
-		(*pass)[i] = 0
+	for i := 0; i < len(pass); i++ {
+		(pass)[i] = 0
 	}
-	//save wallet file
+
 	if wallet.Save(optionFile) != nil {
 		fmt.Println("Wallet file save failed.")
 	}
@@ -262,10 +258,7 @@ func accountDelete(ctx *cli.Context) error {
 		return nil
 	}
 
-	//check password to delete an account
-	//pass enter.
-	fmt.Printf("Please enter the original password of account %v:", index)
-	oldPass := password.EnterPassword(false)
+	oldPass, _ := password.GetPassword()
 	h := sha256.Sum256(oldPass)
 
 	passHash, _ := hex.DecodeString(wallet.Accounts[index-1].PassHash)
@@ -309,7 +302,7 @@ func encrypt(ctx *cli.Context) error {
 	}
 
 	fmt.Printf("Please enter the original password of account %v:", index)
-	oldPass := password.EnterPassword(false)
+	oldPass, _ := password.GetPassword()
 	h := sha256.Sum256(oldPass)
 
 	passHash, _ := hex.DecodeString(wallet.Accounts[index-1].PassHash)
@@ -321,12 +314,12 @@ func encrypt(ctx *cli.Context) error {
 	prv, _ := keypair.DecryptPrivateKey(wallet.Accounts[index-1].GetKeyPair(), oldPass)
 
 	//let user enter password with double check
-	pass := password.DoubleEnterPassword()
+	pass, _ := password.GetConfirmedPassword()
 
-	prvSecret, _ := keypair.EncryptPrivateKey(prv, wallet.Accounts[index-1].Address, *pass)
-	_h := sha256.Sum256(*pass)
-	for i := 0; i < len(*pass); i++ {
-		(*pass)[i] = 0
+	prvSecret, _ := keypair.EncryptPrivateKey(prv, wallet.Accounts[index-1].Address, pass)
+	_h := sha256.Sum256(pass)
+	for i := 0; i < len(pass); i++ {
+		pass[i] = 0
 	}
 
 	wallet.Accounts[index-1].SetKeyPair(prvSecret)
