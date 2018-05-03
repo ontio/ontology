@@ -20,14 +20,10 @@ package netserver
 
 import (
 	"bytes"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -119,7 +115,7 @@ func (this *NetServer) init(pubKey keypair.PublicKey) error {
 
 //InitListen start listening on the config port
 func (this *NetServer) Start() {
-	this.InitConnection()
+	this.startListening()
 }
 
 //GetVersion return self peer`s version
@@ -331,10 +327,8 @@ func (this *NetServer) Halt() {
 
 }
 
-//establishing the connection to remote peers and listening for incoming peers
-func (this *NetServer) InitConnection() error {
-	isTls := config.Parameters.IsTLS
-
+//establishing the connection to remote peers and listening for inbound peers
+func (this *NetServer) startListening() error {
 	var err error
 
 	syncPort := this.base.GetSyncPort()
@@ -344,21 +338,11 @@ func (this *NetServer) InitConnection() error {
 		log.Error("Sync Port invalid")
 		return errors.New("Sync Port invalid")
 	}
-	if isTls {
-		this.synclistener, err = initTlsListen(syncPort)
-		if err != nil {
-			log.Error("Sync listen failed")
-			return errors.New("Sync listen failed")
-		}
-	} else {
-		this.synclistener, err = initNonTlsListen(syncPort)
-		if err != nil {
-			log.Error("Sync listen failed")
-			return errors.New("Sync listen failed")
-		}
+
+	err = this.startSyncListening(syncPort)
+	if err != nil {
+		return err
 	}
-	go this.startSyncAccept(this.synclistener)
-	log.Infof("Start listen on sync port %d", syncPort)
 
 	//consensus
 	if config.Parameters.DualPortSurpport == false {
@@ -369,26 +353,43 @@ func (this *NetServer) InitConnection() error {
 		//still work
 		log.Error("Consensus Port invalid,keep single link")
 	} else {
-		if isTls {
-			this.conslistener, err = initTlsListen(consPort)
-			if err != nil {
-				log.Error("Cons listen failed")
-				return errors.New("Cons listen failed")
-			}
-		} else {
-			this.conslistener, err = initNonTlsListen(consPort)
-			if err != nil {
-				log.Error("Cons listen failed")
-				return errors.New("Cons listen failed")
-			}
+		err = this.startConsListening(consPort)
+		if err != nil {
+			return err
 		}
-		go this.startConsAccept(this.conslistener)
-		log.Infof("Start listen on consensus port %d", consPort)
 	}
 	return nil
 }
 
-//startAccept start listen to sync port
+// startSyncListening starts a sync listener on the port for the inbound peer
+func (this *NetServer) startSyncListening(port uint16) error {
+	var err error
+	this.synclistener, err = createListener(port)
+	if err != nil {
+		log.Error("failed to create sync listener")
+		return errors.New("failed to create sync listener")
+	}
+
+	go this.startSyncAccept(this.synclistener)
+	log.Infof("Start listen on sync port %d", port)
+	return nil
+}
+
+// startConsListening starts a sync listener on the port for the inbound peer
+func (this *NetServer) startConsListening(port uint16) error {
+	var err error
+	this.conslistener, err = createListener(port)
+	if err != nil {
+		log.Error("failed to create cons listener")
+		return errors.New("failed to create cons listener")
+	}
+
+	go this.startConsAccept(this.conslistener)
+	log.Infof("Start listen on consensus port %d", port)
+	return nil
+}
+
+//startSyncAccept accepts the sync connection from the inbound peer
 func (this *NetServer) startSyncAccept(listener net.Listener) {
 	for {
 		conn, err := listener.Accept()
@@ -396,7 +397,8 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 			log.Error("Error accepting ", err.Error())
 			return
 		}
-		log.Info("Remote sync node connect with ", conn.RemoteAddr(), conn.LocalAddr())
+		log.Info("Remote sync node connect with ",
+			conn.RemoteAddr(), conn.LocalAddr())
 
 		remotePeer := peer.NewPeer()
 		addr := conn.RemoteAddr().String()
@@ -412,7 +414,7 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 	}
 }
 
-//startAccept start listen to Consensus port
+//startConsAccept accepts the consensus connnection from the inbound peer
 func (this *NetServer) startConsAccept(listener net.Listener) {
 	for {
 		conn, err := listener.Accept()
@@ -420,7 +422,8 @@ func (this *NetServer) startConsAccept(listener net.Listener) {
 			log.Error("Error accepting ", err.Error())
 			return
 		}
-		log.Info("Remote cons node connect with ", conn.RemoteAddr(), conn.LocalAddr())
+		log.Info("Remote cons node connect with ",
+			conn.RemoteAddr(), conn.LocalAddr())
 
 		remotePeer := peer.NewPeer()
 		addr := conn.RemoteAddr().String()
@@ -477,100 +480,6 @@ func (this *NetServer) GetPeerFromAddr(addr string) *peer.Peer {
 		return p
 	}
 	return nil
-}
-
-//initNonTlsListen return net.Listener with nonTls mode
-func initNonTlsListen(port uint16) (net.Listener, error) {
-	log.Debug()
-	listener, err := net.Listen("tcp", ":"+strconv.Itoa(int(port)))
-	if err != nil {
-		log.Error("Error listening\n", err.Error())
-		return nil, err
-	}
-	return listener, nil
-}
-
-//initTlsListen return net.Listener with Tls mode
-func initTlsListen(port uint16) (net.Listener, error) {
-	CertPath := config.Parameters.CertPath
-	KeyPath := config.Parameters.KeyPath
-	CAPath := config.Parameters.CAPath
-
-	// load cert
-	cert, err := tls.LoadX509KeyPair(CertPath, KeyPath)
-	if err != nil {
-		log.Error("load keys fail", err)
-		return nil, err
-	}
-	// load root ca
-	caData, err := ioutil.ReadFile(CAPath)
-	if err != nil {
-		log.Error("read ca fail", err)
-		return nil, err
-	}
-	pool := x509.NewCertPool()
-	ret := pool.AppendCertsFromPEM(caData)
-	if !ret {
-		return nil, errors.New("failed to parse root certificate")
-	}
-
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      pool,
-		ClientAuth:   tls.RequireAndVerifyClientCert,
-		ClientCAs:    pool,
-	}
-
-	log.Info("TLS listen port is ", strconv.Itoa(int(port)))
-	listener, err := tls.Listen("tcp", ":"+strconv.Itoa(int(port)), tlsConfig)
-	if err != nil {
-		log.Error(err)
-		return nil, err
-	}
-	return listener, nil
-}
-
-//nonTLSDial return net.Conn with nonTls
-func nonTLSDial(addr string) (net.Conn, error) {
-	log.Debug()
-	conn, err := net.DialTimeout("tcp", addr, time.Second*common.DIAL_TIMEOUT)
-	if err != nil {
-		return nil, err
-	}
-	return conn, nil
-}
-
-//TLSDial return net.Conn with TLS
-func TLSDial(nodeAddr string) (net.Conn, error) {
-	CertPath := config.Parameters.CertPath
-	KeyPath := config.Parameters.KeyPath
-	CAPath := config.Parameters.CAPath
-
-	clientCertPool := x509.NewCertPool()
-
-	cacert, err := ioutil.ReadFile(CAPath)
-	cert, err := tls.LoadX509KeyPair(CertPath, KeyPath)
-	if err != nil {
-		return nil, err
-	}
-
-	ret := clientCertPool.AppendCertsFromPEM(cacert)
-	if !ret {
-		return nil, errors.New("failed to parse root certificate")
-	}
-
-	conf := &tls.Config{
-		RootCAs:      clientCertPool,
-		Certificates: []tls.Certificate{cert},
-	}
-
-	var dialer net.Dialer
-	dialer.Timeout = time.Second * common.DIAL_TIMEOUT
-	conn, err := tls.DialWithDialer(&dialer, "tcp", nodeAddr, conf)
-	if err != nil {
-		return nil, err
-	}
-	return conn, nil
 }
 
 //IsNbrPeerAddr return result whether the address is under connecting
