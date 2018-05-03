@@ -30,6 +30,7 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
 	"github.com/ontio/ontology/consensus/vbft/config"
@@ -249,20 +250,11 @@ func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
 	self.metaLock.Lock()
 	defer self.metaLock.Unlock()
 
-	config, err := chainStore.GetVbftConfigInfo()
+	cfg, err := self.getChainConfig()
 	if err != nil {
-		return fmt.Errorf("failed to get chainconfig from leveldb: %s", err)
+		return fmt.Errorf("getChainConfig failed: %s", err)
 	}
 
-	peersinfo, err := chainStore.GetPeersConfig()
-	if err != nil {
-		return fmt.Errorf("failed to get peersinfo from leveldb: %s", err)
-	}
-
-	cfg, err := vconfig.GenesisChainConfig(config, peersinfo)
-	if err != nil {
-		return fmt.Errorf("GenesisChainConfig failed: %s", err)
-	}
 	self.config = cfg
 	if self.config.View == 0 {
 		panic("invalid view")
@@ -290,24 +282,32 @@ func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
 	return nil
 }
 
+func (self *Server) getChainConfig() (*vconfig.ChainConfig, error) {
+	config, err := self.chainStore.GetVbftConfigInfo()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get chainconfig from leveldb: %s", err)
+	}
+
+	peersinfo, err := self.chainStore.GetPeersConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get peersinfo from leveldb: %s", err)
+	}
+
+	cfg, err := vconfig.GenesisChainConfig(config, peersinfo)
+	if err != nil {
+		return nil, fmt.Errorf("GenesisChainConfig failed: %s", err)
+	}
+	return cfg, err
+}
+
 //updateChainCofig
 func (self *Server) updateChainConfig() error {
 	self.metaLock.Lock()
 	defer self.metaLock.Unlock()
 
-	config, err := self.chainStore.GetVbftConfigInfo()
+	cfg, err := self.getChainConfig()
 	if err != nil {
-		return fmt.Errorf("failed to get chainconfig from leveldb: %s", err)
-	}
-
-	peersinfo, err := self.chainStore.GetPeersConfig()
-	if err != nil {
-		return fmt.Errorf("failed to get peersinfo from leveldb: %s", err)
-	}
-
-	cfg, err := vconfig.GenesisChainConfig(config, peersinfo)
-	if err != nil {
-		return fmt.Errorf("GenesisChainConfig failed: %s", err)
+		return fmt.Errorf("getChainConfig failed: %s", err)
 	}
 	self.config = cfg
 	// TODO
@@ -326,7 +326,7 @@ func (self *Server) updateChainConfig() error {
 			log.Infof("updateChainConfig add peer index%v,id:%v", p.ID.String(), p.Index)
 		}
 	}
-	//  delmap := make(map[vconfig.NodeID]uint32)
+
 	for id, index := range self.peerPool.IDMap {
 		_, present := peermap[id]
 		if !present {
@@ -334,22 +334,10 @@ func (self *Server) updateChainConfig() error {
 				self.stop()
 				log.Info("updateChainConfig stop consensus service")
 			} else {
-				//delmap[id] = index
 				log.Info("updateChainConfig remove consensus")
 				if C, present := self.msgRecvC[index]; present {
 					C <- nil
 				}
-				go func() {
-					self.peerPool.peerDisconnected(index)
-					self.stateMgr.StateEventC <- &StateEvent{
-						Type: UpdatePeerState,
-						peerState: &PeerState{
-							peerIdx:   index,
-							connected: false,
-						},
-					}
-					delete(self.msgRecvC, index)
-				}()
 			}
 			log.Infof("updateChainConfig remove nonparticipation node: index:%v,nodeid:%v len:%d", index, id, len(self.peerPool.IDMap))
 		}
@@ -1930,6 +1918,9 @@ func (self *Server) creategovernaceTransaction() *types.Transaction {
 
 //checkNeedUpdateChainConfig use blockcount
 func (self *Server) checkNeedUpdateChainConfig() bool {
+	if self.currentBlockNum%config.Parameters.MaxBlockChangeView == 0 {
+		return true
+	}
 	log.Debugf("blockcount: %d", self.config.BlockCount)
 	//todo
 	return false
@@ -1939,10 +1930,10 @@ func (self *Server) checkNeedUpdateChainConfig() bool {
 func (self *Server) checkForceUpdateChainConfig() bool {
 	force, err := self.chainStore.GetForceUpdate()
 	if err != nil {
-		log.Errorf("checkNeedUpdateChainConfig err:%s", err)
+		log.Errorf("checkForceUpdateChainConfig err:%s", err)
 		return false
 	}
-	log.Debugf("checkNeedUpdateChainConfig force: %v", force)
+	log.Debugf("checkForceUpdateChainConfig force: %v", force)
 	return force
 }
 
