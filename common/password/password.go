@@ -24,6 +24,8 @@ import (
 	"os"
 
 	"github.com/dnaproject/gopass"
+	"golang.org/x/crypto/ssh/terminal"
+	"syscall"
 )
 
 // GetPassword gets password from user input
@@ -75,4 +77,36 @@ func GetAccountPassword() ([]byte, error) {
 	}
 
 	return passwd, nil
+}
+
+// Wait for user to enter password
+func EnterPassword(canBeNull bool) []byte {
+	for {
+		bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
+		if err != nil {
+			fmt.Println("system cannot read your input, sorry.")
+		}
+		fmt.Println("")
+		if !canBeNull && len(bytePassword) == 0 {
+			fmt.Print("password cannot be null, input again:")
+		} else {
+			return bytePassword
+		}
+	}
+	return nil
+}
+func DoubleEnterPassword() *[]byte {
+	var password, repeatPassword []byte
+	for {
+		fmt.Print("Enter a password for encrypting the private key:")
+		password = EnterPassword(false)
+		fmt.Print("Re-enter password:")
+		repeatPassword = EnterPassword(true)
+		if bytes.Equal(password, repeatPassword) {
+			break
+		} else {
+			fmt.Println("passwords you have enter are not equal, pls try again!")
+		}
+	}
+	return &password
 }

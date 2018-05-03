@@ -60,6 +60,7 @@ var (
 		utils.AccountFileFlag,
 	}
 	addFlags = []cli.Flag{
+		utils.AccountQuantityFlag,
 		utils.AccountTypeFlag,
 		utils.AccountKeylenFlag,
 		utils.AccountSigSchemeFlag,
