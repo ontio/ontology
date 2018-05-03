@@ -74,9 +74,8 @@ const (
 	//global
 	SYNC_NODE_FEE = 50
 	CANDIDATE_FEE = 500
-	ConsensusNum  = 7
 	CandidateNum  = 7 * 7
-	SyncNodeNum   = 7 * 7 * 6
+	SyncNodeNum   = 7 * 7 * 7
 )
 
 func init() {
@@ -178,7 +177,17 @@ func RegisterSyncNode(native *NativeService) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[registerSyncNode] PeerPubkey format error!")
 	}
 
-	//check PeerPool
+	//check if PeerPool full
+	stateValues, err := native.CloneCache.Store.Find(scommon.ST_STORAGE, concatKey(contract, []byte(PEER_POOL)))
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[registerSyncNode] Get all peerPool error!")
+	}
+	fmt.Println("Num of sync node is :", len(stateValues))
+	if len(stateValues) >= SyncNodeNum {
+		return errors.NewErr("[registerSyncNode] Sync node is full (7*7*7)!")
+	}
+
+	//check if exist in PeerPool
 	v1, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(PEER_POOL), peerPubkeyPrefix))
 	if v1 != nil {
 		return errors.NewErr("[registerSyncNode] PeerPubkey is already in peerPool!")
@@ -359,12 +368,34 @@ func ApproveCandidate(native *NativeService) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[approveCandidate] PeerPubkey format error!")
 	}
 
+	//check if PeerPool full
+	stateValues, err := native.CloneCache.Store.Find(scommon.ST_STORAGE, concatKey(contract, []byte(PEER_POOL)))
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[approveCandidate] Get all peerPool error!")
+	}
+	peerPool := new(states.PeerPool)
+	num := 0
+	for _, v := range stateValues {
+		peerPoolStore, _ := v.Value.(*cstates.StorageItem)
+		err = json.Unmarshal(peerPoolStore.Value, peerPool)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "[approveCandidate] Unmarshal peerPool error!")
+		}
+		if peerPool.Status == CandidateStatus || peerPool.Status == ConsensusStatus {
+			num = num + 1
+		}
+	}
+	fmt.Println("Num of candidate node is :", num)
+	if num >= CandidateNum {
+		return errors.NewErr("[approveCandidate] Num of candidate node is full (7*7)!")
+	}
+
 	//get peerPool
 	peerPoolBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(PEER_POOL), peerPubkeyPrefix))
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[approveCandidate] Get peerPoolBytes error!")
 	}
-	peerPool := new(states.PeerPool)
+	peerPool = new(states.PeerPool)
 	if peerPoolBytes != nil {
 		peerPoolStore, _ := peerPoolBytes.(*cstates.StorageItem)
 		err := json.Unmarshal(peerPoolStore.Value, peerPool)
