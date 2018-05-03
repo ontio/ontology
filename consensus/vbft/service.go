@@ -30,7 +30,6 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
 	"github.com/ontio/ontology/consensus/vbft/config"
@@ -1918,9 +1917,7 @@ func (self *Server) creategovernaceTransaction() *types.Transaction {
 
 //checkNeedUpdateChainConfig use blockcount
 func (self *Server) checkNeedUpdateChainConfig() bool {
-	if self.currentBlockNum%config.Parameters.MaxBlockChangeView == 0 {
-		return true
-	}
+
 	log.Debugf("blockcount: %d", self.config.BlockCount)
 	//todo
 	return false
