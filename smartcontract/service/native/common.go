@@ -22,13 +22,13 @@ import (
 	"fmt"
 	"math/big"
 
+	"bytes"
 	"github.com/ontio/ontology/common"
 	cstates "github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native/states"
-	"bytes"
 )
 
 var (
@@ -83,8 +83,10 @@ func getTransferFromKey(contract common.Address, state *states.TransferFrom) []b
 	return append(temp, state.Sender[:]...)
 }
 
-func getParamKey(contract common.Address, paramName string) []byte {
-	return append(contract[:], paramName...)
+func getParamKey(contract common.Address, paramName string, valueType paramType) []byte {
+	key := append(contract[:], paramName...)
+	key = append(key[:], byte(valueType))
+	return key
 }
 
 func getAdminKey(contract common.Address) []byte {
@@ -255,7 +257,7 @@ func addNotifications(native *NativeService, contract common.Address, state *sta
 		})
 }
 
-func notifyParamSetSucess(native *NativeService, contract common.Address, param *states.Param) {
+func notifyParamSetSuccess(native *NativeService, contract common.Address, param *states.Param) {
 	native.Notifications = append(native.Notifications,
 		&event.NotifyEventInfo{
 			TxHash:          native.Tx.Hash(),
