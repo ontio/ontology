@@ -30,7 +30,6 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
@@ -426,7 +425,7 @@ func (self *Server) run(peerPubKey keypair.PublicKey) error {
 	if !present {
 		return fmt.Errorf("invalid consensus node: %s", peerID.String())
 	}
-	if self.peerPool.isNewPeer(peerIdx) {
+	{
 		if err := self.peerPool.peerConnected(peerIdx); err != nil {
 			return err
 		}
@@ -450,8 +449,6 @@ func (self *Server) run(peerPubKey keypair.PublicKey) error {
 				committedBlockNum: self.peerPool.getPeer(peerIdx).handShake.CommittedBlockNumber,
 			},
 		}
-	} else {
-		return fmt.Errorf("dup peer")
 	}
 
 	defer func() {
@@ -1166,7 +1163,7 @@ func (self *Server) actionLoop() {
 					continue
 				}
 				if err := self.sealProposal(action.Proposal, action.forEmpty); err != nil {
-					log.Errorf("%d failed to seal block (%d): %s",
+					log.Errorf("server %d failed to seal block (%d): %s",
 						self.Index, action.Proposal.GetBlockNum(), err)
 				}
 			case FastForward:
@@ -1781,10 +1778,6 @@ func (self *Server) sealBlock(block *Block, empty bool) error {
 	self.blockPool.onBlockSealed(sealedBlkNum)
 
 	_, h := self.blockPool.getSealedBlock(sealedBlkNum)
-	if bytes.Compare(h[:], common.UINT256_EMPTY[:]) == 0 {
-		return fmt.Errorf("failed to seal proposal: nil hash")
-	}
-
 	prevBlkHash := block.getPrevBlockHash()
 	log.Infof("server %d, sealed block %d, proposer %d, prevhash: %s, hash: %s", self.Index,
 		sealedBlkNum, block.getProposer(),

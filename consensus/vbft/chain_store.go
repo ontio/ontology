@@ -49,7 +49,7 @@ func (self *ChainStore) GetChainedBlockNum() uint64 {
 	return self.chainedBlockNum
 }
 
-func (self *ChainStore) AddBlock(block *Block, blockHash common.Uint256) error {
+func (self *ChainStore) AddBlock(block *Block) error {
 	if block == nil {
 		return fmt.Errorf("try add nil block")
 	}

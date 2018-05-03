@@ -48,7 +48,6 @@ type CandidateInfo struct {
 
 	// server sealed block for this round
 	SealedBlock     *Block
-	SealedBlockHash common.Uint256 // updated when block sealed
 	Participants    []uint32       // updated when block sealed
 
 	// candidate msgs for this round
@@ -83,10 +82,8 @@ func newBlockPool(historyLen uint64, store *ChainStore) (*BlockPool, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to load block %d: %s", blkNum, err)
 		}
-		h, _ := HashBlock(blk)
 		pool.candidateBlocks[blkNum] = &CandidateInfo{
 			SealedBlock:     blk,
-			SealedBlockHash: h,
 		}
 	}
 
@@ -500,10 +497,9 @@ func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool) error {
 		blk.Block.Transactions = nil // remove its payload
 		c.SealedBlock = &blk
 	}
-	c.SealedBlockHash, _ = HashBlock(c.SealedBlock)
 
 	// add block to chain store
-	if err := pool.chainStore.AddBlock(c.SealedBlock, c.SealedBlockHash); err != nil {
+	if err := pool.chainStore.AddBlock(c.SealedBlock); err != nil {
 		return fmt.Errorf("failed to seal block (%d) to chainstore: %s", blkNum, err)
 	}
 
@@ -517,10 +513,11 @@ func (pool *BlockPool) getSealedBlock(blockNum uint64) (*Block, common.Uint256) 
 	// get from cached candidate blocks
 	c := pool.candidateBlocks[blockNum]
 	if c != nil {
-		if bytes.Compare(c.SealedBlockHash[:], common.UINT256_EMPTY[:]) != 0 {
-			return c.SealedBlock, c.SealedBlockHash
+		h, _ := HashBlock(c.SealedBlock)
+		if bytes.Compare(h[:], common.UINT256_EMPTY[:]) != 0 {
+			return c.SealedBlock, h
 		}
-		log.Errorf("nil hash founded in block pool sealed cache, blk: %d", blockNum)
+		log.Errorf("empty hash founded in block pool sealed cache, blk: %d", blockNum)
 	}
 
 	// get from chainstore
