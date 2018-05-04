@@ -139,11 +139,6 @@ func (self *Server) constructHandshakeMsg() (*peerHandshakeMsg, error) {
 		ChainConfig:          self.config,
 	}
 
-	sig, err := SignMsg(self.account, msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign handshake msg: %s", err)
-	}
-	msg.Sig = sig
 	return msg, nil
 }
 
@@ -161,11 +156,6 @@ func (self *Server) constructHeartbeatMsg() (*peerHeartbeatMsg, error) {
 		ChainConfigView:      self.config.View,
 	}
 
-	sig, err := SignMsg(self.account, msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign heartbeat msg: %s", err)
-	}
-	msg.Sig = sig
 	return msg, nil
 }
 
@@ -247,11 +237,7 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, blkHash comm
 		EndorsedBlockHash: blkHash,
 		EndorseForEmpty:   forEmpty,
 	}
-	sig, err := SignMsg(self.account, msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign endorse msg: %s", err)
-	}
-	msg.Sig = sig
+
 	return msg, nil
 }
 
@@ -267,11 +253,6 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, blkHash commo
 		CommitForEmpty:  forEmpty,
 	}
 
-	sig, err := SignMsg(self.account, msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign commit msg: %s", err)
-	}
-	msg.Sig = sig
 	return msg, nil
 }
 
@@ -279,12 +260,6 @@ func (self *Server) constructBlockFetchMsg(blkNum uint64) (*blockFetchMsg, error
 	msg := &blockFetchMsg{
 		BlockNum: blkNum,
 	}
-	sig, err := SignMsg(self.account, msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign blockfetch msg: %s", err)
-	}
-
-	msg.Sig = sig
 	return msg, nil
 }
 
@@ -294,11 +269,6 @@ func (self *Server) constructBlockFetchRespMsg(blkNum uint64, blk *Block, blkHas
 		BlockHash:   blkHash,
 		BlockData:   blk,
 	}
-	sig, err := SignMsg(self.account, msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign blockfetch-rsp msg: %s", err)
-	}
-	msg.Sig = sig
 	return msg, nil
 }
 
@@ -307,11 +277,6 @@ func (self *Server) constructBlockInfoFetchMsg(startBlkNum uint64) (*BlockInfoFe
 	msg := &BlockInfoFetchMsg{
 		StartBlockNum: startBlkNum,
 	}
-	sig, err := SignMsg(self.account, msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign blockinfo fetch req msg: %s", err)
-	}
-	msg.Sig = sig
 	return msg, nil
 }
 
@@ -319,11 +284,6 @@ func (self *Server) constructBlockInfoFetchRespMsg(blockInfos []*BlockInfo_) (*B
 	msg := &BlockInfoFetchRespMsg{
 		Blocks: blockInfos,
 	}
-	sig, err := SignMsg(self.account, msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign blockinfo fetch rsp msg: %s", err)
-	}
-	msg.Sig = sig
 	return msg, nil
 }
 
@@ -332,11 +292,5 @@ func (self *Server) constructProposalFetchMsg(blkNum uint64, proposer uint32) (*
 		ProposerID: proposer,
 		BlockNum:   blkNum,
 	}
-	sig, err := SignMsg(self.account, msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign proposalFetch msg: %s", err)
-	}
-
-	msg.Sig = sig
 	return msg, nil
 }

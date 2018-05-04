@@ -32,7 +32,7 @@ import (
 )
 
 func constructProposalMsg(acc *account.Account) (*blockProposalMsg, error) {
-	bookKeepingPayload := &payload.BookKeeping{
+	bookKeepingPayload := &payload.Bookkeeping{
 		Nonce: uint64(time.Now().UnixNano()),
 	}
 	tx := &types.Transaction{
@@ -119,11 +119,6 @@ func constructEndorseMsg(acc *account.Account, proposal *blockProposalMsg, blkHa
 		EndorsedBlockHash: blkHash,
 		EndorseForEmpty:   true,
 	}
-	sig, err := SignMsg(acc, msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign endorse msg: %s", err)
-	}
-	msg.Sig = sig
 	return msg, nil
 }
 
@@ -159,11 +154,6 @@ func constructCommitMsg(acc *account.Account, proposal *blockProposalMsg, blkHas
 		CommitForEmpty:  true,
 	}
 
-	sig, err := SignMsg(acc, msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign commit msg: %s", err)
-	}
-	msg.Sig = sig
 	return msg, nil
 }
 func TestBlockCommitMsg(t *testing.T) {
@@ -197,11 +187,6 @@ func constructHandshakeMsg(acc *account.Account) (*peerHandshakeMsg, error) {
 		CommittedBlockLeader: uint32(3),
 		ChainConfig:          cc,
 	}
-	sig, err := SignMsg(acc, msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign handshake msg: %s", err)
-	}
-	msg.Sig = sig
 	return msg, nil
 }
 func TestPeerHandshakeMsg(t *testing.T) {
@@ -229,11 +214,6 @@ func constructHeartbeatMsg(acc *account.Account) (*peerHeartbeatMsg, error) {
 		ChainConfigView:      uint32(1),
 	}
 
-	sig, err := SignMsg(acc, msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign heartbeat msg: %s", err)
-	}
-	msg.Sig = sig
 	return msg, nil
 }
 func TestPeerHeartbeatMsg(t *testing.T) {
@@ -257,11 +237,7 @@ func constructBlockInfoFetchMsg(acc *account.Account) (*BlockInfoFetchMsg, error
 	msg := &BlockInfoFetchMsg{
 		StartBlockNum: uint64(1),
 	}
-	sig, err := SignMsg(acc, msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign blockinfo fetch req msg: %s", err)
-	}
-	msg.Sig = sig
+
 	return msg, nil
 }
 
@@ -292,11 +268,6 @@ func constructBlockInfoFetchRespMsg(acc *account.Account) (*BlockInfoFetchRespMs
 	msg := &BlockInfoFetchRespMsg{
 		Blocks: blockInfos,
 	}
-	sig, err := SignMsg(acc, msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign blockinfo fetch rsp msg: %s", err)
-	}
-	msg.Sig = sig
 	return msg, nil
 }
 
@@ -321,12 +292,7 @@ func constructBlockFetchMsg(acc *account.Account) (*blockFetchMsg, error) {
 	msg := &blockFetchMsg{
 		BlockNum: uint64(1),
 	}
-	sig, err := SignMsg(acc, msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign blockfetch msg: %s", err)
-	}
 
-	msg.Sig = sig
 	return msg, nil
 }
 func TestBlockFetchMsg(t *testing.T) {
@@ -352,11 +318,7 @@ func constructBlockFetchRespMsg(acc *account.Account, blk *Block) (*BlockFetchRe
 		BlockHash:   common.Uint256{},
 		BlockData:   blk,
 	}
-	sig, err := SignMsg(acc, msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign blockfetch-rsp msg: %s", err)
-	}
-	msg.Sig = sig
+
 	return msg, nil
 }
 
@@ -386,12 +348,6 @@ func constructProposalFetchMsg(acc *account.Account) (*proposalFetchMsg, error) 
 	msg := &proposalFetchMsg{
 		BlockNum: uint64(1),
 	}
-	sig, err := SignMsg(acc, msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign proposalFetch msg: %s", err)
-	}
-
-	msg.Sig = sig
 	return msg, nil
 }
 func TestProposalFetchMsg(t *testing.T) {
@@ -412,7 +368,7 @@ func TestProposalFetchMsg(t *testing.T) {
 }
 
 func constructBlock() (*Block, error) {
-	bookKeepingPayload := &payload.BookKeeping{
+	bookKeepingPayload := &payload.Bookkeeping{
 		Nonce: uint64(time.Now().UnixNano()),
 	}
 	tx := &types.Transaction{
