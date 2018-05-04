@@ -167,9 +167,9 @@ func (self *ChainStore) GetPeersConfig() ([]*vconfig.PeerStakeInfo, error) {
 		}
 
 		config := &vconfig.PeerStakeInfo{
-			Index:  uint32(peersconfig.Index.Uint64()),
+			Index:  uint32(peersconfig.Index),
 			NodeID: peersconfig.PeerPubkey,
-			Stake:  (peersconfig.InitPos.Uint64() + peersconfig.TotalPos.Uint64()),
+			Stake:  peersconfig.InitPos + peersconfig.TotalPos,
 		}
 		peerstakes = append(peerstakes, config)
 	}
