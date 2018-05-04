@@ -187,7 +187,7 @@ func (this *WasmVmService) marshalNeoParams(engine *exec.ExecutionEngine) (bool,
 }
 
 // marshalNativeParams
-// make paramter bytes for call native contract
+// make parameter bytes for call native contract
 func (this *WasmVmService) marshalNativeParams(engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
@@ -270,7 +270,7 @@ func (this *WasmVmService) marshalNativeParams(engine *exec.ExecutionEngine) (bo
 }
 
 // callContract
-// need 4 paramters
+// need 4 parameters
 //0: contract address
 //1: contract code
 //2: method name
