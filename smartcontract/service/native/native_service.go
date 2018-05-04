@@ -32,7 +32,7 @@ import (
 )
 
 type (
-	Handler         func(native *NativeService) error
+	Handler         func(native *NativeService) ([]byte, error)
 	RegisterService func(native *NativeService)
 )
 
@@ -76,11 +76,11 @@ func (this *NativeService) Invoke() (interface{}, error) {
 	}
 	this.Input = contract.Args
 	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address})
-	if err := service(this); err != nil {
-		return false, errors.NewDetailErr(err, errors.ErrNoCode,
-			"[Invoke] Native serivce function execute error!")
+	result, err := service(this)
+	if err != nil {
+		return result, errors.NewDetailErr(err, errors.ErrNoCode, "[Invoke] Native serivce function execute error!")
 	}
 	this.ContextRef.PopContext()
 	this.ContextRef.PushNotifications(this.Notifications)
-	return true, nil
+	return result, nil
 }

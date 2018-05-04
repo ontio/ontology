@@ -39,6 +39,7 @@ type ContextRef interface {
 	CheckWitness(address common.Address) bool
 	PushNotifications(notifications []*event.NotifyEventInfo)
 	AppCall(address common.Address, method string, codes, args []byte) (interface{}, error)
+	CheckUseGas(gas uint64) bool
 }
 
 // Context describe smart contract execute context struct

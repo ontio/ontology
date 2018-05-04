@@ -23,7 +23,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math/big"
 	"os"
 	"time"
 
@@ -37,7 +36,7 @@ import (
 	ctypes "github.com/ontio/ontology/core/types"
 	cutils "github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/http/base/rpc"
-	nstates "github.com/ontio/ontology/smartcontract/service/native/states"
+	nstates "github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/states"
 	vmtypes "github.com/ontio/ontology/smartcontract/types"
 )
@@ -79,7 +78,7 @@ func transferAction(c *cli.Context) error {
 	sts = append(sts, &nstates.State{
 		From:  fu,
 		To:    tu,
-		Value: big.NewInt(value),
+		Value: uint64(value),
 	})
 	transfers := &nstates.Transfers{
 		States: sts,
@@ -109,6 +108,7 @@ func transferAction(c *cli.Context) error {
 		Code:   ff.Bytes(),
 	})
 
+	tx.Payer = fu
 	tx.Nonce = uint32(time.Now().Unix())
 
 	passwd := c.String("password")

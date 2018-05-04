@@ -79,6 +79,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 		CloneCache: storage.NewCloneCache(stateBatch),
 		Store:      store,
 		Code:       invoke.Code,
+		Gas:        tx.GasLimit,
 	}
 
 	//start the smart contract executive function

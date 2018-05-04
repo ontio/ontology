@@ -16,14 +16,16 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package states
+package global_params
 
 import (
+	"io"
+
 	"encoding/json"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
-	"io"
 )
 
 type Params map[string]string

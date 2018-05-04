@@ -28,6 +28,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	_ "github.com/ontio/ontology/smartcontract/service/native/init"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
 	"github.com/ontio/ontology/smartcontract/states"
@@ -52,6 +53,7 @@ type SmartContract struct {
 	Engine        Engine
 	Code          stypes.VmCode
 	Notifications []*event.NotifyEventInfo // all execute smart contract event notify info
+	Gas           uint64
 }
 
 // Config describe smart contract need parameters configuration
@@ -104,6 +106,14 @@ func (this *SmartContract) PopContext() {
 // PushNotifications push smart contract event info
 func (this *SmartContract) PushNotifications(notifications []*event.NotifyEventInfo) {
 	this.Notifications = append(this.Notifications, notifications...)
+}
+
+func (this *SmartContract) CheckUseGas(gas uint64) bool {
+	if this.Gas < gas {
+		return false
+	}
+	this.Gas -= gas
+	return true
 }
 
 // Execute is smart contract execute manager
