@@ -105,24 +105,13 @@ Administrator make prepare parameter effective.
 
 method: createSnapshot
 
-args: smartcontract/service/native/states.ParamNameList
+args: nil
 
 #### example
 ```
-    paramNameList := new(states.ParamNameList)
-	for i := 0; i < 3; i++ {
-		k := "key-test" + strconv.Itoa(i) + "-" + value
-		*paramNameList = append(*paramNameList, k)
-	}
-	paramsBuffer := new(bytes.Buffer)
-	if err := paramNameList.Serialize(paramsBuffer); err != nil {
-		fmt.Println("Serialize params struct error.")
-		os.Exit(1)
-	}
-	contract := &sstates.Contract{
+    contract := &sstates.Contract{
 		Address: genesis.ParamContractAddress,
 		Method:  "createSnapshot",
-		Args:    paramsBuffer.Bytes(),
 	}
 ```
 

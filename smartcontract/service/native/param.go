@@ -50,6 +50,7 @@ func ParamInit(native *NativeService) error {
 		(*initParams)[k] = v
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, getParamKey(contract, CURRENT_VALUE), getParamStorageItem(initParams))
+	native.CloneCache.Add(scommon.ST_STORAGE, getParamKey(contract, PREPARE_VALUE), getParamStorageItem(initParams))
 	admin = new(states.Admin)
 	initAddress := ctypes.AddressFromPubKey(account.GetBookkeepers()[0])
 	copy((*admin)[:], initAddress[:])
@@ -136,7 +137,7 @@ func CreateSnapshot(native *NativeService) error {
 		return errors.NewErr("[Create Snapshot] Prepare param doesn't exist!")
 	}
 	// set prepare value to current value, make it effective
-	native.CloneCache.Add(scommon.ST_STORAGE, getParamKey(contract, CURRENT_VALUE), prepareParam)
+	native.CloneCache.Add(scommon.ST_STORAGE, getParamKey(contract, CURRENT_VALUE), getParamStorageItem(prepareParam))
 	// clear memory cache
 	clearCache()
 	return nil
