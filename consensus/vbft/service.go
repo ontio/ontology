@@ -1926,7 +1926,7 @@ func (self *Server) createBookkeepingTransaction(nonce uint64, fee uint64) *type
 //createfeeSplitTransaction invoke fee native contract EXECUTE_SPLIT
 func (self *Server) createfeeSplitTransaction() *types.Transaction {
 	init := states.Contract{
-		Address: genesis.GovernanceContractAddress,
+		Address: genesis.FeeSplitContractAddress,
 		Method:  "executeSplit",
 	}
 	bf := new(bytes.Buffer)
