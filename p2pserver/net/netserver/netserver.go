@@ -185,7 +185,7 @@ func (this *NetServer) GetNp() *peer.NbrPeers {
 }
 
 //GetNeighborAddrs return all the nbr peer`s addr
-func (this *NetServer) GetNeighborAddrs() ([]common.PeerAddr, uint64) {
+func (this *NetServer) GetNeighborAddrs() []common.PeerAddr {
 	return this.Np.GetNeighborAddrs()
 }
 

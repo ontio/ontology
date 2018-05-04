@@ -27,7 +27,6 @@ import (
 
 type Addr struct {
 	Hdr       MsgHdr
-	NodeCnt   uint64
 	NodeAddrs []comm.PeerAddr
 }
 
@@ -40,7 +39,8 @@ func (this Addr) Verify(buf []byte) error {
 //Serialize message payload
 func (this Addr) Serialization() ([]byte, error) {
 	p := new(bytes.Buffer)
-	err := binary.Write(p, binary.LittleEndian, this.NodeCnt)
+	num := uint64(len(this.NodeAddrs))
+	err := binary.Write(p, binary.LittleEndian, num)
 	if err != nil {
 		return nil, err
 	}
@@ -67,9 +67,10 @@ func (this Addr) Serialization() ([]byte, error) {
 func (this *Addr) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(this.Hdr))
-	err = binary.Read(buf, binary.LittleEndian, &(this.NodeCnt))
-	this.NodeAddrs = make([]comm.PeerAddr, this.NodeCnt)
-	for i := 0; i < int(this.NodeCnt); i++ {
+	var NodeCnt uint64
+	err = binary.Read(buf, binary.LittleEndian, &NodeCnt)
+	this.NodeAddrs = make([]comm.PeerAddr, NodeCnt)
+	for i := 0; i < int(NodeCnt); i++ {
 		err := binary.Read(buf, binary.LittleEndian, &(this.NodeAddrs[i]))
 		if err != nil {
 			goto err

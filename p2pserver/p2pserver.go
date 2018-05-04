@@ -123,7 +123,7 @@ func (this *P2PServer) GetVersion() uint32 {
 }
 
 //GetNeighborAddrs return all nbr`s address
-func (this *P2PServer) GetNeighborAddrs() ([]common.PeerAddr, uint64) {
+func (this *P2PServer) GetNeighborAddrs() []common.PeerAddr {
 	return this.network.GetNeighborAddrs()
 }
 
