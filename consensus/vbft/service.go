@@ -594,7 +594,7 @@ func (self *Server) startNewRound() error {
 		}
 	}
 	if proposal != nil {
-		self.processConsensusMsg(proposal)
+		self.processProposalMsg(proposal)
 		return nil
 	}
 
@@ -649,7 +649,6 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 			log.Error("invalid msg with proposal msg type")
 			return
 		}
-		// TODO: verify msg
 
 		msgBlkNum := pMsg.GetBlockNum()
 		if msgBlkNum > self.GetCurrentBlockNo() {
@@ -694,7 +693,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 				log.Errorf("failed to add proposal msg (%d) to pool", msgBlkNum)
 				return
 			}
-			self.processConsensusMsg(msg)
+			self.processProposalMsg(pMsg)
 		}
 
 	case BlockEndorseMessage:
@@ -929,6 +928,32 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 			fromPeer: peerIdx,
 			msg:      msg,
 		}
+	}
+}
+
+func (self *Server) processProposalMsg(msg *blockProposalMsg) {
+	msgBlkNum := msg.GetBlockNum()
+	txs := msg.Block.Block.Transactions
+	if len(txs) > 1 {
+		// start new routine to verify txs in proposal block
+		go func() {
+			if err := self.poolActor.VerifyBlock(txs[1:], uint32(msgBlkNum)); err != nil {
+				log.Errorf("server %d verify proposal blk from %d failed, blk %d, err: %s",
+					self.Index, msg.Block.getProposer(), msgBlkNum, len(txs), err)
+				return
+			}
+			for _, tx := range txs[1:] {
+				if err := self.incrValidator.Verify(tx, uint32(msgBlkNum)); err != nil {
+					log.Errorf("server %d verify proposal tx from %d failed, blk %d, err: %s",
+						self.Index, msg.Block.getProposer(), msgBlkNum, len(txs), err)
+					return
+				}
+			}
+			self.processConsensusMsg(msg)
+		}()
+	} else {
+		// empty block, process directly
+		self.processConsensusMsg(msg)
 	}
 }
 
@@ -1875,7 +1900,7 @@ func (self *Server) makeProposal(blkNum uint64, forEmpty bool) error {
 
 	// add proposal to self
 	self.msgPool.AddMsg(proposal)
-	self.processConsensusMsg(proposal)
+	self.processProposalMsg(proposal)
 	return self.broadcast(proposal)
 }
 
@@ -2113,7 +2138,7 @@ func (self *Server) catchConsensus(blkNum uint64) error {
 		}
 	}
 	if proposal != nil && self.isProposer(blkNum, proposal.Block.getProposer()) {
-		self.processConsensusMsg(proposal)
+		self.processProposalMsg(proposal)
 	}
 
 	if self.isEndorser(blkNum, self.Index) && !endorseDone && proposal != nil {
