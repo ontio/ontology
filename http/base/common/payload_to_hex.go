@@ -102,7 +102,6 @@ func TransPayloadToHex(p types.Payload) PayloadInfo {
 	case *payload.InvokeCode:
 		obj := new(InvokeCodeInfo)
 		obj.Code = common.ToHexString(object.Code.Code)
-		obj.GasLimit = uint64(object.GasLimit)
 		obj.VmType = int(object.Code.VmType)
 		return obj
 	case *payload.DeployCode:

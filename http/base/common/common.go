@@ -71,11 +71,12 @@ type Sig struct {
 type Transactions struct {
 	Version    byte
 	Nonce      uint32
+	GasPrice   uint64
+	GasLimit   uint64
+	Payer      string
 	TxType     types.TransactionType
 	Payload    PayloadInfo
 	Attributes []TxAttributeInfo
-	Fee        []Fee
-	NetworkFee common.Fixed64
 	Sigs       []Sig
 	Hash       string
 }
@@ -135,17 +136,15 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 	trans := new(Transactions)
 	trans.TxType = ptx.TxType
 	trans.Nonce = ptx.Nonce
+	trans.GasLimit = ptx.GasLimit
+	trans.GasPrice = ptx.GasPrice
+	trans.Payer = ptx.Payer.ToHexString()
 	trans.Payload = TransPayloadToHex(ptx.Payload)
 
 	trans.Attributes = make([]TxAttributeInfo, len(ptx.Attributes))
 	for i, v := range ptx.Attributes {
 		trans.Attributes[i].Usage = v.Usage
 		trans.Attributes[i].Data = common.ToHexString(v.Data)
-	}
-	trans.Fee = []Fee{}
-	for _, fee := range ptx.Fee {
-		e := Fee{fee.Amount, common.ToHexString(fee.Payer[:])}
-		trans.Fee = append(trans.Fee, e)
 	}
 	trans.Sigs = []Sig{}
 	for _, sig := range ptx.Sigs {
@@ -159,8 +158,6 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 		}
 		trans.Sigs = append(trans.Sigs, e)
 	}
-	networkfee := ptx.GetNetworkFee()
-	trans.NetworkFee = networkfee
 
 	mhash := ptx.Hash()
 	trans.Hash = common.ToHexString(mhash.ToArray())

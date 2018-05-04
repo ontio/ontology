@@ -27,7 +27,6 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
 )
@@ -36,10 +35,11 @@ type Transaction struct {
 	Version    byte
 	TxType     TransactionType
 	Nonce      uint32
+	GasPrice   uint64
+	GasLimit   uint64
+	Payer      common.Address
 	Payload    Payload
 	Attributes []*TxAttribute
-	Fee        []*Fee
-	NetWorkFee common.Fixed64
 	Sigs       []*Sig
 
 	hash *common.Uint256
@@ -140,11 +140,6 @@ func (self *Sig) Serialize(w io.Writer) error {
 	return nil
 }
 
-type Fee struct {
-	Amount common.Fixed64
-	Payer  common.Address
-}
-
 type TransactionType byte
 
 const (
@@ -211,19 +206,14 @@ func (tx *Transaction) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (tx *Transaction) GetTotalFee() common.Fixed64 {
-	sum := common.Fixed64(0)
-	for _, fee := range tx.Fee {
-		sum += fee.Amount
-	}
-	return sum
-}
-
 //Serialize the Transaction data without contracts
 func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 	//txType
 	w.Write([]byte{byte(tx.Version), byte(tx.TxType)})
 	serialization.WriteUint32(w, tx.Nonce)
+	serialization.WriteUint64(w, tx.GasPrice)
+	serialization.WriteUint64(w, tx.GasLimit)
+	tx.Payer.Serialize(w)
 	//Payload
 	if tx.Payload == nil {
 		return errors.New("Transaction Payload is nil.")
@@ -237,17 +227,6 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 	for _, attr := range tx.Attributes {
 		attr.Serialize(w)
 	}
-
-	err = serialization.WriteVarUint(w, uint64(len(tx.Fee)))
-	if err != nil {
-		return fmt.Errorf("serialize tx fee length failed: %s", err)
-	}
-	for _, fee := range tx.Fee {
-		fee.Amount.Serialize(w)
-		fee.Payer.Serialize(w)
-	}
-
-	tx.NetWorkFee.Serialize(w)
 
 	return nil
 }
@@ -286,9 +265,23 @@ func (tx *Transaction) DeserializeUnsigned(r io.Reader) error {
 	if err != nil {
 		return err
 	}
+	gasPrice, err := serialization.ReadUint64(r)
+	if err != nil {
+		return err
+	}
+	gasLimit, err := serialization.ReadUint64(r)
+	if err != nil {
+		return err
+	}
+	payer := new(common.Address)
+	payer.Deserialize(r)
+
 	tx.Version = versiontype[0]
 	tx.TxType = TransactionType(versiontype[1])
 	tx.Nonce = nonce
+	tx.GasPrice = gasPrice
+	tx.GasLimit = gasLimit
+	tx.Payer = *payer
 
 	switch tx.TxType {
 	case Invoke:
@@ -318,27 +311,6 @@ func (tx *Transaction) DeserializeUnsigned(r io.Reader) error {
 			return err
 		}
 		tx.Attributes = append(tx.Attributes, attr)
-	}
-
-	length, err = serialization.ReadVarUint(r, 0)
-	if err != nil {
-		return err
-	}
-	for i := uint64(0); i < length; i++ {
-		fee := new(Fee)
-		err = fee.Amount.Deserialize(r)
-		if err != nil {
-			return err
-		}
-		err = fee.Payer.Deserialize(r)
-		if err != nil {
-			return err
-		}
-		tx.Fee = append(tx.Fee, fee)
-	}
-	err = tx.NetWorkFee.Deserialize(r)
-	if err != nil {
-		return err
 	}
 
 	return nil
@@ -380,10 +352,5 @@ func (tx *Transaction) Verify() error {
 	return nil
 }
 
-func (tx *Transaction) GetSysFee() common.Fixed64 {
-	return common.Fixed64(config.DefConfig.Common.SystemFee[TxName[tx.TxType]])
-}
 
-func (tx *Transaction) GetNetworkFee() common.Fixed64 {
-	return tx.NetWorkFee
-}
+
