@@ -25,6 +25,7 @@ import (
 	"math/big"
 	"os"
 	"time"
+	"strings"
 
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd/utils"
@@ -240,7 +241,7 @@ func deployContract(ctx *cli.Context) error {
 	email := ctx.String(utils.ContractEmailFlag.Name)
 	desc := ctx.String(utils.ContractDescFlag.Name)
 
-	trHash, err := ontSdk.Rpc.DeploySmartContract(acct, vmType, store, fmt.Sprintf("%s", code), name, version, author, email, desc)
+	trHash, err := ontSdk.Rpc.DeploySmartContract(acct, vmType, store, strings.TrimSpace(fmt.Sprintf("%s", code)), name, version, author, email, desc)
 	if err != nil {
 		fmt.Printf("Deploy smart error: %s", err.Error())
 		return err
