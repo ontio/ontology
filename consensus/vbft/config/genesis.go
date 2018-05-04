@@ -136,6 +136,7 @@ func genConsensusPayload(cfg *config.VBFTConfig) ([]byte, error) {
 		PeerHandshakeTimeout: time.Duration(cfg.PeerHandshakeTimeout) * time.Second,
 		Peers:                peerCfgs,
 		PosTable:             posTable,
+		MaxBlockChangeView:   config.MaxBlockChangeView,
 	}
 	return chainConfig, nil
 }
