@@ -115,7 +115,7 @@ func (tp *TXPool) DelTxList(tx *types.Transaction) bool {
 // height, re-verify it.
 func (tp *TXPool) compareTxHeight(txEntry *TXEntry, height uint32) bool {
 	for _, v := range txEntry.Attrs {
-		if v.Type == vt.Statefull &&
+		if v.Type == vt.Stateful &&
 			v.Height < height {
 			return false
 		}
@@ -218,7 +218,7 @@ func (tp *TXPool) GetUnverifiedTxs(txs []*types.Transaction,
 		}
 
 		for _, v := range txEntry.Attrs {
-			if v.Type == vt.Statefull {
+			if v.Type == vt.Stateful {
 				entry := &VerifyTxResult{
 					Tx:      tx,
 					Height:  v.Height,

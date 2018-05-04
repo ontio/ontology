@@ -151,7 +151,7 @@ func TestAssignRsp2Worker(t *testing.T) {
 		WorkerId: 0,
 		ErrCode:  errors.ErrUnknown,
 		Hash:     txn.Hash(),
-		Type:     vt.Statefull,
+		Type:     vt.Stateful,
 		Height:   0,
 	}
 	s.assignRspToWorker(statelessRsp)
