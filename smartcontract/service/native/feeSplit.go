@@ -30,10 +30,14 @@ import (
 	"sort"
 	"fmt"
 	"encoding/hex"
+	"github.com/ontio/ontology/common"
 )
 
 const (
 	EXECUTE_SPLIT = "executeSplit"
+	a = 0.75
+	b = 0.2
+	c = 0.05
 	TOTAL_ONG = 10000000000
 )
 
@@ -68,10 +72,10 @@ func ExecuteSplit(native *NativeService) error {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Unmarshal peerPool error!")
 		}
 		if peerPool.Status == CandidateStatus || peerPool.Status == ConsensusStatus {
-			stake := new(big.Int).Add(peerPool.TotalPos, peerPool.InitPos)
+			stake := peerPool.TotalPos + peerPool.InitPos
 			peersCandidate = append(peersCandidate, &states.CandidateSplitInfo{
 				PeerPubkey: peerPool.PeerPubkey,
-				Stake:      float64(stake.Uint64()),
+				Stake:      float64(stake),
 			})
 		}
 	}
@@ -108,9 +112,10 @@ func ExecuteSplit(native *NativeService) error {
 	}
 
 	//fee split of consensus peer
+	var splitAmount uint64
 	for i := int(config.K) - 1; i > 0; i-- {
-		amount := uint64(TOTAL_ONG * peersCandidate[i].S / sumS)
-		fmt.Println("Amount of node i is:", amount)
+		nodeAmount := TOTAL_ONG * a * peersCandidate[i].S / sumS
+		fmt.Println("Amount of node i is:", nodeAmount)
 		peerPubkeyPrefix, err := hex.DecodeString(peersCandidate[i].PeerPubkey)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] PeerPubkey format error!")
@@ -118,21 +123,36 @@ func ExecuteSplit(native *NativeService) error {
 		stateValues, err = native.CloneCache.Store.Find(scommon.ST_STORAGE, concatKey(contract, []byte(VOTE_INFO_POOL),
 			view.Bytes(), peerPubkeyPrefix))
 		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Get all peerPool error!")
+			return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Get all peerPool error!")
 		}
 		voteInfoPool := new(states.VoteInfoPool)
 		for _, v := range stateValues {
 			voteInfoPoolStore, _ := v.Value.(*cstates.StorageItem)
 			err = json.Unmarshal(voteInfoPoolStore.Value, voteInfoPool)
 			if err != nil {
-				return errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Unmarshal voteInfoPool error!")
+				return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Unmarshal voteInfoPool error!")
 			}
-			//addressPrefix, err := hex.DecodeString(voteInfoPool.Address)
-			//if err != nil {
-			//	errors.NewDetailErr(err, errors.ErrNoCode, "[commitDpos] Address format error!")
-			//}
+			addressBytes, err := hex.DecodeString(voteInfoPool.Address)
+			if err != nil {
+				return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
+			}
+			address, err := common.AddressParseFromBytes(addressBytes)
+			if err != nil {
+				return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
+			}
+			pos := voteInfoPool.PrePos + voteInfoPool.PreFreezePos + voteInfoPool.FreezePos + voteInfoPool.NewPos
+			amount := uint64(nodeAmount * float64(pos) / sum)
+
+			//ong transfer
+			err = appCallTransferOng(native, genesis.FeeSplitContractAddress, address, new(big.Int).SetUint64(pos))
+			if err != nil {
+				return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
+			}
+			fmt.Printf("Amount of address %v is: %d", voteInfoPool.Address, amount)
+			splitAmount = splitAmount + amount
 		}
 	}
+	//split remained amount
 
 
 	return nil

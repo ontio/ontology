@@ -18,10 +18,6 @@
 
 package states
 
-import (
-	"math/big"
-)
-
 type CandidateSplitInfo struct {
 	PeerPubkey string  `json:"peerPubkey"`
 	Stake      float64 `json:"stake"`
