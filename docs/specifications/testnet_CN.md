@@ -46,7 +46,7 @@ ontology的运行支持以下3钟方式
 - 默认配置文件`config.json`
 - 节点程序 + 节点控制程序 `ontology`
 - 钱包文件`wallet.dat`
-把source根目录下的config-solo.config配置文件的内容复制到config.json内，修改Bookkeepers配置，替换钱包公钥，然后启动节点即可。钱包公钥可以使用`$ ./ontology wallet show --name=wallet.dat` 获取
+把source根目录下的config-solo.config配置文件的内容复制到config.json内，修改Bookkeepers配置，替换钱包公钥，然后启动节点即可。钱包公钥可以使用`$ ./ontology account list -v` 获取
 
 单机配置的例子如下：
 - 目录结构
