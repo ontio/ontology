@@ -27,7 +27,7 @@ type CreateOracleRequestParam struct {
 }
 
 type UndoRequests struct {
-	Requests map[string]interface{} `json:"requests"`
+	Requests map[string]struct{} `json:"requests"`
 }
 
 type SetOracleOutcomeParam struct {

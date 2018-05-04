@@ -25,9 +25,9 @@ import (
 type Status int
 
 type RegisterSyncNodeParam struct {
-	PeerPubkey string   `json:"peerPubkey"`
-	Address    string   `json:"address"`
-	InitPos    *big.Int `json:"initPos"`
+	PeerPubkey string `json:"peerPubkey"`
+	Address    string `json:"address"`
+	InitPos    uint64 `json:"initPos"`
 }
 
 type ApproveSyncNodeParam struct {
@@ -53,13 +53,13 @@ type PeerPoolList struct {
 }
 
 type PeerPool struct {
-	Index      *big.Int `json:"index"`
+	Index      uint64   `json:"index"`
 	PeerPubkey string   `json:"peerPubkey"`
 	Status     Status   `json:"status"`
 	QuitView   *big.Int `json:"quitView"`
 	Address    string   `json:"address"`
-	InitPos    *big.Int `json:"initPos"`
-	TotalPos   *big.Int `json:"totalPos"`
+	InitPos    uint64   `json:"initPos"`
+	TotalPos   uint64   `json:"totalPos"`
 }
 
 type QuitCandidateParam struct {
@@ -68,21 +68,21 @@ type QuitCandidateParam struct {
 }
 
 type VoteForPeerParam struct {
-	Address   string              `json:"address"`
-	VoteTable map[string]*big.Int `json:"voteTable"`
+	Address   string           `json:"address"`
+	VoteTable map[string]int64 `json:"voteTable"`
 }
 
 type VoteInfoPool struct {
-	PeerPubkey   string   `json:"peerPubkey"`
-	Address      string   `json:"address"`
-	PrePos       *big.Int `json:"prePos"`
-	FreezePos    *big.Int `json:"freezePos"`
-	NewPos       *big.Int `json:"newPos"`
-	PreFreezePos *big.Int `json:"preFreezePos"`
+	PeerPubkey   string `json:"peerPubkey"`
+	Address      string `json:"address"`
+	PrePos       uint64 `json:"prePos"`
+	FreezePos    uint64 `json:"freezePos"`
+	NewPos       uint64 `json:"newPos"`
+	PreFreezePos uint64 `json:"preFreezePos"`
 }
 
 type PeerStakeInfo struct {
-	Index      uint32 `json:"index"`
+	Index      uint64 `json:"index"`
 	PeerPubkey string `json:"peerPubkey"`
 	Stake      uint64 `json:"stake"`
 }
@@ -99,13 +99,13 @@ type Configuration struct {
 }
 
 type VoteCommitDposParam struct {
-	Address string   `json:"address"`
-	Pos     *big.Int `json:"pos"`
+	Address string `json:"address"`
+	Pos     int64  `json:"pos"`
 }
 
 type VoteCommitInfoPool struct {
-	Address string   `json:"address"`
-	Pos     *big.Int `json:"pos"`
+	Address string `json:"address"`
+	Pos     uint64 `json:"pos"`
 }
 
 type GovernanceView struct {

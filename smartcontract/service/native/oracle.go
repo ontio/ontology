@@ -72,8 +72,8 @@ func CreateOracleRequest(native *NativeService) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[createOracleRequest] validateOwner error!")
 	}
 
-	if params.OracleNum.Cmp(new(big.Int).SetInt64(0)) == 0 {
-		params.OracleNum.SetInt64(1)
+	if params.OracleNum.Sign() <= 0 {
+		return errors.NewErr("[createOracleRequest] OracleNum must be positive!")
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
@@ -81,7 +81,7 @@ func CreateOracleRequest(native *NativeService) error {
 	txHashBytes := txHash.ToArray()
 	txHashHex := hex.EncodeToString(txHashBytes)
 	undoRequests := &states.UndoRequests{
-		Requests: make(map[string]interface{}),
+		Requests: make(map[string]struct{}),
 	}
 
 	undoRequestsBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(UNDO_TXHASH)))
@@ -97,7 +97,7 @@ func CreateOracleRequest(native *NativeService) error {
 		}
 	}
 
-	undoRequests.Requests[txHashHex] = new(interface{})
+	undoRequests.Requests[txHashHex] = struct{}{}
 
 	value, err := json.Marshal(undoRequests)
 	if err != nil {
@@ -185,7 +185,7 @@ func SetOracleOutcome(native *NativeService) error {
 	if newNum.Cmp(quorum) == 0 {
 		//remove txHash from undoRequests
 		undoRequests := &states.UndoRequests{
-			Requests: make(map[string]interface{}),
+			Requests: make(map[string]struct{}),
 		}
 
 		undoRequestsBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(UNDO_TXHASH)))
