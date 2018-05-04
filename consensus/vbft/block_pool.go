@@ -47,8 +47,8 @@ type CandidateInfo struct {
 	commitDone bool
 
 	// server sealed block for this round
-	SealedBlock     *Block
-	Participants    []uint32       // updated when block sealed
+	SealedBlock  *Block
+	Participants []uint32 // updated when block sealed
 
 	// candidate msgs for this round
 	Proposals   []*blockProposalMsg
@@ -83,7 +83,7 @@ func newBlockPool(historyLen uint64, store *ChainStore) (*BlockPool, error) {
 			return nil, fmt.Errorf("failed to load block %d: %s", blkNum, err)
 		}
 		pool.candidateBlocks[blkNum] = &CandidateInfo{
-			SealedBlock:     blk,
+			SealedBlock: blk,
 		}
 	}
 
@@ -512,7 +512,7 @@ func (pool *BlockPool) getSealedBlock(blockNum uint64) (*Block, common.Uint256) 
 
 	// get from cached candidate blocks
 	c := pool.candidateBlocks[blockNum]
-	if c != nil {
+	if c != nil && c.SealedBlock != nil {
 		h, _ := HashBlock(c.SealedBlock)
 		if bytes.Compare(h[:], common.UINT256_EMPTY[:]) != 0 {
 			return c.SealedBlock, h

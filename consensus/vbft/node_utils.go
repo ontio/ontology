@@ -19,11 +19,13 @@
 package vbft
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 
 	"github.com/ontio/ontology/common/log"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
+	"github.com/ontio/ontology/core/signature"
 	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 )
@@ -330,6 +332,13 @@ func (self *Server) sendToPeer(peerIdx uint32, data []byte) error {
 		Data:  data,
 		Owner: self.account.PublicKey,
 	}
+
+	buf := new(bytes.Buffer)
+	if err := msg.SerializeUnsigned(buf); err != nil {
+		return fmt.Errorf("failed to serialize consensus msg: %s", err)
+	}
+	msg.Signature, _ = signature.Sign(self.account, buf.Bytes())
+
 	buffer, err := msgpack.NewConsensus(msg)
 	if err != nil {
 		log.Error("Error NewConsensus: ", err)
@@ -352,6 +361,13 @@ func (self *Server) broadcastToAll(data []byte) error {
 		Data:  data,
 		Owner: self.account.PublicKey,
 	}
+
+	buf := new(bytes.Buffer)
+	if err := msg.SerializeUnsigned(buf); err != nil {
+		return fmt.Errorf("failed to serialize consensus msg: %s", err)
+	}
+	msg.Signature, _ = signature.Sign(self.account, buf.Bytes())
+
 	self.p2p.Broadcast(msg)
 	return nil
 }
