@@ -28,6 +28,7 @@ import (
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native/states"
+	"encoding/hex"
 )
 
 var (
@@ -211,5 +212,64 @@ func addNotifications(native *NativeService, contract common.Address, state *sta
 			TxHash:   native.Tx.Hash(),
 			ContractAddress: contract,
 			States:   []interface{}{TRANSFER_NAME, state.From.ToBase58(), state.To.ToBase58(), state.Value},
+		})
+}
+
+func concatKey(contract common.Address, args ...[]byte) []byte {
+	temp := contract[:]
+	for _, arg := range args {
+		temp = append(temp, arg...)
+	}
+	return temp
+}
+
+func validateOwner(native *NativeService, address string) error {
+	addrBytes, err := hex.DecodeString(address)
+	if err != nil {
+		return errors.NewErr("[validateOwner] Decode address hex string to bytes failed!")
+	}
+	addr, err := common.AddressParseFromBytes(addrBytes)
+	if err != nil {
+		return errors.NewErr("[validateOwner] Decode bytes to address failed!")
+	}
+	if native.ContextRef.CheckWitness(addr) == false {
+		return errors.NewErr("[validateOwner] Authentication failed!")
+	}
+	return nil
+}
+
+func createOracleRequestEvent(native *NativeService, contract common.Address, reuqest string) {
+	native.Notifications = append(native.Notifications,
+		&event.NotifyEventInfo{
+			TxHash:          native.Tx.Hash(),
+			ContractAddress: contract,
+			States:          []interface{}{CREATE_ORACLE_REQUEST, reuqest},
+		})
+}
+
+func setOracleOutcomeEvent(native *NativeService, contract common.Address, ok bool) {
+	native.Notifications = append(native.Notifications,
+		&event.NotifyEventInfo{
+			TxHash:          native.Tx.Hash(),
+			ContractAddress: contract,
+			States:          []interface{}{SET_ORACLE_OUTCOME, ok},
+		})
+}
+
+func setOracleCronOutcomeEvent(native *NativeService, contract common.Address, ok bool) {
+	native.Notifications = append(native.Notifications,
+		&event.NotifyEventInfo{
+			TxHash:          native.Tx.Hash(),
+			ContractAddress: contract,
+			States:          []interface{}{SET_ORACLE_CRON_OUTCOME, ok},
+		})
+}
+
+func changeCronViewEvent(native *NativeService, contract common.Address, newCronView *big.Int) {
+	native.Notifications = append(native.Notifications,
+		&event.NotifyEventInfo{
+			TxHash:          native.Tx.Hash(),
+			ContractAddress: contract,
+			States:          []interface{}{CHANGE_CRON_VIEW, newCronView},
 		})
 }
