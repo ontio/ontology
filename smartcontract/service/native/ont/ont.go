@@ -19,6 +19,7 @@
 package ont
 
 import (
+	"fmt"
 	"bytes"
 	"math/big"
 
@@ -30,7 +31,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"fmt"
 	"github.com/ontio/ontology/common/config"
 )
 

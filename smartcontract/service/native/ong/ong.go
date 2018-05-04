@@ -20,6 +20,7 @@ package ong
 
 import (
 	"bytes"
+	"math/big"
 
 	"github.com/ontio/ontology/core/genesis"
 	scommon "github.com/ontio/ontology/core/store/common"
@@ -28,7 +29,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/common"
-	"math/big"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 

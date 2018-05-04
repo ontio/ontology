@@ -48,10 +48,6 @@ func AddNotifications(native *native.NativeService, contract common.Address, sta
 }
 
 func IsTransferFromValid(native *native.NativeService, state *TransferFrom) error {
-	if state.Value < 0 {
-		return errors.NewErr("TransferFrom amount invalid!")
-	}
-
 	if native.ContextRef.CheckWitness(state.Sender) == false {
 		return errors.NewErr("[IsTransferFromValid] Authentication failed!")
 	}
@@ -59,9 +55,6 @@ func IsTransferFromValid(native *native.NativeService, state *TransferFrom) erro
 }
 
 func IsApproveValid(native *native.NativeService, state *State) error {
-	if state.Value < 0 {
-		return errors.NewErr("Approve amount invalid!")
-	}
 	if native.ContextRef.CheckWitness(state.From) == false {
 		return errors.NewErr("[IsApproveValid] Authentication failed!")
 	}
@@ -148,13 +141,12 @@ func fromApprove(native *native.NativeService, fromApproveKey []byte, value uint
 	if err != nil {
 		return err
 	}
-	balance := approveValue - value
-	if balance < 0 {
+	if approveValue < value {
 		return fmt.Errorf("[TransferFrom] approve balance insufficient! have %d, got %d", approveValue, value)
-	} else if balance == 0 {
+	} else if approveValue == value {
 		native.CloneCache.Delete(scommon.ST_STORAGE, fromApproveKey)
 	} else {
-		native.CloneCache.Add(scommon.ST_STORAGE, fromApproveKey, utils.GetUInt64StorageItem(balance))
+		native.CloneCache.Add(scommon.ST_STORAGE, fromApproveKey, utils.GetUInt64StorageItem(approveValue - value))
 	}
 	return nil
 }
@@ -164,13 +156,12 @@ func fromTransfer(native *native.NativeService, fromKey []byte, value uint64) (u
 	if err != nil {
 		return 0, err
 	}
-	balance := fromBalance - value
-	if balance < 0 {
+	if fromBalance < value {
 		return 0, errors.NewErr("[Transfer] balance insufficient!")
-	} else if balance == 0 {
+	} else if fromBalance == value {
 		native.CloneCache.Delete(scommon.ST_STORAGE, fromKey)
 	} else {
-		native.CloneCache.Add(scommon.ST_STORAGE, fromKey, utils.GetUInt64StorageItem(balance))
+		native.CloneCache.Add(scommon.ST_STORAGE, fromKey, utils.GetUInt64StorageItem(fromBalance - value))
 	}
 	return fromBalance, nil
 }

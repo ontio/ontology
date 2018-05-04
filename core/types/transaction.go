@@ -213,7 +213,9 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 	serialization.WriteUint32(w, tx.Nonce)
 	serialization.WriteUint64(w, tx.GasPrice)
 	serialization.WriteUint64(w, tx.GasLimit)
-	tx.Payer.Serialize(w)
+	if err := tx.Payer.Serialize(w); err != nil {
+		return err
+	}
 	//Payload
 	if tx.Payload == nil {
 		return errors.New("Transaction Payload is nil.")
@@ -273,15 +275,14 @@ func (tx *Transaction) DeserializeUnsigned(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	payer := new(common.Address)
-	payer.Deserialize(r)
-
 	tx.Version = versiontype[0]
 	tx.TxType = TransactionType(versiontype[1])
 	tx.Nonce = nonce
 	tx.GasPrice = gasPrice
 	tx.GasLimit = gasLimit
-	tx.Payer = *payer
+	if err := tx.Payer.Deserialize(r); err != nil {
+		return err
+	}
 
 	switch tx.TxType {
 	case Invoke:
