@@ -1,131 +1,52 @@
 package states
 
 import (
+	"encoding/json"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
 	"io"
-	"github.com/ontio/ontology/common"
 )
 
-type Param struct { // ontology network environment variables
-	Version byte
-	K       string
-	V       string
-}
+type Params map[string]string
 
-type Params struct {
-	Version   byte
-	ParamList []*Param
-}
-
-type Admin struct {
-	Version byte
-	Address common.Address
-}
-
-func (param *Param) Serialize(w io.Writer) error {
-	if err := serialization.WriteByte(w, byte(param.Version)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[Param Config] Serialize version error!")
-	}
-
-	if err := serialization.WriteString(w, param.K); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[Param Config] Serialize param name error!")
-	}
-
-	if err := serialization.WriteString(w, param.V); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[Param Config] Serialize param value error!")
-	}
-	return nil
-}
-
-func (param *Param) Deserialize(r io.Reader) error {
-	version, err := serialization.ReadByte(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[Param Config] Deserialize version error!")
-	}
-	param.Version = version
-
-	var key string
-	key, err = serialization.ReadString(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[Param Config] Deserialize parm name error!")
-	}
-	param.K = key
-
-	var value string
-	value, err = serialization.ReadString(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode,
-			"[Param Config] Deserialize param value error!")
-	}
-	param.V = value
-	return nil
-}
+type Admin common.Address
 
 func (params *Params) Serialize(w io.Writer) error {
-	if err := serialization.WriteByte(w, params.Version); err != nil {
-		return err
+	paramsJsonString, err := json.Marshal(params)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[Param Config] Serialize params error!")
 	}
-
-	if err := serialization.WriteVarUint(w, uint64(len(params.ParamList))); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode,
-			"[Param Config] Serialize param num error!")
-	}
-
-	for _, param := range params.ParamList {
-		if err := param.Serialize(w); err != nil {
-			return err
-		}
+	if err := serialization.WriteVarBytes(w, paramsJsonString); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[Param Config] Serialize params error!")
 	}
 	return nil
 }
 
 func (params *Params) Deserialize(r io.Reader) error {
-	version, err := serialization.ReadByte(r)
+	paramsJsonString, err := serialization.ReadVarBytes(r)
 	if err != nil {
-		return err
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[Param Config] Deserialize params error!")
 	}
-	params.Version = version
-
-	paramNum, err := serialization.ReadVarUint(r, 0)
+	err = json.Unmarshal(paramsJsonString, params)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode,
-			"[Param Config] Deserialize param num error!")
-	}
-
-	var i uint64
-	for i = 0; i < paramNum; i++ {
-		param := new(Param)
-		if err := param.Deserialize(r); err != nil {
-			return err
-		}
-		params.ParamList = append(params.ParamList, param)
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[Param Config] Deserialize params error!")
 	}
 	return nil
 }
 
 func (admin *Admin) Serialize(w io.Writer) error {
-	if err := serialization.WriteByte(w, byte(admin.Version)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[Param Config] Admin serialize version error!")
-	}
-
-	if err := admin.Address.Serialize(w); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[Param Config] Admin serialize param name error!")
+	_, err := w.Write(admin[:])
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[Param Config] Serialize admin error!")
 	}
 	return nil
 }
 
-func (admin *Admin) Deserialize(r io.Reader) error {
-	version, err := serialization.ReadByte(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[Param Config] Deserialize version error!")
+func (admin *Admin)Deserialize(r io.Reader) error {
+	n, err := r.Read(admin[:])
+	if n != len(admin[:]) || err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[Param Config] Deserialize params error!")
 	}
-	admin.Version = version
-
-	address := new(common.Address)
-	if err := address.Deserialize(r); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[Param Config] Deserialize parm name error!")
-	}
-	admin.Address = *address
 	return nil
 }

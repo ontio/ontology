@@ -35,7 +35,7 @@ var (
 	ADDRESS_HEIGHT    = []byte("addressHeight")
 	TRANSFER_NAME     = "transfer"
 	TOTAL_SUPPLY_NAME = []byte("totalSupply")
-	SET_PARAM         = "SetParam"
+	SET_PARAM         = "SetGlobalParam"
 )
 
 func getAddressHeightKey(contract, address common.Address) []byte {
@@ -55,8 +55,10 @@ func getToAmountStorageItem(toBalance, value *big.Int) *cstates.StorageItem {
 	return &cstates.StorageItem{Value: new(big.Int).Add(toBalance, value).Bytes()}
 }
 
-func getParamStorageItem(value string) *cstates.StorageItem {
-	return &cstates.StorageItem{Value: []byte(value)}
+func getParamStorageItem(params *states.Params) *cstates.StorageItem {
+	bf := new(bytes.Buffer)
+	params.Serialize(bf)
+	return &cstates.StorageItem{Value: bf.Bytes()}
 }
 
 func getAdminStorageItem(admin *states.Admin) *cstates.StorageItem {
@@ -83,20 +85,18 @@ func getTransferFromKey(contract common.Address, state *states.TransferFrom) []b
 	return append(temp, state.Sender[:]...)
 }
 
-func getParamKey(contract common.Address, paramName string, valueType paramType) []byte {
-	key := append(contract[:], paramName...)
+func getParamKey(contract common.Address, valueType paramType) []byte {
+	key := append(contract[:], "param"...)
 	key = append(key[:], byte(valueType))
 	return key
 }
 
-func getAdminKey(contract common.Address) []byte {
-	return append(contract[:], "admin"...)
-}
-
-func getTransferAdminKey(contract, admin, transferAdmin common.Address) []byte {
-	temp := append(contract[:], "admin"...)
-	temp = append(temp[:], admin[:]...)
-	return append(temp, transferAdmin[:]...)
+func getAdminKey(contract common.Address, isTransferAdmin bool) []byte {
+	if isTransferAdmin {
+		return append(contract[:], "transfer"...)
+	} else {
+		return append(contract[:], "admin"...)
+	}
 }
 
 func isTransferValid(native *NativeService, state *states.State) error {
@@ -233,6 +233,22 @@ func getStorageBigInt(native *NativeService, key []byte) (*big.Int, error) {
 	return new(big.Int).SetBytes(item.Value), nil
 }
 
+func getStorageParam(native *NativeService, key []byte)(*states.Params, error){
+	params , err:= native.CloneCache.Get(scommon.ST_STORAGE, key)
+	tempParams := new(states.Params)
+	*tempParams = make(map[string]string)
+	if err != nil || params == nil{
+		return tempParams, errors.NewDetailErr(err, errors.ErrNoCode, "[Get Param] storage error!")
+	}
+	item, ok := params.(*cstates.StorageItem)
+	if !ok {
+		return tempParams, errors.NewDetailErr(err, errors.ErrNoCode, "[Get Param] storage error!")
+	}
+	bf := bytes.NewBuffer(item.Value)
+	tempParams.Deserialize(bf)
+	return tempParams, nil
+}
+
 func getStorageAdmin(native *NativeService, key []byte) (*states.Admin, error) {
 	admin, err := native.CloneCache.Get(scommon.ST_STORAGE, key)
 	tempAdmin := new(states.Admin)
@@ -257,11 +273,11 @@ func addNotifications(native *NativeService, contract common.Address, state *sta
 		})
 }
 
-func notifyParamSetSuccess(native *NativeService, contract common.Address, param *states.Param) {
+func notifyParamSetSuccess(native *NativeService, contract common.Address, params states.Params) {
 	native.Notifications = append(native.Notifications,
 		&event.NotifyEventInfo{
 			TxHash:          native.Tx.Hash(),
 			ContractAddress: contract,
-			States:          []interface{}{SET_PARAM, param.K, param.V},
+			States:          []interface{}{SET_PARAM, params},
 		})
 }

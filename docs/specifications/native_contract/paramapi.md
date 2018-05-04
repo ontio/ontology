@@ -9,7 +9,7 @@ This document describes the global parameter manager native contract used in the
 ## Contract Method
 
 ### ParamInit
-Initialize the contract, invoked in the gensis block.
+Initialize the contract, invoked in the genesis block.
 
 method: init
 
@@ -17,13 +17,13 @@ args: nil
 
 #### example
 ```
-  init := states.Contract{
+    init := states.Contract{
 		Address: ParamContractAddress,
 		Method:  "init",
 	}
 ```
 ### TransferAdmin
-Transfer the administrator of this contract, transferd account should be approved by old admin.
+Transfer the administrator of this contract, should be invoked by administrator.
 
 method: transferAdmin
 
@@ -31,9 +31,33 @@ args: smartcontract/service/native/states.Admin
 
 #### example
 ```
-	var destinationAdmin states.Admin
-	destinationAdmin.Version = 0x2d
-	destinationAdmin.Address, _ = common.AddressFromBase58("TA4YPDwvAieSfoJEJXzAU6ruQZgfx4KYrD")
+    var destinationAdmin states.Admin
+	address, _ := common.AddressFromBase58("TA4knXiWFZ8K4W3e5fAnoNntdc5G3qMT7C")
+	copy(destinationAdmin[:], address[:])
+	adminBuffer := new(bytes.Buffer)
+	if err := destinationAdmin.Serialize(adminBuffer); err != nil {
+		fmt.Println("Serialize admins struct error.")
+		os.Exit(1)
+	}
+	contract := &sstates.Contract{
+		Address: genesis.ParamContractAddress,
+		Method:  "transferAdmin",
+		Args:    adminBuffer.Bytes(),
+	}
+```
+
+### AcceptAdmin
+Accept administrator permission of the contract.
+
+method: acceptAdmin
+
+args: smartcontract/service/native/states.Admin
+
+#### example
+```
+    var destinationAdmin states.Admin
+	address, _ := common.AddressFromBase58("TA4knXiWFZ8K4W3e5fAnoNntdc5G3qMT7C")
+	copy(destinationAdmin[:], address[:])
 	adminBuffer := new(bytes.Buffer)
 	if err := destinationAdmin.Serialize(adminBuffer); err != nil {
 		fmt.Println("Serialize admin struct error.")
@@ -42,55 +66,27 @@ args: smartcontract/service/native/states.Admin
 
 	contract := &sstates.Contract{
 		Address: genesis.ParamContractAddress,
-		Method:  "transferAdmin",
+		Method:  "acceptAdmin",
 		Args:    adminBuffer.Bytes(),
 	}
 ```
 
-### ApproveAdmin
-Approved administrator to a other account, should be invoked by administrator.
-
-method: approveAdmin
-
-args: smartcontract/service/native/states.Admin
-
-#### example
-```
-	var destinationAdmin states.Admin
-	destinationAdmin.Version = 0x2d
-	destinationAdmin.Address, _ = common.AddressFromBase58("TA4YPDwvAieSfoJEJXzAU6ruQZgfx4KYrD")
-	adminBuffer := new(bytes.Buffer)
-	if err := destinationAdmin.Serialize(adminBuffer); err != nil {
-		fmt.Println("Serialize admins struct error.")
-		os.Exit(1)
-	}
-	contract := &sstates.Contract{
-		Address: genesis.ParamContractAddress,
-		Method:  "approveAdmin",
-		Args:    adminBuffer.Bytes(),
-	}
-```
-
-### SetParam
+### SetGlobalParam
 Administrator set global parameter, is prepare value, won't take effect immediately.
 
-method: setParam
+method: setGlobalParam
 
 args: smartcontract/service/native/states.Params
 
 #### example
 ```
     params := new(states.Params)
-	params.Version = 0x2d
-	var paramList = make([]*states.Param, 3)
+	*params = make(map[string]string)
 	for i := 0; i < 3; i++ {
-		paramList[i] = &states.Param{
-			Version: 0x2d,
-			K:       "key-test" + strconv.Itoa(i) + "-" + value,
-			V:       "value-test" + strconv.Itoa(i) + "-" + value,
-		}
+		k := "key-test" + strconv.Itoa(i) + "-" + key
+		v := "value-test" + strconv.Itoa(i) + "-" + value
+		(*params)[k] = v
 	}
-	params.ParamList = paramList
 	paramsBuffer := new(bytes.Buffer)
 	if err := params.Serialize(paramsBuffer); err != nil {
 		fmt.Println("Serialize params struct error.")
@@ -99,39 +95,33 @@ args: smartcontract/service/native/states.Params
 
 	contract := &sstates.Contract{
 		Address: genesis.ParamContractAddress,
-		Method:  "setParam",
+		Method:  "setGlobalParam",
 		Args:    paramsBuffer.Bytes(),
 	}
 ```
 
-### EnforceParam
+### CreateSnapshot
 Administrator make prepare parameter effective.
 
-method: enforceParam
+method: createSnapshot
 
-args: smartcontract/service/native/states.Params
+args: smartcontract/service/native/states.ParamNameList
 
 #### example
 ```
-    params := new(states.Params)
-	params.Version = 0x2d
-	var paramList = make([]*states.Param, 3)
+    paramNameList := new(states.ParamNameList)
 	for i := 0; i < 3; i++ {
-		paramList[i] = &states.Param{
-			Version: 0x2d,
-			K:       "key-test" + strconv.Itoa(i) + "-" + value,
-		}
+		k := "key-test" + strconv.Itoa(i) + "-" + value
+		*paramNameList = append(*paramNameList, k)
 	}
-	params.ParamList = paramList
 	paramsBuffer := new(bytes.Buffer)
-	if err := params.Serialize(paramsBuffer); err != nil {
+	if err := paramNameList.Serialize(paramsBuffer); err != nil {
 		fmt.Println("Serialize params struct error.")
 		os.Exit(1)
 	}
-
 	contract := &sstates.Contract{
 		Address: genesis.ParamContractAddress,
-		Method:  "enforceParam",
+		Method:  "createSnapshot",
 		Args:    paramsBuffer.Bytes(),
 	}
 ```

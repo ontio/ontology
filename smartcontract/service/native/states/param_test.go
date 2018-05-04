@@ -2,25 +2,19 @@ package states
 
 import (
 	"bytes"
-	"fmt"
-	"strconv"
-	"testing"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/stretchr/testify/assert"
+	"strconv"
+	"testing"
 )
-
 
 func TestParams_Serialize_Deserialize(t *testing.T) {
 	params := new(Params)
-	params.Version = 0x2d
-	params.ParamList = make([]*Param, 10)
+	*params = make(map[string]string)
 	for i := 0; i < 10; i++ {
-		param := &Param{
-			Version: 0x2d,
-			K:       "key" + strconv.Itoa(i),
-			V:       "value" + strconv.Itoa(i),
-		}
-		params.ParamList[i] = param
+		k := "key" + strconv.Itoa(i)
+		v := "value" + strconv.Itoa(i)
+		(*params)[k] = v
 	}
 	bf := new(bytes.Buffer)
 	if err := params.Serialize(bf); err != nil {
@@ -30,18 +24,9 @@ func TestParams_Serialize_Deserialize(t *testing.T) {
 	if err := deserializeParams.Deserialize(bf); err != nil {
 		t.Fatalf("params deserialize error: %v", err)
 	}
-	if params.Version != deserializeParams.Version {
-		t.Fatal("params version deserialize error")
-	}
 	for i := 0; i < 10; i++ {
-		fmt.Printf("K: %s, V: %s\n", params.ParamList[i].K, deserializeParams.ParamList[i].V)
-		if params.ParamList[i].Version != deserializeParams.ParamList[i].Version {
-			t.Fatal("params deserialize error")
-		}
-		if params.ParamList[i].K != deserializeParams.ParamList[i].K {
-			t.Fatal("params deserialize error")
-		}
-		if params.ParamList[i].V != deserializeParams.ParamList[i].V {
+		k := "key" + strconv.Itoa(i)
+		if (*params)[k] != (*deserializeParams)[k] {
 			t.Fatal("params deserialize error")
 		}
 	}
@@ -49,14 +34,13 @@ func TestParams_Serialize_Deserialize(t *testing.T) {
 
 func TestAdmin_Serialize_Deserialize(t *testing.T) {
 	admin := new(Admin)
-	admin.Version = 0x2d
-	admin.Address = genesis.ParamContractAddress
+	copy((*admin)[:], genesis.ParamContractAddress[:])
 	bf := new(bytes.Buffer)
-	if err:= admin.Serialize(bf); err != nil{
+	if err := admin.Serialize(bf); err != nil {
 		t.Fatalf("admin serialize error: %v", err)
 	}
 	deserializeAdmin := new(Admin)
-	if err:= deserializeAdmin.Deserialize(bf); err != nil{
+	if err := deserializeAdmin.Deserialize(bf); err != nil {
 		t.Fatal("admin version deserialize error")
 	}
 	assert.Equal(t, admin, deserializeAdmin)
