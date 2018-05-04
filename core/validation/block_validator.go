@@ -52,20 +52,6 @@ func VerifyBlock(block *types.Block, ld *ledger.Ledger, completely bool) error {
 		return err
 	}
 
-	if block.Transactions == nil {
-		return errors.New(fmt.Sprintf("No Transactions Exist in Block."))
-	}
-
-	if block.Transactions[0].TxType != types.BookKeeping {
-		return errors.New(fmt.Sprintf("Header Verify failed first Transacion in block is not BookKeeping type."))
-	}
-
-	for index, v := range block.Transactions {
-		if v.TxType == types.BookKeeping && index != 0 {
-			return errors.New(fmt.Sprintf("This Block Has BookKeeping transaction after first transaction in block."))
-		}
-	}
-
 	//verfiy block's transactions
 	if completely {
 		/*

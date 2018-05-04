@@ -189,10 +189,7 @@ func (self *Server) constructProposalMsg(blkNum uint64, txs []*types.Transaction
 	for _, t := range txs {
 		txHash = append(txHash, t.Hash())
 	}
-	txRoot, err := common.ComputeMerkleRoot(txHash)
-	if err != nil {
-		return nil, fmt.Errorf("compute hash root: %s", err)
-	}
+	txRoot := common.ComputeMerkleRoot(txHash)
 	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoot(txRoot)
 
 	lastConfigBlkNum := prevBlk.Info.LastConfigBlockNum

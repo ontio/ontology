@@ -95,8 +95,6 @@ func checkTransactionPayload(tx *types.Transaction) error {
 		return nil
 	case *payload.InvokeCode:
 		return nil
-	case *payload.Bookkeeping:
-		return nil
 	default:
 		return errors.New(fmt.Sprint("[txValidator], unimplemented transaction payload type.", pld))
 	}

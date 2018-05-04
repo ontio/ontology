@@ -160,7 +160,7 @@ var (
 	}
 	AccountFileFlag = cli.StringFlag{
 		Name:  "file,f",
-		Value: "wallet.dat",
+		Value: config.DEFAULT_WALLET_FILE_NAME,
 		Usage: "Use `<filename>` as the wallet",
 	}
 	AccountSourceFileFlag = cli.StringFlag{

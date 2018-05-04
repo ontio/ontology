@@ -59,19 +59,16 @@ func (b *Block) Deserialize(r io.Reader) error {
 		return err
 	}
 
-	var tharray = make([]common.Uint256, 0, length)
+	var hashes = make([]common.Uint256, 0, length)
 	for i := uint32(0); i < length; i++ {
 		transaction := new(Transaction)
 		transaction.Deserialize(r)
 		txhash := transaction.Hash()
 		b.Transactions = append(b.Transactions, transaction)
-		tharray = append(tharray, txhash)
+		hashes = append(hashes, txhash)
 	}
 
-	b.Header.TransactionsRoot, err = common.ComputeMerkleRoot(tharray)
-	if err != nil {
-		return fmt.Errorf("Block Deserialize merkleTree compute failed: %s", err)
-	}
+	b.Header.TransactionsRoot = common.ComputeMerkleRoot(hashes)
 
 	return nil
 }
@@ -103,19 +100,16 @@ func (b *Block) FromTrimmedData(r io.Reader) error {
 		return err
 	}
 	var txhash common.Uint256
-	var tharray []common.Uint256
+	var hashes []common.Uint256
 	for i = 0; i < Len; i++ {
 		txhash.Deserialize(r)
 		transaction := new(Transaction)
 		transaction.SetHash(txhash)
 		b.Transactions = append(b.Transactions, transaction)
-		tharray = append(tharray, txhash)
+		hashes = append(hashes, txhash)
 	}
 
-	b.Header.TransactionsRoot, err = common.ComputeMerkleRoot(tharray)
-	if err != nil {
-		return fmt.Errorf("Block Deserialize merkleTree compute failed: %s", err)
-	}
+	b.Header.TransactionsRoot = common.ComputeMerkleRoot(hashes)
 
 	return nil
 }
@@ -140,14 +134,11 @@ func (b *Block) Type() common.InventoryType {
 
 func (b *Block) RebuildMerkleRoot() error {
 	txs := b.Transactions
-	transactionHashes := []common.Uint256{}
+	hashes := []common.Uint256{}
 	for _, tx := range txs {
-		transactionHashes = append(transactionHashes, tx.Hash())
+		hashes = append(hashes, tx.Hash())
 	}
-	hash, err := common.ComputeMerkleRoot(transactionHashes)
-	if err != nil {
-		return fmt.Errorf("[Block] , RebuildMerkleRoot ComputeMerkleRoot failed: %s", err)
-	}
+	hash := common.ComputeMerkleRoot(hashes)
 	b.Header.TransactionsRoot = hash
 	return nil
 }
