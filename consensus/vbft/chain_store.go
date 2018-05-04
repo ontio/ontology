@@ -179,7 +179,7 @@ func (self *ChainStore) GetPeersConfig() ([]*vconfig.PeerStakeInfo, error) {
 func (self *ChainStore) GetForceUpdate() (bool, error) {
 	storageKey := &states.StorageKey{
 		CodeHash: genesis.GovernanceContractAddress,
-		Key:      append([]byte(gov.FORCE_COMMIT)),
+		Key:      append([]byte(gov.GOVERNANCE_VIEW)),
 	}
 	force, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
 	if err != nil {
