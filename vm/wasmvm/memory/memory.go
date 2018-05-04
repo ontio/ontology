@@ -178,7 +178,7 @@ func (vm *VMmemory) SetPointerMemory(val interface{}) (int, error) {
 		case []float32:
 			floatBytes := make([]byte, len(val.([]float32))*4)
 			for i, v := range val.([]float32) {
-				tmp := util.Float32ToByte(v)
+				tmp := util.Float32ToBytes(v)
 				copy(floatBytes[i*4:(i+1)*4], tmp)
 			}
 			return vm.copyMemAndGetIdx(floatBytes, PFloat32)
@@ -186,7 +186,7 @@ func (vm *VMmemory) SetPointerMemory(val interface{}) (int, error) {
 		case []float64:
 			floatBytes := make([]byte, len(val.([]float64))*4)
 			for i, v := range val.([]float64) {
-				tmp := util.Float64ToByte(v)
+				tmp := util.Float64ToBytes(v)
 				copy(floatBytes[i*8:(i+1)*8], tmp)
 			}
 			return vm.copyMemAndGetIdx(floatBytes, PFloat64)
@@ -323,7 +323,7 @@ func (vm *VMmemory) SetMemory(val interface{}) (int, error) {
 		copy(vm.Memory[idx:idx+len(tmp)], tmp)
 		return idx, nil
 	case float32:
-		tmp := util.Float32ToByte(val.(float32))
+		tmp := util.Float32ToBytes(val.(float32))
 
 		idx, err := vm.Malloc(len(tmp))
 		if err != nil {
@@ -332,7 +332,7 @@ func (vm *VMmemory) SetMemory(val interface{}) (int, error) {
 		copy(vm.Memory[idx:idx+len(tmp)], tmp)
 		return idx, nil
 	case float64:
-		tmp := util.Float64ToByte(val.(float64))
+		tmp := util.Float64ToBytes(val.(float64))
 		idx, err := vm.Malloc(len(tmp))
 		if err != nil {
 			return 0, err

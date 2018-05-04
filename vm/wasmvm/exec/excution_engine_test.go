@@ -73,3 +73,4 @@ func TestStackPop(t *testing.T){
 		t.Error("empty stack should raise error while poping")
 	}
 }
+
