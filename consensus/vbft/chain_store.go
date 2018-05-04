@@ -145,6 +145,7 @@ func (self *ChainStore) GetVbftConfigInfo() (*vconfig.Configuration, error) {
 		BlockMsgDelay:        config.BlockMsgDelay,
 		HashMsgDelay:         config.HashMsgDelay,
 		PeerHandshakeTimeout: config.PeerHandshakeTimeout,
+		MaxBlockChangeView:   config.MaxBlockChangeView,
 	}
 	return chainconfig, nil
 }

@@ -255,8 +255,8 @@ func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
 	}
 
 	self.config = cfg
-	if self.config.View == 0 {
-		panic("invalid view")
+	if self.config.View == 0 || self.config.MaxBlockChangeView == 0 {
+		panic("invalid view or maxblockchangeview ")
 	}
 	// update msg delays
 	makeProposalTimeout = time.Duration(cfg.BlockMsgDelay * 2)
@@ -329,10 +329,7 @@ func (self *Server) updateChainConfig() error {
 	for id, index := range self.peerPool.IDMap {
 		_, present := peermap[id]
 		if !present {
-			if index == self.Index {
-				self.stop()
-				log.Info("updateChainConfig stop consensus service")
-			} else {
+			if index != self.Index {
 				log.Info("updateChainConfig remove consensus")
 				if C, present := self.msgRecvC[index]; present {
 					C <- nil
@@ -493,7 +490,7 @@ func (self *Server) run(peerPubKey keypair.PublicKey) error {
 	defer func() {
 		// TODO: handle peer disconnection here
 
-		log.Errorf("server %d: disconnected with peer %d", self.Index, peerIdx)
+		log.Warnf("server %d: disconnected with peer %d", self.Index, peerIdx)
 		close(self.msgRecvC[peerIdx])
 		delete(self.msgRecvC, peerIdx)
 
@@ -1917,7 +1914,9 @@ func (self *Server) creategovernaceTransaction() *types.Transaction {
 
 //checkNeedUpdateChainConfig use blockcount
 func (self *Server) checkNeedUpdateChainConfig() bool {
-
+	if self.currentBlockNum%self.config.MaxBlockChangeView == 0 {
+		return true
+	}
 	log.Debugf("blockcount: %d", self.config.BlockCount)
 	//todo
 	return false
