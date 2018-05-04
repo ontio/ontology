@@ -33,10 +33,9 @@ import (
 )
 
 //Peer address package
-func NewAddrs(nodeAddrs []msgCommon.PeerAddr, count uint64) ([]byte, error) {
+func NewAddrs(nodeAddrs []msgCommon.PeerAddr) ([]byte, error) {
 	var addr mt.Addr
 	addr.NodeAddrs = nodeAddrs
-	addr.NodeCnt = count
 
 	m, err := addr.Serialization()
 	if err != nil {

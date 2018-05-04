@@ -44,7 +44,6 @@ func TestAddressSerializationDeserialization(t *testing.T) {
 		ID:            987654321,
 	}
 	msg.NodeAddrs = append(msg.NodeAddrs, nodeAddr)
-	msg.NodeCnt = 1
 	t.Log("new addr message before serialize time = ", nodeAddr.Time)
 	t.Log("new addr message before serialize Services = ", nodeAddr.Services)
 	t.Log("new addr message before serialize IpAddr = 192.168.0.1")
@@ -52,7 +51,7 @@ func TestAddressSerializationDeserialization(t *testing.T) {
 	t.Log("new addr message before serialize ConsensusPort = ", nodeAddr.ConsensusPort)
 	t.Log("new addr message before serialize ID = ", nodeAddr.ID)
 	p := new(bytes.Buffer)
-	err := binary.Write(p, binary.LittleEndian, msg.NodeCnt)
+	err := binary.Write(p, binary.LittleEndian, uint64(1))
 	if err != nil {
 		t.Error("Binary Write failed at new Msg: ", err.Error())
 		return

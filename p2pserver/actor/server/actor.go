@@ -207,11 +207,10 @@ func (this *P2PActor) handleGetTimeReq(ctx actor.Context, req *GetTimeReq) {
 
 //nbr peer`s address handler
 func (this *P2PActor) handleGetNeighborAddrsReq(ctx actor.Context, req *GetNeighborAddrsReq) {
-	addrs, cnt := this.server.GetNeighborAddrs()
+	addrs := this.server.GetNeighborAddrs()
 	if ctx.Sender() != nil {
 		resp := &GetNeighborAddrsRsp{
 			Addrs: addrs,
-			Count: cnt,
 		}
 		ctx.Sender().Request(resp, ctx.Self())
 	}

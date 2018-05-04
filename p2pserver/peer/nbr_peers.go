@@ -107,11 +107,10 @@ func (this *NbrPeers) NodeEstablished(id uint64) bool {
 }
 
 //GetNeighborAddrs return all establish peer address
-func (this *NbrPeers) GetNeighborAddrs() ([]common.PeerAddr, uint64) {
+func (this *NbrPeers) GetNeighborAddrs() []common.PeerAddr {
 	this.RLock()
 	defer this.RUnlock()
 
-	var i uint64
 	var addrs []common.PeerAddr
 	for _, p := range this.List {
 		if p.GetSyncState() != common.ESTABLISH {
@@ -124,11 +123,9 @@ func (this *NbrPeers) GetNeighborAddrs() ([]common.PeerAddr, uint64) {
 		addr.Port = p.GetSyncPort()
 		addr.ID = p.GetID()
 		addrs = append(addrs, addr)
-
-		i++
 	}
 
-	return addrs, i
+	return addrs
 }
 
 //GetNeighborHeights return the id-height map of nbr peers
