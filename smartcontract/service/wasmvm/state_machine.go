@@ -44,12 +44,8 @@ const (
 
 type WasmStateMachine struct {
 	*WasmStateReader
-	//ldgerStore store.LedgerStore
-	//CloneCache *storage.CloneCache
-	//time       uint32
 }
 
-//func NewWasmStateMachine(ldgerStore store.LedgerStore, cloneCache *storage.CloneCache, time uint32) *WasmStateMachine {
 func NewWasmStateMachine() *WasmStateMachine {
 
 	stateMachine := WasmStateMachine{WasmStateReader: NewWasmStateReader()}
