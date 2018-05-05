@@ -286,7 +286,8 @@ func calcParticipant(vrf vconfig.VRFValue, dposTable []uint32, k uint32) uint32 
 }
 
 func getCommitConsensus(commitMsgs []*blockCommitMsg, C int) (uint32, bool) {
-	commitCount := make(map[uint32]int)
+	commitCount := make(map[uint32]int)                  // proposer -> #commit-msg
+	endorseCount := make(map[uint32]map[uint32]struct{}) // proposer -> []endorsers
 	emptyCommitCount := 0
 	for _, c := range commitMsgs {
 		if c.CommitForEmpty {
@@ -296,6 +297,17 @@ func getCommitConsensus(commitMsgs []*blockCommitMsg, C int) (uint32, bool) {
 		commitCount[c.BlockProposer] += 1
 		if commitCount[c.BlockProposer] > C {
 			return c.BlockProposer, emptyCommitCount > C
+		}
+
+		for endorser, _ := range c.EndorsersSig {
+			if _, present := endorseCount[c.BlockProposer]; !present {
+				endorseCount[c.BlockProposer] = make(map[uint32]struct{})
+			}
+
+			endorseCount[c.BlockProposer][endorser] = struct{}{}
+			if len(endorseCount[c.BlockProposer]) > C+1 {
+				return c.BlockProposer, c.CommitForEmpty
+			}
 		}
 	}
 

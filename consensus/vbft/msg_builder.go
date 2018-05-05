@@ -19,13 +19,17 @@
 package vbft
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"time"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/ledger"
+	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
 )
 
@@ -149,10 +153,25 @@ func (self *Server) constructHeartbeatMsg() (*peerHeartbeatMsg, error) {
 	if block == nil {
 		return nil, fmt.Errorf("failed to get sealed block, current block: %d", self.GetCurrentBlockNo())
 	}
+
+	bookkeepers := make([][]byte, 0)
+	endorsePks := block.Block.Header.Bookkeepers
+	sigData := block.Block.Header.SigData
+	if len(endorsePks) == len(sigData) {
+		for i := 0; i < len(endorsePks); i++ {
+			bookkeepers = append(bookkeepers, keypair.SerializePublicKey(endorsePks[i]))
+		}
+	} else {
+		log.Errorf("Invalid signature counts in block %d: %d vs %d", blkNum, len(endorsePks), len(sigData))
+		sigData = make([][]byte, 0)
+	}
+
 	msg := &peerHeartbeatMsg{
 		CommittedBlockNumber: blkNum,
 		CommittedBlockHash:   blockhash,
 		CommittedBlockLeader: block.getProposer(),
+		Endorsers:            bookkeepers,
+		EndorsersSig:         sigData,
 		ChainConfigView:      self.config.View,
 	}
 
@@ -221,8 +240,8 @@ func (self *Server) constructProposalMsg(blkNum uint64, txs []*types.Transaction
 		return nil, fmt.Errorf("failed to sign proposal: %s", err)
 	}
 
-	msg.Block.Block.Header.SigData[0] = sig
-	msg.Block.Block.Header.SigData[1] = emptySig
+	msg.Block.Block.Header.Bookkeepers = []keypair.PublicKey{self.account.PublicKey, self.account.PublicKey}
+	msg.Block.Block.Header.SigData = [][]byte{sig, emptySig}
 	return msg, nil
 }
 
@@ -230,20 +249,77 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, blkHash comm
 
 	// TODO, support faultyMsg reporting
 
+	var proposerSig, endorserSig []byte
+	var err error
+	if !forEmpty {
+		proposerSig = proposal.Block.Block.Header.SigData[0]
+
+		buf := new(bytes.Buffer)
+		proposal.Block.Block.Header.SerializeUnsigned(buf)
+		endorserSig, err = signature.Sign(self.account, buf.Bytes())
+		if err != nil {
+			return nil, fmt.Errorf("endorser failed to sign blkheader: %s", err)
+		}
+	} else {
+		proposerSig = proposal.Block.Block.Header.SigData[1]
+
+		txroot := proposal.Block.Block.Header.TransactionsRoot
+		proposal.Block.Block.Header.TransactionsRoot = common.UINT256_EMPTY
+		buf := new(bytes.Buffer)
+		proposal.Block.Block.Header.SerializeUnsigned(buf)
+		proposal.Block.Block.Header.TransactionsRoot = txroot
+		endorserSig, err = signature.Sign(self.account, buf.Bytes())
+		if err != nil {
+			return nil, fmt.Errorf("endorser failed to sign blkheader: %s", err)
+		}
+	}
+
 	msg := &blockEndorseMsg{
 		Endorser:          self.Index,
 		EndorsedProposer:  proposal.Block.getProposer(),
 		BlockNum:          proposal.Block.getBlockNum(),
 		EndorsedBlockHash: blkHash,
 		EndorseForEmpty:   forEmpty,
+		ProposerSig:       proposerSig,
+		EndorserSig:       endorserSig,
 	}
 
 	return msg, nil
 }
 
-func (self *Server) constructCommitMsg(proposal *blockProposalMsg, blkHash common.Uint256, forEmpty bool) (*blockCommitMsg, error) {
+func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*blockEndorseMsg, blkHash common.Uint256, forEmpty bool) (*blockCommitMsg, error) {
 
 	// TODO, support faultyMsg reporting
+
+	var proposerSig, committerSig []byte
+	var err error
+
+	if !forEmpty {
+		proposerSig = proposal.Block.Block.Header.SigData[0]
+		buf := new(bytes.Buffer)
+		proposal.Block.Block.Header.SerializeUnsigned(buf)
+		committerSig, err = signature.Sign(self.account, buf.Bytes())
+		if err != nil {
+			return nil, fmt.Errorf("committer failed to sign blkheader: %s", err)
+		}
+	} else {
+		proposerSig = proposal.Block.Block.Header.SigData[1]
+
+		txroot := proposal.Block.Block.Header.TransactionsRoot
+		proposal.Block.Block.Header.TransactionsRoot = common.UINT256_EMPTY
+		buf := new(bytes.Buffer)
+		proposal.Block.Block.Header.SerializeUnsigned(buf)
+		proposal.Block.Block.Header.TransactionsRoot = txroot
+		committerSig, err = signature.Sign(self.account, buf.Bytes())
+		if err != nil {
+			return nil, fmt.Errorf("endorser failed to sign blkheader: %s", err)
+		}
+	}
+
+	endorsersSig := make(map[uint32][]byte)
+	for _, e := range endorses {
+		endorsersSig[e.Endorser] = e.EndorserSig
+	}
 
 	msg := &blockCommitMsg{
 		Committer:       self.Index,
@@ -251,6 +327,9 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, blkHash commo
 		BlockNum:        proposal.Block.getBlockNum(),
 		CommitBlockHash: blkHash,
 		CommitForEmpty:  forEmpty,
+		ProposerSig:     proposerSig,
+		EndorsersSig:    endorsersSig,
+		CommitterSig:    committerSig,
 	}
 
 	return msg, nil

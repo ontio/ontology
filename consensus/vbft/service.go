@@ -330,7 +330,7 @@ func (self *Server) start() error {
 	self.chainStore = store
 	log.Info("block store opened")
 
-	self.blockPool, err = newBlockPool(self.msgHistoryDuration, store)
+	self.blockPool, err = newBlockPool(self, self.msgHistoryDuration, store)
 	if err != nil {
 		log.Errorf("init blockpool: %s", err)
 		return fmt.Errorf("init blockpool: %s", err)
@@ -937,14 +937,14 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	if len(txs) > 1 {
 		// start new routine to verify txs in proposal block
 		go func() {
-			if err := self.poolActor.VerifyBlock(txs[1:], uint32(msgBlkNum)); err != nil {
-				log.Errorf("server %d verify proposal blk from %d failed, blk %d, err: %s",
+			if err := self.poolActor.VerifyBlock(txs[1:], uint32(msgBlkNum)); err != nil && err != actor.ErrTimeout {
+				log.Errorf("server %d verify proposal blk from %d failed, blk %d, txs %d, err: %s",
 					self.Index, msg.Block.getProposer(), msgBlkNum, len(txs), err)
 				return
 			}
 			for _, tx := range txs[1:] {
 				if err := self.incrValidator.Verify(tx, uint32(msgBlkNum)); err != nil {
-					log.Errorf("server %d verify proposal tx from %d failed, blk %d, err: %s",
+					log.Errorf("server %d verify proposal tx from %d failed, blk %d, txs %d, err: %s",
 						self.Index, msg.Block.getProposer(), msgBlkNum, len(txs), err)
 					return
 				}
@@ -1204,47 +1204,35 @@ func (self *Server) actionLoop() {
 
 					// get pending msgs from msgpool
 					pMsgs := self.msgPool.GetProposalMsgs(blkNum)
-					cMsgs := self.msgPool.GetCommitMsgs(blkNum)
-					if len(cMsgs) <= C || len(pMsgs) == 0 {
-						for _, msg := range pMsgs {
-							p := msg.(*blockProposalMsg)
-							if p != nil {
-								if err := self.blockPool.newBlockProposal(p); err != nil {
-									log.Errorf("server %d failed add proposal in fastforwarding: %s",
-										self.Index, err)
-								}
+					for _, msg := range pMsgs {
+						p := msg.(*blockProposalMsg)
+						if p != nil {
+							if err := self.blockPool.newBlockProposal(p); err != nil {
+								log.Errorf("server %d failed add proposal in fastforwarding: %s",
+									self.Index, err)
 							}
 						}
-						for _, msg := range cMsgs {
-							c := msg.(*blockCommitMsg)
-							if c != nil {
-								if err := self.blockPool.newBlockCommitment(c); err != nil {
-									log.Errorf("server %d failed to add commit in fastforwarding: %s",
-										self.Index, err)
-								}
-							}
-						}
-
-						// catcher doesnot participant in the latest round before catched up
-						// rebroadcast timer will reinit the consensus when halt
-						if err := self.catchConsensus(blkNum); err != nil {
-							log.Infof("server %d fastforward done, catch consensus: %s", self.Index, err)
-						}
-
-						log.Infof("server %d fastforward done at blk %d, no msg", self.Index, blkNum)
-						break
 					}
+
+					cMsgs := self.msgPool.GetCommitMsgs(blkNum)
+					commitMsgs := make([]*blockCommitMsg, 0)
+					for _, msg := range cMsgs {
+						c := msg.(*blockCommitMsg)
+						if c != nil {
+							if err := self.blockPool.newBlockCommitment(c); err == nil {
+								commitMsgs = append(commitMsgs, c)
+							} else {
+								log.Errorf("server %d failed to add commit in fastforwarding: %s",
+									self.Index, err)
+							}
+						}
+					}
+
 					log.Infof("server %d fastforwarding from %d, (%d, %d)",
 						self.Index, self.GetCurrentBlockNo(), len(cMsgs), len(pMsgs))
-
-					// convert to blockCommitMsg array
-					commitMsgs := make([]*blockCommitMsg, 0)
-					for _, m := range cMsgs {
-						c, ok := m.(*blockCommitMsg)
-						if !ok {
-							continue
-						}
-						commitMsgs = append(commitMsgs, c)
+					if len(pMsgs) == 0 && len(cMsgs) == 0 {
+						log.Infof("server %d fastforward done, no msg", self.Index)
+						break
 					}
 
 					// check if consensused
@@ -1270,7 +1258,9 @@ func (self *Server) actionLoop() {
 						}
 					}
 					if proposal == nil {
-						log.Errorf("server %d fastforward stopped at blk %d, no proposal", self.Index, blkNum)
+						log.Infof("server %d fastforward stopped at blk %d, no proposal", self.Index, blkNum)
+						self.fetchProposal(blkNum, proposer)
+						self.timer.StartCommitTimer(blkNum)
 						break
 					}
 
@@ -1714,8 +1704,17 @@ func (self *Server) commitBlock(proposal *blockProposalMsg, forEmpty bool) error
 		return fmt.Errorf("failed to hash proposal proposal: %s", err)
 	}
 
+	endorses := make([]*blockEndorseMsg, 0)
+	for _, msg := range self.msgPool.GetEndorsementsMsgs(blkNum) {
+		if e := msg.(*blockEndorseMsg); e != nil {
+			if bytes.Compare(blkHash[:], e.EndorsedBlockHash[:]) == 0 && e.EndorseForEmpty == forEmpty {
+				endorses = append(endorses, e)
+			}
+		}
+	}
+
 	// build commit msg
-	commitMsg, err := self.constructCommitMsg(proposal, blkHash, forEmpty)
+	commitMsg, err := self.constructCommitMsg(proposal, endorses, blkHash, forEmpty)
 	if err != nil {
 		return fmt.Errorf("failed to construct commit msg: %s", err)
 	}
@@ -2218,4 +2217,17 @@ func (self *Server) hasBlockConsensused() bool {
 	}
 
 	return emptyCnt > C
+}
+
+func (self *Server) restartSyncing() {
+
+	// send sync request to self.sync, go syncing-state immediately
+	// stop all bft timers
+
+	self.stateMgr.checkStartSyncing(self.GetCommittedBlockNo(), true)
+
+}
+
+func (self *Server) checkSyncing() {
+	self.stateMgr.checkStartSyncing(self.GetCommittedBlockNo(), false)
 }

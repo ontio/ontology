@@ -71,7 +71,7 @@ func (msg *blockProposalMsg) Verify(pub keypair.PublicKey) error {
 		msg.Block.Block.Header.SigData = sigData
 	}()
 
-	if len(sigData) != 2 {
+	if len(sigData) < 2 {
 		return fmt.Errorf("verify sigData error")
 	}
 	blkHeader := &types.Header{
@@ -95,15 +95,17 @@ func (msg *blockProposalMsg) Verify(pub keypair.PublicKey) error {
 		Block: blk,
 	}
 
-	sigone, err := signature.Deserialize(sigData[1])
-	if err != nil {
-		return fmt.Errorf("failed to deserialize proposal msg sigone: %s", err)
-	}
+	if len(sigData) == 2 {
+		sigone, err := signature.Deserialize(sigData[1])
+		if err != nil {
+			return fmt.Errorf("failed to deserialize proposal msg sigone: %s", err)
+		}
 
-	if data, err := msgdata.Serialize(); err != nil {
-		return fmt.Errorf("failed to serialize proposal msg sigone: %s", err)
-	} else if !signature.Verify(pub, data, sigone) {
-		return fmt.Errorf("failed to verify proposal msg sigone")
+		if data, err := msgdata.Serialize(); err != nil {
+			return fmt.Errorf("failed to serialize proposal msg sigone: %s", err)
+		} else if !signature.Verify(pub, data, sigone) {
+			return fmt.Errorf("failed to verify proposal msg sigone")
+		}
 	}
 
 	blk.Block.Transactions = msg.Block.Block.Transactions
@@ -160,6 +162,8 @@ type blockEndorseMsg struct {
 	EndorsedBlockHash common.Uint256  `json:"endorsed_block_hash"`
 	EndorseForEmpty   bool            `json:"endorse_for_empty"`
 	FaultyProposals   []*FaultyReport `json:"faulty_proposals"`
+	ProposerSig       []byte          `json:"proposer_sig"`
+	EndorserSig       []byte          `json:"endorser_sig"`
 }
 
 func (msg *blockEndorseMsg) Type() MsgType {
@@ -179,12 +183,15 @@ func (msg *blockEndorseMsg) Serialize() ([]byte, error) {
 }
 
 type blockCommitMsg struct {
-	Committer       uint32          `json:"committer"`
-	BlockProposer   uint32          `json:"block_proposer"`
-	BlockNum        uint64          `json:"block_num"`
-	CommitBlockHash common.Uint256  `json:"commit_block_hash"`
-	CommitForEmpty  bool            `json:"commit_for_empty"`
-	FaultyVerifies  []*FaultyReport `json:"faulty_verifies"`
+	Committer       uint32            `json:"committer"`
+	BlockProposer   uint32            `json:"block_proposer"`
+	BlockNum        uint64            `json:"block_num"`
+	CommitBlockHash common.Uint256    `json:"commit_block_hash"`
+	CommitForEmpty  bool              `json:"commit_for_empty"`
+	FaultyVerifies  []*FaultyReport   `json:"faulty_verifies"`
+	ProposerSig     []byte            `json:"proposer_sig"`
+	EndorsersSig    map[uint32][]byte `json:"endorsers_sig"`
+	CommitterSig    []byte            `json:"committer_sig"`
 }
 
 func (msg *blockCommitMsg) Type() MsgType {
@@ -232,6 +239,8 @@ type peerHeartbeatMsg struct {
 	CommittedBlockNumber uint64         `json:"committed_block_number"`
 	CommittedBlockHash   common.Uint256 `json:"committed_block_hash"`
 	CommittedBlockLeader uint32         `json:"committed_block_leader"`
+	Endorsers            [][]byte       `json:"endorsers"`
+	EndorsersSig         [][]byte       `json:"endorsers_sig"`
 	ChainConfigView      uint32         `json:"chain_config_view"`
 }
 
@@ -272,8 +281,9 @@ func (msg *BlockInfoFetchMsg) Serialize() ([]byte, error) {
 }
 
 type BlockInfo_ struct {
-	BlockNum uint64 `json:"block_num"`
-	Proposer uint32 `json:"proposer"`
+	BlockNum   uint64            `json:"block_num"`
+	Proposer   uint32            `json:"proposer"`
+	Signatures map[uint32][]byte `json:"signatures"`
 }
 
 // to fetch committed block from neighbours
