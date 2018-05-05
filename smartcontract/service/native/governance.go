@@ -209,6 +209,11 @@ func RegisterSyncNode(native *NativeService) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[json.Unmarshal] Contract params Unmarshal error!")
 	}
 
+	//check initPos
+	if params.InitPos <= 0 {
+		return errors.NewErr("[registerSyncNode] InitPos must > 0!")
+	}
+
 	//check witness
 	err = validateOwner(native, params.Address)
 	if err != nil {
