@@ -41,7 +41,7 @@ type P2P interface {
 	GetServices() uint64
 	GetPubKey() keypair.PublicKey
 	GetNeighbors() []*peer.Peer
-	GetNeighborAddrs() ([]common.PeerAddr, uint64)
+	GetNeighborAddrs() []common.PeerAddr
 	GetConnectionCnt() uint32
 	GetNp() *peer.NbrPeers
 	GetPeer(uint64) *peer.Peer

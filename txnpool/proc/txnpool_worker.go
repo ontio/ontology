@@ -246,7 +246,7 @@ func (worker *txPoolWorker) sendReq2StatefulV(req *types.CheckTx) {
 		return
 	}
 
-	pid := worker.server.getNextValidatorPID(types.Statefull)
+	pid := worker.server.getNextValidatorPID(types.Stateful)
 	log.Info("worker send tx to the stateful")
 	if pid == nil {
 		return

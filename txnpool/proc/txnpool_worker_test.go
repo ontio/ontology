@@ -66,7 +66,7 @@ func TestWorker(t *testing.T) {
 		WorkerId: tc.MAX_WORKER_NUM,
 		ErrCode:  errors.ErrNoError,
 		Hash:     txn.Hash(),
-		Type:     vt.Statefull,
+		Type:     vt.Stateful,
 		Height:   0,
 	}
 	worker.rspCh <- statelessRsp
@@ -103,7 +103,7 @@ func TestWorker(t *testing.T) {
 		WorkerId: tc.MAX_WORKER_NUM,
 		ErrCode:  errors.ErrUnknown,
 		Hash:     txn.Hash(),
-		Type:     vt.Statefull,
+		Type:     vt.Stateful,
 		Height:   0,
 	}
 	worker.rspCh <- statelessRsp
@@ -125,7 +125,7 @@ func TestWorker(t *testing.T) {
 		WorkerId: tc.MAX_WORKER_NUM + 1,
 		ErrCode:  errors.ErrUnknown,
 		Hash:     txn.Hash(),
-		Type:     vt.Statefull,
+		Type:     vt.Stateful,
 		Height:   0,
 	}
 	worker.rspCh <- statelessRsp
