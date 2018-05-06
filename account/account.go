@@ -148,13 +148,12 @@ func (this *Accountx) VerifyPassword(pwd []byte) bool {
 	return true
 }
 
-func CreateAccount(optionType *string, optionCurve *string, optionScheme *string, password *[]byte) *Accountx {
+func (this *Accountx) SetLabel(label string) {
+	this.Label = label
+}
 
-	inputKeyTypeInfo := KeyTypeMap[*optionType]
-	inputCurveInfo := CurveMap[*optionCurve]
-	inputSchemeInfo := SchemeMap[*optionScheme]
-
-	prvkey, pubkey, _ := keypair.GenerateKeyPair(inputKeyTypeInfo.Code, inputCurveInfo.Code)
+func CreateAccount(TypeCode keypair.KeyType, CurveCode byte, SchemeName string, password *[]byte) *Accountx {
+	prvkey, pubkey, _ := keypair.GenerateKeyPair(TypeCode, CurveCode)
 	ta := types.AddressFromPubKey(pubkey)
 	address := ta.ToBase58()
 
@@ -163,78 +162,12 @@ func CreateAccount(optionType *string, optionCurve *string, optionScheme *string
 
 	var acc = new(Accountx)
 	acc.SetKeyPair(prvSecret)
-	acc.SigSch = inputSchemeInfo.Name
+	acc.SigSch = SchemeName
 	acc.PubKey = hex.EncodeToString(keypair.SerializePublicKey(pubkey))
 	acc.PassHash = hex.EncodeToString(h[:])
 
 	return acc
 }
 
-//map info, to get some information easily
-//todo: move to crypto package
-type KeyTypeInfo struct {
-	Name string
-	Code keypair.KeyType
-}
-
-var KeyTypeMap = map[string]KeyTypeInfo{
-	"":  {"ecdsa", keypair.PK_ECDSA},
-	"1": {"ecdsa", keypair.PK_ECDSA},
-	"2": {"sm2", keypair.PK_SM2},
-	"3": {"ed25519", keypair.PK_EDDSA},
-
-	"ecdsa":   {"ecdsa", keypair.PK_ECDSA},
-	"sm2":     {"sm2", keypair.PK_SM2},
-	"ed25519": {"ed25519", keypair.PK_EDDSA},
-}
-
-type CurveInfo struct {
-	Name string
-	Code byte
-}
-
-var CurveMap = map[string]CurveInfo{
-	"":  {"P-256", keypair.P256},
-	"1": {"P-224", keypair.P224},
-	"2": {"P-256", keypair.P256},
-	"3": {"P-384", keypair.P384},
-	"4": {"P-521", keypair.P521},
-
-	"P-224": {"P-224", keypair.P224},
-	"P-256": {"P-256", keypair.P256},
-	"P-384": {"P-384", keypair.P384},
-	"P-521": {"P-521", keypair.P521},
-
-	"SM2P256V1": {"SM2P256V1", keypair.SM2P256V1},
-	"ED25519":   {"ED25519", keypair.ED25519},
-}
-
-type SchemeInfo struct {
-	Name string
-	Code s.SignatureScheme
-}
-
-var SchemeMap = map[string]SchemeInfo{
-	"":  {"SHA256withECDSA", s.SHA256withECDSA},
-	"1": {"SHA224withECDSA", s.SHA224withECDSA},
-	"2": {"SHA256withECDSA", s.SHA256withECDSA},
-	"3": {"SHA384withECDSA", s.SHA384withECDSA},
-	"4": {"SHA512withEDDSA", s.SHA512withEDDSA},
-	"5": {"SHA3_224withECDSA", s.SHA3_224withECDSA},
-	"6": {"SHA3_256withECDSA", s.SHA3_256withECDSA},
-	"7": {"SHA3_384withECDSA", s.SHA3_384withECDSA},
-	"8": {"SHA3_512withECDSA", s.SHA3_512withECDSA},
-	"9": {"RIPEMD160withECDSA", s.RIPEMD160withECDSA},
-
-	"SHA224withECDSA":    {"SHA224withECDSA", s.SHA224withECDSA},
-	"SHA256withECDSA":    {"SHA256withECDSA", s.SHA256withECDSA},
-	"SHA384withECDSA":    {"SHA384withECDSA", s.SHA384withECDSA},
-	"SHA512withEDDSA":    {"SHA512withEDDSA", s.SHA512withEDDSA},
-	"SHA3_224withECDSA":  {"SHA3_224withECDSA", s.SHA3_224withECDSA},
-	"SHA3_256withECDSA":  {"SHA3_256withECDSA", s.SHA3_256withECDSA},
-	"SHA3_384withECDSA":  {"SHA3_384withECDSA", s.SHA3_384withECDSA},
-	"SHA3_512withECDSA":  {"SHA3_512withECDSA", s.SHA3_512withECDSA},
-	"RIPEMD160withECDSA": {"RIPEMD160withECDSA", s.RIPEMD160withECDSA},
-
-	"SM3withSM2": {"SM3withSM2", s.SM3withSM2},
-}
+//TODO:: add -label 限制严格一些.
+//TODO:: add import 钱包,

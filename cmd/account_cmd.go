@@ -25,6 +25,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
+	s "github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/common/password"
@@ -94,6 +95,7 @@ func accountCreate(ctx *cli.Context) error {
 	optionType := ""
 	optionCurve := ""
 	optionScheme := ""
+	optionLabel := ""
 
 	optionFile := checkFileName(ctx)
 	optionDefault := ctx.IsSet("default")
@@ -102,6 +104,7 @@ func accountCreate(ctx *cli.Context) error {
 		optionType = checkType(ctx, reader)
 		optionCurve = checkCurve(ctx, reader, &optionType)
 		optionScheme = checkScheme(ctx, reader, &optionType)
+		optionLabel = checkLabel(ctx)
 	}
 
 	pass, _ := password.GetConfirmedPassword()
@@ -114,13 +117,17 @@ func accountCreate(ctx *cli.Context) error {
 	}
 
 	for i := 0; i < optionNumber; i++ {
-		acc := account.CreateAccount(&optionType, &optionCurve, &optionScheme, &pass)
+		acc := account.CreateAccount(KeyTypeMap[optionType].Code, CurveMap[optionCurve].Code, SchemeMap[optionScheme].Name, &pass)
+		acc.SetLabel(optionLabel)
 		wallet.AddAccount(acc)
+
+		fmt.Println()
+		fmt.Println("Label: ", acc.Label)
 		fmt.Println("Address: ", acc.Address)
 		fmt.Println("Public key:", acc.PubKey)
 		fmt.Println("Signature scheme:", acc.SigSch)
-		fmt.Println("")
 	}
+	fmt.Println()
 
 	for i := 0; i < len(pass); i++ {
 		(pass)[i] = 0
@@ -152,9 +159,9 @@ func accountShow(ctx *cli.Context) error {
 		// look for every account and show details
 		for i, acc := range wallet.Accounts {
 			if acc.IsDefault {
-				fmt.Printf("* %v\t%v\n", i+1, acc.Address)
+				fmt.Printf("* %v\t%v\t%v\n", i+1, acc.Address, acc.Label)
 			} else {
-				fmt.Printf("  %v\t%v\n", i+1, acc.Address)
+				fmt.Printf("  %v\t%v\t%v\n", i+1, acc.Address, acc.Label)
 			}
 		}
 		fmt.Println("\nUse -v or --verbose option to display details.")
@@ -166,6 +173,7 @@ func accountShow(ctx *cli.Context) error {
 			} else {
 				fmt.Printf("  %v\t%v\n", i+1, acc.Address)
 			}
+			fmt.Printf("	Label: %v\n", acc.Label)
 			fmt.Printf("	Signature algorithm: %v\n", acc.Alg)
 			fmt.Printf("	Curve: %v\n", acc.Param["curve"])
 			fmt.Printf("	Key length: %v bits\n", len(acc.Key)*8)
@@ -200,32 +208,35 @@ func accountSet(ctx *cli.Context) error {
 		return nil
 	}
 
-	find := false
-
 	if ctx.IsSet("as-default") {
-		fmt.Printf("Set account %d to the default account\n", index)
 		for _, v := range wallet.Accounts {
 			if v.IsDefault {
 				v.IsDefault = false
 			}
 		}
 		wallet.Accounts[index-1].IsDefault = true
-	} else {
-		if ctx.IsSet("signature-scheme") {
-			for key, val := range account.SchemeMap {
-				if val.Name == ctx.String("signature-scheme") {
-					inputSchemeInfo := account.SchemeMap[key]
-					find = true
-					fmt.Printf("%s is selected. \n", inputSchemeInfo.Name)
-					wallet.Accounts[index-1].SigSch = inputSchemeInfo.Name
-					break
-				}
+		fmt.Printf("Account <%v> is set as default account.\n", index)
+	}
+
+	if ctx.IsSet("signature-scheme") {
+		find := false
+		for key, val := range SchemeMap {
+			if val.Name == ctx.String("signature-scheme") {
+				inputSchemeInfo := SchemeMap[key]
+				find = true
+				fmt.Printf("Account <%v>'s signature scheme is set to '%s'.\n", index, inputSchemeInfo.Name)
+				wallet.Accounts[index-1].SigSch = inputSchemeInfo.Name
+				break
 			}
-			fmt.Printf("%s is not a valid content for option -s \n", ctx.String("signature-scheme"))
 		}
 		if !find {
-			fmt.Printf("Invalid arguments! Nothing changed.\n")
+			fmt.Printf("%s is not a valid content for option -s \n", ctx.String("signature-scheme"))
 		}
+	}
+
+	if ctx.IsSet("label") {
+		wallet.Accounts[index-1].Label = checkLabel(ctx)
+		fmt.Printf("Account <%v>'s label is set to '%v'.\n", index, wallet.Accounts[index-1].Label)
 	}
 
 	if wallet.Save(optionFile) != nil {
@@ -340,10 +351,10 @@ func chooseKeyType(reader *bufio.Reader) string {
 	for {
 		tmp, _ := reader.ReadString('\n')
 		tmp = strings.TrimSpace(tmp)
-		_, ok := account.KeyTypeMap[tmp]
+		_, ok := KeyTypeMap[tmp]
 		if ok {
-			fmt.Printf("%s is selected. \n", account.KeyTypeMap[tmp].Name)
-			return account.KeyTypeMap[tmp].Name
+			fmt.Printf("%s is selected. \n", KeyTypeMap[tmp].Name)
+			return KeyTypeMap[tmp].Name
 		} else {
 			fmt.Print("Input error! Please enter a number above: ")
 		}
@@ -356,10 +367,10 @@ func chooseScheme(reader *bufio.Reader) string {
 		tmp, _ := reader.ReadString('\n')
 		tmp = strings.TrimSpace(tmp)
 
-		_, ok := account.SchemeMap[tmp]
+		_, ok := SchemeMap[tmp]
 		if ok {
-			fmt.Printf("scheme %s is selected.\n", account.SchemeMap[tmp].Name)
-			return account.SchemeMap[tmp].Name
+			fmt.Printf("scheme %s is selected.\n", SchemeMap[tmp].Name)
+			return SchemeMap[tmp].Name
 		} else {
 			fmt.Print("Input error! Please enter a number above:")
 		}
@@ -371,10 +382,10 @@ func chooseCurve(reader *bufio.Reader) string {
 	for true {
 		tmp, _ := reader.ReadString('\n')
 		tmp = strings.TrimSpace(tmp)
-		_, ok := account.CurveMap[tmp]
+		_, ok := CurveMap[tmp]
 		if ok {
-			fmt.Printf("scheme %s is selected.\n", account.CurveMap[tmp].Name)
-			return account.CurveMap[tmp].Name
+			fmt.Printf("scheme %s is selected.\n", CurveMap[tmp].Name)
+			return CurveMap[tmp].Name
 		} else {
 			fmt.Print("Input error! Please enter a number above:")
 		}
@@ -405,11 +416,18 @@ func checkNumber(ctx *cli.Context) uint {
 		return 1
 	}
 }
+func checkLabel(ctx *cli.Context) string {
+	if ctx.IsSet("label") {
+		return ctx.String("label")
+	} else {
+		return ""
+	}
+}
 func checkType(ctx *cli.Context, reader *bufio.Reader) string {
 	t := ""
 	if ctx.IsSet("type") {
-		if _, ok := account.KeyTypeMap[ctx.String("type")]; ok {
-			t = account.KeyTypeMap[ctx.String("type")].Name
+		if _, ok := KeyTypeMap[ctx.String("type")]; ok {
+			t = KeyTypeMap[ctx.String("type")].Name
 			fmt.Printf("%s is selected. \n", t)
 		} else {
 			fmt.Printf("%s is not a valid content for option -t \n", ctx.String("type"))
@@ -425,8 +443,8 @@ func checkCurve(ctx *cli.Context, reader *bufio.Reader, t *string) string {
 	switch *t {
 	case "ecdsa":
 		if ctx.IsSet("bit-length") {
-			if _, ok := account.CurveMap[ctx.String("bit-length")]; ok {
-				c = account.CurveMap[ctx.String("bit-length")].Name
+			if _, ok := CurveMap[ctx.String("bit-length")]; ok {
+				c = CurveMap[ctx.String("bit-length")].Name
 				fmt.Printf("%s is selected. \n", c)
 			} else {
 				fmt.Printf("%s is not a valid content for option -b \n", ctx.String("bit-length"))
@@ -454,8 +472,8 @@ func checkScheme(ctx *cli.Context, reader *bufio.Reader, t *string) string {
 	switch *t {
 	case "ecdsa":
 		if ctx.IsSet("bit-length") {
-			if _, ok := account.SchemeMap[ctx.String("signature-scheme")]; ok {
-				s = account.SchemeMap[ctx.String("signature-scheme")].Name
+			if _, ok := SchemeMap[ctx.String("signature-scheme")]; ok {
+				s = SchemeMap[ctx.String("signature-scheme")].Name
 				fmt.Printf("%s is selected. \n", s)
 			} else {
 				fmt.Printf("%s is not a valid content for option -s \n", ctx.String("signature-scheme"))
@@ -477,4 +495,72 @@ func checkScheme(ctx *cli.Context, reader *bufio.Reader, t *string) string {
 		return ""
 	}
 	return s
+}
+
+//map info, to get some information easily
+type KeyTypeInfo struct {
+	Name string
+	Code keypair.KeyType
+}
+
+var KeyTypeMap = map[string]KeyTypeInfo{
+	"":  {"ecdsa", keypair.PK_ECDSA},
+	"1": {"ecdsa", keypair.PK_ECDSA},
+	"2": {"sm2", keypair.PK_SM2},
+	"3": {"ed25519", keypair.PK_EDDSA},
+
+	"ecdsa":   {"ecdsa", keypair.PK_ECDSA},
+	"sm2":     {"sm2", keypair.PK_SM2},
+	"ed25519": {"ed25519", keypair.PK_EDDSA},
+}
+
+type CurveInfo struct {
+	Name string
+	Code byte
+}
+
+var CurveMap = map[string]CurveInfo{
+	"":  {"P-256", keypair.P256},
+	"1": {"P-224", keypair.P224},
+	"2": {"P-256", keypair.P256},
+	"3": {"P-384", keypair.P384},
+	"4": {"P-521", keypair.P521},
+
+	"P-224": {"P-224", keypair.P224},
+	"P-256": {"P-256", keypair.P256},
+	"P-384": {"P-384", keypair.P384},
+	"P-521": {"P-521", keypair.P521},
+
+	"SM2P256V1": {"SM2P256V1", keypair.SM2P256V1},
+	"ED25519":   {"ED25519", keypair.ED25519},
+}
+
+type SchemeInfo struct {
+	Name string
+	Code s.SignatureScheme
+}
+
+var SchemeMap = map[string]SchemeInfo{
+	"":  {"SHA256withECDSA", s.SHA256withECDSA},
+	"1": {"SHA224withECDSA", s.SHA224withECDSA},
+	"2": {"SHA256withECDSA", s.SHA256withECDSA},
+	"3": {"SHA384withECDSA", s.SHA384withECDSA},
+	"4": {"SHA512withEDDSA", s.SHA512withEDDSA},
+	"5": {"SHA3_224withECDSA", s.SHA3_224withECDSA},
+	"6": {"SHA3_256withECDSA", s.SHA3_256withECDSA},
+	"7": {"SHA3_384withECDSA", s.SHA3_384withECDSA},
+	"8": {"SHA3_512withECDSA", s.SHA3_512withECDSA},
+	"9": {"RIPEMD160withECDSA", s.RIPEMD160withECDSA},
+
+	"SHA224withECDSA":    {"SHA224withECDSA", s.SHA224withECDSA},
+	"SHA256withECDSA":    {"SHA256withECDSA", s.SHA256withECDSA},
+	"SHA384withECDSA":    {"SHA384withECDSA", s.SHA384withECDSA},
+	"SHA512withEDDSA":    {"SHA512withEDDSA", s.SHA512withEDDSA},
+	"SHA3_224withECDSA":  {"SHA3_224withECDSA", s.SHA3_224withECDSA},
+	"SHA3_256withECDSA":  {"SHA3_256withECDSA", s.SHA3_256withECDSA},
+	"SHA3_384withECDSA":  {"SHA3_384withECDSA", s.SHA3_384withECDSA},
+	"SHA3_512withECDSA":  {"SHA3_512withECDSA", s.SHA3_512withECDSA},
+	"RIPEMD160withECDSA": {"RIPEMD160withECDSA", s.RIPEMD160withECDSA},
+
+	"SM3withSM2": {"SM3withSM2", s.SM3withSM2},
 }

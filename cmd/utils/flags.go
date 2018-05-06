@@ -168,6 +168,10 @@ var (
 		Value: "wallet.dat",
 		Usage: "Use `<filename>` as the wallet",
 	}
+	AccountLabelFlag = cli.StringFlag{
+		Name:  "label,l",
+		Usage: "Use `<label>` for the account",
+	}
 )
 
 func MigrateFlags(action func(ctx *cli.Context) error) func(*cli.Context) error {
