@@ -74,4 +74,9 @@ var (
 	fileFlags = []cli.Flag{
 		utils.AccountFileFlag,
 	}
+	importFlags = []cli.Flag{
+		utils.AccountFileFlag,
+		utils.AccountSourceFileFlag,
+		utils.AccountKeyFlag,
+	}
 )

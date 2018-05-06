@@ -29,6 +29,7 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/common/password"
+	"github.com/ontio/ontology/core/types"
 	"github.com/urfave/cli"
 	"os"
 	"strconv"
@@ -83,6 +84,15 @@ var (
 				Usage:       "Encrypt the specified account",
 				Flags:       fileFlags,
 				Description: `Encrypt the specified account using new password. Account is specified by index. This can be showed by the 'list' command.`,
+			},
+
+			{
+				Action:      accountImport,
+				Name:        "import",
+				ArgsUsage:   "[sub-command options] <args>",
+				Usage:       "Import the account to current wallet.",
+				Flags:       importFlags,
+				Description: `Import the accounts of source wallet file to current wallet. Import an account by private key(not recommended).`,
 			},
 		},
 	}
@@ -341,6 +351,76 @@ func encrypt(ctx *cli.Context) error {
 
 	fmt.Println("encrypt account successfully.")
 	fmt.Println("")
+
+	return nil
+}
+
+func accountImport(ctx *cli.Context) error {
+	optionFile := checkFileName(ctx)
+	wallet := new(account.WalletData)
+	if wallet.Load(optionFile) != nil {
+		wallet.Inititalize()
+	}
+
+	if ctx.IsSet("source") { //check -source
+		source := ctx.String("source")
+		sourceWallet := new(account.WalletData)
+		//TODO: check wallet file format.
+		err := sourceWallet.Load(source)
+		if err != nil {
+			fmt.Printf("%s doesn't exist, import failed.\n\n", source)
+			return nil
+		}
+		// remove default account setting in source file
+		for _, v := range sourceWallet.Accounts {
+			if v.IsDefault {
+				v.IsDefault = false
+			}
+		}
+
+		wallet.Accounts = append(wallet.Accounts, sourceWallet.Accounts...)
+	} else if ctx.IsSet("key") { //check -key
+		//TODO: wait to discuss what type of key to import.
+		fmt.Printf("-key is not supported currentlt, please use -source to import account.\n\n")
+		return nil
+
+		skHex := ctx.String("key")
+		skStr, err := hex.DecodeString(skHex)
+		if err != nil {
+			fmt.Printf("cannot parse key!\n")
+			return nil
+		}
+		prvkey, _ := keypair.DeserializePrivateKey(skStr)
+		pubkey := prvkey.Public()
+		ta := types.AddressFromPubKey(pubkey)
+		address := ta.ToBase58()
+
+		pass := make([]byte, 0, 0)
+		if ctx.IsSet("password") {
+			pass = []byte(ctx.String("password"))
+		} else {
+			//let user enter password with double check
+			pass, _ = password.GetConfirmedPassword()
+		}
+
+		prvSecret, _ := keypair.EncryptPrivateKey(prvkey, address, pass)
+		h := sha256.Sum256(pass)
+		for i := 0; i < len(pass); i++ {
+			pass[i] = 0
+		}
+
+		var acc = new(account.Accountx)
+		acc.SetKeyPair(prvSecret)
+		acc.SigSch = ""
+		acc.PubKey = hex.EncodeToString(keypair.SerializePublicKey(pubkey))
+		acc.PassHash = hex.EncodeToString(h[:])
+
+		wallet.Accounts = append(wallet.Accounts, acc)
+	}
+
+	if wallet.Save(optionFile) != nil {
+		fmt.Println("Wallet file save failed.")
+	}
 
 	return nil
 }
