@@ -394,9 +394,6 @@ func (self *StateMgr) checkStartSyncing(startBlkNum uint64, forceSync bool) erro
 	if maxCommitted > startBlkNum || forceSync {
 		self.currentState = Syncing
 		startBlkNum = self.server.GetCommittedBlockNo() + 1
-		if maxCommitted <= startBlkNum {
-			maxCommitted = startBlkNum + 1
-		}
 
 		log.Infof("server %d, start syncing %d - %d, with %v", self.server.Index, startBlkNum, maxCommitted, peers)
 		self.server.syncer.blockSyncReqC <- &BlockSyncReq{
