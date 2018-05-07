@@ -19,24 +19,46 @@
 package common
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"os"
+	"github.com/urfave/cli"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/password"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/cmd/utils"
+	"github.com/ontio/ontology/account"
 )
 
-func EchoJsonDataGracefully(block interface{}) {
-	jsons, errs := json.Marshal(block)
-	if errs != nil {
-		fmt.Printf("Marshal json err:%s", errs.Error())
-		return
+func OpenWallet(ctx *cli.Context) (*account.ClientImpl, error){
+	walletFile := ctx.GlobalString(utils.WalletFileFlag.Name)
+	if walletFile == "" {
+		walletFile = config.DEFAULT_WALLET_FILE_NAME
 	}
+	if !common.FileExisted(walletFile) {
+		return nil, fmt.Errorf("Transfer failed, cannot found wallet:%s", walletFile)
+	}
+	var err error
+	var passwd []byte
+	if ctx.IsSet("password") {
+		passwd = []byte(ctx.String("password"))
+	} else {
+		passwd, err = password.GetAccountPassword()
+		if err != nil {
+			return nil, fmt.Errorf("Input password error:%s", err)
+		}
+	}
+	wallet := account.Open(walletFile, passwd)
+	if wallet == nil {
+		return  nil, fmt.Errorf("open wallet:%s failed", walletFile)
+	}
+	return wallet, nil
+}
 
-	var out bytes.Buffer
-	err := json.Indent(&out, jsons, "", "\t")
-	if err != nil {
-		fmt.Printf("Gracefully format json err: %s", err.Error())
-		return
+func CommonCommandErrorHandler(ctx *cli.Context, err error, isSubcommand bool)error {
+	fmt.Printf("%s\n", err)
+	if isSubcommand {
+		cli.ShowSubcommandHelp(ctx)
+	}else{
+		cli.ShowCommandCompletions(ctx, ctx.Command.Name)
 	}
-	out.WriteTo(os.Stdout)
+	return nil
 }

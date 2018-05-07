@@ -25,9 +25,10 @@ import (
 	cfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/http/base/rpc"
+	"fmt"
 )
 
-func StartRPCServer() {
+func StartRPCServer() error{
 	log.Debug()
 	http.HandleFunc("/", rpc.Handle)
 
@@ -53,8 +54,9 @@ func StartRPCServer() {
 	rpc.HandleFunc("getbalance", rpc.GetBalance)
 	rpc.HandleFunc("getmerkleproof", rpc.GetMerkleProof)
 
-	err := http.ListenAndServe(":"+strconv.Itoa(cfg.Parameters.HttpJsonPort), nil)
+	err := http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.HttpJsonPort)), nil)
 	if err != nil {
-		log.Fatal("ListenAndServe: ", err.Error())
+		return fmt.Errorf("ListenAndServe error:%s", err)
 	}
+	return nil
 }
