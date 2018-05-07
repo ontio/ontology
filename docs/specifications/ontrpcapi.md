@@ -80,7 +80,7 @@ Transaction field description
 | getstorage | script_hash | Returns the stored value according to the contract script hashes and stored key. |  |
 | getversion |  | Get the version information of the query node |  |
 | getblocksysfee |  | According to the specified index, return the system fee before the block. |  |
-| getcontractstate | script_hash | According to the contract script hash, query the contract information. |  |
+| getcontractstate | script_hash,[verbose] | According to the contract script hash, query the contract information. |  |
 | getmempooltxstate | tx_hash | Query the transaction status in the memory pool. |  |
 | getsmartcodeevent |  | Get smartcode event |  |
 | getblockheightbytxhash | tx_hash | get blockheight of txhash|  |
@@ -355,7 +355,7 @@ Returns the corresponding transaction information based on the specified hash va
 
 txid: transaction ID
 
-Verbose: Optional parameter, the default value of verbose is 0, when verbose is 0, it returns the block serialized information, which is represented by a hexadecimal string. To get detailed information from it, you need to call the SDK to deserialize. When verbose is 1, the detailed information of the corresponding block is returned, which is represented by a JSON format string.
+Verbose: Optional parameter, the default value of verbose is 0, when verbose is 0, it returns the transaction serialized information, which is represented by a hexadecimal string. To get detailed information from it, you need to call the SDK to deserialize. When verbose is 1, the detailed information of the corresponding transaction is returned, which is represented by a JSON format string.
 
 #### Example
 
@@ -733,6 +733,7 @@ According to the contract script hash, query the contract information.
 #### Parameter instruction
 
 script\_hash: Contract script hash.
+verbose: Optional parameter, the default value of verbose is 0, when verbose is 0, it returns the contract serialized information, which is represented by a hexadecimal string. To get detailed information from it, you need to call the SDK to deserialize. When verbose is 1, the detailed information of the corresponding contract is returned, which is represented by a JSON format string.
 
 #### Example
 
