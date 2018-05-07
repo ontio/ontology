@@ -183,7 +183,14 @@ func (self *StateMgr) onPeerUpdate(peerState *PeerState) error {
 		self.server.Index, self.server.GetCurrentBlockNo(), self.currentState, peerState.peerIdx, peerState.committedBlockNum)
 
 	// update peer state
+	var lastPeerCommitted uint64
+	if _, present := self.peers[peerIdx]; present {
+		lastPeerCommitted = self.peers[peerIdx].committedBlockNum
+	}
 	self.peers[peerIdx] = peerState
+	if peerState.committedBlockNum == lastPeerCommitted {
+		return nil
+	}
 
 	if !newPeer {
 		if isActive(self.currentState) && peerState.committedBlockNum > self.server.GetCurrentBlockNo()+MAX_SYNCING_CHECK_BLK_NUM {
@@ -448,13 +455,13 @@ func (self *StateMgr) canFastForward(targetBlkNum uint64) bool {
 	// one block less than targetBlkNum is also acceptable for fastforward
 	for blkNum := self.server.GetCurrentBlockNo(); blkNum < targetBlkNum; blkNum++ {
 		if len(self.server.msgPool.GetProposalMsgs(blkNum)) == 0 {
-			log.Info("server %d check fastforward false, no proposal for block %d",
+			log.Infof("server %d check fastforward false, no proposal for block %d",
 				self.server.Index, blkNum)
 			return false
 		}
 		cMsgs := self.server.msgPool.GetCommitMsgs(blkNum)
 		if len(cMsgs) <= C {
-			log.Info("server %d check fastforward false, only %d commit msg for block %d",
+			log.Infof("server %d check fastforward false, only %d commit msg for block %d",
 				self.server.Index, len(cMsgs), blkNum)
 			return false
 		}

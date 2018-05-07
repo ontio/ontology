@@ -130,6 +130,10 @@ func NewVbftServer(account *account.Account, txpool, p2p *actor.PID) (*Server, e
 	}
 	server.pid = pid
 	server.sub = events.NewActorSubscriber(pid)
+
+	if err := server.start(); err != nil {
+		return nil, fmt.Errorf("vbft server start failed: %s", err)
+	}
 	return server, nil
 }
 
@@ -146,9 +150,7 @@ func (self *Server) Receive(context actor.Context) {
 	case *actor.Restart:
 		log.Info("vbft actor restart")
 	case *actorTypes.StartConsensus:
-		if err := self.start(); err != nil {
-			log.Errorf("vbft start failed: %s", err)
-		}
+		log.Info("vbft actor start consensus")
 	case *actorTypes.StopConsensus:
 		self.stop()
 	case *message.SaveBlockCompleteMsg:
@@ -170,7 +172,6 @@ func (self *Server) GetPID() *actor.PID {
 }
 
 func (self *Server) Start() error {
-	self.pid.Tell(&actorTypes.StartConsensus{})
 	return nil
 }
 
