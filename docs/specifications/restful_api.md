@@ -1,7 +1,7 @@
 # Ontology Restful API
 
 * [Introduction](#introduction)
-* [Restful Api List](#restful-Api-List)
+* [Restful Api List](#restful-api-list)
 * [Error Code](#errorcode)
 
 Restful Api List
