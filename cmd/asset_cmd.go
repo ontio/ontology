@@ -19,333 +19,147 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/hex"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"math/big"
-	"os"
-	"time"
-
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	cmdCom "github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/password"
-	"github.com/ontio/ontology/core/genesis"
-	"github.com/ontio/ontology/core/signature"
-	ctypes "github.com/ontio/ontology/core/types"
-	cutils "github.com/ontio/ontology/core/utils"
-	jrpc "github.com/ontio/ontology/http/base/rpc"
-	nstates "github.com/ontio/ontology/smartcontract/service/native/states"
-	"github.com/ontio/ontology/smartcontract/states"
-	vmtypes "github.com/ontio/ontology/smartcontract/types"
 	"github.com/urfave/cli"
 )
 
-var (
-	AssetCommand = cli.Command{
-		Name:         "asset",
-		Action:       utils.MigrateFlags(assetCommand),
-		Usage:        "Handle assets",
-		OnUsageError: assetUsageError,
-		Description:  `asset control`,
-		Subcommands: []cli.Command{
-			{
-				Action:       transferAsset,
-				OnUsageError: transferAssetUsageError,
-				Name:         "transfer",
-				Usage:        "Transfer asset to another account",
-				ArgsUsage:    " ",
-				Description:  `Transfer some asset to another account. Asset type is specified by its contract address. Default is the ont contract.`,
-				Flags: []cli.Flag{
-					utils.ContractAddrFlag,
-					utils.TransactionFromFlag,
-					utils.TransactionToFlag,
-					utils.TransactionValueFlag,
-					utils.AccountPassFlag,
-					utils.AccountFileFlag,
-				},
-			},
-			{
-				Action:       queryTransferStatus,
-				OnUsageError: transferAssetUsageError,
-				Name:         "status",
-				Usage:        "Display asset status",
-				ArgsUsage:    "[address]",
-				Description:  `Display asset transfer status of [address] or the default account if not specified.`,
-				Flags: []cli.Flag{
-					cli.StringFlag{
-						Name:  "hash",
-						Usage: "Specifies transaction hash `<hash>`",
-					},
-				},
-			},
-			{
-				Action:       ontBalance,
-				OnUsageError: balanceUsageError,
-				Name:         "balance",
-				Usage:        "Show balance of ont and ong of specified account",
-				ArgsUsage:    "[address]",
-				Flags: []cli.Flag{
-					utils.AccountPassFlag,
-					utils.AccountFileFlag,
-				},
+var AssetCommand = cli.Command{
+	Name:         "asset",
+	Usage:        "Handle assets",
+	OnUsageError: cmdCom.CommonCommandErrorHandler,
+	Description:  `asset control`,
+	Subcommands: []cli.Command{
+		{
+			Action:       transfer,
+			OnUsageError: cmdCom.CommonCommandErrorHandler,
+			Name:         "transfer",
+			Usage:        "Transfer ont to another account",
+			ArgsUsage:    " ",
+			Description:  "Transfer ont to another account. If from address doesnot specific, using default account",
+			Flags: []cli.Flag{
+				utils.TransactionFromFlag,
+				utils.TransactionToFlag,
+				utils.TransactionAmountFlag,
+				utils.WalletFileFlag,
 			},
 		},
-	}
-)
-
-func assetUsageError(context *cli.Context, err error, isSubcommand bool) error {
-	fmt.Println(err.Error())
-	fmt.Println("")
-	cli.ShowSubcommandHelp(context)
-	return nil
+		{
+			Action:       getBalance,
+			OnUsageError: cmdCom.CommonCommandErrorHandler,
+			Name:         "balance",
+			Usage:        "Show balance of ont and ong of specified account",
+			ArgsUsage:    "[address]",
+			Flags: []cli.Flag{
+				utils.AccountAddressFlag,
+				utils.WalletFileFlag,
+			},
+		},
+		{
+			Action:       queryTransferStatus,
+			OnUsageError: cmdCom.CommonCommandErrorHandler,
+			Name:         "status",
+			Usage:        "Display asset status",
+			ArgsUsage:    "[address]",
+			Description:  `Display asset transfer status of [address] or the default account if not specified.`,
+			Flags: []cli.Flag{
+				utils.TransactionHashFlag,
+			},
+		},
+	},
 }
 
-func assetCommand(ctx *cli.Context) error {
-	fmt.Println("Error usage.\n")
-	cli.ShowSubcommandHelp(ctx)
-	return nil
-}
-
-func transferAssetUsageError(context *cli.Context, err error, isSubcommand bool) error {
-	fmt.Println(err.Error())
-	fmt.Println("")
-	cli.ShowSubcommandHelp(context)
-	return nil
-}
-
-func balanceUsageError(context *cli.Context, err error, isSubcommand bool) error {
-	fmt.Println(err)
-	fmt.Println("")
-	cli.ShowSubcommandHelp(context)
-	return nil
-}
-
-func signTransaction(signer *account.Account, tx *ctypes.Transaction) error {
-	hash := tx.Hash()
-	sign, _ := signature.Sign(signer, hash[:])
-	tx.Sigs = append(tx.Sigs, &ctypes.Sig{
-		PubKeys: []keypair.PublicKey{signer.PublicKey},
-		M:       1,
-		SigData: [][]byte{sign},
-	})
-	return nil
-}
-
-func transferAsset(ctx *cli.Context) error {
-	if !ctx.IsSet(utils.TransactionFromFlag.Name) || !ctx.IsSet(utils.TransactionToFlag.Name) || !ctx.IsSet(utils.TransactionValueFlag.Name) {
-		fmt.Println("Missing argument.\n")
-		cli.ShowSubcommandHelp(ctx)
-		return nil
-	}
-	ctu := genesis.OntContractAddress
-	if ctx.IsSet(utils.ContractAddrFlag.Name) {
-		contract := ctx.String(utils.ContractAddrFlag.Name)
-		ct, err := common.HexToBytes(contract)
-		if err != nil {
-			fmt.Println("Parase contract address error, from hex to bytes")
-			return err
-		}
-
-		ctu, err = common.AddressParseFromBytes(ct)
-		if err != nil {
-			fmt.Println("Parase contract address error, please use correct smart contract address")
-			return err
-		}
+func transfer(ctx *cli.Context) error {
+	if !ctx.IsSet(utils.TransactionToFlag.Name) || !ctx.IsSet(utils.TransactionAmountFlag.Name) {
+		return fmt.Errorf("Missing argument to or amount")
 	}
 
 	from := ctx.String(utils.TransactionFromFlag.Name)
-	fu, err := common.AddressFromBase58(from)
-	if err != nil {
-		fmt.Println("Parase transfer-from address error, make sure you are using base58 address")
-		return err
-	}
-
 	to := ctx.String(utils.TransactionToFlag.Name)
-	tu, err := common.AddressFromBase58(to)
+	amount := ctx.Uint(utils.TransactionAmountFlag.Name)
+
+	wallet, err := cmdCom.OpenWallet(ctx)
 	if err != nil {
-		fmt.Println("Parase transfer-to address error, make sure you are using base58 address")
-		return err
+		return fmt.Errorf("OpenWallet error:%s", err)
 	}
-
-	value := ctx.Int64("value")
-	if value <= 0 {
-		fmt.Println("Value must be int type and bigger than zero. Invalid ont amount: ", value)
-		return errors.New("Value is invalid")
-	}
-
-	var passwd []byte
-	var filename string = account.WALLET_FILENAME
-	if ctx.IsSet("file") {
-		filename = ctx.String("file")
-	}
-	if !common.FileExisted(filename) {
-		fmt.Println(filename, "not found.")
-		return errors.New("Asset transfer failed.")
-	}
-	if ctx.IsSet("password") {
-		passwd = []byte(ctx.String("password"))
+	var signer *account.Account
+	if from == "" {
+		signer = wallet.GetDefaultAccount()
+		if signer == nil {
+			return fmt.Errorf("Please specific from address correctly")
+		}
 	} else {
-		passwd, err = password.GetAccountPassword()
+		fromAddr, err := common.AddressFromBase58(from)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return errors.New("input password error")
+			return fmt.Errorf("Invalid from address:%s", from)
+		}
+		signer = wallet.GetAccountByAddress(fromAddr)
+		if signer == nil {
+			return fmt.Errorf("Cannot found account by address:%s", from)
 		}
 	}
-	acct := account.Open(filename, passwd)
-	for i, _ := range passwd {
-		passwd[i] = 0
-	}
-	if nil == acct {
-		fmt.Println("Open account failed, please check your input password and make sure your wallet.dat exist")
-		return errors.New("Get Account Error")
-	}
 
-	acc := acct.GetAccountByAddress(fu)
-	if nil == acc {
-		fmt.Println("Get account by address error")
-		return errors.New("Get Account Error")
-	}
-
-	var sts []*nstates.State
-	sts = append(sts, &nstates.State{
-		From:  fu,
-		To:    tu,
-		Value: big.NewInt(value),
-	})
-	transfers := &nstates.Transfers{
-		States: sts,
-	}
-	bf := new(bytes.Buffer)
-
-	if err := transfers.Serialize(bf); err != nil {
-		fmt.Println("Serialize transfers struct error.")
-		return err
-	}
-
-	cont := &states.Contract{
-		Address: ctu,
-		Method:  "transfer",
-		Args:    bf.Bytes(),
-	}
-
-	ff := new(bytes.Buffer)
-
-	if err := cont.Serialize(ff); err != nil {
-		fmt.Println("Serialize contract struct error.")
-		return err
-	}
-
-	tx := cutils.NewInvokeTransaction(vmtypes.VmCode{
-		VmType: vmtypes.Native,
-		Code:   ff.Bytes(),
-	})
-
-	tx.Nonce = uint32(time.Now().Unix())
-
-	if err := signTransaction(acc, tx); err != nil {
-		fmt.Println("signTransaction error:", err)
-		return err
-	}
-
-	txbf := new(bytes.Buffer)
-	if err := tx.Serialize(txbf); err != nil {
-		fmt.Println("Serialize transaction error.")
-		return err
-	}
-
-	resp, err := jrpc.Call(rpcAddress(), "sendrawtransaction", 0,
-		[]interface{}{hex.EncodeToString(txbf.Bytes())})
-
+	txHash, err := utils.Transfer(signer, to, amount)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return err
+		return fmt.Errorf("Transfer error:%s", err)
 	}
-	r := make(map[string]interface{})
-	err = json.Unmarshal(resp, &r)
-	if err != nil {
-		fmt.Println("Unmarshal JSON failed")
-		return err
+	fmt.Printf("Transfer ONT\n")
+	fmt.Printf("From:%s\n", signer.Address.ToBase58())
+	fmt.Printf("To:%s\n", to)
+	fmt.Printf("Amount:%d\n", amount)
+	fmt.Printf("TxHash:%s\n", txHash)
+	return nil
+}
+
+func getBalance(ctx *cli.Context) error {
+	address := ""
+	if ctx.IsSet(utils.AccountAddressFlag.Name) {
+		address = ctx.String(utils.AccountAddressFlag.Name)
 	}
-
-	switch r["result"].(type) {
-	case map[string]interface{}:
-
-	case string:
-		time.Sleep(10 * time.Second)
-		resp, err := ontSdk.Rpc.GetSmartContractEventWithHexString(r["result"].(string))
+	if address == "" {
+		wallet, err := cmdCom.OpenWallet(ctx)
 		if err != nil {
-			fmt.Printf("Please query transfer status manually by hash :%s", r["result"].(string))
-			return err
+			return fmt.Errorf("OpenWallet error:%s", err)
 		}
-		fmt.Println("\nAsset Transfer Result:")
-		cmdCom.EchoJsonDataGracefully(resp)
-		return nil
+		defaultAcc := wallet.GetDefaultAccount()
+		if defaultAcc == nil {
+			return fmt.Errorf("GetDefaultAccount failed")
+		}
+		address = defaultAcc.Address.ToBase58()
 	}
-
-	fmt.Printf("Please query transfer status manually by hash :%s", r["result"].(string))
+	balance, err := utils.GetBalance(address)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("BalanceOf:%s\n", address)
+	fmt.Printf("ONT:%s\n", balance.Ont)
+	fmt.Printf("ONG:%s\n", balance.Ong)
+	fmt.Printf("ONGApprove:%s\n", balance.OngAppove)
 	return nil
 }
 
 func queryTransferStatus(ctx *cli.Context) error {
-	if !ctx.IsSet("hash") {
-		fmt.Println("Missing transaction hash.")
-		cli.ShowSubcommandHelp(ctx)
+	if !ctx.IsSet(utils.TransactionHashFlag.Name) {
+		return fmt.Errorf("Missing hash argument")
 	}
-
-	trHash := ctx.String("hash")
-	resp, err := ontSdk.Rpc.GetSmartContractEventWithHexString(trHash)
+	txHash := ctx.String(utils.TransactionHashFlag.Name)
+	evtInfos, err := utils.GetSmartContractEvent(txHash)
 	if err != nil {
-		fmt.Println("Parase contract address error, from hex to bytes")
-		return err
+		return fmt.Errorf("GetSmartContractEvent error:%s", err)
 	}
-	cmdCom.EchoJsonDataGracefully(resp)
-	return nil
-}
-
-func ontBalance(ctx *cli.Context) error {
-	var filename string = account.WALLET_FILENAME
-	if ctx.IsSet("file") {
-		filename = ctx.String("file")
+	if len(evtInfos) == 0 {
+		fmt.Println("Cannot find event log")
+		return nil
 	}
-
-	var base58Addr string
-	if ctx.NArg() == 0 {
-		var passwd []byte
-		var err error
-		if ctx.IsSet("password") {
-			passwd = []byte(ctx.String("password"))
-		} else {
-			passwd, err = password.GetAccountPassword()
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				return errors.New("input password error")
-			}
-		}
-		acct := account.Open(filename, passwd)
-		for i, _ := range passwd {
-			passwd[i] = 0
-		}
-		if acct == nil {
-			return errors.New("open wallet error")
-		}
-		dac := acct.GetDefaultAccount()
-		if dac == nil {
-			return errors.New("cannot get the default account")
-		}
-		base58Addr = dac.Address.ToBase58()
-	} else {
-		base58Addr = ctx.Args().First()
+	for _, eventInfo := range evtInfos {
+		states := eventInfo.States.([]interface{})
+		fmt.Printf("Transaction:%s success\n", states[0])
+		fmt.Printf("From:%s\n", states[1])
+		fmt.Printf("To:%s\n", states[2])
+		fmt.Printf("Amount:%v\n", states[3])
 	}
-	balance, err := ontSdk.Rpc.GetBalanceWithBase58(base58Addr)
-	if nil != err {
-		fmt.Printf("Get Balance with base58 err: %s", err.Error())
-		return err
-	}
-	fmt.Printf("ONT: %d; ONG: %d; ONGAppove: %d\n Address(base58): %s\n", balance.Ont.Int64(), balance.Ong.Int64(), balance.OngAppove.Int64(), base58Addr)
 	return nil
 }

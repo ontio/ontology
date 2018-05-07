@@ -27,6 +27,7 @@ import (
 	"github.com/ontio/ontology/events/message"
 	tc "github.com/ontio/ontology/txnpool/common"
 	tp "github.com/ontio/ontology/txnpool/proc"
+	"fmt"
 )
 
 // startActor starts an actor with the proxy and unique id,
@@ -47,7 +48,7 @@ func startActor(obj interface{}, id string) *actor.PID {
 // StartTxnPoolServer starts the txnpool server and registers
 // actors to handle the msgs from the network, http, consensus
 // and validators. Meanwhile subscribes the block complete  event.
-func StartTxnPoolServer() *tp.TXPoolServer {
+func StartTxnPoolServer() (*tp.TXPoolServer, error) {
 	var s *tp.TXPoolServer
 
 	/* Start txnpool server to receive msgs from p2p,
@@ -59,8 +60,7 @@ func StartTxnPoolServer() *tp.TXPoolServer {
 	rspActor := tp.NewVerifyRspActor(s)
 	rspPid := startActor(rspActor, "txVerifyRsp")
 	if rspPid == nil {
-		log.Error("Fail to start verify rsp actor")
-		return nil
+		return nil, fmt.Errorf("Start verify rsp actor failed")
 	}
 	s.RegisterActor(tc.VerifyRspActor, rspPid)
 
@@ -68,8 +68,7 @@ func StartTxnPoolServer() *tp.TXPoolServer {
 	tpa := tp.NewTxPoolActor(s)
 	txPoolPid := startActor(tpa, "txPool")
 	if txPoolPid == nil {
-		log.Error("Fail to start txnpool actor")
-		return nil
+		return nil, fmt.Errorf("Fail to start txnpool actor")
 	}
 	s.RegisterActor(tc.TxPoolActor, txPoolPid)
 
@@ -77,13 +76,12 @@ func StartTxnPoolServer() *tp.TXPoolServer {
 	ta := tp.NewTxActor(s)
 	txPid := startActor(ta, "tx")
 	if txPid == nil {
-		log.Error("Fail to start txn actor")
-		return nil
+		return nil, fmt.Errorf("Fail to start txn actor")
 	}
 	s.RegisterActor(tc.TxActor, txPid)
 
 	// Subscribe the block complete event
 	var sub = events.NewActorSubscriber(txPoolPid)
 	sub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
-	return s
+	return s, nil
 }
