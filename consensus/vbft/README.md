@@ -11,6 +11,6 @@ VBFT is a VRF(virtual random function) based BFT consensus algorithm, and use Po
 - BFT
 - Well defined governance protocol
 
-It will be open-source soon. Please stay tuned.
+VBFT introduction is available [here](https://github.com/ontio/documentation/blob/master/vbft-intro/vbft-intro.md).
 
 

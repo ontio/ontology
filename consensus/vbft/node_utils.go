@@ -19,11 +19,13 @@
 package vbft
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 
 	"github.com/ontio/ontology/common/log"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
+	"github.com/ontio/ontology/core/signature"
 	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 )
@@ -284,7 +286,8 @@ func calcParticipant(vrf vconfig.VRFValue, dposTable []uint32, k uint32) uint32 
 }
 
 func getCommitConsensus(commitMsgs []*blockCommitMsg, C int) (uint32, bool) {
-	commitCount := make(map[uint32]int)
+	commitCount := make(map[uint32]int)                  // proposer -> #commit-msg
+	endorseCount := make(map[uint32]map[uint32]struct{}) // proposer -> []endorsers
 	emptyCommitCount := 0
 	for _, c := range commitMsgs {
 		if c.CommitForEmpty {
@@ -294,6 +297,17 @@ func getCommitConsensus(commitMsgs []*blockCommitMsg, C int) (uint32, bool) {
 		commitCount[c.BlockProposer] += 1
 		if commitCount[c.BlockProposer] > C {
 			return c.BlockProposer, emptyCommitCount > C
+		}
+
+		for endorser, _ := range c.EndorsersSig {
+			if _, present := endorseCount[c.BlockProposer]; !present {
+				endorseCount[c.BlockProposer] = make(map[uint32]struct{})
+			}
+
+			endorseCount[c.BlockProposer][endorser] = struct{}{}
+			if len(endorseCount[c.BlockProposer]) > C+1 {
+				return c.BlockProposer, c.CommitForEmpty
+			}
 		}
 	}
 
@@ -306,14 +320,16 @@ func (self *Server) validateTxsInProposal(proposal *blockProposalMsg) error {
 }
 
 func (self *Server) receiveFromPeer(peerIdx uint32) (uint32, []byte, error) {
-	select {
-	case payload := <-self.msgRecvC[peerIdx]:
-		if payload != nil {
-			return payload.fromPeer, payload.payload.Data, nil
-		}
+	if C, present := self.msgRecvC[peerIdx]; present {
+		select {
+		case payload := <-C:
+			if payload != nil {
+				return payload.fromPeer, payload.payload.Data, nil
+			}
 
-	case <-self.quitC:
-		return 0, nil, fmt.Errorf("server %d quit", self.Index)
+		case <-self.quitC:
+			return 0, nil, fmt.Errorf("server %d quit", self.Index)
+		}
 	}
 
 	return 0, nil, fmt.Errorf("nil consensus payload")
@@ -328,6 +344,13 @@ func (self *Server) sendToPeer(peerIdx uint32, data []byte) error {
 		Data:  data,
 		Owner: self.account.PublicKey,
 	}
+
+	buf := new(bytes.Buffer)
+	if err := msg.SerializeUnsigned(buf); err != nil {
+		return fmt.Errorf("failed to serialize consensus msg: %s", err)
+	}
+	msg.Signature, _ = signature.Sign(self.account, buf.Bytes())
+
 	buffer, err := msgpack.NewConsensus(msg)
 	if err != nil {
 		log.Error("Error NewConsensus: ", err)
@@ -350,6 +373,13 @@ func (self *Server) broadcastToAll(data []byte) error {
 		Data:  data,
 		Owner: self.account.PublicKey,
 	}
+
+	buf := new(bytes.Buffer)
+	if err := msg.SerializeUnsigned(buf); err != nil {
+		return fmt.Errorf("failed to serialize consensus msg: %s", err)
+	}
+	msg.Signature, _ = signature.Sign(self.account, buf.Bytes())
+
 	self.p2p.Broadcast(msg)
 	return nil
 }

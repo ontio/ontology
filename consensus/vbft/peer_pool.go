@@ -24,13 +24,12 @@ import (
 	"time"
 
 	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus/vbft/config"
 )
 
 type Peer struct {
 	Index          uint32
-	PubKey         *keypair.PublicKey
+	PubKey         keypair.PublicKey
 	handShake      *peerHandshakeMsg
 	LatestInfo     *peerHeartbeatMsg // latest heartbeat msg
 	LastUpdateTime time.Time         // time received heartbeat from peer
@@ -194,7 +193,7 @@ func (pool *PeerPool) GetPeerIndex(nodeId vconfig.NodeID) (uint32, bool) {
 	return idx, present
 }
 
-func (pool *PeerPool) GetPeerPubKey(peerIdx uint32) *keypair.PublicKey {
+func (pool *PeerPool) GetPeerPubKey(peerIdx uint32) keypair.PublicKey {
 	pool.lock.RLock()
 	pool.lock.RUnlock()
 
@@ -213,12 +212,9 @@ func (pool *PeerPool) isPeerAlive(peerIdx uint32) bool {
 	if p == nil || !p.connected {
 		return false
 	}
-	if time.Now().Sub(p.LastUpdateTime) > peerHandshakeTimeout*2 {
-		if p.LastUpdateTime.Unix() > 0 {
-			log.Errorf("server %d: peer %d sems disconnected, %v, %v", pool.server.Index, peerIdx, time.Now(), p.LastUpdateTime)
-		}
-		return false
-	}
+
+	// p2pserver keeps peer alive
+
 	return true
 }
 

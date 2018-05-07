@@ -33,7 +33,7 @@ func SetConsensusPid(conPid *actor.PID) {
 func NotifyPeerState(peer keypair.PublicKey, connected bool) error {
 	if ConsensusPid != nil {
 		ConsensusPid.Tell(&msgTypes.PeerStateUpdate{
-			PeerPubKey: &peer,
+			PeerPubKey: peer,
 			Connected:  connected,
 		})
 	}

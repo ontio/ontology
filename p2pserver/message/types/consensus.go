@@ -32,7 +32,7 @@ type Consensus struct {
 }
 
 type PeerStateUpdate struct {
-	PeerPubKey *keypair.PublicKey
+	PeerPubKey keypair.PublicKey
 	Connected  bool
 }
 

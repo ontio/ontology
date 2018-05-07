@@ -106,7 +106,7 @@ func (self *StateMgr) run() {
 			Type:     LiveTick,
 			blockNum: self.server.GetCommittedBlockNo(),
 		}
-		self.liveTicker.Reset(peerHandshakeTimeout * 5)
+		self.liveTicker.Reset(peerHandshakeTimeout * 3)
 	})
 
 	// wait config done
@@ -284,6 +284,18 @@ func (self *StateMgr) onLiveTick(evt *StateEvent) error {
 	log.Errorf("server %d detected consensus halt %d",
 		self.server.Index, self.server.GetCurrentBlockNo())
 
+	committedBlkNum, ok := self.getConsensusedCommittedBlockNum()
+	if ok && committedBlkNum > self.server.GetCommittedBlockNo() {
+		fastforward := self.canFastForward(committedBlkNum)
+		log.Infof("server %d, syncing %d, target %d, fast-forward %t",
+			self.server.Index, self.server.GetCommittedBlockNo(), committedBlkNum, fastforward)
+		if fastforward {
+			self.server.makeFastForward()
+		} else {
+			self.checkStartSyncing(self.server.GetCommittedBlockNo(), false)
+		}
+	}
+
 	return self.server.reBroadcastCurrentRoundMsgs()
 }
 
@@ -393,15 +405,6 @@ func (self *StateMgr) checkStartSyncing(startBlkNum uint64, forceSync bool) erro
 	return nil
 }
 
-func (self *Server) restartSyncing() {
-
-	// send sync request to self.sync, go syncing-state immediately
-	// stop all bft timers
-
-	self.stateMgr.checkStartSyncing(self.GetCommittedBlockNo(), true)
-
-}
-
 // return 0 if consensus not reached yet
 func (self *StateMgr) getConsensusedCommittedBlockNum() (uint64, bool) {
 	C := int(self.server.config.C)
@@ -433,11 +436,11 @@ func (self *StateMgr) getConsensusedCommittedBlockNum() (uint64, bool) {
 
 func (self *StateMgr) canFastForward(targetBlkNum uint64) bool {
 	if self.getState() != Syncing {
-		// fastword check only support syncing state
+		// fast-forword check only support syncing state
 		return false
 	}
 
-	if targetBlkNum > self.server.GetCommittedBlockNo()+MAX_SYNCING_CHECK_BLK_NUM*8 {
+	if targetBlkNum > self.server.GetCommittedBlockNo()+MAX_SYNCING_CHECK_BLK_NUM*4 {
 		return false
 	}
 
@@ -449,9 +452,10 @@ func (self *StateMgr) canFastForward(targetBlkNum uint64) bool {
 				self.server.Index, blkNum)
 			return false
 		}
-		if len(self.server.msgPool.GetCommitMsgs(blkNum)) <= C {
-			log.Info("server %d check fastforward false, no commit msg for block %d",
-				self.server.Index, blkNum)
+		cMsgs := self.server.msgPool.GetCommitMsgs(blkNum)
+		if len(cMsgs) <= C {
+			log.Info("server %d check fastforward false, only %d commit msg for block %d",
+				self.server.Index, len(cMsgs), blkNum)
 			return false
 		}
 	}

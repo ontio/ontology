@@ -130,6 +130,6 @@ type GetNeighborAddrsRsp struct {
 }
 
 type TransmitConsensusMsgReq struct {
-	Target *keypair.PublicKey
+	Target keypair.PublicKey
 	Msg    []byte
 }
