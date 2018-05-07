@@ -119,7 +119,7 @@ func TestGetNeighbours(t *testing.T) {
 }
 
 func TestGetPeerIndex(t *testing.T) {
-	nodeId, _ := vconfig.StringID("206520e7475798520164487f7e4586bb55790097ceb786aab6d5bc889d12991a5a204c6298bef1bf43c20680a3979a213392b99c97042ebae27d2a7af6442aa7c008")
+	nodeId, _ := vconfig.StringID("12020298fe9f22e9df64f6bfcc1c2a14418846cffdbbf510d261bbc3fa6d47073df9a2")
 	peerconfig := &vconfig.PeerConfig{
 		Index: uint32(1),
 		ID:    nodeId,
@@ -135,7 +135,7 @@ func TestGetPeerIndex(t *testing.T) {
 }
 
 func TestGetPeer(t *testing.T) {
-	nodeId, _ := vconfig.StringID("206520e7475798520164487f7e4586bb55790097ceb786aab6d5bc889d12991a5a204c6298bef1bf43c20680a3979a213392b99c97042ebae27d2a7af6442aa7c008")
+	nodeId, _ := vconfig.StringID("12020298fe9f22e9df64f6bfcc1c2a14418846cffdbbf510d261bbc3fa6d47073df9a2")
 	peerconfig := &vconfig.PeerConfig{
 		Index: uint32(1),
 		ID:    nodeId,

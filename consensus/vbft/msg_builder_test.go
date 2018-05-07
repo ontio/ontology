@@ -20,19 +20,16 @@ package vbft
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/ontio/ontology/account"
 )
 
 func constructMsg() *blockProposalMsg {
-	passwd := string("passwordtest")
-	acct := account.Open(account.WALLET_FILENAME, []byte(passwd))
-	acc := acct.GetDefaultAccount()
+	acc := account.NewAccount("SHA256withECDSA")
 	if acc == nil {
-		fmt.Println("GetDefaultAccount error: account is nil")
-		os.Exit(1)
+		fmt.Println("GetDefaultAccount error: acc is nil")
+		return nil
 	}
 	msg, err := constructProposalMsg(acc)
 	if err != nil {

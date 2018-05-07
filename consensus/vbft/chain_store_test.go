@@ -21,10 +21,8 @@ package vbft
 import (
 	"fmt"
 	"os"
-	"sort"
 	"testing"
 
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
@@ -35,15 +33,12 @@ import (
 func newChainStore() *ChainStore {
 	log.Init(log.PATH, log.Stdout)
 	var err error
-	passwd := string("passwordtest")
-	acct := account.Open(account.WALLET_FILENAME, []byte(passwd))
-
-	defBookkeepers, err := acct.GetBookkeepers()
-	sort.Sort(keypair.NewPublicList(defBookkeepers))
-	if err != nil {
-		log.Fatalf("GetBookkeepers error:%s", err)
+	acct := account.NewAccount("SHA256withECDSA")
+	if acct == nil {
+		fmt.Println("GetDefaultAccount error: acc is nil")
 		os.Exit(1)
 	}
+
 	ledger.DefLedger, err = ledger.NewLedger()
 	if err != nil {
 		log.Fatalf("NewLedger error %s", err)
@@ -71,22 +66,4 @@ func TestGetChainedBlockNum(t *testing.T) {
 	t.Logf("TestGetChainedBlockNum :%d", blocknum)
 }
 
-func TestGetBlock(t *testing.T) {
-	chainstore := newChainStore()
-	if chainstore == nil {
-		t.Error("newChainStrore error")
-		return
-	}
-	blk, err := constructBlock()
-	if err != nil {
-		t.Errorf("constructBlock failed: %v", err)
-		return
-	}
-	chainstore.pendingBlocks[1] = blk
-	_, err = chainstore.GetBlock(uint64(1))
-	if err != nil {
-		t.Errorf("TestGetBlock failed :%v", err)
-		return
-	}
-	t.Log("TestGetBlock succ")
-}
+

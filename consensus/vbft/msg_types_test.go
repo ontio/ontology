@@ -95,9 +95,11 @@ func constructProposalMsg(acc *account.Account) (*blockProposalMsg, error) {
 }
 
 func TestBlockProposalMsgVerify(t *testing.T) {
-	passwd := string("passwordtest")
-	acct := account.Open(account.WALLET_FILENAME, []byte(passwd))
-	acc := acct.GetDefaultAccount()
+	acc := account.NewAccount("SHA256withECDSA")
+	if acc == nil {
+		t.Error("GetDefaultAccount error: acc is nil")
+		return
+	}
 	msg, err := constructProposalMsg(acc)
 	if err != nil {
 		t.Errorf("constructProposalMsg failed:%v", err)
@@ -123,9 +125,11 @@ func constructEndorseMsg(acc *account.Account, proposal *blockProposalMsg, blkHa
 }
 
 func TestBlockEndorseMsg(t *testing.T) {
-	passwd := string("passwordtest")
-	acct := account.Open(account.WALLET_FILENAME, []byte(passwd))
-	acc := acct.GetDefaultAccount()
+	acc := account.NewAccount("SHA256withECDSA")
+	if acc == nil {
+		t.Error("GetDefaultAccount error: acc is nil")
+		return
+	}
 	block, err := constructProposalMsg(acc)
 	if err != nil {
 		t.Errorf("TestBlockEndorseMsg failed: %v", err)
@@ -157,9 +161,11 @@ func constructCommitMsg(acc *account.Account, proposal *blockProposalMsg, blkHas
 	return msg, nil
 }
 func TestBlockCommitMsg(t *testing.T) {
-	passwd := string("passwordtest")
-	acct := account.Open(account.WALLET_FILENAME, []byte(passwd))
-	acc := acct.GetDefaultAccount()
+	acc := account.NewAccount("SHA256withECDSA")
+	if acc == nil {
+		t.Error("GetDefaultAccount error: acc is nil")
+		return
+	}
 	block, err := constructProposalMsg(acc)
 	if err != nil {
 		t.Errorf("TestBlockCommitMsg failed: %v", err)
@@ -190,9 +196,11 @@ func constructHandshakeMsg(acc *account.Account) (*peerHandshakeMsg, error) {
 	return msg, nil
 }
 func TestPeerHandshakeMsg(t *testing.T) {
-	passwd := string("passwordtest")
-	acct := account.Open(account.WALLET_FILENAME, []byte(passwd))
-	acc := acct.GetDefaultAccount()
+	acc := account.NewAccount("SHA256withECDSA")
+	if acc == nil {
+		t.Error("GetDefaultAccount error: acc is nil")
+		return
+	}
 	msg, err := constructHandshakeMsg(acc)
 	if err != nil {
 		t.Errorf("constructHandshakeMsg failed: %v", err)
@@ -217,9 +225,12 @@ func constructHeartbeatMsg(acc *account.Account) (*peerHeartbeatMsg, error) {
 	return msg, nil
 }
 func TestPeerHeartbeatMsg(t *testing.T) {
-	passwd := string("passwordtest")
-	acct := account.Open(account.WALLET_FILENAME, []byte(passwd))
-	acc := acct.GetDefaultAccount()
+
+	acc := account.NewAccount("SHA256withECDSA")
+	if acc == nil {
+		t.Error("GetDefaultAccount error: acc is nil")
+		return
+	}
 	msg, err := constructHeartbeatMsg(acc)
 	if err != nil {
 		t.Errorf("constructHeartbeatMsg failed %v", err)
@@ -242,9 +253,11 @@ func constructBlockInfoFetchMsg(acc *account.Account) (*BlockInfoFetchMsg, error
 }
 
 func TestBlockInfoFetchMsg(t *testing.T) {
-	passwd := string("passwordtest")
-	acct := account.Open(account.WALLET_FILENAME, []byte(passwd))
-	acc := acct.GetDefaultAccount()
+	acc := account.NewAccount("SHA256withECDSA")
+	if acc == nil {
+		t.Error("GetDefaultAccount error: acc is nil")
+		return
+	}
 	msg, err := constructBlockInfoFetchMsg(acc)
 	if err != nil {
 		t.Errorf("constructBlockInfoFetchMsg failed: %v", err)
@@ -272,9 +285,11 @@ func constructBlockInfoFetchRespMsg(acc *account.Account) (*BlockInfoFetchRespMs
 }
 
 func TestBlockInfoFetchRespMsg(t *testing.T) {
-	passwd := string("passwordtest")
-	acct := account.Open(account.WALLET_FILENAME, []byte(passwd))
-	acc := acct.GetDefaultAccount()
+	acc := account.NewAccount("SHA256withECDSA")
+	if acc == nil {
+		t.Error("GetDefaultAccount error: acc is nil")
+		return
+	}
 	msg, err := constructBlockInfoFetchRespMsg(acc)
 	if err != nil {
 		t.Errorf("constructBlockInfoFetchRespMsg failed: %v", err)
@@ -296,9 +311,11 @@ func constructBlockFetchMsg(acc *account.Account) (*blockFetchMsg, error) {
 	return msg, nil
 }
 func TestBlockFetchMsg(t *testing.T) {
-	passwd := string("passwordtest")
-	acct := account.Open(account.WALLET_FILENAME, []byte(passwd))
-	acc := acct.GetDefaultAccount()
+	acc := account.NewAccount("SHA256withECDSA")
+	if acc == nil {
+		t.Error("GetDefaultAccount error: acc is nil")
+		return
+	}
 	msg, err := constructBlockFetchMsg(acc)
 	if err != nil {
 		t.Errorf("constructBlockFetchMsg failed: %v", err)
@@ -323,9 +340,11 @@ func constructBlockFetchRespMsg(acc *account.Account, blk *Block) (*BlockFetchRe
 }
 
 func TestBlockFetchRespMsg(t *testing.T) {
-	passwd := string("passwordtest")
-	acct := account.Open(account.WALLET_FILENAME, []byte(passwd))
-	acc := acct.GetDefaultAccount()
+	acc := account.NewAccount("SHA256withECDSA")
+	if acc == nil {
+		t.Error("GetDefaultAccount error: acc is nil")
+		return
+	}
 	msg, err := constructProposalMsg(acc)
 	if err != nil {
 		t.Errorf("constructProposalMsg failed:%v", err)
@@ -351,9 +370,11 @@ func constructProposalFetchMsg(acc *account.Account) (*proposalFetchMsg, error) 
 	return msg, nil
 }
 func TestProposalFetchMsg(t *testing.T) {
-	passwd := string("passwordtest")
-	acct := account.Open(account.WALLET_FILENAME, []byte(passwd))
-	acc := acct.GetDefaultAccount()
+	acc := account.NewAccount("SHA256withECDSA")
+	if acc == nil {
+		t.Error("GetDefaultAccount error: acc is nil")
+		return
+	}
 	msg, err := constructProposalFetchMsg(acc)
 	if err != nil {
 		t.Errorf("constructProposalFetchMsg failed: %v", err)

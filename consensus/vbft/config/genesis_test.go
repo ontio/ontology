@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	DefaultConfigFileName = "../../../consensus_config.json"
+	DefaultConfigFileName = "../../../config-vbft.json"
 )
 
 func TestGenConsensusPayload(t *testing.T) {
