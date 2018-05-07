@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"math/big"
+	"strconv"
+	"strings"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/store"
@@ -17,6 +20,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vmtypes "github.com/ontio/ontology/smartcontract/types"
+	"github.com/ontio/ontology/vm/neovm"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
 	"github.com/ontio/ontology/vm/wasmvm/util"
 )
@@ -34,8 +38,54 @@ type WasmVmService struct {
 func (this *WasmVmService) Invoke() (interface{}, error) {
 	stateMachine := NewWasmStateMachine(this.Store, this.CloneCache, this.Time)
 	//register the "CallContract" function
-	stateMachine.Register("CallContract", this.callContract)
-	stateMachine.Register("MarshalNativeParams", this.marshalNativeParams)
+	stateMachine.Register("ONT_CallContract", this.callContract)
+	stateMachine.Register("ONT_MarshalNativeParams", this.marshalNativeParams)
+	stateMachine.Register("ONT_MarshalNeoParams", this.marshalNeoParams)
+	//runtime
+	stateMachine.Register("ONT_Runtime_CheckWitness", this.runtimeCheckWitness)
+	stateMachine.Register("ONT_Runtime_Notify", this.runtimeNotify)
+	stateMachine.Register("ONT_Runtime_CheckSig", this.runtimeCheckSig)
+	stateMachine.Register("ONT_Runtime_GetTime", this.runtimeGetTime)
+	stateMachine.Register("ONT_Runtime_Log", this.runtimeLog)
+	//attribute
+	stateMachine.Register("ONT_Attribute_GetUsage", this.attributeGetUsage)
+	stateMachine.Register("ONT_Attribute_GetData", this.attributeGetData)
+	//block
+	stateMachine.Register("ONT_Block_GetCurrentHeaderHash", this.blockGetCurrentHeaderHash)
+	stateMachine.Register("ONT_Block_GetCurrentHeaderHeight", this.blockGetCurrentHeaderHeight)
+	stateMachine.Register("ONT_Block_GetCurrentBlockHash", this.blockGetCurrentBlockHash)
+	stateMachine.Register("ONT_Block_GetCurrentBlockHeight", this.blockGetCurrentBlockHeight)
+	stateMachine.Register("ONT_Block_GetTransactionByHash", this.blockGetTransactionByHash)
+	stateMachine.Register("ONT_Block_GetTransactionCount", this.blockGetTransactionCount)
+	stateMachine.Register("ONT_Block_GetTransactions", this.blockGetTransactions)
+
+	//blockchain
+	stateMachine.Register("ONT_BlockChain_GetHeight", this.blockChainGetHeight)
+	stateMachine.Register("ONT_BlockChain_GetHeaderByHeight", this.blockChainGetHeaderByHeight)
+	stateMachine.Register("ONT_BlockChain_GetHeaderByHash", this.blockChainGetHeaderByHash)
+	stateMachine.Register("ONT_BlockChain_GetBlockByHeight", this.blockChainGetBlockByHeight)
+	stateMachine.Register("ONT_BlockChain_GetBlockByHash", this.blockChainGetBlockByHash)
+	stateMachine.Register("ONT_BlockChain_GetContract", this.blockChainGetContract)
+
+	//header
+	stateMachine.Register("ONT_Header_GetHash", this.headerGetHash)
+	stateMachine.Register("ONT_Header_GetVersion", this.headerGetVersion)
+	stateMachine.Register("ONT_Header_GetPrevHash", this.headerGetPrevHash)
+	stateMachine.Register("ONT_Header_GetMerkleRoot", this.headerGetMerkleRoot)
+	stateMachine.Register("ONT_Header_GetIndex", this.headerGetIndex)
+	stateMachine.Register("ONT_Header_GetTimestamp", this.headerGetTimestamp)
+	stateMachine.Register("ONT_Header_GetConsensusData", this.headerGetConsensusData)
+	stateMachine.Register("ONT_Header_GetNextConsensus", this.headerGetNextConsensus)
+
+	//storage
+	stateMachine.Register("ONT_Storage_Put", this.putstore)
+	stateMachine.Register("ONT_Storage_Get", this.getstore)
+	stateMachine.Register("ONT_Storage_Delete", this.deletestore)
+
+	//transaction
+	stateMachine.Register("ONT_Transaction_GetHash", this.transactionGetHash)
+	stateMachine.Register("ONT_Transaction_GetType", this.transactionGetType)
+	stateMachine.Register("ONT_Transaction_GetAttributes", this.transactionGetAttributes)
 
 	engine := exec.NewExecutionEngine(
 		this.Tx,
@@ -46,7 +96,6 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	contract := &states.Contract{}
 	contract.Deserialize(bytes.NewBuffer(this.Code))
 	addr := contract.Address
-
 	if contract.Code == nil {
 		dpcode, err := this.GetContractCodeFromAddress(addr)
 		if err != nil {
@@ -73,13 +122,72 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	this.ContextRef.PopContext()
-	this.ContextRef.PushNotifications(stateMachine.Notifications)
+	this.ContextRef.PushNotifications(this.Notifications)
 	return result, nil
 }
 
+func (this *WasmVmService) marshalNeoParams(engine *exec.ExecutionEngine) (bool, error) {
+	vm := engine.GetVM()
+	envCall := vm.GetEnvCall()
+	params := envCall.GetParams()
+	if len(params) != 1 {
+		return false, errors.NewErr("[marshalNeoParams]parameter count error while call marshalNativeParams")
+	}
+	argbytes, err := vm.GetPointerMemory(params[0])
+	if err != nil {
+		return false, err
+	}
+	bytesLen := len(argbytes)
+	args := make([]interface{}, bytesLen/8)
+	icount := 0
+	for i := 0; i < bytesLen; i += 8 {
+		tmpBytes := argbytes[i : i+8]
+		ptype, err := vm.GetPointerMemory(uint64(binary.LittleEndian.Uint32(tmpBytes[:4])))
+		if err != nil {
+			return false, err
+		}
+		pvalue, err := vm.GetPointerMemory(uint64(binary.LittleEndian.Uint32(tmpBytes[4:8])))
+		if err != nil {
+			return false, err
+		}
+		switch strings.ToLower(util.TrimBuffToString(ptype)) {
+		case "string":
+			args[icount] = util.TrimBuffToString(pvalue)
+		case "int":
+			args[icount], err = strconv.Atoi(util.TrimBuffToString(pvalue))
+			if err != nil {
+				return false, err
+			}
+		case "int64":
+			args[icount], err = strconv.ParseInt(util.TrimBuffToString(pvalue), 10, 64)
+			if err != nil {
+				return false, err
+			}
+		default:
+			args[icount] = util.TrimBuffToString(pvalue)
+		}
+		icount++
+	}
+	builder := neovm.NewParamsBuilder(bytes.NewBuffer(nil))
+	err = buildNeoVMParamInter(builder, []interface{}{args})
+	if err != nil {
+		return false, err
+	}
+	neoargs := builder.ToArray()
+	idx, err := vm.SetPointerMemory(neoargs)
+	if err != nil {
+		return false, err
+	}
+	vm.RestoreCtx()
+	vm.PushResult(uint64(idx))
+	return true, nil
+
+}
+
 // marshalNativeParams
-// make paramter bytes for call native contract
+// make parameter bytes for call native contract
 func (this *WasmVmService) marshalNativeParams(engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
@@ -109,6 +217,7 @@ func (this *WasmVmService) marshalNativeParams(engine *exec.ExecutionEngine) (bo
 	if err != nil {
 		return false, err
 	}
+
 	//statesbytes is slice of struct with states.
 	//type State struct {
 	//	Version byte            -------->i32 4 bytes
@@ -121,7 +230,7 @@ func (this *WasmVmService) marshalNativeParams(engine *exec.ExecutionEngine) (bo
 	states := make([]*nstates.State, statecnt)
 
 	for i := 0; i < statecnt; i++ {
-		tmpbytes := statesbytes[i * 24 : (i + 1) * 24]
+		tmpbytes := statesbytes[i*24 : (i+1)*24]
 		state := &nstates.State{}
 		state.Version = byte(binary.LittleEndian.Uint32(tmpbytes[:4]))
 		fromAddessBytes, err := vm.GetPointerMemory(uint64(binary.LittleEndian.Uint32(tmpbytes[4:8])))
@@ -144,6 +253,7 @@ func (this *WasmVmService) marshalNativeParams(engine *exec.ExecutionEngine) (bo
 		amount := binary.LittleEndian.Uint64(tmpbytes[16:])
 		state.Value = big.NewInt(int64(amount))
 		states[i] = state
+
 	}
 
 	transfer.States = states
@@ -159,20 +269,19 @@ func (this *WasmVmService) marshalNativeParams(engine *exec.ExecutionEngine) (bo
 	return true, nil
 }
 
-// callContract will need 4 paramters
+// callContract
+// need 4 parameters
 //0: contract address
 //1: contract code
 //2: method name
 //3: args
 func (this *WasmVmService) callContract(engine *exec.ExecutionEngine) (bool, error) {
-
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
 	if len(params) != 4 {
 		return false, errors.NewErr("[callContract]parameter count error while call readMessage")
 	}
-
 	var contractAddress common.Address
 	var contractBytes []byte
 	//get contract address
@@ -195,14 +304,12 @@ func (this *WasmVmService) callContract(engine *exec.ExecutionEngine) (bool, err
 	}
 
 	//get contract code
-
 	codeIdx := params[1]
 
 	offchainContractCode, err := vm.GetPointerMemory(codeIdx)
 	if err != nil {
 		return false, errors.NewErr("[callContract]get Contract address failed:" + err.Error())
 	}
-
 	if offchainContractCode != nil {
 		contractBytes, err = common.HexToBytes(util.TrimBuffToString(offchainContractCode))
 		if err != nil {
@@ -213,42 +320,69 @@ func (this *WasmVmService) callContract(engine *exec.ExecutionEngine) (bool, err
 		codestring := util.TrimBuffToString(offchainContractCode)
 		contractAddress = GetContractAddress(codestring, vmtypes.WASMVM)
 	}
-
 	//get method
 	methodName, err := vm.GetPointerMemory(params[2])
 	if err != nil {
 		return false, errors.NewErr("[callContract]get Contract methodName failed:" + err.Error())
 	}
-
 	//get args
 	arg, err := vm.GetPointerMemory(params[3])
+
 	if err != nil {
 		return false, errors.NewErr("[callContract]get Contract arg failed:" + err.Error())
 	}
-
+	this.ContextRef.PushContext(&context.Context{
+		Code:            vm.VMCode,
+		ContractAddress: vm.ContractAddress})
 	result, err := this.ContextRef.AppCall(contractAddress, util.TrimBuffToString(methodName), contractBytes, arg)
+
+	this.ContextRef.PopContext()
 	if err != nil {
 		return false, errors.NewErr("[callContract]AppCall failed:" + err.Error())
 	}
 	vm.RestoreCtx()
+	var res string
 	if envCall.GetReturns() {
 		if contractAddress[0] == byte(vmtypes.NEOVM) {
 			result = sccommon.ConvertNeoVmReturnTypes(result)
+			switch result.(type) {
+			case int:
+				res = strconv.Itoa(result.(int))
+			case int64:
+				res = strconv.FormatInt(result.(int64), 10)
+			case string:
+				res = result.(string)
+			case []byte:
+				tmp := result.([]byte)
+				if len(tmp) == 1 {
+					if tmp[0] == byte(1) {
+						res = "true"
+					}
+					if tmp[0] == byte(0) {
+						res = "false"
+					}
+				} else {
+					res = string(result.([]byte))
+				}
+			default:
+				res = fmt.Sprintf("%s",result)
+			}
+
 		}
 		if contractAddress[0] == byte(vmtypes.Native) {
 			bresult := result.(bool)
 			if bresult == true {
-				result = "true"
+				res = "true"
 			} else {
-				result = false
+				res = "false"
 			}
 
 		}
 		if contractAddress[0] == byte(vmtypes.WASMVM) {
-			//reserve for further process
+			res = fmt.Sprintf("%s",result)
 		}
 
-		idx, err := vm.SetPointerMemory(result.(string))
+		idx, err := vm.SetPointerMemory(res)
 		if err != nil {
 			return false, errors.NewErr("[callContract]SetPointerMemory failed:" + err.Error())
 		}
@@ -297,4 +431,46 @@ func GetContractAddress(code string, vmType vmtypes.VmType) common.Address {
 		Code:   data,
 	}
 	return vmCode.AddressFromVmCode()
+}
+
+//buildNeoVMParamInter build neovm invoke param code
+func buildNeoVMParamInter(builder *neovm.ParamsBuilder, smartContractParams []interface{}) error {
+	//VM load params in reverse order
+	for i := len(smartContractParams) - 1; i >= 0; i-- {
+		switch v := smartContractParams[i].(type) {
+		case bool:
+			builder.EmitPushBool(v)
+		case int:
+			builder.EmitPushInteger(big.NewInt(int64(v)))
+		case uint:
+			builder.EmitPushInteger(big.NewInt(int64(v)))
+		case int32:
+			builder.EmitPushInteger(big.NewInt(int64(v)))
+		case uint32:
+			builder.EmitPushInteger(big.NewInt(int64(v)))
+		case int64:
+			builder.EmitPushInteger(big.NewInt(int64(v)))
+		case common.Fixed64:
+			builder.EmitPushInteger(big.NewInt(int64(v.GetData())))
+		case uint64:
+			val := big.NewInt(0)
+			builder.EmitPushInteger(val.SetUint64(uint64(v)))
+		case string:
+			builder.EmitPushByteArray([]byte(v))
+		case *big.Int:
+			builder.EmitPushInteger(v)
+		case []byte:
+			builder.EmitPushByteArray(v)
+		case []interface{}:
+			err := buildNeoVMParamInter(builder, v)
+			if err != nil {
+				return err
+			}
+			builder.EmitPushInteger(big.NewInt(int64(len(v))))
+			builder.Emit(neovm.PACK)
+		default:
+			return fmt.Errorf("unsupported param:%s", v)
+		}
+	}
+	return nil
 }

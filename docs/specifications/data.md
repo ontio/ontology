@@ -112,7 +112,7 @@ Contract address is the hash of contract program .which be used to control asset
 
 Field               | Type              | Description
 --------------------|-------------------|----------------------------------------------------------
-Code                | []byte            | the contract program code,which will be run on VM or specific envrionment
+Code                | []byte            | the contract program code,which will be run on VM or specific environment.
 Parameters          | []ContractParameterType| describe the number of contract program parameters and the parameter type
 ProgramHash         | Uint160           | The program hash as contract address
 OwnerPubkeyHash     | Uint160           | owner's pubkey hash indicate the owner of contract

@@ -21,7 +21,7 @@ ontology的运行支持以下3钟方式
 1.创建钱包
 - 通过命令行程序，分别创建节点运行所需的钱包文件wallet.dat 
     ```
-    $ .\ontology account add -d
+    $ ./ontology account add -d
     use default value for all options
     Enter a password for encrypting the private key:
     Re-enter password:
@@ -46,7 +46,7 @@ ontology的运行支持以下3钟方式
 - 默认配置文件`config.json`
 - 节点程序 + 节点控制程序 `ontology`
 - 钱包文件`wallet.dat`
-把source根目录下的config-solo.config配置文件的内容复制到config.json内，修改Bookkeepers配置，替换钱包公钥，然后启动节点即可。钱包公钥可以使用`$ ./ontology wallet show --name=wallet.dat` 获取
+把source根目录下的config-solo.config配置文件的内容复制到config.json内，修改Bookkeepers配置，替换钱包公钥，然后启动节点即可。钱包公钥可以使用`$ ./ontology account list -v` 获取
 
 单机配置的例子如下：
 - 目录结构
@@ -81,7 +81,7 @@ ontology的运行支持以下3钟方式
 4. 创建钱包文件
     - 通过命令行程序，在每个主机上分别创建节点运行所需的钱包文件wallet.dat 
         ```
-        $ .\ontology account add -d
+        $ ./ontology account add -d
         use default value for all options
         Enter a password for encrypting the private key:
         Re-enter password:
@@ -98,7 +98,7 @@ ontology的运行支持以下3钟方式
         注：每个节点的钱包公钥信息也可以通过命令行程序查看：
     
         ```
-        $ .\ontology account list -v
+        $ ./ontology account list -v
         * 1     TA9TVuR4Ynn4VotfpExY5SaEy8a99obFPr
                 Signature algorithm: ECDSA
                 Curve: P-256
@@ -130,7 +130,7 @@ $ - 输入你的钱包口令
 ### ONT转账调用示例
   contract:合约地址； - from: 转出地址； - to: 转入地址； - value: 资产转移数量；
 ```shell
-  .\ontology asset transfer --caddr=ff00000000000000000000000000000000000001 --value=500 --from  TA6nAAdX77wcsAnuBQxG61zXg3vJUAPpgk  --to TA6Hsjww86b9KBbXFyKEayMcVVafoTGH4K  --password=xxx
+  ./ontology asset transfer --caddr=ff00000000000000000000000000000000000001 --value=500 --from  TA6nAAdX77wcsAnuBQxG61zXg3vJUAPpgk  --to TA6Hsjww86b9KBbXFyKEayMcVVafoTGH4K  --password=xxx
 ```
 如果成功调用会返回如下event:
 ```

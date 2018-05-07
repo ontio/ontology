@@ -21,7 +21,7 @@ To run Ontology successfully,  nodes can be deployed by two ways:
 1.Create account
 - Through command line program, create wallet wallet.dat needed for node implementation.
     ```
-    $ .\ontology account add -d
+    $ ./ontology account add -d
     use default value for all options
     Enter a password for encrypting the private key:
     Re-enter password:
@@ -50,7 +50,7 @@ Create a directory on the host and store the following files in the directory:
 - Default configuration file `config.json`
 - Node program + Node control program  `ontology`
 - Wallet file`wallet.dat`, copy the contents of the configuration file config-solo.config in the root directory to config.json and start the node.
-- Edit the config.json file and replace the bookkeeper entries with the public key of your wallet (created above). Use `$ ./ontology wallet show --name=wallet.dat` to get your public key.
+- Edit the config.json file and replace the bookkeeper entries with the public key of your wallet (created above). Use `$ ./ontology account list -v` to get your public key.
 
 Here's a example of single-host configuration:
 
@@ -90,7 +90,7 @@ We can perform a quick deployment by modifying the default configuration file `c
 
    - Through command line program, on each host create wallet wallet.dat needed for node implementation.
         ```
-        $ .\ontology account add -d
+        $ ./ontology account add -d
         use default value for all options
         Enter a password for encrypting the private key:
         Re-enter password:
@@ -108,7 +108,7 @@ We can perform a quick deployment by modifying the default configuration file `c
      Note: The public key information for each node's wallet can also be viewed via the command line program:
 
         ```
-        $ .\ontology account list -v
+        $ ./ontology account list -v
         * 1     TA9TVuR4Ynn4VotfpExY5SaEy8a99obFPr
                 Signature algorithm: ECDSA
                 Curve: P-256
@@ -138,7 +138,7 @@ Run `./ontology --help` for details.
 ### ONT transfer sample
 contract:contract address； - from: transfer from； - to: transfer to； - value: amount；
 ```shell
-  .\ontology asset transfer --caddr=ff00000000000000000000000000000000000001 --value=500 --from  TA6nAAdX77wcsAnuBQxG61zXg3vJUAPpgk  --to TA6Hsjww86b9KBbXFyKEayMcVVafoTGH4K  --password=xxx
+  ./ontology asset transfer --caddr=ff00000000000000000000000000000000000001 --value=500 --from  TA6nAAdX77wcsAnuBQxG61zXg3vJUAPpgk  --to TA6Hsjww86b9KBbXFyKEayMcVVafoTGH4K  --password=xxx
 ```
 If transfer asset successd, the result will show as follow:
 ```

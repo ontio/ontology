@@ -49,9 +49,8 @@ func AddrReqHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 	}
 
 	var addrStr []msgCommon.PeerAddr
-	var count uint64
-	addrStr, count = p2p.GetNeighborAddrs()
-	buf, err := msgpack.NewAddrs(addrStr, count)
+	addrStr = p2p.GetNeighborAddrs()
+	buf, err := msgpack.NewAddrs(addrStr)
 	if err != nil {
 		return err
 	}
@@ -505,7 +504,6 @@ func DataReqHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 	var dataReq msgTypes.DataReq
 	dataReq.Deserialization(data.Payload[:length])
 
-	//localPeer := p2p.Self
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
 		return errors.New("remotePeer invalid in DataReqHandle")
@@ -555,11 +553,10 @@ func InvHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 	length := len(data.Payload)
 	var inv msgTypes.Inv
 	inv.Deserialization(data.Payload[:length])
-	if err := inv.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]) ; err != nil {
+	if err := inv.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]); err != nil {
 		return err
 	}
 
-	//localPeer := p2p.Self
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
 		return errors.New("remotePeer invalid in InvHandle")

@@ -60,5 +60,5 @@ type VerifyType uint8
 
 const (
 	Stateless VerifyType = iota
-	Statefull VerifyType = iota
+	Stateful  VerifyType = iota
 )

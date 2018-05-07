@@ -41,7 +41,7 @@ func getCurrentDirectory() string {
 }
 
 func GetNeighbor(params []interface{}) map[string]interface{} {
-	addr, _ := bactor.GetNeighborAddrs()
+	addr := bactor.GetNeighborAddrs()
 	return responseSuccess(addr)
 }
 

@@ -96,7 +96,7 @@ func (this *SmartContract) EntryContext() *context.Context {
 
 // PopContext pop smart contract current context
 func (this *SmartContract) PopContext() {
-	if len(this.Contexts) > 0 {
+	if len(this.Contexts) > 1 {
 		this.Contexts = this.Contexts[:len(this.Contexts)-1]
 	}
 }
@@ -225,7 +225,6 @@ func (this *SmartContract) CheckWitness(address common.Address) bool {
 			}
 		}
 	}
-
 	return false
 }
 

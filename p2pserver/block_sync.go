@@ -29,6 +29,7 @@ import (
 	p2pComm "github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	"github.com/ontio/ontology/p2pserver/peer"
+	"math"
 )
 
 const (
@@ -648,8 +649,8 @@ func (this *BlockSyncMgr) isBlockOnFlight(blockHash common.Uint256) bool {
 
 //Using polling for load balance
 func (this *BlockSyncMgr) getNextNodeId() uint64 {
-	this.lock.RLock()
-	defer this.lock.RUnlock()
+	this.lock.Lock()
+	defer this.lock.Unlock()
 	num := len(this.nodeList)
 	if num == 0 {
 		return 0
@@ -689,7 +690,7 @@ func (this *BlockSyncMgr) getNextNode(curBlockHeight uint32) *peer.Peer {
 }
 
 func (this *BlockSyncMgr) getNodeWithMinFailedTimes(flightInfo *SyncFlightInfo, curBlockHeight uint32) *peer.Peer {
-	var minFailedTimes int
+	var minFailedTimes = math.MaxInt64
 	var minFailedTimesNode *peer.Peer
 	triedNode := make(map[uint64]bool, 0)
 	for {

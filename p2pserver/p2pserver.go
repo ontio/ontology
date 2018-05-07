@@ -54,8 +54,6 @@ type P2PServer struct {
 	ReconnectAddrs
 	quitOnline    chan bool
 	quitHeartBeat chan bool
-	//quitSyncBlk   chan bool
-	//isSync        bool
 }
 
 //ReconnectAddrs contain addr need to reconnect
@@ -85,7 +83,7 @@ func (this *P2PServer) GetConnectionCnt() uint32 {
 }
 
 //Start create all services
-func (this *P2PServer) Start(isSync bool) error {
+func (this *P2PServer) Start() error {
 	if this.network != nil {
 		this.network.Start()
 	}
@@ -125,7 +123,7 @@ func (this *P2PServer) GetVersion() uint32 {
 }
 
 //GetNeighborAddrs return all nbr`s address
-func (this *P2PServer) GetNeighborAddrs() ([]common.PeerAddr, uint64) {
+func (this *P2PServer) GetNeighborAddrs() []common.PeerAddr {
 	return this.network.GetNeighborAddrs()
 }
 
@@ -222,7 +220,6 @@ func (this *P2PServer) OnBlockReceive(block *types.Block) {
 // Todo: remove it if no use
 func (this *P2PServer) GetConnectionState() uint32 {
 	return common.INIT
-	//return this.network.GetState()
 }
 
 //GetTime return lastet contact time
@@ -352,7 +349,7 @@ func (this *P2PServer) reachMinConnection() bool {
 	return int(this.GetConnectionCnt())+1 >= minCount
 }
 
-//reachMinConnection return whether net layer have enough link under different config
+//getNode returns the peer with the id
 func (this *P2PServer) getNode(id uint64) *peer.Peer {
 	return this.network.GetPeer(id)
 }

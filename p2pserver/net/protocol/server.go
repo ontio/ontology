@@ -16,6 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Package p2p provides an network interface
 package p2p
 
 import (
@@ -40,7 +41,7 @@ type P2P interface {
 	GetServices() uint64
 	GetPubKey() keypair.PublicKey
 	GetNeighbors() []*peer.Peer
-	GetNeighborAddrs() ([]common.PeerAddr, uint64)
+	GetNeighborAddrs() []common.PeerAddr
 	GetConnectionCnt() uint32
 	GetNp() *peer.NbrPeers
 	GetPeer(uint64) *peer.Peer
