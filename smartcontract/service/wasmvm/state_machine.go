@@ -22,9 +22,7 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/smartcontract/storage"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
 	"github.com/ontio/ontology/vm/wasmvm/util"
 )
@@ -46,19 +44,13 @@ const (
 
 type WasmStateMachine struct {
 	*WasmStateReader
-	ldgerStore store.LedgerStore
-	CloneCache *storage.CloneCache
-	time       uint32
 }
 
-func NewWasmStateMachine(ldgerStore store.LedgerStore, cloneCache *storage.CloneCache, time uint32) *WasmStateMachine {
+func NewWasmStateMachine() *WasmStateMachine {
 
-	var stateMachine WasmStateMachine
-	stateMachine.ldgerStore = ldgerStore
-	stateMachine.CloneCache = cloneCache
-	stateMachine.WasmStateReader = NewWasmStateReader(ldgerStore)
-	stateMachine.time = time
+	stateMachine := WasmStateMachine{WasmStateReader: NewWasmStateReader()}
 
+	//only for debug test
 	stateMachine.Register("ContractLogDebug", stateMachine.contractLogDebug)
 	stateMachine.Register("ContractLogInfo", stateMachine.contractLogInfo)
 	stateMachine.Register("ContractLogError", stateMachine.contractLogError)
