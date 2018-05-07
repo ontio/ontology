@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/ledger"
 )
 
 type SyncCheckReq struct {
@@ -139,6 +140,7 @@ func (self *Syncer) run() {
 					p.msgC <- syncMsg.msg
 				} else {
 					// report err
+					p.msgC <- nil
 				}
 			} else {
 				// report error
@@ -161,7 +163,15 @@ func (self *Syncer) run() {
 				continue
 			}
 			for self.nextReqBlkNum <= self.targetBlkNum {
-				blk := self.blockConsensusDone(self.pendingBlocks[self.nextReqBlkNum])
+				// FIXME: compete with ledger syncing
+				var blk *Block
+				if self.nextReqBlkNum <= uint64(ledger.DefLedger.GetCurrentBlockHeight()) {
+					blk, _ = self.server.chainStore.GetBlock(self.nextReqBlkNum)
+				}
+				if blk == nil {
+					blk = self.blockConsensusDone(self.pendingBlocks[self.nextReqBlkNum])
+				}
+
 				if blk == nil {
 					break
 				}
@@ -180,6 +190,11 @@ func (self *Syncer) run() {
 				self.server.stateMgr.StateEventC <- &StateEvent{
 					Type:     SyncDone,
 					blockNum: self.targetBlkNum,
+				}
+
+				// stop all sync-peers
+				for _, syncPeer := range self.peers {
+					syncPeer.stop(true)
 				}
 
 				// reset to default
@@ -391,6 +406,9 @@ func (self *PeerSyncer) requestBlock(blkNum uint64) (*Block, error) {
 
 	select {
 	case msg := <-self.msgC:
+		if msg == nil {
+			return nil, fmt.Errorf("nil block fetch rsp msg received")
+		}
 		switch msg.Type() {
 		case BlockFetchRespMessage:
 			pMsg, ok := msg.(*BlockFetchRespMsg)
@@ -402,7 +420,7 @@ func (self *PeerSyncer) requestBlock(blkNum uint64) (*Block, error) {
 	case <-t.C:
 		return nil, fmt.Errorf("timeout fetch block %d from peer %d", blkNum, self.peerIdx)
 	case <-self.server.quitC:
-		return nil, fmt.Errorf("server %d quit, failed fetching Block %d", self.server.Index, blkNum)
+		return nil, fmt.Errorf("peer syncing %d quit, failed fetching Block %d", self.peerIdx, blkNum)
 	}
 	return nil, fmt.Errorf("failed to get Block %d from peer %d", blkNum, self.peerIdx)
 }
@@ -423,6 +441,9 @@ func (self *PeerSyncer) requestBlockInfo(startBlkNum uint64) ([]*BlockInfo_, err
 
 	select {
 	case msg := <-self.msgC:
+		if msg == nil {
+			return nil, fmt.Errorf("nil blockinfo fetch rsp msg received")
+		}
 		switch msg.Type() {
 		case BlockInfoFetchRespMessage:
 			pMsg, ok := msg.(*BlockInfoFetchRespMsg)
@@ -434,7 +455,8 @@ func (self *PeerSyncer) requestBlockInfo(startBlkNum uint64) ([]*BlockInfo_, err
 	case <-t.C:
 		return nil, fmt.Errorf("timeout fetch blockInfo %d from peer %d", startBlkNum, self.peerIdx)
 	case <-self.server.quitC:
-		return nil, fmt.Errorf("server %d quit, failed fetching BlockInfo %d", self.server.Index, startBlkNum)
+		return nil, fmt.Errorf("peer syncer %d - %d quit, failed fetching BlockInfo %d",
+			self.server.Index, self.peerIdx, startBlkNum)
 	}
 	return nil, nil
 }
