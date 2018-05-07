@@ -71,15 +71,16 @@ func (this *NativeService) Invoke() (interface{}, error) {
 	services(this)
 	service, ok := this.ServiceMap[contract.Method]
 	if !ok {
-		return false, fmt.Errorf("Native contract %x doesn't support this function %s.", contract.Address, contract.Method)
+		return false, fmt.Errorf("Native contract %x doesn't support this function %s.",
+			contract.Address, contract.Method)
 	}
 	this.Input = contract.Args
 	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address})
 	if err := service(this); err != nil {
-		return false, errors.NewDetailErr(err, errors.ErrNoCode, "[Invoke] Native serivce function execute error!")
+		return false, errors.NewDetailErr(err, errors.ErrNoCode,
+			"[Invoke] Native serivce function execute error!")
 	}
 	this.ContextRef.PopContext()
 	this.ContextRef.PushNotifications(this.Notifications)
 	return true, nil
 }
-

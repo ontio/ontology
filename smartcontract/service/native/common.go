@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"bytes"
 	"github.com/ontio/ontology/common"
 	cstates "github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
@@ -31,9 +32,10 @@ import (
 )
 
 var (
-	ADDRESS_HEIGHT = []byte("addressHeight")
-	TRANSFER_NAME = "transfer"
+	ADDRESS_HEIGHT    = []byte("addressHeight")
+	TRANSFER_NAME     = "transfer"
 	TOTAL_SUPPLY_NAME = []byte("totalSupply")
+	SET_PARAM         = "SetGlobalParam"
 )
 
 func getAddressHeightKey(contract, address common.Address) []byte {
@@ -53,6 +55,18 @@ func getToAmountStorageItem(toBalance, value *big.Int) *cstates.StorageItem {
 	return &cstates.StorageItem{Value: new(big.Int).Add(toBalance, value).Bytes()}
 }
 
+func getParamStorageItem(params *states.Params) *cstates.StorageItem {
+	bf := new(bytes.Buffer)
+	params.Serialize(bf)
+	return &cstates.StorageItem{Value: bf.Bytes()}
+}
+
+func getAdminStorageItem(admin *states.Admin) *cstates.StorageItem {
+	bf := new(bytes.Buffer)
+	admin.Serialize(bf)
+	return &cstates.StorageItem{Value: bf.Bytes()}
+}
+
 func getTotalSupplyKey(contract common.Address) []byte {
 	return append(contract[:], TOTAL_SUPPLY_NAME...)
 }
@@ -69,6 +83,20 @@ func getApproveKey(contract common.Address, state *states.State) []byte {
 func getTransferFromKey(contract common.Address, state *states.TransferFrom) []byte {
 	temp := append(contract[:], state.From[:]...)
 	return append(temp, state.Sender[:]...)
+}
+
+func getParamKey(contract common.Address, valueType paramType) []byte {
+	key := append(contract[:], "param"...)
+	key = append(key[:], byte(valueType))
+	return key
+}
+
+func getAdminKey(contract common.Address, isTransferAdmin bool) []byte {
+	if isTransferAdmin {
+		return append(contract[:], "transfer"...)
+	} else {
+		return append(contract[:], "admin"...)
+	}
 }
 
 func isTransferValid(native *NativeService, state *states.State) error {
@@ -205,11 +233,51 @@ func getStorageBigInt(native *NativeService, key []byte) (*big.Int, error) {
 	return new(big.Int).SetBytes(item.Value), nil
 }
 
+func getStorageParam(native *NativeService, key []byte)(*states.Params, error){
+	params , err:= native.CloneCache.Get(scommon.ST_STORAGE, key)
+	tempParams := new(states.Params)
+	*tempParams = make(map[string]string)
+	if err != nil || params == nil{
+		return tempParams, errors.NewDetailErr(err, errors.ErrNoCode, "[Get Param] storage error!")
+	}
+	item, ok := params.(*cstates.StorageItem)
+	if !ok {
+		return tempParams, errors.NewDetailErr(err, errors.ErrNoCode, "[Get Param] storage error!")
+	}
+	bf := bytes.NewBuffer(item.Value)
+	tempParams.Deserialize(bf)
+	return tempParams, nil
+}
+
+func getStorageAdmin(native *NativeService, key []byte) (*states.Admin, error) {
+	admin, err := native.CloneCache.Get(scommon.ST_STORAGE, key)
+	tempAdmin := new(states.Admin)
+	if err != nil || admin == nil {
+		return tempAdmin, errors.NewDetailErr(err, errors.ErrNoCode, "[Get Admin] storage error!")
+	}
+	item, ok := admin.(*cstates.StorageItem)
+	if !ok {
+		return tempAdmin, errors.NewDetailErr(err, errors.ErrNoCode, "[Get Admin] storage error!")
+	}
+	bf := bytes.NewBuffer(item.Value)
+	tempAdmin.Deserialize(bf)
+	return tempAdmin, nil
+}
+
 func addNotifications(native *NativeService, contract common.Address, state *states.State) {
 	native.Notifications = append(native.Notifications,
 		&event.NotifyEventInfo{
-			TxHash:   native.Tx.Hash(),
+			TxHash:          native.Tx.Hash(),
 			ContractAddress: contract,
-			States:   []interface{}{TRANSFER_NAME, state.From.ToBase58(), state.To.ToBase58(), state.Value},
+			States:          []interface{}{TRANSFER_NAME, state.From.ToBase58(), state.To.ToBase58(), state.Value},
+		})
+}
+
+func notifyParamSetSuccess(native *NativeService, contract common.Address, params states.Params) {
+	native.Notifications = append(native.Notifications,
+		&event.NotifyEventInfo{
+			TxHash:          native.Tx.Hash(),
+			ContractAddress: contract,
+			States:          []interface{}{SET_PARAM, params},
 		})
 }
