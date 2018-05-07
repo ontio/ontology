@@ -2,13 +2,13 @@
 
 * [Introduction](#introduction)
 * [Websocket Api List](#websocket-api-list)
-* [Error Code](#errorcode)
+* [Error Code](#error-code)
 
 ## Introduction
 
 This document describes the Websocket api format for the ws/wss used in the Onchain Ontology.
 
-## Websocket api list
+## Websocket Api List
 
 ### Response parameters descri
 
@@ -677,7 +677,7 @@ get session count
 }
 ```
 
-## Errorcode
+## Error Code
 
 | Field | Type | Description |
 | :--- | :--- | :--- |

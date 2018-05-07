@@ -2,7 +2,7 @@
 
 * [Introduction](#introduction)
 * [Restful Api List](#restful-api-list)
-* [Error Code](#errorcode)
+* [Error Code](#error-code)
 
 Restful Api List
 
@@ -30,7 +30,7 @@ Restful Api List
 
 This document describes the restful api format for the http/https used in the Onchain Ontology.
 
-## Restful api list
+## Restful Api List
 
 ### Response parameters descri
 
@@ -719,7 +719,7 @@ curl -i http://localhost:20384/api/v1/merkleproof/3e23cf222a47739d4141255da617cd
 }
 ```
 
-## Errorcode
+## Error Code
 
 | Field | Type | Description |
 | :--- | :--- | :--- |

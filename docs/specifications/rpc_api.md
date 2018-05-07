@@ -2,7 +2,7 @@
 
 * [Introduction](#introduction)
 * [Rpc Api List](#rpc-api-list)
-* [Error Code](#errorcode)
+* [Error Code](#error-code)
 
 ## Introduction
 
@@ -65,7 +65,7 @@ Transaction field description
 | Sigs | []*Sig | signature array |
 | Hash | *Uint256 | transaction hash |
 
-## Rpc api list
+## Rpc Api List
 
 | Method | Parameters | Description | Note |
 | :---| :---| :---| :---|
@@ -921,7 +921,7 @@ Response:
 }
 ```
 
-## Errorcode
+## Error Code
 
 errorcode instruction
 
