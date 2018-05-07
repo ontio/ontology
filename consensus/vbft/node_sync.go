@@ -123,7 +123,7 @@ func (self *Syncer) run() {
 				continue
 			}
 
-			log.Infof("server %d, got sync req(%d, %d) to %d",
+			log.Infof("server %d, got sync req(%d, %d) to %v",
 				self.server.Index, req.startBlockNum, req.targetBlockNum, req.targetPeers)
 			if req.startBlockNum <= self.server.GetCommittedBlockNo() {
 				req.startBlockNum = self.server.GetCommittedBlockNo() + 1
