@@ -815,10 +815,9 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface
 			result = common.ToHexString(v)
 		}
 	} else if prefix == vmtype.Native {
-		result = common.ToHexString(result)
+		result = common.ToHexString(result.([]byte))
 	}
 	return result, nil
-
 }
 
 //Close ledger store.

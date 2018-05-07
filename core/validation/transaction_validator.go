@@ -80,8 +80,8 @@ func checkTransactionSignatures(tx *types.Transaction) error {
 		}
 	}
 
-	// check all payers in address
-	if address[tx.Payer] == false {
+	// check payer in address
+	if tx.Payer != common.DEFALUT_ADDR && address[tx.Payer] == false {
 		return errors.New("signature missing for payer: " + common.ToHexString(tx.Payer[:]))
 	}
 
