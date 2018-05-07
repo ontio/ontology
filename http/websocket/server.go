@@ -44,7 +44,7 @@ func StartServer() {
 	}()
 }
 func sendBlock2WSclient(v interface{}) {
-	if cfg.Parameters.HttpWsPort != 0 {
+	if cfg.DefConfig.Ws.HttpWsPort != 0 {
 		go func() {
 			pushBlock(v)
 			pushBlockTransactions(v)

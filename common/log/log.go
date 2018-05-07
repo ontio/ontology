@@ -355,7 +355,7 @@ func Init(a ...interface{}) {
 		}
 	}
 	fileAndStdoutWrite := io.MultiWriter(writers...)
-	var printlevel int = config.Parameters.PrintLevel
+	var printlevel = int(config.DefConfig.Common.LogLevel)
 	Log = New(fileAndStdoutWrite, "", log.Ldate|log.Lmicroseconds, printlevel, logFile)
 }
 
@@ -368,8 +368,9 @@ func GetLogFileSize() (int64, error) {
 }
 
 func GetMaxLogChangeInterval() int64 {
-	if config.Parameters.MaxLogSize != 0 {
-		return (config.Parameters.MaxLogSize * BYTE_TO_MB)
+	maxLogSize := int64(config.DefConfig.Common.MaxLogSize)
+	if maxLogSize != 0 {
+		return (maxLogSize * BYTE_TO_MB)
 	} else {
 		return (DEFAULT_MAX_LOG_SIZE * BYTE_TO_MB)
 	}

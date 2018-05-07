@@ -23,8 +23,6 @@ import (
 )
 
 func StartServer() {
-	func() {
-		rt := restful.InitRestServer()
-		go rt.Start()
-	}()
+	rt := restful.InitRestServer()
+	go rt.Start()
 }
