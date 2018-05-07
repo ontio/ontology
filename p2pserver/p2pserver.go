@@ -261,7 +261,7 @@ func (this *P2PServer) blockSyncFinished() bool {
 
 //WaitForSyncBlkFinish compare the height of self and remote peer in loop
 func (this *P2PServer) WaitForSyncBlkFinish() {
-	consensusType := strings.ToLower(config.Parameters.ConsensusType)
+	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
 	if consensusType == "solo" {
 		return
 	}
@@ -288,11 +288,8 @@ func (this *P2PServer) WaitForPeersStart() {
 		if this.reachMinConnection() {
 			break
 		}
-		if config.Parameters.GenBlockTime > config.MIN_GEN_BLOCK_TIME {
-			periodTime = config.Parameters.GenBlockTime / common.UPDATE_RATE_PER_BLOCK
-		} else {
-			periodTime = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
-		}
+
+		periodTime = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
 		<-time.After(time.Second * (time.Duration(periodTime)))
 	}
 }
@@ -302,7 +299,7 @@ func (this *P2PServer) connectSeeds() {
 	if this.reachMinConnection() {
 		return
 	}
-	seedNodes := config.Parameters.SeedList
+	seedNodes := config.DefConfig.Genesis.SeedList
 	for _, nodeAddr := range seedNodes {
 		found := false
 		var p *peer.Peer
@@ -333,7 +330,7 @@ func (this *P2PServer) connectSeeds() {
 
 //reachMinConnection return whether net layer have enough link under different config
 func (this *P2PServer) reachMinConnection() bool {
-	consensusType := strings.ToLower(config.Parameters.ConsensusType)
+	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
 	if consensusType == "" {
 		consensusType = "dbft"
 	}
@@ -432,11 +429,7 @@ func (this *P2PServer) reqNbrList(p *peer.Peer) {
 //heartBeat send ping to nbr peers and check the timeout
 func (this *P2PServer) heartBeatService() {
 	var periodTime uint
-	if config.Parameters.GenBlockTime > config.MIN_GEN_BLOCK_TIME {
-		periodTime = config.Parameters.GenBlockTime / common.UPDATE_RATE_PER_BLOCK
-	} else {
-		periodTime = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
-	}
+	periodTime = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
 	t := time.NewTicker(time.Second * (time.Duration(periodTime)))
 
 	for {
@@ -475,11 +468,7 @@ func (this *P2PServer) ping() {
 func (this *P2PServer) timeout() {
 	peers := this.network.GetNeighbors()
 	var periodTime uint
-	if config.Parameters.GenBlockTime > config.MIN_GEN_BLOCK_TIME {
-		periodTime = config.Parameters.GenBlockTime / common.UPDATE_RATE_PER_BLOCK
-	} else {
-		periodTime = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
-	}
+	periodTime = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
 	for _, p := range peers {
 		if p.GetSyncState() == common.ESTABLISH {
 			t := p.GetContactTime()

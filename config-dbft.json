@@ -1,30 +1,18 @@
 {
-  "Configuration": {
-    "Magic": 7630401,
-    "Version": 23,
-    "SeedList": [
-      "ip1:20338",
-      "ip2:20338",
-      "ip3:20338",
-      "ip4:20338"
-    ],
+  "SeedList": [
+    "ip1:20318",
+    "ip2:20318",
+    "ip3:20318",
+    "ip4:20318"
+  ],
+  "ConsensusType":"dbft",
+  "DBFT":{
     "Bookkeepers": [
-      "bookkeeper1",
-      "bookkeeper2",
-      "bookkeeper3",
-      "bookkeeper4"
+      "bookKeeper1",
+      "bookKeeper2",
+      "bookKeeper3",
+      "bookKeeper4"
     ],
-    "HttpRestPort": 20334,
-    "HttpWsPort":20335,
-    "HttpJsonPort": 20336,
-    "HttpLocalPort": 20337,
-    "NodePort": 20338,
-    "NodeConsensusPort": 20339,
-    "DualPortSurpport":true,
-    "PrintLevel": 1,
-    "IsTLS": false,
-    "MaxTransactionInBlock": 60000,
-    "MultiCoreNum": 4,
-    "ConsensusType":"dbft"
+    "GenBlockTime":6
   }
 }
