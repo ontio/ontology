@@ -86,7 +86,7 @@ func TestCodeHash(t *testing.T) {
 	code, _ := common.HexToBytes("")
 	vmcode := vmtypes.VmCode{vmtypes.NEOVM, code}
 	codehash := vmcode.AddressFromVmCode()
-	assert.Contains(t,codehash.ToHexString(),"")
+	assert.Contains(t, codehash.ToHexString(), "")
 }
 
 func TestTxDeserialize(t *testing.T) {
@@ -95,7 +95,7 @@ func TestTxDeserialize(t *testing.T) {
 	err := txn.Deserialize(bytes.NewReader(bys));
 	assert.Nil(t, err)
 
-	assert.Contains(t,txn.TxType,0)
+	assert.Contains(t, txn.TxType, 0)
 }
 func TestAddress(t *testing.T) {
 	pubkey, _ := common.HexToBytes("120203a4e50edc1e59979442b83f327030a56bffd08c2de3e0a404cefb4ed2cc04ca3e")
@@ -104,7 +104,7 @@ func TestAddress(t *testing.T) {
 
 	ui60 := types.AddressFromPubKey(pk)
 	addr := common.ToHexString(ui60[:])
-	assert.Contains(t,addr,0)
+	assert.Contains(t, addr, 0)
 }
 func TestMultiPubKeysAddress(t *testing.T) {
 	pubkey, _ := common.HexToBytes("120203a4e50edc1e59979442b83f327030a56bffd08c2de3e0a404cefb4ed2cc04ca3e")
@@ -117,7 +117,7 @@ func TestMultiPubKeysAddress(t *testing.T) {
 
 	ui60, _ := types.AddressFromMultiPubKeys([]keypair.PublicKey{pk, pk2}, 1)
 	addr := common.ToHexString(ui60[:])
-	assert.Contains(t,addr,0)
+	assert.Contains(t, addr, 0)
 }
 
 func TestInvokefunction(t *testing.T) {
@@ -127,17 +127,17 @@ func TestInvokefunction(t *testing.T) {
 	assert.Nil(t, err)
 
 	codeParams := builder.ToArray()
-	op_verify,_ := common.HexToBytes("69")
-	codeaddress,_ := common.HexToBytes("809690ff6a5244cca5e64face79914d59daef527")
+	op_verify, _ := common.HexToBytes("69")
+	codeaddress, _ := common.HexToBytes("809690ff6a5244cca5e64face79914d59daef527")
 
 	tx := utils.NewInvokeTransaction(vmtypes.VmCode{
 		VmType: vmtypes.NEOVM,
-		Code:   bytes.Join([][]byte{codeParams},bytes.Join([][]byte{op_verify},codeaddress)),
+		Code:   bytes.Join([][]byte{codeParams}, bytes.Join([][]byte{op_verify}, codeaddress)),
 	})
 	tx.Nonce = uint32(time.Now().Unix())
 
 	acct := account.Open(account.WALLET_FILENAME, []byte("passwordtest"))
-	acc, err := acct.GetDefaultAccount()
+	acc := acct.GetDefaultAccount()
 	//pubkey := keypair.SerializePublicKey(acc.PubKey())
 	assert.Nil(t, err)
 	hash := tx.Hash()
@@ -159,10 +159,10 @@ func TestInvokefunction(t *testing.T) {
 	}
 	resp, err := Request("POST", req, addr+"/api/v1/transaction?preExec=1")
 	if err != nil {
-		assert.Error(t,err)
+		assert.Error(t, err)
 	}
 	r, _ := json.Marshal(resp)
-	assert.Contains(t,string(r),"SUCCESS")
+	assert.Contains(t, string(r), "SUCCESS")
 }
 func BuildSmartContractParamInter(builder *neovm.ParamsBuilder, smartContractParams []interface{}) error {
 	for i := len(smartContractParams) - 1; i >= 0; i-- {

@@ -1,10 +1,10 @@
 # Ontology Restful API
 
-* [Introduction](#Introduction)
-* [Restful API list](#Restful API list)
-* [Errorcode](#Errorcode)
+* [Introduction](#introduction)
+* [Restful Api List](#restful-Api-List)
+* [Error Code](#errorcode)
 
-Restful API list
+Restful Api List
 
 | Method | url |
 | :---| :---|
@@ -30,7 +30,7 @@ Restful API list
 
 This document describes the restful api format for the http/https used in the Onchain Ontology.
 
-## Restful API list
+## Restful api list
 
 ### Response parameters descri
 

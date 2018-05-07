@@ -1,8 +1,8 @@
 # ONT Rpc Api
 
-* [Introduction](#Introduction)
-* [Rpc API list](#Rpc API list)
-* [Error code](#Errorcode)
+* [Introduction](#introduction)
+* [Rpc Api List](#rpc-api-list)
+* [Error Code](#errorcode)
 
 ## Introduction
 
@@ -65,7 +65,7 @@ Transaction field description
 | Sigs | []*Sig | signature array |
 | Hash | *Uint256 | transaction hash |
 
-## Rpc API list
+## Rpc api list
 
 | Method | Parameters | Description | Note |
 | :---| :---| :---| :---|
