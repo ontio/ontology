@@ -126,10 +126,14 @@ var (
 		Usage: "Specifies contract parameters `<list>` when invoked",
 	}
 	NonOptionFlag = cli.StringFlag{
-		Name:  "optiion",
+		Name:  "option",
 		Usage: "this command does not need option, please run directly",
 	}
 	//account management
+	AccountQuantityFlag = cli.UintFlag{
+		Name:  "number,n",
+		Usage: "Specifies the `<quantity>` of account to create, default is 1.",
+	}
 	AccountVerboseFlag = cli.BoolFlag{
 		Name:  "verbose,v",
 		Usage: "Display accounts with details",
@@ -163,6 +167,18 @@ var (
 		Name:  "file,f",
 		Value: "wallet.dat",
 		Usage: "Use `<filename>` as the wallet",
+	}
+	AccountSourceFileFlag = cli.StringFlag{
+		Name:  "source,s",
+		Usage: "Use `<filename>` as the source wallet file to import",
+	}
+	AccountLabelFlag = cli.StringFlag{
+		Name:  "label,l",
+		Usage: "Use `<label>` for the account",
+	}
+	AccountKeyFlag = cli.StringFlag{
+		Name:  "key,k",
+		Usage: "Use `<private key(hex encoding)>` of the account",
 	}
 )
 

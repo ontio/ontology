@@ -19,8 +19,6 @@
 package account
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"io/ioutil"
 	"os"
@@ -28,43 +26,6 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 )
-
-type Accountx struct {
-	keypair.ProtectedKey
-
-	Label     string `json:"label"`
-	PubKey    string `json:"publicKey"`
-	SigSch    string `json:"signatureScheme"`
-	IsDefault bool   `json:"isDefault"`
-	Lock      bool   `json:"lock"`
-	PassHash  string `json:"passwordHash"`
-}
-
-func (this *Accountx) SetKeyPair(keyinfo *keypair.ProtectedKey) {
-	this.Address = keyinfo.Address
-	this.EncAlg = keyinfo.EncAlg
-	this.Alg = keyinfo.Alg
-	this.Hash = keyinfo.Hash
-	this.Key = keyinfo.Key
-	this.Param = keyinfo.Param
-}
-func (this *Accountx) GetKeyPair() *keypair.ProtectedKey {
-	var keyinfo = new(keypair.ProtectedKey)
-	keyinfo.Address = this.Address
-	keyinfo.EncAlg = this.EncAlg
-	keyinfo.Alg = this.Alg
-	keyinfo.Hash = this.Hash
-	keyinfo.Key = this.Key
-	keyinfo.Param = this.Param
-	return keyinfo
-}
-func (this *Accountx) VerifyPassword(pwd []byte) bool {
-	passwordHash := sha256.Sum256(pwd)
-	if this.PassHash != hex.EncodeToString(passwordHash[:]) {
-		return false
-	}
-	return true
-}
 
 type WalletData struct {
 	Name       string               `json:"name"`

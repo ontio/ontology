@@ -19,6 +19,8 @@
 package account
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"github.com/ontio/ontology-crypto/keypair"
 	s "github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/common"
@@ -26,6 +28,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 )
 
+/* crypto object */
 type Account struct {
 	PrivateKey keypair.PrivateKey
 	PublicKey  keypair.PublicKey
@@ -105,4 +108,63 @@ func (ac *Account) PubKey() keypair.PublicKey {
 
 func (ac *Account) Scheme() s.SignatureScheme {
 	return ac.SigScheme
+}
+
+/** Accountx - for wallet read and save, no crypto object included **/
+type Accountx struct {
+	keypair.ProtectedKey
+
+	Label     string `json:"label"`
+	PubKey    string `json:"publicKey"`
+	SigSch    string `json:"signatureScheme"`
+	IsDefault bool   `json:"isDefault"`
+	Lock      bool   `json:"lock"`
+	PassHash  string `json:"passwordHash"`
+}
+
+func (this *Accountx) SetKeyPair(keyinfo *keypair.ProtectedKey) {
+	this.Address = keyinfo.Address
+	this.EncAlg = keyinfo.EncAlg
+	this.Alg = keyinfo.Alg
+	this.Hash = keyinfo.Hash
+	this.Key = keyinfo.Key
+	this.Param = keyinfo.Param
+}
+func (this *Accountx) GetKeyPair() *keypair.ProtectedKey {
+	var keyinfo = new(keypair.ProtectedKey)
+	keyinfo.Address = this.Address
+	keyinfo.EncAlg = this.EncAlg
+	keyinfo.Alg = this.Alg
+	keyinfo.Hash = this.Hash
+	keyinfo.Key = this.Key
+	keyinfo.Param = this.Param
+	return keyinfo
+}
+func (this *Accountx) VerifyPassword(pwd []byte) bool {
+	passwordHash := sha256.Sum256(pwd)
+	if this.PassHash != hex.EncodeToString(passwordHash[:]) {
+		return false
+	}
+	return true
+}
+
+func (this *Accountx) SetLabel(label string) {
+	this.Label = label
+}
+
+func CreateAccount(TypeCode keypair.KeyType, CurveCode byte, SchemeName string, password *[]byte) *Accountx {
+	prvkey, pubkey, _ := keypair.GenerateKeyPair(TypeCode, CurveCode)
+	ta := types.AddressFromPubKey(pubkey)
+	address := ta.ToBase58()
+
+	prvSecret, _ := keypair.EncryptPrivateKey(prvkey, address, *password)
+	h := sha256.Sum256(*password)
+
+	var acc = new(Accountx)
+	acc.SetKeyPair(prvSecret)
+	acc.SigSch = SchemeName
+	acc.PubKey = hex.EncodeToString(keypair.SerializePublicKey(pubkey))
+	acc.PassHash = hex.EncodeToString(h[:])
+
+	return acc
 }
