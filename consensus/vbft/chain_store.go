@@ -23,20 +23,19 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/consensus/actor"
 	"github.com/ontio/ontology/core/ledger"
 )
 
 type ChainStore struct {
-	db              *actor.LedgerActor
+	db              *ledger.Ledger
 	chainedBlockNum uint64
 	pendingBlocks   map[uint64]*Block
 }
 
-func OpenBlockStore(lgr *actor.LedgerActor) (*ChainStore, error) {
+func OpenBlockStore(db *ledger.Ledger) (*ChainStore, error) {
 	return &ChainStore{
-		db:              lgr,
-		chainedBlockNum: uint64(ledger.DefLedger.GetCurrentBlockHeight()),
+		db:              db,
+		chainedBlockNum: uint64(db.GetCurrentBlockHeight()),
 		pendingBlocks:   make(map[uint64]*Block),
 	}, nil
 }
@@ -69,15 +68,15 @@ func (self *ChainStore) AddBlock(block *Block) error {
 		if blk, present := self.pendingBlocks[blkNum]; blk != nil && present {
 			log.Infof("ledger adding chained block (%d, %d)", blkNum, self.GetChainedBlockNum())
 
-			err := ledger.DefLedger.AddBlock(blk.Block)
+			err := self.db.AddBlock(blk.Block)
 			if err != nil && blkNum > self.GetChainedBlockNum() {
 				return fmt.Errorf("ledger add blk (%d, %d) failed: %s", blkNum, self.GetChainedBlockNum(), err)
 			}
 
 			self.chainedBlockNum = blkNum
-			if blkNum != uint64(ledger.DefLedger.GetCurrentBlockHeight()) {
+			if blkNum != uint64(self.db.GetCurrentBlockHeight()) {
 				log.Errorf("!!! chain store added chained block (%d, %d): %s",
-					blkNum, ledger.DefLedger.GetCurrentBlockHeight(), err)
+					blkNum, self.db.GetCurrentBlockHeight(), err)
 			}
 
 			delete(self.pendingBlocks, blkNum)
@@ -95,8 +94,8 @@ func (self *ChainStore) AddBlock(block *Block) error {
 //
 func (self *ChainStore) SetBlock(block *Block, blockHash common.Uint256) error {
 
-	err := ledger.DefLedger.AddBlock(block.Block)
-	self.chainedBlockNum = uint64(ledger.DefLedger.GetCurrentBlockHeight())
+	err := self.db.AddBlock(block.Block)
+	self.chainedBlockNum = uint64(self.db.GetCurrentBlockHeight())
 	if err != nil {
 		return fmt.Errorf("ledger failed to add block: %s", err)
 	}
@@ -110,7 +109,7 @@ func (self *ChainStore) GetBlock(blockNum uint64) (*Block, error) {
 		return blk, nil
 	}
 
-	block, err := ledger.DefLedger.GetBlockByHeight(uint32(blockNum))
+	block, err := self.db.GetBlockByHeight(uint32(blockNum))
 	if err != nil {
 		return nil, err
 	}

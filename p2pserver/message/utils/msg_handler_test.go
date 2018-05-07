@@ -29,11 +29,9 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
-	ldgactor "github.com/ontio/ontology/core/ledger/actor"
 	"github.com/ontio/ontology/core/payload"
 	ct "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events"
-	netreqactor "github.com/ontio/ontology/p2pserver/actor/req"
 	msgCommon "github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	"github.com/ontio/ontology/p2pserver/message/types"
@@ -60,12 +58,6 @@ func init() {
 	if err != nil {
 		log.Fatalf("NewLedger error %s", err)
 	}
-
-	// Start a ledger actor
-	ldgerActor := ldgactor.NewLedgerActor()
-	ledgerPID := ldgerActor.Start()
-
-	netreqactor.SetLedgerPid(ledgerPID)
 
 	_, pubKey1, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
 	_, pubKey2, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
@@ -234,7 +226,7 @@ func TestHeadersReqHandle(t *testing.T) {
 	network.AddNbrNode(remotePeer)
 
 	// Construct a headers request of packet
-	headerHash, _ := netreqactor.GetCurrentHeaderHash()
+	headerHash := ledger.DefLedger.GetCurrentHeaderHash()
 	buf, err := msgpack.NewHeadersReq(headerHash)
 
 	msg := &msgCommon.MsgPayload{
@@ -267,7 +259,7 @@ func TestPingHandle(t *testing.T) {
 	network.AddNbrNode(remotePeer)
 
 	// Construct a ping packet
-	height, err := netreqactor.GetCurrentBlockHeight()
+	height := ledger.DefLedger.GetCurrentBlockHeight()
 	assert.Nil(t, err)
 
 	buf, err := msgpack.NewPingMsg(uint64(height))
@@ -304,7 +296,7 @@ func TestPongHandle(t *testing.T) {
 	network.AddNbrNode(remotePeer)
 
 	// Construct a pong packet
-	height, err := netreqactor.GetCurrentBlockHeight()
+	height := ledger.DefLedger.GetCurrentBlockHeight()
 	assert.Nil(t, err)
 
 	buf, err := msgpack.NewPongMsg(uint64(height))
@@ -341,10 +333,10 @@ func TestBlkHeaderHandle(t *testing.T) {
 	network.AddNbrNode(remotePeer)
 
 	// Construct a sync header packet
-	hash, err := netreqactor.GetBlockHashByHeight(0)
-	assert.Nil(t, err)
+	hash := ledger.DefLedger.GetBlockHash(0)
+	assert.NotEqual(t, hash, common.UINT256_EMPTY)
 
-	headers, err := netreqactor.GetHeadersFromHash(hash, hash)
+	headers, err := GetHeadersFromHash(hash, hash)
 	assert.Nil(t, err)
 
 	buf, err := msgpack.NewHeaders(headers)
@@ -380,10 +372,10 @@ func TestBlockHandle(t *testing.T) {
 	network.AddNbrNode(remotePeer)
 
 	// Construct a block packet
-	hash, err := netreqactor.GetBlockHashByHeight(0)
-	assert.Nil(t, err)
+	hash := ledger.DefLedger.GetBlockHash(0)
+	assert.NotEqual(t, hash, common.UINT256_EMPTY)
 
-	block, err := netreqactor.GetBlockByHash(hash)
+	block, err := ledger.DefLedger.GetBlockByHash(hash)
 	assert.Nil(t, err)
 
 	buf, err := msgpack.NewBlock(block)
@@ -409,8 +401,8 @@ func TestConsensusHandle(t *testing.T) {
 	err := binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(testID))
 	assert.Nil(t, err)
 
-	hash, err := netreqactor.GetBlockHashByHeight(0)
-	assert.Nil(t, err)
+	hash := ledger.DefLedger.GetBlockHash(0)
+	assert.NotEqual(t, hash, common.UINT256_EMPTY)
 
 	cpl := &types.ConsensusPayload{
 		Version:         1,
@@ -482,7 +474,7 @@ func TestTransactionHandle(t *testing.T) {
 // TestAddrHandle tests Function AddrHandle handling a neighbor address response message
 func TestAddrHandle(t *testing.T) {
 	nodeAddrs := []msgCommon.PeerAddr{}
-	buf, err := msgpack.NewAddrs(nodeAddrs, 0)
+	buf, err := msgpack.NewAddrs(nodeAddrs)
 	assert.Nil(t, err)
 
 	msg := &msgCommon.MsgPayload{
@@ -511,8 +503,8 @@ func TestDataReqHandle(t *testing.T) {
 
 	network.AddNbrNode(remotePeer)
 
-	hash, err := netreqactor.GetBlockHashByHeight(0)
-	assert.Nil(t, err)
+	hash := ledger.DefLedger.GetBlockHash(0)
+	assert.NotEqual(t, hash, common.UINT256_EMPTY)
 	buf, err := msgpack.NewBlkDataReq(hash)
 	assert.Nil(t, err)
 
@@ -560,8 +552,8 @@ func TestInvHandle(t *testing.T) {
 
 	network.AddNbrNode(remotePeer)
 
-	hash, err := netreqactor.GetBlockHashByHeight(0)
-	assert.Nil(t, err)
+	hash := ledger.DefLedger.GetBlockHash(0)
+	assert.NotEqual(t, hash, common.UINT256_EMPTY)
 
 	buf := bytes.NewBuffer([]byte{})
 	hash.Serialize(buf)

@@ -39,6 +39,7 @@ import (
 	"github.com/ontio/ontology/events/message"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/validator/increment"
+	"github.com/ontio/ontology/core/ledger"
 )
 
 type BftActionType uint8
@@ -78,7 +79,7 @@ type Server struct {
 	account       *account.Account
 	poolActor     *actorTypes.TxPoolActor
 	p2p           *actorTypes.P2PActor
-	ledger        *actorTypes.LedgerActor
+	ledger        *ledger.Ledger
 	incrValidator *increment.IncrementValidator
 	pid           *actor.PID
 
@@ -109,13 +110,13 @@ type Server struct {
 	quitWg     sync.WaitGroup
 }
 
-func NewVbftServer(account *account.Account, txpool, ledger, p2p *actor.PID) (*Server, error) {
+func NewVbftServer(account *account.Account, txpool, p2p *actor.PID) (*Server, error) {
 	server := &Server{
 		msgHistoryDuration: 64,
 		account:            account,
 		poolActor:          &actorTypes.TxPoolActor{Pool: txpool},
 		p2p:                &actorTypes.P2PActor{P2P: p2p},
-		ledger:             &actorTypes.LedgerActor{Ledger: ledger},
+		ledger:             ledger.DefLedger,
 		incrValidator:      increment.NewIncrementValidator(10),
 	}
 	server.stateMgr = newStateMgr(server)

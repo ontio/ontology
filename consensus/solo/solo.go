@@ -31,7 +31,6 @@ import (
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
 	"github.com/ontio/ontology/core/ledger"
-	ldgactor "github.com/ontio/ontology/core/ledger/actor"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
@@ -48,7 +47,6 @@ const ContextVersion uint32 = 0
 type SoloService struct {
 	Account       *account.Account
 	poolActor     *actorTypes.TxPoolActor
-	ledgerActor   *actorTypes.LedgerActor
 	incrValidator *increment.IncrementValidator
 	existCh       chan interface{}
 	genBlockInterval time.Duration
@@ -56,11 +54,10 @@ type SoloService struct {
 	sub *events.ActorSubscriber
 }
 
-func NewSoloService(bkAccount *account.Account, txpool *actor.PID, ledger *actor.PID) (*SoloService, error) {
+func NewSoloService(bkAccount *account.Account, txpool *actor.PID) (*SoloService, error) {
 	service := &SoloService{
 		Account:       bkAccount,
 		poolActor:     &actorTypes.TxPoolActor{Pool: txpool},
-		ledgerActor:   &actorTypes.LedgerActor{Ledger: ledger},
 		incrValidator: increment.NewIncrementValidator(10),
 		genBlockInterval:time.Duration(config.DefConfig.Genesis.SOLO.GenBlockTime) * time.Second,
 	}
@@ -151,14 +148,9 @@ func (self *SoloService) genBlock() error {
 		return fmt.Errorf("makeBlock error %s", err)
 	}
 
-	future := ldgactor.DefLedgerPid.RequestFuture(&ldgactor.AddBlockReq{Block: block}, 30*time.Second)
-	result, err := future.Result()
+	err = ledger.DefLedger.AddBlock(block)
 	if err != nil {
 		return fmt.Errorf("genBlock DefLedgerPid.RequestFuture Height:%d error:%s", block.Header.Height, err)
-	}
-	addBlockRsp := result.(*ldgactor.AddBlockRsp)
-	if addBlockRsp.Error != nil {
-		return fmt.Errorf("AddBlockRsp Height:%d error:%s", block.Header.Height, addBlockRsp.Error)
 	}
 	return nil
 }

@@ -26,7 +26,6 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	ct "github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/p2pserver/actor/req"
 	msgCommon "github.com/ontio/ontology/p2pserver/common"
 	mt "github.com/ontio/ontology/p2pserver/message/types"
 	p2pnet "github.com/ontio/ontology/p2pserver/net/protocol"
@@ -204,7 +203,7 @@ func NewVerAck(isConsensus bool) ([]byte, error) {
 }
 
 //VersionPayload package
-func NewVersionPayload(n p2pnet.P2P, isCons bool) mt.VersionPayload {
+func NewVersionPayload(n p2pnet.P2P, isCons bool, height uint32) mt.VersionPayload {
 	vpl := mt.VersionPayload{
 		Version:      n.GetVersion(),
 		Services:     n.GetServices(),
@@ -215,7 +214,6 @@ func NewVersionPayload(n p2pnet.P2P, isCons bool) mt.VersionPayload {
 		HttpInfoPort: n.GetHttpInfoPort(),
 	}
 
-	height, _ := req.GetCurrentBlockHeight()
 	vpl.StartHeight = uint64(height)
 	if n.GetRelay() {
 		vpl.Relay = 1

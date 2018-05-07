@@ -49,9 +49,9 @@ func NewConsensusService(consensusType string,  account *account.Account, txpool
 	case CONSENSUS_DBFT:
 		consensus, err = dbft.NewDbftService(account, txpool, p2p)
 	case CONSENSUS_SOLO:
-		consensus, err = solo.NewSoloService(account, txpool, ledger)
+		consensus, err = solo.NewSoloService(account, txpool)
 	case CONSENSUS_VBFT:
-		consensus, err = vbft.NewVbftServer(account, txpool, ledger, p2p)
+		consensus, err = vbft.NewVbftServer(account, txpool, p2p)
 	}
 	log.Infof("ConsensusType:%s", consensusType)
 	return consensus, err

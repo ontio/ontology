@@ -32,6 +32,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 	actor "github.com/ontio/ontology/p2pserver/actor/req"
 	msgCommon "github.com/ontio/ontology/p2pserver/common"
@@ -74,7 +75,7 @@ func HeadersReqHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID
 	startHash = headersReq.P.HashStart
 	stopHash = headersReq.P.HashEnd
 
-	headers, err := actor.GetHeadersFromHash(startHash, stopHash)
+	headers, err := GetHeadersFromHash(startHash, stopHash)
 	if err != nil {
 		return err
 	}
@@ -107,10 +108,7 @@ func PingHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 	}
 	remotePeer.SetHeight(ping.Height)
 
-	height, err := actor.GetCurrentBlockHeight()
-	if err != nil {
-		return err
-	}
+	height := ledger.DefLedger.GetCurrentBlockHeight()
 	p2p.SetHeight(uint64(height))
 	buf, err := msgpack.NewPongMsg(uint64(height))
 
@@ -290,7 +288,7 @@ func VersionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 		var buf []byte
 		if s == msgCommon.INIT {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKE)
-			vpl := msgpack.NewVersionPayload(p2p, true)
+			vpl := msgpack.NewVersionPayload(p2p, true, ledger.DefLedger.GetCurrentBlockHeight())
 			buf, _ = msgpack.NewVersion(vpl, p2p.GetPubKey())
 		} else if s == msgCommon.HAND {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKED)
@@ -363,7 +361,7 @@ func VersionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 		var buf []byte
 		if s == msgCommon.INIT {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKE)
-			vpl := msgpack.NewVersionPayload(p2p, false)
+			vpl := msgpack.NewVersionPayload(p2p, false, ledger.DefLedger.GetCurrentBlockHeight())
 			buf, _ = msgpack.NewVersion(vpl, p2p.GetPubKey())
 		} else if s == msgCommon.HAND {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKED)
@@ -512,7 +510,7 @@ func DataReqHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 	hash := dataReq.Hash
 	switch reqType {
 	case common.BLOCK:
-		block, err := actor.GetBlockByHash(hash)
+		block, err := ledger.DefLedger.GetBlockByHash(hash)
 		if err != nil || block == nil || block.Header == nil {
 			log.Debug("Can't get block by hash: ", hash,
 				" ,send not found message")
@@ -529,7 +527,7 @@ func DataReqHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 		p2p.Send(remotePeer, buf, false)
 
 	case common.TRANSACTION:
-		txn, err := actor.GetTxnFromLedger(hash)
+		txn, err := ledger.DefLedger.GetTransaction(hash)
 		if err != nil {
 			log.Debug("Can't get transaction by hash: ",
 				hash, " ,send not found message")
@@ -573,7 +571,7 @@ func InvHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 		// TODO check the ID queue
 		id.Deserialize(bytes.NewReader(inv.P.Blk[:32]))
 
-		trn, err := actor.GetTransaction(id)
+		trn, err := ledger.DefLedger.GetTransaction(id)
 		if trn == nil || err != nil {
 			txnDataReq, _ := msgpack.NewTxnDataReq(id)
 			p2p.Send(remotePeer, txnDataReq, false)
@@ -586,7 +584,7 @@ func InvHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 		for i = 0; i < count; i++ {
 			id.Deserialize(bytes.NewReader(inv.P.Blk[msgCommon.HASH_LEN*i:]))
 			// TODO check the ID queue
-			isContainBlock, _ := actor.IsContainBlock(id)
+			isContainBlock, _ := ledger.DefLedger.IsContainBlock(id)
 			if !isContainBlock && msgTypes.LastInvHash != id {
 				msgTypes.LastInvHash = id
 				// send the block request
@@ -625,4 +623,77 @@ func DisconnectHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID
 		remotePeer.CloseCons()
 	}
 	return nil
+}
+
+//get blk hdrs from starthash to stophash
+func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]types.Header, error) {
+	var count uint32 = 0
+	var empty [msgCommon.HASH_LEN]byte
+	headers := []types.Header{}
+	var startHeight uint32
+	var stopHeight uint32
+	curHeight := ledger.DefLedger.GetCurrentHeaderHeight()
+	if startHash == empty {
+		if stopHash == empty {
+			if curHeight > msgCommon.MAX_BLK_HDR_CNT {
+				count = msgCommon.MAX_BLK_HDR_CNT
+			} else {
+				count = curHeight
+			}
+		} else {
+			bkStop, err := ledger.DefLedger.GetHeaderByHash(stopHash)
+			if err != nil || bkStop == nil {
+				return nil, err
+			}
+			stopHeight = bkStop.Height
+			count = curHeight - stopHeight
+			if count > msgCommon.MAX_BLK_HDR_CNT {
+				count = msgCommon.MAX_BLK_HDR_CNT
+			}
+		}
+	} else {
+		bkStart, err := ledger.DefLedger.GetHeaderByHash(startHash)
+		if err != nil || bkStart == nil {
+			return nil, err
+		}
+		startHeight = bkStart.Height
+		if stopHash != empty {
+			bkStop, err := ledger.DefLedger.GetHeaderByHash(stopHash)
+			if err != nil || bkStop == nil {
+				return nil, err
+			}
+			stopHeight = bkStop.Height
+
+			// avoid unsigned integer underflow
+			if startHeight < stopHeight {
+				return nil, errors.New("do not have header to send")
+			}
+			count = startHeight - stopHeight
+
+			if count >= msgCommon.MAX_BLK_HDR_CNT {
+				count = msgCommon.MAX_BLK_HDR_CNT
+				stopHeight = startHeight - msgCommon.MAX_BLK_HDR_CNT
+			}
+		} else {
+
+			if startHeight > msgCommon.MAX_BLK_HDR_CNT {
+				count = msgCommon.MAX_BLK_HDR_CNT
+			} else {
+				count = startHeight
+			}
+		}
+	}
+
+	var i uint32
+	for i = 1; i <= count; i++ {
+		hash := ledger.DefLedger.GetBlockHash(stopHeight + i)
+		hd, err := ledger.DefLedger.GetHeaderByHash(hash)
+		if err != nil {
+			log.Errorf("net_server GetBlockWithHeight failed with err=%s, hash=%x,height=%d\n", err.Error(), hash, stopHeight+i)
+			return nil, err
+		}
+		headers = append(headers, *hd)
+	}
+
+	return headers, nil
 }

@@ -34,8 +34,8 @@ import (
 	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
-	actor "github.com/ontio/ontology/p2pserver/actor/req"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	msgtypes "github.com/ontio/ontology/p2pserver/message/types"
@@ -51,6 +51,7 @@ type P2PServer struct {
 	msgRouter *utils.MessageRouter
 	pid       *evtActor.PID
 	blockSync *BlockSyncMgr
+	ledger    *ledger.Ledger
 	ReconnectAddrs
 	quitOnline    chan bool
 	quitHeartBeat chan bool
@@ -68,6 +69,7 @@ func NewServer(acc *account.Account) (*P2PServer, error) {
 
 	p := &P2PServer{
 		network: n,
+		ledger:  ledger.DefLedger,
 	}
 
 	p.msgRouter = utils.NewMsgRouter(p.network)
@@ -245,11 +247,7 @@ func (this *P2PServer) blockSyncFinished() bool {
 		return false
 	}
 
-	blockHeight, err := actor.GetCurrentBlockHeight()
-	if err != nil {
-		log.Errorf("P2PServer GetCurrentBlockHeight error:%s", err)
-		return false
-	}
+	blockHeight := this.ledger.GetCurrentBlockHeight()
 
 	for _, v := range peers {
 		if blockHeight < uint32(v.GetHeight()) {
@@ -267,8 +265,8 @@ func (this *P2PServer) WaitForSyncBlkFinish() {
 	}
 
 	for {
-		headerHeight, _ := actor.GetCurrentHeaderHeight()
-		currentBlkHeight, _ := actor.GetCurrentBlockHeight()
+		headerHeight := this.ledger.GetCurrentHeaderHeight()
+		currentBlkHeight := this.ledger.GetCurrentBlockHeight()
 		log.Info("WaitForSyncBlkFinish... current block height is ",
 			currentBlkHeight, " ,current header height is ", headerHeight)
 
@@ -449,11 +447,7 @@ func (this *P2PServer) ping() {
 	peers := this.network.GetNeighbors()
 	for _, p := range peers {
 		if p.GetSyncState() == common.ESTABLISH {
-			height, err := actor.GetCurrentBlockHeight()
-			if err != nil {
-				log.Error("failed get current height! Ping faild!")
-				return
-			}
+			height := this.ledger.GetCurrentBlockHeight()
 			buf, err := msgpack.NewPingMsg(uint64(height))
 			if err != nil {
 				log.Error("failed build a new ping message")

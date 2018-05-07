@@ -74,10 +74,7 @@ func GetNodeState(params []interface{}) map[string]interface{} {
 	if err != nil {
 		return responsePack(berr.INTERNAL_ERROR, false)
 	}
-	height, err := bactor.BlockHeight()
-	if err != nil {
-		return responsePack(berr.INTERNAL_ERROR, false)
-	}
+	height:= bactor.GetCurrentBlockHeight()
 	txnCnt, err := bactor.GetTxnCnt()
 	if err != nil {
 		return responsePack(berr.INTERNAL_ERROR, false)

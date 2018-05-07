@@ -61,10 +61,7 @@ func GetConnectionCount(cmd map[string]interface{}) map[string]interface{} {
 //Block
 func GetBlockHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	height, err := bactor.BlockHeight()
-	if err != nil {
-		return ResponsePack(berr.INTERNAL_ERROR)
-	}
+	height:= bactor.GetCurrentBlockHeight()
 	resp["Result"] = height
 	return resp
 }
@@ -78,10 +75,7 @@ func GetBlockHash(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	hash, err := bactor.GetBlockHashFromStore(uint32(height))
-	if err != nil {
-		return ResponsePack(berr.INVALID_PARAMS)
-	}
+	hash:= bactor.GetBlockHashFromStore(uint32(height))
 	resp["Result"] = common.ToHexString(hash.ToArray())
 	return resp
 }
@@ -181,7 +175,7 @@ func GetBlockTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	index := uint32(height)
-	hash, err := bactor.GetBlockHashFromStore(index)
+	hash:= bactor.GetBlockHashFromStore(index)
 	if err != nil {
 		return ResponsePack(berr.UNKNOWN_BLOCK)
 	}
@@ -469,10 +463,7 @@ func GetMerkleProof(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 
-	curHeight, err := bactor.BlockHeight()
-	if err != nil {
-		return ResponsePack(berr.INVALID_PARAMS)
-	}
+	curHeight:= bactor.GetCurrentBlockHeight()
 	curHeader, err := bactor.GetHeaderByHeight(curHeight)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)

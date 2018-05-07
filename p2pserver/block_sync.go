@@ -19,17 +19,17 @@
 package p2pserver
 
 import (
+	"math"
 	"sync"
 	"time"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
-	actor "github.com/ontio/ontology/p2pserver/actor/req"
 	p2pComm "github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	"github.com/ontio/ontology/p2pserver/peer"
-	"math"
 )
 
 const (
@@ -127,6 +127,7 @@ type BlockSyncMgr struct {
 	syncHeaderLock bool                               //Help to avoid send header sync request duplicate
 	saveBlockLock  bool                               //Help to avoid saving block concurrently
 	exitCh         chan interface{}                   //ExitCh to receive exit signal
+	ledger         *ledger.Ledger
 	lock           sync.RWMutex
 }
 
@@ -138,6 +139,7 @@ func NewBlockSyncMgr(server *P2PServer) *BlockSyncMgr {
 		blocksCache:   make(map[uint32]*types.Block, 0),
 		nodeList:      make([]uint64, 0),
 		server:        server,
+		ledger:        server.ledger,
 		exitCh:        make(chan interface{}, 1),
 	}
 }
@@ -175,16 +177,9 @@ func (this *BlockSyncMgr) checkTimeout() {
 	}
 	this.lock.RUnlock()
 
-	curHeaderHeight, err := actor.GetCurrentHeaderHeight()
-	if err != nil {
-		log.Errorf("BlockSyncMgr checkTimeout GetCurrentHeaderHeight error:%s", err)
-		return
-	}
-	curBlockHeight, err := actor.GetCurrentBlockHeight()
-	if err != nil {
-		log.Errorf("BlockSyncMgr checkTimeout GetCurrentBlockHeight error:%s", err)
-		return
-	}
+	curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
+	curBlockHeight := this.ledger.GetCurrentBlockHeight()
+
 	for height, flightInfo := range headerTimeoutFlights {
 		if height <= curHeaderHeight {
 			this.delFlightHeader(height)
@@ -199,7 +194,7 @@ func (this *BlockSyncMgr) checkTimeout() {
 		}
 		flightInfo.SetNodeId(reqNode.GetID())
 
-		headerHash, _ := actor.GetCurrentHeaderHash()
+		headerHash := this.ledger.GetCurrentHeaderHash()
 		buf, err := msgpack.NewHeadersReq(headerHash)
 		if err != nil {
 			log.Error("failed build a new headersReq")
@@ -251,16 +246,9 @@ func (this *BlockSyncMgr) syncHeader() {
 	if this.getFlightHeaderCount() >= SYNC_MAX_FLIGHT_HEADER_SIZE {
 		return
 	}
-	curBlockHeight, err := actor.GetCurrentBlockHeight()
-	if err != nil {
-		log.Errorf("BlockSyncMgr syncHeader GetCurrentBlockHeight error:%s", err)
-		return
-	}
-	curHeaderHeight, err := actor.GetCurrentHeaderHeight()
-	if err != nil {
-		log.Errorf("BlockSyncMgr syncHeader GetCurrentHeaderHeight error:%s", err)
-		return
-	}
+	curBlockHeight := this.ledger.GetCurrentBlockHeight()
+
+	curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
 	//Waiting for block catch up header
 	if curHeaderHeight-curBlockHeight >= SYNC_MAX_HEADER_FORWARD_SIZE {
 		return
@@ -272,7 +260,7 @@ func (this *BlockSyncMgr) syncHeader() {
 	}
 	this.addFlightHeader(reqNode.GetID(), NextHeaderId)
 
-	headerHash, _ := actor.GetCurrentHeaderHash()
+	headerHash := this.ledger.GetCurrentHeaderHash()
 	buf, err := msgpack.NewHeadersReq(headerHash)
 	if err != nil {
 		log.Error("failed build a new headersReq")
@@ -293,16 +281,8 @@ func (this *BlockSyncMgr) syncBlock() {
 	if availCount <= 0 {
 		return
 	}
-	curBlockHeight, err := actor.GetCurrentBlockHeight()
-	if err != nil {
-		log.Errorf("BlockSyncMgr syncBlock GetCurrentBlockHeight error:%s", err)
-		return
-	}
-	curHeaderHeight, err := actor.GetCurrentHeaderHeight()
-	if err != nil {
-		log.Errorf("BlockSyncMgr syncBlock GetCurrentHeaderHeight error:%s", err)
-		return
-	}
+	curBlockHeight := this.ledger.GetCurrentBlockHeight()
+	curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
 	count := int(curHeaderHeight - curBlockHeight)
 	if count <= 0 {
 		return
@@ -323,11 +303,7 @@ func (this *BlockSyncMgr) syncBlock() {
 		}
 		i++
 		nextBlockHeight := curBlockHeight + i
-		nextBlockHash, err := actor.GetBlockHashByHeight(nextBlockHeight)
-		if err != nil {
-			log.Errorf("BlockSyncMgr syncBlock GetBlockHashByHeight:%d error:%s", nextBlockHeight, err)
-			return
-		}
+		nextBlockHash := this.ledger.GetBlockHash(nextBlockHeight)
 		if nextBlockHash == common.UINT256_EMPTY {
 			return
 		}
@@ -362,13 +338,8 @@ func (this *BlockSyncMgr) OnHeaderReceive(headers []*types.Header) {
 	}
 	log.Infof("OnHeaderReceive Height:%d - %d", headers[0].Height, headers[len(headers)-1].Height)
 	height := headers[0].Height
-	curHeaderHeight, err := actor.GetCurrentHeaderHeight()
-	if err != nil {
-		log.Errorf("BlockSyncMgr OnHeaderReceive GetCurrentHeaderHeight error:%s", err)
-		this.delFlightHeader(height)
-		this.syncHeader()
-		return
-	}
+	curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
+
 	//Means another gorountinue is adding header
 	if height <= curHeaderHeight {
 		return
@@ -376,7 +347,7 @@ func (this *BlockSyncMgr) OnHeaderReceive(headers []*types.Header) {
 	if !this.isHeaderOnFlight(height) {
 		return
 	}
-	err = actor.AddHeaders(headers)
+	err := this.ledger.AddHeaders(headers)
 	this.delFlightHeader(height)
 	if err != nil {
 		log.Errorf("BlockSyncMgr AddHeaders error:%s", err)
@@ -392,20 +363,12 @@ func (this *BlockSyncMgr) OnBlockReceive(block *types.Block) {
 	log.Debugf("OnBlockReceive Height:%d", height)
 
 	this.delFlightBlock(blockHash)
-	curHeaderHeight, err := actor.GetCurrentHeaderHeight()
-	if err != nil {
-		log.Errorf("BlockSyncMgr OnBlockReceive GetCurrentHeaderHeight error:%s", err)
-		return
-	}
+	curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
 	nextHeader := curHeaderHeight + 1
 	if height > nextHeader {
 		return
 	}
-	curBlockHeight, err := actor.GetCurrentBlockHeight()
-	if err != nil {
-		log.Errorf("BlockSyncMgr syncBlock GetCurrentBlockHeight error:%s", err)
-		return
-	}
+	curBlockHeight := this.ledger.GetCurrentBlockHeight()
 	if height <= curBlockHeight {
 		return
 	}
@@ -516,11 +479,7 @@ func (this *BlockSyncMgr) saveBlock() {
 		return
 	}
 	defer this.releaseSaveBlockLock()
-	curBlockHeight, err := actor.GetCurrentBlockHeight()
-	if err != nil {
-		log.Errorf("BlockSyncMgr saveBlock GetCurrentBlockHeight error:%s", err)
-		return
-	}
+	curBlockHeight := this.ledger.GetCurrentBlockHeight()
 	nextBlockHeight := curBlockHeight + 1
 	this.lock.Lock()
 	for height := range this.blocksCache {
@@ -534,7 +493,7 @@ func (this *BlockSyncMgr) saveBlock() {
 		if nextBlock == nil {
 			return
 		}
-		err = actor.AddBlock(nextBlock)
+		err := this.ledger.AddBlock(nextBlock)
 		this.delBlockCache(nextBlockHeight)
 		if err != nil {
 			log.Warnf("BlockSyncMgr saveBlock Height:%d AddBlock error:%s", nextBlockHeight, err)
