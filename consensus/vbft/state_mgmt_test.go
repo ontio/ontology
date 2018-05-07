@@ -147,7 +147,7 @@ func TestStateMgr_onPeerUpdate(t *testing.T) {
 			fields: fields{server: sev, syncReadyTimeout: 2, currentState: Syncing, StateEventC: make(chan *StateEvent, 16),
 				peers: peers},
 			args:    args{peerState: peerstate},
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {

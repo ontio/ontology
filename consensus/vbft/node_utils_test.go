@@ -80,7 +80,7 @@ func TestIsPeerAlive(t *testing.T) {
 func TestIsPeerActive(t *testing.T) {
 	server := constructServer()
 	server.peerPool = peerPool()
-	res := server.isPeerActive(uint32(1), uint64(1))
+	res := server.isPeerActive(uint32(2), uint64(1))
 	t.Logf("TestIsPeerActive: %v", res)
 }
 

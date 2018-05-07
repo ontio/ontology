@@ -19,8 +19,6 @@
 package vbft
 
 import (
-	"fmt"
-	"os"
 	"testing"
 
 	"github.com/ontio/ontology/account"
@@ -28,12 +26,10 @@ import (
 )
 
 func TestSignMsg(t *testing.T) {
-	passwd := string("passwordtest")
-	acct := account.Open(account.WALLET_FILENAME, []byte(passwd))
-	acc := acct.GetDefaultAccount()
+	acc := account.NewAccount("SHA256withECDSA")
 	if acc == nil {
-		fmt.Println("GetDefaultAccount error: acc is nil")
-		os.Exit(1)
+		t.Error("GetDefaultAccount error: acc is nil")
+		return
 	}
 	msg, err := constructProposalMsg(acc)
 	if err != nil {
