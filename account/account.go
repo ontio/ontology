@@ -168,6 +168,3 @@ func CreateAccount(TypeCode keypair.KeyType, CurveCode byte, SchemeName string, 
 
 	return acc
 }
-
-//TODO:: add -label 限制严格一些.
-//TODO:: add import 钱包,
