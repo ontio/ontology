@@ -19,19 +19,22 @@
 package native
 
 import (
-	"fmt"
-	"math/big"
-
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"hash/fnv"
+	"math"
+	"math/big"
+
 	"github.com/ontio/ontology/common"
+	vbftconfig "github.com/ontio/ontology/consensus/vbft/config"
+	"github.com/ontio/ontology/core/genesis"
 	cstates "github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native/states"
-	"github.com/ontio/ontology/core/genesis"
-	"bytes"
 )
 
 var (
@@ -174,6 +177,7 @@ func fromTransfer(native *NativeService, fromKey []byte, value *big.Int) (*big.I
 	} else {
 		native.CloneCache.Add(scommon.ST_STORAGE, fromKey, getAmountStorageItem(balance))
 	}
+	//native.CloneCache.Add(scommon.ST_STORAGE, fromKey, getAmountStorageItem(balance))
 	return fromBalance, nil
 }
 
@@ -310,4 +314,92 @@ func appCallTransferOnt(native *NativeService, from common.Address, to common.Ad
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[appCallTransferOnt] appCall error!")
 	}
 	return nil
+}
+
+func appCallApproveOng(native *NativeService, from common.Address, to common.Address, amount *big.Int) error {
+	buf := bytes.NewBuffer(nil)
+	sts := &states.State{
+		From:  from,
+		To:    to,
+		Value: amount,
+	}
+	err := sts.Serialize(buf)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[appCallApproveOng] transfers.Serialize error!")
+	}
+
+	if _, err := native.ContextRef.AppCall(genesis.OngContractAddress, "approve", []byte{}, buf.Bytes()); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[appCallApproveOng] appCall error!")
+	}
+	return nil
+}
+
+func Shufflehash(txid common.Uint256, ts uint32, id []byte, idx int) (uint64, error) {
+	data, err := json.Marshal(struct {
+		Txid           common.Uint256 `json:"txid"`
+		BlockTimestamp uint32         `json:"block_timestamp"`
+		NodeID         []byte         `json:"node_id"`
+		Index          int            `json:"index"`
+	}{txid, ts, id, idx})
+	if err != nil {
+		return 0, err
+	}
+
+	hash := fnv.New64a()
+	hash.Write(data)
+	return hash.Sum64(), nil
+}
+
+func calDposTable(native *NativeService, config *states.Configuration,
+	peers []*states.PeerStakeInfo) ([]uint32, map[uint32]*vbftconfig.PeerConfig, error) {
+	// get stake sum of top-k peers
+	var sum uint64
+	for i := 0; i < int(config.K); i++ {
+		sum += peers[i].Stake
+	}
+
+	// calculate peer ranks
+	scale := config.L/config.K - 1
+	if scale <= 0 {
+		return nil, nil, errors.NewErr("[calDposTable] L is equal or less than K!")
+	}
+
+	peerRanks := make([]uint64, 0)
+	for i := 0; i < int(config.K); i++ {
+		if peers[i].Stake == 0 {
+			return nil, nil, errors.NewErr(fmt.Sprintf("[calDposTable] peers rank %d, has zero stake!", i))
+		}
+		s := uint64(math.Ceil(float64(peers[i].Stake) * float64(scale) * float64(config.K) / float64(sum)))
+		peerRanks = append(peerRanks, s)
+	}
+
+	// calculate pos table
+	chainPeers := make(map[uint32]*vbftconfig.PeerConfig, 0)
+	posTable := make([]uint32, 0)
+	for i := 0; i < int(config.K); i++ {
+		nodeId, err := vbftconfig.StringID(peers[i].PeerPubkey)
+		if err != nil {
+			return nil, nil, errors.NewDetailErr(err, errors.ErrNoCode,
+				fmt.Sprintf("[calDposTable] Failed to format NodeID, index: %d: %s", peers[i].Index, err))
+		}
+		chainPeers[peers[i].Index] = &vbftconfig.PeerConfig{
+			Index: peers[i].Index,
+			ID:    nodeId,
+		}
+		for j := uint64(0); j < peerRanks[i]; j++ {
+			posTable = append(posTable, peers[i].Index)
+		}
+	}
+
+	// shuffle
+	for i := len(posTable) - 1; i > 0; i-- {
+		h, err := Shufflehash(native.Tx.Hash(), native.Height, chainPeers[posTable[i]].ID.Bytes(), i)
+		if err != nil {
+			return nil, nil, errors.NewDetailErr(err, errors.ErrNoCode, "[calDposTable] Failed to calculate hash value")
+		}
+		j := h % uint64(i)
+		posTable[i], posTable[j] = posTable[j], posTable[i]
+	}
+
+	return posTable, chainPeers, nil
 }

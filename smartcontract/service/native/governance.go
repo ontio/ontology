@@ -70,10 +70,11 @@ const (
 	VOTE_COMMIT_INFO = "voteCommitInfo"
 
 	//global
-	SYNC_NODE_FEE = 50
-	CANDIDATE_FEE = 500
-	CandidateNum  = 7 * 7
-	SyncNodeNum   = 7 * 7 * 7
+	SYNC_NODE_FEE  = 50
+	CANDIDATE_FEE  = 500
+	MIN_INIT_STAKE = 1000
+	CandidateNum   = 7 * 7
+	SyncNodeNum    = 7 * 7 * 7
 )
 
 func init() {
@@ -128,8 +129,9 @@ func InitConfig(native *NativeService) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[initConfig] Failed to unmarshal config file!")
 	}
 
-	indexMap := make(map[uint64]struct{})
-	var maxId uint64
+	indexMap := make(map[uint32]struct{})
+	var maxId uint32
+	peers := []*states.PeerStakeInfo{}
 	for _, peerPool := range initPeerPool.Peers {
 		_, ok := indexMap[peerPool.Index]
 		if ok {
@@ -156,10 +158,16 @@ func InitConfig(native *NativeService) error {
 			&cstates.StorageItem{Value: value})
 		native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(PEER_POOL), view.Bytes(), peerPubkeyPrefix),
 			&cstates.StorageItem{Value: value})
+
+		peers = append(peers, &states.PeerStakeInfo{
+			Index:      peerPool.Index,
+			PeerPubkey: peerPool.PeerPubkey,
+			Stake:      peerPool.InitPos,
+		})
 	}
 
 	native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(CANDIDITE_INDEX)),
-		&cstates.StorageItem{Value: new(big.Int).SetUint64(maxId + 1).Bytes()})
+		&cstates.StorageItem{Value: new(big.Int).SetUint64(uint64(maxId + 1)).Bytes()})
 
 	governanceView := &states.GovernanceView{
 		View:       view,
@@ -170,6 +178,10 @@ func InitConfig(native *NativeService) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[initConfig] Marshal governanceView error")
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, concatKey(contract, []byte(GOVERNANCE_VIEW)), &cstates.StorageItem{Value: v})
+
+	posTable, chainPeers, err := calDposTable(native, configuration, peers)
+	fmt.Println("ChainPeers is :", chainPeers)
+	fmt.Println("DPOS table is:", posTable)
 
 	addCommonEvent(native, contract, INIT_CONFIG, true)
 	return nil
@@ -183,8 +195,8 @@ func RegisterSyncNode(native *NativeService) error {
 	}
 
 	//check initPos
-	if params.InitPos <= 0 {
-		return errors.NewErr("[registerSyncNode] InitPos must > 0!")
+	if params.InitPos < MIN_INIT_STAKE {
+		return errors.NewErr(fmt.Sprintf("[registerSyncNode] InitPos must >= %v!", MIN_INIT_STAKE))
 	}
 
 	//check witness
@@ -472,7 +484,7 @@ func ApproveCandidate(native *NativeService) error {
 		candidateIndex = new(big.Int).SetBytes(candidateIndexStore.Value).Uint64()
 	}
 
-	peerPool.Index = candidateIndex
+	peerPool.Index = uint32(candidateIndex)
 
 	value, err := json.Marshal(peerPool)
 	if err != nil {
@@ -608,8 +620,8 @@ func VoteForPeer(native *NativeService) error {
 		voteInfoPoolBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(VOTE_INFO_POOL),
 			view.Bytes(), peerPubkeyPrefix, addressPrefix))
 		voteInfoPool := &states.VoteInfoPool{
-			PeerPubkey:   peerPubkey,
-			Address:      params.Address,
+			PeerPubkey: peerPubkey,
+			Address:    params.Address,
 		}
 		if pos >= 0 {
 			if voteInfoPoolBytes != nil {
@@ -835,11 +847,8 @@ func CommitDpos(native *NativeService) error {
 		return peers[i].Stake > peers[j].Stake
 	})
 
-	// get stake sum of top-k peers
-	var sum uint64
+	// consensus peers
 	for i := 0; i < int(config.K); i++ {
-		sum += peers[i].Stake
-
 		//change peerPool status
 		peerPubkeyPrefix, err := hex.DecodeString(peers[i].PeerPubkey)
 		if err != nil {
@@ -1061,6 +1070,10 @@ func CommitDpos(native *NativeService) error {
 		}
 	}
 
+	posTable, chainPeers, err := calDposTable(native, config, peers)
+	fmt.Println("ChainPeers is :", chainPeers)
+	fmt.Println("DPOS table is:", posTable)
+
 	//update view
 	governanceView := &states.GovernanceView{
 		View:       newView,
@@ -1170,7 +1183,6 @@ func VoteCommitDpos(native *NativeService) error {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[voteCommitDpos] Ont transfer error!")
 		}
 	}
-
 
 	return nil
 }
