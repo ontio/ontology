@@ -381,7 +381,7 @@ func (tx *Transaction) Verify() error {
 }
 
 func (tx *Transaction) GetSysFee() common.Fixed64 {
-	return common.Fixed64(config.Parameters.SystemFee[TxName[tx.TxType]])
+	return common.Fixed64(config.DefConfig.Common.SystemFee[TxName[tx.TxType]])
 }
 
 func (tx *Transaction) GetNetworkFee() common.Fixed64 {

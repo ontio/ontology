@@ -222,7 +222,7 @@ func NewVersionPayload(n p2pnet.P2P, isCons bool) mt.VersionPayload {
 	} else {
 		vpl.Relay = 0
 	}
-	if config.Parameters.HttpInfoPort > 0 {
+	if config.DefConfig.P2PNode.HttpInfoPort > 0 {
 		vpl.Cap[msgCommon.HTTP_INFO_FLAG] = 0x01
 	} else {
 		vpl.Cap[msgCommon.HTTP_INFO_FLAG] = 0x00
