@@ -37,7 +37,7 @@ func createListener(port uint16) (net.Listener, error) {
 	var listener net.Listener
 	var err error
 
-	isTls := config.Parameters.IsTLS
+	isTls := config.DefConfig.P2PNode.IsTLS
 	if isTls {
 		listener, err = initTlsListen(port)
 		if err != nil {
@@ -66,9 +66,9 @@ func nonTLSDial(addr string) (net.Conn, error) {
 
 //TLSDial return net.Conn with TLS
 func TLSDial(nodeAddr string) (net.Conn, error) {
-	CertPath := config.Parameters.CertPath
-	KeyPath := config.Parameters.KeyPath
-	CAPath := config.Parameters.CAPath
+	CertPath := config.DefConfig.P2PNode.CertPath
+	KeyPath := config.DefConfig.P2PNode.KeyPath
+	CAPath := config.DefConfig.P2PNode.CAPath
 
 	clientCertPool := x509.NewCertPool()
 
@@ -110,9 +110,9 @@ func initNonTlsListen(port uint16) (net.Listener, error) {
 
 //initTlsListen return net.Listener with Tls mode
 func initTlsListen(port uint16) (net.Listener, error) {
-	CertPath := config.Parameters.CertPath
-	KeyPath := config.Parameters.KeyPath
-	CAPath := config.Parameters.CAPath
+	CertPath := config.DefConfig.P2PNode.CertPath
+	KeyPath := config.DefConfig.P2PNode.KeyPath
+	CAPath := config.DefConfig.P2PNode.CAPath
 
 	// load cert
 	cert, err := tls.LoadX509KeyPair(CertPath, KeyPath)

@@ -22,8 +22,9 @@ import (
 	"bytes"
 	"math/big"
 
-	"github.com/ontio/ontology/account"
+	"fmt"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/genesis"
 	cstates "github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
@@ -34,9 +35,9 @@ import (
 
 var (
 	DECREMENT_INTERVAL = uint32(2000000)
-	GENERATION_AMOUNT = [17]uint32{80, 70, 60, 50, 40, 30, 20, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10}
-	GL = uint32(len(GENERATION_AMOUNT))
-	ONT_TOTAL_SUPPLY = big.NewInt(1000000000)
+	GENERATION_AMOUNT  = [17]uint32{80, 70, 60, 50, 40, 30, 20, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10}
+	GL                 = uint32(len(GENERATION_AMOUNT))
+	ONT_TOTAL_SUPPLY   = big.NewInt(1000000000)
 )
 
 func init() {
@@ -44,8 +45,10 @@ func init() {
 }
 
 func OntInit(native *NativeService) error {
-	booKeepers := account.GetBookkeepers()
-
+	booKeepers, err := config.DefConfig.GetBookkeepers()
+	if err != nil {
+		return fmt.Errorf("GetBookkeepers error:%s", err)
+	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	amount, err := getStorageBigInt(native, getTotalSupplyKey(contract))
 	if err != nil {

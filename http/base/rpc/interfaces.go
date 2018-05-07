@@ -326,7 +326,7 @@ func GetNodeVersion(params []interface{}) map[string]interface{} {
 }
 
 func GetSystemFee(params []interface{}) map[string]interface{} {
-	return responseSuccess(config.Parameters.SystemFee)
+	return responseSuccess(config.DefConfig.Common.SystemFee)
 }
 
 func GetContractState(params []interface{}) map[string]interface{} {

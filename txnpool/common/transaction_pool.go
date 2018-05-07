@@ -131,7 +131,7 @@ func (tp *TXPool) GetTxPool(byCount bool, height uint32) ([]*TXEntry,
 	tp.RLock()
 	defer tp.RUnlock()
 
-	count := config.Parameters.MaxTxInBlock
+	count := int(config.DefConfig.Common.MaxTxInBlock)
 	if count <= 0 {
 		byCount = false
 	}
