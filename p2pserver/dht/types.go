@@ -27,40 +27,28 @@ const (
 	BUCKET_NUM  = 256
 	BUCKET_SIZE = 8
 	FACTOR      = 3
+	MSG_CACHE   = 10240
 )
 
-type Ping struct {
-	Version  uint16
-	FromID   NodeID
-	SrcAddr  net.IP
-	SrcPort  uint16
-	DestAddr net.IP
-	DestPort uint16
-}
+type ptype uint8
 
-type Pong struct {
-	Version  uint16
-	FromID   NodeID
-	SrcAddr  net.IP
-	SrcPort  uint16
-	DestAddr net.IP
-	DestPort uint16
-}
+const (
+	ping_rpc ptype = iota
+	pong_rpc
+	find_node_rpc
+	neighbors_rpc
+)
 
-type FindNode struct {
-	FromID   NodeID
-	TargetID uint64
-}
-
-type Neighbors struct {
-	FromID NodeID
-	Nodes  []Node
+type DHTMessage struct {
+	ptype   ptype
+	from    *net.UDPAddr
+	payload []byte
 }
 
 type Node struct {
 	ID      NodeID
 	Hash    common.Uint256
-	IP      net.IP
+	IP      string
 	UDPPort uint16
 	TCPPort uint16
 }

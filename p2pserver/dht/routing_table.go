@@ -20,7 +20,7 @@ package dht
 
 import (
 	"crypto/sha256"
-	"fmt"
+	//"fmt"
 	"sync"
 
 	"github.com/ontio/ontology/common"
@@ -42,10 +42,10 @@ func (this *routingTable) init(id NodeID) {
 }
 
 func (this *routingTable) locateBucket(id NodeID) (int, *bucket) {
-	id1 := sha256.Sum256(this.id)
-	id2 := sha256.Sum256(id)
+	id1 := sha256.Sum256(this.id[:])
+	id2 := sha256.Sum256(id[:])
 	dist := logdist(id1, id2)
-	return index, this.buckets[dist-1]
+	return dist, this.buckets[dist-1]
 }
 
 func (this *routingTable) AddNode(node *Node) bool {
@@ -108,7 +108,7 @@ func (this *routingTable) GetClosestNodes(num int, targetID NodeID) []*Node {
 	}
 
 	for index := range buckets {
-		for _, entry := range this.buckets[index] {
+		for _, entry := range this.buckets[index].entries {
 			closestList = append(closestList, entry)
 			if len(closestList) >= num {
 				return closestList
@@ -121,12 +121,17 @@ func (this *routingTable) GetClosestNodes(num int, targetID NodeID) []*Node {
 func (this *routingTable) GetTotalNodeNumInBukcet(bucket int) int {
 	this.mu.Lock()
 	defer this.mu.Unlock()
-	return len(this.buckets[bucket])
+	b := this.buckets[bucket]
+	if b == nil {
+		return 0
+	}
+
+	return len(b.entries)
 }
 
 func (this *routingTable) GetDistance(id1 NodeID, id2 NodeID) int {
-	sha1 := sha256.Sum256(id1)
-	sha2 := sha256.Sum256(id2)
+	sha1 := sha256.Sum256(id1[:])
+	sha2 := sha256.Sum256(id2[:])
 	dist := logdist(sha1, sha2)
 	return dist
 }
@@ -136,7 +141,7 @@ func (this *routingTable) totalNodes() int {
 	defer this.mu.Unlock()
 	var num int
 	for _, bucket := range this.buckets {
-		num += len(bucket)
+		num += len(bucket.entries)
 	}
 	return num
 }
@@ -145,7 +150,12 @@ func (this *routingTable) isNodeInBucket(id NodeID, bucket int) bool {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 
-	for _, entry := range this.buckets[bucket] {
+	b := this.buckets[bucket]
+	if b == nil {
+		return false
+	}
+
+	for _, entry := range b.entries {
 		if entry.ID == id {
 			return true
 		}
