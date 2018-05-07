@@ -148,6 +148,8 @@ func (vm *VM) RestoreCtx() bool {
 	return true
 }
 
+//SetMessage
+//for further extension
 //support EOS like message
 func (vm *VM) SetMessage(message []interface{}) {
 	if message != nil {
@@ -158,6 +160,8 @@ func (vm *VM) SetMessage(message []interface{}) {
 	}
 }
 
+//GetMessageBytes
+//for further extension
 func (vm *VM) GetMessageBytes() ([]byte, error) {
 	if vm.envCall.Message == nil || len(vm.envCall.Message) == 0 {
 		return nil, nil
@@ -444,7 +448,9 @@ outer:
 	return 0
 }
 
+//CallContract
 //start a new vm
+//this method is replaced with wasm_service :callContract
 func (vm *VM) CallContract(caller common.Address, contractAddress common.Address, module *wasm.Module, actionName []byte, arg []byte) (uint64, error) {
 
 	methodName := CONTRACT_METHOD_NAME
@@ -512,15 +518,12 @@ func (vm *VM) loadModule(module *wasm.Module) error {
 	} else if len(module.LinearMemoryIndexSpace) > 0 {
 		//add imported memory ,all mem access will be on the imported mem
 		vm.memory.Memory = module.LinearMemoryIndexSpace[0]
-		//copy(vm.memory, module.LinearMemoryIndexSpace[0])
 	}
 
 	//give a default memory even if no memory section exist in wasm file
 	if vm.memory.Memory == nil {
 		vm.memory.Memory = make([]byte, 1*wasmPageSize)
 	}
-
-	//vm.memory.AllocedMemIdex = -1 //init the allocated memory offset
 
 	vm.memory.MemPoints = make(map[uint64]*memory.TypeLength) //init the pointer map
 
@@ -558,12 +561,9 @@ func (vm *VM) loadModule(module *wasm.Module) error {
 		vm.memory.PointedMemIndex = (len(vm.memory.Memory) + tmpIdx) / 2
 	} else {
 		//default pointed memory
-		//todo define the magic number
 		vm.memory.AllocedMemIdex = -1
 		vm.memory.PointedMemIndex = len(vm.memory.Memory) / 2 //the second half memory is reserved for the pointed objects,string,array,structs
 	}
-
-	//vm.memory.AllocedMemIdex = -1 //init the allocated memory offset
 
 	vm.compiledFuncs = make([]compiledFunction, len(module.FunctionIndexSpace))
 	vm.globals = make([]uint64, len(module.GlobalIndexSpace))

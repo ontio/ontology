@@ -19,21 +19,16 @@
 package wasmvm
 
 import (
-	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
 )
 
 type WasmStateReader struct {
-	serviceMap    map[string]func(*exec.ExecutionEngine) (bool, error)
-	Notifications []*event.NotifyEventInfo
-	ldgerStore    store.LedgerStore
+	serviceMap map[string]func(*exec.ExecutionEngine) (bool, error)
 }
 
-func NewWasmStateReader(ldgerStore store.LedgerStore) *WasmStateReader {
+func NewWasmStateReader() *WasmStateReader {
 	i := &WasmStateReader{
-		ldgerStore: ldgerStore,
 		serviceMap: make(map[string]func(*exec.ExecutionEngine) (bool, error)),
 	}
 	return i
