@@ -182,7 +182,7 @@ func RegisterParamContract(native *NativeService) {
 	native.Register("createSnapshot", CreateSnapshot)
 }
 
-func GetGlobalPram(native *NativeService, paramName string) (string, error) {
+func GetGlobalParam(native *NativeService, paramName string) (string, error) {
 	if value := getParamFromCache(paramName); value != "" {
 		return value, nil
 	}

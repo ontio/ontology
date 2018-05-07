@@ -116,7 +116,7 @@ args: nil
 ```
 
 ## How to get a parameter
-Call the function "GetGlobalPramValue" to get a global parameter value.
+Call the function "GetGlobalParam" to get a global parameter value.
 
 args: smartcontract/service/native.NativeService, the NativeServe instance<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;string, parameter name
