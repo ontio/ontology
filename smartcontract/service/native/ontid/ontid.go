@@ -1,4 +1,4 @@
-package native
+package ontid
 
 import (
 	"bytes"
@@ -8,24 +8,35 @@ import (
 	"io"
 
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/native"
 )
 
-func RegisterIDContract(srvc *NativeService) error {
-	srvc.Register("RegIdWithPublicKey", RegIdWithPublicKey)
-	srvc.Register("AddKey", AddKey)
-	srvc.Register("RemoveKey", RemoveKey)
-	srvc.Register("AddRecovery", AddRecovery)
-	srvc.Register("ChangeRecovery", ChangeRecovery)
-	srvc.Register("AddAttribute", AddAttribute)
-	srvc.Register("RemoveAttribute", RemoveAttribute)
-	srvc.Register("AddAttributeArray", AddAttributeArray)
-	return nil
+var contractAddress = genesis.OntIDContractAddress[:]
+
+//var ContractAddress = []byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03}
+
+func init() {
+	native.Contracts[genesis.OntIDContractAddress] = RegisterIDContract
+}
+
+func RegisterIDContract(srvc *native.NativeService) {
+	srvc.Register("regIDWithPublicKey", RegIdWithPublicKey)
+	srvc.Register("addKey", AddKey)
+	srvc.Register("removeKey", RemoveKey)
+	srvc.Register("addRecovery", AddRecovery)
+	srvc.Register("changeRecovery", ChangeRecovery)
+	srvc.Register("addAttribute", AddAttribute)
+	srvc.Register("removeAttribute", RemoveAttribute)
+	srvc.Register("verifySignature", verifySignature)
+	return
 }
 
 type publicKey struct {
@@ -73,8 +84,9 @@ func (this *publicKey) SetBytes(data []byte) error {
 	return this.Deserialize(buf)
 }
 
-func RegIdWithPublicKey(srvc *NativeService) error {
+func RegIdWithPublicKey(srvc *native.NativeService) error {
 	log.Debug("registerIdWithPublicKey")
+	log.Debug("srvc.Input:", srvc.Input)
 	// parse arguments
 	args := bytes.NewBuffer(srvc.Input)
 	// arg0: ID
@@ -90,7 +102,7 @@ func RegIdWithPublicKey(srvc *NativeService) error {
 		return errors.New("register ONT ID error: parsing argument 1 failed")
 	}
 
-	log.Debug("arg 0:", hex.EncodeToString(arg0))
+	log.Debug("arg 0:", hex.EncodeToString(arg0), string(arg0))
 	log.Debug("arg 1:", hex.EncodeToString(arg1))
 
 	if len(arg0) == 0 || len(arg1) == 0 {
@@ -117,21 +129,45 @@ func RegIdWithPublicKey(srvc *NativeService) error {
 	}
 
 	// insert public key
-	insertPk(srvc, key, arg1, 1)
+	err = insertPk(srvc, key, arg1)
+	if err != nil {
+		return errors.New("register ONT ID error: store public key error, " + err.Error())
+	}
 	// set flags
-	err = setNumOfField(srvc, key, field_num_of_pk, 1)
-	if err != nil {
-		return errors.New("register ONT ID error: set number of public key error: " + err.Error())
-	}
-	err = setNumOfField(srvc, key, field_num_of_attr, 0)
-	if err != nil {
-		return errors.New("register ONT ID error: set number of attribute error: " + err.Error())
-	}
 	srvc.CloneCache.Add(common.ST_STORAGE, key, &states.StorageItem{Value: []byte{flag_exist}})
 
 	triggerRegisterEvent(srvc, arg0)
 
 	return nil
+}
+
+func GetPublicKeyByID(srvc *native.NativeService) ([]byte, error) {
+	args := bytes.NewBuffer(srvc.Input)
+	// arg0: ID
+	arg0, err := serialization.ReadVarBytes(args)
+	if err != nil {
+		return nil, errors.New("get public key failed: argument 0 error")
+	}
+	// arg1: index
+	arg1, err := serialization.ReadUint32(args)
+	if err != nil {
+		return nil, errors.New("get public key failed: argument 1 error")
+	}
+
+	key, err := encodeID(arg0)
+	if err != nil {
+		return nil, errors.New("get public key failed: " + err.Error())
+	}
+
+	pk, err := getPk(srvc, key, arg1)
+	if err != nil {
+		return nil, errors.New("get public key failed: " + err.Error())
+	}
+	if pk.revoked {
+		return nil, errors.New("get public key failed: revoked")
+	}
+
+	return pk.key, nil
 }
 
 type attribute struct {
@@ -203,24 +239,33 @@ func (this *attribute) Deserialize(r io.Reader) error {
 	return nil
 }
 
-func RegIdWithAttributes(srvc *NativeService) error {
+func RegIdWithAttributes(srvc *native.NativeService) error {
 	// parse arguments
 	args := bytes.NewBuffer(srvc.Input)
 	// arg0: ID
 	arg0, err := serialization.ReadVarBytes(args)
 	if len(arg0) == 0 {
-		return errors.New("register ID with attributes error: invalid id")
+		return errors.New("register ID with attributes error: argument 0 error")
 	}
+	// arg1: public key
+	arg1, err := serialization.ReadVarBytes(args)
+	if err != nil {
+		return errors.New("register ID with attributes error: argument 1 error, " + err.Error())
+	}
+	// arg2: attributes
+	arg2, err := serialization.ReadVarBytes(args)
+	if len(arg2) < 2 {
+		return errors.New("register ID with attributes error: argument 2 error, " + err.Error())
+	}
+
 	key, err := encodeID(arg0)
 	if err != nil {
 		return errors.New("register ID with attributes error: " + err.Error())
 	}
+
 	if checkIDExistence(srvc, key) {
 		return errors.New("register ID with attributes error: already registered")
 	}
-
-	// arg1: public key
-	arg1, err := serialization.ReadVarBytes(args)
 	public, err := keypair.DeserializePublicKey(arg1)
 	if err != nil {
 		return errors.New("register ID with attributes error: invalid public key: " + err.Error())
@@ -230,40 +275,17 @@ func RegIdWithAttributes(srvc *NativeService) error {
 		return errors.New("register ID with attributes error: check witness failed")
 	}
 
-	// arg2: attributes number
-	arg2, err := serialization.ReadVarBytes(args)
-	if len(arg2) < 2 {
-		return errors.New("register ID with attributes error: invalid attribute number")
-	}
-	num := int(binary.LittleEndian.Uint16(arg2))
-	attr := make([]attribute, num)
-	for i := 0; i < num; i++ {
-		err = attr[i].Deserialize(args)
-		if err != nil {
-			return errors.New("register ID with attributes error: parse attribute error")
-		}
-	}
-
-	err = insertPk(srvc, key, arg1, 1)
+	err = insertPk(srvc, key, arg1)
 	if err != nil {
 		return errors.New("register ID with attributes error: store pubic key error: " + err.Error())
 	}
 
-	for i := 0; i < num; i++ {
-		err = insertAttr(srvc, key, &attr[i])
-		if err != nil {
-			return errors.New("register ID with attributes error: " + err.Error())
-		}
+	key1 := append(key, field_attr)
+	err = native.PutJson(srvc, key1, arg2)
+	if err != nil {
+		return errors.New("register ID with attributes error: store attributes error, " + err.Error())
 	}
 
-	err = setNumOfField(srvc, key, field_num_of_pk, 1)
-	if err != nil {
-		return errors.New("register ID with attributes error: set number of public key error: " + err.Error())
-	}
-	err = setNumOfField(srvc, key, field_num_of_attr, uint32(num))
-	if err != nil {
-		return errors.New("register ID with attributes error: set number of attribute error: " + err.Error())
-	}
 	srvc.CloneCache.Add(common.ST_STORAGE, key, &states.StorageItem{Value: []byte{flag_exist}})
 
 	triggerRegisterEvent(srvc, arg0)
@@ -271,25 +293,30 @@ func RegIdWithAttributes(srvc *NativeService) error {
 	return nil
 }
 
-func AddKey(srvc *NativeService) error {
+func AddKey(srvc *native.NativeService) error {
+	log.Debug("ID contract: AddKey")
 	args := bytes.NewBuffer(srvc.Input)
 	// arg0: id
 	arg0, err := serialization.ReadVarBytes(args)
 	if err != nil {
-		return errors.New("add key failed: argument error, " + err.Error())
+		return errors.New("add key failed: argument 0 error, " + err.Error())
 	}
+	log.Debug("arg 0:", hex.EncodeToString(arg0))
 
 	// arg1: public key
 	arg1, err := serialization.ReadVarBytes(args)
 	if err != nil {
-		return errors.New("add key failed: argument error, " + err.Error())
+		return errors.New("add key failed: argument 1 error, " + err.Error())
 	}
+	log.Debug("arg 1:", hex.EncodeToString(arg1))
 
 	// arg2: operator's public key
 	arg2, err := serialization.ReadVarBytes(args)
 	if err != nil {
-		return errors.New("add key failed: argument error, " + err.Error())
+		return errors.New("add key failed: argument 2 error, " + err.Error())
 	}
+	log.Debug("arg 2:", hex.EncodeToString(arg2))
+
 	pub, err := keypair.DeserializePublicKey(arg2)
 	if err != nil {
 		return errors.New("add key failed: invalid public key, " + err.Error())
@@ -306,7 +333,7 @@ func AddKey(srvc *NativeService) error {
 	if !checkIDExistence(srvc, key) {
 		return errors.New("add key failed: ID not registered")
 	}
-	if !isOwner(srvc, key, arg1) {
+	if !isOwner(srvc, key, arg2) {
 		return errors.New("add key failed: operator has no authorization")
 	}
 
@@ -315,42 +342,32 @@ func AddKey(srvc *NativeService) error {
 		return errors.New("add key failed: already exists")
 	}
 
-	n, err := getNumOfField(srvc, key, field_num_of_pk)
-	if err != nil {
-		return errors.New("add key failed: get number error, " + err.Error())
-	}
-
-	n += 1
-	err = insertPk(srvc, key, arg1, uint16(n))
+	err = insertPk(srvc, key, arg1)
 	if err != nil {
 		return errors.New("add key failed: insert public key error, " + err.Error())
-	}
-	err = setNumOfField(srvc, key, field_num_of_pk, n)
-	if err != nil {
-		return errors.New("add key failed: set number error, " + err.Error())
 	}
 
 	return nil
 }
 
-func RemoveKey(srvc *NativeService) error {
+func RemoveKey(srvc *native.NativeService) error {
 	args := bytes.NewBuffer(srvc.Input)
 	// arg0: id
 	arg0, err := serialization.ReadVarBytes(args)
 	if err != nil {
-		return errors.New("remove key failed: argument error, " + err.Error())
+		return errors.New("remove key failed: argument 0 error, " + err.Error())
 	}
 
 	// arg1: public key
 	arg1, err := serialization.ReadVarBytes(args)
 	if err != nil {
-		return errors.New("remove key failed: argument error, " + err.Error())
+		return errors.New("remove key failed: argument 1 error, " + err.Error())
 	}
 
 	// arg2: operator's public key
 	arg2, err := serialization.ReadVarBytes(args)
 	if err != nil {
-		return errors.New("remove key failed: argument error, " + err.Error())
+		return errors.New("remove key failed: argument 2 error, " + err.Error())
 	}
 	pub, err := keypair.DeserializePublicKey(arg2)
 	if err != nil {
@@ -376,7 +393,7 @@ func RemoveKey(srvc *NativeService) error {
 	if err != nil {
 		return errors.New("remove key failed: cannot find the key, " + err.Error())
 	}
-	ok, err := linkedlistDelete(srvc, key, key1)
+	ok, err := native.LinkedlistDelete(srvc, key, key1)
 	if err != nil {
 		return errors.New("remove key failed: delete error, " + err.Error())
 	} else if !ok {
@@ -386,22 +403,22 @@ func RemoveKey(srvc *NativeService) error {
 	return nil
 }
 
-func AddRecovery(srvc *NativeService) error {
+func AddRecovery(srvc *native.NativeService) error {
 	args := bytes.NewBuffer(srvc.Input)
 	// arg0: ID
 	arg0, err := serialization.ReadVarBytes(args)
 	if err != nil {
-		return errors.New("add recovery failed: argument error")
+		return errors.New("add recovery failed: argument 0 error")
 	}
 	// arg1: recovery
 	arg1, err := serialization.ReadVarBytes(args)
 	if err != nil {
-		return errors.New("add recovery failed: argument error")
+		return errors.New("add recovery failed: argument 1 error")
 	}
 	// arg2: operator's public key
 	arg2, err := serialization.ReadVarBytes(args)
 	if err != nil {
-		return errors.New("add recovery failed: argument error")
+		return errors.New("add recovery failed: argument 2 error")
 	}
 
 	err = checkWitness(srvc, arg2)
@@ -434,7 +451,7 @@ func AddRecovery(srvc *NativeService) error {
 	return nil
 }
 
-func ChangeRecovery(srvc *NativeService) error {
+func ChangeRecovery(srvc *native.NativeService) error {
 	args := bytes.NewBuffer(srvc.Input)
 	// arg0: ID
 	arg0, err := serialization.ReadVarBytes(args)
@@ -478,7 +495,7 @@ func ChangeRecovery(srvc *NativeService) error {
 	return nil
 }
 
-func AddAttribute(srvc *NativeService) error {
+/*func AddAttribute(srvc *native.NativeService) error {
 	args := bytes.NewBuffer(srvc.Input)
 	// arg0: ID
 	arg0, err := serialization.ReadVarBytes(args)
@@ -548,9 +565,54 @@ func AddAttribute(srvc *NativeService) error {
 		triggerAttributeEvent(srvc, "add", arg0, arg1)
 	}
 	return nil
+}*/
+
+func AddAttribute(srvc *native.NativeService) error {
+	args := bytes.NewBuffer(srvc.Input)
+	// arg0: id
+	arg0, err := serialization.ReadVarBytes(args)
+	if err != nil {
+		return errors.New("add attribute failed: argument 0 error")
+	}
+	// arg1: json
+	arg1, err := serialization.ReadVarBytes(args)
+	if err != nil {
+		return errors.New("add attribute failed: argument 1 error")
+	}
+	// arg2: operator's public key id
+	arg2, err := serialization.ReadUint32(args)
+	if err != nil {
+		return errors.New("add attribute failed: argument 2 error")
+	}
+
+	key, err := encodeID(arg0)
+	if err != nil {
+		return errors.New("add attribute failed: " + err.Error())
+	}
+
+	if !checkIDExistence(srvc, key) {
+		return errors.New("add attribute failed: ID not registered")
+	}
+
+	owner, err := getOwnerKey(srvc, key, arg2)
+	if err != nil {
+		return errors.New("add attribute failed: operator is not owner")
+	}
+
+	err = checkWitness(srvc, owner.key)
+	if err != nil {
+		return errors.New("add attribute failed: check witness error, " + err.Error())
+	}
+
+	err = native.PutJson(srvc, append(key, field_attr), arg1)
+	if err != nil {
+		return errors.New("add attribute failed: store json to DB error, " + err.Error())
+	}
+	triggerAttributeEvent(srvc, "add", arg0, arg1)
+	return nil
 }
 
-func RemoveAttribute(srvc *NativeService) error {
+func RemoveAttribute(srvc *native.NativeService) error {
 	args := bytes.NewBuffer(srvc.Input)
 	// arg0: ID
 	arg0, err := serialization.ReadVarBytes(args)
@@ -583,28 +645,14 @@ func RemoveAttribute(srvc *NativeService) error {
 		return errors.New("remove attribute failed: no authorization")
 	}
 
-	ok, err := linkedlistDelete(srvc, key, arg1)
+	key1 := append(key, field_attr)
+	key1 = append(key1, arg1...)
+	err = native.DelJson(srvc, key1)
 	if err != nil {
 		return errors.New("remove attribute failed: delete error, " + err.Error())
-	} else if !ok {
-		return errors.New("remove attribute failed: attribute not exist")
 	}
 
-	n, err := getNumOfField(srvc, key, field_num_of_attr)
-	if err != nil {
-		return errors.New("remove attribute failed: get number error, " + err.Error())
-	}
-	n += 1
-	err = setNumOfField(srvc, key, field_num_of_attr, uint32(n))
-	if err != nil {
-		return errors.New("remove attribute failed: set number error, " + err.Error())
-	}
 	triggerAttributeEvent(srvc, "remove", arg0, arg1)
-	return nil
-}
-
-func AddAttributeArray(srvc *NativeService) error {
-	//TODO
 	return nil
 }
 
@@ -612,7 +660,7 @@ type DDO struct {
 	Keys []publicKey `json:"Owners,omitempty"`
 }
 
-func GetDDO(srvc *NativeService) ([]byte, error) {
+func GetDDO(srvc *native.NativeService) ([]byte, error) {
 	var0, err := GetPublicKeys(srvc)
 	if err != nil {
 		return nil, errors.New("get DDO error: " + err.Error())
@@ -629,23 +677,23 @@ func GetDDO(srvc *NativeService) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func GetPublicKeys(srvc *NativeService) ([]byte, error) {
+func GetPublicKeys(srvc *native.NativeService) ([]byte, error) {
 	did := srvc.Input
 	if len(did) == 0 {
 		return nil, errors.New("get public keys error: invalid ID")
 	}
 	key := append(did, field_pk)
-	item, err := linkedlistGetHead(srvc, key)
+	item, err := native.LinkedlistGetHead(srvc, key)
 	if err != nil {
 		return nil, errors.New("get public keys error: cannot get the list head, " + err.Error())
 	} else if len(item) == 0 {
 		return nil, errors.New("get public keys error: get list head failed")
 	}
 
-	var i uint16 = 0
+	var i uint = 0
 	var res bytes.Buffer
 	for len(item) > 0 {
-		node, err := linkedlistGetItem(srvc, key, item)
+		node, err := native.LinkedlistGetItem(srvc, key, item)
 		if err != nil {
 			return nil, errors.New("get public keys error: " + err.Error())
 		} else if node == nil {
@@ -653,7 +701,7 @@ func GetPublicKeys(srvc *NativeService) ([]byte, error) {
 		}
 
 		var pk publicKey
-		err = pk.SetBytes(node.payload)
+		err = pk.SetBytes(node.GetPayload())
 		if err != nil {
 			return nil, errors.New("get public keys error: parse key error, " + err.Error())
 		}
@@ -661,19 +709,19 @@ func GetPublicKeys(srvc *NativeService) ([]byte, error) {
 		//TODO key id?
 
 		i += 1
-		item = node.next
+		item = node.GetNext()
 	}
 
 	return append([]byte{byte(i >> 8), byte(i & 0xff)}, res.Bytes()...), nil
 }
 
-func GetAttributes(srvc *NativeService) ([]byte, error) {
+func GetAttributes(srvc *native.NativeService) ([]byte, error) {
 	did := srvc.Input
 	if len(did) == 0 {
 		return nil, errors.New("get attributes error: invalid ID")
 	}
 	key := append(did, field_attr)
-	item, err := linkedlistGetHead(srvc, key)
+	item, err := native.LinkedlistGetHead(srvc, key)
 	if err != nil {
 		return nil, errors.New("get attributes error: get list head error, " + err.Error())
 	} else if len(item) == 0 {
@@ -683,7 +731,7 @@ func GetAttributes(srvc *NativeService) ([]byte, error) {
 	var res bytes.Buffer
 	var i uint16 = 0
 	for len(item) > 0 {
-		node, err := linkedlistGetItem(srvc, key, item)
+		node, err := native.LinkedlistGetItem(srvc, key, item)
 		if err != nil {
 
 		} else if node == nil {
@@ -691,7 +739,7 @@ func GetAttributes(srvc *NativeService) ([]byte, error) {
 		}
 
 		var attr attribute
-		err = attr.SetValue(node.payload)
+		err = attr.SetValue(node.GetPayload())
 		if err != nil {
 			return nil, errors.New("get attributes error: parse attribute failed, " + err.Error())
 		}
@@ -703,7 +751,7 @@ func GetAttributes(srvc *NativeService) ([]byte, error) {
 		serialization.WriteVarBytes(&res, buf.Bytes())
 
 		i += 1
-		item = node.next
+		item = node.GetNext()
 	}
 
 	return append([]byte{byte(i >> 8), byte(i & 0xff)}, res.Bytes()...), nil
@@ -711,7 +759,7 @@ func GetAttributes(srvc *NativeService) ([]byte, error) {
 
 const flag_exist = 0x01
 
-func checkIDExistence(srvc *NativeService, encID []byte) bool {
+func checkIDExistence(srvc *native.NativeService, encID []byte) bool {
 	val, err := srvc.CloneCache.Get(common.ST_STORAGE, encID)
 	if err == nil {
 		t, ok := val.(*states.StorageItem)
@@ -725,10 +773,7 @@ func checkIDExistence(srvc *NativeService, encID []byte) bool {
 }
 
 const (
-	field_num_of_pk byte = 1 + iota
-	field_pk
-	field_num_of_attr
-	field_attr_name
+	field_pk byte = 1 + iota
 	field_attr
 	field_recovery
 )
@@ -740,6 +785,7 @@ func encodeID(id []byte) ([]byte, error) {
 	}
 	enc := []byte{byte(length)}
 	enc = append(enc, id...)
+	enc = append(contractAddress, enc...)
 	return enc, nil
 }
 
@@ -750,7 +796,7 @@ func decodeID(data []byte) ([]byte, error) {
 	return data[1:], nil
 }
 
-func setNumOfField(srvc *NativeService, encID []byte, field byte, n uint32) error {
+func setNumOfField(srvc *native.NativeService, encID []byte, field byte, n uint32) error {
 	key := append(encID, field)
 	buf := make([]byte, 4)
 	binary.LittleEndian.PutUint32(buf, n)
@@ -759,7 +805,7 @@ func setNumOfField(srvc *NativeService, encID []byte, field byte, n uint32) erro
 	return nil
 }
 
-func getNumOfField(srvc *NativeService, encID []byte, field byte) (uint32, error) {
+func getNumOfField(srvc *native.NativeService, encID []byte, field byte) (uint32, error) {
 	key := append(encID, field)
 	val, err := srvc.CloneCache.Get(common.ST_STORAGE, key)
 	if err != nil {
@@ -773,61 +819,99 @@ func getNumOfField(srvc *NativeService, encID []byte, field byte) (uint32, error
 	return n, nil
 }
 
-func insertPk(srvc *NativeService, encID, pk []byte, index uint16) error {
+func insertPk(srvc *native.NativeService, encID, pk []byte) error {
+	var index uint32 = 0
+	item, err := native.LinkedlistGetHead(srvc, encID)
+	if err == nil && item != nil {
+		node, err := native.LinkedlistGetItem(srvc, encID, item)
+		if err != nil {
+			return err
+		}
+		index = binary.LittleEndian.Uint32(node.GetPayload()) + 1
+	}
 	key1 := append(encID, field_pk)
-	key2 := append(key1, byte(index>>8))
-	key2 = append(key2, byte(index&0xFF))
+	var buf [4]byte
+	binary.LittleEndian.PutUint32(buf[:], index)
+	key2 := append(key1, buf[:]...)
 	p := &publicKey{key: pk, revoked: false}
 	val, err := p.Bytes()
 	if err != nil {
 		return errors.New("register ONT ID error: " + err.Error())
 	}
-	return linkedlistInsert(srvc, key1, key2, val)
+	log.Debug("public key list id:", hex.EncodeToString(key1))
+	log.Debug("public key id:", hex.EncodeToString(key2))
+	return native.LinkedlistInsert(srvc, key1, key2, val)
 }
 
-func findPk(srvc *NativeService, encID, pub []byte) ([]byte, error) {
-	key := append(encID, field_pk)
-	item, err := linkedlistGetHead(srvc, key)
+func getPk(srvc *native.NativeService, encID []byte, index uint32) (*publicKey, error) {
+	key1 := append(encID, field_pk)
+	var buf [4]byte
+	binary.LittleEndian.PutUint32(buf[:], index)
+	key2 := append(key1, buf[:]...)
+	node, err := native.LinkedlistGetItem(srvc, key1, key2)
 	if err != nil {
 		return nil, err
 	}
+	if len(node.GetPayload()) == 0 {
+		return nil, errors.New("invalid public key data from storage")
+	}
+
+	var pk publicKey
+	err = pk.SetBytes(node.GetPayload())
+	if err != nil {
+		return nil, errors.New("invalid public key data from storage")
+	}
+
+	return &pk, nil
+}
+
+func findPk(srvc *native.NativeService, encID, pub []byte) ([]byte, error) {
+	key := append(encID, field_pk)
+	item, err := native.LinkedlistGetHead(srvc, key)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("item:", hex.EncodeToString(item))
 
 	for len(item) > 0 {
-		node, err := linkedlistGetItem(srvc, key, item)
+		node, err := native.LinkedlistGetItem(srvc, key, item)
 		if err != nil {
+			log.Debug(err)
 			continue
 		}
 		var pk publicKey
-		err = pk.SetBytes(node.payload)
+		err = pk.SetBytes(node.GetPayload())
 		if err != nil {
 			return nil, err
 		}
+		log.Debug("pk.key:", hex.EncodeToString(pk.key))
+		log.Debug("pub:", hex.EncodeToString(pub))
 		if bytes.Equal(pub, pk.key) {
 			return key, nil
 		}
-		item = node.next
+		item = node.GetNext()
 	}
 
 	return nil, errors.New("public key not found")
 }
 
-func insertAttr(srvc *NativeService, encID []byte, attr *attribute) error {
+func insertAttr(srvc *native.NativeService, encID []byte, attr *attribute) error {
 	key := append(encID, field_attr)
 	val, err := attr.Value()
 	if err != nil {
 		return errors.New("serialize attribute value error: " + err.Error())
 	}
-	err = linkedlistInsert(srvc, key, attr.key, val)
+	err = native.LinkedlistInsert(srvc, key, attr.key, val)
 	if err != nil {
 		return errors.New("store attribute error: " + err.Error())
 	}
 	return nil
 }
 
-func updateAttr(srvc *NativeService, encID []byte, attr *attribute) error {
+func updateAttr(srvc *native.NativeService, encID []byte, attr *attribute) error {
 	//TODO direct update instead of delete + insert
 	key := append(encID, field_attr)
-	ok, err := linkedlistDelete(srvc, key, attr.key)
+	ok, err := native.LinkedlistDelete(srvc, key, attr.key)
 	if err != nil {
 		return err
 	} else if !ok {
@@ -838,57 +922,63 @@ func updateAttr(srvc *NativeService, encID []byte, attr *attribute) error {
 	if err != nil {
 		return errors.New("serialize attribute value error: " + err.Error())
 	}
-	err = linkedlistInsert(srvc, key, attr.key, val)
+	err = native.LinkedlistInsert(srvc, key, attr.key, val)
 	if err != nil {
 		return errors.New("store attribute error: " + err.Error())
 	}
 	return nil
 }
 
-func findAttr(srvc *NativeService, encID, item []byte) (*LinkedlistNode, error) {
+func findAttr(srvc *native.NativeService, encID, item []byte) (*native.LinkedlistNode, error) {
 	key := append(encID, field_attr)
-	return linkedlistGetItem(srvc, key, item)
+	return native.LinkedlistGetItem(srvc, key, item)
 }
 
-func setRecovery(srvc *NativeService, encID, recovery []byte) error {
+func setRecovery(srvc *native.NativeService, encID, recovery []byte) error {
 	key := append(encID, field_recovery)
 	val := &states.StorageItem{Value: recovery}
 	srvc.CloneCache.Add(common.ST_STORAGE, key, val)
 	return nil
 }
 
-func getRecovery(srvc *NativeService, encID []byte) ([]byte, error) {
+func getRecovery(srvc *native.NativeService, encID []byte) ([]byte, error) {
 	key := append(encID, field_recovery)
-	val, err := srvc.CloneCache.Get(common.ST_STORAGE, key)
+	item, err := getStorageItem(srvc, key)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("get recovery error: " + err.Error())
 	}
-	t, ok := val.(*states.StorageItem)
-	if !ok {
-		return nil, errors.New("get storage item error: invalid value type")
-	}
-	return t.Value, nil
+	return item.Value, nil
 }
 
-func isOwner(srvc *NativeService, encID, pub []byte) bool {
+func getOwnerKey(srvc *native.NativeService, encID []byte, index uint32) (*publicKey, error) {
+	key := append(encID, field_pk)
+	var buf [4]byte
+	binary.LittleEndian.PutUint32(buf[:], index)
+	key = append(key, buf[:]...)
+	item, err := getStorageItem(srvc, key)
+	if err != nil {
+		return nil, errors.New("get owner key error: " + err.Error())
+	}
+
+	var pk publicKey
+	err = pk.SetBytes(item.Value)
+	if err != nil {
+		return nil, errors.New("get owner key error: invalid data")
+	}
+
+	return &pk, nil
+}
+
+func isOwner(srvc *native.NativeService, encID, pub []byte) bool {
 	kid, err := findPk(srvc, encID, pub)
 	if err != nil || len(kid) == 0 {
+		log.Debug(err)
 		return false
 	}
 	return true
 }
 
-func makeKeyID(did []byte, n int) []byte {
-	//TODO
-	return nil
-}
-
-func parseKeyID(kID []byte) (did []byte, n int) {
-	//TODO
-	return nil, 0
-}
-
-func checkWitness(srvc *NativeService, pub []byte) error {
+func checkWitness(srvc *native.NativeService, pub []byte) error {
 	pk, err := keypair.DeserializePublicKey(pub)
 	if err != nil {
 		return errors.New("invalid public key, " + err.Error())
@@ -900,7 +990,7 @@ func checkWitness(srvc *NativeService, pub []byte) error {
 	return nil
 }
 
-func newEvent(srvc *NativeService, st interface{}) {
+func newEvent(srvc *native.NativeService, st interface{}) {
 	e := event.NotifyEventInfo{}
 	e.TxHash = srvc.Tx.Hash()
 	e.ContractAddress = srvc.ContextRef.CurrentContext().ContractAddress
@@ -909,16 +999,101 @@ func newEvent(srvc *NativeService, st interface{}) {
 	return
 }
 
-func triggerRegisterEvent(srvc *NativeService, id []byte) {
+func triggerRegisterEvent(srvc *native.NativeService, id []byte) {
 	newEvent(srvc, []string{"Register", hex.EncodeToString(id)})
 }
 
-func triggerPublicEvent(srvc *NativeService, op string, id, pub []byte) {
+func triggerPublicEvent(srvc *native.NativeService, op string, id, pub []byte) {
 	st := []string{"PublicKey", op, hex.EncodeToString(id), hex.EncodeToString(pub)}
 	newEvent(srvc, st)
 }
 
-func triggerAttributeEvent(srvc *NativeService, op string, id, path []byte) {
-	st := []string{"Attribute", op, hex.EncodeToString(id), hex.EncodeToString(path)}
+func triggerAttributeEvent(srvc *native.NativeService, op string, id, path []byte) {
+	st := []string{"Attribute", op, string(id), string(path)}
 	newEvent(srvc, st)
+}
+
+func getStorageItem(srvc *native.NativeService, key []byte) (*states.StorageItem, error) {
+	val, err := srvc.CloneCache.Get(common.ST_STORAGE, key)
+	if err != nil {
+		return nil, err
+	}
+	t, ok := val.(*states.StorageItem)
+	if !ok {
+		return nil, errors.New("invalid value type")
+	}
+	return t, nil
+}
+
+func makeKeyID(id []byte, index uint32) []byte {
+	encID, _ := encodeID(id)
+	key := append(encID, field_pk)
+	var buf [4]byte
+	binary.LittleEndian.PutUint32(buf[:], index)
+	return append(key, buf[:]...)
+}
+
+func verifySignature(srvc *native.NativeService) error {
+	args := bytes.NewBuffer(srvc.Input)
+	// arg0: ID
+	arg0, err := serialization.ReadVarBytes(args)
+	if err != nil {
+		return errors.New("verify signature error: argument 0 error, " + err.Error())
+	}
+	// arg1: index of public key
+	arg1, err := serialization.ReadUint32(args)
+	if err != nil {
+		return errors.New("verify signature error: argument 1 error, " + err.Error())
+	}
+	// arg2: message
+	arg2, err := serialization.ReadVarBytes(args)
+	if err != nil {
+		return errors.New("verify signature error: argument 2 error, " + err.Error())
+	}
+	// arg3: signature
+	arg3, err := serialization.ReadVarBytes(args)
+	if err != nil {
+		return errors.New("verify signature error: argument 3 error, " + err.Error())
+	}
+
+	key, err := encodeID(arg0)
+	if err != nil {
+		return errors.New("verify signature error: " + err.Error())
+	}
+
+	key1 := append(key, field_pk)
+	var buf [4]byte
+	binary.LittleEndian.PutUint32(buf[:], arg1)
+	key1 = append(key, buf[:]...)
+
+	val, err := srvc.CloneCache.Get(common.ST_STORAGE, key1)
+	if err != nil {
+		return errors.New("verify signature error: get key failed, " + err.Error())
+	}
+
+	item, ok := val.(*states.StorageItem)
+	if !ok {
+		return errors.New("verify signature error: invalid storage item")
+	}
+
+	var pk publicKey
+	pk.SetBytes(item.Value)
+	if err != nil {
+		return errors.New("verify signature error: parse key error, " + err.Error())
+	}
+
+	pub, err := keypair.DeserializePublicKey(pk.key)
+	if err != nil {
+		return errors.New("verify signature error: deserialize public key error, " + err.Error())
+	}
+
+	sig, err := signature.Deserialize(arg3)
+	if err != nil {
+		return errors.New("verify signature error: deserialize signature error, " + err.Error())
+	}
+	if !signature.Verify(pub, arg2, sig) {
+		return errors.New("verification failed")
+	}
+
+	return nil
 }

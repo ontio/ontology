@@ -35,6 +35,8 @@ import (
 	"github.com/ontio/ontology/smartcontract/storage"
 	stypes "github.com/ontio/ontology/smartcontract/types"
 	vm "github.com/ontio/ontology/vm/neovm"
+
+	_ "github.com/ontio/ontology/smartcontract/service/native/ontid"
 )
 
 var (

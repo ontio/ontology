@@ -15,6 +15,18 @@ type LinkedlistNode struct {
 	payload []byte
 }
 
+func (this *LinkedlistNode) GetPrevious() []byte {
+	return this.prev
+}
+
+func (this *LinkedlistNode) GetNext() []byte {
+	return this.next
+}
+
+func (this *LinkedlistNode) GetPayload() []byte {
+	return this.payload
+}
+
 func makeLinkedlistNode(next []byte, prev []byte, payload []byte) ([]byte, error) {
 	node := &LinkedlistNode{next: next, prev: prev, payload: payload}
 	node_bytes, err := node.Serialize()
@@ -99,7 +111,7 @@ func getListNode(native *NativeService, index []byte, item []byte) (*LinkedlistN
 	return node, nil
 }
 
-func linkedlistInsert(native *NativeService, index []byte, item []byte, payload []byte) error {
+func LinkedlistInsert(native *NativeService, index []byte, item []byte, payload []byte) error {
 	null := []byte{}
 	if item == nil {
 		return errors.NewErr("[linked list] invalid item")
@@ -160,7 +172,7 @@ func linkedlistInsert(native *NativeService, index []byte, item []byte, payload 
 	return nil
 }
 
-func linkedlistDelete(native *NativeService, index []byte, item []byte) (bool, error) {
+func LinkedlistDelete(native *NativeService, index []byte, item []byte) (bool, error) {
 	null := []byte{}
 	if item == nil {
 		return false, errors.NewErr("[linked list] invalid item")
@@ -225,7 +237,7 @@ func linkedlistDelete(native *NativeService, index []byte, item []byte) (bool, e
 	return true, nil
 }
 
-func linkedlistGetItem(native *NativeService, index []byte, item []byte) (*LinkedlistNode, error) {
+func LinkedlistGetItem(native *NativeService, index []byte, item []byte) (*LinkedlistNode, error) {
 	if item == nil {
 		return nil, errors.NewErr("[linkedlist getNext] item is nil")
 	}
@@ -236,14 +248,14 @@ func linkedlistGetItem(native *NativeService, index []byte, item []byte) (*Linke
 	return q, nil
 }
 
-func linkedlistGetHead(native *NativeService, index []byte) ([]byte, error) {
+func LinkedlistGetHead(native *NativeService, index []byte) ([]byte, error) {
 	head, err := getListHead(native, index)
 	if err != nil {
 		return nil, err
 	}
 	return head, nil
 }
-func linkedlistGetNumOfItems(native *NativeService, index []byte) (int, error) {
+func LinkedlistGetNumOfItems(native *NativeService, index []byte) (int, error) {
 	n := 0
 	head, err := getListHead(native, index)
 	if err != nil {
@@ -268,7 +280,7 @@ func linkedlistTest(native *NativeService) error {
 	{
 		log.Trace("'empty linkedlist delete' test")
 		//basic delete
-		s, err := linkedlistDelete(native, contract1[:], []byte{byte(11)})
+		s, err := LinkedlistDelete(native, contract1[:], []byte{byte(11)})
 		if err != nil {
 			return err
 		}
@@ -282,14 +294,14 @@ func linkedlistTest(native *NativeService) error {
 		log.Trace("'basic insert' test")
 		//basic insert
 		for i := 0; i < 10; i++ {
-			err := linkedlistInsert(native, contract1[:], []byte{byte(i)}, []byte{byte(i * i)})
+			err := LinkedlistInsert(native, contract1[:], []byte{byte(i)}, []byte{byte(i * i)})
 			if err != nil {
 				//log.Errorf("insertion %d failed: %s\n", i, err)
 				return err
 			}
 
 		}
-		n, err := linkedlistGetNumOfItems(native, contract1[:])
+		n, err := LinkedlistGetNumOfItems(native, contract1[:])
 		if err != nil {
 			return err
 		}
@@ -302,7 +314,7 @@ func linkedlistTest(native *NativeService) error {
 	{
 		log.Trace("'basic delete' test")
 		//basic delete
-		s, err := linkedlistDelete(native, contract1[:], []byte{byte(11)})
+		s, err := LinkedlistDelete(native, contract1[:], []byte{byte(11)})
 		if err != nil {
 			return err
 		}
@@ -316,7 +328,7 @@ func linkedlistTest(native *NativeService) error {
 		log.Trace("'more delete' test")
 		//insert & delete
 		for i := 0; i < 10; i += 2 {
-			suc, err := linkedlistDelete(native, contract1[:], []byte{byte(i)})
+			suc, err := LinkedlistDelete(native, contract1[:], []byte{byte(i)})
 			if err != nil {
 				//log.Errorf("")
 				return err
@@ -326,7 +338,7 @@ func linkedlistTest(native *NativeService) error {
 				return errors.NewDetailErr(err, errors.ErrNoCode, "[linked list insert&delete test] delete failed")
 			}
 		}
-		n, err := linkedlistGetNumOfItems(native, contract1[:])
+		n, err := LinkedlistGetNumOfItems(native, contract1[:])
 		if err != nil {
 			return err
 		}
@@ -343,13 +355,13 @@ func linkedlistTest(native *NativeService) error {
 			for j := 0; j < i; j++ {
 				item[j] = byte(j)
 			}
-			err := linkedlistInsert(native, contract1[:], item, []byte("test"))
+			err := LinkedlistInsert(native, contract1[:], item, []byte("test"))
 			if err != nil {
 				return err
 			}
 
 			if i%2 == 0 {
-				suc, err := linkedlistDelete(native, contract1[:], item)
+				suc, err := LinkedlistDelete(native, contract1[:], item)
 				if err != nil {
 					return err
 				}
@@ -358,7 +370,7 @@ func linkedlistTest(native *NativeService) error {
 				}
 			}
 		}
-		n, err := linkedlistGetNumOfItems(native, contract1[:])
+		n, err := LinkedlistGetNumOfItems(native, contract1[:])
 		if err != nil {
 			return err
 		}
