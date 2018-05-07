@@ -19,18 +19,18 @@
 package native
 
 import (
-	"encoding/json"
-
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"math/big"
+	"sort"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/genesis"
 	cstates "github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native/states"
-	"math/big"
-	"sort"
 )
 
 const (
@@ -92,7 +92,7 @@ func ExecuteSplit(native *NativeService) error {
 		}
 	}
 
-	//fee split of candidate peer
+	//fee split of syncNode peer
 	fmt.Println("###############################################################")
 	var splitSyncNodeAmount uint64
 	for _, v := range stateValues {
@@ -111,7 +111,7 @@ func ExecuteSplit(native *NativeService) error {
 			if err != nil {
 				return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
 			}
-			err = appCallTransferOng(native, genesis.FeeSplitContractAddress, address, new(big.Int).SetUint64(amount))
+			err = appCallApproveOng(native, genesis.FeeSplitContractAddress, address, new(big.Int).SetUint64(amount))
 			if err != nil {
 				return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
 			}
@@ -119,12 +119,12 @@ func ExecuteSplit(native *NativeService) error {
 			splitSyncNodeAmount += amount
 		}
 	}
-	remainSyncNodeAmount := TOTAL_ONG * c - splitSyncNodeAmount
+	remainSyncNodeAmount := TOTAL_ONG*c - splitSyncNodeAmount
 	fmt.Println("RemainSyncNodeAmount is : ", remainSyncNodeAmount)
 
-	// sort peers by initPos
+	// sort peers by peerPubkey
 	sort.Slice(peersSyncNode, func(i, j int) bool {
-		return peersSyncNode[i].InitPos > peersSyncNode[j].InitPos
+		return peersSyncNode[i].PeerPubkey > peersSyncNode[j].PeerPubkey
 	})
 	//TODO: how if initPos is the same
 	addressBytes, err := hex.DecodeString(peersSyncNode[0].Address)
@@ -135,7 +135,7 @@ func ExecuteSplit(native *NativeService) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
 	}
-	err = appCallTransferOng(native, genesis.FeeSplitContractAddress, address, new(big.Int).SetUint64(remainSyncNodeAmount))
+	err = appCallApproveOng(native, genesis.FeeSplitContractAddress, address, new(big.Int).SetUint64(remainSyncNodeAmount))
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
 	}
@@ -176,7 +176,12 @@ func ExecuteSplit(native *NativeService) error {
 	//fee split of consensus peer
 	fmt.Println("###############################################################")
 	var splitAmount uint64
+	remainCandidate := peersCandidate[0]
 	for i := int(config.K) - 1; i >= 0; i-- {
+		if peersCandidate[i].PeerPubkey > remainCandidate.PeerPubkey {
+			remainCandidate = peersCandidate[i]
+		}
+
 		nodeAmount := TOTAL_ONG * a * peersCandidate[i].S / sumS
 		fmt.Printf("Amount of node %v is %v: \n", i, nodeAmount)
 		peerPubkeyPrefix, err := hex.DecodeString(peersCandidate[i].PeerPubkey)
@@ -199,7 +204,7 @@ func ExecuteSplit(native *NativeService) error {
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
 		}
-		err = appCallTransferOng(native, genesis.FeeSplitContractAddress, initAddress, new(big.Int).SetUint64(initAmount))
+		err = appCallApproveOng(native, genesis.FeeSplitContractAddress, initAddress, new(big.Int).SetUint64(initAmount))
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
 		}
@@ -226,7 +231,7 @@ func ExecuteSplit(native *NativeService) error {
 			amount := uint64(nodeAmount * float64(pos) / peersCandidate[i].Stake)
 
 			//ong transfer
-			err = appCallTransferOng(native, genesis.FeeSplitContractAddress, address, new(big.Int).SetUint64(amount))
+			err = appCallApproveOng(native, genesis.FeeSplitContractAddress, address, new(big.Int).SetUint64(amount))
 			if err != nil {
 				return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
 			}
@@ -235,9 +240,9 @@ func ExecuteSplit(native *NativeService) error {
 		}
 	}
 	//split remained amount
-	remainAmount := TOTAL_ONG * a - splitAmount
+	remainAmount := TOTAL_ONG*a - splitAmount
 	fmt.Println("Remained Amount is : ", remainAmount)
-	remainAddressBytes, err := hex.DecodeString(peersCandidate[0].Address)
+	remainAddressBytes, err := hex.DecodeString(remainCandidate.Address)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
 	}
@@ -245,11 +250,11 @@ func ExecuteSplit(native *NativeService) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
 	}
-	err = appCallTransferOng(native, genesis.FeeSplitContractAddress, remainAddress, new(big.Int).SetUint64(remainAmount))
+	err = appCallApproveOng(native, genesis.FeeSplitContractAddress, remainAddress, new(big.Int).SetUint64(remainAmount))
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
 	}
-	fmt.Printf("Amount of address %v is: %d \n", peersCandidate[0].Address, remainAmount)
+	fmt.Printf("Amount of address %v is: %d \n", remainCandidate.Address, remainAmount)
 
 	//fee split of candidate peer
 	fmt.Println("###############################################################")
@@ -265,7 +270,12 @@ func ExecuteSplit(native *NativeService) error {
 		sumS += peersCandidate[i].S
 	}
 	splitAmount = 0
+	remainCandidate = peersCandidate[int(config.K)]
 	for i := int(config.K); i < len(peersCandidate); i++ {
+		if peersCandidate[i].PeerPubkey > remainCandidate.PeerPubkey {
+			remainCandidate = peersCandidate[i]
+		}
+
 		nodeAmount := TOTAL_ONG * b * peersCandidate[i].S / sumS
 		fmt.Printf("Amount of node %v is %v: \n", i, nodeAmount)
 		peerPubkeyPrefix, err := hex.DecodeString(peersCandidate[i].PeerPubkey)
@@ -288,7 +298,7 @@ func ExecuteSplit(native *NativeService) error {
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
 		}
-		err = appCallTransferOng(native, genesis.FeeSplitContractAddress, initAddress, new(big.Int).SetUint64(initAmount))
+		err = appCallApproveOng(native, genesis.FeeSplitContractAddress, initAddress, new(big.Int).SetUint64(initAmount))
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
 		}
@@ -315,7 +325,7 @@ func ExecuteSplit(native *NativeService) error {
 			amount := uint64(nodeAmount * float64(pos) / peersCandidate[i].Stake)
 
 			//ong transfer
-			err = appCallTransferOng(native, genesis.FeeSplitContractAddress, address, new(big.Int).SetUint64(amount))
+			err = appCallApproveOng(native, genesis.FeeSplitContractAddress, address, new(big.Int).SetUint64(amount))
 			if err != nil {
 				return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
 			}
@@ -324,9 +334,9 @@ func ExecuteSplit(native *NativeService) error {
 		}
 	}
 	//split remained amount
-	remainAmount = TOTAL_ONG * b - splitAmount
+	remainAmount = TOTAL_ONG*b - splitAmount
 	fmt.Println("Remained Amount is : ", remainAmount)
-	remainAddressBytes, err = hex.DecodeString(peersCandidate[int(config.K)].Address)
+	remainAddressBytes, err = hex.DecodeString(remainCandidate.Address)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
 	}
@@ -334,11 +344,11 @@ func ExecuteSplit(native *NativeService) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
 	}
-	err = appCallTransferOng(native, genesis.FeeSplitContractAddress, remainAddress, new(big.Int).SetUint64(remainAmount))
+	err = appCallApproveOng(native, genesis.FeeSplitContractAddress, remainAddress, new(big.Int).SetUint64(remainAmount))
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
 	}
-	fmt.Printf("Amount of address %v is: %d \n", peersCandidate[0].Address, remainAmount)
+	fmt.Printf("Amount of address %v is: %d \n", remainCandidate.Address, remainAmount)
 
 	addCommonEvent(native, genesis.FeeSplitContractAddress, EXECUTE_SPLIT, true)
 
