@@ -1,30 +1,14 @@
 ﻿{
-  "Configuration": {
-    "Magic": 7630401,
-    "Version": 23,
-    "SeedList": [
-      "polaris1.ont.io:20338",
-      "polaris2.ont.io:20338",
-      "polaris3.ont.io:20338",
-      "polaris4.ont.io:20338"
-    ],
+  "SeedList": [
+    "127.0.0.1:20318"
+  ],
+  "ConsensusType":"dbft",
+  "DBFT":{
     "Bookkeepers": [
-	  "12020384d843c02ecef233d3dd3bc266ee0d1a67cf2a1666dc1b2fb455223efdee7452",
-	  "120203fab19438e18d8a5bebb6cd3ede7650539e024d7cc45c88b95ab13f8266ce9570",
-	  "120203c43f136596ee666416fedb90cde1e0aee59a79ec18ab70e82b73dd297767eddf",
-	  "120202a76a434b18379e3bda651b7c04e972dadc4760d1156b5c86b3c4d27da48c91a1"
-    ],
-    "HttpRestPort": 20334,
-    "HttpWsPort":20335,
-    "HttpJsonPort": 20336,
-    "HttpLocalPort": 20337,
-    "NodePort": 20338,
-    "NodeConsensusPort": 20389,
-    "DualPortSurpport":true,
-    "PrintLevel": 1,
-    "IsTLS": false,
-    "MaxTransactionInBlock": 60000,
-    "ConsensusType":"dbft",
-    "MultiCoreNum": 4
+      "120203855d8df7dc75b6cbe982453f2cd761dd5ae13052dbef7e7a998068e30c7391df",
+      "1202033f3746dee7a621f382bb4f63a413365419e54c48e8e33f9ba56dd062e917fdeb",
+      "120202fdd26f2e816f742869e3a48daa24b5fcd2b790fb68ba13cf46955e9ab619bece",
+      "120203e1d7cb423e0e24a574764fe188da04074198980ccf6b2aaa5ddac383625ef565"
+    ]
   }
 }

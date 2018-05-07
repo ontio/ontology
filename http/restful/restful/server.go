@@ -22,6 +22,10 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	cfg "github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
+	berr "github.com/ontio/ontology/http/base/error"
+	"github.com/ontio/ontology/http/base/rest"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -29,10 +33,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	cfg "github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/log"
-	berr "github.com/ontio/ontology/http/base/error"
-	"github.com/ontio/ontology/http/base/rest"
 )
 
 type handler func(map[string]interface{}) map[string]interface{}
@@ -80,13 +80,14 @@ func InitRestServer() rest.ApiServer {
 }
 
 func (this *restServer) Start() error {
-	if cfg.Parameters.HttpRestPort == 0 {
+	retPort := int(cfg.DefConfig.Restful.HttpRestPort)
+	if retPort == 0 {
 		log.Fatal("Not configure HttpRestPort port ")
 		return nil
 	}
 
 	tlsFlag := false
-	if tlsFlag || cfg.Parameters.HttpRestPort%1000 == rest.TLS_PORT {
+	if tlsFlag || retPort%1000 == rest.TLS_PORT {
 		var err error
 		this.listener, err = this.initTlsListen()
 		if err != nil {
@@ -95,7 +96,7 @@ func (this *restServer) Start() error {
 		}
 	} else {
 		var err error
-		this.listener, err = net.Listen("tcp", ":"+strconv.Itoa(cfg.Parameters.HttpRestPort))
+		this.listener, err = net.Listen("tcp", ":"+strconv.Itoa(retPort))
 		if err != nil {
 			log.Fatal("net.Listen: ", err.Error())
 			return err
@@ -129,11 +130,11 @@ func (this *restServer) registryMethod() {
 		GET_BLK_HGT_BY_TXHASH: {name: "getblockheightbytxhash", handler: rest.GetBlockHeightByTxHash},
 		GET_STORAGE:           {name: "getstorage", handler: rest.GetStorage},
 		GET_BALANCE:           {name: "getbalance", handler: rest.GetBalance},
-		GET_MERKLE_PROOF:     {name: "getmerkleproof", handler: rest.GetMerkleProof},
+		GET_MERKLE_PROOF:      {name: "getmerkleproof", handler: rest.GetMerkleProof},
 	}
 
 	postMethodMap := map[string]Action{
-		POST_RAW_TX:          {name: "sendrawtransaction", handler: rest.SendRawTransaction},
+		POST_RAW_TX: {name: "sendrawtransaction", handler: rest.SendRawTransaction},
 	}
 	this.postMap = postMethodMap
 	this.getMap = getMethodMap
@@ -295,8 +296,8 @@ func (this *restServer) Restart(cmd map[string]interface{}) map[string]interface
 }
 func (this *restServer) initTlsListen() (net.Listener, error) {
 
-	certPath := cfg.Parameters.HttpCertPath
-	keyPath := cfg.Parameters.HttpKeyPath
+	certPath := cfg.DefConfig.Restful.HttpCertPath
+	keyPath := cfg.DefConfig.Restful.HttpKeyPath
 
 	// load cert
 	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
@@ -309,8 +310,9 @@ func (this *restServer) initTlsListen() (net.Listener, error) {
 		Certificates: []tls.Certificate{cert},
 	}
 
-	log.Info("TLS listen port is ", strconv.Itoa(cfg.Parameters.HttpRestPort))
-	listener, err := tls.Listen("tcp", ":"+strconv.Itoa(cfg.Parameters.HttpRestPort), tlsConfig)
+	restPort := strconv.Itoa(int(cfg.DefConfig.Restful.HttpRestPort))
+	log.Info("TLS listen port is ", restPort)
+	listener, err := tls.Listen("tcp", ":"+restPort, tlsConfig)
 	if err != nil {
 		log.Error(err)
 		return nil, err

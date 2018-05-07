@@ -19,12 +19,8 @@
 package account
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"sort"
-	"strings"
 	"sync"
 	"syscall"
 
@@ -34,11 +30,9 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	s "github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
-	p2pcommon "github.com/ontio/ontology/p2pserver/common"
 )
 
 const (
@@ -215,77 +209,6 @@ func (cl *ClientImpl) DecryptPrivateKey(prikey []byte) ([]byte, error) {
 	}
 
 	return dec, nil
-}
-
-func (cl *ClientImpl) GetBookkeepers() ([]keypair.PublicKey, error) {
-	var pubKeys = []keypair.PublicKey{}
-	consensusType := config.Parameters.ConsensusType
-	if consensusType == "solo" {
-		ac := cl.GetDefaultAccount()
-		if ac == nil {
-			return nil, fmt.Errorf("GetDefaultAccount error")
-		}
-		pubKeys = append(pubKeys, ac.PublicKey)
-		return pubKeys, nil
-	}
-
-	sort.Strings(config.Parameters.Bookkeepers)
-	for _, key := range config.Parameters.Bookkeepers {
-		//pubKey := []byte(key)
-		pubKey, err := hex.DecodeString(key)
-		k, err := keypair.DeserializePublicKey(pubKey)
-		if err != nil {
-			log.Error("Incorrectly book keepers key")
-			return nil, fmt.Errorf("Incorrectly book keepers key:%s", key)
-		}
-		pubKeys = append(pubKeys, k)
-	}
-
-	return pubKeys, nil
-}
-
-func clientIsDefaultBookkeeper(publicKey string) bool {
-	for _, bookkeeper := range config.Parameters.Bookkeepers {
-		if strings.Compare(bookkeeper, publicKey) == 0 {
-			return true
-		}
-	}
-	return false
-}
-
-func nodeType(typeName string) int {
-	if "service" == config.Parameters.NodeType {
-		return p2pcommon.SERVICE_NODE
-	} else {
-		return p2pcommon.VERIFY_NODE
-	}
-}
-
-func GetBookkeepers() []keypair.PublicKey {
-	var pubKeys = []keypair.PublicKey{}
-	sort.Strings(config.Parameters.Bookkeepers)
-	for _, key := range config.Parameters.Bookkeepers {
-		pubKey := []byte(key)
-		pubKey, err := hex.DecodeString(key)
-		// TODO Convert the key string to byte
-		k, err := keypair.DeserializePublicKey(pubKey)
-		if err != nil {
-			log.Error("Incorrectly book keepers key")
-			return nil
-		}
-		pubKeys = append(pubKeys, k)
-	}
-
-	return pubKeys
-}
-
-func doubleHash(pwd []byte) []byte {
-	pwdhash := sha256.Sum256(pwd)
-	pwdhash2 := sha256.Sum256(pwdhash[:])
-
-	clearBytes(pwdhash[:], 32)
-
-	return pwdhash2[:]
 }
 
 func clearBytes(arr []byte, len int) {
