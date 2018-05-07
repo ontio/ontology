@@ -32,7 +32,6 @@ import (
 	"github.com/ontio/ontology/common/password"
 	"github.com/ontio/ontology/consensus"
 	"github.com/ontio/ontology/core/ledger"
-	ldgactor "github.com/ontio/ontology/core/ledger/actor"
 	"github.com/ontio/ontology/events"
 	hserver "github.com/ontio/ontology/http/base/actor"
 	"github.com/ontio/ontology/http/jsonrpc"
@@ -132,7 +131,7 @@ func startOntology(ctx *cli.Context) {
 		log.Errorf("initTxPool error:%s", err)
 		return
 	}
-	p2pSvr, p2pPid, err := initP2PNode(ctx, wallet, ldgactor.DefLedgerPid, txpool)
+	p2pSvr, p2pPid, err := initP2PNode(ctx, wallet, txpool)
 	if err != nil {
 		log.Errorf("initP2PNode error:%s", err)
 		return
@@ -237,9 +236,6 @@ func initLedger(ctx *cli.Context) (*ledger.Ledger, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Init ledger error:%s", err)
 	}
-	ldgactor.NewLedgerActor().Start()
-
-	hserver.SetLedgerPid(ldgactor.DefLedgerPid)
 
 	log.Infof("Ledger init success")
 	return ledger.DefLedger, nil
@@ -262,7 +258,7 @@ func initTxPool(ctx *cli.Context) (*proc.TXPoolServer, error) {
 	return txPoolServer, nil
 }
 
-func initP2PNode(ctx *cli.Context, wallet *account.ClientImpl, ledgerPid *actor.PID, txpoolSvr *proc.TXPoolServer) (*p2pserver.P2PServer, *actor.PID, error) {
+func initP2PNode(ctx *cli.Context, wallet *account.ClientImpl, txpoolSvr *proc.TXPoolServer) (*p2pserver.P2PServer, *actor.PID, error) {
 	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
 		return nil, nil, nil
 	}
@@ -284,7 +280,6 @@ func initP2PNode(ctx *cli.Context, wallet *account.ClientImpl, ledgerPid *actor.
 	if err != nil {
 		return nil, nil, fmt.Errorf("p2p sevice start error %s", err)
 	}
-	netreqactor.SetLedgerPid(ledgerPid)
 	netreqactor.SetTxnPoolPid(txpoolSvr.GetPID(tc.TxActor))
 	txpoolSvr.RegisterActor(tc.NetActor, p2pPID)
 	hserver.SetNetServerPID(p2pPID)

@@ -31,6 +31,7 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	"github.com/ontio/ontology/p2pserver/net/protocol"
@@ -293,7 +294,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		remotePeer.AttachSyncChan(this.SyncChan)
 		go remotePeer.SyncLink.Rx()
 		remotePeer.SetSyncState(common.HAND)
-		vpl := msgpack.NewVersionPayload(this, false)
+		vpl := msgpack.NewVersionPayload(this, false, ledger.DefLedger.GetCurrentBlockHeight())
 		buf, _ := msgpack.NewVersion(vpl, this.GetPubKey())
 		remotePeer.SyncLink.Tx(buf)
 	} else {
@@ -304,7 +305,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		remotePeer.AttachConsChan(this.ConsChan)
 		go remotePeer.ConsLink.Rx()
 		remotePeer.SetConsState(common.HAND)
-		vpl := msgpack.NewVersionPayload(this, true)
+		vpl := msgpack.NewVersionPayload(this, true, ledger.DefLedger.GetCurrentBlockHeight())
 		buf, _ := msgpack.NewVersion(vpl, this.GetPubKey())
 		remotePeer.ConsLink.Tx(buf)
 	}

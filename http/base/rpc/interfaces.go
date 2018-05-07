@@ -41,11 +41,7 @@ func GetGenerateBlockTime(params []interface{}) map[string]interface{} {
 }
 
 func GetBestBlockHash(params []interface{}) map[string]interface{} {
-	hash, err := bactor.CurrentBlockHash()
-	if err != nil {
-		log.Errorf("GetBestBlockHash error:%s", err)
-		return responsePack(berr.INTERNAL_ERROR, false)
-	}
+	hash:= bactor.CurrentBlockHash()
 	return responseSuccess(common.ToHexString(hash.ToArray()))
 }
 
@@ -62,7 +58,7 @@ func GetBlock(params []interface{}) map[string]interface{} {
 	// block height
 	case float64:
 		index := uint32(params[0].(float64))
-		hash, err = bactor.GetBlockHashFromStore(index)
+		hash= bactor.GetBlockHashFromStore(index)
 		if err != nil {
 			log.Errorf("GetBlock GetBlockHashFromStore Height:%v error:%s", index, err)
 			return responsePack(berr.UNKNOWN_BLOCK, "unknown block")
@@ -108,11 +104,7 @@ func GetBlock(params []interface{}) map[string]interface{} {
 }
 
 func GetBlockCount(params []interface{}) map[string]interface{} {
-	height, err := bactor.BlockHeight()
-	if err != nil {
-		log.Errorf("GetBlockCount error:%s", err)
-		return responsePack(berr.INTERNAL_ERROR, false)
-	}
+	height:= bactor.GetCurrentBlockHeight()
 	return responseSuccess(height + 1)
 }
 
@@ -125,11 +117,7 @@ func GetBlockHash(params []interface{}) map[string]interface{} {
 	switch params[0].(type) {
 	case float64:
 		height := uint32(params[0].(float64))
-		hash, err := bactor.GetBlockHashFromStore(height)
-		if err != nil {
-			log.Errorf("GetBlockHash GetBlockHashFromStore height:%v error:%s", height, err)
-			return responsePack(berr.UNKNOWN_BLOCK, "unknown block")
-		}
+		hash:= bactor.GetBlockHashFromStore(height)
 		return responseSuccess(fmt.Sprintf("%016x", hash))
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")
@@ -513,10 +501,7 @@ func GetMerkleProof(params []interface{}) map[string]interface{} {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
 
-	curHeight, err := bactor.BlockHeight()
-	if err != nil {
-		return responsePack(berr.INVALID_PARAMS, "")
-	}
+	curHeight:= bactor.GetCurrentBlockHeight()
 	curHeader, err := bactor.GetHeaderByHeight(curHeight)
 	if err != nil {
 		return responsePack(berr.INVALID_PARAMS, "")

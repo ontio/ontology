@@ -32,7 +32,6 @@ import (
 	actorTypes "github.com/ontio/ontology/consensus/actor"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
-	ldgractor "github.com/ontio/ontology/core/ledger/actor"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
@@ -51,6 +50,7 @@ type DbftService struct {
 	timeView          byte
 	blockReceivedTime time.Time
 	started           bool
+	ledger            *ledger.Ledger
 	incrValidator     *increment.IncrementValidator
 	poolActor         *actorTypes.TxPoolActor
 	p2p               *actorTypes.P2PActor
@@ -65,6 +65,7 @@ func NewDbftService(bkAccount *account.Account, txpool, p2p *actor.PID) (*DbftSe
 		Account:       bkAccount,
 		timer:         time.NewTimer(time.Second * 15),
 		started:       false,
+		ledger:        ledger.DefLedger,
 		incrValidator: increment.NewIncrementValidator(10),
 		poolActor:     &actorTypes.TxPoolActor{Pool: txpool},
 		p2p:           &actorTypes.P2PActor{P2P: p2p},
@@ -218,21 +219,16 @@ func (ds *DbftService) CheckSignatures() error {
 		block.Transactions = ds.context.Transactions
 
 		hash := block.Hash()
-		isExist, err := ledger.DefLedger.IsContainBlock(hash)
+		isExist, err := ds.ledger.IsContainBlock(hash)
 		if err != nil {
 			log.Errorf("DefLedger.IsContainBlock Hash:%x error:%s", hash, err)
 			return err
 		}
 		if !isExist {
 			// save block
-			future := ldgractor.DefLedgerPid.RequestFuture(&ldgractor.AddBlockReq{Block: block}, 30*time.Second)
-			result, err := future.Result()
+			err := ds.ledger.AddBlock(block)
 			if err != nil {
 				return fmt.Errorf("CheckSignatures DefLedgerPid.RequestFuture Height:%d error:%s", block.Header.Height, err)
-			}
-			addBlockRsp := result.(*ldgractor.AddBlockRsp)
-			if addBlockRsp.Error != nil {
-				return fmt.Errorf("CheckSignatures AddBlockRsp Height:%d error:%s", block.Header.Height, addBlockRsp.Error)
 			}
 
 			ds.context.State |= BlockGenerated
@@ -415,7 +411,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 		return
 	}
 
-	header, err := ledger.DefLedger.GetHeaderByHash(ds.context.PrevHash)
+	header, err := ds.ledger.GetHeaderByHash(ds.context.PrevHash)
 	if err != nil {
 		log.Errorf("PrepareRequestReceived GetHeader failed with ds.context.PrevHash:%x", ds.context.PrevHash)
 		return
@@ -676,7 +672,7 @@ func (ds *DbftService) Timeout() {
 		ds.context.State |= RequestSent
 		if !ds.context.State.HasFlag(SignatureSent) {
 			now := uint32(time.Now().Unix())
-			header, err := ledger.DefLedger.GetHeaderByHash(ds.context.PrevHash)
+			header, err := ds.ledger.GetHeaderByHash(ds.context.PrevHash)
 			if err != nil {
 				log.Errorf("[Timeout] GetHeader PrevHash:%x error:%s", ds.context.PrevHash, err)
 				return
