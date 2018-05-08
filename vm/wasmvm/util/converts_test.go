@@ -1,17 +1,16 @@
 package util
 
 import (
-	"testing"
-	"math"
 	"encoding/binary"
+	"math"
+	"testing"
 )
-
 
 func TestFloat32ToByte(t *testing.T) {
 	f := float32(3.1415926)
 	b := Float32ToBytes(f)
 
-	if ByteToFloat32(b) != f{
+	if ByteToFloat32(b) != f {
 		t.Error("TestFloat32ToByte failed!")
 	}
 
@@ -21,7 +20,7 @@ func TestFloat64ToByte(t *testing.T) {
 	f := 3.1415926
 	b := Float64ToBytes(f)
 
-	if ByteToFloat64(b) != f{
+	if ByteToFloat64(b) != f {
 		t.Error("TestFloat64ToByte failed!")
 	}
 }
@@ -45,15 +44,15 @@ func TestInt64ToBytes(t *testing.T) {
 func TestTrimBuffToString(t *testing.T) {
 	s := "helloworld"
 	b := []byte(s)
-	if TrimBuffToString(b) != s{
+	if TrimBuffToString(b) != s {
 		t.Error("TestTrimBuffToString failed")
 	}
-	b = append(b,byte(0))
-	if TrimBuffToString(b) != s{
+	b = append(b, byte(0))
+	if TrimBuffToString(b) != s {
 		t.Error("TestTrimBuffToString failed")
 	}
-	b = append(b,[]byte("some other string")...)
-	if TrimBuffToString(b) != s{
+	b = append(b, []byte("some other string")...)
+	if TrimBuffToString(b) != s {
 		t.Error("TestTrimBuffToString failed")
 	}
 }

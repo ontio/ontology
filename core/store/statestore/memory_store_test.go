@@ -1,9 +1,9 @@
 package statestore
 
 import (
+	"github.com/ontio/ontology/core/states"
 	com "github.com/ontio/ontology/core/store/common"
 	"testing"
-	"github.com/ontio/ontology/core/states"
 )
 
 func TestMemoryStore(t *testing.T) {
@@ -11,18 +11,18 @@ func TestMemoryStore(t *testing.T) {
 
 	prefix := byte(com.ST_STORAGE)
 	key := []byte("foo")
-	value := &states.StorageItem{Value:[]byte("bar")}
-	memStore.Put(prefix,key, value, com.Changed)
+	value := &states.StorageItem{Value: []byte("bar")}
+	memStore.Put(prefix, key, value, com.Changed)
 
 	v := memStore.Get(prefix, key)
 	storeItem := v.Value.(*states.StorageItem)
-	if string(storeItem.Value) != string(value.Value){
+	if string(storeItem.Value) != string(value.Value) {
 		t.Errorf("Get value:%s != %s", storeItem.Value, value.Value)
 		return
 	}
 
 	key1 := []byte("foo1")
-	value1 := &states.StorageItem{Value:[]byte("bar1")}
+	value1 := &states.StorageItem{Value: []byte("bar1")}
 	memStore.Put(prefix, key1, value1, com.None)
 
 	set := memStore.GetChangeSet()
@@ -33,7 +33,7 @@ func TestMemoryStore(t *testing.T) {
 
 	v = set[string(append([]byte{prefix}, key...))]
 	storeItem = v.Value.(*states.StorageItem)
-	if v == nil || string(storeItem.Value) != string(value.Value){
+	if v == nil || string(storeItem.Value) != string(value.Value) {
 		t.Errorf("GetChangeSet error, key:%s value:%s != %s", key, storeItem.Value, value.Value)
 		return
 	}
@@ -41,7 +41,7 @@ func TestMemoryStore(t *testing.T) {
 	memStore.Delete(prefix, key1)
 
 	v = memStore.Get(prefix, key1)
-	if v.State != com.Deleted{
+	if v.State != com.Deleted {
 		t.Errorf("State of key:%s != Deleted", key1)
 		return
 	}

@@ -1,9 +1,9 @@
 package exec
 
 import (
-	"strconv"
-	"github.com/ontio/ontology/vm/wasmvm/util"
 	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/vm/wasmvm/util"
+	"strconv"
 )
 
 func strToInt(engine *ExecutionEngine) (bool, error) {

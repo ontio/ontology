@@ -39,7 +39,7 @@ const (
 	CONSENSUS_VBFT = "vbft"
 )
 
-func NewConsensusService(consensusType string,  account *account.Account, txpool *actor.PID, ledger *actor.PID, p2p *actor.PID) (ConsensusService, error) {
+func NewConsensusService(consensusType string, account *account.Account, txpool *actor.PID, ledger *actor.PID, p2p *actor.PID) (ConsensusService, error) {
 	if consensusType == "" {
 		consensusType = CONSENSUS_DBFT
 	}

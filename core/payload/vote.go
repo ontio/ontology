@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology-crypto/keypair"
 )
 
 const (

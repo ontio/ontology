@@ -1,10 +1,10 @@
 package common
 
 import (
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology-crypto/keypair"
 )
 
 type PayloadInfo interface{}

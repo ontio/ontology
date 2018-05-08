@@ -19,9 +19,9 @@
 package actor
 
 import (
+	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
-	"github.com/ontio/ontology-eventbus/actor"
 )
 
 type EventActor struct {

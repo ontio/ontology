@@ -19,17 +19,17 @@
 package common
 
 import (
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
 	bactor "github.com/ontio/ontology/http/base/actor"
-	"github.com/ontio/ontology-crypto/keypair"
 )
 
 type BalanceOfRsp struct {
-	Ont string `json:"ont"`
-	Ong string `json:"ong"`
+	Ont       string `json:"ont"`
+	Ong       string `json:"ong"`
 	OngAppove string `json:"ong_appove"`
 }
 

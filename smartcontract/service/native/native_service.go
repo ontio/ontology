@@ -27,8 +27,8 @@ import (
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
-	"github.com/ontio/ontology/smartcontract/storage"
 	sstates "github.com/ontio/ontology/smartcontract/states"
+	"github.com/ontio/ontology/smartcontract/storage"
 )
 
 type (

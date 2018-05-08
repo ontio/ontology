@@ -20,16 +20,16 @@ package native
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/genesis"
 	scommon "github.com/ontio/ontology/core/store/common"
 	ctypes "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native/states"
 	"sync"
-	"fmt"
-	"github.com/ontio/ontology/common/log"
 )
 
 type ParamCache struct {

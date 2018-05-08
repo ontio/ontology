@@ -84,7 +84,7 @@ func (this *NetServer) init(pubKey keypair.PublicKey) error {
 
 	if config.DefConfig.Common.EnableConsensus {
 		this.base.SetServices(uint64(common.VERIFY_NODE))
-	}else{
+	} else {
 		this.base.SetServices(uint64(common.SERVICE_NODE))
 	}
 

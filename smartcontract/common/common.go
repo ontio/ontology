@@ -20,8 +20,8 @@ package common
 
 import (
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/vm/neovm/types"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/vm/neovm/types"
 )
 
 // ConvertReturnTypes return neovm stack element value
@@ -78,7 +78,7 @@ func ConvertNeoVmReturnTypes(item interface{}) interface{} {
 	case *types.Boolean:
 		if v.GetBoolean() {
 			return []byte{1}
-		}else {
+		} else {
 			return []byte{0}
 		}
 	case *types.Array:
@@ -100,5 +100,3 @@ func ConvertNeoVmReturnTypes(item interface{}) interface{} {
 		return nil
 	}
 }
-
-

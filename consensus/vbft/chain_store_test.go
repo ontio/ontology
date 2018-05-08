@@ -59,5 +59,3 @@ func TestGetChainedBlockNum(t *testing.T) {
 	blocknum := chainstore.GetChainedBlockNum()
 	t.Logf("TestGetChainedBlockNum :%d", blocknum)
 }
-
-

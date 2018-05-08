@@ -49,10 +49,10 @@ type vmstack struct {
 }
 
 func (s *vmstack) push(vm *VM) error {
-	if s.top + 1 == len(s.stack) {
+	if s.top+1 == len(s.stack) {
 		return errors.NewErr(fmt.Sprintf("[vm stack push] stack is full, only support %d contracts calls", VM_STACK_DEPTH))
 	}
-	s.stack[s.top + 1] = vm
+	s.stack[s.top+1] = vm
 	s.top += 1
 	return nil
 }

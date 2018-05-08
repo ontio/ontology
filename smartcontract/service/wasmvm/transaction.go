@@ -18,13 +18,13 @@
 package wasmvm
 
 import (
-	"github.com/ontio/ontology/vm/wasmvm/exec"
-	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/core/types"
 	"bytes"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/vm/wasmvm/exec"
 )
 
-func (this * WasmVmService)transactionGetHash(engine *exec.ExecutionEngine)(bool,error){
+func (this *WasmVmService) transactionGetHash(engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
@@ -32,26 +32,26 @@ func (this * WasmVmService)transactionGetHash(engine *exec.ExecutionEngine)(bool
 		return false, errors.NewErr("[transactionGetHash] parameter count error")
 	}
 
-	transbytes ,err := vm.GetPointerMemory(params[0])
-	if err != nil{
-		return false,err
+	transbytes, err := vm.GetPointerMemory(params[0])
+	if err != nil {
+		return false, err
 	}
 
 	trans := types.Transaction{}
 	err = trans.Deserialize(bytes.NewBuffer(transbytes))
-	if err != nil{
-		return false,err
+	if err != nil {
+		return false, err
 	}
 	hash := trans.Hash()
-	idx,err := vm.SetPointerMemory(hash.ToArray())
-	if err != nil{
-		return false,err
+	idx, err := vm.SetPointerMemory(hash.ToArray())
+	if err != nil {
+		return false, err
 	}
 	vm.RestoreCtx()
 	vm.PushResult(uint64(idx))
-	return true,nil
+	return true, nil
 }
-func (this * WasmVmService)transactionGetType(engine *exec.ExecutionEngine)(bool,error){
+func (this *WasmVmService) transactionGetType(engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
@@ -59,23 +59,23 @@ func (this * WasmVmService)transactionGetType(engine *exec.ExecutionEngine)(bool
 		return false, errors.NewErr("[transactionGetType] parameter count error")
 	}
 
-	transbytes ,err := vm.GetPointerMemory(params[0])
-	if err != nil{
-		return false,err
+	transbytes, err := vm.GetPointerMemory(params[0])
+	if err != nil {
+		return false, err
 	}
 
 	trans := types.Transaction{}
 	err = trans.Deserialize(bytes.NewBuffer(transbytes))
-	if err != nil{
-		return false,err
+	if err != nil {
+		return false, err
 	}
 	txtype := trans.TxType
 
 	vm.RestoreCtx()
 	vm.PushResult(uint64(txtype))
-	return true,nil
+	return true, nil
 }
-func (this * WasmVmService)transactionGetAttributes(engine *exec.ExecutionEngine)(bool,error){
+func (this *WasmVmService) transactionGetAttributes(engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
@@ -83,26 +83,26 @@ func (this * WasmVmService)transactionGetAttributes(engine *exec.ExecutionEngine
 		return false, errors.NewErr("[transactionGetAttributes] parameter count error")
 	}
 
-	transbytes ,err := vm.GetPointerMemory(params[0])
-	if err != nil{
-		return false,err
+	transbytes, err := vm.GetPointerMemory(params[0])
+	if err != nil {
+		return false, err
 	}
 
 	trans := types.Transaction{}
 	err = trans.Deserialize(bytes.NewBuffer(transbytes))
-	if err != nil{
-		return false,err
+	if err != nil {
+		return false, err
 	}
-	attributes := make([][]byte,len(trans.Attributes))
-	for i,a := range trans.Attributes{
+	attributes := make([][]byte, len(trans.Attributes))
+	for i, a := range trans.Attributes {
 		attributes[i] = a.ToArray()
 	}
 
-	idx,err := vm.SetPointerMemory(attributes)
-	if err != nil{
-		return false,err
+	idx, err := vm.SetPointerMemory(attributes)
+	if err != nil {
+		return false, err
 	}
 	vm.RestoreCtx()
 	vm.PushResult(uint64(idx))
-	return true,nil
+	return true, nil
 }

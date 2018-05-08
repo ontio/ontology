@@ -1,8 +1,8 @@
 package neovm
 
 import (
-	vm "github.com/ontio/ontology/vm/neovm"
 	"github.com/ontio/ontology/core/types"
+	vm "github.com/ontio/ontology/vm/neovm"
 	vmtypes "github.com/ontio/ontology/vm/neovm/types"
 )
 
@@ -28,6 +28,3 @@ func BlockGetTransaction(service *NeoVmService, engine *vm.ExecutionEngine) erro
 	vm.PushData(engine, vm.PopInteropInterface(engine).(*types.Block).Transactions[vm.PopInt(engine)])
 	return nil
 }
-
-
-

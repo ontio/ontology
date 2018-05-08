@@ -5,9 +5,9 @@ import (
 	"github.com/ontio/ontology/core/states"
 	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
+	"github.com/syndtr/goleveldb/leveldb"
 	"os"
 	"testing"
-	"github.com/syndtr/goleveldb/leveldb"
 )
 
 var (
@@ -41,14 +41,14 @@ func TestStateBatch_TryGetOrAdd(t *testing.T) {
 		return
 	}
 
-	v , err := testBatch.TryGet(prefix, key)
+	v, err := testBatch.TryGet(prefix, key)
 	if err != nil {
 		t.Errorf("TestStateBatch_TryGetOrAdd TryGet error:%s", err)
 		return
 	}
 
 	storeItem := v.Value.(*states.StorageItem)
-	if string(storeItem.Value) != string(value.Value){
+	if string(storeItem.Value) != string(value.Value) {
 		t.Errorf("TestStateBatch_TryGetOrAdd value:%s != %s", storeItem.Value, value.Value)
 		return
 	}
@@ -65,14 +65,14 @@ func TestStateBatch_TryAdd(t *testing.T) {
 		return
 	}
 
-	v , err := testBatch.TryGet(prefix, key)
+	v, err := testBatch.TryGet(prefix, key)
 	if err != nil {
 		t.Errorf("TestStateBatch_TryGetOrAdd TryGet error:%s", err)
 		return
 	}
 
 	storeItem := v.Value.(*states.StorageItem)
-	if string(storeItem.Value) != string(value.Value){
+	if string(storeItem.Value) != string(value.Value) {
 		t.Errorf("TestStateBatch_TryGetOrAdd value:%s != %s", storeItem.Value, value.Value)
 		return
 	}
@@ -118,7 +118,7 @@ func TestStateBatch_TryGetAndChange(t *testing.T) {
 	}
 
 	storeItem := v1.(*states.StorageItem)
-	if string(storeItem.Value) != string(value1.Value){
+	if string(storeItem.Value) != string(value1.Value) {
 		t.Errorf("TestStateBatch_TryGetOrAdd value:%s != %s", storeItem.Value, value.Value)
 		return
 	}
@@ -148,7 +148,7 @@ func TestStateBatch_CommitTo(t *testing.T) {
 		return
 	}
 
-	data ,err := testLevelDB.Get(append([]byte{byte(prefix)}, key...))
+	data, err := testLevelDB.Get(append([]byte{byte(prefix)}, key...))
 	if err != nil && err != leveldb.ErrNotFound {
 		t.Errorf("testLevelDB.Get error:%s", err)
 		return

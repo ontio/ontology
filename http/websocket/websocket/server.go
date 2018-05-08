@@ -28,13 +28,13 @@ import (
 	"sync"
 	"time"
 
-	cfg "github.com/ontio/ontology/common/config"
+	"github.com/gorilla/websocket"
 	"github.com/ontio/ontology/common"
+	cfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	Err "github.com/ontio/ontology/http/base/error"
 	"github.com/ontio/ontology/http/base/rest"
 	"github.com/ontio/ontology/http/websocket/session"
-	"github.com/gorilla/websocket"
 )
 
 const (
@@ -153,9 +153,9 @@ func (self *WsServer) registryMethod() {
 		}
 		if ctsf, ok := cmd["ConstractsFilter"].([]interface{}); ok {
 			sub.ConstractsFilter = []string{}
-			for _,v := range ctsf{
-				if addr,k := v.(string);k{
-					sub.ConstractsFilter = append(sub.ConstractsFilter,addr)
+			for _, v := range ctsf {
+				if addr, k := v.(string); k {
+					sub.ConstractsFilter = append(sub.ConstractsFilter, addr)
 				}
 			}
 		}
@@ -172,23 +172,23 @@ func (self *WsServer) registryMethod() {
 		return resp
 	}
 	actionMap := map[string]Handler{
-		"getblockheightbytxhash": {handler: rest.GetBlockHeightByTxHash},
-		"getsmartcodeeventbyhash":      {handler: rest.GetSmartCodeEventByTxHash},
-		"getsmartcodeeventbyheight":   {handler: rest.GetSmartCodeEventTxsByHeight},
-		"getcontract":            {handler: rest.GetContractState},
-		"getbalance":             {handler: rest.GetBalance},
-		"getconnectioncount":     {handler: rest.GetConnectionCount},
-		"getblockbyheight":       {handler: rest.GetBlockByHeight},
-		"getblockbyhash":         {handler: rest.GetBlockByHash},
-		"getblockheight":         {handler: rest.GetBlockHeight},
-		"getgenerateblocktime":   {handler: rest.GetGenerateBlockTime},
-		"gettransaction":         {handler: rest.GetTransactionByHash},
-		"sendrawtransaction":     {handler: rest.SendRawTransaction, pushFlag: true},
-		"heartbeat":              {handler: heartbeat},
-		"subscribe":              {handler: subscribe},
-		"getstorage":             {handler: rest.GetStorage},
-		"getmerkleproof":        {handler: rest.GetMerkleProof},
-		"getblocktxsbyheight": {handler: rest.GetBlockTxsByHeight},
+		"getblockheightbytxhash":    {handler: rest.GetBlockHeightByTxHash},
+		"getsmartcodeeventbyhash":   {handler: rest.GetSmartCodeEventByTxHash},
+		"getsmartcodeeventbyheight": {handler: rest.GetSmartCodeEventTxsByHeight},
+		"getcontract":               {handler: rest.GetContractState},
+		"getbalance":                {handler: rest.GetBalance},
+		"getconnectioncount":        {handler: rest.GetConnectionCount},
+		"getblockbyheight":          {handler: rest.GetBlockByHeight},
+		"getblockbyhash":            {handler: rest.GetBlockByHash},
+		"getblockheight":            {handler: rest.GetBlockHeight},
+		"getgenerateblocktime":      {handler: rest.GetGenerateBlockTime},
+		"gettransaction":            {handler: rest.GetTransactionByHash},
+		"sendrawtransaction":        {handler: rest.SendRawTransaction, pushFlag: true},
+		"heartbeat":                 {handler: heartbeat},
+		"subscribe":                 {handler: subscribe},
+		"getstorage":                {handler: rest.GetStorage},
+		"getmerkleproof":            {handler: rest.GetMerkleProof},
+		"getblocktxsbyheight":       {handler: rest.GetBlockTxsByHeight},
 
 		"getsessioncount": {handler: getsessioncount},
 	}
@@ -373,7 +373,7 @@ func marshalResp(resp map[string]interface{}) []byte {
 	return data
 }
 
-func (self *WsServer) PushTxResult(contractAddrs map[string]bool,txHashStr string, resp map[string]interface{}) {
+func (self *WsServer) PushTxResult(contractAddrs map[string]bool, txHashStr string, resp map[string]interface{}) {
 	self.Lock()
 	sessionId := self.TxHashMap[txHashStr]
 	delete(self.TxHashMap, txHashStr)
@@ -398,7 +398,7 @@ func (self *WsServer) PushTxResult(contractAddrs map[string]bool,txHashStr strin
 		s.Send(marshalResp(resp))
 	}
 }
-func (self *WsServer) BroadcastToSubscribers(contractAddrs map[string]bool,sub int, resp map[string]interface{}) {
+func (self *WsServer) BroadcastToSubscribers(contractAddrs map[string]bool, sub int, resp map[string]interface{}) {
 	// broadcast SubscribeMap
 	self.Lock()
 	defer self.Unlock()

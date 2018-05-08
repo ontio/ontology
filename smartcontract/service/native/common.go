@@ -233,11 +233,11 @@ func getStorageBigInt(native *NativeService, key []byte) (*big.Int, error) {
 	return new(big.Int).SetBytes(item.Value), nil
 }
 
-func getStorageParam(native *NativeService, key []byte)(*states.Params, error){
-	params , err:= native.CloneCache.Get(scommon.ST_STORAGE, key)
+func getStorageParam(native *NativeService, key []byte) (*states.Params, error) {
+	params, err := native.CloneCache.Get(scommon.ST_STORAGE, key)
 	tempParams := new(states.Params)
 	*tempParams = make(map[string]string)
-	if err != nil || params == nil{
+	if err != nil || params == nil {
 		return tempParams, errors.NewDetailErr(err, errors.ErrNoCode, "[Get Param] storage error!")
 	}
 	item, ok := params.(*cstates.StorageItem)

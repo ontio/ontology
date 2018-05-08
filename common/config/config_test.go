@@ -1,11 +1,11 @@
 package config
 
 import (
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
-func TestConfigGeneration(t *testing.T){
+func TestConfigGeneration(t *testing.T) {
 	polarisConfig := newPolarisConfig()
 	assert.Equal(t, polarisConfig, Parameters)
 	defaultConfig := newDefaultConfig()

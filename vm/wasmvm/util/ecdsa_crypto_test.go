@@ -1,8 +1,8 @@
 package util
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 func TestECDsaCrypto_Hash160(t *testing.T) {

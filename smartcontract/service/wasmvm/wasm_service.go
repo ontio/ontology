@@ -365,7 +365,7 @@ func (this *WasmVmService) callContract(engine *exec.ExecutionEngine) (bool, err
 					res = string(result.([]byte))
 				}
 			default:
-				res = fmt.Sprintf("%s",result)
+				res = fmt.Sprintf("%s", result)
 			}
 
 		}
@@ -379,7 +379,7 @@ func (this *WasmVmService) callContract(engine *exec.ExecutionEngine) (bool, err
 
 		}
 		if contractAddress[0] == byte(vmtypes.WASMVM) {
-			res = fmt.Sprintf("%s",result)
+			res = fmt.Sprintf("%s", result)
 		}
 
 		idx, err := vm.SetPointerMemory(res)

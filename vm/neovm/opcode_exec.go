@@ -61,7 +61,7 @@ var (
 		RET:      {Opcode: RET, Name: "RET", Exec: opRet},
 		APPCALL:  {Opcode: APPCALL, Name: "APPCALL"},
 		//TAILCALL: {Opcode: TAILCALL, Name: "TAILCALL", Exec: opAppCall},
-		SYSCALL:  {Opcode: SYSCALL, Name: "SYSCALL"},
+		SYSCALL: {Opcode: SYSCALL, Name: "SYSCALL"},
 
 		//Stack ops
 		DUPFROMALTSTACK: {Opcode: DUPFROMALTSTACK, Name: "DUPFROMALTSTACK", Exec: opToDupFromAltStack},
@@ -123,10 +123,10 @@ var (
 		WITHIN:      {Opcode: WITHIN, Name: "WITHIN", Exec: opWithIn, Validator: validateCount3},
 
 		//Crypto
-		SHA1:          {Opcode: SHA1, Name: "SHA1", Exec: opHash, Validator: validateCount1},
-		SHA256:        {Opcode: SHA256, Name: "SHA256", Exec: opHash, Validator: validateCount1},
-		HASH160:       {Opcode: HASH160, Name: "HASH160", Exec: opHash, Validator: validateCount1},
-		HASH256:       {Opcode: HASH256, Name: "HASH256", Exec: opHash, Validator: validateCount1},
+		SHA1:    {Opcode: SHA1, Name: "SHA1", Exec: opHash, Validator: validateCount1},
+		SHA256:  {Opcode: SHA256, Name: "SHA256", Exec: opHash, Validator: validateCount1},
+		HASH160: {Opcode: HASH160, Name: "HASH160", Exec: opHash, Validator: validateCount1},
+		HASH256: {Opcode: HASH256, Name: "HASH256", Exec: opHash, Validator: validateCount1},
 		//CHECKSIG:      {Opcode: CHECKSIG, Name: "CHECKSIG", Exec: opCheckSig, Validator: validateCount2},
 		//CHECKMULTISIG: {Opcode: CHECKMULTISIG, Name: "CHECKMULTISIG", Exec: opCheckMultiSig, Validator: validateCount2},
 

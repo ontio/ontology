@@ -1,15 +1,15 @@
 package states
 
 import (
-	"testing"
 	"bytes"
+	"testing"
 )
 
 func TestStorageItem_Serialize_Deserialize(t *testing.T) {
 
 	item := &StorageItem{
 		StateBase: StateBase{StateVersion: 1},
-		Value: []byte{1},
+		Value:     []byte{1},
 	}
 
 	bf := new(bytes.Buffer)

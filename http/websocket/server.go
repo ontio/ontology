@@ -94,7 +94,7 @@ func pushSmartCodeEvent(v interface{}) {
 			}
 			hash := object.TxHash
 			addr := object.ContractAddress.ToHexString()
-			pushEvent(map[string]bool{addr:true}, rs.TxHash, rs.Error, rs.Action,
+			pushEvent(map[string]bool{addr: true}, rs.TxHash, rs.Error, rs.Action,
 				logEventArgs{common.ToHexString(hash[:]), addr, object.Message})
 		default:
 		}
@@ -108,7 +108,7 @@ func pushEvent(contractAddrs map[string]bool, txHash string, errcode int64, acti
 		resp["Error"] = errcode
 		resp["Action"] = action
 		resp["Desc"] = Err.ErrMap[resp["Error"].(int64)]
-		ws.PushTxResult(contractAddrs,txHash, resp)
+		ws.PushTxResult(contractAddrs, txHash, resp)
 		ws.BroadcastToSubscribers(contractAddrs, websocket.WSTOPIC_EVENT, resp)
 	}
 }
@@ -123,11 +123,11 @@ func pushBlock(v interface{}) {
 		w := bytes.NewBuffer(nil)
 		block.Serialize(w)
 		resp["Result"] = common.ToHexString(w.Bytes())
-		ws.BroadcastToSubscribers(nil,websocket.WSTOPIC_RAW_BLOCK, resp)
+		ws.BroadcastToSubscribers(nil, websocket.WSTOPIC_RAW_BLOCK, resp)
 
 		resp["Action"] = "sendjsonblock"
 		resp["Result"] = bcomn.GetBlockInfo(&block)
-		ws.BroadcastToSubscribers(nil,websocket.WSTOPIC_JSON_BLOCK, resp)
+		ws.BroadcastToSubscribers(nil, websocket.WSTOPIC_JSON_BLOCK, resp)
 	}
 }
 func pushBlockTransactions(v interface{}) {
@@ -138,6 +138,6 @@ func pushBlockTransactions(v interface{}) {
 	if block, ok := v.(types.Block); ok {
 		resp["Result"] = rest.GetBlockTransactions(&block)
 		resp["Action"] = "sendblocktxhashs"
-		ws.BroadcastToSubscribers(nil,websocket.WSTOPIC_TXHASHS, resp)
+		ws.BroadcastToSubscribers(nil, websocket.WSTOPIC_TXHASHS, resp)
 	}
 }

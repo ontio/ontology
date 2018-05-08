@@ -33,13 +33,13 @@ import (
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
+	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/validator/increment"
-	"github.com/ontio/ontology/core/ledger"
 )
 
 type BftActionType uint8

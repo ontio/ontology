@@ -1,11 +1,11 @@
 package test
 
 import (
-	"testing"
 	"github.com/gorilla/websocket"
-	"net/url"
-	"time"
 	"github.com/stretchr/testify/assert"
+	"net/url"
+	"testing"
+	"time"
 )
 
 func TestWs(t *testing.T) {

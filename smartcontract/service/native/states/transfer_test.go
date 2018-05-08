@@ -1,10 +1,10 @@
 package states
 
 import (
-	"testing"
+	"bytes"
 	"github.com/ontio/ontology/common"
 	"math/big"
-	"bytes"
+	"testing"
 )
 
 func TestState_Serialize_Deserialize(t *testing.T) {
@@ -19,9 +19,9 @@ func TestState_Serialize_Deserialize(t *testing.T) {
 
 	s := &State{
 		Version: 0,
-		From: fa,
-		To: ta,
-		Value: big.NewInt(1),
+		From:    fa,
+		To:      ta,
+		Value:   big.NewInt(1),
 	}
 
 	bf := new(bytes.Buffer)
@@ -47,14 +47,14 @@ func TestTransfers_Serialize_Deserialize(t *testing.T) {
 
 	s := &State{
 		Version: 0,
-		From: fa,
-		To: ta,
-		Value: big.NewInt(1),
+		From:    fa,
+		To:      ta,
+		Value:   big.NewInt(1),
 	}
 
 	ts := &Transfers{
 		Version: 0,
-		States: []*State{s},
+		States:  []*State{s},
 	}
 
 	bf := new(bytes.Buffer)

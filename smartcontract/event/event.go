@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	EVENT_LOG = "Log"
+	EVENT_LOG    = "Log"
 	EVENT_NOTIFY = "Notify"
 )
 

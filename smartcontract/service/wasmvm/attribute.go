@@ -18,13 +18,13 @@
 package wasmvm
 
 import (
-	"github.com/ontio/ontology/vm/wasmvm/exec"
-	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/core/types"
 	"bytes"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/vm/wasmvm/exec"
 )
 
-func (this * WasmVmService)attributeGetUsage(engine *exec.ExecutionEngine)(bool,error){
+func (this *WasmVmService) attributeGetUsage(engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
@@ -32,21 +32,21 @@ func (this * WasmVmService)attributeGetUsage(engine *exec.ExecutionEngine)(bool,
 		return false, errors.NewErr("[transactionGetHash] parameter count error")
 	}
 
-	attributebytes ,err:= vm.GetPointerMemory(params[0])
-	if err != nil{
-		return false,nil
+	attributebytes, err := vm.GetPointerMemory(params[0])
+	if err != nil {
+		return false, nil
 	}
 
 	attr := types.TxAttribute{}
 	err = attr.Deserialize(bytes.NewBuffer(attributebytes))
-	if err != nil{
-		return false,nil
+	if err != nil {
+		return false, nil
 	}
 	vm.RestoreCtx()
 	vm.PushResult(uint64(attr.Usage))
-	return true,nil
+	return true, nil
 }
-func (this * WasmVmService)attributeGetData(engine *exec.ExecutionEngine)(bool,error){
+func (this *WasmVmService) attributeGetData(engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
@@ -54,23 +54,23 @@ func (this * WasmVmService)attributeGetData(engine *exec.ExecutionEngine)(bool,e
 		return false, errors.NewErr("[transactionGetHash] parameter count error")
 	}
 
-	attributebytes ,err:= vm.GetPointerMemory(params[0])
-	if err != nil{
-		return false,nil
+	attributebytes, err := vm.GetPointerMemory(params[0])
+	if err != nil {
+		return false, nil
 	}
 
 	attr := types.TxAttribute{}
 	err = attr.Deserialize(bytes.NewBuffer(attributebytes))
-	if err != nil{
-		return false,nil
+	if err != nil {
+		return false, nil
 	}
 
-	idx,err := vm.SetPointerMemory(attr.Data)
-	if err != nil{
-		return false,nil
+	idx, err := vm.SetPointerMemory(attr.Data)
+	if err != nil {
+		return false, nil
 	}
 
 	vm.RestoreCtx()
 	vm.PushResult(uint64(idx))
-	return true,nil
+	return true, nil
 }

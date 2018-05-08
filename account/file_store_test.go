@@ -1,16 +1,16 @@
 package account
 
 import (
-	"testing"
+	"crypto/sha256"
 	"encoding/hex"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/core/types"
-	"crypto/sha256"
 	"github.com/stretchr/testify/assert"
 	"os"
+	"testing"
 )
 
-func genAccountx() (*Accountx, *keypair.ProtectedKey){
+func genAccountx() (*Accountx, *keypair.ProtectedKey) {
 	var acc = new(Accountx)
 	prvkey, pubkey, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
 	ta := types.AddressFromPubKey(pubkey)
@@ -33,7 +33,7 @@ func TestAccountx(t *testing.T) {
 	assert.True(t, acc.VerifyPassword([]byte("123456")))
 }
 
-func TestWalletStorage(t *testing.T){
+func TestWalletStorage(t *testing.T) {
 	defer func() {
 		os.Remove(WALLET_FILENAME)
 		os.RemoveAll("Log/")
@@ -52,8 +52,8 @@ func TestWalletStorage(t *testing.T){
 	walletReadFromFile.Load(WALLET_FILENAME)
 	assert.Equal(t, walletReadFromFile, wallet)
 	wallet.DelAccount(2)
-	assert.Equal(t, 1,len(wallet.Accounts))
-	assert.Panics(t, func(){wallet.DelAccount(2)})
+	assert.Equal(t, 1, len(wallet.Accounts))
+	assert.Panics(t, func() { wallet.DelAccount(2) })
 	wallet.Save(WALLET_FILENAME)
 	walletReadFromFile.Load(WALLET_FILENAME)
 	assert.Equal(t, walletReadFromFile, wallet)

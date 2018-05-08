@@ -61,7 +61,7 @@ func GetConnectionCount(cmd map[string]interface{}) map[string]interface{} {
 //Block
 func GetBlockHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	height:= bactor.GetCurrentBlockHeight()
+	height := bactor.GetCurrentBlockHeight()
 	resp["Result"] = height
 	return resp
 }
@@ -75,7 +75,7 @@ func GetBlockHash(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	hash:= bactor.GetBlockHashFromStore(uint32(height))
+	hash := bactor.GetBlockHashFromStore(uint32(height))
 	resp["Result"] = common.ToHexString(hash.ToArray())
 	return resp
 }
@@ -153,7 +153,7 @@ func GetBlockHeightByTxHash(cmd map[string]interface{}) map[string]interface{} {
 	if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
 		return ResponsePack(berr.INVALID_TRANSACTION)
 	}
-	height,tx, err := bactor.GetTxnWithHeightByTxHash(hash)
+	height, tx, err := bactor.GetTxnWithHeightByTxHash(hash)
 	if err != nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
@@ -175,7 +175,7 @@ func GetBlockTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	index := uint32(height)
-	hash:= bactor.GetBlockHashFromStore(index)
+	hash := bactor.GetBlockHashFromStore(index)
 	if err != nil {
 		return ResponsePack(berr.UNKNOWN_BLOCK)
 	}
@@ -212,7 +212,7 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 	if getTxBytes {
 		w := bytes.NewBuffer(nil)
 		block.Serialize(w)
-		resp["Result"] =  common.ToHexString(w.Bytes())
+		resp["Result"] = common.ToHexString(w.Bytes())
 	} else {
 		resp["Result"] = bcomn.GetBlockInfo(block)
 	}
@@ -334,7 +334,7 @@ func GetSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{
 	}
 	var evts []bcomn.NotifyEventInfo
 	for _, v := range eventInfos {
-		evts = append(evts, bcomn.NotifyEventInfo{common.ToHexString(v.TxHash[:]),v.ContractAddress.ToHexString(), v.States})
+		evts = append(evts, bcomn.NotifyEventInfo{common.ToHexString(v.TxHash[:]), v.ContractAddress.ToHexString(), v.States})
 	}
 	resp["Result"] = evts
 	return resp
@@ -463,7 +463,7 @@ func GetMerkleProof(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 
-	curHeight:= bactor.GetCurrentBlockHeight()
+	curHeight := bactor.GetCurrentBlockHeight()
 	curHeader, err := bactor.GetHeaderByHeight(curHeight)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
