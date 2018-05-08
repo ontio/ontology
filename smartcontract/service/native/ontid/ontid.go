@@ -21,8 +21,6 @@ import (
 
 var contractAddress = genesis.OntIDContractAddress[:]
 
-//var ContractAddress = []byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03}
-
 func init() {
 	native.Contracts[genesis.OntIDContractAddress] = RegisterIDContract
 }
@@ -209,11 +207,11 @@ func (this *attribute) Serialize(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	err = serialization.WriteVarBytes(w, this.value)
+	err = serialization.WriteVarBytes(w, this.valueType)
 	if err != nil {
 		return err
 	}
-	err = serialization.WriteVarBytes(w, this.valueType)
+	err = serialization.WriteVarBytes(w, this.value)
 	if err != nil {
 		return err
 	}
@@ -225,11 +223,11 @@ func (this *attribute) Deserialize(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	v, err := serialization.ReadVarBytes(r)
+	vt, err := serialization.ReadVarBytes(r)
 	if err != nil {
 		return err
 	}
-	vt, err := serialization.ReadVarBytes(r)
+	v, err := serialization.ReadVarBytes(r)
 	if err != nil {
 		return err
 	}
@@ -280,10 +278,22 @@ func RegIdWithAttributes(srvc *native.NativeService) error {
 		return errors.New("register ID with attributes error: store pubic key error: " + err.Error())
 	}
 
-	key1 := append(key, field_attr)
-	err = native.PutJson(srvc, key1, arg2)
-	if err != nil {
-		return errors.New("register ID with attributes error: store attributes error, " + err.Error())
+	// parse attributes
+	buf := bytes.NewBuffer(arg2)
+	attr := make([]*attribute, 0)
+	for buf.Len() > 0 {
+		t := new(attribute)
+		err = t.Deserialize(buf)
+		if err != nil {
+			return errors.New("register ID with attributes error: parse attribute error, " + err.Error())
+		}
+		attr = append(attr, t)
+	}
+	for _, v := range attr {
+		err = insertAttr(srvc, key, v)
+		if err != nil {
+			return errors.New("register ID with attributes error: store attributes error, " + err.Error())
+		}
 	}
 
 	srvc.CloneCache.Add(common.ST_STORAGE, key, &states.StorageItem{Value: []byte{flag_exist}})
@@ -347,6 +357,8 @@ func AddKey(srvc *native.NativeService) error {
 		return errors.New("add key failed: insert public key error, " + err.Error())
 	}
 
+	triggerPublicEvent(srvc, "add", arg0, arg1)
+
 	return nil
 }
 
@@ -399,6 +411,8 @@ func RemoveKey(srvc *native.NativeService) error {
 	} else if !ok {
 		return errors.New("remove key failed: key not found")
 	}
+
+	triggerPublicEvent(srvc, "remove", arg0, arg1)
 
 	return nil
 }
@@ -495,7 +509,7 @@ func ChangeRecovery(srvc *native.NativeService) error {
 	return nil
 }
 
-/*func AddAttribute(srvc *native.NativeService) error {
+func AddAttribute(srvc *native.NativeService) error {
 	args := bytes.NewBuffer(srvc.Input)
 	// arg0: ID
 	arg0, err := serialization.ReadVarBytes(args)
@@ -553,62 +567,8 @@ func ChangeRecovery(srvc *native.NativeService) error {
 			return errors.New("add attribute failed: " + err.Error())
 		}
 
-		n, err := getNumOfField(srvc, key, field_num_of_attr)
-		if err != nil {
-			return errors.New("add attribute failed: get number error, " + err.Error())
-		}
-		n += 1
-		err = setNumOfField(srvc, key, field_num_of_attr, uint32(n))
-		if err != nil {
-			return errors.New("add attribute failed: set number error, " + err.Error())
-		}
 		triggerAttributeEvent(srvc, "add", arg0, arg1)
 	}
-	return nil
-}*/
-
-func AddAttribute(srvc *native.NativeService) error {
-	args := bytes.NewBuffer(srvc.Input)
-	// arg0: id
-	arg0, err := serialization.ReadVarBytes(args)
-	if err != nil {
-		return errors.New("add attribute failed: argument 0 error")
-	}
-	// arg1: json
-	arg1, err := serialization.ReadVarBytes(args)
-	if err != nil {
-		return errors.New("add attribute failed: argument 1 error")
-	}
-	// arg2: operator's public key id
-	arg2, err := serialization.ReadUint32(args)
-	if err != nil {
-		return errors.New("add attribute failed: argument 2 error")
-	}
-
-	key, err := encodeID(arg0)
-	if err != nil {
-		return errors.New("add attribute failed: " + err.Error())
-	}
-
-	if !checkIDExistence(srvc, key) {
-		return errors.New("add attribute failed: ID not registered")
-	}
-
-	owner, err := getOwnerKey(srvc, key, arg2)
-	if err != nil {
-		return errors.New("add attribute failed: operator is not owner")
-	}
-
-	err = checkWitness(srvc, owner.key)
-	if err != nil {
-		return errors.New("add attribute failed: check witness error, " + err.Error())
-	}
-
-	err = native.PutJson(srvc, append(key, field_attr), arg1)
-	if err != nil {
-		return errors.New("add attribute failed: store json to DB error, " + err.Error())
-	}
-	triggerAttributeEvent(srvc, "add", arg0, arg1)
 	return nil
 }
 
@@ -646,10 +606,11 @@ func RemoveAttribute(srvc *native.NativeService) error {
 	}
 
 	key1 := append(key, field_attr)
-	key1 = append(key1, arg1...)
-	err = native.DelJson(srvc, key1)
+	ok, err := native.LinkedlistDelete(srvc, key1, arg1)
 	if err != nil {
 		return errors.New("remove attribute failed: delete error, " + err.Error())
+	} else if !ok {
+		return errors.New("remove attribute failed: attribute not exist")
 	}
 
 	triggerAttributeEvent(srvc, "remove", arg0, arg1)
@@ -821,25 +782,23 @@ func getNumOfField(srvc *native.NativeService, encID []byte, field byte) (uint32
 
 func insertPk(srvc *native.NativeService, encID, pk []byte) error {
 	var index uint32 = 0
-	item, err := native.LinkedlistGetHead(srvc, encID)
-	if err == nil && item != nil {
-		node, err := native.LinkedlistGetItem(srvc, encID, item)
-		if err != nil {
-			return err
-		}
-		index = binary.LittleEndian.Uint32(node.GetPayload()) + 1
-	}
 	key1 := append(encID, field_pk)
+	item, err := native.LinkedlistGetHead(srvc, key1)
+	if err == nil && item != nil {
+		index = binary.LittleEndian.Uint32(item[len(key1):])
+	}
+	index += 1
+	log.Debug("index:", index)
 	var buf [4]byte
 	binary.LittleEndian.PutUint32(buf[:], index)
 	key2 := append(key1, buf[:]...)
+	log.Debug("public key list id:", hex.EncodeToString(key1))
+	log.Debug("public key id:", hex.EncodeToString(key2))
 	p := &publicKey{key: pk, revoked: false}
 	val, err := p.Bytes()
 	if err != nil {
 		return errors.New("register ONT ID error: " + err.Error())
 	}
-	log.Debug("public key list id:", hex.EncodeToString(key1))
-	log.Debug("public key id:", hex.EncodeToString(key2))
 	return native.LinkedlistInsert(srvc, key1, key2, val)
 }
 
