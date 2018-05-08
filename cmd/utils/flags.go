@@ -21,6 +21,7 @@ package utils
 import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/urfave/cli"
+	"strings"
 )
 
 var (
@@ -35,14 +36,25 @@ var (
 		Usage: "Set the log level to `<level>` (0~6). 0:Debug 1:Info 2:Warn 3:Error 4:Fatal 5:Trace 6:MaxLevel",
 		Value: config.DEFAULT_LOG_LEVEL,
 	}
+	DisableEventLogFlag = cli.BoolFlag{
+		Name:  "disableeventlog",
+		Usage: "If set disableeventlog flag, will not record event log output by smart contract",
+	}
+	WalletFileFlag = cli.StringFlag{
+		Name:  "wallet,w",
+		Value: config.DEFAULT_WALLET_FILE_NAME,
+		Usage: "Use `<filename>` as the wallet",
+	}
+
+	//Consensus setting
+	DisableConsensusFlag = cli.BoolFlag{
+		Name:  "disableconsensus",
+		Usage: "If set disableconsensus, will not start consensus module",
+	}
 	MaxTxInBlockFlag = cli.IntFlag{
 		Name:  "maxtxinblock",
 		Usage: "Max transaction number in block",
 		Value: config.DEFAULT_MAX_TX_IN_BLOCK,
-	}
-	DisableEventLogFlag = cli.BoolFlag{
-		Name:  "disableeventlog",
-		Usage: "If set disableeventlog flag, will not record event log output by smart contract",
 	}
 	GasLimitFlag = cli.Uint64Flag{
 		Name:  "gaslimit",
@@ -125,19 +137,14 @@ var (
 	}
 
 	//Account setting
-	WalletFileFlag = cli.StringFlag{
-		Name:  "wallet",
-		Value: config.DEFAULT_WALLET_FILE_NAME,
-		Usage: "Use `<filename>` as the wallet",
-	}
 	AccountPassFlag = cli.StringFlag{
 		Name:   "password,p",
 		Hidden: true,
 		Usage:  "Specifies `<password>` for the account",
 	}
 	AccountAddressFlag = cli.StringFlag{
-		Name:  "address",
-		Usage: "Address of account, if not specific, will use default account",
+		Name:  "account,a",
+		Usage: "Address of account.Address can be address in base58 code , label or index. if not specific, will use default account",
 	}
 	AccountDefaultFlag = cli.BoolFlag{
 		Name:  "default,d",
@@ -159,19 +166,10 @@ var (
 		Name:  "as-default,d",
 		Usage: "Set the specified account to default",
 	}
-	AccountVerboseFlag = cli.BoolFlag{
-		Name:  "verbose,v",
-		Usage: "Display accounts with details",
-	}
 	AccountQuantityFlag = cli.UintFlag{
 		Name:  "number,n",
 		Value: 1,
 		Usage: "Specifies the `<quantity>` of account to create.",
-	}
-	AccountFileFlag = cli.StringFlag{
-		Name:  "file,f",
-		Value: config.DEFAULT_WALLET_FILE_NAME,
-		Usage: "Use `<filename>` as the wallet",
 	}
 	AccountSourceFileFlag = cli.StringFlag{
 		Name:  "source,s",
@@ -185,20 +183,23 @@ var (
 		Name:  "key,k",
 		Usage: "Use `<private key(hex encoding)>` of the account",
 	}
+	AccountVerboseFlag = cli.BoolFlag{
+		Name:  "verbose,v",
+		Usage: "Display accounts with details",
+	}
+	AccountChangePasswdFlag = cli.BoolFlag{
+		Name:  "changepasswd",
+		Usage: "Change account password",
+	}
 
 	//SmartContract setting
 	ContractAddrFlag = cli.StringFlag{
-		Name:  "address",
+		Name:  "address,a",
 		Usage: "Contract address",
-	}
-	ContractVmTypeFlag = cli.StringFlag{
-		Name:  "vmtype",
-		Value: "neovm",
-		Usage: "Specifies contract type to one of `<neovm|wasm>`",
 	}
 	ContractStorageFlag = cli.BoolFlag{
 		Name:  "needstore",
-		Usage: "Need use store in contract",
+		Usage: "Is need use store in contract",
 	}
 	ContractCodeFileFlag = cli.StringFlag{
 		Name:  "code",
@@ -208,10 +209,9 @@ var (
 		Name:  "name",
 		Usage: "Specifies contract name to `<name>`",
 	}
-	ContractVersionFlag = cli.StringFlag{
+	ContractVersionFlag = cli.IntFlag{
 		Name:  "version",
 		Usage: "Specifies contract version to `<ver>`",
-		Value: "",
 	}
 	ContractAuthorFlag = cli.StringFlag{
 		Name:  "author",
@@ -230,7 +230,15 @@ var (
 	}
 	ContractParamsFlag = cli.StringFlag{
 		Name:  "params",
-		Usage: "Invoke contract parameters list. use comma ',' to split params, and must add type prefix to params.0:bytearray(hexstring), 1:string, 2:integer, 3:boolean,For example: 1:foo,2:0,3:true;If parameter is an object array, enclose array with '[]', For example:  1:foo,[2:0,3:true]",
+		Usage: "Invoke contract parameters list. use comma ',' to split params, and must add type prefix to params. 0:bytearray(hexstring), 1:string, 2:integer, 3:boolean,For example: 1:foo,2:0,3:true; If parameter is an object array, enclose array with '[]'. For example:  1:foo,[2:0,3:true]",
+	}
+	ContractPrepareInvokeFlag = cli.BoolFlag{
+		Name:  "prepare,p",
+		Usage: "Prepare invoke contract without commit to ledger",
+	}
+	ContranctReturnTypeFlag = cli.StringFlag{
+		Name:  "return",
+		Usage: "Return type of contract. 0:bytearray(hexstring), 1:string, 2:integer, 3:boolean. If return type is object array, enclose array with '[]'. For example [1,0,2,3]. Only prepare invoke need this flag.",
 	}
 
 	//information cmd settings
@@ -244,9 +252,14 @@ var (
 	}
 
 	//Transfer setting
+	TransactionAssetFlag = cli.StringFlag{
+		Name:  "asset",
+		Usage: "Asset to tansfer <ont|ong>",
+		Value: ASSET_ONT,
+	}
 	TransactionFromFlag = cli.StringFlag{
 		Name:  "from",
-		Usage: "`<address>` which sends the asset",
+		Usage: "`<address>` which sends the asset. If don't specific, will use default account",
 	}
 	TransactionToFlag = cli.StringFlag{
 		Name:  "to",
@@ -260,6 +273,27 @@ var (
 		Name:  "hash",
 		Usage: "Transaction hash",
 	}
+	TransactionGasPrice = cli.Uint64Flag{
+		Name:  "gasprice",
+		Usage: "Gas price of transaction",
+		Value: 0,
+	}
+	TransactionGasLimit = cli.Uint64Flag{
+		Name:  "gaslimit",
+		Usage: "Gas limit of tansaction",
+		Value: 0,
+	}
+
+	//Cli setting
+	CliEnableRpcFlag = cli.BoolFlag{
+		Name:  "clirpc",
+		Usage: "Enable cli rpc",
+	}
+	CliRpcPortFlag = cli.UintFlag{
+		Name:  "cliport",
+		Usage: "Cli rpc port",
+		Value: config.DEFAULT_CLI_RPC_PORT,
+	}
 
 	NonOptionFlag = cli.StringFlag{
 		Name:  "option",
@@ -267,13 +301,11 @@ var (
 	}
 )
 
-func MigrateFlags(action func(ctx *cli.Context) error) func(*cli.Context) error {
-	return func(ctx *cli.Context) error {
-		for _, name := range ctx.FlagNames() {
-			if ctx.IsSet(name) {
-				ctx.GlobalSet(name, ctx.String(name))
-			}
-		}
-		return action(ctx)
+//GetFlagName deal with short flag, and return the flag name whether flag name have short name
+func GetFlagName(flag cli.Flag) string {
+	name := flag.GetName()
+	if name == "" {
+		return ""
 	}
+	return strings.TrimSpace(strings.Split(name, ",")[0])
 }
