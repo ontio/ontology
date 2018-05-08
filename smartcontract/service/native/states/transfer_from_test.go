@@ -1,10 +1,10 @@
 package states
 
 import (
-	"testing"
-	"github.com/ontio/ontology/common"
 	"bytes"
+	"github.com/ontio/ontology/common"
 	"math/big"
+	"testing"
 )
 
 func TestTransferFrom_Serialize_Deserialize(t *testing.T) {
@@ -22,10 +22,10 @@ func TestTransferFrom_Serialize_Deserialize(t *testing.T) {
 
 	tf := &TransferFrom{
 		Version: 0,
-		Sender: sa,
-		From: fa,
-		To: ta,
-		Value: big.NewInt(1),
+		Sender:  sa,
+		From:    fa,
+		To:      ta,
+		Value:   big.NewInt(1),
 	}
 
 	bf := new(bytes.Buffer)

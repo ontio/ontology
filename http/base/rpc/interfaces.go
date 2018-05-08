@@ -41,7 +41,7 @@ func GetGenerateBlockTime(params []interface{}) map[string]interface{} {
 }
 
 func GetBestBlockHash(params []interface{}) map[string]interface{} {
-	hash:= bactor.CurrentBlockHash()
+	hash := bactor.CurrentBlockHash()
 	return responseSuccess(common.ToHexString(hash.ToArray()))
 }
 
@@ -58,7 +58,7 @@ func GetBlock(params []interface{}) map[string]interface{} {
 	// block height
 	case float64:
 		index := uint32(params[0].(float64))
-		hash= bactor.GetBlockHashFromStore(index)
+		hash = bactor.GetBlockHashFromStore(index)
 		if err != nil {
 			log.Errorf("GetBlock GetBlockHashFromStore Height:%v error:%s", index, err)
 			return responsePack(berr.UNKNOWN_BLOCK, "unknown block")
@@ -104,7 +104,7 @@ func GetBlock(params []interface{}) map[string]interface{} {
 }
 
 func GetBlockCount(params []interface{}) map[string]interface{} {
-	height:= bactor.GetCurrentBlockHeight()
+	height := bactor.GetCurrentBlockHeight()
 	return responseSuccess(height + 1)
 }
 
@@ -117,7 +117,7 @@ func GetBlockHash(params []interface{}) map[string]interface{} {
 	switch params[0].(type) {
 	case float64:
 		height := uint32(params[0].(float64))
-		hash:= bactor.GetBlockHashFromStore(height)
+		hash := bactor.GetBlockHashFromStore(height)
 		return responseSuccess(fmt.Sprintf("%016x", hash))
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")
@@ -501,7 +501,7 @@ func GetMerkleProof(params []interface{}) map[string]interface{} {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
 
-	curHeight:= bactor.GetCurrentBlockHeight()
+	curHeight := bactor.GetCurrentBlockHeight()
 	curHeader, err := bactor.GetHeaderByHeight(curHeight)
 	if err != nil {
 		return responsePack(berr.INVALID_PARAMS, "")

@@ -39,12 +39,12 @@ type ExecutionEngine struct {
 }
 
 func (this *ExecutionEngine) CurrentContext() *ExecutionContext {
-	return this.Contexts[len(this.Contexts) - 1]
+	return this.Contexts[len(this.Contexts)-1]
 }
 
 func (this *ExecutionEngine) PopContext() {
 	if len(this.Contexts) != 0 {
-		this.Contexts = this.Contexts[:len(this.Contexts) - 1]
+		this.Contexts = this.Contexts[:len(this.Contexts)-1]
 	}
 	if len(this.Contexts) != 0 {
 		this.Context = this.CurrentContext()
@@ -62,7 +62,8 @@ func (this *ExecutionEngine) Execute() error {
 		if this.State == FAULT || this.State == HALT || this.State == BREAK {
 			break
 		}
-		err := this.StepInto(); if err != nil {
+		err := this.StepInto()
+		if err != nil {
 			return err
 		}
 	}
@@ -70,7 +71,8 @@ func (this *ExecutionEngine) Execute() error {
 }
 
 func (this *ExecutionEngine) ExecuteCode() error {
-	code, err := this.Context.OpReader.ReadByte(); if err != nil {
+	code, err := this.Context.OpReader.ReadByte()
+	if err != nil {
 		this.State = FAULT
 		return err
 	}
@@ -79,7 +81,8 @@ func (this *ExecutionEngine) ExecuteCode() error {
 }
 
 func (this *ExecutionEngine) StepInto() error {
-	state, err := this.ExecuteOp(); if err != nil {
+	state, err := this.ExecuteOp()
+	if err != nil {
 		this.State = state
 		return err
 	}

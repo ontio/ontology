@@ -210,7 +210,6 @@ func DeployContract(singer *account.Account,
 	return txHash, nil
 }
 
-
 //Invoke wasm smart contract
 //methodName is wasm contract action name
 //paramType  is Json or Raw format
@@ -224,12 +223,12 @@ func InvokeWasmVMSmartContract(
 	version byte,
 	params []interface{}) (string, error) {
 
-	code, err :=BuildWasmVMInvokeCode(smartcodeAddress, methodName, paramType, version, params)
+	code, err := BuildWasmVMInvokeCode(smartcodeAddress, methodName, paramType, version, params)
 	if err != nil {
 		return "", err
 	}
 	tx := NewInvokeTransaction(new(big.Int), vmtypes.WASMVM, code)
-	err = SignTransaction(siger,tx)
+	err = SignTransaction(siger, tx)
 	if err != nil {
 		return "", nil
 	}
@@ -247,7 +246,7 @@ func InvokeNeoVMSmartContract(
 		return "", fmt.Errorf("BuildNVMInvokeCode error:%s", err)
 	}
 	tx := NewInvokeTransaction(gasLimit, vmtypes.NEOVM, code)
-	err = SignTransaction(siger,tx)
+	err = SignTransaction(siger, tx)
 	if err != nil {
 		return "", nil
 	}

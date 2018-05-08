@@ -202,7 +202,7 @@ var (
 		Value: "",
 	}
 	ContractParamsFlag = cli.StringFlag{
-		Name: "params",
+		Name:  "params",
 		Usage: "Invoke contract parameters list. use comma ',' to split params, and must add type prefix to params.0:bytearray(hexstring), 1:string, 2:integer, 3:boolean,For example: 1:foo,2:0,3:true;If parameter is an object array, enclose array with '[]', For example:  1:foo,[2:0,3:true]",
 	}
 

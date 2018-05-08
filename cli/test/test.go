@@ -27,6 +27,9 @@ import (
 	"os"
 	"time"
 
+	"bufio"
+	"encoding/binary"
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	clicommon "github.com/ontio/ontology/cli/common"
 	"github.com/ontio/ontology/common"
@@ -38,10 +41,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/states"
 	sstates "github.com/ontio/ontology/smartcontract/states"
 	vmtypes "github.com/ontio/ontology/smartcontract/types"
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/urfave/cli"
-	"encoding/binary"
-	"bufio"
 )
 
 func signTransaction(signer *account.Account, tx *types.Transaction) error {
@@ -98,7 +98,7 @@ func GenTransferFile(n int, acc *account.Account, fileName string) {
 		f.Close()
 	}()
 
-	for i := 0; i < n; i ++ {
+	for i := 0; i < n; i++ {
 		to := acc.Address
 		binary.BigEndian.PutUint64(to[:], uint64(i))
 		tx := NewOntTransferTransaction(acc.Address, to, 1)
@@ -113,7 +113,7 @@ func GenTransferFile(n int, acc *account.Account, fileName string) {
 
 }
 
-func transferTest(n int, acc *account.Account) {	
+func transferTest(n int, acc *account.Account) {
 	if n <= 0 {
 		n = 1
 	}
@@ -210,8 +210,7 @@ func NewCommand() *cli.Command {
 			cli.BoolFlag{
 				Name:  "gen, g",
 				Usage: "gen transaction to file",
-
-		},
+			},
 		},
 		Action: testAction,
 		OnUsageError: func(c *cli.Context, err error, isSubcommand bool) error {

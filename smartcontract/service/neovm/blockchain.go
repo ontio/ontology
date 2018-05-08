@@ -19,10 +19,10 @@
 package neovm
 
 import (
-	vm "github.com/ontio/ontology/vm/neovm"
-	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/errors"
+	vm "github.com/ontio/ontology/vm/neovm"
 	vmtypes "github.com/ontio/ontology/vm/neovm/types"
 )
 
@@ -37,7 +37,7 @@ func BlockChainGetHeader(service *NeoVmService, engine *vm.ExecutionEngine) erro
 	data := vm.PopByteArray(engine)
 	var (
 		header *types.Header
-		err error
+		err    error
 	)
 	l := len(data)
 	if l <= 5 {
@@ -96,10 +96,12 @@ func BlockChainGetBlock(service *NeoVmService, engine *vm.ExecutionEngine) error
 // BlockChainGetTransaction put blockchain's transaction to vm stack
 func BlockChainGetTransaction(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	d := vm.PopByteArray(engine)
-	hash, err := common.Uint256ParseFromBytes(d); if err != nil {
+	hash, err := common.Uint256ParseFromBytes(d)
+	if err != nil {
 		return err
 	}
-	t, _, err := service.Store.GetTransaction(hash); if err != nil {
+	t, _, err := service.Store.GetTransaction(hash)
+	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetTransaction] GetTransaction error!")
 	}
 	vm.PushData(engine, t)
@@ -111,14 +113,14 @@ func BlockChainGetContract(service *NeoVmService, engine *vm.ExecutionEngine) er
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[GetContract] Too few input parameters ")
 	}
-	address, err := common.AddressParseFromBytes(vm.PopByteArray(engine)); if err != nil {
+	address, err := common.AddressParseFromBytes(vm.PopByteArray(engine))
+	if err != nil {
 		return err
 	}
-	item, err := service.Store.GetContractState(address); if err != nil {
+	item, err := service.Store.GetContractState(address)
+	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[GetContract] GetAsset error!")
 	}
 	vm.PushData(engine, item)
 	return nil
 }
-
-

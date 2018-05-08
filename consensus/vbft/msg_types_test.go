@@ -427,8 +427,8 @@ func constructBlock() (*Block, error) {
 	}
 	blk := &Block{
 		Block: &types.Block{
-			Header: blkHeader,
-			Transactions:txs,
+			Header:       blkHeader,
+			Transactions: txs,
 		},
 		Info: vbftBlkInfo,
 	}

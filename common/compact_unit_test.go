@@ -1,8 +1,8 @@
 package common
 
 import (
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestCompactUint(t *testing.T) {

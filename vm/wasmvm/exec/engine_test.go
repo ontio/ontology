@@ -57,7 +57,7 @@ func TestAdd(t *testing.T) {
 	input2[len(method2)+5] = byte(9) //param2
 
 	fmt.Println(input2)
-	res2, err := engine.Call(common.Address{}, code,"", input2,0)
+	res2, err := engine.Call(common.Address{}, code, "", input2, 0)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}
@@ -86,7 +86,7 @@ func TestSquare(t *testing.T) {
 	input[len(method)+3] = byte(5) //param1
 
 	fmt.Println(input)
-	res, err := engine.Call(common.Address{}, code,"", input,0)
+	res, err := engine.Call(common.Address{}, code, "", input, 0)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}
@@ -121,7 +121,7 @@ func TestEnvAddTwo(t *testing.T) {
 	copy(input[1:len(method)+1], []byte(method))
 	input[len(method)+1] = byte(0)
 
-	res, err := engine.Call(common.Address{}, code, "",input,0)
+	res, err := engine.Call(common.Address{}, code, "", input, 0)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}
@@ -140,7 +140,7 @@ func TestBlockHeight(t *testing.T) {
 		return true, nil
 	})
 
-	engine := NewExecutionEngine(nil, nil,  service)
+	engine := NewExecutionEngine(nil, nil, service)
 
 	code, err := ioutil.ReadFile("./test_data2/testBlockHeight.wasm")
 	if err != nil {
@@ -154,7 +154,7 @@ func TestBlockHeight(t *testing.T) {
 	copy(input[1:len(method)+1], []byte(method))
 	input[len(method)+1] = byte(0)
 
-	res, err := engine.Call(common.Address{}, code, "",input,0)
+	res, err := engine.Call(common.Address{}, code, "", input, 0)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}
@@ -180,7 +180,7 @@ func TestMem(t *testing.T) {
 
 	})
 
-	engine := NewExecutionEngine(nil, nil,  service)
+	engine := NewExecutionEngine(nil, nil, service)
 	//test
 	code, err := ioutil.ReadFile("./test_data2/TestMemory.wasm")
 	if err != nil {
@@ -194,7 +194,7 @@ func TestMem(t *testing.T) {
 	copy(input[1:len(method)+1], []byte(method))
 	input[len(method)+1] = byte(0)
 
-	res, err := engine.Call(common.Address{}, code, "",input,0)
+	res, err := engine.Call(common.Address{}, code, "", input, 0)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}
@@ -220,7 +220,7 @@ func TestGlobal(t *testing.T) {
 	copy(input[1:len(method)+1], []byte(method))
 	input[len(method)+1] = byte(0)
 
-	res, err := engine.Call(common.Address{}, code, "",input,0)
+	res, err := engine.Call(common.Address{}, code, "", input, 0)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}
@@ -247,7 +247,7 @@ func TestIf(t *testing.T) {
 	input[len(method)+2] = byte(1)
 	input[len(method)+3] = byte(p)
 
-	res, err := engine.Call(common.Address{}, code, "",input,0)
+	res, err := engine.Call(common.Address{}, code, "", input, 0)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}
@@ -285,7 +285,7 @@ func TestLoop(t *testing.T) {
 	input[len(method)+2] = byte(1)
 	input[len(method)+3] = byte(p)
 
-	res, err := engine.Call(common.Address{}, code, "",input,0)
+	res, err := engine.Call(common.Address{}, code, "", input, 0)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}
@@ -316,7 +316,7 @@ func TestWhileLoop(t *testing.T) {
 	input[len(method)+2] = byte(1)
 	input[len(method)+3] = byte(p)
 
-	res, err := engine.Call(common.Address{}, code, "",input,0)
+	res, err := engine.Call(common.Address{}, code, "", input, 0)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}
@@ -357,7 +357,7 @@ func TestIfII(t *testing.T) {
 	input[len(method)+2] = byte(1)
 	input[len(method)+3] = byte(p)
 
-	res, err :=  engine.Call(common.Address{}, code, "",input,0)
+	res, err := engine.Call(common.Address{}, code, "", input, 0)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}
@@ -369,7 +369,6 @@ func TestIfII(t *testing.T) {
 	}
 
 }
-
 
 func TestStrings(t *testing.T) {
 	engine := NewExecutionEngine(nil, nil, nil)
@@ -502,7 +501,6 @@ func TestSimplestruct2(t *testing.T) {
 	if string(engine.vm.memory.Memory[idx:idx+length]) != "jack" {
 		t.Fatal("the res should be jack")
 	}
-
 
 }
 

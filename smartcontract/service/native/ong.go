@@ -30,7 +30,7 @@ import (
 )
 
 var (
-	DECIMALS = big.NewInt(9)
+	DECIMALS         = big.NewInt(9)
 	ONG_TOTAL_SUPPLY = new(big.Int).Mul(big.NewInt(1000000000), (new(big.Int).Exp(big.NewInt(10), DECIMALS, nil)))
 )
 

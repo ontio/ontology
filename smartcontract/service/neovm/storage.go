@@ -21,16 +21,17 @@ package neovm
 import (
 	"bytes"
 
-	vm "github.com/ontio/ontology/vm/neovm"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/core/states"
-	"github.com/ontio/ontology/common"
+	vm "github.com/ontio/ontology/vm/neovm"
 )
 
 // StoragePut put smart contract storage item to cache
 func StoragePut(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	context, err := getContext(engine); if err != nil {
+	context, err := getContext(engine)
+	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StoragePut] get pop context error!")
 	}
 	if err := checkStorageContext(service, context); err != nil {
@@ -49,7 +50,8 @@ func StoragePut(service *NeoVmService, engine *vm.ExecutionEngine) error {
 
 // StorageDelete delete smart contract storage item from cache
 func StorageDelete(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	context, err := getContext(engine); if err != nil {
+	context, err := getContext(engine)
+	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StorageDelete] get pop context error!")
 	}
 	if err := checkStorageContext(service, context); err != nil {
@@ -63,11 +65,13 @@ func StorageDelete(service *NeoVmService, engine *vm.ExecutionEngine) error {
 
 // StorageGet push smart contract storage item from cache to vm stack
 func StorageGet(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	context, err := getContext(engine); if err != nil {
+	context, err := getContext(engine)
+	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StorageGet] get pop context error!")
 	}
 
-	item, err := service.CloneCache.Get(scommon.ST_STORAGE, getStorageKey(context.address, vm.PopByteArray(engine))); if err != nil {
+	item, err := service.CloneCache.Get(scommon.ST_STORAGE, getStorageKey(context.address, vm.PopByteArray(engine)))
+	if err != nil {
 		return err
 	}
 
@@ -97,10 +101,12 @@ func getContext(engine *vm.ExecutionEngine) (*StorageContext, error) {
 	if vm.EvaluationStackCount(engine) < 2 {
 		return nil, errors.NewErr("[Context] Too few input parameters ")
 	}
-	opInterface := vm.PopInteropInterface(engine); if opInterface == nil {
+	opInterface := vm.PopInteropInterface(engine)
+	if opInterface == nil {
 		return nil, errors.NewErr("[Context] Get storageContext nil")
 	}
-	context, ok := opInterface.(*StorageContext); if !ok {
+	context, ok := opInterface.(*StorageContext)
+	if !ok {
 		return nil, errors.NewErr("[Context] Get storageContext invalid")
 	}
 	return context, nil
@@ -112,4 +118,3 @@ func getStorageKey(codeHash common.Address, key []byte) []byte {
 	buf.Write(key)
 	return buf.Bytes()
 }
-

@@ -19,13 +19,13 @@
 package session
 
 import (
+	"errors"
 	"sync"
 	"time"
-	"errors"
 
 	"github.com/gorilla/websocket"
-	"github.com/pborman/uuid"
 	cfg "github.com/ontio/ontology/common/config"
+	"github.com/pborman/uuid"
 )
 
 type TxHashInfo struct {
@@ -102,7 +102,7 @@ func (self *Session) RemoveTimeoverTxHashes() (remove []TxHashInfo) {
 	index := len(self.TxHashArr)
 	now := time.Now().Unix()
 	for k, v := range self.TxHashArr {
-		if ( now - v.StartTime) < int64(cfg.DEFAULT_GEN_BLOCK_TIME*10) {
+		if (now - v.StartTime) < int64(cfg.DEFAULT_GEN_BLOCK_TIME*10) {
 			index = k
 			break
 		}

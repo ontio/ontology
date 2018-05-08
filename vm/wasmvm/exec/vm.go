@@ -13,12 +13,12 @@ import (
 	"math"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/smartcontract/types"
+	"github.com/ontio/ontology/vm/wasmvm/disasm"
 	"github.com/ontio/ontology/vm/wasmvm/exec/internal/compile"
 	"github.com/ontio/ontology/vm/wasmvm/memory"
 	"github.com/ontio/ontology/vm/wasmvm/wasm"
 	ops "github.com/ontio/ontology/vm/wasmvm/wasm/operators"
-	"github.com/ontio/ontology/vm/wasmvm/disasm"
-	"github.com/ontio/ontology/smartcontract/types"
 )
 
 var (
@@ -84,9 +84,9 @@ type VM struct {
 	envCall *EnvCall
 	//store a engine pointer
 	ContractAddress common.Address
-	Caller   common.Address
-	Engine   *ExecutionEngine
-	VMCode   types.VmCode
+	Caller          common.Address
+	Engine          *ExecutionEngine
+	VMCode          types.VmCode
 }
 
 // As per the WebAssembly spec: https://github.com/WebAssembly/design/blob/27ac254c854994103c24834a994be16f74f54186/Semantics.md#linear-memory

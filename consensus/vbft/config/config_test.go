@@ -56,7 +56,7 @@ func TestSerialize(t *testing.T) {
 func TestDeserialize(t *testing.T) {
 	res := generTestData()
 	test := &ChainConfig{}
-	err := test.Deserialize(bytes.NewReader(res),len(res))
+	err := test.Deserialize(bytes.NewReader(res), len(res))
 	if err != nil {
 		t.Log("test failed ")
 	}

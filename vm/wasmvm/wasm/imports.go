@@ -136,9 +136,9 @@ func (module *Module) resolveImports(resolve ResolveFunc) error {
 			case ExternalGlobal:
 				if importEntry.FieldName == "memoryBase" || importEntry.FieldName == "tableBase" {
 					glb := &GlobalEntry{Type: &GlobalVar{Type: ValueTypeI32, Mutable: false},
-						Init:    []byte{getGlobal, byte(0), end}, //global 0 end
+						Init: []byte{getGlobal, byte(0), end}, //global 0 end
 						//InitVal: uint64(65536 / 4),               // pagesize/4
-						InitVal: 16,               // reset to 16 for fiddle case,0 reserve for NULL
+						InitVal: 16, // reset to 16 for fiddle case,0 reserve for NULL
 						IsEnv:   true}
 					module.GlobalIndexSpace = append(module.GlobalIndexSpace, *glb)
 					module.imports.Globals++

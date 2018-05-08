@@ -111,13 +111,13 @@ func TestIterator(t *testing.T) {
 	iter.Release()
 
 	v := kvs[key]
-	if v != value{
+	if v != value {
 		t.Errorf("TestIterator Key:%s value:%s != %s", key, v, value)
 		return
 	}
 
 	v = kvs[key1]
-	if v != value1{
+	if v != value1 {
 		t.Errorf("TestIterator Key:%s value:%s != %s", key1, v, value1)
 		return
 	}

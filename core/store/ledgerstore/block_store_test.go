@@ -24,10 +24,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology-crypto/keypair"
 )
 
 func TestVersion(t *testing.T) {

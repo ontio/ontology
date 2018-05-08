@@ -36,4 +36,3 @@ type NotifyEventInfo struct {
 	ContractAddress common.Address
 	States          interface{}
 }
-

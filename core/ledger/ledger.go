@@ -177,6 +177,6 @@ func (self *Ledger) GetEventNotifyByBlock(height uint32) ([]common.Uint256, erro
 	return self.ldgStore.GetEventNotifyByBlock(height)
 }
 
-func (self *Ledger)Close() error{
+func (self *Ledger) Close() error {
 	return self.ldgStore.Close()
 }

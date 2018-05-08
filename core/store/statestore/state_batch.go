@@ -25,9 +25,9 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/errors"
 	"github.com/syndtr/goleveldb/leveldb"
 	"strings"
-	"github.com/ontio/ontology/errors"
 )
 
 type StateBatch struct {

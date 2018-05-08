@@ -19,8 +19,8 @@
 package session
 
 import (
-	"sync"
 	"errors"
+	"sync"
 
 	"github.com/gorilla/websocket"
 )

@@ -22,13 +22,13 @@ import (
 	"net/http"
 	"strconv"
 
+	"fmt"
 	cfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/http/base/rpc"
-	"fmt"
 )
 
-func StartRPCServer() error{
+func StartRPCServer() error {
 	log.Debug()
 	http.HandleFunc("/", rpc.Handle)
 

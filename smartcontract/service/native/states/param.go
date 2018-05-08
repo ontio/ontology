@@ -61,7 +61,7 @@ func (admin *Admin) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (admin *Admin)Deserialize(r io.Reader) error {
+func (admin *Admin) Deserialize(r io.Reader) error {
 	n, err := r.Read(admin[:])
 	if n != len(admin[:]) || err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[Param Config] Deserialize params error!")

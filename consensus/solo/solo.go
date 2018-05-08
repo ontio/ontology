@@ -45,21 +45,21 @@ import (
 const ContextVersion uint32 = 0
 
 type SoloService struct {
-	Account       *account.Account
-	poolActor     *actorTypes.TxPoolActor
-	incrValidator *increment.IncrementValidator
-	existCh       chan interface{}
+	Account          *account.Account
+	poolActor        *actorTypes.TxPoolActor
+	incrValidator    *increment.IncrementValidator
+	existCh          chan interface{}
 	genBlockInterval time.Duration
-	pid *actor.PID
-	sub *events.ActorSubscriber
+	pid              *actor.PID
+	sub              *events.ActorSubscriber
 }
 
 func NewSoloService(bkAccount *account.Account, txpool *actor.PID) (*SoloService, error) {
 	service := &SoloService{
-		Account:       bkAccount,
-		poolActor:     &actorTypes.TxPoolActor{Pool: txpool},
-		incrValidator: increment.NewIncrementValidator(10),
-		genBlockInterval:time.Duration(config.DefConfig.Genesis.SOLO.GenBlockTime) * time.Second,
+		Account:          bkAccount,
+		poolActor:        &actorTypes.TxPoolActor{Pool: txpool},
+		incrValidator:    increment.NewIncrementValidator(10),
+		genBlockInterval: time.Duration(config.DefConfig.Genesis.SOLO.GenBlockTime) * time.Second,
 	}
 
 	props := actor.FromProducer(func() actor.Actor {

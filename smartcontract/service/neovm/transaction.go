@@ -19,8 +19,8 @@
 package neovm
 
 import (
-	vm "github.com/ontio/ontology/vm/neovm"
 	"github.com/ontio/ontology/core/types"
+	vm "github.com/ontio/ontology/vm/neovm"
 	vmtypes "github.com/ontio/ontology/vm/neovm/types"
 )
 
@@ -50,5 +50,3 @@ func TransactionGetAttributes(service *NeoVmService, engine *vm.ExecutionEngine)
 	vm.PushData(engine, attributList)
 	return nil
 }
-
-

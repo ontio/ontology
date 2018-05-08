@@ -24,9 +24,9 @@ import (
 	"errors"
 	"sort"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology-crypto/keypair"
 	"golang.org/x/crypto/ripemd160"
 )
 

@@ -21,18 +21,19 @@ package neovm
 import (
 	"bytes"
 
-	vm "github.com/ontio/ontology/vm/neovm"
-	"github.com/ontio/ontology/errors"
-	stypes "github.com/ontio/ontology/smartcontract/types"
-	scommon "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
-	"github.com/ontio/ontology/common"
+	scommon "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/errors"
+	stypes "github.com/ontio/ontology/smartcontract/types"
+	vm "github.com/ontio/ontology/vm/neovm"
 )
 
 // ContractCreate create a new smart contract on blockchain, and put it to vm stack
 func ContractCreate(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	contract, err := isContractParamValid(engine); if err != nil {
+	contract, err := isContractParamValid(engine)
+	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] contract parameters invalid!")
 	}
 	contractAddress := contract.Code.AddressFromVmCode()
@@ -46,7 +47,8 @@ func ContractCreate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 
 // ContractMigrate migrate old smart contract to a new contract, and destory old contract
 func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	contract, err := isContractParamValid(engine); if err != nil {
+	contract, err := isContractParamValid(engine)
+	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractMigrate] contract parameters invalid!")
 	}
 	contractAddress := contract.Code.AddressFromVmCode()
@@ -65,7 +67,8 @@ func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 
 // ContractDestory destory a contract
 func ContractDestory(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	context := service.ContextRef.CurrentContext(); if context == nil {
+	context := service.ContextRef.CurrentContext()
+	if context == nil {
 		return errors.NewErr("[ContractDestory] current contract context invalid!")
 	}
 	item, err := service.CloneCache.Store.TryGet(scommon.ST_CONTRACT, context.ContractAddress[:])
@@ -75,7 +78,8 @@ func ContractDestory(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	}
 
 	service.CloneCache.Delete(scommon.ST_CONTRACT, context.ContractAddress[:])
-	stateValues, err := service.CloneCache.Store.Find(scommon.ST_CONTRACT, context.ContractAddress[:]); if err != nil {
+	stateValues, err := service.CloneCache.Store.Find(scommon.ST_CONTRACT, context.ContractAddress[:])
+	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractDestory] find error!")
 	}
 	for _, v := range stateValues {
@@ -89,10 +93,12 @@ func ContractGetStorageContext(service *NeoVmService, engine *vm.ExecutionEngine
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[GetStorageContext] Too few input parameter!")
 	}
-	opInterface := vm.PopInteropInterface(engine); if opInterface == nil {
+	opInterface := vm.PopInteropInterface(engine)
+	if opInterface == nil {
 		return errors.NewErr("[GetStorageContext] Pop data nil!")
 	}
-	contractState, ok := opInterface.(*payload.DeployCode); if !ok {
+	contractState, ok := opInterface.(*payload.DeployCode)
+	if !ok {
 		return errors.NewErr("[GetStorageContext] Pop data not contract!")
 	}
 	address := contractState.Code.AddressFromVmCode()
@@ -117,27 +123,33 @@ func isContractParamValid(engine *vm.ExecutionEngine) (*payload.DeployCode, erro
 	if vm.EvaluationStackCount(engine) < 7 {
 		return nil, errors.NewErr("[Contract] Too few input parameters")
 	}
-	code := vm.PopByteArray(engine); if len(code) > 1024 * 1024 {
+	code := vm.PopByteArray(engine)
+	if len(code) > 1024*1024 {
 		return nil, errors.NewErr("[Contract] Code too long!")
 	}
 	needStorage := vm.PopBoolean(engine)
-	name := vm.PopByteArray(engine); if len(name) > 252 {
+	name := vm.PopByteArray(engine)
+	if len(name) > 252 {
 		return nil, errors.NewErr("[Contract] Name too long!")
 	}
-	version := vm.PopByteArray(engine); if len(version) > 252 {
+	version := vm.PopByteArray(engine)
+	if len(version) > 252 {
 		return nil, errors.NewErr("[Contract] Version too long!")
 	}
-	author := vm.PopByteArray(engine); if len(author) > 252 {
+	author := vm.PopByteArray(engine)
+	if len(author) > 252 {
 		return nil, errors.NewErr("[Contract] Author too long!")
 	}
-	email := vm.PopByteArray(engine); if len(email) > 252 {
+	email := vm.PopByteArray(engine)
+	if len(email) > 252 {
 		return nil, errors.NewErr("[Contract] Email too long!")
 	}
-	desc := vm.PopByteArray(engine); if len(desc) > 65536 {
+	desc := vm.PopByteArray(engine)
+	if len(desc) > 65536 {
 		return nil, errors.NewErr("[Contract] Desc too long!")
 	}
 	contract := &payload.DeployCode{
-		Code:        stypes.VmCode{VmType:stypes.NEOVM, Code: code},
+		Code:        stypes.VmCode{VmType: stypes.NEOVM, Code: code},
 		NeedStorage: needStorage,
 		Name:        string(name),
 		Version:     string(version),
@@ -158,7 +170,8 @@ func isContractExist(service *NeoVmService, contractAddress common.Address) erro
 }
 
 func storeMigration(service *NeoVmService, contractAddress common.Address) error {
-	stateValues, err := service.CloneCache.Store.Find(scommon.ST_CONTRACT, contractAddress[:]); if err != nil {
+	stateValues, err := service.CloneCache.Store.Find(scommon.ST_CONTRACT, contractAddress[:])
+	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[Contract] Find error!")
 	}
 	for _, v := range stateValues {
@@ -176,5 +189,3 @@ func storeMigration(service *NeoVmService, contractAddress common.Address) error
 	}
 	return nil
 }
-
-
