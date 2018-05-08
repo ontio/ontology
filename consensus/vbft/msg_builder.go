@@ -178,7 +178,7 @@ func (self *Server) constructHeartbeatMsg() (*peerHeartbeatMsg, error) {
 	return msg, nil
 }
 
-func (self *Server) constructProposalMsg(blkNum uint64, txs []*types.Transaction) (*blockProposalMsg, error) {
+func (self *Server) constructProposalMsg(blkNum uint64, txs []*types.Transaction, chainconfig *vconfig.ChainConfig) (*blockProposalMsg, error) {
 
 	prevBlk, prevBlkHash := self.blockPool.getSealedBlock(blkNum - 1)
 	if prevBlk == nil {
@@ -199,7 +199,7 @@ func (self *Server) constructProposalMsg(blkNum uint64, txs []*types.Transaction
 	vbftBlkInfo := &vconfig.VbftBlockInfo{
 		Proposer:           self.Index,
 		LastConfigBlockNum: lastConfigBlkNum,
-		NewChainConfig:     nil,
+		NewChainConfig:     chainconfig,
 	}
 	consensusPayload, err := json.Marshal(vbftBlkInfo)
 	if err != nil {
