@@ -151,43 +151,57 @@ func (self *ChainStore) GetVbftConfigInfo() (*vconfig.Configuration, error) {
 }
 
 func (self *ChainStore) GetPeersConfig() ([]*vconfig.PeerStakeInfo, error) {
-	storageKey := &states.StorageKey{
-		CodeHash: genesis.GovernanceContractAddress,
-		Key:      append([]byte(gov.PEER_POOL)),
-	}
-	peers, err := ledger.DefLedger.FindStorageItem(storageKey.CodeHash, storageKey.Key)
+	goveranceview, err := self.GetGovernanceView()
 	if err != nil {
 		return nil, err
 	}
+	storageKey := &states.StorageKey{
+		CodeHash: genesis.GovernanceContractAddress,
+		Key:      append([]byte(gov.PEER_POOL), goveranceview.View.Bytes()...),
+	}
+	peers, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
+	if err != nil {
+		return nil, err
+	}
+	peerMap := &govcon.PeerPoolMap{
+		PeerPoolMap: make(map[string]*govcon.PeerPool),
+	}
+	if err := json.Unmarshal(peers, peerMap); err != nil {
+		return nil, fmt.Errorf("unmarshal peersconfig: %s", err)
+	}
 	var peerstakes []*vconfig.PeerStakeInfo
-	for _, peer := range peers {
-		peersconfig := &govcon.PeerPool{}
-		if err := json.Unmarshal(peer, peersconfig); err != nil {
-			return nil, fmt.Errorf("unmarshal peersconfig: %s", err)
-		}
-
+	for _, id := range peerMap.PeerPoolMap {
 		config := &vconfig.PeerStakeInfo{
-			Index:  uint32(peersconfig.Index),
-			NodeID: peersconfig.PeerPubkey,
-			Stake:  peersconfig.InitPos + peersconfig.TotalPos,
+			Index:  uint32(id.Index),
+			NodeID: id.PeerPubkey,
+			Stake:  id.InitPos + id.TotalPos,
 		}
 		peerstakes = append(peerstakes, config)
+
 	}
 	return peerstakes, nil
 }
 
-func (self *ChainStore) GetForceUpdate() (bool, error) {
+func (self *ChainStore) isForceUpdate() (bool, error) {
+	goveranceview, err := self.GetGovernanceView()
+	if err != nil {
+		return false, err
+	}
+	return goveranceview.VoteCommit, nil
+}
+
+func (self *ChainStore) GetGovernanceView() (*govcon.GovernanceView, error) {
 	storageKey := &states.StorageKey{
 		CodeHash: genesis.GovernanceContractAddress,
 		Key:      append([]byte(gov.GOVERNANCE_VIEW)),
 	}
 	force, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	config := &govcon.GovernanceView{}
 	if err := json.Unmarshal(force, config); err != nil {
-		return false, fmt.Errorf("unmarshal config: %s", err)
+		return nil, fmt.Errorf("unmarshal GovernanceView config: %s", err)
 	}
-	return config.VoteCommit, nil
+	return config, nil
 }
