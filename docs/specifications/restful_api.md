@@ -1,10 +1,10 @@
 # Ontology Restful API
 
-* [Introduction](#Introduction)
-* [Restful API list](#Restful API list)
-* [Errorcode](#Errorcode)
+* [Introduction](#introduction)
+* [Restful Api List](#restful-api-list)
+* [Error Code](#error-code)
 
-Restful API list
+Restful Api List
 
 | Method | url |
 | :---| :---|
@@ -30,7 +30,7 @@ Restful API list
 
 This document describes the restful api format for the http/https used in the Onchain Ontology.
 
-## Restful API list
+## Restful Api List
 
 ### Response parameters descri
 
@@ -719,7 +719,7 @@ curl -i http://localhost:20384/api/v1/merkleproof/3e23cf222a47739d4141255da617cd
 }
 ```
 
-## Errorcode
+## Error Code
 
 | Field | Type | Description |
 | :--- | :--- | :--- |

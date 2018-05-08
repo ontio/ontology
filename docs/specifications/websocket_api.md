@@ -1,14 +1,14 @@
 # Ontology Websocket API
 
-* [Introduction](#Introduction)
-* [Websocket API list](#Websocket API list)
-* [Errorcode](#Errorcode)
+* [Introduction](#introduction)
+* [Websocket Api List](#websocket-api-list)
+* [Error Code](#error-code)
 
 ## Introduction
 
 This document describes the Websocket api format for the ws/wss used in the Onchain Ontology.
 
-## Websocket API list
+## Websocket Api List
 
 ### Response parameters descri
 
@@ -656,7 +656,28 @@ get merkle proof
 }
 ```
 
-## Errorcode
+### 19. Get session count
+get session count
+
+#### Request Example:
+```
+{
+    "Action": "getsessioncount",
+    "Version": "1.0.0"
+}
+```
+#### Response
+```
+{
+    "Action": "getsessioncount",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": 10,
+    "Version": "1.0.0"
+}
+```
+
+## Error Code
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
