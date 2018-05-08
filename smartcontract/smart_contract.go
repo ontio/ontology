@@ -29,14 +29,13 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	_ "github.com/ontio/ontology/smartcontract/service/native/init"
+	_ "github.com/ontio/ontology/smartcontract/service/native/ontid"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
 	"github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 	stypes "github.com/ontio/ontology/smartcontract/types"
 	vm "github.com/ontio/ontology/vm/neovm"
-
-	_ "github.com/ontio/ontology/smartcontract/service/native/ontid"
 )
 
 var (

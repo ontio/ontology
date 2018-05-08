@@ -44,6 +44,7 @@ var (
 	OngContractAddress, _   = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02})
 	OntIDContractAddress, _ = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03})
 	ParamContractAddress, _ = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04})
+	AuthContractAddress, _  = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06})
 
 	ONTToken   = newGoverningToken()
 	ONGToken   = newUtilityToken()
@@ -89,6 +90,7 @@ func GenesisBlockInit(defaultBookkeeper []keypair.PublicKey) (*types.Block, erro
 	ong := newUtilityToken()
 	param := newParamContract()
 	oid := deployOntIDContract()
+	auth := deployAuthContract()
 
 	genesisBlock := &types.Block{
 		Header: genesisHeader,
@@ -97,6 +99,7 @@ func GenesisBlockInit(defaultBookkeeper []keypair.PublicKey) (*types.Block, erro
 			ong,
 			param,
 			oid,
+			auth,
 			newGoverningInit(),
 			newUtilityInit(),
 			newParamInit(),
@@ -122,6 +125,12 @@ func newParamContract() *types.Transaction {
 	tx := utils.NewDeployTransaction(stypes.VmCode{Code: ParamContractAddress[:], VmType: stypes.Native},
 		"ParamConfig", "1.0", "Ontology Team", "contact@ont.io",
 		"Chain Global Enviroment Variables Manager ", true)
+	return tx
+}
+
+func depolyAuthContract() *types.Transaction {
+	tx := utils.NewDeployTransaction(stypes.VmCode{Code: AuthContractAddress[:], VmType: stypes.Native}, "AuthContract", "1.0",
+		"Ontology Team", "contact@ont.io", "Ontology Network Authorization Contract", true)
 	return tx
 }
 
