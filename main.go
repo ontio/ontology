@@ -96,7 +96,6 @@ func setupAPP() *cli.App {
 	}
 	app.Before = func(context *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
-		log.Init(log.PATH, log.Stdout)
 		return nil
 	}
 	return app
