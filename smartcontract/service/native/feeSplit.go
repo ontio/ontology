@@ -35,8 +35,8 @@ import (
 
 const (
 	EXECUTE_SPLIT = "executeSplit"
-	a             = 0.75
-	b             = 0.2
+	a             = 0.5
+	b             = 0.45
 	c             = 0.05
 	TOTAL_ONG     = 10000000000
 )
@@ -113,7 +113,7 @@ func ExecuteSplit(native *NativeService) error {
 	avg := sum / float64(config.K)
 	var sumS float64
 	for i := 0; i < int(config.K); i++ {
-		peersCandidate[i].S = (0.5 * peersCandidate[i].Stake) / (2 * avg)
+		peersCandidate[i].S = splitCurve(peersCandidate[i].Stake, avg)
 		sumS += peersCandidate[i].S
 	}
 
@@ -139,7 +139,7 @@ func ExecuteSplit(native *NativeService) error {
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
 		}
-		fmt.Printf("Amount of node %v, address %v is %v: \n", i, peersCandidate[i].Address, nodeAmount)
+		fmt.Printf("Amount of node %v, address %v is %v: \n", peersCandidate[i].PeerPubkey, peersCandidate[i].Address, nodeAmount)
 		splitAmount += nodeAmount
 	}
 	//split remained amount
@@ -166,12 +166,6 @@ func ExecuteSplit(native *NativeService) error {
 	for i := int(config.K); i < len(peersCandidate); i++ {
 		sum += peersCandidate[i].Stake
 	}
-	avg = sum / float64(config.K)
-	sumS = 0
-	for i := int(config.K); i < len(peersCandidate); i++ {
-		peersCandidate[i].S = (0.5 * peersCandidate[i].Stake) / (2 * avg)
-		sumS += peersCandidate[i].S
-	}
 	splitAmount = 0
 	remainCandidate = peersCandidate[int(config.K)]
 	for i := int(config.K); i < len(peersCandidate); i++ {
@@ -179,7 +173,7 @@ func ExecuteSplit(native *NativeService) error {
 			remainCandidate = peersCandidate[i]
 		}
 
-		nodeAmount := uint64(TOTAL_ONG * b * peersCandidate[i].S / sumS)
+		nodeAmount := uint64(TOTAL_ONG * b * peersCandidate[i].Stake / sum)
 		addressBytes, err := hex.DecodeString(peersCandidate[i].Address)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
@@ -192,7 +186,7 @@ func ExecuteSplit(native *NativeService) error {
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
 		}
-		fmt.Printf("Amount of node %v, address %v is %v: \n", i, peersCandidate[i].Address, nodeAmount)
+		fmt.Printf("Amount of node %v, address %v is %v: \n", peersCandidate[i].PeerPubkey, peersCandidate[i].Address, nodeAmount)
 		splitAmount += nodeAmount
 	}
 	//split remained amount
@@ -215,20 +209,9 @@ func ExecuteSplit(native *NativeService) error {
 	//fee split of syncNode peer
 	fmt.Println("###############################################################")
 	// cal s of each candidate node
-	sum = 0
-	for i := 0; i < len(peersSyncNode); i++ {
-		sum += float64(peersSyncNode[i].InitPos)
-	}
-	avg = sum / float64(config.K)
-	sumS = 0
-	for i := 0; i < len(peersSyncNode); i++ {
-		peersSyncNode[i].S = (0.5 * float64(peersSyncNode[i].InitPos)) / (2 * avg)
-		sumS += peersSyncNode[i].S
-	}
-
 	var splitSyncNodeAmount uint64
 	for _, syncNodeSplitInfo := range peersSyncNode {
-		amount := uint64(TOTAL_ONG * c * syncNodeSplitInfo.S / sumS)
+		amount := uint64(TOTAL_ONG * c / len(peersSyncNode))
 		addressBytes, err := hex.DecodeString(syncNodeSplitInfo.Address)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
@@ -241,7 +224,7 @@ func ExecuteSplit(native *NativeService) error {
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
 		}
-		fmt.Printf("Amount of address %v is: %d \n", syncNodeSplitInfo.Address, amount)
+		fmt.Printf("Amount of node %v address %v is: %d \n", syncNodeSplitInfo.PeerPubkey, syncNodeSplitInfo.Address, amount)
 		splitSyncNodeAmount += amount
 	}
 	remainSyncNodeAmount := TOTAL_ONG*c - splitSyncNodeAmount
