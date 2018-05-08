@@ -403,3 +403,22 @@ func calDposTable(native *NativeService, config *states.Configuration,
 
 	return posTable, chainPeers, nil
 }
+
+func getPeerPoolMap(native *NativeService, contract common.Address, view *big.Int) (*states.PeerPoolMap, error) {
+	peerPoolMap := &states.PeerPoolMap{
+		PeerPoolMap: make(map[string]*states.PeerPool),
+	}
+	peerPoolMapBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(PEER_POOL), view.Bytes()))
+	if err != nil {
+		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[getPeerPoolMap] Get all peerPoolMap error!")
+	}
+	if peerPoolMapBytes == nil {
+		return nil, errors.NewErr("[getPeerPoolMap] peerPoolMap is nil!")
+	}
+	peerPoolMapStore, _ := peerPoolMapBytes.(*cstates.StorageItem)
+	err = json.Unmarshal(peerPoolMapStore.Value, peerPoolMap)
+	if err != nil {
+		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[getPeerPoolMap] Unmarshal peerPoolMap error!")
+	}
+	return peerPoolMap, nil
+}
