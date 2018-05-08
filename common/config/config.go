@@ -97,22 +97,21 @@ type VBFTConfig struct {
 	View                 uint32            `json:"view"` // config-updated version
 	N                    uint32            `json:"n"`    // network size
 	C                    uint32            `json:"c"`    // consensus quorum
-	K                    uint32            `json:"k"`
-	L                    uint32            `json:"l"`
-	InitTxId             uint64            `json:"init_txid"`
-	Genesis_Timestamp    uint64            `json:"genesis_timestamp"`
-	BlockMsgDelay        time.Duration     `json:"block_msg_delay"`
-	HashMsgDelay         time.Duration     `json:"hash_msg_delay"`
-	PeerHandshakeTimeout time.Duration     `json:"peer_handshake_timeout"`
-	MaxBlockChangeView   uint32            `json:"maxblockchangeview"`
-	Peers                []*VBFTPeerConfig `json:"peers"`
+	K                    uint32               `json:"k"`
+	L                    uint32               `json:"l"`
+	InitTxid             uint64               `json:"init_txid"`
+	GenesisTimestamp    uint64                `json:"genesis_timestamp"`
+	BlockMsgDelay        time.Duration        `json:"block_msg_delay"`
+	HashMsgDelay         time.Duration        `json:"hash_msg_delay"`
+	PeerHandshakeTimeout time.Duration        `json:"peer_handshake_timeout"`
+	MaxBlockChangeView   uint32               `json:"maxblockchangeview"`
+	Peers                []*VBFTPeerStakeInfo `json:"peers"`
 }
 
-type VBFTPeerConfig struct {
-	Index      uint32 `json:"index"`
-	PeerPubKey string `json:"peerpubkey"`
-	Address    string `json:"address"`
-	InitPos    uint64 `json:"initpos"`
+type VBFTPeerStakeInfo struct {
+	Index  uint32 `json:"index"`
+	NodeID string `json:"node_id"`
+	Stake  uint64 `json:"stake"`
 }
 
 type DBFTConfig struct {

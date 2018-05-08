@@ -39,7 +39,7 @@ func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
 	setP2PNodeConfig(ctx, cfg.P2PNode)
 	setRpcConfig(ctx, cfg.Rpc)
 	setRestfulConfig(ctx, cfg.Restful)
-	seWebSocketConfig(ctx, cfg.Ws)
+	setWebSocketConfig(ctx, cfg.Ws)
 	return cfg, nil
 }
 
@@ -113,7 +113,7 @@ func setRestfulConfig(ctx *cli.Context, cfg *config.RestfulConfig) {
 	cfg.HttpRestPort = ctx.GlobalUint(utils.RestfulPortFlag.Name)
 }
 
-func seWebSocketConfig(ctx *cli.Context, cfg *config.WebSocketConfig) {
+func setWebSocketConfig(ctx *cli.Context, cfg *config.WebSocketConfig) {
 	cfg.EnableHttpWs = ctx.GlobalBool(utils.WsEnabledFlag.Name)
 	cfg.HttpWsPort = ctx.GlobalUint(utils.WsPortFlag.Name)
 }

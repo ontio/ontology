@@ -152,20 +152,10 @@ func startOntology(ctx *cli.Context) {
 		log.Errorf("initLocalRpc error:%s", err)
 		return
 	}
-	err = initRestful(ctx)
-	if err != nil {
-		log.Errorf("initRestful error:%s", err)
-		return
-	}
-	err = initWs(ctx)
-	if err != nil {
-		log.Errorf("initWs error:%s", err)
-		return
-	}
-	err = initNodeInfo(ctx, p2pSvr)
-	if err != nil {
-		log.Errorf("initNodeInfo error:%s", err)
-	}
+	initRestful(ctx)
+	initWs(ctx)
+	initNodeInfo(ctx, p2pSvr)
+
 	go logCurrBlockHeight()
 	waitToExit()
 }
@@ -379,34 +369,31 @@ func initLocalRpc(ctx *cli.Context) error {
 	return nil
 }
 
-func initRestful(ctx *cli.Context) error {
+func initRestful(ctx *cli.Context) {
 	if !ctx.GlobalBool(utils.RestfulEnableFlag.Name) {
-		return nil
+		return
 	}
 	go restful.StartServer()
 
 	log.Infof("Restful init success")
-	return nil
 }
 
-func initWs(ctx *cli.Context) error {
+func initWs(ctx *cli.Context) {
 	if !ctx.GlobalBool(utils.WsEnabledFlag.Name) {
-		return nil
+		return
 	}
 	websocket.StartServer()
 
 	log.Infof("Ws init success")
-	return nil
 }
 
-func initNodeInfo(ctx *cli.Context, p2pSvr *p2pserver.P2PServer) error {
+func initNodeInfo(ctx *cli.Context, p2pSvr *p2pserver.P2PServer) {
 	if config.DefConfig.P2PNode.HttpInfoPort == 0 {
-		return nil
+		return
 	}
 	go nodeinfo.StartServer(p2pSvr.GetNetWork())
 
 	log.Infof("Nodeinfo init success")
-	return nil
 }
 
 func logCurrBlockHeight() {

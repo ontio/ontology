@@ -20,11 +20,12 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	cmdcom "github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/smartcontract/types"
 	"github.com/urfave/cli"
+	"io/ioutil"
+	"strings"
 )
 
 var (
@@ -89,47 +90,48 @@ func invokeUsageError(context *cli.Context, err error, isSubcommand bool) error 
 	cli.ShowSubcommandHelp(context)
 	return nil
 }
+
 //
 func invokeContract(ctx *cli.Context) error {
-//	if !ctx.IsSet(utils.ContractAddrFlag.Name) {
-//		return fmt.Errorf("Missing contract address argument.\n")
-//	}
-//
-//	wallet, err := cmdcom.OpenWallet(ctx)
-//	if err != nil {
-//		return fmt.Errorf("OpenWallet error:%s", err)
-//	}
-//
-//	acc := wallet.GetDefaultAccount()
-//	if acc == nil {
-//		return fmt.Errorf("Cannot GetDefaultAccount")
-//	}
-//
-//	vmType := ctx.String(utils.ContractVmTypeFlag.Name)
-//	contractAddr := ctx.String(utils.ContractAddrFlag.Name)
-//
-//	addr, err := common.AddressFromBase58(contractAddr)
-//	if err != nil {
-//		return fmt.Errorf("Invalid contract address")
-//	}
-//
-//	paramsStr := ctx.String(utils.ContractParamsFlag.Name)
-//	ps := strings.Split(paramsStr)
-//
-//
-//	txHash, err := ontSdk.Rpc.InvokeNeoVMSmartContract(acct, new(big.Int), addr, []interface{}{params})
-//	if err != nil {
-//		fmt.Printf("InvokeSmartContract InvokeNeoVMSmartContract error:%s", err)
-//		return err
-//	} else {
-//		fmt.Printf("invoke transaction hash:%s", common.ToHexString(txHash[:]))
-//	}
-//
-//	//WaitForGenerateBlock
-//	_, err = ontSdk.Rpc.WaitForGenerateBlock(30*time.Second, 1)
-//	if err != nil {
-//		fmt.Printf("InvokeSmartContract WaitForGenerateBlock error:%s", err)
-//	}
+	//	if !ctx.IsSet(utils.ContractAddrFlag.Name) {
+	//		return fmt.Errorf("Missing contract address argument.\n")
+	//	}
+	//
+	//	wallet, err := cmdcom.OpenWallet(ctx)
+	//	if err != nil {
+	//		return fmt.Errorf("OpenWallet error:%s", err)
+	//	}
+	//
+	//	acc := wallet.GetDefaultAccount()
+	//	if acc == nil {
+	//		return fmt.Errorf("Cannot GetDefaultAccount")
+	//	}
+	//
+	//	vmType := ctx.String(utils.ContractVmTypeFlag.Name)
+	//	contractAddr := ctx.String(utils.ContractAddrFlag.Name)
+	//
+	//	addr, err := common.AddressFromBase58(contractAddr)
+	//	if err != nil {
+	//		return fmt.Errorf("Invalid contract address")
+	//	}
+	//
+	//	paramsStr := ctx.String(utils.ContractParamsFlag.Name)
+	//	ps := strings.Split(paramsStr)
+	//
+	//
+	//	txHash, err := ontSdk.Rpc.InvokeNeoVMSmartContract(acct, new(big.Int), addr, []interface{}{params})
+	//	if err != nil {
+	//		fmt.Printf("InvokeSmartContract InvokeNeoVMSmartContract error:%s", err)
+	//		return err
+	//	} else {
+	//		fmt.Printf("invoke transaction hash:%s", common.ToHexString(txHash[:]))
+	//	}
+	//
+	//	//WaitForGenerateBlock
+	//	_, err = ontSdk.Rpc.WaitForGenerateBlock(30*time.Second, 1)
+	//	if err != nil {
+	//		fmt.Printf("InvokeSmartContract WaitForGenerateBlock error:%s", err)
+	//	}
 	return nil
 }
 
@@ -172,22 +174,22 @@ func deployContract(ctx *cli.Context) error {
 	if "" == codeFile {
 		return fmt.Errorf("Please specific code file")
 	}
-	code, err := ioutil.ReadFile(codeFile)
+	data, err := ioutil.ReadFile(codeFile)
 	if err != nil {
 		return fmt.Errorf("Read code:%s error:%s", codeFile, err)
 	}
-
+	code := strings.TrimSpace(string(data))
 	name := ctx.String(utils.ContractNameFlag.Name)
 	version := ctx.String(utils.ContractVersionFlag.Name)
 	author := ctx.String(utils.ContractAuthorFlag.Name)
 	email := ctx.String(utils.ContractEmailFlag.Name)
 	desc := ctx.String(utils.ContractDescFlag.Name)
 
-	txHash, err := utils.DeployContract(acc, vmType, store, string(code), name, version, author, email, desc)
+	txHash, err := utils.DeployContract(acc, vmType, store, code, name, version, author, email, desc)
 	if err != nil {
 		return fmt.Errorf("DeployContract error:%s", err)
 	}
-	address := utils.GetContractAddress(string(code), vmType)
+	address := utils.GetContractAddress(code, vmType)
 	fmt.Printf("Deploy TxHash:%s\n", txHash)
 	fmt.Printf("Contract Address:%x\n", address)
 	return nil
