@@ -15,6 +15,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 package utils
 
 import (
@@ -67,14 +68,13 @@ func sendRpcRequest(method string, params []interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read rpc response body error:%s", err)
 	}
-
 	rpcRsp := &JsonRpcResponse{}
 	err = json.Unmarshal(body, rpcRsp)
 	if err != nil {
 		return nil, fmt.Errorf("json.Unmarshal JsonRpcResponse:%s error:%s", body, err)
 	}
 	if rpcRsp.Error != 0 {
-		return nil, fmt.Errorf("sendRpcRequest error code:%d desc:%s result:%s", rpcRsp.Error, rpcRsp.Desc, rpcRsp.Result)
+		return nil, fmt.Errorf("error code:%d desc:%s", rpcRsp.Error, rpcRsp.Desc)
 	}
 	return rpcRsp.Result, nil
 }

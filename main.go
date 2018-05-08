@@ -25,11 +25,13 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd"
+	cmdcom "github.com/ontio/ontology/cmd/common"
+	cmdsvr "github.com/ontio/ontology/cmd/server"
+	cmdsvrcom "github.com/ontio/ontology/cmd/server/common"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/password"
 	"github.com/ontio/ontology/consensus"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/events"
@@ -72,9 +74,13 @@ func setupAPP() *cli.App {
 		//common setting
 		utils.ConfigFlag,
 		utils.LogLevelFlag,
-		utils.WalletFileFlag,
-		utils.AccountPassFlag,
 		utils.DisableEventLogFlag,
+		//account setting
+		utils.WalletFileFlag,
+		utils.AccountAddressFlag,
+		utils.AccountPassFlag,
+		//consensus setting
+		utils.DisableConsensusFlag,
 		utils.MaxTxInBlockFlag,
 		utils.GasLimitFlag,
 		utils.GasPriceFlag,
@@ -95,6 +101,9 @@ func setupAPP() *cli.App {
 		//ws setting
 		utils.WsEnabledFlag,
 		utils.WsPortFlag,
+		//cli setting
+		utils.CliEnableRpcFlag,
+		utils.CliRpcPortFlag,
 	}
 	app.Before = func(context *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
@@ -118,7 +127,7 @@ func startOntology(ctx *cli.Context) {
 		log.Errorf("initConfig error:%s", err)
 		return
 	}
-	wallet, err := initWallet(ctx)
+	acc, err := initAccount(ctx)
 	if err != nil {
 		log.Errorf("initWallet error:%s", err)
 		return
@@ -134,12 +143,12 @@ func startOntology(ctx *cli.Context) {
 		log.Errorf("initTxPool error:%s", err)
 		return
 	}
-	p2pSvr, p2pPid, err := initP2PNode(ctx, wallet, txpool)
+	p2pSvr, p2pPid, err := initP2PNode(ctx, acc, txpool)
 	if err != nil {
 		log.Errorf("initP2PNode error:%s", err)
 		return
 	}
-	_, err = initConsensus(ctx, p2pPid, txpool, wallet)
+	_, err = initConsensus(ctx, p2pPid, txpool, acc)
 	if err != nil {
 		log.Errorf("initConsensus error:%s", err)
 		return
@@ -157,6 +166,7 @@ func startOntology(ctx *cli.Context) {
 	initRestful(ctx)
 	initWs(ctx)
 	initNodeInfo(ctx, p2pSvr)
+	initCliSvr(ctx, acc)
 
 	go logCurrBlockHeight()
 	waitToExit()
@@ -164,7 +174,7 @@ func startOntology(ctx *cli.Context) {
 
 func initLog(ctx *cli.Context) {
 	//init log module
-	logLevel := ctx.GlobalInt(utils.LogLevelFlag.Name)
+	logLevel := ctx.GlobalInt(utils.GetFlagName(utils.LogLevelFlag))
 	log.InitLog(logLevel, log.PATH, log.Stdout)
 }
 
@@ -178,8 +188,8 @@ func initConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
 	return cfg, nil
 }
 
-func initWallet(ctx *cli.Context) (*account.ClientImpl, error) {
-	walletFile := ctx.GlobalString(utils.WalletFileFlag.Name)
+func initAccount(ctx *cli.Context) (*account.Account, error) {
+	walletFile := ctx.GlobalString(utils.GetFlagName(utils.WalletFileFlag))
 	if walletFile == "" {
 		return nil, fmt.Errorf("Please config wallet file using --wallet flag")
 	}
@@ -187,46 +197,18 @@ func initWallet(ctx *cli.Context) (*account.ClientImpl, error) {
 		return nil, fmt.Errorf("Cannot find wallet file:%s. Please create wallet first", walletFile)
 	}
 
-	var pwd []byte = nil
-	var err error
-	if ctx.IsSet(utils.AccountPassFlag.Name) {
-		pwd = []byte(ctx.GlobalString(utils.AccountPassFlag.Name))
-	} else {
-		pwd, err = password.GetAccountPassword()
-		if err != nil {
-			return nil, fmt.Errorf("Password error")
-		}
-	}
-	client := account.Open(walletFile, pwd)
-	if client == nil {
-		return nil, fmt.Errorf("Cannot open wallet file:%s", walletFile)
+	acc, err := cmdcom.GetAccount(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get account error:%s", err)
 	}
 
-	acc := client.GetDefaultAccount()
-	if acc == nil {
-		return nil, fmt.Errorf("Cannot GetDefaultAccount")
-	}
-
-	curPk := hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey))
-
-	switch config.DefConfig.Genesis.ConsensusType {
-	case config.CONSENSUS_TYPE_DBFT:
-		isBookKeeper := false
-		for _, pk := range config.DefConfig.Genesis.DBFT.Bookkeepers {
-			if pk == curPk {
-				isBookKeeper = true
-				break
-			}
-		}
-		if !isBookKeeper {
-			config.DefConfig.Common.EnableConsensus = false
-		}
-	case config.CONSENSUS_TYPE_SOLO:
+	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
+		curPk := hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey))
 		config.DefConfig.Genesis.SOLO.Bookkeepers = []string{curPk}
 	}
 
-	log.Infof("Wallet init success")
-	return client, nil
+	log.Infof("Account init success")
+	return acc, nil
 }
 
 func initLedger(ctx *cli.Context) (*ledger.Ledger, error) {
@@ -267,13 +249,9 @@ func initTxPool(ctx *cli.Context) (*proc.TXPoolServer, error) {
 	return txPoolServer, nil
 }
 
-func initP2PNode(ctx *cli.Context, wallet *account.ClientImpl, txpoolSvr *proc.TXPoolServer) (*p2pserver.P2PServer, *actor.PID, error) {
+func initP2PNode(ctx *cli.Context, acc *account.Account, txpoolSvr *proc.TXPoolServer) (*p2pserver.P2PServer, *actor.PID, error) {
 	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
 		return nil, nil, nil
-	}
-	acc := wallet.GetDefaultAccount()
-	if acc == nil {
-		return nil, nil, fmt.Errorf("Cannot GetDefaultAccount")
 	}
 	p2p, err := p2pserver.NewServer(acc)
 	if err != nil {
@@ -297,19 +275,14 @@ func initP2PNode(ctx *cli.Context, wallet *account.ClientImpl, txpoolSvr *proc.T
 		return p2p, p2pPID, nil
 	}
 	p2p.WaitForPeersStart()
-	p2p.WaitForSyncBlkFinish()
 
 	log.Infof("P2P node init success")
 	return p2p, p2pPID, nil
 }
 
-func initConsensus(ctx *cli.Context, p2pPid *actor.PID, txpoolSvr *proc.TXPoolServer, wallet *account.ClientImpl) (consensus.ConsensusService, error) {
-	if !config.DefConfig.Common.EnableConsensus {
+func initConsensus(ctx *cli.Context, p2pPid *actor.PID, txpoolSvr *proc.TXPoolServer, acc *account.Account) (consensus.ConsensusService, error) {
+	if !config.DefConfig.Consensus.EnableConsensus {
 		return nil, nil
-	}
-	acc := wallet.GetDefaultAccount()
-	if acc == nil {
-		return nil, fmt.Errorf("GetDefaultAccount failed")
 	}
 	pool := txpoolSvr.GetPID(tc.TxPoolActor)
 
@@ -349,7 +322,7 @@ func initRpc(ctx *cli.Context) error {
 }
 
 func initLocalRpc(ctx *cli.Context) error {
-	if !ctx.GlobalBool(utils.RPCLocalEnableFlag.Name) {
+	if !ctx.GlobalBool(utils.GetFlagName(utils.RPCLocalEnableFlag)) {
 		return nil
 	}
 	var err error
@@ -374,7 +347,7 @@ func initLocalRpc(ctx *cli.Context) error {
 }
 
 func initRestful(ctx *cli.Context) {
-	if !ctx.GlobalBool(utils.RestfulEnableFlag.Name) {
+	if !ctx.GlobalBool(utils.GetFlagName(utils.RestfulEnableFlag)) {
 		return
 	}
 	go restful.StartServer()
@@ -383,7 +356,7 @@ func initRestful(ctx *cli.Context) {
 }
 
 func initWs(ctx *cli.Context) {
-	if !ctx.GlobalBool(utils.WsEnabledFlag.Name) {
+	if !ctx.GlobalBool(utils.GetFlagName(utils.WsEnabledFlag)) {
 		return
 	}
 	websocket.StartServer()
@@ -398,6 +371,16 @@ func initNodeInfo(ctx *cli.Context, p2pSvr *p2pserver.P2PServer) {
 	go nodeinfo.StartServer(p2pSvr.GetNetWork())
 
 	log.Infof("Nodeinfo init success")
+}
+
+func initCliSvr(ctx *cli.Context, acc *account.Account) {
+	if !config.DefConfig.Cli.EnableCliRpcServer {
+		return
+	}
+	cmdsvrcom.DefAccount = acc
+	go cmdsvr.DefCliRpcSvr.Start(config.DefConfig.Cli.CliRpcPort)
+
+	log.Infof("Cli rpc server init success")
 }
 
 func logCurrBlockHeight() {

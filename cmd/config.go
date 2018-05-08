@@ -36,24 +36,26 @@ func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
 		return nil, fmt.Errorf("setGenesis error:%s", err)
 	}
 	setCommonConfig(ctx, cfg.Common)
+	setConsensusConfig(ctx, cfg.Consensus)
 	setP2PNodeConfig(ctx, cfg.P2PNode)
 	setRpcConfig(ctx, cfg.Rpc)
 	setRestfulConfig(ctx, cfg.Restful)
 	setWebSocketConfig(ctx, cfg.Ws)
+	setCliConfig(ctx, cfg.Cli)
 	return cfg, nil
 }
 
 func setGenesis(ctx *cli.Context, cfg *config.GenesisConfig) error {
-	if ctx.GlobalBool(utils.EnableTestModeFlag.Name) {
+	if ctx.GlobalBool(utils.GetFlagName(utils.EnableTestModeFlag)) {
 		cfg.ConsensusType = config.CONSENSUS_TYPE_SOLO
-		cfg.SOLO.GenBlockTime = ctx.Uint(utils.TestModeGenBlockTimeFlag.Name)
+		cfg.SOLO.GenBlockTime = ctx.Uint(utils.GetFlagName(utils.TestModeGenBlockTimeFlag))
 		if cfg.SOLO.GenBlockTime <= 1 {
 			cfg.SOLO.GenBlockTime = config.DEFAULT_GEN_BLOCK_TIME
 		}
 		return nil
 	}
 
-	genesisFile := ctx.GlobalString(utils.ConfigFlag.Name)
+	genesisFile := ctx.GlobalString(utils.GetFlagName(utils.ConfigFlag))
 
 	if !common.FileExisted(genesisFile) {
 		return nil
@@ -90,30 +92,39 @@ func setGenesis(ctx *cli.Context, cfg *config.GenesisConfig) error {
 }
 
 func setCommonConfig(ctx *cli.Context, cfg *config.CommonConfig) {
-	cfg.MaxTxInBlock = ctx.GlobalUint(utils.MaxTxInBlockFlag.Name)
-	cfg.DisableEventLog = ctx.GlobalBool(utils.DisableEventLogFlag.Name)
-	cfg.GasLimit = ctx.GlobalUint64(utils.GasLimitFlag.Name)
-	cfg.GasPrice = ctx.GlobalUint64(utils.GasPriceFlag.Name)
+	cfg.EnableEventLog = !ctx.GlobalBool(utils.GetFlagName(utils.DisableEventLogFlag))
+	cfg.GasLimit = ctx.GlobalUint64(utils.GetFlagName(utils.GasLimitFlag))
+	cfg.GasPrice = ctx.GlobalUint64(utils.GetFlagName(utils.GasPriceFlag))
+}
+
+func setConsensusConfig(ctx *cli.Context, cfg *config.ConsensusConfig) {
+	cfg.EnableConsensus = !ctx.GlobalBool(utils.GetFlagName(utils.DisableConsensusFlag))
+	cfg.MaxTxInBlock = ctx.GlobalUint(utils.GetFlagName(utils.MaxTxInBlockFlag))
 }
 
 func setP2PNodeConfig(ctx *cli.Context, cfg *config.P2PNodeConfig) {
-	cfg.NodePort = ctx.GlobalUint(utils.NodePortFlag.Name)
-	cfg.NodeConsensusPort = ctx.GlobalUint(utils.ConsensusPortFlag.Name)
-	cfg.DualPortSupport = ctx.GlobalBool(utils.DualPortSupportFlag.Name)
+	cfg.NodePort = ctx.GlobalUint(utils.GetFlagName(utils.NodePortFlag))
+	cfg.NodeConsensusPort = ctx.GlobalUint(utils.GetFlagName(utils.ConsensusPortFlag))
+	cfg.DualPortSupport = ctx.GlobalBool(utils.GetFlagName(utils.DualPortSupportFlag))
 }
 
 func setRpcConfig(ctx *cli.Context, cfg *config.RpcConfig) {
 	cfg.EnableHttpJsonRpc = true
-	cfg.HttpJsonPort = ctx.GlobalUint(utils.RPCPortFlag.Name)
-	cfg.HttpLocalPort = ctx.GlobalUint(utils.RPCLocalProtFlag.Name)
+	cfg.HttpJsonPort = ctx.GlobalUint(utils.GetFlagName(utils.RPCPortFlag))
+	cfg.HttpLocalPort = ctx.GlobalUint(utils.GetFlagName(utils.RPCLocalProtFlag))
 }
 
 func setRestfulConfig(ctx *cli.Context, cfg *config.RestfulConfig) {
-	cfg.EnableHttpRestful = ctx.GlobalBool(utils.RestfulEnableFlag.Name)
-	cfg.HttpRestPort = ctx.GlobalUint(utils.RestfulPortFlag.Name)
+	cfg.EnableHttpRestful = ctx.GlobalBool(utils.GetFlagName(utils.RestfulEnableFlag))
+	cfg.HttpRestPort = ctx.GlobalUint(utils.GetFlagName(utils.RestfulPortFlag))
 }
 
 func setWebSocketConfig(ctx *cli.Context, cfg *config.WebSocketConfig) {
-	cfg.EnableHttpWs = ctx.GlobalBool(utils.WsEnabledFlag.Name)
-	cfg.HttpWsPort = ctx.GlobalUint(utils.WsPortFlag.Name)
+	cfg.EnableHttpWs = ctx.GlobalBool(utils.GetFlagName(utils.WsEnabledFlag))
+	cfg.HttpWsPort = ctx.GlobalUint(utils.GetFlagName(utils.WsPortFlag))
+}
+
+func setCliConfig(ctx *cli.Context, cfg *config.CliConfig) {
+	cfg.EnableCliRpcServer = ctx.GlobalBool(utils.GetFlagName(utils.CliEnableRpcFlag))
+	cfg.CliRpcPort = ctx.GlobalUint(utils.GetFlagName(utils.CliRpcPortFlag))
 }
