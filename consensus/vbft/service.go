@@ -218,12 +218,10 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 			self.Index, block.Header.Height, self.completedBlockNum)
 	}
 
-	if self.nonConsensusNode() {
-		if self.checkNeedUpdateChainConfig(self.completedBlockNum) || self.checkForceUpdateChainConfig() {
-			err := self.updateChainConfig()
-			if err != nil {
-				log.Errorf("updateChainConfig failed:%s", err)
-			}
+	if self.checkNeedUpdateChainConfig(self.completedBlockNum+1) || self.checkForceUpdateChainConfig() {
+		err := self.updateChainConfig()
+		if err != nil {
+			log.Errorf("updateChainConfig failed:%s", err)
 		}
 	}
 }
@@ -2005,11 +2003,13 @@ func (self *Server) makeProposal(blkNum uint64, forEmpty bool) error {
 	txs = append(txs, txBookkeeping)
 
 	//check need upate chainconfig
+	cfg := &vconfig.ChainConfig{}
 	if self.checkNeedUpdateChainConfig(self.currentBlockNum) || self.checkForceUpdateChainConfig() {
 		err := self.updateChainConfig()
 		if err != nil {
 			log.Errorf("updateChainConfig failed:%s", err)
 		} else {
+			cfg = self.config
 			//add transaction invoke governance native,executeSplit、commit_pos contract
 			txs = append(txs, self.createfeeSplitTransaction(), self.creategovernaceTransaction())
 		}
@@ -2025,8 +2025,7 @@ func (self *Server) makeProposal(blkNum uint64, forEmpty bool) error {
 			}
 		}
 	}
-
-	proposal, err := self.constructProposalMsg(blkNum, txs)
+	proposal, err := self.constructProposalMsg(blkNum, txs, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to construct proposal: %s", err)
 	}

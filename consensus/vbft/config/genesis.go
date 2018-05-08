@@ -19,9 +19,11 @@
 package vconfig
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
+	"io/ioutil"
 	"math"
 	"sort"
 	"strings"
