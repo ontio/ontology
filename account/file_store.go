@@ -27,9 +27,11 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/types"
 )
 
-type Accountx struct {
+/** AccountData - for wallet read and save, no crypto object included **/
+type AccountData struct {
 	keypair.ProtectedKey
 
 	Label     string `json:"label"`
@@ -40,7 +42,7 @@ type Accountx struct {
 	PassHash  string `json:"passwordHash"`
 }
 
-func (this *Accountx) SetKeyPair(keyinfo *keypair.ProtectedKey) {
+func (this *AccountData) SetKeyPair(keyinfo *keypair.ProtectedKey) {
 	this.Address = keyinfo.Address
 	this.EncAlg = keyinfo.EncAlg
 	this.Alg = keyinfo.Alg
@@ -48,7 +50,7 @@ func (this *Accountx) SetKeyPair(keyinfo *keypair.ProtectedKey) {
 	this.Key = keyinfo.Key
 	this.Param = keyinfo.Param
 }
-func (this *Accountx) GetKeyPair() *keypair.ProtectedKey {
+func (this *AccountData) GetKeyPair() *keypair.ProtectedKey {
 	var keyinfo = new(keypair.ProtectedKey)
 	keyinfo.Address = this.Address
 	keyinfo.EncAlg = this.EncAlg
@@ -58,7 +60,7 @@ func (this *Accountx) GetKeyPair() *keypair.ProtectedKey {
 	keyinfo.Param = this.Param
 	return keyinfo
 }
-func (this *Accountx) VerifyPassword(pwd []byte) bool {
+func (this *AccountData) VerifyPassword(pwd []byte) bool {
 	passwordHash := sha256.Sum256(pwd)
 	if this.PassHash != hex.EncodeToString(passwordHash[:]) {
 		return false
@@ -66,12 +68,33 @@ func (this *Accountx) VerifyPassword(pwd []byte) bool {
 	return true
 }
 
+func (this *AccountData) SetLabel(label string) {
+	this.Label = label
+}
+
+func CreateAccount(TypeCode keypair.KeyType, CurveCode byte, SchemeName string, password *[]byte) *AccountData {
+	prvkey, pubkey, _ := keypair.GenerateKeyPair(TypeCode, CurveCode)
+	ta := types.AddressFromPubKey(pubkey)
+	address := ta.ToBase58()
+
+	prvSecret, _ := keypair.EncryptPrivateKey(prvkey, address, *password)
+	h := sha256.Sum256(*password)
+
+	var acc = new(AccountData)
+	acc.SetKeyPair(prvSecret)
+	acc.SigSch = SchemeName
+	acc.PubKey = hex.EncodeToString(keypair.SerializePublicKey(pubkey))
+	acc.PassHash = hex.EncodeToString(h[:])
+
+	return acc
+}
+
 type WalletData struct {
 	Name       string               `json:"name"`
 	Version    string               `json:"version"`
 	Scrypt     *keypair.ScryptParam `json:"scrypt"`
 	Identities []Identity           `json:"identities"`
-	Accounts   []*Accountx          `json:"accounts"`
+	Accounts   []*AccountData       `json:"accounts"`
 	Extra      string               `json:"extra"`
 }
 
@@ -82,10 +105,10 @@ func (this *WalletData) Inititalize() {
 	this.Scrypt = keypair.GetScryptParameters()
 	this.Identities = nil
 	this.Extra = "null"
-	this.Accounts = make([]*Accountx, 0, 0)
+	this.Accounts = make([]*AccountData, 0, 0)
 }
 
-func (this *WalletData) AddAccount(acc *Accountx) {
+func (this *WalletData) AddAccount(acc *AccountData) {
 	if len(this.Accounts) == 0 {
 		acc.IsDefault = true
 	}
@@ -98,7 +121,7 @@ func (this *WalletData) DelAccount(index int) string {
 	return addr
 }
 
-func (this *WalletData) GetDefaultAccount() *Accountx {
+func (this *WalletData) GetDefaultAccount() *AccountData {
 	for _, i := range this.Accounts {
 		if i.IsDefault {
 			return i
