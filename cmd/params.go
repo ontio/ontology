@@ -26,13 +26,11 @@ import (
 var (
 	NodeFlags = []cli.Flag{
 		utils.LogLevelFlag,
-		//utils.ConsensusFlag,
 		utils.WalletFileFlag,
 		utils.AccountPassFlag,
 	}
 
 	ContractFlags = []cli.Flag{
-		utils.ContractVmTypeFlag,
 		utils.ContractStorageFlag,
 		utils.ContractCodeFileFlag,
 		utils.ContractNameFlag,
@@ -52,7 +50,6 @@ var (
 	listFlags = []cli.Flag{
 		utils.AccountVerboseFlag,
 		utils.WalletFileFlag,
-		utils.AccountFileFlag,
 		utils.AccountLabelFlag,
 	}
 
@@ -60,7 +57,6 @@ var (
 		utils.AccountSigSchemeFlag,
 		utils.AccountSetDefaultFlag,
 		utils.WalletFileFlag,
-		utils.AccountFileFlag,
 		utils.AccountLabelFlag,
 	}
 	addFlags = []cli.Flag{
@@ -70,16 +66,13 @@ var (
 		utils.AccountSigSchemeFlag,
 		utils.AccountPassFlag,
 		utils.AccountDefaultFlag,
-		utils.AccountFileFlag,
 		utils.AccountLabelFlag,
 		utils.WalletFileFlag,
 	}
 	fileFlags = []cli.Flag{
 		utils.WalletFileFlag,
-		utils.AccountFileFlag,
 	}
 	importFlags = []cli.Flag{
-		utils.AccountFileFlag,
 		utils.AccountSourceFileFlag,
 		utils.AccountKeyFlag,
 	}
