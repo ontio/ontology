@@ -80,19 +80,20 @@ type PeerAddrMap struct {
 //init initializes attribute of network server
 func (this *NetServer) init(pubKey keypair.PublicKey) error {
 	this.base.SetVersion(common.PROTOCOL_VERSION)
-	if config.Parameters.NodeType == common.SERVICE_NODE_NAME {
-		this.base.SetServices(uint64(common.SERVICE_NODE))
-	} else if config.Parameters.NodeType == common.VERIFY_NODE_NAME {
+
+	if config.DefConfig.Common.EnableConsensus {
 		this.base.SetServices(uint64(common.VERIFY_NODE))
+	}else{
+		this.base.SetServices(uint64(common.SERVICE_NODE))
 	}
 
-	if config.Parameters.NodeConsensusPort == 0 || config.Parameters.NodePort == 0 ||
-		config.Parameters.NodeConsensusPort == config.Parameters.NodePort {
+	if config.DefConfig.P2PNode.NodeConsensusPort == 0 || config.DefConfig.P2PNode.NodePort == 0 ||
+		config.DefConfig.P2PNode.NodeConsensusPort == config.DefConfig.P2PNode.NodePort {
 		log.Error("Network port invalid, please check config.json")
 		return errors.New("Invalid port")
 	}
-	this.base.SetSyncPort(config.Parameters.NodePort)
-	this.base.SetConsPort(config.Parameters.NodeConsensusPort)
+	this.base.SetSyncPort(uint16(config.DefConfig.P2PNode.NodePort))
+	this.base.SetConsPort(uint16(config.DefConfig.P2PNode.NodeConsensusPort))
 
 	this.base.SetRelay(true)
 
@@ -231,7 +232,7 @@ func (this *NetServer) GetMsgChan(isConsensus bool) chan *common.MsgPayload {
 //Tx send data buf to peer
 func (this *NetServer) Send(p *peer.Peer, data []byte, isConsensus bool) error {
 	if p != nil {
-		if config.Parameters.DualPortSurpport == false {
+		if config.DefConfig.P2PNode.DualPortSupport == false {
 			return p.Send(data, false)
 		}
 		return p.Send(data, isConsensus)
@@ -259,7 +260,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		return errors.New("node exist in connecting list")
 	}
 
-	isTls := config.Parameters.IsTLS
+	isTls := config.DefConfig.P2PNode.IsTLS
 	var conn net.Conn
 	var err error
 	var remotePeer *peer.Peer
@@ -345,7 +346,7 @@ func (this *NetServer) startListening() error {
 	}
 
 	//consensus
-	if config.Parameters.DualPortSurpport == false {
+	if config.DefConfig.P2PNode.DualPortSupport == false {
 		log.Info("Dual port mode not supported,keep single link")
 		return nil
 	}

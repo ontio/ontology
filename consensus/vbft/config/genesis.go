@@ -19,11 +19,9 @@
 package vconfig
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
-	"io/ioutil"
 	"math"
 	"sort"
 	"strings"
@@ -32,26 +30,6 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 )
-
-type PeerStakeInfo struct {
-	Index  uint32 `json:"index"`
-	NodeID string `json:"node_id"`
-	Stake  uint64 `json:"stake"`
-}
-
-type Configuration struct {
-	View                 uint32           `json:"view"`
-	N                    uint32           `json:"n"`
-	C                    uint32           `json:"c"`
-	K                    uint32           `json:"k"`
-	L                    uint32           `json:"l"`
-	InitTxid             uint64           `json:"init_txid"`
-	GenesisTimestamp     uint64           `json:"genesis_timestamp"`
-	BlockMsgDelay        uint32           `json:"block_msg_delay"`
-	HashMsgDelay         uint32           `json:"hash_msg_delay"`
-	PeerHandshakeTimeout uint32           `json:"peer_handshake_timeout"`
-	Peers                []*PeerStakeInfo `json:"peers"`
-}
 
 func shuffle_hash(txid uint64, ts uint64, id []byte, idx int) (uint64, error) {
 	data, err := json.Marshal(struct {
@@ -69,33 +47,20 @@ func shuffle_hash(txid uint64, ts uint64, id []byte, idx int) (uint64, error) {
 	return hash.Sum64(), nil
 }
 
-func genConsensusPayload(configFilename string) ([]byte, error) {
-	// load pos config
-	file, err := ioutil.ReadFile(configFilename)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open config file %s: %s", configFilename, err)
-	}
-
-	// Remove the UTF-8 Byte Order Mark
-	file = bytes.TrimPrefix(file, []byte("\xef\xbb\xbf"))
-
-	config := Configuration{}
-	if err := json.Unmarshal(file, &config); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal json file: %s", err)
-	}
+func genConsensusPayload(cfg *config.VBFTConfig) ([]byte, error) {
 	// pos config sanity checks
-	if int(config.K) > len(config.Peers) {
+	if int(cfg.K) > len(cfg.Peers) {
 		return nil, fmt.Errorf("peer count is less than K")
 	}
-	if config.K < 2*config.C+1 {
-		return nil, fmt.Errorf("invalid config, K: %d, C: %d", config.K, config.C)
+	if cfg.K < 2*cfg.C+1 {
+		return nil, fmt.Errorf("invalid config, K: %d, C: %d", cfg.K, cfg.C)
 	}
-	if config.L%config.K != 0 || config.L < config.K*2 {
-		return nil, fmt.Errorf("invalid config, K: %d, L: %d", config.K, config.L)
+	if cfg.L%cfg.K != 0 || cfg.L < cfg.K*2 {
+		return nil, fmt.Errorf("invalid config, K: %d, L: %d", cfg.K, cfg.L)
 	}
 
 	// sort peers by stake
-	peers := config.Peers
+	peers := cfg.Peers
 	sort.Slice(peers, func(i, j int) bool {
 		return peers[i].Stake > peers[j].Stake
 	})
@@ -104,7 +69,7 @@ func genConsensusPayload(configFilename string) ([]byte, error) {
 
 	// get stake sum of top-k peers
 	var sum uint64
-	for i := 0; i < int(config.K); i++ {
+	for i := 0; i < int(cfg.K); i++ {
 		sum += peers[i].Stake
 		log.Debugf("peer: %d, stack: %d", peers[i].Index, peers[i].Stake)
 	}
@@ -112,17 +77,17 @@ func genConsensusPayload(configFilename string) ([]byte, error) {
 	log.Debugf("sum of top K stakes: %d", sum)
 
 	// calculate peer ranks
-	scale := config.L/config.K - 1
+	scale := cfg.L/cfg.K - 1
 	if scale <= 0 {
 		return nil, fmt.Errorf("L is equal or less than K")
 	}
 
 	peerRanks := make([]uint64, 0)
-	for i := 0; i < int(config.K); i++ {
+	for i := 0; i < int(cfg.K); i++ {
 		if peers[i].Stake == 0 {
 			return nil, fmt.Errorf("peers rank %d, has zero stake", i)
 		}
-		s := uint64(math.Ceil(float64(peers[i].Stake) * float64(scale) * float64(config.K) / float64(sum)))
+		s := uint64(math.Ceil(float64(peers[i].Stake) * float64(scale) * float64(cfg.K) / float64(sum)))
 		peerRanks = append(peerRanks, s)
 	}
 
@@ -131,7 +96,7 @@ func genConsensusPayload(configFilename string) ([]byte, error) {
 	// calculate pos table
 	chainPeers := make(map[uint32]*PeerConfig, 0)
 	posTable := make([]uint32, 0)
-	for i := 0; i < int(config.K); i++ {
+	for i := 0; i < int(cfg.K); i++ {
 		nodeId, err := StringID(peers[i].NodeID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to format NodeID, index: %d: %s", peers[i].Index, err)
@@ -149,7 +114,7 @@ func genConsensusPayload(configFilename string) ([]byte, error) {
 
 	// shuffle
 	for i := len(posTable) - 1; i > 0; i-- {
-		h, err := shuffle_hash(config.InitTxid, config.GenesisTimestamp, chainPeers[posTable[i]].ID.Bytes(), i)
+		h, err := shuffle_hash(cfg.InitTxid, cfg.GenesisTimestamp, chainPeers[posTable[i]].ID.Bytes(), i)
 		if err != nil {
 			return nil, fmt.Errorf("failed to calculate hash value: %s", err)
 		}
@@ -161,17 +126,17 @@ func genConsensusPayload(configFilename string) ([]byte, error) {
 
 	// generate chain config, and save to ChainConfigFile
 	peerCfgs := make([]*PeerConfig, 0)
-	for i := 0; i < int(config.K); i++ {
+	for i := 0; i < int(cfg.K); i++ {
 		peerCfgs = append(peerCfgs, chainPeers[peers[i].Index])
 	}
 	chainConfig := &ChainConfig{
 		Version:              Version,
-		View:                 config.View,
-		N:                    config.N,
-		C:                    config.C,
-		BlockMsgDelay:        time.Duration(config.BlockMsgDelay) * time.Millisecond,
-		HashMsgDelay:         time.Duration(config.HashMsgDelay) * time.Millisecond,
-		PeerHandshakeTimeout: time.Duration(config.PeerHandshakeTimeout) * time.Second,
+		View:                 cfg.View,
+		N:                    cfg.N,
+		C:                    cfg.C,
+		BlockMsgDelay:        time.Duration(cfg.BlockMsgDelay) * time.Millisecond,
+		HashMsgDelay:         time.Duration(cfg.HashMsgDelay) * time.Millisecond,
+		PeerHandshakeTimeout: time.Duration(cfg.PeerHandshakeTimeout) * time.Second,
 		Peers:                peerCfgs,
 		PosTable:             posTable,
 	}
@@ -186,12 +151,11 @@ func genConsensusPayload(configFilename string) ([]byte, error) {
 }
 
 func GenesisConsensusPayload() ([]byte, error) {
-	consensusType := strings.ToLower(config.Parameters.ConsensusType)
-	consensusConfigFile := config.Parameters.ConsensusConfigPath
+	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
 
 	switch consensusType {
 	case "vbft":
-		return genConsensusPayload(consensusConfigFile)
+		return genConsensusPayload(config.DefConfig.Genesis.VBFT)
 	}
 
 	return nil, nil

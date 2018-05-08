@@ -19,20 +19,13 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
-	"io/ioutil"
-	"math/big"
-	"os"
-	"time"
-	"strings"
-
-	"github.com/ontio/ontology/account"
+	cmdcom "github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/cmd/utils"
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/password"
 	"github.com/ontio/ontology/smartcontract/types"
 	"github.com/urfave/cli"
+	"io/ioutil"
+	"strings"
 )
 
 var (
@@ -52,9 +45,9 @@ var (
 				ArgsUsage:    " ",
 				Flags: []cli.Flag{
 					utils.ContractAddrFlag,
+					utils.ContractVmTypeFlag,
 					utils.ContractParamsFlag,
-					utils.AccountFileFlag,
-					utils.AccountPassFlag,
+					utils.WalletFileFlag,
 				},
 				Description: ``,
 			},
@@ -67,14 +60,13 @@ var (
 				Flags: []cli.Flag{
 					utils.ContractVmTypeFlag,
 					utils.ContractStorageFlag,
-					utils.ContractCodeFlag,
+					utils.ContractCodeFileFlag,
 					utils.ContractNameFlag,
 					utils.ContractVersionFlag,
 					utils.ContractAuthorFlag,
 					utils.ContractEmailFlag,
 					utils.ContractDescFlag,
-					utils.AccountFileFlag,
-					utils.AccountPassFlag,
+					utils.WalletFileFlag,
 				},
 				Description: ``,
 			},
@@ -99,69 +91,48 @@ func invokeUsageError(context *cli.Context, err error, isSubcommand bool) error 
 	return nil
 }
 
+//
 func invokeContract(ctx *cli.Context) error {
-	if !ctx.IsSet(utils.ContractAddrFlag.Name) || !ctx.IsSet(utils.ContractParamsFlag.Name) {
-		fmt.Println("Missing argument.\n")
-		cli.ShowSubcommandHelp(ctx)
-		return nil
-	}
-
-	var wallet = account.WALLET_FILENAME
-	if ctx.IsSet("file") {
-		wallet = ctx.String("file")
-	}
-	var passwd []byte
-	var err error
-	if ctx.IsSet("password") {
-		passwd = []byte(ctx.String("password"))
-	} else {
-		passwd, err = password.GetAccountPassword()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return errors.New("input password error")
-		}
-	}
-	client := account.Open(wallet, passwd)
-	for i, _ := range passwd {
-		passwd[i] = 0
-	}
-	if client == nil {
-		fmt.Println("Can't get local account")
-		return errors.New("Get client is nil")
-	}
-
-	acct := client.GetDefaultAccount()
-	if acct == nil {
-		fmt.Println("Can't get default account.")
-		return errors.New("Deploy contract failed.")
-	}
-
-	contractAddr := ctx.String(utils.ContractAddrFlag.Name)
-	params := ctx.String(utils.ContractParamsFlag.Name)
-	if "" == contractAddr {
-		fmt.Println("contract address does not allow empty")
-	}
-
-	addr, err := common.AddressFromBase58(contractAddr)
-	if err != nil {
-		fmt.Println("Parase contract address error, please use correct smart contract address")
-		return err
-	}
-
-	txHash, err := ontSdk.Rpc.InvokeNeoVMSmartContract(acct, new(big.Int), addr, []interface{}{params})
-	if err != nil {
-		fmt.Printf("InvokeSmartContract InvokeNeoVMSmartContract error:%s", err)
-		return err
-	} else {
-		fmt.Printf("invoke transaction hash:%s", common.ToHexString(txHash[:]))
-	}
-
-	//WaitForGenerateBlock
-	_, err = ontSdk.Rpc.WaitForGenerateBlock(30*time.Second, 1)
-	if err != nil {
-		fmt.Printf("InvokeSmartContract WaitForGenerateBlock error:%s", err)
-	}
-	return err
+	//	if !ctx.IsSet(utils.ContractAddrFlag.Name) {
+	//		return fmt.Errorf("Missing contract address argument.\n")
+	//	}
+	//
+	//	wallet, err := cmdcom.OpenWallet(ctx)
+	//	if err != nil {
+	//		return fmt.Errorf("OpenWallet error:%s", err)
+	//	}
+	//
+	//	acc := wallet.GetDefaultAccount()
+	//	if acc == nil {
+	//		return fmt.Errorf("Cannot GetDefaultAccount")
+	//	}
+	//
+	//	vmType := ctx.String(utils.ContractVmTypeFlag.Name)
+	//	contractAddr := ctx.String(utils.ContractAddrFlag.Name)
+	//
+	//	addr, err := common.AddressFromBase58(contractAddr)
+	//	if err != nil {
+	//		return fmt.Errorf("Invalid contract address")
+	//	}
+	//
+	//	paramsStr := ctx.String(utils.ContractParamsFlag.Name)
+	//	ps := strings.Split(paramsStr)
+	//
+	//
+	//	txHash, err := ontSdk.Rpc.InvokeNeoVMSmartContract(acct, new(big.Int), addr, []interface{}{params})
+	//	if err != nil {
+	//		fmt.Printf("InvokeSmartContract InvokeNeoVMSmartContract error:%s", err)
+	//		return err
+	//	} else {
+	//		fmt.Printf("invoke transaction hash:%s", common.ToHexString(txHash[:]))
+	//	}
+	//
+	//	//WaitForGenerateBlock
+	//	_, err = ontSdk.Rpc.WaitForGenerateBlock(30*time.Second, 1)
+	//	if err != nil {
+	//		fmt.Printf("InvokeSmartContract WaitForGenerateBlock error:%s", err)
+	//	}
+	return nil
 }
 
 func getVmType(vmType string) types.VmType {
@@ -182,78 +153,44 @@ func deployUsageError(context *cli.Context, err error, isSubcommand bool) error 
 }
 
 func deployContract(ctx *cli.Context) error {
-	if !ctx.IsSet(utils.ContractStorageFlag.Name) || !ctx.IsSet(utils.ContractVmTypeFlag.Name) ||
-		!ctx.IsSet(utils.ContractCodeFlag.Name) || !ctx.IsSet(utils.ContractNameFlag.Name) ||
-		!ctx.IsSet(utils.ContractVersionFlag.Name) || !ctx.IsSet(utils.ContractAuthorFlag.Name) ||
-		!ctx.IsSet(utils.ContractEmailFlag.Name) || !ctx.IsSet(utils.ContractDescFlag.Name) {
-		fmt.Println("Missing argument.\n")
-		cli.ShowSubcommandHelp(ctx)
-		return errors.New("Parameter is err")
+	if !ctx.IsSet(utils.ContractCodeFileFlag.Name) ||
+		!ctx.IsSet(utils.ContractNameFlag.Name) {
+		return fmt.Errorf("Missing code or name argument")
 	}
 
-	var wallet = account.WALLET_FILENAME
-	if ctx.IsSet("file") {
-		wallet = ctx.String("file")
-	}
-	var passwd []byte
-	var err error
-	if ctx.IsSet("password") {
-		passwd = []byte(ctx.String("password"))
-	} else {
-		passwd, err = password.GetAccountPassword()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return errors.New("input password error")
-		}
-	}
-	client := account.Open(wallet, passwd)
-	for i, _ := range passwd {
-		passwd[i] = 0
-	}
-	if nil == client {
-		fmt.Println("Error load wallet file", wallet)
-		return errors.New("Get client return nil")
+	wallet, err := cmdcom.OpenWallet(ctx)
+	if err != nil {
+		return fmt.Errorf("OpenWallet error:%s", err)
 	}
 
-	acct := client.GetDefaultAccount()
-	if acct == nil {
-		fmt.Println("Can't get default account.")
-		return errors.New("Deploy contract failed.")
+	acc := wallet.GetDefaultAccount()
+	if acc == nil {
+		return fmt.Errorf("Cannot get default account")
 	}
 
 	store := ctx.Bool(utils.ContractStorageFlag.Name)
 	vmType := getVmType(ctx.String(utils.ContractVmTypeFlag.Name))
-
-	codeDir := ctx.String(utils.ContractCodeFlag.Name)
-	if "" == codeDir {
-		fmt.Println("Code dir is error, value does not allow null")
-		return errors.New("Smart contract code dir does not allow empty")
+	codeFile := ctx.String(utils.ContractCodeFileFlag.Name)
+	if "" == codeFile {
+		return fmt.Errorf("Please specific code file")
 	}
-	code, err := ioutil.ReadFile(codeDir)
+	data, err := ioutil.ReadFile(codeFile)
 	if err != nil {
-		fmt.Printf("Error in read file,%s", err.Error())
-		return err
+		return fmt.Errorf("Read code:%s error:%s", codeFile, err)
 	}
-
+	code := strings.TrimSpace(string(data))
 	name := ctx.String(utils.ContractNameFlag.Name)
 	version := ctx.String(utils.ContractVersionFlag.Name)
 	author := ctx.String(utils.ContractAuthorFlag.Name)
 	email := ctx.String(utils.ContractEmailFlag.Name)
 	desc := ctx.String(utils.ContractDescFlag.Name)
 
-	trHash, err := ontSdk.Rpc.DeploySmartContract(acct, vmType, store, strings.TrimSpace(fmt.Sprintf("%s", code)), name, version, author, email, desc)
+	txHash, err := utils.DeployContract(acc, vmType, store, code, name, version, author, email, desc)
 	if err != nil {
-		fmt.Printf("Deploy smart error: %s", err.Error())
-		return err
+		return fmt.Errorf("DeployContract error:%s", err)
 	}
-	//WaitForGenerateBlock
-	_, err = ontSdk.Rpc.WaitForGenerateBlock(30*time.Second, 1)
-	if err != nil {
-		fmt.Printf("DeploySmartContract WaitForGenerateBlock error:%s", err.Error())
-		return err
-	} else {
-		fmt.Printf("Deploy smartContract transaction hash: %s\n", common.ToHexString(trHash[:]))
-	}
-
+	address := utils.GetContractAddress(code, vmType)
+	fmt.Printf("Deploy TxHash:%s\n", txHash)
+	fmt.Printf("Contract Address:%x\n", address)
 	return nil
 }

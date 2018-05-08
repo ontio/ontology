@@ -381,7 +381,7 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header) error {
 	if prevHeader.Height+1 != header.Height {
 		return fmt.Errorf("block height is incorrect")
 	}
-	consensusType := strings.ToLower(config.Parameters.ConsensusType)
+	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
 	if consensusType != "vbft" {
 
 		if prevHeader.Timestamp >= header.Timestamp {

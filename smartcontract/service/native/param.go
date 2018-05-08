@@ -2,14 +2,16 @@ package native
 
 import (
 	"bytes"
-	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/genesis"
 	scommon "github.com/ontio/ontology/core/store/common"
 	ctypes "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native/states"
 	"sync"
+	"fmt"
+	"github.com/ontio/ontology/common/log"
 )
 
 type ParamCache struct {
@@ -52,7 +54,12 @@ func ParamInit(native *NativeService) error {
 	native.CloneCache.Add(scommon.ST_STORAGE, getParamKey(contract, CURRENT_VALUE), getParamStorageItem(initParams))
 	native.CloneCache.Add(scommon.ST_STORAGE, getParamKey(contract, PREPARE_VALUE), getParamStorageItem(initParams))
 	admin = new(states.Admin)
-	initAddress := ctypes.AddressFromPubKey(account.GetBookkeepers()[0])
+
+	bookKeeepers, err := config.DefConfig.GetBookkeepers()
+	if err != nil {
+		return fmt.Errorf("GetBookkeepers error:%s", err)
+	}
+	initAddress := ctypes.AddressFromPubKey(bookKeeepers[0])
 	copy((*admin)[:], initAddress[:])
 	native.CloneCache.Add(scommon.ST_STORAGE, getAdminKey(contract, false), getAdminStorageItem(admin))
 	return nil
@@ -109,11 +116,11 @@ func SetGlobalParam(native *NativeService) error {
 	}
 	// read old param from database
 	storageParams, err := getStorageParam(native, getParamKey(contract, PREPARE_VALUE))
-	if err != nil{
+	if err != nil {
 		return err
 	}
 	// update param
-	for key, value := range *params{
+	for key, value := range *params {
 		(*storageParams)[key] = value
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, getParamKey(contract, PREPARE_VALUE),
@@ -150,7 +157,12 @@ func getAdmin(native *NativeService, contract common.Address) {
 		admin, err = getStorageAdmin(native, getAdminKey(contract, false))
 		// there are no admin in database
 		if err != nil {
-			initAddress := ctypes.AddressFromPubKey(account.GetBookkeepers()[0])
+			bookKeeepers, err := config.DefConfig.GetBookkeepers()
+			if err != nil {
+				log.Errorf("GetBookkeepers error:%s", err)
+				return
+			}
+			initAddress := ctypes.AddressFromPubKey(bookKeeepers[0])
 			copy((*admin)[:], initAddress[:])
 		}
 	}
@@ -165,7 +177,7 @@ func clearCache() {
 func setCache(params *states.Params) {
 	paramCache.lock.Lock()
 	defer paramCache.lock.Unlock()
-	paramCache.Params= *params
+	paramCache.Params = *params
 }
 
 func getParamFromCache(key string) string {
@@ -196,9 +208,9 @@ func GetGlobalParam(native *NativeService, paramName string) (string, error) {
 	}
 	// set param to cache
 	setCache(storageParams)
-	if value, ok := (*storageParams)[paramName]; ok{
-		return  value, nil
-	}else{
+	if value, ok := (*storageParams)[paramName]; ok {
+		return value, nil
+	} else {
 		return "", errors.NewErr("[Get Param] param doesn't exist!")
 	}
 }

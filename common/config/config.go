@@ -19,137 +19,225 @@
 package config
 
 import (
-	"bytes"
-	"encoding/json"
-	"io/ioutil"
-	"log"
-	"os"
+	"encoding/hex"
+	"fmt"
+	"github.com/ontio/ontology-crypto/keypair"
+	"sort"
+	"time"
 )
 
 const (
 	DEFAULT_CONFIG_FILE_NAME = "./config.json"
+	DEFAULT_WALLET_FILE_NAME = "./wallet.dat"
 	MIN_GEN_BLOCK_TIME       = 2
 	DEFAULT_GEN_BLOCK_TIME   = 6
 	DBFT_MIN_NODE_NUM        = 4 //min node number of dbft consensus
 	SOLO_MIN_NODE_NUM        = 1 //min node number of solo consensus
 	VBFT_MIN_NODE_NUM        = 4 //min node number of vbft consensus
+
+	CONSENSUS_TYPE_DBFT = "dbft"
+	CONSENSUS_TYPE_SOLO = "solo"
+	CONSENSUS_TYPE_VBFT = "vbft"
+
+	DEFAULT_LOG_LEVEL         = 1
+	DEFAULT_MAX_LOG_SIZE      = 100 //MByte
+	DEFAULT_NODE_PORT         = uint(20338)
+	DEFAULT_CONSENSUS_PORT    = uint(20339)
+	DEFAULT_RPC_PORT          = uint(20336)
+	DEFAULT_RPC_LOCAL_PORT    = uint(20337)
+	DEFAULT_REST_PORT         = uint(20334)
+	DEFAULT_WS_PORT           = uint(20335)
+	DEFAULT_HTTP_INFO_PORT    = uint(0)
+	DEFAULT_MAX_TX_IN_BLOCK   = 600000
+	DEFAULT_MAX_SYNC_HEADER   = 500
+	DEFAULT_ENABLE_CONSENSUS  = true
+	DEFAULT_DISABLE_EVENT_LOG = false
 )
 
-var Version string
-
-type Configuration struct {
-	Magic             int64            `json:"Magic"`
-	Version           int              `json:"Version"`
-	SeedList          []string         `json:"SeedList"`
-	Bookkeepers       []string         `json:"Bookkeepers"` // The default book keepers' publickey
-	HttpRestPort      int              `json:"HttpRestPort"`
-	HttpCertPath      string           `json:"HttpCertPath"`
-	HttpKeyPath       string           `json:"HttpKeyPath"`
-	HttpInfoPort      uint16           `json:"HttpInfoPort"`
-	HttpWsPort        int              `json:"HttpWsPort"`
-	HttpJsonPort      int              `json:"HttpJsonPort"`
-	HttpLocalPort     int              `json:"HttpLocalPort"`
-	NodePort          uint16           `json:"NodePort"`
-	NodeConsensusPort uint16           `json:"NodeConsensusPort"`
-	DualPortSurpport  bool             `json:"DualPortSurpport"`
-	NodeType          string           `json:"NodeType"`
-	PrintLevel        int              `json:"PrintLevel"`
-	IsTLS             bool             `json:"IsTLS"`
-	CertPath          string           `json:"CertPath"`
-	KeyPath           string           `json:"KeyPath"`
-	CAPath            string           `json:"CAPath"`
-	GenBlockTime      uint             `json:"GenBlockTime"`
-	MultiCoreNum      uint             `json:"MultiCoreNum"`
-	MaxLogSize        int64            `json:"MaxLogSize"`
-	MaxTxInBlock      int              `json:"MaxTransactionInBlock"`
-	MaxHdrSyncReqs    int              `json:"MaxConcurrentSyncHeaderReqs"`
-	ConsensusType     string           `json:"ConsensusType"`
-    ConsensusConfigPath string         `json:"ConsensusConfigPath"`
-	SystemFee         map[string]int64 `json:"SystemFee"`
+var PolarisConfig = &GenesisConfig{
+	SeedList: []string{
+		"polaris1.ont.io:20338",
+		"polaris2.ont.io:20338",
+		"polaris3.ont.io:20338",
+		"polaris4.ont.io:20338"},
+	ConsensusType: "dbft",
+	VBFT:          &VBFTConfig{},
+	DBFT: &DBFTConfig{
+		GenBlockTime: DEFAULT_GEN_BLOCK_TIME,
+		Bookkeepers: []string{
+			"12020384d843c02ecef233d3dd3bc266ee0d1a67cf2a1666dc1b2fb455223efdee7452",
+			"120203fab19438e18d8a5bebb6cd3ede7650539e024d7cc45c88b95ab13f8266ce9570",
+			"120203c43f136596ee666416fedb90cde1e0aee59a79ec18ab70e82b73dd297767eddf",
+			"120202a76a434b18379e3bda651b7c04e972dadc4760d1156b5c86b3c4d27da48c91a1"},
+	},
+	SOLO: &SOLOConfig{},
 }
 
-type configFile struct {
-	ConfigFile Configuration `json:"Configuration"`
+var DefConfig = NewOntologyConfig()
+
+type GenesisConfig struct {
+	SeedList      []string
+	ConsensusType string
+	VBFT          *VBFTConfig
+	DBFT          *DBFTConfig
+	SOLO          *SOLOConfig
 }
 
-func newDefaultConfig() *Configuration {
-	return &Configuration{
-		Magic:             12345,
-		Version:           0,
-		HttpRestPort:      20334,
-		HttpWsPort:        20335,
-		HttpJsonPort:      20336,
-		HttpLocalPort:     20337,
-		NodePort:          20338,
-		NodeConsensusPort: 20339,
-		PrintLevel:        1,
-		GenBlockTime:      6,
-		MultiCoreNum:      4,
-		MaxTxInBlock:      5000,
-		ConsensusType:     "solo",
-		SystemFee:         make(map[string]int64),
+func NewGenesisConfig() *GenesisConfig {
+	return &GenesisConfig{
+		SeedList:      make([]string, 0),
+		ConsensusType: CONSENSUS_TYPE_DBFT,
+		VBFT:          &VBFTConfig{},
+		DBFT:          &DBFTConfig{},
+		SOLO:          &SOLOConfig{},
 	}
 }
 
-var Parameters *Configuration
-
-// Polaris test net config
-func newPolarisConfig() *Configuration {
-	testnet := ` {
-  "Configuration": {
-    "Magic": 7630401,
-    "Version": 23,
-    "SeedList": [
-      "polaris1.ont.io:20338",
-      "polaris2.ont.io:20338",
-      "polaris3.ont.io:20338",
-      "polaris4.ont.io:20338"
-    ],
-    "Bookkeepers": [
-	  "12020384d843c02ecef233d3dd3bc266ee0d1a67cf2a1666dc1b2fb455223efdee7452",
-	  "120203fab19438e18d8a5bebb6cd3ede7650539e024d7cc45c88b95ab13f8266ce9570",
-	  "120203c43f136596ee666416fedb90cde1e0aee59a79ec18ab70e82b73dd297767eddf",
-	  "120202a76a434b18379e3bda651b7c04e972dadc4760d1156b5c86b3c4d27da48c91a1"
-    ],
-    "HttpRestPort": 20334,
-    "HttpWsPort":20335,
-    "HttpJsonPort": 20336,
-    "HttpLocalPort": 20337,
-    "NodePort": 20338,
-    "NodeConsensusPort": 20339,
-    "PrintLevel": 1,
-    "IsTLS": false,
-    "MaxTransactionInBlock": 60000,
-    "ConsensusType":"dbft",
-    "MultiCoreNum": 4
-  }
-} `
-
-	config := configFile{}
-	e := json.Unmarshal([]byte(testnet), &config)
-	if e != nil {
-		panic("wrong config file")
-	}
-
-	return &config.ConfigFile
+type VBFTConfig struct {
+	View                 uint32            `json:"view"` // config-updated version
+	N                    uint32            `json:"n"`    // network size
+	C                    uint32            `json:"c"`    // consensus quorum
+	K                    uint32               `json:"k"`
+	L                    uint32               `json:"l"`
+	InitTxid             uint64               `json:"init_txid"`
+	GenesisTimestamp    uint64                `json:"genesis_timestamp"`
+	BlockMsgDelay        time.Duration        `json:"block_msg_delay"`
+	HashMsgDelay         time.Duration        `json:"hash_msg_delay"`
+	PeerHandshakeTimeout time.Duration        `json:"peer_handshake_timeout"`
+	MaxBlockChangeView   uint32               `json:"maxblockchangeview"`
+	Peers                []*VBFTPeerStakeInfo `json:"peers"`
 }
 
-func init() {
-	file, e := ioutil.ReadFile(DEFAULT_CONFIG_FILE_NAME)
-	if e != nil {
-		log.Printf("[WARN] %v, use default config\n", e)
-		Parameters = newPolarisConfig()
-		return
-	}
-
-	// Remove the UTF-8 Byte Order Mark
-	file = bytes.TrimPrefix(file, []byte("\xef\xbb\xbf"))
-
-	config := configFile{}
-	e = json.Unmarshal(file, &config)
-	if e != nil {
-		log.Fatalf("Unmarshal json file erro %v", e)
-		os.Exit(1)
-	}
-	Parameters = &(config.ConfigFile)
+type VBFTPeerStakeInfo struct {
+	Index  uint32 `json:"index"`
+	NodeID string `json:"node_id"`
+	Stake  uint64 `json:"stake"`
 }
+
+type DBFTConfig struct {
+	GenBlockTime uint
+	Bookkeepers  []string
+}
+
+type SOLOConfig struct {
+	GenBlockTime uint
+	Bookkeepers  []string
+}
+
+type CommonConfig struct {
+	MaxTxInBlock    uint
+	LogLevel        uint
+	MaxLogSize      uint
+	NodeType        string
+	EnableConsensus bool
+	DisableEventLog bool
+	SystemFee       map[string]int64
+}
+
+type P2PNodeConfig struct {
+	NodePort          uint
+	NodeConsensusPort uint
+	DualPortSupport   bool
+	IsTLS             bool
+	CertPath          string
+	KeyPath           string
+	CAPath            string
+	HttpInfoPort      uint
+	MaxHdrSyncReqs    uint
+}
+
+type RpcConfig struct {
+	EnableHttpJsonRpc bool
+	HttpJsonPort      uint
+	HttpLocalPort     uint
+}
+
+type RestfulConfig struct {
+	EnableHttpRestful bool
+	HttpRestPort      uint
+	HttpCertPath      string
+	HttpKeyPath       string
+}
+
+type WebSocketConfig struct {
+	EnableHttpWs bool
+	HttpWsPort   uint
+	HttpCertPath string
+	HttpKeyPath  string
+}
+
+type OntologyConfig struct {
+	Genesis *GenesisConfig
+	Common  *CommonConfig
+	P2PNode *P2PNodeConfig
+	Rpc     *RpcConfig
+	Restful *RestfulConfig
+	Ws      *WebSocketConfig
+}
+
+func NewOntologyConfig() *OntologyConfig {
+	return &OntologyConfig{
+		Genesis: PolarisConfig,
+		Common: &CommonConfig{
+			MaxTxInBlock:    DEFAULT_MAX_TX_IN_BLOCK,
+			LogLevel:        DEFAULT_LOG_LEVEL,
+			MaxLogSize:      DEFAULT_MAX_LOG_SIZE,
+			EnableConsensus: DEFAULT_ENABLE_CONSENSUS,
+			DisableEventLog: DEFAULT_DISABLE_EVENT_LOG,
+			SystemFee:       make(map[string]int64),
+		},
+		P2PNode: &P2PNodeConfig{
+			NodePort:          DEFAULT_NODE_PORT,
+			NodeConsensusPort: DEFAULT_CONSENSUS_PORT,
+			DualPortSupport:   true,
+			IsTLS:             false,
+			CertPath:          "",
+			KeyPath:           "",
+			CAPath:            "",
+			HttpInfoPort:      DEFAULT_HTTP_INFO_PORT,
+			MaxHdrSyncReqs:    DEFAULT_MAX_SYNC_HEADER,
+		},
+		Rpc: &RpcConfig{
+			EnableHttpJsonRpc: true,
+			HttpJsonPort:      DEFAULT_RPC_PORT,
+			HttpLocalPort:     DEFAULT_RPC_LOCAL_PORT,
+		},
+		Restful: &RestfulConfig{
+			EnableHttpRestful: true,
+			HttpRestPort:      DEFAULT_REST_PORT,
+		},
+		Ws: &WebSocketConfig{
+			EnableHttpWs: true,
+			HttpWsPort:   DEFAULT_WS_PORT,
+		},
+	}
+}
+
+func (this *OntologyConfig) GetBookkeepers() ([]keypair.PublicKey, error) {
+	var bookKeepers []string
+	switch this.Genesis.ConsensusType {
+	case CONSENSUS_TYPE_VBFT:
+		//Does not support VBFT temporary
+		return nil, nil
+	case CONSENSUS_TYPE_DBFT:
+		bookKeepers = this.Genesis.DBFT.Bookkeepers
+	case CONSENSUS_TYPE_SOLO:
+		bookKeepers = this.Genesis.SOLO.Bookkeepers
+	default:
+		return nil, fmt.Errorf("Does not support %s consensus", this.Genesis.ConsensusType)
+	}
+
+	sort.Strings(bookKeepers)
+	pubKeys := make([]keypair.PublicKey, 0, len(bookKeepers))
+	for _, key := range bookKeepers {
+		pubKey, err := hex.DecodeString(key)
+		k, err := keypair.DeserializePublicKey(pubKey)
+		if err != nil {
+			return nil, fmt.Errorf("Incorrectly book keepers key:%s", key)
+		}
+		pubKeys = append(pubKeys, k)
+	}
+	return pubKeys, nil
+}
+
+var Version = ""
