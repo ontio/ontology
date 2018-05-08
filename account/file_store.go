@@ -22,12 +22,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"io/ioutil"
-	"os"
-
 	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
+	//"github.com/ontio/ontology/core/types"
+	"io/ioutil"
 )
 
 /** AccountData - for wallet read and save, no crypto object included **/
@@ -72,23 +69,6 @@ func (this *AccountData) SetLabel(label string) {
 	this.Label = label
 }
 
-func CreateAccount(TypeCode keypair.KeyType, CurveCode byte, SchemeName string, password *[]byte) *AccountData {
-	prvkey, pubkey, _ := keypair.GenerateKeyPair(TypeCode, CurveCode)
-	ta := types.AddressFromPubKey(pubkey)
-	address := ta.ToBase58()
-
-	prvSecret, _ := keypair.EncryptPrivateKey(prvkey, address, *password)
-	h := sha256.Sum256(*password)
-
-	var acc = new(AccountData)
-	acc.SetKeyPair(prvSecret)
-	acc.SigSch = SchemeName
-	acc.PubKey = hex.EncodeToString(keypair.SerializePublicKey(pubkey))
-	acc.PassHash = hex.EncodeToString(h[:])
-
-	return acc
-}
-
 type WalletData struct {
 	Name       string               `json:"name"`
 	Version    string               `json:"version"`
@@ -98,36 +78,50 @@ type WalletData struct {
 	Extra      string               `json:"extra"`
 }
 
-//TODO:: for temporary use, these params should be set by user?
-func (this *WalletData) Inititalize() {
-	this.Name = "MyWallet"
-	this.Version = "1.1"
-	this.Scrypt = keypair.GetScryptParameters()
-	this.Identities = nil
-	this.Extra = "null"
-	this.Accounts = make([]*AccountData, 0, 0)
+func NewWalletData() *WalletData {
+	return &WalletData{
+		Name:       "MyWallet",
+		Version:    "1.1",
+		Scrypt:     keypair.GetScryptParameters(),
+		Identities: nil,
+		Extra:      "null",
+		Accounts:   make([]*AccountData, 0, 0),
+	}
 }
 
 func (this *WalletData) AddAccount(acc *AccountData) {
-	if len(this.Accounts) == 0 {
-		acc.IsDefault = true
-	}
 	this.Accounts = append(this.Accounts, acc)
 }
 
-func (this *WalletData) DelAccount(index int) string {
-	addr := this.Accounts[index-1].Address
-	this.Accounts = append(this.Accounts[:index-1], this.Accounts[index:]...)
-	return addr
+func (this *WalletData) DelAccount(address string) {
+	_, index := this.GetAccountByAddress(address)
+	if index < 0 {
+		return
+	}
+	this.Accounts = append(this.Accounts[:index], this.Accounts[index+1:]...)
 }
 
-func (this *WalletData) GetDefaultAccount() *AccountData {
-	for _, i := range this.Accounts {
-		if i.IsDefault {
-			return i
+func (this *WalletData) GetAccountByIndex(index int) *AccountData {
+	if index < 0 || index >= len(this.Accounts) {
+		return nil
+	}
+	return this.Accounts[index]
+}
+
+func (this *WalletData) GetAccountByAddress(address string) (*AccountData, int) {
+	index := -1
+	var accData *AccountData
+	for i, acc := range this.Accounts {
+		if acc.Address == address {
+			index = i
+			accData = acc
+			break
 		}
 	}
-	return nil
+	if index == -1 {
+		return nil, -1
+	}
+	return accData, index
 }
 
 func (this *WalletData) Save(path string) error {
@@ -135,16 +129,7 @@ func (this *WalletData) Save(path string) error {
 	if err != nil {
 		return err
 	}
-	if common.FileExisted(path) {
-		filename := path + "~"
-		err := ioutil.WriteFile(filename, data, 0644)
-		if err != nil {
-			return err
-		}
-		return os.Rename(filename, path)
-	} else {
-		return ioutil.WriteFile(path, data, 0644)
-	}
+	return ioutil.WriteFile(path, data, 0644)
 }
 
 func (this *WalletData) Load(path string) error {

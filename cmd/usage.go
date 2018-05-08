@@ -77,10 +77,38 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.ConfigFlag,
 			utils.LogLevelFlag,
-			utils.WalletFileFlag,
-			utils.AccountPassFlag,
-			utils.MaxTxInBlockFlag,
 			utils.DisableEventLogFlag,
+		},
+	},
+	{
+		Name: "ACCOUNT",
+		Flags: []cli.Flag{
+			utils.WalletFileFlag,
+			utils.AccountAddressFlag,
+			utils.AccountPassFlag,
+			utils.AccountDefaultFlag,
+			utils.AccountKeylenFlag,
+			utils.AccountSetDefaultFlag,
+			utils.AccountSigSchemeFlag,
+			utils.AccountTypeFlag,
+			utils.AccountVerboseFlag,
+			utils.AccountLabelFlag,
+			utils.AccountQuantityFlag,
+			utils.AccountChangePasswdFlag,
+		},
+	},
+	{
+		Name: "CLI",
+		Flags: []cli.Flag{
+			utils.CliEnableRpcFlag,
+			utils.CliRpcPortFlag,
+		},
+	},
+	{
+		Name: "CONSENSUS",
+		Flags: []cli.Flag{
+			utils.DisableConsensusFlag,
+			utils.MaxTxInBlockFlag,
 		},
 	},
 	{
@@ -89,13 +117,6 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.NodePortFlag,
 			utils.DualPortSupportFlag,
 			utils.ConsensusPortFlag,
-		},
-	},
-	{
-		Name: "TEST MODE",
-		Flags: []cli.Flag{
-			utils.EnableTestModeFlag,
-			utils.TestModeGenBlockTimeFlag,
 		},
 	},
 	{
@@ -122,15 +143,22 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
-		Name: "ACCOUNT",
+		Name: "TEST MODE",
 		Flags: []cli.Flag{
-			utils.AccountDefaultFlag,
-			utils.AccountKeylenFlag,
-			utils.AccountSetDefaultFlag,
-			utils.AccountSigSchemeFlag,
-			utils.AccountTypeFlag,
-			utils.AccountVerboseFlag,
-			utils.AccountAddressFlag,
+			utils.EnableTestModeFlag,
+			utils.TestModeGenBlockTimeFlag,
+		},
+	},
+	{
+		Name: "TRANSACTION",
+		Flags: []cli.Flag{
+			utils.TransactionGasLimit,
+			utils.TransactionGasPrice,
+			utils.TransactionAssetFlag,
+			utils.TransactionFromFlag,
+			utils.TransactionToFlag,
+			utils.TransactionAmountFlag,
+			utils.TransactionHashFlag,
 		},
 	},
 	{

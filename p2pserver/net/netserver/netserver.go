@@ -82,7 +82,7 @@ type PeerAddrMap struct {
 func (this *NetServer) init(pubKey keypair.PublicKey) error {
 	this.base.SetVersion(common.PROTOCOL_VERSION)
 
-	if config.DefConfig.Common.EnableConsensus {
+	if config.DefConfig.Consensus.EnableConsensus {
 		this.base.SetServices(uint64(common.VERIFY_NODE))
 	} else {
 		this.base.SetServices(uint64(common.SERVICE_NODE))
