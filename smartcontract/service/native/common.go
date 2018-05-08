@@ -422,3 +422,9 @@ func getPeerPoolMap(native *NativeService, contract common.Address, view *big.In
 	}
 	return peerPoolMap, nil
 }
+
+func splitCurve(pos float64, avg float64) float64 {
+	xi := (0.5 * 2 * float64(pos)) / avg
+	s := xi * math.Exp(- xi / 2)
+	return s
+}
