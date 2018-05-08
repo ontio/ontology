@@ -243,27 +243,6 @@ func (self *StateStore) GetStorageState(key *states.StorageKey) (*states.Storage
 	return storageState, nil
 }
 
-//FindStorageItem return the storage value of the key in smart contract.
-func (self *StateStore) FindStorageState(key *states.StorageKey) ([]*states.StorageItem, error) {
-	storeKey, err := self.getStorageKey(key)
-	if err != nil {
-		return nil, err
-	}
-	var storage []*states.StorageItem
-	iter := self.store.NewIterator(storeKey)
-	for iter.Next() {
-		reader := bytes.NewReader(iter.Value())
-		storageState := new(states.StorageItem)
-		err = storageState.Deserialize(reader)
-		if err != nil {
-			return nil, err
-		}
-		storage = append(storage, storageState)
-	}
-	iter.Release()
-	return storage, nil
-}
-
 //GetVoteStates return vote states
 func (self *StateStore) GetVoteStates() (map[common.Address]*states.VoteState, error) {
 	votes := make(map[common.Address]*states.VoteState)
