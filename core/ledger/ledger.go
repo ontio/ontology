@@ -157,22 +157,6 @@ func (self *Ledger) GetStorageItem(codeHash common.Address, key []byte) ([]byte,
 	return storageItem.Value, nil
 }
 
-func (self *Ledger) FindStorageItem(codeHash common.Address, key []byte) ([][]byte, error) {
-	storageKey := &states.StorageKey{
-		CodeHash: codeHash,
-		Key:      key,
-	}
-	storageItem, err := self.ldgStore.FindStorageItem(storageKey)
-	if err != nil {
-		return nil, fmt.Errorf("FindStorageItem error %s", err)
-	}
-	var value [][]byte
-	for _, storageitem := range storageItem {
-		value = append(value, storageitem.Value)
-	}
-	return value, nil
-}
-
 func (self *Ledger) GetContractState(contractHash common.Address) (*payload.DeployCode, error) {
 	return self.ldgStore.GetContractState(contractHash)
 }
