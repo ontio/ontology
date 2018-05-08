@@ -158,6 +158,27 @@ var (
 		Name:  "verbose,v",
 		Usage: "Display accounts with details",
 	}
+	AccountQuantityFlag = cli.UintFlag{
+		Name:  "number,n",
+		Usage: "Specifies the `<quantity>` of account to create, default is 1.",
+	}
+	AccountFileFlag = cli.StringFlag{
+		Name:  "file,f",
+		Value: "wallet.dat",
+		Usage: "Use `<filename>` as the wallet",
+	}
+	AccountSourceFileFlag = cli.StringFlag{
+		Name:  "source,s",
+		Usage: "Use `<filename>` as the source wallet file to import",
+	}
+	AccountLabelFlag = cli.StringFlag{
+		Name:  "label,l",
+		Usage: "Use `<label>` for the account",
+	}
+	AccountKeyFlag = cli.StringFlag{
+		Name:  "key,k",
+		Usage: "Use `<private key(hex encoding)>` of the account",
+	}
 
 	//SmartContract setting
 	ContractAddrFlag = cli.StringFlag{

@@ -27,8 +27,10 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/types"
 )
 
+/** Accountx - for wallet read and save, no crypto object included **/
 type Accountx struct {
 	keypair.ProtectedKey
 
@@ -64,6 +66,27 @@ func (this *Accountx) VerifyPassword(pwd []byte) bool {
 		return false
 	}
 	return true
+}
+
+func (this *Accountx) SetLabel(label string) {
+	this.Label = label
+}
+
+func CreateAccount(TypeCode keypair.KeyType, CurveCode byte, SchemeName string, password *[]byte) *Accountx {
+	prvkey, pubkey, _ := keypair.GenerateKeyPair(TypeCode, CurveCode)
+	ta := types.AddressFromPubKey(pubkey)
+	address := ta.ToBase58()
+
+	prvSecret, _ := keypair.EncryptPrivateKey(prvkey, address, *password)
+	h := sha256.Sum256(*password)
+
+	var acc = new(Accountx)
+	acc.SetKeyPair(prvSecret)
+	acc.SigSch = SchemeName
+	acc.PubKey = hex.EncodeToString(keypair.SerializePublicKey(pubkey))
+	acc.PassHash = hex.EncodeToString(h[:])
+
+	return acc
 }
 
 type WalletData struct {

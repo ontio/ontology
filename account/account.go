@@ -26,6 +26,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 )
 
+/* crypto object */
 type Account struct {
 	PrivateKey keypair.PrivateKey
 	PublicKey  keypair.PublicKey
