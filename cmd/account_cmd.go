@@ -486,7 +486,7 @@ func accountImport(ctx *cli.Context) error {
 			pass[i] = 0
 		}
 
-		var acc = new(account.Accountx)
+		var acc = new(account.AccountData)
 		acc.SetKeyPair(prvSecret)
 		acc.SigSch = ""
 		acc.PubKey = hex.EncodeToString(keypair.SerializePublicKey(pubkey))
