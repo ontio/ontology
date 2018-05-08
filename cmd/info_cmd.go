@@ -22,9 +22,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	cmdCom "github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/urfave/cli"
+	"strconv"
 )
 
 var InfoCommand = cli.Command{
@@ -32,40 +32,42 @@ var InfoCommand = cli.Command{
 	Usage: "Display informations about the chain",
 	Subcommands: []cli.Command{
 		{
-			Action: utils.MigrateFlags(txInfo),
-			Name:   "tx",
-			Usage:  "Display transaction information",
-			Flags: []cli.Flag{
-				utils.TransactionHashFlag,
-			},
-			OnUsageError: cmdCom.CommonCommandErrorHandler,
-			Description:  ``,
+			Action:      txInfo,
+			Name:        "tx",
+			Usage:       "Display transaction information",
+			Flags:       []cli.Flag{},
+			Description: "Display transaction information",
 		},
 		{
-			Action: utils.MigrateFlags(blockInfo),
-			Name:   "block",
-			Usage:  "Display block information",
-			Flags: []cli.Flag{
-				utils.BlockHashInfoFlag,
-				utils.BlockHeightInfoFlag,
-			},
-			OnUsageError: cmdCom.CommonCommandErrorHandler,
-			Description:  ``,
+			Action:      blockInfo,
+			Name:        "block",
+			Usage:       "Display block information",
+			Flags:       []cli.Flag{},
+			Description: "Display block information",
 		},
 	},
 	Description: ``,
 }
 
 func blockInfo(ctx *cli.Context) error {
-	if !ctx.IsSet(utils.BlockHashInfoFlag.Name) && !ctx.IsSet(utils.BlockHeightInfoFlag.Name) {
-		return fmt.Errorf("Missing hash or height argument")
+	if ctx.NArg() < 1 {
+		fmt.Println("Missing argument. BlockHash or height expected.\n")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
 	}
+
 	var data []byte
 	var err error
-	if ctx.IsSet(utils.BlockHeightInfoFlag.Name) {
-		data, err = utils.GetBlock(ctx.Uint(utils.BlockHeightInfoFlag.Name))
+	var height int64
+	if len(ctx.Args().First()) > 30 {
+		blockHash := ctx.Args().First()
+		data, err = utils.GetBlock(blockHash)
 	} else {
-		data, err = utils.GetBlock(ctx.String(utils.BlockHashInfoFlag.Name))
+		height, err = strconv.ParseInt(ctx.Args().First(), 10, 64)
+		if err != nil {
+			return fmt.Errorf("Arg:%s invalid block hash or block height\n", ctx.Args().First())
+		}
+		data, err = utils.GetBlock(height)
 	}
 	if err != nil {
 		return err
@@ -80,11 +82,13 @@ func blockInfo(ctx *cli.Context) error {
 }
 
 func txInfo(ctx *cli.Context) error {
-	if !ctx.IsSet(utils.TransactionHashFlag.Name) {
-		return fmt.Errorf("Missing hash argument")
+	if ctx.NArg() < 1 {
+		fmt.Println("Missing argument. TxHash expected.\n")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
 	}
-	txHash := ctx.String(utils.TransactionHashFlag.Name)
-	txInfo, err := utils.GetRawTransaction(txHash)
+
+	txInfo, err := utils.GetRawTransaction(ctx.Args().First())
 	if err != nil {
 		return err
 	}

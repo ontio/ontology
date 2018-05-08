@@ -39,20 +39,21 @@ const (
 	CONSENSUS_TYPE_SOLO = "solo"
 	CONSENSUS_TYPE_VBFT = "vbft"
 
-	DEFAULT_LOG_LEVEL         = 1
-	DEFAULT_MAX_LOG_SIZE      = 100 //MByte
-	DEFAULT_NODE_PORT         = uint(20338)
-	DEFAULT_CONSENSUS_PORT    = uint(20339)
-	DEFAULT_RPC_PORT          = uint(20336)
-	DEFAULT_RPC_LOCAL_PORT    = uint(20337)
-	DEFAULT_REST_PORT         = uint(20334)
-	DEFAULT_WS_PORT           = uint(20335)
-	DEFAULT_HTTP_INFO_PORT    = uint(0)
-	DEFAULT_MAX_TX_IN_BLOCK   = 60000
-	DEFAULT_MAX_SYNC_HEADER   = 500
-	DEFAULT_ENABLE_CONSENSUS  = true
-	DEFAULT_DISABLE_EVENT_LOG = false
-	DEFAULT_GAS_LIMIT         = 30000
+	DEFAULT_LOG_LEVEL        = 1
+	DEFAULT_MAX_LOG_SIZE     = 100 //MByte
+	DEFAULT_NODE_PORT        = uint(20338)
+	DEFAULT_CONSENSUS_PORT   = uint(20339)
+	DEFAULT_RPC_PORT         = uint(20336)
+	DEFAULT_RPC_LOCAL_PORT   = uint(20337)
+	DEFAULT_REST_PORT        = uint(20334)
+	DEFAULT_WS_PORT          = uint(20335)
+	DEFAULT_HTTP_INFO_PORT   = uint(0)
+	DEFAULT_MAX_TX_IN_BLOCK  = 600000
+	DEFAULT_MAX_SYNC_HEADER  = 500
+	DEFAULT_ENABLE_CONSENSUS = true
+	DEFAULT_ENABLE_EVENT_LOG = true
+	DEFAULT_CLI_RPC_PORT     = uint(20000)
+	DEFAULT_GAS_LIMIT        = 30000
 )
 
 var PolarisConfig = &GenesisConfig{
@@ -126,13 +127,16 @@ type SOLOConfig struct {
 }
 
 type CommonConfig struct {
-	MaxTxInBlock    uint
-	NodeType        string
+	NodeType       string
+	EnableEventLog bool
+	SystemFee      map[string]int64
+	GasLimit       uint64
+	GasPrice       uint64
+}
+
+type ConsensusConfig struct {
 	EnableConsensus bool
-	DisableEventLog bool
-	SystemFee       map[string]int64
-	GasLimit        uint64
-	GasPrice        uint64
+	MaxTxInBlock    uint
 }
 
 type P2PNodeConfig struct {
@@ -167,24 +171,33 @@ type WebSocketConfig struct {
 	HttpKeyPath  string
 }
 
+type CliConfig struct {
+	EnableCliRpcServer bool
+	CliRpcPort         uint
+}
+
 type OntologyConfig struct {
-	Genesis *GenesisConfig
-	Common  *CommonConfig
-	P2PNode *P2PNodeConfig
-	Rpc     *RpcConfig
-	Restful *RestfulConfig
-	Ws      *WebSocketConfig
+	Genesis   *GenesisConfig
+	Common    *CommonConfig
+	Consensus *ConsensusConfig
+	P2PNode   *P2PNodeConfig
+	Rpc       *RpcConfig
+	Restful   *RestfulConfig
+	Ws        *WebSocketConfig
+	Cli       *CliConfig
 }
 
 func NewOntologyConfig() *OntologyConfig {
 	return &OntologyConfig{
 		Genesis: PolarisConfig,
 		Common: &CommonConfig{
+			EnableEventLog: DEFAULT_ENABLE_EVENT_LOG,
+			SystemFee:      make(map[string]int64),
+			GasLimit:       DEFAULT_GAS_LIMIT,
+		},
+		Consensus: &ConsensusConfig{
+			EnableConsensus: true,
 			MaxTxInBlock:    DEFAULT_MAX_TX_IN_BLOCK,
-			EnableConsensus: DEFAULT_ENABLE_CONSENSUS,
-			DisableEventLog: DEFAULT_DISABLE_EVENT_LOG,
-			SystemFee:       make(map[string]int64),
-			GasLimit:        DEFAULT_GAS_LIMIT,
 		},
 		P2PNode: &P2PNodeConfig{
 			NodePort:          DEFAULT_NODE_PORT,
@@ -209,6 +222,10 @@ func NewOntologyConfig() *OntologyConfig {
 		Ws: &WebSocketConfig{
 			EnableHttpWs: true,
 			HttpWsPort:   DEFAULT_WS_PORT,
+		},
+		Cli: &CliConfig{
+			EnableCliRpcServer: false,
+			CliRpcPort:         DEFAULT_CLI_RPC_PORT,
 		},
 	}
 }
