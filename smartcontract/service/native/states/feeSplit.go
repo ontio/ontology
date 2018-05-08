@@ -30,4 +30,5 @@ type SyncNodeSplitInfo struct {
 	PeerPubkey string  `json:"peerPubkey"`
 	InitPos    uint64  `json:"initPos"`
 	Address    string  `json:"address"`
+	S          float64 `json:"s"`
 }

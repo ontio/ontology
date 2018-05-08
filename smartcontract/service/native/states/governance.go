@@ -52,14 +52,17 @@ type PeerPoolList struct {
 	Peers []*PeerPool `json:"peers"`
 }
 
+type PeerPoolMap struct {
+	PeerPoolMap map[string]*PeerPool `json:"peerPoolMap"`
+}
+
 type PeerPool struct {
-	Index      uint32   `json:"index"`
-	PeerPubkey string   `json:"peerPubkey"`
-	Status     Status   `json:"status"`
-	QuitView   *big.Int `json:"quitView"`
-	Address    string   `json:"address"`
-	InitPos    uint64   `json:"initPos"`
-	TotalPos   uint64   `json:"totalPos"`
+	Index      uint32 `json:"index"`
+	PeerPubkey string `json:"peerPubkey"`
+	Status     Status `json:"status"`
+	Address    string `json:"address"`
+	InitPos    uint64 `json:"initPos"`
+	TotalPos   uint64 `json:"totalPos"`
 }
 
 type QuitCandidateParam struct {
