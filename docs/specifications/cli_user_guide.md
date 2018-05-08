@@ -3,7 +3,7 @@
 
 - [CLI Account Command](#cli-account-cmd)
 - [CLI Info Show Command](#cli-info-show-cmd)
-- [CLI ASSET Command](#cli-asset-cmd)
+- [CLI Asset Command](#cli-asset-cmd)
 - [CLI Setting Command](#cli-setting-cmd)
 - [CLI Contract Command](#cli-contract-cmd)
 
