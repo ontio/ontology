@@ -90,6 +90,7 @@ var (
 	ERR_CHECK_BIGINTEGER    = errors.NewErr("[NeoVmService] vm over max biginteger size!")
 	ERR_CURRENT_CONTEXT_NIL = errors.NewErr("[NeoVmService] neovm service current context doesn't exist!")
 	ERR_EXECUTE_CODE        = errors.NewErr("[NeoVmService] vm execute code invalid!")
+	ERR_GAS_INSUFFICIENT    = errors.NewErr("[NeoVmService] gas insufficient")
 )
 
 type (
@@ -140,6 +141,9 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 			if ok := checkBigIntegers(engine); !ok {
 				return nil, ERR_CHECK_BIGINTEGER
 			}
+		}
+		if !this.ContextRef.CheckUseGas(0) {
+			return nil, ERR_GAS_INSUFFICIENT
 		}
 		switch engine.OpCode {
 		case vm.SYSCALL:

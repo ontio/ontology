@@ -13,7 +13,6 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	rpccommon "github.com/ontio/ontology/http/base/common"
-	"github.com/ontio/ontology/smartcontract/service/native/states"
 	cstates "github.com/ontio/ontology/smartcontract/states"
 	vmtypes "github.com/ontio/ontology/smartcontract/types"
 	"math/big"
@@ -22,6 +21,7 @@ import (
 
 	"encoding/binary"
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
 	"github.com/ontio/ontology/vm/neovm"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
@@ -48,13 +48,13 @@ func Transfer(signer *account.Account, to string, amount uint) (string, error) {
 		return "", fmt.Errorf("To address:%s invalid:%s", to, err)
 	}
 	buf := bytes.NewBuffer(nil)
-	var sts []*states.State
-	sts = append(sts, &states.State{
+	var sts []*ont.State
+	sts = append(sts, &ont.State{
 		From:  signer.Address,
 		To:    toAddr,
-		Value: new(big.Int).SetUint64(uint64(amount)),
+		Value: uint64(amount),
 	})
-	transfers := &states.Transfers{
+	transfers := &ont.Transfers{
 		States: sts,
 	}
 	err = transfers.Serialize(buf)
@@ -114,7 +114,6 @@ func sign(cryptScheme string, data []byte, signer *account.Account) ([]byte, err
 //NewInvokeTransaction return smart contract invoke transaction
 func NewInvokeTransaction(gasLimit *big.Int, vmType vmtypes.VmType, code []byte) *types.Transaction {
 	invokePayload := &payload.InvokeCode{
-		GasLimit: common.Fixed64(gasLimit.Int64()),
 		Code: vmtypes.VmCode{
 			VmType: vmType,
 			Code:   code,
@@ -126,8 +125,6 @@ func NewInvokeTransaction(gasLimit *big.Int, vmType vmtypes.VmType, code []byte)
 		Nonce:      uint32(time.Now().Unix()),
 		Payload:    invokePayload,
 		Attributes: make([]*types.TxAttribute, 0, 0),
-		Fee:        make([]*types.Fee, 0, 0),
-		NetWorkFee: 0,
 		Sigs:       make([]*types.Sig, 0, 0),
 	}
 	return tx
@@ -279,8 +276,6 @@ func NewDeployCodeTransaction(
 		Nonce:      uint32(time.Now().Unix()),
 		Payload:    deployPayload,
 		Attributes: make([]*types.TxAttribute, 0, 0),
-		Fee:        make([]*types.Fee, 0, 0),
-		NetWorkFee: 0,
 		Sigs:       make([]*types.Sig, 0, 0),
 	}
 	return tx

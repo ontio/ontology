@@ -15,33 +15,17 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-package payload
+
+package init
 
 import (
-	"bytes"
-	"testing"
-
-	"github.com/ontio/ontology/smartcontract/types"
-	"github.com/stretchr/testify/assert"
+	params "github.com/ontio/ontology/smartcontract/service/native/global_params"
+	"github.com/ontio/ontology/smartcontract/service/native/ong"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
 )
 
-func TestInvokeCode_Serialize(t *testing.T) {
-	code := InvokeCode{
-		Code: types.VmCode{
-			VmType: types.NEOVM,
-			Code:   []byte{1, 2, 3},
-		},
-	}
-
-	buf := bytes.NewBuffer(nil)
-	code.Serialize(buf)
-	bs := buf.Bytes()
-	var code2 InvokeCode
-	code2.Deserialize(buf)
-	assert.Equal(t, code, code2)
-
-	buf = bytes.NewBuffer(bs[:len(bs)-2])
-	err := code.Deserialize(buf)
-
-	assert.NotNil(t, err)
+func init() {
+	ong.InitOng()
+	ont.InitOnt()
+	params.InitGlobalParams()
 }

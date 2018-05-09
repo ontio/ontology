@@ -16,15 +16,13 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package states
+package ont
 
 import (
-	"io"
-	"math/big"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
+	"io"
 )
 
 // Transfers
@@ -73,7 +71,7 @@ type State struct {
 	Version byte
 	From    common.Address
 	To      common.Address
-	Value   *big.Int
+	Value   uint64
 }
 
 func (this *State) Serialize(w io.Writer) error {
@@ -86,10 +84,7 @@ func (this *State) Serialize(w io.Writer) error {
 	if err := this.To.Serialize(w); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[State] Serialize To error!")
 	}
-	if this.Value == nil {
-		this.Value = new(big.Int)
-	}
-	if err := serialization.WriteVarBytes(w, this.Value.Bytes()); err != nil {
+	if err := serialization.WriteUint64(w, this.Value); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[State] Serialize Value error!")
 	}
 	return nil
@@ -102,23 +97,74 @@ func (this *State) Deserialize(r io.Reader) error {
 	}
 	this.Version = version
 
-	from := new(common.Address)
-	if err := from.Deserialize(r); err != nil {
+	if err := this.From.Deserialize(r); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[State] Deserialize from error!")
 	}
-	this.From = *from
 
-	to := new(common.Address)
-	if err := to.Deserialize(r); err != nil {
+	if err := this.To.Deserialize(r); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[State] Deserialize to error!")
 	}
-	this.To = *to
 
-	value, err := serialization.ReadVarBytes(r)
+	value, err := serialization.ReadUint64(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[State] Deserialize value error!")
 	}
 
-	this.Value = new(big.Int).SetBytes(value)
+	this.Value = value
+	return nil
+}
+
+type TransferFrom struct {
+	Version byte
+	Sender  common.Address
+	From    common.Address
+	To      common.Address
+	Value   uint64
+}
+
+func (this *TransferFrom) Serialize(w io.Writer) error {
+	if err := serialization.WriteByte(w, byte(this.Version)); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Serialize version error!")
+	}
+	if err := this.Sender.Serialize(w); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Serialize sender error!")
+	}
+	if err := this.From.Serialize(w); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Serialize from error!")
+	}
+	if err := this.To.Serialize(w); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Serialize to error!")
+	}
+	if err := serialization.WriteUint64(w, this.Value); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Serialize value error!")
+	}
+	return nil
+}
+
+func (this *TransferFrom) Deserialize(r io.Reader) error {
+	version, err := serialization.ReadByte(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Deserialize version error!")
+	}
+	this.Version = version
+
+	if err := this.Sender.Deserialize(r); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Deserialize sender error!")
+	}
+
+	if err := this.From.Deserialize(r); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Deserialize from error!")
+	}
+
+	if err := this.To.Deserialize(r); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Deserialize to error!")
+	}
+
+	value, err := serialization.ReadUint64(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Deserialize value error!")
+	}
+
+	this.Value = value
 	return nil
 }

@@ -38,6 +38,8 @@ func TestStatelessValidator(t *testing.T) {
 	}
 	tx := utils.NewDeployTransaction(code, "test", "1", "author", "author@123.com", "test desp", false)
 
+	tx.Payer = acc.Address
+
 	signTransaction(acc, tx)
 
 	validator := &validator{id: "test"}

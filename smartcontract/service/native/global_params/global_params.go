@@ -16,11 +16,13 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package native
+package global_params
 
 import (
 	"bytes"
 	"fmt"
+	"sync"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -28,13 +30,13 @@ import (
 	scommon "github.com/ontio/ontology/core/store/common"
 	ctypes "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/smartcontract/service/native/states"
-	"sync"
+	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 type ParamCache struct {
 	lock   sync.RWMutex
-	Params states.Params
+	Params Params
 }
 
 var GLOBAL_PARAM = map[string]string{
@@ -52,51 +54,58 @@ const (
 )
 
 var paramCache *ParamCache
-var admin *states.Admin
+var admin *Admin
 
-func init() {
-	Contracts[genesis.ParamContractAddress] = RegisterParamContract
+func InitGlobalParams() {
+	native.Contracts[genesis.ParamContractAddress] = RegisterParamContract
 	paramCache = new(ParamCache)
 	paramCache.Params = make(map[string]string)
 }
 
-func ParamInit(native *NativeService) error {
+func RegisterParamContract(native *native.NativeService) {
+	native.Register("init", ParamInit)
+	native.Register("acceptAdmin", AcceptAdmin)
+	native.Register("transferAdmin", TransferAdmin)
+	native.Register("setGlobalParam", SetGlobalParam)
+	native.Register("createSnapshot", CreateSnapshot)
+}
+
+func ParamInit(native *native.NativeService) ([]byte, error) {
 	paramCache = new(ParamCache)
 	paramCache.Params = make(map[string]string)
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	initParams := new(states.Params)
+	initParams := new(Params)
 	*initParams = make(map[string]string)
 	for k, v := range GLOBAL_PARAM {
 		(*initParams)[k] = v
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, getParamKey(contract, CURRENT_VALUE), getParamStorageItem(initParams))
 	native.CloneCache.Add(scommon.ST_STORAGE, getParamKey(contract, PREPARE_VALUE), getParamStorageItem(initParams))
-	admin = new(states.Admin)
+	admin = new(Admin)
 
 	bookKeeepers, err := config.DefConfig.GetBookkeepers()
 	if err != nil {
-		return fmt.Errorf("GetBookkeepers error:%s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("GetBookkeepers error:%s", err)
 	}
 	initAddress := ctypes.AddressFromPubKey(bookKeeepers[0])
 	copy((*admin)[:], initAddress[:])
 	native.CloneCache.Add(scommon.ST_STORAGE, getAdminKey(contract, false), getAdminStorageItem(admin))
-	return nil
+	return utils.BYTE_TRUE, nil
 }
 
-func AcceptAdmin(native *NativeService) error {
-	destinationAdmin := new(states.Admin)
+func AcceptAdmin(native *native.NativeService) ([]byte, error) {
+	destinationAdmin := new(Admin)
 	if err := destinationAdmin.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return errors.NewErr("[Accept Admin]Deserialize Admins failed!")
+		return utils.BYTE_FALSE, errors.NewErr("[Accept Admin]Deserialize Admins failed!")
 	}
 	if !native.ContextRef.CheckWitness(common.Address(*destinationAdmin)) {
-		return errors.NewErr("[Accept Admin]Authentication failed!")
+		return utils.BYTE_FALSE, errors.NewErr("[Accept Admin]Authentication failed!")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	getAdmin(native, contract)
 	transferAdmin, err := getStorageAdmin(native, getAdminKey(contract, true))
 	if err != nil || *transferAdmin != *destinationAdmin {
-		return errors.NewDetailErr(err, errors.ErrNoCode,
-			"[Accept Admin] Destination account hasn't been approved!")
+		return utils.BYTE_FALSE, fmt.Errorf("[Accept Admin] Destination account hasn't been approved: %v", err)
 	}
 	// delete transfer admin item
 	native.CloneCache.Delete(scommon.ST_STORAGE, getAdminKey(contract, true))
@@ -104,38 +113,38 @@ func AcceptAdmin(native *NativeService) error {
 	native.CloneCache.Add(scommon.ST_STORAGE, getAdminKey(contract, false), getAdminStorageItem(destinationAdmin))
 
 	admin = destinationAdmin
-	return nil
+	return utils.BYTE_TRUE, nil
 }
 
-func TransferAdmin(native *NativeService) error {
+func TransferAdmin(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	getAdmin(native, contract)
 	if !native.ContextRef.CheckWitness(common.Address(*admin)) {
-		return errors.NewErr("[Transfer Admin]Authentication failed!")
+		return utils.BYTE_FALSE, errors.NewErr("[Transfer Admin]Authentication failed!")
 	}
-	destinationAdmin := new(states.Admin)
+	destinationAdmin := new(Admin)
 	if err := destinationAdmin.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return errors.NewErr("[Transfer Admin]Deserialize Admins failed!")
+		return utils.BYTE_FALSE, errors.NewErr("[Transfer Admin]Deserialize Admins failed!")
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, getAdminKey(contract, true),
 		getAdminStorageItem(destinationAdmin))
-	return nil
+	return utils.BYTE_TRUE, nil
 }
 
-func SetGlobalParam(native *NativeService) error {
+func SetGlobalParam(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	getAdmin(native, contract)
 	if !native.ContextRef.CheckWitness(common.Address(*admin)) {
-		return errors.NewErr("[Set Param]Authentication failed!")
+		return utils.BYTE_FALSE, errors.NewErr("[Set Param]Authentication failed!")
 	}
-	params := new(states.Params)
+	params := new(Params)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return errors.NewErr("[Set Param]Deserialize failed!")
+		return utils.BYTE_FALSE, errors.NewErr("[Set Param]Deserialize failed!")
 	}
 	// read old param from database
 	storageParams, err := getStorageParam(native, getParamKey(contract, PREPARE_VALUE))
 	if err != nil {
-		return err
+		return utils.BYTE_FALSE, err
 	}
 	// update param
 	for key, value := range *params {
@@ -144,32 +153,32 @@ func SetGlobalParam(native *NativeService) error {
 	native.CloneCache.Add(scommon.ST_STORAGE, getParamKey(contract, PREPARE_VALUE),
 		getParamStorageItem(storageParams))
 	notifyParamSetSuccess(native, contract, *params)
-	return nil
+	return utils.BYTE_TRUE, nil
 }
 
-func CreateSnapshot(native *NativeService) error {
+func CreateSnapshot(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	getAdmin(native, contract)
 	if !native.ContextRef.CheckWitness(common.Address(*admin)) {
-		return errors.NewErr("[Create Snapshot]Authentication failed!")
+		return utils.BYTE_FALSE, errors.NewErr("[Create Snapshot]Authentication failed!")
 	}
 	// read prepare param
 	prepareParam, err := getStorageParam(native, getParamKey(contract, PREPARE_VALUE))
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[Create Snapshot] storage error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[Create Snapshot] storage error!")
 	}
 	if len(*prepareParam) == 0 {
-		return errors.NewErr("[Create Snapshot] Prepare param doesn't exist!")
+		return utils.BYTE_FALSE, errors.NewErr("[Create Snapshot] Prepare param doesn't exist!")
 	}
 	// set prepare value to current value, make it effective
 	native.CloneCache.Add(scommon.ST_STORAGE, getParamKey(contract, CURRENT_VALUE), getParamStorageItem(prepareParam))
 	// clear memory cache
 	clearCache()
-	return nil
+	return utils.BYTE_TRUE, nil
 }
 
-func getAdmin(native *NativeService, contract common.Address) {
-	if admin == nil || *admin == *new(states.Admin) {
+func getAdmin(native *native.NativeService, contract common.Address) {
+	if admin == nil || *admin == *new(Admin) {
 		var err error
 		// get admin from database
 		admin, err = getStorageAdmin(native, getAdminKey(contract, false))
@@ -192,7 +201,7 @@ func clearCache() {
 	paramCache.Params = make(map[string]string)
 }
 
-func setCache(params *states.Params) {
+func setCache(params *Params) {
 	paramCache.lock.Lock()
 	defer paramCache.lock.Unlock()
 	paramCache.Params = *params
@@ -204,15 +213,7 @@ func getParamFromCache(key string) string {
 	return paramCache.Params[key]
 }
 
-func RegisterParamContract(native *NativeService) {
-	native.Register("init", ParamInit)
-	native.Register("acceptAdmin", AcceptAdmin)
-	native.Register("transferAdmin", TransferAdmin)
-	native.Register("setGlobalParam", SetGlobalParam)
-	native.Register("createSnapshot", CreateSnapshot)
-}
-
-func GetGlobalParam(native *NativeService, paramName string) (string, error) {
+func GetGlobalParam(native *native.NativeService, paramName string) (string, error) {
 	if value := getParamFromCache(paramName); value != "" {
 		return value, nil
 	}

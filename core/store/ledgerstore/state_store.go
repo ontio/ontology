@@ -34,8 +34,7 @@ import (
 )
 
 var (
-	CurrentStateRoot = []byte("Current-State-Root") //CurrentStateRoot store key
-	BookerKeeper     = []byte("Booker-Keeper")      //BookerKeeper store key
+	BOOKKEEPER = []byte("Bookkeeper") //Bookkeeper store key
 )
 
 //StateStore saving the data of ledger states. Like balance of account, and the execution result of smart contract
@@ -308,9 +307,9 @@ func (self *StateStore) getCurrentBlockKey() []byte {
 }
 
 func (self *StateStore) getBookkeeperKey() ([]byte, error) {
-	key := make([]byte, 1+len(BookerKeeper))
+	key := make([]byte, 1+len(BOOKKEEPER))
 	key[0] = byte(scom.ST_BOOKKEEPER)
-	copy(key[1:], []byte(BookerKeeper))
+	copy(key[1:], []byte(BOOKKEEPER))
 	return key, nil
 }
 

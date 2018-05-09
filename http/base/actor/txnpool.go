@@ -48,7 +48,7 @@ func AppendTxToPool(txn *types.Transaction) ontErrors.ErrCode {
 	return ontErrors.ErrNoError
 }
 
-func GetTxsFromPool(byCount bool) (map[common.Uint256]*types.Transaction, common.Fixed64) {
+func GetTxsFromPool(byCount bool) (map[common.Uint256]*types.Transaction, uint64) {
 	future := txnPoolPid.RequestFuture(&tcomn.GetTxnPoolReq{ByCount: byCount}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
@@ -60,7 +60,7 @@ func GetTxsFromPool(byCount bool) (map[common.Uint256]*types.Transaction, common
 		return nil, 0
 	}
 	txMap := make(map[common.Uint256]*types.Transaction)
-	var networkFeeSum common.Fixed64
+	var networkFeeSum uint64
 	for _, v := range txpool.TxnPool {
 		txMap[v.Tx.Hash()] = v.Tx
 		networkFeeSum += v.Fee

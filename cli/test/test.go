@@ -23,7 +23,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math/big"
 	"os"
 	"time"
 
@@ -38,7 +37,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/http/base/rpc"
-	"github.com/ontio/ontology/smartcontract/service/native/states"
+	states "github.com/ontio/ontology/smartcontract/service/native/ont"
 	sstates "github.com/ontio/ontology/smartcontract/states"
 	vmtypes "github.com/ontio/ontology/smartcontract/types"
 	"github.com/urfave/cli"
@@ -156,7 +155,7 @@ func NewOntTransferTransaction(from, to common.Address, value int64) *types.Tran
 	sts = append(sts, &states.State{
 		From:  from,
 		To:    to,
-		Value: big.NewInt(value),
+		Value: uint64(value),
 	})
 	transfers := new(states.Transfers)
 	transfers.States = sts
@@ -185,6 +184,7 @@ func NewOntTransferTransaction(from, to common.Address, value int64) *types.Tran
 		Code:   ff.Bytes(),
 	})
 
+	tx.Payer = from
 	tx.Nonce = uint32(time.Now().Unix())
 
 	return tx

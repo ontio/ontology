@@ -22,38 +22,23 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ontio/ontology/common"
 	stypes "github.com/ontio/ontology/smartcontract/types"
 )
 
 // InvokeCode is an implementation of transaction payload for invoke smartcontract
 type InvokeCode struct {
-	GasLimit common.Fixed64
-	Code     stypes.VmCode
+	Code stypes.VmCode
 }
 
 func (self *InvokeCode) Serialize(w io.Writer) error {
-	var err error
-	err = self.GasLimit.Serialize(w)
-	if err != nil {
-		return fmt.Errorf("InvokeCode GasLimit Serialize failed: %s", err)
-	}
-	err = self.Code.Serialize(w)
-	if err != nil {
+	if err := self.Code.Serialize(w); err != nil {
 		return fmt.Errorf("InvokeCode Code Serialize failed: %s", err)
 	}
-	return err
+	return nil
 }
 
 func (self *InvokeCode) Deserialize(r io.Reader) error {
-	var err error
-
-	err = self.GasLimit.Deserialize(r)
-	if err != nil {
-		return fmt.Errorf("InvokeCode GasLimit Deserialize failed: %s", err)
-	}
-	err = self.Code.Deserialize(r)
-	if err != nil {
+	if err := self.Code.Deserialize(r); err != nil {
 		return fmt.Errorf("InvokeCode Code Deserialize failed: %s", err)
 	}
 	return nil
