@@ -21,10 +21,10 @@ import (
 
 	"encoding/binary"
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
 	"github.com/ontio/ontology/vm/neovm"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
 )
 
 //Return balance of address in base58 code

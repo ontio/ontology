@@ -19,29 +19,29 @@
 package ont
 
 import (
-	"fmt"
 	"bytes"
+	"fmt"
 	"math/big"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/genesis"
 	scommon "github.com/ontio/ontology/core/store/common"
 	ctypes "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"github.com/ontio/ontology/common/config"
 )
 
 var (
-	ONT_NAME = "ONT Token"
-	ONT_SYMBOL = "ONT"
-	ONT_DECIMALS = 1
+	ONT_NAME           = "ONT Token"
+	ONT_SYMBOL         = "ONT"
+	ONT_DECIMALS       = 1
 	DECREMENT_INTERVAL = uint32(2000000)
-	GENERATION_AMOUNT = [17]uint32{80, 70, 60, 50, 40, 30, 20, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10}
-	GL = uint32(len(GENERATION_AMOUNT))
-	ONT_TOTAL_SUPPLY = 1000000000
+	GENERATION_AMOUNT  = [17]uint32{80, 70, 60, 50, 40, 30, 20, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10}
+	GL                 = uint32(len(GENERATION_AMOUNT))
+	ONT_TOTAL_SUPPLY   = 1000000000
 )
 
 func InitOnt() {
@@ -190,7 +190,7 @@ func OntTotalSupply(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	amount, err := utils.GetStorageUInt64(native, GetTotalSupplyKey(contract))
 	if err != nil {
-		return utils.BYTE_FALSE,  errors.NewDetailErr(err, errors.ErrNoCode, "[OntTotalSupply] get totalSupply error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntTotalSupply] get totalSupply error!")
 	}
 	return big.NewInt(int64(amount)).Bytes(), nil
 }
@@ -254,4 +254,3 @@ func getApproveArgs(native *native.NativeService, contract, ongContract, address
 	}
 	return bf.Bytes(), nil
 }
-

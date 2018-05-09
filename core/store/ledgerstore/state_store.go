@@ -34,7 +34,7 @@ import (
 )
 
 var (
-	BookerKeeper     = []byte("Booker-Keeper")      //BookerKeeper store key
+	BookerKeeper = []byte("Booker-Keeper") //BookerKeeper store key
 )
 
 //StateStore saving the data of ledger states. Like balance of account, and the execution result of smart contract

@@ -19,9 +19,9 @@
 package init
 
 import (
+	params "github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/ong"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
-	params "github.com/ontio/ontology/smartcontract/service/native/global_params"
 )
 
 func init() {

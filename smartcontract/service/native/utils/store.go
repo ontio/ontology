@@ -19,12 +19,12 @@
 package utils
 
 import (
-	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/errors"
-	scommon "github.com/ontio/ontology/core/store/common"
-	cstates "github.com/ontio/ontology/core/states"
 	"bytes"
 	"github.com/ontio/ontology/common/serialization"
+	cstates "github.com/ontio/ontology/core/states"
+	scommon "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/smartcontract/service/native"
 )
 
 func GetStorageItem(native *native.NativeService, key []byte) (*cstates.StorageItem, error) {
@@ -43,26 +43,30 @@ func GetStorageItem(native *native.NativeService, key []byte) (*cstates.StorageI
 }
 
 func GetStorageUInt64(native *native.NativeService, key []byte) (uint64, error) {
-	item, err := GetStorageItem(native, key); if err != nil {
+	item, err := GetStorageItem(native, key)
+	if err != nil {
 		return 0, err
 	}
 	if item == nil {
 		return 0, nil
 	}
-	v, err := serialization.ReadUint64(bytes.NewBuffer(item.Value)); if err != nil {
+	v, err := serialization.ReadUint64(bytes.NewBuffer(item.Value))
+	if err != nil {
 		return 0, err
 	}
 	return v, nil
 }
 
 func GetStorageUInt32(native *native.NativeService, key []byte) (uint32, error) {
-	item, err := GetStorageItem(native, key); if err != nil {
+	item, err := GetStorageItem(native, key)
+	if err != nil {
 		return 0, err
 	}
 	if item == nil {
 		return 0, nil
 	}
-	v, err := serialization.ReadUint32(bytes.NewBuffer(item.Value)); if err != nil {
+	v, err := serialization.ReadUint32(bytes.NewBuffer(item.Value))
+	if err != nil {
 		return 0, err
 	}
 	return v, nil
@@ -79,5 +83,3 @@ func GetUInt32StorageItem(value uint32) *cstates.StorageItem {
 	serialization.WriteUint32(bf, value)
 	return &cstates.StorageItem{Value: bf.Bytes()}
 }
-
-

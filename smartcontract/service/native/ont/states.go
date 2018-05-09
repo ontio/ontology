@@ -19,12 +19,11 @@
 package ont
 
 import (
-	"io"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/common"
+	"io"
 )
-
 
 // Transfers
 type Transfers struct {
@@ -179,5 +178,3 @@ func (this *TransferFrom) Deserialize(r io.Reader) error {
 	this.Value = value
 	return nil
 }
-
-

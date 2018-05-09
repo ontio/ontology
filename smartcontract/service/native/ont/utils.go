@@ -19,16 +19,16 @@
 package ont
 
 import (
-	"fmt"
 	"bytes"
+	"fmt"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/event"
-	scommon "github.com/ontio/ontology/core/store/common"
-	cstates "github.com/ontio/ontology/core/states"
-	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/common/serialization"
+	cstates "github.com/ontio/ontology/core/states"
+	scommon "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -41,9 +41,9 @@ var (
 func AddNotifications(native *native.NativeService, contract common.Address, state *State) {
 	native.Notifications = append(native.Notifications,
 		&event.NotifyEventInfo{
-			TxHash:   native.Tx.Hash(),
+			TxHash:          native.Tx.Hash(),
 			ContractAddress: contract,
-			States:   []interface{}{TRANSFER_NAME, state.From.ToBase58(), state.To.ToBase58(), state.Value},
+			States:          []interface{}{TRANSFER_NAME, state.From.ToBase58(), state.To.ToBase58(), state.Value},
 		})
 }
 
@@ -70,7 +70,7 @@ func IsTransferValid(native *native.NativeService, state *State) error {
 
 func GetToUInt64StorageItem(toBalance, value uint64) *cstates.StorageItem {
 	bf := new(bytes.Buffer)
-	serialization.WriteUint64(bf, toBalance + value)
+	serialization.WriteUint64(bf, toBalance+value)
 	return &cstates.StorageItem{Value: bf.Bytes()}
 }
 
@@ -146,7 +146,7 @@ func fromApprove(native *native.NativeService, fromApproveKey []byte, value uint
 	} else if approveValue == value {
 		native.CloneCache.Delete(scommon.ST_STORAGE, fromApproveKey)
 	} else {
-		native.CloneCache.Add(scommon.ST_STORAGE, fromApproveKey, utils.GetUInt64StorageItem(approveValue - value))
+		native.CloneCache.Add(scommon.ST_STORAGE, fromApproveKey, utils.GetUInt64StorageItem(approveValue-value))
 	}
 	return nil
 }
@@ -161,7 +161,7 @@ func fromTransfer(native *native.NativeService, fromKey []byte, value uint64) (u
 	} else if fromBalance == value {
 		native.CloneCache.Delete(scommon.ST_STORAGE, fromKey)
 	} else {
-		native.CloneCache.Add(scommon.ST_STORAGE, fromKey, utils.GetUInt64StorageItem(fromBalance - value))
+		native.CloneCache.Add(scommon.ST_STORAGE, fromKey, utils.GetUInt64StorageItem(fromBalance-value))
 	}
 	return fromBalance, nil
 }
@@ -179,8 +179,3 @@ func getAddressHeightKey(contract, address common.Address) []byte {
 	temp := append(ADDRESS_HEIGHT, address[:]...)
 	return append(contract[:], temp...)
 }
-
-
-
-
-

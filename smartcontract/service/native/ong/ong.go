@@ -22,20 +22,20 @@ import (
 	"bytes"
 	"math/big"
 
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/genesis"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
-	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 var (
-	ONG_NAME = "ONG Token"
-	ONG_SYMBOL = "ONG"
-	ONG_DECIMALS = 9
+	ONG_NAME         = "ONG Token"
+	ONG_SYMBOL       = "ONG"
+	ONG_DECIMALS     = 9
 	ONG_TOTAL_SUPPLY = uint64(1000000000000000000)
 )
 
@@ -136,7 +136,7 @@ func OngTotalSupply(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	amount, err := utils.GetStorageUInt64(native, ont.GetTotalSupplyKey(contract))
 	if err != nil {
-		return utils.BYTE_FALSE,  errors.NewDetailErr(err, errors.ErrNoCode, "[OntTotalSupply] get totalSupply error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntTotalSupply] get totalSupply error!")
 	}
 	return big.NewInt(int64(amount)).Bytes(), nil
 }
@@ -161,4 +161,3 @@ func OngBalanceOf(native *native.NativeService) ([]byte, error) {
 func getOntContext() []byte {
 	return genesis.OntContractAddress[:]
 }
-

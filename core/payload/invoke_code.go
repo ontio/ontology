@@ -27,7 +27,7 @@ import (
 
 // InvokeCode is an implementation of transaction payload for invoke smartcontract
 type InvokeCode struct {
-	Code     stypes.VmCode
+	Code stypes.VmCode
 }
 
 func (self *InvokeCode) Serialize(w io.Writer) error {
