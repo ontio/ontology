@@ -50,7 +50,7 @@ var (
 	endorseBlockTimeout    = 100 * time.Millisecond
 	commitBlockTimeout     = 200 * time.Millisecond
 	peerHandshakeTimeout   = 10 * time.Second
-	txPooltimeout          = 1 * time.Second
+	txPooltimeout          = 300 * time.Millisecond
 	zeroTxBlockTimeout     = 10 * time.Second
 )
 
@@ -175,8 +175,12 @@ func (self *EventTimer) getEventTimeout(evtType TimerEventType) time.Duration {
 	case EventPeerHeartbeat:
 		return peerHandshakeTimeout
 	case EventProposalBackoff:
-		d := (rand.Int63n(100) + 50) * int64(make2ndProposalTimeout) / 100
-		return time.Duration(d)
+		rank := self.server.getProposerRank(self.server.GetCurrentBlockNo(), self.server.Index)
+		if rank >= 0 {
+			d := int64(rank + 1) * int64(make2ndProposalTimeout) / 3
+			return time.Duration(d)
+		}
+		return time.Duration(100 * time.Second)
 	case EventRandomBackoff:
 		d := (rand.Int63n(100) + 50) * int64(endorseBlockTimeout) / 100
 		return time.Duration(d)
