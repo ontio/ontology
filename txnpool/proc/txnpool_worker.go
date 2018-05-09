@@ -108,6 +108,13 @@ func (worker *txPoolWorker) handleRsp(rsp *types.CheckResponse) {
 		return
 	}
 
+	if tc.STATEFUL_MASK&(0x1<<rsp.Type) != 0 && rsp.Height < worker.server.getHeight() {
+		// If validator's height is less than the required one, re-validate it.
+		worker.sendReq2StatefulV(pt.req)
+		pt.valTime = time.Now()
+		return
+	}
+
 	if pt.flag&(0x1<<rsp.Type) == 0 {
 		retAttr := &tc.TXAttr{
 			Height:  rsp.Height,

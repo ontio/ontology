@@ -73,6 +73,7 @@ type TXPoolServer struct {
 	validators    *registerValidators                 // The registered validators
 	stats         txStats                             // The transaction statstics
 	slots         chan struct{}                       // The limited slots for the new transaction
+	height        uint32                              // The current block height
 }
 
 // NewTxPoolServer creates a new tx pool server to schedule workers to
@@ -158,6 +159,20 @@ func (s *TXPoolServer) getPendingListSize() int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return len(s.allPendingTxs)
+}
+
+// getHeight return current block height
+func (s *TXPoolServer) getHeight() uint32 {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.height
+}
+
+// setHeight set current block height
+func (s *TXPoolServer) setHeight(height uint32) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.height = height
 }
 
 // removePendingTx removes a transaction from the pending list
@@ -392,6 +407,8 @@ func (s *TXPoolServer) getTransaction(hash common.Uint256) *tx.Transaction {
 
 // getTxPool returns a tx list for consensus.
 func (s *TXPoolServer) getTxPool(byCount bool, height uint32) []*tc.TXEntry {
+	s.setHeight(height)
+
 	avlTxList, oldTxList := s.txPool.GetTxPool(byCount, height)
 
 	for _, t := range oldTxList {
@@ -538,6 +555,7 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 		return
 	}
 
+	s.setHeight(req.Height)
 	s.pendingBlock.mu.Lock()
 	defer s.pendingBlock.mu.Unlock()
 
