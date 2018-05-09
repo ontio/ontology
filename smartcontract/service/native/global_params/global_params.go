@@ -105,8 +105,7 @@ func AcceptAdmin(native *native.NativeService) ([]byte, error) {
 	getAdmin(native, contract)
 	transferAdmin, err := getStorageAdmin(native, getAdminKey(contract, true))
 	if err != nil || *transferAdmin != *destinationAdmin {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode,
-			"[Accept Admin] Destination account hasn't been approved!")
+		return utils.BYTE_FALSE, fmt.Errorf("[Accept Admin] Destination account hasn't been approved: %v", err)
 	}
 	// delete transfer admin item
 	native.CloneCache.Delete(scommon.ST_STORAGE, getAdminKey(contract, true))

@@ -62,7 +62,7 @@ func IsApproveValid(native *native.NativeService, state *State) error {
 }
 
 func IsTransferValid(native *native.NativeService, state *State) error {
-	if native.ContextRef.CheckWitness(state.From) == false {
+	if !native.ContextRef.CheckWitness(state.From) {
 		return errors.NewErr("[IsTransferValid] Authentication failed!")
 	}
 	return nil
