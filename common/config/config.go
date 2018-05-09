@@ -213,7 +213,7 @@ func (this *OntologyConfig) GetBookkeepers() ([]keypair.PublicKey, error) {
 	var bookKeepers []string
 	switch this.Genesis.ConsensusType {
 	case CONSENSUS_TYPE_VBFT:
-		for _, peer := range this.Genesis.VBFT.Peers{
+		for _, peer := range this.Genesis.VBFT.Peers {
 			bookKeepers = append(bookKeepers, peer.NodeID)
 		}
 	case CONSENSUS_TYPE_DBFT:
