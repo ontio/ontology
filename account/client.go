@@ -36,8 +36,7 @@ import (
 )
 
 const (
-	DEFAULT_BOOKKEEPER_COUNT = 4
-	WALLET_FILENAME          = "wallet.dat"
+	WALLET_FILENAME = "wallet.dat"
 )
 
 type Client interface {

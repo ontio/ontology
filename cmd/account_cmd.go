@@ -267,6 +267,10 @@ func accountCreate(ctx *cli.Context) error {
 			return errors.New("Add account failed")
 		}
 	}
+	walletFile := wFilePath
+	if ctx.IsSet(utils.WalletFileFlag.Name) {
+		walletFile = ctx.String(utils.WalletFileFlag.Name)
+	}
 
 	prvkey, pubkey, _ = keypair.GenerateKeyPair(inputKeyTypeInfo.code, inputCurveInfo.code)
 	ta := types.AddressFromPubKey(pubkey)
@@ -285,14 +289,14 @@ func accountCreate(ctx *cli.Context) error {
 	acc.PassHash = hex.EncodeToString(h[:])
 
 	wallet := new(account.WalletData)
-	err := wallet.Load(wFilePath)
+	err := wallet.Load(walletFile)
 	if err != nil {
 		wallet.Inititalize()
 	}
 
 	wallet.AddAccount(acc)
 
-	if wallet.Save(wFilePath) != nil {
+	if wallet.Save(walletFile) != nil {
 		fmt.Println("Wallet file save failed.")
 	}
 
