@@ -19,16 +19,16 @@
 package states
 
 type CandidateSplitInfo struct {
-	PeerPubkey string  `json:"peerPubkey"`
-	InitPos    uint64  `json:"initPos"`
-	Address    string  `json:"address"`
-	Stake      float64 `json:"stake"`
-	S          float64 `json:"s"`
+	PeerPubkey string `json:"peerPubkey"`
+	InitPos    uint64 `json:"initPos"`
+	Address    string `json:"address"`
+	Stake      uint64 `json:"stake"`
+	S          uint64 `json:"s"`
 }
 
 type SyncNodeSplitInfo struct {
-	PeerPubkey string  `json:"peerPubkey"`
-	InitPos    uint64  `json:"initPos"`
-	Address    string  `json:"address"`
-	S          float64 `json:"s"`
+	PeerPubkey string `json:"peerPubkey"`
+	InitPos    uint64 `json:"initPos"`
+	Address    string `json:"address"`
+	S          uint64 `json:"s"`
 }
