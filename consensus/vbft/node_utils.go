@@ -90,25 +90,22 @@ func (self *Server) isProposer(blockNum uint64, peerIdx uint32) bool {
 }
 
 func (self *Server) is2ndProposer(blockNum uint64, peerIdx uint32) bool {
+	rank := self.getProposerRank(blockNum, peerIdx)
+	return rank > 0 && rank <= int(self.config.C)
+}
+
+func (self *Server) getProposerRank(blockNum uint64, peerIdx uint32) int {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
 
-	{
-		for _, id := range self.currentParticipantConfig.Proposers[1:] {
-			if id == peerIdx {
-				return true
-			}
-		}
-	}
-
-	return false
+	return self.getProposerRankLocked(blockNum, peerIdx)
 }
 
 func (self *Server) isEndorser(blockNum uint64, peerIdx uint32) bool {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
 
-	// the first 2F+1 active endorsers
+	// the first 2C+1 active endorsers
 	var activeN uint32
 	{
 		for _, id := range self.currentParticipantConfig.Endorsers {
@@ -131,7 +128,7 @@ func (self *Server) isCommitter(blockNum uint64, peerIdx uint32) bool {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
 
-	// the first 2F+1 active committers
+	// the first 2C+1 active committers
 	var activeN uint32
 	{
 		for _, id := range self.currentParticipantConfig.Committers {
