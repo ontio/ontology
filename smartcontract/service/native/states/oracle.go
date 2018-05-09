@@ -20,6 +20,27 @@ package states
 
 import "math/big"
 
+type OracleNodeStatus int
+
+type RegisterOracleNodeParam struct {
+	Address  string `json:"address"`
+	Guaranty uint64 `json:"guaranty"`
+}
+
+type ApproveOracleNodeParam struct {
+	Address string `json:"address"`
+}
+
+type OracleNode struct {
+	Address  string           `json:"address"`
+	Guaranty uint64           `json:"guaranty"`
+	Status   OracleNodeStatus `json:"status"`
+}
+
+type QuitOracleNodeParam struct {
+	Address string `json:"address"`
+}
+
 type CreateOracleRequestParam struct {
 	Request   string   `json:"request"`
 	OracleNum *big.Int `json:"oracleNum"`
@@ -32,7 +53,7 @@ type UndoRequests struct {
 
 type SetOracleOutcomeParam struct {
 	TxHash  string      `json:"txHash"`
-	Owner   string      `json:"owner"`
+	Address string      `json:"owner"`
 	Outcome interface{} `json:"outcome"`
 }
 
@@ -42,7 +63,7 @@ type OutcomeRecord struct {
 
 type SetOracleCronOutcomeParam struct {
 	TxHash  string      `json:"txHash"`
-	Owner   string      `json:"owner"`
+	Address string      `json:"owner"`
 	Outcome interface{} `json:"outcome"`
 }
 
@@ -51,6 +72,6 @@ type CronOutcomeRecord struct {
 }
 
 type ChangeCronViewParam struct {
-	TxHash string `json:"txHash"`
-	Owner  string `json:"owner"`
+	TxHash  string `json:"txHash"`
+	Address string `json:"owner"`
 }
