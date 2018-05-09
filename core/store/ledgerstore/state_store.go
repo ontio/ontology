@@ -34,7 +34,6 @@ import (
 )
 
 var (
-	CurrentStateRoot = []byte("Current-State-Root") //CurrentStateRoot store key
 	BookerKeeper     = []byte("Booker-Keeper")      //BookerKeeper store key
 )
 

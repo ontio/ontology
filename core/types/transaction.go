@@ -100,10 +100,7 @@ func (self *Transaction) GetSignatureAddresses() []common.Address {
 		if n == 1 {
 			address = append(address, AddressFromPubKey(sig.PubKeys[0]))
 		} else {
-			addr, err := AddressFromMultiPubKeys(sig.PubKeys, m)
-			if err != nil {
-				return err
-			}
+			addr, _ := AddressFromMultiPubKeys(sig.PubKeys, m)
 			address = append(address, addr)
 		}
 	}
@@ -323,9 +320,8 @@ func (tx *Transaction) ToArray() []byte {
 func (tx *Transaction) Hash() common.Uint256 {
 	if tx.hash == nil {
 		buf := bytes.Buffer{}
-		if err := tx.SerializeUnsigned(&buf); err != nil {
-			return err
-		}
+		tx.SerializeUnsigned(&buf)
+
 		temp := sha256.Sum256(buf.Bytes())
 		f := common.Uint256(sha256.Sum256(temp[:]))
 		tx.hash = &f
