@@ -213,8 +213,9 @@ func (this *OntologyConfig) GetBookkeepers() ([]keypair.PublicKey, error) {
 	var bookKeepers []string
 	switch this.Genesis.ConsensusType {
 	case CONSENSUS_TYPE_VBFT:
-		//Does not support VBFT temporary
-		return nil, nil
+		for _, peer := range this.Genesis.VBFT.Peers {
+			bookKeepers = append(bookKeepers, peer.NodeID)
+		}
 	case CONSENSUS_TYPE_DBFT:
 		bookKeepers = this.Genesis.DBFT.Bookkeepers
 	case CONSENSUS_TYPE_SOLO:
