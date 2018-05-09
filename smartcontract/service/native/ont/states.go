@@ -97,17 +97,13 @@ func (this *State) Deserialize(r io.Reader) error {
 	}
 	this.Version = version
 
-	from := new(common.Address)
-	if err := from.Deserialize(r); err != nil {
+	if err := this.From.Deserialize(r); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[State] Deserialize from error!")
 	}
-	this.From = *from
 
-	to := new(common.Address)
-	if err := to.Deserialize(r); err != nil {
+	if err := this.To.Deserialize(r); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[State] Deserialize to error!")
 	}
-	this.To = *to
 
 	value, err := serialization.ReadUint64(r)
 	if err != nil {
@@ -152,23 +148,17 @@ func (this *TransferFrom) Deserialize(r io.Reader) error {
 	}
 	this.Version = version
 
-	sender := new(common.Address)
-	if err := sender.Deserialize(r); err != nil {
+	if err := this.Sender.Deserialize(r); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Deserialize sender error!")
 	}
-	this.Sender = *sender
 
-	from := new(common.Address)
-	if err := from.Deserialize(r); err != nil {
+	if err := this.From.Deserialize(r); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Deserialize from error!")
 	}
-	this.From = *from
 
-	to := new(common.Address)
-	if err := to.Deserialize(r); err != nil {
+	if err := this.To.Deserialize(r); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Deserialize to error!")
 	}
-	this.To = *to
 
 	value, err := serialization.ReadUint64(r)
 	if err != nil {
