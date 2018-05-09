@@ -7,6 +7,7 @@ import (
 
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 type attribute struct {
@@ -84,14 +85,14 @@ func insertOrUpdateAttr(srvc *native.NativeService, encID []byte, attr *attribut
 	if err != nil {
 		return errors.New("serialize attribute value error: " + err.Error())
 	}
-	err = native.LinkedlistInsert(srvc, key, attr.key, val)
+	err = utils.LinkedlistInsert(srvc, key, attr.key, val)
 	if err != nil {
 		return errors.New("store attribute error: " + err.Error())
 	}
 	return nil
 }
 
-func findAttr(srvc *native.NativeService, encID, item []byte) (*native.LinkedlistNode, error) {
+func findAttr(srvc *native.NativeService, encID, item []byte) (*utils.LinkedlistNode, error) {
 	key := append(encID, field_attr)
-	return native.LinkedlistGetItem(srvc, key, item)
+	return utils.LinkedlistGetItem(srvc, key, item)
 }

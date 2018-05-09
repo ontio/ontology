@@ -7,6 +7,7 @@ import (
 
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 func GetPublicKeyByID(srvc *native.NativeService) ([]byte, error) {
@@ -61,7 +62,7 @@ func GetPublicKeys(srvc *native.NativeService) ([]byte, error) {
 		return nil, errors.New("get public keys error: invalid ID")
 	}
 	key := append(did, field_pk)
-	item, err := native.LinkedlistGetHead(srvc, key)
+	item, err := utils.LinkedlistGetHead(srvc, key)
 	if err != nil {
 		return nil, fmt.Errorf("get public keys error: cannot get the list head, %s", err)
 	} else if len(item) == 0 {
@@ -71,7 +72,7 @@ func GetPublicKeys(srvc *native.NativeService) ([]byte, error) {
 	var i uint = 0
 	var res bytes.Buffer
 	for len(item) > 0 {
-		node, err := native.LinkedlistGetItem(srvc, key, item)
+		node, err := utils.LinkedlistGetItem(srvc, key, item)
 		if err != nil {
 			return nil, fmt.Errorf("get public keys error: %s", err)
 		} else if node == nil {
@@ -99,7 +100,7 @@ func GetAttributes(srvc *native.NativeService) ([]byte, error) {
 		return nil, errors.New("get attributes error: invalid ID")
 	}
 	key := append(did, field_attr)
-	item, err := native.LinkedlistGetHead(srvc, key)
+	item, err := utils.LinkedlistGetHead(srvc, key)
 	if err != nil {
 		return nil, fmt.Errorf("get attributes error: get list head error, %s", err)
 	} else if len(item) == 0 {
@@ -109,7 +110,7 @@ func GetAttributes(srvc *native.NativeService) ([]byte, error) {
 	var res bytes.Buffer
 	var i uint16 = 0
 	for len(item) > 0 {
-		node, err := native.LinkedlistGetItem(srvc, key, item)
+		node, err := utils.LinkedlistGetItem(srvc, key, item)
 		if err != nil {
 			return nil, fmt.Errorf("get attributes error: get storage item error, %s", err)
 		} else if node == nil {

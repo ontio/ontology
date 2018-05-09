@@ -9,6 +9,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 type publicKey struct {
@@ -58,7 +59,7 @@ func (this *publicKey) Bytes() ([]byte, error) {
 func insertPk(srvc *native.NativeService, encID, pk []byte) error {
 	var index uint32 = 0
 	key1 := append(encID, field_pk)
-	item, err := native.LinkedlistGetHead(srvc, key1)
+	item, err := utils.LinkedlistGetHead(srvc, key1)
 	if err == nil && item != nil {
 		index = binary.LittleEndian.Uint32(item[len(key1):])
 	}
@@ -71,7 +72,7 @@ func insertPk(srvc *native.NativeService, encID, pk []byte) error {
 	if err != nil {
 		return errors.New("register ONT ID error: " + err.Error())
 	}
-	return native.LinkedlistInsert(srvc, key1, key2, val)
+	return utils.LinkedlistInsert(srvc, key1, key2, val)
 }
 
 func getPk(srvc *native.NativeService, encID []byte, index uint32) (*publicKey, error) {
@@ -79,7 +80,7 @@ func getPk(srvc *native.NativeService, encID []byte, index uint32) (*publicKey, 
 	var buf [4]byte
 	binary.LittleEndian.PutUint32(buf[:], index)
 	key2 := buf[:]
-	node, err := native.LinkedlistGetItem(srvc, key1, key2)
+	node, err := utils.LinkedlistGetItem(srvc, key1, key2)
 	if err != nil {
 		return nil, err
 	}
@@ -98,13 +99,13 @@ func getPk(srvc *native.NativeService, encID []byte, index uint32) (*publicKey, 
 
 func findPk(srvc *native.NativeService, encID, pub []byte) ([]byte, error) {
 	key := append(encID, field_pk)
-	item, err := native.LinkedlistGetHead(srvc, key)
+	item, err := utils.LinkedlistGetHead(srvc, key)
 	if err != nil {
 		return nil, err
 	}
 
 	for len(item) > 0 {
-		node, err := native.LinkedlistGetItem(srvc, key, item)
+		node, err := utils.LinkedlistGetItem(srvc, key, item)
 		if err != nil {
 			log.Debug(err)
 			continue

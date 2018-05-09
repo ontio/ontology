@@ -1,4 +1,4 @@
-package native
+package utils
 
 import (
 	"encoding/hex"

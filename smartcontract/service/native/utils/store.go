@@ -83,3 +83,7 @@ func GetUInt32StorageItem(value uint32) *cstates.StorageItem {
 	serialization.WriteUint32(bf, value)
 	return &cstates.StorageItem{Value: bf.Bytes()}
 }
+
+func PutBytes(native *native.NativeService, key []byte, value []byte) {
+	native.CloneCache.Add(scommon.ST_STORAGE, key, &cstates.StorageItem{Value: value})
+}

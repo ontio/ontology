@@ -1,4 +1,4 @@
-package native
+package utils
 
 import (
 	"bytes"
@@ -13,9 +13,10 @@ import (
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/smartcontract/service/native"
 )
 
-func PutJson(srvc *NativeService, key, data []byte) error {
+func PutJson(srvc *native.NativeService, key, data []byte) error {
 	m := make(map[string]interface{})
 	err := json.Unmarshal(data, &m)
 	if err != nil {
@@ -24,7 +25,7 @@ func PutJson(srvc *NativeService, key, data []byte) error {
 	return storeJson(srvc, string(key), m)
 }
 
-func GetJson(srvc *NativeService, key []byte) ([]byte, error) {
+func GetJson(srvc *native.NativeService, key []byte) ([]byte, error) {
 	items, err := srvc.CloneCache.Store.Find(common.ST_STORAGE, key)
 	if err != nil {
 		return nil, err
@@ -38,7 +39,7 @@ func GetJson(srvc *NativeService, key []byte) ([]byte, error) {
 	return json.Marshal(obj)
 }
 
-func DelJson(srvc *NativeService, key []byte) error {
+func DelJson(srvc *native.NativeService, key []byte) error {
 	key1 := append(key, byte('.'))
 	items, err := srvc.CloneCache.Store.Find(common.ST_STORAGE, key1)
 	if err != nil {
@@ -134,7 +135,7 @@ func makePath(prefix, key string) string {
 	return prefix + "." + key
 }
 
-func makeValue(srvc *NativeService, key string, val interface{}) (*storeUnit, error) {
+func makeValue(srvc *native.NativeService, key string, val interface{}) (*storeUnit, error) {
 	var u = storeUnit{value: val}
 	switch t := val.(type) {
 	case bool:
@@ -161,7 +162,7 @@ func makeValue(srvc *NativeService, key string, val interface{}) (*storeUnit, er
 	return &u, nil
 }
 
-func storeJson(srvc *NativeService, path string, data map[string]interface{}) error {
+func storeJson(srvc *native.NativeService, path string, data map[string]interface{}) error {
 	for k, v := range data {
 		p := makePath(path, k)
 		u, err := makeValue(srvc, p, v)
@@ -178,7 +179,7 @@ func storeJson(srvc *NativeService, path string, data map[string]interface{}) er
 	return nil
 }
 
-func storeArray(srvc *NativeService, path string, data []interface{}) ([]byte, error) {
+func storeArray(srvc *native.NativeService, path string, data []interface{}) ([]byte, error) {
 	path1 := path + ".val" //TODO confirm
 	for i, v := range data {
 		path2 := fmt.Sprintf("%s%d", path1, i)
