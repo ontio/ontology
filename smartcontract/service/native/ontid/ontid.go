@@ -9,13 +9,13 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/signature"
+	cmn "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 )
 
@@ -31,6 +31,7 @@ func RegisterIDContract(srvc *native.NativeService) {
 	srvc.Register("removeKey", RemoveKey)
 	srvc.Register("addRecovery", AddRecovery)
 	srvc.Register("changeRecovery", ChangeRecovery)
+	srvc.Register("regIDWithAttributes", RegIdWithAttributes)
 	srvc.Register("addAttribute", AddAttribute)
 	srvc.Register("removeAttribute", RemoveAttribute)
 	srvc.Register("verifySignature", verifySignature)
@@ -320,18 +321,28 @@ func AddKey(srvc *native.NativeService) error {
 	}
 	log.Debug("arg 1:", hex.EncodeToString(arg1))
 
-	// arg2: operator's public key
+	// arg2: operator's public key / address
 	arg2, err := serialization.ReadVarBytes(args)
 	if err != nil {
 		return errors.New("add key failed: argument 2 error, " + err.Error())
 	}
 	log.Debug("arg 2:", hex.EncodeToString(arg2))
 
-	pub, err := keypair.DeserializePublicKey(arg2)
-	if err != nil {
-		return errors.New("add key failed: invalid public key, " + err.Error())
+	var addr cmn.Address
+	if arg2[0] == 2 {
+		// multi address
+		addr, err = cmn.AddressParseFromBytes(arg2)
+		if err != nil {
+			return errors.New("add key failed: invalid address, " + err.Error())
+		}
+	} else {
+		// user's public key
+		pub, err := keypair.DeserializePublicKey(arg2)
+		if err != nil {
+			return errors.New("add key failed: invalid public key, " + err.Error())
+		}
+		addr = types.AddressFromPubKey(pub)
 	}
-	addr := types.AddressFromPubKey(pub)
 	if !srvc.ContextRef.CheckWitness(addr) {
 		return errors.New("add key failed: check witness failed")
 	}
@@ -376,16 +387,26 @@ func RemoveKey(srvc *native.NativeService) error {
 		return errors.New("remove key failed: argument 1 error, " + err.Error())
 	}
 
-	// arg2: operator's public key
+	// arg2: operator's public key / address
 	arg2, err := serialization.ReadVarBytes(args)
 	if err != nil {
 		return errors.New("remove key failed: argument 2 error, " + err.Error())
 	}
-	pub, err := keypair.DeserializePublicKey(arg2)
-	if err != nil {
-		return errors.New("remove key failed: invalid public key, " + err.Error())
+	var addr cmn.Address
+	if arg2[0] == 2 {
+		// multi address
+		addr, err = cmn.AddressParseFromBytes(arg2)
+		if err != nil {
+			return errors.New("remove key failed: invalid address, " + err.Error())
+		}
+	} else {
+		// user's public key
+		pub, err := keypair.DeserializePublicKey(arg2)
+		if err != nil {
+			return errors.New("remove key failed: invalid public key, " + err.Error())
+		}
+		addr = types.AddressFromPubKey(pub)
 	}
-	addr := types.AddressFromPubKey(pub)
 	if !srvc.ContextRef.CheckWitness(addr) {
 		return errors.New("remove key failed: check witness failed")
 	}
@@ -424,7 +445,7 @@ func AddRecovery(srvc *native.NativeService) error {
 	if err != nil {
 		return errors.New("add recovery failed: argument 0 error")
 	}
-	// arg1: recovery
+	// arg1: recovery address
 	arg1, err := serialization.ReadVarBytes(args)
 	if err != nil {
 		return errors.New("add recovery failed: argument 1 error")
@@ -462,6 +483,8 @@ func AddRecovery(srvc *native.NativeService) error {
 		return errors.New("add recovery failed: " + err.Error())
 	}
 
+	triggerRecoveryEvent(srvc, "add", arg0, arg1)
+
 	return nil
 }
 
@@ -472,7 +495,7 @@ func ChangeRecovery(srvc *native.NativeService) error {
 	if err != nil {
 		return errors.New("change recovery failed: argument 0 error")
 	}
-	// arg1: public key of the new recovery
+	// arg1: new recovery address
 	arg1, err := serialization.ReadVarBytes(args)
 	if err != nil {
 		return errors.New("change recovery failed: argument 1 error")
@@ -506,6 +529,7 @@ func ChangeRecovery(srvc *native.NativeService) error {
 		return errors.New("change recovery failed: " + err.Error())
 	}
 
+	triggerRecoveryEvent(srvc, "change", arg0, arg1)
 	return nil
 }
 
@@ -937,41 +961,6 @@ func isOwner(srvc *native.NativeService, encID, pub []byte) bool {
 	return true
 }
 
-func checkWitness(srvc *native.NativeService, pub []byte) error {
-	pk, err := keypair.DeserializePublicKey(pub)
-	if err != nil {
-		return errors.New("invalid public key, " + err.Error())
-	}
-	addr := types.AddressFromPubKey(pk)
-	if !srvc.ContextRef.CheckWitness(addr) {
-		return errors.New("check witness failed")
-	}
-	return nil
-}
-
-func newEvent(srvc *native.NativeService, st interface{}) {
-	e := event.NotifyEventInfo{}
-	e.TxHash = srvc.Tx.Hash()
-	e.ContractAddress = srvc.ContextRef.CurrentContext().ContractAddress
-	e.States = st
-	srvc.Notifications = append(srvc.Notifications, &e)
-	return
-}
-
-func triggerRegisterEvent(srvc *native.NativeService, id []byte) {
-	newEvent(srvc, []string{"Register", hex.EncodeToString(id)})
-}
-
-func triggerPublicEvent(srvc *native.NativeService, op string, id, pub []byte) {
-	st := []string{"PublicKey", op, hex.EncodeToString(id), hex.EncodeToString(pub)}
-	newEvent(srvc, st)
-}
-
-func triggerAttributeEvent(srvc *native.NativeService, op string, id, path []byte) {
-	st := []string{"Attribute", op, string(id), string(path)}
-	newEvent(srvc, st)
-}
-
 func getStorageItem(srvc *native.NativeService, key []byte) (*states.StorageItem, error) {
 	val, err := srvc.CloneCache.Get(common.ST_STORAGE, key)
 	if err != nil {
@@ -982,14 +971,6 @@ func getStorageItem(srvc *native.NativeService, key []byte) (*states.StorageItem
 		return nil, errors.New("invalid value type")
 	}
 	return t, nil
-}
-
-func makeKeyID(id []byte, index uint32) []byte {
-	encID, _ := encodeID(id)
-	key := append(encID, field_pk)
-	var buf [4]byte
-	binary.LittleEndian.PutUint32(buf[:], index)
-	return append(key, buf[:]...)
 }
 
 func verifySignature(srvc *native.NativeService) error {
@@ -1054,5 +1035,17 @@ func verifySignature(srvc *native.NativeService) error {
 		return errors.New("verification failed")
 	}
 
+	return nil
+}
+
+func checkWitness(srvc *native.NativeService, pub []byte) error {
+	pk, err := keypair.DeserializePublicKey(pub)
+	if err != nil {
+		return errors.New("invalid public key, " + err.Error())
+	}
+	addr := types.AddressFromPubKey(pk)
+	if !srvc.ContextRef.CheckWitness(addr) {
+		return errors.New("check witness failed")
+	}
 	return nil
 }
