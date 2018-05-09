@@ -490,6 +490,7 @@ func (self *Server) run(peerPubKey keypair.PublicKey) error {
 
 				if msg.Type() == BlockProposalMessage {
 					if proposal := msg.(*blockProposalMsg); proposal != nil {
+						fromPeer = proposal.Block.getProposer()
 						pk = self.peerPool.GetPeerPubKey(proposal.Block.getProposer())
 					}
 				}
@@ -600,14 +601,8 @@ func (self *Server) startNewRound() error {
 	}
 
 	txpool := self.poolActor.GetTxnPool(true, uint32(blkNum-1))
-	if len(txpool) != 0 {
-		if self.completedBlockNum+1 == self.currentBlockNum {
-			self.startNewProposal(blkNum)
-		} else {
-			// FIXME: cleanup all history msgs, update current block num, and restart new round
-			log.Infof("server %d, round %d, block %d has persisted",
-				self.Index, self.currentBlockNum, self.completedBlockNum)
-		}
+	if len(txpool) != 0 && self.completedBlockNum+1 == self.currentBlockNum {
+		self.startNewProposal(blkNum)
 	} else {
 		self.timer.startTxTicker(blkNum)
 		self.timer.StartTxBlockTimeout(blkNum)
@@ -829,13 +824,15 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 			return
 		}
 		var pmsg *blockProposalMsg
-		pMsgs := self.msgPool.GetProposalMsgs(pMsg.BlockNum)
-		for _, msg := range pMsgs {
-			p := msg.(*blockProposalMsg)
-			if p != nil && p.Block.getProposer() == pMsg.ProposerID {
-				log.Infof("server %d rebroadcast proposal to %d, blk %d",
-					self.Index, peerIdx, p.Block.getBlockNum())
-				pmsg = p
+		if self.Index == pMsg.ProposerID || pMsg.BlockNum == self.GetCurrentBlockNo() {
+			pMsgs := self.msgPool.GetProposalMsgs(pMsg.BlockNum)
+			for _, msg := range pMsgs {
+				p := msg.(*blockProposalMsg)
+				if p != nil && p.Block.getProposer() == pMsg.ProposerID {
+					log.Infof("server %d rebroadcast proposal to %d, blk %d",
+						self.Index, peerIdx, p.Block.getBlockNum())
+					pmsg = p
+				}
 			}
 		}
 		if self.Index == pMsg.ProposerID {
@@ -856,9 +853,6 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 				ToPeer: peerIdx,
 				Msg:    pmsg,
 			}
-		} else {
-			log.Infof("server %d, failed to handle proposal fetch %d from %d",
-				self.Index, pMsg.BlockNum, peerIdx)
 		}
 
 	case BlockFetchMessage:
@@ -1584,16 +1578,10 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 	case EventTxPool:
 		blockNum := self.GetCurrentBlockNo()
 		txpool := self.poolActor.GetTxnPool(true, uint32(blockNum-1))
-		if len(txpool) != 0 {
+		if len(txpool) != 0 && self.completedBlockNum+1 == self.currentBlockNum {
 			self.timer.stopTxTicker()
 			self.timer.CancelTxBlockTimeout(blockNum)
-			if self.completedBlockNum+1 == self.currentBlockNum {
-				self.startNewProposal(blockNum)
-			} else {
-				// FIXME: clean up history msgs, reset currentBlockNum, then restart from forwarding?
-				log.Errorf("server %d, skipped proposing, round %d, persisted %d",
-					self.Index, self.currentBlockNum, self.completedBlockNum)
-			}
+			self.startNewProposal(blockNum)
 		}
 	case EventTxBlockTimeout:
 		self.timer.stopTxTicker()
@@ -1864,6 +1852,11 @@ func (self *Server) msgSendLoop() {
 
 func (self *Server) makeProposal(blkNum uint64, forEmpty bool) error {
 	var txs []*types.Transaction
+
+	if blkNum < self.GetCurrentBlockNo() {
+		return fmt.Errorf("server %d ignore deprecatd blk proposal %d, current %d",
+			self.Index, blkNum, self.GetCurrentBlockNo())
+	}
 
 	height := uint32(blkNum) - 1
 	validHeight := height
