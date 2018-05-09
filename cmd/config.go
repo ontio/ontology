@@ -25,7 +25,6 @@ import (
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/log"
 	"github.com/urfave/cli"
 	"io/ioutil"
 )
@@ -41,9 +40,6 @@ func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
 	setRpcConfig(ctx, cfg.Rpc)
 	setRestfulConfig(ctx, cfg.Restful)
 	setWebSocketConfig(ctx, cfg.Ws)
-
-	//init log module
-	log.Init(log.PATH, log.Stdout)
 	return cfg, nil
 }
 
@@ -94,8 +90,6 @@ func setGenesis(ctx *cli.Context, cfg *config.GenesisConfig) error {
 }
 
 func setCommonConfig(ctx *cli.Context, cfg *config.CommonConfig) {
-	cfg.LogLevel = ctx.GlobalUint(utils.LogLevelFlag.Name)
-	cfg.MaxLogSize = ctx.GlobalUint(utils.MaxLogSizeFlag.Name)
 	cfg.MaxTxInBlock = ctx.GlobalUint(utils.MaxTxInBlockFlag.Name)
 	cfg.DisableEventLog = ctx.GlobalBool(utils.DisableEventLogFlag.Name)
 }

@@ -126,8 +126,6 @@ type SOLOConfig struct {
 
 type CommonConfig struct {
 	MaxTxInBlock    uint
-	LogLevel        uint
-	MaxLogSize      uint
 	NodeType        string
 	EnableConsensus bool
 	DisableEventLog bool
@@ -180,8 +178,6 @@ func NewOntologyConfig() *OntologyConfig {
 		Genesis: PolarisConfig,
 		Common: &CommonConfig{
 			MaxTxInBlock:    DEFAULT_MAX_TX_IN_BLOCK,
-			LogLevel:        DEFAULT_LOG_LEVEL,
-			MaxLogSize:      DEFAULT_MAX_LOG_SIZE,
 			EnableConsensus: DEFAULT_ENABLE_CONSENSUS,
 			DisableEventLog: DEFAULT_DISABLE_EVENT_LOG,
 			SystemFee:       make(map[string]int64),

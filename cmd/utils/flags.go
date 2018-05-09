@@ -35,11 +35,6 @@ var (
 		Usage: "Set the log level to `<level>` (0~6). 0:Debug 1:Info 2:Warn 3:Error 4:Fatal 5:Trace 6:MaxLevel",
 		Value: config.DEFAULT_LOG_LEVEL,
 	}
-	MaxLogSizeFlag = cli.UintFlag{
-		Name:  "maxlogsize",
-		Usage: "Max size of log file, unit(M)",
-		Value: config.DEFAULT_MAX_LOG_SIZE,
-	}
 	MaxTxInBlockFlag = cli.IntFlag{
 		Name:  "maxtxinblock",
 		Usage: "Max transaction number in block",
