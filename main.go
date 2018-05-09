@@ -96,7 +96,6 @@ func setupAPP() *cli.App {
 	}
 	app.Before = func(context *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
-		log.Init(log.PATH, log.Stdout)
 		return nil
 	}
 	return app
@@ -110,6 +109,8 @@ func main() {
 }
 
 func startOntology(ctx *cli.Context) {
+	initLog(ctx)
+
 	_, err := initConfig(ctx)
 	if err != nil {
 		log.Errorf("initConfig error:%s", err)
@@ -157,6 +158,12 @@ func startOntology(ctx *cli.Context) {
 
 	go logCurrBlockHeight()
 	waitToExit()
+}
+
+func initLog(ctx *cli.Context) {
+	//init log module
+	logLevel := ctx.GlobalInt(utils.LogLevelFlag.Name)
+	log.InitLog(logLevel, log.PATH, log.Stdout)
 }
 
 func initConfig(ctx *cli.Context) (*config.OntologyConfig, error) {

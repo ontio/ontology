@@ -90,8 +90,6 @@ func setGenesis(ctx *cli.Context, cfg *config.GenesisConfig) error {
 }
 
 func setCommonConfig(ctx *cli.Context, cfg *config.CommonConfig) {
-	cfg.LogLevel = ctx.GlobalUint(utils.LogLevelFlag.Name)
-	cfg.MaxLogSize = ctx.GlobalUint(utils.MaxLogSizeFlag.Name)
 	cfg.MaxTxInBlock = ctx.GlobalUint(utils.MaxTxInBlockFlag.Name)
 	cfg.DisableEventLog = ctx.GlobalBool(utils.DisableEventLogFlag.Name)
 }

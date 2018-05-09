@@ -31,8 +31,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/ontio/ontology/common/config"
 )
 
 const (
@@ -330,7 +328,13 @@ func FileOpen(path string) (*os.File, error) {
 	return logfile, nil
 }
 
+//Init deprecated, use InitLog instead
 func Init(a ...interface{}) {
+	os.Stderr.WriteString("warning: use of deprecated Init. Use InitLog instead\n")
+	InitLog(InfoLog, a...)
+}
+
+func InitLog(logLevel int, a ...interface{}) {
 	writers := []io.Writer{}
 	var logFile *os.File
 	var err error
@@ -355,8 +359,7 @@ func Init(a ...interface{}) {
 		}
 	}
 	fileAndStdoutWrite := io.MultiWriter(writers...)
-	var printlevel = int(config.DefConfig.Common.LogLevel)
-	Log = New(fileAndStdoutWrite, "", log.Ldate|log.Lmicroseconds, printlevel, logFile)
+	Log = New(fileAndStdoutWrite, "", log.Ldate|log.Lmicroseconds, logLevel, logFile)
 }
 
 func GetLogFileSize() (int64, error) {
@@ -367,8 +370,7 @@ func GetLogFileSize() (int64, error) {
 	return f.Size(), nil
 }
 
-func GetMaxLogChangeInterval() int64 {
-	maxLogSize := int64(config.DefConfig.Common.MaxLogSize)
+func GetMaxLogChangeInterval(maxLogSize int64) int64 {
 	if maxLogSize != 0 {
 		return (maxLogSize * BYTE_TO_MB)
 	} else {
@@ -378,7 +380,7 @@ func GetMaxLogChangeInterval() int64 {
 
 func CheckIfNeedNewFile() bool {
 	logFileSize, err := GetLogFileSize()
-	maxLogFileSize := GetMaxLogChangeInterval()
+	maxLogFileSize := GetMaxLogChangeInterval(0)
 	if err != nil {
 		return false
 	}
