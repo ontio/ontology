@@ -63,16 +63,16 @@ func RegisterOntContract(native *native.NativeService) {
 func OntInit(native *native.NativeService) ([]byte, error) {
 	booKeepers, err := config.DefConfig.GetBookkeepers()
 	if err != nil {
-		return utils.BYTE_ZERO, fmt.Errorf("GetBookkeepers error:%s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("GetBookkeepers error:%s", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	amount, err := utils.GetStorageUInt64(native, GetTotalSupplyKey(contract))
 	if err != nil {
-		return utils.BYTE_ZERO, err
+		return utils.BYTE_FALSE, err
 	}
 
 	if amount > 0 {
-		return utils.BYTE_ZERO, errors.NewErr("Init ont has been completed!")
+		return utils.BYTE_FALSE, errors.NewErr("Init ont has been completed!")
 	}
 
 	assign := uint64(ONT_TOTAL_SUPPLY / len(booKeepers))
@@ -84,13 +84,13 @@ func OntInit(native *native.NativeService) ([]byte, error) {
 		AddNotifications(native, contract, &State{To: address, Value: assign})
 	}
 
-	return utils.BYTE_ONE, nil
+	return utils.BYTE_TRUE, nil
 }
 
 func OntTransfer(native *native.NativeService) ([]byte, error) {
 	transfers := new(Transfers)
 	if err := transfers.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_ZERO, errors.NewDetailErr(err, errors.ErrNoCode, "[Transfer] Transfers deserialize error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[Transfer] Transfers deserialize error!")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	for _, v := range transfers.States {
@@ -99,62 +99,62 @@ func OntTransfer(native *native.NativeService) ([]byte, error) {
 		}
 		fromBalance, toBalance, err := Transfer(native, contract, v)
 		if err != nil {
-			return utils.BYTE_ZERO, err
+			return utils.BYTE_FALSE, err
 		}
 
 		fromStartHeight, err := getStartHeight(native, contract, v.From)
 		if err != nil {
-			return utils.BYTE_ZERO, err
+			return utils.BYTE_FALSE, err
 		}
 
 		toStartHeight, err := getStartHeight(native, contract, v.To)
 		if err != nil {
-			return utils.BYTE_ZERO, err
+			return utils.BYTE_FALSE, err
 		}
 
 		if err := grantOng(native, contract, v.From, fromBalance, fromStartHeight); err != nil {
-			return utils.BYTE_ZERO, err
+			return utils.BYTE_FALSE, err
 		}
 
 		if err := grantOng(native, contract, v.To, toBalance, toStartHeight); err != nil {
-			return utils.BYTE_ZERO, err
+			return utils.BYTE_FALSE, err
 		}
 
 		AddNotifications(native, contract, v)
 	}
-	return utils.BYTE_ONE, nil
+	return utils.BYTE_TRUE, nil
 }
 
 func OntTransferFrom(native *native.NativeService) ([]byte, error) {
 	state := new(TransferFrom)
 	if err := state.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_ZERO, errors.NewDetailErr(err, errors.ErrNoCode, "[OntTransferFrom] State deserialize error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntTransferFrom] State deserialize error!")
 	}
 	if state.Value == 0 {
-		return utils.BYTE_ZERO, nil
+		return utils.BYTE_FALSE, nil
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	if err := TransferedFrom(native, contract, state); err != nil {
-		return utils.BYTE_ZERO, err
+		return utils.BYTE_FALSE, err
 	}
 	AddNotifications(native, contract, &State{From: state.From, To: state.To, Value: state.Value})
-	return utils.BYTE_ONE, nil
+	return utils.BYTE_TRUE, nil
 }
 
 func OntApprove(native *native.NativeService) ([]byte, error) {
 	state := new(State)
 	if err := state.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_ZERO, errors.NewDetailErr(err, errors.ErrNoCode, "[OngApprove] state deserialize error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OngApprove] state deserialize error!")
 	}
 	if state.Value == 0 {
-		return utils.BYTE_ZERO, nil
+		return utils.BYTE_FALSE, nil
 	}
 	if err := IsApproveValid(native, state); err != nil {
-		return utils.BYTE_ZERO, err
+		return utils.BYTE_FALSE, err
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	native.CloneCache.Add(scommon.ST_STORAGE, GetApproveKey(contract, state), utils.GetUInt64StorageItem(state.Value))
-	return utils.BYTE_ONE, nil
+	return utils.BYTE_TRUE, nil
 }
 
 func OntName(native *native.NativeService) ([]byte, error) {
@@ -172,16 +172,16 @@ func OntSymbol(native *native.NativeService) ([]byte, error) {
 func OntBalanceOf(native *native.NativeService) ([]byte, error) {
 	address, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
 	if err != nil {
-		return utils.BYTE_ZERO, errors.NewDetailErr(err, errors.ErrNoCode, "[OntBalanceOf] get address error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntBalanceOf] get address error!")
 	}
 	addr, err := common.AddressParseFromBytes(address)
 	if err != nil {
-		return utils.BYTE_ZERO, errors.NewDetailErr(err, errors.ErrNoCode, "[OntBalanceOf] address parse error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntBalanceOf] address parse error!")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	amount, err := utils.GetStorageUInt64(native, GetTransferKey(contract, addr))
 	if err != nil {
-		return utils.BYTE_ZERO, errors.NewDetailErr(err, errors.ErrNoCode, "[OntBalanceOf] address parse error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntBalanceOf] address parse error!")
 	}
 	return big.NewInt(int64(amount)).Bytes(), nil
 }
@@ -190,7 +190,7 @@ func OntTotalSupply(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	amount, err := utils.GetStorageUInt64(native, GetTotalSupplyKey(contract))
 	if err != nil {
-		return utils.BYTE_ZERO,  errors.NewDetailErr(err, errors.ErrNoCode, "[OntTotalSupply] get totalSupply error!")
+		return utils.BYTE_FALSE,  errors.NewDetailErr(err, errors.ErrNoCode, "[OntTotalSupply] get totalSupply error!")
 	}
 	return big.NewInt(int64(amount)).Bytes(), nil
 }

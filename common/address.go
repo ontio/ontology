@@ -29,7 +29,6 @@ import (
 )
 
 const ADDR_LEN = 20
-var DEFALUT_ADDR = [20]byte{}
 
 type Address [ADDR_LEN]byte
 

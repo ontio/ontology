@@ -21,7 +21,6 @@ package types
 import (
 	"bytes"
 	"crypto/sha256"
-	"errors"
 	"fmt"
 	"io"
 
@@ -29,6 +28,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/errors"
 )
 
 type Transaction struct {
@@ -100,18 +100,20 @@ func (self *Transaction) GetSignatureAddresses() []common.Address {
 		if n == 1 {
 			address = append(address, AddressFromPubKey(sig.PubKeys[0]))
 		} else {
-			addr, _ := AddressFromMultiPubKeys(sig.PubKeys, m)
+			addr, err := AddressFromMultiPubKeys(sig.PubKeys, m)
+			if err != nil {
+				return err
+			}
 			address = append(address, addr)
 		}
 	}
-
 	return address
 }
 
 func (self *Sig) Serialize(w io.Writer) error {
 	err := serialization.WriteVarUint(w, uint64(len(self.PubKeys)))
 	if err != nil {
-		return errors.New("serialize sig pubkey length failed")
+		return errors.NewErr("serialize sig pubkey length failed")
 	}
 	for _, key := range self.PubKeys {
 		err := serialization.WriteVarBytes(w, keypair.SerializePublicKey(key))
@@ -122,12 +124,12 @@ func (self *Sig) Serialize(w io.Writer) error {
 
 	err = serialization.WriteUint8(w, self.M)
 	if err != nil {
-		return errors.New("serialize Sig M failed")
+		return errors.NewErr("serialize Sig M failed")
 	}
 
 	err = serialization.WriteVarUint(w, uint64(len(self.SigData)))
 	if err != nil {
-		return errors.New("serialize sig pubkey length failed")
+		return errors.NewErr("serialize sig pubkey length failed")
 	}
 
 	for _, sig := range self.SigData {
@@ -143,36 +145,14 @@ func (self *Sig) Serialize(w io.Writer) error {
 type TransactionType byte
 
 const (
-	BookKeeping    TransactionType = 0x00
-	IssueAsset     TransactionType = 0x01
-	Bookkeeper     TransactionType = 0x02
-	Claim          TransactionType = 0x03
-	PrivacyPayload TransactionType = 0x20
-	RegisterAsset  TransactionType = 0x40
-	TransferAsset  TransactionType = 0x80
-	Record         TransactionType = 0x81
-	Deploy         TransactionType = 0xd0
-	Invoke         TransactionType = 0xd1
-	DataFile       TransactionType = 0x12
-	Enrollment     TransactionType = 0x04
-	Vote           TransactionType = 0x05
+	BookKeeping TransactionType = 0x00
+	Bookkeeper  TransactionType = 0x02
+	Claim       TransactionType = 0x03
+	Deploy      TransactionType = 0xd0
+	Invoke      TransactionType = 0xd1
+	Enrollment  TransactionType = 0x04
+	Vote        TransactionType = 0x05
 )
-
-var TxName = map[TransactionType]string{
-	BookKeeping:    "Bookkeeping",
-	IssueAsset:     "IssueAsset",
-	Bookkeeper:     "Bookkeeper",
-	Claim:          "Claim",
-	PrivacyPayload: "PrivacyPayload",
-	RegisterAsset:  "RegisterAsset",
-	TransferAsset:  "TransferAsset",
-	Record:         "Record",
-	Deploy:         "Deploy",
-	Invoke:         "Invoke",
-	DataFile:       "DataFile",
-	Enrollment:     "Enrollment",
-	Vote:           "Vote",
-}
 
 // Payload define the func for loading the payload data
 // base on payload type which have different struture
@@ -189,12 +169,12 @@ func (tx *Transaction) Serialize(w io.Writer) error {
 
 	err := tx.SerializeUnsigned(w)
 	if err != nil {
-		return fmt.Errorf("Transaction txSerializeUnsigned Serialize failed: %s", err)
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[Serialize], Transaction txSerializeUnsigned Serialize failed.")
 	}
 
 	err = serialization.WriteVarUint(w, uint64(len(tx.Sigs)))
 	if err != nil {
-		return fmt.Errorf("serialize tx sigs length failed: %s", err)
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[Serialize], Transaction serialize tx sigs length failed.")
 	}
 	for _, sig := range tx.Sigs {
 		err = sig.Serialize(w)
@@ -209,25 +189,37 @@ func (tx *Transaction) Serialize(w io.Writer) error {
 //Serialize the Transaction data without contracts
 func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 	//txType
-	w.Write([]byte{byte(tx.Version), byte(tx.TxType)})
-	serialization.WriteUint32(w, tx.Nonce)
-	serialization.WriteUint64(w, tx.GasPrice)
-	serialization.WriteUint64(w, tx.GasLimit)
+	if _, err := w.Write([]byte{byte(tx.Version), byte(tx.TxType)}); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[SerializeUnsigned], Transaction version failed.")
+	}
+	if err := serialization.WriteUint32(w, tx.Nonce); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[SerializeUnsigned], Transaction nonce failed.")
+	}
+	if err := serialization.WriteUint64(w, tx.GasPrice); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[SerializeUnsigned], Transaction gasPrice failed.")
+	}
+	if err := serialization.WriteUint64(w, tx.GasLimit); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[SerializeUnsigned], Transaction gasLimit failed.")
+	}
 	if err := tx.Payer.Serialize(w); err != nil {
-		return err
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[SerializeUnsigned], Transaction payer failed.")
 	}
 	//Payload
 	if tx.Payload == nil {
-		return errors.New("Transaction Payload is nil.")
+		return errors.NewErr("Transaction Payload is nil.")
 	}
-	tx.Payload.Serialize(w)
+	if err := tx.Payload.Serialize(w); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[SerializeUnsigned], Transaction payload failed.")
+	}
 	//[]*txAttribute
 	err := serialization.WriteVarUint(w, uint64(len(tx.Attributes)))
 	if err != nil {
-		return fmt.Errorf("Transaction item txAttribute length serialization failed: %s", err)
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[SerializeUnsigned], Transaction item txAttribute length serialization failed.")
 	}
 	for _, attr := range tx.Attributes {
-		attr.Serialize(w)
+		if err := attr.Serialize(w); err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "[SerializeUnsigned], Transaction attributes failed.")
+		}
 	}
 
 	return nil
@@ -238,13 +230,13 @@ func (tx *Transaction) Deserialize(r io.Reader) error {
 	// tx deserialize
 	err := tx.DeserializeUnsigned(r)
 	if err != nil {
-		return fmt.Errorf("transaction Deserialize error: %s", err)
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[Deserialize], Transaction deserializeUnsigned error.")
 	}
 
 	// tx sigs
 	length, err := serialization.ReadVarUint(r, 0)
 	if err != nil {
-		return fmt.Errorf("transaction sigs deserialize error: %s", err)
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[Deserialize], Transaction sigs length deserialize error.")
 	}
 
 	tx.Sigs = make([]*Sig, 0, length)
@@ -252,7 +244,7 @@ func (tx *Transaction) Deserialize(r io.Reader) error {
 		sig := new(Sig)
 		err := sig.Deserialize(r)
 		if err != nil {
-			return errors.New("deserialize transaction failed")
+			return errors.NewErr("deserialize transaction failed")
 		}
 		tx.Sigs = append(tx.Sigs, sig)
 	}
@@ -292,12 +284,12 @@ func (tx *Transaction) DeserializeUnsigned(r io.Reader) error {
 	case Deploy:
 		tx.Payload = new(payload.DeployCode)
 	default:
-		return fmt.Errorf("unsupported tx type %v", tx.Type())
+		return errors.NewErr(fmt.Sprintf("unsupported tx type %v", tx.Type()))
 	}
 
 	err = tx.Payload.Deserialize(r)
 	if err != nil {
-		return fmt.Errorf("Payload Parse error: %s", err)
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[DeserializeUnsigned], Transaction payload parse error.")
 	}
 
 	//attributes
@@ -307,8 +299,7 @@ func (tx *Transaction) DeserializeUnsigned(r io.Reader) error {
 	}
 	for i := uint64(0); i < length; i++ {
 		attr := new(TxAttribute)
-		err = attr.Deserialize(r)
-		if err != nil {
+		if err := attr.Deserialize(r); err != nil {
 			return err
 		}
 		tx.Attributes = append(tx.Attributes, attr)
@@ -332,7 +323,9 @@ func (tx *Transaction) ToArray() []byte {
 func (tx *Transaction) Hash() common.Uint256 {
 	if tx.hash == nil {
 		buf := bytes.Buffer{}
-		tx.SerializeUnsigned(&buf)
+		if err := tx.SerializeUnsigned(&buf); err != nil {
+			return err
+		}
 		temp := sha256.Sum256(buf.Bytes())
 		f := common.Uint256(sha256.Sum256(temp[:]))
 		tx.hash = &f
@@ -352,6 +345,3 @@ func (tx *Transaction) Verify() error {
 	panic("unimplemented ")
 	return nil
 }
-
-
-

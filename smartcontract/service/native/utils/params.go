@@ -1,6 +1,6 @@
 package utils
 
 var (
-	BYTE_ZERO = []byte{0}
-	BYTE_ONE = []byte{1}
+	BYTE_FALSE = []byte{0}
+	BYTE_TRUE = []byte{1}
 )
