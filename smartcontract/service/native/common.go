@@ -177,7 +177,6 @@ func fromTransfer(native *NativeService, fromKey []byte, value *big.Int) (*big.I
 	} else {
 		native.CloneCache.Add(scommon.ST_STORAGE, fromKey, getAmountStorageItem(balance))
 	}
-	//native.CloneCache.Add(scommon.ST_STORAGE, fromKey, getAmountStorageItem(balance))
 	return fromBalance, nil
 }
 
@@ -423,8 +422,9 @@ func getPeerPoolMap(native *NativeService, contract common.Address, view *big.In
 	return peerPoolMap, nil
 }
 
-func splitCurve(pos float64, avg float64) float64 {
-	xi := (0.5 * 2 * float64(pos)) / avg
-	s := xi * math.Exp(- xi / 2)
+func splitCurve(pos uint64, avg uint64) uint64 {
+	xi := PRECISE * YITA * 2 * pos / (avg * 10)
+	index := xi / (PRECISE / 10)
+	s := ((Yi[index + 1] - Yi[index]) * xi + Yi[index] * Xi[index + 1] - Yi[index + 1] * Xi[index]) / (Xi[index + 1] - Xi[index])
 	return s
 }
