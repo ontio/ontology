@@ -39,7 +39,7 @@ type TXAttr struct {
 
 type TXEntry struct {
 	Tx    *types.Transaction // transaction which has been verified
-	Fee   common.Fixed64     // Total fee per transaction
+	Fee   uint64             // Total fee per transaction
 	Attrs []*TXAttr          // the result from each validator
 }
 

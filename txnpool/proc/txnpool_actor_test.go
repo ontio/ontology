@@ -75,7 +75,7 @@ func TestTxActor(t *testing.T) {
 	txEntry := &tc.TXEntry{
 		Tx:    txn,
 		Attrs: []*tc.TXAttr{},
-		Fee:   txn.GetTotalFee(),
+		Fee:   txn.GasPrice,
 	}
 	s.addTxList(txEntry)
 
