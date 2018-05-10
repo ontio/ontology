@@ -14,41 +14,42 @@
     "block_msg_delay":10000,
     "hash_msg_delay":10000,
     "peer_handshake_timeout":10,
+    "maxblockchangeview":1000,
     "peers":[
       {
-        "index":0,
-        "node_id":"1202028541d32f3b09180b00affe67a40516846c16663ccb916fd2db8106619f087527",
-        "stake":1000
-      },
-      {
         "index":1,
-        "node_id":"120202dfb161f757921898ec2e30e3618d5c6646d993153b89312bac36d7688912c0ce",
-        "stake":2000
+        "peerPubkey":"1202028541d32f3b09180b00affe67a40516846c16663ccb916fd2db8106619f087527",
+        "initPos":1000
       },
       {
         "index":2,
-        "node_id":"1202039dab38326268fe82fb7967fe2e7f5f6eaced6ec711148a66fbb8480c321c19dd",
-        "stake":3000
+        "peerPubkey":"120202dfb161f757921898ec2e30e3618d5c6646d993153b89312bac36d7688912c0ce",
+        "initPos":2000
       },
       {
         "index":3,
-        "node_id":"12020384f2729bc5d9b14dcbf17aba108261dc7ad867127e413d3c8bfb4731739687b3",
-        "stake":4000
+        "peerPubkey":"1202039dab38326268fe82fb7967fe2e7f5f6eaced6ec711148a66fbb8480c321c19dd",
+        "initPos":3000
       },
       {
         "index":4,
-        "node_id":"120203362f99284daa9f581fab596516f75475fc61a5f80de0e268a68430dc7589859c",
-        "stake":3000
+        "peerPubkey":"12020384f2729bc5d9b14dcbf17aba108261dc7ad867127e413d3c8bfb4731739687b3",
+        "initPos":4000
       },
       {
         "index":5,
-        "node_id":"120203db6e37a2d897f2d61b42dcd478323a8a20c3444af4ee29653849f38d0bdb67f4",
-        "stake":2000
+        "peerPubkey":"120203362f99284daa9f581fab596516f75475fc61a5f80de0e268a68430dc7589859c",
+        "initPos":3000
       },
       {
         "index":6,
-        "node_id":"12020298fe9f22e9df64f6bfcc1c2a14418846cffdbbf510d261bbc3fa6d47073df9a2",
-        "stake":1000
+        "peerPubkey":"120203db6e37a2d897f2d61b42dcd478323a8a20c3444af4ee29653849f38d0bdb67f4",
+        "initPos":2000
+      },
+      {
+        "index":7,
+        "peerPubkey":"12020298fe9f22e9df64f6bfcc1c2a14418846cffdbbf510d261bbc3fa6d47073df9a2",
+        "initPos":1000
       }
     ]
   }

@@ -21,6 +21,13 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
+	"os"
+	"os/signal"
+	"runtime"
+	"strings"
+	"syscall"
+	"time"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
@@ -50,12 +57,6 @@ import (
 	"github.com/ontio/ontology/validator/stateful"
 	"github.com/ontio/ontology/validator/stateless"
 	"github.com/urfave/cli"
-	"os"
-	"os/signal"
-	"runtime"
-	"strings"
-	"syscall"
-	"time"
 )
 
 func setupAPP() *cli.App {
