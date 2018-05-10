@@ -938,7 +938,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	if len(txs) > 1 {
 		// start new routine to verify txs in proposal block
 		go func() {
-			if err := self.poolActor.VerifyBlock(txs[1:], uint32(msgBlkNum)); err != nil && err != actor.ErrTimeout {
+			if err := self.poolActor.VerifyBlock(txs[1:], uint32(msgBlkNum)-1); err != nil && err != actor.ErrTimeout {
 				log.Errorf("server %d verify proposal blk from %d failed, blk %d, txs %d, err: %s",
 					self.Index, msg.Block.getProposer(), msgBlkNum, len(txs), err)
 				return
