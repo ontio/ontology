@@ -20,10 +20,10 @@ package memory
 
 import (
 	"encoding/binary"
-	"errors"
 	"reflect"
 
 	"github.com/ontio/ontology/vm/wasmvm/util"
+	"github.com/ontio/ontology/errors"
 )
 
 type PType int
@@ -38,6 +38,7 @@ const (
 	PString
 	PStruct
 	PUnkown
+	PPointer
 )
 
 const (
@@ -61,14 +62,14 @@ type VMmemory struct {
 //Alloc memory for base types, return the address in memory
 func (vm *VMmemory) Malloc(size int) (int, error) {
 	if vm.Memory == nil || len(vm.Memory) == 0 {
-		return 0, errors.New("memory is not initialized")
+		return 0, errors.NewErr("[Malloc] memory is not initialized")
 	}
 	if vm.AllocedMemIdex+size+1 > len(vm.Memory) {
-		return 0, errors.New("memory out of bound")
+		return 0, errors.NewErr("[Malloc] memory out of bound")
 	}
 
 	if vm.AllocedMemIdex+size+1 > vm.PointedMemIndex {
-		return 0, errors.New("memory out of bound")
+		return 0, errors.NewErr("[Malloc] memory out of bound")
 	}
 
 	offset := vm.AllocedMemIdex + 1
@@ -80,10 +81,10 @@ func (vm *VMmemory) Malloc(size int) (int, error) {
 //Alloc memory for pointer types, return the address in memory
 func (vm *VMmemory) MallocPointer(size int, p_type PType) (int, error) {
 	if vm.Memory == nil || len(vm.Memory) == 0 {
-		return 0, errors.New("memory is not initialized")
+		return 0, errors.NewErr("[MallocPointer] memory is not initialized")
 	}
 	if vm.PointedMemIndex+size > len(vm.Memory) {
-		return 0, errors.New("memory out of bound")
+		return 0, errors.NewErr("[MallocPointer] memory out of bound")
 	}
 
 	offset := vm.PointedMemIndex + 1
@@ -132,7 +133,7 @@ func (vm *VMmemory) GetPointerMemory(addr uint64) ([]byte, error) {
 	}
 
 	if int(addr)+length > len(vm.Memory) {
-		return nil, errors.New("memory out of bound")
+		return nil, errors.NewErr("[GetPointerMemory] memory out of bound")
 	} else {
 		return vm.Memory[int(addr) : int(addr)+length], nil
 	}
@@ -202,7 +203,7 @@ func (vm *VMmemory) SetPointerMemory(val interface{}) (int, error) {
 				binary.LittleEndian.PutUint32(tmp, uint32(idx))
 				copy(sbytes[i*4:(i+1)*4], tmp)
 			}
-			return vm.copyMemAndGetIdx(sbytes, PInt32)
+			return vm.copyMemAndGetIdx(sbytes, PPointer)
 
 		case [][]byte:
 			bbytes := make([]byte, len(val.([][]byte))*4) //address is 4 bytes
@@ -215,14 +216,14 @@ func (vm *VMmemory) SetPointerMemory(val interface{}) (int, error) {
 				binary.LittleEndian.PutUint32(tmp, uint32(idx))
 				copy(bbytes[i*4:(i+1)*4], tmp)
 			}
-			return vm.copyMemAndGetIdx(bbytes, PInt32)
+			return vm.copyMemAndGetIdx(bbytes, PPointer)
 
 		default:
-			return 0, errors.New("Not supported slice type")
+			return 0, errors.NewErr("[SetPointerMemory] Not supported slice type")
 		}
 
 	default:
-		return 0, errors.New("not supported type")
+		return 0, errors.NewErr("[SetPointerMemory] not supported type")
 	}
 
 }
@@ -231,7 +232,7 @@ func (vm *VMmemory) SetPointerMemory(val interface{}) (int, error) {
 func (vm *VMmemory) SetStructMemory(val interface{}) (int, error) {
 
 	if reflect.TypeOf(val).Kind() != reflect.Struct {
-		return 0, errors.New("SetStructMemory :input is not a struct")
+		return 0, errors.NewErr("[SetStructMemory] input is not a struct")
 	}
 	valref := reflect.ValueOf(val)
 	//var totalsize = 0
@@ -340,6 +341,6 @@ func (vm *VMmemory) SetMemory(val interface{}) (int, error) {
 		return idx, nil
 
 	default:
-		return 0, errors.New("not supported type")
+		return 0, errors.NewErr("[SetMemory] not supported type")
 	}
 }

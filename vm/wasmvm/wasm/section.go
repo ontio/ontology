@@ -24,13 +24,13 @@ package wasm
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 
 	"github.com/ontio/ontology/vm/wasmvm/wasm/internal/readpos"
 	"github.com/ontio/ontology/vm/wasmvm/wasm/leb128"
+	"github.com/ontio/ontology/errors"
 )
 
 // SectionID is a 1-byte code that encodes the section code of both known and custom sections.
@@ -97,7 +97,7 @@ func (e InvalidCodeIndexError) Error() string {
 	return fmt.Sprintf("wasm: invalid index to code section: %d", int(e))
 }
 
-var ErrUnsupportedSection = errors.New("wasm: unsupported section")
+var ErrUnsupportedSection = errors.NewErr("wasm: unsupported section")
 
 type MissingSectionError SectionID
 
@@ -659,7 +659,7 @@ func (m *Module) readSectionCode(r io.Reader) error {
 		return MissingSectionError(SectionIDFunction)
 	}
 	if len(m.Function.Types) != len(s.Bodies) {
-		return errors.New("The number of entries in the function and code section are unequal")
+		return errors.NewErr("[readSectionCode] The number of entries in the function and code section are unequal")
 	}
 
 	if m.Types == nil {
@@ -669,7 +669,7 @@ func (m *Module) readSectionCode(r io.Reader) error {
 	return nil
 }
 
-var ErrFunctionNoEnd = errors.New("Function body does not end with 0x0b (end)")
+var ErrFunctionNoEnd = errors.NewErr("Function body does not end with 0x0b (end)")
 
 type FunctionBody struct {
 	Module *Module // The parent module containing this function body, for execution purposes

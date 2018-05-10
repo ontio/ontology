@@ -22,11 +22,11 @@
 
 package exec
 
-import "errors"
+import "github.com/ontio/ontology/errors"
 
 // ErrUnreachable is the error value used while trapping the VM when
 // an unreachable operator is reached during execution.
-var ErrUnreachable = errors.New("exec: reached unreachable")
+var ErrUnreachable =errors.NewErr("exec: reached unreachable")
 
 func (vm *VM) unreachable() {
 	panic(ErrUnreachable)

@@ -23,13 +23,13 @@
 package exec
 
 import (
-	"errors"
 	"math"
+	"github.com/ontio/ontology/errors"
 )
 
 // ErrOutOfBoundsMemoryAccess is the error value used while trapping the VM
 // when it detects an out of bounds access to the linear memory.
-var ErrOutOfBoundsMemoryAccess = errors.New("exec: out of bounds memory access")
+var ErrOutOfBoundsMemoryAccess = errors.NewErr("exec: out of bounds memory access")
 
 func (vm *VM) fetchBaseAddr() int {
 	return int(vm.fetchUint32() + uint32(vm.popInt32()))

@@ -23,8 +23,8 @@
 package exec
 
 import (
-	"errors"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/errors"
 )
 
 func (vm *VM) doCall(compiled compiledFunction, index int64) {
@@ -64,7 +64,11 @@ func (vm *VM) doCall(compiled compiledFunction, index int64) {
 		if ok {
 			rtn, err := v(vm.Engine)
 			if err != nil || !rtn {
-				log.Errorf("call method :%s failed\n", compiled.name)
+				errmsg := ""
+				if err != nil{
+					errmsg = err.Error()
+				}
+				log.Errorf("[doCall] call method :%s failed,error:%s\n", compiled.name,errmsg)
 			}
 		} else {
 			vm.ctx = prevCtxt
@@ -90,11 +94,11 @@ var (
 	// ErrSignatureMismatch is the error value used while trapping the VM when
 	// a signature mismatch between the table entry and the type entry is found
 	// in a call_indirect operation.
-	ErrSignatureMismatch = errors.New("exec: signature mismatch in call_indirect")
+	ErrSignatureMismatch =  errors.NewErr("exec: signature mismatch in call_indirect")
 	// ErrUndefinedElementIndex is the error value used while trapping the VM when
 	// an invalid index to the module's table space is used as an operand to
 	// call_indirect
-	ErrUndefinedElementIndex = errors.New("exec: undefined element index")
+	ErrUndefinedElementIndex =  errors.NewErr("exec: undefined element index")
 )
 
 func (vm *VM) call() {

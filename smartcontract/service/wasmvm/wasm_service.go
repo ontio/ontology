@@ -54,28 +54,41 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	stateMachine.Register("ONT_Block_GetCurrentHeaderHash", this.blockGetCurrentHeaderHash)
 	stateMachine.Register("ONT_Block_GetCurrentHeaderHeight", this.blockGetCurrentHeaderHeight)
 	stateMachine.Register("ONT_Block_GetCurrentBlockHash", this.blockGetCurrentBlockHash)
+	//get block api may return big block exceed memory limit
+	//stateMachine.Register("ONT_Block_GetBlockByHeight", this.blockGetBlockByHeight)
+	//stateMachine.Register("ONT_Block_GetBlockByHash", this.blockGetBlockByHash)
+
 	stateMachine.Register("ONT_Block_GetCurrentBlockHeight", this.blockGetCurrentBlockHeight)
 	stateMachine.Register("ONT_Block_GetTransactionByHash", this.blockGetTransactionByHash)
-	stateMachine.Register("ONT_Block_GetTransactionCount", this.blockGetTransactionCount)
-	stateMachine.Register("ONT_Block_GetTransactions", this.blockGetTransactions)
+	stateMachine.Register("ONT_Block_GetTransactionCountByBlkHash", this.blockGetTransactionCountByBlkHash)
+	stateMachine.Register("ONT_Block_GetTransactionCountByBlkHeight", this.blockGetTransactionCountByBlkHeight)
+	stateMachine.Register("ONT_Block_GetTransactionsByBlkHash", this.blockGetTransactionsByBlkHash)
+	stateMachine.Register("ONT_Block_GetTransactionsByBlkHeight", this.blockGetTransactionsByBlkHeight)
 
 	//blockchain
-	stateMachine.Register("ONT_BlockChain_GetHeight", this.blockChainGetHeight)
-	stateMachine.Register("ONT_BlockChain_GetHeaderByHeight", this.blockChainGetHeaderByHeight)
-	stateMachine.Register("ONT_BlockChain_GetHeaderByHash", this.blockChainGetHeaderByHash)
-	stateMachine.Register("ONT_BlockChain_GetBlockByHeight", this.blockChainGetBlockByHeight)
-	stateMachine.Register("ONT_BlockChain_GetBlockByHash", this.blockChainGetBlockByHash)
-	stateMachine.Register("ONT_BlockChain_GetContract", this.blockChainGetContract)
+	//these apis will be delete for the memory limit
+	//stateMachine.Register("ONT_BlockChain_GetHeight", this.blockChainGetHeight)
+	//stateMachine.Register("ONT_BlockChain_GetHeaderByHeight", this.blockChainGetHeaderByHeight)
+	//stateMachine.Register("ONT_BlockChain_GetHeaderByHash", this.blockChainGetHeaderByHash)
+	//stateMachine.Register("ONT_BlockChain_GetBlockByHeight", this.blockChainGetBlockByHeight)
+	//stateMachine.Register("ONT_BlockChain_GetBlockByHash", this.blockChainGetBlockByHash)
+	//stateMachine.Register("ONT_BlockChain_GetContract", this.blockChainGetContract)
 
 	//header
-	stateMachine.Register("ONT_Header_GetHash", this.headerGetHash)
-	stateMachine.Register("ONT_Header_GetVersion", this.headerGetVersion)
-	stateMachine.Register("ONT_Header_GetPrevHash", this.headerGetPrevHash)
-	stateMachine.Register("ONT_Header_GetMerkleRoot", this.headerGetMerkleRoot)
-	stateMachine.Register("ONT_Header_GetIndex", this.headerGetIndex)
-	stateMachine.Register("ONT_Header_GetTimestamp", this.headerGetTimestamp)
-	stateMachine.Register("ONT_Header_GetConsensusData", this.headerGetConsensusData)
-	stateMachine.Register("ONT_Header_GetNextConsensus", this.headerGetNextConsensus)
+	stateMachine.Register("ONT_Header_GetHashByHeight", this.headerGetHash)
+	stateMachine.Register("ONT_Header_GetVersionByHeight", this.headerGetVersionByHeight)
+	stateMachine.Register("ONT_Header_GetVersionByHash", this.headerGetVersionByHash)
+	stateMachine.Register("ONT_Header_GetPrevHashByHeight", this.headerGetPrevHashByHeight)
+	stateMachine.Register("ONT_Header_GetPrevHashByHash", this.headerGetPrevHashByHash)
+	stateMachine.Register("ONT_Header_GetMerkleRootByHeight", this.headerGetMerkleRootByHeight)
+	stateMachine.Register("ONT_Header_GetMerkleRootByHash", this.headerGetMerkleRootByHash)
+	stateMachine.Register("ONT_Header_GetIndexByHash", this.headerGetIndexByHash)
+	stateMachine.Register("ONT_Header_GetTimestampByHeight", this.headerGetTimestampByHeight)
+	stateMachine.Register("ONT_Header_GetTimestampByHash", this.headerGetTimestampByHash)
+	stateMachine.Register("ONT_Header_GetConsensusDataByHeight", this.headerGetConsensusDataByHeight)
+	stateMachine.Register("ONT_Header_GetConsensusDataByHash", this.headerGetConsensusDataByHash)
+	stateMachine.Register("ONT_Header_GetNextConsensusByHeight", this.headerGetNextConsensusByHeight)
+	stateMachine.Register("ONT_Header_GetNextConsensusByHash", this.headerGetNextConsensusByHash)
 
 	//storage
 	stateMachine.Register("ONT_Storage_Put", this.putstore)
@@ -83,7 +96,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	stateMachine.Register("ONT_Storage_Delete", this.deletestore)
 
 	//transaction
-	stateMachine.Register("ONT_Transaction_GetHash", this.transactionGetHash)
+	//stateMachine.Register("ONT_Transaction_GetHash", this.transactionGetHash)
 	stateMachine.Register("ONT_Transaction_GetType", this.transactionGetType)
 	stateMachine.Register("ONT_Transaction_GetAttributes", this.transactionGetAttributes)
 
@@ -92,9 +105,9 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 		new(util.ECDsaCrypto),
 		stateMachine,
 	)
-
 	contract := &states.Contract{}
 	contract.Deserialize(bytes.NewBuffer(this.Code))
+
 	addr := contract.Address
 	if contract.Code == nil {
 		dpcode, err := this.GetContractCodeFromAddress(addr)
@@ -112,8 +125,8 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	}
 	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address})
 	res, err := engine.Call(caller, contract.Code, contract.Method, contract.Args, contract.Version)
-
 	if err != nil {
+		//todo add a error notification
 		return nil, err
 	}
 

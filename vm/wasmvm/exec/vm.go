@@ -8,7 +8,6 @@ package exec
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"math"
 
@@ -19,15 +18,16 @@ import (
 	"github.com/ontio/ontology/vm/wasmvm/memory"
 	"github.com/ontio/ontology/vm/wasmvm/wasm"
 	ops "github.com/ontio/ontology/vm/wasmvm/wasm/operators"
+	"github.com/ontio/ontology/errors"
 )
 
 var (
 	// ErrMultipleLinearMemories is returned by (*VM).NewVM when the module
 	// has more then one entries in the linear memory space.
-	ErrMultipleLinearMemories = errors.New("exec: more than one linear memories in module")
+	ErrMultipleLinearMemories = errors.NewErr("exec: more than one linear memories in module")
 	// ErrInvalidArgumentCount is returned by (*VM).ExecCode when an invalid
 	// number of arguments to the WebAssembly function are passed to it.
-	ErrInvalidArgumentCount = errors.New("exec: invalid number of arguments to function")
+	ErrInvalidArgumentCount = errors.NewErr("exec: invalid number of arguments to function")
 )
 
 // InvalidReturnTypeError is returned by (*VM).ExecCode when the module
@@ -194,7 +194,7 @@ func (vm *VM) GetMessageBytes() ([]byte, error) {
 
 		default:
 			//todo need support array types???
-			return nil, errors.New("[GetMessageBytes] unsupported type")
+			return nil, errors.NewErr("[GetMessageBytes] unsupported type")
 
 		}
 	}
@@ -458,7 +458,7 @@ func (vm *VM) CallContract(caller common.Address, contractAddress common.Address
 	//1. exec the method code
 	entry, ok := module.Export.Entries[methodName]
 	if ok == false {
-		return uint64(0), errors.New("Method:" + methodName + " does not exist!")
+		return uint64(0), errors.NewErr("[CallContract] Method:" + methodName + " does not exist!")
 	}
 
 	//get entry index
@@ -533,7 +533,7 @@ func (vm *VM) loadModule(module *wasm.Module) error {
 		var tmpIdx int
 		for _, entry := range module.Data.Entries {
 			if entry.Index != 0 {
-				return errors.New("invalid data index")
+				return errors.NewErr("[loadModule] invalid data index")
 			}
 			val, err := module.ExecInitExpr(entry.Offset)
 			if err != nil {
@@ -542,7 +542,7 @@ func (vm *VM) loadModule(module *wasm.Module) error {
 			offset, ok := val.(int32)
 			tmpIdx += int(offset) + len(entry.Data)
 			if !ok {
-				return errors.New("invalid data index")
+				return errors.NewErr("[loadModule] invalid data index")
 			}
 			// for the case of " (data (get_global 0) "init\00init success!\00add\00int"))"
 			if bytes.Contains(entry.Data, []byte{byte(0)}) {

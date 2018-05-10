@@ -23,8 +23,8 @@
 package wasm
 
 import (
-	"errors"
 	"fmt"
+	"github.com/ontio/ontology/errors"
 )
 
 // Import is an intreface implemented by types that can be imported by a WebAssembly module.
@@ -70,8 +70,8 @@ type GlobalVarImport struct {
 func (GlobalVarImport) isImport() {}
 
 var (
-	ErrImportMutGlobal           = errors.New("wasm: cannot import global mutable variable")
-	ErrNoExportsInImportedModule = errors.New("wasm: imported module has no exports")
+	ErrImportMutGlobal           = errors.NewErr("wasm: cannot import global mutable variable")
+	ErrNoExportsInImportedModule = errors.NewErr("wasm: imported module has no exports")
 )
 
 type InvalidExternalError uint8

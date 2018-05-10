@@ -23,11 +23,11 @@
 package validate
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/ontio/ontology/vm/wasmvm/wasm"
 	ops "github.com/ontio/ontology/vm/wasmvm/wasm/operators"
+	"github.com/ontio/ontology/errors"
 )
 
 type Error struct {
@@ -40,7 +40,7 @@ func (e Error) Error() string {
 	return fmt.Sprintf("error while validating function %d at offset %d: %v", e.Function, e.Offset, e.Err)
 }
 
-var ErrStackUnderflow = errors.New("validate: stack underflow")
+var ErrStackUnderflow = errors.NewErr("validate: stack underflow")
 
 type InvalidImmediateError struct {
 	ImmType string

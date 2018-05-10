@@ -23,13 +23,13 @@
 package wasm
 
 import (
-	"errors"
 	"io"
 
 	"github.com/ontio/ontology/vm/wasmvm/wasm/internal/readpos"
+	"github.com/ontio/ontology/errors"
 )
 
-var ErrInvalidMagic = errors.New("wasm: Invalid magic number")
+var ErrInvalidMagic = errors.NewErr("wasm: Invalid magic number")
 
 const (
 	Magic   uint32 = 0x6d736100

@@ -34,6 +34,7 @@ import (
 	"github.com/ontio/ontology/vm/wasmvm/util"
 	"github.com/ontio/ontology/vm/wasmvm/validate"
 	"github.com/ontio/ontology/vm/wasmvm/wasm"
+	"github.com/ontio/ontology/common/log"
 )
 
 const (
@@ -320,6 +321,7 @@ func (e *ExecutionEngine) Call(caller common.Address,
 	//catch the panic to avoid crash the whole node
 	defer func() {
 		if err := recover(); err != nil {
+			log.Errorf("[Call] call wasm panic:%v\n",err)
 			returnbytes = nil
 			er = errors.NewErr("[Call] error happened while call wasmvm")
 		}
@@ -562,13 +564,13 @@ func importer(name string) (*wasm.Module, error) {
 func getCallMethodName(input []byte) (string, error) {
 
 	if len(input) <= 1 {
-		return "", errors.NewErr("[Call]input format error!")
+		return "", errors.NewErr("[getCallMethodName] input format error!")
 	}
 
 	length := int(input[0])
 
 	if length > len(input[1:]) {
-		return "", errors.NewErr("[Call]input method name length error!")
+		return "", errors.NewErr("[getCallMethodName] input method name length error!")
 	}
 
 	return string(input[1 : length+1]), nil
@@ -592,7 +594,7 @@ func getParams(input []byte) ([]uint64, error) {
 		pl := int(paramlengthSlice[i])
 
 		if (i+1)*pl > len(paramSlice) {
-			return nil, errors.NewErr("[Call]get param failed!")
+			return nil, errors.NewErr("[getParams] get param failed!")
 		}
 		param := paramSlice[i*pl : (i+1)*pl]
 
