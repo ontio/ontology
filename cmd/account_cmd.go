@@ -169,21 +169,24 @@ var (
 func accountCreate(ctx *cli.Context) error {
 
 	reader := bufio.NewReader(os.Stdin)
-	var optionNumber = 1
 	optionType := ""
 	optionCurve := ""
 	optionScheme := ""
-	optionLabel := ""
 
-	optionFile := checkFileName(ctx)
 	optionDefault := ctx.IsSet("default")
 	if !optionDefault {
-		optionNumber = int(checkNumber(ctx))
 		optionType = checkType(ctx, reader)
 		optionCurve = checkCurve(ctx, reader, &optionType)
 		optionScheme = checkScheme(ctx, reader, &optionType)
-		optionLabel = checkLabel(ctx)
+	} else {
+		fmt.Printf("Use default setting '-t ecdsa -b 256 -s SHA256withECDSA' \n")
+		fmt.Printf("	signature algorithm: %s \n", keyTypeMap[optionType].name)
+		fmt.Printf("	curve: %s \n", curveMap[optionCurve].name)
+		fmt.Printf("	signature scheme: %s \n", schemeMap[optionScheme].name)
 	}
+	optionFile := checkFileName(ctx)
+	optionNumber := checkNumber(ctx)
+	optionLabel := checkLabel(ctx)
 
 	pass, _ := password.GetConfirmedPassword()
 
@@ -561,7 +564,7 @@ func checkFileName(ctx *cli.Context) string {
 		return account.WALLET_FILENAME
 	}
 }
-func checkNumber(ctx *cli.Context) uint {
+func checkNumber(ctx *cli.Context) int {
 	if ctx.IsSet("number") {
 		if ctx.Uint("number") < 1 {
 			fmt.Println("the minimum number is 1, set to default value(1).")
@@ -571,7 +574,7 @@ func checkNumber(ctx *cli.Context) uint {
 			fmt.Println("the maximum number is 100, set to default value(1).")
 			return 1
 		}
-		return ctx.Uint("number")
+		return int(ctx.Uint("number"))
 	} else {
 		return 1
 	}
