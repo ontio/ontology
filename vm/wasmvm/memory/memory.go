@@ -22,8 +22,8 @@ import (
 	"encoding/binary"
 	"reflect"
 
-	"github.com/ontio/ontology/vm/wasmvm/util"
 	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/vm/wasmvm/util"
 )
 
 type PType int

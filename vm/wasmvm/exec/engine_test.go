@@ -31,6 +31,10 @@ import (
 
 var service = NewInteropService()
 
+var gasChk = func(uint64) bool {
+	return true
+}
+
 func TestAdd(t *testing.T) {
 	engine := NewExecutionEngine(nil, nil, nil)
 
@@ -57,7 +61,7 @@ func TestAdd(t *testing.T) {
 	input2[len(method2)+5] = byte(9) //param2
 
 	fmt.Println(input2)
-	res2, err := engine.Call(common.Address{}, code, "", input2, 0)
+	res2, err := engine.Call(common.Address{}, code, "", input2, 0, gasChk)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}
@@ -86,7 +90,7 @@ func TestSquare(t *testing.T) {
 	input[len(method)+3] = byte(5) //param1
 
 	fmt.Println(input)
-	res, err := engine.Call(common.Address{}, code, "", input, 0)
+	res, err := engine.Call(common.Address{}, code, "", input, 0, gasChk)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}
@@ -121,7 +125,7 @@ func TestEnvAddTwo(t *testing.T) {
 	copy(input[1:len(method)+1], []byte(method))
 	input[len(method)+1] = byte(0)
 
-	res, err := engine.Call(common.Address{}, code, "", input, 0)
+	res, err := engine.Call(common.Address{}, code, "", input, 0, gasChk)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}
@@ -154,7 +158,7 @@ func TestBlockHeight(t *testing.T) {
 	copy(input[1:len(method)+1], []byte(method))
 	input[len(method)+1] = byte(0)
 
-	res, err := engine.Call(common.Address{}, code, "", input, 0)
+	res, err := engine.Call(common.Address{}, code, "", input, 0, gasChk)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}
@@ -194,7 +198,7 @@ func TestMem(t *testing.T) {
 	copy(input[1:len(method)+1], []byte(method))
 	input[len(method)+1] = byte(0)
 
-	res, err := engine.Call(common.Address{}, code, "", input, 0)
+	res, err := engine.Call(common.Address{}, code, "", input, 0, gasChk)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}
@@ -220,7 +224,7 @@ func TestGlobal(t *testing.T) {
 	copy(input[1:len(method)+1], []byte(method))
 	input[len(method)+1] = byte(0)
 
-	res, err := engine.Call(common.Address{}, code, "", input, 0)
+	res, err := engine.Call(common.Address{}, code, "", input, 0, gasChk)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}
@@ -247,7 +251,7 @@ func TestIf(t *testing.T) {
 	input[len(method)+2] = byte(1)
 	input[len(method)+3] = byte(p)
 
-	res, err := engine.Call(common.Address{}, code, "", input, 0)
+	res, err := engine.Call(common.Address{}, code, "", input, 0, gasChk)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}
@@ -285,7 +289,7 @@ func TestLoop(t *testing.T) {
 	input[len(method)+2] = byte(1)
 	input[len(method)+3] = byte(p)
 
-	res, err := engine.Call(common.Address{}, code, "", input, 0)
+	res, err := engine.Call(common.Address{}, code, "", input, 0, gasChk)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}
@@ -316,7 +320,7 @@ func TestWhileLoop(t *testing.T) {
 	input[len(method)+2] = byte(1)
 	input[len(method)+3] = byte(p)
 
-	res, err := engine.Call(common.Address{}, code, "", input, 0)
+	res, err := engine.Call(common.Address{}, code, "", input, 0, gasChk)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}
@@ -357,7 +361,7 @@ func TestIfII(t *testing.T) {
 	input[len(method)+2] = byte(1)
 	input[len(method)+3] = byte(p)
 
-	res, err := engine.Call(common.Address{}, code, "", input, 0)
+	res, err := engine.Call(common.Address{}, code, "", input, 0, gasChk)
 	if err != nil {
 		fmt.Println("call error!", err.Error())
 	}

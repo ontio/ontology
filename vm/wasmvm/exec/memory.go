@@ -23,8 +23,8 @@
 package exec
 
 import (
-	"math"
 	"github.com/ontio/ontology/errors"
+	"math"
 )
 
 // ErrOutOfBoundsMemoryAccess is the error value used while trapping the VM

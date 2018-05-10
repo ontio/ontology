@@ -29,11 +29,11 @@ import (
 	"io"
 	"math"
 
+	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/vm/wasmvm/internal/stack"
 	"github.com/ontio/ontology/vm/wasmvm/wasm"
 	"github.com/ontio/ontology/vm/wasmvm/wasm/leb128"
 	ops "github.com/ontio/ontology/vm/wasmvm/wasm/operators"
-	"github.com/ontio/ontology/errors"
 )
 
 // Instr describes an instruction, consisting of an operator, with its

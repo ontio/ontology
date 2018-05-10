@@ -28,6 +28,7 @@ import (
 
 	"fmt"
 
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/vm/wasmvm/exec/internal/compile"
 )
 
@@ -111,7 +112,10 @@ func (compiled compiledFunction) call(vm *VM, index int64) {
 		curFunc: index,
 	}
 
-	rtrn := vm.execCode(false, compiled)
+	rtrn, err := vm.execCode(false, compiled)
+	if err != nil {
+		log.Errorf("[call] execCode failed! error:%s\n", err.Error())
+	}
 
 	//restore execution context
 	vm.ctx = prevCtxt

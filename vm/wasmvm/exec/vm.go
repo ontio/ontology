@@ -12,13 +12,13 @@ import (
 	"math"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/types"
 	"github.com/ontio/ontology/vm/wasmvm/disasm"
 	"github.com/ontio/ontology/vm/wasmvm/exec/internal/compile"
 	"github.com/ontio/ontology/vm/wasmvm/memory"
 	"github.com/ontio/ontology/vm/wasmvm/wasm"
 	ops "github.com/ontio/ontology/vm/wasmvm/wasm/operators"
-	"github.com/ontio/ontology/errors"
 )
 
 var (
@@ -87,6 +87,8 @@ type VM struct {
 	Caller          common.Address
 	Engine          *ExecutionEngine
 	VMCode          types.VmCode
+	//gas check function
+	GasCheck func(uint64) bool
 }
 
 // As per the WebAssembly spec: https://github.com/WebAssembly/design/blob/27ac254c854994103c24834a994be16f74f54186/Semantics.md#linear-memory
@@ -341,7 +343,11 @@ func (vm *VM) ExecCode(insideCall bool, fnIndex int64, args ...uint64) (interfac
 		vm.ctx.locals[i] = arg
 	}
 	var rtrn interface{}
-	res := vm.execCode(insideCall, compiled)
+	res, err := vm.execCode(insideCall, compiled)
+	if err != nil {
+		return res, err
+	}
+
 	// for the call contract case
 	if insideCall {
 		return res, nil
@@ -366,11 +372,15 @@ func (vm *VM) ExecCode(insideCall bool, fnIndex int64, args ...uint64) (interfac
 	return rtrn, nil
 }
 
-func (vm *VM) execCode(isinside bool, compiled compiledFunction) uint64 {
+func (vm *VM) execCode(isinside bool, compiled compiledFunction) (uint64, error) {
 outer:
 	for int(vm.ctx.pc) < len(vm.ctx.code) {
 		op := vm.ctx.code[vm.ctx.pc]
 		vm.ctx.pc++
+		//check gas
+		if vm.GasCheck(0) == false {
+			return 0, errors.NewErr("[execCode] not enough gas")
+		}
 
 		switch op {
 		case ops.Return:
@@ -443,9 +453,9 @@ outer:
 	}
 
 	if compiled.returns {
-		return vm.ctx.stack[len(vm.ctx.stack)-1]
+		return vm.ctx.stack[len(vm.ctx.stack)-1], nil
 	}
-	return 0
+	return 0, nil
 }
 
 //CallContract
@@ -513,6 +523,11 @@ func (vm *VM) loadModule(module *wasm.Module) error {
 		if len(module.Memory.Entries) > 1 {
 			return ErrMultipleLinearMemories
 		}
+		//check gas
+		if vm.GasCheck(0) == false {
+			return errors.NewErr(fmt.Sprintf("[loadModule] not enough gas to alloc memory %d pages", module.Memory.Entries[0].Limits.Initial))
+		}
+
 		vm.memory.Memory = make([]byte, uint(module.Memory.Entries[0].Limits.Initial)*wasmPageSize)
 		copy(vm.memory.Memory, module.LinearMemoryIndexSpace[0])
 	} else if len(module.LinearMemoryIndexSpace) > 0 {

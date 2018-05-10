@@ -124,7 +124,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 		caller = this.ContextRef.CallingContext().ContractAddress
 	}
 	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address})
-	res, err := engine.Call(caller, contract.Code, contract.Method, contract.Args, contract.Version)
+	res, err := engine.Call(caller, contract.Code, contract.Method, contract.Args, contract.Version, this.ContextRef.CheckUseGas)
 	if err != nil {
 		//todo add a error notification
 		return nil, err

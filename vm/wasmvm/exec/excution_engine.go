@@ -27,6 +27,7 @@ import (
 	"reflect"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/types"
 	"github.com/ontio/ontology/vm/neovm/interfaces"
@@ -34,7 +35,6 @@ import (
 	"github.com/ontio/ontology/vm/wasmvm/util"
 	"github.com/ontio/ontology/vm/wasmvm/validate"
 	"github.com/ontio/ontology/vm/wasmvm/wasm"
-	"github.com/ontio/ontology/common/log"
 )
 
 const (
@@ -316,18 +316,19 @@ func (e *ExecutionEngine) Call(caller common.Address,
 	code []byte,
 	actionName string,
 	input []byte,
-	ver byte) (returnbytes []byte, er error) {
+	ver byte,
+	gasChk func(uint64) bool) (returnbytes []byte, er error) {
 
 	//catch the panic to avoid crash the whole node
 	defer func() {
 		if err := recover(); err != nil {
-			log.Errorf("[Call] call wasm panic:%v\n",err)
+			log.Errorf("[Call] call wasm panic:%v\n", err)
 			returnbytes = nil
 			er = errors.NewErr("[Call] error happened while call wasmvm")
 		}
 	}()
 
-	return e.call(caller, code, input, actionName, ver)
+	return e.call(caller, code, input, actionName, ver, gasChk)
 
 }
 
@@ -340,7 +341,8 @@ func (e *ExecutionEngine) Call(caller common.Address,
 func (e *ExecutionEngine) InitCall(caller common.Address,
 	code []byte,
 	input []byte,
-	ver byte) (returnbytes []byte, er error) {
+	ver byte,
+	gasChk func(uint64) bool) (returnbytes []byte, er error) {
 
 	//catch the panic to avoid crash the whole node
 	defer func() {
@@ -350,7 +352,7 @@ func (e *ExecutionEngine) InitCall(caller common.Address,
 		}
 	}()
 
-	return e.call(caller, code, input, CONTRACT_INIT_METHOD, ver)
+	return e.call(caller, code, input, CONTRACT_INIT_METHOD, ver, gasChk)
 
 }
 
@@ -359,7 +361,8 @@ func (e *ExecutionEngine) call(caller common.Address,
 	code []byte,
 	input []byte,
 	actionName string,
-	ver byte) (returnbytes []byte, er error) {
+	ver byte,
+	gasChk func(uint64) bool) (returnbytes []byte, er error) {
 	if ver > 0 { //production contract version
 		methodName := CONTRACT_METHOD_NAME //fix to "invoke"
 		//1. read code
@@ -386,6 +389,9 @@ func (e *ExecutionEngine) call(caller common.Address,
 		if e.service != nil {
 			vm.Services = e.service.GetServiceMap()
 		}
+		//set gascheck function
+		vm.GasCheck = gasChk
+
 		e.vm = vm
 		vm.Engine = e
 		//no message support for now

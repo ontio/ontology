@@ -25,9 +25,9 @@ package validate
 import (
 	"fmt"
 
+	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/vm/wasmvm/wasm"
 	ops "github.com/ontio/ontology/vm/wasmvm/wasm/operators"
-	"github.com/ontio/ontology/errors"
 )
 
 type Error struct {

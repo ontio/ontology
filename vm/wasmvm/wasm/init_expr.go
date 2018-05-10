@@ -28,8 +28,8 @@ import (
 	"io"
 	"math"
 
-	"github.com/ontio/ontology/vm/wasmvm/wasm/leb128"
 	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/vm/wasmvm/wasm/leb128"
 )
 
 const (
