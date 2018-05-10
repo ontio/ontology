@@ -97,13 +97,10 @@ func NewGenesisConfig() *GenesisConfig {
 }
 
 type VBFTConfig struct {
-	View                 uint32               `json:"view"` // config-updated version
-	N                    uint32               `json:"n"`    // network size
-	C                    uint32               `json:"c"`    // consensus quorum
+	N                    uint32               `json:"n"` // network size
+	C                    uint32               `json:"c"` // consensus quorum
 	K                    uint32               `json:"k"`
 	L                    uint32               `json:"l"`
-	InitTxid             uint64               `json:"init_txid"`
-	GenesisTimestamp     uint64               `json:"genesis_timestamp"`
 	BlockMsgDelay        uint32               `json:"block_msg_delay"`
 	HashMsgDelay         uint32               `json:"hash_msg_delay"`
 	PeerHandshakeTimeout uint32               `json:"peer_handshake_timeout"`
@@ -112,9 +109,10 @@ type VBFTConfig struct {
 }
 
 type VBFTPeerStakeInfo struct {
-	Index  uint32 `json:"index"`
-	NodeID string `json:"peerPubkey"`
-	Stake  uint64 `json:"initPos"`
+	Index      uint32 `json:"index"`
+	PeerPubkey string `json:"peerPubkey"`
+	Address    string `json:"address"`
+	InitPos    uint64 `json:"initPos"`
 }
 
 type DBFTConfig struct {
@@ -236,7 +234,7 @@ func (this *OntologyConfig) GetBookkeepers() ([]keypair.PublicKey, error) {
 	switch this.Genesis.ConsensusType {
 	case CONSENSUS_TYPE_VBFT:
 		for _, peer := range this.Genesis.VBFT.Peers {
-			bookKeepers = append(bookKeepers, peer.NodeID)
+			bookKeepers = append(bookKeepers, peer.PeerPubkey)
 		}
 	case CONSENSUS_TYPE_DBFT:
 		bookKeepers = this.Genesis.DBFT.Bookkeepers

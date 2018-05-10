@@ -4,13 +4,10 @@
   ],
   "ConsensusType":"vbft",
   "VBFT":{
-    "view": 1,
     "n":7,
     "c":2,
     "k":7,
     "l":112,
-    "init_txid": 0,
-    "genesis_timestamp": 0,
     "block_msg_delay":10000,
     "hash_msg_delay":10000,
     "peer_handshake_timeout":10,
@@ -19,36 +16,43 @@
       {
         "index":1,
         "peerPubkey":"1202028541d32f3b09180b00affe67a40516846c16663ccb916fd2db8106619f087527",
+        "address":"aaaa5e502c2c72eb6edaa9516735d518f09c95c3",
         "initPos":1000
       },
       {
         "index":2,
         "peerPubkey":"120202dfb161f757921898ec2e30e3618d5c6646d993153b89312bac36d7688912c0ce",
+        "address":"aaaa5e502c2c72eb6edaa9516735d518f09c95c3",
         "initPos":2000
       },
       {
         "index":3,
         "peerPubkey":"1202039dab38326268fe82fb7967fe2e7f5f6eaced6ec711148a66fbb8480c321c19dd",
+        "address":"aaaa5e502c2c72eb6edaa9516735d518f09c95c3",
         "initPos":3000
       },
       {
         "index":4,
         "peerPubkey":"12020384f2729bc5d9b14dcbf17aba108261dc7ad867127e413d3c8bfb4731739687b3",
+        "address":"aaaa5e502c2c72eb6edaa9516735d518f09c95c3",
         "initPos":4000
       },
       {
         "index":5,
         "peerPubkey":"120203362f99284daa9f581fab596516f75475fc61a5f80de0e268a68430dc7589859c",
+        "address":"aaaa5e502c2c72eb6edaa9516735d518f09c95c3",
         "initPos":3000
       },
       {
         "index":6,
         "peerPubkey":"120203db6e37a2d897f2d61b42dcd478323a8a20c3444af4ee29653849f38d0bdb67f4",
+        "address":"aaaa5e502c2c72eb6edaa9516735d518f09c95c3",
         "initPos":2000
       },
       {
         "index":7,
         "peerPubkey":"12020298fe9f22e9df64f6bfcc1c2a14418846cffdbbf510d261bbc3fa6d47073df9a2",
+        "address":"aaaa5e502c2c72eb6edaa9516735d518f09c95c3",
         "initPos":1000
       }
     ]

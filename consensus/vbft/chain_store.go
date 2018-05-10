@@ -137,7 +137,6 @@ func (self *ChainStore) GetVbftConfigInfo() (*config.VBFTConfig, error) {
 		return nil, fmt.Errorf("unmarshal config: %s", err)
 	}
 	chainconfig := &config.VBFTConfig{
-		View:                 uint32(1),
 		N:                    cfg.N,
 		C:                    cfg.C,
 		K:                    cfg.K,
@@ -172,9 +171,9 @@ func (self *ChainStore) GetPeersConfig() ([]*config.VBFTPeerStakeInfo, error) {
 	var peerstakes []*config.VBFTPeerStakeInfo
 	for _, id := range peerMap.PeerPoolMap {
 		config := &config.VBFTPeerStakeInfo{
-			Index:  uint32(id.Index),
-			NodeID: id.PeerPubkey,
-			Stake:  id.InitPos + id.TotalPos,
+			Index:      uint32(id.Index),
+			PeerPubkey: id.PeerPubkey,
+			InitPos:    id.InitPos + id.TotalPos,
 		}
 		peerstakes = append(peerstakes, config)
 
