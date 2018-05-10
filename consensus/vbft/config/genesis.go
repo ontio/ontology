@@ -74,14 +74,14 @@ func GenesisChainConfig(config *config.VBFTConfig, peersinfo []*config.VBFTPeerS
 
 	peers := peersinfo
 	sort.Slice(peers, func(i, j int) bool {
-		return peers[i].Stake > peers[j].Stake
+		return peers[i].InitPos > peers[j].InitPos
 	})
 	log.Debugf("sorted peers: %v", peers)
 	// get stake sum of top-k peers
 	var sum uint64
 	for i := 0; i < int(config.K); i++ {
-		sum += peers[i].Stake
-		log.Infof("peer: %d, stack: %d", peers[i].Index, peers[i].Stake)
+		sum += peers[i].InitPos
+		log.Infof("peer: %d, stack: %d", peers[i].Index, peers[i].InitPos)
 	}
 
 	log.Debugf("sum of top K stakes: %d", sum)
@@ -94,10 +94,10 @@ func GenesisChainConfig(config *config.VBFTConfig, peersinfo []*config.VBFTPeerS
 
 	peerRanks := make([]uint64, 0)
 	for i := 0; i < int(config.K); i++ {
-		if peers[i].Stake == 0 {
+		if peers[i].InitPos == 0 {
 			return nil, fmt.Errorf("peers rank %d, has zero stake", i)
 		}
-		s := uint64(math.Ceil(float64(peers[i].Stake) * float64(scale) * float64(config.K) / float64(sum)))
+		s := uint64(math.Ceil(float64(peers[i].InitPos) * float64(scale) * float64(config.K) / float64(sum)))
 		peerRanks = append(peerRanks, s)
 	}
 
@@ -107,7 +107,7 @@ func GenesisChainConfig(config *config.VBFTConfig, peersinfo []*config.VBFTPeerS
 	chainPeers := make(map[uint32]*PeerConfig, 0)
 	posTable := make([]uint32, 0)
 	for i := 0; i < int(config.K); i++ {
-		nodeId, err := StringID(peers[i].NodeID)
+		nodeId, err := StringID(peers[i].PeerPubkey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to format NodeID, index: %d: %s", peers[i].Index, err)
 		}
@@ -138,7 +138,7 @@ func GenesisChainConfig(config *config.VBFTConfig, peersinfo []*config.VBFTPeerS
 
 	chainConfig := &ChainConfig{
 		Version:              1,
-		View:                 config.View,
+		View:                 1,
 		N:                    config.N,
 		C:                    config.C,
 		BlockMsgDelay:        time.Duration(config.BlockMsgDelay) * time.Millisecond,
