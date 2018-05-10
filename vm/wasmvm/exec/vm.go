@@ -98,8 +98,9 @@ var endianess = binary.LittleEndian
 
 // NewVM creates a new VM from a given module. If the module defines a
 // start function, it will be executed.
-func NewVM(module *wasm.Module) (*VM, error) {
+func NewVM(module *wasm.Module, gasChk func(uint64) bool) (*VM, error) {
 	var vm VM
+	vm.GasCheck = gasChk
 	err := vm.loadModule(module)
 	if err != nil {
 		return nil, err
@@ -475,7 +476,7 @@ func (vm *VM) CallContract(caller common.Address, contractAddress common.Address
 	index := int64(entry.Index)
 
 	//new vm
-	newvm, err := NewVM(module)
+	newvm, err := NewVM(module, vm.GasCheck)
 	if err != nil {
 		return uint64(0), err
 	}
@@ -527,7 +528,6 @@ func (vm *VM) loadModule(module *wasm.Module) error {
 		if vm.GasCheck(0) == false {
 			return errors.NewErr(fmt.Sprintf("[loadModule] not enough gas to alloc memory %d pages", module.Memory.Entries[0].Limits.Initial))
 		}
-
 		vm.memory.Memory = make([]byte, uint(module.Memory.Entries[0].Limits.Initial)*wasmPageSize)
 		copy(vm.memory.Memory, module.LinearMemoryIndexSpace[0])
 	} else if len(module.LinearMemoryIndexSpace) > 0 {

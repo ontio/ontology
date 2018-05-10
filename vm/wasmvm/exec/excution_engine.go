@@ -49,6 +49,10 @@ type vmstack struct {
 	stack []*VM
 }
 
+func init() {
+	log.InitLog(log.InfoLog, log.PATH, log.Stdout)
+}
+
 func (s *vmstack) push(vm *VM) error {
 	if s.top+1 == len(s.stack) {
 		return errors.NewErr(fmt.Sprintf("[vm stack push] stack is full, only support %d contracts calls", VM_STACK_DEPTH))
@@ -130,7 +134,8 @@ func (e *ExecutionEngine) RestoreVM() error {
 func (e *ExecutionEngine) CallInf(caller common.Address,
 	code []byte,
 	input []interface{},
-	message []interface{}) ([]byte, error) {
+	message []interface{},
+	gasChk func(uint64) bool) ([]byte, error) {
 	methodName := input[0].(string)
 
 	//1. read code
@@ -151,7 +156,7 @@ func (e *ExecutionEngine) CallInf(caller common.Address,
 		return nil, errors.NewErr("No export in wasm!")
 	}
 
-	vm, err := NewVM(m)
+	vm, err := NewVM(m, gasChk)
 	if err != nil {
 		return nil, err
 	}
@@ -382,7 +387,7 @@ func (e *ExecutionEngine) call(caller common.Address,
 			return nil, errors.NewErr("[Call]No export in wasm!")
 		}
 
-		vm, err := NewVM(m)
+		vm, err := NewVM(m, gasChk)
 		if err != nil {
 			return nil, err
 		}
@@ -390,8 +395,6 @@ func (e *ExecutionEngine) call(caller common.Address,
 			vm.Services = e.service.GetServiceMap()
 		}
 		//set gascheck function
-		vm.GasCheck = gasChk
-
 		e.vm = vm
 		vm.Engine = e
 		//no message support for now
@@ -482,7 +485,7 @@ func (e *ExecutionEngine) call(caller common.Address,
 			return nil, errors.NewErr("[Call]No export in wasm!")
 		}
 
-		vm, err := NewVM(m)
+		vm, err := NewVM(m, gasChk)
 		if err != nil {
 			return nil, err
 		}

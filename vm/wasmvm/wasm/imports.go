@@ -25,6 +25,7 @@ package wasm
 import (
 	"fmt"
 	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/common/log"
 )
 
 // Import is an intreface implemented by types that can be imported by a WebAssembly module.
@@ -155,7 +156,7 @@ func (module *Module) resolveImports(resolve ResolveFunc) error {
 				module.imports.Memories++
 
 			default:
-				fmt.Println("not support import type")
+				log.Error("not support import type")
 
 			}
 		} else {

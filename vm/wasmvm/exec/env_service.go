@@ -28,7 +28,6 @@ import (
 	"strings"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/vm/wasmvm/memory"
@@ -109,7 +108,6 @@ func (i *InteropService) Invoke(methodName string, engine *ExecutionEngine) (boo
 	if v, ok := i.serviceMap[methodName]; ok {
 		return v(engine)
 	}
-	log.Errorf("[Invoke] wasm contract invoke method :%s not supported!", methodName)
 	return false, errors.NewErr("[Invoke] Not supported method:" + methodName)
 }
 

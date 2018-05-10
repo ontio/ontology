@@ -24,8 +24,8 @@ package exec
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/common/log"
 )
 
 func (vm *VM) doCall(compiled compiledFunction, index int64) {
@@ -92,7 +92,6 @@ func (vm *VM) doCall(compiled compiledFunction, index int64) {
 	} else {
 		rtrn, err := vm.execCode(false, compiled)
 		if err != nil {
-			log.Errorf("[doCall] call method :%s failed,error:%s\n", compiled.name, err.Error())
 			panic(fmt.Errorf("[doCall] call method :%s failed,error:%s\n", compiled.name, err.Error()))
 		}
 
