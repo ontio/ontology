@@ -22,12 +22,10 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"math/big"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
@@ -432,6 +430,7 @@ func GetBlockHeightByTxHash(params []interface{}) map[string]interface{} {
 	return responsePack(berr.INVALID_PARAMS, "")
 }
 
+
 func GetBalance(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return responsePack(berr.INVALID_PARAMS, "")
@@ -444,31 +443,11 @@ func GetBalance(params []interface{}) map[string]interface{} {
 	if err != nil {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
-	ont := new(big.Int)
-	ong := new(big.Int)
-	appove := big.NewInt(0)
-
-	ontBalance, err := bactor.GetStorageItem(genesis.OntContractAddress, address[:])
+	rsp, err := bcomn.GetBalance(address)
 	if err != nil {
-		log.Errorf("GetOntBalanceOf GetStorageItem ont address:%s error:%s", addrBase58, err)
-		return responsePack(berr.INTERNAL_ERROR, "internal error")
+		log.Errorf("GetBalance address:%s error:%s", addrBase58, err)
+		return responsePack(berr.INTERNAL_ERROR,"")
 	}
-	if ontBalance != nil {
-		ont.SetBytes(ontBalance)
-	}
-
-	appoveKey := append(genesis.OntContractAddress[:], address[:]...)
-	ongappove, err := bactor.GetStorageItem(genesis.OngContractAddress, appoveKey[:])
-
-	if ongappove != nil {
-		appove.SetBytes(ongappove)
-	}
-	rsp := &bcomn.BalanceOfRsp{
-		Ont:       ont.String(),
-		Ong:       ong.String(),
-		OngAppove: appove.String(),
-	}
-
 	return responseSuccess(rsp)
 }
 
