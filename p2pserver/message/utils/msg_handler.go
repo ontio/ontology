@@ -428,7 +428,7 @@ func VerAckHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 
 		} else {
 			//consensus port connect
-			if config.DefConfig.P2PNode.DualPortSupport {
+			if config.DefConfig.P2PNode.DualPortSupport && remotePeer.GetConsPort() > 0 {
 				i := strings.Index(addr, ":")
 				if i < 0 {
 					log.Warn("Split IP address error", addr)
@@ -438,9 +438,7 @@ func VerAckHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 					strconv.Itoa(int(remotePeer.GetConsPort()))
 				go p2p.Connect(nodeConsensusAddr, true)
 			}
-
 		}
-
 		buf, _ := msgpack.NewAddrReq()
 		go p2p.Send(remotePeer, buf, false)
 
