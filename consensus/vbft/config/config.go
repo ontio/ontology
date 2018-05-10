@@ -48,7 +48,7 @@ type ChainConfig struct {
 	Peers                []*PeerConfig `json:"peers"`
 	PosTable             []uint32      `json:"pos_table"`
 	BlockCount           uint32        `json:"block_count"`
-	MaxBlockChangeView   uint64        `json:"MaxBlockChangeView"`
+	MaxBlockChangeView   uint32        `json:"MaxBlockChangeView"`
 }
 
 type VbftBlockInfo struct {

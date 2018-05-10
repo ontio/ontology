@@ -21,9 +21,9 @@ package config
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ontio/ontology-crypto/keypair"
 	"sort"
-	"time"
+
+	"github.com/ontio/ontology-crypto/keypair"
 )
 
 const (
@@ -102,17 +102,17 @@ type VBFTConfig struct {
 	L                    uint32               `json:"l"`
 	InitTxid             uint64               `json:"init_txid"`
 	GenesisTimestamp     uint64               `json:"genesis_timestamp"`
-	BlockMsgDelay        time.Duration        `json:"block_msg_delay"`
-	HashMsgDelay         time.Duration        `json:"hash_msg_delay"`
-	PeerHandshakeTimeout time.Duration        `json:"peer_handshake_timeout"`
+	BlockMsgDelay        uint32               `json:"block_msg_delay"`
+	HashMsgDelay         uint32               `json:"hash_msg_delay"`
+	PeerHandshakeTimeout uint32               `json:"peer_handshake_timeout"`
 	MaxBlockChangeView   uint32               `json:"maxblockchangeview"`
 	Peers                []*VBFTPeerStakeInfo `json:"peers"`
 }
 
 type VBFTPeerStakeInfo struct {
 	Index  uint32 `json:"index"`
-	NodeID string `json:"node_id"`
-	Stake  uint64 `json:"stake"`
+	NodeID string `json:"peerPubkey"`
+	Stake  uint64 `json:"initPos"`
 }
 
 type DBFTConfig struct {
