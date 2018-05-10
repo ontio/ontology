@@ -10,8 +10,8 @@ import (
 	"testing"
 )
 
-func genAccountx() (*Accountx, *keypair.ProtectedKey) {
-	var acc = new(Accountx)
+func genAccountData() (*AccountData, *keypair.ProtectedKey) {
+	var acc = new(AccountData)
 	prvkey, pubkey, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
 	ta := types.AddressFromPubKey(pubkey)
 	address := ta.ToBase58()
@@ -25,8 +25,8 @@ func genAccountx() (*Accountx, *keypair.ProtectedKey) {
 	return acc, prvSectet
 }
 
-func TestAccountx(t *testing.T) {
-	acc, prvSectet := genAccountx()
+func TestAccountData(t *testing.T) {
+	acc, prvSectet := genAccountData()
 	assert.NotNil(t, acc)
 	assert.Equal(t, acc.Address, acc.ProtectedKey.Address)
 	assert.Equal(t, prvSectet, acc.GetKeyPair())
@@ -45,7 +45,7 @@ func TestWalletStorage(t *testing.T) {
 	walletReadFromFile := new(WalletData)
 	walletReadFromFile.Load(WALLET_FILENAME)
 	assert.Equal(t, walletReadFromFile, wallet)
-	accout, _ := genAccountx()
+	accout, _ := genAccountData()
 	wallet.AddAccount(accout)
 	wallet.AddAccount(accout)
 	wallet.Save(WALLET_FILENAME)

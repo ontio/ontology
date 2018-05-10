@@ -3,7 +3,7 @@
 
 - [CLI Account Command](#cli-account-cmd)
 - [CLI Info Show Command](#cli-info-show-cmd)
-- [CLI ASSET Command](#cli-asset-cmd)
+- [CLI Asset Command](#cli-asset-cmd)
 - [CLI Setting Command](#cli-setting-cmd)
 - [CLI Contract Command](#cli-contract-cmd)
 
@@ -19,7 +19,7 @@ The following commands will print the usage of the command or subcommand:
 ./ontology help
 ./ontology <command> help
 ```
---- 
+---
 
 ## <a name="cli-account-cmd"></a> CLI Account Command
 
@@ -27,7 +27,7 @@ The following commands will print the usage of the command or subcommand:
 
 Create a new account contains a key pair and an address.
 
-First select the key type, which could be specified via `-t` option.
+First select the key type, which could be specified via `-t` or `--type` option.
 
 ```sh
 $ ontology account add
@@ -38,7 +38,7 @@ Select a signature algorithm from the following:
   2  SM2
   3  Ed25519
 
-[default is 1]: 
+[default is 1]:
 ```
 
 If SM2 or EdDSA is selected, the parameters are auto set since each of the two only supports one default setting.
@@ -66,11 +66,11 @@ Select a curve from the following:
   3 | P-384 | 384
   4 | P-521 | 521
 
-This determines the length of the private key [default is 2]: 
+This determines the length of the private key [default is 2]:
 ```
 
 The curves determine the key length of 224, 256, 384 and 521 respectively.
-This parameter could be specified via `-b` option.
+This parameter could be specified via `-b` or `--bit-length` option.
 
 Then select a signature scheme:
 
@@ -87,7 +87,7 @@ Select a signature scheme from the following:
   8  SHA3-512withECDSA
   9  RIPEMD160withECDSA
 
-This can be changed later [default is 2]: 
+This can be changed later [default is 2]:
 ```
 
 The above selections can be skipped by adding `-d` or `--default` option, which
@@ -102,32 +102,59 @@ Re-enter password:
 
 It can be re-encrypted later using the `encrypt` command.
 
-After all the parameters are selected, it will generate a key pair. 
+After all the parameters are selected, it will generate a key pair.
 
 The public key will be converted to generate the address. Then output the public informations.
 
 ```sh
 Create account successfully.
+Label: `label you have set`
 Address: `base58-address-string`
 Public key: `hex-string`
 Signature scheme: SHA256withECDSA
+```
+
+#### [Other Options]
+
+* **set label**
+
+A label can be set for an account by `-l` or `--label` option,
+if this flag wasn't set, new account's label will be blank.
+Don't worry if you forget to set label, you can set label with command `account set`.
+Look for more informations in [`set`](#account-set) section.
+
+```sh
+$ ontology account add -l newaccount
+$ ontology account add -l "new account"
+```
+
+* **add multiple account**
+
+Multiple accounts can be added by `-n` or `--number` option.
+Notice that the number must between 1 to 100, or it will be set to 1 by default.
+All the n accounts will use the same params in your account create process,
+except the key pair.
+
+```sh
+$ ontology account add -n 10
 ```
 
 ### List existing account
 
 ```sh
 $ ontology account list
-* 1  xxxxx
-  2  xxxxx
+* 1  xxxxx yyyyy
+  2  xxxxx yyyyy
 ```
 
-The `*` indicates the default account.
+The `*` indicates the default account. The `xxxxx` is address and `yyyyy` is label.
 
 With `-v` option, details of each account would be displayed.
 
 ```sh
 $ ontology account list -v
 * 1 xxxxx
+    Label: xxxx
     Signature algorithm: ECDSA
     Curve: P-256
     Key length: 256 bits
@@ -137,10 +164,16 @@ $ ontology account list -v
   ...
 ```
 
-### Modify account
+### <a name="account-set"></a>Modify account
 
 Modify the account settings, such as the signature scheme, or set the account
 as default.
+
+Use `-s` or `--signature-scheme` to set the signature scheme for the account.
+
+Use `-d` or `--as-default` to set the account as a default account.
+
+Use `-l` or `--label` to set the label for the account.
 
 Account is specified by the index displayed in the `list` command.
 
@@ -150,17 +183,22 @@ SHA256withECDSA is selected.
 
 $ ontology account set -d 2
 Set account 2 as the default account
+
+$ ontology account set -l "hello world"
+Account <1>: label is set to 'hello world'.
 ```
 
 
 ### Delete account
 
 Delete an existing account by specifying the index.
+**Password** must be enter when delete an account.
 
 ```sh
 $ ontology account del 1
+Password:
 Delete account successfully.
-index = 1, address = xxx
+index = 1, address = xxx, label=xxx
 ```
 
 ### Re-encrypt account
@@ -180,6 +218,24 @@ Enter a password for encrypting the private key:
 Re-enter password:
 ```
 
+### Import account
+
+Import accounts from some source file to current wallet file.
+Use `-s` or `--source` option to specify the source file that your new accounts are from.
+Use `-f` or `--file` option to specify your current wallet file where your new accoounts will imported into.
+The `-f` can be ignore and default wallet file "wallet.dat" will be used.
+
+```sh
+$ ontology account import -s xxx.dat -f wallet.dat
+
+Import finished. 4 accounts has been imported.
+```
+> **Tips:**
+>
+> `-f` `--file` can be used for each subcommand of **account**,
+> it specifies the wallet file, if not set, default value will be 'wallet.dat'.
+
+
 ## <a name="cli-info-show-cmd"></a>CLI Info Show Command
 
 ```
@@ -198,7 +254,7 @@ Command:
         --hash value                  transaction hash value
 ```
 
-### Example for info version 
+### Example for info version
 ```
 $ ./ontology info version
 Result will show as follow:
@@ -208,7 +264,7 @@ Node version: 653c-dirty
 ### Example for info block (with height)
 ```
 $ ./ontology info block --height 12
-Result will show as follow: 
+Result will show as follow:
 {
 	"Action": "getblockbyheight",
 	"Desc": "SUCCESS",
@@ -275,7 +331,7 @@ If a invalid value of height is given, the result will show as follow:
 ### Example for info block (with hash)
 ```
 $ ./ontology info block --hash 805e8ad8de2b28884656a393143dc07fea1cc83ddd849e1bbab814c476c26bb2
-Result will show as follow: 
+Result will show as follow:
 {
 	"Action": "getblockbyheight",
 	"Desc": "SUCCESS",
@@ -342,7 +398,7 @@ If a invalid value of block hash is given, the result will show as follow:
 ### Example for info transaction
 ```
 $ ./ontology info tx --hash 805e8ad8de2b28884656a393143dc07fea1cc83ddd849e1bbab814c476c26bb2
-Result will show as follow: 
+Result will show as follow:
 {
 	"Action": "gettransaction",
 	"Desc": "SUCCESS",
