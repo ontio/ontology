@@ -465,7 +465,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 	}
 
 	if len(ds.context.Transactions) > 1 {
-		height := ds.context.Height
+		height := ds.context.Height - 1
 		start, end := ds.incrValidator.BlockRange()
 
 		validHeight := height
