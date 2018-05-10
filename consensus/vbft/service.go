@@ -217,8 +217,11 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 		log.Errorf("server %d, persist block %d, vs completed %d",
 			self.Index, block.Header.Height, self.completedBlockNum)
 	}
-
-	if self.checkNeedUpdateChainConfig(self.completedBlockNum+1) || self.checkForceUpdateChainConfig() {
+	num := 1
+	if self.nonConsensusNode() {
+		num++
+	}
+	if self.checkNeedUpdateChainConfig(self.completedBlockNum+uint64(num)) || self.checkForceUpdateChainConfig() {
 		err := self.updateChainConfig()
 		if err != nil {
 			log.Errorf("updateChainConfig failed:%s", err)
@@ -298,7 +301,6 @@ func (self *Server) getChainConfig() (*vconfig.ChainConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get peersinfo from leveldb: %s", err)
 	}
-
 	cfg, err := vconfig.GenesisChainConfig(config, peersinfo)
 	if err != nil {
 		return nil, fmt.Errorf("GenesisChainConfig failed: %s", err)
@@ -333,6 +335,16 @@ func (self *Server) updateChainConfig() error {
 			if err := self.peerPool.addPeer(p); err != nil {
 				return fmt.Errorf("failed to add peer %d: %s", p.Index, err)
 			}
+			publickey, err := p.ID.Pubkey()
+			if err != nil {
+				log.Errorf("Pubkey failed: %v", err)
+				return fmt.Errorf("Pubkey failed: %v", err)
+			}
+			msg := &p2pmsg.PeerStateUpdate{
+				PeerPubKey: publickey,
+				Connected:  true,
+			}
+			self.handlePeerStateUpdate(msg)
 			log.Infof("updateChainConfig add peer index%v,id:%v", p.ID.String(), p.Index)
 		}
 	}
@@ -342,6 +354,7 @@ func (self *Server) updateChainConfig() error {
 		index, present := self.peerPool.GetPeerIndex(id)
 		if present {
 			self.Index = index
+			log.Infof("updateChainConfig add index :%d", index)
 		}
 	}
 
@@ -350,6 +363,7 @@ func (self *Server) updateChainConfig() error {
 		if !present {
 			if index == self.Index {
 				self.Index = math.MaxUint32
+				log.Infof("updateChainConfig remove index :%d", index)
 			} else {
 				log.Info("updateChainConfig remove consensus")
 				if C, present := self.msgRecvC[index]; present {
@@ -1961,7 +1975,7 @@ func (self *Server) creategovernaceTransaction() *types.Transaction {
 
 //checkNeedUpdateChainConfig use blockcount
 func (self *Server) checkNeedUpdateChainConfig(blockNum uint64) bool {
-	if blockNum%self.config.MaxBlockChangeView == 0 {
+	if blockNum%uint64(self.config.MaxBlockChangeView) == 0 {
 		return true
 	}
 	log.Debugf("blockcount: %d", self.config.BlockCount)

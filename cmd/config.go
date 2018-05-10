@@ -22,11 +22,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/urfave/cli"
-	"io/ioutil"
 )
 
 func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
