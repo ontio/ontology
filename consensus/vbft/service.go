@@ -41,6 +41,7 @@ import (
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
+	feesplit "github.com/ontio/ontology/smartcontract/service/native/fee_split"
 	gover "github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/ontio/ontology/smartcontract/states"
 	stypes "github.com/ontio/ontology/smartcontract/types"
@@ -1945,7 +1946,7 @@ func (self *Server) createBookkeepingTransaction(nonce uint64, fee uint64) *type
 func (self *Server) createfeeSplitTransaction() *types.Transaction {
 	init := states.Contract{
 		Address: genesis.FeeSplitContractAddress,
-		Method:  "executeSplit",
+		Method:  feesplit.EXECUTE_SPLIT,
 	}
 	bf := new(bytes.Buffer)
 	init.Serialize(bf)
