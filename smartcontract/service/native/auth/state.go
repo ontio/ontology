@@ -1,9 +1,27 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package auth
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/errors"
 	"io"
 	"math"
 )
@@ -32,6 +50,7 @@ func (this *InitContractAdminParam) Deserialize(rd io.Reader) error {
 type TransferParam struct {
 	ContractAddr  []byte
 	NewAdminOntID []byte
+	KeyNo         uint32
 }
 
 func (this *TransferParam) Serialize(w io.Writer) error {
@@ -40,6 +59,9 @@ func (this *TransferParam) Serialize(w io.Writer) error {
 	}
 	if err := serialization.WriteVarBytes(w, this.NewAdminOntID); err != nil {
 		return err
+	}
+	if err := serialization.WriteUint32(w, this.KeyNo); err != nil {
+		return nil
 	}
 	return nil
 }
@@ -52,6 +74,9 @@ func (this *TransferParam) Deserialize(rd io.Reader) error {
 	if this.NewAdminOntID, err = serialization.ReadVarBytes(rd); err != nil {
 		return err
 	}
+	if this.KeyNo, err = serialization.ReadUint32(rd); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -61,25 +86,29 @@ type FuncsToRoleParam struct {
 	AdminOntID   []byte
 	Role         []byte
 	FuncNames    []string
+	KeyNo        uint32
 }
 
 func (this *FuncsToRoleParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteVarBytes(w, this.ContractAddr); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[FuncsToRoleParam] serialize contractAddr error")
+		return err
 	}
 	if err := serialization.WriteVarBytes(w, this.AdminOntID); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[FuncsToRoleParam] serialize adminOntID error")
+		return err
 	}
 	if err := serialization.WriteVarBytes(w, this.Role); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[FuncsToRoleParam] serialize role error")
+		return err
 	}
 	if err := serialization.WriteVarUint(w, uint64(len(this.FuncNames))); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[FuncsToRoleParam] serialize funcNames length error")
+		return err
 	}
 	for _, fn := range this.FuncNames {
 		if err := serialization.WriteString(w, fn); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "[FuncsToRoleParam] serialize funcNames error!")
+			return err
 		}
+	}
+	if err := serialization.WriteUint32(w, this.KeyNo); err != nil {
+		return nil
 	}
 	return nil
 }
@@ -109,6 +138,9 @@ func (this *FuncsToRoleParam) Deserialize(rd io.Reader) error {
 		}
 		this.FuncNames[i] = fn
 	}
+	if this.KeyNo, err = serialization.ReadUint32(rd); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -117,6 +149,7 @@ type OntIDsToRoleParam struct {
 	AdminOntID   []byte
 	Role         []byte
 	Persons      [][]byte
+	KeyNo        uint32
 }
 
 func (this *OntIDsToRoleParam) Serialize(w io.Writer) error {
@@ -127,15 +160,18 @@ func (this *OntIDsToRoleParam) Serialize(w io.Writer) error {
 		return err
 	}
 	if err := serialization.WriteVarBytes(w, this.Role); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[PersonsToRole] serialize role error")
+		return err
 	}
 	if err := serialization.WriteVarUint(w, uint64(len(this.Persons))); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[PersonsToRole] serialize persons length error")
+		return err
 	}
 	for _, p := range this.Persons {
 		if err := serialization.WriteVarBytes(w, p); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "[PersonsToRole] serialize persons error!")
+			return err
 		}
+	}
+	if err := serialization.WriteUint32(w, this.KeyNo); err != nil {
+		return nil
 	}
 	return nil
 }
@@ -163,6 +199,9 @@ func (this *OntIDsToRoleParam) Deserialize(rd io.Reader) error {
 		}
 		this.Persons[i] = p
 	}
+	if this.KeyNo, err = serialization.ReadUint32(rd); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -172,7 +211,8 @@ type DelegateParam struct {
 	To           []byte
 	Role         []byte
 	Period       uint32
-	Level        int
+	Level        uint
+	KeyNo        uint32
 }
 
 func (this *DelegateParam) Serialize(w io.Writer) error {
@@ -188,10 +228,13 @@ func (this *DelegateParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteVarBytes(w, this.Role); err != nil {
 		return err
 	}
-	if err := serialization.WriteVarUint(w, uint64(this.Period)); err != nil {
+	if err := serialization.WriteUint32(w, this.Period); err != nil {
 		return err
 	}
 	if err := serialization.WriteVarUint(w, uint64(this.Level)); err != nil {
+		return err
+	}
+	if err := serialization.WriteUint32(w, this.KeyNo); err != nil {
 		return err
 	}
 	return nil
@@ -199,7 +242,7 @@ func (this *DelegateParam) Serialize(w io.Writer) error {
 
 func (this *DelegateParam) Deserialize(rd io.Reader) error {
 	var err error
-	var period uint64
+	var period uint32
 	var level uint64
 	if this.ContractAddr, err = serialization.ReadVarBytes(rd); err != nil {
 		return err
@@ -213,17 +256,19 @@ func (this *DelegateParam) Deserialize(rd io.Reader) error {
 	if this.Role, err = serialization.ReadVarBytes(rd); err != nil {
 		return err
 	}
-	if period, err = serialization.ReadVarUint(rd, 0); err != nil {
+	if this.Period, err = serialization.ReadUint32(rd); err != nil {
 		return err
 	}
 	if level, err = serialization.ReadVarUint(rd, 0); err != nil {
 		return err
 	}
-	if period > math.MaxUint32 || level > math.MaxInt8 {
-		return errors.NewErr("[auth contract] delegate deserialize: period or level too large")
+	if this.KeyNo, err = serialization.ReadUint32(rd); err != nil {
+		return err
 	}
-	this.Period = uint32(period)
-	this.Level = int(level)
+	if level > math.MaxInt8 {
+		return fmt.Errorf("period or level too large: (%d, %d)", period, level)
+	}
+	this.Level = uint(level)
 	return nil
 }
 
@@ -232,6 +277,7 @@ type WithdrawParam struct {
 	Initiator    []byte
 	Delegate     []byte
 	Role         []byte
+	KeyNo        uint32
 }
 
 func (this *WithdrawParam) Serialize(w io.Writer) error {
@@ -245,6 +291,9 @@ func (this *WithdrawParam) Serialize(w io.Writer) error {
 		return err
 	}
 	if err := serialization.WriteVarBytes(w, this.Role); err != nil {
+		return err
+	}
+	if err := serialization.WriteUint32(w, this.KeyNo); err != nil {
 		return err
 	}
 	return nil
@@ -263,6 +312,9 @@ func (this *WithdrawParam) Deserialize(rd io.Reader) error {
 	if this.Role, err = serialization.ReadVarBytes(rd); err != nil {
 		return err
 	}
+	if this.KeyNo, err = serialization.ReadUint32(rd); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -270,6 +322,7 @@ type VerifyTokenParam struct {
 	ContractAddr []byte
 	Caller       []byte
 	Fn           []byte
+	KeyNo        uint32
 }
 
 func (this *VerifyTokenParam) Serialize(w io.Writer) error {
@@ -280,6 +333,9 @@ func (this *VerifyTokenParam) Serialize(w io.Writer) error {
 		return err
 	}
 	if err := serialization.WriteVarBytes(w, this.Fn); err != nil {
+		return err
+	}
+	if err := serialization.WriteUint32(w, this.KeyNo); err != nil {
 		return err
 	}
 	return nil
@@ -296,12 +352,15 @@ func (this *VerifyTokenParam) Deserialize(rd io.Reader) error {
 	if this.Fn, err = serialization.ReadVarBytes(rd); err != nil {
 		return err
 	}
+	if this.KeyNo, err = serialization.ReadUint32(rd); err != nil {
+		return err
+	}
 	return nil
 }
 
 type AuthToken struct {
 	expireTime uint32
-	level      int
+	level      uint
 }
 
 func (this *AuthToken) Serialize(w io.Writer) error {
@@ -326,7 +385,7 @@ func (this *AuthToken) Deserialize(rd io.Reader) error {
 		return err
 	}
 	this.expireTime = uint32(expireTime)
-	this.level = int(level)
+	this.level = uint(level)
 	return nil
 }
 
