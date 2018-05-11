@@ -99,9 +99,9 @@ func Transfer(native *native.NativeService, contract common.Address, state *Stat
 	return fromBalance, toBalance, nil
 }
 
-func GetApproveKey(contract common.Address, state *State) []byte {
-	temp := append(contract[:], state.From[:]...)
-	return append(temp, state.To[:]...)
+func GetApproveKey(contract, from, to common.Address) []byte {
+	temp := append(contract[:], from[:]...)
+	return append(temp, to[:]...)
 }
 
 func TransferedFrom(native *native.NativeService, currentContract common.Address, state *TransferFrom) error {

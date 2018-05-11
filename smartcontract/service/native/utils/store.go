@@ -30,14 +30,14 @@ import (
 func GetStorageItem(native *native.NativeService, key []byte) (*cstates.StorageItem, error) {
 	store, err := native.CloneCache.Get(scommon.ST_STORAGE, key)
 	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[getStorageAmount] storage error!")
+		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[GetStorageItem] storage error!")
 	}
 	if store == nil {
 		return nil, nil
 	}
 	item, ok := store.(*cstates.StorageItem)
 	if !ok {
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[getStorageAmount] get amount error!")
+		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[GetStorageItem] instance doesn't StorageItem!")
 	}
 	return item, nil
 }
