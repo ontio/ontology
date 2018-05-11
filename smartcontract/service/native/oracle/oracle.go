@@ -31,6 +31,7 @@ import (
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/smartcontract/service/native/governance"
 )
 
 const (
@@ -65,7 +66,7 @@ const (
 	ORACLE_NODE_FEE = 500
 )
 
-func init() {
+func InitOracle() {
 	native.Contracts[genesis.OracleContractAddress] = RegisterOracleContract
 }
 
@@ -127,12 +128,12 @@ func RegisterOracleNode(native *native.NativeService) ([]byte, error) {
 	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(ORACLE_NODE), addressBytes), &cstates.StorageItem{Value: value})
 
 	//ont transfer
-	err = utils.AppCallTransferOnt(native, address, genesis.OracleContractAddress, params.Guaranty)
+	err = governance.AppCallTransferOnt(native, address, genesis.OracleContractAddress, params.Guaranty)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[AppCallTransferOnt] Ont transfer error!")
 	}
 	//ong transfer
-	err = utils.AppCallApproveOng(native, address, genesis.FeeSplitContractAddress, ORACLE_NODE_FEE)
+	err = governance.AppCallTransferOng(native, address, genesis.FeeSplitContractAddress, ORACLE_NODE_FEE)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[appCallTransferOng] Ong transfer error!")
 	}
@@ -226,7 +227,7 @@ func QuitOracleNode(native *native.NativeService) ([]byte, error) {
 	}
 
 	//ont transfer
-	err = utils.AppCallTransferOnt(native, address, genesis.OracleContractAddress, oracleNode.Guaranty)
+	err = governance.AppCallTransferOnt(native, address, genesis.OracleContractAddress, oracleNode.Guaranty)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[appCallTransferOnt] Ont transfer error!")
 	}

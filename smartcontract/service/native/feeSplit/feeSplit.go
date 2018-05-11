@@ -70,7 +70,7 @@ var Yi = []uint64{
 	79005572, 75935263, 72976515, 70125749, 67379470,
 }
 
-func init() {
+func InitFeeSplit() {
 	native.Contracts[genesis.FeeSplitContractAddress] = RegisterFeeSplitContract
 }
 
