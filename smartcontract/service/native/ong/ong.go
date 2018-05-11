@@ -22,8 +22,6 @@ import (
 	"bytes"
 	"math/big"
 
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/genesis"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
@@ -53,6 +51,7 @@ func RegisterOngContract(native *native.NativeService) {
 	native.Register("decimals", OngDecimals)
 	native.Register("totalSupply", OngTotalSupply)
 	native.Register("balanceOf", OngBalanceOf)
+	native.Register("allowance", OngAllowance)
 }
 
 func OngInit(native *native.NativeService) ([]byte, error) {
@@ -100,7 +99,7 @@ func OngApprove(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, err
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	native.CloneCache.Add(scommon.ST_STORAGE, ont.GetApproveKey(contract, state), utils.GetUInt64StorageItem(state.Value))
+	native.CloneCache.Add(scommon.ST_STORAGE, ont.GetApproveKey(contract, state.From, state.To), utils.GetUInt64StorageItem(state.Value))
 	return utils.BYTE_TRUE, nil
 }
 
@@ -142,20 +141,11 @@ func OngTotalSupply(native *native.NativeService) ([]byte, error) {
 }
 
 func OngBalanceOf(native *native.NativeService) ([]byte, error) {
-	address, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntBalanceOf] get address error!")
-	}
-	addr, err := common.AddressParseFromBytes(address)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntBalanceOf] address parse error!")
-	}
-	contract := native.ContextRef.CurrentContext().ContractAddress
-	amount, err := utils.GetStorageUInt64(native, ont.GetTransferKey(contract, addr))
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntBalanceOf] address parse error!")
-	}
-	return big.NewInt(int64(amount)).Bytes(), nil
+	return ont.GetBalanceValue(native, ont.TRANSFER_FLAG)
+}
+
+func OngAllowance(native *native.NativeService) ([]byte, error) {
+	return ont.GetBalanceValue(native, ont.APPROVE_FLAG)
 }
 
 func getOntContext() []byte {

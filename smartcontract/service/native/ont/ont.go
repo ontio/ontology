@@ -34,6 +34,11 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
+const (
+	TRANSFER_FLAG byte = 1
+	APPROVE_FLAG  byte = 2
+)
+
 var (
 	ONT_NAME           = "ONT Token"
 	ONT_SYMBOL         = "ONT"
@@ -58,6 +63,7 @@ func RegisterOntContract(native *native.NativeService) {
 	native.Register("decimals", OntDecimals)
 	native.Register("totalSupply", OntTotalSupply)
 	native.Register("balanceOf", OntBalanceOf)
+	native.Register("allowance", OntAllowance)
 }
 
 func OntInit(native *native.NativeService) ([]byte, error) {
@@ -153,7 +159,7 @@ func OntApprove(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, err
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	native.CloneCache.Add(scommon.ST_STORAGE, GetApproveKey(contract, state), utils.GetUInt64StorageItem(state.Value))
+	native.CloneCache.Add(scommon.ST_STORAGE, GetApproveKey(contract, state.From, state.To), utils.GetUInt64StorageItem(state.Value))
 	return utils.BYTE_TRUE, nil
 }
 
@@ -169,28 +175,50 @@ func OntSymbol(native *native.NativeService) ([]byte, error) {
 	return []byte(ONT_SYMBOL), nil
 }
 
-func OntBalanceOf(native *native.NativeService) ([]byte, error) {
-	address, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntBalanceOf] get address error!")
-	}
-	addr, err := common.AddressParseFromBytes(address)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntBalanceOf] address parse error!")
-	}
-	contract := native.ContextRef.CurrentContext().ContractAddress
-	amount, err := utils.GetStorageUInt64(native, GetTransferKey(contract, addr))
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntBalanceOf] address parse error!")
-	}
-	return big.NewInt(int64(amount)).Bytes(), nil
-}
-
 func OntTotalSupply(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	amount, err := utils.GetStorageUInt64(native, GetTotalSupplyKey(contract))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntTotalSupply] get totalSupply error!")
+	}
+	return big.NewInt(int64(amount)).Bytes(), nil
+}
+
+func OntBalanceOf(native *native.NativeService) ([]byte, error) {
+	return GetBalanceValue(native, TRANSFER_FLAG)
+}
+
+func OntAllowance(native *native.NativeService) ([]byte, error) {
+	return GetBalanceValue(native, APPROVE_FLAG)
+}
+
+func GetBalanceValue(native *native.NativeService, flag byte) ([]byte, error) {
+	var key []byte
+	fromAddr, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] get address error!")
+	}
+	from, err := common.AddressParseFromBytes(fromAddr)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] address parse error!")
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	if flag == APPROVE_FLAG {
+		toAddr, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
+		if err != nil {
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] get address error!")
+		}
+		to, err := common.AddressParseFromBytes(toAddr)
+		if err != nil {
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] address parse error!")
+		}
+		key = GetApproveKey(contract, from, to)
+	} else if flag == TRANSFER_FLAG {
+		key = GetTransferKey(contract, from)
+	}
+	amount, err := utils.GetStorageUInt64(native, key)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] address parse error!")
 	}
 	return big.NewInt(int64(amount)).Bytes(), nil
 }
@@ -242,7 +270,7 @@ func getApproveArgs(native *native.NativeService, contract, ongContract, address
 		Value: balance * amount,
 	}
 
-	stateValue, err := utils.GetStorageUInt64(native, GetApproveKey(ongContract, approve))
+	stateValue, err := utils.GetStorageUInt64(native, GetApproveKey(ongContract, approve.From, approve.To))
 	if err != nil {
 		return nil, err
 	}
