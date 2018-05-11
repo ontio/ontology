@@ -24,6 +24,7 @@ import (
 
 	"github.com/ontio/ontology-eventbus/actor"
 
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	tx "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events/message"
@@ -73,6 +74,12 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 
 		ta.server.increaseStats(tc.FailureStats)
 	} else {
+		if txn.GasLimit < config.DefConfig.Common.GasLimit ||
+			txn.GasPrice < config.DefConfig.Common.GasPrice {
+			log.Debug(fmt.Sprintf("[handleTransaction] invalid gasLimit %v, gasPrice %v",
+				txn.GasLimit, txn.GasPrice))
+			return
+		}
 		<-ta.server.slots
 		ta.server.assignTxToWorker(txn, sender)
 	}

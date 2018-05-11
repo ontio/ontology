@@ -167,7 +167,6 @@ func (worker *txPoolWorker) putTxPool(pt *pendingTx) bool {
 	txEntry := &tc.TXEntry{
 		Tx:    pt.tx,
 		Attrs: pt.ret,
-		Fee:   pt.tx.GasPrice,
 	}
 	worker.server.addTxList(txEntry)
 	worker.server.removePendingTx(pt.tx.Hash(), errors.ErrNoError)

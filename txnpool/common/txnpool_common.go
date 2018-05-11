@@ -227,3 +227,11 @@ func (this LBSlice) Swap(i, j int) {
 func (this LBSlice) Less(i, j int) bool {
 	return this[i].Size < this[j].Size
 }
+
+type OrderByNetWorkFee []*TXEntry
+
+func (n OrderByNetWorkFee) Len() int { return len(n) }
+
+func (n OrderByNetWorkFee) Swap(i, j int) { n[i], n[j] = n[j], n[i] }
+
+func (n OrderByNetWorkFee) Less(i, j int) bool { return n[j].Tx.GasPrice < n[i].Tx.GasPrice }

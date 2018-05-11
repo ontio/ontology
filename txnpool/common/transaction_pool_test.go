@@ -56,7 +56,6 @@ func TestTxPool(t *testing.T) {
 	txEntry := &TXEntry{
 		Tx:    txn,
 		Attrs: []*TXAttr{},
-		Fee:   txn.GasPrice,
 	}
 
 	ret := txPool.AddTxList(txEntry)
