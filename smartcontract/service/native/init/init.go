@@ -19,11 +19,11 @@
 package init
 
 import (
+	"github.com/ontio/ontology/smartcontract/service/native/fee_split"
 	params "github.com/ontio/ontology/smartcontract/service/native/global_params"
+	"github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/ontio/ontology/smartcontract/service/native/ong"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
-	"github.com/ontio/ontology/smartcontract/service/native/governance"
-	"github.com/ontio/ontology/smartcontract/service/native/feeSplit"
 	"github.com/ontio/ontology/smartcontract/service/native/oracle"
 )
 
@@ -33,5 +33,5 @@ func init() {
 	params.InitGlobalParams()
 	oracle.InitOracle()
 	governance.InitGovernance()
-	feeSplit.InitFeeSplit()
+	fee_split.InitFeeSplit()
 }
