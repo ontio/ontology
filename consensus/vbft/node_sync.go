@@ -129,6 +129,9 @@ func (self *Syncer) run() {
 				req.startBlockNum = self.server.GetCommittedBlockNo() + 1
 				log.Infof("server %d, sync req start change to %d",
 					self.server.Index, req.startBlockNum)
+				if req.startBlockNum > req.targetBlockNum {
+					continue
+				}
 			}
 			if err := self.onNewBlockSyncReq(req); err != nil {
 				log.Errorf("server %d failed to handle new block sync req: %s", self.server.Index, err)
