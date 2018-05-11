@@ -24,8 +24,8 @@ package wasm
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/errors"
 )
 
 // Import is an intreface implemented by types that can be imported by a WebAssembly module.

@@ -383,8 +383,8 @@ func (this *WasmVmService) callContract(engine *exec.ExecutionEngine) (bool, err
 
 		}
 		if contractAddress[0] == byte(vmtypes.Native) {
-			bresult := result.(bool)
-			if bresult == true {
+			bresult := result.([]byte)
+			if bresult[0] == byte(1) {
 				res = "true"
 			} else {
 				res = "false"
