@@ -41,7 +41,7 @@ import (
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
-	gover "github.com/ontio/ontology/smartcontract/service/native"
+	gover "github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/ontio/ontology/smartcontract/states"
 	stypes "github.com/ontio/ontology/smartcontract/types"
 	"github.com/ontio/ontology/validator/increment"

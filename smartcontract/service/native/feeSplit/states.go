@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package states
+package feeSplit
 
 type CandidateSplitInfo struct {
 	PeerPubkey string `json:"peerPubkey"`

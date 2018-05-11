@@ -28,8 +28,7 @@ import (
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/states"
-	gov "github.com/ontio/ontology/smartcontract/service/native"
-	govcon "github.com/ontio/ontology/smartcontract/service/native/states"
+	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
 )
 
 type ChainStore struct {
@@ -132,7 +131,7 @@ func (self *ChainStore) GetVbftConfigInfo() (*config.VBFTConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfg := &govcon.Configuration{}
+	cfg := &gov.Configuration{}
 	if err := json.Unmarshal(vbft, cfg); err != nil {
 		return nil, fmt.Errorf("unmarshal config: %s", err)
 	}
@@ -162,8 +161,8 @@ func (self *ChainStore) GetPeersConfig() ([]*config.VBFTPeerStakeInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	peerMap := &govcon.PeerPoolMap{
-		PeerPoolMap: make(map[string]*govcon.PeerPool),
+	peerMap := &gov.PeerPoolMap{
+		PeerPoolMap: make(map[string]*gov.PeerPool),
 	}
 	if err := json.Unmarshal(peers, peerMap); err != nil {
 		return nil, fmt.Errorf("unmarshal peersconfig: %s", err)
@@ -189,7 +188,7 @@ func (self *ChainStore) isForceUpdate() (bool, error) {
 	return goveranceview.VoteCommit, nil
 }
 
-func (self *ChainStore) GetGovernanceView() (*govcon.GovernanceView, error) {
+func (self *ChainStore) GetGovernanceView() (*gov.GovernanceView, error) {
 	storageKey := &states.StorageKey{
 		CodeHash: genesis.GovernanceContractAddress,
 		Key:      append([]byte(gov.GOVERNANCE_VIEW)),
@@ -198,7 +197,7 @@ func (self *ChainStore) GetGovernanceView() (*govcon.GovernanceView, error) {
 	if err != nil {
 		return nil, err
 	}
-	config := &govcon.GovernanceView{}
+	config := &gov.GovernanceView{}
 	if err := json.Unmarshal(force, config); err != nil {
 		return nil, fmt.Errorf("unmarshal GovernanceView config: %s", err)
 	}
