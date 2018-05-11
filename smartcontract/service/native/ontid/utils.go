@@ -5,6 +5,7 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	cmn "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
@@ -28,6 +29,7 @@ func checkIDExistence(srvc *native.NativeService, encID []byte) bool {
 
 const (
 	field_pk byte = 1 + iota
+	field_pk_state
 	field_attr
 	field_recovery
 )
@@ -39,7 +41,7 @@ func encodeID(id []byte) ([]byte, error) {
 	}
 	enc := []byte{byte(length)}
 	enc = append(enc, id...)
-	enc = append(contractAddress, enc...)
+	enc = append(genesis.OntIDContractAddress[:], enc...)
 	return enc, nil
 }
 

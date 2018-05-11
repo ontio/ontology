@@ -5,9 +5,9 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"fmt"
 
 	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/states"
@@ -60,7 +60,7 @@ func regIdWithPublicKey(srvc *native.NativeService) ([]byte, error) {
 	}
 
 	// insert public key
-	err = insertPk(srvc, key, arg1)
+	_, err = insertPk(srvc, key, arg1)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: store public key error, " + err.Error())
 	}
@@ -78,7 +78,7 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 	// arg0: ID
 	arg0, err := serialization.ReadVarBytes(args)
 	if len(arg0) == 0 {
-		return utils.BYTE_FALSE, errors.New("register ID with attributes error: argument 0 error")
+		return utils.BYTE_FALSE, errors.New("register ID with attributes error: argument 0 error, " + err.Error())
 	}
 	// arg1: public key
 	arg1, err := serialization.ReadVarBytes(args)
@@ -108,7 +108,7 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: check witness failed")
 	}
 
-	err = insertPk(srvc, key, arg1)
+	_, err = insertPk(srvc, key, arg1)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: store pubic key error: " + err.Error())
 	}
@@ -117,9 +117,8 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 	buf := bytes.NewBuffer(arg2)
 	attr := make([]*attribute, 0)
 	for buf.Len() > 0 {
-		buf1, err := serialization.ReadVarBytes(buf)
 		t := new(attribute)
-		err = t.Deserialize(bytes.NewBuffer(buf1))
+		err = t.Deserialize(buf)
 		if err != nil {
 			return utils.BYTE_FALSE, errors.New("register ID with attributes error: parse attribute error, " + err.Error())
 		}
@@ -183,12 +182,12 @@ func addKey(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("add key failed: already exists")
 	}
 
-	err = insertPk(srvc, key, arg1)
+	keyID, err := insertPk(srvc, key, arg1)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add key failed: insert public key error, " + err.Error())
 	}
 
-	triggerPublicEvent(srvc, "add", arg0, arg1)
+	triggerPublicEvent(srvc, "add", arg0, arg1, keyID)
 
 	return utils.BYTE_TRUE, nil
 }
@@ -198,27 +197,27 @@ func removeKey(srvc *native.NativeService) ([]byte, error) {
 	// arg0: id
 	arg0, err := serialization.ReadVarBytes(args)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("remove key failed: argument 0 error, " + err.Error())
+		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: argument 0 error, %s", err)
 	}
 
 	// arg1: public key
 	arg1, err := serialization.ReadVarBytes(args)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("remove key failed: argument 1 error, " + err.Error())
+		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: argument 1 error, %s", err)
 	}
 
 	// arg2: operator's public key / address
 	arg2, err := serialization.ReadVarBytes(args)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("remove key failed: argument 2 error, " + err.Error())
+		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: argument 2 error, %s", err)
 	}
 	if err = checkWitness(srvc, arg2); err != nil {
-		return utils.BYTE_FALSE, errors.New("remove key failed: check witness failed, " + err.Error())
+		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: check witness failed, %S", err)
 	}
 
 	key, err := encodeID(arg0)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("remove key failed: " + err.Error())
+		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: %s", err)
 	}
 	if !checkIDExistence(srvc, key) {
 		return utils.BYTE_FALSE, errors.New("remove key failed: ID not registered")
@@ -227,18 +226,12 @@ func removeKey(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("remove key failed: operator has no authorization")
 	}
 
-	key1, err := findPk(srvc, key, arg1)
+	keyID, err := revokePk(srvc, key, arg1)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("remove key failed: cannot find the key, " + err.Error())
-	}
-	ok, err := utils.LinkedlistDelete(srvc, key, key1)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.New("remove key failed: delete error, " + err.Error())
-	} else if !ok {
-		return utils.BYTE_FALSE, errors.New("remove key failed: key not found")
+		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: %s", err)
 	}
 
-	triggerPublicEvent(srvc, "remove", arg0, arg1)
+	triggerPublicEvent(srvc, "remove", arg0, arg1, keyID)
 
 	return utils.BYTE_TRUE, nil
 }
@@ -458,16 +451,6 @@ func verifySignature(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("verify signature error: argument 1 error, " + err.Error())
 	}
-	// arg2: message
-	arg2, err := serialization.ReadVarBytes(args)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.New("verify signature error: argument 2 error, " + err.Error())
-	}
-	// arg3: signature
-	arg3, err := serialization.ReadVarBytes(args)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.New("verify signature error: argument 3 error, " + err.Error())
-	}
 
 	key, err := encodeID(arg0)
 	if err != nil {
@@ -477,35 +460,15 @@ func verifySignature(srvc *native.NativeService) ([]byte, error) {
 	key1 := append(key, field_pk)
 	var buf [4]byte
 	binary.LittleEndian.PutUint32(buf[:], arg1)
-	key1 = append(key, buf[:]...)
 
-	val, err := srvc.CloneCache.Get(common.ST_STORAGE, key1)
+	node, err := utils.LinkedlistGetItem(srvc, key1, buf[:])
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("verify signature error: get key failed, " + err.Error())
 	}
 
-	item, ok := val.(*states.StorageItem)
-	if !ok {
-		return utils.BYTE_FALSE, errors.New("verify signature error: invalid storage item")
-	}
-
-	var pk publicKey
-	pk.SetBytes(item.Value)
+	err = checkWitness(srvc, node.GetPayload())
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("verify signature error: parse key error, " + err.Error())
-	}
-
-	pub, err := keypair.DeserializePublicKey(pk.key)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.New("verify signature error: deserialize public key error, " + err.Error())
-	}
-
-	sig, err := signature.Deserialize(arg3)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.New("verify signature error: deserialize signature error, " + err.Error())
-	}
-	if !signature.Verify(pub, arg2, sig) {
-		return utils.BYTE_FALSE, errors.New("verification failed")
+		return utils.BYTE_FALSE, errors.New("verify signature failed: " + err.Error())
 	}
 
 	return utils.BYTE_TRUE, nil

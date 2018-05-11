@@ -4,78 +4,37 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"io"
+	"fmt"
 
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-type publicKey struct {
-	key     []byte
-	revoked bool
-}
-
-func (this *publicKey) Serialize(w io.Writer) error {
-	err := serialization.WriteVarBytes(w, this.key)
-	if err != nil {
-		return err
-	}
-	err = serialization.WriteBool(w, this.revoked)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (this *publicKey) Deserialize(r io.Reader) error {
-	data, err := serialization.ReadVarBytes(r)
-	if err != nil {
-		return err
-	}
-	rev, err := serialization.ReadBool(r)
-	if err != nil {
-		return err
-	}
-	this.key = data
-	this.revoked = rev
-	return nil
-}
-
-func (this *publicKey) SetBytes(data []byte) error {
-	buf := bytes.NewBuffer(data)
-	return this.Deserialize(buf)
-}
-func (this *publicKey) Bytes() ([]byte, error) {
-	var buf bytes.Buffer
-	err := this.Serialize(&buf)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
-func insertPk(srvc *native.NativeService, encID, pk []byte) error {
-	var index uint32 = 0
+func insertPk(srvc *native.NativeService, encID, pk []byte) (uint32, error) {
+	var i uint32 = 0
 	key1 := append(encID, field_pk)
 	item, err := utils.LinkedlistGetHead(srvc, key1)
 	if err == nil && item != nil {
-		index = binary.LittleEndian.Uint32(item[len(key1):])
+		i = binary.LittleEndian.Uint32(item)
 	}
-	index += 1
+	i += 1
+
 	var buf [4]byte
-	binary.LittleEndian.PutUint32(buf[:], index)
+	binary.LittleEndian.PutUint32(buf[:], i)
 	key2 := buf[:]
-	p := &publicKey{key: pk, revoked: false}
-	val, err := p.Bytes()
+	err = utils.LinkedlistInsert(srvc, key1, key2, pk)
 	if err != nil {
-		return errors.New("register ONT ID error: " + err.Error())
+		return 0, err
 	}
-	return utils.LinkedlistInsert(srvc, key1, key2, val)
+
+	key3 := append(encID, field_pk_state)
+	key3 = append(key3, key2...)
+	utils.PutBytes(srvc, key3, []byte{1})
+	return i, nil
 }
 
-func getPk(srvc *native.NativeService, encID []byte, index uint32) (*publicKey, error) {
+func getPk(srvc *native.NativeService, encID []byte, index uint32) ([]byte, error) {
 	key1 := append(encID, field_pk)
 	var buf [4]byte
 	binary.LittleEndian.PutUint32(buf[:], index)
@@ -84,17 +43,12 @@ func getPk(srvc *native.NativeService, encID []byte, index uint32) (*publicKey, 
 	if err != nil {
 		return nil, err
 	}
-	if len(node.GetPayload()) == 0 {
+	data := node.GetPayload()
+	if len(data) == 0 {
 		return nil, errors.New("invalid public key data from storage")
 	}
 
-	var pk publicKey
-	err = pk.SetBytes(node.GetPayload())
-	if err != nil {
-		return nil, errors.New("invalid public key data from storage")
-	}
-
-	return &pk, nil
+	return data, nil
 }
 
 func findPk(srvc *native.NativeService, encID, pub []byte) ([]byte, error) {
@@ -110,13 +64,8 @@ func findPk(srvc *native.NativeService, encID, pub []byte) ([]byte, error) {
 			log.Debug(err)
 			continue
 		}
-		var pk publicKey
-		err = pk.SetBytes(node.GetPayload())
-		if err != nil {
-			return nil, err
-		}
-		if bytes.Equal(pub, pk.key) {
-			return key, nil
+		if bytes.Equal(pub, node.GetPayload()) {
+			return item, nil
 		}
 		item = node.GetNext()
 	}
@@ -124,23 +73,15 @@ func findPk(srvc *native.NativeService, encID, pub []byte) ([]byte, error) {
 	return nil, errors.New("public key not found")
 }
 
-func getOwnerKey(srvc *native.NativeService, encID []byte, index uint32) (*publicKey, error) {
-	key := append(encID, field_pk)
-	var buf [4]byte
-	binary.LittleEndian.PutUint32(buf[:], index)
-	key = append(key, buf[:]...)
-	item, err := getStorageItem(srvc, key)
+func revokePk(srvc *native.NativeService, encID, pub []byte) (uint32, error) {
+	keyID, err := findPk(srvc, encID, pub)
 	if err != nil {
-		return nil, errors.New("get owner key error: " + err.Error())
+		return 0, fmt.Errorf("cannot find the key, %s", err)
 	}
-
-	var pk publicKey
-	err = pk.SetBytes(item.Value)
-	if err != nil {
-		return nil, errors.New("get owner key error: invalid data")
-	}
-
-	return &pk, nil
+	key := append(encID, field_pk_state)
+	key = append(key, keyID...)
+	utils.PutBytes(srvc, key, []byte{0})
+	return binary.LittleEndian.Uint32(keyID), nil
 }
 
 func isOwner(srvc *native.NativeService, encID, pub []byte) bool {

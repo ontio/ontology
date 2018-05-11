@@ -5,8 +5,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native"
 )
 
-var contractAddress = genesis.OntIDContractAddress[:]
-
 func init() {
 	native.Contracts[genesis.OntIDContractAddress] = RegisterIDContract
 }
@@ -21,5 +19,9 @@ func RegisterIDContract(srvc *native.NativeService) {
 	srvc.Register("addAttribute", addAttribute)
 	srvc.Register("removeAttribute", removeAttribute)
 	srvc.Register("verifySignature", verifySignature)
+	srvc.Register("getPublicKeys", GetPublicKeys)
+	srvc.Register("getKeyState", GetKeyState)
+	srvc.Register("getAttributes", GetAttributes)
+	srvc.Register("getDDO", GetDDO)
 	return
 }
