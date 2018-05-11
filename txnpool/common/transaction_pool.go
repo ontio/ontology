@@ -21,6 +21,7 @@ package common
 
 import (
 	"fmt"
+	"sort"
 	"sync"
 
 	"github.com/ontio/ontology/common"
@@ -39,7 +40,6 @@ type TXAttr struct {
 
 type TXEntry struct {
 	Tx    *types.Transaction // transaction which has been verified
-	Fee   uint64             // Total fee per transaction
 	Attrs []*TXAttr          // the result from each validator
 }
 
@@ -131,6 +131,12 @@ func (tp *TXPool) GetTxPool(byCount bool, height uint32) ([]*TXEntry,
 	tp.RLock()
 	defer tp.RUnlock()
 
+	orderByFee := make([]*TXEntry, 0, len(tp.txList))
+	for _, txEntry := range tp.txList {
+		orderByFee = append(orderByFee, txEntry)
+	}
+	sort.Sort(OrderByNetWorkFee(orderByFee))
+
 	count := int(config.DefConfig.Common.MaxTxInBlock)
 	if count <= 0 {
 		byCount = false
@@ -142,7 +148,7 @@ func (tp *TXPool) GetTxPool(byCount bool, height uint32) ([]*TXEntry,
 	var num int
 	txList := make([]*TXEntry, 0, count)
 	oldTxList := make([]*types.Transaction, 0)
-	for _, txEntry := range tp.txList {
+	for _, txEntry := range orderByFee {
 		if !tp.compareTxHeight(txEntry, height) {
 			oldTxList = append(oldTxList, txEntry.Tx)
 			continue

@@ -48,24 +48,22 @@ func AppendTxToPool(txn *types.Transaction) ontErrors.ErrCode {
 	return ontErrors.ErrNoError
 }
 
-func GetTxsFromPool(byCount bool) (map[common.Uint256]*types.Transaction, uint64) {
+func GetTxsFromPool(byCount bool) map[common.Uint256]*types.Transaction {
 	future := txnPoolPid.RequestFuture(&tcomn.GetTxnPoolReq{ByCount: byCount}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ERR_ACTOR_COMM, err)
-		return nil, 0
+		return nil
 	}
 	txpool, ok := result.(*tcomn.GetTxnPoolRsp)
 	if !ok {
-		return nil, 0
+		return nil
 	}
 	txMap := make(map[common.Uint256]*types.Transaction)
-	var networkFeeSum uint64
 	for _, v := range txpool.TxnPool {
 		txMap[v.Tx.Hash()] = v.Tx
-		networkFeeSum += v.Fee
 	}
-	return txMap, networkFeeSum
+	return txMap
 
 }
 
@@ -95,7 +93,7 @@ func GetTxFromPool(hash common.Uint256) (tcomn.TXEntry, error) {
 	if !ok {
 		return tcomn.TXEntry{}, errors.New("fail")
 	}
-	txnEntry := tcomn.TXEntry{rsp.Txn, 0, txStatus.TxStatus}
+	txnEntry := tcomn.TXEntry{rsp.Txn, txStatus.TxStatus}
 	return txnEntry, nil
 }
 
