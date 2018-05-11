@@ -64,3 +64,17 @@ func TestAdmin_Serialize_Deserialize(t *testing.T) {
 	}
 	assert.Equal(t, admin, deserializeAdmin)
 }
+
+func TestParamNameList_Serialize_Deserialize(t *testing.T) {
+	nameList := new(ParamNameList)
+	for i := 0; i < 3; i++ {
+		*nameList = append(*nameList, strconv.Itoa(i))
+	}
+	bf := new(bytes.Buffer)
+	err := nameList.Serialize(bf)
+	assert.Nil(t, err)
+	deserializeNameList := new(ParamNameList)
+	err = deserializeNameList.Deserialize(bf)
+	assert.Nil(t, err)
+	assert.Equal(t, nameList, deserializeNameList)
+}

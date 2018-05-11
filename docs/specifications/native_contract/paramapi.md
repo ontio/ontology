@@ -1,7 +1,6 @@
 # Native Contract API : Param
 * [Introduction](#introduction)
 * [Contract Method](#contract-method)
-* [How to get a parameter](#how-to-get-a-parameter)
 
 ## Introduction
 This document describes the global parameter manager native contract used in the ontology network.
@@ -27,7 +26,7 @@ Transfer the administrator of this contract, should be invoked by administrator.
 
 method: transferAdmin
 
-args: smartcontract/service/native/states.Admin
+args: smartcontract/service/native/global_params.Admin
 
 #### example
 ```
@@ -51,7 +50,7 @@ Accept administrator permission of the contract.
 
 method: acceptAdmin
 
-args: smartcontract/service/native/states.Admin
+args: smartcontract/service/native/global_params.Admin
 
 #### example
 ```
@@ -76,7 +75,7 @@ Administrator set global parameter, is prepare value, won't take effect immediat
 
 method: setGlobalParam
 
-args: smartcontract/service/native/states.Params
+args: smartcontract/service/native/global_params.Params
 
 #### example
 ```
@@ -100,6 +99,32 @@ args: smartcontract/service/native/states.Params
 	}
 ```
 
+### GetGlobalParam
+Get global parameter
+
+method: getGlobalParam
+
+args: smartcontract/service/native/global_params.ParamNameList
+
+#### example
+```
+    nameList := new(global_params.ParamNameList)
+	for i := 0; i < 3; i++ {
+		k := "key-test" + strconv.Itoa(i) + "-" + key
+		(*nameList) = append(*nameList, k)
+	}
+	nameListBuffer := new(bytes.Buffer)
+	if err := nameList.Serialize(nameListBuffer); err != nil {
+		fmt.Println("Serialize ParamNameList struct error.")
+		os.Exit(1)
+	}
+	contract := &sstates.Contract{
+		Address: genesis.ParamContractAddress,
+		Method:  "getGlobalParam",
+		Args:    nameListBuffer.Bytes(),
+	}
+```
+
 ### CreateSnapshot
 Administrator make prepare parameter effective.
 
@@ -114,9 +139,3 @@ args: nil
 		Method:  "createSnapshot",
 	}
 ```
-
-## How to get a parameter
-Call the function "GetGlobalParam" to get a global parameter value.
-
-args: smartcontract/service/native.NativeService, the NativeServe instance<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;string, parameter name
