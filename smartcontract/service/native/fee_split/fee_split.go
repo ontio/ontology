@@ -81,7 +81,7 @@ func RegisterFeeSplitContract(native *native.NativeService) {
 func ExecuteSplit(native *native.NativeService) ([]byte, error) {
 	contract := genesis.GovernanceContractAddress
 	//get current view
-	cView, err := governance.GetGovernanceView(native, contract)
+	cView, err := governance.GetView(native, contract)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Get view error!")
 	}

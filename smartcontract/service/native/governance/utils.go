@@ -113,33 +113,41 @@ func GetPeerPoolMap(native *native.NativeService, contract common.Address, view 
 	}
 	peerPoolMapBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_POOL), view.Bytes()))
 	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[getPeerPoolMap] Get all peerPoolMap error!")
+		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[GetPeerPoolMap] Get all peerPoolMap error!")
 	}
 	if peerPoolMapBytes == nil {
-		return nil, errors.NewErr("[getPeerPoolMap] peerPoolMap is nil!")
+		return nil, errors.NewErr("[GetPeerPoolMap] peerPoolMap is nil!")
 	}
 	peerPoolMapStore, _ := peerPoolMapBytes.(*cstates.StorageItem)
 	err = json.Unmarshal(peerPoolMapStore.Value, peerPoolMap)
 	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[getPeerPoolMap] Unmarshal peerPoolMap error!")
+		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[GetPeerPoolMap] Unmarshal peerPoolMap error!")
 	}
 	return peerPoolMap, nil
 }
 
-func GetGovernanceView(native *native.NativeService, contract common.Address) (*big.Int, error) {
+func GetGovernanceView(native *native.NativeService, contract common.Address) (*GovernanceView, error) {
 	governanceViewBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(GOVERNANCE_VIEW)))
 	if err != nil {
-		return new(big.Int), errors.NewDetailErr(err, errors.ErrNoCode, "[getGovernanceView] Get governanceViewBytes error!")
+		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[GetGovernanceView] Get governanceViewBytes error!")
 	}
 	governanceView := new(GovernanceView)
 	if governanceViewBytes == nil {
-		return new(big.Int), errors.NewDetailErr(err, errors.ErrNoCode, "[getGovernanceView] Get nil governanceViewBytes!")
+		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[GetGovernanceView] Get nil governanceViewBytes!")
 	} else {
 		governanceViewStore, _ := governanceViewBytes.(*cstates.StorageItem)
 		err = json.Unmarshal(governanceViewStore.Value, governanceView)
 		if err != nil {
-			return new(big.Int), errors.NewDetailErr(err, errors.ErrNoCode, "[getGovernanceView] Unmarshal governanceView error!")
+			return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[GetGovernanceView] Unmarshal governanceView error!")
 		}
+	}
+	return governanceView, nil
+}
+
+func GetView(native *native.NativeService, contract common.Address) (*big.Int, error) {
+	governanceView, err := GetGovernanceView(native, contract)
+	if err != nil {
+		return new(big.Int), errors.NewDetailErr(err, errors.ErrNoCode, "[GetView] GetGovernanceView error!")
 	}
 	return governanceView.View, nil
 }
