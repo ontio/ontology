@@ -183,14 +183,7 @@ func (self *StateMgr) onPeerUpdate(peerState *PeerState) error {
 		self.server.Index, self.server.GetCurrentBlockNo(), self.currentState, peerState.peerIdx, peerState.committedBlockNum)
 
 	// update peer state
-	var lastPeerCommitted uint64
-	if _, present := self.peers[peerIdx]; present {
-		lastPeerCommitted = self.peers[peerIdx].committedBlockNum
-	}
 	self.peers[peerIdx] = peerState
-	if peerState.committedBlockNum == lastPeerCommitted {
-		return nil
-	}
 
 	if !newPeer {
 		if isActive(self.currentState) && peerState.committedBlockNum > self.server.GetCurrentBlockNo()+MAX_SYNCING_CHECK_BLK_NUM {
