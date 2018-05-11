@@ -32,9 +32,8 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
-	vconfig "github.com/ontio/ontology/consensus/vbft/config"
+	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
@@ -935,16 +934,26 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	msgBlkNum := msg.GetBlockNum()
 	txs := msg.Block.Block.Transactions
-	if len(txs) > 1 {
+	if len(txs) > 0 {
+		height := uint32(msgBlkNum) - 1
+		start, end := self.incrValidator.BlockRange()
+
+		validHeight := height
+		if height == end {
+			validHeight = start
+		} else {
+			self.incrValidator.Clean()
+			log.Infof("incr validator block height %v != ledger block height %v", int(end)-1, height)
+		}
 		// start new routine to verify txs in proposal block
 		go func() {
-			if err := self.poolActor.VerifyBlock(txs[1:], uint32(msgBlkNum)-1); err != nil && err != actor.ErrTimeout {
+			if err := self.poolActor.VerifyBlock(txs, validHeight); err != nil && err != actor.ErrTimeout {
 				log.Errorf("server %d verify proposal blk from %d failed, blk %d, txs %d, err: %s",
 					self.Index, msg.Block.getProposer(), msgBlkNum, len(txs), err)
 				return
 			}
-			for _, tx := range txs[1:] {
-				if err := self.incrValidator.Verify(tx, uint32(msgBlkNum)); err != nil {
+			for _, tx := range txs {
+				if err := self.incrValidator.Verify(tx, validHeight); err != nil {
 					log.Errorf("server %d verify proposal tx from %d failed, blk %d, txs %d, err: %s",
 						self.Index, msg.Block.getProposer(), msgBlkNum, len(txs), err)
 					return
@@ -1852,21 +1861,6 @@ func (self *Server) msgSendLoop() {
 	}
 }
 
-// FIXME
-//    copied from dbft
-func (self *Server) createBookkeepingTransaction(nonce uint64, fee uint64) *types.Transaction {
-	log.Debug()
-	//TODO: sysfee
-	bookKeepingPayload := &payload.Bookkeeping{
-		Nonce: uint64(time.Now().UnixNano()),
-	}
-	return &types.Transaction{
-		TxType:     types.BookKeeping,
-		Payload:    bookKeepingPayload,
-		Attributes: []*types.TxAttribute{},
-	}
-}
-
 func (self *Server) makeProposal(blkNum uint64, forEmpty bool) error {
 	var txs []*types.Transaction
 
@@ -1879,10 +1873,6 @@ func (self *Server) makeProposal(blkNum uint64, forEmpty bool) error {
 		self.incrValidator.Clean()
 	}
 
-	// FIXME: self.index as nonce??
-	// FIXME: fix feesum calculation
-	txBookkeeping := self.createBookkeepingTransaction(uint64(self.Index), 0)
-	txs = append(txs, txBookkeeping)
 	if !forEmpty {
 		for _, e := range self.poolActor.GetTxnPool(true, uint32(validHeight)) {
 			if err := self.incrValidator.Verify(e.Tx, uint32(validHeight)); err == nil {

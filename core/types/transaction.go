@@ -142,13 +142,12 @@ func (self *Sig) Serialize(w io.Writer) error {
 type TransactionType byte
 
 const (
-	BookKeeping TransactionType = 0x00
-	Bookkeeper  TransactionType = 0x02
-	Claim       TransactionType = 0x03
-	Deploy      TransactionType = 0xd0
-	Invoke      TransactionType = 0xd1
-	Enrollment  TransactionType = 0x04
-	Vote        TransactionType = 0x05
+	Bookkeeper TransactionType = 0x02
+	Claim      TransactionType = 0x03
+	Deploy     TransactionType = 0xd0
+	Invoke     TransactionType = 0xd1
+	Enrollment TransactionType = 0x04
+	Vote       TransactionType = 0x05
 )
 
 // Payload define the func for loading the payload data
@@ -276,8 +275,6 @@ func (tx *Transaction) DeserializeUnsigned(r io.Reader) error {
 	switch tx.TxType {
 	case Invoke:
 		tx.Payload = new(payload.InvokeCode)
-	case BookKeeping:
-		tx.Payload = new(payload.Bookkeeping)
 	case Deploy:
 		tx.Payload = new(payload.DeployCode)
 	default:

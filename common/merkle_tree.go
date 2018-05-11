@@ -112,13 +112,13 @@ func levelUp(nodes []*merkleTreeNode) []*merkleTreeNode {
 }
 
 //input a []uint256, create a merkleTree & calc the root hash
-func ComputeMerkleRoot(hashes []Uint256) (Uint256, error) {
+func ComputeMerkleRoot(hashes []Uint256) Uint256 {
 	if len(hashes) == 0 {
-		return Uint256{}, errors.New("NewMerkleTree input no item error.")
+		return Uint256{}
 	}
 	if len(hashes) == 1 {
-		return hashes[0], nil
+		return hashes[0]
 	}
 	tree, _ := newMerkleTree(hashes)
-	return tree.Root.Hash, nil
+	return tree.Root.Hash
 }

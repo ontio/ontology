@@ -80,10 +80,6 @@ type VoteInfo struct {
 
 func TransPayloadToHex(p types.Payload) PayloadInfo {
 	switch object := p.(type) {
-	case *payload.Bookkeeping:
-		obj := new(BookKeepingInfo)
-		obj.Nonce = object.Nonce
-		return obj
 	case *payload.Bookkeeper:
 		obj := new(BookkeeperInfo)
 		pubKeyBytes := keypair.SerializePublicKey(object.PubKey)

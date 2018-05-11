@@ -104,10 +104,7 @@ func (ctx *ConsensusContext) MakeHeader() *types.Block {
 		for _, t := range ctx.Transactions {
 			txHash = append(txHash, t.Hash())
 		}
-		txRoot, err := common.ComputeMerkleRoot(txHash)
-		if err != nil {
-			return nil
-		}
+		txRoot := common.ComputeMerkleRoot(txHash)
 		blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoot(txRoot)
 		header := &types.Header{
 			Version:          ContextVersion,

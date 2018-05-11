@@ -21,14 +21,11 @@ package common
 import (
 	"bytes"
 	"encoding/hex"
-	"testing"
-	"time"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 var (
@@ -38,15 +35,11 @@ var (
 func init() {
 	log.Init(log.PATH, log.Stdout)
 
-	bookKeepingPayload := &payload.Bookkeeping{
-		Nonce: uint64(time.Now().UnixNano()),
-	}
-
 	txn = &types.Transaction{
 		Version:    0,
 		Attributes: []*types.TxAttribute{},
 		TxType:     types.Bookkeeper,
-		Payload:    bookKeepingPayload,
+		Payload:    nil,
 	}
 
 	tempStr := "3369930accc1ddd067245e8edadcd9bea207ba5e1753ac18a51df77a343bfe92"

@@ -31,7 +31,6 @@ import (
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
 	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events"
@@ -173,22 +172,14 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 		validHeight = start
 	} else {
 		self.incrValidator.Clean()
-		log.Infof("increment validator block height %v != ledger block height %v", end-1, height)
+		log.Infof("increment validator block height %v != ledger block height %v", int(end)-1, height)
 	}
 
-	log.Infof("current block Height %v, increment validator block cache size %v", height, height+1-validHeight)
+	log.Infof("current block height %v, increment validator block cache range: [%d, %d)", height, start, end)
 
 	txs := self.poolActor.GetTxnPool(true, validHeight)
-	// todo : fix feesum calcuation
-	feeSum := common.Fixed64(0)
 
-	// TODO: increment checking txs
-
-	nonce := common.GetNonce()
-	txBookkeeping := self.createBookkeepingTransaction(nonce, feeSum)
-
-	transactions := make([]*types.Transaction, 0, len(txs)+1)
-	transactions = append(transactions, txBookkeeping)
+	transactions := make([]*types.Transaction, 0, len(txs))
 	for _, txEntry := range txs {
 		// TODO optimize to use height in txentry
 		if err := self.incrValidator.Verify(txEntry.Tx, validHeight); err == nil {
@@ -200,10 +191,7 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	for _, t := range transactions {
 		txHash = append(txHash, t.Hash())
 	}
-	txRoot, err := common.ComputeMerkleRoot(txHash)
-	if err != nil {
-		return nil, fmt.Errorf("ComputeMerkleRoot error:%s", err)
-	}
+	txRoot := common.ComputeMerkleRoot(txHash)
 
 	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoot(txRoot)
 	header := &types.Header{
@@ -213,7 +201,7 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 		BlockRoot:        blockRoot,
 		Timestamp:        uint32(time.Now().Unix()),
 		Height:           height + 1,
-		ConsensusData:    nonce,
+		ConsensusData:    common.GetNonce(),
 		NextBookkeeper:   nextBookkeeper,
 	}
 	block := &types.Block{
@@ -231,30 +219,4 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	block.Header.Bookkeepers = []keypair.PublicKey{owner}
 	block.Header.SigData = [][]byte{sig}
 	return block, nil
-}
-
-func (self *SoloService) createBookkeepingTransaction(nonce uint64, fee common.Fixed64) *types.Transaction {
-	log.Debug()
-	//TODO: sysfee
-	bookKeepingPayload := &payload.Bookkeeping{
-		Nonce: uint64(time.Now().UnixNano()),
-	}
-	tx := &types.Transaction{
-		TxType:     types.BookKeeping,
-		Payload:    bookKeepingPayload,
-		Attributes: []*types.TxAttribute{},
-	}
-	txHash := tx.Hash()
-	acc := self.Account
-	s, err := signature.Sign(acc, txHash[:])
-	if err != nil {
-		return nil
-	}
-	sig := &types.Sig{
-		PubKeys: []keypair.PublicKey{acc.PublicKey},
-		M:       1,
-		SigData: [][]byte{s},
-	}
-	tx.Sigs = []*types.Sig{sig}
-	return tx
 }

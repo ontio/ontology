@@ -83,10 +83,6 @@ func (tp *TXPool) CleanTransactionList(txs []*types.Transaction) error {
 	tp.Lock()
 	defer tp.Unlock()
 	for _, tx := range txs {
-		if tx.TxType == types.BookKeeping {
-			txsNum = txsNum - 1
-			continue
-		}
 		if _, ok := tp.txList[tx.Hash()]; ok {
 			delete(tp.txList, tx.Hash())
 			cleaned++

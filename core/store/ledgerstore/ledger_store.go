@@ -436,27 +436,6 @@ func (this *LedgerStoreImp) AddHeaders(headers []*types.Header) error {
 	return nil
 }
 
-func (this *LedgerStoreImp) verifyBlock(block *types.Block) error {
-	if block.Header.Height == 0 {
-		return nil
-	}
-	if len(block.Transactions) == 0 {
-		return fmt.Errorf("transaction is empty")
-	}
-	txs := block.Transactions
-	size := len(txs)
-	for i := 0; i < size; i++ {
-		tx := txs[i]
-		if i == 0 && tx.TxType != types.BookKeeping {
-			return fmt.Errorf("first transaction type is not Bookkeeping")
-		}
-		if i > 0 && tx.TxType == types.BookKeeping {
-			return fmt.Errorf("too many Bookkeeping transaction in block")
-		}
-	}
-	return nil
-}
-
 //AddBlock add the block to store.
 //When the block is not the next block, it will be cache. until the missing block arrived
 func (this *LedgerStoreImp) AddBlock(block *types.Block) error {
@@ -473,10 +452,6 @@ func (this *LedgerStoreImp) AddBlock(block *types.Block) error {
 	err := this.verifyHeader(block.Header)
 	if err != nil {
 		return fmt.Errorf("verifyHeader error %s", err)
-	}
-	err = this.verifyBlock(block)
-	if err != nil {
-		return fmt.Errorf("verifyBlock error %s", err)
 	}
 
 	err = this.saveBlock(block)

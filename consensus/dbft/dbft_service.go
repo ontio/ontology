@@ -32,7 +32,6 @@ import (
 	actorTypes "github.com/ontio/ontology/consensus/actor"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/vote"
@@ -239,19 +238,6 @@ func (ds *DbftService) CheckSignatures() error {
 	return nil
 }
 
-func (ds *DbftService) CreateBookkeepingTransaction(nonce uint64, fee common.Fixed64) *types.Transaction {
-	log.Debug()
-	//TODO: sysfee
-	bookKeepingPayload := &payload.Bookkeeping{
-		Nonce: uint64(time.Now().UnixNano()),
-	}
-	return &types.Transaction{
-		TxType:     types.BookKeeping,
-		Payload:    bookKeepingPayload,
-		Attributes: []*types.TxAttribute{},
-	}
-}
-
 func (ds *DbftService) ChangeViewReceived(payload *p2pmsg.ConsensusPayload, message *ChangeView) {
 	log.Debug()
 	log.Info(fmt.Sprintf("Change View Received: height=%d View=%d index=%d nv=%d", payload.Height, message.ViewNumber(), payload.BookkeeperIndex, message.NewViewNumber))
@@ -428,12 +414,6 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 		return
 	}
 
-	if len(message.Transactions) == 0 || message.Transactions[0].TxType != types.BookKeeping {
-		log.Error("PrepareRequestReceived first transaction type is not bookkeeping")
-		ds.RequestChangeView()
-		return
-	}
-
 	backupContext := ds.context
 
 	ds.context.State |= RequestReceived
@@ -455,16 +435,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 	ds.context.Signatures = make([][]byte, len(ds.context.Bookkeepers))
 	ds.context.Signatures[payload.BookkeeperIndex] = message.Signature
 
-	for _, tx := range ds.context.Transactions[1:] {
-		if tx.TxType == types.BookKeeping {
-			log.Error("PrepareRequestReceived non-first transaction type is bookking")
-			ds.context = backupContext
-			ds.RequestChangeView()
-			return
-		}
-	}
-
-	if len(ds.context.Transactions) > 1 {
+	if len(ds.context.Transactions) > 0 {
 		height := ds.context.Height - 1
 		start, end := ds.incrValidator.BlockRange()
 
@@ -473,10 +444,10 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 			validHeight = start
 		} else {
 			ds.incrValidator.Clean()
-			log.Infof("incr validator block height %v != ledger block height %v", end-1, height)
+			log.Infof("incr validator block height %v != ledger block height %v", int(end)-1, height)
 		}
 
-		if err := ds.poolActor.VerifyBlock(ds.context.Transactions[1:], validHeight); err != nil {
+		if err := ds.poolActor.VerifyBlock(ds.context.Transactions, validHeight); err != nil {
 			log.Error("PrepareRequestReceived new transaction verification failed, will not sent Prepare Response", err)
 			ds.context = backupContext
 			ds.RequestChangeView()
@@ -484,7 +455,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 			return
 		}
 
-		for _, tx := range ds.context.Transactions[1:] {
+		for _, tx := range ds.context.Transactions {
 			if err := ds.incrValidator.Verify(tx, validHeight); err != nil {
 				log.Error("PrepareRequestReceived new transaction increment verification failed, will not sent Prepare Response", err)
 				ds.context = backupContext
@@ -492,7 +463,6 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 				return
 			}
 		}
-
 	}
 
 	ds.context.NextBookkeepers, err = vote.GetValidators(ds.context.Transactions)
@@ -700,17 +670,13 @@ func (ds *DbftService) Timeout() {
 				validHeight = start
 			} else {
 				ds.incrValidator.Clean()
-				log.Infof("incr validator block height %v != ledger block height %v", end-1, height)
+				log.Infof("incr validator block height %v != ledger block height %v", int(end)-1, height)
 			}
 
-			log.Infof("current block Height %v, increment validator block cache size %v", height, height+1-validHeight)
+			log.Infof("current block height %v, increment validator block cache range: [%d, %d)", height, start, end)
 			txs := ds.poolActor.GetTxnPool(true, validHeight)
-			// todo : fix feesum calcuation
-			feeSum := common.Fixed64(0)
 
-			txBookkeeping := ds.CreateBookkeepingTransaction(ds.context.Nonce, feeSum)
-			transactions := make([]*types.Transaction, 0, len(txs)+1)
-			transactions = append(transactions, txBookkeeping)
+			transactions := make([]*types.Transaction, 0, len(txs))
 			for _, txEntry := range txs {
 				// TODO optimize to use height in txentry
 				if err := ds.incrValidator.Verify(txEntry.Tx, validHeight); err == nil {
