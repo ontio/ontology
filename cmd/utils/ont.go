@@ -80,6 +80,7 @@ func Transfer(signer *account.Account, to string, amount uint) (string, error) {
 }
 
 func SignTransaction(signer *account.Account, tx *types.Transaction) error {
+	tx.Payer = signer.Address
 	txHash := tx.Hash()
 	sigData, err := sign(signer.SigScheme.Name(), txHash.ToArray(), signer)
 	if err != nil {
