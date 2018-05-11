@@ -128,7 +128,7 @@ func GenesisChainConfig(config *config.VBFTConfig, peersinfo []*config.VBFTPeerS
 		j := h % uint64(i)
 		posTable[i], posTable[j] = posTable[j], posTable[i]
 	}
-	log.Infof("init pos table: %v", posTable)
+	log.Debugf("init pos table: %v", posTable)
 
 	// generate chain config, and save to ChainConfigFile
 	peerCfgs := make([]*PeerConfig, 0)
