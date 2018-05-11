@@ -25,17 +25,21 @@ import (
 
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/p2pserver/dht/types"
+	"github.com/ontio/ontology/p2pserver/message/msg_pack"
+	mt "github.com/ontio/ontology/p2pserver/message/types"
 )
 
 type DHT struct {
 	version      uint32
-	nodeID       NodeID
+	nodeID       types.NodeID
 	mu           sync.Mutex
 	routingTable *routingTable
-
-	conn   *net.UDPConn
-	recvCh chan *DHTMessage
-	stopCh chan struct{}
+	addr         string
+	port         uint16
+	conn         *net.UDPConn
+	recvCh       chan *DHTMessage
+	stopCh       chan struct{}
 }
 
 func (this *DHT) init() {
@@ -78,25 +82,77 @@ func (this *DHT) AddNode(remoteNode uint64) {
 
 }
 
-func (this *DHT) Ping(addr string) {
-	/*pingPacket := Ping{
-		Version: this.version,
-		FromID:  this.nodeID,
-		//SrcAddr: ,
-		//SrcPort: ,
-		//DestAddr: ,
-		//DestPort:,
+func (this *DHT) Ping(addr *net.UDPAddr) error {
+	pingPayload := mt.DHTPingPayload{
+		Version:  this.version,
+		srcPort:  this.port,
+		DestPort: addr.Port,
 	}
-	this.send(addr, pingPacket)*/
 
+	ip := net.ParseIP(this.addr).To16()
+	if ip == nil {
+		log.Error("Parse IP address error\n", this.addr)
+		return errors.New("Parse IP address error")
+	}
+	copy(pingPayload.SrcAddr[:], ip[:16])
+
+	ip = addr.IP.To4()
+	if ip == nil {
+		ip = addr.IP.To16()
+	}
+	copy(pingPayload.DestAddr[:], ip[:16])
+
+	copy(pingPayload.FromID[:], this.nodeID[:])
+
+	pingPacket, err := msgpack.NewDHTPing(pingPayload)
+	if err != nil {
+		log.Error("failed to new dht ping packet", err)
+		return err
+	}
+	this.send(addr, pingPacket)
+	return nil
 }
 
-func (this *DHT) Pong(addr string) {
+func (this *DHT) Pong(addr *net.UDPAddr) error {
+	PongPayload := mt.DHTPongPayload{
+		Version:  this.version,
+		srcPort:  this.port,
+		DestPort: addr.Port,
+	}
 
+	ip := net.ParseIP(this.addr).To16()
+	if ip == nil {
+		log.Error("Parse IP address error\n", this.addr)
+		return errors.New("Parse IP address error")
+	}
+	copy(PongPayload.SrcAddr[:], ip[:16])
+
+	ip = addr.IP.To4()
+	if ip == nil {
+		ip = addr.IP.To16()
+	}
+	copy(PongPayload.DestAddr[:], ip[:16])
+
+	copy(PongPayload.FromID[:], this.nodeID[:])
+
+	pongPacket, err := msgpack.NewDHTPong(PongPayload)
+	if err != nil {
+		log.Error("failed to new dht pong packet", err)
+		return err
+	}
+	this.send(addr, pongPacket)
+	return nil
 }
 
 func (this *DHT) processPacket(from *net.UDPAddr, packet []byte) {
 	// Todo: add processPacket implementation
+	msgType, err := mt.MsgType(packet)
+	if err != nil {
+		log.Info("failed to get msg type")
+		return
+	}
+
+	log.Trace("Recv UDP msg", msgType)
 }
 
 func (this *DHT) recvUDPMsg() {
@@ -108,7 +164,6 @@ func (this *DHT) recvUDPMsg() {
 			log.Error("ReadFromUDP error:", err)
 			return
 		}
-		//this.processPacket(from, buf[:nbytes])
 		// Todo:
 		pk := &DHTMessage{
 			from:    from,

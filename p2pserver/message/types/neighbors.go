@@ -24,12 +24,12 @@ import (
 	"errors"
 
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/p2pserver/dht"
+	"github.com/ontio/ontology/p2pserver/dht/types"
 )
 
 type NeighborsPayload struct {
-	FromID dht.NodeID
-	Nodes  []dht.Node
+	FromID types.NodeID
+	Nodes  []types.Node
 }
 
 type Neighbors struct {

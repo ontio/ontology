@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package dht
+package types
 
 import (
 	"github.com/ontio/ontology/common"
@@ -40,7 +40,6 @@ const (
 )
 
 type DHTMessage struct {
-	ptype   ptype
 	from    *net.UDPAddr
 	payload []byte
 }

@@ -24,11 +24,11 @@ import (
 	"errors"
 
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/p2pserver/dht"
+	"github.com/ontio/ontology/p2pserver/dht/types"
 )
 
 type FindNodePayload struct {
-	FromID   dht.NodeID
+	FromID   types.NodeID
 	TargetID uint64
 }
 

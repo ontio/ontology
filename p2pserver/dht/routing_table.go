@@ -24,10 +24,11 @@ import (
 	"sync"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/p2pserver/dht/types"
 )
 
 type bucket struct {
-	entries []*Node
+	entries []*types.Node
 }
 
 type routingTable struct {
@@ -36,19 +37,19 @@ type routingTable struct {
 	buckets []*bucket
 }
 
-func (this *routingTable) init(id NodeID) {
+func (this *routingTable) init(id types.NodeID) {
 	this.buckets = make([]*bucket, BUCKET_NUM)
 	this.id = id
 }
 
-func (this *routingTable) locateBucket(id NodeID) (int, *bucket) {
+func (this *routingTable) locateBucket(id types.NodeID) (int, *bucket) {
 	id1 := sha256.Sum256(this.id[:])
 	id2 := sha256.Sum256(id[:])
 	dist := logdist(id1, id2)
 	return dist, this.buckets[dist-1]
 }
 
-func (this *routingTable) AddNode(node *Node) bool {
+func (this *routingTable) AddNode(node *types.Node) bool {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 
@@ -73,7 +74,7 @@ func (this *routingTable) AddNode(node *Node) bool {
 	return true
 }
 
-func (this *routingTable) RemoveNode(id NodeID) {
+func (this *routingTable) RemoveNode(id types.NodeID) {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 	_, bucket := this.locateBucket(id)
@@ -86,7 +87,7 @@ func (this *routingTable) RemoveNode(id NodeID) {
 	}
 }
 
-func (this *routingTable) GetClosestNodes(num int, targetID NodeID) []*Node {
+func (this *routingTable) GetClosestNodes(num int, targetID types.NodeID) []*Node {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 	closestList := make([]*Node, 0, num)
@@ -129,7 +130,7 @@ func (this *routingTable) GetTotalNodeNumInBukcet(bucket int) int {
 	return len(b.entries)
 }
 
-func (this *routingTable) GetDistance(id1 NodeID, id2 NodeID) int {
+func (this *routingTable) GetDistance(id1, id2 types.NodeID) int {
 	sha1 := sha256.Sum256(id1[:])
 	sha2 := sha256.Sum256(id2[:])
 	dist := logdist(sha1, sha2)
@@ -146,7 +147,7 @@ func (this *routingTable) totalNodes() int {
 	return num
 }
 
-func (this *routingTable) isNodeInBucket(id NodeID, bucket int) bool {
+func (this *routingTable) isNodeInBucket(id types.NodeID, bucket int) bool {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 

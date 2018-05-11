@@ -25,12 +25,12 @@ import (
 
 	//"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/p2pserver/dht"
+	"github.com/ontio/ontology/p2pserver/dht/types"
 )
 
 type DHTPingPayload struct {
 	Version  uint16
-	FromID   dht.NodeID
+	FromID   types.NodeID
 	SrcAddr  [16]byte
 	SrcPort  uint16
 	DestAddr [16]byte
