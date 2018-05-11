@@ -48,6 +48,14 @@ type ApproveCandidateParam struct {
 	PeerPubkey string `json:"peerPubkey"`
 }
 
+type BlackNodeParam struct {
+	PeerPubkey string `json:"peerPubkey"`
+}
+
+type WhiteNodeParam struct {
+	PeerPubkey string `json:"peerPubkey"`
+}
+
 type PeerPoolList struct {
 	Peers []*PeerPool `json:"peers"`
 }
