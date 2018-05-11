@@ -24,7 +24,6 @@ import (
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/smartcontract/service/native"
 	. "github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"time"
@@ -35,7 +34,7 @@ var (
 )
 
 func Init() {
-	native.Contracts[genesis.AuthContractAddress] = RegisterAuthContract
+	Contracts[genesis.AuthContractAddress] = RegisterAuthContract
 }
 
 func GetContractAdmin(native *NativeService, contractAddr []byte) ([]byte, error) {
@@ -178,7 +177,7 @@ func AssignFuncsToRole(native *NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, nil
 	}
 
-	//insert funcnames into role->func Linkedlist
+	//insert funcnames into role->func linkedlist
 	roleF, err := GetRoleFKey(native, param.ContractAddr, param.Role)
 	if err != nil {
 		return nil, err
@@ -187,7 +186,7 @@ func AssignFuncsToRole(native *NativeService) ([]byte, error) {
 		if fn == "" {
 			continue
 		}
-		err = LinkedlistInsert(native, roleF, []byte(fn), null)
+		err = utils.LinkedlistInsert(native, roleF, []byte(fn), null)
 		if err != nil {
 			return nil, fmt.Errorf("insert into role->[]func failed. fn: %s", fn)
 		}
@@ -197,7 +196,7 @@ func AssignFuncsToRole(native *NativeService) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	head, err := LinkedlistGetHead(native, roleP)
+	head, err := utils.LinkedlistGetHead(native, roleP)
 	if err != nil {
 		return nil, err
 	}
@@ -206,17 +205,17 @@ func AssignFuncsToRole(native *NativeService) ([]byte, error) {
 		if q == nil {
 			break
 		}
-		nodeq, err := LinkedlistGetItem(native, roleP, q)
+		nodeq, err := utils.LinkedlistGetItem(native, roleP, q)
 		if err != nil {
 			return nil, err
 		}
 		for _, fn := range param.FuncNames {
-			err = writeAuthToken(native, param.ContractAddr, []byte(fn), q, nodeq.payload)
+			err = writeAuthToken(native, param.ContractAddr, []byte(fn), q, nodeq.GetPayload())
 			if err != nil {
 				return nil, err
 			}
 		}
-		q = nodeq.next
+		q = nodeq.GetNext()
 	}
 	return utils.BYTE_TRUE, nil
 }
@@ -239,30 +238,30 @@ func assignToRole(native *NativeService, auth []byte) ([]byte, error) {
 	if err != nil {
 		return nil, errors.NewErr("get RoleF failed")
 	}
-	//insert persons into role->person Linkedlist
+	//insert persons into role->person linkedlist
 	for _, p := range param.Persons {
 		if p == nil {
 			continue
 		}
-		err = LinkedlistInsert(native, roleP, p, auth)
+		err = utils.LinkedlistInsert(native, roleP, p, auth)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	fn, err := LinkedlistGetHead(native, roleF) //fn is a func name
+	fn, err := utils.LinkedlistGetHead(native, roleF) //fn is a func name
 	for {
 		if fn == nil {
 			break
 		}
-		nodef, err := LinkedlistGetItem(native, roleF, fn)
+		nodef, err := utils.LinkedlistGetItem(native, roleF, fn)
 		if err != nil {
 			return nil, err
 		}
 		for _, per := range param.Persons {
 			err = writeAuthToken(native, param.ContractAddr, fn, per, auth)
 		}
-		fn = nodef.next
+		fn = nodef.GetNext()
 	}
 	return utils.BYTE_TRUE, nil
 }
@@ -325,11 +324,11 @@ func delegate(native *NativeService, contractAddr []byte, from []byte, to []byte
 	if err != nil {
 		return nil, err
 	}
-	node_to, err := LinkedlistGetItem(native, roleP, to)
+	node_to, err := utils.LinkedlistGetItem(native, roleP, to)
 	if err != nil {
 		return nil, err
 	}
-	node_from, err := LinkedlistGetItem(native, roleP, from)
+	node_from, err := utils.LinkedlistGetItem(native, roleP, from)
 	if err != nil {
 		return nil, err
 	}
@@ -339,7 +338,7 @@ func delegate(native *NativeService, contractAddr []byte, from []byte, to []byte
 	}
 
 	auth := new(AuthToken)
-	err = auth.deserialize(node_from.payload)
+	err = auth.deserialize(node_from.GetPayload())
 	if err != nil {
 		return nil, err
 	}
@@ -351,7 +350,7 @@ func delegate(native *NativeService, contractAddr []byte, from []byte, to []byte
 		if err != nil {
 			return nil, err
 		}
-		err = LinkedlistInsert(native, deleFrom, to, null)
+		err = utils.LinkedlistInsert(native, deleFrom, to, null)
 		if err != nil {
 			return nil, err
 		}
@@ -406,18 +405,18 @@ func withdraw(native *NativeService, contractAddr []byte, initiator []byte, dele
 	if err != nil {
 		return nil, err
 	}
-	fn, err := LinkedlistGetHead(native, roleF) //fn is a func name
+	fn, err := utils.LinkedlistGetHead(native, roleF) //fn is a func name
 	funcs := [][]byte{}
 	for {
 		if fn == nil {
 			break
 		}
-		nodef, err := LinkedlistGetItem(native, roleF, fn) //
+		nodef, err := utils.LinkedlistGetItem(native, roleF, fn) //
 		if err != nil {
 			return nil, err
 		}
 		funcs = append(funcs, fn)
-		fn = nodef.next
+		fn = nodef.GetNext()
 	}
 	ret, err := verifySig(native, initiator, keyNo)
 	if err != nil {
@@ -431,7 +430,7 @@ func withdraw(native *NativeService, contractAddr []byte, initiator []byte, dele
 	if err != nil {
 		return nil, err
 	}
-	node_dele, err := LinkedlistGetItem(native, fromKey, delegate)
+	node_dele, err := utils.LinkedlistGetItem(native, fromKey, delegate)
 	if err != nil {
 		return nil, err
 	}
@@ -457,13 +456,13 @@ func withdraw(native *NativeService, contractAddr []byte, initiator []byte, dele
 		if err != nil {
 			return nil, err
 		}
-		LinkedlistDelete(native, roleP, per)
+		utils.LinkedlistDelete(native, roleP, per)
 		// iterate over 'role x person -> [] person' list
 		ser_role_per, err := GetDelegateListKey(native, contractAddr, role, per)
 		if err != nil {
 			return nil, err
 		}
-		q, err := LinkedlistGetHead(native, ser_role_per)
+		q, err := utils.LinkedlistGetHead(native, ser_role_per)
 		if err != nil {
 			return nil, err
 		}
@@ -472,15 +471,15 @@ func withdraw(native *NativeService, contractAddr []byte, initiator []byte, dele
 				break
 			}
 			wdList = append(wdList, q)
-			item, err := LinkedlistGetItem(native, ser_role_per, q)
+			item, err := utils.LinkedlistGetItem(native, ser_role_per, q)
 			if err != nil {
 				return nil, err
 			}
-			_, err = LinkedlistDelete(native, ser_role_per, q)
+			_, err = utils.LinkedlistDelete(native, ser_role_per, q)
 			if err != nil {
 				return nil, err
 			}
-			q = item.next
+			q = item.GetNext()
 		}
 	}
 	return utils.BYTE_TRUE, nil
@@ -549,8 +548,8 @@ func VerifyToken(native *NativeService) ([]byte, error) {
 }
 
 func verifySig(native *NativeService, ontID []byte, keyNo uint32) (bool, error) {
-	return false, nil
-	/* enable signature verification whenever the OntID contract is merged into the master branch
+	//return false, nil
+	// enable signature verification whenever the OntID contract is merged into the master branch
 	bf := new(bytes.Buffer)
 	if err := serialization.WriteVarBytes(bf, ontID); err != nil {
 		return false, err
@@ -573,7 +572,6 @@ func verifySig(native *NativeService, ontID []byte, keyNo uint32) (bool, error) 
 	} else {
 		return false, nil
 	}
-	*/
 }
 
 func PackKeys(field []byte, items [][]byte) ([]byte, error) {
