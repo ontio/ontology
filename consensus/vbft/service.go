@@ -54,6 +54,7 @@ const (
 
 type BftAction struct {
 	Type     BftActionType
+	BlockNum uint64
 	Proposal *blockProposalMsg
 	forEmpty bool
 }
@@ -131,7 +132,7 @@ func NewVbftServer(account *account.Account, txpool, p2p *actor.PID) (*Server, e
 	server.pid = pid
 	server.sub = events.NewActorSubscriber(pid)
 
-	if err := server.start(); err != nil {
+	if err := server.initialize(); err != nil {
 		return nil, fmt.Errorf("vbft server start failed: %s", err)
 	}
 	return server, nil
@@ -172,7 +173,7 @@ func (self *Server) GetPID() *actor.PID {
 }
 
 func (self *Server) Start() error {
-	return nil
+	return self.start()
 }
 
 func (self *Server) Halt() error {
@@ -188,30 +189,15 @@ func (self *Server) handlePeerStateUpdate(peer *p2pmsg.PeerStateUpdate) {
 	peerID, err := vconfig.PubkeyID(peer.PeerPubKey)
 	if err != nil {
 		log.Errorf("failed to get peer ID for pubKey: %v", peer.PeerPubKey)
+		return
 	}
 	peerIdx, present := self.peerPool.GetPeerIndex(peerID)
 	if !present {
 		log.Errorf("invalid consensus node: %s", peerID.String())
+		return
 	}
 
 	log.Infof("peer state update: %d, connect: %t", peerIdx, peer.Connected)
-	if peer.Connected {
-		if _, present := self.msgRecvC[peerIdx]; !present {
-			self.msgRecvC[peerIdx] = make(chan *p2pMsgPayload, 1024)
-		}
-
-		go func() {
-			time.Sleep(5 * time.Second)
-			if err := self.run(peer.PeerPubKey); err != nil {
-				log.Errorf("server %d, processor on peer %d failed: %s",
-					self.Index, peerIdx, err)
-			}
-		}()
-	} else {
-		if C, present := self.msgRecvC[peerIdx]; present {
-			C <- nil
-		}
-	}
 }
 
 func (self *Server) handleBlockPersistCompleted(block *types.Block) {
@@ -231,11 +217,17 @@ func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 	peerID, err := vconfig.PubkeyID(payload.Owner)
 	if err != nil {
 		log.Errorf("failed to get peer ID for pubKey: %v", payload.Owner)
+		return
 	}
 	peerIdx, present := self.peerPool.GetPeerIndex(peerID)
 	if !present {
 		log.Errorf("invalid consensus node: %s", peerID.String())
+		return
 	}
+	if self.peerPool.isNewPeer(peerIdx) {
+		self.peerPool.peerConnected(peerIdx)
+	}
+
 	if C, present := self.msgRecvC[peerIdx]; present {
 		C <- &p2pMsgPayload{
 			fromPeer: peerIdx,
@@ -243,6 +235,7 @@ func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 		}
 	} else {
 		log.Errorf("consensus msg without receiver: %d node: %s", peerIdx, peerID.String())
+		return
 	}
 }
 
@@ -313,7 +306,7 @@ func (self *Server) updateChainConfig() error {
 	return nil
 }
 
-func (self *Server) start() error {
+func (self *Server) initialize() error {
 	// TODO: load config from chain
 
 	// TODO: configurable log
@@ -386,10 +379,34 @@ func (self *Server) start() error {
 		Type: ConfigLoaded,
 	}
 
-	self.timer.startPeerTicker(math.MaxUint32)
 	log.Infof("peer %d started", self.Index)
 
 	// TODO: start peer-conn-handlers
+
+	return nil
+}
+
+func (self *Server) start() error {
+
+	// start heartbeat ticker
+	self.timer.startPeerTicker(math.MaxUint32)
+
+	// start peers msg handlers
+	for _, p := range self.config.Peers {
+		peerIdx := p.Index
+		pk := self.peerPool.GetPeerPubKey(peerIdx)
+
+		if _, present := self.msgRecvC[peerIdx]; !present {
+			self.msgRecvC[peerIdx] = make(chan *p2pMsgPayload, 1024)
+		}
+
+		go func() {
+			if err := self.run(pk); err != nil {
+				log.Errorf("server %d, processor on peer %d failed: %s",
+					self.Index, peerIdx, err)
+			}
+		}()
+	}
 
 	return nil
 }
@@ -426,30 +443,13 @@ func (self *Server) run(peerPubKey keypair.PublicKey) error {
 	if !present {
 		return fmt.Errorf("invalid consensus node: %s", peerID.String())
 	}
-	{
-		if err := self.peerPool.peerConnected(peerIdx); err != nil {
-			return err
-		}
 
-		// initHandshake
-		if err := self.initHandshake(peerIdx, peerPubKey); err != nil {
-			log.Errorf("failed to initHandshake with peer %s: %s", peerID, err)
-			return err
-		}
+	// broadcast heartbeat
+	self.heartbeat()
 
-		log.Infof("server %d: completed handshake with peer %d, %s", self.Index, peerIdx,
-			peerID.String())
-
-		// new peer connected
-		self.stateMgr.StateEventC <- &StateEvent{
-			Type: UpdatePeerState,
-			peerState: &PeerState{
-				peerIdx:           peerIdx,
-				connected:         true,
-				chainConfigView:   self.peerPool.getPeer(peerIdx).handShake.ChainConfig.View,
-				committedBlockNum: self.peerPool.getPeer(peerIdx).handShake.CommittedBlockNumber,
-			},
-		}
+	// wait remote msgs
+	if err := self.peerPool.waitPeerConnected(peerIdx); err != nil {
+		return err
 	}
 
 	defer func() {
@@ -617,6 +617,7 @@ func (self *Server) startNewProposal(blkNum uint64) error {
 		// FIXME: possible deadlock on channel
 		self.bftActionC <- &BftAction{
 			Type:     MakeProposal,
+			BlockNum: blkNum,
 			forEmpty: false,
 		}
 	} else if self.is2ndProposer(blkNum, self.Index) {
@@ -1156,6 +1157,9 @@ func (self *Server) actionLoop() {
 			case MakeProposal:
 				// this may triggered when block sealed or random backoff of 2nd proposer
 				blkNum := self.GetCurrentBlockNo()
+				if blkNum > action.BlockNum {
+					continue
+				}
 
 				var proposal *blockProposalMsg
 				msgs := self.msgPool.GetProposalMsgs(blkNum)
@@ -1282,6 +1286,10 @@ func (self *Server) actionLoop() {
 
 			case ReBroadcast:
 				blkNum := self.GetCurrentBlockNo()
+				if blkNum > action.BlockNum {
+					continue
+				}
+
 				proposals := make([]*blockProposalMsg, 0)
 				for _, msg := range self.msgPool.GetProposalMsgs(blkNum) {
 					p := msg.(*blockProposalMsg)
@@ -1561,20 +1569,8 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 		}
 
 	case EventPeerHeartbeat:
-		//	build heartbeat msg
-		msg, err := self.constructHeartbeatMsg()
-		if err != nil {
-			return fmt.Errorf("failed to build heartbeat msg: %s", err)
-		}
+		self.heartbeat()
 
-		// TODO: check remote peer lastUpdateTime
-		log.Debugf("send heartbeat to peer: %d", evt.blockNum)
-
-		//	send to peer
-		self.msgSendC <- &SendMsgEvent{
-			ToPeer: math.MaxUint32,
-			Msg:    msg,
-		}
 	case EventTxPool:
 		blockNum := self.GetCurrentBlockNo()
 		txpool := self.poolActor.GetTxnPool(true, uint32(blockNum-1))
@@ -1921,6 +1917,7 @@ func (self *Server) makeSealed(proposal *blockProposalMsg, forEmpty bool) error 
 	// seal the block
 	self.bftActionC <- &BftAction{
 		Type:     SealBlock,
+		BlockNum: blkNum,
 		Proposal: proposal,
 		forEmpty: forEmpty,
 	}
@@ -1929,14 +1926,16 @@ func (self *Server) makeSealed(proposal *blockProposalMsg, forEmpty bool) error 
 
 func (self *Server) makeFastForward() error {
 	self.bftActionC <- &BftAction{
-		Type: FastForward,
+		Type:     FastForward,
+		BlockNum: self.GetCurrentBlockNo(),
 	}
 	return nil
 }
 
 func (self *Server) reBroadcastCurrentRoundMsgs() error {
 	self.bftActionC <- &BftAction{
-		Type: ReBroadcast,
+		Type:     ReBroadcast,
+		BlockNum: self.GetCurrentBlockNo(),
 	}
 	return nil
 }
@@ -1998,6 +1997,7 @@ func (self *Server) handleProposalTimeout(evt *TimerEvent) error {
 
 		self.bftActionC <- &BftAction{
 			Type:     EndorseBlock,
+			BlockNum: evt.blockNum,
 			Proposal: proposal,
 			forEmpty: false,
 		}

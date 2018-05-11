@@ -316,6 +316,21 @@ func (self *Server) validateTxsInProposal(proposal *blockProposalMsg) error {
 	return nil
 }
 
+func (self *Server) heartbeat() {
+	//	build heartbeat msg
+	msg, err := self.constructHeartbeatMsg()
+	if err != nil {
+		log.Errorf("failed to build heartbeat msg: %s", err)
+		return
+	}
+
+	//	send to peer
+	self.msgSendC <- &SendMsgEvent{
+		ToPeer: math.MaxUint32,
+		Msg:    msg,
+	}
+}
+
 func (self *Server) receiveFromPeer(peerIdx uint32) (uint32, []byte, error) {
 	if C, present := self.msgRecvC[peerIdx]; present {
 		select {
