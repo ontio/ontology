@@ -440,7 +440,7 @@ func (ds *DbftService) PrepareRequestReceived(payload *p2pmsg.ConsensusPayload, 
 		start, end := ds.incrValidator.BlockRange()
 
 		validHeight := height
-		if height == end {
+		if height+1 == end {
 			validHeight = start
 		} else {
 			ds.incrValidator.Clean()
