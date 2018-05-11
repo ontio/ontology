@@ -16,11 +16,11 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package states
+package oracle
 
 import "math/big"
 
-type OracleNodeStatus int
+type Status int
 
 type RegisterOracleNodeParam struct {
 	Address  string `json:"address"`
@@ -32,9 +32,9 @@ type ApproveOracleNodeParam struct {
 }
 
 type OracleNode struct {
-	Address  string           `json:"address"`
-	Guaranty uint64           `json:"guaranty"`
-	Status   OracleNodeStatus `json:"status"`
+	Address  string `json:"address"`
+	Guaranty uint64 `json:"guaranty"`
+	Status   Status `json:"status"`
 }
 
 type QuitOracleNodeParam struct {
