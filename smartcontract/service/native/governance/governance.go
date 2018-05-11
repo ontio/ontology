@@ -80,7 +80,7 @@ const (
 	SYNC_NODE_NUM      = 7 * 7 * 7
 )
 
-func init() {
+func InitGovernance() {
 	native.Contracts[genesis.GovernanceContractAddress] = RegisterGovernanceContract
 }
 
@@ -99,6 +99,7 @@ func RegisterGovernanceContract(native *native.NativeService) {
 }
 
 func InitConfig(native *native.NativeService) ([]byte, error) {
+	fmt.Println("##################################################")
 	configuration := config.DefConfig.Genesis.VBFT
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
@@ -646,12 +647,13 @@ func VoteForPeer(native *native.NativeService) ([]byte, error) {
 						total = total - int64(voteInfoPool.NewPos)
 						peerPool.TotalPos = peerPool.TotalPos - voteInfoPool.NewPos
 						voteInfoPool.NewPos = 0
+					} else {
+						voteInfoPool.PrePos = uint64(prePos)
+						voteInfoPool.PreFreezePos = uint64(int64(voteInfoPool.PreFreezePos) - temp)
+						total = total - int64(voteInfoPool.NewPos)
+						peerPool.TotalPos = peerPool.TotalPos - voteInfoPool.NewPos
+						voteInfoPool.NewPos = 0
 					}
-					voteInfoPool.PrePos = uint64(prePos)
-					voteInfoPool.PreFreezePos = uint64(int64(voteInfoPool.PreFreezePos) - temp)
-					total = total - int64(voteInfoPool.NewPos)
-					peerPool.TotalPos = peerPool.TotalPos - voteInfoPool.NewPos
-					voteInfoPool.NewPos = 0
 				} else {
 					voteInfoPool.NewPos = uint64(temp)
 					total = total + pos
@@ -1159,6 +1161,7 @@ func UpdateConfig(native *native.NativeService) ([]byte, error) {
 }
 
 func DataQuery(native *native.NativeService) ([]byte, error) {
+	fmt.Println("DataQuery:")
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	//get current view
