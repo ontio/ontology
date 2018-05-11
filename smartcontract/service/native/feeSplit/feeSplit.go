@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package native
+package feeSplit
 
 import (
 	"encoding/hex"
@@ -30,7 +30,9 @@ import (
 	cstates "github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/smartcontract/service/native/states"
+	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/governance"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 const (
@@ -69,42 +71,42 @@ var Yi = []uint64{
 }
 
 func init() {
-	Contracts[genesis.FeeSplitContractAddress] = RegisterFeeSplitContract
+	native.Contracts[genesis.FeeSplitContractAddress] = RegisterFeeSplitContract
 }
 
-func RegisterFeeSplitContract(native *NativeService) {
+func RegisterFeeSplitContract(native *native.NativeService) {
 	native.Register(EXECUTE_SPLIT, ExecuteSplit)
 }
 
-func ExecuteSplit(native *NativeService) error {
+func ExecuteSplit(native *native.NativeService) ([]byte, error) {
 	contract := genesis.GovernanceContractAddress
 	//get current view
-	cView, err := getGovernanceView(native, contract)
+	cView, err := governance.GetGovernanceView(native, contract)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Get view error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Get view error!")
 	}
 	view := new(big.Int).Sub(cView, new(big.Int).SetInt64(1))
 
 	//get peerPoolMap
-	peerPoolMap, err := getPeerPoolMap(native, contract, view)
+	peerPoolMap, err := governance.GetPeerPoolMap(native, contract, view)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Get peerPoolMap error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Get peerPoolMap error!")
 	}
-	peersCandidate := []*states.CandidateSplitInfo{}
-	peersSyncNode := []*states.SyncNodeSplitInfo{}
+	peersCandidate := []*CandidateSplitInfo{}
+	peersSyncNode := []*SyncNodeSplitInfo{}
 
 	for _, peerPool := range peerPoolMap.PeerPoolMap {
-		if peerPool.Status == CandidateStatus || peerPool.Status == ConsensusStatus {
+		if peerPool.Status == governance.CandidateStatus || peerPool.Status == governance.ConsensusStatus {
 			stake := peerPool.TotalPos + peerPool.InitPos
-			peersCandidate = append(peersCandidate, &states.CandidateSplitInfo{
+			peersCandidate = append(peersCandidate, &CandidateSplitInfo{
 				PeerPubkey: peerPool.PeerPubkey,
 				InitPos:    peerPool.InitPos,
 				Address:    peerPool.Address,
 				Stake:      stake,
 			})
 		}
-		if peerPool.Status == SyncNodeStatus || peerPool.Status == RegisterCandidateStatus {
-			peersSyncNode = append(peersSyncNode, &states.SyncNodeSplitInfo{
+		if peerPool.Status == governance.SyncNodeStatus || peerPool.Status == governance.RegisterCandidateStatus {
+			peersSyncNode = append(peersSyncNode, &SyncNodeSplitInfo{
 				PeerPubkey: peerPool.PeerPubkey,
 				InitPos:    peerPool.InitPos,
 				Address:    peerPool.Address,
@@ -113,18 +115,18 @@ func ExecuteSplit(native *NativeService) error {
 	}
 
 	// get config
-	config := new(states.Configuration)
-	configBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, concatKey(contract, []byte(VBFT_CONFIG)))
+	config := new(governance.Configuration)
+	configBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(governance.VBFT_CONFIG)))
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Get configBytes error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Get configBytes error!")
 	}
 	if configBytes == nil {
-		return errors.NewErr("[executeSplit] ConfigBytes is nil!")
+		return utils.BYTE_FALSE, errors.NewErr("[executeSplit] ConfigBytes is nil!")
 	}
 	configStore, _ := configBytes.(*cstates.StorageItem)
 	err = json.Unmarshal(configStore.Value, config)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Unmarshal config error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Unmarshal config error!")
 	}
 
 	// sort peers by stake
@@ -156,15 +158,15 @@ func ExecuteSplit(native *NativeService) error {
 		nodeAmount := uint64(TOTAL_ONG * a * peersCandidate[i].S / sumS)
 		addressBytes, err := hex.DecodeString(peersCandidate[i].Address)
 		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
 		}
 		address, err := common.AddressParseFromBytes(addressBytes)
 		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
 		}
-		err = appCallApproveOng(native, genesis.FeeSplitContractAddress, address, new(big.Int).SetUint64(nodeAmount))
+		err = AppCallApproveOng(native, genesis.FeeSplitContractAddress, address, nodeAmount)
 		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
 		}
 		fmt.Printf("Amount of node %v, address %v is %v: \n", peersCandidate[i].PeerPubkey, peersCandidate[i].Address, nodeAmount)
 		splitAmount += nodeAmount
@@ -174,15 +176,15 @@ func ExecuteSplit(native *NativeService) error {
 	fmt.Println("Remained Amount is : ", remainAmount)
 	remainAddressBytes, err := hex.DecodeString(remainCandidate.Address)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
 	}
 	remainAddress, err := common.AddressParseFromBytes(remainAddressBytes)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
 	}
-	err = appCallApproveOng(native, genesis.FeeSplitContractAddress, remainAddress, new(big.Int).SetUint64(remainAmount))
+	err = AppCallApproveOng(native, genesis.FeeSplitContractAddress, remainAddress, remainAmount)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
 	}
 	fmt.Printf("Amount of address %v is: %d \n", remainCandidate.Address, remainAmount)
 
@@ -203,15 +205,15 @@ func ExecuteSplit(native *NativeService) error {
 		nodeAmount := uint64(TOTAL_ONG * b * peersCandidate[i].Stake / sum)
 		addressBytes, err := hex.DecodeString(peersCandidate[i].Address)
 		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
 		}
 		address, err := common.AddressParseFromBytes(addressBytes)
 		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
 		}
-		err = appCallApproveOng(native, genesis.FeeSplitContractAddress, address, new(big.Int).SetUint64(nodeAmount))
+		err = AppCallApproveOng(native, genesis.FeeSplitContractAddress, address, nodeAmount)
 		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
 		}
 		fmt.Printf("Amount of node %v, address %v is %v: \n", peersCandidate[i].PeerPubkey, peersCandidate[i].Address, nodeAmount)
 		splitAmount += nodeAmount
@@ -221,15 +223,15 @@ func ExecuteSplit(native *NativeService) error {
 	fmt.Println("Remained Amount is : ", remainAmount)
 	remainAddressBytes, err = hex.DecodeString(remainCandidate.Address)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
 	}
 	remainAddress, err = common.AddressParseFromBytes(remainAddressBytes)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
 	}
-	err = appCallApproveOng(native, genesis.FeeSplitContractAddress, remainAddress, new(big.Int).SetUint64(remainAmount))
+	err = AppCallApproveOng(native, genesis.FeeSplitContractAddress, remainAddress, remainAmount)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
 	}
 	fmt.Printf("Amount of address %v is: %d \n", remainCandidate.Address, remainAmount)
 
@@ -241,15 +243,15 @@ func ExecuteSplit(native *NativeService) error {
 		amount := uint64(TOTAL_ONG * c / len(peersSyncNode))
 		addressBytes, err := hex.DecodeString(syncNodeSplitInfo.Address)
 		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
 		}
 		address, err := common.AddressParseFromBytes(addressBytes)
 		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
 		}
-		err = appCallApproveOng(native, genesis.FeeSplitContractAddress, address, new(big.Int).SetUint64(amount))
+		err = AppCallApproveOng(native, genesis.FeeSplitContractAddress, address, amount)
 		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
 		}
 		fmt.Printf("Amount of node %v address %v is: %d \n", syncNodeSplitInfo.PeerPubkey, syncNodeSplitInfo.Address, amount)
 		splitSyncNodeAmount += amount
@@ -264,19 +266,19 @@ func ExecuteSplit(native *NativeService) error {
 
 	addressBytes, err := hex.DecodeString(peersSyncNode[0].Address)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
 	}
 	address, err := common.AddressParseFromBytes(addressBytes)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Address format error!")
 	}
-	err = appCallApproveOng(native, genesis.FeeSplitContractAddress, address, new(big.Int).SetUint64(remainSyncNodeAmount))
+	err = AppCallApproveOng(native, genesis.FeeSplitContractAddress, address, remainSyncNodeAmount)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
 	}
 	fmt.Printf("Amount of address %v is: %d \n", peersSyncNode[0].Address, remainSyncNodeAmount)
 
-	addCommonEvent(native, genesis.FeeSplitContractAddress, EXECUTE_SPLIT, true)
+	utils.AddCommonEvent(native, genesis.FeeSplitContractAddress, EXECUTE_SPLIT, true)
 
-	return nil
+	return utils.BYTE_TRUE, nil
 }
