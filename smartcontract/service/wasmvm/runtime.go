@@ -98,7 +98,7 @@ func (this *WasmVmService) runtimeNotify(engine *exec.ExecutionEngine) (bool, er
 	}
 	context := this.ContextRef.CurrentContext()
 
-	this.Notifications = append(this.Notifications, &event.NotifyEventInfo{TxHash: this.Tx.Hash(), ContractAddress: context.ContractAddress, States: []string{string(item)}})
+	this.Notifications = append(this.Notifications, &event.NotifyEventInfo{ContractAddress: context.ContractAddress, States: []string{string(item)}})
 	vm.RestoreCtx()
 	return true, nil
 }

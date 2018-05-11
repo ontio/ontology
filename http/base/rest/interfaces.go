@@ -328,15 +328,11 @@ func GetSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{
 	if err != nil {
 		return ResponsePack(berr.INVALID_TRANSACTION)
 	}
-	eventInfos, err := bactor.GetEventNotifyByTxHash(hash)
+	eventInfo, err := bactor.GetEventNotifyByTxHash(hash)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	var evts []bcomn.NotifyEventInfo
-	for _, v := range eventInfos {
-		evts = append(evts, bcomn.NotifyEventInfo{common.ToHexString(v.TxHash[:]), v.ContractAddress.ToHexString(), v.States})
-	}
-	resp["Result"] = evts
+	resp["Result"] = eventInfo
 	return resp
 }
 

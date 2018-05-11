@@ -64,7 +64,6 @@ func getAdminKey(contract common.Address, isTransferAdmin bool) []byte {
 func notifyParamSetSuccess(native *native.NativeService, contract common.Address, params Params) {
 	native.Notifications = append(native.Notifications,
 		&event.NotifyEventInfo{
-			TxHash:          native.Tx.Hash(),
 			ContractAddress: contract,
 			States:          []interface{}{SET_PARAM, params},
 		})

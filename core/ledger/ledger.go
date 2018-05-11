@@ -169,7 +169,7 @@ func (self *Ledger) PreExecuteContract(tx *types.Transaction) (interface{}, erro
 	return self.ldgStore.PreExecuteContract(tx)
 }
 
-func (self *Ledger) GetEventNotifyByTx(tx common.Uint256) ([]*event.NotifyEventInfo, error) {
+func (self *Ledger) GetEventNotifyByTx(tx common.Uint256) (*event.ExecuteNotify, error) {
 	return self.ldgStore.GetEventNotifyByTx(tx)
 }
 

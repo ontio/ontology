@@ -41,7 +41,6 @@ var (
 func AddNotifications(native *native.NativeService, contract common.Address, state *State) {
 	native.Notifications = append(native.Notifications,
 		&event.NotifyEventInfo{
-			TxHash:          native.Tx.Hash(),
 			ContractAddress: contract,
 			States:          []interface{}{TRANSFER_NAME, state.From.ToBase58(), state.To.ToBase58(), state.Value},
 		})
