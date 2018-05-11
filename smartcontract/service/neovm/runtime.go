@@ -62,7 +62,7 @@ func RuntimeCheckWitness(service *NeoVmService, engine *vm.ExecutionEngine) erro
 func RuntimeNotify(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	item := vm.PopStackItem(engine)
 	context := service.ContextRef.CurrentContext()
-	service.Notifications = append(service.Notifications, &event.NotifyEventInfo{TxHash: service.Tx.Hash(), ContractAddress: context.ContractAddress, States: scommon.ConvertNeoVmTypeHexString(item)})
+	service.Notifications = append(service.Notifications, &event.NotifyEventInfo{ContractAddress: context.ContractAddress, States: scommon.ConvertNeoVmTypeHexString(item)})
 	return nil
 }
 

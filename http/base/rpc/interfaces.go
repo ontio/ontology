@@ -390,15 +390,11 @@ func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 		if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
-		eventInfos, err := bactor.GetEventNotifyByTxHash(hash)
+		eventInfo, err := bactor.GetEventNotifyByTxHash(hash)
 		if err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
-		var evs []bcomn.NotifyEventInfo
-		for _, v := range eventInfos {
-			evs = append(evs, bcomn.NotifyEventInfo{common.ToHexString(v.TxHash[:]), v.ContractAddress.ToHexString(), v.States})
-		}
-		return responseSuccess(evs)
+		return responseSuccess(eventInfo)
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")
 	}

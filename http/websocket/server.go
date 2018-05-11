@@ -81,8 +81,7 @@ func pushSmartCodeEvent(v interface{}) {
 			evts := []bcomn.NotifyEventInfo{}
 			var contractAddrs = make(map[string]bool)
 			for _, v := range object {
-				txhash := v.TxHash
-				evts = append(evts, bcomn.NotifyEventInfo{common.ToHexString(txhash[:]), v.ContractAddress.ToHexString(), v.States})
+				evts = append(evts, bcomn.NotifyEventInfo{v.ContractAddress.ToHexString(), v.States})
 				contractAddrs[v.ContractAddress.ToHexString()] = true
 			}
 			pushEvent(contractAddrs, rs.TxHash, rs.Error, rs.Action, evts)

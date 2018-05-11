@@ -83,18 +83,29 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	}
 
 	//start the smart contract executive function
-	if _, err := sc.Execute(); err != nil {
+	_, err := sc.Execute()
+
+	if err != nil {
+		if err := saveNotify(eventStore, txHash, &event.ExecuteNotify{TxHash: txHash,
+			State: event.CONTRACT_STATE_FAIL, Notify: []*event.NotifyEventInfo{}}); err != nil {
+			return err
+		}
 		return err
 	}
-
+	if err := saveNotify(eventStore, txHash, &event.ExecuteNotify{TxHash: txHash,
+		State: event.CONTRACT_STATE_SUCCESS, Notify: sc.Notifications}); err != nil {
+		return err
+	}
 	sc.CloneCache.Commit()
 
-	if len(sc.Notifications) > 0 {
-		if err := eventStore.SaveEventNotifyByTx(txHash, sc.Notifications); err != nil {
-			return fmt.Errorf("SaveEventNotifyByTx error %s", err)
-		}
-		event.PushSmartCodeEvent(txHash, 0, event.EVENT_NOTIFY, sc.Notifications)
+	return nil
+}
+
+func saveNotify(eventStore scommon.EventStore, txHash common.Uint256, notify *event.ExecuteNotify) error {
+	if err := eventStore.SaveEventNotifyByTx(txHash, notify); err != nil {
+		return fmt.Errorf("SaveEventNotifyByTx error %s", err)
 	}
+	event.PushSmartCodeEvent(txHash, 0, event.EVENT_NOTIFY, notify)
 	return nil
 }
 

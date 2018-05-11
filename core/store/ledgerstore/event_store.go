@@ -56,8 +56,8 @@ func (this *EventStore) NewBatch() {
 }
 
 //SaveEventNotifyByTx persist event notify by transaction hash
-func (this *EventStore) SaveEventNotifyByTx(txHash common.Uint256, notifies []*event.NotifyEventInfo) error {
-	result, err := json.Marshal(notifies)
+func (this *EventStore) SaveEventNotifyByTx(txHash common.Uint256, notify *event.ExecuteNotify) error {
+	result, err := json.Marshal(notify)
 	if err != nil {
 		return fmt.Errorf("json.Marshal error %s", err)
 	}
@@ -90,7 +90,7 @@ func (this *EventStore) SaveEventNotifyByBlock(height uint32, txHashs []common.U
 }
 
 //GetEventNotifyByTx return event notify by trasanction hash
-func (this *EventStore) GetEventNotifyByTx(txHash common.Uint256) ([]*event.NotifyEventInfo, error) {
+func (this *EventStore) GetEventNotifyByTx(txHash common.Uint256) (*event.ExecuteNotify, error) {
 	key := this.getEventNotifyByTxKey(txHash)
 	data, err := this.store.Get(key)
 	if err != nil {
@@ -99,11 +99,11 @@ func (this *EventStore) GetEventNotifyByTx(txHash common.Uint256) ([]*event.Noti
 		}
 		return nil, err
 	}
-	var notifies []*event.NotifyEventInfo
-	if err = json.Unmarshal(data, &notifies); err != nil {
+	var notify event.ExecuteNotify
+	if err = json.Unmarshal(data, &notify); err != nil {
 		return nil, fmt.Errorf("json.Unmarshal error %s", err)
 	}
-	return notifies, nil
+	return &notify, nil
 }
 
 //GetEventNotifyByBlock return transaction hash which have event notify
