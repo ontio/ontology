@@ -243,7 +243,7 @@ func (self *Syncer) startPeerSyncer(syncer *PeerSyncer, targetBlkNum uint64) err
 	if targetBlkNum > syncer.targetBlkNum {
 		syncer.targetBlkNum = targetBlkNum
 	}
-	if syncer.targetBlkNum > syncer.nextReqBlkNum && !syncer.active {
+	if syncer.targetBlkNum >= syncer.nextReqBlkNum && !syncer.active {
 		syncer.active = true
 		go func() {
 			syncer.run()
