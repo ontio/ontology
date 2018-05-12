@@ -44,6 +44,12 @@ func HashBlock(blk *Block) (common.Uint256, error) {
 	return blk.Block.Hash(), nil
 }
 
+func hashData(data []byte) common.Uint256 {
+	t := sha256.Sum256(data)
+	f := sha256.Sum256(t[:])
+	return common.Uint256(f)
+}
+
 func HashMsg(msg ConsensusMsg) (common.Uint256, error) {
 
 	// FIXME: has to do marshal on each call
@@ -53,9 +59,7 @@ func HashMsg(msg ConsensusMsg) (common.Uint256, error) {
 		return common.Uint256{}, fmt.Errorf("failed to marshal block: %s", err)
 	}
 
-	t := sha256.Sum256(data)
-	f := sha256.Sum256(t[:])
-	return common.Uint256(f), nil
+	return hashData(data), nil
 }
 
 type vrfData struct {
