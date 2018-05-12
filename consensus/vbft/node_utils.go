@@ -250,7 +250,7 @@ func calcParticipantPeers(cfg *BlockParticipantConfig, chain *vconfig.ChainConfi
 			peerMap[peerId] = true
 			cnt++
 
-			if cnt > chain.C*3 || cnt >= chain.N {
+			if cnt >= chain.N {
 				return peers
 			}
 		}
