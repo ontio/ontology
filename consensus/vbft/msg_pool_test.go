@@ -31,7 +31,8 @@ func TestAddMsg(t *testing.T) {
 	blockproposalmsg := &blockProposalMsg{
 		Block: block,
 	}
-	err = msgpool.AddMsg(blockproposalmsg)
+	h, _ := HashMsg(blockproposalmsg)
+	err = msgpool.AddMsg(blockproposalmsg, h)
 	t.Logf("TestAddMsg %v", err)
 }
 
@@ -46,7 +47,8 @@ func TestHasMsg(t *testing.T) {
 	blockproposalmsg := &blockProposalMsg{
 		Block: block,
 	}
-	status := msgpool.HasMsg(blockproposalmsg)
+	h, _ := HashMsg(blockproposalmsg)
+	status := msgpool.HasMsg(blockproposalmsg, h)
 	t.Logf("TestHasMsg: %v", status)
 }
 
@@ -80,11 +82,12 @@ func TestOnBlockSealed(t *testing.T) {
 	blockproposalmsg := &blockProposalMsg{
 		Block: blk,
 	}
+	h, _ := HashMsg(blockproposalmsg)
 	server := constructServer()
 	msgpool := newMsgPool(server, uint64(1))
 	t.Logf("TestOnBlockSealed,len:%v", len(msgpool.rounds))
-	if !msgpool.HasMsg(blockproposalmsg) {
-		msgpool.AddMsg(blockproposalmsg)
+	if !msgpool.HasMsg(blockproposalmsg, h) {
+		msgpool.AddMsg(blockproposalmsg, h)
 		msgpool.onBlockSealed(blockproposalmsg.GetBlockNum())
 		t.Logf("TestOnBlockSealed,len:%v", len(msgpool.rounds))
 	}
