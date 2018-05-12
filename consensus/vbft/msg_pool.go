@@ -19,7 +19,6 @@
 package vbft
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/ontio/ontology/common"
@@ -49,27 +48,19 @@ func newConsensusRound(num uint64) *ConsensusRound {
 	return r
 }
 
-func (self *ConsensusRound) addMsg(msg ConsensusMsg) error {
-	h, err := HashMsg(msg)
-	if err != nil {
-		return fmt.Errorf("failed to hash msg: %s", err)
-	}
-	if _, present := self.msgHashs[h]; present {
+func (self *ConsensusRound) addMsg(msg ConsensusMsg, msgHash common.Uint256) error {
+	if _, present := self.msgHashs[msgHash]; present {
 		return nil
 	}
 
 	msgs := self.msgs[msg.Type()]
 	self.msgs[msg.Type()] = append(msgs, msg)
-	self.msgHashs[h] = nil
+	self.msgHashs[msgHash] = nil
 	return nil
 }
 
-func (self *ConsensusRound) hasMsg(msg ConsensusMsg) (bool, error) {
-	h, err := HashMsg(msg)
-	if err != nil {
-		return false, fmt.Errorf("failed to hash msg: %s", err)
-	}
-	if _, present := self.msgHashs[h]; present {
+func (self *ConsensusRound) hasMsg(msg ConsensusMsg, msgHash common.Uint256) (bool, error) {
+	if _, present := self.msgHashs[msgHash]; present {
 		return present, nil
 	}
 	return false, nil
@@ -98,7 +89,7 @@ func (pool *MsgPool) clean() {
 	pool.rounds = make(map[uint64]*ConsensusRound)
 }
 
-func (pool *MsgPool) AddMsg(msg ConsensusMsg) error {
+func (pool *MsgPool) AddMsg(msg ConsensusMsg, msgHash common.Uint256) error {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
@@ -110,17 +101,17 @@ func (pool *MsgPool) AddMsg(msg ConsensusMsg) error {
 	// TODO: limit #history rounds to historyLen
 	// Note: we accept msg for future rounds
 
-	return pool.rounds[blkNum].addMsg(msg)
+	return pool.rounds[blkNum].addMsg(msg, msgHash)
 }
 
-func (pool *MsgPool) HasMsg(msg ConsensusMsg) bool {
+func (pool *MsgPool) HasMsg(msg ConsensusMsg, msgHash common.Uint256) bool {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
 	if roundMsgs, present := pool.rounds[msg.GetBlockNum()]; !present {
 		return false
 	} else {
-		if present, err := roundMsgs.hasMsg(msg); err != nil {
+		if present, err := roundMsgs.hasMsg(msg, msgHash); err != nil {
 			log.Errorf("msgpool failed to check msg avail: %s", err)
 			return false
 		} else {

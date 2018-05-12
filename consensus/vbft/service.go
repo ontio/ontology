@@ -30,6 +30,7 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
 	"github.com/ontio/ontology/consensus/vbft/config"
@@ -582,7 +583,8 @@ func (self *Server) run(peerPubKey keypair.PublicKey) error {
 				if msg.Type() < 4 {
 					log.Infof("server %d received consensus msg, type: %d from %d", self.Index, msg.Type(), fromPeer)
 				}
-				self.onConsensusMsg(fromPeer, msg)
+
+				self.onConsensusMsg(fromPeer, msg, hashData(msgData))
 			}
 		}
 	}()
@@ -709,9 +711,9 @@ func (self *Server) startNewProposal(blkNum uint64) error {
 }
 
 // verify consensus messsage, then send msg to processMsgEvent
-func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
+func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash common.Uint256) {
 
-	if self.msgPool.HasMsg(msg) {
+	if self.msgPool.HasMsg(msg, msgHash) {
 		// dup msg checking
 		log.Debugf("dup msg with msg type %d from %d", msg.Type(), peerIdx)
 		return
@@ -728,7 +730,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 		msgBlkNum := pMsg.GetBlockNum()
 		if msgBlkNum > self.GetCurrentBlockNo() {
 			// for concurrency, support two active consensus round
-			if err := self.msgPool.AddMsg(msg); err != nil {
+			if err := self.msgPool.AddMsg(msg, msgHash); err != nil {
 				log.Errorf("failed to add proposal msg (%d) to pool", msgBlkNum)
 				return
 			}
@@ -764,7 +766,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 			}
 
 		} else {
-			if err := self.msgPool.AddMsg(msg); err != nil {
+			if err := self.msgPool.AddMsg(msg, msgHash); err != nil {
 				log.Errorf("failed to add proposal msg (%d) to pool", msgBlkNum)
 				return
 			}
@@ -783,7 +785,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 		msgBlkNum := pMsg.GetBlockNum()
 		if msgBlkNum > self.GetCurrentBlockNo() {
 			// for concurrency, support two active consensus round
-			if err := self.msgPool.AddMsg(msg); err != nil {
+			if err := self.msgPool.AddMsg(msg, msgHash); err != nil {
 				log.Errorf("failed to add endorse msg (%d) to pool", msgBlkNum)
 				return
 			}
@@ -819,7 +821,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 
 		} else {
 			// add to msg pool
-			if err := self.msgPool.AddMsg(msg); err != nil {
+			if err := self.msgPool.AddMsg(msg, msgHash); err != nil {
 				log.Errorf("failed to add endorse msg (%d) to pool", msgBlkNum)
 				return
 			}
@@ -837,7 +839,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 
 		msgBlkNum := pMsg.GetBlockNum()
 		if msgBlkNum > self.GetCurrentBlockNo() {
-			if err := self.msgPool.AddMsg(msg); err != nil {
+			if err := self.msgPool.AddMsg(msg, msgHash); err != nil {
 				log.Errorf("failed to add commit msg (%d) to pool", msgBlkNum)
 				return
 			}
@@ -873,7 +875,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg) {
 			}
 		} else {
 			// add to msg pool
-			if err := self.msgPool.AddMsg(msg); err != nil {
+			if err := self.msgPool.AddMsg(msg, msgHash); err != nil {
 				log.Errorf("failed to add commit msg (%d) to pool", msgBlkNum)
 				return
 			}
@@ -1025,6 +1027,9 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 				log.Errorf("server %d verify proposal blk from %d failed, blk %d, txs %d, err: %s",
 					self.Index, msg.Block.getProposer(), msgBlkNum, len(txs), err)
 				return
+			} else if err == actor.ErrTimeout {
+				log.Errorf("server %d verify proposal blk from %d timedout, blk %d, txs %d, err: %s",
+					self.Index, msg.Block.getProposer(), msgBlkNum, len(txs), err)
 			}
 			for _, tx := range txs {
 				if err := self.incrValidator.Verify(tx, validHeight); err != nil {
@@ -1740,7 +1745,8 @@ func (self *Server) endorseBlock(proposal *blockProposalMsg, forEmpty bool) erro
 	self.processConsensusMsg(endorseMsg)
 	// if node is endorser of current round
 	if forEmpty || self.isEndorser(blkNum, self.Index) {
-		self.msgPool.AddMsg(endorseMsg)
+		h, _ := HashMsg(endorseMsg)
+		self.msgPool.AddMsg(endorseMsg, h)
 		log.Infof("endorser %d, endorsed block %d, from server %d",
 			self.Index, blkNum, proposal.Block.getProposer())
 		// broadcast my endorsement
@@ -1800,7 +1806,8 @@ func (self *Server) commitBlock(proposal *blockProposalMsg, forEmpty bool) error
 	self.processConsensusMsg(commitMsg)
 	// if node is committer of current round
 	if forEmpty || self.isCommitter(blkNum, self.Index) {
-		self.msgPool.AddMsg(commitMsg)
+		h, _ := HashMsg(commitMsg)
+		self.msgPool.AddMsg(commitMsg, h)
 		log.Infof("committer %d, set block %d committed, from server %d",
 			self.Index, blkNum, proposal.Block.getProposer())
 		// broadcast my commitment
@@ -2048,7 +2055,8 @@ func (self *Server) makeProposal(blkNum uint64, forEmpty bool) error {
 	log.Infof("server %d make proposal for block %d", self.Index, blkNum)
 
 	// add proposal to self
-	self.msgPool.AddMsg(proposal)
+	h, _ := HashMsg(proposal)
+	self.msgPool.AddMsg(proposal, h)
 	self.processProposalMsg(proposal)
 	return self.broadcast(proposal)
 }
