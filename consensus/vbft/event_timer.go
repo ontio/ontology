@@ -81,8 +81,6 @@ type EventTimer struct {
 	peerTickers map[uint32]*time.Timer
 	// other timers
 	normalTimers map[uint64]*time.Timer
-	//tx timer
-	txTicker *time.Timer
 }
 
 func NewEventTimer(server *Server) *EventTimer {
@@ -396,22 +394,15 @@ func (self *EventTimer) stopPeerTicker(peerIdx uint32) error {
 func (self *EventTimer) startTxTicker(blockNum uint64) error {
 	self.lock.Lock()
 	defer self.lock.Unlock()
-	timeout := self.getEventTimeout(EventTxPool)
-	self.txTicker = time.AfterFunc(timeout, func() {
-		self.C <- &TimerEvent{
-			evtType:  EventTxPool,
-			blockNum: blockNum,
-		}
-		self.txTicker.Reset(timeout)
-	})
-	return nil
+
+	return self.startEventTimer(EventTxPool, blockNum)
 }
 
-func (self *EventTimer) stopTxTicker() error {
+func (self *EventTimer) stopTxTicker(blockNum uint64) error {
 	self.lock.Lock()
 	defer self.lock.Unlock()
-	self.txTicker.Stop()
-	return nil
+
+	return self.cancelEventTimer(EventTxPool, blockNum)
 }
 
 ///////////////////////////////////////////////////////////
