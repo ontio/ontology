@@ -1678,14 +1678,17 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 
 	case EventTxPool:
 		blockNum := self.GetCurrentBlockNo()
+		self.timer.stopTxTicker(evt.blockNum)
 		txpool := self.poolActor.GetTxnPool(true, uint32(blockNum-1))
 		if len(txpool) != 0 && self.completedBlockNum+1 == self.currentBlockNum {
-			self.timer.stopTxTicker()
 			self.timer.CancelTxBlockTimeout(blockNum)
 			self.startNewProposal(blockNum)
+		} else {
+			// reset timer, continue waiting txs from txnpool
+			self.timer.startTxTicker(blockNum)
 		}
 	case EventTxBlockTimeout:
-		self.timer.stopTxTicker()
+		self.timer.stopTxTicker(evt.blockNum)
 		self.timer.CancelTxBlockTimeout(evt.blockNum)
 		self.startNewProposal(evt.blockNum)
 	}
