@@ -282,6 +282,12 @@ func calcParticipant(vrf vconfig.VRFValue, dposTable []uint32, k uint32) uint32 
 	return dposTable[v]
 }
 
+//
+// check if commit msgs has reached consensus
+// return
+//		@ consensused proposer
+//		@ consensused for empty commit
+//
 func getCommitConsensus(commitMsgs []*blockCommitMsg, C int) (uint32, bool) {
 	commitCount := make(map[uint32]int)                  // proposer -> #commit-msg
 	endorseCount := make(map[uint32]map[uint32]struct{}) // proposer -> []endorsers
@@ -296,7 +302,7 @@ func getCommitConsensus(commitMsgs []*blockCommitMsg, C int) (uint32, bool) {
 			return c.BlockProposer, emptyCommitCount > C
 		}
 
-		for endorser, _ := range c.EndorsersSig {
+		for endorser := range c.EndorsersSig {
 			if _, present := endorseCount[c.BlockProposer]; !present {
 				endorseCount[c.BlockProposer] = make(map[uint32]struct{})
 			}
@@ -309,6 +315,24 @@ func getCommitConsensus(commitMsgs []*blockCommitMsg, C int) (uint32, bool) {
 	}
 
 	return math.MaxUint32, false
+}
+
+func (self *Server) findBlockProposal(blkNum uint64, proposer uint32, forEmpty bool) *blockProposalMsg {
+	for _, p := range self.blockPool.getBlockProposals(blkNum) {
+		if p.Block.getProposer() == proposer && p.Block.isEmpty() == forEmpty {
+			return p
+		}
+	}
+
+	for _, p := range self.msgPool.GetProposalMsgs(blkNum) {
+		if pMsg := p.(*blockProposalMsg); pMsg != nil {
+			if pMsg.Block.getProposer() == proposer && pMsg.Block.isEmpty() == forEmpty {
+				return pMsg
+			}
+		}
+	}
+
+	return nil
 }
 
 func (self *Server) validateTxsInProposal(proposal *blockProposalMsg) error {

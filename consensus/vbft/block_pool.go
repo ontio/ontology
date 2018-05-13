@@ -297,7 +297,12 @@ func (pool *BlockPool) newBlockEndorsement(msg *blockEndorseMsg) error {
 //
 // check if has reached consensus for endorse-msg
 //
-func (pool *BlockPool) endorseDone(blkNum uint64, C uint32) (*blockProposalMsg, uint32, bool) {
+// return
+//		@ endorsable proposer
+//		@ for empty commit
+//		@ endorsable
+//
+func (pool *BlockPool) endorseDone(blkNum uint64, C uint32) (uint32, bool, bool) {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
@@ -306,11 +311,11 @@ func (pool *BlockPool) endorseDone(blkNum uint64, C uint32) (*blockProposalMsg, 
 
 	candidate := pool.candidateBlocks[blkNum]
 	if candidate == nil {
-		return nil, math.MaxUint32, false
+		return math.MaxUint32, false, false
 	}
 
 	if uint32(len(candidate.EndorseSigs)) < C+1 {
-		return nil, math.MaxUint32, false
+		return math.MaxUint32, false, false
 	}
 
 	for _, eSigs := range candidate.EndorseSigs {
@@ -319,28 +324,19 @@ func (pool *BlockPool) endorseDone(blkNum uint64, C uint32) (*blockProposalMsg, 
 				emptyEndorseCount++
 				if emptyEndorseCount > int(C) {
 					// FIXME: endorsedProposer need fix
-					return nil, esig.EndorsedProposer, true
+					return esig.EndorsedProposer, true, true
 				}
 			} else {
 				endorseCount[esig.EndorsedProposer] += 1
 				// check if endorse-consensus reached
 				if endorseCount[esig.EndorsedProposer] > C {
-					// find proposal
-					for _, p := range candidate.Proposals {
-						if p.Block.getProposer() == esig.EndorsedProposer {
-							return p, esig.EndorsedProposer, true
-						}
-					}
-
-					// consensus reached, but we dont have the proposal, set as not done
-					// wait timeout, for proposal msg relay
-					return nil, esig.EndorsedProposer, true
+					return esig.EndorsedProposer, false, true
 				}
 			}
 		}
 	}
 
-	return nil, math.MaxUint32, false
+	return math.MaxUint32, false, false
 }
 
 func (pool *BlockPool) endorseFailed(blkNum uint64, C uint32) bool {
@@ -486,17 +482,17 @@ func (pool *BlockPool) newBlockCommitment(msg *blockCommitMsg) error {
 //
 // check if has reached consensus on block-commit
 // return
-//		@ consensused proposal
+//		@ consensused proposer
 //		@ for empty commit
 //		@ consensused
 //
-func (pool *BlockPool) commitDone(blkNum uint64, C uint32) (*blockProposalMsg, bool, bool) {
+func (pool *BlockPool) commitDone(blkNum uint64, C uint32) (uint32, bool, bool) {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
 	candidate := pool.candidateBlocks[blkNum]
 	if candidate == nil {
-		return nil, false, false
+		return math.MaxUint32, false, false
 	}
 
 	// check consensus with commit msgs
@@ -536,15 +532,11 @@ func (pool *BlockPool) commitDone(blkNum uint64, C uint32) (*blockProposalMsg, b
 	}
 
 	if proposer != math.MaxUint32 {
-		for _, p := range candidate.Proposals {
-			if p.Block.getProposer() == proposer {
-				candidate.commitDone = true
-				return p, forEmpty, true
-			}
-		}
+		candidate.commitDone = true
+		return proposer, forEmpty, true
 	}
 
-	return nil, false, false
+	return math.MaxUint32, false, false
 }
 
 func (pool *BlockPool) isCommitHadDone(blkNum uint64) bool {
