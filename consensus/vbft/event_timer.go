@@ -175,7 +175,7 @@ func (self *EventTimer) getEventTimeout(evtType TimerEventType) time.Duration {
 	case EventProposalBackoff:
 		rank := self.server.getProposerRank(self.server.GetCurrentBlockNo(), self.server.Index)
 		if rank >= 0 {
-			d := int64(rank + 1) * int64(make2ndProposalTimeout) / 3
+			d := int64(rank+1) * int64(make2ndProposalTimeout) / 3
 			return time.Duration(d)
 		}
 		return time.Duration(100 * time.Second)
