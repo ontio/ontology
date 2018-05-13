@@ -82,8 +82,9 @@ type StateMgr struct {
 	StateEventC      chan *StateEvent
 	peers            map[uint32]*PeerState
 
-	liveTicker          *time.Timer
-	lastTickChainHeight uint64
+	liveTicker             *time.Timer
+	lastTickChainHeight    uint64
+	lastBlockSyncReqHeight uint64
 }
 
 func newStateMgr(server *Server) *StateMgr {
@@ -388,11 +389,15 @@ func (self *StateMgr) checkStartSyncing(startBlkNum uint64, forceSync bool) erro
 		self.currentState = Syncing
 		startBlkNum = self.server.GetCommittedBlockNo() + 1
 
-		log.Infof("server %d, start syncing %d - %d, with %v", self.server.Index, startBlkNum, maxCommitted, peers)
-		self.server.syncer.blockSyncReqC <- &BlockSyncReq{
-			targetPeers:    peers[maxCommitted],
-			startBlockNum:  startBlkNum,
-			targetBlockNum: maxCommitted,
+		if maxCommitted > self.lastBlockSyncReqHeight {
+			// syncer is much slower than peer-update, too much SyncReq can make channel full
+			log.Infof("server %d, start syncing %d - %d, with %v", self.server.Index, startBlkNum, maxCommitted, peers)
+			self.lastBlockSyncReqHeight = maxCommitted
+			self.server.syncer.blockSyncReqC <- &BlockSyncReq{
+				targetPeers:    peers[maxCommitted],
+				startBlockNum:  startBlkNum,
+				targetBlockNum: maxCommitted,
+			}
 		}
 	} else if self.currentState == Synced {
 		log.Infof("server %d, start syncing check %v, %d", self.server.Index, peers, self.server.GetCurrentBlockNo())
