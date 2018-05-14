@@ -101,7 +101,6 @@ func RegisterGovernanceContract(native *native.NativeService) {
 	native.Register(COMMIT_DPOS, CommitDpos)
 	native.Register(VOTE_COMMIT_DPOS, VoteCommitDpos)
 	native.Register(UPDATE_CONFIG, UpdateConfig)
-	native.Register("dataQuery", DataQuery)
 }
 
 func InitConfig(native *native.NativeService) ([]byte, error) {
@@ -1345,49 +1344,6 @@ func UpdateConfig(native *native.NativeService) ([]byte, error) {
 	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VBFT_CONFIG)), &cstates.StorageItem{Value: bf.Bytes()})
 
 	utils.AddCommonEvent(native, contract, UPDATE_CONFIG, configuration)
-
-	return utils.BYTE_TRUE, nil
-}
-
-func DataQuery(native *native.NativeService) ([]byte, error) {
-	contract := native.ContextRef.CurrentContext().ContractAddress
-
-	//get current view
-	view, err := GetView(native, contract)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getView, get view error!")
-	}
-
-	//get peerPoolMap
-	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getPeerPoolMap, get peerPoolMap error!")
-	}
-
-	for _, peerPool := range peerPoolMap.PeerPoolMap {
-		fmt.Println("PeerPool is : ", peerPool)
-	}
-
-	fmt.Println("view :", view)
-	//update voteInfoPool
-	stateValues, err := native.CloneCache.Store.Find(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL)))
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "native.CloneCache.Store.Find, get all peerPool error!")
-	}
-	voteInfoPool := new(VoteInfoPool)
-	for _, v := range stateValues {
-		voteInfoPoolStore, _ := v.Value.(*cstates.StorageItem)
-		if err := voteInfoPool.Deserialize(bytes.NewBuffer(voteInfoPoolStore.Value)); err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfoPool error!")
-		}
-		fmt.Println("VoteInfoPool is : ", voteInfoPool)
-		fmt.Println("VoteInfoPool.ConsensusPos is : ", voteInfoPool.ConsensusPos)
-		fmt.Println("VoteInfoPool.FreezePos is : ", voteInfoPool.FreezePos)
-		fmt.Println("VoteInfoPool.NewPos is : ", voteInfoPool.NewPos)
-		fmt.Println("VoteInfoPool.WithDrawPos is : ", voteInfoPool.WithDrawPos)
-		fmt.Println("VoteInfoPool.WithDrawFreezePos is : ", voteInfoPool.WithDrawFreezePos)
-		fmt.Println("VoteInfoPool.WithDrawUnfreezePos is : ", voteInfoPool.WithDrawUnfreezePos)
-	}
 
 	return utils.BYTE_TRUE, nil
 }
