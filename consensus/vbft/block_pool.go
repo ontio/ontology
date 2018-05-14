@@ -266,8 +266,8 @@ func (pool *BlockPool) addBlockEndorsementLocked(blkNum uint64, endorser uint32,
 		}
 
 		// check dup endorsement
-		for _, eSig := range eSigs {
-			if eSig.EndorsedProposer == eSig.EndorsedProposer {
+		for _, esig := range eSigs {
+			if esig.EndorsedProposer == eSig.EndorsedProposer {
 				return nil
 			}
 		}
