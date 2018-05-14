@@ -21,6 +21,13 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
+	"os"
+	"os/signal"
+	"runtime"
+	"strings"
+	"syscall"
+	"time"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
@@ -48,12 +55,6 @@ import (
 	"github.com/ontio/ontology/validator/stateful"
 	"github.com/ontio/ontology/validator/stateless"
 	"github.com/urfave/cli"
-	"os"
-	"os/signal"
-	"runtime"
-	"strings"
-	"syscall"
-	"time"
 )
 
 func setupAPP() *cli.App {
@@ -316,10 +317,10 @@ func initConsensus(ctx *cli.Context, p2pPid *actor.PID, txpoolSvr *proc.TXPoolSe
 	if err != nil {
 		return nil, fmt.Errorf("NewConsensusService:%s error:%s", consensusType, err)
 	}
+	consensusService.Start()
+
 	netreqactor.SetConsensusPid(consensusService.GetPID())
 	hserver.SetConsensusPid(consensusService.GetPID())
-
-	go consensusService.Start()
 
 	log.Infof("Consensus init success")
 	return consensusService, nil

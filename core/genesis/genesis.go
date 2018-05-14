@@ -40,10 +40,12 @@ const (
 )
 
 var (
-	OntContractAddress, _   = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})
-	OngContractAddress, _   = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02})
-	OntIDContractAddress, _ = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03})
-	ParamContractAddress, _ = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04})
+	OntContractAddress, _        = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})
+	OngContractAddress, _        = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02})
+	OntIDContractAddress, _      = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03})
+	ParamContractAddress, _      = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04})
+	GovernanceContractAddress, _ = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07})
+	FeeSplitContractAddress, _   = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08})
 
 	ONTToken   = newGoverningToken()
 	ONGToken   = newUtilityToken()
@@ -63,12 +65,10 @@ func GenesisBlockInit(defaultBookkeeper []keypair.PublicKey) (*types.Block, erro
 	if err != nil {
 		return nil, errors.New("[Block],GenesisBlockInit err with GetBookkeeperAddress")
 	}
-
 	consensusPayload, err := vconfig.GenesisConsensusPayload()
 	if err != nil {
 		return nil, fmt.Errorf("consensus genesus init failed: %s", err)
 	}
-
 	//blockdata
 	genesisHeader := &types.Header{
 		Version:          BlockVersion,
@@ -89,6 +89,7 @@ func GenesisBlockInit(defaultBookkeeper []keypair.PublicKey) (*types.Block, erro
 	ong := newUtilityToken()
 	param := newParamContract()
 	oid := deployOntIDContract()
+	config := newConfig()
 
 	genesisBlock := &types.Block{
 		Header: genesisHeader,
@@ -97,9 +98,11 @@ func GenesisBlockInit(defaultBookkeeper []keypair.PublicKey) (*types.Block, erro
 			ong,
 			param,
 			oid,
+			config,
 			newGoverningInit(),
 			newUtilityInit(),
 			newParamInit(),
+			newConfigInit(),
 		},
 	}
 	genesisBlock.RebuildMerkleRoot()
@@ -122,6 +125,12 @@ func newParamContract() *types.Transaction {
 	tx := utils.NewDeployTransaction(stypes.VmCode{Code: ParamContractAddress[:], VmType: stypes.Native},
 		"ParamConfig", "1.0", "Ontology Team", "contact@ont.io",
 		"Chain Global Enviroment Variables Manager ", true)
+	return tx
+}
+
+func newConfig() *types.Transaction {
+	tx := utils.NewDeployTransaction(stypes.VmCode{Code: GovernanceContractAddress[:], VmType: stypes.Native}, "CONFIG", "1.0",
+		"Ontology Team", "contact@ont.io", "Ontology Network Consensus Config", true)
 	return tx
 }
 
@@ -165,6 +174,21 @@ func newParamInit() *types.Transaction {
 	init := states.Contract{
 		Address: ParamContractAddress,
 		Method:  "init",
+	}
+	bf := new(bytes.Buffer)
+	init.Serialize(bf)
+	vmCode := stypes.VmCode{
+		VmType: stypes.Native,
+		Code:   bf.Bytes(),
+	}
+	tx := utils.NewInvokeTransaction(vmCode)
+	return tx
+}
+
+func newConfigInit() *types.Transaction {
+	init := states.Contract{
+		Address: GovernanceContractAddress,
+		Method:  "initConfig",
 	}
 	bf := new(bytes.Buffer)
 	init.Serialize(bf)

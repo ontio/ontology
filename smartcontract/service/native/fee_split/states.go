@@ -16,20 +16,19 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package init
+package fee_split
 
-import (
-	"github.com/ontio/ontology/smartcontract/service/native/fee_split"
-	params "github.com/ontio/ontology/smartcontract/service/native/global_params"
-	"github.com/ontio/ontology/smartcontract/service/native/governance"
-	"github.com/ontio/ontology/smartcontract/service/native/ong"
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
-)
+type CandidateSplitInfo struct {
+	PeerPubkey string `json:"peerPubkey"`
+	Address    string `json:"address"`
+	InitPos    uint64 `json:"initPos"`
+	Stake      uint64 `json:"stake"`
+	S          uint64 `json:"s"`
+}
 
-func init() {
-	ong.InitOng()
-	ont.InitOnt()
-	params.InitGlobalParams()
-	governance.InitGovernance()
-	fee_split.InitFeeSplit()
+type SyncNodeSplitInfo struct {
+	PeerPubkey string `json:"peerPubkey"`
+	Address    string `json:"address"`
+	InitPos    uint64 `json:"initPos"`
+	S          uint64 `json:"s"`
 }

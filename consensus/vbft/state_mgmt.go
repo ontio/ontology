@@ -82,8 +82,9 @@ type StateMgr struct {
 	StateEventC      chan *StateEvent
 	peers            map[uint32]*PeerState
 
-	liveTicker          *time.Timer
-	lastTickChainHeight uint64
+	liveTicker             *time.Timer
+	lastTickChainHeight    uint64
+	lastBlockSyncReqHeight uint64
 }
 
 func newStateMgr(server *Server) *StateMgr {
@@ -387,15 +388,16 @@ func (self *StateMgr) checkStartSyncing(startBlkNum uint64, forceSync bool) erro
 	if maxCommitted > startBlkNum || forceSync {
 		self.currentState = Syncing
 		startBlkNum = self.server.GetCommittedBlockNo() + 1
-		if maxCommitted <= startBlkNum {
-			maxCommitted = startBlkNum + 1
-		}
 
-		log.Infof("server %d, start syncing %d - %d, with %v", self.server.Index, startBlkNum, maxCommitted, peers)
-		self.server.syncer.blockSyncReqC <- &BlockSyncReq{
-			targetPeers:    peers[maxCommitted],
-			startBlockNum:  startBlkNum,
-			targetBlockNum: maxCommitted,
+		if maxCommitted > self.lastBlockSyncReqHeight {
+			// syncer is much slower than peer-update, too much SyncReq can make channel full
+			log.Infof("server %d, start syncing %d - %d, with %v", self.server.Index, startBlkNum, maxCommitted, peers)
+			self.lastBlockSyncReqHeight = maxCommitted
+			self.server.syncer.blockSyncReqC <- &BlockSyncReq{
+				targetPeers:    peers[maxCommitted],
+				startBlockNum:  startBlkNum,
+				targetBlockNum: maxCommitted,
+			}
 		}
 	} else if self.currentState == Synced {
 		log.Infof("server %d, start syncing check %v, %d", self.server.Index, peers, self.server.GetCurrentBlockNo())
@@ -435,11 +437,6 @@ func (self *StateMgr) getConsensusedCommittedBlockNum() (uint64, bool) {
 }
 
 func (self *StateMgr) canFastForward(targetBlkNum uint64) bool {
-	if self.getState() != Syncing {
-		// fast-forword check only support syncing state
-		return false
-	}
-
 	if targetBlkNum > self.server.GetCommittedBlockNo()+MAX_SYNCING_CHECK_BLK_NUM*4 {
 		return false
 	}
@@ -448,13 +445,13 @@ func (self *StateMgr) canFastForward(targetBlkNum uint64) bool {
 	// one block less than targetBlkNum is also acceptable for fastforward
 	for blkNum := self.server.GetCurrentBlockNo(); blkNum < targetBlkNum; blkNum++ {
 		if len(self.server.msgPool.GetProposalMsgs(blkNum)) == 0 {
-			log.Info("server %d check fastforward false, no proposal for block %d",
+			log.Infof("server %d check fastforward false, no proposal for block %d",
 				self.server.Index, blkNum)
 			return false
 		}
 		cMsgs := self.server.msgPool.GetCommitMsgs(blkNum)
 		if len(cMsgs) <= C {
-			log.Info("server %d check fastforward false, only %d commit msg for block %d",
+			log.Infof("server %d check fastforward false, only %d commit msg for block %d",
 				self.server.Index, len(cMsgs), blkNum)
 			return false
 		}

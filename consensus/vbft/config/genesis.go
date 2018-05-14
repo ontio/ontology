@@ -46,9 +46,8 @@ func shuffle_hash(txid uint64, ts uint64, id []byte, idx int) (uint64, error) {
 	hash.Write(data)
 	return hash.Sum64(), nil
 }
-
 func genConsensusPayload(cfg *config.VBFTConfig) ([]byte, error) {
-	// pos config sanity checks
+
 	if int(cfg.K) > len(cfg.Peers) {
 		return nil, fmt.Errorf("peer count is less than K")
 	}
@@ -58,36 +57,47 @@ func genConsensusPayload(cfg *config.VBFTConfig) ([]byte, error) {
 	if cfg.L%cfg.K != 0 || cfg.L < cfg.K*2 {
 		return nil, fmt.Errorf("invalid config, K: %d, L: %d", cfg.K, cfg.L)
 	}
+	chainConfig, err := GenesisChainConfig(cfg, cfg.Peers)
+	if err != nil {
+		return nil, err
+	}
+	vbftBlockInfo := &VbftBlockInfo{
+		Proposer:           math.MaxUint32,
+		LastConfigBlockNum: math.MaxUint64,
+		NewChainConfig:     chainConfig,
+	}
+	return json.Marshal(vbftBlockInfo)
+}
 
-	// sort peers by stake
-	peers := cfg.Peers
+//GenesisChainConfig return chainconfig
+func GenesisChainConfig(config *config.VBFTConfig, peersinfo []*config.VBFTPeerStakeInfo) (*ChainConfig, error) {
+
+	peers := peersinfo
 	sort.Slice(peers, func(i, j int) bool {
-		return peers[i].Stake > peers[j].Stake
+		return peers[i].InitPos > peers[j].InitPos
 	})
-
 	log.Debugf("sorted peers: %v", peers)
-
 	// get stake sum of top-k peers
 	var sum uint64
-	for i := 0; i < int(cfg.K); i++ {
-		sum += peers[i].Stake
-		log.Debugf("peer: %d, stack: %d", peers[i].Index, peers[i].Stake)
+	for i := 0; i < int(config.K); i++ {
+		sum += peers[i].InitPos
+		log.Infof("peer: %d, stack: %d", peers[i].Index, peers[i].InitPos)
 	}
 
 	log.Debugf("sum of top K stakes: %d", sum)
 
 	// calculate peer ranks
-	scale := cfg.L/cfg.K - 1
+	scale := config.L/config.K - 1
 	if scale <= 0 {
 		return nil, fmt.Errorf("L is equal or less than K")
 	}
 
 	peerRanks := make([]uint64, 0)
-	for i := 0; i < int(cfg.K); i++ {
-		if peers[i].Stake == 0 {
+	for i := 0; i < int(config.K); i++ {
+		if peers[i].InitPos == 0 {
 			return nil, fmt.Errorf("peers rank %d, has zero stake", i)
 		}
-		s := uint64(math.Ceil(float64(peers[i].Stake) * float64(scale) * float64(cfg.K) / float64(sum)))
+		s := uint64(math.Ceil(float64(peers[i].InitPos) * float64(scale) * float64(config.K) / float64(sum)))
 		peerRanks = append(peerRanks, s)
 	}
 
@@ -96,8 +106,8 @@ func genConsensusPayload(cfg *config.VBFTConfig) ([]byte, error) {
 	// calculate pos table
 	chainPeers := make(map[uint32]*PeerConfig, 0)
 	posTable := make([]uint32, 0)
-	for i := 0; i < int(cfg.K); i++ {
-		nodeId, err := StringID(peers[i].NodeID)
+	for i := 0; i < int(config.K); i++ {
+		nodeId, err := StringID(peers[i].PeerPubkey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to format NodeID, index: %d: %s", peers[i].Index, err)
 		}
@@ -109,45 +119,36 @@ func genConsensusPayload(cfg *config.VBFTConfig) ([]byte, error) {
 			posTable = append(posTable, peers[i].Index)
 		}
 	}
-
-	log.Debugf("init pos table: %v", posTable)
-
 	// shuffle
 	for i := len(posTable) - 1; i > 0; i-- {
-		h, err := shuffle_hash(cfg.InitTxid, cfg.GenesisTimestamp, chainPeers[posTable[i]].ID.Bytes(), i)
+		h, err := shuffle_hash(0, 0, chainPeers[posTable[i]].ID.Bytes(), i)
 		if err != nil {
 			return nil, fmt.Errorf("failed to calculate hash value: %s", err)
 		}
 		j := h % uint64(i)
 		posTable[i], posTable[j] = posTable[j], posTable[i]
 	}
-
-	log.Debugf("shuffled pos table: %v", posTable)
+	log.Debugf("init pos table: %v", posTable)
 
 	// generate chain config, and save to ChainConfigFile
 	peerCfgs := make([]*PeerConfig, 0)
-	for i := 0; i < int(cfg.K); i++ {
+	for i := 0; i < int(config.K); i++ {
 		peerCfgs = append(peerCfgs, chainPeers[peers[i].Index])
 	}
+
 	chainConfig := &ChainConfig{
-		Version:              Version,
-		View:                 cfg.View,
-		N:                    cfg.N,
-		C:                    cfg.C,
-		BlockMsgDelay:        time.Duration(cfg.BlockMsgDelay) * time.Millisecond,
-		HashMsgDelay:         time.Duration(cfg.HashMsgDelay) * time.Millisecond,
-		PeerHandshakeTimeout: time.Duration(cfg.PeerHandshakeTimeout) * time.Second,
+		Version:              1,
+		View:                 1,
+		N:                    config.N,
+		C:                    config.C,
+		BlockMsgDelay:        time.Duration(config.BlockMsgDelay) * time.Millisecond,
+		HashMsgDelay:         time.Duration(config.HashMsgDelay) * time.Millisecond,
+		PeerHandshakeTimeout: time.Duration(config.PeerHandshakeTimeout) * time.Second,
 		Peers:                peerCfgs,
 		PosTable:             posTable,
+		MaxBlockChangeView:   config.MaxBlockChangeView,
 	}
-
-	vbftBlockInfo := &VbftBlockInfo{
-		Proposer:           math.MaxUint32,
-		LastConfigBlockNum: math.MaxUint64,
-		NewChainConfig:     chainConfig,
-	}
-
-	return json.Marshal(vbftBlockInfo)
+	return chainConfig, nil
 }
 
 func GenesisConsensusPayload() ([]byte, error) {
@@ -157,6 +158,5 @@ func GenesisConsensusPayload() ([]byte, error) {
 	case "vbft":
 		return genConsensusPayload(config.DefConfig.Genesis.VBFT)
 	}
-
 	return nil, nil
 }

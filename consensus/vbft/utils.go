@@ -44,6 +44,12 @@ func HashBlock(blk *Block) (common.Uint256, error) {
 	return blk.Block.Hash(), nil
 }
 
+func hashData(data []byte) common.Uint256 {
+	t := sha256.Sum256(data)
+	f := sha256.Sum256(t[:])
+	return common.Uint256(f)
+}
+
 func HashMsg(msg ConsensusMsg) (common.Uint256, error) {
 
 	// FIXME: has to do marshal on each call
@@ -53,34 +59,26 @@ func HashMsg(msg ConsensusMsg) (common.Uint256, error) {
 		return common.Uint256{}, fmt.Errorf("failed to marshal block: %s", err)
 	}
 
-	t := sha256.Sum256(data)
-	f := sha256.Sum256(t[:])
-	return common.Uint256(f), nil
+	return hashData(data), nil
 }
 
 type vrfData struct {
 	BlockNum          uint64         `json:"block_num"`
 	PrevBlockHash     common.Uint256 `json:"prev_block_hash"`
 	PrevBlockProposer uint32         `json:"prev_block_proposer"` // TODO: change to NodeID
-	PrevBlockSig      []byte         `json:"prev_block_sig"`
+	TransactionRoot   common.Uint256 `json:"transaction_root"`
+	BlockRoot         common.Uint256 `json:"block_root"`
+	// TODO: add proposer signature
 }
 
 func vrf(block *Block, hash common.Uint256) vconfig.VRFValue {
-
-	// XXX: all-zero vrf value is taken as invalid
-	sig := []byte{}
-	if len(block.Block.Header.SigData) > 0 {
-		sig = block.Block.Header.SigData[0]
-	}
-	if block.isEmpty() {
-		sig = block.Block.Header.SigData[1]
-	}
 
 	data, err := json.Marshal(&vrfData{
 		BlockNum:          block.getBlockNum() + 1,
 		PrevBlockHash:     hash,
 		PrevBlockProposer: block.getProposer(),
-		PrevBlockSig:      sig,
+		TransactionRoot:   block.Block.Header.TransactionsRoot,
+		BlockRoot:         block.Block.Header.BlockRoot,
 	})
 	if err != nil {
 		return vconfig.VRFValue{}

@@ -90,25 +90,22 @@ func (self *Server) isProposer(blockNum uint64, peerIdx uint32) bool {
 }
 
 func (self *Server) is2ndProposer(blockNum uint64, peerIdx uint32) bool {
+	rank := self.getProposerRank(blockNum, peerIdx)
+	return rank > 0 && rank <= int(self.config.C)
+}
+
+func (self *Server) getProposerRank(blockNum uint64, peerIdx uint32) int {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
 
-	{
-		for _, id := range self.currentParticipantConfig.Proposers[1:] {
-			if id == peerIdx {
-				return true
-			}
-		}
-	}
-
-	return false
+	return self.getProposerRankLocked(blockNum, peerIdx)
 }
 
 func (self *Server) isEndorser(blockNum uint64, peerIdx uint32) bool {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
 
-	// the first 2F+1 active endorsers
+	// the first 2C+1 active endorsers
 	var activeN uint32
 	{
 		for _, id := range self.currentParticipantConfig.Endorsers {
@@ -131,7 +128,7 @@ func (self *Server) isCommitter(blockNum uint64, peerIdx uint32) bool {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
 
-	// the first 2F+1 active committers
+	// the first 2C+1 active committers
 	var activeN uint32
 	{
 		for _, id := range self.currentParticipantConfig.Committers {
@@ -160,7 +157,7 @@ func (self *Server) getProposerRankLocked(blockNum uint64, peerIdx uint32) int {
 	} else {
 		log.Errorf("todo: get proposer config for non-current blocknum:%d, current.BlockNum%d,peerIdx:%d", blockNum, self.currentParticipantConfig.BlockNum, peerIdx)
 	}
-	return -1
+	return len(self.currentParticipantConfig.Proposers)
 }
 
 func (self *Server) getHighestRankProposal(blockNum uint64, proposals []*blockProposalMsg) *blockProposalMsg {
@@ -175,9 +172,7 @@ func (self *Server) getHighestRankProposal(blockNum uint64, proposals []*blockPr
 			continue
 		}
 
-		if r := self.getProposerRankLocked(blockNum, p.Block.getProposer()); r < 0 {
-			continue
-		} else if r < proposerRank {
+		if r := self.getProposerRankLocked(blockNum, p.Block.getProposer()); r < proposerRank {
 			proposerRank = r
 			proposal = p
 		}
@@ -253,7 +248,7 @@ func calcParticipantPeers(cfg *BlockParticipantConfig, chain *vconfig.ChainConfi
 			peerMap[peerId] = true
 			cnt++
 
-			if cnt > chain.C*3 || cnt >= chain.N {
+			if cnt >= chain.N {
 				return peers
 			}
 		}
@@ -285,6 +280,12 @@ func calcParticipant(vrf vconfig.VRFValue, dposTable []uint32, k uint32) uint32 
 	return dposTable[v]
 }
 
+//
+// check if commit msgs has reached consensus
+// return
+//		@ consensused proposer
+//		@ consensused for empty commit
+//
 func getCommitConsensus(commitMsgs []*blockCommitMsg, C int) (uint32, bool) {
 	commitCount := make(map[uint32]int)                  // proposer -> #commit-msg
 	endorseCount := make(map[uint32]map[uint32]struct{}) // proposer -> []endorsers
@@ -299,7 +300,7 @@ func getCommitConsensus(commitMsgs []*blockCommitMsg, C int) (uint32, bool) {
 			return c.BlockProposer, emptyCommitCount > C
 		}
 
-		for endorser, _ := range c.EndorsersSig {
+		for endorser := range c.EndorsersSig {
 			if _, present := endorseCount[c.BlockProposer]; !present {
 				endorseCount[c.BlockProposer] = make(map[uint32]struct{})
 			}
@@ -314,9 +315,42 @@ func getCommitConsensus(commitMsgs []*blockCommitMsg, C int) (uint32, bool) {
 	return math.MaxUint32, false
 }
 
+func (self *Server) findBlockProposal(blkNum uint64, proposer uint32, forEmpty bool) *blockProposalMsg {
+	for _, p := range self.blockPool.getBlockProposals(blkNum) {
+		if p.Block.getProposer() == proposer {
+			return p
+		}
+	}
+
+	for _, p := range self.msgPool.GetProposalMsgs(blkNum) {
+		if pMsg := p.(*blockProposalMsg); pMsg != nil {
+			if pMsg.Block.getProposer() == proposer {
+				return pMsg
+			}
+		}
+	}
+
+	return nil
+}
+
 func (self *Server) validateTxsInProposal(proposal *blockProposalMsg) error {
 	// TODO: add VBFT specific verifications
 	return nil
+}
+
+func (self *Server) heartbeat() {
+	//	build heartbeat msg
+	msg, err := self.constructHeartbeatMsg()
+	if err != nil {
+		log.Errorf("failed to build heartbeat msg: %s", err)
+		return
+	}
+
+	//	send to peer
+	self.msgSendC <- &SendMsgEvent{
+		ToPeer: math.MaxUint32,
+		Msg:    msg,
+	}
 }
 
 func (self *Server) receiveFromPeer(peerIdx uint32) (uint32, []byte, error) {

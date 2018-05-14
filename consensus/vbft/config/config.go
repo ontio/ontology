@@ -47,6 +47,8 @@ type ChainConfig struct {
 	PeerHandshakeTimeout time.Duration `json:"peer_handshake_timeout"`
 	Peers                []*PeerConfig `json:"peers"`
 	PosTable             []uint32      `json:"pos_table"`
+	BlockCount           uint32        `json:"block_count"`
+	MaxBlockChangeView   uint32        `json:"MaxBlockChangeView"`
 }
 
 type VbftBlockInfo struct {
