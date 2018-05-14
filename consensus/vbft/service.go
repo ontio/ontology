@@ -939,7 +939,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		start, end := self.incrValidator.BlockRange()
 
 		validHeight := height
-		if height == end {
+		if height+1 == end {
 			validHeight = start
 		} else {
 			self.incrValidator.Clean()
