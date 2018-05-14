@@ -222,8 +222,15 @@ func removeKey(srvc *native.NativeService) ([]byte, error) {
 	if !checkIDExistence(srvc, key) {
 		return utils.BYTE_FALSE, errors.New("remove key failed: ID not registered")
 	}
-	if !isOwner(srvc, key, arg1) {
-		return utils.BYTE_FALSE, errors.New("remove key failed: operator has no authorization")
+	var auth bool = false
+	rec, err := getRecovery(srvc, key)
+	if len(rec) > 0 {
+		auth = bytes.Equal(rec, arg2)
+	}
+	if !auth {
+		if !isOwner(srvc, key, arg2) {
+			return utils.BYTE_FALSE, errors.New("remove key failed: operator has no authorization")
+		}
 	}
 
 	keyID, err := revokePk(srvc, key, arg1)
@@ -427,7 +434,7 @@ func removeAttribute(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("remove attribute failed: no authorization")
 	}
 
-	key1 := append(key, field_attr)
+	key1 := append(key, FIELD_ATTR)
 	ok, err := utils.LinkedlistDelete(srvc, key1, arg1)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("remove attribute failed: delete error, " + err.Error())
@@ -457,7 +464,7 @@ func verifySignature(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("verify signature error: " + err.Error())
 	}
 
-	key1 := append(key, field_pk)
+	key1 := append(key, FIELD_PK)
 	var buf [4]byte
 	binary.LittleEndian.PutUint32(buf[:], arg1)
 

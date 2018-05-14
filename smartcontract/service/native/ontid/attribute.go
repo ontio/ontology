@@ -80,7 +80,7 @@ func (this *attribute) Deserialize(r io.Reader) error {
 }
 
 func insertOrUpdateAttr(srvc *native.NativeService, encID []byte, attr *attribute) error {
-	key := append(encID, field_attr)
+	key := append(encID, FIELD_ATTR)
 	val, err := attr.Value()
 	if err != nil {
 		return errors.New("serialize attribute value error: " + err.Error())
@@ -93,6 +93,6 @@ func insertOrUpdateAttr(srvc *native.NativeService, encID []byte, attr *attribut
 }
 
 func findAttr(srvc *native.NativeService, encID, item []byte) (*utils.LinkedlistNode, error) {
-	key := append(encID, field_attr)
+	key := append(encID, FIELD_ATTR)
 	return utils.LinkedlistGetItem(srvc, key, item)
 }

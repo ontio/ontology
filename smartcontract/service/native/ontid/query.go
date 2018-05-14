@@ -68,7 +68,7 @@ func GetPublicKeys(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get public keys error: %s", err)
 	}
-	key = append(key, field_pk)
+	key = append(key, FIELD_PK)
 	item, err := utils.LinkedlistGetHead(srvc, key)
 	if err != nil {
 		return nil, fmt.Errorf("get public keys error: cannot get the list head, %s", err)
@@ -111,7 +111,7 @@ func GetAttributes(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get public keys error: %s", err)
 	}
-	key = append(key, field_attr)
+	key = append(key, FIELD_ATTR)
 	item, err := utils.LinkedlistGetHead(srvc, key)
 	if err != nil {
 		return nil, fmt.Errorf("get attributes error: get list head error, %s", err)
@@ -166,7 +166,7 @@ func GetKeyState(srvc *native.NativeService) ([]byte, error) {
 		return nil, fmt.Errorf("get key status failed: %s", err)
 	}
 
-	key = append(key, field_pk_state)
+	key = append(key, FIELD_PK_STATE)
 	var buf [4]byte
 	binary.LittleEndian.PutUint32(buf[:], arg1)
 	key = append(key, buf[:]...)

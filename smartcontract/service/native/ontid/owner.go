@@ -13,7 +13,7 @@ import (
 
 func insertPk(srvc *native.NativeService, encID, pk []byte) (uint32, error) {
 	var i uint32 = 0
-	key1 := append(encID, field_pk)
+	key1 := append(encID, FIELD_PK)
 	item, err := utils.LinkedlistGetHead(srvc, key1)
 	if err == nil && item != nil {
 		i = binary.LittleEndian.Uint32(item)
@@ -28,14 +28,14 @@ func insertPk(srvc *native.NativeService, encID, pk []byte) (uint32, error) {
 		return 0, err
 	}
 
-	key3 := append(encID, field_pk_state)
+	key3 := append(encID, FIELD_PK_STATE)
 	key3 = append(key3, key2...)
 	utils.PutBytes(srvc, key3, []byte{1})
 	return i, nil
 }
 
 func getPk(srvc *native.NativeService, encID []byte, index uint32) ([]byte, error) {
-	key1 := append(encID, field_pk)
+	key1 := append(encID, FIELD_PK)
 	var buf [4]byte
 	binary.LittleEndian.PutUint32(buf[:], index)
 	key2 := buf[:]
@@ -52,7 +52,7 @@ func getPk(srvc *native.NativeService, encID []byte, index uint32) ([]byte, erro
 }
 
 func findPk(srvc *native.NativeService, encID, pub []byte) ([]byte, error) {
-	key := append(encID, field_pk)
+	key := append(encID, FIELD_PK)
 	item, err := utils.LinkedlistGetHead(srvc, key)
 	if err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func revokePk(srvc *native.NativeService, encID, pub []byte) (uint32, error) {
 	if err != nil {
 		return 0, fmt.Errorf("cannot find the key, %s", err)
 	}
-	key := append(encID, field_pk_state)
+	key := append(encID, FIELD_PK_STATE)
 	key = append(key, keyID...)
 	utils.PutBytes(srvc, key, []byte{0})
 	return binary.LittleEndian.Uint32(keyID), nil

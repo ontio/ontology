@@ -1,6 +1,7 @@
 package ontid
 
 import (
+	"encoding/hex"
 	"errors"
 
 	"github.com/ontio/ontology-crypto/keypair"
@@ -28,10 +29,10 @@ func checkIDExistence(srvc *native.NativeService, encID []byte) bool {
 }
 
 const (
-	field_pk byte = 1 + iota
-	field_pk_state
-	field_attr
-	field_recovery
+	FIELD_PK byte = 1 + iota
+	FIELD_PK_STATE
+	FIELD_ATTR
+	FIELD_RECOVERY
 )
 
 func encodeID(id []byte) ([]byte, error) {
@@ -53,14 +54,14 @@ func decodeID(data []byte) ([]byte, error) {
 }
 
 func setRecovery(srvc *native.NativeService, encID, recovery []byte) error {
-	key := append(encID, field_recovery)
+	key := append(encID, FIELD_RECOVERY)
 	val := &states.StorageItem{Value: recovery}
 	srvc.CloneCache.Add(common.ST_STORAGE, key, val)
 	return nil
 }
 
 func getRecovery(srvc *native.NativeService, encID []byte) ([]byte, error) {
-	key := append(encID, field_recovery)
+	key := append(encID, FIELD_RECOVERY)
 	item, err := getStorageItem(srvc, key)
 	if err != nil {
 		return nil, errors.New("get recovery error: " + err.Error())
@@ -81,22 +82,21 @@ func getStorageItem(srvc *native.NativeService, key []byte) (*states.StorageItem
 }
 
 func checkWitness(srvc *native.NativeService, key []byte) error {
-	var addr cmn.Address
-	var err error
-	if key[0] == 1 || key[0] == 2 {
-		addr, err = cmn.AddressParseFromBytes(key)
-		if err != nil {
-			return err
-		}
-	} else {
-		pk, err := keypair.DeserializePublicKey(key)
-		if err != nil {
-			return errors.New("invalid public key, " + err.Error())
-		}
-		addr = types.AddressFromPubKey(pk)
+	// try as if key is an address
+	addr, err := cmn.AddressParseFromBytes(key)
+	if srvc.ContextRef.CheckWitness(addr) {
+		return nil
 	}
-	if !srvc.ContextRef.CheckWitness(addr) {
-		return errors.New("check witness failed, address: " + addr.ToHexString())
+
+	// try as if key is a public key
+	pk, err := keypair.DeserializePublicKey(key)
+	if err != nil {
+		return errors.New("invalid public key, " + err.Error())
 	}
-	return nil
+	addr = types.AddressFromPubKey(pk)
+	if srvc.ContextRef.CheckWitness(addr) {
+		return nil
+	}
+
+	return errors.New("check witness failed, " + hex.EncodeToString(key))
 }
