@@ -137,18 +137,6 @@ func TestGetHighestRankProposal(t *testing.T) {
 	t.Logf("TestGetHighestRankProposal %v", msg)
 }
 
-func TestIsEmptyProposal(t *testing.T) {
-	block, err := constructBlock()
-	if err != nil {
-		t.Errorf("constructBlock failed :%v", err)
-		return
-	}
-	blockproposalmsg := &blockProposalMsg{
-		Block: block,
-	}
-	res := isEmptyProposal(blockproposalmsg)
-	t.Logf("TestIsEmptyProposal %v", res)
-}
 func TestGetCommitConsensus(t *testing.T) {
 	blockcommitmsg := &blockCommitMsg{
 		Committer:       uint32(1),

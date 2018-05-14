@@ -178,19 +178,46 @@ func (self *Server) constructHeartbeatMsg() (*peerHeartbeatMsg, error) {
 	return msg, nil
 }
 
-func (self *Server) constructProposalMsg(blkNum uint64, txs []*types.Transaction, chainconfig *vconfig.ChainConfig) (*blockProposalMsg, error) {
-
-	prevBlk, prevBlkHash := self.blockPool.getSealedBlock(blkNum - 1)
-	if prevBlk == nil {
-		return nil, fmt.Errorf("failed to get prevBlock (%d)", blkNum)
-	}
-
+func (self *Server) constructBlock(blkNum uint64, prevBlkHash common.Uint256, txs []*types.Transaction, consensusPayload []byte) (*types.Block, error) {
 	txHash := []common.Uint256{}
 	for _, t := range txs {
 		txHash = append(txHash, t.Hash())
 	}
 	txRoot := common.ComputeMerkleRoot(txHash)
 	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoot(txRoot)
+
+	blkHeader := &types.Header{
+		PrevBlockHash:    prevBlkHash,
+		TransactionsRoot: txRoot,
+		BlockRoot:        blockRoot,
+		Timestamp:        uint32(time.Now().Unix()),
+		Height:           uint32(blkNum),
+		ConsensusData:    common.GetNonce(),
+		ConsensusPayload: consensusPayload,
+	}
+	buf := new(bytes.Buffer)
+	blkHeader.SerializeUnsigned(buf)
+	sig, err := signature.Sign(self.account, buf.Bytes())
+	if err != nil {
+		return nil, fmt.Errorf("sign block failed: %s", err)
+	}
+	blkHeader.Bookkeepers = []keypair.PublicKey{self.account.PublicKey}
+	blkHeader.SigData = [][]byte{sig}
+
+	blk := &types.Block{
+		Header:       blkHeader,
+		Transactions: txs,
+	}
+	blk.Hash()
+	return blk, nil
+}
+
+func (self *Server) constructProposalMsg(blkNum uint64, sysTxs, userTxs []*types.Transaction, chainconfig *vconfig.ChainConfig) (*blockProposalMsg, error) {
+
+	prevBlk, prevBlkHash := self.blockPool.getSealedBlock(blkNum - 1)
+	if prevBlk == nil {
+		return nil, fmt.Errorf("failed to get prevBlock (%d)", blkNum)
+	}
 
 	lastConfigBlkNum := prevBlk.Info.LastConfigBlockNum
 	if prevBlk.Info.NewChainConfig != nil {
@@ -205,51 +232,37 @@ func (self *Server) constructProposalMsg(blkNum uint64, txs []*types.Transaction
 	if err != nil {
 		return nil, err
 	}
-	blkHeader := &types.Header{
-		PrevBlockHash:    prevBlkHash,
-		TransactionsRoot: txRoot,
-		BlockRoot:        blockRoot,
-		Timestamp:        uint32(time.Now().Unix()),
-		Height:           uint32(blkNum),
-		ConsensusData:    uint64(self.Index),
-		ConsensusPayload: consensusPayload,
-		SigData:          [][]byte{{}, {}},
+
+	emptyBlk, err := self.constructBlock(blkNum, prevBlkHash, sysTxs, consensusPayload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct empty block: %s", err)
 	}
-	blk := &Block{
-		Block: &types.Block{
-			Header: blkHeader,
-		},
-		Info: vbftBlkInfo,
+	blk, err := self.constructBlock(blkNum, prevBlkHash, append(sysTxs, userTxs...), consensusPayload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to constuct blk: %s", err)
 	}
-	blk.Block.Hash() // update block header hash
+
 	msg := &blockProposalMsg{
-		Block: blk,
+		Block: &Block{
+			Block:      blk,
+			EmptyBlock: emptyBlk,
+			Info:       vbftBlkInfo,
+		},
 	}
 
-	emptySig, err := SignMsg(self.account, msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign empty proposal: %s", err)
-	}
-
-	blk.Block.Transactions = txs
-	sig, err := SignMsg(self.account, msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign proposal: %s", err)
-	}
-
-	msg.Block.Block.Header.Bookkeepers = []keypair.PublicKey{self.account.PublicKey, self.account.PublicKey}
-	msg.Block.Block.Header.SigData = [][]byte{sig, emptySig}
 	return msg, nil
 }
 
-func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, blkHash common.Uint256, forEmpty bool) (*blockEndorseMsg, error) {
+func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty bool) (*blockEndorseMsg, error) {
 
 	// TODO, support faultyMsg reporting
 
 	var proposerSig, endorserSig []byte
+	var blkHash common.Uint256
 	var err error
 	if !forEmpty {
 		proposerSig = proposal.Block.Block.Header.SigData[0]
+		blkHash = proposal.Block.Block.Hash()
 
 		buf := new(bytes.Buffer)
 		proposal.Block.Block.Header.SerializeUnsigned(buf)
@@ -258,16 +271,19 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, blkHash comm
 			return nil, fmt.Errorf("endorser failed to sign blkheader: %s", err)
 		}
 	} else {
-		proposerSig = proposal.Block.Block.Header.SigData[1]
+		if proposal.Block.EmptyBlock == nil {
+			return nil, fmt.Errorf("blk %d proposal from %d has no empty proposal",
+				proposal.GetBlockNum(), proposal.Block.getProposer())
+		}
 
-		txroot := proposal.Block.Block.Header.TransactionsRoot
-		proposal.Block.Block.Header.TransactionsRoot = common.UINT256_EMPTY
+		proposerSig = proposal.Block.EmptyBlock.Header.SigData[0]
+		blkHash = proposal.Block.EmptyBlock.Hash()
+
 		buf := new(bytes.Buffer)
-		proposal.Block.Block.Header.SerializeUnsigned(buf)
-		proposal.Block.Block.Header.TransactionsRoot = txroot
+		proposal.Block.EmptyBlock.Header.SerializeUnsigned(buf)
 		endorserSig, err = signature.Sign(self.account, buf.Bytes())
 		if err != nil {
-			return nil, fmt.Errorf("endorser failed to sign blkheader: %s", err)
+			return nil, fmt.Errorf("endorser failed to sign empty blkheader: %s", err)
 		}
 	}
 
@@ -284,15 +300,18 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, blkHash comm
 	return msg, nil
 }
 
-func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*blockEndorseMsg, blkHash common.Uint256, forEmpty bool) (*blockCommitMsg, error) {
+func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*blockEndorseMsg, forEmpty bool) (*blockCommitMsg, error) {
 
 	// TODO, support faultyMsg reporting
 
 	var proposerSig, committerSig []byte
+	var blkHash common.Uint256
 	var err error
 
 	if !forEmpty {
 		proposerSig = proposal.Block.Block.Header.SigData[0]
+		blkHash = proposal.Block.Block.Hash()
+
 		buf := new(bytes.Buffer)
 		proposal.Block.Block.Header.SerializeUnsigned(buf)
 		committerSig, err = signature.Sign(self.account, buf.Bytes())
@@ -300,16 +319,19 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 			return nil, fmt.Errorf("committer failed to sign blkheader: %s", err)
 		}
 	} else {
-		proposerSig = proposal.Block.Block.Header.SigData[1]
+		if proposal.Block.EmptyBlock == nil {
+			return nil, fmt.Errorf("blk %d proposal from %d has no empty proposal",
+				proposal.GetBlockNum(), proposal.Block.getProposer())
+		}
 
-		txroot := proposal.Block.Block.Header.TransactionsRoot
-		proposal.Block.Block.Header.TransactionsRoot = common.UINT256_EMPTY
+		proposerSig = proposal.Block.EmptyBlock.Header.SigData[0]
+		blkHash = proposal.Block.EmptyBlock.Hash()
+
 		buf := new(bytes.Buffer)
-		proposal.Block.Block.Header.SerializeUnsigned(buf)
-		proposal.Block.Block.Header.TransactionsRoot = txroot
+		proposal.Block.EmptyBlock.Header.SerializeUnsigned(buf)
 		committerSig, err = signature.Sign(self.account, buf.Bytes())
 		if err != nil {
-			return nil, fmt.Errorf("endorser failed to sign blkheader: %s", err)
+			return nil, fmt.Errorf("endorser failed to sign empty blkheader: %s", err)
 		}
 	}
 

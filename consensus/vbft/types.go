@@ -24,13 +24,15 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/serialization"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/types"
 )
 
 type Block struct {
-	Block *types.Block           `json:"block"`
-	Info  *vconfig.VbftBlockInfo `json:"info"`
+	Block      *types.Block
+	EmptyBlock *types.Block
+	Info       *vconfig.VbftBlockInfo
 }
 
 func (blk *Block) getProposer() uint32 {
@@ -53,24 +55,62 @@ func (blk *Block) getNewChainConfig() *vconfig.ChainConfig {
 	return blk.Info.NewChainConfig
 }
 
-func (blk *Block) isEmpty() bool {
-	return blk.Block.Transactions == nil || len(blk.Block.Transactions) == 0
-}
-
 func (blk *Block) Serialize() ([]byte, error) {
-	infoData, err := json.Marshal(blk.Info)
-	if err != nil {
-		return nil, fmt.Errorf("marshal blockInfo: %s", err)
-	}
-
-	blk.Block.Header.ConsensusPayload = infoData
-
 	buf := bytes.NewBuffer([]byte{})
 	if err := blk.Block.Serialize(buf); err != nil {
-		return nil, fmt.Errorf("serialize block type: %s", err)
+		return nil, fmt.Errorf("serialize block: %s", err)
 	}
 
-	return buf.Bytes(), nil
+	payload := bytes.NewBuffer([]byte{})
+	if err := serialization.WriteVarBytes(payload, buf.Bytes()); err != nil {
+		return nil, fmt.Errorf("serialize block buf: %s", err)
+	}
+
+	if blk.EmptyBlock != nil {
+		buf2 := bytes.NewBuffer([]byte{})
+		if err := blk.EmptyBlock.Serialize(buf2); err != nil {
+			return nil, fmt.Errorf("serialize empty block: %s", err)
+		}
+		if err := serialization.WriteVarBytes(payload, buf2.Bytes()); err != nil {
+			return nil, fmt.Errorf("serialize empty block buf: %s", err)
+		}
+	}
+
+	return payload.Bytes(), nil
+}
+
+func (blk *Block) Deserialize(data []byte) error {
+	buf := bytes.NewBuffer(data)
+	buf1, err := serialization.ReadVarBytes(buf)
+	if err != nil {
+		return fmt.Errorf("deserialize block buffer: %s", err)
+	}
+
+	block := &types.Block{}
+	if err := block.Deserialize(bytes.NewBuffer(buf1)); err != nil {
+		return fmt.Errorf("deserialize block: %s", err)
+	}
+
+	info := &vconfig.VbftBlockInfo{}
+	if err := json.Unmarshal(block.Header.ConsensusPayload, info); err != nil {
+		return fmt.Errorf("unmarshal vbft info: %s", err)
+	}
+
+	var emptyBlock *types.Block
+	if buf.Len() > 0 {
+		if buf2, err := serialization.ReadVarBytes(buf); err == nil {
+			block2 := &types.Block{}
+			if err := block2.Deserialize(bytes.NewBuffer(buf2)); err == nil {
+				emptyBlock = block2
+			}
+		}
+	}
+
+	blk.Block = block
+	blk.EmptyBlock = emptyBlock
+	blk.Info = info
+
+	return nil
 }
 
 func initVbftBlock(block *types.Block) (*Block, error) {
