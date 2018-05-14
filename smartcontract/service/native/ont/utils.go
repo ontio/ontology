@@ -155,13 +155,14 @@ func fromTransfer(native *native.NativeService, fromKey []byte, value uint64) (u
 	if err != nil {
 		return 0, err
 	}
-	if fromBalance < value {
-		return 0, errors.NewErr("[Transfer] balance insufficient!")
-	} else if fromBalance == value {
-		native.CloneCache.Delete(scommon.ST_STORAGE, fromKey)
-	} else {
-		native.CloneCache.Add(scommon.ST_STORAGE, fromKey, utils.GetUInt64StorageItem(fromBalance-value))
-	}
+	//if fromBalance < value {
+	//	return 0, errors.NewErr("[Transfer] balance insufficient!")
+	//} else if fromBalance == value {
+	//	native.CloneCache.Delete(scommon.ST_STORAGE, fromKey)
+	//} else {
+	//	native.CloneCache.Add(scommon.ST_STORAGE, fromKey, utils.GetUInt64StorageItem(fromBalance-value))
+	//}
+	native.CloneCache.Add(scommon.ST_STORAGE, fromKey, utils.GetUInt64StorageItem(fromBalance-value))
 	return fromBalance, nil
 }
 

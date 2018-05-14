@@ -119,9 +119,8 @@ func GetPeerPoolMap(native *native.NativeService, contract common.Address, view 
 		return nil, errors.NewErr("[GetPeerPoolMap] peerPoolMap is nil!")
 	}
 	peerPoolMapStore, _ := peerPoolMapBytes.(*cstates.StorageItem)
-	err = json.Unmarshal(peerPoolMapStore.Value, peerPoolMap)
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[GetPeerPoolMap] Unmarshal peerPoolMap error!")
+	if err := peerPoolMap.Deserialize(bytes.NewBuffer(peerPoolMapStore.Value)); err != nil {
+		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize peerPoolMap error!")
 	}
 	return peerPoolMap, nil
 }
@@ -136,9 +135,8 @@ func GetGovernanceView(native *native.NativeService, contract common.Address) (*
 		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[GetGovernanceView] Get nil governanceViewBytes!")
 	} else {
 		governanceViewStore, _ := governanceViewBytes.(*cstates.StorageItem)
-		err = json.Unmarshal(governanceViewStore.Value, governanceView)
-		if err != nil {
-			return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[GetGovernanceView] Unmarshal governanceView error!")
+		if err := governanceView.Deserialize(bytes.NewBuffer(governanceViewStore.Value)); err != nil {
+			return nil, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize governanceView error!")
 		}
 	}
 	return governanceView, nil
