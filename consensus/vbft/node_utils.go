@@ -157,7 +157,7 @@ func (self *Server) getProposerRankLocked(blockNum uint64, peerIdx uint32) int {
 	} else {
 		log.Errorf("todo: get proposer config for non-current blocknum:%d, current.BlockNum%d,peerIdx:%d", blockNum, self.currentParticipantConfig.BlockNum, peerIdx)
 	}
-	return -1
+	return len(self.currentParticipantConfig.Proposers)
 }
 
 func (self *Server) getHighestRankProposal(blockNum uint64, proposals []*blockProposalMsg) *blockProposalMsg {
@@ -172,9 +172,7 @@ func (self *Server) getHighestRankProposal(blockNum uint64, proposals []*blockPr
 			continue
 		}
 
-		if r := self.getProposerRankLocked(blockNum, p.Block.getProposer()); r < 0 {
-			continue
-		} else if r < proposerRank {
+		if r := self.getProposerRankLocked(blockNum, p.Block.getProposer()); r < proposerRank {
 			proposerRank = r
 			proposal = p
 		}
@@ -319,14 +317,14 @@ func getCommitConsensus(commitMsgs []*blockCommitMsg, C int) (uint32, bool) {
 
 func (self *Server) findBlockProposal(blkNum uint64, proposer uint32, forEmpty bool) *blockProposalMsg {
 	for _, p := range self.blockPool.getBlockProposals(blkNum) {
-		if p.Block.getProposer() == proposer && p.Block.isEmpty() == forEmpty {
+		if p.Block.getProposer() == proposer {
 			return p
 		}
 	}
 
 	for _, p := range self.msgPool.GetProposalMsgs(blkNum) {
 		if pMsg := p.(*blockProposalMsg); pMsg != nil {
-			if pMsg.Block.getProposer() == proposer && pMsg.Block.isEmpty() == forEmpty {
+			if pMsg.Block.getProposer() == proposer {
 				return pMsg
 			}
 		}
