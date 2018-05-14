@@ -21,12 +21,10 @@ package vbft
 import (
 	"bytes"
 	"fmt"
-	"math/big"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/states"
@@ -133,48 +131,20 @@ func (self *ChainStore) GetVbftConfigInfo() (*config.VBFTConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	buffer := bytes.NewBuffer(data)
-	n, err := serialization.ReadUint32(buffer)
-	if err != nil {
-		return nil, err
-	}
-	c, err := serialization.ReadUint32(buffer)
-	if err != nil {
-		return nil, err
-	}
-	k, err := serialization.ReadUint32(buffer)
-	if err != nil {
-		return nil, err
-	}
-	l, err := serialization.ReadUint32(buffer)
-	if err != nil {
-		return nil, err
-	}
-	blockmsgdelay, err := serialization.ReadUint32(buffer)
-	if err != nil {
-		return nil, err
-	}
-	hashmsgdelay, err := serialization.ReadUint32(buffer)
-	if err != nil {
-		return nil, err
-	}
-	peerhandshaketimeout, err := serialization.ReadUint32(buffer)
-	if err != nil {
-		return nil, err
-	}
-	maxblockchangeview, err := serialization.ReadUint32(buffer)
+	cfg := new(gov.Configuration)
+	err = cfg.Deserialize(bytes.NewBuffer(data))
 	if err != nil {
 		return nil, err
 	}
 	chainconfig := &config.VBFTConfig{
-		N:                    n,
-		C:                    c,
-		K:                    k,
-		L:                    l,
-		BlockMsgDelay:        blockmsgdelay,
-		HashMsgDelay:         hashmsgdelay,
-		PeerHandshakeTimeout: peerhandshaketimeout,
-		MaxBlockChangeView:   maxblockchangeview,
+		N:                    cfg.N,
+		C:                    cfg.C,
+		K:                    cfg.K,
+		L:                    cfg.L,
+		BlockMsgDelay:        cfg.BlockMsgDelay,
+		HashMsgDelay:         cfg.HashMsgDelay,
+		PeerHandshakeTimeout: cfg.PeerHandshakeTimeout,
+		MaxBlockChangeView:   cfg.MaxBlockChangeView,
 	}
 	return chainconfig, nil
 }
@@ -192,41 +162,19 @@ func (self *ChainStore) GetPeersConfig() ([]*config.VBFTPeerStakeInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	buffer := bytes.NewBuffer(data)
-	len, err := serialization.ReadVarUint(buffer, 0)
+	peerMap := &gov.PeerPoolMap{
+		PeerPoolMap: make(map[string]*gov.PeerPool),
+	}
+	err = peerMap.Deserialize(bytes.NewBuffer(data))
 	if err != nil {
 		return nil, err
 	}
 	var peerstakes []*config.VBFTPeerStakeInfo
-	for i := 0; i < int(len); i++ {
-		index, err := serialization.ReadUint32(buffer)
-		if err != nil {
-			return nil, err
-		}
-		peerpubkey, err := serialization.ReadString(buffer)
-		if err != nil {
-			return nil, err
-		}
-		_, err = serialization.ReadString(buffer)
-		if err != nil {
-			return nil, err
-		}
-		_, err = serialization.ReadUint8(buffer)
-		if err != nil {
-			return nil, err
-		}
-		initpos, err := serialization.ReadUint64(buffer)
-		if err != nil {
-			return nil, err
-		}
-		totalpos, err := serialization.ReadUint64(buffer)
-		if err != nil {
-			return nil, err
-		}
+	for _, id := range peerMap.PeerPoolMap {
 		config := &config.VBFTPeerStakeInfo{
-			Index:      index,
-			PeerPubkey: peerpubkey,
-			InitPos:    initpos + totalpos,
+			Index:      uint32(id.Index),
+			PeerPubkey: id.PeerPubkey,
+			InitPos:    id.InitPos + id.TotalPos,
 		}
 		peerstakes = append(peerstakes, config)
 	}
@@ -250,18 +198,10 @@ func (self *ChainStore) GetGovernanceView() (*gov.GovernanceView, error) {
 	if err != nil {
 		return nil, err
 	}
-	buffer := bytes.NewBuffer(data)
-	view, err := serialization.ReadUint64(buffer)
+	governanceView := new(gov.GovernanceView)
+	err = governanceView.Deserialize(bytes.NewBuffer(data))
 	if err != nil {
 		return nil, err
 	}
-	votecommit, err := serialization.ReadBool(buffer)
-	if err != nil {
-		return nil, err
-	}
-	config := &gov.GovernanceView{
-		View:       new(big.Int).SetUint64(view),
-		VoteCommit: votecommit,
-	}
-	return config, nil
+	return governanceView, nil
 }
