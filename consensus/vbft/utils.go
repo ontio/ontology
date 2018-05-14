@@ -40,10 +40,6 @@ func SignMsg(account *account.Account, msg ConsensusMsg) ([]byte, error) {
 	return signature.Sign(account, data)
 }
 
-func HashBlock(blk *Block) (common.Uint256, error) {
-	return blk.Block.Hash(), nil
-}
-
 func hashData(data []byte) common.Uint256 {
 	t := sha256.Sum256(data)
 	f := sha256.Sum256(t[:])

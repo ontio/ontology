@@ -28,7 +28,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
-	"github.com/ontio/ontology/core/types"
 )
 
 type MsgType uint8
@@ -64,61 +63,34 @@ func (msg *blockProposalMsg) Type() MsgType {
 }
 
 func (msg *blockProposalMsg) Verify(pub keypair.PublicKey) error {
-	sigData := msg.Block.Block.Header.SigData
-	msg.Block.Block.Header.SigData = nil
-
-	defer func() {
-		msg.Block.Block.Header.SigData = sigData
-	}()
-
-	if len(sigData) < 2 {
-		return fmt.Errorf("verify sigData error")
+	// verify block
+	buf := bytes.NewBuffer([]byte{})
+	if err := msg.Block.Block.SerializeUnsigned(buf); err != nil {
+		return fmt.Errorf("serialize block header: %s", err)
 	}
-	blkHeader := &types.Header{
-		PrevBlockHash:    msg.Block.Block.Header.PrevBlockHash,
-		TransactionsRoot: msg.Block.Block.Header.TransactionsRoot,
-		BlockRoot:        msg.Block.Block.Header.BlockRoot,
-		Timestamp:        msg.Block.Block.Header.Timestamp,
-		Height:           msg.Block.Block.Header.Height,
-		ConsensusData:    msg.Block.Block.Header.ConsensusData,
-		ConsensusPayload: msg.Block.Block.Header.ConsensusPayload,
-		SigData:          [][]byte{{}, {}},
-	}
-	blk := &Block{
-		Block: &types.Block{
-			Header: blkHeader,
-		},
-		Info: msg.Block.Info,
-	}
-	blk.Block.Hash()
-	msgdata := &blockProposalMsg{
-		Block: blk,
-	}
-
-	if len(sigData) == 2 {
-		sigone, err := signature.Deserialize(sigData[1])
-		if err != nil {
-			return fmt.Errorf("failed to deserialize proposal msg sigone: %s", err)
-		}
-
-		if data, err := msgdata.Serialize(); err != nil {
-			return fmt.Errorf("failed to serialize proposal msg sigone: %s", err)
-		} else if !signature.Verify(pub, data, sigone) {
-			return fmt.Errorf("failed to verify proposal msg sigone")
-		}
-	}
-
-	blk.Block.Transactions = msg.Block.Block.Transactions
-
-	sig, err := signature.Deserialize(sigData[0])
+	sig, err := signature.Deserialize(msg.Block.Block.Header.SigData[0])
 	if err != nil {
-		return fmt.Errorf("failed to deserialize proposal msg sig: %s", err)
+		return fmt.Errorf("deserialize block sig: %s", err)
 	}
-	if data, err := msgdata.Serialize(); err != nil {
-		return fmt.Errorf("failed to serialize proposal msg: %s", err)
-	} else if !signature.Verify(pub, data, sig) {
-		return fmt.Errorf("failed to verify proposal msg sig")
+	if !signature.Verify(pub, buf.Bytes(), sig) {
+		return fmt.Errorf("failed to verify block sig")
 	}
+
+	// verify empty block
+	if msg.Block.EmptyBlock != nil {
+		buf.Reset()
+		if err := msg.Block.EmptyBlock.SerializeUnsigned(buf); err != nil {
+			return fmt.Errorf("serialize empty block header: %s", err)
+		}
+		sig, err := signature.Deserialize(msg.Block.EmptyBlock.Header.SigData[0])
+		if err != nil {
+			return fmt.Errorf("deserialize empty block sig: %s", err)
+		}
+		if !signature.Verify(pub, buf.Bytes(), sig) {
+			return fmt.Errorf("failed to verify empty block sig")
+		}
+	}
+
 	return nil
 }
 
@@ -131,18 +103,12 @@ func (msg *blockProposalMsg) Serialize() ([]byte, error) {
 }
 
 func (msg *blockProposalMsg) UnmarshalJSON(data []byte) error {
-	buf := bytes.NewBuffer(data)
-
-	blk := &types.Block{}
-	if err := blk.Deserialize(buf); err != nil {
-		return fmt.Errorf("unmarshal block type: %s", err)
+	blk := &Block{}
+	if err := blk.Deserialize(data); err != nil {
+		return err
 	}
 
-	block, err := initVbftBlock(blk)
-	if err != nil {
-		return fmt.Errorf("init vbft block: %s", err)
-	}
-	msg.Block = block
+	msg.Block = blk
 	return nil
 }
 
@@ -369,15 +335,11 @@ func (msg *BlockFetchRespMsg) Deserialize(data []byte) error {
 	if err != nil {
 		return err
 	}
-	blk := &types.Block{}
-	if err := blk.Deserialize(buffer); err != nil {
+	blk := &Block{}
+	if err := blk.Deserialize(buffer.Bytes()); err != nil {
 		return fmt.Errorf("unmarshal block type: %s", err)
 	}
-	block, err := initVbftBlock(blk)
-	if err != nil {
-		return fmt.Errorf("init vbft block: %s", err)
-	}
-	msg.BlockData = block
+	msg.BlockData = blk
 	return nil
 }
 

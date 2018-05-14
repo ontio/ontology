@@ -1429,8 +1429,7 @@ func (self *Server) actionLoop() {
 					}
 				} else if proposal, forEmpty := self.blockPool.getEndorsedProposal(blkNum); proposal != nil {
 					// construct endorse msg
-					blkHash, _ := HashBlock(proposal.Block)
-					if endorseMsg, _ := self.constructEndorseMsg(proposal, blkHash, forEmpty); endorseMsg != nil {
+					if endorseMsg, _ := self.constructEndorseMsg(proposal, forEmpty); endorseMsg != nil {
 						self.broadcast(endorseMsg)
 					}
 				}
@@ -1743,11 +1742,6 @@ func (self *Server) endorseBlock(proposal *blockProposalMsg, forEmpty bool) erro
 		return nil
 	}
 
-	blkHash, err := HashBlock(proposal.Block)
-	if err != nil {
-		return fmt.Errorf("failed to hash proposal block: %s", err)
-	}
-
 	if !forEmpty {
 		if self.blockPool.endorseFailed(blkNum, self.config.C) {
 			forEmpty = true
@@ -1756,7 +1750,7 @@ func (self *Server) endorseBlock(proposal *blockProposalMsg, forEmpty bool) erro
 	}
 
 	// build endorsement msg
-	endorseMsg, err := self.constructEndorseMsg(proposal, blkHash, forEmpty)
+	endorseMsg, err := self.constructEndorseMsg(proposal, forEmpty)
 	if err != nil {
 		return fmt.Errorf("failed to construct endorse msg: %s", err)
 	}
@@ -1802,9 +1796,14 @@ func (self *Server) commitBlock(proposal *blockProposalMsg, forEmpty bool) error
 		return nil
 	}
 
-	blkHash, err := HashBlock(proposal.Block)
-	if err != nil {
-		return fmt.Errorf("failed to hash proposal proposal: %s", err)
+	var blkHash common.Uint256
+	if !forEmpty {
+		blkHash = proposal.Block.Block.Hash()
+	} else {
+		if proposal.Block.EmptyBlock == nil {
+			return fmt.Errorf("blk %d proposal from %d has no empty proposal", blkNum, proposal.Block.getProposer())
+		}
+		blkHash = proposal.Block.EmptyBlock.Hash()
 	}
 
 	endorses := make([]*blockEndorseMsg, 0)
@@ -1817,7 +1816,7 @@ func (self *Server) commitBlock(proposal *blockProposalMsg, forEmpty bool) error
 	}
 
 	// build commit msg
-	commitMsg, err := self.constructCommitMsg(proposal, endorses, blkHash, forEmpty)
+	commitMsg, err := self.constructCommitMsg(proposal, endorses, forEmpty)
 	if err != nil {
 		return fmt.Errorf("failed to construct commit msg: %s", err)
 	}
@@ -1877,7 +1876,8 @@ func (self *Server) fastForwardBlock(block *Block) error {
 		return nil
 	}
 	if self.GetCurrentBlockNo() == block.getBlockNum() {
-		return self.sealBlock(block, block.isEmpty())
+		// block from peer syncer, there should only one candidate block
+		return self.sealBlock(block, false)
 	}
 	return fmt.Errorf("server %d: fastforward blk %d failed, current blkNum: %d",
 		self.Index, block.getBlockNum(), self.GetCurrentBlockNo())
@@ -2025,14 +2025,15 @@ func (self *Server) valideHeight(blkNum uint64) uint32 {
 }
 
 func (self *Server) makeProposal(blkNum uint64, forEmpty bool) error {
-	var txs []*types.Transaction
-
 	if blkNum < self.GetCurrentBlockNo() {
 		return fmt.Errorf("server %d ignore deprecatd blk proposal %d, current %d",
 			self.Index, blkNum, self.GetCurrentBlockNo())
 	}
 
 	validHeight := self.valideHeight(blkNum)
+	sysTxs := make([]*types.Transaction, 0)
+	userTxs := make([]*types.Transaction, 0)
+
 	//check need upate chainconfig
 	cfg := &vconfig.ChainConfig{}
 	if self.checkNeedUpdateChainConfig(self.currentBlockNum) || self.checkForceUpdateChainConfig() {
@@ -2042,7 +2043,7 @@ func (self *Server) makeProposal(blkNum uint64, forEmpty bool) error {
 		} else {
 			cfg = self.config
 			//add transaction invoke governance native,executeSplit、commit_pos contract
-			txs = append(txs, self.createfeeSplitTransaction(), self.creategovernaceTransaction())
+			sysTxs = append(sysTxs, self.createfeeSplitTransaction(), self.creategovernaceTransaction())
 		}
 	}
 	if self.nonConsensusNode() {
@@ -2052,11 +2053,11 @@ func (self *Server) makeProposal(blkNum uint64, forEmpty bool) error {
 	if !forEmpty {
 		for _, e := range self.poolActor.GetTxnPool(true, uint32(validHeight)) {
 			if err := self.incrValidator.Verify(e.Tx, uint32(validHeight)); err == nil {
-				txs = append(txs, e.Tx)
+				userTxs = append(userTxs, e.Tx)
 			}
 		}
 	}
-	proposal, err := self.constructProposalMsg(blkNum, txs, cfg)
+	proposal, err := self.constructProposalMsg(blkNum, sysTxs, userTxs, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to construct proposal: %s", err)
 	}

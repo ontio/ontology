@@ -193,39 +193,6 @@ func TestBlock_getNewChainConfig(t *testing.T) {
 	}
 }
 
-func TestBlock_isEmpty(t *testing.T) {
-	blk, err := constructBlock()
-	if err != nil {
-		t.Errorf("constructBlock failed: %v", err)
-	}
-	type fields struct {
-		Block *types.Block
-		Info  *vconfig.VbftBlockInfo
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		want   bool
-	}{
-		{
-			name:   "test",
-			fields: fields{Block: blk.Block, Info: blk.Info},
-			want:   false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			blk := &Block{
-				Block: tt.fields.Block,
-				Info:  tt.fields.Info,
-			}
-			if got := blk.isEmpty(); got != tt.want {
-				t.Errorf("Block.isEmpty() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestSerialize(t *testing.T) {
 	blk, err := constructBlock()
 	if err != nil {

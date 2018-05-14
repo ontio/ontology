@@ -188,14 +188,6 @@ func (self *Server) getHighestRankProposal(blockNum uint64, proposals []*blockPr
 	return proposal
 }
 
-func isEmptyProposal(proposal *blockProposalMsg) bool {
-	if proposal == nil || proposal.Block == nil {
-		return false
-	}
-
-	return proposal.Block.isEmpty()
-}
-
 //
 //  call this method with metaLock locked
 //

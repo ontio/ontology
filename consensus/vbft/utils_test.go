@@ -25,6 +25,10 @@ import (
 	"github.com/ontio/ontology/common"
 )
 
+func HashBlock(blk *Block) (common.Uint256, error) {
+	return blk.Block.Hash(), nil
+}
+
 func TestSignMsg(t *testing.T) {
 	acc := account.NewAccount("SHA256withECDSA")
 	if acc == nil {

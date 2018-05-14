@@ -28,7 +28,6 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/types"
 )
 
 type BlockList []*Block
@@ -565,11 +564,15 @@ func (pool *BlockPool) addSignaturesToBlockLocked(block *Block, forEmpty bool) e
 	// add proposer sig
 	proposer := block.getProposer()
 	proposerPk := pool.server.peerPool.GetPeerPubKey(proposer)
-	bookkeepers = append(bookkeepers, proposerPk)
 	if !forEmpty {
+		bookkeepers = append(bookkeepers, proposerPk)
 		sigData = append(sigData, block.Block.Header.SigData[0])
 	} else {
-		sigData = append(sigData, block.Block.Header.SigData[1])
+		if block.EmptyBlock != nil {
+			return fmt.Errorf("block has no empty candidate")
+		}
+		bookkeepers = append(bookkeepers, proposerPk)
+		sigData = append(sigData, block.EmptyBlock.Header.SigData[0])
 	}
 
 	// add endorsers' sig
@@ -586,8 +589,13 @@ func (pool *BlockPool) addSignaturesToBlockLocked(block *Block, forEmpty bool) e
 		}
 	}
 
-	block.Block.Header.Bookkeepers = bookkeepers
-	block.Block.Header.SigData = sigData
+	if !forEmpty {
+		block.Block.Header.Bookkeepers = bookkeepers
+		block.Block.Header.SigData = sigData
+	} else {
+		block.EmptyBlock.Header.Bookkeepers = bookkeepers
+		block.EmptyBlock.Header.SigData = sigData
+	}
 
 	return nil
 }
@@ -614,21 +622,17 @@ func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool) error {
 	}
 
 	if !forEmpty {
-		c.SealedBlock = block
-	} else {
-		// FIXME: check if missed any other system-txns
-		systemTxs := make([]*types.Transaction, 0)
-		emptyAddr := common.Address{}
-		for _, tx := range block.Block.Transactions {
-			if tx.TxType == types.Invoke && bytes.Compare(tx.Payer[:], emptyAddr[:]) == 0 {
-				systemTxs = append(systemTxs, tx)
-			} else {
-				break
-			}
+		// remove empty block
+		c.SealedBlock = &Block{
+			Block: block.Block,
+			Info:  block.Info,
 		}
-
-		block.Block.Transactions = systemTxs
-		c.SealedBlock = block
+	} else {
+		// replace with empty block
+		c.SealedBlock = &Block{
+			Block: block.EmptyBlock,
+			Info:  block.Info,
+		}
 	}
 
 	// add block to chain store
@@ -646,7 +650,7 @@ func (pool *BlockPool) getSealedBlock(blockNum uint64) (*Block, common.Uint256) 
 	// get from cached candidate blocks
 	c := pool.candidateBlocks[blockNum]
 	if c != nil && c.SealedBlock != nil {
-		h, _ := HashBlock(c.SealedBlock)
+		h := c.SealedBlock.Block.Hash()
 		if bytes.Compare(h[:], common.UINT256_EMPTY[:]) != 0 {
 			return c.SealedBlock, h
 		}
@@ -659,8 +663,7 @@ func (pool *BlockPool) getSealedBlock(blockNum uint64) (*Block, common.Uint256) 
 		log.Errorf("getSealedBlock %d err:%v", blockNum, err)
 		return nil, common.Uint256{}
 	}
-	hash, _ := HashBlock(blk)
-	return blk, hash
+	return blk, blk.Block.Hash()
 }
 
 func (pool *BlockPool) findConsensusEmptyProposal(blockNum uint64) (*blockProposalMsg, error) {
