@@ -235,11 +235,11 @@ type PeerPoolMap struct {
 
 func (this *PeerPoolMap) Serialize(w io.Writer) error {
 	if err := serialization.WriteVarUint(w, uint64(len(this.PeerPoolMap))); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[TokenTransfer] Serialize PeerPoolMap length error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize PeerPoolMap length error!")
 	}
 	for _, v := range this.PeerPoolMap {
 		if err := v.Serialize(w); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "[TokenTransfer] Serialize peerPool error!")
+			return errors.NewDetailErr(err, errors.ErrNoCode, "serialize peerPool error!")
 		}
 	}
 	return nil
@@ -248,12 +248,12 @@ func (this *PeerPoolMap) Serialize(w io.Writer) error {
 func (this *PeerPoolMap) Deserialize(r io.Reader) error {
 	n, err := serialization.ReadVarUint(r, 0)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[TokenTransfer] Deserialize PeerPoolMap length error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize PeerPoolMap length error!")
 	}
 	for i := 0; uint64(i) < n; i++ {
 		peerPool := new(PeerPool)
 		if err := peerPool.Deserialize(r); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "[TokenTransfer] Deserialize peerPool error!")
+			return errors.NewDetailErr(err, errors.ErrNoCode, "deserialize peerPool error!")
 		}
 		this.PeerPoolMap[peerPool.PeerPubkey] = peerPool
 	}
@@ -336,13 +336,110 @@ type VoteForPeerParam struct {
 	VoteTable map[string]int64 `json:"voteTable"`
 }
 
+func (this *VoteForPeerParam) Serialize(w io.Writer) error {
+	if err := serialization.WriteString(w, this.Address); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize address error!")
+	}
+	if err := serialization.WriteVarUint(w, uint64(len(this.VoteTable))); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize VoteTable length error!")
+	}
+	for k, v := range this.VoteTable {
+		if err := serialization.WriteString(w, k); err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize key error!")
+		}
+		if err := serialization.WriteString(w, strconv.FormatInt(v, 10)); err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize value error!")
+		}
+	}
+	return nil
+}
+
+func (this *VoteForPeerParam) Deserialize(r io.Reader) error {
+	address, err := serialization.ReadString(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize address error!")
+	}
+	this.Address = address
+
+	n, err := serialization.ReadVarUint(r, 0)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize VoteTable length error!")
+	}
+	for i := 0; uint64(i) < n; i++ {
+		k, err := serialization.ReadString(r)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize key error!")
+		}
+		v, err := serialization.ReadString(r)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize value error!")
+		}
+		value, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "strconv.ParseInt, deserialize value error!")
+		}
+		this.VoteTable[k] = value
+	}
+	return nil
+}
+
+type WithDrawParam struct {
+	Address       string            `json:"address"`
+	WithDrawTable map[string]uint64 `json:"withDrawTable"`
+}
+
+func (this *WithDrawParam) Serialize(w io.Writer) error {
+	if err := serialization.WriteString(w, this.Address); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize address error!")
+	}
+	if err := serialization.WriteVarUint(w, uint64(len(this.WithDrawTable))); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize WithDrawTable length error!")
+	}
+	for k, v := range this.WithDrawTable {
+		if err := serialization.WriteString(w, k); err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize key error!")
+		}
+		if err := serialization.WriteUint64(w, v); err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint64, serialize value error!")
+		}
+	}
+	return nil
+}
+
+func (this *WithDrawParam) Deserialize(r io.Reader) error {
+	address, err := serialization.ReadString(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize address error!")
+	}
+	this.Address = address
+
+	n, err := serialization.ReadVarUint(r, 0)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize WithDrawTable length error!")
+	}
+	for i := 0; uint64(i) < n; i++ {
+		k, err := serialization.ReadString(r)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize key error!")
+		}
+		v, err := serialization.ReadUint64(r)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64, deserialize value error!")
+		}
+		this.WithDrawTable[k] = v
+	}
+	return nil
+}
+
 type VoteInfoPool struct {
-	PeerPubkey   string `json:"peerPubkey"`
-	Address      string `json:"address"`
-	PrePos       uint64 `json:"prePos"`
-	FreezePos    uint64 `json:"freezePos"`
-	NewPos       uint64 `json:"newPos"`
-	PreFreezePos uint64 `json:"preFreezePos"`
+	PeerPubkey          string `json:"peerPubkey"`
+	Address             string `json:"address"`
+	ConsensusPos        uint64 `json:"consensusPos"`
+	FreezePos           uint64 `json:"freezePos"`
+	NewPos              uint64 `json:"newPos"`
+	WithDrawPos         uint64 `json:"withDrawPos"`
+	WithDrawFreezePos   uint64 `json:"withDrawFreezePos"`
+	WithDrawUnfreezePos uint64 `json:"withDrawUnfreezePos"`
 }
 
 func (this *VoteInfoPool) Serialize(w io.Writer) error {
@@ -352,17 +449,23 @@ func (this *VoteInfoPool) Serialize(w io.Writer) error {
 	if err := serialization.WriteString(w, this.Address); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, address address error!")
 	}
-	if err := serialization.WriteUint64(w, this.PrePos); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize prePos error!")
+	if err := serialization.WriteUint64(w, this.ConsensusPos); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint64, serialize consensusPos error!")
 	}
 	if err := serialization.WriteUint64(w, this.FreezePos); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize freezePos error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint64, serialize freezePos error!")
 	}
 	if err := serialization.WriteUint64(w, this.NewPos); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize newPos error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint64, serialize newPos error!")
 	}
-	if err := serialization.WriteUint64(w, this.PreFreezePos); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize preFreezePos error!")
+	if err := serialization.WriteUint64(w, this.WithDrawPos); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint64, serialize withDrawPos error!")
+	}
+	if err := serialization.WriteUint64(w, this.WithDrawFreezePos); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint64, serialize withDrawFreezePos error!")
+	}
+	if err := serialization.WriteUint64(w, this.WithDrawUnfreezePos); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint64, serialize withDrawUnfreezePos error!")
 	}
 	return nil
 }
@@ -380,29 +483,41 @@ func (this *VoteInfoPool) Deserialize(r io.Reader) error {
 	}
 	this.Address = address
 
-	prePos, err := serialization.ReadUint64(r)
+	consensusPos, err := serialization.ReadUint64(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint. deserialize prePos error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64. deserialize consensusPos error!")
 	}
-	this.PrePos = prePos
+	this.ConsensusPos = consensusPos
 
 	freezePos, err := serialization.ReadUint64(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint. deserialize freezePos error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64. deserialize freezePos error!")
 	}
 	this.FreezePos = freezePos
 
 	newPos, err := serialization.ReadUint64(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint. deserialize newPos error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64. deserialize newPos error!")
 	}
 	this.NewPos = newPos
 
-	preFreezePos, err := serialization.ReadUint64(r)
+	withDrawPos, err := serialization.ReadUint64(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint. deserialize preFreezePos error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64. deserialize withDrawPos error!")
 	}
-	this.PreFreezePos = preFreezePos
+	this.WithDrawPos = withDrawPos
+
+	withDrawFreezePos, err := serialization.ReadUint64(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64. deserialize withDrawFreezePos error!")
+	}
+	this.WithDrawFreezePos = withDrawFreezePos
+
+	withDrawUnfreezePos, err := serialization.ReadUint64(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64. deserialize withDrawUnfreezePos error!")
+	}
+	this.WithDrawUnfreezePos = withDrawUnfreezePos
 	return nil
 }
 

@@ -21,7 +21,6 @@ package governance
 import (
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"sort"
@@ -59,6 +58,7 @@ const (
 	WHITE_NODE         = "whiteNode"
 	QUIT_NODE          = "quitNode"
 	VOTE_FOR_PEER      = "voteForPeer"
+	WITH_DRAW          = "withDraw"
 	COMMIT_DPOS        = "commitDpos"
 	VOTE_COMMIT_DPOS   = "voteCommitDpos"
 	UPDATE_CONFIG      = "updateConfig"
@@ -97,6 +97,7 @@ func RegisterGovernanceContract(native *native.NativeService) {
 	native.Register(WHITE_NODE, WhiteNode)
 	native.Register(QUIT_NODE, QuitNode)
 	native.Register(VOTE_FOR_PEER, VoteForPeer)
+	native.Register(WITH_DRAW, WithDraw)
 	native.Register(COMMIT_DPOS, CommitDpos)
 	native.Register(VOTE_COMMIT_DPOS, VoteCommitDpos)
 	native.Register(UPDATE_CONFIG, UpdateConfig)
@@ -106,6 +107,7 @@ func RegisterGovernanceContract(native *native.NativeService) {
 func InitConfig(native *native.NativeService) ([]byte, error) {
 	configuration := config.DefConfig.Genesis.VBFT
 	contract := native.ContextRef.CurrentContext().ContractAddress
+
 	//check the configuration
 	if configuration.L < 16*configuration.K {
 		return utils.BYTE_FALSE, errors.NewErr("initConfig. L is less than 16*K in config!")
@@ -647,14 +649,15 @@ func QuitNode(native *native.NativeService) ([]byte, error) {
 }
 
 func VoteForPeer(native *native.NativeService) ([]byte, error) {
-	params := new(VoteForPeerParam)
-	err := json.Unmarshal(native.Input, params)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "json.Unmarshal, contract params Unmarshal error!")
+	params := &VoteForPeerParam{
+		VoteTable: make(map[string]int64),
+	}
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
 	}
 
 	//check witness
-	err = utils.ValidateOwner(native, params.Address)
+	err := utils.ValidateOwner(native, params.Address)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "validateOwner, checkWitness error!")
 	}
@@ -719,38 +722,46 @@ func VoteForPeer(native *native.NativeService) ([]byte, error) {
 				}
 				temp := int64(voteInfoPool.NewPos) + pos
 				if temp < 0 {
-					prePos := int64(voteInfoPool.PrePos) + temp
-					if prePos < 0 {
-						voteInfoPool.PrePos = 0
-						voteInfoPool.PreFreezePos = voteInfoPool.PreFreezePos + voteInfoPool.PrePos
-						total = total - int64(voteInfoPool.NewPos)
-						peerPool.TotalPos = peerPool.TotalPos - voteInfoPool.NewPos
+					if peerPool.Status == ConsensusStatus {
+						consensusPos := int64(voteInfoPool.ConsensusPos) + temp
+						if consensusPos < 0 {
+							continue
+						}
+						newPos := voteInfoPool.NewPos
 						voteInfoPool.NewPos = 0
-					} else {
-						voteInfoPool.PrePos = uint64(prePos)
-						voteInfoPool.PreFreezePos = uint64(int64(voteInfoPool.PreFreezePos) - temp)
-						total = total - int64(voteInfoPool.NewPos)
-						peerPool.TotalPos = peerPool.TotalPos - voteInfoPool.NewPos
+						voteInfoPool.WithDrawUnfreezePos = voteInfoPool.WithDrawUnfreezePos + newPos
+						voteInfoPool.ConsensusPos = uint64(consensusPos)
+						voteInfoPool.WithDrawPos = uint64(int64(voteInfoPool.WithDrawPos) - temp)
+						peerPool.TotalPos = uint64(int64(peerPool.TotalPos) + pos)
+					}
+					if peerPool.Status == CandidateStatus {
+						freezePos := int64(voteInfoPool.FreezePos) + temp
+						if freezePos < 0 {
+							continue
+						}
+						newPos := voteInfoPool.NewPos
 						voteInfoPool.NewPos = 0
+						voteInfoPool.WithDrawUnfreezePos = voteInfoPool.WithDrawUnfreezePos + newPos
+						voteInfoPool.FreezePos = uint64(freezePos)
+						voteInfoPool.WithDrawFreezePos = uint64(int64(voteInfoPool.WithDrawFreezePos) - temp)
+						peerPool.TotalPos = uint64(int64(peerPool.TotalPos) + pos)
 					}
 				} else {
 					voteInfoPool.NewPos = uint64(temp)
-					total = total + pos
+					voteInfoPool.WithDrawUnfreezePos = uint64(int64(voteInfoPool.WithDrawUnfreezePos) - pos)
 					peerPool.TotalPos = uint64(int64(peerPool.TotalPos) + pos)
 				}
+			} else {
+				continue
 			}
 		}
 		peerPoolMap.PeerPoolMap[peerPubkey] = peerPool
-		if voteInfoPool.PrePos == 0 && voteInfoPool.PreFreezePos == 0 && voteInfoPool.FreezePos == 0 && voteInfoPool.NewPos == 0 {
-			native.CloneCache.Delete(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL), peerPubkeyPrefix, addressPrefix))
-		} else {
-			bf := new(bytes.Buffer)
-			if err := voteInfoPool.Serialize(bf); err != nil {
-				return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize voteInfoPool error!")
-			}
-			native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL), peerPubkeyPrefix,
-				addressPrefix), &cstates.StorageItem{Value: bf.Bytes()})
+		bf := new(bytes.Buffer)
+		if err := voteInfoPool.Serialize(bf); err != nil {
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize voteInfoPool error!")
 		}
+		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL), peerPubkeyPrefix,
+			addressPrefix), &cstates.StorageItem{Value: bf.Bytes()})
 	}
 	bf := new(bytes.Buffer)
 	if err := peerPoolMap.Serialize(bf); err != nil {
@@ -767,22 +778,104 @@ func VoteForPeer(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "common.AddressParseFromBytes, address format error!")
 	}
 
-	if total > 0 {
-		//ont transfer
-		err = AppCallTransferOnt(native, address, genesis.GovernanceContractAddress, uint64(total))
-		if err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
-		}
-	}
-	if total < 0 {
-		//ont transfer
-		err = AppCallTransferOnt(native, genesis.GovernanceContractAddress, address, uint64(-total))
-		if err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
-		}
+	//ont transfer
+	err = AppCallTransferOnt(native, address, genesis.GovernanceContractAddress, uint64(total))
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
 	}
 
 	utils.AddCommonEvent(native, contract, VOTE_FOR_PEER, params)
+
+	return utils.BYTE_TRUE, nil
+}
+
+func WithDraw(native *native.NativeService) ([]byte, error) {
+	params := &WithDrawParam{
+		WithDrawTable: make(map[string]uint64),
+	}
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
+	}
+
+	//check witness
+	err := utils.ValidateOwner(native, params.Address)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "validateOwner, checkWitness error!")
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+
+	addressPrefix, err := hex.DecodeString(params.Address)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, address format error!")
+	}
+
+	//get current view
+	view, err := GetView(native, contract)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getView, get view error!")
+	}
+
+	//get peerPoolMap
+	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getPeerPoolMap, get peerPoolMap error!")
+	}
+
+	var total uint64
+	for peerPubkey, pos := range params.WithDrawTable {
+		peerPubkeyPrefix, err := hex.DecodeString(peerPubkey)
+		if err != nil {
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, peerPubkey format error!")
+		}
+
+		peerPool, ok := peerPoolMap.PeerPoolMap[peerPubkey]
+		if !ok {
+			return utils.BYTE_FALSE, errors.NewErr("voteForPeer, peerPubkey is not in peerPoolMap!")
+		}
+
+		if peerPool.Status != CandidateStatus && peerPool.Status != ConsensusStatus {
+			continue
+		}
+
+		voteInfoPoolBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL),
+			peerPubkeyPrefix, addressPrefix))
+		voteInfoPool := new(VoteInfoPool)
+		if voteInfoPoolBytes != nil {
+			voteInfoPoolStore, _ := voteInfoPoolBytes.(*cstates.StorageItem)
+			if err := voteInfoPool.Deserialize(bytes.NewBuffer(voteInfoPoolStore.Value)); err != nil {
+				return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfoPool error!")
+			}
+			if voteInfoPool.WithDrawUnfreezePos < pos {
+				continue
+			} else {
+				voteInfoPool.WithDrawUnfreezePos = voteInfoPool.WithDrawUnfreezePos - pos
+				total = total + pos
+			}
+		} else {
+			continue
+		}
+		if voteInfoPool.ConsensusPos == 0 && voteInfoPool.FreezePos == 0 && voteInfoPool.NewPos == 0 &&
+			voteInfoPool.WithDrawPos == 0 && voteInfoPool.WithDrawFreezePos == 0 && voteInfoPool.WithDrawUnfreezePos == 0 {
+			native.CloneCache.Delete(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL), peerPubkeyPrefix, addressPrefix))
+		}
+	}
+
+	addressBytes, err := hex.DecodeString(params.Address)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, address format error!")
+	}
+	address, err := common.AddressParseFromBytes(addressBytes)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "common.AddressParseFromBytes, address format error!")
+	}
+
+	//ont transfer
+	err = AppCallTransferOnt(native, address, genesis.GovernanceContractAddress, total)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
+	}
+
+	utils.AddCommonEvent(native, contract, WITH_DRAW, params)
 
 	return utils.BYTE_TRUE, nil
 }
@@ -862,7 +955,8 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 				if err := voteInfoPool.Deserialize(bytes.NewBuffer(voteInfoPoolStore.Value)); err != nil {
 					return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfoPool error!")
 				}
-				pos := voteInfoPool.PrePos + voteInfoPool.PreFreezePos + voteInfoPool.FreezePos + voteInfoPool.NewPos
+				pos := voteInfoPool.ConsensusPos + voteInfoPool.FreezePos + voteInfoPool.NewPos + voteInfoPool.WithDrawPos +
+					voteInfoPool.WithDrawFreezePos + voteInfoPool.WithDrawUnfreezePos
 
 				addressBytes, err := hex.DecodeString(voteInfoPool.Address)
 				if err != nil {
@@ -928,15 +1022,19 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 				}
 				addressPrefix, err := hex.DecodeString(voteInfoPool.Address)
 				if err != nil {
-					errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, address format error!")
+					return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, address format error!")
 				}
-				freezePos := voteInfoPool.FreezePos
+				if voteInfoPool.FreezePos != 0 {
+					return utils.BYTE_FALSE, errors.NewErr("commitPos, freezePos should be 0!")
+				}
 				newPos := voteInfoPool.NewPos
-				preFreezePos := voteInfoPool.PreFreezePos
-				voteInfoPool.PrePos = voteInfoPool.PrePos + newPos
-				voteInfoPool.NewPos = freezePos
-				voteInfoPool.FreezePos = preFreezePos
-				voteInfoPool.PreFreezePos = 0
+				voteInfoPool.ConsensusPos = voteInfoPool.ConsensusPos + newPos
+				voteInfoPool.NewPos = 0
+				withDrawPos := voteInfoPool.WithDrawPos
+				withDrawFreezePos := voteInfoPool.WithDrawFreezePos
+				voteInfoPool.WithDrawFreezePos = withDrawPos
+				voteInfoPool.WithDrawUnfreezePos = voteInfoPool.WithDrawUnfreezePos + withDrawFreezePos
+				voteInfoPool.WithDrawPos = 0
 
 				bf := new(bytes.Buffer)
 				if err := voteInfoPool.Serialize(bf); err != nil {
@@ -961,12 +1059,18 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 				if err != nil {
 					return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, address format error!")
 				}
-				preFreezePos := voteInfoPool.PreFreezePos
-				freezePos := voteInfoPool.FreezePos
-				voteInfoPool.PrePos = voteInfoPool.NewPos
-				voteInfoPool.NewPos = preFreezePos + freezePos
-				voteInfoPool.PreFreezePos = 0
+				if voteInfoPool.ConsensusPos != 0 {
+					return utils.BYTE_FALSE, errors.NewErr("consensusPos, freezePos should be 0!")
+				}
+
+				voteInfoPool.ConsensusPos = voteInfoPool.ConsensusPos + voteInfoPool.FreezePos + voteInfoPool.NewPos
+				voteInfoPool.NewPos = 0
 				voteInfoPool.FreezePos = 0
+				withDrawPos := voteInfoPool.WithDrawPos
+				withDrawFreezePos := voteInfoPool.WithDrawFreezePos
+				voteInfoPool.WithDrawFreezePos = withDrawPos
+				voteInfoPool.WithDrawUnfreezePos = voteInfoPool.WithDrawUnfreezePos + withDrawFreezePos
+				voteInfoPool.WithDrawPos = 0
 
 				bf := new(bytes.Buffer)
 				if err := voteInfoPool.Serialize(bf); err != nil {
@@ -1007,16 +1111,19 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 				}
 				addressPrefix, err := hex.DecodeString(voteInfoPool.Address)
 				if err != nil {
-					errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, address format error!")
+					return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, address format error!")
 				}
-				prePos := voteInfoPool.PrePos
-				freezePos := voteInfoPool.FreezePos
-				preFreezePos := voteInfoPool.PreFreezePos
-				newPos := voteInfoPool.NewPos
-				voteInfoPool.NewPos = freezePos
-				voteInfoPool.FreezePos = newPos + prePos + preFreezePos
-				voteInfoPool.PrePos = 0
-				voteInfoPool.PreFreezePos = 0
+				if voteInfoPool.FreezePos != 0 {
+					return utils.BYTE_FALSE, errors.NewErr("commitPos, freezePos should be 0!")
+				}
+				voteInfoPool.FreezePos = voteInfoPool.ConsensusPos + voteInfoPool.NewPos
+				voteInfoPool.NewPos = 0
+				voteInfoPool.ConsensusPos = 0
+				withDrawPos := voteInfoPool.WithDrawPos
+				withDrawFreezePos := voteInfoPool.WithDrawFreezePos
+				voteInfoPool.WithDrawFreezePos = withDrawPos
+				voteInfoPool.WithDrawUnfreezePos = voteInfoPool.WithDrawUnfreezePos + withDrawFreezePos
+				voteInfoPool.WithDrawPos = 0
 
 				bf := new(bytes.Buffer)
 				if err := voteInfoPool.Serialize(bf); err != nil {
@@ -1041,12 +1148,19 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 				if err != nil {
 					return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, address format error!")
 				}
-				preFreezePos := voteInfoPool.PreFreezePos
+				if voteInfoPool.ConsensusPos != 0 {
+					return utils.BYTE_FALSE, errors.NewErr("consensusPos, freezePos should be 0!")
+				}
+
 				newPos := voteInfoPool.NewPos
 				freezePos := voteInfoPool.FreezePos
 				voteInfoPool.NewPos = freezePos
-				voteInfoPool.FreezePos = newPos + preFreezePos
-				voteInfoPool.PreFreezePos = 0
+				voteInfoPool.FreezePos = newPos
+				withDrawPos := voteInfoPool.WithDrawPos
+				withDrawFreezePos := voteInfoPool.WithDrawFreezePos
+				voteInfoPool.WithDrawFreezePos = withDrawPos
+				voteInfoPool.WithDrawUnfreezePos = voteInfoPool.WithDrawUnfreezePos + withDrawFreezePos
+				voteInfoPool.WithDrawPos = 0
 
 				bf := new(bytes.Buffer)
 				if err := voteInfoPool.Serialize(bf); err != nil {
@@ -1267,6 +1381,12 @@ func DataQuery(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfoPool error!")
 		}
 		fmt.Println("VoteInfoPool is : ", voteInfoPool)
+		fmt.Println("VoteInfoPool.ConsensusPos is : ", voteInfoPool.ConsensusPos)
+		fmt.Println("VoteInfoPool.FreezePos is : ", voteInfoPool.FreezePos)
+		fmt.Println("VoteInfoPool.NewPos is : ", voteInfoPool.NewPos)
+		fmt.Println("VoteInfoPool.WithDrawPos is : ", voteInfoPool.WithDrawPos)
+		fmt.Println("VoteInfoPool.WithDrawFreezePos is : ", voteInfoPool.WithDrawFreezePos)
+		fmt.Println("VoteInfoPool.WithDrawUnfreezePos is : ", voteInfoPool.WithDrawUnfreezePos)
 	}
 
 	return utils.BYTE_TRUE, nil
