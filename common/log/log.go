@@ -59,7 +59,7 @@ const (
 var (
 	levels = map[int]string{
 		DebugLog: Color(Green, "[DEBUG]"),
-		InfoLog:  Color(Green, "[INFO ]"),
+		InfoLog:  Color(Cyan, "[INFO ]"),
 		WarnLog:  Color(Yellow, "[WARN ]"),
 		ErrorLog: Color(Red, "[ERROR]"),
 		FatalLog: Color(Red, "[FATAL]"),
