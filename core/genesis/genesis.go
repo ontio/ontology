@@ -128,7 +128,7 @@ func newParamContract() *types.Transaction {
 	return tx
 }
 
-func depolyAuthContract() *types.Transaction {
+func deployAuthContract() *types.Transaction {
 	tx := utils.NewDeployTransaction(stypes.VmCode{Code: AuthContractAddress[:], VmType: stypes.Native}, "AuthContract", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network Authorization Contract", true)
 	return tx

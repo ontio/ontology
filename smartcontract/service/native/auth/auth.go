@@ -21,12 +21,13 @@ package auth
 import (
 	"bytes"
 	"fmt"
+	"time"
+
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/errors"
 	. "github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"time"
 )
 
 var (
@@ -55,7 +56,6 @@ func GetContractAdmin(native *NativeService, contractAddr []byte) ([]byte, error
 /*
  * contract admin management
  */
-
 func initContractAdmin(native *NativeService, contractAddr, ontID []byte) (bool, error) {
 	admin, err := GetContractAdmin(native, contractAddr)
 	if err != nil {
@@ -81,15 +81,11 @@ func InitContractAdmin(native *NativeService) ([]byte, error) {
 		return nil, err
 	}
 
-	/*
-		cxt := native.ContextRef.CallingContext()
-		if cxt == nil {
-			return nil, errors.NewErr("no calling context")
-		}
-		invokeAddr := cxt.ContractAddress
-	*/
-
-	invokeAddr := genesis.OntContractAddress
+	cxt := native.ContextRef.CallingContext()
+	if cxt == nil {
+		return nil, errors.NewErr("no calling context")
+	}
+	invokeAddr := cxt.ContractAddress
 	ret, err := initContractAdmin(native, invokeAddr[:], param.AdminOntID)
 	if err != nil {
 		return nil, err
@@ -558,8 +554,7 @@ func verifySig(native *NativeService, ontID []byte, keyNo uint32) (bool, error) 
 		return false, err
 	}
 	args := bf.Bytes()
-	//ontIDContract := []byte{}
-	ret, err := native.ContextRef.AppCall(genesis.AuthContractAddress, "verifySignature", []byte{}, args)
+	ret, err := native.ContextRef.AppCall(genesis.OntIDContractAddress, "verifySignature", []byte{}, args)
 	if err != nil {
 		return false, err
 	}
