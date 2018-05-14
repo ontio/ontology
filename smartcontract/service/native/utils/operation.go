@@ -30,7 +30,6 @@ import (
 func AddCommonEvent(native *native.NativeService, contract common.Address, name string, params interface{}) {
 	native.Notifications = append(native.Notifications,
 		&event.NotifyEventInfo{
-			TxHash:          native.Tx.Hash(),
 			ContractAddress: contract,
 			States:          []interface{}{name, params},
 		})
