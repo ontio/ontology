@@ -684,7 +684,7 @@ func (self *Server) startNewRound() error {
 		return nil
 	}
 
-	txpool := self.poolActor.GetTxnPool(true, uint32(blkNum-1))
+	txpool := self.poolActor.GetTxnPool(true, self.valideHeight(blkNum))
 	if len(txpool) != 0 && self.completedBlockNum+1 == self.currentBlockNum {
 		self.startNewProposal(blkNum)
 	} else {
@@ -1678,7 +1678,7 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 	case EventTxPool:
 		blockNum := self.GetCurrentBlockNo()
 		self.timer.stopTxTicker(evt.blockNum)
-		txpool := self.poolActor.GetTxnPool(true, uint32(blockNum-1))
+		txpool := self.poolActor.GetTxnPool(true, self.valideHeight(blockNum))
 		if len(txpool) != 0 && self.completedBlockNum+1 == self.currentBlockNum {
 			self.timer.CancelTxBlockTimeout(blockNum)
 			self.startNewProposal(blockNum)
@@ -2012,14 +2012,7 @@ func (self *Server) checkForceUpdateChainConfig() bool {
 	return force
 }
 
-func (self *Server) makeProposal(blkNum uint64, forEmpty bool) error {
-	var txs []*types.Transaction
-
-	if blkNum < self.GetCurrentBlockNo() {
-		return fmt.Errorf("server %d ignore deprecatd blk proposal %d, current %d",
-			self.Index, blkNum, self.GetCurrentBlockNo())
-	}
-
+func (self *Server) valideHeight(blkNum uint64) uint32 {
 	height := uint32(blkNum) - 1
 	validHeight := height
 	start, end := self.incrValidator.BlockRange()
@@ -2028,7 +2021,18 @@ func (self *Server) makeProposal(blkNum uint64, forEmpty bool) error {
 	} else {
 		self.incrValidator.Clean()
 	}
+	return validHeight
+}
 
+func (self *Server) makeProposal(blkNum uint64, forEmpty bool) error {
+	var txs []*types.Transaction
+
+	if blkNum < self.GetCurrentBlockNo() {
+		return fmt.Errorf("server %d ignore deprecatd blk proposal %d, current %d",
+			self.Index, blkNum, self.GetCurrentBlockNo())
+	}
+
+	validHeight := self.valideHeight(blkNum)
 	//check need upate chainconfig
 	cfg := &vconfig.ChainConfig{}
 	if self.checkNeedUpdateChainConfig(self.currentBlockNum) || self.checkForceUpdateChainConfig() {
