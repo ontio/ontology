@@ -44,6 +44,16 @@ var (
 		Name:  "disableeventlog",
 		Usage: "If set disableeventlog flag, will not record event log output by smart contract",
 	}
+	GasLimitFlag = cli.Uint64Flag{
+		Name:  "gaslimit",
+		Usage: "The gas limit required by the transaction pool for a new transaction",
+		Value: config.DEFAULT_GAS_LIMIT,
+	}
+	GasPriceFlag = cli.Uint64Flag{
+		Name:  "gasprice",
+		Usage: "The gas price enforced by the transaction pool for a new transaction",
+		Value: config.DEFAULT_GAS_PRICE,
+	}
 
 	//Test Mode setting
 	EnableTestModeFlag = cli.BoolFlag{

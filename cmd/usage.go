@@ -81,6 +81,8 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.AccountPassFlag,
 			utils.MaxTxInBlockFlag,
 			utils.DisableEventLogFlag,
+			utils.GasLimitFlag,
+			utils.GasPriceFlag,
 		},
 	},
 	{

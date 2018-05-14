@@ -53,6 +53,7 @@ const (
 	DEFAULT_ENABLE_CONSENSUS  = true
 	DEFAULT_DISABLE_EVENT_LOG = false
 	DEFAULT_GAS_LIMIT         = 30000
+	DEFAULT_GAS_PRICE         = 0
 )
 
 var PolarisConfig = &GenesisConfig{

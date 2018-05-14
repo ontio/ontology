@@ -76,6 +76,8 @@ func setupAPP() *cli.App {
 		utils.AccountPassFlag,
 		utils.DisableEventLogFlag,
 		utils.MaxTxInBlockFlag,
+		utils.GasLimitFlag,
+		utils.GasPriceFlag,
 		//p2p setting
 		utils.NodePortFlag,
 		utils.ConsensusPortFlag,
