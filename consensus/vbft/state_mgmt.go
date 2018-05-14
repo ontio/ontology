@@ -437,11 +437,6 @@ func (self *StateMgr) getConsensusedCommittedBlockNum() (uint64, bool) {
 }
 
 func (self *StateMgr) canFastForward(targetBlkNum uint64) bool {
-	if self.getState() != Syncing {
-		// fast-forword check only support syncing state
-		return false
-	}
-
 	if targetBlkNum > self.server.GetCommittedBlockNo()+MAX_SYNCING_CHECK_BLK_NUM*4 {
 		return false
 	}
