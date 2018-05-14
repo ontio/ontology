@@ -9,7 +9,6 @@ import (
 
 func newEvent(srvc *native.NativeService, st interface{}) {
 	e := event.NotifyEventInfo{}
-	e.TxHash = srvc.Tx.Hash()
 	e.ContractAddress = srvc.ContextRef.CurrentContext().ContractAddress
 	e.States = st
 	srvc.Notifications = append(srvc.Notifications, &e)
