@@ -47,16 +47,14 @@ func ConcatKey(contract common.Address, args ...[]byte) []byte {
 func ValidateOwner(native *native.NativeService, address string) error {
 	addrBytes, err := hex.DecodeString(address)
 	if err != nil {
-		return errors.NewErr("[validateOwner] Decode address hex string to bytes failed!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "validateOwner, decode address hex string to bytes failed!")
 	}
 	addr, err := common.AddressParseFromBytes(addrBytes)
 	if err != nil {
-		return errors.NewErr("[validateOwner] Decode bytes to address failed!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "validateOwner, decode bytes to address failed!")
 	}
 	if native.ContextRef.CheckWitness(addr) == false {
-		return errors.NewErr("[validateOwner] Authentication failed!")
+		return errors.NewErr("validateOwner, authentication failed!")
 	}
 	return nil
 }
-
-

@@ -20,15 +20,15 @@ package fee_split
 
 type CandidateSplitInfo struct {
 	PeerPubkey string `json:"peerPubkey"`
-	InitPos    uint64 `json:"initPos"`
 	Address    string `json:"address"`
+	InitPos    uint64 `json:"initPos"`
 	Stake      uint64 `json:"stake"`
 	S          uint64 `json:"s"`
 }
 
 type SyncNodeSplitInfo struct {
 	PeerPubkey string `json:"peerPubkey"`
-	InitPos    uint64 `json:"initPos"`
 	Address    string `json:"address"`
+	InitPos    uint64 `json:"initPos"`
 	S          uint64 `json:"s"`
 }
