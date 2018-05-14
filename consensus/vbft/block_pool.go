@@ -620,8 +620,7 @@ func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool) error {
 		systemTxs := make([]*types.Transaction, 0)
 		emptyAddr := common.Address{}
 		for _, tx := range block.Block.Transactions {
-			if tx.TxType == types.BookKeeping ||
-				(tx.TxType == types.Invoke && bytes.Compare(tx.Payer[:], emptyAddr[:]) == 0) {
+			if tx.TxType == types.Invoke && bytes.Compare(tx.Payer[:], emptyAddr[:]) == 0 {
 				systemTxs = append(systemTxs, tx)
 			} else {
 				break
