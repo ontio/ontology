@@ -235,7 +235,7 @@ func LinkedlistDelete(native *native.NativeService, index []byte, item []byte) (
 			PutBytes(native, append(index, next...), node_next)
 		}
 	}
-	PutBytes(native, append(index, item...), null)
+	native.CloneCache.Delete(scommon.ST_STORAGE, append(index, item...))
 	return true, nil
 }
 
