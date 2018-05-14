@@ -104,7 +104,7 @@ type VBFTConfig struct {
 	BlockMsgDelay        uint32               `json:"block_msg_delay"`
 	HashMsgDelay         uint32               `json:"hash_msg_delay"`
 	PeerHandshakeTimeout uint32               `json:"peer_handshake_timeout"`
-	MaxBlockChangeView   uint32               `json:"maxblockchangeview"`
+	MaxBlockChangeView   uint32               `json:"max_block_change_view"`
 	Peers                []*VBFTPeerStakeInfo `json:"peers"`
 }
 

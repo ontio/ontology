@@ -19,12 +19,14 @@
 package vbft
 
 import (
-	"encoding/json"
+	"bytes"
 	"fmt"
+	"math/big"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/states"
@@ -127,23 +129,52 @@ func (self *ChainStore) GetVbftConfigInfo() (*config.VBFTConfig, error) {
 		CodeHash: genesis.GovernanceContractAddress,
 		Key:      append([]byte(gov.VBFT_CONFIG)),
 	}
-	vbft, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
+	data, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
 	if err != nil {
 		return nil, err
 	}
-	cfg := &gov.Configuration{}
-	if err := json.Unmarshal(vbft, cfg); err != nil {
-		return nil, fmt.Errorf("unmarshal config: %s", err)
+	buffer := bytes.NewBuffer(data)
+	n, err := serialization.ReadUint32(buffer)
+	if err != nil {
+		return nil, err
+	}
+	c, err := serialization.ReadUint32(buffer)
+	if err != nil {
+		return nil, err
+	}
+	k, err := serialization.ReadUint32(buffer)
+	if err != nil {
+		return nil, err
+	}
+	l, err := serialization.ReadUint32(buffer)
+	if err != nil {
+		return nil, err
+	}
+	blockmsgdelay, err := serialization.ReadUint32(buffer)
+	if err != nil {
+		return nil, err
+	}
+	hashmsgdelay, err := serialization.ReadUint32(buffer)
+	if err != nil {
+		return nil, err
+	}
+	peerhandshaketimeout, err := serialization.ReadUint32(buffer)
+	if err != nil {
+		return nil, err
+	}
+	maxblockchangeview, err := serialization.ReadUint32(buffer)
+	if err != nil {
+		return nil, err
 	}
 	chainconfig := &config.VBFTConfig{
-		N:                    cfg.N,
-		C:                    cfg.C,
-		K:                    cfg.K,
-		L:                    cfg.L,
-		BlockMsgDelay:        cfg.BlockMsgDelay,
-		HashMsgDelay:         cfg.HashMsgDelay,
-		PeerHandshakeTimeout: cfg.PeerHandshakeTimeout,
-		MaxBlockChangeView:   cfg.MaxBlockChangeView,
+		N:                    n,
+		C:                    c,
+		K:                    k,
+		L:                    l,
+		BlockMsgDelay:        blockmsgdelay,
+		HashMsgDelay:         hashmsgdelay,
+		PeerHandshakeTimeout: peerhandshaketimeout,
+		MaxBlockChangeView:   maxblockchangeview,
 	}
 	return chainconfig, nil
 }
@@ -157,25 +188,47 @@ func (self *ChainStore) GetPeersConfig() ([]*config.VBFTPeerStakeInfo, error) {
 		CodeHash: genesis.GovernanceContractAddress,
 		Key:      append([]byte(gov.PEER_POOL), goveranceview.View.Bytes()...),
 	}
-	peers, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
+	data, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
 	if err != nil {
 		return nil, err
 	}
-	peerMap := &gov.PeerPoolMap{
-		PeerPoolMap: make(map[string]*gov.PeerPool),
-	}
-	if err := json.Unmarshal(peers, peerMap); err != nil {
-		return nil, fmt.Errorf("unmarshal peersconfig: %s", err)
+	buffer := bytes.NewBuffer(data)
+	len, err := serialization.ReadVarUint(buffer, 0)
+	if err != nil {
+		return nil, err
 	}
 	var peerstakes []*config.VBFTPeerStakeInfo
-	for _, id := range peerMap.PeerPoolMap {
+	for i := 0; i < int(len); i++ {
+		index, err := serialization.ReadUint32(buffer)
+		if err != nil {
+			return nil, err
+		}
+		peerpubkey, err := serialization.ReadString(buffer)
+		if err != nil {
+			return nil, err
+		}
+		_, err = serialization.ReadString(buffer)
+		if err != nil {
+			return nil, err
+		}
+		_, err = serialization.ReadUint8(buffer)
+		if err != nil {
+			return nil, err
+		}
+		initpos, err := serialization.ReadUint64(buffer)
+		if err != nil {
+			return nil, err
+		}
+		totalpos, err := serialization.ReadUint64(buffer)
+		if err != nil {
+			return nil, err
+		}
 		config := &config.VBFTPeerStakeInfo{
-			Index:      uint32(id.Index),
-			PeerPubkey: id.PeerPubkey,
-			InitPos:    id.InitPos + id.TotalPos,
+			Index:      index,
+			PeerPubkey: peerpubkey,
+			InitPos:    initpos + totalpos,
 		}
 		peerstakes = append(peerstakes, config)
-
 	}
 	return peerstakes, nil
 }
@@ -193,13 +246,22 @@ func (self *ChainStore) GetGovernanceView() (*gov.GovernanceView, error) {
 		CodeHash: genesis.GovernanceContractAddress,
 		Key:      append([]byte(gov.GOVERNANCE_VIEW)),
 	}
-	force, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
+	data, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
 	if err != nil {
 		return nil, err
 	}
-	config := &gov.GovernanceView{}
-	if err := json.Unmarshal(force, config); err != nil {
-		return nil, fmt.Errorf("unmarshal GovernanceView config: %s", err)
+	buffer := bytes.NewBuffer(data)
+	view, err := serialization.ReadUint64(buffer)
+	if err != nil {
+		return nil, err
+	}
+	votecommit, err := serialization.ReadBool(buffer)
+	if err != nil {
+		return nil, err
+	}
+	config := &gov.GovernanceView{
+		View:       new(big.Int).SetUint64(view),
+		VoteCommit: votecommit,
 	}
 	return config, nil
 }
