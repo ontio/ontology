@@ -104,27 +104,8 @@ func RegisterGovernanceContract(native *native.NativeService) {
 }
 
 func InitConfig(native *native.NativeService) ([]byte, error) {
-	//configuration := config.DefConfig.Genesis.VBFT
+	configuration := config.DefConfig.Genesis.VBFT
 	contract := native.ContextRef.CurrentContext().ContractAddress
-
-	configuration := &config.VBFTConfig{
-		N:                    7,
-		C:                    2,
-		K:                    7,
-		L:                    112,
-		BlockMsgDelay:        10000,
-		HashMsgDelay:         10000,
-		PeerHandshakeTimeout: 10,
-		MaxBlockChangeView:   1000,
-	}
-	configuration.Peers = append(configuration.Peers, &config.VBFTPeerStakeInfo{Index:1, PeerPubkey:"1202028541d32f3b09180b00affe67a40516846c16663ccb916fd2db8106619f087521", Address: "aaaa5e502c2c72eb6edaa9516735d518f09c95c3", InitPos:1000})
-	configuration.Peers = append(configuration.Peers, &config.VBFTPeerStakeInfo{Index:2, PeerPubkey:"1202028541d32f3b09180b00affe67a40516846c16663ccb916fd2db8106619f087522", Address: "aaaa5e502c2c72eb6edaa9516735d518f09c95c3", InitPos:2000})
-	configuration.Peers = append(configuration.Peers, &config.VBFTPeerStakeInfo{Index:3, PeerPubkey:"1202028541d32f3b09180b00affe67a40516846c16663ccb916fd2db8106619f087523", Address: "aaaa5e502c2c72eb6edaa9516735d518f09c95c3", InitPos:3000})
-	configuration.Peers = append(configuration.Peers, &config.VBFTPeerStakeInfo{Index:4, PeerPubkey:"1202028541d32f3b09180b00affe67a40516846c16663ccb916fd2db8106619f087524", Address: "aaaa5e502c2c72eb6edaa9516735d518f09c95c3", InitPos:4000})
-	configuration.Peers = append(configuration.Peers, &config.VBFTPeerStakeInfo{Index:5, PeerPubkey:"1202028541d32f3b09180b00affe67a40516846c16663ccb916fd2db8106619f087525", Address: "aaaa5e502c2c72eb6edaa9516735d518f09c95c3", InitPos:3000})
-	configuration.Peers = append(configuration.Peers, &config.VBFTPeerStakeInfo{Index:6, PeerPubkey:"1202028541d32f3b09180b00affe67a40516846c16663ccb916fd2db8106619f087526", Address: "aaaa5e502c2c72eb6edaa9516735d518f09c95c3", InitPos:2000})
-	configuration.Peers = append(configuration.Peers, &config.VBFTPeerStakeInfo{Index:7, PeerPubkey:"1202028541d32f3b09180b00affe67a40516846c16663ccb916fd2db8106619f087527", Address: "aaaa5e502c2c72eb6edaa9516735d518f09c95c3", InitPos:1000})
-
 	//check the configuration
 	if configuration.L < 16*configuration.K {
 		return utils.BYTE_FALSE, errors.NewErr("initConfig. L is less than 16*K in config!")
