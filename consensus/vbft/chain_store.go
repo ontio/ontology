@@ -181,12 +181,15 @@ func (self *ChainStore) GetPeersConfig() ([]*config.VBFTPeerStakeInfo, error) {
 	return peerstakes, nil
 }
 
-func (self *ChainStore) isForceUpdate() (bool, error) {
+func (self *ChainStore) isUpdate(view uint32) (bool, error) {
 	goveranceview, err := self.GetGovernanceView()
 	if err != nil {
 		return false, err
 	}
-	return goveranceview.VoteCommit, nil
+	if goveranceview.View.Uint64() > uint64(view) {
+		return true, nil
+	}
+	return false, nil
 }
 
 func (self *ChainStore) GetGovernanceView() (*gov.GovernanceView, error) {

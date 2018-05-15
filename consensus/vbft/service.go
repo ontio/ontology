@@ -41,7 +41,6 @@ import (
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
-	feesplit "github.com/ontio/ontology/smartcontract/service/native/fee_split"
 	gover "github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/ontio/ontology/smartcontract/states"
 	stypes "github.com/ontio/ontology/smartcontract/types"
@@ -218,11 +217,7 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 		log.Errorf("server %d, persist block %d, vs completed %d",
 			self.Index, block.Header.Height, self.completedBlockNum)
 	}
-	num := 1
-	if self.nonConsensusNode() {
-		num++
-	}
-	if self.checkNeedUpdateChainConfig(self.completedBlockNum+uint64(num)) || self.checkForceUpdateChainConfig() {
+	if self.checkNeedUpdateChainConfig(self.completedBlockNum) || self.checkUpdateChainConfig() {
 		err := self.updateChainConfig()
 		if err != nil {
 			log.Errorf("updateChainConfig failed:%s", err)
@@ -259,23 +254,22 @@ func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
 	self.metaLock.Lock()
 	defer self.metaLock.Unlock()
-
-	cfg, err := self.getChainConfig()
+	//get chainconfig from genesis block
+	block, err := self.chainStore.GetBlock(0)
 	if err != nil {
-		return fmt.Errorf("getChainConfig failed: %s", err)
+		return fmt.Errorf("GetBlockInfo failed:%s", err)
 	}
-
-	self.config = cfg
+	self.config = block.Info.NewChainConfig
 	if self.config.View == 0 || self.config.MaxBlockChangeView == 0 {
 		panic("invalid view or maxblockchangeview ")
 	}
 	// update msg delays
-	makeProposalTimeout = time.Duration(cfg.BlockMsgDelay * 2)
-	make2ndProposalTimeout = time.Duration(cfg.BlockMsgDelay)
-	endorseBlockTimeout = time.Duration(cfg.HashMsgDelay * 2)
-	commitBlockTimeout = time.Duration(cfg.HashMsgDelay * 3)
-	peerHandshakeTimeout = time.Duration(cfg.PeerHandshakeTimeout)
-	zeroTxBlockTimeout = time.Duration(cfg.BlockMsgDelay * 3)
+	makeProposalTimeout = time.Duration(self.config.BlockMsgDelay * 2)
+	make2ndProposalTimeout = time.Duration(self.config.BlockMsgDelay)
+	endorseBlockTimeout = time.Duration(self.config.HashMsgDelay * 2)
+	commitBlockTimeout = time.Duration(self.config.HashMsgDelay * 3)
+	peerHandshakeTimeout = time.Duration(self.config.PeerHandshakeTimeout)
+	zeroTxBlockTimeout = time.Duration(self.config.BlockMsgDelay * 3)
 	// TODO: load sealed blocks from chainStore
 
 	// protected by server.metaLock
@@ -306,6 +300,11 @@ func (self *Server) getChainConfig() (*vconfig.ChainConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("GenesisChainConfig failed: %s", err)
 	}
+	goverview, err := self.chainStore.GetGovernanceView()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get governanceview failed:%s", err)
+	}
+	cfg.View = uint32(goverview.View.Uint64())
 	return cfg, err
 }
 
@@ -318,11 +317,11 @@ func (self *Server) updateChainConfig() error {
 	self.metaLock.Lock()
 	defer self.metaLock.Unlock()
 
-	cfg, err := self.getChainConfig()
+	block, err := self.chainStore.GetBlock(self.completedBlockNum)
 	if err != nil {
-		return fmt.Errorf("getChainConfig failed: %s", err)
+		return fmt.Errorf("GetBlockInfo failed:%s", err)
 	}
-	self.config = cfg
+	self.config = block.Info.NewChainConfig
 	// TODO
 	// 1. update peer pool
 	// 2. remove nonparticipation consensus node
@@ -1959,22 +1958,6 @@ func (self *Server) msgSendLoop() {
 	}
 }
 
-//createfeeSplitTransaction invoke fee native contract EXECUTE_SPLIT
-func (self *Server) createfeeSplitTransaction() *types.Transaction {
-	init := states.Contract{
-		Address: genesis.FeeSplitContractAddress,
-		Method:  feesplit.EXECUTE_SPLIT,
-	}
-	bf := new(bytes.Buffer)
-	init.Serialize(bf)
-	vmCode := stypes.VmCode{
-		VmType: stypes.Native,
-		Code:   bf.Bytes(),
-	}
-	tx := utils.NewInvokeTransaction(vmCode)
-	return tx
-}
-
 //creategovernaceTransaction invoke governance native contract commit_pos
 func (self *Server) creategovernaceTransaction() *types.Transaction {
 	init := states.Contract{
@@ -2001,14 +1984,14 @@ func (self *Server) checkNeedUpdateChainConfig(blockNum uint64) bool {
 	return false
 }
 
-//checkForceUpdateChainConfig query leveldb check is force update
-func (self *Server) checkForceUpdateChainConfig() bool {
-	force, err := self.chainStore.isForceUpdate()
+//checkUpdateChainConfig query leveldb check is force update
+func (self *Server) checkUpdateChainConfig() bool {
+	force, err := self.chainStore.isUpdate(self.config.View)
 	if err != nil {
-		log.Errorf("checkForceUpdateChainConfig err:%s", err)
+		log.Errorf("checkUpdateChainConfig err:%s", err)
 		return false
 	}
-	log.Debugf("checkForceUpdateChainConfig force: %v", force)
+	log.Debugf("checkUpdateChainConfig force: %v", force)
 	return force
 }
 
@@ -2036,14 +2019,16 @@ func (self *Server) makeProposal(blkNum uint64, forEmpty bool) error {
 
 	//check need upate chainconfig
 	cfg := &vconfig.ChainConfig{}
-	if self.checkNeedUpdateChainConfig(self.currentBlockNum) || self.checkForceUpdateChainConfig() {
-		err := self.updateChainConfig()
+	if self.checkNeedUpdateChainConfig(self.currentBlockNum) || self.checkUpdateChainConfig() {
+		chainconfig, err := self.getChainConfig()
 		if err != nil {
-			log.Errorf("updateChainConfig failed:%s", err)
-		} else {
-			cfg = self.config
-			//add transaction invoke governance native,executeSplit、commit_pos contract
-			sysTxs = append(sysTxs, self.createfeeSplitTransaction(), self.creategovernaceTransaction())
+			return fmt.Errorf("getChainConfig failed:%s", err)
+		}
+		self.config = chainconfig
+		cfg = self.config
+		//add transaction invoke governance native commit_pos contract
+		if self.checkNeedUpdateChainConfig(self.currentBlockNum) {
+			sysTxs = append(sysTxs, self.creategovernaceTransaction())
 		}
 	}
 	if self.nonConsensusNode() {
