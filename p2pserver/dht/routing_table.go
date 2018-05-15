@@ -49,6 +49,16 @@ func (this *routingTable) locateBucket(id types.NodeID) (int, *bucket) {
 	return dist, this.buckets[dist-1]
 }
 
+func (this *routingTable) queryNode(id types.NodeID) *types.Node{
+	_, bucket := this.locateBucket(id)
+	for _, node := range bucket.entries{
+		if (*node).ID == id{
+			return node
+		}
+	}
+	return nil
+}
+
 func (this *routingTable) AddNode(node *types.Node) bool {
 	this.mu.Lock()
 	defer this.mu.Unlock()

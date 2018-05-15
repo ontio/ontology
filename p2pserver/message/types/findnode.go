@@ -29,7 +29,7 @@ import (
 
 type FindNodePayload struct {
 	FromID   types.NodeID
-	TargetID uint64
+	TargetID types.NodeID
 }
 
 type FindNode struct {

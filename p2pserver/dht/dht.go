@@ -40,6 +40,8 @@ type DHT struct {
 	addr         string
 	port         uint16
 	conn         *net.UDPConn
+	pingNodeQueue *types.PingNodeQueue
+	findNodeQueue *types.PingNodeQueue
 	recvCh       chan *types.DHTMessage
 	stopCh       chan struct{}
 }
@@ -53,11 +55,22 @@ func NewDHT() *DHT {
 func (this *DHT) init() {
 	this.recvCh = make(chan *types.DHTMessage, types.MSG_CACHE)
 	this.stopCh = make(chan struct{})
+	this.pingNodeQueue = types.NewPingNodeQueue(this.onPingTimeOut)
+	//this.findNodeQueue = types.NewPingNodeQueue()
 	this.routingTable.init(this.nodeID)
 }
 
 func (this *DHT) Start() {
-
+	// generate seed peer node
+	seedNode := new(types.Node)
+	// add peer node to routing table
+	this.AddNode(seedNode)
+	// lookup self
+	results := this.lookup(this.nodeID)
+	// add results to routing table
+	for _, node := range results{
+		this.AddNode(node)
+	}
 }
 
 func (this *DHT) Stop() {
@@ -97,6 +110,12 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 
 	if len(closestNodes) == 0 {
 		return nil
+	}
+
+	for _, node := range closestNodes{
+		if node.ID == targetID{
+			return closestNodes
+		}
 	}
 
 	for {
@@ -156,12 +175,46 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 }
 
 func (this *DHT) FindNode(remotePeer *types.Node, targetID types.NodeID) ([]*types.Node, error) {
+	addr, err := getNodeUdpAddr(remotePeer)
+	if err != nil {
+		return nil, err
+	}
+	findNodePayload := mt.FindNodePayload{
+		FromID:   this.nodeID,
+		TargetID: targetID,
+	}
+	findNodePacket, err := msgpack.NewFindNode(findNodePayload)
+	if err != nil {
+		log.Error("failed to new dht find node packet", err)
+		return nil, err
+	}
+	this.send(addr, findNodePacket)
 	return nil, nil
-
 }
 
-func (this *DHT) AddNode(remoteNode uint64) {
-
+func (this *DHT) AddNode(remotePeer *types.Node) {
+	// find node in own bucket
+	bucketIndex, bucket := this.routingTable.locateBucket(remotePeer.ID)
+	remoteNode, isInBucket := this.routingTable.isNodeInBucket(remotePeer.ID, bucketIndex)
+	// update peer info in local bucket
+	remoteNode = remotePeer
+	if isInBucket {
+		this.routingTable.AddNode(remoteNode)
+	} else {
+		bucketNodeNum := len(bucket.entries)
+		if bucketNodeNum < types.BUCKET_SIZE { // bucket is not full
+			this.routingTable.AddNode(remoteNode)
+		} else {
+			lastNode := bucket.entries[bucketNodeNum-1]
+			addr, err := getNodeUdpAddr(lastNode)
+			if err != nil{
+				this.routingTable.AddNode(lastNode)
+				return
+			}
+			this.pingNodeQueue.AddNode(lastNode, remoteNode, types.PING_TIMEOUT)
+			this.Ping(addr)
+		}
+	}
 }
 
 func (this *DHT) Ping(addr *net.UDPAddr) error {
@@ -193,6 +246,16 @@ func (this *DHT) Ping(addr *net.UDPAddr) error {
 	}
 	this.send(addr, pingPacket)
 	return nil
+}
+
+func (this *DHT)onPingTimeOut(nodeId types.NodeID){
+	pendingNode, ok := this.pingNodeQueue.GetPendingNode(nodeId)
+	if ok && pendingNode != nil{
+		// add pending node to bucket
+		this.routingTable.AddNode(pendingNode)
+		// clear ping node queue
+		this.pingNodeQueue.DeleteNode(nodeId)
+	}
 }
 
 func (this *DHT) Pong(addr *net.UDPAddr) error {
@@ -278,4 +341,15 @@ func (this *DHT) send(addr *net.UDPAddr, msg []byte) error {
 		return err
 	}
 	return nil
+}
+
+func getNodeUdpAddr(node *types.Node) (*net.UDPAddr, error) {
+	addr := new(net.UDPAddr)
+	addr.IP = net.ParseIP(node.IP).To16()
+	if addr.IP == nil {
+		log.Error("Parse IP address error\n", node.IP)
+		return nil, errors.New("Parse IP address error")
+	}
+	addr.Port = int(node.UDPPort)
+	return addr, nil
 }
