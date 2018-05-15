@@ -19,8 +19,6 @@
 package utils
 
 import (
-	"encoding/hex"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/event"
@@ -43,16 +41,8 @@ func ConcatKey(contract common.Address, args ...[]byte) []byte {
 	return temp
 }
 
-func ValidateOwner(native *native.NativeService, address string) error {
-	addrBytes, err := hex.DecodeString(address)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "validateOwner, decode address hex string to bytes failed!")
-	}
-	addr, err := common.AddressParseFromBytes(addrBytes)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "validateOwner, decode bytes to address failed!")
-	}
-	if native.ContextRef.CheckWitness(addr) == false {
+func ValidateOwner(native *native.NativeService, address common.Address) error {
+	if native.ContextRef.CheckWitness(address) == false {
 		return errors.NewErr("validateOwner, authentication failed!")
 	}
 	return nil

@@ -193,3 +193,28 @@ func AppCallTransferOnt(native *native.NativeService, from common.Address, to co
 	}
 	return nil
 }
+
+func AppCallApproveOng(native *native.NativeService, from common.Address, to common.Address, amount uint64) error {
+	buf := bytes.NewBuffer(nil)
+	sts := &ont.State{
+		From:  from,
+		To:    to,
+		Value: amount,
+	}
+	err := sts.Serialize(buf)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[appCallApproveOng] transfers.Serialize error!")
+	}
+
+	if _, err := native.ContextRef.AppCall(genesis.OngContractAddress, "approve", []byte{}, buf.Bytes()); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[appCallApproveOng] appCall error!")
+	}
+	return nil
+}
+
+func splitCurve(pos uint64, avg uint64) uint64 {
+	xi := PRECISE * YITA * 2 * pos / (avg * 10)
+	index := xi / (PRECISE / 10)
+	s := ((Yi[index+1]-Yi[index])*xi + Yi[index]*Xi[index+1] - Yi[index+1]*Xi[index]) / (Xi[index+1] - Xi[index])
+	return s
+}
