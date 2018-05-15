@@ -672,18 +672,22 @@ or
     "error": 0,
     "id": 1,
     "jsonpc": "2.0",
-    "result": [
-        {
-            "CodeHash":"80e7d2fc22c24c466f44c7688569cc6e6d6c6f92",
-            "TxHash":"7c3e38afb62db28c7360af7ef3c1baa66aeec27d7d2f60cd22c13ca85b2fd4f3"
-            "States": [
-                "transfer",
-                "TA63xZXqdPLtDeznWQ6Ns4UsbqprLrrLJk",
-                "TA23xZXqdPLtDeznWQ6Ns4UsbqprLrrLfgf",
-                100
-            ]
-        }
-    ]
+    "result": {
+             "TxHash": "20046da68ef6a91f6959caa798a5ac7660cc80cf4098921bc63604d93208a8ac",
+             "State": 1,
+             "GasConsumed": 0,
+             "Notify": [
+                    {
+                      "ContractAddress": "ff00000000000000000000000000000000000001",
+                      "States": [
+                            "transfer",
+                            "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+                            "TA4WVfUB1ipHL8s3PRSYgeV1HhAU3KcKTq",
+                            1000000000
+                         ]
+                     }
+              ]
+    }
 }
 ```
 
@@ -861,8 +865,9 @@ Response:
    "id":1,
    "jsonpc":"2.0",
    "result":{
-       "ont":"24999862561046528",
-       "ong":"0"
+        "ont": "2500",
+        "ong": "0",
+        "ong_appove": "0"
        }
 }
 ```

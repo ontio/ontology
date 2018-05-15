@@ -25,6 +25,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
 	bactor "github.com/ontio/ontology/http/base/actor"
+	"github.com/ontio/ontology/smartcontract/event"
 )
 
 type BalanceOfRsp struct {
@@ -40,6 +41,13 @@ type MerkleProof struct {
 	CurBlockRoot     string
 	CurBlockHeight   uint32
 	TargetHashes     []string
+}
+
+type ExecuteNotify struct {
+	TxHash      string
+	State       byte
+	GasConsumed uint64
+	Notify      []NotifyEventInfo
 }
 
 type NotifyEventInfo struct {
@@ -88,6 +96,7 @@ type BlockHead struct {
 	Timestamp        uint32
 	Height           uint32
 	ConsensusData    uint64
+	ConsensusPayload string
 	NextBookkeeper   string
 
 	Bookkeepers []string
@@ -129,6 +138,17 @@ type TXNEntryInfo struct {
 	Txn   Transactions  // transaction which has been verified
 	Fee   int64         // Total fee per transaction
 	Attrs []TXNAttrInfo // the result from each validator
+}
+
+func GetExecuteNotify(obj *event.ExecuteNotify) (map[string]bool, ExecuteNotify) {
+	evts := []NotifyEventInfo{}
+	var contractAddrs = make(map[string]bool)
+	for _, v := range obj.Notify {
+		evts = append(evts, NotifyEventInfo{v.ContractAddress.ToHexString(), v.States})
+		contractAddrs[v.ContractAddress.ToHexString()] = true
+	}
+	txhash := common.ToHexString(obj.TxHash[:])
+	return contractAddrs, ExecuteNotify{txhash, obj.State, obj.GasConsumed, evts}
 }
 
 func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
@@ -194,6 +214,7 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 		Timestamp:        block.Header.Timestamp,
 		Height:           block.Header.Height,
 		ConsensusData:    block.Header.ConsensusData,
+		ConsensusPayload: common.ToHexString(block.Header.ConsensusPayload),
 		NextBookkeeper:   block.Header.NextBookkeeper.ToBase58(),
 		Bookkeepers:      bookkeepers,
 		SigData:          sigData,
