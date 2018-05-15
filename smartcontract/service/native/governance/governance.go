@@ -1442,12 +1442,7 @@ func executeSplit(native *native.NativeService, contract common.Address, peerPoo
 
 	//fee split of consensus peer
 	var splitAmount uint64
-	remainCandidate := peersCandidate[0]
 	for i := int(config.K) - 1; i >= 0; i-- {
-		if peersCandidate[i].PeerPubkey > remainCandidate.PeerPubkey {
-			remainCandidate = peersCandidate[i]
-		}
-
 		nodeAmount := uint64(TOTAL_ONG * A * peersCandidate[i].S / sumS)
 		address := peersCandidate[i].Address
 		err = AppCallApproveOng(native, genesis.GovernanceContractAddress, address, nodeAmount)
@@ -1455,13 +1450,6 @@ func executeSplit(native *native.NativeService, contract common.Address, peerPoo
 			return errors.NewDetailErr(err, errors.ErrNoCode, "executeSplit, ong transfer error!")
 		}
 		splitAmount += nodeAmount
-	}
-	//split remained amount
-	remainAmount := TOTAL_ONG*A - splitAmount
-	remainAddress := remainCandidate.Address
-	err = AppCallApproveOng(native, genesis.GovernanceContractAddress, remainAddress, remainAmount)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "executeSplit, ong transfer error!")
 	}
 
 	//fee split of candidate peer
@@ -1471,12 +1459,7 @@ func executeSplit(native *native.NativeService, contract common.Address, peerPoo
 		sum += peersCandidate[i].Stake
 	}
 	splitAmount = 0
-	remainCandidate = peersCandidate[int(config.K)]
 	for i := int(config.K); i < len(peersCandidate); i++ {
-		if peersCandidate[i].PeerPubkey > remainCandidate.PeerPubkey {
-			remainCandidate = peersCandidate[i]
-		}
-
 		nodeAmount := uint64(TOTAL_ONG * B * peersCandidate[i].Stake / sum)
 		address := peersCandidate[i].Address
 		err = AppCallApproveOng(native, genesis.GovernanceContractAddress, address, nodeAmount)
@@ -1484,13 +1467,6 @@ func executeSplit(native *native.NativeService, contract common.Address, peerPoo
 			return errors.NewDetailErr(err, errors.ErrNoCode, "executeSplit, ong transfer error!")
 		}
 		splitAmount += nodeAmount
-	}
-	//split remained amount
-	remainAmount = TOTAL_ONG*B - splitAmount
-	remainAddress = remainCandidate.Address
-	err = AppCallApproveOng(native, genesis.GovernanceContractAddress, remainAddress, remainAmount)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "executeSplit, ong transfer error!")
 	}
 
 	//fee split of syncNode peer
@@ -1505,18 +1481,5 @@ func executeSplit(native *native.NativeService, contract common.Address, peerPoo
 		}
 		splitSyncNodeAmount += amount
 	}
-	remainSyncNodeAmount := TOTAL_ONG*C - splitSyncNodeAmount
-
-	// sort peers by peerPubkey
-	sort.Slice(peersSyncNode, func(i, j int) bool {
-		return peersSyncNode[i].PeerPubkey > peersSyncNode[j].PeerPubkey
-	})
-
-	address := peersSyncNode[0].Address
-	err = AppCallApproveOng(native, genesis.GovernanceContractAddress, address, remainSyncNodeAmount)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "executeSplit, ong transfer error!")
-	}
-
 	return nil
 }

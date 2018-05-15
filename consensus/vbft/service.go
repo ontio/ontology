@@ -1997,8 +1997,6 @@ func (self *Server) checkNeedUpdateChainConfig(blockNum uint64) bool {
 	if blockNum%uint64(self.config.MaxBlockChangeView) == 0 {
 		return true
 	}
-	log.Debugf("blockcount: %d", self.config.BlockCount)
-	//todo
 	return false
 }
 
