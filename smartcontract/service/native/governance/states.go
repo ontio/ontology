@@ -23,6 +23,7 @@ import (
 	"math/big"
 	"strconv"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
 )
@@ -261,12 +262,12 @@ func (this *PeerPoolMap) Deserialize(r io.Reader) error {
 }
 
 type PeerPool struct {
-	Index      uint32 `json:"index"`
-	PeerPubkey string `json:"peerPubkey"`
-	Address    string `json:"address"`
-	Status     Status `json:"status"`
-	InitPos    uint64 `json:"initPos"`
-	TotalPos   uint64 `json:"totalPos"`
+	Index      uint32         `json:"index"`
+	PeerPubkey string         `json:"peerPubkey"`
+	Address    common.Address `json:"address"`
+	Status     Status         `json:"status"`
+	InitPos    uint64         `json:"initPos"`
+	TotalPos   uint64         `json:"totalPos"`
 }
 
 func (this *PeerPool) Serialize(w io.Writer) error {
@@ -276,8 +277,8 @@ func (this *PeerPool) Serialize(w io.Writer) error {
 	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize peerPubkey error!")
 	}
-	if err := serialization.WriteString(w, this.Address); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize address error!")
+	if err := this.Address.Serialize(w); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "address.Serialize, serialize address error!")
 	}
 	if err := this.Status.Serialize(w); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "this.Status.Serialize, serialize Status error!")
@@ -304,18 +305,15 @@ func (this *PeerPool) Deserialize(r io.Reader) error {
 	}
 	this.PeerPubkey = peerPubkey
 
-	address, err := serialization.ReadString(r)
+	err = this.Address.Deserialize(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize address error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "address.Deserialize, deserialize address error!")
 	}
-	this.Address = address
 
-	status := new(Status)
-	err = status.Deserialize(r)
+	err = this.Status.Deserialize(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "status.Deserialize. deserialize status error!")
 	}
-	this.Status = *status
 
 	initPos, err := serialization.ReadUint64(r)
 	if err != nil {
@@ -432,22 +430,22 @@ func (this *WithDrawParam) Deserialize(r io.Reader) error {
 }
 
 type VoteInfoPool struct {
-	PeerPubkey          string `json:"peerPubkey"`
-	Address             string `json:"address"`
-	ConsensusPos        uint64 `json:"consensusPos"`
-	FreezePos           uint64 `json:"freezePos"`
-	NewPos              uint64 `json:"newPos"`
-	WithDrawPos         uint64 `json:"withDrawPos"`
-	WithDrawFreezePos   uint64 `json:"withDrawFreezePos"`
-	WithDrawUnfreezePos uint64 `json:"withDrawUnfreezePos"`
+	PeerPubkey          string         `json:"peerPubkey"`
+	Address             common.Address `json:"address"`
+	ConsensusPos        uint64         `json:"consensusPos"`
+	FreezePos           uint64         `json:"freezePos"`
+	NewPos              uint64         `json:"newPos"`
+	WithDrawPos         uint64         `json:"withDrawPos"`
+	WithDrawFreezePos   uint64         `json:"withDrawFreezePos"`
+	WithDrawUnfreezePos uint64         `json:"withDrawUnfreezePos"`
 }
 
 func (this *VoteInfoPool) Serialize(w io.Writer) error {
 	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, request peerPubkey error!")
 	}
-	if err := serialization.WriteString(w, this.Address); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, address address error!")
+	if err := this.Address.Serialize(w); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "address.Serialize, serialize address error!")
 	}
 	if err := serialization.WriteUint64(w, this.ConsensusPos); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint64, serialize consensusPos error!")
@@ -477,11 +475,10 @@ func (this *VoteInfoPool) Deserialize(r io.Reader) error {
 	}
 	this.PeerPubkey = peerPubkey
 
-	address, err := serialization.ReadString(r)
+	err = this.Address.Deserialize(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize address error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "address.Deserialize, deserialize address error!")
 	}
-	this.Address = address
 
 	consensusPos, err := serialization.ReadUint64(r)
 	if err != nil {
@@ -651,13 +648,13 @@ func (this *VoteCommitDposParam) Deserialize(r io.Reader) error {
 }
 
 type VoteCommitInfoPool struct {
-	Address string `json:"address"`
-	Pos     uint64 `json:"pos"`
+	Address common.Address `json:"address"`
+	Pos     uint64         `json:"pos"`
 }
 
 func (this *VoteCommitInfoPool) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.Address); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, address address error!")
+	if err := this.Address.Serialize(w); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "address.Serialize, serialize address error!")
 	}
 	if err := serialization.WriteUint64(w, this.Pos); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint64, serialize pos error!")
@@ -666,11 +663,10 @@ func (this *VoteCommitInfoPool) Serialize(w io.Writer) error {
 }
 
 func (this *VoteCommitInfoPool) Deserialize(r io.Reader) error {
-	address, err := serialization.ReadString(r)
+	err := this.Address.Deserialize(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize address error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "address.Deserialize, deserialize address error!")
 	}
-	this.Address = address
 
 	pos, err := serialization.ReadUint64(r)
 	if err != nil {
@@ -708,4 +704,19 @@ func (this *GovernanceView) Deserialize(r io.Reader) error {
 	}
 	this.VoteCommit = voteCommit
 	return nil
+}
+
+type CandidateSplitInfo struct {
+	PeerPubkey string         `json:"peerPubkey"`
+	Address    common.Address `json:"address"`
+	InitPos    uint64         `json:"initPos"`
+	Stake      uint64         `json:"stake"`
+	S          uint64         `json:"s"`
+}
+
+type SyncNodeSplitInfo struct {
+	PeerPubkey string         `json:"peerPubkey"`
+	Address    common.Address `json:"address"`
+	InitPos    uint64         `json:"initPos"`
+	S          uint64         `json:"s"`
 }
