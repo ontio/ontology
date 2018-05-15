@@ -69,9 +69,13 @@ func GetDDO(srvc *native.NativeService) ([]byte, error) {
 	serialization.WriteVarBytes(&buf, var0)
 
 	var1, err := GetAttributes(srvc)
-	if err == nil {
-		serialization.WriteVarBytes(&buf, var1)
-	}
+	serialization.WriteVarBytes(&buf, var1)
+
+	args := bytes.NewBuffer(srvc.Input)
+	did, _ := serialization.ReadVarBytes(args)
+	key, _ := encodeID(did)
+	var2, err := getRecovery(srvc, key)
+	serialization.WriteVarBytes(&buf, var2)
 
 	res := buf.Bytes()
 	log.Debug("DDO:", hex.EncodeToString(res))
