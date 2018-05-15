@@ -255,11 +255,29 @@ func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
 	self.metaLock.Lock()
 	defer self.metaLock.Unlock()
 	//get chainconfig from genesis block
-	block, err := self.chainStore.GetBlock(0)
+
+	block, err := chainStore.GetBlock(chainStore.GetChainedBlockNum())
 	if err != nil {
-		return fmt.Errorf("GetBlockInfo failed:%s", err)
+		return err
 	}
-	self.config = block.Info.NewChainConfig
+	var cfg vconfig.ChainConfig
+	if block.getNewChainConfig() != nil {
+		cfg = *block.getNewChainConfig()
+	} else {
+		cfgBlock := block
+		if block.getLastConfigBlockNum() != math.MaxUint64 {
+			cfgBlock, err = chainStore.GetBlock(block.getLastConfigBlockNum())
+			if err != nil {
+				return fmt.Errorf("failed to get cfg block: %s", err)
+			}
+		}
+		if cfgBlock.getNewChainConfig() == nil {
+			panic("failed to get chain config from config block")
+		}
+		cfg = *cfgBlock.getNewChainConfig()
+	}
+	self.config = &cfg
+
 	if self.config.View == 0 || self.config.MaxBlockChangeView == 0 {
 		panic("invalid view or maxblockchangeview ")
 	}
