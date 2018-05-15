@@ -49,7 +49,6 @@ var (
 					utils.AccountTypeFlag,
 					utils.AccountKeylenFlag,
 					utils.AccountSigSchemeFlag,
-					utils.AccountPassFlag,
 					utils.AccountDefaultFlag,
 					utils.AccountLabelFlag,
 					utils.WalletFileFlag,
@@ -73,7 +72,6 @@ var (
 				Usage:     "Modify an account",
 				ArgsUsage: "<index>",
 				Flags: []cli.Flag{
-					utils.AccountAddressFlag,
 					utils.AccountSetDefaultFlag,
 					utils.WalletFileFlag,
 					utils.AccountLabelFlag,
@@ -200,8 +198,7 @@ func accountSet(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	ctx.Set(utils.AccountAddressFlag.Name, address)
-	accPub, err := common.GetAccountPublicMulti(wallet, ctx)
+	accPub, err := common.GetAccountPublicMulti(wallet, address)
 	if err != nil {
 		return err
 	}
@@ -232,21 +229,21 @@ func accountSet(ctx *cli.Context) error {
 	}
 	if ctx.IsSet(utils.GetFlagName(utils.AccountSigSchemeFlag)) {
 		find := false
-		sigSchemeFlag := utils.GetFlagName(utils.AccountSigSchemeFlag)
+		sigScheme := ctx.String(utils.GetFlagName(utils.AccountSigSchemeFlag))
 		for _, val := range schemeMap {
-			if val.name == ctx.String(sigSchemeFlag) {
+			if val.name == sigScheme {
 				find = true
 				err = wallet.ChangeSigScheme(address, val.code, passwd)
 				if err != nil {
-					fmt.Printf("Set Label:%s Account:%s SigScheme to: %s failed, %s\n", accPub.Label, accPub.Address, val.name, err)
+					fmt.Printf("Set Label:%s Account:%s SigScheme to: %s failed, %s\n", accPub.Label, accPub.Address.ToBase58(), val.name, err)
 				} else {
-					fmt.Printf("Set Label:%s Account:%s SigScheme to: %s successfully\n", accPub.Label, accPub.Address, val.name)
+					fmt.Printf("Set Label:%s Account:%s SigScheme to: %s successfully\n", accPub.Label, accPub.Address.ToBase58(), val.name)
 				}
 				break
 			}
 		}
 		if !find {
-			fmt.Printf("%s is not a valid content for option -s \n", ctx.String("signature-scheme"))
+			fmt.Printf("%s is not a valid content for option -s \n", sigScheme)
 		}
 	}
 	if ctx.Bool(utils.GetFlagName(utils.AccountChangePasswdFlag)) {
@@ -278,8 +275,7 @@ func accountDelete(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	ctx.Set(utils.AccountAddressFlag.Name, address)
-	accPub, err := common.GetAccountPublicMulti(wallet, ctx)
+	accPub, err := common.GetAccountPublicMulti(wallet, address)
 	if err != nil {
 		return err
 	}
@@ -291,8 +287,9 @@ func accountDelete(ctx *cli.Context) error {
 	addr := accPub.Address.ToBase58()
 	_, err = wallet.DeleteAccount(addr, passwd)
 	if err != nil {
-		return err
+		fmt.Printf("Delete account label:%s address:%s failed, %s\n", accPub.Label, addr, err)
+	}else{
+		fmt.Printf("Delete account label:%s address:%s successfully.\n", accPub.Label, addr)
 	}
-	fmt.Printf("Delete account label:%s address:%s successfully.\n", accPub.Label, addr)
 	return nil
 }

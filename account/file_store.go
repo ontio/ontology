@@ -25,6 +25,8 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	//"github.com/ontio/ontology/core/types"
 	"io/ioutil"
+	"os"
+	"github.com/ontio/ontology/common"
 )
 
 /** AccountData - for wallet read and save, no crypto object included **/
@@ -84,7 +86,7 @@ func NewWalletData() *WalletData {
 		Version:    "1.1",
 		Scrypt:     keypair.GetScryptParameters(),
 		Identities: nil,
-		Extra:      "null",
+		Extra:      "",
 		Accounts:   make([]*AccountData, 0, 0),
 	}
 }
@@ -129,7 +131,16 @@ func (this *WalletData) Save(path string) error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(path, data, 0644)
+	if common.FileExisted(path) {
+		filename := path + "~"
+		err := ioutil.WriteFile(filename, data, 0644)
+		if err != nil {
+			return err
+		}
+		return os.Rename(filename, path)
+	} else {
+		return ioutil.WriteFile(path, data, 0644)
+	}
 }
 
 func (this *WalletData) Load(path string) error {

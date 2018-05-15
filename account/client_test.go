@@ -1,9 +1,28 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package account
 
 import (
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
 	s "github.com/ontio/ontology-crypto/signature"
+	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
 )
@@ -274,4 +293,15 @@ func TestClientSetDefault(t *testing.T) {
 		t.Errorf("TestClientSetDefault address:%s should be default account", accTmp.Address.ToBase58())
 		return
 	}
+}
+
+func TestCheckSigScheme(t *testing.T) {
+	testClient, _ := NewClientImpl("")
+
+	assert.Equal(t, testClient.checkSigScheme("ECDSA", "SHA224withECDSA"), true)
+	assert.Equal(t, testClient.checkSigScheme("ECDSA", "SM3withSM2"), false)
+	assert.Equal(t, testClient.checkSigScheme("SM2", "SM3withSM2"), true)
+	assert.Equal(t, testClient.checkSigScheme("SM2", "SHA224withECDSA"), false)
+	assert.Equal(t, testClient.checkSigScheme("Ed25519", "SHA512withEdDSA"), true)
+	assert.Equal(t, testClient.checkSigScheme("Ed25519", "SHA224withECDSA"), false)
 }

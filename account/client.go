@@ -27,6 +27,7 @@ import (
 	s "github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
+	"strings"
 	"sync"
 	"time"
 )
@@ -154,6 +155,10 @@ func (this *ClientImpl) NewAccount(label string, typeCode keypair.KeyType, curve
 	accData.PubKey = hex.EncodeToString(keypair.SerializePublicKey(pubkey))
 	passHash := sha256.Sum256(passwd)
 	accData.PassHash = hex.EncodeToString(passHash[:])
+
+	if !this.checkSigScheme(accData.Alg, accData.SigSch) {
+		return nil, fmt.Errorf("sigScheme:%s does not match KeyType:%s", accData.SigSch, accData.Alg)
+	}
 
 	this.lock.Lock()
 	defer this.lock.Unlock()
@@ -503,11 +508,11 @@ func (this *ClientImpl) ChangePassword(address string, oldPasswd, newPasswd []by
 	if err != nil {
 		return fmt.Errorf("keypair.EncryptPrivateKey error:%s", err)
 	}
-	newPassHash := sha256.Sum256(newPasswd)
-	accData.PassHash = hex.EncodeToString(newPassHash[:])
-	newPasswdHash := hex.EncodeToString(newPassHash[:])
+
+	h := sha256.Sum256(newPasswd)
+	newPassHash := hex.EncodeToString(h[:])
 	accData.SetKeyPair(newPrvSecret)
-	accData.PassHash = newPasswdHash
+	accData.PassHash = newPassHash
 	err = this.save()
 	if err != nil {
 		accData.PassHash = oldPasswdHash
@@ -527,6 +532,10 @@ func (this *ClientImpl) ChangeSigScheme(address string, sigScheme s.SignatureSch
 	if !accData.VerifyPassword(passwd) {
 		return fmt.Errorf("verifyPassword failed")
 	}
+	if !this.checkSigScheme(accData.Alg, sigScheme.Name()) {
+		return fmt.Errorf("sigScheme:%s does not match KeyType:%s", sigScheme.Name(), accData.Alg)
+	}
+
 	oldSigScheme := accData.SigSch
 	accData.SigSch = sigScheme.Name()
 	err := this.save()
@@ -539,4 +548,38 @@ func (this *ClientImpl) ChangeSigScheme(address string, sigScheme s.SignatureSch
 		accInfo.acc.SigScheme = sigScheme
 	}
 	return nil
+}
+
+func (this *ClientImpl) checkSigScheme(keyType, sigScheme string) bool {
+	switch strings.ToUpper(keyType) {
+	case "ECDSA":
+		switch strings.ToUpper(sigScheme) {
+		case "SHA224WITHECDSA":
+		case "SHA256WITHECDSA":
+		case "SHA384WITHECDSA":
+		case "SHA512WITHECDSA":
+		case "SHA3-224WITHECDSA":
+		case "SHA3-256WITHECDSA":
+		case "SHA3-384WITHECDSA":
+		case "SHA3-512WITHECDSA":
+		case "RIPEMD160WITHECDSA":
+		default:
+			return false
+		}
+	case "SM2":
+		switch strings.ToUpper(sigScheme) {
+		case "SM3WITHSM2":
+		default:
+			return false
+		}
+	case "ED25519":
+		switch strings.ToUpper(sigScheme) {
+		case "SHA512WITHEDDSA":
+		default:
+			return false
+		}
+	default:
+		return false
+	}
+	return true
 }

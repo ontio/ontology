@@ -58,9 +58,8 @@ func OpenWallet(ctx *cli.Context) (account.Client, error) {
 	return wallet, nil
 }
 
-func GetAccountMulti(wallet account.Client, passwd []byte, ctx *cli.Context) (*account.Account, error) {
+func GetAccountMulti(wallet account.Client, passwd []byte, accAddr string) (*account.Account, error) {
 	//Address maybe address in base58, label or index
-	accAddr := ctx.String(utils.GetFlagName(utils.AccountAddressFlag))
 	if accAddr == "" {
 		return wallet.GetDefaultAccount(passwd)
 	}
@@ -92,9 +91,8 @@ func GetAccountMulti(wallet account.Client, passwd []byte, ctx *cli.Context) (*a
 	return nil, fmt.Errorf("cannot get account by:%s", accAddr)
 }
 
-func GetAccountPublicMulti(wallet account.Client, ctx *cli.Context) (*account.AccountPublic, error) {
+func GetAccountPublicMulti(wallet account.Client, accAddr string) (*account.AccountPublic, error) {
 	//Address maybe address in base58, label or index
-	accAddr := ctx.String(utils.GetFlagName(utils.AccountAddressFlag))
 	if accAddr == "" {
 		return wallet.GetDefaultAccountPublic()
 	}
@@ -136,7 +134,8 @@ func GetAccount(ctx *cli.Context) (*account.Account, error) {
 		return nil, err
 	}
 	defer ClearPasswd(passwd)
-	return GetAccountMulti(wallet, passwd, ctx)
+	accAddr := ctx.String(utils.GetFlagName(utils.AccountAddressFlag))
+	return GetAccountMulti(wallet, passwd, accAddr)
 }
 
 func IsBase58Address(address string) bool {

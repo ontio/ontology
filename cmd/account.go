@@ -83,21 +83,21 @@ var schemeMap = map[string]schemeInfo{
 	"1": {"SHA224withECDSA", s.SHA224withECDSA},
 	"2": {"SHA256withECDSA", s.SHA256withECDSA},
 	"3": {"SHA384withECDSA", s.SHA384withECDSA},
-	"4": {"SHA512withEDDSA", s.SHA512withEDDSA},
-	"5": {"SHA3_224withECDSA", s.SHA3_224withECDSA},
-	"6": {"SHA3_256withECDSA", s.SHA3_256withECDSA},
-	"7": {"SHA3_384withECDSA", s.SHA3_384withECDSA},
-	"8": {"SHA3_512withECDSA", s.SHA3_512withECDSA},
+	"4": {"SHA512withEdDSA", s.SHA512withEDDSA},
+	"5": {"SHA3-224withECDSA", s.SHA3_224withECDSA},
+	"6": {"SHA3-256withECDSA", s.SHA3_256withECDSA},
+	"7": {"SHA3-384withECDSA", s.SHA3_384withECDSA},
+	"8": {"SHA3-512withECDSA", s.SHA3_512withECDSA},
 	"9": {"RIPEMD160withECDSA", s.RIPEMD160withECDSA},
 
 	"SHA224withECDSA":    {"SHA224withECDSA", s.SHA224withECDSA},
 	"SHA256withECDSA":    {"SHA256withECDSA", s.SHA256withECDSA},
 	"SHA384withECDSA":    {"SHA384withECDSA", s.SHA384withECDSA},
-	"SHA512withEDDSA":    {"SHA512withEDDSA", s.SHA512withEDDSA},
-	"SHA3_224withECDSA":  {"SHA3_224withECDSA", s.SHA3_224withECDSA},
-	"SHA3_256withECDSA":  {"SHA3_256withECDSA", s.SHA3_256withECDSA},
-	"SHA3_384withECDSA":  {"SHA3_384withECDSA", s.SHA3_384withECDSA},
-	"SHA3_512withECDSA":  {"SHA3_512withECDSA", s.SHA3_512withECDSA},
+	"SHA512withEdDSA":    {"SHA512withEdDSA", s.SHA512withEDDSA},
+	"SHA3-224withECDSA":  {"SHA3-224withECDSA", s.SHA3_224withECDSA},
+	"SHA3-256withECDSA":  {"SHA3-256withECDSA", s.SHA3_256withECDSA},
+	"SHA3-384withECDSA":  {"SHA3-384withECDSA", s.SHA3_384withECDSA},
+	"SHA3-512withECDSA":  {"SHA3-512withECDSA", s.SHA3_512withECDSA},
 	"RIPEMD160withECDSA": {"RIPEMD160withECDSA", s.RIPEMD160withECDSA},
 
 	"SM3withSM2": {"SM3withSM2", s.SM3withSM2},
@@ -234,7 +234,7 @@ func checkScheme(ctx *cli.Context, reader *bufio.Reader, t *string) string {
 	sigFlag := utils.GetFlagName(utils.AccountSigSchemeFlag)
 	switch *t {
 	case "ecdsa":
-		if ctx.IsSet("signature-scheme") {
+		if ctx.IsSet(sigFlag) {
 			if _, ok := schemeMap[ctx.String(sigFlag)]; ok {
 				sch = schemeMap[ctx.String(sigFlag)].name
 				fmt.Printf("%s is selected. \n", sch)

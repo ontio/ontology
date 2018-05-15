@@ -46,6 +46,7 @@ var AssetCommand = cli.Command{
 				utils.TransactionToFlag,
 				utils.TransactionAmountFlag,
 				utils.WalletFileFlag,
+				utils.AccountAddressFlag,
 			},
 		},
 		{
