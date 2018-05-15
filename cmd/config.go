@@ -92,6 +92,8 @@ func setGenesis(ctx *cli.Context, cfg *config.GenesisConfig) error {
 func setCommonConfig(ctx *cli.Context, cfg *config.CommonConfig) {
 	cfg.MaxTxInBlock = ctx.GlobalUint(utils.MaxTxInBlockFlag.Name)
 	cfg.DisableEventLog = ctx.GlobalBool(utils.DisableEventLogFlag.Name)
+	cfg.GasLimit = ctx.GlobalUint64(utils.GasLimitFlag.Name)
+	cfg.GasPrice = ctx.GlobalUint64(utils.GasPriceFlag.Name)
 }
 
 func setP2PNodeConfig(ctx *cli.Context, cfg *config.P2PNodeConfig) {
