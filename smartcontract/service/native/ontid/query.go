@@ -19,7 +19,6 @@ package ontid
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -51,9 +50,13 @@ func GetPublicKeyByID(srvc *native.NativeService) ([]byte, error) {
 	pk, err := getPk(srvc, key, arg1)
 	if err != nil {
 		return nil, errors.New("get public key failed: " + err.Error())
+	} else if pk == nil {
+		return nil, errors.New("get public key failed: not found")
+	} else if pk.revoked {
+		return nil, errors.New("get public key failed: revoked")
 	}
 
-	return pk, nil
+	return pk.key, nil
 }
 
 func GetDDO(srvc *native.NativeService) ([]byte, error) {
@@ -77,7 +80,11 @@ func GetDDO(srvc *native.NativeService) ([]byte, error) {
 
 func GetPublicKeys(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("GetPublicKeys")
-	did := srvc.Input
+	args := bytes.NewBuffer(srvc.Input)
+	did, err := serialization.ReadVarBytes(args)
+	if err != nil {
+		return nil, fmt.Errorf("get public keys error: invalid argument", err)
+	}
 	if len(did) == 0 {
 		return nil, errors.New("get public keys error: invalid ID")
 	}
@@ -86,33 +93,24 @@ func GetPublicKeys(srvc *native.NativeService) ([]byte, error) {
 		return nil, fmt.Errorf("get public keys error: %s", err)
 	}
 	key = append(key, FIELD_PK)
-	item, err := utils.LinkedlistGetHead(srvc, key)
+	list, err := getAllPk(srvc, key)
 	if err != nil {
-		return nil, fmt.Errorf("get public keys error: cannot get the list head, %s", err)
-	} else if len(item) == 0 {
-		return nil, errors.New("get public keys error: get list head failed")
+		return nil, fmt.Errorf("get public keys error: %s", err)
 	}
 
 	var res bytes.Buffer
-	for len(item) > 0 {
-		node, err := utils.LinkedlistGetItem(srvc, key, item)
+	for i, v := range list {
+		if v.revoked {
+			continue
+		}
+		err = serialization.WriteUint32(&res, uint32(i+1))
 		if err != nil {
 			return nil, fmt.Errorf("get public keys error: %s", err)
-		} else if node == nil {
-			return nil, errors.New("get public keys error: get list node failed")
 		}
-
-		keyID := binary.LittleEndian.Uint32(item)
-		err = serialization.WriteUint32(&res, keyID)
+		err = serialization.WriteVarBytes(&res, v.key)
 		if err != nil {
-			return nil, fmt.Errorf("get public keys error: serialize error, %s", err)
+			return nil, fmt.Errorf("get public keys error: %s", err)
 		}
-		err = serialization.WriteVarBytes(&res, node.GetPayload())
-		if err != nil {
-			return nil, fmt.Errorf("get public keys error: serialize error, %s", err)
-		}
-
-		item = node.GetNext()
 	}
 
 	return res.Bytes(), nil
@@ -120,7 +118,11 @@ func GetPublicKeys(srvc *native.NativeService) ([]byte, error) {
 
 func GetAttributes(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("GetAttributes")
-	did := srvc.Input
+	args := bytes.NewBuffer(srvc.Input)
+	did, err := serialization.ReadVarBytes(args)
+	if err != nil {
+		return nil, fmt.Errorf("get public keys error: invalid argument", err)
+	}
 	if len(did) == 0 {
 		return nil, errors.New("get attributes error: invalid ID")
 	}
@@ -170,34 +172,31 @@ func GetKeyState(srvc *native.NativeService) ([]byte, error) {
 	// arg0: ID
 	arg0, err := serialization.ReadVarBytes(args)
 	if err != nil {
-		return nil, fmt.Errorf("get key status failed: argument 0 error, %s", err)
+		return nil, fmt.Errorf("get key state failed: argument 0 error, %s", err)
 	}
 	// arg1: public key ID
 	arg1, err := serialization.ReadUint32(args)
 	if err != nil {
-		return nil, fmt.Errorf("get key status failed: argument 1 error, %s", err)
+		return nil, fmt.Errorf("get key state failed: argument 1 error, %s", err)
 	}
 
 	key, err := encodeID(arg0)
 	if err != nil {
-		return nil, fmt.Errorf("get key status failed: %s", err)
+		return nil, fmt.Errorf("get key state failed: %s", err)
 	}
 
-	key = append(key, FIELD_PK_STATE)
-	var buf [4]byte
-	binary.LittleEndian.PutUint32(buf[:], arg1)
-	key = append(key, buf[:]...)
-
-	item, err := utils.GetStorageItem(srvc, key)
-	if err != nil || item == nil {
-		log.Debug("key not exist")
+	owner, err := getPk(srvc, key, arg1)
+	if err != nil {
+		return nil, fmt.Errorf("get key state failed: %s", err)
+	} else if owner == nil {
+		log.Debug("key state: not exist")
 		return []byte("not exist"), nil
 	}
 
-	log.Debug("key state: ", item.Value)
-	if item.Value[0] == 1 {
-		return []byte("in use"), nil
-	} else {
+	log.Debug("key state: ", owner.revoked)
+	if owner.revoked {
 		return []byte("revoked"), nil
+	} else {
+		return []byte("in use"), nil
 	}
 }

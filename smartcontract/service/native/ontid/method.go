@@ -195,7 +195,7 @@ func addKey(srvc *native.NativeService) ([]byte, error) {
 	}
 
 	item, err := findPk(srvc, key, arg1)
-	if item != nil {
+	if item != 0 {
 		return utils.BYTE_FALSE, errors.New("add key failed: already exists")
 	}
 
@@ -322,7 +322,7 @@ func changeRecovery(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: argument 1 error")
 	}
-	// arg2: operator's public key, who should be the old recovery
+	// arg2: operator's address, who should be the old recovery
 	arg2, err := serialization.ReadVarBytes(args)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: argument 2 error")
@@ -332,19 +332,19 @@ func changeRecovery(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: " + err.Error())
 	}
-	err = checkWitness(srvc, arg2)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.New("change recovery failed: " + err.Error())
-	}
-	if !checkIDExistence(srvc, key) {
-		return utils.BYTE_FALSE, errors.New("change recovery failed: ID not registered")
-	}
 	re, err := getRecovery(srvc, key)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: recovery not set")
 	}
 	if !bytes.Equal(re, arg2) {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: operator is not the recovery")
+	}
+	err = checkWitness(srvc, arg2)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("change recovery failed: " + err.Error())
+	}
+	if !checkIDExistence(srvc, key) {
+		return utils.BYTE_FALSE, errors.New("change recovery failed: ID not registered")
 	}
 	err = setRecovery(srvc, key, arg1)
 	if err != nil {
