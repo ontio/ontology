@@ -133,7 +133,7 @@ func (tp *TXPool) GetTxPool(byCount bool, height uint32) ([]*TXEntry,
 	}
 	sort.Sort(OrderByNetWorkFee(orderByFee))
 
-	count := int(config.DefConfig.Common.MaxTxInBlock)
+	count := int(config.DefConfig.Consensus.MaxTxInBlock)
 	if count <= 0 {
 		byCount = false
 	}
