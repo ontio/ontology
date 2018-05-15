@@ -190,7 +190,8 @@ func LinkedlistDelete(native *native.NativeService, index []byte, item []byte) (
 	prev, next := q.prev, q.next
 	if prev == nil {
 		if next == nil {
-			PutBytes(native, index, null) //clear linked list
+			//clear linked list
+			native.CloneCache.Delete(scommon.ST_STORAGE, index)
 		} else {
 			qnext, err := getListNode(native, index, next)
 			if err != nil {
