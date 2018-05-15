@@ -394,7 +394,8 @@ func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 		if err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
-		return responseSuccess(eventInfo)
+		_, notify := bcomn.GetExecuteNotify(eventInfo)
+		return responseSuccess(notify)
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
