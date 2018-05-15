@@ -19,16 +19,16 @@
 package common
 
 import (
+	"bytes"
+	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
 	bactor "github.com/ontio/ontology/http/base/actor"
-	"fmt"
-	"bytes"
-	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/genesis"
 )
 
 type BalanceOfRsp struct {

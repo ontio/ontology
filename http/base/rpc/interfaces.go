@@ -430,7 +430,6 @@ func GetBlockHeightByTxHash(params []interface{}) map[string]interface{} {
 	return responsePack(berr.INVALID_PARAMS, "")
 }
 
-
 func GetBalance(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return responsePack(berr.INVALID_PARAMS, "")
@@ -446,7 +445,7 @@ func GetBalance(params []interface{}) map[string]interface{} {
 	rsp, err := bcomn.GetBalance(address)
 	if err != nil {
 		log.Errorf("GetBalance address:%s error:%s", addrBase58, err)
-		return responsePack(berr.INTERNAL_ERROR,"")
+		return responsePack(berr.INTERNAL_ERROR, "")
 	}
 	return responseSuccess(rsp)
 }
