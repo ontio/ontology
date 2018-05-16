@@ -230,7 +230,7 @@ var (
 	}
 	ContractParamsFlag = cli.StringFlag{
 		Name:  "params",
-		Usage: "Invoke contract parameters list. use comma ',' to split params, and must add type prefix to params. 0:bytearray(hexstring), 1:string, 2:integer, 3:boolean,For example: 1:foo,2:0,3:true; If parameter is an object array, enclose array with '[]'. For example:  1:foo,[2:0,3:true]",
+		Usage: "Invoke contract parameters list. use comma ',' to split params, and must add type prefix to params. Param type support bytearray(hexstring), string, integer, boolean,For example: string:foo,int:0,bool:true; If parameter is an object array, enclose array with '[]'. For example:  string:foo,[int:0,bool:true]",
 	}
 	ContractPrepareInvokeFlag = cli.BoolFlag{
 		Name:  "prepare,p",
@@ -238,7 +238,7 @@ var (
 	}
 	ContranctReturnTypeFlag = cli.StringFlag{
 		Name:  "return",
-		Usage: "Return type of contract. 0:bytearray(hexstring), 1:string, 2:integer, 3:boolean. If return type is object array, enclose array with '[]'. For example [1,0,2,3]. Only prepare invoke need this flag.",
+		Usage: "Return type of contract.Return type support bytearray(hexstring), string, integer, boolean. If return type is object array, enclose array with '[]'. For example [string,int,bool,string]. Only prepare invoke need this flag.",
 	}
 
 	//information cmd settings
