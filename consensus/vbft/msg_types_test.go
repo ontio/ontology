@@ -30,7 +30,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 )
 
-func constructProposalMsg(acc *account.Account) (*blockProposalMsg, error) {
+func constructProposalMsgTest(acc *account.Account) (*blockProposalMsg, error) {
 	txRoot := common.ComputeMerkleRoot(nil)
 	vbftBlkInfo := &vconfig.VbftBlockInfo{
 		Proposer:           1,
@@ -82,7 +82,7 @@ func TestBlockProposalMsgVerify(t *testing.T) {
 		t.Error("GetDefaultAccount error: acc is nil")
 		return
 	}
-	msg, err := constructProposalMsg(acc)
+	msg, err := constructProposalMsgTest(acc)
 	if err != nil {
 		t.Errorf("constructProposalMsg failed:%v", err)
 		return
@@ -112,7 +112,7 @@ func TestBlockEndorseMsg(t *testing.T) {
 		t.Error("GetDefaultAccount error: acc is nil")
 		return
 	}
-	block, err := constructProposalMsg(acc)
+	block, err := constructProposalMsgTest(acc)
 	if err != nil {
 		t.Errorf("TestBlockEndorseMsg failed: %v", err)
 		return
@@ -148,7 +148,7 @@ func TestBlockCommitMsg(t *testing.T) {
 		t.Error("GetDefaultAccount error: acc is nil")
 		return
 	}
-	block, err := constructProposalMsg(acc)
+	block, err := constructProposalMsgTest(acc)
 	if err != nil {
 		t.Errorf("TestBlockCommitMsg failed: %v", err)
 		return
@@ -327,7 +327,7 @@ func TestBlockFetchRespMsg(t *testing.T) {
 		t.Error("GetDefaultAccount error: acc is nil")
 		return
 	}
-	msg, err := constructProposalMsg(acc)
+	msg, err := constructProposalMsgTest(acc)
 	if err != nil {
 		t.Errorf("constructProposalMsg failed:%v", err)
 		return

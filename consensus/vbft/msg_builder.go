@@ -223,7 +223,7 @@ func (self *Server) constructProposalMsg(blkNum uint64, sysTxs, userTxs []*types
 	if prevBlk.Info.NewChainConfig != nil {
 		lastConfigBlkNum = prevBlk.getBlockNum()
 	}
-	if len(chainconfig.PosTable) != 0 {
+	if chainconfig != nil {
 		lastConfigBlkNum = blkNum
 	}
 	vbftBlkInfo := &vconfig.VbftBlockInfo{

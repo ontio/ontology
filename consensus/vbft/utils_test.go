@@ -35,7 +35,7 @@ func TestSignMsg(t *testing.T) {
 		t.Error("GetDefaultAccount error: acc is nil")
 		return
 	}
-	msg, err := constructProposalMsg(acc)
+	msg, err := constructProposalMsgTest(acc)
 	if err != nil {
 		t.Errorf("constructProposalMsg failed: %v", err)
 		return
