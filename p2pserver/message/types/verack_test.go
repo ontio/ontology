@@ -62,7 +62,7 @@ func TestVerackSerializationDeserialization(t *testing.T) {
 		t.Error(err)
 		return
 	} else {
-		t.Log("VerACK Test_Deserialization sucessful")
+		t.Log("VerACK Test_Deserialization successful")
 	}
 	t.Log("deserialize verack message, msg.IsConsensus = ", demsg.IsConsensus)
 }

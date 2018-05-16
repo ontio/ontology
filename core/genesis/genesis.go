@@ -126,7 +126,7 @@ func newUtilityToken() *types.Transaction {
 func newParamContract() *types.Transaction {
 	tx := utils.NewDeployTransaction(stypes.VmCode{Code: ParamContractAddress[:], VmType: stypes.Native},
 		"ParamConfig", "1.0", "Ontology Team", "contact@ont.io",
-		"Chain Global Enviroment Variables Manager ", true)
+		"Chain Global Environment Variables Manager ", true)
 	return tx
 }
 

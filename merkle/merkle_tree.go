@@ -275,7 +275,7 @@ func (self *CompactMerkleTree) subproof(m, n uint32, b bool) []common.Uint256 {
 // m zero based index, n size 1-based
 func (self *CompactMerkleTree) InclusionProof(m, n uint32) ([]common.Uint256, error) {
 	if m >= n {
-		return nil, errors.New("wrong paramaters")
+		return nil, errors.New("wrong parameters")
 	} else if self.treeSize < n {
 		return nil, errors.New("not available yet")
 	} else if self.hashStore == nil {

@@ -50,7 +50,7 @@ const (
 
 //info update const
 const (
-	PROTOCOL_VERSION      = 0         //protocol verison
+	PROTOCOL_VERSION      = 0         //protocol version
 	MAX_BUF_LEN           = 1024 * 16 //the maximum buffer to receive message
 	UPDATE_RATE_PER_BLOCK = 2         //info update rate in one generate block period
 	KEEPALIVE_TIMEOUT     = 15        //contact timeout in sec

@@ -40,19 +40,19 @@ func NewDetailErr(err error, errcode ErrCode, errmsg string) DetailError {
 		return nil
 	}
 
-	dnaerr, ok := err.(ontError)
+	onterr, ok := err.(ontError)
 	if !ok {
-		dnaerr.root = err
-		dnaerr.errmsg = err.Error()
-		dnaerr.callstack = getCallStack(0, callStackDepth)
-		dnaerr.code = errcode
+		onterr.root = err
+		onterr.errmsg = err.Error()
+		onterr.callstack = getCallStack(0, callStackDepth)
+		onterr.code = errcode
 
 	}
 	if errmsg != "" {
-		dnaerr.errmsg = errmsg + ": " + dnaerr.errmsg
+		onterr.errmsg = errmsg + ": " + onterr.errmsg
 	}
 
-	return dnaerr
+	return onterr
 }
 
 func RootErr(err error) error {
