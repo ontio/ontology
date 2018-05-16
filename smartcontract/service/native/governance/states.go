@@ -227,11 +227,11 @@ func (this *WhiteNodeParam) Deserialize(r io.Reader) error {
 }
 
 type PeerPoolList struct {
-	Peers []*PeerPool `json:"peers"`
+	Peers []*PeerPoolItem `json:"peers"`
 }
 
 type PeerPoolMap struct {
-	PeerPoolMap map[string]*PeerPool `json:"peerPoolMap"`
+	PeerPoolMap map[string]*PeerPoolItem `json:"peerPoolMap"`
 }
 
 func (this *PeerPoolMap) Serialize(w io.Writer) error {
@@ -252,16 +252,16 @@ func (this *PeerPoolMap) Deserialize(r io.Reader) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize PeerPoolMap length error!")
 	}
 	for i := 0; uint64(i) < n; i++ {
-		peerPool := new(PeerPool)
-		if err := peerPool.Deserialize(r); err != nil {
+		peerPoolItem := new(PeerPoolItem)
+		if err := peerPoolItem.Deserialize(r); err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "deserialize peerPool error!")
 		}
-		this.PeerPoolMap[peerPool.PeerPubkey] = peerPool
+		this.PeerPoolMap[peerPoolItem.PeerPubkey] = peerPoolItem
 	}
 	return nil
 }
 
-type PeerPool struct {
+type PeerPoolItem struct {
 	Index      uint32         `json:"index"`
 	PeerPubkey string         `json:"peerPubkey"`
 	Address    common.Address `json:"address"`
@@ -270,7 +270,7 @@ type PeerPool struct {
 	TotalPos   uint64         `json:"totalPos"`
 }
 
-func (this *PeerPool) Serialize(w io.Writer) error {
+func (this *PeerPoolItem) Serialize(w io.Writer) error {
 	if err := serialization.WriteUint32(w, this.Index); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize address error!")
 	}
@@ -292,7 +292,7 @@ func (this *PeerPool) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *PeerPool) Deserialize(r io.Reader) error {
+func (this *PeerPoolItem) Deserialize(r io.Reader) error {
 	index, err := serialization.ReadUint32(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize index error!")
@@ -381,19 +381,19 @@ func (this *VoteForPeerParam) Deserialize(r io.Reader) error {
 	return nil
 }
 
-type WithDrawParam struct {
+type WithdrawParam struct {
 	Address       string            `json:"address"`
-	WithDrawTable map[string]uint64 `json:"withDrawTable"`
+	WithdrawTable map[string]uint64 `json:"withDrawTable"`
 }
 
-func (this *WithDrawParam) Serialize(w io.Writer) error {
+func (this *WithdrawParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteString(w, this.Address); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize address error!")
 	}
-	if err := serialization.WriteVarUint(w, uint64(len(this.WithDrawTable))); err != nil {
+	if err := serialization.WriteVarUint(w, uint64(len(this.WithdrawTable))); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize WithDrawTable length error!")
 	}
-	for k, v := range this.WithDrawTable {
+	for k, v := range this.WithdrawTable {
 		if err := serialization.WriteString(w, k); err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize key error!")
 		}
@@ -404,7 +404,7 @@ func (this *WithDrawParam) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *WithDrawParam) Deserialize(r io.Reader) error {
+func (this *WithdrawParam) Deserialize(r io.Reader) error {
 	address, err := serialization.ReadString(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize address error!")
@@ -424,7 +424,7 @@ func (this *WithDrawParam) Deserialize(r io.Reader) error {
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64, deserialize value error!")
 		}
-		this.WithDrawTable[k] = v
+		this.WithdrawTable[k] = v
 	}
 	return nil
 }
@@ -435,9 +435,9 @@ type VoteInfoPool struct {
 	ConsensusPos        uint64         `json:"consensusPos"`
 	FreezePos           uint64         `json:"freezePos"`
 	NewPos              uint64         `json:"newPos"`
-	WithDrawPos         uint64         `json:"withDrawPos"`
-	WithDrawFreezePos   uint64         `json:"withDrawFreezePos"`
-	WithDrawUnfreezePos uint64         `json:"withDrawUnfreezePos"`
+	WithdrawPos         uint64         `json:"withdrawPos"`
+	WithdrawFreezePos   uint64         `json:"withdrawFreezePos"`
+	WithdrawUnfreezePos uint64         `json:"withdrawUnfreezePos"`
 }
 
 func (this *VoteInfoPool) Serialize(w io.Writer) error {
@@ -456,13 +456,13 @@ func (this *VoteInfoPool) Serialize(w io.Writer) error {
 	if err := serialization.WriteUint64(w, this.NewPos); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint64, serialize newPos error!")
 	}
-	if err := serialization.WriteUint64(w, this.WithDrawPos); err != nil {
+	if err := serialization.WriteUint64(w, this.WithdrawPos); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint64, serialize withDrawPos error!")
 	}
-	if err := serialization.WriteUint64(w, this.WithDrawFreezePos); err != nil {
+	if err := serialization.WriteUint64(w, this.WithdrawFreezePos); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint64, serialize withDrawFreezePos error!")
 	}
-	if err := serialization.WriteUint64(w, this.WithDrawUnfreezePos); err != nil {
+	if err := serialization.WriteUint64(w, this.WithdrawUnfreezePos); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint64, serialize withDrawUnfreezePos error!")
 	}
 	return nil
@@ -502,19 +502,19 @@ func (this *VoteInfoPool) Deserialize(r io.Reader) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64. deserialize withDrawPos error!")
 	}
-	this.WithDrawPos = withDrawPos
+	this.WithdrawPos = withDrawPos
 
 	withDrawFreezePos, err := serialization.ReadUint64(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64. deserialize withDrawFreezePos error!")
 	}
-	this.WithDrawFreezePos = withDrawFreezePos
+	this.WithdrawFreezePos = withDrawFreezePos
 
 	withDrawUnfreezePos, err := serialization.ReadUint64(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64. deserialize withDrawUnfreezePos error!")
 	}
-	this.WithDrawUnfreezePos = withDrawUnfreezePos
+	this.WithdrawUnfreezePos = withDrawUnfreezePos
 	return nil
 }
 

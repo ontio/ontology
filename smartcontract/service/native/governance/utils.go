@@ -109,7 +109,7 @@ func calDposTable(native *native.NativeService, config *Configuration,
 
 func GetPeerPoolMap(native *native.NativeService, contract common.Address, view *big.Int) (*PeerPoolMap, error) {
 	peerPoolMap := &PeerPoolMap{
-		PeerPoolMap: make(map[string]*PeerPool),
+		PeerPoolMap: make(map[string]*PeerPoolItem),
 	}
 	peerPoolMapBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_POOL), view.Bytes()))
 	if err != nil {
