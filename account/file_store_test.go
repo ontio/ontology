@@ -24,6 +24,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/stretchr/testify/assert"
 	"os"
+	"sort"
 	"testing"
 )
 
@@ -50,30 +51,50 @@ func TestAccountData(t *testing.T) {
 	assert.True(t, acc.VerifyPassword([]byte("123456")))
 }
 
-func TestWalletStorage(t *testing.T) {
+func TestWalletSave(t *testing.T) {
+	walletFile := "w.data"
 	defer func() {
-		os.Remove(WALLET_FILENAME)
+		os.Remove(walletFile)
 		os.RemoveAll("Log/")
 	}()
 
-	wallet := new(WalletData)
-	wallet.Inititalize()
-	wallet.Save(WALLET_FILENAME)
-	walletReadFromFile := new(WalletData)
-	walletReadFromFile.Load(WALLET_FILENAME)
-	assert.Equal(t, walletReadFromFile, wallet)
-	accout, _ := genAccountData()
-	wallet.AddAccount(accout)
-	wallet.AddAccount(accout)
-	wallet.Save(WALLET_FILENAME)
-	walletReadFromFile.Load(WALLET_FILENAME)
-	assert.Equal(t, walletReadFromFile, wallet)
-	wallet.DelAccount(2)
-	assert.Equal(t, 1, len(wallet.Accounts))
-	assert.Panics(t, func() { wallet.DelAccount(2) })
-	wallet.Save(WALLET_FILENAME)
-	walletReadFromFile.Load(WALLET_FILENAME)
-	assert.Equal(t, walletReadFromFile, wallet)
-	defaultAccount := wallet.GetDefaultAccount()
-	assert.Equal(t, defaultAccount, accout)
+	wallet := NewWalletData()
+	size := 10
+	for i := 0; i < size; i++ {
+		acc, _ := genAccountData()
+		wallet.AddAccount(acc)
+		err := wallet.Save(walletFile)
+		if err != nil {
+			t.Errorf("Save error:%s", err)
+			return
+		}
+	}
+
+	wallet2 := NewWalletData()
+	err := wallet2.Load(walletFile)
+	if err != nil {
+		t.Errorf("Load error:%s", err)
+		return
+	}
+
+	assert.Equal(t, len(wallet2.Accounts), len(wallet.Accounts))
+}
+
+func TestWalletDel(t *testing.T) {
+	wallet := NewWalletData()
+	size := 10
+	accList := make([]string, 0, size)
+	for i := 0; i < size; i++ {
+		acc, _ := genAccountData()
+		wallet.AddAccount(acc)
+		accList = append(accList, acc.Address)
+	}
+	sort.Strings(accList)
+	for _, address := range accList {
+		wallet.DelAccount(address)
+		_, index := wallet.GetAccountByAddress(address)
+		if !assert.Equal(t, -1, index) {
+			return
+		}
+	}
 }

@@ -16,18 +16,12 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cli
+package server
 
-import (
-	"math/rand"
-	"time"
-
-	"github.com/ontio/ontology/common/log"
-)
+import "github.com/ontio/ontology/cmd/server/handlers"
 
 func init() {
-	log.Init()
-	//crypto.SetAlg(config.Parameters.EncryptAlg)
-	//seed transaction nonce
-	rand.Seed(time.Now().UnixNano())
+	DefCliRpcSvr.RegHandler("sigrawtx", handlers.SigRawTransaction)
+	DefCliRpcSvr.RegHandler("sigtransfertx", handlers.SigTransferTransaction)
+	DefCliRpcSvr.RegHandler("siginvoketx", handlers.SigNeoVMInvokeTx)
 }

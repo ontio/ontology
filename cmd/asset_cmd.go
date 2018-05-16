@@ -21,120 +21,116 @@ package cmd
 import (
 	"fmt"
 	"github.com/ontio/ontology/account"
-	cmdCom "github.com/ontio/ontology/cmd/common"
+	cmdcom "github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/cmd/utils"
-	"github.com/ontio/ontology/common"
 	"github.com/urfave/cli"
+	"strings"
 )
 
 var AssetCommand = cli.Command{
-	Name:         "asset",
-	Usage:        "Handle assets",
-	OnUsageError: cmdCom.CommonCommandErrorHandler,
-	Description:  `asset control`,
+	Name:        "asset",
+	Usage:       "Handle assets",
+	Description: `asset control`,
 	Subcommands: []cli.Command{
 		{
-			Action:       transfer,
-			OnUsageError: cmdCom.CommonCommandErrorHandler,
-			Name:         "transfer",
-			Usage:        "Transfer ont to another account",
-			ArgsUsage:    " ",
-			Description:  "Transfer ont to another account. If from address doesnot specific, using default account",
+			Action:      transfer,
+			Name:        "transfer",
+			Usage:       "Transfer ont to another account",
+			ArgsUsage:   " ",
+			Description: "Transfer ont to another account. If from address doesnot specific, using default account",
 			Flags: []cli.Flag{
+				utils.TransactionGasPrice,
+				utils.TransactionGasLimit,
+				utils.TransactionAssetFlag,
 				utils.TransactionFromFlag,
 				utils.TransactionToFlag,
 				utils.TransactionAmountFlag,
 				utils.WalletFileFlag,
+				utils.AccountAddressFlag,
 			},
 		},
 		{
-			Action:       getBalance,
-			OnUsageError: cmdCom.CommonCommandErrorHandler,
-			Name:         "balance",
-			Usage:        "Show balance of ont and ong of specified account",
-			ArgsUsage:    "[address]",
+			Action:    getBalance,
+			Name:      "balance",
+			Usage:     "Show balance of ont and ong of specified account",
+			ArgsUsage: "[address]",
 			Flags: []cli.Flag{
-				utils.AccountAddressFlag,
 				utils.WalletFileFlag,
 			},
 		},
 		{
-			Action:       queryTransferStatus,
-			OnUsageError: cmdCom.CommonCommandErrorHandler,
-			Name:         "status",
-			Usage:        "Display asset status",
-			ArgsUsage:    "[address]",
-			Description:  `Display asset transfer status of [address] or the default account if not specified.`,
-			Flags: []cli.Flag{
-				utils.TransactionHashFlag,
-			},
+			Action:      queryTransferStatus,
+			Name:        "status",
+			Usage:       "Display asset status",
+			ArgsUsage:   "[address]",
+			Description: `Display asset transfer status of [address] or the default account if not specified.`,
+			Flags:       []cli.Flag{},
 		},
 	},
 }
 
 func transfer(ctx *cli.Context) error {
-	if !ctx.IsSet(utils.TransactionToFlag.Name) || !ctx.IsSet(utils.TransactionAmountFlag.Name) {
-		return fmt.Errorf("Missing argument to or amount")
+	if !ctx.IsSet(utils.GetFlagName(utils.TransactionToFlag)) ||
+		!ctx.IsSet(utils.GetFlagName(utils.TransactionFromFlag)) ||
+		!ctx.IsSet(utils.GetFlagName(utils.TransactionAmountFlag)) {
+		fmt.Println("Missing from, to or amount flag\n")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
 	}
 
+	asset := ctx.String(utils.GetFlagName(utils.TransactionAssetFlag))
+	if asset == "" {
+		asset = utils.ASSET_ONT
+	}
 	from := ctx.String(utils.TransactionFromFlag.Name)
-	to := ctx.String(utils.TransactionToFlag.Name)
-	amount := ctx.Uint(utils.TransactionAmountFlag.Name)
-
-	wallet, err := cmdCom.OpenWallet(ctx)
+	fromAddr, err := cmdcom.ParseAddress(from, ctx)
 	if err != nil {
-		return fmt.Errorf("OpenWallet error:%s", err)
+		return fmt.Errorf("Parse from address:%s error:%s", from, err)
 	}
-	var signer *account.Account
-	if from == "" {
-		signer = wallet.GetDefaultAccount()
-		if signer == nil {
-			return fmt.Errorf("Please specific from address correctly")
-		}
-	} else {
-		fromAddr, err := common.AddressFromBase58(from)
-		if err != nil {
-			return fmt.Errorf("Invalid from address:%s", from)
-		}
-		signer = wallet.GetAccountByAddress(fromAddr)
-		if signer == nil {
-			return fmt.Errorf("Cannot found account by address:%s", from)
-		}
+	to := ctx.String(utils.TransactionToFlag.Name)
+	toAddr, err := cmdcom.ParseAddress(to, ctx)
+	if err != nil {
+		return fmt.Errorf("Parse to address:%s error:%s", to, err)
 	}
+	amount := ctx.Uint64(utils.TransactionAmountFlag.Name)
+	gasPrice := ctx.Uint64(utils.TransactionGasPrice.Name)
+	gasLimit := ctx.Uint64(utils.TransactionGasLimit.Name)
 
-	txHash, err := utils.Transfer(signer, to, amount)
+	ctx.Set(utils.AccountAddressFlag.Name, from)
+	var signer *account.Account
+	signer, err = cmdcom.GetAccount(ctx)
+	if err != nil {
+		return fmt.Errorf("GetAccount error:%s", err)
+	}
+	txHash, err := utils.Transfer(gasPrice, gasLimit, signer, asset, fromAddr, toAddr, amount)
 	if err != nil {
 		return fmt.Errorf("Transfer error:%s", err)
 	}
-	fmt.Printf("Transfer ONT\n")
-	fmt.Printf("From:%s\n", signer.Address.ToBase58())
-	fmt.Printf("To:%s\n", to)
+	fmt.Printf("Transfer %s\n", strings.ToUpper(asset))
+	fmt.Printf("From:%s\n", fromAddr)
+	fmt.Printf("To:%s\n", toAddr)
 	fmt.Printf("Amount:%d\n", amount)
 	fmt.Printf("TxHash:%s\n", txHash)
 	return nil
 }
 
 func getBalance(ctx *cli.Context) error {
-	address := ""
-	if ctx.IsSet(utils.AccountAddressFlag.Name) {
-		address = ctx.String(utils.AccountAddressFlag.Name)
+	if ctx.NArg() < 1 {
+		fmt.Println("Missing argument. Account address, label or index expected.\n")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
 	}
-	if address == "" {
-		wallet, err := cmdCom.OpenWallet(ctx)
-		if err != nil {
-			return fmt.Errorf("OpenWallet error:%s", err)
-		}
-		defaultAcc := wallet.GetDefaultAccount()
-		if defaultAcc == nil {
-			return fmt.Errorf("GetDefaultAccount failed")
-		}
-		address = defaultAcc.Address.ToBase58()
-	}
-	balance, err := utils.GetBalance(address)
+
+	addrArg := ctx.Args().First()
+	accAddr, err := cmdcom.ParseAddress(addrArg, ctx)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("BalanceOf:%s\n", address)
+	balance, err := utils.GetBalance(accAddr)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("BalanceOf:%s\n", accAddr)
 	fmt.Printf("ONT:%s\n", balance.Ont)
 	fmt.Printf("ONG:%s\n", balance.Ong)
 	fmt.Printf("ONGApprove:%s\n", balance.OngAppove)
@@ -142,10 +138,12 @@ func getBalance(ctx *cli.Context) error {
 }
 
 func queryTransferStatus(ctx *cli.Context) error {
-	if !ctx.IsSet(utils.TransactionHashFlag.Name) {
-		return fmt.Errorf("Missing hash argument")
+	if ctx.NArg() < 1 {
+		fmt.Println("Missing argument. TxHash expected.\n")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
 	}
-	txHash := ctx.String(utils.TransactionHashFlag.Name)
+	txHash := ctx.Args().First()
 	evtInfos, err := utils.GetSmartContractEvent(txHash)
 	if err != nil {
 		return fmt.Errorf("GetSmartContractEvent error:%s", err)

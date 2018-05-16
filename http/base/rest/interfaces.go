@@ -20,19 +20,16 @@ package rest
 
 import (
 	"bytes"
-	"math/big"
-	"strconv"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
 	bactor "github.com/ontio/ontology/http/base/actor"
 	bcomn "github.com/ontio/ontology/http/base/common"
 	berr "github.com/ontio/ontology/http/base/error"
+	"strconv"
 )
 
 const TLS_PORT int = 443
@@ -398,41 +395,12 @@ func GetBalance(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-
-	ont := big.NewInt(0)
-	ong := big.NewInt(0)
-	appove := big.NewInt(0)
-
-	ontBalance, err := bactor.GetStorageItem(genesis.OntContractAddress, address[:])
+	balance, err := bcomn.GetBalance(address)
 	if err != nil {
-		log.Errorf("GetOntBalanceOf GetStorageItem ont address:%s error:%s", address, err)
+		log.Errorf("GetBalance address:%s error:%s", addrBase58, err)
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
-	if ontBalance != nil {
-		ont.SetBytes(ontBalance)
-	}
-
-	ongBalance, err := bactor.GetStorageItem(genesis.OngContractAddress, address[:])
-	if err != nil {
-		log.Errorf("GetOngBalanceOf GetStorageItem ong address:%s error:%s", address, err)
-		return ResponsePack(berr.INTERNAL_ERROR)
-	}
-	if ongBalance != nil {
-		ong.SetBytes(ongBalance)
-	}
-
-	appoveKey := append(genesis.OntContractAddress[:], address[:]...)
-	ongappove, err := bactor.GetStorageItem(genesis.OngContractAddress, appoveKey[:])
-
-	if ongappove != nil {
-		appove.SetBytes(ongappove)
-	}
-	rsp := &bcomn.BalanceOfRsp{
-		Ont:       ont.String(),
-		Ong:       ong.String(),
-		OngAppove: appove.String(),
-	}
-	resp["Result"] = rsp
+	resp["Result"] = balance
 	return resp
 }
 
