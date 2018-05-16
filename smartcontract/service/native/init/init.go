@@ -19,6 +19,7 @@
 package init
 
 import (
+	"github.com/ontio/ontology/smartcontract/service/native/auth"
 	params "github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/ong"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
@@ -28,4 +29,5 @@ func init() {
 	ong.InitOng()
 	ont.InitOnt()
 	params.InitGlobalParams()
+	auth.Init()
 }

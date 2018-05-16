@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package utils
 
 import (
@@ -190,7 +207,8 @@ func LinkedlistDelete(native *native.NativeService, index []byte, item []byte) (
 	prev, next := q.prev, q.next
 	if prev == nil {
 		if next == nil {
-			PutBytes(native, index, null) //clear linked list
+			//clear linked list
+			native.CloneCache.Delete(scommon.ST_STORAGE, index)
 		} else {
 			qnext, err := getListNode(native, index, next)
 			if err != nil {
@@ -235,7 +253,7 @@ func LinkedlistDelete(native *native.NativeService, index []byte, item []byte) (
 			PutBytes(native, append(index, next...), node_next)
 		}
 	}
-	PutBytes(native, append(index, item...), null)
+	native.CloneCache.Delete(scommon.ST_STORAGE, append(index, item...))
 	return true, nil
 }
 

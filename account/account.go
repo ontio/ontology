@@ -36,8 +36,7 @@ type Account struct {
 
 func NewAccount(encrypt string) *Account {
 	// Determine the public key algorithm and parameters according to
-	// the config file.
-	// FIXME: better to decouple from config file by inputing as arguments.
+	// the encrypt.
 	var pkAlgorithm keypair.KeyType
 	var params interface{}
 	var scheme s.SignatureScheme
@@ -82,28 +81,29 @@ func NewAccount(encrypt string) *Account {
 	}
 }
 
-func NewAccountWithPrivatekey(privateKey []byte) (*Account, error) {
-	pri, err := keypair.DeserializePrivateKey(privateKey)
-	if err != nil {
-		return nil, err
-	}
-	pub := pri.Public()
-	address := types.AddressFromPubKey(pub)
-	return &Account{
-		PrivateKey: pri,
-		PublicKey:  pub,
-		Address:    address,
-	}, nil
+func (this *Account) PrivKey() keypair.PrivateKey {
+	return this.PrivateKey
 }
 
-func (ac *Account) PrivKey() keypair.PrivateKey {
-	return ac.PrivateKey
+func (this *Account) PubKey() keypair.PublicKey {
+	return this.PublicKey
 }
 
-func (ac *Account) PubKey() keypair.PublicKey {
-	return ac.PublicKey
+func (this *Account) Scheme() s.SignatureScheme {
+	return this.SigScheme
 }
 
-func (ac *Account) Scheme() s.SignatureScheme {
-	return ac.SigScheme
+//AccountMetadata all account info without private key
+type AccountMetadata struct {
+	IsDefault bool   //Is default account
+	Label     string //Lable of account
+	KeyType   string //KeyType ECDSA,SM2 or EDDSA
+	Curve     string //Curve of key type
+	Address   string //Address(base58) of account
+	PubKey    string //Public  key
+	SigSch    string //Signature scheme
+	PassHash  string //Hash of password
+	Key       []byte //PrivateKey in encrypted
+	EncAlg    string //Encrypt alg of private key
+	Hash      string //Hash alg
 }

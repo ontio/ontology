@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package account
 
 import (
@@ -7,6 +24,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/stretchr/testify/assert"
 	"os"
+	"sort"
 	"testing"
 )
 
@@ -33,30 +51,50 @@ func TestAccountData(t *testing.T) {
 	assert.True(t, acc.VerifyPassword([]byte("123456")))
 }
 
-func TestWalletStorage(t *testing.T) {
+func TestWalletSave(t *testing.T) {
+	walletFile := "w.data"
 	defer func() {
-		os.Remove(WALLET_FILENAME)
+		os.Remove(walletFile)
 		os.RemoveAll("Log/")
 	}()
 
-	wallet := new(WalletData)
-	wallet.Inititalize()
-	wallet.Save(WALLET_FILENAME)
-	walletReadFromFile := new(WalletData)
-	walletReadFromFile.Load(WALLET_FILENAME)
-	assert.Equal(t, walletReadFromFile, wallet)
-	accout, _ := genAccountData()
-	wallet.AddAccount(accout)
-	wallet.AddAccount(accout)
-	wallet.Save(WALLET_FILENAME)
-	walletReadFromFile.Load(WALLET_FILENAME)
-	assert.Equal(t, walletReadFromFile, wallet)
-	wallet.DelAccount(2)
-	assert.Equal(t, 1, len(wallet.Accounts))
-	assert.Panics(t, func() { wallet.DelAccount(2) })
-	wallet.Save(WALLET_FILENAME)
-	walletReadFromFile.Load(WALLET_FILENAME)
-	assert.Equal(t, walletReadFromFile, wallet)
-	defaultAccount := wallet.GetDefaultAccount()
-	assert.Equal(t, defaultAccount, accout)
+	wallet := NewWalletData()
+	size := 10
+	for i := 0; i < size; i++ {
+		acc, _ := genAccountData()
+		wallet.AddAccount(acc)
+		err := wallet.Save(walletFile)
+		if err != nil {
+			t.Errorf("Save error:%s", err)
+			return
+		}
+	}
+
+	wallet2 := NewWalletData()
+	err := wallet2.Load(walletFile)
+	if err != nil {
+		t.Errorf("Load error:%s", err)
+		return
+	}
+
+	assert.Equal(t, len(wallet2.Accounts), len(wallet.Accounts))
+}
+
+func TestWalletDel(t *testing.T) {
+	wallet := NewWalletData()
+	size := 10
+	accList := make([]string, 0, size)
+	for i := 0; i < size; i++ {
+		acc, _ := genAccountData()
+		wallet.AddAccount(acc)
+		accList = append(accList, acc.Address)
+	}
+	sort.Strings(accList)
+	for _, address := range accList {
+		wallet.DelAccount(address)
+		_, index := wallet.GetAccountByAddress(address)
+		if !assert.Equal(t, -1, index) {
+			return
+		}
+	}
 }

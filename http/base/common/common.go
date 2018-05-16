@@ -19,12 +19,17 @@
 package common
 
 import (
+	"bytes"
+	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
 	bactor "github.com/ontio/ontology/http/base/actor"
+	"github.com/ontio/ontology/smartcontract/event"
 )
 
 type BalanceOfRsp struct {
@@ -40,6 +45,13 @@ type MerkleProof struct {
 	CurBlockRoot     string
 	CurBlockHeight   uint32
 	TargetHashes     []string
+}
+
+type ExecuteNotify struct {
+	TxHash      string
+	State       byte
+	GasConsumed uint64
+	Notify      []NotifyEventInfo
 }
 
 type NotifyEventInfo struct {
@@ -88,6 +100,7 @@ type BlockHead struct {
 	Timestamp        uint32
 	Height           uint32
 	ConsensusData    uint64
+	ConsensusPayload string
 	NextBookkeeper   string
 
 	Bookkeepers []string
@@ -129,6 +142,17 @@ type TXNEntryInfo struct {
 	Txn   Transactions  // transaction which has been verified
 	Fee   int64         // Total fee per transaction
 	Attrs []TXNAttrInfo // the result from each validator
+}
+
+func GetExecuteNotify(obj *event.ExecuteNotify) (map[string]bool, ExecuteNotify) {
+	evts := []NotifyEventInfo{}
+	var contractAddrs = make(map[string]bool)
+	for _, v := range obj.Notify {
+		evts = append(evts, NotifyEventInfo{v.ContractAddress.ToHexString(), v.States})
+		contractAddrs[v.ContractAddress.ToHexString()] = true
+	}
+	txhash := common.ToHexString(obj.TxHash[:])
+	return contractAddrs, ExecuteNotify{txhash, obj.State, obj.GasConsumed, evts}
 }
 
 func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
@@ -194,6 +218,7 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 		Timestamp:        block.Header.Timestamp,
 		Height:           block.Header.Height,
 		ConsensusData:    block.Header.ConsensusData,
+		ConsensusPayload: common.ToHexString(block.Header.ConsensusPayload),
 		NextBookkeeper:   block.Header.NextBookkeeper.ToBase58(),
 		Bookkeepers:      bookkeepers,
 		SigData:          sigData,
@@ -211,4 +236,35 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 		Transactions: trans,
 	}
 	return b
+}
+
+func getStoreUint64Value(contractAddress, accountAddress common.Address) (uint64, error) {
+	data, err := bactor.GetStorageItem(contractAddress, accountAddress[:])
+	if err != nil {
+		return 0, fmt.Errorf("GetOntBalanceOf GetStorageItem ont address:%s error:%s", accountAddress.ToBase58(), err)
+	}
+	if len(data) == 0 {
+		return 0, nil
+	}
+	value, err := serialization.ReadUint64(bytes.NewBuffer(data))
+	if err != nil {
+		return 0, fmt.Errorf("serialization.ReadUint64:%x error:%s", data, err)
+	}
+	return value, err
+}
+
+func GetBalance(address common.Address) (*BalanceOfRsp, error) {
+	ont, err := getStoreUint64Value(genesis.OntContractAddress, address)
+	if err != nil {
+		return nil, fmt.Errorf("getStoreUint64Value ont error:%s", err)
+	}
+	ong, err := getStoreUint64Value(genesis.OngContractAddress, address)
+	if err != nil {
+		return nil, fmt.Errorf("getStoreUint64Value ong error:%s", err)
+	}
+	return &BalanceOfRsp{
+		Ont:       fmt.Sprintf("%d", ont),
+		Ong:       fmt.Sprintf("%d", ong),
+		OngAppove: "0",
+	}, nil
 }
