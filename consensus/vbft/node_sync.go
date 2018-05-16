@@ -31,20 +31,20 @@ import (
 type SyncCheckReq struct {
 	msg      ConsensusMsg
 	peerIdx  uint32
-	blockNum uint64
+	blockNum uint32
 }
 
 type BlockSyncReq struct {
 	targetPeers    []uint32
-	startBlockNum  uint64
-	targetBlockNum uint64 // targetBlockNum == 0, as one cancel syncing request
+	startBlockNum  uint32
+	targetBlockNum uint32 // targetBlockNum == 0, as one cancel syncing request
 }
 
 type PeerSyncer struct {
 	lock          sync.Mutex
 	peerIdx       uint32
-	nextReqBlkNum uint64
-	targetBlkNum  uint64
+	nextReqBlkNum uint32
+	targetBlkNum  uint32
 	active        bool
 
 	server *Server
@@ -68,8 +68,8 @@ type Syncer struct {
 	server *Server
 
 	maxRequestPerPeer int
-	nextReqBlkNum     uint64
-	targetBlkNum      uint64
+	nextReqBlkNum     uint32
+	targetBlkNum      uint32
 
 	syncCheckReqC  chan *SyncCheckReq
 	blockSyncReqC  chan *BlockSyncReq
@@ -77,7 +77,7 @@ type Syncer struct {
 	blockFromPeerC chan *BlockMsgFromPeer
 
 	peers         map[uint32]*PeerSyncer
-	pendingBlocks map[uint64]BlockFromPeers // index by blockNum
+	pendingBlocks map[uint32]BlockFromPeers // index by blockNum
 }
 
 func newSyncer(server *Server) *Syncer {
@@ -90,7 +90,7 @@ func newSyncer(server *Server) *Syncer {
 		syncMsgC:          make(chan *SyncMsg, 256),
 		blockFromPeerC:    make(chan *BlockMsgFromPeer, 64),
 		peers:             make(map[uint32]*PeerSyncer),
-		pendingBlocks:     make(map[uint64]BlockFromPeers),
+		pendingBlocks:     make(map[uint32]BlockFromPeers),
 	}
 }
 
@@ -104,7 +104,7 @@ func (self *Syncer) stop() {
 	close(self.blockFromPeerC)
 
 	self.peers = make(map[uint32]*PeerSyncer)
-	self.pendingBlocks = make(map[uint64]BlockFromPeers)
+	self.pendingBlocks = make(map[uint32]BlockFromPeers)
 }
 
 func (self *Syncer) run() {
@@ -168,7 +168,7 @@ func (self *Syncer) run() {
 			for self.nextReqBlkNum <= self.targetBlkNum {
 				// FIXME: compete with ledger syncing
 				var blk *Block
-				if self.nextReqBlkNum <= uint64(ledger.DefLedger.GetCurrentBlockHeight()) {
+				if self.nextReqBlkNum <= ledger.DefLedger.GetCurrentBlockHeight() {
 					blk, _ = self.server.chainStore.GetBlock(self.nextReqBlkNum)
 				}
 				if blk == nil {
@@ -235,7 +235,7 @@ func (self *Syncer) isActive() bool {
 	return self.nextReqBlkNum <= self.targetBlkNum
 }
 
-func (self *Syncer) startPeerSyncer(syncer *PeerSyncer, targetBlkNum uint64) error {
+func (self *Syncer) startPeerSyncer(syncer *PeerSyncer, targetBlkNum uint32) error {
 
 	syncer.lock.Lock()
 	defer syncer.lock.Unlock()
@@ -335,7 +335,7 @@ func (self *PeerSyncer) run() {
 	}()
 
 	var err error
-	blkProposers := make(map[uint64]uint32)
+	blkProposers := make(map[uint32]uint32)
 	for self.nextReqBlkNum <= self.targetBlkNum {
 		blkNum := self.nextReqBlkNum
 		if _, present := blkProposers[blkNum]; !present {
@@ -394,7 +394,7 @@ func (self *PeerSyncer) stop(force bool) bool {
 	return false
 }
 
-func (self *PeerSyncer) requestBlock(blkNum uint64) (*Block, error) {
+func (self *PeerSyncer) requestBlock(blkNum uint32) (*Block, error) {
 	msg, err := self.server.constructBlockFetchMsg(blkNum)
 	if err != nil {
 		return nil, err
@@ -428,7 +428,7 @@ func (self *PeerSyncer) requestBlock(blkNum uint64) (*Block, error) {
 	return nil, fmt.Errorf("failed to get Block %d from peer %d", blkNum, self.peerIdx)
 }
 
-func (self *PeerSyncer) requestBlockInfo(startBlkNum uint64) ([]*BlockInfo_, error) {
+func (self *PeerSyncer) requestBlockInfo(startBlkNum uint32) ([]*BlockInfo_, error) {
 	msg, err := self.server.constructBlockInfoFetchMsg(startBlkNum)
 	if err != nil {
 		return nil, err
@@ -464,7 +464,7 @@ func (self *PeerSyncer) requestBlockInfo(startBlkNum uint64) ([]*BlockInfo_, err
 	return nil, nil
 }
 
-func (self *PeerSyncer) fetchedBlock(blkNum uint64, block *Block) error {
+func (self *PeerSyncer) fetchedBlock(blkNum uint32, block *Block) error {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 

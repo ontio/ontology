@@ -29,7 +29,7 @@ import (
 func peerPool() *PeerPool {
 	nodeId, _ := vconfig.StringID("120202c924ed1a67fd1719020ce599d723d09d48362376836e04b0be72dfe825e24d81")
 	peerconfig := &vconfig.PeerConfig{
-		Index: uint32(1),
+		Index: 1,
 		ID:    nodeId,
 	}
 	peerpool := constructPeerPool(false)
@@ -42,7 +42,7 @@ func constructServer() *Server {
 		currentState: Syncing,
 	}
 	blockparticipantconfig := &BlockParticipantConfig{
-		BlockNum:   uint64(1),
+		BlockNum:   1,
 		L:          uint32(2),
 		Proposers:  []uint32{1, 2, 3},
 		Endorsers:  []uint32{1, 2, 3},
@@ -59,10 +59,10 @@ func constructServer() *Server {
 		PosTable:             []uint32{2, 3, 1, 3, 1, 3, 2, 3, 2, 3, 2, 1, 3},
 	}
 	chainstore := &ChainStore{
-		chainedBlockNum: uint64(2),
+		chainedBlockNum: 2,
 	}
 	server := &Server{
-		Index:                    uint32(1),
+		Index:                    1,
 		stateMgr:                 statemgr,
 		currentParticipantConfig: blockparticipantconfig,
 		config:     chainconfig,
@@ -73,49 +73,49 @@ func constructServer() *Server {
 func TestIsPeerAlive(t *testing.T) {
 	server := constructServer()
 	server.peerPool = peerPool()
-	res := server.isPeerAlive(uint32(2), uint64(1))
+	res := server.isPeerAlive(2, 1)
 	t.Logf("TestIsPeerAlive: %v", res)
 }
 
 func TestIsPeerActive(t *testing.T) {
 	server := constructServer()
 	server.peerPool = peerPool()
-	res := server.isPeerActive(uint32(2), uint64(1))
+	res := server.isPeerActive(uint32(2), 1)
 	t.Logf("TestIsPeerActive: %v", res)
 }
 
 func TestIsProposer(t *testing.T) {
 	server := constructServer()
 	server.peerPool = peerPool()
-	res := server.isProposer(uint64(1), uint32(1))
+	res := server.isProposer(1, 1)
 	t.Logf("TestIsProposer: %v", res)
 }
 
 func TestIs2ndProposer(t *testing.T) {
 	server := constructServer()
 	server.peerPool = peerPool()
-	res := server.is2ndProposer(uint64(1), uint32(1))
+	res := server.is2ndProposer(1, 1)
 	t.Logf("TestIs2ndProposer %v", res)
 }
 
 func TestIsEndorser(t *testing.T) {
 	server := constructServer()
 	server.peerPool = peerPool()
-	res := server.isEndorser(uint64(1), uint32(1))
+	res := server.isEndorser(1, 1)
 	t.Logf("TestIsEndorser %v", res)
 }
 
 func TestIsCommitter(t *testing.T) {
 	server := constructServer()
 	server.peerPool = peerPool()
-	res := server.isCommitter(uint64(1), uint32(1))
+	res := server.isCommitter(1, 1)
 	t.Logf("TestIsCommitter %v", res)
 }
 
 func TestGetProposerRankLocked(t *testing.T) {
 	server := constructServer()
 	server.peerPool = peerPool()
-	rank := server.getProposerRankLocked(uint64(1), uint32(1))
+	rank := server.getProposerRankLocked(1, 1)
 	t.Logf("TestGetProposerRankLocked %v", rank)
 }
 
@@ -133,15 +133,15 @@ func TestGetHighestRankProposal(t *testing.T) {
 	}
 	var proposals []*blockProposalMsg
 	proposals = append(proposals, blockproposalmsg)
-	msg := server.getHighestRankProposal(uint64(1), proposals)
+	msg := server.getHighestRankProposal(1, proposals)
 	t.Logf("TestGetHighestRankProposal %v", msg)
 }
 
 func TestGetCommitConsensus(t *testing.T) {
 	blockcommitmsg := &blockCommitMsg{
-		Committer:       uint32(1),
-		BlockProposer:   uint32(1),
-		BlockNum:        uint64(1),
+		Committer:       1,
+		BlockProposer:   1,
+		BlockNum:        1,
 		CommitBlockHash: common.Uint256{},
 		CommitForEmpty:  true,
 	}

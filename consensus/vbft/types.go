@@ -39,15 +39,15 @@ func (blk *Block) getProposer() uint32 {
 	return blk.Info.Proposer
 }
 
-func (blk *Block) getBlockNum() uint64 {
-	return uint64(blk.Block.Header.Height)
+func (blk *Block) getBlockNum() uint32 {
+	return blk.Block.Header.Height
 }
 
 func (blk *Block) getPrevBlockHash() common.Uint256 {
 	return blk.Block.Header.PrevBlockHash
 }
 
-func (blk *Block) getLastConfigBlockNum() uint64 {
+func (blk *Block) getLastConfigBlockNum() uint32 {
 	return blk.Info.LastConfigBlockNum
 }
 

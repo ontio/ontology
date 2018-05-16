@@ -63,7 +63,7 @@ func genConsensusPayload(cfg *config.VBFTConfig) ([]byte, error) {
 	}
 	vbftBlockInfo := &VbftBlockInfo{
 		Proposer:           math.MaxUint32,
-		LastConfigBlockNum: math.MaxUint64,
+		LastConfigBlockNum: math.MaxUint32,
 		NewChainConfig:     chainConfig,
 	}
 	return json.Marshal(vbftBlockInfo)

@@ -34,7 +34,7 @@ func constructProposalMsgTest(acc *account.Account) (*blockProposalMsg, error) {
 	txRoot := common.ComputeMerkleRoot(nil)
 	vbftBlkInfo := &vconfig.VbftBlockInfo{
 		Proposer:           1,
-		LastConfigBlockNum: uint64(12),
+		LastConfigBlockNum: 12,
 		NewChainConfig:     nil,
 	}
 	consensusPayload, err := json.Marshal(vbftBlkInfo)
@@ -170,9 +170,9 @@ func TestBlockCommitMsg(t *testing.T) {
 func constructHandshakeMsg(acc *account.Account) (*peerHandshakeMsg, error) {
 	cc := &vconfig.ChainConfig{}
 	msg := &peerHandshakeMsg{
-		CommittedBlockNumber: uint64(1),
+		CommittedBlockNumber: 1,
 		CommittedBlockHash:   common.Uint256{},
-		CommittedBlockLeader: uint32(3),
+		CommittedBlockLeader: 3,
 		ChainConfig:          cc,
 	}
 	return msg, nil
@@ -228,7 +228,7 @@ func TestPeerHeartbeatMsg(t *testing.T) {
 
 func constructBlockInfoFetchMsg(acc *account.Account) (*BlockInfoFetchMsg, error) {
 	msg := &BlockInfoFetchMsg{
-		StartBlockNum: uint64(1),
+		StartBlockNum: 1,
 	}
 
 	return msg, nil
@@ -255,8 +255,8 @@ func TestBlockInfoFetchMsg(t *testing.T) {
 
 func constructBlockInfoFetchRespMsg(acc *account.Account) (*BlockInfoFetchRespMsg, error) {
 	blockInfo := &BlockInfo_{
-		BlockNum: uint64(1),
-		Proposer: uint32(1),
+		BlockNum: 1,
+		Proposer: 1,
 	}
 	var blockInfos []*BlockInfo_
 	blockInfos = append(blockInfos, blockInfo)
@@ -287,7 +287,7 @@ func TestBlockInfoFetchRespMsg(t *testing.T) {
 
 func constructBlockFetchMsg(acc *account.Account) (*blockFetchMsg, error) {
 	msg := &blockFetchMsg{
-		BlockNum: uint64(1),
+		BlockNum: 1,
 	}
 
 	return msg, nil
@@ -313,7 +313,7 @@ func TestBlockFetchMsg(t *testing.T) {
 
 func constructBlockFetchRespMsg(acc *account.Account, blk *Block) (*BlockFetchRespMsg, error) {
 	msg := &BlockFetchRespMsg{
-		BlockNumber: uint64(1),
+		BlockNumber: 1,
 		BlockHash:   common.Uint256{},
 		BlockData:   blk,
 	}
@@ -347,7 +347,7 @@ func TestBlockFetchRespMsg(t *testing.T) {
 
 func constructProposalFetchMsg(acc *account.Account) (*proposalFetchMsg, error) {
 	msg := &proposalFetchMsg{
-		BlockNum: uint64(1),
+		BlockNum: 1,
 	}
 	return msg, nil
 }
@@ -375,7 +375,7 @@ func constructBlock() (*Block, error) {
 	txRoot := common.ComputeMerkleRoot(nil)
 	vbftBlkInfo := &vconfig.VbftBlockInfo{
 		Proposer:           1,
-		LastConfigBlockNum: uint64(1),
+		LastConfigBlockNum: 1,
 		NewChainConfig:     nil,
 	}
 	consensusPayload, err := json.Marshal(vbftBlkInfo)
@@ -409,7 +409,7 @@ func TestBlockFetchRespMsgSerialize(t *testing.T) {
 		return
 	}
 	blockfetchrespmsg := &BlockFetchRespMsg{
-		BlockNumber: uint64(1),
+		BlockNumber: 1,
 		BlockHash:   common.Uint256{},
 		BlockData:   blk,
 	}
@@ -428,7 +428,7 @@ func TestBlockFetchRespMsgDeserialize(t *testing.T) {
 		return
 	}
 	blockfetchrespmsg := &BlockFetchRespMsg{
-		BlockNumber: uint64(1),
+		BlockNumber: 1,
 		BlockHash:   common.Uint256{},
 		BlockData:   blk,
 	}

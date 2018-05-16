@@ -72,12 +72,12 @@ func TestBlock_getBlockNum(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		want   uint64
+		want   uint32
 	}{
 		{
 			name:   "test",
 			fields: fields{Block: blk.Block, Info: blk.Info},
-			want:   uint64(1),
+			want:   uint32(1),
 		},
 	}
 	for _, tt := range tests {
@@ -139,12 +139,12 @@ func TestBlock_getLastConfigBlockNum(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		want   uint64
+		want   uint32
 	}{
 		{
 			name:   "test",
 			fields: fields{Block: blk.Block, Info: blk.Info},
-			want:   uint64(1),
+			want:   uint32(1),
 		},
 	}
 	for _, tt := range tests {

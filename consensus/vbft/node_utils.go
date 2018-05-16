@@ -30,15 +30,15 @@ import (
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 )
 
-func (self *Server) GetCurrentBlockNo() uint64 {
+func (self *Server) GetCurrentBlockNo() uint32 {
 	return self.currentBlockNum
 }
 
-func (self *Server) GetCommittedBlockNo() uint64 {
+func (self *Server) GetCommittedBlockNo() uint32 {
 	return self.chainStore.GetChainedBlockNum()
 }
 
-func (self *Server) isPeerAlive(peerIdx uint32, blockNum uint64) bool {
+func (self *Server) isPeerAlive(peerIdx uint32, blockNum uint32) bool {
 
 	// TODO
 	if peerIdx == self.Index {
@@ -48,7 +48,7 @@ func (self *Server) isPeerAlive(peerIdx uint32, blockNum uint64) bool {
 	return self.peerPool.isPeerAlive(peerIdx)
 }
 
-func (self *Server) isPeerActive(peerIdx uint32, blockNum uint64) bool {
+func (self *Server) isPeerActive(peerIdx uint32, blockNum uint32) bool {
 	if self.isPeerAlive(peerIdx, blockNum) {
 		p := self.peerPool.getPeer(peerIdx)
 		if p == nil {
@@ -69,7 +69,7 @@ func (self *Server) isPeerActive(peerIdx uint32, blockNum uint64) bool {
 // all other proposer as 2nd-proposer
 // before propose-timeout, only proposal from leader-proposer is accepted
 //
-func (self *Server) isProposer(blockNum uint64, peerIdx uint32) bool {
+func (self *Server) isProposer(blockNum uint32, peerIdx uint32) bool {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
 
@@ -89,19 +89,19 @@ func (self *Server) isProposer(blockNum uint64, peerIdx uint32) bool {
 	return false
 }
 
-func (self *Server) is2ndProposer(blockNum uint64, peerIdx uint32) bool {
+func (self *Server) is2ndProposer(blockNum uint32, peerIdx uint32) bool {
 	rank := self.getProposerRank(blockNum, peerIdx)
 	return rank > 0 && rank <= int(self.config.C)
 }
 
-func (self *Server) getProposerRank(blockNum uint64, peerIdx uint32) int {
+func (self *Server) getProposerRank(blockNum uint32, peerIdx uint32) int {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
 
 	return self.getProposerRankLocked(blockNum, peerIdx)
 }
 
-func (self *Server) isEndorser(blockNum uint64, peerIdx uint32) bool {
+func (self *Server) isEndorser(blockNum uint32, peerIdx uint32) bool {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
 
@@ -124,7 +124,7 @@ func (self *Server) isEndorser(blockNum uint64, peerIdx uint32) bool {
 	return false
 }
 
-func (self *Server) isCommitter(blockNum uint64, peerIdx uint32) bool {
+func (self *Server) isCommitter(blockNum uint32, peerIdx uint32) bool {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
 
@@ -147,7 +147,7 @@ func (self *Server) isCommitter(blockNum uint64, peerIdx uint32) bool {
 	return false
 }
 
-func (self *Server) getProposerRankLocked(blockNum uint64, peerIdx uint32) int {
+func (self *Server) getProposerRankLocked(blockNum uint32, peerIdx uint32) int {
 	if blockNum == self.currentParticipantConfig.BlockNum {
 		for rank, id := range self.currentParticipantConfig.Proposers {
 			if id == peerIdx {
@@ -160,7 +160,7 @@ func (self *Server) getProposerRankLocked(blockNum uint64, peerIdx uint32) int {
 	return len(self.currentParticipantConfig.Proposers)
 }
 
-func (self *Server) getHighestRankProposal(blockNum uint64, proposals []*blockProposalMsg) *blockProposalMsg {
+func (self *Server) getHighestRankProposal(blockNum uint32, proposals []*blockProposalMsg) *blockProposalMsg {
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
 
@@ -191,7 +191,7 @@ func (self *Server) getHighestRankProposal(blockNum uint64, proposals []*blockPr
 //
 //  call this method with metaLock locked
 //
-func (self *Server) buildParticipantConfig(blkNum uint64, chainCfg *vconfig.ChainConfig) (*BlockParticipantConfig, error) {
+func (self *Server) buildParticipantConfig(blkNum uint32, chainCfg *vconfig.ChainConfig) (*BlockParticipantConfig, error) {
 
 	if blkNum == 0 {
 		return nil, fmt.Errorf("not participant config for genesis block")
@@ -307,7 +307,7 @@ func getCommitConsensus(commitMsgs []*blockCommitMsg, C int) (uint32, bool) {
 	return math.MaxUint32, false
 }
 
-func (self *Server) findBlockProposal(blkNum uint64, proposer uint32, forEmpty bool) *blockProposalMsg {
+func (self *Server) findBlockProposal(blkNum uint32, proposer uint32, forEmpty bool) *blockProposalMsg {
 	for _, p := range self.blockPool.getBlockProposals(blkNum) {
 		if p.Block.getProposer() == proposer {
 			return p

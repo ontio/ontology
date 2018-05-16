@@ -60,13 +60,13 @@ const (
 
 type BftAction struct {
 	Type     BftActionType
-	BlockNum uint64
+	BlockNum uint32
 	Proposal *blockProposalMsg
 	forEmpty bool
 }
 
 type BlockParticipantConfig struct {
-	BlockNum    uint64
+	BlockNum    uint32
 	L           uint32
 	Vrf         vconfig.VRFValue
 	ChainConfig *vconfig.ChainConfig
@@ -90,7 +90,7 @@ type Server struct {
 	pid           *actor.PID
 
 	// some config
-	msgHistoryDuration uint64
+	msgHistoryDuration uint32
 
 	//
 	// Note:
@@ -99,8 +99,8 @@ type Server struct {
 	// 3. msgpool.Lock is independent, should have no exclusive overlap with other locks.
 	//
 	metaLock                 sync.RWMutex
-	completedBlockNum        uint64 // ledger SaveBlockCompleted block num
-	currentBlockNum          uint64
+	completedBlockNum        uint32 // ledger SaveBlockCompleted block num
+	currentBlockNum          uint32
 	config                   *vconfig.ChainConfig
 	currentParticipantConfig *BlockParticipantConfig
 
@@ -217,8 +217,8 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 
 	self.incrValidator.AddBlock(block)
 
-	if uint64(block.Header.Height) > self.completedBlockNum {
-		self.completedBlockNum = uint64(block.Header.Height)
+	if block.Header.Height > self.completedBlockNum {
+		self.completedBlockNum = block.Header.Height
 	} else {
 		log.Errorf("server %d, persist block %d, vs completed %d",
 			self.Index, block.Header.Height, self.completedBlockNum)
@@ -271,7 +271,7 @@ func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
 		cfg = *block.getNewChainConfig()
 	} else {
 		cfgBlock := block
-		if block.getLastConfigBlockNum() != math.MaxUint64 {
+		if block.getLastConfigBlockNum() != math.MaxUint32 {
 			cfgBlock, err = chainStore.GetBlock(block.getLastConfigBlockNum())
 			if err != nil {
 				return fmt.Errorf("failed to get cfg block: %s", err)
@@ -721,7 +721,7 @@ func (self *Server) startNewRound() error {
 	return nil
 }
 
-func (self *Server) startNewProposal(blkNum uint64) error {
+func (self *Server) startNewProposal(blkNum uint32) error {
 	// make proposal
 	if self.isProposer(blkNum, self.Index) {
 		log.Infof("server %d, proposer for block %d", self.Index, blkNum)
@@ -782,7 +782,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 						self.Index, msgBlkNum, pMsg.Block.getProposer(), self.GetCommittedBlockNo())
 					self.timer.C <- &TimerEvent{
 						evtType:  EventPeerHeartbeat,
-						blockNum: uint64(pMsg.Block.getProposer()),
+						blockNum: pMsg.Block.getProposer(),
 					}
 				}
 				return
@@ -836,7 +836,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 						self.Index, msgBlkNum, pMsg.Endorser, self.GetCommittedBlockNo())
 					self.timer.C <- &TimerEvent{
 						evtType:  EventPeerHeartbeat,
-						blockNum: uint64(pMsg.Endorser),
+						blockNum: pMsg.Endorser,
 					}
 				}
 				return
@@ -891,7 +891,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 						self.Index, msgBlkNum, pMsg.Committer, self.GetCommittedBlockNo())
 					self.timer.C <- &TimerEvent{
 						evtType:  EventPeerHeartbeat,
-						blockNum: uint64(pMsg.Committer),
+						blockNum: pMsg.Committer,
 					}
 				}
 				return
@@ -925,7 +925,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 			// delayed peer detected, response heartbeat with our chain Info
 			self.timer.C <- &TimerEvent{
 				evtType:  EventPeerHeartbeat,
-				blockNum: uint64(peerIdx),
+				blockNum: peerIdx,
 			}
 		}
 
@@ -2005,8 +2005,8 @@ func (self *Server) creategovernaceTransaction() *types.Transaction {
 }
 
 //checkNeedUpdateChainConfig use blockcount
-func (self *Server) checkNeedUpdateChainConfig(blockNum uint64) bool {
-	if blockNum%uint64(self.config.MaxBlockChangeView) == 0 {
+func (self *Server) checkNeedUpdateChainConfig(blockNum uint32) bool {
+	if blockNum%self.config.MaxBlockChangeView == 0 {
 		return true
 	}
 	return false
@@ -2023,8 +2023,8 @@ func (self *Server) checkUpdateChainConfig() bool {
 	return force
 }
 
-func (self *Server) valideHeight(blkNum uint64) uint32 {
-	height := uint32(blkNum) - 1
+func (self *Server) valideHeight(blkNum uint32) uint32 {
+	height := blkNum - 1
 	validHeight := height
 	start, end := self.incrValidator.BlockRange()
 	if height+1 == end {
@@ -2035,7 +2035,7 @@ func (self *Server) valideHeight(blkNum uint64) uint32 {
 	return validHeight
 }
 
-func (self *Server) makeProposal(blkNum uint64, forEmpty bool) error {
+func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 	if blkNum < self.GetCurrentBlockNo() {
 		return fmt.Errorf("server %d ignore deprecatd blk proposal %d, current %d",
 			self.Index, blkNum, self.GetCurrentBlockNo())
@@ -2085,7 +2085,7 @@ func (self *Server) makeProposal(blkNum uint64, forEmpty bool) error {
 	return self.broadcast(proposal)
 }
 
-func (self *Server) makeCommitment(proposal *blockProposalMsg, blkNum uint64, forEmpty bool) error {
+func (self *Server) makeCommitment(proposal *blockProposalMsg, blkNum uint32, forEmpty bool) error {
 	if err := self.commitBlock(proposal, forEmpty); err != nil {
 		return fmt.Errorf("failed to commit block proposal (%d): %s", blkNum, err)
 	}
@@ -2130,7 +2130,7 @@ func (self *Server) reBroadcastCurrentRoundMsgs() error {
 	return nil
 }
 
-func (self *Server) fetchProposal(blkNum uint64, proposer uint32) error {
+func (self *Server) fetchProposal(blkNum uint32, proposer uint32) error {
 	msg, err := self.constructProposalFetchMsg(blkNum, proposer)
 	if err != nil {
 		return nil
@@ -2269,7 +2269,7 @@ func (self *Server) initHandshake(peerIdx uint32, peerPubKey keypair.PublicKey) 
 }
 
 // TODO: refactor this
-func (self *Server) catchConsensus(blkNum uint64) error {
+func (self *Server) catchConsensus(blkNum uint32) error {
 	if !self.isEndorser(blkNum, self.Index) && !self.isCommitter(blkNum, self.Index) {
 		return nil
 	}
@@ -2359,7 +2359,7 @@ func (self *Server) catchConsensus(blkNum uint64) error {
 	return nil
 }
 
-func (self *Server) verifyPrevBlockHash(blkNum uint64, proposal *blockProposalMsg) error {
+func (self *Server) verifyPrevBlockHash(blkNum uint32, proposal *blockProposalMsg) error {
 	prevBlk, prevBlkHash := self.blockPool.getSealedBlock(blkNum - 1)
 	if prevBlk == nil {
 		// TODO: has no candidate proposals for prevBlock, should restart syncing
