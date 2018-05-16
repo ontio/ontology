@@ -212,7 +212,7 @@ func (this *ClientImpl) ImportAccount(accMeta *AccountMetadata) error {
 	accData.Alg = accMeta.KeyType
 	accData.Address = accMeta.Address
 	accData.EncAlg = accMeta.EncAlg
-	accData.Hash = accData.Hash
+	accData.Hash = accMeta.Hash
 	accData.Param = map[string]string{"curve": accMeta.Curve}
 
 	oldAccMeta := this.GetAccountMetadataByLabel(accData.Label)

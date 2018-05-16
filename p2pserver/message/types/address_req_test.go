@@ -36,6 +36,6 @@ func TestAddrReqSerializationDeserialization(t *testing.T) {
 		t.Error(err)
 		return
 	} else {
-		t.Log("getaddr Test_Deserialization sucessful")
+		t.Log("getaddr Test_Deserialization successful")
 	}
 }
