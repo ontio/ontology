@@ -91,37 +91,24 @@ func GetAccountMulti(wallet account.Client, passwd []byte, accAddr string) (*acc
 	return nil, fmt.Errorf("cannot get account by:%s", accAddr)
 }
 
-func GetAccountPublicMulti(wallet account.Client, accAddr string) (*account.AccountPublic, error) {
+func GetAccountMetadataMulti(wallet account.Client, accAddr string) *account.AccountMetadata {
 	//Address maybe address in base58, label or index
 	if accAddr == "" {
-		return wallet.GetDefaultAccountPublic()
+		return wallet.GetDefaultAccountMetadata()
 	}
-	acc, err := wallet.GetAccountPublicByAddress(accAddr)
-	if err != nil {
-		return nil, fmt.Errorf("getAccountByAddress:%s error:%s", accAddr, err)
-	}
+	acc := wallet.GetAccountMetadataByAddress(accAddr)
 	if acc != nil {
-		return acc, nil
+		return acc
 	}
-	acc, err = wallet.GetAccountPublicByLabel(accAddr)
-	if err != nil {
-		return nil, fmt.Errorf("getAccountByLabel:%s error:%s", accAddr, err)
-	}
+	acc = wallet.GetAccountMetadataByLabel(accAddr)
 	if acc != nil {
-		return acc, nil
+		return acc
 	}
 	index, err := strconv.ParseInt(accAddr, 10, 32)
 	if err != nil {
-		return nil, fmt.Errorf("cannot get account by:%s", accAddr)
+		return nil
 	}
-	acc, err = wallet.GetAccountPublicByIndex(int(index))
-	if err != nil {
-		return nil, fmt.Errorf("getAccountByIndex:%d error:%s", index, err)
-	}
-	if acc != nil {
-		return acc, nil
-	}
-	return nil, fmt.Errorf("cannot get account by:%s", accAddr)
+	return wallet.GetAccountMetadataByIndex(int(index))
 }
 
 func GetAccount(ctx *cli.Context) (*account.Account, error) {
@@ -152,23 +139,17 @@ func ParseAddress(address string, ctx *cli.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	acc, err := wallet.GetAccountPublicByLabel(address)
-	if err != nil {
-		return "", fmt.Errorf("getAccountByLabel:%s error:%s", address, err)
-	}
+	acc := wallet.GetAccountMetadataByLabel(address)
 	if acc != nil {
-		return acc.Address.ToBase58(), nil
+		return acc.Address, nil
 	}
 	index, err := strconv.ParseInt(address, 10, 32)
 	if err != nil {
 		return "", fmt.Errorf("cannot get account by:%s", address)
 	}
-	acc, err = wallet.GetAccountPublicByIndex(int(index))
-	if err != nil {
-		return "", fmt.Errorf("getAccountByIndex:%d error:%s", index, err)
-	}
+	acc = wallet.GetAccountMetadataByIndex(int(index))
 	if acc != nil {
-		return acc.Address.ToBase58(), nil
+		return acc.Address, nil
 	}
 	return "", fmt.Errorf("cannot get account by:%s", address)
 }

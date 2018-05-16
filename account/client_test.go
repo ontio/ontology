@@ -156,7 +156,7 @@ func TestClientDeleteAccount(t *testing.T) {
 	}
 	accTmp, err := testWallet.GetAccountByAddress(delAcc.Address.ToBase58(), testPasswd)
 	if err != nil {
-		t.Errorf("TestClientDeleteAccount GetAccountByAddress:%s error:%s", delAcc.Address.ToBase58())
+		t.Errorf("TestClientDeleteAccount GetAccountByAddress:%s error:%s", delAcc.Address.ToBase58(), err)
 		return
 	}
 	if accTmp != nil {
@@ -178,16 +178,12 @@ func TestClientSetLabel(t *testing.T) {
 		}
 	}
 	testAccIndex := 5
-	testAcc, err := testWallet.GetAccountByIndex(testAccIndex, testPasswd)
-	if err != nil {
-		t.Errorf("TestClientSetLabel GetAccountByIndex:%d error:%s", testAccIndex, err)
-		return
-	}
+	testAcc := testWallet.GetAccountMetadataByIndex(testAccIndex)
 	oldLabel := testAcc.Label
 	newLabel := fmt.Sprintf("%s-%d", oldLabel, testAccIndex)
 
 	accountNum = testWallet.GetAccountNum()
-	err = testWallet.SetLabel(testAcc.Address.ToBase58(), newLabel, testPasswd)
+	err := testWallet.SetLabel(testAcc.Address, newLabel, testPasswd)
 	if err != nil {
 		t.Errorf("TestClientSetLabel SetLabel error:%s", err)
 		return
@@ -208,8 +204,8 @@ func TestClientSetLabel(t *testing.T) {
 		return
 	}
 
-	if accTmp.Address.ToBase58() != testAcc.Address.ToBase58() {
-		t.Errorf("TestClientSetLabel address:%s != %s", accTmp.Address.ToBase58(), testAcc.Address.ToBase58())
+	if accTmp.Address.ToBase58() != testAcc.Address {
+		t.Errorf("TestClientSetLabel address:%s != %s", accTmp.Address.ToBase58(), testAcc.Address)
 		return
 	}
 
@@ -274,25 +270,54 @@ func TestClientSetDefault(t *testing.T) {
 		return
 	}
 
-	accTmp, err := testWallet.GetAccountByAddress(oldDefAcc.Address.ToBase58(), testPasswd)
-	if err != nil {
-		t.Errorf("TestClientSetDefault GetAccountByAddress error:%s", err)
-		return
-	}
+	accTmp := testWallet.GetAccountMetadataByAddress(oldDefAcc.Address.ToBase58())
 	if accTmp.IsDefault {
-		t.Errorf("TestClientSetDefault address:%s should not default account", accTmp.Address.ToBase58())
+		t.Errorf("TestClientSetDefault address:%s should not default account", accTmp.Address)
 		return
 	}
 
-	accTmp, err = testWallet.GetAccountByAddress(testAcc.Address.ToBase58(), testPasswd)
-	if err != nil {
-		t.Errorf("TestClientSetDefault GetAccountByAddress error:%s", err)
-		return
-	}
+	accTmp = testWallet.GetAccountMetadataByAddress(testAcc.Address.ToBase58())
 	if !accTmp.IsDefault {
-		t.Errorf("TestClientSetDefault address:%s should be default account", accTmp.Address.ToBase58())
+		t.Errorf("TestClientSetDefault address:%s should be default account", accTmp.Address)
 		return
 	}
+}
+
+func TestImportAccount(t *testing.T) {
+	walletPath2 := "tmp.dat"
+	wallet2, err := NewClientImpl(walletPath2)
+	if err != nil {
+		t.Errorf("TestImportAccount NewClientImpl error:%s", err)
+		return
+	}
+	defer os.Remove(walletPath2)
+
+	acc1, err := wallet2.NewAccount("", keypair.PK_ECDSA, keypair.P256, s.SHA256withECDSA, testPasswd)
+	if err != nil {
+		t.Errorf("TestImportAccount NewAccount error:%s", err)
+		return
+	}
+	accMetadata := wallet2.GetAccountMetadataByAddress(acc1.Address.ToBase58())
+	if accMetadata == nil {
+		t.Errorf("TestImportAccount GetAccountMetadataByAddress:%s return nil", acc1.Address.ToBase58())
+		return
+	}
+	err = testWallet.ImportAccount(accMetadata)
+	if err != nil {
+		t.Errorf("TestImportAccount ImportAccount error:%s", err)
+		return
+	}
+
+	acc, err := testWallet.GetAccountByAddress(accMetadata.Address, testPasswd)
+	if err != nil {
+		t.Errorf("TestImportAccount GetAccountByAddress error:%s", err)
+		return
+	}
+	if acc == nil {
+		t.Errorf("TestImportAccount failed, GetAccountByAddress return nil after import")
+		return
+	}
+	assert.Equal(t, acc.Address.ToBase58() == acc1.Address.ToBase58(), true)
 }
 
 func TestCheckSigScheme(t *testing.T) {

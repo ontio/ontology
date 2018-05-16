@@ -24,9 +24,9 @@ import (
 	"encoding/json"
 	"github.com/ontio/ontology-crypto/keypair"
 	//"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/common"
 	"io/ioutil"
 	"os"
-	"github.com/ontio/ontology/common"
 )
 
 /** AccountData - for wallet read and save, no crypto object included **/

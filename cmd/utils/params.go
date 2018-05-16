@@ -52,8 +52,6 @@ func ParseParams(rawParamStr string) ([]interface{}, error) {
 }
 
 func parseRawParamsString(rawParamStr string) ([]interface{}, int, error) {
-	rawParamStr = strings.TrimSpace(rawParamStr)
-	rawParamStr = strings.Trim(rawParamStr, PARAMS_SPLIT)
 	if len(rawParamStr) == 0 {
 		return nil, 0, nil
 	}
@@ -65,6 +63,7 @@ func parseRawParamsString(rawParamStr string) ([]interface{}, int, error) {
 		s := string(rawParamStr[i])
 		switch s {
 		case PARAMS_SPLIT:
+			curRawParam = strings.TrimSpace(curRawParam)
 			if len(curRawParam) > 0 {
 				rawParamItems = append(rawParamItems, curRawParam)
 				curRawParam = ""
@@ -73,6 +72,8 @@ func parseRawParamsString(rawParamStr string) ([]interface{}, int, error) {
 			if index == totalSize-1 {
 				return rawParamItems, 0, nil
 			}
+			//clear current param as invalid input
+			curRawParam = ""
 			items, size, err := parseRawParamsString(string(rawParamStr[i+1:]))
 			if err != nil {
 				return nil, 0, fmt.Errorf("parse params error:%s", err)
@@ -82,16 +83,16 @@ func parseRawParamsString(rawParamStr string) ([]interface{}, int, error) {
 			}
 			i += size
 		case PARAM_RIGHT_BRACKET:
+			curRawParam = strings.TrimSpace(curRawParam)
 			if len(curRawParam) > 0 {
 				rawParamItems = append(rawParamItems, curRawParam)
 			}
 			return rawParamItems, i + 1, nil
 		default:
-			if strings.TrimSpace(s) != "" {
-				curRawParam = fmt.Sprintf("%s%s", curRawParam, string(s))
-			}
+			curRawParam = fmt.Sprintf("%s%s", curRawParam, string(s))
 		}
 	}
+	curRawParam = strings.TrimSpace(curRawParam)
 	if len(curRawParam) != 0 {
 		rawParamItems = append(rawParamItems, curRawParam)
 	}

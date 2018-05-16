@@ -36,6 +36,8 @@ import (
 type Client interface {
 	//NewAccount create a new account.
 	NewAccount(label string, typeCode keypair.KeyType, curveCode byte, sigScheme s.SignatureScheme, passwd []byte) (*Account, error)
+	//ImportAccount import a already exist account to wallet
+	ImportAccount(accMeta *AccountMetadata) error
 	//GetAccountByAddress return account object by address
 	GetAccountByAddress(address string, passwd []byte) (*Account, error)
 	//GetAccountByLabel return account object by label
@@ -44,14 +46,14 @@ type Client interface {
 	GetAccountByIndex(index int, passwd []byte) (*Account, error)
 	//GetDefaultAccount return default account
 	GetDefaultAccount(passwd []byte) (*Account, error)
-	//GetAccountPublicByIndex return account public info by address
-	GetAccountPublicByAddress(address string) (*AccountPublic, error)
-	//GetAccountPublicByLabel return account public info by label
-	GetAccountPublicByLabel(label string) (*AccountPublic, error)
-	//GetAccountPublicByIndex return account public info by index. Index start from 1
-	GetAccountPublicByIndex(index int) (*AccountPublic, error)
-	//GetDefaultAccountPublic return default account public info
-	GetDefaultAccountPublic() (*AccountPublic, error)
+	//GetAccountMetadataByIndex return account Metadata info by address
+	GetAccountMetadataByAddress(address string) *AccountMetadata
+	//GetAccountMetadataByLabel return account Metadata info by label
+	GetAccountMetadataByLabel(label string) *AccountMetadata
+	//GetAccountMetadataByIndex return account Metadata info by index. Index start from 1
+	GetAccountMetadataByIndex(index int) *AccountMetadata
+	//GetDefaultAccountMetadata return default account Metadata info
+	GetDefaultAccountMetadata() *AccountMetadata
 	//GetAccountNum return total account number
 	GetAccountNum() int
 	//DeleteAccount delete account
@@ -156,43 +158,69 @@ func (this *ClientImpl) NewAccount(label string, typeCode keypair.KeyType, curve
 	passHash := sha256.Sum256(passwd)
 	accData.PassHash = hex.EncodeToString(passHash[:])
 
-	if !this.checkSigScheme(accData.Alg, accData.SigSch) {
-		return nil, fmt.Errorf("sigScheme:%s does not match KeyType:%s", accData.SigSch, accData.Alg)
+	err = this.addAccountData(accData)
+	if err != nil {
+		return nil, err
 	}
+	return &Account{
+		PrivateKey: prvkey,
+		PublicKey:  pubkey,
+		Address:    address,
+		SigScheme:  sigScheme,
+	}, nil
+}
 
+func (this *ClientImpl) addAccountData(accData *AccountData) error {
+	if !this.checkSigScheme(accData.Alg, accData.SigSch) {
+		return fmt.Errorf("sigScheme:%s does not match KeyType:%s", accData.SigSch, accData.Alg)
+	}
 	this.lock.Lock()
 	defer this.lock.Unlock()
+	label := accData.Label
 	if label != "" {
 		_, ok := this.accLabels[label]
 		if ok {
-			return nil, fmt.Errorf("duplicate label")
+			return fmt.Errorf("duplicate label")
 		}
 	}
 	if len(this.walletData.Accounts) == 0 {
 		accData.IsDefault = true
 	}
 	this.walletData.AddAccount(accData)
-	err = this.save()
+	err := this.save()
 	if err != nil {
-		this.walletData.DelAccount(addressBase58)
-		return nil, fmt.Errorf("save error:%s", err)
+		this.walletData.DelAccount(accData.Address)
+		return fmt.Errorf("save error:%s", err)
 	}
-	this.accAddrs[addressBase58] = accData
+	this.accAddrs[accData.Address] = accData
 	if accData.IsDefault {
 		this.defaultAcc = accData
 	}
 	if label != "" {
 		this.accLabels[label] = accData
 	}
-	return &Account{
-		Label:      label,
-		KeyType:    accData.Alg,
-		Curve:      accData.Param["curve"],
-		PrivateKey: prvkey,
-		PublicKey:  pubkey,
-		Address:    address,
-		SigScheme:  sigScheme,
-	}, nil
+	return nil
+}
+
+func (this *ClientImpl) ImportAccount(accMeta *AccountMetadata) error {
+	accData := &AccountData{}
+	accData.Label = accMeta.Label
+	accData.PubKey = accMeta.PubKey
+	accData.SigSch = accMeta.SigSch
+	accData.PassHash = accMeta.PassHash
+	accData.Key = accMeta.Key
+	accData.Alg = accMeta.KeyType
+	accData.Address = accMeta.Address
+	accData.EncAlg = accMeta.EncAlg
+	accData.Hash = accData.Hash
+	accData.Param = map[string]string{"curve": accMeta.Curve}
+
+	oldAccMeta := this.GetAccountMetadataByLabel(accData.Label)
+	if oldAccMeta != nil {
+		//rename
+		accData.Label = fmt.Sprintf("%s_1", accData.Label)
+	}
+	return this.addAccountData(accData)
 }
 
 func (this *ClientImpl) GetAccountByAddress(address string, passwd []byte) (*Account, error) {
@@ -238,47 +266,47 @@ func (this *ClientImpl) GetDefaultAccount(passwd []byte) (*Account, error) {
 	return this.getAccount(this.defaultAcc, passwd)
 }
 
-func (this *ClientImpl) GetAccountPublicByAddress(address string) (*AccountPublic, error) {
+func (this *ClientImpl) GetAccountMetadataByAddress(address string) *AccountMetadata {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	accData, ok := this.accAddrs[address]
 	if !ok {
-		return nil, nil
+		return nil
 	}
-	return this.getAccountPublic(accData)
+	return this.getAccountMetadata(accData)
 }
 
-func (this *ClientImpl) GetAccountPublicByLabel(label string) (*AccountPublic, error) {
+func (this *ClientImpl) GetAccountMetadataByLabel(label string) *AccountMetadata {
 	if label == "" {
-		return nil, nil
+		return nil
 	}
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	accData, ok := this.accLabels[label]
 	if !ok {
-		return nil, nil
+		return nil
 	}
-	return this.getAccountPublic(accData)
+	return this.getAccountMetadata(accData)
 }
 
 //Index start from 1
-func (this *ClientImpl) GetAccountPublicByIndex(index int) (*AccountPublic, error) {
+func (this *ClientImpl) GetAccountMetadataByIndex(index int) *AccountMetadata {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	accData := this.walletData.GetAccountByIndex(index - 1)
 	if accData == nil {
-		return nil, nil
+		return nil
 	}
-	return this.getAccountPublic(accData)
+	return this.getAccountMetadata(accData)
 }
 
-func (this *ClientImpl) GetDefaultAccountPublic() (*AccountPublic, error) {
+func (this *ClientImpl) GetDefaultAccountMetadata() *AccountMetadata {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	if this.defaultAcc != nil {
-		return this.getAccountPublic(this.defaultAcc)
+		return this.getAccountMetadata(this.defaultAcc)
 	}
-	return nil, nil
+	return nil
 }
 
 func (this *ClientImpl) getAccount(accData *AccountData, passwd []byte) (*Account, error) {
@@ -295,52 +323,28 @@ func (this *ClientImpl) getAccount(accData *AccountData, passwd []byte) (*Accoun
 	if err != nil {
 		return nil, fmt.Errorf("signature scheme error:%s", err)
 	}
-	isDefault := false
-	if this.defaultAcc != nil {
-		isDefault = accData.Address == this.defaultAcc.Address
-	}
 	return &Account{
-		Label:      accData.Label,
 		PrivateKey: privateKey,
 		PublicKey:  publicKey,
 		Address:    addr,
 		SigScheme:  scheme,
-		IsDefault:  isDefault,
 	}, nil
 }
 
-func (this *ClientImpl) getAccountPublic(accData *AccountData) (*AccountPublic, error) {
-	scheme, err := s.GetScheme(accData.SigSch)
-	if err != nil {
-		return nil, fmt.Errorf("signature scheme error:%s", err)
-	}
-	pubKeyData, err := hex.DecodeString(accData.PubKey)
-	if err != nil {
-		return nil, fmt.Errorf("hex.DecodeString error:%s", err)
-	}
-	pubKey, err := keypair.DeserializePublicKey(pubKeyData)
-	if err != nil {
-		return nil, fmt.Errorf("keypair.DeserializePublicKey error:%s", err)
-	}
-	addr, err := common.AddressFromBase58(accData.Address)
-	if err != nil {
-		return nil, fmt.Errorf("addressFromBase58:%s error:%s", accData.Address, err)
-	}
-	curve := accData.Param["curve"]
-	isDefault := false
-	if this.defaultAcc != nil {
-		isDefault = accData.Address == this.defaultAcc.Address
-	}
-	return &AccountPublic{
-		Label:     accData.Label,
-		KeyType:   accData.Alg,
-		Curve:     curve,
-		PublicKey: pubKey,
-		CipherKey: accData.Key,
-		SigScheme: scheme,
-		Address:   addr,
-		IsDefault: isDefault,
-	}, nil
+func (this *ClientImpl) getAccountMetadata(accData *AccountData) *AccountMetadata {
+	accMeta := &AccountMetadata{}
+	accMeta.Label = accData.Label
+	accMeta.KeyType = accData.Alg
+	accMeta.SigSch = accData.SigSch
+	accMeta.Key = accData.Key
+	accMeta.Address = accData.Address
+	accMeta.IsDefault = accData.IsDefault
+	accMeta.PassHash = accData.PassHash
+	accMeta.PubKey = accData.PubKey
+	accMeta.EncAlg = accData.EncAlg
+	accMeta.Hash = accData.Hash
+	accMeta.Curve = accData.Param["curve"]
+	return accMeta
 }
 
 func (this *ClientImpl) GetAccountNum() int {
@@ -478,10 +482,6 @@ func (this *ClientImpl) SetLabel(address, label string, passwd []byte) error {
 	}
 	delete(this.accLabels, oldLabel)
 	this.accLabels[label] = accData
-	acc, ok := this.unlockAccs[address]
-	if ok {
-		acc.acc.Label = label
-	}
 	return nil
 }
 

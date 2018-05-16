@@ -28,10 +28,6 @@ import (
 
 /* crypto object */
 type Account struct {
-	Label      string
-	KeyType    string
-	Curve      string
-	IsDefault  bool
 	PrivateKey keypair.PrivateKey
 	PublicKey  keypair.PublicKey
 	Address    common.Address
@@ -54,46 +50,30 @@ func NewAccount(encrypt string) *Account {
 		log.Warn("unknown signature scheme, use SHA256withECDSA as default.")
 		scheme = s.SHA256withECDSA
 	}
-	keyType := ""
-	curve := ""
 	switch scheme {
 	case s.SHA224withECDSA, s.SHA3_224withECDSA:
 		pkAlgorithm = keypair.PK_ECDSA
 		params = keypair.P224
-		keyType = "ecdsa"
-		curve = "P-224"
 	case s.SHA256withECDSA, s.SHA3_256withECDSA, s.RIPEMD160withECDSA:
 		pkAlgorithm = keypair.PK_ECDSA
 		params = keypair.P256
-		keyType = "ecdsa"
-		curve = "P-256"
 	case s.SHA384withECDSA, s.SHA3_384withECDSA:
 		pkAlgorithm = keypair.PK_ECDSA
 		params = keypair.P384
-		keyType = "ecdsa"
-		curve = "P-384"
 	case s.SHA512withECDSA, s.SHA3_512withECDSA:
 		pkAlgorithm = keypair.PK_ECDSA
 		params = keypair.P521
-		keyType = "ecdsa"
-		curve = "P-521"
 	case s.SM3withSM2:
 		pkAlgorithm = keypair.PK_SM2
 		params = keypair.SM2P256V1
-		keyType = "sm2"
-		curve = "SM2P256V1"
 	case s.SHA512withEDDSA:
 		pkAlgorithm = keypair.PK_EDDSA
 		params = keypair.ED25519
-		keyType = "ed25519"
-		curve = "ED25519"
 	}
 
 	pri, pub, _ := keypair.GenerateKeyPair(pkAlgorithm, params)
 	address := types.AddressFromPubKey(pub)
 	return &Account{
-		KeyType:    keyType,
-		Curve:      curve,
 		PrivateKey: pri,
 		PublicKey:  pub,
 		Address:    address,
@@ -113,14 +93,17 @@ func (this *Account) Scheme() s.SignatureScheme {
 	return this.SigScheme
 }
 
-//AccountPublic without private key
-type AccountPublic struct {
-	Label     string
-	KeyType   string
-	Curve     string
-	CipherKey []byte
-	IsDefault bool
-	PublicKey keypair.PublicKey
-	Address   common.Address
-	SigScheme s.SignatureScheme
+//AccountMetadata all account info without private key
+type AccountMetadata struct {
+	IsDefault bool   //Is default account
+	Label     string //Lable of account
+	KeyType   string //KeyType ECDSA,SM2 or EDDSA
+	Curve     string //Curve of key type
+	Address   string //Address(base58) of account
+	PubKey    string //Public  key
+	SigSch    string //Signature scheme
+	PassHash  string //Hash of password
+	Key       []byte //PrivateKey in encrypted
+	EncAlg    string //Encrypt alg of private key
+	Hash      string //Hash alg
 }
