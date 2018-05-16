@@ -22,7 +22,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native"
 )
 
-func init() {
+func Init() {
 	native.Contracts[genesis.OntIDContractAddress] = RegisterIDContract
 }
 

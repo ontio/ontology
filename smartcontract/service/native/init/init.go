@@ -24,6 +24,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/ontio/ontology/smartcontract/service/native/ong"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	"github.com/ontio/ontology/smartcontract/service/native/ontid"
 )
 
 func init() {
@@ -31,5 +32,6 @@ func init() {
 	ont.InitOnt()
 	params.InitGlobalParams()
 	auth.Init()
+	ontid.Init()
 	governance.InitGovernance()
 }
