@@ -214,7 +214,7 @@ func removeKey(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: argument 2 error, %s", err)
 	}
 	if err = checkWitness(srvc, arg2); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: check witness failed, %S", err)
+		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: check witness failed, %s", err)
 	}
 
 	key, err := encodeID(arg0)
