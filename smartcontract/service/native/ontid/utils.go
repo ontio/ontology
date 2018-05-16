@@ -47,7 +47,6 @@ func checkIDExistence(srvc *native.NativeService, encID []byte) bool {
 
 const (
 	FIELD_PK byte = 1 + iota
-	FIELD_PK_STATE
 	FIELD_ATTR
 	FIELD_RECOVERY
 )
@@ -99,18 +98,17 @@ func getStorageItem(srvc *native.NativeService, key []byte) (*states.StorageItem
 }
 
 func checkWitness(srvc *native.NativeService, key []byte) error {
-	// try as if key is an address
-	addr, err := cmn.AddressParseFromBytes(key)
-	if srvc.ContextRef.CheckWitness(addr) {
-		return nil
-	}
-
 	// try as if key is a public key
 	pk, err := keypair.DeserializePublicKey(key)
-	if err != nil {
-		return errors.New("invalid public key, " + err.Error())
+	if err == nil {
+		addr := types.AddressFromPubKey(pk)
+		if srvc.ContextRef.CheckWitness(addr) {
+			return nil
+		}
 	}
-	addr = types.AddressFromPubKey(pk)
+
+	// try as if key is an address
+	addr, err := cmn.AddressParseFromBytes(key)
 	if srvc.ContextRef.CheckWitness(addr) {
 		return nil
 	}

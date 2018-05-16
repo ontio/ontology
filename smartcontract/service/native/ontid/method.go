@@ -130,28 +130,13 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: store pubic key error: " + err.Error())
 	}
 
-	// parse attributes
-	buf := bytes.NewBuffer(arg2)
-	attr := make([]*attribute, 0)
-	for buf.Len() > 0 {
-		t := new(attribute)
-		err = t.Deserialize(buf)
-		if err != nil {
-			return utils.BYTE_FALSE, errors.New("register ID with attributes error: parse attribute error, " + err.Error())
-		}
-		attr = append(attr, t)
-	}
-	for _, v := range attr {
-		err = insertOrUpdateAttr(srvc, key, v)
-		if err != nil {
-			return utils.BYTE_FALSE, errors.New("register ID with attributes error: store attributes error, " + err.Error())
-		}
+	err = batchInsertAttr(srvc, key, arg2)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("register ID with attributes error: insert attribute error: " + err.Error())
 	}
 
 	srvc.CloneCache.Add(common.ST_STORAGE, key, &states.StorageItem{Value: []byte{flag_exist}})
-
 	triggerRegisterEvent(srvc, arg0)
-
 	return utils.BYTE_TRUE, nil
 }
 
@@ -195,7 +180,7 @@ func addKey(srvc *native.NativeService) ([]byte, error) {
 	}
 
 	item, err := findPk(srvc, key, arg1)
-	if item != nil {
+	if item != 0 {
 		return utils.BYTE_FALSE, errors.New("add key failed: already exists")
 	}
 
@@ -229,7 +214,7 @@ func removeKey(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: argument 2 error, %s", err)
 	}
 	if err = checkWitness(srvc, arg2); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: check witness failed, %S", err)
+		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: check witness failed, %s", err)
 	}
 
 	key, err := encodeID(arg0)
@@ -290,13 +275,12 @@ func addRecovery(srvc *native.NativeService) ([]byte, error) {
 	if !checkIDExistence(srvc, key) {
 		return utils.BYTE_FALSE, errors.New("add recovery failed: ID not registered")
 	}
-
 	if !isOwner(srvc, key, arg2) {
 		return utils.BYTE_FALSE, errors.New("add recovery failed: not authorized")
 	}
 
 	re, err := getRecovery(srvc, key)
-	if err != nil && len(re) > 0 {
+	if err == nil && len(re) > 0 {
 		return utils.BYTE_FALSE, errors.New("add recovery failed: already set recovery")
 	}
 
@@ -322,7 +306,7 @@ func changeRecovery(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: argument 1 error")
 	}
-	// arg2: operator's public key, who should be the old recovery
+	// arg2: operator's address, who should be the old recovery
 	arg2, err := serialization.ReadVarBytes(args)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: argument 2 error")
@@ -332,19 +316,19 @@ func changeRecovery(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: " + err.Error())
 	}
-	err = checkWitness(srvc, arg2)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.New("change recovery failed: " + err.Error())
-	}
-	if !checkIDExistence(srvc, key) {
-		return utils.BYTE_FALSE, errors.New("change recovery failed: ID not registered")
-	}
 	re, err := getRecovery(srvc, key)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: recovery not set")
 	}
 	if !bytes.Equal(re, arg2) {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: operator is not the recovery")
+	}
+	err = checkWitness(srvc, arg2)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("change recovery failed: " + err.Error())
+	}
+	if !checkIDExistence(srvc, key) {
+		return utils.BYTE_FALSE, errors.New("change recovery failed: ID not registered")
 	}
 	err = setRecovery(srvc, key, arg1)
 	if err != nil {
@@ -355,66 +339,45 @@ func changeRecovery(srvc *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-func addAttribute(srvc *native.NativeService) ([]byte, error) {
+func addAttributes(srvc *native.NativeService) ([]byte, error) {
 	args := bytes.NewBuffer(srvc.Input)
 	// arg0: ID
 	arg0, err := serialization.ReadVarBytes(args)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("add attribute failed: argument 0 error")
+		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, argument 0 error: %s", err)
 	}
-	// arg1: path
+	// arg1: attributes
 	arg1, err := serialization.ReadVarBytes(args)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("add attribute failed: argument 1 error")
+		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, argument 1 error: %s", err)
 	}
-	// arg2: type
+	// arg2: opperator's public key
 	arg2, err := serialization.ReadVarBytes(args)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("add attribute failed: argument 2 error")
-	}
-	// arg3: value
-	arg3, err := serialization.ReadVarBytes(args)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.New("add attribute failed: argument 3 error")
-	}
-	// arg4: operator's public key
-	arg4, err := serialization.ReadVarBytes(args)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.New("add attribute failed: argument 4 error")
+		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, argument 2 error: %s", err)
 	}
 
-	err = checkWitness(srvc, arg4)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.New("add attribute failed: " + err.Error())
-	}
 	key, err := encodeID(arg0)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("add attribute failed: " + err.Error())
+		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed: %s", err)
 	}
 	if !checkIDExistence(srvc, key) {
-		return utils.BYTE_FALSE, errors.New("add attribute failed: ID not registered")
+		return utils.BYTE_FALSE, errors.New("add attributes failed, ID not registered")
 	}
-	if !isOwner(srvc, key, arg4) {
-		return utils.BYTE_FALSE, errors.New("add attribute failed: no authorization")
+	if !isOwner(srvc, key, arg2) {
+		return utils.BYTE_FALSE, errors.New("add attributes failed, no authorization")
+	}
+	err = checkWitness(srvc, arg2)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, %s", err)
 	}
 
-	attr := &attribute{key: arg1, valueType: arg2, value: arg3}
-
-	node, err := findAttr(srvc, key, arg1)
-	if node != nil {
-		err = insertOrUpdateAttr(srvc, key, attr)
-		if err != nil {
-			return utils.BYTE_FALSE, errors.New("add attribute failed: update attribute error, " + err.Error())
-		}
-		triggerAttributeEvent(srvc, "update", arg0, arg1)
-	} else {
-		err = insertOrUpdateAttr(srvc, key, attr)
-		if err != nil {
-			return utils.BYTE_FALSE, errors.New("add attribute failed: " + err.Error())
-		}
-
-		triggerAttributeEvent(srvc, "add", arg0, arg1)
+	err = batchInsertAttr(srvc, key, arg1)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, %s", err)
 	}
+
+	triggerAttributeEvent(srvc, "add", arg0, []byte("multiple attributes"))
 	return utils.BYTE_TRUE, nil
 }
 

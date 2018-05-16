@@ -19,92 +19,159 @@ package ontid
 
 import (
 	"bytes"
-	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-func insertPk(srvc *native.NativeService, encID, pk []byte) (uint32, error) {
-	var i uint32 = 0
-	key1 := append(encID, FIELD_PK)
-	item, err := utils.LinkedlistGetHead(srvc, key1)
-	if err == nil && item != nil {
-		i = binary.LittleEndian.Uint32(item)
-	}
-	i += 1
+type owner struct {
+	key     []byte
+	revoked bool
+}
 
-	var buf [4]byte
-	binary.LittleEndian.PutUint32(buf[:], i)
-	key2 := buf[:]
-	err = utils.LinkedlistInsert(srvc, key1, key2, pk)
+func (this *owner) Serialize(w io.Writer) error {
+	if err := serialization.WriteVarBytes(w, this.key); err != nil {
+		return err
+	}
+	if err := serialization.WriteBool(w, this.revoked); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (this *owner) Deserialize(r io.Reader) error {
+	v1, err := serialization.ReadVarBytes(r)
+	if err != nil {
+		return err
+	}
+	v2, err := serialization.ReadBool(r)
+	if err != nil {
+		return err
+	}
+	this.key = v1
+	this.revoked = v2
+	return nil
+}
+
+func getAllPk(srvc *native.NativeService, key []byte) ([]*owner, error) {
+	val, err := utils.GetStorageItem(srvc, key)
+	if err != nil {
+		return nil, fmt.Errorf("get storage error, %s", err)
+	}
+	if val == nil {
+		return nil, fmt.Errorf("empty storage item, key = %s", hex.EncodeToString(key))
+	}
+	buf := bytes.NewBuffer(val.Value)
+	owners := make([]*owner, 0)
+	for buf.Len() > 0 {
+		var t = new(owner)
+		err = t.Deserialize(buf)
+		if err != nil {
+			return nil, fmt.Errorf("deserialize owners error, %s", err)
+		}
+		owners = append(owners, t)
+	}
+	return owners, nil
+}
+
+func putAllPk(srvc *native.NativeService, key []byte, val []*owner) error {
+	var buf bytes.Buffer
+	for _, i := range val {
+		err := i.Serialize(&buf)
+		if err != nil {
+			return fmt.Errorf("serialize owner error, %s", err)
+		}
+	}
+	var v states.StorageItem
+	v.Value = buf.Bytes()
+	srvc.CloneCache.Add(common.ST_STORAGE, key, &v)
+	return nil
+}
+
+func insertPk(srvc *native.NativeService, encID, pk []byte) (uint32, error) {
+	key := append(encID, FIELD_PK)
+	owners, err := getAllPk(srvc, key)
+	if err != nil {
+		owners = make([]*owner, 0)
+	}
+	size := len(owners)
+	if size >= 0xFFFFFFFF {
+		//FIXME currently the limit is for all the keys, including the
+		//      revoked ones.
+		return 0, errors.New("reach the max limit, cannot add more keys")
+	}
+	owners = append(owners, &owner{pk, false})
+	err = putAllPk(srvc, key, owners)
 	if err != nil {
 		return 0, err
 	}
-
-	key3 := append(encID, FIELD_PK_STATE)
-	key3 = append(key3, key2...)
-	utils.PutBytes(srvc, key3, []byte{1})
-	return i, nil
+	return uint32(size + 1), nil
 }
 
-func getPk(srvc *native.NativeService, encID []byte, index uint32) ([]byte, error) {
-	key1 := append(encID, FIELD_PK)
-	var buf [4]byte
-	binary.LittleEndian.PutUint32(buf[:], index)
-	key2 := buf[:]
-	node, err := utils.LinkedlistGetItem(srvc, key1, key2)
-	if err != nil {
-		return nil, err
-	}
-	data := node.GetPayload()
-	if len(data) == 0 {
-		return nil, errors.New("invalid public key data from storage")
-	}
-
-	return data, nil
-}
-
-func findPk(srvc *native.NativeService, encID, pub []byte) ([]byte, error) {
+func getPk(srvc *native.NativeService, encID []byte, index uint32) (*owner, error) {
 	key := append(encID, FIELD_PK)
-	item, err := utils.LinkedlistGetHead(srvc, key)
+	owners, err := getAllPk(srvc, key)
 	if err != nil {
 		return nil, err
 	}
-
-	for len(item) > 0 {
-		node, err := utils.LinkedlistGetItem(srvc, key, item)
-		if err != nil {
-			log.Debug(err)
-			continue
-		}
-		if bytes.Equal(pub, node.GetPayload()) {
-			return item, nil
-		}
-		item = node.GetNext()
+	if index > uint32(len(owners)) {
+		return nil, nil
 	}
+	return owners[index-1], nil
+}
 
-	return nil, errors.New("public key not found")
+func findPk(srvc *native.NativeService, encID, pub []byte) (uint32, error) {
+	key := append(encID, FIELD_PK)
+	owners, err := getAllPk(srvc, key)
+	if err != nil {
+		return 0, err
+	}
+	for i, v := range owners {
+		if bytes.Equal(pub, v.key) {
+			return uint32(i + 1), nil
+		}
+	}
+	return 0, nil
 }
 
 func revokePk(srvc *native.NativeService, encID, pub []byte) (uint32, error) {
-	keyID, err := findPk(srvc, encID, pub)
+	key := append(encID, FIELD_PK)
+	owners, err := getAllPk(srvc, key)
 	if err != nil {
-		return 0, fmt.Errorf("cannot find the key, %s", err)
+		return 0, err
 	}
-	key := append(encID, FIELD_PK_STATE)
-	key = append(key, keyID...)
-	utils.PutBytes(srvc, key, []byte{0})
-	return binary.LittleEndian.Uint32(keyID), nil
+	var index uint32 = 0
+	for i, v := range owners {
+		if bytes.Equal(pub, v.key) {
+			v.revoked = true
+			index = uint32(i)
+		}
+	}
+	if index == 0 {
+		return 0, errors.New("revoke failed, public key not found")
+	}
+	err = putAllPk(srvc, key, owners)
+	if err != nil {
+		return 0, err
+	}
+	return index, nil
 }
 
 func isOwner(srvc *native.NativeService, encID, pub []byte) bool {
-	kid, err := findPk(srvc, encID, pub)
-	if err != nil || len(kid) == 0 {
+	kID, err := findPk(srvc, encID, pub)
+	if err != nil {
 		log.Debug(err)
+		return false
+	}
+	if kID == 0 {
 		return false
 	}
 	return true

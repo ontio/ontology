@@ -22,7 +22,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native"
 )
 
-func init() {
+func Init() {
 	native.Contracts[genesis.OntIDContractAddress] = RegisterIDContract
 }
 
@@ -33,7 +33,7 @@ func RegisterIDContract(srvc *native.NativeService) {
 	srvc.Register("addRecovery", addRecovery)
 	srvc.Register("changeRecovery", changeRecovery)
 	srvc.Register("regIDWithAttributes", regIdWithAttributes)
-	srvc.Register("addAttribute", addAttribute)
+	srvc.Register("addAttributes", addAttributes)
 	srvc.Register("removeAttribute", removeAttribute)
 	srvc.Register("verifySignature", verifySignature)
 	srvc.Register("getPublicKeys", GetPublicKeys)

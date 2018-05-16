@@ -20,6 +20,7 @@ package ontid
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/ontio/ontology/common/serialization"
@@ -112,4 +113,61 @@ func insertOrUpdateAttr(srvc *native.NativeService, encID []byte, attr *attribut
 func findAttr(srvc *native.NativeService, encID, item []byte) (*utils.LinkedlistNode, error) {
 	key := append(encID, FIELD_ATTR)
 	return utils.LinkedlistGetItem(srvc, key, item)
+}
+
+func batchInsertAttr(srvc *native.NativeService, encID, data []byte) error {
+	// parse attributes
+	buf := bytes.NewBuffer(data)
+	attr := make([]*attribute, 0)
+	for buf.Len() > 0 {
+		t := new(attribute)
+		err := t.Deserialize(buf)
+		if err != nil {
+			return errors.New("parse attribute error: " + err.Error())
+		}
+		attr = append(attr, t)
+	}
+	for _, v := range attr {
+		err := insertOrUpdateAttr(srvc, encID, v)
+		if err != nil {
+			return errors.New("store attributes error: " + err.Error())
+		}
+	}
+	return nil
+}
+
+func getAllAttr(srvc *native.NativeService, encID []byte) ([]byte, error) {
+	key := append(encID, FIELD_ATTR)
+	item, err := utils.LinkedlistGetHead(srvc, key)
+	if err != nil {
+		return nil, fmt.Errorf("get list head error, %s", err)
+	} else if len(item) == 0 {
+		return nil, errors.New("cannot get list head")
+	}
+
+	var res bytes.Buffer
+	var i uint16 = 0
+	for len(item) > 0 {
+		node, err := utils.LinkedlistGetItem(srvc, key, item)
+		if err != nil {
+			return nil, fmt.Errorf("get storage item error, %s", err)
+		} else if node == nil {
+			return nil, fmt.Errorf("storage item not exists")
+		}
+
+		var attr attribute
+		err = attr.SetValue(node.GetPayload())
+		if err != nil {
+			return nil, fmt.Errorf("parse attribute failed, %s", err)
+		}
+		attr.key = item
+		err = attr.Serialize(&res)
+		if err != nil {
+			return nil, fmt.Errorf("serialize error, %s", err)
+		}
+
+		i += 1
+		item = node.GetNext()
+	}
+	return res.Bytes(), nil
 }
