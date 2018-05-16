@@ -33,17 +33,11 @@ import (
 )
 
 type owner struct {
-	version byte
 	key     []byte
 	revoked bool
 }
 
-const CURRENT_VERSION byte = 0
-
 func (this *owner) Serialize(w io.Writer) error {
-	if err := serialization.WriteByte(w, this.version); err != nil {
-		return err
-	}
 	if err := serialization.WriteVarBytes(w, this.key); err != nil {
 		return err
 	}
@@ -54,10 +48,6 @@ func (this *owner) Serialize(w io.Writer) error {
 }
 
 func (this *owner) Deserialize(r io.Reader) error {
-	v0, err := serialization.ReadByte(r)
-	if err != nil {
-		return err
-	}
 	v1, err := serialization.ReadVarBytes(r)
 	if err != nil {
 		return err
@@ -66,7 +56,6 @@ func (this *owner) Deserialize(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	this.version = v0
 	this.key = v1
 	this.revoked = v2
 	return nil
@@ -119,7 +108,7 @@ func insertPk(srvc *native.NativeService, encID, pk []byte) (uint32, error) {
 		//      revoked ones.
 		return 0, errors.New("reach the max limit, cannot add more keys")
 	}
-	owners = append(owners, &owner{CURRENT_VERSION, pk, false})
+	owners = append(owners, &owner{pk, false})
 	err = putAllPk(srvc, key, owners)
 	if err != nil {
 		return 0, err
