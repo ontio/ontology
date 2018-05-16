@@ -92,6 +92,12 @@ type Server struct {
 	// some config
 	msgHistoryDuration uint64
 
+	//
+	// Note:
+	// 1. locking priority: metaLock > blockpool.Lock > peerpool.Lock
+	// 2. should never take exclusive lock on both blockpool and peerpool at the same time.
+	// 3. msgpool.Lock is independent, should have no exclusive overlap with other locks.
+	//
 	metaLock                 sync.RWMutex
 	completedBlockNum        uint64 // ledger SaveBlockCompleted block num
 	currentBlockNum          uint64
@@ -690,6 +696,7 @@ func (self *Server) startNewRound() error {
 		// resend commit msg to msg-processor to restart commit-done processing
 		// Note: commitDone will set Done flag in block-pool, so removed Done flag checking
 		// in commit msg processing.
+		self.blockPool.setCommitDone(blkNum)
 		self.processConsensusMsg(commits[0])
 		return nil
 	} else if _, _, done := self.blockPool.endorseDone(blkNum, self.config.C); done && len(endorses) > 0 {
@@ -1225,6 +1232,7 @@ func (self *Server) processMsgEvent() error {
 					self.Index, pMsg.Committer, pMsg.BlockProposer, msgBlkNum, pMsg.CommitForEmpty)
 
 				if proposer, forEmpty, done := self.blockPool.commitDone(msgBlkNum, self.config.C); done {
+					self.blockPool.setCommitDone(msgBlkNum)
 					proposal := self.findBlockProposal(msgBlkNum, proposer, forEmpty)
 					if proposal == nil {
 						// TODO: commit done, but we not have the proposal, should request proposal from neighbours
@@ -1672,6 +1680,7 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 		}
 		if !self.blockPool.isCommitHadDone(evt.blockNum) {
 			if proposer, forEmpty, done := self.blockPool.commitDone(evt.blockNum, self.config.C); done {
+				self.blockPool.setCommitDone(evt.blockNum)
 				proposal := self.findBlockProposal(evt.blockNum, proposer, forEmpty)
 				if proposal == nil {
 					self.restartSyncing()
