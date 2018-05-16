@@ -147,21 +147,21 @@ func (this *routingTable) totalNodes() int {
 	return num
 }
 
-func (this *routingTable) isNodeInBucket(id types.NodeID, bucket int) bool {
+func (this *routingTable) isNodeInBucket(id types.NodeID, bucket int) (*types.Node, bool) {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 
 	b := this.buckets[bucket]
 	if b == nil {
-		return false
+		return nil, false
 	}
 
 	for _, entry := range b.entries {
 		if entry.ID == id {
-			return true
+			return entry, true
 		}
 	}
-	return false
+	return nil, false
 }
 
 // table of leading zero counts for bytes [0..255]
