@@ -113,28 +113,13 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: store pubic key error: " + err.Error())
 	}
 
-	// parse attributes
-	buf := bytes.NewBuffer(arg2)
-	attr := make([]*attribute, 0)
-	for buf.Len() > 0 {
-		t := new(attribute)
-		err = t.Deserialize(buf)
-		if err != nil {
-			return utils.BYTE_FALSE, errors.New("register ID with attributes error: parse attribute error, " + err.Error())
-		}
-		attr = append(attr, t)
-	}
-	for _, v := range attr {
-		err = insertOrUpdateAttr(srvc, key, v)
-		if err != nil {
-			return utils.BYTE_FALSE, errors.New("register ID with attributes error: store attributes error, " + err.Error())
-		}
+	err = batchInsertAttr(srvc, key, arg2)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("register ID with attributes error: insert attribute error: " + err.Error())
 	}
 
 	srvc.CloneCache.Add(common.ST_STORAGE, key, &states.StorageItem{Value: []byte{flag_exist}})
-
 	triggerRegisterEvent(srvc, arg0)
-
 	return utils.BYTE_TRUE, nil
 }
 
@@ -337,6 +322,7 @@ func changeRecovery(srvc *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+// deprecated, use addAttributes instead
 func addAttribute(srvc *native.NativeService) ([]byte, error) {
 	args := bytes.NewBuffer(srvc.Input)
 	// arg0: ID
@@ -397,6 +383,48 @@ func addAttribute(srvc *native.NativeService) ([]byte, error) {
 
 		triggerAttributeEvent(srvc, "add", arg0, arg1)
 	}
+	return utils.BYTE_TRUE, nil
+}
+
+func addAttributes(srvc *native.NativeService) ([]byte, error) {
+	args := bytes.NewBuffer(srvc.Input)
+	// arg0: ID
+	arg0, err := serialization.ReadVarBytes(args)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, argument 0 error: %s", err)
+	}
+	// arg1: attributes
+	arg1, err := serialization.ReadVarBytes(args)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, argument 1 error: %s", err)
+	}
+	// arg2: opperator's public key
+	arg2, err := serialization.ReadVarBytes(args)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, argument 2 error: %s", err)
+	}
+
+	key, err := encodeID(arg0)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed: %s", err)
+	}
+	if !checkIDExistence(srvc, key) {
+		return utils.BYTE_FALSE, errors.New("add attributes failed, ID not registered")
+	}
+	if !isOwner(srvc, key, arg2) {
+		return utils.BYTE_FALSE, errors.New("add attributes failed, no authorization")
+	}
+	err = checkWitness(srvc, arg2)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, %s", err)
+	}
+
+	err = batchInsertAttr(srvc, key, arg1)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, %s", err)
+	}
+
+	triggerAttributeEvent(srvc, "add", arg0, []byte("multiple attributes"))
 	return utils.BYTE_TRUE, nil
 }
 

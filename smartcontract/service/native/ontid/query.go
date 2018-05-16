@@ -26,7 +26,6 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 func GetPublicKeyByID(srvc *native.NativeService) ([]byte, error) {
@@ -44,12 +43,12 @@ func GetPublicKeyByID(srvc *native.NativeService) ([]byte, error) {
 
 	key, err := encodeID(arg0)
 	if err != nil {
-		return nil, errors.New("get public key failed: " + err.Error())
+		return nil, fmt.Errorf("get public key failed: %s", err)
 	}
 
 	pk, err := getPk(srvc, key, arg1)
 	if err != nil {
-		return nil, errors.New("get public key failed: " + err.Error())
+		return nil, fmt.Errorf("get public key failed: %s", err)
 	} else if pk == nil {
 		return nil, errors.New("get public key failed: not found")
 	} else if pk.revoked {
@@ -134,40 +133,12 @@ func GetAttributes(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get public keys error: %s", err)
 	}
-	key = append(key, FIELD_ATTR)
-	item, err := utils.LinkedlistGetHead(srvc, key)
+	res, err := getAllAttr(srvc, key)
 	if err != nil {
-		return nil, fmt.Errorf("get attributes error: get list head error, %s", err)
-	} else if len(item) == 0 {
-		return nil, errors.New("get attributes error: cannot get list head")
+		return nil, fmt.Errorf("get attributes error: %s", err)
 	}
 
-	var res bytes.Buffer
-	var i uint16 = 0
-	for len(item) > 0 {
-		node, err := utils.LinkedlistGetItem(srvc, key, item)
-		if err != nil {
-			return nil, fmt.Errorf("get attributes error: get storage item error, %s", err)
-		} else if node == nil {
-			return nil, fmt.Errorf("get attributes error: storage item, not exists")
-		}
-
-		var attr attribute
-		err = attr.SetValue(node.GetPayload())
-		if err != nil {
-			return nil, fmt.Errorf("get attributes error: parse attribute failed, %s", err)
-		}
-		attr.key = item
-		err = attr.Serialize(&res)
-		if err != nil {
-			return nil, fmt.Errorf("get attributes error: serialize error, %s", err)
-		}
-
-		i += 1
-		item = node.GetNext()
-	}
-
-	return res.Bytes(), nil
+	return res, nil
 }
 
 func GetKeyState(srvc *native.NativeService) ([]byte, error) {
