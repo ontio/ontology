@@ -40,8 +40,8 @@ const (
 )
 
 type DHTMessage struct {
-	from    *net.UDPAddr
-	payload []byte
+	From    *net.UDPAddr
+	Payload []byte
 }
 
 type Node struct {

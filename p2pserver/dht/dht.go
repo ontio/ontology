@@ -20,6 +20,7 @@ package dht
 
 import (
 	//"fmt"
+	"errors"
 	"net"
 	"sort"
 	"sync"
@@ -32,19 +33,25 @@ import (
 )
 
 type DHT struct {
-	version      uint32
+	version      uint16
 	nodeID       types.NodeID
 	mu           sync.Mutex
 	routingTable *routingTable
 	addr         string
 	port         uint16
 	conn         *net.UDPConn
-	recvCh       chan *DHTMessage
+	recvCh       chan *types.DHTMessage
 	stopCh       chan struct{}
 }
 
+func NewDHT() *DHT {
+	dht := &DHT{}
+	dht.init()
+	return dht
+}
+
 func (this *DHT) init() {
-	this.recvCh = make(chan *DHTMessage, MSG_CACHE)
+	this.recvCh = make(chan *types.DHTMessage, types.MSG_CACHE)
 	this.stopCh = make(chan struct{})
 	this.routingTable.init(this.nodeID)
 }
@@ -62,7 +69,7 @@ func (this *DHT) Loop() {
 		select {
 		case pk, ok := <-this.recvCh:
 			if ok {
-				this.processPacket(pk.from, pk.payload)
+				this.processPacket(pk.From, pk.Payload)
 			}
 		case <-this.stopCh:
 			return
@@ -82,13 +89,13 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 	visited := make(map[types.NodeID]bool)
 	knownNode := make(map[types.NodeID]bool)
 	responseCh := make(chan []*types.Node, types.FACTOR)
-	pendingQueries = 0
+	pendingQueries := 0
 
 	visited[this.nodeID] = true
 
 	closestNodes := this.routingTable.GetClosestNodes(types.BUCKET_SIZE, targetID)
 
-	if len(result) == 0 {
+	if len(closestNodes) == 0 {
 		return nil
 	}
 
@@ -123,7 +130,7 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 					idx := sort.Search(len(closestNodes), func(i int) bool {
 						for j := range targetID {
 							da := closestNodes[i].ID[j] ^ targetID[j]
-							db := m.ID[j] ^ targetID[j]
+							db := n.ID[j] ^ targetID[j]
 							if da > db {
 								return true
 							} else if da < db {
@@ -133,7 +140,7 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 						return false
 					})
 					if len(closestNodes) < types.BUCKET_SIZE {
-						cloestNodes = append(closestNodes, n)
+						closestNodes = append(closestNodes, n)
 					}
 					if idx < len(closestNodes) {
 						copy(closestNodes[idx+1:], closestNodes[idx:])
@@ -145,10 +152,10 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 
 		pendingQueries--
 	}
-	return cloestNodes
+	return closestNodes
 }
 
-func (this *DHT) FindNode(remotePeer, targetID uint64) ([]*types.Node, error) {
+func (this *DHT) FindNode(remotePeer *types.Node, targetID types.NodeID) ([]*types.Node, error) {
 	return nil, nil
 
 }
@@ -160,8 +167,8 @@ func (this *DHT) AddNode(remoteNode uint64) {
 func (this *DHT) Ping(addr *net.UDPAddr) error {
 	pingPayload := mt.DHTPingPayload{
 		Version:  this.version,
-		srcPort:  this.port,
-		DestPort: addr.Port,
+		SrcPort:  this.port,
+		DestPort: uint16(addr.Port),
 	}
 
 	ip := net.ParseIP(this.addr).To16()
@@ -191,8 +198,8 @@ func (this *DHT) Ping(addr *net.UDPAddr) error {
 func (this *DHT) Pong(addr *net.UDPAddr) error {
 	PongPayload := mt.DHTPongPayload{
 		Version:  this.version,
-		srcPort:  this.port,
-		DestPort: addr.Port,
+		SrcPort:  this.port,
+		DestPort: uint16(addr.Port),
 	}
 
 	ip := net.ParseIP(this.addr).To16()
@@ -240,9 +247,9 @@ func (this *DHT) recvUDPMsg() {
 			return
 		}
 		// Todo:
-		pk := &DHTMessage{
-			from:    from,
-			payload: buf[:nbytes],
+		pk := &types.DHTMessage{
+			From:    from,
+			Payload: buf[:nbytes],
 		}
 		this.recvCh <- pk
 	}

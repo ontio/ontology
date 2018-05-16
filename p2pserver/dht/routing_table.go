@@ -33,12 +33,12 @@ type bucket struct {
 
 type routingTable struct {
 	mu      sync.Mutex
-	id      NodeID
+	id      types.NodeID
 	buckets []*bucket
 }
 
 func (this *routingTable) init(id types.NodeID) {
-	this.buckets = make([]*bucket, BUCKET_NUM)
+	this.buckets = make([]*bucket, types.BUCKET_NUM)
 	this.id = id
 }
 
@@ -64,7 +64,7 @@ func (this *routingTable) AddNode(node *types.Node) bool {
 	}
 
 	// Todo: if the bucket is full, use LRU to replace
-	if len(bucket.entries) >= BUCKET_SIZE {
+	if len(bucket.entries) >= types.BUCKET_SIZE {
 		// bucket is full
 		return false
 	}
@@ -87,18 +87,18 @@ func (this *routingTable) RemoveNode(id types.NodeID) {
 	}
 }
 
-func (this *routingTable) GetClosestNodes(num int, targetID types.NodeID) []*Node {
+func (this *routingTable) GetClosestNodes(num int, targetID types.NodeID) []*types.Node {
 	this.mu.Lock()
 	defer this.mu.Unlock()
-	closestList := make([]*Node, 0, num)
+	closestList := make([]*types.Node, 0, num)
 
 	index, _ := this.locateBucket(targetID)
 	buckets := []int{index}
 	i := index - 1
 	j := index + 1
 
-	for len(buckets) < BUCKET_NUM {
-		if j < BUCKET_NUM {
+	for len(buckets) < types.BUCKET_NUM {
+		if j < types.BUCKET_NUM {
 			buckets = append(buckets, j)
 		}
 		if i >= 0 {

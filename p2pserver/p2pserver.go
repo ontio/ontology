@@ -38,6 +38,7 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/p2pserver/dht"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	msgtypes "github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/message/utils"
@@ -58,6 +59,7 @@ type P2PServer struct {
 	quitSyncRecent chan bool
 	quitOnline     chan bool
 	quitHeartBeat  chan bool
+	dht            *dht.DHT
 }
 
 //ReconnectAddrs contain addr need to reconnect
@@ -74,6 +76,7 @@ func NewServer() *P2PServer {
 		network: n,
 		ledger:  ledger.DefLedger,
 	}
+	p.dht = dht.NewDHT()
 
 	p.msgRouter = utils.NewMsgRouter(p.network)
 	p.blockSync = NewBlockSyncMgr(p)
