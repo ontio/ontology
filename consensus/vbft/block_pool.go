@@ -486,9 +486,12 @@ func (pool *BlockPool) newBlockCommitment(msg *blockCommitMsg) error {
 //		@ for empty commit
 //		@ consensused
 //
+// Note: Attentions on lock contention.
+// Only shared-lock for this function, because this function will also acquires shared-lock on peer-pool.
+//
 func (pool *BlockPool) commitDone(blkNum uint64, C uint32) (uint32, bool, bool) {
-	pool.lock.Lock()
-	defer pool.lock.Unlock()
+	pool.lock.RLock()
+	defer pool.lock.RUnlock()
 
 	candidate := pool.candidateBlocks[blkNum]
 	if candidate == nil {
@@ -532,11 +535,26 @@ func (pool *BlockPool) commitDone(blkNum uint64, C uint32) (uint32, bool, bool) 
 	}
 
 	if proposer != math.MaxUint32 {
-		candidate.commitDone = true
 		return proposer, forEmpty, true
 	}
 
 	return math.MaxUint32, false, false
+}
+
+//
+// @ set BlockPool as committed for given BlockNum
+//
+// Note: setCommitDone supposed to be called after commitDone.
+// Because setCommitDone requires exclusive lock, this function is provided separately.
+//
+func (pool *BlockPool) setCommitDone(blkNum uint64) {
+	pool.lock.Lock()
+	defer pool.lock.Unlock()
+
+	candidate := pool.candidateBlocks[blkNum]
+	if candidate != nil {
+		candidate.commitDone = true
+	}
 }
 
 func (pool *BlockPool) isCommitHadDone(blkNum uint64) bool {
