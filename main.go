@@ -266,7 +266,7 @@ func initP2PNode(ctx *cli.Context, acc *account.Account, txpoolSvr *proc.TXPoolS
 	p2p.SetPID(p2pPID)
 	err = p2p.Start()
 	if err != nil {
-		return nil, nil, fmt.Errorf("p2p sevice start error %s", err)
+		return nil, nil, fmt.Errorf("p2p service start error %s", err)
 	}
 	netreqactor.SetTxnPoolPid(txpoolSvr.GetPID(tc.TxActor))
 	txpoolSvr.RegisterActor(tc.NetActor, p2pPID)
