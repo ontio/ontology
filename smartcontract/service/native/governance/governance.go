@@ -58,7 +58,7 @@ const (
 	WHITE_NODE         = "whiteNode"
 	QUIT_NODE          = "quitNode"
 	VOTE_FOR_PEER      = "voteForPeer"
-	WITH_DRAW          = "withDraw"
+	WITHDRAW           = "withdraw"
 	COMMIT_DPOS        = "commitDpos"
 	VOTE_COMMIT_DPOS   = "voteCommitDpos"
 	UPDATE_CONFIG      = "updateConfig"
@@ -129,7 +129,7 @@ func RegisterGovernanceContract(native *native.NativeService) {
 	native.Register(WHITE_NODE, WhiteNode)
 	native.Register(QUIT_NODE, QuitNode)
 	native.Register(VOTE_FOR_PEER, VoteForPeer)
-	native.Register(WITH_DRAW, WithDraw)
+	native.Register(WITHDRAW, Withdraw)
 	native.Register(COMMIT_DPOS, CommitDpos)
 	native.Register(VOTE_COMMIT_DPOS, VoteCommitDpos)
 	native.Register(UPDATE_CONFIG, UpdateConfig)
@@ -150,10 +150,10 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 	var maxId uint32
 	peers := []*PeerStakeInfo{}
 	peerPoolMap := &PeerPoolMap{
-		PeerPoolMap: make(map[string]*PeerPool),
+		PeerPoolMap: make(map[string]*PeerPoolItem),
 	}
 	for _, peer := range configuration.Peers {
-		peerPool := new(PeerPool)
+		peerPoolItem := new(PeerPoolItem)
 		_, ok := indexMap[peer.Index]
 		if ok {
 			return utils.BYTE_FALSE, errors.NewErr("initConfig, peer index is duplicated!")
@@ -169,18 +169,18 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 		if err != nil {
 			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "common.AddressFromBase58, address format error!")
 		}
-		peerPool.Index = peer.Index
-		peerPool.PeerPubkey = peer.PeerPubkey
-		peerPool.Address = address
-		peerPool.InitPos = peer.InitPos
-		peerPool.TotalPos = 0
-		peerPool.Status = ConsensusStatus
-		peerPoolMap.PeerPoolMap[peerPool.PeerPubkey] = peerPool
+		peerPoolItem.Index = peer.Index
+		peerPoolItem.PeerPubkey = peer.PeerPubkey
+		peerPoolItem.Address = address
+		peerPoolItem.InitPos = peer.InitPos
+		peerPoolItem.TotalPos = 0
+		peerPoolItem.Status = ConsensusStatus
+		peerPoolMap.PeerPoolMap[peerPoolItem.PeerPubkey] = peerPoolItem
 		bf := new(bytes.Buffer)
 		if err := peerPoolMap.Serialize(bf); err != nil {
 			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize peerPoolMap error!")
 		}
-		peerPubkeyPrefix, err := hex.DecodeString(peerPool.PeerPubkey)
+		peerPubkeyPrefix, err := hex.DecodeString(peerPoolItem.PeerPubkey)
 		if err != nil {
 			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, peerPubkey format error!")
 		}
@@ -189,7 +189,7 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 			&cstates.StorageItem{Value: bf.Bytes()})
 		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_POOL), view.Bytes()),
 			&cstates.StorageItem{Value: bf.Bytes()})
-		index := peerPool.Index
+		index := peerPoolItem.Index
 		buf := new(bytes.Buffer)
 		err = serialization.WriteUint32(buf, index)
 		if err != nil {
@@ -198,9 +198,9 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_INDEX), peerPubkeyPrefix), &cstates.StorageItem{Value: buf.Bytes()})
 
 		peers = append(peers, &PeerStakeInfo{
-			Index:      peerPool.Index,
-			PeerPubkey: peerPool.PeerPubkey,
-			Stake:      peerPool.InitPos,
+			Index:      peerPoolItem.Index,
+			PeerPubkey: peerPoolItem.PeerPubkey,
+			Stake:      peerPoolItem.InitPos,
 		})
 	}
 
@@ -303,13 +303,13 @@ func RegisterSyncNode(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("registerSyncNode, peerPubkey is already in peerPoolMap!")
 	}
 
-	peerPool := &PeerPool{
+	peerPoolItem := &PeerPoolItem{
 		PeerPubkey: params.PeerPubkey,
 		Address:    address,
 		InitPos:    params.InitPos,
 		Status:     RegisterSyncNodeStatus,
 	}
-	peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPool
+	peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPoolItem
 	bf := new(bytes.Buffer)
 	if err := peerPoolMap.Serialize(bf); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize peerPoolMap error!")
@@ -358,18 +358,18 @@ func ApproveSyncNode(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getPeerPoolMap, get peerPoolMap error!")
 	}
 
-	peerPool, ok := peerPoolMap.PeerPoolMap[params.PeerPubkey]
+	peerPoolItem, ok := peerPoolMap.PeerPoolMap[params.PeerPubkey]
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("approveSyncNode, peerPubkey is not in peerPoolMap!")
 	}
 
-	if peerPool.Status != RegisterSyncNodeStatus {
+	if peerPoolItem.Status != RegisterSyncNodeStatus {
 		return utils.BYTE_FALSE, errors.NewErr("approveSyncNode, peer status is not RegisterSyncNodeStatus!")
 	}
 
-	peerPool.Status = SyncNodeStatus
+	peerPoolItem.Status = SyncNodeStatus
 
-	peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPool
+	peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPoolItem
 	bf := new(bytes.Buffer)
 	if err := peerPoolMap.Serialize(bf); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize peerPoolMap error!")
@@ -411,21 +411,21 @@ func RegisterCandidate(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getPeerPoolMap, get peerPoolMap error!")
 	}
 
-	peerPool, ok := peerPoolMap.PeerPoolMap[params.PeerPubkey]
+	peerPoolItem, ok := peerPoolMap.PeerPoolMap[params.PeerPubkey]
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("registerCandidate, peerPubkey is not in peerPoolMap!")
 	}
 
-	if peerPool.Address != address {
+	if peerPoolItem.Address != address {
 		return utils.BYTE_FALSE, errors.NewErr("registerCandidate, peer is not registered by this address!")
 	}
-	if peerPool.Status != SyncNodeStatus {
+	if peerPoolItem.Status != SyncNodeStatus {
 		return utils.BYTE_FALSE, errors.NewErr("registerCandidate, peer status is not SyncNodeStatus!")
 	}
 
-	peerPool.Status = RegisterCandidateStatus
+	peerPoolItem.Status = RegisterCandidateStatus
 
-	peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPool
+	peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPoolItem
 	bf := new(bytes.Buffer)
 	if err := peerPoolMap.Serialize(bf); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize peerPoolMap error!")
@@ -471,8 +471,8 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 	}
 
 	num := 0
-	for _, peerPool := range peerPoolMap.PeerPoolMap {
-		if peerPool.Status == CandidateStatus || peerPool.Status == ConsensusStatus {
+	for _, peerPoolItem := range peerPoolMap.PeerPoolMap {
+		if peerPoolItem.Status == CandidateStatus || peerPoolItem.Status == ConsensusStatus {
 			num = num + 1
 		}
 	}
@@ -481,20 +481,20 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 	}
 
 	//get peerPool
-	peerPool, ok := peerPoolMap.PeerPoolMap[params.PeerPubkey]
+	peerPoolItem, ok := peerPoolMap.PeerPoolMap[params.PeerPubkey]
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("approveCandidate, peerPubkey is not in peerPoolMap!")
 	}
 
-	if peerPool.Status != RegisterCandidateStatus {
+	if peerPoolItem.Status != RegisterCandidateStatus {
 		return utils.BYTE_FALSE, errors.NewErr("approveCandidate, peer status is not RegisterCandidateStatus!")
 	}
 
-	peerPool.Status = CandidateStatus
-	peerPool.TotalPos = 0
+	peerPoolItem.Status = CandidateStatus
+	peerPoolItem.TotalPos = 0
 
 	//check if has index
-	peerPubkeyPrefix, err := hex.DecodeString(peerPool.PeerPubkey)
+	peerPubkeyPrefix, err := hex.DecodeString(peerPoolItem.PeerPubkey)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, peerPubkey format error!")
 	}
@@ -504,7 +504,7 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 	}
 	if indexBytes != nil {
 		buf := bytes.NewBuffer(indexBytes.(*cstates.StorageItem).Value)
-		peerPool.Index, err = serialization.ReadUint32(buf)
+		peerPoolItem.Index, err = serialization.ReadUint32(buf)
 		if err != nil {
 			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, readUint32 error!")
 		}
@@ -521,7 +521,7 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 			candidateIndexStore, _ := candidateIndexBytes.(*cstates.StorageItem)
 			candidateIndex = new(big.Int).SetBytes(candidateIndexStore.Value).Uint64()
 		}
-		peerPool.Index = uint32(candidateIndex)
+		peerPoolItem.Index = uint32(candidateIndex)
 
 		//update candidateIndex
 		newCandidateIndex := candidateIndex + 1
@@ -529,13 +529,13 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 			&cstates.StorageItem{Value: new(big.Int).SetUint64(newCandidateIndex).Bytes()})
 
 		buf := new(bytes.Buffer)
-		err = serialization.WriteUint32(buf, peerPool.Index)
+		err = serialization.WriteUint32(buf, peerPoolItem.Index)
 		if err != nil {
 			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, writeUint32 error!")
 		}
 		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_INDEX), peerPubkeyPrefix), &cstates.StorageItem{Value: buf.Bytes()})
 	}
-	peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPool
+	peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPoolItem
 	bf := new(bytes.Buffer)
 	if err := peerPoolMap.Serialize(bf); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize peerPoolMap error!")
@@ -578,19 +578,19 @@ func BlackNode(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getPeerPoolMap, get peerPoolMap error!")
 	}
 
-	peerPool, ok := peerPoolMap.PeerPoolMap[params.PeerPubkey]
+	peerPoolItem, ok := peerPoolMap.PeerPoolMap[params.PeerPubkey]
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("quitNode, peerPubkey is not in peerPoolMap!")
 	}
 
 	//change peerPool status
-	if peerPool.Status == ConsensusStatus {
-		peerPool.Status = QuitConsensusStatus
+	if peerPoolItem.Status == ConsensusStatus {
+		peerPoolItem.Status = QuitConsensusStatus
 	} else {
-		peerPool.Status = QuitingStatus
+		peerPoolItem.Status = QuitingStatus
 	}
 
-	peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPool
+	peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPoolItem
 	bf := new(bytes.Buffer)
 	if err := peerPoolMap.Serialize(bf); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize peerPoolMap error!")
@@ -652,23 +652,23 @@ func QuitNode(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getPeerPoolMap, get peerPoolMap error!")
 	}
 
-	peerPool, ok := peerPoolMap.PeerPoolMap[params.PeerPubkey]
+	peerPoolItem, ok := peerPoolMap.PeerPoolMap[params.PeerPubkey]
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("quitNode, peerPubkey is not in peerPoolMap!")
 	}
 
-	if address != peerPool.Address {
+	if address != peerPoolItem.Address {
 		return utils.BYTE_FALSE, errors.NewErr("quitNode, peerPubkey is not registered by this address!")
 	}
 
 	//change peerPool status
-	if peerPool.Status == ConsensusStatus {
-		peerPool.Status = QuitConsensusStatus
+	if peerPoolItem.Status == ConsensusStatus {
+		peerPoolItem.Status = QuitConsensusStatus
 	} else {
-		peerPool.Status = QuitingStatus
+		peerPoolItem.Status = QuitingStatus
 	}
 
-	peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPool
+	peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPoolItem
 	bf := new(bytes.Buffer)
 	if err := peerPoolMap.Serialize(bf); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize peerPoolMap error!")
@@ -718,12 +718,12 @@ func VoteForPeer(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, peerPubkey format error!")
 		}
 
-		peerPool, ok := peerPoolMap.PeerPoolMap[peerPubkey]
+		peerPoolItem, ok := peerPoolMap.PeerPoolMap[peerPubkey]
 		if !ok {
 			return utils.BYTE_FALSE, errors.NewErr("voteForPeer, peerPubkey is not in peerPoolMap!")
 		}
 
-		if peerPool.Status != CandidateStatus && peerPool.Status != ConsensusStatus {
+		if peerPoolItem.Status != CandidateStatus && peerPoolItem.Status != ConsensusStatus {
 			continue
 		}
 
@@ -744,7 +744,7 @@ func VoteForPeer(native *native.NativeService) ([]byte, error) {
 				voteInfoPool.NewPos = uint64(pos)
 			}
 			total = total + pos
-			peerPool.TotalPos = peerPool.TotalPos + uint64(pos)
+			peerPoolItem.TotalPos = peerPoolItem.TotalPos + uint64(pos)
 		} else {
 			if voteInfoPoolBytes != nil {
 				voteInfoPoolStore, _ := voteInfoPoolBytes.(*cstates.StorageItem)
@@ -753,40 +753,40 @@ func VoteForPeer(native *native.NativeService) ([]byte, error) {
 				}
 				temp := int64(voteInfoPool.NewPos) + pos
 				if temp < 0 {
-					if peerPool.Status == ConsensusStatus {
+					if peerPoolItem.Status == ConsensusStatus {
 						consensusPos := int64(voteInfoPool.ConsensusPos) + temp
 						if consensusPos < 0 {
 							continue
 						}
 						newPos := voteInfoPool.NewPos
 						voteInfoPool.NewPos = 0
-						voteInfoPool.WithDrawUnfreezePos = voteInfoPool.WithDrawUnfreezePos + newPos
+						voteInfoPool.WithdrawUnfreezePos = voteInfoPool.WithdrawUnfreezePos + newPos
 						voteInfoPool.ConsensusPos = uint64(consensusPos)
-						voteInfoPool.WithDrawPos = uint64(int64(voteInfoPool.WithDrawPos) - temp)
-						peerPool.TotalPos = uint64(int64(peerPool.TotalPos) + pos)
+						voteInfoPool.WithdrawPos = uint64(int64(voteInfoPool.WithdrawPos) - temp)
+						peerPoolItem.TotalPos = uint64(int64(peerPoolItem.TotalPos) + pos)
 					}
-					if peerPool.Status == CandidateStatus {
+					if peerPoolItem.Status == CandidateStatus {
 						freezePos := int64(voteInfoPool.FreezePos) + temp
 						if freezePos < 0 {
 							continue
 						}
 						newPos := voteInfoPool.NewPos
 						voteInfoPool.NewPos = 0
-						voteInfoPool.WithDrawUnfreezePos = voteInfoPool.WithDrawUnfreezePos + newPos
+						voteInfoPool.WithdrawUnfreezePos = voteInfoPool.WithdrawUnfreezePos + newPos
 						voteInfoPool.FreezePos = uint64(freezePos)
-						voteInfoPool.WithDrawFreezePos = uint64(int64(voteInfoPool.WithDrawFreezePos) - temp)
-						peerPool.TotalPos = uint64(int64(peerPool.TotalPos) + pos)
+						voteInfoPool.WithdrawFreezePos = uint64(int64(voteInfoPool.WithdrawFreezePos) - temp)
+						peerPoolItem.TotalPos = uint64(int64(peerPoolItem.TotalPos) + pos)
 					}
 				} else {
 					voteInfoPool.NewPos = uint64(temp)
-					voteInfoPool.WithDrawUnfreezePos = uint64(int64(voteInfoPool.WithDrawUnfreezePos) - pos)
-					peerPool.TotalPos = uint64(int64(peerPool.TotalPos) + pos)
+					voteInfoPool.WithdrawUnfreezePos = uint64(int64(voteInfoPool.WithdrawUnfreezePos) - pos)
+					peerPoolItem.TotalPos = uint64(int64(peerPoolItem.TotalPos) + pos)
 				}
 			} else {
 				continue
 			}
 		}
-		peerPoolMap.PeerPoolMap[peerPubkey] = peerPool
+		peerPoolMap.PeerPoolMap[peerPubkey] = peerPoolItem
 		bf := new(bytes.Buffer)
 		if err := voteInfoPool.Serialize(bf); err != nil {
 			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize voteInfoPool error!")
@@ -811,9 +811,9 @@ func VoteForPeer(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-func WithDraw(native *native.NativeService) ([]byte, error) {
-	params := &WithDrawParam{
-		WithDrawTable: make(map[string]uint64),
+func Withdraw(native *native.NativeService) ([]byte, error) {
+	params := &WithdrawParam{
+		WithdrawTable: make(map[string]uint64),
 	}
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
@@ -843,18 +843,18 @@ func WithDraw(native *native.NativeService) ([]byte, error) {
 	}
 
 	var total uint64
-	for peerPubkey, pos := range params.WithDrawTable {
+	for peerPubkey, pos := range params.WithdrawTable {
 		peerPubkeyPrefix, err := hex.DecodeString(peerPubkey)
 		if err != nil {
 			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, peerPubkey format error!")
 		}
 
-		peerPool, ok := peerPoolMap.PeerPoolMap[peerPubkey]
+		peerPoolItem, ok := peerPoolMap.PeerPoolMap[peerPubkey]
 		if !ok {
 			return utils.BYTE_FALSE, errors.NewErr("voteForPeer, peerPubkey is not in peerPoolMap!")
 		}
 
-		if peerPool.Status != CandidateStatus && peerPool.Status != ConsensusStatus {
+		if peerPoolItem.Status != CandidateStatus && peerPoolItem.Status != ConsensusStatus {
 			continue
 		}
 
@@ -866,28 +866,28 @@ func WithDraw(native *native.NativeService) ([]byte, error) {
 			if err := voteInfoPool.Deserialize(bytes.NewBuffer(voteInfoPoolStore.Value)); err != nil {
 				return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfoPool error!")
 			}
-			if voteInfoPool.WithDrawUnfreezePos < pos {
+			if voteInfoPool.WithdrawUnfreezePos < pos {
 				continue
 			} else {
-				voteInfoPool.WithDrawUnfreezePos = voteInfoPool.WithDrawUnfreezePos - pos
+				voteInfoPool.WithdrawUnfreezePos = voteInfoPool.WithdrawUnfreezePos - pos
 				total = total + pos
 			}
 		} else {
 			continue
 		}
 		if voteInfoPool.ConsensusPos == 0 && voteInfoPool.FreezePos == 0 && voteInfoPool.NewPos == 0 &&
-			voteInfoPool.WithDrawPos == 0 && voteInfoPool.WithDrawFreezePos == 0 && voteInfoPool.WithDrawUnfreezePos == 0 {
+			voteInfoPool.WithdrawPos == 0 && voteInfoPool.WithdrawFreezePos == 0 && voteInfoPool.WithdrawUnfreezePos == 0 {
 			native.CloneCache.Delete(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL), peerPubkeyPrefix, address[:]))
 		}
 	}
 
 	//ont transfer
-	err = AppCallTransferOnt(native, address, genesis.GovernanceContractAddress, total)
+	err = AppCallTransferOnt(native, genesis.GovernanceContractAddress, address, total)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
 	}
 
-	utils.AddCommonEvent(native, contract, WITH_DRAW, params)
+	utils.AddCommonEvent(native, contract, WITHDRAW, params)
 
 	return utils.BYTE_TRUE, nil
 }
@@ -952,17 +952,17 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 	}
 
 	peers := []*PeerStakeInfo{}
-	for _, peerPool := range peerPoolMap.PeerPoolMap {
-		peerPubkeyPrefix, err := hex.DecodeString(peerPool.PeerPubkey)
+	for _, peerPoolItem := range peerPoolMap.PeerPoolMap {
+		peerPubkeyPrefix, err := hex.DecodeString(peerPoolItem.PeerPubkey)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, peerPubkey format error!")
 		}
 
-		if peerPool.Status == QuitingStatus {
+		if peerPoolItem.Status == QuitingStatus {
 			//draw back init pos
-			address := peerPool.Address
+			address := peerPoolItem.Address
 			//ont transfer
-			err = AppCallTransferOnt(native, genesis.GovernanceContractAddress, address, peerPool.InitPos)
+			err = AppCallTransferOnt(native, genesis.GovernanceContractAddress, address, peerPoolItem.InitPos)
 			if err != nil {
 				return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
 			}
@@ -978,8 +978,8 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 				if err := voteInfoPool.Deserialize(bytes.NewBuffer(voteInfoPoolStore.Value)); err != nil {
 					return errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfoPool error!")
 				}
-				pos := voteInfoPool.ConsensusPos + voteInfoPool.FreezePos + voteInfoPool.NewPos + voteInfoPool.WithDrawPos +
-					voteInfoPool.WithDrawFreezePos + voteInfoPool.WithDrawUnfreezePos
+				pos := voteInfoPool.ConsensusPos + voteInfoPool.FreezePos + voteInfoPool.NewPos + voteInfoPool.WithdrawPos +
+					voteInfoPool.WithdrawFreezePos + voteInfoPool.WithdrawUnfreezePos
 
 				address := voteInfoPool.Address
 				//ont transfer
@@ -989,18 +989,18 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 				}
 				native.CloneCache.Delete(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL), peerPubkeyPrefix, address[:]))
 			}
-			delete(peerPoolMap.PeerPoolMap, peerPool.PeerPubkey)
+			delete(peerPoolMap.PeerPoolMap, peerPoolItem.PeerPubkey)
 		}
-		if peerPool.Status == QuitConsensusStatus {
-			peerPool.Status = QuitingStatus
-			peerPoolMap.PeerPoolMap[peerPool.PeerPubkey] = peerPool
+		if peerPoolItem.Status == QuitConsensusStatus {
+			peerPoolItem.Status = QuitingStatus
+			peerPoolMap.PeerPoolMap[peerPoolItem.PeerPubkey] = peerPoolItem
 		}
 
-		if peerPool.Status == CandidateStatus || peerPool.Status == ConsensusStatus {
-			stake := peerPool.TotalPos + peerPool.InitPos
+		if peerPoolItem.Status == CandidateStatus || peerPoolItem.Status == ConsensusStatus {
+			stake := peerPoolItem.TotalPos + peerPoolItem.InitPos
 			peers = append(peers, &PeerStakeInfo{
-				Index:      peerPool.Index,
-				PeerPubkey: peerPool.PeerPubkey,
+				Index:      peerPoolItem.Index,
+				PeerPubkey: peerPoolItem.PeerPubkey,
 				Stake:      stake,
 			})
 		}
@@ -1019,12 +1019,12 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 			return errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, peerPubkey format error!")
 		}
 
-		peerPool, ok := peerPoolMap.PeerPoolMap[peers[i].PeerPubkey]
+		peerPoolItem, ok := peerPoolMap.PeerPoolMap[peers[i].PeerPubkey]
 		if !ok {
 			return errors.NewErr("voteForPeer, peerPubkey is not in peerPoolMap!")
 		}
 
-		if peerPool.Status == ConsensusStatus {
+		if peerPoolItem.Status == ConsensusStatus {
 			//update voteInfoPool
 			stateValues, err := native.CloneCache.Store.Find(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL), peerPubkeyPrefix))
 			if err != nil {
@@ -1043,11 +1043,11 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 				newPos := voteInfoPool.NewPos
 				voteInfoPool.ConsensusPos = voteInfoPool.ConsensusPos + newPos
 				voteInfoPool.NewPos = 0
-				withDrawPos := voteInfoPool.WithDrawPos
-				withDrawFreezePos := voteInfoPool.WithDrawFreezePos
-				voteInfoPool.WithDrawFreezePos = withDrawPos
-				voteInfoPool.WithDrawUnfreezePos = voteInfoPool.WithDrawUnfreezePos + withDrawFreezePos
-				voteInfoPool.WithDrawPos = 0
+				withdrawPos := voteInfoPool.WithdrawPos
+				withdrawFreezePos := voteInfoPool.WithdrawFreezePos
+				voteInfoPool.WithdrawFreezePos = withdrawPos
+				voteInfoPool.WithdrawUnfreezePos = voteInfoPool.WithdrawUnfreezePos + withdrawFreezePos
+				voteInfoPool.WithdrawPos = 0
 
 				bf := new(bytes.Buffer)
 				if err := voteInfoPool.Serialize(bf); err != nil {
@@ -1076,11 +1076,11 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 				voteInfoPool.ConsensusPos = voteInfoPool.ConsensusPos + voteInfoPool.FreezePos + voteInfoPool.NewPos
 				voteInfoPool.NewPos = 0
 				voteInfoPool.FreezePos = 0
-				withDrawPos := voteInfoPool.WithDrawPos
-				withDrawFreezePos := voteInfoPool.WithDrawFreezePos
-				voteInfoPool.WithDrawFreezePos = withDrawPos
-				voteInfoPool.WithDrawUnfreezePos = voteInfoPool.WithDrawUnfreezePos + withDrawFreezePos
-				voteInfoPool.WithDrawPos = 0
+				withdrawPos := voteInfoPool.WithdrawPos
+				withdrawFreezePos := voteInfoPool.WithdrawFreezePos
+				voteInfoPool.WithdrawFreezePos = withdrawPos
+				voteInfoPool.WithdrawUnfreezePos = voteInfoPool.WithdrawUnfreezePos + withdrawFreezePos
+				voteInfoPool.WithdrawPos = 0
 
 				bf := new(bytes.Buffer)
 				if err := voteInfoPool.Serialize(bf); err != nil {
@@ -1090,8 +1090,8 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 					address[:]), &cstates.StorageItem{Value: bf.Bytes()})
 			}
 		}
-		peerPool.Status = ConsensusStatus
-		peerPoolMap.PeerPoolMap[peers[i].PeerPubkey] = peerPool
+		peerPoolItem.Status = ConsensusStatus
+		peerPoolMap.PeerPoolMap[peers[i].PeerPubkey] = peerPoolItem
 	}
 
 	//non consensus peers
@@ -1102,12 +1102,12 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 			return errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, peerPubkey format error!")
 		}
 
-		peerPool, ok := peerPoolMap.PeerPoolMap[peers[i].PeerPubkey]
+		peerPoolItem, ok := peerPoolMap.PeerPoolMap[peers[i].PeerPubkey]
 		if !ok {
 			return errors.NewErr("voteForPeer, peerPubkey is not in peerPoolMap!")
 		}
 
-		if peerPool.Status == ConsensusStatus {
+		if peerPoolItem.Status == ConsensusStatus {
 			//update voteInfoPool
 			stateValues, err := native.CloneCache.Store.Find(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL), peerPubkeyPrefix))
 			if err != nil {
@@ -1126,11 +1126,11 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 				voteInfoPool.FreezePos = voteInfoPool.ConsensusPos + voteInfoPool.NewPos
 				voteInfoPool.NewPos = 0
 				voteInfoPool.ConsensusPos = 0
-				withDrawPos := voteInfoPool.WithDrawPos
-				withDrawFreezePos := voteInfoPool.WithDrawFreezePos
-				voteInfoPool.WithDrawFreezePos = withDrawPos
-				voteInfoPool.WithDrawUnfreezePos = voteInfoPool.WithDrawUnfreezePos + withDrawFreezePos
-				voteInfoPool.WithDrawPos = 0
+				withdrawPos := voteInfoPool.WithdrawPos
+				withdrawFreezePos := voteInfoPool.WithdrawFreezePos
+				voteInfoPool.WithdrawFreezePos = withdrawPos
+				voteInfoPool.WithdrawUnfreezePos = voteInfoPool.WithdrawUnfreezePos + withdrawFreezePos
+				voteInfoPool.WithdrawPos = 0
 
 				bf := new(bytes.Buffer)
 				if err := voteInfoPool.Serialize(bf); err != nil {
@@ -1160,11 +1160,11 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 				freezePos := voteInfoPool.FreezePos
 				voteInfoPool.NewPos = freezePos
 				voteInfoPool.FreezePos = newPos
-				withDrawPos := voteInfoPool.WithDrawPos
-				withDrawFreezePos := voteInfoPool.WithDrawFreezePos
-				voteInfoPool.WithDrawFreezePos = withDrawPos
-				voteInfoPool.WithDrawUnfreezePos = voteInfoPool.WithDrawUnfreezePos + withDrawFreezePos
-				voteInfoPool.WithDrawPos = 0
+				withdrawPos := voteInfoPool.WithdrawPos
+				withdrawFreezePos := voteInfoPool.WithdrawFreezePos
+				voteInfoPool.WithdrawFreezePos = withdrawPos
+				voteInfoPool.WithdrawUnfreezePos = voteInfoPool.WithdrawUnfreezePos + withdrawFreezePos
+				voteInfoPool.WithdrawPos = 0
 
 				bf := new(bytes.Buffer)
 				if err := voteInfoPool.Serialize(bf); err != nil {
@@ -1174,8 +1174,8 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 					address[:]), &cstates.StorageItem{Value: bf.Bytes()})
 			}
 		}
-		peerPool.Status = CandidateStatus
-		peerPoolMap.PeerPoolMap[peers[i].PeerPubkey] = peerPool
+		peerPoolItem.Status = CandidateStatus
+		peerPoolMap.PeerPoolMap[peers[i].PeerPubkey] = peerPoolItem
 	}
 	bf := new(bytes.Buffer)
 	if err := peerPoolMap.Serialize(bf); err != nil {
@@ -1390,21 +1390,21 @@ func executeSplit(native *native.NativeService, contract common.Address, peerPoo
 	peersCandidate := []*CandidateSplitInfo{}
 	peersSyncNode := []*SyncNodeSplitInfo{}
 
-	for _, peerPool := range peerPoolMap.PeerPoolMap {
-		if peerPool.Status == CandidateStatus || peerPool.Status == ConsensusStatus {
-			stake := peerPool.TotalPos + peerPool.InitPos
+	for _, peerPoolItem := range peerPoolMap.PeerPoolMap {
+		if peerPoolItem.Status == CandidateStatus || peerPoolItem.Status == ConsensusStatus {
+			stake := peerPoolItem.TotalPos + peerPoolItem.InitPos
 			peersCandidate = append(peersCandidate, &CandidateSplitInfo{
-				PeerPubkey: peerPool.PeerPubkey,
-				InitPos:    peerPool.InitPos,
-				Address:    peerPool.Address,
+				PeerPubkey: peerPoolItem.PeerPubkey,
+				InitPos:    peerPoolItem.InitPos,
+				Address:    peerPoolItem.Address,
 				Stake:      stake,
 			})
 		}
-		if peerPool.Status == SyncNodeStatus || peerPool.Status == RegisterCandidateStatus {
+		if peerPoolItem.Status == SyncNodeStatus || peerPoolItem.Status == RegisterCandidateStatus {
 			peersSyncNode = append(peersSyncNode, &SyncNodeSplitInfo{
-				PeerPubkey: peerPool.PeerPubkey,
-				InitPos:    peerPool.InitPos,
-				Address:    peerPool.Address,
+				PeerPubkey: peerPoolItem.PeerPubkey,
+				InitPos:    peerPoolItem.InitPos,
+				Address:    peerPoolItem.Address,
 			})
 		}
 	}

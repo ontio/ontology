@@ -163,7 +163,7 @@ func (self *ChainStore) GetPeersConfig() ([]*config.VBFTPeerStakeInfo, error) {
 		return nil, err
 	}
 	peerMap := &gov.PeerPoolMap{
-		PeerPoolMap: make(map[string]*gov.PeerPool),
+		PeerPoolMap: make(map[string]*gov.PeerPoolItem),
 	}
 	err = peerMap.Deserialize(bytes.NewBuffer(data))
 	if err != nil {
