@@ -21,11 +21,11 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
+	"fmt"
 
 	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/errors"
 )
 
 type VersionPayload struct {
@@ -53,26 +53,30 @@ type Version struct {
 //Check whether header is correct
 func (this Version) Verify(buf []byte) error {
 	err := this.Hdr.Verify(buf)
-	return err
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNetVerifyFail, fmt.Sprintf("verify error. buf:%v", buf))
+	}
+	return nil
 }
 
 //Serialize message payload
 func (this Version) Serialization() ([]byte, error) {
 	p := bytes.NewBuffer([]byte{})
 	err := binary.Write(p, binary.LittleEndian, &(this.P))
+	if err != nil {
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. payload:%v", this.P))
+	}
 	serialization.WriteVarBytes(p, keypair.SerializePublicKey(this.PK))
 	if err != nil {
-		log.Error("Binary Write failed at new Msg")
-		return nil, err
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. publickey:%v", this.PK))
 	}
 
 	checkSumBuf := CheckSum(p.Bytes())
 	this.Hdr.Init("version", checkSumBuf, uint32(len(p.Bytes())))
-	log.Debug("NewVersion The message payload length is ", this.Hdr.Length)
 
 	hdrBuf, err := this.Hdr.Serialization()
 	if err != nil {
-		return nil, err
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialization error. Hdr:%v", this.Hdr))
 	}
 	buf := bytes.NewBuffer(hdrBuf)
 	data := append(buf.Bytes(), p.Bytes()...)
@@ -85,24 +89,22 @@ func (this *Version) Deserialization(p []byte) error {
 
 	err := binary.Read(buf, binary.LittleEndian, &(this.Hdr))
 	if err != nil {
-		log.Warn("Parse version message hdr error")
-		return errors.New("Parse version message hdr error")
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read Hdr error. buf:%v", buf))
 	}
 
 	err = binary.Read(buf, binary.LittleEndian, &(this.P))
 	if err != nil {
-		log.Warn("Parse version P message error")
-		return errors.New("Parse version P message error")
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read payload error. buf:%v", buf))
 	}
 
 	keyBuf, err := serialization.ReadVarBytes(buf)
 	if err != nil {
-		return errors.New("Parse pubkey Deserialize failed.")
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read public key buffer error. buf:%v", buf))
 	}
 	pk, err := keypair.DeserializePublicKey(keyBuf)
 	if err != nil {
-		return errors.New("Parse pubkey Deserialize failed.")
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("deserialize public key error. keyBuf:%v", keyBuf))
 	}
 	this.PK = pk
-	return err
+	return nil
 }

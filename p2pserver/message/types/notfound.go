@@ -21,10 +21,10 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
+	"fmt"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/errors"
 )
 
 type NotFound struct {
@@ -35,21 +35,26 @@ type NotFound struct {
 //Check whether header is correct
 func (this NotFound) Verify(buf []byte) error {
 	err := this.MsgHdr.Verify(buf)
-	return err
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNetVerifyFail, fmt.Sprintf("verify error. buf:%v", buf))
+	}
+	return nil
 }
 
 //Serialize message payload
 func (this NotFound) Serialization() ([]byte, error) {
 
 	p := bytes.NewBuffer([]byte{})
-	this.Hash.Serialize(p)
-
+	err := this.Hash.Serialize(p)
+	if err != nil {
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialize error. Hash:%v", this.Hash))
+	}
 	checkSumBuf := CheckSum(p.Bytes())
 	this.MsgHdr.Init("notfound", checkSumBuf, uint32(len(p.Bytes())))
 
 	hdrBuf, err := this.MsgHdr.Serialization()
 	if err != nil {
-		return nil, err
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialization error. MsgHdr:%v", this.MsgHdr))
 	}
 	buf := bytes.NewBuffer(hdrBuf)
 
@@ -63,15 +68,12 @@ func (this *NotFound) Deserialization(p []byte) error {
 
 	err := binary.Read(buf, binary.LittleEndian, &(this.MsgHdr))
 	if err != nil {
-		log.Warn("Parse notFound message hdr error")
-		return errors.New("Parse notFound message hdr error ")
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read MsgHdr error. buf:%v", buf))
 	}
 
 	err = this.Hash.Deserialize(buf)
 	if err != nil {
-		log.Warn("Parse notFound message error")
-		return errors.New("Parse notFound message error ")
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("deserialize Hash error. buf:%v", buf))
 	}
-
-	return err
+	return nil
 }

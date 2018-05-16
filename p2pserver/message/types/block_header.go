@@ -21,10 +21,12 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	ct "github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/errors"
 )
 
 type BlkHeader struct {
@@ -36,7 +38,10 @@ type BlkHeader struct {
 //Check whether header is correct
 func (this BlkHeader) Verify(buf []byte) error {
 	err := this.Hdr.Verify(buf)
-	return err
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNetVerifyFail, fmt.Sprintf("verify error. buf:%v", buf))
+	}
+	return nil
 }
 
 //Serialize message payload
@@ -53,7 +58,7 @@ func (this BlkHeader) Serialization() ([]byte, error) {
 
 	hdrBuf, err := this.Hdr.Serialization()
 	if err != nil {
-		return nil, err
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialization error. MsgHdr:%v", this.Hdr))
 	}
 	buf := bytes.NewBuffer(hdrBuf)
 	data := append(buf.Bytes(), p.Bytes()...)
@@ -65,24 +70,21 @@ func (this *BlkHeader) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(this.Hdr))
 	if err != nil {
-		return err
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read Hdr error. buf:%v", buf))
 	}
 
 	err = binary.Read(buf, binary.LittleEndian, &(this.Cnt))
 	if err != nil {
-		return err
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read Cnt error. buf:%v", buf))
 	}
 
 	for i := 0; i < int(this.Cnt); i++ {
 		var headers ct.Header
 		err := (&headers).Deserialize(buf)
-		this.BlkHdr = append(this.BlkHdr, headers)
 		if err != nil {
-			log.Debug("blkHeader Deserialization failed")
-			goto blkHdrErr
+			return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("deserialize headers error. buf:%v", buf))
 		}
+		this.BlkHdr = append(this.BlkHdr, headers)
 	}
-
-blkHdrErr:
-	return err
+	return nil
 }

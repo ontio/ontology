@@ -73,6 +73,10 @@ func TLSDial(nodeAddr string) (net.Conn, error) {
 	clientCertPool := x509.NewCertPool()
 
 	cacert, err := ioutil.ReadFile(CAPath)
+	if err != nil {
+		log.Error("load CA file fail", err)
+		return nil, err
+	}
 	cert, err := tls.LoadX509KeyPair(CertPath, KeyPath)
 	if err != nil {
 		return nil, err

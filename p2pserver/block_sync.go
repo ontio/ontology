@@ -187,7 +187,7 @@ func (this *BlockSyncMgr) checkTimeout() {
 		}
 		flightInfo.ResetStartTime()
 		flightInfo.MarkFailedNode()
-		log.Infof("BlockSyncMgr checkTimeout sync headers:%d timeout after:%d s Times:%d", height, SYNC_HEADER_REQUEST_TIMEOUT, flightInfo.GetTotalFailedTimes())
+		log.Infof("checkTimeout sync headers:%d timeout after:%d s Times:%d", height, SYNC_HEADER_REQUEST_TIMEOUT, flightInfo.GetTotalFailedTimes())
 		reqNode := this.getNodeWithMinFailedTimes(flightInfo, curBlockHeight)
 		if reqNode == nil {
 			break
@@ -197,7 +197,7 @@ func (this *BlockSyncMgr) checkTimeout() {
 		headerHash := this.ledger.GetCurrentHeaderHash()
 		buf, err := msgpack.NewHeadersReq(headerHash)
 		if err != nil {
-			log.Error("failed build a new headersReq")
+			log.Error("checkTimeout failed build a new headersReq")
 		} else {
 			this.server.Send(reqNode, buf, false)
 		}
@@ -209,7 +209,7 @@ func (this *BlockSyncMgr) checkTimeout() {
 		}
 		flightInfo.ResetStartTime()
 		flightInfo.MarkFailedNode()
-		log.Infof("BlockSyncMgr checkTimeout sync height:%d block:%x timeout after:%d s times:%d", flightInfo.Height, blockHash, SYNC_BLOCK_REQUEST_TIMEOUT, flightInfo.GetTotalFailedTimes())
+		log.Infof("checkTimeout sync height:%d block:0x%x timeout after:%d s times:%d", flightInfo.Height, blockHash, SYNC_BLOCK_REQUEST_TIMEOUT, flightInfo.GetTotalFailedTimes())
 		reqNode := this.getNodeWithMinFailedTimes(flightInfo, curBlockHeight)
 		if reqNode == nil {
 			break
@@ -218,12 +218,12 @@ func (this *BlockSyncMgr) checkTimeout() {
 
 		reqBuf, err := msgpack.NewBlkDataReq(blockHash)
 		if err != nil {
-			log.Error("syncBlock error:", err)
+			log.Error("checkTimeout NewBlkDataReq error:", err)
 		}
 		err = this.server.Send(reqNode, reqBuf, false)
 
 		if err != nil {
-			log.Errorf("BlockSyncMgr checkTimeout Height:%d Hash:%x ReqBlkData error:%s", flightInfo.Height, blockHash, err)
+			log.Errorf("checkTimeout reqNode ID:0x%x Send error:%s", reqNode.GetID(), err)
 			continue
 		}
 	}
@@ -263,12 +263,12 @@ func (this *BlockSyncMgr) syncHeader() {
 	headerHash := this.ledger.GetCurrentHeaderHash()
 	buf, err := msgpack.NewHeadersReq(headerHash)
 	if err != nil {
-		log.Error("failed build a new headersReq")
+		log.Error("syncHeader failed build a new headersReq")
 	} else {
 		this.server.Send(reqNode, buf, false)
 	}
 
-	log.Infof("SendMsgSyncHeaders Request Height:%d", NextHeaderId)
+	log.Infof("syncHeader request Height:%d", NextHeaderId)
 }
 
 func (this *BlockSyncMgr) syncBlock() {
@@ -324,7 +324,7 @@ func (this *BlockSyncMgr) syncBlock() {
 		}
 		err = this.server.Send(reqNode, reqBuf, false)
 		if err != nil {
-			log.Errorf("BlockSyncMgr syncBlock Height:%d ReqBlkData error:%s", nextBlockHeight, err)
+			log.Errorf("syncBlock Height:%d ReqBlkData error:%s", nextBlockHeight, err)
 			return
 		}
 		counter++
@@ -350,7 +350,7 @@ func (this *BlockSyncMgr) OnHeaderReceive(headers []*types.Header) {
 	err := this.ledger.AddHeaders(headers)
 	this.delFlightHeader(height)
 	if err != nil {
-		log.Errorf("BlockSyncMgr AddHeaders error:%s", err)
+		log.Errorf("OnHeaderReceive AddHeaders error:%s", err)
 		return
 	}
 	this.syncHeader()
@@ -379,7 +379,7 @@ func (this *BlockSyncMgr) OnBlockReceive(block *types.Block) {
 
 //OnAddNode to node list when a new node added
 func (this *BlockSyncMgr) OnAddNode(nodeId uint64) {
-	log.Infof("BlockSyncMgr OnAddNode:%d", nodeId)
+	log.Infof("OnAddNode:%d", nodeId)
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	this.nodeList = append(this.nodeList, nodeId)
@@ -400,7 +400,7 @@ func (this *BlockSyncMgr) OnDelNode(nodeId uint64) {
 		return
 	}
 	this.nodeList = append(this.nodeList[:index], this.nodeList[index+1:]...)
-	log.Infof("BlockSyncMgr OnDelNode:%d", nodeId)
+	log.Infof("OnDelNode:%d", nodeId)
 }
 
 func (this *BlockSyncMgr) tryGetSyncHeaderLock() bool {
@@ -496,7 +496,7 @@ func (this *BlockSyncMgr) saveBlock() {
 		err := this.ledger.AddBlock(nextBlock)
 		this.delBlockCache(nextBlockHeight)
 		if err != nil {
-			log.Warnf("BlockSyncMgr saveBlock Height:%d AddBlock error:%s", nextBlockHeight, err)
+			log.Warnf("saveBlock Height:%d AddBlock error:%s", nextBlockHeight, err)
 			reqNode := this.getNextNode(nextBlockHeight)
 			if reqNode == nil {
 				return
@@ -509,7 +509,7 @@ func (this *BlockSyncMgr) saveBlock() {
 			}
 			err = this.server.Send(reqNode, reqBuf, false)
 			if err != nil {
-				log.Errorf("BlockSyncMgr saveBlock Height:%d ReqBlkData error:%s", nextBlockHeight, err)
+				log.Errorf("saveBlock Height:%d ReqBlkData error:%s", nextBlockHeight, err)
 			}
 			return
 		}

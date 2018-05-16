@@ -117,7 +117,7 @@ func (this *NetServer) init(pubKey keypair.PublicKey) error {
 	}
 	this.base.SetID(id)
 
-	log.Info(fmt.Sprintf("Init peer ID to 0x%x", this.base.GetID()))
+	log.Infof("init peer ID to 0x%x", this.base.GetID())
 	this.Np = &peer.NbrPeers{}
 	this.Np.Init()
 
@@ -305,7 +305,11 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		go remotePeer.SyncLink.Rx()
 		remotePeer.SetSyncState(common.HAND)
 		vpl := msgpack.NewVersionPayload(this, false, ledger.DefLedger.GetCurrentBlockHeight())
-		buf, _ := msgpack.NewVersion(vpl, this.GetPubKey())
+		buf, err := msgpack.NewVersion(vpl, this.GetPubKey())
+		if err != nil {
+			log.Error(err)
+			return err
+		}
 		remotePeer.SyncLink.Tx(buf)
 	} else {
 		remotePeer = peer.NewPeer() //would merge with a exist peer in versionhandle
@@ -316,7 +320,11 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		go remotePeer.ConsLink.Rx()
 		remotePeer.SetConsState(common.HAND)
 		vpl := msgpack.NewVersionPayload(this, true, ledger.DefLedger.GetCurrentBlockHeight())
-		buf, _ := msgpack.NewVersion(vpl, this.GetPubKey())
+		buf, err := msgpack.NewVersion(vpl, this.GetPubKey())
+		if err != nil {
+			log.Error(err)
+			return err
+		}
 		remotePeer.ConsLink.Tx(buf)
 	}
 
@@ -347,23 +355,24 @@ func (this *NetServer) startListening() error {
 	consPort := this.base.GetConsPort()
 
 	if syncPort == 0 {
-		log.Error("Sync Port invalid")
-		return errors.New("Sync Port invalid")
+		log.Error("sync port invalid")
+		return errors.New("sync port invalid")
 	}
 
 	err = this.startSyncListening(syncPort)
 	if err != nil {
+		log.Error("start sync listening fail")
 		return err
 	}
 
 	//consensus
 	if config.DefConfig.P2PNode.DualPortSupport == false {
-		log.Info("Dual port mode not supported,keep single link")
+		log.Info("dual port mode not supported,keep single link")
 		return nil
 	}
 	if consPort == 0 || consPort == syncPort {
 		//still work
-		log.Error("Consensus Port invalid,keep single link")
+		log.Error("consensus port invalid,keep single link")
 	} else {
 		err = this.startConsListening(consPort)
 		if err != nil {
@@ -383,7 +392,7 @@ func (this *NetServer) startSyncListening(port uint16) error {
 	}
 
 	go this.startSyncAccept(this.synclistener)
-	log.Infof("Start listen on sync port %d", port)
+	log.Infof("start listen on sync port %d", port)
 	return nil
 }
 
@@ -406,17 +415,17 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Error("Error accepting ", err.Error())
+			log.Error("error accepting ", err.Error())
 			return
 		}
-		log.Info("Remote sync node connect with ",
+		log.Info("remote sync node connect with ",
 			conn.RemoteAddr(), conn.LocalAddr())
 
 		remotePeer := peer.NewPeer()
 		addr := conn.RemoteAddr().String()
 		this.AddPeerSyncAddress(addr, remotePeer)
 		if err != nil {
-			log.Errorf("Error parse remote ip:%s", addr)
+			log.Errorf("error parse remote ip:%s", addr)
 			return
 		}
 		remotePeer.SyncLink.SetAddr(addr)
@@ -431,17 +440,17 @@ func (this *NetServer) startConsAccept(listener net.Listener) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Error("Error accepting ", err.Error())
+			log.Error("error accepting ", err.Error())
 			return
 		}
-		log.Info("Remote cons node connect with ",
+		log.Info("remote cons node connect with ",
 			conn.RemoteAddr(), conn.LocalAddr())
 
 		remotePeer := peer.NewPeer()
 		addr := conn.RemoteAddr().String()
 		this.AddPeerConsAddress(addr, remotePeer)
 		if err != nil {
-			log.Errorf("Error parse remote ip:%s", addr)
+			log.Errorf("error parse remote ip:%s", addr)
 			return
 		}
 		remotePeer.ConsLink.SetAddr(addr)

@@ -21,7 +21,9 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 
+	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/p2pserver/common"
 )
 
@@ -37,7 +39,10 @@ type HeadersReq struct {
 //Check whether header is correct
 func (this HeadersReq) Verify(buf []byte) error {
 	err := this.Hdr.Verify(buf)
-	return err
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNetVerifyFail, fmt.Sprintf("verify error. buf:%v", buf))
+	}
+	return nil
 }
 
 //Serialize message payload
@@ -45,7 +50,7 @@ func (this HeadersReq) Serialization() ([]byte, error) {
 	p := new(bytes.Buffer)
 	err := binary.Write(p, binary.LittleEndian, &(this.P))
 	if err != nil {
-		return nil, err
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("binary.Write payload error. payload:%v", this.P))
 	}
 
 	s := CheckSum(p.Bytes())
@@ -53,7 +58,7 @@ func (this HeadersReq) Serialization() ([]byte, error) {
 
 	hdrBuf, err := this.Hdr.Serialization()
 	if err != nil {
-		return nil, err
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialization Hdr error. Hdr:%v", this.Hdr))
 	}
 	buf := bytes.NewBuffer(hdrBuf)
 	data := append(buf.Bytes(), p.Bytes()...)
@@ -65,19 +70,22 @@ func (this *HeadersReq) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(this.Hdr))
 	if err != nil {
-		return err
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read Hdr error. buf:%v", buf))
 	}
 
 	err = binary.Read(buf, binary.LittleEndian, &(this.P.Len))
 	if err != nil {
-		return err
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read P.Len error. buf:%v", buf))
 	}
 
 	err = binary.Read(buf, binary.LittleEndian, &(this.P.HashStart))
 	if err != nil {
-		return err
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read P.HashStart error. buf:%v", buf))
 	}
 
 	err = binary.Read(buf, binary.LittleEndian, &(this.P.HashEnd))
-	return err
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read P.HashEnd error. buf:%v", buf))
+	}
+	return nil
 }
