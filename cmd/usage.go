@@ -78,8 +78,6 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.ConfigFlag,
 			utils.LogLevelFlag,
 			utils.DisableEventLogFlag,
-			utils.GasLimitFlag,
-			utils.GasPriceFlag,
 		},
 	},
 	{
@@ -112,6 +110,8 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.DisableConsensusFlag,
 			utils.MaxTxInBlockFlag,
+			utils.GasLimitFlag,
+			utils.GasPriceFlag,
 		},
 	},
 	{

@@ -329,6 +329,10 @@ func GetSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
+	if eventInfo == nil {
+		resp["Result"] = nil
+		return resp
+	}
 	_, notify := bcomn.GetExecuteNotify(eventInfo)
 	resp["Result"] = notify
 	return resp
