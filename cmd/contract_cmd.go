@@ -40,7 +40,7 @@ var (
 			{
 				Action:    deployContract,
 				Name:      "deploy",
-				Usage:     "Deploy a smart contract to the chain",
+				Usage:     "Deploy a smart contract to ontolgoy",
 				ArgsUsage: " ",
 				Flags: []cli.Flag{
 					utils.TransactionGasPrice,
@@ -59,7 +59,7 @@ var (
 			{
 				Action:    invokeContract,
 				Name:      "invoke",
-				Usage:     "Invoke neovm smart contract",
+				Usage:     "Invoke smart contract",
 				ArgsUsage: " ",
 				Flags: []cli.Flag{
 					utils.TransactionGasPrice,
@@ -80,7 +80,9 @@ var (
 func deployContract(ctx *cli.Context) error {
 	if !ctx.IsSet(utils.GetFlagName(utils.ContractCodeFileFlag)) ||
 		!ctx.IsSet(utils.GetFlagName(utils.ContractNameFlag)) {
-		return fmt.Errorf("Missing code or name argument")
+		fmt.Errorf("Missing code or name argument\n")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
 	}
 
 	singer, err := cmdcom.GetAccount(ctx)
@@ -121,7 +123,9 @@ func deployContract(ctx *cli.Context) error {
 
 func invokeContract(ctx *cli.Context) error {
 	if !ctx.IsSet(utils.GetFlagName(utils.ContractAddrFlag)) {
-		return fmt.Errorf("Missing contract address argument.\n")
+		fmt.Errorf("Missing contract address argument.\n")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
 	}
 	contractAddrStr := ctx.String(utils.GetFlagName(utils.ContractAddrFlag))
 	contractAddr, err := common.AddressFromBase58(contractAddrStr)

@@ -152,7 +152,7 @@ var (
 	}
 	AccountTypeFlag = cli.StringFlag{
 		Name:  "type,t",
-		Usage: "Specifies the `<key-type>` by signature algorithm",
+		Usage: "Specifies the `<key-type>` by signature algorithm.",
 	}
 	AccountKeylenFlag = cli.StringFlag{
 		Name:  "bit-length,b",
@@ -188,48 +188,48 @@ var (
 		Usage: "Display accounts with details",
 	}
 	AccountChangePasswdFlag = cli.BoolFlag{
-		Name:  "changepasswd",
+		Name:  "changepasswd,cp",
 		Usage: "Change account password",
 	}
 
 	//SmartContract setting
 	ContractAddrFlag = cli.StringFlag{
-		Name:  "address,a",
+		Name:  "address,ca",
 		Usage: "Contract address",
 	}
 	ContractStorageFlag = cli.BoolFlag{
-		Name:  "needstore",
+		Name:  "needstore,cn",
 		Usage: "Is need use store in contract",
 	}
 	ContractCodeFileFlag = cli.StringFlag{
-		Name:  "code",
+		Name:  "code,c",
 		Usage: "File path of contract code `<path>`",
 	}
 	ContractNameFlag = cli.StringFlag{
-		Name:  "name",
+		Name:  "name,cn",
 		Usage: "Specifies contract name to `<name>`",
 	}
 	ContractVersionFlag = cli.IntFlag{
-		Name:  "version",
+		Name:  "version,cv",
 		Usage: "Specifies contract version to `<ver>`",
 	}
 	ContractAuthorFlag = cli.StringFlag{
-		Name:  "author",
+		Name:  "author,ca",
 		Usage: "Set `<address>` as the contract owner",
 		Value: "",
 	}
 	ContractEmailFlag = cli.StringFlag{
-		Name:  "email",
+		Name:  "email,ce",
 		Usage: "Set `<email>` owner's email address",
 		Value: "",
 	}
 	ContractDescFlag = cli.StringFlag{
-		Name:  "desc",
+		Name:  "desc,cd",
 		Usage: "Set `<text>` as the description of the contract",
 		Value: "",
 	}
 	ContractParamsFlag = cli.StringFlag{
-		Name:  "params",
+		Name:  "params,cp",
 		Usage: "Invoke contract parameters list. use comma ',' to split params, and must add type prefix to params. 0:bytearray(hexstring), 1:string, 2:integer, 3:boolean,For example: 1:foo,2:0,3:true; If parameter is an object array, enclose array with '[]'. For example:  1:foo,[2:0,3:true]",
 	}
 	ContractPrepareInvokeFlag = cli.BoolFlag{
@@ -237,7 +237,7 @@ var (
 		Usage: "Prepare invoke contract without commit to ledger",
 	}
 	ContranctReturnTypeFlag = cli.StringFlag{
-		Name:  "return",
+		Name:  "return,r",
 		Usage: "Return type of contract. 0:bytearray(hexstring), 1:string, 2:integer, 3:boolean. If return type is object array, enclose array with '[]'. For example [1,0,2,3]. Only prepare invoke need this flag.",
 	}
 
@@ -253,12 +253,12 @@ var (
 
 	//Transfer setting
 	TransactionAssetFlag = cli.StringFlag{
-		Name:  "asset",
+		Name:  "asset,as",
 		Usage: "Asset to tansfer <ont|ong>",
 		Value: ASSET_ONT,
 	}
 	TransactionFromFlag = cli.StringFlag{
-		Name:  "from",
+		Name:  "from,fr",
 		Usage: "`<address>` which sends the asset. If don't specific, will use default account",
 	}
 	TransactionToFlag = cli.StringFlag{
@@ -266,7 +266,7 @@ var (
 		Usage: "`<address>` which receives the asset",
 	}
 	TransactionAmountFlag = cli.Int64Flag{
-		Name:  "amount",
+		Name:  "amount,am",
 		Usage: "Specifies `<amount>` as the transferred amount",
 	}
 	TransactionHashFlag = cli.StringFlag{
