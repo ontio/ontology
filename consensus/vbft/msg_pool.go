@@ -28,12 +28,12 @@ import (
 type ConsensusRoundMsgs map[MsgType][]ConsensusMsg // indexed by MsgType (proposal, endorsement, ...)
 
 type ConsensusRound struct {
-	blockNum uint64
+	blockNum uint32
 	msgs     map[MsgType][]ConsensusMsg
 	msgHashs map[common.Uint256]interface{} // for msg-dup checking
 }
 
-func newConsensusRound(num uint64) *ConsensusRound {
+func newConsensusRound(num uint32) *ConsensusRound {
 
 	r := &ConsensusRound{
 		blockNum: num,
@@ -69,16 +69,16 @@ func (self *ConsensusRound) hasMsg(msg ConsensusMsg, msgHash common.Uint256) (bo
 type MsgPool struct {
 	lock       sync.RWMutex
 	server     *Server
-	historyLen uint64
-	rounds     map[uint64]*ConsensusRound // indexed by BlockNum
+	historyLen uint32
+	rounds     map[uint32]*ConsensusRound // indexed by BlockNum
 }
 
-func newMsgPool(server *Server, historyLen uint64) *MsgPool {
+func newMsgPool(server *Server, historyLen uint32) *MsgPool {
 	// TODO
 	return &MsgPool{
 		historyLen: historyLen,
 		server:     server,
-		rounds:     make(map[uint64]*ConsensusRound),
+		rounds:     make(map[uint32]*ConsensusRound),
 	}
 }
 
@@ -86,7 +86,7 @@ func (pool *MsgPool) clean() {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
-	pool.rounds = make(map[uint64]*ConsensusRound)
+	pool.rounds = make(map[uint32]*ConsensusRound)
 }
 
 func (pool *MsgPool) AddMsg(msg ConsensusMsg, msgHash common.Uint256) error {
@@ -127,7 +127,7 @@ func (pool *MsgPool) Persist() error {
 	return nil
 }
 
-func (pool *MsgPool) GetProposalMsgs(blocknum uint64) []ConsensusMsg {
+func (pool *MsgPool) GetProposalMsgs(blocknum uint32) []ConsensusMsg {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
@@ -142,7 +142,7 @@ func (pool *MsgPool) GetProposalMsgs(blocknum uint64) []ConsensusMsg {
 	return msgs
 }
 
-func (pool *MsgPool) GetEndorsementsMsgs(blocknum uint64) []ConsensusMsg {
+func (pool *MsgPool) GetEndorsementsMsgs(blocknum uint32) []ConsensusMsg {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
@@ -157,7 +157,7 @@ func (pool *MsgPool) GetEndorsementsMsgs(blocknum uint64) []ConsensusMsg {
 	return msgs
 }
 
-func (pool *MsgPool) GetCommitMsgs(blocknum uint64) []ConsensusMsg {
+func (pool *MsgPool) GetCommitMsgs(blocknum uint32) []ConsensusMsg {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
@@ -172,14 +172,14 @@ func (pool *MsgPool) GetCommitMsgs(blocknum uint64) []ConsensusMsg {
 	return msg
 }
 
-func (pool *MsgPool) onBlockSealed(blockNum uint64) {
+func (pool *MsgPool) onBlockSealed(blockNum uint32) {
 	if blockNum <= pool.historyLen {
 		return
 	}
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
-	toFreeRound := make([]uint64, 0)
+	toFreeRound := make([]uint32, 0)
 	for n := range pool.rounds {
 		if n < blockNum-pool.historyLen {
 			toFreeRound = append(toFreeRound, n)

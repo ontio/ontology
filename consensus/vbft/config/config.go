@@ -52,7 +52,7 @@ type ChainConfig struct {
 
 type VbftBlockInfo struct {
 	Proposer           uint32       `json:"leader"`
-	LastConfigBlockNum uint64       `json:"last_config_block_num"`
+	LastConfigBlockNum uint32       `json:"last_config_block_num"`
 	NewChainConfig     *ChainConfig `json:"new_chain_config"`
 }
 

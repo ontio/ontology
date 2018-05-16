@@ -65,13 +65,13 @@ const (
 type StateEvent struct {
 	Type      StateEventType
 	peerState *PeerState
-	blockNum  uint64
+	blockNum  uint32
 }
 
 type PeerState struct {
 	peerIdx           uint32
 	chainConfigView   uint32
-	committedBlockNum uint64
+	committedBlockNum uint32
 	connected         bool
 }
 
@@ -83,8 +83,8 @@ type StateMgr struct {
 	peers            map[uint32]*PeerState
 
 	liveTicker             *time.Timer
-	lastTickChainHeight    uint64
-	lastBlockSyncReqHeight uint64
+	lastTickChainHeight    uint32
+	lastBlockSyncReqHeight uint32
 }
 
 func newStateMgr(server *Server) *StateMgr {
@@ -364,10 +364,10 @@ func (self *StateMgr) setSyncedReady() error {
 	return nil
 }
 
-func (self *StateMgr) checkStartSyncing(startBlkNum uint64, forceSync bool) error {
+func (self *StateMgr) checkStartSyncing(startBlkNum uint32, forceSync bool) error {
 
-	var maxCommitted uint64
-	peers := make(map[uint64][]uint32)
+	var maxCommitted uint32
+	peers := make(map[uint32][]uint32)
 	for _, p := range self.peers {
 		n := p.committedBlockNum
 		if n > startBlkNum {
@@ -408,13 +408,13 @@ func (self *StateMgr) checkStartSyncing(startBlkNum uint64, forceSync bool) erro
 }
 
 // return 0 if consensus not reached yet
-func (self *StateMgr) getConsensusedCommittedBlockNum() (uint64, bool) {
+func (self *StateMgr) getConsensusedCommittedBlockNum() (uint32, bool) {
 	C := int(self.server.config.C)
 
 	consensused := false
-	var maxCommitted uint64
+	var maxCommitted uint32
 	myCommitted := self.server.GetCommittedBlockNo()
-	peers := make(map[uint64][]uint32)
+	peers := make(map[uint32][]uint32)
 	for _, p := range self.peers {
 		n := p.committedBlockNum
 		if n >= myCommitted {
@@ -436,7 +436,7 @@ func (self *StateMgr) getConsensusedCommittedBlockNum() (uint64, bool) {
 	return maxCommitted, consensused
 }
 
-func (self *StateMgr) canFastForward(targetBlkNum uint64) bool {
+func (self *StateMgr) canFastForward(targetBlkNum uint32) bool {
 	if targetBlkNum > self.server.GetCommittedBlockNo()+MAX_SYNCING_CHECK_BLK_NUM*4 {
 		return false
 	}

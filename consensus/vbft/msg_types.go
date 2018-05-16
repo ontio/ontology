@@ -50,7 +50,7 @@ const (
 type ConsensusMsg interface {
 	Type() MsgType
 	Verify(pub keypair.PublicKey) error
-	GetBlockNum() uint64
+	GetBlockNum() uint32
 	Serialize() ([]byte, error)
 }
 
@@ -94,8 +94,8 @@ func (msg *blockProposalMsg) Verify(pub keypair.PublicKey) error {
 	return nil
 }
 
-func (msg *blockProposalMsg) GetBlockNum() uint64 {
-	return uint64(msg.Block.Block.Header.Height)
+func (msg *blockProposalMsg) GetBlockNum() uint32 {
+	return msg.Block.Block.Header.Height
 }
 
 func (msg *blockProposalMsg) Serialize() ([]byte, error) {
@@ -124,7 +124,7 @@ type FaultyReport struct {
 type blockEndorseMsg struct {
 	Endorser          uint32          `json:"endorser"`
 	EndorsedProposer  uint32          `json:"endorsed_proposer"`
-	BlockNum          uint64          `json:"block_num"`
+	BlockNum          uint32          `json:"block_num"`
 	EndorsedBlockHash common.Uint256  `json:"endorsed_block_hash"`
 	EndorseForEmpty   bool            `json:"endorse_for_empty"`
 	FaultyProposals   []*FaultyReport `json:"faulty_proposals"`
@@ -140,7 +140,7 @@ func (msg *blockEndorseMsg) Verify(pub keypair.PublicKey) error {
 	return nil
 }
 
-func (msg *blockEndorseMsg) GetBlockNum() uint64 {
+func (msg *blockEndorseMsg) GetBlockNum() uint32 {
 	return msg.BlockNum
 }
 
@@ -151,7 +151,7 @@ func (msg *blockEndorseMsg) Serialize() ([]byte, error) {
 type blockCommitMsg struct {
 	Committer       uint32            `json:"committer"`
 	BlockProposer   uint32            `json:"block_proposer"`
-	BlockNum        uint64            `json:"block_num"`
+	BlockNum        uint32            `json:"block_num"`
 	CommitBlockHash common.Uint256    `json:"commit_block_hash"`
 	CommitForEmpty  bool              `json:"commit_for_empty"`
 	FaultyVerifies  []*FaultyReport   `json:"faulty_verifies"`
@@ -169,7 +169,7 @@ func (msg *blockCommitMsg) Verify(pub keypair.PublicKey) error {
 	return nil
 }
 
-func (msg *blockCommitMsg) GetBlockNum() uint64 {
+func (msg *blockCommitMsg) GetBlockNum() uint32 {
 	return msg.BlockNum
 }
 
@@ -178,7 +178,7 @@ func (msg *blockCommitMsg) Serialize() ([]byte, error) {
 }
 
 type peerHandshakeMsg struct {
-	CommittedBlockNumber uint64               `json:"committed_block_number"`
+	CommittedBlockNumber uint32               `json:"committed_block_number"`
 	CommittedBlockHash   common.Uint256       `json:"committed_block_hash"`
 	CommittedBlockLeader uint32               `json:"committed_block_leader"`
 	ChainConfig          *vconfig.ChainConfig `json:"chain_config"`
@@ -193,7 +193,7 @@ func (msg *peerHandshakeMsg) Verify(pub keypair.PublicKey) error {
 	return nil
 }
 
-func (msg *peerHandshakeMsg) GetBlockNum() uint64 {
+func (msg *peerHandshakeMsg) GetBlockNum() uint32 {
 	return 0
 }
 
@@ -202,7 +202,7 @@ func (msg *peerHandshakeMsg) Serialize() ([]byte, error) {
 }
 
 type peerHeartbeatMsg struct {
-	CommittedBlockNumber uint64         `json:"committed_block_number"`
+	CommittedBlockNumber uint32         `json:"committed_block_number"`
 	CommittedBlockHash   common.Uint256 `json:"committed_block_hash"`
 	CommittedBlockLeader uint32         `json:"committed_block_leader"`
 	Endorsers            [][]byte       `json:"endorsers"`
@@ -218,7 +218,7 @@ func (msg *peerHeartbeatMsg) Verify(pub keypair.PublicKey) error {
 	return nil
 }
 
-func (msg *peerHeartbeatMsg) GetBlockNum() uint64 {
+func (msg *peerHeartbeatMsg) GetBlockNum() uint32 {
 	return 0
 }
 
@@ -227,7 +227,7 @@ func (msg *peerHeartbeatMsg) Serialize() ([]byte, error) {
 }
 
 type BlockInfoFetchMsg struct {
-	StartBlockNum uint64 `json:"start_block_num"`
+	StartBlockNum uint32 `json:"start_block_num"`
 }
 
 func (msg *BlockInfoFetchMsg) Type() MsgType {
@@ -238,7 +238,7 @@ func (msg *BlockInfoFetchMsg) Verify(pub keypair.PublicKey) error {
 	return nil
 }
 
-func (msg *BlockInfoFetchMsg) GetBlockNum() uint64 {
+func (msg *BlockInfoFetchMsg) GetBlockNum() uint32 {
 	return 0
 }
 
@@ -247,7 +247,7 @@ func (msg *BlockInfoFetchMsg) Serialize() ([]byte, error) {
 }
 
 type BlockInfo_ struct {
-	BlockNum   uint64            `json:"block_num"`
+	BlockNum   uint32            `json:"block_num"`
 	Proposer   uint32            `json:"proposer"`
 	Signatures map[uint32][]byte `json:"signatures"`
 }
@@ -265,7 +265,7 @@ func (msg *BlockInfoFetchRespMsg) Verify(pub keypair.PublicKey) error {
 	return nil
 }
 
-func (msg *BlockInfoFetchRespMsg) GetBlockNum() uint64 {
+func (msg *BlockInfoFetchRespMsg) GetBlockNum() uint32 {
 	return 0
 }
 
@@ -275,7 +275,7 @@ func (msg *BlockInfoFetchRespMsg) Serialize() ([]byte, error) {
 
 // block fetch msg is to fetch block which could have not been committed or endorsed
 type blockFetchMsg struct {
-	BlockNum uint64 `json:"block_num"`
+	BlockNum uint32 `json:"block_num"`
 }
 
 func (msg *blockFetchMsg) Type() MsgType {
@@ -286,7 +286,7 @@ func (msg *blockFetchMsg) Verify(pub keypair.PublicKey) error {
 	return nil
 }
 
-func (msg *blockFetchMsg) GetBlockNum() uint64 {
+func (msg *blockFetchMsg) GetBlockNum() uint32 {
 	return 0
 }
 
@@ -295,7 +295,7 @@ func (msg *blockFetchMsg) Serialize() ([]byte, error) {
 }
 
 type BlockFetchRespMsg struct {
-	BlockNumber uint64         `json:"block_number"`
+	BlockNumber uint32         `json:"block_number"`
 	BlockHash   common.Uint256 `json:"block_hash"`
 	BlockData   *Block         `json:"block_data"`
 }
@@ -308,13 +308,13 @@ func (msg *BlockFetchRespMsg) Verify(pub keypair.PublicKey) error {
 	return nil
 }
 
-func (msg *BlockFetchRespMsg) GetBlockNum() uint64 {
+func (msg *BlockFetchRespMsg) GetBlockNum() uint32 {
 	return 0
 }
 
 func (msg *BlockFetchRespMsg) Serialize() ([]byte, error) {
 	buffer := bytes.NewBuffer([]byte{})
-	serialization.WriteUint64(buffer, msg.BlockNumber)
+	serialization.WriteUint32(buffer, msg.BlockNumber)
 	msg.BlockHash.Serialize(buffer)
 	blockbuff, err := msg.BlockData.Serialize()
 	if err != nil {
@@ -326,7 +326,7 @@ func (msg *BlockFetchRespMsg) Serialize() ([]byte, error) {
 
 func (msg *BlockFetchRespMsg) Deserialize(data []byte) error {
 	buffer := bytes.NewBuffer(data)
-	blocknum, err := serialization.ReadUint64(buffer)
+	blocknum, err := serialization.ReadUint32(buffer)
 	if err != nil {
 		return err
 	}
@@ -346,7 +346,7 @@ func (msg *BlockFetchRespMsg) Deserialize(data []byte) error {
 // proposal fetch msg is to fetch proposal when peer failed to get proposal locally
 type proposalFetchMsg struct {
 	ProposerID uint32 `json:"proposer_id"`
-	BlockNum   uint64 `json:"block_num"`
+	BlockNum   uint32 `json:"block_num"`
 }
 
 func (msg *proposalFetchMsg) Type() MsgType {
@@ -357,7 +357,7 @@ func (msg *proposalFetchMsg) Verify(pub keypair.PublicKey) error {
 	return nil
 }
 
-func (msg *proposalFetchMsg) GetBlockNum() uint64 {
+func (msg *proposalFetchMsg) GetBlockNum() uint32 {
 	return 0
 }
 

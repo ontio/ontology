@@ -82,7 +82,7 @@ func TestStateMgr_getState(t *testing.T) {
 		StateEventC         chan *StateEvent
 		peers               map[uint32]*PeerState
 		liveTicker          *time.Timer
-		lastTickChainHeight uint64
+		lastTickChainHeight uint32
 	}
 	tests := []struct {
 		name   string
@@ -119,7 +119,7 @@ func TestStateMgr_onPeerUpdate(t *testing.T) {
 	peerstate := &PeerState{
 		peerIdx:           1,
 		chainConfigView:   0,
-		committedBlockNum: uint64(1),
+		committedBlockNum: 1,
 		connected:         true,
 	}
 	peers := make(map[uint32]*PeerState)
@@ -131,7 +131,7 @@ func TestStateMgr_onPeerUpdate(t *testing.T) {
 		StateEventC         chan *StateEvent
 		peers               map[uint32]*PeerState
 		liveTicker          *time.Timer
-		lastTickChainHeight uint64
+		lastTickChainHeight uint32
 	}
 	type args struct {
 		peerState *PeerState
@@ -174,7 +174,7 @@ func constructPeerState() *StateMgr {
 	peerstate := &PeerState{
 		peerIdx:           1,
 		chainConfigView:   0,
-		committedBlockNum: uint64(2),
+		committedBlockNum: 2,
 		connected:         true,
 	}
 	peers := make(map[uint32]*PeerState)
@@ -198,13 +198,13 @@ func TestStateMgr_onLiveTick(t *testing.T) {
 	peerstate := &PeerState{
 		peerIdx:           1,
 		chainConfigView:   0,
-		committedBlockNum: uint64(1),
+		committedBlockNum: 1,
 		connected:         true,
 	}
 	stateevent := &StateEvent{
 		Type:      SyncDone,
 		peerState: peerstate,
-		blockNum:  uint64(1),
+		blockNum:  1,
 	}
 	err := statemgr.onLiveTick(stateevent)
 	if err != nil {
@@ -232,7 +232,7 @@ func TestStateMgr_checkStartSyncing(t *testing.T) {
 	log.Init(log.PATH, log.Stdout)
 	statemgr := constructPeerState()
 	statemgr.server.syncer = newSyncer(statemgr.server)
-	statemgr.checkStartSyncing(uint64(1), true)
+	statemgr.checkStartSyncing(1, true)
 	t.Log("TestcheckStartSyncing")
 }
 

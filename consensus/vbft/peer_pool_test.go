@@ -86,7 +86,7 @@ func TestPeerHandshake(t *testing.T) {
 	peerpool := constructPeerPool(false)
 	peerpool.addPeer(peerconfig)
 	handshakemsg := &peerHandshakeMsg{
-		CommittedBlockNumber: uint64(2),
+		CommittedBlockNumber: uint32(2),
 		CommittedBlockHash:   common.Uint256{},
 		CommittedBlockLeader: uint32(1),
 	}
@@ -103,7 +103,7 @@ func TestPeerHeartbeat(t *testing.T) {
 	peerpool := constructPeerPool(false)
 	peerpool.addPeer(peerconfig)
 	heartbeatmsg := &peerHeartbeatMsg{
-		CommittedBlockNumber: uint64(2),
+		CommittedBlockNumber: uint32(2),
 		CommittedBlockHash:   common.Uint256{},
 		CommittedBlockLeader: uint32(1),
 		ChainConfigView:      uint32(1),

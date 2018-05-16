@@ -59,7 +59,7 @@ func HashMsg(msg ConsensusMsg) (common.Uint256, error) {
 }
 
 type vrfData struct {
-	BlockNum          uint64         `json:"block_num"`
+	BlockNum          uint32         `json:"block_num"`
 	PrevBlockHash     common.Uint256 `json:"prev_block_hash"`
 	PrevBlockProposer uint32         `json:"prev_block_proposer"` // TODO: change to NodeID
 	TransactionRoot   common.Uint256 `json:"transaction_root"`

@@ -178,7 +178,7 @@ func (self *Server) constructHeartbeatMsg() (*peerHeartbeatMsg, error) {
 	return msg, nil
 }
 
-func (self *Server) constructBlock(blkNum uint64, prevBlkHash common.Uint256, txs []*types.Transaction, consensusPayload []byte) (*types.Block, error) {
+func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, txs []*types.Transaction, consensusPayload []byte) (*types.Block, error) {
 	txHash := []common.Uint256{}
 	for _, t := range txs {
 		txHash = append(txHash, t.Hash())
@@ -212,7 +212,7 @@ func (self *Server) constructBlock(blkNum uint64, prevBlkHash common.Uint256, tx
 	return blk, nil
 }
 
-func (self *Server) constructProposalMsg(blkNum uint64, sysTxs, userTxs []*types.Transaction, chainconfig *vconfig.ChainConfig) (*blockProposalMsg, error) {
+func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types.Transaction, chainconfig *vconfig.ChainConfig) (*blockProposalMsg, error) {
 
 	prevBlk, prevBlkHash := self.blockPool.getSealedBlock(blkNum - 1)
 	if prevBlk == nil {
@@ -357,14 +357,14 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 	return msg, nil
 }
 
-func (self *Server) constructBlockFetchMsg(blkNum uint64) (*blockFetchMsg, error) {
+func (self *Server) constructBlockFetchMsg(blkNum uint32) (*blockFetchMsg, error) {
 	msg := &blockFetchMsg{
 		BlockNum: blkNum,
 	}
 	return msg, nil
 }
 
-func (self *Server) constructBlockFetchRespMsg(blkNum uint64, blk *Block, blkHash common.Uint256) (*BlockFetchRespMsg, error) {
+func (self *Server) constructBlockFetchRespMsg(blkNum uint32, blk *Block, blkHash common.Uint256) (*BlockFetchRespMsg, error) {
 	msg := &BlockFetchRespMsg{
 		BlockNumber: blkNum,
 		BlockHash:   blkHash,
@@ -373,7 +373,7 @@ func (self *Server) constructBlockFetchRespMsg(blkNum uint64, blk *Block, blkHas
 	return msg, nil
 }
 
-func (self *Server) constructBlockInfoFetchMsg(startBlkNum uint64) (*BlockInfoFetchMsg, error) {
+func (self *Server) constructBlockInfoFetchMsg(startBlkNum uint32) (*BlockInfoFetchMsg, error) {
 
 	msg := &BlockInfoFetchMsg{
 		StartBlockNum: startBlkNum,
@@ -388,7 +388,7 @@ func (self *Server) constructBlockInfoFetchRespMsg(blockInfos []*BlockInfo_) (*B
 	return msg, nil
 }
 
-func (self *Server) constructProposalFetchMsg(blkNum uint64, proposer uint32) (*proposalFetchMsg, error) {
+func (self *Server) constructProposalFetchMsg(blkNum uint32, proposer uint32) (*proposalFetchMsg, error) {
 	msg := &proposalFetchMsg{
 		ProposerID: proposer,
 		BlockNum:   blkNum,

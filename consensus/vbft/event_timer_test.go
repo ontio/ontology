@@ -27,28 +27,28 @@ func constructEventTimer() *EventTimer {
 
 func TestStartTimer(t *testing.T) {
 	eventtimer := constructEventTimer()
-	err := eventtimer.StartTimer(uint64(1), 10)
+	err := eventtimer.StartTimer(1, 10)
 	t.Logf("TestStartTimer: %v", err)
 }
 
 func TestCancelTimer(t *testing.T) {
 	eventtimer := constructEventTimer()
-	err := eventtimer.StartTimer(uint64(1), 10)
+	err := eventtimer.StartTimer(1, 10)
 	t.Logf("TestStartTimer: %v", err)
-	err = eventtimer.CancelTimer(uint64(1))
+	err = eventtimer.CancelTimer(1)
 	t.Logf("TestCancelTimer: %v", err)
 }
 
 func TestStartEventTimer(t *testing.T) {
 	eventtimer := constructEventTimer()
-	err := eventtimer.startEventTimer(EventProposeBlockTimeout, uint64(1))
+	err := eventtimer.startEventTimer(EventProposeBlockTimeout, 1)
 	t.Logf("TestStartEventTimer: %v", err)
 }
 
 func TestCancelEventTimer(t *testing.T) {
 	eventtimer := constructEventTimer()
-	err := eventtimer.startEventTimer(EventProposeBlockTimeout, uint64(1))
+	err := eventtimer.startEventTimer(EventProposeBlockTimeout, 1)
 	t.Logf("startEventTimer: %v", err)
-	err = eventtimer.cancelEventTimer(EventProposeBlockTimeout, uint64(1))
+	err = eventtimer.cancelEventTimer(EventProposeBlockTimeout, 1)
 	t.Logf("cancelEventTimer: %v", err)
 }
