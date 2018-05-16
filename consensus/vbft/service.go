@@ -345,6 +345,9 @@ func (self *Server) updateChainConfig() error {
 	if err != nil {
 		return fmt.Errorf("GetBlockInfo failed:%s", err)
 	}
+	if block.Info.NewChainConfig == nil {
+		return fmt.Errorf("GetNewChainConfig failed")
+	}
 	self.config = block.Info.NewChainConfig
 	// TODO
 	// 1. update peer pool
@@ -2044,6 +2047,7 @@ func (self *Server) makeProposal(blkNum uint64, forEmpty bool) error {
 
 	//check need upate chainconfig
 	cfg := &vconfig.ChainConfig{}
+	cfg = nil
 	if self.checkNeedUpdateChainConfig(self.currentBlockNum) || self.checkUpdateChainConfig() {
 		chainconfig, err := self.getChainConfig()
 		if err != nil {

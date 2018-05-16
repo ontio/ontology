@@ -31,7 +31,7 @@ func constructMsg() *blockProposalMsg {
 		fmt.Println("GetDefaultAccount error: acc is nil")
 		return nil
 	}
-	msg, err := constructProposalMsg(acc)
+	msg, err := constructProposalMsgTest(acc)
 	if err != nil {
 		fmt.Printf("constructProposalMsg failed:%v", err)
 		return nil
