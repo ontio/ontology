@@ -711,9 +711,14 @@ func (self *Server) startNewRound() error {
 		return nil
 	}
 
-	txpool := self.poolActor.GetTxnPool(true, self.valideHeight(blkNum))
-	if len(txpool) != 0 && self.completedBlockNum+1 == self.currentBlockNum {
-		self.startNewProposal(blkNum)
+	if self.completedBlockNum+1 == self.currentBlockNum {
+		txpool := self.poolActor.GetTxnPool(true, self.valideHeight(blkNum))
+		if len(txpool) != 0 {
+			self.startNewProposal(blkNum)
+		} else {
+			self.timer.startTxTicker(blkNum)
+			self.timer.StartTxBlockTimeout(blkNum)
+		}
 	} else {
 		self.timer.startTxTicker(blkNum)
 		self.timer.StartTxBlockTimeout(blkNum)
@@ -1706,12 +1711,16 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 	case EventTxPool:
 		blockNum := self.GetCurrentBlockNo()
 		self.timer.stopTxTicker(evt.blockNum)
-		txpool := self.poolActor.GetTxnPool(true, self.valideHeight(blockNum))
-		if len(txpool) != 0 && self.completedBlockNum+1 == self.currentBlockNum {
-			self.timer.CancelTxBlockTimeout(blockNum)
-			self.startNewProposal(blockNum)
+		if self.completedBlockNum+1 == self.currentBlockNum {
+			txpool := self.poolActor.GetTxnPool(true, self.valideHeight(blockNum))
+			if len(txpool) != 0 {
+				self.timer.CancelTxBlockTimeout(blockNum)
+				self.startNewProposal(blockNum)
+			} else {
+				//reset timer, continue waiting txs from txnpool
+				self.timer.startTxTicker(blockNum)
+			}
 		} else {
-			// reset timer, continue waiting txs from txnpool
 			self.timer.startTxTicker(blockNum)
 		}
 	case EventTxBlockTimeout:
