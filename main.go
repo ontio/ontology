@@ -271,12 +271,7 @@ func initP2PNode(ctx *cli.Context, acc *account.Account, txpoolSvr *proc.TXPoolS
 	netreqactor.SetTxnPoolPid(txpoolSvr.GetPID(tc.TxActor))
 	txpoolSvr.RegisterActor(tc.NetActor, p2pPID)
 	hserver.SetNetServerPID(p2pPID)
-
-	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_VBFT {
-		return p2p, p2pPID, nil
-	}
 	p2p.WaitForPeersStart()
-
 	log.Infof("P2P node init success")
 	return p2p, p2pPID, nil
 }
