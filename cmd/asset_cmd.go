@@ -148,12 +148,13 @@ func queryTransferStatus(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("GetSmartContractEvent error:%s", err)
 	}
-	if len(evtInfos) == 0 {
-		fmt.Println("Cannot find event log")
+	if evtInfos.State == 0 {
+		fmt.Printf("Transaction:%s failed\n", txHash)
 		return nil
 	}
-	for _, eventInfo := range evtInfos {
-		states := eventInfo.States.([]interface{})
+	fmt.Printf("Transaction:%s success\n", txHash)
+	for _, notify := range evtInfos.Notify {
+		states := notify.States.([]interface{})
 		fmt.Printf("Transaction:%s success\n", states[0])
 		fmt.Printf("From:%s\n", states[1])
 		fmt.Printf("To:%s\n", states[2])

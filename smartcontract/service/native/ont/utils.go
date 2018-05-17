@@ -23,6 +23,7 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
 	cstates "github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
@@ -39,6 +40,9 @@ var (
 )
 
 func AddNotifications(native *native.NativeService, contract common.Address, state *State) {
+	if !config.DefConfig.Common.EnableEventLog {
+		return
+	}
 	native.Notifications = append(native.Notifications,
 		&event.NotifyEventInfo{
 			ContractAddress: contract,

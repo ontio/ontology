@@ -200,17 +200,17 @@ func SendRawTransaction(tx *types.Transaction) (string, error) {
 }
 
 //GetSmartContractEvent return smart contract event execute by invoke transaction by hex string code
-func GetSmartContractEvent(txHash string) ([]*rpccommon.NotifyEventInfo, error) {
+func GetSmartContractEvent(txHash string) (*rpccommon.ExecuteNotify, error) {
 	data, err := sendRpcRequest("getsmartcodeevent", []interface{}{txHash})
 	if err != nil {
 		return nil, fmt.Errorf("sendRpcRequest error:%s", err)
 	}
-	events := make([]*rpccommon.NotifyEventInfo, 0)
-	err = json.Unmarshal(data, &events)
+	notifies := &rpccommon.ExecuteNotify{}
+	err = json.Unmarshal(data, &notifies)
 	if err != nil {
 		return nil, fmt.Errorf("json.Unmarshal SmartContactEvent:%s error:%s", data, err)
 	}
-	return events, nil
+	return notifies, nil
 }
 
 func GetRawTransaction(txHash string) ([]byte, error) {

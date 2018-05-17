@@ -254,12 +254,12 @@ var (
 	//Transfer setting
 	TransactionAssetFlag = cli.StringFlag{
 		Name:  "asset",
-		Usage: "Asset to tansfer <ont|ong>",
+		Usage: "Asset to transfer <ont|ong>",
 		Value: ASSET_ONT,
 	}
 	TransactionFromFlag = cli.StringFlag{
 		Name:  "from",
-		Usage: "`<address>` which sends the asset. If don't specific, will use default account",
+		Usage: "`<address>` which sends the asset. address also can be index, label",
 	}
 	TransactionToFlag = cli.StringFlag{
 		Name:  "to",
