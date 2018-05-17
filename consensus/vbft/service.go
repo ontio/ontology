@@ -712,7 +712,7 @@ func (self *Server) startNewRound() error {
 	}
 
 	if self.completedBlockNum+1 == self.currentBlockNum {
-		txpool := self.poolActor.GetTxnPool(true, self.valideHeight(blkNum))
+		txpool := self.poolActor.GetTxnPool(true, self.validHeight(blkNum))
 		if len(txpool) != 0 {
 			self.startNewProposal(blkNum)
 		} else {
@@ -1712,7 +1712,7 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 		blockNum := self.GetCurrentBlockNo()
 		self.timer.stopTxTicker(evt.blockNum)
 		if self.completedBlockNum+1 == self.currentBlockNum {
-			txpool := self.poolActor.GetTxnPool(true, self.valideHeight(blockNum))
+			txpool := self.poolActor.GetTxnPool(true, self.validHeight(blockNum))
 			if len(txpool) != 0 {
 				self.timer.CancelTxBlockTimeout(blockNum)
 				self.startNewProposal(blockNum)
@@ -2032,7 +2032,7 @@ func (self *Server) checkUpdateChainConfig() bool {
 	return force
 }
 
-func (self *Server) valideHeight(blkNum uint32) uint32 {
+func (self *Server) validHeight(blkNum uint32) uint32 {
 	height := blkNum - 1
 	validHeight := height
 	start, end := self.incrValidator.BlockRange()
@@ -2050,7 +2050,7 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 			self.Index, blkNum, self.GetCurrentBlockNo())
 	}
 
-	validHeight := self.valideHeight(blkNum)
+	validHeight := self.validHeight(blkNum)
 	sysTxs := make([]*types.Transaction, 0)
 	userTxs := make([]*types.Transaction, 0)
 
