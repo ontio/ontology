@@ -219,17 +219,14 @@ func (this *WasmVmService) marshalNativeParams(engine *exec.ExecutionEngine) (bo
 	}
 	//transferbytes is a nested struct with states.Transfer
 	//type Transfers struct {
-	//	Version byte               -------->i32  4 bytes
 	//	States  []*State		   -------->i32 pointer 4 bytes
 	//}
-	if len(transferbytes) != 8 {
+	if len(transferbytes) != 4 {
 		return false, errors.NewErr("[callContract]parameter format error while call marshalNativeParams")
 	}
 	transfer := &nstates.Transfers{}
-	tver := binary.LittleEndian.Uint32(transferbytes[:4])
-	transfer.Version = byte(tver)
 
-	statesAddr := binary.LittleEndian.Uint32(transferbytes[4:])
+	statesAddr := binary.LittleEndian.Uint32(transferbytes[:4])
 	statesbytes, err := vm.GetPointerMemory(uint64(statesAddr))
 	if err != nil {
 		return false, err
@@ -237,20 +234,18 @@ func (this *WasmVmService) marshalNativeParams(engine *exec.ExecutionEngine) (bo
 
 	//statesbytes is slice of struct with states.
 	//type State struct {
-	//	Version byte            -------->i32 4 bytes
 	//	From    common.Address  -------->i32 pointer 4 bytes
-	//	To      common.Address  -------->i32 pointer 4 bytes extra padding 4 bytes
+	//	To      common.Address  -------->i32 pointer 4 bytes
 	//	Value   *big.Int        -------->i64 8 bytes
 	//}
-	//total is 4 + 4 + 4 + 4(dummy) + 8 = 24 bytes
-	statecnt := len(statesbytes) / 24
+	//total is 4 + 4 + 8 = 24 bytes
+	statecnt := len(statesbytes) / 16
 	states := make([]*nstates.State, statecnt)
 
 	for i := 0; i < statecnt; i++ {
-		tmpbytes := statesbytes[i*24 : (i+1)*24]
+		tmpbytes := statesbytes[i*16 : (i+1)*16]
 		state := &nstates.State{}
-		state.Version = byte(binary.LittleEndian.Uint32(tmpbytes[:4]))
-		fromAddessBytes, err := vm.GetPointerMemory(uint64(binary.LittleEndian.Uint32(tmpbytes[4:8])))
+		fromAddessBytes, err := vm.GetPointerMemory(uint64(binary.LittleEndian.Uint32(tmpbytes[:4])))
 		if err != nil {
 			return false, err
 		}
@@ -260,14 +255,14 @@ func (this *WasmVmService) marshalNativeParams(engine *exec.ExecutionEngine) (bo
 		}
 		state.From = fromAddress
 
-		toAddressBytes, err := vm.GetPointerMemory(uint64(binary.LittleEndian.Uint32(tmpbytes[8:12])))
+		toAddressBytes, err := vm.GetPointerMemory(uint64(binary.LittleEndian.Uint32(tmpbytes[4:8])))
 		if err != nil {
 			return false, err
 		}
 		toAddress, err := common.AddressFromBase58(util.TrimBuffToString(toAddressBytes))
 		state.To = toAddress
 		//tmpbytes[12:16] is padding
-		amount := binary.LittleEndian.Uint64(tmpbytes[16:])
+		amount := binary.LittleEndian.Uint64(tmpbytes[8:])
 		state.Value = amount
 		states[i] = state
 

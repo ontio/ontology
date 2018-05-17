@@ -130,8 +130,8 @@ func validatorGetCode(engine *vm.ExecutionEngine) error {
 	if item == nil {
 		return errors.NewErr("[validatorGetCode] Contract is nil!")
 	}
-	_, ok := item.(*payload.DeployCode)
-	if !ok {
+	deploy, ok := item.(*payload.DeployCode)
+	if !ok || deploy == nil {
 		return errors.NewErr("[validatorGetCode] DeployCode wrong type!")
 	}
 	return nil

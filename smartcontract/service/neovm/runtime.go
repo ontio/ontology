@@ -78,7 +78,11 @@ func RuntimeLog(service *NeoVmService, engine *vm.ExecutionEngine) error {
 // RuntimeCheckSig verify whether authorization legal
 func RuntimeCheckSig(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	pubKey := vm.PopByteArray(engine)
+	key, err := keypair.DeserializePublicKey(pubKey)
+	if err != nil {
+		return err
+	}
 	data := vm.PopByteArray(engine)
 	sig := vm.PopByteArray(engine)
-	return signature.Verify(pubKey, data, sig)
+	return signature.Verify(key, data, sig)
 }

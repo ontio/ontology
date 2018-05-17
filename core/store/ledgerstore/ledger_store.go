@@ -774,6 +774,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface
 		Store:      this,
 		CloneCache: storage.NewCloneCache(this.stateStore.NewStateBatch()),
 		Code:       invoke.Code,
+		TestMode:   true,
 	}
 
 	//start the smart contract executive function
@@ -793,6 +794,19 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface
 		result = common.ToHexString(result.([]byte))
 	}
 	return result, nil
+}
+
+func (this *LedgerStoreImp) InvokeNative(cache *storage.CloneCache, code []byte) ([]byte, error) {
+	sc := &smartcontract.SmartContract{
+		Store:      this,
+		CloneCache: cache,
+		Code:       vmtype.VmCode{Code: code, VmType: vmtype.Native},
+	}
+	result, err := sc.Execute()
+	if err != nil {
+		return nil, err
+	}
+	return result.([]byte), nil
 }
 
 //Close ledger store.

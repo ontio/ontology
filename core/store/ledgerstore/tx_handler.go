@@ -21,8 +21,11 @@ package ledgerstore
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store"
@@ -31,6 +34,9 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	neovm "github.com/ontio/ontology/smartcontract/service/neovm"
+	sstates "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 	stypes "github.com/ontio/ontology/smartcontract/types"
 )
@@ -66,30 +72,48 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	invoke := tx.Payload.(*payload.InvokeCode)
 	txHash := tx.Hash()
 
+	// check payer ong balance
+	balance, err := GetBalance(stateBatch, tx.Payer, genesis.OngContractAddress)
+	if balance < tx.GasLimit*tx.GasPrice {
+		return fmt.Errorf("%v", "Payer Gas Insufficient")
+	}
 	// init smart contract configuration info
 	config := &smartcontract.Config{
 		Time:   block.Header.Timestamp,
 		Height: block.Header.Height,
 		Tx:     tx,
 	}
-
+	cache := storage.NewCloneCache(stateBatch)
 	//init smart contract info
 	sc := smartcontract.SmartContract{
 		Config:     config,
-		CloneCache: storage.NewCloneCache(stateBatch),
+		CloneCache: cache,
 		Store:      store,
 		Code:       invoke.Code,
-		Gas:        tx.GasLimit,
+		Gas:        tx.GasLimit - neovm.TRANSACTION_GAS,
 	}
 
 	//start the smart contract executive function
-	_, err := sc.Execute()
-
+	_, err = sc.Execute()
+	var state []*ont.State
+	transfers := &ont.Transfers{
+		States: append(state, &ont.State{
+			From:  tx.Payer,
+			To:    genesis.GovernanceContractAddress,
+			Value: (tx.GasLimit - sc.Gas) * tx.GasPrice})}
 	if err != nil {
+		cache = storage.NewCloneCache(stateBatch)
+		if err := Transfer(store, cache, genesis.OngContractAddress, transfers); err != nil {
+			return err
+		}
+		cache.Commit()
 		if err := saveNotify(eventStore, txHash, &event.ExecuteNotify{TxHash: txHash,
 			State: event.CONTRACT_STATE_FAIL, Notify: []*event.NotifyEventInfo{}}); err != nil {
 			return err
 		}
+		return err
+	}
+	if err := Transfer(store, cache, genesis.OngContractAddress, transfers); err != nil {
 		return err
 	}
 	if err := saveNotify(eventStore, txHash, &event.ExecuteNotify{TxHash: txHash,
@@ -125,4 +149,44 @@ func (self *StateStore) HandleVoteTransaction(stateBatch *statestore.StateBatch,
 	vote.Account.Serialize(buf)
 	stateBatch.TryAdd(scommon.ST_VOTE, buf.Bytes(), &states.VoteState{PublicKeys: vote.PubKeys})
 	return nil
+}
+
+func Transfer(store store.LedgerStore, cache *storage.CloneCache, contract common.Address, transfer *ont.Transfers) error {
+	tr := new(bytes.Buffer)
+	if err := transfer.Serialize(tr); err != nil {
+		return err
+	}
+	trans := &sstates.Contract{
+		Address: contract,
+		Method:  "transfer",
+		Args:    tr.Bytes(),
+	}
+	ts := new(bytes.Buffer)
+	if err := trans.Serialize(ts); err != nil {
+		return err
+	}
+	_, err := store.InvokeNative(cache, ts.Bytes())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func GetBalance(stateBatch *statestore.StateBatch, address, contract common.Address) (uint64, error) {
+	bl, err := stateBatch.TryGet(scommon.ST_STORAGE, append(contract[:], address[:]...))
+	if err != nil {
+		return 0, err
+	}
+	if bl == nil || bl.Value == nil {
+		return 0, err
+	}
+	item, ok := bl.Value.(*states.StorageItem)
+	if !ok {
+		return 0, fmt.Errorf("%s", "[GetStorageItem] instance doesn't StorageItem!")
+	}
+	balance, err := serialization.ReadUint64(bytes.NewBuffer(item.Value))
+	if err != nil {
+		return 0, err
+	}
+	return balance, nil
 }

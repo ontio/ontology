@@ -19,22 +19,19 @@
 package ont
 
 import (
+	"io"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
-	"io"
 )
 
 // Transfers
 type Transfers struct {
-	Version byte
-	States  []*State
+	States []*State
 }
 
 func (this *Transfers) Serialize(w io.Writer) error {
-	if err := serialization.WriteByte(w, byte(this.Version)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[TokenTransfer] Serialize version error!")
-	}
 	if err := serialization.WriteVarUint(w, uint64(len(this.States))); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TokenTransfer] Serialize States length error!")
 	}
@@ -47,12 +44,6 @@ func (this *Transfers) Serialize(w io.Writer) error {
 }
 
 func (this *Transfers) Deserialize(r io.Reader) error {
-	version, err := serialization.ReadByte(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[TokenTransfer] Deserialize version error!")
-	}
-	this.Version = version
-
 	n, err := serialization.ReadVarUint(r, 0)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TokenTransfer] Deserialize states length error!")
@@ -68,16 +59,12 @@ func (this *Transfers) Deserialize(r io.Reader) error {
 }
 
 type State struct {
-	Version byte
-	From    common.Address
-	To      common.Address
-	Value   uint64
+	From  common.Address
+	To    common.Address
+	Value uint64
 }
 
 func (this *State) Serialize(w io.Writer) error {
-	if err := serialization.WriteByte(w, byte(this.Version)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[State] Serialize version error!")
-	}
 	if err := this.From.Serialize(w); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[State] Serialize From error!")
 	}
@@ -91,12 +78,6 @@ func (this *State) Serialize(w io.Writer) error {
 }
 
 func (this *State) Deserialize(r io.Reader) error {
-	version, err := serialization.ReadByte(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[State] Deserialize version error!")
-	}
-	this.Version = version
-
 	if err := this.From.Deserialize(r); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[State] Deserialize from error!")
 	}
@@ -115,17 +96,13 @@ func (this *State) Deserialize(r io.Reader) error {
 }
 
 type TransferFrom struct {
-	Version byte
-	Sender  common.Address
-	From    common.Address
-	To      common.Address
-	Value   uint64
+	Sender common.Address
+	From   common.Address
+	To     common.Address
+	Value  uint64
 }
 
 func (this *TransferFrom) Serialize(w io.Writer) error {
-	if err := serialization.WriteByte(w, byte(this.Version)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Serialize version error!")
-	}
 	if err := this.Sender.Serialize(w); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Serialize sender error!")
 	}
@@ -142,12 +119,6 @@ func (this *TransferFrom) Serialize(w io.Writer) error {
 }
 
 func (this *TransferFrom) Deserialize(r io.Reader) error {
-	version, err := serialization.ReadByte(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Deserialize version error!")
-	}
-	this.Version = version
-
 	if err := this.Sender.Deserialize(r); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Deserialize sender error!")
 	}
