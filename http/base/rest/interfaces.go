@@ -313,6 +313,10 @@ func GetSmartCodeEventTxsByHeight(cmd map[string]interface{}) map[string]interfa
 }
 
 func GetSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{} {
+	if !config.DefConfig.Common.EnableEventLog {
+		return ResponsePack(berr.INVALID_METHOD)
+	}
+
 	resp := ResponsePack(berr.SUCCESS)
 
 	str := cmd["Hash"].(string)
