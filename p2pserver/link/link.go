@@ -31,7 +31,7 @@ import (
 	"github.com/ontio/ontology/p2pserver/message/types"
 )
 
-// The RX buffer of this node to solve mutliple packets problem
+// The RX buffer of this node to solve multiple packets problem
 type RxBuf struct {
 	p   []byte //buffer
 	len int    //patload length in buffer

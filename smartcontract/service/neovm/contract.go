@@ -45,7 +45,7 @@ func ContractCreate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	return nil
 }
 
-// ContractMigrate migrate old smart contract to a new contract, and destory old contract
+// ContractMigrate migrate old smart contract to a new contract, and destroy old contract
 func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	contract, err := isContractParamValid(engine)
 	if err != nil {
@@ -65,7 +65,7 @@ func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	return ContractDestory(service, engine)
 }
 
-// ContractDestory destory a contract
+// ContractDestory destroy a contract
 func ContractDestory(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	context := service.ContextRef.CurrentContext()
 	if context == nil {
