@@ -65,6 +65,7 @@ const (
 	GET_SMTCOCE_EVTS      = "/api/v1/smartcode/event/txhash/:hash"
 	GET_BLK_HGT_BY_TXHASH = "/api/v1/block/height/txhash/:hash"
 	GET_MERKLE_PROOF      = "/api/v1/merkleproof/:hash"
+	GET_GAS_PRICE         = "/api/v1/gasprice"
 
 	POST_RAW_TX = "/api/v1/transaction"
 )
@@ -131,6 +132,7 @@ func (this *restServer) registryMethod() {
 		GET_STORAGE:           {name: "getstorage", handler: rest.GetStorage},
 		GET_BALANCE:           {name: "getbalance", handler: rest.GetBalance},
 		GET_MERKLE_PROOF:      {name: "getmerkleproof", handler: rest.GetMerkleProof},
+		GET_GAS_PRICE:         {name: "getgasprice", handler: rest.GetGasPrice},
 	}
 
 	postMethodMap := map[string]Action{

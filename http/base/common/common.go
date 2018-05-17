@@ -268,3 +268,25 @@ func GetBalance(address common.Address) (*BalanceOfRsp, error) {
 		OngAppove: "0",
 	}, nil
 }
+
+func GetGasPrice() (map[string]interface{}, error) {
+	curHeight := bactor.GetCurrentBlockHeight()
+	var gasPrice uint64 = 0
+	var height uint32 = 0
+	for i := curHeight; i >= 0; i-- {
+		head, err := bactor.GetHeaderByHeight(i)
+		if err == nil && head.TransactionsRoot != common.UINT256_EMPTY {
+			height = i
+			blk, err := bactor.GetBlockByHeight(i)
+			if err != nil {
+				return nil, err
+			}
+			for _, v := range blk.Transactions {
+				gasPrice += v.GasPrice
+			}
+			break
+		}
+	}
+	result := map[string]interface{}{"gasprice": gasPrice, "height": height}
+	return result, nil
+}
