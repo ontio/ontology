@@ -19,18 +19,16 @@
 package ledgerstore
 
 import (
-	"bytes"
 	"fmt"
-	"math/big"
 	"sort"
 	"strings"
 	"sync"
+	"bytes"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/states"
@@ -42,10 +40,9 @@ import (
 	"github.com/ontio/ontology/smartcontract"
 	scommon "github.com/ontio/ontology/smartcontract/common"
 	"github.com/ontio/ontology/smartcontract/event"
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
-	sstates "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vmtype "github.com/ontio/ontology/smartcontract/types"
+	"github.com/ontio/ontology/common/serialization"
 )
 
 const (
@@ -801,7 +798,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface
 	return result, nil
 }
 
-func (this *LedgerStoreImp) InvokeNative(cache *storage.CloneCache, code []byte) ([]byte, error) {
+func (this *LedgerStoreImp) InvokeNative(code []byte) ([]byte, error) {
 	sc := &smartcontract.SmartContract{
 		Store:      this,
 		CloneCache: storage.NewCloneCache(this.stateStore.NewStateBatch()),
@@ -811,49 +808,19 @@ func (this *LedgerStoreImp) InvokeNative(cache *storage.CloneCache, code []byte)
 	if err != nil {
 		return nil, err
 	}
+	sc.CloneCache.Commit()
+	this.stateStore.CommitTo()
 	return result.([]byte), nil
 }
 
-func (this *LedgerStoreImp) GetBalance(cache *storage.CloneCache, address, contract common.Address) (uint64, error) {
-	bf := new(bytes.Buffer)
-	if err := serialization.WriteVarBytes(bf, address[:]); err != nil {
+func (this *LedgerStoreImp) GetBalance(address, contract common.Address) (uint64, error) {
+	bl, err := this.blockStore.store.Get(append(contract[:], address[:]...)); if err != nil {
 		return 0, err
 	}
-	balanceOf := &sstates.Contract{
-		Address: contract,
-		Method:  "balanceOf",
-		Args:    bf.Bytes(),
-	}
-	bo := new(bytes.Buffer)
-	if err := balanceOf.Serialize(bo); err != nil {
+	balance, err := serialization.ReadUint64(bytes.NewBuffer(bl)); if err != nil {
 		return 0, err
 	}
-	bl, err := this.InvokeNative(cache, bo.Bytes())
-	if err != nil {
-		return 0, err
-	}
-	return uint64(new(big.Int).SetBytes(bl).Int64()), nil
-}
-
-func (this *LedgerStoreImp) Transfer(cache *storage.CloneCache, contract common.Address, transfer *ont.Transfers) error {
-	tr := new(bytes.Buffer)
-	if err := transfer.Serialize(tr); err != nil {
-		return err
-	}
-	trans := &sstates.Contract{
-		Address: contract,
-		Method:  "transfer",
-		Args:    tr.Bytes(),
-	}
-	ts := new(bytes.Buffer)
-	if err := trans.Serialize(ts); err != nil {
-		return err
-	}
-	_, err := this.InvokeNative(cache, ts.Bytes())
-	if err != nil {
-		return err
-	}
-	return nil
+	return balance, nil
 }
 
 //Close ledger store.

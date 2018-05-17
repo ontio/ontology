@@ -36,6 +36,7 @@ import (
 	neovm "github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/storage"
 	stypes "github.com/ontio/ontology/smartcontract/types"
+	sstates "github.com/ontio/ontology/smartcontract/states"
 )
 
 //HandleDeployTransaction deal with smart contract deploy transaction
@@ -69,10 +70,8 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	invoke := tx.Payload.(*payload.InvokeCode)
 	txHash := tx.Hash()
 
-	cache := storage.NewCloneCache(stateBatch)
-
 	// check payer ong balance
-	balance, err := store.GetBalance(cache, tx.Payer, genesis.OngContractAddress)
+	balance, err := store.GetBalance(tx.Payer, genesis.OngContractAddress)
 	if balance < tx.GasLimit*tx.GasPrice {
 		return fmt.Errorf("%v", "Payer Gas Insufficient")
 	}
@@ -85,7 +84,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	//init smart contract info
 	sc := smartcontract.SmartContract{
 		Config:     config,
-		CloneCache: cache,
+		CloneCache: storage.NewCloneCache(stateBatch),
 		Store:      store,
 		Code:       invoke.Code,
 		Gas:        tx.GasLimit - neovm.TRANSACTION_GAS,
@@ -93,7 +92,14 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 
 	//start the smart contract executive function
 	_, err = sc.Execute()
-
+	var state []*ont.State
+	if err := Transfer(store, genesis.OngContractAddress, &ont.Transfers{
+		States: append(state, &ont.State{
+			From:  tx.Payer,
+			To:    genesis.GovernanceContractAddress,
+			Value: (tx.GasLimit - sc.Gas) * tx.GasPrice})}); err != nil {
+		return err
+	}
 	if err != nil {
 		if err := saveNotify(eventStore, txHash, &event.ExecuteNotify{TxHash: txHash,
 			State: event.CONTRACT_STATE_FAIL, Notify: []*event.NotifyEventInfo{}}); err != nil {
@@ -103,14 +109,6 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	}
 	if err := saveNotify(eventStore, txHash, &event.ExecuteNotify{TxHash: txHash,
 		State: event.CONTRACT_STATE_SUCCESS, Notify: sc.Notifications}); err != nil {
-		return err
-	}
-	var state []*ont.State
-	if err := store.Transfer(cache, genesis.OngContractAddress, &ont.Transfers{
-		States: append(state, &ont.State{
-			From:  tx.Payer,
-			To:    genesis.GovernanceContractAddress,
-			Value: (tx.GasLimit - sc.Gas) * tx.GasPrice})}); err != nil {
 		return err
 	}
 	sc.CloneCache.Commit()
@@ -143,3 +141,26 @@ func (self *StateStore) HandleVoteTransaction(stateBatch *statestore.StateBatch,
 	stateBatch.TryAdd(scommon.ST_VOTE, buf.Bytes(), &states.VoteState{PublicKeys: vote.PubKeys})
 	return nil
 }
+
+func Transfer(store store.LedgerStore, contract common.Address, transfer *ont.Transfers) error {
+	tr := new(bytes.Buffer)
+	if err := transfer.Serialize(tr); err != nil {
+		return err
+	}
+	trans := &sstates.Contract{
+		Address: contract,
+		Method:  "transfer",
+		Args:    tr.Bytes(),
+	}
+	ts := new(bytes.Buffer)
+	if err := trans.Serialize(ts); err != nil {
+		return err
+	}
+	_, err := store.InvokeNative(ts.Bytes())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+
