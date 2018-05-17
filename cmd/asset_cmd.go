@@ -149,7 +149,7 @@ func queryTransferStatus(ctx *cli.Context) error {
 		return fmt.Errorf("GetSmartContractEvent error:%s", err)
 	}
 	if evtInfos.State == 0 {
-		fmt.Printf("Transaction:%s failed\n",txHash)
+		fmt.Printf("Transaction:%s failed\n", txHash)
 		return nil
 	}
 	fmt.Printf("Transaction:%s success\n", txHash)
