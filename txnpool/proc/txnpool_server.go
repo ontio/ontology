@@ -203,7 +203,7 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256,
 		select {
 		case s.slots <- struct{}{}:
 		default:
-			log.Debug("slots is full")
+			log.Debug("removePendingTx: slots is full")
 		}
 	}
 
@@ -222,7 +222,7 @@ func (s *TXPoolServer) setPendingTx(tx *tx.Transaction,
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if ok := s.allPendingTxs[tx.Hash()]; ok != nil {
-		log.Info("Transaction already in the verifying process",
+		log.Infof("setPendingTx: transaction %x already in the verifying process",
 			tx.Hash())
 		return false
 	}
@@ -329,7 +329,8 @@ func (s *TXPoolServer) unRegisterValidator(checkType types.VerifyType,
 
 	tmpSlice, ok := s.validators.entries[checkType]
 	if !ok {
-		log.Error("No validator on check type:%d\n", checkType)
+		log.Errorf("unRegisterValidator: validator not found with type:%d, id:%s",
+			checkType, id)
 		return
 	}
 

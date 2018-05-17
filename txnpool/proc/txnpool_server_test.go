@@ -30,6 +30,7 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
+	vmtypes "github.com/ontio/ontology/smartcontract/types"
 	tc "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology/validator/stateless"
 	vt "github.com/ontio/ontology/validator/types"
@@ -46,15 +47,21 @@ func init() {
 	log.Init(log.PATH, log.Stdout)
 	topic = "TXN"
 
-	bookKeepingPayload := &payload.Bookkeeping{
-		Nonce: uint64(time.Now().UnixNano()),
+	code := []byte("ont")
+	vmcode := vmtypes.VmCode{
+		VmType: vmtypes.Native,
+		Code:   code,
+	}
+
+	invokeCodePayload := &payload.InvokeCode{
+		Code: vmcode,
 	}
 
 	txn = &types.Transaction{
 		Version:    0,
 		Attributes: []*types.TxAttribute{},
-		TxType:     types.Bookkeeper,
-		Payload:    bookKeepingPayload,
+		TxType:     types.Invoke,
+		Payload:    invokeCodePayload,
 	}
 
 	tempStr := "3369930accc1ddd067245e8edadcd9bea207ba5e1753ac18a51df77a343bfe92"
@@ -107,7 +114,6 @@ func TestTxn(t *testing.T) {
 	txEntry := &tc.TXEntry{
 		Tx:    txn,
 		Attrs: []*tc.TXAttr{},
-		Fee:   txn.GasPrice,
 	}
 	s.addTxList(txEntry)
 
