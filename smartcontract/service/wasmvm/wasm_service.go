@@ -226,7 +226,6 @@ func (this *WasmVmService) marshalNativeParams(engine *exec.ExecutionEngine) (bo
 		return false, errors.NewErr("[callContract]parameter format error while call marshalNativeParams")
 	}
 	transfer := &nstates.Transfers{}
-	binary.LittleEndian.Uint32(transferbytes[:4])
 
 	statesAddr := binary.LittleEndian.Uint32(transferbytes[4:])
 	statesbytes, err := vm.GetPointerMemory(uint64(statesAddr))
@@ -248,7 +247,6 @@ func (this *WasmVmService) marshalNativeParams(engine *exec.ExecutionEngine) (bo
 	for i := 0; i < statecnt; i++ {
 		tmpbytes := statesbytes[i*24 : (i+1)*24]
 		state := &nstates.State{}
-		binary.LittleEndian.Uint32(tmpbytes[:4])
 		fromAddessBytes, err := vm.GetPointerMemory(uint64(binary.LittleEndian.Uint32(tmpbytes[4:8])))
 		if err != nil {
 			return false, err
