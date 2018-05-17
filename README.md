@@ -1,6 +1,6 @@
 
 <h1 align="center">Ontology </h1>
-<h4 align="center">Version 0.7.5 </h4>
+<h4 align="center">Version 0.8 </h4>
 
 [![GoDoc](https://godoc.org/github.com/ontio/ontology?status.svg)](https://godoc.org/github.com/ontio/ontology)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ontio/ontology)](https://goreportcard.com/report/github.com/ontio/ontology)
