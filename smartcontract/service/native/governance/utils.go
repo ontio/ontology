@@ -64,13 +64,13 @@ func calDposTable(native *native.NativeService, config *Configuration,
 	// calculate peer ranks
 	scale := config.L/config.K - 1
 	if scale <= 0 {
-		return nil, nil, errors.NewErr("[calDposTable] L is equal or less than K!")
+		return nil, nil, errors.NewErr("calDposTable, L is equal or less than K!")
 	}
 
 	peerRanks := make([]uint64, 0)
 	for i := 0; i < int(config.K); i++ {
 		if peers[i].Stake == 0 {
-			return nil, nil, errors.NewErr(fmt.Sprintf("[calDposTable] peers rank %d, has zero stake!", i))
+			return nil, nil, errors.NewErr(fmt.Sprintf("calDposTable, peers rank %d, has zero stake!", i))
 		}
 		s := uint64(math.Ceil(float64(peers[i].Stake) * float64(scale) * float64(config.K) / float64(sum)))
 		peerRanks = append(peerRanks, s)
@@ -83,7 +83,7 @@ func calDposTable(native *native.NativeService, config *Configuration,
 		nodeId, err := vbftconfig.StringID(peers[i].PeerPubkey)
 		if err != nil {
 			return nil, nil, errors.NewDetailErr(err, errors.ErrNoCode,
-				fmt.Sprintf("[calDposTable] Failed to format NodeID, index: %d: %s", peers[i].Index, err))
+				fmt.Sprintf("calDposTable, failed to format NodeID, index: %d: %s", peers[i].Index, err))
 		}
 		chainPeers[peers[i].Index] = &vbftconfig.PeerConfig{
 			Index: peers[i].Index,
@@ -98,7 +98,7 @@ func calDposTable(native *native.NativeService, config *Configuration,
 	for i := len(posTable) - 1; i > 0; i-- {
 		h, err := shufflehash(native.Tx.Hash(), native.Height, chainPeers[posTable[i]].ID.Bytes(), i)
 		if err != nil {
-			return nil, nil, errors.NewDetailErr(err, errors.ErrNoCode, "[calDposTable] Failed to calculate hash value")
+			return nil, nil, errors.NewDetailErr(err, errors.ErrNoCode, "calDposTable, failed to calculate hash value")
 		}
 		j := h % uint64(i)
 		posTable[i], posTable[j] = posTable[j], posTable[i]
@@ -113,10 +113,10 @@ func GetPeerPoolMap(native *native.NativeService, contract common.Address, view 
 	}
 	peerPoolMapBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_POOL), view.Bytes()))
 	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[GetPeerPoolMap] Get all peerPoolMap error!")
+		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "getPeerPoolMap, get all peerPoolMap error!")
 	}
 	if peerPoolMapBytes == nil {
-		return nil, errors.NewErr("[GetPeerPoolMap] peerPoolMap is nil!")
+		return nil, errors.NewErr("getPeerPoolMap, peerPoolMap is nil!")
 	}
 	peerPoolMapStore, _ := peerPoolMapBytes.(*cstates.StorageItem)
 	if err := peerPoolMap.Deserialize(bytes.NewBuffer(peerPoolMapStore.Value)); err != nil {
@@ -128,11 +128,11 @@ func GetPeerPoolMap(native *native.NativeService, contract common.Address, view 
 func GetGovernanceView(native *native.NativeService, contract common.Address) (*GovernanceView, error) {
 	governanceViewBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(GOVERNANCE_VIEW)))
 	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[GetGovernanceView] Get governanceViewBytes error!")
+		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "getGovernanceView, get governanceViewBytes error!")
 	}
 	governanceView := new(GovernanceView)
 	if governanceViewBytes == nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[GetGovernanceView] Get nil governanceViewBytes!")
+		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "getGovernanceView, get nil governanceViewBytes!")
 	} else {
 		governanceViewStore, _ := governanceViewBytes.(*cstates.StorageItem)
 		if err := governanceView.Deserialize(bytes.NewBuffer(governanceViewStore.Value)); err != nil {
@@ -145,7 +145,7 @@ func GetGovernanceView(native *native.NativeService, contract common.Address) (*
 func GetView(native *native.NativeService, contract common.Address) (*big.Int, error) {
 	governanceView, err := GetGovernanceView(native, contract)
 	if err != nil {
-		return new(big.Int), errors.NewDetailErr(err, errors.ErrNoCode, "[GetView] GetGovernanceView error!")
+		return new(big.Int), errors.NewDetailErr(err, errors.ErrNoCode, "getView, getGovernanceView error!")
 	}
 	return governanceView.View, nil
 }
@@ -163,11 +163,11 @@ func AppCallTransferOng(native *native.NativeService, from common.Address, to co
 	}
 	err := transfers.Serialize(buf)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[appCallTransferOng] transfers.Serialize error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOng, transfers.Serialize error!")
 	}
 
 	if _, err := native.ContextRef.AppCall(genesis.OngContractAddress, "transfer", []byte{}, buf.Bytes()); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[appCallTransferOng] appCall error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOng, appCall error!")
 	}
 	return nil
 }
@@ -185,11 +185,11 @@ func AppCallTransferOnt(native *native.NativeService, from common.Address, to co
 	}
 	err := transfers.Serialize(buf)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[appCallTransferOnt] transfers.Serialize error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, transfers.Serialize error!")
 	}
 
 	if _, err := native.ContextRef.AppCall(genesis.OntContractAddress, "transfer", []byte{}, buf.Bytes()); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[appCallTransferOnt] appCall error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, appCall error!")
 	}
 	return nil
 }
@@ -203,11 +203,11 @@ func AppCallApproveOng(native *native.NativeService, from common.Address, to com
 	}
 	err := sts.Serialize(buf)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[appCallApproveOng] transfers.Serialize error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallApproveOng, transfers.Serialize error!")
 	}
 
 	if _, err := native.ContextRef.AppCall(genesis.OngContractAddress, "approve", []byte{}, buf.Bytes()); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[appCallApproveOng] appCall error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallApproveOng, appCall error!")
 	}
 	return nil
 }

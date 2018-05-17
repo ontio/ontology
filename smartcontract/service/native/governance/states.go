@@ -429,7 +429,7 @@ func (this *WithdrawParam) Deserialize(r io.Reader) error {
 	return nil
 }
 
-type VoteInfoPool struct {
+type VoteInfo struct {
 	PeerPubkey          string         `json:"peerPubkey"`
 	Address             common.Address `json:"address"`
 	ConsensusPos        uint64         `json:"consensusPos"`
@@ -440,7 +440,7 @@ type VoteInfoPool struct {
 	WithdrawUnfreezePos uint64         `json:"withdrawUnfreezePos"`
 }
 
-func (this *VoteInfoPool) Serialize(w io.Writer) error {
+func (this *VoteInfo) Serialize(w io.Writer) error {
 	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, request peerPubkey error!")
 	}
@@ -468,7 +468,7 @@ func (this *VoteInfoPool) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *VoteInfoPool) Deserialize(r io.Reader) error {
+func (this *VoteInfo) Deserialize(r io.Reader) error {
 	peerPubkey, err := serialization.ReadString(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peerPubkey error!")
@@ -647,12 +647,12 @@ func (this *VoteCommitDposParam) Deserialize(r io.Reader) error {
 	return nil
 }
 
-type VoteCommitInfoPool struct {
+type VoteCommitInfo struct {
 	Address common.Address `json:"address"`
 	Pos     uint64         `json:"pos"`
 }
 
-func (this *VoteCommitInfoPool) Serialize(w io.Writer) error {
+func (this *VoteCommitInfo) Serialize(w io.Writer) error {
 	if err := this.Address.Serialize(w); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "address.Serialize, serialize address error!")
 	}
@@ -662,7 +662,7 @@ func (this *VoteCommitInfoPool) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *VoteCommitInfoPool) Deserialize(r io.Reader) error {
+func (this *VoteCommitInfo) Deserialize(r io.Reader) error {
 	err := this.Address.Deserialize(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "address.Deserialize, deserialize address error!")
