@@ -95,14 +95,15 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 
 	//start the smart contract executive function
 	_, err = sc.Execute()
+	var state []*ont.State
+	transfers := &ont.Transfers{
+		States: append(state, &ont.State{
+			From:  tx.Payer,
+			To:    genesis.GovernanceContractAddress,
+			Value: (tx.GasLimit - sc.Gas) * tx.GasPrice})}
 	if err != nil {
-		var state []*ont.State
 		cache = storage.NewCloneCache(stateBatch)
-		if err := Transfer(store, cache, genesis.OngContractAddress, &ont.Transfers{
-			States: append(state, &ont.State{
-				From:  tx.Payer,
-				To:    genesis.GovernanceContractAddress,
-				Value: (tx.GasLimit - sc.Gas) * tx.GasPrice})}); err != nil {
+		if err := Transfer(store, cache, genesis.OngContractAddress, transfers); err != nil {
 			return err
 		}
 		cache.Commit()
@@ -112,12 +113,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 		}
 		return err
 	}
-	var state []*ont.State
-	if err := Transfer(store, cache, genesis.OngContractAddress, &ont.Transfers{
-		States: append(state, &ont.State{
-			From:  tx.Payer,
-			To:    genesis.GovernanceContractAddress,
-			Value: (tx.GasLimit - sc.Gas) * tx.GasPrice})}); err != nil {
+	if err := Transfer(store, cache, genesis.OngContractAddress, transfers); err != nil {
 		return err
 	}
 	if err := saveNotify(eventStore, txHash, &event.ExecuteNotify{TxHash: txHash,
