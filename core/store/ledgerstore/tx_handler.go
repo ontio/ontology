@@ -34,9 +34,9 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	neovm "github.com/ontio/ontology/smartcontract/service/neovm"
+	sstates "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 	stypes "github.com/ontio/ontology/smartcontract/types"
-	sstates "github.com/ontio/ontology/smartcontract/states"
 )
 
 //HandleDeployTransaction deal with smart contract deploy transaction
@@ -162,5 +162,3 @@ func Transfer(store store.LedgerStore, contract common.Address, transfer *ont.Tr
 	}
 	return nil
 }
-
-
