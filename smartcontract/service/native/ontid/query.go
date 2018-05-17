@@ -63,6 +63,9 @@ func GetDDO(srvc *native.NativeService) ([]byte, error) {
 	var0, err := GetPublicKeys(srvc)
 	if err != nil {
 		return nil, fmt.Errorf("get DDO error: %s", err)
+	} else if var0 == nil {
+		log.Debug("DDO: null")
+		return nil, nil
 	}
 	var buf bytes.Buffer
 	serialization.WriteVarBytes(&buf, var0)
@@ -99,6 +102,8 @@ func GetPublicKeys(srvc *native.NativeService) ([]byte, error) {
 	list, err := getAllPk(srvc, key)
 	if err != nil {
 		return nil, fmt.Errorf("get public keys error: %s", err)
+	} else if list == nil {
+		return nil, nil
 	}
 
 	var res bytes.Buffer
