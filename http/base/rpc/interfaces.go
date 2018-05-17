@@ -360,6 +360,9 @@ func GetContractState(params []interface{}) map[string]interface{} {
 }
 
 func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
+	if !config.DefConfig.Common.EnableEventLog {
+		return responsePack(berr.INVALID_METHOD, "")
+	}
 	if len(params) < 1 {
 		return responsePack(berr.INVALID_PARAMS, nil)
 	}
