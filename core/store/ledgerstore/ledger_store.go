@@ -19,7 +19,6 @@
 package ledgerstore
 
 import (
-	"bytes"
 	"fmt"
 	"sort"
 	"strings"
@@ -29,7 +28,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/states"
@@ -798,31 +796,17 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface
 	return result, nil
 }
 
-func (this *LedgerStoreImp) InvokeNative(code []byte) ([]byte, error) {
+func (this *LedgerStoreImp) InvokeNative(cache *storage.CloneCache, code []byte) ([]byte, error) {
 	sc := &smartcontract.SmartContract{
 		Store:      this,
-		CloneCache: storage.NewCloneCache(this.stateStore.NewStateBatch()),
+		CloneCache: cache,
 		Code:       vmtype.VmCode{Code: code, VmType: vmtype.Native},
 	}
 	result, err := sc.Execute()
 	if err != nil {
 		return nil, err
 	}
-	sc.CloneCache.Commit()
-	this.stateStore.CommitTo()
 	return result.([]byte), nil
-}
-
-func (this *LedgerStoreImp) GetBalance(address, contract common.Address) (uint64, error) {
-	bl, err := this.blockStore.store.Get(append(contract[:], address[:]...))
-	if err != nil {
-		return 0, err
-	}
-	balance, err := serialization.ReadUint64(bytes.NewBuffer(bl))
-	if err != nil {
-		return 0, err
-	}
-	return balance, nil
 }
 
 //Close ledger store.
