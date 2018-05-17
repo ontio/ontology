@@ -1,9 +1,7 @@
 package dht
 
 import (
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/dht/types"
-	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	mt "github.com/ontio/ontology/p2pserver/message/types"
 	"net"
 )
@@ -11,39 +9,18 @@ import (
 func (this *DHT) FindNodeHandler(from *net.UDPAddr, findNodeMsgData []byte) error {
 	findNodeMsg := new(mt.FindNode)
 	findNodeMsg.Deserialization(findNodeMsgData)
-	// query routing table
-	nodes := this.routingTable.GetClosestNodes(types.BUCKET_SIZE, findNodeMsg.P.TargetID)
-	neighborsPayload := mt.NeighborsPayload{
-		FromID: this.nodeID,
-	}
-	for _, node := range nodes {
-		neighborsPayload.Nodes = append(neighborsPayload.Nodes, *node)
-	}
-	neighborsPacket, err := msgpack.NewNeighbors(neighborsPayload)
-	if err != nil {
-		log.Error("failed to new dht neighbors packet", err)
-		return err
-	}
-	this.send(from, neighborsPacket)
-	return nil
+	return this.ReturnNeighbors(from, findNodeMsg.P.TargetID)
 }
 
 func (this *DHT) NeighborsHandler(from *net.UDPAddr, neighborsMsgData []byte) {
 	neighborsMsg := new(mt.Neighbors)
 	neighborsMsg.Deserialization(neighborsMsgData)
 	neighbors := neighborsMsg.P.Nodes
+	results := make([]*types.Node, 0)
 	for _, neighbor := range neighbors {
-		if this.routingTable.queryNode(neighbor.ID) == nil {
-			// add neighbors to routing table
-			this.routingTable.AddNode(&neighbor)
-			// send find node request to this neighbor
-			_, err := getNodeUdpAddr(&neighbor)
-			if err != nil {
-				continue
-			}
-			//this.FindNode(addr, 0)
-		}
+		results = append(results, &neighbor)
 	}
+	this.findNodeQueue.SetResult(results, neighborsMsg.P.FromID)
 }
 
 func (this *DHT) PingHandler(fromAddr *net.UDPAddr, pingMsgData []byte) {

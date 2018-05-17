@@ -33,17 +33,17 @@ import (
 )
 
 type DHT struct {
-	version      uint16
-	nodeID       types.NodeID
-	mu           sync.Mutex
-	routingTable *routingTable
-	addr         string
-	port         uint16
-	conn         *net.UDPConn
+	version       uint16
+	nodeID        types.NodeID
+	mu            sync.Mutex
+	routingTable  *routingTable
+	addr          string
+	port          uint16
+	conn          *net.UDPConn
 	pingNodeQueue *types.PingNodeQueue
-	findNodeQueue *types.PingNodeQueue
-	recvCh       chan *types.DHTMessage
-	stopCh       chan struct{}
+	findNodeQueue *types.FindNodeQueue
+	recvCh        chan *types.DHTMessage
+	stopCh        chan struct{}
 }
 
 func NewDHT() *DHT {
@@ -56,7 +56,7 @@ func (this *DHT) init() {
 	this.recvCh = make(chan *types.DHTMessage, types.MSG_CACHE)
 	this.stopCh = make(chan struct{})
 	this.pingNodeQueue = types.NewPingNodeQueue(this.onPingTimeOut)
-	//this.findNodeQueue = types.NewPingNodeQueue()
+	this.findNodeQueue = types.NewFindNodeQueue(this.onFindNodeTimeOut)
 	this.routingTable.init(this.nodeID)
 }
 
@@ -101,7 +101,6 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 
 	visited := make(map[types.NodeID]bool)
 	knownNode := make(map[types.NodeID]bool)
-	responseCh := make(chan []*types.Node, types.FACTOR)
 	pendingQueries := 0
 
 	visited[this.nodeID] = true
@@ -112,8 +111,8 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 		return nil
 	}
 
-	for _, node := range closestNodes{
-		if node.ID == targetID{
+	for _, node := range closestNodes {
+		if node.ID == targetID {
 			return closestNodes
 		}
 	}
@@ -127,8 +126,9 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 			visited[node.ID] = true
 			pendingQueries++
 			go func() {
-				ret, _ := this.FindNode(node, targetID)
-				responseCh <- ret
+				this.FindNode(node, targetID)
+				this.findNodeQueue.AddRequestNode(node)
+				this.findNodeQueue.Timer(node.ID)
 			}()
 		}
 
@@ -137,7 +137,7 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 		}
 
 		select {
-		case entries, ok := <-responseCh:
+		case entries, ok := this.findNodeQueue.GetResult():
 			if ok {
 				for _, n := range entries {
 					log.Info("receive new node", n)
@@ -174,10 +174,10 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 	return closestNodes
 }
 
-func (this *DHT) FindNode(remotePeer *types.Node, targetID types.NodeID) ([]*types.Node, error) {
+func (this *DHT) FindNode(remotePeer *types.Node, targetID types.NodeID) error {
 	addr, err := getNodeUdpAddr(remotePeer)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	findNodePayload := mt.FindNodePayload{
 		FromID:   this.nodeID,
@@ -186,10 +186,18 @@ func (this *DHT) FindNode(remotePeer *types.Node, targetID types.NodeID) ([]*typ
 	findNodePacket, err := msgpack.NewFindNode(findNodePayload)
 	if err != nil {
 		log.Error("failed to new dht find node packet", err)
-		return nil, err
+		return err
 	}
 	this.send(addr, findNodePacket)
-	return nil, nil
+	return nil
+}
+
+func (this *DHT) onFindNodeTimeOut(requestNodeId types.NodeID) {
+	// remove the node from bucket
+	this.routingTable.RemoveNode(requestNodeId)
+	// push a empty slice to find node queue
+	results := make([]*types.Node, 0)
+	this.findNodeQueue.SetResult(results, requestNodeId)
 }
 
 func (this *DHT) AddNode(remotePeer *types.Node) {
@@ -207,7 +215,7 @@ func (this *DHT) AddNode(remotePeer *types.Node) {
 		} else {
 			lastNode := bucket.entries[bucketNodeNum-1]
 			addr, err := getNodeUdpAddr(lastNode)
-			if err != nil{
+			if err != nil {
 				this.routingTable.RemoveNode(lastNode.ID)
 				this.routingTable.AddNode(remoteNode)
 				return
@@ -249,11 +257,11 @@ func (this *DHT) Ping(addr *net.UDPAddr) error {
 	return nil
 }
 
-func (this *DHT)onPingTimeOut(nodeId types.NodeID){
+func (this *DHT) onPingTimeOut(nodeId types.NodeID) {
 	// remove the node from bucket
 	this.routingTable.RemoveNode(nodeId)
 	pendingNode, ok := this.pingNodeQueue.GetPendingNode(nodeId)
-	if ok && pendingNode != nil{
+	if ok && pendingNode != nil {
 		// add pending node to bucket
 		this.routingTable.AddNode(pendingNode)
 	}
@@ -289,6 +297,25 @@ func (this *DHT) Pong(addr *net.UDPAddr) error {
 		return err
 	}
 	this.send(addr, pongPacket)
+	return nil
+}
+
+// response to find node
+func (this *DHT) ReturnNeighbors(addr *net.UDPAddr, targetId types.NodeID) error {
+	// query routing table
+	nodes := this.routingTable.GetClosestNodes(types.BUCKET_SIZE, targetId)
+	neighborsPayload := mt.NeighborsPayload{
+		FromID: this.nodeID,
+	}
+	for _, node := range nodes {
+		neighborsPayload.Nodes = append(neighborsPayload.Nodes, *node)
+	}
+	neighborsPacket, err := msgpack.NewNeighbors(neighborsPayload)
+	if err != nil {
+		log.Error("failed to new dht neighbors packet", err)
+		return err
+	}
+	this.send(addr, neighborsPacket)
 	return nil
 }
 
