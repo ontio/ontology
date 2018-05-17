@@ -130,7 +130,7 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: store pubic key error: " + err.Error())
 	}
 
-	err = batchInsertAttr(srvc, key, arg2)
+	_, err = batchInsertAttr(srvc, key, arg2)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: insert attribute error: " + err.Error())
 	}
@@ -372,12 +372,12 @@ func addAttributes(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, %s", err)
 	}
 
-	err = batchInsertAttr(srvc, key, arg1)
+	paths, err := batchInsertAttr(srvc, key, arg1)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, %s", err)
 	}
 
-	triggerAttributeEvent(srvc, "add", arg0, []byte("multiple attributes"))
+	triggerAttributeEvent(srvc, "add", arg0, paths)
 	return utils.BYTE_TRUE, nil
 }
 
@@ -422,7 +422,7 @@ func removeAttribute(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("remove attribute failed: attribute not exist")
 	}
 
-	triggerAttributeEvent(srvc, "remove", arg0, arg1)
+	triggerAttributeEvent(srvc, "remove", arg0, [][]byte{arg1})
 	return utils.BYTE_TRUE, nil
 }
 

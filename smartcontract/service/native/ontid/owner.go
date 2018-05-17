@@ -19,7 +19,6 @@ package ontid
 
 import (
 	"bytes"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -67,7 +66,7 @@ func getAllPk(srvc *native.NativeService, key []byte) ([]*owner, error) {
 		return nil, fmt.Errorf("get storage error, %s", err)
 	}
 	if val == nil {
-		return nil, fmt.Errorf("empty storage item, key = %s", hex.EncodeToString(key))
+		return nil, nil
 	}
 	buf := bytes.NewBuffer(val.Value)
 	owners := make([]*owner, 0)

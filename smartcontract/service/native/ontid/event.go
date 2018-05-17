@@ -41,8 +41,18 @@ func triggerPublicEvent(srvc *native.NativeService, op string, id, pub []byte, k
 	newEvent(srvc, st)
 }
 
-func triggerAttributeEvent(srvc *native.NativeService, op string, id, path []byte) {
-	st := []string{"Attribute", op, string(id), string(path)}
+func triggerAttributeEvent(srvc *native.NativeService, op string, id []byte, path [][]byte) {
+	var attr interface{}
+	if op == "remove" {
+		attr = hex.EncodeToString(path[0])
+	} else {
+		t := make([]string, len(path))
+		for i, v := range path {
+			t[i] = hex.EncodeToString(v)
+		}
+		attr = t
+	}
+	st := []interface{}{"Attribute", op, string(id), attr}
 	newEvent(srvc, st)
 }
 

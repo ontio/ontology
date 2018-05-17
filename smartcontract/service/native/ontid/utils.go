@@ -28,6 +28,7 @@ import (
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 const flag_exist = 0x01
@@ -78,23 +79,13 @@ func setRecovery(srvc *native.NativeService, encID, recovery []byte) error {
 
 func getRecovery(srvc *native.NativeService, encID []byte) ([]byte, error) {
 	key := append(encID, FIELD_RECOVERY)
-	item, err := getStorageItem(srvc, key)
+	item, err := utils.GetStorageItem(srvc, key)
 	if err != nil {
 		return nil, errors.New("get recovery error: " + err.Error())
+	} else if item == nil {
+		return nil, nil
 	}
 	return item.Value, nil
-}
-
-func getStorageItem(srvc *native.NativeService, key []byte) (*states.StorageItem, error) {
-	val, err := srvc.CloneCache.Get(common.ST_STORAGE, key)
-	if err != nil {
-		return nil, err
-	}
-	t, ok := val.(*states.StorageItem)
-	if !ok {
-		return nil, errors.New("invalid value type")
-	}
-	return t, nil
 }
 
 func checkWitness(srvc *native.NativeService, key []byte) error {

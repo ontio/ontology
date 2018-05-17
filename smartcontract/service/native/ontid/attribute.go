@@ -115,7 +115,7 @@ func findAttr(srvc *native.NativeService, encID, item []byte) (*utils.Linkedlist
 	return utils.LinkedlistGetItem(srvc, key, item)
 }
 
-func batchInsertAttr(srvc *native.NativeService, encID, data []byte) error {
+func batchInsertAttr(srvc *native.NativeService, encID, data []byte) ([][]byte, error) {
 	// parse attributes
 	buf := bytes.NewBuffer(data)
 	attr := make([]*attribute, 0)
@@ -123,17 +123,20 @@ func batchInsertAttr(srvc *native.NativeService, encID, data []byte) error {
 		t := new(attribute)
 		err := t.Deserialize(buf)
 		if err != nil {
-			return errors.New("parse attribute error: " + err.Error())
+			return nil, errors.New("parse attribute error: " + err.Error())
 		}
 		attr = append(attr, t)
 	}
-	for _, v := range attr {
+	res := make([][]byte, len(attr))
+	for i, v := range attr {
 		err := insertOrUpdateAttr(srvc, encID, v)
 		if err != nil {
-			return errors.New("store attributes error: " + err.Error())
+			return nil, errors.New("store attributes error: " + err.Error())
 		}
+		res[i] = v.key
 	}
-	return nil
+
+	return res, nil
 }
 
 func getAllAttr(srvc *native.NativeService, encID []byte) ([]byte, error) {
@@ -142,7 +145,8 @@ func getAllAttr(srvc *native.NativeService, encID []byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get list head error, %s", err)
 	} else if len(item) == 0 {
-		return nil, errors.New("cannot get list head")
+		// not exists
+		return nil, nil
 	}
 
 	var res bytes.Buffer
@@ -152,7 +156,7 @@ func getAllAttr(srvc *native.NativeService, encID []byte) ([]byte, error) {
 		if err != nil {
 			return nil, fmt.Errorf("get storage item error, %s", err)
 		} else if node == nil {
-			return nil, fmt.Errorf("storage item not exists")
+			return nil, fmt.Errorf("storage item not exists, %v", item)
 		}
 
 		var attr attribute
