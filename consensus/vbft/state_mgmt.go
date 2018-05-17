@@ -282,7 +282,7 @@ func (self *StateMgr) onLiveTick(evt *StateEvent) error {
 		return nil
 	}
 
-	log.Errorf("server %d detected consensus halt %d",
+	log.Warnf("server %d detected consensus halt %d",
 		self.server.Index, self.server.GetCurrentBlockNo())
 
 	committedBlkNum, ok := self.getConsensusedCommittedBlockNum()

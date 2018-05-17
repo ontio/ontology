@@ -711,9 +711,14 @@ func (self *Server) startNewRound() error {
 		return nil
 	}
 
-	txpool := self.poolActor.GetTxnPool(true, self.valideHeight(blkNum))
-	if len(txpool) != 0 && self.completedBlockNum+1 == self.currentBlockNum {
-		self.startNewProposal(blkNum)
+	if self.completedBlockNum+1 == self.currentBlockNum {
+		txpool := self.poolActor.GetTxnPool(true, self.validHeight(blkNum))
+		if len(txpool) != 0 {
+			self.startNewProposal(blkNum)
+		} else {
+			self.timer.startTxTicker(blkNum)
+			self.timer.StartTxBlockTimeout(blkNum)
+		}
 	} else {
 		self.timer.startTxTicker(blkNum)
 		self.timer.StartTxBlockTimeout(blkNum)
@@ -1706,12 +1711,16 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 	case EventTxPool:
 		blockNum := self.GetCurrentBlockNo()
 		self.timer.stopTxTicker(evt.blockNum)
-		txpool := self.poolActor.GetTxnPool(true, self.valideHeight(blockNum))
-		if len(txpool) != 0 && self.completedBlockNum+1 == self.currentBlockNum {
-			self.timer.CancelTxBlockTimeout(blockNum)
-			self.startNewProposal(blockNum)
+		if self.completedBlockNum+1 == self.currentBlockNum {
+			txpool := self.poolActor.GetTxnPool(true, self.validHeight(blockNum))
+			if len(txpool) != 0 {
+				self.timer.CancelTxBlockTimeout(blockNum)
+				self.startNewProposal(blockNum)
+			} else {
+				//reset timer, continue waiting txs from txnpool
+				self.timer.startTxTicker(blockNum)
+			}
 		} else {
-			// reset timer, continue waiting txs from txnpool
 			self.timer.startTxTicker(blockNum)
 		}
 	case EventTxBlockTimeout:
@@ -2023,7 +2032,7 @@ func (self *Server) checkUpdateChainConfig() bool {
 	return force
 }
 
-func (self *Server) valideHeight(blkNum uint32) uint32 {
+func (self *Server) validHeight(blkNum uint32) uint32 {
 	height := blkNum - 1
 	validHeight := height
 	start, end := self.incrValidator.BlockRange()
@@ -2041,7 +2050,7 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 			self.Index, blkNum, self.GetCurrentBlockNo())
 	}
 
-	validHeight := self.valideHeight(blkNum)
+	validHeight := self.validHeight(blkNum)
 	sysTxs := make([]*types.Transaction, 0)
 	userTxs := make([]*types.Transaction, 0)
 
