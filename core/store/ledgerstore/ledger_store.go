@@ -23,6 +23,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"bytes"
+	"math/big"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
@@ -41,6 +43,9 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vmtype "github.com/ontio/ontology/smartcontract/types"
+	"github.com/ontio/ontology/common/serialization"
+	sstates "github.com/ontio/ontology/smartcontract/states"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
 )
 
 const (
@@ -774,6 +779,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface
 		Store:      this,
 		CloneCache: storage.NewCloneCache(this.stateStore.NewStateBatch()),
 		Code:       invoke.Code,
+		TestMode:   true,
 	}
 
 	//start the smart contract executive function
@@ -793,6 +799,58 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface
 		result = common.ToHexString(result.([]byte))
 	}
 	return result, nil
+}
+
+func (this *LedgerStoreImp) InvokeNative(cache *storage.CloneCache, code []byte) ([]byte, error) {
+	sc := &smartcontract.SmartContract{
+		Store:      this,
+		CloneCache: storage.NewCloneCache(this.stateStore.NewStateBatch()),
+		Code:       vmtype.VmCode{Code: code, VmType: vmtype.Native},
+	}
+	result, err := sc.Execute(); if err != nil {
+		return nil, err
+	}
+	return result.([]byte), nil
+}
+
+func (this *LedgerStoreImp) GetBalance(cache *storage.CloneCache, address, contract common.Address) (uint64, error) {
+	bf := new(bytes.Buffer)
+	if err := serialization.WriteVarBytes(bf, address[:]); err != nil {
+		return 0, err
+	}
+	balanceOf := &sstates.Contract{
+		Address: contract,
+		Method: "balanceOf",
+		Args: bf.Bytes(),
+	}
+	bo := new(bytes.Buffer)
+	if err := balanceOf.Serialize(bo); err != nil {
+		return 0, err
+	}
+	bl, err := this.InvokeNative(cache, bo.Bytes()); if err != nil {
+		return 0, err
+	}
+	return uint64(new(big.Int).SetBytes(bl).Int64()), nil
+}
+
+func (this *LedgerStoreImp) Transfer(cache *storage.CloneCache, contract common.Address, transfer *ont.Transfers) error {
+	tr := new(bytes.Buffer)
+	if err := transfer.Serialize(tr); err != nil {
+		return err
+	}
+	trans := &sstates.Contract{
+		Address: contract,
+		Method: "transfer",
+		Args: tr.Bytes(),
+	}
+	ts :=  new(bytes.Buffer)
+	if err := trans.Serialize(ts); err != nil {
+		return err
+	}
+	_, err := this.InvokeNative(cache, ts.Bytes()); if err != nil {
+		return err
+	}
+	return nil
 }
 
 //Close ledger store.

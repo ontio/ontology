@@ -38,6 +38,7 @@ type ExecutionEngine struct {
 	Contexts        []*ExecutionContext
 	Context         *ExecutionContext
 	OpCode          OpCode
+	OpExec          OpExec
 }
 
 func (this *ExecutionEngine) CurrentContext() *ExecutionContext {
@@ -82,6 +83,15 @@ func (this *ExecutionEngine) ExecuteCode() error {
 	return nil
 }
 
+func (this *ExecutionEngine) ValidateOp() error {
+	opExec := OpExecList[this.OpCode]
+	if opExec.Exec == nil {
+		return errors.ERR_NOT_SUPPORT_OPCODE
+	}
+	this.OpExec = opExec
+	return nil
+}
+
 func (this *ExecutionEngine) StepInto() error {
 	state, err := this.ExecuteOp()
 	if err != nil {
@@ -97,15 +107,10 @@ func (this *ExecutionEngine) ExecuteOp() (VMState, error) {
 		return NONE, nil
 	}
 
-	opExec := OpExecList[this.OpCode]
-	if opExec.Exec == nil {
-		return FAULT, errors.ERR_NOT_SUPPORT_OPCODE
-	}
-
-	if opExec.Validator != nil {
-		if err := opExec.Validator(this); err != nil {
+	if this.OpExec.Validator != nil {
+		if err := this.OpExec.Validator(this); err != nil {
 			return FAULT, err
 		}
 	}
-	return opExec.Exec(this)
+	return this.OpExec.Exec(this)
 }

@@ -33,6 +33,9 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/storage"
 	stypes "github.com/ontio/ontology/smartcontract/types"
+	"github.com/ontio/ontology/core/genesis"
+	neovm "github.com/ontio/ontology/smartcontract/service/neovm"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
 )
 
 //HandleDeployTransaction deal with smart contract deploy transaction
@@ -66,24 +69,30 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	invoke := tx.Payload.(*payload.InvokeCode)
 	txHash := tx.Hash()
 
+	cache := storage.NewCloneCache(stateBatch)
+
+	// check payer ong balance
+	balance, err := store.GetBalance(cache, tx.Payer, genesis.OngContractAddress)
+	if balance < tx.GasLimit * tx.GasPrice {
+		return fmt.Errorf("%v", "Payer Gas Insufficient")
+	}
 	// init smart contract configuration info
 	config := &smartcontract.Config{
 		Time:   block.Header.Timestamp,
 		Height: block.Header.Height,
 		Tx:     tx,
 	}
-
 	//init smart contract info
 	sc := smartcontract.SmartContract{
 		Config:     config,
-		CloneCache: storage.NewCloneCache(stateBatch),
+		CloneCache: cache,
 		Store:      store,
 		Code:       invoke.Code,
-		Gas:        tx.GasLimit,
+		Gas:        tx.GasLimit - neovm.TRANSACTION_GAS,
 	}
 
 	//start the smart contract executive function
-	_, err := sc.Execute()
+	_, err = sc.Execute()
 
 	if err != nil {
 		if err := saveNotify(eventStore, txHash, &event.ExecuteNotify{TxHash: txHash,
@@ -94,6 +103,14 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	}
 	if err := saveNotify(eventStore, txHash, &event.ExecuteNotify{TxHash: txHash,
 		State: event.CONTRACT_STATE_SUCCESS, Notify: sc.Notifications}); err != nil {
+		return err
+	}
+	var state []*ont.State
+	if err := store.Transfer(cache, genesis.OngContractAddress, &ont.Transfers{
+		States: append(state, &ont.State{
+			From: tx.Payer,
+			To: genesis.GovernanceContractAddress,
+			Value: (tx.GasLimit - sc.Gas) * tx.GasPrice})}); err != nil {
 		return err
 	}
 	sc.CloneCache.Commit()

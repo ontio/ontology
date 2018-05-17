@@ -25,6 +25,8 @@ import (
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	"github.com/ontio/ontology/smartcontract/storage"
 )
 
 // LedgerStore provides func with store package.
@@ -53,4 +55,7 @@ type LedgerStore interface {
 	PreExecuteContract(tx *types.Transaction) (interface{}, error)
 	GetEventNotifyByTx(tx common.Uint256) (*event.ExecuteNotify, error)
 	GetEventNotifyByBlock(height uint32) ([]common.Uint256, error)
+	GetBalance(cache *storage.CloneCache, address, contract common.Address) (uint64, error)
+	Transfer(cache *storage.CloneCache, contract common.Address, transfer *ont.Transfers) error
+	InvokeNative(cache *storage.CloneCache, code []byte) ([]byte, error)
 }

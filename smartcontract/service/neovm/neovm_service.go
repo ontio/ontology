@@ -42,55 +42,54 @@ const (
 var (
 	// Register all service for smart contract execute
 	ServiceMap = map[string]Service{
-		"Neo.Attribute.GetUsage":                        {Execute: AttributeGetUsage, Validator: validatorAttribute},
-		"Neo.Attribute.GetData":                         {Execute: AttributeGetData, Validator: validatorAttribute},
-		"Neo.Block.GetTransactionCount":                 {Execute: BlockGetTransactionCount, Validator: validatorBlock},
-		"Neo.Block.GetTransactions":                     {Execute: BlockGetTransactions, Validator: validatorBlock},
-		"Neo.Block.GetTransaction":                      {Execute: BlockGetTransaction, Validator: validatorBlockTransaction},
-		"Neo.Blockchain.GetHeight":                      {Execute: BlockChainGetHeight},
-		"Neo.Blockchain.GetHeader":                      {Execute: BlockChainGetHeader, Validator: validatorBlockChainHeader},
-		"Neo.Blockchain.GetBlock":                       {Execute: BlockChainGetBlock, Validator: validatorBlockChainBlock},
-		"Neo.Blockchain.GetTransaction":                 {Execute: BlockChainGetTransaction, Validator: validatorBlockChainTransaction},
-		"Neo.Blockchain.GetContract":                    {Execute: BlockChainGetContract, Validator: validatorBlockChainContract},
-		"Neo.Header.GetIndex":                           {Execute: HeaderGetIndex, Validator: validatorHeader},
-		"Neo.Header.GetHash":                            {Execute: HeaderGetHash, Validator: validatorHeader},
-		"Neo.Header.GetVersion":                         {Execute: HeaderGetVersion, Validator: validatorHeader},
-		"Neo.Header.GetPrevHash":                        {Execute: HeaderGetPrevHash, Validator: validatorHeader},
-		"Neo.Header.GetTimestamp":                       {Execute: HeaderGetTimestamp, Validator: validatorHeader},
-		"Neo.Header.GetConsensusData":                   {Execute: HeaderGetConsensusData, Validator: validatorHeader},
-		"Neo.Header.GetNextConsensus":                   {Execute: HeaderGetNextConsensus, Validator: validatorHeader},
-		"Neo.Header.GetMerkleRoot":                      {Execute: HeaderGetMerkleRoot, Validator: validatorHeader},
-		"Neo.Transaction.GetHash":                       {Execute: TransactionGetHash, Validator: validatorTransaction},
-		"Neo.Transaction.GetType":                       {Execute: TransactionGetType, Validator: validatorTransaction},
-		"Neo.Transaction.GetAttributes":                 {Execute: TransactionGetAttributes, Validator: validatorTransaction},
-		"Neo.Contract.Create":                           {Execute: ContractCreate},
-		"Neo.Contract.Migrate":                          {Execute: ContractMigrate},
-		"Neo.Contract.GetStorageContext":                {Execute: ContractGetStorageContext},
-		"Neo.Contract.Destroy":                          {Execute: ContractDestory},
-		"Neo.Contract.GetScript":                        {Execute: ContractGetCode, Validator: validatorGetCode},
-		"Neo.Runtime.GetTime":                           {Execute: RuntimeGetTime},
-		"Neo.Runtime.CheckWitness":                      {Execute: RuntimeCheckWitness, Validator: validatorCheckWitness},
-		"Neo.Runtime.Notify":                            {Execute: RuntimeNotify, Validator: validatorNotify},
-		"Neo.Runtime.Log":                               {Execute: RuntimeLog, Validator: validatorLog},
-		"Neo.Runtime.CheckSig":                          {Execute: RuntimeCheckSig, Validator: validatorCheckSig},
-		"Neo.Storage.Get":                               {Execute: StorageGet},
-		"Neo.Storage.Put":                               {Execute: StoragePut},
-		"Neo.Storage.Delete":                            {Execute: StorageDelete},
-		"Neo.Storage.GetContext":                        {Execute: StorageGetContext},
-		"System.ExecutionEngine.GetScriptContainer":     {Execute: GetCodeContainer},
-		"System.ExecutionEngine.GetExecutingScriptHash": {Execute: GetExecutingAddress},
-		"System.ExecutionEngine.GetCallingScriptHash":   {Execute: GetCallingAddress},
-		"System.ExecutionEngine.GetEntryScriptHash":     {Execute: GetEntryAddress},
+		ATTRIBUTE_GETUSAGE_NAME:         {Execute: AttributeGetUsage, Validator: validatorAttribute},
+		ATTRIBUTE_GETDATA_NAME:          {Execute: AttributeGetData, Validator: validatorAttribute},
+		BLOCK_GETTRANSACTIONCOUNT_NAME:  {Execute: BlockGetTransactionCount, Validator: validatorBlock},
+		BLOCK_GETTRANSACTIONS_NAME:      {Execute: BlockGetTransactions, Validator: validatorBlock},
+		BLOCK_GETTRANSACTION_NAME:       {Execute: BlockGetTransaction, Validator: validatorBlockTransaction},
+		BLOCKCHAIN_GETHEIGHT_NAME:       {Execute: BlockChainGetHeight},
+		BLOCKCHAIN_GETHEADER_NAME:       {Execute: BlockChainGetHeader, Validator: validatorBlockChainHeader},
+		BLOCKCHAIN_GETBLOCK_NAME:        {Execute: BlockChainGetBlock, Validator: validatorBlockChainBlock},
+		BLOCKCHAIN_GETTRANSACTION_NAME:  {Execute: BlockChainGetTransaction, Validator: validatorBlockChainTransaction},
+		BLOCKCHAIN_GETCONTRACT_NAME:     {Execute: BlockChainGetContract, Validator: validatorBlockChainContract},
+		HEADER_GETINDEX_NAME:            {Execute: HeaderGetIndex, Validator: validatorHeader},
+		HEADER_GETHASH_NAME:             {Execute: HeaderGetHash, Validator: validatorHeader},
+		HEADER_GETVERSION_NAME:          {Execute: HeaderGetVersion, Validator: validatorHeader},
+		HEADER_GETPREVHASH_NAME:         {Execute: HeaderGetPrevHash, Validator: validatorHeader},
+		HEADER_GETTIMESTAMP_NAME:        {Execute: HeaderGetTimestamp, Validator: validatorHeader},
+		HEADER_GETCONSENSUSDATA_NAME:    {Execute: HeaderGetConsensusData, Validator: validatorHeader},
+		HEADER_GETNEXTCONSENSUS_NAME:    {Execute: HeaderGetNextConsensus, Validator: validatorHeader},
+		HEADER_GETMERKLEROOT_NAME:       {Execute: HeaderGetMerkleRoot, Validator: validatorHeader},
+		TRANSACTION_GETHASH_NAME:        {Execute: TransactionGetHash, Validator: validatorTransaction},
+		TRANSACTION_GETTYPE_NAME:        {Execute: TransactionGetType, Validator: validatorTransaction},
+		TRANSACTION_GETATTRIBUTES_NAME:  {Execute: TransactionGetAttributes, Validator: validatorTransaction},
+		CONTRACT_CREATE_NAME:            {Execute: ContractCreate},
+		CONTRACT_MIGRATE_NAME:           {Execute: ContractMigrate},
+		CONTRACT_GETSTORAGECONTEXT_NAME: {Execute: ContractGetStorageContext},
+		CONTRACT_DESTROY_NAME:           {Execute: ContractDestory},
+		CONTRACT_GETSCRIPT_NAME:         {Execute: ContractGetCode, Validator: validatorGetCode},
+		RUNTIME_GETTIME_NAME:            {Execute: RuntimeGetTime},
+		RUNTIME_CHECKWITNESS_NAME:       {Execute: RuntimeCheckWitness, Validator: validatorCheckWitness},
+		RUNTIME_NOTIFY_NAME:             {Execute: RuntimeNotify, Validator: validatorNotify},
+		RUNTIME_LOG_NAME:                {Execute: RuntimeLog, Validator: validatorLog},
+		RUNTIME_CHECKSIG_NAME:           {Execute: RuntimeCheckSig, Validator: validatorCheckSig},
+		STORAGE_GET_NAME:                {Execute: StorageGet},
+		STORAGE_PUT_NAME:                {Execute: StoragePut},
+		STORAGE_DELETE_NAME:             {Execute: StorageDelete},
+		STORAGE_GETCONTEXT_NAME:         {Execute: StorageGetContext},
+		GETSCRIPTCONTAINER_NAME:         {Execute: GetCodeContainer},
+		GETEXECUTINGSCRIPTHASH_NAME:     {Execute: GetExecutingAddress},
+		GETCALLINGSCRIPTHASH_NAME:       {Execute: GetCallingAddress},
+		GETENTRYSCRIPTHASH_NAME:         {Execute: GetEntryAddress},
 	}
 )
 
 var (
-	ERR_CHECK_STACK_SIZE    = errors.NewErr("[NeoVmService] vm over max stack size!")
-	ERR_CHECK_ARRAY_SIZE    = errors.NewErr("[NeoVmService] vm over max array size!")
-	ERR_CHECK_BIGINTEGER    = errors.NewErr("[NeoVmService] vm over max biginteger size!")
-	ERR_CURRENT_CONTEXT_NIL = errors.NewErr("[NeoVmService] neovm service current context doesn't exist!")
-	ERR_EXECUTE_CODE        = errors.NewErr("[NeoVmService] vm execute code invalid!")
-	ERR_GAS_INSUFFICIENT    = errors.NewErr("[NeoVmService] gas insufficient")
+	ERR_CHECK_STACK_SIZE = errors.NewErr("[NeoVmService] vm over max stack size!")
+	ERR_CHECK_ARRAY_SIZE = errors.NewErr("[NeoVmService] vm over max array size!")
+	ERR_CHECK_BIGINTEGER = errors.NewErr("[NeoVmService] vm over max biginteger size!")
+	ERR_EXECUTE_CODE     = errors.NewErr("[NeoVmService] vm execute code invalid!")
+	ERR_GAS_INSUFFICIENT = errors.NewErr("[NeoVmService] gas insufficient")
 )
 
 type (
@@ -131,6 +130,10 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 		if err := engine.ExecuteCode(); err != nil {
 			return nil, err
 		}
+		if err := engine.ValidateOp(); err != nil {
+			return nil, err
+		}
+
 		if engine.Context.GetInstructionPointer() < len(engine.Context.Code) {
 			if ok := checkStackSize(engine); !ok {
 				return nil, ERR_CHECK_STACK_SIZE
@@ -142,7 +145,7 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 				return nil, ERR_CHECK_BIGINTEGER
 			}
 		}
-		if !this.ContextRef.CheckUseGas(0) {
+		if !this.ContextRef.CheckUseGas(GasPrice(engine, engine.OpExec.Name)) {
 			return nil, ERR_GAS_INSUFFICIENT
 		}
 		switch engine.OpCode {
@@ -181,6 +184,9 @@ func (this *NeoVmService) SystemCall(engine *vm.ExecutionEngine) error {
 	service, ok := ServiceMap[serviceName]
 	if !ok {
 		return errors.NewErr(fmt.Sprintf("[SystemCall] service not support: %s", serviceName))
+	}
+	if this.ContextRef.CheckUseGas(GasPrice(engine, serviceName)) {
+		return ERR_GAS_INSUFFICIENT
 	}
 	if service.Validator != nil {
 		if err := service.Validator(engine); err != nil {
