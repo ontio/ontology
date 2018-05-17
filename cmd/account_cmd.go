@@ -23,6 +23,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/cmd/utils"
@@ -36,14 +37,14 @@ var (
 		Action:      cli.ShowSubcommandHelp,
 		Name:        "account",
 		Usage:       "Manage accounts",
-		ArgsUsage:   " ",
+		ArgsUsage:   "[arguments...]",
 		Description: `Manage accounts stored in the wallet`,
 		Subcommands: []cli.Command{
 			{
 				Action:    accountCreate,
 				Name:      "add",
 				Usage:     "Add a new account",
-				ArgsUsage: "[sub-command options] <args>",
+				ArgsUsage: "[sub-command options]",
 				Flags: []cli.Flag{
 					utils.AccountQuantityFlag,
 					utils.AccountTypeFlag,
@@ -53,24 +54,53 @@ var (
 					utils.AccountLabelFlag,
 					utils.WalletFileFlag,
 				},
-				Description: `Add a new account`,
+				Description: ` Add a new account to wallet. 
+   Ontology support three type of key: ecdsa, sm2 and ed25519, and support 224、256、384、521 bits length of key in ecdsa, but only support 256 bits length of key in sm2 and ed25519.
+   Ontology support multiple signature scheme. 
+   For ECDSA support SHA224withECDSA、SHA256withECDSA、SHA384withECDSA、SHA512withEdDSA、SHA3-224withECDSA、SHA3-256withECDSA、SHA3-384withECDSA、SHA3-512withECDSA、RIPEMD160withECDSA; 
+   For SM2 support SM3withSM2, and for SHA512withEdDSA.
+   -------------------------------------------------
+      Key   |key-length(bits)|  signature-scheme
+   ---------|----------------|----------------------
+   1 ecdsa  |  1 P-224: 224  | 1 SHA224withECDSA
+            |----------------|----------------------
+            |  2 P-256: 256  | 2 SHA256withECDSA
+            |----------------|----------------------
+            |  3 P-384: 384  | 3 SHA384withECDSA
+            |----------------|----------------------
+            |  4 P-521: 521  | 4 SHA512withEdDSA
+            |----------------|----------------------
+            |                | 5 SHA3-224withECDSA
+            |                |----------------------
+            |                | 6 SHA3-256withECDSA
+            |                |----------------------
+            |                | 7 SHA3-384withECDSA
+            |                |----------------------
+            |                | 8 SHA3-512withECDSA
+            |                |----------------------
+            |                | 9 RIPEMD160withECDSA
+   ---------|----------------|----------------------
+   2 sm2    | sm2p256v1 256  | SM3withSM2
+   ---------|----------------|----------------------
+   3 ed25519|   25519 256    | SHA512withEdDSA
+   -------------------------------------------------`,
 			},
 			{
 				Action:    accountList,
 				Name:      "list",
 				Usage:     "List existing accounts",
-				ArgsUsage: "[sub-command options] <args>",
+				ArgsUsage: "[sub-command options] <label|addres|index>",
 				Flags: []cli.Flag{
 					utils.WalletFileFlag,
 					utils.AccountVerboseFlag,
 				},
-				Description: `List existing accounts`,
+				Description: `List existing accounts. If specified in args, will list those account. If not specified in args, will list all accouns in wallet`,
 			},
 			{
 				Action:    accountSet,
 				Name:      "set",
 				Usage:     "Modify an account",
-				ArgsUsage: "<index>",
+				ArgsUsage: "[sub-command options] <label|addres|index>",
 				Flags: []cli.Flag{
 					utils.AccountSetDefaultFlag,
 					utils.WalletFileFlag,
@@ -78,23 +108,23 @@ var (
 					utils.AccountChangePasswdFlag,
 					utils.AccountSigSchemeFlag,
 				},
-				Description: `Modify settings for an account. Account is specified by index. This can be showed by the 'list' command.`,
+				Description: `Modify settings for an account. Account is specified by address, label of index. Index start from 1. This can be showed by the 'list' command.`,
 			},
 			{
 				Action:    accountDelete,
 				Name:      "del",
 				Usage:     "Delete an account",
-				ArgsUsage: "<address|label|index>",
+				ArgsUsage: "[sub-command options] <address|label|index>",
 				Flags: []cli.Flag{
 					utils.WalletFileFlag,
 				},
-				Description: `Delete an account specified by index. The index can be showed by the 'list' command`,
+				Description: `Delete an account specified by address, label of index. Index start from 1. This can be showed by the 'list' command`,
 			},
 			{
 				Action:    accountImport,
 				Name:      "import",
 				Usage:     "Import accounts of wallet to another",
-				ArgsUsage: "<address|label|index>",
+				ArgsUsage: "[sub-command options] <address|label|index>",
 				Flags: []cli.Flag{
 					utils.WalletFileFlag,
 					utils.AccountSourceFileFlag,
@@ -166,10 +196,26 @@ func accountList(ctx *cli.Context) error {
 		fmt.Println("No account")
 		return nil
 	}
+	accList := make(map[string]string, ctx.NArg())
+	for i := 0; i < ctx.NArg(); i++ {
+		addr := ctx.Args().Get(i)
+		accMeta := common.GetAccountMetadataMulti(wallet, addr)
+		if accMeta == nil {
+			fmt.Printf("Cannot find account by:%s in wallet:%s\n", addr, utils.GetFlagName(utils.WalletFileFlag))
+			continue
+		}
+		accList[accMeta.Address] = ""
+	}
 	for i := 1; i <= accNum; i++ {
 		accMeta := wallet.GetAccountMetadataByIndex(i)
 		if accMeta == nil {
 			continue
+		}
+		if len(accList) > 0 {
+			_, ok := accList[accMeta.Address]
+			if !ok {
+				continue
+			}
 		}
 		if !ctx.Bool(utils.GetFlagName(utils.AccountVerboseFlag)) {
 			if accMeta.IsDefault {
@@ -236,19 +282,27 @@ func accountSet(ctx *cli.Context) error {
 	if ctx.IsSet(utils.GetFlagName(utils.AccountSigSchemeFlag)) {
 		find := false
 		sigScheme := ctx.String(utils.GetFlagName(utils.AccountSigSchemeFlag))
-		for _, val := range schemeMap {
+		var sigSch signature.SignatureScheme
+		for key, val := range schemeMap {
+			if key == sigScheme {
+				find = true
+				sigSch = val.code
+				break
+			}
 			if val.name == sigScheme {
 				find = true
-				err = wallet.ChangeSigScheme(address, val.code, passwd)
-				if err != nil {
-					fmt.Printf("Set Label:%s Account:%s SigScheme to: %s failed, %s\n", accMeta.Label, accMeta.Address, val.name, err)
-				} else {
-					fmt.Printf("Set Label:%s Account:%s SigScheme to: %s successfully\n", accMeta.Label, accMeta.Address, val.name)
-				}
+				sigSch = val.code
 				break
 			}
 		}
-		if !find {
+		if find {
+			err = wallet.ChangeSigScheme(address, sigSch, passwd)
+			if err != nil {
+				fmt.Printf("Set Label:%s Account:%s SigScheme to: %s failed, %s\n", accMeta.Label, accMeta.Address, sigSch.Name(), err)
+			} else {
+				fmt.Printf("Set Label:%s Account:%s SigScheme to: %s successfully\n", accMeta.Label, accMeta.Address, sigSch.Name())
+			}
+		} else {
 			fmt.Printf("%s is not a valid content for option -s \n", sigScheme)
 		}
 	}

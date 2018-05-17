@@ -126,6 +126,9 @@ func GetAccount(ctx *cli.Context) (*account.Account, error) {
 }
 
 func IsBase58Address(address string) bool {
+	if address == "" {
+		return false
+	}
 	_, err := common.AddressFromBase58(address)
 	return err == nil
 }

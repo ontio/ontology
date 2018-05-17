@@ -35,9 +35,9 @@ var AssetCommand = cli.Command{
 		{
 			Action:      transfer,
 			Name:        "transfer",
-			Usage:       "Transfer ont to another account",
+			Usage:       "Transfer ont or ong to another account",
 			ArgsUsage:   " ",
-			Description: "Transfer ont to another account. If from address doesnot specific, using default account",
+			Description: "Transfer ont or ong to another account. If from address does not specified, using default account",
 			Flags: []cli.Flag{
 				utils.TransactionGasPrice,
 				utils.TransactionGasLimit,
@@ -53,7 +53,7 @@ var AssetCommand = cli.Command{
 			Action:    getBalance,
 			Name:      "balance",
 			Usage:     "Show balance of ont and ong of specified account",
-			ArgsUsage: "[address]",
+			ArgsUsage: "<address|label|index>",
 			Flags: []cli.Flag{
 				utils.WalletFileFlag,
 			},
@@ -62,8 +62,8 @@ var AssetCommand = cli.Command{
 			Action:      queryTransferStatus,
 			Name:        "status",
 			Usage:       "Display asset status",
-			ArgsUsage:   "[address]",
-			Description: `Display asset transfer status of [address] or the default account if not specified.`,
+			ArgsUsage:   "<txhash>",
+			Description: `Display asset transfer status of transfer transaction.`,
 			Flags:       []cli.Flag{},
 		},
 	},
