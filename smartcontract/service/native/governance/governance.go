@@ -1162,8 +1162,8 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 
 				newPos := voteInfo.NewPos
 				freezePos := voteInfo.FreezePos
-				voteInfo.NewPos = freezePos
-				voteInfo.FreezePos = newPos
+				voteInfo.NewPos = 0
+				voteInfo.FreezePos = newPos + freezePos
 				withdrawPos := voteInfo.WithdrawPos
 				withdrawFreezePos := voteInfo.WithdrawFreezePos
 				voteInfo.WithdrawFreezePos = withdrawPos
@@ -1252,29 +1252,6 @@ func VoteCommitDpos(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getView, get view error!")
 	}
 
-	//get voteCommitInfo
-	voteCommitInfo := new(VoteCommitInfo)
-	voteCommitInfoBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_COMMIT_INFO), address[:]))
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "native.CloneCache.Get, get voteCommitInfoBytes error!")
-	}
-	if voteCommitInfoBytes != nil {
-		voteCommitInfoStore, _ := voteCommitInfoBytes.(*cstates.StorageItem)
-		if err := voteCommitInfo.Deserialize(bytes.NewBuffer(voteCommitInfoStore.Value)); err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteCommitInfoPool error!")
-		}
-	}
-	pos := int64(voteCommitInfo.Pos) + params.Pos
-	if pos < 0 {
-		return utils.BYTE_FALSE, errors.NewErr("voteCommitDpos, remain pos is negative!")
-	}
-	voteCommitInfo.Pos = uint64(pos)
-	bf := new(bytes.Buffer)
-	if err := voteCommitInfo.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize voteCommitInfoPool error!")
-	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_COMMIT_INFO), address[:]), &cstates.StorageItem{Value: bf.Bytes()})
-
 	//get total pos for commit
 	posCommitBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(POS_FOR_COMMIT)))
 	posCommit := new(big.Int)
@@ -1283,8 +1260,6 @@ func VoteCommitDpos(native *native.NativeService) ([]byte, error) {
 		posCommit = new(big.Int).SetBytes(posCommitStore.Value)
 	}
 	newPosCommit := uint64(posCommit.Int64() + params.Pos)
-
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(POS_FOR_COMMIT)), &cstates.StorageItem{Value: new(big.Int).SetUint64(newPosCommit).Bytes()})
 
 	if newPosCommit >= POS_COMMIT_TRIGGER {
 		governanceView := &GovernanceView{
@@ -1315,19 +1290,45 @@ func VoteCommitDpos(native *native.NativeService) ([]byte, error) {
 		if err != nil {
 			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "commitDpos, commitDpos error!")
 		}
-	}
-
-	//ont transfer
-	if params.Pos > 0 {
-		err = AppCallTransferOnt(native, address, genesis.GovernanceContractAddress, uint64(params.Pos))
-		if err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
+	} else {
+		//get voteCommitInfo
+		voteCommitInfo := &VoteCommitInfo{
+			Address: address,
 		}
-	}
-	if params.Pos < 0 {
-		err = AppCallTransferOnt(native, genesis.GovernanceContractAddress, address, uint64(-params.Pos))
+		voteCommitInfoBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_COMMIT_INFO), address[:]))
 		if err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "native.CloneCache.Get, get voteCommitInfoBytes error!")
+		}
+		if voteCommitInfoBytes != nil {
+			voteCommitInfoStore, _ := voteCommitInfoBytes.(*cstates.StorageItem)
+			if err := voteCommitInfo.Deserialize(bytes.NewBuffer(voteCommitInfoStore.Value)); err != nil {
+				return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteCommitInfoPool error!")
+			}
+		}
+		pos := int64(voteCommitInfo.Pos) + params.Pos
+		if pos < 0 {
+			return utils.BYTE_FALSE, errors.NewErr("voteCommitDpos, remain pos is negative!")
+		}
+		voteCommitInfo.Pos = uint64(pos)
+		bf := new(bytes.Buffer)
+		if err := voteCommitInfo.Serialize(bf); err != nil {
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize voteCommitInfoPool error!")
+		}
+		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_COMMIT_INFO), address[:]), &cstates.StorageItem{Value: bf.Bytes()})
+		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(POS_FOR_COMMIT)), &cstates.StorageItem{Value: new(big.Int).SetUint64(newPosCommit).Bytes()})
+
+		//ont transfer
+		if params.Pos > 0 {
+			err = AppCallTransferOnt(native, address, genesis.GovernanceContractAddress, uint64(params.Pos))
+			if err != nil {
+				return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
+			}
+		}
+		if params.Pos < 0 {
+			err = AppCallTransferOnt(native, genesis.GovernanceContractAddress, address, uint64(-params.Pos))
+			if err != nil {
+				return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
+			}
 		}
 	}
 
