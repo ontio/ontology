@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store"
@@ -31,11 +32,10 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	neovm "github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/storage"
 	stypes "github.com/ontio/ontology/smartcontract/types"
-	"github.com/ontio/ontology/core/genesis"
-	neovm "github.com/ontio/ontology/smartcontract/service/neovm"
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
 )
 
 //HandleDeployTransaction deal with smart contract deploy transaction
@@ -73,7 +73,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 
 	// check payer ong balance
 	balance, err := store.GetBalance(cache, tx.Payer, genesis.OngContractAddress)
-	if balance < tx.GasLimit * tx.GasPrice {
+	if balance < tx.GasLimit*tx.GasPrice {
 		return fmt.Errorf("%v", "Payer Gas Insufficient")
 	}
 	// init smart contract configuration info
@@ -108,8 +108,8 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	var state []*ont.State
 	if err := store.Transfer(cache, genesis.OngContractAddress, &ont.Transfers{
 		States: append(state, &ont.State{
-			From: tx.Payer,
-			To: genesis.GovernanceContractAddress,
+			From:  tx.Payer,
+			To:    genesis.GovernanceContractAddress,
 			Value: (tx.GasLimit - sc.Gas) * tx.GasPrice})}); err != nil {
 		return err
 	}

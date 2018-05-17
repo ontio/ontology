@@ -19,17 +19,18 @@
 package ledgerstore
 
 import (
+	"bytes"
 	"fmt"
+	"math/big"
 	"sort"
 	"strings"
 	"sync"
-	"bytes"
-	"math/big"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/states"
@@ -41,11 +42,10 @@ import (
 	"github.com/ontio/ontology/smartcontract"
 	scommon "github.com/ontio/ontology/smartcontract/common"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	sstates "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vmtype "github.com/ontio/ontology/smartcontract/types"
-	"github.com/ontio/ontology/common/serialization"
-	sstates "github.com/ontio/ontology/smartcontract/states"
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
 )
 
 const (
@@ -807,7 +807,8 @@ func (this *LedgerStoreImp) InvokeNative(cache *storage.CloneCache, code []byte)
 		CloneCache: storage.NewCloneCache(this.stateStore.NewStateBatch()),
 		Code:       vmtype.VmCode{Code: code, VmType: vmtype.Native},
 	}
-	result, err := sc.Execute(); if err != nil {
+	result, err := sc.Execute()
+	if err != nil {
 		return nil, err
 	}
 	return result.([]byte), nil
@@ -820,14 +821,15 @@ func (this *LedgerStoreImp) GetBalance(cache *storage.CloneCache, address, contr
 	}
 	balanceOf := &sstates.Contract{
 		Address: contract,
-		Method: "balanceOf",
-		Args: bf.Bytes(),
+		Method:  "balanceOf",
+		Args:    bf.Bytes(),
 	}
 	bo := new(bytes.Buffer)
 	if err := balanceOf.Serialize(bo); err != nil {
 		return 0, err
 	}
-	bl, err := this.InvokeNative(cache, bo.Bytes()); if err != nil {
+	bl, err := this.InvokeNative(cache, bo.Bytes())
+	if err != nil {
 		return 0, err
 	}
 	return uint64(new(big.Int).SetBytes(bl).Int64()), nil
@@ -840,14 +842,15 @@ func (this *LedgerStoreImp) Transfer(cache *storage.CloneCache, contract common.
 	}
 	trans := &sstates.Contract{
 		Address: contract,
-		Method: "transfer",
-		Args: tr.Bytes(),
+		Method:  "transfer",
+		Args:    tr.Bytes(),
 	}
-	ts :=  new(bytes.Buffer)
+	ts := new(bytes.Buffer)
 	if err := trans.Serialize(ts); err != nil {
 		return err
 	}
-	_, err := this.InvokeNative(cache, ts.Bytes()); if err != nil {
+	_, err := this.InvokeNative(cache, ts.Bytes())
+	if err != nil {
 		return err
 	}
 	return nil

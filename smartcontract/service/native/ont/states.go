@@ -28,7 +28,7 @@ import (
 
 // Transfers
 type Transfers struct {
-	States  []*State
+	States []*State
 }
 
 func (this *Transfers) Serialize(w io.Writer) error {
@@ -59,9 +59,9 @@ func (this *Transfers) Deserialize(r io.Reader) error {
 }
 
 type State struct {
-	From    common.Address
-	To      common.Address
-	Value   uint64
+	From  common.Address
+	To    common.Address
+	Value uint64
 }
 
 func (this *State) Serialize(w io.Writer) error {
@@ -96,10 +96,10 @@ func (this *State) Deserialize(r io.Reader) error {
 }
 
 type TransferFrom struct {
-	Sender  common.Address
-	From    common.Address
-	To      common.Address
-	Value   uint64
+	Sender common.Address
+	From   common.Address
+	To     common.Address
+	Value  uint64
 }
 
 func (this *TransferFrom) Serialize(w io.Writer) error {
