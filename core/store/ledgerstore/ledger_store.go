@@ -776,7 +776,6 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface
 		Store:      this,
 		CloneCache: storage.NewCloneCache(this.stateStore.NewStateBatch()),
 		Code:       invoke.Code,
-		TestMode:   true,
 		Gas:        math.MaxUint64,
 	}
 

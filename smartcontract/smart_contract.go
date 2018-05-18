@@ -55,7 +55,6 @@ type SmartContract struct {
 	Code          stypes.VmCode
 	Notifications []*event.NotifyEventInfo // all execute smart contract event notify info
 	Gas           uint64
-	TestMode      bool
 }
 
 // Config describe smart contract need parameters configuration
@@ -111,10 +110,8 @@ func (this *SmartContract) PushNotifications(notifications []*event.NotifyEventI
 }
 
 func (this *SmartContract) CheckUseGas(gas uint64) bool {
-	if this.TestMode {
-		if this.Gas < gas {
-			return false
-		}
+	if this.Gas < gas {
+		return false
 	}
 	this.Gas -= gas
 	return true
