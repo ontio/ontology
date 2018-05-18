@@ -19,68 +19,84 @@
 package auth
 
 import (
-	"github.com/ontio/ontology/core/states"
-	"github.com/ontio/ontology/core/store/common"
+	"bytes"
+	"fmt"
+
+	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native"
 )
 
 var (
 	RoleF        = []byte{0x01}
 	RoleP        = []byte{0x02}
-	FuncPerson   = []byte{0x03}
 	DelegateList = []byte{0x04}
 	Admin        = []byte{0x05}
 )
 
-//this.contractAddr.Admin
+//type(this.contractAddr.Admin) = []byte
 func GetContractAdminKey(native *native.NativeService, contractAddr []byte) ([]byte, error) {
 	this := native.ContextRef.CurrentContext().ContractAddress
-	adminKey, err := PackKeys(this[:], [][]byte{contractAddr, Admin})
+	adminKey, err := packKeys(this[:], [][]byte{contractAddr, Admin})
 
 	return adminKey, err
 }
 
-//this.contractAddr.RoleF.role
+//type(this.contractAddr.RoleF.role) = roleFuncs
 func GetRoleFKey(native *native.NativeService, contractAddr, role []byte) ([]byte, error) {
 	this := native.ContextRef.CurrentContext().ContractAddress
-	roleFKey, err := PackKeys(this[:], [][]byte{contractAddr, RoleF, role})
+	roleFKey, err := packKeys(this[:], [][]byte{contractAddr, RoleF, role})
 
 	return roleFKey, err
 }
 
-//this.contractAddr.RoleP.role
-func GetRolePKey(native *native.NativeService, contractAddr, role []byte) ([]byte, error) {
+//type(this.contractAddr.RoleP.ontID) = roleTokens
+func GetRolePKey(native *native.NativeService, contractAddr, ontID []byte) ([]byte, error) {
 	this := native.ContextRef.CurrentContext().ContractAddress
-	rolePKey, err := PackKeys(this[:], [][]byte{contractAddr, RoleP, role})
+	rolePKey, err := packKeys(this[:], [][]byte{contractAddr, RoleP, ontID})
 
 	return rolePKey, err
 }
 
-//this.contractAddr.FuncOntID.func.ontID
-func GetFuncOntIDKey(native *native.NativeService, contractAddr, fn, ontID []byte) ([]byte, error) {
-	this := native.ContextRef.CurrentContext().ContractAddress
-	funcOntIDKey, err := PackKeys(this[:], [][]byte{contractAddr, FuncPerson, fn, ontID})
-
-	return funcOntIDKey, err
-}
-
-//this.contractAddr.DelegateList.role.ontID
+//type(this.contractAddr.DelegateList.role.ontID)
 func GetDelegateListKey(native *native.NativeService, contractAddr, role, ontID []byte) ([]byte, error) {
 	this := native.ContextRef.CurrentContext().ContractAddress
-	delegateListKey, err := PackKeys(this[:], [][]byte{contractAddr, DelegateList, role, ontID})
+	delegateListKey, err := packKeys(this[:], [][]byte{contractAddr, DelegateList, role, ontID})
 
 	return delegateListKey, err
 }
 
-func PutBytes(native *native.NativeService, key []byte, value []byte) {
-	native.CloneCache.Add(common.ST_STORAGE, key, &states.StorageItem{Value: value})
+//remote duplicates in the slice of string
+func stringSliceUniq(s []string) []string {
+	smap := make(map[string]int)
+	for i, str := range s {
+		if str == "" {
+			continue
+		}
+		smap[str] = i
+	}
+	ret := make([]string, len(smap))
+	i := 0
+	for str, _ := range smap {
+		ret[i] = str
+		i++
+	}
+	return ret
 }
 
-func writeAuthToken(native *native.NativeService, contractAddr, fn, ontID, auth []byte) error {
-	key, err := GetFuncOntIDKey(native, contractAddr, fn, ontID)
-	if err != nil {
-		return err
+func packKeys(field []byte, items [][]byte) ([]byte, error) {
+	w := new(bytes.Buffer)
+	for _, item := range items {
+		err := serialization.WriteVarBytes(w, item)
+		if err != nil {
+			return nil, fmt.Errorf("packKeys failed when serialize %x", item)
+		}
 	}
-	PutBytes(native, key, auth)
-	return nil
+	key := append(field, w.Bytes()...)
+	return key, nil
+}
+
+//pack data to be used as a key in the kv storage
+// key := field || ser_data
+func packKey(field []byte, data []byte) ([]byte, error) {
+	return packKeys(field, [][]byte{data})
 }

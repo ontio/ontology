@@ -19,11 +19,11 @@
 package auth
 
 import (
-	"bytes"
 	"fmt"
-	"github.com/ontio/ontology/common/serialization"
 	"io"
 	"math"
+
+	"github.com/ontio/ontology/common/serialization"
 )
 
 /* **********************************************   */
@@ -358,17 +358,56 @@ func (this *VerifyTokenParam) Deserialize(rd io.Reader) error {
 	return nil
 }
 
+/*
+ * each role is assigned an array of funcNames
+ */
+type roleFuncs struct {
+	funcNames []string
+}
+
+func (this *roleFuncs) Serialize(w io.Writer) error {
+	if err := serialization.WriteUint32(w, uint32(len(this.funcNames))); err != nil {
+		return err
+	}
+	for _, fn := range this.funcNames {
+		if err := serialization.WriteString(w, fn); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (this *roleFuncs) Deserialize(rd io.Reader) error {
+	var err error
+
+	fnLen, err := serialization.ReadUint32(rd)
+	if err != nil {
+		return err
+	}
+	this.funcNames = make([]string, fnLen)
+	for i := uint32(0); i < fnLen; i++ {
+		this.funcNames[i], err = serialization.ReadString(rd)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 type AuthToken struct {
+	role       []byte
 	expireTime uint32
-	level      uint
+	level      uint8
 }
 
 func (this *AuthToken) Serialize(w io.Writer) error {
-	//bf := new(bytes.Buffer)
-	if err := serialization.WriteVarUint(w, uint64(this.expireTime)); err != nil {
+	if err := serialization.WriteVarBytes(w, this.role); err != nil {
 		return err
 	}
-	if err := serialization.WriteVarUint(w, uint64(this.level)); err != nil {
+	if err := serialization.WriteUint32(w, this.expireTime); err != nil {
+		return err
+	}
+	if err := serialization.WriteUint8(w, this.level); err != nil {
 		return err
 	}
 	return nil
@@ -376,29 +415,49 @@ func (this *AuthToken) Serialize(w io.Writer) error {
 
 func (this *AuthToken) Deserialize(rd io.Reader) error {
 	//rd := bytes.NewReader(data)
-	expireTime, err := serialization.ReadVarUint(rd, 0)
+	var err error
+	this.role, err = serialization.ReadVarBytes(rd)
 	if err != nil {
 		return err
 	}
-	level, err := serialization.ReadVarUint(rd, 0)
+	this.expireTime, err = serialization.ReadUint32(rd)
 	if err != nil {
 		return err
 	}
-	this.expireTime = uint32(expireTime)
-	this.level = uint(level)
+	this.level, err = serialization.ReadUint8(rd)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
-func (this *AuthToken) serialize() ([]byte, error) {
-	bf := new(bytes.Buffer)
-	err := this.Serialize(bf)
-	if err != nil {
-		return nil, err
-	}
-	return bf.Bytes(), nil
+type roleTokens struct {
+	tokens []*AuthToken
 }
 
-func (this *AuthToken) deserialize(data []byte) error {
-	rd := bytes.NewReader(data)
-	return this.Deserialize(rd)
+func (this *roleTokens) Serialize(w io.Writer) error {
+	if err := serialization.WriteUint32(w, uint32(len(this.tokens))); err != nil {
+		return err
+	}
+	for _, token := range this.tokens {
+		if err := token.Serialize(w); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (this *roleTokens) Deserialize(rd io.Reader) error {
+	tLen, err := serialization.ReadUint32(rd)
+	if err != nil {
+		return err
+	}
+	this.tokens = make([]*AuthToken, tLen)
+	for i := uint32(0); i < tLen; i++ {
+		err = this.tokens[i].Deserialize(rd)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

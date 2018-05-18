@@ -210,8 +210,31 @@ func TestSerialization_VerifyToken(t *testing.T) {
 	}
 }
 
+func TestSerialization_roleFuncs(t *testing.T) {
+	param := &roleFuncs{
+		[]string{},
+	}
+	bf := new(bytes.Buffer)
+	if err := param.Serialize(bf); err != nil {
+		t.Fatal(err)
+	}
+	rd := bytes.NewReader(bf.Bytes())
+	param2 := new(roleFuncs)
+	if err := param2.Deserialize(rd); err != nil {
+		t.Fatal(err)
+	}
+	if len(param.funcNames) != len(param2.funcNames) {
+		t.Fatalf("does not match")
+	}
+	for i := 0; i < len(param.funcNames); i++ {
+		if param.funcNames[i] != param2.funcNames[i] {
+			t.Fatalf("%s \t %s does not match", param.funcNames[i], param2.funcNames[i])
+		}
+	}
+}
 func TestSerialization_AuthToken(t *testing.T) {
 	param := &AuthToken{
+		role:       []byte("role"),
 		expireTime: 1000000,
 		level:      2,
 	}
@@ -225,7 +248,28 @@ func TestSerialization_AuthToken(t *testing.T) {
 		t.Fatal(err)
 	}
 	if param.expireTime != param2.expireTime ||
-		param.level != param2.level {
+		param.level != param2.level ||
+		bytes.Compare(param.role, param2.role) != 0 {
 		t.Fatalf("failed")
+	}
+}
+
+func TestSerialization_roleAuthTokens(t *testing.T) {
+	token1 := &AuthToken{
+		role:       []byte("role"),
+		expireTime: 1000000,
+		level:      2,
+	}
+	token2 := &AuthToken{
+		expireTime: 10000,
+		level:      2,
+		role:       []byte("role2"),
+	}
+	tokens := &roleTokens{
+		tokens: []*AuthToken{token1, token2},
+	}
+	bf := new(bytes.Buffer)
+	if err := tokens.Serialize(bf); err != nil {
+
 	}
 }
