@@ -39,6 +39,8 @@ import (
 	sstates "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 	stypes "github.com/ontio/ontology/smartcontract/types"
+	vmtype "github.com/ontio/ontology/smartcontract/types"
+	"math"
 )
 
 //HandleDeployTransaction deal with smart contract deploy transaction
@@ -95,15 +97,21 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 
 	//start the smart contract executive function
 	_, err = sc.Execute()
-	var state []*ont.State
-	transfers := &ont.Transfers{
-		States: append(state, &ont.State{
-			From:  tx.Payer,
-			To:    genesis.GovernanceContractAddress,
-			Value: (tx.GasLimit - sc.Gas) * tx.GasPrice})}
+
+	totalGas := (tx.GasLimit - sc.Gas) * tx.GasPrice
+	transcode := genNativeTransferCode(genesis.OngContractAddress, tx.Payer,
+		genesis.GovernanceContractAddress, totalGas)
+	transContract := smartcontract.SmartContract{
+		Config:     config,
+		CloneCache: cache,
+		Store:      store,
+		Code:       transcode,
+		Gas:        math.MaxUint64,
+	}
 	if err != nil {
 		cache = storage.NewCloneCache(stateBatch)
-		if err := Transfer(store, cache, genesis.OngContractAddress, transfers); err != nil {
+		transContract.CloneCache = cache
+		if _, err := transContract.Execute(); err != nil {
 			return err
 		}
 		cache.Commit()
@@ -113,7 +121,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 		}
 		return err
 	}
-	if err := Transfer(store, cache, genesis.OngContractAddress, transfers); err != nil {
+	if _, err := transContract.Execute(); err != nil {
 		return err
 	}
 	if err := saveNotify(eventStore, txHash, &event.ExecuteNotify{TxHash: txHash,
@@ -151,25 +159,19 @@ func (self *StateStore) HandleVoteTransaction(stateBatch *statestore.StateBatch,
 	return nil
 }
 
-func Transfer(store store.LedgerStore, cache *storage.CloneCache, contract common.Address, transfer *ont.Transfers) error {
+func genNativeTransferCode(contract, from, to common.Address, value uint64) vmtype.VmCode {
+	transfer := ont.Transfers{States: []*ont.State{{From: from, To: to, Value: value}}}
 	tr := new(bytes.Buffer)
-	if err := transfer.Serialize(tr); err != nil {
-		return err
-	}
+	transfer.Serialize(tr)
 	trans := &sstates.Contract{
 		Address: contract,
 		Method:  "transfer",
 		Args:    tr.Bytes(),
 	}
 	ts := new(bytes.Buffer)
-	if err := trans.Serialize(ts); err != nil {
-		return err
-	}
-	_, err := store.InvokeNative(cache, ts.Bytes())
-	if err != nil {
-		return err
-	}
-	return nil
+	trans.Serialize(ts)
+	return vmtype.VmCode{Code: ts.Bytes(), VmType: vmtype.Native}
+
 }
 
 func GetBalance(stateBatch *statestore.StateBatch, address, contract common.Address) (uint64, error) {
