@@ -24,7 +24,6 @@ import (
 	"net"
 	"sync"
 
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/dht/types"
@@ -47,13 +46,15 @@ type DHT struct {
 	seeds         []*types.Node
 }
 
-func NewDHT() *DHT {
+func NewDHT(nodeID types.NodeID, seeds []*types.Node) *DHT {
 	// Todo:
-	_, pub, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
-	nodeID, _ := types.PubkeyID(pub)
 	dht := &DHT{
 		nodeID:       nodeID,
 		routingTable: &routingTable{},
+		seeds:        make([]*types.Node, 0, len(seeds)),
+	}
+	for _, seed := range seeds {
+		dht.seeds = append(dht.seeds, seed)
 	}
 	dht.init()
 	return dht
@@ -65,8 +66,6 @@ func (this *DHT) init() {
 	this.pingNodeQueue = types.NewPingNodeQueue(this.onPingTimeOut)
 	this.findNodeQueue = types.NewFindNodeQueue(this.onFindNodeTimeOut)
 	this.routingTable.init(this.nodeID)
-	this.seeds = make([]*types.Node, 0)
-
 }
 
 func (this *DHT) Start() {
@@ -85,50 +84,9 @@ func (this *DHT) Stop() {
 
 func (this *DHT) Bootstrap() {
 	// Todo:
-	_, pub1, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
-	nodeID1, _ := types.PubkeyID(pub1)
-
-	seed1 := &types.Node{
-		ID:      nodeID1,
-		IP:      "127.0.0.1",
-		UDPPort: 20010,
-		TCPPort: 20011,
+	for _, seed := range this.seeds {
+		this.AddNode(seed)
 	}
-	this.seeds = append(this.seeds, seed1)
-	this.AddNode(seed1)
-
-	_, pub2, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
-	nodeID2, _ := types.PubkeyID(pub2)
-	seed2 := &types.Node{
-		ID:      nodeID2,
-		IP:      "127.0.0.1",
-		UDPPort: 30010,
-		TCPPort: 30011,
-	}
-	this.seeds = append(this.seeds, seed2)
-	this.AddNode(seed2)
-
-	_, pub3, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
-	nodeID3, _ := types.PubkeyID(pub3)
-	seed3 := &types.Node{
-		ID:      nodeID3,
-		IP:      "127.0.0.1",
-		UDPPort: 40010,
-		TCPPort: 40011,
-	}
-	this.seeds = append(this.seeds, seed3)
-	this.AddNode(seed3)
-
-	_, pub4, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
-	nodeID4, _ := types.PubkeyID(pub4)
-	seed4 := &types.Node{
-		ID:      nodeID4,
-		IP:      "127.0.0.1",
-		UDPPort: 50010,
-		TCPPort: 50011,
-	}
-	this.seeds = append(this.seeds, seed4)
-	this.AddNode(seed4)
 
 	this.lookup(this.nodeID)
 }
@@ -233,7 +191,7 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 }
 
 func (this *DHT) FindNode(remotePeer *types.Node, targetID types.NodeID) error {
-	addr, err := getNodeUdpAddr(remotePeer)
+	addr, err := getNodeUDPAddr(remotePeer)
 	if err != nil {
 		return err
 	}
@@ -272,7 +230,7 @@ func (this *DHT) AddNode(remotePeer *types.Node) {
 			this.routingTable.AddNode(remoteNode)
 		} else {
 			lastNode := this.routingTable.GetLastNodeInBucket(bucketIndex)
-			addr, err := getNodeUdpAddr(lastNode)
+			addr, err := getNodeUDPAddr(lastNode)
 			if err != nil {
 				this.routingTable.RemoveNode(lastNode.ID)
 				this.routingTable.AddNode(remoteNode)
@@ -443,7 +401,7 @@ func (this *DHT) send(addr *net.UDPAddr, msg []byte) error {
 	return nil
 }
 
-func getNodeUdpAddr(node *types.Node) (*net.UDPAddr, error) {
+func getNodeUDPAddr(node *types.Node) (*net.UDPAddr, error) {
 	addr := new(net.UDPAddr)
 	addr.IP = net.ParseIP(node.IP).To16()
 	if addr.IP == nil {
