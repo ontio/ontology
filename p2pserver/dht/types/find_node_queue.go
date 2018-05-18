@@ -18,42 +18,43 @@ func NewFindNodeQueue(onTimeOutEvent func(requestNodeId NodeID)) *FindNodeQueue 
 	queue.resultChan = make(chan []*Node)
 	queue.timeoutListener = make(chan NodeID)
 	queue.onTimeOutEvent = onTimeOutEvent
+	queue.requestNodeQueue = make(map[NodeID]*Node, 0)
 	// TODO should be invoked in dht.loop
 	go queue.start()
 	return queue
 }
 
-func (nodeQueue *FindNodeQueue) start() {
+func (this *FindNodeQueue) start() {
 	for {
 		select {
-		case requestNodeId := <-nodeQueue.timeoutListener:
-			nodeQueue.onTimeOutEvent(requestNodeId)
+		case requestNodeId := <-this.timeoutListener:
+			this.onTimeOutEvent(requestNodeId)
 		}
 	}
 }
 
-func (nodeQueue *FindNodeQueue) GetResultCh() <-chan []*Node {
-	return nodeQueue.resultChan
+func (this *FindNodeQueue) GetResultCh() <-chan []*Node {
+	return this.resultChan
 }
 
-func (nodeQueue *FindNodeQueue) SetResult(results []*Node, resultsFromNode NodeID) {
-	nodeQueue.lock.Lock()
-	defer nodeQueue.lock.Unlock()
+func (this *FindNodeQueue) SetResult(results []*Node, resultsFromNode NodeID) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
 
-	if _, ok := nodeQueue.requestNodeQueue[resultsFromNode]; ok {
-		delete(nodeQueue.requestNodeQueue, resultsFromNode)
-		nodeQueue.resultChan <- results
+	if _, ok := this.requestNodeQueue[resultsFromNode]; ok {
+		delete(this.requestNodeQueue, resultsFromNode)
+		this.resultChan <- results
 	}
 }
 
-func (nodeQueue *FindNodeQueue) Timer(requestNodeId NodeID) {
+func (this *FindNodeQueue) Timer(requestNodeId NodeID) {
 	<-time.After(FIND_NODE_TIMEOUT)
-	nodeQueue.timeoutListener <- requestNodeId
+	this.timeoutListener <- requestNodeId
 }
 
-func (nodeQueue *FindNodeQueue) AddRequestNode(requestNode *Node) {
-	nodeQueue.lock.Lock()
-	defer nodeQueue.lock.Unlock()
+func (this *FindNodeQueue) AddRequestNode(requestNode *Node) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
 
-	nodeQueue.requestNodeQueue[requestNode.ID] = requestNode
+	this.requestNodeQueue[requestNode.ID] = requestNode
 }

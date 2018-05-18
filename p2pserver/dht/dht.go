@@ -24,6 +24,7 @@ import (
 	"net"
 	"sync"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/dht/types"
@@ -43,10 +44,17 @@ type DHT struct {
 	findNodeQueue *types.FindNodeQueue
 	recvCh        chan *types.DHTMessage
 	stopCh        chan struct{}
+	seeds         []*types.Node
 }
 
 func NewDHT() *DHT {
-	dht := &DHT{}
+	// Todo:
+	_, pub, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
+	nodeID, _ := types.PubkeyID(pub)
+	dht := &DHT{
+		nodeID:       nodeID,
+		routingTable: &routingTable{},
+	}
 	dht.init()
 	return dht
 }
@@ -57,23 +65,72 @@ func (this *DHT) init() {
 	this.pingNodeQueue = types.NewPingNodeQueue(this.onPingTimeOut)
 	this.findNodeQueue = types.NewFindNodeQueue(this.onFindNodeTimeOut)
 	this.routingTable.init(this.nodeID)
+	this.seeds = make([]*types.Node, 0)
+
 }
 
 func (this *DHT) Start() {
-	//// generate seed peer node
-	//seedNode := new(types.Node)
-	//// add peer node to routing table
-	//this.AddNode(seedNode)
-	//// lookup self
-	//results := this.lookup(this.nodeID)
-	//// add results to routing table
-	//for _, node := range results{
-	//	this.AddNode(node)
-	//}
+	go this.Loop()
+
+	err := this.ListenUDP("127.0.0.1:20334")
+	if err != nil {
+		log.Errorf("listen udp failed.")
+	}
+	this.Bootstrap()
 }
 
 func (this *DHT) Stop() {
 
+}
+
+func (this *DHT) Bootstrap() {
+	// Todo:
+	_, pub1, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
+	nodeID1, _ := types.PubkeyID(pub1)
+
+	seed1 := &types.Node{
+		ID:      nodeID1,
+		IP:      "127.0.0.1",
+		UDPPort: 20010,
+		TCPPort: 20011,
+	}
+	this.seeds = append(this.seeds, seed1)
+	this.AddNode(seed1)
+
+	_, pub2, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
+	nodeID2, _ := types.PubkeyID(pub2)
+	seed2 := &types.Node{
+		ID:      nodeID2,
+		IP:      "127.0.0.1",
+		UDPPort: 30010,
+		TCPPort: 30011,
+	}
+	this.seeds = append(this.seeds, seed2)
+	this.AddNode(seed2)
+
+	_, pub3, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
+	nodeID3, _ := types.PubkeyID(pub3)
+	seed3 := &types.Node{
+		ID:      nodeID3,
+		IP:      "127.0.0.1",
+		UDPPort: 40010,
+		TCPPort: 40011,
+	}
+	this.seeds = append(this.seeds, seed3)
+	this.AddNode(seed3)
+
+	_, pub4, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
+	nodeID4, _ := types.PubkeyID(pub4)
+	seed4 := &types.Node{
+		ID:      nodeID4,
+		IP:      "127.0.0.1",
+		UDPPort: 50010,
+		TCPPort: 50011,
+	}
+	this.seeds = append(this.seeds, seed4)
+	this.AddNode(seed4)
+
+	this.lookup(this.nodeID)
 }
 
 func (this *DHT) Loop() {
@@ -203,7 +260,7 @@ func (this *DHT) onFindNodeTimeOut(requestNodeId types.NodeID) {
 
 func (this *DHT) AddNode(remotePeer *types.Node) {
 	// find node in own bucket
-	bucketIndex, bucket := this.routingTable.locateBucket(remotePeer.ID)
+	bucketIndex, _ := this.routingTable.locateBucket(remotePeer.ID)
 	remoteNode, isInBucket := this.routingTable.isNodeInBucket(remotePeer.ID, bucketIndex)
 	// update peer info in local bucket
 	remoteNode = remotePeer
@@ -214,7 +271,7 @@ func (this *DHT) AddNode(remotePeer *types.Node) {
 		if bucketNodeNum < types.BUCKET_SIZE { // bucket is not full
 			this.routingTable.AddNode(remoteNode)
 		} else {
-			lastNode := bucket.entries[bucketNodeNum-1]
+			lastNode := this.routingTable.GetLastNodeInBucket(bucketIndex)
 			addr, err := getNodeUdpAddr(lastNode)
 			if err != nil {
 				this.routingTable.RemoveNode(lastNode.ID)

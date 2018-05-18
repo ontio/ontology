@@ -39,6 +39,12 @@ type routingTable struct {
 
 func (this *routingTable) init(id types.NodeID) {
 	this.buckets = make([]*bucket, types.BUCKET_NUM)
+	for i := range this.buckets {
+		this.buckets[i] = &bucket{
+			entries: make([]*types.Node, 0, types.BUCKET_SIZE),
+		}
+	}
+
 	this.id = id
 }
 
@@ -46,7 +52,10 @@ func (this *routingTable) locateBucket(id types.NodeID) (int, *bucket) {
 	id1 := sha256.Sum256(this.id[:])
 	id2 := sha256.Sum256(id[:])
 	dist := logdist(id1, id2)
-	return dist, this.buckets[dist-1]
+	if dist == 0 {
+		return 0, this.buckets[0]
+	}
+	return dist - 1, this.buckets[dist-1]
 }
 
 func (this *routingTable) queryNode(id types.NodeID) *types.Node {
@@ -80,6 +89,8 @@ func (this *routingTable) AddNode(node *types.Node) bool {
 		// bucket is full
 		return false
 	}
+
+	bucket.entries = append(bucket.entries, node)
 
 	copy(bucket.entries[1:], bucket.entries[:])
 	bucket.entries[0] = node

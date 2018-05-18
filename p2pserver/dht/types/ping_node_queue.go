@@ -10,7 +10,7 @@ type PingNodeQueue struct {
 	deleteNodeListener chan NodeID
 	requestNodeQueue   map[NodeID]*Node
 	pendingNodeQueue   map[NodeID]*Node // used to record the node corresponded to request node
-	onTimeOut func(id NodeID) // time out event should be handled by dht
+	onTimeOut          func(id NodeID)  // time out event should be handled by dht
 }
 
 func NewPingNodeQueue(onTimeOut func(id NodeID)) *PingNodeQueue {
@@ -24,48 +24,48 @@ func NewPingNodeQueue(onTimeOut func(id NodeID)) *PingNodeQueue {
 	return nodeQueue
 }
 
-func (nodeQueue *PingNodeQueue) start() {
+func (this *PingNodeQueue) start() {
 	for {
 		select {
 		// time out
-		case nodeId := <-nodeQueue.deleteNodeListener:
-			nodeQueue.onTimeOut(nodeId)
+		case nodeId := <-this.deleteNodeListener:
+			this.onTimeOut(nodeId)
 		}
 	}
 }
 
-func (nodeQueue *PingNodeQueue) AddNode(requestNode, pendingNode *Node, timeout time.Duration) {
-	nodeQueue.lock.Lock()
-	defer nodeQueue.lock.Unlock()
+func (this *PingNodeQueue) AddNode(requestNode, pendingNode *Node, timeout time.Duration) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
 
-	nodeQueue.requestNodeQueue[requestNode.ID] = requestNode
-	nodeQueue.pendingNodeQueue[requestNode.ID] = pendingNode
+	this.requestNodeQueue[requestNode.ID] = requestNode
+	this.pendingNodeQueue[requestNode.ID] = pendingNode
 	go func(queue *PingNodeQueue) {
 		<-time.After(timeout)
 		queue.deleteNodeListener <- requestNode.ID
-	}(nodeQueue)
+	}(this)
 }
 
-func (nodeQueue *PingNodeQueue) DeleteNode(node NodeID) {
-	nodeQueue.lock.Lock()
-	defer nodeQueue.lock.Unlock()
+func (this *PingNodeQueue) DeleteNode(node NodeID) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
 
-	delete(nodeQueue.requestNodeQueue, node)
-	delete(nodeQueue.pendingNodeQueue, node)
+	delete(this.requestNodeQueue, node)
+	delete(this.pendingNodeQueue, node)
 }
 
-func (nodeQueue *PingNodeQueue) GetRequestNode(node NodeID) (*Node, bool) {
-	nodeQueue.lock.RLock()
-	defer nodeQueue.lock.RUnlock()
+func (this *PingNodeQueue) GetRequestNode(node NodeID) (*Node, bool) {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
 
-	result, ok := nodeQueue.requestNodeQueue[node]
+	result, ok := this.requestNodeQueue[node]
 	return result, ok
 }
 
-func (nodeQueue *PingNodeQueue) GetPendingNode(node NodeID) (*Node, bool) {
-	nodeQueue.lock.RLock()
-	defer nodeQueue.lock.RUnlock()
+func (this *PingNodeQueue) GetPendingNode(node NodeID) (*Node, bool) {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
 
-	result, ok := nodeQueue.pendingNodeQueue[node]
+	result, ok := this.pendingNodeQueue[node]
 	return result, ok
 }

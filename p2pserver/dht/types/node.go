@@ -62,18 +62,18 @@ func StringID(in string) (NodeID, error) {
 }
 
 // PubkeyID returns a marshaled representation of the given public key.
-func PubkeyID(pub *keypair.PublicKey) (NodeID, error) {
-	keyData := keypair.SerializePublicKey(*pub)
+func PubkeyID(pub keypair.PublicKey) (NodeID, error) {
+	keyData := keypair.SerializePublicKey(pub)
 	var id NodeID
 	copy(id[:], keyData)
 	return id, nil
 }
 
-func (id NodeID) Pubkey() (*keypair.PublicKey, error) {
+func (id NodeID) Pubkey() (keypair.PublicKey, error) {
 	pk, err := keypair.DeserializePublicKey(id[:])
 	if err != nil {
 		return nil, fmt.Errorf("deserialize failed: %s", err)
 	}
 
-	return &pk, err
+	return pk, err
 }
