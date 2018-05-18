@@ -255,7 +255,7 @@ func initP2PNode(ctx *cli.Context, acc *account.Account, txpoolSvr *proc.TXPoolS
 		return nil, nil, nil
 	}
 	p2p := p2pserver.NewServer(acc)
-	
+
 	p2pActor := p2pactor.NewP2PActor(p2p)
 	p2pPID, err := p2pActor.Start()
 	if err != nil {
