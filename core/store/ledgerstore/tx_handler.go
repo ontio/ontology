@@ -20,8 +20,8 @@ package ledgerstore
 
 import (
 	"bytes"
-	"math"
 	"fmt"
+	"math"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"

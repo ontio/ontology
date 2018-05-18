@@ -91,7 +91,7 @@ func (this *Contract) Deserialize(r io.Reader) error {
 }
 
 type PreExecResult struct {
-	State byte
-	Gas uint64
+	State  byte
+	Gas    uint64
 	Result interface{}
 }

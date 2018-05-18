@@ -20,10 +20,10 @@ package ledgerstore
 
 import (
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 	"sync"
-	"math"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
@@ -40,9 +40,9 @@ import (
 	"github.com/ontio/ontology/smartcontract"
 	scommon "github.com/ontio/ontology/smartcontract/common"
 	"github.com/ontio/ontology/smartcontract/event"
+	sstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vmtype "github.com/ontio/ontology/smartcontract/types"
-	sstate "github.com/ontio/ontology/smartcontract/states"
 )
 
 const (
