@@ -1998,7 +1998,7 @@ func (self *Server) msgSendLoop() {
 }
 
 //creategovernaceTransaction invoke governance native contract commit_pos
-func (self *Server) creategovernaceTransaction() *types.Transaction {
+func (self *Server) creategovernaceTransaction(blkNum uint32) *types.Transaction {
 	init := states.Contract{
 		Address: genesis.GovernanceContractAddress,
 		Method:  gover.COMMIT_DPOS,
@@ -2010,6 +2010,7 @@ func (self *Server) creategovernaceTransaction() *types.Transaction {
 		Code:   bf.Bytes(),
 	}
 	tx := utils.NewInvokeTransaction(vmCode)
+	tx.Nonce = blkNum
 	return tx
 }
 
@@ -2066,7 +2067,7 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 		cfg = self.config
 		//add transaction invoke governance native commit_pos contract
 		if self.checkNeedUpdateChainConfig(self.currentBlockNum) {
-			sysTxs = append(sysTxs, self.creategovernaceTransaction())
+			sysTxs = append(sysTxs, self.creategovernaceTransaction(blkNum))
 		}
 	}
 	if self.nonConsensusNode() {
