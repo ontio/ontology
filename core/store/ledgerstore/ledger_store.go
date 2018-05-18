@@ -20,6 +20,7 @@ package ledgerstore
 
 import (
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 	"sync"
@@ -39,6 +40,7 @@ import (
 	"github.com/ontio/ontology/smartcontract"
 	scommon "github.com/ontio/ontology/smartcontract/common"
 	"github.com/ontio/ontology/smartcontract/event"
+	sstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vmtype "github.com/ontio/ontology/smartcontract/types"
 )
@@ -774,13 +776,15 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface
 		Store:      this,
 		CloneCache: storage.NewCloneCache(this.stateStore.NewStateBatch()),
 		Code:       invoke.Code,
-		TestMode:   true,
+		Gas:        math.MaxUint64,
 	}
+
+	gasCost := math.MaxUint64 - sc.Gas
 
 	//start the smart contract executive function
 	result, err := sc.Execute()
 	if err != nil {
-		return nil, err
+		return &sstate.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: gasCost, Result: nil}, err
 	}
 
 	prefix := invoke.Code.VmType
@@ -793,7 +797,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface
 	} else if prefix == vmtype.Native {
 		result = common.ToHexString(result.([]byte))
 	}
-	return result, nil
+	return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasCost, Result: result}, nil
 }
 
 //Close ledger store.
