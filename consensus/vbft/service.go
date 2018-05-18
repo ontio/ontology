@@ -705,7 +705,7 @@ func (self *Server) startNewRound() error {
 			}
 		}
 	}
-	if _, _, done := self.blockPool.commitDone(blkNum, self.config.C); done && len(commits) > 0 {
+	if _, _, done := self.blockPool.commitDone(blkNum, self.config.C, self.config.N); done && len(commits) > 0 {
 		// resend commit msg to msg-processor to restart commit-done processing
 		// Note: commitDone will set Done flag in block-pool, so removed Done flag checking
 		// in commit msg processing.
@@ -1255,7 +1255,7 @@ func (self *Server) processMsgEvent() error {
 				log.Infof("server %d received commit from %d, for proposer %d, block %d, empty: %t",
 					self.Index, pMsg.Committer, pMsg.BlockProposer, msgBlkNum, pMsg.CommitForEmpty)
 
-				if proposer, forEmpty, done := self.blockPool.commitDone(msgBlkNum, self.config.C); done {
+				if proposer, forEmpty, done := self.blockPool.commitDone(msgBlkNum, self.config.C, self.config.N); done {
 					self.blockPool.setCommitDone(msgBlkNum)
 					proposal := self.findBlockProposal(msgBlkNum, proposer, forEmpty)
 					if proposal == nil {
@@ -1703,7 +1703,7 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 			return nil
 		}
 		if !self.blockPool.isCommitHadDone(evt.blockNum) {
-			if proposer, forEmpty, done := self.blockPool.commitDone(evt.blockNum, self.config.C); done {
+			if proposer, forEmpty, done := self.blockPool.commitDone(evt.blockNum, self.config.C, self.config.N); done {
 				self.blockPool.setCommitDone(evt.blockNum)
 				proposal := self.findBlockProposal(evt.blockNum, proposer, forEmpty)
 				if proposal == nil {
