@@ -489,7 +489,7 @@ func (pool *BlockPool) newBlockCommitment(msg *blockCommitMsg) error {
 // Note: Attentions on lock contention.
 // Only shared-lock for this function, because this function will also acquires shared-lock on peer-pool.
 //
-func (pool *BlockPool) commitDone(blkNum uint32, C uint32) (uint32, bool, bool) {
+func (pool *BlockPool) commitDone(blkNum uint32, C uint32, N uint32) (uint32, bool, bool) {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 	candidate := pool.candidateBlocks[blkNum]
@@ -500,6 +500,9 @@ func (pool *BlockPool) commitDone(blkNum uint32, C uint32) (uint32, bool, bool) 
 	// check consensus with commit msgs
 	proposer, forEmpty := getCommitConsensus(candidate.CommitMsgs, int(C))
 
+	// enforce signature quorum if checking commit-consensus base on signature count
+	// if C <= (N-1)/3, N-1-C >= 2*C
+	C = N - 1 - C
 	if proposer == math.MaxUint32 {
 		// check consensus with endorse sigs
 		var emptyCnt uint32
@@ -519,9 +522,9 @@ func (pool *BlockPool) commitDone(blkNum uint32, C uint32) (uint32, bool, bool) 
 					emptyCnt++
 				} else {
 					endorseCnt[sig.EndorsedProposer] += 1
-					if endorseCnt[sig.EndorsedProposer] > C+1 {
+					if endorseCnt[sig.EndorsedProposer] > C {
 						proposer = sig.EndorsedProposer
-						forEmpty = emptyCnt > C+1
+						forEmpty = emptyCnt > C
 						break
 					}
 				}
