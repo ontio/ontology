@@ -70,11 +70,12 @@ func (this *routingTable) queryNode(id types.NodeID) *types.Node {
 	return nil
 }
 
-func (this *routingTable) AddNode(node *types.Node) bool {
+// add node to bucket, if bucket contains the node, move it to bucket head
+func (this *routingTable) AddNode(node *types.Node, bucketIndex int) bool {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 
-	_, bucket := this.locateBucket(node.ID)
+	bucket := this.buckets[bucketIndex]
 
 	for i, entry := range bucket.entries {
 		if entry.ID == node.ID {

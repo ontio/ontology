@@ -9,7 +9,8 @@ import (
 func (this *DHT) FindNodeHandler(from *net.UDPAddr, findNodeMsgData []byte) error {
 	findNodeMsg := new(mt.FindNode)
 	findNodeMsg.Deserialization(findNodeMsgData)
-	return this.ReturnNeighbors(from, findNodeMsg.P.TargetID)
+	this.updateFromNode(findNodeMsg.P.FromID)
+	return this.FindNodeReply(from, findNodeMsg.P.TargetID)
 }
 
 func (this *DHT) NeighborsHandler(from *net.UDPAddr, neighborsMsgData []byte) {
@@ -21,6 +22,7 @@ func (this *DHT) NeighborsHandler(from *net.UDPAddr, neighborsMsgData []byte) {
 		results = append(results, &neighbor)
 	}
 	this.findNodeQueue.SetResult(results, neighborsMsg.P.FromID)
+	this.updateFromNode(neighborsMsg.P.FromID)
 }
 
 func (this *DHT) PingHandler(fromAddr *net.UDPAddr, pingMsgData []byte) {
@@ -28,13 +30,7 @@ func (this *DHT) PingHandler(fromAddr *net.UDPAddr, pingMsgData []byte) {
 	pingMsg.Deserialization(pingMsgData)
 	// response
 	this.Pong(fromAddr)
-	// add this node to bucket
-	fromNodeId := pingMsg.P.FromID
-	fromNode := this.routingTable.queryNode(fromNodeId)
-	if fromNode != nil {
-		// add node to bucket
-		this.AddNode(fromNode)
-	}
+	this.updateFromNode(pingMsg.P.FromID)
 }
 
 func (this *DHT) PongHandler(fromAddr *net.UDPAddr, pongMsgData []byte) {
@@ -42,13 +38,23 @@ func (this *DHT) PongHandler(fromAddr *net.UDPAddr, pongMsgData []byte) {
 	pongMsg.Deserialization(pongMsgData)
 	fromNodeId := pongMsg.P.FromID
 	fromNode, ok := this.pingNodeQueue.GetRequestNode(fromNodeId)
+	bucketIndex, _ := this.routingTable.locateBucket(fromNodeId)
 	if !ok {
 		// ping node queue doesn't contain the node, ping timeout
 		this.routingTable.RemoveNode(fromNodeId)
 	} else {
 		// add to bucket header
-		this.routingTable.AddNode(fromNode)
+		this.routingTable.AddNode(fromNode, bucketIndex)
 		// remove node from ping node queue
 		this.pingNodeQueue.DeleteNode(fromNodeId)
+	}
+}
+
+// update the node to bucket when receive message from the node
+func (this *DHT) updateFromNode(fromNodeId types.NodeID) {
+	fromNode := this.routingTable.queryNode(fromNodeId)
+	if fromNode != nil {
+		// add node to bucket
+		this.AddNode(fromNode)
 	}
 }

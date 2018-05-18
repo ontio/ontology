@@ -24,6 +24,7 @@ import (
 	"net"
 	"sync"
 
+	"fmt"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/dht/types"
@@ -223,17 +224,17 @@ func (this *DHT) AddNode(remotePeer *types.Node) {
 	// update peer info in local bucket
 	remoteNode = remotePeer
 	if isInBucket {
-		this.routingTable.AddNode(remoteNode)
+		this.routingTable.AddNode(remoteNode, bucketIndex)
 	} else {
 		bucketNodeNum := this.routingTable.GetTotalNodeNumInBukcet(bucketIndex)
 		if bucketNodeNum < types.BUCKET_SIZE { // bucket is not full
-			this.routingTable.AddNode(remoteNode)
+			this.routingTable.AddNode(remoteNode, bucketIndex)
 		} else {
 			lastNode := this.routingTable.GetLastNodeInBucket(bucketIndex)
 			addr, err := getNodeUDPAddr(lastNode)
 			if err != nil {
 				this.routingTable.RemoveNode(lastNode.ID)
-				this.routingTable.AddNode(remoteNode)
+				this.routingTable.AddNode(remoteNode, bucketIndex)
 				return
 			}
 			this.pingNodeQueue.AddNode(lastNode, remoteNode, types.PING_TIMEOUT)
@@ -277,9 +278,10 @@ func (this *DHT) onPingTimeOut(nodeId types.NodeID) {
 	// remove the node from bucket
 	this.routingTable.RemoveNode(nodeId)
 	pendingNode, ok := this.pingNodeQueue.GetPendingNode(nodeId)
+	bucketIndex, _ := this.routingTable.locateBucket(nodeId)
 	if ok && pendingNode != nil {
 		// add pending node to bucket
-		this.routingTable.AddNode(pendingNode)
+		this.routingTable.AddNode(pendingNode, bucketIndex)
 	}
 	// clear ping node queue
 	this.pingNodeQueue.DeleteNode(nodeId)
@@ -317,7 +319,7 @@ func (this *DHT) Pong(addr *net.UDPAddr) error {
 }
 
 // response to find node
-func (this *DHT) ReturnNeighbors(addr *net.UDPAddr, targetId types.NodeID) error {
+func (this *DHT) FindNodeReply(addr *net.UDPAddr, targetId types.NodeID) error {
 	// query routing table
 	nodes := this.routingTable.GetClosestNodes(types.BUCKET_SIZE, targetId)
 	neighborsPayload := mt.NeighborsPayload{
@@ -410,4 +412,17 @@ func getNodeUDPAddr(node *types.Node) (*net.UDPAddr, error) {
 	}
 	addr.Port = int(node.UDPPort)
 	return addr, nil
+}
+
+func (this *DHT) DisplayRoutingTable() {
+	for bucketIndex, bucket := range this.routingTable.buckets {
+		if this.routingTable.GetTotalNodeNumInBukcet(bucketIndex) == 0 {
+			continue
+		}
+		fmt.Print("[", bucketIndex, "]: ")
+		for i := 0; i < this.routingTable.GetTotalNodeNumInBukcet(bucketIndex); i++ {
+			fmt.Print(bucket.entries[i].ID[:10], " ")
+		}
+		fmt.Println()
+	}
 }

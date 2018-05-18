@@ -2,10 +2,12 @@ package main
 
 import (
 	//"fmt"
+	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/dht"
 	"github.com/ontio/ontology/p2pserver/dht/types"
+	"time"
 )
 
 func main() {
@@ -55,6 +57,14 @@ func main() {
 	}
 	seeds = append(seeds, seed4)
 
-	dht := dht.NewDHT(nodeID, seeds)
-	dht.Start()
+	testDht := dht.NewDHT(nodeID, seeds)
+	testDht.Start()
+	timer := time.NewTicker(time.Second)
+	for {
+		select {
+		case <-timer.C:
+			fmt.Println("Now table is: ")
+			testDht.DisplayRoutingTable()
+		}
+	}
 }
