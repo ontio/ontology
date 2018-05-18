@@ -32,6 +32,8 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 )
 
+const MAX_SEARCH_HEIGHT uint32 = 100
+
 type BalanceOfRsp struct {
 	Ont       string `json:"ont"`
 	Ong       string `json:"ong"`
@@ -270,10 +272,14 @@ func GetBalance(address common.Address) (*BalanceOfRsp, error) {
 }
 
 func GetGasPrice() (map[string]interface{}, error) {
-	curHeight := bactor.GetCurrentBlockHeight()
+	start := bactor.GetCurrentBlockHeight()
 	var gasPrice uint64 = 0
 	var height uint32 = 0
-	for i := curHeight; i >= 0; i-- {
+	var end uint32 = 0
+	if start > MAX_SEARCH_HEIGHT {
+		end = start - MAX_SEARCH_HEIGHT
+	}
+	for i := start; i >= end; i-- {
 		head, err := bactor.GetHeaderByHeight(i)
 		if err == nil && head.TransactionsRoot != common.UINT256_EMPTY {
 			height = i
@@ -284,6 +290,7 @@ func GetGasPrice() (map[string]interface{}, error) {
 			for _, v := range blk.Transactions {
 				gasPrice += v.GasPrice
 			}
+			gasPrice = gasPrice / uint64(len(blk.Transactions))
 			break
 		}
 	}

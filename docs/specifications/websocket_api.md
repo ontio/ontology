@@ -688,7 +688,7 @@ get gasprice
 #### Request Example:
 ```
 {
-    "Action": "getsessioncount",
+    "Action": "getgasprice",
     "Version": "1.0.0"
 }
 ```
