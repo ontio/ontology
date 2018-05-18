@@ -796,19 +796,6 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface
 	return result, nil
 }
 
-func (this *LedgerStoreImp) InvokeNative(cache *storage.CloneCache, code []byte) ([]byte, error) {
-	sc := &smartcontract.SmartContract{
-		Store:      this,
-		CloneCache: cache,
-		Code:       vmtype.VmCode{Code: code, VmType: vmtype.Native},
-	}
-	result, err := sc.Execute()
-	if err != nil {
-		return nil, err
-	}
-	return result.([]byte), nil
-}
-
 //Close ledger store.
 func (this *LedgerStoreImp) Close() error {
 	err := this.blockStore.Close()
