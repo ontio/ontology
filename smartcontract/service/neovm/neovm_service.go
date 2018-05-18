@@ -20,7 +20,6 @@ package neovm
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/types"
@@ -30,7 +29,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vm "github.com/ontio/ontology/vm/neovm"
-	vmtype "github.com/ontio/ontology/vm/neovm/types"
 )
 
 const (
