@@ -32,7 +32,7 @@ type bucket struct {
 }
 
 type routingTable struct {
-	mu      sync.Mutex
+	mu      sync.RWMutex
 	id      types.NodeID
 	buckets []*bucket
 }
@@ -49,10 +49,12 @@ func (this *routingTable) locateBucket(id types.NodeID) (int, *bucket) {
 	return dist, this.buckets[dist-1]
 }
 
-func (this *routingTable) queryNode(id types.NodeID) *types.Node{
+func (this *routingTable) queryNode(id types.NodeID) *types.Node {
+	this.mu.RLock()
+	defer this.mu.RUnlock()
 	_, bucket := this.locateBucket(id)
-	for _, node := range bucket.entries{
-		if (*node).ID == id{
+	for _, node := range bucket.entries {
+		if (*node).ID == id {
 			return node
 		}
 	}
@@ -98,8 +100,8 @@ func (this *routingTable) RemoveNode(id types.NodeID) {
 }
 
 func (this *routingTable) GetClosestNodes(num int, targetID types.NodeID) []*types.Node {
-	this.mu.Lock()
-	defer this.mu.Unlock()
+	this.mu.RLock()
+	defer this.mu.RUnlock()
 	closestList := make([]*types.Node, 0, num)
 
 	index, _ := this.locateBucket(targetID)
@@ -130,14 +132,25 @@ func (this *routingTable) GetClosestNodes(num int, targetID types.NodeID) []*typ
 }
 
 func (this *routingTable) GetTotalNodeNumInBukcet(bucket int) int {
-	this.mu.Lock()
-	defer this.mu.Unlock()
+	this.mu.RLock()
+	defer this.mu.RUnlock()
 	b := this.buckets[bucket]
 	if b == nil {
 		return 0
 	}
 
 	return len(b.entries)
+}
+
+func (this *routingTable) GetLastNodeInBucket(bucket int) *types.Node {
+	this.mu.RLock()
+	defer this.mu.RUnlock()
+	b := this.buckets[bucket]
+	if b == nil {
+		return nil
+	}
+
+	return b.entries[len(b.entries)-1]
 }
 
 func (this *routingTable) GetDistance(id1, id2 types.NodeID) int {
@@ -148,8 +161,8 @@ func (this *routingTable) GetDistance(id1, id2 types.NodeID) int {
 }
 
 func (this *routingTable) totalNodes() int {
-	this.mu.Lock()
-	defer this.mu.Unlock()
+	this.mu.RLock()
+	defer this.mu.RUnlock()
 	var num int
 	for _, bucket := range this.buckets {
 		num += len(bucket.entries)
@@ -158,8 +171,8 @@ func (this *routingTable) totalNodes() int {
 }
 
 func (this *routingTable) isNodeInBucket(id types.NodeID, bucket int) (*types.Node, bool) {
-	this.mu.Lock()
-	defer this.mu.Unlock()
+	this.mu.RLock()
+	defer this.mu.RUnlock()
 
 	b := this.buckets[bucket]
 	if b == nil {

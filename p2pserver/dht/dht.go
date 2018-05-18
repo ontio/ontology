@@ -142,6 +142,7 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 				for _, n := range entries {
 					log.Info("receive new node", n)
 					// Todo:
+					this.AddNode(n)
 					if knownNode[n.ID] == true {
 						continue
 					}
@@ -202,18 +203,18 @@ func (this *DHT) onFindNodeTimeOut(requestNodeId types.NodeID) {
 
 func (this *DHT) AddNode(remotePeer *types.Node) {
 	// find node in own bucket
-	bucketIndex, bucket := this.routingTable.locateBucket(remotePeer.ID)
+	bucketIndex, _ := this.routingTable.locateBucket(remotePeer.ID)
 	remoteNode, isInBucket := this.routingTable.isNodeInBucket(remotePeer.ID, bucketIndex)
 	// update peer info in local bucket
 	remoteNode = remotePeer
 	if isInBucket {
 		this.routingTable.AddNode(remoteNode)
 	} else {
-		bucketNodeNum := len(bucket.entries)
+		bucketNodeNum := this.routingTable.GetTotalNodeNumInBukcet(bucketIndex)
 		if bucketNodeNum < types.BUCKET_SIZE { // bucket is not full
 			this.routingTable.AddNode(remoteNode)
 		} else {
-			lastNode := bucket.entries[bucketNodeNum-1]
+			lastNode := this.routingTable.GetLastNodeInBucket(bucketIndex)
 			addr, err := getNodeUdpAddr(lastNode)
 			if err != nil {
 				this.routingTable.RemoveNode(lastNode.ID)
