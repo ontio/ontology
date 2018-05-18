@@ -192,6 +192,10 @@ var (
 		Name:  "changepasswd",
 		Usage: "Change account password",
 	}
+	AccountLowSecurityFlag = cli.BoolFlag{
+		Name:  "low-security",
+		Usage: "Change account to low protection strength for low performance devices",
+	}
 
 	//SmartContract setting
 	ContractAddrFlag = cli.StringFlag{

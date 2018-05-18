@@ -72,6 +72,8 @@ type Client interface {
 	ChangePassword(address string, oldPasswd, newPasswd []byte) error
 	//Change sig scheme to account
 	ChangeSigScheme(address string, sigScheme s.SignatureScheme, passwd []byte) error
+	//Get the underlying wallet data
+	GetWalletData() *WalletData
 }
 
 func Open(path string) (Client, error) {
@@ -313,7 +315,9 @@ func (this *ClientImpl) getAccount(accData *AccountData, passwd []byte) (*Accoun
 	if !accData.VerifyPassword(passwd) {
 		return nil, fmt.Errorf("verify password failed")
 	}
+	keypair.SetScryptParam(this.walletData.Scrypt)
 	privateKey, err := keypair.DecryptPrivateKey(&accData.ProtectedKey, passwd)
+	keypair.SetScryptParam(nil)
 	if err != nil {
 		return nil, fmt.Errorf("decrypt PrivateKey error:%s", err)
 	}
@@ -582,4 +586,8 @@ func (this *ClientImpl) checkSigScheme(keyType, sigScheme string) bool {
 		return false
 	}
 	return true
+}
+
+func (this *ClientImpl) GetWalletData() *WalletData {
+	return this.walletData
 }
