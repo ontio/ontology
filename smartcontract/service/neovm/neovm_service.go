@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	MAX_STACK_SIZE          = 2 * 1024
+	MAX_STACK_SIZE = 2 * 1024
 )
 
 var (
