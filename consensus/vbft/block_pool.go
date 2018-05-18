@@ -585,7 +585,7 @@ func (pool *BlockPool) addSignaturesToBlockLocked(block *Block, forEmpty bool) e
 		bookkeepers = append(bookkeepers, proposerPk)
 		sigData = append(sigData, block.Block.Header.SigData[0])
 	} else {
-		if block.EmptyBlock != nil {
+		if block.EmptyBlock == nil {
 			return fmt.Errorf("block has no empty candidate")
 		}
 		bookkeepers = append(bookkeepers, proposerPk)
