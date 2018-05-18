@@ -32,9 +32,8 @@ func (nodeQueue *FindNodeQueue) start() {
 	}
 }
 
-func (nodeQueue *FindNodeQueue) GetResult() ([]*Node, bool) {
-	results, ok := <-nodeQueue.resultChan
-	return results, ok
+func (nodeQueue *FindNodeQueue) GetResultCh() <-chan []*Node {
+	return nodeQueue.resultChan
 }
 
 func (nodeQueue *FindNodeQueue) SetResult(results []*Node, resultsFromNode NodeID) {

@@ -22,7 +22,6 @@ import (
 	//"fmt"
 	"errors"
 	"net"
-	"sort"
 	"sync"
 
 	"github.com/ontio/ontology/common/log"
@@ -136,35 +135,36 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 			break
 		}
 
+		responseCh := this.findNodeQueue.GetResultCh()
 		select {
-		case entries, ok := this.findNodeQueue.GetResult():
+		case entries, ok := <-responseCh:
 			if ok {
 				for _, n := range entries {
 					log.Info("receive new node", n)
 					// Todo:
-					this.AddNode(n)
 					if knownNode[n.ID] == true {
 						continue
 					}
 					knownNode[n.ID] = true
-					idx := sort.Search(len(closestNodes), func(i int) bool {
-						for j := range targetID {
-							da := closestNodes[i].ID[j] ^ targetID[j]
-							db := n.ID[j] ^ targetID[j]
-							if da > db {
-								return true
-							} else if da < db {
-								return false
-							}
-						}
-						return false
-					})
+
 					if len(closestNodes) < types.BUCKET_SIZE {
 						closestNodes = append(closestNodes, n)
-					}
-					if idx < len(closestNodes) {
-						copy(closestNodes[idx+1:], closestNodes[idx:])
-						closestNodes[idx] = n
+					} else {
+						index := len(closestNodes)
+						for i, entry := range closestNodes {
+							for j := range targetID {
+								da := entry.ID[j] ^ targetID[j]
+								db := n.ID[j] ^ targetID[j]
+								if da > db {
+									index = i
+									break
+								}
+							}
+						}
+
+						if index < len(closestNodes) {
+							closestNodes[index] = n
+						}
 					}
 				}
 			}
@@ -203,7 +203,7 @@ func (this *DHT) onFindNodeTimeOut(requestNodeId types.NodeID) {
 
 func (this *DHT) AddNode(remotePeer *types.Node) {
 	// find node in own bucket
-	bucketIndex, _ := this.routingTable.locateBucket(remotePeer.ID)
+	bucketIndex, bucket := this.routingTable.locateBucket(remotePeer.ID)
 	remoteNode, isInBucket := this.routingTable.isNodeInBucket(remotePeer.ID, bucketIndex)
 	// update peer info in local bucket
 	remoteNode = remotePeer
@@ -214,7 +214,7 @@ func (this *DHT) AddNode(remotePeer *types.Node) {
 		if bucketNodeNum < types.BUCKET_SIZE { // bucket is not full
 			this.routingTable.AddNode(remoteNode)
 		} else {
-			lastNode := this.routingTable.GetLastNodeInBucket(bucketIndex)
+			lastNode := bucket.entries[bucketNodeNum-1]
 			addr, err := getNodeUdpAddr(lastNode)
 			if err != nil {
 				this.routingTable.RemoveNode(lastNode.ID)
@@ -328,7 +328,19 @@ func (this *DHT) processPacket(from *net.UDPAddr, packet []byte) {
 		return
 	}
 
-	log.Trace("Recv UDP msg", msgType)
+	log.Infof("Recv UDP msg %s", msgType)
+	switch msgType {
+	case "DHTPing":
+		this.PingHandler(from, packet)
+	case "DHTPong":
+		this.PongHandler(from, packet)
+	case "findnode":
+		this.FindNodeHandler(from, packet)
+	case "neighbors":
+		this.NeighborsHandler(from, packet)
+	default:
+		log.Infof("processPacket: unknown msg %s", msgType)
+	}
 }
 
 func (this *DHT) recvUDPMsg() {
