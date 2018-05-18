@@ -20,7 +20,6 @@
 package common
 
 import (
-	"fmt"
 	"sort"
 	"sync"
 
@@ -68,7 +67,8 @@ func (tp *TXPool) AddTxList(txEntry *TXEntry) bool {
 	defer tp.Unlock()
 	txHash := txEntry.Tx.Hash()
 	if _, ok := tp.txList[txHash]; ok {
-		log.Info("Transaction %x already existed in the pool\n", txHash)
+		log.Infof("AddTxList: transaction %x is already in the pool",
+			txHash)
 		return false
 	}
 
@@ -89,8 +89,8 @@ func (tp *TXPool) CleanTransactionList(txs []*types.Transaction) error {
 		}
 	}
 
-	log.Debug(fmt.Sprintf("[cleanTransactionList],transaction %d Requested,%d cleaned, Remains %d in TxPool",
-		txsNum, cleaned, len(tp.txList)))
+	log.Debugf("CleanTransactionList: transaction %d requested,%d cleaned, remains %d in TxPool",
+		txsNum, cleaned, len(tp.txList))
 	return nil
 }
 
