@@ -61,6 +61,7 @@ func OpenWallet(ctx *cli.Context) (account.Client, error) {
 func GetAccountMulti(wallet account.Client, passwd []byte, accAddr string) (*account.Account, error) {
 	//Address maybe address in base58, label or index
 	if accAddr == "" {
+		fmt.Printf("Using default account:%s\n", accAddr)
 		return wallet.GetDefaultAccount(passwd)
 	}
 	acc, err := wallet.GetAccountByAddress(accAddr, passwd)
@@ -94,6 +95,7 @@ func GetAccountMulti(wallet account.Client, passwd []byte, accAddr string) (*acc
 func GetAccountMetadataMulti(wallet account.Client, accAddr string) *account.AccountMetadata {
 	//Address maybe address in base58, label or index
 	if accAddr == "" {
+		fmt.Printf("Using default account:%s\n", accAddr)
 		return wallet.GetDefaultAccountMetadata()
 	}
 	acc := wallet.GetAccountMetadataByAddress(accAddr)
@@ -111,7 +113,7 @@ func GetAccountMetadataMulti(wallet account.Client, accAddr string) *account.Acc
 	return wallet.GetAccountMetadataByIndex(int(index))
 }
 
-func GetAccount(ctx *cli.Context) (*account.Account, error) {
+func GetAccount(ctx *cli.Context, address ...string) (*account.Account, error) {
 	wallet, err := OpenWallet(ctx)
 	if err != nil {
 		return nil, err
@@ -121,7 +123,12 @@ func GetAccount(ctx *cli.Context) (*account.Account, error) {
 		return nil, err
 	}
 	defer ClearPasswd(passwd)
-	accAddr := ctx.String(utils.GetFlagName(utils.AccountAddressFlag))
+	accAddr := ""
+	if len(address) > 0 {
+		accAddr = address[0]
+	} else {
+		accAddr = ctx.String(utils.GetFlagName(utils.AccountAddressFlag))
+	}
 	return GetAccountMulti(wallet, passwd, accAddr)
 }
 

@@ -20,6 +20,7 @@ package utils
 
 import (
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/urfave/cli"
 	"strings"
 )
@@ -144,7 +145,7 @@ var (
 	}
 	AccountAddressFlag = cli.StringFlag{
 		Name:  "account,a",
-		Usage: "Address of account.Address can be address in base58 code , label or index. if not specific, will use default account",
+		Usage: "Address of account. Address can be `<address>` in base58 code , label or index. if not specific, will use default account",
 	}
 	AccountDefaultFlag = cli.BoolFlag{
 		Name:  "default,d",
@@ -254,7 +255,7 @@ var (
 	//Transfer setting
 	TransactionAssetFlag = cli.StringFlag{
 		Name:  "asset",
-		Usage: "Asset to transfer <ont|ong>",
+		Usage: "Asset to transfer `<ont|ong>`",
 		Value: ASSET_ONT,
 	}
 	TransactionFromFlag = cli.StringFlag{
@@ -265,23 +266,50 @@ var (
 		Name:  "to",
 		Usage: "`<address>` which receives the asset",
 	}
-	TransactionAmountFlag = cli.Int64Flag{
+	TransactionAmountFlag = cli.StringFlag{
 		Name:  "amount",
 		Usage: "Specifies `<amount>` as the transferred amount",
 	}
 	TransactionHashFlag = cli.StringFlag{
 		Name:  "hash",
-		Usage: "Transaction hash",
+		Usage: "Transaction <hash>",
 	}
-	TransactionGasPrice = cli.Uint64Flag{
+	TransactionGasPriceFlag = cli.Uint64Flag{
 		Name:  "gasprice",
 		Usage: "Gas price of transaction",
 		Value: 0,
 	}
-	TransactionGasLimit = cli.Uint64Flag{
+	TransactionGasLimitFlag = cli.Uint64Flag{
 		Name:  "gaslimit",
 		Usage: "Gas limit of tansaction",
-		Value: 0,
+		Value: neovm.TRANSACTION_GAS,
+	}
+
+	//Asset setting
+	ApproveAssetFromFlag = cli.StringFlag{
+		Name:  "from",
+		Usage: "Approve from address",
+	}
+	ApproveAssetToFlag = cli.StringFlag{
+		Name:  "to",
+		Usage: "Approve to address",
+	}
+	ApproveAssetFlag = cli.StringFlag{
+		Name:  "asset",
+		Usage: "Approve asset <ont|ong>",
+		Value: "ont",
+	}
+	ApproveAmountFlag = cli.StringFlag{
+		Name:  "amount",
+		Usage: "Approve amount",
+	}
+	TransferFromAmountFlag = cli.StringFlag{
+		Name:  "amount",
+		Usage: "Transfer from amount",
+	}
+	TransferFromSenderFlag = cli.StringFlag{
+		Name:  "sender",
+		Usage: "Sender of transfer from transaction, if empty sender is to address",
 	}
 
 	//Cli setting

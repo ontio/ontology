@@ -20,22 +20,28 @@ package common
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/genesis"
+	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
 	bactor "github.com/ontio/ontology/http/base/actor"
 	"github.com/ontio/ontology/smartcontract/event"
+	cstates "github.com/ontio/ontology/smartcontract/states"
+	vmtypes "github.com/ontio/ontology/smartcontract/types"
+	"math/big"
+	"strings"
+	"time"
 )
 
 type BalanceOfRsp struct {
-	Ont       string `json:"ont"`
-	Ong       string `json:"ong"`
-	OngAppove string `json:"ong_appove"`
+	Ont string `json:"ont"`
+	Ong string `json:"ong"`
 }
 
 type MerkleProof struct {
@@ -238,33 +244,130 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 	return b
 }
 
-func getStoreUint64Value(contractAddress, accountAddress common.Address) (uint64, error) {
-	data, err := bactor.GetStorageItem(contractAddress, accountAddress[:])
-	if err != nil {
-		return 0, fmt.Errorf("GetOntBalanceOf GetStorageItem ont address:%s error:%s", accountAddress.ToBase58(), err)
-	}
-	if len(data) == 0 {
-		return 0, nil
-	}
-	value, err := serialization.ReadUint64(bytes.NewBuffer(data))
-	if err != nil {
-		return 0, fmt.Errorf("serialization.ReadUint64:%x error:%s", data, err)
-	}
-	return value, err
-}
-
 func GetBalance(address common.Address) (*BalanceOfRsp, error) {
-	ont, err := getStoreUint64Value(genesis.OntContractAddress, address)
+	ont, err := GetContractBalance(0, genesis.OntContractAddress, address)
 	if err != nil {
-		return nil, fmt.Errorf("getStoreUint64Value ont error:%s", err)
+		return nil, fmt.Errorf("get ont balance error:%s", err)
 	}
-	ong, err := getStoreUint64Value(genesis.OngContractAddress, address)
+	ong, err := GetContractBalance(0, genesis.OngContractAddress, address)
 	if err != nil {
-		return nil, fmt.Errorf("getStoreUint64Value ong error:%s", err)
+		return nil, fmt.Errorf("get ont balance error:%s", err)
 	}
 	return &BalanceOfRsp{
-		Ont:       fmt.Sprintf("%d", ont),
-		Ong:       fmt.Sprintf("%d", ong),
-		OngAppove: "0",
+		Ont: fmt.Sprintf("%d", ont),
+		Ong: fmt.Sprintf("%d", ong),
 	}, nil
+}
+
+func GetAllowance(asset string, from, to common.Address) (string, error) {
+	var contractAddr common.Address
+	switch strings.ToLower(asset) {
+	case "ont":
+		contractAddr = genesis.OntContractAddress
+	case "ong":
+		contractAddr = genesis.OngContractAddress
+	default:
+		return "", fmt.Errorf("unsupport asset")
+	}
+	allowance, err := GetContractAllowance(0, contractAddr, from, to)
+	if err != nil {
+		return "", fmt.Errorf("get allowance error:%s", err)
+	}
+	return fmt.Sprintf("%v", allowance), nil
+}
+
+func GetContractBalance(cVersion byte, contractAddr, accAddr common.Address) (uint64, error) {
+	addrBuf := bytes.NewBuffer(nil)
+	err := accAddr.Serialize(addrBuf)
+	if err != nil {
+		return 0, fmt.Errorf("address serialize error:%s", err)
+	}
+	argBuf := bytes.NewBuffer(nil)
+	err = serialization.WriteVarBytes(argBuf, addrBuf.Bytes())
+	if err != nil {
+		return 0, fmt.Errorf("serialization.WriteVarBytes error:%s", err)
+	}
+	crt := &cstates.Contract{
+		Version: cVersion,
+		Address: contractAddr,
+		Method:  "balanceOf",
+		Args:    argBuf.Bytes(),
+	}
+	buf := bytes.NewBuffer(nil)
+	err = crt.Serialize(buf)
+	if err != nil {
+		return 0, fmt.Errorf("Serialize contract error:%s", err)
+	}
+	result, err := PrepareInvokeContract(cVersion, vmtypes.Native, buf.Bytes())
+	if err != nil {
+		return 0, fmt.Errorf("PrepareInvokeContract error:%s", err)
+	}
+	data, err := hex.DecodeString(result.(string))
+	if err != nil {
+		return 0, fmt.Errorf("hex.DecodeString error:%s", err)
+	}
+	balance := new(big.Int).SetBytes(data)
+	return balance.Uint64(), nil
+}
+
+func GetContractAllowance(cVersion byte, contractAddr, fromAddr, toAddr common.Address) (uint64, error) {
+	fromBuf := bytes.NewBuffer(nil)
+	err := fromAddr.Serialize(fromBuf)
+	if err != nil {
+		return 0, fmt.Errorf("from address serialize error:%s", err)
+	}
+	toBuf := bytes.NewBuffer(nil)
+	err = toAddr.Serialize(toBuf)
+	if err != nil {
+		return 0, fmt.Errorf("to address serialize error:%s", err)
+	}
+
+	argBuf := bytes.NewBuffer(nil)
+	err = serialization.WriteVarBytes(argBuf, fromBuf.Bytes())
+	if err != nil {
+		return 0, fmt.Errorf("serialization.WriteVarBytes error:%s", err)
+	}
+	err = serialization.WriteVarBytes(argBuf, toBuf.Bytes())
+	if err != nil {
+		return 0, fmt.Errorf("serialization.WriteVarBytes error:%s", err)
+	}
+	crt := &cstates.Contract{
+		Version: cVersion,
+		Address: contractAddr,
+		Method:  "allowance",
+		Args:    argBuf.Bytes(),
+	}
+	buf := bytes.NewBuffer(nil)
+	err = crt.Serialize(buf)
+	if err != nil {
+		return 0, fmt.Errorf("Serialize contract error:%s", err)
+	}
+	result, err := PrepareInvokeContract(cVersion, vmtypes.Native, buf.Bytes())
+	if err != nil {
+		return 0, fmt.Errorf("PrepareInvokeContract error:%s", err)
+	}
+	data, err := hex.DecodeString(result.(string))
+	if err != nil {
+		return 0, fmt.Errorf("hex.DecodeString error:%s", err)
+	}
+	allowance := new(big.Int).SetBytes(data)
+	return allowance.Uint64(), nil
+}
+
+func PrepareInvokeContract(cVersion byte, vmType vmtypes.VmType, invokeCode []byte) (interface{}, error) {
+	invokePayload := &payload.InvokeCode{
+		Code: vmtypes.VmCode{
+			VmType: vmType,
+			Code:   invokeCode,
+		},
+	}
+	tx := &types.Transaction{
+		Version:    cVersion,
+		TxType:     types.Invoke,
+		Nonce:      uint32(time.Now().Unix()),
+		Payload:    invokePayload,
+		Attributes: make([]*types.TxAttribute, 0, 0),
+		Sigs:       make([]*types.Sig, 0, 0),
+	}
+	return bactor.PreExecuteContract(tx)
 }

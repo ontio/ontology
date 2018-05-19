@@ -472,6 +472,38 @@ func GetBalance(params []interface{}) map[string]interface{} {
 	return responseSuccess(rsp)
 }
 
+func GetAllowance(params []interface{}) map[string]interface{} {
+	if len(params) < 3 {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	asset, ok := params[0].(string)
+	if !ok {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	fromAddrStr, ok := params[1].(string)
+	if !ok {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	fromAddr, err := common.AddressFromBase58(fromAddrStr)
+	if err != nil {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	toAddrStr, ok := params[2].(string)
+	if !ok {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	toAddr, err := common.AddressFromBase58(toAddrStr)
+	if err != nil {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	rsp, err := bcomn.GetAllowance(asset, fromAddr, toAddr)
+	if err != nil {
+		log.Errorf("GetAllowance %s from:%s to:%s error:%s", asset, fromAddrStr, toAddrStr, err)
+		return responsePack(berr.INTERNAL_ERROR, "")
+	}
+	return responseSuccess(rsp)
+}
+
 func GetMerkleProof(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return responsePack(berr.INVALID_PARAMS, "")

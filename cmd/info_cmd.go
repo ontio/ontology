@@ -45,6 +45,14 @@ var InfoCommand = cli.Command{
 			Flags:       []cli.Flag{},
 			Description: "Display block information",
 		},
+		{
+			Action:      txStatus,
+			Name:        "status",
+			Usage:       "Display transaction status",
+			ArgsUsage:   "<txhash>",
+			Description: `Display status of transaction.`,
+			Flags:       []cli.Flag{},
+		},
 	},
 	Description: ``,
 }
@@ -94,6 +102,28 @@ func txInfo(ctx *cli.Context) error {
 	}
 	var out bytes.Buffer
 	err = json.Indent(&out, txInfo, "", "   ")
+	if err != nil {
+		return err
+	}
+	fmt.Println(out.String())
+	return nil
+}
+
+func txStatus(ctx *cli.Context) error {
+	if ctx.NArg() < 1 {
+		fmt.Println("Missing argument. TxHash expected.\n")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+	txHash := ctx.Args().First()
+	evtInfos, err := utils.GetSmartContractEventInfo(txHash)
+	if err != nil {
+		return fmt.Errorf("GetSmartContractEvent error:%s", err)
+	}
+
+	fmt.Printf("Transaction states:\n")
+	var out bytes.Buffer
+	err = json.Indent(&out, evtInfos, "", "   ")
 	if err != nil {
 		return err
 	}

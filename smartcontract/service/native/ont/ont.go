@@ -194,7 +194,8 @@ func OntAllowance(native *native.NativeService) ([]byte, error) {
 
 func GetBalanceValue(native *native.NativeService, flag byte) ([]byte, error) {
 	var key []byte
-	fromAddr, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
+	buf := bytes.NewBuffer(native.Input)
+	fromAddr, err := serialization.ReadVarBytes(buf)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] get address error!")
 	}
@@ -204,7 +205,7 @@ func GetBalanceValue(native *native.NativeService, flag byte) ([]byte, error) {
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	if flag == APPROVE_FLAG {
-		toAddr, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
+		toAddr, err := serialization.ReadVarBytes(buf)
 		if err != nil {
 			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] get address error!")
 		}
