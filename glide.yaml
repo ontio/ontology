@@ -2,7 +2,7 @@ package: github.com/ontio/ontology
 import:
 - package: github.com/bitly/go-simplejson
   version: v0.5.0
-- package: github.com/dnaproject/gopass
+- package: github.com/howeyc/gopass
 - package: github.com/gorilla/websocket
   version: v1.2.0
 - package: github.com/itchyny/base58-go
