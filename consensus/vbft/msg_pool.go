@@ -19,11 +19,14 @@
 package vbft
 
 import (
+	"errors"
 	"sync"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 )
+
+var errDropFarFutureMsg = errors.New("msg pool dropped msg for far future")
 
 type ConsensusRoundMsgs map[MsgType][]ConsensusMsg // indexed by MsgType (proposal, endorsement, ...)
 
@@ -94,6 +97,10 @@ func (pool *MsgPool) AddMsg(msg ConsensusMsg, msgHash common.Uint256) error {
 	defer pool.lock.Unlock()
 
 	blkNum := msg.GetBlockNum()
+	if blkNum > pool.server.GetCurrentBlockNo()+pool.historyLen {
+		return errDropFarFutureMsg
+	}
+
 	if _, present := pool.rounds[blkNum]; !present {
 		pool.rounds[blkNum] = newConsensusRound(blkNum)
 	}
