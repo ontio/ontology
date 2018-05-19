@@ -767,7 +767,9 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 		if msgBlkNum > self.GetCurrentBlockNo() {
 			// for concurrency, support two active consensus round
 			if err := self.msgPool.AddMsg(msg, msgHash); err != nil {
-				log.Errorf("failed to add proposal msg (%d) to pool", msgBlkNum)
+				if err != errDropFarFutureMsg {
+					log.Errorf("failed to add proposal msg (%d) to pool: %s", msgBlkNum, err)
+				}
 				return
 			}
 
@@ -822,7 +824,9 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 		if msgBlkNum > self.GetCurrentBlockNo() {
 			// for concurrency, support two active consensus round
 			if err := self.msgPool.AddMsg(msg, msgHash); err != nil {
-				log.Errorf("failed to add endorse msg (%d) to pool", msgBlkNum)
+				if err != errDropFarFutureMsg {
+					log.Errorf("failed to add endorse msg (%d) to pool: %s", msgBlkNum, err)
+				}
 				return
 			}
 
@@ -876,7 +880,9 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 		msgBlkNum := pMsg.GetBlockNum()
 		if msgBlkNum > self.GetCurrentBlockNo() {
 			if err := self.msgPool.AddMsg(msg, msgHash); err != nil {
-				log.Errorf("failed to add commit msg (%d) to pool", msgBlkNum)
+				if err != errDropFarFutureMsg {
+					log.Errorf("failed to add commit msg (%d) to pool: %s", msgBlkNum, err)
+				}
 				return
 			}
 
