@@ -43,6 +43,11 @@ import (
 	vmtype "github.com/ontio/ontology/smartcontract/types"
 )
 
+var (
+	COMMIT_DPOS_BYTE = []byte{0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 10, 99, 111, 109, 109, 105, 116, 68, 112, 111, 115, 0}
+	INIT_CONFIG_BYTE = []byte{0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 10, 105, 110, 105, 116, 67, 111, 110, 102, 105, 103}
+)
+
 //HandleDeployTransaction deal with smart contract deploy transaction
 func (self *StateStore) HandleDeployTransaction(stateBatch *statestore.StateBatch, tx *types.Transaction) error {
 	deploy := tx.Payload.(*payload.DeployCode)
@@ -74,11 +79,17 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	invoke := tx.Payload.(*payload.InvokeCode)
 	txHash := tx.Hash()
 
-	// check payer ong balance
-	balance, err := GetBalance(stateBatch, tx.Payer, genesis.OngContractAddress)
-	if balance < tx.GasLimit*tx.GasPrice {
-		return fmt.Errorf("%v", "Payer Gas Insufficient")
+	if bytes.Compare(invoke.Code.Code, COMMIT_DPOS_BYTE) != 0 || bytes.Compare(invoke.Code.Code, INIT_CONFIG_BYTE) != 0 {
+		// check payer ong balance
+		balance, err := GetBalance(stateBatch, tx.Payer, genesis.OngContractAddress)
+		if err != nil {
+			return err
+		}
+		if balance < tx.GasLimit*tx.GasPrice {
+			return fmt.Errorf("%v", "Payer Gas Insufficient")
+		}
 	}
+
 	// init smart contract configuration info
 	config := &smartcontract.Config{
 		Time:   block.Header.Timestamp,
@@ -96,37 +107,43 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	}
 
 	//start the smart contract executive function
-	_, err = sc.Execute()
+	_, err := sc.Execute()
 
-	totalGas := (tx.GasLimit - sc.Gas) * tx.GasPrice
-	transcode := genNativeTransferCode(genesis.OngContractAddress, tx.Payer,
-		genesis.GovernanceContractAddress, totalGas)
-	transContract := smartcontract.SmartContract{
-		Config:     config,
-		CloneCache: cache,
-		Store:      store,
-		Code:       transcode,
-		Gas:        math.MaxUint64,
-	}
-	if err != nil {
-		cache = storage.NewCloneCache(stateBatch)
-		transContract.CloneCache = cache
+	if bytes.Compare(invoke.Code.Code, COMMIT_DPOS_BYTE) != 0 || bytes.Compare(invoke.Code.Code, INIT_CONFIG_BYTE) != 0 {
+		totalGas := (tx.GasLimit - sc.Gas) * tx.GasPrice
+		transcode := genNativeTransferCode(genesis.OngContractAddress, tx.Payer,
+			genesis.GovernanceContractAddress, totalGas)
+		transContract := smartcontract.SmartContract{
+			Config:     config,
+			CloneCache: cache,
+			Store:      store,
+			Code:       transcode,
+			Gas:        math.MaxUint64,
+		}
+		if err != nil {
+			cache = storage.NewCloneCache(stateBatch)
+			transContract.CloneCache = cache
+			if _, err := transContract.Execute(); err != nil {
+				return err
+			}
+			cache.Commit()
+			if err := saveNotify(eventStore, txHash, &event.ExecuteNotify{TxHash: txHash,
+				State: event.CONTRACT_STATE_FAIL, Notify: []*event.NotifyEventInfo{}}); err != nil {
+				return err
+			}
+			return err
+		}
 		if _, err := transContract.Execute(); err != nil {
 			return err
 		}
-		cache.Commit()
 		if err := saveNotify(eventStore, txHash, &event.ExecuteNotify{TxHash: txHash,
-			State: event.CONTRACT_STATE_FAIL, Notify: []*event.NotifyEventInfo{}}); err != nil {
+			State: event.CONTRACT_STATE_SUCCESS, Notify: sc.Notifications}); err != nil {
 			return err
 		}
-		return err
-	}
-	if _, err := transContract.Execute(); err != nil {
-		return err
-	}
-	if err := saveNotify(eventStore, txHash, &event.ExecuteNotify{TxHash: txHash,
-		State: event.CONTRACT_STATE_SUCCESS, Notify: sc.Notifications}); err != nil {
-		return err
+	} else {
+		if err != nil {
+			return err
+		}
 	}
 	sc.CloneCache.Commit()
 

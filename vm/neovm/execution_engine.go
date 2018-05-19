@@ -85,7 +85,7 @@ func (this *ExecutionEngine) ExecuteCode() error {
 
 func (this *ExecutionEngine) ValidateOp() error {
 	opExec := OpExecList[this.OpCode]
-	if opExec.Exec == nil {
+	if opExec.Name == "" {
 		return errors.ERR_NOT_SUPPORT_OPCODE
 	}
 	this.OpExec = opExec
