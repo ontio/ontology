@@ -49,7 +49,10 @@ func (this BlkHeader) Serialization() ([]byte, error) {
 	p := bytes.NewBuffer([]byte{})
 	serialization.WriteUint32(p, this.Cnt)
 	for _, header := range this.BlkHdr {
-		header.Serialize(p)
+		err := header.Serialize(p)
+		if err != nil {
+			return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialize error. header:%v", header))
+		}
 	}
 
 	checkSumBuf := CheckSum(p.Bytes())

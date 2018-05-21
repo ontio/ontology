@@ -25,6 +25,7 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/errors"
@@ -50,9 +51,11 @@ func (this *ConsensusPayload) Hash() common.Uint256 {
 //Check whether header is correct
 func (this *ConsensusPayload) Verify() error {
 	buf := new(bytes.Buffer)
-	this.SerializeUnsigned(buf)
-
-	err := signature.Verify(this.Owner, buf.Bytes(), this.Signature)
+	err := this.SerializeUnsigned(buf)
+	if err != nil {
+		return err
+	}
+	err = signature.Verify(this.Owner, buf.Bytes(), this.Signature)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNetVerifyFail, fmt.Sprintf("signature verify error. buf:%v", buf))
 	}
@@ -62,7 +65,11 @@ func (this *ConsensusPayload) Verify() error {
 //serialize the consensus payload
 func (this *ConsensusPayload) ToArray() []byte {
 	b := new(bytes.Buffer)
-	this.Serialize(b)
+	err := this.Serialize(b)
+	if err != nil {
+		log.Errorf("consensus payload serialize error in ToArray(). payload:%v", this)
+		return nil
+	}
 	return b.Bytes()
 }
 
@@ -136,27 +143,27 @@ func (this *ConsensusPayload) SerializeUnsigned(w io.Writer) error {
 
 		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. version:%v", this.Version))
 	}
-	this.PrevHash.Serialize(w)
+	err = this.PrevHash.Serialize(w)
 	if err != nil {
 
 		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialize error. PrevHash:%v", this.PrevHash))
 	}
-	serialization.WriteUint32(w, this.Height)
+	err = serialization.WriteUint32(w, this.Height)
 	if err != nil {
 
 		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. Height:%v", this.Height))
 	}
-	serialization.WriteUint16(w, this.BookkeeperIndex)
+	err = serialization.WriteUint16(w, this.BookkeeperIndex)
 	if err != nil {
 
 		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. BookkeeperIndex:%v", this.BookkeeperIndex))
 	}
-	serialization.WriteUint32(w, this.Timestamp)
+	err = serialization.WriteUint32(w, this.Timestamp)
 	if err != nil {
 
 		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. Timestamp:%v", this.Timestamp))
 	}
-	serialization.WriteVarBytes(w, this.Data)
+	err = serialization.WriteVarBytes(w, this.Data)
 	if err != nil {
 
 		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. Data:%v", this.Data))

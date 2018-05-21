@@ -46,7 +46,11 @@ func (this Block) Verify(buf []byte) error {
 func (this Block) Serialization() ([]byte, error) {
 
 	p := bytes.NewBuffer([]byte{})
-	this.Blk.Serialize(p)
+	err := this.Blk.Serialize(p)
+
+	if err != nil {
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialize error. Blk:%v", this.Blk))
+	}
 
 	checkSumBuf := CheckSum(p.Bytes())
 	this.Init("block", checkSumBuf, uint32(len(p.Bytes())))

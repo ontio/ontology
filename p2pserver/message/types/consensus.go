@@ -42,7 +42,10 @@ type PeerStateUpdate struct {
 func (this *Consensus) Serialization() ([]byte, error) {
 
 	p := bytes.NewBuffer([]byte{})
-	this.Cons.Serialize(p)
+	err := this.Cons.Serialize(p)
+	if err != nil {
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialize error. consensus:%v", this.Cons))
+	}
 	checkSumBuf := CheckSum(p.Bytes())
 	this.MsgHdr.Init("consensus", checkSumBuf, uint32(len(p.Bytes())))
 	log.Debug("NewConsensus The message payload length is ", this.MsgHdr.Length)
