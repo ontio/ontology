@@ -124,17 +124,23 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 		if err := engine.ExecuteCode(); err != nil {
 			return nil, err
 		}
-		if err := engine.ValidateOp(); err != nil {
-			return nil, err
-		}
 
 		if engine.Context.GetInstructionPointer() < len(engine.Context.Code) {
 			if ok := checkStackSize(engine); !ok {
 				return nil, ERR_CHECK_STACK_SIZE
 			}
 		}
-		if !this.ContextRef.CheckUseGas(GasPrice(engine, engine.OpExec.Name)) {
-			return nil, ERR_GAS_INSUFFICIENT
+		if engine.OpCode >= vm.PUSHBYTES1 && engine.OpCode <= vm.PUSHBYTES75 {
+			if !this.ContextRef.CheckUseGas(OPCODE_GAS) {
+				return nil, ERR_GAS_INSUFFICIENT
+			}
+		} else {
+			if err := engine.ValidateOp(); err != nil {
+				return nil, err
+			}
+			if !this.ContextRef.CheckUseGas(GasPrice(engine, engine.OpExec.Name)) {
+				return nil, ERR_GAS_INSUFFICIENT
+			}
 		}
 		switch engine.OpCode {
 		case vm.SYSCALL:
@@ -173,7 +179,7 @@ func (this *NeoVmService) SystemCall(engine *vm.ExecutionEngine) error {
 	if !ok {
 		return errors.NewErr(fmt.Sprintf("[SystemCall] service not support: %s", serviceName))
 	}
-	if this.ContextRef.CheckUseGas(GasPrice(engine, serviceName)) {
+	if !this.ContextRef.CheckUseGas(GasPrice(engine, serviceName)) {
 		return ERR_GAS_INSUFFICIENT
 	}
 	if service.Validator != nil {

@@ -35,6 +35,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	neovm "github.com/ontio/ontology/smartcontract/service/neovm"
 	sstates "github.com/ontio/ontology/smartcontract/states"
@@ -74,17 +75,26 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	invoke := tx.Payload.(*payload.InvokeCode)
 	txHash := tx.Hash()
 
-	// check payer ong balance
-	balance, err := GetBalance(stateBatch, tx.Payer, genesis.OngContractAddress)
-	if balance < tx.GasLimit*tx.GasPrice {
-		return fmt.Errorf("%v", "Payer Gas Insufficient")
+	sysTransFlag := bytes.Compare(invoke.Code.Code, governance.COMMIT_DPOS_BYTES) == 0 || bytes.Compare(invoke.Code.Code, governance.INIT_CONFIG_BYTES) == 0
+
+	if !sysTransFlag {
+		// check payer ong balance
+		balance, err := GetBalance(stateBatch, tx.Payer, genesis.OngContractAddress)
+		if err != nil {
+			return err
+		}
+		if balance < tx.GasLimit*tx.GasPrice {
+			return fmt.Errorf("payer gas insufficient, need %d , only have %d", tx.GasLimit*tx.GasPrice, balance)
+		}
 	}
+
 	// init smart contract configuration info
 	config := &smartcontract.Config{
 		Time:   block.Header.Timestamp,
 		Height: block.Header.Height,
 		Tx:     tx,
 	}
+
 	cache := storage.NewCloneCache(stateBatch)
 	//init smart contract info
 	sc := smartcontract.SmartContract{
@@ -96,51 +106,71 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	}
 
 	//start the smart contract executive function
-	_, err = sc.Execute()
+	_, err := sc.Execute()
 
-	totalGas := (tx.GasLimit - sc.Gas) * tx.GasPrice
-	transcode := genNativeTransferCode(genesis.OngContractAddress, tx.Payer,
-		genesis.GovernanceContractAddress, totalGas)
-	transContract := smartcontract.SmartContract{
-		Config:     config,
-		CloneCache: cache,
-		Store:      store,
-		Code:       transcode,
-		Gas:        math.MaxUint64,
-	}
-	if err != nil {
-		cache = storage.NewCloneCache(stateBatch)
-		transContract.CloneCache = cache
+	if !sysTransFlag {
+		totalGas := (tx.GasLimit - sc.Gas) * tx.GasPrice
+		nativeTransferCode := genNativeTransferCode(genesis.OngContractAddress, tx.Payer,
+			genesis.GovernanceContractAddress, totalGas)
+		transContract := smartcontract.SmartContract{
+			Config:     config,
+			CloneCache: cache,
+			Store:      store,
+			Code:       nativeTransferCode,
+			Gas:        math.MaxUint64,
+		}
+		if err != nil {
+			cache = storage.NewCloneCache(stateBatch)
+			transContract.CloneCache = cache
+			if _, err := transContract.Execute(); err != nil {
+				return err
+			}
+			cache.Commit()
+			if err := saveNotify(eventStore, txHash, []*event.NotifyEventInfo{}, false); err != nil {
+				return err
+			}
+			return err
+		}
 		if _, err := transContract.Execute(); err != nil {
 			return err
 		}
-		cache.Commit()
-		if err := saveNotify(eventStore, txHash, &event.ExecuteNotify{TxHash: txHash,
-			State: event.CONTRACT_STATE_FAIL, Notify: []*event.NotifyEventInfo{}}); err != nil {
+		if err := saveNotify(eventStore, txHash, sc.Notifications, true); err != nil {
 			return err
 		}
-		return err
-	}
-	if _, err := transContract.Execute(); err != nil {
-		return err
-	}
-	if err := saveNotify(eventStore, txHash, &event.ExecuteNotify{TxHash: txHash,
-		State: event.CONTRACT_STATE_SUCCESS, Notify: sc.Notifications}); err != nil {
-		return err
+	} else {
+		if err != nil {
+			if err := saveNotify(eventStore, txHash, []*event.NotifyEventInfo{}, false); err != nil {
+				return err
+			}
+			return err
+		}
+		if err := saveNotify(eventStore, txHash, []*event.NotifyEventInfo{}, true); err != nil {
+			return err
+		}
 	}
 	sc.CloneCache.Commit()
 
 	return nil
 }
 
-func saveNotify(eventStore scommon.EventStore, txHash common.Uint256, notify *event.ExecuteNotify) error {
+func saveNotify(eventStore scommon.EventStore, txHash common.Uint256, notifies []*event.NotifyEventInfo, execSucc bool) error {
 	if !config.DefConfig.Common.EnableEventLog {
 		return nil
 	}
-	if err := eventStore.SaveEventNotifyByTx(txHash, notify); err != nil {
+	var notifyInfo *event.ExecuteNotify
+	if execSucc {
+		notifyInfo = &event.ExecuteNotify{TxHash: txHash,
+			State: event.CONTRACT_STATE_SUCCESS, Notify: notifies}
+	} else {
+		notifyInfo = &event.ExecuteNotify{TxHash: txHash,
+			State: event.CONTRACT_STATE_FAIL, Notify: notifies}
+
+	}
+	if err := eventStore.SaveEventNotifyByTx(txHash, notifyInfo); err != nil {
 		return fmt.Errorf("SaveEventNotifyByTx error %s", err)
 	}
-	event.PushSmartCodeEvent(txHash, 0, event.EVENT_NOTIFY, notify)
+	event.PushSmartCodeEvent(txHash, 0, event.EVENT_NOTIFY, notifyInfo)
+
 	return nil
 }
 

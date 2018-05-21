@@ -35,6 +35,12 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/smartcontract/states"
+)
+
+var (
+	COMMIT_DPOS_BYTES = CommitDposBytes()
+	INIT_CONFIG_BYTES = InitConfigBytes()
 )
 
 func shufflehash(txid common.Uint256, ts uint32, id []byte, idx int) (uint64, error) {
@@ -210,6 +216,20 @@ func AppCallApproveOng(native *native.NativeService, from common.Address, to com
 		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallApproveOng, appCall error!")
 	}
 	return nil
+}
+
+func CommitDposBytes() []byte {
+	commitDpos := states.Contract{Address: genesis.GovernanceContractAddress, Method: COMMIT_DPOS}
+	bf := new(bytes.Buffer)
+	commitDpos.Serialize(bf)
+	return bf.Bytes()
+}
+
+func InitConfigBytes() []byte {
+	initConfig := states.Contract{Address: genesis.GovernanceContractAddress, Method: INIT_CONFIG}
+	bf := new(bytes.Buffer)
+	initConfig.Serialize(bf)
+	return bf.Bytes()
 }
 
 func splitCurve(pos uint64, avg uint64) uint64 {
