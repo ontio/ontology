@@ -44,7 +44,22 @@ import (
 )
 
 var (
+	/**
+		1.COMMIT_DPOS_BYTE is states.Contract serialize bytes
+		2.states.Contract {
+			Address: genesis.GovernanceContractAddress,
+			Method: gover.COMMIT_DPOS,
+		}
+
+	 */
 	COMMIT_DPOS_BYTE = []byte{0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 10, 99, 111, 109, 109, 105, 116, 68, 112, 111, 115, 0}
+	/**
+		1.COMMIT_DPOS_BYTE is states.Contract serialize bytes
+		2.states.Contract {
+			Address: genesis.GovernanceContractAddress,
+			Method: gover.INIT_CONFIG,
+		}
+	 */
 	INIT_CONFIG_BYTE = []byte{0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 10, 105, 110, 105, 116, 67, 111, 110, 102, 105, 103}
 )
 
@@ -88,7 +103,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 			return err
 		}
 		if balance < tx.GasLimit*tx.GasPrice {
-			return fmt.Errorf("%v", "Payer Gas Insufficient")
+			return fmt.Errorf("payer gas insufficient, need %d , only have %d", tx.GasLimit*tx.GasPrice, balance)
 		}
 	}
 
