@@ -24,45 +24,186 @@ import (
 
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 var (
-	RoleF        = []byte{0x01}
-	RoleP        = []byte{0x02}
-	DelegateList = []byte{0x04}
-	Admin        = []byte{0x05}
+	PreRoleFunc       = []byte{0x01}
+	PreRoleToken      = []byte{0x02}
+	PreDelegateStatus = []byte{0x03}
+	PreDelegateList   = []byte{0x04}
+	PreAdmin          = []byte{0x05}
 )
 
-//type(this.contractAddr.Admin) = []byte
 func GetContractAdminKey(native *native.NativeService, contractAddr []byte) ([]byte, error) {
 	this := native.ContextRef.CurrentContext().ContractAddress
-	adminKey, err := packKeys(this[:], [][]byte{contractAddr, Admin})
+	adminKey, err := packKeys(this[:], [][]byte{contractAddr, PreAdmin})
 
 	return adminKey, err
 }
 
-//type(this.contractAddr.RoleF.role) = roleFuncs
-func GetRoleFKey(native *native.NativeService, contractAddr, role []byte) ([]byte, error) {
-	this := native.ContextRef.CurrentContext().ContractAddress
-	roleFKey, err := packKeys(this[:], [][]byte{contractAddr, RoleF, role})
+//type(this.contractAddr.Admin) = []byte
+func GetContractAdmin(native *native.NativeService, contractAddr []byte) ([]byte, error) {
+	key, err := GetContractAdminKey(native, contractAddr)
+	if err != nil {
+		return nil, err
+	}
+	item, err := utils.GetStorageItem(native, key)
+	if err != nil {
+		return nil, err
+	}
+	if item == nil {
+		return nil, nil
+	}
+	return item.Value, nil
+}
 
-	return roleFKey, err
+func GetRoleFuncKey(native *native.NativeService, contractAddr, role []byte) ([]byte, error) {
+	this := native.ContextRef.CurrentContext().ContractAddress
+	roleFuncKey, err := packKeys(this[:], [][]byte{contractAddr, PreRoleFunc, role})
+
+	return roleFuncKey, err
+}
+
+//type(this.contractAddr.RoleFunc.role) = roleFuncs
+func GetRoleFunc(native *native.NativeService, contractAddr, role []byte) (*roleFuncs, error) {
+	key, err := GetRoleFuncKey(native, contractAddr, role)
+	if err != nil {
+		return nil, fmt.Errorf("get role's func failed, caused by %v", err)
+	}
+	item, err := utils.GetStorageItem(native, key)
+	if err != nil {
+		return nil, fmt.Errorf("fetch role's func from storage failed, caused by %v", err)
+	}
+	if item == nil {
+		return nil, nil
+	}
+	rF := new(roleFuncs)
+	rd := bytes.NewReader(item.Value)
+	err = rF.Deserialize(rd)
+	if err != nil {
+		return nil, fmt.Errorf("deserialize failed")
+	}
+	return rF, nil
+}
+
+func PutRoleFunc(native *native.NativeService, contractAddr, role []byte, funcs *roleFuncs) error {
+	key, _ := GetRoleFuncKey(native, contractAddr, role)
+	bf := new(bytes.Buffer)
+	err := funcs.Serialize(bf)
+	if err != nil {
+		return fmt.Errorf("serialize roleFuncs failed, caused by %v", err)
+	}
+	utils.PutBytes(native, key, bf.Bytes())
+	return nil
 }
 
 //type(this.contractAddr.RoleP.ontID) = roleTokens
-func GetRolePKey(native *native.NativeService, contractAddr, ontID []byte) ([]byte, error) {
+func GetOntIDTokenKey(native *native.NativeService, contractAddr, ontID []byte) ([]byte, error) {
 	this := native.ContextRef.CurrentContext().ContractAddress
-	rolePKey, err := packKeys(this[:], [][]byte{contractAddr, RoleP, ontID})
+	tokenKey, err := packKeys(this[:], [][]byte{contractAddr, PreRoleToken, ontID})
 
-	return rolePKey, err
+	return tokenKey, err
 }
 
+func GetOntIDToken(native *native.NativeService, contractAddr, ontID []byte) (*roleTokens, error) {
+	key, err := GetOntIDTokenKey(native, contractAddr, ontID)
+	if err != nil {
+		return nil, err
+	}
+	item, err := utils.GetStorageItem(native, key)
+	if err != nil {
+		return nil, fmt.Errorf("fetch auth tokens from storage failed, caused by %v", err)
+	}
+	if item == nil {
+		return nil, nil
+	}
+	rT := new(roleTokens)
+	rd := bytes.NewReader(item.Value)
+	err = rT.Deserialize(rd)
+	if err != nil {
+		return nil, fmt.Errorf("deserialize failed")
+	}
+	return rT, nil
+}
+
+func PutOntIDToken(native *native.NativeService, contractAddr, ontID []byte, tokens *roleTokens) error {
+	key, _ := GetOntIDTokenKey(native, contractAddr, ontID)
+	bf := new(bytes.Buffer)
+	err := tokens.Serialize(bf)
+	if err != nil {
+		return fmt.Errorf("serialize roleFuncs failed, caused by %v", err)
+	}
+	utils.PutBytes(native, key, bf.Bytes())
+	return nil
+}
+
+//type(this.contractAddr.DelegateStatus.ontID)
+func GetDelegateStatusKey(native *native.NativeService, contractAddr, ontID []byte) ([]byte, error) {
+	this := native.ContextRef.CurrentContext().ContractAddress
+	key, err := packKeys(this[:], [][]byte{contractAddr, PreDelegateStatus, ontID})
+
+	return key, err
+}
+
+func GetDelegateStatus(native *native.NativeService, contractAddr, ontID []byte) (*Status, error) {
+	key, err := GetDelegateStatusKey(native, contractAddr, ontID)
+	if err != nil {
+		return nil, err
+	}
+	item, err := utils.GetStorageItem(native, key)
+	if err != nil {
+		return nil, fmt.Errorf("fetch delegate status from storage failed, caused by %v", err)
+	}
+	if item == nil {
+		return nil, nil
+	}
+	status := new(Status)
+	rd := bytes.NewReader(item.Value)
+	err = status.Deserialize(rd)
+	if err != nil {
+		return nil, fmt.Errorf("deserialize failed")
+	}
+	return status, nil
+}
+
+func PutDelegateStatus(native *native.NativeService, contractAddr, ontID []byte, status *Status) error {
+	key, _ := GetDelegateStatusKey(native, contractAddr, ontID)
+	bf := new(bytes.Buffer)
+	err := status.Serialize(bf)
+	if err != nil {
+		return fmt.Errorf("serialize roleFuncs failed, caused by %v", err)
+	}
+	utils.PutBytes(native, key, bf.Bytes())
+	return nil
+}
+
+/*
 //type(this.contractAddr.DelegateList.role.ontID)
 func GetDelegateListKey(native *native.NativeService, contractAddr, role, ontID []byte) ([]byte, error) {
 	this := native.ContextRef.CurrentContext().ContractAddress
-	delegateListKey, err := packKeys(this[:], [][]byte{contractAddr, DelegateList, role, ontID})
+	delegateListKey, err := packKeys(this[:], [][]byte{contractAddr, PreDelegateList, role, ontID})
 
 	return delegateListKey, err
+}
+*/
+
+func packKeys(field []byte, items [][]byte) ([]byte, error) {
+	w := new(bytes.Buffer)
+	for _, item := range items {
+		err := serialization.WriteVarBytes(w, item)
+		if err != nil {
+			return nil, fmt.Errorf("packKeys failed when serialize %x", item)
+		}
+	}
+	key := append(field, w.Bytes()...)
+	return key, nil
+}
+
+//pack data to be used as a key in the kv storage
+// key := field || ser_data
+func packKey(field []byte, data []byte) ([]byte, error) {
+	return packKeys(field, [][]byte{data})
 }
 
 //remote duplicates in the slice of string
@@ -81,22 +222,4 @@ func stringSliceUniq(s []string) []string {
 		i++
 	}
 	return ret
-}
-
-func packKeys(field []byte, items [][]byte) ([]byte, error) {
-	w := new(bytes.Buffer)
-	for _, item := range items {
-		err := serialization.WriteVarBytes(w, item)
-		if err != nil {
-			return nil, fmt.Errorf("packKeys failed when serialize %x", item)
-		}
-	}
-	key := append(field, w.Bytes()...)
-	return key, nil
-}
-
-//pack data to be used as a key in the kv storage
-// key := field || ser_data
-func packKey(field []byte, data []byte) ([]byte, error) {
-	return packKeys(field, [][]byte{data})
 }
