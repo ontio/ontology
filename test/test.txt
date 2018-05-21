@@ -1,3 +1,4 @@
 just test
 test 2
 test merge
+test merge 2
