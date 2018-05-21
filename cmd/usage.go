@@ -110,8 +110,6 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.DisableConsensusFlag,
 			utils.MaxTxInBlockFlag,
-			utils.GasLimitFlag,
-			utils.GasPriceFlag,
 		},
 	},
 	{
@@ -155,13 +153,25 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name: "TRANSACTION",
 		Flags: []cli.Flag{
-			utils.TransactionGasLimit,
-			utils.TransactionGasPrice,
+			utils.TransactionGasLimitFlag,
+			utils.TransactionGasPriceFlag,
 			utils.TransactionAssetFlag,
 			utils.TransactionFromFlag,
 			utils.TransactionToFlag,
 			utils.TransactionAmountFlag,
 			utils.TransactionHashFlag,
+			utils.TransferFromSenderFlag,
+			utils.ApproveAssetFlag,
+			utils.ApproveAssetFromFlag,
+			utils.ApproveAssetToFlag,
+			utils.ApproveAmountFlag,
+		},
+	},
+	{
+		Name: "Approve",
+		Flags: []cli.Flag{
+			utils.ApproveAssetFromFlag,
+			utils.ApproveAssetToFlag,
 		},
 	},
 	{

@@ -23,7 +23,9 @@ import (
 	"github.com/ontio/ontology/account"
 	cmdcom "github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/cmd/utils"
+	"github.com/ontio/ontology/core/genesis"
 	"github.com/urfave/cli"
+	"strconv"
 	"strings"
 )
 
@@ -39,14 +41,44 @@ var AssetCommand = cli.Command{
 			ArgsUsage:   " ",
 			Description: "Transfer ont or ong to another account. If from address does not specified, using default account",
 			Flags: []cli.Flag{
-				utils.TransactionGasPrice,
-				utils.TransactionGasLimit,
+				utils.TransactionGasPriceFlag,
+				utils.TransactionGasLimitFlag,
 				utils.TransactionAssetFlag,
 				utils.TransactionFromFlag,
 				utils.TransactionToFlag,
 				utils.TransactionAmountFlag,
 				utils.WalletFileFlag,
-				utils.AccountAddressFlag,
+			},
+		},
+		{
+			Action:    approve,
+			Name:      "approve",
+			ArgsUsage: " ",
+			Usage:     "Approve another user can transfer asset",
+			Flags: []cli.Flag{
+				utils.TransactionGasPriceFlag,
+				utils.TransactionGasLimitFlag,
+				utils.ApproveAssetFlag,
+				utils.ApproveAssetFromFlag,
+				utils.ApproveAssetToFlag,
+				utils.ApproveAmountFlag,
+				utils.WalletFileFlag,
+			},
+		},
+		{
+			Action:    transferFrom,
+			Name:      "transferfrom",
+			ArgsUsage: " ",
+			Usage:     "Using to transfer asset after approve",
+			Flags: []cli.Flag{
+				utils.TransactionGasPriceFlag,
+				utils.TransactionGasLimitFlag,
+				utils.ApproveAssetFlag,
+				utils.TransferFromSenderFlag,
+				utils.ApproveAssetFromFlag,
+				utils.ApproveAssetToFlag,
+				utils.TransferFromAmountFlag,
+				utils.WalletFileFlag,
 			},
 		},
 		{
@@ -59,12 +91,35 @@ var AssetCommand = cli.Command{
 			},
 		},
 		{
-			Action:      queryTransferStatus,
-			Name:        "status",
-			Usage:       "Display asset status",
-			ArgsUsage:   "<txhash>",
-			Description: `Display asset transfer status of transfer transaction.`,
-			Flags:       []cli.Flag{},
+			Action: getAllowance,
+			Name:   "allowance",
+			Usage:  "Show approve balance of ont or ong of specified account",
+			Flags: []cli.Flag{
+				utils.ApproveAssetFlag,
+				utils.ApproveAssetFromFlag,
+				utils.ApproveAssetToFlag,
+				utils.WalletFileFlag,
+			},
+		},
+		{
+			Action:    unclaimOng,
+			Name:      "unclaimong",
+			Usage:     "Show the balance that user can claim",
+			ArgsUsage: "<address|label|index>",
+			Flags: []cli.Flag{
+				utils.WalletFileFlag,
+			},
+		},
+		{
+			Action:    claimOng,
+			Name:      "claimong",
+			Usage:     "Claim ong",
+			ArgsUsage: "<address|label|index>",
+			Flags: []cli.Flag{
+				utils.TransactionGasPriceFlag,
+				utils.TransactionGasLimitFlag,
+				utils.WalletFileFlag,
+			},
 		},
 	},
 }
@@ -92,13 +147,25 @@ func transfer(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("Parse to address:%s error:%s", to, err)
 	}
-	amount := ctx.Uint64(utils.TransactionAmountFlag.Name)
-	gasPrice := ctx.Uint64(utils.TransactionGasPrice.Name)
-	gasLimit := ctx.Uint64(utils.TransactionGasLimit.Name)
 
-	ctx.Set(utils.AccountAddressFlag.Name, from)
+	var amount uint64
+	amountStr := ctx.String(utils.TransactionAmountFlag.Name)
+	switch strings.ToLower(asset) {
+	case "ont":
+		amount = utils.ParseOnt(amountStr)
+		amountStr = utils.FormatOnt(amount)
+	case "ong":
+		amount = utils.ParseOng(amountStr)
+		amountStr = utils.FormatOng(amount)
+	default:
+		return fmt.Errorf("unsupport asset:%s", asset)
+	}
+
+	gasPrice := ctx.Uint64(utils.TransactionGasPriceFlag.Name)
+	gasLimit := ctx.Uint64(utils.TransactionGasLimitFlag.Name)
+
 	var signer *account.Account
-	signer, err = cmdcom.GetAccount(ctx)
+	signer, err = cmdcom.GetAccount(ctx, fromAddr)
 	if err != nil {
 		return fmt.Errorf("GetAccount error:%s", err)
 	}
@@ -107,10 +174,12 @@ func transfer(ctx *cli.Context) error {
 		return fmt.Errorf("Transfer error:%s", err)
 	}
 	fmt.Printf("Transfer %s\n", strings.ToUpper(asset))
-	fmt.Printf("From:%s\n", fromAddr)
-	fmt.Printf("To:%s\n", toAddr)
-	fmt.Printf("Amount:%d\n", amount)
-	fmt.Printf("TxHash:%s\n", txHash)
+	fmt.Printf("  From:%s\n", fromAddr)
+	fmt.Printf("  To:%s\n", toAddr)
+	fmt.Printf("  Amount:%s\n", amountStr)
+	fmt.Printf("  TxHash:%s\n", txHash)
+	fmt.Printf("\nTip:\n")
+	fmt.Printf("  Using './ontology info status %s' to query transaction status\n", txHash)
 	return nil
 }
 
@@ -130,35 +199,258 @@ func getBalance(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
+	ong, err := strconv.ParseUint(balance.Ong, 10, 64)
+	if err != nil {
+		return err
+	}
 	fmt.Printf("BalanceOf:%s\n", accAddr)
-	fmt.Printf("ONT:%s\n", balance.Ont)
-	fmt.Printf("ONG:%s\n", balance.Ong)
-	fmt.Printf("ONGApprove:%s\n", balance.OngAppove)
+	fmt.Printf("  ONT:%s\n", balance.Ont)
+	fmt.Printf("  ONG:%s\n", utils.FormatOng(ong))
 	return nil
 }
 
-func queryTransferStatus(ctx *cli.Context) error {
-	if ctx.NArg() < 1 {
-		fmt.Println("Missing argument. TxHash expected.\n")
+func getAllowance(ctx *cli.Context) error {
+	from := ctx.String(utils.GetFlagName(utils.ApproveAssetFromFlag))
+	to := ctx.String(utils.GetFlagName(utils.ApproveAssetToFlag))
+	if from == "" || to == "" {
+		fmt.Printf("Missing approve from or to argument\n")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-	txHash := ctx.Args().First()
-	evtInfos, err := utils.GetSmartContractEvent(txHash)
-	if err != nil {
-		return fmt.Errorf("GetSmartContractEvent error:%s", err)
+	asset := ctx.String(utils.GetFlagName(utils.ApproveAssetFlag))
+	if asset == "" {
+		asset = utils.ASSET_ONT
 	}
-	if evtInfos.State == 0 {
-		fmt.Printf("Transaction:%s failed\n", txHash)
+	fromAddr, err := cmdcom.ParseAddress(from, ctx)
+	if err != nil {
+		return err
+	}
+	toAddr, err := cmdcom.ParseAddress(to, ctx)
+	if err != nil {
+		return err
+	}
+	balanceStr, err := utils.GetAllowance(asset, fromAddr, toAddr)
+	if err != nil {
+		return err
+	}
+	switch strings.ToLower(asset) {
+	case "ont":
+	case "ong":
+		balance, err := strconv.ParseUint(balanceStr, 10, 64)
+		if err != nil {
+			return err
+		}
+		balanceStr = utils.FormatOng(balance)
+	default:
+		return fmt.Errorf("unsupport asset:%s", asset)
+	}
+	fmt.Printf("Allowance:%s\n", asset)
+	fmt.Printf("  From:%s\n", fromAddr)
+	fmt.Printf("  To:%s\n", toAddr)
+	fmt.Printf("  Balance:%s\n", balanceStr)
+	return nil
+}
+
+func approve(ctx *cli.Context) error {
+	asset := ctx.String(utils.GetFlagName(utils.ApproveAssetFlag))
+	from := ctx.String(utils.GetFlagName(utils.ApproveAssetFromFlag))
+	to := ctx.String(utils.GetFlagName(utils.ApproveAssetToFlag))
+	amountStr := ctx.String(utils.GetFlagName(utils.ApproveAmountFlag))
+	if asset == "" ||
+		from == "" ||
+		to == "" ||
+		amountStr == "" {
+		fmt.Printf("Missing asset, from, to, or amount argument\n")
+		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-	fmt.Printf("Transaction:%s success\n", txHash)
-	for _, notify := range evtInfos.Notify {
-		states := notify.States.([]interface{})
-		fmt.Printf("Transaction:%s success\n", states[0])
-		fmt.Printf("From:%s\n", states[1])
-		fmt.Printf("To:%s\n", states[2])
-		fmt.Printf("Amount:%v\n", states[3])
+	fromAddr, err := cmdcom.ParseAddress(from, ctx)
+	if err != nil {
+		return err
 	}
+	toAddr, err := cmdcom.ParseAddress(to, ctx)
+	if err != nil {
+		return err
+	}
+	var amount uint64
+	switch strings.ToLower(asset) {
+	case "ont":
+		amount = utils.ParseOnt(amountStr)
+		amountStr = utils.FormatOnt(amount)
+	case "ong":
+		amount = utils.ParseOng(amountStr)
+		amountStr = utils.FormatOng(amount)
+	default:
+		return fmt.Errorf("unsupport asset:%s", asset)
+	}
+
+	gasPrice := ctx.Uint64(utils.TransactionGasPriceFlag.Name)
+	gasLimit := ctx.Uint64(utils.TransactionGasLimitFlag.Name)
+
+	var signer *account.Account
+	signer, err = cmdcom.GetAccount(ctx, fromAddr)
+	if err != nil {
+		return fmt.Errorf("GetAccount error:%s", err)
+	}
+
+	txHash, err := utils.Approve(gasPrice, gasLimit, signer, asset, fromAddr, toAddr, amount)
+	if err != nil {
+		return fmt.Errorf("approve error:%s", err)
+	}
+
+	fmt.Printf("Approve:\n")
+	fmt.Printf("  Asset:%s\n", asset)
+	fmt.Printf("  From:%s\n", fromAddr)
+	fmt.Printf("  To:%s\n", toAddr)
+	fmt.Printf("  Amount:%s\n", amountStr)
+	fmt.Printf("  TxHash:%s\n", txHash)
+	fmt.Printf("\nTip:\n")
+	fmt.Printf("  Using './ontology info status %s' to query transaction status\n", txHash)
+	return nil
+}
+
+func transferFrom(ctx *cli.Context) error {
+	asset := ctx.String(utils.GetFlagName(utils.ApproveAssetFlag))
+	from := ctx.String(utils.GetFlagName(utils.ApproveAssetFromFlag))
+	to := ctx.String(utils.GetFlagName(utils.ApproveAssetToFlag))
+	amountStr := ctx.String(utils.GetFlagName(utils.TransferFromAmountFlag))
+	if asset == "" ||
+		from == "" ||
+		to == "" ||
+		amountStr == "" {
+		fmt.Printf("Missing asset, from, to, or amount argument\n")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+	fromAddr, err := cmdcom.ParseAddress(from, ctx)
+	if err != nil {
+		return err
+	}
+	toAddr, err := cmdcom.ParseAddress(to, ctx)
+	if err != nil {
+		return err
+	}
+
+	var sendAddr string
+	sender := ctx.String(utils.GetFlagName(utils.TransferFromSenderFlag))
+	if sender == "" {
+		sendAddr = toAddr
+	} else {
+		sendAddr, err = cmdcom.ParseAddress(sender, ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	var signer *account.Account
+	signer, err = cmdcom.GetAccount(ctx, sendAddr)
+	if err != nil {
+		return fmt.Errorf("GetAccount error:%s", err)
+	}
+
+	var amount uint64
+	switch strings.ToLower(asset) {
+	case "ont":
+		amount = utils.ParseOnt(amountStr)
+		amountStr = utils.FormatOnt(amount)
+	case "ong":
+		amount = utils.ParseOng(amountStr)
+		amountStr = utils.FormatOng(amount)
+	default:
+		return fmt.Errorf("unsupport asset:%s", asset)
+	}
+	gasPrice := ctx.Uint64(utils.TransactionGasPriceFlag.Name)
+	gasLimit := ctx.Uint64(utils.TransactionGasLimitFlag.Name)
+
+	txHash, err := utils.TransferFrom(gasPrice, gasLimit, signer, asset, sendAddr, fromAddr, toAddr, amount)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Transfer from:\n")
+	fmt.Printf("  Asset:%s\n", asset)
+	fmt.Printf("  Sender:%s\n", sendAddr)
+	fmt.Printf("  From:%s\n", fromAddr)
+	fmt.Printf("  To:%s\n", toAddr)
+	fmt.Printf("  Amount:%s\n", amountStr)
+	fmt.Printf("  TxHash:%s\n", txHash)
+	fmt.Printf("\nTip:\n")
+	fmt.Printf("  Using './ontology info status %s' to query transaction status\n", txHash)
+	return nil
+}
+
+func unclaimOng(ctx *cli.Context) error {
+	if ctx.NArg() < 1 {
+		fmt.Println("Missing argument. Account address, label or index expected.\n")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+	addrArg := ctx.Args().First()
+	accAddr, err := cmdcom.ParseAddress(addrArg, ctx)
+	if err != nil {
+		return err
+	}
+	fromAddr := genesis.OntContractAddress.ToBase58()
+	balanceStr, err := utils.GetAllowance("ong", fromAddr, accAddr)
+	if err != nil {
+		return err
+	}
+	balance, err := strconv.ParseUint(balanceStr, 10, 64)
+	if err != nil {
+		return err
+	}
+	balanceStr = utils.FormatOng(balance)
+	fmt.Printf("Unclaim Ong:\n")
+	fmt.Printf("  Account:%s\n", accAddr)
+	fmt.Printf("  ONG:%s\n", balanceStr)
+	return nil
+}
+
+func claimOng(ctx *cli.Context) error {
+	if ctx.NArg() < 1 {
+		fmt.Println("Missing argument. Account address, label or index expected.\n")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+	addrArg := ctx.Args().First()
+	accAddr, err := cmdcom.ParseAddress(addrArg, ctx)
+	if err != nil {
+		return err
+	}
+	fromAddr := genesis.OntContractAddress.ToBase58()
+	balance, err := utils.GetAllowance("ong", fromAddr, accAddr)
+	if err != nil {
+		return err
+	}
+
+	amount, err := strconv.ParseUint(balance, 10, 64)
+	if err != nil {
+		return err
+	}
+	if amount <= 0 {
+		return fmt.Errorf("Don't have unclaim ong\n")
+	}
+
+	var signer *account.Account
+	signer, err = cmdcom.GetAccount(ctx, accAddr)
+	if err != nil {
+		return fmt.Errorf("GetAccount error:%s", err)
+	}
+
+	gasPrice := ctx.Uint64(utils.TransactionGasPriceFlag.Name)
+	gasLimit := ctx.Uint64(utils.TransactionGasLimitFlag.Name)
+
+	txHash, err := utils.TransferFrom(gasPrice, gasLimit, signer, "ong", accAddr, fromAddr, accAddr, amount)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Claim Ong:\n")
+	fmt.Printf("  Account:%s\n", accAddr)
+	fmt.Printf("  Amount:%s\n", utils.FormatOng(amount))
+	fmt.Printf("  TxHash:%s\n", txHash)
+	fmt.Printf("\nTip:\n")
+	fmt.Printf("  Using './ontology info status %s' to query transaction status\n", txHash)
 	return nil
 }

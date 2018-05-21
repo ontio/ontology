@@ -43,8 +43,8 @@ var (
 				Usage:     "Deploy a smart contract to ontolgoy",
 				ArgsUsage: " ",
 				Flags: []cli.Flag{
-					utils.TransactionGasPrice,
-					utils.TransactionGasLimit,
+					utils.TransactionGasPriceFlag,
+					utils.TransactionGasLimitFlag,
 					utils.ContractStorageFlag,
 					utils.ContractCodeFileFlag,
 					utils.ContractNameFlag,
@@ -62,8 +62,8 @@ var (
 				Usage:     "Invoke smart contract",
 				ArgsUsage: " ",
 				Flags: []cli.Flag{
-					utils.TransactionGasPrice,
-					utils.TransactionGasLimit,
+					utils.TransactionGasPriceFlag,
+					utils.TransactionGasLimitFlag,
 					utils.ContractAddrFlag,
 					utils.ContractParamsFlag,
 					utils.ContractVersionFlag,
@@ -106,8 +106,8 @@ func deployContract(ctx *cli.Context) error {
 	email := ctx.String(utils.GetFlagName(utils.ContractEmailFlag))
 	desc := ctx.String(utils.GetFlagName(utils.ContractDescFlag))
 
-	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPrice))
-	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimit))
+	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
+	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
 	vmType := types.NEOVM
 	cversion := fmt.Sprintf("%s", version)
 
@@ -116,8 +116,11 @@ func deployContract(ctx *cli.Context) error {
 		return fmt.Errorf("DeployContract error:%s", err)
 	}
 	address := utils.GetContractAddress(string(code), vmType)
-	fmt.Printf("Deploy TxHash:%s\n", txHash)
-	fmt.Printf("Contract Address:%s\n", address.ToBase58())
+	fmt.Printf("Deploy contract:\n")
+	fmt.Printf("  Contract Address:%s\n", address.ToBase58())
+	fmt.Printf("  TxHash:%s\n", txHash)
+	fmt.Printf("\nTip:\n")
+	fmt.Printf("  Using './ontology info status %s' to query transaction status\n", txHash)
 	return nil
 }
 
@@ -144,8 +147,8 @@ func invokeContract(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("Get singer account error:%s", err)
 	}
-	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPrice))
-	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimit))
+	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
+	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
 
 	paramData, _ := json.Marshal(params)
 	fmt.Printf("Invoke:%s Params:%s\n", contractAddr.ToBase58(), paramData)
@@ -180,5 +183,7 @@ func invokeContract(ctx *cli.Context) error {
 	}
 
 	fmt.Printf("TxHash:%s\n", txHash)
+	fmt.Printf("\nTip:\n")
+	fmt.Printf("  Using './ontology info status %s' to query transaction status\n", txHash)
 	return nil
 }
