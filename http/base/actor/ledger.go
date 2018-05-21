@@ -24,6 +24,7 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
+	cstate "github.com/ontio/ontology/smartcontract/states"
 )
 
 const (
@@ -70,7 +71,7 @@ func GetTxnWithHeightByTxHash(hash common.Uint256) (uint32, *types.Transaction, 
 	return height, tx, err
 }
 
-func PreExecuteContract(tx *types.Transaction) (interface{}, error) {
+func PreExecuteContract(tx *types.Transaction) (*cstate.PreExecResult, error) {
 	return ledger.DefLedger.PreExecuteContract(tx)
 }
 

@@ -154,16 +154,22 @@ func invokeContract(ctx *cli.Context) error {
 	fmt.Printf("Invoke:%s Params:%s\n", contractAddr.ToBase58(), paramData)
 
 	if ctx.IsSet(utils.GetFlagName(utils.ContractPrepareInvokeFlag)) {
-		res, err := utils.PrepareInvokeNeoVMContract(gasPrice, gasLimit, cversion, contractAddr, params)
+		preResult, err := utils.PrepareInvokeNeoVMContract(gasPrice, gasLimit, cversion, contractAddr, params)
 		if err != nil {
 			return fmt.Errorf("PrepareInvokeNeoVMSmartContact error:%s", err)
 		}
+		if preResult.State == 0 {
+			return fmt.Errorf("Contract invoke failed\n")
+		}
+		fmt.Printf("Contract invoke successfully\n")
+		fmt.Printf("Gas consumed:%d\n", preResult.Gas)
+
 		rawReturnTypes := ctx.String(utils.GetFlagName(utils.ContranctReturnTypeFlag))
 		if rawReturnTypes == "" {
-			fmt.Printf("Return:%s (raw value)\n", res)
+			fmt.Printf("Return:%s (raw value)\n", preResult.Result)
 			return nil
 		}
-		values, err := utils.ParseReturnValue(res, rawReturnTypes)
+		values, err := utils.ParseReturnValue(preResult.Result, rawReturnTypes)
 		if err != nil {
 			return fmt.Errorf("parseReturnValue values:%+v types:%s error:%s", values, rawReturnTypes, err)
 		}

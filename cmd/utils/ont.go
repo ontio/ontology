@@ -508,7 +508,7 @@ func PrepareInvokeNeoVMContract(
 	cversion byte,
 	contractAddress common.Address,
 	params []interface{},
-) (interface{}, error) {
+) (*cstates.PreExecResult, error) {
 	code, err := BuildNeoVMInvokeCode(cversion, contractAddress, params)
 	if err != nil {
 		return nil, fmt.Errorf("BuildNVMInvokeCode error:%s", err)
@@ -524,12 +524,12 @@ func PrepareInvokeNeoVMContract(
 	if err != nil {
 		return nil, err
 	}
-	var res interface{}
-	err = json.Unmarshal(data, &res)
+	preResult := &cstates.PreExecResult{}
+	err = json.Unmarshal(data, &preResult)
 	if err != nil {
-		return nil, fmt.Errorf("json.Unmarshal hash:%s error:%s", data, err)
+		return nil, fmt.Errorf("json.Unmarshal PreExecResult:%s error:%s", data, err)
 	}
-	return res, nil
+	return preResult, nil
 }
 
 func PrepareInvokeNativeContract(
@@ -537,7 +537,7 @@ func PrepareInvokeNativeContract(
 	gasLimit uint64,
 	cversion byte,
 	contractAddress common.Address,
-	code []byte) (interface{}, error) {
+	code []byte) (*cstates.PreExecResult, error) {
 	tx := NewInvokeTransaction(gasPrice, gasLimit, vmtypes.Native, code)
 	var buffer bytes.Buffer
 	err := tx.Serialize(&buffer)
@@ -549,12 +549,12 @@ func PrepareInvokeNativeContract(
 	if err != nil {
 		return nil, err
 	}
-	var res interface{}
-	err = json.Unmarshal(data, &res)
+	preResult := &cstates.PreExecResult{}
+	err = json.Unmarshal(data, &preResult)
 	if err != nil {
-		return nil, fmt.Errorf("json.Unmarshal hash:%s error:%s", data, err)
+		return nil, fmt.Errorf("json.Unmarshal PreExecResult:%s error:%s", data, err)
 	}
-	return res, nil
+	return preResult, nil
 }
 
 //NewDeployCodeTransaction return a smart contract deploy transaction instance
