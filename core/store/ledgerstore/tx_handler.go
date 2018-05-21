@@ -75,7 +75,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	invoke := tx.Payload.(*payload.InvokeCode)
 	txHash := tx.Hash()
 
-	sysTransFlag := bytes.Compare(invoke.Code.Code, governance.COMMIT_DPOS) == 0 || bytes.Compare(invoke.Code.Code, governance.INIT_CONFIG) == 0
+	sysTransFlag := bytes.Compare(invoke.Code.Code, governance.COMMIT_DPOS_BYTES) == 0 || bytes.Compare(invoke.Code.Code, governance.INIT_CONFIG_BYTES) == 0
 
 	if !sysTransFlag {
 		// check payer ong balance
@@ -89,7 +89,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	}
 
 	// init smart contract configuration info
-	config := &smartcontract.Config{
+	config := &smartcontract.Config {
 		Time:   block.Header.Timestamp,
 		Height: block.Header.Height,
 		Tx:     tx,
@@ -126,8 +126,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 				return err
 			}
 			cache.Commit()
-			if err := saveNotify(eventStore, txHash, &event.ExecuteNotify{TxHash: txHash,
-				State: event.CONTRACT_STATE_FAIL, Notify: []*event.NotifyEventInfo{}}); err != nil {
+			if err := saveNotify(eventStore, txHash, []*event.NotifyEventInfo{}, false); err != nil {
 				return err
 			}
 			return err
@@ -135,12 +134,17 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 		if _, err := transContract.Execute(); err != nil {
 			return err
 		}
-		if err := saveNotify(eventStore, txHash, &event.ExecuteNotify{TxHash: txHash,
-			State: event.CONTRACT_STATE_SUCCESS, Notify: sc.Notifications}); err != nil {
+		if err := saveNotify(eventStore, txHash, sc.Notifications, true); err != nil {
 			return err
 		}
 	} else {
 		if err != nil {
+			if err := saveNotify(eventStore, txHash, []*event.NotifyEventInfo{}, false); err != nil {
+				return err
+			}
+			return err
+		}
+		if err := saveNotify(eventStore, txHash, []*event.NotifyEventInfo{}, true); err != nil {
 			return err
 		}
 	}
@@ -149,14 +153,24 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	return nil
 }
 
-func saveNotify(eventStore scommon.EventStore, txHash common.Uint256, notify *event.ExecuteNotify) error {
+func saveNotify(eventStore scommon.EventStore, txHash common.Uint256, notifies []*event.NotifyEventInfo, execSucc bool) error {
 	if !config.DefConfig.Common.EnableEventLog {
 		return nil
 	}
-	if err := eventStore.SaveEventNotifyByTx(txHash, notify); err != nil {
+	var notifyInfo *event.ExecuteNotify
+	if execSucc {
+		notifyInfo = &event.ExecuteNotify{TxHash: txHash,
+			State: event.CONTRACT_STATE_SUCCESS, Notify: notifies}
+	} else {
+		notifyInfo = &event.ExecuteNotify{TxHash: txHash,
+			State: event.CONTRACT_STATE_FAIL, Notify: notifies}
+
+	}
+	if err := eventStore.SaveEventNotifyByTx(txHash, notifyInfo); err != nil {
 		return fmt.Errorf("SaveEventNotifyByTx error %s", err)
 	}
-	event.PushSmartCodeEvent(txHash, 0, event.EVENT_NOTIFY, notify)
+	event.PushSmartCodeEvent(txHash, 0, event.EVENT_NOTIFY, notifyInfo)
+
 	return nil
 }
 
