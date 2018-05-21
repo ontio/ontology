@@ -89,7 +89,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	}
 
 	// init smart contract configuration info
-	config := &smartcontract.Config {
+	config := &smartcontract.Config{
 		Time:   block.Header.Timestamp,
 		Height: block.Header.Height,
 		Tx:     tx,
