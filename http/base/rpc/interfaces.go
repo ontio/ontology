@@ -545,3 +545,11 @@ func GetMerkleProof(params []interface{}) map[string]interface{} {
 	return responseSuccess(bcomn.MerkleProof{"MerkleProof", common.ToHexString(header.TransactionsRoot[:]), height,
 		common.ToHexString(curHeader.BlockRoot[:]), curHeight, hashes})
 }
+
+func GetGasPrice(params []interface{}) map[string]interface{} {
+	result, err := bcomn.GetGasPrice()
+	if err != nil {
+		return responsePack(berr.INTERNAL_ERROR, "")
+	}
+	return responseSuccess(result)
+}

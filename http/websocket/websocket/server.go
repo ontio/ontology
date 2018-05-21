@@ -189,6 +189,7 @@ func (self *WsServer) registryMethod() {
 		"getstorage":                {handler: rest.GetStorage},
 		"getmerkleproof":            {handler: rest.GetMerkleProof},
 		"getblocktxsbyheight":       {handler: rest.GetBlockTxsByHeight},
+		"getgasprice":               {handler: rest.GetGasPrice},
 
 		"getsessioncount": {handler: getsessioncount},
 	}

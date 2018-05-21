@@ -23,6 +23,7 @@ Restful Api List
 | get_smtcode_evts | GET /api/v1/smartcode/event/txhash/:hash |
 | get_blk_hgt_by_txhash | GET /api/v1/block/height/txhash/:hash |
 | get_merkle_proof | GET /api/v1/merkleproof/:hash|
+| get_gasprice | GET /api/v1/gasprice|
 | post_raw_tx | post /api/v1/transaction |
 
 
@@ -719,6 +720,32 @@ curl -i http://localhost:20384/api/v1/merkleproof/3e23cf222a47739d4141255da617cd
             "b4813f1f27c0457726b58f8bf20bee70c100a4d5c5f1805e53dcd20f38479615",
             "83893713ea8ace9214b28af854b75671c8aaa62bb74b0d43ad6fb83e3dee42db"
         ]
+    },
+    "Version": "1.0.0"
+}
+```
+
+### 17 get_gasprice
+
+Get gasprice
+
+GET
+```
+/api/v1/gasprice
+```
+#### Request Example:
+```
+curl -i http://localhost:20384/api/v1/block/height/txhash/3e23cf222a47739d4141255da617cd42925a12638ac19cadcc85501f907972c8
+```
+#### Response
+```
+{
+    "Action": "getgasprice",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": {
+          "gasprice": 0,
+          "height": 1
     },
     "Version": "1.0.0"
 }
