@@ -2059,7 +2059,7 @@ func (self *Server) creategovernaceTransaction(blkNum uint32) *types.Transaction
 
 //checkNeedUpdateChainConfig use blockcount
 func (self *Server) checkNeedUpdateChainConfig(blockNum uint32) bool {
-	if blockNum%self.config.MaxBlockChangeView == 0 {
+	if (blockNum - self.config.LastUpdateBlockNum) == self.config.MaxBlockChangeView {
 		return true
 	}
 	return false
@@ -2107,11 +2107,12 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 			return fmt.Errorf("getChainConfig failed:%s", err)
 		}
 		self.config = chainconfig
-		cfg = self.config
+		self.config.LastUpdateBlockNum = blkNum
 		//add transaction invoke governance native commit_pos contract
 		if self.checkNeedUpdateChainConfig(self.currentBlockNum) {
 			sysTxs = append(sysTxs, self.creategovernaceTransaction(blkNum))
 		}
+		cfg = self.config
 	}
 	if self.nonConsensusNode() {
 		return fmt.Errorf("%d quit consensus node", self.Index)
