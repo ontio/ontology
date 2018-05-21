@@ -780,10 +780,9 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 		Gas:        math.MaxUint64,
 	}
 
-	gasCost := math.MaxUint64 - sc.Gas + neovm.TRANSACTION_GAS
-
 	//start the smart contract executive function
 	result, err := sc.Execute()
+	gasCost := math.MaxUint64 - sc.Gas + neovm.TRANSACTION_GAS
 	if err != nil {
 		return &sstate.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: gasCost, Result: nil}, err
 	}
