@@ -84,7 +84,7 @@ var AssetCommand = cli.Command{
 		{
 			Action:    getBalance,
 			Name:      "balance",
-			Usage:     "Show balance of ont and and ong of specified account",
+			Usage:     "Show balance of ont and ong of specified account",
 			ArgsUsage: "<address|label|index>",
 			Flags: []cli.Flag{
 				utils.WalletFileFlag,
