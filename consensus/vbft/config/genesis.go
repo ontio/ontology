@@ -166,6 +166,7 @@ func GenesisChainConfig(config *config.VBFTConfig, peersinfo []*config.VBFTPeerS
 		Peers:                peerCfgs,
 		PosTable:             posTable,
 		MaxBlockChangeView:   config.MaxBlockChangeView,
+		LastUpdateBlockNum:   0,
 	}
 	return chainConfig, nil
 }
