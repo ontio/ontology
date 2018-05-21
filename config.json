@@ -1,6 +1,9 @@
 ﻿{
   "SeedList": [
-    "127.0.0.1:20318"
+    "polaris1.ont.io:20338",
+    "polaris2.ont.io:20338",
+    "polaris3.ont.io:20338",
+    "polaris4.ont.io:20338"
   ],
   "ConsensusType":"dbft",
   "DBFT":{
