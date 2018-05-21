@@ -750,7 +750,7 @@ func (this *LedgerStoreImp) GetEventNotifyByBlock(height uint32) ([]common.Uint2
 }
 
 //PreExecuteContract return the result of smart contract execution without commit to store
-func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface{}, error) {
+func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.PreExecResult, error) {
 	if tx.TxType != types.Invoke {
 		return nil, errors.NewErr("transaction type error")
 	}

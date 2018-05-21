@@ -302,7 +302,10 @@ func GetContractBalance(cVersion byte, contractAddr, accAddr common.Address) (ui
 	if err != nil {
 		return 0, fmt.Errorf("PrepareInvokeContract error:%s", err)
 	}
-	data, err := hex.DecodeString(result.(string))
+	if result.State == 0 {
+		return 0, fmt.Errorf("prepare invoke failed")
+	}
+	data, err := hex.DecodeString(result.Result.(string))
 	if err != nil {
 		return 0, fmt.Errorf("hex.DecodeString error:%s", err)
 	}
@@ -346,7 +349,10 @@ func GetContractAllowance(cVersion byte, contractAddr, fromAddr, toAddr common.A
 	if err != nil {
 		return 0, fmt.Errorf("PrepareInvokeContract error:%s", err)
 	}
-	data, err := hex.DecodeString(result.(string))
+	if result.State == 0 {
+		return 0, fmt.Errorf("prepare invoke failed")
+	}
+	data, err := hex.DecodeString(result.Result.(string))
 	if err != nil {
 		return 0, fmt.Errorf("hex.DecodeString error:%s", err)
 	}
@@ -354,7 +360,7 @@ func GetContractAllowance(cVersion byte, contractAddr, fromAddr, toAddr common.A
 	return allowance.Uint64(), nil
 }
 
-func PrepareInvokeContract(cVersion byte, vmType vmtypes.VmType, invokeCode []byte) (interface{}, error) {
+func PrepareInvokeContract(cVersion byte, vmType vmtypes.VmType, invokeCode []byte) (*cstates.PreExecResult, error) {
 	invokePayload := &payload.InvokeCode{
 		Code: vmtypes.VmCode{
 			VmType: vmType,
