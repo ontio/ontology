@@ -503,8 +503,6 @@ func InvokeSmartContractTx(gasPrice,
 }
 
 func PrepareInvokeNeoVMContract(
-	gasPrice,
-	gasLimit uint64,
 	cversion byte,
 	contractAddress common.Address,
 	params []interface{},
@@ -513,7 +511,7 @@ func PrepareInvokeNeoVMContract(
 	if err != nil {
 		return nil, fmt.Errorf("BuildNVMInvokeCode error:%s", err)
 	}
-	tx := NewInvokeTransaction(gasPrice, gasLimit, vmtypes.NEOVM, code)
+	tx := NewInvokeTransaction(0, 0, vmtypes.NEOVM, code)
 	var buffer bytes.Buffer
 	err = tx.Serialize(&buffer)
 	if err != nil {
@@ -533,12 +531,9 @@ func PrepareInvokeNeoVMContract(
 }
 
 func PrepareInvokeNativeContract(
-	gasPrice,
-	gasLimit uint64,
-	cversion byte,
 	contractAddress common.Address,
 	code []byte) (*cstates.PreExecResult, error) {
-	tx := NewInvokeTransaction(gasPrice, gasLimit, vmtypes.Native, code)
+	tx := NewInvokeTransaction(0, 0, vmtypes.Native, code)
 	var buffer bytes.Buffer
 	err := tx.Serialize(&buffer)
 	if err != nil {

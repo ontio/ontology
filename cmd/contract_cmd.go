@@ -143,18 +143,11 @@ func invokeContract(ctx *cli.Context) error {
 		return fmt.Errorf("parseParams error:%s", err)
 	}
 
-	singer, err := cmdcom.GetAccount(ctx)
-	if err != nil {
-		return fmt.Errorf("Get singer account error:%s", err)
-	}
-	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
-	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
-
 	paramData, _ := json.Marshal(params)
 	fmt.Printf("Invoke:%s Params:%s\n", contractAddr.ToBase58(), paramData)
 
 	if ctx.IsSet(utils.GetFlagName(utils.ContractPrepareInvokeFlag)) {
-		preResult, err := utils.PrepareInvokeNeoVMContract(gasPrice, gasLimit, cversion, contractAddr, params)
+		preResult, err := utils.PrepareInvokeNeoVMContract(cversion, contractAddr, params)
 		if err != nil {
 			return fmt.Errorf("PrepareInvokeNeoVMSmartContact error:%s", err)
 		}
@@ -183,6 +176,13 @@ func invokeContract(ctx *cli.Context) error {
 		}
 		return nil
 	}
+	singer, err := cmdcom.GetAccount(ctx)
+	if err != nil {
+		return fmt.Errorf("Get singer account error:%s", err)
+	}
+	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
+	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
+
 	txHash, err := utils.InvokeNeoVMContract(gasPrice, gasLimit, singer, cversion, contractAddr, params)
 	if err != nil {
 		return fmt.Errorf("Invoke NeoVM contract error:%s", err)
