@@ -387,9 +387,6 @@ func validatorSetItem(e *ExecutionEngine) error {
 	if item == nil {
 		return errors.ERR_BAD_VALUE
 	}
-	if _, ok := item.(*types.Array); !ok {
-		return errors.ERR_NOT_ARRAY
-	}
 	if index.Cmp(big.NewInt(int64(len(item.GetArray())))) >= 0 {
 		return errors.ERR_OVER_MAX_ARRAY_SIZE
 	}

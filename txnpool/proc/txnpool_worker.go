@@ -19,7 +19,6 @@
 package proc
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -101,8 +100,8 @@ func (worker *txPoolWorker) handleRsp(rsp *types.CheckResponse) {
 	}
 	if rsp.ErrCode != errors.ErrNoError {
 		//Verify fail
-		log.Info(fmt.Sprintf("Validator %d: Transaction %x invalid: %s",
-			rsp.Type, rsp.Hash, rsp.ErrCode.Error()))
+		log.Infof("handleRsp: validator %d transaction %x invalid: %s",
+			rsp.Type, rsp.Hash, rsp.ErrCode.Error())
 		delete(worker.pendingTxList, rsp.Hash)
 		worker.server.removePendingTx(rsp.Hash, rsp.ErrCode)
 		return
@@ -151,7 +150,7 @@ func (worker *txPoolWorker) handleTimeoutEvent() {
 				worker.reVerifyTx(k)
 				v.retries++
 			} else {
-				log.Infof("Retry to verify transaction exhausted %x", k.ToArray())
+				log.Infof("retry to verify transaction exhausted %x", k.ToArray())
 				worker.mu.Lock()
 				delete(worker.pendingTxList, k)
 				worker.mu.Unlock()
@@ -176,15 +175,15 @@ func (worker *txPoolWorker) putTxPool(pt *pendingTx) bool {
 // verifyTx prepares a check request and sends it to the validators.
 func (worker *txPoolWorker) verifyTx(tx *tx.Transaction) {
 	if tx := worker.server.getTransaction(tx.Hash()); tx != nil {
-		log.Info(fmt.Sprintf("Transaction %x already in the txn pool",
-			tx.Hash()))
+		log.Infof("verifyTx: transaction %x already in the txn pool",
+			tx.Hash())
 		worker.server.removePendingTx(tx.Hash(), errors.ErrDuplicateInput)
 		return
 	}
 
 	if _, ok := worker.pendingTxList[tx.Hash()]; ok {
-		log.Info(fmt.Sprintf("Transaction %x already in the verifying process",
-			tx.Hash()))
+		log.Infof("verifyTx: transaction %x already in the verifying process",
+			tx.Hash())
 		return
 	}
 	// Construct the request and send it to each validator server to verify
@@ -229,7 +228,7 @@ func (worker *txPoolWorker) reVerifyTx(txHash common.Uint256) {
 func (worker *txPoolWorker) sendReq2Validator(req *types.CheckTx) bool {
 	rspPid := worker.server.GetPID(tc.VerifyRspActor)
 	if rspPid == nil {
-		log.Info("VerifyRspActor not exist")
+		log.Info("sendReq2Validator: VerifyRspActor not exist")
 		return false
 	}
 
@@ -248,13 +247,13 @@ func (worker *txPoolWorker) sendReq2Validator(req *types.CheckTx) bool {
 func (worker *txPoolWorker) sendReq2StatefulV(req *types.CheckTx) {
 	rspPid := worker.server.GetPID(tc.VerifyRspActor)
 	if rspPid == nil {
-		log.Info("VerifyRspActor not exist")
+		log.Info("sendReq2StatefulV: VerifyRspActor not exist")
 		return
 	}
 
 	pid := worker.server.getNextValidatorPID(types.Stateful)
-	log.Info("worker send tx to the stateful")
 	if pid == nil {
+		log.Info("sendReq2StatefulV: get stateful validator failed")
 		return
 	}
 

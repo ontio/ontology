@@ -19,7 +19,6 @@
 package proc
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/ontio/ontology-eventbus/actor"
@@ -65,19 +64,20 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 	ta.server.increaseStats(tc.RcvStats)
 
 	if ta.server.getTransaction(txn.Hash()) != nil {
-		log.Debug(fmt.Sprintf("Transaction %x already in the txn pool",
-			txn.Hash()))
+		log.Debugf("handleTransaction: transaction %x already in the txn pool",
+			txn.Hash())
 
 		ta.server.increaseStats(tc.DuplicateStats)
 	} else if ta.server.getTransactionCount() >= tc.MAX_CAPACITY {
-		log.Warn("Transaction pool is full", txn.Hash())
+		log.Infof("handleTransaction: transaction pool is full for tx %x",
+			txn.Hash())
 
 		ta.server.increaseStats(tc.FailureStats)
 	} else {
 		if txn.GasLimit < config.DefConfig.Common.GasLimit ||
 			txn.GasPrice < config.DefConfig.Common.GasPrice {
-			log.Debug(fmt.Sprintf("[handleTransaction] invalid gasLimit %v, gasPrice %v",
-				txn.GasLimit, txn.GasPrice))
+			log.Debugf("handleTransaction: invalid gasLimit %v, gasPrice %v",
+				txn.GasLimit, txn.GasPrice)
 			return
 		}
 		<-ta.server.slots
@@ -95,19 +95,19 @@ func (ta *TxActor) Receive(context actor.Context) {
 		log.Warn("txpool-tx actor stopping")
 
 	case *actor.Restarting:
-		log.Warn("txpool-tx actor Restarting")
+		log.Warn("txpool-tx actor restarting")
 
 	case *tc.TxReq:
 		sender := msg.Sender
 
-		log.Debug("txpool-tx actor Receives tx from ", sender.Sender())
+		log.Debugf("txpool-tx actor receives tx from %v ", sender.Sender())
 
 		ta.handleTransaction(sender, context.Self(), msg.Tx)
 
 	case *tc.GetTxnReq:
 		sender := context.Sender()
 
-		log.Debug("txpool-tx actor Receives getting tx req from ", sender)
+		log.Debugf("txpool-tx actor receives getting tx req from %v", sender)
 
 		res := ta.server.getTransaction(msg.Hash)
 		if sender != nil {
@@ -118,7 +118,7 @@ func (ta *TxActor) Receive(context actor.Context) {
 	case *tc.GetTxnStats:
 		sender := context.Sender()
 
-		log.Debug("txpool-tx actor Receives getting tx stats from ", sender)
+		log.Debugf("txpool-tx actor receives getting tx stats from %v", sender)
 
 		res := ta.server.getStats()
 		if sender != nil {
@@ -129,7 +129,7 @@ func (ta *TxActor) Receive(context actor.Context) {
 	case *tc.CheckTxnReq:
 		sender := context.Sender()
 
-		log.Debug("txpool-tx actor Receives checking tx req from ", sender)
+		log.Debugf("txpool-tx actor receives checking tx req from %v", sender)
 
 		res := ta.server.checkTx(msg.Hash)
 		if sender != nil {
@@ -140,7 +140,7 @@ func (ta *TxActor) Receive(context actor.Context) {
 	case *tc.GetTxnStatusReq:
 		sender := context.Sender()
 
-		log.Debug("txpool-tx actor Receives getting tx status req from ", sender)
+		log.Debugf("txpool-tx actor receives getting tx status req from %v", sender)
 
 		res := ta.server.getTxStatusReq(msg.Hash)
 		if sender != nil {
@@ -154,7 +154,7 @@ func (ta *TxActor) Receive(context actor.Context) {
 		}
 
 	default:
-		log.Warn("txpool-tx actor: Unknown msg ", msg, "type", reflect.TypeOf(msg))
+		log.Debugf("txpool-tx actor: unknown msg %v type %v", msg, reflect.TypeOf(msg))
 	}
 }
 
@@ -182,7 +182,7 @@ func (tpa *TxPoolActor) Receive(context actor.Context) {
 	case *tc.GetTxnPoolReq:
 		sender := context.Sender()
 
-		log.Debug("txpool actor Receives getting tx pool req from ", sender)
+		log.Debugf("txpool actor receives getting tx pool req from %v", sender)
 
 		res := tpa.server.getTxPool(msg.ByCount, msg.Height)
 		if sender != nil {
@@ -192,7 +192,7 @@ func (tpa *TxPoolActor) Receive(context actor.Context) {
 	case *tc.GetPendingTxnReq:
 		sender := context.Sender()
 
-		log.Debug("txpool actor Receives getting pedning tx req from ", sender)
+		log.Debugf("txpool actor receives getting pedning tx req from %v", sender)
 
 		res := tpa.server.getPendingTxs(msg.ByCount)
 		if sender != nil {
@@ -202,21 +202,21 @@ func (tpa *TxPoolActor) Receive(context actor.Context) {
 	case *tc.VerifyBlockReq:
 		sender := context.Sender()
 
-		log.Debug("txpool actor Receives verifying block req from ", sender)
+		log.Debugf("txpool actor receives verifying block req from %v", sender)
 
 		tpa.server.verifyBlock(msg, sender)
 
 	case *message.SaveBlockCompleteMsg:
 		sender := context.Sender()
 
-		log.Debug("txpool actor Receives block complete event from ", sender)
+		log.Debugf("txpool actor receives block complete event from %v", sender)
 
 		if msg.Block != nil {
 			tpa.server.cleanTransactionList(msg.Block.Transactions)
 		}
 
 	default:
-		log.Debug("txpool actor: Unknown msg ", msg, "type", reflect.TypeOf(msg))
+		log.Debugf("txpool actor: unknown msg %v type %v", msg, reflect.TypeOf(msg))
 	}
 }
 
@@ -256,7 +256,7 @@ func (vpa *VerifyRspActor) Receive(context actor.Context) {
 		vpa.server.assignRspToWorker(msg)
 
 	default:
-		log.Warn("txpool-verify actor:Unknown msg ", msg, "type", reflect.TypeOf(msg))
+		log.Debugf("txpool-verify actor:Unknown msg %v type %v", msg, reflect.TypeOf(msg))
 	}
 }
 

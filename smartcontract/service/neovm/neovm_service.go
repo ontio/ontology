@@ -20,7 +20,6 @@ package neovm
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/types"
@@ -30,13 +29,10 @@ import (
 	"github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vm "github.com/ontio/ontology/vm/neovm"
-	vmtype "github.com/ontio/ontology/vm/neovm/types"
 )
 
 const (
-	MAX_STACK_SIZE          = 2 * 1024
-	MAX_ARRAY_SIZE          = 1024
-	MAX_SIZE_FOR_BIGINTEGER = 32
+	MAX_STACK_SIZE = 2 * 1024
 )
 
 var (
@@ -86,8 +82,6 @@ var (
 
 var (
 	ERR_CHECK_STACK_SIZE = errors.NewErr("[NeoVmService] vm over max stack size!")
-	ERR_CHECK_ARRAY_SIZE = errors.NewErr("[NeoVmService] vm over max array size!")
-	ERR_CHECK_BIGINTEGER = errors.NewErr("[NeoVmService] vm over max biginteger size!")
 	ERR_EXECUTE_CODE     = errors.NewErr("[NeoVmService] vm execute code invalid!")
 	ERR_GAS_INSUFFICIENT = errors.NewErr("[NeoVmService] gas insufficient")
 )
@@ -137,12 +131,6 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 		if engine.Context.GetInstructionPointer() < len(engine.Context.Code) {
 			if ok := checkStackSize(engine); !ok {
 				return nil, ERR_CHECK_STACK_SIZE
-			}
-			if ok := checkArraySize(engine); !ok {
-				return nil, ERR_CHECK_ARRAY_SIZE
-			}
-			if ok := checkBigIntegers(engine); !ok {
-				return nil, ERR_CHECK_BIGINTEGER
 			}
 		}
 		if !this.ContextRef.CheckUseGas(GasPrice(engine, engine.OpExec.Name)) {
@@ -217,107 +205,6 @@ func checkStackSize(engine *vm.ExecutionEngine) bool {
 	}
 	size += engine.EvaluationStack.Count() + engine.AltStack.Count()
 	if uint32(size) > MAX_STACK_SIZE {
-		return false
-	}
-	return true
-}
-
-func checkArraySize(engine *vm.ExecutionEngine) bool {
-	switch engine.OpCode {
-	case vm.PACK:
-	case vm.NEWARRAY:
-	case vm.NEWSTRUCT:
-		if engine.EvaluationStack.Count() == 0 {
-			return false
-		}
-		size := vm.PeekInt(engine)
-		if size > MAX_ARRAY_SIZE {
-			return false
-		}
-	}
-	return true
-}
-
-func checkBigIntegers(engine *vm.ExecutionEngine) bool {
-	switch engine.OpCode {
-	case vm.INC:
-		if engine.EvaluationStack.Count() == 0 {
-			return false
-		}
-		x := vm.PeekBigInteger(engine)
-		if !checkBigInteger(x) || !checkBigInteger(new(big.Int).Add(x, big.NewInt(1))) {
-			return false
-		}
-	case vm.DEC:
-		if engine.EvaluationStack.Count() == 0 {
-			return false
-		}
-		x := vm.PeekBigInteger(engine)
-		if !checkBigInteger(x) || (x.Sign() < 0 && !checkBigInteger(new(big.Int).Sub(x, big.NewInt(1)))) {
-			return false
-		}
-	case vm.ADD:
-		if engine.EvaluationStack.Count() < 2 {
-			return false
-		}
-		x2 := vm.PeekBigInteger(engine)
-		x1 := vm.PeekNBigInt(1, engine)
-		if !checkBigInteger(x1) || !checkBigInteger(x2) || !checkBigInteger(new(big.Int).Add(x1, x2)) {
-			return false
-		}
-	case vm.SUB:
-		if engine.EvaluationStack.Count() < 2 {
-			return false
-		}
-		x2 := vm.PeekBigInteger(engine)
-		x1 := vm.PeekNBigInt(1, engine)
-		if !checkBigInteger(x1) || !checkBigInteger(x2) || !checkBigInteger(new(big.Int).Sub(x1, x2)) {
-			return false
-		}
-	case vm.MUL:
-		if engine.EvaluationStack.Count() < 2 {
-			return false
-		}
-		x2 := vm.PeekBigInteger(engine)
-		x1 := vm.PeekNBigInt(1, engine)
-		lx2 := len(vmtype.ConvertBigIntegerToBytes(x2))
-		lx1 := len(vmtype.ConvertBigIntegerToBytes(x1))
-		if lx2 > MAX_SIZE_FOR_BIGINTEGER || lx1 > MAX_SIZE_FOR_BIGINTEGER || (lx1+lx2) > MAX_SIZE_FOR_BIGINTEGER {
-			return false
-		}
-	case vm.DIV:
-		if engine.EvaluationStack.Count() < 2 {
-			return false
-		}
-		x2 := vm.PeekBigInteger(engine)
-		x1 := vm.PeekNBigInt(1, engine)
-		if !checkBigInteger(x2) || !checkBigInteger(x1) {
-			return false
-		}
-		if x2.Sign() == 0 {
-			return false
-		}
-	case vm.MOD:
-		if engine.EvaluationStack.Count() < 2 {
-			return false
-		}
-		x2 := vm.PeekBigInteger(engine)
-		x1 := vm.PeekNBigInt(1, engine)
-		if !checkBigInteger(x2) || !checkBigInteger(x1) {
-			return false
-		}
-		if x2.Sign() == 0 {
-			return false
-		}
-	}
-	return true
-}
-
-func checkBigInteger(value *big.Int) bool {
-	if value == nil {
-		return false
-	}
-	if len(vmtype.ConvertBigIntegerToBytes(value)) > MAX_SIZE_FOR_BIGINTEGER {
 		return false
 	}
 	return true

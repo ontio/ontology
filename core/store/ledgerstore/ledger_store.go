@@ -40,6 +40,7 @@ import (
 	"github.com/ontio/ontology/smartcontract"
 	scommon "github.com/ontio/ontology/smartcontract/common"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/neovm"
 	sstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vmtype "github.com/ontio/ontology/smartcontract/types"
@@ -779,7 +780,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (interface
 		Gas:        math.MaxUint64,
 	}
 
-	gasCost := math.MaxUint64 - sc.Gas
+	gasCost := math.MaxUint64 - sc.Gas + neovm.TRANSACTION_GAS
 
 	//start the smart contract executive function
 	result, err := sc.Execute()

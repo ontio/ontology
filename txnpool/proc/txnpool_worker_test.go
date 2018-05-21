@@ -109,6 +109,11 @@ func TestWorker(t *testing.T) {
 	worker.rspCh <- statelessRsp
 	worker.rspCh <- statefulRsp
 
+	time.Sleep(1 * time.Second)
+	txStatus := worker.GetTxStatus(txn.Hash())
+	t.Log(txStatus)
+	assert.Nil(t, txStatus)
+
 	/* Case 4: valdiators reply with invalid tx hash or invalid work id,
 	 * worker should reject it
 	 */
@@ -138,7 +143,10 @@ func TestWorker(t *testing.T) {
 	time.Sleep(2 * time.Second)
 	worker.rcvTXCh <- txn
 
-	time.Sleep(10 * time.Second)
+	time.Sleep(15 * time.Second)
+	txStatus = worker.GetTxStatus(txn.Hash())
+	t.Log(txStatus)
+	assert.Nil(t, txStatus)
 
 	/* Case 6: For the given tx, worker handle it once, if
 	 * duplicate input the tx, worker should reject it with
@@ -151,7 +159,7 @@ func TestWorker(t *testing.T) {
 	 * with the valid hash
 	 */
 	time.Sleep(1 * time.Second)
-	txStatus := worker.GetTxStatus(txn.Hash())
+	txStatus = worker.GetTxStatus(txn.Hash())
 	t.Log(txStatus)
 	assert.NotNil(t, txStatus)
 	assert.Equal(t, txStatus.Hash, txn.Hash())
