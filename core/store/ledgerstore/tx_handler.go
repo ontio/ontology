@@ -35,6 +35,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	neovm "github.com/ontio/ontology/smartcontract/service/neovm"
 	sstates "github.com/ontio/ontology/smartcontract/states"
@@ -43,25 +44,20 @@ import (
 	vmtype "github.com/ontio/ontology/smartcontract/types"
 )
 
-var (
-	/**
-		1.COMMIT_DPOS_BYTE is states.Contract serialize bytes
-		2.states.Contract {
-			Address: genesis.GovernanceContractAddress,
-			Method: gover.COMMIT_DPOS,
-		}
 
-	 */
-	COMMIT_DPOS_BYTE = []byte{0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 10, 99, 111, 109, 109, 105, 116, 68, 112, 111, 115, 0}
-	/**
-		1.COMMIT_DPOS_BYTE is states.Contract serialize bytes
-		2.states.Contract {
-			Address: genesis.GovernanceContractAddress,
-			Method: gover.INIT_CONFIG,
-		}
-	 */
-	INIT_CONFIG_BYTE = []byte{0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 10, 105, 110, 105, 116, 67, 111, 110, 102, 105, 103, 0}
-)
+func CommitDpos() []byte {
+	commitDpos := sstates.Contract{Address: genesis.GovernanceContractAddress, Method: governance.COMMIT_DPOS}
+	bf := new(bytes.Buffer)
+	commitDpos.Serialize(bf)
+	return bf.Bytes()
+}
+
+func InitConfig() []byte {
+	initConfig := sstates.Contract{Address: genesis.GovernanceContractAddress, Method: governance.INIT_CONFIG}
+	bf := new(bytes.Buffer)
+	initConfig.Serialize(bf)
+	return bf.Bytes()
+}
 
 //HandleDeployTransaction deal with smart contract deploy transaction
 func (self *StateStore) HandleDeployTransaction(stateBatch *statestore.StateBatch, tx *types.Transaction) error {
@@ -94,7 +90,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	invoke := tx.Payload.(*payload.InvokeCode)
 	txHash := tx.Hash()
 
-	sysTrans := bytes.Compare(invoke.Code.Code, COMMIT_DPOS_BYTE) != 0 && bytes.Compare(invoke.Code.Code, INIT_CONFIG_BYTE) != 0
+	sysTrans := bytes.Compare(invoke.Code.Code, CommitDpos()) != 0 && bytes.Compare(invoke.Code.Code, InitConfig()) != 0
 
 	if sysTrans {
 		// check payer ong balance
