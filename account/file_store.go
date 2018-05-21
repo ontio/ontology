@@ -24,12 +24,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-
-	"github.com/ontio/ontology-crypto/keypair"
-	//"github.com/ontio/ontology/core/types"
 	"io/ioutil"
 	"os"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 )
 
