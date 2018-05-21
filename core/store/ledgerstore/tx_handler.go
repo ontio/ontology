@@ -44,21 +44,6 @@ import (
 	vmtype "github.com/ontio/ontology/smartcontract/types"
 )
 
-
-func CommitDpos() []byte {
-	commitDpos := sstates.Contract{Address: genesis.GovernanceContractAddress, Method: governance.COMMIT_DPOS}
-	bf := new(bytes.Buffer)
-	commitDpos.Serialize(bf)
-	return bf.Bytes()
-}
-
-func InitConfig() []byte {
-	initConfig := sstates.Contract{Address: genesis.GovernanceContractAddress, Method: governance.INIT_CONFIG}
-	bf := new(bytes.Buffer)
-	initConfig.Serialize(bf)
-	return bf.Bytes()
-}
-
 //HandleDeployTransaction deal with smart contract deploy transaction
 func (self *StateStore) HandleDeployTransaction(stateBatch *statestore.StateBatch, tx *types.Transaction) error {
 	deploy := tx.Payload.(*payload.DeployCode)
@@ -90,7 +75,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	invoke := tx.Payload.(*payload.InvokeCode)
 	txHash := tx.Hash()
 
-	sysTransFlag := bytes.Compare(invoke.Code.Code, CommitDpos()) == 0 || bytes.Compare(invoke.Code.Code, InitConfig()) == 0
+	sysTransFlag := bytes.Compare(invoke.Code.Code, governance.COMMIT_DPOS) == 0 || bytes.Compare(invoke.Code.Code, governance.INIT_CONFIG) == 0
 
 	if !sysTransFlag {
 		// check payer ong balance
