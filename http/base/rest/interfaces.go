@@ -452,3 +452,13 @@ func GetMerkleProof(cmd map[string]interface{}) map[string]interface{} {
 		common.ToHexString(curHeader.BlockRoot[:]), curHeight, hashes}
 	return resp
 }
+
+func GetGasPrice(cmd map[string]interface{}) map[string]interface{} {
+	result, err := bcomn.GetGasPrice()
+	if err != nil {
+		return ResponsePack(berr.INTERNAL_ERROR)
+	}
+	resp := ResponsePack(berr.SUCCESS)
+	resp["Result"] = result
+	return resp
+}

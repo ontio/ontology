@@ -682,6 +682,30 @@ get session count
 }
 ```
 
+### 20. Get gasprice
+get gasprice
+
+#### Request Example:
+```
+{
+    "Action": "getgasprice",
+    "Version": "1.0.0"
+}
+```
+#### Response
+```
+{
+    "Action": "getgasprice",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": {
+         "gasprice": 0,
+         "height": 1
+     },
+    "Version": "1.0.0"
+}
+```
+
 ## Error Code
 
 | Field | Type | Description |

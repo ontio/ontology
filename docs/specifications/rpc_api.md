@@ -85,6 +85,7 @@ Transaction field description
 | getsmartcodeevent |  | Get smartcode event |  |
 | getblockheightbytxhash | tx_hash | get blockheight of txhash|  |
 | getbalance | address | return balance of base58 account address. |  |
+| getgasprice |  | return gasprice |  |
 
 
 ### 1. getbestblockhash
@@ -923,6 +924,39 @@ Response:
             "83893713ea8ace9214b28af854b75671c8aaa62bb74b0d43ad6fb83e3dee42db"
         ]
    }
+}
+```
+
+#### 18. getgasprice
+
+return gasprice.
+
+
+#### Example
+
+Request:
+
+```
+{
+  "jsonrpc": "2.0",
+  "method": "getgasprice",
+  "params": [],
+  "id": 1
+}
+```
+
+Response:
+
+```
+{
+   "desc":"SUCCESS",
+   "error":0,
+   "id":1,
+   "jsonpc":"2.0",
+   "result":{
+        "gasprice": 0,
+        "height": 1
+       }
 }
 ```
 
