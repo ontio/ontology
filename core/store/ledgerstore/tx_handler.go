@@ -60,7 +60,7 @@ var (
 			Method: gover.INIT_CONFIG,
 		}
 	 */
-	INIT_CONFIG_BYTE = []byte{0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 10, 105, 110, 105, 116, 67, 111, 110, 102, 105, 103}
+	INIT_CONFIG_BYTE = []byte{0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 10, 105, 110, 105, 116, 67, 111, 110, 102, 105, 103, 0}
 )
 
 //HandleDeployTransaction deal with smart contract deploy transaction
