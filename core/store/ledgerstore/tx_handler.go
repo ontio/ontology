@@ -90,9 +90,9 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	invoke := tx.Payload.(*payload.InvokeCode)
 	txHash := tx.Hash()
 
-	sysTrans := bytes.Compare(invoke.Code.Code, CommitDpos()) != 0 && bytes.Compare(invoke.Code.Code, InitConfig()) != 0
+	sysTransFlag := bytes.Compare(invoke.Code.Code, CommitDpos()) == 0 || bytes.Compare(invoke.Code.Code, InitConfig()) == 0
 
-	if sysTrans {
+	if !sysTransFlag {
 		// check payer ong balance
 		balance, err := GetBalance(stateBatch, tx.Payer, genesis.OngContractAddress)
 		if err != nil {
@@ -123,15 +123,15 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	//start the smart contract executive function
 	_, err := sc.Execute()
 
-	if sysTrans {
+	if !sysTransFlag {
 		totalGas := (tx.GasLimit - sc.Gas) * tx.GasPrice
-		transcode := genNativeTransferCode(genesis.OngContractAddress, tx.Payer,
+		nativeTransferCode := genNativeTransferCode(genesis.OngContractAddress, tx.Payer,
 			genesis.GovernanceContractAddress, totalGas)
 		transContract := smartcontract.SmartContract{
 			Config:     config,
 			CloneCache: cache,
 			Store:      store,
-			Code:       transcode,
+			Code:       nativeTransferCode,
 			Gas:        math.MaxUint64,
 		}
 		if err != nil {
