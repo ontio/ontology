@@ -464,6 +464,9 @@ func accountExport(ctx *cli.Context) error {
 		}
 		wallet = wallet.Dump()
 		err := wallet.ToLowSecurity(passwords)
+		for _, v := range passwords {
+			common.ClearPasswd(v)
+		}
 		if err != nil {
 			return fmt.Errorf("export failed: %s", err)
 		}
