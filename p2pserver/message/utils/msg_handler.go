@@ -22,7 +22,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"net"
 	"strconv"
 	"strings"
@@ -263,7 +262,7 @@ func VersionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 	length := len(data.Payload)
 
 	if length == 0 {
-		log.Error(fmt.Sprintf("nil message for %s", msgCommon.VERSION_TYPE))
+		log.Errorf("nil message for %s", msgCommon.VERSION_TYPE)
 		return
 	}
 
@@ -280,7 +279,7 @@ func VersionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 
 	remotePeer := p2p.GetPeerFromAddr(data.Addr)
 	if remotePeer == nil {
-		log.Warn(" peer is not exist", data.Addr)
+		log.Warn("peer is not exist", data.Addr)
 		//peer not exist,just remove list and return
 		p2p.RemoveFromConnectingList(data.Addr)
 		return
@@ -316,7 +315,7 @@ func VersionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 
 		s := remotePeer.GetConsState()
 		if s != msgCommon.INIT && s != msgCommon.HAND {
-			log.Warn("Unknown status to received version", s)
+			log.Warn("unknown status to received version", s)
 			remotePeer.CloseCons()
 			return
 		}
@@ -331,10 +330,20 @@ func VersionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 		if s == msgCommon.INIT {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKE)
 			vpl := msgpack.NewVersionPayload(p2p, true, ledger.DefLedger.GetCurrentBlockHeight())
-			buf, _ = msgpack.NewVersion(vpl, p2p.GetPubKey())
+			buf, err = msgpack.NewVersion(vpl, p2p.GetPubKey())
+			if err != nil {
+				log.Error(err)
+				return
+			}
+
 		} else if s == msgCommon.HAND {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKED)
-			buf, _ = msgpack.NewVerAck(true)
+			buf, err = msgpack.NewVerAck(true)
+			if err != nil {
+				log.Error(err)
+				return
+			}
+
 		}
 		p2p.Send(remotePeer, buf, true)
 
@@ -343,7 +352,6 @@ func VersionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 		if version.P.Nonce == p2p.GetID() {
 			log.Warn("the node handshake with itself")
 			remotePeer.CloseSync()
-			
 			return
 		}
 
@@ -357,7 +365,7 @@ func VersionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 		// Obsolete node
 		n, ret := p2p.DelNbrNode(version.P.Nonce)
 		if ret == true {
-			log.Info(fmt.Sprintf("peer reconnect 0x%x", version.P.Nonce))
+			log.Infof("peer reconnect 0x%x", version.P.Nonce)
 			// Close the connection and release the node source
 			n.CloseSync()
 			n.CloseCons()
@@ -491,8 +499,6 @@ func VerAckHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 			return
 		}
 		go p2p.Send(remotePeer, buf, false)
-
-		return nil
 	}
 
 }
