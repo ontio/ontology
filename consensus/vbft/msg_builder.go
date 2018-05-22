@@ -19,7 +19,6 @@
 package vbft
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -27,7 +26,7 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	vconfig "github.com/ontio/ontology/consensus/vbft/config"
+	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
@@ -195,20 +194,18 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 		ConsensusData:    common.GetNonce(),
 		ConsensusPayload: consensusPayload,
 	}
-	buf := new(bytes.Buffer)
-	blkHeader.SerializeUnsigned(buf)
-	sig, err := signature.Sign(self.account, buf.Bytes())
-	if err != nil {
-		return nil, fmt.Errorf("sign block failed: %s", err)
-	}
-	blkHeader.Bookkeepers = []keypair.PublicKey{self.account.PublicKey}
-	blkHeader.SigData = [][]byte{sig}
-
 	blk := &types.Block{
 		Header:       blkHeader,
 		Transactions: txs,
 	}
-	blk.Hash()
+	blkHash := blk.Hash()
+	sig, err := signature.Sign(self.account, blkHash[:])
+	if err != nil {
+		return nil, fmt.Errorf("sign block failed, block hash：%x, error: %s", blkHash, err)
+	}
+	blkHeader.Bookkeepers = []keypair.PublicKey{self.account.PublicKey}
+	blkHeader.SigData = [][]byte{sig}
+
 	return blk, nil
 }
 
@@ -267,12 +264,6 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 		proposerSig = proposal.Block.Block.Header.SigData[0]
 		blkHash = proposal.Block.Block.Hash()
 
-		buf := new(bytes.Buffer)
-		proposal.Block.Block.Header.SerializeUnsigned(buf)
-		endorserSig, err = signature.Sign(self.account, buf.Bytes())
-		if err != nil {
-			return nil, fmt.Errorf("endorser failed to sign blkheader: %s", err)
-		}
 	} else {
 		if proposal.Block.EmptyBlock == nil {
 			return nil, fmt.Errorf("blk %d proposal from %d has no empty proposal",
@@ -281,13 +272,10 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 
 		proposerSig = proposal.Block.EmptyBlock.Header.SigData[0]
 		blkHash = proposal.Block.EmptyBlock.Hash()
-
-		buf := new(bytes.Buffer)
-		proposal.Block.EmptyBlock.Header.SerializeUnsigned(buf)
-		endorserSig, err = signature.Sign(self.account, buf.Bytes())
-		if err != nil {
-			return nil, fmt.Errorf("endorser failed to sign empty blkheader: %s", err)
-		}
+	}
+	endorserSig, err = signature.Sign(self.account, blkHash[:])
+	if err != nil {
+		return nil, fmt.Errorf("endorser failed to sign block. hash:%x, err: %s", blkHash, err)
 	}
 
 	msg := &blockEndorseMsg{
@@ -314,13 +302,6 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 	if !forEmpty {
 		proposerSig = proposal.Block.Block.Header.SigData[0]
 		blkHash = proposal.Block.Block.Hash()
-
-		buf := new(bytes.Buffer)
-		proposal.Block.Block.Header.SerializeUnsigned(buf)
-		committerSig, err = signature.Sign(self.account, buf.Bytes())
-		if err != nil {
-			return nil, fmt.Errorf("committer failed to sign blkheader: %s", err)
-		}
 	} else {
 		if proposal.Block.EmptyBlock == nil {
 			return nil, fmt.Errorf("blk %d proposal from %d has no empty proposal",
@@ -329,13 +310,10 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 
 		proposerSig = proposal.Block.EmptyBlock.Header.SigData[0]
 		blkHash = proposal.Block.EmptyBlock.Hash()
-
-		buf := new(bytes.Buffer)
-		proposal.Block.EmptyBlock.Header.SerializeUnsigned(buf)
-		committerSig, err = signature.Sign(self.account, buf.Bytes())
-		if err != nil {
-			return nil, fmt.Errorf("endorser failed to sign empty blkheader: %s", err)
-		}
+	}
+	committerSig, err = signature.Sign(self.account, blkHash[:])
+	if err != nil {
+		return nil, fmt.Errorf("endorser failed to sign block. hash:%x, caused by: %s", blkHash, err)
 	}
 
 	endorsersSig := make(map[uint32][]byte)

@@ -64,29 +64,24 @@ func (msg *blockProposalMsg) Type() MsgType {
 
 func (msg *blockProposalMsg) Verify(pub keypair.PublicKey) error {
 	// verify block
-	buf := bytes.NewBuffer([]byte{})
-	if err := msg.Block.Block.SerializeUnsigned(buf); err != nil {
-		return fmt.Errorf("serialize block header: %s", err)
-	}
+	hash := msg.Block.Block.Hash()
+
 	sig, err := signature.Deserialize(msg.Block.Block.Header.SigData[0])
 	if err != nil {
 		return fmt.Errorf("deserialize block sig: %s", err)
 	}
-	if !signature.Verify(pub, buf.Bytes(), sig) {
+	if !signature.Verify(pub, hash[:], sig) {
 		return fmt.Errorf("failed to verify block sig")
 	}
 
 	// verify empty block
 	if msg.Block.EmptyBlock != nil {
-		buf.Reset()
-		if err := msg.Block.EmptyBlock.SerializeUnsigned(buf); err != nil {
-			return fmt.Errorf("serialize empty block header: %s", err)
-		}
+		hash := msg.Block.EmptyBlock.Hash()
 		sig, err := signature.Deserialize(msg.Block.EmptyBlock.Header.SigData[0])
 		if err != nil {
 			return fmt.Errorf("deserialize empty block sig: %s", err)
 		}
-		if !signature.Verify(pub, buf.Bytes(), sig) {
+		if !signature.Verify(pub, hash[:], sig) {
 			return fmt.Errorf("failed to verify empty block sig")
 		}
 	}
