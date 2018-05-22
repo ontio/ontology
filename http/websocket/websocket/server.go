@@ -179,6 +179,7 @@ func (self *WsServer) registryMethod() {
 		"getbalance":                {handler: rest.GetBalance},
 		"getconnectioncount":        {handler: rest.GetConnectionCount},
 		"getblockbyheight":          {handler: rest.GetBlockByHeight},
+		"getblockhash":              {handler: rest.GetBlockHash},
 		"getblockbyhash":            {handler: rest.GetBlockByHash},
 		"getblockheight":            {handler: rest.GetBlockHeight},
 		"getgenerateblocktime":      {handler: rest.GetGenerateBlockTime},
