@@ -302,7 +302,12 @@ func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
 
 	log.Infof("committed: %d, current block no: %d", self.GetCommittedBlockNo(), self.GetCurrentBlockNo())
 
-	self.currentParticipantConfig, err = self.buildParticipantConfig(self.GetCurrentBlockNo(), self.config)
+	block, blockHash := self.blockPool.getSealedBlock(self.GetCommittedBlockNo())
+	if block == nil {
+		return fmt.Errorf("failed to get sealed block (%d)", self.GetCommittedBlockNo())
+	}
+
+	self.currentParticipantConfig, err = self.buildParticipantConfig(self.GetCurrentBlockNo(), block, blockHash, self.config)
 	if err != nil {
 		return fmt.Errorf("failed to build participant config: %s", err)
 	}
@@ -625,9 +630,14 @@ func (self *Server) getState() ServerState {
 func (self *Server) updateParticipantConfig() error {
 	blkNum := self.GetCurrentBlockNo()
 
+	block, blockHash := self.blockPool.getSealedBlock(blkNum - 1)
+	if block == nil {
+		return fmt.Errorf("failed to get sealed block (%d)", blkNum-1)
+	}
+
 	var err error
 	self.metaLock.Lock()
-	if cfg, err := self.buildParticipantConfig(blkNum, self.config); err == nil {
+	if cfg, err := self.buildParticipantConfig(blkNum, block, blockHash, self.config); err == nil {
 		self.currentParticipantConfig = cfg
 	}
 	self.metaLock.Unlock()
