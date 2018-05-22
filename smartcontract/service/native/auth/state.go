@@ -45,7 +45,6 @@ func (this *roleFuncs) Serialize(w io.Writer) error {
 
 func (this *roleFuncs) Deserialize(rd io.Reader) error {
 	var err error
-
 	fnLen, err := serialization.ReadUint32(rd)
 	if err != nil {
 		return err

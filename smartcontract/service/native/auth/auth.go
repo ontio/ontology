@@ -25,6 +25,7 @@ import (
 
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -34,11 +35,7 @@ var (
 )
 
 func Init() {
-<<<<<<< HEAD
-	Contracts[utils.AuthContractAddress] = RegisterAuthContract
-=======
-	native.Contracts[genesis.AuthContractAddress] = RegisterAuthContract
->>>>>>> 8c02ad42... refactor the storage model of auth contract
+	native.Contracts[utils.AuthContractAddress] = RegisterAuthContract
 }
 
 /*
@@ -53,19 +50,10 @@ func initContractAdmin(native *native.NativeService, contractAddr, ontID []byte)
 		//admin is already set, just return
 		return false, nil
 	}
-
-	adminKey, err := GetContractAdminKey(native, contractAddr)
+	err = PutContractAdmin(native, contractAddr, ontID)
 	if err != nil {
 		return false, err
 	}
-	utils.PutBytes(native, adminKey, ontID)
-
-	/* push notify
-	event := new(event.NotifyEventInfo)
-	event.ContractAddress = native.ContextRef.CurrentContext().ContractAddress
-	event.States = ontID
-	native.Notifications = append(native.Notifications, event)
-	*/
 	return true, nil
 }
 
@@ -75,12 +63,12 @@ func InitContractAdmin(native *native.NativeService) ([]byte, error) {
 	if err := param.Deserialize(rd); err != nil {
 		return nil, err
 	}
-
 	cxt := native.ContextRef.CallingContext()
 	if cxt == nil {
 		return nil, errors.NewErr("no calling context")
 	}
 	invokeAddr := cxt.ContractAddress
+
 	ret, err := initContractAdmin(native, invokeAddr[:], param.AdminOntID)
 	if err != nil {
 		return nil, err
@@ -88,6 +76,7 @@ func InitContractAdmin(native *native.NativeService) ([]byte, error) {
 	if !ret {
 		return utils.BYTE_FALSE, nil
 	}
+	pushEvent(native, []interface{}{"initContractAdmin", param.AdminOntID})
 	return utils.BYTE_TRUE, nil
 }
 
@@ -125,15 +114,16 @@ func Transfer(native *native.NativeService) ([]byte, error) {
 	}
 	ret, err := transfer(native, param.ContractAddr, param.NewAdminOntID, param.KeyNo)
 	if ret {
+		event := new(event.NotifyEventInfo)
+		event.ContractAddress = native.ContextRef.CurrentContext().ContractAddress
+		event.States = []interface{}{"Transfer", param.NewAdminOntID}
+		native.Notifications = append(native.Notifications, event)
 		return utils.BYTE_TRUE, nil
 	} else {
 		return utils.BYTE_FALSE, nil
 	}
 }
 
-/*
- * role -> []FuncName
- */
 func AssignFuncsToRole(native *native.NativeService) ([]byte, error) {
 	//deserialize input param
 	param := new(FuncsToRoleParam)
@@ -142,6 +132,7 @@ func AssignFuncsToRole(native *native.NativeService) ([]byte, error) {
 		return nil, fmt.Errorf("deserialize param failed, caused by %v", err)
 	}
 	if param.Role == nil {
+		invokeEvent(native, "assignFuncsToRole", false)
 		return utils.BYTE_FALSE, nil
 	}
 
@@ -150,10 +141,12 @@ func AssignFuncsToRole(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get contract admin failed, caused by %v", err)
 	}
-	if admin == nil {
+	if admin == nil { //admin has not been set
+		invokeEvent(native, "assignFuncsToRole", false)
 		return utils.BYTE_FALSE, nil
 	}
 	if bytes.Compare(admin, param.AdminOntID) != 0 {
+		invokeEvent(native, "assignFuncsToRole", false)
 		return utils.BYTE_FALSE, nil
 	}
 	ret, err := verifySig(native, param.AdminOntID, param.KeyNo)
@@ -161,6 +154,7 @@ func AssignFuncsToRole(native *native.NativeService) ([]byte, error) {
 		return nil, fmt.Errorf("verify admin's signature failed, caused by %v", err)
 	}
 	if !ret {
+		invokeEvent(native, "assignFuncsToRole", false)
 		return utils.BYTE_FALSE, nil
 	}
 
@@ -170,13 +164,14 @@ func AssignFuncsToRole(native *native.NativeService) ([]byte, error) {
 		funcs.funcNames = stringSliceUniq(funcNames)
 	} else {
 		funcs = new(roleFuncs)
-		funcs.funcNames = param.FuncNames
+		funcs.funcNames = stringSliceUniq(param.FuncNames)
 	}
-
 	err = PutRoleFunc(native, param.ContractAddr, param.Role, funcs)
 	if err != nil {
+		invokeEvent(native, "assignFuncsToRole", false)
 		return utils.BYTE_FALSE, err
 	}
+	invokeEvent(native, "assignFuncsToRole", true)
 	return utils.BYTE_TRUE, nil
 }
 
@@ -196,16 +191,19 @@ func assignToRole(native *native.NativeService) ([]byte, error) {
 		return nil, fmt.Errorf("get contract admin failed, caused by %v", err)
 	}
 	if admin == nil {
+		invokeEvent(native, "assignOntIDsToRole", false)
 		return utils.BYTE_FALSE, nil
 	}
 	if bytes.Compare(admin, param.AdminOntID) != 0 {
-		return nil, fmt.Errorf("not invoked by contract admin")
+		invokeEvent(native, "assignOntIDsToRole", false)
+		return utils.BYTE_FALSE, nil
 	}
 	valid, err := verifySig(native, param.AdminOntID, param.KeyNo)
 	if err != nil {
 		return nil, fmt.Errorf("verify admin's signature failed, caused by %v", err)
 	}
 	if !valid {
+		invokeEvent(native, "assignOntIDsToRole", false)
 		return utils.BYTE_FALSE, nil
 	}
 
@@ -215,11 +213,11 @@ func assignToRole(native *native.NativeService) ([]byte, error) {
 	token.expireTime = uint32(future.Unix())
 	token.level = 2
 	token.role = param.Role
+
 	for _, p := range param.Persons {
 		if p == nil {
 			continue
 		}
-
 		tokens, err := GetOntIDToken(native, param.ContractAddr, p)
 		if err != nil {
 			return nil, err
@@ -244,6 +242,7 @@ func assignToRole(native *native.NativeService) ([]byte, error) {
 			return nil, err
 		}
 	}
+	invokeEvent(native, "assignOntIDsToRole", true)
 	return utils.BYTE_TRUE, nil
 }
 
@@ -257,22 +256,26 @@ func getAuthToken(native *native.NativeService, contractAddr, ontID, role []byte
 	if err != nil {
 		return nil, fmt.Errorf("get token failed, caused by %v", err)
 	}
-	for _, token := range tokens.tokens {
-		if bytes.Compare(token.role, role) == 0 { //permanent
-			return token, nil
+	if tokens != nil {
+		for _, token := range tokens.tokens {
+			if bytes.Compare(token.role, role) == 0 { //permanent token
+				return token, nil
+			}
 		}
 	}
 	status, err := GetDelegateStatus(native, contractAddr, ontID)
 	if err != nil {
 		return nil, fmt.Errorf("get delegate status failed, caused by %v", err)
 	}
-	for _, s := range status.status {
-		if bytes.Compare(s.role, role) == 0 && native.Time < s.expireTime { //temporarily
-			token := new(AuthToken)
-			token.role = s.role
-			token.level = s.level
-			token.expireTime = s.expireTime
-			return token, nil
+	if status != nil {
+		for _, s := range status.status {
+			if bytes.Compare(s.role, role) == 0 && native.Time < s.expireTime { //temporary token
+				token := new(AuthToken)
+				token.role = s.role
+				token.level = s.level
+				token.expireTime = s.expireTime
+				return token, nil
+			}
 		}
 	}
 	return nil, nil
@@ -303,9 +306,6 @@ func getLevel(native *native.NativeService, contractAddr, ontID, role []byte) (u
 /*
  * if 'from' has the authority and 'to' has not been authorized 'role',
  * then make changes to storage as follows:
- *   - insert 'to' into the linked list of 'role -> [] persons'
- *   - insert 'to' into the delegate list of 'from'.
- *   - put 'func x to' into the 'func x person' table
  */
 func delegate(native *native.NativeService, contractAddr []byte, from []byte, to []byte,
 	role []byte, period uint32, level uint, keyNo uint32) ([]byte, error) {
@@ -318,11 +318,13 @@ func delegate(native *native.NativeService, contractAddr []byte, from []byte, to
 		return nil, err
 	}
 	if !ret {
-		return nil, err
+		invokeEvent(native, "delegate", false)
+		return utils.BYTE_FALSE, nil
 	}
 	expireTime := uint32(time.Now().Unix())
 	if period+expireTime < period {
-		return utils.BYTE_FALSE, err
+		invokeEvent(native, "delegate", false)
+		return utils.BYTE_FALSE, nil //invalid param
 	}
 	expireTime = expireTime + period
 
@@ -348,11 +350,9 @@ func delegate(native *native.NativeService, contractAddr []byte, from []byte, to
 		toHasRole = true
 	}
 	if !fromHasRole || toHasRole {
-		return nil, fmt.Errorf("from has no %x or to already has %x", role, role) //ignore
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("")
+		//fmt.Errorf("from has no %x or to already has %x", role, role) //ignore
+		invokeEvent(native, "delegate", false)
+		return utils.BYTE_FALSE, nil
 	}
 
 	//check if 'from' has the permission to delegate
@@ -362,26 +362,39 @@ func delegate(native *native.NativeService, contractAddr []byte, from []byte, to
 			if err != nil {
 				return nil, err
 			}
-			newStatus := &DelegateStatus{
-				root: from,
+			if status == nil {
+				status = new(Status)
 			}
-			newStatus.expireTime = expireTime
-			newStatus.role = role
-			newStatus.level = uint8(level)
-			status.status = append(status.status, newStatus)
+			j := -1
+			for i, s := range status.status {
+				if bytes.Compare(s.role, role) == 0 {
+					j = i
+					break
+				}
+			}
+			if j < 0 {
+				newStatus := &DelegateStatus{
+					root: from,
+				}
+				newStatus.expireTime = expireTime
+				newStatus.role = role
+				newStatus.level = uint8(level)
+				status.status = append(status.status, newStatus)
+			} else {
+				status.status[j].level = uint8(level)
+				status.status[j].expireTime = expireTime
+				status.status[j].root = from
+			}
 			err = PutDelegateStatus(native, contractAddr, to, status)
 			if err != nil {
 				return nil, err
 			}
+			invokeEvent(native, "delegate", true)
 			return utils.BYTE_TRUE, nil
 		}
 	}
-	//TODO:
-	/*
-		if fromLevel > 2 && level < fromLevel && level > 0 {
-
-		}
-	*/
+	//TODO: for fromLevel > 2 case
+	invokeEvent(native, "delegate", false)
 	return utils.BYTE_FALSE, nil
 }
 
@@ -406,7 +419,8 @@ func withdraw(native *native.NativeService, contractAddr []byte, initiator []byt
 	if !ret {
 		return nil, err
 	}
-
+	//code below only works in the case that initiator's level is 2
+	//TODO
 	initToken, err := getAuthToken(native, contractAddr, initiator, role)
 	if err != nil {
 		return nil, err
@@ -417,6 +431,9 @@ func withdraw(native *native.NativeService, contractAddr []byte, initiator []byt
 	status, err := GetDelegateStatus(native, contractAddr, delegate)
 	if err != nil {
 		return nil, err
+	}
+	if status == nil {
+		return utils.BYTE_FALSE, nil
 	}
 	for i, s := range status.status {
 		if bytes.Compare(s.role, role) == 0 &&
@@ -446,7 +463,6 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
  *  @fn the name of the func to call
  *  @tokenSig the signature on the message
  */
-
 func verifyToken(native *native.NativeService, contractAddr []byte, caller []byte, fn []byte, keyNo uint32) (bool, error) {
 	//check caller's identity
 	ret, err := verifySig(native, caller, keyNo)
@@ -456,10 +472,9 @@ func verifyToken(native *native.NativeService, contractAddr []byte, caller []byt
 	if !ret {
 		return false, nil
 	}
-
 	tokens, err := GetOntIDToken(native, contractAddr, caller)
 	if err != nil {
-		return false, nil
+		return false, err
 	}
 	if tokens != nil {
 		for _, token := range tokens.tokens {
@@ -502,18 +517,20 @@ func VerifyToken(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	ret, err := verifyToken(native, param.Caller, param.ContractAddr, param.Fn, param.KeyNo)
+	ret, err := verifyToken(native, param.ContractAddr, param.Caller, param.Fn, param.KeyNo)
 	if err != nil {
 		return nil, err
 	}
 	if !ret {
+		invokeEvent(native, "verifyToken", false)
 		return utils.BYTE_FALSE, nil
 	}
+	invokeEvent(native, "verifyToken", true)
 	return utils.BYTE_TRUE, nil
 }
+
 func verifySig(native *native.NativeService, ontID []byte, keyNo uint32) (bool, error) {
-	//return false, nil
-	// enable signature verification whenever the OntID contract is merged into the master branch
+	//return true, nil
 	bf := new(bytes.Buffer)
 	if err := serialization.WriteVarBytes(bf, ontID); err != nil {
 		return false, err
@@ -540,10 +557,10 @@ func verifySig(native *native.NativeService, ontID []byte, keyNo uint32) (bool, 
 func RegisterAuthContract(native *native.NativeService) {
 	native.Register("initContractAdmin", InitContractAdmin)
 	native.Register("assignFuncsToRole", AssignFuncsToRole)
-	//native.Register("delegate", Delegate)
-	//native.Register("withdraw", Withdraw)
+	native.Register("delegate", Delegate)
+	native.Register("withdraw", Withdraw)
 	native.Register("assignOntIDsToRole", AssignOntIDsToRole)
-	//native.Register("verifyToken", VerifyToken)
+	native.Register("verifyToken", VerifyToken)
 	native.Register("transfer", Transfer)
-	//native.Register("test", AuthTest)
+	//native.Register("test", test)
 }

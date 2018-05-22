@@ -23,9 +23,10 @@ import (
 	"testing"
 )
 
-func TestSer_roleFuncs(t *testing.T) {
+func TestSerRoleFuncs(t *testing.T) {
 	param := &roleFuncs{
 		[]string{"foo1", "foo2"},
+		//[]string{},
 	}
 	bf := new(bytes.Buffer)
 	if err := param.Serialize(bf); err != nil {
@@ -47,7 +48,7 @@ func TestSer_roleFuncs(t *testing.T) {
 	}
 }
 
-func TestSer_AuthToken(t *testing.T) {
+func TestSerAuthToken(t *testing.T) {
 	param := &AuthToken{
 		role:       []byte("role"),
 		expireTime: 1000000,
@@ -71,71 +72,29 @@ func TestSer_AuthToken(t *testing.T) {
 	}
 }
 
-func TestSer_DelegateStatus(t *testing.T) {
-	/*
-		s1 := &DelegateStatus {
-			root: []byte{0x01, 0x02, 0x03, 0x04, 0x05},
-
-		}
-	*/
-}
-func TestSer_roleAuthTokens(t *testing.T) {
-	token1 := &AuthToken{
+func TestSerDelegateStatus(t *testing.T) {
+	token := &AuthToken{
 		role:       []byte("role"),
 		expireTime: 1000000,
 		level:      2,
 	}
-	token2 := &AuthToken{
-		role:       []byte("role2"),
-		expireTime: 10000,
-		level:      2,
-	}
-
-	tokens := &roleTokens{
-		tokens: []*AuthToken{token1, token2},
+	s1 := &DelegateStatus{
+		root:      []byte{0x01, 0x02, 0x03, 0x04, 0x05},
+		AuthToken: *token,
 	}
 	bf := new(bytes.Buffer)
-	if err := tokens.Serialize(bf); err != nil {
+	if err := s1.Serialize(bf); err != nil {
 		t.Fatal(err)
 	}
-
-	tokens2 := new(roleTokens)
 	rd := bytes.NewReader(bf.Bytes())
-	if err := tokens2.Deserialize(rd); err != nil {
+	s2 := new(DelegateStatus)
+	if err := s2.Deserialize(rd); err != nil {
 		t.Fatal(err)
 	}
 
-	if len(tokens.tokens) != len(tokens2.tokens) {
+	if bytes.Compare(s1.root, s2.root) != 0 ||
+		bytes.Compare(s1.role, s2.role) != 0 ||
+		s1.expireTime != s2.expireTime || s1.level != s2.level {
 		t.Fatalf("failed")
 	}
 }
-
-/*
-func BenchmarkDes(b *testing.B) {
-	token1 := &AuthToken{
-		role:       []byte("role"),
-		expireTime: 1000000,
-		level:      2,
-	}
-	token2 := &AuthToken{
-		role:       []byte("role2"),
-		expireTime: 10000,
-		level:      2,
-	}
-	tokens := &roleTokens{
-		tokens: []*AuthToken{token1, token2},
-	}
-	bf := new(bytes.Buffer)
-	if err := tokens.Serialize(bf); err != nil {
-		b.Fatal(err)
-	}
-
-	for i := 0; i < b.N; i++ {
-		tokens2 := new(roleTokens)
-		rd := bytes.NewReader(bf.Bytes())
-		if err := tokens2.Deserialize(rd); err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-*/

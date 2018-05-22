@@ -23,18 +23,20 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 var (
-	PreRoleFunc       = []byte{0x01}
-	PreRoleToken      = []byte{0x02}
-	PreDelegateStatus = []byte{0x03}
-	PreDelegateList   = []byte{0x04}
-	PreAdmin          = []byte{0x05}
+	PreAdmin          = []byte{0x01}
+	PreRoleFunc       = []byte{0x02}
+	PreRoleToken      = []byte{0x03}
+	PreDelegateStatus = []byte{0x04}
+	//PreDelegateList   = []byte{0x04}
 )
 
+//type(this.contractAddr.Admin) = []byte
 func GetContractAdminKey(native *native.NativeService, contractAddr []byte) ([]byte, error) {
 	this := native.ContextRef.CurrentContext().ContractAddress
 	adminKey, err := packKeys(this[:], [][]byte{contractAddr, PreAdmin})
@@ -42,7 +44,6 @@ func GetContractAdminKey(native *native.NativeService, contractAddr []byte) ([]b
 	return adminKey, err
 }
 
-//type(this.contractAddr.Admin) = []byte
 func GetContractAdmin(native *native.NativeService, contractAddr []byte) ([]byte, error) {
 	key, err := GetContractAdminKey(native, contractAddr)
 	if err != nil {
@@ -52,12 +53,22 @@ func GetContractAdmin(native *native.NativeService, contractAddr []byte) ([]byte
 	if err != nil {
 		return nil, err
 	}
-	if item == nil {
+	if item == nil { //is not set
 		return nil, nil
 	}
 	return item.Value, nil
 }
 
+func PutContractAdmin(native *native.NativeService, contractAddr, adminOntID []byte) error {
+	key, err := GetContractAdminKey(native, contractAddr)
+	if err != nil {
+		return err
+	}
+	utils.PutBytes(native, key, adminOntID)
+	return nil
+}
+
+//type(this.contractAddr.RoleFunc.role) = roleFuncs
 func GetRoleFuncKey(native *native.NativeService, contractAddr, role []byte) ([]byte, error) {
 	this := native.ContextRef.CurrentContext().ContractAddress
 	roleFuncKey, err := packKeys(this[:], [][]byte{contractAddr, PreRoleFunc, role})
@@ -65,24 +76,23 @@ func GetRoleFuncKey(native *native.NativeService, contractAddr, role []byte) ([]
 	return roleFuncKey, err
 }
 
-//type(this.contractAddr.RoleFunc.role) = roleFuncs
 func GetRoleFunc(native *native.NativeService, contractAddr, role []byte) (*roleFuncs, error) {
 	key, err := GetRoleFuncKey(native, contractAddr, role)
 	if err != nil {
-		return nil, fmt.Errorf("get role's func failed, caused by %v", err)
+		return nil, err
 	}
 	item, err := utils.GetStorageItem(native, key)
 	if err != nil {
-		return nil, fmt.Errorf("fetch role's func from storage failed, caused by %v", err)
+		return nil, err
 	}
-	if item == nil {
+	if item == nil { //is not set
 		return nil, nil
 	}
-	rF := new(roleFuncs)
 	rd := bytes.NewReader(item.Value)
+	rF := new(roleFuncs)
 	err = rF.Deserialize(rd)
 	if err != nil {
-		return nil, fmt.Errorf("deserialize failed")
+		return nil, fmt.Errorf("deserialize roleFuncs object failed. data: %x", item.Value)
 	}
 	return rF, nil
 }
@@ -113,16 +123,16 @@ func GetOntIDToken(native *native.NativeService, contractAddr, ontID []byte) (*r
 	}
 	item, err := utils.GetStorageItem(native, key)
 	if err != nil {
-		return nil, fmt.Errorf("fetch auth tokens from storage failed, caused by %v", err)
+		return nil, err
 	}
-	if item == nil {
+	if item == nil { //is not set
 		return nil, nil
 	}
-	rT := new(roleTokens)
 	rd := bytes.NewReader(item.Value)
+	rT := new(roleTokens)
 	err = rT.Deserialize(rd)
 	if err != nil {
-		return nil, fmt.Errorf("deserialize failed")
+		return nil, fmt.Errorf("deserialize roleTokens object failed. data: %x", item.Value)
 	}
 	return rT, nil
 }
@@ -153,7 +163,7 @@ func GetDelegateStatus(native *native.NativeService, contractAddr, ontID []byte)
 	}
 	item, err := utils.GetStorageItem(native, key)
 	if err != nil {
-		return nil, fmt.Errorf("fetch delegate status from storage failed, caused by %v", err)
+		return nil, err
 	}
 	if item == nil {
 		return nil, nil
@@ -162,7 +172,7 @@ func GetDelegateStatus(native *native.NativeService, contractAddr, ontID []byte)
 	rd := bytes.NewReader(item.Value)
 	err = status.Deserialize(rd)
 	if err != nil {
-		return nil, fmt.Errorf("deserialize failed")
+		return nil, fmt.Errorf("deserialize Status object failed. data: %x", item.Value)
 	}
 	return status, nil
 }
@@ -172,22 +182,16 @@ func PutDelegateStatus(native *native.NativeService, contractAddr, ontID []byte,
 	bf := new(bytes.Buffer)
 	err := status.Serialize(bf)
 	if err != nil {
-		return fmt.Errorf("serialize roleFuncs failed, caused by %v", err)
+		return fmt.Errorf("serialize Status failed, caused by %v", err)
 	}
 	utils.PutBytes(native, key, bf.Bytes())
 	return nil
 }
 
 /*
-//type(this.contractAddr.DelegateList.role.ontID)
-func GetDelegateListKey(native *native.NativeService, contractAddr, role, ontID []byte) ([]byte, error) {
-	this := native.ContextRef.CurrentContext().ContractAddress
-	delegateListKey, err := packKeys(this[:], [][]byte{contractAddr, PreDelegateList, role, ontID})
-
-	return delegateListKey, err
-}
-*/
-
+ * pack data to be used as a key in the kv storage
+ * key := field || ser_items[1] || ... || ser_items[n]
+ */
 func packKeys(field []byte, items [][]byte) ([]byte, error) {
 	w := new(bytes.Buffer)
 	for _, item := range items {
@@ -200,8 +204,10 @@ func packKeys(field []byte, items [][]byte) ([]byte, error) {
 	return key, nil
 }
 
-//pack data to be used as a key in the kv storage
-// key := field || ser_data
+/*
+ * pack data to be used as a key in the kv storage
+ * key := field || ser_data
+ */
 func packKey(field []byte, data []byte) ([]byte, error) {
 	return packKeys(field, [][]byte{data})
 }
@@ -222,4 +228,15 @@ func stringSliceUniq(s []string) []string {
 		i++
 	}
 	return ret
+}
+
+func pushEvent(native *native.NativeService, s interface{}) {
+	event := new(event.NotifyEventInfo)
+	event.ContractAddress = native.ContextRef.CurrentContext().ContractAddress
+	event.States = s
+	native.Notifications = append(native.Notifications, event)
+}
+
+func invokeEvent(native *native.NativeService, fn string, ret bool) {
+	pushEvent(native, []interface{}{fn, ret})
 }
