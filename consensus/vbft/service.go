@@ -170,8 +170,6 @@ func (self *Server) Receive(context actor.Context) {
 		log.Infof("vbft actor receives block complete event. block height=%d, numtx=%d",
 			msg.Block.Header.Height, len(msg.Block.Transactions))
 		self.handleBlockPersistCompleted(msg.Block)
-	case *p2pmsg.PeerStateUpdate:
-		self.handlePeerStateUpdate(msg)
 	case *p2pmsg.ConsensusPayload:
 		self.NewConsensusPayload(msg)
 
@@ -191,25 +189,6 @@ func (self *Server) Start() error {
 func (self *Server) Halt() error {
 	self.pid.Tell(&actorTypes.StopConsensus{})
 	return nil
-}
-
-func (self *Server) handlePeerStateUpdate(peer *p2pmsg.PeerStateUpdate) {
-	if peer.PeerPubKey == nil {
-		log.Errorf("server %d, invalid peer state update (no pk)", self.Index)
-		return
-	}
-	peerID, err := vconfig.PubkeyID(peer.PeerPubKey)
-	if err != nil {
-		log.Errorf("failed to get peer ID for pubKey: %v", peer.PeerPubKey)
-		return
-	}
-	peerIdx, present := self.peerPool.GetPeerIndex(peerID)
-	if !present {
-		log.Errorf("invalid consensus node: %s", peerID.String())
-		return
-	}
-
-	log.Infof("peer state update: %d, connect: %t", peerIdx, peer.Connected)
 }
 
 func (self *Server) handleBlockPersistCompleted(block *types.Block) {
@@ -367,16 +346,6 @@ func (self *Server) updateChainConfig() error {
 			if err := self.peerPool.addPeer(p); err != nil {
 				return fmt.Errorf("failed to add peer %d: %s", p.Index, err)
 			}
-			publickey, err := p.ID.Pubkey()
-			if err != nil {
-				log.Errorf("Pubkey failed: %v", err)
-				return fmt.Errorf("Pubkey failed: %v", err)
-			}
-			msg := &p2pmsg.PeerStateUpdate{
-				PeerPubKey: publickey,
-				Connected:  true,
-			}
-			self.handlePeerStateUpdate(msg)
 			log.Infof("updateChainConfig add peer index%v,id:%v", p.ID.String(), p.Index)
 		}
 	}
