@@ -66,6 +66,7 @@ const (
 	GET_BLK_HGT_BY_TXHASH = "/api/v1/block/height/txhash/:hash"
 	GET_MERKLE_PROOF      = "/api/v1/merkleproof/:hash"
 	GET_GAS_PRICE         = "/api/v1/gasprice"
+	GET_ALLOWANCE         = "/api/v1/allowance/:asset/:from/:to"
 
 	POST_RAW_TX = "/api/v1/transaction"
 )
@@ -131,6 +132,7 @@ func (this *restServer) registryMethod() {
 		GET_BLK_HGT_BY_TXHASH: {name: "getblockheightbytxhash", handler: rest.GetBlockHeightByTxHash},
 		GET_STORAGE:           {name: "getstorage", handler: rest.GetStorage},
 		GET_BALANCE:           {name: "getbalance", handler: rest.GetBalance},
+		GET_ALLOWANCE:         {name: "getallowance", handler: rest.GetAllowance},
 		GET_MERKLE_PROOF:      {name: "getmerkleproof", handler: rest.GetMerkleProof},
 		GET_GAS_PRICE:         {name: "getgasprice", handler: rest.GetGasPrice},
 	}
@@ -167,6 +169,8 @@ func (this *restServer) getPath(url string) string {
 		return GET_BALANCE
 	} else if strings.Contains(url, strings.TrimRight(GET_MERKLE_PROOF, ":hash")) {
 		return GET_MERKLE_PROOF
+	} else if strings.Contains(url, strings.TrimRight(GET_ALLOWANCE, ":asset/:from/:to")) {
+		return GET_ALLOWANCE
 	}
 	return url
 }
@@ -188,11 +192,6 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 	case GET_CONTRACT_STATE:
 		req["Hash"], req["Raw"] = getParam(r, "hash"), r.FormValue("raw")
 	case POST_RAW_TX:
-		userid := r.FormValue("userid")
-		req["Userid"] = userid
-		if len(userid) == 0 {
-			req["Userid"] = getParam(r, "userid")
-		}
 		req["PreExec"] = r.FormValue("preExec")
 	case GET_STORAGE:
 		req["Hash"], req["Key"] = getParam(r, "hash"), getParam(r, "key")
@@ -206,6 +205,9 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["Addr"] = getParam(r, "addr")
 	case GET_MERKLE_PROOF:
 		req["Hash"] = getParam(r, "hash")
+	case GET_ALLOWANCE:
+		req["Asset"] = getParam(r, "asset")
+		req["From"], req["To"] = getParam(r, "from"), getParam(r, "to")
 	default:
 	}
 	return req

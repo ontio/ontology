@@ -85,8 +85,9 @@ Transaction field description
 | getsmartcodeevent |  | Get smartcode event |  |
 | getblockheightbytxhash | tx_hash | get blockheight of txhash|  |
 | getbalance | address | return balance of base58 account address. |  |
+| getmerkleproof | tx_hash | return merkle_proof |  |
 | getgasprice |  | return gasprice |  |
-
+| getallowance | asset, from, to | return allowance |  |
 
 ### 1. getbestblockhash
 
@@ -957,6 +958,36 @@ Response:
         "gasprice": 0,
         "height": 1
        }
+}
+```
+
+#### 19. getallowance
+
+return allowance.
+
+
+#### Example
+
+Request:
+
+```
+{
+  "jsonrpc": "2.0",
+  "method": "getallowance",
+  "params": ["ont","from address","to address"],
+  "id": 1
+}
+```
+
+Response:
+
+```
+{
+   "desc":"SUCCESS",
+   "error":0,
+   "id":1,
+   "jsonpc":"2.0",
+   "result": "10"
 }
 ```
 

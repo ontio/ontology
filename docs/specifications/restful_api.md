@@ -24,6 +24,7 @@ Restful Api List
 | get_blk_hgt_by_txhash | GET /api/v1/block/height/txhash/:hash |
 | get_merkle_proof | GET /api/v1/merkleproof/:hash|
 | get_gasprice | GET /api/v1/gasprice|
+| get_allowance | GET /api/v1/allowance/:asset/:from/:to |
 | post_raw_tx | post /api/v1/transaction |
 
 
@@ -510,7 +511,7 @@ GET
 ```
 Request Example
 ```
-curl -i http://localhost:20384/api/v1/storage/ff00000000000000000000000000000000000001/0144587c1094f6929ed7362d6328cffff4fb4da2
+curl -i http://localhost:20334/api/v1/storage/ff00000000000000000000000000000000000001/0144587c1094f6929ed7362d6328cffff4fb4da2
 ```
 #### Response
 ```
@@ -536,7 +537,7 @@ GET
 
 Request Example
 ```
-curl -i http://localhost:20384/api/v1/balance/TA5uYzLU2vBvvfCMxyV2sdzc9kPqJzGZWq
+curl -i http://localhost:20334/api/v1/balance/TA5uYzLU2vBvvfCMxyV2sdzc9kPqJzGZWq
 ```
 
 #### Response
@@ -604,7 +605,7 @@ GET
 #### Example usage:
 
 ```
-curl -i http://localhost:20384/api/v1/smartcode/event/transactions/900
+curl -i http://localhost:20334/api/v1/smartcode/event/transactions/900
 ```
 
 #### response
@@ -631,7 +632,7 @@ GET
 ```
 #### Request Example:
 ```
-curl -i http://localhost:20384/api/v1/smartcode/event/txhash/20046da68ef6a91f6959caa798a5ac7660cc80cf4098921bc63604d93208a8ac
+curl -i http://localhost:20334/api/v1/smartcode/event/txhash/20046da68ef6a91f6959caa798a5ac7660cc80cf4098921bc63604d93208a8ac
 ```
 #### Response:
 ```
@@ -668,7 +669,7 @@ GET
 ```
 #### Request Example:
 ```
-curl -i http://localhost:20384/api/v1/block/height/txhash/3e23cf222a47739d4141255da617cd42925a12638ac19cadcc85501f907972c8
+curl -i http://localhost:20334/api/v1/block/height/txhash/3e23cf222a47739d4141255da617cd42925a12638ac19cadcc85501f907972c8
 ```
 #### Response
 ```
@@ -691,7 +692,7 @@ GET
 ```
 #### Request Example:
 ```
-curl -i http://localhost:20384/api/v1/merkleproof/3e23cf222a47739d4141255da617cd42925a12638ac19cadcc85501f907972c8
+curl -i http://localhost:20334/api/v1/merkleproof/3e23cf222a47739d4141255da617cd42925a12638ac19cadcc85501f907972c8
 ```
 #### Response
 ```
@@ -735,7 +736,7 @@ GET
 ```
 #### Request Example:
 ```
-curl -i http://localhost:20384/api/v1/block/height/txhash/3e23cf222a47739d4141255da617cd42925a12638ac19cadcc85501f907972c8
+curl -i http://localhost:20334/api/v1/block/height/txhash/3e23cf222a47739d4141255da617cd42925a12638ac19cadcc85501f907972c8
 ```
 #### Response
 ```
@@ -747,6 +748,29 @@ curl -i http://localhost:20384/api/v1/block/height/txhash/3e23cf222a47739d414125
           "gasprice": 0,
           "height": 1
     },
+    "Version": "1.0.0"
+}
+```
+
+### 18 get_allowance
+
+Get allowance
+
+GET
+```
+/api/v1/gasprice
+```
+#### Request Example:
+```
+curl -i http://localhost:20334/api/v1/allowance/:asset/:from/:to
+```
+#### Response
+```
+{
+    "Action": "getallowance",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": "10",
     "Version": "1.0.0"
 }
 ```

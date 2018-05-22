@@ -706,6 +706,30 @@ get gasprice
 }
 ```
 
+### 21. Get allowance
+get allowance
+
+#### Request Example:
+```
+{
+    "Action": "getallowance",
+    "Asset": "ont",
+    "From" :  "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+    "To"   :  "TA4WVfUB1ipHL8s3PRSYgeV1HhAU3KcKTq",
+    "Version": "1.0.0"
+}
+```
+#### Response
+```
+{
+    "Action": "getallowance",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": "10",
+    "Version": "1.0.0"
+}
+```
+
 ## Error Code
 
 | Field | Type | Description |
