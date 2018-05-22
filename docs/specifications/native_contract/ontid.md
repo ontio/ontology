@@ -1,4 +1,7 @@
-# Ontology Distributed Identification 
+English / [中文](./ontid_cn.md)
+
+<h1 align="center">Ontology Distributed Identification</h1>
+<p align="center" class="version">Contract Version 1.0</p>
 
 “Entity” refers to individuals, legal entities (organizations, enterprises, institutions, etc.), objects (mobile phones, automobiles, IoT devices, etc.), and contents (articles, copyrights, etc.) in the real world, and “identity” refers to the entity's identity within the network. Ontology uses Ontology Identifier (ONT ID) to identify and manage the entities' identities. On Ontology Blockchain, one entity can correspond to multiple individual identities, and there is no relation between multiple identities.
 
@@ -27,7 +30,7 @@ As above, `<ont>` is a network identifier, and `<VER>` is a 1 byte version label
 Ontology applies digital signature technology to guarantee entities have rights to manage their own identities. The ONT ID is bound to the entity's public key when it registers, thereby indicating its ownership. The use of the ONT ID and the modification of its attributes require the owner's digital signature. The entity can independently determine the scope of use of its ONT ID and set the public key bounded by ONT ID and manage the attributes of the ONT ID.
 
 ### 1.3 Multiple key binding
-Ontology supports a variety of domestic and international standardized digital signature algorithms such as RSA, ECDSA, and SM2. The algorithm applied to the key that is bounded by ONT ID should be specified. At the same time, an ONT ID can bound multiple different keys to meet the usage requirements of entities in different application scenarios.
+Ontology supports a variety of domestic and international standardized digital signature algorithms such as ECDSA and SM2. The algorithm applied to the key that is bounded by ONT ID should be specified. At the same time, an ONT ID can bound multiple different keys to meet the usage requirements of entities in different application scenarios.
 
 ### 1.4 Recovery of identity loss
 The owner of the ONT ID can assign someone else to execute his management rights, such as modifying the attributes of the ONT ID and replacing the key when the key is lost. The assigned person can implement a variety of access control logic such as “AND”, “OR”, and “(m, n)-thresholds”. Refer to [Appendix B](#b.-recovery-account-address) for more details.
