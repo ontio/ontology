@@ -27,6 +27,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/types"
 	"github.com/urfave/cli"
 	"io/ioutil"
+	"strings"
 )
 
 var (
@@ -95,7 +96,7 @@ func deployContract(ctx *cli.Context) error {
 	if "" == codeFile {
 		return fmt.Errorf("Please specific code file")
 	}
-	code, err := ioutil.ReadFile(codeFile)
+	codeStr, err := ioutil.ReadFile(codeFile)
 	if err != nil {
 		return fmt.Errorf("Read code:%s error:%s", codeFile, err)
 	}
@@ -105,13 +106,13 @@ func deployContract(ctx *cli.Context) error {
 	author := ctx.String(utils.GetFlagName(utils.ContractAuthorFlag))
 	email := ctx.String(utils.GetFlagName(utils.ContractEmailFlag))
 	desc := ctx.String(utils.GetFlagName(utils.ContractDescFlag))
-
+	code := strings.TrimSpace(string(codeStr))
 	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
 	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
 	vmType := types.NEOVM
 	cversion := fmt.Sprintf("%s", version)
 
-	txHash, err := utils.DeployContract(gasPrice, gasLimit, singer, vmType, store, string(code), name, cversion, author, email, desc)
+	txHash, err := utils.DeployContract(gasPrice, gasLimit, singer, vmType, store, code, name, cversion, author, email, desc)
 	if err != nil {
 		return fmt.Errorf("DeployContract error:%s", err)
 	}
