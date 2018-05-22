@@ -21,6 +21,7 @@ package vbft
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/ontio/ontology-crypto/keypair"
@@ -64,9 +65,13 @@ func (msg *blockProposalMsg) Type() MsgType {
 
 func (msg *blockProposalMsg) Verify(pub keypair.PublicKey) error {
 	// verify block
+	if len(msg.Block.Block.Header.SigData) == 0 {
+		return errors.New("no sigdata in block")
+	}
+	sigdata := msg.Block.Block.Header.SigData[0]
 	hash := msg.Block.Block.Hash()
 
-	sig, err := signature.Deserialize(msg.Block.Block.Header.SigData[0])
+	sig, err := signature.Deserialize(sigdata)
 	if err != nil {
 		return fmt.Errorf("deserialize block sig: %s", err)
 	}
@@ -76,8 +81,12 @@ func (msg *blockProposalMsg) Verify(pub keypair.PublicKey) error {
 
 	// verify empty block
 	if msg.Block.EmptyBlock != nil {
+		if len(msg.Block.EmptyBlock.Header.SigData) == 0 {
+			return errors.New("no sigdata in empty block")
+		}
+		sigdata := msg.Block.EmptyBlock.Header.SigData[0]
 		hash := msg.Block.EmptyBlock.Hash()
-		sig, err := signature.Deserialize(msg.Block.EmptyBlock.Header.SigData[0])
+		sig, err := signature.Deserialize(sigdata)
 		if err != nil {
 			return fmt.Errorf("deserialize empty block sig: %s", err)
 		}
@@ -132,6 +141,14 @@ func (msg *blockEndorseMsg) Type() MsgType {
 }
 
 func (msg *blockEndorseMsg) Verify(pub keypair.PublicKey) error {
+	hash := msg.EndorsedBlockHash
+	sig, err := signature.Deserialize(msg.EndorserSig)
+	if err != nil {
+		return fmt.Errorf("deserialize block sig: %s", err)
+	}
+	if !signature.Verify(pub, hash[:], sig) {
+		return fmt.Errorf("failed to verify block sig")
+	}
 	return nil
 }
 
@@ -160,6 +177,14 @@ func (msg *blockCommitMsg) Type() MsgType {
 }
 
 func (msg *blockCommitMsg) Verify(pub keypair.PublicKey) error {
+	hash := msg.CommitBlockHash
+	sig, err := signature.Deserialize(msg.CommitterSig)
+	if err != nil {
+		return fmt.Errorf("deserialize block sig: %s", err)
+	}
+	if !signature.Verify(pub, hash[:], sig) {
+		return fmt.Errorf("failed to verify block sig")
+	}
 
 	return nil
 }

@@ -20,17 +20,17 @@ package vbft
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/ontio/ontology/account"
-	common "github.com/ontio/ontology/common"
-	vconfig "github.com/ontio/ontology/consensus/vbft/config"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/consensus/vbft/config"
+	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
 )
 
-func constructProposalMsgTest(acc *account.Account) (*blockProposalMsg, error) {
+func constructProposalMsgTest(acc *account.Account) *blockProposalMsg {
 	txRoot := common.ComputeMerkleRoot(nil)
 	vbftBlkInfo := &vconfig.VbftBlockInfo{
 		Proposer:           1,
@@ -39,7 +39,7 @@ func constructProposalMsgTest(acc *account.Account) (*blockProposalMsg, error) {
 	}
 	consensusPayload, err := json.Marshal(vbftBlkInfo)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 	blkHeader := &types.Header{
 		PrevBlockHash:    common.Uint256{},
@@ -50,30 +50,21 @@ func constructProposalMsgTest(acc *account.Account) (*blockProposalMsg, error) {
 		ConsensusPayload: consensusPayload,
 		SigData:          [][]byte{{}, {}},
 	}
+	hash := blkHeader.Hash()
+	sigdata, _ := signature.Sign(acc, hash[:])
+	blkHeader.SigData[0] = sigdata
 	blk := &Block{
 		Block: &types.Block{
-			Header: blkHeader,
+			Header:       blkHeader,
+			Transactions: nil,
 		},
 		Info: vbftBlkInfo,
 	}
-	blk.Block.Hash()
 	msg := &blockProposalMsg{
 		Block: blk,
 	}
-	emptySig, err := SignMsg(acc, msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign empty proposal: %s", err)
-	}
 
-	blk.Block.Transactions = nil
-	sig, err := SignMsg(acc, msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign proposal: %s", err)
-	}
-
-	msg.Block.Block.Header.SigData[0] = sig
-	msg.Block.Block.Header.SigData[1] = emptySig
-	return msg, nil
+	return msg
 }
 
 func TestBlockProposalMsgVerify(t *testing.T) {
@@ -82,12 +73,8 @@ func TestBlockProposalMsgVerify(t *testing.T) {
 		t.Error("GetDefaultAccount error: acc is nil")
 		return
 	}
-	msg, err := constructProposalMsgTest(acc)
-	if err != nil {
-		t.Errorf("constructProposalMsg failed:%v", err)
-		return
-	}
-	err = msg.Verify(acc.PublicKey)
+	msg := constructProposalMsgTest(acc)
+	err := msg.Verify(acc.PublicKey)
 	if err != nil {
 		t.Errorf("blockPropoaslMsg Verify Failed: %v", err)
 		return
@@ -96,12 +83,14 @@ func TestBlockProposalMsgVerify(t *testing.T) {
 }
 
 func constructEndorseMsg(acc *account.Account, proposal *blockProposalMsg, blkHash common.Uint256) (*blockEndorseMsg, error) {
+	sig, _ := signature.Sign(acc, blkHash[:])
 	msg := &blockEndorseMsg{
 		Endorser:          5,
 		EndorsedProposer:  proposal.Block.getProposer(),
 		BlockNum:          proposal.Block.getBlockNum(),
 		EndorsedBlockHash: blkHash,
 		EndorseForEmpty:   true,
+		EndorserSig:       sig,
 	}
 	return msg, nil
 }
@@ -112,11 +101,7 @@ func TestBlockEndorseMsg(t *testing.T) {
 		t.Error("GetDefaultAccount error: acc is nil")
 		return
 	}
-	block, err := constructProposalMsgTest(acc)
-	if err != nil {
-		t.Errorf("TestBlockEndorseMsg failed: %v", err)
-		return
-	}
+	block := constructProposalMsgTest(acc)
 	blkHash, _ := HashBlock(block.Block)
 	endorsemsg, err := constructEndorseMsg(acc, block, blkHash)
 	if err != nil {
@@ -132,12 +117,14 @@ func TestBlockEndorseMsg(t *testing.T) {
 }
 
 func constructCommitMsg(acc *account.Account, proposal *blockProposalMsg, blkHash common.Uint256) (*blockCommitMsg, error) {
+	sig, _ := signature.Sign(acc, blkHash[:])
 	msg := &blockCommitMsg{
 		Committer:       5,
 		BlockProposer:   proposal.Block.getProposer(),
 		BlockNum:        proposal.Block.getBlockNum(),
 		CommitBlockHash: blkHash,
 		CommitForEmpty:  true,
+		CommitterSig:    sig,
 	}
 
 	return msg, nil
@@ -148,11 +135,7 @@ func TestBlockCommitMsg(t *testing.T) {
 		t.Error("GetDefaultAccount error: acc is nil")
 		return
 	}
-	block, err := constructProposalMsgTest(acc)
-	if err != nil {
-		t.Errorf("TestBlockCommitMsg failed: %v", err)
-		return
-	}
+	block := constructProposalMsgTest(acc)
 	blkHash, _ := HashBlock(block.Block)
 	commitmsg, err := constructCommitMsg(acc, block, blkHash)
 	if err != nil {
@@ -327,11 +310,7 @@ func TestBlockFetchRespMsg(t *testing.T) {
 		t.Error("GetDefaultAccount error: acc is nil")
 		return
 	}
-	msg, err := constructProposalMsgTest(acc)
-	if err != nil {
-		t.Errorf("constructProposalMsg failed:%v", err)
-		return
-	}
+	msg := constructProposalMsgTest(acc)
 	respmsg, err := constructBlockFetchRespMsg(acc, msg.Block)
 	if err != nil {
 		t.Errorf("constructBlockFetchMsg failed :%v", err)
