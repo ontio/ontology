@@ -88,13 +88,23 @@ func (this *NetServer) init(pubKey keypair.PublicKey) error {
 		this.base.SetServices(uint64(common.SERVICE_NODE))
 	}
 
-	if config.DefConfig.P2PNode.NodeConsensusPort == 0 || config.DefConfig.P2PNode.NodePort == 0 ||
-		config.DefConfig.P2PNode.NodeConsensusPort == config.DefConfig.P2PNode.NodePort {
-		log.Error("Network port invalid, please check config.json")
-		return errors.New("Invalid port")
+	if config.DefConfig.P2PNode.NodePort == 0 {
+		log.Error("link port invalid")
+		return errors.New("invalid link port")
 	}
+
 	this.base.SetSyncPort(uint16(config.DefConfig.P2PNode.NodePort))
-	this.base.SetConsPort(uint16(config.DefConfig.P2PNode.NodeConsensusPort))
+
+	if config.DefConfig.P2PNode.DualPortSupport {
+		if config.DefConfig.P2PNode.NodeConsensusPort == 0 {
+			log.Error("consensus port invalid")
+			return errors.New("invalid consensus port")
+		}
+
+		this.base.SetConsPort(uint16(config.DefConfig.P2PNode.NodeConsensusPort))
+	} else {
+		this.base.SetConsPort(0)
+	}
 
 	this.base.SetRelay(true)
 
