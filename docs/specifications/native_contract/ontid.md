@@ -76,11 +76,11 @@ For an example in json format,
 
 ONT ID protocol is implemented as a native contract on the Ontology Blockchain platform. With the ONT ID contract, users can register IDs, manage their own public key lists, modify their personal profiles, and add account restorers.
 
-For most methods, if executes successfully, an event message will be pushed to notify the caller. Please refer to the [Events](#2.2.-events) subsection.
+Every non-query methods will push an event message to notify the caller when it executes successfully. Please refer to the [Events](#2.2.-events) subsection.
 
 ## 2.1 Methods
 
-**Note**: All the user's public key used as argument of following methods should be the transaction constructor's public key, i.e. it can pass the transaction's signature verification. And the public key should be bound to the user's ID except the register methods.
+**Note**: All the user's public key used as arguments of following methods should be the transaction constructor's public key, i.e. it can pass the transaction's signature verification. And the public key should be bound to the user's ID except for the register methods.
 
 ###  a. Identity registration
 
@@ -93,7 +93,7 @@ Arguments:
     0    byte array    user ID
     1    byte array    public key
 
-Event: triger 'Register' event when succeeds
+Event: trigger 'Register' event when succeeds
 ```
  
 ### b. Add a control key
@@ -141,7 +141,7 @@ Arguments:
 Event: trigger 'Recovery' event when succeeds
 ```
 
-This method secceeds if and only if the argument 2 is the user's existing public key,
+This method succeeds if and only if the argument 2 is the user's existing public key,
 and the recovery address has not been set.
 
 
@@ -179,6 +179,8 @@ Arguments:
     0    byte array    user ID
     1    byte array    user's public key
     2    byte array    serialized attributes
+
+Event: trigger 'Register' event when succeeds
 ```
 
 The argument 2 is generated as follows:
