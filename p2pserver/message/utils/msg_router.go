@@ -27,12 +27,7 @@ import (
 )
 
 // MessageHandler defines the unified api for each net message
-type MessageHandler func(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *actor.PID, args ...interface{}) error
-
-// DefaultMsgHandler defines the default message handler
-func DefaultMsgHandler(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *actor.PID, args ...interface{}) error {
-	return nil
-}
+type MessageHandler func(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *actor.PID, args ...interface{})
 
 // MessageRouter mostly route different message type-based to the
 // related message handler

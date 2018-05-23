@@ -21,6 +21,9 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
+
+	"github.com/ontio/ontology/errors"
 )
 
 type AddrReq struct {
@@ -30,7 +33,10 @@ type AddrReq struct {
 //Check whether header is correct
 func (this AddrReq) Verify(buf []byte) error {
 	err := this.Hdr.Verify(buf)
-	return err
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNetVerifyFail, fmt.Sprintf("verify error. buf:%v", buf))
+	}
+	return nil
 }
 
 //Serialize message payload
@@ -42,14 +48,17 @@ func (this AddrReq) Serialization() ([]byte, error) {
 
 	err := binary.Write(&buf, binary.LittleEndian, this)
 	if err != nil {
-		return nil, err
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. AddrReq:%v", this))
 	}
-	return buf.Bytes(), err
+	return buf.Bytes(), nil
 }
 
 //Deserialize message payload
 func (this *AddrReq) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, this)
-	return err
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNetVerifyFail, fmt.Sprintf("read AddrReq error. buf:%v", buf))
+	}
+	return nil
 }

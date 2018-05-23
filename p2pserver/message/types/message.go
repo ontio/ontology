@@ -48,7 +48,7 @@ func MsgType(buf []byte) (string, error) {
 	cmd := buf[common.CMD_OFFSET : common.CMD_OFFSET+common.MSG_CMD_LEN]
 	n := bytes.IndexByte(cmd, 0)
 	if n < 0 || n >= common.MSG_CMD_LEN {
-		return "", errors.New("Unexpected length of CMD command")
+		return "", errors.New("unexpected length of CMD command")
 	}
 	s := string(cmd[:n])
 	return s, nil

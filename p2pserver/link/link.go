@@ -104,12 +104,12 @@ func (this *Link) SetConn(conn net.Conn) {
 	this.conn = conn
 }
 
-//record latest getting message time
+//record latest message time
 func (this *Link) UpdateRXTime(t time.Time) {
 	this.time = t
 }
 
-//UpdateRXTime return the latest message time
+//GetRXTime return the latest message time
 func (this *Link) GetRXTime() time.Time {
 	return this.time
 }
@@ -139,8 +139,7 @@ func unpackNodeBuf(this *Link, buf []byte) {
 		if types.ValidMsgHdr(rxBuf.p) == false {
 			rxBuf.p = nil
 			rxBuf.len = 0
-			log.Warn("Get error message header, TODO: relocate the msg header")
-			// TODO Relocate the message header
+			log.Warn("Get error message header")
 			return
 		}
 
@@ -167,7 +166,7 @@ func unpackNodeBuf(this *Link, buf []byte) {
 	}
 }
 
-//pushdata send packed data to channel
+//pushdata send package data to channel
 func (this *Link) pushdata(buf []byte) {
 	p2pMsg := &common.MsgPayload{
 		Id:      this.id,
@@ -190,10 +189,9 @@ func (this *Link) Rx() {
 			this.UpdateRXTime(t)
 			unpackNodeBuf(this, buf[0:len])
 		case io.EOF:
-			//log.Error("Rx io.EOF: ", err, ", node id is ", node.GetID())
 			goto DISCONNECT
 		default:
-			log.Error("Read connection error ", err)
+			log.Error("read connection error ", err)
 			goto DISCONNECT
 		}
 	}
@@ -238,7 +236,7 @@ func (this *Link) Tx(buf []byte) error {
 	}
 	_, err := this.conn.Write(buf)
 	if err != nil {
-		log.Error("Error sending messge to peer node ", err.Error())
+		log.Error("error sending messge to peer node ", err.Error())
 		this.disconnectNotify()
 		return err
 	}

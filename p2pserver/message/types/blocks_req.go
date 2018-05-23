@@ -21,7 +21,9 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 
+	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/p2pserver/common"
 )
 
@@ -37,7 +39,10 @@ type BlocksReq struct {
 //Check whether header is correct
 func (this BlocksReq) Verify(buf []byte) error {
 	err := this.MsgHdr.Verify(buf)
-	return err
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNetVerifyFail, fmt.Sprintf("verify error. buf:%v", buf))
+	}
+	return nil
 }
 
 //Serialize message payload
@@ -45,7 +50,7 @@ func (this BlocksReq) Serialization() ([]byte, error) {
 	p := new(bytes.Buffer)
 	err := binary.Write(p, binary.LittleEndian, &(this.P))
 	if err != nil {
-		return nil, err
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write  error. payload:%v", this.P))
 	}
 
 	s := CheckSum(p.Bytes())
@@ -53,7 +58,7 @@ func (this BlocksReq) Serialization() ([]byte, error) {
 
 	hdrBuf, err := this.MsgHdr.Serialization()
 	if err != nil {
-		return nil, err
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write  error. MsgHdr:%v", this.MsgHdr))
 	}
 	buf := bytes.NewBuffer(hdrBuf)
 
@@ -65,5 +70,8 @@ func (this BlocksReq) Serialization() ([]byte, error) {
 func (this *BlocksReq) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, this)
-	return err
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read BlocksReq error. buf:%v", buf))
+	}
+	return nil
 }

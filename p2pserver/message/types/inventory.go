@@ -21,10 +21,11 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
-	"io"
+	"fmt"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/errors"
 	p2pCommon "github.com/ontio/ontology/p2pserver/common"
 )
 
@@ -41,17 +42,13 @@ type Inv struct {
 	P   InvPayload
 }
 
-func (this *InvPayload) Serialization(w io.Writer) {
-	serialization.WriteUint8(w, uint8(this.InvType))
-	serialization.WriteUint32(w, this.Cnt)
-
-	binary.Write(w, binary.LittleEndian, this.Blk)
-}
-
 //Check whether header is correct
 func (this Inv) Verify(buf []byte) error {
 	err := this.Hdr.Verify(buf)
-	return err
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNetVerifyFail, fmt.Sprintf("verify error. buf:%v", buf))
+	}
+	return nil
 }
 
 func (this Inv) invType() common.InventoryType {
@@ -62,14 +59,25 @@ func (this Inv) invType() common.InventoryType {
 func (this Inv) Serialization() ([]byte, error) {
 
 	p := bytes.NewBuffer([]byte{})
-	this.P.Serialization(p)
+	err := serialization.WriteUint8(p, uint8(this.P.InvType))
+	if err != nil {
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. InvType:%v", this.P.InvType))
+	}
+	err = serialization.WriteUint32(p, this.P.Cnt)
+	if err != nil {
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. Cnt:%v", this.P.Cnt))
+	}
+	err = binary.Write(p, binary.LittleEndian, this.P.Blk)
+	if err != nil {
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. Blk:%v", this.P.Blk))
+	}
 
 	checkSumBuf := CheckSum(p.Bytes())
 	this.Hdr.Init("inv", checkSumBuf, uint32(len(p.Bytes())))
 
 	hdrBuf, err := this.Hdr.Serialization()
 	if err != nil {
-		return nil, err
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialization error. Hdr:%v", this.Hdr))
 	}
 	buf := bytes.NewBuffer(hdrBuf)
 	data := append(buf.Bytes(), p.Bytes()...)
@@ -80,22 +88,24 @@ func (this Inv) Serialization() ([]byte, error) {
 func (this *Inv) Deserialization(p []byte) error {
 	err := this.Hdr.Deserialization(p)
 	if err != nil {
-		return err
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("deserialization Hdr error. buf:%v", p))
 	}
 
 	buf := bytes.NewBuffer(p[p2pCommon.MSG_HDR_LEN:])
 	invType, err := serialization.ReadUint8(buf)
 	if err != nil {
-		return err
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read invType error. buf:%v", buf))
 	}
 	this.P.InvType = common.InventoryType(invType)
 	this.P.Cnt, err = serialization.ReadUint32(buf)
 	if err != nil {
-		return err
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read Cnt error. buf:%v", buf))
 	}
 
 	this.P.Blk = make([]byte, this.P.Cnt*p2pCommon.HASH_LEN)
 	err = binary.Read(buf, binary.LittleEndian, &(this.P.Blk))
-
-	return err
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read Blk error. buf:%v", buf))
+	}
+	return nil
 }

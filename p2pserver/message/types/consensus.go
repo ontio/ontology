@@ -21,9 +21,11 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/errors"
 )
 
 type Consensus struct {
@@ -40,14 +42,17 @@ type PeerStateUpdate struct {
 func (this *Consensus) Serialization() ([]byte, error) {
 
 	p := bytes.NewBuffer([]byte{})
-	this.Cons.Serialize(p)
+	err := this.Cons.Serialize(p)
+	if err != nil {
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialize error. consensus:%v", this.Cons))
+	}
 	checkSumBuf := CheckSum(p.Bytes())
 	this.MsgHdr.Init("consensus", checkSumBuf, uint32(len(p.Bytes())))
 	log.Debug("NewConsensus The message payload length is ", this.MsgHdr.Length)
 
 	hdrBuf, err := this.MsgHdr.Serialization()
 	if err != nil {
-		return nil, err
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialization error. MsgHdr:%v", this.MsgHdr))
 	}
 	buf := bytes.NewBuffer(hdrBuf)
 	data := append(buf.Bytes(), p.Bytes()...)
@@ -59,6 +64,12 @@ func (this *Consensus) Deserialization(p []byte) error {
 	log.Debug()
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(this.MsgHdr))
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read MsgHdr error. buf:%v", buf))
+	}
 	err = this.Cons.Deserialize(buf)
-	return err
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("deserialize Cons error. buf:%v", buf))
+	}
+	return nil
 }

@@ -20,7 +20,7 @@ package types
 
 import (
 	"bytes"
-	"errors"
+	"fmt"
 	"io"
 
 	"github.com/ontio/ontology-crypto/keypair"
@@ -28,6 +28,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/signature"
+	"github.com/ontio/ontology/errors"
 )
 
 type ConsensusPayload struct {
@@ -50,17 +51,25 @@ func (this *ConsensusPayload) Hash() common.Uint256 {
 //Check whether header is correct
 func (this *ConsensusPayload) Verify() error {
 	buf := new(bytes.Buffer)
-	this.SerializeUnsigned(buf)
-
-	err := signature.Verify(this.Owner, buf.Bytes(), this.Signature)
-
-	return err
+	err := this.SerializeUnsigned(buf)
+	if err != nil {
+		return err
+	}
+	err = signature.Verify(this.Owner, buf.Bytes(), this.Signature)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNetVerifyFail, fmt.Sprintf("signature verify error. buf:%v", buf))
+	}
+	return nil
 }
 
 //serialize the consensus payload
 func (this *ConsensusPayload) ToArray() []byte {
 	b := new(bytes.Buffer)
-	this.Serialize(b)
+	err := this.Serialize(b)
+	if err != nil {
+		log.Errorf("consensus payload serialize error in ToArray(). payload:%v", this)
+		return nil
+	}
 	return b.Bytes()
 }
 
@@ -90,36 +99,38 @@ func (this *ConsensusPayload) Serialize(w io.Writer) error {
 	buf := keypair.SerializePublicKey(this.Owner)
 	err = serialization.WriteVarBytes(w, buf)
 	if err != nil {
-		return err
+		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write publickey error. publickey buf:%v", buf))
 	}
 
 	err = serialization.WriteVarBytes(w, this.Signature)
 	if err != nil {
-		return err
+		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write Signature error. Signature:%v", this.Signature))
 	}
 
-	return err
+	return nil
 }
 
 //Deserialize message payload
 func (this *ConsensusPayload) Deserialize(r io.Reader) error {
 	err := this.DeserializeUnsigned(r)
-
+	if err != nil {
+		return err
+	}
 	buf, err := serialization.ReadVarBytes(r)
 	if err != nil {
-		log.Warn("Consensus item Owner deserialize failed, " + err.Error())
-		return errors.New("Consensus item Owner deserialize failed.")
+
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read buf error")
 	}
 	this.Owner, err = keypair.DeserializePublicKey(buf)
 	if err != nil {
-		log.Warn("Consensus item Owner deserialize failed, " + err.Error())
-		return errors.New("Consensus item Owner deserialize failed.")
+
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "deserialize publickey error")
 	}
 
 	this.Signature, err = serialization.ReadVarBytes(r)
 	if err != nil {
-		log.Warn("Consensus item Signature deserialize failed, " + err.Error())
-		return errors.New("Consensus item Signature deserialize failed.")
+
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read Signature error")
 	}
 
 	return err
@@ -127,12 +138,36 @@ func (this *ConsensusPayload) Deserialize(r io.Reader) error {
 
 //Serialize message payload
 func (this *ConsensusPayload) SerializeUnsigned(w io.Writer) error {
-	serialization.WriteUint32(w, this.Version)
-	this.PrevHash.Serialize(w)
-	serialization.WriteUint32(w, this.Height)
-	serialization.WriteUint16(w, this.BookkeeperIndex)
-	serialization.WriteUint32(w, this.Timestamp)
-	serialization.WriteVarBytes(w, this.Data)
+	err := serialization.WriteUint32(w, this.Version)
+	if err != nil {
+
+		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. version:%v", this.Version))
+	}
+	err = this.PrevHash.Serialize(w)
+	if err != nil {
+
+		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialize error. PrevHash:%v", this.PrevHash))
+	}
+	err = serialization.WriteUint32(w, this.Height)
+	if err != nil {
+
+		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. Height:%v", this.Height))
+	}
+	err = serialization.WriteUint16(w, this.BookkeeperIndex)
+	if err != nil {
+
+		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. BookkeeperIndex:%v", this.BookkeeperIndex))
+	}
+	err = serialization.WriteUint32(w, this.Timestamp)
+	if err != nil {
+
+		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. Timestamp:%v", this.Timestamp))
+	}
+	err = serialization.WriteVarBytes(w, this.Data)
+	if err != nil {
+
+		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. Data:%v", this.Data))
+	}
 	return nil
 }
 
@@ -141,40 +176,40 @@ func (this *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
 	var err error
 	this.Version, err = serialization.ReadUint32(r)
 	if err != nil {
-		log.Warn("consensus item Version Deserialize failed.")
-		return errors.New("consensus item Version Deserialize failed. ")
+
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read version error")
 	}
 
 	preBlock := new(common.Uint256)
 	err = preBlock.Deserialize(r)
 	if err != nil {
-		log.Warn("consensus item preHash Deserialize failed.")
-		return errors.New("consensus item preHash Deserialize failed. ")
+
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read preBlock error")
 	}
 	this.PrevHash = *preBlock
 
 	this.Height, err = serialization.ReadUint32(r)
 	if err != nil {
-		log.Warn("consensus item Height Deserialize failed.")
-		return errors.New("consensus item Height Deserialize failed. ")
+
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read Height error")
 	}
 
 	this.BookkeeperIndex, err = serialization.ReadUint16(r)
 	if err != nil {
-		log.Warn("consensus item BookKeeperIndex Deserialize failed.")
-		return errors.New("consensus item BookKeeperIndex Deserialize failed. ")
+
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read BookkeeperIndex error")
 	}
 
 	this.Timestamp, err = serialization.ReadUint32(r)
 	if err != nil {
-		log.Warn("consensus item Timestamp Deserialize failed.")
-		return errors.New("consensus item Timestamp Deserialize failed. ")
+
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read Timestamp error")
 	}
 
 	this.Data, err = serialization.ReadVarBytes(r)
 	if err != nil {
-		log.Warn("consensus item Data Deserialize failed.")
-		return errors.New("consensus item Data Deserialize failed. ")
+
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read Data error")
 	}
 
 	return nil

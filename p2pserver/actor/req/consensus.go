@@ -31,9 +31,9 @@ func SetConsensusPid(conPid *actor.PID) {
 	ConsensusPid = conPid
 }
 
-func NotifyPeerState(peer keypair.PublicKey, connected bool) error {
+func NotifyPeerState(peer keypair.PublicKey, connected bool) {
 	if config.DefConfig.Genesis.ConsensusType != config.CONSENSUS_TYPE_VBFT {
-		return nil
+		return
 	}
 
 	if ConsensusPid != nil {
@@ -42,5 +42,4 @@ func NotifyPeerState(peer keypair.PublicKey, connected bool) error {
 			Connected:  connected,
 		})
 	}
-	return nil
 }

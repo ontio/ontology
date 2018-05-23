@@ -182,7 +182,7 @@ func (this *Peer) DumpInfo() {
 	log.Info("Node info:")
 	log.Info("\t syncState = ", this.syncState)
 	log.Info("\t consState = ", this.consState)
-	log.Info(fmt.Sprintf("\t id = 0x%x", this.GetID()))
+	log.Info("\t id = 0x%x", this.GetID())
 	log.Info("\t addr = ", this.SyncLink.GetAddr())
 	log.Info("\t cap = ", this.cap)
 	log.Info("\t version = ", this.GetVersion())
@@ -340,8 +340,8 @@ func (this *Peer) GetAddr16() ([16]byte, error) {
 	}
 	ip := net.ParseIP(addrIp).To16()
 	if ip == nil {
-		log.Error("Parse IP address error\n", this.GetAddr())
-		return result, errors.New("Parse IP address error")
+		log.Error("parse ip address error\n", this.GetAddr())
+		return result, errors.New("parse ip address error")
 	}
 
 	copy(result[:], ip[:16])
@@ -414,8 +414,8 @@ func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
 func parseIPAddr(s string) (string, error) {
 	i := strings.Index(s, ":")
 	if i < 0 {
-		log.Warn("Split IP address error")
-		return s, errors.New("Split IP address error")
+		log.Warn("split ip address error")
+		return s, errors.New("split ip address error")
 	}
 	return s[:i], nil
 }

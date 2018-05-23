@@ -49,16 +49,16 @@ func (this *MsgHdr) Init(cmd string, checksum []byte, length uint32) {
 // @p payload of the message
 func (this MsgHdr) Verify(buf []byte) error {
 	if magicVerify(this.Magic) == false {
-		log.Warn(fmt.Sprintf("Unmatched magic number 0x%0x", this.Magic))
-		return errors.New("Unmatched magic number ")
+		log.Warn(fmt.Sprintf("unmatched magic number 0x%0x", this.Magic))
+		return errors.New("unmatched magic number ")
 	}
 	checkSum := CheckSum(buf)
 	if bytes.Equal(this.Checksum[:], checkSum[:]) == false {
 		str1 := hex.EncodeToString(this.Checksum[:])
 		str2 := hex.EncodeToString(checkSum[:])
-		log.Warn(fmt.Sprintf("Message Checksum error, Received checksum %s Wanted checksum: %s",
+		log.Warn(fmt.Sprintf("message checksum error, received checksum %s Wanted checksum: %s",
 			str1, str2))
-		return errors.New("Message Checksum error ")
+		return errors.New("message checksum error ")
 	}
 
 	return nil

@@ -21,10 +21,10 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
+	"fmt"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/errors"
 )
 
 type DataReq struct {
@@ -37,9 +37,12 @@ type DataReq struct {
 func (this DataReq) Serialization() ([]byte, error) {
 	p := bytes.NewBuffer([]byte{})
 	err := binary.Write(p, binary.LittleEndian, &(this.DataType))
-	this.Hash.Serialize(p)
 	if err != nil {
-		return nil, err
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. DataType:%v", this.DataType))
+	}
+	err = this.Hash.Serialize(p)
+	if err != nil {
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialization error. Hash:%v", this.Hash))
 	}
 
 	checkSumBuf := CheckSum(p.Bytes())
@@ -47,7 +50,7 @@ func (this DataReq) Serialization() ([]byte, error) {
 
 	hdrBuf, err := this.MsgHdr.Serialization()
 	if err != nil {
-		return nil, err
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialization error. MsgHdr:%v", this.MsgHdr))
 	}
 	buf := bytes.NewBuffer(hdrBuf)
 	data := append(buf.Bytes(), p.Bytes()...)
@@ -59,20 +62,17 @@ func (this *DataReq) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(this.MsgHdr))
 	if err != nil {
-		log.Warn("Parse dataReq message hdr error")
-		return errors.New("Parse dataReq message hdr error ")
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read MsgHdr error. buf:%v", buf))
 	}
 
 	err = binary.Read(buf, binary.LittleEndian, &(this.DataType))
 	if err != nil {
-		log.Warn("Parse dataReq message dataType error")
-		return errors.New("Parse dataReq message dataType error ")
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read DataType error. buf:%v", buf))
 	}
 
 	err = this.Hash.Deserialize(buf)
 	if err != nil {
-		log.Warn("Parse dataReq message hash error")
-		return errors.New("Parse dataReq message hash error ")
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("deserialize Hash error. buf:%v", buf))
 	}
 	return nil
 }

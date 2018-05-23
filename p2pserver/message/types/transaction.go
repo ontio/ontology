@@ -21,8 +21,10 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/errors"
 )
 
 // Transaction message
@@ -34,13 +36,16 @@ type Trn struct {
 //Serialize message payload
 func (this Trn) Serialization() ([]byte, error) {
 	p := bytes.NewBuffer([]byte{})
-	this.Txn.Serialize(p)
+	err := this.Txn.Serialize(p)
+	if err != nil {
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialize error. Txn:%v", this.Txn))
+	}
 	checkSumBuf := CheckSum(p.Bytes())
 	this.MsgHdr.Init("tx", checkSumBuf, uint32(len(p.Bytes())))
 
 	hdrBuf, err := this.MsgHdr.Serialization()
 	if err != nil {
-		return nil, err
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialize error. v:%v", this.MsgHdr))
 	}
 	buf := bytes.NewBuffer(hdrBuf)
 	data := append(buf.Bytes(), p.Bytes()...)
@@ -51,13 +56,12 @@ func (this Trn) Serialization() ([]byte, error) {
 func (this *Trn) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(this.MsgHdr))
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read MsgHdr error. buf:%v", buf))
+	}
 	err = this.Txn.Deserialize(buf)
 	if err != nil {
-		return err
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read txn error. buf:%v", buf))
 	}
 	return nil
-}
-
-type txnPool struct {
-	MsgHdr
 }

@@ -254,10 +254,8 @@ func initP2PNode(ctx *cli.Context, acc *account.Account, txpoolSvr *proc.TXPoolS
 	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
 		return nil, nil, nil
 	}
-	p2p, err := p2pserver.NewServer(acc)
-	if err != nil {
-		return nil, nil, fmt.Errorf("P2P node NewServer error:%s", err)
-	}
+	p2p := p2pserver.NewServer(acc)
+
 	p2pActor := p2pactor.NewP2PActor(p2p)
 	p2pPID, err := p2pActor.Start()
 	if err != nil {

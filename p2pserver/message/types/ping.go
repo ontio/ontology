@@ -21,8 +21,10 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/errors"
 )
 
 type Ping struct {
@@ -33,20 +35,25 @@ type Ping struct {
 //Check whether header is correct
 func (this Ping) Verify(buf []byte) error {
 	err := this.Hdr.Verify(buf)
-	return err
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNetVerifyFail, fmt.Sprintf("verify error. buf:%v", buf))
+	}
+	return nil
 }
 
 //Serialize message payload
 func (this Ping) Serialization() ([]byte, error) {
 	p := bytes.NewBuffer([]byte{})
-	serialization.WriteUint64(p, this.Height)
-
+	err := serialization.WriteUint64(p, this.Height)
+	if err != nil {
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. Height:%v", this.Height))
+	}
 	checkSumBuf := CheckSum(p.Bytes())
 	this.Hdr.Init("ping", checkSumBuf, uint32(len(p.Bytes())))
 
 	hdrBuf, err := this.Hdr.Serialization()
 	if err != nil {
-		return nil, err
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialize error. Hdr:%v", this.Hdr))
 	}
 	buf := bytes.NewBuffer(hdrBuf)
 	data := append(buf.Bytes(), p.Bytes()...)
@@ -59,9 +66,12 @@ func (this *Ping) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(this.Hdr))
 	if err != nil {
-		return err
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read Hdr error. buf:%v", buf))
 	}
 
 	this.Height, err = serialization.ReadUint64(buf)
-	return err
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read Height error. buf:%v", buf))
+	}
+	return nil
 }

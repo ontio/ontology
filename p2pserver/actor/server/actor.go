@@ -98,18 +98,16 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 	default:
 		err := this.server.Xmit(ctx.Message())
 		if nil != err {
-			log.Error("Error Xmit message ", err.Error(), reflect.TypeOf(ctx.Message()))
+			log.Error("error xmit message ", err.Error(), reflect.TypeOf(ctx.Message()))
 		}
 	}
 }
 
 //stop handler
 func (this *P2PActor) handleStopServerReq(ctx actor.Context, req *StopServerReq) {
-	err := this.server.Stop()
+	this.server.Stop()
 	if ctx.Sender() != nil {
-		resp := &StopServerRsp{
-			Error: err,
-		}
+		resp := &StopServerRsp{}
 		ctx.Sender().Request(resp, ctx.Self())
 	}
 }

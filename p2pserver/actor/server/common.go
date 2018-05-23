@@ -29,7 +29,6 @@ type StopServerReq struct {
 
 //response of stop request
 type StopServerRsp struct {
-	Error error
 }
 
 //version request

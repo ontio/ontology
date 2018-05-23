@@ -64,7 +64,7 @@ type ReconnectAddrs struct {
 }
 
 //NewServer return a new p2pserver according to the pubkey
-func NewServer(acc *account.Account) (*P2PServer, error) {
+func NewServer(acc *account.Account) *P2PServer {
 	n := netserver.NewNetServer(acc.PubKey())
 
 	p := &P2PServer{
@@ -76,7 +76,7 @@ func NewServer(acc *account.Account) (*P2PServer, error) {
 	p.blockSync = NewBlockSyncMgr(p)
 	p.quitOnline = make(chan bool)
 	p.quitHeartBeat = make(chan bool)
-	return p, nil
+	return p
 }
 
 //GetConnectionCnt return the established connect count
@@ -88,25 +88,27 @@ func (this *P2PServer) GetConnectionCnt() uint32 {
 func (this *P2PServer) Start() error {
 	if this.network != nil {
 		this.network.Start()
+	} else {
+		return errors.New("p2p network invalid")
 	}
 	if this.msgRouter != nil {
 		this.msgRouter.Start()
+	} else {
+		return errors.New("p2p msg router invalid")
 	}
 	go this.keepOnlineService()
 	go this.heartBeatService()
 	go this.blockSync.Start()
-
 	return nil
 }
 
 //Stop halt all service by send signal to channels
-func (this *P2PServer) Stop() error {
+func (this *P2PServer) Stop() {
 	this.network.Halt()
 	this.quitOnline <- true
 	this.quitHeartBeat <- true
 	this.msgRouter.Stop()
 	this.blockSync.Close()
-	return nil
 }
 
 // GetNetWork returns the low level netserver
@@ -280,14 +282,13 @@ func (this *P2PServer) WaitForSyncBlkFinish() {
 
 //WaitForPeersStart check whether enough peer linked in loop
 func (this *P2PServer) WaitForPeersStart() {
-	var periodTime uint
+	periodTime := config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
 	for {
 		log.Info("Wait for minimum connection...")
 		if this.reachMinConnection() {
 			break
 		}
 
-		periodTime = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
 		<-time.After(time.Second * (time.Duration(periodTime)))
 	}
 }
@@ -468,7 +469,7 @@ func (this *P2PServer) timeout() {
 			t := p.GetContactTime()
 			if t.Before(time.Now().Add(-1 * time.Second *
 				time.Duration(periodTime) * common.KEEPALIVE_TIMEOUT)) {
-				log.Warn("Keep alive timeout!!!")
+				log.Warnf("keep alive timeout!!!lost remote peer 0x%x - %s from %s", p.GetID(), p.SyncLink.GetAddr(), t.String())
 				p.CloseSync()
 				p.CloseCons()
 			}
