@@ -27,6 +27,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/types"
 	"github.com/urfave/cli"
 	"io/ioutil"
+	"strings"
 )
 
 var (
@@ -85,9 +86,9 @@ func deployContract(ctx *cli.Context) error {
 		return nil
 	}
 
-	singer, err := cmdcom.GetAccount(ctx)
+	signer, err := cmdcom.GetAccount(ctx)
 	if err != nil {
-		return fmt.Errorf("Get singer account error:%s", err)
+		return fmt.Errorf("Get signer account error:%s", err)
 	}
 
 	store := ctx.Bool(utils.GetFlagName(utils.ContractStorageFlag))
@@ -95,7 +96,7 @@ func deployContract(ctx *cli.Context) error {
 	if "" == codeFile {
 		return fmt.Errorf("Please specific code file")
 	}
-	code, err := ioutil.ReadFile(codeFile)
+	codeStr, err := ioutil.ReadFile(codeFile)
 	if err != nil {
 		return fmt.Errorf("Read code:%s error:%s", codeFile, err)
 	}
@@ -105,13 +106,13 @@ func deployContract(ctx *cli.Context) error {
 	author := ctx.String(utils.GetFlagName(utils.ContractAuthorFlag))
 	email := ctx.String(utils.GetFlagName(utils.ContractEmailFlag))
 	desc := ctx.String(utils.GetFlagName(utils.ContractDescFlag))
-
+	code := strings.TrimSpace(string(codeStr))
 	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
 	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
 	vmType := types.NEOVM
 	cversion := fmt.Sprintf("%s", version)
 
-	txHash, err := utils.DeployContract(gasPrice, gasLimit, singer, vmType, store, string(code), name, cversion, author, email, desc)
+	txHash, err := utils.DeployContract(gasPrice, gasLimit, signer, vmType, store, code, name, cversion, author, email, desc)
 	if err != nil {
 		return fmt.Errorf("DeployContract error:%s", err)
 	}
@@ -143,18 +144,11 @@ func invokeContract(ctx *cli.Context) error {
 		return fmt.Errorf("parseParams error:%s", err)
 	}
 
-	singer, err := cmdcom.GetAccount(ctx)
-	if err != nil {
-		return fmt.Errorf("Get singer account error:%s", err)
-	}
-	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
-	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
-
 	paramData, _ := json.Marshal(params)
 	fmt.Printf("Invoke:%s Params:%s\n", contractAddr.ToBase58(), paramData)
 
 	if ctx.IsSet(utils.GetFlagName(utils.ContractPrepareInvokeFlag)) {
-		preResult, err := utils.PrepareInvokeNeoVMContract(gasPrice, gasLimit, cversion, contractAddr, params)
+		preResult, err := utils.PrepareInvokeNeoVMContract(cversion, contractAddr, params)
 		if err != nil {
 			return fmt.Errorf("PrepareInvokeNeoVMSmartContact error:%s", err)
 		}
@@ -183,7 +177,14 @@ func invokeContract(ctx *cli.Context) error {
 		}
 		return nil
 	}
-	txHash, err := utils.InvokeNeoVMContract(gasPrice, gasLimit, singer, cversion, contractAddr, params)
+	signer, err := cmdcom.GetAccount(ctx)
+	if err != nil {
+		return fmt.Errorf("Get signer account error:%s", err)
+	}
+	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
+	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
+
+	txHash, err := utils.InvokeNeoVMContract(gasPrice, gasLimit, signer, cversion, contractAddr, params)
 	if err != nil {
 		return fmt.Errorf("Invoke NeoVM contract error:%s", err)
 	}

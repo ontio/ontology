@@ -349,7 +349,7 @@ func GetBlock(hashOrHeight interface{}) ([]byte, error) {
 func DeployContract(
 	gasPrice,
 	gasLimit uint64,
-	singer *account.Account,
+	signer *account.Account,
 	vmType vmtypes.VmType,
 	needStorage bool,
 	code,
@@ -365,7 +365,7 @@ func DeployContract(
 	}
 	tx := NewDeployCodeTransaction(gasPrice, gasLimit, vmType, c, needStorage, cname, cversion, cauthor, cemail, cdesc)
 
-	err = SignTransaction(singer, tx)
+	err = SignTransaction(signer, tx)
 	if err != nil {
 		return "", err
 	}
@@ -379,13 +379,13 @@ func DeployContract(
 func InvokeNativeContract(
 	gasPrice,
 	gasLimit uint64,
-	singer *account.Account,
+	signer *account.Account,
 	cversion byte,
 	contractAddress common.Address,
 	method string,
 	args []byte,
 ) (string, error) {
-	return InvokeSmartContract(gasPrice, gasLimit, singer, vmtypes.Native, cversion, contractAddress, method, args)
+	return InvokeSmartContract(gasPrice, gasLimit, signer, vmtypes.Native, cversion, contractAddress, method, args)
 }
 
 func InvokeNativeContractTx(gasPrice,
@@ -455,7 +455,7 @@ func InvokeNeoVMContractTx(gasPrice,
 func InvokeSmartContract(
 	gasPrice,
 	gasLimit uint64,
-	singer *account.Account,
+	signer *account.Account,
 	vmType vmtypes.VmType,
 	cversion byte,
 	contractAddress common.Address,
@@ -466,7 +466,7 @@ func InvokeSmartContract(
 	if err != nil {
 		return "", err
 	}
-	err = SignTransaction(singer, invokeTx)
+	err = SignTransaction(signer, invokeTx)
 	if err != nil {
 		return "", fmt.Errorf("SignTransaction error:%s", err)
 	}
@@ -503,8 +503,6 @@ func InvokeSmartContractTx(gasPrice,
 }
 
 func PrepareInvokeNeoVMContract(
-	gasPrice,
-	gasLimit uint64,
 	cversion byte,
 	contractAddress common.Address,
 	params []interface{},
@@ -513,7 +511,7 @@ func PrepareInvokeNeoVMContract(
 	if err != nil {
 		return nil, fmt.Errorf("BuildNVMInvokeCode error:%s", err)
 	}
-	tx := NewInvokeTransaction(gasPrice, gasLimit, vmtypes.NEOVM, code)
+	tx := NewInvokeTransaction(0, 0, vmtypes.NEOVM, code)
 	var buffer bytes.Buffer
 	err = tx.Serialize(&buffer)
 	if err != nil {
@@ -533,12 +531,9 @@ func PrepareInvokeNeoVMContract(
 }
 
 func PrepareInvokeNativeContract(
-	gasPrice,
-	gasLimit uint64,
-	cversion byte,
 	contractAddress common.Address,
 	code []byte) (*cstates.PreExecResult, error) {
-	tx := NewInvokeTransaction(gasPrice, gasLimit, vmtypes.Native, code)
+	tx := NewInvokeTransaction(0, 0, vmtypes.Native, code)
 	var buffer bytes.Buffer
 	err := tx.Serialize(&buffer)
 	if err != nil {
