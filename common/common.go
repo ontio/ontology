@@ -36,9 +36,31 @@ func ToHexString(data []byte) string {
 	return hex.EncodeToString(data)
 }
 
+// ToHexString convert []byte to hex string
+func ToHexStringReverse(data []byte) string {
+	return hex.EncodeToString(ToArrayReverse(data))
+}
+
 // HexToBytes convert hex string to []byte
 func HexToBytes(value string) ([]byte, error) {
 	return hex.DecodeString(value)
+}
+
+func HexToBytesReverse(value string) ([]byte, error) {
+	hx, err := hex.DecodeString(value)
+	if err != nil {
+		return hx, err
+	}
+	return ToArrayReverse(hx), err
+}
+
+func ToArrayReverse(arr []byte) []byte {
+	l := len(arr)
+	x := make([]byte, 0)
+	for i := l - 1; i >= 0; i-- {
+		x = append(x, arr[i])
+	}
+	return x
 }
 
 // FileExisted checks whether filename exists in filesystem

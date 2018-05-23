@@ -36,6 +36,17 @@ type Address [ADDR_LEN]byte
 func (self *Address) ToHexString() string {
 	return fmt.Sprintf("%x", self[:])
 }
+func (self *Address) ToHexStringReverse() string {
+	return fmt.Sprintf("%x", ToArrayReverse(self[:]))
+}
+
+func (self *Address) ToArrayReverse() []byte {
+	x := make([]byte, ADDR_LEN)
+	for i := 0; i < ADDR_LEN; i++ {
+		x[i] = byte(self[i])
+	}
+	return ToArrayReverse(x)
+}
 
 // Serialize serialize Address into io.Writer
 func (self *Address) Serialize(w io.Writer) error {

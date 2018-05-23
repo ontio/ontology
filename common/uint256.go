@@ -20,6 +20,7 @@ package common
 
 import (
 	"errors"
+	"fmt"
 	"io"
 )
 
@@ -36,6 +37,10 @@ func (u *Uint256) ToArray() []byte {
 	}
 
 	return x
+}
+
+func (u *Uint256) ToHexStringReverse() string {
+	return fmt.Sprintf("%x", ToArrayReverse(u[:]))
 }
 
 func (u *Uint256) Serialize(w io.Writer) error {
