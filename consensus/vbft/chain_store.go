@@ -19,16 +19,11 @@
 package vbft
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/core/states"
-	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 type ChainStore struct {
@@ -120,95 +115,4 @@ func (self *ChainStore) GetBlock(blockNum uint32) (*Block, error) {
 	}
 
 	return initVbftBlock(block)
-}
-
-func (self *ChainStore) GetVbftConfigInfo() (*config.VBFTConfig, error) {
-	storageKey := &states.StorageKey{
-		CodeHash: utils.GovernanceContractAddress,
-		Key:      append([]byte(gov.VBFT_CONFIG)),
-	}
-	data, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
-	if err != nil {
-		return nil, err
-	}
-	cfg := new(gov.Configuration)
-	err = cfg.Deserialize(bytes.NewBuffer(data))
-	if err != nil {
-		return nil, err
-	}
-	chainconfig := &config.VBFTConfig{
-		N:                    cfg.N,
-		C:                    cfg.C,
-		K:                    cfg.K,
-		L:                    cfg.L,
-		BlockMsgDelay:        cfg.BlockMsgDelay,
-		HashMsgDelay:         cfg.HashMsgDelay,
-		PeerHandshakeTimeout: cfg.PeerHandshakeTimeout,
-		MaxBlockChangeView:   cfg.MaxBlockChangeView,
-	}
-	return chainconfig, nil
-}
-
-func (self *ChainStore) GetPeersConfig() ([]*config.VBFTPeerStakeInfo, error) {
-	goveranceview, err := self.GetGovernanceView()
-	if err != nil {
-		return nil, err
-	}
-	viewBytes, err := gov.GetUint32Bytes(goveranceview.View)
-	if err != nil {
-		return nil, err
-	}
-	storageKey := &states.StorageKey{
-		CodeHash: utils.GovernanceContractAddress,
-		Key:      append([]byte(gov.PEER_POOL), viewBytes...),
-	}
-	data, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
-	if err != nil {
-		return nil, err
-	}
-	peerMap := &gov.PeerPoolMap{
-		PeerPoolMap: make(map[string]*gov.PeerPoolItem),
-	}
-	err = peerMap.Deserialize(bytes.NewBuffer(data))
-	if err != nil {
-		return nil, err
-	}
-	var peerstakes []*config.VBFTPeerStakeInfo
-	for _, id := range peerMap.PeerPoolMap {
-		config := &config.VBFTPeerStakeInfo{
-			Index:      uint32(id.Index),
-			PeerPubkey: id.PeerPubkey,
-			InitPos:    id.InitPos + id.TotalPos,
-		}
-		peerstakes = append(peerstakes, config)
-	}
-	return peerstakes, nil
-}
-
-func (self *ChainStore) isUpdate(view uint32) (bool, error) {
-	goveranceview, err := self.GetGovernanceView()
-	if err != nil {
-		return false, err
-	}
-	if goveranceview.View > view {
-		return true, nil
-	}
-	return false, nil
-}
-
-func (self *ChainStore) GetGovernanceView() (*gov.GovernanceView, error) {
-	storageKey := &states.StorageKey{
-		CodeHash: utils.GovernanceContractAddress,
-		Key:      append([]byte(gov.GOVERNANCE_VIEW)),
-	}
-	data, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
-	if err != nil {
-		return nil, err
-	}
-	governanceView := new(gov.GovernanceView)
-	err = governanceView.Deserialize(bytes.NewBuffer(data))
-	if err != nil {
-		return nil, err
-	}
-	return governanceView, nil
 }

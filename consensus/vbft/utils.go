@@ -19,6 +19,7 @@
 package vbft
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/json"
@@ -28,8 +29,13 @@ import (
 	"github.com/ontio/ontology-crypto/vrf"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/consensus/vbft/config"
+	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
+	"github.com/ontio/ontology/core/states"
+	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
+	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 func SignMsg(account *account.Account, msg ConsensusMsg) ([]byte, error) {
@@ -118,4 +124,119 @@ func verifyVrf(pk keypair.PublicKey, blkNum uint32, prevVrf, newVrf, proof []byt
 		return fmt.Errorf("verifyVrf failed")
 	}
 	return nil
+}
+func GetVbftConfigInfo() (*config.VBFTConfig, error) {
+	storageKey := &states.StorageKey{
+		CodeHash: nutils.GovernanceContractAddress,
+		Key:      append([]byte(gov.VBFT_CONFIG)),
+	}
+	data, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
+	if err != nil {
+		return nil, err
+	}
+	cfg := new(gov.Configuration)
+	err = cfg.Deserialize(bytes.NewBuffer(data))
+	if err != nil {
+		return nil, err
+	}
+	chainconfig := &config.VBFTConfig{
+		N:                    cfg.N,
+		C:                    cfg.C,
+		K:                    cfg.K,
+		L:                    cfg.L,
+		BlockMsgDelay:        cfg.BlockMsgDelay,
+		HashMsgDelay:         cfg.HashMsgDelay,
+		PeerHandshakeTimeout: cfg.PeerHandshakeTimeout,
+		MaxBlockChangeView:   cfg.MaxBlockChangeView,
+	}
+	return chainconfig, nil
+}
+
+func GetPeersConfig() ([]*config.VBFTPeerStakeInfo, error) {
+	goveranceview, err := GetGovernanceView()
+	if err != nil {
+		return nil, err
+	}
+	viewBytes, err := gov.GetUint32Bytes(goveranceview.View)
+	if err != nil {
+		return nil, err
+	}
+	storageKey := &states.StorageKey{
+		CodeHash: nutils.GovernanceContractAddress,
+		Key:      append([]byte(gov.PEER_POOL), viewBytes...),
+	}
+	data, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
+	if err != nil {
+		return nil, err
+	}
+	peerMap := &gov.PeerPoolMap{
+		PeerPoolMap: make(map[string]*gov.PeerPoolItem),
+	}
+	err = peerMap.Deserialize(bytes.NewBuffer(data))
+	if err != nil {
+		return nil, err
+	}
+	var peerstakes []*config.VBFTPeerStakeInfo
+	for _, id := range peerMap.PeerPoolMap {
+		if id.Status == gov.CandidateStatus || id.Status == gov.ConsensusStatus {
+			config := &config.VBFTPeerStakeInfo{
+				Index:      uint32(id.Index),
+				PeerPubkey: id.PeerPubkey,
+				InitPos:    id.InitPos + id.TotalPos,
+			}
+			peerstakes = append(peerstakes, config)
+		}
+	}
+	return peerstakes, nil
+}
+
+func isUpdate(view uint32) (bool, error) {
+	goveranceview, err := GetGovernanceView()
+	if err != nil {
+		return false, err
+	}
+	if goveranceview.View > view {
+		return true, nil
+	}
+	return false, nil
+}
+
+func GetGovernanceView() (*gov.GovernanceView, error) {
+	storageKey := &states.StorageKey{
+		CodeHash: nutils.GovernanceContractAddress,
+		Key:      append([]byte(gov.GOVERNANCE_VIEW)),
+	}
+	data, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
+	if err != nil {
+		return nil, err
+	}
+	governanceView := new(gov.GovernanceView)
+	err = governanceView.Deserialize(bytes.NewBuffer(data))
+	if err != nil {
+		return nil, err
+	}
+	return governanceView, nil
+}
+
+func getChainConfig(blkNum uint32) (*vconfig.ChainConfig, error) {
+	config, err := GetVbftConfigInfo()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get chainconfig from leveldb: %s", err)
+	}
+
+	peersinfo, err := GetPeersConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get peersinfo from leveldb: %s", err)
+	}
+	goverview, err := GetGovernanceView()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get governanceview failed:%s", err)
+	}
+
+	cfg, err := vconfig.GenesisChainConfig(config, peersinfo, goverview.TxHash, blkNum)
+	if err != nil {
+		return nil, fmt.Errorf("GenesisChainConfig failed: %s", err)
+	}
+	cfg.View = goverview.View
+	return cfg, err
 }
