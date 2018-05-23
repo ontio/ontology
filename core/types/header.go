@@ -45,7 +45,7 @@ type Header struct {
 	Bookkeepers []keypair.PublicKey
 	SigData     [][]byte
 
-	hash common.Uint256
+	hash *common.Uint256
 }
 
 //Serialize the blockheader
@@ -180,10 +180,15 @@ func (bd *Header) DeserializeUnsigned(r io.Reader) error {
 }
 
 func (bd *Header) Hash() common.Uint256 {
+	if bd.hash != nil {
+		return *bd.hash
+	}
 	buf := new(bytes.Buffer)
 	bd.SerializeUnsigned(buf)
 	temp := sha256.Sum256(buf.Bytes())
-	hash := sha256.Sum256(temp[:])
+	hash := common.Uint256(sha256.Sum256(temp[:]))
+
+	bd.hash = &hash
 	return hash
 }
 
