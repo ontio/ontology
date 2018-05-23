@@ -58,7 +58,7 @@ func GenesisBlockInit(defaultBookkeeper []keypair.PublicKey) (*types.Block, erro
 	if err != nil {
 		return nil, errors.New("[Block],GenesisBlockInit err with GetBookkeeperAddress")
 	}
-	consensusPayload, err := vconfig.GenesisConsensusPayload()
+	consensusPayload, err := vconfig.GenesisConsensusPayload(newConfigInit().Hash(), 0)
 	if err != nil {
 		return nil, fmt.Errorf("consensus genesus init failed: %s", err)
 	}

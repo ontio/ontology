@@ -213,7 +213,7 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 
 	prevBlk, prevBlkHash := self.blockPool.getSealedBlock(blkNum - 1)
 	if prevBlk == nil {
-		return nil, fmt.Errorf("failed to get prevBlock (%d)", blkNum)
+		return nil, fmt.Errorf("failed to get prevBlock (%d)", blkNum-1)
 	}
 	blocktimestamp := uint32(time.Now().Unix())
 	if prevBlk.Block.Header.Timestamp >= blocktimestamp {

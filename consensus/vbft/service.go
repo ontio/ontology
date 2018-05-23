@@ -36,12 +36,14 @@ import (
 	actorTypes "github.com/ontio/ontology/consensus/actor"
 	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/ledger"
+	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 	gover "github.com/ontio/ontology/smartcontract/service/native/governance"
+	ninit "github.com/ontio/ontology/smartcontract/service/native/init"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/states"
 	stypes "github.com/ontio/ontology/smartcontract/types"
@@ -304,28 +306,6 @@ func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
 	return nil
 }
 
-func (self *Server) getChainConfig() (*vconfig.ChainConfig, error) {
-	config, err := self.chainStore.GetVbftConfigInfo()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get chainconfig from leveldb: %s", err)
-	}
-
-	peersinfo, err := self.chainStore.GetPeersConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get peersinfo from leveldb: %s", err)
-	}
-	cfg, err := vconfig.GenesisChainConfig(config, peersinfo)
-	if err != nil {
-		return nil, fmt.Errorf("GenesisChainConfig failed: %s", err)
-	}
-	goverview, err := self.chainStore.GetGovernanceView()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get governanceview failed:%s", err)
-	}
-	cfg.View = goverview.View
-	return cfg, err
-}
-
 func (self *Server) nonConsensusNode() bool {
 	return self.Index == math.MaxUint32
 }
@@ -335,10 +315,10 @@ func (self *Server) updateChainConfig() error {
 
 	block, err := self.chainStore.GetBlock(self.completedBlockNum)
 	if err != nil {
-		return fmt.Errorf("GetBlockInfo failed:%s", err)
+		return fmt.Errorf("GetBlockInfo failed:%s,%d", err, self.completedBlockNum)
 	}
 	if block.Info.NewChainConfig == nil {
-		return fmt.Errorf("GetNewChainConfig failed")
+		return fmt.Errorf("GetNewChainConfig failed,%d", self.completedBlockNum)
 	}
 	self.metaLock.Lock()
 	self.config = block.Info.NewChainConfig
@@ -367,6 +347,22 @@ func (self *Server) updateChainConfig() error {
 			if err := self.peerPool.addPeer(p); err != nil {
 				return fmt.Errorf("failed to add peer %d: %s", p.Index, err)
 			}
+			publickey, err := p.ID.Pubkey()
+			if err != nil {
+				log.Errorf("Pubkey failed: %v", err)
+				return fmt.Errorf("Pubkey failed: %v", err)
+			}
+			peerIdx := p.Index
+			if _, present := self.msgRecvC[peerIdx]; !present {
+				self.msgRecvC[peerIdx] = make(chan *p2pMsgPayload, 1024)
+			}
+
+			go func() {
+				if err := self.run(publickey); err != nil {
+					log.Errorf("server %d, processor on peer %d failed: %s",
+						self.Index, peerIdx, err)
+				}
+			}()
 			log.Infof("updateChainConfig add peer index%v,id:%v", p.ID.String(), p.Index)
 		}
 	}
@@ -506,7 +502,6 @@ func (self *Server) start() error {
 	for _, p := range self.config.Peers {
 		peerIdx := p.Index
 		pk := self.peerPool.GetPeerPubKey(peerIdx)
-
 		if _, present := self.msgRecvC[peerIdx]; !present {
 			self.msgRecvC[peerIdx] = make(chan *p2pMsgPayload, 1024)
 		}
@@ -1089,7 +1084,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	}
 
 	txs := msg.Block.Block.Transactions
-	if len(txs) > 0 {
+	if len(txs) > 0 && self.nonSystxs(txs) {
 		height := uint32(msgBlkNum) - 1
 		start, end := self.incrValidator.BlockRange()
 
@@ -2059,7 +2054,13 @@ func (self *Server) creategovernaceTransaction(blkNum uint32) *types.Transaction
 
 //checkNeedUpdateChainConfig use blockcount
 func (self *Server) checkNeedUpdateChainConfig(blockNum uint32) bool {
-	if (blockNum - self.config.LastUpdateBlockNum) == self.config.MaxBlockChangeView {
+	prevBlk, _ := self.blockPool.getSealedBlock(blockNum - 1)
+	if prevBlk == nil {
+		log.Errorf("failed to get prevBlock (%d)", blockNum-1)
+		return false
+	}
+	lastConfigBlkNum := prevBlk.getLastConfigBlockNum()
+	if (blockNum - lastConfigBlkNum) >= self.config.MaxBlockChangeView {
 		return true
 	}
 	return false
@@ -2067,7 +2068,7 @@ func (self *Server) checkNeedUpdateChainConfig(blockNum uint32) bool {
 
 //checkUpdateChainConfig query leveldb check is force update
 func (self *Server) checkUpdateChainConfig() bool {
-	force, err := self.chainStore.isUpdate(self.config.View)
+	force, err := isUpdate(self.config.View)
 	if err != nil {
 		log.Errorf("checkUpdateChainConfig err:%s", err)
 		return false
@@ -2088,6 +2089,20 @@ func (self *Server) validHeight(blkNum uint32) uint32 {
 	return validHeight
 }
 
+func (self *Server) nonSystxs(sysTxs []*types.Transaction) bool {
+	if self.checkNeedUpdateChainConfig(self.currentBlockNum) && len(sysTxs) == 1 {
+		invoke := sysTxs[0].Payload.(*payload.InvokeCode)
+		if invoke == nil {
+			log.Errorf("nonSystxs invoke is nil,blocknum:%d", self.currentBlockNum)
+			return true
+		}
+		if bytes.Compare(invoke.Code.Code, ninit.COMMIT_DPOS_BYTES) == 0 {
+			return false
+		}
+	}
+	return true
+}
+
 func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 	if blkNum < self.GetCurrentBlockNo() {
 		return fmt.Errorf("server %d ignore deprecatd blk proposal %d, current %d",
@@ -2102,17 +2117,17 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 	cfg := &vconfig.ChainConfig{}
 	cfg = nil
 	if self.checkNeedUpdateChainConfig(self.currentBlockNum) || self.checkUpdateChainConfig() {
-		chainconfig, err := self.getChainConfig()
+		chainconfig, err := getChainConfig(self.currentBlockNum)
 		if err != nil {
 			return fmt.Errorf("getChainConfig failed:%s", err)
 		}
-		self.config = chainconfig
-		self.config.LastUpdateBlockNum = blkNum
 		//add transaction invoke governance native commit_pos contract
 		if self.checkNeedUpdateChainConfig(self.currentBlockNum) {
 			sysTxs = append(sysTxs, self.creategovernaceTransaction(blkNum))
+			forEmpty = true
 		}
-		cfg = self.config
+		cfg = chainconfig
+		cfg.View++
 	}
 	if self.nonConsensusNode() {
 		return fmt.Errorf("%d quit consensus node", self.Index)
