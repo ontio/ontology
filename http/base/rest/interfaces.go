@@ -189,7 +189,10 @@ func GetBlockTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 
-	param := cmd["Height"].(string)
+	param, ok := cmd["Height"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
 	if len(param) == 0 {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -220,7 +223,10 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 
-	str := cmd["Hash"].(string)
+	str, ok := cmd["Hash"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
 	bys, err := common.HexToBytes(str)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
@@ -291,7 +297,10 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 func GetSmartCodeEventTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 
-	param := cmd["Height"].(string)
+	param, ok := cmd["Height"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
 	if len(param) == 0 {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -319,7 +328,10 @@ func GetSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{
 
 	resp := ResponsePack(berr.SUCCESS)
 
-	str := cmd["Hash"].(string)
+	str, ok := cmd["Hash"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
 	bys, err := common.HexToBytes(str)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
@@ -343,7 +355,10 @@ func GetSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{
 
 func GetContractState(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	str := cmd["Hash"].(string)
+	str, ok := cmd["Hash"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
 	bys, err := common.HexToBytes(str)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
@@ -372,7 +387,10 @@ func GetContractState(cmd map[string]interface{}) map[string]interface{} {
 
 func GetStorage(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	str := cmd["Hash"].(string)
+	str, ok := cmd["Hash"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
 	bys, err := common.HexToBytes(str)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
@@ -397,7 +415,10 @@ func GetStorage(cmd map[string]interface{}) map[string]interface{} {
 
 func GetBalance(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	addrBase58 := cmd["Addr"].(string)
+	addrBase58, ok := cmd["Addr"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
 	address, err := common.AddressFromBase58(addrBase58)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
@@ -413,7 +434,10 @@ func GetBalance(cmd map[string]interface{}) map[string]interface{} {
 
 func GetMerkleProof(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	str := cmd["Hash"].(string)
+	str, ok := cmd["Hash"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
 	bys, err := common.HexToBytes(str)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
@@ -460,5 +484,36 @@ func GetGasPrice(cmd map[string]interface{}) map[string]interface{} {
 	}
 	resp := ResponsePack(berr.SUCCESS)
 	resp["Result"] = result
+	return resp
+}
+
+func GetAllowance(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(berr.SUCCESS)
+	asset, ok := cmd["Asset"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	fromAddrStr, ok := cmd["From"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	toAddrStr, ok := cmd["To"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	fromAddr, err := common.AddressFromBase58(fromAddrStr)
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	toAddr, err := common.AddressFromBase58(toAddrStr)
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	rsp, err := bcomn.GetAllowance(asset, fromAddr, toAddr)
+	if err != nil {
+		log.Errorf("GetAllowance %s from:%s to:%s error:%s", asset, fromAddrStr, toAddrStr, err)
+		return ResponsePack(berr.INTERNAL_ERROR)
+	}
+	resp["Result"] = rsp
 	return resp
 }

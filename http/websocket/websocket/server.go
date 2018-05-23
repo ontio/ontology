@@ -187,6 +187,7 @@ func (self *WsServer) registryMethod() {
 		"heartbeat":                 {handler: heartbeat},
 		"subscribe":                 {handler: subscribe},
 		"getstorage":                {handler: rest.GetStorage},
+		"getallowance":              {handler: rest.GetAllowance},
 		"getmerkleproof":            {handler: rest.GetMerkleProof},
 		"getblocktxsbyheight":       {handler: rest.GetBlockTxsByHeight},
 		"getgasprice":               {handler: rest.GetGasPrice},

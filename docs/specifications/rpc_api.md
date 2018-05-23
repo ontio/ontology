@@ -76,7 +76,7 @@ Transaction field description
 | getconnectioncount|  | get the current number of connections for the node |  |
 | getgenerateblocktime|  | The time required to create a new block |  |
 | getrawtransaction | transactionhash | Returns the corresponding transaction information based on the specified hash value. |  |
-| sendrawtransaction | hex | Broadcast transaction. | Serialized signed transactions constructed in the program into hexadecimal strings |
+| sendrawtransaction | hex,preExec | Broadcast transaction. | Serialized signed transactions constructed in the program into hexadecimal strings |
 | getstorage | script_hash | Returns the stored value according to the contract script hashes and stored key. |  |
 | getversion |  | Get the version information of the query node |  |
 | getblocksysfee |  | According to the specified index, return the system fee before the block. |  |
@@ -85,8 +85,9 @@ Transaction field description
 | getsmartcodeevent |  | Get smartcode event |  |
 | getblockheightbytxhash | tx_hash | get blockheight of txhash|  |
 | getbalance | address | return balance of base58 account address. |  |
+| getmerkleproof | tx_hash | return merkle_proof |  |
 | getgasprice |  | return gasprice |  |
-
+| getallowance | asset, from, to | return allowance |  |
 
 ### 1. getbestblockhash
 
@@ -439,6 +440,7 @@ send transaction.
 #### Parameter instruction
 
 Hex: Serialized signed transactions constructed in the program into hexadecimal strings.Building the parameter,please refer to TestInvokefunction in ontology/http/func_test.go.
+PreExec : set 1 if want prepare exec smartcontract
 
 How to build the parameter?
 
@@ -532,7 +534,7 @@ Request:
 {
   "jsonrpc": "2.0",
   "method": "sendrawtransaction",
-  "params": ["80000001195876cb34364dc38b730077156c6bc3a7fc570044a66fbfeeea56f71327e8ab0000029b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc500c65eaf440000000f9a23e06f74cf86b8827a9108ec2e0f89ad956c9b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc50092e14b5e00000030aab52ad93f6ce17ca07fa88fc191828c58cb71014140915467ecd359684b2dc358024ca750609591aa731a0b309c7fb3cab5cd0836ad3992aa0a24da431f43b68883ea5651d548feb6bd3c8e16376e6e426f91f84c58232103322f35c7819267e721335948d385fae5be66e7ba8c748ac15467dcca0693692dac"],
+  "params": ["80000001195876cb34364dc38b730077156c6bc3a7fc570044a66fbfeeea56f71327e8ab0000029b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc500c65eaf440000000f9a23e06f74cf86b8827a9108ec2e0f89ad956c9b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc50092e14b5e00000030aab52ad93f6ce17ca07fa88fc191828c58cb71014140915467ecd359684b2dc358024ca750609591aa731a0b309c7fb3cab5cd0836ad3992aa0a24da431f43b68883ea5651d548feb6bd3c8e16376e6e426f91f84c58232103322f35c7819267e721335948d385fae5be66e7ba8c748ac15467dcca0693692dac",0],
   "id": 1
 }
 ```
@@ -957,6 +959,36 @@ Response:
         "gasprice": 0,
         "height": 1
        }
+}
+```
+
+#### 19. getallowance
+
+return allowance.
+
+
+#### Example
+
+Request:
+
+```
+{
+  "jsonrpc": "2.0",
+  "method": "getallowance",
+  "params": ["ont","from address","to address"],
+  "id": 1
+}
+```
+
+Response:
+
+```
+{
+   "desc":"SUCCESS",
+   "error":0,
+   "id":1,
+   "jsonpc":"2.0",
+   "result": "10"
 }
 ```
 

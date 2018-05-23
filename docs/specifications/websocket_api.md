@@ -169,7 +169,7 @@ return all transaction hash contained in the block corresponding to this height
 ### 6. Get the block by block height
 
 return block details based on block height
-
+if raw=1 return serialized block
 
 #### Request Example:
 
@@ -240,7 +240,7 @@ return block details based on block height
 ### 7. Get block by blockhash
 
 return block details based on block hash
-
+if raw=1 return serialized block
 
 #### Request Example:
 
@@ -366,7 +366,7 @@ return block hash based on block height
 ### 10. get transaction by transaction hash
 
 get transaction details based on transaction hash
-
+if raw=1 return serialized transaction
 
 #### Request Example:
 
@@ -414,7 +414,7 @@ get transaction details based on transaction hash
 
 ### 11. send transaction
 
-send transaction.
+send transaction.set PreExec=1 if want prepare exec smartcontract
 
 
 #### Request Example:
@@ -423,6 +423,7 @@ send transaction.
 {
     "Action":"sendrawtransaction",
     "Version":"1.0.0",
+    "PreExec": 0,
     "Data":"80000001195876cb34364dc38b730077156c6bc3a7fc570044a66fbfeeea56f71327e8ab0000029b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc500c65eaf440000000f9a23e06f74cf86b8827a9108ec2e0f89ad956c9b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc50092e14b5e00000030aab52ad93f6ce17ca07fa88fc191828c58cb71014140915467ecd359684b2dc358024ca750609591aa731a0b309c7fb3cab5cd0836ad3992aa0a24da431f43b68883ea5651d548feb6bd3c8e16376e6e426f91f84c58232103322f35c7819267e721335948d385fae5be66e7ba8c748ac15467dcca0693692dac"
 }
 ```
@@ -702,6 +703,30 @@ get gasprice
          "gasprice": 0,
          "height": 1
      },
+    "Version": "1.0.0"
+}
+```
+
+### 21. Get allowance
+get allowance
+
+#### Request Example:
+```
+{
+    "Action": "getallowance",
+    "Asset": "ont",
+    "From" :  "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+    "To"   :  "TA4WVfUB1ipHL8s3PRSYgeV1HhAU3KcKTq",
+    "Version": "1.0.0"
+}
+```
+#### Response
+```
+{
+    "Action": "getallowance",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": "10",
     "Version": "1.0.0"
 }
 ```
