@@ -758,7 +758,7 @@ Get allowance
 
 GET
 ```
-/api/v1/gasprice
+/api/v1/allowance
 ```
 #### Request Example:
 ```
