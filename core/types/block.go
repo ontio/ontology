@@ -30,8 +30,6 @@ import (
 type Block struct {
 	Header       *Header
 	Transactions []*Transaction
-
-	hash *common.Uint256
 }
 
 func (b *Block) Serialize(w io.Writer) error {
@@ -121,11 +119,7 @@ func (b *Block) ToArray() []byte {
 }
 
 func (b *Block) Hash() common.Uint256 {
-	if b.hash == nil {
-		b.hash = new(common.Uint256)
-		*b.hash = b.Header.Hash()
-	}
-	return *b.hash
+	return b.Header.Hash()
 }
 
 func (b *Block) Type() common.InventoryType {
