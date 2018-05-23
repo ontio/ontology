@@ -22,8 +22,8 @@ ONT ID 生成算法：
 
  1. 生成32字节临时随机数nonce，计算h = Hash160(nonce），data = VER || h；
  2. 计算出data的一个4字节校验，即checksum = SHA256(SHA256(data))[0:3]；
- 3. 令idString = data || checksum；
- 4. 将"did:ont:"与data级联，即 ontId = "did:ont:" || idString；
+ 3. 令idString = base58(data || checksum)；
+ 4. 将"did:ont:"与idString拼接，即 ontId = "did:ont:" || idString；
  5. 输出ontId。
 
 如上所述，`<ont>`是网络标识符，`<VER>`是1个字节的版本标签。 在ONT中，`<VER> = 41，<ont> =“ont”`。 也就是说，ONTology中身份的前8个字节是“did：ont：”，外加一个25字节长的idString，构成一个完整的ONT ID。

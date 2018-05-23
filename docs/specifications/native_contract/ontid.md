@@ -20,8 +20,8 @@ ONT ID generation algorithm:
 To prevent the user from entering the ONT ID by mistake, we define a valid ONT ID that must contain 4 bytes of verification data. We are going to describe in detail how to generate a valid ONT ID.
  1. Generate a 32-byte temporary random nonce, and calculate h = Hash160 (nonce), data = `<VER>` || h;
  2. Calculate a 4-byte verification data, that is, checksum = SHA256(SHA256(data))[0:3];
- 3. Make idString = data || checksum;
- 4. Cascade "did:`<ont>`:" with data, that is, ontId = "did:`<ont>`:" || idString;
+ 3. Make idString = base58(data || checksum);
+ 4. Concat "did:`<ont>`:" with idString, that is, ontId = "did:`<ont>`:" || idString;
  5. Output ONT ID.
 
 As above, `<ont>` is a network identifier, and `<VER>` is a 1 byte version label. In ONT, `<VER> = 41, <ont> = "ont"`. That is to say , the first 8 bytes of identity in Ontology are "did:ont:", plus a 25 byte long idString, which constitutes a complete ONT ID.
