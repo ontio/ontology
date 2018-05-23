@@ -177,14 +177,14 @@ func invokeContract(ctx *cli.Context) error {
 		}
 		return nil
 	}
-	singer, err := cmdcom.GetAccount(ctx)
+	signer, err := cmdcom.GetAccount(ctx)
 	if err != nil {
 		return fmt.Errorf("Get singer account error:%s", err)
 	}
 	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
 	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
 
-	txHash, err := utils.InvokeNeoVMContract(gasPrice, gasLimit, singer, cversion, contractAddr, params)
+	txHash, err := utils.InvokeNeoVMContract(gasPrice, gasLimit, signer, cversion, contractAddr, params)
 	if err != nil {
 		return fmt.Errorf("Invoke NeoVM contract error:%s", err)
 	}
