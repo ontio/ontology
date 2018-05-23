@@ -229,7 +229,7 @@ func (pool *PeerPool) GetPeerIndex(nodeId vconfig.NodeID) (uint32, bool) {
 
 func (pool *PeerPool) GetPeerPubKey(peerIdx uint32) keypair.PublicKey {
 	pool.lock.RLock()
-	pool.lock.RUnlock()
+	defer pool.lock.RUnlock()
 
 	if p, present := pool.peers[peerIdx]; present && p != nil {
 		return p.PubKey

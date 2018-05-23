@@ -558,7 +558,7 @@ func (pool *BlockPool) setCommitDone(blkNum uint32) {
 
 func (pool *BlockPool) isCommitHadDone(blkNum uint32) bool {
 	pool.lock.RLock()
-	pool.lock.RUnlock()
+	defer pool.lock.RUnlock()
 	candidate := pool.candidateBlocks[blkNum]
 	if candidate == nil {
 		return false
