@@ -55,6 +55,12 @@ type MerkleProof struct {
 	TargetHashes     []string
 }
 
+type LogEventArgs struct {
+	TxHash          string
+	ContractAddress string
+	Message         string
+}
+
 type ExecuteNotify struct {
 	TxHash      string
 	State       byte
@@ -152,14 +158,21 @@ type TXNEntryInfo struct {
 	Attrs []TXNAttrInfo // the result from each validator
 }
 
+func GetLogEvent(obj *event.LogEventArgs) (map[string]bool, LogEventArgs) {
+	hash := obj.TxHash
+	addr := obj.ContractAddress.ToHexStringReverse()
+	contractAddrs := map[string]bool{addr: true}
+	return contractAddrs, LogEventArgs{hash.ToHexStringReverse(), addr, obj.Message}
+}
+
 func GetExecuteNotify(obj *event.ExecuteNotify) (map[string]bool, ExecuteNotify) {
 	evts := []NotifyEventInfo{}
 	var contractAddrs = make(map[string]bool)
 	for _, v := range obj.Notify {
-		evts = append(evts, NotifyEventInfo{v.ContractAddress.ToHexString(), v.States})
-		contractAddrs[v.ContractAddress.ToHexString()] = true
+		evts = append(evts, NotifyEventInfo{v.ContractAddress.ToHexStringReverse(), v.States})
+		contractAddrs[v.ContractAddress.ToHexStringReverse()] = true
 	}
-	txhash := common.ToHexString(obj.TxHash[:])
+	txhash := obj.TxHash.ToHexStringReverse()
 	return contractAddrs, ExecuteNotify{txhash, obj.State, obj.GasConsumed, evts}
 }
 
@@ -169,7 +182,7 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 	trans.Nonce = ptx.Nonce
 	trans.GasLimit = ptx.GasLimit
 	trans.GasPrice = ptx.GasPrice
-	trans.Payer = ptx.Payer.ToHexString()
+	trans.Payer = ptx.Payer.ToHexStringReverse()
 	trans.Payload = TransPayloadToHex(ptx.Payload)
 
 	trans.Attributes = make([]TxAttributeInfo, len(ptx.Attributes))
@@ -191,7 +204,7 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 	}
 
 	mhash := ptx.Hash()
-	trans.Hash = common.ToHexString(mhash.ToArray())
+	trans.Hash = mhash.ToHexStringReverse()
 	return trans
 }
 
@@ -220,9 +233,9 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 
 	blockHead := &BlockHead{
 		Version:          block.Header.Version,
-		PrevBlockHash:    common.ToHexString(block.Header.PrevBlockHash.ToArray()),
-		TransactionsRoot: common.ToHexString(block.Header.TransactionsRoot.ToArray()),
-		BlockRoot:        common.ToHexString(block.Header.BlockRoot.ToArray()),
+		PrevBlockHash:    block.Header.PrevBlockHash.ToHexStringReverse(),
+		TransactionsRoot: block.Header.TransactionsRoot.ToHexStringReverse(),
+		BlockRoot:        block.Header.BlockRoot.ToHexStringReverse(),
 		Timestamp:        block.Header.Timestamp,
 		Height:           block.Header.Height,
 		ConsensusData:    block.Header.ConsensusData,
@@ -230,7 +243,7 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 		NextBookkeeper:   block.Header.NextBookkeeper.ToBase58(),
 		Bookkeepers:      bookkeepers,
 		SigData:          sigData,
-		Hash:             common.ToHexString(hash.ToArray()),
+		Hash:             hash.ToHexStringReverse(),
 	}
 
 	trans := make([]*Transactions, len(block.Transactions))
@@ -239,7 +252,7 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 	}
 
 	b := BlockInfo{
-		Hash:         common.ToHexString(hash.ToArray()),
+		Hash:         hash.ToHexStringReverse(),
 		Header:       blockHead,
 		Transactions: trans,
 	}

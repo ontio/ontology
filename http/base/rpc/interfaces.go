@@ -40,7 +40,7 @@ func GetGenerateBlockTime(params []interface{}) map[string]interface{} {
 
 func GetBestBlockHash(params []interface{}) map[string]interface{} {
 	hash := bactor.CurrentBlockHash()
-	return responseSuccess(common.ToHexString(hash.ToArray()))
+	return responseSuccess(hash.ToHexStringReverse())
 }
 
 // Input JSON string examples for getblock method as following:
@@ -67,7 +67,7 @@ func GetBlock(params []interface{}) map[string]interface{} {
 		// block hash
 	case string:
 		str := params[0].(string)
-		hex, err := hex.DecodeString(str)
+		hex, err := common.HexToBytesReverse(str)
 		if err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
@@ -116,7 +116,7 @@ func GetBlockHash(params []interface{}) map[string]interface{} {
 	case float64:
 		height := uint32(params[0].(float64))
 		hash := bactor.GetBlockHashFromStore(height)
-		return responseSuccess(fmt.Sprintf("%016x", hash))
+		return responseSuccess(hash.ToHexStringReverse())
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
@@ -149,7 +149,7 @@ func GetMemPoolTxState(params []interface{}) map[string]interface{} {
 	switch params[0].(type) {
 	case string:
 		str := params[0].(string)
-		hex, err := hex.DecodeString(str)
+		hex, err := common.HexToBytesReverse(str)
 		if err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
@@ -184,7 +184,7 @@ func GetRawTransaction(params []interface{}) map[string]interface{} {
 	switch params[0].(type) {
 	case string:
 		str := params[0].(string)
-		hex, err := hex.DecodeString(str)
+		hex, err := common.HexToBytesReverse(str)
 		if err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
@@ -236,13 +236,22 @@ func GetStorage(params []interface{}) map[string]interface{} {
 	switch params[0].(type) {
 	case string:
 		str := params[0].(string)
-		hex, err := hex.DecodeString(str)
-		if err != nil {
-			return responsePack(berr.INVALID_PARAMS, "")
+		if len(str) == common.ADDR_LEN*2 {
+			hex, err := common.HexToBytesReverse(str)
+			if err != nil {
+				return responsePack(berr.INVALID_PARAMS, "")
+			}
+			if err := codeHash.Deserialize(bytes.NewReader(hex)); err != nil {
+				return responsePack(berr.INVALID_PARAMS, "")
+			}
+		} else {
+			var err error
+			codeHash, err = common.AddressFromBase58(str)
+			if err != nil {
+				return responsePack(berr.INVALID_PARAMS, "")
+			}
 		}
-		if err := codeHash.Deserialize(bytes.NewReader(hex)); err != nil {
-			return responsePack(berr.INVALID_PARAMS, "")
-		}
+
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
@@ -276,7 +285,7 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 	switch params[0].(type) {
 	case string:
 		str := params[0].(string)
-		hex, err := hex.DecodeString(str)
+		hex, err := common.HexToBytes(str)
 		if err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
@@ -304,7 +313,7 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
-	return responseSuccess(common.ToHexString(hash.ToArray()))
+	return responseSuccess(hash.ToHexStringReverse())
 }
 
 func GetNodeVersion(params []interface{}) map[string]interface{} {
@@ -322,14 +331,22 @@ func GetContractState(params []interface{}) map[string]interface{} {
 	var contract *payload.DeployCode
 	switch params[0].(type) {
 	case string:
-		str := params[0].(string)
-		hex, err := hex.DecodeString(str)
-		if err != nil {
-			return responsePack(berr.INVALID_PARAMS, "")
-		}
 		var hash common.Address
-		if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
-			return responsePack(berr.INVALID_PARAMS, "")
+		str := params[0].(string)
+		if len(str) == (common.ADDR_LEN * 2) {
+			hex, err := common.HexToBytesReverse(str)
+			if err != nil {
+				return responsePack(berr.INVALID_PARAMS, "")
+			}
+			if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
+				return responsePack(berr.INVALID_PARAMS, "")
+			}
+		} else {
+			var err error
+			hash, err = common.AddressFromBase58(str)
+			if err != nil {
+				return responsePack(berr.INVALID_PARAMS, "")
+			}
 		}
 		c, err := bactor.GetContractStateFromStore(hash)
 		if err != nil {
@@ -377,13 +394,13 @@ func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 		}
 		var txhexs []string
 		for _, v := range txs {
-			txhexs = append(txhexs, common.ToHexString(v.ToArray()))
+			txhexs = append(txhexs, v.ToHexStringReverse())
 		}
 		return responseSuccess(txhexs)
 		//txhash
 	case string:
 		str := params[0].(string)
-		hex, err := hex.DecodeString(str)
+		hex, err := common.HexToBytesReverse(str)
 		if err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
@@ -415,7 +432,7 @@ func GetBlockHeightByTxHash(params []interface{}) map[string]interface{} {
 	// tx hash
 	case string:
 		str := params[0].(string)
-		hex, err := hex.DecodeString(str)
+		hex, err := common.HexToBytesReverse(str)
 		if err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
@@ -508,8 +525,11 @@ func GetMerkleProof(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
-	str := params[0].(string)
-	hex, err := hex.DecodeString(str)
+	str, ok := params[0].(string)
+	if !ok {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	hex, err := common.HexToBytesReverse(str)
 	if err != nil {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
@@ -540,10 +560,10 @@ func GetMerkleProof(params []interface{}) map[string]interface{} {
 	}
 	var hashes []string
 	for _, v := range proof {
-		hashes = append(hashes, common.ToHexString(v[:]))
+		hashes = append(hashes, v.ToHexStringReverse())
 	}
-	return responseSuccess(bcomn.MerkleProof{"MerkleProof", common.ToHexString(header.TransactionsRoot[:]), height,
-		common.ToHexString(curHeader.BlockRoot[:]), curHeight, hashes})
+	return responseSuccess(bcomn.MerkleProof{"MerkleProof", header.TransactionsRoot.ToHexStringReverse(), height,
+		curHeader.BlockRoot.ToHexStringReverse(), curHeight, hashes})
 }
 
 func GetGasPrice(params []interface{}) map[string]interface{} {
