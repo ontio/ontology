@@ -349,7 +349,7 @@ func GetBlock(hashOrHeight interface{}) ([]byte, error) {
 func DeployContract(
 	gasPrice,
 	gasLimit uint64,
-	singer *account.Account,
+	signer *account.Account,
 	vmType vmtypes.VmType,
 	needStorage bool,
 	code,
@@ -365,7 +365,7 @@ func DeployContract(
 	}
 	tx := NewDeployCodeTransaction(gasPrice, gasLimit, vmType, c, needStorage, cname, cversion, cauthor, cemail, cdesc)
 
-	err = SignTransaction(singer, tx)
+	err = SignTransaction(signer, tx)
 	if err != nil {
 		return "", err
 	}
@@ -379,13 +379,13 @@ func DeployContract(
 func InvokeNativeContract(
 	gasPrice,
 	gasLimit uint64,
-	singer *account.Account,
+	signer *account.Account,
 	cversion byte,
 	contractAddress common.Address,
 	method string,
 	args []byte,
 ) (string, error) {
-	return InvokeSmartContract(gasPrice, gasLimit, singer, vmtypes.Native, cversion, contractAddress, method, args)
+	return InvokeSmartContract(gasPrice, gasLimit, signer, vmtypes.Native, cversion, contractAddress, method, args)
 }
 
 func InvokeNativeContractTx(gasPrice,
@@ -455,7 +455,7 @@ func InvokeNeoVMContractTx(gasPrice,
 func InvokeSmartContract(
 	gasPrice,
 	gasLimit uint64,
-	singer *account.Account,
+	signer *account.Account,
 	vmType vmtypes.VmType,
 	cversion byte,
 	contractAddress common.Address,
@@ -466,7 +466,7 @@ func InvokeSmartContract(
 	if err != nil {
 		return "", err
 	}
-	err = SignTransaction(singer, invokeTx)
+	err = SignTransaction(signer, invokeTx)
 	if err != nil {
 		return "", fmt.Errorf("SignTransaction error:%s", err)
 	}

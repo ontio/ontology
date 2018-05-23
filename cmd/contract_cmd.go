@@ -86,9 +86,9 @@ func deployContract(ctx *cli.Context) error {
 		return nil
 	}
 
-	singer, err := cmdcom.GetAccount(ctx)
+	signer, err := cmdcom.GetAccount(ctx)
 	if err != nil {
-		return fmt.Errorf("Get singer account error:%s", err)
+		return fmt.Errorf("Get signer account error:%s", err)
 	}
 
 	store := ctx.Bool(utils.GetFlagName(utils.ContractStorageFlag))
@@ -112,7 +112,7 @@ func deployContract(ctx *cli.Context) error {
 	vmType := types.NEOVM
 	cversion := fmt.Sprintf("%s", version)
 
-	txHash, err := utils.DeployContract(gasPrice, gasLimit, singer, vmType, store, code, name, cversion, author, email, desc)
+	txHash, err := utils.DeployContract(gasPrice, gasLimit, signer, vmType, store, code, name, cversion, author, email, desc)
 	if err != nil {
 		return fmt.Errorf("DeployContract error:%s", err)
 	}
@@ -179,7 +179,7 @@ func invokeContract(ctx *cli.Context) error {
 	}
 	signer, err := cmdcom.GetAccount(ctx)
 	if err != nil {
-		return fmt.Errorf("Get singer account error:%s", err)
+		return fmt.Errorf("Get signer account error:%s", err)
 	}
 	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
 	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
