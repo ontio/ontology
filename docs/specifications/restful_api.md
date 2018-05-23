@@ -11,8 +11,8 @@ Restful Api List
 | get_gen_blk_time | GET /api/v1/node/generateblocktime |
 | get_conn_count | GET /api/v1/node/connectioncount |
 | get_blk_txs_by_height | GET /api/v1/block/transactions/height/:height |
-| get_blk_by_height | GET /api/v1/block/details/height/:height |
-| get_blk_by_hash | GET /api/v1/block/details/hash/:hash |
+| get_blk_by_height | GET /api/v1/block/details/height/:height?raw=0 |
+| get_blk_by_hash | GET /api/v1/block/details/hash/:hash?raw=1 |
 | get_blk_height | GET /api/v1/block/height |
 | get_blk_hash | GET /api/v1/block/hash/:height |
 | get_tx | GET /api/v1/transaction/:hash |
@@ -25,7 +25,7 @@ Restful Api List
 | get_merkle_proof | GET /api/v1/merkleproof/:hash|
 | get_gasprice | GET /api/v1/gasprice|
 | get_allowance | GET /api/v1/allowance/:asset/:from/:to |
-| post_raw_tx | post /api/v1/transaction |
+| post_raw_tx | post /api/v1/transaction?preExec=0 |
 
 
 ## Introduction
@@ -136,11 +136,11 @@ curl -i http://server:port/api/v1/block/transactions/height/100
 
 Get the block by block height
 return block details based on block height
-
+if raw=1 return serialized block
 GET
 
 ```
-/api/v1/block/details/height/:height
+/api/v1/block/details/height/:height?raw=1
 ```
 
 #### Request Example:
@@ -207,12 +207,12 @@ curl -i http://server:port/api/v1/block/details/height/22
 ### 5 get_blk_by_hash
 
 Get block by blockhash
-return block details based on block hash
+return block details based on block hash,if raw=1 return serialized block
 
 GET
 
 ```
-/api/v1/block/details/hash/:hash
+/api/v1/block/details/hash/:hash?raw=0
 ```
 
 #### Request Example:
@@ -337,12 +337,12 @@ curl -i http://server:port/api/v1/block/hash/100
 
 ### 8 get_tx
 
-get transaction by transaction hash
+get transaction by transaction hash,if raw=1 return serialized transaction
 
 GET
 
 ```
-/api/v1/transaction/:hash
+/api/v1/transaction/:hash?raw=0
 ```
 
 ####Request Example:
@@ -386,12 +386,12 @@ curl -i http://server:port/api/v1/transaction/c5e0d387c6a97aef12f1750840d24b53d9
 
 ### 9 post_raw_tx
 
-send transaction.
+send transaction. set preExec=1 if want prepare exec smartcontract
 
 POST
 
 ```
-/api/v1/transaction
+/api/v1/transaction?preExec=0
 ```
 
 #### Request Example:
