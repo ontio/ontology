@@ -18,8 +18,10 @@
 
 package types
 
+import "github.com/ontio/ontology/common"
+
 type SmartCodeEvent struct {
-	TxHash string
+	TxHash common.Uint256
 	Action string
 	Result interface{}
 	Error  int64
