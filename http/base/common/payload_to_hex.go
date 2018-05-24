@@ -47,14 +47,6 @@ type DeployCodeInfo struct {
 	Description string
 }
 
-//implement PayloadInfo define IssueAssetInfo
-type IssueAssetInfo struct {
-}
-
-//implement PayloadInfo define TransferAssetInfo
-type TransferAssetInfo struct {
-}
-
 type RecordInfo struct {
 	RecordType string
 	RecordData string
@@ -72,15 +64,6 @@ type DataFileInfo struct {
 	Filename string
 	Note     string
 	Issuer   string
-}
-
-type Claim struct {
-	Claims []*UTXOTxInput
-}
-
-type UTXOTxInput struct {
-	ReferTxID          string
-	ReferTxOutputIndex uint16
 }
 
 type PrivacyPayloadInfo struct {
@@ -131,7 +114,7 @@ func TransPayloadToHex(p types.Payload) PayloadInfo {
 	case *payload.Vote:
 		obj := new(VoteInfo)
 		obj.PubKeys = make([]string, len(object.PubKeys))
-		obj.Voter = common.ToHexString(object.Account[:])
+		obj.Voter = object.Account.ToHexString()
 		for i, key := range object.PubKeys {
 			pubKeyBytes := keypair.SerializePublicKey(key)
 			obj.PubKeys[i] = common.ToHexString(pubKeyBytes)
