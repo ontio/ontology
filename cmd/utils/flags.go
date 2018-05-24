@@ -96,9 +96,9 @@ var (
 	}
 
 	// RPC settings
-	RPCEnabledFlag = cli.BoolFlag{
-		Name:  "rpc",
-		Usage: "Enable Json rpc server",
+	RPCDisabledFlag = cli.BoolFlag{
+		Name:  "disablerpc",
+		Usage: "Disable Json rpc server",
 	}
 	RPCPortFlag = cli.UintFlag{
 		Name:  "rpcport",

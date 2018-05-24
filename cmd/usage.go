@@ -123,7 +123,7 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name: "RPC",
 		Flags: []cli.Flag{
-			utils.RPCEnabledFlag,
+			utils.RPCDisabledFlag,
 			utils.RPCPortFlag,
 			utils.RPCLocalEnableFlag,
 			utils.RPCLocalProtFlag,
