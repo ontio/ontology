@@ -29,6 +29,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
 	bactor "github.com/ontio/ontology/http/base/actor"
+	mt "github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	svrneovm "github.com/ontio/ontology/smartcontract/service/neovm"
@@ -201,6 +202,13 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 	mhash := ptx.Hash()
 	trans.Hash = mhash.ToHexString()
 	return trans
+}
+
+func SendEmergencyGovReq(msg *mt.EmergencyActionRequest) ontErrors.ErrCode {
+	if errCode := bactor.SendEmergencyGovReq(msg); errCode != ontErrors.ErrNoError {
+		return errCode
+	}
+	return ontErrors.ErrNoError
 }
 
 func VerifyAndSendTx(txn *types.Transaction) ontErrors.ErrCode {

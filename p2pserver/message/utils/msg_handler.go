@@ -705,3 +705,43 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]*t
 
 	return headers, nil
 }
+
+// EmergencyRequestHandle forwards emergency request msg to emergency governance module to handle
+func EmergencyRequestHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	log.Debug("RX emergency request message", data.Addr, data.Id)
+	length := len(data.Payload)
+	var msg msgTypes.EmergencyReqMsg
+	err := msg.Deserialization(data.Payload[:length])
+	if err != nil {
+		log.Debug("EmergencyRequestHandle: failed to deserialize emergency request. %v", err)
+		return
+	}
+
+	if pid != nil {
+		input := &msgCommon.EmergencyMsg{
+			MsgType: msgCommon.EmergencyReq,
+			Content: &msg.Payload,
+		}
+		pid.Tell(input)
+	}
+}
+
+// EmergencyResponseHandle forwards emergency response to emergency governance module to handle
+func EmergencyResponseHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	log.Debug("RX emergency response message", data.Addr, data.Id)
+	length := len(data.Payload)
+	var msg msgTypes.EmergencyRspMsg
+	err := msg.Deserialization(data.Payload[:length])
+	if err != nil {
+		log.Debug("EmergencyResponseHandle: failed to deserialize emergency response. %v", err)
+		return
+	}
+
+	if pid != nil {
+		input := &msgCommon.EmergencyMsg{
+			MsgType: msgCommon.EmergencyRsp,
+			Content: &msg.Payload,
+		}
+		pid.Tell(input)
+	}
+}

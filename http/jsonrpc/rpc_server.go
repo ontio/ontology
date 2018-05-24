@@ -58,6 +58,9 @@ func StartRPCServer() error {
 	rpc.HandleFunc("getgasprice", rpc.GetGasPrice)
 	rpc.HandleFunc("getunboundong", rpc.GetUnboundOng)
 
+	rpc.HandleFunc("sendemergencygovreq", rpc.SendEmergencyGovReq)
+	rpc.HandleFunc("getblockrootwithnewtxroot", rpc.GetBlockRootWithNewTxRoot)
+
 	err := http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.HttpJsonPort)), nil)
 	if err != nil {
 		return fmt.Errorf("ListenAndServe error:%s", err)

@@ -31,6 +31,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	evtActor "github.com/ontio/ontology-eventbus/actor"
 	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -48,11 +49,12 @@ import (
 
 //P2PServer control all network activities
 type P2PServer struct {
-	network   p2pnet.P2P
-	msgRouter *utils.MessageRouter
-	pid       *evtActor.PID
-	blockSync *BlockSyncMgr
-	ledger    *ledger.Ledger
+	network      p2pnet.P2P
+	msgRouter    *utils.MessageRouter
+	pid          *evtActor.PID
+	blockSync    *BlockSyncMgr
+	emergencyGov *emergencyGov
+	ledger       *ledger.Ledger
 	ReconnectAddrs
 	recentPeers    []string
 	quitSyncRecent chan bool
@@ -74,6 +76,7 @@ func NewServer() *P2PServer {
 		network: n,
 		ledger:  ledger.DefLedger,
 	}
+	p.emergencyGov = NewEmergencyGov(p, acc)
 
 	p.msgRouter = utils.NewMsgRouter(p.network)
 	p.blockSync = NewBlockSyncMgr(p)
@@ -107,6 +110,8 @@ func (this *P2PServer) Start() error {
 	go this.keepOnlineService()
 	go this.heartBeatService()
 	go this.blockSync.Start()
+	go this.emergencyGov.Start()
+
 	return nil
 }
 
@@ -140,6 +145,24 @@ func (this *P2PServer) GetNeighborAddrs() []common.PeerAddr {
 	return this.network.GetNeighborAddrs()
 }
 
+// GetPubKey return local public key
+func (this *P2PServer) GetPubKey() keypair.PublicKey {
+	return this.network.GetPubKey()
+}
+
+// notifyEmergencyGovCmd notify block sync mgr to pause/recover block sync
+func (this *P2PServer) notifyEmergencyGovCmd(cmd *common.EmergencyGovCmd) {
+	this.blockSync.emergencyGovCh <- cmd
+}
+
+func (this *P2PServer) notifyEmgGovBlkSyncDone() {
+	select {
+	case this.emergencyGov.blkSyncCh <- struct{}{}:
+	default:
+		log.Infof("duplicated notify")
+	}
+}
+
 //Xmit called by other module to broadcast msg
 func (this *P2PServer) Xmit(message interface{}) error {
 	log.Debug()
@@ -165,6 +188,22 @@ func (this *P2PServer) Xmit(message interface{}) error {
 		// construct inv message
 		invPayload := msgpack.NewInvPayload(comm.BLOCK, []comm.Uint256{hash})
 		msg = msgpack.NewInv(invPayload)
+	case *msgtypes.EmergencyActionResponse:
+		log.Debug("TX emergency governance response message")
+		emergencyRsp := message.(*msgtypes.EmergencyActionResponse)
+		buffer, err = msgpack.NewEmergencyRspMsg(emergencyRsp)
+		if err != nil {
+			log.Error("Error New EmergencyRsp message")
+			return err
+		}
+	case *msgtypes.EmergencyActionRequest:
+		log.Debug("TX emergency governance request message")
+		emergencyReq := message.(*msgtypes.EmergencyActionRequest)
+		buffer, err = msgpack.NewEmergencyReqMsg(emergencyReq)
+		if err != nil {
+			log.Error("Error New EmergencyReq message")
+			return err
+		}
 	default:
 		log.Warnf("Unknown Xmit message %v , type %v", message,
 			reflect.TypeOf(message))
@@ -208,6 +247,11 @@ func (this *P2PServer) OnHeaderReceive(headers []*types.Header) {
 // OnBlockReceive adds the block from network
 func (this *P2PServer) OnBlockReceive(block *types.Block) {
 	this.blockSync.OnBlockReceive(block)
+}
+
+// OnEmergencyMsgReceived put it to emergency msg channel
+func (this *P2PServer) OnEmergencyMsgReceived(msg *common.EmergencyMsg) {
+	this.emergencyGov.emergencyMsgCh <- msg
 }
 
 // Todo: remove it if no use

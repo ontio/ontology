@@ -41,6 +41,8 @@ const (
 
 	INTERNAL_ERROR  int64 = 45001
 	SMARTCODE_ERROR int64 = 47001
+
+	INVALID_EMERGENCYREQ int64 = 48001
 )
 
 var ErrMap = map[int64]string{
@@ -77,4 +79,5 @@ var ErrMap = map[int64]string{
 	int64(ontErrors.ErrSummaryAsset):         "INTERNAL ERROR, ErrSummaryAsset",
 	int64(ontErrors.ErrXmitFail):             "INTERNAL ERROR, ErrXmitFail",
 	int64(ontErrors.ErrNoAccount):            "INTERNAL ERROR, ErrNoAccount",
+	INVALID_EMERGENCYREQ:                     "INVALID EMERGENCYREQ",
 }

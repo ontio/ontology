@@ -117,30 +117,34 @@ func (this *SyncFlightInfo) GetStartTime() time.Time {
 
 //BlockSyncMgr is the manager class to deal with block sync
 type BlockSyncMgr struct {
-	flightBlocks   map[common.Uint256]*SyncFlightInfo //Map BlockHash => SyncFlightInfo, using for manager all of those block flights
-	flightHeaders  map[uint32]*SyncFlightInfo         //Map HeaderHeight => SyncFlightInfo, using for manager all of those header flights
-	blocksCache    map[uint32]*types.Block            //Map BlockHash => block, using for cache the blocks receive from net, and waiting for commit to ledger
-	nodeList       []uint64                           //Holder all of nodes that can be used
-	nextNodeIndex  int                                //Index for polling nodes
-	server         *P2PServer                         //Pointer to the local node
-	syncBlockLock  bool                               //Help to avoid send block sync request duplicate
-	syncHeaderLock bool                               //Help to avoid send header sync request duplicate
-	saveBlockLock  bool                               //Help to avoid saving block concurrently
-	exitCh         chan interface{}                   //ExitCh to receive exit signal
-	ledger         *ledger.Ledger
-	lock           sync.RWMutex
+	flightBlocks       map[common.Uint256]*SyncFlightInfo //Map BlockHash => SyncFlightInfo, using for manager all of those block flights
+	flightHeaders      map[uint32]*SyncFlightInfo         //Map HeaderHeight => SyncFlightInfo, using for manager all of those header flights
+	blocksCache        map[uint32]*types.Block            //Map BlockHash => block, using for cache the blocks receive from net, and waiting for commit to ledger
+	nodeList           []uint64                           //Holder all of nodes that can be used
+	nextNodeIndex      int                                //Index for polling nodes
+	server             *P2PServer                         //Pointer to the local node
+	syncBlockLock      bool                               //Help to avoid send block sync request duplicate
+	syncHeaderLock     bool                               //Help to avoid send header sync request duplicate
+	saveBlockLock      bool                               //Help to avoid saving block concurrently
+	exitCh             chan interface{}                   //ExitCh to receive exit signal
+	pauseSync          bool                               //PauseSync to stop block sync
+	emergencyGovHeight uint32                             // Emergency governance height
+	emergencyGovCh     chan *p2pComm.EmergencyGovCmd      //EmergencyGovCh to receive command from emergency governance
+	ledger             *ledger.Ledger
+	lock               sync.RWMutex
 }
 
 //NewBlockSyncMgr return a BlockSyncMgr instance
 func NewBlockSyncMgr(server *P2PServer) *BlockSyncMgr {
 	return &BlockSyncMgr{
-		flightBlocks:  make(map[common.Uint256]*SyncFlightInfo, 0),
-		flightHeaders: make(map[uint32]*SyncFlightInfo, 0),
-		blocksCache:   make(map[uint32]*types.Block, 0),
-		nodeList:      make([]uint64, 0),
-		server:        server,
-		ledger:        server.ledger,
-		exitCh:        make(chan interface{}, 1),
+		flightBlocks:   make(map[common.Uint256]*SyncFlightInfo, 0),
+		flightHeaders:  make(map[uint32]*SyncFlightInfo, 0),
+		blocksCache:    make(map[uint32]*types.Block, 0),
+		nodeList:       make([]uint64, 0),
+		server:         server,
+		ledger:         server.ledger,
+		exitCh:         make(chan interface{}, 1),
+		emergencyGovCh: make(chan *p2pComm.EmergencyGovCmd, 1),
 	}
 }
 
@@ -156,8 +160,17 @@ func (this *BlockSyncMgr) Start() {
 			go this.checkTimeout()
 			go this.sync()
 			go this.saveBlock()
+		case cmd, ok := <-this.emergencyGovCh:
+			if ok {
+				this.onEmergencyGovCmdReceived(cmd)
+			}
 		}
 	}
+}
+
+func (this *BlockSyncMgr) onEmergencyGovCmdReceived(cmd *p2pComm.EmergencyGovCmd) {
+	this.pauseSync = cmd.Pause
+	this.emergencyGovHeight = cmd.Height
 }
 
 func (this *BlockSyncMgr) checkTimeout() {
@@ -206,6 +219,7 @@ func (this *BlockSyncMgr) checkTimeout() {
 			this.delFlightBlock(blockHash)
 			continue
 		}
+
 		flightInfo.ResetStartTime()
 		flightInfo.MarkFailedNode()
 		log.Debugf("checkTimeout sync height:%d block:0x%x timeout after:%d s times:%d", flightInfo.Height, blockHash, SYNC_BLOCK_REQUEST_TIMEOUT, flightInfo.GetTotalFailedTimes())
@@ -249,7 +263,8 @@ func (this *BlockSyncMgr) syncHeader() {
 
 	curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
 	//Waiting for block catch up header
-	if curHeaderHeight-curBlockHeight >= SYNC_MAX_HEADER_FORWARD_SIZE {
+	if curHeaderHeight-curBlockHeight >= SYNC_MAX_HEADER_FORWARD_SIZE ||
+		(this.pauseSync == true && curHeaderHeight >= this.emergencyGovHeight-1) {
 		return
 	}
 	NextHeaderId := curHeaderHeight + 1
@@ -282,7 +297,8 @@ func (this *BlockSyncMgr) syncBlock() {
 	curBlockHeight := this.ledger.GetCurrentBlockHeight()
 	curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
 	count := int(curHeaderHeight - curBlockHeight)
-	if count <= 0 {
+	if count <= 0 ||
+		(this.pauseSync == true && curBlockHeight >= this.emergencyGovHeight-1) {
 		return
 	}
 	if count > availCount {
@@ -342,7 +358,13 @@ func (this *BlockSyncMgr) OnHeaderReceive(headers []*types.Header) {
 	if !this.isHeaderOnFlight(height) {
 		return
 	}
-	err := this.ledger.AddHeaders(headers)
+
+	count := len(headers)
+	if this.pauseSync == true && curHeaderHeight < this.emergencyGovHeight {
+		count = int(this.emergencyGovHeight - curHeaderHeight)
+	}
+
+	err := this.ledger.AddHeaders(headers[:count])
 	this.delFlightHeader(height)
 	if err != nil {
 		log.Errorf("OnHeaderReceive AddHeaders error:%s", err)
@@ -367,6 +389,7 @@ func (this *BlockSyncMgr) OnBlockReceive(block *types.Block) {
 	if height <= curBlockHeight {
 		return
 	}
+
 	this.addBlockCache(block)
 	go this.saveBlock()
 	this.syncBlock()
@@ -478,7 +501,8 @@ func (this *BlockSyncMgr) saveBlock() {
 	nextBlockHeight := curBlockHeight + 1
 	this.lock.Lock()
 	for height := range this.blocksCache {
-		if height <= curBlockHeight {
+		if height <= curBlockHeight ||
+			(this.pauseSync == true && height > this.emergencyGovHeight) {
 			delete(this.blocksCache, height)
 		}
 	}
@@ -505,6 +529,11 @@ func (this *BlockSyncMgr) saveBlock() {
 			}
 			return
 		}
+
+		if this.pauseSync == true && nextBlockHeight == this.emergencyGovHeight-1 {
+			this.server.notifyEmgGovBlkSyncDone()
+		}
+
 		nextBlockHeight++
 	}
 }
@@ -668,4 +697,5 @@ func (this *BlockSyncMgr) getNodeWithMinFailedTimes(flightInfo *SyncFlightInfo, 
 //Stop to sync
 func (this *BlockSyncMgr) Close() {
 	close(this.exitCh)
+	close(this.emergencyGovCh)
 }

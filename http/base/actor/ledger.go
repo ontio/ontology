@@ -71,6 +71,10 @@ func GetTxnWithHeightByTxHash(hash common.Uint256) (uint32, *types.Transaction, 
 	return height, tx, err
 }
 
+func GetBlockRootWithNewTxRoot(txRoot common.Uint256) common.Uint256 {
+	return ledger.DefLedger.GetBlockRootWithNewTxRoot(txRoot)
+}
+
 func PreExecuteContract(tx *types.Transaction) (*cstate.PreExecResult, error) {
 	return ledger.DefLedger.PreExecuteContract(tx)
 }

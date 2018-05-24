@@ -31,6 +31,7 @@ import (
 	bactor "github.com/ontio/ontology/http/base/actor"
 	bcomn "github.com/ontio/ontology/http/base/common"
 	berr "github.com/ontio/ontology/http/base/error"
+	mt "github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -554,4 +555,56 @@ func GetUnboundOng(params []interface{}) map[string]interface{} {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
 	return responseSuccess(rsp)
+}
+
+// A JSON example for sendEmergencyGovReq method as following:
+//   {"jsonrpc": "2.0", "method": "sendemergencygovreq", "params": ["emergencyGov request in hex"], "id": 0}
+func SendEmergencyGovReq(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return responsePack(berr.INVALID_PARAMS, nil)
+	}
+	var hash common.Uint256
+	switch params[0].(type) {
+	case string:
+		str := params[0].(string)
+		hex, err := hex.DecodeString(str)
+		if err != nil {
+			return responsePack(berr.INVALID_PARAMS, "")
+		}
+		var emergencyActionRequest mt.EmergencyActionRequest
+		if err := emergencyActionRequest.Deserialize(bytes.NewReader(hex)); err != nil {
+			return responsePack(berr.INVALID_EMERGENCYREQ, "")
+		}
+
+		hash = emergencyActionRequest.Hash()
+		if errCode := bcomn.SendEmergencyGovReq(&emergencyActionRequest); errCode != ontErrors.ErrNoError {
+			return responseSuccess(errCode.Error())
+		}
+	default:
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	return responseSuccess(common.ToHexString(hash.ToArray()))
+}
+
+func GetBlockRootWithNewTxRoot(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return responsePack(berr.INVALID_PARAMS, nil)
+	}
+	log.Trace("RPC: GetBlockRootWithNewTxRoot")
+	switch params[0].(type) {
+	case string:
+		str := params[0].(string)
+		hex, err := hex.DecodeString(str)
+		if err != nil {
+			return responsePack(berr.INVALID_PARAMS, "")
+		}
+		var txRoot common.Uint256
+		if err := txRoot.Deserialize(bytes.NewReader(hex)); err != nil {
+			return responsePack(berr.INVALID_PARAMS, "")
+		}
+		blkRoot := bactor.GetBlockRootWithNewTxRoot(txRoot)
+		return responseSuccess(common.ToHexString(blkRoot.ToArray()))
+	default:
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
 }
