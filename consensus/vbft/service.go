@@ -302,7 +302,12 @@ func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
 
 	log.Infof("committed: %d, current block no: %d", self.GetCommittedBlockNo(), self.GetCurrentBlockNo())
 
-	self.currentParticipantConfig, err = self.buildParticipantConfig(self.GetCurrentBlockNo(), self.config)
+	block, blockHash := self.blockPool.getSealedBlock(self.GetCommittedBlockNo())
+	if block == nil {
+		return fmt.Errorf("failed to get sealed block (%d)", self.GetCommittedBlockNo())
+	}
+
+	self.currentParticipantConfig, err = self.buildParticipantConfig(self.GetCurrentBlockNo(), block, blockHash, self.config)
 	if err != nil {
 		return fmt.Errorf("failed to build participant config: %s", err)
 	}
@@ -625,9 +630,14 @@ func (self *Server) getState() ServerState {
 func (self *Server) updateParticipantConfig() error {
 	blkNum := self.GetCurrentBlockNo()
 
+	block, blockHash := self.blockPool.getSealedBlock(blkNum - 1)
+	if block == nil {
+		return fmt.Errorf("failed to get sealed block (%d)", blkNum-1)
+	}
+
 	var err error
 	self.metaLock.Lock()
-	if cfg, err := self.buildParticipantConfig(blkNum, self.config); err == nil {
+	if cfg, err := self.buildParticipantConfig(blkNum, block, blockHash, self.config); err == nil {
 		self.currentParticipantConfig = cfg
 	}
 	self.metaLock.Unlock()
@@ -695,7 +705,7 @@ func (self *Server) startNewRound() error {
 			}
 		}
 	}
-	if _, _, done := self.blockPool.commitDone(blkNum, self.config.C); done && len(commits) > 0 {
+	if _, _, done := self.blockPool.commitDone(blkNum, self.config.C, self.config.N); done && len(commits) > 0 {
 		// resend commit msg to msg-processor to restart commit-done processing
 		// Note: commitDone will set Done flag in block-pool, so removed Done flag checking
 		// in commit msg processing.
@@ -767,7 +777,9 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 		if msgBlkNum > self.GetCurrentBlockNo() {
 			// for concurrency, support two active consensus round
 			if err := self.msgPool.AddMsg(msg, msgHash); err != nil {
-				log.Errorf("failed to add proposal msg (%d) to pool", msgBlkNum)
+				if err != errDropFarFutureMsg {
+					log.Errorf("failed to add proposal msg (%d) to pool: %s", msgBlkNum, err)
+				}
 				return
 			}
 
@@ -822,7 +834,9 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 		if msgBlkNum > self.GetCurrentBlockNo() {
 			// for concurrency, support two active consensus round
 			if err := self.msgPool.AddMsg(msg, msgHash); err != nil {
-				log.Errorf("failed to add endorse msg (%d) to pool", msgBlkNum)
+				if err != errDropFarFutureMsg {
+					log.Errorf("failed to add endorse msg (%d) to pool: %s", msgBlkNum, err)
+				}
 				return
 			}
 
@@ -876,7 +890,9 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 		msgBlkNum := pMsg.GetBlockNum()
 		if msgBlkNum > self.GetCurrentBlockNo() {
 			if err := self.msgPool.AddMsg(msg, msgHash); err != nil {
-				log.Errorf("failed to add commit msg (%d) to pool", msgBlkNum)
+				if err != errDropFarFutureMsg {
+					log.Errorf("failed to add commit msg (%d) to pool: %s", msgBlkNum, err)
+				}
 				return
 			}
 
@@ -1239,7 +1255,7 @@ func (self *Server) processMsgEvent() error {
 				log.Infof("server %d received commit from %d, for proposer %d, block %d, empty: %t",
 					self.Index, pMsg.Committer, pMsg.BlockProposer, msgBlkNum, pMsg.CommitForEmpty)
 
-				if proposer, forEmpty, done := self.blockPool.commitDone(msgBlkNum, self.config.C); done {
+				if proposer, forEmpty, done := self.blockPool.commitDone(msgBlkNum, self.config.C, self.config.N); done {
 					self.blockPool.setCommitDone(msgBlkNum)
 					proposal := self.findBlockProposal(msgBlkNum, proposer, forEmpty)
 					if proposal == nil {
@@ -1687,7 +1703,7 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 			return nil
 		}
 		if !self.blockPool.isCommitHadDone(evt.blockNum) {
-			if proposer, forEmpty, done := self.blockPool.commitDone(evt.blockNum, self.config.C); done {
+			if proposer, forEmpty, done := self.blockPool.commitDone(evt.blockNum, self.config.C, self.config.N); done {
 				self.blockPool.setCommitDone(evt.blockNum)
 				proposal := self.findBlockProposal(evt.blockNum, proposer, forEmpty)
 				if proposal == nil {

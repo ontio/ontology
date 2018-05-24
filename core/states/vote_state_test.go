@@ -33,7 +33,7 @@ func TestVoteState_Deserialize_Serialize(t *testing.T) {
 	vs := VoteState{
 		StateBase:  StateBase{(byte)(1)},
 		PublicKeys: []keypair.PublicKey{pubKey1, pubKey2},
-		Count:      0,
+		Count:      10,
 	}
 
 	buf := bytes.NewBuffer(nil)

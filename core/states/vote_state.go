@@ -33,8 +33,14 @@ type VoteState struct {
 }
 
 func (this *VoteState) Serialize(w io.Writer) error {
-	this.StateBase.Serialize(w)
-	serialization.WriteUint32(w, uint32(len(this.PublicKeys)))
+	err := this.StateBase.Serialize(w)
+	if err != nil {
+		return err
+	}
+	err = serialization.WriteUint32(w, uint32(len(this.PublicKeys)))
+	if err != nil {
+		return err
+	}
 	for _, v := range this.PublicKeys {
 		buf := keypair.SerializePublicKey(v)
 		err := serialization.WriteVarBytes(w, buf)
@@ -42,7 +48,8 @@ func (this *VoteState) Serialize(w io.Writer) error {
 			return err
 		}
 	}
-	return nil
+
+	return serialization.WriteUint64(w, uint64(this.Count))
 }
 
 func (this *VoteState) Deserialize(r io.Reader) error {
@@ -65,5 +72,10 @@ func (this *VoteState) Deserialize(r io.Reader) error {
 		}
 		this.PublicKeys = append(this.PublicKeys, pk)
 	}
+	c, err := serialization.ReadUint64(r)
+	if err != nil {
+		return err
+	}
+	this.Count = common.Fixed64(int64(c))
 	return nil
 }
