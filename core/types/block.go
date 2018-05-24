@@ -33,14 +33,21 @@ type Block struct {
 }
 
 func (b *Block) Serialize(w io.Writer) error {
-	b.Header.Serialize(w)
-	err := serialization.WriteUint32(w, uint32(len(b.Transactions)))
+	err := b.Header.Serialize(w)
+	if err != nil {
+		return err
+	}
+
+	err = serialization.WriteUint32(w, uint32(len(b.Transactions)))
 	if err != nil {
 		return fmt.Errorf("Block item Transactions length serialization failed: %s", err)
 	}
 
 	for _, transaction := range b.Transactions {
-		transaction.Serialize(w)
+		err := transaction.Serialize(w)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -49,7 +56,10 @@ func (b *Block) Deserialize(r io.Reader) error {
 	if b.Header == nil {
 		b.Header = new(Header)
 	}
-	b.Header.Deserialize(r)
+	err := b.Header.Deserialize(r)
+	if err != nil {
+		return err
+	}
 
 	//Transactions
 	length, err := serialization.ReadUint32(r)
@@ -60,7 +70,10 @@ func (b *Block) Deserialize(r io.Reader) error {
 	var hashes = make([]common.Uint256, 0, length)
 	for i := uint32(0); i < length; i++ {
 		transaction := new(Transaction)
-		transaction.Deserialize(r)
+		err := transaction.Deserialize(r)
+		if err != nil {
+			return err
+		}
 		txhash := transaction.Hash()
 		b.Transactions = append(b.Transactions, transaction)
 		hashes = append(hashes, txhash)
@@ -72,16 +85,22 @@ func (b *Block) Deserialize(r io.Reader) error {
 }
 
 func (b *Block) Trim(w io.Writer) error {
-	b.Header.Serialize(w)
-	err := serialization.WriteUint32(w, uint32(len(b.Transactions)))
+	err := b.Header.Serialize(w)
 	if err != nil {
-		return fmt.Errorf("Block item Transactions length serialization failed: %s", err)
+		return err
 	}
-	for _, transaction := range b.Transactions {
-		temp := *transaction
-		hash := temp.Hash()
-		hash.Serialize(w)
+	err = serialization.WriteUint32(w, uint32(len(b.Transactions)))
+	if err != nil {
+		return fmt.Errorf("block item transaction length serialization failed: %s", err)
 	}
+	for _, tx := range b.Transactions {
+		hash := tx.Hash()
+		err := hash.Serialize(w)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -89,7 +108,10 @@ func (b *Block) FromTrimmedData(r io.Reader) error {
 	if b.Header == nil {
 		b.Header = new(Header)
 	}
-	b.Header.Deserialize(r)
+	err := b.Header.Deserialize(r)
+	if err != nil {
+		return err
+	}
 
 	//Transactions
 	var i uint32
@@ -100,7 +122,10 @@ func (b *Block) FromTrimmedData(r io.Reader) error {
 	var txhash common.Uint256
 	var hashes []common.Uint256
 	for i = 0; i < Len; i++ {
-		txhash.Deserialize(r)
+		err := txhash.Deserialize(r)
+		if err != nil {
+			return err
+		}
 		transaction := new(Transaction)
 		transaction.SetHash(txhash)
 		b.Transactions = append(b.Transactions, transaction)
@@ -126,7 +151,7 @@ func (b *Block) Type() common.InventoryType {
 	return common.BLOCK
 }
 
-func (b *Block) RebuildMerkleRoot() error {
+func (b *Block) RebuildMerkleRoot() {
 	txs := b.Transactions
 	hashes := []common.Uint256{}
 	for _, tx := range txs {
@@ -134,7 +159,6 @@ func (b *Block) RebuildMerkleRoot() error {
 	}
 	hash := common.ComputeMerkleRoot(hashes)
 	b.Header.TransactionsRoot = hash
-	return nil
 }
 
 func (bd *Block) SerializeUnsigned(w io.Writer) error {

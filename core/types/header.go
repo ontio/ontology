@@ -80,15 +80,42 @@ func (bd *Header) Serialize(w io.Writer) error {
 
 //Serialize the blockheader data without program
 func (bd *Header) SerializeUnsigned(w io.Writer) error {
-	serialization.WriteUint32(w, bd.Version)
-	bd.PrevBlockHash.Serialize(w)
-	bd.TransactionsRoot.Serialize(w)
-	bd.BlockRoot.Serialize(w)
-	serialization.WriteUint32(w, bd.Timestamp)
-	serialization.WriteUint32(w, bd.Height)
-	serialization.WriteUint64(w, bd.ConsensusData)
-	serialization.WriteVarBytes(w, bd.ConsensusPayload)
-	bd.NextBookkeeper.Serialize(w)
+	err := serialization.WriteUint32(w, bd.Version)
+	if err != nil {
+		return err
+	}
+	err = bd.PrevBlockHash.Serialize(w)
+	if err != nil {
+		return err
+	}
+	err = bd.TransactionsRoot.Serialize(w)
+	if err != nil {
+		return err
+	}
+	err = bd.BlockRoot.Serialize(w)
+	if err != nil {
+		return err
+	}
+	err = serialization.WriteUint32(w, bd.Timestamp)
+	if err != nil {
+		return err
+	}
+	err = serialization.WriteUint32(w, bd.Height)
+	if err != nil {
+		return err
+	}
+	err = serialization.WriteUint64(w, bd.ConsensusData)
+	if err != nil {
+		return err
+	}
+	err = serialization.WriteVarBytes(w, bd.ConsensusPayload)
+	if err != nil {
+		return err
+	}
+	err = bd.NextBookkeeper.Serialize(w)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
