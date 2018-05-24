@@ -76,10 +76,10 @@ func TestMerkleVerifier(t *testing.T) {
 }
 
 func TestCodeHash(t *testing.T) {
-	code, _ := common.HexToBytes("")
+	code, _ := common.HexToBytes("120203")
 	vmcode := vmtypes.VmCode{vmtypes.NEOVM, code}
 	codehash := vmcode.AddressFromVmCode()
-	assert.Contains(t, codehash.ToHexString(), "")
+	assert.Equal(t, codehash[0], byte(vmtypes.NEOVM))
 }
 
 func TestTxDeserialize(t *testing.T) {
