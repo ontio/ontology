@@ -36,22 +36,9 @@ func ToHexString(data []byte) string {
 	return hex.EncodeToString(data)
 }
 
-// ToHexString convert []byte to hex string
-func ToHexStringReverse(data []byte) string {
-	return hex.EncodeToString(ToArrayReverse(data))
-}
-
 // HexToBytes convert hex string to []byte
 func HexToBytes(value string) ([]byte, error) {
 	return hex.DecodeString(value)
-}
-
-func HexToBytesReverse(value string) ([]byte, error) {
-	hx, err := hex.DecodeString(value)
-	if err != nil {
-		return hx, err
-	}
-	return ToArrayReverse(hx), err
 }
 
 func ToArrayReverse(arr []byte) []byte {

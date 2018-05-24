@@ -39,7 +39,7 @@ func (u *Uint256) ToArray() []byte {
 	return x
 }
 
-func (u *Uint256) ToHexStringReverse() string {
+func (u *Uint256) ToHexString() string {
 	return fmt.Sprintf("%x", ToArrayReverse(u[:]))
 }
 
@@ -64,4 +64,12 @@ func Uint256ParseFromBytes(f []byte) (Uint256, error) {
 	var hash Uint256
 	copy(hash[:], f)
 	return hash, nil
+}
+
+func Uint256FromHexString(s string) (Uint256, error) {
+	hx, err := HexToBytes(s)
+	if err != nil {
+		return UINT256_EMPTY, err
+	}
+	return Uint256ParseFromBytes(ToArrayReverse(hx))
 }
