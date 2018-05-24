@@ -76,28 +76,22 @@ func TestMerkleVerifier(t *testing.T) {
 }
 
 func TestCodeHash(t *testing.T) {
-	code, _ := common.HexToBytes("")
+	code, _ := common.HexToBytes("120203")
 	vmcode := vmtypes.VmCode{vmtypes.NEOVM, code}
 	codehash := vmcode.AddressFromVmCode()
-	assert.Contains(t, codehash.ToHexString(), "")
+	assert.Equal(t, codehash[0], byte(vmtypes.NEOVM))
 }
 
 func TestTxDeserialize(t *testing.T) {
-	bys, _ := common.HexToBytes("")
+	bys, _ := common.HexToBytes("00d175aed22900000000000000000886000000000000000000000000000000000000000000000000000080206700008097b70f436f225c42b14c2afc1d3bc582abd141000700c104696e697401002436323834333632382d313863622d343938332d623862622d38326633326464333139666500")
 	var txn types.Transaction
 	err := txn.Deserialize(bytes.NewReader(bys))
 	assert.Nil(t, err)
-
-	assert.Contains(t, txn.TxType, 0)
 }
 func TestAddress(t *testing.T) {
 	pubkey, _ := common.HexToBytes("120203a4e50edc1e59979442b83f327030a56bffd08c2de3e0a404cefb4ed2cc04ca3e")
-	pk, err := keypair.DeserializePublicKey(pubkey)
+	_, err := keypair.DeserializePublicKey(pubkey)
 	assert.Nil(t, err)
-
-	ui60 := types.AddressFromPubKey(pk)
-	addr := common.ToHexString(ui60[:])
-	assert.Contains(t, addr, 0)
 }
 func TestMultiPubKeysAddress(t *testing.T) {
 	pubkey, _ := common.HexToBytes("120203a4e50edc1e59979442b83f327030a56bffd08c2de3e0a404cefb4ed2cc04ca3e")
@@ -108,9 +102,8 @@ func TestMultiPubKeysAddress(t *testing.T) {
 	pk2, err := keypair.DeserializePublicKey(pubkey2)
 	assert.Nil(t, err)
 
-	ui60, _ := types.AddressFromMultiPubKeys([]keypair.PublicKey{pk, pk2}, 1)
-	addr := common.ToHexString(ui60[:])
-	assert.Contains(t, addr, 0)
+	_, err = types.AddressFromMultiPubKeys([]keypair.PublicKey{pk, pk2}, 1)
+	assert.Nil(t, err)
 }
 
 func BuildSmartContractParamInter(builder *neovm.ParamsBuilder, smartContractParams []interface{}) error {

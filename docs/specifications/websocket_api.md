@@ -502,7 +502,7 @@ According to the contract script hash, query the contract information.
 
 ```
 {
-    "Action": "gettransaction",
+    "Action": "getcontract",
     "Version": "1.0.0",
     "Hash": "fff49c809d302a2956e9dc0012619a452d4b846c"
 }
