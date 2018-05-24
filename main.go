@@ -93,6 +93,7 @@ func setupAPP() *cli.App {
 		utils.EnableTestModeFlag,
 		utils.TestModeGenBlockTimeFlag,
 		//rpc setting
+		utils.RPCDisabledFlag,
 		utils.RPCPortFlag,
 		utils.RPCLocalEnableFlag,
 		utils.RPCLocalProtFlag,
@@ -295,6 +296,9 @@ func initConsensus(ctx *cli.Context, p2pPid *actor.PID, txpoolSvr *proc.TXPoolSe
 }
 
 func initRpc(ctx *cli.Context) error {
+	if !config.DefConfig.Rpc.EnableHttpJsonRpc {
+		return nil
+	}
 	var err error
 	exitCh := make(chan interface{}, 0)
 	go func() {
