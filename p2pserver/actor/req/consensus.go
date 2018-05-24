@@ -19,27 +19,11 @@
 package req
 
 import (
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology/common/config"
-	msgTypes "github.com/ontio/ontology/p2pserver/message/types"
 )
 
 var ConsensusPid *actor.PID
 
 func SetConsensusPid(conPid *actor.PID) {
 	ConsensusPid = conPid
-}
-
-func NotifyPeerState(peer keypair.PublicKey, connected bool) {
-	if config.DefConfig.Genesis.ConsensusType != config.CONSENSUS_TYPE_VBFT {
-		return
-	}
-
-	if ConsensusPid != nil {
-		ConsensusPid.Tell(&msgTypes.PeerStateUpdate{
-			PeerPubKey: peer,
-			Connected:  connected,
-		})
-	}
 }
