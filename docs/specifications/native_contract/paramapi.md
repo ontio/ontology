@@ -14,9 +14,11 @@ method: init
 
 args: nil
 
+return: bool
+
 #### example
 ```
-    init := states.Contract{
+    init := sstates.Contract{
 		Address: ParamContractAddress,
 		Method:  "init",
 	}
@@ -28,9 +30,11 @@ method: transferAdmin
 
 args: smartcontract/service/native/global_params.Admin
 
+return: bool
+
 #### example
 ```
-    var destinationAdmin states.Admin
+    var destinationAdmin global_params.Admin
 	address, _ := common.AddressFromBase58("TA4knXiWFZ8K4W3e5fAnoNntdc5G3qMT7C")
 	copy(destinationAdmin[:], address[:])
 	adminBuffer := new(bytes.Buffer)
@@ -52,9 +56,11 @@ method: acceptAdmin
 
 args: smartcontract/service/native/global_params.Admin
 
+return: bool
+
 #### example
 ```
-    var destinationAdmin states.Admin
+    var destinationAdmin global_params.Admin
 	address, _ := common.AddressFromBase58("TA4knXiWFZ8K4W3e5fAnoNntdc5G3qMT7C")
 	copy(destinationAdmin[:], address[:])
 	adminBuffer := new(bytes.Buffer)
@@ -77,14 +83,16 @@ method: setGlobalParam
 
 args: smartcontract/service/native/global_params.Params
 
+return: bool
+
 #### example
 ```
-    params := new(states.Params)
+    params := new(global_params.Params)
 	*params = make(map[string]string)
 	for i := 0; i < 3; i++ {
 		k := "key-test" + strconv.Itoa(i) + "-" + key
 		v := "value-test" + strconv.Itoa(i) + "-" + value
-		(*params)[k] = v
+		(*params) = append(*params, &global_params.Param{k,v})
 	}
 	paramsBuffer := new(bytes.Buffer)
 	if err := params.Serialize(paramsBuffer); err != nil {
@@ -100,11 +108,13 @@ args: smartcontract/service/native/global_params.Params
 ```
 
 ### GetGlobalParam
-Get global parameter
+Get global parameter, the method will return smartcontract/service/native/global_params.Params
 
 method: getGlobalParam
 
 args: smartcontract/service/native/global_params.ParamNameList
+
+return: array
 
 #### example
 ```
@@ -131,6 +141,8 @@ Administrator make prepare parameter effective.
 method: createSnapshot
 
 args: nil
+
+return: bool
 
 #### example
 ```
