@@ -32,9 +32,11 @@ const ADDR_LEN = 20
 
 type Address [ADDR_LEN]byte
 
+var ADDRESS_EMPTY = Address{}
+
 // ToHexString returns  hex string representation of Address
 func (self *Address) ToHexString() string {
-	return fmt.Sprintf("%x", self[:])
+	return fmt.Sprintf("%x", ToArrayReverse(self[:]))
 }
 
 // Serialize serialize Address into io.Writer
@@ -67,7 +69,7 @@ func (f *Address) ToBase58() string {
 // AddressParseFromBytes returns parsed Address
 func AddressParseFromBytes(f []byte) (Address, error) {
 	if len(f) != ADDR_LEN {
-		return Address{}, errors.New("[Common]: Uint160ParseFromBytes err, len != 20")
+		return ADDRESS_EMPTY, errors.New("[Common]: Uint160ParseFromBytes err, len != 20")
 	}
 
 	var addr Address
@@ -75,28 +77,37 @@ func AddressParseFromBytes(f []byte) (Address, error) {
 	return addr, nil
 }
 
+// AddressParseFromHexString returns parsed Address
+func AddressFromHexString(s string) (Address, error) {
+	hx, err := HexToBytes(s)
+	if err != nil {
+		return ADDRESS_EMPTY, err
+	}
+	return AddressParseFromBytes(ToArrayReverse(hx))
+}
+
 // AddressFromBase58 returns Address from encoded base58 string
 func AddressFromBase58(encoded string) (Address, error) {
 	decoded, err := base58.BitcoinEncoding.Decode([]byte(encoded))
 	if err != nil {
-		return Address{}, err
+		return ADDRESS_EMPTY, err
 	}
 
 	x, _ := new(big.Int).SetString(string(decoded), 10)
 
 	buf := x.Bytes()
 	if len(buf) != 1+ADDR_LEN+4 || buf[0] != byte(0x41) {
-		return Address{}, errors.New("wrong encoded address")
+		return ADDRESS_EMPTY, errors.New("wrong encoded address")
 	}
 	ph, err := AddressParseFromBytes(buf[1:21])
 	if err != nil {
-		return Address{}, err
+		return ADDRESS_EMPTY, err
 	}
 
 	addr := ph.ToBase58()
 
 	if addr != encoded {
-		return Address{}, errors.New("[AddressFromBase58]: decode encoded verify failed.")
+		return ADDRESS_EMPTY, errors.New("[AddressFromBase58]: decode encoded verify failed.")
 	}
 
 	return ph, nil
