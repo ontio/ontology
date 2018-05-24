@@ -23,13 +23,11 @@ import (
 
 	"github.com/ontio/ontology/common"
 	cstates "github.com/ontio/ontology/core/states"
-	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 const (
-	SET_PARAM = "SetGlobalParam"
 	PARAM     = "param"
 	TRANSFER  = "transfer"
 	ADMIN     = "admin"
@@ -59,14 +57,6 @@ func getAdminKey(contract common.Address, isTransferAdmin bool) []byte {
 	} else {
 		return append(contract[:], ADMIN...)
 	}
-}
-
-func notifyParamSetSuccess(native *native.NativeService, contract common.Address, params Params) {
-	native.Notifications = append(native.Notifications,
-		&event.NotifyEventInfo{
-			ContractAddress: contract,
-			States:          []interface{}{SET_PARAM, params},
-		})
 }
 
 func getStorageParam(native *native.NativeService, key []byte) (*Params, error) {
