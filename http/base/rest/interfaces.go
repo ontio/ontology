@@ -357,7 +357,7 @@ func GetContractState(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
 	if contract == nil {
-		return ResponsePack(berr.UNKNWN_CONTRACT)
+		return ResponsePack(berr.UNKNOWN_CONTRACT)
 	}
 	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
 		w := bytes.NewBuffer(nil)

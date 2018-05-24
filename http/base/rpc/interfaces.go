@@ -328,7 +328,7 @@ func GetContractState(params []interface{}) map[string]interface{} {
 			return responsePack(berr.INTERNAL_ERROR, "internal error")
 		}
 		if c == nil {
-			return responsePack(berr.UNKNWN_CONTRACT, "unknow contract")
+			return responsePack(berr.UNKNOWN_CONTRACT, "unknow contract")
 		}
 		contract = c
 	default:
