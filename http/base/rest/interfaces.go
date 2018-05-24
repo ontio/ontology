@@ -116,8 +116,8 @@ func getBlock(hash common.Uint256, getTxBytes bool) (interface{}, int64) {
 }
 func GetBlockByHash(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	param := cmd["Hash"].(string)
-	if len(param) == 0 {
+	str := cmd["Hash"].(string)
+	if len(str) == 0 {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	var getTxBytes = false
@@ -125,7 +125,7 @@ func GetBlockByHash(cmd map[string]interface{}) map[string]interface{} {
 		getTxBytes = true
 	}
 	var hash common.Uint256
-	hash, err := common.Uint256FromHexString(param)
+	hash, err := common.Uint256FromHexString(str)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -135,11 +135,11 @@ func GetBlockByHash(cmd map[string]interface{}) map[string]interface{} {
 
 func GetBlockHeightByTxHash(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	param := cmd["Hash"].(string)
-	if len(param) == 0 {
+	str := cmd["Hash"].(string)
+	if len(str) == 0 {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	hash, err := common.Uint256FromHexString(param)
+	hash, err := common.Uint256FromHexString(str)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
