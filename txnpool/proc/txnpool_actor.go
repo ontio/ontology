@@ -27,6 +27,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	tx "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events/message"
+	"github.com/ontio/ontology/smartcontract/service/neovm"
 	tc "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology/validator/types"
 )
@@ -80,6 +81,13 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 				txn.GasLimit, txn.GasPrice)
 			return
 		}
+
+		if txn.TxType == tx.Deploy && txn.GasLimit < neovm.CONTRACT_CREATE_GAS {
+			log.Debugf("handleTransaction: deploy tx invalid gasLimit %v, gasPrice %v",
+				txn.GasLimit, txn.GasPrice)
+			return
+		}
+
 		<-ta.server.slots
 		ta.server.assignTxToWorker(txn, sender)
 	}
