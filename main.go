@@ -32,6 +32,7 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd"
+	"github.com/ontio/ontology/cmd/abi"
 	cmdcom "github.com/ontio/ontology/cmd/common"
 	cmdsvr "github.com/ontio/ontology/cmd/server"
 	cmdsvrcom "github.com/ontio/ontology/cmd/server/common"
@@ -377,7 +378,7 @@ func initCliSvr(ctx *cli.Context, acc *account.Account) {
 	}
 	cmdsvrcom.DefAccount = acc
 	go cmdsvr.DefCliRpcSvr.Start(config.DefConfig.Cli.CliRpcPort)
-
+	abi.DefAbiMgr.Init()
 	log.Infof("Cli rpc server init success")
 }
 

@@ -55,15 +55,20 @@ func SigNeoVMInvokeTx(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRespon
 		resp.ErrorInfo = fmt.Sprintf("ParseNeoVMInvokeParams error:%s", err)
 		return
 	}
-	contAddr, err := common.AddressFromBase58(rawReq.Address)
+	addrData, err := hex.DecodeString(rawReq.Address)
 	if err != nil {
-		log.Infof("SigNeoVMInvokeTx contract AddressFromBase58:%s error:%s", rawReq.Address, err)
+		log.Infof("Cli Qid:%s SigNeoVMInvokeTx hex.DecodeString address:%s error:%s", rawReq.Address, err)
+		return
+	}
+	contAddr, err := common.AddressParseFromBytes(addrData)
+	if err != nil {
+		log.Infof("Cli Qid:%s SigNeoVMInvokeTx AddressParseFromBytes:%s error:%s", req.Qid, rawReq.Address, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
 		return
 	}
 	tx, err := cliutil.InvokeNeoVMContractTx(rawReq.GasPrice, rawReq.GasLimit, rawReq.Version, contAddr, params)
 	if err != nil {
-		log.Infof("SigNeoVMInvokeTx InvokeNeoVMContractTx error:%s", err)
+		log.Infof("Cli Qid:%s SigNeoVMInvokeTx InvokeNeoVMContractTx error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
 		return
 	}

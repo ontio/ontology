@@ -19,6 +19,7 @@
 package cmd
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	cmdcom "github.com/ontio/ontology/cmd/common"
@@ -118,7 +119,7 @@ func deployContract(ctx *cli.Context) error {
 	}
 	address := utils.GetContractAddress(string(code), vmType)
 	fmt.Printf("Deploy contract:\n")
-	fmt.Printf("  Contract Address:%s\n", address.ToBase58())
+	fmt.Printf("  Contract Address:%x\n", address[:])
 	fmt.Printf("  TxHash:%s\n", txHash)
 	fmt.Printf("\nTip:\n")
 	fmt.Printf("  Using './ontology info status %s' to query transaction status\n", txHash)
@@ -132,12 +133,16 @@ func invokeContract(ctx *cli.Context) error {
 		return nil
 	}
 	contractAddrStr := ctx.String(utils.GetFlagName(utils.ContractAddrFlag))
-	contractAddr, err := common.AddressFromBase58(contractAddrStr)
+	addrData, err := hex.DecodeString(contractAddrStr)
 	if err != nil {
-		return fmt.Errorf("Invalid contract address")
+		return fmt.Errorf("Invalid contract address error:%s", err)
 	}
-	cversion := byte(ctx.Int(utils.GetFlagName(utils.ContractVersionFlag)))
+	contractAddr, err := common.AddressParseFromBytes(addrData)
+	if err != nil {
+		return fmt.Errorf("Invalid contract address error:%s", err)
+	}
 
+	cversion := byte(ctx.Int(utils.GetFlagName(utils.ContractVersionFlag)))
 	paramsStr := ctx.String(utils.GetFlagName(utils.ContractParamsFlag))
 	params, err := utils.ParseParams(paramsStr)
 	if err != nil {
