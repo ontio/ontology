@@ -24,6 +24,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology-crypto/vrf"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/consensus/vbft/config"
@@ -58,23 +60,20 @@ func HashMsg(msg ConsensusMsg) (common.Uint256, error) {
 	return hashData(data), nil
 }
 
-type vrfData struct {
+type seedData struct {
 	BlockNum          uint32         `json:"block_num"`
-	PrevBlockHash     common.Uint256 `json:"prev_block_hash"`
 	PrevBlockProposer uint32         `json:"prev_block_proposer"` // TODO: change to NodeID
-	TransactionRoot   common.Uint256 `json:"transaction_root"`
 	BlockRoot         common.Uint256 `json:"block_root"`
-	// TODO: add proposer signature
+	VrfValue          []byte         `json:"vrf_value"`
 }
 
-func vrf(block *Block, hash common.Uint256) vconfig.VRFValue {
+func getParticipantSelectionSeed(block *Block) vconfig.VRFValue {
 
-	data, err := json.Marshal(&vrfData{
+	data, err := json.Marshal(&seedData{
 		BlockNum:          block.getBlockNum() + 1,
-		PrevBlockHash:     hash,
 		PrevBlockProposer: block.getProposer(),
-		TransactionRoot:   block.Block.Header.TransactionsRoot,
 		BlockRoot:         block.Block.Header.BlockRoot,
+		VrfValue:          block.getVrfValue(),
 	})
 	if err != nil {
 		return vconfig.VRFValue{}
@@ -83,4 +82,40 @@ func vrf(block *Block, hash common.Uint256) vconfig.VRFValue {
 	t := sha512.Sum512(data)
 	f := sha512.Sum512(t[:])
 	return vconfig.VRFValue(f)
+}
+
+type vrfData struct {
+	BlockNum uint32 `json:"block_num"`
+	PrevVrf  []byte `json:"prev_vrf"`
+}
+
+func computeVrf(sk keypair.PrivateKey, blkNum uint32, prevVrf []byte) ([]byte, []byte, error) {
+	data, err := json.Marshal(&vrfData{
+		BlockNum: blkNum,
+		PrevVrf:  prevVrf,
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("computeVrf failed to marshal vrfData: %s", err)
+	}
+
+	return vrf.Vrf(sk, data)
+}
+
+func verifyVrf(pk keypair.PublicKey, blkNum uint32, prevVrf, newVrf, proof []byte) error {
+	data, err := json.Marshal(&vrfData{
+		BlockNum: blkNum,
+		PrevVrf:  prevVrf,
+	})
+	if err != nil {
+		return fmt.Errorf("verifyVrf failed to marshal vrfData: %s", err)
+	}
+
+	result, err := vrf.Verify(pk, data, newVrf, proof)
+	if err != nil {
+		return fmt.Errorf("verifyVrf failed: %s", err)
+	}
+	if !result {
+		return fmt.Errorf("verifyVrf failed")
+	}
+	return nil
 }
