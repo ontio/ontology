@@ -25,7 +25,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/genesis"
 	scommon "github.com/ontio/ontology/core/store/common"
 	ctypes "github.com/ontio/ontology/core/types"
@@ -195,23 +194,15 @@ func OntAllowance(native *native.NativeService) ([]byte, error) {
 func GetBalanceValue(native *native.NativeService, flag byte) ([]byte, error) {
 	var key []byte
 	buf := bytes.NewBuffer(native.Input)
-	fromAddr, err := serialization.ReadVarBytes(buf)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] get address error!")
-	}
-	from, err := common.AddressParseFromBytes(fromAddr)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] address parse error!")
+	var from common.Address
+	if err := from.Deserialize(buf); err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] get from address error!")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	if flag == APPROVE_FLAG {
-		toAddr, err := serialization.ReadVarBytes(buf)
-		if err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] get address error!")
-		}
-		to, err := common.AddressParseFromBytes(toAddr)
-		if err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] address parse error!")
+		var to common.Address
+		if err := to.Deserialize(buf); err != nil {
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] get to address error!")
 		}
 		key = GetApproveKey(contract, from, to)
 	} else if flag == TRANSFER_FLAG {
