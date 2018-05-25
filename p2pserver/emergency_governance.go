@@ -292,7 +292,7 @@ func (this *emergencyGov) EmergencyActionRequestReceived(msg *mt.EmergencyAction
 	// Todo: check whether local node support emergency governance
 	log.Tracef("EmergencyActionRequestReceived: receive emergency governance request at height %d", msg.ProposalBlkNum)
 
-	if this.context != nil && this.context.getStatus() != EmergencyGovInit {
+	if this.context != nil && this.context.getStatus() == EmergencyGovStart {
 		return fmt.Errorf("EmergencyActionRequestReceived: emergency governacne started")
 	}
 
