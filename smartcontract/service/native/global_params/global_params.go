@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"sync"
 
-	"encoding/json"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -41,10 +40,10 @@ type ParamCache struct {
 }
 
 var GLOBAL_PARAM = map[string]string{
-	"init-key1": "init-value1",
-	"init-key2": "init-value2",
-	"init-key3": "init-value3",
-	"init-key4": "init-value4",
+	//"init-key1": "init-value1",
+	//"init-key2": "init-value2",
+	//"init-key3": "init-value3",
+	//"init-key4": "init-value4",
 }
 
 type paramType byte
@@ -60,7 +59,7 @@ var admin *Admin
 func InitGlobalParams() {
 	native.Contracts[genesis.ParamContractAddress] = RegisterParamContract
 	paramCache = new(ParamCache)
-	paramCache.Params = make(map[string]string)
+	paramCache.Params = make([]*Param, 0)
 }
 
 func RegisterParamContract(native *native.NativeService) {
@@ -74,12 +73,11 @@ func RegisterParamContract(native *native.NativeService) {
 
 func ParamInit(native *native.NativeService) ([]byte, error) {
 	paramCache = new(ParamCache)
-	paramCache.Params = make(map[string]string)
+	paramCache.Params = make([]*Param, 0)
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	initParams := new(Params)
-	*initParams = make(map[string]string)
 	for k, v := range GLOBAL_PARAM {
-		(*initParams)[k] = v
+		initParams.SetParam(&Param{k, v})
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, getParamKey(contract, CURRENT_VALUE), getParamStorageItem(initParams))
 	native.CloneCache.Add(scommon.ST_STORAGE, getParamKey(contract, PREPARE_VALUE), getParamStorageItem(initParams))
@@ -149,12 +147,11 @@ func SetGlobalParam(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, err
 	}
 	// update param
-	for key, value := range *params {
-		(*storageParams)[key] = value
+	for _, param := range *params {
+		storageParams.SetParam(param)
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, getParamKey(contract, PREPARE_VALUE),
 		getParamStorageItem(storageParams))
-	notifyParamSetSuccess(native, contract, *params)
 	return utils.BYTE_TRUE, nil
 }
 
@@ -164,22 +161,21 @@ func GetGlobalParam(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("get param, deserialize failed!")
 	}
 	params := new(Params)
-	*params = make(map[string]string, 0)
 	var paramNotInCache = make([]string, 0)
 	// read from cache
 	for _, paramName := range *paramNameList {
-		if value := getParamFromCache(paramName); value != "" {
-			(*params)[paramName] = value
+		if index, value := getParamFromCache(paramName); index >= 0 {
+			params.SetParam(value)
 		} else {
 			paramNotInCache = append(paramNotInCache, paramName)
 		}
 	}
+	result := new(bytes.Buffer)
 	if len(paramNotInCache) == 0 { // all request param exist in cache
-		result, err := json.Marshal(params)
-		if err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "get param, results to json error!")
+		if err := params.Serialize(result); err != nil {
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "get param, results seriealize error!")
 		}
-		return result, nil
+		return result.Bytes(), nil
 	}
 	// read from db
 	contract := native.ContextRef.CurrentContext().ContractAddress
@@ -188,21 +184,21 @@ func GetGlobalParam(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "get param, storage error!")
 	}
 	if len(*storageParams) == 0 {
-		return []byte{}, nil
+		return utils.BYTE_FALSE, errors.NewErr("get param, there are no params!")
 	}
 	setCache(storageParams)                     // set param to cache
 	for _, paramName := range paramNotInCache { // read param not in cache
-		if value, ok := (*storageParams)[paramName]; ok {
-			(*params)[paramName] = value
+		if index, value := storageParams.GetParam(paramName); index >= 0 {
+			params.SetParam(value)
 		} else {
 			return utils.BYTE_FALSE, errors.NewErr(fmt.Sprintf("get param, param %v doesn't exist!", paramName))
 		}
 	}
-	result, err := json.Marshal(params)
+	err = params.Serialize(result)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "get param, results to json error!")
 	}
-	return result, nil
+	return result.Bytes(), nil
 }
 
 func CreateSnapshot(native *native.NativeService) ([]byte, error) {
@@ -247,7 +243,7 @@ func getAdmin(native *native.NativeService, contract common.Address) {
 func clearCache() {
 	paramCache.lock.Lock()
 	defer paramCache.lock.Unlock()
-	paramCache.Params = make(map[string]string)
+	paramCache.Params = make([]*Param, 0)
 }
 
 func setCache(params *Params) {
@@ -256,8 +252,8 @@ func setCache(params *Params) {
 	paramCache.Params = *params
 }
 
-func getParamFromCache(key string) string {
+func getParamFromCache(key string) (int, *Param) {
 	paramCache.lock.RLock()
 	defer paramCache.lock.RUnlock()
-	return paramCache.Params[key]
+	return paramCache.Params.GetParam(key)
 }
