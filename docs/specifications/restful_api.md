@@ -25,6 +25,7 @@ Restful Api List
 | get_merkle_proof | GET /api/v1/merkleproof/:hash|
 | get_gasprice | GET /api/v1/gasprice|
 | get_allowance | GET /api/v1/allowance/:asset/:from/:to |
+| get_unclaimong | GET /api/v1/unclaimong/:addr |
 | post_raw_tx | post /api/v1/transaction?preExec=0 |
 
 
@@ -771,6 +772,29 @@ curl -i http://localhost:20334/api/v1/allowance/:asset/:from/:to
     "Desc": "SUCCESS",
     "Error": 0,
     "Result": "10",
+    "Version": "1.0.0"
+}
+```
+
+### 18 get_unclaimong
+
+Get unclaimong
+
+GET
+```
+/api/v1/unclaimong
+```
+#### Request Example:
+```
+curl -i http://localhost:20334/api/v1/unclaimong/:addr
+```
+#### Response
+```
+{
+    "Action": "getunclaimong",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": "204957950400000",
     "Version": "1.0.0"
 }
 ```
