@@ -90,13 +90,13 @@ When a user registers a ID, he must submit a public key as the initial key.
 Method: regIDWithPublicKey
 
 Arguments:
-    0    byte array    user ID
-    1    byte array    public key
+    0    String      user ID
+    1    ByteArray   public key
 
-Event: trigger 'Register' event when succeeds
+Event: triger 'Register' event when succeeds
 ```
  
-### b. Add a control key
+###  b. Add a control key
 
 The user adds a new public key to his public key list.
 
@@ -104,9 +104,9 @@ The user adds a new public key to his public key list.
 Method: addKey
 
 Arguments:
-    0    byte array    user ID
-    1    byte array    new public key to be added
-    2    byte array    user's public key or the recovery address
+    0    String       user ID
+    1    ByteArray    new public key to be added
+    2    ByteArray    user's public key or the recovery address
 
 Event: trigger 'PublicKey' event when succeeds
 ```
@@ -119,9 +119,9 @@ Remove a public key from the user's public key list.
 Method: removeKey
 
 Arguments:
-    0    byte array    user ID
-    1    byte array    public key to be removed
-    2    byte array    user's public key or the recovery address
+    0    String       user ID
+    1    ByteArray    public key to be removed
+    2    ByteArray    user's public key or the recovery address
 
 Event: trigger 'PublicKey' event when succeeds
 ```
@@ -134,14 +134,14 @@ Add or modify the recovery address.
 Method: addRecovery
 
 Arguments:
-    0    byte array    user ID
-    1    byte array    recovery address
-    2    byte array    user's public key
+    0    String       user ID
+    1    Address      recovery address
+    2    ByteArray    user's public key
 
 Event: trigger 'Recovery' event when succeeds
 ```
 
-This method succeeds if and only if the argument 2 is the user's existing public key,
+This method secceeds if and only if the argument 2 is the user's existing public key,
 and the recovery address has not been set.
 
 
@@ -149,9 +149,9 @@ and the recovery address has not been set.
 Method: changeRecovery
 
 Arguments:
-    0    byte array    user ID
-    1    byte array    new recovery address
-    2    byte array    original recovery address
+    0    String     user ID
+    1    Address    new recovery address
+    2    Address    original recovery address
 
 Event: trigger 'Recovery' event when succeeds
 ```
@@ -163,10 +163,10 @@ This contract call must be initiated by the original recovery address.
 An attribute consists of the following 3 parameters:
 
 ```
-attribute {
-    key     // byte array
-    type    // byte array
-    value   // byte array
+Attribute {
+    ByteArray path
+    ByteArray type
+    ByteArray value
 }
 ```
 
@@ -176,17 +176,10 @@ While register an ID, user can set attributes at the same time using method `reg
 Method: regIDWithAttributes
 
 Arguments:
-    0    byte array    user ID
-    1    byte array    user's public key
-    2    byte array    serialized attributes
-
-Event: trigger 'Register' event when succeeds
+    0    String             user ID
+    1    ByteArray          user's public key
+    2    Attribute Array    attributes
 ```
-
-The argument 2 is generated as follows:
-
-1. For each attribute, serialize the 3 parameters as the order.
-2. Join all the serialized attributes to a byte array.
 
 The addition, deletion, and modification of the user’s attributes must be authorized by the user.
 
@@ -194,14 +187,12 @@ The addition, deletion, and modification of the user’s attributes must be auth
 Method: addAttributes
 
 Arguments:
-    0    byte array    user ID
-    1    byte array    serialized attributes
-    2    byte array    user's public key
+    0    String             user ID
+    1    Attribute Array    attributes
+    2    ByteArray          user's public key
 
 Event: trigger 'Attribute' event when succeeds
 ```
-
-The argument 1 is the same as argument 2 of regIDWithAttributes.
 
 If an attribute does not exist, the attribute will be added. Otherwise the
 original attribute will be updated.
@@ -210,9 +201,9 @@ original attribute will be updated.
 Method: removeAttribute
 
 Arguments:
-    0    byte array    user ID
-    1    byte array    key of the attribute to be deleted
-    2    byte array    user's public key
+    0    String       user ID
+    1    ByteArray    path of the attribute to be deleted
+    2    ByteArray    user's public key
 
 Event: trigger 'Attribute' event when succeeds
 ```
@@ -220,31 +211,27 @@ Event: trigger 'Attribute' event when succeeds
 
 ### f. Query identity information
 
-Query methods should be called as pre-executions, which do not need to send
-transaction to the network and can get the results immediately from the local
-storage.
-
-#### Keys
+**Keys**
 
 ```
 Method: getPublicKeys
 
-Argument: byte array, which is user's ID
+Argument: String, which is user's ID
 
-Return: byte array
+Return: ByteArray
 ```
 
 Each public key contains following attributes:
 
 ```
 publicKey {
-    index   // 32 bits unsigned int
-    data    // byte array
+    Uint      index
+    ByteArray data
 }
 ```
 
 And the returned byte array consists of a sequence of serialized public keys,
-i.e. serialization of `publicKey array`.
+i.e. serialization of `publicKey[]`.
 
 The index is the number appears in the `PubKeyID` of DDO. It is generated
 automatically when registered or added, increasingly. Index of revoked key will
@@ -255,33 +242,33 @@ following method to get key state:
 Method: getKeyState
 
 Argument:
-    0    byte array  user's ID
-    1    uint32      key index
+    0    String  user's ID
+    1    Uint    key index
 
 Return: "in use" | "revoked" | "not exist"
 ```
 
-#### Attributes
+**Attributes**
 
 ```
 Method: getAttributes
 
-Argument: byte array, which is user's ID
+Argument: String, which is user's ID
 
-Return: byte array
+Return: ByteArray
 ```
 
 The returned byte array consists of a sequence of serialized attributes, whose 
 structure is defined as the above.
 
-#### DDO
+**DDO**
 
 ```
 Method: getDDO
 
-Argument: byte array, which is user's ID
+Argument: String, which is user's ID
 
-Return: byte array
+Return: ByteArray 
 ```
 
 The returned value contains the result of `GetPublicKeys` and `GetAttributes`,
@@ -289,12 +276,11 @@ as well as the recovery address:
 
 ```
 ddo {
-    byte[] keys         // serialization of publicKey[]
-    byte[] attributes   // serialization of attribute[]
-    byte[] recovery     // recovery address
+    ByteArray keys         // serialization of publicKey[]
+    ByteArray attributes   // serialization of attribute[]
+    ByteArray recovery     // recovery address
 }
 ```
-
 
 ## 2.2. Events
 

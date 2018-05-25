@@ -103,9 +103,18 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: argument 1 error, " + err.Error())
 	}
 	// arg2: attributes
-	arg2, err := serialization.ReadVarBytes(args)
-	if len(arg2) < 2 {
+	// first get number
+	num, err := serialization.ReadUint32(args)
+	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: argument 2 error, " + err.Error())
+	}
+	// next parse each attribute
+	var arg2 = make([]attribute, num)
+	for i := 0; i < int(num); i++ {
+		err = arg2[i].Deserialize(args)
+		if err != nil {
+			return utils.BYTE_FALSE, errors.New("register ID with attributes error: argument 2 error, " + err.Error())
+		}
 	}
 
 	key, err := encodeID(arg0)
@@ -130,7 +139,7 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: store pubic key error: " + err.Error())
 	}
 
-	_, err = batchInsertAttr(srvc, key, arg2)
+	err = batchInsertAttr(srvc, key, arg2)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: insert attribute error: " + err.Error())
 	}
@@ -347,9 +356,18 @@ func addAttributes(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, argument 0 error: %s", err)
 	}
 	// arg1: attributes
-	arg1, err := serialization.ReadVarBytes(args)
+	// first get number
+	num, err := serialization.ReadVarUint(args, 0xFFFFFFFF)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, argument 1 error: %s", err)
+	}
+	// next parse each attribute
+	var arg1 = make([]attribute, num)
+	for i := 0; i < int(num); i++ {
+		err = arg1[i].Deserialize(args)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, argument 1 error: %s", err)
+		}
 	}
 	// arg2: opperator's public key
 	arg2, err := serialization.ReadVarBytes(args)
@@ -372,11 +390,15 @@ func addAttributes(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, %s", err)
 	}
 
-	paths, err := batchInsertAttr(srvc, key, arg1)
+	err = batchInsertAttr(srvc, key, arg1)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, %s", err)
 	}
 
+	var paths = make([][]byte, num)
+	for i, v := range arg1 {
+		paths[i] = v.key
+	}
 	triggerAttributeEvent(srvc, "add", arg0, paths)
 	return utils.BYTE_TRUE, nil
 }

@@ -115,28 +115,17 @@ func findAttr(srvc *native.NativeService, encID, item []byte) (*utils.Linkedlist
 	return utils.LinkedlistGetItem(srvc, key, item)
 }
 
-func batchInsertAttr(srvc *native.NativeService, encID, data []byte) ([][]byte, error) {
-	// parse attributes
-	buf := bytes.NewBuffer(data)
-	attr := make([]*attribute, 0)
-	for buf.Len() > 0 {
-		t := new(attribute)
-		err := t.Deserialize(buf)
-		if err != nil {
-			return nil, errors.New("parse attribute error: " + err.Error())
-		}
-		attr = append(attr, t)
-	}
+func batchInsertAttr(srvc *native.NativeService, encID []byte, attr []attribute) error {
 	res := make([][]byte, len(attr))
 	for i, v := range attr {
-		err := insertOrUpdateAttr(srvc, encID, v)
+		err := insertOrUpdateAttr(srvc, encID, &v)
 		if err != nil {
-			return nil, errors.New("store attributes error: " + err.Error())
+			return errors.New("store attributes error: " + err.Error())
 		}
 		res[i] = v.key
 	}
 
-	return res, nil
+	return nil
 }
 
 func getAllAttr(srvc *native.NativeService, encID []byte) ([]byte, error) {
