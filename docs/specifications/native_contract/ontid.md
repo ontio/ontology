@@ -82,6 +82,8 @@ Every non-query methods will push an event message to notify the caller when it 
 
 **Note**: All the user's public key used as arguments of following methods should be the transaction constructor's public key, i.e. it can pass the transaction's signature verification. And the public key should be bound to the user's ID except for the register methods.
 
+**Note1**: Please refer to the [contract development specification](./development_specification_cn.md) for the argument serialization rules.
+
 ###  a. Identity registration
 
 When a user registers a ID, he must submit a public key as the initial key.
@@ -225,7 +227,7 @@ Each public key contains following attributes:
 
 ```
 publicKey {
-    Uint      index
+    Int      index
     ByteArray data
 }
 ```
@@ -243,7 +245,7 @@ Method: getKeyState
 
 Argument:
     0    String  user's ID
-    1    Uint    key index
+    1    Int    key index
 
 Return: "in use" | "revoked" | "not exist"
 ```
@@ -282,6 +284,21 @@ ddo {
 }
 ```
 
+### g. Verify signature
+
+```
+Method: verifySignature
+
+Argument:
+    0    String    user's ID
+    1    Int      key index
+
+Return: true | false
+```
+
+This method is mainly used by other contracts for authentication. It checks
+whether the contract is invoked by the specified key.
+
 ## 2.2. Events
 
 There are three kinds of event messages:
@@ -290,33 +307,33 @@ There are three kinds of event messages:
 
 	| Field | Type       | Description       |
 	| :---- | :--------- | :---------------- |
-	|  op   | string     | message type      |
-	|  ID   | byte array | registered ONT ID |
+	|  op   | String     | message type      |
+	|  ID   | ByteArray | registered ONT ID |
 
 - `PublicKey`: Push the messages related to public key operations.
 
 	| Field      | Type       | Description    |
 	| :--------- | :--------- | :--------------|
-	|  op        | string     | message type："add" or "remove" |
-	|  ID        | byte array | user's ONT ID    |
-	| key index  | uint32     | index of the key |
-	| public key | byte array | public key data  |
+	|  op        | String     | message type："add" or "remove" |
+	|  ID        | ByteArray  | user's ONT ID    |
+	| key index  | Int       | index of the key |
+	| public key | ByteArray  | public key data  |
 
 - `Attribute`: Push the messages related to attribute operations.
 
 	| Field    | Type       | Description    |
 	| :------- | :--------- | :------------- | 
-	| op       | string     | message type："add"、remove"  |
-	| ID       | byte array | user's ONT ID|
-	| attrName | byte array | attribute name |
+	| op       | String     | message type："add"、remove"  |
+	| ID       | ByteArray | user's ONT ID|
+	| attrName | ByteArray | attribute name |
 	
 - `Recovery`: Push the messages related to recovery operations.
 
 	| Field    | Type       | Description    |
 	| :------- | :--------- | :------------- | 
-	| op       | string     | message type："add"、"change" |
-	| ID       | byte array | user's ONT ID |
-	| address  | byte array | recovery address |
+	| op       | String     | message type："add"、"change" |
+	| ID       | ByteArray | user's ONT ID |
+	| address  | ByteArray | recovery address |
 
 ## Appendix
 
