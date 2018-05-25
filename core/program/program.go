@@ -21,6 +21,7 @@ package program
 import (
 	"bytes"
 	"errors"
+	"fmt"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common/serialization"
@@ -60,7 +61,7 @@ func (self *ProgramBuilder) PushData(data []byte) *ProgramBuilder {
 		self.buffer.WriteByte(byte(len(data)) + byte(neovm.PUSHBYTES1) - 1)
 	} else if len(data) < 0x100 {
 		self.buffer.WriteByte(byte(neovm.PUSHDATA1))
-		self.buffer.WriteByte(byte(len(data)))
+		serialization.WriteUint8(&self.buffer, uint8(len(data)))
 	} else if len(data) < 0x10000 {
 		self.buffer.WriteByte(byte(neovm.PUSHDATA2))
 		serialization.WriteUint16(&self.buffer, uint16(len(data)))
@@ -84,7 +85,7 @@ func ProgramFromPubKey(pubkey keypair.PublicKey) []byte {
 
 func ProgramFromMultiPubKey(pubkeys []keypair.PublicKey, m int) ([]byte, error) {
 	n := len(pubkeys)
-	if m <= 0 || m > n || n > 24 {
+	if !(1 <= m && m <= n && n <= 1024) {
 		return nil, errors.New("wrong multi-sig param")
 	}
 	builder := ProgramBuilder{}
@@ -96,4 +97,79 @@ func ProgramFromMultiPubKey(pubkeys []keypair.PublicKey, m int) ([]byte, error) 
 	builder.PushNum(uint8(len(pubkeys)))
 	builder.PushOpCode(neovm.CHECKMULTISIG)
 	return builder.Finish(), nil
+}
+
+type ProgramInfo struct {
+	PubKeys []keypair.PublicKey
+	M       uint8
+}
+
+type programParser struct {
+	buffer *bytes.Buffer
+}
+
+func (self *programParser) ReadOpCode() (neovm.OpCode, error) {
+	code, err := self.buffer.ReadByte()
+	return neovm.OpCode(code), err
+}
+
+func (self *programParser) ReadPubKey() (keypair.PublicKey, error) {
+	code, err := self.ReadOpCode()
+	if err != nil {
+		return nil, err
+	}
+
+	var keylen uint64
+	if code == neovm.PUSHDATA4 {
+		var temp uint32
+		temp, err = serialization.ReadUint32(self.buffer)
+		keylen = uint64(temp)
+	} else if code == neovm.PUSHDATA2 {
+		var temp uint16
+		temp, err = serialization.ReadUint16(self.buffer)
+		keylen = uint64(temp)
+	} else if code == neovm.PUSHDATA1 {
+		var temp uint8
+		temp, err = serialization.ReadUint8(self.buffer)
+		keylen = uint64(temp)
+	} else if byte(code) <= byte(neovm.PUSHBYTES75) && byte(code) >= byte(neovm.PUSHBYTES1) {
+		keylen = uint64(code) - uint64(neovm.PUSHBYTES1) - 1
+	} else {
+		return nil, fmt.Errorf("unexpected opcode: %d", byte(code))
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	buf, err := serialization.ReadBytes(self.buffer, keylen)
+	if err != nil {
+		return nil, err
+	}
+	pubkey, err := keypair.DeserializePublicKey(buf)
+
+	return pubkey, err
+}
+
+func GetProgramInfo(program []byte) (ProgramInfo, error) {
+	info := ProgramInfo{}
+
+	if len(program) <= 2 {
+		return info, errors.New("wrong program")
+	}
+
+	end := program[len(program)-1]
+	parser := programParser{buffer: bytes.NewBuffer(program)}
+	if end == byte(neovm.CHECKSIG) {
+		pubkey, err := parser.ReadPubKey()
+		if err != nil {
+			return info, err
+		}
+		info.PubKeys = append(info.PubKeys, pubkey)
+
+		return info, nil
+	} else if end == byte(neovm.CHECKMULTISIG) {
+		panic("unimplemented yet")
+	}
+
+	return ProgramInfo{}, errors.New("wrong program")
 }

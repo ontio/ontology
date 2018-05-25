@@ -43,7 +43,7 @@ func AddressFromPubKey(pubkey keypair.PublicKey) common.Address {
 func AddressFromMultiPubKeys(pubkeys []keypair.PublicKey, m int) (common.Address, error) {
 	var addr common.Address
 	n := len(pubkeys)
-	if m <= 0 || m > n || n > 24 {
+	if !(1 <= m && m <= n && n <= 1024) {
 		return addr, errors.New("wrong multi-sig param")
 	}
 
