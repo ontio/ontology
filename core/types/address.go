@@ -19,27 +19,23 @@
 package types
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"errors"
-	"sort"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/program"
 	"golang.org/x/crypto/ripemd160"
 )
 
 func AddressFromPubKey(pubkey keypair.PublicKey) common.Address {
-	buf := keypair.SerializePublicKey(pubkey)
+	program := program.ProgramFromPubKey(pubkey)
 
 	var addr common.Address
-	temp := sha256.Sum256(buf)
+	temp := sha256.Sum256(program)
 	md := ripemd160.New()
 	md.Write(temp[:])
 	md.Sum(addr[:0])
-
-	addr[0] = 0x01
 
 	return addr
 }
@@ -50,23 +46,16 @@ func AddressFromMultiPubKeys(pubkeys []keypair.PublicKey, m int) (common.Address
 	if m <= 0 || m > n || n > 24 {
 		return addr, errors.New("wrong multi-sig param")
 	}
-	list := keypair.NewPublicList(pubkeys)
-	sort.Sort(list)
-	var buf bytes.Buffer
-	serialization.WriteUint8(&buf, uint8(n))
-	serialization.WriteUint8(&buf, uint8(m))
-	for _, key := range list {
-		err := serialization.WriteVarBytes(&buf, key)
-		if err != nil {
-			return addr, err
-		}
+
+	program, err := program.ProgramFromMultiPubKey(pubkeys, m)
+	if err != nil {
+		return addr, err
 	}
 
-	temp := sha256.Sum256(buf.Bytes())
+	temp := sha256.Sum256(program)
 	md := ripemd160.New()
 	md.Write(temp[:])
 	md.Sum(addr[:0])
-	addr[0] = 0x02
 
 	return addr, nil
 }
