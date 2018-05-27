@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ontio/ontology/core/genesis"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -53,7 +53,7 @@ func TestParams_Serialize_Deserialize(t *testing.T) {
 
 func TestAdmin_Serialize_Deserialize(t *testing.T) {
 	admin := new(Admin)
-	copy((*admin)[:], genesis.ParamContractAddress[:])
+	copy((*admin)[:], utils.ParamContractAddress[:])
 	bf := new(bytes.Buffer)
 	if err := admin.Serialize(bf); err != nil {
 		t.Fatalf("admin serialize error: %v", err)
