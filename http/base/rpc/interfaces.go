@@ -285,6 +285,7 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 		if err := txn.Deserialize(bytes.NewReader(hex)); err != nil {
 			return responsePack(berr.INVALID_TRANSACTION, "")
 		}
+		log.Error("transaction types:", txn.TxType)
 		if txn.TxType == types.Invoke && len(params) > 1 {
 			preExec, ok := params[1].(float64)
 			if ok && preExec == 1 {

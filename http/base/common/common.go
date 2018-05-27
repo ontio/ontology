@@ -26,12 +26,12 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
 	bactor "github.com/ontio/ontology/http/base/actor"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	cstates "github.com/ontio/ontology/smartcontract/states"
 	vmtypes "github.com/ontio/ontology/smartcontract/types"
 	"math/big"
@@ -247,11 +247,11 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 }
 
 func GetBalance(address common.Address) (*BalanceOfRsp, error) {
-	ont, err := GetContractBalance(0, genesis.OntContractAddress, address)
+	ont, err := GetContractBalance(0, utils.OntContractAddress, address)
 	if err != nil {
 		return nil, fmt.Errorf("get ont balance error:%s", err)
 	}
-	ong, err := GetContractBalance(0, genesis.OngContractAddress, address)
+	ong, err := GetContractBalance(0, utils.OngContractAddress, address)
 	if err != nil {
 		return nil, fmt.Errorf("get ont balance error:%s", err)
 	}
@@ -265,9 +265,9 @@ func GetAllowance(asset string, from, to common.Address) (string, error) {
 	var contractAddr common.Address
 	switch strings.ToLower(asset) {
 	case "ont":
-		contractAddr = genesis.OntContractAddress
+		contractAddr = utils.OntContractAddress
 	case "ong":
-		contractAddr = genesis.OngContractAddress
+		contractAddr = utils.OngContractAddress
 	default:
 		return "", fmt.Errorf("unsupport asset")
 	}
