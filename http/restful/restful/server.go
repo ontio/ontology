@@ -67,6 +67,7 @@ const (
 	GET_MERKLE_PROOF      = "/api/v1/merkleproof/:hash"
 	GET_GAS_PRICE         = "/api/v1/gasprice"
 	GET_ALLOWANCE         = "/api/v1/allowance/:asset/:from/:to"
+	GET_UNCLAIMONG        = "/api/v1/unclaimong/:addr"
 
 	POST_RAW_TX = "/api/v1/transaction"
 )
@@ -135,6 +136,7 @@ func (this *restServer) registryMethod() {
 		GET_ALLOWANCE:         {name: "getallowance", handler: rest.GetAllowance},
 		GET_MERKLE_PROOF:      {name: "getmerkleproof", handler: rest.GetMerkleProof},
 		GET_GAS_PRICE:         {name: "getgasprice", handler: rest.GetGasPrice},
+		GET_UNCLAIMONG:        {name: "getgasprice", handler: rest.GetUnclaimOng},
 	}
 
 	postMethodMap := map[string]Action{
@@ -171,6 +173,8 @@ func (this *restServer) getPath(url string) string {
 		return GET_MERKLE_PROOF
 	} else if strings.Contains(url, strings.TrimRight(GET_ALLOWANCE, ":asset/:from/:to")) {
 		return GET_ALLOWANCE
+	} else if strings.Contains(url, strings.TrimRight(GET_UNCLAIMONG, ":addr")) {
+		return GET_UNCLAIMONG
 	}
 	return url
 }
@@ -208,6 +212,8 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 	case GET_ALLOWANCE:
 		req["Asset"] = getParam(r, "asset")
 		req["From"], req["To"] = getParam(r, "from"), getParam(r, "to")
+	case GET_UNCLAIMONG:
+		req["Addr"] = getParam(r, "addr")
 	default:
 	}
 	return req

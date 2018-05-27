@@ -23,6 +23,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
@@ -512,6 +513,26 @@ func GetAllowance(cmd map[string]interface{}) map[string]interface{} {
 	rsp, err := bcomn.GetAllowance(asset, fromAddr, toAddr)
 	if err != nil {
 		log.Errorf("GetAllowance %s from:%s to:%s error:%s", asset, fromAddrStr, toAddrStr, err)
+		return ResponsePack(berr.INTERNAL_ERROR)
+	}
+	resp["Result"] = rsp
+	return resp
+}
+
+func GetUnclaimOng(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(berr.SUCCESS)
+	toAddrStr, ok := cmd["Addr"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	toAddr, err := common.AddressFromBase58(toAddrStr)
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	fromAddr := genesis.OntContractAddress
+	rsp, err := bcomn.GetAllowance("ong", fromAddr, toAddr)
+	if err != nil {
+		log.Errorf("GetUnclaimOng %s error:%s", toAddr.ToBase58(), err)
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
 	resp["Result"] = rsp

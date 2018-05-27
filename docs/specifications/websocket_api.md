@@ -731,6 +731,28 @@ get allowance
 }
 ```
 
+### 22. Get unclaimong
+get unclaimong
+
+#### Request Example:
+```
+{
+    "Action": "getunclaimong",
+    "Addr": "ont",
+    "Version": "1.0.0"
+}
+```
+#### Response
+```
+{
+    "Action": "getunclaimong",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": "204957950400000",
+    "Version": "1.0.0"
+}
+```
+
 ## Error Code
 
 | Field | Type | Description |

@@ -26,6 +26,7 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
@@ -552,4 +553,25 @@ func GetGasPrice(params []interface{}) map[string]interface{} {
 		return responsePack(berr.INTERNAL_ERROR, "")
 	}
 	return responseSuccess(result)
+}
+
+func GetUnclaimOng(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	str, ok := params[0].(string)
+	if !ok {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	toAddr, err := common.AddressFromBase58(str)
+	if err != nil {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	fromAddr := genesis.OntContractAddress
+	rsp, err := bcomn.GetAllowance("ong", fromAddr, toAddr)
+	if err != nil {
+		log.Errorf("GetUnclaimOng %s error:%s", toAddr.ToBase58(), err)
+		return responsePack(berr.INTERNAL_ERROR, "")
+	}
+	return responseSuccess(rsp)
 }
