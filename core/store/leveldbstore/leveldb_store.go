@@ -67,10 +67,16 @@ func (self *LevelDBStore) Put(key []byte, value []byte) error {
 	return self.db.Put(key, value, nil)
 }
 
-//Get the value of a key from leveldb
+//Get the value of a key from leveldb, if cannot find key, return nil, and wont return ErrNotFound.
 func (self *LevelDBStore) Get(key []byte) ([]byte, error) {
 	dat, err := self.db.Get(key, nil)
-	return dat, err
+	if err != nil {
+		if err == leveldb.ErrNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return dat, nil
 }
 
 //Has return whether the key is exist in leveldb
