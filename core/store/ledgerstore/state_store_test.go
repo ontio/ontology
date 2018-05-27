@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
@@ -37,7 +38,7 @@ func TestContractState(t *testing.T) {
 	}
 	testCode := []byte("testcode")
 
-	vmCode := &vmtypes.VmCode{
+	vmCode := vmtypes.VmCode{
 		VmType: vmtypes.NEOVM,
 		Code:   testCode,
 	}
@@ -58,8 +59,7 @@ func TestContractState(t *testing.T) {
 	err = batch.TryGetOrAdd(
 		scommon.ST_CONTRACT,
 		codeHash[:],
-		deploy,
-		false)
+		deploy)
 	if err != nil {
 		t.Errorf("TryGetOrAdd contract error %s", err)
 		return
@@ -96,21 +96,22 @@ func TestBookkeeperState(t *testing.T) {
 		t.Errorf("NewStateBatch error %s", err)
 		return
 	}
+	acc1 := account.NewAccount("")
+	acc2 := account.NewAccount("")
 
-	_, pubKey1, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
-	_, pubKey2, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
 	currBookkeepers := make([]keypair.PublicKey, 0)
-	currBookkeepers = append(currBookkeepers, &pubKey1)
-	currBookkeepers = append(currBookkeepers, &pubKey2)
+	currBookkeepers = append(currBookkeepers, acc1.PublicKey)
+	currBookkeepers = append(currBookkeepers, acc2.PublicKey)
 	nextBookkeepers := make([]keypair.PublicKey, 0)
-	nextBookkeepers = append(nextBookkeepers, &pubKey1)
-	nextBookkeepers = append(nextBookkeepers, &pubKey2)
+	nextBookkeepers = append(nextBookkeepers, acc1.PublicKey)
+	nextBookkeepers = append(nextBookkeepers, acc2.PublicKey)
 
 	bookkeeperState := &states.BookkeeperState{
 		CurrBookkeeper: currBookkeepers,
 		NextBookkeeper: nextBookkeepers,
 	}
-	batch.TryAdd(scommon.ST_BOOKKEEPER, BookerKeeper, bookkeeperState, false)
+
+	batch.TryAdd(scommon.ST_BOOKKEEPER, BOOKKEEPER, bookkeeperState)
 	err = batch.CommitTo()
 	if err != nil {
 		t.Errorf("batch.CommitTo error %s", err)
