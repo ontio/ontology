@@ -78,6 +78,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.ConfigFlag,
 			utils.LogLevelFlag,
 			utils.DisableEventLogFlag,
+			utils.DataDirFlag,
 		},
 	},
 	{

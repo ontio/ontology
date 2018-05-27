@@ -96,6 +96,7 @@ func setCommonConfig(ctx *cli.Context, cfg *config.CommonConfig) {
 	cfg.EnableEventLog = !ctx.GlobalBool(utils.GetFlagName(utils.DisableEventLogFlag))
 	cfg.GasLimit = ctx.GlobalUint64(utils.GetFlagName(utils.GasLimitFlag))
 	cfg.GasPrice = ctx.GlobalUint64(utils.GetFlagName(utils.GasPriceFlag))
+	cfg.DataDir = ctx.GlobalString(utils.GetFlagName(utils.DataDirFlag))
 }
 
 func setConsensusConfig(ctx *cli.Context, cfg *config.ConsensusConfig) {

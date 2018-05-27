@@ -44,6 +44,7 @@ import (
 	sstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vmtype "github.com/ontio/ontology/smartcontract/types"
+	"os"
 )
 
 const (
@@ -53,10 +54,10 @@ const (
 
 var (
 	//Storage save path.
-	DBDirEvent          = "Chain/ledgerevent"
-	DBDirBlock          = "Chain/block"
-	DBDirState          = "Chain/states"
-	MerkleTreeStorePath = "Chain/merkle_tree.db"
+	DBDirEvent          = "ledgerevent"
+	DBDirBlock          = "block"
+	DBDirState          = "states"
+	MerkleTreeStorePath = "merkle_tree.db"
 )
 
 //LedgerStoreImp is main store struct fo ledger
@@ -74,25 +75,26 @@ type LedgerStoreImp struct {
 }
 
 //NewLedgerStore return LedgerStoreImp instance
-func NewLedgerStore() (*LedgerStoreImp, error) {
+func NewLedgerStore(dataDir string) (*LedgerStoreImp, error) {
 	ledgerStore := &LedgerStoreImp{
 		headerIndex: make(map[uint32]common.Uint256),
 		headerCache: make(map[common.Uint256]*types.Header, 0),
 	}
 
-	blockStore, err := NewBlockStore(DBDirBlock, true)
+	blockStore, err := NewBlockStore(fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirBlock), true)
 	if err != nil {
 		return nil, fmt.Errorf("NewBlockStore error %s", err)
 	}
 	ledgerStore.blockStore = blockStore
 
-	stateStore, err := NewStateStore(DBDirState, MerkleTreeStorePath)
+	stateStore, err := NewStateStore(fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirState),
+		fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), MerkleTreeStorePath))
 	if err != nil {
 		return nil, fmt.Errorf("NewStateStore error %s", err)
 	}
 	ledgerStore.stateStore = stateStore
 
-	eventState, err := NewEventStore(DBDirEvent)
+	eventState, err := NewEventStore(fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirEvent))
 	if err != nil {
 		return nil, fmt.Errorf("NewEventStore error %s", err)
 	}

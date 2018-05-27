@@ -20,9 +20,9 @@ package ledger
 
 import (
 	"fmt"
-
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/payload"
@@ -41,7 +41,7 @@ type Ledger struct {
 }
 
 func NewLedger() (*Ledger, error) {
-	ldgStore, err := ledgerstore.NewLedgerStore()
+	ldgStore, err := ledgerstore.NewLedgerStore(config.DefConfig.Common.DataDir)
 	if err != nil {
 		return nil, fmt.Errorf("NewLedgerStore error %s", err)
 	}
