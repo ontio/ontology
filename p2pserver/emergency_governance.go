@@ -21,25 +21,24 @@ package p2pserver
 import (
 	"bytes"
 	"fmt"
+	"time"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
-	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
-	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/types"
 	actor "github.com/ontio/ontology/p2pserver/actor/req"
 	msgCom "github.com/ontio/ontology/p2pserver/common"
 	mt "github.com/ontio/ontology/p2pserver/message/types"
-	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
 )
 
 const (
 	MSG_CACHE = 1000
+	TIME_OUT  = 60
 )
 
 type emergencyGov struct {
@@ -49,6 +48,7 @@ type emergencyGov struct {
 	server         *P2PServer //Pointer to the local node
 	blkSyncCh      chan struct{}
 	stopCh         chan struct{}
+	timerEvt       chan struct{}
 }
 
 // NewEmergencyGov returns a new instance of emergency governance
@@ -68,6 +68,7 @@ func (this *emergencyGov) init() {
 	this.blkSyncCh = make(chan struct{}, 1)
 	this.context.reset()
 	this.stopCh = make(chan struct{})
+	this.timerEvt = make(chan struct{}, 1)
 }
 
 // Start starts an emergency governance loop
@@ -81,6 +82,8 @@ func (this *emergencyGov) Start() {
 			}
 		case <-this.stopCh:
 			return
+		case <-this.timerEvt:
+			this.context.reset()
 		}
 	}
 }
@@ -159,7 +162,6 @@ func (this *emergencyGov) EmergencyActionResponseReceived(msg *mt.EmergencyActio
 // checkSignatures checks whether the signatures reaches the threshold 2/3
 func (this *emergencyGov) checkSignatures() {
 	if this.context.getSignatureCount() >= this.context.threshold() {
-		// Todo: commit block
 		block := this.context.getEmergencyBlock()
 		if block == nil {
 			return
@@ -170,13 +172,22 @@ func (this *emergencyGov) checkSignatures() {
 			block.Header.Bookkeepers = append(block.Header.Bookkeepers, pubkey)
 			block.Header.SigData = append(block.Header.SigData, sig)
 		}
-		err := ledger.DefLedger.AddBlock(block)
+
+		contained, err := ledger.DefLedger.IsContainBlock(block.Hash())
 		if err != nil {
+			log.Errorf("checkSignatures: hash %x, error %v", block.Hash(), err)
 			return
 		}
-		this.context.setStatus(EmergencyGovComplete)
 
-		this.server.Xmit(block.Hash())
+		if !contained {
+			err := ledger.DefLedger.AddBlock(block)
+			if err != nil {
+				return
+			}
+			this.server.Xmit(block.Hash())
+		}
+
+		this.context.setStatus(EmergencyGovComplete)
 
 		// notify consensus and block sync mgr to recover
 		cmd := &msgCom.EmergencyGovCmd{
@@ -185,6 +196,11 @@ func (this *emergencyGov) checkSignatures() {
 		}
 		actor.NotifyEmergencyGovCmd(cmd)
 		this.server.notifyEmergencyGovCmd(cmd)
+
+		if !this.context.timer.Stop() {
+			<-this.context.timer.C
+		}
+		this.context.done <- struct{}{}
 	}
 }
 
@@ -212,8 +228,6 @@ func (this *emergencyGov) checkBlock(block *types.Block) bool {
 	}
 
 	if curHeight < block.Header.Height-1 {
-		// Todo: notify block mgr to sync block
-		// channel event between emergency governance and block sync
 		log.Tracef("Waiting for block sync mgr to sync block till emergency goverance height, curHeight %d",
 			block.Header.Height, curHeight)
 		<-this.blkSyncCh
@@ -312,7 +326,9 @@ func (this *emergencyGov) EmergencyActionRequestReceived(msg *mt.EmergencyAction
 		return fmt.Errorf("EmergencyActionRequestReceived: checkSignature failed")
 	}
 
-	peers, err := this.getPeers()
+	// Todo: 4. Validate admin pubkey
+
+	peers, err := getPeers()
 	if err != nil {
 		return fmt.Errorf("EmergencyActionRequestReceived: failed to get peers. %v", err)
 	}
@@ -343,6 +359,9 @@ func (this *emergencyGov) EmergencyActionRequestReceived(msg *mt.EmergencyAction
 
 	this.validatePendingRspMsg()
 
+	this.context.timer = time.NewTimer(TIME_OUT * time.Second)
+	go this.emergencyTimer()
+
 	return nil
 }
 
@@ -363,61 +382,6 @@ func (this *emergencyGov) constructEmergencyActionResponse(block *types.Block) (
 	hash := rsp.Hash()
 	rsp.RspSig, _ = signature.Sign(this.account, hash[:])
 	return rsp, nil
-}
-
-// getGovernanceView returns current governance view
-func (this *emergencyGov) getGovernanceView() (*gov.GovernanceView, error) {
-	storageKey := &states.StorageKey{
-		CodeHash: genesis.GovernanceContractAddress,
-		Key:      append([]byte(gov.GOVERNANCE_VIEW)),
-	}
-	data, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
-	if err != nil {
-		return nil, err
-	}
-	governanceView := new(gov.GovernanceView)
-	err = governanceView.Deserialize(bytes.NewBuffer(data))
-	if err != nil {
-		return nil, err
-	}
-	return governanceView, nil
-}
-
-// getPeers returns the emergency governance peers
-func (this *emergencyGov) getPeers() ([]*EmergencyGovPeer, error) {
-	goveranceview, err := this.getGovernanceView()
-	if err != nil {
-		return nil, err
-	}
-	storageKey := &states.StorageKey{
-		CodeHash: genesis.GovernanceContractAddress,
-		Key:      append([]byte(gov.PEER_POOL), goveranceview.View.Bytes()...),
-	}
-	data, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
-	if err != nil {
-		return nil, err
-	}
-	peerMap := &gov.PeerPoolMap{
-		PeerPoolMap: make(map[string]*gov.PeerPoolItem),
-	}
-	err = peerMap.Deserialize(bytes.NewBuffer(data))
-	if err != nil {
-		return nil, err
-	}
-
-	peers := make([]*EmergencyGovPeer, 0, len(peerMap.PeerPoolMap))
-
-	for _, id := range peerMap.PeerPoolMap {
-		if id.Status == gov.ConsensusStatus || id.Status == gov.CandidateStatus {
-			peer := &EmergencyGovPeer{
-				PubKey: id.PeerPubkey,
-				Status: id.Status,
-			}
-			peers = append(peers, peer)
-		}
-	}
-
-	return peers, nil
 }
 
 // startEmergencyGov starts an new emergency governance introduced by admin
@@ -446,6 +410,8 @@ func (this *emergencyGov) startEmergencyGov(msg *mt.EmergencyActionRequest) {
 		return
 	}
 
+	// Todo: 4. Validate admin pubkey
+
 	// notify consensus and block sync mgr to pause
 	cmd := &msgCom.EmergencyGovCmd{
 		Pause:  true,
@@ -459,7 +425,7 @@ func (this *emergencyGov) startEmergencyGov(msg *mt.EmergencyActionRequest) {
 	this.context.setStatus(EmergencyGovStart)
 	this.context.setEmergencyReqCache(msg)
 
-	peers, _ := this.getPeers()
+	peers, _ := getPeers()
 	this.context.setPeers(peers)
 
 	sig := this.signBlock(msg.ProposalBlk)
@@ -473,4 +439,17 @@ func (this *emergencyGov) startEmergencyGov(msg *mt.EmergencyActionRequest) {
 	msg.ReqPK = pubkey
 
 	this.server.Xmit(msg)
+	this.context.timer = time.NewTimer(TIME_OUT * time.Second)
+	go this.emergencyTimer()
+}
+
+func (this *emergencyGov) emergencyTimer() {
+	select {
+	case <-this.context.timer.C:
+		log.Error("emergencyTimer: emergency governance timeout")
+		this.timerEvt <- struct{}{}
+		return
+	case <-this.context.done:
+		return
+	}
 }

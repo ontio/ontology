@@ -501,9 +501,17 @@ func (this *BlockSyncMgr) saveBlock() {
 	nextBlockHeight := curBlockHeight + 1
 	this.lock.Lock()
 	for height := range this.blocksCache {
-		if height <= curBlockHeight ||
-			(this.pauseSync == true && height > this.emergencyGovHeight) {
+		if height <= curBlockHeight {
+
 			delete(this.blocksCache, height)
+		}
+
+		if this.pauseSync == true && height == this.emergencyGovHeight {
+			peers, _ := getPeers()
+			blk := this.blocksCache[height]
+			if len(blk.Header.Bookkeepers) < (len(peers) - (len(peers)-1)/3) {
+				delete(this.blocksCache, height)
+			}
 		}
 	}
 	this.lock.Unlock()

@@ -19,6 +19,8 @@
 package p2pserver
 
 import (
+	"time"
+
 	"github.com/ontio/ontology/common"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/types"
@@ -46,6 +48,8 @@ type emergencyGovContext struct {
 	Signatures        map[vconfig.NodeID][]byte
 	Status            EmergencyGovStatus
 	peers             map[vconfig.NodeID]*EmergencyGovPeer
+	timer             *time.Timer
+	done              chan struct{}
 }
 
 func (this *emergencyGovContext) reset() {
@@ -54,6 +58,7 @@ func (this *emergencyGovContext) reset() {
 	this.Signatures = make(map[vconfig.NodeID][]byte, 0)
 	this.Status = EmergencyGovInit
 	this.peers = make(map[vconfig.NodeID]*EmergencyGovPeer, 0)
+	this.done = make(chan struct{}, 1)
 }
 
 func (this *emergencyGovContext) setStatus(status EmergencyGovStatus) {
