@@ -24,8 +24,11 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/vm/neovm"
+	"math/big"
+	"sort"
 )
 
 type ProgramBuilder struct {
@@ -42,14 +45,15 @@ func (self *ProgramBuilder) PushPubKey(pubkey keypair.PublicKey) *ProgramBuilder
 	return self.PushData(buf)
 }
 
-func (self *ProgramBuilder) PushNum(num uint8) *ProgramBuilder {
+func (self *ProgramBuilder) PushNum(num uint16) *ProgramBuilder {
 	if num == 0 {
 		return self.PushOpCode(neovm.PUSH0)
 	} else if num <= 16 {
-		return self.PushOpCode(neovm.OpCode(num - 1 + byte(neovm.PUSH1)))
+		return self.PushOpCode(neovm.OpCode(uint8(num) - 1 + uint8(neovm.PUSH1)))
 	}
 
-	return self.PushData([]byte{num})
+	bint := big.NewInt(int64(num))
+	return self.PushData(common.BigIntToNeoBytes(bint))
 }
 
 func (self *ProgramBuilder) PushData(data []byte) *ProgramBuilder {
@@ -88,13 +92,17 @@ func ProgramFromMultiPubKey(pubkeys []keypair.PublicKey, m int) ([]byte, error) 
 	if !(1 <= m && m <= n && n <= 1024) {
 		return nil, errors.New("wrong multi-sig param")
 	}
+
+	list := keypair.NewPublicList(pubkeys)
+	sort.Sort(list)
+
 	builder := ProgramBuilder{}
-	builder.PushNum(uint8(m))
-	for _, pubkey := range pubkeys {
-		builder.PushPubKey(pubkey)
+	builder.PushNum(uint16(m))
+	for _, pubkey := range list {
+		builder.PushData(pubkey)
 	}
 
-	builder.PushNum(uint8(len(pubkeys)))
+	builder.PushNum(uint16(len(pubkeys)))
 	builder.PushOpCode(neovm.CHECKMULTISIG)
 	return builder.Finish(), nil
 }

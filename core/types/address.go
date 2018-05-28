@@ -29,10 +29,10 @@ import (
 )
 
 func AddressFromPubKey(pubkey keypair.PublicKey) common.Address {
-	program := program.ProgramFromPubKey(pubkey)
+	prog := program.ProgramFromPubKey(pubkey)
 
 	var addr common.Address
-	temp := sha256.Sum256(program)
+	temp := sha256.Sum256(prog)
 	md := ripemd160.New()
 	md.Write(temp[:])
 	md.Sum(addr[:0])
@@ -47,12 +47,12 @@ func AddressFromMultiPubKeys(pubkeys []keypair.PublicKey, m int) (common.Address
 		return addr, errors.New("wrong multi-sig param")
 	}
 
-	program, err := program.ProgramFromMultiPubKey(pubkeys, m)
+	prog, err := program.ProgramFromMultiPubKey(pubkeys, m)
 	if err != nil {
 		return addr, err
 	}
 
-	temp := sha256.Sum256(program)
+	temp := sha256.Sum256(prog)
 	md := ripemd160.New()
 	md.Write(temp[:])
 	md.Sum(addr[:0])

@@ -23,6 +23,7 @@ import (
 	"encoding/binary"
 	"math/big"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/vm/neovm/errors"
 	"github.com/ontio/ontology/vm/neovm/types"
 )
@@ -278,8 +279,8 @@ func validateMul(e *ExecutionEngine) error {
 	}
 	x2 := PeekBigInteger(e)
 	x1 := PeekNBigInt(1, e)
-	lx2 := len(types.ConvertBigIntegerToBytes(x2))
-	lx1 := len(types.ConvertBigIntegerToBytes(x1))
+	lx2 := len(common.BigIntToNeoBytes(x2))
+	lx1 := len(common.BigIntToNeoBytes(x1))
 	if lx2 > MAX_SIZE_FOR_BIGINTEGER || lx1 > MAX_SIZE_FOR_BIGINTEGER || (lx1+lx2) > MAX_SIZE_FOR_BIGINTEGER {
 		return errors.ERR_OVER_MAX_BIGINTEGER_SIZE
 	}
@@ -456,7 +457,7 @@ func CheckBigInteger(value *big.Int) bool {
 	if value == nil {
 		return false
 	}
-	if len(types.ConvertBigIntegerToBytes(value)) > MAX_SIZE_FOR_BIGINTEGER {
+	if len(common.BigIntToNeoBytes(value)) > MAX_SIZE_FOR_BIGINTEGER {
 		return false
 	}
 	return true
