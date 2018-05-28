@@ -19,10 +19,10 @@
 package common
 
 import (
-	"errors"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/event"
+	"errors"
 )
 
 var ErrNotFound = errors.New("not found")

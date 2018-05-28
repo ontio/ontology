@@ -80,6 +80,7 @@ func setupAPP() *cli.App {
 		utils.LogLevelFlag,
 		utils.DisableEventLogFlag,
 		utils.DataDirFlag,
+		utils.DatabaseFlag,
 		utils.ImportEnableFlag,
 		utils.ImportHeightFlag,
 		utils.ImportFileFlag,
@@ -230,7 +231,7 @@ func initLedger(ctx *cli.Context) (*ledger.Ledger, error) {
 	events.Init() //Init event hub
 
 	var err error
-	ledger.DefLedger, err = ledger.NewLedger(config.DefConfig.Common.DataDir)
+	ledger.DefLedger, err = ledger.NewLedger(config.DefConfig.Common.DataDir, config.DefConfig.Common.Database)
 	if err != nil {
 		return nil, fmt.Errorf("NewLedger error:%s", err)
 	}
