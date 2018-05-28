@@ -30,6 +30,7 @@ import (
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	mt "github.com/ontio/ontology/p2pserver/message/types"
 	"strconv"
+	"github.com/ontio/ontology/common/config"
 )
 
 type DHT struct {
@@ -48,13 +49,13 @@ type DHT struct {
 	seeds         []*types.Node
 }
 
-func NewDHT(node *types.Node, seeds []*types.Node) *DHT {
+func NewDHT(node types.NodeID, seeds []*types.Node) *DHT {
 	// Todo:
 	dht := &DHT{
-		nodeID:       node.ID,
-		addr:         node.IP,
-		udpPort:      node.UDPPort,
-		tcpPort:      node.TCPPort,
+		nodeID:       node,
+		addr:         "127.0.0.1",
+		udpPort:      config.Parameters.DHTUDPPort,
+		tcpPort:      config.Parameters.NodePort,
 		routingTable: &routingTable{},
 		seeds:        make([]*types.Node, 0, len(seeds)),
 	}

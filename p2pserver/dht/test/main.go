@@ -54,16 +54,16 @@ func main() {
 
 	//start common node
 	nodeID, _ := types.PubkeyID(acct.PublicKey)
-	commonNode := &types.Node{
-		ID:      nodeID,
-		IP:      "127.0.0.1",
-		UDPPort: 10010,
-		TCPPort: 10011,
-	}
-	testDht := dht.NewDHT(commonNode, seeds)
+	//commonNode := &types.Node{
+	//	ID:      nodeID,
+	//	IP:      "127.0.0.1",
+	//	UDPPort: 10010,
+	//	TCPPort: 10011,
+	//}
+	testDht := dht.NewDHT(nodeID, seeds)
 	testDht.Start()
-	stopCh := make(chan int)
-	<-stopCh
+	//stopCh := make(chan int)
+	//<-stopCh
 }
 
 func startSeedNode(seedIndex int, seeds []*types.Node) {
@@ -71,7 +71,7 @@ func startSeedNode(seedIndex int, seeds []*types.Node) {
 	seedNode := seeds[seedIndex]
 	copy(otherSeeds[:seedIndex], seeds[:seedIndex])
 	copy(otherSeeds[seedIndex:], seeds[seedIndex+1:])
-	seedDht := dht.NewDHT(seedNode, otherSeeds)
+	seedDht := dht.NewDHT(seedNode.ID, otherSeeds)
 	go seedDht.Start()
 	fmt.Println("node ", seedNode.ID, "start")
 }
