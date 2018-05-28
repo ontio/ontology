@@ -25,6 +25,7 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology-crypto/keypair"
+	com "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/states"
@@ -261,8 +262,9 @@ func addRecovery(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add recovery failed: argument 0 error")
 	}
+	var arg1 com.Address
 	// arg1: recovery address
-	arg1, err := serialization.ReadVarBytes(args)
+	err = arg1.Deserialize(args)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add recovery failed: argument 1 error")
 	}
@@ -311,12 +313,14 @@ func changeRecovery(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: argument 0 error")
 	}
 	// arg1: new recovery address
-	arg1, err := serialization.ReadVarBytes(args)
+	var arg1 com.Address
+	err = arg1.Deserialize(args)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: argument 1 error")
 	}
 	// arg2: operator's address, who should be the old recovery
-	arg2, err := serialization.ReadVarBytes(args)
+	var arg2 com.Address
+	err = arg2.Deserialize(args)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: argument 2 error")
 	}
@@ -329,10 +333,10 @@ func changeRecovery(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: recovery not set")
 	}
-	if !bytes.Equal(re, arg2) {
+	if !bytes.Equal(re, arg2[:]) {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: operator is not the recovery")
 	}
-	err = checkWitness(srvc, arg2)
+	err = checkWitness(srvc, arg2[:])
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: " + err.Error())
 	}
