@@ -16,31 +16,30 @@
     ],
     "DHTSeeds": [
       {
-        "pubKey":"12020384d843c02ecef233d3dd3bc266ee0d1a67cf2a1666dc1b2fb455223efdee7452",
-        "IP": "127.0.0.1:20010",
+        "PubKey":"120203cef6833ae387ea89d2911bcbf2a1508cffb5b048edb115206a3d24a5c00fe21f",
+        "IP": "127.0.0.1",
         "UDPPort": 20010,
         "TCPPort": 20011
       },
       {
-        "pubKey":"120203fab19438e18d8a5bebb6cd3ede7650539e024d7cc45c88b95ab13f8266ce9570",
-        "IP": "127.0.0.1:30010",
+        "PubKey":"120202a2a14d18525729fd2a3105b09d4fa6eaf3db101e4829a0fd4f6b2949613bbd40",
+        "IP": "127.0.0.1",
         "UDPPort": 30010,
         "TCPPort": 30011
       },
       {
-        "pubKey":"120203c43f136596ee666416fedb90cde1e0aee59a79ec18ab70e82b73dd297767eddf",
-        "IP": "127.0.0.1:40010",
+        "PubKey":"12020269767ff4a5e8f01e615b16526a4615440c549ad44bcd21eccaa172aa1d211d7e",
+        "IP": "127.0.0.1",
         "UDPPort": 40010,
         "TCPPort": 40011
       },
       {
-        "pubKey":"120202a76a434b18379e3bda651b7c04e972dadc4760d1156b5c86b3c4d27da48c91a1",
-        "IP": "127.0.0.1:50010",
+        "PubKey":"120202fabdf17557e77082be2be61f90527e23187605cd8774d487da4e6bef97943d0d",
+        "IP": "127.0.0.1",
         "UDPPort": 50010,
         "TCPPort": 50011
       }
     ],
-    "SeedDHT"
     "HttpRestPort": 20334,
     "HttpWsPort":20335,
     "HttpJsonPort": 20336,
@@ -53,6 +52,6 @@
     "IsTLS": false,
     "MaxTransactionInBlock": 60000,
     "ConsensusType":"dbft",
-    "MultiCoreNum": 4,
+    "MultiCoreNum": 4
   }
 }

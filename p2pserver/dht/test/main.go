@@ -1,8 +1,12 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
+
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/dht"
 	"github.com/ontio/ontology/p2pserver/dht/types"
@@ -11,55 +15,38 @@ import (
 
 func main() {
 	log.Init(log.PATH, log.Stdout)
-	//stopCh := make(chan bool)
+	var acct *account.Account
 
-	_, pub, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
-	nodeID, _ := types.PubkeyID(pub)
+	log.Info("0. Open the account")
+	client := account.Open("", []byte("passwordtest"))
+	if client == nil {
+		log.Fatal("Can't get local account.")
+		return
+	}
+	acct = client.GetDefaultAccount()
+	if acct == nil {
+		log.Fatal("can not get default account")
+		return
+	}
+	log.Debug("The Node's PublicKey ", acct.PublicKey)
+	nodeID, _ := types.PubkeyID(acct.PublicKey)
 
-	seeds := make([]*types.Node, 0)
-	/*	_, pub1, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
-		nodeID1, _ := types.PubkeyID(pub1)
-		fmt.Println("nodeID1 ", nodeID1)
-		seed1 := &types.Node{
-			ID:      nodeID1,
-			IP:      "127.0.0.1",
-			UDPPort: 20010,
-			TCPPort: 20011,
+	seeds := make([]*types.Node, 0, len(config.Parameters.DHTSeeds))
+	for i := 0; i < len(config.Parameters.DHTSeeds); i++ {
+		node := config.Parameters.DHTSeeds[i]
+		pubKey, err := hex.DecodeString(node.PubKey)
+		k, err := keypair.DeserializePublicKey(pubKey)
+		if err != nil {
+			return
 		}
-		seeds = append(seeds, seed1)
-
-		_, pub2, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
-		nodeID2, _ := types.PubkeyID(pub2)
-		fmt.Println("nodeID2 ", nodeID2)
-		seed2 := &types.Node{
-			ID:      nodeID2,
-			IP:      "127.0.0.1",
-			UDPPort: 30010,
-			TCPPort: 30011,
+		seed := &types.Node{
+			IP:      node.IP,
+			UDPPort: node.UDPPort,
+			TCPPort: node.TCPPort,
 		}
-		seeds = append(seeds, seed2)
-
-		_, pub3, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
-		nodeID3, _ := types.PubkeyID(pub3)
-		fmt.Println("nodeID3 ", nodeID3)
-		seed3 := &types.Node{
-			ID:      nodeID3,
-			IP:      "127.0.0.1",
-			UDPPort: 40010,
-			TCPPort: 40011,
-		}
-		seeds = append(seeds, seed3)
-
-		_, pub4, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
-		nodeID4, _ := types.PubkeyID(pub4)
-		fmt.Println("nodeID4 ", nodeID4)
-		seed4 := &types.Node{
-			ID:      nodeID4,
-			IP:      "127.0.0.1",
-			UDPPort: 50010,
-			TCPPort: 50011,
-		}*/
-	seeds = append(seeds, seed4)
+		seed.ID, _ = types.PubkeyID(k)
+		seeds = append(seeds, seed)
+	}
 
 	testDht := dht.NewDHT(nodeID, seeds)
 	testDht.Start()

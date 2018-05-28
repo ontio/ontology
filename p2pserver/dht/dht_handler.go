@@ -18,9 +18,10 @@ func (this *DHT) NeighborsHandler(from *net.UDPAddr, neighborsMsgData []byte) {
 	neighborsMsg.Deserialization(neighborsMsgData)
 	neighbors := neighborsMsg.P.Nodes
 	results := make([]*types.Node, 0, len(neighbors))
-	for _, neighbor := range neighbors {
-		results = append(results, &neighbor)
+	for i := 0; i < len(neighbors); i++ {
+		results = append(results, &neighbors[i])
 	}
+
 	this.findNodeQueue.SetResult(results, neighborsMsg.P.FromID)
 	this.updateFromNode(neighborsMsg.P.FromID)
 }

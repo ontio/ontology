@@ -71,43 +71,8 @@ func (this *routingTable) queryNode(id types.NodeID) *types.Node {
 	return nil
 }
 
-<<<<<<< HEAD
 // add node to bucket, if bucket contains the node, move it to bucket head
 func (this *routingTable) AddNode(node *types.Node, bucketIndex int) bool {
-=======
-func (this *routingTable) AddNodeInBucket(node *types.Node, index int) bool {
-	this.mu.Lock()
-	defer this.mu.Unlock()
-
-	if index >= types.BUCKET_NUM || index < 0 {
-		return false
-	}
-
-	bucket := this.buckets[index]
-	for i, entry := range bucket.entries {
-		if entry.ID == node.ID {
-			copy(bucket.entries[1:], bucket.entries[:i])
-			bucket.entries[0] = node
-			return true
-		}
-	}
-
-	// Todo: if the bucket is full, use LRU to replace
-	if len(bucket.entries) >= types.BUCKET_SIZE {
-		// bucket is full
-		return false
-	}
-
-	bucket.entries = append(bucket.entries, node)
-
-	copy(bucket.entries[1:], bucket.entries[:])
-	bucket.entries[0] = node
-	fmt.Println("After: ", bucket.entries)
-	return true
-}
-
-func (this *routingTable) AddNode(node *types.Node) bool {
->>>>>>> Fix serialize issue and add dht configure parameter
 	this.mu.Lock()
 	defer this.mu.Unlock()
 

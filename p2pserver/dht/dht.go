@@ -91,6 +91,9 @@ func (this *DHT) Bootstrap() {
 	// Todo:
 	fmt.Println("add seed to the bucket")
 	for _, seed := range this.seeds {
+		if seed.ID == this.nodeID {
+			continue
+		}
 		this.AddNode(seed)
 	}
 	fmt.Println("start lookup")
@@ -163,7 +166,7 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 				for _, n := range entries {
 					log.Info("receive new node", n)
 					// Todo:
-					if knownNode[n.ID] == true {
+					if knownNode[n.ID] == true || n.ID == this.nodeID {
 						continue
 					}
 					knownNode[n.ID] = true
@@ -430,8 +433,7 @@ func (this *DHT) DisplayRoutingTable() {
 		}
 		fmt.Print("[", bucketIndex, "]: ")
 		for i := 0; i < this.routingTable.GetTotalNodeNumInBukcet(bucketIndex); i++ {
-			fmt.Print(bucket.entries[i].ID[:10], " ")
+			fmt.Printf("%x \n", bucket.entries[i].ID[:10])
 		}
-		fmt.Println()
 	}
 }
