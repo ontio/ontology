@@ -58,6 +58,12 @@ const (
 	ReBroadcast
 )
 
+const (
+	CAP_MESSAGE_CHANNEL  = 64
+	CAP_ACTION_CHANNEL   = 8
+	CAP_MSG_SEND_CHANNEL = 16
+)
+
 type BftAction struct {
 	Type     BftActionType
 	BlockNum uint32
@@ -237,8 +243,6 @@ func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 }
 
 func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
-	self.metaLock.Lock()
-	defer self.metaLock.Unlock()
 	//get chainconfig from genesis block
 
 	block, err := chainStore.GetBlock(chainStore.GetChainedBlockNum())
@@ -261,7 +265,12 @@ func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
 		}
 		cfg = *cfgBlock.getNewChainConfig()
 	}
+	self.metaLock.Lock()
 	self.config = &cfg
+	self.metaLock.Unlock()
+
+	self.metaLock.RLock()
+	defer self.metaLock.RUnlock()
 
 	if self.config.View == 0 || self.config.MaxBlockChangeView == 0 {
 		panic("invalid view or maxblockchangeview ")
@@ -322,8 +331,6 @@ func (self *Server) nonConsensusNode() bool {
 
 //updateChainCofig
 func (self *Server) updateChainConfig() error {
-	self.metaLock.Lock()
-	defer self.metaLock.Unlock()
 
 	block, err := self.chainStore.GetBlock(self.completedBlockNum)
 	if err != nil {
@@ -332,7 +339,13 @@ func (self *Server) updateChainConfig() error {
 	if block.Info.NewChainConfig == nil {
 		return fmt.Errorf("GetNewChainConfig failed")
 	}
+	self.metaLock.Lock()
 	self.config = block.Info.NewChainConfig
+	self.metaLock.Unlock()
+
+	self.metaLock.RLock()
+	defer self.metaLock.RUnlock()
+
 	// TODO
 	// 1. update peer pool
 	// 2. remove nonparticipation consensus node
@@ -406,9 +419,10 @@ func (self *Server) initialize() error {
 	self.syncer = newSyncer(self)
 
 	self.msgRecvC = make(map[uint32]chan *p2pMsgPayload)
-	self.msgC = make(chan ConsensusMsg, 64)
-	self.bftActionC = make(chan *BftAction, 8)
-	self.msgSendC = make(chan *SendMsgEvent, 16)
+	self.msgC = make(chan ConsensusMsg, CAP_MESSAGE_CHANNEL)
+	self.bftActionC = make(chan *BftAction, CAP_ACTION_CHANNEL)
+	self.msgSendC = make(chan *SendMsgEvent, CAP_MSG_SEND_CHANNEL)
+
 	self.quitC = make(chan struct{})
 	if err := self.LoadChainConfig(store); err != nil {
 		log.Errorf("failed to load config: %s", err)
@@ -1030,7 +1044,6 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 
 func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	msgBlkNum := msg.GetBlockNum()
-
 	blk, _ := self.blockPool.getSealedBlock(msg.GetBlockNum() - 1)
 	if blk == nil {
 		log.Errorf("BlockProposal failed to GetPreBlock:%d", (msg.GetBlockNum() - 1))
@@ -1042,7 +1055,6 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		log.Errorf("BlockPrposalMessage check  blocknum:%d,prevBlockTimestamp:%d,currentBlockTimestamp:%d", msg.GetBlockNum(), prevBlockTimestamp, currentBlockTimestamp)
 		return
 	}
-
 	txs := msg.Block.Block.Transactions
 	if len(txs) > 0 {
 		height := uint32(msgBlkNum) - 1
@@ -2123,6 +2135,15 @@ func (self *Server) makeSealed(proposal *blockProposalMsg, forEmpty bool) error 
 }
 
 func (self *Server) makeFastForward() error {
+	if len(self.bftActionC)+3 >= cap(self.bftActionC) {
+		// FIXME:
+		// some cases, such as burst of heartbeat msg, may do too much fast forward.
+		// make bftActionC full, and bftActionLoop halted.
+		// TODO: add throttling in state-mgmt
+		return fmt.Errorf("server %d make fastforward skipped, %d vs %d",
+			self.Index, len(self.bftActionC), cap(self.bftActionC))
+	}
+
 	self.bftActionC <- &BftAction{
 		Type:     FastForward,
 		BlockNum: self.GetCurrentBlockNo(),
@@ -2131,6 +2152,15 @@ func (self *Server) makeFastForward() error {
 }
 
 func (self *Server) reBroadcastCurrentRoundMsgs() error {
+	if len(self.bftActionC)+3 >= cap(self.bftActionC) {
+		// FIXME:
+		// some cases, such as burst of heartbeat msg, may do too much rebroadcast.
+		// make bftActionC full, and bftActionLoop halted.
+		// TODO: add throttling in state-mgmt
+		return fmt.Errorf("server %d make rebroadcasting skipped, %d vs %d",
+			self.Index, len(self.bftActionC), cap(self.bftActionC))
+	}
+
 	self.bftActionC <- &BftAction{
 		Type:     ReBroadcast,
 		BlockNum: self.GetCurrentBlockNo(),
