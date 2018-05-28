@@ -103,15 +103,15 @@ func ParseNativeParamArray(param interface{}, arrayAbi *abi.NativeContractParamA
 			SubType: arrayAbi.SubType[0].SubType,
 		})
 	}
-	data,err := ParseNativeParam(params, abis)
+	data, err := ParseNativeParam(params, abis)
 	if err != nil {
-		return nil, fmt.Errorf("parse array error:%s",err)
+		return nil, fmt.Errorf("parse array error:%s", err)
 	}
 	buf := bytes.NewBuffer(nil)
 	serialization.WriteVarUint(buf, uint64(len(params)))
 	_, err = buf.Write(data)
 	if err != nil {
-		return nil,fmt.Errorf("parse array error:%s",err)
+		return nil, fmt.Errorf("parse array error:%s", err)
 	}
 	return buf.Bytes(), nil
 }
