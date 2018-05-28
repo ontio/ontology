@@ -1030,6 +1030,19 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 
 func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	msgBlkNum := msg.GetBlockNum()
+
+	blk, _ := self.blockPool.getSealedBlock(msg.GetBlockNum() - 1)
+	if blk == nil {
+		log.Errorf("BlockProposal failed to GetPreBlock:%d", (msg.GetBlockNum() - 1))
+		return
+	}
+	prevBlockTimestamp := blk.Block.Header.Timestamp
+	currentBlockTimestamp := msg.Block.Block.Header.Timestamp
+	if currentBlockTimestamp <= prevBlockTimestamp || currentBlockTimestamp > uint32(time.Now().Add(time.Minute*10).Unix()) {
+		log.Errorf("BlockPrposalMessage check  blocknum:%d,prevBlockTimestamp:%d,currentBlockTimestamp:%d", msg.GetBlockNum(), prevBlockTimestamp, currentBlockTimestamp)
+		return
+	}
+
 	txs := msg.Block.Block.Transactions
 	if len(txs) > 0 {
 		height := uint32(msgBlkNum) - 1
