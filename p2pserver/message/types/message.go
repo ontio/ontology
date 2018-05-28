@@ -23,6 +23,8 @@ import (
 	"crypto/sha256"
 	"errors"
 
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 )
 
@@ -56,7 +58,8 @@ func MsgType(buf []byte) (string, error) {
 
 //check netmagic value
 func magicVerify(magic uint32) bool {
-	if magic != common.NETMAGIC {
+	if magic != uint32(config.DefConfig.P2PNode.NetworkId) {
+		log.Warnf("unmatched magic number 0x%0x", magic)
 		return false
 	}
 	return true
@@ -66,7 +69,6 @@ func magicVerify(magic uint32) bool {
 func ValidMsgHdr(buf []byte) bool {
 	var h MsgHdr
 	h.Deserialization(buf)
-	//TODO: verify hdr checksum
 	return magicVerify(h.Magic)
 }
 
