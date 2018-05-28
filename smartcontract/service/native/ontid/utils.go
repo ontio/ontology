@@ -22,7 +22,7 @@ import (
 	"errors"
 
 	"github.com/ontio/ontology-crypto/keypair"
-	cmn "github.com/ontio/ontology/common"
+	com "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
@@ -58,7 +58,6 @@ func encodeID(id []byte) ([]byte, error) {
 	}
 	enc := []byte{byte(length)}
 	enc = append(enc, id...)
-	enc = append(utils.OntIDContractAddress[:], enc...)
 	return enc, nil
 }
 
@@ -69,9 +68,9 @@ func decodeID(data []byte) ([]byte, error) {
 	return data[1:], nil
 }
 
-func setRecovery(srvc *native.NativeService, encID, recovery []byte) error {
+func setRecovery(srvc *native.NativeService, encID []byte, recovery com.Address) error {
 	key := append(encID, FIELD_RECOVERY)
-	val := &states.StorageItem{Value: recovery}
+	val := &states.StorageItem{Value: recovery[:]}
 	srvc.CloneCache.Add(common.ST_STORAGE, key, val)
 	return nil
 }
@@ -98,7 +97,7 @@ func checkWitness(srvc *native.NativeService, key []byte) error {
 	}
 
 	// try as if key is an address
-	addr, err := cmn.AddressParseFromBytes(key)
+	addr, err := com.AddressParseFromBytes(key)
 	if srvc.ContextRef.CheckWitness(addr) {
 		return nil
 	}

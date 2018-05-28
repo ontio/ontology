@@ -25,6 +25,7 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology-crypto/keypair"
+	com "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/states"
@@ -103,9 +104,18 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: argument 1 error, " + err.Error())
 	}
 	// arg2: attributes
-	arg2, err := serialization.ReadVarBytes(args)
-	if len(arg2) < 2 {
-		return utils.BYTE_FALSE, fmt.Errorf("register ID with attributes error: argument 2 error, ", err)
+	// first get number
+	num, err := serialization.ReadVarUint(args, 0xFFFFFFFF)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("register ID with attributes error: argument 2 error, " + err.Error())
+	}
+	// next parse each attribute
+	var arg2 = make([]attribute, num)
+	for i := 0; i < int(num); i++ {
+		err = arg2[i].Deserialize(args)
+		if err != nil {
+			return utils.BYTE_FALSE, errors.New("register ID with attributes error: argument 2 error, " + err.Error())
+		}
 	}
 
 	key, err := encodeID(arg0)
@@ -130,7 +140,7 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: store pubic key error: " + err.Error())
 	}
 
-	_, err = batchInsertAttr(srvc, key, arg2)
+	err = batchInsertAttr(srvc, key, arg2)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: insert attribute error: " + err.Error())
 	}
@@ -252,8 +262,9 @@ func addRecovery(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add recovery failed: argument 0 error")
 	}
+	var arg1 com.Address
 	// arg1: recovery address
-	arg1, err := serialization.ReadVarBytes(args)
+	err = arg1.Deserialize(args)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add recovery failed: argument 1 error")
 	}
@@ -302,12 +313,14 @@ func changeRecovery(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: argument 0 error")
 	}
 	// arg1: new recovery address
-	arg1, err := serialization.ReadVarBytes(args)
+	var arg1 com.Address
+	err = arg1.Deserialize(args)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: argument 1 error")
 	}
 	// arg2: operator's address, who should be the old recovery
-	arg2, err := serialization.ReadVarBytes(args)
+	var arg2 com.Address
+	err = arg2.Deserialize(args)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: argument 2 error")
 	}
@@ -320,10 +333,10 @@ func changeRecovery(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: recovery not set")
 	}
-	if !bytes.Equal(re, arg2) {
+	if !bytes.Equal(re, arg2[:]) {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: operator is not the recovery")
 	}
-	err = checkWitness(srvc, arg2)
+	err = checkWitness(srvc, arg2[:])
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: " + err.Error())
 	}
@@ -347,9 +360,18 @@ func addAttributes(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, argument 0 error: %s", err)
 	}
 	// arg1: attributes
-	arg1, err := serialization.ReadVarBytes(args)
+	// first get number
+	num, err := serialization.ReadVarUint(args, 0xFFFFFFFF)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, argument 1 error: %s", err)
+	}
+	// next parse each attribute
+	var arg1 = make([]attribute, num)
+	for i := 0; i < int(num); i++ {
+		err = arg1[i].Deserialize(args)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, argument 1 error: %s", err)
+		}
 	}
 	// arg2: opperator's public key
 	arg2, err := serialization.ReadVarBytes(args)
@@ -372,11 +394,15 @@ func addAttributes(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, %s", err)
 	}
 
-	paths, err := batchInsertAttr(srvc, key, arg1)
+	err = batchInsertAttr(srvc, key, arg1)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, %s", err)
 	}
 
+	var paths = make([][]byte, num)
+	for i, v := range arg1 {
+		paths[i] = v.key
+	}
 	triggerAttributeEvent(srvc, "add", arg0, paths)
 	return utils.BYTE_TRUE, nil
 }
@@ -451,6 +477,8 @@ func verifySignature(srvc *native.NativeService) ([]byte, error) {
 	node, err := utils.LinkedlistGetItem(srvc, key1, buf[:])
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("verify signature error: get key failed, " + err.Error())
+	} else if node == nil {
+		return utils.BYTE_FALSE, errors.New("verify signature error: public key not found")
 	}
 
 	err = checkWitness(srvc, node.GetPayload())
