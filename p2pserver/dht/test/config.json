@@ -14,6 +14,33 @@
 	  "120203c43f136596ee666416fedb90cde1e0aee59a79ec18ab70e82b73dd297767eddf",
 	  "120202a76a434b18379e3bda651b7c04e972dadc4760d1156b5c86b3c4d27da48c91a1"
     ],
+    "DHTSeeds": [
+      {
+        "pubKey":"12020384d843c02ecef233d3dd3bc266ee0d1a67cf2a1666dc1b2fb455223efdee7452",
+        "IP": "127.0.0.1:20010",
+        "UDPPort": 20010,
+        "TCPPort": 20011
+      },
+      {
+        "pubKey":"120203fab19438e18d8a5bebb6cd3ede7650539e024d7cc45c88b95ab13f8266ce9570",
+        "IP": "127.0.0.1:30010",
+        "UDPPort": 30010,
+        "TCPPort": 30011
+      },
+      {
+        "pubKey":"120203c43f136596ee666416fedb90cde1e0aee59a79ec18ab70e82b73dd297767eddf",
+        "IP": "127.0.0.1:40010",
+        "UDPPort": 40010,
+        "TCPPort": 40011
+      },
+      {
+        "pubKey":"120202a76a434b18379e3bda651b7c04e972dadc4760d1156b5c86b3c4d27da48c91a1",
+        "IP": "127.0.0.1:50010",
+        "UDPPort": 50010,
+        "TCPPort": 50011
+      }
+    ],
+    "SeedDHT"
     "HttpRestPort": 20334,
     "HttpWsPort":20335,
     "HttpJsonPort": 20336,
@@ -21,10 +48,11 @@
     "NodePort": 20338,
     "NodeConsensusPort": 20389,
     "DualPortSurpport":true,
+    "DHTUDPPort": 20390,
     "PrintLevel": 1,
     "IsTLS": false,
     "MaxTransactionInBlock": 60000,
     "ConsensusType":"dbft",
-    "MultiCoreNum": 4
+    "MultiCoreNum": 4,
   }
 }

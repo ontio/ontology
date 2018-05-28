@@ -19,12 +19,12 @@
 package dht
 
 import (
-	//"fmt"
 	"errors"
+	"fmt"
 	"net"
 	"sync"
 
-	"fmt"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/dht/types"
@@ -72,7 +72,9 @@ func (this *DHT) init() {
 func (this *DHT) Start() {
 	go this.Loop()
 
-	err := this.ListenUDP("127.0.0.1:20334")
+	port := config.Parameters.DHTUDPPort
+	laddr := fmt.Sprintf("127.0.0.1:%d", port)
+	err := this.ListenUDP(laddr)
 	if err != nil {
 		log.Errorf("listen udp failed.")
 	}
@@ -80,15 +82,18 @@ func (this *DHT) Start() {
 }
 
 func (this *DHT) Stop() {
-
+	if this.stopCh != nil {
+		this.stopCh <- struct{}{}
+	}
 }
 
 func (this *DHT) Bootstrap() {
 	// Todo:
+	fmt.Println("add seed to the bucket")
 	for _, seed := range this.seeds {
 		this.AddNode(seed)
 	}
-
+	fmt.Println("start lookup")
 	this.lookup(this.nodeID)
 }
 
@@ -103,7 +108,6 @@ func (this *DHT) Loop() {
 			return
 		}
 	}
-
 }
 
 func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
@@ -141,8 +145,8 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 			visited[node.ID] = true
 			pendingQueries++
 			go func() {
-				this.FindNode(node, targetID)
 				this.findNodeQueue.AddRequestNode(node)
+				this.FindNode(node, targetID)
 				this.findNodeQueue.Timer(node.ID)
 			}()
 		}
@@ -150,11 +154,12 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 		if pendingQueries == 0 {
 			break
 		}
-
+		log.Info("Waiting for response")
 		responseCh := this.findNodeQueue.GetResultCh()
 		select {
 		case entries, ok := <-responseCh:
 			if ok {
+				log.Infof("get entries %d %v", len(entries), entries)
 				for _, n := range entries {
 					log.Info("receive new node", n)
 					// Todo:
@@ -162,6 +167,7 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 						continue
 					}
 					knownNode[n.ID] = true
+					this.AddNode(n)
 
 					if len(closestNodes) < types.BUCKET_SIZE {
 						closestNodes = append(closestNodes, n)
@@ -324,7 +330,9 @@ func (this *DHT) FindNodeReply(addr *net.UDPAddr, targetId types.NodeID) error {
 	nodes := this.routingTable.GetClosestNodes(types.BUCKET_SIZE, targetId)
 	neighborsPayload := mt.NeighborsPayload{
 		FromID: this.nodeID,
+		Nodes:  make([]types.Node, 0, len(nodes)),
 	}
+	log.Infof("ReturenNeighbors: nodes %d", len(nodes))
 	for _, node := range nodes {
 		neighborsPayload.Nodes = append(neighborsPayload.Nodes, *node)
 	}
@@ -333,6 +341,7 @@ func (this *DHT) FindNodeReply(addr *net.UDPAddr, targetId types.NodeID) error {
 		log.Error("failed to new dht neighbors packet", err)
 		return err
 	}
+	log.Infof("ReturnNeightbors: local id %s", this.nodeID.String())
 	this.send(addr, neighborsPacket)
 	return nil
 }
@@ -345,7 +354,7 @@ func (this *DHT) processPacket(from *net.UDPAddr, packet []byte) {
 		return
 	}
 
-	log.Infof("Recv UDP msg %s", msgType)
+	log.Infof("Recv UDP msg %s %v", msgType, from)
 	switch msgType {
 	case "DHTPing":
 		this.PingHandler(from, packet)
@@ -389,7 +398,7 @@ func (this *DHT) ListenUDP(laddr string) error {
 		log.Error("failed to listen udp on", addr, "error: ", err)
 		return err
 	}
-
+	fmt.Println("DHT is listening on ", laddr)
 	go this.recvUDPMsg()
 	return nil
 }

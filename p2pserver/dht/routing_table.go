@@ -19,11 +19,11 @@
 package dht
 
 import (
-	"crypto/sha256"
-	//"fmt"
+	//"crypto/sha256"
+	"fmt"
 	"sync"
 
-	"github.com/ontio/ontology/common"
+	//"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/p2pserver/dht/types"
 )
 
@@ -49,9 +49,10 @@ func (this *routingTable) init(id types.NodeID) {
 }
 
 func (this *routingTable) locateBucket(id types.NodeID) (int, *bucket) {
-	id1 := sha256.Sum256(this.id[:])
-	id2 := sha256.Sum256(id[:])
-	dist := logdist(id1, id2)
+	//id1 := sha256.Sum256(this.id[:])
+	//id2 := sha256.Sum256(id[:])
+	dist := logdist(this.id, id)
+	fmt.Printf("local id:%s, target id:%s, dist:%d\n", this.id.String(), id.String(), dist)
 	if dist == 0 {
 		return 0, this.buckets[0]
 	}
@@ -70,8 +71,43 @@ func (this *routingTable) queryNode(id types.NodeID) *types.Node {
 	return nil
 }
 
+<<<<<<< HEAD
 // add node to bucket, if bucket contains the node, move it to bucket head
 func (this *routingTable) AddNode(node *types.Node, bucketIndex int) bool {
+=======
+func (this *routingTable) AddNodeInBucket(node *types.Node, index int) bool {
+	this.mu.Lock()
+	defer this.mu.Unlock()
+
+	if index >= types.BUCKET_NUM || index < 0 {
+		return false
+	}
+
+	bucket := this.buckets[index]
+	for i, entry := range bucket.entries {
+		if entry.ID == node.ID {
+			copy(bucket.entries[1:], bucket.entries[:i])
+			bucket.entries[0] = node
+			return true
+		}
+	}
+
+	// Todo: if the bucket is full, use LRU to replace
+	if len(bucket.entries) >= types.BUCKET_SIZE {
+		// bucket is full
+		return false
+	}
+
+	bucket.entries = append(bucket.entries, node)
+
+	copy(bucket.entries[1:], bucket.entries[:])
+	bucket.entries[0] = node
+	fmt.Println("After: ", bucket.entries)
+	return true
+}
+
+func (this *routingTable) AddNode(node *types.Node) bool {
+>>>>>>> Fix serialize issue and add dht configure parameter
 	this.mu.Lock()
 	defer this.mu.Unlock()
 
@@ -166,9 +202,9 @@ func (this *routingTable) GetLastNodeInBucket(bucket int) *types.Node {
 }
 
 func (this *routingTable) GetDistance(id1, id2 types.NodeID) int {
-	sha1 := sha256.Sum256(id1[:])
-	sha2 := sha256.Sum256(id2[:])
-	dist := logdist(sha1, sha2)
+	//sha1 := sha256.Sum256(id1[:])
+	//sha2 := sha256.Sum256(id2[:])
+	dist := logdist(id1, id2)
 	return dist
 }
 
@@ -236,7 +272,7 @@ var lzcount = [256]int{
 }
 
 // logdist returns the logarithmic distance between a and b, log2(a ^ b).
-func logdist(a, b common.Uint256) int {
+func logdist(a, b types.NodeID) int {
 	lz := 0
 	for i := range a {
 		x := a[i] ^ b[i]

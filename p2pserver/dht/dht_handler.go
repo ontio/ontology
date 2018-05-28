@@ -14,10 +14,10 @@ func (this *DHT) FindNodeHandler(from *net.UDPAddr, findNodeMsgData []byte) erro
 }
 
 func (this *DHT) NeighborsHandler(from *net.UDPAddr, neighborsMsgData []byte) {
-	neighborsMsg := new(mt.Neighbors)
+	neighborsMsg := &mt.Neighbors{}
 	neighborsMsg.Deserialization(neighborsMsgData)
 	neighbors := neighborsMsg.P.Nodes
-	results := make([]*types.Node, 0)
+	results := make([]*types.Node, 0, len(neighbors))
 	for _, neighbor := range neighbors {
 		results = append(results, &neighbor)
 	}

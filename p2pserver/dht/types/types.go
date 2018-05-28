@@ -19,18 +19,18 @@
 package types
 
 import (
-	"github.com/ontio/ontology/common"
+	//"github.com/ontio/ontology/common"
 	"net"
 	"time"
 )
 
 const (
-	BUCKET_NUM        = 256
+	BUCKET_NUM        = NODE_ID_BITS
 	BUCKET_SIZE       = 8
 	FACTOR            = 3
 	MSG_CACHE         = 10240
 	PING_TIMEOUT      = 10 * time.Second
-	FIND_NODE_TIMEOUT = 20 * time.Second
+	FIND_NODE_TIMEOUT = 60 * time.Second
 )
 
 type ptype uint8
@@ -48,9 +48,8 @@ type DHTMessage struct {
 }
 
 type Node struct {
-	ID      NodeID
-	Hash    common.Uint256
-	IP      string
-	UDPPort uint16
-	TCPPort uint16
+	ID      NodeID `json:"node_id"`
+	IP      string `json:"IP"`
+	UDPPort uint16 `json:UDPPort`
+	TCPPort uint16 `json:TCPPort`
 }
