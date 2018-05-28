@@ -147,12 +147,16 @@ func ParseNativeParamUint256(param string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("hex.DecodeString error:%s", err)
 	}
-	buf := bytes.NewBuffer(nil)
-	err = serialization.WriteVarBytes(buf, data)
+	uint256, err := common.Uint256ParseFromBytes(data)
 	if err != nil {
-		return nil, fmt.Errorf("write bytes error:%s", err)
+		return nil, fmt.Errorf("Uint256ParseFromBytes error:%s", err)
 	}
-	return buf.Bytes(), err
+	buf := bytes.NewBuffer(nil)
+	err = uint256.Serialize(buf)
+	if err != nil {
+		return nil, fmt.Errorf("uint256 serialize error:%s", err)
+	}
+	return buf.Bytes(), nil
 }
 
 func ParseNativeParamString(param string) ([]byte, error) {

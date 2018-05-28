@@ -182,11 +182,6 @@ func TestParseNativeParamUint256(t *testing.T) {
 		t.Errorf("TestParseNativeParamUint256 error:%s", err)
 		return
 	}
-	data, err = serialization.ReadVarBytes(bytes.NewReader(data))
-	if err != nil {
-		t.Errorf("TestParseNativeParamUint256 error:%s", err)
-		return
-	}
 	u := &common.Uint256{}
 	err = u.Deserialize(bytes.NewReader(data))
 	if err != nil {
