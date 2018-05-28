@@ -19,8 +19,7 @@
 package dht
 
 import (
-	//"crypto/sha256"
-	"fmt"
+
 	"sync"
 
 	//"github.com/ontio/ontology/common"
@@ -52,7 +51,7 @@ func (this *routingTable) locateBucket(id types.NodeID) (int, *bucket) {
 	//id1 := sha256.Sum256(this.id[:])
 	//id2 := sha256.Sum256(id[:])
 	dist := logdist(this.id, id)
-	fmt.Printf("local id:%s, target id:%s, dist:%d\n", this.id.String(), id.String(), dist)
+	//fmt.Printf("local id:%s, target id:%s, dist:%d\n", this.id.String(), id.String(), dist)
 	if dist == 0 {
 		return 0, this.buckets[0]
 	}

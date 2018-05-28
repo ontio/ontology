@@ -10,7 +10,8 @@ type PingNodeQueue struct {
 	deleteNodeListener chan NodeID
 	requestNodeQueue   map[NodeID]*Node
 	pendingNodeQueue   map[NodeID]*Node // used to record the node corresponded to request node
-	onTimeOut          func(id NodeID)  // time out event should be handled by dht
+	requestTimerQueue  map[NodeID]*time.Timer
+	onTimeOut          func(id NodeID) // time out event should be handled by dht
 }
 
 func NewPingNodeQueue(onTimeOut func(id NodeID)) *PingNodeQueue {
@@ -34,16 +35,20 @@ func (this *PingNodeQueue) start() {
 	}
 }
 
-func (this *PingNodeQueue) AddNode(requestNode, pendingNode *Node, timeout time.Duration) {
+func (this *PingNodeQueue) AddNode(requestNode, pendingNode *Node) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
 	this.requestNodeQueue[requestNode.ID] = requestNode
 	this.pendingNodeQueue[requestNode.ID] = pendingNode
-	go func(queue *PingNodeQueue) {
-		<-time.After(timeout)
-		queue.deleteNodeListener <- requestNode.ID
-	}(this)
+	// start timer
+	timer := time.AfterFunc(PING_TIMEOUT, func() {
+		this.deleteNodeListener <- requestNode.ID
+	})
+	this.requestTimerQueue[requestNode.ID] = timer
+	go func() {
+		<-timer.C
+	}()
 }
 
 func (this *PingNodeQueue) DeleteNode(node NodeID) {
@@ -52,6 +57,9 @@ func (this *PingNodeQueue) DeleteNode(node NodeID) {
 
 	delete(this.requestNodeQueue, node)
 	delete(this.pendingNodeQueue, node)
+	timer := this.requestTimerQueue[node]
+	timer.Stop()
+	delete(this.requestTimerQueue, node)
 }
 
 func (this *PingNodeQueue) GetRequestNode(node NodeID) (*Node, bool) {

@@ -7,11 +7,11 @@ import (
 )
 
 type FindNodeQueue struct {
-	lock             sync.Mutex
-	resultChan       chan []*Node
-	requestNodeQueue map[NodeID]*Node
-	timeoutListener  chan NodeID
-	onTimeOutEvent   func(requestNodeId NodeID)
+	lock              sync.Mutex
+	resultChan        chan []*Node
+	requestTimerQueue map[NodeID]*time.Timer
+	timeoutListener   chan NodeID
+	onTimeOutEvent    func(requestNodeId NodeID)
 }
 
 func NewFindNodeQueue(onTimeOutEvent func(requestNodeId NodeID)) *FindNodeQueue {
@@ -19,7 +19,7 @@ func NewFindNodeQueue(onTimeOutEvent func(requestNodeId NodeID)) *FindNodeQueue 
 	queue.resultChan = make(chan []*Node, 4)
 	queue.timeoutListener = make(chan NodeID)
 	queue.onTimeOutEvent = onTimeOutEvent
-	queue.requestNodeQueue = make(map[NodeID]*Node, 0)
+	queue.requestTimerQueue = make(map[NodeID]*time.Timer, 0)
 	// TODO should be invoked in dht.loop
 	go queue.start()
 	return queue
@@ -42,19 +42,28 @@ func (this *FindNodeQueue) SetResult(results []*Node, resultsFromNode NodeID) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-	if _, ok := this.requestNodeQueue[resultsFromNode]; ok {
-		delete(this.requestNodeQueue, resultsFromNode)
+	fmt.Println("SetResult: receive neighbors , ", len(results), "from ", resultsFromNode.String())
+
+	if _, ok := this.requestTimerQueue[resultsFromNode]; ok {
+		fmt.Println("SetResult: receive neighbors from ", resultsFromNode.String())
+		timer := this.requestTimerQueue[resultsFromNode]
+		timer.Stop()
+		delete(this.requestTimerQueue, resultsFromNode)
 		this.resultChan <- results
 	}
 }
 
-func (this *FindNodeQueue) Timer(requestNodeId NodeID) {
-	<-time.After(FIND_NODE_TIMEOUT)
-	this.timeoutListener <- requestNodeId
-}
-
-func (this *FindNodeQueue) AddRequestNode(requestNode *Node) {
+func (this *FindNodeQueue) StartRequestTimer(requestNode *Node) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	this.requestNodeQueue[requestNode.ID] = requestNode
+	fmt.Println("StartRequestTimer: ", requestNode.ID.String())
+	// start a timer
+	timer := time.AfterFunc(FIND_NODE_TIMEOUT, func() {
+		fmt.Println("timeout: ", requestNode.ID.String())
+		this.timeoutListener <- requestNode.ID
+	})
+	this.requestTimerQueue[requestNode.ID] = timer
+	go func() {
+		<-timer.C
+	}()
 }
