@@ -315,9 +315,7 @@ func (this *ClientImpl) getAccount(accData *AccountData, passwd []byte) (*Accoun
 	if !accData.VerifyPassword(passwd) {
 		return nil, fmt.Errorf("verify password failed")
 	}
-	keypair.SetScryptParam(this.walletData.Scrypt)
-	privateKey, err := keypair.DecryptPrivateKey(&accData.ProtectedKey, passwd)
-	keypair.SetScryptParam(nil)
+	privateKey, err := keypair.DecryptWithCustomScrypt(&accData.ProtectedKey, passwd, this.walletData.Scrypt)
 	if err != nil {
 		return nil, fmt.Errorf("decrypt PrivateKey error:%s", err)
 	}
@@ -504,13 +502,13 @@ func (this *ClientImpl) ChangePassword(address string, oldPasswd, newPasswd []by
 	}
 	oldPrvSecret := accData.GetKeyPair()
 	oldPasswdHash := accData.PassHash
-	prv, err := keypair.DecryptPrivateKey(accData.GetKeyPair(), oldPasswd)
+	prv, err := keypair.DecryptWithCustomScrypt(accData.GetKeyPair(), oldPasswd, this.walletData.Scrypt)
 	if err != nil {
-		return fmt.Errorf("keypair.DecryptPrivateKey error:%s", err)
+		return fmt.Errorf("keypair.DecryptWithCustomScrypt error:%s", err)
 	}
-	newPrvSecret, err := keypair.EncryptPrivateKey(prv, address, newPasswd)
+	newPrvSecret, err := keypair.EncryptWithCustomScrypt(prv, address, newPasswd, this.walletData.Scrypt)
 	if err != nil {
-		return fmt.Errorf("keypair.EncryptPrivateKey error:%s", err)
+		return fmt.Errorf("keypair.EncryptWithCustomScrypt error:%s", err)
 	}
 
 	h := sha256.Sum256(newPasswd)
