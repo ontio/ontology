@@ -177,7 +177,7 @@ func (self *Server) constructHeartbeatMsg() (*peerHeartbeatMsg, error) {
 	return msg, nil
 }
 
-func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, txs []*types.Transaction, consensusPayload []byte) (*types.Block, error) {
+func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, txs []*types.Transaction, consensusPayload []byte, blocktimestamp uint32) (*types.Block, error) {
 	txHash := []common.Uint256{}
 	for _, t := range txs {
 		txHash = append(txHash, t.Hash())
@@ -189,7 +189,7 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 		PrevBlockHash:    prevBlkHash,
 		TransactionsRoot: txRoot,
 		BlockRoot:        blockRoot,
-		Timestamp:        uint32(time.Now().Unix()),
+		Timestamp:        blocktimestamp,
 		Height:           uint32(blkNum),
 		ConsensusData:    common.GetNonce(),
 		ConsensusPayload: consensusPayload,
@@ -215,6 +215,10 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 	if prevBlk == nil {
 		return nil, fmt.Errorf("failed to get prevBlock (%d)", blkNum)
 	}
+	blocktimestamp := uint32(time.Now().Unix())
+	if prevBlk.Block.Header.Timestamp >= blocktimestamp {
+		blocktimestamp = prevBlk.Block.Header.Timestamp + 1
+	}
 
 	lastConfigBlkNum := prevBlk.Info.LastConfigBlockNum
 	if prevBlk.Info.NewChainConfig != nil {
@@ -233,11 +237,11 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 		return nil, err
 	}
 
-	emptyBlk, err := self.constructBlock(blkNum, prevBlkHash, sysTxs, consensusPayload)
+	emptyBlk, err := self.constructBlock(blkNum, prevBlkHash, sysTxs, consensusPayload, blocktimestamp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct empty block: %s", err)
 	}
-	blk, err := self.constructBlock(blkNum, prevBlkHash, append(sysTxs, userTxs...), consensusPayload)
+	blk, err := self.constructBlock(blkNum, prevBlkHash, append(sysTxs, userTxs...), consensusPayload, blocktimestamp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to constuct blk: %s", err)
 	}
