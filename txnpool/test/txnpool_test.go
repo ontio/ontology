@@ -71,7 +71,7 @@ func Test_RCV(t *testing.T) {
 	var s *tp.TXPoolServer
 	var wg sync.WaitGroup
 	var err error
-	ledger.DefLedger, err = ledger.NewLedger(config.DEFAULT_DATA_DIR)
+	ledger.DefLedger, err = ledger.NewLedger(config.DEFAULT_DATA_DIR, config.DEFAULT_DATABASE)
 	if err != nil {
 		t.Error("failed  to new ledger")
 		return

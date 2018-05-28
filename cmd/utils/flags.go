@@ -70,6 +70,11 @@ var (
 		Usage: "Using dir `<path>` to storage block data",
 		Value: config.DEFAULT_DATA_DIR,
 	}
+	DatabaseFlag = cli.StringFlag{
+		Name:  "database,db",
+		Usage: "Using `<db>` to specified database engine. Support rocksdb or leveldb",
+		Value: config.DEFAULT_DATABASE,
+	}
 
 	//Consensus setting
 	DisableConsensusFlag = cli.BoolFlag{

@@ -78,6 +78,7 @@ func setupAPP() *cli.App {
 		utils.LogLevelFlag,
 		utils.DisableEventLogFlag,
 		utils.DataDirFlag,
+		utils.DatabaseFlag,
 		utils.ImportEnableFlag,
 		utils.ImportHeightFlag,
 		utils.ImportFileFlag,
@@ -241,7 +242,7 @@ func initLedger(ctx *cli.Context) (*ledger.Ledger, error) {
 			log.Warnf("InitLedger remove:%s error:%s", dbDir, err)
 		}
 	}
-	ledger.DefLedger, err = ledger.NewLedger(dbDir)
+	ledger.DefLedger, err = ledger.NewLedger(dbDir, config.DefConfig.Common.Database)
 	if err != nil {
 		return nil, fmt.Errorf("NewLedger error:%s", err)
 	}

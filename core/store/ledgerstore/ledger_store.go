@@ -28,6 +28,8 @@ import (
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/states"
 	scom "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/core/store/leveldbstore"
+	"github.com/ontio/ontology/core/store/rocksdbstore"
 	"github.com/ontio/ontology/core/store/statestore"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -74,29 +76,61 @@ type LedgerStoreImp struct {
 }
 
 //NewLedgerStore return LedgerStoreImp instance
-func NewLedgerStore(dataDir string) (*LedgerStoreImp, error) {
+func NewLedgerStore(dataDir, db string) (*LedgerStoreImp, error) {
 	ledgerStore := &LedgerStoreImp{
 		headerIndex: make(map[uint32]common.Uint256),
 		headerCache: make(map[common.Uint256]*types.Header, 0),
 	}
+	blockDir := fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirBlock)
+	stateDir := fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirState)
+	eventDir := fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirEvent)
+	merklePath := fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), MerkleTreeStorePath)
 
-	blockStore, err := NewBlockStore(fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirBlock), true)
+	var err error
+	var bStore, sStore, eStore scom.PersistStore
+
+	switch strings.ToLower(db) {
+	case config.DATABASE_TYPE_LEVELDB:
+		bStore, err = leveldbstore.NewLevelDBStore(blockDir)
+		if err != nil {
+			return nil, err
+		}
+		sStore, err = leveldbstore.NewLevelDBStore(stateDir)
+		if err != nil {
+			return nil, err
+		}
+		eStore, err = leveldbstore.NewLevelDBStore(eventDir)
+		if err != nil {
+			return nil, err
+		}
+	case config.DATABASE_TYPE_ROCKSDB:
+		bStore, err = rocksdbstore.NewRocksDBStore(blockDir)
+		if err != nil {
+			return nil, err
+		}
+		sStore, err = rocksdbstore.NewRocksDBStore(stateDir)
+		if err != nil {
+			return nil, err
+		}
+		eStore, err = rocksdbstore.NewRocksDBStore(eventDir)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("unspport database type:%s", db)
+	}
+
+	blockStore, err := NewBlockStore(bStore, true)
 	if err != nil {
 		return nil, fmt.Errorf("NewBlockStore error %s", err)
 	}
-	ledgerStore.blockStore = blockStore
-
-	stateStore, err := NewStateStore(fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirState),
-		fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), MerkleTreeStorePath))
+	stateStore, err := NewStateStore(sStore, merklePath)
 	if err != nil {
 		return nil, fmt.Errorf("NewStateStore error %s", err)
 	}
+	eventState := NewEventStore(eStore)
+	ledgerStore.blockStore = blockStore
 	ledgerStore.stateStore = stateStore
-
-	eventState, err := NewEventStore(fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirEvent))
-	if err != nil {
-		return nil, fmt.Errorf("NewEventStore error %s", err)
-	}
 	ledgerStore.eventStore = eventState
 
 	return ledgerStore, nil

@@ -116,15 +116,12 @@ func (self *LevelDBStore) BatchCommit() error {
 
 //Close leveldb
 func (self *LevelDBStore) Close() error {
-	err := self.db.Close()
-	return err
+	return self.db.Close()
 }
 
 //NewIterator return a iterator of leveldb with the key perfix
 func (self *LevelDBStore) NewIterator(prefix []byte) common.StoreIterator {
-
 	iter := self.db.NewIterator(util.BytesPrefix(prefix), nil)
-
 	return &Iterator{
 		iter: iter,
 	}
