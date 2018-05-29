@@ -38,13 +38,12 @@ func (this *DHT) PongHandler(fromAddr *net.UDPAddr, pongMsgData []byte) {
 	pongMsg.Deserialization(pongMsgData)
 	fromNodeId := pongMsg.P.FromID
 	fromNode, ok := this.pingNodeQueue.GetRequestNode(fromNodeId)
-	bucketIndex, _ := this.routingTable.locateBucket(fromNodeId)
 	if !ok {
 		// ping node queue doesn't contain the node, ping timeout
 		this.routingTable.RemoveNode(fromNodeId)
 	} else {
-		// add to bucket header
-		this.routingTable.AddNode(fromNode, bucketIndex)
+		// add to routing table
+		this.AddNode(fromNode)
 		// remove node from ping node queue
 		this.pingNodeQueue.DeleteNode(fromNodeId)
 	}

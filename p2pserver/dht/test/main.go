@@ -18,18 +18,17 @@ func main() {
 	var acct *account.Account
 
 	log.Info("0. Open the account")
-	client := account.Open("", []byte("passwordtest"))
-	if client == nil {
+	client := account.Open("./wallet.dat", []byte("passwordtest"))
+	if client == nil  {
 		log.Fatal("Can't get local account.")
 		return
 	}
-	acct = client.GetDefaultAccount()
-	if acct == nil {
+	acct= client.GetDefaultAccount()
+	if acct == nil  {
 		log.Fatal("can not get default account")
 		return
 	}
 	log.Debug("The Node's PublicKey ", acct.PublicKey)
-
 	seeds := make([]*types.Node, 0, len(config.Parameters.DHTSeeds))
 	for i := 0; i < len(config.Parameters.DHTSeeds); i++ {
 		node := config.Parameters.DHTSeeds[i]
