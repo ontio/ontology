@@ -36,20 +36,19 @@ import (
 )
 
 type DHT struct {
-	version       uint16
-	nodeID        types.NodeID
-	mu            sync.Mutex
-	routingTable  *routingTable
-	addr          string
-	udpPort       uint16
-	tcpPort       uint16
-	conn          *net.UDPConn
-	pingNodeQueue *types.PingNodeQueue
-	findNodeQueue *types.FindNodeQueue
-	recvCh        chan *types.DHTMessage
-	stopCh        chan struct{}
-	seeds         []*types.Node
-	feedCh        chan *types.FeedEvent
+	version      uint16
+	nodeID       types.NodeID
+	mu           sync.Mutex
+	routingTable *routingTable
+	addr         string
+	udpPort      uint16
+	tcpPort      uint16
+	conn         *net.UDPConn
+	messagePool  *types.DHTMessagePool
+	recvCh       chan *types.DHTMessage
+	stopCh       chan struct{}
+	seeds        []*types.Node
+	feedCh       chan *types.FeedEvent
 }
 
 func NewDHT(node types.NodeID, seeds []*types.Node) *DHT {
@@ -69,11 +68,15 @@ func NewDHT(node types.NodeID, seeds []*types.Node) *DHT {
 	return dht
 }
 
+func (this *DHT) SetPort(tcpPort uint16, udpPort uint16) {
+	this.tcpPort = tcpPort
+	this.udpPort = udpPort
+}
+
 func (this *DHT) init() {
 	this.recvCh = make(chan *types.DHTMessage, types.MSG_CACHE)
 	this.stopCh = make(chan struct{})
-	this.pingNodeQueue = types.NewPingNodeQueue(this.onPingTimeOut)
-	this.findNodeQueue = types.NewFindNodeQueue(this.onFindNodeTimeOut)
+	this.messagePool = types.NewRequestPool(this.onRequestTimeOut)
 	this.feedCh = make(chan *types.FeedEvent, types.MSG_CACHE)
 	this.routingTable.init(this.nodeID, this.feedCh)
 }
@@ -100,43 +103,31 @@ func (this *DHT) Stop() {
 
 func (this *DHT) Bootstrap() {
 	// Todo:
-	this.AppendNodes(this.seeds)
+	this.SyncAddNodes(this.seeds)
+	this.DisplayRoutingTable()
 
 	fmt.Println("start lookup")
 	this.lookup(this.nodeID)
 }
 
-func (this *DHT) AppendNodes(nodes []*types.Node) {
-	log.Infof("AppendNodes start")
-	pingQueries := 0
-	for _, node := range nodes {
-		if node.ID == this.nodeID {
-			continue
-		}
-		addr, err := getNodeUDPAddr(node)
+// add node to routing table in synchronize
+func (this *DHT) SyncAddNodes(nodes []*types.Node) {
+	//log.Infof("SyncAddNodes start")
+	waitRequestIds := make([]types.RequestId, 0)
+	for _, seed := range nodes {
+		addr, err := getNodeUDPAddr(seed)
 		if err != nil {
-			log.Infof("failed to get seed address %v", node)
+			fmt.Printf("seed node %s address is error!", seed.ID)
 			continue
 		}
-		log.Tracef("ping seed: addr %v", addr)
-		this.pingNodeQueue.AddNode(node, nil)
-		this.Ping(addr)
-		pingQueries++
-	}
-
-	responseCh := this.pingNodeQueue.GetResultCh()
-	for {
-		select {
-		case _, ok := <-responseCh:
-			if ok {
-				pingQueries--
-			}
+		requestId, isNewRequest := this.messagePool.AddRequest(seed, types.DHT_PING_REQUEST, nil, true)
+		if isNewRequest {
+			this.Ping(addr)
 		}
-		if pingQueries == 0 {
-			break
-		}
+		waitRequestIds = append(waitRequestIds, requestId)
 	}
-	log.Infof("AppendNodes completed")
+	//log.Infof("SyncAddNodes completed")
+	this.messagePool.Wait(waitRequestIds)
 }
 
 func (this *DHT) GetFeedCh() chan *types.FeedEvent {
@@ -162,7 +153,7 @@ func (this *DHT) Loop() {
 func (this *DHT) refreshRoutingTable() {
 	log.Info("refreshRoutingTable")
 	// Todo:
-	this.AppendNodes(this.seeds)
+	this.SyncAddNodes(this.seeds)
 	this.lookup(this.nodeID)
 
 	var targetID types.NodeID
@@ -200,7 +191,7 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 			pendingQueries++
 			go func() {
 				this.FindNode(node, targetID)
-				this.findNodeQueue.StartRequestTimer(node)
+				this.messagePool.AddRequest(node, types.DHT_FIND_NODE_REQUEST, nil, false)
 			}()
 		}
 
@@ -218,7 +209,7 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 }
 
 func (this *DHT) waitAndHandleResponse(knownNode map[types.NodeID]bool, closestNodes []*types.Node, targetID types.NodeID) {
-	responseCh := this.findNodeQueue.GetResultCh()
+	responseCh := this.messagePool.GetResultChan()
 	select {
 	case entries, ok := <-responseCh:
 		if ok {
@@ -231,17 +222,17 @@ func (this *DHT) waitAndHandleResponse(knownNode map[types.NodeID]bool, closestN
 				}
 				knownNode[n.ID] = true
 				// ping this node
-				if _, ok := this.pingNodeQueue.GetRequestNode(n.ID); !ok {
-					log.Infof("waitAndHandleResponse: ping port %d, id %s", n.UDPPort, n.ID)
-					this.pingNodeQueue.AddNode(n, nil)
-					addr, err := getNodeUDPAddr(n)
-					if err != nil {
-						continue
+				addr, err := getNodeUDPAddr(n)
+				if err != nil {
+					continue
 
-					}
+				}
+				// ping and wait node one by one
+				reqId, isNewRequest := this.messagePool.AddRequest(n, types.DHT_PING_REQUEST, nil, true)
+				if isNewRequest{
 					this.Ping(addr)
 				}
-
+				this.messagePool.Wait([]types.RequestId{reqId})
 				closestNodes = addClosestNode(closestNodes, n, targetID)
 			}
 		}
@@ -272,6 +263,22 @@ func addClosestNode(closestNodes []*types.Node, n *types.Node, targetID types.No
 	return closestNodes
 }
 
+func (this *DHT) onRequestTimeOut(requestId types.RequestId) {
+	reqType := types.GetReqTypeFromReqId(requestId)
+	this.messagePool.DeleteRequest(requestId)
+	fmt.Println("request ", requestId, "timeout!")
+	if reqType == types.DHT_FIND_NODE_REQUEST {
+		results := make([]*types.Node, 0)
+		this.messagePool.SetResults(results)
+	} else if reqType == types.DHT_PING_REQUEST {
+		pendingNode, ok := this.messagePool.GetSupportData(requestId)
+		if ok && pendingNode != nil {
+			bucketIndex, _ := this.routingTable.locateBucket(pendingNode.ID)
+			this.routingTable.AddNode(pendingNode, bucketIndex)
+		}
+	}
+}
+
 func (this *DHT) FindNode(remotePeer *types.Node, targetID types.NodeID) error {
 	addr, err := getNodeUDPAddr(remotePeer)
 	if err != nil {
@@ -288,14 +295,6 @@ func (this *DHT) FindNode(remotePeer *types.Node, targetID types.NodeID) error {
 	}
 	this.send(addr, findNodePacket)
 	return nil
-}
-
-func (this *DHT) onFindNodeTimeOut(requestNodeId types.NodeID) {
-	// remove the node from bucket
-	this.routingTable.RemoveNode(requestNodeId)
-	// push a empty slice to find node queue
-	results := make([]*types.Node, 0)
-	this.findNodeQueue.SetResult(results, requestNodeId)
 }
 
 func (this *DHT) AddNode(remotePeer *types.Node) {
@@ -322,8 +321,10 @@ func (this *DHT) AddNode(remotePeer *types.Node) {
 				this.routingTable.AddNode(remoteNode, bucketIndex)
 				return
 			}
-			this.pingNodeQueue.AddNode(lastNode, remoteNode)
-			this.Ping(addr)
+			if _, isNewRequest := this.messagePool.AddRequest(lastNode, types.DHT_PING_REQUEST, remotePeer,
+				false); isNewRequest {
+				this.Ping(addr)
+			}
 		}
 	}
 }
@@ -356,20 +357,6 @@ func (this *DHT) Ping(addr *net.UDPAddr) error {
 	}
 	this.send(addr, pingPacket)
 	return nil
-}
-
-func (this *DHT) onPingTimeOut(nodeId types.NodeID) {
-	// remove the node from bucket
-	this.routingTable.RemoveNode(nodeId)
-	pendingNode, ok := this.pingNodeQueue.GetPendingNode(nodeId)
-	bucketIndex, _ := this.routingTable.locateBucket(nodeId)
-	if ok && pendingNode != nil {
-		// add pending node to bucket
-		this.routingTable.AddNode(pendingNode, bucketIndex)
-	}
-	// clear ping node queue
-	this.pingNodeQueue.DeleteNode(nodeId)
-	this.pingNodeQueue.AppendRsp(nil)
 }
 
 func (this *DHT) Pong(addr *net.UDPAddr) error {
@@ -411,6 +398,7 @@ func (this *DHT) FindNodeReply(addr *net.UDPAddr, targetId types.NodeID) error {
 	}
 	log.Infof("ReturenNeighbors: nodes %d", len(nodes))
 	for _, node := range nodes {
+		log.Infof("ReturnNeightbors: %s:%d", node.IP, node.UDPPort)
 		neighborsPayload.Nodes = append(neighborsPayload.Nodes, *node)
 	}
 	neighborsPacket, err := msgpack.NewNeighbors(neighborsPayload)
@@ -418,7 +406,6 @@ func (this *DHT) FindNodeReply(addr *net.UDPAddr, targetId types.NodeID) error {
 		log.Error("failed to new dht neighbors packet", err)
 		return err
 	}
-	log.Infof("ReturnNeightbors: local id %s", this.nodeID)
 	this.send(addr, neighborsPacket)
 	return nil
 }
@@ -508,7 +495,7 @@ func (this *DHT) DisplayRoutingTable() {
 		}
 		fmt.Println("[", bucketIndex, "]: ")
 		for i := 0; i < this.routingTable.GetTotalNodeNumInBukcet(bucketIndex); i++ {
-			fmt.Printf("%x \n", bucket.entries[i].ID[:10])
+			fmt.Printf("%x \n", bucket.entries[i].ID[20:])
 		}
 	}
 }

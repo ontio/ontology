@@ -31,7 +31,8 @@ const (
 	MSG_CACHE         = 10240
 	PING_TIMEOUT      = 10 * time.Second
 	FIND_NODE_TIMEOUT = 60 * time.Second
-	REFRESH_INTERVAL  = 60 * time.Second
+	DEFAULT_TIMEOUT   = 10 * time.Second
+	REFRESH_INTERVAL  = 1 * time.Hour
 )
 
 type ptype uint8

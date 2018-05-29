@@ -241,6 +241,33 @@ var MainNetConfig = &GenesisConfig{
 	},
 	DBFT: &DBFTConfig{},
 	SOLO: &SOLOConfig{},
+	// for test
+	DHT: &DHTConfig{
+		UDPPort: DEAFAULT_DHT_UTP_PORT,
+		Seeds: []DHTNode{
+			{
+				PubKey:  "120203cef6833ae387ea89d2911bcbf2a1508cffb5b048edb115206a3d24a5c00fe21f",
+				IP:      "127.0.0.1",
+				UDPPort: 20010,
+				TCPPort: 20011,
+			},
+			{
+				PubKey:  "120202a2a14d18525729fd2a3105b09d4fa6eaf3db101e4829a0fd4f6b2949613bbd40",
+				IP:      "127.0.0.1",
+				UDPPort: 30010,
+				TCPPort: 30011},
+			{
+				PubKey:  "12020269767ff4a5e8f01e615b16526a4615440c549ad44bcd21eccaa172aa1d211d7e",
+				IP:      "127.0.0.1",
+				UDPPort: 40010,
+				TCPPort: 40011},
+			{
+				PubKey:  "120202fabdf17557e77082be2be61f90527e23187605cd8774d487da4e6bef97943d0d",
+				IP:      "127.0.0.1",
+				UDPPort: 50010,
+				TCPPort: 50011},
+		},
+	},
 }
 
 var DefConfig = NewOntologyConfig()
