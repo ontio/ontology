@@ -42,13 +42,14 @@ const (
 )
 
 type emergencyGov struct {
-	account        *account.Account
-	emergencyMsgCh chan *msgCom.EmergencyMsg
-	context        *emergencyGovContext
-	server         *P2PServer //Pointer to the local node
-	blkSyncCh      chan struct{}
-	stopCh         chan struct{}
-	timerEvt       chan struct{}
+	account            *account.Account          // local account to sign data
+	emergencyMsgCh     chan *msgCom.EmergencyMsg // The emergency governance message queue
+	context            *emergencyGovContext      // Emergency goverance context
+	server             *P2PServer                // Pointer to the local node
+	blkSyncCh          chan struct{}             // The block sync mgr use it to notify
+	stopCh             chan struct{}             // Stop emergency governance loop
+	timerEvt           chan struct{}             // Time out event
+	emgBlkCompletedEvt chan struct{}             // The emergency goverance block completed event
 }
 
 // NewEmergencyGov returns a new instance of emergency governance
@@ -69,6 +70,7 @@ func (this *emergencyGov) init() {
 	this.context.reset()
 	this.stopCh = make(chan struct{})
 	this.timerEvt = make(chan struct{}, 1)
+	this.emgBlkCompletedEvt = make(chan struct{}, 1)
 }
 
 // Start starts an emergency governance loop
@@ -80,6 +82,8 @@ func (this *emergencyGov) Start() {
 			if ok {
 				this.handleEmergencyMsg(msg)
 			}
+		case <-this.emgBlkCompletedEvt:
+			this.handleEmergencyBlockCompletedEvt()
 		case <-this.stopCh:
 			return
 		case <-this.timerEvt:
@@ -96,6 +100,10 @@ func (this *emergencyGov) Stop() {
 
 	if this.emergencyMsgCh != nil {
 		close(this.emergencyMsgCh)
+	}
+
+	if this.timerEvt != nil {
+		close(this.timerEvt)
 	}
 }
 
@@ -116,6 +124,28 @@ func (this *emergencyGov) handleEmergencyMsg(msg *msgCom.EmergencyMsg) {
 	}
 }
 
+func (this *emergencyGov) handleEmergencyBlockCompletedEvt() {
+	if this.context.getStatus() == EmergencyGovComplete {
+		return
+	}
+
+	log.Tracef("handleEmergencyBlockCompletedEvt")
+	this.context.setStatus(EmergencyGovComplete)
+
+	// notify consensus and block sync mgr to recover
+	cmd := &msgCom.EmergencyGovCmd{
+		Pause:  false,
+		Height: this.context.getEmergencyGovHeight(),
+	}
+	actor.NotifyEmergencyGovCmd(cmd)
+	this.server.notifyEmergencyGovCmd(cmd)
+
+	if !this.context.timer.Stop() {
+		<-this.context.timer.C
+	}
+	this.context.done <- struct{}{}
+}
+
 // EmergencyActionResponseReceived handles an emergency governance response from network
 func (this *emergencyGov) EmergencyActionResponseReceived(msg *mt.EmergencyActionResponse) {
 	// Todo: Check whether local node  supports emergency governance policy
@@ -127,6 +157,7 @@ func (this *emergencyGov) EmergencyActionResponseReceived(msg *mt.EmergencyActio
 
 	id, err := vconfig.PubkeyID(msg.PubKey)
 	if err != nil {
+		log.Errorf("failed to get id from public key: %v", msg.PubKey)
 		return
 	}
 
@@ -137,6 +168,8 @@ func (this *emergencyGov) EmergencyActionResponseReceived(msg *mt.EmergencyActio
 	rspHash := msg.Hash()
 	err = signature.Verify(msg.PubKey, rspHash[:], msg.RspSig)
 	if err != nil {
+		log.Errorf("failed to verify response signature %v. PubKey %v rspHash %x rspSig %x",
+			err, msg.PubKey, rspHash, msg.RspSig)
 		return
 	}
 	if this.context.EmergencyReqCache == nil {
@@ -151,6 +184,8 @@ func (this *emergencyGov) EmergencyActionResponseReceived(msg *mt.EmergencyActio
 	blockHash := block.Hash()
 	err = signature.Verify(msg.PubKey, blockHash[:], msg.SigOnBlk)
 	if err != nil {
+		log.Errorf("failed to verify block hash signature %v. PubKey %v blockHash %x SigOnBlk %x",
+			err, msg.PubKey, blockHash, msg.SigOnBlk)
 		return
 	}
 
@@ -182,6 +217,7 @@ func (this *emergencyGov) checkSignatures() {
 		if !contained {
 			err := ledger.DefLedger.AddBlock(block)
 			if err != nil {
+				log.Tracef("DefLedger add block failed. err %v", err)
 				return
 			}
 			this.server.Xmit(block.Hash())
@@ -335,6 +371,7 @@ func (this *emergencyGov) EmergencyActionRequestReceived(msg *mt.EmergencyAction
 	this.context.setPeers(peers)
 	this.context.setStatus(EmergencyGovStart)
 	this.context.setEmergencyReqCache(msg)
+	this.context.setEmergencyGovHeight(msg.ProposalBlkNum)
 
 	// notify consensus and block sync mgr to pause
 	cmd := &msgCom.EmergencyGovCmd{
@@ -424,6 +461,7 @@ func (this *emergencyGov) startEmergencyGov(msg *mt.EmergencyActionRequest) {
 	this.context.reset()
 	this.context.setStatus(EmergencyGovStart)
 	this.context.setEmergencyReqCache(msg)
+	this.context.setEmergencyGovHeight(msg.ProposalBlkNum)
 
 	peers, _ := getPeers()
 	this.context.setPeers(peers)

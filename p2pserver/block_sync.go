@@ -502,7 +502,6 @@ func (this *BlockSyncMgr) saveBlock() {
 	this.lock.Lock()
 	for height := range this.blocksCache {
 		if height <= curBlockHeight {
-
 			delete(this.blocksCache, height)
 		}
 
@@ -511,6 +510,8 @@ func (this *BlockSyncMgr) saveBlock() {
 			blk := this.blocksCache[height]
 			if len(blk.Header.Bookkeepers) < (len(peers) - (len(peers)-1)/3) {
 				delete(this.blocksCache, height)
+			} else {
+				this.server.notifyEmgGovBlkCompleted()
 			}
 		}
 	}

@@ -150,14 +150,24 @@ func (this *P2PServer) GetPubKey() keypair.PublicKey {
 	return this.network.GetPubKey()
 }
 
-// notifyEmergencyGovCmd notify block sync mgr to pause/recover block sync
+// notifyEmergencyGovCmd notify block sync mgr of pause/recover block sync
 func (this *P2PServer) notifyEmergencyGovCmd(cmd *common.EmergencyGovCmd) {
 	this.blockSync.emergencyGovCh <- cmd
 }
 
+// notifyEmgGovBlkSyncDone notify emergency goverance mgr of block height catching up the expected
 func (this *P2PServer) notifyEmgGovBlkSyncDone() {
 	select {
 	case this.emergencyGov.blkSyncCh <- struct{}{}:
+	default:
+		log.Infof("duplicated notify")
+	}
+}
+
+// notifyEmgGovBlkCompleted notify emergency goverance mgr of emergency goverance block compeleted
+func (this *P2PServer) notifyEmgGovBlkCompleted() {
+	select {
+	case this.emergencyGov.emgBlkCompletedEvt <- struct{}{}:
 	default:
 		log.Infof("duplicated notify")
 	}

@@ -43,10 +43,11 @@ const (
 )
 
 type emergencyGovContext struct {
-	EmergencyReqCache *mt.EmergencyActionRequest
-	EmergencyRspCache map[vconfig.NodeID]*mt.EmergencyActionResponse
-	Signatures        map[vconfig.NodeID][]byte
-	Status            EmergencyGovStatus
+	EmergencyReqCache *mt.EmergencyActionRequest                     // Current emergency governance request
+	EmergencyRspCache map[vconfig.NodeID]*mt.EmergencyActionResponse // Cache current response from peers
+	Signatures        map[vconfig.NodeID][]byte                      // Cache current signatures from peers
+	Status            EmergencyGovStatus                             // Current emergency governance status
+	Height            uint32                                         // Current emergency governance height
 	peers             map[vconfig.NodeID]*EmergencyGovPeer
 	timer             *time.Timer
 	done              chan struct{}
@@ -112,6 +113,14 @@ func (this *emergencyGovContext) getEmergencyBlock() *types.Block {
 		return nil
 	}
 	return this.EmergencyReqCache.ProposalBlk
+}
+
+func (this *emergencyGovContext) getEmergencyGovHeight() uint32 {
+	return this.Height
+}
+
+func (this *emergencyGovContext) setEmergencyGovHeight(height uint32) {
+	this.Height = height
 }
 
 func (this *emergencyGovContext) getSignatureCount() int {
