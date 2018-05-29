@@ -184,8 +184,15 @@ func addKey(srvc *native.NativeService) ([]byte, error) {
 	if !checkIDExistence(srvc, key) {
 		return utils.BYTE_FALSE, errors.New("add key failed: ID not registered")
 	}
-	if !isOwner(srvc, key, arg2) {
-		return utils.BYTE_FALSE, errors.New("add key failed: operator has no authorization")
+	var auth bool = false
+	rec, err := getRecovery(srvc, key)
+	if len(rec) > 0 {
+		auth = bytes.Equal(rec, arg2)
+	}
+	if !auth {
+		if !isOwner(srvc, key, arg2) {
+			return utils.BYTE_FALSE, errors.New("add key failed: operator has no authorization")
+		}
 	}
 
 	item, err := findPk(srvc, key, arg1)
