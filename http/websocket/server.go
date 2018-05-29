@@ -130,7 +130,7 @@ func pushBlockTransactions(v interface{}) {
 	}
 	resp := rest.ResponsePack(Err.SUCCESS)
 	if block, ok := v.(types.Block); ok {
-		resp["Result"] = rest.GetBlockTransactions(&block)
+		resp["Result"] = bcomn.GetBlockTransactions(&block)
 		resp["Action"] = "sendblocktxhashs"
 		ws.BroadcastToSubscribers(nil, websocket.WSTOPIC_TXHASHS, resp)
 	}

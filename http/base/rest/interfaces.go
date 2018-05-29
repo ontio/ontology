@@ -78,25 +78,6 @@ func GetBlockHash(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-func GetBlockTransactions(block *types.Block) interface{} {
-	trans := make([]string, len(block.Transactions))
-	for i := 0; i < len(block.Transactions); i++ {
-		h := block.Transactions[i].Hash()
-		trans[i] = common.ToHexString(h.ToArray())
-	}
-	hash := block.Hash()
-	type BlockTransactions struct {
-		Hash         string
-		Height       uint32
-		Transactions []string
-	}
-	b := BlockTransactions{
-		Hash:         common.ToHexString(hash.ToArray()),
-		Height:       block.Header.Height,
-		Transactions: trans,
-	}
-	return b
-}
 func getBlock(hash common.Uint256, getTxBytes bool) (interface{}, int64) {
 	block, err := bactor.GetBlockFromStore(hash)
 	if err != nil {
@@ -174,9 +155,6 @@ func GetBlockTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 	}
 	index := uint32(height)
 	hash := bactor.GetBlockHashFromStore(index)
-	if err != nil {
-		return ResponsePack(berr.UNKNOWN_BLOCK)
-	}
 	if hash == common.UINT256_EMPTY {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -184,7 +162,7 @@ func GetBlockTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(berr.UNKNOWN_BLOCK)
 	}
-	resp["Result"] = GetBlockTransactions(block)
+	resp["Result"] = bcomn.GetBlockTransactions(block)
 	return resp
 }
 func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {

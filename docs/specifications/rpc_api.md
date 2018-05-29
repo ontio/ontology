@@ -89,6 +89,7 @@ Transaction field description
 | getgasprice |  | return gasprice |  |
 | getallowance | asset, from, to | return allowance |  |
 | getunclaimong | address | return unclaimong |  |
+| get_blk_txs_by_height | height | return tx hashes |  |
 
 ### 1. getbestblockhash
 
@@ -1022,6 +1023,43 @@ Response:
    "result": "204957950400000"
 }
 ```
+
+#### 21 get_blk_txs_by_height
+
+Get transactions by block height
+return all transaction hash contained in the block corresponding to this height
+
+#### Example
+
+Request:
+
+```
+{
+  "jsonrpc": "2.0",
+  "method": "getblocktxsbyheight",
+  "params": [100],
+  "id": 1
+}
+```
+
+Response:
+
+```
+{
+   "desc":"SUCCESS",
+   "error":0,
+   "id":1,
+   "jsonpc":"2.0",
+   "result": {
+        "Hash": "ea5e5219d2f1591f4feef89885c3f38c83d3a3474a5622cf8cd3de1b93849603",
+        "Height": 100,
+        "Transactions": [
+            "37e017cb9de93aa93ef817e82c555812a0a6d5c3f7d6c521c7808a5a77fc93c7"
+        ]
+    }
+}
+```
+
 ## Error Code
 
 errorcode instruction
