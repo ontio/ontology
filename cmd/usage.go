@@ -107,13 +107,6 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
-		Name: "CLI",
-		Flags: []cli.Flag{
-			utils.CliEnableRpcFlag,
-			utils.CliRpcPortFlag,
-		},
-	},
-	{
 		Name: "CONSENSUS",
 		Flags: []cli.Flag{
 			utils.DisableConsensusFlag,

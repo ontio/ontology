@@ -25,7 +25,7 @@ import (
 	"sort"
 
 	"github.com/ontio/ontology-crypto/keypair"
-	clisvrcom "github.com/ontio/ontology/cmd/server/common"
+	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 	cliutil "github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"

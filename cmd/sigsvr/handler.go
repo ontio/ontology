@@ -16,9 +16,9 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package server
+package sigsvr
 
-import "github.com/ontio/ontology/cmd/server/handlers"
+import "github.com/ontio/ontology/cmd/sigsvr/handlers"
 
 func init() {
 	DefCliRpcSvr.RegHandler("sigrawtx", handlers.SigRawTransaction)

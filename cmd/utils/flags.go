@@ -366,10 +366,6 @@ var (
 	}
 
 	//Cli setting
-	CliEnableRpcFlag = cli.BoolFlag{
-		Name:  "clirpc",
-		Usage: "Enable cli rpc",
-	}
 	CliRpcPortFlag = cli.UintFlag{
 		Name:  "cliport",
 		Usage: "Cli rpc port",

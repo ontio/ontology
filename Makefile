@@ -11,10 +11,9 @@ DOCKER_TAG=$(ARCH)-$(VERSION)
 ONT_CFG_IN_DOCKER=config-solo.json
 WALLET_FILE=wallet.dat
 
-all: ontology
-
-ontology:
+all:
 	$(GC)  $(BUILD_NODE_PAR) -o ontology main.go
+	$(GC)  $(BUILD_NODE_PAR) -o sigsvr sigsvr.go
 
 format:
 	$(GOFMT) -w main.go
@@ -52,5 +51,5 @@ docker: Makefile docker/payload docker/Dockerfile
 
 clean:
 	rm -rf *.8 *.o *.out *.6
-	rm -rf ontology docker/payload docker/build
+	rm -rf ontology sigsvr docker/payload docker/build
 

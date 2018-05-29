@@ -16,12 +16,12 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package server
+package sigsvr
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ontio/ontology/cmd/server/common"
+	"github.com/ontio/ontology/cmd/sigsvr/common"
 	"github.com/ontio/ontology/common/log"
 	"io/ioutil"
 	"net/http"
