@@ -141,6 +141,7 @@ func unpackNodeBuf(this *Link, buf []byte) {
 			rxBuf.p = nil
 			rxBuf.len = 0
 			log.Warn("receive unmatched message header")
+			this.CloseConn()
 			return
 		}
 
