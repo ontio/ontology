@@ -30,7 +30,7 @@ func (this *DHT) PingHandler(fromAddr *net.UDPAddr, pingMsgData []byte) {
 	pingMsg.Deserialization(pingMsgData)
 	// response
 	this.Pong(fromAddr)
-	this.updateFromNode(pingMsg.P.FromID)
+	this.updateFromNode(pingMsg.P.FromID, fromAddr)
 }
 
 func (this *DHT) PongHandler(fromAddr *net.UDPAddr, pongMsgData []byte) {
@@ -46,14 +46,22 @@ func (this *DHT) PongHandler(fromAddr *net.UDPAddr, pongMsgData []byte) {
 		this.AddNode(fromNode)
 		// remove node from ping node queue
 		this.pingNodeQueue.DeleteNode(fromNodeId)
+		this.pingNodeQueue.AppendRsp(fromNode)
 	}
 }
 
 // update the node to bucket when receive message from the node
-func (this *DHT) updateFromNode(fromNodeId types.NodeID) {
+func (this *DHT) updateFromNode(fromNodeId types.NodeID, fromAddr *net.UDPAddr) {
 	fromNode := this.routingTable.queryNode(fromNodeId)
 	if fromNode != nil {
 		// add node to bucket
 		this.AddNode(fromNode)
+	} else {
+		node := &types.Node{
+			ID:      fromNodeID,
+			IP:      fromAddr.IP,
+			UDPPort: fromAddr.Port,
+		}
+		this.AddNode(node)
 	}
 }

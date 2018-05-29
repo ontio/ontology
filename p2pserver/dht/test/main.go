@@ -19,16 +19,19 @@ func main() {
 
 	log.Info("0. Open the account")
 	client := account.Open("./wallet.dat", []byte("passwordtest"))
-	if client == nil  {
+	if client == nil {
 		log.Fatal("Can't get local account.")
 		return
 	}
-	acct= client.GetDefaultAccount()
-	if acct == nil  {
+	acct = client.GetDefaultAccount()
+	if acct == nil {
 		log.Fatal("can not get default account")
 		return
 	}
 	log.Debug("The Node's PublicKey ", acct.PublicKey)
+
+	nodeID, _ := types.PubkeyID(acct.PublicKey)
+
 	seeds := make([]*types.Node, 0, len(config.Parameters.DHTSeeds))
 	for i := 0; i < len(config.Parameters.DHTSeeds); i++ {
 		node := config.Parameters.DHTSeeds[i]
@@ -52,7 +55,7 @@ func main() {
 	//startSeedNode(seedIndex, seeds)
 
 	//start common node
-	nodeID, _ := types.PubkeyID(acct.PublicKey)
+	//nodeID, _ := types.PubkeyID(acct.PublicKey)
 	//commonNode := &types.Node{
 	//	ID:      nodeID,
 	//	IP:      "127.0.0.1",
@@ -61,8 +64,8 @@ func main() {
 	//}
 	testDht := dht.NewDHT(nodeID, seeds)
 	testDht.Start()
-	//stopCh := make(chan int)
-	//<-stopCh
+	stopCh := make(chan int)
+	<-stopCh
 }
 
 func startSeedNode(seedIndex int, seeds []*types.Node) {

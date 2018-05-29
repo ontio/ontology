@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -92,15 +93,47 @@ func (this *DHT) Stop() {
 
 func (this *DHT) Bootstrap() {
 	// Todo:
-	fmt.Println("add seed to the bucket")
-	for _, seed := range this.seeds {
-		this.AddNode(seed)
-	}
+	this.AppendNodes(this.seeds)
+
 	fmt.Println("start lookup")
 	this.lookup(this.nodeID)
 }
 
+func (this *DHT) AppendNodes(nodes []*types.Node) {
+	log.Infof("AppendNodes start")
+	pingQueries := 0
+	for _, node := range nodes {
+		if node.ID == this.nodeID {
+			continue
+		}
+		addr, err := getNodeUDPAddr(node)
+		if err != nil {
+			log.Infof("failed to get seed address %v", node)
+			continue
+		}
+		log.Tracef("ping seed: addr %v", addr)
+		this.pingNodeQueue.AddNode(node, nil)
+		this.Ping(addr)
+		pingQueries++
+	}
+
+	responseCh := this.pingNodeQueue.GetResultCh()
+	for {
+		select {
+		case _, ok := <-responseCh:
+			if ok {
+				pingQueries--
+			}
+		}
+		if pingQueries == 0 {
+			break
+		}
+	}
+	log.Infof("AppendNodes completed")
+}
+
 func (this *DHT) Loop() {
+	refresh := time.NewTicker(types.REFRESH_INTERVAL)
 	for {
 		select {
 		case pk, ok := <-this.recvCh:
@@ -109,8 +142,17 @@ func (this *DHT) Loop() {
 			}
 		case <-this.stopCh:
 			return
+		case <-refresh.C:
+			this.refreshRoutingTable()
 		}
 	}
+}
+
+func (this *DHT) refreshRoutingTable() {
+	log.Info("refreshRoutingTable")
+	// Todo:
+	this.AppendNodes(this.seeds)
+	this.lookup(this.nodeID)
 }
 
 func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
@@ -121,17 +163,17 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 		return []*types.Node{node}
 	}
 
+	closestNodes := this.routingTable.GetClosestNodes(types.BUCKET_SIZE, targetID)
+
+	if len(closestNodes) == 0 {
+		this.refreshRoutingTable()
+	}
+
 	visited := make(map[types.NodeID]bool)
 	knownNode := make(map[types.NodeID]bool)
 	pendingQueries := 0
 
 	visited[this.nodeID] = true
-
-	closestNodes := this.routingTable.GetClosestNodes(types.BUCKET_SIZE, targetID)
-
-	if len(closestNodes) == 0 {
-		return nil
-	}
 
 	for {
 		for i := 0; i < len(closestNodes) && pendingQueries < types.FACTOR; i++ {
@@ -150,6 +192,7 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 		if pendingQueries == 0 {
 			break
 		}
+
 		//log.Info("Waiting for response")
 
 		this.waitAndHandleResponse(knownNode, closestNodes, targetID)
@@ -177,6 +220,7 @@ func (this *DHT) waitAndHandleResponse(knownNode map[types.NodeID]bool, closestN
 				addr, err := getNodeUDPAddr(n)
 				if err != nil {
 					continue
+
 				}
 				this.Ping(addr)
 
@@ -284,7 +328,7 @@ func (this *DHT) Ping(addr *net.UDPAddr) error {
 	if ip == nil {
 		ip = addr.IP.To16()
 	}
-	copy(pingPayload.DestAddr[:], ip[:16])
+	copy(pingPayload.DestAddr[:], ip[:])
 
 	copy(pingPayload.FromID[:], this.nodeID[:])
 
@@ -308,6 +352,7 @@ func (this *DHT) onPingTimeOut(nodeId types.NodeID) {
 	}
 	// clear ping node queue
 	this.pingNodeQueue.DeleteNode(nodeId)
+	this.pingNodeQueue.AppendRsp(nil)
 }
 
 func (this *DHT) Pong(addr *net.UDPAddr) error {
@@ -322,13 +367,13 @@ func (this *DHT) Pong(addr *net.UDPAddr) error {
 		log.Error("Parse IP address error\n", this.addr)
 		return errors.New("Parse IP address error")
 	}
-	copy(PongPayload.SrcAddr[:], ip[:16])
+	copy(PongPayload.SrcAddr[:], ip[:])
 
 	ip = addr.IP.To4()
 	if ip == nil {
 		ip = addr.IP.To16()
 	}
-	copy(PongPayload.DestAddr[:], ip[:16])
+	copy(PongPayload.DestAddr[:], ip[:])
 
 	copy(PongPayload.FromID[:], this.nodeID[:])
 

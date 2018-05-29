@@ -8,6 +8,7 @@ import (
 type PingNodeQueue struct {
 	lock               sync.RWMutex
 	deleteNodeListener chan NodeID
+	resultChan         chan *Node
 	requestNodeQueue   map[NodeID]*Node
 	pendingNodeQueue   map[NodeID]*Node // used to record the node corresponded to request node
 	requestTimerQueue  map[NodeID]*time.Timer
@@ -16,10 +17,13 @@ type PingNodeQueue struct {
 
 func NewPingNodeQueue(onTimeOut func(id NodeID)) *PingNodeQueue {
 	nodeQueue := new(PingNodeQueue)
+	nodeQueue.resultChan = make(chan *Node, 4)
 	nodeQueue.requestNodeQueue = make(map[NodeID]*Node)
 	nodeQueue.pendingNodeQueue = make(map[NodeID]*Node)
 	nodeQueue.deleteNodeListener = make(chan NodeID)
 	nodeQueue.onTimeOut = onTimeOut
+	nodeQueue.requestTimerQueue = make(map[NodeID]*time.Timer, 0)
+
 	// TODO should be invoked in dht.loop
 	go nodeQueue.start()
 	return nodeQueue
@@ -33,6 +37,14 @@ func (this *PingNodeQueue) start() {
 			this.onTimeOut(nodeId)
 		}
 	}
+}
+
+func (this *PingNodeQueue) GetResultCh() <-chan *Node {
+	return this.resultChan
+}
+
+func (this *PingNodeQueue) AppendRsp(node *Node) {
+	this.resultChan <- node
 }
 
 func (this *PingNodeQueue) AddNode(requestNode, pendingNode *Node) {
