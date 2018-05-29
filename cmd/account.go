@@ -252,7 +252,7 @@ func checkScheme(ctx *cli.Context, reader *bufio.Reader, t *string) string {
 		break
 	case "ed25519":
 		fmt.Println("Use Ed25519 as the signature scheme.")
-		sch = "SHA512withEDDSA"
+		sch = "SHA512withEdDSA"
 		break
 	default:
 		return ""
