@@ -266,11 +266,23 @@ func byteXReader(reader io.Reader, x uint64) ([]byte, error) {
 	if x == 0 {
 		return nil, nil
 	}
-	p := make([]byte, x)
-	n, err := reader.Read(p)
+	const LEN = 2048
+	var p []byte
+	var tmp [LEN]byte
+	for x > LEN {
+		n, err := reader.Read(tmp[:])
+		if n != LEN || err != nil {
+			return nil, ErrEof
+		}
+		p = append(p, tmp[:]...)
+		x -= LEN
+	}
+
+	n, err := reader.Read(tmp[:x])
 	if n != int(x) || err != nil {
 		return nil, ErrEof
 	}
+	p = append(p, tmp[:x]...)
 	return p, nil
 }
 
