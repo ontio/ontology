@@ -19,7 +19,6 @@ package ontid
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -460,7 +459,7 @@ func verifySignature(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("verify signature error: argument 0 error, " + err.Error())
 	}
 	// arg1: index of public key
-	arg1, err := serialization.ReadUint32(args)
+	arg1, err := serialization.ReadVarUint(args, 0xFFFFFFFF)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("verify signature error: argument 1 error, " + err.Error())
 	}
@@ -469,19 +468,14 @@ func verifySignature(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("verify signature error: " + err.Error())
 	}
-
-	key1 := append(key, FIELD_PK)
-	var buf [4]byte
-	binary.LittleEndian.PutUint32(buf[:], arg1)
-
-	node, err := utils.LinkedlistGetItem(srvc, key1, buf[:])
+	owner, err := getPk(srvc, key, uint32(arg1))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("verify signature error: get key failed, " + err.Error())
-	} else if node == nil {
+	} else if owner == nil {
 		return utils.BYTE_FALSE, errors.New("verify signature error: public key not found")
 	}
 
-	err = checkWitness(srvc, node.GetPayload())
+	err = checkWitness(srvc, owner.key)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("verify signature failed: " + err.Error())
 	}
