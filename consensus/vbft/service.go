@@ -215,10 +215,12 @@ func (self *Server) StartEmergency(height uint32) {
 			C <- nil
 		}
 	}
-	log.Infof("start emergency heigh:%d", height)
+	log.Infof("start emergency heigh:%d,compeletheight:%d", height,self.completedBlockNum)
 }
 
 func (self *Server) EndEmergency(height uint32) {
+	log.Infof("end emergency heigh:%d,compeletheight:%d", height,self.completedBlockNum)
+	self.currentBlockNum = height + 1
 	self.metaLock.Lock()
 	defer self.metaLock.Unlock()
 	if height != self.completedBlockNum {
@@ -254,11 +256,11 @@ func (self *Server) EndEmergency(height uint32) {
 		}()
 		log.Infof("updateChainConfig add peer index%v,id:%v", p.ID.String(), p.Index)
 	}
+	self.chainStore.AddChainedBlockNum()
 	return
 }
 
 func (self *Server) handleBlockPersistCompleted(block *types.Block) {
-	log.Infof("persist block: %d, %x", block.Header.Height, block.Hash())
 
 	self.incrValidator.AddBlock(block)
 
@@ -700,7 +702,6 @@ func (self *Server) updateParticipantConfig() error {
 
 func (self *Server) startNewRound() error {
 	blkNum := self.GetCurrentBlockNo()
-
 	if err := self.updateParticipantConfig(); err != nil {
 		log.Errorf("startNewRound error:%s", err)
 		return err

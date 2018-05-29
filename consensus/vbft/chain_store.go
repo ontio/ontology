@@ -48,6 +48,11 @@ func (self *ChainStore) GetChainedBlockNum() uint32 {
 	return self.chainedBlockNum
 }
 
+func (self *ChainStore) AddChainedBlockNum() uint32 {
+	self.chainedBlockNum = self.chainedBlockNum +1
+	return self.chainedBlockNum
+}
+
 func (self *ChainStore) AddBlock(block *Block) error {
 	if block == nil {
 		return fmt.Errorf("try add nil block")
@@ -82,6 +87,7 @@ func (self *ChainStore) AddBlock(block *Block) error {
 			delete(self.pendingBlocks, blkNum)
 			blkNum++
 		} else {
+			log.Info("pendingBlock failed,blkNum %d",blkNum)
 			break
 		}
 	}
