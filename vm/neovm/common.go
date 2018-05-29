@@ -22,10 +22,15 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"hash"
+	"io"
 	"math/big"
 
+	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/vm/neovm/interfaces"
 	"github.com/ontio/ontology/vm/neovm/types"
+	"fmt"
+	"reflect"
 )
 
 type BigIntSorter []big.Int
@@ -197,6 +202,8 @@ func NewStackItem(data interface{}) types.StackItems {
 		stackItem = data.(*types.Integer)
 	case *types.Array:
 		stackItem = data.(*types.Array)
+	case *types.Map:
+		stackItem = data.(*types.Map)
 	case *types.Boolean:
 		stackItem = data.(*types.Boolean)
 	case *types.ByteArray:
@@ -214,9 +221,165 @@ func NewStackItem(data interface{}) types.StackItems {
 	case interfaces.Interop:
 		stackItem = types.NewInteropInterface(data.(interfaces.Interop))
 	default:
+		fmt.Printf("=====type = %v\n", reflect.TypeOf(data))
 		panic("NewStackItemInterface Invalid Type!")
 	}
 	return stackItem
+}
+
+func SerializeStackItem(item types.StackItems, w io.Writer) error {
+	switch item.(type) {
+	case *types.ByteArray:
+		if err := serialization.WriteByte(w, types.ByteArrayType); err != nil {
+			return errors.NewErr("StackItems ByteArray serialize error.")
+		}
+		if err := serialization.WriteVarBytes(w, item.GetByteArray()); err != nil {
+			return errors.NewErr("StackItems ByteArray serialize error.")
+		}
+
+	case *types.Boolean:
+		if err := serialization.WriteByte(w, types.BooleanType); err != nil {
+			return errors.NewErr("StackItems Boolean serialize error.")
+		}
+		if err := serialization.WriteBool(w, item.GetBoolean()); err != nil {
+			return errors.NewErr("StackItems Boolean serialize error.")
+		}
+
+	case *types.Integer:
+		if err := serialization.WriteByte(w, types.IntegerType); err != nil {
+			return errors.NewErr("StackItems Integer serialize error.")
+		}
+		if err := serialization.WriteVarBytes(w, item.GetByteArray()); err != nil {
+			return errors.NewErr("StackItems Integer serialize error.")
+		}
+
+	case *types.Array:
+		if err := serialization.WriteByte(w, types.ArrayType); err != nil {
+			return errors.NewErr("StackItems Array serialize error.")
+		}
+
+		if err := serialization.WriteVarUint(w, uint64(len(item.GetArray()))); err != nil {
+			return errors.NewErr("StackItems Array serialize error.")
+		}
+
+		for _, v := range item.GetArray() {
+			SerializeStackItem(v, w)
+		}
+
+	case *types.Struct:
+		if err := serialization.WriteByte(w, types.StructType); err != nil {
+			return errors.NewErr("StackItems Struct serialize error.")
+		}
+
+		if err := serialization.WriteVarUint(w, uint64(len(item.GetStruct()))); err != nil {
+			return errors.NewErr("StackItems Struct serialize error.")
+		}
+
+		for _, v := range item.GetArray() {
+			SerializeStackItem(v, w)
+		}
+
+	case *types.Map:
+		mp := item.(*types.Map)
+		if err := serialization.WriteByte(w, types.MapType); err != nil {
+			return errors.NewErr("StackItems MapType serialize error.")
+		}
+		if err := serialization.WriteVarUint(w, uint64(len(mp.GetMap()))); err != nil {
+			return errors.NewErr("StackItems MapType serialize error.")
+		}
+
+		for k, v := range mp.GetMap() {
+			SerializeStackItem(k, w)
+			SerializeStackItem(v, w)
+		}
+	default:
+		errors.NewErr("invalid type")
+	}
+
+	return nil
+}
+
+func DeSerializeStackItem(r io.Reader) (items types.StackItems, err error) {
+	t, err := serialization.ReadByte(r)
+	if err != nil {
+		return nil, errors.NewErr("Deserialize error.")
+	}
+
+	fmt.Printf("=======desirialize datatype==== %d\n ", t)
+
+	switch t {
+	case types.ByteArrayType:
+		b, err := serialization.ReadVarBytes(r)
+		if err != nil {
+			return nil, errors.NewErr("StackItems Deserialize ByteArray error.")
+		}
+		return types.NewByteArray(b), nil
+
+	case types.BooleanType:
+		b, err := serialization.ReadBool(r)
+		if err != nil {
+			return nil, errors.NewErr("StackItems Deserialize Boolean  error.")
+		}
+		return types.NewBoolean(b), nil
+
+	case types.IntegerType:
+		b, err := serialization.ReadVarBytes(r)
+		if err != nil {
+			return nil, errors.NewErr("StackItems Deserialize Integer error.")
+		}
+		return types.NewInteger(new(big.Int).SetBytes(b)), nil
+
+	case types.ArrayType, types.StructType:
+		count, err := serialization.ReadVarUint(r, 0)
+		if err != nil {
+			return nil, errors.NewErr("StackItems Deserialize error: " + err.Error())
+		}
+
+		var arr []types.StackItems
+		for count > 0 {
+			item, err := DeSerializeStackItem(r)
+			if err != nil {
+				return nil, err
+			}
+			arr = append(arr, item)
+			count--
+		}
+
+		if t == types.StructType {
+			return types.NewStruct(arr), nil
+		}
+
+		return types.NewArray(arr), nil
+
+	case types.MapType:
+		count, err := serialization.ReadVarUint(r, 0)
+		if err != nil {
+			return nil, errors.NewErr("StackItems Deserialize error: " + err.Error())
+		}
+
+		mp := types.NewMap()
+		for count > 0 {
+			key, err := DeSerializeStackItem(r)
+			if err != nil {
+				return nil, err
+			}
+
+			value, err := DeSerializeStackItem(r)
+			if err != nil {
+				return nil, err
+			}
+
+			mp.GetMap()[key] = value
+			count--
+		}
+
+		return mp, nil
+
+	default:
+		errors.NewErr("invalid type")
+	}
+
+	return nil, nil
 }
 
 func Hash(b []byte, e *ExecutionEngine) []byte {
@@ -252,6 +415,16 @@ func PopBoolean(e *ExecutionEngine) bool {
 }
 
 func PopArray(e *ExecutionEngine) []types.StackItems {
+	x := PopStackItem(e)
+	return x.GetArray()
+}
+
+//func PopMap(e *ExecutionEngine) []types.StackItems {
+//	x := PopStackItem(e)
+//	return x.GetMap()
+//}
+
+func Pop(e *ExecutionEngine) []types.StackItems {
 	x := PopStackItem(e)
 	return x.GetArray()
 }

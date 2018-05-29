@@ -362,9 +362,9 @@ func validatePickItem(e *ExecutionEngine) error {
 	if item == nil {
 		return errors.ERR_BAD_VALUE
 	}
-	if _, ok := item.(*types.Array); !ok {
-		return errors.ERR_NOT_ARRAY
-	}
+	//if _, ok := item.(*types.Array); !ok {
+	//	return errors.ERR_NOT_ARRAY
+	//}
 	if index.Cmp(big.NewInt(int64(len(item.GetArray())))) >= 0 {
 		return errors.ERR_OVER_MAX_ARRAY_SIZE
 	}
@@ -372,28 +372,48 @@ func validatePickItem(e *ExecutionEngine) error {
 }
 
 func validatorSetItem(e *ExecutionEngine) error {
-	if err := LogStackTrace(e, 3, "[validatorSetItem]"); err != nil {
+	newItem := PeekNStackItem(0, e)
+
+	if _, ok := newItem.(*types.ByteArray); ok {
+		if err := LogStackTrace(e, 3, "[validatorSetItem]"); err != nil {
+			return err
+		}
+		//newItem := PeekNStackItem(0, e)
+		if newItem == nil {
+			return errors.ERR_BAD_VALUE
+		}
+		index := PeekNBigInt(1, e)
+		if index.Sign() < 0 {
+			return errors.ERR_BAD_VALUE
+		}
+		item := PeekNStackItem(2, e)
+		if item == nil {
+			return errors.ERR_BAD_VALUE
+		}
+		if index.Cmp(big.NewInt(int64(len(item.GetArray())))) >= 0 {
+			return errors.ERR_OVER_MAX_ARRAY_SIZE
+		}
+	}
+
+	return nil
+}
+
+func validateNewArray(e *ExecutionEngine) error {
+	if err := LogStackTrace(e, 1, "[validateNewArray]"); err != nil {
 		return err
 	}
-	newItem := PeekNStackItem(0, e)
-	if newItem == nil {
+
+	count := PeekBigInteger(e)
+	if count.Sign() < 0 {
 		return errors.ERR_BAD_VALUE
 	}
-	index := PeekNBigInt(1, e)
-	if index.Sign() < 0 {
-		return errors.ERR_BAD_VALUE
-	}
-	item := PeekNStackItem(2, e)
-	if item == nil {
-		return errors.ERR_BAD_VALUE
-	}
-	if index.Cmp(big.NewInt(int64(len(item.GetArray())))) >= 0 {
+	if count.Cmp(big.NewInt(int64(MAX_ARRAY_SIZE))) > 0 {
 		return errors.ERR_OVER_MAX_ARRAY_SIZE
 	}
 	return nil
 }
 
-func validateNewArray(e *ExecutionEngine) error {
+func validateNewMap(e *ExecutionEngine) error {
 	if err := LogStackTrace(e, 1, "[validateNewArray]"); err != nil {
 		return err
 	}

@@ -21,6 +21,7 @@ package neovm
 import (
 	"bytes"
 
+	"fmt"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
@@ -30,6 +31,7 @@ import (
 
 // StoragePut put smart contract storage item to cache
 func StoragePut(service *NeoVmService, engine *vm.ExecutionEngine) error {
+	fmt.Printf("=====call storge put=====\n")
 	context, err := getContext(engine)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StoragePut] get pop context error!")
@@ -44,6 +46,8 @@ func StoragePut(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	}
 
 	value := vm.PopByteArray(engine)
+	//fmt.Printf("=====call storge put key=%v, value = %v=====\n", key, value)
+	fmt.Printf("=====call storge put key=%s, value = %s=====\n", string(key), string(value))
 	service.CloneCache.Add(scommon.ST_STORAGE, getStorageKey(context.address, key), &states.StorageItem{Value: value})
 	return nil
 }

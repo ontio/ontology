@@ -21,7 +21,9 @@ package neovm
 import (
 	"math/big"
 
+	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/vm/neovm/types"
+	"fmt"
 )
 
 func opArraySize(e *ExecutionEngine) (VMState, error) {
@@ -56,20 +58,79 @@ func opUnpack(e *ExecutionEngine) (VMState, error) {
 }
 
 func opPickItem(e *ExecutionEngine) (VMState, error) {
-	index := PopInt(e)
-	items := PopArray(e)
-	PushData(e, items[index])
+	//index := PopInt(e)
+	//items := PopArray(e)
+	//PushData(e, items[index])
+	//return NONE, nil
+
+	key := PopStackItem(e)
+	item := PopStackItem(e)
+
+	switch item.(type) {
+	case *types.Array:
+		index := int(key.(*types.Integer).GetBigInteger().Int64())
+		//arr := item.(*types.Array).GetArray()
+		//arr := item.GetArray()
+		if index < 0 || index >= len(item.GetArray()) {
+			return NONE, errors.NewErr("invalid array.")
+		}
+		//PushData(e, arr[index])
+		PushData(e, item.GetArray()[index])
+	case *types.Map:
+		mp := item.(*types.Map)
+		v := mp.TryGetValue(key)
+		if v == nil {
+			return NONE, errors.NewErr("invalid map element.")
+		}
+		PushData(e, v)
+	default:
+		return NONE, errors.NewErr("invalid item type.")
+	}
 	return NONE, nil
 }
 
 func opSetItem(e *ExecutionEngine) (VMState, error) {
+	//newItem := PopStackItem(e)
+	//if value, ok := newItem.(*types.Struct); ok {
+	//	newItem = value.Clone()
+	//}
+	//index := PopInt(e)
+	//items := PopArray(e)
+	//items[index] = newItem
+	//return NONE, nil
+
+	fmt.Printf("======call setItem====\n")
 	newItem := PopStackItem(e)
 	if value, ok := newItem.(*types.Struct); ok {
 		newItem = value.Clone()
 	}
-	index := PopInt(e)
-	items := PopArray(e)
-	items[index] = newItem
+
+	key := PopStackItem(e)
+
+	item := PopStackItem(e)
+	switch item.(type) {
+	case *types.Array:
+		fmt.Printf("======call setItem type is array====\n")
+		index := int(key.(*types.Integer).GetBigInteger().Int64())
+		fmt.Printf("=====set item index = %d\n", index)
+		//arr := item.(*types.Array).GetArray()
+		arr := item.GetArray()
+		fmt.Printf("======setItem 1====\n")
+		if index < 0 || index >= len(arr) {
+			fmt.Printf("======setItem 3====\n")
+			return NONE, errors.NewErr("invalid array.")
+		}
+		fmt.Printf("======setItem 2====\n")
+		arr[index] = newItem
+		fmt.Printf("======setItem 4====\n")
+	case *types.Map:
+		fmt.Printf("======call setItem type is Map====\n")
+		mp := item.(*types.Map).GetMap()
+		mp[key] = newItem
+	default:
+		return NONE, errors.NewErr("invalid item type.")
+	}
+
 	return NONE, nil
 }
 
@@ -90,6 +151,11 @@ func opNewStruct(e *ExecutionEngine) (VMState, error) {
 		items = append(items, types.NewBoolean(false))
 	}
 	PushData(e, types.NewStruct(items))
+	return NONE, nil
+}
+
+func opNewMap(e *ExecutionEngine) (VMState, error) {
+	PushData(e, types.NewMap())
 	return NONE, nil
 }
 
