@@ -262,49 +262,6 @@ func SignTransaction(signer *account.Account, tx *types.Transaction) error {
 	return nil
 }
 
-//MultiSignTransaction multi sign to a transaction
-func MultiSignTransaction(tx *types.Transaction, m uint8, signers []*account.Account) error {
-	if len(signers) == 0 {
-		return fmt.Errorf("not enough signer")
-	}
-	n := len(signers)
-	if int(m) > n {
-		return fmt.Errorf("M:%d should smaller than N:%d", m, n)
-	}
-
-	pks := make([]keypair.PublicKey, 0, n)
-	for _, signer := range signers {
-		pks = append(pks, signer.PublicKey)
-	}
-	payer, err := types.AddressFromMultiPubKeys(pks, int(m))
-	if err != nil {
-		return fmt.Errorf("AddressFromMultiPubKeys error:%s", payer)
-	}
-	tx.Payer = payer
-
-	txHash := tx.Hash()
-	sigData := make([][]byte, 0, m)
-	for i := 0; i < n; i++ {
-		signer := signers[i]
-		if i >= int(m) {
-			break
-		}
-		sig, err := Sign(txHash.ToArray(), signer)
-		if err != nil {
-			return fmt.Errorf("sign error:%s", err)
-		}
-		sigData = append(sigData, sig)
-	}
-	sig := &types.Sig{
-		PubKeys: pks,
-		M:       m,
-		SigData: sigData,
-	}
-	tx.Sigs = []*types.Sig{sig}
-
-	return nil
-}
-
 //Sign sign return the signature to the data of private key
 func Sign(data []byte, signer *account.Account) ([]byte, error) {
 	s, err := sig.Sign(signer.SigScheme, signer.PrivateKey, data, nil)

@@ -116,8 +116,7 @@ func SigMutilRawTransaction(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpc
 			for _, sigData := range sigs.SigData {
 				err = signature.Verify(signer.PublicKey, txHash.ToArray(), sigData)
 				if err == nil {
-					resp.ErrorCode = clisvrcom.CLIERR_DUPLICATE_SIG
-					return
+					break
 				}
 			}
 			sigs.SigData = append(sigs.SigData, sigData)
