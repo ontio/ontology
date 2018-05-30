@@ -19,6 +19,7 @@
 package dht
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"net"
@@ -138,12 +139,12 @@ func (this *DHT) Loop() {
 		select {
 		case pk, ok := <-this.recvCh:
 			if ok {
-				this.processPacket(pk.From, pk.Payload)
+				go this.processPacket(pk.From, pk.Payload)
 			}
 		case <-this.stopCh:
 			return
 		case <-refresh.C:
-			this.refreshRoutingTable()
+			go this.refreshRoutingTable()
 		}
 	}
 }
@@ -153,6 +154,11 @@ func (this *DHT) refreshRoutingTable() {
 	// Todo:
 	this.AppendNodes(this.seeds)
 	this.lookup(this.nodeID)
+
+	var targetID types.NodeID
+	rand.Read(targetID[:])
+	log.Infof("refreshRoutingTable: %s", targetID.String())
+	this.lookup(targetID)
 }
 
 func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
@@ -164,9 +170,8 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 	}
 
 	closestNodes := this.routingTable.GetClosestNodes(types.BUCKET_SIZE, targetID)
-
 	if len(closestNodes) == 0 {
-		this.refreshRoutingTable()
+		return nil
 	}
 
 	visited := make(map[types.NodeID]bool)
@@ -209,13 +214,14 @@ func (this *DHT) waitAndHandleResponse(knownNode map[types.NodeID]bool, closestN
 		if ok {
 			//log.Infof("get entries %d %v", len(entries), entries)
 			for _, n := range entries {
-				//log.Info("receive new node", n.UDPPort)
+				log.Infof("receive new node %d, id %s", n.UDPPort, n.ID.String())
 				// Todo:
 				if knownNode[n.ID] == true || n.ID == this.nodeID {
 					continue
 				}
 				knownNode[n.ID] = true
 				// ping this node
+				log.Infof("waitAndHandleResponse: ping port %d, id %s", n.UDPPort, n.ID)
 				this.pingNodeQueue.AddNode(n, nil)
 				addr, err := getNodeUDPAddr(n)
 				if err != nil {
@@ -312,25 +318,24 @@ func (this *DHT) AddNode(remotePeer *types.Node) {
 
 func (this *DHT) Ping(addr *net.UDPAddr) error {
 	pingPayload := mt.DHTPingPayload{
-		Version:  this.version,
-		SrcPort:  this.udpPort,
-		DestPort: uint16(addr.Port),
+		Version: this.version,
 	}
+	copy(pingPayload.FromID[:], this.nodeID[:])
+
+	pingPayload.SrcEndPoint.UDPPort = this.udpPort
+	pingPayload.SrcEndPoint.TCPPort = this.tcpPort
 
 	ip := net.ParseIP(this.addr).To16()
 	if ip == nil {
 		log.Error("Parse IP address error\n", this.addr)
 		return errors.New("Parse IP address error")
 	}
-	copy(pingPayload.SrcAddr[:], ip[:16])
+	copy(pingPayload.SrcEndPoint.Addr[:], ip[:16])
 
-	ip = addr.IP.To4()
-	if ip == nil {
-		ip = addr.IP.To16()
-	}
-	copy(pingPayload.DestAddr[:], ip[:])
+	pingPayload.DestEndPoint.UDPPort = uint16(addr.Port)
 
-	copy(pingPayload.FromID[:], this.nodeID[:])
+	destIP := addr.IP.To16()
+	copy(pingPayload.DestEndPoint.Addr[:], destIP[:16])
 
 	pingPacket, err := msgpack.NewDHTPing(pingPayload)
 	if err != nil {
@@ -357,25 +362,23 @@ func (this *DHT) onPingTimeOut(nodeId types.NodeID) {
 
 func (this *DHT) Pong(addr *net.UDPAddr) error {
 	PongPayload := mt.DHTPongPayload{
-		Version:  this.version,
-		SrcPort:  this.udpPort,
-		DestPort: uint16(addr.Port),
+		Version: this.version,
 	}
+	copy(PongPayload.FromID[:], this.nodeID[:])
+	log.Infof("Pong: fromID %s", this.nodeID.String())
+	PongPayload.SrcEndPoint.UDPPort = this.udpPort
+	PongPayload.SrcEndPoint.TCPPort = this.tcpPort
 
 	ip := net.ParseIP(this.addr).To16()
 	if ip == nil {
 		log.Error("Parse IP address error\n", this.addr)
 		return errors.New("Parse IP address error")
 	}
-	copy(PongPayload.SrcAddr[:], ip[:])
+	copy(PongPayload.SrcEndPoint.Addr[:], ip[:16])
 
-	ip = addr.IP.To4()
-	if ip == nil {
-		ip = addr.IP.To16()
-	}
-	copy(PongPayload.DestAddr[:], ip[:])
-
-	copy(PongPayload.FromID[:], this.nodeID[:])
+	PongPayload.DestEndPoint.UDPPort = uint16(addr.Port)
+	destIP := addr.IP.To16()
+	copy(PongPayload.DestEndPoint.Addr[:], destIP[:16])
 
 	pongPacket, err := msgpack.NewDHTPong(PongPayload)
 	if err != nil {
@@ -419,13 +422,13 @@ func (this *DHT) processPacket(from *net.UDPAddr, packet []byte) {
 	log.Infof("Recv UDP msg %s %v", msgType, from)
 	switch msgType {
 	case "DHTPing":
-		go this.PingHandler(from, packet)
+		this.PingHandler(from, packet)
 	case "DHTPong":
-		go this.PongHandler(from, packet)
+		this.PongHandler(from, packet)
 	case "findnode":
-		go this.FindNodeHandler(from, packet)
+		this.FindNodeHandler(from, packet)
 	case "neighbors":
-		go this.NeighborsHandler(from, packet)
+		this.NeighborsHandler(from, packet)
 	default:
 		log.Infof("processPacket: unknown msg %s", msgType)
 	}
@@ -443,8 +446,9 @@ func (this *DHT) recvUDPMsg() {
 		// Todo:
 		pk := &types.DHTMessage{
 			From:    from,
-			Payload: buf[:nbytes],
+			Payload: make([]byte, 0, nbytes),
 		}
+		pk.Payload = append(pk.Payload, buf[:nbytes]...)
 		this.recvCh <- pk
 	}
 }

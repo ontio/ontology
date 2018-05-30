@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
+	"time"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
@@ -65,6 +66,15 @@ func main() {
 	testDht := dht.NewDHT(nodeID, seeds)
 	testDht.Start()
 	stopCh := make(chan int)
+	timer := time.NewTicker(3 * time.Second)
+	for {
+		select {
+		case <-timer.C:
+			fmt.Println("Now table is: ")
+			testDht.DisplayRoutingTable()
+		}
+	}
+
 	<-stopCh
 }
 

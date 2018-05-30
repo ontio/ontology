@@ -42,10 +42,7 @@ func (this *FindNodeQueue) SetResult(results []*Node, resultsFromNode NodeID) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-	fmt.Println("SetResult: receive neighbors , ", len(results), "from ", resultsFromNode.String())
-
 	if _, ok := this.requestTimerQueue[resultsFromNode]; ok {
-		fmt.Println("SetResult: receive neighbors from ", resultsFromNode.String())
 		timer := this.requestTimerQueue[resultsFromNode]
 		timer.Stop()
 		delete(this.requestTimerQueue, resultsFromNode)
@@ -56,7 +53,6 @@ func (this *FindNodeQueue) SetResult(results []*Node, resultsFromNode NodeID) {
 func (this *FindNodeQueue) StartRequestTimer(requestNode *Node) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	fmt.Println("StartRequestTimer: ", requestNode.ID.String())
 	// start a timer
 	timer := time.AfterFunc(FIND_NODE_TIMEOUT, func() {
 		fmt.Println("timeout: ", requestNode.ID.String())

@@ -69,8 +69,11 @@ func (this *PingNodeQueue) DeleteNode(node NodeID) {
 
 	delete(this.requestNodeQueue, node)
 	delete(this.pendingNodeQueue, node)
-	timer := this.requestTimerQueue[node]
-	timer.Stop()
+	timer, ok := this.requestTimerQueue[node]
+	if ok {
+		timer.Stop()
+	}
+
 	delete(this.requestTimerQueue, node)
 }
 

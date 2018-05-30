@@ -21,20 +21,23 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 
-	//"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/p2pserver/dht/types"
 )
 
+type EndPoint struct {
+	Addr    [16]byte
+	UDPPort uint16
+	TCPPort uint16
+}
+
 type DHTPingPayload struct {
-	Version  uint16
-	FromID   types.NodeID
-	SrcAddr  [16]byte
-	SrcPort  uint16
-	DestAddr [16]byte
-	DestPort uint16
+	Version      uint16
+	FromID       types.NodeID
+	SrcEndPoint  EndPoint
+	DestEndPoint EndPoint
 }
 
 type DHTPing struct {
@@ -51,9 +54,61 @@ func (this DHTPing) Verify(buf []byte) error {
 //Serialize message payload
 func (this DHTPing) Serialization() ([]byte, error) {
 	p := bytes.NewBuffer([]byte{})
-	err := binary.Write(p, binary.LittleEndian, this.P)
+
+	payload := this.P
+	err := serialization.WriteUint16(p, payload.Version)
 	if err != nil {
-		log.Error("failed to write DHT ping payload failed")
+		log.Errorf("failed to serialize version %v. version %x",
+			err, payload.Version)
+		return nil, err
+	}
+
+	err = serialization.WriteVarBytes(p, payload.FromID[:])
+	if err != nil {
+		log.Errorf("failed to serialize node id %v. ID %x",
+			err, payload.FromID)
+		return nil, err
+	}
+
+	err = serialization.WriteVarBytes(p, payload.SrcEndPoint.Addr[:])
+	if err != nil {
+		log.Errorf("failed to serialize src addr %v. addr %s",
+			err, payload.SrcEndPoint.Addr)
+		return nil, err
+	}
+
+	err = serialization.WriteUint16(p, payload.SrcEndPoint.UDPPort)
+	if err != nil {
+		log.Errorf("failed to serialize src udp port %v. UDPPort %d",
+			err, payload.SrcEndPoint.UDPPort)
+		return nil, err
+	}
+
+	err = serialization.WriteUint16(p, payload.SrcEndPoint.TCPPort)
+	if err != nil {
+		log.Errorf("failed to serialize src tcp port %v. TCPPort %d",
+			err, payload.SrcEndPoint.TCPPort)
+		return nil, err
+	}
+
+	err = serialization.WriteVarBytes(p, payload.DestEndPoint.Addr[:])
+	if err != nil {
+		log.Errorf("failed to serialize dest addr %v. addr %s",
+			err, payload.SrcEndPoint.Addr)
+		return nil, err
+	}
+
+	err = serialization.WriteUint16(p, payload.DestEndPoint.UDPPort)
+	if err != nil {
+		log.Errorf("failed to serialize dest udp port %v. UDPPort %d",
+			err, payload.SrcEndPoint.UDPPort)
+		return nil, err
+	}
+
+	err = serialization.WriteUint16(p, payload.DestEndPoint.TCPPort)
+	if err != nil {
+		log.Errorf("failed to serialize dest tcp port %v. TCPPort %d",
+			err, payload.SrcEndPoint.TCPPort)
 		return nil, err
 	}
 
@@ -74,13 +129,59 @@ func (this *DHTPing) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := binary.Read(buf, binary.LittleEndian, &(this.Hdr))
 	if err != nil {
+		log.Errorf("failed to deserialize ping header %v", err)
 		return err
 	}
 
-	err = binary.Read(buf, binary.LittleEndian, &this.P)
+	this.P.Version, err = serialization.ReadUint16(buf)
 	if err != nil {
-		log.Error("Parse DHTPing payload message error", err)
-		return errors.New("Parse DHTPing payload message error")
+		log.Errorf("failed to deserialize ping version %v", err)
+		return err
+	}
+
+	id, err := serialization.ReadVarBytes(buf)
+	if err != nil {
+		log.Errorf("failed to deserialize ping  id %v", err)
+		return err
+	}
+	copy(this.P.FromID[:], id)
+
+	addr, err := serialization.ReadVarBytes(buf)
+	if err != nil {
+		log.Errorf("failed to deserialize node ip %v", err)
+		return err
+	}
+	copy(this.P.SrcEndPoint.Addr[:], addr)
+
+	this.P.SrcEndPoint.UDPPort, err = serialization.ReadUint16(buf)
+	if err != nil {
+		log.Errorf("failed to deserialize ping src udp port %v", err)
+		return err
+	}
+
+	this.P.SrcEndPoint.TCPPort, err = serialization.ReadUint16(buf)
+	if err != nil {
+		log.Errorf("failed to deserialize ping src tcp port %v", err)
+		return err
+	}
+
+	addr, err = serialization.ReadVarBytes(buf)
+	if err != nil {
+		log.Errorf("failed to deserialize ping dest  address  %v", err)
+		return err
+	}
+	copy(this.P.DestEndPoint.Addr[:], addr)
+
+	this.P.DestEndPoint.UDPPort, err = serialization.ReadUint16(buf)
+	if err != nil {
+		log.Errorf("failed to deserialize ping dest udp port %v", err)
+		return err
+	}
+
+	this.P.DestEndPoint.TCPPort, err = serialization.ReadUint16(buf)
+	if err != nil {
+		log.Errorf("failed to deserialize ping dest tcp port %v", err)
+		return err
 	}
 
 	return err

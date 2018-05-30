@@ -1,6 +1,7 @@
 package dht
 
 import (
+	"fmt"
 	"github.com/ontio/ontology/p2pserver/dht/types"
 	mt "github.com/ontio/ontology/p2pserver/message/types"
 	"net"
@@ -30,7 +31,16 @@ func (this *DHT) PingHandler(fromAddr *net.UDPAddr, pingMsgData []byte) {
 	pingMsg.Deserialization(pingMsgData)
 	// response
 	this.Pong(fromAddr)
-	this.updateFromNode(pingMsg.P.FromID, fromAddr)
+	this.updateFromNode(pingMsg.P.FromID)
+	fromNode := this.routingTable.queryNode(pingMsg.P.FromID)
+	if fromNode == nil {
+		node := &types.Node{
+			ID:      pingMsg.P.FromID,
+			IP:      fromAddr.IP.String(),
+			UDPPort: uint16(fromAddr.Port),
+		}
+		this.AddNode(node)
+	}
 }
 
 func (this *DHT) PongHandler(fromAddr *net.UDPAddr, pongMsgData []byte) {
@@ -40,6 +50,7 @@ func (this *DHT) PongHandler(fromAddr *net.UDPAddr, pongMsgData []byte) {
 	fromNode, ok := this.pingNodeQueue.GetRequestNode(fromNodeId)
 	if !ok {
 		// ping node queue doesn't contain the node, ping timeout
+		fmt.Println("PongHandler: from id ", fromNodeId)
 		this.routingTable.RemoveNode(fromNodeId)
 	} else {
 		// add to routing table
@@ -51,17 +62,10 @@ func (this *DHT) PongHandler(fromAddr *net.UDPAddr, pongMsgData []byte) {
 }
 
 // update the node to bucket when receive message from the node
-func (this *DHT) updateFromNode(fromNodeId types.NodeID, fromAddr *net.UDPAddr) {
+func (this *DHT) updateFromNode(fromNodeId types.NodeID) {
 	fromNode := this.routingTable.queryNode(fromNodeId)
 	if fromNode != nil {
 		// add node to bucket
 		this.AddNode(fromNode)
-	} else {
-		node := &types.Node{
-			ID:      fromNodeID,
-			IP:      fromAddr.IP,
-			UDPPort: fromAddr.Port,
-		}
-		this.AddNode(node)
 	}
 }
