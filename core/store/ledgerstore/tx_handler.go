@@ -104,7 +104,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 		bytes.Compare(code, ninit.ONG_INIT_BYTES) == 0 ||
 		bytes.Compare(code, ninit.PARAM_INIT_BYTES) == 0
 
-	if !sysTransFlag {
+	if !sysTransFlag && tx.GasPrice != 0 {
 		if err := isBalanceSufficient(tx, stateBatch); err != nil {
 			return err
 		}
@@ -124,7 +124,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 		CloneCache: cache,
 		Store:      store,
 		Code:       invoke.Code,
-		Gas:        tx.GasLimit - neovm.TRANSACTION_GAS,
+		Gas:        tx.GasLimit,
 	}
 
 	//start the smart contract executive function
@@ -136,8 +136,11 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 
 	var notifies []*event.NotifyEventInfo
 	if !sysTransFlag {
-		totalGas := (tx.GasLimit - sc.Gas) * tx.GasPrice
-		notifies, err = costGas(tx.Payer, totalGas, config, sc.CloneCache, store)
+		totalGas := tx.GasLimit - sc.Gas
+		if totalGas < neovm.TRANSACTION_GAS {
+			totalGas = tx.GasLimit
+		}
+		notifies, err = costGas(tx.Payer, totalGas*tx.GasPrice, config, sc.CloneCache, store)
 		if err != nil {
 			return err
 		}
@@ -202,7 +205,6 @@ func isBalanceSufficient(tx *types.Transaction, stateBatch *statestore.StateBatc
 	if err != nil {
 		return err
 	}
-	fmt.Println("balance:", balance)
 	if balance < tx.GasLimit*tx.GasPrice {
 		return fmt.Errorf("payer gas insufficient, need %d , only have %d", tx.GasLimit*tx.GasPrice, balance)
 	}

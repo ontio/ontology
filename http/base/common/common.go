@@ -22,10 +22,13 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math/big"
+	"strings"
+	"time"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
@@ -34,9 +37,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	cstates "github.com/ontio/ontology/smartcontract/states"
 	vmtypes "github.com/ontio/ontology/smartcontract/types"
-	"math/big"
-	"strings"
-	"time"
 )
 
 const MAX_SEARCH_HEIGHT uint32 = 100
@@ -285,7 +285,7 @@ func GetContractBalance(cVersion byte, contractAddr, accAddr common.Address) (ui
 		return 0, fmt.Errorf("address serialize error:%s", err)
 	}
 	argBuf := bytes.NewBuffer(nil)
-	err = serialization.WriteVarBytes(argBuf, addrBuf.Bytes())
+	err = accAddr.Serialize(argBuf)
 	if err != nil {
 		return 0, fmt.Errorf("serialization.WriteVarBytes error:%s", err)
 	}
@@ -316,26 +316,16 @@ func GetContractBalance(cVersion byte, contractAddr, accAddr common.Address) (ui
 }
 
 func GetContractAllowance(cVersion byte, contractAddr, fromAddr, toAddr common.Address) (uint64, error) {
-	fromBuf := bytes.NewBuffer(nil)
-	err := fromAddr.Serialize(fromBuf)
+	argBuf := new(bytes.Buffer)
+	err := fromAddr.Serialize(argBuf)
 	if err != nil {
 		return 0, fmt.Errorf("from address serialize error:%s", err)
 	}
-	toBuf := bytes.NewBuffer(nil)
-	err = toAddr.Serialize(toBuf)
+	err = toAddr.Serialize(argBuf)
 	if err != nil {
 		return 0, fmt.Errorf("to address serialize error:%s", err)
 	}
 
-	argBuf := bytes.NewBuffer(nil)
-	err = serialization.WriteVarBytes(argBuf, fromBuf.Bytes())
-	if err != nil {
-		return 0, fmt.Errorf("serialization.WriteVarBytes error:%s", err)
-	}
-	err = serialization.WriteVarBytes(argBuf, toBuf.Bytes())
-	if err != nil {
-		return 0, fmt.Errorf("serialization.WriteVarBytes error:%s", err)
-	}
 	crt := &cstates.Contract{
 		Version: cVersion,
 		Address: contractAddr,
