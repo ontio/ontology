@@ -41,6 +41,7 @@ const (
 
 	DEFAULT_LOG_LEVEL        = 1
 	DEFAULT_MAX_LOG_SIZE     = 100 //MByte
+	DEFAULT_NET_MAGIC        = 0x74746e41
 	DEFAULT_NODE_PORT        = uint(20338)
 	DEFAULT_CONSENSUS_PORT   = uint(20339)
 	DEFAULT_RPC_PORT         = uint(20336)
@@ -139,6 +140,7 @@ type ConsensusConfig struct {
 }
 
 type P2PNodeConfig struct {
+	NetworkId         uint
 	NodePort          uint
 	NodeConsensusPort uint
 	DualPortSupport   bool
@@ -199,6 +201,7 @@ func NewOntologyConfig() *OntologyConfig {
 			MaxTxInBlock:    DEFAULT_MAX_TX_IN_BLOCK,
 		},
 		P2PNode: &P2PNodeConfig{
+			NetworkId:         DEFAULT_NET_MAGIC,
 			NodePort:          DEFAULT_NODE_PORT,
 			NodeConsensusPort: DEFAULT_CONSENSUS_PORT,
 			DualPortSupport:   true,

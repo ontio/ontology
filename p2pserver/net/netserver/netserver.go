@@ -267,8 +267,14 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		return nil
 	}
 	if added := this.AddInConnectingList(addr); added == false {
-		log.Info("node exist in connecting list", addr)
-		return errors.New("node exist in connecting list")
+		p := this.GetPeerFromAddr(addr)
+		if p != nil {
+			if p.SyncLink.Valid() {
+				log.Info("node exist in connecting list", addr)
+				return errors.New("node exist in connecting list")
+			}
+		}
+		this.RemoveFromConnectingList(addr)
 	}
 
 	isTls := config.DefConfig.P2PNode.IsTLS
