@@ -50,8 +50,13 @@ type ChainConfig struct {
 	MaxBlockChangeView   uint32        `json:"MaxBlockChangeView"`
 }
 
+//
+// VBFT consensus payload, stored on each block header
+//
 type VbftBlockInfo struct {
 	Proposer           uint32       `json:"leader"`
+	VrfValue           []byte       `json:"vrf_value"`
+	VrfProof           []byte       `json:"vrf_proof"`
 	LastConfigBlockNum uint32       `json:"last_config_block_num"`
 	NewChainConfig     *ChainConfig `json:"new_chain_config"`
 }

@@ -97,6 +97,9 @@ func NewGenesisConfig() *GenesisConfig {
 	}
 }
 
+//
+// VBFT genesis config, from local config file
+//
 type VBFTConfig struct {
 	N                    uint32               `json:"n"` // network size
 	C                    uint32               `json:"c"` // consensus quorum
@@ -106,6 +109,8 @@ type VBFTConfig struct {
 	HashMsgDelay         uint32               `json:"hash_msg_delay"`
 	PeerHandshakeTimeout uint32               `json:"peer_handshake_timeout"`
 	MaxBlockChangeView   uint32               `json:"max_block_change_view"`
+	VrfValue             string               `json:"vrf_value"`
+	VrfProof             string               `json:"vrf_proof"`
 	Peers                []*VBFTPeerStakeInfo `json:"peers"`
 }
 

@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology-crypto/vrf"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
@@ -290,12 +291,12 @@ func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
 
 	log.Infof("committed: %d, current block no: %d", self.GetCommittedBlockNo(), self.GetCurrentBlockNo())
 
-	block, blockHash := self.blockPool.getSealedBlock(self.GetCommittedBlockNo())
+	block, _ = self.blockPool.getSealedBlock(self.GetCommittedBlockNo())
 	if block == nil {
 		return fmt.Errorf("failed to get sealed block (%d)", self.GetCommittedBlockNo())
 	}
 
-	self.currentParticipantConfig, err = self.buildParticipantConfig(self.GetCurrentBlockNo(), block, blockHash, self.config)
+	self.currentParticipantConfig, err = self.buildParticipantConfig(self.GetCurrentBlockNo(), block, self.config)
 	if err != nil {
 		return fmt.Errorf("failed to build participant config: %s", err)
 	}
@@ -356,6 +357,13 @@ func (self *Server) updateChainConfig() error {
 		peermap[p.ID] = p.Index
 		_, present := self.peerPool.GetPeerIndex(p.ID)
 		if !present {
+			// check if peer pubkey support VRF
+			if pk, err := p.ID.Pubkey(); err != nil {
+				return fmt.Errorf("failed to parse peer %d PeerID: %s", p.Index, err)
+			} else if !vrf.ValidatePublicKey(pk) {
+				return fmt.Errorf("peer %d: invalid peer pubkey for VRF", p.Index)
+			}
+
 			if err := self.peerPool.addPeer(p); err != nil {
 				return fmt.Errorf("failed to add peer %d: %s", p.Index, err)
 			}
@@ -432,6 +440,13 @@ func (self *Server) initialize() error {
 
 	// add all consensus peers to peer_pool
 	for _, p := range self.config.Peers {
+		// check if peer pubkey support VRF
+		if pk, err := p.ID.Pubkey(); err != nil {
+			return fmt.Errorf("failed to parse peer %d PeerID: %s", p.Index, err)
+		} else if !vrf.ValidatePublicKey(pk) {
+			return fmt.Errorf("peer %d: invalid peer pubkey for VRF", p.Index)
+		}
+
 		if err := self.peerPool.addPeer(p); err != nil {
 			return fmt.Errorf("failed to add peer %d: %s", p.Index, err)
 		}
@@ -479,6 +494,10 @@ func (self *Server) initialize() error {
 }
 
 func (self *Server) start() error {
+	// check if server pubkey support VRF
+	if !vrf.ValidatePrivateKey(self.account.PrivateKey) || !vrf.ValidatePublicKey(self.account.PublicKey) {
+		return fmt.Errorf("server %d consensus start failed: invalid account key for VRF", self.Index)
+	}
 
 	// start heartbeat ticker
 	self.timer.startPeerTicker(math.MaxUint32)
@@ -613,14 +632,14 @@ func (self *Server) getState() ServerState {
 func (self *Server) updateParticipantConfig() error {
 	blkNum := self.GetCurrentBlockNo()
 
-	block, blockHash := self.blockPool.getSealedBlock(blkNum - 1)
+	block, _ := self.blockPool.getSealedBlock(blkNum - 1)
 	if block == nil {
 		return fmt.Errorf("failed to get sealed block (%d)", blkNum-1)
 	}
 
 	var err error
 	self.metaLock.Lock()
-	if cfg, err := self.buildParticipantConfig(blkNum, block, blockHash, self.config); err == nil {
+	if cfg, err := self.buildParticipantConfig(blkNum, block, self.config); err == nil {
 		self.currentParticipantConfig = cfg
 	}
 	self.metaLock.Unlock()
@@ -1055,6 +1074,20 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		log.Errorf("BlockPrposalMessage check  blocknum:%d,prevBlockTimestamp:%d,currentBlockTimestamp:%d", msg.GetBlockNum(), prevBlockTimestamp, currentBlockTimestamp)
 		return
 	}
+
+	// verify VRF
+	proposerPk := self.peerPool.GetPeerPubKey(msg.Block.getProposer())
+	if proposerPk == nil {
+		log.Errorf("server %d failed to get proposer %d pk of block %d",
+			self.Index, msg.Block.getProposer(), msgBlkNum)
+		return
+	}
+	if err := verifyVrf(proposerPk, msgBlkNum, blk.getVrfValue(), msg.Block.getVrfValue(), msg.Block.getVrfProof()); err != nil {
+		log.Errorf("server %d failed to verify vrf of block %d proposal from %d",
+			self.Index, msgBlkNum, msg.Block.getProposer())
+		return
+	}
+
 	txs := msg.Block.Block.Transactions
 	if len(txs) > 0 {
 		height := uint32(msgBlkNum) - 1

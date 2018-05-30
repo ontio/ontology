@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/signature"
@@ -192,15 +191,15 @@ func (self *Server) getHighestRankProposal(blockNum uint32, proposals []*blockPr
 //
 //  call this method with metaLock locked
 //
-func (self *Server) buildParticipantConfig(blkNum uint32, block *Block, blockHash common.Uint256, chainCfg *vconfig.ChainConfig) (*BlockParticipantConfig, error) {
+func (self *Server) buildParticipantConfig(blkNum uint32, block *Block, chainCfg *vconfig.ChainConfig) (*BlockParticipantConfig, error) {
 
 	if blkNum == 0 {
 		return nil, fmt.Errorf("not participant config for genesis block")
 	}
 
-	vrfValue := vrf(block, blockHash)
+	vrfValue := getParticipantSelectionSeed(block)
 	if vrfValue.IsNil() {
-		return nil, fmt.Errorf("failed to calculate vrf")
+		return nil, fmt.Errorf("failed to calculate participant SelectionSeed")
 	}
 
 	cfg := &BlockParticipantConfig{
