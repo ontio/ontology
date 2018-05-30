@@ -20,6 +20,8 @@ package rest
 
 import (
 	"bytes"
+	"strconv"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -29,7 +31,6 @@ import (
 	bactor "github.com/ontio/ontology/http/base/actor"
 	bcomn "github.com/ontio/ontology/http/base/common"
 	berr "github.com/ontio/ontology/http/base/error"
-	"strconv"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
