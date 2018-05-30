@@ -20,25 +20,44 @@ package neovm
 
 var (
 	//Gas Limit
-	TRANSACTION_GAS               uint64 = 30000 // Per transaction base cost.
-	BLOCKCHAIN_GETHEADER_GAS      uint64 = 100
-	BLOCKCHAIN_GETBLOCK_GAS       uint64 = 200
-	BLOCKCHAIN_GETTRANSACTION_GAS uint64 = 100
-	BLOCKCHAIN_GETCONTRACT_GAS    uint64 = 100
-	CONTRACT_CREATE_GAS           uint64 = 10000000
-	CONTRACT_MIGRATE_GAS          uint64 = 10000000
-	STORAGE_GET_GAS               uint64 = 100
-	STORAGE_PUT_GAS               uint64 = 1000
-	STORAGE_DELETE_GAS            uint64 = 100
-	RUNTIME_CHECKWITNESS_GAS      uint64 = 200
-	RUNTIME_CHECKSIG_GAS          uint64 = 200
-	APPCALL_GAS                   uint64 = 10
-	TAILCALL_GAS                  uint64 = 10
-	SHA1_GAS                      uint64 = 10
-	SHA256_GAS                    uint64 = 10
-	HASH160_GAS                   uint64 = 20
-	HASH256_GAS                   uint64 = 20
-	OPCODE_GAS                    uint64 = 1
+	/*	TRANSACTION_GAS               uint64 = 30000 // Per transaction base cost.
+		BLOCKCHAIN_GETHEADER_GAS      uint64 = 100
+		BLOCKCHAIN_GETBLOCK_GAS       uint64 = 200
+		BLOCKCHAIN_GETTRANSACTION_GAS uint64 = 100
+		BLOCKCHAIN_GETCONTRACT_GAS    uint64 = 100
+		CONTRACT_CREATE_GAS           uint64 = 10000000
+		CONTRACT_MIGRATE_GAS          uint64 = 10000000
+		STORAGE_GET_GAS               uint64 = 100
+		STORAGE_PUT_GAS               uint64 = 1000
+		STORAGE_DELETE_GAS            uint64 = 100
+		RUNTIME_CHECKWITNESS_GAS      uint64 = 200
+		RUNTIME_CHECKSIG_GAS          uint64 = 200
+		APPCALL_GAS                   uint64 = 10
+		TAILCALL_GAS                  uint64 = 10
+		SHA1_GAS                      uint64 = 10
+		SHA256_GAS                    uint64 = 10
+		HASH160_GAS                   uint64 = 20
+		HASH256_GAS                   uint64 = 20
+		OPCODE_GAS                    uint64 = 1*/
+	TRANSACTION_GAS               uint64 = 0 // Per transaction base cost.
+	BLOCKCHAIN_GETHEADER_GAS      uint64 = 0
+	BLOCKCHAIN_GETBLOCK_GAS       uint64 = 0
+	BLOCKCHAIN_GETTRANSACTION_GAS uint64 = 0
+	BLOCKCHAIN_GETCONTRACT_GAS    uint64 = 0
+	CONTRACT_CREATE_GAS           uint64 = 0
+	CONTRACT_MIGRATE_GAS          uint64 = 0
+	STORAGE_GET_GAS               uint64 = 0
+	STORAGE_PUT_GAS               uint64 = 0
+	STORAGE_DELETE_GAS            uint64 = 0
+	RUNTIME_CHECKWITNESS_GAS      uint64 = 0
+	RUNTIME_CHECKSIG_GAS          uint64 = 0
+	APPCALL_GAS                   uint64 = 0
+	TAILCALL_GAS                  uint64 = 0
+	SHA1_GAS                      uint64 = 0
+	SHA256_GAS                    uint64 = 0
+	HASH160_GAS                   uint64 = 0
+	HASH256_GAS                   uint64 = 0
+	OPCODE_GAS                    uint64 = 0
 
 	// API Name
 	ATTRIBUTE_GETUSAGE_NAME = "Neo.Attribute.GetUsage"

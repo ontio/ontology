@@ -155,7 +155,7 @@ func (module *Module) resolveImports(resolve ResolveFunc) error {
 				module.imports.Memories++
 
 			default:
-				fmt.Println("not support import type")
+				//fmt.Println("not support import type")
 
 			}
 		} else {

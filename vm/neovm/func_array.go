@@ -23,7 +23,6 @@ import (
 
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/vm/neovm/types"
-	"fmt"
 )
 
 func opArraySize(e *ExecutionEngine) (VMState, error) {
@@ -58,75 +57,52 @@ func opUnpack(e *ExecutionEngine) (VMState, error) {
 }
 
 func opPickItem(e *ExecutionEngine) (VMState, error) {
-	//index := PopInt(e)
-	//items := PopArray(e)
-	//PushData(e, items[index])
-	//return NONE, nil
+	index := PopStackItem(e)
+	items := PopStackItem(e)
 
-	key := PopStackItem(e)
-	item := PopStackItem(e)
-
-	switch item.(type) {
+	switch items.(type) {
 	case *types.Array:
-		index := int(key.(*types.Integer).GetBigInteger().Int64())
-		//arr := item.(*types.Array).GetArray()
-		//arr := item.GetArray()
-		if index < 0 || index >= len(item.GetArray()) {
+		i := int(index.GetBigInteger().Int64())
+		if i < 0 || i >= len(items.GetArray()) {
 			return NONE, errors.NewErr("invalid array.")
 		}
-		//PushData(e, arr[index])
-		PushData(e, item.GetArray()[index])
+		PushData(e, items.GetArray()[i])
 	case *types.Map:
-		mp := item.(*types.Map)
-		v := mp.TryGetValue(key)
-		if v == nil {
+		value := items.(*types.Map).TryGetValue(index)
+		if value == nil { //todo should return a nil type when not exist?
 			return NONE, errors.NewErr("invalid map element.")
 		}
-		PushData(e, v)
+		PushData(e, value)
+
 	default:
 		return NONE, errors.NewErr("invalid item type.")
 	}
+
 	return NONE, nil
 }
 
 func opSetItem(e *ExecutionEngine) (VMState, error) {
-	//newItem := PopStackItem(e)
-	//if value, ok := newItem.(*types.Struct); ok {
-	//	newItem = value.Clone()
-	//}
-	//index := PopInt(e)
-	//items := PopArray(e)
-	//items[index] = newItem
-	//return NONE, nil
 
-	fmt.Printf("======call setItem====\n")
 	newItem := PopStackItem(e)
 	if value, ok := newItem.(*types.Struct); ok {
 		newItem = value.Clone()
 	}
 
-	key := PopStackItem(e)
-
+	index := PopStackItem(e)
 	item := PopStackItem(e)
+
 	switch item.(type) {
+	case *types.Map:
+		mapitem := item.GetMap()
+		mapitem[index] = newItem
+
 	case *types.Array:
-		fmt.Printf("======call setItem type is array====\n")
-		index := int(key.(*types.Integer).GetBigInteger().Int64())
-		fmt.Printf("=====set item index = %d\n", index)
-		//arr := item.(*types.Array).GetArray()
-		arr := item.GetArray()
-		fmt.Printf("======setItem 1====\n")
-		if index < 0 || index >= len(arr) {
-			fmt.Printf("======setItem 3====\n")
+		items := item.GetArray()
+		i := int(index.GetBigInteger().Int64())
+		if i < 0 || i >= len(items) {
 			return NONE, errors.NewErr("invalid array.")
 		}
-		fmt.Printf("======setItem 2====\n")
-		arr[index] = newItem
-		fmt.Printf("======setItem 4====\n")
-	case *types.Map:
-		fmt.Printf("======call setItem type is Map====\n")
-		mp := item.(*types.Map).GetMap()
-		mp[key] = newItem
+		items[i] = newItem
 	default:
 		return NONE, errors.NewErr("invalid item type.")
 	}
@@ -173,6 +149,64 @@ func opReverse(e *ExecutionEngine) (VMState, error) {
 	itemArr := PopArray(e)
 	for i, j := 0, len(itemArr)-1; i < j; i, j = i+1, j-1 {
 		itemArr[i], itemArr[j] = itemArr[j], itemArr[i]
+	}
+	return NONE, nil
+}
+
+func opRemove(e *ExecutionEngine) (VMState, error) {
+
+	return NONE, nil
+}
+
+func opHasKey(e *ExecutionEngine) (VMState, error) {
+
+	return NONE, nil
+}
+
+func opKeys(e *ExecutionEngine) (VMState, error) {
+
+	collectItem := PopStackItem(e)
+	switch collectItem.(type) {
+	case *types.Map:
+		mapitem := collectItem.GetMap()
+		keys := make([]types.StackItems, len(mapitem))
+		i := 0
+		for key := range mapitem {
+			keys[i] = key
+			i++
+		}
+		PushData(e, keys)
+
+	case *types.Array:
+		arrayitem := collectItem.GetArray()
+		keys := make([]types.StackItems, len(arrayitem))
+		for i, _ := range arrayitem {
+			keys[i] = NewStackItem(i)
+		}
+		PushData(e, keys)
+	}
+	return NONE, nil
+}
+
+func opValues(e *ExecutionEngine) (VMState, error) {
+	collectItem := PopStackItem(e)
+	switch collectItem.(type) {
+	case *types.Map:
+		mapitem := collectItem.GetMap()
+		values := make([]types.StackItems, len(mapitem))
+		i := 0
+		for _, value := range mapitem {
+			values[i] = value
+			i++
+		}
+		PushData(e, values)
+	case *types.Array:
+		arrayitem := collectItem.GetArray()
+		values := make([]types.StackItems, len(arrayitem))
+		for i, value := range arrayitem {
+			values[i] = value
+		}
+		PushData(e, values)
 	}
 	return NONE, nil
 }

@@ -69,18 +69,18 @@ var (
 		RUNTIME_NOTIFY_NAME:             {Execute: RuntimeNotify, Validator: validatorNotify},
 		RUNTIME_LOG_NAME:                {Execute: RuntimeLog, Validator: validatorLog},
 		//TODO
-		RUNTIME_SERIALIZE:               {Execute: RuntimeSerialize, Validator: validatorLog},
-		RUNTIME_DESERIALIZE:             {Execute: RuntimeDeSerialize, Validator: validatorLog},
+		RUNTIME_SERIALIZE:   {Execute: RuntimeSerialize, Validator: validatorLog},
+		RUNTIME_DESERIALIZE: {Execute: RuntimeDeSerialize, Validator: validatorLog},
 
-		RUNTIME_CHECKSIG_NAME:           {Execute: RuntimeCheckSig, Validator: validatorCheckSig},
-		STORAGE_GET_NAME:                {Execute: StorageGet},
-		STORAGE_PUT_NAME:                {Execute: StoragePut},
-		STORAGE_DELETE_NAME:             {Execute: StorageDelete},
-		STORAGE_GETCONTEXT_NAME:         {Execute: StorageGetContext},
-		GETSCRIPTCONTAINER_NAME:         {Execute: GetCodeContainer},
-		GETEXECUTINGSCRIPTHASH_NAME:     {Execute: GetExecutingAddress},
-		GETCALLINGSCRIPTHASH_NAME:       {Execute: GetCallingAddress},
-		GETENTRYSCRIPTHASH_NAME:         {Execute: GetEntryAddress},
+		RUNTIME_CHECKSIG_NAME:       {Execute: RuntimeCheckSig, Validator: validatorCheckSig},
+		STORAGE_GET_NAME:            {Execute: StorageGet},
+		STORAGE_PUT_NAME:            {Execute: StoragePut},
+		STORAGE_DELETE_NAME:         {Execute: StorageDelete},
+		STORAGE_GETCONTEXT_NAME:     {Execute: StorageGetContext},
+		GETSCRIPTCONTAINER_NAME:     {Execute: GetCodeContainer},
+		GETEXECUTINGSCRIPTHASH_NAME: {Execute: GetExecutingAddress},
+		GETCALLINGSCRIPTHASH_NAME:   {Execute: GetCallingAddress},
+		GETENTRYSCRIPTHASH_NAME:     {Execute: GetEntryAddress},
 	}
 )
 
@@ -146,10 +146,8 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 				return nil, ERR_GAS_INSUFFICIENT
 			}
 		}
-
 		switch engine.OpCode {
 		case vm.SYSCALL:
-			fmt.Printf("===Call syscall ===\n")
 			if err := this.SystemCall(engine); err != nil {
 				return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] service system call error!")
 			}
@@ -158,9 +156,6 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 			if err := c.Deserialize(engine.Context.OpReader.Reader()); err != nil {
 				return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] get contract parameters error!")
 			}
-			fmt.Printf("===Appcall method=%v\n", c.Method)
-			fmt.Printf("===Appcall Address=%v\n", c.Address)
-			fmt.Printf("===Appcall args=%v\n", c.Args)
 			result, err := this.ContextRef.AppCall(c.Address, c.Method, c.Code, c.Args)
 			if err != nil {
 				return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] service app call error!")
@@ -169,9 +164,7 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 				vm.PushData(engine, result)
 			}
 		default:
-			//fmt.Printf("===Opcode= %d ===\n", engine.OpCode)
 			if err := engine.StepInto(); err != nil {
-				fmt.Printf("===Invoke call default opcode =%d, error %s===\n",engine.OpCode, err)
 				return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] vm execute error!")
 			}
 		}
@@ -186,7 +179,6 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 // SystemCall provide register service for smart contract to interaction with blockchain
 func (this *NeoVmService) SystemCall(engine *vm.ExecutionEngine) error {
 	serviceName := engine.Context.OpReader.ReadVarString()
-	fmt.Printf("===SystemCall ServiceName== %s\n", serviceName)
 	service, ok := ServiceMap[serviceName]
 	if !ok {
 		return errors.NewErr(fmt.Sprintf("[SystemCall] service not support: %s", serviceName))

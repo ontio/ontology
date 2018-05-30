@@ -362,19 +362,32 @@ func validatePickItem(e *ExecutionEngine) error {
 	if item == nil {
 		return errors.ERR_BAD_VALUE
 	}
+
+	switch item.(type) {
+	case *types.Array:
+		if index.Cmp(big.NewInt(int64(len(item.GetArray())))) >= 0 {
+			return errors.ERR_OVER_MAX_ARRAY_SIZE
+		}
+	case *types.Map:
+		//check nothing
+	default:
+		return errors.ERR_NOT_SUPPORT_TYPE
+
+	}
+
 	//if _, ok := item.(*types.Array); !ok {
 	//	return errors.ERR_NOT_ARRAY
 	//}
-	if index.Cmp(big.NewInt(int64(len(item.GetArray())))) >= 0 {
-		return errors.ERR_OVER_MAX_ARRAY_SIZE
-	}
+	//if index.Cmp(big.NewInt(int64(len(item.GetArray())))) >= 0 {
+	//	return errors.ERR_OVER_MAX_ARRAY_SIZE
+	//}
 	return nil
 }
 
 func validatorSetItem(e *ExecutionEngine) error {
 	newItem := PeekNStackItem(0, e)
 
-	if _, ok := newItem.(*types.ByteArray); ok {
+	if _, ok := newItem.(*types.Array); ok {
 		if err := LogStackTrace(e, 3, "[validatorSetItem]"); err != nil {
 			return err
 		}
@@ -399,21 +412,6 @@ func validatorSetItem(e *ExecutionEngine) error {
 }
 
 func validateNewArray(e *ExecutionEngine) error {
-	if err := LogStackTrace(e, 1, "[validateNewArray]"); err != nil {
-		return err
-	}
-
-	count := PeekBigInteger(e)
-	if count.Sign() < 0 {
-		return errors.ERR_BAD_VALUE
-	}
-	if count.Cmp(big.NewInt(int64(MAX_ARRAY_SIZE))) > 0 {
-		return errors.ERR_OVER_MAX_ARRAY_SIZE
-	}
-	return nil
-}
-
-func validateNewMap(e *ExecutionEngine) error {
 	if err := LogStackTrace(e, 1, "[validateNewArray]"); err != nil {
 		return err
 	}
@@ -461,6 +459,30 @@ func validatorReverse(e *ExecutionEngine) error {
 	arrItem := PeekStackItem(e)
 	if _, ok := arrItem.(*types.Array); !ok {
 		return errors.ERR_NOT_ARRAY
+	}
+	return nil
+}
+
+func validatorRemove(e *ExecutionEngine) error {
+
+	return nil
+}
+
+func validatorHashkey(e *ExecutionEngine) error {
+
+	return nil
+}
+
+func validatorKeys(e *ExecutionEngine) error {
+	if err := LogStackTrace(e, 1, "[validatorKeys]"); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validatorValues(e *ExecutionEngine) error {
+	if err := LogStackTrace(e, 1, "[validatorValues]"); err != nil {
+		return err
 	}
 	return nil
 }

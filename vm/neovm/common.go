@@ -29,8 +29,6 @@ import (
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/vm/neovm/interfaces"
 	"github.com/ontio/ontology/vm/neovm/types"
-	"fmt"
-	"reflect"
 )
 
 type BigIntSorter []big.Int
@@ -221,7 +219,6 @@ func NewStackItem(data interface{}) types.StackItems {
 	case interfaces.Interop:
 		stackItem = types.NewInteropInterface(data.(interfaces.Interop))
 	default:
-		fmt.Printf("=====type = %v\n", reflect.TypeOf(data))
 		panic("NewStackItemInterface Invalid Type!")
 	}
 	return stackItem
@@ -304,8 +301,6 @@ func DeSerializeStackItem(r io.Reader) (items types.StackItems, err error) {
 	if err != nil {
 		return nil, errors.NewErr("Deserialize error.")
 	}
-
-	fmt.Printf("=======desirialize datatype==== %d\n ", t)
 
 	switch t {
 	case types.ByteArrayType:
@@ -419,10 +414,10 @@ func PopArray(e *ExecutionEngine) []types.StackItems {
 	return x.GetArray()
 }
 
-//func PopMap(e *ExecutionEngine) []types.StackItems {
-//	x := PopStackItem(e)
-//	return x.GetMap()
-//}
+func PopMap(e *ExecutionEngine) map[types.StackItems]types.StackItems {
+	x := PopStackItem(e)
+	return x.GetMap()
+}
 
 func Pop(e *ExecutionEngine) []types.StackItems {
 	x := PopStackItem(e)

@@ -29,7 +29,6 @@ import (
 	scommon "github.com/ontio/ontology/smartcontract/common"
 	"github.com/ontio/ontology/smartcontract/event"
 	vm "github.com/ontio/ontology/vm/neovm"
-	"fmt"
 )
 
 // HeaderGetNextConsensus put current block time to vm stack
@@ -63,7 +62,6 @@ func RuntimeCheckWitness(service *NeoVmService, engine *vm.ExecutionEngine) erro
 
 func RuntimeSerialize(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	//data := vm.PopByteArray(engine)
-	fmt.Printf("===call RuntimeSerialize \n")
 	item := vm.PopStackItem(engine)
 	bf := new(bytes.Buffer)
 	err := vm.SerializeStackItem(item, bf)
@@ -71,21 +69,18 @@ func RuntimeSerialize(service *NeoVmService, engine *vm.ExecutionEngine) error {
 		return err
 	}
 	vm.PushData(engine, bf.Bytes())
-	fmt.Printf("===call RuntimeSerialize end \n")
 	return nil
 }
 
 func RuntimeDeSerialize(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	fmt.Printf("===call RuntimeDeSerialize \n")
 	data := vm.PopByteArray(engine)
 	bf := bytes.NewBuffer(data)
 	item, err := vm.DeSerializeStackItem(bf)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("===call RuntimeDeSerialize end \n")
 
-	if item == nil{
+	if item == nil {
 		return nil
 	}
 	vm.PushData(engine, item)

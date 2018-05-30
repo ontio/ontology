@@ -20,7 +20,6 @@ package smartcontract
 import (
 	"bytes"
 
-	"fmt"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/store"
@@ -179,7 +178,6 @@ func (this *SmartContract) AppCall(address common.Address, method string, codes,
 	case stypes.NEOVM:
 		c, err := this.loadCode(address, codes)
 		if err != nil {
-			fmt.Printf("===Appcall loadcode error%s\n", err)
 			return nil, err
 		}
 		var temp []byte
