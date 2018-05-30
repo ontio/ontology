@@ -71,7 +71,7 @@ func (this *State) Serialize(w io.Writer) error {
 	if err := this.To.Serialize(w); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[State] Serialize To error!")
 	}
-	if err := serialization.WriteUint64(w, this.Value); err != nil {
+	if err := serialization.WriteVarUint(w, this.Value); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[State] Serialize Value error!")
 	}
 	return nil
@@ -86,7 +86,7 @@ func (this *State) Deserialize(r io.Reader) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[State] Deserialize to error!")
 	}
 
-	value, err := serialization.ReadUint64(r)
+	value, err := serialization.ReadVarUint(r, 0)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[State] Deserialize value error!")
 	}
@@ -112,7 +112,7 @@ func (this *TransferFrom) Serialize(w io.Writer) error {
 	if err := this.To.Serialize(w); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Serialize to error!")
 	}
-	if err := serialization.WriteUint64(w, this.Value); err != nil {
+	if err := serialization.WriteVarUint(w, this.Value); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Serialize value error!")
 	}
 	return nil
@@ -131,7 +131,7 @@ func (this *TransferFrom) Deserialize(r io.Reader) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Deserialize to error!")
 	}
 
-	value, err := serialization.ReadUint64(r)
+	value, err := serialization.ReadVarUint(r, 0)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Deserialize value error!")
 	}

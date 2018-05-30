@@ -34,7 +34,6 @@ import (
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
 	"github.com/ontio/ontology/consensus/vbft/config"
-	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
@@ -42,6 +41,7 @@ import (
 	"github.com/ontio/ontology/events/message"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 	gover "github.com/ontio/ontology/smartcontract/service/native/governance"
+	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/states"
 	stypes "github.com/ontio/ontology/smartcontract/types"
 	"github.com/ontio/ontology/validator/increment"
@@ -2010,7 +2010,7 @@ func (self *Server) msgSendLoop() {
 //creategovernaceTransaction invoke governance native contract commit_pos
 func (self *Server) creategovernaceTransaction(blkNum uint32) *types.Transaction {
 	init := states.Contract{
-		Address: genesis.GovernanceContractAddress,
+		Address: nutils.GovernanceContractAddress,
 		Method:  gover.COMMIT_DPOS,
 	}
 	bf := new(bytes.Buffer)

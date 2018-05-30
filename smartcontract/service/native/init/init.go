@@ -19,12 +19,25 @@
 package init
 
 import (
+	"bytes"
+
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native/auth"
 	params "github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/ontio/ontology/smartcontract/service/native/ong"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/ontid"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/smartcontract/states"
+)
+
+var (
+	ONT_INIT_BYTES    = InitBytes(utils.OntContractAddress, ont.INIT_NAME)
+	ONG_INIT_BYTES    = InitBytes(utils.OngContractAddress, ont.INIT_NAME)
+	PARAM_INIT_BYTES  = InitBytes(utils.ParamContractAddress, params.INIT_NAME)
+	COMMIT_DPOS_BYTES = InitBytes(utils.GovernanceContractAddress, governance.COMMIT_DPOS)
+	INIT_CONFIG_BYTES = InitBytes(utils.GovernanceContractAddress, governance.INIT_CONFIG)
 )
 
 func init() {
@@ -34,4 +47,11 @@ func init() {
 	ontid.Init()
 	auth.Init()
 	governance.InitGovernance()
+}
+
+func InitBytes(addr common.Address, method string) []byte {
+	init := states.Contract{Address: addr, Method: method}
+	bf := new(bytes.Buffer)
+	init.Serialize(bf)
+	return bf.Bytes()
 }

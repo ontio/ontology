@@ -28,19 +28,12 @@ import (
 
 	"github.com/ontio/ontology/common"
 	vbftconfig "github.com/ontio/ontology/consensus/vbft/config"
-	"github.com/ontio/ontology/core/genesis"
 	cstates "github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"github.com/ontio/ontology/smartcontract/states"
-)
-
-var (
-	COMMIT_DPOS_BYTES = CommitDposBytes()
-	INIT_CONFIG_BYTES = InitConfigBytes()
 )
 
 func shufflehash(txid common.Uint256, ts uint32, id []byte, idx int) (uint64, error) {
@@ -172,7 +165,7 @@ func AppCallTransferOng(native *native.NativeService, from common.Address, to co
 		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOng, transfers.Serialize error!")
 	}
 
-	if _, err := native.ContextRef.AppCall(genesis.OngContractAddress, "transfer", []byte{}, buf.Bytes()); err != nil {
+	if _, err := native.ContextRef.AppCall(utils.OngContractAddress, "transfer", []byte{}, buf.Bytes()); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOng, appCall error!")
 	}
 	return nil
@@ -194,7 +187,7 @@ func AppCallTransferOnt(native *native.NativeService, from common.Address, to co
 		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, transfers.Serialize error!")
 	}
 
-	if _, err := native.ContextRef.AppCall(genesis.OntContractAddress, "transfer", []byte{}, buf.Bytes()); err != nil {
+	if _, err := native.ContextRef.AppCall(utils.OntContractAddress, "transfer", []byte{}, buf.Bytes()); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, appCall error!")
 	}
 	return nil
@@ -212,24 +205,10 @@ func AppCallApproveOng(native *native.NativeService, from common.Address, to com
 		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallApproveOng, transfers.Serialize error!")
 	}
 
-	if _, err := native.ContextRef.AppCall(genesis.OngContractAddress, "approve", []byte{}, buf.Bytes()); err != nil {
+	if _, err := native.ContextRef.AppCall(utils.OngContractAddress, "approve", []byte{}, buf.Bytes()); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallApproveOng, appCall error!")
 	}
 	return nil
-}
-
-func CommitDposBytes() []byte {
-	commitDpos := states.Contract{Address: genesis.GovernanceContractAddress, Method: COMMIT_DPOS}
-	bf := new(bytes.Buffer)
-	commitDpos.Serialize(bf)
-	return bf.Bytes()
-}
-
-func InitConfigBytes() []byte {
-	initConfig := states.Contract{Address: genesis.GovernanceContractAddress, Method: INIT_CONFIG}
-	bf := new(bytes.Buffer)
-	initConfig.Serialize(bf)
-	return bf.Bytes()
 }
 
 func splitCurve(pos uint64, avg uint64) uint64 {

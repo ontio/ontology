@@ -23,7 +23,7 @@ import (
 	"github.com/ontio/ontology/account"
 	cmdcom "github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/cmd/utils"
-	"github.com/ontio/ontology/core/genesis"
+	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/urfave/cli"
 	"strconv"
 	"strings"
@@ -391,7 +391,7 @@ func unclaimOng(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	fromAddr := genesis.OntContractAddress.ToBase58()
+	fromAddr := nutils.OntContractAddress.ToBase58()
 	balanceStr, err := utils.GetAllowance("ong", fromAddr, accAddr)
 	if err != nil {
 		return err
@@ -418,7 +418,7 @@ func claimOng(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	fromAddr := genesis.OntContractAddress.ToBase58()
+	fromAddr := nutils.OntContractAddress.ToBase58()
 	balance, err := utils.GetAllowance("ong", fromAddr, accAddr)
 	if err != nil {
 		return err

@@ -22,7 +22,6 @@ import (
 	"bytes"
 	"math/big"
 
-	"github.com/ontio/ontology/core/genesis"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -38,20 +37,20 @@ var (
 )
 
 func InitOng() {
-	native.Contracts[genesis.OngContractAddress] = RegisterOngContract
+	native.Contracts[utils.OngContractAddress] = RegisterOngContract
 }
 
 func RegisterOngContract(native *native.NativeService) {
-	native.Register("init", OngInit)
-	native.Register("transfer", OngTransfer)
-	native.Register("approve", OngApprove)
-	native.Register("transferFrom", OngTransferFrom)
-	native.Register("name", OngName)
-	native.Register("symbol", OngSymbol)
-	native.Register("decimals", OngDecimals)
-	native.Register("totalSupply", OngTotalSupply)
-	native.Register("balanceOf", OngBalanceOf)
-	native.Register("allowance", OngAllowance)
+	native.Register(ont.INIT_NAME, OngInit)
+	native.Register(ont.TRANSFER_NAME, OngTransfer)
+	native.Register(ont.APPROVE_NAME, OngApprove)
+	native.Register(ont.TRANSFERFROM_NAME, OngTransferFrom)
+	native.Register(ont.NAME_NAME, OngName)
+	native.Register(ont.SYMBOL_NAME, OngSymbol)
+	native.Register(ont.DECIMALS_NAME, OngDecimals)
+	native.Register(ont.TOTALSUPPLY_NAME, OngTotalSupply)
+	native.Register(ont.BALANCEOF_NAME, OngBalanceOf)
+	native.Register(ont.ALLOWANCE_NAME, OngAllowance)
 }
 
 func OngInit(native *native.NativeService) ([]byte, error) {
@@ -65,7 +64,7 @@ func OngInit(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("Init ong has been completed!")
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, append(contract[:], getOntContext()...), utils.GetUInt64StorageItem(ONG_TOTAL_SUPPLY))
-	ont.AddNotifications(native, contract, &ont.State{To: genesis.OntContractAddress, Value: ONG_TOTAL_SUPPLY})
+	ont.AddNotifications(native, contract, &ont.State{To: utils.OntContractAddress, Value: ONG_TOTAL_SUPPLY})
 	return utils.BYTE_TRUE, nil
 }
 
@@ -149,5 +148,5 @@ func OngAllowance(native *native.NativeService) ([]byte, error) {
 }
 
 func getOntContext() []byte {
-	return genesis.OntContractAddress[:]
+	return utils.OntContractAddress[:]
 }

@@ -608,18 +608,27 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block) error {
 }
 
 func (this *LedgerStoreImp) handleTransaction(stateBatch *statestore.StateBatch, block *types.Block, tx *types.Transaction) error {
-	var err error
 	txHash := tx.Hash()
 	switch tx.TxType {
 	case types.Deploy:
-		err = this.stateStore.HandleDeployTransaction(stateBatch, tx)
+		err := this.stateStore.HandleDeployTransaction(this, stateBatch, tx, block, this.eventStore)
 		if err != nil {
-			return fmt.Errorf("HandleDeployTransaction tx %x error %s", txHash, err)
+			if stateBatch.Error() == nil {
+				log.Debugf("HandleDeployTransaction tx %x error %s", txHash, err)
+				SaveNotify(this.eventStore, txHash, []*event.NotifyEventInfo{}, false)
+			} else {
+				return fmt.Errorf("HandleDeployTransaction tx %x error %s", txHash, stateBatch.Error())
+			}
 		}
 	case types.Invoke:
-		err = this.stateStore.HandleInvokeTransaction(this, stateBatch, tx, block, this.eventStore)
+		err := this.stateStore.HandleInvokeTransaction(this, stateBatch, tx, block, this.eventStore)
 		if err != nil {
-			log.Debugf("HandleInvokeTransaction tx %x error %s \n", txHash, err)
+			if stateBatch.Error() == nil {
+				log.Debugf("HandleInvokeTransaction tx %x error %s", txHash, err)
+				SaveNotify(this.eventStore, txHash, []*event.NotifyEventInfo{}, false)
+			} else {
+				return fmt.Errorf("HandleInvokeTransaction tx %x error %s", txHash, stateBatch.Error())
+			}
 		}
 	case types.Claim:
 	case types.Enrollment:
@@ -782,7 +791,10 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 
 	//start the smart contract executive function
 	result, err := sc.Execute()
-	gasCost := math.MaxUint64 - sc.Gas + neovm.TRANSACTION_GAS
+	gasCost := math.MaxUint64 - sc.Gas
+	if gasCost < neovm.TRANSACTION_GAS {
+		gasCost = neovm.TRANSACTION_GAS
+	}
 	if err != nil {
 		return &sstate.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: gasCost, Result: nil}, err
 	}
