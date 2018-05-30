@@ -155,7 +155,7 @@ func GetKeyState(srvc *native.NativeService) ([]byte, error) {
 		return nil, fmt.Errorf("get key state failed: argument 0 error, %s", err)
 	}
 	// arg1: public key ID
-	arg1, err := serialization.ReadUint32(args)
+	arg1, err := serialization.ReadVarUint(args, 0xFFFFFFFF)
 	if err != nil {
 		return nil, fmt.Errorf("get key state failed: argument 1 error, %s", err)
 	}
@@ -165,7 +165,7 @@ func GetKeyState(srvc *native.NativeService) ([]byte, error) {
 		return nil, fmt.Errorf("get key state failed: %s", err)
 	}
 
-	owner, err := getPk(srvc, key, arg1)
+	owner, err := getPk(srvc, key, uint32(arg1))
 	if err != nil {
 		return nil, fmt.Errorf("get key state failed: %s", err)
 	} else if owner == nil {
