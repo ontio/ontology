@@ -26,7 +26,6 @@ import (
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
-	"github.com/syndtr/goleveldb/leveldb"
 	"strings"
 )
 
@@ -84,10 +83,9 @@ func (self *StateBatch) TryGetOrAdd(prefix common.DataEntryPrefix, key []byte, v
 		return nil
 	}
 	item, err := self.store.Get(append(aPrefix, key...))
-	if err != nil && err != leveldb.ErrNotFound {
+	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TryGetOrAdd], leveldb store get data failed.")
 	}
-
 	if len(item) != 0 {
 		return nil
 	}
@@ -109,12 +107,11 @@ func (self *StateBatch) TryGet(prefix common.DataEntryPrefix, key []byte) (*comm
 	}
 	enc, err := self.store.Get(pk)
 	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return nil, nil
-		}
 		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[TryGet], leveldb store get data failed.")
 	}
-
+	if len(enc) == 0 {
+		return nil, nil
+	}
 	stateVal, err := getStateObject(prefix, enc)
 	if err != nil {
 		return nil, err
