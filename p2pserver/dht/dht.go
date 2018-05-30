@@ -49,6 +49,7 @@ type DHT struct {
 	recvCh        chan *types.DHTMessage
 	stopCh        chan struct{}
 	seeds         []*types.Node
+	feedCh        chan *types.FeedEvent
 }
 
 func NewDHT(node types.NodeID, seeds []*types.Node) *DHT {
@@ -73,7 +74,8 @@ func (this *DHT) init() {
 	this.stopCh = make(chan struct{})
 	this.pingNodeQueue = types.NewPingNodeQueue(this.onPingTimeOut)
 	this.findNodeQueue = types.NewFindNodeQueue(this.onFindNodeTimeOut)
-	this.routingTable.init(this.nodeID)
+	this.feedCh = make(chan *types.FeedEvent, types.MSG_CACHE)
+	this.routingTable.init(this.nodeID, this.feedCh)
 }
 
 func (this *DHT) Start() {
@@ -89,6 +91,10 @@ func (this *DHT) Start() {
 func (this *DHT) Stop() {
 	if this.stopCh != nil {
 		this.stopCh <- struct{}{}
+	}
+
+	if this.feedCh != nil {
+		close(this.feedCh)
 	}
 }
 
@@ -131,6 +137,10 @@ func (this *DHT) AppendNodes(nodes []*types.Node) {
 		}
 	}
 	log.Infof("AppendNodes completed")
+}
+
+func (this *DHT) GetFeedCh() <-chan *types.FeedEvent {
+	return this.feedCh
 }
 
 func (this *DHT) Loop() {
@@ -221,14 +231,16 @@ func (this *DHT) waitAndHandleResponse(knownNode map[types.NodeID]bool, closestN
 				}
 				knownNode[n.ID] = true
 				// ping this node
-				log.Infof("waitAndHandleResponse: ping port %d, id %s", n.UDPPort, n.ID)
-				this.pingNodeQueue.AddNode(n, nil)
-				addr, err := getNodeUDPAddr(n)
-				if err != nil {
-					continue
+				if _, ok := this.pingNodeQueue.GetRequestNode(n.ID); !ok {
+					log.Infof("waitAndHandleResponse: ping port %d, id %s", n.UDPPort, n.ID)
+					this.pingNodeQueue.AddNode(n, nil)
+					addr, err := getNodeUDPAddr(n)
+					if err != nil {
+						continue
 
+					}
+					this.Ping(addr)
 				}
-				this.Ping(addr)
 
 				closestNodes = addClosestNode(closestNodes, n, targetID)
 			}
@@ -494,7 +506,7 @@ func (this *DHT) DisplayRoutingTable() {
 		if this.routingTable.GetTotalNodeNumInBukcet(bucketIndex) == 0 {
 			continue
 		}
-		fmt.Print("[", bucketIndex, "]: ")
+		fmt.Println("[", bucketIndex, "]: ")
 		for i := 0; i < this.routingTable.GetTotalNodeNumInBukcet(bucketIndex); i++ {
 			fmt.Printf("%x \n", bucket.entries[i].ID[:10])
 		}

@@ -34,9 +34,10 @@ type routingTable struct {
 	mu      sync.RWMutex
 	id      types.NodeID
 	buckets []*bucket
+	feedCh  chan *types.FeedEvent
 }
 
-func (this *routingTable) init(id types.NodeID) {
+func (this *routingTable) init(id types.NodeID, ch chan *types.FeedEvent) {
 	this.buckets = make([]*bucket, types.BUCKET_NUM)
 	for i := range this.buckets {
 		this.buckets[i] = &bucket{
@@ -45,6 +46,7 @@ func (this *routingTable) init(id types.NodeID) {
 	}
 
 	this.id = id
+	this.feedCh = ch
 }
 
 func (this *routingTable) locateBucket(id types.NodeID) (int, *bucket) {
@@ -85,7 +87,7 @@ func (this *routingTable) AddNode(node *types.Node, bucketIndex int) bool {
 			for _, pentry := range bucket.entries {
 				fmt.Println("after copy: entry id ", pentry.ID)
 			}
-			return true
+			return false
 		}
 	}
 
@@ -102,6 +104,12 @@ func (this *routingTable) AddNode(node *types.Node, bucketIndex int) bool {
 	for _, pentry := range bucket.entries {
 		fmt.Println("after AddNode: entry id ", pentry.ID)
 	}
+
+	feed := &types.FeedEvent{
+		EvtType: types.Add,
+		Event:   node,
+	}
+	this.feedCh <- feed
 	return true
 }
 
@@ -116,6 +124,11 @@ func (this *routingTable) RemoveNode(id types.NodeID) {
 			for _, pentry := range bucket.entries {
 				fmt.Println("after remove: entry id ", pentry.ID)
 			}
+			feed := &types.FeedEvent{
+				EvtType: types.Del,
+				Event:   id,
+			}
+			this.feedCh <- feed
 			return
 		}
 	}
