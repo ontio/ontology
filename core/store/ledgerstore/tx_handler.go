@@ -138,7 +138,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	if !sysTransFlag {
 		totalGas := tx.GasLimit - sc.Gas
 		if totalGas < neovm.TRANSACTION_GAS {
-			totalGas = tx.GasLimit
+			totalGas = neovm.TRANSACTION_GAS
 		}
 		notifies, err = costGas(tx.Payer, totalGas*tx.GasPrice, config, sc.CloneCache, store)
 		if err != nil {
