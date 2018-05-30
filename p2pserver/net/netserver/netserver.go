@@ -22,6 +22,7 @@ import (
 	"errors"
 	"math/rand"
 	"net"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -61,6 +62,7 @@ type NetServer struct {
 	ConsChan     chan *common.MsgPayload
 	feedCh       chan *types.FeedEvent
 	stopLoop     chan struct{}
+	ConnectingNodes
 	PeerAddrMap
 	Np            *peer.NbrPeers
 	connectLock   sync.Mutex
@@ -157,22 +159,22 @@ func (this *NetServer) loop() {
 	}
 }
 
-func (this *NetServer) handlFeed(event interface{}) {
+func (this *NetServer) handleFeed(event *types.FeedEvent) {
 	switch event.EvtType {
 	case types.Add:
-		node := event.Content.(*types.Node)
+		node := event.Event.(*types.Node)
 		log.Infof("handle feed: add a new node %v", node)
 		address := node.IP + ":" + strconv.Itoa(int(node.TCPPort))
 		this.Connect(address, false)
 	case types.Del:
-		id := event.Content.(types.NodeID)
+		id := event.Event.(types.NodeID)
 		log.Infof("handle feed: remove a node %s", id.String())
 	default:
 		log.Infof("handle feed: unknown feed event %d", event.EvtType)
 	}
 }
 
-func (this *NetServer) SetFeedCh(ch <-chan *types.FeedEvent) {
+func (this *NetServer) SetFeedCh(ch chan *types.FeedEvent) {
 	this.feedCh = ch
 }
 

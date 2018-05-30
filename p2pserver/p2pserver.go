@@ -19,7 +19,8 @@
 package p2pserver
 
 import (
-	"encoding/json"
+	"bytes"
+	"encoding/hex"
 	"errors"
 	"io/ioutil"
 	"math/rand"
@@ -31,6 +32,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	evtActor "github.com/ontio/ontology-eventbus/actor"
 	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -80,13 +82,13 @@ func NewServer() *P2PServer {
 
 	nodeID, _ := dt.PubkeyID(acc.PublicKey)
 
-	seeds := make([]*dt.Node, 0, len(config.Parameters.DHTSeeds))
-	for i := 0; i < len(config.Parameters.DHTSeeds); i++ {
-		node := config.Parameters.DHTSeeds[i]
+	seeds := make([]*dt.Node, 0, len(config.DefConfig.Genesis.DHT.Seeds))
+	for i := 0; i < len(config.DefConfig.Genesis.DHT.Seeds); i++ {
+		node := config.DefConfig.Genesis.DHT.Seeds[i]
 		pubKey, err := hex.DecodeString(node.PubKey)
 		k, err := keypair.DeserializePublicKey(pubKey)
 		if err != nil {
-			return
+			return nil
 		}
 		seed := &dt.Node{
 			IP:      node.IP,

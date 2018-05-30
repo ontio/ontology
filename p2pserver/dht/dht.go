@@ -57,8 +57,8 @@ func NewDHT(node types.NodeID, seeds []*types.Node) *DHT {
 	dht := &DHT{
 		nodeID:       node,
 		addr:         "127.0.0.1",
-		udpPort:      uint16(config.Parameters.DHTUDPPort),
-		tcpPort:      uint16(config.Parameters.NodePort),
+		udpPort:      uint16(config.DefConfig.Genesis.DHT.UDPPort),
+		tcpPort:      uint16(config.DefConfig.P2PNode.NodePort),
 		routingTable: &routingTable{},
 		seeds:        make([]*types.Node, 0, len(seeds)),
 	}
@@ -139,7 +139,7 @@ func (this *DHT) AppendNodes(nodes []*types.Node) {
 	log.Infof("AppendNodes completed")
 }
 
-func (this *DHT) GetFeedCh() <-chan *types.FeedEvent {
+func (this *DHT) GetFeedCh() chan *types.FeedEvent {
 	return this.feedCh
 }
 
