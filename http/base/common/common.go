@@ -396,3 +396,23 @@ func GetGasPrice() (map[string]interface{}, error) {
 	result := map[string]interface{}{"gasprice": gasPrice, "height": height}
 	return result, nil
 }
+
+func GetBlockTransactions(block *types.Block) interface{} {
+	trans := make([]string, len(block.Transactions))
+	for i := 0; i < len(block.Transactions); i++ {
+		h := block.Transactions[i].Hash()
+		trans[i] = common.ToHexString(h.ToArray())
+	}
+	hash := block.Hash()
+	type BlockTransactions struct {
+		Hash         string
+		Height       uint32
+		Transactions []string
+	}
+	b := BlockTransactions{
+		Hash:         common.ToHexString(hash.ToArray()),
+		Height:       block.Header.Height,
+		Transactions: trans,
+	}
+	return b
+}

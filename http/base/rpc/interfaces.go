@@ -548,6 +548,27 @@ func GetMerkleProof(params []interface{}) map[string]interface{} {
 		common.ToHexString(curHeader.BlockRoot[:]), curHeight, hashes})
 }
 
+func GetBlockTxsByHeight(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return responsePack(berr.INVALID_PARAMS, nil)
+	}
+	switch params[0].(type) {
+	case float64:
+		height := uint32(params[0].(float64))
+		hash := bactor.GetBlockHashFromStore(height)
+		if hash == common.UINT256_EMPTY {
+			return responsePack(berr.INVALID_PARAMS, "")
+		}
+		block, err := bactor.GetBlockFromStore(hash)
+		if err != nil {
+			return responsePack(berr.UNKNOWN_BLOCK, "")
+		}
+		return responseSuccess(bcomn.GetBlockTransactions(block))
+	default:
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+}
+
 func GetGasPrice(params []interface{}) map[string]interface{} {
 	result, err := bcomn.GetGasPrice()
 	if err != nil {
