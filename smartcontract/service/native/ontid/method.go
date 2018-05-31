@@ -43,6 +43,8 @@ func regIdWithPublicKey(srvc *native.NativeService) ([]byte, error) {
 	arg0, err := serialization.ReadVarBytes(args)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: parsing argument 0 failed")
+	} else if len(arg0) == 0 {
+		return utils.BYTE_FALSE, errors.New("register ONT ID error: invalid length of argument 0")
 	}
 	// arg1: public key
 	arg1, err := serialization.ReadVarBytes(args)
@@ -94,8 +96,10 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 	args := bytes.NewBuffer(srvc.Input)
 	// arg0: ID
 	arg0, err := serialization.ReadVarBytes(args)
-	if len(arg0) == 0 {
-		return utils.BYTE_FALSE, fmt.Errorf("register ID with attributes error: argument 0. error: ", err)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("register ID with attributes error: argument 0 error, " + err.Error())
+	} else if len(arg0) == 0 {
+		return utils.BYTE_FALSE, errors.New("register ID with attributes error: argument 0 error, invalid length")
 	}
 	// arg1: public key
 	arg1, err := serialization.ReadVarBytes(args)
