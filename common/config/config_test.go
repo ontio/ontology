@@ -23,8 +23,26 @@ import (
 )
 
 func TestConfigGeneration(t *testing.T) {
-	polarisConfig := newPolarisConfig()
-	assert.Equal(t, polarisConfig, Parameters)
-	defaultConfig := newDefaultConfig()
-	assert.NotEqual(t, defaultConfig, polarisConfig)
+	assert.NotNil(t, DefConfig)
+	assert.NotNil(t, DefConfig.Genesis)
+	assert.NotNil(t, DefConfig.Common)
+	assert.NotNil(t, DefConfig.Consensus)
+	assert.NotNil(t, DefConfig.P2PNode)
+	assert.NotNil(t, DefConfig.Rpc)
+	assert.NotNil(t, DefConfig.Ws)
+	assert.NotNil(t, DefConfig.Cli)
+
+	assert.Equal(t, DefConfig.Genesis, PolarisConfig)
+
+	assert.Equal(t, DefConfig.Common.GasLimit, uint64(DEFAULT_GAS_LIMIT))
+	assert.Equal(t, DefConfig.Common.GasPrice, uint64(DEFAULT_GAS_PRICE))
+
+	assert.Equal(t, DefConfig.Consensus.EnableConsensus, true)
+	assert.Equal(t, DefConfig.Consensus.MaxTxInBlock, uint(DEFAULT_MAX_TX_IN_BLOCK))
+
+	assert.Equal(t, DefConfig.P2PNode.NodePort, DEFAULT_NODE_PORT)
+	assert.Equal(t, DefConfig.P2PNode.NetworkId, uint(DEFAULT_NET_MAGIC))
+
+	assert.Equal(t, DefConfig.Rpc.HttpJsonPort, DEFAULT_RPC_PORT)
+	assert.Equal(t, DefConfig.Rpc.HttpLocalPort, DEFAULT_RPC_LOCAL_PORT)
 }
