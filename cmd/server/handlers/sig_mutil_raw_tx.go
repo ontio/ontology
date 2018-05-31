@@ -109,22 +109,19 @@ func SigMutilRawTransaction(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpc
 		return
 	}
 
-	hasSig := false
+	hasMutilSig := false
 	for i, sigs := range rawTx.Sigs {
 		if pubKeysEqual(sigs.PubKeys, pubKeys) {
-			hasSig = true
-			for _, sigData := range sigs.SigData {
-				err = signature.Verify(signer.PublicKey, txHash.ToArray(), sigData)
-				if err == nil {
-					break
-				}
+			hasMutilSig = true
+			if hasAlreadySig(txHash.ToArray(), signer.PublicKey, sigs.SigData) {
+				break
 			}
 			sigs.SigData = append(sigs.SigData, sigData)
 			rawTx.Sigs[i] = sigs
 			break
 		}
 	}
-	if !hasSig {
+	if !hasMutilSig {
 		rawTx.Sigs = append(rawTx.Sigs, &types.Sig{
 			PubKeys: pubKeys,
 			M:       uint8(rawReq.M),
@@ -142,6 +139,16 @@ func SigMutilRawTransaction(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpc
 	resp.Result = &SigRawTransactionRsp{
 		SignedTx: hex.EncodeToString(buf.Bytes()),
 	}
+}
+
+func hasAlreadySig(data []byte, pk keypair.PublicKey, sigDatas [][]byte) bool {
+	for _, sigData := range sigDatas {
+		err := signature.Verify(pk, data, sigData)
+		if err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 func pubKeysEqual(pks1, pks2 []keypair.PublicKey) bool {
