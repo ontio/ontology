@@ -80,6 +80,11 @@ var (
 	}
 
 	//P2P setting
+	NetworkIdFlag = cli.UintFlag{
+		Name:  "networkid",
+		Usage: "P2P network id",
+		Value: config.DEFAULT_NET_MAGIC,
+	}
 	NodePortFlag = cli.UintFlag{
 		Name:  "nodeport",
 		Usage: "P2P node listening port",

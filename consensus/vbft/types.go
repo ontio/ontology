@@ -55,6 +55,17 @@ func (blk *Block) getNewChainConfig() *vconfig.ChainConfig {
 	return blk.Info.NewChainConfig
 }
 
+//
+// getVrfValue() is a helper function for participant selection.
+//
+func (blk *Block) getVrfValue() []byte {
+	return blk.Info.VrfValue
+}
+
+func (blk *Block) getVrfProof() []byte {
+	return blk.Info.VrfProof
+}
+
 func (blk *Block) Serialize() ([]byte, error) {
 	buf := bytes.NewBuffer([]byte{})
 	if err := blk.Block.Serialize(buf); err != nil {

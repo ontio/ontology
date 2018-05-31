@@ -23,8 +23,8 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
-	"fmt"
 
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 )
@@ -39,7 +39,7 @@ type MsgHdr struct {
 
 //initialize the header, assign netmagic and checksume value
 func (this *MsgHdr) Init(cmd string, checksum []byte, length uint32) {
-	this.Magic = common.NETMAGIC
+	this.Magic = uint32(config.DefConfig.P2PNode.NetworkId)
 	copy(this.CMD[0:uint32(len(cmd))], cmd)
 	copy(this.Checksum[:], checksum[:common.CHECKSUM_LEN])
 	this.Length = length
@@ -49,15 +49,15 @@ func (this *MsgHdr) Init(cmd string, checksum []byte, length uint32) {
 // @p payload of the message
 func (this MsgHdr) Verify(buf []byte) error {
 	if magicVerify(this.Magic) == false {
-		log.Warn(fmt.Sprintf("unmatched magic number 0x%0x", this.Magic))
+		log.Warnf("unmatched magic number 0x%0x", this.Magic)
 		return errors.New("unmatched magic number ")
 	}
 	checkSum := CheckSum(buf)
 	if bytes.Equal(this.Checksum[:], checkSum[:]) == false {
 		str1 := hex.EncodeToString(this.Checksum[:])
 		str2 := hex.EncodeToString(checkSum[:])
-		log.Warn(fmt.Sprintf("message checksum error, received checksum %s Wanted checksum: %s",
-			str1, str2))
+		log.Warnf("message checksum error, received checksum %s Wanted checksum: %s",
+			str1, str2)
 		return errors.New("message checksum error ")
 	}
 

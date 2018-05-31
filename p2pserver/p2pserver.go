@@ -20,9 +20,12 @@ package p2pserver
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"math/rand"
 	"net"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -53,8 +56,10 @@ type P2PServer struct {
 	blockSync *BlockSyncMgr
 	ledger    *ledger.Ledger
 	ReconnectAddrs
-	quitOnline    chan bool
-	quitHeartBeat chan bool
+	recentPeers    []string
+	quitSyncRecent chan bool
+	quitOnline     chan bool
+	quitHeartBeat  chan bool
 }
 
 //ReconnectAddrs contain addr need to reconnect
@@ -74,6 +79,8 @@ func NewServer(acc *account.Account) *P2PServer {
 
 	p.msgRouter = utils.NewMsgRouter(p.network)
 	p.blockSync = NewBlockSyncMgr(p)
+	p.recentPeers = make([]string, common.RECENT_LIMIT)
+	p.quitSyncRecent = make(chan bool)
 	p.quitOnline = make(chan bool)
 	p.quitHeartBeat = make(chan bool)
 	return p
@@ -96,6 +103,8 @@ func (this *P2PServer) Start() error {
 	} else {
 		return errors.New("p2p msg router invalid")
 	}
+	this.tryRecentPeers()
+	go this.syncUpRecentPeers()
 	go this.keepOnlineService()
 	go this.heartBeatService()
 	go this.blockSync.Start()
@@ -105,6 +114,7 @@ func (this *P2PServer) Start() error {
 //Stop halt all service by send signal to channels
 func (this *P2PServer) Stop() {
 	this.network.Halt()
+	this.quitSyncRecent <- true
 	this.quitOnline <- true
 	this.quitHeartBeat <- true
 	this.msgRouter.Stop()
@@ -500,4 +510,107 @@ func (this *P2PServer) removeFromRetryList(addr string) {
 			delete(this.RetryAddrs, addr)
 		}
 	}
+}
+
+//tryRecentPeers try connect recent contact peer when service start
+func (this *P2PServer) tryRecentPeers() {
+	if fileExist(common.RECENT_FILE_NAME) {
+		buf, err := ioutil.ReadFile(common.RECENT_FILE_NAME)
+		if err != nil {
+			log.Error("read %s fail:%s, connect recent peers cancel", common.RECENT_FILE_NAME, err.Error())
+			return
+		}
+
+		err = json.Unmarshal(buf, &this.recentPeers)
+		if err != nil {
+			log.Error("parse recent peer file fail: ", err)
+			return
+		}
+		if len(this.recentPeers) > 0 {
+			log.Info("try to connect recent peer")
+		}
+		for _, v := range this.recentPeers {
+			go this.network.Connect(v, false)
+		}
+
+	}
+}
+
+//syncUpRecentPeers sync up recent peers periodically
+func (this *P2PServer) syncUpRecentPeers() {
+	periodTime := common.RECENT_TIMEOUT
+	t := time.NewTicker(time.Second * (time.Duration(periodTime)))
+	for {
+		select {
+		case <-t.C:
+			this.syncPeerAddr()
+		case <-this.quitSyncRecent:
+			t.Stop()
+			break
+		}
+	}
+}
+
+//syncPeerAddr compare snapshot of recent peer with current link,then persist the list
+func (this *P2PServer) syncPeerAddr() {
+	changed := false
+	for i := 0; i < len(this.recentPeers); i++ {
+		p := this.network.GetPeerFromAddr(this.recentPeers[i])
+		if p == nil || (p != nil && p.GetSyncState() != common.ESTABLISH) {
+			this.recentPeers = append(this.recentPeers[:i], this.recentPeers[i+1:]...)
+			changed = true
+			i--
+		}
+	}
+	left := common.RECENT_LIMIT - len(this.recentPeers)
+	if left > 0 {
+		np := this.network.GetNp()
+		np.Lock()
+		var ip net.IP
+		for _, p := range np.List {
+			addr, _ := p.GetAddr16()
+			ip = addr[:]
+			nodeAddr := ip.To16().String() + ":" +
+				strconv.Itoa(int(p.GetSyncPort()))
+			found := false
+			for i := 0; i < len(this.recentPeers); i++ {
+				if nodeAddr == this.recentPeers[i] {
+					found = true
+					break
+				}
+			}
+			if !found {
+				this.recentPeers = append(this.recentPeers, nodeAddr)
+				left--
+				changed = true
+				if left == 0 {
+					break
+				}
+			}
+		}
+		np.Unlock()
+	}
+	if changed {
+		buf, err := json.Marshal(this.recentPeers)
+		if err != nil {
+			log.Error("package recent peer fail: ", err)
+			return
+		}
+		err = ioutil.WriteFile(common.RECENT_FILE_NAME, buf, os.ModePerm)
+		if err != nil {
+			log.Error("write recent peer fail: ", err)
+		}
+	}
+}
+
+//fileExist check file exist status
+func fileExist(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	}
+	if os.IsNotExist(err) {
+		return false
+	}
+	return false
 }

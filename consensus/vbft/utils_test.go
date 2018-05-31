@@ -75,8 +75,7 @@ func TestVrf(t *testing.T) {
 	if err != nil {
 		t.Errorf("constructBlock failed: %v", err)
 	}
-	hash := common.Uint256{}
-	vrfvalue := vrf(blk, hash)
+	vrfvalue := getParticipantSelectionSeed(blk)
 	if len(vrfvalue) == 0 {
 		t.Errorf("TestVrf failed:")
 		return

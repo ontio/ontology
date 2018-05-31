@@ -220,6 +220,11 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 		blocktimestamp = prevBlk.Block.Header.Timestamp + 1
 	}
 
+	vrfValue, vrfProof, err := computeVrf(self.account.PrivateKey, blkNum, prevBlk.getVrfValue())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get vrf and proof: %s", err)
+	}
+
 	lastConfigBlkNum := prevBlk.Info.LastConfigBlockNum
 	if prevBlk.Info.NewChainConfig != nil {
 		lastConfigBlkNum = prevBlk.getBlockNum()
@@ -229,6 +234,8 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 	}
 	vbftBlkInfo := &vconfig.VbftBlockInfo{
 		Proposer:           self.Index,
+		VrfValue:           vrfValue,
+		VrfProof:           vrfProof,
 		LastConfigBlockNum: lastConfigBlkNum,
 		NewChainConfig:     chainconfig,
 	}
