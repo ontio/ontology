@@ -22,8 +22,10 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/ontio/ontology-crypto/keypair"
 	clisvrcom "github.com/ontio/ontology/cmd/server/common"
 	cliutil "github.com/ontio/ontology/cmd/utils"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/types"
 )
@@ -57,12 +59,26 @@ func SigRawTransaction(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRespo
 		return
 	}
 	signer := clisvrcom.DefAccount
-	err = cliutil.SignTransaction(signer, rawTx)
+	var emptyAddress = common.Address{}
+	if rawTx.Payer == emptyAddress {
+		rawTx.Payer = signer.Address
+	}
+
+	txHash := rawTx.Hash()
+	sigData, err := cliutil.Sign(txHash.ToArray(), signer)
 	if err != nil {
-		log.Infof("Cli Qid:%s SigRawTransaction SignTransaction error:%s", req.Qid, err)
+		log.Infof("Cli Qid:%s SigRawTransaction Sign error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
 		return
 	}
+	if len(rawTx.Sigs) == 0 {
+		rawTx.Sigs = make([]*types.Sig, 0)
+	}
+	rawTx.Sigs = append(rawTx.Sigs, &types.Sig{
+		PubKeys: []keypair.PublicKey{signer.PublicKey},
+		M:       1,
+		SigData: [][]byte{sigData},
+	})
 	buf := bytes.NewBuffer(nil)
 	err = rawTx.Serialize(buf)
 	if err != nil {

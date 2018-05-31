@@ -249,7 +249,7 @@ func TransferFromTx(gasPrice, gasLimit uint64, asset, sender, from, to string, a
 func SignTransaction(signer *account.Account, tx *types.Transaction) error {
 	tx.Payer = signer.Address
 	txHash := tx.Hash()
-	sigData, err := sign(signer.SigScheme.Name(), txHash.ToArray(), signer)
+	sigData, err := Sign(txHash.ToArray(), signer)
 	if err != nil {
 		return fmt.Errorf("sign error:%s", err)
 	}
@@ -263,12 +263,8 @@ func SignTransaction(signer *account.Account, tx *types.Transaction) error {
 }
 
 //Sign sign return the signature to the data of private key
-func sign(cryptScheme string, data []byte, signer *account.Account) ([]byte, error) {
-	scheme, err := sig.GetScheme(cryptScheme)
-	if err != nil {
-		return nil, fmt.Errorf("GetScheme by:%s error:%s", cryptScheme, err)
-	}
-	s, err := sig.Sign(scheme, signer.PrivateKey, data, nil)
+func Sign(data []byte, signer *account.Account) ([]byte, error) {
+	s, err := sig.Sign(signer.SigScheme, signer.PrivateKey, data, nil)
 	if err != nil {
 		return nil, err
 	}
