@@ -322,7 +322,7 @@ func (self *Server) getChainConfig() (*vconfig.ChainConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get governanceview failed:%s", err)
 	}
-	cfg.View = uint32(goverview.View.Uint64())
+	cfg.View = goverview.View
 	return cfg, err
 }
 

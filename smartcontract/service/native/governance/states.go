@@ -20,8 +20,6 @@ package governance
 
 import (
 	"io"
-	"math/big"
-	"strconv"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
@@ -46,18 +44,18 @@ func (this *Status) Deserialize(r io.Reader) error {
 	return nil
 }
 
-type RegisterSyncNodeParam struct {
-	PeerPubkey string `json:"peerPubkey"`
-	Address    string `json:"address"`
-	InitPos    uint64 `json:"initPos"`
+type BlackListItem struct {
+	PeerPubkey string
+	Address    common.Address
+	InitPos    uint64
 }
 
-func (this *RegisterSyncNodeParam) Serialize(w io.Writer) error {
+func (this *BlackListItem) Serialize(w io.Writer) error {
 	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, request peerPubkey error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize peerPubkey error!")
 	}
-	if err := serialization.WriteString(w, this.Address); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, address address error!")
+	if err := this.Address.Serialize(w); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "address.Serialize, serialize address error!")
 	}
 	if err := serialization.WriteUint64(w, this.InitPos); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint64, serialize initPos error!")
@@ -65,178 +63,37 @@ func (this *RegisterSyncNodeParam) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *RegisterSyncNodeParam) Deserialize(r io.Reader) error {
+func (this *BlackListItem) Deserialize(r io.Reader) error {
 	peerPubkey, err := serialization.ReadString(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peerPubkey error!")
 	}
-	this.PeerPubkey = peerPubkey
-
-	address, err := serialization.ReadString(r)
+	address := new(common.Address)
+	err = address.Deserialize(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize address error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "address.Deserialize, deserialize address error!")
 	}
-	this.Address = address
-
 	initPos, err := serialization.ReadUint64(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64, deserialize initPos error!")
 	}
+	this.PeerPubkey = peerPubkey
+	this.Address = *address
 	this.InitPos = initPos
 	return nil
 }
 
-type ApproveSyncNodeParam struct {
-	PeerPubkey string `json:"peerPubkey"`
-}
-
-func (this *ApproveSyncNodeParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize peerPubkey error!")
-	}
-	return nil
-}
-
-func (this *ApproveSyncNodeParam) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peerPubkey error!")
-	}
-	this.PeerPubkey = peerPubkey
-	return nil
-}
-
-type QuitNodeParam struct {
-	PeerPubkey string `json:"peerPubkey"`
-	Address    string `json:"address"`
-}
-
-func (this *QuitNodeParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, deserialize peerPubkey error!")
-	}
-	if err := serialization.WriteString(w, this.Address); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, deserialize address error!")
-	}
-	return nil
-}
-
-func (this *QuitNodeParam) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peerPubkey error!")
-	}
-	this.PeerPubkey = peerPubkey
-
-	address, err := serialization.ReadString(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize address error!")
-	}
-	this.Address = address
-	return nil
-}
-
-type RegisterCandidateParam struct {
-	PeerPubkey string `json:"peerPubkey"`
-	Address    string `json:"address"`
-}
-
-func (this *RegisterCandidateParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, deserialize peerPubkey error!")
-	}
-	if err := serialization.WriteString(w, this.Address); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, deserialize address error!")
-	}
-	return nil
-}
-
-func (this *RegisterCandidateParam) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peerPubkey error!")
-	}
-	this.PeerPubkey = peerPubkey
-
-	address, err := serialization.ReadString(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize address error!")
-	}
-	this.Address = address
-	return nil
-}
-
-type ApproveCandidateParam struct {
-	PeerPubkey string `json:"peerPubkey"`
-}
-
-func (this *ApproveCandidateParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize peerPubkey error!")
-	}
-	return nil
-}
-
-func (this *ApproveCandidateParam) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peerPubkey error!")
-	}
-	this.PeerPubkey = peerPubkey
-	return nil
-}
-
-type BlackNodeParam struct {
-	PeerPubkey string `json:"peerPubkey"`
-}
-
-func (this *BlackNodeParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize peerPubkey error!")
-	}
-	return nil
-}
-
-func (this *BlackNodeParam) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peerPubkey error!")
-	}
-	this.PeerPubkey = peerPubkey
-	return nil
-}
-
-type WhiteNodeParam struct {
-	PeerPubkey string `json:"peerPubkey"`
-}
-
-func (this *WhiteNodeParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize peerPubkey error!")
-	}
-	return nil
-}
-
-func (this *WhiteNodeParam) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peerPubkey error!")
-	}
-	this.PeerPubkey = peerPubkey
-	return nil
-}
-
 type PeerPoolList struct {
-	Peers []*PeerPoolItem `json:"peers"`
+	Peers []*PeerPoolItem
 }
 
 type PeerPoolMap struct {
-	PeerPoolMap map[string]*PeerPoolItem `json:"peerPoolMap"`
+	PeerPoolMap map[string]*PeerPoolItem
 }
 
 func (this *PeerPoolMap) Serialize(w io.Writer) error {
-	if err := serialization.WriteVarUint(w, uint64(len(this.PeerPoolMap))); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize PeerPoolMap length error!")
+	if err := serialization.WriteUint32(w, uint32(len(this.PeerPoolMap))); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize PeerPoolMap length error!")
 	}
 	for _, v := range this.PeerPoolMap {
 		if err := v.Serialize(w); err != nil {
@@ -247,27 +104,29 @@ func (this *PeerPoolMap) Serialize(w io.Writer) error {
 }
 
 func (this *PeerPoolMap) Deserialize(r io.Reader) error {
-	n, err := serialization.ReadVarUint(r, 0)
+	n, err := serialization.ReadUint32(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize PeerPoolMap length error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize PeerPoolMap length error!")
 	}
-	for i := 0; uint64(i) < n; i++ {
+	peerPoolMap := make(map[string]*PeerPoolItem)
+	for i := 0; uint32(i) < n; i++ {
 		peerPoolItem := new(PeerPoolItem)
 		if err := peerPoolItem.Deserialize(r); err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "deserialize peerPool error!")
 		}
-		this.PeerPoolMap[peerPoolItem.PeerPubkey] = peerPoolItem
+		peerPoolMap[peerPoolItem.PeerPubkey] = peerPoolItem
 	}
+	this.PeerPoolMap = peerPoolMap
 	return nil
 }
 
 type PeerPoolItem struct {
-	Index      uint32         `json:"index"`
-	PeerPubkey string         `json:"peerPubkey"`
-	Address    common.Address `json:"address"`
-	Status     Status         `json:"status"`
-	InitPos    uint64         `json:"initPos"`
-	TotalPos   uint64         `json:"totalPos"`
+	Index      uint32
+	PeerPubkey string
+	Address    common.Address
+	Status     Status
+	InitPos    uint64
+	TotalPos   uint64
 }
 
 func (this *PeerPoolItem) Serialize(w io.Writer) error {
@@ -297,147 +156,46 @@ func (this *PeerPoolItem) Deserialize(r io.Reader) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize index error!")
 	}
-	this.Index = index
-
 	peerPubkey, err := serialization.ReadString(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peerPubkey error!")
 	}
-	this.PeerPubkey = peerPubkey
-
-	err = this.Address.Deserialize(r)
+	address := new(common.Address)
+	err = address.Deserialize(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "address.Deserialize, deserialize address error!")
 	}
-
-	err = this.Status.Deserialize(r)
+	status := new(Status)
+	err = status.Deserialize(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "status.Deserialize. deserialize status error!")
 	}
-
 	initPos, err := serialization.ReadUint64(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64, deserialize initPos error!")
 	}
-	this.InitPos = initPos
-
 	totalPos, err := serialization.ReadUint64(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64, deserialize totalPos error!")
 	}
+	this.Index = index
+	this.PeerPubkey = peerPubkey
+	this.Address = *address
+	this.Status = *status
+	this.InitPos = initPos
 	this.TotalPos = totalPos
 	return nil
 }
 
-type VoteForPeerParam struct {
-	Address   string           `json:"address"`
-	VoteTable map[string]int64 `json:"voteTable"`
-}
-
-func (this *VoteForPeerParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.Address); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize address error!")
-	}
-	if err := serialization.WriteVarUint(w, uint64(len(this.VoteTable))); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize VoteTable length error!")
-	}
-	for k, v := range this.VoteTable {
-		if err := serialization.WriteString(w, k); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize key error!")
-		}
-		if err := serialization.WriteString(w, strconv.FormatInt(v, 10)); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize value error!")
-		}
-	}
-	return nil
-}
-
-func (this *VoteForPeerParam) Deserialize(r io.Reader) error {
-	address, err := serialization.ReadString(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize address error!")
-	}
-	this.Address = address
-
-	n, err := serialization.ReadVarUint(r, 0)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize VoteTable length error!")
-	}
-	for i := 0; uint64(i) < n; i++ {
-		k, err := serialization.ReadString(r)
-		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize key error!")
-		}
-		v, err := serialization.ReadString(r)
-		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize value error!")
-		}
-		value, err := strconv.ParseInt(v, 10, 64)
-		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "strconv.ParseInt, deserialize value error!")
-		}
-		this.VoteTable[k] = value
-	}
-	return nil
-}
-
-type WithdrawParam struct {
-	Address       string            `json:"address"`
-	WithdrawTable map[string]uint64 `json:"withDrawTable"`
-}
-
-func (this *WithdrawParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.Address); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize address error!")
-	}
-	if err := serialization.WriteVarUint(w, uint64(len(this.WithdrawTable))); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize WithDrawTable length error!")
-	}
-	for k, v := range this.WithdrawTable {
-		if err := serialization.WriteString(w, k); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize key error!")
-		}
-		if err := serialization.WriteUint64(w, v); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint64, serialize value error!")
-		}
-	}
-	return nil
-}
-
-func (this *WithdrawParam) Deserialize(r io.Reader) error {
-	address, err := serialization.ReadString(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize address error!")
-	}
-	this.Address = address
-
-	n, err := serialization.ReadVarUint(r, 0)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize WithDrawTable length error!")
-	}
-	for i := 0; uint64(i) < n; i++ {
-		k, err := serialization.ReadString(r)
-		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize key error!")
-		}
-		v, err := serialization.ReadUint64(r)
-		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64, deserialize value error!")
-		}
-		this.WithdrawTable[k] = v
-	}
-	return nil
-}
-
 type VoteInfo struct {
-	PeerPubkey          string         `json:"peerPubkey"`
-	Address             common.Address `json:"address"`
-	ConsensusPos        uint64         `json:"consensusPos"`
-	FreezePos           uint64         `json:"freezePos"`
-	NewPos              uint64         `json:"newPos"`
-	WithdrawPos         uint64         `json:"withdrawPos"`
-	WithdrawFreezePos   uint64         `json:"withdrawFreezePos"`
-	WithdrawUnfreezePos uint64         `json:"withdrawUnfreezePos"`
+	PeerPubkey          string
+	Address             common.Address
+	ConsensusPos        uint64
+	FreezePos           uint64
+	NewPos              uint64
+	WithdrawPos         uint64
+	WithdrawFreezePos   uint64
+	WithdrawUnfreezePos uint64
 }
 
 func (this *VoteInfo) Serialize(w io.Writer) error {
@@ -473,250 +231,131 @@ func (this *VoteInfo) Deserialize(r io.Reader) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peerPubkey error!")
 	}
-	this.PeerPubkey = peerPubkey
-
-	err = this.Address.Deserialize(r)
+	address := new(common.Address)
+	err = address.Deserialize(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "address.Deserialize, deserialize address error!")
 	}
-
 	consensusPos, err := serialization.ReadUint64(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64. deserialize consensusPos error!")
 	}
-	this.ConsensusPos = consensusPos
-
 	freezePos, err := serialization.ReadUint64(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64. deserialize freezePos error!")
 	}
-	this.FreezePos = freezePos
-
 	newPos, err := serialization.ReadUint64(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64. deserialize newPos error!")
 	}
-	this.NewPos = newPos
-
 	withDrawPos, err := serialization.ReadUint64(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64. deserialize withDrawPos error!")
 	}
-	this.WithdrawPos = withDrawPos
-
 	withDrawFreezePos, err := serialization.ReadUint64(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64. deserialize withDrawFreezePos error!")
 	}
-	this.WithdrawFreezePos = withDrawFreezePos
-
 	withDrawUnfreezePos, err := serialization.ReadUint64(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64. deserialize withDrawUnfreezePos error!")
 	}
+	this.PeerPubkey = peerPubkey
+	this.Address = *address
+	this.ConsensusPos = consensusPos
+	this.FreezePos = freezePos
+	this.NewPos = newPos
+	this.WithdrawPos = withDrawPos
+	this.WithdrawFreezePos = withDrawFreezePos
 	this.WithdrawUnfreezePos = withDrawUnfreezePos
 	return nil
 }
 
 type PeerStakeInfo struct {
-	Index      uint32 `json:"index"`
-	PeerPubkey string `json:"peerPubkey"`
-	Stake      uint64 `json:"stake"`
-}
-
-type Configuration struct {
-	N                    uint32 `json:"n"`
-	C                    uint32 `json:"c"`
-	K                    uint32 `json:"k"`
-	L                    uint32 `json:"l"`
-	BlockMsgDelay        uint32 `json:"block_msg_delay"`
-	HashMsgDelay         uint32 `json:"hash_msg_delay"`
-	PeerHandshakeTimeout uint32 `json:"peer_handshake_timeout"`
-	MaxBlockChangeView   uint32 `json:"max_block_change_view"`
-}
-
-func (this *Configuration) Serialize(w io.Writer) error {
-	if err := serialization.WriteUint32(w, this.N); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize n error!")
-	}
-	if err := serialization.WriteUint32(w, this.C); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize c error!")
-	}
-	if err := serialization.WriteUint32(w, this.K); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize k error!")
-	}
-	if err := serialization.WriteUint32(w, this.L); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize l error!")
-	}
-	if err := serialization.WriteUint32(w, this.BlockMsgDelay); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize block_msg_delay error!")
-	}
-	if err := serialization.WriteUint32(w, this.HashMsgDelay); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize hash_msg_delay error!")
-	}
-	if err := serialization.WriteUint32(w, this.PeerHandshakeTimeout); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize peer_handshake_timeout error!")
-	}
-	if err := serialization.WriteUint32(w, this.MaxBlockChangeView); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize max_block_change_view error!")
-	}
-	return nil
-}
-
-func (this *Configuration) Deserialize(r io.Reader) error {
-	n, err := serialization.ReadUint32(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize n error!")
-	}
-	this.N = n
-
-	c, err := serialization.ReadUint32(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize c error!")
-	}
-	this.C = c
-
-	k, err := serialization.ReadUint32(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize k error!")
-	}
-	this.K = k
-
-	l, err := serialization.ReadUint32(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize l error!")
-	}
-	this.L = l
-
-	blockMsgDelay, err := serialization.ReadUint32(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize blockMsgDelay error!")
-	}
-	this.BlockMsgDelay = blockMsgDelay
-
-	hashMsgDelay, err := serialization.ReadUint32(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize hashMsgDelay error!")
-	}
-	this.HashMsgDelay = hashMsgDelay
-
-	peerHandshakeTimeout, err := serialization.ReadUint32(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize peerHandshakeTimeout error!")
-	}
-	this.PeerHandshakeTimeout = peerHandshakeTimeout
-
-	maxBlockChangeView, err := serialization.ReadUint32(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize maxBlockChangeView error!")
-	}
-	this.MaxBlockChangeView = maxBlockChangeView
-	return nil
-}
-
-type VoteCommitDposParam struct {
-	Address string `json:"address"`
-	Pos     int64  `json:"pos"`
-}
-
-func (this *VoteCommitDposParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.Address); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, address address error!")
-	}
-	if err := serialization.WriteString(w, strconv.FormatInt(this.Pos, 10)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize pos error!")
-	}
-	return nil
-}
-
-func (this *VoteCommitDposParam) Deserialize(r io.Reader) error {
-	address, err := serialization.ReadString(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize address error!")
-	}
-	this.Address = address
-
-	pos, err := serialization.ReadString(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize pos error!")
-	}
-	this.Pos, err = strconv.ParseInt(pos, 10, 64)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "strconv.ParseInt, deserialize pos error!")
-	}
-	return nil
-}
-
-type VoteCommitInfo struct {
-	Address common.Address `json:"address"`
-	Pos     uint64         `json:"pos"`
-}
-
-func (this *VoteCommitInfo) Serialize(w io.Writer) error {
-	if err := this.Address.Serialize(w); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "address.Serialize, serialize address error!")
-	}
-	if err := serialization.WriteUint64(w, this.Pos); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint64, serialize pos error!")
-	}
-	return nil
-}
-
-func (this *VoteCommitInfo) Deserialize(r io.Reader) error {
-	err := this.Address.Deserialize(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "address.Deserialize, deserialize address error!")
-	}
-
-	pos, err := serialization.ReadUint64(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64, deserialize pos error!")
-	}
-	this.Pos = pos
-	return nil
+	Index      uint32
+	PeerPubkey string
+	Stake      uint64
 }
 
 type GovernanceView struct {
-	View       *big.Int `json:"view"`
-	VoteCommit bool     `json:"voteCommit"`
+	View   uint32
+	Height uint32
+	TxHash common.Uint256
 }
 
 func (this *GovernanceView) Serialize(w io.Writer) error {
-	if err := serialization.WriteUint64(w, this.View.Uint64()); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint64, serialize view error!")
+	if err := serialization.WriteUint32(w, this.View); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize view error!")
 	}
-	if err := serialization.WriteBool(w, this.VoteCommit); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteBool, serialize voteCommit error!")
+	if err := serialization.WriteUint32(w, this.Height); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteBool, serialize height error!")
+	}
+	if err := this.TxHash.Serialize(w); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "txHash.Serialize, serialize txHash error!")
 	}
 	return nil
 }
 
 func (this *GovernanceView) Deserialize(r io.Reader) error {
-	view, err := serialization.ReadUint64(r)
+	view, err := serialization.ReadUint32(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64, deserialize view error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize view error!")
 	}
-	this.View = new(big.Int).SetUint64(view)
+	height, err := serialization.ReadUint32(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize height error!")
+	}
+	txHash := new(common.Uint256)
+	if err := txHash.Deserialize(r); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "txHash.Deserialize, deserialize txHash error!")
+	}
+	this.View = view
+	this.Height = height
+	this.TxHash = *txHash
+	return nil
+}
 
-	voteCommit, err := serialization.ReadBool(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadBool, deserialize voteCommit error!")
+type TotalStake struct {
+	Address common.Address
+	Stake   uint64
+}
+
+func (this *TotalStake) Serialize(w io.Writer) error {
+	if err := this.Address.Serialize(w); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "address.Serialize, serialize address error!")
 	}
-	this.VoteCommit = voteCommit
+	if err := serialization.WriteUint64(w, this.Stake); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint64, serialize stake error!")
+	}
+	return nil
+}
+
+func (this *TotalStake) Deserialize(r io.Reader) error {
+	address := new(common.Address)
+	err := address.Deserialize(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "address.Deserialize, deserialize address error!")
+	}
+	stake, err := serialization.ReadUint64(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64, deserialize stake error!")
+	}
+	this.Address = *address
+	this.Stake = stake
 	return nil
 }
 
 type CandidateSplitInfo struct {
-	PeerPubkey string         `json:"peerPubkey"`
-	Address    common.Address `json:"address"`
-	InitPos    uint64         `json:"initPos"`
-	Stake      uint64         `json:"stake"`
-	S          uint64         `json:"s"`
+	PeerPubkey string
+	Address    common.Address
+	InitPos    uint64
+	Stake      uint64
+	S          uint64
 }
 
 type SyncNodeSplitInfo struct {
-	PeerPubkey string         `json:"peerPubkey"`
-	Address    common.Address `json:"address"`
-	InitPos    uint64         `json:"initPos"`
-	S          uint64         `json:"s"`
+	PeerPubkey string
+	Address    common.Address
+	InitPos    uint64
+	S          uint64
 }

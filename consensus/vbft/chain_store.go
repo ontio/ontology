@@ -154,9 +154,13 @@ func (self *ChainStore) GetPeersConfig() ([]*config.VBFTPeerStakeInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	viewBytes, err := gov.GetUint32Bytes(goveranceview.View)
+	if err != nil {
+		return nil, err
+	}
 	storageKey := &states.StorageKey{
 		CodeHash: utils.GovernanceContractAddress,
-		Key:      append([]byte(gov.PEER_POOL), goveranceview.View.Bytes()...),
+		Key:      append([]byte(gov.PEER_POOL), viewBytes...),
 	}
 	data, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
 	if err != nil {
@@ -186,7 +190,7 @@ func (self *ChainStore) isUpdate(view uint32) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if goveranceview.View.Uint64() > uint64(view) {
+	if goveranceview.View > view {
 		return true, nil
 	}
 	return false, nil
