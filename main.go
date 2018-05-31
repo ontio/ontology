@@ -71,6 +71,7 @@ func setupAPP() *cli.App {
 		cmd.InfoCommand,
 		cmd.AssetCommand,
 		cmd.ContractCommand,
+		cmd.ExportCommand,
 	}
 	app.Flags = []cli.Flag{
 		//common setting
@@ -78,6 +79,9 @@ func setupAPP() *cli.App {
 		utils.LogLevelFlag,
 		utils.DisableEventLogFlag,
 		utils.DataDirFlag,
+		utils.ImportEnableFlag,
+		utils.ImportHeightFlag,
+		utils.ImportFileFlag,
 		//account setting
 		utils.WalletFileFlag,
 		utils.AccountAddressFlag,
@@ -143,6 +147,11 @@ func startOntology(ctx *cli.Context) {
 		return
 	}
 	defer ldg.Close()
+	err = importBlocks(ctx)
+	if err != nil {
+		log.Errorf("importBlocks error:%s", err)
+		return
+	}
 	txpool, err := initTxPool(ctx)
 	if err != nil {
 		log.Errorf("initTxPool error:%s", err)
@@ -382,6 +391,18 @@ func initCliSvr(ctx *cli.Context, acc *account.Account) {
 	go cmdsvr.DefCliRpcSvr.Start(config.DefConfig.Cli.CliRpcPort)
 	abi.DefAbiMgr.Init()
 	log.Infof("Cli rpc server init success")
+}
+
+func importBlocks(ctx *cli.Context) error {
+	if !ctx.GlobalBool(utils.GetFlagName(utils.ImportEnableFlag)) {
+		return nil
+	}
+	importFile := ctx.GlobalString(utils.GetFlagName(utils.ImportFileFlag))
+	if importFile == "" {
+		return fmt.Errorf("missing import file argument")
+	}
+	height := ctx.GlobalUint(utils.GetFlagName(utils.ImportHeightFlag))
+	return utils.ImportBlocks(importFile, uint32(height))
 }
 
 func logCurrBlockHeight() {

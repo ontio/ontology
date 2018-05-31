@@ -43,5 +43,6 @@ import:
 - package: google.golang.org/genproto
   repo: https://github.com/google/go-genproto.git
 - package: github.com/ontio/ontology-crypto
+- package: github.com/gosuri/uiprogress
 ignore:
   - golang.org/x/sys/unix
