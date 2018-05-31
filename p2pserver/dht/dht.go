@@ -215,7 +215,6 @@ func (this *DHT) waitAndHandleResponse(knownNode map[types.NodeID]bool, closestN
 		if ok {
 			//log.Infof("get entries %d %v", len(entries), entries)
 			for _, n := range entries {
-				log.Infof("receive new node %d, id %s", n.UDPPort, n.ID.String())
 				// Todo:
 				if knownNode[n.ID] == true || n.ID == this.nodeID {
 					continue
@@ -229,7 +228,7 @@ func (this *DHT) waitAndHandleResponse(knownNode map[types.NodeID]bool, closestN
 				}
 				// ping and wait node one by one
 				reqId, isNewRequest := this.messagePool.AddRequest(n, types.DHT_PING_REQUEST, nil, true)
-				if isNewRequest{
+				if isNewRequest {
 					this.Ping(addr)
 				}
 				this.messagePool.Wait([]types.RequestId{reqId})
@@ -396,7 +395,6 @@ func (this *DHT) FindNodeReply(addr *net.UDPAddr, targetId types.NodeID) error {
 		FromID: this.nodeID,
 		Nodes:  make([]types.Node, 0, len(nodes)),
 	}
-	log.Infof("ReturenNeighbors: nodes %d", len(nodes))
 	for _, node := range nodes {
 		log.Infof("ReturnNeightbors: %s:%d", node.IP, node.UDPPort)
 		neighborsPayload.Nodes = append(neighborsPayload.Nodes, *node)
@@ -495,7 +493,8 @@ func (this *DHT) DisplayRoutingTable() {
 		}
 		fmt.Println("[", bucketIndex, "]: ")
 		for i := 0; i < this.routingTable.GetTotalNodeNumInBukcet(bucketIndex); i++ {
-			fmt.Printf("%x \n", bucket.entries[i].ID[20:])
+			fmt.Printf("%x %s %d %d\n", bucket.entries[i].ID[:10], bucket.entries[i].IP,
+				bucket.entries[i].UDPPort, bucket.entries[i].TCPPort)
 		}
 	}
 }

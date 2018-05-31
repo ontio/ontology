@@ -78,15 +78,10 @@ func (this *routingTable) AddNode(node *types.Node, bucketIndex int) bool {
 	defer this.mu.Unlock()
 
 	bucket := this.buckets[bucketIndex]
-	fmt.Println("AddNode: node id ", node.ID.String())
 	for i, entry := range bucket.entries {
-		fmt.Println("entry ", i, " id ", entry.ID)
 		if entry.ID == node.ID {
 			copy(bucket.entries[1:], bucket.entries[:i])
 			bucket.entries[0] = node
-			for _, pentry := range bucket.entries {
-				fmt.Println("after copy: entry id ", pentry.ID)
-			}
 			return false
 		}
 	}
@@ -101,10 +96,6 @@ func (this *routingTable) AddNode(node *types.Node, bucketIndex int) bool {
 
 	copy(bucket.entries[1:], bucket.entries[:])
 	bucket.entries[0] = node
-	for _, pentry := range bucket.entries {
-		fmt.Println("after AddNode: entry id ", pentry.ID)
-	}
-
 	feed := &types.FeedEvent{
 		EvtType: types.Add,
 		Event:   node,
@@ -120,10 +111,8 @@ func (this *routingTable) RemoveNode(id types.NodeID) {
 
 	for i, entry := range bucket.entries {
 		if entry.ID == id {
+			fmt.Println("remove node id ", id.String())
 			bucket.entries = append(bucket.entries[:i], bucket.entries[i+1:]...)
-			for _, pentry := range bucket.entries {
-				fmt.Println("after remove: entry id ", pentry.ID)
-			}
 			feed := &types.FeedEvent{
 				EvtType: types.Del,
 				Event:   id,

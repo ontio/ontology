@@ -163,15 +163,36 @@ func (this *NetServer) handleFeed(event *types.FeedEvent) {
 	switch event.EvtType {
 	case types.Add:
 		node := event.Event.(*types.Node)
-		log.Infof("handle feed: add a new node %v", node)
 		address := node.IP + ":" + strconv.Itoa(int(node.TCPPort))
 		this.Connect(address, false)
 	case types.Del:
 		id := event.Event.(types.NodeID)
-		log.Infof("handle feed: remove a node %s", id.String())
+		this.disconnectPeer(id)
 	default:
 		log.Infof("handle feed: unknown feed event %d", event.EvtType)
 	}
+}
+
+func (this *NetServer) disconnectPeer(id types.NodeID) {
+	//Todo: use unified id
+	var peerID uint64
+	err := binary.Read(bytes.NewBuffer(id[:8]), binary.LittleEndian, &(peerID))
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	peer := this.GetPeer(peerID)
+	if peer == nil {
+		return
+	}
+
+	this.RemoveFromConnectingList(peer.GetAddr())
+	this.RemovePeerSyncAddress(peer.GetAddr())
+	this.RemovePeerConsAddress(peer.GetAddr())
+	peer.CloseSync()
+	peer.CloseCons()
+	log.Infof("disconnect peer %s", peer.GetAddr())
 }
 
 func (this *NetServer) SetFeedCh(ch chan *types.FeedEvent) {
