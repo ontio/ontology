@@ -23,7 +23,6 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	cmn "github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
@@ -59,7 +58,7 @@ func encodeID(id []byte) ([]byte, error) {
 	}
 	enc := []byte{byte(length)}
 	enc = append(enc, id...)
-	enc = append(genesis.OntIDContractAddress[:], enc...)
+	enc = append(utils.OntIDContractAddress[:], enc...)
 	return enc, nil
 }
 

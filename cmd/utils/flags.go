@@ -46,6 +46,11 @@ var (
 		Value: config.DEFAULT_WALLET_FILE_NAME,
 		Usage: "Use `<filename>` as the wallet",
 	}
+	DataDirFlag = cli.StringFlag{
+		Name:  "datadir",
+		Usage: "Using dir `<path>` to save block data",
+		Value: config.DEFAULT_DATA_DIR,
+	}
 
 	//Consensus setting
 	DisableConsensusFlag = cli.BoolFlag{
@@ -80,6 +85,11 @@ var (
 	}
 
 	//P2P setting
+	NetworkIdFlag = cli.UintFlag{
+		Name:  "networkid",
+		Usage: "P2P network id",
+		Value: config.DEFAULT_NET_MAGIC,
+	}
 	NodePortFlag = cli.UintFlag{
 		Name:  "nodeport",
 		Usage: "P2P node listening port",

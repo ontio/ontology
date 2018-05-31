@@ -21,39 +21,74 @@ package global_params
 import (
 	"io"
 
-	"encoding/json"
-
 	"fmt"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
 )
 
-type Params map[string]string
+type Param struct {
+	Key   string
+	Value string
+}
+
+type Params []*Param
 
 type Admin common.Address
 
 type ParamNameList []string
 
-func (params *Params) Serialize(w io.Writer) error {
-	paramsJsonString, err := json.Marshal(params)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, serialize params error!")
+func (params *Params) SetParam(value *Param) {
+	for index, param := range *params {
+		if param.Key == value.Key {
+			(*params)[index] = value
+			return
+		}
 	}
-	if err := serialization.WriteVarBytes(w, paramsJsonString); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, serialize params error!")
+	*params = append(*params, value)
+}
+
+func (params *Params) GetParam(key string) (int, *Param) {
+	for index, param := range *params {
+		if param.Key == key {
+			return index, param
+		}
+	}
+	return -1, nil
+}
+
+func (params *Params) Serialize(w io.Writer) error {
+	paramNum := len(*params)
+	if err := serialization.WriteVarUint(w, uint64(paramNum)); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, serialize params length error!")
+	}
+	for _, param := range *params {
+		if err := serialization.WriteString(w, param.Key); err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, fmt.Sprintf("param config, serialize param key %v error!", param.Key))
+		}
+		if err := serialization.WriteString(w, param.Value); err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, fmt.Sprintf("param config, serialize param value %v error!", param.Value))
+		}
 	}
 	return nil
 }
 
 func (params *Params) Deserialize(r io.Reader) error {
-	paramsJsonString, err := serialization.ReadVarBytes(r)
+	paramNum, err := serialization.ReadVarUint(r, 0)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, deserialize params error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, deserialize params length error!")
 	}
-	err = json.Unmarshal(paramsJsonString, params)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, deserialize params error!")
+	for i := 0; uint64(i) < paramNum; i++ {
+		param := new(Param)
+		param.Key, err = serialization.ReadString(r)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, fmt.Sprintf("param config, deserialize param key %v error!", param.Key))
+		}
+		param.Value, err = serialization.ReadString(r)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, fmt.Sprintf("param config, deserialize param value %v error!", param.Value))
+		}
+		*params = append(*params, param)
 	}
 	return nil
 }

@@ -41,6 +41,7 @@ const (
 
 	DEFAULT_LOG_LEVEL        = 1
 	DEFAULT_MAX_LOG_SIZE     = 100 //MByte
+	DEFAULT_NET_MAGIC        = 0x74746e41
 	DEFAULT_NODE_PORT        = uint(20338)
 	DEFAULT_CONSENSUS_PORT   = uint(20339)
 	DEFAULT_RPC_PORT         = uint(20336)
@@ -55,6 +56,8 @@ const (
 	DEFAULT_CLI_RPC_PORT     = uint(20000)
 	DEFAULT_GAS_LIMIT        = 30000
 	DEFAULT_GAS_PRICE        = 0
+
+	DEFAULT_DATA_DIR = "./Chain"
 )
 
 var PolarisConfig = &GenesisConfig{
@@ -96,6 +99,9 @@ func NewGenesisConfig() *GenesisConfig {
 	}
 }
 
+//
+// VBFT genesis config, from local config file
+//
 type VBFTConfig struct {
 	N                    uint32               `json:"n"` // network size
 	C                    uint32               `json:"c"` // consensus quorum
@@ -105,6 +111,8 @@ type VBFTConfig struct {
 	HashMsgDelay         uint32               `json:"hash_msg_delay"`
 	PeerHandshakeTimeout uint32               `json:"peer_handshake_timeout"`
 	MaxBlockChangeView   uint32               `json:"max_block_change_view"`
+	VrfValue             string               `json:"vrf_value"`
+	VrfProof             string               `json:"vrf_proof"`
 	Peers                []*VBFTPeerStakeInfo `json:"peers"`
 }
 
@@ -131,6 +139,7 @@ type CommonConfig struct {
 	SystemFee      map[string]int64
 	GasLimit       uint64
 	GasPrice       uint64
+	DataDir        string
 }
 
 type ConsensusConfig struct {
@@ -139,6 +148,7 @@ type ConsensusConfig struct {
 }
 
 type P2PNodeConfig struct {
+	NetworkId         uint
 	NodePort          uint
 	NodeConsensusPort uint
 	DualPortSupport   bool
@@ -193,12 +203,14 @@ func NewOntologyConfig() *OntologyConfig {
 			EnableEventLog: DEFAULT_ENABLE_EVENT_LOG,
 			SystemFee:      make(map[string]int64),
 			GasLimit:       DEFAULT_GAS_LIMIT,
+			DataDir:        DEFAULT_DATA_DIR,
 		},
 		Consensus: &ConsensusConfig{
 			EnableConsensus: true,
 			MaxTxInBlock:    DEFAULT_MAX_TX_IN_BLOCK,
 		},
 		P2PNode: &P2PNodeConfig{
+			NetworkId:         DEFAULT_NET_MAGIC,
 			NodePort:          DEFAULT_NODE_PORT,
 			NodeConsensusPort: DEFAULT_CONSENSUS_PORT,
 			DualPortSupport:   true,

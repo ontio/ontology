@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/errors"
 	. "github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -35,7 +34,7 @@ var (
 )
 
 func Init() {
-	Contracts[genesis.AuthContractAddress] = RegisterAuthContract
+	Contracts[utils.AuthContractAddress] = RegisterAuthContract
 }
 
 func GetContractAdmin(native *NativeService, contractAddr []byte) ([]byte, error) {
@@ -554,7 +553,7 @@ func verifySig(native *NativeService, ontID []byte, keyNo uint32) (bool, error) 
 		return false, err
 	}
 	args := bf.Bytes()
-	ret, err := native.ContextRef.AppCall(genesis.OntIDContractAddress, "verifySignature", []byte{}, args)
+	ret, err := native.ContextRef.AppCall(utils.OntIDContractAddress, "verifySignature", []byte{}, args)
 	if err != nil {
 		return false, err
 	}

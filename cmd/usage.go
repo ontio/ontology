@@ -78,6 +78,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.ConfigFlag,
 			utils.LogLevelFlag,
 			utils.DisableEventLogFlag,
+			utils.DataDirFlag,
 		},
 	},
 	{
@@ -115,6 +116,7 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name: "P2P NODE",
 		Flags: []cli.Flag{
+			utils.NetworkIdFlag,
 			utils.NodePortFlag,
 			utils.DualPortSupportFlag,
 			utils.ConsensusPortFlag,

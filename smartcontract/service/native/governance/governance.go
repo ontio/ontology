@@ -28,7 +28,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/genesis"
 	cstates "github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
@@ -116,7 +115,7 @@ var Yi = []uint64{
 }
 
 func InitGovernance() {
-	native.Contracts[genesis.GovernanceContractAddress] = RegisterGovernanceContract
+	native.Contracts[utils.GovernanceContractAddress] = RegisterGovernanceContract
 }
 
 func RegisterGovernanceContract(native *native.NativeService) {
@@ -321,12 +320,12 @@ func RegisterSyncNode(native *native.NativeService) ([]byte, error) {
 	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_POOL), view.Bytes()), &cstates.StorageItem{Value: bf.Bytes()})
 
 	//ont transfer
-	err = AppCallTransferOnt(native, address, genesis.GovernanceContractAddress, params.InitPos)
+	err = AppCallTransferOnt(native, address, utils.GovernanceContractAddress, params.InitPos)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
 	}
 	//ong transfer
-	err = AppCallTransferOng(native, address, genesis.GovernanceContractAddress, SYNC_NODE_FEE)
+	err = AppCallTransferOng(native, address, utils.GovernanceContractAddress, SYNC_NODE_FEE)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOng, ong transfer error!")
 	}
@@ -437,7 +436,7 @@ func RegisterCandidate(native *native.NativeService) ([]byte, error) {
 	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_POOL), view.Bytes()), &cstates.StorageItem{Value: bf.Bytes()})
 
 	//ong transfer
-	err = AppCallTransferOng(native, address, genesis.GovernanceContractAddress, CANDIDATE_FEE)
+	err = AppCallTransferOng(native, address, utils.GovernanceContractAddress, CANDIDATE_FEE)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOng, ong transfer error!")
 	}
@@ -805,7 +804,7 @@ func VoteForPeer(native *native.NativeService) ([]byte, error) {
 	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_POOL), view.Bytes()), &cstates.StorageItem{Value: bf.Bytes()})
 
 	//ont transfer
-	err = AppCallTransferOnt(native, address, genesis.GovernanceContractAddress, uint64(total))
+	err = AppCallTransferOnt(native, address, utils.GovernanceContractAddress, uint64(total))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
 	}
@@ -886,7 +885,7 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 	}
 
 	//ont transfer
-	err = AppCallTransferOnt(native, genesis.GovernanceContractAddress, address, total)
+	err = AppCallTransferOnt(native, utils.GovernanceContractAddress, address, total)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
 	}
@@ -966,7 +965,7 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 			//draw back init pos
 			address := peerPoolItem.Address
 			//ont transfer
-			err = AppCallTransferOnt(native, genesis.GovernanceContractAddress, address, peerPoolItem.InitPos)
+			err = AppCallTransferOnt(native, utils.GovernanceContractAddress, address, peerPoolItem.InitPos)
 			if err != nil {
 				return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
 			}
@@ -987,7 +986,7 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 
 				address := voteInfo.Address
 				//ont transfer
-				err = AppCallTransferOnt(native, genesis.GovernanceContractAddress, address, pos)
+				err = AppCallTransferOnt(native, utils.GovernanceContractAddress, address, pos)
 				if err != nil {
 					return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
 				}
@@ -1204,7 +1203,7 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 
 		address := voteCommitInfo.Address
 		//ont transfer
-		err = AppCallTransferOnt(native, genesis.GovernanceContractAddress, address, voteCommitInfo.Pos)
+		err = AppCallTransferOnt(native, utils.GovernanceContractAddress, address, voteCommitInfo.Pos)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
 		}
@@ -1319,13 +1318,13 @@ func VoteCommitDpos(native *native.NativeService) ([]byte, error) {
 
 		//ont transfer
 		if params.Pos > 0 {
-			err = AppCallTransferOnt(native, address, genesis.GovernanceContractAddress, uint64(params.Pos))
+			err = AppCallTransferOnt(native, address, utils.GovernanceContractAddress, uint64(params.Pos))
 			if err != nil {
 				return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
 			}
 		}
 		if params.Pos < 0 {
-			err = AppCallTransferOnt(native, genesis.GovernanceContractAddress, address, uint64(-params.Pos))
+			err = AppCallTransferOnt(native, utils.GovernanceContractAddress, address, uint64(-params.Pos))
 			if err != nil {
 				return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
 			}
@@ -1373,7 +1372,7 @@ func CallSplit(native *native.NativeService) ([]byte, error) {
 	//	return errors.NewDetailErr(err, errors.ErrNoCode, "callSplit, checkWitness error!")
 	//}
 
-	contract := genesis.GovernanceContractAddress
+	contract := utils.GovernanceContractAddress
 	//get current view
 	cView, err := GetView(native, contract)
 	if err != nil {
@@ -1392,7 +1391,7 @@ func CallSplit(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "executeSplit, executeSplitp error!")
 	}
 
-	utils.AddCommonEvent(native, genesis.GovernanceContractAddress, CALL_SPLIT, true)
+	utils.AddCommonEvent(native, utils.GovernanceContractAddress, CALL_SPLIT, true)
 
 	return utils.BYTE_TRUE, nil
 }
@@ -1456,7 +1455,7 @@ func executeSplit(native *native.NativeService, contract common.Address, peerPoo
 	for i := int(config.K) - 1; i >= 0; i-- {
 		nodeAmount := uint64(TOTAL_ONG * A * peersCandidate[i].S / sumS)
 		address := peersCandidate[i].Address
-		err = AppCallApproveOng(native, genesis.GovernanceContractAddress, address, nodeAmount)
+		err = AppCallApproveOng(native, utils.GovernanceContractAddress, address, nodeAmount)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "executeSplit, ong transfer error!")
 		}
@@ -1473,7 +1472,7 @@ func executeSplit(native *native.NativeService, contract common.Address, peerPoo
 	for i := int(config.K); i < len(peersCandidate); i++ {
 		nodeAmount := uint64(TOTAL_ONG * B * peersCandidate[i].Stake / sum)
 		address := peersCandidate[i].Address
-		err = AppCallApproveOng(native, genesis.GovernanceContractAddress, address, nodeAmount)
+		err = AppCallApproveOng(native, utils.GovernanceContractAddress, address, nodeAmount)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "executeSplit, ong transfer error!")
 		}
@@ -1486,7 +1485,7 @@ func executeSplit(native *native.NativeService, contract common.Address, peerPoo
 	for _, syncNodeSplitInfo := range peersSyncNode {
 		amount := uint64(TOTAL_ONG * C / len(peersSyncNode))
 		address := syncNodeSplitInfo.Address
-		err = AppCallApproveOng(native, genesis.GovernanceContractAddress, address, amount)
+		err = AppCallApproveOng(native, utils.GovernanceContractAddress, address, amount)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[executeSplit] Ong transfer error!")
 		}

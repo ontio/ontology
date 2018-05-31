@@ -44,6 +44,7 @@ import (
 	sstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vmtype "github.com/ontio/ontology/smartcontract/types"
+	"os"
 )
 
 const (
@@ -53,10 +54,10 @@ const (
 
 var (
 	//Storage save path.
-	DBDirEvent          = "Chain/ledgerevent"
-	DBDirBlock          = "Chain/block"
-	DBDirState          = "Chain/states"
-	MerkleTreeStorePath = "Chain/merkle_tree.db"
+	DBDirEvent          = "ledgerevent"
+	DBDirBlock          = "block"
+	DBDirState          = "states"
+	MerkleTreeStorePath = "merkle_tree.db"
 )
 
 //LedgerStoreImp is main store struct fo ledger
@@ -74,25 +75,26 @@ type LedgerStoreImp struct {
 }
 
 //NewLedgerStore return LedgerStoreImp instance
-func NewLedgerStore() (*LedgerStoreImp, error) {
+func NewLedgerStore(dataDir string) (*LedgerStoreImp, error) {
 	ledgerStore := &LedgerStoreImp{
 		headerIndex: make(map[uint32]common.Uint256),
 		headerCache: make(map[common.Uint256]*types.Header, 0),
 	}
 
-	blockStore, err := NewBlockStore(DBDirBlock, true)
+	blockStore, err := NewBlockStore(fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirBlock), true)
 	if err != nil {
 		return nil, fmt.Errorf("NewBlockStore error %s", err)
 	}
 	ledgerStore.blockStore = blockStore
 
-	stateStore, err := NewStateStore(DBDirState, MerkleTreeStorePath)
+	stateStore, err := NewStateStore(fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirState),
+		fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), MerkleTreeStorePath))
 	if err != nil {
 		return nil, fmt.Errorf("NewStateStore error %s", err)
 	}
 	ledgerStore.stateStore = stateStore
 
-	eventState, err := NewEventStore(DBDirEvent)
+	eventState, err := NewEventStore(fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirEvent))
 	if err != nil {
 		return nil, fmt.Errorf("NewEventStore error %s", err)
 	}
@@ -608,18 +610,27 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block) error {
 }
 
 func (this *LedgerStoreImp) handleTransaction(stateBatch *statestore.StateBatch, block *types.Block, tx *types.Transaction) error {
-	var err error
 	txHash := tx.Hash()
 	switch tx.TxType {
 	case types.Deploy:
-		err = this.stateStore.HandleDeployTransaction(stateBatch, tx)
+		err := this.stateStore.HandleDeployTransaction(this, stateBatch, tx, block, this.eventStore)
 		if err != nil {
-			return fmt.Errorf("HandleDeployTransaction tx %x error %s", txHash, err)
+			if stateBatch.Error() == nil {
+				log.Debugf("HandleDeployTransaction tx %x error %s", txHash, err)
+				SaveNotify(this.eventStore, txHash, []*event.NotifyEventInfo{}, false)
+			} else {
+				return fmt.Errorf("HandleDeployTransaction tx %x error %s", txHash, stateBatch.Error())
+			}
 		}
 	case types.Invoke:
-		err = this.stateStore.HandleInvokeTransaction(this, stateBatch, tx, block, this.eventStore)
+		err := this.stateStore.HandleInvokeTransaction(this, stateBatch, tx, block, this.eventStore)
 		if err != nil {
-			log.Debugf("HandleInvokeTransaction tx %x error %s \n", txHash, err)
+			if stateBatch.Error() == nil {
+				log.Debugf("HandleInvokeTransaction tx %x error %s", txHash, err)
+				SaveNotify(this.eventStore, txHash, []*event.NotifyEventInfo{}, false)
+			} else {
+				return fmt.Errorf("HandleInvokeTransaction tx %x error %s", txHash, stateBatch.Error())
+			}
 		}
 	case types.Claim:
 	case types.Enrollment:
@@ -782,7 +793,10 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 
 	//start the smart contract executive function
 	result, err := sc.Execute()
-	gasCost := math.MaxUint64 - sc.Gas + neovm.TRANSACTION_GAS
+	gasCost := math.MaxUint64 - sc.Gas
+	if gasCost < neovm.TRANSACTION_GAS {
+		gasCost = neovm.TRANSACTION_GAS
+	}
 	if err != nil {
 		return &sstate.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: gasCost, Result: nil}, err
 	}

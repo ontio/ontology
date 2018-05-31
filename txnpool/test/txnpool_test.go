@@ -27,6 +27,7 @@ import (
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
@@ -70,7 +71,7 @@ func Test_RCV(t *testing.T) {
 	var s *tp.TXPoolServer
 	var wg sync.WaitGroup
 
-	ledger.DefLedger, _ = ledger.NewLedger()
+	ledger.DefLedger, _ = ledger.NewLedger(config.DEFAULT_DATA_DIR)
 
 	// Start txnpool server to receive msgs from p2p, consensus and valdiators
 	s = tp.NewTxPoolServer(tc.MAX_WORKER_NUM)

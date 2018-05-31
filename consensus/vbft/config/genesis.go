@@ -19,6 +19,7 @@
 package vconfig
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
@@ -61,8 +62,26 @@ func genConsensusPayload(cfg *config.VBFTConfig) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// save VRF in genesis config file, to genesis block
+	vrfValue, err := hex.DecodeString(cfg.VrfValue)
+	if err != nil {
+		return nil, fmt.Errorf("invalid config, vrf_value: %s", err)
+	}
+
+	vrfProof, err := hex.DecodeString(cfg.VrfProof)
+	if err != nil {
+		return nil, fmt.Errorf("invalid config, vrf_proof: %s", err)
+	}
+
+	// Notice:
+	// take genesis msg as random source,
+	// don't need verify (genesisProposer, vrfValue, vrfProof)
+
 	vbftBlockInfo := &VbftBlockInfo{
 		Proposer:           math.MaxUint32,
+		VrfValue:           vrfValue,
+		VrfProof:           vrfProof,
 		LastConfigBlockNum: math.MaxUint32,
 		NewChainConfig:     chainConfig,
 	}
@@ -139,7 +158,7 @@ func GenesisChainConfig(config *config.VBFTConfig, peersinfo []*config.VBFTPeerS
 	chainConfig := &ChainConfig{
 		Version:              1,
 		View:                 1,
-		N:                    config.N,
+		N:                    config.K,
 		C:                    config.C,
 		BlockMsgDelay:        time.Duration(config.BlockMsgDelay) * time.Millisecond,
 		HashMsgDelay:         time.Duration(config.HashMsgDelay) * time.Millisecond,

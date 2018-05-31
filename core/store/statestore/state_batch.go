@@ -33,6 +33,7 @@ import (
 type StateBatch struct {
 	store       common.PersistStore
 	memoryStore common.MemoryCacheStore
+	dbErr       error
 }
 
 func NewStateStoreBatch(memoryStore common.MemoryCacheStore, store common.PersistStore) *StateBatch {
@@ -85,7 +86,9 @@ func (self *StateBatch) TryGetOrAdd(prefix common.DataEntryPrefix, key []byte, v
 	}
 	item, err := self.store.Get(append(aPrefix, key...))
 	if err != nil && err != leveldb.ErrNotFound {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[TryGetOrAdd], leveldb store get data failed.")
+		errs := errors.NewDetailErr(err, errors.ErrNoCode, "[TryGetOrAdd], leveldb store get data failed.")
+		self.setError(errs)
+		return errs
 	}
 
 	if len(item) != 0 {
@@ -112,7 +115,9 @@ func (self *StateBatch) TryGet(prefix common.DataEntryPrefix, key []byte) (*comm
 		if err == leveldb.ErrNotFound {
 			return nil, nil
 		}
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[TryGet], leveldb store get data failed.")
+		errs := errors.NewDetailErr(err, errors.ErrNoCode, "[TryGet], leveldb store get data failed.")
+		self.setError(errs)
+		return nil, errs
 	}
 
 	stateVal, err := getStateObject(prefix, enc)
@@ -145,6 +150,16 @@ func (self *StateBatch) CommitTo() error {
 
 func (self *StateBatch) setStateObject(prefix byte, key []byte, value states.StateValue, state common.ItemState) {
 	self.memoryStore.Put(prefix, key, value, state)
+}
+
+func (self *StateBatch) setError(err error) {
+	if self.dbErr == nil {
+		self.dbErr = err
+	}
+}
+
+func (self *StateBatch) Error() error {
+	return self.dbErr
 }
 
 func getStateObject(prefix common.DataEntryPrefix, enc []byte) (states.StateValue, error) {
