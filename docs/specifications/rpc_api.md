@@ -89,7 +89,7 @@ Transaction field description
 | getgasprice |  | return gasprice |  |
 | getallowance | asset, from, to | return allowance |  |
 | getunclaimong | address | return unclaimong |  |
-| get_blk_txs_by_height | height | return tx hashes |  |
+| getblocktxsbyheight | height | return tx hashes |  |
 
 ### 1. getbestblockhash
 
@@ -1024,7 +1024,7 @@ Response:
 }
 ```
 
-#### 21 get_blk_txs_by_height
+#### 21 getblocktxsbyheight
 
 Get transactions by block height
 return all transaction hash contained in the block corresponding to this height
