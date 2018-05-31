@@ -27,6 +27,7 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
@@ -38,6 +39,7 @@ import (
 	"github.com/ontio/ontology/p2pserver/net/netserver"
 	"github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/p2pserver/peer"
+	vmtypes "github.com/ontio/ontology/smartcontract/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -54,7 +56,7 @@ func init() {
 	events.Init()
 	// Initial a ledger
 	var err error
-	ledger.DefLedger, err = ledger.NewLedger()
+	ledger.DefLedger, err = ledger.NewLedger(config.DEFAULT_DATA_DIR)
 	if err != nil {
 		log.Fatalf("NewLedger error %s", err)
 	}
@@ -111,8 +113,7 @@ func TestVersionHandle(t *testing.T) {
 	}
 
 	// Invoke VersionHandle to handle the msg
-	err = VersionHandle(msg, network, nil)
-	assert.Nil(t, err)
+	VersionHandle(msg, network, nil)
 
 	// Get the remote peer from the neighbor peers by peer id
 	tempPeer := network.GetPeer(testID)
@@ -160,8 +161,7 @@ func TestVerAckHandle(t *testing.T) {
 	}
 
 	// Invoke VerAckHandle to handle the msg
-	err = VerAckHandle(msg, network, nil)
-	assert.Nil(t, err)
+	VerAckHandle(msg, network, nil)
 
 	// Get the remote peer from the neighbor peers by peer id
 	tempPeer := network.GetPeer(testID)
@@ -201,8 +201,7 @@ func TestAddrReqHandle(t *testing.T) {
 	}
 
 	// Invoke AddrReqHandle to handle the msg
-	err = AddrReqHandle(msg, network, nil)
-	assert.Nil(t, err)
+	AddrReqHandle(msg, network, nil)
 
 	network.DelNbrNode(testID)
 }
@@ -236,8 +235,7 @@ func TestHeadersReqHandle(t *testing.T) {
 	}
 
 	// Invoke HeadersReqhandle to handle the msg
-	err = HeadersReqHandle(msg, network, nil)
-	assert.Nil(t, err)
+	HeadersReqHandle(msg, network, nil)
 	network.DelNbrNode(testID)
 }
 
@@ -272,8 +270,7 @@ func TestPingHandle(t *testing.T) {
 	}
 
 	// Invoke PingHandle to handle the msg
-	err = PingHandle(msg, network, nil)
-	assert.Nil(t, err)
+	PingHandle(msg, network, nil)
 
 	network.DelNbrNode(testID)
 }
@@ -309,8 +306,7 @@ func TestPongHandle(t *testing.T) {
 	}
 
 	// Invoke PingHandle to handle the msg
-	err = PongHandle(msg, network, nil)
-	assert.Nil(t, err)
+	PongHandle(msg, network, nil)
 
 	network.DelNbrNode(testID)
 }
@@ -349,8 +345,8 @@ func TestBlkHeaderHandle(t *testing.T) {
 	}
 
 	// Invoke BlkHeaderHandle to handle the msg
-	err = BlkHeaderHandle(msg, network, nil)
-	assert.Nil(t, err)
+	BlkHeaderHandle(msg, network, nil)
+
 	network.DelNbrNode(testID)
 }
 
@@ -388,8 +384,8 @@ func TestBlockHandle(t *testing.T) {
 	}
 
 	// Invoke BlockHandle to handle the msg
-	err = BlockHandle(msg, network, nil)
-	assert.Nil(t, err)
+	BlockHandle(msg, network, nil)
+
 	network.DelNbrNode(testID)
 }
 
@@ -424,8 +420,7 @@ func TestConsensusHandle(t *testing.T) {
 		Payload: buf,
 	}
 
-	err = ConsensusHandle(msg, network, nil)
-	assert.Nil(t, err)
+	ConsensusHandle(msg, network, nil)
 }
 
 // TestNotFoundHandle tests Function NotFoundHandle handling a not found message
@@ -444,18 +439,26 @@ func TestNotFoundHandle(t *testing.T) {
 		Payload: buf,
 	}
 
-	err = NotFoundHandle(msg, network, nil)
-	assert.Nil(t, err)
+	NotFoundHandle(msg, network, nil)
 }
 
 // TestTransactionHandle tests Function TransactionHandle handling a transaction message
 func TestTransactionHandle(t *testing.T) {
+	code := []byte("ont")
+	vmcode := vmtypes.VmCode{
+		VmType: vmtypes.Native,
+		Code:   code,
+	}
+
+	invokeCodePayload := &payload.InvokeCode{
+		Code: vmcode,
+	}
+
 	tx := &ct.Transaction{
-		TxType: ct.BookKeeping,
-		Payload: &payload.Bookkeeping{
-			Nonce: 1234567890,
-		},
+		Version:    0,
 		Attributes: []*ct.TxAttribute{},
+		TxType:     ct.Invoke,
+		Payload:    invokeCodePayload,
 	}
 
 	buf, err := msgpack.NewTxn(tx)
@@ -467,8 +470,7 @@ func TestTransactionHandle(t *testing.T) {
 		Payload: buf,
 	}
 
-	err = TransactionHandle(msg, network, nil)
-	assert.Nil(t, err)
+	TransactionHandle(msg, network, nil)
 }
 
 // TestAddrHandle tests Function AddrHandle handling a neighbor address response message
@@ -483,8 +485,7 @@ func TestAddrHandle(t *testing.T) {
 		Payload: buf,
 	}
 
-	err = AddrHandle(msg, network, nil)
-	assert.Nil(t, err)
+	AddrHandle(msg, network, nil)
 }
 
 // TestDataReqHandle tests Function DataReqHandle handling a data req(block/Transaction)
@@ -514,8 +515,7 @@ func TestDataReqHandle(t *testing.T) {
 		Payload: buf,
 	}
 
-	err = DataReqHandle(msg, network, nil)
-	assert.Nil(t, err)
+	DataReqHandle(msg, network, nil)
 
 	tempStr := "3369930accc1ddd067245e8edadcd9bea207ba5e1753ac18a51df77a343bfe92"
 	hex, _ := hex.DecodeString(tempStr)
@@ -530,8 +530,7 @@ func TestDataReqHandle(t *testing.T) {
 		Payload: buf,
 	}
 
-	err = DataReqHandle(msg, network, nil)
-	assert.Nil(t, err)
+	DataReqHandle(msg, network, nil)
 
 	network.DelNbrNode(testID)
 }
@@ -567,8 +566,7 @@ func TestInvHandle(t *testing.T) {
 		Payload: buffer,
 	}
 
-	err = InvHandle(msg, network, nil)
-	assert.Nil(t, err)
+	InvHandle(msg, network, nil)
 
 	network.DelNbrNode(testID)
 }
@@ -591,7 +589,6 @@ func TestDisconnectHandle(t *testing.T) {
 
 	var m types.MsgCont
 	cmd := msgCommon.DISCONNECT_TYPE
-	m.Hdr.Magic = msgCommon.NETMAGIC
 	copy(m.Hdr.CMD[0:uint32(len(cmd))], cmd)
 	var buf bytes.Buffer
 	binary.Write(&buf, binary.LittleEndian, m.Hdr)
@@ -603,7 +600,6 @@ func TestDisconnectHandle(t *testing.T) {
 		Payload: msgbuf,
 	}
 
-	err = DisconnectHandle(msg, network, nil)
-	assert.Nil(t, err)
+	DisconnectHandle(msg, network, nil)
 	network.DelNbrNode(testID)
 }
