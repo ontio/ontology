@@ -22,6 +22,7 @@ import "github.com/ontio/ontology/cmd/server/handlers"
 
 func init() {
 	DefCliRpcSvr.RegHandler("sigrawtx", handlers.SigRawTransaction)
+	DefCliRpcSvr.RegHandler("sigmutilrawtx", handlers.SigMutilRawTransaction)
 	DefCliRpcSvr.RegHandler("sigtransfertx", handlers.SigTransferTransaction)
 	DefCliRpcSvr.RegHandler("signeovminvoketx", handlers.SigNeoVMInvokeTx)
 	DefCliRpcSvr.RegHandler("signativeinvoketx", handlers.SigNativeInvokeTx)

@@ -150,7 +150,7 @@ func invokeContract(ctx *cli.Context) error {
 	}
 
 	paramData, _ := json.Marshal(params)
-	fmt.Printf("Invoke:%s Params:%s\n", contractAddr.ToBase58(), paramData)
+	fmt.Printf("Invoke:%x Params:%s\n", contractAddr[:], paramData)
 
 	if ctx.IsSet(utils.GetFlagName(utils.ContractPrepareInvokeFlag)) {
 		preResult, err := utils.PrepareInvokeNeoVMContract(cversion, contractAddr, params)
