@@ -117,7 +117,7 @@ func (this *DHT) bootstrap() {
 	this.syncAddNodes(this.seeds)
 	this.DisplayRoutingTable()
 
-	fmt.Println("start lookup")
+	log.Info("start lookup")
 	this.lookup(this.nodeID)
 }
 
@@ -164,10 +164,13 @@ func (this *DHT) loop() {
 
 // refreshRoutingTable refreshs k bucket
 func (this *DHT) refreshRoutingTable() {
-	log.Info("refreshRoutingTable")
+	log.Info("refreshRoutingTable start")
 	// Todo:
 	this.syncAddNodes(this.seeds)
-	this.lookup(this.nodeID)
+	results := this.lookup(this.nodeID)
+	if results != nil && len(results) > 0 {
+		return
+	}
 
 	var targetID types.NodeID
 	rand.Read(targetID[:])
@@ -312,9 +315,11 @@ func (this *DHT) findNode(remotePeer *types.Node, targetID types.NodeID) error {
 }
 
 // addNode adds a node to the K bucket.
-func (this *DHT) addNode(remotePeer *types.Node) {
+// remotePeer: added node
+// shouldWait: if ping the lastNode located in the same k bucket of remotePeer, the request should be wait or not
+func (this *DHT) addNode(remotePeer *types.Node, shouldWait bool) types.RequestId {
 	if remotePeer == nil || remotePeer.ID == this.nodeID {
-		return
+		return ""
 	}
 
 	// find node in own bucket
@@ -334,14 +339,16 @@ func (this *DHT) addNode(remotePeer *types.Node) {
 			if err != nil {
 				this.routingTable.removeNode(lastNode.ID)
 				this.routingTable.addNode(remoteNode, bucketIndex)
-				return
+				return ""
 			}
-			if _, isNewRequest := this.messagePool.AddRequest(lastNode,
-				types.DHT_PING_REQUEST, remotePeer, false); isNewRequest {
+			if requestId, isNewRequest := this.messagePool.AddRequest(lastNode,
+				types.DHT_PING_REQUEST, remotePeer, shouldWait); isNewRequest {
 				this.ping(addr)
+				return requestId
 			}
 		}
 	}
+	return ""
 }
 
 // ping the remote node
@@ -513,7 +520,7 @@ func (this *DHT) DisplayRoutingTable() {
 		}
 		fmt.Println("[", bucketIndex, "]: ")
 		for i := 0; i < this.routingTable.getTotalNodeNumInBukcet(bucketIndex); i++ {
-			fmt.Printf("%x %s %d %d\n", bucket.entries[i].ID[:10], bucket.entries[i].IP,
+			fmt.Printf("%x %s %d %d\n", bucket.entries[i].ID[25:], bucket.entries[i].IP,
 				bucket.entries[i].UDPPort, bucket.entries[i].TCPPort)
 		}
 	}

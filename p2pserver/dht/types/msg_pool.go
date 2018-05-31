@@ -2,7 +2,7 @@ package types
 
 import (
 	"bytes"
-	"fmt"
+	"github.com/ontio/ontology/common/log"
 	"sync"
 	"time"
 )
@@ -90,10 +90,10 @@ func (this *DHTMessagePool) AddRequest(destinateNode *Node, reqType DHTRequestTy
 	}
 	_, ok := this.requestPool[requestId]
 	if ok { // if request already exist, reset timer
-		fmt.Println("reset old request: ", requestId)
+		log.Info("reset old request: ", requestId)
 		this.requestTimerQueue[requestId].Reset(timeout)
 	} else { // add a new request to pool
-		fmt.Println("send new request: ", requestId)
+		log.Info("send new request: ", requestId)
 		this.requestPool[requestId] = destinateNode
 		this.requestSupportData[requestId] = supportData
 		this.waitQueue[requestId] = shouldWait

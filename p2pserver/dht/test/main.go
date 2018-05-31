@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/dht"
 	"github.com/ontio/ontology/p2pserver/dht/types"
-	"github.com/ontio/ontology/account"
 )
 
 // test DHT
@@ -54,10 +54,10 @@ func main() {
 	nodeID, _ := types.PubkeyID(acct.PublicKey)
 	testDht := dht.NewDHT(nodeID, seeds)
 	testDht.Start()
-	fmt.Println("node ", nodeID, "start")
+	log.Info("node ", nodeID, "start")
 
 	stopCh := make(chan int)
-	timer := time.NewTicker(3 * time.Second)
+	timer := time.NewTicker(10 * time.Second)
 	for {
 		select {
 		case <-timer.C:
@@ -77,6 +77,6 @@ func startSeedNode(seedIndex int, seeds []*types.Node) *dht.DHT {
 	seedDht := dht.NewDHT(seedNode.ID, otherSeeds)
 	seedDht.SetPort(seedNode.TCPPort, seedNode.UDPPort)
 	seedDht.Start()
-	fmt.Println("node ", seedNode.ID, "start")
+	log.Info("node ", seedNode.ID, "start")
 	return seedDht
 }

@@ -19,11 +19,11 @@
 package dht
 
 import (
-	"fmt"
 	"sync"
 
 	//"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/p2pserver/dht/types"
+	"github.com/ontio/ontology/common/log"
 )
 
 type bucket struct {
@@ -110,7 +110,7 @@ func (this *routingTable) removeNode(id types.NodeID) {
 
 	for i, entry := range bucket.entries {
 		if entry.ID == id {
-			fmt.Println("remove node id ", id.String())
+			log.Infof("remove node id %s ", id.String())
 			bucket.entries = append(bucket.entries[:i], bucket.entries[i+1:]...)
 			feed := &types.FeedEvent{
 				EvtType: types.Del,

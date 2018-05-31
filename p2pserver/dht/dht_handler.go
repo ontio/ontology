@@ -19,7 +19,7 @@ func (this *DHT) findNodeHandle(from *net.UDPAddr, packet []byte) {
 		return
 	}
 
-	this.updateNode(findNode.P.FromID, from)
+	this.updateNode(findNode.P.FromID)
 	this.findNodeReply(from, findNode.P.TargetID)
 }
 
@@ -45,7 +45,7 @@ func (this *DHT) neighborsHandle(from *net.UDPAddr, packet []byte) {
 	}
 	this.messagePool.SetResults(results)
 
-	this.updateNode(neighbors.P.FromID, from)
+	this.updateNode(neighbors.P.FromID)
 }
 
 // pingHandle handles a ping message from UDP network
@@ -62,8 +62,7 @@ func (this *DHT) pingHandle(from *net.UDPAddr, packet []byte) {
 		return
 	}
 
-	this.pong(from)
-
+	// if routing table doesn't contain the node, add it to routing table and wait request return
 	if node := this.routingTable.queryNode(ping.P.FromID); node == nil {
 		node := &types.Node{
 			ID:      ping.P.FromID,
@@ -71,11 +70,15 @@ func (this *DHT) pingHandle(from *net.UDPAddr, packet []byte) {
 			UDPPort: uint16(from.Port),
 			TCPPort: uint16(ping.P.SrcEndPoint.TCPPort),
 		}
-		this.addNode(node)
-	} else {
-		this.updateNode(ping.P.FromID, from)
+		requestId := this.addNode(node, true)
+		if len(requestId) > 0 {
+			this.messagePool.Wait([]types.RequestId{requestId})
+		}
 	}
-
+	// query again, if routing table contain the node, pong to from node
+	if node := this.routingTable.queryNode(ping.P.FromID); node != nil {
+		this.pong(from)
+	}
 	this.DisplayRoutingTable()
 }
 
@@ -102,16 +105,18 @@ func (this *DHT) pongHandle(from *net.UDPAddr, packet []byte) {
 	}
 
 	// add to routing table
-	this.addNode(node)
+	this.addNode(node, false)
 	// remove node from request pool
 	this.messagePool.DeleteRequest(requesetId)
+	log.Info("receive pong of ", requesetId)
 }
 
 // update the node to bucket when receive message from the node
-func (this *DHT) updateNode(fromId types.NodeID, from *net.UDPAddr) {
+func (this *DHT) updateNode(fromId types.NodeID) {
 	node := this.routingTable.queryNode(fromId)
 	if node != nil {
 		// add node to bucket
-		this.addNode(node)
+		bucketIndex, _ := this.routingTable.locateBucket(fromId)
+		this.routingTable.addNode(node, bucketIndex)
 	}
 }
