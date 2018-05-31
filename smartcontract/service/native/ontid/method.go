@@ -113,12 +113,14 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: argument 2 error, " + err.Error())
 	}
 	// next parse each attribute
-	var arg2 = make([]attribute, num)
+	var arg2 = make([]attribute, 0)
 	for i := 0; i < int(num); i++ {
-		err = arg2[i].Deserialize(args)
+		var v attribute
+		err = v.Deserialize(args)
 		if err != nil {
 			return utils.BYTE_FALSE, errors.New("register ID with attributes error: argument 2 error, " + err.Error())
 		}
+		arg2 = append(arg2, v)
 	}
 
 	key, err := encodeID(arg0)
@@ -189,7 +191,7 @@ func addKey(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("add key failed: ID not registered")
 	}
 	var auth bool = false
-	rec, err := getRecovery(srvc, key)
+	rec, _ := getRecovery(srvc, key)
 	if len(rec) > 0 {
 		auth = bytes.Equal(rec, arg2)
 	}
@@ -376,12 +378,14 @@ func addAttributes(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, argument 1 error: %s", err)
 	}
 	// next parse each attribute
-	var arg1 = make([]attribute, num)
+	var arg1 = make([]attribute, 0)
 	for i := 0; i < int(num); i++ {
-		err = arg1[i].Deserialize(args)
+		var v attribute
+		err = v.Deserialize(args)
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, argument 1 error: %s", err)
 		}
+		arg1 = append(arg1, v)
 	}
 	// arg2: opperator's public key
 	arg2, err := serialization.ReadVarBytes(args)
@@ -409,9 +413,9 @@ func addAttributes(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, %s", err)
 	}
 
-	var paths = make([][]byte, num)
-	for i, v := range arg1 {
-		paths[i] = v.key
+	var paths = make([][]byte, 0)
+	for _, v := range arg1 {
+		paths = append(paths, v.key)
 	}
 	triggerAttributeEvent(srvc, "add", arg0, paths)
 	return utils.BYTE_TRUE, nil
