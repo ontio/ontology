@@ -158,7 +158,7 @@ func GenesisChainConfig(config *config.VBFTConfig, peersinfo []*config.VBFTPeerS
 	chainConfig := &ChainConfig{
 		Version:              1,
 		View:                 1,
-		N:                    config.N,
+		N:                    config.K,
 		C:                    config.C,
 		BlockMsgDelay:        time.Duration(config.BlockMsgDelay) * time.Millisecond,
 		HashMsgDelay:         time.Duration(config.HashMsgDelay) * time.Millisecond,
