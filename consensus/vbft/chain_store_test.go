@@ -24,8 +24,8 @@ import (
 	"testing"
 
 	"github.com/ontio/ontology/account"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
 )
 
