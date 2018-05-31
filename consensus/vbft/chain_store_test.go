@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
 )
@@ -37,7 +38,7 @@ func newChainStore() *ChainStore {
 		os.Exit(1)
 	}
 
-	ledger.DefLedger, err = ledger.NewLedger()
+	ledger.DefLedger, err = ledger.NewLedger(config.DEFAULT_DATA_DIR)
 	if err != nil {
 		log.Fatalf("NewLedger error %s", err)
 		os.Exit(1)

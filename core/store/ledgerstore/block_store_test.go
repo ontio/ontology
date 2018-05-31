@@ -19,15 +19,20 @@
 package ledgerstore
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"fmt"
-	"testing"
-	"time"
-
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	cstates "github.com/ontio/ontology/smartcontract/states"
+	vmtypes "github.com/ontio/ontology/smartcontract/types"
+	"testing"
+	"time"
 )
 
 func TestVersion(t *testing.T) {
@@ -215,9 +220,9 @@ func TestHeaderIndexList(t *testing.T) {
 }
 
 func TestSaveHeader(t *testing.T) {
-	_, pubKey1, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
-	_, pubKey2, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
-	bookkeeper, err := types.AddressFromBookkeepers([]keypair.PublicKey{&pubKey1, &pubKey2})
+	acc1 := account.NewAccount("")
+	acc2 := account.NewAccount("")
+	bookkeeper, err := types.AddressFromBookkeepers([]keypair.PublicKey{acc1.PublicKey, acc2.PublicKey})
 	if err != nil {
 		t.Errorf("AddressFromBookkeepers error %s", err)
 		return
@@ -231,23 +236,9 @@ func TestSaveHeader(t *testing.T) {
 		ConsensusData:    123456789,
 		NextBookkeeper:   bookkeeper,
 	}
-	tx1 := &types.Transaction{
-		TxType: types.BookKeeping,
-		Payload: &payload.Bookkeeping{
-			Nonce: 123456789,
-		},
-		Attributes: []*types.TxAttribute{},
-	}
-	tx2 := &types.Transaction{
-		TxType: types.Enrollment,
-		Payload: &payload.Enrollment{
-			PublicKey: nil,
-		},
-		Attributes: []*types.TxAttribute{},
-	}
 	block := &types.Block{
 		Header:       header,
-		Transactions: []*types.Transaction{tx1, tx2},
+		Transactions: []*types.Transaction{},
 	}
 	blockHash := block.Hash()
 	sysFee := common.Fixed64(1)
@@ -290,9 +281,9 @@ func TestSaveHeader(t *testing.T) {
 }
 
 func TestBlock(t *testing.T) {
-	_, pubKey1, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
-	_, pubKey2, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
-	bookkeeper, err := types.AddressFromBookkeepers([]keypair.PublicKey{&pubKey1, &pubKey2})
+	acc1 := account.NewAccount("")
+	acc2 := account.NewAccount("")
+	bookkeeper, err := types.AddressFromBookkeepers([]keypair.PublicKey{acc1.PublicKey, acc2.PublicKey})
 	if err != nil {
 		t.Errorf("AddressFromBookkeepers error %s", err)
 		return
@@ -306,27 +297,19 @@ func TestBlock(t *testing.T) {
 		ConsensusData:    1234567890,
 		NextBookkeeper:   bookkeeper,
 	}
-	tx1 := &types.Transaction{
-		TxType: types.BookKeeping,
-		Payload: &payload.Bookkeeping{
-			Nonce: 1234567890,
-		},
-		Attributes: []*types.TxAttribute{},
+
+	tx1, err := transferTx(acc1.Address, acc2.Address, 10)
+	if err != nil {
+		t.Errorf("TestBlock transferTx error:%s", err)
+		return
 	}
-	tx2 := &types.Transaction{
-		TxType: types.BookKeeping,
-		Payload: &payload.Bookkeeping{
-			Nonce: 1234567890,
-		},
-		Attributes: []*types.TxAttribute{},
-	}
+
 	block := &types.Block{
 		Header:       header,
-		Transactions: []*types.Transaction{tx1, tx2},
+		Transactions: []*types.Transaction{tx1},
 	}
 	blockHash := block.Hash()
 	tx1Hash := tx1.Hash()
-	tx2Hash := tx2.Hash()
 
 	testBlockStore.NewBatch()
 
@@ -361,15 +344,6 @@ func TestBlock(t *testing.T) {
 		t.Errorf("TestBlock failed transaction %x should exist", tx1Hash)
 		return
 	}
-	exist, err = testBlockStore.ContainTransaction(tx2Hash)
-	if err != nil {
-		t.Errorf("ContainTransaction error %s", err)
-		return
-	}
-	if !exist {
-		t.Errorf("TestBlock failed transaction %x should exist", tx2Hash)
-		return
-	}
 
 	if len(block.Transactions) != len(b.Transactions) {
 		t.Errorf("TestBlock failed Transaction size %d != %d ", len(b.Transactions), len(block.Transactions))
@@ -379,8 +353,68 @@ func TestBlock(t *testing.T) {
 		t.Errorf("TestBlock failed transaction1 hash %x != %x", b.Transactions[0].Hash(), tx1Hash)
 		return
 	}
-	if b.Transactions[1].Hash() != tx2Hash {
-		t.Errorf("TestBlock failed transaction2 hash %x != %x", b.Transactions[1].Hash(), tx2Hash)
-		return
+}
+
+func transferTx(from, to common.Address, amount uint64) (*types.Transaction, error) {
+	buf := bytes.NewBuffer(nil)
+	var sts []*ont.State
+	sts = append(sts, &ont.State{
+		From:  from,
+		To:    to,
+		Value: amount,
+	})
+	transfers := &ont.Transfers{
+		States: sts,
 	}
+	err := transfers.Serialize(buf)
+	if err != nil {
+		return nil, fmt.Errorf("transfers.Serialize error %s", err)
+	}
+	var cversion byte
+	return invokeSmartContractTx(0, 30000, vmtypes.Native, cversion, genesis.OntContractAddress, "transfer", buf.Bytes())
+}
+
+func invokeSmartContractTx(gasPrice,
+	gasLimit uint64,
+	vmType vmtypes.VmType,
+	cversion byte,
+	contractAddress common.Address,
+	method string,
+	args []byte) (*types.Transaction, error) {
+	crt := &cstates.Contract{
+		Version: cversion,
+		Address: contractAddress,
+		Method:  method,
+		Args:    args,
+	}
+	buf := bytes.NewBuffer(nil)
+	err := crt.Serialize(buf)
+	if err != nil {
+		return nil, fmt.Errorf("Serialize contract error:%s", err)
+	}
+	invokCode := buf.Bytes()
+	if vmType == vmtypes.NEOVM {
+		invokCode = append([]byte{0x67}, invokCode[:]...)
+	}
+	return newInvokeTransaction(gasPrice, gasLimit, vmType, invokCode), nil
+}
+
+func newInvokeTransaction(gasPirce, gasLimit uint64, vmType vmtypes.VmType, code []byte) *types.Transaction {
+	invokePayload := &payload.InvokeCode{
+		Code: vmtypes.VmCode{
+			VmType: vmType,
+			Code:   code,
+		},
+	}
+	tx := &types.Transaction{
+		Version:    0,
+		GasPrice:   gasPirce,
+		GasLimit:   gasLimit,
+		TxType:     types.Invoke,
+		Nonce:      uint32(time.Now().Unix()),
+		Payload:    invokePayload,
+		Attributes: make([]*types.TxAttribute, 0, 0),
+		Sigs:       make([]*types.Sig, 0, 0),
+	}
+	return tx
 }

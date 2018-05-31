@@ -56,6 +56,8 @@ const (
 	DEFAULT_CLI_RPC_PORT     = uint(20000)
 	DEFAULT_GAS_LIMIT        = 30000
 	DEFAULT_GAS_PRICE        = 0
+
+	DEFAULT_DATA_DIR = "./Chain"
 )
 
 var PolarisConfig = &GenesisConfig{
@@ -137,6 +139,7 @@ type CommonConfig struct {
 	SystemFee      map[string]int64
 	GasLimit       uint64
 	GasPrice       uint64
+	DataDir        string
 }
 
 type ConsensusConfig struct {
@@ -200,6 +203,7 @@ func NewOntologyConfig() *OntologyConfig {
 			EnableEventLog: DEFAULT_ENABLE_EVENT_LOG,
 			SystemFee:      make(map[string]int64),
 			GasLimit:       DEFAULT_GAS_LIMIT,
+			DataDir:        DEFAULT_DATA_DIR,
 		},
 		Consensus: &ConsensusConfig{
 			EnableConsensus: true,

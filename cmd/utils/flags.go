@@ -46,6 +46,11 @@ var (
 		Value: config.DEFAULT_WALLET_FILE_NAME,
 		Usage: "Use `<filename>` as the wallet",
 	}
+	DataDirFlag = cli.StringFlag{
+		Name:  "datadir",
+		Usage: "Using dir `<path>` to save block data",
+		Value: config.DEFAULT_DATA_DIR,
+	}
 
 	//Consensus setting
 	DisableConsensusFlag = cli.BoolFlag{
