@@ -53,7 +53,6 @@ func (this *routingTable) locateBucket(id types.NodeID) (int, *bucket) {
 	//id1 := sha256.Sum256(this.id[:])
 	//id2 := sha256.Sum256(id[:])
 	dist := logdist(this.id, id)
-	//fmt.Printf("local id:%s, target id:%s, dist:%d\n", this.id.String(), id.String(), dist)
 	if dist == 0 {
 		return 0, this.buckets[0]
 	}
@@ -73,7 +72,7 @@ func (this *routingTable) queryNode(id types.NodeID) *types.Node {
 }
 
 // add node to bucket, if bucket contains the node, move it to bucket head
-func (this *routingTable) AddNode(node *types.Node, bucketIndex int) bool {
+func (this *routingTable) addNode(node *types.Node, bucketIndex int) bool {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 
@@ -104,7 +103,7 @@ func (this *routingTable) AddNode(node *types.Node, bucketIndex int) bool {
 	return true
 }
 
-func (this *routingTable) RemoveNode(id types.NodeID) {
+func (this *routingTable) removeNode(id types.NodeID) {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 	_, bucket := this.locateBucket(id)
@@ -123,7 +122,7 @@ func (this *routingTable) RemoveNode(id types.NodeID) {
 	}
 }
 
-func (this *routingTable) GetClosestNodes(num int, targetID types.NodeID) []*types.Node {
+func (this *routingTable) getClosestNodes(num int, targetID types.NodeID) []*types.Node {
 	this.mu.RLock()
 	defer this.mu.RUnlock()
 	closestList := make([]*types.Node, 0, num)
@@ -155,7 +154,7 @@ func (this *routingTable) GetClosestNodes(num int, targetID types.NodeID) []*typ
 	return closestList
 }
 
-func (this *routingTable) GetTotalNodeNumInBukcet(bucket int) int {
+func (this *routingTable) getTotalNodeNumInBukcet(bucket int) int {
 	this.mu.RLock()
 	defer this.mu.RUnlock()
 	b := this.buckets[bucket]
@@ -166,7 +165,7 @@ func (this *routingTable) GetTotalNodeNumInBukcet(bucket int) int {
 	return len(b.entries)
 }
 
-func (this *routingTable) GetLastNodeInBucket(bucket int) *types.Node {
+func (this *routingTable) getLastNodeInBucket(bucket int) *types.Node {
 	this.mu.RLock()
 	defer this.mu.RUnlock()
 	b := this.buckets[bucket]
@@ -177,7 +176,7 @@ func (this *routingTable) GetLastNodeInBucket(bucket int) *types.Node {
 	return b.entries[len(b.entries)-1]
 }
 
-func (this *routingTable) GetDistance(id1, id2 types.NodeID) int {
+func (this *routingTable) getDistance(id1, id2 types.NodeID) int {
 	//sha1 := sha256.Sum256(id1[:])
 	//sha2 := sha256.Sum256(id2[:])
 	dist := logdist(id1, id2)

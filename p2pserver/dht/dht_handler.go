@@ -1,88 +1,105 @@
 package dht
 
 import (
-	"fmt"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/dht/types"
 	mt "github.com/ontio/ontology/p2pserver/message/types"
 	"net"
 )
 
-func (this *DHT) FindNodeHandler(from *net.UDPAddr, findNodeMsgData []byte) error {
-	findNodeMsg := new(mt.FindNode)
-	findNodeMsg.Deserialization(findNodeMsgData)
-	fromNode := this.routingTable.queryNode(findNodeMsg.P.FromID)
-	if fromNode != nil {
-		// add node to bucket
-		this.AddNode(fromNode)
+// findNodeHandle handles a find node message from UDP network
+func (this *DHT) findNodeHandle(from *net.UDPAddr, packet []byte) {
+	var findNode mt.FindNode
+	if err := findNode.Deserialization(packet); err != nil {
+		log.Error(err)
+		return
 	}
-	return this.FindNodeReply(from, findNodeMsg.P.TargetID)
+
+	if node := this.routingTable.queryNode(findNode.P.FromID); node == nil {
+		return
+	}
+
+	this.updateNode(findNode.P.FromID, from)
+	this.findNodeReply(from, findNode.P.TargetID)
 }
 
-func (this *DHT) NeighborsHandler(from *net.UDPAddr, neighborsMsgData []byte) {
-	neighborsMsg := &mt.Neighbors{}
-	neighborsMsg.Deserialization(neighborsMsgData)
-	neighbors := neighborsMsg.P.Nodes
+// neighborsHandle handles a neighbors message from UDP network
+func (this *DHT) neighborsHandle(from *net.UDPAddr, packet []byte) {
+	var neighbors mt.Neighbors
+	if err := neighbors.Deserialization(packet); err != nil {
+		log.Error(err)
+		return
+	}
 
-	requestId := types.ConstructRequestId(neighborsMsg.P.FromID, types.DHT_FIND_NODE_REQUEST)
+	if node := this.routingTable.queryNode(neighbors.P.FromID); node == nil {
+		return
+	}
+
+	requestId := types.ConstructRequestId(neighbors.P.FromID,
+		types.DHT_FIND_NODE_REQUEST)
 	this.messagePool.DeleteRequest(requestId)
 
-	fmt.Print("return neighbors to ", requestId, ", return result is: ")
-	results := make([]*types.Node, 0, len(neighbors))
-	for i := 0; i < len(neighbors); i++ {
-		results = append(results, &neighbors[i])
-		fmt.Print(neighbors[i].UDPPort, ",")
+	results := make([]*types.Node, 0, len(neighbors.P.Nodes))
+	for i := 0; i < len(neighbors.P.Nodes); i++ {
+		results = append(results, &neighbors.P.Nodes[i])
 	}
-	fmt.Println()
 	this.messagePool.SetResults(results)
 
-	fromNode := this.routingTable.queryNode(neighborsMsg.P.FromID)
-	if fromNode != nil {
-		// add node to bucket
-		this.AddNode(fromNode)
-	}
+	this.updateNode(neighbors.P.FromID, from)
 }
 
-func (this *DHT) PingHandler(fromAddr *net.UDPAddr, pingMsgData []byte) {
-	pingMsg := new(mt.DHTPing)
-	pingMsg.Deserialization(pingMsgData)
-	// response
-	this.Pong(fromAddr)
-	this.updateFromNode(pingMsg.P.FromID, fromAddr)
-	fmt.Println("receive ping of ", fromAddr, "current DHT is: ")
+// pingHandle handles a ping message from UDP network
+func (this *DHT) pingHandle(from *net.UDPAddr, packet []byte) {
+	var ping mt.DHTPing
+	if err := ping.Deserialization(packet); err != nil {
+		log.Error(err)
+		return
+	}
+	this.pong(from)
+
+	if node := this.routingTable.queryNode(ping.P.FromID); node == nil {
+		node := &types.Node{
+			ID:      ping.P.FromID,
+			IP:      from.IP.String(),
+			UDPPort: uint16(from.Port),
+			TCPPort: uint16(ping.P.SrcEndPoint.TCPPort),
+		}
+		this.addNode(node)
+	} else {
+		this.updateNode(ping.P.FromID, from)
+	}
+
 	this.DisplayRoutingTable()
 }
 
-func (this *DHT) PongHandler(fromAddr *net.UDPAddr, pongMsgData []byte) {
-	pongMsg := new(mt.DHTPong)
-	pongMsg.Deserialization(pongMsgData)
-	fromNodeId := pongMsg.P.FromID
-	requesetId := types.ConstructRequestId(fromNodeId, types.DHT_PING_REQUEST)
-	fromNode, ok := this.messagePool.GetRequestData(requesetId)
+// pongHandle handles a pong message from UDP network
+func (this *DHT) pongHandle(from *net.UDPAddr, packet []byte) {
+	var pong mt.DHTPong
+	if err := pong.Deserialization(packet); err != nil {
+		log.Error(err)
+		return
+	}
+
+	fromId := pong.P.FromID
+	requesetId := types.ConstructRequestId(fromId, types.DHT_PING_REQUEST)
+	node, ok := this.messagePool.GetRequestData(requesetId)
 	if !ok {
 		// request pool doesn't contain the node, ping timeout
-		this.routingTable.RemoveNode(fromNodeId)
+		this.routingTable.removeNode(fromId)
 		return
 	}
 
 	// add to routing table
-	this.AddNode(fromNode)
+	this.addNode(node)
 	// remove node from request pool
 	this.messagePool.DeleteRequest(requesetId)
-	fmt.Println("receive pong of ", requesetId)
 }
 
 // update the node to bucket when receive message from the node
-func (this *DHT) updateFromNode(fromNodeId types.NodeID, fromAddr *net.UDPAddr) {
-	fromNode := this.routingTable.queryNode(fromNodeId)
-	if fromNode != nil {
+func (this *DHT) updateNode(fromId types.NodeID, from *net.UDPAddr) {
+	node := this.routingTable.queryNode(fromId)
+	if node != nil {
 		// add node to bucket
-		this.AddNode(fromNode)
-	} else {
-		node := &types.Node{
-			ID:      fromNodeId,
-			IP:      fromAddr.IP.String(),
-			UDPPort: uint16(fromAddr.Port),
-		}
-		this.AddNode(node)
+		this.addNode(node)
 	}
 }
