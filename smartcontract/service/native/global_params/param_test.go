@@ -29,11 +29,10 @@ import (
 
 func TestParams_Serialize_Deserialize(t *testing.T) {
 	params := new(Params)
-	*params = make(map[string]string)
 	for i := 0; i < 10; i++ {
 		k := "key" + strconv.Itoa(i)
 		v := "value" + strconv.Itoa(i)
-		(*params)[k] = v
+		params.SetParam(&Param{k, v})
 	}
 	bf := new(bytes.Buffer)
 	if err := params.Serialize(bf); err != nil {
@@ -44,8 +43,9 @@ func TestParams_Serialize_Deserialize(t *testing.T) {
 		t.Fatalf("params deserialize error: %v", err)
 	}
 	for i := 0; i < 10; i++ {
-		k := "key" + strconv.Itoa(i)
-		if (*params)[k] != (*deserializeParams)[k] {
+		originParam := (*params)[i]
+		deseParam := (*deserializeParams)[i]
+		if originParam.Key != deseParam.Key || originParam.Value != deseParam.Value {
 			t.Fatal("params deserialize error")
 		}
 	}
