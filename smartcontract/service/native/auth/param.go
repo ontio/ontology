@@ -50,7 +50,7 @@ func (this *InitContractAdminParam) Deserialize(rd io.Reader) error {
 type TransferParam struct {
 	ContractAddr  []byte
 	NewAdminOntID []byte
-	KeyNo         uint32
+	KeyNo         uint64
 }
 
 func (this *TransferParam) Serialize(w io.Writer) error {
@@ -60,7 +60,7 @@ func (this *TransferParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteVarBytes(w, this.NewAdminOntID); err != nil {
 		return err
 	}
-	if err := serialization.WriteUint32(w, this.KeyNo); err != nil {
+	if err := serialization.WriteVarUint(w, this.KeyNo); err != nil {
 		return nil
 	}
 	return nil
@@ -74,7 +74,7 @@ func (this *TransferParam) Deserialize(rd io.Reader) error {
 	if this.NewAdminOntID, err = serialization.ReadVarBytes(rd); err != nil {
 		return err
 	}
-	if this.KeyNo, err = serialization.ReadUint32(rd); err != nil {
+	if this.KeyNo, err = serialization.ReadVarUint(rd, 0); err != nil {
 		return err
 	}
 	return nil
@@ -86,7 +86,7 @@ type FuncsToRoleParam struct {
 	AdminOntID   []byte
 	Role         []byte
 	FuncNames    []string
-	KeyNo        uint32
+	KeyNo        uint64
 }
 
 func (this *FuncsToRoleParam) Serialize(w io.Writer) error {
@@ -107,7 +107,7 @@ func (this *FuncsToRoleParam) Serialize(w io.Writer) error {
 			return err
 		}
 	}
-	if err := serialization.WriteUint32(w, this.KeyNo); err != nil {
+	if err := serialization.WriteVarUint(w, this.KeyNo); err != nil {
 		return nil
 	}
 	return nil
@@ -130,15 +130,15 @@ func (this *FuncsToRoleParam) Deserialize(rd io.Reader) error {
 	if fnLen, err = serialization.ReadVarUint(rd, 0); err != nil {
 		return err
 	}
-	this.FuncNames = make([]string, fnLen)
+	this.FuncNames = make([]string, 0)
 	for i = 0; i < fnLen; i++ {
 		fn, err := serialization.ReadString(rd)
 		if err != nil {
 			return err
 		}
-		this.FuncNames[i] = fn
+		this.FuncNames = append(this.FuncNames, fn)
 	}
-	if this.KeyNo, err = serialization.ReadUint32(rd); err != nil {
+	if this.KeyNo, err = serialization.ReadVarUint(rd, 0); err != nil {
 		return err
 	}
 	return nil
@@ -149,7 +149,7 @@ type OntIDsToRoleParam struct {
 	AdminOntID   []byte
 	Role         []byte
 	Persons      [][]byte
-	KeyNo        uint32
+	KeyNo        uint64
 }
 
 func (this *OntIDsToRoleParam) Serialize(w io.Writer) error {
@@ -170,7 +170,7 @@ func (this *OntIDsToRoleParam) Serialize(w io.Writer) error {
 			return err
 		}
 	}
-	if err := serialization.WriteUint32(w, this.KeyNo); err != nil {
+	if err := serialization.WriteVarUint(w, this.KeyNo); err != nil {
 		return nil
 	}
 	return nil
@@ -191,15 +191,15 @@ func (this *OntIDsToRoleParam) Deserialize(rd io.Reader) error {
 	if pLen, err = serialization.ReadVarUint(rd, 0); err != nil {
 		return err
 	}
-	this.Persons = make([][]byte, pLen)
+	this.Persons = make([][]byte, 0)
 	for i := uint64(0); i < pLen; i++ {
 		p, err := serialization.ReadVarBytes(rd)
 		if err != nil {
 			return err
 		}
-		this.Persons[i] = p
+		this.Persons = append(this.Persons, p)
 	}
-	if this.KeyNo, err = serialization.ReadUint32(rd); err != nil {
+	if this.KeyNo, err = serialization.ReadVarUint(rd, 0); err != nil {
 		return err
 	}
 	return nil
@@ -210,9 +210,9 @@ type DelegateParam struct {
 	From         []byte
 	To           []byte
 	Role         []byte
-	Period       uint32
-	Level        uint
-	KeyNo        uint32
+	Period       uint64
+	Level        uint64
+	KeyNo        uint64
 }
 
 func (this *DelegateParam) Serialize(w io.Writer) error {
@@ -228,13 +228,13 @@ func (this *DelegateParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteVarBytes(w, this.Role); err != nil {
 		return err
 	}
-	if err := serialization.WriteUint32(w, this.Period); err != nil {
+	if err := serialization.WriteVarUint(w, this.Period); err != nil {
 		return err
 	}
 	if err := serialization.WriteVarUint(w, uint64(this.Level)); err != nil {
 		return err
 	}
-	if err := serialization.WriteUint32(w, this.KeyNo); err != nil {
+	if err := serialization.WriteVarUint(w, this.KeyNo); err != nil {
 		return err
 	}
 	return nil
@@ -242,7 +242,6 @@ func (this *DelegateParam) Serialize(w io.Writer) error {
 
 func (this *DelegateParam) Deserialize(rd io.Reader) error {
 	var err error
-	var period uint32
 	var level uint64
 	if this.ContractAddr, err = serialization.ReadVarBytes(rd); err != nil {
 		return err
@@ -256,19 +255,19 @@ func (this *DelegateParam) Deserialize(rd io.Reader) error {
 	if this.Role, err = serialization.ReadVarBytes(rd); err != nil {
 		return err
 	}
-	if this.Period, err = serialization.ReadUint32(rd); err != nil {
+	if this.Period, err = serialization.ReadVarUint(rd, 0); err != nil {
 		return err
 	}
 	if level, err = serialization.ReadVarUint(rd, 0); err != nil {
 		return err
 	}
-	if this.KeyNo, err = serialization.ReadUint32(rd); err != nil {
+	if this.KeyNo, err = serialization.ReadVarUint(rd, 0); err != nil {
 		return err
 	}
-	if level > math.MaxInt8 {
-		return fmt.Errorf("period or level too large: (%d, %d)", period, level)
+	if level > math.MaxInt8 || this.Period > math.MaxUint32 {
+		return fmt.Errorf("period or level too large: (%d, %d)", this.Period, level)
 	}
-	this.Level = uint(level)
+	this.Level = level
 	return nil
 }
 
@@ -277,7 +276,7 @@ type WithdrawParam struct {
 	Initiator    []byte
 	Delegate     []byte
 	Role         []byte
-	KeyNo        uint32
+	KeyNo        uint64
 }
 
 func (this *WithdrawParam) Serialize(w io.Writer) error {
@@ -293,7 +292,7 @@ func (this *WithdrawParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteVarBytes(w, this.Role); err != nil {
 		return err
 	}
-	if err := serialization.WriteUint32(w, this.KeyNo); err != nil {
+	if err := serialization.WriteVarUint(w, this.KeyNo); err != nil {
 		return err
 	}
 	return nil
@@ -312,7 +311,7 @@ func (this *WithdrawParam) Deserialize(rd io.Reader) error {
 	if this.Role, err = serialization.ReadVarBytes(rd); err != nil {
 		return err
 	}
-	if this.KeyNo, err = serialization.ReadUint32(rd); err != nil {
+	if this.KeyNo, err = serialization.ReadVarUint(rd, 0); err != nil {
 		return err
 	}
 	return nil
@@ -322,7 +321,7 @@ type VerifyTokenParam struct {
 	ContractAddr []byte
 	Caller       []byte
 	Fn           []byte
-	KeyNo        uint32
+	KeyNo        uint64
 }
 
 func (this *VerifyTokenParam) Serialize(w io.Writer) error {
@@ -335,7 +334,7 @@ func (this *VerifyTokenParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteVarBytes(w, this.Fn); err != nil {
 		return err
 	}
-	if err := serialization.WriteUint32(w, this.KeyNo); err != nil {
+	if err := serialization.WriteVarUint(w, this.KeyNo); err != nil {
 		return err
 	}
 	return nil
@@ -352,7 +351,7 @@ func (this *VerifyTokenParam) Deserialize(rd io.Reader) error {
 	if this.Fn, err = serialization.ReadVarBytes(rd); err != nil {
 		return err
 	}
-	if this.KeyNo, err = serialization.ReadUint32(rd); err != nil {
+	if this.KeyNo, err = serialization.ReadVarUint(rd, 0); err != nil {
 		return err
 	}
 	return nil

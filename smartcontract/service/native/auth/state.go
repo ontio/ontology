@@ -49,12 +49,13 @@ func (this *roleFuncs) Deserialize(rd io.Reader) error {
 	if err != nil {
 		return err
 	}
-	this.funcNames = make([]string, fnLen)
+	this.funcNames = make([]string, 0)
 	for i := uint32(0); i < fnLen; i++ {
-		this.funcNames[i], err = serialization.ReadString(rd)
+		fn, err := serialization.ReadString(rd)
 		if err != nil {
 			return err
 		}
+		this.funcNames = append(this.funcNames, fn)
 	}
 	return nil
 }
@@ -142,13 +143,14 @@ func (this *Status) Deserialize(rd io.Reader) error {
 	if err != nil {
 		return err
 	}
-	this.status = make([]*DelegateStatus, sLen)
+	this.status = make([]*DelegateStatus, 0)
 	for i := uint32(0); i < sLen; i++ {
-		this.status[i] = new(DelegateStatus)
-		err = this.status[i].Deserialize(rd)
+		s := new(DelegateStatus)
+		err = s.Deserialize(rd)
 		if err != nil {
 			return err
 		}
+		this.status = append(this.status, s)
 	}
 	return nil
 }
@@ -174,13 +176,14 @@ func (this *roleTokens) Deserialize(rd io.Reader) error {
 	if err != nil {
 		return err
 	}
-	this.tokens = make([]*AuthToken, tLen)
+	this.tokens = make([]*AuthToken, 0)
 	for i := uint32(0); i < tLen; i++ {
-		this.tokens[i] = new(AuthToken)
-		err = this.tokens[i].Deserialize(rd)
+		tok := new(AuthToken)
+		err = tok.Deserialize(rd)
 		if err != nil {
 			return err
 		}
+		this.tokens = append(this.tokens, tok)
 	}
 	return nil
 }

@@ -80,7 +80,7 @@ func InitContractAdmin(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-func transfer(native *native.NativeService, contractAddr, newAdminOntID []byte, keyNo uint32) (bool, error) {
+func transfer(native *native.NativeService, contractAddr, newAdminOntID []byte, keyNo uint64) (bool, error) {
 	admin, err := GetContractAdmin(native, contractAddr)
 	if err != nil {
 		return false, err
@@ -116,7 +116,7 @@ func Transfer(native *native.NativeService) ([]byte, error) {
 	if ret {
 		event := new(event.NotifyEventInfo)
 		event.ContractAddress = native.ContextRef.CurrentContext().ContractAddress
-		event.States = []interface{}{"Transfer", param.NewAdminOntID}
+		event.States = []interface{}{"transfer", param.NewAdminOntID}
 		native.Notifications = append(native.Notifications, event)
 		return utils.BYTE_TRUE, nil
 	} else {
@@ -292,7 +292,7 @@ func hasRole(native *native.NativeService, contractAddr, ontID, role []byte) (bo
 	return true, nil
 }
 
-func getLevel(native *native.NativeService, contractAddr, ontID, role []byte) (uint32, error) {
+func getLevel(native *native.NativeService, contractAddr, ontID, role []byte) (uint8, error) {
 	token, err := getAuthToken(native, contractAddr, ontID, role)
 	if err != nil {
 		return 0, err
@@ -300,7 +300,7 @@ func getLevel(native *native.NativeService, contractAddr, ontID, role []byte) (u
 	if token == nil {
 		return 0, nil
 	}
-	return uint32(token.level), nil
+	return token.level, nil
 }
 
 /*
@@ -308,9 +308,9 @@ func getLevel(native *native.NativeService, contractAddr, ontID, role []byte) (u
  * then make changes to storage as follows:
  */
 func delegate(native *native.NativeService, contractAddr []byte, from []byte, to []byte,
-	role []byte, period uint32, level uint, keyNo uint32) ([]byte, error) {
+	role []byte, period uint32, level uint8, keyNo uint64) ([]byte, error) {
 	var fromHasRole, toHasRole bool
-	var fromLevel uint
+	var fromLevel uint8
 	var fromExpireTime uint32
 	//check from's permission
 	ret, err := verifySig(native, from, keyNo)
@@ -337,7 +337,7 @@ func delegate(native *native.NativeService, contractAddr []byte, from []byte, to
 		fromLevel = 0
 	} else {
 		fromHasRole = true
-		fromLevel = uint(fromToken.level)
+		fromLevel = fromToken.level
 		fromExpireTime = fromToken.expireTime
 	}
 	toToken, err := getAuthToken(native, contractAddr, to, role)
@@ -350,7 +350,6 @@ func delegate(native *native.NativeService, contractAddr []byte, from []byte, to
 		toHasRole = true
 	}
 	if !fromHasRole || toHasRole {
-		//fmt.Errorf("from has no %x or to already has %x", role, role) //ignore
 		invokeEvent(native, "delegate", false)
 		return utils.BYTE_FALSE, nil
 	}
@@ -405,35 +404,38 @@ func Delegate(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	if param.Period > 1<<32 || param.Level > 1<<8 {
+		return nil, fmt.Errorf("period or level is too large")
+	}
 	return delegate(native, param.ContractAddr, param.From, param.To, param.Role,
-		param.Period, param.Level, param.KeyNo)
+		uint32(param.Period), uint8(param.Level), param.KeyNo)
 }
 
 func withdraw(native *native.NativeService, contractAddr []byte, initiator []byte, delegate []byte,
-	role []byte, keyNo uint32) ([]byte, error) {
+	role []byte, keyNo uint64) (bool, error) {
 	//check from's permission
 	ret, err := verifySig(native, initiator, keyNo)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 	if !ret {
-		return nil, err
+		return false, err
 	}
 	//code below only works in the case that initiator's level is 2
 	//TODO
 	initToken, err := getAuthToken(native, contractAddr, initiator, role)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 	if initToken == nil {
-		return utils.BYTE_FALSE, nil
+		return false, nil
 	}
 	status, err := GetDelegateStatus(native, contractAddr, delegate)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 	if status == nil {
-		return utils.BYTE_FALSE, nil
+		return false, nil
 	}
 	for i, s := range status.status {
 		if bytes.Compare(s.role, role) == 0 &&
@@ -442,19 +444,28 @@ func withdraw(native *native.NativeService, contractAddr []byte, initiator []byt
 			newStatus.status = append(status.status[:i], status.status[i+1:]...)
 			err = PutDelegateStatus(native, contractAddr, delegate, newStatus)
 			if err != nil {
-				return nil, err
+				return false, err
 			}
-			return utils.BYTE_TRUE, nil
+			return true, nil
 		}
 	}
-	return utils.BYTE_FALSE, nil
+	return false, nil
 }
 
 func Withdraw(native *native.NativeService) ([]byte, error) {
 	param := &WithdrawParam{}
 	rd := bytes.NewReader(native.Input)
 	param.Deserialize(rd)
-	return withdraw(native, param.ContractAddr, param.Initiator, param.Delegate, param.Role, param.KeyNo)
+	ret, err := withdraw(native, param.ContractAddr, param.Initiator, param.Delegate, param.Role, param.KeyNo)
+	if err == nil {
+		invokeEvent(native, "withdraw", ret)
+		if ret {
+			return utils.BYTE_TRUE, nil
+		} else {
+			return utils.BYTE_FALSE, nil
+		}
+	}
+	return utils.BYTE_FALSE, err
 }
 
 /*
@@ -463,7 +474,7 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
  *  @fn the name of the func to call
  *  @tokenSig the signature on the message
  */
-func verifyToken(native *native.NativeService, contractAddr []byte, caller []byte, fn []byte, keyNo uint32) (bool, error) {
+func verifyToken(native *native.NativeService, contractAddr []byte, caller []byte, fn []byte, keyNo uint64) (bool, error) {
 	//check caller's identity
 	ret, err := verifySig(native, caller, keyNo)
 	if err != nil {
@@ -529,13 +540,13 @@ func VerifyToken(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-func verifySig(native *native.NativeService, ontID []byte, keyNo uint32) (bool, error) {
+func verifySig(native *native.NativeService, ontID []byte, keyNo uint64) (bool, error) {
 	//return true, nil
 	bf := new(bytes.Buffer)
 	if err := serialization.WriteVarBytes(bf, ontID); err != nil {
 		return false, err
 	}
-	if err := serialization.WriteUint32(bf, keyNo); err != nil {
+	if err := serialization.WriteVarUint(bf, keyNo); err != nil {
 		return false, err
 	}
 	args := bf.Bytes()
