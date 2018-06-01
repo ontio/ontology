@@ -29,7 +29,6 @@ import (
 	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/smartcontract/event"
-	"github.com/syndtr/goleveldb/leveldb"
 )
 
 //Saving event notifies gen by smart contract execution
@@ -94,9 +93,6 @@ func (this *EventStore) GetEventNotifyByTx(txHash common.Uint256) (*event.Execut
 	key := this.getEventNotifyByTxKey(txHash)
 	data, err := this.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return nil, nil
-		}
 		return nil, err
 	}
 	var notify event.ExecuteNotify
@@ -114,9 +110,6 @@ func (this *EventStore) GetEventNotifyByBlock(height uint32) ([]*event.ExecuteNo
 	}
 	data, err := this.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return nil, nil
-		}
 		return nil, err
 	}
 	reader := bytes.NewBuffer(data)
@@ -177,9 +170,6 @@ func (this *EventStore) GetCurrentBlock() (common.Uint256, uint32, error) {
 	key := this.getCurrentBlockKey()
 	data, err := this.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return common.Uint256{}, 0, nil
-		}
 		return common.Uint256{}, 0, err
 	}
 	reader := bytes.NewReader(data)

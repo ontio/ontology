@@ -22,7 +22,6 @@ import (
 	"github.com/ontio/ontology/core/states"
 	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
-	"github.com/syndtr/goleveldb/leveldb"
 	"os"
 	"testing"
 )
@@ -95,52 +94,6 @@ func TestStateBatch_TryAdd(t *testing.T) {
 	}
 }
 
-func TestStateBatch_TryGetAndChange(t *testing.T) {
-	prefix := com.ST_STORAGE
-	key := []byte("foo")
-	value := &states.StorageItem{Value: []byte("bar")}
-
-	err := testBatch.TryGetOrAdd(prefix, key, value)
-	if err != nil {
-		t.Errorf("TestStateBatch_TryGetOrAdd TryGetOrAdd error:%s", err)
-		return
-	}
-
-	key1 := []byte("foo1")
-	value1 := &states.StorageItem{Value: []byte("bar1")}
-
-	err = testBatch.TryGetOrAdd(prefix, key1, value1)
-	if err != nil {
-		t.Errorf("TestStateBatch_TryGetOrAdd TryGetOrAdd error:%s", err)
-		return
-	}
-
-	testBatch.TryDelete(prefix, key)
-
-	v, err := testBatch.TryGetAndChange(prefix, key)
-	if err != nil {
-		t.Errorf("TryGetAndChange error:%s", err)
-		return
-	}
-
-	if v != nil {
-		t.Errorf("TryGetAndChange error key:%s should nil", key)
-		return
-	}
-
-	v1, err := testBatch.TryGetAndChange(prefix, key1)
-	if err != nil {
-		t.Errorf("TryGetAndChange error:%s", err)
-		return
-	}
-
-	storeItem := v1.(*states.StorageItem)
-	if string(storeItem.Value) != string(value1.Value) {
-		t.Errorf("TestStateBatch_TryGetOrAdd value:%s != %s", storeItem.Value, value.Value)
-		return
-	}
-}
-
 func TestStateBatch_CommitTo(t *testing.T) {
 	prefix := com.ST_STORAGE
 	key := []byte("foo1")
@@ -166,7 +119,7 @@ func TestStateBatch_CommitTo(t *testing.T) {
 	}
 
 	data, err := testLevelDB.Get(append([]byte{byte(prefix)}, key...))
-	if err != nil && err != leveldb.ErrNotFound {
+	if err != nil && err != com.ErrNotFound {
 		t.Errorf("testLevelDB.Get error:%s", err)
 		return
 	}
