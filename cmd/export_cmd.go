@@ -76,13 +76,8 @@ func exportBlocks(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("Open file:%s error:%s", exportFile, err)
 	}
+	defer ef.Close()
 	fWriter := bufio.NewWriter(ef)
-	defer func() {
-		err = fWriter.Flush()
-		if err != nil {
-			fmt.Printf("Export flush error:%s\n", err)
-		}
-	}()
 
 	metadata := utils.NewExportBlockMetadata()
 	metadata.BlockHeight = uint32(endHeight)
@@ -124,6 +119,11 @@ func exportBlocks(ctx *cli.Context) error {
 		bar.Incr()
 	}
 	uiprogress.Stop()
+
+	err = fWriter.Flush()
+	if err != nil {
+		return fmt.Errorf("Export flush file error:%s", err)
+	}
 	fmt.Printf("Export blocks successfully.\n")
 	fmt.Printf("Total blocks:%d\n", endHeight+1)
 	fmt.Printf("Export file:%s\n", exportFile)

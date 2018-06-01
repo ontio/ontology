@@ -40,6 +40,7 @@ func ImportBlocks(importFile string, targetHeight uint32) error {
 	if err != nil {
 		return err
 	}
+	defer ifile.Close()
 	fReader := bufio.NewReader(ifile)
 
 	metadata := NewExportBlockMetadata()
