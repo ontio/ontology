@@ -37,15 +37,15 @@ var (
 )
 
 //type(this.contractAddr.Admin) = []byte
-func GetContractAdminKey(native *native.NativeService, contractAddr []byte) ([]byte, error) {
+func concatContractAdminKey(native *native.NativeService, contractAddr []byte) ([]byte, error) {
 	this := native.ContextRef.CurrentContext().ContractAddress
 	adminKey, err := packKeys(this[:], [][]byte{contractAddr, PreAdmin})
 
 	return adminKey, err
 }
 
-func GetContractAdmin(native *native.NativeService, contractAddr []byte) ([]byte, error) {
-	key, err := GetContractAdminKey(native, contractAddr)
+func getContractAdmin(native *native.NativeService, contractAddr []byte) ([]byte, error) {
+	key, err := concatContractAdminKey(native, contractAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -59,8 +59,8 @@ func GetContractAdmin(native *native.NativeService, contractAddr []byte) ([]byte
 	return item.Value, nil
 }
 
-func PutContractAdmin(native *native.NativeService, contractAddr, adminOntID []byte) error {
-	key, err := GetContractAdminKey(native, contractAddr)
+func putContractAdmin(native *native.NativeService, contractAddr, adminOntID []byte) error {
+	key, err := concatContractAdminKey(native, contractAddr)
 	if err != nil {
 		return err
 	}
@@ -69,15 +69,15 @@ func PutContractAdmin(native *native.NativeService, contractAddr, adminOntID []b
 }
 
 //type(this.contractAddr.RoleFunc.role) = roleFuncs
-func GetRoleFuncKey(native *native.NativeService, contractAddr, role []byte) ([]byte, error) {
+func concatRoleFuncKey(native *native.NativeService, contractAddr, role []byte) ([]byte, error) {
 	this := native.ContextRef.CurrentContext().ContractAddress
 	roleFuncKey, err := packKeys(this[:], [][]byte{contractAddr, PreRoleFunc, role})
 
 	return roleFuncKey, err
 }
 
-func GetRoleFunc(native *native.NativeService, contractAddr, role []byte) (*roleFuncs, error) {
-	key, err := GetRoleFuncKey(native, contractAddr, role)
+func getRoleFunc(native *native.NativeService, contractAddr, role []byte) (*roleFuncs, error) {
+	key, err := concatRoleFuncKey(native, contractAddr, role)
 	if err != nil {
 		return nil, err
 	}
@@ -97,8 +97,8 @@ func GetRoleFunc(native *native.NativeService, contractAddr, role []byte) (*role
 	return rF, nil
 }
 
-func PutRoleFunc(native *native.NativeService, contractAddr, role []byte, funcs *roleFuncs) error {
-	key, _ := GetRoleFuncKey(native, contractAddr, role)
+func putRoleFunc(native *native.NativeService, contractAddr, role []byte, funcs *roleFuncs) error {
+	key, _ := concatRoleFuncKey(native, contractAddr, role)
 	bf := new(bytes.Buffer)
 	err := funcs.Serialize(bf)
 	if err != nil {
@@ -109,15 +109,15 @@ func PutRoleFunc(native *native.NativeService, contractAddr, role []byte, funcs 
 }
 
 //type(this.contractAddr.RoleP.ontID) = roleTokens
-func GetOntIDTokenKey(native *native.NativeService, contractAddr, ontID []byte) ([]byte, error) {
+func concatOntIDTokenKey(native *native.NativeService, contractAddr, ontID []byte) ([]byte, error) {
 	this := native.ContextRef.CurrentContext().ContractAddress
 	tokenKey, err := packKeys(this[:], [][]byte{contractAddr, PreRoleToken, ontID})
 
 	return tokenKey, err
 }
 
-func GetOntIDToken(native *native.NativeService, contractAddr, ontID []byte) (*roleTokens, error) {
-	key, err := GetOntIDTokenKey(native, contractAddr, ontID)
+func getOntIDToken(native *native.NativeService, contractAddr, ontID []byte) (*roleTokens, error) {
+	key, err := concatOntIDTokenKey(native, contractAddr, ontID)
 	if err != nil {
 		return nil, err
 	}
@@ -137,8 +137,8 @@ func GetOntIDToken(native *native.NativeService, contractAddr, ontID []byte) (*r
 	return rT, nil
 }
 
-func PutOntIDToken(native *native.NativeService, contractAddr, ontID []byte, tokens *roleTokens) error {
-	key, _ := GetOntIDTokenKey(native, contractAddr, ontID)
+func putOntIDToken(native *native.NativeService, contractAddr, ontID []byte, tokens *roleTokens) error {
+	key, _ := concatOntIDTokenKey(native, contractAddr, ontID)
 	bf := new(bytes.Buffer)
 	err := tokens.Serialize(bf)
 	if err != nil {
@@ -149,15 +149,15 @@ func PutOntIDToken(native *native.NativeService, contractAddr, ontID []byte, tok
 }
 
 //type(this.contractAddr.DelegateStatus.ontID)
-func GetDelegateStatusKey(native *native.NativeService, contractAddr, ontID []byte) ([]byte, error) {
+func concatDelegateStatusKey(native *native.NativeService, contractAddr, ontID []byte) ([]byte, error) {
 	this := native.ContextRef.CurrentContext().ContractAddress
 	key, err := packKeys(this[:], [][]byte{contractAddr, PreDelegateStatus, ontID})
 
 	return key, err
 }
 
-func GetDelegateStatus(native *native.NativeService, contractAddr, ontID []byte) (*Status, error) {
-	key, err := GetDelegateStatusKey(native, contractAddr, ontID)
+func getDelegateStatus(native *native.NativeService, contractAddr, ontID []byte) (*Status, error) {
+	key, err := concatDelegateStatusKey(native, contractAddr, ontID)
 	if err != nil {
 		return nil, err
 	}
@@ -177,8 +177,8 @@ func GetDelegateStatus(native *native.NativeService, contractAddr, ontID []byte)
 	return status, nil
 }
 
-func PutDelegateStatus(native *native.NativeService, contractAddr, ontID []byte, status *Status) error {
-	key, _ := GetDelegateStatusKey(native, contractAddr, ontID)
+func putDelegateStatus(native *native.NativeService, contractAddr, ontID []byte, status *Status) error {
+	key, _ := concatDelegateStatusKey(native, contractAddr, ontID)
 	bf := new(bytes.Buffer)
 	err := status.Serialize(bf)
 	if err != nil {
