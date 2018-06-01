@@ -97,6 +97,9 @@ func (this *BlockStore) ContainBlock(blockHash common.Uint256) (bool, error) {
 	key := this.getHeaderKey(blockHash)
 	_, err := this.store.Get(key)
 	if err != nil {
+		if err == scom.ErrNotFound {
+			return false, nil
+		}
 		return false, err
 	}
 	return true, nil
@@ -397,9 +400,11 @@ func (this *BlockStore) ContainTransaction(txHash common.Uint256) (bool, error) 
 			return true, nil
 		}
 	}
-
 	_, err := this.store.Get(key)
 	if err != nil {
+		if err == scom.ErrNotFound {
+			return false, nil
+		}
 		return false, err
 	}
 	return true, nil

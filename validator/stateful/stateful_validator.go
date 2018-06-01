@@ -22,7 +22,6 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
-	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/validator/db"
@@ -73,10 +72,10 @@ func (self *validator) Receive(context actor.Context) {
 		hash := msg.Tx.Hash()
 
 		exist, err := ledger.DefLedger.IsContainTransaction(hash)
-		if err != nil && err != scom.ErrNotFound {
+		if err != nil {
+			log.Warn("query db error:", err)
 			errCode = errors.ErrUnknown
-		}
-		if exist {
+		} else if exist {
 			errCode = errors.ErrDuplicatedTx
 		}
 

@@ -30,7 +30,6 @@ import (
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
-	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/vote"
 	"github.com/ontio/ontology/events"
@@ -219,7 +218,7 @@ func (ds *DbftService) CheckSignatures() error {
 
 		hash := block.Hash()
 		isExist, err := ds.ledger.IsContainBlock(hash)
-		if err != nil && err != scom.ErrNotFound {
+		if err != nil {
 			log.Errorf("DefLedger.IsContainBlock Hash:%x error:%s", hash, err)
 			return err
 		}
