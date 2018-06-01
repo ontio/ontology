@@ -148,6 +148,7 @@ func (this *P2PServer) DisplayDHT() {
 		case <-timer.C:
 			log.Info("DHT table is:")
 			this.dht.DisplayRoutingTable()
+			log.Info("Neighbor peers: ", this.GetConnectionCnt())
 		}
 	}
 }
@@ -186,6 +187,7 @@ func (this *P2PServer) GetNeighborAddrs() []common.PeerAddr {
 func (this *P2PServer) Xmit(message interface{}) error {
 	log.Debug()
 	var msg msgtypes.Message
+
 	isConsensus := false
 	switch message.(type) {
 	case *types.Transaction:
@@ -196,23 +198,29 @@ func (this *P2PServer) Xmit(message interface{}) error {
 		log.Debug("[p2p]TX block message")
 		block := message.(*types.Block)
 		msg = msgpack.NewBlock(block)
+
 	case *msgtypes.ConsensusPayload:
 		log.Debug("[p2p]TX consensus message")
 		consensusPayload := message.(*msgtypes.ConsensusPayload)
 		msg = msgpack.NewConsensus(consensusPayload)
 		isConsensus = true
+		msgHash = consensusPayload.Hash()
+
 	case comm.Uint256:
 		log.Debug("[p2p]TX block hash message")
 		hash := message.(comm.Uint256)
 		// construct inv message
+
 		invPayload := msgpack.NewInvPayload(comm.BLOCK, []comm.Uint256{hash})
 		msg = msgpack.NewInv(invPayload)
+
 	default:
 		log.Warnf("[p2p]Unknown Xmit message %v , type %v", message,
 			reflect.TypeOf(message))
 		return errors.New("[p2p]Unknown Xmit message type")
 	}
 	this.network.Xmit(msg, isConsensus)
+
 	return nil
 }
 

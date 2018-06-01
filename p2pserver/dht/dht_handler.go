@@ -55,6 +55,13 @@ func (this *DHT) pingHandle(from *net.UDPAddr, packet []byte) {
 		log.Error(err)
 		return
 	}
+
+	if ping.P.Version != this.version {
+		log.Errorf("pingHandle: version is incompatible. local %d remote %d",
+			this.version, ping.P.Version)
+		return
+	}
+
 	this.pong(from)
 
 	if node := this.routingTable.queryNode(ping.P.FromID); node == nil {
@@ -80,12 +87,17 @@ func (this *DHT) pongHandle(from *net.UDPAddr, packet []byte) {
 		return
 	}
 
-	fromId := pong.P.FromID
-	requesetId := types.ConstructRequestId(fromId, types.DHT_PING_REQUEST)
+	if pong.P.Version != this.version {
+		log.Errorf("pongHandle: version is incompatible. local %d remote %d",
+			this.version, pong.P.Version)
+		return
+	}
+
+	requesetId := types.ConstructRequestId(pong.P.FromID, types.DHT_PING_REQUEST)
 	node, ok := this.messagePool.GetRequestData(requesetId)
 	if !ok {
 		// request pool doesn't contain the node, ping timeout
-		this.routingTable.removeNode(fromId)
+		this.routingTable.removeNode(pong.P.FromID)
 		return
 	}
 

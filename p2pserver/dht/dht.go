@@ -55,7 +55,11 @@ type DHT struct {
 
 // NewDHT returns an instance of DHT with the given id and seed nodes
 func NewDHT(id types.NodeID, seeds []*types.Node) *DHT {
-	// Todo:
+	if len(seeds) == 0 {
+		log.Error("failed to create dht. seeds is nil, please specify seeds")
+		return nil
+	}
+
 	dht := &DHT{
 		nodeID:       id,
 		addr:         "127.0.0.1",

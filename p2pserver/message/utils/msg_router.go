@@ -60,8 +60,6 @@ func (this *MessageRouter) init(p2p p2p.P2P) {
 	// Register message handler
 	this.RegisterMsgHandler(msgCommon.VERSION_TYPE, VersionHandle)
 	this.RegisterMsgHandler(msgCommon.VERACK_TYPE, VerAckHandle)
-	//this.RegisterMsgHandler(msgCommon.GetADDR_TYPE, AddrReqHandle)
-	//this.RegisterMsgHandler(msgCommon.ADDR_TYPE, AddrHandle)
 	this.RegisterMsgHandler(msgCommon.PING_TYPE, PingHandle)
 	this.RegisterMsgHandler(msgCommon.PONG_TYPE, PongHandle)
 	this.RegisterMsgHandler(msgCommon.GET_HEADERS_TYPE, HeadersReqHandle)

@@ -26,7 +26,7 @@ import (
 
 const (
 	BUCKET_NUM        = NODE_ID_BITS
-	BUCKET_SIZE       = 8
+	BUCKET_SIZE       = 2
 	FACTOR            = 3
 	MSG_CACHE         = 10240
 	PING_TIMEOUT      = 10 * time.Second
