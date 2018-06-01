@@ -105,6 +105,9 @@ func (this *emergencyGov) Stop() {
 	if this.timerEvt != nil {
 		close(this.timerEvt)
 	}
+	if this.emgBlkCompletedEvt != nil {
+		close(this.emgBlkCompletedEvt)
+	}
 }
 
 // handleEmergencyMsg dispatch the msg to the msg handler

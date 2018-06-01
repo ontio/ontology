@@ -510,8 +510,6 @@ func (this *BlockSyncMgr) saveBlock() {
 			blk := this.blocksCache[height]
 			if len(blk.Header.Bookkeepers) < (len(peers) - (len(peers)-1)/3) {
 				delete(this.blocksCache, height)
-			} else {
-				this.server.notifyEmgGovBlkCompleted()
 			}
 		}
 	}
@@ -539,8 +537,12 @@ func (this *BlockSyncMgr) saveBlock() {
 			return
 		}
 
-		if this.pauseSync == true && nextBlockHeight == this.emergencyGovHeight-1 {
-			this.server.notifyEmgGovBlkSyncDone()
+		if this.pauseSync == true {
+			if nextBlockHeight == this.emergencyGovHeight-1 {
+				this.server.notifyEmgGovBlkSyncDone()
+			} else if nextBlockHeight == this.emergencyGovHeight {
+				this.server.notifyEmgGovBlkCompleted()
+			}
 		}
 
 		nextBlockHeight++
