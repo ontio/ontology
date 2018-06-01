@@ -411,7 +411,7 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 
 	// get admin from database
 	adminAddress := new(common.Address)
-	admin, err := global_params.GetStorageAdmin(native, global_params.GetAdminKey(utils.ParamContractAddress, false))
+	admin, err := global_params.GetStorageAdmin(native, global_params.GenerateAdminKey(utils.ParamContractAddress, false))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getStorageAdmin, get admin error!")
 	}
@@ -535,7 +535,7 @@ func RejectCandidate(native *native.NativeService) ([]byte, error) {
 
 	// get admin from database
 	adminAddress := new(common.Address)
-	admin, err := global_params.GetStorageAdmin(native, global_params.GetAdminKey(utils.ParamContractAddress, false))
+	admin, err := global_params.GetStorageAdmin(native, global_params.GenerateAdminKey(utils.ParamContractAddress, false))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getStorageAdmin, get admin error!")
 	}
@@ -611,7 +611,7 @@ func BlackNode(native *native.NativeService) ([]byte, error) {
 
 	// get admin from database
 	adminAddress := new(common.Address)
-	admin, err := global_params.GetStorageAdmin(native, global_params.GetAdminKey(utils.ParamContractAddress, false))
+	admin, err := global_params.GetStorageAdmin(native, global_params.GenerateAdminKey(utils.ParamContractAddress, false))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getStorageAdmin, get admin error!")
 	}
@@ -711,7 +711,7 @@ func WhiteNode(native *native.NativeService) ([]byte, error) {
 
 	// get admin from database
 	adminAddress := new(common.Address)
-	admin, err := global_params.GetStorageAdmin(native, global_params.GetAdminKey(utils.ParamContractAddress, false))
+	admin, err := global_params.GetStorageAdmin(native, global_params.GenerateAdminKey(utils.ParamContractAddress, false))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getStorageAdmin, get admin error!")
 	}
@@ -1183,7 +1183,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 
 	// get admin from database
 	adminAddress := new(common.Address)
-	admin, err := global_params.GetStorageAdmin(native, global_params.GetAdminKey(utils.ParamContractAddress, false))
+	admin, err := global_params.GetStorageAdmin(native, global_params.GenerateAdminKey(utils.ParamContractAddress, false))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getStorageAdmin, get admin error!")
 	}
@@ -1346,7 +1346,7 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 func UpdateConfig(native *native.NativeService) ([]byte, error) {
 	// get admin from database
 	adminAddress := new(common.Address)
-	admin, err := global_params.GetStorageAdmin(native, global_params.GetAdminKey(utils.ParamContractAddress, false))
+	admin, err := global_params.GetStorageAdmin(native, global_params.GenerateAdminKey(utils.ParamContractAddress, false))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getStorageAdmin, get admin error!")
 	}
@@ -1408,7 +1408,7 @@ func UpdateConfig(native *native.NativeService) ([]byte, error) {
 func UpdateGlobalParam(native *native.NativeService) ([]byte, error) {
 	// get admin from database
 	adminAddress := new(common.Address)
-	admin, err := global_params.GetStorageAdmin(native, global_params.GetAdminKey(utils.ParamContractAddress, false))
+	admin, err := global_params.GetStorageAdmin(native, global_params.GenerateAdminKey(utils.ParamContractAddress, false))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getStorageAdmin, get admin error!")
 	}
@@ -1444,7 +1444,7 @@ func UpdateGlobalParam(native *native.NativeService) ([]byte, error) {
 func CallSplit(native *native.NativeService) ([]byte, error) {
 	// get admin from database
 	adminAddress := new(common.Address)
-	admin, err := global_params.GetStorageAdmin(native, global_params.GetAdminKey(utils.ParamContractAddress, false))
+	admin, err := global_params.GetStorageAdmin(native, global_params.GenerateAdminKey(utils.ParamContractAddress, false))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getStorageAdmin, get admin error!")
 	}
