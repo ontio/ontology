@@ -23,14 +23,18 @@ import (
 	"fmt"
 	"time"
 
+	"bytes"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
-	vconfig "github.com/ontio/ontology/consensus/vbft/config"
+	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
-	ninit "github.com/ontio/ontology/smartcontract/service/native/init"
+	"github.com/ontio/ontology/smartcontract/service/native/global_params"
+	"github.com/ontio/ontology/smartcontract/service/native/governance"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/smartcontract/states"
 	stypes "github.com/ontio/ontology/smartcontract/types"
 )
 
@@ -50,15 +54,20 @@ var GenBlockTime = (config.DEFAULT_GEN_BLOCK_TIME * time.Second)
 
 var GenesisBookkeepers []keypair.PublicKey
 
-// GenesisBlockInit returns the genesis block with default consensus bookkeeper list
-func GenesisBlockInit(defaultBookkeeper []keypair.PublicKey) (*types.Block, error) {
+// BuildGenesisBlock returns the genesis block with default consensus bookkeeper list
+func BuildGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig *config.GenesisConfig) (*types.Block, error) {
 	//getBookkeeper
 	GenesisBookkeepers = defaultBookkeeper
 	nextBookkeeper, err := types.AddressFromBookkeepers(defaultBookkeeper)
 	if err != nil {
-		return nil, errors.New("[Block],GenesisBlockInit err with GetBookkeeperAddress")
+		return nil, errors.New("[Block],BuildGenesisBlock err with GetBookkeeperAddress")
 	}
-	consensusPayload, err := vconfig.GenesisConsensusPayload(newConfigInit().Hash(), 0)
+	conf := bytes.NewBuffer(nil)
+	if genesisConfig.VBFT != nil {
+		genesisConfig.VBFT.Serialize(conf)
+	}
+	govConfig := newGoverConfigInit(conf.Bytes())
+	consensusPayload, err := vconfig.GenesisConsensusPayload(govConfig.Hash(), 0)
 	if err != nil {
 		return nil, fmt.Errorf("consensus genesus init failed: %s", err)
 	}
@@ -97,7 +106,7 @@ func GenesisBlockInit(defaultBookkeeper []keypair.PublicKey) (*types.Block, erro
 			newGoverningInit(),
 			newUtilityInit(),
 			newParamInit(),
-			newConfigInit(),
+			govConfig,
 		},
 	}
 	genesisBlock.RebuildMerkleRoot()
@@ -142,37 +151,31 @@ func deployOntIDContract() *types.Transaction {
 }
 
 func newGoverningInit() *types.Transaction {
+	return buildInitTransaction(nutils.OntContractAddress, ont.INIT_NAME, nil)
+}
+
+func buildInitTransaction(addr common.Address, initMethod string, args []byte) *types.Transaction {
+	init := states.Contract{Address: addr, Method: initMethod, Args: args}
+	bf := new(bytes.Buffer)
+	init.Serialize(bf)
+
 	vmCode := stypes.VmCode{
 		VmType: stypes.Native,
-		Code:   ninit.ONT_INIT_BYTES,
+		Code:   bf.Bytes(),
 	}
+
 	tx := utils.NewInvokeTransaction(vmCode)
 	return tx
 }
 
 func newUtilityInit() *types.Transaction {
-	vmCode := stypes.VmCode{
-		VmType: stypes.Native,
-		Code:   ninit.ONG_INIT_BYTES,
-	}
-	tx := utils.NewInvokeTransaction(vmCode)
-	return tx
+	return buildInitTransaction(nutils.OngContractAddress, ont.INIT_NAME, nil)
 }
 
 func newParamInit() *types.Transaction {
-	vmCode := stypes.VmCode{
-		VmType: stypes.Native,
-		Code:   ninit.PARAM_INIT_BYTES,
-	}
-	tx := utils.NewInvokeTransaction(vmCode)
-	return tx
+	return buildInitTransaction(nutils.ParamContractAddress, global_params.INIT_NAME, nil)
 }
 
-func newConfigInit() *types.Transaction {
-	vmCode := stypes.VmCode{
-		VmType: stypes.Native,
-		Code:   ninit.INIT_CONFIG_BYTES,
-	}
-	tx := utils.NewInvokeTransaction(vmCode)
-	return tx
+func newGoverConfigInit(config []byte) *types.Transaction {
+	return buildInitTransaction(nutils.GovernanceContractAddress, governance.INIT_CONFIG, config)
 }

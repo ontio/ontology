@@ -41,6 +41,7 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus"
+	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/events"
 	hserver "github.com/ontio/ontology/http/base/actor"
@@ -237,7 +238,12 @@ func initLedger(ctx *cli.Context) (*ledger.Ledger, error) {
 	if err != nil {
 		return nil, fmt.Errorf("GetBookkeepers error:%s", err)
 	}
-	err = ledger.DefLedger.Init(bookKeepers)
+	genesisConfig := config.DefConfig.Genesis
+	genesisBlock, err := genesis.BuildGenesisBlock(bookKeepers, genesisConfig)
+	if err != nil {
+		return nil, fmt.Errorf("genesisBlock error %s", err)
+	}
+	err = ledger.DefLedger.Init(bookKeepers, genesisBlock)
 	if err != nil {
 		return nil, fmt.Errorf("Init ledger error:%s", err)
 	}
