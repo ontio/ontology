@@ -68,9 +68,8 @@ var (
 		RUNTIME_CHECKWITNESS_NAME:       {Execute: RuntimeCheckWitness, Validator: validatorCheckWitness},
 		RUNTIME_NOTIFY_NAME:             {Execute: RuntimeNotify, Validator: validatorNotify},
 		RUNTIME_LOG_NAME:                {Execute: RuntimeLog, Validator: validatorLog},
-		//TODO
-		RUNTIME_SERIALIZE:   {Execute: RuntimeSerialize, Validator: validatorLog},
-		RUNTIME_DESERIALIZE: {Execute: RuntimeDeSerialize, Validator: validatorLog},
+		RUNTIME_SERIALIZE:               {Execute: RuntimeSerialize, Validator: validatorSerialize},
+		RUNTIME_DESERIALIZE:             {Execute: RuntimeDeSerialize, Validator: validatorDeSerialize},
 
 		RUNTIME_CHECKSIG_NAME:       {Execute: RuntimeCheckSig, Validator: validatorCheckSig},
 		STORAGE_GET_NAME:            {Execute: StorageGet},
@@ -147,6 +146,7 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 			}
 		}
 		switch engine.OpCode {
+
 		case vm.SYSCALL:
 			if err := this.SystemCall(engine); err != nil {
 				return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] service system call error!")

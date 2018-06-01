@@ -61,7 +61,6 @@ func RuntimeCheckWitness(service *NeoVmService, engine *vm.ExecutionEngine) erro
 }
 
 func RuntimeSerialize(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	//data := vm.PopByteArray(engine)
 	item := vm.PopStackItem(engine)
 	bf := new(bytes.Buffer)
 	err := vm.SerializeStackItem(item, bf)

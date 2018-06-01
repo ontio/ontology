@@ -64,25 +64,25 @@ func opPickItem(e *ExecutionEngine) (VMState, error) {
 	case *types.Array:
 		i := int(index.GetBigInteger().Int64())
 		if i < 0 || i >= len(items.GetArray()) {
-			return NONE, errors.NewErr("invalid array.")
+			return FAULT, errors.NewErr("opPickItem invalid array.")
 		}
 		PushData(e, items.GetArray()[i])
 	case *types.Map:
 		value := items.(*types.Map).TryGetValue(index)
-		if value == nil { //todo should return a nil type when not exist?
-			return NONE, errors.NewErr("invalid map element.")
+		//TODO should return a nil type when not exist?
+		if value == nil {
+			return FAULT, errors.NewErr("opPickItem map element not exist.")
 		}
 		PushData(e, value)
 
 	default:
-		return NONE, errors.NewErr("invalid item type.")
+		return FAULT, errors.NewErr("opPickItem unknown item type.")
 	}
 
 	return NONE, nil
 }
 
 func opSetItem(e *ExecutionEngine) (VMState, error) {
-
 	newItem := PopStackItem(e)
 	if value, ok := newItem.(*types.Struct); ok {
 		newItem = value.Clone()
@@ -93,18 +93,17 @@ func opSetItem(e *ExecutionEngine) (VMState, error) {
 
 	switch item.(type) {
 	case *types.Map:
-		mapitem := item.GetMap()
-		mapitem[index] = newItem
+		item.GetMap()[index] = newItem
 
 	case *types.Array:
 		items := item.GetArray()
 		i := int(index.GetBigInteger().Int64())
 		if i < 0 || i >= len(items) {
-			return NONE, errors.NewErr("invalid array.")
+			return FAULT, errors.NewErr("opSetItem invalid array.")
 		}
 		items[i] = newItem
 	default:
-		return NONE, errors.NewErr("invalid item type.")
+		return FAULT, errors.NewErr("opSetItem unknown item type.")
 	}
 
 	return NONE, nil
@@ -159,6 +158,27 @@ func opRemove(e *ExecutionEngine) (VMState, error) {
 }
 
 func opHasKey(e *ExecutionEngine) (VMState, error) {
+	index := PopStackItem(e)
+	items := PopStackItem(e)
+
+	switch items.(type) {
+	case *types.Array:
+		i := int(index.GetBigInteger().Int64())
+		if i < 0 {
+			return NONE, errors.NewErr("opHasKey invalid index.")
+		}
+		if i < len(items.GetArray()) {
+			PushData(e, true)
+			return NONE, nil
+		}
+		PushData(e, false)
+
+	case *types.Map:
+		PushData(e, items.(*types.Map).ContainsKey(index))
+
+	default:
+		return NONE, errors.NewErr("opHasKey unknown item type.")
+	}
 
 	return NONE, nil
 }

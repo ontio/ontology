@@ -92,7 +92,13 @@ func (this *Map) GetMap() map[StackItems]StackItems {
 }
 
 func (this *Map) TryGetValue(key StackItems) StackItems {
-	return this._map[key]
+	for k, v := range this._map{
+		if k.Equals(key){
+			return v
+		}
+	}
+	return nil
+	//return this._map[key]
 }
 
 //func (this *Map) ToArray() []byte {

@@ -228,35 +228,35 @@ func SerializeStackItem(item types.StackItems, w io.Writer) error {
 	switch item.(type) {
 	case *types.ByteArray:
 		if err := serialization.WriteByte(w, types.ByteArrayType); err != nil {
-			return errors.NewErr("StackItems ByteArray serialize error.")
+			return errors.NewErr("Serialize ByteArray stackItems error: " + err.Error())
 		}
 		if err := serialization.WriteVarBytes(w, item.GetByteArray()); err != nil {
-			return errors.NewErr("StackItems ByteArray serialize error.")
+			return errors.NewErr("Serialize ByteArray stackItems error: " + err.Error())
 		}
 
 	case *types.Boolean:
 		if err := serialization.WriteByte(w, types.BooleanType); err != nil {
-			return errors.NewErr("StackItems Boolean serialize error.")
+			return errors.NewErr("Serialize Boolean StackItems error: " + err.Error())
 		}
 		if err := serialization.WriteBool(w, item.GetBoolean()); err != nil {
-			return errors.NewErr("StackItems Boolean serialize error.")
+			return errors.NewErr("Serialize Boolean stackItems error: " + err.Error())
 		}
 
 	case *types.Integer:
 		if err := serialization.WriteByte(w, types.IntegerType); err != nil {
-			return errors.NewErr("StackItems Integer serialize error.")
+			return errors.NewErr("Serialize Integer stackItems error: " + err.Error())
 		}
 		if err := serialization.WriteVarBytes(w, item.GetByteArray()); err != nil {
-			return errors.NewErr("StackItems Integer serialize error.")
+			return errors.NewErr("Serialize Integer stackItems error: " + err.Error())
 		}
 
 	case *types.Array:
 		if err := serialization.WriteByte(w, types.ArrayType); err != nil {
-			return errors.NewErr("StackItems Array serialize error.")
+			return errors.NewErr("serialize Array stackItems error: " + err.Error())
 		}
 
 		if err := serialization.WriteVarUint(w, uint64(len(item.GetArray()))); err != nil {
-			return errors.NewErr("StackItems Array serialize error.")
+			return errors.NewErr("Serialize Array stackItems error: " + err.Error())
 		}
 
 		for _, v := range item.GetArray() {
@@ -265,11 +265,11 @@ func SerializeStackItem(item types.StackItems, w io.Writer) error {
 
 	case *types.Struct:
 		if err := serialization.WriteByte(w, types.StructType); err != nil {
-			return errors.NewErr("StackItems Struct serialize error.")
+			return errors.NewErr("Serialize Struct stackItems error: " + err.Error())
 		}
 
 		if err := serialization.WriteVarUint(w, uint64(len(item.GetStruct()))); err != nil {
-			return errors.NewErr("StackItems Struct serialize error.")
+			return errors.NewErr("Serialize Struct stackItems error: " + err.Error())
 		}
 
 		for _, v := range item.GetArray() {
@@ -279,18 +279,19 @@ func SerializeStackItem(item types.StackItems, w io.Writer) error {
 	case *types.Map:
 		mp := item.(*types.Map)
 		if err := serialization.WriteByte(w, types.MapType); err != nil {
-			return errors.NewErr("StackItems MapType serialize error.")
+			return errors.NewErr("Serialize Map stackItems error: " + err.Error())
 		}
 		if err := serialization.WriteVarUint(w, uint64(len(mp.GetMap()))); err != nil {
-			return errors.NewErr("StackItems MapType serialize error.")
+			return errors.NewErr("Serialize Map stackItems error: " + err.Error())
 		}
 
 		for k, v := range mp.GetMap() {
 			SerializeStackItem(k, w)
 			SerializeStackItem(v, w)
 		}
+
 	default:
-		errors.NewErr("invalid type")
+		errors.NewErr("unknown type")
 	}
 
 	return nil
@@ -299,35 +300,35 @@ func SerializeStackItem(item types.StackItems, w io.Writer) error {
 func DeSerializeStackItem(r io.Reader) (items types.StackItems, err error) {
 	t, err := serialization.ReadByte(r)
 	if err != nil {
-		return nil, errors.NewErr("Deserialize error.")
+		return nil, errors.NewErr("Deserialize error: " + err.Error())
 	}
 
 	switch t {
 	case types.ByteArrayType:
 		b, err := serialization.ReadVarBytes(r)
 		if err != nil {
-			return nil, errors.NewErr("StackItems Deserialize ByteArray error.")
+			return nil, errors.NewErr("Deserialize stackItems ByteArray error: " + err.Error())
 		}
 		return types.NewByteArray(b), nil
 
 	case types.BooleanType:
 		b, err := serialization.ReadBool(r)
 		if err != nil {
-			return nil, errors.NewErr("StackItems Deserialize Boolean  error.")
+			return nil, errors.NewErr("Deserialize stackItems Boolean error: " + err.Error())
 		}
 		return types.NewBoolean(b), nil
 
 	case types.IntegerType:
 		b, err := serialization.ReadVarBytes(r)
 		if err != nil {
-			return nil, errors.NewErr("StackItems Deserialize Integer error.")
+			return nil, errors.NewErr("Deserialize stackItems Integer error: " + err.Error())
 		}
 		return types.NewInteger(new(big.Int).SetBytes(b)), nil
 
 	case types.ArrayType, types.StructType:
 		count, err := serialization.ReadVarUint(r, 0)
 		if err != nil {
-			return nil, errors.NewErr("StackItems Deserialize error: " + err.Error())
+			return nil, errors.NewErr("Deserialize stackItems error: " + err.Error())
 		}
 
 		var arr []types.StackItems
@@ -349,7 +350,7 @@ func DeSerializeStackItem(r io.Reader) (items types.StackItems, err error) {
 	case types.MapType:
 		count, err := serialization.ReadVarUint(r, 0)
 		if err != nil {
-			return nil, errors.NewErr("StackItems Deserialize error: " + err.Error())
+			return nil, errors.NewErr("Deserialize stackItems map error: " + err.Error())
 		}
 
 		mp := types.NewMap()
@@ -363,15 +364,13 @@ func DeSerializeStackItem(r io.Reader) (items types.StackItems, err error) {
 			if err != nil {
 				return nil, err
 			}
-
 			mp.GetMap()[key] = value
 			count--
 		}
-
 		return mp, nil
 
 	default:
-		errors.NewErr("invalid type")
+		errors.NewErr("unknown type")
 	}
 
 	return nil, nil
