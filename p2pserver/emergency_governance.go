@@ -165,6 +165,7 @@ func (this *emergencyGov) EmergencyActionResponseReceived(msg *mt.EmergencyActio
 	}
 
 	if this.context.getSig(id) != nil {
+		log.Infof("already received signature from id %s", id.String())
 		return
 	}
 
@@ -202,6 +203,7 @@ func (this *emergencyGov) checkSignatures() {
 	if this.context.getSignatureCount() >= this.context.threshold() {
 		block := this.context.getEmergencyBlock()
 		if block == nil {
+			log.Errorf("checkSignatures: failed to get emergency block")
 			return
 		}
 
@@ -366,6 +368,8 @@ func (this *emergencyGov) EmergencyActionRequestReceived(msg *mt.EmergencyAction
 	}
 
 	// Todo: 4. Validate admin pubkey
+
+	this.context.reset()
 
 	peers, err := getPeers()
 	if err != nil {
