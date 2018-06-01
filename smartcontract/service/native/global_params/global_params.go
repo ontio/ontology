@@ -79,8 +79,8 @@ func ParamInit(native *native.NativeService) ([]byte, error) {
 	for k, v := range GLOBAL_PARAM {
 		initParams.SetParam(&Param{k, v})
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, getParamKey(contract, CURRENT_VALUE), getParamStorageItem(initParams))
-	native.CloneCache.Add(scommon.ST_STORAGE, getParamKey(contract, PREPARE_VALUE), getParamStorageItem(initParams))
+	native.CloneCache.Add(scommon.ST_STORAGE, generateParamKey(contract, CURRENT_VALUE), getParamStorageItem(initParams))
+	native.CloneCache.Add(scommon.ST_STORAGE, generateParamKey(contract, PREPARE_VALUE), getParamStorageItem(initParams))
 	admin = new(Admin)
 
 	bookKeeepers, err := config.DefConfig.GetBookkeepers()
@@ -89,7 +89,7 @@ func ParamInit(native *native.NativeService) ([]byte, error) {
 	}
 	initAddress := ctypes.AddressFromPubKey(bookKeeepers[0])
 	copy((*admin)[:], initAddress[:])
-	native.CloneCache.Add(scommon.ST_STORAGE, GetAdminKey(contract, false), getAdminStorageItem(admin))
+	native.CloneCache.Add(scommon.ST_STORAGE, GenerateAdminKey(contract, false), getAdminStorageItem(admin))
 	return utils.BYTE_TRUE, nil
 }
 
@@ -103,14 +103,14 @@ func AcceptAdmin(native *native.NativeService) ([]byte, error) {
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	getAdmin(native, contract)
-	transferAdmin, err := GetStorageAdmin(native, GetAdminKey(contract, true))
+	transferAdmin, err := GetStorageAdmin(native, GenerateAdminKey(contract, true))
 	if err != nil || transferAdmin == nil || *transferAdmin != *destinationAdmin {
 		return utils.BYTE_FALSE, fmt.Errorf("accept admin, destination account hasn't been approved, casused by %v", err)
 	}
 	// delete transfer admin item
-	native.CloneCache.Delete(scommon.ST_STORAGE, GetAdminKey(contract, true))
+	native.CloneCache.Delete(scommon.ST_STORAGE, GenerateAdminKey(contract, true))
 	// modify admin in database
-	native.CloneCache.Add(scommon.ST_STORAGE, GetAdminKey(contract, false), getAdminStorageItem(destinationAdmin))
+	native.CloneCache.Add(scommon.ST_STORAGE, GenerateAdminKey(contract, false), getAdminStorageItem(destinationAdmin))
 
 	admin = destinationAdmin
 	return utils.BYTE_TRUE, nil
@@ -126,7 +126,7 @@ func TransferAdmin(native *native.NativeService) ([]byte, error) {
 	if err := destinationAdmin.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewErr("transfer admin, deserialize admin failed!")
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, GetAdminKey(contract, true),
+	native.CloneCache.Add(scommon.ST_STORAGE, GenerateAdminKey(contract, true),
 		getAdminStorageItem(destinationAdmin))
 	return utils.BYTE_TRUE, nil
 }
@@ -142,7 +142,7 @@ func SetGlobalParam(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("set param, deserialize failed!")
 	}
 	// read old param from database
-	storageParams, err := getStorageParam(native, getParamKey(contract, PREPARE_VALUE))
+	storageParams, err := getStorageParam(native, generateParamKey(contract, PREPARE_VALUE))
 	if err != nil {
 		return utils.BYTE_FALSE, err
 	}
@@ -150,7 +150,7 @@ func SetGlobalParam(native *native.NativeService) ([]byte, error) {
 	for _, param := range *params {
 		storageParams.SetParam(param)
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, getParamKey(contract, PREPARE_VALUE),
+	native.CloneCache.Add(scommon.ST_STORAGE, generateParamKey(contract, PREPARE_VALUE),
 		getParamStorageItem(storageParams))
 	return utils.BYTE_TRUE, nil
 }
@@ -179,7 +179,7 @@ func GetGlobalParam(native *native.NativeService) ([]byte, error) {
 	}
 	// read from db
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	storageParams, err := getStorageParam(native, getParamKey(contract, CURRENT_VALUE))
+	storageParams, err := getStorageParam(native, generateParamKey(contract, CURRENT_VALUE))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "get param, storage error!")
 	}
@@ -208,7 +208,7 @@ func CreateSnapshot(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("create snapshot, authentication failed!")
 	}
 	// read prepare param
-	prepareParam, err := getStorageParam(native, getParamKey(contract, PREPARE_VALUE))
+	prepareParam, err := getStorageParam(native, generateParamKey(contract, PREPARE_VALUE))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "create snapshot, storage error!")
 	}
@@ -216,7 +216,7 @@ func CreateSnapshot(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("create snapshot, prepare param doesn't exist!")
 	}
 	// set prepare value to current value, make it effective
-	native.CloneCache.Add(scommon.ST_STORAGE, getParamKey(contract, CURRENT_VALUE), getParamStorageItem(prepareParam))
+	native.CloneCache.Add(scommon.ST_STORAGE, generateParamKey(contract, CURRENT_VALUE), getParamStorageItem(prepareParam))
 	// clear memory cache
 	clearCache()
 	return utils.BYTE_TRUE, nil
@@ -226,7 +226,7 @@ func getAdmin(native *native.NativeService, contract common.Address) {
 	if admin == nil || *admin == *new(Admin) {
 		var err error
 		// get admin from database
-		admin, err = GetStorageAdmin(native, GetAdminKey(contract, false))
+		admin, err = GetStorageAdmin(native, GenerateAdminKey(contract, false))
 		// there are no admin in database
 		if err != nil {
 			bookKeeepers, err := config.DefConfig.GetBookkeepers()
