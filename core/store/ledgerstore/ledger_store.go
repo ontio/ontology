@@ -20,11 +20,6 @@ package ledgerstore
 
 import (
 	"fmt"
-	"math"
-	"sort"
-	"strings"
-	"sync"
-
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -32,6 +27,7 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/states"
+	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/statestore"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -44,7 +40,11 @@ import (
 	sstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vmtype "github.com/ontio/ontology/smartcontract/types"
+	"math"
 	"os"
+	"sort"
+	"strings"
+	"sync"
 )
 
 const (
@@ -111,7 +111,7 @@ func NewLedgerStore(dataDir string) (*LedgerStoreImp, error) {
 //InitLedgerStoreWithGenesisBlock init the ledger store with genesis block. It's the first operation after NewLedgerStore.
 func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.Block, defaultBookkeeper []keypair.PublicKey) error {
 	hasInit, err := this.hasAlreadyInitGenesisBlock()
-	if err != nil {
+	if err != nil && err != scom.ErrNotFound {
 		return fmt.Errorf("hasAlreadyInit error %s", err)
 	}
 	if !hasInit {
@@ -147,7 +147,7 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 	} else {
 		genesisHash := genesisBlock.Hash()
 		exist, err := this.blockStore.ContainBlock(genesisHash)
-		if err != nil {
+		if err != nil && err != scom.ErrNotFound {
 			return fmt.Errorf("HashBlockExist error %s", err)
 		}
 		if !exist {
@@ -159,7 +159,7 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 
 func (this *LedgerStoreImp) hasAlreadyInitGenesisBlock() (bool, error) {
 	version, err := this.blockStore.GetVersion()
-	if err != nil {
+	if err != nil && err != scom.ErrNotFound {
 		return false, fmt.Errorf("GetVersion error %s", err)
 	}
 	return version == SYSTEM_VERSION, nil
@@ -187,7 +187,7 @@ func (this *LedgerStoreImp) init() error {
 
 func (this *LedgerStoreImp) initCurrentBlock() error {
 	currentBlockHash, currentBlockHeight, err := this.blockStore.GetCurrentBlock()
-	if err != nil {
+	if err != nil && err != scom.ErrNotFound {
 		return fmt.Errorf("LoadCurrentBlock error %s", err)
 	}
 	log.Infof("InitCurrentBlock currentBlockHash %x currentBlockHeight %d", currentBlockHash, currentBlockHeight)
@@ -228,7 +228,7 @@ func (this *LedgerStoreImp) initStore() error {
 	blockHeight := this.GetCurrentBlockHeight()
 
 	_, stateHeight, err := this.stateStore.GetCurrentBlock()
-	if err != nil {
+	if err != nil && err != scom.ErrNotFound {
 		return fmt.Errorf("stateStore.GetCurrentBlock error %s", err)
 	}
 	for i := stateHeight; i < blockHeight; i++ {
@@ -252,7 +252,7 @@ func (this *LedgerStoreImp) initStore() error {
 	}
 
 	_, eventHeight, err := this.eventStore.GetCurrentBlock()
-	if err != nil {
+	if err != nil && err != scom.ErrNotFound {
 		return fmt.Errorf("eventStore.GetCurrentBlock error:%s", err)
 	}
 	for i := eventHeight; i < blockHeight; i++ {
@@ -376,7 +376,7 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header) error {
 	var prevHeader *types.Header
 	prevHeaderHash := header.PrevBlockHash
 	prevHeader, err := this.GetHeaderByHash(prevHeaderHash)
-	if err != nil {
+	if err != nil && err != scom.ErrNotFound {
 		return fmt.Errorf("get prev header error %s", err)
 	}
 	if prevHeader == nil {

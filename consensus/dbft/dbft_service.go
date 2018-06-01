@@ -21,9 +21,6 @@ package dbft
 import (
 	"bytes"
 	"fmt"
-	"reflect"
-	"time"
-
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
@@ -33,12 +30,15 @@ import (
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
+	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/vote"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/validator/increment"
+	"reflect"
+	"time"
 )
 
 type DbftService struct {
@@ -219,7 +219,7 @@ func (ds *DbftService) CheckSignatures() error {
 
 		hash := block.Hash()
 		isExist, err := ds.ledger.IsContainBlock(hash)
-		if err != nil {
+		if err != nil && err != scom.ErrNotFound {
 			log.Errorf("DefLedger.IsContainBlock Hash:%x error:%s", hash, err)
 			return err
 		}
