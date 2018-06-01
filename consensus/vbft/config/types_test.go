@@ -25,16 +25,6 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 )
 
-func TestStringID(t *testing.T) {
-	nodeid := "120202890c587f4e4a6a98b455248eabac04b733580cfe5f11acd648c675543dfbb926"
-	nodeID, err := StringID(nodeid)
-	if err != nil {
-		t.Errorf("test failed: %v", err)
-	} else {
-		t.Logf("test succ: %v\n", len(nodeID))
-	}
-}
-
 func TestPubkeyID(t *testing.T) {
 	bookkeeper := "120202c924ed1a67fd1719020ce599d723d09d48362376836e04b0be72dfe825e24d81"
 	pubKey, err := hex.DecodeString(bookkeeper)
@@ -66,7 +56,7 @@ func TestPubkey(t *testing.T) {
 	if err != nil {
 		t.Errorf("PubkeyID failed: %v", err)
 	}
-	publickey, err := nodeID.Pubkey()
+	publickey, err := Pubkey(nodeID)
 	if err != nil {
 		t.Errorf("Pubkey failed: %v", err)
 	}

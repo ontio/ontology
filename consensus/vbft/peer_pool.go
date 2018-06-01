@@ -42,7 +42,7 @@ type PeerPool struct {
 
 	server  *Server
 	configs map[uint32]*vconfig.PeerConfig // peer index to peer
-	IDMap   map[vconfig.NodeID]uint32
+	IDMap   map[string]uint32
 
 	peers                  map[uint32]*Peer
 	peerConnectionWaitings map[uint32]chan struct{}
@@ -53,7 +53,7 @@ func NewPeerPool(maxSize int, server *Server) *PeerPool {
 		maxSize: maxSize,
 		server:  server,
 		configs: make(map[uint32]*vconfig.PeerConfig),
-		IDMap:   make(map[vconfig.NodeID]uint32),
+		IDMap:   make(map[string]uint32),
 		peers:   make(map[uint32]*Peer),
 		peerConnectionWaitings: make(map[uint32]chan struct{}),
 	}
@@ -64,7 +64,7 @@ func (pool *PeerPool) clean() {
 	defer pool.lock.Unlock()
 
 	pool.configs = make(map[uint32]*vconfig.PeerConfig)
-	pool.IDMap = make(map[vconfig.NodeID]uint32)
+	pool.IDMap = make(map[string]uint32)
 	pool.peers = make(map[uint32]*Peer)
 }
 
@@ -84,7 +84,7 @@ func (pool *PeerPool) addPeer(config *vconfig.PeerConfig) error {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
-	peerPK, err := config.ID.Pubkey()
+	peerPK, err := vconfig.Pubkey(config.ID)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal peer pubkey: %s", err)
 	}
@@ -219,7 +219,7 @@ func (pool *PeerPool) getNeighbours() []*Peer {
 	return peers
 }
 
-func (pool *PeerPool) GetPeerIndex(nodeId vconfig.NodeID) (uint32, bool) {
+func (pool *PeerPool) GetPeerIndex(nodeId string) (uint32, bool) {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
@@ -259,7 +259,7 @@ func (pool *PeerPool) getPeer(idx uint32) *Peer {
 	peer := pool.peers[idx]
 	if peer != nil {
 		if peer.PubKey == nil {
-			peer.PubKey, _ = pool.configs[idx].ID.Pubkey()
+			peer.PubKey, _ = vconfig.Pubkey(pool.configs[idx].ID)
 		}
 		return peer
 	}

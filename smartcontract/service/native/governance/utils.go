@@ -20,10 +20,6 @@ package governance
 
 import (
 	"bytes"
-	"encoding/json"
-	"fmt"
-	"hash/fnv"
-	"math"
 	"math/big"
 
 	"github.com/ontio/ontology-crypto/vrf"
@@ -37,76 +33,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
-
-func shufflehash(txid common.Uint256, height uint32, id []byte, idx int) (uint64, error) {
-	data, err := json.Marshal(struct {
-		Txid   common.Uint256 `json:"txid"`
-		Height uint32         `json:"height"`
-		NodeID []byte         `json:"node_id"`
-		Index  int            `json:"index"`
-	}{txid, height, id, idx})
-	if err != nil {
-		return 0, err
-	}
-
-	hash := fnv.New64a()
-	hash.Write(data)
-	return hash.Sum64(), nil
-}
-
-func calDposTable(native *native.NativeService, config *Configuration,
-	peers []*PeerStakeInfo) ([]uint32, map[uint32]*vbftconfig.PeerConfig, error) {
-	// get stake sum of top-k peers
-	var sum uint64
-	for i := 0; i < int(config.K); i++ {
-		sum += peers[i].Stake
-	}
-
-	// calculate peer ranks
-	scale := config.L/config.K - 1
-	if scale <= 0 {
-		return nil, nil, errors.NewErr("calDposTable, L is equal or less than K!")
-	}
-
-	peerRanks := make([]uint64, 0)
-	for i := 0; i < int(config.K); i++ {
-		if peers[i].Stake == 0 {
-			return nil, nil, errors.NewErr(fmt.Sprintf("calDposTable, peers rank %d, has zero stake!", i))
-		}
-		s := uint64(math.Ceil(float64(peers[i].Stake) * float64(scale) * float64(config.K) / float64(sum)))
-		peerRanks = append(peerRanks, s)
-	}
-
-	// calculate pos table
-	chainPeers := make(map[uint32]*vbftconfig.PeerConfig, 0)
-	posTable := make([]uint32, 0)
-	for i := 0; i < int(config.K); i++ {
-		nodeId, err := vbftconfig.StringID(peers[i].PeerPubkey)
-		if err != nil {
-			return nil, nil, errors.NewDetailErr(err, errors.ErrNoCode,
-				fmt.Sprintf("calDposTable, failed to format NodeID, index: %d: %s", peers[i].Index, err))
-		}
-		chainPeers[peers[i].Index] = &vbftconfig.PeerConfig{
-			Index: peers[i].Index,
-			ID:    nodeId,
-		}
-		for j := uint64(0); j < peerRanks[i]; j++ {
-			posTable = append(posTable, peers[i].Index)
-		}
-	}
-
-	// shuffle
-	for i := len(posTable) - 1; i > 0; i-- {
-		h, err := shufflehash(native.Tx.Hash(), native.Height, chainPeers[posTable[i]].ID.Bytes(), i)
-		if err != nil {
-			return nil, nil, errors.NewDetailErr(err, errors.ErrNoCode, "calDposTable, failed to calculate hash value")
-		}
-		j := h % uint64(i)
-		posTable[i], posTable[j] = posTable[j], posTable[i]
-	}
-
-	return posTable, chainPeers, nil
-}
 
 func GetPeerPoolMap(native *native.NativeService, contract common.Address, view uint32) (*PeerPoolMap, error) {
 	peerPoolMap := &PeerPoolMap{
@@ -273,11 +199,7 @@ func GetGlobalParam(native *native.NativeService, contract common.Address) (*Glo
 }
 
 func validatePeerPubKeyFormat(pubkey string) error {
-	nodeid, err := vbftconfig.StringID(pubkey)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "failed to parse nodeid")
-	}
-	pk, err := nodeid.Pubkey()
+	pk, err := vbftconfig.Pubkey(pubkey)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "failed to parse pubkey")
 	}

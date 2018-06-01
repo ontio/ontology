@@ -25,7 +25,7 @@ import (
 )
 
 func generTestData() []byte {
-	nodeId, _ := StringID("12020298fe9f22e9df64f6bfcc1c2a14418846cffdbbf510d261bbc3fa6d47073df9a2")
+	nodeId := "12020298fe9f22e9df64f6bfcc1c2a14418846cffdbbf510d261bbc3fa6d47073df9a2"
 	chainPeers := make([]*PeerConfig, 0)
 	peerconfig := &PeerConfig{
 		Index: 12,
