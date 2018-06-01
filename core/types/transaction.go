@@ -84,7 +84,7 @@ func (self *Sig) Deserialize(r io.Reader) error {
 		if err != nil {
 			return err
 		}
-		self.SigData[i] = sig
+		self.SigData = append(self.SigData, sig)
 	}
 
 	return nil
