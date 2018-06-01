@@ -19,61 +19,26 @@
 package vconfig
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
-	"strings"
 
 	"github.com/ontio/ontology-crypto/keypair"
 )
 
-const NODE_ID_BITS = 296
-
-// NodeID is a unique identifier for each node.
-// The node identifier is a marshaled elliptic curve public key.
-type NodeID [NODE_ID_BITS / 8]byte
-
-// Bytes returns a byte slice representation of the NodeID
-func (n NodeID) Bytes() []byte {
-	return n[:]
-}
-
-// NodeID prints as a long hexadecimal number.
-func (n NodeID) String() string {
-	return fmt.Sprintf("%x", n[:])
-}
-
-var NilID = NodeID{}
-
-func (n NodeID) IsNil() bool {
-	return bytes.Compare(n.Bytes(), NilID.Bytes()) == 0
-}
-
-func StringID(in string) (NodeID, error) {
-	var id NodeID
-	b, err := hex.DecodeString(strings.TrimPrefix(in, "0x"))
-	if err != nil {
-		return id, err
-	} else if len(b) > len(id) {
-		return id, fmt.Errorf("wrong length, want %d hex chars, get %d hex chars", len(b)*2, len(id)*2)
-	}
-	copy(id[:], b)
-	return id, nil
-}
-
 // PubkeyID returns a marshaled representation of the given public key.
-func PubkeyID(pub keypair.PublicKey) (NodeID, error) {
-	keyData := keypair.SerializePublicKey(pub)
-	var id NodeID
-	copy(id[:], keyData)
-	return id, nil
+func PubkeyID(pub keypair.PublicKey) (string, error) {
+	nodeid := hex.EncodeToString(keypair.SerializePublicKey(pub))
+	return nodeid, nil
 }
 
-func (id NodeID) Pubkey() (keypair.PublicKey, error) {
-	pk, err := keypair.DeserializePublicKey(id[:])
+func Pubkey(nodeid string) (keypair.PublicKey, error) {
+	pubKey, err := hex.DecodeString(nodeid)
+	if err != nil {
+		return nil, err
+	}
+	pk, err := keypair.DeserializePublicKey(pubKey)
 	if err != nil {
 		return nil, fmt.Errorf("deserialize failed: %s", err)
 	}
-
 	return pk, err
 }

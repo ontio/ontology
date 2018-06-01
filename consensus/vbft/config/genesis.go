@@ -33,11 +33,11 @@ import (
 	"github.com/ontio/ontology/common/log"
 )
 
-func shuffle_hash(txid common.Uint256, height uint32, id []byte, idx int) (uint64, error) {
+func shuffle_hash(txid common.Uint256, height uint32, id string, idx int) (uint64, error) {
 	data, err := json.Marshal(struct {
 		Txid   common.Uint256 `json:"txid"`
 		Height uint32         `json:"height"`
-		NodeID []byte         `json:"node_id"`
+		NodeID string         `json:"node_id"`
 		Index  int            `json:"index"`
 	}{txid, height, id, idx})
 	if err != nil {
@@ -130,10 +130,7 @@ func GenesisChainConfig(config *config.VBFTConfig, peersinfo []*config.VBFTPeerS
 	chainPeers := make(map[uint32]*PeerConfig, 0)
 	posTable := make([]uint32, 0)
 	for i := 0; i < int(config.K); i++ {
-		nodeId, err := StringID(peers[i].PeerPubkey)
-		if err != nil {
-			return nil, fmt.Errorf("failed to format NodeID, index: %d: %s", peers[i].Index, err)
-		}
+		nodeId := peers[i].PeerPubkey
 		chainPeers[peers[i].Index] = &PeerConfig{
 			Index: peers[i].Index,
 			ID:    nodeId,
@@ -144,7 +141,7 @@ func GenesisChainConfig(config *config.VBFTConfig, peersinfo []*config.VBFTPeerS
 	}
 	// shuffle
 	for i := len(posTable) - 1; i > 0; i-- {
-		h, err := shuffle_hash(txhash, height, chainPeers[posTable[i]].ID.Bytes(), i)
+		h, err := shuffle_hash(txhash, height, chainPeers[posTable[i]].ID, i)
 		if err != nil {
 			return nil, fmt.Errorf("failed to calculate hash value: %s", err)
 		}
