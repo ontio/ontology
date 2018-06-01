@@ -19,9 +19,11 @@ package types
 
 import (
 	"bytes"
+	"fmt"
+	"testing"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestHeader_Serialize(t *testing.T) {
@@ -36,7 +38,7 @@ func TestHeader_Serialize(t *testing.T) {
 
 	var h2 Header
 	h2.Deserialize(buf)
-	assert.Equal(t, header, h2)
+	assert.Equal(t, fmt.Sprint(header), fmt.Sprint(h2))
 
 	buf = bytes.NewBuffer(bs[:len(bs)-1])
 	err = h2.Deserialize(buf)

@@ -24,6 +24,8 @@ import (
 	"io/ioutil"
 	"math"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func BenchmarkWriteVarUint(b *testing.B) {
@@ -177,4 +179,22 @@ func TestReadWriteInt(t *testing.T) {
 	fmt.Println(ReadUint32(b5))
 	fmt.Println(ReadUint64(b6))
 
+}
+
+func TestReadVarBytesMemAllocAttack(t *testing.T) {
+	buff := bytes.NewBuffer([]byte{1, 2, 3})
+	length := math.MaxInt64
+	_, err := byteXReader(buff, uint64(length))
+	assert.NotNil(t, err)
+}
+
+func TestReadVarBytesRead(t *testing.T) {
+	bs := make([]byte, 2048+1)
+	for i := 0; i < len(bs); i++ {
+		bs[i] = byte(i)
+	}
+	buff := bytes.NewBuffer(bs)
+	read, err := byteXReader(buff, uint64(len(bs)))
+	assert.Nil(t, err)
+	assert.Equal(t, bs, read)
 }
