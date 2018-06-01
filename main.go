@@ -52,6 +52,9 @@ import (
 	"github.com/ontio/ontology/p2pserver"
 	netreqactor "github.com/ontio/ontology/p2pserver/actor/req"
 	p2pactor "github.com/ontio/ontology/p2pserver/actor/server"
+	"github.com/ontio/ontology/smartcontract/service/native/governance"
+	ninit "github.com/ontio/ontology/smartcontract/service/native/init"
+	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/txnpool"
 	tc "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology/txnpool/proc"
@@ -136,6 +139,7 @@ func startOntology(ctx *cli.Context) {
 		log.Errorf("initConfig error:%s", err)
 		return
 	}
+	ninit.INIT_CONFIG_BYTES = ninit.InitConfigBytes(nutils.GovernanceContractAddress, governance.INIT_CONFIG)
 	acc, err := initAccount(ctx)
 	if err != nil {
 		log.Errorf("initWallet error:%s", err)
