@@ -342,6 +342,36 @@ func GetBlock(hashOrHeight interface{}) ([]byte, error) {
 	return sendRpcRequest("getblock", []interface{}{hashOrHeight, 1})
 }
 
+func GetBlockData(hashOrHeight interface{}) ([]byte, error) {
+	data, err := sendRpcRequest("getblock", []interface{}{hashOrHeight})
+	if err != nil {
+		return nil, err
+	}
+	hexStr := ""
+	err = json.Unmarshal(data, &hexStr)
+	if err != nil {
+		return nil, fmt.Errorf("json.Unmarshal error:%s", err)
+	}
+	blockData, err := hex.DecodeString(hexStr)
+	if err != nil {
+		return nil, fmt.Errorf("hex.DecodeString error:%s", err)
+	}
+	return blockData, nil
+}
+
+func GetBlockCount() (uint32, error) {
+	data, err := sendRpcRequest("getblockcount", []interface{}{})
+	if err != nil {
+		return 0, err
+	}
+	num := uint32(0)
+	err = json.Unmarshal(data, &num)
+	if err != nil {
+		return 0, fmt.Errorf("json.Unmarshal:%s error:%s", data, err)
+	}
+	return num, nil
+}
+
 func DeployContract(
 	gasPrice,
 	gasLimit uint64,

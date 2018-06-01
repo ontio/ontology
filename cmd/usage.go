@@ -79,6 +79,9 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.LogLevelFlag,
 			utils.DisableEventLogFlag,
 			utils.DataDirFlag,
+			utils.ImportEnableFlag,
+			utils.ImportHeightFlag,
+			utils.ImportFileFlag,
 		},
 	},
 	{
@@ -174,6 +177,14 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.ApproveAssetFromFlag,
 			utils.ApproveAssetToFlag,
+		},
+	},
+	{
+		Name: "EXPORT",
+		Flags: []cli.Flag{
+			utils.ExportFileFlag,
+			utils.ExportSpeedFlag,
+			utils.ExportHeightFlag,
 		},
 	},
 	{
