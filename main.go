@@ -64,7 +64,7 @@ func setupAPP() *cli.App {
 	app := cli.NewApp()
 	app.Usage = "Ontology CLI"
 	app.Action = startOntology
-	app.Version = "0.8.0"
+	app.Version = "0.8.2"
 	app.Copyright = "Copyright in 2018 The Ontology Authors"
 	app.Commands = []cli.Command{
 		cmd.AccountCommand,
