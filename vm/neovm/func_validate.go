@@ -378,7 +378,6 @@ func validatePickItem(e *ExecutionEngine) error {
 		return errors.ERR_NOT_SUPPORT_TYPE
 
 	}
-
 	return nil
 }
 
@@ -387,29 +386,31 @@ func validatorSetItem(e *ExecutionEngine) error {
 		return err
 	}
 
-	newItem := PeekNStackItem(0, e)
-	if newItem == nil {
+	value := PeekNStackItem(0, e)
+	if value == nil {
 		return errors.ERR_BAD_VALUE
 	}
 
-	if _, ok := newItem.(*types.Array); ok {
+	item := PeekNStackItem(2, e)
+	if item == nil {
+		return errors.ERR_BAD_VALUE
+	}
+
+	if _, ok := item.(*types.Array); ok {
 		index := PeekNBigInt(1, e)
 		if index.Sign() < 0 {
-			return errors.ERR_BAD_VALUE
-		}
-		item := PeekNStackItem(2, e)
-		if item == nil {
 			return errors.ERR_BAD_VALUE
 		}
 		if index.Cmp(big.NewInt(int64(len(item.GetArray())))) >= 0 {
 			return errors.ERR_OVER_MAX_ARRAY_SIZE
 		}
-	} else if _, ok := newItem.(*types.Map); ok {
+	} else if _, ok := item.(*types.Map); ok {
 		key := PeekNStackItem(1, e)
-		value := PeekNStackItem(2, e)
-		if key == nil || value == nil {
+		if key == nil {
 			return errors.ERR_BAD_VALUE
 		}
+	} else{
+		return errors.ERR_NOT_SUPPORT_TYPE
 	}
 	return nil
 }
