@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/ontio/ontology/common"
-	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/types"
 	mt "github.com/ontio/ontology/p2pserver/message/types"
 	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
@@ -43,22 +42,22 @@ const (
 )
 
 type emergencyGovContext struct {
-	EmergencyReqCache *mt.EmergencyActionRequest                     // Current emergency governance request
-	EmergencyRspCache map[vconfig.NodeID]*mt.EmergencyActionResponse // Cache current response from peers
-	Signatures        map[vconfig.NodeID][]byte                      // Cache current signatures from peers
-	Status            EmergencyGovStatus                             // Current emergency governance status
-	Height            uint32                                         // Current emergency governance height
-	peers             map[vconfig.NodeID]*EmergencyGovPeer
+	EmergencyReqCache *mt.EmergencyActionRequest             // Current emergency governance request
+	EmergencyRspCache map[string]*mt.EmergencyActionResponse // Cache current response from peers
+	Signatures        map[string][]byte                      // Cache current signatures from peers
+	Status            EmergencyGovStatus                     // Current emergency governance status
+	Height            uint32                                 // Current emergency governance height
+	peers             map[string]*EmergencyGovPeer
 	timer             *time.Timer
 	done              chan struct{}
 }
 
 func (this *emergencyGovContext) reset() {
 	this.EmergencyReqCache = nil
-	this.EmergencyRspCache = make(map[vconfig.NodeID]*mt.EmergencyActionResponse, 0)
-	this.Signatures = make(map[vconfig.NodeID][]byte, 0)
+	this.EmergencyRspCache = make(map[string]*mt.EmergencyActionResponse, 0)
+	this.Signatures = make(map[string][]byte, 0)
 	this.Status = EmergencyGovInit
-	this.peers = make(map[vconfig.NodeID]*EmergencyGovPeer, 0)
+	this.peers = make(map[string]*EmergencyGovPeer, 0)
 	this.done = make(chan struct{}, 1)
 }
 
@@ -70,21 +69,17 @@ func (this *emergencyGovContext) getStatus() EmergencyGovStatus {
 	return this.Status
 }
 
-func (this *emergencyGovContext) getSig(id vconfig.NodeID) []byte {
+func (this *emergencyGovContext) getSig(id string) []byte {
 	return this.Signatures[id]
 }
 
-func (this *emergencyGovContext) setSig(id vconfig.NodeID, sig []byte) {
+func (this *emergencyGovContext) setSig(id string, sig []byte) {
 	this.Signatures[id] = sig
 }
 
 func (this *emergencyGovContext) setPeers(peers []*EmergencyGovPeer) {
 	for _, peer := range peers {
-		id, err := vconfig.StringID(peer.PubKey)
-		if err != nil {
-			continue
-		}
-		this.peers[id] = peer
+		this.peers[peer.PubKey] = peer
 	}
 }
 
@@ -96,16 +91,16 @@ func (this *emergencyGovContext) getEmergencyReqCache() *mt.EmergencyActionReque
 	return this.EmergencyReqCache
 }
 
-func (this *emergencyGovContext) appendEmergencyRsp(id vconfig.NodeID, msg *mt.EmergencyActionResponse) {
+func (this *emergencyGovContext) appendEmergencyRsp(id string, msg *mt.EmergencyActionResponse) {
 	this.EmergencyRspCache[id] = msg
 }
 
-func (this *emergencyGovContext) getEmergencyRspCache() map[vconfig.NodeID]*mt.EmergencyActionResponse {
+func (this *emergencyGovContext) getEmergencyRspCache() map[string]*mt.EmergencyActionResponse {
 	return this.EmergencyRspCache
 }
 
 func (this *emergencyGovContext) clearEmergencyRspCache() {
-	this.EmergencyRspCache = make(map[vconfig.NodeID]*mt.EmergencyActionResponse, 0)
+	this.EmergencyRspCache = make(map[string]*mt.EmergencyActionResponse, 0)
 }
 
 func (this *emergencyGovContext) getEmergencyBlock() *types.Block {

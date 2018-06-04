@@ -176,7 +176,7 @@ func (this *emergencyGov) EmergencyActionResponseReceived(msg *mt.EmergencyActio
 	}
 
 	if this.context.getSig(id) != nil {
-		log.Infof("already received signature from id %s", id.String())
+		log.Infof("already received signature from id %s", id)
 		return
 	}
 
@@ -219,7 +219,7 @@ func (this *emergencyGov) checkSignatures() {
 		}
 
 		for id, sig := range this.context.Signatures {
-			pubkey, _ := id.Pubkey()
+			pubkey, _ := vconfig.Pubkey(id)
 			block.Header.Bookkeepers = append(block.Header.Bookkeepers, pubkey)
 			block.Header.SigData = append(block.Header.SigData, sig)
 		}

@@ -21,16 +21,16 @@ package p2pserver
 import (
 	"bytes"
 
-	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/states"
 	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
+	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 // getGovernanceView returns current governance view
 func getGovernanceView() (*gov.GovernanceView, error) {
 	storageKey := &states.StorageKey{
-		CodeHash: genesis.GovernanceContractAddress,
+		CodeHash: nutils.GovernanceContractAddress,
 		Key:      append([]byte(gov.GOVERNANCE_VIEW)),
 	}
 	data, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
@@ -51,9 +51,15 @@ func getPeers() ([]*EmergencyGovPeer, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	viewBytes, err := gov.GetUint32Bytes(goveranceview.View)
+	if err != nil {
+		return nil, err
+	}
+
 	storageKey := &states.StorageKey{
-		CodeHash: genesis.GovernanceContractAddress,
-		Key:      append([]byte(gov.PEER_POOL), goveranceview.View.Bytes()...),
+		CodeHash: nutils.GovernanceContractAddress,
+		Key:      append([]byte(gov.PEER_POOL), viewBytes...),
 	}
 	data, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
 	if err != nil {
