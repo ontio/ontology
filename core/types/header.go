@@ -130,16 +130,16 @@ func (bd *Header) Deserialize(r io.Reader) error {
 		return err
 	}
 
-	bd.Bookkeepers = make([]keypair.PublicKey, n)
 	for i := 0; i < int(n); i++ {
 		buf, err := serialization.ReadVarBytes(r)
 		if err != nil {
 			return err
 		}
-		bd.Bookkeepers[i], err = keypair.DeserializePublicKey(buf)
+		pubkey, err := keypair.DeserializePublicKey(buf)
 		if err != nil {
 			return err
 		}
+		bd.Bookkeepers = append(bd.Bookkeepers, pubkey)
 	}
 
 	m, err := serialization.ReadVarUint(r, 0)
@@ -147,13 +147,12 @@ func (bd *Header) Deserialize(r io.Reader) error {
 		return err
 	}
 
-	bd.SigData = make([][]byte, m)
 	for i := 0; i < int(m); i++ {
 		sig, err := serialization.ReadVarBytes(r)
 		if err != nil {
 			return err
 		}
-		bd.SigData[i] = sig
+		bd.SigData = append(bd.SigData, sig)
 	}
 
 	return nil

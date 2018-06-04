@@ -50,7 +50,7 @@ var (
 	endorseBlockTimeout    = 100 * time.Millisecond
 	commitBlockTimeout     = 200 * time.Millisecond
 	peerHandshakeTimeout   = 10 * time.Second
-	txPooltimeout          = 300 * time.Millisecond
+	txPooltimeout          = 1 * time.Second
 	zeroTxBlockTimeout     = 10 * time.Second
 )
 

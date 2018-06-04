@@ -20,11 +20,9 @@ package ledger
 
 import (
 	"fmt"
-
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store"
@@ -40,8 +38,8 @@ type Ledger struct {
 	ldgStore store.LedgerStore
 }
 
-func NewLedger() (*Ledger, error) {
-	ldgStore, err := ledgerstore.NewLedgerStore()
+func NewLedger(dataDir string) (*Ledger, error) {
+	ldgStore, err := ledgerstore.NewLedgerStore(dataDir)
 	if err != nil {
 		return nil, fmt.Errorf("NewLedgerStore error %s", err)
 	}
@@ -54,12 +52,8 @@ func (self *Ledger) GetStore() store.LedgerStore {
 	return self.ldgStore
 }
 
-func (self *Ledger) Init(defaultBookkeeper []keypair.PublicKey) error {
-	genesisBlock, err := genesis.GenesisBlockInit(defaultBookkeeper)
-	if err != nil {
-		return fmt.Errorf("genesisBlock error %s", err)
-	}
-	err = self.ldgStore.InitLedgerStoreWithGenesisBlock(genesisBlock, defaultBookkeeper)
+func (self *Ledger) Init(defaultBookkeeper []keypair.PublicKey, genesisBlock *types.Block) error {
+	err := self.ldgStore.InitLedgerStoreWithGenesisBlock(genesisBlock, defaultBookkeeper)
 	if err != nil {
 		return fmt.Errorf("InitLedgerStoreWithGenesisBlock error %s", err)
 	}

@@ -34,7 +34,7 @@ var (
 
 type PeerConfig struct {
 	Index uint32 `json:"index"`
-	ID    NodeID `json:"id"`
+	ID    string `json:"id"`
 }
 
 type ChainConfig struct {
@@ -50,8 +50,13 @@ type ChainConfig struct {
 	MaxBlockChangeView   uint32        `json:"MaxBlockChangeView"`
 }
 
+//
+// VBFT consensus payload, stored on each block header
+//
 type VbftBlockInfo struct {
 	Proposer           uint32       `json:"leader"`
+	VrfValue           []byte       `json:"vrf_value"`
+	VrfProof           []byte       `json:"vrf_proof"`
 	LastConfigBlockNum uint32       `json:"last_config_block_num"`
 	NewChainConfig     *ChainConfig `json:"new_chain_config"`
 }
@@ -112,7 +117,7 @@ func (pc *PeerConfig) Serialize(w io.Writer) error {
 	if err := serialization.WriteUint32(w, pc.Index); err != nil {
 		return fmt.Errorf("ChainConfig peer index length serialization failed %s", err)
 	}
-	if err := serialization.WriteString(w, pc.ID.String()); err != nil {
+	if err := serialization.WriteString(w, pc.ID); err != nil {
 		return fmt.Errorf("ChainConfig peer ID length serialization failed %s", err)
 	}
 	return nil
@@ -122,8 +127,7 @@ func (pc *PeerConfig) Deserialize(r io.Reader) error {
 	index, _ := serialization.ReadUint32(r)
 	pc.Index = index
 
-	nodeinfo, _ := serialization.ReadString(r)
-	nodeid, _ := StringID(nodeinfo)
+	nodeid, _ := serialization.ReadString(r)
 	pc.ID = nodeid
 	return nil
 }

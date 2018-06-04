@@ -79,12 +79,14 @@ func (this *Addr) Deserialization(p []byte) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read NodeCnt error. buf:%v", buf))
 	}
-	this.NodeAddrs = make([]comm.PeerAddr, NodeCnt)
+
 	for i := 0; i < int(NodeCnt); i++ {
-		err := binary.Read(buf, binary.LittleEndian, &(this.NodeAddrs[i]))
+		var addr comm.PeerAddr
+		err := binary.Read(buf, binary.LittleEndian, &addr)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read NodeAddrs error. buf:%v", buf))
 		}
+		this.NodeAddrs = append(this.NodeAddrs, addr)
 	}
 	return nil
 }

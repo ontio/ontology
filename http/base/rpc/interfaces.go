@@ -22,17 +22,18 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
 	bactor "github.com/ontio/ontology/http/base/actor"
 	bcomn "github.com/ontio/ontology/http/base/common"
 	berr "github.com/ontio/ontology/http/base/error"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 func GetGenerateBlockTime(params []interface{}) map[string]interface{} {
@@ -547,6 +548,27 @@ func GetMerkleProof(params []interface{}) map[string]interface{} {
 		common.ToHexString(curHeader.BlockRoot[:]), curHeight, hashes})
 }
 
+func GetBlockTxsByHeight(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return responsePack(berr.INVALID_PARAMS, nil)
+	}
+	switch params[0].(type) {
+	case float64:
+		height := uint32(params[0].(float64))
+		hash := bactor.GetBlockHashFromStore(height)
+		if hash == common.UINT256_EMPTY {
+			return responsePack(berr.INVALID_PARAMS, "")
+		}
+		block, err := bactor.GetBlockFromStore(hash)
+		if err != nil {
+			return responsePack(berr.UNKNOWN_BLOCK, "")
+		}
+		return responseSuccess(bcomn.GetBlockTransactions(block))
+	default:
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+}
+
 func GetGasPrice(params []interface{}) map[string]interface{} {
 	result, err := bcomn.GetGasPrice()
 	if err != nil {
@@ -567,7 +589,7 @@ func GetUnclaimOng(params []interface{}) map[string]interface{} {
 	if err != nil {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
-	fromAddr := genesis.OntContractAddress
+	fromAddr := utils.OntContractAddress
 	rsp, err := bcomn.GetAllowance("ong", fromAddr, toAddr)
 	if err != nil {
 		log.Errorf("GetUnclaimOng %s error:%s", toAddr.ToBase58(), err)

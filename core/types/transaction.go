@@ -57,16 +57,16 @@ func (self *Sig) Deserialize(r io.Reader) error {
 		return err
 	}
 
-	self.PubKeys = make([]keypair.PublicKey, n)
 	for i := 0; i < int(n); i++ {
 		buf, err := serialization.ReadVarBytes(r)
 		if err != nil {
 			return err
 		}
-		self.PubKeys[i], err = keypair.DeserializePublicKey(buf)
+		pubkey, err := keypair.DeserializePublicKey(buf)
 		if err != nil {
 			return err
 		}
+		self.PubKeys = append(self.PubKeys, pubkey)
 	}
 
 	self.M, err = serialization.ReadUint8(r)
@@ -79,13 +79,12 @@ func (self *Sig) Deserialize(r io.Reader) error {
 		return err
 	}
 
-	self.SigData = make([][]byte, m)
 	for i := 0; i < int(m); i++ {
 		sig, err := serialization.ReadVarBytes(r)
 		if err != nil {
 			return err
 		}
-		self.SigData[i] = sig
+		self.SigData = append(self.SigData, sig)
 	}
 
 	return nil
@@ -235,7 +234,6 @@ func (tx *Transaction) Deserialize(r io.Reader) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[Deserialize], Transaction sigs length deserialize error.")
 	}
 
-	tx.Sigs = make([]*Sig, 0, length)
 	for i := 0; i < int(length); i++ {
 		sig := new(Sig)
 		err := sig.Deserialize(r)

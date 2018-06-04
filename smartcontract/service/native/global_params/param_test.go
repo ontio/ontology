@@ -23,17 +23,16 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ontio/ontology/core/genesis"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestParams_Serialize_Deserialize(t *testing.T) {
 	params := new(Params)
-	*params = make(map[string]string)
 	for i := 0; i < 10; i++ {
 		k := "key" + strconv.Itoa(i)
 		v := "value" + strconv.Itoa(i)
-		(*params)[k] = v
+		params.SetParam(&Param{k, v})
 	}
 	bf := new(bytes.Buffer)
 	if err := params.Serialize(bf); err != nil {
@@ -44,8 +43,9 @@ func TestParams_Serialize_Deserialize(t *testing.T) {
 		t.Fatalf("params deserialize error: %v", err)
 	}
 	for i := 0; i < 10; i++ {
-		k := "key" + strconv.Itoa(i)
-		if (*params)[k] != (*deserializeParams)[k] {
+		originParam := (*params)[i]
+		deseParam := (*deserializeParams)[i]
+		if originParam.Key != deseParam.Key || originParam.Value != deseParam.Value {
 			t.Fatal("params deserialize error")
 		}
 	}
@@ -53,7 +53,7 @@ func TestParams_Serialize_Deserialize(t *testing.T) {
 
 func TestAdmin_Serialize_Deserialize(t *testing.T) {
 	admin := new(Admin)
-	copy((*admin)[:], genesis.ParamContractAddress[:])
+	copy((*admin)[:], utils.ParamContractAddress[:])
 	bf := new(bytes.Buffer)
 	if err := admin.Serialize(bf); err != nil {
 		t.Fatalf("admin serialize error: %v", err)

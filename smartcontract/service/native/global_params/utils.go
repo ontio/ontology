@@ -23,16 +23,14 @@ import (
 
 	"github.com/ontio/ontology/common"
 	cstates "github.com/ontio/ontology/core/states"
-	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 const (
-	SET_PARAM = "SetGlobalParam"
-	PARAM     = "param"
-	TRANSFER  = "transfer"
-	ADMIN     = "admin"
+	PARAM    = "param"
+	TRANSFER = "transfer"
+	ADMIN    = "admin"
 )
 
 func getAdminStorageItem(admin *Admin) *cstates.StorageItem {
@@ -47,26 +45,18 @@ func getParamStorageItem(params *Params) *cstates.StorageItem {
 	return &cstates.StorageItem{Value: bf.Bytes()}
 }
 
-func getParamKey(contract common.Address, valueType paramType) []byte {
+func generateParamKey(contract common.Address, valueType paramType) []byte {
 	key := append(contract[:], PARAM...)
 	key = append(key[:], byte(valueType))
 	return key
 }
 
-func getAdminKey(contract common.Address, isTransferAdmin bool) []byte {
+func GenerateAdminKey(contract common.Address, isTransferAdmin bool) []byte {
 	if isTransferAdmin {
 		return append(contract[:], TRANSFER...)
 	} else {
 		return append(contract[:], ADMIN...)
 	}
-}
-
-func notifyParamSetSuccess(native *native.NativeService, contract common.Address, params Params) {
-	native.Notifications = append(native.Notifications,
-		&event.NotifyEventInfo{
-			ContractAddress: contract,
-			States:          []interface{}{SET_PARAM, params},
-		})
 }
 
 func getStorageParam(native *native.NativeService, key []byte) (*Params, error) {
@@ -83,7 +73,7 @@ func getStorageParam(native *native.NativeService, key []byte) (*Params, error) 
 	return params, nil
 }
 
-func getStorageAdmin(native *native.NativeService, key []byte) (*Admin, error) {
+func GetStorageAdmin(native *native.NativeService, key []byte) (*Admin, error) {
 	item, err := utils.GetStorageItem(native, key)
 	if err != nil {
 		return nil, err

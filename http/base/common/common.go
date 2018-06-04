@@ -22,21 +22,21 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math/big"
+	"strings"
+	"time"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
 	bactor "github.com/ontio/ontology/http/base/actor"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	cstates "github.com/ontio/ontology/smartcontract/states"
 	vmtypes "github.com/ontio/ontology/smartcontract/types"
-	"math/big"
-	"strings"
-	"time"
 )
 
 const MAX_SEARCH_HEIGHT uint32 = 100
@@ -247,11 +247,11 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 }
 
 func GetBalance(address common.Address) (*BalanceOfRsp, error) {
-	ont, err := GetContractBalance(0, genesis.OntContractAddress, address)
+	ont, err := GetContractBalance(0, utils.OntContractAddress, address)
 	if err != nil {
 		return nil, fmt.Errorf("get ont balance error:%s", err)
 	}
-	ong, err := GetContractBalance(0, genesis.OngContractAddress, address)
+	ong, err := GetContractBalance(0, utils.OngContractAddress, address)
 	if err != nil {
 		return nil, fmt.Errorf("get ont balance error:%s", err)
 	}
@@ -265,9 +265,9 @@ func GetAllowance(asset string, from, to common.Address) (string, error) {
 	var contractAddr common.Address
 	switch strings.ToLower(asset) {
 	case "ont":
-		contractAddr = genesis.OntContractAddress
+		contractAddr = utils.OntContractAddress
 	case "ong":
-		contractAddr = genesis.OngContractAddress
+		contractAddr = utils.OngContractAddress
 	default:
 		return "", fmt.Errorf("unsupport asset")
 	}
@@ -285,7 +285,7 @@ func GetContractBalance(cVersion byte, contractAddr, accAddr common.Address) (ui
 		return 0, fmt.Errorf("address serialize error:%s", err)
 	}
 	argBuf := bytes.NewBuffer(nil)
-	err = serialization.WriteVarBytes(argBuf, addrBuf.Bytes())
+	err = accAddr.Serialize(argBuf)
 	if err != nil {
 		return 0, fmt.Errorf("serialization.WriteVarBytes error:%s", err)
 	}
@@ -316,26 +316,16 @@ func GetContractBalance(cVersion byte, contractAddr, accAddr common.Address) (ui
 }
 
 func GetContractAllowance(cVersion byte, contractAddr, fromAddr, toAddr common.Address) (uint64, error) {
-	fromBuf := bytes.NewBuffer(nil)
-	err := fromAddr.Serialize(fromBuf)
+	argBuf := new(bytes.Buffer)
+	err := fromAddr.Serialize(argBuf)
 	if err != nil {
 		return 0, fmt.Errorf("from address serialize error:%s", err)
 	}
-	toBuf := bytes.NewBuffer(nil)
-	err = toAddr.Serialize(toBuf)
+	err = toAddr.Serialize(argBuf)
 	if err != nil {
 		return 0, fmt.Errorf("to address serialize error:%s", err)
 	}
 
-	argBuf := bytes.NewBuffer(nil)
-	err = serialization.WriteVarBytes(argBuf, fromBuf.Bytes())
-	if err != nil {
-		return 0, fmt.Errorf("serialization.WriteVarBytes error:%s", err)
-	}
-	err = serialization.WriteVarBytes(argBuf, toBuf.Bytes())
-	if err != nil {
-		return 0, fmt.Errorf("serialization.WriteVarBytes error:%s", err)
-	}
 	crt := &cstates.Contract{
 		Version: cVersion,
 		Address: contractAddr,
@@ -405,4 +395,24 @@ func GetGasPrice() (map[string]interface{}, error) {
 	}
 	result := map[string]interface{}{"gasprice": gasPrice, "height": height}
 	return result, nil
+}
+
+func GetBlockTransactions(block *types.Block) interface{} {
+	trans := make([]string, len(block.Transactions))
+	for i := 0; i < len(block.Transactions); i++ {
+		h := block.Transactions[i].Hash()
+		trans[i] = common.ToHexString(h.ToArray())
+	}
+	hash := block.Hash()
+	type BlockTransactions struct {
+		Hash         string
+		Height       uint32
+		Transactions []string
+	}
+	b := BlockTransactions{
+		Hash:         common.ToHexString(hash.ToArray()),
+		Height:       block.Header.Height,
+		Transactions: trans,
+	}
+	return b
 }

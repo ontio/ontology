@@ -32,6 +32,7 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd"
+	"github.com/ontio/ontology/cmd/abi"
 	cmdcom "github.com/ontio/ontology/cmd/common"
 	cmdsvr "github.com/ontio/ontology/cmd/server"
 	cmdsvrcom "github.com/ontio/ontology/cmd/server/common"
@@ -40,6 +41,7 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus"
+	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/events"
 	hserver "github.com/ontio/ontology/http/base/actor"
@@ -63,19 +65,24 @@ func setupAPP() *cli.App {
 	app := cli.NewApp()
 	app.Usage = "Ontology CLI"
 	app.Action = startOntology
-	app.Version = "0.8.0"
+	app.Version = "0.8.2"
 	app.Copyright = "Copyright in 2018 The Ontology Authors"
 	app.Commands = []cli.Command{
 		cmd.AccountCommand,
 		cmd.InfoCommand,
 		cmd.AssetCommand,
 		cmd.ContractCommand,
+		cmd.ExportCommand,
 	}
 	app.Flags = []cli.Flag{
 		//common setting
 		utils.ConfigFlag,
 		utils.LogLevelFlag,
 		utils.DisableEventLogFlag,
+		utils.DataDirFlag,
+		utils.ImportEnableFlag,
+		utils.ImportHeightFlag,
+		utils.ImportFileFlag,
 		//account setting
 		utils.WalletFileFlag,
 		utils.AccountAddressFlag,
@@ -86,6 +93,7 @@ func setupAPP() *cli.App {
 		utils.TransactionGasPriceFlag,
 		utils.TransactionGasLimitFlag,
 		//p2p setting
+		utils.NetworkIdFlag,
 		utils.NodePortFlag,
 		utils.ConsensusPortFlag,
 		utils.DualPortSupportFlag,
@@ -140,6 +148,11 @@ func startOntology(ctx *cli.Context) {
 		return
 	}
 	defer ldg.Close()
+	err = importBlocks(ctx)
+	if err != nil {
+		log.Errorf("importBlocks error:%s", err)
+		return
+	}
 	txpool, err := initTxPool(ctx)
 	if err != nil {
 		log.Errorf("initTxPool error:%s", err)
@@ -217,7 +230,7 @@ func initLedger(ctx *cli.Context) (*ledger.Ledger, error) {
 	events.Init() //Init event hub
 
 	var err error
-	ledger.DefLedger, err = ledger.NewLedger()
+	ledger.DefLedger, err = ledger.NewLedger(config.DefConfig.Common.DataDir)
 	if err != nil {
 		return nil, fmt.Errorf("NewLedger error:%s", err)
 	}
@@ -225,7 +238,12 @@ func initLedger(ctx *cli.Context) (*ledger.Ledger, error) {
 	if err != nil {
 		return nil, fmt.Errorf("GetBookkeepers error:%s", err)
 	}
-	err = ledger.DefLedger.Init(bookKeepers)
+	genesisConfig := config.DefConfig.Genesis
+	genesisBlock, err := genesis.BuildGenesisBlock(bookKeepers, genesisConfig)
+	if err != nil {
+		return nil, fmt.Errorf("genesisBlock error %s", err)
+	}
+	err = ledger.DefLedger.Init(bookKeepers, genesisBlock)
 	if err != nil {
 		return nil, fmt.Errorf("Init ledger error:%s", err)
 	}
@@ -377,8 +395,20 @@ func initCliSvr(ctx *cli.Context, acc *account.Account) {
 	}
 	cmdsvrcom.DefAccount = acc
 	go cmdsvr.DefCliRpcSvr.Start(config.DefConfig.Cli.CliRpcPort)
-
+	abi.DefAbiMgr.Init()
 	log.Infof("Cli rpc server init success")
+}
+
+func importBlocks(ctx *cli.Context) error {
+	if !ctx.GlobalBool(utils.GetFlagName(utils.ImportEnableFlag)) {
+		return nil
+	}
+	importFile := ctx.GlobalString(utils.GetFlagName(utils.ImportFileFlag))
+	if importFile == "" {
+		return fmt.Errorf("missing import file argument")
+	}
+	height := ctx.GlobalUint(utils.GetFlagName(utils.ImportHeightFlag))
+	return utils.ImportBlocks(importFile, uint32(height))
 }
 
 func logCurrBlockHeight() {

@@ -20,17 +20,18 @@ package rest
 
 import (
 	"bytes"
+	"strconv"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
 	bactor "github.com/ontio/ontology/http/base/actor"
 	bcomn "github.com/ontio/ontology/http/base/common"
 	berr "github.com/ontio/ontology/http/base/error"
-	"strconv"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 const TLS_PORT int = 443
@@ -78,25 +79,6 @@ func GetBlockHash(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-func GetBlockTransactions(block *types.Block) interface{} {
-	trans := make([]string, len(block.Transactions))
-	for i := 0; i < len(block.Transactions); i++ {
-		h := block.Transactions[i].Hash()
-		trans[i] = common.ToHexString(h.ToArray())
-	}
-	hash := block.Hash()
-	type BlockTransactions struct {
-		Hash         string
-		Height       uint32
-		Transactions []string
-	}
-	b := BlockTransactions{
-		Hash:         common.ToHexString(hash.ToArray()),
-		Height:       block.Header.Height,
-		Transactions: trans,
-	}
-	return b
-}
 func getBlock(hash common.Uint256, getTxBytes bool) (interface{}, int64) {
 	block, err := bactor.GetBlockFromStore(hash)
 	if err != nil {
@@ -174,9 +156,6 @@ func GetBlockTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 	}
 	index := uint32(height)
 	hash := bactor.GetBlockHashFromStore(index)
-	if err != nil {
-		return ResponsePack(berr.UNKNOWN_BLOCK)
-	}
 	if hash == common.UINT256_EMPTY {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -184,7 +163,7 @@ func GetBlockTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(berr.UNKNOWN_BLOCK)
 	}
-	resp["Result"] = GetBlockTransactions(block)
+	resp["Result"] = bcomn.GetBlockTransactions(block)
 	return resp
 }
 func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
@@ -529,7 +508,7 @@ func GetUnclaimOng(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	fromAddr := genesis.OntContractAddress
+	fromAddr := utils.OntContractAddress
 	rsp, err := bcomn.GetAllowance("ong", fromAddr, toAddr)
 	if err != nil {
 		log.Errorf("GetUnclaimOng %s error:%s", toAddr.ToBase58(), err)

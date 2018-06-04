@@ -78,6 +78,10 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.ConfigFlag,
 			utils.LogLevelFlag,
 			utils.DisableEventLogFlag,
+			utils.DataDirFlag,
+			utils.ImportEnableFlag,
+			utils.ImportHeightFlag,
+			utils.ImportFileFlag,
 		},
 	},
 	{
@@ -116,6 +120,7 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name: "P2P NODE",
 		Flags: []cli.Flag{
+			utils.NetworkIdFlag,
 			utils.NodePortFlag,
 			utils.DualPortSupportFlag,
 			utils.ConsensusPortFlag,
@@ -173,6 +178,14 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.ApproveAssetFromFlag,
 			utils.ApproveAssetToFlag,
+		},
+	},
+	{
+		Name: "EXPORT",
+		Flags: []cli.Flag{
+			utils.ExportFileFlag,
+			utils.ExportSpeedFlag,
+			utils.ExportHeightFlag,
 		},
 	},
 	{

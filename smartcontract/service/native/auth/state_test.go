@@ -20,201 +20,41 @@ package auth
 
 import (
 	"bytes"
-	"crypto/rand"
 	"testing"
 )
 
-var (
-	admin    []byte
-	newAdmin []byte
-	p1       []byte
-	p2       []byte
-)
-var (
-	funcs           = []string{"foo1", "foo2"}
-	role            = "role"
-	OntContractAddr = []byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}
-)
-
-func init() {
-	admin = make([]byte, 32)
-	newAdmin = make([]byte, 32)
-	p1 = make([]byte, 20)
-	p2 = make([]byte, 20)
-	rand.Read(admin)
-	rand.Read(newAdmin)
-	rand.Read(p1)
-	rand.Read(p2)
-}
-func TestSerialization_Init(t *testing.T) {
-	param := &InitContractAdminParam{
-		AdminOntID: admin,
+func TestSerRoleFuncs(t *testing.T) {
+	param := &roleFuncs{
+		[]string{"foo1", "foo2"},
+		//[]string{},
 	}
 	bf := new(bytes.Buffer)
 	if err := param.Serialize(bf); err != nil {
 		t.Fatal(err)
 	}
 	rd := bytes.NewReader(bf.Bytes())
-
-	param2 := new(InitContractAdminParam)
+	param2 := new(roleFuncs)
 	if err := param2.Deserialize(rd); err != nil {
 		t.Fatal(err)
 	}
 
-	if bytes.Compare(param.AdminOntID, param2.AdminOntID) != 0 {
-		t.Fatalf("failed")
+	if len(param.funcNames) != len(param2.funcNames) {
+		t.Fatalf("does not match")
+	}
+	for i := 0; i < len(param.funcNames); i++ {
+		if param.funcNames[i] != param2.funcNames[i] {
+			t.Fatalf("%s \t %s does not match", param.funcNames[i], param2.funcNames[i])
+		}
 	}
 }
 
-func TestSerialization_Transfer(t *testing.T) {
-	param := &TransferParam{
-		ContractAddr:  OntContractAddr,
-		NewAdminOntID: newAdmin,
-	}
-	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
-		t.Fatal(err)
-	}
-	rd := bytes.NewReader(bf.Bytes())
-
-	param2 := new(TransferParam)
-	if err := param2.Deserialize(rd); err != nil {
-		t.Fatal(err)
-	}
-
-	if bytes.Compare(param.ContractAddr, param2.ContractAddr) != 0 ||
-		bytes.Compare(param.NewAdminOntID, param2.NewAdminOntID) != 0 {
-		t.Fatalf("failed")
-	}
-}
-
-func TestSerialization_AssignFuncs(t *testing.T) {
-	param := &FuncsToRoleParam{
-		ContractAddr: OntContractAddr,
-		AdminOntID:   admin,
-		Role:         []byte("role"),
-		FuncNames:    funcs,
-	}
-	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
-		t.Fatal(err)
-	}
-	rd := bytes.NewReader(bf.Bytes())
-
-	param2 := new(FuncsToRoleParam)
-	if err := param2.Deserialize(rd); err != nil {
-		t.Fatal(err)
-	}
-
-	if bytes.Compare(param.ContractAddr, param2.ContractAddr) != 0 ||
-		bytes.Compare(param.AdminOntID, param2.AdminOntID) != 0 ||
-		bytes.Compare(param.Role, param2.Role) != 0 {
-		t.Fatalf("failed")
-	}
-}
-
-func TestSerialization_AssignOntIDs(t *testing.T) {
-	param := &OntIDsToRoleParam{
-		ContractAddr: OntContractAddr,
-		AdminOntID:   admin,
-		Role:         []byte(role),
-		Persons:      [][]byte{[]byte{0x03, 0x04, 0x05, 0x06}, []byte{0x07, 0x08, 0x09, 0x0a}},
-	}
-	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
-		t.Fatal(err)
-	}
-	rd := bytes.NewReader(bf.Bytes())
-	param2 := new(OntIDsToRoleParam)
-	if err := param2.Deserialize(rd); err != nil {
-		t.Fatal(err)
-	}
-
-	if bytes.Compare(param.ContractAddr, param2.ContractAddr) != 0 ||
-		bytes.Compare(param.AdminOntID, param2.AdminOntID) != 0 ||
-		bytes.Compare(param.Role, param2.Role) != 0 {
-		t.Fatalf("failed")
-	}
-}
-
-func TestSerialization_Delegate(t *testing.T) {
-	param := &DelegateParam{
-		ContractAddr: OntContractAddr,
-		From:         p1,
-		To:           p2,
-		Role:         []byte(role),
-		Period:       60 * 60 * 24,
-		Level:        3,
-	}
-	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
-		t.Fatal(err)
-	}
-	rd := bytes.NewReader(bf.Bytes())
-	param2 := new(DelegateParam)
-	if err := param2.Deserialize(rd); err != nil {
-		t.Fatal(err)
-	}
-	if bytes.Compare(param.ContractAddr, param2.ContractAddr) != 0 ||
-		bytes.Compare(param.From, param2.From) != 0 ||
-		bytes.Compare(param.To, param2.To) != 0 ||
-		bytes.Compare(param.Role, param2.Role) != 0 ||
-		param.Period != param2.Period || param.Level != param2.Level {
-		t.Fatalf("failed")
-	}
-}
-
-func TestSerialization_Withdraw(t *testing.T) {
-	param := &WithdrawParam{
-		ContractAddr: OntContractAddr,
-		Initiator:    p1,
-		Delegate:     p2,
-		Role:         []byte(role),
-	}
-	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
-		t.Fatal(err)
-	}
-	rd := bytes.NewReader(bf.Bytes())
-	param2 := new(WithdrawParam)
-	if err := param2.Deserialize(rd); err != nil {
-		t.Fatal(err)
-	}
-	if bytes.Compare(param.ContractAddr, param2.ContractAddr) != 0 ||
-		bytes.Compare(param.Initiator, param2.Initiator) != 0 ||
-		bytes.Compare(param.Delegate, param2.Delegate) != 0 ||
-		bytes.Compare(param.Role, param2.Role) != 0 {
-		t.Fatalf("failed")
-	}
-}
-
-func TestSerialization_VerifyToken(t *testing.T) {
-	param := &VerifyTokenParam{
-		ContractAddr: OntContractAddr,
-		Caller:       p1,
-		Fn:           []byte("foo1"),
-	}
-	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
-		t.Fatal(err)
-	}
-	rd := bytes.NewReader(bf.Bytes())
-	param2 := new(VerifyTokenParam)
-	if err := param2.Deserialize(rd); err != nil {
-		t.Fatal(err)
-	}
-	if bytes.Compare(param.ContractAddr, param2.ContractAddr) != 0 ||
-		bytes.Compare(param.Caller, param2.Caller) != 0 ||
-		bytes.Compare(param.Fn, param2.Fn) != 0 {
-		t.Fatalf("failed")
-	}
-}
-
-func TestSerialization_AuthToken(t *testing.T) {
+func TestSerAuthToken(t *testing.T) {
 	param := &AuthToken{
+		role:       []byte("role"),
 		expireTime: 1000000,
 		level:      2,
 	}
+
 	bf := new(bytes.Buffer)
 	if err := param.Serialize(bf); err != nil {
 		t.Fatal(err)
@@ -224,8 +64,37 @@ func TestSerialization_AuthToken(t *testing.T) {
 	if err := param2.Deserialize(rd); err != nil {
 		t.Fatal(err)
 	}
+
 	if param.expireTime != param2.expireTime ||
-		param.level != param2.level {
+		param.level != param2.level ||
+		bytes.Compare(param.role, param2.role) != 0 {
+		t.Fatalf("failed")
+	}
+}
+
+func TestSerDelegateStatus(t *testing.T) {
+	token := &AuthToken{
+		role:       []byte("role"),
+		expireTime: 1000000,
+		level:      2,
+	}
+	s1 := &DelegateStatus{
+		root:      []byte{0x01, 0x02, 0x03, 0x04, 0x05},
+		AuthToken: *token,
+	}
+	bf := new(bytes.Buffer)
+	if err := s1.Serialize(bf); err != nil {
+		t.Fatal(err)
+	}
+	rd := bytes.NewReader(bf.Bytes())
+	s2 := new(DelegateStatus)
+	if err := s2.Deserialize(rd); err != nil {
+		t.Fatal(err)
+	}
+
+	if bytes.Compare(s1.root, s2.root) != 0 ||
+		bytes.Compare(s1.role, s2.role) != 0 ||
+		s1.expireTime != s2.expireTime || s1.level != s2.level {
 		t.Fatalf("failed")
 	}
 }

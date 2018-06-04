@@ -29,12 +29,12 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	httpcom "github.com/ontio/ontology/http/base/common"
 	rpccommon "github.com/ontio/ontology/http/base/common"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
 	cstates "github.com/ontio/ontology/smartcontract/states"
 	vmtypes "github.com/ontio/ontology/smartcontract/types"
@@ -158,10 +158,10 @@ func ApproveTx(gasPrice, gasLimit uint64, asset string, from, to string, amount 
 	var contractAddr common.Address
 	switch strings.ToLower(asset) {
 	case ASSET_ONT:
-		contractAddr = genesis.OntContractAddress
+		contractAddr = utils.OntContractAddress
 		cversion = VERSION_CONTRACT_ONT
 	case ASSET_ONG:
-		contractAddr = genesis.OngContractAddress
+		contractAddr = utils.OngContractAddress
 		cversion = VERSION_CONTRACT_ONG
 	default:
 		return nil, fmt.Errorf("Unsupport asset:%s", asset)
@@ -196,10 +196,10 @@ func TransferTx(gasPrice, gasLimit uint64, asset, from, to string, amount uint64
 	var contractAddr common.Address
 	switch strings.ToLower(asset) {
 	case ASSET_ONT:
-		contractAddr = genesis.OntContractAddress
+		contractAddr = utils.OntContractAddress
 		cversion = VERSION_CONTRACT_ONT
 	case ASSET_ONG:
-		contractAddr = genesis.OngContractAddress
+		contractAddr = utils.OngContractAddress
 		cversion = VERSION_CONTRACT_ONG
 	default:
 		return nil, fmt.Errorf("Unsupport asset:%s", asset)
@@ -235,10 +235,10 @@ func TransferFromTx(gasPrice, gasLimit uint64, asset, sender, from, to string, a
 	var contractAddr common.Address
 	switch strings.ToLower(asset) {
 	case ASSET_ONT:
-		contractAddr = genesis.OntContractAddress
+		contractAddr = utils.OntContractAddress
 		cversion = VERSION_CONTRACT_ONT
 	case ASSET_ONG:
-		contractAddr = genesis.OngContractAddress
+		contractAddr = utils.OngContractAddress
 		cversion = VERSION_CONTRACT_ONG
 	default:
 		return nil, fmt.Errorf("Unsupport asset:%s", asset)
@@ -249,7 +249,7 @@ func TransferFromTx(gasPrice, gasLimit uint64, asset, sender, from, to string, a
 func SignTransaction(signer *account.Account, tx *types.Transaction) error {
 	tx.Payer = signer.Address
 	txHash := tx.Hash()
-	sigData, err := sign(signer.SigScheme.Name(), txHash.ToArray(), signer)
+	sigData, err := Sign(txHash.ToArray(), signer)
 	if err != nil {
 		return fmt.Errorf("sign error:%s", err)
 	}
@@ -263,12 +263,8 @@ func SignTransaction(signer *account.Account, tx *types.Transaction) error {
 }
 
 //Sign sign return the signature to the data of private key
-func sign(cryptScheme string, data []byte, signer *account.Account) ([]byte, error) {
-	scheme, err := sig.GetScheme(cryptScheme)
-	if err != nil {
-		return nil, fmt.Errorf("GetScheme by:%s error:%s", cryptScheme, err)
-	}
-	s, err := sig.Sign(scheme, signer.PrivateKey, data, nil)
+func Sign(data []byte, signer *account.Account) ([]byte, error) {
+	s, err := sig.Sign(signer.SigScheme, signer.PrivateKey, data, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -344,6 +340,36 @@ func GetRawTransaction(txHash string) ([]byte, error) {
 
 func GetBlock(hashOrHeight interface{}) ([]byte, error) {
 	return sendRpcRequest("getblock", []interface{}{hashOrHeight, 1})
+}
+
+func GetBlockData(hashOrHeight interface{}) ([]byte, error) {
+	data, err := sendRpcRequest("getblock", []interface{}{hashOrHeight})
+	if err != nil {
+		return nil, err
+	}
+	hexStr := ""
+	err = json.Unmarshal(data, &hexStr)
+	if err != nil {
+		return nil, fmt.Errorf("json.Unmarshal error:%s", err)
+	}
+	blockData, err := hex.DecodeString(hexStr)
+	if err != nil {
+		return nil, fmt.Errorf("hex.DecodeString error:%s", err)
+	}
+	return blockData, nil
+}
+
+func GetBlockCount() (uint32, error) {
+	data, err := sendRpcRequest("getblockcount", []interface{}{})
+	if err != nil {
+		return 0, err
+	}
+	num := uint32(0)
+	err = json.Unmarshal(data, &num)
+	if err != nil {
+		return 0, fmt.Errorf("json.Unmarshal:%s error:%s", data, err)
+	}
+	return num, nil
 }
 
 func DeployContract(

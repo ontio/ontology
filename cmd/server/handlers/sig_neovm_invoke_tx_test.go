@@ -58,7 +58,7 @@ func TestSigNeoVMInvokeTx(t *testing.T) {
 	}
 	req := &clisvrcom.CliRpcRequest{
 		Qid:    "t",
-		Method: "siginvoketx",
+		Method: "signeovminvoketx",
 		Params: data,
 	}
 	rsp := &clisvrcom.CliRpcResponse{}

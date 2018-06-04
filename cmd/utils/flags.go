@@ -25,6 +25,10 @@ import (
 	"strings"
 )
 
+const (
+	DEFAULT_EXPORT_FILE = "./blocks.dat"
+)
+
 var (
 	//Ontology setting
 	ConfigFlag = cli.StringFlag{
@@ -45,6 +49,24 @@ var (
 		Name:  "wallet,w",
 		Value: config.DEFAULT_WALLET_FILE_NAME,
 		Usage: "Use `<filename>` as the wallet",
+	}
+	ImportEnableFlag = cli.BoolFlag{
+		Name:  "import",
+		Usage: "Import blocks for file",
+	}
+	ImportFileFlag = cli.StringFlag{
+		Name:  "importfile",
+		Usage: "Path of import file",
+		Value: DEFAULT_EXPORT_FILE,
+	}
+	ImportHeightFlag = cli.UintFlag{
+		Name:  "importheight",
+		Usage: "Import target block height, if not specified, import all of blocks in files",
+	}
+	DataDirFlag = cli.StringFlag{
+		Name:  "datadir",
+		Usage: "Using dir `<path>` to save block data",
+		Value: config.DEFAULT_DATA_DIR,
 	}
 
 	//Consensus setting
@@ -80,6 +102,11 @@ var (
 	}
 
 	//P2P setting
+	NetworkIdFlag = cli.UintFlag{
+		Name:  "networkid",
+		Usage: "P2P network id",
+		Value: config.DEFAULT_NET_MAGIC,
+	}
 	NodePortFlag = cli.UintFlag{
 		Name:  "nodeport",
 		Usage: "P2P node listening port",
@@ -325,6 +352,23 @@ var (
 		Name:  "cliport",
 		Usage: "Cli rpc port",
 		Value: config.DEFAULT_CLI_RPC_PORT,
+	}
+
+	//Export setting
+	ExportFileFlag = cli.StringFlag{
+		Name:  "file",
+		Usage: "Path of export file",
+		Value: DEFAULT_EXPORT_FILE,
+	}
+	ExportHeightFlag = cli.UintFlag{
+		Name:  "height",
+		Usage: "End block height to export, if height equal 0, mean export all block in current DB",
+		Value: 0,
+	}
+	ExportSpeedFlag = cli.StringFlag{
+		Name:  "speed",
+		Usage: "Export block speed, <h|m|l>",
+		Value: "m",
 	}
 
 	NonOptionFlag = cli.StringFlag{

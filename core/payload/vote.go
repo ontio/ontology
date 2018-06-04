@@ -67,16 +67,17 @@ func (self *Vote) Deserialize(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	self.PubKeys = make([]keypair.PublicKey, length)
+
 	for i := 0; i < int(length); i++ {
 		buf, err := serialization.ReadVarBytes(r)
 		if err != nil {
 			return err
 		}
-		self.PubKeys[i], err = keypair.DeserializePublicKey(buf)
+		pubkey, err := keypair.DeserializePublicKey(buf)
 		if err != nil {
 			return err
 		}
+		self.PubKeys = append(self.PubKeys, pubkey)
 	}
 
 	err = self.Account.Deserialize(r)

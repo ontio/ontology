@@ -18,12 +18,12 @@
 package ontid
 
 import (
-	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 func Init() {
-	native.Contracts[genesis.OntIDContractAddress] = RegisterIDContract
+	native.Contracts[utils.OntIDContractAddress] = RegisterIDContract
 }
 
 func RegisterIDContract(srvc *native.NativeService) {

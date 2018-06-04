@@ -25,8 +25,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/genesis"
 	scommon "github.com/ontio/ontology/core/store/common"
 	ctypes "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -50,20 +48,20 @@ var (
 )
 
 func InitOnt() {
-	native.Contracts[genesis.OntContractAddress] = RegisterOntContract
+	native.Contracts[utils.OntContractAddress] = RegisterOntContract
 }
 
 func RegisterOntContract(native *native.NativeService) {
-	native.Register("init", OntInit)
-	native.Register("transfer", OntTransfer)
-	native.Register("approve", OntApprove)
-	native.Register("transferFrom", OntTransferFrom)
-	native.Register("name", OntName)
-	native.Register("symbol", OntSymbol)
-	native.Register("decimals", OntDecimals)
-	native.Register("totalSupply", OntTotalSupply)
-	native.Register("balanceOf", OntBalanceOf)
-	native.Register("allowance", OntAllowance)
+	native.Register(INIT_NAME, OntInit)
+	native.Register(TRANSFER_NAME, OntTransfer)
+	native.Register(APPROVE_NAME, OntApprove)
+	native.Register(TRANSFERFROM_NAME, OntTransferFrom)
+	native.Register(NAME_NAME, OntName)
+	native.Register(SYMBOL_NAME, OntSymbol)
+	native.Register(DECIMALS_NAME, OntDecimals)
+	native.Register(TOTALSUPPLY_NAME, OntTotalSupply)
+	native.Register(BALANCEOF_NAME, OntBalanceOf)
+	native.Register(ALLOWANCE_NAME, OntAllowance)
 }
 
 func OntInit(native *native.NativeService) ([]byte, error) {
@@ -195,23 +193,15 @@ func OntAllowance(native *native.NativeService) ([]byte, error) {
 func GetBalanceValue(native *native.NativeService, flag byte) ([]byte, error) {
 	var key []byte
 	buf := bytes.NewBuffer(native.Input)
-	fromAddr, err := serialization.ReadVarBytes(buf)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] get address error!")
-	}
-	from, err := common.AddressParseFromBytes(fromAddr)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] address parse error!")
+	var from common.Address
+	if err := from.Deserialize(buf); err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] get from address error!")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	if flag == APPROVE_FLAG {
-		toAddr, err := serialization.ReadVarBytes(buf)
-		if err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] get address error!")
-		}
-		to, err := common.AddressParseFromBytes(toAddr)
-		if err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] address parse error!")
+		var to common.Address
+		if err := to.Deserialize(buf); err != nil {
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] get to address error!")
 		}
 		key = GetApproveKey(contract, from, to)
 	} else if flag == TRANSFER_FLAG {
@@ -250,12 +240,12 @@ func grantOng(native *native.NativeService, contract, address common.Address, ba
 		amount += (iend - istart) * GENERATION_AMOUNT[ustart]
 	}
 
-	args, err := getApproveArgs(native, contract, genesis.OngContractAddress, address, balance, uint64(amount))
+	args, err := getApproveArgs(native, contract, utils.OngContractAddress, address, balance, uint64(amount))
 	if err != nil {
 		return err
 	}
 
-	if _, err := native.ContextRef.AppCall(genesis.OngContractAddress, "approve", []byte{}, args); err != nil {
+	if _, err := native.ContextRef.AppCall(utils.OngContractAddress, "approve", []byte{}, args); err != nil {
 		return err
 	}
 

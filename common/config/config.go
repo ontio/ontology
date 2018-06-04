@@ -21,9 +21,13 @@ package config
 import (
 	"encoding/hex"
 	"fmt"
+	"io"
 	"sort"
 
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/errors"
 )
 
 const (
@@ -41,6 +45,7 @@ const (
 
 	DEFAULT_LOG_LEVEL        = 1
 	DEFAULT_MAX_LOG_SIZE     = 100 //MByte
+	DEFAULT_NET_MAGIC        = 0x74746e41
 	DEFAULT_NODE_PORT        = uint(20338)
 	DEFAULT_CONSENSUS_PORT   = uint(20339)
 	DEFAULT_RPC_PORT         = uint(20336)
@@ -55,6 +60,8 @@ const (
 	DEFAULT_CLI_RPC_PORT     = uint(20000)
 	DEFAULT_GAS_LIMIT        = 30000
 	DEFAULT_GAS_PRICE        = 0
+
+	DEFAULT_DATA_DIR = "./Chain"
 )
 
 var PolarisConfig = &GenesisConfig{
@@ -96,6 +103,9 @@ func NewGenesisConfig() *GenesisConfig {
 	}
 }
 
+//
+// VBFT genesis config, from local config file
+//
 type VBFTConfig struct {
 	N                    uint32               `json:"n"` // network size
 	C                    uint32               `json:"c"` // consensus quorum
@@ -105,7 +115,103 @@ type VBFTConfig struct {
 	HashMsgDelay         uint32               `json:"hash_msg_delay"`
 	PeerHandshakeTimeout uint32               `json:"peer_handshake_timeout"`
 	MaxBlockChangeView   uint32               `json:"max_block_change_view"`
+	VrfValue             string               `json:"vrf_value"`
+	VrfProof             string               `json:"vrf_proof"`
 	Peers                []*VBFTPeerStakeInfo `json:"peers"`
+}
+
+func (this *VBFTConfig) Serialize(w io.Writer) error {
+	if err := serialization.WriteUint32(w, this.N); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize n error!")
+	}
+	if err := serialization.WriteUint32(w, this.C); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize c error!")
+	}
+	if err := serialization.WriteUint32(w, this.K); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize k error!")
+	}
+	if err := serialization.WriteUint32(w, this.L); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize l error!")
+	}
+	if err := serialization.WriteUint32(w, this.BlockMsgDelay); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize block_msg_delay error!")
+	}
+	if err := serialization.WriteUint32(w, this.HashMsgDelay); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize hash_msg_delay error!")
+	}
+	if err := serialization.WriteUint32(w, this.PeerHandshakeTimeout); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize peer_handshake_timeout error!")
+	}
+	if err := serialization.WriteUint32(w, this.MaxBlockChangeView); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize max_block_change_view error!")
+	}
+	if err := serialization.WriteUint32(w, uint32(len(this.Peers))); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize peer length error!")
+	}
+	for _, peer := range this.Peers {
+		if err := peer.Serialize(w); err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize peer error!")
+		}
+	}
+	return nil
+}
+
+func (this *VBFTConfig) Deserialize(r io.Reader) error {
+	n, err := serialization.ReadUint32(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize n error!")
+	}
+	c, err := serialization.ReadUint32(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize c error!")
+	}
+	k, err := serialization.ReadUint32(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize k error!")
+	}
+	l, err := serialization.ReadUint32(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize l error!")
+	}
+	blockMsgDelay, err := serialization.ReadUint32(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize blockMsgDelay error!")
+	}
+	hashMsgDelay, err := serialization.ReadUint32(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize hashMsgDelay error!")
+	}
+	peerHandshakeTimeout, err := serialization.ReadUint32(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize peerHandshakeTimeout error!")
+	}
+	maxBlockChangeView, err := serialization.ReadUint32(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize maxBlockChangeView error!")
+	}
+	length, err := serialization.ReadUint32(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize peer length error!")
+	}
+	peers := make([]*VBFTPeerStakeInfo, 0)
+	for i := 0; uint32(i) < length; i++ {
+		peer := new(VBFTPeerStakeInfo)
+		err = peer.Deserialize(r)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peer error!")
+		}
+		peers = append(peers, peer)
+	}
+	this.N = n
+	this.C = c
+	this.K = k
+	this.L = l
+	this.BlockMsgDelay = blockMsgDelay
+	this.HashMsgDelay = hashMsgDelay
+	this.PeerHandshakeTimeout = peerHandshakeTimeout
+	this.MaxBlockChangeView = maxBlockChangeView
+	this.Peers = peers
+	return nil
 }
 
 type VBFTPeerStakeInfo struct {
@@ -113,6 +219,51 @@ type VBFTPeerStakeInfo struct {
 	PeerPubkey string `json:"peerPubkey"`
 	Address    string `json:"address"`
 	InitPos    uint64 `json:"initPos"`
+}
+
+func (this *VBFTPeerStakeInfo) Serialize(w io.Writer) error {
+	if err := serialization.WriteUint32(w, this.Index); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize index error!")
+	}
+	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize peerPubkey error!")
+	}
+	address, err := common.AddressFromBase58(this.Address)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "common.AddressFromBase58, address format error!")
+	}
+	if err := address.Serialize(w); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize address error!")
+	}
+	if err := serialization.WriteUint64(w, this.InitPos); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize initPos error!")
+	}
+	return nil
+}
+
+func (this *VBFTPeerStakeInfo) Deserialize(r io.Reader) error {
+	index, err := serialization.ReadUint32(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize index error!")
+	}
+	peerPubkey, err := serialization.ReadString(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize peerPubkey error!")
+	}
+	address := new(common.Address)
+	err = address.Deserialize(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "address.Deserialize, deserialize address error!")
+	}
+	initPos, err := serialization.ReadUint64(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize initPos error!")
+	}
+	this.Index = index
+	this.PeerPubkey = peerPubkey
+	this.Address = address.ToBase58()
+	this.InitPos = initPos
+	return nil
 }
 
 type DBFTConfig struct {
@@ -131,6 +282,7 @@ type CommonConfig struct {
 	SystemFee      map[string]int64
 	GasLimit       uint64
 	GasPrice       uint64
+	DataDir        string
 }
 
 type ConsensusConfig struct {
@@ -139,6 +291,7 @@ type ConsensusConfig struct {
 }
 
 type P2PNodeConfig struct {
+	NetworkId         uint
 	NodePort          uint
 	NodeConsensusPort uint
 	DualPortSupport   bool
@@ -193,12 +346,14 @@ func NewOntologyConfig() *OntologyConfig {
 			EnableEventLog: DEFAULT_ENABLE_EVENT_LOG,
 			SystemFee:      make(map[string]int64),
 			GasLimit:       DEFAULT_GAS_LIMIT,
+			DataDir:        DEFAULT_DATA_DIR,
 		},
 		Consensus: &ConsensusConfig{
 			EnableConsensus: true,
 			MaxTxInBlock:    DEFAULT_MAX_TX_IN_BLOCK,
 		},
 		P2PNode: &P2PNodeConfig{
+			NetworkId:         DEFAULT_NET_MAGIC,
 			NodePort:          DEFAULT_NODE_PORT,
 			NodeConsensusPort: DEFAULT_CONSENSUS_PORT,
 			DualPortSupport:   true,

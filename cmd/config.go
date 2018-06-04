@@ -96,6 +96,7 @@ func setCommonConfig(ctx *cli.Context, cfg *config.CommonConfig) {
 	cfg.EnableEventLog = !ctx.GlobalBool(utils.GetFlagName(utils.DisableEventLogFlag))
 	cfg.GasLimit = ctx.GlobalUint64(utils.GetFlagName(utils.GasLimitFlag))
 	cfg.GasPrice = ctx.GlobalUint64(utils.GetFlagName(utils.GasPriceFlag))
+	cfg.DataDir = ctx.GlobalString(utils.GetFlagName(utils.DataDirFlag))
 }
 
 func setConsensusConfig(ctx *cli.Context, cfg *config.ConsensusConfig) {
@@ -104,6 +105,7 @@ func setConsensusConfig(ctx *cli.Context, cfg *config.ConsensusConfig) {
 }
 
 func setP2PNodeConfig(ctx *cli.Context, cfg *config.P2PNodeConfig) {
+	cfg.NetworkId = ctx.GlobalUint(utils.GetFlagName(utils.NetworkIdFlag))
 	cfg.NodePort = ctx.GlobalUint(utils.GetFlagName(utils.NodePortFlag))
 	cfg.NodeConsensusPort = ctx.GlobalUint(utils.GetFlagName(utils.ConsensusPortFlag))
 	cfg.DualPortSupport = ctx.GlobalBool(utils.GetFlagName(utils.DualPortSupportFlag))

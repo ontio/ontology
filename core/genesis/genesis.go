@@ -19,17 +19,21 @@
 package genesis
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"time"
 
+	"bytes"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
-	vconfig "github.com/ontio/ontology/consensus/vbft/config"
+	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
+	"github.com/ontio/ontology/smartcontract/service/native/global_params"
+	"github.com/ontio/ontology/smartcontract/service/native/governance"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/states"
 	stypes "github.com/ontio/ontology/smartcontract/types"
 )
@@ -40,13 +44,6 @@ const (
 )
 
 var (
-	OntContractAddress, _        = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01})
-	OngContractAddress, _        = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02})
-	OntIDContractAddress, _      = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03})
-	ParamContractAddress, _      = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04})
-	AuthContractAddress, _       = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06})
-	GovernanceContractAddress, _ = common.AddressParseFromBytes([]byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07})
-
 	ONTToken   = newGoverningToken()
 	ONGToken   = newUtilityToken()
 	ONTTokenID = ONTToken.Hash()
@@ -57,15 +54,20 @@ var GenBlockTime = (config.DEFAULT_GEN_BLOCK_TIME * time.Second)
 
 var GenesisBookkeepers []keypair.PublicKey
 
-// GenesisBlockInit returns the genesis block with default consensus bookkeeper list
-func GenesisBlockInit(defaultBookkeeper []keypair.PublicKey) (*types.Block, error) {
+// BuildGenesisBlock returns the genesis block with default consensus bookkeeper list
+func BuildGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig *config.GenesisConfig) (*types.Block, error) {
 	//getBookkeeper
 	GenesisBookkeepers = defaultBookkeeper
 	nextBookkeeper, err := types.AddressFromBookkeepers(defaultBookkeeper)
 	if err != nil {
-		return nil, errors.New("[Block],GenesisBlockInit err with GetBookkeeperAddress")
+		return nil, errors.New("[Block],BuildGenesisBlock err with GetBookkeeperAddress")
 	}
-	consensusPayload, err := vconfig.GenesisConsensusPayload()
+	conf := bytes.NewBuffer(nil)
+	if genesisConfig.VBFT != nil {
+		genesisConfig.VBFT.Serialize(conf)
+	}
+	govConfig := newGoverConfigInit(conf.Bytes())
+	consensusPayload, err := vconfig.GenesisConsensusPayload(govConfig.Hash(), 0)
 	if err != nil {
 		return nil, fmt.Errorf("consensus genesus init failed: %s", err)
 	}
@@ -104,7 +106,7 @@ func GenesisBlockInit(defaultBookkeeper []keypair.PublicKey) (*types.Block, erro
 			newGoverningInit(),
 			newUtilityInit(),
 			newParamInit(),
-			newConfigInit(),
+			govConfig,
 		},
 	}
 	genesisBlock.RebuildMerkleRoot()
@@ -112,98 +114,68 @@ func GenesisBlockInit(defaultBookkeeper []keypair.PublicKey) (*types.Block, erro
 }
 
 func newGoverningToken() *types.Transaction {
-	tx := utils.NewDeployTransaction(stypes.VmCode{Code: OntContractAddress[:], VmType: stypes.Native}, "ONT", "1.0",
+	tx := utils.NewDeployTransaction(stypes.VmCode{Code: nutils.OntContractAddress[:], VmType: stypes.Native}, "ONT", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network ONT Token", true)
 	return tx
 }
 
 func newUtilityToken() *types.Transaction {
-	tx := utils.NewDeployTransaction(stypes.VmCode{Code: OngContractAddress[:], VmType: stypes.Native}, "ONG", "1.0",
+	tx := utils.NewDeployTransaction(stypes.VmCode{Code: nutils.OngContractAddress[:], VmType: stypes.Native}, "ONG", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network ONG Token", true)
 	return tx
 }
 
 func newParamContract() *types.Transaction {
-	tx := utils.NewDeployTransaction(stypes.VmCode{Code: ParamContractAddress[:], VmType: stypes.Native},
+	tx := utils.NewDeployTransaction(stypes.VmCode{Code: nutils.ParamContractAddress[:], VmType: stypes.Native},
 		"ParamConfig", "1.0", "Ontology Team", "contact@ont.io",
 		"Chain Global Environment Variables Manager ", true)
 	return tx
 }
 
 func newConfig() *types.Transaction {
-	tx := utils.NewDeployTransaction(stypes.VmCode{Code: GovernanceContractAddress[:], VmType: stypes.Native}, "CONFIG", "1.0",
+	tx := utils.NewDeployTransaction(stypes.VmCode{Code: nutils.GovernanceContractAddress[:], VmType: stypes.Native}, "CONFIG", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network Consensus Config", true)
 	return tx
 }
 
 func deployAuthContract() *types.Transaction {
-	tx := utils.NewDeployTransaction(stypes.VmCode{Code: AuthContractAddress[:], VmType: stypes.Native}, "AuthContract", "1.0",
+	tx := utils.NewDeployTransaction(stypes.VmCode{Code: nutils.AuthContractAddress[:], VmType: stypes.Native}, "AuthContract", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network Authorization Contract", true)
 	return tx
 }
 
 func deployOntIDContract() *types.Transaction {
-	tx := utils.NewDeployTransaction(stypes.VmCode{Code: OntIDContractAddress[:], VmType: stypes.Native}, "OID", "1.0",
+	tx := utils.NewDeployTransaction(stypes.VmCode{Code: nutils.OntIDContractAddress[:], VmType: stypes.Native}, "OID", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network ONT ID", true)
 	return tx
 }
 
 func newGoverningInit() *types.Transaction {
-	init := states.Contract{
-		Address: OntContractAddress,
-		Method:  "init",
-	}
+	return buildInitTransaction(nutils.OntContractAddress, ont.INIT_NAME, nil)
+}
+
+func buildInitTransaction(addr common.Address, initMethod string, args []byte) *types.Transaction {
+	init := states.Contract{Address: addr, Method: initMethod, Args: args}
 	bf := new(bytes.Buffer)
 	init.Serialize(bf)
+
 	vmCode := stypes.VmCode{
 		VmType: stypes.Native,
 		Code:   bf.Bytes(),
 	}
+
 	tx := utils.NewInvokeTransaction(vmCode)
 	return tx
 }
 
 func newUtilityInit() *types.Transaction {
-	init := states.Contract{
-		Address: OngContractAddress,
-		Method:  "init",
-	}
-	bf := new(bytes.Buffer)
-	init.Serialize(bf)
-	vmCode := stypes.VmCode{
-		VmType: stypes.Native,
-		Code:   bf.Bytes(),
-	}
-	tx := utils.NewInvokeTransaction(vmCode)
-	return tx
+	return buildInitTransaction(nutils.OngContractAddress, ont.INIT_NAME, nil)
 }
 
 func newParamInit() *types.Transaction {
-	init := states.Contract{
-		Address: ParamContractAddress,
-		Method:  "init",
-	}
-	bf := new(bytes.Buffer)
-	init.Serialize(bf)
-	vmCode := stypes.VmCode{
-		VmType: stypes.Native,
-		Code:   bf.Bytes(),
-	}
-	tx := utils.NewInvokeTransaction(vmCode)
-	return tx
+	return buildInitTransaction(nutils.ParamContractAddress, global_params.INIT_NAME, nil)
 }
 
-func newConfigInit() *types.Transaction {
-	init := states.Contract{
-		Address: GovernanceContractAddress,
-		Method:  "initConfig",
-	}
-	bf := new(bytes.Buffer)
-	init.Serialize(bf)
-	vmCode := stypes.VmCode{
-		VmType: stypes.Native,
-		Code:   bf.Bytes(),
-	}
-	tx := utils.NewInvokeTransaction(vmCode)
-	return tx
+func newGoverConfigInit(config []byte) *types.Transaction {
+	return buildInitTransaction(nutils.GovernanceContractAddress, governance.INIT_CONFIG, config)
 }
