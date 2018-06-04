@@ -38,7 +38,7 @@ func newChainStore() *ChainStore {
 		os.Exit(1)
 	}
 
-	ledger.DefLedger, err = ledger.NewLedger(config.DEFAULT_DATA_DIR)
+	ledger.DefLedger, err = ledger.NewLedger(config.DEFAULT_DATA_DIR, config.DEFAULT_DATABASE)
 	if err != nil {
 		log.Fatalf("NewLedger error %s", err)
 		os.Exit(1)

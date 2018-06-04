@@ -71,7 +71,7 @@ func Test_RCV(t *testing.T) {
 	var s *tp.TXPoolServer
 	var wg sync.WaitGroup
 
-	ledger.DefLedger, _ = ledger.NewLedger(config.DEFAULT_DATA_DIR)
+	ledger.DefLedger, _ = ledger.NewLedger(config.DEFAULT_DATA_DIR, config.DEFAULT_DATABASE)
 
 	// Start txnpool server to receive msgs from p2p, consensus and valdiators
 	s = tp.NewTxPoolServer(tc.MAX_WORKER_NUM)

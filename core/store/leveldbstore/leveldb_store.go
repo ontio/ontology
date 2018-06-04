@@ -70,7 +70,13 @@ func (self *LevelDBStore) Put(key []byte, value []byte) error {
 //Get the value of a key from leveldb
 func (self *LevelDBStore) Get(key []byte) ([]byte, error) {
 	dat, err := self.db.Get(key, nil)
-	return dat, err
+	if err != nil {
+		if err == leveldb.ErrNotFound {
+			return nil, common.ErrNotFound
+		}
+		return nil, err
+	}
+	return dat, nil
 }
 
 //Has return whether the key is exist in leveldb
@@ -110,15 +116,12 @@ func (self *LevelDBStore) BatchCommit() error {
 
 //Close leveldb
 func (self *LevelDBStore) Close() error {
-	err := self.db.Close()
-	return err
+	return self.db.Close()
 }
 
 //NewIterator return a iterator of leveldb with the key perfix
 func (self *LevelDBStore) NewIterator(prefix []byte) common.StoreIterator {
-
 	iter := self.db.NewIterator(util.BytesPrefix(prefix), nil)
-
 	return &Iterator{
 		iter: iter,
 	}

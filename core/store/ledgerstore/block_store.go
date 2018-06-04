@@ -22,25 +22,22 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	scom "github.com/ontio/ontology/core/store/common"
-	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/types"
-	"github.com/syndtr/goleveldb/leveldb"
 )
 
 //Block store save the data of block & transaction
 type BlockStore struct {
-	enableCache bool                       //Is enable lru cache
-	dbDir       string                     //The path of store file
-	cache       *BlockCache                //The cache of block, if have.
-	store       *leveldbstore.LevelDBStore //block store handler
+	enableCache bool              //Is enable lru cache
+	dbDir       string            //The path of store file
+	cache       *BlockCache       //The cache of block, if have.
+	store       scom.PersistStore //block store handler
 }
 
 //NewBlockStore return the block store instance
-func NewBlockStore(dbDir string, enableCache bool) (*BlockStore, error) {
+func NewBlockStore(store scom.PersistStore, enableCache bool) (*BlockStore, error) {
 	var cache *BlockCache
 	var err error
 	if enableCache {
@@ -49,13 +46,7 @@ func NewBlockStore(dbDir string, enableCache bool) (*BlockStore, error) {
 			return nil, fmt.Errorf("NewBlockCache error %s", err)
 		}
 	}
-
-	store, err := leveldbstore.NewLevelDBStore(dbDir)
-	if err != nil {
-		return nil, err
-	}
 	blockStore := &BlockStore{
-		dbDir:       dbDir,
 		enableCache: enableCache,
 		store:       store,
 		cache:       cache,
@@ -98,7 +89,7 @@ func (this *BlockStore) ContainBlock(blockHash common.Uint256) (bool, error) {
 	key := this.getHeaderKey(blockHash)
 	_, err := this.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound {
+		if err == scom.ErrNotFound {
 			return false, nil
 		}
 		return false, err
@@ -118,9 +109,6 @@ func (this *BlockStore) GetBlock(blockHash common.Uint256) (*types.Block, error)
 	header, txHashes, err := this.loadHeaderWithTx(blockHash)
 	if err != nil {
 		return nil, err
-	}
-	if header == nil {
-		return nil, nil
 	}
 	txList := make([]*types.Transaction, 0, len(txHashes))
 	for _, txHash := range txHashes {
@@ -144,9 +132,6 @@ func (this *BlockStore) loadHeaderWithTx(blockHash common.Uint256) (*types.Heade
 	key := this.getHeaderKey(blockHash)
 	value, err := this.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return nil, nil, nil
-		}
 		return nil, nil, err
 	}
 	reader := bytes.NewBuffer(value)
@@ -214,9 +199,6 @@ func (this *BlockStore) GetSysFeeAmount(blockHash common.Uint256) (common.Fixed6
 	key := this.getHeaderKey(blockHash)
 	data, err := this.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return common.Fixed64(0), nil
-		}
 		return common.Fixed64(0), err
 	}
 	reader := bytes.NewBuffer(data)
@@ -232,9 +214,6 @@ func (this *BlockStore) loadHeader(blockHash common.Uint256) (*types.Header, err
 	key := this.getHeaderKey(blockHash)
 	value, err := this.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return nil, nil
-		}
 		return nil, err
 	}
 	reader := bytes.NewBuffer(value)
@@ -256,9 +235,6 @@ func (this *BlockStore) GetCurrentBlock() (common.Uint256, uint32, error) {
 	key := this.getCurrentBlockKey()
 	data, err := this.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return common.Uint256{}, 0, nil
-		}
 		return common.Uint256{}, 0, err
 	}
 	reader := bytes.NewReader(data)
@@ -331,14 +307,11 @@ func (this *BlockStore) GetBlockHash(height uint32) (common.Uint256, error) {
 	key := this.getBlockHashKey(height)
 	value, err := this.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return common.Uint256{}, nil
-		}
-		return common.Uint256{}, err
+		return common.UINT256_EMPTY, err
 	}
 	blockHash, err := common.Uint256ParseFromBytes(value)
 	if err != nil {
-		return common.Uint256{}, err
+		return common.UINT256_EMPTY, err
 	}
 	return blockHash, nil
 }
@@ -395,9 +368,6 @@ func (this *BlockStore) loadTransaction(txHash common.Uint256) (*types.Transacti
 
 	value, err := this.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return nil, 0, nil
-		}
 		return nil, 0, err
 	}
 	reader := bytes.NewBuffer(value)
@@ -422,10 +392,9 @@ func (this *BlockStore) ContainTransaction(txHash common.Uint256) (bool, error) 
 			return true, nil
 		}
 	}
-
 	_, err := this.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound {
+		if err == scom.ErrNotFound {
 			return false, nil
 		}
 		return false, err
@@ -438,9 +407,6 @@ func (this *BlockStore) GetVersion() (byte, error) {
 	key := this.getVersionKey()
 	value, err := this.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return 0, nil
-		}
 		return 0, err
 	}
 	reader := bytes.NewReader(value)

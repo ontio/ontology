@@ -79,6 +79,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.LogLevelFlag,
 			utils.DisableEventLogFlag,
 			utils.DataDirFlag,
+			utils.DatabaseFlag,
 			utils.ImportEnableFlag,
 			utils.ImportHeightFlag,
 			utils.ImportFileFlag,

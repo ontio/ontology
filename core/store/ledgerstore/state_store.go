@@ -21,16 +21,13 @@ package ledgerstore
 import (
 	"bytes"
 	"fmt"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
 	scom "github.com/ontio/ontology/core/store/common"
-	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/store/statestore"
 	"github.com/ontio/ontology/merkle"
-	"github.com/syndtr/goleveldb/leveldb"
 )
 
 var (
@@ -47,19 +44,14 @@ type StateStore struct {
 }
 
 //NewStateStore return state store instance
-func NewStateStore(dbDir, merklePath string) (*StateStore, error) {
+func NewStateStore(store scom.PersistStore, merklePath string) (*StateStore, error) {
 	var err error
-	store, err := leveldbstore.NewLevelDBStore(dbDir)
-	if err != nil {
-		return nil, err
-	}
 	stateStore := &StateStore{
-		dbDir:      dbDir,
 		store:      store,
 		merklePath: merklePath,
 	}
 	_, height, err := stateStore.GetCurrentBlock()
-	if err != nil {
+	if err != nil && err != scom.ErrNotFound {
 		return nil, fmt.Errorf("GetCurrentBlock error %s", err)
 	}
 	err = stateStore.init(height)
@@ -76,7 +68,7 @@ func (self *StateStore) NewBatch() {
 
 func (self *StateStore) init(currBlockHeight uint32) error {
 	treeSize, hashes, err := self.GetMerkleTree()
-	if err != nil {
+	if err != nil && err != scom.ErrNotFound {
 		return err
 	}
 	if treeSize > 0 && treeSize != currBlockHeight+1 {
@@ -95,9 +87,6 @@ func (self *StateStore) GetMerkleTree() (uint32, []common.Uint256, error) {
 	key := self.getMerkleTreeKey()
 	data, err := self.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return 0, nil, nil
-		}
 		return 0, nil, err
 	}
 	value := bytes.NewBuffer(data)
@@ -168,9 +157,6 @@ func (self *StateStore) GetContractState(contractHash common.Address) (*payload.
 
 	value, err := self.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return nil, nil
-		}
 		return nil, err
 	}
 	reader := bytes.NewReader(value)
@@ -191,9 +177,6 @@ func (self *StateStore) GetBookkeeperState() (*states.BookkeeperState, error) {
 
 	value, err := self.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return nil, nil
-		}
 		return nil, err
 	}
 	reader := bytes.NewReader(value)
@@ -229,9 +212,6 @@ func (self *StateStore) GetStorageState(key *states.StorageKey) (*states.Storage
 
 	data, err := self.store.Get(storeKey)
 	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return nil, nil
-		}
 		return nil, err
 	}
 	reader := bytes.NewReader(data)
@@ -274,9 +254,6 @@ func (self *StateStore) GetCurrentBlock() (common.Uint256, uint32, error) {
 	key := self.getCurrentBlockKey()
 	data, err := self.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return common.Uint256{}, 0, nil
-		}
 		return common.Uint256{}, 0, err
 	}
 	reader := bytes.NewReader(data)

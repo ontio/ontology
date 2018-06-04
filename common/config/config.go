@@ -43,6 +43,9 @@ const (
 	CONSENSUS_TYPE_SOLO = "solo"
 	CONSENSUS_TYPE_VBFT = "vbft"
 
+	DATABASE_TYPE_LEVELDB = "leveldb"
+	DATABASE_TYPE_ROCKSDB = "rocksdb"
+
 	DEFAULT_LOG_LEVEL        = 1
 	DEFAULT_MAX_LOG_SIZE     = 100 //MByte
 	DEFAULT_NET_MAGIC        = 0x74746e41
@@ -62,6 +65,7 @@ const (
 	DEFAULT_GAS_PRICE        = 0
 
 	DEFAULT_DATA_DIR = "./Chain"
+	DEFAULT_DATABASE = DATABASE_TYPE_LEVELDB
 )
 
 var PolarisConfig = &GenesisConfig{
@@ -283,6 +287,7 @@ type CommonConfig struct {
 	GasLimit       uint64
 	GasPrice       uint64
 	DataDir        string
+	Database       string
 }
 
 type ConsensusConfig struct {
@@ -347,6 +352,7 @@ func NewOntologyConfig() *OntologyConfig {
 			SystemFee:      make(map[string]int64),
 			GasLimit:       DEFAULT_GAS_LIMIT,
 			DataDir:        DEFAULT_DATA_DIR,
+			Database:       DEFAULT_DATABASE,
 		},
 		Consensus: &ConsensusConfig{
 			EnableConsensus: true,
