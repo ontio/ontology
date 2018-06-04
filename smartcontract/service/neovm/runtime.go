@@ -74,7 +74,7 @@ func RuntimeSerialize(service *NeoVmService, engine *vm.ExecutionEngine) error {
 func RuntimeDeSerialize(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	data := vm.PopByteArray(engine)
 	bf := bytes.NewBuffer(data)
-	item, err := vm.DeSerializeStackItem(bf)
+	item, err := vm.DeserializeStackItem(bf)
 	if err != nil {
 		return err
 	}

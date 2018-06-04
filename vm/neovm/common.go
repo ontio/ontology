@@ -291,13 +291,13 @@ func SerializeStackItem(item types.StackItems, w io.Writer) error {
 		}
 
 	default:
-		errors.NewErr("unknown type")
+		return errors.NewErr("unknown type")
 	}
 
 	return nil
 }
 
-func DeSerializeStackItem(r io.Reader) (items types.StackItems, err error) {
+func DeserializeStackItem(r io.Reader) (items types.StackItems, err error) {
 	t, err := serialization.ReadByte(r)
 	if err != nil {
 		return nil, errors.NewErr("Deserialize error: " + err.Error())
@@ -333,7 +333,7 @@ func DeSerializeStackItem(r io.Reader) (items types.StackItems, err error) {
 
 		var arr []types.StackItems
 		for count > 0 {
-			item, err := DeSerializeStackItem(r)
+			item, err := DeserializeStackItem(r)
 			if err != nil {
 				return nil, err
 			}
@@ -355,12 +355,12 @@ func DeSerializeStackItem(r io.Reader) (items types.StackItems, err error) {
 
 		mp := types.NewMap()
 		for count > 0 {
-			key, err := DeSerializeStackItem(r)
+			key, err := DeserializeStackItem(r)
 			if err != nil {
 				return nil, err
 			}
 
-			value, err := DeSerializeStackItem(r)
+			value, err := DeserializeStackItem(r)
 			if err != nil {
 				return nil, err
 			}
@@ -370,7 +370,7 @@ func DeSerializeStackItem(r io.Reader) (items types.StackItems, err error) {
 		return mp, nil
 
 	default:
-		errors.NewErr("unknown type")
+		return nil, errors.NewErr("unknown type")
 	}
 
 	return nil, nil
