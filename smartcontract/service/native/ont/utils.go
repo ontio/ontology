@@ -33,19 +33,19 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-var (
-	ADDRESS_HEIGHT    = []byte("addressHeight")
-	TOTAL_SUPPLY_NAME = []byte("totalSupply")
-	INIT_NAME         = "init"
-	TRANSFER_NAME     = "transfer"
-	APPROVE_NAME      = "approve"
-	TRANSFERFROM_NAME = "transferFrom"
-	NAME_NAME         = "name"
-	SYMBOL_NAME       = "symbol"
-	DECIMALS_NAME     = "decimals"
-	TOTALSUPPLY_NAME  = "totalSupply"
-	BALANCEOF_NAME    = "balanceOf"
-	ALLOWANCE_NAME    = "allowance"
+const (
+	UNBOUND_TIME_OFFSET = "unboundTimeOffset"
+	TOTAL_SUPPLY_NAME   = "totalSupply"
+	INIT_NAME           = "init"
+	TRANSFER_NAME       = "transfer"
+	APPROVE_NAME        = "approve"
+	TRANSFERFROM_NAME   = "transferFrom"
+	NAME_NAME           = "name"
+	SYMBOL_NAME         = "symbol"
+	DECIMALS_NAME       = "decimals"
+	TOTALSUPPLY_NAME    = "totalSupply"
+	BALANCEOF_NAME      = "balanceOf"
+	ALLOWANCE_NAME      = "allowance"
 )
 
 func AddNotifications(native *native.NativeService, contract common.Address, state *State) {
@@ -59,91 +59,72 @@ func AddNotifications(native *native.NativeService, contract common.Address, sta
 		})
 }
 
-func IsTransferFromValid(native *native.NativeService, state *TransferFrom) error {
-	if native.ContextRef.CheckWitness(state.Sender) == false {
-		return errors.NewErr("[IsTransferFromValid] Authentication failed!")
-	}
-	return nil
-}
-
-func IsApproveValid(native *native.NativeService, state *State) error {
-	if native.ContextRef.CheckWitness(state.From) == false {
-		return errors.NewErr("[IsApproveValid] Authentication failed!")
-	}
-	return nil
-}
-
-func IsTransferValid(native *native.NativeService, state *State) error {
-	if !native.ContextRef.CheckWitness(state.From) {
-		return errors.NewErr("[IsTransferValid] Authentication failed!")
-	}
-	return nil
-}
-
 func GetToUInt64StorageItem(toBalance, value uint64) *cstates.StorageItem {
 	bf := new(bytes.Buffer)
 	serialization.WriteUint64(bf, toBalance+value)
 	return &cstates.StorageItem{Value: bf.Bytes()}
 }
 
-func GetTotalSupplyKey(contract common.Address) []byte {
+func GenTotalSupplyKey(contract common.Address) []byte {
 	return append(contract[:], TOTAL_SUPPLY_NAME...)
 }
 
-func GetTransferKey(contract, from common.Address) []byte {
-	return append(contract[:], from[:]...)
+func GenBalanceKey(contract, addr common.Address) []byte {
+	return append(contract[:], addr[:]...)
 }
 
 func Transfer(native *native.NativeService, contract common.Address, state *State) (uint64, uint64, error) {
-	if err := IsTransferValid(native, state); err != nil {
-		return 0, 0, err
+	if !native.ContextRef.CheckWitness(state.From) {
+		return 0, 0, errors.NewErr("authentication failed!")
 	}
 
-	fromBalance, err := fromTransfer(native, GetTransferKey(contract, state.From), state.Value)
+	fromBalance, err := fromTransfer(native, GenBalanceKey(contract, state.From), state.Value)
 	if err != nil {
 		return 0, 0, err
 	}
 
-	toBalance, err := toTransfer(native, GetTransferKey(contract, state.To), state.Value)
+	toBalance, err := toTransfer(native, GenBalanceKey(contract, state.To), state.Value)
 	if err != nil {
 		return 0, 0, err
 	}
 	return fromBalance, toBalance, nil
 }
 
-func GetApproveKey(contract, from, to common.Address) []byte {
+func GenApproveKey(contract, from, to common.Address) []byte {
 	temp := append(contract[:], from[:]...)
 	return append(temp, to[:]...)
 }
 
-func TransferedFrom(native *native.NativeService, currentContract common.Address, state *TransferFrom) error {
-	if err := IsTransferFromValid(native, state); err != nil {
-		return err
+func TransferedFrom(native *native.NativeService, currentContract common.Address, state *TransferFrom) (uint64, uint64, error) {
+	if native.ContextRef.CheckWitness(state.Sender) == false {
+		return 0, 0, errors.NewErr("authentication failed!")
 	}
 
-	if err := fromApprove(native, getTransferFromKey(currentContract, state), state.Value); err != nil {
-		return err
+	if err := fromApprove(native, genTransferFromKey(currentContract, state), state.Value); err != nil {
+		return 0, 0, err
 	}
 
-	if _, err := fromTransfer(native, GetTransferKey(currentContract, state.From), state.Value); err != nil {
-		return err
+	fromBalance, err := fromTransfer(native, GenBalanceKey(currentContract, state.From), state.Value)
+	if err != nil {
+		return 0, 0, err
 	}
 
-	if _, err := toTransfer(native, GetTransferKey(currentContract, state.To), state.Value); err != nil {
-		return err
+	toBalance, err := toTransfer(native, GenBalanceKey(currentContract, state.To), state.Value)
+	if err != nil {
+		return 0, 0, err
 	}
-	return nil
+	return fromBalance, toBalance, nil
 }
 
-func getStartHeight(native *native.NativeService, contract, address common.Address) (uint32, error) {
-	startHeight, err := utils.GetStorageUInt32(native, getAddressHeightKey(contract, address))
+func getUnboundOffset(native *native.NativeService, contract, address common.Address) (uint32, error) {
+	offset, err := utils.GetStorageUInt32(native, genAddressUnboundOffsetKey(contract, address))
 	if err != nil {
 		return 0, err
 	}
-	return startHeight, nil
+	return offset, nil
 }
 
-func getTransferFromKey(contract common.Address, state *TransferFrom) []byte {
+func genTransferFromKey(contract common.Address, state *TransferFrom) []byte {
 	temp := append(contract[:], state.From[:]...)
 	return append(temp, state.Sender[:]...)
 }
@@ -158,7 +139,7 @@ func fromApprove(native *native.NativeService, fromApproveKey []byte, value uint
 	} else if approveValue == value {
 		native.CloneCache.Delete(scommon.ST_STORAGE, fromApproveKey)
 	} else {
-		native.CloneCache.Add(scommon.ST_STORAGE, fromApproveKey, utils.GetUInt64StorageItem(approveValue-value))
+		native.CloneCache.Add(scommon.ST_STORAGE, fromApproveKey, utils.GenUInt64StorageItem(approveValue-value))
 	}
 	return nil
 }
@@ -173,7 +154,7 @@ func fromTransfer(native *native.NativeService, fromKey []byte, value uint64) (u
 	} else if fromBalance == value {
 		native.CloneCache.Delete(scommon.ST_STORAGE, fromKey)
 	} else {
-		native.CloneCache.Add(scommon.ST_STORAGE, fromKey, utils.GetUInt64StorageItem(fromBalance-value))
+		native.CloneCache.Add(scommon.ST_STORAGE, fromKey, utils.GenUInt64StorageItem(fromBalance-value))
 	}
 	return fromBalance, nil
 }
@@ -187,7 +168,7 @@ func toTransfer(native *native.NativeService, toKey []byte, value uint64) (uint6
 	return toBalance, nil
 }
 
-func getAddressHeightKey(contract, address common.Address) []byte {
-	temp := append(ADDRESS_HEIGHT, address[:]...)
-	return append(contract[:], temp...)
+func genAddressUnboundOffsetKey(contract, address common.Address) []byte {
+	temp := append(contract[:], UNBOUND_TIME_OFFSET...)
+	return append(temp, address[:]...)
 }
