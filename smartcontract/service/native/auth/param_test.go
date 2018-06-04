@@ -20,6 +20,7 @@ package auth
 import (
 	"bytes"
 	"crypto/rand"
+	"strings"
 	"testing"
 )
 
@@ -191,7 +192,7 @@ func TestSerialization_VerifyToken(t *testing.T) {
 	param := &VerifyTokenParam{
 		ContractAddr: OntContractAddr,
 		Caller:       p1,
-		Fn:           []byte("foo1"),
+		Fn:           "foo1",
 	}
 	bf := new(bytes.Buffer)
 	if err := param.Serialize(bf); err != nil {
@@ -204,7 +205,7 @@ func TestSerialization_VerifyToken(t *testing.T) {
 	}
 	if bytes.Compare(param.ContractAddr, param2.ContractAddr) != 0 ||
 		bytes.Compare(param.Caller, param2.Caller) != 0 ||
-		bytes.Compare(param.Fn, param2.Fn) != 0 {
+		strings.Compare(param.Fn, param2.Fn) != 0 {
 		t.Fatalf("failed")
 	}
 }

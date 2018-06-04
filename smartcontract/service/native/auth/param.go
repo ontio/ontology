@@ -320,7 +320,7 @@ func (this *WithdrawParam) Deserialize(rd io.Reader) error {
 type VerifyTokenParam struct {
 	ContractAddr []byte
 	Caller       []byte
-	Fn           []byte
+	Fn           string
 	KeyNo        uint64
 }
 
@@ -331,7 +331,7 @@ func (this *VerifyTokenParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteVarBytes(w, this.Caller); err != nil {
 		return err
 	}
-	if err := serialization.WriteVarBytes(w, this.Fn); err != nil {
+	if err := serialization.WriteString(w, this.Fn); err != nil {
 		return err
 	}
 	if err := serialization.WriteVarUint(w, this.KeyNo); err != nil {
@@ -348,7 +348,7 @@ func (this *VerifyTokenParam) Deserialize(rd io.Reader) error {
 	if this.Caller, err = serialization.ReadVarBytes(rd); err != nil {
 		return err //deserialize caller error
 	}
-	if this.Fn, err = serialization.ReadVarBytes(rd); err != nil {
+	if this.Fn, err = serialization.ReadString(rd); err != nil {
 		return err
 	}
 	if this.KeyNo, err = serialization.ReadVarUint(rd, 0); err != nil {
