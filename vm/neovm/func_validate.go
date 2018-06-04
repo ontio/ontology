@@ -409,7 +409,7 @@ func validatorSetItem(e *ExecutionEngine) error {
 		if key == nil {
 			return errors.ERR_BAD_VALUE
 		}
-	} else{
+	} else {
 		return errors.ERR_NOT_SUPPORT_TYPE
 	}
 	return nil
@@ -463,30 +463,6 @@ func validatorReverse(e *ExecutionEngine) error {
 	arrItem := PeekStackItem(e)
 	if _, ok := arrItem.(*types.Array); !ok {
 		return errors.ERR_NOT_ARRAY
-	}
-	return nil
-}
-
-func validatorRemove(e *ExecutionEngine) error {
-
-	return nil
-}
-
-func validatorHashkey(e *ExecutionEngine) error {
-
-	return nil
-}
-
-func validatorKeys(e *ExecutionEngine) error {
-	if err := LogStackTrace(e, 1, "[validatorKeys]"); err != nil {
-		return err
-	}
-	return nil
-}
-
-func validatorValues(e *ExecutionEngine) error {
-	if err := LogStackTrace(e, 1, "[validatorValues]"); err != nil {
-		return err
 	}
 	return nil
 }
