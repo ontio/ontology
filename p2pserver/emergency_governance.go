@@ -260,7 +260,7 @@ func (this *emergencyGov) checkBlock(block *types.Block) bool {
 		return false
 	}
 
-	curHeight := ledger.DefLedger.GetCurrentHeaderHeight()
+	curHeight := ledger.DefLedger.GetCurrentBlockHeight()
 
 	if curHeight >= block.Header.Height {
 		log.Errorf("emergency governance height %d is less than current height %d",
