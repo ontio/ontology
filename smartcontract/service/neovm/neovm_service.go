@@ -69,7 +69,7 @@ var (
 		RUNTIME_NOTIFY_NAME:             {Execute: RuntimeNotify, Validator: validatorNotify},
 		RUNTIME_LOG_NAME:                {Execute: RuntimeLog, Validator: validatorLog},
 		RUNTIME_SERIALIZE:               {Execute: RuntimeSerialize, Validator: validatorSerialize},
-		RUNTIME_DESERIALIZE:             {Execute: RuntimeDeSerialize, Validator: validatorDeSerialize},
+		RUNTIME_DESERIALIZE:             {Execute: RuntimeDeSerialize, Validator: validatorDeserialize},
 		RUNTIME_CHECKSIG_NAME:           {Execute: RuntimeCheckSig, Validator: validatorCheckSig},
 		STORAGE_GET_NAME:                {Execute: StorageGet},
 		STORAGE_PUT_NAME:                {Execute: StoragePut},
