@@ -38,9 +38,6 @@ func NewMap() *Map {
 }
 
 func (this *Map) Add(key StackItems, value StackItems) error {
-	if _, ok := this._map[key]; ok {
-		return errors.NewErr("map key existed.")
-	}
 	this._map[key] = value
 	return nil
 }
@@ -100,21 +97,3 @@ func (this *Map) TryGetValue(key StackItems) StackItems {
 	return nil
 	//return this._map[key]
 }
-
-//func (this *Map) ToArray() []byte {
-//	bf := bytes.NewBuffer(nil)
-//	i := 0
-//	l := len(this._map)
-//	for k, v := range this._map {
-//		bf.WriteString("[")
-//		bf.Write(k.GetByteArray())
-//		bf.WriteString(":")
-//		bf.Write(v.GetByteArray())
-//		bf.WriteString("]")
-//		if i < l {
-//			bf.WriteString(",")
-//			i++
-//		}
-//	}
-//	return bf.Bytes()
-//}

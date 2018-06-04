@@ -141,10 +141,6 @@ var (
 		NEWSTRUCT: {Opcode: NEWSTRUCT, Name: "NEWSTRUCT", Exec: opNewStruct, Validator: validateNewStruct},
 		APPEND:    {Opcode: APPEND, Name: "APPEND", Exec: opAppend, Validator: validateAppend},
 		REVERSE:   {Opcode: REVERSE, Name: "REVERSE", Exec: opReverse, Validator: validatorReverse},
-		REMOVE:    {Opcode: REMOVE, Name: "REMOVE", Exec: opRemove, Validator: validatorRemove},
-		HASKEY:    {Opcode: HASKEY, Name: "HASKEY", Exec: opHasKey, Validator: validatorHashkey},
-		KEYS:      {Opcode: KEYS, Name: "KEYS", Exec: opKeys, Validator: validatorKeys},
-		VALUES:    {Opcode: VALUES, Name: "VALUES", Exec: opValues, Validator: validatorValues},
 
 		//Exceptions
 		THROW:      {Opcode: THROW, Name: "THROW", Exec: opThrow},
