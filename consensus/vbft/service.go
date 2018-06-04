@@ -613,9 +613,11 @@ func (self *Server) run(peerPubKey keypair.PublicKey) error {
 	defer func() {
 		// TODO: handle peer disconnection here
 		log.Warnf("server %d: disconnected with peer %d", self.Index, peerIdx)
-		close(self.msgRecvC[peerIdx])
-		delete(self.msgRecvC, peerIdx)
-
+		if _, present := self.msgRecvC[peerIdx]; present {
+			log.Infof("close chan msgRecv peer:%d",peerIdx)
+			close(self.msgRecvC[peerIdx])
+			delete(self.msgRecvC, peerIdx)
+		}
 		self.peerPool.peerDisconnected(peerIdx)
 		self.stateMgr.StateEventC <- &StateEvent{
 			Type: UpdatePeerState,
