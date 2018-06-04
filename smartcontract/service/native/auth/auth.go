@@ -21,6 +21,7 @@ package auth
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ontio/ontology/common/serialization"
@@ -473,7 +474,7 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
  *  @fn the name of the func to call
  *  @tokenSig the signature on the message
  */
-func verifyToken(native *native.NativeService, contractAddr []byte, caller []byte, fn []byte, keyNo uint64) (bool, error) {
+func verifyToken(native *native.NativeService, contractAddr []byte, caller []byte, fn string, keyNo uint64) (bool, error) {
 	//check caller's identity
 	ret, err := verifySig(native, caller, keyNo)
 	if err != nil {
@@ -490,10 +491,10 @@ func verifyToken(native *native.NativeService, contractAddr []byte, caller []byt
 		for _, token := range tokens.tokens {
 			funcs, err := getRoleFunc(native, contractAddr, token.role)
 			if err != nil {
-				return false, nil
+				return false, err
 			}
 			for _, f := range funcs.funcNames {
-				if bytes.Compare(fn, []byte(f)) == 0 {
+				if strings.Compare(fn, f) == 0 {
 					return true, nil
 				}
 			}
@@ -511,7 +512,7 @@ func verifyToken(native *native.NativeService, contractAddr []byte, caller []byt
 				return false, nil
 			}
 			for _, f := range funcs.funcNames {
-				if bytes.Compare(fn, []byte(f)) == 0 {
+				if strings.Compare(fn, f) == 0 {
 					return true, nil
 				}
 			}
