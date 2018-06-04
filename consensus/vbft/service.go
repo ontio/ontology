@@ -182,9 +182,9 @@ func (self *Server) Receive(context actor.Context) {
 	case *p2pmsg.ConsensusPayload:
 		self.NewConsensusPayload(msg)
 	case *p2pComm.EmergencyGovCmd:
-		if msg.Pause {
+		if msg.Cmd == p2pComm.EmgGovStart {
 			self.StartEmergency(msg.Height)
-		} else {
+		} else if msg.Cmd == p2pComm.EmgGovEnd {
 			self.EndEmergency(msg.Height)
 		}
 	default:
@@ -215,11 +215,11 @@ func (self *Server) StartEmergency(height uint32) {
 			C <- nil
 		}
 	}
-	log.Infof("start emergency heigh:%d,compeletheight:%d", height,self.completedBlockNum)
+	log.Infof("start emergency heigh:%d,compeletheight:%d", height, self.completedBlockNum)
 }
 
 func (self *Server) EndEmergency(height uint32) {
-	log.Infof("end emergency heigh:%d,compeletheight:%d", height,self.completedBlockNum)
+	log.Infof("end emergency heigh:%d,compeletheight:%d", height, self.completedBlockNum)
 	self.currentBlockNum = height + 1
 	self.metaLock.Lock()
 	defer self.metaLock.Unlock()
@@ -614,7 +614,7 @@ func (self *Server) run(peerPubKey keypair.PublicKey) error {
 		// TODO: handle peer disconnection here
 		log.Warnf("server %d: disconnected with peer %d", self.Index, peerIdx)
 		if _, present := self.msgRecvC[peerIdx]; present {
-			log.Infof("close chan msgRecv peer:%d",peerIdx)
+			log.Infof("close chan msgRecv peer:%d", peerIdx)
 			close(self.msgRecvC[peerIdx])
 			delete(self.msgRecvC, peerIdx)
 		}

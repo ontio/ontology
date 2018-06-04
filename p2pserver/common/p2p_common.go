@@ -177,7 +177,15 @@ type EmergencyMsg struct {
 	Content interface{}
 }
 
+type CmdType uint8
+
+const (
+	EmgGovStart CmdType = iota
+	EmgGovEnd
+	EmgGovBlkSync
+)
+
 type EmergencyGovCmd struct {
-	Pause  bool
+	Cmd    CmdType
 	Height uint32
 }

@@ -590,7 +590,6 @@ func GetBlockRootWithNewTxRoot(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return responsePack(berr.INVALID_PARAMS, nil)
 	}
-	log.Trace("RPC: GetBlockRootWithNewTxRoot")
 	switch params[0].(type) {
 	case string:
 		str := params[0].(string)

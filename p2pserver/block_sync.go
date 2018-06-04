@@ -127,8 +127,8 @@ type BlockSyncMgr struct {
 	syncHeaderLock     bool                               //Help to avoid send header sync request duplicate
 	saveBlockLock      bool                               //Help to avoid saving block concurrently
 	exitCh             chan interface{}                   //ExitCh to receive exit signal
-	pauseSync          bool                               //PauseSync to stop block sync
-	emergencyGovHeight uint32                             // Emergency governance height
+	emgGovCmd          p2pComm.CmdType                    //Emergency govenrance command
+	emergencyGovHeight uint32                             //Emergency governance height
 	emergencyGovCh     chan *p2pComm.EmergencyGovCmd      //EmergencyGovCh to receive command from emergency governance
 	ledger             *ledger.Ledger
 	lock               sync.RWMutex
@@ -144,6 +144,7 @@ func NewBlockSyncMgr(server *P2PServer) *BlockSyncMgr {
 		server:         server,
 		ledger:         server.ledger,
 		exitCh:         make(chan interface{}, 1),
+		emgGovCmd:      p2pComm.EmgGovEnd,
 		emergencyGovCh: make(chan *p2pComm.EmergencyGovCmd, 1),
 	}
 }
@@ -160,6 +161,13 @@ func (this *BlockSyncMgr) Start() {
 			go this.checkTimeout()
 			go this.sync()
 			go this.saveBlock()
+			height := this.ledger.GetCurrentBlockHeight()
+			if this.emgGovCmd == p2pComm.EmgGovBlkSync &&
+				height >= this.emergencyGovHeight-1 {
+				log.Tracef("notify emergency governance sync block %d done, cur height %d",
+					this.emergencyGovHeight-1, height)
+				this.server.notifyEmgGovBlkSyncDone()
+			}
 		case cmd, ok := <-this.emergencyGovCh:
 			if ok {
 				this.onEmergencyGovCmdReceived(cmd)
@@ -169,7 +177,7 @@ func (this *BlockSyncMgr) Start() {
 }
 
 func (this *BlockSyncMgr) onEmergencyGovCmdReceived(cmd *p2pComm.EmergencyGovCmd) {
-	this.pauseSync = cmd.Pause
+	this.emgGovCmd = cmd.Cmd
 	this.emergencyGovHeight = cmd.Height
 }
 
@@ -264,7 +272,8 @@ func (this *BlockSyncMgr) syncHeader() {
 	curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
 	//Waiting for block catch up header
 	if curHeaderHeight-curBlockHeight >= SYNC_MAX_HEADER_FORWARD_SIZE ||
-		(this.pauseSync == true && curHeaderHeight >= this.emergencyGovHeight-1) {
+		(this.emgGovCmd == p2pComm.EmgGovStart &&
+			curHeaderHeight >= this.emergencyGovHeight-1) {
 		return
 	}
 	NextHeaderId := curHeaderHeight + 1
@@ -298,7 +307,8 @@ func (this *BlockSyncMgr) syncBlock() {
 	curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
 	count := int(curHeaderHeight - curBlockHeight)
 	if count <= 0 ||
-		(this.pauseSync == true && curBlockHeight >= this.emergencyGovHeight-1) {
+		(this.emgGovCmd == p2pComm.EmgGovStart &&
+			curBlockHeight >= this.emergencyGovHeight-1) {
 		return
 	}
 	if count > availCount {
@@ -360,7 +370,7 @@ func (this *BlockSyncMgr) OnHeaderReceive(headers []*types.Header) {
 	}
 
 	count := len(headers)
-	if this.pauseSync == true && curHeaderHeight < this.emergencyGovHeight {
+	if this.emgGovCmd != p2pComm.EmgGovEnd && curHeaderHeight < this.emergencyGovHeight {
 		count = int(this.emergencyGovHeight - curHeaderHeight)
 	}
 
@@ -505,7 +515,7 @@ func (this *BlockSyncMgr) saveBlock() {
 			delete(this.blocksCache, height)
 		}
 
-		if this.pauseSync == true && height == this.emergencyGovHeight {
+		if this.emgGovCmd == p2pComm.EmgGovStart && height == this.emergencyGovHeight {
 			peers, _ := getPeers()
 			blk := this.blocksCache[height]
 			if len(blk.Header.Bookkeepers) < (len(peers) - (len(peers)-1)/3) {
@@ -536,13 +546,11 @@ func (this *BlockSyncMgr) saveBlock() {
 			}
 			return
 		}
-
-		if this.pauseSync == true {
-			if nextBlockHeight == this.emergencyGovHeight-1 {
-				this.server.notifyEmgGovBlkSyncDone()
-			} else if nextBlockHeight == this.emergencyGovHeight {
-				this.server.notifyEmgGovBlkCompleted()
-			}
+		if this.emgGovCmd != p2pComm.EmgGovEnd &&
+			nextBlockHeight == this.emergencyGovHeight {
+			log.Tracef("notify emergency governance block %d completed",
+				nextBlockHeight)
+			this.server.notifyEmgGovBlkCompleted()
 		}
 
 		nextBlockHeight++

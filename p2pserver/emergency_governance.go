@@ -87,7 +87,7 @@ func (this *emergencyGov) Start() {
 		case <-this.stopCh:
 			return
 		case <-this.timerEvt:
-			this.context.reset()
+			this.handleEmergencyGovTimeout()
 		}
 	}
 }
@@ -108,6 +108,17 @@ func (this *emergencyGov) Stop() {
 	if this.emgBlkCompletedEvt != nil {
 		close(this.emgBlkCompletedEvt)
 	}
+}
+
+func (this *emergencyGov) handleEmergencyGovTimeout() {
+	this.context.reset()
+	// notify consensus and block sync mgr to recover
+	cmd := &msgCom.EmergencyGovCmd{
+		Cmd:    msgCom.EmgGovEnd,
+		Height: this.context.getEmergencyGovHeight(),
+	}
+	actor.NotifyEmergencyGovCmd(cmd)
+	this.server.notifyEmergencyGovCmd(cmd)
 }
 
 // handleEmergencyMsg dispatch the msg to the msg handler
@@ -137,7 +148,7 @@ func (this *emergencyGov) handleEmergencyBlockCompletedEvt() {
 
 	// notify consensus and block sync mgr to recover
 	cmd := &msgCom.EmergencyGovCmd{
-		Pause:  false,
+		Cmd:    msgCom.EmgGovEnd,
 		Height: this.context.getEmergencyGovHeight(),
 	}
 	actor.NotifyEmergencyGovCmd(cmd)
@@ -232,7 +243,7 @@ func (this *emergencyGov) checkSignatures() {
 
 		// notify consensus and block sync mgr to recover
 		cmd := &msgCom.EmergencyGovCmd{
-			Pause:  false,
+			Cmd:    msgCom.EmgGovEnd,
 			Height: block.Header.Height,
 		}
 		actor.NotifyEmergencyGovCmd(cmd)
@@ -269,12 +280,19 @@ func (this *emergencyGov) checkBlock(block *types.Block) bool {
 	}
 
 	if curHeight < block.Header.Height-1 {
-		log.Tracef("Waiting for block sync mgr to sync block till emergency goverance height, curHeight %d",
+		log.Tracef("Waiting for blkSync mgr to sync till emgGov height %d, curHeight %d",
 			block.Header.Height, curHeight)
+		cmd := &msgCom.EmergencyGovCmd{
+			Cmd:    msgCom.EmgGovBlkSync,
+			Height: block.Header.Height,
+		}
+		this.server.notifyEmergencyGovCmd(cmd)
 		<-this.blkSyncCh
+		log.Tracef("receive block sync mgr done at height %d", block.Header.Height-1)
 	}
 
-	log.Tracef("checkBlock: block height %d, prevBlockHash %x", block.Header.Height, block.Header.PrevBlockHash)
+	log.Tracef("checkBlock: block height %d, prevBlockHash %x",
+		block.Header.Height, block.Header.PrevBlockHash)
 	tmpBlk, err := ledger.DefLedger.GetBlockByHash(block.Header.PrevBlockHash)
 	if err != nil || tmpBlk == nil || tmpBlk.Header == nil {
 		log.Trace("Can't get block by hash: ", block.Header.PrevBlockHash)
@@ -382,7 +400,7 @@ func (this *emergencyGov) EmergencyActionRequestReceived(msg *mt.EmergencyAction
 
 	// notify consensus and block sync mgr to pause
 	cmd := &msgCom.EmergencyGovCmd{
-		Pause:  true,
+		Cmd:    msgCom.EmgGovStart,
 		Height: msg.ProposalBlkNum,
 	}
 	actor.NotifyEmergencyGovCmd(cmd)
@@ -458,7 +476,7 @@ func (this *emergencyGov) startEmergencyGov(msg *mt.EmergencyActionRequest) {
 
 	// notify consensus and block sync mgr to pause
 	cmd := &msgCom.EmergencyGovCmd{
-		Pause:  true,
+		Cmd:    msgCom.EmgGovStart,
 		Height: msg.ProposalBlkNum,
 	}
 
