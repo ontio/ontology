@@ -22,11 +22,13 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/ontio/ontology-crypto/keypair"
-	//"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/common"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
+
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common"
 )
 
 /** AccountData - for wallet read and save, no crypto object included **/
@@ -91,6 +93,23 @@ func NewWalletData() *WalletData {
 	}
 }
 
+func (this *WalletData) Clone() *WalletData {
+	w := WalletData{}
+	w.Name = this.Name
+	w.Version = this.Version
+	sp := *this.Scrypt
+	w.Scrypt = &sp
+	w.Accounts = make([]*AccountData, len(this.Accounts))
+	for i, v := range this.Accounts {
+		ac := *v
+		ac.SetKeyPair(v.GetKeyPair())
+		w.Accounts[i] = &ac
+	}
+	w.Identities = this.Identities
+	w.Extra = this.Extra
+	return &w
+}
+
 func (this *WalletData) AddAccount(acc *AccountData) {
 	this.Accounts = append(this.Accounts, acc)
 }
@@ -149,6 +168,49 @@ func (this *WalletData) Load(path string) error {
 		return err
 	}
 	return json.Unmarshal(msh, this)
+}
+
+var lowSecurityParam = keypair.ScryptParam{
+	N:     4096,
+	R:     8,
+	P:     8,
+	DKLen: 64,
+}
+
+func (this *WalletData) ToLowSecurity(passwords [][]byte) error {
+	return this.reencrypt(passwords, &lowSecurityParam)
+}
+
+func (this *WalletData) ToDefaultSecurity(passwords [][]byte) error {
+	return this.reencrypt(passwords, nil)
+}
+
+func (this *WalletData) reencrypt(passwords [][]byte, param *keypair.ScryptParam) error {
+	if len(passwords) != len(this.Accounts) {
+		return errors.New("not enough passwords for the accounts")
+	}
+	keys := make([]*keypair.ProtectedKey, len(this.Accounts))
+	for i, v := range this.Accounts {
+		if !v.VerifyPassword(passwords[i]) {
+			return fmt.Errorf("incorrect password of account %d", i+1)
+		}
+		prot, err := keypair.ReencryptPrivateKey(&v.ProtectedKey, passwords[i], passwords[i], this.Scrypt, param)
+		if err != nil {
+			return fmt.Errorf("re-encrypt account %d failed: %s", i, err)
+		}
+		keys[i] = prot
+	}
+
+	for i, v := range keys {
+		this.Accounts[i].SetKeyPair(v)
+	}
+	if param != nil {
+		this.Scrypt = param
+	} else {
+		// default parameters
+		this.Scrypt = keypair.GetScryptParameters()
+	}
+	return nil
 }
 
 //TODO:: determine identity structure
