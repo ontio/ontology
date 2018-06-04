@@ -20,9 +20,10 @@ package types
 
 import (
 	//"github.com/ontio/ontology/vm/neovm/types"
-	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/vm/neovm/interfaces"
+
 	"math/big"
+
+	"github.com/ontio/ontology/vm/neovm/interfaces"
 	//"bytes"
 	"reflect"
 )
@@ -89,8 +90,8 @@ func (this *Map) GetMap() map[StackItems]StackItems {
 }
 
 func (this *Map) TryGetValue(key StackItems) StackItems {
-	for k, v := range this._map{
-		if k.Equals(key){
+	for k, v := range this._map {
+		if k.Equals(key) {
 			return v
 		}
 	}
