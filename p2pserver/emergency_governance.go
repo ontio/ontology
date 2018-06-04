@@ -143,7 +143,7 @@ func (this *emergencyGov) handleEmergencyBlockCompletedEvt() {
 		return
 	}
 
-	log.Tracef("handleEmergencyBlockCompletedEvt")
+	log.Info("handleEmergencyBlockCompletedEvt")
 	this.context.setStatus(EmergencyGovComplete)
 
 	// notify consensus and block sync mgr to recover
@@ -163,7 +163,7 @@ func (this *emergencyGov) handleEmergencyBlockCompletedEvt() {
 // EmergencyActionResponseReceived handles an emergency governance response from network
 func (this *emergencyGov) EmergencyActionResponseReceived(msg *mt.EmergencyActionResponse) {
 	// Todo: Check whether local node  supports emergency governance policy
-	log.Trace("EmergencyActionResponseReceived: receive emergency governance response")
+	log.Info("EmergencyActionResponseReceived: receive emergency governance response")
 
 	if this.context.getStatus() == EmergencyGovComplete {
 		return
@@ -233,7 +233,7 @@ func (this *emergencyGov) checkSignatures() {
 		if !contained {
 			err := ledger.DefLedger.AddBlock(block)
 			if err != nil {
-				log.Tracef("DefLedger add block failed. err %v", err)
+				log.Errorf("DefLedger add block failed. err %v", err)
 				return
 			}
 			this.server.Xmit(block.Hash())
@@ -280,7 +280,7 @@ func (this *emergencyGov) checkBlock(block *types.Block) bool {
 	}
 
 	if curHeight < block.Header.Height-1 {
-		log.Tracef("Waiting for blkSync mgr to sync till emgGov height %d, curHeight %d",
+		log.Infof("Waiting for blkSync mgr to sync till emgGov height %d, curHeight %d",
 			block.Header.Height, curHeight)
 		cmd := &msgCom.EmergencyGovCmd{
 			Cmd:    msgCom.EmgGovBlkSync,
@@ -288,14 +288,14 @@ func (this *emergencyGov) checkBlock(block *types.Block) bool {
 		}
 		this.server.notifyEmergencyGovCmd(cmd)
 		<-this.blkSyncCh
-		log.Tracef("receive block sync mgr done at height %d", block.Header.Height-1)
+		log.Infof("receive block sync mgr done at height %d", block.Header.Height-1)
 	}
 
-	log.Tracef("checkBlock: block height %d, prevBlockHash %x",
+	log.Infof("checkBlock: block height %d, prevBlockHash %x",
 		block.Header.Height, block.Header.PrevBlockHash)
 	tmpBlk, err := ledger.DefLedger.GetBlockByHash(block.Header.PrevBlockHash)
 	if err != nil || tmpBlk == nil || tmpBlk.Header == nil {
-		log.Trace("Can't get block by hash: ", block.Header.PrevBlockHash)
+		log.Info("Can't get block by hash: ", block.Header.PrevBlockHash)
 		return false
 	}
 
@@ -363,7 +363,7 @@ func (this *emergencyGov) validatePendingRspMsg() {
 // EmergencyActionRequestReceived handles an emergency governance request from network
 func (this *emergencyGov) EmergencyActionRequestReceived(msg *mt.EmergencyActionRequest) error {
 	// Todo: check whether local node support emergency governance
-	log.Tracef("EmergencyActionRequestReceived: receive emergency governance request at height %d", msg.ProposalBlkNum)
+	log.Infof("EmergencyActionRequestReceived: receive emergency governance request at height %d", msg.ProposalBlkNum)
 
 	if this.context != nil && this.context.getStatus() == EmergencyGovStart {
 		return fmt.Errorf("EmergencyActionRequestReceived: emergency governacne started")
@@ -416,7 +416,6 @@ func (this *emergencyGov) EmergencyActionRequestReceived(msg *mt.EmergencyAction
 	id, _ := vconfig.PubkeyID(pubkey)
 	this.context.setSig(id, response.SigOnBlk)
 
-	log.Trace("EmergencyActionRequestReceived: broadcast response")
 	this.server.Xmit(response)
 
 	this.validatePendingRspMsg()
@@ -448,7 +447,7 @@ func (this *emergencyGov) constructEmergencyActionResponse(block *types.Block) (
 
 // startEmergencyGov starts an new emergency governance introduced by admin
 func (this *emergencyGov) startEmergencyGov(msg *mt.EmergencyActionRequest) {
-	log.Tracef("startEmergencyGov: receive emergency governance admin request at height %d", msg.ProposalBlkNum)
+	log.Infof("startEmergencyGov: receive emergency governance admin request at height %d", msg.ProposalBlkNum)
 	if this.context != nil && this.context.getStatus() == EmergencyGovStart {
 		log.Info("startEmergencyGov: local node is in emergency governance progress")
 		return
