@@ -18,9 +18,13 @@
 package ontid
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"math/big"
 
+	"github.com/itchyny/base58-go"
 	"github.com/ontio/ontology-crypto/keypair"
 	com "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/states"
@@ -66,6 +70,30 @@ func decodeID(data []byte) ([]byte, error) {
 		return nil, errors.New("decode ONT ID error: invalid data length")
 	}
 	return data[1:], nil
+}
+
+func verifyID(id []byte) bool {
+	if string(id[0:8]) != "did:ont:" {
+		return false
+	}
+	buf, err := base58.BitcoinEncoding.Decode(id[8:])
+	if err != nil {
+		return false
+	}
+	bi, ok := new(big.Int).SetString(string(buf), 10)
+	if !ok || bi == nil {
+		return false
+	}
+	buf = bi.Bytes()
+	pos := len(buf) - 4
+	data := buf[:pos]
+	checksum := buf[pos:]
+	sum := sha256.Sum256(data)
+	sum = sha256.Sum256(sum[:])
+	if !bytes.Equal(sum[0:4], checksum) {
+		return false
+	}
+	return true
 }
 
 func setRecovery(srvc *native.NativeService, encID []byte, recovery com.Address) error {
