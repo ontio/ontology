@@ -410,8 +410,6 @@ func validatorSetItem(e *ExecutionEngine) error {
 		if key == nil || value == nil {
 			return errors.ERR_BAD_VALUE
 		}
-	} else {
-		return errors.ERR_NOT_SUPPORT_TYPE
 	}
 	return nil
 }
