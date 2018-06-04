@@ -19,8 +19,6 @@
 package account
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -40,7 +38,6 @@ type AccountData struct {
 	SigSch    string `json:"signatureScheme"`
 	IsDefault bool   `json:"isDefault"`
 	Lock      bool   `json:"lock"`
-	PassHash  string `json:"passwordHash"`
 }
 
 func (this *AccountData) SetKeyPair(keyinfo *keypair.ProtectedKey) {
@@ -50,7 +47,9 @@ func (this *AccountData) SetKeyPair(keyinfo *keypair.ProtectedKey) {
 	this.Hash = keyinfo.Hash
 	this.Key = keyinfo.Key
 	this.Param = keyinfo.Param
+	this.Salt = keyinfo.Salt
 }
+
 func (this *AccountData) GetKeyPair() *keypair.ProtectedKey {
 	var keyinfo = new(keypair.ProtectedKey)
 	keyinfo.Address = this.Address
@@ -59,14 +58,8 @@ func (this *AccountData) GetKeyPair() *keypair.ProtectedKey {
 	keyinfo.Hash = this.Hash
 	keyinfo.Key = this.Key
 	keyinfo.Param = this.Param
+	keyinfo.Salt = this.Salt
 	return keyinfo
-}
-func (this *AccountData) VerifyPassword(pwd []byte) bool {
-	passwordHash := sha256.Sum256(pwd)
-	if this.PassHash != hex.EncodeToString(passwordHash[:]) {
-		return false
-	}
-	return true
 }
 
 func (this *AccountData) SetLabel(label string) {
@@ -191,9 +184,6 @@ func (this *WalletData) reencrypt(passwords [][]byte, param *keypair.ScryptParam
 	}
 	keys := make([]*keypair.ProtectedKey, len(this.Accounts))
 	for i, v := range this.Accounts {
-		if !v.VerifyPassword(passwords[i]) {
-			return fmt.Errorf("incorrect password of account %d", i+1)
-		}
 		prot, err := keypair.ReencryptPrivateKey(&v.ProtectedKey, passwords[i], passwords[i], this.Scrypt, param)
 		if err != nil {
 			return fmt.Errorf("re-encrypt account %d failed: %s", i, err)
