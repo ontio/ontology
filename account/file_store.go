@@ -93,7 +93,7 @@ func NewWalletData() *WalletData {
 	}
 }
 
-func (this *WalletData) Dump() *WalletData {
+func (this *WalletData) Clone() *WalletData {
 	w := WalletData{}
 	w.Name = this.Name
 	w.Version = this.Version

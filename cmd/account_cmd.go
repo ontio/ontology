@@ -462,7 +462,7 @@ func accountExport(ctx *cli.Context) error {
 				}
 			}
 		}
-		wallet = wallet.Dump()
+		wallet = wallet.Clone()
 		err := wallet.ToLowSecurity(passwords)
 		for _, v := range passwords {
 			common.ClearPasswd(v)
