@@ -222,18 +222,17 @@ func (this *SmartContract) AppCall(address common.Address, method string, codes,
 // Else check whether address is calling contract address
 // Param address: wallet address or contract address
 func (this *SmartContract) CheckWitness(address common.Address) bool {
-	if stypes.IsVmCodeAddress(address) {
-		if this.CallingContext() != nil && this.CallingContext().ContractAddress == address {
+	if this.CallingContext() != nil && this.CallingContext().ContractAddress == address {
+		return true
+	}
+
+	addresses := this.Config.Tx.GetSignatureAddresses()
+	for _, v := range addresses {
+		if v == address {
 			return true
 		}
-	} else {
-		addresses := this.Config.Tx.GetSignatureAddresses()
-		for _, v := range addresses {
-			if v == address {
-				return true
-			}
-		}
 	}
+
 	return false
 }
 
