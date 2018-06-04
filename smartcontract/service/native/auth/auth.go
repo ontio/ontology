@@ -493,6 +493,9 @@ func verifyToken(native *native.NativeService, contractAddr []byte, caller []byt
 			if err != nil {
 				return false, err
 			}
+			if token.expireTime < native.Time {
+				continue
+			}
 			for _, f := range funcs.funcNames {
 				if strings.Compare(fn, f) == 0 {
 					return true, nil
@@ -510,6 +513,9 @@ func verifyToken(native *native.NativeService, contractAddr []byte, caller []byt
 			funcs, err := getRoleFunc(native, contractAddr, s.role)
 			if err != nil {
 				return false, nil
+			}
+			if s.expireTime < native.Time {
+				continue
 			}
 			for _, f := range funcs.funcNames {
 				if strings.Compare(fn, f) == 0 {
