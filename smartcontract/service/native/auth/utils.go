@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -39,7 +40,7 @@ var (
 //type(this.contractAddr.Admin) = []byte
 func concatContractAdminKey(native *native.NativeService, contractAddr []byte) ([]byte, error) {
 	this := native.ContextRef.CurrentContext().ContractAddress
-	adminKey, err := packKeys(this[:], [][]byte{contractAddr, PreAdmin})
+	adminKey, err := packKeys(this, [][]byte{contractAddr, PreAdmin})
 
 	return adminKey, err
 }
@@ -71,7 +72,7 @@ func putContractAdmin(native *native.NativeService, contractAddr, adminOntID []b
 //type(this.contractAddr.RoleFunc.role) = roleFuncs
 func concatRoleFuncKey(native *native.NativeService, contractAddr, role []byte) ([]byte, error) {
 	this := native.ContextRef.CurrentContext().ContractAddress
-	roleFuncKey, err := packKeys(this[:], [][]byte{contractAddr, PreRoleFunc, role})
+	roleFuncKey, err := packKeys(this, [][]byte{contractAddr, PreRoleFunc, role})
 
 	return roleFuncKey, err
 }
@@ -111,7 +112,7 @@ func putRoleFunc(native *native.NativeService, contractAddr, role []byte, funcs 
 //type(this.contractAddr.RoleP.ontID) = roleTokens
 func concatOntIDTokenKey(native *native.NativeService, contractAddr, ontID []byte) ([]byte, error) {
 	this := native.ContextRef.CurrentContext().ContractAddress
-	tokenKey, err := packKeys(this[:], [][]byte{contractAddr, PreRoleToken, ontID})
+	tokenKey, err := packKeys(this, [][]byte{contractAddr, PreRoleToken, ontID})
 
 	return tokenKey, err
 }
@@ -151,7 +152,7 @@ func putOntIDToken(native *native.NativeService, contractAddr, ontID []byte, tok
 //type(this.contractAddr.DelegateStatus.ontID)
 func concatDelegateStatusKey(native *native.NativeService, contractAddr, ontID []byte) ([]byte, error) {
 	this := native.ContextRef.CurrentContext().ContractAddress
-	key, err := packKeys(this[:], [][]byte{contractAddr, PreDelegateStatus, ontID})
+	key, err := packKeys(this, [][]byte{contractAddr, PreDelegateStatus, ontID})
 
 	return key, err
 }
@@ -192,7 +193,7 @@ func putDelegateStatus(native *native.NativeService, contractAddr, ontID []byte,
  * pack data to be used as a key in the kv storage
  * key := field || ser_items[1] || ... || ser_items[n]
  */
-func packKeys(field []byte, items [][]byte) ([]byte, error) {
+func packKeys(field common.Address, items [][]byte) ([]byte, error) {
 	w := new(bytes.Buffer)
 	for _, item := range items {
 		err := serialization.WriteVarBytes(w, item)
@@ -200,7 +201,7 @@ func packKeys(field []byte, items [][]byte) ([]byte, error) {
 			return nil, fmt.Errorf("packKeys failed when serialize %x", item)
 		}
 	}
-	key := append(field, w.Bytes()...)
+	key := append(field[:], w.Bytes()...)
 	return key, nil
 }
 
@@ -208,7 +209,7 @@ func packKeys(field []byte, items [][]byte) ([]byte, error) {
  * pack data to be used as a key in the kv storage
  * key := field || ser_data
  */
-func packKey(field []byte, data []byte) ([]byte, error) {
+func packKey(field common.Address, data []byte) ([]byte, error) {
 	return packKeys(field, [][]byte{data})
 }
 
