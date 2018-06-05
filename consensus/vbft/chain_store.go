@@ -87,7 +87,7 @@ func (self *ChainStore) AddBlock(block *Block) error {
 			delete(self.pendingBlocks, blkNum)
 			blkNum++
 		} else {
-			log.Info("pendingBlock failed,blkNum %d",blkNum)
+			log.Infof("pendingBlock failed,blkNum %d",blkNum)
 			break
 		}
 	}

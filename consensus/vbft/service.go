@@ -226,7 +226,7 @@ func (self *Server) EndEmergency(height uint32) {
 	if height != self.completedBlockNum {
 		log.Errorf("EndEmergency failed:completedBlockNum:%d,height:%d", self.completedBlockNum, height)
 	}
-	chainconfig, err := self.getChainConfig()
+	chainconfig, err := getChainConfig(height)
 	if err != nil {
 		log.Errorf("getChainConfig failed:%s", err)
 		return
@@ -238,7 +238,7 @@ func (self *Server) EndEmergency(height uint32) {
 			log.Errorf("failed to add peer %d: %s", p.Index, err)
 			return
 		}
-		publickey, err := p.ID.Pubkey()
+		publickey, err :=vconfig.Pubkey(p.ID)
 		if err != nil {
 			log.Errorf("Pubkey failed: %v", err)
 			return
@@ -254,7 +254,7 @@ func (self *Server) EndEmergency(height uint32) {
 					self.Index, peerIdx, err)
 			}
 		}()
-		log.Infof("updateChainConfig add peer index%v,id:%v", p.ID.String(), p.Index)
+		log.Infof("updateChainConfig add peer index%v,id:%v", p.ID, p.Index)
 	}
 	self.chainStore.AddChainedBlockNum()
 	return
