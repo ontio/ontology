@@ -72,13 +72,3 @@ func (self *VmCode) AddressFromVmCode() common.Address {
 	addr[0] = byte(self.VmType)
 	return addr
 }
-
-// IsVmCodeAddress check whether address is smart contract address
-func IsVmCodeAddress(addr common.Address) bool {
-	vmType := addr[0]
-	if vmType == byte(Native) || vmType == byte(NEOVM) || vmType == byte(WASMVM) {
-		return true
-	}
-
-	return false
-}
