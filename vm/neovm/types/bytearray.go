@@ -21,6 +21,7 @@ package types
 import (
 	"math/big"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/vm/neovm/interfaces"
 )
 
@@ -54,7 +55,7 @@ func (this *ByteArray) Equals(other StackItems) bool {
 }
 
 func (this *ByteArray) GetBigInteger() *big.Int {
-	return ConvertBytesToBigInteger(this.value)
+	return common.BigIntFromNeoBytes(this.value)
 }
 
 func (this *ByteArray) GetBoolean() bool {
