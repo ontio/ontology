@@ -81,7 +81,7 @@ func TestAddressSerializationDeserialization(t *testing.T) {
 		t.Error(err)
 		return
 	} else {
-		t.Log("addr Test_Deserialization sucessful")
+		t.Log("addr Test_Deserialization successful")
 	}
 	for _, v := range demsg.NodeAddrs {
 		t.Log("new addr message after deserialize time = ", v.Time)

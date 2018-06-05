@@ -60,7 +60,7 @@ func TestPongSerializationDeserialization(t *testing.T) {
 		t.Error(err)
 		return
 	} else {
-		t.Log("pong Test_Deserialization sucessful")
+		t.Log("pong Test_Deserialization successful")
 	}
 
 	t.Log("deserialize pong message, msg.Height = ", demsg.Height)

@@ -1897,7 +1897,7 @@ func (self *Server) commitBlock(proposal *blockProposalMsg, forEmpty bool) error
 		return fmt.Errorf("failed to construct commit msg: %s", err)
 	}
 
-	// set the block as commited-block
+	// set the block as committed-block
 	if err := self.blockPool.setProposalCommitted(proposal, forEmpty); err != nil {
 		return fmt.Errorf("failed to set proposal as committed: %s", err)
 	}
