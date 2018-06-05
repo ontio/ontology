@@ -27,6 +27,7 @@ import (
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/urfave/cli"
 )
 
@@ -82,6 +83,10 @@ func setGenesis(ctx *cli.Context, cfg *config.GenesisConfig) error {
 			cfg.DBFT.GenBlockTime = config.DEFAULT_GEN_BLOCK_TIME
 		}
 	case config.CONSENSUS_TYPE_VBFT:
+		err = governance.CheckVBFTConfig(cfg.VBFT)
+		if err != nil {
+			return fmt.Errorf("VBFT config error %v", err)
+		}
 		if len(cfg.VBFT.Peers) < config.VBFT_MIN_NODE_NUM {
 			return fmt.Errorf("VBFT consensus at least need %d peers in config", config.VBFT_MIN_NODE_NUM)
 		}

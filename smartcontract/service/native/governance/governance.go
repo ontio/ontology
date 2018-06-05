@@ -138,7 +138,7 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 	//init globalParam
 	globalParam := &GlobalParam{
 		CandidateFee: 500,
-		MinInitStake: 10000,
+		MinInitStake: configuration.MinInitStake,
 		CandidateNum: 7 * 7,
 		A:            50,
 		B:            50,
@@ -151,54 +151,27 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(GLOBAL_PARAM)), &cstates.StorageItem{Value: bf.Bytes()})
 
 	//check the configuration
-	if configuration.C == 0 {
-		return utils.BYTE_FALSE, errors.NewErr("initConfig. C can not be 0 in config!")
-	}
-	if int(configuration.K) != len(configuration.Peers) {
-		return utils.BYTE_FALSE, errors.NewErr("initConfig. K must equal to length of peer in config!")
-	}
-	if configuration.L < 16*configuration.K {
-		return utils.BYTE_FALSE, errors.NewErr("initConfig. L can not be less than 16*K in config!")
-	}
-	if configuration.K < 2*configuration.C+1 {
-		return utils.BYTE_FALSE, errors.NewErr("initConfig. K can not be less than 2*C+1 in config!")
-	}
-	if configuration.N < configuration.K || configuration.K < 7 {
-		return utils.BYTE_FALSE, errors.NewErr("initConfig. config not match N >= K >= 7!")
+	err = CheckVBFTConfig(configuration)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewErr("checkVBFTConfig failed!")
 	}
 
 	var view uint32 = 1
-
-	indexMap := make(map[uint32]struct{})
 	var maxId uint32
 	//peers := []*PeerStakeInfo{}
 	peerPoolMap := &PeerPoolMap{
 		PeerPoolMap: make(map[string]*PeerPoolItem),
 	}
 	for _, peer := range configuration.Peers {
-		peerPoolItem := new(PeerPoolItem)
-		_, ok := indexMap[peer.Index]
-		if ok {
-			return utils.BYTE_FALSE, errors.NewErr("initConfig, peer index is duplicated!")
-		}
-		indexMap[peer.Index] = struct{}{}
-		if peer.Index <= 0 {
-			return utils.BYTE_FALSE, errors.NewErr("initConfig, peer index in config must > 0!")
-		}
 		if peer.Index > maxId {
 			maxId = peer.Index
-		}
-		if peer.InitPos < uint64(globalParam.MinInitStake) {
-			return utils.BYTE_FALSE, errors.NewErr(fmt.Sprintf("initConfig, initPos must >= %v!", globalParam.MinInitStake))
-		}
-		//check peerPubkey
-		if err := validatePeerPubKeyFormat(peer.PeerPubkey); err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "invalid peer pubkey")
 		}
 		address, err := common.AddressFromBase58(peer.Address)
 		if err != nil {
 			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "common.AddressFromBase58, address format error!")
 		}
+
+		peerPoolItem := new(PeerPoolItem)
 		peerPoolItem.Index = peer.Index
 		peerPoolItem.PeerPubkey = peer.PeerPubkey
 		peerPoolItem.Address = address
