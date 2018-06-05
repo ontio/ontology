@@ -551,7 +551,7 @@ func verifyToken(native *native.NativeService, contractAddr []byte, caller []byt
 			if err != nil {
 				return false, err
 			}
-			if token.expireTime < native.Time {
+			if funcs == nil || token.expireTime < native.Time {
 				continue
 			}
 			for _, f := range funcs.funcNames {
@@ -572,7 +572,7 @@ func verifyToken(native *native.NativeService, contractAddr []byte, caller []byt
 			if err != nil {
 				return false, err
 			}
-			if s.expireTime < native.Time {
+			if funcs == nil || s.expireTime < native.Time {
 				continue
 			}
 			for _, f := range funcs.funcNames {
