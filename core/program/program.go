@@ -117,6 +117,10 @@ type programParser struct {
 	buffer *bytes.Buffer
 }
 
+func newProgramParser(prog []byte) *programParser {
+	return &programParser{buffer: bytes.NewBuffer(prog)}
+}
+
 func (self *programParser) ReadOpCode() (neovm.OpCode, error) {
 	code, err := self.buffer.ReadByte()
 	return neovm.OpCode(code), err
@@ -138,14 +142,16 @@ func (self *programParser) ExpectEOF() error {
 }
 
 func (self *programParser) ReadNum() (uint16, error) {
-	code, err := self.ReadOpCode()
+	code, err := self.PeekOpCode()
 	if err != nil {
 		return 0, err
 	}
 
 	if code == neovm.PUSH0 {
+		self.ReadOpCode()
 		return 0, nil
 	} else if num := int(code) - int(neovm.PUSH1) + 1; 1 <= num && num <= 16 {
+		self.ReadOpCode()
 		return uint16(num), nil
 	}
 
@@ -153,15 +159,13 @@ func (self *programParser) ReadNum() (uint16, error) {
 	if err != nil {
 		return 0, err
 	}
-	bint := big.NewInt(0)
-	bint.SetBytes(buff)
+	bint := common.BigIntFromNeoBytes(buff)
 	num := bint.Int64()
 	if num > math.MaxUint16 || num <= 16 {
 		return 0, fmt.Errorf("num not in range (16, MaxUint16]: %d", num)
 	}
 
 	return uint16(num), nil
-
 }
 
 func (self *programParser) ReadBytes() ([]byte, error) {
@@ -184,7 +188,7 @@ func (self *programParser) ReadBytes() ([]byte, error) {
 		temp, err = serialization.ReadUint8(self.buffer)
 		keylen = uint64(temp)
 	} else if byte(code) <= byte(neovm.PUSHBYTES75) && byte(code) >= byte(neovm.PUSHBYTES1) {
-		keylen = uint64(code) - uint64(neovm.PUSHBYTES1) - 1
+		keylen = uint64(code) - uint64(neovm.PUSHBYTES1) + 1
 	} else {
 		err = fmt.Errorf("unexpected opcode: %d", byte(code))
 	}
