@@ -184,10 +184,10 @@ func SerializeStackItem(item vmtypes.StackItems, w io.Writer) error {
 			return errors.NewErr("Serialize Map stackItems error: " + err.Error())
 		}
 
-		for k, v := range mp {
-			switch v.(type) {
+		for k, _ := range mp {
+			switch k.(type) {
 			case *vmtypes.ByteArray, *vmtypes.Integer:
-				key := v.GetByteArray()
+				key := k.GetByteArray()
 				if key == nil {
 					return errors.NewErr("Serialize Map error: invalid key type")
 				}

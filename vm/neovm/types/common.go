@@ -96,12 +96,10 @@ func (b sortByteArrays) Len() int {
 }
 
 func (b sortByteArrays) Less(i, j int) bool {
-	switch bts.Compare(b[i], b[j]) {
-	case -1:
+	if bts.Compare(b[i], b[j]) < 0 {
 		return true
-	default:
-		return false
 	}
+	return false
 }
 
 func (b sortByteArrays) Swap(i, j int) {
