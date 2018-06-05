@@ -265,6 +265,9 @@ func accountSet(ctx *cli.Context) error {
 		return err
 	}
 	accMeta := common.GetAccountMetadataMulti(wallet, address)
+	if accMeta == nil {
+		return fmt.Errorf("Cannot find account info by:%s", address)
+	}
 	address = accMeta.Address
 	label := accMeta.Label
 	passwd, err := common.GetPasswd(ctx)
