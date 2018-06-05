@@ -16,11 +16,9 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package types
+package common
 
-import (
-	"math/big"
-)
+import "math/big"
 
 func bytesReverse(u []byte) []byte {
 	for i, j := 0, len(u)-1; i < j; i, j = i+1, j-1 {

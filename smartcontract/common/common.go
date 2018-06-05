@@ -38,7 +38,7 @@ func ConvertNeoVmTypeHexString(item interface{}) interface{} {
 		if v.GetBigInteger().Sign() == 0 {
 			return common.ToHexString([]byte{0})
 		} else {
-			return common.ToHexString(types.ConvertBigIntegerToBytes(v.GetBigInteger()))
+			return common.ToHexString(common.BigIntToNeoBytes(v.GetBigInteger()))
 		}
 	case *types.Boolean:
 		if v.GetBoolean() {
@@ -74,7 +74,7 @@ func ConvertNeoVmReturnTypes(item interface{}) interface{} {
 	case *types.ByteArray:
 		return v.GetByteArray()
 	case *types.Integer:
-		return types.ConvertBigIntegerToBytes(v.GetBigInteger())
+		return common.BigIntToNeoBytes(v.GetBigInteger())
 	case *types.Boolean:
 		if v.GetBoolean() {
 			return []byte{1}

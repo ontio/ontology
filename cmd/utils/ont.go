@@ -24,6 +24,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/big"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	sig "github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
@@ -39,12 +44,7 @@ import (
 	cstates "github.com/ontio/ontology/smartcontract/states"
 	vmtypes "github.com/ontio/ontology/smartcontract/types"
 	"github.com/ontio/ontology/vm/neovm"
-	neotypes "github.com/ontio/ontology/vm/neovm/types"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
-	"math/big"
-	"strconv"
-	"strings"
-	"time"
 )
 
 const (
@@ -798,7 +798,7 @@ func ParseNeoVMContractReturnTypeInteger(hexStr string) (int64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("hex.DecodeString error:%s", err)
 	}
-	return neotypes.ConvertBytesToBigInteger(data).Int64(), nil
+	return common.BigIntFromNeoBytes(data).Int64(), nil
 }
 
 //ParseNeoVMContractReturnTypeByteArray return []byte value of smart contract execute code.
