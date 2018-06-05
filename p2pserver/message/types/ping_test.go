@@ -60,7 +60,7 @@ func TestPingSerializationDeserialization(t *testing.T) {
 		t.Error(err)
 		return
 	} else {
-		t.Log("ping Test_Deserialization sucessful")
+		t.Log("ping Test_Deserialization successful")
 	}
 
 	t.Log("deserialize ping message, msg.Height = ", demsg.Height)

@@ -75,6 +75,6 @@ func TestNotFoundSerializationDeserialization(t *testing.T) {
 		t.Error(err)
 		return
 	} else {
-		t.Log("Notfound Test_Deserialization sucessful")
+		t.Log("Notfound Test_Deserialization successful")
 	}
 }

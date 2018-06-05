@@ -59,7 +59,7 @@ func TestDataReqSerializationDeserialization(t *testing.T) {
 		t.Error(err)
 		return
 	} else {
-		t.Log("getheaders Test_Deserialization sucessful")
+		t.Log("getheaders Test_Deserialization successful")
 	}
 
 	t.Log("new getdata message after deserialize DataType = ", demsg.DataType)

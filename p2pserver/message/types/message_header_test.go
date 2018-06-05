@@ -38,7 +38,7 @@ func TestMsgHdrSerializationDeserialization(t *testing.T) {
 		t.Error(err)
 		return
 	} else {
-		t.Log("Message Header Test_Deserialization sucessful")
+		t.Log("Message Header Test_Deserialization successful")
 	}
 	t.Log("cmd is ", msg.CMD)
 

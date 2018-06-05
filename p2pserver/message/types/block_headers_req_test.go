@@ -61,7 +61,7 @@ func TestBlkHdrReqSerializationDeserialization(t *testing.T) {
 		t.Error(err)
 		return
 	} else {
-		t.Log("getheaders Test_Deserialization sucessful")
+		t.Log("getheaders Test_Deserialization successful")
 	}
 
 	t.Log("new getheaders message after deserialize Len = ", demsg.P.Len)

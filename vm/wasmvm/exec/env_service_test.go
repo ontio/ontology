@@ -80,7 +80,7 @@ func TestInteropService_MergeMap(t *testing.T) {
 	service.Register("testFuncTrue", func(e *ExecutionEngine) (bool, error) { return true, nil })
 
 	smap := make(map[string]func(*ExecutionEngine) (bool, error))
-	smap["testFuncFalse"] = func(e *ExecutionEngine) (bool, error) { return false, errors.New("some error happend") }
+	smap["testFuncFalse"] = func(e *ExecutionEngine) (bool, error) { return false, errors.New("some error happened") }
 
 	res := service.MergeMap(smap)
 	if !res {
@@ -96,7 +96,7 @@ func TestInteropService_Invoke(t *testing.T) {
 	service := InteropService{make(map[string]func(*ExecutionEngine) (bool, error))}
 
 	service.Register("testFuncTrue", func(e *ExecutionEngine) (bool, error) { return true, nil })
-	//service.Register("testFuncFalse",func(e *ExecutionEngine)(bool,error){return false,errors.New("some error happend")})
+	//service.Register("testFuncFalse",func(e *ExecutionEngine)(bool,error){return false,errors.New("some error happened")})
 
 	_, err := service.Invoke("testFuncTrue", &ExecutionEngine{})
 	if err != nil {

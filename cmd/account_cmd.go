@@ -90,7 +90,7 @@ var (
 				Action:    accountList,
 				Name:      "list",
 				Usage:     "List existing accounts",
-				ArgsUsage: "[sub-command options] <label|addres|index>",
+				ArgsUsage: "[sub-command options] <label|address|index>",
 				Flags: []cli.Flag{
 					utils.WalletFileFlag,
 					utils.AccountVerboseFlag,
@@ -101,7 +101,7 @@ var (
 				Action:    accountSet,
 				Name:      "set",
 				Usage:     "Modify an account",
-				ArgsUsage: "[sub-command options] <label|addres|index>",
+				ArgsUsage: "[sub-command options] <label|address|index>",
 				Flags: []cli.Flag{
 					utils.AccountSetDefaultFlag,
 					utils.WalletFileFlag,

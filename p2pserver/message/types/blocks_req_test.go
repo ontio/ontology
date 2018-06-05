@@ -61,7 +61,7 @@ func TestBlkReqSerializationDeserialization(t *testing.T) {
 		t.Error(err)
 		return
 	} else {
-		t.Log("getblocks Test_Deserialization sucessful")
+		t.Log("getblocks Test_Deserialization successful")
 	}
 
 	t.Log("new getblocks message after deserialize HeaderHashCount = ", demsg.P.HeaderHashCount)
