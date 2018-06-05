@@ -19,12 +19,10 @@
 package types
 
 import (
-	//"github.com/ontio/ontology/vm/neovm/types"
-
 	"math/big"
 
 	"github.com/ontio/ontology/vm/neovm/interfaces"
-	//"bytes"
+
 	"reflect"
 )
 

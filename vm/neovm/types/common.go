@@ -19,7 +19,9 @@
 package types
 
 import (
+	bts "bytes"
 	"math/big"
+	"sort"
 )
 
 func bytesReverse(u []byte) []byte {
@@ -85,4 +87,29 @@ func ConvertBytesToBigInteger(ba []byte) *big.Int {
 
 	res.SetBytes(bytes)
 	return res
+}
+
+type sortByteArrays [][]byte
+
+func (b sortByteArrays) Len() int {
+	return len(b)
+}
+
+func (b sortByteArrays) Less(i, j int) bool {
+	switch bts.Compare(b[i], b[j]) {
+	case -1:
+		return true
+	default:
+		return false
+	}
+}
+
+func (b sortByteArrays) Swap(i, j int) {
+	b[j], b[i] = b[i], b[j]
+}
+
+func SortByteArrays(src [][]byte) [][]byte {
+	sorted := sortByteArrays(src)
+	sort.Sort(sorted)
+	return sorted
 }
