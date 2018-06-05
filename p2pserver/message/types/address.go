@@ -76,6 +76,9 @@ func (this *Addr) Deserialization(p []byte) error {
 	}
 	var NodeCnt uint64
 	err = binary.Read(buf, binary.LittleEndian, &NodeCnt)
+	if NodeCnt > comm.MAX_ADDR_NODE_CNT {
+		NodeCnt = comm.MAX_ADDR_NODE_CNT
+	}
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read NodeCnt error. buf:%v", buf))
 	}

@@ -38,7 +38,12 @@ const (
 	MAX_BLK_HDR_CNT  = 500              //hdr count once when sync header
 	MAX_INV_HDR_CNT  = 500              //inventory count once when req inv
 	MAX_REQ_BLK_ONCE = 16               //req blk count once from one peer when sync blk
-	MAX_MSG_LEN      = 30 * 1024 * 1024 // the maximum message length
+	MAX_MSG_LEN      = 30 * 1024 * 1024 //the maximum message length
+)
+
+//msg type const
+const (
+	MAX_ADDR_NODE_CNT = 128 //the maximum peer address from msg
 )
 
 //info update const
