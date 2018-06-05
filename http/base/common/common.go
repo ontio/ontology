@@ -147,9 +147,8 @@ type TXNAttrInfo struct {
 }
 
 type TXNEntryInfo struct {
-	Txn   Transactions  // transaction which has been verified
-	Fee   int64         // Total fee per transaction
-	Attrs []TXNAttrInfo // the result from each validator
+	Transaction Transactions  // transaction which has been verified
+	State       []TXNAttrInfo // the result from each validator
 }
 
 func GetExecuteNotify(obj *event.ExecuteNotify) (map[string]bool, ExecuteNotify) {

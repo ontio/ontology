@@ -169,7 +169,7 @@ func GetMemPoolTxState(params []interface{}) map[string]interface{} {
 		for _, t := range txEntry.Attrs {
 			attrs = append(attrs, bcomn.TXNAttrInfo{t.Height, int(t.Type), int(t.ErrCode)})
 		}
-		info := bcomn.TXNEntryInfo{*tran, int64(txEntry.Tx.GasPrice), attrs}
+		info := bcomn.TXNEntryInfo{*tran, attrs}
 		return responseSuccess(info)
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")

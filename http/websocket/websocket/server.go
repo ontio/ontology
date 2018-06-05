@@ -193,6 +193,7 @@ func (self *WsServer) registryMethod() {
 		"getblocktxsbyheight":       {handler: rest.GetBlockTxsByHeight},
 		"getgasprice":               {handler: rest.GetGasPrice},
 		"getunclaimong":             {handler: rest.GetUnclaimOng},
+		"getmempooltxstate":         {handler: rest.GetMemPoolTxState},
 
 		"getsessioncount": {handler: getsessioncount},
 	}
