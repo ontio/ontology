@@ -22,8 +22,10 @@ import (
 	"bytes"
 	"math/big"
 
+	"fmt"
 	"github.com/ontio/ontology-crypto/vrf"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
 	vbftconfig "github.com/ontio/ontology/consensus/vbft/config"
 	cstates "github.com/ontio/ontology/core/states"
@@ -205,6 +207,50 @@ func validatePeerPubKeyFormat(pubkey string) error {
 	}
 	if !vrf.ValidatePublicKey(pk) {
 		return errors.NewErr("invalid for VRF")
+	}
+	return nil
+}
+
+func CheckVBFTConfig(configuration *config.VBFTConfig) error {
+	if configuration.C == 0 {
+		return errors.NewErr("initConfig. C can not be 0 in config!")
+	}
+	if int(configuration.K) != len(configuration.Peers) {
+		return errors.NewErr("initConfig. K must equal to length of peer in config!")
+	}
+	if configuration.L < 16*configuration.K {
+		return errors.NewErr("initConfig. L can not be less than 16*K in config!")
+	}
+	if configuration.K < 2*configuration.C+1 {
+		return errors.NewErr("initConfig. K can not be less than 2*C+1 in config!")
+	}
+	if configuration.N < configuration.K || configuration.K < 7 {
+		return errors.NewErr("initConfig. config not match N >= K >= 7!")
+	}
+	if int(configuration.K) != len(configuration.Peers) {
+		return errors.NewErr("initConfig. K must equal to length of peers!")
+	}
+	indexMap := make(map[uint32]struct{})
+	for _, peer := range configuration.Peers {
+		_, ok := indexMap[peer.Index]
+		if ok {
+			return errors.NewErr("initConfig, peer index is duplicated!")
+		}
+		indexMap[peer.Index] = struct{}{}
+		if peer.Index <= 0 {
+			return errors.NewErr("initConfig, peer index in config must > 0!")
+		}
+		if peer.InitPos < uint64(configuration.MinInitStake) {
+			return errors.NewErr(fmt.Sprintf("initConfig, initPos must >= %v!", configuration.MinInitStake))
+		}
+		//check peerPubkey
+		if err := validatePeerPubKeyFormat(peer.PeerPubkey); err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "invalid peer pubkey")
+		}
+		_, err := common.AddressFromBase58(peer.Address)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "common.AddressFromBase58, address format error!")
+		}
 	}
 	return nil
 }

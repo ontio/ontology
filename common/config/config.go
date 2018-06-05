@@ -115,6 +115,7 @@ type VBFTConfig struct {
 	HashMsgDelay         uint32               `json:"hash_msg_delay"`
 	PeerHandshakeTimeout uint32               `json:"peer_handshake_timeout"`
 	MaxBlockChangeView   uint32               `json:"max_block_change_view"`
+	MinInitStake         uint32               `json:"min_init_stake"`
 	VrfValue             string               `json:"vrf_value"`
 	VrfProof             string               `json:"vrf_proof"`
 	Peers                []*VBFTPeerStakeInfo `json:"peers"`
