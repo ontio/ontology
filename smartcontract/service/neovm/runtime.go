@@ -24,6 +24,8 @@ import (
 	"io"
 	"math/big"
 
+	"sort"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
@@ -173,9 +175,9 @@ func SerializeStackItem(item vmtypes.StackItems, w io.Writer) error {
 		}
 
 	case *vmtypes.Map:
-		var unsortKey [][]byte
+		var unsortKey []string
 		mp := item.(*vmtypes.Map).GetMap()
-		keyMap := make(map[interface{}]vmtypes.StackItems, 0)
+		keyMap := make(map[string]vmtypes.StackItems, 0)
 
 		if err := serialization.WriteByte(w, vmtypes.MapType); err != nil {
 			return errors.NewErr("Serialize Map stackItems error: " + err.Error())
@@ -187,22 +189,21 @@ func SerializeStackItem(item vmtypes.StackItems, w io.Writer) error {
 		for k, _ := range mp {
 			switch k.(type) {
 			case *vmtypes.ByteArray, *vmtypes.Integer:
-				key := k.GetByteArray()
-				if key == nil {
+				key := string(k.GetByteArray())
+				if key == "" {
 					return errors.NewErr("Serialize Map error: invalid key type")
 				}
 				unsortKey = append(unsortKey, key)
-				keyMap[string(key)] = k
+				keyMap[key] = k
 
 			default:
 				return errors.NewErr("Unsupport map key type.")
 			}
 		}
 
-		sortKey := vmtypes.SortByteArrays(unsortKey)
-
-		for _, v := range sortKey {
-			key := keyMap[string(v)]
+		sort.Strings(unsortKey)
+		for _, v := range unsortKey {
+			key := keyMap[v]
 			SerializeStackItem(key, w)
 			SerializeStackItem(mp[key], w)
 		}
