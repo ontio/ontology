@@ -414,9 +414,14 @@ type ConsensusConfig struct {
 	MaxTxInBlock    uint
 }
 
+type P2PRsvConfig struct {
+	ReservedPeers []string `json:"reserved"`
+	MaskPeers     []string `json:"mask"`
+}
+
 type P2PNodeConfig struct {
-	ReservedPeers             []string
 	ReservedPeersOnly         bool
+	ReservedCfg               *P2PRsvConfig
 	NetworkMaigc              uint32
 	NetworkId                 uint32
 	NetworkName               string
@@ -479,7 +484,7 @@ func NewOntologyConfig() *OntologyConfig {
 			MaxTxInBlock:    DEFAULT_MAX_TX_IN_BLOCK,
 		},
 		P2PNode: &P2PNodeConfig{
-			ReservedPeers:             make([]string, 0),
+			ReservedCfg:               &P2PRsvConfig{},
 			ReservedPeersOnly:         false,
 			NetworkId:                 NETWORK_ID_MAIN_NET,
 			NetworkName:               GetNetworkName(NETWORK_ID_POLARIS_NET),

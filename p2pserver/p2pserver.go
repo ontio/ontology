@@ -496,7 +496,7 @@ func (this *P2PServer) removeFromRetryList(addr string) {
 
 //tryRecentPeers try connect recent contact peer when service start
 func (this *P2PServer) tryRecentPeers() {
-	if fileExist(common.RECENT_FILE_NAME) {
+	if comm.FileExisted(common.RECENT_FILE_NAME) {
 		buf, err := ioutil.ReadFile(common.RECENT_FILE_NAME)
 		if err != nil {
 			log.Error("read %s fail:%s, connect recent peers cancel", common.RECENT_FILE_NAME, err.Error())
@@ -583,16 +583,4 @@ func (this *P2PServer) syncPeerAddr() {
 			log.Error("write recent peer fail: ", err)
 		}
 	}
-}
-
-//fileExist check file exist status
-func fileExist(path string) bool {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true
-	}
-	if os.IsNotExist(err) {
-		return false
-	}
-	return false
 }
