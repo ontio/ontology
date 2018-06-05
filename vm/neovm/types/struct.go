@@ -100,3 +100,7 @@ func (s *Struct) Clone() StackItems {
 	}
 	return &Struct{arr}
 }
+
+func (this *Struct) GetMap() map[StackItems]StackItems {
+	return nil
+}

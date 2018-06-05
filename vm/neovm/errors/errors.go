@@ -44,4 +44,5 @@ var (
 	ERR_CALLING_CONTEXT_NIL      = errors.New("calling context is nil")
 	ERR_ENTRY_CONTEXT_NIL        = errors.New("entry context is nil")
 	ERR_APPEND_NOT_ARRAY         = errors.New("append not array")
+	ERR_NOT_SUPPORT_TYPE         = errors.New("not a supported type")
 )

@@ -70,3 +70,7 @@ func (this *Integer) GetArray() []StackItems {
 func (this *Integer) GetStruct() []StackItems {
 	return []StackItems{this}
 }
+
+func (this *Integer) GetMap() map[StackItems]StackItems {
+	return nil
+}

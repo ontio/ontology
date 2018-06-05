@@ -88,3 +88,7 @@ func (this *Array) GetArray() []StackItems {
 func (this *Array) GetStruct() []StackItems {
 	return this._array
 }
+
+func (this *Array) GetMap() map[StackItems]StackItems {
+	return nil
+}

@@ -158,6 +158,20 @@ func validatorLog(engine *vm.ExecutionEngine) error {
 	return nil
 }
 
+func validatorSerialize(engine *vm.ExecutionEngine) error {
+	if vm.EvaluationStackCount(engine) < 1 {
+		return errors.NewErr("[validatorSerialize] Too few input parameters ")
+	}
+	return nil
+}
+
+func validatorDeserialize(engine *vm.ExecutionEngine) error {
+	if vm.EvaluationStackCount(engine) < 1 {
+		return errors.NewErr("[validatorDeSerialize] Too few input parameters ")
+	}
+	return nil
+}
+
 func validatorCheckSig(engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 3 {
 		return errors.NewErr("[validatorCheckSig] Too few input parameters ")

@@ -354,19 +354,29 @@ func validatePickItem(e *ExecutionEngine) error {
 	if err := LogStackTrace(e, 2, "[validatePickItem]"); err != nil {
 		return err
 	}
-	index := PeekBigInteger(e)
-	if index.Sign() < 0 {
-		return errors.ERR_BAD_VALUE
-	}
+
 	item := PeekNStackItem(1, e)
 	if item == nil {
 		return errors.ERR_BAD_VALUE
 	}
-	if _, ok := item.(*types.Array); !ok {
-		return errors.ERR_NOT_ARRAY
-	}
-	if index.Cmp(big.NewInt(int64(len(item.GetArray())))) >= 0 {
-		return errors.ERR_OVER_MAX_ARRAY_SIZE
+
+	switch item.(type) {
+	case *types.Array:
+		index := PeekBigInteger(e)
+		if index.Sign() < 0 {
+			return errors.ERR_BAD_VALUE
+		}
+		if index.Cmp(big.NewInt(int64(len(item.GetArray())))) >= 0 {
+			return errors.ERR_OVER_MAX_ARRAY_SIZE
+		}
+	case *types.Map:
+		key := PeekNStackItem(0, e)
+		if key == nil {
+			return errors.ERR_BAD_VALUE
+		}
+	default:
+		return errors.ERR_NOT_SUPPORT_TYPE
+
 	}
 	return nil
 }
@@ -375,20 +385,32 @@ func validatorSetItem(e *ExecutionEngine) error {
 	if err := LogStackTrace(e, 3, "[validatorSetItem]"); err != nil {
 		return err
 	}
-	newItem := PeekNStackItem(0, e)
-	if newItem == nil {
+
+	value := PeekNStackItem(0, e)
+	if value == nil {
 		return errors.ERR_BAD_VALUE
 	}
-	index := PeekNBigInt(1, e)
-	if index.Sign() < 0 {
-		return errors.ERR_BAD_VALUE
-	}
+
 	item := PeekNStackItem(2, e)
 	if item == nil {
 		return errors.ERR_BAD_VALUE
 	}
-	if index.Cmp(big.NewInt(int64(len(item.GetArray())))) >= 0 {
-		return errors.ERR_OVER_MAX_ARRAY_SIZE
+
+	if _, ok := item.(*types.Array); ok {
+		index := PeekNBigInt(1, e)
+		if index.Sign() < 0 {
+			return errors.ERR_BAD_VALUE
+		}
+		if index.Cmp(big.NewInt(int64(len(item.GetArray())))) >= 0 {
+			return errors.ERR_OVER_MAX_ARRAY_SIZE
+		}
+	} else if _, ok := item.(*types.Map); ok {
+		key := PeekNStackItem(1, e)
+		if key == nil {
+			return errors.ERR_BAD_VALUE
+		}
+	} else {
+		return errors.ERR_NOT_SUPPORT_TYPE
 	}
 	return nil
 }
