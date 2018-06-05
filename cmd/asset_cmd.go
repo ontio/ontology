@@ -102,18 +102,18 @@ var AssetCommand = cli.Command{
 			},
 		},
 		{
-			Action:    unclaimOng,
-			Name:      "unclaimong",
-			Usage:     "Show the balance that user can claim",
+			Action:    unboundOng,
+			Name:      "unboundong",
+			Usage:     "Show the balance of unbound ONG",
 			ArgsUsage: "<address|label|index>",
 			Flags: []cli.Flag{
 				utils.WalletFileFlag,
 			},
 		},
 		{
-			Action:    claimOng,
-			Name:      "claimong",
-			Usage:     "Claim ong",
+			Action:    withdrawOng,
+			Name:      "withdrawong",
+			Usage:     "Withdraw ONG",
 			ArgsUsage: "<address|label|index>",
 			Flags: []cli.Flag{
 				utils.TransactionGasPriceFlag,
@@ -380,7 +380,7 @@ func transferFrom(ctx *cli.Context) error {
 	return nil
 }
 
-func unclaimOng(ctx *cli.Context) error {
+func unboundOng(ctx *cli.Context) error {
 	if ctx.NArg() < 1 {
 		fmt.Println("Missing argument. Account address, label or index expected.\n")
 		cli.ShowSubcommandHelp(ctx)
@@ -401,13 +401,13 @@ func unclaimOng(ctx *cli.Context) error {
 		return err
 	}
 	balanceStr = utils.FormatOng(balance)
-	fmt.Printf("Unclaim Ong:\n")
+	fmt.Printf("Unbound ONG:\n")
 	fmt.Printf("  Account:%s\n", accAddr)
 	fmt.Printf("  ONG:%s\n", balanceStr)
 	return nil
 }
 
-func claimOng(ctx *cli.Context) error {
+func withdrawOng(ctx *cli.Context) error {
 	if ctx.NArg() < 1 {
 		fmt.Println("Missing argument. Account address, label or index expected.\n")
 		cli.ShowSubcommandHelp(ctx)
@@ -429,7 +429,7 @@ func claimOng(ctx *cli.Context) error {
 		return err
 	}
 	if amount <= 0 {
-		return fmt.Errorf("Don't have unclaim ong\n")
+		return fmt.Errorf("Don't have unbound ong\n")
 	}
 
 	var signer *account.Account
@@ -446,7 +446,7 @@ func claimOng(ctx *cli.Context) error {
 		return err
 	}
 
-	fmt.Printf("Claim Ong:\n")
+	fmt.Printf("Withdraw ONG:\n")
 	fmt.Printf("  Account:%s\n", accAddr)
 	fmt.Printf("  Amount:%s\n", utils.FormatOng(amount))
 	fmt.Printf("  TxHash:%s\n", txHash)
