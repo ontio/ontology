@@ -21,11 +21,33 @@ package p2pserver
 import (
 	"bytes"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/states"
+	params "github.com/ontio/ontology/smartcontract/service/native/global_params"
 	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 )
+
+// getAdmin returns current admin
+func getAdmin() (common.Address, error) {
+	storageKey := &states.StorageKey{
+		CodeHash: nutils.ParamContractAddress,
+		Key:      append([]byte(params.ADMIN)),
+	}
+
+	data, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
+	if err != nil {
+		return common.Address{}, err
+	}
+	adminAddress := new(common.Address)
+	err = adminAddress.Deserialize(bytes.NewBuffer(data))
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	return *adminAddress, nil
+}
 
 // getGovernanceView returns current governance view
 func getGovernanceView() (*gov.GovernanceView, error) {

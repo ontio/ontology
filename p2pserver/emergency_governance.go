@@ -20,11 +20,11 @@ package p2pserver
 
 import (
 	"bytes"
-	"fmt"
 	"time"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
@@ -110,6 +110,7 @@ func (this *emergencyGov) Stop() {
 	}
 }
 
+// handleEmergencyGovTimeout handles emergency governance timeout event
 func (this *emergencyGov) handleEmergencyGovTimeout() {
 	this.context.reset()
 	// notify consensus and block sync mgr to recover
@@ -138,6 +139,7 @@ func (this *emergencyGov) handleEmergencyMsg(msg *msgCom.EmergencyMsg) {
 	}
 }
 
+// handleEmergencyBlockCompletedEvt handles emergency governance completed event
 func (this *emergencyGov) handleEmergencyBlockCompletedEvt() {
 	if this.context.getStatus() == EmergencyGovComplete {
 		return
@@ -162,7 +164,6 @@ func (this *emergencyGov) handleEmergencyBlockCompletedEvt() {
 
 // EmergencyActionResponseReceived handles an emergency governance response from network
 func (this *emergencyGov) EmergencyActionResponseReceived(msg *mt.EmergencyActionResponse) {
-	// Todo: Check whether local node  supports emergency governance policy
 	log.Info("EmergencyActionResponseReceived: receive emergency governance response")
 
 	if this.context.getStatus() == EmergencyGovComplete {
@@ -337,6 +338,31 @@ func (this *emergencyGov) checkReqSignature(msg *mt.EmergencyActionRequest) bool
 	return true
 }
 
+// checkAdmin checks if admin in msg is valid
+func (this *emergencyGov) checkAdmin(msg *mt.EmergencyActionRequest) bool {
+	admin, err := getAdmin()
+	if err != nil {
+		log.Errorf("startEmergencyGov: failed to get admin ", err)
+		return false
+	}
+
+	for _, sig := range msg.AdminSigs {
+		m := int(sig.M)
+		n := len(sig.PubKeys)
+		var addr common.Address
+		if n == 1 {
+			addr = types.AddressFromPubKey(sig.PubKeys[0])
+		} else {
+			addr, _ = types.AddressFromMultiPubKeys(sig.PubKeys, m)
+		}
+		log.Infof("addr %s, admin %s", addr.ToHexString(), admin.ToHexString())
+		if admin == addr {
+			return true
+		}
+	}
+	return false
+}
+
 // validatePendingRspMsg validates the emergency governance responses in cache
 func (this *emergencyGov) validatePendingRspMsg() {
 	if len(this.context.EmergencyRspCache) == 0 {
@@ -361,37 +387,47 @@ func (this *emergencyGov) validatePendingRspMsg() {
 }
 
 // EmergencyActionRequestReceived handles an emergency governance request from network
-func (this *emergencyGov) EmergencyActionRequestReceived(msg *mt.EmergencyActionRequest) error {
+func (this *emergencyGov) EmergencyActionRequestReceived(msg *mt.EmergencyActionRequest) {
 	// Todo: check whether local node support emergency governance
-	log.Infof("EmergencyActionRequestReceived: receive emergency governance request at height %d", msg.ProposalBlkNum)
+	log.Infof("EmergencyActionRequestReceived: receive emergency governance request at height %d",
+		msg.ProposalBlkNum)
 
 	if this.context != nil && this.context.getStatus() == EmergencyGovStart {
-		return fmt.Errorf("EmergencyActionRequestReceived: emergency governacne started")
+		log.Errorf("EmergencyActionRequestReceived: emergency governacne started")
+		return
 	}
 
 	// 1. Validate evidence
 	if !this.checkEvidence(msg.Evidence) {
-		return fmt.Errorf("EmergencyActionRequestReceived: checkEvidence failed %v",
+		log.Errorf("EmergencyActionRequestReceived: checkEvidence failed %v",
 			msg.Evidence)
+		return
 	}
 
 	// 2. Validate block
 	if !this.checkBlock(msg.ProposalBlk) {
-		return fmt.Errorf("EmergencyActionRequestReceived: checkBlock failed")
+		log.Errorf("EmergencyActionRequestReceived: checkBlock failed")
+		return
 	}
 
 	// 3. Validate admin signature
 	if !this.checkReqSignature(msg) {
-		return fmt.Errorf("EmergencyActionRequestReceived: checkSignature failed")
+		log.Errorf("EmergencyActionRequestReceived: checkSignature failed")
+		return
 	}
 
-	// Todo: 4. Validate admin pubkey
+	// 4. Validate admin pubkey
+	if !this.checkAdmin(msg) {
+		log.Errorf("EmergencyActionRequestReceived: checkAdmin failed")
+		return
+	}
 
 	this.context.reset()
 
 	peers, err := getPeers()
 	if err != nil {
-		return fmt.Errorf("EmergencyActionRequestReceived: failed to get peers. %v", err)
+		log.Errorf("EmergencyActionRequestReceived: failed to get peers. %v", err)
+		return
 	}
 	this.context.setPeers(peers)
 	this.context.setStatus(EmergencyGovStart)
@@ -409,7 +445,8 @@ func (this *emergencyGov) EmergencyActionRequestReceived(msg *mt.EmergencyAction
 	// Broadcast the response
 	response, err := this.constructEmergencyActionResponse(msg.ProposalBlk)
 	if err != nil {
-		return err
+		log.Errorf("failed to construct emergency response %v", err)
+		return
 	}
 
 	pubkey := this.server.GetPubKey()
@@ -423,7 +460,7 @@ func (this *emergencyGov) EmergencyActionRequestReceived(msg *mt.EmergencyAction
 	this.context.timer = time.NewTimer(TIME_OUT * time.Second)
 	go this.emergencyTimer()
 
-	return nil
+	return
 }
 
 // signBlock signs the block
@@ -454,24 +491,28 @@ func (this *emergencyGov) startEmergencyGov(msg *mt.EmergencyActionRequest) {
 	}
 	// 1. Validate evidence
 	if !this.checkEvidence(msg.Evidence) {
-		log.Errorf("EmergencyActionRequestReceived: checkEvidence failed %v",
+		log.Errorf("startEmergencyGov: checkEvidence failed %v",
 			msg.Evidence)
 		return
 	}
 
 	// 2. Validate block
 	if !this.checkBlock(msg.ProposalBlk) {
-		log.Errorf("EmergencyActionRequestReceived: checkBlock failed")
+		log.Errorf("startEmergencyGov: checkBlock failed")
 		return
 	}
 
 	// 3. Validate admin signature
 	if !this.checkReqSignature(msg) {
-		log.Errorf("EmergencyActionRequestReceived: checkSignature failed")
+		log.Errorf("startEmergencyGov: checkSignature failed")
 		return
 	}
 
-	// Todo: 4. Validate admin pubkey
+	// 4. Validate admin pubkey
+	if !this.checkAdmin(msg) {
+		log.Errorf("startEmergencyGov: checkAdmin failed")
+		return
+	}
 
 	// notify consensus and block sync mgr to pause
 	cmd := &msgCom.EmergencyGovCmd{
@@ -505,6 +546,7 @@ func (this *emergencyGov) startEmergencyGov(msg *mt.EmergencyActionRequest) {
 	go this.emergencyTimer()
 }
 
+// emergencyTimer watchs timeout event and notify handler to process it
 func (this *emergencyGov) emergencyTimer() {
 	select {
 	case <-this.context.timer.C:
