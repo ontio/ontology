@@ -102,7 +102,7 @@ type AccountMetadata struct {
 	Address   string //Address(base58) of account
 	PubKey    string //Public  key
 	SigSch    string //Signature scheme
-	PassHash  string //Hash of password
+	Salt      []byte //Salt
 	Key       []byte //PrivateKey in encrypted
 	EncAlg    string //Encrypt alg of private key
 	Hash      string //Hash alg

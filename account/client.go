@@ -212,6 +212,7 @@ func (this *ClientImpl) ImportAccount(accMeta *AccountMetadata) error {
 	accData.Address = accMeta.Address
 	accData.EncAlg = accMeta.EncAlg
 	accData.Hash = accMeta.Hash
+	accData.Salt = accMeta.Salt
 	accData.Param = map[string]string{"curve": accMeta.Curve}
 
 	oldAccMeta := this.GetAccountMetadataByLabel(accData.Label)
@@ -339,6 +340,7 @@ func (this *ClientImpl) getAccountMetadata(accData *AccountData) *AccountMetadat
 	accMeta.EncAlg = accData.EncAlg
 	accMeta.Hash = accData.Hash
 	accMeta.Curve = accData.Param["curve"]
+	accMeta.Salt = accData.Salt
 	return accMeta
 }
 
