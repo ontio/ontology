@@ -24,6 +24,7 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
 )
 
@@ -44,8 +45,12 @@ func (b *Block) Serialize(w io.Writer) error {
 	}
 
 	for _, transaction := range b.Transactions {
-		err := transaction.Serialize(w)
+		buf := bytes.NewBuffer([]byte{})
+		err := transaction.Serialize(buf)
 		if err != nil {
+			return err
+		}
+		if err := serialization.WriteVarBytes(w, buf.Bytes()); err != nil {
 			return err
 		}
 	}
@@ -67,19 +72,34 @@ func (b *Block) Deserialize(r io.Reader) error {
 		return err
 	}
 
-	var hashes = make([]common.Uint256, 0, length)
-	for i := uint32(0); i < length; i++ {
-		transaction := new(Transaction)
-		err := transaction.Deserialize(r)
+	// config ParallelDeserializeTxCount to 0, to disable parallel deserialization
+	// disabled by default.
+	parallelTxCount := uint32(config.DefConfig.Consensus.ParallelDeserializeTxCount)
+	if parallelTxCount > 0 && length > parallelTxCount {
+		txs, hashes, err := parallelDeserializeTxs(r, int(length))
 		if err != nil {
 			return err
 		}
-		txhash := transaction.Hash()
-		b.Transactions = append(b.Transactions, transaction)
-		hashes = append(hashes, txhash)
-	}
+		b.Transactions = txs
+		b.Header.TransactionsRoot = common.ComputeMerkleRoot(hashes)
+	} else {
+		var hashes = make([]common.Uint256, 0, length)
+		for i := uint32(0); i < length; i++ {
+			txdata, err := serialization.ReadVarBytes(r)
+			if err != nil {
+				return err
+			}
+			transaction := new(Transaction)
+			if err := transaction.Deserialize(bytes.NewBuffer(txdata)); err != nil {
+				return err
+			}
+			txhash := transaction.Hash()
+			b.Transactions = append(b.Transactions, transaction)
+			hashes = append(hashes, txhash)
+		}
 
-	b.Header.TransactionsRoot = common.ComputeMerkleRoot(hashes)
+		b.Header.TransactionsRoot = common.ComputeMerkleRoot(hashes)
+	}
 
 	return nil
 }
