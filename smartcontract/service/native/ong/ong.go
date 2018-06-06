@@ -63,7 +63,10 @@ func OngInit(native *native.NativeService) ([]byte, error) {
 	if amount > 0 {
 		return utils.BYTE_FALSE, errors.NewErr("Init ong has been completed!")
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, append(contract[:], getOntContext()...), utils.GetUInt64StorageItem(ONG_TOTAL_SUPPLY))
+
+	item := utils.GetUInt64StorageItem(ONG_TOTAL_SUPPLY)
+	native.CloneCache.Add(scommon.ST_STORAGE, ont.GetTotalSupplyKey(contract), item)
+	native.CloneCache.Add(scommon.ST_STORAGE, append(contract[:], utils.OntContractAddress[:]...), item)
 	ont.AddNotifications(native, contract, &ont.State{To: utils.OntContractAddress, Value: ONG_TOTAL_SUPPLY})
 	return utils.BYTE_TRUE, nil
 }
@@ -145,8 +148,4 @@ func OngBalanceOf(native *native.NativeService) ([]byte, error) {
 
 func OngAllowance(native *native.NativeService) ([]byte, error) {
 	return ont.GetBalanceValue(native, ont.APPROVE_FLAG)
-}
-
-func getOntContext() []byte {
-	return utils.OntContractAddress[:]
 }

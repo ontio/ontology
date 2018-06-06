@@ -84,9 +84,9 @@ func OntInit(native *native.NativeService) ([]byte, error) {
 	for _, v := range booKeepers {
 		address := ctypes.AddressFromPubKey(v)
 		native.CloneCache.Add(scommon.ST_STORAGE, append(contract[:], address[:]...), item)
-		native.CloneCache.Add(scommon.ST_STORAGE, GetTotalSupplyKey(contract), item)
 		AddNotifications(native, contract, &State{To: address, Value: assign})
 	}
+	native.CloneCache.Add(scommon.ST_STORAGE, GetTotalSupplyKey(contract), utils.GetUInt64StorageItem(uint64(ONT_TOTAL_SUPPLY)))
 
 	return utils.BYTE_TRUE, nil
 }
