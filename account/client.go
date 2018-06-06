@@ -20,16 +20,16 @@ package account
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	s "github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
-	"strings"
-	"sync"
-	"time"
 )
 
 //Client of wallet
@@ -157,8 +157,6 @@ func (this *ClientImpl) NewAccount(label string, typeCode keypair.KeyType, curve
 	accData.SetKeyPair(prvSecret)
 	accData.SigSch = sigScheme.Name()
 	accData.PubKey = hex.EncodeToString(keypair.SerializePublicKey(pubkey))
-	passHash := sha256.Sum256(passwd)
-	accData.PassHash = hex.EncodeToString(passHash[:])
 
 	err = this.addAccountData(accData)
 	if err != nil {
@@ -209,12 +207,12 @@ func (this *ClientImpl) ImportAccount(accMeta *AccountMetadata) error {
 	accData.Label = accMeta.Label
 	accData.PubKey = accMeta.PubKey
 	accData.SigSch = accMeta.SigSch
-	accData.PassHash = accMeta.PassHash
 	accData.Key = accMeta.Key
 	accData.Alg = accMeta.KeyType
 	accData.Address = accMeta.Address
 	accData.EncAlg = accMeta.EncAlg
 	accData.Hash = accMeta.Hash
+	accData.Salt = accMeta.Salt
 	accData.Param = map[string]string{"curve": accMeta.Curve}
 
 	oldAccMeta := this.GetAccountMetadataByLabel(accData.Label)
@@ -312,9 +310,6 @@ func (this *ClientImpl) GetDefaultAccountMetadata() *AccountMetadata {
 }
 
 func (this *ClientImpl) getAccount(accData *AccountData, passwd []byte) (*Account, error) {
-	if !accData.VerifyPassword(passwd) {
-		return nil, fmt.Errorf("verify password failed")
-	}
 	privateKey, err := keypair.DecryptWithCustomScrypt(&accData.ProtectedKey, passwd, this.walletData.Scrypt)
 	if err != nil {
 		return nil, fmt.Errorf("decrypt PrivateKey error:%s", err)
@@ -341,11 +336,11 @@ func (this *ClientImpl) getAccountMetadata(accData *AccountData) *AccountMetadat
 	accMeta.Key = accData.Key
 	accMeta.Address = accData.Address
 	accMeta.IsDefault = accData.IsDefault
-	accMeta.PassHash = accData.PassHash
 	accMeta.PubKey = accData.PubKey
 	accMeta.EncAlg = accData.EncAlg
 	accMeta.Hash = accData.Hash
 	accMeta.Curve = accData.Param["curve"]
+	accMeta.Salt = accData.Salt
 	return accMeta
 }
 
@@ -437,9 +432,6 @@ func (this *ClientImpl) SetDefaultAccount(address string, passwd []byte) error {
 	if !ok {
 		return fmt.Errorf("cannot find account by address:%s", address)
 	}
-	if !accData.VerifyPassword(passwd) {
-		return fmt.Errorf("verifyPassword failed")
-	}
 	old := this.defaultAcc
 	if old != nil {
 		old.IsDefault = false
@@ -473,9 +465,6 @@ func (this *ClientImpl) SetLabel(address, label string, passwd []byte) error {
 		return nil
 	}
 	oldLabel := accData.Label
-	if !accData.VerifyPassword(passwd) {
-		return fmt.Errorf("VerifyPassword failed")
-	}
 	accData.Label = label
 	err := this.save()
 	if err != nil {
@@ -497,11 +486,7 @@ func (this *ClientImpl) ChangePassword(address string, oldPasswd, newPasswd []by
 	if !ok {
 		return fmt.Errorf("cannot find account by address:%s", address)
 	}
-	if !accData.VerifyPassword(oldPasswd) {
-		return fmt.Errorf("verifyPassword failed")
-	}
 	oldPrvSecret := accData.GetKeyPair()
-	oldPasswdHash := accData.PassHash
 	prv, err := keypair.DecryptWithCustomScrypt(accData.GetKeyPair(), oldPasswd, this.walletData.Scrypt)
 	if err != nil {
 		return fmt.Errorf("keypair.DecryptWithCustomScrypt error:%s", err)
@@ -511,13 +496,9 @@ func (this *ClientImpl) ChangePassword(address string, oldPasswd, newPasswd []by
 		return fmt.Errorf("keypair.EncryptWithCustomScrypt error:%s", err)
 	}
 
-	h := sha256.Sum256(newPasswd)
-	newPassHash := hex.EncodeToString(h[:])
 	accData.SetKeyPair(newPrvSecret)
-	accData.PassHash = newPassHash
 	err = this.save()
 	if err != nil {
-		accData.PassHash = oldPasswdHash
 		accData.SetKeyPair(oldPrvSecret)
 		return fmt.Errorf("save error:%s", err)
 	}
@@ -530,9 +511,6 @@ func (this *ClientImpl) ChangeSigScheme(address string, sigScheme s.SignatureSch
 	accData, ok := this.accAddrs[address]
 	if !ok {
 		return fmt.Errorf("cannot find account by address:%s", address)
-	}
-	if !accData.VerifyPassword(passwd) {
-		return fmt.Errorf("verifyPassword failed")
 	}
 	if !this.checkSigScheme(accData.Alg, sigScheme.Name()) {
 		return fmt.Errorf("sigScheme:%s does not match KeyType:%s", sigScheme.Name(), accData.Alg)
