@@ -587,11 +587,11 @@ func TestDisconnectHandle(t *testing.T) {
 
 	network.AddNbrNode(remotePeer)
 
-	var m types.MsgCont
+	var hdr types.MsgHdr
 	cmd := msgCommon.DISCONNECT_TYPE
-	copy(m.Hdr.CMD[0:uint32(len(cmd))], cmd)
+	copy(hdr.CMD[0:uint32(len(cmd))], cmd)
 	var buf bytes.Buffer
-	binary.Write(&buf, binary.LittleEndian, m.Hdr)
+	binary.Write(&buf, binary.LittleEndian, hdr)
 	msgbuf := buf.Bytes()
 
 	msg := &msgCommon.MsgPayload{

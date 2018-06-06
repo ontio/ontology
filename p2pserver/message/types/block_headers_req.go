@@ -28,64 +28,30 @@ import (
 )
 
 type HeadersReq struct {
-	Hdr MsgHdr
-	P   struct {
-		Len       uint8
-		HashStart [common.HASH_LEN]byte
-		HashEnd   [common.HASH_LEN]byte
-	}
-}
-
-//Check whether header is correct
-func (this HeadersReq) Verify(buf []byte) error {
-	err := this.Hdr.Verify(buf)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetVerifyFail, fmt.Sprintf("verify error. buf:%v", buf))
-	}
-	return nil
+	Len       uint8
+	HashStart [common.HASH_LEN]byte
+	HashEnd   [common.HASH_LEN]byte
 }
 
 //Serialize message payload
-func (this HeadersReq) Serialization() ([]byte, error) {
+func (this *HeadersReq) Serialization() ([]byte, error) {
 	p := new(bytes.Buffer)
-	err := binary.Write(p, binary.LittleEndian, &(this.P))
+	err := binary.Write(p, binary.LittleEndian, this)
 	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("binary.Write payload error. payload:%v", this.P))
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("binary.Write payload error. payload:%v", this))
 	}
 
-	s := CheckSum(p.Bytes())
-	this.Hdr.Init("getheaders", s, uint32(len(p.Bytes())))
+	return p.Bytes(), nil
+}
 
-	hdrBuf, err := this.Hdr.Serialization()
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialization Hdr error. Hdr:%v", this.Hdr))
-	}
-	buf := bytes.NewBuffer(hdrBuf)
-	data := append(buf.Bytes(), p.Bytes()...)
-	return data, nil
+func (this *HeadersReq) CmdType() string {
+	return common.GET_HEADERS_TYPE
 }
 
 //Deserialize message payload
 func (this *HeadersReq) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(this.Hdr))
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read Hdr error. buf:%v", buf))
-	}
+	err := binary.Read(buf, binary.LittleEndian, this)
 
-	err = binary.Read(buf, binary.LittleEndian, &(this.P.Len))
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read P.Len error. buf:%v", buf))
-	}
-
-	err = binary.Read(buf, binary.LittleEndian, &(this.P.HashStart))
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read P.HashStart error. buf:%v", buf))
-	}
-
-	err = binary.Read(buf, binary.LittleEndian, &(this.P.HashEnd))
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read P.HashEnd error. buf:%v", buf))
-	}
-	return nil
+	return err
 }

@@ -372,12 +372,8 @@ func (self *Server) sendToPeer(peerIdx uint32, data []byte) error {
 	}
 	msg.Signature, _ = signature.Sign(self.account, buf.Bytes())
 
-	buffer, err := msgpack.NewConsensus(msg)
-	if err != nil {
-		log.Error("Error NewConsensus: ", err)
-		return err
-	}
-	self.p2p.Transmit(peer.PubKey, buffer)
+	cons := msgpack.NewConsensus(msg)
+	self.p2p.Transmit(peer.PubKey, cons)
 	return nil
 }
 

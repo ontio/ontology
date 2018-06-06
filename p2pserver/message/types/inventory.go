@@ -38,26 +38,19 @@ type InvPayload struct {
 }
 
 type Inv struct {
-	Hdr MsgHdr
-	P   InvPayload
-}
-
-//Check whether header is correct
-func (this Inv) Verify(buf []byte) error {
-	err := this.Hdr.Verify(buf)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetVerifyFail, fmt.Sprintf("verify error. buf:%v", buf))
-	}
-	return nil
+	P InvPayload
 }
 
 func (this Inv) invType() common.InventoryType {
 	return this.P.InvType
 }
 
+func (this *Inv) CmdType() string {
+	return p2pCommon.INV_TYPE
+}
+
 //Serialize message payload
 func (this Inv) Serialization() ([]byte, error) {
-
 	p := bytes.NewBuffer([]byte{})
 	err := serialization.WriteUint8(p, uint8(this.P.InvType))
 	if err != nil {
@@ -72,26 +65,12 @@ func (this Inv) Serialization() ([]byte, error) {
 		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. Blk:%v", this.P.Blk))
 	}
 
-	checkSumBuf := CheckSum(p.Bytes())
-	this.Hdr.Init("inv", checkSumBuf, uint32(len(p.Bytes())))
-
-	hdrBuf, err := this.Hdr.Serialization()
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialization error. Hdr:%v", this.Hdr))
-	}
-	buf := bytes.NewBuffer(hdrBuf)
-	data := append(buf.Bytes(), p.Bytes()...)
-	return data, nil
+	return p.Bytes(), nil
 }
 
 //Deserialize message payload
 func (this *Inv) Deserialization(p []byte) error {
-	err := this.Hdr.Deserialization(p)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("deserialization Hdr error. buf:%v", p))
-	}
-
-	buf := bytes.NewBuffer(p[p2pCommon.MSG_HDR_LEN:])
+	buf := bytes.NewBuffer(p)
 	invType, err := serialization.ReadUint8(buf)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read invType error. buf:%v", buf))

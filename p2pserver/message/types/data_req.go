@@ -25,10 +25,10 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/errors"
+	common2 "github.com/ontio/ontology/p2pserver/common"
 )
 
 type DataReq struct {
-	MsgHdr
 	DataType common.InventoryType
 	Hash     common.Uint256
 }
@@ -45,27 +45,17 @@ func (this DataReq) Serialization() ([]byte, error) {
 		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialization error. Hash:%v", this.Hash))
 	}
 
-	checkSumBuf := CheckSum(p.Bytes())
-	this.Init("getdata", checkSumBuf, uint32(len(p.Bytes())))
+	return p.Bytes(), nil
+}
 
-	hdrBuf, err := this.MsgHdr.Serialization()
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialization error. MsgHdr:%v", this.MsgHdr))
-	}
-	buf := bytes.NewBuffer(hdrBuf)
-	data := append(buf.Bytes(), p.Bytes()...)
-	return data, nil
+func (this *DataReq) CmdType() string {
+	return common2.GET_DATA_TYPE
 }
 
 //Deserialize message payload
 func (this *DataReq) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(this.MsgHdr))
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read MsgHdr error. buf:%v", buf))
-	}
-
-	err = binary.Read(buf, binary.LittleEndian, &(this.DataType))
+	err := binary.Read(buf, binary.LittleEndian, &(this.DataType))
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read DataType error. buf:%v", buf))
 	}

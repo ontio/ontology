@@ -41,7 +41,7 @@ import (
 )
 
 // AddrReqHandle hadnles the neighbor address request from peer
-func AddrReqHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
 	log.Debug("receive addr request message", data.Addr, data.Id)
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
@@ -51,37 +51,26 @@ func AddrReqHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 
 	var addrStr []msgCommon.PeerAddr
 	addrStr = p2p.GetNeighborAddrs()
-	buf, err := msgpack.NewAddrs(addrStr)
+	msg := msgpack.NewAddrs(addrStr)
+	err := p2p.Send(remotePeer, msg, false)
 	if err != nil {
 		log.Error(err)
 		return
 	}
-	p2p.Send(remotePeer, buf, false)
 }
 
 // HeaderReqHandle handles the header sync req from peer
-func HeadersReqHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+func HeadersReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
 	log.Debug("receive headers request message", data.Addr, data.Id)
-	length := len(data.Payload)
 
-	var headersReq msgTypes.HeadersReq
-	headersReq.Deserialization(data.Payload[:length])
-	if err := headersReq.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]); err != nil {
-		log.Error(err)
-		return
-	}
+	headersReq := data.Payload.(*msgTypes.HeadersReq)
 
 	var startHash [msgCommon.HASH_LEN]byte
 	var stopHash [msgCommon.HASH_LEN]byte
-	startHash = headersReq.P.HashStart
-	stopHash = headersReq.P.HashEnd
+	startHash = headersReq.HashStart
+	stopHash = headersReq.HashEnd
 
 	headers, err := GetHeadersFromHash(startHash, stopHash)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-	buf, err := msgpack.NewHeaders(headers)
 	if err != nil {
 		log.Error(err)
 		return
@@ -91,25 +80,19 @@ func HeadersReqHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID
 		log.Error("remotePeer invalid in HeadersReqHandle()")
 		return
 	}
-	p2p.Send(remotePeer, buf, false)
-}
-
-//PingHandle handle ping msg from peer
-func PingHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-	log.Debug("receive ping message", data.Addr, data.Id)
-	length := len(data.Payload)
-
-	var ping msgTypes.Ping
-	err := ping.Deserialization(data.Payload[:length])
+	msg := msgpack.NewHeaders(headers)
+	err = p2p.Send(remotePeer, msg, false)
 	if err != nil {
 		log.Error(err)
 		return
 	}
-	if err = ping.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]); err != nil {
-		log.Error(err)
-		return
-	}
+}
 
+//PingHandle handle ping msg from peer
+func PingHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	log.Debug("receive ping message", data.Addr, data.Id)
+
+	ping := data.Payload.(*msgTypes.Ping)
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
 		log.Error("remotePeer invalid in PingHandle")
@@ -119,30 +102,19 @@ func PingHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 
 	height := ledger.DefLedger.GetCurrentBlockHeight()
 	p2p.SetHeight(uint64(height))
-	buf, err := msgpack.NewPongMsg(uint64(height))
+	msg := msgpack.NewPongMsg(uint64(height))
 
+	err := p2p.Send(remotePeer, msg, false)
 	if err != nil {
 		log.Error(err)
-	} else {
-		p2p.Send(remotePeer, buf, false)
 	}
 }
 
 ///PongHandle handle pong msg from peer
-func PongHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+func PongHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
 	log.Debug("receive pong message", data.Addr, data.Id)
-	length := len(data.Payload)
 
-	var pong msgTypes.Pong
-	err := pong.Deserialization(data.Payload[:length])
-	if err != nil {
-		log.Error(err)
-		return
-	}
-	if err = pong.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]); err != nil {
-		log.Error(err)
-		return
-	}
+	pong := data.Payload.(*msgTypes.Pong)
 
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
@@ -150,54 +122,26 @@ func PongHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 		return
 	}
 	remotePeer.SetHeight(pong.Height)
-
 }
 
 // BlkHeaderHandle handles the sync headers from peer
-func BlkHeaderHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+func BlkHeaderHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
 	log.Debug("receive block header message", data.Addr, data.Id)
-	length := len(data.Payload)
-	var blkHeader msgTypes.BlkHeader
-	err := blkHeader.Deserialization(data.Payload[:length])
-	if err != nil {
-		log.Error(err)
-		return
-	}
-	if err = blkHeader.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]); err != nil {
-		log.Error(err)
-		return
-	}
-
-	var blkHdr []*types.Header
-	var i uint32
-	for i = 0; i < blkHeader.Cnt; i++ {
-		blkHdr = append(blkHdr, &blkHeader.BlkHdr[i])
-	}
 	if pid != nil {
+		var blkHeader = data.Payload.(*msgTypes.BlkHeader)
 		input := &msgCommon.AppendHeaders{
-			Headers: blkHdr,
+			Headers: blkHeader.BlkHdr,
 		}
 		pid.Tell(input)
 	}
 }
 
 // BlockHandle handles the block message from peer
-func BlockHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
 	log.Debug("receive block message from ", data.Addr, data.Id)
-	length := len(data.Payload)
-
-	var block msgTypes.Block
-	err := block.Deserialization(data.Payload[:length])
-	if err != nil {
-		log.Error(err)
-		return
-	}
-	if err = block.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]); err != nil {
-		log.Error(err)
-		return
-	}
 
 	if pid != nil {
+		var block = data.Payload.(*msgTypes.Block)
 		input := &msgCommon.AppendBlock{
 			Block: &block.Blk,
 		}
@@ -206,76 +150,40 @@ func BlockHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, arg
 }
 
 // ConsensusHandle handles the consensus message from peer
-func ConsensusHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+func ConsensusHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
 	log.Debug("receive consensus message", data.Addr, data.Id)
-	length := len(data.Payload)
-
-	var consensus msgTypes.Consensus
-	err := consensus.Deserialization(data.Payload[:length])
-	if err != nil {
-		log.Error(err)
-		return
-	}
-	if err = consensus.Cons.Verify(); err != nil {
-		log.Error(err)
-		return
-	}
 
 	if actor.ConsensusPid != nil {
+		var consensus = data.Payload.(*msgTypes.Consensus)
+		if err := consensus.Cons.Verify(); err != nil {
+			log.Error(err)
+			return
+		}
 		actor.ConsensusPid.Tell(&consensus.Cons)
 	}
 }
 
 // NotFoundHandle handles the not found message from peer
-func NotFoundHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-	length := len(data.Payload)
-
-	var notFound msgTypes.NotFound
-	err := notFound.Deserialization(data.Payload[:length])
-	if err != nil {
-		log.Error(err)
-		return
-	}
+func NotFoundHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	var notFound = data.Payload.(*msgTypes.NotFound)
 	log.Debug("receive notFound message, hash is ", notFound.Hash)
 }
 
 // TransactionHandle handles the transaction message from peer
-func TransactionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
 	log.Debug("receive transaction message", data.Addr, data.Id)
-	length := len(data.Payload)
 
-	var trn msgTypes.Trn
-	err := trn.Deserialization(data.Payload[:length])
-	if err != nil {
-		log.Error(err)
-		return
-	}
-	tx := &trn.Txn
-	actor.AddTransaction(tx)
-	log.Debug("receive Transaction message hash", tx.Hash())
+	var trn = data.Payload.(*msgTypes.Trn)
+	actor.AddTransaction(trn.Txn)
+	log.Debug("receive Transaction message hash", trn.Txn.Hash())
 
 }
 
 // VersionHandle handles version handshake protocol from peer
-func VersionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
 	log.Debug("receive version message", data.Addr, data.Id)
-	length := len(data.Payload)
 
-	if length == 0 {
-		log.Errorf("nil message for %s", msgCommon.VERSION_TYPE)
-		return
-	}
-
-	version := msgTypes.Version{}
-	err := version.Deserialization(data.Payload[:length])
-	if err != nil {
-		log.Error(err)
-		return
-	}
-	if err = version.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]); err != nil {
-		log.Error(err)
-		return
-	}
+	version := data.Payload.(*msgTypes.Version)
 
 	remotePeer := p2p.GetPeerFromAddr(data.Addr)
 	if remotePeer == nil {
@@ -326,29 +234,23 @@ func VersionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 			version.P.ConsPort, version.P.Nonce,
 			version.P.Relay, version.P.StartHeight)
 
-		var buf []byte
+		var msg msgTypes.Message
 		if s == msgCommon.INIT {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKE)
 			vpl := msgpack.NewVersionPayload(p2p, true, ledger.DefLedger.GetCurrentBlockHeight())
-			buf, err = msgpack.NewVersion(vpl, p2p.GetPubKey())
-			if err != nil {
-				log.Error(err)
-				return
-			}
-
+			msg = msgpack.NewVersion(vpl, p2p.GetPubKey())
 		} else if s == msgCommon.HAND {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKED)
-			buf, err = msgpack.NewVerAck(true)
-			if err != nil {
-				log.Error(err)
-				return
-			}
+			msg = msgpack.NewVerAck(true)
 
 		}
-		p2p.Send(remotePeer, buf, true)
+		err := p2p.Send(remotePeer, msg, true)
+		if err != nil {
+			log.Error(err)
+			return
+		}
 
 	} else {
-
 		if version.P.Nonce == p2p.GetID() {
 			log.Warn("the node handshake with itself")
 			remotePeer.CloseSync()
@@ -400,43 +302,29 @@ func VersionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 			pid.Tell(input)
 		}
 
-		var buf []byte
+		var msg msgTypes.Message
 		if s == msgCommon.INIT {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKE)
 			vpl := msgpack.NewVersionPayload(p2p, false, ledger.DefLedger.GetCurrentBlockHeight())
-			buf, err = msgpack.NewVersion(vpl, p2p.GetPubKey())
-			if err != nil {
-				log.Error(err)
-				return
-			}
+			msg = msgpack.NewVersion(vpl, p2p.GetPubKey())
 		} else if s == msgCommon.HAND {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKED)
-			buf, err = msgpack.NewVerAck(false)
-			if err != nil {
-				log.Error(err)
-				return
-			}
+			msg = msgpack.NewVerAck(false)
 		}
-		p2p.Send(remotePeer, buf, false)
+		err := p2p.Send(remotePeer, msg, false)
+		if err != nil {
+			log.Error(err)
+			return
+		}
 	}
 }
 
 // VerAckHandle handles the version ack from peer
-func VerAckHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
 	log.Debug("receive verAck message from ", data.Addr, data.Id)
-	length := len(data.Payload)
 	p2p.RemoveFromConnectingList(data.Addr)
-	if length == 0 {
-		log.Errorf("nil message for %s", msgCommon.VERACK_TYPE)
-		return
-	}
 
-	verAck := msgTypes.VerACK{}
-	err := verAck.Deserialization(data.Payload[:length])
-	if err != nil {
-		log.Error(err)
-		return
-	}
+	verAck := data.Payload.(*msgTypes.VerACK)
 	remotePeer := p2p.GetPeer(data.Id)
 
 	if remotePeer == nil {
@@ -459,8 +347,8 @@ func VerAckHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		remotePeer.SetConsConn(remotePeer.GetConsConn())
 
 		if s == msgCommon.HAND_SHAKE {
-			buf, _ := msgpack.NewVerAck(true)
-			p2p.Send(remotePeer, buf, true)
+			msg := msgpack.NewVerAck(true)
+			p2p.Send(remotePeer, msg, true)
 		}
 	} else {
 		s := remotePeer.GetSyncState()
@@ -476,9 +364,8 @@ func VerAckHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		addr := remotePeer.SyncLink.GetAddr()
 
 		if s == msgCommon.HAND_SHAKE {
-			buf, _ := msgpack.NewVerAck(false)
-			p2p.Send(remotePeer, buf, false)
-
+			msg := msgpack.NewVerAck(false)
+			p2p.Send(remotePeer, msg, false)
 		} else {
 			//consensus port connect
 			if config.DefConfig.P2PNode.DualPortSupport && remotePeer.GetConsPort() > 0 {
@@ -493,32 +380,17 @@ func VerAckHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 			}
 		}
 
-		buf, err := msgpack.NewAddrReq()
-		if err != nil {
-			log.Error(err)
-			return
-		}
-		go p2p.Send(remotePeer, buf, false)
+		msg := msgpack.NewAddrReq()
+		go p2p.Send(remotePeer, msg, false)
 	}
 
 }
 
 // AddrHandle handles the neighbor address response message from peer
-func AddrHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+func AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
 	log.Debug("handle addr message", data.Addr, data.Id)
-	length := len(data.Payload)
 
-	var msg msgTypes.Addr
-	err := msg.Deserialization(data.Payload[:length])
-	if err != nil {
-		log.Error(err)
-		return
-	}
-	if err = msg.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]); err != nil {
-		log.Error(err)
-		return
-	}
-
+	var msg = data.Payload.(*msgTypes.Addr)
 	for _, v := range msg.NodeAddrs {
 		var ip net.IP
 		ip = v.IpAddr[:]
@@ -546,16 +418,11 @@ func AddrHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 }
 
 // DataReqHandle handles the data req(block/Transaction) from peer
-func DataReqHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
 	log.Debug("receive data req message", data.Addr, data.Id)
-	length := len(data.Payload)
 
-	var dataReq msgTypes.DataReq
-	err := dataReq.Deserialization(data.Payload[:length])
-	if err != nil {
-		log.Error(err)
-		return
-	}
+	var dataReq = data.Payload.(*msgTypes.DataReq)
+
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
 		log.Error("remotePeer invalid in DataReqHandle")
@@ -569,45 +436,37 @@ func DataReqHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 		if err != nil || block == nil || block.Header == nil {
 			log.Debug("can't get block by hash: ", hash,
 				" ,send not found message")
-			b, err := msgpack.NewNotFound(hash)
+			msg := msgpack.NewNotFound(hash)
+			err := p2p.Send(remotePeer, msg, false)
 			if err != nil {
 				log.Error(err)
 				return
 			}
-			p2p.Send(remotePeer, b, false)
 			return
 		}
 		log.Debug("block height is ", block.Header.Height,
 			" ,hash is ", hash)
-		buf, err := msgpack.NewBlock(block)
+		msg := msgpack.NewBlock(block)
+		err = p2p.Send(remotePeer, msg, false)
 		if err != nil {
 			log.Error(err)
 			return
 		}
-		p2p.Send(remotePeer, buf, false)
 
 	case common.TRANSACTION:
 		txn, err := ledger.DefLedger.GetTransaction(hash)
 		if err != nil {
 			log.Debug("Can't get transaction by hash: ",
 				hash, " ,send not found message")
-			b, err := msgpack.NewNotFound(hash)
-			if err != nil {
-				log.Error(err)
-				return
-			}
-			err = p2p.Send(remotePeer, b, false)
+			msg := msgpack.NewNotFound(hash)
+			err = p2p.Send(remotePeer, msg, false)
 			if err != nil {
 				log.Error(err)
 				return
 			}
 		}
-		buf, err := msgpack.NewTxn(txn)
-		if err != nil {
-			log.Error(err)
-			return
-		}
-		err = p2p.Send(remotePeer, buf, false)
+		msg := msgpack.NewTxn(txn)
+		err = p2p.Send(remotePeer, msg, false)
 		if err != nil {
 			log.Error(err)
 			return
@@ -617,19 +476,9 @@ func DataReqHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 
 // InvHandle handles the inventory message(block,
 // transaction and consensus) from peer.
-func InvHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
 	log.Debug("receive inv message", data.Addr, data.Id)
-	length := len(data.Payload)
-	var inv msgTypes.Inv
-	err := inv.Deserialization(data.Payload[:length])
-	if err != nil {
-		log.Error(err)
-		return
-	}
-	if err = inv.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]); err != nil {
-		log.Error(err)
-		return
-	}
+	var inv = data.Payload.(*msgTypes.Inv)
 
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
@@ -653,12 +502,8 @@ func InvHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 		}
 		trn, err := ledger.DefLedger.GetTransaction(id)
 		if trn == nil || err != nil {
-			txnDataReq, err := msgpack.NewTxnDataReq(id)
-			if err != nil {
-				log.Error(err)
-				return
-			}
-			err = p2p.Send(remotePeer, txnDataReq, false)
+			msg := msgpack.NewTxnDataReq(id)
+			err = p2p.Send(remotePeer, msg, false)
 			if err != nil {
 				log.Error(err)
 				return
@@ -681,12 +526,8 @@ func InvHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 				msgTypes.LastInvHash = id
 				// send the block request
 				log.Infof("inv request block hash: %x", id)
-				blkDataReq, err := msgpack.NewBlkDataReq(id)
-				if err != nil {
-					log.Error(err)
-					return
-				}
-				err = p2p.Send(remotePeer, blkDataReq, false)
+				msg := msgpack.NewBlkDataReq(id)
+				err = p2p.Send(remotePeer, msg, false)
 				if err != nil {
 					log.Error(err)
 					return
@@ -696,12 +537,8 @@ func InvHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 	case common.CONSENSUS:
 		log.Debug("receive consensus message")
 		id.Deserialize(bytes.NewReader(inv.P.Blk[:32]))
-		consDataReq, err := msgpack.NewConsensusDataReq(id)
-		if err != nil {
-			log.Error(err)
-			return
-		}
-		err = p2p.Send(remotePeer, consDataReq, true)
+		msg := msgpack.NewConsensusDataReq(id)
+		err := p2p.Send(remotePeer, msg, true)
 		if err != nil {
 			log.Error(err)
 			return
@@ -713,7 +550,7 @@ func InvHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 }
 
 // DisconnectHandle handles the disconnect events
-func DisconnectHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
 		return
@@ -734,10 +571,10 @@ func DisconnectHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID
 }
 
 //get blk hdrs from starthash to stophash
-func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]types.Header, error) {
+func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]*types.Header, error) {
 	var count uint32 = 0
 	var empty [msgCommon.HASH_LEN]byte
-	headers := []types.Header{}
+	headers := []*types.Header{}
 	var startHeight uint32
 	var stopHeight uint32
 	curHeight := ledger.DefLedger.GetCurrentHeaderHeight()
@@ -800,7 +637,7 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]ty
 			log.Errorf("net_server GetBlockWithHeight failed with err=%s, hash=%x,height=%d\n", err.Error(), hash, stopHeight+i)
 			return nil, err
 		}
-		headers = append(headers, *hd)
+		headers = append(headers, hd)
 	}
 
 	return headers, nil

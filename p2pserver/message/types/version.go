@@ -26,6 +26,7 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/p2pserver/common"
 )
 
 type VersionPayload struct {
@@ -44,19 +45,10 @@ type VersionPayload struct {
 	Relay       uint8
 	IsConsensus bool
 }
-type Version struct {
-	Hdr MsgHdr
-	P   VersionPayload
-	PK  keypair.PublicKey
-}
 
-//Check whether header is correct
-func (this Version) Verify(buf []byte) error {
-	err := this.Hdr.Verify(buf)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetVerifyFail, fmt.Sprintf("verify error. buf:%v", buf))
-	}
-	return nil
+type Version struct {
+	P  VersionPayload
+	PK keypair.PublicKey
 }
 
 //Serialize message payload
@@ -71,28 +63,18 @@ func (this Version) Serialization() ([]byte, error) {
 		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. publickey:%v", this.PK))
 	}
 
-	checkSumBuf := CheckSum(p.Bytes())
-	this.Hdr.Init("version", checkSumBuf, uint32(len(p.Bytes())))
+	return p.Bytes(), nil
+}
 
-	hdrBuf, err := this.Hdr.Serialization()
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialization error. Hdr:%v", this.Hdr))
-	}
-	buf := bytes.NewBuffer(hdrBuf)
-	data := append(buf.Bytes(), p.Bytes()...)
-	return data, nil
+func (this *Version) CmdType() string {
+	return common.VERSION_TYPE
 }
 
 //Deserialize message payload
 func (this *Version) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 
-	err := binary.Read(buf, binary.LittleEndian, &(this.Hdr))
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read Hdr error. buf:%v", buf))
-	}
-
-	err = binary.Read(buf, binary.LittleEndian, &(this.P))
+	err := binary.Read(buf, binary.LittleEndian, &(this.P))
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read payload error. buf:%v", buf))
 	}

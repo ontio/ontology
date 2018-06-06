@@ -19,46 +19,21 @@
 package types
 
 import (
-	"bytes"
-	"encoding/binary"
-	"fmt"
-
-	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/p2pserver/common"
 )
 
-type AddrReq struct {
-	Hdr MsgHdr
-}
-
-//Check whether header is correct
-func (this AddrReq) Verify(buf []byte) error {
-	err := this.Hdr.Verify(buf)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetVerifyFail, fmt.Sprintf("verify error. buf:%v", buf))
-	}
-	return nil
-}
+type AddrReq struct{}
 
 //Serialize message payload
 func (this AddrReq) Serialization() ([]byte, error) {
-	var buf bytes.Buffer
-	var sum []byte
-	sum = []byte{0x5d, 0xf6, 0xe0, 0xe2}
-	this.Hdr.Init("getaddr", sum, 0)
+	return nil, nil
+}
 
-	err := binary.Write(&buf, binary.LittleEndian, this)
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. AddrReq:%v", this))
-	}
-	return buf.Bytes(), nil
+func (this *AddrReq) CmdType() string {
+	return common.GetADDR_TYPE
 }
 
 //Deserialize message payload
 func (this *AddrReq) Deserialization(p []byte) error {
-	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, this)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetVerifyFail, fmt.Sprintf("read AddrReq error. buf:%v", buf))
-	}
 	return nil
 }

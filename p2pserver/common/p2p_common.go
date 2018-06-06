@@ -39,6 +39,7 @@ const (
 	MAX_INV_HDR_CNT  = 500              //inventory count once when req inv
 	MAX_REQ_BLK_ONCE = 16               //req blk count once from one peer when sync blk
 	MAX_MSG_LEN      = 30 * 1024 * 1024 //the maximum message length
+	MAX_PAYLOAD_LEN  = MAX_MSG_LEN - MSG_HDR_LEN
 )
 
 //msg type const
@@ -95,13 +96,6 @@ type PeerAddr struct {
 	Port          uint16   //sync port
 	ConsensusPort uint16   //consensus port
 	ID            uint64   // Unique ID
-}
-
-//MsgPayload in link channel
-type MsgPayload struct {
-	Id      uint64 //peer ID
-	Addr    string //link address
-	Payload []byte //msg payload
 }
 
 //const channel msg id and type

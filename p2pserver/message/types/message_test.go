@@ -18,28 +18,24 @@
 package types
 
 import (
+	"bytes"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMsgHdrSerializationDeserialization(t *testing.T) {
-	var msg MsgHdr
-	var sum []byte
-	sum = []byte{0x5d, 0xf6, 0xe0, 0xe2}
-	msg.Init("hdrtest", sum, 0)
+	hdr := newMessageHeader("hdrtest", 0, CheckSum(nil))
 
-	buf, err := msg.Serialization()
+	buf := bytes.NewBuffer(nil)
+	err := writeMessageHeader(buf, hdr)
 	if err != nil {
 		return
 	}
 
-	var demsg MsgHdr
-	err = demsg.Deserialization(buf)
-	if err != nil {
-		t.Error(err)
-		return
-	} else {
-		t.Log("Message Header Test_Deserialization successful")
-	}
-	t.Log("cmd is ", msg.CMD)
+	dehdr, err := readMessageHeader(buf)
+	assert.Nil(t, err)
+
+	assert.Equal(t, hdr, dehdr)
 
 }

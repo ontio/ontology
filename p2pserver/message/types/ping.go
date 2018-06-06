@@ -20,25 +20,15 @@ package types
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/p2pserver/common"
 )
 
 type Ping struct {
-	Hdr    MsgHdr
 	Height uint64
-}
-
-//Check whether header is correct
-func (this Ping) Verify(buf []byte) error {
-	err := this.Hdr.Verify(buf)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetVerifyFail, fmt.Sprintf("verify error. buf:%v", buf))
-	}
-	return nil
 }
 
 //Serialize message payload
@@ -48,30 +38,22 @@ func (this Ping) Serialization() ([]byte, error) {
 	if err != nil {
 		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. Height:%v", this.Height))
 	}
-	checkSumBuf := CheckSum(p.Bytes())
-	this.Hdr.Init("ping", checkSumBuf, uint32(len(p.Bytes())))
 
-	hdrBuf, err := this.Hdr.Serialization()
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialize error. Hdr:%v", this.Hdr))
-	}
-	buf := bytes.NewBuffer(hdrBuf)
-	data := append(buf.Bytes(), p.Bytes()...)
-	return data, nil
+	return p.Bytes(), nil
+}
 
+func (this *Ping) CmdType() string {
+	return common.PING_TYPE
 }
 
 //Deserialize message payload
 func (this *Ping) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(this.Hdr))
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read Hdr error. buf:%v", buf))
-	}
 
-	this.Height, err = serialization.ReadUint64(buf)
+	height, err := serialization.ReadUint64(buf)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read Height error. buf:%v", buf))
 	}
+	this.Height = height
 	return nil
 }

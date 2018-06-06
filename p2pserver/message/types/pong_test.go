@@ -19,49 +19,12 @@
 package types
 
 import (
-	"bytes"
-	"crypto/sha256"
-	"encoding/binary"
 	"testing"
-
-	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/p2pserver/common"
 )
 
 func TestPongSerializationDeserialization(t *testing.T) {
 	var msg Pong
-	msg.MsgHdr.Magic = common.NETMAGIC
-	copy(msg.MsgHdr.CMD[0:7], "pong")
 	msg.Height = 1
-	t.Log("new pong message before serialize msg.Height = 1")
-	tmpBuffer := bytes.NewBuffer([]byte{})
-	serialization.WriteUint64(tmpBuffer, msg.Height)
-	b := new(bytes.Buffer)
-	err := binary.Write(b, binary.LittleEndian, tmpBuffer.Bytes())
-	if err != nil {
-		t.Error("Binary Write failed at new Msg")
-		return
-	}
-	s := sha256.Sum256(b.Bytes())
-	s2 := s[:]
-	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(msg.MsgHdr.Checksum))
-	msg.MsgHdr.Length = uint32(len(b.Bytes()))
 
-	p, err := msg.Serialization()
-	if err != nil {
-		t.Error("Error Convert net message ", err.Error())
-		return
-	}
-	var demsg Pong
-	err = demsg.Deserialization(p)
-	if err != nil {
-		t.Error(err)
-		return
-	} else {
-		t.Log("pong Test_Deserialization successful")
-	}
-
-	t.Log("deserialize pong message, msg.Height = ", demsg.Height)
+	MessageTest(t, &msg)
 }
