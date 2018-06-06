@@ -235,47 +235,29 @@ func (this *DHT) waitAndHandleResponse(knownNode map[types.NodeID]bool, closestN
 					continue
 				}
 				knownNode[n.ID] = true
-				// ping this node
-				addr, err := getNodeUDPAddr(n)
-				if err != nil {
-					continue
+				if len(closestNodes) < types.BUCKET_SIZE {
+					closestNodes = append(closestNodes, n)
+				} else {
+					index := len(closestNodes)
+					for i, entry := range closestNodes {
+						for j := range targetID {
+							da := entry.ID[j] ^ targetID[j]
+							db := n.ID[j] ^ targetID[j]
+							if da > db {
+								index = i
+								break
+							}
+						}
+					}
 
+					if index < len(closestNodes) {
+						closestNodes[index] = n
+					}
 				}
-				// ping and wait node one by one
-				reqId, isNewRequest := this.messagePool.AddRequest(n, types.DHT_PING_REQUEST, nil, true)
-				if isNewRequest {
-					this.ping(addr)
-				}
-				this.messagePool.Wait([]types.RequestId{reqId})
-				closestNodes = addClosestNode(closestNodes, n, targetID)
 			}
 		}
 	}
 
-}
-
-// addClosestNode adds a node to the closest list
-func addClosestNode(closestNodes []*types.Node, n *types.Node, targetID types.NodeID) []*types.Node {
-	if len(closestNodes) < types.BUCKET_SIZE {
-		closestNodes = append(closestNodes, n)
-	} else {
-		index := len(closestNodes)
-		for i, entry := range closestNodes {
-			for j := range targetID {
-				da := entry.ID[j] ^ targetID[j]
-				db := n.ID[j] ^ targetID[j]
-				if da > db {
-					index = i
-					break
-				}
-			}
-		}
-
-		if index < len(closestNodes) {
-			closestNodes[index] = n
-		}
-	}
-	return closestNodes
 }
 
 // onRequestTimeOut handles a timeout event of request
@@ -317,9 +299,9 @@ func (this *DHT) findNode(remotePeer *types.Node, targetID types.NodeID) error {
 // addNode adds a node to the K bucket.
 // remotePeer: added node
 // shouldWait: if ping the lastNode located in the same k bucket of remotePeer, the request should be wait or not
-func (this *DHT) addNode(remotePeer *types.Node, shouldWait bool) types.RequestId {
+func (this *DHT) addNode(remotePeer *types.Node) {
 	if remotePeer == nil || remotePeer.ID == this.nodeID {
-		return ""
+		return
 	}
 
 	// find node in own bucket
@@ -339,16 +321,15 @@ func (this *DHT) addNode(remotePeer *types.Node, shouldWait bool) types.RequestI
 			if err != nil {
 				this.routingTable.removeNode(lastNode.ID)
 				this.routingTable.addNode(remoteNode, bucketIndex)
-				return ""
+				return
 			}
-			if requestId, isNewRequest := this.messagePool.AddRequest(lastNode,
-				types.DHT_PING_REQUEST, remotePeer, shouldWait); isNewRequest {
+			if _, isNewRequest := this.messagePool.AddRequest(lastNode,
+				types.DHT_PING_REQUEST, remotePeer, false); isNewRequest {
 				this.ping(addr)
-				return requestId
 			}
 		}
 	}
-	return ""
+	return
 }
 
 // ping the remote node

@@ -45,7 +45,7 @@ func main() {
 		log.Fatal("Can't get local account.")
 		return
 	}
-	acct, err = client.GetDefaultAccount([]byte("wangcheng"))
+	acct, err = client.GetDefaultAccount([]byte("passwordtest"))
 	if acct == nil || err != nil {
 		log.Fatal("can not get default account")
 		return

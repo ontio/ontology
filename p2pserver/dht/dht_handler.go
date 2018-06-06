@@ -39,11 +39,30 @@ func (this *DHT) neighborsHandle(from *net.UDPAddr, packet []byte) {
 		types.DHT_FIND_NODE_REQUEST)
 	this.messagePool.DeleteRequest(requestId)
 
-	results := make([]*types.Node, 0, len(neighbors.P.Nodes))
+	pingReqIds := make([]types.RequestId, 0)
 	for i := 0; i < len(neighbors.P.Nodes); i++ {
-		results = append(results, &neighbors.P.Nodes[i])
+		node := &neighbors.P.Nodes[i]
+		// ping this node
+		addr, err := getNodeUDPAddr(node)
+		if err != nil {
+			continue
+
+		}
+		reqId, isNewRequest := this.messagePool.AddRequest(node, types.DHT_PING_REQUEST, nil, true)
+		if isNewRequest {
+			this.ping(addr)
+		}
+		pingReqIds = append(pingReqIds, reqId)
 	}
-	this.messagePool.SetResults(results)
+	this.messagePool.Wait(pingReqIds)
+	liveNodes := make([]*types.Node, 0)
+	for i := 0; i < len(neighbors.P.Nodes); i++ {
+		node := &neighbors.P.Nodes[i]
+		if queryResult := this.routingTable.queryNode(node.ID); queryResult != nil {
+			liveNodes = append(liveNodes, node)
+		}
+	}
+	this.messagePool.SetResults(liveNodes)
 
 	this.updateNode(neighbors.P.FromID)
 }
@@ -70,15 +89,13 @@ func (this *DHT) pingHandle(from *net.UDPAddr, packet []byte) {
 			UDPPort: uint16(from.Port),
 			TCPPort: uint16(ping.P.SrcEndPoint.TCPPort),
 		}
-		requestId := this.addNode(node, true)
-		if len(requestId) > 0 {
-			this.messagePool.Wait([]types.RequestId{requestId})
-		}
+		this.addNode(node)
+	} else {
+		// update this node
+		bucketIndex, _ := this.routingTable.locateBucket(ping.P.FromID)
+		this.routingTable.addNode(node, bucketIndex)
 	}
-	// query again, if routing table contain the node, pong to from node
-	if node := this.routingTable.queryNode(ping.P.FromID); node != nil {
-		this.pong(from)
-	}
+	this.pong(from)
 	this.DisplayRoutingTable()
 }
 
@@ -105,7 +122,7 @@ func (this *DHT) pongHandle(from *net.UDPAddr, packet []byte) {
 	}
 
 	// add to routing table
-	this.addNode(node, false)
+	this.addNode(node)
 	// remove node from request pool
 	this.messagePool.DeleteRequest(requesetId)
 	log.Info("receive pong of ", requesetId)
