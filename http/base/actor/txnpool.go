@@ -97,16 +97,16 @@ func GetTxFromPool(hash common.Uint256) (tcomn.TXEntry, error) {
 	return txnEntry, nil
 }
 
-func GetTxnCnt() ([]uint64, error) {
-	future := txnPid.RequestFuture(&tcomn.GetTxnStats{}, REQ_TIMEOUT*time.Second)
+func GetTxnCount() ([]uint32, error) {
+	future := txnPid.RequestFuture(&tcomn.GetTxnCountReq{}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ERR_ACTOR_COMM, err)
-		return []uint64{}, err
+		return []uint32{}, err
 	}
-	txnCnt, ok := result.(*tcomn.GetTxnStatsRsp)
+	txnCnt, ok := result.(*tcomn.GetTxnCountRsp)
 	if !ok {
-		return []uint64{}, errors.New("fail")
+		return []uint32{}, errors.New("fail")
 	}
 	return txnCnt.Count, nil
 }

@@ -132,7 +132,7 @@ type NodeInfo struct {
 	NodeType    uint64   // The services the node supplied
 	Relay       bool     // The relay capability of the node (merge into capbility flag)
 	Height      uint32   // The node latest block height
-	TxnCnt      []uint64 // The transactions be transmit by this node
+	TxnCnt      []uint32 // The transactions in pool
 	//RxTxnCnt uint64 // The transaction received by this node
 }
 
@@ -147,8 +147,7 @@ type TXNAttrInfo struct {
 }
 
 type TXNEntryInfo struct {
-	Transaction Transactions  // transaction which has been verified
-	State       []TXNAttrInfo // the result from each validator
+	State []TXNAttrInfo // the result from each validator
 }
 
 func GetExecuteNotify(obj *event.ExecuteNotify) (map[string]bool, ExecuteNotify) {

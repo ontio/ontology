@@ -518,6 +518,15 @@ func GetUnclaimOng(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+func GetMemPoolTxCount(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(berr.SUCCESS)
+	count, err := bactor.GetTxnCount()
+	if err != nil {
+		return ResponsePack(berr.INTERNAL_ERROR)
+	}
+	resp["Result"] = count
+	return resp
+}
 func GetMemPoolTxState(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	str, ok := cmd["Hash"].(string)
@@ -537,11 +546,10 @@ func GetMemPoolTxState(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(berr.UNKNOWN_TRANSACTION)
 	}
-	tran := bcomn.TransArryByteToHexString(txEntry.Tx)
 	attrs := []bcomn.TXNAttrInfo{}
 	for _, t := range txEntry.Attrs {
 		attrs = append(attrs, bcomn.TXNAttrInfo{t.Height, int(t.Type), int(t.ErrCode)})
 	}
-	resp["Result"] = bcomn.TXNEntryInfo{*tran, attrs}
+	resp["Result"] = bcomn.TXNEntryInfo{attrs}
 	return resp
 }
