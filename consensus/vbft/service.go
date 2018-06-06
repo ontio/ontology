@@ -312,10 +312,9 @@ func (self *Server) nonConsensusNode() bool {
 
 //updateChainCofig
 func (self *Server) updateChainConfig() error {
-
-	block, err := self.chainStore.GetBlock(self.completedBlockNum)
-	if err != nil {
-		return fmt.Errorf("GetBlockInfo failed:%s,%d", err, self.completedBlockNum)
+	block, _ := self.blockPool.getSealedBlock(self.completedBlockNum)
+	if block == nil {
+		return fmt.Errorf("GetBlockInfo failed,block is nil:%d", self.completedBlockNum)
 	}
 	if block.Info.NewChainConfig == nil {
 		return fmt.Errorf("GetNewChainConfig failed,%d", self.completedBlockNum)
@@ -626,15 +625,17 @@ func (self *Server) getState() ServerState {
 
 func (self *Server) updateParticipantConfig() error {
 	blkNum := self.GetCurrentBlockNo()
-
 	block, _ := self.blockPool.getSealedBlock(blkNum - 1)
 	if block == nil {
 		return fmt.Errorf("failed to get sealed block (%d)", blkNum-1)
 	}
-
+	chainconfig := self.config
+	if block.Info.NewChainConfig != nil {
+		chainconfig = block.Info.NewChainConfig
+	}
 	var err error
 	self.metaLock.Lock()
-	if cfg, err := self.buildParticipantConfig(blkNum, block, self.config); err == nil {
+	if cfg, err := self.buildParticipantConfig(blkNum, block, chainconfig); err == nil {
 		self.currentParticipantConfig = cfg
 	}
 	self.metaLock.Unlock()
@@ -653,7 +654,6 @@ func (self *Server) startNewRound() error {
 	if err := self.updateParticipantConfig(); err != nil {
 		return err
 	}
-
 	// check proposals in msgpool
 	var proposal *blockProposalMsg
 	if proposals := self.msgPool.GetProposalMsgs(blkNum); len(proposals) > 0 {
@@ -717,19 +717,8 @@ func (self *Server) startNewRound() error {
 		self.processProposalMsg(proposal)
 		return nil
 	}
-
-	if self.completedBlockNum+1 == self.currentBlockNum {
-		txpool := self.poolActor.GetTxnPool(true, self.validHeight(blkNum))
-		if len(txpool) != 0 {
-			self.startNewProposal(blkNum)
-		} else {
-			self.timer.startTxTicker(blkNum)
-			self.timer.StartTxBlockTimeout(blkNum)
-		}
-	} else {
-		self.timer.startTxTicker(blkNum)
-		self.timer.StartTxBlockTimeout(blkNum)
-	}
+	self.timer.startTxTicker(blkNum)
+	self.timer.StartTxBlockTimeout(blkNum)
 	return nil
 }
 
@@ -1058,11 +1047,18 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 
 func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	msgBlkNum := msg.GetBlockNum()
-	blk, _ := self.blockPool.getSealedBlock(msg.GetBlockNum() - 1)
+	blk, prevBlkHash := self.blockPool.getSealedBlock(msg.GetBlockNum() - 1)
 	if blk == nil {
 		log.Errorf("BlockProposal failed to GetPreBlock:%d", (msg.GetBlockNum() - 1))
 		return
 	}
+
+	msgPrevBlkHash := msg.Block.getPrevBlockHash()
+	if prevBlkHash != msgPrevBlkHash {
+		log.Errorf("BlockPrposalMessage check blocknum:%d,prevhash:%s,msg prevhash:%s", msg.GetBlockNum(), hex.EncodeToString(prevBlkHash[:4]), hex.EncodeToString(msgPrevBlkHash[:4]))
+		return
+	}
+
 	prevBlockTimestamp := blk.Block.Header.Timestamp
 	currentBlockTimestamp := msg.Block.Block.Header.Timestamp
 	if currentBlockTimestamp <= prevBlockTimestamp || currentBlockTimestamp > uint32(time.Now().Add(time.Minute*10).Unix()) {
@@ -1084,7 +1080,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	}
 
 	txs := msg.Block.Block.Transactions
-	if len(txs) > 0 && self.nonSystxs(txs) {
+	if len(txs) > 0 && self.nonSystxs(txs, msgBlkNum) {
 		height := uint32(msgBlkNum) - 1
 		start, end := self.incrValidator.BlockRange()
 
@@ -1747,19 +1743,18 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 		self.heartbeat()
 
 	case EventTxPool:
-		blockNum := self.GetCurrentBlockNo()
 		self.timer.stopTxTicker(evt.blockNum)
-		if self.completedBlockNum+1 == self.currentBlockNum {
-			txpool := self.poolActor.GetTxnPool(true, self.validHeight(blockNum))
+		if self.completedBlockNum+1 == evt.blockNum {
+			txpool := self.poolActor.GetTxnPool(true, self.validHeight(evt.blockNum))
 			if len(txpool) != 0 {
-				self.timer.CancelTxBlockTimeout(blockNum)
-				self.startNewProposal(blockNum)
+				self.timer.CancelTxBlockTimeout(evt.blockNum)
+				self.startNewProposal(evt.blockNum)
 			} else {
 				//reset timer, continue waiting txs from txnpool
-				self.timer.startTxTicker(blockNum)
+				self.timer.startTxTicker(evt.blockNum)
 			}
 		} else {
-			self.timer.startTxTicker(blockNum)
+			self.timer.startTxTicker(evt.blockNum)
 		}
 	case EventTxBlockTimeout:
 		self.timer.stopTxTicker(evt.blockNum)
@@ -2089,11 +2084,11 @@ func (self *Server) validHeight(blkNum uint32) uint32 {
 	return validHeight
 }
 
-func (self *Server) nonSystxs(sysTxs []*types.Transaction) bool {
-	if self.checkNeedUpdateChainConfig(self.currentBlockNum) && len(sysTxs) == 1 {
+func (self *Server) nonSystxs(sysTxs []*types.Transaction, blkNum uint32) bool {
+	if self.checkNeedUpdateChainConfig(blkNum) && len(sysTxs) == 1 {
 		invoke := sysTxs[0].Payload.(*payload.InvokeCode)
 		if invoke == nil {
-			log.Errorf("nonSystxs invoke is nil,blocknum:%d", self.currentBlockNum)
+			log.Errorf("nonSystxs invoke is nil,blocknum:%d", blkNum)
 			return true
 		}
 		if bytes.Compare(invoke.Code.Code, ninit.COMMIT_DPOS_BYTES) == 0 {
@@ -2116,13 +2111,13 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 	//check need upate chainconfig
 	cfg := &vconfig.ChainConfig{}
 	cfg = nil
-	if self.checkNeedUpdateChainConfig(self.currentBlockNum) || self.checkUpdateChainConfig() {
-		chainconfig, err := getChainConfig(self.currentBlockNum)
+	if self.checkNeedUpdateChainConfig(blkNum) || self.checkUpdateChainConfig() {
+		chainconfig, err := getChainConfig(blkNum)
 		if err != nil {
 			return fmt.Errorf("getChainConfig failed:%s", err)
 		}
 		//add transaction invoke governance native commit_pos contract
-		if self.checkNeedUpdateChainConfig(self.currentBlockNum) {
+		if self.checkNeedUpdateChainConfig(blkNum) {
 			sysTxs = append(sysTxs, self.creategovernaceTransaction(blkNum))
 		}
 		forEmpty = true

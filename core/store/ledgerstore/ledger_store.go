@@ -21,6 +21,7 @@ package ledgerstore
 import (
 	"fmt"
 	"math"
+	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -44,7 +45,6 @@ import (
 	sstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vmtype "github.com/ontio/ontology/smartcontract/types"
-	"os"
 )
 
 const (
@@ -386,13 +386,12 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header) error {
 	if prevHeader.Height+1 != header.Height {
 		return fmt.Errorf("block height is incorrect")
 	}
+
+	if prevHeader.Timestamp >= header.Timestamp {
+		return fmt.Errorf("block timestamp is incorrect")
+	}
 	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
 	if consensusType != "vbft" {
-
-		if prevHeader.Timestamp >= header.Timestamp {
-			return fmt.Errorf("block timestamp is incorrect")
-		}
-
 		address, err := types.AddressFromBookkeepers(header.Bookkeepers)
 		if err != nil {
 			return err
