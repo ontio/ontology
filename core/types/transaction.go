@@ -28,6 +28,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/program"
 	"github.com/ontio/ontology/errors"
 )
 
@@ -47,46 +48,58 @@ type Transaction struct {
 }
 
 type Sig struct {
-	PubKeys []keypair.PublicKey
-	M       uint8
 	SigData [][]byte
+	PubKeys []keypair.PublicKey
+	M       uint16
+}
+
+func (self *Sig) Serialize(w io.Writer) error {
+	invocationScript := program.ProgramFromParams(self.SigData)
+	var verificationScript []byte
+	if len(self.PubKeys) == 0 {
+		return errors.NewErr("no pubkeys in sig")
+	} else if len(self.PubKeys) == 1 {
+		verificationScript = program.ProgramFromPubKey(self.PubKeys[0])
+	} else {
+		script, err := program.ProgramFromMultiPubKey(self.PubKeys, int(self.M))
+		if err != nil {
+			return err
+		}
+		verificationScript = script
+	}
+	err := serialization.WriteVarBytes(w, invocationScript)
+	if err != nil {
+		return err
+	}
+	err = serialization.WriteVarBytes(w, verificationScript)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (self *Sig) Deserialize(r io.Reader) error {
-	n, err := serialization.ReadVarUint(r, 0)
+	invocationScript, err := serialization.ReadVarBytes(r)
+	if err != nil {
+		return err
+	}
+	verificationScript, err := serialization.ReadVarBytes(r)
+	if err != nil {
+		return err
+	}
+	sigs, err := program.GetParamInfo(invocationScript)
+	if err != nil {
+		return err
+	}
+	info, err := program.GetProgramInfo(verificationScript)
 	if err != nil {
 		return err
 	}
 
-	for i := 0; i < int(n); i++ {
-		buf, err := serialization.ReadVarBytes(r)
-		if err != nil {
-			return err
-		}
-		pubkey, err := keypair.DeserializePublicKey(buf)
-		if err != nil {
-			return err
-		}
-		self.PubKeys = append(self.PubKeys, pubkey)
-	}
-
-	self.M, err = serialization.ReadUint8(r)
-	if err != nil {
-		return err
-	}
-
-	m, err := serialization.ReadVarUint(r, 0)
-	if err != nil {
-		return err
-	}
-
-	for i := 0; i < int(m); i++ {
-		sig, err := serialization.ReadVarBytes(r)
-		if err != nil {
-			return err
-		}
-		self.SigData = append(self.SigData, sig)
-	}
+	self.SigData = sigs
+	self.M = info.M
+	self.PubKeys = info.PubKeys
 
 	return nil
 }
@@ -105,38 +118,6 @@ func (self *Transaction) GetSignatureAddresses() []common.Address {
 		}
 	}
 	return address
-}
-
-func (self *Sig) Serialize(w io.Writer) error {
-	err := serialization.WriteVarUint(w, uint64(len(self.PubKeys)))
-	if err != nil {
-		return errors.NewErr("serialize sig pubkey length failed")
-	}
-	for _, key := range self.PubKeys {
-		err := serialization.WriteVarBytes(w, keypair.SerializePublicKey(key))
-		if err != nil {
-			return err
-		}
-	}
-
-	err = serialization.WriteUint8(w, self.M)
-	if err != nil {
-		return errors.NewErr("serialize Sig M failed")
-	}
-
-	err = serialization.WriteVarUint(w, uint64(len(self.SigData)))
-	if err != nil {
-		return errors.NewErr("serialize sig pubkey length failed")
-	}
-
-	for _, sig := range self.SigData {
-		err = serialization.WriteVarBytes(w, sig)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 type TransactionType byte

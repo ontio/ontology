@@ -108,6 +108,15 @@ func ProgramFromMultiPubKey(pubkeys []keypair.PublicKey, m int) ([]byte, error) 
 	return builder.Finish(), nil
 }
 
+func ProgramFromParams(sigs [][]byte) []byte {
+	builder := ProgramBuilder{}
+	for _, sig := range sigs {
+		builder.PushBytes(sig)
+	}
+
+	return builder.Finish()
+}
+
 type ProgramInfo struct {
 	PubKeys []keypair.PublicKey
 	M       uint16
@@ -139,6 +148,10 @@ func (self *programParser) ExpectEOF() error {
 		return fmt.Errorf("expected eof, but remains %d bytes", self.buffer.Len())
 	}
 	return nil
+}
+
+func (self *programParser) IsEOF() bool {
+	return self.buffer.Len() == 0
 }
 
 func (self *programParser) ReadNum() (uint16, error) {
@@ -306,4 +319,19 @@ func GetProgramInfo(program []byte) (ProgramInfo, error) {
 	}
 
 	return info, errors.New("unsupported program")
+}
+
+func GetParamInfo(program []byte) ([][]byte, error) {
+	parser := programParser{buffer: bytes.NewBuffer(program)}
+
+	var signatures [][]byte
+	for parser.IsEOF() == false {
+		sig, err := parser.ReadBytes()
+		if err != nil {
+			return nil, err
+		}
+		signatures = append(signatures, sig)
+	}
+
+	return signatures, nil
 }

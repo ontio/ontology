@@ -90,7 +90,7 @@ type Fee struct {
 
 type Sig struct {
 	PubKeys []string
-	M       uint8
+	M       uint16
 	SigData []string
 }
 type Transactions struct {
