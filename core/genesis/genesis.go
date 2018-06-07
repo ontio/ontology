@@ -52,6 +52,10 @@ var (
 
 var GenBlockTime = (config.DEFAULT_GEN_BLOCK_TIME * time.Second)
 
+var INIT_PARAM = map[string]string{
+	"gasPrice": "0",
+}
+
 var GenesisBookkeepers []keypair.PublicKey
 
 // BuildGenesisBlock returns the genesis block with default consensus bookkeeper list
@@ -173,7 +177,13 @@ func newUtilityInit() *types.Transaction {
 }
 
 func newParamInit() *types.Transaction {
-	return buildInitTransaction(nutils.ParamContractAddress, global_params.INIT_NAME, nil)
+	initParams := new(global_params.Params)
+	for k, v := range INIT_PARAM {
+		initParams.SetParam(&global_params.Param{k, v})
+	}
+	bf := new(bytes.Buffer)
+	initParams.Serialize(bf)
+	return buildInitTransaction(nutils.ParamContractAddress, global_params.INIT_NAME, bf.Bytes())
 }
 
 func newGoverConfigInit(config []byte) *types.Transaction {
