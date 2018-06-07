@@ -38,8 +38,6 @@ type ParamCache struct {
 	Params Params
 }
 
-var GLOBAL_PARAM = map[string]string{}
-
 type paramType byte
 
 const (
@@ -76,8 +74,8 @@ func ParamInit(native *native.NativeService) ([]byte, error) {
 	paramCache.Params = make([]*Param, 0)
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	initParams := new(Params)
-	for k, v := range GLOBAL_PARAM {
-		initParams.SetParam(&Param{k, v})
+	if err := initParams.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, errors.NewErr("init param, deserialize failed!")
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, generateParamKey(contract, CURRENT_VALUE), getParamStorageItem(initParams))
 	native.CloneCache.Add(scommon.ST_STORAGE, generateParamKey(contract, PREPARE_VALUE), getParamStorageItem(initParams))
@@ -85,7 +83,7 @@ func ParamInit(native *native.NativeService) ([]byte, error) {
 
 	bookKeeepers, err := config.DefConfig.GetBookkeepers()
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("GetBookkeepers error:%s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("get bookkeepers error:%s", err)
 	}
 	initAddress := ctypes.AddressFromPubKey(bookKeeepers[0])
 	copy((*admin)[:], initAddress[:])
