@@ -156,7 +156,6 @@ func NewPeer() *Peer {
 	}
 	p.SyncLink = conn.NewLink()
 	p.ConsLink = conn.NewLink()
-
 	runtime.SetFinalizer(p, rmPeer)
 	return p
 }
