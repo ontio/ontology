@@ -365,7 +365,7 @@ func initLocalRpc(ctx *cli.Context) error {
 }
 
 func initRestful(ctx *cli.Context) {
-	if ! config.DefConfig.Restful.EnableHttpRestful{
+	if !config.DefConfig.Restful.EnableHttpRestful {
 		return
 	}
 	go restful.StartServer()
@@ -374,7 +374,7 @@ func initRestful(ctx *cli.Context) {
 }
 
 func initWs(ctx *cli.Context) {
-	if ! config.DefConfig.Ws.EnableHttpWs {
+	if !config.DefConfig.Ws.EnableHttpWs {
 		return
 	}
 	websocket.StartServer()
