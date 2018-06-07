@@ -223,6 +223,10 @@ var (
 		Name:  "low-security",
 		Usage: "Change account to low protection strength for low performance devices",
 	}
+	AccountWIFFlag = cli.BoolFlag{
+		Name:  "wif",
+		Usage: "Import WIF keys from the source file specified by --source option",
+	}
 
 	//SmartContract setting
 	ContractAddrFlag = cli.StringFlag{

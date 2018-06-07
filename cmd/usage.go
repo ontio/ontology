@@ -100,6 +100,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.AccountQuantityFlag,
 			utils.AccountChangePasswdFlag,
 			utils.AccountSourceFileFlag,
+			utils.AccountWIFFlag,
 			utils.AccountLowSecurityFlag,
 		},
 	},

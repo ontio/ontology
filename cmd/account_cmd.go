@@ -30,6 +30,7 @@ import (
 	"github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common/password"
+	"github.com/ontio/ontology/core/types"
 	"github.com/urfave/cli"
 )
 
@@ -129,6 +130,7 @@ var (
 				Flags: []cli.Flag{
 					utils.WalletFileFlag,
 					utils.AccountSourceFileFlag,
+					utils.AccountWIFFlag,
 				},
 				Description: "Import accounts of wallet to another. If not specific accounts in args, all account in source will be import",
 			},
@@ -382,6 +384,12 @@ func accountImport(ctx *cli.Context) error {
 		return err
 	}
 
+	if ctx.Bool(utils.GetFlagName(utils.AccountWIFFlag)) {
+		// import WIF keys
+		err := importWIF(source, wallet)
+		return err
+	}
+
 	ctx.Set(utils.GetFlagName(utils.WalletFileFlag), source)
 	sourceWallet, err := common.OpenWallet(ctx)
 	if err != nil {
@@ -479,5 +487,59 @@ func accountExport(ctx *cli.Context) error {
 		return fmt.Errorf("save wallet file error: %s", err)
 	}
 
+	return nil
+}
+
+func importWIF(filepath string, wallet account.Client) error {
+	file, err := os.Open(filepath)
+	if err != nil {
+		return err
+	}
+	f := bufio.NewScanner(file)
+	keys := make([]keypair.PrivateKey, 0)
+	for f.Scan() {
+		wif := f.Bytes()
+		pri, err := keypair.GetP256KeyPairFromWIF(wif)
+		common.ClearPasswd(wif)
+		if err != nil {
+			return err
+		}
+		keys = append(keys, pri)
+	}
+	fmt.Println("Please input a password to encrypt the imported key(s)")
+	pwd, err := password.GetConfirmedPassword()
+	if err != nil {
+		return err
+	}
+	for _, v := range keys {
+		pub := v.Public()
+		addr := types.AddressFromPubKey(pub)
+		b58addr := addr.ToBase58()
+		fmt.Println("Import account", b58addr)
+		k, err := keypair.EncryptPrivateKey(v, b58addr, pwd)
+		if err != nil {
+			fmt.Println("import error,", err)
+			continue
+		}
+		var accMeta account.AccountMetadata
+		accMeta.Address = k.Address
+		accMeta.KeyType = k.Alg
+		accMeta.EncAlg = k.EncAlg
+		accMeta.Hash = k.Hash
+		accMeta.Key = k.Key
+		accMeta.Curve = k.Param["curve"]
+		accMeta.Salt = k.Salt
+		accMeta.Label = ""
+		accMeta.PubKey = hex.EncodeToString(keypair.SerializePublicKey(v.Public()))
+		accMeta.SigSch = signature.SHA256withECDSA.Name()
+		err = wallet.ImportAccount(&accMeta)
+		if err != nil {
+			fmt.Println("import error,", err)
+			continue
+		}
+	}
+	common.ClearPasswd(pwd)
+
+	fmt.Println("Import completed")
 	return nil
 }
