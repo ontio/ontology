@@ -25,7 +25,6 @@ import (
 	cmdcom "github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/smartcontract/types"
 	"github.com/urfave/cli"
 	"io/ioutil"
 	"strings"
@@ -110,14 +109,14 @@ func deployContract(ctx *cli.Context) error {
 	code := strings.TrimSpace(string(codeStr))
 	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
 	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
-	vmType := types.NEOVM
 	cversion := fmt.Sprintf("%s", version)
 
-	txHash, err := utils.DeployContract(gasPrice, gasLimit, signer, vmType, store, code, name, cversion, author, email, desc)
+	txHash, err := utils.DeployContract(gasPrice, gasLimit, signer, store, code, name, cversion, author, email, desc)
 	if err != nil {
 		return fmt.Errorf("DeployContract error:%s", err)
 	}
-	address := utils.GetContractAddress(string(code), vmType)
+	c, _ := common.HexToBytes(code)
+	address := utils.GetContractAddress(c)
 	fmt.Printf("Deploy contract:\n")
 	fmt.Printf("  Contract Address:%x\n", address[:])
 	fmt.Printf("  TxHash:%s\n", txHash)

@@ -67,6 +67,12 @@ func opPickItem(e *ExecutionEngine) (VMState, error) {
 			return FAULT, errors.NewErr("opPickItem invalid array.")
 		}
 		PushData(e, items.GetArray()[i])
+	case *types.Struct:
+		i := int(index.GetBigInteger().Int64())
+		if i < 0 || i >= len(items.GetStruct()) {
+			return FAULT, errors.NewErr("opPickItem invalid array.")
+		}
+		PushData(e, items.GetStruct()[i])
 	case *types.Map:
 		value := items.(*types.Map).TryGetValue(index)
 		//TODO should return a nil type when not exist?
@@ -94,9 +100,15 @@ func opSetItem(e *ExecutionEngine) (VMState, error) {
 	switch item.(type) {
 	case *types.Map:
 		item.GetMap()[index] = newItem
-
 	case *types.Array:
 		items := item.GetArray()
+		i := int(index.GetBigInteger().Int64())
+		if i < 0 || i >= len(items) {
+			return FAULT, errors.NewErr("opSetItem invalid array.")
+		}
+		items[i] = newItem
+	case *types.Struct:
+		items := item.GetStruct()
 		i := int(index.GetBigInteger().Int64())
 		if i < 0 || i >= len(items) {
 			return FAULT, errors.NewErr("opSetItem invalid array.")

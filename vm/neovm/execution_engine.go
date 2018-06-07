@@ -19,6 +19,8 @@
 package neovm
 
 import (
+	"fmt"
+
 	"github.com/ontio/ontology/vm/neovm/errors"
 )
 
@@ -55,6 +57,7 @@ func (this *ExecutionEngine) PopContext() {
 }
 
 func (this *ExecutionEngine) PushContext(context *ExecutionContext) {
+	fmt.Printf("Push Context:%x", context.Code)
 	this.Contexts = append(this.Contexts, context)
 	this.Context = this.CurrentContext()
 }

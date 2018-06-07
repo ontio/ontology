@@ -22,24 +22,26 @@ import (
 	"fmt"
 	"io"
 
-	stypes "github.com/ontio/ontology/smartcontract/types"
+	"github.com/ontio/ontology/common/serialization"
 )
 
 // InvokeCode is an implementation of transaction payload for invoke smartcontract
 type InvokeCode struct {
-	Code stypes.VmCode
+	Code []byte
 }
 
 func (self *InvokeCode) Serialize(w io.Writer) error {
-	if err := self.Code.Serialize(w); err != nil {
+	if err := serialization.WriteVarBytes(w, self.Code); err != nil {
 		return fmt.Errorf("InvokeCode Code Serialize failed: %s", err)
 	}
 	return nil
 }
 
 func (self *InvokeCode) Deserialize(r io.Reader) error {
-	if err := self.Code.Deserialize(r); err != nil {
+	code, err := serialization.ReadVarBytes(r)
+	if err != nil {
 		return fmt.Errorf("InvokeCode Code Deserialize failed: %s", err)
 	}
+	self.Code = code
 	return nil
 }

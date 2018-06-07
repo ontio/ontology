@@ -360,7 +360,6 @@ func validatePickItem(e *ExecutionEngine) error {
 	if item == nil {
 		return errors.ERR_BAD_VALUE
 	}
-
 	switch item.(type) {
 	case *types.Array:
 		index := PeekBigInteger(e)
@@ -375,9 +374,16 @@ func validatePickItem(e *ExecutionEngine) error {
 		if key == nil {
 			return errors.ERR_BAD_VALUE
 		}
+	case *types.Struct:
+		index := PeekBigInteger(e)
+		if index.Sign() < 0 {
+			return errors.ERR_BAD_VALUE
+		}
+		if index.Cmp(big.NewInt(int64(len(item.GetArray())))) >= 0 {
+			return errors.ERR_OVER_MAX_ARRAY_SIZE
+		}
 	default:
 		return errors.ERR_NOT_SUPPORT_TYPE
-
 	}
 	return nil
 }
@@ -396,7 +402,6 @@ func validatorSetItem(e *ExecutionEngine) error {
 	if item == nil {
 		return errors.ERR_BAD_VALUE
 	}
-
 	if _, ok := item.(*types.Array); ok {
 		index := PeekNBigInt(1, e)
 		if index.Sign() < 0 {
@@ -409,6 +414,14 @@ func validatorSetItem(e *ExecutionEngine) error {
 		key := PeekNStackItem(1, e)
 		if key == nil {
 			return errors.ERR_BAD_VALUE
+		}
+	} else if _, ok := item.(*types.Struct); ok {
+		index := PeekNBigInt(1, e)
+		if index.Sign() < 0 {
+			return errors.ERR_BAD_VALUE
+		}
+		if index.Cmp(big.NewInt(int64(len(item.GetArray())))) >= 0 {
+			return errors.ERR_OVER_MAX_ARRAY_SIZE
 		}
 	} else {
 		return errors.ERR_NOT_SUPPORT_TYPE
