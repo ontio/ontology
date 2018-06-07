@@ -44,6 +44,10 @@ func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
 	setRestfulConfig(ctx, cfg.Restful)
 	setWebSocketConfig(ctx, cfg.Ws)
 	setCliConfig(ctx, cfg.Cli)
+	if cfg.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
+		cfg.Ws.EnableHttpWs = true
+		cfg.Restful.EnableHttpRestful = true
+	}
 	return cfg, nil
 }
 

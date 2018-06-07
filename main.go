@@ -365,7 +365,7 @@ func initLocalRpc(ctx *cli.Context) error {
 }
 
 func initRestful(ctx *cli.Context) {
-	if !ctx.GlobalBool(utils.GetFlagName(utils.RestfulEnableFlag)) {
+	if ! config.DefConfig.Restful.EnableHttpRestful{
 		return
 	}
 	go restful.StartServer()
@@ -374,7 +374,7 @@ func initRestful(ctx *cli.Context) {
 }
 
 func initWs(ctx *cli.Context) {
-	if !ctx.GlobalBool(utils.GetFlagName(utils.WsEnabledFlag)) {
+	if ! config.DefConfig.Ws.EnableHttpWs {
 		return
 	}
 	websocket.StartServer()
