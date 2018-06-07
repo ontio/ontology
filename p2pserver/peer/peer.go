@@ -146,14 +146,6 @@ type Peer struct {
 	consState uint32
 	txnCnt    uint64
 	rxTxnCnt  uint64
-	chF       chan func() error
-}
-
-//backend run function in backend
-func (this *Peer) backend() {
-	for f := range this.chF {
-		f()
-	}
 }
 
 //NewPeer return new peer without publickey initial
@@ -161,13 +153,10 @@ func NewPeer() *Peer {
 	p := &Peer{
 		syncState: common.INIT,
 		consState: common.INIT,
-		chF:       make(chan func() error),
 	}
 	p.SyncLink = conn.NewLink()
 	p.ConsLink = conn.NewLink()
-
 	runtime.SetFinalizer(p, rmPeer)
-	go p.backend()
 	return p
 }
 
