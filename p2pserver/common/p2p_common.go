@@ -30,15 +30,15 @@ const (
 
 //msg cmd const
 const (
-	MSG_CMD_LEN      = 12  //msg type length in byte
-	CMD_OFFSET       = 4   //cmd type offet in msg hdr
-	CHECKSUM_LEN     = 4   //checksum length in byte
-	HASH_LEN         = 32  // hash length in byte
-	MSG_HDR_LEN      = 24  //msg hdr length in byte
-	MAX_BLK_HDR_CNT  = 500 //hdr count once when sync header
-	MAX_INV_HDR_CNT  = 500 //inventory count once when req inv
-	MAX_REQ_BLK_ONCE = 16  //req blk count once from one peer when sync blk
-
+	MSG_CMD_LEN      = 12               //msg type length in byte
+	CMD_OFFSET       = 4                //cmd type offet in msg hdr
+	CHECKSUM_LEN     = 4                //checksum length in byte
+	HASH_LEN         = 32               // hash length in byte
+	MSG_HDR_LEN      = 24               //msg hdr length in byte
+	MAX_BLK_HDR_CNT  = 500              //hdr count once when sync header
+	MAX_INV_HDR_CNT  = 500              //inventory count once when req inv
+	MAX_REQ_BLK_ONCE = 16               //req blk count once from one peer when sync blk
+	MAX_MSG_LEN      = 30 * 1024 * 1024 // the maximum message length
 )
 
 //info update const
