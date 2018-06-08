@@ -21,13 +21,13 @@ package rpc
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ontio/ontology/common/log"
+	berr "github.com/ontio/ontology/http/base/error"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
-
-	"github.com/ontio/ontology/common/log"
 )
 
 func init() {
@@ -130,8 +130,8 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		//if the function does not exist
 		log.Warn("HTTP JSON RPC Handle - No function to call for ", request["method"])
 		data, err := json.Marshal(map[string]interface{}{
-			"result": nil,
-			"error": map[string]interface{}{
+			"error": berr.INVALID_METHOD,
+			"result": map[string]interface{}{
 				"code":    -32601,
 				"message": "Method not found",
 				"data":    "The called method was not found on the server",

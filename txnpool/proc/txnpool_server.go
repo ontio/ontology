@@ -420,6 +420,14 @@ func (s *TXPoolServer) getTxPool(byCount bool, height uint32) []*tc.TXEntry {
 	return avlTxList
 }
 
+// getTxCount returns current tx count, including pending and verified
+func (s *TXPoolServer) getTxCount() []uint32 {
+	ret := make([]uint32, 0)
+	ret = append(ret, uint32(s.txPool.GetTransactionCount()))
+	ret = append(ret, uint32(s.getPendingListSize()))
+	return ret
+}
+
 // getPendingTxs returns a currently pending tx list
 func (s *TXPoolServer) getPendingTxs(byCount bool) []*tx.Transaction {
 	s.mu.RLock()

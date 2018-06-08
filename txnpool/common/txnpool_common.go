@@ -164,6 +164,15 @@ type GetTxnStatsRsp struct {
 	Count []uint64
 }
 
+// GetTxnCountReq specifies the api that how to get the tx count
+type GetTxnCountReq struct {
+}
+
+// GetTxnCountRsp returns current tx count, including pending, and verified
+type GetTxnCountRsp struct {
+	Count []uint32
+}
+
 // GetPendingTxnReq specifies the api that how to get a pending tx list
 // in the pool.
 type GetPendingTxnReq struct {

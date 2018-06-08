@@ -81,7 +81,8 @@ Transaction field description
 | getversion |  | Get the version information of the query node |  |
 | getblocksysfee |  | According to the specified index, return the system fee before the block. |  |
 | getcontractstate | script_hash,[verbose] | According to the contract script hash, query the contract information. |  |
-| getmempooltxstate | tx_hash | Query the transaction status in the memory pool. |  |
+| getmempooltxcount |         | Query the transaction count in the memory pool. |  |
+| getmempooltxstate | tx_hash | Query the transaction state in the memory pool. |  |
 | getsmartcodeevent |  | Get smartcode event |  |
 | getblockheightbytxhash | tx_hash | get blockheight of txhash|  |
 | getbalance | address | return balance of base58 account address. |  |
@@ -780,7 +781,7 @@ Response:
 
 #### 14. getmempooltxstate
 
-Query the transaction status in the memory pool.
+Query the transaction state in the memory pool.
 
 #### Parameter instruction
 
@@ -808,11 +809,50 @@ Response:
     "jsonrpc": "2.0",
     "id": 1,
     "result": {
+              	"State": [{
+              		"Type": 1,
+              		"Height": 342,
+              		"ErrCode": 0
+              	}, {
+              		"Type": 0,
+              		"Height": 0,
+              		"ErrCode": 0
+              	}]
     }
 }
 ```
 
-#### 15. getblockheightbytxhash
+#### 15. getmempooltxcount
+
+Query the transaction count in the memory pool.
+
+#### Example
+
+Request:
+
+```
+{
+  "jsonrpc": "2.0",
+  "method": "getmempooltxcount",
+  "params": [],
+  "id": 1
+}
+```
+
+Response:
+
+```
+{
+    "desc":"SUCCESS",
+    "error":0,
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": [100,50]
+}
+```
+
+
+#### 16. getblockheightbytxhash
 get blockheight by txhash
 #### Parameter instruction
 txhash: transaction hash
@@ -840,7 +880,7 @@ Response:
 }
 ```
 
-#### 16. getbalance
+#### 17. getbalance
 
 return balance of base58 account address.
 
@@ -877,7 +917,7 @@ Response:
 }
 ```
 
-#### 17. getmerkleproof
+#### 18. getmerkleproof
 
 return merkle proof
 
@@ -931,7 +971,7 @@ Response:
 }
 ```
 
-#### 18. getgasprice
+#### 19. getgasprice
 
 return gasprice.
 
@@ -964,7 +1004,7 @@ Response:
 }
 ```
 
-#### 19. getallowance
+#### 20. getallowance
 
 return allowance.
 
@@ -994,7 +1034,7 @@ Response:
 }
 ```
 
-#### 20. getunclaimong
+#### 21. getunclaimong
 
 return unclaimong.
 
@@ -1024,7 +1064,7 @@ Response:
 }
 ```
 
-#### 21 getblocktxsbyheight
+#### 22 getblocktxsbyheight
 
 Get transactions by block height
 return all transaction hash contained in the block corresponding to this height

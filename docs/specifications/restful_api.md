@@ -26,6 +26,8 @@ Restful Api List
 | get_gasprice | GET /api/v1/gasprice|
 | get_allowance | GET /api/v1/allowance/:asset/:from/:to |
 | get_unclaimong | GET /api/v1/unclaimong/:addr |
+| get_mempooltxcount | GET /api/v1/mempool/txcount |
+| get_mempooltxstate | GET /api/v1/mempool/txstate/:hash |
 | post_raw_tx | post /api/v1/transaction?preExec=0 |
 
 
@@ -798,6 +800,64 @@ curl -i http://localhost:20334/api/v1/unclaimong/:addr
     "Version": "1.0.0"
 }
 ```
+
+### 19 get_mempooltxstate
+
+Query the transaction state in the memory pool.
+
+GET
+```
+/api/v1/mempool/txstate/:hash
+```
+#### Request Example:
+```
+curl -i http://localhost:20334/api/v1/mempool/txstate/:hash
+```
+#### Response
+```
+{
+    "Action": "getmempooltxstate",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Version": "1.0.0",
+    "Result": {
+              	"State": [{
+              		"Type": 1,
+              		"Height": 342,
+              		"ErrCode": 0
+              	}, {
+              		"Type": 0,
+              		"Height": 0,
+              		"ErrCode": 0
+              	}]
+    }
+}
+```
+
+
+### 20 get_mempooltxcount
+
+Query the transaction count in the memory pool.
+
+GET
+```
+/api/v1/mempool/txcount
+```
+#### Request Example:
+```
+curl -i http://localhost:20334/api/v1/mempool/txcount
+```
+#### Response
+```
+{
+    "Action": "getmempooltxcount",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Version": "1.0.0",
+    "Result": [100,50]
+}
+```
+
 
 ## Error Code
 

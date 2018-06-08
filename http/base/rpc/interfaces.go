@@ -144,6 +144,15 @@ func GetRawMemPool(params []interface{}) map[string]interface{} {
 	}
 	return responseSuccess(txs)
 }
+
+func GetMemPoolTxCount(params []interface{}) map[string]interface{} {
+	count, err := bactor.GetTxnCount()
+	if err != nil {
+		return responsePack(berr.INTERNAL_ERROR, nil)
+	}
+	return responseSuccess(count)
+}
+
 func GetMemPoolTxState(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return responsePack(berr.INVALID_PARAMS, nil)
@@ -164,12 +173,11 @@ func GetMemPoolTxState(params []interface{}) map[string]interface{} {
 		if err != nil {
 			return responsePack(berr.UNKNOWN_TRANSACTION, "unknown transaction")
 		}
-		tran := bcomn.TransArryByteToHexString(txEntry.Tx)
 		attrs := []bcomn.TXNAttrInfo{}
 		for _, t := range txEntry.Attrs {
 			attrs = append(attrs, bcomn.TXNAttrInfo{t.Height, int(t.Type), int(t.ErrCode)})
 		}
-		info := bcomn.TXNEntryInfo{*tran, int64(txEntry.Tx.GasPrice), attrs}
+		info := bcomn.TXNEntryInfo{attrs}
 		return responseSuccess(info)
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")

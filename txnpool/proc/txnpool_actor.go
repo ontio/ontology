@@ -161,6 +161,17 @@ func (ta *TxActor) Receive(context actor.Context) {
 			}
 		}
 
+	case *tc.GetTxnCountReq:
+		sender := context.Sender()
+
+		log.Debugf("txpool-tx actor receives getting tx count req from %v", sender)
+
+		res := ta.server.getTxCount()
+		if sender != nil {
+			sender.Request(&tc.GetTxnCountRsp{Count: res},
+				context.Self())
+		}
+
 	default:
 		log.Debugf("txpool-tx actor: unknown msg %v type %v", msg, reflect.TypeOf(msg))
 	}

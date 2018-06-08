@@ -753,6 +753,60 @@ get unclaimong
 }
 ```
 
+### 23. Get mempooltxstate
+Query the transaction state in the memory pool.
+
+#### Request Example:
+```
+{
+    "Action": "getmempooltxstate",
+    "Hash": "0b437771a42d18d292741c5d4f1300a135fa6e65b0594e39dc299e7f8279221a",
+    "Version": "1.0.0"
+}
+```
+#### Response
+```
+{
+    "Action": "getmempooltxstate",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Version": "1.0.0",
+    "Result": {
+              	"State": [{
+              		"Type": 1,
+              		"Height": 342,
+              		"ErrCode": 0
+              	}, {
+              		"Type": 0,
+              		"Height": 0,
+              		"ErrCode": 0
+              	}]
+    }
+}
+```
+
+### 24. Get mempooltxcount
+Query the transaction count in the memory pool.
+
+#### Request Example:
+```
+{
+    "Action": "getmempooltxcount",
+    "Version": "1.0.0"
+}
+```
+#### Response
+```
+{
+    "Action": "getmempooltxcount",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Version": "1.0.0",
+    "Result": [100,50]
+}
+```
+
+
 ## Error Code
 
 | Field | Type | Description |
