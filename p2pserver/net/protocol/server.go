@@ -22,6 +22,7 @@ package p2p
 import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/peer"
 )
 
@@ -47,8 +48,8 @@ type P2P interface {
 	GetPeer(uint64) *peer.Peer
 	SetHeight(uint64)
 	IsPeerEstablished(p *peer.Peer) bool
-	Send(p *peer.Peer, data []byte, isConsensus bool) error
-	GetMsgChan(isConsensus bool) chan *common.MsgPayload
+	Send(p *peer.Peer, msg types.Message, isConsensus bool) error
+	GetMsgChan(isConsensus bool) chan *types.MsgPayload
 	GetPeerFromAddr(addr string) *peer.Peer
 	AddInConnectingList(addr string) (added bool)
 	RemoveFromConnectingList(addr string)
@@ -59,5 +60,5 @@ type P2P interface {
 	AddNbrNode(*peer.Peer)
 	DelNbrNode(id uint64) (*peer.Peer, bool)
 	NodeEstablished(uint64) bool
-	Xmit([]byte, bool)
+	Xmit(msg types.Message, isCons bool)
 }

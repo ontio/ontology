@@ -18,52 +18,18 @@
 package types
 
 import (
-	"bytes"
-	"crypto/sha256"
-	"encoding/binary"
 	"testing"
 
 	cm "github.com/ontio/ontology/common"
-	comm "github.com/ontio/ontology/p2pserver/common"
 )
 
 func TestBlkReqSerializationDeserialization(t *testing.T) {
 	var msg BlocksReq
-	msg.MsgHdr.Magic = comm.NETMAGIC
-	copy(msg.MsgHdr.CMD[0:7], "getblocks")
-	msg.P.HeaderHashCount = 1
+	msg.HeaderHashCount = 1
 
 	hashstr := "8932da73f52b1e22f30c609988ed1f693b6144f74fed9a2a20869afa7abfdf5e"
 	bhash, _ := cm.HexToBytes(hashstr)
-	copy(msg.P.HashStart[:], bhash)
-	t.Log("new getblocks message before serialize HashStart = ", msg.P.HashStart)
-	p := new(bytes.Buffer)
-	err := binary.Write(p, binary.LittleEndian, &(msg.P))
-	if err != nil {
-		t.Error("Binary Write failed at new getblocks")
-		return
-	}
-	s := sha256.Sum256(p.Bytes())
-	s2 := s[:]
-	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(msg.MsgHdr.Checksum))
-	msg.MsgHdr.Length = uint32(len(p.Bytes()))
-	m, err := msg.Serialization()
-	if err != nil {
-		t.Error("Error Convert net message ", err.Error())
-		return
-	}
+	copy(msg.HashStart[:], bhash)
 
-	var demsg BlocksReq
-	err = demsg.Deserialization(m)
-	if err != nil {
-		t.Error(err)
-		return
-	} else {
-		t.Log("getblocks Test_Deserialization successful")
-	}
-
-	t.Log("new getblocks message after deserialize HeaderHashCount = ", demsg.P.HeaderHashCount)
-	t.Log("new getblocks message after deserialize HashStart = ", demsg.P.HashStart)
+	MessageTest(t, &msg)
 }

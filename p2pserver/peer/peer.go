@@ -31,6 +31,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	conn "github.com/ontio/ontology/p2pserver/link"
+	"github.com/ontio/ontology/p2pserver/message/types"
 )
 
 // PeerCom provides the basic information of a peer
@@ -252,17 +253,17 @@ func (this *Peer) SetConsPort(port uint16) {
 }
 
 //SendToSync call sync link to send buffer
-func (this *Peer) SendToSync(buf []byte) {
+func (this *Peer) SendToSync(msg types.Message) {
 	if this.SyncLink != nil && this.SyncLink.Valid() {
-		this.SyncLink.Tx(buf)
+		this.SyncLink.Tx(msg)
 	}
 
 }
 
 //SendToCons call consensus link to send buffer
-func (this *Peer) SendToCons(buf []byte) {
+func (this *Peer) SendToCons(msg types.Message) {
 	if this.ConsLink != nil && this.ConsLink.Valid() {
-		this.ConsLink.Tx(buf)
+		this.ConsLink.Tx(msg)
 	}
 }
 
@@ -333,21 +334,21 @@ func (this *Peer) GetAddr16() ([16]byte, error) {
 }
 
 //AttachSyncChan set msg chan to sync link
-func (this *Peer) AttachSyncChan(msgchan chan *common.MsgPayload) {
+func (this *Peer) AttachSyncChan(msgchan chan *types.MsgPayload) {
 	this.SyncLink.SetChan(msgchan)
 }
 
 //AttachConsChan set msg chan to consensus link
-func (this *Peer) AttachConsChan(msgchan chan *common.MsgPayload) {
+func (this *Peer) AttachConsChan(msgchan chan *types.MsgPayload) {
 	this.ConsLink.SetChan(msgchan)
 }
 
 //Send transfer buffer by sync or cons link
-func (this *Peer) Send(buf []byte, isConsensus bool) error {
+func (this *Peer) Send(msg types.Message, isConsensus bool) error {
 	if isConsensus && this.ConsLink.Valid() {
-		return this.ConsLink.Tx(buf)
+		return this.ConsLink.Tx(msg)
 	}
-	return this.SyncLink.Tx(buf)
+	return this.SyncLink.Tx(msg)
 }
 
 //SetHttpInfoState set peer`s httpinfo state

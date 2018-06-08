@@ -144,35 +144,21 @@ func (this *P2PServer) GetNeighborAddrs() []common.PeerAddr {
 //Xmit called by other module to broadcast msg
 func (this *P2PServer) Xmit(message interface{}) error {
 	log.Debug()
-	var buffer []byte
-	var err error
+	var msg msgtypes.Message
 	isConsensus := false
 	switch message.(type) {
 	case *types.Transaction:
 		log.Debug("TX transaction message")
 		txn := message.(*types.Transaction)
-		buffer, err = msgpack.NewTxn(txn)
-		if err != nil {
-			log.Error("Error New Tx message: ", err)
-			return err
-		}
-
+		msg = msgpack.NewTxn(txn)
 	case *types.Block:
 		log.Debug("TX block message")
 		block := message.(*types.Block)
-		buffer, err = msgpack.NewBlock(block)
-		if err != nil {
-			log.Error("Error New Block message: ", err)
-			return err
-		}
+		msg = msgpack.NewBlock(block)
 	case *msgtypes.ConsensusPayload:
 		log.Debug("TX consensus message")
 		consensusPayload := message.(*msgtypes.ConsensusPayload)
-		buffer, err = msgpack.NewConsensus(consensusPayload)
-		if err != nil {
-			log.Error("Error New consensus message: ", err)
-			return err
-		}
+		msg = msgpack.NewConsensus(consensusPayload)
 		isConsensus = true
 	case comm.Uint256:
 		log.Debug("TX block hash message")
@@ -181,25 +167,21 @@ func (this *P2PServer) Xmit(message interface{}) error {
 		hash.Serialize(buf)
 		// construct inv message
 		invPayload := msgpack.NewInvPayload(comm.BLOCK, 1, buf.Bytes())
-		buffer, err = msgpack.NewInv(invPayload)
-		if err != nil {
-			log.Error("Error New inv message")
-			return err
-		}
+		msg = msgpack.NewInv(invPayload)
 	default:
 		log.Warnf("Unknown Xmit message %v , type %v", message,
 			reflect.TypeOf(message))
 		return errors.New("Unknown Xmit message type")
 	}
-	this.network.Xmit(buffer, isConsensus)
+	this.network.Xmit(msg, isConsensus)
 	return nil
 }
 
 //Send tranfer buffer to peer
-func (this *P2PServer) Send(p *peer.Peer, buf []byte,
+func (this *P2PServer) Send(p *peer.Peer, msg msgtypes.Message,
 	isConsensus bool) error {
 	if this.network.IsPeerEstablished(p) {
-		return this.network.Send(p, buf, isConsensus)
+		return this.network.Send(p, msg, isConsensus)
 	}
 	log.Errorf("P2PServer send to a not ESTABLISH peer 0x%x",
 		p.GetID())
@@ -431,8 +413,8 @@ func (this *P2PServer) keepOnlineService() {
 
 //reqNbrList ask the peer for its neighbor list
 func (this *P2PServer) reqNbrList(p *peer.Peer) {
-	buf, _ := msgpack.NewAddrReq()
-	go this.Send(p, buf, false)
+	msg := msgpack.NewAddrReq()
+	go this.Send(p, msg, false)
 }
 
 //heartBeat send ping to nbr peers and check the timeout
@@ -459,12 +441,8 @@ func (this *P2PServer) ping() {
 	for _, p := range peers {
 		if p.GetSyncState() == common.ESTABLISH {
 			height := this.ledger.GetCurrentBlockHeight()
-			buf, err := msgpack.NewPingMsg(uint64(height))
-			if err != nil {
-				log.Error("failed build a new ping message")
-			} else {
-				go this.Send(p, buf, false)
-			}
+			ping := msgpack.NewPingMsg(uint64(height))
+			go this.Send(p, ping, false)
 		}
 	}
 }

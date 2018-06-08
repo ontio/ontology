@@ -32,78 +32,53 @@ import (
 )
 
 //Peer address package
-func NewAddrs(nodeAddrs []msgCommon.PeerAddr) ([]byte, error) {
+func NewAddrs(nodeAddrs []msgCommon.PeerAddr) mt.Message {
 	var addr mt.Addr
 	addr.NodeAddrs = nodeAddrs
 
-	m, err := addr.Serialization()
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
+	return &addr
 }
 
 //Peer address request package
-func NewAddrReq() ([]byte, error) {
+func NewAddrReq() mt.Message {
 	var msg mt.AddrReq
-
-	buf, err := msg.Serialization()
-	if err != nil {
-		return nil, err
-	}
-	return buf, err
+	return &msg
 }
 
 ///block package
-func NewBlock(bk *ct.Block) ([]byte, error) {
+func NewBlock(bk *ct.Block) mt.Message {
 	log.Debug()
 	var blk mt.Block
 	blk.Blk = *bk
 
-	m, err := blk.Serialization()
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
+	return &blk
 }
 
 //blk hdr package
-func NewHeaders(headers []ct.Header) ([]byte, error) {
+func NewHeaders(headers []*ct.Header) mt.Message {
 	var blkHdr mt.BlkHeader
-	blkHdr.Cnt = uint32(len(headers))
 	blkHdr.BlkHdr = headers
 
-	m, err := blkHdr.Serialization()
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
+	return &blkHdr
 }
 
 //blk hdr req package
-func NewHeadersReq(curHdrHash common.Uint256) ([]byte, error) {
+func NewHeadersReq(curHdrHash common.Uint256) mt.Message {
 	var h mt.HeadersReq
-	h.P.Len = 1
+	h.Len = 1
 	buf := curHdrHash
-	copy(h.P.HashEnd[:], buf[:])
+	copy(h.HashEnd[:], buf[:])
 
-	m, err := h.Serialization()
-	if err != nil {
-		return nil, err
-	}
-	return m, err
+	return &h
 }
 
 ////Consensus info package
-func NewConsensus(cp *mt.ConsensusPayload) ([]byte, error) {
+func NewConsensus(cp *mt.ConsensusPayload) mt.Message {
 	log.Debug()
 	var cons mt.Consensus
 	cons.Cons = *cp
-	m, err := cons.Serialization()
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
+
+	return &cons
 }
 
 //InvPayload
@@ -116,81 +91,57 @@ func NewInvPayload(invType common.InventoryType, count uint32, msg []byte) *mt.I
 }
 
 //Inv request package
-func NewInv(invPayload *mt.InvPayload) ([]byte, error) {
+func NewInv(invPayload *mt.InvPayload) mt.Message {
 	var inv mt.Inv
 	inv.P.Blk = invPayload.Blk
 	inv.P.InvType = invPayload.InvType
 	inv.P.Cnt = invPayload.Cnt
 
-	m, err := inv.Serialization()
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
+	return &inv
 }
 
 //NotFound package
-func NewNotFound(hash common.Uint256) ([]byte, error) {
+func NewNotFound(hash common.Uint256) mt.Message {
 	log.Debug()
 	var notFound mt.NotFound
 	notFound.Hash = hash
 
-	m, err := notFound.Serialization()
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
+	return &notFound
 }
 
 //ping msg package
-func NewPingMsg(height uint64) ([]byte, error) {
+func NewPingMsg(height uint64) *mt.Ping {
 	log.Debug()
 	var ping mt.Ping
 	ping.Height = uint64(height)
 
-	m, err := ping.Serialization()
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
+	return &ping
 }
 
 //pong msg package
-func NewPongMsg(height uint64) ([]byte, error) {
+func NewPongMsg(height uint64) *mt.Pong {
 	log.Debug()
 	var pong mt.Pong
 	pong.Height = uint64(height)
 
-	m, err := pong.Serialization()
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
+	return &pong
 }
 
 //Transaction package
-func NewTxn(txn *ct.Transaction) ([]byte, error) {
+func NewTxn(txn *ct.Transaction) mt.Message {
 	log.Debug()
 	var trn mt.Trn
-	trn.Txn = *txn
+	trn.Txn = txn
 
-	m, err := trn.Serialization()
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
+	return &trn
 }
 
 //version ack package
-func NewVerAck(isConsensus bool) ([]byte, error) {
+func NewVerAck(isConsensus bool) mt.Message {
 	var verAck mt.VerACK
 	verAck.IsConsensus = isConsensus
 
-	m, err := verAck.Serialization()
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
+	return &verAck
 }
 
 //VersionPayload package
@@ -224,54 +175,38 @@ func NewVersionPayload(n p2pnet.P2P, isCons bool, height uint32) mt.VersionPaylo
 }
 
 //version msg package
-func NewVersion(vpl mt.VersionPayload, pk keypair.PublicKey) ([]byte, error) {
-	log.Debug()
+func NewVersion(vpl mt.VersionPayload, pk keypair.PublicKey) mt.Message {
 	var version mt.Version
 	version.P = vpl
 	version.PK = pk
 	log.Debug("new version msg.pk is ", version.PK)
 
-	m, err := version.Serialization()
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
+	return &version
 }
 
 //transaction request package
-func NewTxnDataReq(hash common.Uint256) ([]byte, error) {
+func NewTxnDataReq(hash common.Uint256) mt.Message {
 	var dataReq mt.DataReq
 	dataReq.DataType = common.TRANSACTION
 	dataReq.Hash = hash
 
-	buf, err := dataReq.Serialization()
-	if err != nil {
-		return nil, err
-	}
-	return buf, nil
+	return &dataReq
 }
 
 //block request package
-func NewBlkDataReq(hash common.Uint256) ([]byte, error) {
+func NewBlkDataReq(hash common.Uint256) mt.Message {
 	var dataReq mt.DataReq
 	dataReq.DataType = common.BLOCK
 	dataReq.Hash = hash
 
-	sendBuf, err := dataReq.Serialization()
-	if err != nil {
-		return nil, err
-	}
-	return sendBuf, nil
+	return &dataReq
 }
 
 //consensus request package
-func NewConsensusDataReq(hash common.Uint256) ([]byte, error) {
+func NewConsensusDataReq(hash common.Uint256) mt.Message {
 	var dataReq mt.DataReq
 	dataReq.DataType = common.CONSENSUS
 	dataReq.Hash = hash
-	buf, err := dataReq.Serialization()
-	if err != nil {
-		return nil, err
-	}
-	return buf, nil
+
+	return &dataReq
 }

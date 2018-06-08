@@ -18,50 +18,18 @@
 package types
 
 import (
-	"bytes"
-	"encoding/binary"
 	"testing"
 
 	cm "github.com/ontio/ontology/common"
-	comm "github.com/ontio/ontology/p2pserver/common"
 )
 
 func TestDataReqSerializationDeserialization(t *testing.T) {
 	var msg DataReq
-	msg.MsgHdr.Magic = comm.NETMAGIC
-	copy(msg.MsgHdr.CMD[0:7], "getdata")
 	msg.DataType = 0x02
 
 	hashstr := "8932da73f52b1e22f30c609988ed1f693b6144f74fed9a2a20869afa7abfdf5e"
 	bhash, _ := cm.HexToBytes(hashstr)
 	copy(msg.Hash[:], bhash)
-	t.Log("new getdata message before serialize Hash = ", msg.Hash)
-	p := bytes.NewBuffer([]byte{})
-	err := binary.Write(p, binary.LittleEndian, &(msg.DataType))
-	msg.Hash.Serialize(p)
-	if err != nil {
-		t.Error("Binary Write failed at new getdata Msg")
-		return
-	}
 
-	checkSumBuf := CheckSum(p.Bytes())
-	msg.Init("getdata", checkSumBuf, uint32(len(p.Bytes())))
-
-	m, err := msg.Serialization()
-	if err != nil {
-		t.Error("Error Convert net message ", err.Error())
-		return
-	}
-
-	var demsg DataReq
-	err = demsg.Deserialization(m)
-	if err != nil {
-		t.Error(err)
-		return
-	} else {
-		t.Log("getheaders Test_Deserialization successful")
-	}
-
-	t.Log("new getdata message after deserialize DataType = ", demsg.DataType)
-	t.Log("new getdata message after deserialize Hash = ", demsg.Hash)
+	MessageTest(t, &msg)
 }

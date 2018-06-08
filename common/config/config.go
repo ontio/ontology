@@ -292,7 +292,7 @@ type ConsensusConfig struct {
 }
 
 type P2PNodeConfig struct {
-	NetworkId         uint
+	NetworkId         uint32
 	NodePort          uint
 	NodeConsensusPort uint
 	DualPortSupport   bool

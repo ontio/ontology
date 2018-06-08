@@ -10,6 +10,7 @@
  * The ontology is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
@@ -18,40 +19,21 @@
 package types
 
 import (
-	"bytes"
-	"net"
-	"testing"
-
-	comm "github.com/ontio/ontology/p2pserver/common"
-	"github.com/stretchr/testify/assert"
+	"github.com/ontio/ontology/p2pserver/common"
 )
 
-func MessageTest(t *testing.T, msg Message) {
-	p := new(bytes.Buffer)
-	err := WriteMessage(p, msg)
-	assert.Nil(t, err)
+type Disconnected struct{}
 
-	demsg, err := ReadMessage(p)
-	assert.Nil(t, err)
-
-	assert.Equal(t, msg, demsg)
+//Serialize message payload
+func (this Disconnected) Serialization() ([]byte, error) {
+	return nil, nil
 }
 
-func TestAddressSerializationDeserialization(t *testing.T) {
-	var msg Addr
-	var addr [16]byte
-	ip := net.ParseIP("192.168.0.1")
-	ip.To16()
-	copy(addr[:], ip[:16])
-	nodeAddr := comm.PeerAddr{
-		Time:          12345678,
-		Services:      100,
-		IpAddr:        addr,
-		Port:          8080,
-		ConsensusPort: 8081,
-		ID:            987654321,
-	}
-	msg.NodeAddrs = append(msg.NodeAddrs, nodeAddr)
+func (this Disconnected) CmdType() string {
+	return common.DISCONNECT_TYPE
+}
 
-	MessageTest(t, &msg)
+//Deserialize message payload
+func (this *Disconnected) Deserialization(p []byte) error {
+	return nil
 }

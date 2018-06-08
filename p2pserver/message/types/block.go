@@ -20,60 +20,36 @@ package types
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 
-	"github.com/ontio/ontology/common/log"
 	ct "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/p2pserver/common"
 )
 
 type Block struct {
-	MsgHdr
 	Blk ct.Block
-}
-
-//Check whether header is correct
-func (this Block) Verify(buf []byte) error {
-	err := this.MsgHdr.Verify(buf)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetVerifyFail, fmt.Sprintf("verify error. buf:%v", buf))
-	}
-	return nil
 }
 
 //Serialize message payload
 func (this Block) Serialization() ([]byte, error) {
-
 	p := bytes.NewBuffer([]byte{})
 	err := this.Blk.Serialize(p)
-
 	if err != nil {
 		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialize error. Blk:%v", this.Blk))
 	}
 
-	checkSumBuf := CheckSum(p.Bytes())
-	this.Init("block", checkSumBuf, uint32(len(p.Bytes())))
-	log.Debug("The message payload length is ", this.Length)
+	return p.Bytes(), nil
+}
 
-	hdrBuf, err := this.MsgHdr.Serialization()
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprint("serialization error. MsgHdr:%v", this.MsgHdr))
-	}
-	buf := bytes.NewBuffer(hdrBuf)
-	data := append(buf.Bytes(), p.Bytes()...)
-	return data, nil
+func (this *Block) CmdType() string {
+	return common.BLOCK_TYPE
 }
 
 //Deserialize message payload
 func (this *Block) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(this.MsgHdr))
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprint("read MsgHdr error. buf:%v", buf))
-	}
-
-	err = this.Blk.Deserialize(buf)
+	err := this.Blk.Deserialize(buf)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprint("read Blk error. buf:%v", buf))
 	}

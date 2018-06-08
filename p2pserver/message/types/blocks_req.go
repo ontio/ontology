@@ -28,42 +28,24 @@ import (
 )
 
 type BlocksReq struct {
-	MsgHdr
-	P struct {
-		HeaderHashCount uint8
-		HashStart       [common.HASH_LEN]byte
-		HashStop        [common.HASH_LEN]byte
-	}
-}
-
-//Check whether header is correct
-func (this BlocksReq) Verify(buf []byte) error {
-	err := this.MsgHdr.Verify(buf)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetVerifyFail, fmt.Sprintf("verify error. buf:%v", buf))
-	}
-	return nil
+	HeaderHashCount uint8
+	HashStart       [common.HASH_LEN]byte
+	HashStop        [common.HASH_LEN]byte
 }
 
 //Serialize message payload
-func (this BlocksReq) Serialization() ([]byte, error) {
+func (this *BlocksReq) Serialization() ([]byte, error) {
 	p := new(bytes.Buffer)
-	err := binary.Write(p, binary.LittleEndian, &(this.P))
+	err := binary.Write(p, binary.LittleEndian, this)
 	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write  error. payload:%v", this.P))
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write  error. payload:%v", this))
 	}
 
-	s := CheckSum(p.Bytes())
-	this.MsgHdr.Init("getblocks", s, uint32(len(p.Bytes())))
+	return p.Bytes(), nil
+}
 
-	hdrBuf, err := this.MsgHdr.Serialization()
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write  error. MsgHdr:%v", this.MsgHdr))
-	}
-	buf := bytes.NewBuffer(hdrBuf)
-
-	data := append(buf.Bytes(), p.Bytes()...)
-	return data, nil
+func (this *BlocksReq) CmdType() string {
+	return common.GET_BLOCKS_TYPE
 }
 
 //Deserialize message payload

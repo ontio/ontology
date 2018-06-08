@@ -20,15 +20,14 @@ package types
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/p2pserver/common"
 )
 
 type VerACK struct {
-	MsgHdr
 	IsConsensus bool
 }
 
@@ -39,30 +38,23 @@ func (this VerACK) Serialization() ([]byte, error) {
 	if err != nil {
 		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. IsConsensus:%v", this.IsConsensus))
 	}
-	checkSumBuf := CheckSum(p.Bytes())
-	this.Init("verack", checkSumBuf, uint32(len(p.Bytes())))
 
-	hdrBuf, err := this.MsgHdr.Serialization()
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. MsgHdr:%v", this.MsgHdr))
-	}
-	buf := bytes.NewBuffer(hdrBuf)
-	data := append(buf.Bytes(), p.Bytes()...)
-	return data, nil
+	return p.Bytes(), nil
+}
+
+func (this VerACK) CmdType() string {
+	return common.VERACK_TYPE
 }
 
 //Deserialize message payload
 func (this *VerACK) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(this.MsgHdr))
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read MsgHdr error. buf:%v", buf))
 
-	}
-
-	this.IsConsensus, err = serialization.ReadBool(buf)
+	isConsensus, err := serialization.ReadBool(buf)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read IsConsensus error. buf:%v", buf))
 	}
+
+	this.IsConsensus = isConsensus
 	return nil
 }

@@ -19,24 +19,16 @@
 package link
 
 import (
+	"bufio"
 	"bytes"
-	"encoding/binary"
 	"errors"
-	"io"
 	"net"
 	"time"
 
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/types"
 )
-
-// The RX buffer of this node to solve multiple packets problem
-type RxBuf struct {
-	p   []byte //buffer
-	len int    //patload length in buffer
-}
 
 //Link used to establish
 type Link struct {
@@ -44,9 +36,8 @@ type Link struct {
 	addr     string    // The address of the node
 	conn     net.Conn  // Connect socket with the peer node
 	port     uint16    // The server port of the node
-	rxBuf    RxBuf     // recv buffer
 	time     time.Time // The latest time the node activity
-	recvChan chan *common.MsgPayload
+	recvChan chan *types.MsgPayload
 }
 
 func NewLink() *Link {
@@ -71,7 +62,7 @@ func (this *Link) Valid() bool {
 }
 
 //set message channel for link layer
-func (this *Link) SetChan(msgchan chan *common.MsgPayload) {
+func (this *Link) SetChan(msgchan chan *types.MsgPayload) {
 	this.recvChan = msgchan
 }
 
@@ -115,97 +106,26 @@ func (this *Link) GetRXTime() time.Time {
 	return this.time
 }
 
-// Shrinking the buf to the exactly reading in byte length
-//@Return @1 the start header of next message, the left length of the next message
-func unpackNodeBuf(this *Link, buf []byte) {
-	var msgLen int
-	var msgBuf []byte
-
-	if len(buf) == 0 {
-		return
-	}
-
-	var rxBuf *RxBuf
-	rxBuf = &this.rxBuf
-
-	if rxBuf.len == 0 {
-		length := common.MSG_HDR_LEN - len(rxBuf.p)
-		if length > len(buf) {
-			length = len(buf)
-			rxBuf.p = append(rxBuf.p, buf[0:length]...)
-			return
-		}
-
-		rxBuf.p = append(rxBuf.p, buf[0:length]...)
-		if types.ValidMsgHdr(rxBuf.p) == false {
-			rxBuf.p = nil
-			rxBuf.len = 0
-			log.Warn("receive unmatched message header")
-			this.CloseConn()
-			return
-		}
-		payloadLen, err := types.PayloadLen(rxBuf.p)
-		if err != nil {
-			rxBuf.p = nil
-			rxBuf.len = 0
-			log.Warn("get payload len error")
-			this.CloseConn()
-			return
-		}
-		rxBuf.len = payloadLen
-		buf = buf[length:]
-	}
-
-	msgLen = rxBuf.len
-	if len(buf) == msgLen {
-		msgBuf = append(rxBuf.p, buf[:]...)
-		this.pushdata(msgBuf)
-		rxBuf.p = nil
-		rxBuf.len = 0
-	} else if len(buf) < msgLen {
-		rxBuf.p = append(rxBuf.p, buf[:]...)
-		rxBuf.len = msgLen - len(buf)
-	} else {
-		msgBuf = append(rxBuf.p, buf[0:msgLen]...)
-		this.pushdata(msgBuf)
-		rxBuf.p = nil
-		rxBuf.len = 0
-
-		unpackNodeBuf(this, buf[msgLen:])
-	}
-}
-
-//pushdata send package data to channel
-func (this *Link) pushdata(buf []byte) {
-	p2pMsg := &common.MsgPayload{
-		Id:      this.id,
-		Addr:    this.addr,
-		Payload: buf,
-	}
-	this.recvChan <- p2pMsg
-}
-
-//Rx read conn byte then call unpackNodeBuf to parse data
 func (this *Link) Rx() {
-	conn := this.conn
-	buf := make([]byte, common.MAX_BUF_LEN)
+	reader := bufio.NewReaderSize(this.conn, common.MAX_BUF_LEN)
+
 	for {
-		len, err := conn.Read(buf[0:(common.MAX_BUF_LEN - 1)])
-		buf[common.MAX_BUF_LEN-1] = 0 //Prevent overflow
-		switch err {
-		case nil:
-			t := time.Now()
-			this.UpdateRXTime(t)
-			unpackNodeBuf(this, buf[0:len])
-		case io.EOF:
-			goto DISCONNECT
-		default:
+		msg, err := types.ReadMessage(reader)
+		if err != nil {
 			log.Error("read connection error ", err)
-			goto DISCONNECT
+			break
 		}
+
+		t := time.Now()
+		this.UpdateRXTime(t)
+		this.recvChan <- &types.MsgPayload{
+			Id:      this.id,
+			Addr:    this.addr,
+			Payload: msg,
+		}
+
 	}
 
-DISCONNECT:
 	this.disconnectNotify()
 }
 
@@ -213,18 +133,12 @@ DISCONNECT:
 func (this *Link) disconnectNotify() {
 	this.CloseConn()
 
-	var m types.MsgCont
-	cmd := common.DISCONNECT_TYPE
-	m.Hdr.Magic = uint32(config.DefConfig.P2PNode.NetworkId)
-	copy(m.Hdr.CMD[0:uint32(len(cmd))], cmd)
-	var buf bytes.Buffer
-	binary.Write(&buf, binary.LittleEndian, m.Hdr)
-	msgbuf := buf.Bytes()
+	msg, _ := types.MakeEmptyMessage(common.DISCONNECT_TYPE)
 
-	discMsg := &common.MsgPayload{
+	discMsg := &types.MsgPayload{
 		Id:      this.id,
 		Addr:    this.addr,
-		Payload: msgbuf,
+		Payload: msg,
 	}
 	this.recvChan <- discMsg
 }
@@ -237,13 +151,19 @@ func (this *Link) CloseConn() {
 	}
 }
 
-//Tx write data to link conn
-func (this *Link) Tx(buf []byte) error {
-	log.Debugf("TX buf length: %d\n%x", len(buf), buf)
-	if this.conn == nil {
+func (this *Link) Tx(msg types.Message) error {
+	conn := this.conn
+	if conn == nil {
 		return errors.New("tx link invalid")
 	}
-	_, err := this.conn.Write(buf)
+	buf := bytes.NewBuffer(nil)
+	err := types.WriteMessage(buf, msg)
+	if err != nil {
+		log.Error("error serialize messge ", err.Error())
+	}
+	log.Debugf("TX buf length: %d\n", len(buf.Bytes()))
+
+	_, err = conn.Write(buf.Bytes())
 	if err != nil {
 		log.Error("error sending messge to peer node ", err.Error())
 		this.disconnectNotify()

@@ -34,6 +34,7 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
+	"github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/p2pserver/peer"
 )
@@ -42,8 +43,8 @@ import (
 func NewNetServer(pubKey keypair.PublicKey) p2p.P2P {
 
 	n := &NetServer{
-		SyncChan: make(chan *common.MsgPayload, common.CHAN_CAPABILITY),
-		ConsChan: make(chan *common.MsgPayload, common.CHAN_CAPABILITY),
+		SyncChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
+		ConsChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 	}
 
 	n.PeerAddrMap.PeerSyncAddress = make(map[string]*peer.Peer)
@@ -58,8 +59,8 @@ type NetServer struct {
 	base         peer.PeerCom
 	synclistener net.Listener
 	conslistener net.Listener
-	SyncChan     chan *common.MsgPayload
-	ConsChan     chan *common.MsgPayload
+	SyncChan     chan *types.MsgPayload
+	ConsChan     chan *types.MsgPayload
 	ConnectingNodes
 	PeerAddrMap
 	Np *peer.NbrPeers
@@ -227,12 +228,12 @@ func (this *NetServer) NodeEstablished(id uint64) bool {
 }
 
 //Xmit called by actor, broadcast msg
-func (this *NetServer) Xmit(buf []byte, isCons bool) {
-	this.Np.Broadcast(buf, isCons)
+func (this *NetServer) Xmit(msg types.Message, isCons bool) {
+	this.Np.Broadcast(msg, isCons)
 }
 
 //GetMsgChan return sync or consensus channel when msgrouter need msg input
-func (this *NetServer) GetMsgChan(isConsensus bool) chan *common.MsgPayload {
+func (this *NetServer) GetMsgChan(isConsensus bool) chan *types.MsgPayload {
 	if isConsensus {
 		return this.ConsChan
 	} else {
@@ -241,12 +242,12 @@ func (this *NetServer) GetMsgChan(isConsensus bool) chan *common.MsgPayload {
 }
 
 //Tx send data buf to peer
-func (this *NetServer) Send(p *peer.Peer, data []byte, isConsensus bool) error {
+func (this *NetServer) Send(p *peer.Peer, msg types.Message, isConsensus bool) error {
 	if p != nil {
 		if config.DefConfig.P2PNode.DualPortSupport == false {
-			return p.Send(data, false)
+			return p.Send(msg, false)
 		}
-		return p.Send(data, isConsensus)
+		return p.Send(msg, isConsensus)
 	}
 	log.Error("send to a invalid peer")
 	return errors.New("send to a invalid peer")
@@ -311,12 +312,12 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		go remotePeer.SyncLink.Rx()
 		remotePeer.SetSyncState(common.HAND)
 		vpl := msgpack.NewVersionPayload(this, false, ledger.DefLedger.GetCurrentBlockHeight())
-		buf, err := msgpack.NewVersion(vpl, this.GetPubKey())
+		version := msgpack.NewVersion(vpl, this.GetPubKey())
+		err := remotePeer.SyncLink.Tx(version)
 		if err != nil {
 			log.Error(err)
 			return err
 		}
-		remotePeer.SyncLink.Tx(buf)
 	} else {
 		remotePeer = peer.NewPeer() //would merge with a exist peer in versionhandle
 		this.AddPeerConsAddress(addr, remotePeer)
@@ -326,12 +327,12 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		go remotePeer.ConsLink.Rx()
 		remotePeer.SetConsState(common.HAND)
 		vpl := msgpack.NewVersionPayload(this, true, ledger.DefLedger.GetCurrentBlockHeight())
-		buf, err := msgpack.NewVersion(vpl, this.GetPubKey())
+		version := msgpack.NewVersion(vpl, this.GetPubKey())
+		err := remotePeer.ConsLink.Tx(version)
 		if err != nil {
 			log.Error(err)
 			return err
 		}
-		remotePeer.ConsLink.Tx(buf)
 	}
 
 	return nil

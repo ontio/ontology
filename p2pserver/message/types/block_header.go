@@ -23,31 +23,20 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	ct "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/p2pserver/common"
 )
 
 type BlkHeader struct {
-	Hdr    MsgHdr
-	Cnt    uint32
-	BlkHdr []ct.Header
-}
-
-//Check whether header is correct
-func (this BlkHeader) Verify(buf []byte) error {
-	err := this.Hdr.Verify(buf)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetVerifyFail, fmt.Sprintf("verify error. buf:%v", buf))
-	}
-	return nil
+	BlkHdr []*ct.Header
 }
 
 //Serialize message payload
 func (this BlkHeader) Serialization() ([]byte, error) {
 	p := bytes.NewBuffer([]byte{})
-	serialization.WriteUint32(p, this.Cnt)
+	serialization.WriteUint32(p, uint32(len(this.BlkHdr)))
 	for _, header := range this.BlkHdr {
 		err := header.Serialize(p)
 		if err != nil {
@@ -55,39 +44,30 @@ func (this BlkHeader) Serialization() ([]byte, error) {
 		}
 	}
 
-	checkSumBuf := CheckSum(p.Bytes())
-	this.Hdr.Init("headers", checkSumBuf, uint32(len(p.Bytes())))
-	log.Debug("The message payload length is ", this.Hdr.Length)
+	return p.Bytes(), nil
+}
 
-	hdrBuf, err := this.Hdr.Serialization()
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialization error. MsgHdr:%v", this.Hdr))
-	}
-	buf := bytes.NewBuffer(hdrBuf)
-	data := append(buf.Bytes(), p.Bytes()...)
-	return data, nil
+func (this *BlkHeader) CmdType() string {
+	return common.HEADERS_TYPE
 }
 
 //Deserialize message payload
 func (this *BlkHeader) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(this.Hdr))
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read Hdr error. buf:%v", buf))
-	}
+	var count uint32
 
-	err = binary.Read(buf, binary.LittleEndian, &(this.Cnt))
+	err := binary.Read(buf, binary.LittleEndian, &count)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read Cnt error. buf:%v", buf))
 	}
 
-	for i := 0; i < int(this.Cnt); i++ {
+	for i := 0; i < int(count); i++ {
 		var headers ct.Header
-		err := (&headers).Deserialize(buf)
+		err := headers.Deserialize(buf)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("deserialize headers error. buf:%v", buf))
 		}
-		this.BlkHdr = append(this.BlkHdr, headers)
+		this.BlkHdr = append(this.BlkHdr, &headers)
 	}
 	return nil
 }

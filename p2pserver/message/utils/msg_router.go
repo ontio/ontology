@@ -22,23 +22,23 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"
 	msgCommon "github.com/ontio/ontology/p2pserver/common"
-	msgTypes "github.com/ontio/ontology/p2pserver/message/types"
+	"github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/net/protocol"
 )
 
 // MessageHandler defines the unified api for each net message
-type MessageHandler func(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *actor.PID, args ...interface{})
+type MessageHandler func(data *types.MsgPayload, p2p p2p.P2P, pid *actor.PID, args ...interface{})
 
 // MessageRouter mostly route different message type-based to the
 // related message handler
 type MessageRouter struct {
-	msgHandlers  map[string]MessageHandler  // Msg handler mapped to msg type
-	RecvSyncChan chan *msgCommon.MsgPayload // The channel to handle sync msg
-	RecvConsChan chan *msgCommon.MsgPayload // The channel to handle consensus msg
-	stopSyncCh   chan bool                  // To stop sync channel
-	stopConsCh   chan bool                  // To stop consensus channel
-	p2p          p2p.P2P                    // Refer to the p2p network
-	pid          *actor.PID                 // P2P actor
+	msgHandlers  map[string]MessageHandler // Msg handler mapped to msg type
+	RecvSyncChan chan *types.MsgPayload    // The channel to handle sync msg
+	RecvConsChan chan *types.MsgPayload    // The channel to handle consensus msg
+	stopSyncCh   chan bool                 // To stop sync channel
+	stopConsCh   chan bool                 // To stop consensus channel
+	p2p          p2p.P2P                   // Refer to the p2p network
+	pid          *actor.PID                // P2P actor
 }
 
 // NewMsgRouter returns a message router object
@@ -100,17 +100,13 @@ func (this *MessageRouter) Start() {
 }
 
 // hookChan loops to handle the message from the network
-func (this *MessageRouter) hookChan(channel chan *msgCommon.MsgPayload,
+func (this *MessageRouter) hookChan(channel chan *types.MsgPayload,
 	stopCh chan bool) {
 	for {
 		select {
 		case data, ok := <-channel:
 			if ok {
-				msgType, err := msgTypes.MsgType(data.Payload)
-				if err != nil {
-					log.Info("failed to get msg type")
-					continue
-				}
+				msgType := data.Payload.CmdType()
 
 				handler, ok := this.msgHandlers[msgType]
 				if ok {

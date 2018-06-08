@@ -114,7 +114,7 @@ func setConsensusConfig(ctx *cli.Context, cfg *config.ConsensusConfig) {
 }
 
 func setP2PNodeConfig(ctx *cli.Context, cfg *config.P2PNodeConfig) {
-	cfg.NetworkId = ctx.GlobalUint(utils.GetFlagName(utils.NetworkIdFlag))
+	cfg.NetworkId = uint32(ctx.GlobalUint(utils.GetFlagName(utils.NetworkIdFlag)))
 	cfg.NodePort = ctx.GlobalUint(utils.GetFlagName(utils.NodePortFlag))
 	cfg.NodeConsensusPort = ctx.GlobalUint(utils.GetFlagName(utils.ConsensusPortFlag))
 	cfg.DualPortSupport = ctx.GlobalBool(utils.GetFlagName(utils.DualPortSupportFlag))

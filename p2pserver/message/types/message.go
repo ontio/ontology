@@ -21,83 +21,160 @@ package types
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/binary"
 	"errors"
+	"fmt"
+	"io"
 
 	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 )
 
 type Message interface {
-	Verify([]byte) error
 	Serialization() ([]byte, error)
 	Deserialization([]byte) error
+	CmdType() string
 }
 
-// The message body and header
-type MsgCont struct {
-	Hdr MsgHdr
-	p   interface{}
+//MsgPayload in link channel
+type MsgPayload struct {
+	Id      uint64  //peer ID
+	Addr    string  //link address
+	Payload Message //msg payload
 }
 
-type varStr struct {
-	len uint
-	buf []byte
+type messageHeader struct {
+	Magic    uint32
+	CMD      [common.MSG_CMD_LEN]byte // The message type
+	Length   uint32
+	Checksum [common.CHECKSUM_LEN]byte
 }
 
-//split msg type from msg hdr
-func MsgType(buf []byte) (string, error) {
-	cmd := buf[common.CMD_OFFSET : common.CMD_OFFSET+common.MSG_CMD_LEN]
-	n := bytes.IndexByte(cmd, 0)
-	if n < 0 || n >= common.MSG_CMD_LEN {
-		return "", errors.New("unexpected length of CMD command")
-	}
-	s := string(cmd[:n])
-	return s, nil
+func readMessageHeader(reader io.Reader) (messageHeader, error) {
+	msgh := messageHeader{}
+	err := binary.Read(reader, binary.LittleEndian, &msgh)
+	return msgh, err
 }
 
-//check netmagic value
-func magicVerify(magic uint32) bool {
-	if magic != uint32(config.DefConfig.P2PNode.NetworkId) {
-		log.Warnf("unmatched magic number 0x%0x", magic)
-		return false
-	}
-	return true
+func writeMessageHeader(writer io.Writer, msgh messageHeader) error {
+	return binary.Write(writer, binary.LittleEndian, msgh)
 }
 
-//check wether header is valid
-func ValidMsgHdr(buf []byte) bool {
-	var h MsgHdr
-	h.Deserialization(buf)
-	return magicVerify(h.Magic)
+func newMessageHeader(cmd string, length uint32, checksum [common.CHECKSUM_LEN]byte) messageHeader {
+	msgh := messageHeader{}
+	msgh.Magic = uint32(config.DefConfig.P2PNode.NetworkId)
+	copy(msgh.CMD[:], cmd)
+	msgh.Checksum = checksum
+	msgh.Length = length
+	return msgh
 }
 
-//caculate payload length
-func PayloadLen(buf []byte) (int, error) {
-	var h MsgHdr
-	err := h.Deserialization(buf)
+func WriteMessage(writer io.Writer, msg Message) error {
+	buf, err := msg.Serialization()
 	if err != nil {
-		return 0, err
+		return err
 	}
-	if int(h.Length) > common.MAX_MSG_LEN-common.MSG_HDR_LEN {
-		return 0, errors.New("calculate PayloadLen error. buf length exceed max payload size")
+	checksum := CheckSum(buf)
+
+	hdr := newMessageHeader(msg.CmdType(), uint32(len(buf)), checksum)
+
+	err = writeMessageHeader(writer, hdr)
+	if err != nil {
+		return err
 	}
-	return int(h.Length), nil
+
+	_, err = writer.Write(buf)
+	return err
+}
+
+func ReadMessage(reader io.Reader) (Message, error) {
+	hdr, err := readMessageHeader(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	magic := config.DefConfig.P2PNode.NetworkId
+	if hdr.Magic != magic {
+		return nil, fmt.Errorf("unmatched magic number %d, expected %d", hdr.Magic, magic)
+	}
+
+	if int(hdr.Length) > common.MAX_PAYLOAD_LEN {
+		return nil, fmt.Errorf("msg payload length:%d exceed max payload size: %d",
+			hdr.Length, common.MAX_PAYLOAD_LEN)
+	}
+
+	buf := make([]byte, hdr.Length)
+	_, err = io.ReadFull(reader, buf)
+	if err != nil {
+		return nil, err
+	}
+
+	checksum := CheckSum(buf)
+	if checksum != hdr.Checksum {
+		return nil, fmt.Errorf("message checksum mismatch: %x != %x ", hdr.Checksum, checksum)
+	}
+
+	cmdType := string(bytes.TrimRight(hdr.CMD[:], string(0)))
+	msg, err := MakeEmptyMessage(cmdType)
+	if err != nil {
+		return nil, err
+	}
+
+	err = msg.Deserialization(buf)
+	if err != nil {
+		return nil, err
+	}
+
+	return msg, nil
+}
+
+func MakeEmptyMessage(cmdType string) (Message, error) {
+	switch cmdType {
+	case common.PING_TYPE:
+		return &Ping{}, nil
+	case common.VERSION_TYPE:
+		return &Version{}, nil
+	case common.VERACK_TYPE:
+		return &VerACK{}, nil
+	case common.ADDR_TYPE:
+		return &Addr{}, nil
+	case common.GetADDR_TYPE:
+		return &AddrReq{}, nil
+	case common.PONG_TYPE:
+		return &Pong{}, nil
+	case common.GET_HEADERS_TYPE:
+		return &HeadersReq{}, nil
+	case common.HEADERS_TYPE:
+		return &BlkHeader{}, nil
+	case common.INV_TYPE:
+		return &Inv{}, nil
+	case common.GET_DATA_TYPE:
+		return &DataReq{}, nil
+	case common.BLOCK_TYPE:
+		return &Block{}, nil
+	case common.TX_TYPE:
+		return &Trn{}, nil
+	case common.CONSENSUS_TYPE:
+		return &Consensus{}, nil
+	case common.NOT_FOUND_TYPE:
+		return &NotFound{}, nil
+	case common.DISCONNECT_TYPE:
+		return &Disconnected{}, nil
+	case common.GET_BLOCKS_TYPE:
+		return &BlocksReq{}, nil
+	default:
+		return nil, errors.New("unsupported cmd type:" + cmdType)
+	}
+
 }
 
 //caculate checksum value
-func CheckSum(p []byte) []byte {
+func CheckSum(p []byte) [common.CHECKSUM_LEN]byte {
+	var checksum [common.CHECKSUM_LEN]byte
 	t := sha256.Sum256(p)
 	s := sha256.Sum256(t[:])
 
-	// Currently we only need the front 4 bytes as checksum
-	return s[:common.CHECKSUM_LEN]
-}
+	copy(checksum[:], s[:])
 
-// reverse the input
-func Reverse(input []byte) []byte {
-	if len(input) == 0 {
-		return input
-	}
-	return append(Reverse(input[1:]), input[0])
+	return checksum
 }
