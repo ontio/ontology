@@ -21,14 +21,23 @@
 package proc
 
 import (
+	"bytes"
+	"encoding/hex"
+	"fmt"
 	"sort"
+	"strconv"
 	"sync"
 
 	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/ledger"
 	tx "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
+	params "github.com/ontio/ontology/smartcontract/service/native/global_params"
+	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	tc "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology/validator/types"
 )
@@ -74,6 +83,7 @@ type TXPoolServer struct {
 	stats         txStats                             // The transaction statstics
 	slots         chan struct{}                       // The limited slots for the new transaction
 	height        uint32                              // The current block height
+	gasPrice      uint64                              // Gas price to enforce for acceptance into the pool
 }
 
 // NewTxPoolServer creates a new tx pool server to schedule workers to
@@ -82,6 +92,59 @@ func NewTxPoolServer(num uint8) *TXPoolServer {
 	s := &TXPoolServer{}
 	s.init(num)
 	return s
+}
+
+// getGlobalGasPrice returns a global gas price
+func getGlobalGasPrice() (uint64, error) {
+	paramNameList := &params.ParamNameList{"gasPrice"}
+	bf := new(bytes.Buffer)
+	paramNameList.Serialize(bf)
+	tx, err := utils.InvokeNativeContractTx(0, 0, 0, nutils.ParamContractAddress, "getGlobalParam", bf.Bytes())
+	if err != nil {
+		return 0, fmt.Errorf("failed to create invoke native contract tx for getGlobalParam %v", err)
+	}
+
+	result, err := ledger.DefLedger.PreExecuteContract(tx)
+	if err != nil {
+		return 0, fmt.Errorf("PreExecuteContract failed %v", err)
+	}
+
+	queriedParams := new(params.Params)
+	data, err := hex.DecodeString(result.Result.(string))
+	if err != nil {
+		return 0, fmt.Errorf("decode result error %v", err)
+	}
+
+	err = queriedParams.Deserialize(bytes.NewBuffer([]byte(data)))
+	if err != nil {
+		return 0, fmt.Errorf("deserialize result error %v", err)
+	}
+	_, param := queriedParams.GetParam("gasPrice")
+	if param == nil {
+		return 0, fmt.Errorf("failed to get param for gasPrice")
+	}
+
+	gasPrice, err := strconv.ParseUint(param.Value, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse uint %v", err)
+	}
+	return gasPrice, err
+}
+
+// getGasPriceConfig returns the bigger one between global and cmd configured
+func getGasPriceConfig() uint64 {
+	globalGasPrice, err := getGlobalGasPrice()
+	if err != nil {
+		log.Info(err)
+		return 0
+	}
+	log.Infof("getGasPriceConfig: gasPrice %d configure %d", globalGasPrice,
+		config.DefConfig.Common.GasPrice)
+
+	if globalGasPrice < config.DefConfig.Common.GasPrice {
+		return config.DefConfig.Common.GasPrice
+	}
+	return globalGasPrice
 }
 
 // init initializes the server with the configured settings
@@ -110,6 +173,8 @@ func (s *TXPoolServer) init(num uint8) {
 	for i := 0; i < tc.MAX_LIMITATION; i++ {
 		s.slots <- struct{}{}
 	}
+
+	s.gasPrice = getGasPriceConfig()
 
 	// Create the given concurrent workers
 	s.workers = make([]txPoolWorker, num)
@@ -173,6 +238,13 @@ func (s *TXPoolServer) setHeight(height uint32) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.height = height
+}
+
+// getGasPrice returns the current gas price enforced by the transaction pool
+func (s *TXPoolServer) getGasPrice() uint64 {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.gasPrice
 }
 
 // removePendingTx removes a transaction from the pending list
@@ -440,8 +512,21 @@ func (s *TXPoolServer) getPendingTxs(byCount bool) []*tx.Transaction {
 }
 
 // cleanTransactionList cleans the txs in the block from the ledger
-func (s *TXPoolServer) cleanTransactionList(txs []*tx.Transaction) error {
-	return s.txPool.CleanTransactionList(txs)
+func (s *TXPoolServer) cleanTransactionList(txs []*tx.Transaction, height uint32) {
+	s.txPool.CleanTransactionList(txs)
+
+	// Check whether to update the gas price and remove txs below the
+	// threshold
+	if height%tc.UPDATE_FREQUENCY == 0 {
+		gasPrice := getGasPriceConfig()
+		s.mu.Lock()
+		oldGasPrice := s.gasPrice
+		s.gasPrice = gasPrice
+		s.mu.Unlock()
+		if oldGasPrice < gasPrice {
+			s.txPool.RemoveTxsBelowGasPrice(gasPrice)
+		}
+	}
 }
 
 // delTransaction deletes a transaction in the tx pool.
@@ -572,6 +657,21 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 	s.pendingBlock.height = req.Height
 	s.pendingBlock.processedTxs = make(map[common.Uint256]*tc.VerifyTxResult, len(req.Txs))
 	s.pendingBlock.unProcessedTxs = make(map[common.Uint256]*tx.Transaction, 0)
+
+	// Check whether a tx's gas price is lower than the required, if yes,
+	// just return error
+	for _, t := range req.Txs {
+		if t.GasPrice < s.gasPrice {
+			entry := &tc.VerifyTxResult{
+				Height:  s.pendingBlock.height,
+				Tx:      t,
+				ErrCode: errors.ErrGasPrice,
+			}
+			s.pendingBlock.processedTxs[t.Hash()] = entry
+			s.sendBlkResult2Consensus()
+			return
+		}
+	}
 
 	checkBlkResult := s.txPool.GetUnverifiedTxs(req.Txs, req.Height)
 

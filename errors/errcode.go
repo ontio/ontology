@@ -50,6 +50,7 @@ const (
 	ErrNetPackFail          ErrCode = 45017
 	ErrNetUnPackFail        ErrCode = 45018
 	ErrNetVerifyFail        ErrCode = 45019
+	ErrGasPrice             ErrCode = 45020
 )
 
 func (err ErrCode) Error() string {
@@ -94,6 +95,8 @@ func (err ErrCode) Error() string {
 		return "net msg unpack fail"
 	case ErrNetVerifyFail:
 		return "net msg verify fail"
+	case ErrGasPrice:
+		return "invalid gas price"
 	}
 
 	return fmt.Sprintf("Unknown error? Error code = %d", err)
