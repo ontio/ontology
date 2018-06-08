@@ -41,12 +41,8 @@ func TransactionGetType(service *NeoVmService, engine *vm.ExecutionEngine) error
 
 // TransactionGetAttributes push transaction's attributes to vm stack
 func TransactionGetAttributes(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	txn := vm.PopInteropInterface(engine).(*types.Transaction)
-	attributes := txn.Attributes
+	_ = vm.PopInteropInterface(engine).(*types.Transaction)
 	attributList := make([]vmtypes.StackItems, 0)
-	for _, v := range attributes {
-		attributList = append(attributList, vmtypes.NewInteropInterface(v))
-	}
 	vm.PushData(engine, attributList)
 	return nil
 }

@@ -59,7 +59,6 @@ func init() {
 
 	txn = &types.Transaction{
 		Version:    0,
-		Attributes: []*types.TxAttribute{},
 		TxType:     types.Invoke,
 		Payload:    invokeCodePayload,
 	}
