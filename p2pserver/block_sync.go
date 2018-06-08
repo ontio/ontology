@@ -164,7 +164,7 @@ func (this *BlockSyncMgr) Start() {
 			height := this.ledger.GetCurrentBlockHeight()
 			if this.emgGovCmd == p2pComm.EmgGovBlkSync &&
 				height >= this.emergencyGovHeight-1 {
-				log.Tracef("notify emergency governance sync block %d done, cur height %d",
+				log.Infof("notify emergency governance sync block %d done, cur height %d",
 					this.emergencyGovHeight-1, height)
 				this.server.notifyEmgGovBlkSyncDone()
 			}
@@ -305,6 +305,7 @@ func (this *BlockSyncMgr) syncBlock() {
 	}
 	curBlockHeight := this.ledger.GetCurrentBlockHeight()
 	curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
+
 	count := int(curHeaderHeight - curBlockHeight)
 	if count <= 0 ||
 		(this.emgGovCmd == p2pComm.EmgGovStart &&
@@ -318,7 +319,8 @@ func (this *BlockSyncMgr) syncBlock() {
 	if count > cacheCap {
 		count = cacheCap
 	}
-
+	log.Infof("syncBlock: curBlockHeight %d, curHeaderHeight %d, count %d",
+		curBlockHeight, curHeaderHeight, count)
 	counter := 1
 	i := uint32(0)
 	for {
@@ -370,10 +372,10 @@ func (this *BlockSyncMgr) OnHeaderReceive(headers []*types.Header) {
 	}
 
 	count := len(headers)
-	if this.emgGovCmd != p2pComm.EmgGovEnd && curHeaderHeight < this.emergencyGovHeight {
+	if this.emgGovCmd != p2pComm.EmgGovEnd &&
+		curHeaderHeight < this.emergencyGovHeight {
 		count = int(this.emergencyGovHeight - curHeaderHeight)
 	}
-
 	err := this.ledger.AddHeaders(headers[:count])
 	this.delFlightHeader(height)
 	if err != nil {
@@ -387,7 +389,6 @@ func (this *BlockSyncMgr) OnHeaderReceive(headers []*types.Header) {
 func (this *BlockSyncMgr) OnBlockReceive(block *types.Block) {
 	height := block.Header.Height
 	blockHash := block.Hash()
-	log.Debugf("OnBlockReceive Height:%d", height)
 
 	this.delFlightBlock(blockHash)
 	curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
@@ -515,10 +516,12 @@ func (this *BlockSyncMgr) saveBlock() {
 			delete(this.blocksCache, height)
 		}
 
-		if this.emgGovCmd == p2pComm.EmgGovStart && height == this.emergencyGovHeight {
+		if this.emgGovCmd == p2pComm.EmgGovStart &&
+			height == this.emergencyGovHeight {
 			peers, _ := getPeers()
 			blk := this.blocksCache[height]
-			if len(blk.Header.Bookkeepers) < (len(peers) - (len(peers)-1)/3) {
+			if len(blk.Header.Bookkeepers) <
+				(len(peers) - (len(peers)-1)/3) {
 				delete(this.blocksCache, height)
 			}
 		}
@@ -548,7 +551,7 @@ func (this *BlockSyncMgr) saveBlock() {
 		}
 		if this.emgGovCmd != p2pComm.EmgGovEnd &&
 			nextBlockHeight == this.emergencyGovHeight {
-			log.Tracef("notify emergency governance block %d completed",
+			log.Infof("notify emergency governance block %d completed",
 				nextBlockHeight)
 			this.server.notifyEmgGovBlkCompleted()
 		}

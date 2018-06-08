@@ -211,12 +211,12 @@ func (this *emergencyGov) EmergencyActionResponseReceived(msg *mt.EmergencyActio
 }
 
 // checkSignatures checks whether the signatures reaches the threshold 2/3
-func (this *emergencyGov) checkSignatures() {
+func (this *emergencyGov) checkSignatures() bool {
 	if this.context.getSignatureCount() >= this.context.threshold() {
 		block := this.context.getEmergencyBlock()
 		if block == nil {
 			log.Errorf("checkSignatures: failed to get emergency block")
-			return
+			return false
 		}
 
 		for id, sig := range this.context.Signatures {
@@ -228,14 +228,14 @@ func (this *emergencyGov) checkSignatures() {
 		contained, err := ledger.DefLedger.IsContainBlock(block.Hash())
 		if err != nil {
 			log.Errorf("checkSignatures: hash %x, error %v", block.Hash(), err)
-			return
+			return false
 		}
 
 		if !contained {
 			err := ledger.DefLedger.AddBlock(block)
 			if err != nil {
 				log.Errorf("DefLedger add block failed. err %v", err)
-				return
+				return false
 			}
 			this.server.Xmit(block.Hash())
 		}
@@ -254,7 +254,9 @@ func (this *emergencyGov) checkSignatures() {
 			<-this.context.timer.C
 		}
 		this.context.done <- struct{}{}
+		return true
 	}
+	return false
 }
 
 // checkEvidence checks whether the evidence is valid
@@ -381,14 +383,15 @@ func (this *emergencyGov) validatePendingRspMsg() {
 
 		this.context.setSig(id, msg.SigOnBlk)
 
-		this.checkSignatures()
+		if this.checkSignatures() == true {
+			break
+		}
 	}
 	this.context.clearEmergencyRspCache()
 }
 
 // EmergencyActionRequestReceived handles an emergency governance request from network
 func (this *emergencyGov) EmergencyActionRequestReceived(msg *mt.EmergencyActionRequest) {
-	// Todo: check whether local node support emergency governance
 	log.Infof("EmergencyActionRequestReceived: receive emergency governance request at height %d",
 		msg.ProposalBlkNum)
 
