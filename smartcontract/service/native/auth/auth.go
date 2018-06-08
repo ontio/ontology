@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -118,7 +119,12 @@ func Transfer(native *native.NativeService) ([]byte, error) {
 	}
 
 	//prepare event msg
-	contract := hex.EncodeToString(param.ContractAddr)
+	addr, err := common.AddressParseFromBytes(param.ContractAddr)
+	if err != nil {
+		return nil, err
+	}
+	contract := addr.ToHexString()
+
 	failState := []interface{}{"transfer", contract, false}
 	sucState := []interface{}{"transfer", contract, true}
 
@@ -142,7 +148,12 @@ func AssignFuncsToRole(native *native.NativeService) ([]byte, error) {
 	}
 
 	//prepare event msg
-	contract := hex.EncodeToString(param.ContractAddr)
+	addr, err := common.AddressParseFromBytes(param.ContractAddr)
+	if err != nil {
+		return nil, err
+	}
+	contract := addr.ToHexString()
+
 	failState := []interface{}{"assignFuncsToRole", contract, false}
 	sucState := []interface{}{"assignFuncsToRole", contract, true}
 
@@ -262,7 +273,13 @@ func AssignOntIDsToRole(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	contract := hex.EncodeToString(param.ContractAddr)
+
+	addr, err := common.AddressParseFromBytes(param.ContractAddr)
+	if err != nil {
+		return nil, err
+	}
+	contract := addr.ToHexString()
+
 	failState := []interface{}{"assignOntIDsToRole", contract, false}
 	sucState := []interface{}{"assignOntIDsToRole", contract, true}
 	if ret {
@@ -434,7 +451,12 @@ func Delegate(native *native.NativeService) ([]byte, error) {
 	}
 
 	//prepare event msg
-	contract := hex.EncodeToString(param.ContractAddr)
+	addr, err := common.AddressParseFromBytes(param.ContractAddr)
+	if err != nil {
+		return nil, err
+	}
+	contract := addr.ToHexString()
+
 	failState := []interface{}{"delegate", contract, param.From, param.To, false}
 	sucState := []interface{}{"delegate", contract, param.From, param.To, true}
 
@@ -506,7 +528,11 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 	}
 
 	//prepare event msg
-	contract := hex.EncodeToString(param.ContractAddr)
+	addr, err := common.AddressParseFromBytes(param.ContractAddr)
+	if err != nil {
+		return nil, err
+	}
+	contract := addr.ToHexString()
 	failState := []interface{}{"withdraw", contract, param.Initiator, param.Delegate, false}
 	sucState := []interface{}{"withdraw", contract, param.Initiator, param.Delegate, true}
 
@@ -594,7 +620,12 @@ func VerifyToken(native *native.NativeService) ([]byte, error) {
 		return nil, err
 	}
 
-	contract := hex.EncodeToString(param.ContractAddr)
+	addr, err := common.AddressParseFromBytes(param.ContractAddr)
+	if err != nil {
+		return nil, err
+	}
+	contract := addr.ToHexString()
+
 	failState := []interface{}{"verifyToken", contract, param.Caller, param.Fn, false}
 	sucState := []interface{}{"verifyToken", contract, param.Caller, param.Fn, true}
 
