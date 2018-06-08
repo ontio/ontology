@@ -144,8 +144,15 @@ func unpackNodeBuf(this *Link, buf []byte) {
 			this.CloseConn()
 			return
 		}
-
-		rxBuf.len = types.PayloadLen(rxBuf.p)
+		payloadLen, err := types.PayloadLen(rxBuf.p)
+		if err != nil {
+			rxBuf.p = nil
+			rxBuf.len = 0
+			log.Warn("get payload len error")
+			this.CloseConn()
+			return
+		}
+		rxBuf.len = payloadLen
 		buf = buf[length:]
 	}
 

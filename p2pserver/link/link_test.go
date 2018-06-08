@@ -19,18 +19,26 @@
 package link
 
 import (
+	"math/rand"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/payload"
+	ct "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/p2pserver/common"
+	mt "github.com/ontio/ontology/p2pserver/message/types"
 )
 
 var (
 	cliLink    *Link
 	serverLink *Link
-	cliChan    chan common.MsgPayload
-	serverChan chan common.MsgPayload
+	cliChan    chan *common.MsgPayload
+	serverChan chan *common.MsgPayload
 	cliAddr    string
 	serAddr    string
 )
@@ -47,8 +55,8 @@ func init() {
 	cliLink.port = 50338
 	serverLink.port = 50339
 
-	cliChan = make(chan common.MsgPayload, 100)
-	serverChan = make(chan common.MsgPayload, 100)
+	cliChan = make(chan *common.MsgPayload, 100)
+	serverChan = make(chan *common.MsgPayload, 100)
 	//listen ip addr
 	cliAddr = "127.0.0.1:50338"
 	serAddr = "127.0.0.1:50339"
@@ -83,7 +91,7 @@ func TestNewLink(t *testing.T) {
 
 	cliLink.UpdateRXTime(time.Now())
 
-	msg := common.MsgPayload{
+	msg := &common.MsgPayload{
 		Id:      cliLink.id,
 		Addr:    cliLink.addr,
 		Payload: []byte{},
@@ -102,4 +110,116 @@ func TestNewLink(t *testing.T) {
 		t.Fatal("can`t read data from link channel")
 	}
 
+}
+
+func TestUnpackBufNode(t *testing.T) {
+	cliLink.SetChan(cliChan)
+
+	msgType := "block"
+	var buf []byte
+	var err error
+
+	switch msgType {
+	case "addr":
+		var newaddrs []common.PeerAddr
+		for i := 0; i < 10000000; i++ {
+			newaddrs = append(newaddrs, common.PeerAddr{
+				Time: time.Now().Unix(),
+				ID:   uint64(i),
+			})
+		}
+		var addr mt.Addr
+		addr.NodeAddrs = newaddrs
+		buf, err = addr.Serialization()
+		assert.Nil(t, err)
+	case "consensuspayload":
+		acct := account.NewAccount("SHA256withECDSA")
+		key := acct.PubKey()
+		payload := &mt.ConsensusPayload{
+			Owner: key,
+		}
+		for i := 0; uint32(i) < 200000000; i++ {
+			byteInt := rand.Intn(256)
+			payload.Data = append(payload.Data, byte(byteInt))
+		}
+		buf = payload.ToArray()
+	case "consensus":
+		acct := account.NewAccount("SHA256withECDSA")
+		key := acct.PubKey()
+		payload := &mt.ConsensusPayload{
+			Owner: key,
+		}
+		for i := 0; uint32(i) < 200000000; i++ {
+			byteInt := rand.Intn(256)
+			payload.Data = append(payload.Data, byte(byteInt))
+		}
+		consensus := mt.Consensus{
+			Cons: *payload,
+		}
+		buf, err = consensus.Serialization()
+		assert.Nil(t, err)
+	case "blkheader":
+		var headers []ct.Header
+		blkHeader := &mt.BlkHeader{}
+		for i := 0; uint32(i) < 100000000; i++ {
+			header := ct.Header{}
+			header.Height = uint32(i)
+			header.Bookkeepers = make([]keypair.PublicKey, 0)
+			header.SigData = make([][]byte, 0)
+			headers = append(headers, header)
+		}
+		blkHeader.Cnt = uint32(len(headers))
+		blkHeader.BlkHdr = headers
+		buf, err = blkHeader.Serialization()
+		assert.Nil(t, err)
+	case "tx":
+		var tx ct.Transaction
+		trn := &mt.Trn{}
+		sig := ct.Sig{}
+		sigCnt := 100000000
+		for i := 0; i < sigCnt; i++ {
+			data := [][]byte{
+				{byte(i)},
+			}
+			sig.SigData = append(sig.SigData, data...)
+		}
+		sigs := [1]*ct.Sig{&sig}
+		tx.Payload = new(payload.DeployCode)
+		tx.Sigs = sigs[:]
+		trn.Txn = tx
+		buf, err = trn.Serialization()
+		assert.Nil(t, err)
+	case "block":
+		var blk ct.Block
+		mBlk := &mt.Block{}
+		var txs []*ct.Transaction
+		header := ct.Header{}
+		header.Height = uint32(1)
+		header.Bookkeepers = make([]keypair.PublicKey, 0)
+		header.SigData = make([][]byte, 0)
+		blk.Header = &header
+
+		for i := 0; i < 2400000; i++ {
+			var tx ct.Transaction
+			sig := ct.Sig{}
+			sig.SigData = append(sig.SigData, [][]byte{
+				{byte(1)},
+			}...)
+			sigs := [1]*ct.Sig{&sig}
+			tx.Payload = new(payload.DeployCode)
+			tx.Sigs = sigs[:]
+			txs = append(txs, &tx)
+		}
+
+		blk.Transactions = txs
+		mBlk.Blk = blk
+
+		buf, err = mBlk.Serialization()
+		assert.Nil(t, err)
+	}
+
+	unpackNodeBuf(cliLink, buf)
+	assert.Nil(t, cliLink.conn)
+	assert.Equal(t, cliLink.rxBuf.len, 0)
+	assert.Nil(t, cliLink.rxBuf.p)
 }

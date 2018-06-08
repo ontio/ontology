@@ -27,6 +27,7 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
@@ -80,7 +81,7 @@ func BuildGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig *con
 		Version:          BlockVersion,
 		PrevBlockHash:    common.Uint256{},
 		TransactionsRoot: common.Uint256{},
-		Timestamp:        uint32(uint32(time.Date(2017, time.February, 23, 0, 0, 0, 0, time.UTC).Unix())),
+		Timestamp:        constants.GENESIS_BLOCK_TIMESTAMP,
 		Height:           uint32(0),
 		ConsensusData:    GenesisNonce,
 		NextBookkeeper:   nextBookkeeper,

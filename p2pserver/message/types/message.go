@@ -73,10 +73,16 @@ func ValidMsgHdr(buf []byte) bool {
 }
 
 //caculate payload length
-func PayloadLen(buf []byte) int {
+func PayloadLen(buf []byte) (int, error) {
 	var h MsgHdr
-	h.Deserialization(buf)
-	return int(h.Length)
+	err := h.Deserialization(buf)
+	if err != nil {
+		return 0, err
+	}
+	if int(h.Length) > common.MAX_MSG_LEN-common.MSG_HDR_LEN {
+		return 0, errors.New("calculate PayloadLen error. buf length exceed max payload size")
+	}
+	return int(h.Length), nil
 }
 
 //caculate checksum value
