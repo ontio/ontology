@@ -455,9 +455,9 @@ func TestTransactionHandle(t *testing.T) {
 	}
 
 	tx := &ct.Transaction{
-		Version:    0,
-		TxType:     ct.Invoke,
-		Payload:    invokeCodePayload,
+		Version: 0,
+		TxType:  ct.Invoke,
+		Payload: invokeCodePayload,
 	}
 
 	buf, err := msgpack.NewTxn(tx)
