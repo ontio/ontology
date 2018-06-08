@@ -38,9 +38,8 @@ func NewDeployTransaction(code stypes.VmCode, name, version, author, email, desp
 	}
 
 	return &types.Transaction{
-		TxType:     types.Deploy,
-		Payload:    DeployCodePayload,
-		Attributes: nil,
+		TxType:  types.Deploy,
+		Payload: DeployCodePayload,
 	}
 }
 
@@ -54,6 +53,5 @@ func NewInvokeTransaction(vmcode stypes.VmCode) *types.Transaction {
 	return &types.Transaction{
 		TxType:     types.Invoke,
 		Payload:    invokeCodePayload,
-		Attributes: nil,
 	}
 }

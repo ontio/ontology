@@ -290,7 +290,6 @@ func NewInvokeTransaction(gasPirce, gasLimit uint64, vmType vmtypes.VmType, code
 		TxType:     types.Invoke,
 		Nonce:      uint32(time.Now().Unix()),
 		Payload:    invokePayload,
-		Attributes: make([]*types.TxAttribute, 0, 0),
 		Sigs:       make([]*types.Sig, 0, 0),
 	}
 	return tx
@@ -605,7 +604,6 @@ func NewDeployCodeTransaction(
 		TxType:     types.Deploy,
 		Nonce:      uint32(time.Now().Unix()),
 		Payload:    deployPayload,
-		Attributes: make([]*types.TxAttribute, 0, 0),
 		GasPrice:   gasPrice,
 		GasLimit:   gasLimit,
 		Sigs:       make([]*types.Sig, 0, 0),

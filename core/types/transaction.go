@@ -32,14 +32,15 @@ import (
 )
 
 type Transaction struct {
-	Version    byte
-	TxType     TransactionType
-	Nonce      uint32
-	GasPrice   uint64
-	GasLimit   uint64
-	Payer      common.Address
-	Payload    Payload
-	Attributes []*TxAttribute
+	Version  byte
+	TxType   TransactionType
+	Nonce    uint32
+	GasPrice uint64
+	GasLimit uint64
+	Payer    common.Address
+	Payload  Payload
+	//Attributes []*TxAttribute
+	attributes byte //this must be 0 now, Attribute Array length use VarUint encoding, so byte is enough for extention
 	Sigs       []*Sig
 
 	hash *common.Uint256
@@ -206,15 +207,10 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 	if err := tx.Payload.Serialize(w); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[SerializeUnsigned], Transaction payload failed.")
 	}
-	//[]*txAttribute
-	err := serialization.WriteVarUint(w, uint64(len(tx.Attributes)))
+
+	err := serialization.WriteVarUint(w, uint64(tx.attributes))
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[SerializeUnsigned], Transaction item txAttribute length serialization failed.")
-	}
-	for _, attr := range tx.Attributes {
-		if err := attr.Serialize(w); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "[SerializeUnsigned], Transaction attributes failed.")
-		}
 	}
 
 	return nil
@@ -289,13 +285,10 @@ func (tx *Transaction) DeserializeUnsigned(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	for i := uint64(0); i < length; i++ {
-		attr := new(TxAttribute)
-		if err := attr.Deserialize(r); err != nil {
-			return err
-		}
-		tx.Attributes = append(tx.Attributes, attr)
+	if length != 0 {
+		return fmt.Errorf("transaction attribute must be 0, got %d", length)
 	}
+	tx.attributes = 0
 
 	return nil
 }
