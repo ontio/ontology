@@ -284,13 +284,13 @@ func NewInvokeTransaction(gasPirce, gasLimit uint64, vmType vmtypes.VmType, code
 		},
 	}
 	tx := &types.Transaction{
-		Version:    VERSION_TRANSACTION,
-		GasPrice:   gasPirce,
-		GasLimit:   gasLimit,
-		TxType:     types.Invoke,
-		Nonce:      uint32(time.Now().Unix()),
-		Payload:    invokePayload,
-		Sigs:       make([]*types.Sig, 0, 0),
+		Version:  VERSION_TRANSACTION,
+		GasPrice: gasPirce,
+		GasLimit: gasLimit,
+		TxType:   types.Invoke,
+		Nonce:    uint32(time.Now().Unix()),
+		Payload:  invokePayload,
+		Sigs:     make([]*types.Sig, 0, 0),
 	}
 	return tx
 }
@@ -600,13 +600,13 @@ func NewDeployCodeTransaction(
 		Description: cdesc,
 	}
 	tx := &types.Transaction{
-		Version:    VERSION_TRANSACTION,
-		TxType:     types.Deploy,
-		Nonce:      uint32(time.Now().Unix()),
-		Payload:    deployPayload,
-		GasPrice:   gasPrice,
-		GasLimit:   gasLimit,
-		Sigs:       make([]*types.Sig, 0, 0),
+		Version:  VERSION_TRANSACTION,
+		TxType:   types.Deploy,
+		Nonce:    uint32(time.Now().Unix()),
+		Payload:  deployPayload,
+		GasPrice: gasPrice,
+		GasLimit: gasLimit,
+		Sigs:     make([]*types.Sig, 0, 0),
 	}
 	return tx
 }

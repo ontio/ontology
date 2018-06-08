@@ -124,7 +124,7 @@ func SigMutilRawTransaction(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpc
 	if !hasMutilSig {
 		rawTx.Sigs = append(rawTx.Sigs, &types.Sig{
 			PubKeys: pubKeys,
-			M:       uint8(rawReq.M),
+			M:       uint16(rawReq.M),
 			SigData: [][]byte{sigData},
 		})
 	}
