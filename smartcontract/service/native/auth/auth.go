@@ -25,7 +25,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -119,17 +118,14 @@ func Transfer(native *native.NativeService) ([]byte, error) {
 	}
 
 	//prepare event msg
-	addr, err := common.AddressParseFromBytes(param.ContractAddr)
-	if err != nil {
-		return nil, err
-	}
-	contract := addr.ToHexString()
+	contract := param.ContractAddr.ToHexString()
 
 	failState := []interface{}{"transfer", contract, false}
 	sucState := []interface{}{"transfer", contract, true}
 
 	//call transfer func
-	ret, err := transfer(native, param.ContractAddr, param.NewAdminOntID, param.KeyNo)
+	contractAddr, _ := addressToBytes(&param.ContractAddr)
+	ret, err := transfer(native, contractAddr, param.NewAdminOntID, param.KeyNo)
 	if ret {
 		pushEvent(native, sucState)
 		return utils.BYTE_TRUE, nil
@@ -148,12 +144,7 @@ func AssignFuncsToRole(native *native.NativeService) ([]byte, error) {
 	}
 
 	//prepare event msg
-	addr, err := common.AddressParseFromBytes(param.ContractAddr)
-	if err != nil {
-		return nil, err
-	}
-	contract := addr.ToHexString()
-
+	contract := param.ContractAddr.ToHexString()
 	failState := []interface{}{"assignFuncsToRole", contract, false}
 	sucState := []interface{}{"assignFuncsToRole", contract, true}
 
@@ -163,7 +154,8 @@ func AssignFuncsToRole(native *native.NativeService) ([]byte, error) {
 	}
 
 	//check the caller's permission
-	admin, err := getContractAdmin(native, param.ContractAddr)
+	contractAddr, _ := addressToBytes(&param.ContractAddr)
+	admin, err := getContractAdmin(native, contractAddr)
 	if err != nil {
 		return nil, fmt.Errorf("get contract admin failed, caused by %v", err)
 	}
@@ -184,7 +176,7 @@ func AssignFuncsToRole(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, nil
 	}
 
-	funcs, err := getRoleFunc(native, param.ContractAddr, param.Role)
+	funcs, err := getRoleFunc(native, contractAddr, param.Role)
 	if funcs != nil {
 		funcNames := append(funcs.funcNames, param.FuncNames...)
 		funcs.funcNames = stringSliceUniq(funcNames)
@@ -192,7 +184,7 @@ func AssignFuncsToRole(native *native.NativeService) ([]byte, error) {
 		funcs = new(roleFuncs)
 		funcs.funcNames = stringSliceUniq(param.FuncNames)
 	}
-	err = putRoleFunc(native, param.ContractAddr, param.Role, funcs)
+	err = putRoleFunc(native, contractAddr, param.Role, funcs)
 	if err != nil {
 		return utils.BYTE_FALSE, err
 	}
@@ -203,7 +195,8 @@ func AssignFuncsToRole(native *native.NativeService) ([]byte, error) {
 
 func assignToRole(native *native.NativeService, param *OntIDsToRoleParam) (bool, error) {
 	//check admin's permission
-	admin, err := getContractAdmin(native, param.ContractAddr)
+	contractAddr, _ := addressToBytes(&param.ContractAddr)
+	admin, err := getContractAdmin(native, contractAddr)
 	if err != nil {
 		return false, fmt.Errorf("get contract admin failed, caused by %v", err)
 	}
@@ -231,7 +224,7 @@ func assignToRole(native *native.NativeService, param *OntIDsToRoleParam) (bool,
 		if p == nil {
 			continue
 		}
-		tokens, err := getOntIDToken(native, param.ContractAddr, p)
+		tokens, err := getOntIDToken(native, contractAddr, p)
 		if err != nil {
 			return false, err
 		}
@@ -240,7 +233,7 @@ func assignToRole(native *native.NativeService, param *OntIDsToRoleParam) (bool,
 			tokens.tokens = make([]*AuthToken, 1)
 			tokens.tokens[0] = token
 		} else {
-			ret, err := hasRole(native, param.ContractAddr, p, param.Role)
+			ret, err := hasRole(native, contractAddr, p, param.Role)
 			if err != nil {
 				return false, err
 			}
@@ -250,7 +243,7 @@ func assignToRole(native *native.NativeService, param *OntIDsToRoleParam) (bool,
 				continue
 			}
 		}
-		err = putOntIDToken(native, param.ContractAddr, p, tokens)
+		err = putOntIDToken(native, contractAddr, p, tokens)
 		if err != nil {
 			return false, err
 		}
@@ -274,12 +267,7 @@ func AssignOntIDsToRole(native *native.NativeService) ([]byte, error) {
 		return nil, err
 	}
 
-	addr, err := common.AddressParseFromBytes(param.ContractAddr)
-	if err != nil {
-		return nil, err
-	}
-	contract := addr.ToHexString()
-
+	contract := param.ContractAddr.ToHexString()
 	failState := []interface{}{"assignOntIDsToRole", contract, false}
 	sucState := []interface{}{"assignOntIDsToRole", contract, true}
 	if ret {
@@ -451,17 +439,13 @@ func Delegate(native *native.NativeService) ([]byte, error) {
 	}
 
 	//prepare event msg
-	addr, err := common.AddressParseFromBytes(param.ContractAddr)
-	if err != nil {
-		return nil, err
-	}
-	contract := addr.ToHexString()
-
+	contract := param.ContractAddr.ToHexString()
 	failState := []interface{}{"delegate", contract, param.From, param.To, false}
 	sucState := []interface{}{"delegate", contract, param.From, param.To, true}
 
 	//call the delegate func
-	ret, err := delegate(native, param.ContractAddr, param.From, param.To, param.Role,
+	contractAddr, _ := addressToBytes(&param.ContractAddr)
+	ret, err := delegate(native, contractAddr, param.From, param.To, param.Role,
 		uint32(param.Period), uint8(param.Level), param.KeyNo)
 	if err != nil {
 		return nil, err
@@ -528,16 +512,13 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 	}
 
 	//prepare event msg
-	addr, err := common.AddressParseFromBytes(param.ContractAddr)
-	if err != nil {
-		return nil, err
-	}
-	contract := addr.ToHexString()
+	contract := param.ContractAddr.ToHexString()
 	failState := []interface{}{"withdraw", contract, param.Initiator, param.Delegate, false}
 	sucState := []interface{}{"withdraw", contract, param.Initiator, param.Delegate, true}
 
 	//call the withdraw func
-	ret, err := withdraw(native, param.ContractAddr, param.Initiator, param.Delegate, param.Role, param.KeyNo)
+	contractAddr, _ := addressToBytes(&param.ContractAddr)
+	ret, err := withdraw(native, contractAddr, param.Initiator, param.Delegate, param.Role, param.KeyNo)
 	if err != nil {
 		return nil, err
 	}
@@ -620,16 +601,12 @@ func VerifyToken(native *native.NativeService) ([]byte, error) {
 		return nil, err
 	}
 
-	addr, err := common.AddressParseFromBytes(param.ContractAddr)
-	if err != nil {
-		return nil, err
-	}
-	contract := addr.ToHexString()
-
+	contract := param.ContractAddr.ToHexString()
 	failState := []interface{}{"verifyToken", contract, param.Caller, param.Fn, false}
 	sucState := []interface{}{"verifyToken", contract, param.Caller, param.Fn, true}
 
-	ret, err := verifyToken(native, param.ContractAddr, param.Caller, param.Fn, param.KeyNo)
+	contractAddr, _ := addressToBytes(&param.ContractAddr)
+	ret, err := verifyToken(native, contractAddr, param.Caller, param.Fn, param.KeyNo)
 	if err != nil {
 		return nil, err
 	}

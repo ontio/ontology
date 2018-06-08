@@ -241,3 +241,15 @@ func pushEvent(native *native.NativeService, s interface{}) {
 func invokeEvent(native *native.NativeService, fn string, ret bool) {
 	pushEvent(native, []interface{}{fn, ret})
 }
+
+func addressToBytes(addr *common.Address) ([]byte, error) {
+	if addr == nil {
+		return nil, fmt.Errorf("addr is nil")
+	}
+	buf := new(bytes.Buffer)
+	err := addr.Serialize(buf)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
