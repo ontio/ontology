@@ -51,7 +51,7 @@ func NewInvokeTransaction(vmcode stypes.VmCode) *types.Transaction {
 	}
 
 	return &types.Transaction{
-		TxType:     types.Invoke,
-		Payload:    invokeCodePayload,
+		TxType:  types.Invoke,
+		Payload: invokeCodePayload,
 	}
 }
