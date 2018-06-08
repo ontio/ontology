@@ -74,6 +74,19 @@ var (
 					utils.AccountAddressFlag,
 				},
 			},
+			{
+				Action:    invokeCodeContract,
+				Name:      "invokeCode",
+				Usage:     "Invoke smart contract by code",
+				ArgsUsage: " ",
+				Flags: []cli.Flag{
+					utils.ContractCodeFileFlag,
+					utils.TransactionGasPriceFlag,
+					utils.TransactionGasLimitFlag,
+					utils.WalletFileFlag,
+					utils.AccountAddressFlag,
+				},
+			},
 		},
 	}
 )
@@ -120,6 +133,49 @@ func deployContract(ctx *cli.Context) error {
 	fmt.Printf("Deploy contract:\n")
 	fmt.Printf("  Contract Address:%x\n", address[:])
 	fmt.Printf("  TxHash:%s\n", txHash)
+	fmt.Printf("\nTip:\n")
+	fmt.Printf("  Using './ontology info status %s' to query transaction status\n", txHash)
+	return nil
+}
+
+func invokeCodeContract(ctx *cli.Context) error {
+	if !ctx.IsSet(utils.GetFlagName(utils.ContractCodeFileFlag)) {
+		fmt.Errorf("Missing code or name argument\n")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+	signer, err := cmdcom.GetAccount(ctx)
+	if err != nil {
+		return fmt.Errorf("Get signer account error:%s", err)
+	}
+	codeFile := ctx.String(utils.GetFlagName(utils.ContractCodeFileFlag))
+	if "" == codeFile {
+		return fmt.Errorf("Please specific code file")
+	}
+	codeStr, err := ioutil.ReadFile(codeFile)
+	if err != nil {
+		return fmt.Errorf("Read code:%s error:%s", codeFile, err)
+	}
+	code := strings.TrimSpace(string(codeStr))
+	c, err := common.HexToBytes(code)
+	if err != nil {
+		return fmt.Errorf("hex to bytes error:%s", err)
+	}
+	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
+	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
+	invokeTx := utils.NewInvokeTransaction(gasLimit, gasPrice, c)
+	if err != nil {
+		return err
+	}
+	err = utils.SignTransaction(signer, invokeTx)
+	if err != nil {
+		return fmt.Errorf("SignTransaction error:%s", err)
+	}
+	txHash, err := utils.SendRawTransaction(invokeTx)
+	if err != nil {
+		return fmt.Errorf("SendTransaction error:%s", err)
+	}
+	fmt.Printf("TxHash:%s\n", txHash)
 	fmt.Printf("\nTip:\n")
 	fmt.Printf("  Using './ontology info status %s' to query transaction status\n", txHash)
 	return nil

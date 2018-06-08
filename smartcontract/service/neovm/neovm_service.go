@@ -202,7 +202,6 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 func (this *NeoVmService) SystemCall(engine *vm.ExecutionEngine) error {
 	serviceName := engine.Context.OpReader.ReadVarString()
 	service, ok := ServiceMap[serviceName]
-	fmt.Println("servicename:", serviceName)
 	if !ok {
 		return errors.NewErr(fmt.Sprintf("[SystemCall] service not support: %s", serviceName))
 	}
