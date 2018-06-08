@@ -76,7 +76,7 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 		ta.server.increaseStats(tc.FailureStats)
 	} else {
 		if txn.GasLimit < config.DefConfig.Common.GasLimit ||
-			txn.GasPrice < config.DefConfig.Common.GasPrice {
+			txn.GasPrice < ta.server.getGasPrice() {
 			log.Debugf("handleTransaction: invalid gasLimit %v, gasPrice %v",
 				txn.GasLimit, txn.GasPrice)
 			return
@@ -231,7 +231,7 @@ func (tpa *TxPoolActor) Receive(context actor.Context) {
 		log.Debugf("txpool actor receives block complete event from %v", sender)
 
 		if msg.Block != nil {
-			tpa.server.cleanTransactionList(msg.Block.Transactions)
+			tpa.server.cleanTransactionList(msg.Block.Transactions, msg.Block.Header.Height)
 		}
 
 	default:
