@@ -12,7 +12,7 @@ func TestState_Serialize(t *testing.T) {
 	state := State{
 		From:  types.AddressFromVmCode([]byte{1, 2, 3}),
 		To:    types.AddressFromVmCode([]byte{4, 5, 6}),
-		Value: 123,
+		Value: 1,
 	}
 	bf := new(bytes.Buffer)
 	if err := state.Serialize(bf); err != nil {

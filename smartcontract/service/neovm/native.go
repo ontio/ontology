@@ -90,7 +90,7 @@ func BuildParamToNative(bf *bytes.Buffer, item types.StackItems) error {
 			return err
 		}
 	case *types.Integer:
-		if err := serialization.WriteVarUint(bf, item.GetBigInteger().Uint64()); err != nil {
+		if err := serialization.WriteVarBytes(bf, item.GetByteArray()); err != nil {
 			return err
 		}
 	case *types.Boolean:

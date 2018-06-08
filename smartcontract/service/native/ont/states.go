@@ -21,10 +21,12 @@ package ont
 import (
 	"fmt"
 	"io"
+	"math/big"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/vm/neovm/types"
 )
 
 // Transfers
@@ -72,7 +74,7 @@ func (this *State) Serialize(w io.Writer) error {
 	if err := serialization.WriteVarBytes(w, this.To[:]); err != nil {
 		return fmt.Errorf("[State] serialize to error:%v", err)
 	}
-	if err := serialization.WriteVarUint(w, this.Value); err != nil {
+	if err := serialization.WriteVarBytes(w, types.BigIntToBytes(big.NewInt(int64(this.Value)))); err != nil {
 		return fmt.Errorf("[State] serialize value error:%v", err)
 	}
 	return nil
@@ -96,10 +98,12 @@ func (this *State) Deserialize(r io.Reader) error {
 		return fmt.Errorf("[State] address parse from bytes error:%v", err)
 	}
 
-	this.Value, err = serialization.ReadVarUint(r, 0)
+	value, err := serialization.ReadVarBytes(r)
 	if err != nil {
 		return fmt.Errorf("[State] Deserialize value error:%v", err)
 	}
+
+	this.Value = types.BigIntFromBytes(value).Uint64()
 	return nil
 }
 
@@ -120,7 +124,7 @@ func (this *TransferFrom) Serialize(w io.Writer) error {
 	if err := serialization.WriteVarBytes(w, this.To[:]); err != nil {
 		return fmt.Errorf("[TransferFrom] serialize to error:%v", err)
 	}
-	if err := serialization.WriteVarUint(w, this.Value); err != nil {
+	if err := serialization.WriteVarBytes(w, types.BigIntToBytes(big.NewInt(int64(this.Value)))); err != nil {
 		return fmt.Errorf("[TransferFrom] serialize value error:%v", err)
 	}
 	return nil
@@ -154,11 +158,11 @@ func (this *TransferFrom) Deserialize(r io.Reader) error {
 		return fmt.Errorf("[TransferFrom] address parse from bytes error:%v", err)
 	}
 
-	value, err := serialization.ReadVarUint(r, 0)
+	value, err := serialization.ReadVarBytes(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Deserialize value error!")
 	}
 
-	this.Value = value
+	this.Value = types.BigIntFromBytes(value).Uint64()
 	return nil
 }
