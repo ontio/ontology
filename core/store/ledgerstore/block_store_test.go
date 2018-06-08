@@ -113,7 +113,6 @@ func TestSaveTransaction(t *testing.T) {
 	tx := &types.Transaction{
 		TxType:     types.Invoke,
 		Payload:    invoke,
-		Attributes: []*types.TxAttribute{},
 	}
 	blockHeight := uint32(1)
 	txHash := tx.Hash()
@@ -413,7 +412,6 @@ func newInvokeTransaction(gasPirce, gasLimit uint64, vmType vmtypes.VmType, code
 		TxType:     types.Invoke,
 		Nonce:      uint32(time.Now().Unix()),
 		Payload:    invokePayload,
-		Attributes: make([]*types.TxAttribute, 0, 0),
 		Sigs:       make([]*types.Sig, 0, 0),
 	}
 	return tx
