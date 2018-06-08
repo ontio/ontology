@@ -46,6 +46,7 @@ func AddrReqHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
 		log.Error("remotePeer invalid in AddrReqHandle")
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 
@@ -68,6 +69,14 @@ func HeadersReqHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID
 	headersReq.Deserialization(data.Payload[:length])
 	if err := headersReq.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]); err != nil {
 		log.Error(err)
+		closeConnect(data.Addr, data.Id, p2p)
+		return
+	}
+
+	remotePeer := p2p.GetPeer(data.Id)
+	if remotePeer == nil {
+		log.Error("remotePeer invalid in HeadersReqHandle()")
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 
@@ -86,11 +95,7 @@ func HeadersReqHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID
 		log.Error(err)
 		return
 	}
-	remotePeer := p2p.GetPeer(data.Id)
-	if remotePeer == nil {
-		log.Error("remotePeer invalid in HeadersReqHandle()")
-		return
-	}
+
 	p2p.Send(remotePeer, buf, false)
 }
 
@@ -103,16 +108,19 @@ func PingHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 	err := ping.Deserialization(data.Payload[:length])
 	if err != nil {
 		log.Error(err)
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 	if err = ping.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]); err != nil {
 		log.Error(err)
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
 		log.Error("remotePeer invalid in PingHandle")
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 	remotePeer.SetHeight(ping.Height)
@@ -137,16 +145,19 @@ func PongHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 	err := pong.Deserialization(data.Payload[:length])
 	if err != nil {
 		log.Error(err)
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 	if err = pong.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]); err != nil {
 		log.Error(err)
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
 		log.Error("remotePeer invalid in PongHandle")
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 	remotePeer.SetHeight(pong.Height)
@@ -161,10 +172,12 @@ func BlkHeaderHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 	err := blkHeader.Deserialization(data.Payload[:length])
 	if err != nil {
 		log.Error(err)
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 	if err = blkHeader.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]); err != nil {
 		log.Error(err)
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 
@@ -189,11 +202,13 @@ func BlockHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, arg
 	var block msgTypes.Block
 	err := block.Deserialization(data.Payload[:length])
 	if err != nil {
+		closeConnect(data.Addr, data.Id, p2p)
 		log.Error(err)
 		return
 	}
 	if err = block.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]); err != nil {
 		log.Error(err)
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 
@@ -214,10 +229,12 @@ func ConsensusHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 	err := consensus.Deserialization(data.Payload[:length])
 	if err != nil {
 		log.Error(err)
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 	if err = consensus.Cons.Verify(); err != nil {
 		log.Error(err)
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 
@@ -248,6 +265,7 @@ func TransactionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PI
 	err := trn.Deserialization(data.Payload[:length])
 	if err != nil {
 		log.Error(err)
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 	tx := &trn.Txn
@@ -263,6 +281,7 @@ func VersionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 
 	if length == 0 {
 		log.Errorf("nil message for %s", msgCommon.VERSION_TYPE)
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 
@@ -270,10 +289,12 @@ func VersionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 	err := version.Deserialization(data.Payload[:length])
 	if err != nil {
 		log.Error(err)
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 	if err = version.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]); err != nil {
 		log.Error(err)
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 
@@ -281,7 +302,7 @@ func VersionHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 	if remotePeer == nil {
 		log.Warn("peer is not exist", data.Addr)
 		//peer not exist,just remove list and return
-		p2p.RemoveFromConnectingList(data.Addr)
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 
@@ -428,6 +449,7 @@ func VerAckHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 	p2p.RemoveFromConnectingList(data.Addr)
 	if length == 0 {
 		log.Errorf("nil message for %s", msgCommon.VERACK_TYPE)
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 
@@ -435,12 +457,14 @@ func VerAckHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 	err := verAck.Deserialization(data.Payload[:length])
 	if err != nil {
 		log.Error(err)
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 	remotePeer := p2p.GetPeer(data.Id)
 
 	if remotePeer == nil {
 		log.Warn("nbr node is not exist", data.Id, data.Addr)
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 
@@ -512,10 +536,12 @@ func AddrHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 	err := msg.Deserialization(data.Payload[:length])
 	if err != nil {
 		log.Error(err)
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 	if err = msg.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]); err != nil {
 		log.Error(err)
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 
@@ -554,11 +580,13 @@ func DataReqHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 	err := dataReq.Deserialization(data.Payload[:length])
 	if err != nil {
 		log.Error(err)
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
 		log.Error("remotePeer invalid in DataReqHandle")
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 	reqType := common.InventoryType(dataReq.DataType)
@@ -624,16 +652,19 @@ func InvHandle(data *msgCommon.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 	err := inv.Deserialization(data.Payload[:length])
 	if err != nil {
 		log.Error(err)
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 	if err = inv.Verify(data.Payload[msgCommon.MSG_HDR_LEN:length]); err != nil {
 		log.Error(err)
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
 		log.Error("remotePeer invalid in InvHandle")
+		closeConnect(data.Addr, data.Id, p2p)
 		return
 	}
 	var id common.Uint256
@@ -804,4 +835,31 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]ty
 	}
 
 	return headers, nil
+}
+
+// closeConnect close the tcp link and clear the cache from peer list
+func closeConnect(addr string, id uint64, p2p p2p.P2P) {
+	peer := p2p.GetPeer(id)
+	if peer == nil {
+		peer = p2p.GetPeerFromAddr(addr)
+		if peer == nil {
+			log.Infof("failed to get peer addr %s id %d", addr, id)
+			return
+		}
+	}
+
+	p2p.DelNbrNode(id)
+	p2p.RemoveFromConnectingList(addr)
+
+	if peer.SyncLink.GetAddr() == addr {
+		p2p.RemovePeerSyncAddress(addr)
+		p2p.RemovePeerConsAddress(addr)
+		peer.CloseSync()
+		peer.CloseCons()
+	}
+	if peer.ConsLink.GetAddr() == addr {
+		p2p.RemovePeerConsAddress(addr)
+		peer.CloseCons()
+	}
+
 }
