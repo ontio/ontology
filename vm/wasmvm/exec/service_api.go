@@ -27,14 +27,14 @@ func strToInt(engine *ExecutionEngine) (bool, error) {
 	envCall := engine.vm.envCall
 	params := envCall.envParams
 	if len(params) != 1 {
-		return false, errors.NewErr("[jsonMashalParams]parameter count error")
+		return false, errors.NewErr("[strToInt] parameter count error")
 	}
 
 	addr := params[0]
 
 	pBytes, err := engine.vm.GetPointerMemory(addr)
 	if err != nil {
-		return false, errors.NewErr("[jsonMashalParams] GetPointerMemory err:" + err.Error())
+		return false, errors.NewErr("[strToInt] GetPointerMemory err:" + err.Error())
 	}
 	if pBytes == nil || len(pBytes) == 0 {
 		engine.vm.ctx = envCall.envPreCtx
@@ -47,7 +47,7 @@ func strToInt(engine *ExecutionEngine) (bool, error) {
 	str := util.TrimBuffToString(pBytes)
 	i, err := strconv.Atoi(str)
 	if err != nil {
-		return false, errors.NewErr("[jsonMashalParams] Atoi err:" + err.Error())
+		return false, errors.NewErr("[strToInt] Atoi err:" + err.Error())
 	}
 
 	engine.vm.ctx = envCall.envPreCtx
@@ -62,14 +62,14 @@ func strToInt64(engine *ExecutionEngine) (bool, error) {
 	envCall := engine.vm.envCall
 	params := envCall.envParams
 	if len(params) != 1 {
-		return false, errors.NewErr("[jsonMashalParams]parameter count error")
+		return false, errors.NewErr("[strToInt64] parameter count error")
 	}
 
 	addr := params[0]
 
 	pBytes, err := engine.vm.GetPointerMemory(addr)
 	if err != nil {
-		return false, errors.NewErr("[jsonMashalParams] GetPointerMemory err:" + err.Error())
+		return false, errors.NewErr("[strToInt64] GetPointerMemory err:" + err.Error())
 	}
 
 	if pBytes == nil || len(pBytes) == 0 {
@@ -83,7 +83,7 @@ func strToInt64(engine *ExecutionEngine) (bool, error) {
 	str := util.TrimBuffToString(pBytes)
 	i, err := strconv.ParseInt(str, 10, 64)
 	if err != nil {
-		return false, errors.NewErr("[jsonMashalParams] Atoi err:" + err.Error())
+		return false, errors.NewErr("[strToInt64] Atoi err:" + err.Error())
 	}
 
 	engine.vm.ctx = envCall.envPreCtx
@@ -98,7 +98,7 @@ func intToString(engine *ExecutionEngine) (bool, error) {
 	envCall := engine.vm.envCall
 	params := envCall.envParams
 	if len(params) != 1 {
-		return false, errors.NewErr("[jsonMashalParams]parameter count error")
+		return false, errors.NewErr("[intToString] parameter count error")
 	}
 
 	i := int(params[0])
@@ -122,7 +122,7 @@ func int64ToString(engine *ExecutionEngine) (bool, error) {
 	envCall := engine.vm.envCall
 	params := envCall.envParams
 	if len(params) != 2 {
-		return false, errors.NewErr("[jsonMashalParams]parameter count error")
+		return false, errors.NewErr("[int64ToString] parameter count error")
 	}
 	i := int64(params[0])
 	radix := int(params[1])
@@ -144,7 +144,7 @@ func int64Add(engine *ExecutionEngine) (bool, error) {
 	envCall := engine.vm.envCall
 	params := envCall.envParams
 	if len(params) != 2 {
-		return false, errors.NewErr("[jsonMashalParams]parameter count error")
+		return false, errors.NewErr("[int64Add] parameter count error")
 	}
 	i := int64(params[0])
 	j := int64(params[1])
@@ -161,7 +161,7 @@ func int64Subtract(engine *ExecutionEngine) (bool, error) {
 	envCall := engine.vm.envCall
 	params := envCall.envParams
 	if len(params) != 2 {
-		return false, errors.NewErr("[jsonMashalParams]parameter count error")
+		return false, errors.NewErr("[int64Subtract] parameter count error")
 	}
 	i := int64(params[0])
 	j := int64(params[1])

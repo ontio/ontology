@@ -61,7 +61,7 @@ func TestVM_GetMemory(t *testing.T) {
 	if err != nil {
 		t.Error("TestVM_GetMemory read code failed")
 	}
-	vm, err := NewVM(m)
+	vm, err := NewVM(m, gasChk)
 	if err != nil {
 		t.Error("TestVM_GetMemory read code failed")
 	}

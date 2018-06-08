@@ -27,6 +27,7 @@ import (
 	"reflect"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/types"
 	"github.com/ontio/ontology/vm/neovm/interfaces"
@@ -46,6 +47,10 @@ const (
 type vmstack struct {
 	top   int
 	stack []*VM
+}
+
+func init() {
+	log.InitLog(log.InfoLog, log.PATH, log.Stdout)
 }
 
 func (s *vmstack) push(vm *VM) error {
@@ -129,7 +134,8 @@ func (e *ExecutionEngine) RestoreVM() error {
 func (e *ExecutionEngine) CallInf(caller common.Address,
 	code []byte,
 	input []interface{},
-	message []interface{}) ([]byte, error) {
+	message []interface{},
+	gasChk func(uint64) bool) ([]byte, error) {
 	methodName := input[0].(string)
 
 	//1. read code
@@ -150,7 +156,7 @@ func (e *ExecutionEngine) CallInf(caller common.Address,
 		return nil, errors.NewErr("No export in wasm!")
 	}
 
-	vm, err := NewVM(m)
+	vm, err := NewVM(m, gasChk)
 	if err != nil {
 		return nil, err
 	}
@@ -315,17 +321,19 @@ func (e *ExecutionEngine) Call(caller common.Address,
 	code []byte,
 	actionName string,
 	input []byte,
-	ver byte) (returnbytes []byte, er error) {
+	ver byte,
+	gasChk func(uint64) bool) (returnbytes []byte, er error) {
 
 	//catch the panic to avoid crash the whole node
 	defer func() {
 		if err := recover(); err != nil {
+			log.Errorf("[Call] call wasm panic:%v\n", err)
 			returnbytes = nil
 			er = errors.NewErr("[Call] error happened while call wasmvm")
 		}
 	}()
 
-	return e.call(caller, code, input, actionName, ver)
+	return e.call(caller, code, input, actionName, ver, gasChk)
 
 }
 
@@ -338,7 +346,8 @@ func (e *ExecutionEngine) Call(caller common.Address,
 func (e *ExecutionEngine) InitCall(caller common.Address,
 	code []byte,
 	input []byte,
-	ver byte) (returnbytes []byte, er error) {
+	ver byte,
+	gasChk func(uint64) bool) (returnbytes []byte, er error) {
 
 	//catch the panic to avoid crash the whole node
 	defer func() {
@@ -348,7 +357,7 @@ func (e *ExecutionEngine) InitCall(caller common.Address,
 		}
 	}()
 
-	return e.call(caller, code, input, CONTRACT_INIT_METHOD, ver)
+	return e.call(caller, code, input, CONTRACT_INIT_METHOD, ver, gasChk)
 
 }
 
@@ -357,7 +366,8 @@ func (e *ExecutionEngine) call(caller common.Address,
 	code []byte,
 	input []byte,
 	actionName string,
-	ver byte) (returnbytes []byte, er error) {
+	ver byte,
+	gasChk func(uint64) bool) (returnbytes []byte, er error) {
 	if ver > 0 { //production contract version
 		methodName := CONTRACT_METHOD_NAME //fix to "invoke"
 		//1. read code
@@ -377,13 +387,14 @@ func (e *ExecutionEngine) call(caller common.Address,
 			return nil, errors.NewErr("[Call]No export in wasm!")
 		}
 
-		vm, err := NewVM(m)
+		vm, err := NewVM(m, gasChk)
 		if err != nil {
 			return nil, err
 		}
 		if e.service != nil {
 			vm.Services = e.service.GetServiceMap()
 		}
+		//set gascheck function
 		e.vm = vm
 		vm.Engine = e
 		//no message support for now
@@ -474,7 +485,7 @@ func (e *ExecutionEngine) call(caller common.Address,
 			return nil, errors.NewErr("[Call]No export in wasm!")
 		}
 
-		vm, err := NewVM(m)
+		vm, err := NewVM(m, gasChk)
 		if err != nil {
 			return nil, err
 		}
@@ -562,13 +573,13 @@ func importer(name string) (*wasm.Module, error) {
 func getCallMethodName(input []byte) (string, error) {
 
 	if len(input) <= 1 {
-		return "", errors.NewErr("[Call]input format error!")
+		return "", errors.NewErr("[getCallMethodName] input format error!")
 	}
 
 	length := int(input[0])
 
 	if length > len(input[1:]) {
-		return "", errors.NewErr("[Call]input method name length error!")
+		return "", errors.NewErr("[getCallMethodName] input method name length error!")
 	}
 
 	return string(input[1 : length+1]), nil
@@ -592,7 +603,7 @@ func getParams(input []byte) ([]uint64, error) {
 		pl := int(paramlengthSlice[i])
 
 		if (i+1)*pl > len(paramSlice) {
-			return nil, errors.NewErr("[Call]get param failed!")
+			return nil, errors.NewErr("[getParams] get param failed!")
 		}
 		param := paramSlice[i*pl : (i+1)*pl]
 

@@ -19,6 +19,7 @@ package wasmvm
 
 import (
 	"bytes"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
@@ -32,11 +33,11 @@ func (this *WasmVmService) attributeGetUsage(engine *exec.ExecutionEngine) (bool
 		return false, errors.NewErr("[transactionGetHash] parameter count error")
 	}
 
-	attributebytes, err := vm.GetPointerMemory(params[0])
+	attributehex, err := vm.GetPointerMemory(params[0])
 	if err != nil {
 		return false, nil
 	}
-
+	attributebytes, err := common.HexToBytes(string(attributehex))
 	attr := types.TxAttribute{}
 	err = attr.Deserialize(bytes.NewBuffer(attributebytes))
 	if err != nil {
@@ -54,10 +55,11 @@ func (this *WasmVmService) attributeGetData(engine *exec.ExecutionEngine) (bool,
 		return false, errors.NewErr("[transactionGetHash] parameter count error")
 	}
 
-	attributebytes, err := vm.GetPointerMemory(params[0])
+	attributehex, err := vm.GetPointerMemory(params[0])
 	if err != nil {
 		return false, nil
 	}
+	attributebytes, err := common.HexToBytes(string(attributehex))
 
 	attr := types.TxAttribute{}
 	err = attr.Deserialize(bytes.NewBuffer(attributebytes))

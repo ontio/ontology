@@ -18,11 +18,10 @@
 package wasmvm
 
 import (
-	"bytes"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
+	"github.com/ontio/ontology/vm/wasmvm/util"
 )
 
 func (this *WasmVmService) blockGetCurrentHeaderHash(engine *exec.ExecutionEngine) (bool, error) {
@@ -30,7 +29,8 @@ func (this *WasmVmService) blockGetCurrentHeaderHash(engine *exec.ExecutionEngin
 	vm.RestoreCtx()
 
 	headerHash := this.Store.GetCurrentHeaderHash()
-	idx, err := vm.SetPointerMemory(headerHash.ToArray())
+	//change hash to hexstring format
+	idx, err := vm.SetPointerMemory(common.ToHexString(headerHash.ToArray()))
 	if err != nil {
 		return false, err
 	}
@@ -53,7 +53,66 @@ func (this *WasmVmService) blockGetCurrentBlockHash(engine *exec.ExecutionEngine
 	vm.RestoreCtx()
 
 	bHash := this.Store.GetCurrentBlockHash()
-	idx, err := vm.SetPointerMemory(bHash.ToArray())
+	//change hash to hexstring format
+	idx, err := vm.SetPointerMemory(common.ToHexString(bHash.ToArray()))
+	if err != nil {
+		return false, err
+	}
+	vm.RestoreCtx()
+	vm.PushResult(uint64(idx))
+	return true, nil
+}
+
+func (this *WasmVmService) blockGetBlockByHash(engine *exec.ExecutionEngine) (bool, error) {
+	vm := engine.GetVM()
+	envCall := vm.GetEnvCall()
+	params := envCall.GetParams()
+	if len(params) != 1 {
+		return false, errors.NewErr("[blockGetBlockByHash]parameter count error ")
+	}
+
+	//it's a hexstring
+	hashbytes, err := vm.GetPointerMemory(params[0])
+	if err != nil {
+		return false, err
+	}
+
+	hexbytes, err := common.HexToBytes(util.TrimBuffToString(hashbytes))
+	if err != nil {
+		return false, err
+	}
+	hash, err := common.Uint256ParseFromBytes(hexbytes)
+	if err != nil {
+		return false, err
+	}
+	block, err := this.Store.GetBlockByHash(hash)
+	if err != nil {
+		return false, err
+	}
+	//change hash to hexstring format
+	idx, err := vm.SetPointerMemory(block.ToArray())
+	if err != nil {
+		return false, err
+	}
+	vm.RestoreCtx()
+	vm.PushResult(uint64(idx))
+	return true, nil
+}
+
+func (this *WasmVmService) blockGetBlockByHeight(engine *exec.ExecutionEngine) (bool, error) {
+	vm := engine.GetVM()
+	envCall := vm.GetEnvCall()
+	params := envCall.GetParams()
+	if len(params) != 1 {
+		return false, errors.NewErr("[blockGetBlockByHeight]parameter count error ")
+	}
+
+	block, err := this.Store.GetBlockByHeight(uint32(params[0]))
+	if err != nil {
+		return false, err
+	}
+	//change hash to hexstring format
+	idx, err := vm.SetPointerMemory(common.ToHexString(block.ToArray()))
 	if err != nil {
 		return false, err
 	}
@@ -79,17 +138,26 @@ func (this *WasmVmService) blockGetTransactionByHash(engine *exec.ExecutionEngin
 		return false, errors.NewErr("[RuntimeLog]parameter count error ")
 	}
 
+	//it's a hexstring
 	hashbytes, err := vm.GetPointerMemory(params[0])
 	if err != nil {
 		return false, err
 	}
 
-	thash, err := common.Uint256ParseFromBytes(hashbytes)
+	hexbytes, err := common.HexToBytes(util.TrimBuffToString(hashbytes))
+	if err != nil {
+		return false, err
+	}
+	//hextobytes
+	thash, err := common.Uint256ParseFromBytes(hexbytes)
+
 	if err != nil {
 		return false, err
 	}
 	tx, _, err := this.Store.GetTransaction(thash)
+
 	txbytes := tx.ToArray()
+
 	idx, err := vm.SetPointerMemory(txbytes)
 	if err != nil {
 		return false, err
@@ -101,7 +169,7 @@ func (this *WasmVmService) blockGetTransactionByHash(engine *exec.ExecutionEngin
 }
 
 // BlockGetTransactionCount put block's transactions count to vm stack
-func (this *WasmVmService) blockGetTransactionCount(engine *exec.ExecutionEngine) (bool, error) {
+func (this *WasmVmService) blockGetTransactionCountByBlkHash(engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
@@ -109,12 +177,42 @@ func (this *WasmVmService) blockGetTransactionCount(engine *exec.ExecutionEngine
 		return false, errors.NewErr("[RuntimeLog]parameter count error ")
 	}
 
-	blockbytes, err := vm.GetPointerMemory(params[0])
+	blockhash, err := vm.GetPointerMemory(params[0])
 	if err != nil {
 		return false, err
 	}
-	block := &types.Block{}
-	err = block.Deserialize(bytes.NewBuffer(blockbytes))
+
+	hexbytes, err := common.HexToBytes(util.TrimBuffToString(blockhash))
+	if err != nil {
+		return false, err
+	}
+	hash, err := common.Uint256ParseFromBytes(hexbytes)
+	if err != nil {
+		return false, err
+	}
+
+	block, err := this.Store.GetBlockByHash(hash)
+	if err != nil {
+		return false, err
+	}
+
+	length := len(block.Transactions)
+
+	vm.RestoreCtx()
+	vm.PushResult(uint64(length))
+	return true, nil
+}
+
+// BlockGetTransactionCount put block's transactions count to vm stack
+func (this *WasmVmService) blockGetTransactionCountByBlkHeight(engine *exec.ExecutionEngine) (bool, error) {
+	vm := engine.GetVM()
+	envCall := vm.GetEnvCall()
+	params := envCall.GetParams()
+	if len(params) != 1 {
+		return false, errors.NewErr("[RuntimeLog]parameter count error ")
+	}
+
+	block, err := this.Store.GetBlockByHeight(uint32(params[0]))
 	if err != nil {
 		return false, err
 	}
@@ -127,26 +225,68 @@ func (this *WasmVmService) blockGetTransactionCount(engine *exec.ExecutionEngine
 }
 
 // BlockGetTransactions put block's transactions to vm stack
-func (this *WasmVmService) blockGetTransactions(engine *exec.ExecutionEngine) (bool, error) {
+func (this *WasmVmService) blockGetTransactionsByBlkHash(engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
 	if len(params) != 1 {
-		return false, errors.NewErr("[BlockGetTransactions]parameter count error ")
+		return false, errors.NewErr("[RuntimeLog]parameter count error ")
 	}
 
-	blockbytes, err := vm.GetPointerMemory(params[0])
+	blockhash, err := vm.GetPointerMemory(params[0])
 	if err != nil {
 		return false, err
 	}
-	block := &types.Block{}
-	err = block.Deserialize(bytes.NewBuffer(blockbytes))
+
+	hexbytes, err := common.HexToBytes(util.TrimBuffToString(blockhash))
 	if err != nil {
 		return false, err
 	}
-	transactionList := make([][]byte, len(block.Transactions))
+	hash, err := common.Uint256ParseFromBytes(hexbytes)
+	if err != nil {
+		return false, err
+	}
+
+	block, err := this.Store.GetBlockByHash(hash)
+	if err != nil {
+		return false, err
+	}
+
+	transactionList := make([]string, len(block.Transactions))
 	for i, tx := range block.Transactions {
-		transactionList[i] = tx.ToArray()
+		hash := tx.Hash()
+
+		transactionList[i] = common.ToHexString(hash.ToArray())
+	}
+
+	idx, err := vm.SetPointerMemory(transactionList)
+	if err != nil {
+		return false, err
+	}
+	vm.RestoreCtx()
+	vm.PushResult(uint64(idx))
+
+	return true, nil
+}
+
+// BlockGetTransactions put block's transactions to vm stack
+func (this *WasmVmService) blockGetTransactionsByBlkHeight(engine *exec.ExecutionEngine) (bool, error) {
+	vm := engine.GetVM()
+	envCall := vm.GetEnvCall()
+	params := envCall.GetParams()
+	if len(params) != 1 {
+		return false, errors.NewErr("[RuntimeLog]parameter count error ")
+	}
+
+	block, err := this.Store.GetBlockByHeight(uint32(params[0]))
+	if err != nil {
+		return false, err
+	}
+
+	transactionList := make([]string, len(block.Transactions))
+	for i, tx := range block.Transactions {
+		hash := tx.Hash()
+		transactionList[i] = common.ToHexString(hash.ToArray())
 	}
 
 	idx, err := vm.SetPointerMemory(transactionList)

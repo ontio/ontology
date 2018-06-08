@@ -26,10 +26,10 @@ package disasm
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"io"
 	"math"
 
+	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/vm/wasmvm/internal/stack"
 	"github.com/ontio/ontology/vm/wasmvm/wasm"
 	"github.com/ontio/ontology/vm/wasmvm/wasm/leb128"
@@ -96,7 +96,7 @@ func isInstrReachable(indexStack [][]int) bool {
 	return len(indexStack[len(indexStack)-1]) == 0
 }
 
-var ErrStackUnderflow = errors.New("disasm: stack underflow")
+var ErrStackUnderflow = errors.NewErr("disasm: stack underflow")
 
 // Disassemble disassembles the given function. It also takes the function's
 // parent module as an argument for locating any other functions referenced by

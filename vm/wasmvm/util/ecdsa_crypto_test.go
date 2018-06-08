@@ -18,7 +18,6 @@
 package util
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -41,7 +40,6 @@ func TestECDsaCrypto_Hash256(t *testing.T) {
 	ecdsa := &ECDsaCrypto{}
 	b := []byte("test string")
 	res := ecdsa.Hash256(b)
-	fmt.Println(res)
 	if len(res) != 32 {
 		t.Error("TestECDsaCrypto_Hash160 length is not 20")
 	}

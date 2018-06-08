@@ -25,11 +25,11 @@ package exec
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"math"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/types"
 	"github.com/ontio/ontology/vm/wasmvm/disasm"
 	"github.com/ontio/ontology/vm/wasmvm/exec/internal/compile"
@@ -41,10 +41,10 @@ import (
 var (
 	// ErrMultipleLinearMemories is returned by (*VM).NewVM when the module
 	// has more then one entries in the linear memory space.
-	ErrMultipleLinearMemories = errors.New("exec: more than one linear memories in module")
+	ErrMultipleLinearMemories = errors.NewErr("exec: more than one linear memories in module")
 	// ErrInvalidArgumentCount is returned by (*VM).ExecCode when an invalid
 	// number of arguments to the WebAssembly function are passed to it.
-	ErrInvalidArgumentCount = errors.New("exec: invalid number of arguments to function")
+	ErrInvalidArgumentCount = errors.NewErr("exec: invalid number of arguments to function")
 )
 
 // InvalidReturnTypeError is returned by (*VM).ExecCode when the module
@@ -104,6 +104,8 @@ type VM struct {
 	Caller          common.Address
 	Engine          *ExecutionEngine
 	VMCode          types.VmCode
+	//gas check function
+	GasCheck func(uint64) bool
 }
 
 // As per the WebAssembly spec: https://github.com/WebAssembly/design/blob/27ac254c854994103c24834a994be16f74f54186/Semantics.md#linear-memory
@@ -113,8 +115,9 @@ var endianess = binary.LittleEndian
 
 // NewVM creates a new VM from a given module. If the module defines a
 // start function, it will be executed.
-func NewVM(module *wasm.Module) (*VM, error) {
+func NewVM(module *wasm.Module, gasChk func(uint64) bool) (*VM, error) {
 	var vm VM
+	vm.GasCheck = gasChk
 	err := vm.loadModule(module)
 	if err != nil {
 		return nil, err
@@ -211,7 +214,7 @@ func (vm *VM) GetMessageBytes() ([]byte, error) {
 
 		default:
 			//todo need support array types???
-			return nil, errors.New("[GetMessageBytes] unsupported type")
+			return nil, errors.NewErr("[GetMessageBytes] unsupported type")
 
 		}
 	}
@@ -358,7 +361,11 @@ func (vm *VM) ExecCode(insideCall bool, fnIndex int64, args ...uint64) (interfac
 		vm.ctx.locals[i] = arg
 	}
 	var rtrn interface{}
-	res := vm.execCode(insideCall, compiled)
+	res, err := vm.execCode(insideCall, compiled)
+	if err != nil {
+		return res, err
+	}
+
 	// for the call contract case
 	if insideCall {
 		return res, nil
@@ -383,11 +390,15 @@ func (vm *VM) ExecCode(insideCall bool, fnIndex int64, args ...uint64) (interfac
 	return rtrn, nil
 }
 
-func (vm *VM) execCode(isinside bool, compiled compiledFunction) uint64 {
+func (vm *VM) execCode(isinside bool, compiled compiledFunction) (uint64, error) {
 outer:
 	for int(vm.ctx.pc) < len(vm.ctx.code) {
 		op := vm.ctx.code[vm.ctx.pc]
 		vm.ctx.pc++
+		//check gas
+		if vm.GasCheck(0) == false {
+			return 0, errors.NewErr("[execCode] not enough gas")
+		}
 
 		switch op {
 		case ops.Return:
@@ -460,9 +471,9 @@ outer:
 	}
 
 	if compiled.returns {
-		return vm.ctx.stack[len(vm.ctx.stack)-1]
+		return vm.ctx.stack[len(vm.ctx.stack)-1], nil
 	}
-	return 0
+	return 0, nil
 }
 
 //CallContract
@@ -475,14 +486,14 @@ func (vm *VM) CallContract(caller common.Address, contractAddress common.Address
 	//1. exec the method code
 	entry, ok := module.Export.Entries[methodName]
 	if ok == false {
-		return uint64(0), errors.New("Method:" + methodName + " does not exist!")
+		return uint64(0), errors.NewErr("[CallContract] Method:" + methodName + " does not exist!")
 	}
 
 	//get entry index
 	index := int64(entry.Index)
 
 	//new vm
-	newvm, err := NewVM(module)
+	newvm, err := NewVM(module, vm.GasCheck)
 	if err != nil {
 		return uint64(0), err
 	}
@@ -530,6 +541,10 @@ func (vm *VM) loadModule(module *wasm.Module) error {
 		if len(module.Memory.Entries) > 1 {
 			return ErrMultipleLinearMemories
 		}
+		//check gas
+		if vm.GasCheck(0) == false {
+			return errors.NewErr(fmt.Sprintf("[loadModule] not enough gas to alloc memory %d pages", module.Memory.Entries[0].Limits.Initial))
+		}
 		vm.memory.Memory = make([]byte, uint(module.Memory.Entries[0].Limits.Initial)*wasmPageSize)
 		copy(vm.memory.Memory, module.LinearMemoryIndexSpace[0])
 	} else if len(module.LinearMemoryIndexSpace) > 0 {
@@ -550,7 +565,7 @@ func (vm *VM) loadModule(module *wasm.Module) error {
 		var tmpIdx int
 		for _, entry := range module.Data.Entries {
 			if entry.Index != 0 {
-				return errors.New("invalid data index")
+				return errors.NewErr("[loadModule] invalid data index")
 			}
 			val, err := module.ExecInitExpr(entry.Offset)
 			if err != nil {
@@ -559,7 +574,7 @@ func (vm *VM) loadModule(module *wasm.Module) error {
 			offset, ok := val.(int32)
 			tmpIdx += int(offset) + len(entry.Data)
 			if !ok {
-				return errors.New("invalid data index")
+				return errors.NewErr("[loadModule] invalid data index")
 			}
 			// for the case of " (data (get_global 0) "init\00init success!\00add\00int"))"
 			if bytes.Contains(entry.Data, []byte{byte(0)}) {

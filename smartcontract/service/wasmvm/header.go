@@ -18,10 +18,10 @@
 package wasmvm
 
 import (
-	"bytes"
-	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
+	"github.com/ontio/ontology/vm/wasmvm/util"
 )
 
 func (this *WasmVmService) headerGetHash(engine *exec.ExecutionEngine) (bool, error) {
@@ -32,18 +32,12 @@ func (this *WasmVmService) headerGetHash(engine *exec.ExecutionEngine) (bool, er
 		return false, errors.NewErr("[transactionGetHash] parameter count error")
 	}
 
-	headerbytes, err := vm.GetPointerMemory(params[0])
+	header, err := this.Store.GetHeaderByHeight(uint32(params[0]))
 	if err != nil {
 		return false, err
 	}
-	header := &types.Header{}
-	err = header.Deserialize(bytes.NewBuffer(headerbytes))
-	if err != nil {
-		return false, err
-	}
-
 	hash := header.Hash()
-	idx, err := vm.SetPointerMemory(hash.ToArray())
+	idx, err := vm.SetPointerMemory(common.ToHexString(hash.ToArray()))
 	if err != nil {
 		return false, err
 	}
@@ -52,7 +46,24 @@ func (this *WasmVmService) headerGetHash(engine *exec.ExecutionEngine) (bool, er
 	return true, nil
 }
 
-func (this *WasmVmService) headerGetVersion(engine *exec.ExecutionEngine) (bool, error) {
+func (this *WasmVmService) headerGetVersionByHeight(engine *exec.ExecutionEngine) (bool, error) {
+	vm := engine.GetVM()
+	envCall := vm.GetEnvCall()
+	params := envCall.GetParams()
+	if len(params) != 1 {
+		return false, errors.NewErr("[transactionGetHash] parameter count error")
+	}
+	header, err := this.Store.GetHeaderByHeight(uint32(params[0]))
+	if err != nil {
+		return false, err
+	}
+	version := header.Version
+	vm.RestoreCtx()
+	vm.PushResult(uint64(version))
+	return true, nil
+}
+
+func (this *WasmVmService) headerGetVersionByHash(engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
@@ -60,16 +71,25 @@ func (this *WasmVmService) headerGetVersion(engine *exec.ExecutionEngine) (bool,
 		return false, errors.NewErr("[transactionGetHash] parameter count error")
 	}
 
-	headerbytes, err := vm.GetPointerMemory(params[0])
-	if err != nil {
-		return false, err
-	}
-	header := &types.Header{}
-	err = header.Deserialize(bytes.NewBuffer(headerbytes))
+	hexbytes, err := vm.GetPointerMemory(params[0])
 	if err != nil {
 		return false, err
 	}
 
+	hashbytes, err := common.HexToBytes(util.TrimBuffToString(hexbytes))
+	if err != nil {
+		return false, err
+	}
+
+	hash, err := common.Uint256ParseFromBytes(hashbytes)
+	if err != nil {
+		return false, err
+	}
+
+	header, err := this.Store.GetHeaderByHash(hash)
+	if err != nil {
+		return false, err
+	}
 	version := header.Version
 
 	vm.RestoreCtx()
@@ -77,7 +97,7 @@ func (this *WasmVmService) headerGetVersion(engine *exec.ExecutionEngine) (bool,
 	return true, nil
 }
 
-func (this *WasmVmService) headerGetPrevHash(engine *exec.ExecutionEngine) (bool, error) {
+func (this *WasmVmService) headerGetPrevHashByHash(engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
@@ -85,18 +105,51 @@ func (this *WasmVmService) headerGetPrevHash(engine *exec.ExecutionEngine) (bool
 		return false, errors.NewErr("[transactionGetHash] parameter count error")
 	}
 
-	headerbytes, err := vm.GetPointerMemory(params[0])
+	hexbytes, err := vm.GetPointerMemory(params[0])
 	if err != nil {
 		return false, err
 	}
-	header := &types.Header{}
-	err = header.Deserialize(bytes.NewBuffer(headerbytes))
+
+	hashbytes, err := common.HexToBytes(util.TrimBuffToString(hexbytes))
+	if err != nil {
+		return false, err
+	}
+
+	hash, err := common.Uint256ParseFromBytes(hashbytes)
+	if err != nil {
+		return false, err
+	}
+
+	header, err := this.Store.GetHeaderByHash(hash)
+	if err != nil {
+		return false, err
+	}
+
+	prevhash := header.PrevBlockHash.ToArray()
+	idx, err := vm.SetPointerMemory(common.ToHexString(prevhash))
+	if err != nil {
+		return false, err
+	}
+	vm.RestoreCtx()
+	vm.PushResult(uint64(idx))
+	return true, nil
+}
+
+func (this *WasmVmService) headerGetPrevHashByHeight(engine *exec.ExecutionEngine) (bool, error) {
+	vm := engine.GetVM()
+	envCall := vm.GetEnvCall()
+	params := envCall.GetParams()
+	if len(params) != 1 {
+		return false, errors.NewErr("[transactionGetHash] parameter count error")
+	}
+
+	header, err := this.Store.GetHeaderByHeight(uint32(params[0]))
 	if err != nil {
 		return false, err
 	}
 
 	hash := header.PrevBlockHash.ToArray()
-	idx, err := vm.SetPointerMemory(hash)
+	idx, err := vm.SetPointerMemory(common.ToHexString(hash))
 	if err != nil {
 		return false, err
 	}
@@ -105,7 +158,7 @@ func (this *WasmVmService) headerGetPrevHash(engine *exec.ExecutionEngine) (bool
 	return true, nil
 }
 
-func (this *WasmVmService) headerGetMerkleRoot(engine *exec.ExecutionEngine) (bool, error) {
+func (this *WasmVmService) headerGetMerkleRootByHeight(engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
@@ -113,18 +166,13 @@ func (this *WasmVmService) headerGetMerkleRoot(engine *exec.ExecutionEngine) (bo
 		return false, errors.NewErr("[transactionGetHash] parameter count error")
 	}
 
-	headerbytes, err := vm.GetPointerMemory(params[0])
-	if err != nil {
-		return false, err
-	}
-	header := &types.Header{}
-	err = header.Deserialize(bytes.NewBuffer(headerbytes))
+	header, err := this.Store.GetHeaderByHeight(uint32(params[0]))
 	if err != nil {
 		return false, err
 	}
 
 	hash := header.TransactionsRoot.ToArray()
-	idx, err := vm.SetPointerMemory(hash)
+	idx, err := vm.SetPointerMemory(common.ToHexString(hash))
 	if err != nil {
 		return false, err
 	}
@@ -133,7 +181,7 @@ func (this *WasmVmService) headerGetMerkleRoot(engine *exec.ExecutionEngine) (bo
 	return true, nil
 }
 
-func (this *WasmVmService) headerGetIndex(engine *exec.ExecutionEngine) (bool, error) {
+func (this *WasmVmService) headerGetMerkleRootByHash(engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
@@ -141,12 +189,60 @@ func (this *WasmVmService) headerGetIndex(engine *exec.ExecutionEngine) (bool, e
 		return false, errors.NewErr("[transactionGetHash] parameter count error")
 	}
 
-	headerbytes, err := vm.GetPointerMemory(params[0])
+	hexbytes, err := vm.GetPointerMemory(params[0])
 	if err != nil {
 		return false, err
 	}
-	header := &types.Header{}
-	err = header.Deserialize(bytes.NewBuffer(headerbytes))
+
+	hashbytes, err := common.HexToBytes(util.TrimBuffToString(hexbytes))
+	if err != nil {
+		return false, err
+	}
+
+	hash, err := common.Uint256ParseFromBytes(hashbytes)
+	if err != nil {
+		return false, err
+	}
+
+	header, err := this.Store.GetHeaderByHash(hash)
+	if err != nil {
+		return false, err
+	}
+
+	merkel := header.TransactionsRoot.ToArray()
+	idx, err := vm.SetPointerMemory(common.ToHexString(merkel))
+	if err != nil {
+		return false, err
+	}
+	vm.RestoreCtx()
+	vm.PushResult(uint64(idx))
+	return true, nil
+}
+
+func (this *WasmVmService) headerGetIndexByHash(engine *exec.ExecutionEngine) (bool, error) {
+	vm := engine.GetVM()
+	envCall := vm.GetEnvCall()
+	params := envCall.GetParams()
+	if len(params) != 1 {
+		return false, errors.NewErr("[transactionGetHash] parameter count error")
+	}
+
+	hexbytes, err := vm.GetPointerMemory(params[0])
+	if err != nil {
+		return false, err
+	}
+
+	hashbytes, err := common.HexToBytes(util.TrimBuffToString(hexbytes))
+	if err != nil {
+		return false, err
+	}
+
+	hash, err := common.Uint256ParseFromBytes(hashbytes)
+	if err != nil {
+		return false, err
+	}
+
+	header, err := this.Store.GetHeaderByHash(hash)
 	if err != nil {
 		return false, err
 	}
@@ -158,7 +254,7 @@ func (this *WasmVmService) headerGetIndex(engine *exec.ExecutionEngine) (bool, e
 	return true, nil
 }
 
-func (this *WasmVmService) headerGetTimestamp(engine *exec.ExecutionEngine) (bool, error) {
+func (this *WasmVmService) headerGetTimestampByHeight(engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
@@ -166,12 +262,7 @@ func (this *WasmVmService) headerGetTimestamp(engine *exec.ExecutionEngine) (boo
 		return false, errors.NewErr("[transactionGetHash] parameter count error")
 	}
 
-	headerbytes, err := vm.GetPointerMemory(params[0])
-	if err != nil {
-		return false, err
-	}
-	header := &types.Header{}
-	err = header.Deserialize(bytes.NewBuffer(headerbytes))
+	header, err := this.Store.GetHeaderByHeight(uint32(params[0]))
 	if err != nil {
 		return false, err
 	}
@@ -183,7 +274,7 @@ func (this *WasmVmService) headerGetTimestamp(engine *exec.ExecutionEngine) (boo
 	return true, nil
 }
 
-func (this *WasmVmService) headerGetConsensusData(engine *exec.ExecutionEngine) (bool, error) {
+func (this *WasmVmService) headerGetTimestampByHash(engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
@@ -191,12 +282,76 @@ func (this *WasmVmService) headerGetConsensusData(engine *exec.ExecutionEngine) 
 		return false, errors.NewErr("[transactionGetHash] parameter count error")
 	}
 
-	headerbytes, err := vm.GetPointerMemory(params[0])
+	hexbytes, err := vm.GetPointerMemory(params[0])
 	if err != nil {
 		return false, err
 	}
-	header := &types.Header{}
-	err = header.Deserialize(bytes.NewBuffer(headerbytes))
+
+	hashbytes, err := common.HexToBytes(util.TrimBuffToString(hexbytes))
+	if err != nil {
+		return false, err
+	}
+
+	hash, err := common.Uint256ParseFromBytes(hashbytes)
+	if err != nil {
+		return false, err
+	}
+
+	header, err := this.Store.GetHeaderByHash(hash)
+	if err != nil {
+		return false, err
+	}
+
+	tm := header.Timestamp
+
+	vm.RestoreCtx()
+	vm.PushResult(uint64(tm))
+	return true, nil
+}
+
+func (this *WasmVmService) headerGetConsensusDataByHash(engine *exec.ExecutionEngine) (bool, error) {
+	vm := engine.GetVM()
+	envCall := vm.GetEnvCall()
+	params := envCall.GetParams()
+	if len(params) != 1 {
+		return false, errors.NewErr("[transactionGetHash] parameter count error")
+	}
+
+	hexbytes, err := vm.GetPointerMemory(params[0])
+	if err != nil {
+		return false, err
+	}
+
+	hashbytes, err := common.HexToBytes(util.TrimBuffToString(hexbytes))
+	if err != nil {
+		return false, err
+	}
+
+	hash, err := common.Uint256ParseFromBytes(hashbytes)
+	if err != nil {
+		return false, err
+	}
+
+	header, err := this.Store.GetHeaderByHash(hash)
+	if err != nil {
+		return false, err
+	}
+	cd := header.ConsensusData
+
+	vm.RestoreCtx()
+	vm.PushResult(cd)
+	return true, nil
+}
+
+func (this *WasmVmService) headerGetConsensusDataByHeight(engine *exec.ExecutionEngine) (bool, error) {
+	vm := engine.GetVM()
+	envCall := vm.GetEnvCall()
+	params := envCall.GetParams()
+	if len(params) != 1 {
+		return false, errors.NewErr("[transactionGetHash] parameter count error")
+	}
+
+	header, err := this.Store.GetHeaderByHeight(uint32(params[0]))
 	if err != nil {
 		return false, err
 	}
@@ -208,7 +363,7 @@ func (this *WasmVmService) headerGetConsensusData(engine *exec.ExecutionEngine) 
 	return true, nil
 }
 
-func (this *WasmVmService) headerGetNextConsensus(engine *exec.ExecutionEngine) (bool, error) {
+func (this *WasmVmService) headerGetNextConsensusByHeight(engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
@@ -216,18 +371,51 @@ func (this *WasmVmService) headerGetNextConsensus(engine *exec.ExecutionEngine) 
 		return false, errors.NewErr("[transactionGetHash] parameter count error")
 	}
 
-	headerbytes, err := vm.GetPointerMemory(params[0])
-	if err != nil {
-		return false, err
-	}
-	header := &types.Header{}
-	err = header.Deserialize(bytes.NewBuffer(headerbytes))
+	header, err := this.Store.GetHeaderByHeight(uint32(params[0]))
 	if err != nil {
 		return false, err
 	}
 
 	cd := header.NextBookkeeper[:]
-	idx, err := vm.SetPointerMemory(cd)
+	idx, err := vm.SetPointerMemory(common.ToHexString(cd))
+	if err != nil {
+		return false, err
+	}
+	vm.RestoreCtx()
+	vm.PushResult(uint64(idx))
+	return true, nil
+}
+
+func (this *WasmVmService) headerGetNextConsensusByHash(engine *exec.ExecutionEngine) (bool, error) {
+	vm := engine.GetVM()
+	envCall := vm.GetEnvCall()
+	params := envCall.GetParams()
+	if len(params) != 1 {
+		return false, errors.NewErr("[transactionGetHash] parameter count error")
+	}
+
+	hexbytes, err := vm.GetPointerMemory(params[0])
+	if err != nil {
+		return false, err
+	}
+
+	hashbytes, err := common.HexToBytes(util.TrimBuffToString(hexbytes))
+	if err != nil {
+		return false, err
+	}
+
+	hash, err := common.Uint256ParseFromBytes(hashbytes)
+	if err != nil {
+		return false, err
+	}
+
+	header, err := this.Store.GetHeaderByHash(hash)
+	if err != nil {
+		return false, err
+	}
+
+	cd := header.NextBookkeeper[:]
+	idx, err := vm.SetPointerMemory(common.ToHexString(cd))
 	if err != nil {
 		return false, err
 	}

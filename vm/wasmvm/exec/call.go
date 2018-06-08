@@ -23,8 +23,9 @@
 package exec
 
 import (
-	"errors"
+	"fmt"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/errors"
 )
 
 func (vm *VM) doCall(compiled compiledFunction, index int64) {
@@ -60,21 +61,39 @@ func (vm *VM) doCall(compiled compiledFunction, index int64) {
 		}
 		vm.envCall.envPreCtx = prevCtxt
 
+		//check gas
+		if vm.GasCheck(0) == false {
+			log.Errorf("[doCall] call method :%s failed,not enough gas", compiled.name)
+			panic(fmt.Errorf("[doCall] call method :%s failed,not enough gas", compiled.name))
+		}
+
 		v, ok := vm.Services[compiled.name]
 		if ok {
 			rtn, err := v(vm.Engine)
 			if err != nil || !rtn {
-				log.Errorf("call method :%s failed\n", compiled.name)
+				errmsg := ""
+				if err != nil {
+					errmsg = err.Error()
+				}
+				log.Errorf("[doCall] call method :%s failed,error:%s\n", compiled.name, errmsg)
+				panic(fmt.Errorf("[doCall] call method :%s failed,error:%s\n", compiled.name, errmsg))
+
 			}
 		} else {
-			vm.ctx = prevCtxt
+			log.Errorf("[doCall] call method :%s failed,error:no such API method", compiled.name)
+			panic(fmt.Errorf("[doCall] call method :%s failed,error:no such API method", compiled.name))
+
+			/*vm.ctx = prevCtxt
 			if compiled.returns {
 				vm.pushUint64(0)
-			}
+			}*/
 		}
 
 	} else {
-		rtrn := vm.execCode(false, compiled)
+		rtrn, err := vm.execCode(false, compiled)
+		if err != nil {
+			panic(fmt.Errorf("[doCall] call method :%s failed,error:%s\n", compiled.name, err.Error()))
+		}
 
 		// restore execution context
 		vm.ctx = prevCtxt
@@ -90,11 +109,11 @@ var (
 	// ErrSignatureMismatch is the error value used while trapping the VM when
 	// a signature mismatch between the table entry and the type entry is found
 	// in a call_indirect operation.
-	ErrSignatureMismatch = errors.New("exec: signature mismatch in call_indirect")
+	ErrSignatureMismatch = errors.NewErr("exec: signature mismatch in call_indirect")
 	// ErrUndefinedElementIndex is the error value used while trapping the VM when
 	// an invalid index to the module's table space is used as an operand to
 	// call_indirect
-	ErrUndefinedElementIndex = errors.New("exec: undefined element index")
+	ErrUndefinedElementIndex = errors.NewErr("exec: undefined element index")
 )
 
 func (vm *VM) call() {

@@ -24,11 +24,11 @@ package wasm
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"math"
 
+	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/vm/wasmvm/wasm/leb128"
 )
 
@@ -41,7 +41,7 @@ const (
 	end       byte = 0x0b
 )
 
-var ErrEmptyInitExpr = errors.New("wasm: Initializer expression produces no value")
+var ErrEmptyInitExpr = errors.NewErr("wasm: Initializer expression produces no value")
 
 type InvalidInitExprOpError byte
 

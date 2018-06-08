@@ -19,9 +19,11 @@ package wasmvm
 
 import (
 	"bytes"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
+	"github.com/ontio/ontology/vm/wasmvm/util"
 )
 
 func (this *WasmVmService) transactionGetHash(engine *exec.ExecutionEngine) (bool, error) {
@@ -59,13 +61,21 @@ func (this *WasmVmService) transactionGetType(engine *exec.ExecutionEngine) (boo
 		return false, errors.NewErr("[transactionGetType] parameter count error")
 	}
 
-	transbytes, err := vm.GetPointerMemory(params[0])
+	hexbytes, err := vm.GetPointerMemory(params[0])
 	if err != nil {
 		return false, err
 	}
 
-	trans := types.Transaction{}
-	err = trans.Deserialize(bytes.NewBuffer(transbytes))
+	hashbytes, err := common.HexToBytes(util.TrimBuffToString(hexbytes))
+	if err != nil {
+		return false, err
+	}
+
+	hash, err := common.Uint256ParseFromBytes(hashbytes)
+	if err != nil {
+		return false, err
+	}
+	trans, _, err := this.Store.GetTransaction(hash)
 	if err != nil {
 		return false, err
 	}
@@ -83,19 +93,27 @@ func (this *WasmVmService) transactionGetAttributes(engine *exec.ExecutionEngine
 		return false, errors.NewErr("[transactionGetAttributes] parameter count error")
 	}
 
-	transbytes, err := vm.GetPointerMemory(params[0])
+	hexbytes, err := vm.GetPointerMemory(params[0])
 	if err != nil {
 		return false, err
 	}
 
-	trans := types.Transaction{}
-	err = trans.Deserialize(bytes.NewBuffer(transbytes))
+	hashbytes, err := common.HexToBytes(util.TrimBuffToString(hexbytes))
 	if err != nil {
 		return false, err
 	}
-	attributes := make([][]byte, len(trans.Attributes))
+
+	hash, err := common.Uint256ParseFromBytes(hashbytes)
+	if err != nil {
+		return false, err
+	}
+	trans, _, err := this.Store.GetTransaction(hash)
+	if err != nil {
+		return false, err
+	}
+	attributes := make([]string, len(trans.Attributes))
 	for i, a := range trans.Attributes {
-		attributes[i] = a.ToArray()
+		attributes[i] = common.ToHexString(a.ToArray())
 	}
 
 	idx, err := vm.SetPointerMemory(attributes)
