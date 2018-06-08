@@ -183,11 +183,7 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 	trans.Payer = ptx.Payer.ToHexString()
 	trans.Payload = TransPayloadToHex(ptx.Payload)
 
-	trans.Attributes = make([]TxAttributeInfo, len(ptx.Attributes))
-	for i, v := range ptx.Attributes {
-		trans.Attributes[i].Usage = v.Usage
-		trans.Attributes[i].Data = common.ToHexString(v.Data)
-	}
+	trans.Attributes = make([]TxAttributeInfo, 0)
 	trans.Sigs = []Sig{}
 	for _, sig := range ptx.Sigs {
 		e := Sig{M: sig.M}
@@ -371,12 +367,11 @@ func PrepareInvokeContract(cVersion byte, vmType vmtypes.VmType, invokeCode []by
 		},
 	}
 	tx := &types.Transaction{
-		Version:    cVersion,
-		TxType:     types.Invoke,
-		Nonce:      uint32(time.Now().Unix()),
-		Payload:    invokePayload,
-		Attributes: make([]*types.TxAttribute, 0, 0),
-		Sigs:       make([]*types.Sig, 0, 0),
+		Version: cVersion,
+		TxType:  types.Invoke,
+		Nonce:   uint32(time.Now().Unix()),
+		Payload: invokePayload,
+		Sigs:    make([]*types.Sig, 0, 0),
 	}
 	return bactor.PreExecuteContract(tx)
 }
