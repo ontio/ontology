@@ -172,15 +172,6 @@ func (self *StateStore) HandleClaimTransaction(stateBatch *statestore.StateBatch
 	return nil
 }
 
-//HandleVoteTransaction deal with vote transaction
-func (self *StateStore) HandleVoteTransaction(stateBatch *statestore.StateBatch, tx *types.Transaction) error {
-	vote := tx.Payload.(*payload.Vote)
-	buf := new(bytes.Buffer)
-	vote.Account.Serialize(buf)
-	stateBatch.TryAdd(scommon.ST_VOTE, buf.Bytes(), &states.VoteState{PublicKeys: vote.PubKeys})
-	return nil
-}
-
 func genNativeTransferCode(contract, from, to common.Address, value uint64) stypes.VmCode {
 	transfer := ont.Transfers{States: []*ont.State{{From: from, To: to, Value: value}}}
 	tr := new(bytes.Buffer)

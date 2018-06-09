@@ -128,14 +128,6 @@ func TransPayloadToHex(p types.Payload) PayloadInfo {
 		obj.Email = object.Email
 		obj.Description = object.Description
 		return obj
-	case *payload.Vote:
-		obj := new(VoteInfo)
-		obj.PubKeys = make([]string, len(object.PubKeys))
-		obj.Voter = common.ToHexString(object.Account[:])
-		for i, key := range object.PubKeys {
-			pubKeyBytes := keypair.SerializePublicKey(key)
-			obj.PubKeys[i] = common.ToHexString(pubKeyBytes)
-		}
 	}
 	return nil
 }
