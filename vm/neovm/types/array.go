@@ -80,3 +80,7 @@ func (this *Array) GetStruct() []StackItems {
 func (this *Array) GetMap() map[StackItems]StackItems {
 	return nil
 }
+
+func (this *Array) Add(item StackItems) {
+	this._array = append(this._array, item)
+}

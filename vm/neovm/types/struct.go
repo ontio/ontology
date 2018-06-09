@@ -92,3 +92,7 @@ func (s *Struct) Clone() StackItems {
 func (this *Struct) GetMap() map[StackItems]StackItems {
 	return nil
 }
+
+func (this *Struct) Add(item StackItems) {
+	this._array = append(this._array, item)
+}

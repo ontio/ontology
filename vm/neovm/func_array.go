@@ -151,8 +151,13 @@ func opAppend(e *ExecutionEngine) (VMState, error) {
 	if value, ok := newItem.(*types.Struct); ok {
 		newItem = value.Clone()
 	}
-	itemArr := PopArray(e)
-	itemArr = append(itemArr, newItem)
+	items := PopStackItem(e)
+	if item, ok := items.(*types.Array); ok {
+		item.Add(newItem)
+	}
+	if item, ok := items.(*types.Struct); ok {
+		item.Add(newItem)
+	}
 	return NONE, nil
 }
 
