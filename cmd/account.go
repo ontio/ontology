@@ -30,6 +30,8 @@ import (
 	"strings"
 )
 
+const MAX_PUBLIC_KEY_SIZE = 24
+
 //map info, to get some information easily
 type keyTypeInfo struct {
 	name string

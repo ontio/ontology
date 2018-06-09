@@ -226,6 +226,14 @@ var (
 		Name:  "wif",
 		Usage: "Import WIF keys from the source file specified by --source option",
 	}
+	AccountMultiMFlag = cli.UintFlag{
+		Name:  "m",
+		Usage: "M of multi signature address. m must > 0 and < 24, and m must <= number of pub key",
+	}
+	AccountMultiPubKeyFlag = cli.StringFlag{
+		Name:  "pubkey",
+		Usage: "Pub key list of multi address, split pub key with `,`. Number of pub key must > 0 and <= 24",
+	}
 
 	//SmartContract setting
 	ContractAddrFlag = cli.StringFlag{

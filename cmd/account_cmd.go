@@ -32,6 +32,7 @@ import (
 	"github.com/ontio/ontology/common/password"
 	"github.com/ontio/ontology/core/types"
 	"github.com/urfave/cli"
+	"strings"
 )
 
 var (
@@ -142,6 +143,17 @@ var (
 				Flags: []cli.Flag{
 					utils.WalletFileFlag,
 					utils.AccountLowSecurityFlag,
+				},
+			},
+			{
+				Action:    genMultiAddress,
+				Name:      "multiaddr",
+				Usage:     "Gen multi-signature address",
+				ArgsUsage: "",
+				Flags: []cli.Flag{
+					utils.WalletFileFlag,
+					utils.AccountMultiMFlag,
+					utils.AccountMultiPubKeyFlag,
 				},
 			},
 		},
@@ -541,5 +553,66 @@ func importWIF(filepath string, wallet account.Client) error {
 	common.ClearPasswd(pwd)
 
 	fmt.Println("Import completed")
+	return nil
+}
+
+func genMultiAddress(ctx *cli.Context) error {
+	pkstr := strings.TrimSpace(strings.Trim(ctx.String(utils.GetFlagName(utils.AccountMultiPubKeyFlag)), ","))
+	m := ctx.Uint(utils.GetFlagName(utils.AccountMultiMFlag))
+	if pkstr == "" || m == 0 {
+		fmt.Printf("Missing argument. %s or %s expected.\n", utils.GetFlagName(utils.AccountMultiMFlag), utils.GetFlagName(utils.AccountMultiPubKeyFlag))
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+
+	var err error
+	var wallet account.Client
+	walletPath := ctx.String(utils.GetFlagName(utils.WalletFileFlag))
+	if walletPath != "" {
+		wallet, err = account.Open(walletPath)
+		if err != nil {
+			return fmt.Errorf("Cannot open wallet:%s", walletPath)
+		}
+	}
+
+	pks := strings.Split(pkstr, ",")
+	pkSize := len(pks)
+	pubKeys := make([]keypair.PublicKey, 0, pkSize)
+	for _, pk := range pks {
+		pk := strings.TrimSpace(pk)
+		if pk == "" {
+			continue
+		}
+
+		accMeta := common.GetAccountMetadataMulti(wallet, pk)
+		if accMeta != nil {
+			pk = accMeta.PubKey
+		}
+
+		data, err := hex.DecodeString(pk)
+		pubKey, err := keypair.DeserializePublicKey(data)
+		if err != nil {
+			return fmt.Errorf("invalid pk:%s", pk)
+		}
+		pubKeys = append(pubKeys, pubKey)
+	}
+	if pkSize == 0 || pkSize > MAX_PUBLIC_KEY_SIZE ||
+		m == 0 || m > MAX_PUBLIC_KEY_SIZE ||
+		int(m) > pkSize {
+		fmt.Printf("Invaid argument. %s and %s must > 0 and <= %d, and m must < number of pubkey.\n", utils.GetFlagName(utils.AccountMultiMFlag), utils.GetFlagName(utils.AccountMultiPubKeyFlag), MAX_PUBLIC_KEY_SIZE)
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+	addr, err := types.AddressFromMultiPubKeys(pubKeys, int(m))
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Pubkey list:\n")
+	for i, pubKey := range pubKeys {
+		addr := types.AddressFromPubKey(pubKey)
+		fmt.Printf("  Index %d Pubkey:%x Address:%s\n", i+1, keypair.SerializePublicKey(pubKey), addr.ToBase58())
+	}
+	fmt.Printf("\n  MultiAddress:%s\n", addr.ToBase58())
 	return nil
 }
