@@ -631,9 +631,6 @@ func (this *LedgerStoreImp) handleTransaction(stateBatch *statestore.StateBatch,
 				return fmt.Errorf("HandleInvokeTransaction tx %x error %s", txHash, stateBatch.Error())
 			}
 		}
-	case types.Claim:
-	case types.Enrollment:
-	case types.Vote:
 	}
 	return nil
 }

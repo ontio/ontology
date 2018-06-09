@@ -142,11 +142,8 @@ type TransactionType byte
 
 const (
 	Bookkeeper TransactionType = 0x02
-	Claim      TransactionType = 0x03
 	Deploy     TransactionType = 0xd0
 	Invoke     TransactionType = 0xd1
-	Enrollment TransactionType = 0x04
-	Vote       TransactionType = 0x05
 )
 
 // Payload define the func for loading the payload data
