@@ -21,7 +21,6 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ontio/ontology/smartcontract/types"
 	"github.com/stretchr/testify/assert"
 )
 
