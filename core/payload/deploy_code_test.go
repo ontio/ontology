@@ -18,8 +18,8 @@
 package payload
 
 import (
-	"testing"
 	"bytes"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 )

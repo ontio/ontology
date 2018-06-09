@@ -464,8 +464,10 @@ func validateAppend(e *ExecutionEngine) error {
 		return err
 	}
 	arrItem := PeekNStackItem(1, e)
-	if _, ok := arrItem.(*types.Array); !ok {
-		return errors.ERR_NOT_ARRAY
+	_, ok1 := arrItem.(*types.Array)
+	_, ok2 := arrItem.(*types.Struct)
+	if !ok1 && !ok2 {
+		return errors.ERR_NOT_SUPPORT_TYPE
 	}
 	return nil
 }
@@ -475,8 +477,10 @@ func validatorReverse(e *ExecutionEngine) error {
 		return err
 	}
 	arrItem := PeekStackItem(e)
-	if _, ok := arrItem.(*types.Array); !ok {
-		return errors.ERR_NOT_ARRAY
+	_, ok1 := arrItem.(*types.Array)
+	_, ok2 := arrItem.(*types.Struct)
+	if !ok1 && !ok2 {
+		return errors.ERR_NOT_SUPPORT_TYPE
 	}
 	return nil
 }
