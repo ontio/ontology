@@ -59,7 +59,7 @@ func checkTransactionSignatures(tx *types.Transaction) error {
 		kn := len(sig.PubKeys)
 		sn := len(sig.SigData)
 
-		if kn > 24 || sn < m || m > kn {
+		if kn > 24 || sn < m || m > kn || m <= 0 {
 			return errors.New("wrong tx sig param length")
 		}
 
@@ -75,7 +75,10 @@ func checkTransactionSignatures(tx *types.Transaction) error {
 				return err
 			}
 
-			addr, _ := types.AddressFromMultiPubKeys(sig.PubKeys, m)
+			addr, err := types.AddressFromMultiPubKeys(sig.PubKeys, m)
+			if err != nil {
+				return err
+			}
 			address[addr] = true
 		}
 	}
