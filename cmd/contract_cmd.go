@@ -121,7 +121,7 @@ func deployContract(ctx *cli.Context) error {
 	}
 
 	name := ctx.String(utils.GetFlagName(utils.ContractNameFlag))
-	version := ctx.Int(utils.GetFlagName(utils.ContractVersionFlag))
+	version := ctx.String(utils.GetFlagName(utils.ContractVersionFlag))
 	author := ctx.String(utils.GetFlagName(utils.ContractAuthorFlag))
 	email := ctx.String(utils.GetFlagName(utils.ContractEmailFlag))
 	desc := ctx.String(utils.GetFlagName(utils.ContractDescFlag))
@@ -252,11 +252,11 @@ func invokeContract(ctx *cli.Context) error {
 			return fmt.Errorf("Contract invoke failed\n")
 		}
 		fmt.Printf("Contract invoke successfully\n")
-		fmt.Printf("Gas consumed:%d\n", preResult.Gas)
+		fmt.Printf("  Gaslimit:%d\n", preResult.Gas)
 
 		rawReturnTypes := ctx.String(utils.GetFlagName(utils.ContranctReturnTypeFlag))
 		if rawReturnTypes == "" {
-			fmt.Printf("Return:%s (raw value)\n", preResult.Result)
+			fmt.Printf("  Return:%s (raw value)\n", preResult.Result)
 			return nil
 		}
 		values, err := utils.ParseReturnValue(preResult.Result, rawReturnTypes)
@@ -265,11 +265,11 @@ func invokeContract(ctx *cli.Context) error {
 		}
 		switch len(values) {
 		case 0:
-			fmt.Printf("Return: nil\n")
+			fmt.Printf("  Return: nil\n")
 		case 1:
-			fmt.Printf("Return:%+v\n", values[0])
+			fmt.Printf("  Return:%+v\n", values[0])
 		default:
-			fmt.Printf("Return:%+v\n", values)
+			fmt.Printf("  Return:%+v\n", values)
 		}
 		return nil
 	}
@@ -285,7 +285,7 @@ func invokeContract(ctx *cli.Context) error {
 		return fmt.Errorf("Invoke NeoVM contract error:%s", err)
 	}
 
-	fmt.Printf("TxHash:%s\n", txHash)
+	fmt.Printf("  TxHash:%s\n", txHash)
 	fmt.Printf("\nTip:\n")
 	fmt.Printf("  Using './ontology info status %s' to query transaction status\n", txHash)
 	return nil
