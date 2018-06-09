@@ -30,9 +30,9 @@ import (
 var DefCliRpcSvr = NewCliRpcServer()
 
 type CliRpcServer struct {
-	port     uint
-	handlers map[string]func(req *common.CliRpcRequest, resp *common.CliRpcResponse)
-	httpSvr  *http.Server
+	port       uint
+	handlers   map[string]func(req *common.CliRpcRequest, resp *common.CliRpcResponse)
+	httpSvr    *http.Server
 	httpSvtMux *http.ServeMux
 }
 
