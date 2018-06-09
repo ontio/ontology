@@ -30,9 +30,10 @@ import (
 var DefCliRpcSvr = NewCliRpcServer()
 
 type CliRpcServer struct {
-	port     uint
-	handlers map[string]func(req *common.CliRpcRequest, resp *common.CliRpcResponse)
-	httpSvr  *http.Server
+	port       uint
+	handlers   map[string]func(req *common.CliRpcRequest, resp *common.CliRpcResponse)
+	httpSvr    *http.Server
+	httpSvtMux *http.ServeMux
 }
 
 func NewCliRpcServer() *CliRpcServer {
@@ -43,12 +44,12 @@ func NewCliRpcServer() *CliRpcServer {
 
 func (this *CliRpcServer) Start(port uint) {
 	this.port = port
+	this.httpSvtMux = http.NewServeMux()
 	this.httpSvr = &http.Server{
-		Addr:    fmt.Sprintf(":%d", port),
-		Handler: http.DefaultServeMux,
+		Addr:    fmt.Sprintf("127.0.0.1:%d", port),
+		Handler: this.httpSvtMux,
 	}
-
-	http.HandleFunc("/cli", this.Handler)
+	this.httpSvtMux.HandleFunc("/cli", this.Handler)
 	err := this.httpSvr.ListenAndServe()
 	if err != nil {
 		if err == http.ErrServerClosed {
