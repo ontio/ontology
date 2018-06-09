@@ -99,7 +99,10 @@ func (self *Transaction) GetSignatureAddresses() []common.Address {
 		if n == 1 {
 			address = append(address, AddressFromPubKey(sig.PubKeys[0]))
 		} else {
-			addr, _ := AddressFromMultiPubKeys(sig.PubKeys, m)
+			addr, err := AddressFromMultiPubKeys(sig.PubKeys, m)
+			if err != nil {
+				return nil
+			}
 			address = append(address, addr)
 		}
 	}
