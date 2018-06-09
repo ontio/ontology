@@ -21,12 +21,11 @@ package ont
 import (
 	"fmt"
 	"io"
-	"math/big"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/vm/neovm/types"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 // Transfers
@@ -74,36 +73,27 @@ func (this *State) Serialize(w io.Writer) error {
 	if err := serialization.WriteVarBytes(w, this.To[:]); err != nil {
 		return fmt.Errorf("[State] serialize to error:%v", err)
 	}
-	if err := serialization.WriteVarBytes(w, types.BigIntToBytes(big.NewInt(int64(this.Value)))); err != nil {
+	if err := utils.WriteVarUint(w, this.Value); err != nil {
 		return fmt.Errorf("[State] serialize value error:%v", err)
 	}
 	return nil
 }
 
 func (this *State) Deserialize(r io.Reader) error {
-	from, err := serialization.ReadVarBytes(r)
+	var err error
+	this.From, err = utils.ReadAddress(r)
 	if err != nil {
 		return fmt.Errorf("[State] deserialize from error:%v", err)
 	}
-	this.From, err = common.AddressParseFromBytes(from)
-	if err != nil {
-		return fmt.Errorf("[State] address parse from bytes error:%v", err)
-	}
-	to, err := serialization.ReadVarBytes(r)
+	this.To, err = utils.ReadAddress(r)
 	if err != nil {
 		return fmt.Errorf("[State] deserialize to error:%v", err)
 	}
-	this.To, err = common.AddressParseFromBytes(to)
-	if err != nil {
-		return fmt.Errorf("[State] address parse from bytes error:%v", err)
-	}
 
-	value, err := serialization.ReadVarBytes(r)
+	this.Value, err = utils.ReadVarUint(r)
 	if err != nil {
-		return fmt.Errorf("[State] Deserialize value error:%v", err)
+		return err
 	}
-
-	this.Value = types.BigIntFromBytes(value).Uint64()
 	return nil
 }
 
@@ -124,45 +114,32 @@ func (this *TransferFrom) Serialize(w io.Writer) error {
 	if err := serialization.WriteVarBytes(w, this.To[:]); err != nil {
 		return fmt.Errorf("[TransferFrom] serialize to error:%v", err)
 	}
-	if err := serialization.WriteVarBytes(w, types.BigIntToBytes(big.NewInt(int64(this.Value)))); err != nil {
+	if err := utils.WriteVarUint(w, this.Value); err != nil {
 		return fmt.Errorf("[TransferFrom] serialize value error:%v", err)
 	}
 	return nil
 }
 
 func (this *TransferFrom) Deserialize(r io.Reader) error {
-	sender, err := serialization.ReadVarBytes(r)
+	var err error
+	this.Sender, err = utils.ReadAddress(r)
 	if err != nil {
 		return fmt.Errorf("[TransferFrom] deserialize sender error:%v", err)
 	}
-	this.Sender, err = common.AddressParseFromBytes(sender)
-	if err != nil {
-		return fmt.Errorf("[TransferFrom] address parse from bytes error:%v", err)
-	}
 
-	from, err := serialization.ReadVarBytes(r)
+	this.From, err = utils.ReadAddress(r)
 	if err != nil {
 		return fmt.Errorf("[TransferFrom] deserialize from error:%v", err)
 	}
-	this.From, err = common.AddressParseFromBytes(from)
-	if err != nil {
-		return fmt.Errorf("[TransferFrom] address parse from bytes error:%v", err)
-	}
 
-	to, err := serialization.ReadVarBytes(r)
+	this.To, err = utils.ReadAddress(r)
 	if err != nil {
 		return fmt.Errorf("[TransferFrom] deserialize to error:%v", err)
 	}
-	this.To, err = common.AddressParseFromBytes(to)
-	if err != nil {
-		return fmt.Errorf("[TransferFrom] address parse from bytes error:%v", err)
-	}
 
-	value, err := serialization.ReadVarBytes(r)
+	this.Value, err = utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Deserialize value error!")
+		return err
 	}
-
-	this.Value = types.BigIntFromBytes(value).Uint64()
 	return nil
 }

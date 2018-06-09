@@ -19,8 +19,8 @@ package states
 
 import (
 	"bytes"
-	"testing"
 	"github.com/ontio/ontology/core/types"
+	"testing"
 )
 
 func TestContract_Serialize_Deserialize(t *testing.T) {

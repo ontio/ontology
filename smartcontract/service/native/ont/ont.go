@@ -229,7 +229,7 @@ func grantOng(native *native.NativeService, contract, address common.Address, ba
 			return err
 		}
 
-		if _, err := native.ContextRef.AppCall(utils.OngContractAddress, "approve", []byte{}, args); err != nil {
+		if _, err := native.NativeCall(utils.OngContractAddress, "approve", args); err != nil {
 			return err
 		}
 	}
