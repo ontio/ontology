@@ -54,31 +54,19 @@ func (this *Struct) Equals(other StackItems) bool {
 }
 
 func (this *Struct) GetBigInteger() *big.Int {
-	if len(this._array) == 0 {
-		return big.NewInt(0)
-	}
-	return this._array[0].GetBigInteger()
+	return big.NewInt(0)
 }
 
 func (this *Struct) GetBoolean() bool {
-	if len(this._array) == 0 {
-		return false
-	}
-	return this._array[0].GetBoolean()
+	return true
 }
 
 func (this *Struct) GetByteArray() []byte {
-	if len(this._array) == 0 {
-		return []byte{}
-	}
-	return this._array[0].GetByteArray()
+	return nil
 }
 
 func (this *Struct) GetInterface() interfaces.Interop {
-	if len(this._array) == 0 {
-		return nil
-	}
-	return this._array[0].GetInterface()
+	return nil
 }
 
 func (s *Struct) GetArray() []StackItems {

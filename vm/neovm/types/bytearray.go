@@ -76,11 +76,11 @@ func (this *ByteArray) GetInterface() interfaces.Interop {
 }
 
 func (this *ByteArray) GetArray() []StackItems {
-	return []StackItems{this}
+	return nil
 }
 
 func (this *ByteArray) GetStruct() []StackItems {
-	return []StackItems{this}
+	return nil
 }
 
 func (this *ByteArray) GetMap() map[StackItems]StackItems {
