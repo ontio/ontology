@@ -55,7 +55,7 @@ type TransferParam struct {
 }
 
 func (this *TransferParam) Serialize(w io.Writer) error {
-	if err := this.ContractAddr.Serialize(w); err != nil {
+	if err := serializeAddress(w, this.ContractAddr); err != nil {
 		return err
 	}
 	if err := serialization.WriteVarBytes(w, this.NewAdminOntID); err != nil {
@@ -69,7 +69,7 @@ func (this *TransferParam) Serialize(w io.Writer) error {
 
 func (this *TransferParam) Deserialize(rd io.Reader) error {
 	var err error
-	if err = this.ContractAddr.Deserialize(rd); err != nil {
+	if this.ContractAddr, err = deserializeAddress(rd); err != nil {
 		return err
 	}
 	if this.NewAdminOntID, err = serialization.ReadVarBytes(rd); err != nil {
@@ -91,7 +91,7 @@ type FuncsToRoleParam struct {
 }
 
 func (this *FuncsToRoleParam) Serialize(w io.Writer) error {
-	if err := this.ContractAddr.Serialize(w); err != nil {
+	if err := serializeAddress(w, this.ContractAddr); err != nil {
 		return err
 	}
 	if err := serialization.WriteVarBytes(w, this.AdminOntID); err != nil {
@@ -119,7 +119,7 @@ func (this *FuncsToRoleParam) Deserialize(rd io.Reader) error {
 	var fnLen uint64
 	var i uint64
 
-	if err = this.ContractAddr.Deserialize(rd); err != nil {
+	if this.ContractAddr, err = deserializeAddress(rd); err != nil {
 		return err
 	}
 	if this.AdminOntID, err = serialization.ReadVarBytes(rd); err != nil {
@@ -154,7 +154,7 @@ type OntIDsToRoleParam struct {
 }
 
 func (this *OntIDsToRoleParam) Serialize(w io.Writer) error {
-	if err := this.ContractAddr.Serialize(w); err != nil {
+	if err := serializeAddress(w, this.ContractAddr); err != nil {
 		return err
 	}
 	if err := serialization.WriteVarBytes(w, this.AdminOntID); err != nil {
@@ -180,7 +180,7 @@ func (this *OntIDsToRoleParam) Serialize(w io.Writer) error {
 func (this *OntIDsToRoleParam) Deserialize(rd io.Reader) error {
 	var err error
 	var pLen uint64
-	if err = this.ContractAddr.Deserialize(rd); err != nil {
+	if this.ContractAddr, err = deserializeAddress(rd); err != nil {
 		return err
 	}
 	if this.AdminOntID, err = serialization.ReadVarBytes(rd); err != nil {
@@ -217,7 +217,7 @@ type DelegateParam struct {
 }
 
 func (this *DelegateParam) Serialize(w io.Writer) error {
-	if err := this.ContractAddr.Serialize(w); err != nil {
+	if err := serializeAddress(w, this.ContractAddr); err != nil {
 		return err
 	}
 	if err := serialization.WriteVarBytes(w, this.From); err != nil {
@@ -244,7 +244,7 @@ func (this *DelegateParam) Serialize(w io.Writer) error {
 func (this *DelegateParam) Deserialize(rd io.Reader) error {
 	var err error
 	var level uint64
-	if err = this.ContractAddr.Deserialize(rd); err != nil {
+	if this.ContractAddr, err = deserializeAddress(rd); err != nil {
 		return err
 	}
 	if this.From, err = serialization.ReadVarBytes(rd); err != nil {
@@ -281,7 +281,7 @@ type WithdrawParam struct {
 }
 
 func (this *WithdrawParam) Serialize(w io.Writer) error {
-	if err := this.ContractAddr.Serialize(w); err != nil {
+	if err := serializeAddress(w, this.ContractAddr); err != nil {
 		return err
 	}
 	if err := serialization.WriteVarBytes(w, this.Initiator); err != nil {
@@ -300,7 +300,7 @@ func (this *WithdrawParam) Serialize(w io.Writer) error {
 }
 func (this *WithdrawParam) Deserialize(rd io.Reader) error {
 	var err error
-	if err = this.ContractAddr.Deserialize(rd); err != nil {
+	if this.ContractAddr, err = deserializeAddress(rd); err != nil {
 		return err
 	}
 	if this.Initiator, err = serialization.ReadVarBytes(rd); err != nil {
@@ -326,7 +326,7 @@ type VerifyTokenParam struct {
 }
 
 func (this *VerifyTokenParam) Serialize(w io.Writer) error {
-	if err := this.ContractAddr.Serialize(w); err != nil {
+	if err := serializeAddress(w, this.ContractAddr); err != nil {
 		return err
 	}
 	if err := serialization.WriteVarBytes(w, this.Caller); err != nil {
@@ -343,7 +343,7 @@ func (this *VerifyTokenParam) Serialize(w io.Writer) error {
 
 func (this *VerifyTokenParam) Deserialize(rd io.Reader) error {
 	var err error
-	if err := this.ContractAddr.Deserialize(rd); err != nil {
+	if this.ContractAddr, err = deserializeAddress(rd); err != nil {
 		return err
 	}
 	if this.Caller, err = serialization.ReadVarBytes(rd); err != nil {
