@@ -59,18 +59,24 @@ func (self *BlockSignatures) Deserialize(r io.Reader) error {
 		return err
 	}
 
-	length, _ := ser.ReadVarUint(r, 0)
-	self.Signatures = make([]SignaturesData, length)
+	length, err := ser.ReadVarUint(r, 0)
+	if err != nil {
+		return err
+	}
 
 	for i := uint64(0); i < length; i++ {
-		self.Signatures[i].Signature, err = ser.ReadVarBytes(r)
+		sig := SignaturesData{}
+
+		sig.Signature, err = ser.ReadVarBytes(r)
 		if err != nil {
 			return err
 		}
-		self.Signatures[i].Index, err = ser.ReadUint16(r)
+		sig.Index, err = ser.ReadUint16(r)
 		if err != nil {
 			return err
 		}
+
+		self.Signatures = append(self.Signatures, sig)
 	}
 
 	return nil

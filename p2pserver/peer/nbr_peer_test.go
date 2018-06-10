@@ -129,7 +129,7 @@ func TestGetNeighborAddrs(t *testing.T) {
 	}
 	p.SetSyncState(4)
 
-	pList, cnt := nm.GetNeighborAddrs()
+	pList := nm.GetNeighborAddrs()
 	for i := 0; i < int(cnt); i++ {
 		fmt.Printf("peer id = %x \n", pList[i].ID)
 	}
