@@ -99,7 +99,10 @@ func (self *Transaction) GetSignatureAddresses() []common.Address {
 		if n == 1 {
 			address = append(address, AddressFromPubKey(sig.PubKeys[0]))
 		} else {
-			addr, _ := AddressFromMultiPubKeys(sig.PubKeys, m)
+			addr, err := AddressFromMultiPubKeys(sig.PubKeys, m)
+			if err != nil {
+				return nil
+			}
 			address = append(address, addr)
 		}
 	}
@@ -142,11 +145,8 @@ type TransactionType byte
 
 const (
 	Bookkeeper TransactionType = 0x02
-	Claim      TransactionType = 0x03
 	Deploy     TransactionType = 0xd0
 	Invoke     TransactionType = 0xd1
-	Enrollment TransactionType = 0x04
-	Vote       TransactionType = 0x05
 )
 
 // Payload define the func for loading the payload data
