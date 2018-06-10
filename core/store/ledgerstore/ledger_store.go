@@ -789,8 +789,14 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 	}
 
 	//start the smart contract executive function
-	engine, _ := sc.NewExecuteEngine(invoke.Code)
+	engine, err := sc.NewExecuteEngine(invoke.Code)
+	if err != nil {
+		return nil, err
+	}
 	result, err := engine.Invoke()
+	if err != nil {
+		return nil, err
+	}
 	gasCost := math.MaxUint64 - sc.Gas
 	if gasCost < neovm.TRANSACTION_GAS {
 		gasCost = neovm.TRANSACTION_GAS
