@@ -38,9 +38,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
-	sstates "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
-	stypes "github.com/ontio/ontology/smartcontract/types"
 )
 
 //HandleDeployTransaction deal with smart contract deploy transaction
@@ -48,20 +46,13 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, stateBa
 	tx *types.Transaction, block *types.Block, eventStore scommon.EventStore) error {
 	deploy := tx.Payload.(*payload.DeployCode)
 	txHash := tx.Hash()
-	originAddress := deploy.Code.AddressFromVmCode()
-
+	address := types.AddressFromVmCode(deploy.Code)
 	var (
 		notifies []*event.NotifyEventInfo
 		err      error
 	)
-	// mapping native contract origin address to target address
-	if deploy.Code.VmType == stypes.Native {
-		targetAddress, err := common.AddressParseFromBytes(deploy.Code.Code)
-		if err != nil {
-			return fmt.Errorf("Invalid native contract address:%s", err)
-		}
-		originAddress = targetAddress
-	} else {
+
+	if tx.GasPrice != 0 {
 		if err := isBalanceSufficient(tx, stateBatch); err != nil {
 			return err
 		}
@@ -83,7 +74,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, stateBa
 	}
 
 	// store contract message
-	err = stateBatch.TryGetOrAdd(scommon.ST_CONTRACT, originAddress[:], deploy)
+	err = stateBatch.TryGetOrAdd(scommon.ST_CONTRACT, address[:], deploy)
 	if err != nil {
 		return err
 	}
@@ -97,10 +88,11 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	tx *types.Transaction, block *types.Block, eventStore scommon.EventStore) error {
 	invoke := tx.Payload.(*payload.InvokeCode)
 	txHash := tx.Hash()
-	code := invoke.Code.Code
+	code := invoke.Code
 	sysTransFlag := bytes.Compare(code, ninit.COMMIT_DPOS_BYTES) == 0 || block.Header.Height == 0
 
-	if !sysTransFlag && tx.GasPrice != 0 {
+	isCharge := !sysTransFlag && tx.GasPrice != 0
+	if isCharge {
 		if err := isBalanceSufficient(tx, stateBatch); err != nil {
 			return err
 		}
@@ -119,19 +111,22 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 		Config:     config,
 		CloneCache: cache,
 		Store:      store,
-		Code:       invoke.Code,
 		Gas:        tx.GasLimit,
 	}
 
 	//start the smart contract executive function
-	_, err := sc.Execute()
+	engine, err := sc.NewExecuteEngine(invoke.Code)
+	if err != nil {
+		return err
+	}
 
+	_, err = engine.Invoke()
 	if err != nil {
 		return err
 	}
 
 	var notifies []*event.NotifyEventInfo
-	if !sysTransFlag {
+	if isCharge {
 		totalGas := tx.GasLimit - sc.Gas
 		if totalGas < neovm.TRANSACTION_GAS {
 			totalGas = neovm.TRANSACTION_GAS
@@ -166,24 +161,11 @@ func SaveNotify(eventStore scommon.EventStore, txHash common.Uint256, notifies [
 	return nil
 }
 
-//HandleClaimTransaction deal with ong claim transaction
-func (self *StateStore) HandleClaimTransaction(stateBatch *statestore.StateBatch, tx *types.Transaction) error {
-	//TODO
-	return nil
-}
-
-func genNativeTransferCode(contract, from, to common.Address, value uint64) stypes.VmCode {
+func genNativeTransferCode(from, to common.Address, value uint64) []byte {
 	transfer := ont.Transfers{States: []*ont.State{{From: from, To: to, Value: value}}}
 	tr := new(bytes.Buffer)
 	transfer.Serialize(tr)
-	trans := &sstates.Contract{
-		Address: contract,
-		Method:  "transfer",
-		Args:    tr.Bytes(),
-	}
-	ts := new(bytes.Buffer)
-	trans.Serialize(ts)
-	return stypes.VmCode{Code: ts.Bytes(), VmType: stypes.Native}
+	return tr.Bytes()
 }
 
 // check whether payer ong balance sufficient
@@ -201,19 +183,17 @@ func isBalanceSufficient(tx *types.Transaction, stateBatch *statestore.StateBatc
 func costGas(payer common.Address, gas uint64, config *smartcontract.Config,
 	cache *storage.CloneCache, store store.LedgerStore) ([]*event.NotifyEventInfo, error) {
 
-	nativeTransferCode := genNativeTransferCode(utils.OngContractAddress, payer,
-		utils.GovernanceContractAddress, gas)
+	params := genNativeTransferCode(payer, utils.GovernanceContractAddress, gas)
 
 	sc := smartcontract.SmartContract{
 		Config:     config,
 		CloneCache: cache,
 		Store:      store,
-		Code:       nativeTransferCode,
 		Gas:        math.MaxUint64,
 	}
 
-	_, err := sc.Execute()
-
+	service, _ := sc.NewNativeService()
+	_, err := service.NativeCall(utils.OngContractAddress, "transfer", params)
 	if err != nil {
 		return nil, err
 	}

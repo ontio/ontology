@@ -19,9 +19,8 @@
 package neovm
 
 import (
-	"testing"
-
 	"math/big"
+	"testing"
 
 	"github.com/ontio/ontology/vm/neovm/types"
 )
@@ -75,5 +74,20 @@ func TestRandomAccessStack_Peek(t *testing.T) {
 
 	if e0 != 8888 || e1 != 9999 {
 		t.Fatal("stack peek test failed.")
+	}
+}
+
+func TestRandomAccessStack_CopyTo(t *testing.T) {
+	r := NewRandAccessStack()
+	r.Push(types.NewInteger(big.NewInt(9999)))
+	r.Push(types.NewInteger(big.NewInt(8888)))
+
+	e := NewRandAccessStack()
+	r.CopyTo(e)
+
+	for k, v := range r.e {
+		if !v.Equals(e.e[k]) {
+			t.Fatal("stack copyto test failed.")
+		}
 	}
 }

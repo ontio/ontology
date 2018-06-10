@@ -35,5 +35,5 @@ func (table *CacheCodeTable) GetCode(codeHash []byte) ([]byte, error) {
 		return nil, fmt.Errorf("[GetCode] TryGet contract error! codeHash:%x", codeHash)
 	}
 
-	return value.Value.(*payload.DeployCode).Code.Code, nil
+	return value.Value.(*payload.DeployCode).Code, nil
 }

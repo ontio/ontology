@@ -42,7 +42,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
 	cstates "github.com/ontio/ontology/smartcontract/states"
-	vmtypes "github.com/ontio/ontology/smartcontract/types"
 	"github.com/ontio/ontology/vm/neovm"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
 )
@@ -276,12 +275,9 @@ func Sign(data []byte, signer *account.Account) ([]byte, error) {
 }
 
 //NewInvokeTransaction return smart contract invoke transaction
-func NewInvokeTransaction(gasPirce, gasLimit uint64, vmType vmtypes.VmType, code []byte) *types.Transaction {
+func NewInvokeTransaction(gasPirce, gasLimit uint64, code []byte) *types.Transaction {
 	invokePayload := &payload.InvokeCode{
-		Code: vmtypes.VmCode{
-			VmType: vmType,
-			Code:   code,
-		},
+		Code: code,
 	}
 	tx := &types.Transaction{
 		Version:  VERSION_TRANSACTION,
@@ -375,7 +371,6 @@ func DeployContract(
 	gasPrice,
 	gasLimit uint64,
 	signer *account.Account,
-	vmType vmtypes.VmType,
 	needStorage bool,
 	code,
 	cname,
@@ -388,7 +383,7 @@ func DeployContract(
 	if err != nil {
 		return "", fmt.Errorf("hex.DecodeString error:%s", err)
 	}
-	tx := NewDeployCodeTransaction(gasPrice, gasLimit, vmType, c, needStorage, cname, cversion, cauthor, cemail, cdesc)
+	tx := NewDeployCodeTransaction(gasPrice, gasLimit, c, needStorage, cname, cversion, cauthor, cemail, cdesc)
 
 	err = SignTransaction(signer, tx)
 	if err != nil {
@@ -410,7 +405,7 @@ func InvokeNativeContract(
 	method string,
 	args []byte,
 ) (string, error) {
-	return InvokeSmartContract(gasPrice, gasLimit, signer, vmtypes.Native, cversion, contractAddress, method, args)
+	return InvokeSmartContract(gasPrice, gasLimit, signer, cversion, contractAddress, method, args)
 }
 
 func InvokeNativeContractTx(gasPrice,
@@ -419,7 +414,7 @@ func InvokeNativeContractTx(gasPrice,
 	contractAddress common.Address,
 	method string,
 	args []byte) (*types.Transaction, error) {
-	return InvokeSmartContractTx(gasPrice, gasLimit, vmtypes.Native, cversion, contractAddress, method, args)
+	return InvokeSmartContractTx(gasPrice, gasLimit, cversion, contractAddress, method, args)
 }
 
 //Invoke wasm smart contract
@@ -440,7 +435,7 @@ func InvokeWasmVMContract(
 	if err != nil {
 		return "", fmt.Errorf("buildWasmContractParam error:%s", err)
 	}
-	return InvokeSmartContract(gasPrice, gasLimit, siger, vmtypes.WASMVM, cversion, contractAddress, method, args)
+	return InvokeSmartContract(gasPrice, gasLimit, siger, cversion, contractAddress, method, args)
 }
 
 //Invoke neo vm smart contract. if isPreExec is true, the invoke will not really execute
@@ -459,7 +454,7 @@ func InvokeNeoVMContract(
 	}
 	args := builder.ToArray()
 
-	return InvokeSmartContract(gasPrice, gasLimit, signer, vmtypes.NEOVM, cversion, smartcodeAddress, "", args)
+	return InvokeSmartContract(gasPrice, gasLimit, signer, cversion, smartcodeAddress, "", args)
 }
 
 func InvokeNeoVMContractTx(gasPrice,
@@ -473,7 +468,7 @@ func InvokeNeoVMContractTx(gasPrice,
 		return nil, err
 	}
 	args := builder.ToArray()
-	return InvokeSmartContractTx(gasPrice, gasLimit, vmtypes.NEOVM, cversion, smartcodeAddress, "", args)
+	return InvokeSmartContractTx(gasPrice, gasLimit, cversion, smartcodeAddress, "", args)
 }
 
 //InvokeSmartContract is low level method to invoke contact.
@@ -481,13 +476,12 @@ func InvokeSmartContract(
 	gasPrice,
 	gasLimit uint64,
 	signer *account.Account,
-	vmType vmtypes.VmType,
 	cversion byte,
 	contractAddress common.Address,
 	method string,
 	args []byte,
 ) (string, error) {
-	invokeTx, err := InvokeSmartContractTx(gasPrice, gasLimit, vmType, cversion, contractAddress, method, args)
+	invokeTx, err := InvokeSmartContractTx(gasPrice, gasLimit, cversion, contractAddress, method, args)
 	if err != nil {
 		return "", err
 	}
@@ -504,7 +498,6 @@ func InvokeSmartContract(
 
 func InvokeSmartContractTx(gasPrice,
 	gasLimit uint64,
-	vmType vmtypes.VmType,
 	cversion byte,
 	contractAddress common.Address,
 	method string,
@@ -521,10 +514,10 @@ func InvokeSmartContractTx(gasPrice,
 		return nil, fmt.Errorf("Serialize contract error:%s", err)
 	}
 	invokCode := buf.Bytes()
-	if vmType == vmtypes.NEOVM {
-		invokCode = append([]byte{0x67}, invokCode[:]...)
-	}
-	return NewInvokeTransaction(gasPrice, gasLimit, vmType, invokCode), nil
+
+	invokCode = append([]byte{0x67}, invokCode[:]...)
+
+	return NewInvokeTransaction(gasPrice, gasLimit, invokCode), nil
 }
 
 func PrepareInvokeNeoVMContract(
@@ -536,7 +529,7 @@ func PrepareInvokeNeoVMContract(
 	if err != nil {
 		return nil, fmt.Errorf("BuildNVMInvokeCode error:%s", err)
 	}
-	tx := NewInvokeTransaction(0, 0, vmtypes.NEOVM, code)
+	tx := NewInvokeTransaction(0, 0, code)
 	var buffer bytes.Buffer
 	err = tx.Serialize(&buffer)
 	if err != nil {
@@ -558,7 +551,7 @@ func PrepareInvokeNeoVMContract(
 func PrepareInvokeNativeContract(
 	contractAddress common.Address,
 	code []byte) (*cstates.PreExecResult, error) {
-	tx := NewInvokeTransaction(0, 0, vmtypes.Native, code)
+	tx := NewInvokeTransaction(0, 0, code)
 	var buffer bytes.Buffer
 	err := tx.Serialize(&buffer)
 	if err != nil {
@@ -578,20 +571,11 @@ func PrepareInvokeNativeContract(
 }
 
 //NewDeployCodeTransaction return a smart contract deploy transaction instance
-func NewDeployCodeTransaction(
-	gasPrice,
-	gasLimit uint64,
-	vmType vmtypes.VmType,
-	code []byte,
-	needStorage bool,
+func NewDeployCodeTransaction(gasPrice, gasLimit uint64, code []byte, needStorage bool,
 	cname, cversion, cauthor, cemail, cdesc string) *types.Transaction {
 
-	vmCode := vmtypes.VmCode{
-		VmType: vmType,
-		Code:   code,
-	}
 	deployPayload := &payload.DeployCode{
-		Code:        vmCode,
+		Code:        code,
 		NeedStorage: needStorage,
 		Name:        cname,
 		Version:     cversion,
@@ -776,13 +760,8 @@ func BuildWasmVMInvokeCode(smartcodeAddress common.Address, methodName string, p
 }
 
 //GetContractAddress return contract address
-func GetContractAddress(code string, vmType vmtypes.VmType) common.Address {
-	data, _ := hex.DecodeString(code)
-	vmCode := &vmtypes.VmCode{
-		VmType: vmType,
-		Code:   data,
-	}
-	return vmCode.AddressFromVmCode()
+func GetContractAddress(code []byte) common.Address {
+	return types.AddressFromVmCode(code)
 }
 
 //ParseNeoVMContractReturnTypeBool return bool value of smart contract execute code.

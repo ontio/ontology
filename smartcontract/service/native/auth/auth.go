@@ -548,7 +548,7 @@ func verifySig(native *native.NativeService, ontID []byte, keyNo uint64) (bool, 
 		return false, err
 	}
 	args := bf.Bytes()
-	ret, err := native.ContextRef.AppCall(utils.OntIDContractAddress, "verifySignature", []byte{}, args)
+	ret, err := native.NativeCall(utils.OntIDContractAddress, "verifySignature", args)
 	if err != nil {
 		return false, err
 	}

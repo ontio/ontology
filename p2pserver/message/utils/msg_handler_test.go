@@ -39,7 +39,6 @@ import (
 	"github.com/ontio/ontology/p2pserver/net/netserver"
 	"github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/p2pserver/peer"
-	vmtypes "github.com/ontio/ontology/smartcontract/types"
 	"github.com/stretchr/testify/assert"
 )
 

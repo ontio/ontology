@@ -69,7 +69,7 @@ func (f *Address) ToBase58() string {
 // AddressParseFromBytes returns parsed Address
 func AddressParseFromBytes(f []byte) (Address, error) {
 	if len(f) != ADDR_LEN {
-		return ADDRESS_EMPTY, errors.New("[Common]: Uint160ParseFromBytes err, len != 20")
+		return ADDRESS_EMPTY, errors.New("[Common]: AddressParseFromBytes err, len != 20")
 	}
 
 	var addr Address
