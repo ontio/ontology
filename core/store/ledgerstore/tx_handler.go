@@ -92,7 +92,6 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	sysTransFlag := bytes.Compare(code, ninit.COMMIT_DPOS_BYTES) == 0 || block.Header.Height == 0
 
 	isCharge := !sysTransFlag && tx.GasPrice != 0
-	fmt.Println("isCharge:", isCharge)
 	if isCharge {
 		if err := isBalanceSufficient(tx, stateBatch); err != nil {
 			return err
