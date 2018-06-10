@@ -15,30 +15,32 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-package states
+
+package ont
 
 import (
 	"bytes"
-	"github.com/ontio/ontology/core/types"
 	"testing"
+
+	"github.com/magiconair/properties/assert"
+	"github.com/ontio/ontology/core/types"
 )
 
-func TestContract_Serialize_Deserialize(t *testing.T) {
-	addr := types.AddressFromVmCode([]byte{1})
-
-	c := &Contract{
-		Version: 0,
-		Address: addr,
-		Method:  "init",
-		Args:    []byte{2},
+func TestState_Serialize(t *testing.T) {
+	state := State{
+		From:  types.AddressFromVmCode([]byte{1, 2, 3}),
+		To:    types.AddressFromVmCode([]byte{4, 5, 6}),
+		Value: 1,
 	}
 	bf := new(bytes.Buffer)
-	if err := c.Serialize(bf); err != nil {
-		t.Fatalf("Contract serialize error: %v", err)
+	if err := state.Serialize(bf); err != nil {
+		t.Fatal("state serialize fail!")
 	}
 
-	v := new(Contract)
-	if err := v.Deserialize(bf); err != nil {
-		t.Fatalf("Contract deserialize error: %v", err)
+	state2 := State{}
+	if err := state2.Deserialize(bf); err != nil {
+		t.Fatal("state deserialize fail!")
 	}
+
+	assert.Equal(t, state, state2)
 }

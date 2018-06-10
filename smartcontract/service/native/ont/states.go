@@ -19,11 +19,13 @@
 package ont
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 // Transfers
@@ -65,33 +67,33 @@ type State struct {
 }
 
 func (this *State) Serialize(w io.Writer) error {
-	if err := this.From.Serialize(w); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[State] Serialize From error!")
+	if err := serialization.WriteVarBytes(w, this.From[:]); err != nil {
+		return fmt.Errorf("[State] serialize from error:%v", err)
 	}
-	if err := this.To.Serialize(w); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[State] Serialize To error!")
+	if err := serialization.WriteVarBytes(w, this.To[:]); err != nil {
+		return fmt.Errorf("[State] serialize to error:%v", err)
 	}
-	if err := serialization.WriteVarUint(w, this.Value); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[State] Serialize Value error!")
+	if err := utils.WriteVarUint(w, this.Value); err != nil {
+		return fmt.Errorf("[State] serialize value error:%v", err)
 	}
 	return nil
 }
 
 func (this *State) Deserialize(r io.Reader) error {
-	if err := this.From.Deserialize(r); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[State] Deserialize from error!")
-	}
-
-	if err := this.To.Deserialize(r); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[State] Deserialize to error!")
-	}
-
-	value, err := serialization.ReadVarUint(r, 0)
+	var err error
+	this.From, err = utils.ReadAddress(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[State] Deserialize value error!")
+		return fmt.Errorf("[State] deserialize from error:%v", err)
+	}
+	this.To, err = utils.ReadAddress(r)
+	if err != nil {
+		return fmt.Errorf("[State] deserialize to error:%v", err)
 	}
 
-	this.Value = value
+	this.Value, err = utils.ReadVarUint(r)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -103,39 +105,41 @@ type TransferFrom struct {
 }
 
 func (this *TransferFrom) Serialize(w io.Writer) error {
-	if err := this.Sender.Serialize(w); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Serialize sender error!")
+	if err := serialization.WriteVarBytes(w, this.Sender[:]); err != nil {
+		return fmt.Errorf("[TransferFrom] serialize sender error:%v", err)
 	}
-	if err := this.From.Serialize(w); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Serialize from error!")
+	if err := serialization.WriteVarBytes(w, this.From[:]); err != nil {
+		return fmt.Errorf("[TransferFrom] serialize from error:%v", err)
 	}
-	if err := this.To.Serialize(w); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Serialize to error!")
+	if err := serialization.WriteVarBytes(w, this.To[:]); err != nil {
+		return fmt.Errorf("[TransferFrom] serialize to error:%v", err)
 	}
-	if err := serialization.WriteVarUint(w, this.Value); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Serialize value error!")
+	if err := utils.WriteVarUint(w, this.Value); err != nil {
+		return fmt.Errorf("[TransferFrom] serialize value error:%v", err)
 	}
 	return nil
 }
 
 func (this *TransferFrom) Deserialize(r io.Reader) error {
-	if err := this.Sender.Deserialize(r); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Deserialize sender error!")
-	}
-
-	if err := this.From.Deserialize(r); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Deserialize from error!")
-	}
-
-	if err := this.To.Deserialize(r); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Deserialize to error!")
-	}
-
-	value, err := serialization.ReadVarUint(r, 0)
+	var err error
+	this.Sender, err = utils.ReadAddress(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[TransferFrom] Deserialize value error!")
+		return fmt.Errorf("[TransferFrom] deserialize sender error:%v", err)
 	}
 
-	this.Value = value
+	this.From, err = utils.ReadAddress(r)
+	if err != nil {
+		return fmt.Errorf("[TransferFrom] deserialize from error:%v", err)
+	}
+
+	this.To, err = utils.ReadAddress(r)
+	if err != nil {
+		return fmt.Errorf("[TransferFrom] deserialize to error:%v", err)
+	}
+
+	this.Value, err = utils.ReadVarUint(r)
+	if err != nil {
+		return err
+	}
 	return nil
 }

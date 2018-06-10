@@ -67,11 +67,11 @@ func (this *Boolean) GetInterface() interfaces.Interop {
 }
 
 func (this *Boolean) GetArray() []StackItems {
-	return []StackItems{this}
+	return nil
 }
 
 func (this *Boolean) GetStruct() []StackItems {
-	return []StackItems{this}
+	return nil
 }
 
 func (this *Boolean) GetMap() map[StackItems]StackItems {
