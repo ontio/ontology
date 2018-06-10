@@ -53,6 +53,14 @@ var InfoCommand = cli.Command{
 			Description: `Display status of transaction.`,
 			Flags:       []cli.Flag{},
 		},
+		{
+			Action:      curBlockHeight,
+			Name:        "curblockheight",
+			Usage:       "Display the current block height",
+			ArgsUsage:   "",
+			Description: `Display the current block height.`,
+			Flags:       []cli.Flag{},
+		},
 	},
 	Description: ``,
 }
@@ -128,5 +136,14 @@ func txStatus(ctx *cli.Context) error {
 		return err
 	}
 	fmt.Println(out.String())
+	return nil
+}
+
+func curBlockHeight(ctx *cli.Context) error {
+	count, err := utils.GetBlockCount()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("CurrentBlockHeight:%d\n", count-1)
 	return nil
 }
