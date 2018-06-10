@@ -99,7 +99,7 @@ func AppCallTransferOng(native *native.NativeService, from common.Address, to co
 		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOng, transfers.Serialize error!")
 	}
 
-	if _, err := native.ContextRef.AppCall(utils.OngContractAddress, "transfer", []byte{}, buf.Bytes()); err != nil {
+	if _, err := native.NativeCall(utils.OngContractAddress, "transfer", buf.Bytes()); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOng, appCall error!")
 	}
 	return nil
@@ -121,7 +121,7 @@ func AppCallTransferOnt(native *native.NativeService, from common.Address, to co
 		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, transfers.Serialize error!")
 	}
 
-	if _, err := native.ContextRef.AppCall(utils.OntContractAddress, "transfer", []byte{}, buf.Bytes()); err != nil {
+	if _, err := native.NativeCall(utils.OntContractAddress, "transfer", buf.Bytes()); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, appCall error!")
 	}
 	return nil
@@ -139,7 +139,7 @@ func AppCallApproveOng(native *native.NativeService, from common.Address, to com
 		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallApproveOng, transfers.Serialize error!")
 	}
 
-	if _, err := native.ContextRef.AppCall(utils.OngContractAddress, "approve", []byte{}, buf.Bytes()); err != nil {
+	if _, err := native.NativeCall(utils.OngContractAddress, "approve", buf.Bytes()); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallApproveOng, appCall error!")
 	}
 	return nil
@@ -152,7 +152,7 @@ func GetOngBalance(native *native.NativeService, address common.Address) (uint64
 		return 0, errors.NewDetailErr(err, errors.ErrNoCode, "getOngBalance, serialization.WriteVarBytes error!")
 	}
 
-	value, err := native.ContextRef.AppCall(utils.OngContractAddress, "balanceOf", []byte{}, buf.Bytes())
+	value, err := native.NativeCall(utils.OngContractAddress, "balanceOf", buf.Bytes())
 	if err != nil {
 		return 0, errors.NewDetailErr(err, errors.ErrNoCode, "getOngBalance, appCall error!")
 	}

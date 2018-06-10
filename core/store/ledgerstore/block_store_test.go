@@ -30,7 +30,6 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	cstates "github.com/ontio/ontology/smartcontract/states"
-	vmtypes "github.com/ontio/ontology/smartcontract/types"
 	"testing"
 	"time"
 )

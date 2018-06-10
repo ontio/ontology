@@ -36,7 +36,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	cstates "github.com/ontio/ontology/smartcontract/states"
-	vmtypes "github.com/ontio/ontology/smartcontract/types"
 )
 
 const MAX_SEARCH_HEIGHT uint32 = 100
@@ -307,7 +306,7 @@ func GetContractBalance(cVersion byte, contractAddr, accAddr common.Address) (ui
 	if err != nil {
 		return 0, fmt.Errorf("Serialize contract error:%s", err)
 	}
-	result, err := PrepareInvokeContract(cVersion, vmtypes.Native, buf.Bytes())
+	result, err := PrepareInvokeContract(cVersion, buf.Bytes())
 	if err != nil {
 		return 0, fmt.Errorf("PrepareInvokeContract error:%s", err)
 	}
@@ -344,7 +343,7 @@ func GetContractAllowance(cVersion byte, contractAddr, fromAddr, toAddr common.A
 	if err != nil {
 		return 0, fmt.Errorf("Serialize contract error:%s", err)
 	}
-	result, err := PrepareInvokeContract(cVersion, vmtypes.Native, buf.Bytes())
+	result, err := PrepareInvokeContract(cVersion, buf.Bytes())
 	if err != nil {
 		return 0, fmt.Errorf("PrepareInvokeContract error:%s", err)
 	}
@@ -359,12 +358,9 @@ func GetContractAllowance(cVersion byte, contractAddr, fromAddr, toAddr common.A
 	return allowance.Uint64(), nil
 }
 
-func PrepareInvokeContract(cVersion byte, vmType vmtypes.VmType, invokeCode []byte) (*cstates.PreExecResult, error) {
+func PrepareInvokeContract(cVersion byte, invokeCode []byte) (*cstates.PreExecResult, error) {
 	invokePayload := &payload.InvokeCode{
-		Code: vmtypes.VmCode{
-			VmType: vmType,
-			Code:   invokeCode,
-		},
+		Code: invokeCode,
 	}
 	tx := &types.Transaction{
 		Version: cVersion,

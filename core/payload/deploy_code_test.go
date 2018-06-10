@@ -18,19 +18,15 @@
 package payload
 
 import (
+	"bytes"
 	"testing"
 
-	"bytes"
-	"github.com/ontio/ontology/smartcontract/types"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestDeployCode_Serialize(t *testing.T) {
 	deploy := DeployCode{
-		Code: types.VmCode{
-			VmType: types.NEOVM,
-			Code:   []byte{1, 2, 3},
-		},
+		Code: []byte{1, 2, 3},
 	}
 
 	buf := bytes.NewBuffer(nil)
