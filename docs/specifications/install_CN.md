@@ -22,7 +22,7 @@
 克隆ontology仓库到 **$GOPATH/src/github.com/ontio** 目录
 
 ```shell
-$ git clone https://github.com/ontio/ontology.git
+$ git clone --recursive https://github.com/ontio/ontology.git
 ```
 或者
 ```shell
