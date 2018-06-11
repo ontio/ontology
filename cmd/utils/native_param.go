@@ -33,9 +33,9 @@ import (
 	"strings"
 )
 
-func NewNativeInvokeTransaction(gasPrice, gasLimit uint64, contractAddr common.Address, version byte, funcAbi *abi.NativeContractFunctionAbi, params []interface{}) (*types.Transaction, error) {
+func NewNativeInvokeTransaction(gasPrice, gasLimit uint64, contractAddr common.Address, version byte, params []interface{}, funcAbi *abi.NativeContractFunctionAbi) (*types.Transaction, error) {
 	builder := neovm.NewParamsBuilder(new(bytes.Buffer))
-	err := ParseNativeParam(builder, params, funcAbi.Parameters)
+	err := ParseNativeFuncParam(builder, params, funcAbi.Parameters)
 	if err != nil {
 		return nil, err
 	}
@@ -48,13 +48,26 @@ func NewNativeInvokeTransaction(gasPrice, gasLimit uint64, contractAddr common.A
 	return httpcom.NewSmartContractTransaction(gasPrice, gasLimit, invokeCode)
 }
 
-func ParseNativeParam(builder *neovm.ParamsBuilder, params []interface{}, paramAbi []*abi.NativeContractParamAbi) error {
-	if len(params) != len(paramAbi) {
+func ParseNativeFuncParam(builder *neovm.ParamsBuilder, params []interface{}, paramsAbi []*abi.NativeContractParamAbi) error {
+	if len(paramsAbi) > 1 {
+		paramRoot := &abi.NativeContractParamAbi{
+			Name:    "root",
+			Type:    abi.NATIVE_PARAM_TYPE_ARRAY,
+			SubType: paramsAbi,
+		}
+		paramRoot.Type = abi.NATIVE_PARAM_TYPE_STRUCT
+		paramsAbi = []*abi.NativeContractParamAbi{paramRoot}
+	}
+	return ParseNativeParams(builder, params, paramsAbi)
+}
+
+func ParseNativeParams(builder *neovm.ParamsBuilder, params []interface{}, paramsAbi []*abi.NativeContractParamAbi) error {
+	if len(params) != len(paramsAbi) {
 		return fmt.Errorf("abi unmatch")
 	}
 	var err error
 	for i, param := range params {
-		paramAbi := paramAbi[i]
+		paramAbi := paramsAbi[i]
 		switch strings.ToLower(paramAbi.Type) {
 		case abi.NATIVE_PARAM_TYPE_STRUCT:
 			err = ParseNativeParamStruct(builder, param, paramAbi)
@@ -108,7 +121,7 @@ func ParseNativeParamStruct(builder *neovm.ParamsBuilder, param interface{}, str
 	builder.Emit(neovm.TOALTSTACK)
 	for i, param := range params {
 		paramAbi := structAbi.SubType[i]
-		err := ParseNativeParam(builder, []interface{}{param}, []*abi.NativeContractParamAbi{paramAbi})
+		err := ParseNativeParams(builder, []interface{}{param}, []*abi.NativeContractParamAbi{paramAbi})
 		if err != nil {
 			return fmt.Errorf("params struct:%s item:%s error:%s", structAbi.Name, paramAbi.Name, err)
 		}
@@ -133,7 +146,7 @@ func ParseNativeParamArray(builder *neovm.ParamsBuilder, param interface{}, arra
 			SubType: arrayAbi.SubType[0].SubType,
 		})
 	}
-	err := ParseNativeParam(builder, params, abis)
+	err := ParseNativeParams(builder, params, abis)
 	if err != nil {
 		return fmt.Errorf("parse array error:%s", err)
 	}

@@ -22,13 +22,11 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"github.com/ontio/ontology/cmd/abi"
 	clisvrcom "github.com/ontio/ontology/cmd/server/common"
 	cliutil "github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/vm/neovm"
 )
 
 type SigNativeInvokeTxReq struct {
@@ -73,17 +71,10 @@ func SigNativeInvokeTx(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRespo
 		resp.ErrorCode = clisvrcom.CLIERR_ABI_NOT_FOUND
 		return
 	}
-	builder := neovm.NewParamsBuilder(new(bytes.Buffer))
-	err = cliutil.ParseNativeParam(builder, rawReq.Params, funcAbi.Parameters)
+	tx, err := cliutil.NewNativeInvokeTransaction(rawReq.GasPrice, rawReq.GasLimit, contractAddr, rawReq.Version, rawReq.Params, funcAbi)
 	if err != nil {
-		resp.ErrorCode = clisvrcom.CLIERR_ABI_UNMATCH
-		resp.ErrorInfo = fmt.Sprintf("Parse param error:%s", err)
-		return
-	}
-	tx, err := cliutil.NewNativeInvokeTransaction(rawReq.GasPrice, rawReq.GasLimit, contractAddr, rawReq.Version, funcAbi, rawReq.Params)
-	if err != nil {
-		log.Infof("Cli Qid:%s SigNativeInvokeTx InvokeNativeContractTx error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
+		resp.ErrorInfo = err.Error()
 		return
 	}
 	if err != nil {
