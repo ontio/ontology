@@ -372,15 +372,16 @@ func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 	// block height
 	case float64:
 		height := uint32(params[0].(float64))
-		txs, err := bactor.GetEventNotifyByHeight(height)
+		eventInfos, err := bactor.GetEventNotifyByHeight(height)
 		if err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
-		var txhexs []string
-		for _, v := range txs {
-			txhexs = append(txhexs, v.ToHexString())
+		eInfos := make([]*bcomn.ExecuteNotify, 0, len(eventInfos))
+		for _, eventInfo := range eventInfos {
+			_, notify := bcomn.GetExecuteNotify(eventInfo)
+			eInfos = append(eInfos, &notify)
 		}
-		return responseSuccess(txhexs)
+		return responseSuccess(eInfos)
 		//txhash
 	case string:
 		str := params[0].(string)
