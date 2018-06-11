@@ -316,8 +316,9 @@ func (self *Server) updateChainConfig() error {
 		return fmt.Errorf("GetBlockInfo failed,block is nil:%d", self.completedBlockNum)
 	}
 	if block.Info.NewChainConfig == nil {
-		return fmt.Errorf("GetNewChainConfig failed,%d", self.completedBlockNum)
+		return fmt.Errorf("GetNewChainConfig nil,%d", self.completedBlockNum)
 	}
+	log.Infof("updateChainConfig blkNum:%d", self.completedBlockNum)
 	self.metaLock.Lock()
 	self.config = block.Info.NewChainConfig
 	self.metaLock.Unlock()
@@ -2114,10 +2115,10 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 		//add transaction invoke governance native commit_pos contract
 		if self.checkNeedUpdateChainConfig(blkNum) {
 			sysTxs = append(sysTxs, self.creategovernaceTransaction(blkNum))
+			chainconfig.View++
 		}
 		forEmpty = true
 		cfg = chainconfig
-		cfg.View++
 	}
 	if self.nonConsensusNode() {
 		return fmt.Errorf("%d quit consensus node", self.Index)
