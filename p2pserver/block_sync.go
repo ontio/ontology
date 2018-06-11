@@ -614,7 +614,7 @@ func (this *BlockSyncMgr) getNextNodeId() uint64 {
 	return this.nodeList[index]
 }
 
-func (this *BlockSyncMgr) getNextNode(curBlockHeight uint32) *peer.Peer {
+func (this *BlockSyncMgr) getNextNode(nextBlockHeight uint32) *peer.Peer {
 	triedNode := make(map[uint64]bool, 0)
 	for {
 		nextNodeId := this.getNextNodeId()
@@ -634,7 +634,7 @@ func (this *BlockSyncMgr) getNextNode(curBlockHeight uint32) *peer.Peer {
 			continue
 		}
 		nodeBlockHeight := n.GetHeight()
-		if curBlockHeight < uint32(nodeBlockHeight) {
+		if nextBlockHeight <= uint32(nodeBlockHeight) {
 			return n
 		}
 	}
@@ -645,7 +645,7 @@ func (this *BlockSyncMgr) getNodeWithMinFailedTimes(flightInfo *SyncFlightInfo, 
 	var minFailedTimesNode *peer.Peer
 	triedNode := make(map[uint64]bool, 0)
 	for {
-		nextNode := this.getNextNode(curBlockHeight)
+		nextNode := this.getNextNode(curBlockHeight + 1)
 		if nextNode == nil {
 			return nil
 		}
