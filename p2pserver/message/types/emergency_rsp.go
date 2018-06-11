@@ -21,13 +21,13 @@ package types
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/binary"
 	"fmt"
 	"io"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
+	pc	"github.com/ontio/ontology/p2pserver/common"
 )
 
 type EmergencyActionResponse struct {
@@ -96,32 +96,28 @@ func (this *EmergencyActionResponse) Hash() common.Uint256 {
 }
 
 type EmergencyRspMsg struct {
-	MsgHdr
 	Payload EmergencyActionResponse
+}
+
+func (this *EmergencyRspMsg) CmdType() string {
+	return pc.EMERGENCY_RSP_TYPE
 }
 
 // Serialization the EmergencyRspMsg for network
 func (this *EmergencyRspMsg) Serialization() ([]byte, error) {
 	p := bytes.NewBuffer([]byte{})
-	this.Payload.Serialize(p)
-	checkSumBuf := CheckSum(p.Bytes())
-
-	this.MsgHdr.Init("emgrsp", checkSumBuf, uint32(len(p.Bytes())))
-
-	hdrBuf, err := this.MsgHdr.Serialization()
+	err := this.Payload.Serialize(p)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to serialize EmergencyRspMsg %v", err)
 	}
-	buf := bytes.NewBuffer(hdrBuf)
-	data := append(buf.Bytes(), p.Bytes()...)
-	return data, nil
+
+	return p.Bytes(), nil
 }
 
 // Deserialization the EmergencyReqMsg from network
 func (this *EmergencyRspMsg) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(this.MsgHdr))
-	err = this.Payload.Deserialize(buf)
+	err := this.Payload.Deserialize(buf)
 	if err != nil {
 		return err
 	}

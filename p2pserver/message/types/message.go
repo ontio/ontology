@@ -162,6 +162,10 @@ func MakeEmptyMessage(cmdType string) (Message, error) {
 		return &Disconnected{}, nil
 	case common.GET_BLOCKS_TYPE:
 		return &BlocksReq{}, nil
+	case common.EMERGENCY_REQ_TYPE:
+		return &EmergencyReqMsg{}, nil
+	case common.EMERGENCY_RSP_TYPE:
+		return &EmergencyRspMsg{}, nil
 	default:
 		return nil, errors.New("unsupported cmd type:" + cmdType)
 	}

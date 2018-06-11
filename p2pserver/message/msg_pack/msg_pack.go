@@ -197,29 +197,17 @@ func NewConsensusDataReq(hash common.Uint256) mt.Message {
 }
 
 // emergency governance response
-func NewEmergencyRspMsg(msg *mt.EmergencyActionResponse) ([]byte, error) {
+func NewEmergencyRspMsg(msg *mt.EmergencyActionResponse) mt.Message {
 	var emergencyRspMsg mt.EmergencyRspMsg
 	emergencyRspMsg.Payload = *msg
 
-	m, err := emergencyRspMsg.Serialization()
-	if err != nil {
-		log.Error("Error Convert net message ", err.Error())
-		return nil, err
-	}
-
-	return m, nil
+	return &emergencyRspMsg
 }
 
 // emergency governance request
-func NewEmergencyReqMsg(msg *mt.EmergencyActionRequest) ([]byte, error) {
+func NewEmergencyReqMsg(msg *mt.EmergencyActionRequest) mt.Message {
 	var emergencyReqMsg mt.EmergencyReqMsg
 	emergencyReqMsg.Payload = *msg
 
-	m, err := emergencyReqMsg.Serialization()
-	if err != nil {
-		log.Error("Error Convert net message ", err.Error())
-		return nil, err
-	}
-
-	return m, nil
+	return &emergencyReqMsg
 }

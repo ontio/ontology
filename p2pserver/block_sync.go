@@ -319,8 +319,7 @@ func (this *BlockSyncMgr) syncBlock() {
 	if count > cacheCap {
 		count = cacheCap
 	}
-	log.Infof("syncBlock: curBlockHeight %d, curHeaderHeight %d, count %d",
-		curBlockHeight, curHeaderHeight, count)
+
 	counter := 1
 	i := uint32(0)
 	for {

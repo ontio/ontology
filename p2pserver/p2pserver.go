@@ -201,19 +201,11 @@ func (this *P2PServer) Xmit(message interface{}) error {
 	case *msgtypes.EmergencyActionResponse:
 		log.Debug("TX emergency governance response message")
 		emergencyRsp := message.(*msgtypes.EmergencyActionResponse)
-		buffer, err = msgpack.NewEmergencyRspMsg(emergencyRsp)
-		if err != nil {
-			log.Error("Error New EmergencyRsp message")
-			return err
-		}
+		msg = msgpack.NewEmergencyRspMsg(emergencyRsp)
 	case *msgtypes.EmergencyActionRequest:
 		log.Debug("TX emergency governance request message")
 		emergencyReq := message.(*msgtypes.EmergencyActionRequest)
-		buffer, err = msgpack.NewEmergencyReqMsg(emergencyReq)
-		if err != nil {
-			log.Error("Error New EmergencyReq message")
-			return err
-		}
+		msg = msgpack.NewEmergencyReqMsg(emergencyReq)
 	default:
 		log.Warnf("Unknown Xmit message %v , type %v", message,
 			reflect.TypeOf(message))
