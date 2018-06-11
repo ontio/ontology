@@ -56,7 +56,7 @@ func (self *Address) Deserialize(r io.Reader) error {
 
 // ToBase58 returns base58 encoded address string
 func (f *Address) ToBase58() string {
-	data := append([]byte{0x41}, f[:]...)
+	data := append([]byte{23}, f[:]...)
 	temp := sha256.Sum256(data)
 	temps := sha256.Sum256(temp[:])
 	data = append(data, temps[0:4]...)

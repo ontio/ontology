@@ -19,7 +19,6 @@
 package cmd
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	cmdcom "github.com/ontio/ontology/cmd/common"
@@ -188,11 +187,7 @@ func invokeContract(ctx *cli.Context) error {
 		return nil
 	}
 	contractAddrStr := ctx.String(utils.GetFlagName(utils.ContractAddrFlag))
-	addrData, err := hex.DecodeString(contractAddrStr)
-	if err != nil {
-		return fmt.Errorf("Invalid contract address error:%s", err)
-	}
-	contractAddr, err := common.AddressParseFromBytes(addrData)
+	contractAddr, err := common.AddressFromHexString(contractAddrStr)
 	if err != nil {
 		return fmt.Errorf("Invalid contract address error:%s", err)
 	}

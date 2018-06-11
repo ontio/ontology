@@ -64,3 +64,6 @@ var UNBOUND_DEADLINE = (func() uint32 {
 
 	return UNBOUND_TIME_INTERVAL*uint32(numInterval) - uint32(count-uint64(ONT_TOTAL_SUPPLY))
 })()
+
+// multi-sig constants
+const MULTI_SIG_MAX_PUBKEY_SIZE = 1024

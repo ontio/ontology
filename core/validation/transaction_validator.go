@@ -29,6 +29,7 @@ import (
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/common/constants"
 )
 
 // VerifyTransaction verifys received single transaction
@@ -59,7 +60,7 @@ func checkTransactionSignatures(tx *types.Transaction) error {
 		kn := len(sig.PubKeys)
 		sn := len(sig.SigData)
 
-		if kn > 24 || sn < m || m > kn || m <= 0 {
+		if kn > constants.MULTI_SIG_MAX_PUBKEY_SIZE || sn < m || m > kn || m <= 0 {
 			return errors.New("wrong tx sig param length")
 		}
 
