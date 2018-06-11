@@ -88,6 +88,10 @@ func verifyID(id []byte) bool {
 		return false
 	}
 	buf = bi.Bytes()
+	// 1 byte version + 20 byte hash + 4 byte checksum
+	if len(buf) != 25 {
+		return false
+	}
 	pos := len(buf) - 4
 	data := buf[:pos]
 	checksum := buf[pos:]
