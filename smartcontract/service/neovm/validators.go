@@ -172,13 +172,6 @@ func validatorDeserialize(engine *vm.ExecutionEngine) error {
 	return nil
 }
 
-func validatorCheckSig(engine *vm.ExecutionEngine) error {
-	if vm.EvaluationStackCount(engine) < 3 {
-		return errors.NewErr("[validatorCheckSig] Too few input parameters ")
-	}
-	return nil
-}
-
 func peekBlock(engine *vm.ExecutionEngine) (*types.Block, error) {
 	d := vm.PeekInteropInterface(engine)
 	if d == nil {

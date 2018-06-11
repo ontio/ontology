@@ -20,16 +20,13 @@ package neovm
 
 import (
 	"bytes"
-
 	"io"
 	"math/big"
-
 	"sort"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	scommon "github.com/ontio/ontology/smartcontract/common"
@@ -78,7 +75,7 @@ func RuntimeSerialize(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	return nil
 }
 
-func RuntimeDeSerialize(service *NeoVmService, engine *vm.ExecutionEngine) error {
+func RuntimeDeserialize(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	data := vm.PopByteArray(engine)
 	bf := bytes.NewBuffer(data)
 	item, err := DeserializeStackItem(bf)
@@ -110,16 +107,9 @@ func RuntimeLog(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	return nil
 }
 
-// RuntimeCheckSig verify whether authorization legal
-func RuntimeCheckSig(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	pubKey := vm.PopByteArray(engine)
-	key, err := keypair.DeserializePublicKey(pubKey)
-	if err != nil {
-		return err
-	}
-	data := vm.PopByteArray(engine)
-	sig := vm.PopByteArray(engine)
-	return signature.Verify(key, data, sig)
+func RuntimeGetTrigger(service *NeoVmService, engine *vm.ExecutionEngine) error {
+	vm.PushData(engine, 0)
+	return nil
 }
 
 func SerializeStackItem(item vmtypes.StackItems, w io.Writer) error {

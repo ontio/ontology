@@ -19,22 +19,15 @@ package states
 
 import (
 	"bytes"
+	"github.com/ontio/ontology/core/types"
 	"testing"
-
-	"github.com/ontio/ontology/smartcontract/types"
 )
 
 func TestContract_Serialize_Deserialize(t *testing.T) {
-	vmcode := types.VmCode{
-		VmType: types.Native,
-		Code:   []byte{1},
-	}
-
-	addr := vmcode.AddressFromVmCode()
+	addr := types.AddressFromVmCode([]byte{1})
 
 	c := &Contract{
 		Version: 0,
-		Code:    []byte{1},
 		Address: addr,
 		Method:  "init",
 		Args:    []byte{2},

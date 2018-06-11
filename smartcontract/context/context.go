@@ -21,7 +21,6 @@ package context
 import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/event"
-	stypes "github.com/ontio/ontology/smartcontract/types"
 )
 
 // ContextRef is a interface of smart context
@@ -38,12 +37,16 @@ type ContextRef interface {
 	PopContext()
 	CheckWitness(address common.Address) bool
 	PushNotifications(notifications []*event.NotifyEventInfo)
-	AppCall(address common.Address, method string, codes, args []byte) (interface{}, error)
+	NewExecuteEngine(code []byte) (Engine, error)
 	CheckUseGas(gas uint64) bool
+}
+
+type Engine interface {
+	Invoke() (interface{}, error)
 }
 
 // Context describe smart contract execute context struct
 type Context struct {
 	ContractAddress common.Address
-	Code            stypes.VmCode
+	Code            []byte
 }

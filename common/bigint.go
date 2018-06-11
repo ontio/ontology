@@ -16,11 +16,9 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package types
+package common
 
-import (
-	"math/big"
-)
+import "math/big"
 
 func bytesReverse(u []byte) []byte {
 	for i, j := 0, len(u)-1; i < j; i, j = i+1, j-1 {
@@ -29,7 +27,7 @@ func bytesReverse(u []byte) []byte {
 	return u
 }
 
-func BigIntToBytes(data *big.Int) []byte {
+func BigIntToNeoBytes(data *big.Int) []byte {
 	if data.Int64() == 0 {
 		return []byte{}
 	}
@@ -58,7 +56,7 @@ func BigIntToBytes(data *big.Int) []byte {
 	return bs
 }
 
-func BigIntFromBytes(ba []byte) *big.Int {
+func BigIntFromNeoBytes(ba []byte) *big.Int {
 	res := big.NewInt(0)
 	l := len(ba)
 	if l == 0 {

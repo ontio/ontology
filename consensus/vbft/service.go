@@ -46,7 +46,6 @@ import (
 	ninit "github.com/ontio/ontology/smartcontract/service/native/init"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/states"
-	stypes "github.com/ontio/ontology/smartcontract/types"
 	"github.com/ontio/ontology/validator/increment"
 )
 
@@ -317,8 +316,9 @@ func (self *Server) updateChainConfig() error {
 		return fmt.Errorf("GetBlockInfo failed,block is nil:%d", self.completedBlockNum)
 	}
 	if block.Info.NewChainConfig == nil {
-		return fmt.Errorf("GetNewChainConfig failed,%d", self.completedBlockNum)
+		return fmt.Errorf("GetNewChainConfig nil,%d", self.completedBlockNum)
 	}
+	log.Infof("updateChainConfig blkNum:%d", self.completedBlockNum)
 	self.metaLock.Lock()
 	self.config = block.Info.NewChainConfig
 	self.metaLock.Unlock()
@@ -2038,11 +2038,7 @@ func (self *Server) creategovernaceTransaction(blkNum uint32) *types.Transaction
 	}
 	bf := new(bytes.Buffer)
 	init.Serialize(bf)
-	vmCode := stypes.VmCode{
-		VmType: stypes.Native,
-		Code:   bf.Bytes(),
-	}
-	tx := utils.NewInvokeTransaction(vmCode)
+	tx := utils.NewInvokeTransaction(bf.Bytes())
 	tx.Nonce = blkNum
 	return tx
 }
@@ -2091,7 +2087,7 @@ func (self *Server) nonSystxs(sysTxs []*types.Transaction, blkNum uint32) bool {
 			log.Errorf("nonSystxs invoke is nil,blocknum:%d", blkNum)
 			return true
 		}
-		if bytes.Compare(invoke.Code.Code, ninit.COMMIT_DPOS_BYTES) == 0 {
+		if bytes.Compare(invoke.Code, ninit.COMMIT_DPOS_BYTES) == 0 {
 			return false
 		}
 	}
@@ -2119,10 +2115,10 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 		//add transaction invoke governance native commit_pos contract
 		if self.checkNeedUpdateChainConfig(blkNum) {
 			sysTxs = append(sysTxs, self.creategovernaceTransaction(blkNum))
+			chainconfig.View++
 		}
 		forEmpty = true
 		cfg = chainconfig
-		cfg.View++
 	}
 	if self.nonConsensusNode() {
 		return fmt.Errorf("%d quit consensus node", self.Index)

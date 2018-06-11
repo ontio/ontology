@@ -104,7 +104,7 @@ func (cc *ChainConfig) Serialize(w io.Writer) error {
 
 func (cc *ChainConfig) Deserialize(r io.Reader, length int) error {
 	buf := make([]byte, length)
-	if _, err := r.Read(buf[:]); err != nil {
+	if _, err := io.ReadFull(r, buf[:]); err != nil {
 		return err
 	}
 	if err := json.Unmarshal(buf[:], &cc); err != nil {

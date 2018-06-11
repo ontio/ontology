@@ -36,7 +36,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	cstates "github.com/ontio/ontology/smartcontract/states"
-	vmtypes "github.com/ontio/ontology/smartcontract/types"
 )
 
 const MAX_SEARCH_HEIGHT uint32 = 100
@@ -53,6 +52,12 @@ type MerkleProof struct {
 	CurBlockRoot     string
 	CurBlockHeight   uint32
 	TargetHashes     []string
+}
+
+type LogEventArgs struct {
+	TxHash          string
+	ContractAddress string
+	Message         string
 }
 
 type ExecuteNotify struct {
@@ -84,7 +89,7 @@ type Fee struct {
 
 type Sig struct {
 	PubKeys []string
-	M       uint8
+	M       uint16
 	SigData []string
 }
 type Transactions struct {
@@ -150,6 +155,13 @@ type TXNEntryInfo struct {
 	State []TXNAttrInfo // the result from each validator
 }
 
+func GetLogEvent(obj *event.LogEventArgs) (map[string]bool, LogEventArgs) {
+	hash := obj.TxHash
+	addr := obj.ContractAddress.ToHexString()
+	contractAddrs := map[string]bool{addr: true}
+	return contractAddrs, LogEventArgs{hash.ToHexString(), addr, obj.Message}
+}
+
 func GetExecuteNotify(obj *event.ExecuteNotify) (map[string]bool, ExecuteNotify) {
 	evts := []NotifyEventInfo{}
 	var contractAddrs = make(map[string]bool)
@@ -157,7 +169,7 @@ func GetExecuteNotify(obj *event.ExecuteNotify) (map[string]bool, ExecuteNotify)
 		evts = append(evts, NotifyEventInfo{v.ContractAddress.ToHexString(), v.States})
 		contractAddrs[v.ContractAddress.ToHexString()] = true
 	}
-	txhash := common.ToHexString(obj.TxHash[:])
+	txhash := obj.TxHash.ToHexString()
 	return contractAddrs, ExecuteNotify{txhash, obj.State, obj.GasConsumed, evts}
 }
 
@@ -170,11 +182,7 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 	trans.Payer = ptx.Payer.ToHexString()
 	trans.Payload = TransPayloadToHex(ptx.Payload)
 
-	trans.Attributes = make([]TxAttributeInfo, len(ptx.Attributes))
-	for i, v := range ptx.Attributes {
-		trans.Attributes[i].Usage = v.Usage
-		trans.Attributes[i].Data = common.ToHexString(v.Data)
-	}
+	trans.Attributes = make([]TxAttributeInfo, 0)
 	trans.Sigs = []Sig{}
 	for _, sig := range ptx.Sigs {
 		e := Sig{M: sig.M}
@@ -189,7 +197,7 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 	}
 
 	mhash := ptx.Hash()
-	trans.Hash = common.ToHexString(mhash.ToArray())
+	trans.Hash = mhash.ToHexString()
 	return trans
 }
 
@@ -218,9 +226,9 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 
 	blockHead := &BlockHead{
 		Version:          block.Header.Version,
-		PrevBlockHash:    common.ToHexString(block.Header.PrevBlockHash.ToArray()),
-		TransactionsRoot: common.ToHexString(block.Header.TransactionsRoot.ToArray()),
-		BlockRoot:        common.ToHexString(block.Header.BlockRoot.ToArray()),
+		PrevBlockHash:    block.Header.PrevBlockHash.ToHexString(),
+		TransactionsRoot: block.Header.TransactionsRoot.ToHexString(),
+		BlockRoot:        block.Header.BlockRoot.ToHexString(),
 		Timestamp:        block.Header.Timestamp,
 		Height:           block.Header.Height,
 		ConsensusData:    block.Header.ConsensusData,
@@ -228,7 +236,7 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 		NextBookkeeper:   block.Header.NextBookkeeper.ToBase58(),
 		Bookkeepers:      bookkeepers,
 		SigData:          sigData,
-		Hash:             common.ToHexString(hash.ToArray()),
+		Hash:             hash.ToHexString(),
 	}
 
 	trans := make([]*Transactions, len(block.Transactions))
@@ -237,7 +245,7 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 	}
 
 	b := BlockInfo{
-		Hash:         common.ToHexString(hash.ToArray()),
+		Hash:         hash.ToHexString(),
 		Header:       blockHead,
 		Transactions: trans,
 	}
@@ -298,7 +306,7 @@ func GetContractBalance(cVersion byte, contractAddr, accAddr common.Address) (ui
 	if err != nil {
 		return 0, fmt.Errorf("Serialize contract error:%s", err)
 	}
-	result, err := PrepareInvokeContract(cVersion, vmtypes.Native, buf.Bytes())
+	result, err := PrepareInvokeContract(cVersion, buf.Bytes())
 	if err != nil {
 		return 0, fmt.Errorf("PrepareInvokeContract error:%s", err)
 	}
@@ -335,7 +343,7 @@ func GetContractAllowance(cVersion byte, contractAddr, fromAddr, toAddr common.A
 	if err != nil {
 		return 0, fmt.Errorf("Serialize contract error:%s", err)
 	}
-	result, err := PrepareInvokeContract(cVersion, vmtypes.Native, buf.Bytes())
+	result, err := PrepareInvokeContract(cVersion, buf.Bytes())
 	if err != nil {
 		return 0, fmt.Errorf("PrepareInvokeContract error:%s", err)
 	}
@@ -350,20 +358,16 @@ func GetContractAllowance(cVersion byte, contractAddr, fromAddr, toAddr common.A
 	return allowance.Uint64(), nil
 }
 
-func PrepareInvokeContract(cVersion byte, vmType vmtypes.VmType, invokeCode []byte) (*cstates.PreExecResult, error) {
+func PrepareInvokeContract(cVersion byte, invokeCode []byte) (*cstates.PreExecResult, error) {
 	invokePayload := &payload.InvokeCode{
-		Code: vmtypes.VmCode{
-			VmType: vmType,
-			Code:   invokeCode,
-		},
+		Code: invokeCode,
 	}
 	tx := &types.Transaction{
-		Version:    cVersion,
-		TxType:     types.Invoke,
-		Nonce:      uint32(time.Now().Unix()),
-		Payload:    invokePayload,
-		Attributes: make([]*types.TxAttribute, 0, 0),
-		Sigs:       make([]*types.Sig, 0, 0),
+		Version: cVersion,
+		TxType:  types.Invoke,
+		Nonce:   uint32(time.Now().Unix()),
+		Payload: invokePayload,
+		Sigs:    make([]*types.Sig, 0, 0),
 	}
 	return bactor.PreExecuteContract(tx)
 }

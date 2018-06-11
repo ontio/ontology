@@ -93,10 +93,7 @@ func (this *WasmVmService) transactionGetAttributes(engine *exec.ExecutionEngine
 	if err != nil {
 		return false, err
 	}
-	attributes := make([][]byte, len(trans.Attributes))
-	for i, a := range trans.Attributes {
-		attributes[i] = a.ToArray()
-	}
+	attributes := make([][]byte, 0)
 
 	idx, err := vm.SetPointerMemory(attributes)
 	if err != nil {

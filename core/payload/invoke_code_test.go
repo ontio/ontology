@@ -21,16 +21,12 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ontio/ontology/smartcontract/types"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestInvokeCode_Serialize(t *testing.T) {
 	code := InvokeCode{
-		Code: types.VmCode{
-			VmType: types.NEOVM,
-			Code:   []byte{1, 2, 3},
-		},
+		Code: []byte{1, 2, 3},
 	}
 
 	buf := bytes.NewBuffer(nil)

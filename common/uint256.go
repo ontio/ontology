@@ -20,6 +20,7 @@ package common
 
 import (
 	"errors"
+	"fmt"
 	"io"
 )
 
@@ -38,14 +39,18 @@ func (u *Uint256) ToArray() []byte {
 	return x
 }
 
+func (u *Uint256) ToHexString() string {
+	return fmt.Sprintf("%x", ToArrayReverse(u[:]))
+}
+
 func (u *Uint256) Serialize(w io.Writer) error {
 	_, err := w.Write(u[:])
 	return err
 }
 
 func (u *Uint256) Deserialize(r io.Reader) error {
-	n, err := r.Read(u[:])
-	if n != len(u[:]) || err != nil {
+	_, err := io.ReadFull(r, u[:])
+	if err != nil {
 		return errors.New("deserialize Uint256 error")
 	}
 	return nil
@@ -59,4 +64,12 @@ func Uint256ParseFromBytes(f []byte) (Uint256, error) {
 	var hash Uint256
 	copy(hash[:], f)
 	return hash, nil
+}
+
+func Uint256FromHexString(s string) (Uint256, error) {
+	hx, err := HexToBytes(s)
+	if err != nil {
+		return UINT256_EMPTY, err
+	}
+	return Uint256ParseFromBytes(ToArrayReverse(hx))
 }

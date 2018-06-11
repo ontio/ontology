@@ -27,6 +27,7 @@ import (
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/states"
 	sstates "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 )
@@ -83,4 +84,18 @@ func (this *NativeService) Invoke() (interface{}, error) {
 	this.ContextRef.PopContext()
 	this.ContextRef.PushNotifications(this.Notifications)
 	return result, nil
+}
+
+func (this *NativeService) NativeCall(address common.Address, method string, args []byte) (interface{}, error) {
+	bf := new(bytes.Buffer)
+	c := states.Contract{
+		Address: address,
+		Method:  method,
+		Args:    args,
+	}
+	if err := c.Serialize(bf); err != nil {
+		return nil, err
+	}
+	this.Code = bf.Bytes()
+	return this.Invoke()
 }
