@@ -79,7 +79,7 @@ func GetEventNotifyByTxHash(txHash common.Uint256) (*event.ExecuteNotify, error)
 	return ledger.DefLedger.GetEventNotifyByTx(txHash)
 }
 
-func GetEventNotifyByHeight(height uint32) ([]common.Uint256, error) {
+func GetEventNotifyByHeight(height uint32) ([]*event.ExecuteNotify, error) {
 	return ledger.DefLedger.GetEventNotifyByBlock(height)
 }
 

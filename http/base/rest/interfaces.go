@@ -277,15 +277,16 @@ func GetSmartCodeEventTxsByHeight(cmd map[string]interface{}) map[string]interfa
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	index := uint32(height)
-	txs, err := bactor.GetEventNotifyByHeight(index)
+	eventInfos, err := bactor.GetEventNotifyByHeight(index)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	var txhexs []string
-	for _, v := range txs {
-		txhexs = append(txhexs, v.ToHexString())
+	eInfos := make([]*bcomn.ExecuteNotify, 0, len(eventInfos))
+	for _, eventInfo := range eventInfos {
+		_, notify := bcomn.GetExecuteNotify(eventInfo)
+		eInfos = append(eInfos, &notify)
 	}
-	resp["Result"] = txhexs
+	resp["Result"] = eInfos
 	return resp
 }
 
