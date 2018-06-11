@@ -262,15 +262,3 @@ func serializeAddress(w io.Writer, addr common.Address) error {
 	}
 	return nil
 }
-
-func deserializeAddress(rd io.Reader) (common.Address, error) {
-	raw, err := serialization.ReadVarBytes(rd)
-	if err != nil {
-		return common.ADDRESS_EMPTY, err
-	}
-	addr, err := common.AddressParseFromBytes(raw)
-	if err != nil {
-		return common.ADDRESS_EMPTY, err
-	}
-	return addr, nil
-}
