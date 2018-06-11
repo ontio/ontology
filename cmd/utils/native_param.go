@@ -35,7 +35,7 @@ import (
 
 func NewNativeInvokeTransaction(gasPrice, gasLimit uint64, contractAddr common.Address, version byte, params []interface{}, funcAbi *abi.NativeContractFunctionAbi) (*types.Transaction, error) {
 	builder := neovm.NewParamsBuilder(new(bytes.Buffer))
-	err := ParseNativeFuncParam(builder, params, funcAbi.Parameters)
+	err := ParseNativeFuncParam(builder, funcAbi.Name, params, funcAbi.Parameters)
 	if err != nil {
 		return nil, err
 	}
@@ -48,8 +48,17 @@ func NewNativeInvokeTransaction(gasPrice, gasLimit uint64, contractAddr common.A
 	return httpcom.NewSmartContractTransaction(gasPrice, gasLimit, invokeCode)
 }
 
-func ParseNativeFuncParam(builder *neovm.ParamsBuilder, params []interface{}, paramsAbi []*abi.NativeContractParamAbi) error {
-	if len(paramsAbi) > 1 {
+func ParseNativeFuncParam(builder *neovm.ParamsBuilder, funName string, params []interface{}, paramsAbi []*abi.NativeContractParamAbi) error {
+	size := len(paramsAbi)
+	if size == 0 {
+		//Params cannot empty, if params is empty, fulfil with func name
+		params = []interface{}{funName}
+		paramsAbi = []*abi.NativeContractParamAbi{&abi.NativeContractParamAbi{
+			Name: "funcName",
+			Type: abi.NATIVE_PARAM_TYPE_STRING,
+		}}
+	} else if size > 1 {
+		//If more than one param in func, must using struct
 		paramRoot := &abi.NativeContractParamAbi{
 			Name:    "root",
 			Type:    abi.NATIVE_PARAM_TYPE_ARRAY,
