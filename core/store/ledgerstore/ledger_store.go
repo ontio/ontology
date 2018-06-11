@@ -99,18 +99,13 @@ func NewLedgerStore(dataDir string) (*LedgerStoreImp, error) {
 	}
 	ledgerStore.eventStore = eventState
 
-	err = ledgerStore.init()
-	if err != nil {
-		return nil, fmt.Errorf("init error %s", err)
-	}
-
 	return ledgerStore, nil
 }
 
 //InitLedgerStoreWithGenesisBlock init the ledger store with genesis block. It's the first operation after NewLedgerStore.
 func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.Block, defaultBookkeeper []keypair.PublicKey) error {
 	hasInit, err := this.hasAlreadyInitGenesisBlock()
-	if err != nil && err != scom.ErrNotFound {
+	if err != nil {
 		return fmt.Errorf("hasAlreadyInit error %s", err)
 	}
 	if !hasInit {
@@ -143,6 +138,7 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 		if err != nil {
 			return fmt.Errorf("init error %s", err)
 		}
+		log.Infof("GenesisBlock init success. GenesisBlock hash:%x\n", genesisBlock.Hash())
 	} else {
 		genesisHash := genesisBlock.Hash()
 		exist, err := this.blockStore.ContainBlock(genesisHash)
@@ -151,6 +147,10 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 		}
 		if !exist {
 			return fmt.Errorf("GenesisBlock arenot init correctly")
+		}
+		err = this.init()
+		if err != nil {
+			return fmt.Errorf("init error %s", err)
 		}
 	}
 	return nil
@@ -186,7 +186,7 @@ func (this *LedgerStoreImp) init() error {
 
 func (this *LedgerStoreImp) initCurrentBlock() error {
 	currentBlockHash, currentBlockHeight, err := this.blockStore.GetCurrentBlock()
-	if err != nil && err != scom.ErrNotFound {
+	if err != nil {
 		return fmt.Errorf("LoadCurrentBlock error %s", err)
 	}
 	log.Infof("InitCurrentBlock currentBlockHash %x currentBlockHeight %d", currentBlockHash, currentBlockHeight)
@@ -196,11 +196,7 @@ func (this *LedgerStoreImp) initCurrentBlock() error {
 }
 
 func (this *LedgerStoreImp) initHeaderIndexList() error {
-	currBlockHeight, currBlockHash := this.GetCurrentBlock()
-	var empty common.Uint256
-	if currBlockHash == empty {
-		return nil
-	}
+	currBlockHeight := this.GetCurrentBlockHeight()
 	headerIndex, err := this.blockStore.GetHeaderIndexList()
 	if err != nil {
 		return fmt.Errorf("LoadHeaderIndexList error %s", err)
@@ -215,7 +211,7 @@ func (this *LedgerStoreImp) initHeaderIndexList() error {
 		if err != nil {
 			return fmt.Errorf("LoadBlockHash height %d error %s", height, err)
 		}
-		if blockHash == empty {
+		if blockHash == common.UINT256_EMPTY {
 			return fmt.Errorf("LoadBlockHash height %d hash nil", height)
 		}
 		this.headerIndex[height] = blockHash
@@ -227,7 +223,7 @@ func (this *LedgerStoreImp) initStore() error {
 	blockHeight := this.GetCurrentBlockHeight()
 
 	_, stateHeight, err := this.stateStore.GetCurrentBlock()
-	if err != nil && err != scom.ErrNotFound {
+	if err != nil {
 		return fmt.Errorf("stateStore.GetCurrentBlock error %s", err)
 	}
 	for i := stateHeight; i < blockHeight; i++ {
@@ -251,7 +247,7 @@ func (this *LedgerStoreImp) initStore() error {
 	}
 
 	_, eventHeight, err := this.eventStore.GetCurrentBlock()
-	if err != nil && err != scom.ErrNotFound {
+	if err != nil {
 		return fmt.Errorf("eventStore.GetCurrentBlock error:%s", err)
 	}
 	for i := eventHeight; i < blockHeight; i++ {
