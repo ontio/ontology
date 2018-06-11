@@ -94,3 +94,7 @@ func (r *RandomAccessStack) Swap(i, j int) {
 	l := len(r.e)
 	r.e[l-i-1], r.e[l-j-1] = r.e[l-j-1], r.e[l-i-1]
 }
+
+func (r *RandomAccessStack) CopyTo(stack *RandomAccessStack) {
+	stack.e = append(stack.e, r.e...)
+}

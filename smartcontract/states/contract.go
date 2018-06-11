@@ -28,13 +28,11 @@ import (
 
 // Invoke smart contract struct
 // Param Version: invoke smart contract version, default 0
-// Param Code: invoke off blockchain code
 // Param Address: invoke on blockchain smart contract by address
 // Param Method: invoke smart contract method, default ""
 // Param Args: invoke smart contract arguments
 type Contract struct {
 	Version byte
-	Code    []byte
 	Address common.Address
 	Method  string
 	Args    []byte
@@ -44,9 +42,6 @@ type Contract struct {
 func (this *Contract) Serialize(w io.Writer) error {
 	if err := serialization.WriteByte(w, this.Version); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[Contract] Version serialize error!")
-	}
-	if err := serialization.WriteVarBytes(w, this.Code); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[Contract] Code serialize error!")
 	}
 	if err := this.Address.Serialize(w); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[Contract] Address serialize error!")
@@ -66,11 +61,6 @@ func (this *Contract) Deserialize(r io.Reader) error {
 	this.Version, err = serialization.ReadByte(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[Contract] Version deserialize error!")
-	}
-
-	this.Code, err = serialization.ReadVarBytes(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[Contract] Code deserialize error!")
 	}
 
 	if err := this.Address.Deserialize(r); err != nil {

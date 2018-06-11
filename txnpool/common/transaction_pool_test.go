@@ -36,10 +36,9 @@ func init() {
 	log.Init(log.PATH, log.Stdout)
 
 	txn = &types.Transaction{
-		Version:    0,
-		Attributes: []*types.TxAttribute{},
-		TxType:     types.Bookkeeper,
-		Payload:    nil,
+		Version: 0,
+		TxType:  types.Bookkeeper,
+		Payload: nil,
 	}
 
 	tempStr := "3369930accc1ddd067245e8edadcd9bea207ba5e1753ac18a51df77a343bfe92"

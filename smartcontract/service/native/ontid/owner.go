@@ -121,7 +121,7 @@ func getPk(srvc *native.NativeService, encID []byte, index uint32) (*owner, erro
 	if err != nil {
 		return nil, err
 	}
-	if index > uint32(len(owners)) {
+	if index < 1 || index > uint32(len(owners)) {
 		return nil, nil
 	}
 	return owners[index-1], nil

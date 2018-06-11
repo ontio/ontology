@@ -48,8 +48,7 @@ func init() {
 	topic = "TXN"
 
 	tx = &types.Transaction{
-		Version:    0,
-		Attributes: []*types.TxAttribute{},
+		Version: 0,
 	}
 
 	tempStr := "3369930accc1ddd067245e8edadcd9bea207ba5e1753ac18a51df77a343bfe92"

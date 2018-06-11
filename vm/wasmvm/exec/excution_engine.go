@@ -27,8 +27,8 @@ import (
 	"reflect"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/smartcontract/types"
 	"github.com/ontio/ontology/vm/neovm/interfaces"
 	"github.com/ontio/ontology/vm/wasmvm/memory"
 	"github.com/ontio/ontology/vm/wasmvm/util"
@@ -391,9 +391,8 @@ func (e *ExecutionEngine) call(caller common.Address,
 
 		vm.Caller = caller
 
-		vmcode := types.VmCode{VmType: types.WASMVM, Code: code}
-		vm.VMCode = vmcode
-		vm.ContractAddress = vmcode.AddressFromVmCode()
+		vm.VMCode = code
+		vm.ContractAddress = types.AddressFromVmCode(code)
 
 		entry, ok := m.Export.Entries[methodName]
 

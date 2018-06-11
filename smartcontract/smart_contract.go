@@ -18,30 +18,21 @@
 package smartcontract
 
 import (
-	"bytes"
+	"fmt"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/store"
-	scommon "github.com/ontio/ontology/core/store/common"
 	ctypes "github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
-	"github.com/ontio/ontology/smartcontract/service/wasmvm"
-	"github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
-	stypes "github.com/ontio/ontology/smartcontract/types"
 	vm "github.com/ontio/ontology/vm/neovm"
 )
 
-var (
-	CONTRACT_NOT_EXIST    = errors.NewErr("[AppCall] Get contract context nil")
-	DEPLOYCODE_TYPE_ERROR = errors.NewErr("[AppCall] DeployCode type error!")
-	INVOKE_CODE_EXIST     = errors.NewErr("[AppCall] Invoke codes exist!")
-	ENGINE_NOT_SUPPORT    = errors.NewErr("[Execute] Engine doesn't support!")
+const (
+	MAX_EXECUTE_ENGINE = 1024
 )
 
 // SmartContract describe smart contract execute engine
@@ -50,8 +41,6 @@ type SmartContract struct {
 	CloneCache    *storage.CloneCache // state cache
 	Store         store.LedgerStore   // ledger store
 	Config        *Config
-	Engine        Engine
-	Code          stypes.VmCode
 	Notifications []*event.NotifyEventInfo // all execute smart contract event notify info
 	Gas           uint64
 }
@@ -61,10 +50,6 @@ type Config struct {
 	Time   uint32              // current block timestamp
 	Height uint32              // current block height
 	Tx     *ctypes.Transaction // current transaction
-}
-
-type Engine interface {
-	Invoke() (interface{}, error)
 }
 
 // PushContext push current context to smart contract
@@ -116,105 +101,44 @@ func (this *SmartContract) CheckUseGas(gas uint64) bool {
 	return true
 }
 
-// Execute is smart contract execute manager
-// According different vm type to launch different service
-func (this *SmartContract) Execute() (interface{}, error) {
-	var engine Engine
-	switch this.Code.VmType {
-	case stypes.Native:
-		engine = &native.NativeService{
-			CloneCache: this.CloneCache,
-			Code:       this.Code.Code,
-			Tx:         this.Config.Tx,
-			Height:     this.Config.Height,
-			Time:       this.Config.Time,
-			ContextRef: this,
-			ServiceMap: make(map[string]native.Handler),
-		}
-	case stypes.NEOVM:
-		engine = &neovm.NeoVmService{
-			Store:      this.Store,
-			CloneCache: this.CloneCache,
-			ContextRef: this,
-			Code:       this.Code.Code,
-			Tx:         this.Config.Tx,
-			Time:       this.Config.Time,
-		}
-	case stypes.WASMVM:
-		engine = &wasmvm.WasmVmService{
-			Store:      this.Store,
-			CloneCache: this.CloneCache,
-			ContextRef: this,
-			Code:       this.Code.Code,
-			Tx:         this.Config.Tx,
-			Time:       this.Config.Time,
-		}
-	default:
-		return nil, ENGINE_NOT_SUPPORT
+func (this *SmartContract) checkContexts() bool {
+	if len(this.Contexts) > MAX_EXECUTE_ENGINE {
+		return false
 	}
-	return engine.Invoke()
+	return true
 }
 
-// AppCall a smart contract, if contract exist on blockchain, you should set the address
-// Param address: invoke smart contract on blockchain according contract address
-// Param method: invoke smart contract method name
-// Param codes: invoke smart contract off blockchain
-// Param args: invoke smart contract args
-func (this *SmartContract) AppCall(address common.Address, method string, codes, args []byte) (interface{}, error) {
-	var code []byte
-	vmType := stypes.VmType(address[0])
-	switch vmType {
-	case stypes.Native:
-		bf := new(bytes.Buffer)
-		c := states.Contract{
-			Address: address,
-			Method:  method,
-			Args:    args,
-		}
-		if err := c.Serialize(bf); err != nil {
-			return nil, err
-		}
-		code = bf.Bytes()
-	case stypes.NEOVM:
-		c, err := this.loadCode(address, codes)
-		if err != nil {
-			return nil, err
-		}
-		var temp []byte
-		build := vm.NewParamsBuilder(new(bytes.Buffer))
-		if method != "" {
-			build.EmitPushByteArray([]byte(method))
-		}
-		temp = append(args, build.ToArray()...)
-		code = append(temp, c...)
-		vmCode := stypes.VmCode{Code: c, VmType: stypes.NEOVM}
-		this.PushContext(&context.Context{ContractAddress: vmCode.AddressFromVmCode()})
-	case stypes.WASMVM:
-		c, err := this.loadCode(address, codes)
-		if err != nil {
-			return nil, err
-		}
-		bf := new(bytes.Buffer)
-		contract := states.Contract{
-			Version: 1, //fix to > 0
-			Address: address,
-			Method:  method,
-			Args:    args,
-			Code:    c,
-		}
-		if err := contract.Serialize(bf); err != nil {
-			return nil, err
-		}
-		code = bf.Bytes()
+// Execute is smart contract execute manager
+// According different vm type to launch different service
+func (this *SmartContract) NewExecuteEngine(code []byte) (context.Engine, error) {
+	if !this.checkContexts() {
+		return nil, fmt.Errorf("%s", "engine over max limit!")
 	}
-
-	this.Code = stypes.VmCode{Code: code, VmType: vmType}
-	res, err := this.Execute()
-	if err != nil {
-		return nil, err
+	service := &neovm.NeoVmService{
+		Store:      this.Store,
+		CloneCache: this.CloneCache,
+		ContextRef: this,
+		Code:       code,
+		Tx:         this.Config.Tx,
+		Time:       this.Config.Time,
+		Height:     this.Config.Height,
+		Engine:     vm.NewExecutionEngine(),
 	}
+	return service, nil
+}
 
-	return res, nil
+func (this *SmartContract) NewNativeService() (*native.NativeService, error) {
+	if !this.checkContexts() {
+		return nil, fmt.Errorf("%s", "engine over max limit!")
+	}
+	service := &native.NativeService{
+		CloneCache: this.CloneCache,
+		ContextRef: this,
+		Tx:         this.Config.Tx,
+		Time:       this.Config.Time,
+		Height:     this.Config.Height,
+	}
+	return service, nil
 }
 
 // CheckWitness check whether authorization correct
@@ -222,56 +146,25 @@ func (this *SmartContract) AppCall(address common.Address, method string, codes,
 // Else check whether address is calling contract address
 // Param address: wallet address or contract address
 func (this *SmartContract) CheckWitness(address common.Address) bool {
-	if stypes.IsVmCodeAddress(address) {
-		if this.CallingContext() != nil && this.CallingContext().ContractAddress == address {
+	if this.checkAccountAddress(address) || this.checkContractAddress(address) {
+		return true
+	}
+	return false
+}
+
+func (this *SmartContract) checkAccountAddress(address common.Address) bool {
+	addresses := this.Config.Tx.GetSignatureAddresses()
+	for _, v := range addresses {
+		if v == address {
 			return true
-		}
-	} else {
-		addresses := this.Config.Tx.GetSignatureAddresses()
-		for _, v := range addresses {
-			if v == address {
-				return true
-			}
 		}
 	}
 	return false
 }
 
-// loadCode load smart contract execute code
-// Param address, invoke on blockchain smart contract address
-// Param codes, invoke off blockchain smart contract code
-// If you invoke off blockchain smart contract, you can set address is codes address
-// But this address doesn't deployed on blockchain
-func (this *SmartContract) loadCode(address common.Address, codes []byte) ([]byte, error) {
-	isLoad := false
-	if len(codes) == 0 {
-		isLoad = true
+func (this *SmartContract) checkContractAddress(address common.Address) bool {
+	if this.CallingContext() != nil && this.CallingContext().ContractAddress == address {
+		return true
 	}
-	item, err := this.getContract(address[:])
-	if err != nil {
-		return nil, err
-	}
-	if isLoad {
-		if item == nil {
-			return nil, CONTRACT_NOT_EXIST
-		}
-		contract, ok := item.Value.(*payload.DeployCode)
-		if !ok {
-			return nil, DEPLOYCODE_TYPE_ERROR
-		}
-		return contract.Code.Code, nil
-	} else {
-		if item != nil {
-			return nil, INVOKE_CODE_EXIST
-		}
-		return codes, nil
-	}
-}
-
-func (this *SmartContract) getContract(address []byte) (*scommon.StateItem, error) {
-	item, err := this.CloneCache.Store.TryGet(scommon.ST_CONTRACT, address[:])
-	if err != nil {
-		return nil, errors.NewErr("[getContract] Get contract context error!")
-	}
-	return item, nil
+	return false
 }

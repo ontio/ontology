@@ -22,7 +22,6 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/stretchr/testify/assert"
 )
@@ -59,6 +58,6 @@ func TestTotalONG(t *testing.T) {
 	assert.Equal(t, CalcUnbindOng(1, 0, TIME_INTERVAL*108),
 		constants.ONT_TOTAL_SUPPLY)
 
-	assert.Equal(t, CalcUnbindOng(1, 0, math.MaxUint32),
+	assert.Equal(t, CalcUnbindOng(1, 0, ^uint32(0)),
 		constants.ONT_TOTAL_SUPPLY)
 }

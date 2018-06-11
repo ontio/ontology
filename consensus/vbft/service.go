@@ -46,7 +46,6 @@ import (
 	ninit "github.com/ontio/ontology/smartcontract/service/native/init"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/states"
-	stypes "github.com/ontio/ontology/smartcontract/types"
 	"github.com/ontio/ontology/validator/increment"
 )
 
@@ -2039,11 +2038,7 @@ func (self *Server) creategovernaceTransaction(blkNum uint32) *types.Transaction
 	}
 	bf := new(bytes.Buffer)
 	init.Serialize(bf)
-	vmCode := stypes.VmCode{
-		VmType: stypes.Native,
-		Code:   bf.Bytes(),
-	}
-	tx := utils.NewInvokeTransaction(vmCode)
+	tx := utils.NewInvokeTransaction(bf.Bytes())
 	tx.Nonce = blkNum
 	return tx
 }
@@ -2092,7 +2087,7 @@ func (self *Server) nonSystxs(sysTxs []*types.Transaction, blkNum uint32) bool {
 			log.Errorf("nonSystxs invoke is nil,blocknum:%d", blkNum)
 			return true
 		}
-		if bytes.Compare(invoke.Code.Code, ninit.COMMIT_DPOS_BYTES) == 0 {
+		if bytes.Compare(invoke.Code, ninit.COMMIT_DPOS_BYTES) == 0 {
 			return false
 		}
 	}

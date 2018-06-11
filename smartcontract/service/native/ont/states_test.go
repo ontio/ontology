@@ -15,25 +15,32 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-package wasmvm
+
+package ont
 
 import (
-	"github.com/ontio/ontology/smartcontract/types"
-	"strings"
+	"bytes"
 	"testing"
+
+	"github.com/magiconair/properties/assert"
+	"github.com/ontio/ontology/core/types"
 )
 
-func TestWasmVmService_GetContractCodeFromAddress(t *testing.T) {
-	code := "0061736d01000000010c0260027f7f017f60017f017f03030200010710020361646400000673717561726500010a11020700200120006a0b0700200020006c0b"
-	address := GetContractAddress(code, types.WASMVM)
-
-	if len(address[:]) != 20 {
-		t.Error("TestWasmVmService_GetContractCodeFromAddress get address failed")
+func TestState_Serialize(t *testing.T) {
+	state := State{
+		From:  types.AddressFromVmCode([]byte{1, 2, 3}),
+		To:    types.AddressFromVmCode([]byte{4, 5, 6}),
+		Value: 1,
+	}
+	bf := new(bytes.Buffer)
+	if err := state.Serialize(bf); err != nil {
+		t.Fatal("state serialize fail!")
 	}
 
-	hexaddr := address.ToHexString()
-
-	if strings.Index(hexaddr, "9") != 0 {
-		t.Error("TestWasmVmService_GetContractCodeFromAddress is not a wasm contract address")
+	state2 := State{}
+	if err := state2.Deserialize(bf); err != nil {
+		t.Fatal("state deserialize fail!")
 	}
+
+	assert.Equal(t, state, state2)
 }

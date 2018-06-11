@@ -25,8 +25,8 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
-	stypes "github.com/ontio/ontology/smartcontract/types"
 	vm "github.com/ontio/ontology/vm/neovm"
 )
 
@@ -36,7 +36,7 @@ func ContractCreate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] contract parameters invalid!")
 	}
-	contractAddress := contract.Code.AddressFromVmCode()
+	contractAddress := types.AddressFromVmCode(contract.Code)
 	state, err := service.CloneCache.GetOrAdd(scommon.ST_CONTRACT, contractAddress[:], contract)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] GetOrAdd error!")
@@ -51,7 +51,7 @@ func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractMigrate] contract parameters invalid!")
 	}
-	contractAddress := contract.Code.AddressFromVmCode()
+	contractAddress := types.AddressFromVmCode(contract.Code)
 
 	if err := isContractExist(service, contractAddress); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractMigrate] contract invalid!")
@@ -101,7 +101,7 @@ func ContractGetStorageContext(service *NeoVmService, engine *vm.ExecutionEngine
 	if !ok {
 		return errors.NewErr("[GetStorageContext] Pop data not contract!")
 	}
-	address := contractState.Code.AddressFromVmCode()
+	address := types.AddressFromVmCode(contractState.Code)
 	item, err := service.CloneCache.Store.TryGet(scommon.ST_CONTRACT, address[:])
 	if err != nil || item == nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[GetStorageContext] Get StorageContext nil")
@@ -115,7 +115,7 @@ func ContractGetStorageContext(service *NeoVmService, engine *vm.ExecutionEngine
 
 // ContractGetCode put contract to vm stack
 func ContractGetCode(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	vm.PushData(engine, vm.PopInteropInterface(engine).(*payload.DeployCode).Code.Code)
+	vm.PushData(engine, vm.PopInteropInterface(engine).(*payload.DeployCode).Code)
 	return nil
 }
 
@@ -149,7 +149,7 @@ func isContractParamValid(engine *vm.ExecutionEngine) (*payload.DeployCode, erro
 		return nil, errors.NewErr("[Contract] Desc too long!")
 	}
 	contract := &payload.DeployCode{
-		Code:        stypes.VmCode{VmType: stypes.NEOVM, Code: code},
+		Code:        code,
 		NeedStorage: needStorage,
 		Name:        string(name),
 		Version:     string(version),

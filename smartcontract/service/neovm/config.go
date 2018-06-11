@@ -31,7 +31,6 @@ var (
 	STORAGE_PUT_GAS               uint64 = 1000
 	STORAGE_DELETE_GAS            uint64 = 100
 	RUNTIME_CHECKWITNESS_GAS      uint64 = 200
-	RUNTIME_CHECKSIG_GAS          uint64 = 200
 	APPCALL_GAS                   uint64 = 10
 	TAILCALL_GAS                  uint64 = 10
 	SHA1_GAS                      uint64 = 10
@@ -40,51 +39,60 @@ var (
 	HASH256_GAS                   uint64 = 20
 	OPCODE_GAS                    uint64 = 1
 
+	METHOD_LENGTH_LIMIT int = 1024
+	ARGS_LENGTH_LIMIT   int = 65536
+	MAX_STACK_SIZE      int = 1024
+
 	// API Name
-	ATTRIBUTE_GETUSAGE_NAME = "Neo.Attribute.GetUsage"
-	ATTRIBUTE_GETDATA_NAME  = "Neo.Attribute.GetData"
+	ATTRIBUTE_GETUSAGE_NAME = "Ontology.Attribute.GetUsage"
+	ATTRIBUTE_GETDATA_NAME  = "Ontology.Attribute.GetData"
 
-	BLOCK_GETTRANSACTIONCOUNT_NAME = "Neo.Block.GetTransactionCount"
-	BLOCK_GETTRANSACTIONS_NAME     = "Neo.Block.GetTransactions"
-	BLOCK_GETTRANSACTION_NAME      = "Neo.Block.GetTransaction"
-	BLOCKCHAIN_GETHEIGHT_NAME      = "Neo.Blockchain.GetHeight"
-	BLOCKCHAIN_GETHEADER_NAME      = "Neo.Blockchain.GetHeader"
-	BLOCKCHAIN_GETBLOCK_NAME       = "Neo.Blockchain.GetBlock"
-	BLOCKCHAIN_GETTRANSACTION_NAME = "Neo.Blockchain.GetTransaction"
-	BLOCKCHAIN_GETCONTRACT_NAME    = "Neo.Blockchain.GetContract"
+	BLOCK_GETTRANSACTIONCOUNT_NAME       = "System.Block.GetTransactionCount"
+	BLOCK_GETTRANSACTIONS_NAME           = "System.Block.GetTransactions"
+	BLOCK_GETTRANSACTION_NAME            = "System.Block.GetTransaction"
+	BLOCKCHAIN_GETHEIGHT_NAME            = "System.Blockchain.GetHeight"
+	BLOCKCHAIN_GETHEADER_NAME            = "System.Blockchain.GetHeader"
+	BLOCKCHAIN_GETBLOCK_NAME             = "System.Blockchain.GetBlock"
+	BLOCKCHAIN_GETTRANSACTION_NAME       = "System.Blockchain.GetTransaction"
+	BLOCKCHAIN_GETCONTRACT_NAME          = "System.Blockchain.GetContract"
+	BLOCKCHAIN_GETTRANSACTIONHEIGHT_NAME = "System.Blockchain.GetTransactionHeight"
 
-	HEADER_GETINDEX_NAME         = "Neo.Header.GetIndex"
-	HEADER_GETHASH_NAME          = "Neo.Header.GetHash"
-	HEADER_GETVERSION_NAME       = "Neo.Header.GetVersion"
-	HEADER_GETPREVHASH_NAME      = "Neo.Header.GetPrevHash"
-	HEADER_GETTIMESTAMP_NAME     = "Neo.Header.GetTimestamp"
-	HEADER_GETCONSENSUSDATA_NAME = "Neo.Header.GetConsensusDat"
-	HEADER_GETNEXTCONSENSUS_NAME = "Neo.Header.GetNextConsensus"
-	HEADER_GETMERKLEROOT_NAME    = "Neo.Header.GetMerkleRoot"
+	HEADER_GETINDEX_NAME         = "System.Header.GetIndex"
+	HEADER_GETHASH_NAME          = "System.Header.GetHash"
+	HEADER_GETVERSION_NAME       = "Ontology.Header.GetVersion"
+	HEADER_GETPREVHASH_NAME      = "System.Header.GetPrevHash"
+	HEADER_GETTIMESTAMP_NAME     = "System.Header.GetTimestamp"
+	HEADER_GETCONSENSUSDATA_NAME = "Ontology.Header.GetConsensusData"
+	HEADER_GETNEXTCONSENSUS_NAME = "Ontology.Header.GetNextConsensus"
+	HEADER_GETMERKLEROOT_NAME    = "Ontology.Header.GetMerkleRoot"
 
-	TRANSACTION_GETHASH_NAME       = "Neo.Transaction.GetHash"
-	TRANSACTION_GETTYPE_NAME       = "Neo.Transaction.GetType"
-	TRANSACTION_GETATTRIBUTES_NAME = "Neo.Transaction.GetAttributes"
+	TRANSACTION_GETHASH_NAME       = "System.Transaction.GetHash"
+	TRANSACTION_GETTYPE_NAME       = "Ontology.Transaction.GetType"
+	TRANSACTION_GETATTRIBUTES_NAME = "Ontology.Transaction.GetAttributes"
 
-	CONTRACT_CREATE_NAME            = "Neo.Contract.Create"
-	CONTRACT_MIGRATE_NAME           = "Neo.Contract.Migrate"
-	CONTRACT_GETSTORAGECONTEXT_NAME = "Neo.Contract.GetStorageContext"
-	CONTRACT_DESTROY_NAME           = "Neo.Contract.Destroy"
-	CONTRACT_GETSCRIPT_NAME         = "Neo.Contract.GetScript"
+	CONTRACT_CREATE_NAME            = "Ontology.Contract.Create"
+	CONTRACT_MIGRATE_NAME           = "Ontology.Contract.Migrate"
+	CONTRACT_GETSTORAGECONTEXT_NAME = "System.Contract.GetStorageContext"
+	CONTRACT_DESTROY_NAME           = "System.Contract.Destroy"
+	CONTRACT_GETSCRIPT_NAME         = "Ontology.Contract.GetScript"
 
-	STORAGE_GET_NAME        = "Neo.Storage.Get"
-	STORAGE_PUT_NAME        = "Neo.Storage.Put"
-	STORAGE_DELETE_NAME     = "Neo.Storage.Delete"
-	STORAGE_GETCONTEXT_NAME = "Neo.Storage.GetContext"
+	STORAGE_GET_NAME                = "Neo.Storage.Get"
+	STORAGE_PUT_NAME                = "Neo.Storage.Put"
+	STORAGE_DELETE_NAME             = "Neo.Storage.Delete"
+	STORAGE_GETCONTEXT_NAME         = "Neo.Storage.GetContext"
+	STORAGE_GETREADONLYCONTEXT_NAME = "System.Storage.GetReadOnlyContext"
 
-	RUNTIME_GETTIME_NAME      = "Neo.Runtime.GetTime"
-	RUNTIME_CHECKWITNESS_NAME = "Neo.Runtime.CheckWitness"
-	RUNTIME_CHECKSIG_NAME     = "Neo.Runtime.CheckSig"
-	RUNTIME_NOTIFY_NAME       = "Neo.Runtime.Notify"
-	RUNTIME_LOG_NAME          = "Neo.Runtime.Log"
+	STORAGECONTEXT_ASREADONLY_NAME = "System.StorageContext.AsReadOnly"
 
-	RUNTIME_SERIALIZE   = "Neo.Runtime.Serialize"
-	RUNTIME_DESERIALIZE = "Neo.Runtime.Deserialize"
+	RUNTIME_GETTIME_NAME      = "System.Runtime.GetTime"
+	RUNTIME_CHECKWITNESS_NAME = "System.Runtime.CheckWitness"
+	RUNTIME_NOTIFY_NAME       = "System.Runtime.Notify"
+	RUNTIME_LOG_NAME          = "System.Runtime.Log"
+	RUNTIME_GETTRIGGER_NAME   = "System.Runtime.GetTrigger"
+	RUNTIME_SERIALIZE_NAME    = "System.Runtime.Serialize"
+	RUNTIME_DESERIALIZE_NAME  = "System.Runtime.Deserialize"
+
+	NATIVE_INVOKE_NAME = "Ontology.Native.Invoke"
 
 	GETSCRIPTCONTAINER_NAME     = "System.ExecutionEngine.GetScriptContainer"
 	GETEXECUTINGSCRIPTHASH_NAME = "System.ExecutionEngine.GetExecutingScriptHash"
@@ -109,7 +117,6 @@ var (
 		STORAGE_PUT_NAME:               STORAGE_PUT_GAS,
 		STORAGE_DELETE_NAME:            STORAGE_DELETE_GAS,
 		RUNTIME_CHECKWITNESS_NAME:      RUNTIME_CHECKWITNESS_GAS,
-		RUNTIME_CHECKSIG_NAME:          RUNTIME_CHECKSIG_GAS,
 		APPCALL_NAME:                   APPCALL_GAS,
 		TAILCALL_NAME:                  TAILCALL_GAS,
 		SHA1_NAME:                      SHA1_GAS,
