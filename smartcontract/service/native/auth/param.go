@@ -62,7 +62,7 @@ func (this *TransferParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteVarBytes(w, this.NewAdminOntID); err != nil {
 		return err
 	}
-	if err := serialization.WriteVarUint(w, this.KeyNo); err != nil {
+	if err := utils.WriteVarUint(w, this.KeyNo); err != nil {
 		return nil
 	}
 	return nil
@@ -76,7 +76,7 @@ func (this *TransferParam) Deserialize(rd io.Reader) error {
 	if this.NewAdminOntID, err = serialization.ReadVarBytes(rd); err != nil {
 		return err
 	}
-	if this.KeyNo, err = serialization.ReadVarUint(rd, 0); err != nil {
+	if this.KeyNo, err = utils.ReadVarUint(rd); err != nil {
 		return err
 	}
 	return nil
@@ -109,7 +109,7 @@ func (this *FuncsToRoleParam) Serialize(w io.Writer) error {
 			return err
 		}
 	}
-	if err := serialization.WriteVarUint(w, this.KeyNo); err != nil {
+	if err := utils.WriteVarUint(w, this.KeyNo); err != nil {
 		return nil
 	}
 	return nil
@@ -140,7 +140,7 @@ func (this *FuncsToRoleParam) Deserialize(rd io.Reader) error {
 		}
 		this.FuncNames = append(this.FuncNames, fn)
 	}
-	if this.KeyNo, err = serialization.ReadVarUint(rd, 0); err != nil {
+	if this.KeyNo, err = utils.ReadVarUint(rd); err != nil {
 		return err
 	}
 	return nil
@@ -172,7 +172,7 @@ func (this *OntIDsToRoleParam) Serialize(w io.Writer) error {
 			return err
 		}
 	}
-	if err := serialization.WriteVarUint(w, this.KeyNo); err != nil {
+	if err := utils.WriteVarUint(w, this.KeyNo); err != nil {
 		return nil
 	}
 	return nil
@@ -201,7 +201,7 @@ func (this *OntIDsToRoleParam) Deserialize(rd io.Reader) error {
 		}
 		this.Persons = append(this.Persons, p)
 	}
-	if this.KeyNo, err = serialization.ReadVarUint(rd, 0); err != nil {
+	if this.KeyNo, err = utils.ReadVarUint(rd); err != nil {
 		return err
 	}
 	return nil
@@ -230,13 +230,13 @@ func (this *DelegateParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteVarBytes(w, this.Role); err != nil {
 		return err
 	}
-	if err := serialization.WriteVarUint(w, this.Period); err != nil {
+	if err := utils.WriteVarUint(w, this.Period); err != nil {
 		return err
 	}
-	if err := serialization.WriteVarUint(w, uint64(this.Level)); err != nil {
+	if err := utils.WriteVarUint(w, uint64(this.Level)); err != nil {
 		return err
 	}
-	if err := serialization.WriteVarUint(w, this.KeyNo); err != nil {
+	if err := utils.WriteVarUint(w, this.KeyNo); err != nil {
 		return err
 	}
 	return nil
@@ -257,13 +257,13 @@ func (this *DelegateParam) Deserialize(rd io.Reader) error {
 	if this.Role, err = serialization.ReadVarBytes(rd); err != nil {
 		return err
 	}
-	if this.Period, err = serialization.ReadVarUint(rd, 0); err != nil {
+	if this.Period, err = utils.ReadVarUint(rd); err != nil {
 		return err
 	}
-	if level, err = serialization.ReadVarUint(rd, 0); err != nil {
+	if level, err = utils.ReadVarUint(rd); err != nil {
 		return err
 	}
-	if this.KeyNo, err = serialization.ReadVarUint(rd, 0); err != nil {
+	if this.KeyNo, err = utils.ReadVarUint(rd); err != nil {
 		return err
 	}
 	if level > math.MaxInt8 || this.Period > math.MaxUint32 {
@@ -294,7 +294,7 @@ func (this *WithdrawParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteVarBytes(w, this.Role); err != nil {
 		return err
 	}
-	if err := serialization.WriteVarUint(w, this.KeyNo); err != nil {
+	if err := utils.WriteVarUint(w, this.KeyNo); err != nil {
 		return err
 	}
 	return nil
@@ -313,7 +313,7 @@ func (this *WithdrawParam) Deserialize(rd io.Reader) error {
 	if this.Role, err = serialization.ReadVarBytes(rd); err != nil {
 		return err
 	}
-	if this.KeyNo, err = serialization.ReadVarUint(rd, 0); err != nil {
+	if this.KeyNo, err = utils.ReadVarUint(rd); err != nil {
 		return err
 	}
 	return nil
@@ -336,7 +336,7 @@ func (this *VerifyTokenParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteString(w, this.Fn); err != nil {
 		return err
 	}
-	if err := serialization.WriteVarUint(w, this.KeyNo); err != nil {
+	if err := utils.WriteVarUint(w, this.KeyNo); err != nil {
 		return err
 	}
 	return nil
@@ -353,7 +353,7 @@ func (this *VerifyTokenParam) Deserialize(rd io.Reader) error {
 	if this.Fn, err = serialization.ReadString(rd); err != nil {
 		return err
 	}
-	if this.KeyNo, err = serialization.ReadVarUint(rd, 0); err != nil {
+	if this.KeyNo, err = utils.ReadVarUint(rd); err != nil {
 		return err
 	}
 	return nil
