@@ -25,6 +25,7 @@ import (
 	cmdcom "github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
+	httpcom "github.com/ontio/ontology/http/base/common"
 	"github.com/urfave/cli"
 	"io/ioutil"
 	"strings"
@@ -140,7 +141,7 @@ func deployContract(ctx *cli.Context) error {
 
 func invokeCodeContract(ctx *cli.Context) error {
 	if !ctx.IsSet(utils.GetFlagName(utils.ContractCodeFileFlag)) {
-		fmt.Errorf("Missing code or name argument\n")
+		fmt.Printf("Missing code or name argument\n")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
@@ -163,7 +164,8 @@ func invokeCodeContract(ctx *cli.Context) error {
 	}
 	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
 	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
-	invokeTx := utils.NewInvokeTransaction(gasLimit, gasPrice, c)
+
+	invokeTx, err := httpcom.NewSmartContractTransaction(gasLimit, gasPrice, c)
 	if err != nil {
 		return err
 	}
@@ -183,7 +185,7 @@ func invokeCodeContract(ctx *cli.Context) error {
 
 func invokeContract(ctx *cli.Context) error {
 	if !ctx.IsSet(utils.GetFlagName(utils.ContractAddrFlag)) {
-		fmt.Errorf("Missing contract address argument.\n")
+		fmt.Printf("Missing contract address argument.\n")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
@@ -197,7 +199,6 @@ func invokeContract(ctx *cli.Context) error {
 		return fmt.Errorf("Invalid contract address error:%s", err)
 	}
 
-	cversion := byte(ctx.Int(utils.GetFlagName(utils.ContractVersionFlag)))
 	paramsStr := ctx.String(utils.GetFlagName(utils.ContractParamsFlag))
 	params, err := utils.ParseParams(paramsStr)
 	if err != nil {
@@ -208,7 +209,7 @@ func invokeContract(ctx *cli.Context) error {
 	fmt.Printf("Invoke:%x Params:%s\n", contractAddr[:], paramData)
 
 	if ctx.IsSet(utils.GetFlagName(utils.ContractPrepareInvokeFlag)) {
-		preResult, err := utils.PrepareInvokeNeoVMContract(cversion, contractAddr, params)
+		preResult, err := utils.PrepareInvokeNeoVMContract(contractAddr, params)
 		if err != nil {
 			return fmt.Errorf("PrepareInvokeNeoVMSmartContact error:%s", err)
 		}
@@ -244,7 +245,7 @@ func invokeContract(ctx *cli.Context) error {
 	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
 	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
 
-	txHash, err := utils.InvokeNeoVMContract(gasPrice, gasLimit, signer, cversion, contractAddr, params)
+	txHash, err := utils.InvokeNeoVMContract(gasPrice, gasLimit, signer, contractAddr, params)
 	if err != nil {
 		return fmt.Errorf("Invoke NeoVM contract error:%s", err)
 	}
