@@ -73,6 +73,9 @@ func decodeID(data []byte) ([]byte, error) {
 }
 
 func verifyID(id []byte) bool {
+	if len(id) < 9 {
+		return false
+	}
 	if string(id[0:8]) != "did:ont:" {
 		return false
 	}
