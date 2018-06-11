@@ -124,7 +124,7 @@ func Transfer(native *native.NativeService) ([]byte, error) {
 	sucState := []interface{}{"transfer", contract, true}
 
 	//call transfer func
-	contractAddr, _ := addressToBytes(&param.ContractAddr)
+	contractAddr := param.ContractAddr[:]
 	ret, err := transfer(native, contractAddr, param.NewAdminOntID, param.KeyNo)
 	if ret {
 		pushEvent(native, sucState)
@@ -154,7 +154,7 @@ func AssignFuncsToRole(native *native.NativeService) ([]byte, error) {
 	}
 
 	//check the caller's permission
-	contractAddr, _ := addressToBytes(&param.ContractAddr)
+	contractAddr := param.ContractAddr[:]
 	admin, err := getContractAdmin(native, contractAddr)
 	if err != nil {
 		return nil, fmt.Errorf("get contract admin failed, caused by %v", err)
@@ -195,7 +195,7 @@ func AssignFuncsToRole(native *native.NativeService) ([]byte, error) {
 
 func assignToRole(native *native.NativeService, param *OntIDsToRoleParam) (bool, error) {
 	//check admin's permission
-	contractAddr, _ := addressToBytes(&param.ContractAddr)
+	contractAddr := param.ContractAddr[:]
 	admin, err := getContractAdmin(native, contractAddr)
 	if err != nil {
 		return false, fmt.Errorf("get contract admin failed, caused by %v", err)
@@ -444,7 +444,7 @@ func Delegate(native *native.NativeService) ([]byte, error) {
 	sucState := []interface{}{"delegate", contract, param.From, param.To, true}
 
 	//call the delegate func
-	contractAddr, _ := addressToBytes(&param.ContractAddr)
+	contractAddr := param.ContractAddr[:]
 	ret, err := delegate(native, contractAddr, param.From, param.To, param.Role,
 		uint32(param.Period), uint8(param.Level), param.KeyNo)
 	if err != nil {
@@ -517,7 +517,7 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 	sucState := []interface{}{"withdraw", contract, param.Initiator, param.Delegate, true}
 
 	//call the withdraw func
-	contractAddr, _ := addressToBytes(&param.ContractAddr)
+	contractAddr := param.ContractAddr[:]
 	ret, err := withdraw(native, contractAddr, param.Initiator, param.Delegate, param.Role, param.KeyNo)
 	if err != nil {
 		return nil, err
@@ -605,7 +605,7 @@ func VerifyToken(native *native.NativeService) ([]byte, error) {
 	failState := []interface{}{"verifyToken", contract, param.Caller, param.Fn, false}
 	sucState := []interface{}{"verifyToken", contract, param.Caller, param.Fn, true}
 
-	contractAddr, _ := addressToBytes(&param.ContractAddr)
+	contractAddr := param.ContractAddr[:]
 	ret, err := verifyToken(native, contractAddr, param.Caller, param.Fn, param.KeyNo)
 	if err != nil {
 		return nil, err
