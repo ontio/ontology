@@ -576,8 +576,7 @@ func genMultiAddress(ctx *cli.Context) error {
 	}
 
 	pks := strings.Split(pkstr, ",")
-	pkSize := len(pks)
-	pubKeys := make([]keypair.PublicKey, 0, pkSize)
+	pubKeys := make([]keypair.PublicKey, 0, len(pks))
 	for _, pk := range pks {
 		pk := strings.TrimSpace(pk)
 		if pk == "" {
@@ -596,9 +595,9 @@ func genMultiAddress(ctx *cli.Context) error {
 		}
 		pubKeys = append(pubKeys, pubKey)
 	}
+	pkSize := len(pubKeys)
 	if pkSize == 0 || pkSize > MAX_PUBLIC_KEY_SIZE ||
-		m == 0 || m > MAX_PUBLIC_KEY_SIZE ||
-		int(m) > pkSize {
+		m == 0 || int(m) > pkSize {
 		fmt.Printf("Invaid argument. %s and %s must > 0 and <= %d, and m must < number of pubkey.\n", utils.GetFlagName(utils.AccountMultiMFlag), utils.GetFlagName(utils.AccountMultiPubKeyFlag), MAX_PUBLIC_KEY_SIZE)
 		cli.ShowSubcommandHelp(ctx)
 		return nil
