@@ -47,8 +47,8 @@ func (self *Address) Serialize(w io.Writer) error {
 
 // Deserialize deserialize Address from io.Reader
 func (self *Address) Deserialize(r io.Reader) error {
-	n, err := r.Read(self[:])
-	if n != len(self[:]) || err != nil {
+	_, err := io.ReadFull(r, self[:])
+	if err != nil {
 		return errors.New("deserialize Address error")
 	}
 	return nil

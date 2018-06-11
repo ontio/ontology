@@ -76,8 +76,8 @@ func (self *Bookkeeper) Deserialize(r io.Reader) error {
 	}
 
 	var p [1]byte
-	n, err := r.Read(p[:])
-	if n == 0 {
+	_, err = io.ReadFull(r, p[:])
+	if err != nil {
 		return fmt.Errorf("[Bookkeeper], deserializing Action failed: %s", err)
 	}
 	self.Action = BookkeeperAction(p[0])

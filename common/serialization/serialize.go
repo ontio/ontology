@@ -100,25 +100,25 @@ func ReadVarUint(reader io.Reader, maxint uint64) (uint64, error) {
 		maxint = math.MaxUint64
 	}
 	var fb [9]byte
-	_, err := reader.Read(fb[:1])
+	_, err := io.ReadFull(reader, fb[:1])
 	if err != nil {
 		return 0, err
 	}
 
 	if fb[0] == byte(0xfd) {
-		_, err := reader.Read(fb[1:3])
+		_, err := io.ReadFull(reader, fb[1:3])
 		if err != nil {
 			return 0, err
 		}
 		res = uint64(binary.LittleEndian.Uint16(fb[1:3]))
 	} else if fb[0] == byte(0xfe) {
-		_, err := reader.Read(fb[1:5])
+		_, err := io.ReadFull(reader, fb[1:5])
 		if err != nil {
 			return 0, err
 		}
 		res = uint64(binary.LittleEndian.Uint32(fb[1:5]))
 	} else if fb[0] == byte(0xff) {
-		_, err := reader.Read(fb[1:9])
+		_, err := io.ReadFull(reader, fb[1:9])
 		if err != nil {
 			return 0, err
 		}
@@ -187,8 +187,8 @@ func ReadBytes(reader io.Reader, length uint64) ([]byte, error) {
 
 func ReadUint8(reader io.Reader) (uint8, error) {
 	var p [1]byte
-	n, err := reader.Read(p[:])
-	if n != 1 || err != nil {
+	_, err := io.ReadFull(reader, p[:])
+	if err != nil {
 		return 0, ErrEof
 	}
 	return uint8(p[0]), nil
@@ -196,8 +196,8 @@ func ReadUint8(reader io.Reader) (uint8, error) {
 
 func ReadUint16(reader io.Reader) (uint16, error) {
 	var p [2]byte
-	n, err := reader.Read(p[:])
-	if n != 2 || err != nil {
+	_, err := io.ReadFull(reader, p[:])
+	if err != nil {
 		return 0, ErrEof
 	}
 	return binary.LittleEndian.Uint16(p[:]), nil
@@ -205,8 +205,8 @@ func ReadUint16(reader io.Reader) (uint16, error) {
 
 func ReadUint32(reader io.Reader) (uint32, error) {
 	var p [4]byte
-	n, err := reader.Read(p[:])
-	if n != 4 || err != nil {
+	_, err := io.ReadFull(reader, p[:])
+	if err != nil {
 		return 0, ErrEof
 	}
 	return binary.LittleEndian.Uint32(p[:]), nil
@@ -214,8 +214,8 @@ func ReadUint32(reader io.Reader) (uint32, error) {
 
 func ReadUint64(reader io.Reader) (uint64, error) {
 	var p [8]byte
-	n, err := reader.Read(p[:])
-	if n != 8 || err != nil {
+	_, err := io.ReadFull(reader, p[:])
+	if err != nil {
 		return 0, ErrEof
 	}
 	return binary.LittleEndian.Uint64(p[:]), nil
@@ -270,16 +270,16 @@ func byteXReader(reader io.Reader, x uint64) ([]byte, error) {
 	var p []byte
 	var tmp [LEN]byte
 	for x > LEN {
-		n, err := reader.Read(tmp[:])
-		if n != LEN || err != nil {
+		_, err := io.ReadFull(reader, tmp[:])
+		if err != nil {
 			return nil, ErrEof
 		}
 		p = append(p, tmp[:]...)
 		x -= LEN
 	}
 
-	n, err := reader.Read(tmp[:x])
-	if n != int(x) || err != nil {
+	_, err := io.ReadFull(reader, tmp[:x])
+	if err != nil {
 		return nil, ErrEof
 	}
 	p = append(p, tmp[:x]...)

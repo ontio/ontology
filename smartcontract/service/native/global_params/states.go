@@ -102,8 +102,8 @@ func (admin *Admin) Serialize(w io.Writer) error {
 }
 
 func (admin *Admin) Deserialize(r io.Reader) error {
-	n, err := r.Read(admin[:])
-	if n != len(admin[:]) || err != nil {
+	_, err := io.ReadFull(r, admin[:])
+	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, deserialize admin error!")
 	}
 	return nil
