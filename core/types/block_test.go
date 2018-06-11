@@ -40,32 +40,36 @@ func genTestHeader() *Header {
 	return header
 }
 
-func genTestBlock() *Block {
+func genTestBlock() (*Block, error) {
 	block := new(Block)
 	block.Header = genTestHeader()
 	block.Transactions = make([]*Transaction, 0)
-	block.Transactions = append(block.Transactions, genTestTx(Invoke))
+	testTx , err := genTestTx(Invoke)
+	block.Transactions = append(block.Transactions, testTx)
 	block.RebuildMerkleRoot()
-	return block
+	return block, err
 }
 
 func TestBlock_Serialize_Deserialize(t *testing.T) {
-	testBlock := genTestBlock()
+	testBlock, err := genTestBlock()
+	assert.Nil(t, err)
 	bf := new(bytes.Buffer)
-	err := testBlock.Serialize(bf)
+	err = testBlock.Serialize(bf)
 	assert.Nil(t, err)
 
 	deserializeBlock := new(Block)
 	err = deserializeBlock.Deserialize(bf)
+	deserializeBlock.RebuildMerkleRoot()
 	assert.Nil(t, err)
 
 	assert.Equal(t, deserializeBlock, testBlock)
 }
 
 func TestBlockFunc(t *testing.T) {
-	testBlock := genTestBlock()
+	testBlock, err := genTestBlock()
+	assert.Nil(t, err)
 	bf := new(bytes.Buffer)
-	err := testBlock.Trim(bf)
+	err = testBlock.Trim(bf)
 	assert.Nil(t, err)
 
 	trimBlock := new(Block)

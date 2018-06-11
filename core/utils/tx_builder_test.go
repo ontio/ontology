@@ -21,19 +21,17 @@ package utils
 import (
 	ctype "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"github.com/ontio/ontology/smartcontract/types"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestTransactionBuilder(t *testing.T) {
-	testCode := types.VmCode{Code: utils.AuthContractAddress[:], VmType: types.Native}
-	deployTx := NewDeployTransaction(testCode, "AuthContract", "1.0",
-		"Ontology Team", "contact@ont.io", "Ontology Network Authorization Contract", true)
+	deployTx := NewDeployTransaction(utils.OntIDContractAddress[:], "OID", "1.0",
+		"Ontology Team", "contact@ont.io", "Ontology Network ONT ID", true)
 	assert.NotNil(t, deployTx)
 	assert.Equal(t, deployTx.TxType, ctype.Deploy)
 
-	invokeTx := NewInvokeTransaction(testCode)
+	invokeTx := NewInvokeTransaction([]byte{1, 2, 3})
 	assert.NotNil(t, invokeTx)
 	assert.Equal(t, invokeTx.TxType, ctype.Invoke)
 }

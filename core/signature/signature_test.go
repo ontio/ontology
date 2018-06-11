@@ -23,16 +23,39 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/stretchr/testify/assert"
+	"math/rand"
+	"time"
 )
 
-func TestSign(t *testing.T) {
-	acc := account.NewAccount("")
-	data := []byte{1, 2, 3}
-	sig, err := Sign(acc, data)
-	assert.Nil(t, err)
+var encryptNames = []string{
+	"",
+	"SHA224withECDSA",
+	"SHA256withECDSA",
+	"SHA384withECDSA",
+	"SHA512withECDSA",
+	"SHA3-224withECDSA",
+	"SHA3-256withECDSA",
+	"SHA3-384withECDSA",
+	"SHA3-512withECDSA",
+	"RIPEMD160withECDSA",
+	"SM3withSM2",
+	"SHA512withEdDSA",
+}
 
-	err = Verify(acc.PublicKey, data, sig)
-	assert.Nil(t, err)
+func TestSignAndVerify(t *testing.T) {
+	for _, encryptName := range encryptNames {
+		acc := account.NewAccount(encryptName)
+		data := []byte{1, 2, 3}
+		sig, err := Sign(acc, data)
+		if err != nil {
+			t.Errorf("%s sign failed, err is %s", encryptName, err)
+		}
+
+		err = Verify(acc.PublicKey, data, sig)
+		if err != nil {
+			t.Errorf("%s verify failed, err is %s", encryptName, err)
+		}
+	}
 }
 
 func TestVerifyMultiSignature(t *testing.T) {
@@ -40,8 +63,11 @@ func TestVerifyMultiSignature(t *testing.T) {
 	accs := make([]*account.Account, 0)
 	pubkeys := make([]keypair.PublicKey, 0)
 	N := 4
+	// test different encrypt scheme sign and verify
+	rand.Seed(time.Now().UnixNano())
 	for i := 0; i < N; i++ {
-		accs = append(accs, account.NewAccount(""))
+		encryptSchemeIndex := rand.Intn(len(encryptNames))
+		accs = append(accs, account.NewAccount(encryptNames[encryptSchemeIndex]))
 	}
 	sigs := make([][]byte, 0)
 

@@ -23,45 +23,40 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
-	"github.com/ontio/ontology/smartcontract/types"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 )
 
-func genTestSig(m uint8) *Sig {
+func genTestSig() (*Sig, error) {
 	sig := new(Sig)
-	sig.M = m
-	_, pub, _ := keypair.GenerateKeyPair(keypair.PK_EDDSA, keypair.ED25519)
+	sig.M = 1
+	_, pub, err := keypair.GenerateKeyPair(keypair.PK_EDDSA, keypair.ED25519)
 	sig.PubKeys = make([]keypair.PublicKey, 0)
 	sig.PubKeys = append(sig.PubKeys, pub)
 	sig.SigData = make([][]byte, 0)
 	sig.SigData = append(sig.SigData, keypair.SerializePublicKey(pub))
-	return sig
+	return sig, err
 }
 
-func genTestTx(txType TransactionType) *Transaction {
+func genTestTx(txType TransactionType) (*Transaction, error) {
 	tx := new(Transaction)
 	tx.TxType = txType
 	tx.Nonce = uint32(time.Now().Unix())
-	tx.Sigs = []*Sig{genTestSig(0)}
+	sig, err := genTestSig()
+	tx.Sigs = []*Sig{sig}
 	tx.Payer = AddressFromPubKey(tx.Sigs[0].PubKeys[0])
-	tx.Attributes = make([]*TxAttribute, 0)
-	attr := NewTxAttribute(Nonce, []byte("test transaction attribute"))
-	tx.Attributes = append(tx.Attributes, &attr)
 	tx.Payload = &payload.InvokeCode{
-		Code: types.VmCode{
-			VmType: types.Native,
-			Code:   []byte{0x00, 0x00, 0x01, 0x11, 0x22, 0x45, 0x55},
-		},
+		[]byte{0x00, 0x00, 0x01, 0x11, 0x22, 0x45, 0x55},
 	}
-	return tx
+	return tx, err
 }
-
 func TestSig_Serialize_Deserialize(t *testing.T) {
-	sig := genTestSig(0)
+	sig, err := genTestSig()
+	assert.Nil(t, err)
+
 	bf := new(bytes.Buffer)
-	err := sig.Serialize(bf)
+	err = sig.Serialize(bf)
 	assert.Nil(t, err)
 
 	deserializeSig := new(Sig)
@@ -70,16 +65,18 @@ func TestSig_Serialize_Deserialize(t *testing.T) {
 }
 
 func TestTransaction_Serialize_Deserialize(t *testing.T) {
-	invokeTx := genTestTx(Invoke)
+	invokeTx, err := genTestTx(Invoke)
+	assert.Nil(t, err)
 	bf := new(bytes.Buffer)
-	err := invokeTx.Serialize(bf)
+	err = invokeTx.Serialize(bf)
 	assert.Nil(t, err)
 	deserializeTx := new(Transaction)
 	err = deserializeTx.Deserialize(bf)
 	assert.Nil(t, err)
 	assert.Equal(t, invokeTx, deserializeTx)
 
-	deployTx := genTestTx(Invoke)
+	deployTx, err := genTestTx(Invoke)
+	assert.Nil(t, err)
 	bf.Reset()
 	err = deployTx.Serialize(bf)
 	assert.Nil(t, err)
@@ -88,9 +85,10 @@ func TestTransaction_Serialize_Deserialize(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, deployTx, deserializeTx)
 
-	otherTypeTx := genTestTx(Enrollment)
+	bookkeeperTypeTx, err := genTestTx(Bookkeeper)
+	assert.Nil(t, err)
 	bf.Reset()
-	err = otherTypeTx.Serialize(bf)
+	err = bookkeeperTypeTx.Serialize(bf)
 	assert.Nil(t, err)
 	deserializeTx = new(Transaction)
 	err = deserializeTx.Deserialize(bf)
@@ -98,7 +96,8 @@ func TestTransaction_Serialize_Deserialize(t *testing.T) {
 }
 
 func TestTransaction(t *testing.T) {
-	testTx := genTestTx(Invoke)
+	testTx, err := genTestTx(Invoke)
+	assert.Nil(t, err)
 	sigAddress := testTx.GetSignatureAddresses()
 	assert.NotNil(t, sigAddress)
 	assert.Equal(t, sigAddress[0], AddressFromPubKey(testTx.Sigs[0].PubKeys[0]))
