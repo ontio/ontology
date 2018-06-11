@@ -24,9 +24,9 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/core/program"
 	"golang.org/x/crypto/ripemd160"
-	"github.com/ontio/ontology/common/constants"
 )
 
 func AddressFromPubKey(pubkey keypair.PublicKey) common.Address {

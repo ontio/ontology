@@ -28,9 +28,9 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/vm/neovm"
-	"github.com/ontio/ontology/common/constants"
 )
 
 type ProgramBuilder struct {

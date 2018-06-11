@@ -96,7 +96,7 @@ func AddressFromBase58(encoded string) (Address, error) {
 	x, _ := new(big.Int).SetString(string(decoded), 10)
 
 	buf := x.Bytes()
-	if len(buf) != 1+ADDR_LEN+4 || buf[0] != byte(0x41) {
+	if len(buf) != 1+ADDR_LEN+4 || buf[0] != byte(23) {
 		return ADDRESS_EMPTY, errors.New("wrong encoded address")
 	}
 	ph, err := AddressParseFromBytes(buf[1:21])

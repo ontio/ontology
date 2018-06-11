@@ -759,11 +759,6 @@ func BuildWasmVMInvokeCode(smartcodeAddress common.Address, methodName string, p
 	return bf.Bytes(), nil
 }
 
-//GetContractAddress return contract address
-func GetContractAddress(code []byte) common.Address {
-	return types.AddressFromVmCode(code)
-}
-
 //ParseNeoVMContractReturnTypeBool return bool value of smart contract execute code.
 func ParseNeoVMContractReturnTypeBool(hexStr string) (bool, error) {
 	return hexStr == "01", nil
