@@ -231,6 +231,13 @@ func initLedger(ctx *cli.Context) (*ledger.Ledger, error) {
 
 	var err error
 	dbDir := config.DefConfig.Common.DataDir + string(os.PathSeparator) + config.DefConfig.P2PNode.NetworkName
+
+	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
+		err = os.RemoveAll(dbDir)
+		if err != nil {
+			log.Warnf("InitLedger remove:%s error:%s", dbDir, err)
+		}
+	}
 	ledger.DefLedger, err = ledger.NewLedger(dbDir)
 	if err != nil {
 		return nil, fmt.Errorf("NewLedger error:%s", err)

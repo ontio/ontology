@@ -21,13 +21,13 @@ package config
 import (
 	"encoding/hex"
 	"fmt"
-	"io"
-	"sort"
-
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
+	"io"
+	"sort"
 )
 
 const (
@@ -42,13 +42,6 @@ const (
 	CONSENSUS_TYPE_DBFT = "dbft"
 	CONSENSUS_TYPE_SOLO = "solo"
 	CONSENSUS_TYPE_VBFT = "vbft"
-
-	NETWORK_ID_MAIN_NET      = 1
-	NETWORK_ID_POLARIS_NET   = 2
-	NETWORK_ID_SOLO_NET      = 3
-	NETWORK_NAME_MAIN_NET    = "ontology"
-	NETWORK_NAME_POLARIS_NET = "polaris"
-	NETWORK_NAME_SOLO_NET    = "testmode"
 
 	DEFAULT_LOG_LEVEL        = 1
 	DEFAULT_MAX_LOG_SIZE     = 100 //MByte
@@ -69,34 +62,6 @@ const (
 
 	DEFAULT_DATA_DIR = "./Chain"
 )
-
-var NETWORK_MAGIC = map[uint32]uint32{
-	NETWORK_ID_MAIN_NET:    0x74746e41, //Network main
-	NETWORK_ID_POLARIS_NET: 0x01015401, //Network polaris
-	NETWORK_ID_SOLO_NET:    0x00000000, //Network solo
-}
-
-var NETWORK_NAME = map[uint32]string{
-	NETWORK_ID_MAIN_NET:    NETWORK_NAME_MAIN_NET,
-	NETWORK_ID_POLARIS_NET: NETWORK_NAME_POLARIS_NET,
-	NETWORK_ID_SOLO_NET:    NETWORK_NAME_SOLO_NET,
-}
-
-func GetNetworkMagic(id uint32) uint32 {
-	nid, ok := NETWORK_MAGIC[id]
-	if ok {
-		return nid
-	}
-	return id
-}
-
-func GetNetworkName(id uint32) string {
-	name, ok := NETWORK_NAME[id]
-	if ok {
-		return name
-	}
-	return fmt.Sprintf("%d", id)
-}
 
 var PolarisConfig = &GenesisConfig{
 	SeedList: []string{
@@ -473,9 +438,9 @@ func NewOntologyConfig() *OntologyConfig {
 			MaxTxInBlock:    DEFAULT_MAX_TX_IN_BLOCK,
 		},
 		P2PNode: &P2PNodeConfig{
-			NetworkId:         NETWORK_ID_MAIN_NET,
-			NetworkName:       GetNetworkName(NETWORK_ID_MAIN_NET),
-			NetworkMaigc:      GetNetworkMagic(NETWORK_ID_MAIN_NET),
+			NetworkId:         constants.NETWORK_ID_MAIN_NET,
+			NetworkName:       constants.GetNetworkName(constants.NETWORK_ID_POLARIS_NET),
+			NetworkMaigc:      constants.GetNetworkMagic(constants.NETWORK_ID_POLARIS_NET),
 			NodePort:          DEFAULT_NODE_PORT,
 			NodeConsensusPort: DEFAULT_CONSENSUS_PORT,
 			DualPortSupport:   true,
