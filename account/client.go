@@ -261,7 +261,7 @@ func (this *ClientImpl) GetDefaultAccount(passwd []byte) (*Account, error) {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	if this.defaultAcc == nil {
-		return nil, nil
+		return nil, fmt.Errorf("cannot found default account")
 	}
 	return this.getAccount(this.defaultAcc, passwd)
 }
