@@ -49,8 +49,8 @@ func (u *Uint256) Serialize(w io.Writer) error {
 }
 
 func (u *Uint256) Deserialize(r io.Reader) error {
-	n, err := r.Read(u[:])
-	if n != len(u[:]) || err != nil {
+	_, err := io.ReadFull(r, u[:])
+	if err != nil {
 		return errors.New("deserialize Uint256 error")
 	}
 	return nil

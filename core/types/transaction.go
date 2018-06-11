@@ -225,7 +225,10 @@ func (tx *Transaction) Deserialize(r io.Reader) error {
 
 func (tx *Transaction) DeserializeUnsigned(r io.Reader) error {
 	var versiontype [2]byte
-	r.Read(versiontype[:])
+	_, err := io.ReadFull(r, versiontype[:])
+	if err != nil {
+		return err
+	}
 	nonce, err := serialization.ReadUint32(r)
 	if err != nil {
 		return err

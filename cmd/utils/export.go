@@ -73,7 +73,7 @@ func (this *ExportBlockMetadata) Serialize(w io.Writer) error {
 
 func (this *ExportBlockMetadata) Deserialize(r io.Reader) error {
 	metadata := make([]byte, EXPORT_BLOCK_METADATA_LEN, EXPORT_BLOCK_METADATA_LEN)
-	_, err := r.Read(metadata)
+	_, err := io.ReadFull(r, metadata)
 	if err != nil {
 		return err
 	}
