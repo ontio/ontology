@@ -20,7 +20,6 @@ package auth
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"strings"
 	"time"
@@ -78,7 +77,7 @@ func InitContractAdmin(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, nil
 	}
 
-	msg := []interface{}{"initContractAdmin", hex.EncodeToString(invokeAddr[:]), param.AdminOntID}
+	msg := []interface{}{"initContractAdmin", invokeAddr.ToHexString(), param.AdminOntID}
 	pushEvent(native, msg)
 	return utils.BYTE_TRUE, nil
 }
