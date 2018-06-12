@@ -101,7 +101,7 @@ func (this *FuncsToRoleParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteVarBytes(w, this.Role); err != nil {
 		return err
 	}
-	if err := serialization.WriteVarUint(w, uint64(len(this.FuncNames))); err != nil {
+	if err := utils.WriteVarUint(w, uint64(len(this.FuncNames))); err != nil {
 		return err
 	}
 	for _, fn := range this.FuncNames {
@@ -129,7 +129,7 @@ func (this *FuncsToRoleParam) Deserialize(rd io.Reader) error {
 	if this.Role, err = serialization.ReadVarBytes(rd); err != nil {
 		return err
 	}
-	if fnLen, err = serialization.ReadVarUint(rd, 0); err != nil {
+	if fnLen, err = utils.ReadVarUint(rd); err != nil {
 		return err
 	}
 	this.FuncNames = make([]string, 0)
@@ -164,7 +164,7 @@ func (this *OntIDsToRoleParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteVarBytes(w, this.Role); err != nil {
 		return err
 	}
-	if err := serialization.WriteVarUint(w, uint64(len(this.Persons))); err != nil {
+	if err := utils.WriteVarUint(w, uint64(len(this.Persons))); err != nil {
 		return err
 	}
 	for _, p := range this.Persons {
@@ -190,7 +190,7 @@ func (this *OntIDsToRoleParam) Deserialize(rd io.Reader) error {
 	if this.Role, err = serialization.ReadVarBytes(rd); err != nil {
 		return err
 	}
-	if pLen, err = serialization.ReadVarUint(rd, 0); err != nil {
+	if pLen, err = utils.ReadVarUint(rd); err != nil {
 		return err
 	}
 	this.Persons = make([][]byte, 0)

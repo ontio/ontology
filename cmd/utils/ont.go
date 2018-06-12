@@ -547,7 +547,6 @@ func PrepareInvokeNativeContract(
 	return preResult, nil
 }
 
-
 //NewDeployCodeTransaction return a smart contract deploy transaction instance
 func NewDeployCodeTransaction(gasPrice, gasLimit uint64, code []byte, needStorage bool,
 	cname, cversion, cauthor, cemail, cdesc string) *types.Transaction {

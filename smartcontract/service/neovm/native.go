@@ -29,6 +29,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/states"
 	vm "github.com/ontio/ontology/vm/neovm"
 	"github.com/ontio/ontology/vm/neovm/types"
+	"math/big"
 )
 
 func NativeInvoke(service *NeoVmService, engine *vm.ExecutionEngine) error {
@@ -99,7 +100,7 @@ func BuildParamToNative(bf *bytes.Buffer, item types.StackItems) error {
 		}
 	case *types.Array:
 		arr := item.GetArray()
-		if err := serialization.WriteVarUint(bf, uint64(len(arr))); err != nil {
+		if err := serialization.WriteVarBytes(bf, types.BigIntToBytes(big.NewInt(int64(len(arr))))); err != nil {
 			return err
 		}
 		for _, v := range arr {

@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/store"
@@ -32,7 +33,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vm "github.com/ontio/ontology/vm/neovm"
-	"github.com/ontio/ontology/common/log"
 )
 
 var (
