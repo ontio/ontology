@@ -39,6 +39,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/storage"
+	"github.com/ontio/ontology/common/log"
 )
 
 //HandleDeployTransaction deal with smart contract deploy transaction
@@ -73,6 +74,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, stateBa
 		cache.Commit()
 	}
 
+	log.Infof("deploy contract address:%x", address)
 	// store contract message
 	err = stateBatch.TryGetOrAdd(scommon.ST_CONTRACT, address[:], deploy)
 	if err != nil {

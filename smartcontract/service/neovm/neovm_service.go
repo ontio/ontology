@@ -32,6 +32,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vm "github.com/ontio/ontology/vm/neovm"
+	"github.com/ontio/ontology/common/log"
 )
 
 var (
@@ -225,6 +226,7 @@ func (this *NeoVmService) getContract(address []byte) ([]byte, error) {
 	if err != nil {
 		return nil, errors.NewErr("[getContract] Get contract context error!")
 	}
+	log.Infof("invoke contract address:%x", address)
 	if item == nil {
 		return nil, CONTRACT_NOT_EXIST
 	}

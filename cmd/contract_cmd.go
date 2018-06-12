@@ -85,6 +85,7 @@ var (
 					utils.TransactionGasPriceFlag,
 					utils.TransactionGasLimitFlag,
 					utils.WalletFileFlag,
+					utils.ContractPrepareInvokeFlag,
 					utils.AccountAddressFlag,
 				},
 			},
@@ -162,6 +163,37 @@ func invokeCodeContract(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("hex to bytes error:%s", err)
 	}
+
+	if ctx.IsSet(utils.GetFlagName(utils.ContractPrepareInvokeFlag)) {
+		preResult, err := utils.PrepareInvokeCodeNeoVMContract(c)
+		if err != nil {
+			return fmt.Errorf("PrepareInvokeCodeNeoVMContract error:%s", err)
+		}
+		if preResult.State == 0 {
+			return fmt.Errorf("Contract invoke failed\n")
+		}
+		fmt.Printf("Contract invoke successfully\n")
+		fmt.Printf("Gas consumed:%d\n", preResult.Gas)
+
+		rawReturnTypes := ctx.String(utils.GetFlagName(utils.ContranctReturnTypeFlag))
+		if rawReturnTypes == "" {
+			fmt.Printf("Return:%s (raw value)\n", preResult.Result)
+			return nil
+		}
+		values, err := utils.ParseReturnValue(preResult.Result, rawReturnTypes)
+		if err != nil {
+			return fmt.Errorf("parseReturnValue values:%+v types:%s error:%s", values, rawReturnTypes, err)
+		}
+		switch len(values) {
+		case 0:
+			fmt.Printf("Return: nil\n")
+		case 1:
+			fmt.Printf("Return:%+v\n", values[0])
+		default:
+			fmt.Printf("Return:%+v\n", values)
+		}
+		return nil
+	}
 	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
 	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
 
@@ -177,6 +209,7 @@ func invokeCodeContract(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("SendTransaction error:%s", err)
 	}
+
 	fmt.Printf("TxHash:%s\n", txHash)
 	fmt.Printf("\nTip:\n")
 	fmt.Printf("  Using './ontology info status %s' to query transaction status\n", txHash)
