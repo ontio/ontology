@@ -21,6 +21,7 @@ package auth
 import (
 	"bytes"
 	"fmt"
+	"io"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
@@ -240,4 +241,12 @@ func pushEvent(native *native.NativeService, s interface{}) {
 
 func invokeEvent(native *native.NativeService, fn string, ret bool) {
 	pushEvent(native, []interface{}{fn, ret})
+}
+
+func serializeAddress(w io.Writer, addr common.Address) error {
+	err := serialization.WriteVarBytes(w, addr[:])
+	if err != nil {
+		return err
+	}
+	return nil
 }
