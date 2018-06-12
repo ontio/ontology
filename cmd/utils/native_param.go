@@ -24,76 +24,128 @@ import (
 	"fmt"
 	"github.com/ontio/ontology/cmd/abi"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/types"
+	httpcom "github.com/ontio/ontology/http/base/common"
+	svrneovm "github.com/ontio/ontology/smartcontract/service/neovm"
+	"github.com/ontio/ontology/vm/neovm"
+	"math/big"
 	"strconv"
 	"strings"
 )
 
-func ParseNativeParam(params []interface{}, paramAbi []*abi.NativeContractParamAbi) ([]byte, error) {
-	if len(params) != len(paramAbi) {
-		return nil, fmt.Errorf("abi unmatch")
+func NewNativeInvokeTransaction(gasPrice, gasLimit uint64, contractAddr common.Address, version byte, params []interface{}, funcAbi *abi.NativeContractFunctionAbi) (*types.Transaction, error) {
+	builder := neovm.NewParamsBuilder(new(bytes.Buffer))
+	err := ParseNativeFuncParam(builder, funcAbi.Name, params, funcAbi.Parameters)
+	if err != nil {
+		return nil, err
 	}
-	var data []byte
+	builder.EmitPushByteArray([]byte(funcAbi.Name))
+	builder.EmitPushByteArray(contractAddr[:])
+	builder.EmitPushInteger(new(big.Int).SetInt64(int64(version)))
+	builder.Emit(neovm.SYSCALL)
+	builder.EmitPushByteArray([]byte(svrneovm.NATIVE_INVOKE_NAME))
+	invokeCode := builder.ToArray()
+	return httpcom.NewSmartContractTransaction(gasPrice, gasLimit, invokeCode)
+}
+
+func ParseNativeFuncParam(builder *neovm.ParamsBuilder, funName string, params []interface{}, paramsAbi []*abi.NativeContractParamAbi) error {
+	size := len(paramsAbi)
+	if size == 0 {
+		//Params cannot empty, if params is empty, fulfil with func name
+		params = []interface{}{funName}
+		paramsAbi = []*abi.NativeContractParamAbi{&abi.NativeContractParamAbi{
+			Name: "funcName",
+			Type: abi.NATIVE_PARAM_TYPE_STRING,
+		}}
+	} else if size > 1 {
+		//If more than one param in func, must using struct
+		paramRoot := &abi.NativeContractParamAbi{
+			Name:    "root",
+			Type:    abi.NATIVE_PARAM_TYPE_ARRAY,
+			SubType: paramsAbi,
+		}
+		paramRoot.Type = abi.NATIVE_PARAM_TYPE_STRUCT
+		paramsAbi = []*abi.NativeContractParamAbi{paramRoot}
+	}
+	return ParseNativeParams(builder, params, paramsAbi)
+}
+
+func ParseNativeParams(builder *neovm.ParamsBuilder, params []interface{}, paramsAbi []*abi.NativeContractParamAbi) error {
+	if len(params) != len(paramsAbi) {
+		return fmt.Errorf("abi unmatch")
+	}
 	var err error
-	buf := bytes.NewBuffer(nil)
 	for i, param := range params {
-		paramAbi := paramAbi[i]
+		paramAbi := paramsAbi[i]
 		switch strings.ToLower(paramAbi.Type) {
 		case abi.NATIVE_PARAM_TYPE_STRUCT:
-			data, err = ParseNativeParamStruct(param, paramAbi)
+			err = ParseNativeParamStruct(builder, param, paramAbi)
 			if err != nil {
-				return nil, fmt.Errorf("param:%s parse:%v error:%s", paramAbi.Name, param)
+				return fmt.Errorf("param:%s parse:%v error:%s", paramAbi.Name, param, err)
 			}
 		case abi.NATIVE_PARAM_TYPE_ARRAY:
-			data, err = ParseNativeParamArray(param, paramAbi)
+			err = ParseNativeParamArray(builder, param, paramAbi)
 		default:
 			rawParam, ok := param.(string)
 			if !ok {
-				return nil, fmt.Errorf("param:%v assert to string failed", param)
+				return fmt.Errorf("param:%v assert to string failed", param)
 			}
 			switch strings.ToLower(paramAbi.Type) {
 			case abi.NATIVE_PARAM_TYPE_ADDRESS:
-				data, err = ParseNativeParamAddress(rawParam)
+				err = ParseNativeParamAddress(builder, rawParam)
 			case abi.NATIVE_PARAM_TYPE_BOOL:
-				data, err = ParseNativeParamBool(rawParam)
+				err = ParseNativeParamBool(builder, rawParam)
 			case abi.NATIVE_PARAM_TYPE_BYTE:
-				data, err = ParseNativeParamByte(rawParam)
+				err = ParseNativeParamByte(builder, rawParam)
 			case abi.NATIVE_PARAM_TYPE_BYTEARRAY:
-				data, err = ParseNativeParamByteArray(rawParam)
+				err = ParseNativeParamByteArray(builder, rawParam)
 			case abi.NATIVE_PARAM_TYPE_INTEGER:
-				data, err = ParseNativeParamInteger(rawParam)
+				err = ParseNativeParamInteger(builder, rawParam)
 			case abi.NATIVE_PARAM_TYPE_STRING:
-				data, err = ParseNativeParamString(rawParam)
+				err = ParseNativeParamString(builder, rawParam)
 			case abi.NATIVE_PARAM_TYPE_UINT256:
-				data, err = ParseNativeParamUint256(rawParam)
+				err = ParseNativeParamUint256(builder, rawParam)
 			default:
-				return nil, fmt.Errorf("unknown param type:%s", paramAbi.Type)
+				return fmt.Errorf("unknown param type:%s", paramAbi.Type)
 			}
 		}
 		if err != nil {
-			return nil, fmt.Errorf("param:%s parse:%v error:%s", paramAbi.Name, param, err)
+			return fmt.Errorf("param:%s parse:%v error:%s", paramAbi.Name, param, err)
 		}
-		_, err = buf.Write(data)
+	}
+
+	return nil
+}
+
+func ParseNativeParamStruct(builder *neovm.ParamsBuilder, param interface{}, structAbi *abi.NativeContractParamAbi) error {
+	params, ok := param.([]interface{})
+	if !ok {
+		return fmt.Errorf("assert to []interface{} failed")
+	}
+	if len(params) != len(structAbi.SubType) {
+		return fmt.Errorf("struct abi not match")
+	}
+	builder.EmitPushInteger(big.NewInt(0))
+	builder.Emit(neovm.NEWSTRUCT)
+	builder.Emit(neovm.TOALTSTACK)
+	for i, param := range params {
+		paramAbi := structAbi.SubType[i]
+		err := ParseNativeParams(builder, []interface{}{param}, []*abi.NativeContractParamAbi{paramAbi})
 		if err != nil {
-			return nil, fmt.Errorf("buf write error:%s", err)
+			return fmt.Errorf("params struct:%s item:%s error:%s", structAbi.Name, paramAbi.Name, err)
 		}
+		builder.Emit(neovm.DUPFROMALTSTACK)
+		builder.Emit(neovm.SWAP)
+		builder.Emit(neovm.APPEND)
 	}
-
-	return buf.Bytes(), nil
+	builder.Emit(neovm.FROMALTSTACK)
+	return nil
 }
 
-func ParseNativeParamStruct(param interface{}, structAbi *abi.NativeContractParamAbi) ([]byte, error) {
+func ParseNativeParamArray(builder *neovm.ParamsBuilder, param interface{}, arrayAbi *abi.NativeContractParamAbi) error {
 	params, ok := param.([]interface{})
 	if !ok {
-		return nil, fmt.Errorf("assert to []interface{} failed")
-	}
-	return ParseNativeParam(params, structAbi.SubType)
-}
-
-func ParseNativeParamArray(param interface{}, arrayAbi *abi.NativeContractParamAbi) ([]byte, error) {
-	params, ok := param.([]interface{})
-	if !ok {
-		return nil, fmt.Errorf("assert to []interface{} failed")
+		return fmt.Errorf("assert to []interface{} failed")
 	}
 	abis := make([]*abi.NativeContractParamAbi, 0, len(params))
 	for i := 0; i < len(params); i++ {
@@ -103,85 +155,57 @@ func ParseNativeParamArray(param interface{}, arrayAbi *abi.NativeContractParamA
 			SubType: arrayAbi.SubType[0].SubType,
 		})
 	}
-	data, err := ParseNativeParam(params, abis)
+	err := ParseNativeParams(builder, params, abis)
 	if err != nil {
-		return nil, fmt.Errorf("parse array error:%s", err)
+		return fmt.Errorf("parse array error:%s", err)
 	}
-	buf := bytes.NewBuffer(nil)
-	serialization.WriteVarUint(buf, uint64(len(params)))
-	_, err = buf.Write(data)
-	if err != nil {
-		return nil, fmt.Errorf("parse array error:%s", err)
-	}
-	return buf.Bytes(), nil
+	builder.EmitPushInteger(big.NewInt(int64(len(params))))
+	builder.Emit(neovm.PACK)
+	return nil
 }
 
-func ParseNativeParamByte(param string) ([]byte, error) {
+func ParseNativeParamByte(builder *neovm.ParamsBuilder, param string) error {
 	i, err := strconv.ParseInt(param, 10, 32)
 	if err != nil {
-		return nil, fmt.Errorf("parse int error:%s", err)
+		return fmt.Errorf("parse int error:%s", err)
 	}
-	buf := bytes.NewBuffer(nil)
-	err = serialization.WriteByte(buf, byte(i))
-	if err != nil {
-		return nil, fmt.Errorf("write byte error:%s", err)
-	}
-	return buf.Bytes(), nil
+	builder.EmitPushInteger(new(big.Int).SetInt64(i))
+	return nil
 }
 
-func ParseNativeParamByteArray(param string) ([]byte, error) {
+func ParseNativeParamByteArray(builder *neovm.ParamsBuilder, param string) error {
 	data, err := hex.DecodeString(param)
 	if err != nil {
-		return nil, fmt.Errorf("hex decode string error:%s", err)
+		return fmt.Errorf("hex decode string error:%s", err)
 	}
-	buf := bytes.NewBuffer(nil)
-	err = serialization.WriteVarBytes(buf, data)
-	if err != nil {
-		return nil, fmt.Errorf("write bytes error:%s", err)
-	}
-	return buf.Bytes(), err
+	builder.EmitPushByteArray(data)
+	return nil
 }
 
-func ParseNativeParamUint256(param string) ([]byte, error) {
+func ParseNativeParamUint256(builder *neovm.ParamsBuilder, param string) error {
 	data, err := hex.DecodeString(param)
 	if err != nil {
-		return nil, fmt.Errorf("hex.DecodeString error:%s", err)
+		return fmt.Errorf("hex.DecodeString error:%s", err)
 	}
-	uint256, err := common.Uint256ParseFromBytes(data)
-	if err != nil {
-		return nil, fmt.Errorf("Uint256ParseFromBytes error:%s", err)
-	}
-	buf := bytes.NewBuffer(nil)
-	err = uint256.Serialize(buf)
-	if err != nil {
-		return nil, fmt.Errorf("uint256 serialize error:%s", err)
-	}
-	return buf.Bytes(), nil
+	builder.EmitPushByteArray(data)
+	return nil
 }
 
-func ParseNativeParamString(param string) ([]byte, error) {
-	buf := bytes.NewBuffer(nil)
-	err := serialization.WriteString(buf, param)
-	if err != nil {
-		return nil, fmt.Errorf("write string error:%s", err)
-	}
-	return buf.Bytes(), nil
+func ParseNativeParamString(builder *neovm.ParamsBuilder, param string) error {
+	builder.EmitPushByteArray([]byte(param))
+	return nil
 }
 
-func ParseNativeParamInteger(param string) ([]byte, error) {
+func ParseNativeParamInteger(builder *neovm.ParamsBuilder, param string) error {
 	i, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
-		return nil, fmt.Errorf("parse int error:%s", err)
+		return fmt.Errorf("parse int error:%s", err)
 	}
-	buf := bytes.NewBuffer(nil)
-	err = serialization.WriteVarUint(buf, uint64(i))
-	if err != nil {
-		return nil, fmt.Errorf("write int error:%s", err)
-	}
-	return buf.Bytes(), nil
+	builder.EmitPushInteger(new(big.Int).SetInt64(i))
+	return nil
 }
 
-func ParseNativeParamBool(param string) ([]byte, error) {
+func ParseNativeParamBool(builder *neovm.ParamsBuilder, param string) error {
 	var b bool
 	switch strings.ToLower(param) {
 	case "true":
@@ -189,25 +213,17 @@ func ParseNativeParamBool(param string) ([]byte, error) {
 	case "false":
 		b = false
 	default:
-		return nil, fmt.Errorf("invalid bool value")
+		return fmt.Errorf("invalid bool value")
 	}
-	buf := bytes.NewBuffer(nil)
-	err := serialization.WriteBool(buf, b)
-	if err != nil {
-		return nil, fmt.Errorf("write bool error:%s", err)
-	}
-	return buf.Bytes(), nil
+	builder.EmitPushBool(b)
+	return nil
 }
 
-func ParseNativeParamAddress(param string) ([]byte, error) {
+func ParseNativeParamAddress(builder *neovm.ParamsBuilder, param string) error {
 	addr, err := common.AddressFromBase58(param)
 	if err != nil {
-		return nil, fmt.Errorf("AddressFromBase58 error:%s", err)
+		return fmt.Errorf("AddressFromBase58 error:%s", err)
 	}
-	buf := bytes.NewBuffer(nil)
-	err = addr.Serialize(buf)
-	if err != nil {
-		return nil, fmt.Errorf("address serialize error:%s", err)
-	}
-	return buf.Bytes(), nil
+	builder.EmitPushByteArray(addr[:])
+	return nil
 }

@@ -30,7 +30,6 @@ func TestSigNeoVMInvokeTx(t *testing.T) {
 		GasPrice: 0,
 		GasLimit: 0,
 		Address:  "TA6PCtD9qEvN6Rk7i4EGY6u1cWQBWZTr5A",
-		Version:  0,
 		Params: []interface{}{
 			&utils.NeoVMInvokeParam{
 				Type:  "string",
