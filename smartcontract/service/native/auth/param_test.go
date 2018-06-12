@@ -21,6 +21,10 @@ import (
 	"bytes"
 	"crypto/rand"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 var (
@@ -32,7 +36,7 @@ var (
 var (
 	funcs           = []string{"foo1", "foo2"}
 	role            = "role"
-	OntContractAddr = []byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}
+	OntContractAddr = utils.OntContractAddress
 )
 
 func init() {
@@ -81,10 +85,7 @@ func TestSerialization_Transfer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if bytes.Compare(param.ContractAddr, param2.ContractAddr) != 0 ||
-		bytes.Compare(param.NewAdminOntID, param2.NewAdminOntID) != 0 {
-		t.Fatalf("failed")
-	}
+	assert.Equal(t, param, param2)
 }
 
 func TestSerialization_AssignFuncs(t *testing.T) {
@@ -105,11 +106,7 @@ func TestSerialization_AssignFuncs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if bytes.Compare(param.ContractAddr, param2.ContractAddr) != 0 ||
-		bytes.Compare(param.AdminOntID, param2.AdminOntID) != 0 ||
-		bytes.Compare(param.Role, param2.Role) != 0 {
-		t.Fatalf("failed")
-	}
+	assert.Equal(t, param, param2)
 }
 
 func TestSerialization_AssignOntIDs(t *testing.T) {
@@ -129,11 +126,7 @@ func TestSerialization_AssignOntIDs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if bytes.Compare(param.ContractAddr, param2.ContractAddr) != 0 ||
-		bytes.Compare(param.AdminOntID, param2.AdminOntID) != 0 ||
-		bytes.Compare(param.Role, param2.Role) != 0 {
-		t.Fatalf("failed")
-	}
+	assert.Equal(t, param, param2)
 }
 
 func TestSerialization_Delegate(t *testing.T) {
@@ -154,13 +147,7 @@ func TestSerialization_Delegate(t *testing.T) {
 	if err := param2.Deserialize(rd); err != nil {
 		t.Fatal(err)
 	}
-	if bytes.Compare(param.ContractAddr, param2.ContractAddr) != 0 ||
-		bytes.Compare(param.From, param2.From) != 0 ||
-		bytes.Compare(param.To, param2.To) != 0 ||
-		bytes.Compare(param.Role, param2.Role) != 0 ||
-		param.Period != param2.Period || param.Level != param2.Level {
-		t.Fatalf("failed")
-	}
+	assert.Equal(t, param, param2)
 }
 
 func TestSerialization_Withdraw(t *testing.T) {
@@ -179,19 +166,14 @@ func TestSerialization_Withdraw(t *testing.T) {
 	if err := param2.Deserialize(rd); err != nil {
 		t.Fatal(err)
 	}
-	if bytes.Compare(param.ContractAddr, param2.ContractAddr) != 0 ||
-		bytes.Compare(param.Initiator, param2.Initiator) != 0 ||
-		bytes.Compare(param.Delegate, param2.Delegate) != 0 ||
-		bytes.Compare(param.Role, param2.Role) != 0 {
-		t.Fatalf("failed")
-	}
+	assert.Equal(t, param, param2)
 }
 
 func TestSerialization_VerifyToken(t *testing.T) {
 	param := &VerifyTokenParam{
 		ContractAddr: OntContractAddr,
 		Caller:       p1,
-		Fn:           []byte("foo1"),
+		Fn:           "foo1",
 	}
 	bf := new(bytes.Buffer)
 	if err := param.Serialize(bf); err != nil {
@@ -202,9 +184,5 @@ func TestSerialization_VerifyToken(t *testing.T) {
 	if err := param2.Deserialize(rd); err != nil {
 		t.Fatal(err)
 	}
-	if bytes.Compare(param.ContractAddr, param2.ContractAddr) != 0 ||
-		bytes.Compare(param.Caller, param2.Caller) != 0 ||
-		bytes.Compare(param.Fn, param2.Fn) != 0 {
-		t.Fatalf("failed")
-	}
+	assert.Equal(t, param, param2)
 }
