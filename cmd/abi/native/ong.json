@@ -1,0 +1,139 @@
+{
+    "hash": "0000000000000000000000000000000000000002",
+    "functions": [
+        {
+            "name": "init",
+            "parameters": [],
+            "returntype": "Bool"
+        },
+        {
+            "name": "transfer",
+            "parameters": [
+                {
+                    "name": "transfers",
+                    "type": "Array",
+                    "subType": [
+                        {
+                            "name": "",
+                            "type": "Struct",
+                            "subType": [
+                                {
+                                    "name": "from",
+                                    "type": "Address"
+                                },
+                                {
+                                    "name": "to",
+                                    "type": "Address"
+                                },
+                                {
+                                    "name": "value",
+                                    "type": "Int"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "returntype": "Bool"
+        },
+        {
+            "name": "approve",
+            "parameters": [
+                {
+                    "name": "from",
+                    "type": "Address"
+                },
+                {
+                    "name": "to",
+                    "type": "Address"
+                },
+                {
+                    "name": "value",
+                    "type": "Int"
+                }
+            ],
+            "returntype": "Bool"
+        },
+        {
+            "name": "transferFrom",
+            "parameters": [
+                {
+                    "name": "sender",
+                    "type": "Address"
+                },
+                {
+                    "name": "from",
+                    "type": "Address"
+                },
+                {
+                    "name": "to",
+                    "type": "Address"
+                },
+                {
+                    "name": "value",
+                    "type": "Int"
+                }
+            ],
+            "returntype": "Bool"
+        },
+        {
+            "name": "name",
+            "parameters": [],
+            "returntype": "String"
+        },
+        {
+            "name": "symbol",
+            "parameters": [],
+            "returntype": "String"
+        },
+        {
+            "name": "decimals",
+            "parameters": [],
+            "returntype": "Int"
+        },
+        {
+            "name": "totalSupply",
+            "parameters": [],
+            "returntype": "Int"
+        },
+        {
+            "name": "balanceOf",
+            "parameters": [
+                {
+                    "name": "account",
+                    "type": "Address"
+                }
+            ],
+            "returntype": "Int"
+        },
+        {
+            "name": "allowance",
+            "parameters": [
+                {
+                    "name": "account",
+                    "type": "Address"
+                }
+            ],
+            "returntype": "Int"
+        }
+    ],
+    "events": [
+        {
+            "name": "transfer",
+            "parameters": [
+                {
+                    "name": "from",
+                    "type": "Address"
+                },
+                {
+                    "name": "to",
+                    "type": "Address"
+                },
+                {
+                    "name": "value",
+                    "type": "Int"
+                }
+            ]
+        }
+    ]
+}
