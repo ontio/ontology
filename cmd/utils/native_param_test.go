@@ -83,11 +83,14 @@ func TestParseNativeParam(t *testing.T) {
 			},
 		},
 	}
+	addr := common.Address([20]byte{})
+	address := addr.ToBase58()
+
 	params := []interface{}{
 		"Hello, World",
 		"12",
 		"true",
-		"TA587BCw7HFwuUuzY1wg2HXCN7cHBPaXSe",
+		address,
 		"a757b22282b43e0852c48feae0892af19e48da8627296ef7a051993afb316b9b",
 		"128",
 		hex.EncodeToString([]byte("foo")),
@@ -103,7 +106,8 @@ func TestParseNativeParam(t *testing.T) {
 }
 
 func TestParseNativeParamAddress(t *testing.T) {
-	address := "TA587BCw7HFwuUuzY1wg2HXCN7cHBPaXSe"
+	addr := common.Address([20]byte{})
+	address := addr.ToBase58()
 	data, err := ParseNativeParamAddress(address)
 	if err != nil {
 		t.Errorf("TestParseNativeParamAddress error:%s", err)

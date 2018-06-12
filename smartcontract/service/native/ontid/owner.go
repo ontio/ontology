@@ -150,8 +150,11 @@ func revokePk(srvc *native.NativeService, encID, pub []byte) (uint32, error) {
 	var index uint32 = 0
 	for i, v := range owners {
 		if bytes.Equal(pub, v.key) {
-			v.revoked = true
 			index = uint32(i)
+			if v.revoked {
+				return index, errors.New("public key has already been revoked")
+			}
+			v.revoked = true
 		}
 	}
 	if index == 0 {

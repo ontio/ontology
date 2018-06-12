@@ -22,17 +22,17 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"sort"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	clisvrcom "github.com/ontio/ontology/cmd/server/common"
 	cliutil "github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
-	"sort"
 )
-
-const MAX_PUBLIC_KEY_SIZE = 24
 
 type SigMutilRawTransactionReq struct {
 	RawTx   string   `json:"raw_tx"`
@@ -51,7 +51,7 @@ func SigMutilRawTransaction(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpc
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
 		return
 	}
-	if rawReq.M <= 0 || len(rawReq.PubKeys) < rawReq.M || len(rawReq.PubKeys) > MAX_PUBLIC_KEY_SIZE {
+	if rawReq.M <= 0 || len(rawReq.PubKeys) < rawReq.M || len(rawReq.PubKeys) > constants.MULTI_SIG_MAX_PUBKEY_SIZE {
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
 		return
 	}
