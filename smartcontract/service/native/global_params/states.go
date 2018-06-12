@@ -60,7 +60,7 @@ func (params *Params) GetParam(key string) (int, *Param) {
 
 func (params *Params) Serialize(w io.Writer) error {
 	paramNum := len(*params)
-	if err := serialization.WriteVarUint(w, uint64(paramNum)); err != nil {
+	if err := utils.WriteVarUint(w, uint64(paramNum)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, serialize params length error!")
 	}
 	for _, param := range *params {
@@ -75,7 +75,7 @@ func (params *Params) Serialize(w io.Writer) error {
 }
 
 func (params *Params) Deserialize(r io.Reader) error {
-	paramNum, err := serialization.ReadVarUint(r, 0)
+	paramNum, err := utils.ReadVarUint(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, deserialize params length error!")
 	}
@@ -113,7 +113,7 @@ func (role *Role) Deserialize(r io.Reader) error {
 
 func (nameList *ParamNameList) Serialize(w io.Writer) error {
 	nameNum := len(*nameList)
-	if err := serialization.WriteVarUint(w, uint64(nameNum)); err != nil {
+	if err := utils.WriteVarUint(w, uint64(nameNum)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, serialize param name list length error!")
 	}
 	for _, value := range *nameList {
@@ -125,7 +125,7 @@ func (nameList *ParamNameList) Serialize(w io.Writer) error {
 }
 
 func (nameList *ParamNameList) Deserialize(r io.Reader) error {
-	nameNum, err := serialization.ReadVarUint(r, 0)
+	nameNum, err := utils.ReadVarUint(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, deserialize param name list length error!")
 	}
