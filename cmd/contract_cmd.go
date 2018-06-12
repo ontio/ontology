@@ -19,12 +19,12 @@
 package cmd
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	cmdcom "github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/types"
 	"github.com/urfave/cli"
 	"io/ioutil"
 	"strings"
@@ -129,9 +129,9 @@ func deployContract(ctx *cli.Context) error {
 		return fmt.Errorf("DeployContract error:%s", err)
 	}
 	c, _ := common.HexToBytes(code)
-	address := utils.GetContractAddress(c)
+	address := types.AddressFromVmCode(c)
 	fmt.Printf("Deploy contract:\n")
-	fmt.Printf("  Contract Address:%x\n", address[:])
+	fmt.Printf("  Contract Address:%s\n", address.ToHexString())
 	fmt.Printf("  TxHash:%s\n", txHash)
 	fmt.Printf("\nTip:\n")
 	fmt.Printf("  Using './ontology info status %s' to query transaction status\n", txHash)
@@ -188,11 +188,7 @@ func invokeContract(ctx *cli.Context) error {
 		return nil
 	}
 	contractAddrStr := ctx.String(utils.GetFlagName(utils.ContractAddrFlag))
-	addrData, err := hex.DecodeString(contractAddrStr)
-	if err != nil {
-		return fmt.Errorf("Invalid contract address error:%s", err)
-	}
-	contractAddr, err := common.AddressParseFromBytes(addrData)
+	contractAddr, err := common.AddressFromHexString(contractAddrStr)
 	if err != nil {
 		return fmt.Errorf("Invalid contract address error:%s", err)
 	}
