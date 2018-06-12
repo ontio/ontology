@@ -25,6 +25,7 @@ import (
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
+	httpcom "github.com/ontio/ontology/http/base/common"
 	"github.com/urfave/cli"
 	"io/ioutil"
 	"strings"
