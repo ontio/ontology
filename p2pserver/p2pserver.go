@@ -33,7 +33,6 @@ import (
 	"time"
 
 	evtActor "github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology/account"
 	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -69,8 +68,8 @@ type ReconnectAddrs struct {
 }
 
 //NewServer return a new p2pserver according to the pubkey
-func NewServer(acc *account.Account) *P2PServer {
-	n := netserver.NewNetServer(acc.PubKey())
+func NewServer() *P2PServer {
+	n := netserver.NewNetServer()
 
 	p := &P2PServer{
 		network: n,

@@ -19,16 +19,14 @@
 package netserver
 
 import (
-	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
+	"math/rand"
 	"net"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
@@ -40,7 +38,7 @@ import (
 )
 
 //NewNetServer return the net object in p2p
-func NewNetServer(pubKey keypair.PublicKey) p2p.P2P {
+func NewNetServer() p2p.P2P {
 
 	n := &NetServer{
 		SyncChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
@@ -50,7 +48,7 @@ func NewNetServer(pubKey keypair.PublicKey) p2p.P2P {
 	n.PeerAddrMap.PeerSyncAddress = make(map[string]*peer.Peer)
 	n.PeerAddrMap.PeerConsAddress = make(map[string]*peer.Peer)
 
-	n.init(pubKey)
+	n.init()
 	return n
 }
 
@@ -80,7 +78,7 @@ type PeerAddrMap struct {
 }
 
 //init initializes attribute of network server
-func (this *NetServer) init(pubKey keypair.PublicKey) error {
+func (this *NetServer) init() error {
 	this.base.SetVersion(common.PROTOCOL_VERSION)
 
 	if config.DefConfig.Consensus.EnableConsensus {
@@ -109,20 +107,15 @@ func (this *NetServer) init(pubKey keypair.PublicKey) error {
 
 	this.base.SetRelay(true)
 
-	var id uint64
-	key := keypair.SerializePublicKey(pubKey)
-	err := binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(id))
-	if err != nil {
-		log.Error(err)
-		return err
-	}
+	rand.Seed(time.Now().UnixNano())
+	id := rand.Uint64()
+
 	this.base.SetID(id)
 
-	log.Infof("init peer ID to 0x%x", this.base.GetID())
+	log.Infof("init peer ID to %d", this.base.GetID())
 	this.Np = &peer.NbrPeers{}
 	this.Np.Init()
 
-	this.base.SetPubKey(pubKey)
 	return nil
 }
 
@@ -180,11 +173,6 @@ func (this *NetServer) GetHttpInfoPort() uint16 {
 //GetRelay return whether net module can relay msg
 func (this *NetServer) GetRelay() bool {
 	return this.base.GetRelay()
-}
-
-//GetPubKey return the key config in net module
-func (this *NetServer) GetPubKey() keypair.PublicKey {
-	return this.base.GetPubKey()
 }
 
 // GetPeer returns a peer with the peer id
@@ -311,8 +299,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		remotePeer.AttachSyncChan(this.SyncChan)
 		go remotePeer.SyncLink.Rx()
 		remotePeer.SetSyncState(common.HAND)
-		vpl := msgpack.NewVersionPayload(this, false, ledger.DefLedger.GetCurrentBlockHeight())
-		version := msgpack.NewVersion(vpl, this.GetPubKey())
+		version := msgpack.NewVersion(this, false, ledger.DefLedger.GetCurrentBlockHeight())
 		err := remotePeer.SyncLink.Tx(version)
 		if err != nil {
 			log.Error(err)
@@ -326,8 +313,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		remotePeer.AttachConsChan(this.ConsChan)
 		go remotePeer.ConsLink.Rx()
 		remotePeer.SetConsState(common.HAND)
-		vpl := msgpack.NewVersionPayload(this, true, ledger.DefLedger.GetCurrentBlockHeight())
-		version := msgpack.NewVersion(vpl, this.GetPubKey())
+		version := msgpack.NewVersion(this, true, ledger.DefLedger.GetCurrentBlockHeight())
 		err := remotePeer.ConsLink.Tx(version)
 		if err != nil {
 			log.Error(err)

@@ -158,7 +158,7 @@ func startOntology(ctx *cli.Context) {
 		log.Errorf("initTxPool error:%s", err)
 		return
 	}
-	p2pSvr, p2pPid, err := initP2PNode(ctx, acc, txpool)
+	p2pSvr, p2pPid, err := initP2PNode(ctx, txpool)
 	if err != nil {
 		log.Errorf("initP2PNode error:%s", err)
 		return
@@ -271,11 +271,11 @@ func initTxPool(ctx *cli.Context) (*proc.TXPoolServer, error) {
 	return txPoolServer, nil
 }
 
-func initP2PNode(ctx *cli.Context, acc *account.Account, txpoolSvr *proc.TXPoolServer) (*p2pserver.P2PServer, *actor.PID, error) {
+func initP2PNode(ctx *cli.Context, txpoolSvr *proc.TXPoolServer) (*p2pserver.P2PServer, *actor.PID, error) {
 	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
 		return nil, nil, nil
 	}
-	p2p := p2pserver.NewServer(acc)
+	p2p := p2pserver.NewServer()
 
 	p2pActor := p2pactor.NewP2PActor(p2p)
 	p2pPID, err := p2pActor.Start()

@@ -20,7 +20,6 @@
 package p2p
 
 import (
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/peer"
@@ -40,7 +39,6 @@ type P2P interface {
 	GetHeight() uint64
 	GetTime() int64
 	GetServices() uint64
-	GetPubKey() keypair.PublicKey
 	GetNeighbors() []*peer.Peer
 	GetNeighborAddrs() []common.PeerAddr
 	GetConnectionCnt() uint32

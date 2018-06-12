@@ -23,8 +23,6 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/p2pserver/common"
 )
@@ -47,8 +45,7 @@ type VersionPayload struct {
 }
 
 type Version struct {
-	P  VersionPayload
-	PK keypair.PublicKey
+	P VersionPayload
 }
 
 //Serialize message payload
@@ -57,10 +54,6 @@ func (this Version) Serialization() ([]byte, error) {
 	err := binary.Write(p, binary.LittleEndian, &(this.P))
 	if err != nil {
 		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. payload:%v", this.P))
-	}
-	serialization.WriteVarBytes(p, keypair.SerializePublicKey(this.PK))
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. publickey:%v", this.PK))
 	}
 
 	return p.Bytes(), nil
@@ -78,15 +71,5 @@ func (this *Version) Deserialization(p []byte) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read payload error. buf:%v", buf))
 	}
-
-	keyBuf, err := serialization.ReadVarBytes(buf)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read public key buffer error. buf:%v", buf))
-	}
-	pk, err := keypair.DeserializePublicKey(keyBuf)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("deserialize public key error. keyBuf:%v", keyBuf))
-	}
-	this.PK = pk
 	return nil
 }

@@ -25,7 +25,6 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/ledger"
 	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
@@ -81,27 +80,11 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	var ngbHttpInfoAddr string
 
 	curNodeType := SERVICENODE
-	bookkeeperState, _ := ledger.DefLedger.GetBookkeeperState()
-	bookkeepers := bookkeeperState.CurrBookkeeper
-	bookkeeperLen := len(bookkeepers)
-	for i := 0; i < bookkeeperLen; i++ {
-		if keypair.ComparePublicKey(node.GetPubKey(), bookkeepers[i]) {
-			curNodeType = VERIFYNODE
-			break
-		}
-	}
 
 	ngbrNoders := node.GetNeighbors()
 	ngbrsLen := len(ngbrNoders)
 	for i := 0; i < ngbrsLen; i++ {
 		ngbType = SERVICENODE
-		for j := 0; j < bookkeeperLen; j++ {
-			if keypair.ComparePublicKey(ngbrNoders[i].GetPubKey(), bookkeepers[j]) {
-				ngbType = VERIFYNODE
-				break
-			}
-		}
-
 		ngbAddr = ngbrNoders[i].GetAddr()
 		ngbInfoPort = ngbrNoders[i].GetHttpInfoPort()
 		ngbInfoState = ngbrNoders[i].GetHttpInfoState()
