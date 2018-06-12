@@ -33,8 +33,7 @@ var (
 	//Ontology setting
 	ConfigFlag = cli.StringFlag{
 		Name:  "config",
-		Usage: "Use `<filename>` as the genesis config file",
-		Value: config.DEFAULT_CONFIG_FILE_NAME,
+		Usage: "Use `<filename>` as the genesis config file. Using Polaris config with VBFT consensus as default, if not set config flag.",
 	}
 	LogLevelFlag = cli.UintFlag{
 		Name:  "loglevel",
