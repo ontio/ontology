@@ -120,6 +120,7 @@ func setP2PNodeConfig(ctx *cli.Context, cfg *config.P2PNodeConfig) {
 	cfg.DualPortSupport = ctx.GlobalBool(utils.GetFlagName(utils.DualPortSupportFlag))
 	cfg.MaxConnInBound = ctx.GlobalUint(utils.GetFlagName(utils.MaxConnInBoundFlag))
 	cfg.MaxConnOutBound = ctx.GlobalUint(utils.GetFlagName(utils.MaxConnOutBoundFlag))
+	cfg.MaxConnInBoundForSingleIP = ctx.GlobalUint(utils.GetFlagName(utils.MaxConnInBoundForSingleIPFlag))
 }
 
 func setRpcConfig(ctx *cli.Context, cfg *config.RpcConfig) {

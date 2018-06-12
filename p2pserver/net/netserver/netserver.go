@@ -268,9 +268,9 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	defer this.Unlock()
 	connCount := this.GetOutConnectingListLen()
 	if connCount > config.DefConfig.P2PNode.MaxConnOutBound {
-		log.Warnf("out connections(%d) reach the max limit(%d)", connCount,
+		log.Warnf("Connect: out connections(%d) reach the max limit(%d)", connCount,
 			config.DefConfig.P2PNode.MaxConnOutBound)
-		return errors.New("out connections reach the max limit")
+		return errors.New("connect: out connections reach the max limit")
 	}
 
 	if this.IsNbrPeerAddr(addr, isConsensus) {
@@ -438,8 +438,22 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 
 		syncAddrCount := this.GetPeerSyncAddressCount()
 		if syncAddrCount >= config.DefConfig.P2PNode.MaxConnInBound {
-			log.Errorf("accept connections(%d) reach the max limit(%d), conn closed",
+			log.Errorf("SyncAccept: total connections(%d) reach the max limit(%d), conn closed",
 				syncAddrCount, config.DefConfig.P2PNode.MaxConnInBound)
+			conn.Close()
+			continue
+		}
+
+		remoteAddr := conn.RemoteAddr().String()
+		colonPos := strings.LastIndex(remoteAddr, ":")
+		if colonPos == -1 {
+			colonPos = len(remoteAddr)
+		}
+		remoteIp := remoteAddr[:colonPos]
+		connNum := this.GetPeerSyncCountWithSingleIp(remoteIp)
+		if connNum >= config.DefConfig.P2PNode.MaxConnInBoundForSingleIP {
+			log.Errorf("SyncAccept: connections(%d) with ip(%s) has reach the max limit(%d), " +
+				"conn closed", connNum, remoteIp, config.DefConfig.P2PNode.MaxConnInBoundForSingleIP)
 			conn.Close()
 			continue
 		}
@@ -585,4 +599,18 @@ func (this *NetServer) GetPeerSyncAddressCount()(count uint) {
 	this.PeerAddrMap.Lock()
 	defer this.PeerAddrMap.Unlock()
 	return uint(len(this.PeerSyncAddress))
+}
+
+//GetPeerSyncCountWithSingleIp return count of cons with single ip
+func (this *NetServer) GetPeerSyncCountWithSingleIp(ip string) uint {
+	this.PeerAddrMap.Lock()
+	defer this.PeerAddrMap.Unlock()
+	var count uint
+	for _, peerAddr := range this.PeerSyncAddress{
+		addr := peerAddr.GetAddr()
+		if strings.Contains(addr, ip){
+			count++
+		}
+	}
+	return count
 }
