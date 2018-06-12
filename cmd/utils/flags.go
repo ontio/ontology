@@ -121,7 +121,21 @@ var (
 		Usage: "Consensus listening port",
 		Value: config.DEFAULT_CONSENSUS_PORT,
 	}
-
+	MaxConnInBoundFlag = cli.UintFlag{
+		Name:  "maxconninbound",
+		Usage: "Max connection in bound",
+		Value: config.DEFAULT_MAX_CONN_IN_BOUND,
+	}
+	MaxConnOutBoundFlag = cli.UintFlag{
+		Name:  "maxconnoutbound",
+		Usage: "Max connection out bound",
+		Value: config.DEFAULT_MAX_CONN_OUT_BOUND,
+	}
+	MaxConnInBoundForSingleIPFlag = cli.UintFlag{
+		Name:  "maxconninboundforsingleip",
+		Usage: "Max connection in bound for single ip",
+		Value: config.DEFAULT_MAX_CONN_IN_BOUND_FOR_SINGLE_IP,
+	}
 	// RPC settings
 	RPCDisabledFlag = cli.BoolFlag{
 		Name:  "disablerpc",

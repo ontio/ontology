@@ -125,6 +125,9 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.NodePortFlag,
 			utils.DualPortSupportFlag,
 			utils.ConsensusPortFlag,
+			utils.MaxConnInBoundFlag,
+			utils.MaxConnOutBoundFlag,
+			utils.MaxConnInBoundForSingleIPFlag,
 		},
 	},
 	{

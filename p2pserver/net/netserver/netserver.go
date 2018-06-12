@@ -64,6 +64,7 @@ type NetServer struct {
 	ConnectingNodes
 	PeerAddrMap
 	Np *peer.NbrPeers
+	sync.RWMutex
 }
 
 //ConnectingNodes include all addr in connecting state
@@ -259,15 +260,23 @@ func (this *NetServer) IsPeerEstablished(p *peer.Peer) bool {
 		return this.Np.NodeEstablished(p.GetID())
 	}
 	return false
-
 }
 
 //Connect used to connect net address under sync or cons mode
 func (this *NetServer) Connect(addr string, isConsensus bool) error {
+	this.Lock()
+	defer this.Unlock()
+	connCount := this.GetOutConnectingListLen()
+	if connCount > config.DefConfig.P2PNode.MaxConnOutBound {
+		log.Warnf("Connect: out connections(%d) reach the max limit(%d)", connCount,
+			config.DefConfig.P2PNode.MaxConnOutBound)
+		return errors.New("connect: out connections reach the max limit")
+	}
+
 	if this.IsNbrPeerAddr(addr, isConsensus) {
 		return nil
 	}
-	if added := this.AddInConnectingList(addr); added == false {
+	if added := this.AddOutConnectingList(addr); added == false {
 		p := this.GetPeerFromAddr(addr)
 		if p != nil {
 			if p.SyncLink.Valid() {
@@ -351,7 +360,6 @@ func (this *NetServer) Halt() {
 	if this.conslistener != nil {
 		this.conslistener.Close()
 	}
-
 }
 
 //establishing the connection to remote peers and listening for inbound peers
@@ -423,18 +431,37 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Error("error accepting ", err.Error())
-			return
+			continue
 		}
 		log.Info("remote sync node connect with ",
 			conn.RemoteAddr(), conn.LocalAddr())
 
+		syncAddrCount := this.GetPeerSyncAddressCount()
+		if syncAddrCount >= config.DefConfig.P2PNode.MaxConnInBound {
+			log.Errorf("SyncAccept: total connections(%d) reach the max limit(%d), conn closed",
+				syncAddrCount, config.DefConfig.P2PNode.MaxConnInBound)
+			conn.Close()
+			continue
+		}
+
+		remoteAddr := conn.RemoteAddr().String()
+		colonPos := strings.LastIndex(remoteAddr, ":")
+		if colonPos == -1 {
+			colonPos = len(remoteAddr)
+		}
+		remoteIp := remoteAddr[:colonPos]
+		connNum := this.GetPeerSyncCountWithSingleIp(remoteIp)
+		if connNum >= config.DefConfig.P2PNode.MaxConnInBoundForSingleIP {
+			log.Errorf("SyncAccept: connections(%d) with ip(%s) has reach the max limit(%d), " +
+				"conn closed", connNum, remoteIp, config.DefConfig.P2PNode.MaxConnInBoundForSingleIP)
+			conn.Close()
+			continue
+		}
+
 		remotePeer := peer.NewPeer()
 		addr := conn.RemoteAddr().String()
 		this.AddPeerSyncAddress(addr, remotePeer)
-		if err != nil {
-			log.Errorf("error parse remote ip:%s", addr)
-			return
-		}
+
 		remotePeer.SyncLink.SetAddr(addr)
 		remotePeer.SyncLink.SetConn(conn)
 		remotePeer.AttachSyncChan(this.SyncChan)
@@ -448,7 +475,7 @@ func (this *NetServer) startConsAccept(listener net.Listener) {
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Error("error accepting ", err.Error())
-			return
+			continue
 		}
 		log.Info("remote cons node connect with ",
 			conn.RemoteAddr(), conn.LocalAddr())
@@ -456,10 +483,7 @@ func (this *NetServer) startConsAccept(listener net.Listener) {
 		remotePeer := peer.NewPeer()
 		addr := conn.RemoteAddr().String()
 		this.AddPeerConsAddress(addr, remotePeer)
-		if err != nil {
-			log.Errorf("error parse remote ip:%s", addr)
-			return
-		}
+
 		remotePeer.ConsLink.SetAddr(addr)
 		remotePeer.ConsLink.SetConn(conn)
 		remotePeer.AttachConsChan(this.ConsChan)
@@ -468,7 +492,7 @@ func (this *NetServer) startConsAccept(listener net.Listener) {
 }
 
 //record the peer which is going to be dialed and sent version message but not in establish state
-func (this *NetServer) AddInConnectingList(addr string) (added bool) {
+func (this *NetServer) AddOutConnectingList(addr string) (added bool) {
 	this.ConnectingNodes.Lock()
 	defer this.ConnectingNodes.Unlock()
 	for _, a := range this.ConnectingAddrs {
@@ -491,6 +515,13 @@ func (this *NetServer) RemoveFromConnectingList(addr string) {
 		}
 	}
 	this.ConnectingAddrs = addrs
+}
+
+//record the peer which is going to be dialed and sent version message but not in establish state
+func (this *NetServer) GetOutConnectingListLen() (count uint) {
+	this.ConnectingNodes.Lock()
+	defer this.ConnectingNodes.Unlock()
+	return uint(len(this.ConnectingAddrs))
 }
 
 //find exist peer from addr map
@@ -561,4 +592,25 @@ func (this *NetServer) RemovePeerConsAddress(addr string) {
 	if _, ok := this.PeerConsAddress[addr]; ok {
 		delete(this.PeerConsAddress, addr)
 	}
+}
+
+//GetPeerSyncAddressCount return length of cons addr from peer-addr map
+func (this *NetServer) GetPeerSyncAddressCount()(count uint) {
+	this.PeerAddrMap.Lock()
+	defer this.PeerAddrMap.Unlock()
+	return uint(len(this.PeerSyncAddress))
+}
+
+//GetPeerSyncCountWithSingleIp return count of cons with single ip
+func (this *NetServer) GetPeerSyncCountWithSingleIp(ip string) uint {
+	this.PeerAddrMap.Lock()
+	defer this.PeerAddrMap.Unlock()
+	var count uint
+	for _, peerAddr := range this.PeerSyncAddress{
+		addr := peerAddr.GetAddr()
+		if strings.Contains(addr, ip){
+			count++
+		}
+	}
+	return count
 }

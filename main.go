@@ -97,6 +97,9 @@ func setupAPP() *cli.App {
 		utils.NodePortFlag,
 		utils.ConsensusPortFlag,
 		utils.DualPortSupportFlag,
+		utils.MaxConnInBoundFlag,
+		utils.MaxConnOutBoundFlag,
+		utils.MaxConnInBoundForSingleIPFlag,
 		//test mode setting
 		utils.EnableTestModeFlag,
 		utils.TestModeGenBlockTimeFlag,

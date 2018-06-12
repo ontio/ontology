@@ -43,23 +43,26 @@ const (
 	CONSENSUS_TYPE_SOLO = "solo"
 	CONSENSUS_TYPE_VBFT = "vbft"
 
-	DEFAULT_LOG_LEVEL        = 1
-	DEFAULT_MAX_LOG_SIZE     = 100 //MByte
-	DEFAULT_NET_MAGIC        = 0x74746e41
-	DEFAULT_NODE_PORT        = uint(20338)
-	DEFAULT_CONSENSUS_PORT   = uint(20339)
-	DEFAULT_RPC_PORT         = uint(20336)
-	DEFAULT_RPC_LOCAL_PORT   = uint(20337)
-	DEFAULT_REST_PORT        = uint(20334)
-	DEFAULT_WS_PORT          = uint(20335)
-	DEFAULT_HTTP_INFO_PORT   = uint(0)
-	DEFAULT_MAX_TX_IN_BLOCK  = 60000
-	DEFAULT_MAX_SYNC_HEADER  = 500
-	DEFAULT_ENABLE_CONSENSUS = true
-	DEFAULT_ENABLE_EVENT_LOG = true
-	DEFAULT_CLI_RPC_PORT     = uint(20000)
-	DEFAULT_GAS_LIMIT        = 30000
-	DEFAULT_GAS_PRICE        = 0
+	DEFAULT_LOG_LEVEL                       = 1
+	DEFAULT_MAX_LOG_SIZE                    = 100 //MByte
+	DEFAULT_NET_MAGIC                       = 0x74746e41
+	DEFAULT_NODE_PORT                       = uint(20338)
+	DEFAULT_CONSENSUS_PORT                  = uint(20339)
+	DEFAULT_RPC_PORT                        = uint(20336)
+	DEFAULT_RPC_LOCAL_PORT                  = uint(20337)
+	DEFAULT_REST_PORT                       = uint(20334)
+	DEFAULT_WS_PORT                         = uint(20335)
+	DEFAULT_MAX_CONN_IN_BOUND               = uint(128)
+	DEFAULT_MAX_CONN_OUT_BOUND              = uint(128)
+	DEFAULT_MAX_CONN_IN_BOUND_FOR_SINGLE_IP = uint(128)
+	DEFAULT_HTTP_INFO_PORT                  = uint(0)
+	DEFAULT_MAX_TX_IN_BLOCK                 = 60000
+	DEFAULT_MAX_SYNC_HEADER                 = 500
+	DEFAULT_ENABLE_CONSENSUS                = true
+	DEFAULT_ENABLE_EVENT_LOG                = true
+	DEFAULT_CLI_RPC_PORT                    = uint(20000)
+	DEFAULT_GAS_LIMIT                       = 30000
+	DEFAULT_GAS_PRICE                       = 0
 
 	DEFAULT_DATA_DIR = "./Chain"
 )
@@ -325,16 +328,19 @@ type ConsensusConfig struct {
 }
 
 type P2PNodeConfig struct {
-	NetworkId         uint32
-	NodePort          uint
-	NodeConsensusPort uint
-	DualPortSupport   bool
-	IsTLS             bool
-	CertPath          string
-	KeyPath           string
-	CAPath            string
-	HttpInfoPort      uint
-	MaxHdrSyncReqs    uint
+	NetworkId                 uint32
+	NodePort                  uint
+	NodeConsensusPort         uint
+	DualPortSupport           bool
+	IsTLS                     bool
+	CertPath                  string
+	KeyPath                   string
+	CAPath                    string
+	HttpInfoPort              uint
+	MaxHdrSyncReqs            uint
+	MaxConnInBound            uint
+	MaxConnOutBound           uint
+	MaxConnInBoundForSingleIP uint
 }
 
 type RpcConfig struct {
@@ -387,16 +393,19 @@ func NewOntologyConfig() *OntologyConfig {
 			MaxTxInBlock:    DEFAULT_MAX_TX_IN_BLOCK,
 		},
 		P2PNode: &P2PNodeConfig{
-			NetworkId:         DEFAULT_NET_MAGIC,
-			NodePort:          DEFAULT_NODE_PORT,
-			NodeConsensusPort: DEFAULT_CONSENSUS_PORT,
-			DualPortSupport:   true,
-			IsTLS:             false,
-			CertPath:          "",
-			KeyPath:           "",
-			CAPath:            "",
-			HttpInfoPort:      DEFAULT_HTTP_INFO_PORT,
-			MaxHdrSyncReqs:    DEFAULT_MAX_SYNC_HEADER,
+			NetworkId:                 DEFAULT_NET_MAGIC,
+			NodePort:                  DEFAULT_NODE_PORT,
+			NodeConsensusPort:         DEFAULT_CONSENSUS_PORT,
+			DualPortSupport:           true,
+			IsTLS:                     false,
+			CertPath:                  "",
+			KeyPath:                   "",
+			CAPath:                    "",
+			HttpInfoPort:              DEFAULT_HTTP_INFO_PORT,
+			MaxHdrSyncReqs:            DEFAULT_MAX_SYNC_HEADER,
+			MaxConnInBound:            DEFAULT_MAX_CONN_IN_BOUND,
+			MaxConnOutBound:           DEFAULT_MAX_CONN_OUT_BOUND,
+			MaxConnInBoundForSingleIP: DEFAULT_MAX_CONN_IN_BOUND_FOR_SINGLE_IP,
 		},
 		Rpc: &RpcConfig{
 			EnableHttpJsonRpc: true,
