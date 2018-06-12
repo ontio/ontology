@@ -24,10 +24,8 @@ import (
 	"sync"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/common/serialization"
 	scommon "github.com/ontio/ontology/core/store/common"
-	ctypes "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -41,15 +39,16 @@ type ParamCache struct {
 type paramType byte
 
 const (
-	CURRENT_VALUE         paramType = 0x00
-	PREPARE_VALUE         paramType = 0x01
-	INIT_NAME                       = "init"
-	ACCEPT_ADMIN_NAME               = "acceptAdmin"
-	TRANSFER_ADMIN_NAME             = "transferAdmin"
-	SET_OPERATOR                    = "setOperator"
-	SET_GLOBAL_PARAM_NAME           = "setGlobalParam"
-	GET_GLOBAL_PARAM_NAME           = "getGlobalParam"
-	CREATE_SNAPSHOT_NAME            = "createSnapshot"
+	VERSION_CONTRACT_GLOBAL_PARAMS           = byte(0)
+	CURRENT_VALUE                  paramType = 0x00
+	PREPARE_VALUE                  paramType = 0x01
+	INIT_NAME                                = "init"
+	ACCEPT_ADMIN_NAME                        = "acceptAdmin"
+	TRANSFER_ADMIN_NAME                      = "transferAdmin"
+	SET_OPERATOR                             = "setOperator"
+	SET_GLOBAL_PARAM_NAME                    = "setGlobalParam"
+	GET_GLOBAL_PARAM_NAME                    = "getGlobalParam"
+	CREATE_SNAPSHOT_NAME                     = "createSnapshot"
 )
 
 var paramCache *ParamCache
@@ -75,23 +74,23 @@ func ParamInit(native *native.NativeService) ([]byte, error) {
 	paramCache.Params = make([]*Param, 0)
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	initParams := new(Params)
-	if err := initParams.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, errors.NewErr("init param, deserialize failed!")
+	args, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "init param, read native input failed!")
+	}
+	argsBuffer := bytes.NewBuffer(args)
+	if err := initParams.Deserialize(argsBuffer); err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "init param, deserialize params failed!")
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, generateParamKey(contract, CURRENT_VALUE), getParamStorageItem(initParams))
 	native.CloneCache.Add(scommon.ST_STORAGE, generateParamKey(contract, PREPARE_VALUE), getParamStorageItem(initParams))
+
 	admin := new(Role)
-
-	bookKeeepers, err := config.DefConfig.GetBookkeepers()
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("get bookkeepers error:%s", err)
+	if err := admin.Deserialize(argsBuffer); err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "init param, deserialize admin failed!")
 	}
-	initAddress := ctypes.AddressFromPubKey(bookKeeepers[0])
-	copy((*admin)[:], initAddress[:])
 	native.CloneCache.Add(scommon.ST_STORAGE, generateAdminKey(contract, false), getRoleStorageItem(admin))
-
-	operator := new(Role)
-	copy((*operator)[:], initAddress[:])
+	operator := admin
 	native.CloneCache.Add(scommon.ST_STORAGE, GenerateOperatorKey(contract), getRoleStorageItem(operator))
 	return utils.BYTE_TRUE, nil
 }
@@ -119,9 +118,9 @@ func AcceptAdmin(native *native.NativeService) ([]byte, error) {
 
 func TransferAdmin(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	admin := getAdmin(native, contract)
-	if admin == nil {
-		return utils.BYTE_FALSE, errors.NewErr("transfer admin, admin doesn't exist!")
+	admin, err := GetStorageRole(native, generateAdminKey(contract, false))
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "transfer admin, admin doesn't exist!")
 	}
 	if !native.ContextRef.CheckWitness(common.Address(*admin)) {
 		return utils.BYTE_FALSE, errors.NewErr("transfer admin, authentication failed!")
@@ -137,9 +136,9 @@ func TransferAdmin(native *native.NativeService) ([]byte, error) {
 
 func SetOperator(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	admin := getAdmin(native, contract)
-	if admin == nil {
-		return utils.BYTE_FALSE, errors.NewErr("set operator, admin doesn't exist!")
+	admin, err := GetStorageRole(native, generateAdminKey(contract, false))
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "set operator, admin doesn't exist!")
 	}
 	if !native.ContextRef.CheckWitness(common.Address(*admin)) {
 		return utils.BYTE_FALSE, errors.NewErr("set operator, authentication failed!")
@@ -154,9 +153,9 @@ func SetOperator(native *native.NativeService) ([]byte, error) {
 
 func SetGlobalParam(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	operator := getOperator(native, contract)
-	if operator == nil {
-		return utils.BYTE_FALSE, errors.NewErr("set param, operator doesn't exist!")
+	operator, err := GetStorageRole(native, GenerateOperatorKey(contract))
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "set param, operator doesn't exist!")
 	}
 	if !native.ContextRef.CheckWitness(common.Address(*operator)) {
 		return utils.BYTE_FALSE, errors.NewErr("set param, authentication failed!")
@@ -227,9 +226,9 @@ func GetGlobalParam(native *native.NativeService) ([]byte, error) {
 
 func CreateSnapshot(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	operator := getOperator(native, contract)
-	if operator == nil {
-		return utils.BYTE_FALSE, errors.NewErr("create snapshot, operator doesn't exist!")
+	operator, err := GetStorageRole(native, GenerateOperatorKey(contract))
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "create snapshot, operator doesn't exist!")
 	}
 	if !native.ContextRef.CheckWitness(common.Address(*operator)) {
 		return utils.BYTE_FALSE, errors.NewErr("create snapshot, authentication failed!")
@@ -247,39 +246,6 @@ func CreateSnapshot(native *native.NativeService) ([]byte, error) {
 	// clear memory cache
 	clearCache()
 	return utils.BYTE_TRUE, nil
-}
-
-func getAdmin(native *native.NativeService, contract common.Address) *Role {
-	// get admin from database
-	admin, err := GetStorageRole(native, generateAdminKey(contract, false))
-	// there are no admin in database
-	if err != nil {
-		bookKeeepers, err := config.DefConfig.GetBookkeepers()
-		if err != nil {
-			log.Errorf("GetBookkeepers error: %v", err)
-			return nil
-		}
-		initAddress := ctypes.AddressFromPubKey(bookKeeepers[0])
-		copy((*admin)[:], initAddress[:])
-	}
-	return admin
-}
-
-func getOperator(native *native.NativeService, contract common.Address) *Role {
-	var err error
-	// get operator from database
-	operator, err := GetStorageRole(native, GenerateOperatorKey(contract))
-	// there are no operator in database
-	if err != nil {
-		bookKeeepers, err := config.DefConfig.GetBookkeepers()
-		if err != nil {
-			log.Errorf("GetBookkeepers error: %v", err)
-			return nil
-		}
-		initAddress := ctypes.AddressFromPubKey(bookKeeepers[0])
-		copy((*operator)[:], initAddress[:])
-	}
-	return operator
 }
 
 func clearCache() {
