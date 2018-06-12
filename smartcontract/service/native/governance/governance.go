@@ -135,6 +135,12 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("initConfig. initConfig is already executed!")
 	}
 
+	//check the configuration
+	err = CheckVBFTConfig(configuration)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "checkVBFTConfig failed!")
+	}
+
 	//init globalParam
 	globalParam := &GlobalParam{
 		CandidateFee: 500000000000,
@@ -149,12 +155,6 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 	err = putGlobalParam(native, contract, globalParam)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putGlobalParam, put globalParam error!")
-	}
-
-	//check the configuration
-	err = CheckVBFTConfig(configuration)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "checkVBFTConfig failed!")
 	}
 
 	var view uint32 = 1
@@ -227,14 +227,14 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 
 	//init config
 	config := &Configuration{
-		N:                    uint64(configuration.N),
-		C:                    uint64(configuration.C),
-		K:                    uint64(configuration.K),
-		L:                    uint64(configuration.L),
-		BlockMsgDelay:        uint64(configuration.BlockMsgDelay),
-		HashMsgDelay:         uint64(configuration.HashMsgDelay),
-		PeerHandshakeTimeout: uint64(configuration.PeerHandshakeTimeout),
-		MaxBlockChangeView:   uint64(configuration.MaxBlockChangeView),
+		N:                    configuration.N,
+		C:                    configuration.C,
+		K:                    configuration.K,
+		L:                    configuration.L,
+		BlockMsgDelay:        configuration.BlockMsgDelay,
+		HashMsgDelay:         configuration.HashMsgDelay,
+		PeerHandshakeTimeout: configuration.PeerHandshakeTimeout,
+		MaxBlockChangeView:   configuration.MaxBlockChangeView,
 	}
 	err = putConfig(native, contract, config)
 	if err != nil {
@@ -969,7 +969,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	//check witness
 	err = utils.ValidateOwner(native, adminAddress)
 	if err != nil {
-		cycle := uint64(native.Height-governanceView.Height) >= config.MaxBlockChangeView
+		cycle := (native.Height - governanceView.Height) >= config.MaxBlockChangeView
 		if !cycle {
 			return utils.BYTE_FALSE, errors.NewErr("commitDpos, authentication Failed!")
 		}
@@ -1171,7 +1171,7 @@ func UpdateConfig(native *native.NativeService) ([]byte, error) {
 	if configuration.K < 2*configuration.C+1 {
 		return utils.BYTE_FALSE, errors.NewErr("updateConfig. K can not be less than 2*C+1 in config!")
 	}
-	if 4*configuration.K > globalParam.CandidateNum {
+	if uint64(4*configuration.K) > globalParam.CandidateNum {
 		return utils.BYTE_FALSE, errors.NewErr("updateConfig. 4*K can not be more than candidateNum!")
 	}
 	if configuration.N < configuration.K || configuration.K < 7 {
@@ -1223,7 +1223,7 @@ func UpdateGlobalParam(native *native.NativeService) ([]byte, error) {
 	if globalParam.PosLimit < 1 {
 		return utils.BYTE_FALSE, errors.NewErr("updateGlobalParam. PosLimit must >= 1!")
 	}
-	if globalParam.CandidateNum < 4*config.K {
+	if globalParam.CandidateNum < uint64(4*config.K) {
 		return utils.BYTE_FALSE, errors.NewErr("updateGlobalParam. CandidateNum must >= 4*K!")
 	}
 	if globalParam.CandidateFee != 0 && globalParam.CandidateFee < MinCandidateFee {
@@ -1340,7 +1340,7 @@ func executeSplit(native *native.NativeService, contract common.Address, peerPoo
 	for i := 0; i < int(config.K); i++ {
 		sum += peersCandidate[i].Stake
 	}
-	avg := sum / config.K
+	avg := sum / uint64(config.K)
 	var sumS uint64
 	for i := 0; i < int(config.K); i++ {
 		peersCandidate[i].S, err = splitCurve(native, contract, peersCandidate[i].Stake, avg, globalParam.Yita)

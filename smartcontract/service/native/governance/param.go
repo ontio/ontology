@@ -358,39 +358,39 @@ func (this *WithdrawParam) Deserialize(r io.Reader) error {
 }
 
 type Configuration struct {
-	N                    uint64
-	C                    uint64
-	K                    uint64
-	L                    uint64
-	BlockMsgDelay        uint64
-	HashMsgDelay         uint64
-	PeerHandshakeTimeout uint64
-	MaxBlockChangeView   uint64
+	N                    uint32
+	C                    uint32
+	K                    uint32
+	L                    uint32
+	BlockMsgDelay        uint32
+	HashMsgDelay         uint32
+	PeerHandshakeTimeout uint32
+	MaxBlockChangeView   uint32
 }
 
 func (this *Configuration) Serialize(w io.Writer) error {
-	if err := utils.WriteVarUint(w, this.N); err != nil {
+	if err := utils.WriteVarUint(w, uint64(this.N)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize n error!")
 	}
-	if err := utils.WriteVarUint(w, this.C); err != nil {
+	if err := utils.WriteVarUint(w, uint64(this.C)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize c error!")
 	}
-	if err := utils.WriteVarUint(w, this.K); err != nil {
+	if err := utils.WriteVarUint(w, uint64(this.K)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize k error!")
 	}
-	if err := utils.WriteVarUint(w, this.L); err != nil {
+	if err := utils.WriteVarUint(w, uint64(this.L)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize l error!")
 	}
-	if err := utils.WriteVarUint(w, this.BlockMsgDelay); err != nil {
+	if err := utils.WriteVarUint(w, uint64(this.BlockMsgDelay)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize block_msg_delay error!")
 	}
-	if err := utils.WriteVarUint(w, this.HashMsgDelay); err != nil {
+	if err := utils.WriteVarUint(w, uint64(this.HashMsgDelay)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize hash_msg_delay error!")
 	}
-	if err := utils.WriteVarUint(w, this.PeerHandshakeTimeout); err != nil {
+	if err := utils.WriteVarUint(w, uint64(this.PeerHandshakeTimeout)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize peer_handshake_timeout error!")
 	}
-	if err := utils.WriteVarUint(w, this.MaxBlockChangeView); err != nil {
+	if err := utils.WriteVarUint(w, uint64(this.MaxBlockChangeView)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize max_block_change_view error!")
 	}
 	return nil
@@ -429,14 +429,14 @@ func (this *Configuration) Deserialize(r io.Reader) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize maxBlockChangeView error!")
 	}
-	this.N = n
-	this.C = c
-	this.K = k
-	this.L = l
-	this.BlockMsgDelay = blockMsgDelay
-	this.HashMsgDelay = hashMsgDelay
-	this.PeerHandshakeTimeout = peerHandshakeTimeout
-	this.MaxBlockChangeView = maxBlockChangeView
+	this.N = uint32(n)
+	this.C = uint32(c)
+	this.K = uint32(k)
+	this.L = uint32(l)
+	this.BlockMsgDelay = uint32(blockMsgDelay)
+	this.HashMsgDelay = uint32(hashMsgDelay)
+	this.PeerHandshakeTimeout = uint32(peerHandshakeTimeout)
+	this.MaxBlockChangeView = uint32(maxBlockChangeView)
 	return nil
 }
 
