@@ -54,7 +54,10 @@ func GetPeerPoolMap(native *native.NativeService, contract common.Address, view 
 	if peerPoolMapBytes == nil {
 		return nil, errors.NewErr("getPeerPoolMap, peerPoolMap is nil!")
 	}
-	peerPoolMapStore, _ := peerPoolMapBytes.(*cstates.StorageItem)
+	peerPoolMapStore, ok := peerPoolMapBytes.(*cstates.StorageItem)
+	if !ok {
+		return nil, errors.NewErr("getPeerPoolMap, peerPoolMapBytes is not available!")
+	}
 	if err := peerPoolMap.Deserialize(bytes.NewBuffer(peerPoolMapStore.Value)); err != nil {
 		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize peerPoolMap error!")
 	}
@@ -83,7 +86,10 @@ func GetGovernanceView(native *native.NativeService, contract common.Address) (*
 	if governanceViewBytes == nil {
 		return nil, errors.NewErr("getGovernanceView, get nil governanceViewBytes!")
 	} else {
-		governanceViewStore, _ := governanceViewBytes.(*cstates.StorageItem)
+		governanceViewStore, ok := governanceViewBytes.(*cstates.StorageItem)
+		if !ok {
+			return nil, errors.NewErr("getGovernanceView, governanceViewBytes is not available!")
+		}
 		if err := governanceView.Deserialize(bytes.NewBuffer(governanceViewStore.Value)); err != nil {
 			return nil, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize governanceView error!")
 		}
@@ -244,7 +250,10 @@ func getGlobalParam(native *native.NativeService, contract common.Address) (*Glo
 	if globalParamBytes == nil {
 		return nil, errors.NewErr("getGlobalParam, get nil globalParamBytes!")
 	} else {
-		globalParamStore, _ := globalParamBytes.(*cstates.StorageItem)
+		globalParamStore, ok := globalParamBytes.(*cstates.StorageItem)
+		if !ok {
+			return nil, errors.NewErr("getGlobalParam, globalParamBytes is not available!")
+		}
 		if err := globalParam.Deserialize(bytes.NewBuffer(globalParamStore.Value)); err != nil {
 			return nil, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize globalParam error!")
 		}
@@ -352,7 +361,10 @@ func getConfig(native *native.NativeService, contract common.Address) (*Configur
 	if configBytes == nil {
 		return nil, errors.NewErr("commitDpos, configBytes is nil!")
 	}
-	configStore, _ := configBytes.(*cstates.StorageItem)
+	configStore, ok := configBytes.(*cstates.StorageItem)
+	if !ok {
+		return nil, errors.NewErr("getConfig, configBytes is not available!")
+	}
 	if err := config.Deserialize(bytes.NewBuffer(configStore.Value)); err != nil {
 		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize config error!")
 	}
@@ -376,7 +388,10 @@ func getCandidateIndex(native *native.NativeService, contract common.Address) (u
 	if candidateIndexBytes == nil {
 		return 0, errors.NewErr("approveCandidate, candidateIndex is not init!")
 	} else {
-		candidateIndexStore, _ := candidateIndexBytes.(*cstates.StorageItem)
+		candidateIndexStore, ok := candidateIndexBytes.(*cstates.StorageItem)
+		if !ok {
+			return 0, errors.NewErr("getCandidateIndex, candidateIndexBytes is not available!")
+		}
 		candidateIndex, err := GetBytesUint32(candidateIndexStore.Value)
 		if err != nil {
 			return 0, errors.NewDetailErr(err, errors.ErrNoCode, "GetBytesUint32, get candidateIndex error!")
@@ -410,7 +425,10 @@ func getVoteInfo(native *native.NativeService, contract common.Address, peerPubk
 		Address:    address,
 	}
 	if voteInfoBytes != nil {
-		voteInfoStore, _ := voteInfoBytes.(*cstates.StorageItem)
+		voteInfoStore, ok := voteInfoBytes.(*cstates.StorageItem)
+		if !ok {
+			return nil, errors.NewErr("getVoteInfo, voteInfoBytes is not available!")
+		}
 		if err := voteInfo.Deserialize(bytes.NewBuffer(voteInfoStore.Value)); err != nil {
 			return nil, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfo error!")
 		}
@@ -446,8 +464,11 @@ func getPenaltyStake(native *native.NativeService, contract common.Address, peer
 		PeerPubkey: peerPubkey,
 	}
 	if penaltyStakeBytes != nil {
-		voteInfoStore, _ := penaltyStakeBytes.(*cstates.StorageItem)
-		if err := penaltyStake.Deserialize(bytes.NewBuffer(voteInfoStore.Value)); err != nil {
+		penaltyStakeStore, ok := penaltyStakeBytes.(*cstates.StorageItem)
+		if !ok {
+			return nil, errors.NewErr("getPenaltyStake, penaltyStakeBytes is not available!")
+		}
+		if err := penaltyStake.Deserialize(bytes.NewBuffer(penaltyStakeStore.Value)); err != nil {
 			return nil, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfo error!")
 		}
 	}
@@ -478,8 +499,11 @@ func getTotalStake(native *native.NativeService, contract common.Address, addres
 		Address: address,
 	}
 	if totalStakeBytes != nil {
-		voteInfoStore, _ := totalStakeBytes.(*cstates.StorageItem)
-		if err := totalStake.Deserialize(bytes.NewBuffer(voteInfoStore.Value)); err != nil {
+		totalStakeStore, ok := totalStakeBytes.(*cstates.StorageItem)
+		if !ok {
+			return nil, errors.NewErr("getTotalStake, totalStakeStore is not available!")
+		}
+		if err := totalStake.Deserialize(bytes.NewBuffer(totalStakeStore.Value)); err != nil {
 			return nil, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfo error!")
 		}
 	}
@@ -515,7 +539,10 @@ func getSplitCurve(native *native.NativeService, contract common.Address) (*Spli
 	if splitCurveBytes == nil {
 		return nil, errors.NewErr("getSplitCurve, get nil splitCurveBytes!")
 	} else {
-		splitCurveStore, _ := splitCurveBytes.(*cstates.StorageItem)
+		splitCurveStore, ok := splitCurveBytes.(*cstates.StorageItem)
+		if !ok {
+			return nil, errors.NewErr("getSplitCurve, splitCurveBytes is not available!")
+		}
 		if err := splitCurve.Deserialize(bytes.NewBuffer(splitCurveStore.Value)); err != nil {
 			return nil, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize splitCurve error!")
 		}

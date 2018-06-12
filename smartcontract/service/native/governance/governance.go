@@ -1418,7 +1418,10 @@ func normalQuit(native *native.NativeService, contract common.Address, peerPoolI
 	}
 	voteInfo := new(VoteInfo)
 	for _, v := range stateValues {
-		voteInfoStore, _ := v.Value.(*cstates.StorageItem)
+		voteInfoStore, ok := v.Value.(*cstates.StorageItem)
+		if !ok {
+			return errors.NewErr("voteInfoStore is not available!")
+		}
 		if err := voteInfo.Deserialize(bytes.NewBuffer(voteInfoStore.Value)); err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfo error!")
 		}
@@ -1479,7 +1482,10 @@ func blackQuit(native *native.NativeService, contract common.Address, peerPoolIt
 	}
 	voteInfo := new(VoteInfo)
 	for _, v := range stateValues {
-		voteInfoStore, _ := v.Value.(*cstates.StorageItem)
+		voteInfoStore, ok := v.Value.(*cstates.StorageItem)
+		if !ok {
+			return errors.NewErr("voteInfoStore is not available!")
+		}
 		if err := voteInfo.Deserialize(bytes.NewBuffer(voteInfoStore.Value)); err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfo error!")
 		}
@@ -1526,7 +1532,10 @@ func consensusToConsensus(native *native.NativeService, contract common.Address,
 	}
 	voteInfo := new(VoteInfo)
 	for _, v := range stateValues {
-		voteInfoStore, _ := v.Value.(*cstates.StorageItem)
+		voteInfoStore, ok := v.Value.(*cstates.StorageItem)
+		if !ok {
+			return errors.NewErr("voteInfoStore is not available!")
+		}
 		if err := voteInfo.Deserialize(bytes.NewBuffer(voteInfoStore.Value)); err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfo error!")
 		}
@@ -1562,7 +1571,10 @@ func unConsensusToConsensus(native *native.NativeService, contract common.Addres
 	}
 	voteInfo := new(VoteInfo)
 	for _, v := range stateValues {
-		voteInfoStore, _ := v.Value.(*cstates.StorageItem)
+		voteInfoStore, ok := v.Value.(*cstates.StorageItem)
+		if !ok {
+			return errors.NewErr("voteInfoStore is not available!")
+		}
 		if err := voteInfo.Deserialize(bytes.NewBuffer(voteInfoStore.Value)); err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfo error!")
 		}
@@ -1599,7 +1611,10 @@ func consensusToUnConsensus(native *native.NativeService, contract common.Addres
 	}
 	voteInfo := new(VoteInfo)
 	for _, v := range stateValues {
-		voteInfoStore, _ := v.Value.(*cstates.StorageItem)
+		voteInfoStore, ok := v.Value.(*cstates.StorageItem)
+		if !ok {
+			return errors.NewErr("voteInfoStore is not available!")
+		}
 		if err := voteInfo.Deserialize(bytes.NewBuffer(voteInfoStore.Value)); err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfo error!")
 		}
@@ -1636,7 +1651,10 @@ func unConsensusToUnConsensus(native *native.NativeService, contract common.Addr
 	}
 	voteInfo := new(VoteInfo)
 	for _, v := range stateValues {
-		voteInfoStore, _ := v.Value.(*cstates.StorageItem)
+		voteInfoStore, ok := v.Value.(*cstates.StorageItem)
+		if !ok {
+			return errors.NewErr("voteInfoStore is not available!")
+		}
 		if err := voteInfo.Deserialize(bytes.NewBuffer(voteInfoStore.Value)); err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfo error!")
 		}
