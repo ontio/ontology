@@ -52,13 +52,13 @@ func TestParams_Serialize_Deserialize(t *testing.T) {
 }
 
 func TestAdmin_Serialize_Deserialize(t *testing.T) {
-	admin := new(Admin)
+	admin := new(Role)
 	copy((*admin)[:], utils.ParamContractAddress[:])
 	bf := new(bytes.Buffer)
 	if err := admin.Serialize(bf); err != nil {
 		t.Fatalf("admin serialize error: %v", err)
 	}
-	deserializeAdmin := new(Admin)
+	deserializeAdmin := new(Role)
 	if err := deserializeAdmin.Deserialize(bf); err != nil {
 		t.Fatal("admin version deserialize error")
 	}

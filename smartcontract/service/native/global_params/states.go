@@ -35,7 +35,7 @@ type Param struct {
 
 type Params []*Param
 
-type Admin common.Address
+type Role common.Address
 
 type ParamNameList []string
 
@@ -94,20 +94,20 @@ func (params *Params) Deserialize(r io.Reader) error {
 	return nil
 }
 
-func (admin *Admin) Serialize(w io.Writer) error {
-	err := serialization.WriteVarBytes(w, admin[:])
+func (role *Role) Serialize(w io.Writer) error {
+	err := serialization.WriteVarBytes(w, role[:])
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, serialize admin error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, serialize role error!")
 	}
 	return nil
 }
 
-func (admin *Admin) Deserialize(r io.Reader) error {
+func (role *Role) Deserialize(r io.Reader) error {
 	address, err := utils.ReadAddress(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, deserialize admin error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, deserialize role error!")
 	}
-	copy((*admin)[:], address[:])
+	copy((*role)[:], address[:])
 	return nil
 }
 
