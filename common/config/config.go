@@ -164,7 +164,7 @@ func (this *VBFTConfig) Serialize(w io.Writer) error {
 	}
 	for _, peer := range this.Peers {
 		if err := peer.Serialize(w); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize peer error!")
+			return errors.NewDetailErr(err, errors.ErrNoCode, "serialize peer error!")
 		}
 	}
 	return nil
@@ -209,15 +209,15 @@ func (this *VBFTConfig) Deserialize(r io.Reader) error {
 	}
 	adminOntID, err := serialization.ReadString(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize adminOntID error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize adminOntID error!")
 	}
 	vrfValue, err := serialization.ReadString(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize vrfValue error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize vrfValue error!")
 	}
 	vrfProof, err := serialization.ReadString(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize vrfProof error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize vrfProof error!")
 	}
 	length, err := serialization.ReadVarUint(r, 0)
 	if err != nil {
@@ -228,7 +228,7 @@ func (this *VBFTConfig) Deserialize(r io.Reader) error {
 		peer := new(VBFTPeerStakeInfo)
 		err = peer.Deserialize(r)
 		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peer error!")
+			return errors.NewDetailErr(err, errors.ErrNoCode, "deserialize peer error!")
 		}
 		peers = append(peers, peer)
 	}
