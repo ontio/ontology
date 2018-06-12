@@ -522,7 +522,7 @@ func putTotalStake(native *native.NativeService, contract common.Address, totalS
 
 func getAdmin(native *native.NativeService) (common.Address, error) {
 	adminAddress := new(common.Address)
-	admin, err := global_params.GetStorageAdmin(native, global_params.GenerateAdminKey(utils.ParamContractAddress, false))
+	admin, err := global_params.GetStorageRole(native, global_params.GenerateOperatorKey(utils.ParamContractAddress))
 	if err != nil {
 		return common.Address{}, errors.NewDetailErr(err, errors.ErrNoCode, "getStorageAdmin, get admin error!")
 	}
