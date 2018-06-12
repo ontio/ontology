@@ -89,6 +89,11 @@ var (
 		Usage: "The gas price enforced by the transaction pool for a new transaction",
 		Value: config.DEFAULT_GAS_PRICE,
 	}
+	ParallelDeserializeTxCountFlag = cli.IntFlag{
+		Name:  "paralleldeserializetxcount",
+		Usage: "Transaction count in one block to trigger parallel deserialization",
+		Value: config.DEFAULT_PARALLEL_DES_TX,
+	}
 
 	//Test Mode setting
 	EnableTestModeFlag = cli.BoolFlag{

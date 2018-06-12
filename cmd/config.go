@@ -111,6 +111,7 @@ func setCommonConfig(ctx *cli.Context, cfg *config.CommonConfig) {
 func setConsensusConfig(ctx *cli.Context, cfg *config.ConsensusConfig) {
 	cfg.EnableConsensus = !ctx.GlobalBool(utils.GetFlagName(utils.DisableConsensusFlag))
 	cfg.MaxTxInBlock = ctx.GlobalUint(utils.GetFlagName(utils.MaxTxInBlockFlag))
+	cfg.ParallelDeserializeTxCount = ctx.GlobalUint(utils.GetFlagName(utils.ParallelDeserializeTxCountFlag))
 }
 
 func setP2PNodeConfig(ctx *cli.Context, cfg *config.P2PNodeConfig) {

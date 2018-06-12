@@ -60,6 +60,7 @@ const (
 	DEFAULT_CLI_RPC_PORT     = uint(20000)
 	DEFAULT_GAS_LIMIT        = 30000
 	DEFAULT_GAS_PRICE        = 0
+	DEFAULT_PARALLEL_DES_TX  = 0
 
 	DEFAULT_DATA_DIR = "./Chain"
 )
@@ -320,8 +321,9 @@ type CommonConfig struct {
 }
 
 type ConsensusConfig struct {
-	EnableConsensus bool
-	MaxTxInBlock    uint
+	EnableConsensus            bool
+	MaxTxInBlock               uint
+	ParallelDeserializeTxCount uint
 }
 
 type P2PNodeConfig struct {
@@ -383,8 +385,9 @@ func NewOntologyConfig() *OntologyConfig {
 			DataDir:        DEFAULT_DATA_DIR,
 		},
 		Consensus: &ConsensusConfig{
-			EnableConsensus: true,
-			MaxTxInBlock:    DEFAULT_MAX_TX_IN_BLOCK,
+			EnableConsensus:            true,
+			MaxTxInBlock:               DEFAULT_MAX_TX_IN_BLOCK,
+			ParallelDeserializeTxCount: DEFAULT_PARALLEL_DES_TX,
 		},
 		P2PNode: &P2PNodeConfig{
 			NetworkId:         DEFAULT_NET_MAGIC,
