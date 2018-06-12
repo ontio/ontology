@@ -165,7 +165,7 @@ func invokeCodeContract(ctx *cli.Context) error {
 	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
 	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
 
-	invokeTx, err := httpcom.NewSmartContractTransaction(gasLimit, gasPrice, c)
+	invokeTx, err := httpcom.NewSmartContractTransaction(gasPrice, gasLimit, c)
 	if err != nil {
 		return err
 	}
