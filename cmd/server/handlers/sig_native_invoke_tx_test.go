@@ -29,7 +29,7 @@ func TestSigNativeInvokeTx(t *testing.T) {
 	invokeReq := &SigNativeInvokeTxReq{
 		GasPrice: 0,
 		GasLimit: 40000,
-		Address:  "ff00000000000000000000000000000000000002",
+		Address:  "0000000000000000000000000000000000000002",
 		Method:   "transfer",
 		Version:  0,
 		Params: []interface{}{

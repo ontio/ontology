@@ -21,10 +21,8 @@ package utils
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"github.com/ontio/ontology/cmd/abi"
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/vm/neovm"
 	"testing"
 )
 
@@ -97,8 +95,8 @@ func TestParseNativeParam(t *testing.T) {
 		[]interface{}{"1", "2", "3", "4", "5", "6"},
 		[]interface{}{"bar", "10"},
 	}
-
-	_, err := ParseNativeParam(params, paramAbi)
+	builder := neovm.NewParamsBuilder(new(bytes.Buffer))
+	err := ParseNativeFuncParam(builder, []interface{}{params}, paramAbi)
 	if err != nil {
 		t.Errorf("ParseNativeParam error:%s", err)
 		return
