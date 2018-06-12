@@ -25,6 +25,7 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
@@ -73,6 +74,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, stateBa
 		cache.Commit()
 	}
 
+	log.Infof("deploy contract address:%x", address.ToHexString())
 	// store contract message
 	err = stateBatch.TryGetOrAdd(scommon.ST_CONTRACT, address[:], deploy)
 	if err != nil {

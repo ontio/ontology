@@ -23,7 +23,6 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -34,7 +33,7 @@ type Transfers struct {
 }
 
 func (this *Transfers) Serialize(w io.Writer) error {
-	if err := serialization.WriteVarUint(w, uint64(len(this.States))); err != nil {
+	if err := utils.WriteVarUint(w, uint64(len(this.States))); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TokenTransfer] Serialize States length error!")
 	}
 	for _, v := range this.States {
@@ -46,7 +45,7 @@ func (this *Transfers) Serialize(w io.Writer) error {
 }
 
 func (this *Transfers) Deserialize(r io.Reader) error {
-	n, err := serialization.ReadVarUint(r, 0)
+	n, err := utils.ReadVarUint(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TokenTransfer] Deserialize states length error!")
 	}

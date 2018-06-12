@@ -157,7 +157,7 @@ type BlackNodeParam struct {
 }
 
 func (this *BlackNodeParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteVarUint(w, uint64(len(this.PeerPubkeyList))); err != nil {
+	if err := utils.WriteVarUint(w, uint64(len(this.PeerPubkeyList))); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize peerPubkeyList length error!")
 	}
 	for _, v := range this.PeerPubkeyList {
@@ -169,7 +169,7 @@ func (this *BlackNodeParam) Serialize(w io.Writer) error {
 }
 
 func (this *BlackNodeParam) Deserialize(r io.Reader) error {
-	n, err := serialization.ReadVarUint(r, 0)
+	n, err := utils.ReadVarUint(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize peerPubkeyList length error!")
 	}
@@ -221,7 +221,7 @@ func (this *VoteForPeerParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarBytes, address address error!")
 	}
-	if err := serialization.WriteVarUint(w, uint64(len(this.PeerPubkeyList))); err != nil {
+	if err := utils.WriteVarUint(w, uint64(len(this.PeerPubkeyList))); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize peerPubkeyList length error!")
 	}
 	for _, v := range this.PeerPubkeyList {
@@ -229,7 +229,7 @@ func (this *VoteForPeerParam) Serialize(w io.Writer) error {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize peerPubkey error!")
 		}
 	}
-	if err := serialization.WriteVarUint(w, uint64(len(this.PosList))); err != nil {
+	if err := utils.WriteVarUint(w, uint64(len(this.PosList))); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize posList length error!")
 	}
 	for _, v := range this.PosList {
@@ -245,7 +245,7 @@ func (this *VoteForPeerParam) Deserialize(r io.Reader) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadAddress, deserialize address error!")
 	}
-	n, err := serialization.ReadVarUint(r, 0)
+	n, err := utils.ReadVarUint(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize peerPubkeyList length error!")
 	}
@@ -260,7 +260,7 @@ func (this *VoteForPeerParam) Deserialize(r io.Reader) error {
 		}
 		peerPubkeyList = append(peerPubkeyList, k)
 	}
-	m, err := serialization.ReadVarUint(r, 0)
+	m, err := utils.ReadVarUint(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize posList length error!")
 	}
@@ -297,7 +297,7 @@ func (this *WithdrawParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarBytes, address address error!")
 	}
-	if err := serialization.WriteVarUint(w, uint64(len(this.PeerPubkeyList))); err != nil {
+	if err := utils.WriteVarUint(w, uint64(len(this.PeerPubkeyList))); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize peerPubkeyList length error!")
 	}
 	for _, v := range this.PeerPubkeyList {
@@ -305,7 +305,7 @@ func (this *WithdrawParam) Serialize(w io.Writer) error {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize peerPubkey error!")
 		}
 	}
-	if err := serialization.WriteVarUint(w, uint64(len(this.WithdrawList))); err != nil {
+	if err := utils.WriteVarUint(w, uint64(len(this.WithdrawList))); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize withdrawList length error!")
 	}
 	for _, v := range this.WithdrawList {
@@ -321,7 +321,7 @@ func (this *WithdrawParam) Deserialize(r io.Reader) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadAddress, deserialize address error!")
 	}
-	n, err := serialization.ReadVarUint(r, 0)
+	n, err := utils.ReadVarUint(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize peerPubkeyList length error!")
 	}
@@ -336,7 +336,7 @@ func (this *WithdrawParam) Deserialize(r io.Reader) error {
 		}
 		peerPubkeyList = append(peerPubkeyList, k)
 	}
-	m, err := serialization.ReadVarUint(r, 0)
+	m, err := utils.ReadVarUint(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize withdrawList length error!")
 	}

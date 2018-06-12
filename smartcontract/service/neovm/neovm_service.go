@@ -22,6 +22,8 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology-crypto/keypair"
+	scommon "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/store"
@@ -221,10 +223,11 @@ func (this *NeoVmService) SystemCall(engine *vm.ExecutionEngine) error {
 }
 
 func (this *NeoVmService) getContract(address []byte) ([]byte, error) {
-	item, err := this.CloneCache.Store.TryGet(common.ST_CONTRACT, address[:])
+	item, err := this.CloneCache.Store.TryGet(common.ST_CONTRACT, address)
 	if err != nil {
 		return nil, errors.NewErr("[getContract] Get contract context error!")
 	}
+	log.Infof("invoke contract address:%x", scommon.ToArrayReverse(address))
 	if item == nil {
 		return nil, CONTRACT_NOT_EXIST
 	}
