@@ -51,10 +51,11 @@ type P2P interface {
 	Send(p *peer.Peer, msg types.Message, isConsensus bool) error
 	GetMsgChan(isConsensus bool) chan *types.MsgPayload
 	GetPeerFromAddr(addr string) *peer.Peer
-	AddInConnectingList(addr string) (added bool)
+	AddOutConnectingList(addr string) (added bool)
 	RemoveFromConnectingList(addr string)
 	AddPeerSyncAddress(addr string, p *peer.Peer)
 	AddPeerConsAddress(addr string, p *peer.Peer)
+	GetOutConnectingListLen() (count uint)
 	RemovePeerSyncAddress(addr string)
 	RemovePeerConsAddress(addr string)
 	AddNbrNode(*peer.Peer)
