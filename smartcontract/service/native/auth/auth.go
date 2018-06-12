@@ -614,7 +614,7 @@ func verifySig(native *native.NativeService, ontID []byte, keyNo uint64) (bool, 
 	if err := serialization.WriteVarBytes(bf, ontID); err != nil {
 		return false, err
 	}
-	if err := serialization.WriteVarUint(bf, keyNo); err != nil {
+	if err := utils.WriteVarUint(bf, keyNo); err != nil {
 		return false, err
 	}
 	args := bf.Bytes()
