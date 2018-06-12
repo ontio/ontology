@@ -53,7 +53,7 @@ func ParseNativeFuncParam(builder *neovm.ParamsBuilder, funName string, params [
 	if size == 0 {
 		//Params cannot empty, if params is empty, fulfil with func name
 		params = []interface{}{funName}
-		paramsAbi = []*abi.NativeContractParamAbi{&abi.NativeContractParamAbi{
+		paramsAbi = []*abi.NativeContractParamAbi{{
 			Name: "funcName",
 			Type: abi.NATIVE_PARAM_TYPE_STRING,
 		}}
@@ -61,10 +61,9 @@ func ParseNativeFuncParam(builder *neovm.ParamsBuilder, funName string, params [
 		//If more than one param in func, must using struct
 		paramRoot := &abi.NativeContractParamAbi{
 			Name:    "root",
-			Type:    abi.NATIVE_PARAM_TYPE_ARRAY,
+			Type:    abi.NATIVE_PARAM_TYPE_STRUCT,
 			SubType: paramsAbi,
 		}
-		paramRoot.Type = abi.NATIVE_PARAM_TYPE_STRUCT
 		paramsAbi = []*abi.NativeContractParamAbi{paramRoot}
 	}
 	return ParseNativeParams(builder, params, paramsAbi)
