@@ -93,6 +93,8 @@ func setupAPP() *cli.App {
 		utils.TransactionGasPriceFlag,
 		utils.TransactionGasLimitFlag,
 		//p2p setting
+		utils.ReservedPeersOnlyFlag,
+		utils.ReservedPeersFileFlag,
 		utils.NetworkIdFlag,
 		utils.NodePortFlag,
 		utils.ConsensusPortFlag,

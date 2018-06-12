@@ -101,6 +101,15 @@ var (
 	}
 
 	//P2P setting
+	ReservedPeersOnlyFlag = cli.BoolFlag{
+		Name:  "reservedonly",
+		Usage: "connect reserved peers only",
+	}
+	ReservedPeersFileFlag = cli.StringFlag{
+		Name:  "reservedfile",
+		Usage: "reserved peers file",
+		Value: config.DEFAULT_RESERVED_FILE,
+	}
 	NetworkIdFlag = cli.UintFlag{
 		Name:  "networkid",
 		Usage: "P2P network id. 1=main net, 2=polaris test net, 3=testmode, and other for custom network",
