@@ -67,10 +67,10 @@ type State struct {
 }
 
 func (this *State) Serialize(w io.Writer) error {
-	if err := serialization.WriteVarBytes(w, this.From[:]); err != nil {
+	if err := utils.WriteAddress(w, this.From); err != nil {
 		return fmt.Errorf("[State] serialize from error:%v", err)
 	}
-	if err := serialization.WriteVarBytes(w, this.To[:]); err != nil {
+	if err := utils.WriteAddress(w, this.To); err != nil {
 		return fmt.Errorf("[State] serialize to error:%v", err)
 	}
 	if err := utils.WriteVarUint(w, this.Value); err != nil {
@@ -105,13 +105,13 @@ type TransferFrom struct {
 }
 
 func (this *TransferFrom) Serialize(w io.Writer) error {
-	if err := serialization.WriteVarBytes(w, this.Sender[:]); err != nil {
+	if err := utils.WriteAddress(w, this.Sender); err != nil {
 		return fmt.Errorf("[TransferFrom] serialize sender error:%v", err)
 	}
-	if err := serialization.WriteVarBytes(w, this.From[:]); err != nil {
+	if err := utils.WriteAddress(w, this.From); err != nil {
 		return fmt.Errorf("[TransferFrom] serialize from error:%v", err)
 	}
-	if err := serialization.WriteVarBytes(w, this.To[:]); err != nil {
+	if err := utils.WriteAddress(w, this.To); err != nil {
 		return fmt.Errorf("[TransferFrom] serialize to error:%v", err)
 	}
 	if err := utils.WriteVarUint(w, this.Value); err != nil {

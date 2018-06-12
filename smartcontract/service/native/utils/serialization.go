@@ -43,6 +43,13 @@ func ReadVarUint(r io.Reader) (uint64, error) {
 	return types.BigIntFromBytes(value).Uint64(), nil
 }
 
+func WriteAddress(w io.Writer, address common.Address) error {
+	if err := serialization.WriteVarBytes(w, address[:]); err != nil {
+		return fmt.Errorf("serialize value error:%v", err)
+	}
+	return nil
+}
+
 func ReadAddress(r io.Reader) (common.Address, error) {
 	from, err := serialization.ReadVarBytes(r)
 	if err != nil {
