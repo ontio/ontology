@@ -26,10 +26,10 @@ import (
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	_ "github.com/ontio/ontology/smartcontract/service/native/init"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vm "github.com/ontio/ontology/vm/neovm"
-	_ "github.com/ontio/ontology/smartcontract/service/native/init"
 )
 
 const (
