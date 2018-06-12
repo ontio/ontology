@@ -102,8 +102,8 @@ var AssetCommand = cli.Command{
 			},
 		},
 		{
-			Action:    unboundOng,
-			Name:      "unboundong",
+			Action:    unboundONG,
+			Name:      "unboundONG",
 			Usage:     "Show the balance of unbound ONG",
 			ArgsUsage: "<address|label|index>",
 			Flags: []cli.Flag{
@@ -111,8 +111,8 @@ var AssetCommand = cli.Command{
 			},
 		},
 		{
-			Action:    withdrawOng,
-			Name:      "withdrawong",
+			Action:    withdrawONG,
+			Name:      "withdrawONG",
 			Usage:     "Withdraw ONG",
 			ArgsUsage: "<address|label|index>",
 			Flags: []cli.Flag{
@@ -380,7 +380,7 @@ func transferFrom(ctx *cli.Context) error {
 	return nil
 }
 
-func unboundOng(ctx *cli.Context) error {
+func unboundONG(ctx *cli.Context) error {
 	if ctx.NArg() < 1 {
 		fmt.Println("Missing argument. Account address, label or index expected.\n")
 		cli.ShowSubcommandHelp(ctx)
@@ -407,7 +407,7 @@ func unboundOng(ctx *cli.Context) error {
 	return nil
 }
 
-func withdrawOng(ctx *cli.Context) error {
+func withdrawONG(ctx *cli.Context) error {
 	if ctx.NArg() < 1 {
 		fmt.Println("Missing argument. Account address, label or index expected.\n")
 		cli.ShowSubcommandHelp(ctx)
