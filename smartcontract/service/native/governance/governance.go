@@ -48,22 +48,23 @@ const (
 
 const (
 	//function name
-	INIT_CONFIG         = "initConfig"
-	REGISTER_CANDIDATE  = "registerCandidate"
-	APPROVE_CANDIDATE   = "approveCandidate"
-	REJECT_CANDIDATE    = "rejectCandidate"
-	BLACK_NODE          = "blackNode"
-	WHITE_NODE          = "whiteNode"
-	QUIT_NODE           = "quitNode"
-	VOTE_FOR_PEER       = "voteForPeer"
-	UNVOTE_FOR_PEER     = "unVoteForPeer"
-	WITHDRAW            = "withdraw"
-	COMMIT_DPOS         = "commitDpos"
-	UPDATE_CONFIG       = "updateConfig"
-	UPDATE_GLOBAL_PARAM = "updateGlobalParam"
-	UPDATE_SPLIT_CURVE  = "updateSplitCurve"
-	CALL_SPLIT          = "callSplit"
-	TRANSFER_PENALTY    = "transferPenalty"
+	INIT_CONFIG          = "initConfig"
+	REGISTER_CANDIDATE   = "registerCandidate"
+	UNREGISTER_CANDIDATE = "unRegisterCandidate"
+	APPROVE_CANDIDATE    = "approveCandidate"
+	REJECT_CANDIDATE     = "rejectCandidate"
+	BLACK_NODE           = "blackNode"
+	WHITE_NODE           = "whiteNode"
+	QUIT_NODE            = "quitNode"
+	VOTE_FOR_PEER        = "voteForPeer"
+	UNVOTE_FOR_PEER      = "unVoteForPeer"
+	WITHDRAW             = "withdraw"
+	COMMIT_DPOS          = "commitDpos"
+	UPDATE_CONFIG        = "updateConfig"
+	UPDATE_GLOBAL_PARAM  = "updateGlobalParam"
+	UPDATE_SPLIT_CURVE   = "updateSplitCurve"
+	CALL_SPLIT           = "callSplit"
+	TRANSFER_PENALTY     = "transferPenalty"
 
 	//key prefix
 	GLOBAL_PARAM    = "globalParam"
@@ -102,6 +103,7 @@ func InitGovernance() {
 
 func RegisterGovernanceContract(native *native.NativeService) {
 	native.Register(REGISTER_CANDIDATE, RegisterCandidate)
+	native.Register(UNREGISTER_CANDIDATE, UnRegisterCandidate)
 	native.Register(VOTE_FOR_PEER, VoteForPeer)
 	native.Register(UNVOTE_FOR_PEER, UnVoteForPeer)
 	native.Register(WITHDRAW, Withdraw)
@@ -304,11 +306,6 @@ func RegisterCandidate(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getGlobalParam, getGlobalParam error!")
 	}
 
-	//check initPos
-	if params.InitPos < globalParam.MinInitStake {
-		return utils.BYTE_FALSE, fmt.Errorf("registerCandidate, initPos must >= %v", globalParam.MinInitStake)
-	}
-
 	//check peerPubkey
 	if err := validatePeerPubKeyFormat(params.PeerPubkey); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "invalid peer pubkey")
@@ -371,6 +368,67 @@ func RegisterCandidate(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+func UnRegisterCandidate(native *native.NativeService) ([]byte, error) {
+	params := new(UnRegisterCandidateParam)
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
+	}
+	address := params.Address
+	contract := native.ContextRef.CurrentContext().ContractAddress
+
+	//check witness
+	err := utils.ValidateOwner(native, address)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "validateOwner, checkWitness error!")
+	}
+
+	//get current view
+	view, err := GetView(native, contract)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getView, get view error!")
+	}
+
+	//get peerPoolMap
+	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getPeerPoolMap, get peerPoolMap error!")
+	}
+
+	//check if exist in PeerPool
+	peerPoolItem, ok := peerPoolMap.PeerPoolMap[params.PeerPubkey]
+	if !ok {
+		return utils.BYTE_FALSE, errors.NewErr("unRegisterCandidate, peerPubkey is not in peerPoolMap!")
+	}
+
+	if peerPoolItem.Status != RegisterCandidateStatus {
+		return utils.BYTE_FALSE, errors.NewErr("unRegisterCandidate, peer status is not RegisterCandidateStatus!")
+	}
+
+	//check owner address
+	if peerPoolItem.Address != params.Address {
+		return utils.BYTE_FALSE, errors.NewErr("unRegisterCandidate, address is not peer owner!")
+	}
+
+	//unfreeze initPos
+	voteInfo := &VoteInfo{
+		PeerPubkey:          peerPoolItem.PeerPubkey,
+		Address:             peerPoolItem.Address,
+		WithdrawUnfreezePos: peerPoolItem.InitPos,
+	}
+	err = putVoteInfo(native, contract, voteInfo)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putVoteInfo, put voteInfo error!")
+	}
+
+	delete(peerPoolMap.PeerPoolMap, params.PeerPubkey)
+	err = putPeerPoolMap(native, contract, view, peerPoolMap)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putPeerPoolMap, put peerPoolMap error!")
+	}
+
+	return utils.BYTE_TRUE, nil
+}
+
 func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 	params := new(ApproveCandidateParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
@@ -423,6 +481,11 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 	peerPoolItem, ok := peerPoolMap.PeerPoolMap[params.PeerPubkey]
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("approveCandidate, peerPubkey is not in peerPoolMap!")
+	}
+
+	//check initPos
+	if peerPoolItem.InitPos < globalParam.MinInitStake {
+		return utils.BYTE_FALSE, fmt.Errorf("approveCandidate, initPos must >= %v", globalParam.MinInitStake)
 	}
 
 	if peerPoolItem.Status != RegisterCandidateStatus {
