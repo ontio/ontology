@@ -434,7 +434,7 @@ func BuildNeoVMInvokeCode(smartContractAddress common.Address, params []interfac
 		return nil, err
 	}
 	args := append(builder.ToArray(), 0x67)
-	args = append(args, common.ToArrayReverse(smartContractAddress[:])...)
+	args = append(args, smartContractAddress[:]...)
 	return args, nil
 }
 
