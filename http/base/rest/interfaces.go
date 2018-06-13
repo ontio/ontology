@@ -391,8 +391,7 @@ func GetBalance(cmd map[string]interface{}) map[string]interface{} {
 	}
 	balance, err := bcomn.GetBalance(address)
 	if err != nil {
-		log.Errorf("GetBalance address:%s error:%s", addrBase58, err)
-		return ResponsePack(berr.INTERNAL_ERROR)
+		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	resp["Result"] = balance
 	return resp
@@ -472,8 +471,7 @@ func GetAllowance(cmd map[string]interface{}) map[string]interface{} {
 	}
 	rsp, err := bcomn.GetAllowance(asset, fromAddr, toAddr)
 	if err != nil {
-		log.Errorf("GetAllowance %s from:%s to:%s error:%s", asset, fromAddrStr, toAddrStr, err)
-		return ResponsePack(berr.INTERNAL_ERROR)
+		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	resp["Result"] = rsp
 	return resp
@@ -492,8 +490,7 @@ func GetUnclaimOng(cmd map[string]interface{}) map[string]interface{} {
 	fromAddr := utils.OntContractAddress
 	rsp, err := bcomn.GetAllowance("ong", fromAddr, toAddr)
 	if err != nil {
-		log.Errorf("GetUnclaimOng %s error:%s", toAddr.ToBase58(), err)
-		return ResponsePack(berr.INTERNAL_ERROR)
+		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	resp["Result"] = rsp
 	return resp

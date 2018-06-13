@@ -21,12 +21,9 @@ package rpc
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
@@ -59,10 +56,6 @@ func GetBlock(params []interface{}) map[string]interface{} {
 	case float64:
 		index := uint32(params[0].(float64))
 		hash = bactor.GetBlockHashFromStore(index)
-		if err != nil {
-			log.Errorf("GetBlock GetBlockHashFromStore Height:%v error:%s", index, err)
-			return responsePack(berr.UNKNOWN_BLOCK, "unknown block")
-		}
 		if hash == common.UINT256_EMPTY {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
@@ -78,10 +71,6 @@ func GetBlock(params []interface{}) map[string]interface{} {
 	}
 	block, err := bactor.GetBlockFromStore(hash)
 	if err != nil {
-		log.Errorf("GetBlock GetBlockFromStore BlockHash:%x error:%s", hash, err)
-		return responsePack(berr.UNKNOWN_BLOCK, "unknown block")
-	}
-	if block == nil || block.Header == nil {
 		return responsePack(berr.UNKNOWN_BLOCK, "unknown block")
 	}
 	if len(params) >= 2 {
@@ -115,6 +104,9 @@ func GetBlockHash(params []interface{}) map[string]interface{} {
 	case float64:
 		height := uint32(params[0].(float64))
 		hash := bactor.GetBlockHashFromStore(height)
+		if hash == common.UINT256_EMPTY {
+			return responsePack(berr.INVALID_PARAMS, "")
+		}
 		return responseSuccess(hash.ToHexString())
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")
@@ -191,17 +183,10 @@ func GetRawTransaction(params []interface{}) map[string]interface{} {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
 		t, err := bactor.GetTransaction(hash)
-		if t == nil {
-			return responsePack(berr.UNKNOWN_TRANSACTION, "unknown transaction")
-		}
 		if err != nil {
-			log.Errorf("GetRawTransaction GetTransaction error:%s", err)
 			return responsePack(berr.UNKNOWN_TRANSACTION, "unknown transaction")
 		}
 		tx = t
-		if tx == nil {
-			return responsePack(berr.UNKNOWN_TRANSACTION, "unknown transaction")
-		}
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
@@ -259,8 +244,7 @@ func GetStorage(params []interface{}) map[string]interface{} {
 	}
 	value, err := bactor.GetStorageItem(codeHash, key)
 	if err != nil {
-		log.Errorf("GetStorage GetStorageItem CodeHash:%x key:%s error:%s", codeHash, key, err)
-		return responsePack(berr.INTERNAL_ERROR, "internal error")
+		return responsePack(berr.INVALID_PARAMS, "")
 	}
 	return responseSuccess(common.ToHexString(value))
 }
@@ -334,10 +318,6 @@ func GetContractState(params []interface{}) map[string]interface{} {
 		}
 		c, err := bactor.GetContractStateFromStore(codeHash)
 		if err != nil {
-			log.Errorf("GetContractState GetContractStateFromStore hash:%x error:%s", codeHash, err)
-			return responsePack(berr.INTERNAL_ERROR, "internal error")
-		}
-		if c == nil {
 			return responsePack(berr.UNKNOWN_CONTRACT, "unknow contract")
 		}
 		contract = c
@@ -391,9 +371,6 @@ func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 		}
 		eventInfo, err := bactor.GetEventNotifyByTxHash(hash)
 		if err != nil {
-			return responsePack(berr.INVALID_PARAMS, "")
-		}
-		if eventInfo == nil {
 			return responsePack(berr.INVALID_TRANSACTION, "")
 		}
 		_, notify := bcomn.GetExecuteNotify(eventInfo)
@@ -417,11 +394,8 @@ func GetBlockHeightByTxHash(params []interface{}) map[string]interface{} {
 		if err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
-		height, tx, err := bactor.GetTxnWithHeightByTxHash(hash)
+		height, _, err := bactor.GetTxnWithHeightByTxHash(hash)
 		if err != nil {
-			return responsePack(berr.INVALID_PARAMS, "")
-		}
-		if tx == nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
 		return responseSuccess(height)
@@ -429,21 +403,6 @@ func GetBlockHeightByTxHash(params []interface{}) map[string]interface{} {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
 	return responsePack(berr.INVALID_PARAMS, "")
-}
-
-func getStoreUint64Value(contractAddress, accountAddress common.Address) (uint64, error) {
-	data, err := bactor.GetStorageItem(contractAddress, accountAddress[:])
-	if err != nil {
-		return 0, fmt.Errorf("GetOntBalanceOf GetStorageItem ont address:%s error:%s", accountAddress.ToBase58(), err)
-	}
-	if len(data) == 0 {
-		return 0, nil
-	}
-	value, err := serialization.ReadUint64(bytes.NewBuffer(data))
-	if err != nil {
-		return 0, fmt.Errorf("serialization.ReadUint64:%x error:%s", data, err)
-	}
-	return value, err
 }
 
 func GetBalance(params []interface{}) map[string]interface{} {
@@ -460,8 +419,7 @@ func GetBalance(params []interface{}) map[string]interface{} {
 	}
 	rsp, err := bcomn.GetBalance(address)
 	if err != nil {
-		log.Errorf("GetBalance address:%s error:%s", addrBase58, err)
-		return responsePack(berr.INTERNAL_ERROR, "")
+		return responsePack(berr.INVALID_PARAMS, "")
 	}
 	return responseSuccess(rsp)
 }
@@ -492,8 +450,7 @@ func GetAllowance(params []interface{}) map[string]interface{} {
 	}
 	rsp, err := bcomn.GetAllowance(asset, fromAddr, toAddr)
 	if err != nil {
-		log.Errorf("GetAllowance %s from:%s to:%s error:%s", asset, fromAddrStr, toAddrStr, err)
-		return responsePack(berr.INTERNAL_ERROR, "")
+		return responsePack(berr.INVALID_PARAMS, "")
 	}
 	return responseSuccess(rsp)
 }
@@ -510,11 +467,8 @@ func GetMerkleProof(params []interface{}) map[string]interface{} {
 	if err != nil {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
-	height, tx, err := bactor.GetTxnWithHeightByTxHash(hash)
+	height, _, err := bactor.GetTxnWithHeightByTxHash(hash)
 	if err != nil {
-		return responsePack(berr.INVALID_PARAMS, "")
-	}
-	if tx == nil {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
 	header, err := bactor.GetHeaderByHeight(height)
@@ -583,8 +537,7 @@ func GetUnclaimOng(params []interface{}) map[string]interface{} {
 	fromAddr := utils.OntContractAddress
 	rsp, err := bcomn.GetAllowance("ong", fromAddr, toAddr)
 	if err != nil {
-		log.Errorf("GetUnclaimOng %s error:%s", toAddr.ToBase58(), err)
-		return responsePack(berr.INTERNAL_ERROR, "")
+		return responsePack(berr.INVALID_PARAMS, "")
 	}
 	return responseSuccess(rsp)
 }
