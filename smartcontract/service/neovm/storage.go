@@ -27,7 +27,6 @@ import (
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
 	vm "github.com/ontio/ontology/vm/neovm"
-	"fmt"
 )
 
 // StoragePut put smart contract storage item to cache
