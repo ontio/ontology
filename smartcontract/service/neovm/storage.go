@@ -21,12 +21,12 @@ package neovm
 import (
 	"bytes"
 
+	"fmt"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
 	vm "github.com/ontio/ontology/vm/neovm"
-	"fmt"
 )
 
 // StoragePut put smart contract storage item to cache
