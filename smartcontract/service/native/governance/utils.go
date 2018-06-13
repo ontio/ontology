@@ -196,13 +196,13 @@ func appCallTransferFromOng(native *native.NativeService, sender common.Address,
 }
 
 func getOngBalance(native *native.NativeService, address common.Address) (uint64, error) {
-	buf := bytes.NewBuffer(nil)
-	err := address.Serialize(buf)
+	bf := new(bytes.Buffer)
+	err := utils.WriteAddress(bf, address)
 	if err != nil {
-		return 0, errors.NewDetailErr(err, errors.ErrNoCode, "getOngBalance, address.Serialize error!")
+		return 0, errors.NewDetailErr(err, errors.ErrNoCode, "getOngBalance, utils.WriteAddress error!")
 	}
 
-	value, err := native.NativeCall(utils.OngContractAddress, "balanceOf", buf.Bytes())
+	value, err := native.NativeCall(utils.OngContractAddress, "balanceOf", bf.Bytes())
 	if err != nil {
 		return 0, errors.NewDetailErr(err, errors.ErrNoCode, "getOngBalance, appCall error!")
 	}
