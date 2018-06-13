@@ -30,6 +30,7 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
+	actormsg "github.com/ontio/ontology/consensus/actor/msg"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
@@ -84,7 +85,7 @@ func (self *SoloService) Receive(context actor.Context) {
 		log.Info("solo actor started")
 	case *actor.Restart:
 		log.Info("solo actor restart")
-	case *actorTypes.StartConsensus:
+	case *actormsg.StartConsensus:
 		if self.existCh != nil {
 			log.Info("consensus have started")
 			return
@@ -100,13 +101,13 @@ func (self *SoloService) Receive(context actor.Context) {
 			for {
 				select {
 				case <-timer.C:
-					self.pid.Tell(&actorTypes.TimeOut{})
+					self.pid.Tell(&actormsg.TimeOut{})
 				case <-existCh:
 					return
 				}
 			}
 		}()
-	case *actorTypes.StopConsensus:
+	case *actormsg.StopConsensus:
 		if self.existCh != nil {
 			close(self.existCh)
 			self.existCh = nil
@@ -117,7 +118,7 @@ func (self *SoloService) Receive(context actor.Context) {
 		log.Infof("solo actor receives block complete event. block height=%d txnum=%d", msg.Block.Header.Height, len(msg.Block.Transactions))
 		self.incrValidator.AddBlock(msg.Block)
 
-	case *actorTypes.TimeOut:
+	case *actormsg.TimeOut:
 		err := self.genBlock()
 		if err != nil {
 			log.Errorf("Solo genBlock error %s", err)
@@ -132,12 +133,12 @@ func (self *SoloService) GetPID() *actor.PID {
 }
 
 func (self *SoloService) Start() error {
-	self.pid.Tell(&actorTypes.StartConsensus{})
+	self.pid.Tell(&actormsg.StartConsensus{})
 	return nil
 }
 
 func (self *SoloService) Halt() error {
-	self.pid.Tell(&actorTypes.StopConsensus{})
+	self.pid.Tell(&actormsg.StopConsensus{})
 	return nil
 }
 

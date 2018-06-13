@@ -27,6 +27,7 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
+	actormsg "github.com/ontio/ontology/consensus/actor/msg"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
@@ -77,7 +78,7 @@ func NewDbftService(bkAccount *account.Account, txpool, p2p *actor.PID) (*DbftSe
 			select {
 			case <-service.timer.C:
 				log.Debug("******Get a timeout notice")
-				service.pid.Tell(&actorTypes.TimeOut{})
+				service.pid.Tell(&actormsg.TimeOut{})
 			}
 		}
 	}()
@@ -94,7 +95,7 @@ func NewDbftService(bkAccount *account.Account, txpool, p2p *actor.PID) (*DbftSe
 }
 
 func (this *DbftService) Receive(context actor.Context) {
-	if _, ok := context.Message().(*actorTypes.StartConsensus); this.started == false && ok == false {
+	if _, ok := context.Message().(*actormsg.StartConsensus); this.started == false && ok == false {
 		return
 	}
 
@@ -109,12 +110,12 @@ func (this *DbftService) Receive(context actor.Context) {
 		log.Warn("dbft actor started")
 	case *actor.Restart:
 		log.Warn("dbft actor restart")
-	case *actorTypes.StartConsensus:
+	case *actormsg.StartConsensus:
 		this.start()
-	case *actorTypes.StopConsensus:
+	case *actormsg.StopConsensus:
 		this.incrValidator.Clean()
 		this.halt()
-	case *actorTypes.TimeOut:
+	case *actormsg.TimeOut:
 		log.Info("dbft receive timeout")
 		this.Timeout()
 	case *message.SaveBlockCompleteMsg:
@@ -134,12 +135,12 @@ func (this *DbftService) GetPID() *actor.PID {
 	return this.pid
 }
 func (this *DbftService) Start() error {
-	this.pid.Tell(&actorTypes.StartConsensus{})
+	this.pid.Tell(&actormsg.StartConsensus{})
 	return nil
 }
 
 func (this *DbftService) Halt() error {
-	this.pid.Tell(&actorTypes.StopConsensus{})
+	this.pid.Tell(&actormsg.StopConsensus{})
 	return nil
 }
 

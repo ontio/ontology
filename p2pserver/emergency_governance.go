@@ -27,6 +27,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
+	actormsg "github.com/ontio/ontology/consensus/actor/msg"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
@@ -118,7 +119,8 @@ func (this *emergencyGov) handleEmergencyGovTimeout() {
 		Cmd:    msgCom.EmgGovEnd,
 		Height: this.context.getEmergencyGovHeight(),
 	}
-	actor.NotifyEmergencyGovCmd(cmd)
+	actor.NotifyEmergencyGovCmd(&actormsg.StartConsensus{})
+
 	this.server.notifyEmergencyGovCmd(cmd)
 }
 
@@ -153,7 +155,7 @@ func (this *emergencyGov) handleEmergencyBlockCompletedEvt() {
 		Cmd:    msgCom.EmgGovEnd,
 		Height: this.context.getEmergencyGovHeight(),
 	}
-	actor.NotifyEmergencyGovCmd(cmd)
+	actor.NotifyEmergencyGovCmd(&actormsg.StartConsensus{})
 	this.server.notifyEmergencyGovCmd(cmd)
 
 	if !this.context.timer.Stop() {
@@ -250,7 +252,7 @@ func (this *emergencyGov) checkSignatures() bool {
 			Cmd:    msgCom.EmgGovEnd,
 			Height: block.Header.Height,
 		}
-		actor.NotifyEmergencyGovCmd(cmd)
+		actor.NotifyEmergencyGovCmd(&actormsg.StartConsensus{})
 		this.server.notifyEmergencyGovCmd(cmd)
 
 		if !this.context.timer.Stop() {
@@ -464,7 +466,7 @@ func (this *emergencyGov) EmergencyActionRequestReceived(msg *mt.EmergencyAction
 		Cmd:    msgCom.EmgGovStart,
 		Height: msg.ProposalBlkNum,
 	}
-	actor.NotifyEmergencyGovCmd(cmd)
+	actor.NotifyEmergencyGovCmd(&actormsg.StopConsensus{})
 	this.server.notifyEmergencyGovCmd(cmd)
 
 	// Broadcast the response
@@ -554,7 +556,7 @@ func (this *emergencyGov) startEmergencyGov(msg *mt.EmergencyActionRequest) {
 		Height: msg.ProposalBlkNum,
 	}
 
-	actor.NotifyEmergencyGovCmd(cmd)
+	actor.NotifyEmergencyGovCmd(&actormsg.StopConsensus{})
 	this.server.notifyEmergencyGovCmd(cmd)
 
 	this.context.reset()

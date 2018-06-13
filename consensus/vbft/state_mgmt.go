@@ -97,6 +97,10 @@ func newStateMgr(server *Server) *StateMgr {
 	}
 }
 
+func (self *StateMgr) clean() {
+	self.peers = make(map[uint32]*PeerState)
+}
+
 func (self *StateMgr) getState() ServerState {
 	return self.currentState
 }

@@ -113,7 +113,6 @@ func (self *EventTimer) stop() {
 		stopAllTimers(self.eventTimers[TimerEventType(i)])
 		self.eventTimers[TimerEventType(i)] = make(map[uint32]*time.Timer)
 	}
-
 	// clear normal timers
 	stopAllTimers(self.normalTimers)
 	self.normalTimers = make(map[uint32]*time.Timer)

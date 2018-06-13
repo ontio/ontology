@@ -33,6 +33,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
+	actormsg "github.com/ontio/ontology/consensus/actor/msg"
 	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
@@ -40,7 +41,6 @@ import (
 	"github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
-	p2pComm "github.com/ontio/ontology/p2pserver/common"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 	gover "github.com/ontio/ontology/smartcontract/service/native/governance"
 	ninit "github.com/ontio/ontology/smartcontract/service/native/init"
@@ -125,7 +125,6 @@ type Server struct {
 	bftActionC chan *BftAction
 	msgSendC   chan *SendMsgEvent
 	sub        *events.ActorSubscriber
-	emergency  bool
 	quitC      chan struct{}
 	quit       bool
 	quitWg     sync.WaitGroup
@@ -171,9 +170,10 @@ func (self *Server) Receive(context actor.Context) {
 		log.Info("vbft actor started")
 	case *actor.Restart:
 		log.Info("vbft actor restart")
-	case *actorTypes.StartConsensus:
+	case *actormsg.StartConsensus:
+		self.startConsensus()
 		log.Info("vbft actor start consensus")
-	case *actorTypes.StopConsensus:
+	case *actormsg.StopConsensus:
 		self.stop()
 	case *message.SaveBlockCompleteMsg:
 		log.Infof("vbft actor receives block complete event. block height=%d, numtx=%d",
@@ -181,12 +181,6 @@ func (self *Server) Receive(context actor.Context) {
 		self.handleBlockPersistCompleted(msg.Block)
 	case *p2pmsg.ConsensusPayload:
 		self.NewConsensusPayload(msg)
-	case *p2pComm.EmergencyGovCmd:
-		if msg.Cmd == p2pComm.EmgGovStart {
-			self.StartEmergency(msg.Height)
-		} else if msg.Cmd == p2pComm.EmgGovEnd {
-			self.EndEmergency(msg.Height)
-		}
 	default:
 		log.Info("vbft actor: Unknown msg ", msg, "type", reflect.TypeOf(msg))
 	}
@@ -201,63 +195,8 @@ func (self *Server) Start() error {
 }
 
 func (self *Server) Halt() error {
-	self.pid.Tell(&actorTypes.StopConsensus{})
+	self.pid.Tell(&actormsg.StopConsensus{})
 	return nil
-}
-
-func (self *Server) StartEmergency(height uint32) {
-	self.metaLock.Lock()
-	defer self.metaLock.Unlock()
-	self.emergency = true
-	for _, index := range self.peerPool.IDMap {
-		log.Info("updateChainConfig remove consensus")
-		if C, present := self.msgRecvC[index]; present {
-			C <- nil
-		}
-	}
-	log.Infof("start emergency heigh:%d,compeletheight:%d", height, self.completedBlockNum)
-}
-
-func (self *Server) EndEmergency(height uint32) {
-	log.Infof("end emergency heigh:%d,compeletheight:%d", height, self.completedBlockNum)
-	self.currentBlockNum = height + 1
-	self.metaLock.Lock()
-	defer self.metaLock.Unlock()
-	if height != self.completedBlockNum {
-		log.Errorf("EndEmergency failed:completedBlockNum:%d,height:%d", self.completedBlockNum, height)
-	}
-	chainconfig, err := getChainConfig(height)
-	if err != nil {
-		log.Errorf("getChainConfig failed:%s", err)
-		return
-	}
-	self.config = chainconfig
-
-	for _, p := range self.config.Peers {
-		if err := self.peerPool.addPeer(p); err != nil {
-			log.Errorf("failed to add peer %d: %s", p.Index, err)
-			return
-		}
-		publickey, err := vconfig.Pubkey(p.ID)
-		if err != nil {
-			log.Errorf("Pubkey failed: %v", err)
-			return
-		}
-		peerIdx := p.Index
-		if _, present := self.msgRecvC[peerIdx]; !present {
-			self.msgRecvC[peerIdx] = make(chan *p2pMsgPayload, 1024)
-		}
-
-		go func() {
-			if err := self.run(publickey); err != nil {
-				log.Errorf("server %d, processor on peer %d failed: %s",
-					self.Index, peerIdx, err)
-			}
-		}()
-		log.Infof("updateChainConfig add peer index%v,id:%v", p.ID, p.Index)
-	}
-	self.chainStore.AddChainedBlockNum()
-	return
 }
 
 func (self *Server) handleBlockPersistCompleted(block *types.Block) {
@@ -466,7 +405,6 @@ func (self *Server) initialize() error {
 	}
 	self.chainStore = store
 	log.Info("block store opened")
-	self.emergency = false
 	self.blockPool, err = newBlockPool(self, self.msgHistoryDuration, store)
 	if err != nil {
 		log.Errorf("init blockpool: %s", err)
@@ -481,7 +419,7 @@ func (self *Server) initialize() error {
 	self.msgC = make(chan ConsensusMsg, CAP_MESSAGE_CHANNEL)
 	self.bftActionC = make(chan *BftAction, CAP_ACTION_CHANNEL)
 	self.msgSendC = make(chan *SendMsgEvent, CAP_MSG_SEND_CHANNEL)
-
+	self.quit = false
 	self.quitC = make(chan struct{})
 	if err := self.LoadChainConfig(store); err != nil {
 		log.Errorf("failed to load config: %s", err)
@@ -528,6 +466,7 @@ func (self *Server) initialize() error {
 				log.Errorf("server %d: %s", self.Index, err)
 			}
 			if self.quit {
+				log.Infof("initialize quit:%d", self.Index)
 				break
 			}
 		}
@@ -572,8 +511,21 @@ func (self *Server) start() error {
 	return nil
 }
 
-func (self *Server) stop() error {
+func (self *Server) startConsensus() {
+	self.stateMgr = newStateMgr(self)
+	if err := self.initialize(); err != nil {
+		log.Fatal("startConsensus failed")
+		return
+	}
+	err := self.start()
+	if err != nil {
+		log.Errorf("startConsensus failed %s", err)
+		return
+	}
+	log.Info("startConsensus")
+}
 
+func (self *Server) stop() error {
 	self.incrValidator.Clean()
 	self.sub.Unsubscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
 
@@ -588,6 +540,7 @@ func (self *Server) stop() error {
 	self.blockPool.clean()
 	self.chainStore.close()
 	self.peerPool.clean()
+	self.stateMgr.clean()
 
 	return nil
 }
@@ -618,13 +571,17 @@ func (self *Server) run(peerPubKey keypair.PublicKey) error {
 			close(self.msgRecvC[peerIdx])
 			delete(self.msgRecvC, peerIdx)
 		}
-		self.peerPool.peerDisconnected(peerIdx)
-		self.stateMgr.StateEventC <- &StateEvent{
-			Type: UpdatePeerState,
-			peerState: &PeerState{
-				peerIdx:   peerIdx,
-				connected: false,
-			},
+		if self.peerPool.getPeer(peerIdx) != nil {
+			self.peerPool.peerDisconnected(peerIdx)
+			self.stateMgr.StateEventC <- &StateEvent{
+				Type: UpdatePeerState,
+				peerState: &PeerState{
+					peerIdx:   peerIdx,
+					connected: false,
+				},
+			}
+		} else {
+			log.Infof("peerDisconenected peer is nil%d", peerIdx)
 		}
 	}()
 

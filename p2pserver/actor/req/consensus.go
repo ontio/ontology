@@ -20,7 +20,6 @@ package req
 
 import (
 	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology/p2pserver/common"
 )
 
 var ConsensusPid *actor.PID
@@ -29,7 +28,7 @@ func SetConsensusPid(conPid *actor.PID) {
 	ConsensusPid = conPid
 }
 
-func NotifyEmergencyGovCmd(cmd *common.EmergencyGovCmd) {
+func NotifyEmergencyGovCmd(cmd interface{}) {
 	if ConsensusPid != nil {
 		ConsensusPid.Tell(cmd)
 	}
