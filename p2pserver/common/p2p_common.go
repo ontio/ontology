@@ -19,6 +19,9 @@
 package common
 
 import (
+	"errors"
+	"strings"
+
 	"github.com/ontio/ontology/core/types"
 )
 
@@ -132,4 +135,13 @@ type AppendHeaders struct {
 
 type AppendBlock struct {
 	Block *types.Block // Block to be added to the ledger
+}
+
+//ParseIPAddr return ip address
+func ParseIPAddr(s string) (string, error) {
+	i := strings.Index(s, ":")
+	if i < 0 {
+		return s, errors.New("split ip address error")
+	}
+	return s[:i], nil
 }

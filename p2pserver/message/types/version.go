@@ -30,18 +30,15 @@ import (
 type VersionPayload struct {
 	Version      uint32
 	Services     uint64
-	TimeStamp    uint32
+	TimeStamp    int64
 	SyncPort     uint16
 	HttpInfoPort uint16
 	ConsPort     uint16
 	Cap          [32]byte
 	Nonce        uint64
-	// TODO remove tempory to get serilization function passed
-	UserAgent   uint8
-	StartHeight uint64
-	// FIXME check with the specify relay type length
-	Relay       uint8
-	IsConsensus bool
+	StartHeight  uint64
+	Relay        uint8
+	IsConsensus  bool
 }
 
 type Version struct {

@@ -155,8 +155,7 @@ func NewVersion(n p2pnet.P2P, isCons bool, height uint32) mt.Message {
 		IsConsensus:  isCons,
 		HttpInfoPort: n.GetHttpInfoPort(),
 		StartHeight:  uint64(height),
-		UserAgent:    0x00,
-		TimeStamp:    uint32(time.Now().UTC().UnixNano()),
+		TimeStamp:    time.Now().UnixNano(),
 	}
 
 	if n.GetRelay() {

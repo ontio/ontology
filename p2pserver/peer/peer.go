@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"net"
 	"runtime"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -297,7 +296,7 @@ func (this *Peer) GetAddr() string {
 //GetAddr16 return peer`s sync link address in []byte
 func (this *Peer) GetAddr16() ([16]byte, error) {
 	var result [16]byte
-	addrIp, err := this.ParseIPAddr(this.GetAddr())
+	addrIp, err := common.ParseIPAddr(this.GetAddr())
 	if err != nil {
 		return result, err
 	}
@@ -371,14 +370,4 @@ func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
 		this.base.SetRelay(true)
 	}
 	this.SetHeight(uint64(height))
-}
-
-//ParseIPAddr return ip address
-func (this *Peer) ParseIPAddr(s string) (string, error) {
-	i := strings.Index(s, ":")
-	if i < 0 {
-		log.Warn("split ip address error")
-		return s, errors.New("split ip address error")
-	}
-	return s[:i], nil
 }

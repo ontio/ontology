@@ -265,14 +265,15 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		// Obsolete node
 		p := p2p.GetPeer(version.P.Nonce)
 		if p != nil {
-			ipOld, err := p.ParseIPAddr(p.GetAddr())
+			ipOld, err := msgCommon.ParseIPAddr(p.GetAddr())
 			if err != nil {
-				log.Error(err)
+				log.Warn("exist peer %d ip format is wrong %s", version.P.Nonce, p.GetAddr())
 				return
 			}
-			ipNew, err := p.ParseIPAddr(data.Addr)
+			ipNew, err := msgCommon.ParseIPAddr(data.Addr)
 			if err != nil {
-				log.Error(err)
+				remotePeer.CloseSync()
+				log.Warn("connecting peer %d ip format is wrong %s, close", version.P.Nonce, data.Addr)
 				return
 			}
 			if ipNew == ipOld {
@@ -385,7 +386,7 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, arg
 		} else {
 			//consensus port connect
 			if config.DefConfig.P2PNode.DualPortSupport && remotePeer.GetConsPort() > 0 {
-				addrIp, err := remotePeer.ParseIPAddr(addr)
+				addrIp, err := msgCommon.ParseIPAddr(addr)
 				if err != nil {
 					log.Warn(err)
 					return
