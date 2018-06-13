@@ -1,155 +1,137 @@
 {
-  "hash":"ff00000000000000000000000000000000000002",
-  "functions":
-  [
+  "hash": "0100000000000000000000000000000000000000",
+  "functions": [
     {
-      "name":"OngInit",
-      "parameters":
-      [],
-      "returntype":"bool"
+      "name": "init",
+      "parameters": [],
+      "returntype": "Bool"
     },
     {
-      "name":"transfer",
-      "parameters":
-      [
+      "name": "transfer",
+      "parameters": [
         {
           "name": "transfers",
           "type": "Array",
-          "subType":
-          [
+          "subType": [
             {
-               "name":"",
-               "type":"Struct",
-              "subType":[
+              "name": "",
+              "type": "Struct",
+              "subType": [
                 {
-                  "name":"from",
-                  "type":"Address"
+                  "name": "from",
+                  "type": "Address"
                 },
                 {
-                  "name":"to",
-                  "type":"Address"
+                  "name": "to",
+                  "type": "Address"
                 },
                 {
-                  "name":"value",
-                  "type":"Int"
+                  "name": "value",
+                  "type": "Int"
                 }
               ]
             }
           ]
         }
       ],
-      "returntype":"bool"
+      "returntype": "Bool"
     },
     {
-      "name":"OngApprove",
-      "parameters":
-      [
+      "name": "approve",
+      "parameters": [
         {
-          "name":"from",
-          "type":"Address"
+          "name": "from",
+          "type": "Address"
         },
         {
-          "name":"to",
-          "type":"Address"
+          "name": "to",
+          "type": "Address"
         },
         {
-          "name":"value",
-          "type":"int"
+          "name": "value",
+          "type": "Int"
         }
       ],
-      "returntype":"bool"
+      "returntype": "Bool"
     },
     {
-      "name":"OngTransferFrom",
-      "parameters":
-      [
+      "name": "transferFrom",
+      "parameters": [
         {
-          "name":"sender",
-          "type":"Address"
+          "name": "sender",
+          "type": "Address"
         },
         {
-          "name":"from",
-          "type":"Address"
+          "name": "from",
+          "type": "Address"
         },
         {
-          "name":"to",
-          "type":"Address"
+          "name": "to",
+          "type": "Address"
         },
         {
-          "name":"value",
-          "type":"int"
+          "name": "value",
+          "type": "Int"
         }
       ],
-      "returntype":"bool"
+      "returntype": "Bool"
     },
     {
-      "name":"OngName",
-      "parameters":
-      [
-      ],
-      "returntype":"string"
+      "name": "name",
+      "parameters": [],
+      "returntype": "String"
     },
     {
-      "name":"OngSymbol",
-      "parameters":
-      [
-      ],
-      "returntype":"string"
+      "name": "symbol",
+      "parameters": [],
+      "returntype": "String"
     },
     {
-      "name":"OngDecimals",
-      "parameters":
-      [
-      ],
-      "returntype":"int"
+      "name": "decimals",
+      "parameters": [],
+      "returntype": "Int"
     },
     {
-      "name":"OngTotalSupply",
-      "parameters":
-      [
-      ],
-      "returntype":"int64"
+      "name": "totalSupply",
+      "parameters": [],
+      "returntype": "Int"
     },
     {
-      "name":"OngBalanceOf",
-      "parameters":
-      [
+      "name": "balanceOf",
+      "parameters": [
         {
-          "name":"account",
-          "type":"Address"
+          "name": "account",
+          "type": "Address"
         }
       ],
-      "returntype":"int"
+      "returntype": "Int"
     },
     {
-      "name":"OngAllowance",
-      "parameters":
-      [
+      "name": "allowance",
+      "parameters": [
         {
-          "name":"account",
-          "type":"Address"
+          "name": "account",
+          "type": "Address"
         }
       ],
-      "returntype":"int"
+      "returntype": "Int"
     }
   ],
-  "events":
-  [
+  "events": [
     {
-      "name":"transfer",
-      "parameters":
-      [
+      "name": "transfer",
+      "parameters": [
         {
-          "name":"from",
-          "type":"Address"
+          "name": "from",
+          "type": "Address"
         },
         {
-          "name":"to",
-          "type":"Address"
+          "name": "to",
+          "type": "Address"
         },
         {
-          "name":"value",
-          "type":"int"
+          "name": "value",
+          "type": "Int"
         }
       ]
     }

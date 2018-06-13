@@ -70,16 +70,66 @@ var PolarisConfig = &GenesisConfig{
 		"polaris2.ont.io:20338",
 		"polaris3.ont.io:20338",
 		"polaris4.ont.io:20338"},
-	ConsensusType: "dbft",
-	VBFT:          &VBFTConfig{},
-	DBFT: &DBFTConfig{
-		GenBlockTime: DEFAULT_GEN_BLOCK_TIME,
-		Bookkeepers: []string{
-			"12020384d843c02ecef233d3dd3bc266ee0d1a67cf2a1666dc1b2fb455223efdee7452",
-			"120203fab19438e18d8a5bebb6cd3ede7650539e024d7cc45c88b95ab13f8266ce9570",
-			"120203c43f136596ee666416fedb90cde1e0aee59a79ec18ab70e82b73dd297767eddf",
-			"120202a76a434b18379e3bda651b7c04e972dadc4760d1156b5c86b3c4d27da48c91a1"},
+	ConsensusType: CONSENSUS_TYPE_VBFT,
+	VBFT: &VBFTConfig{
+		N:                    7,
+		C:                    2,
+		K:                    7,
+		L:                    112,
+		BlockMsgDelay:        10000,
+		HashMsgDelay:         10000,
+		PeerHandshakeTimeout: 10,
+		MaxBlockChangeView:   3000,
+		AdminOntID:           "did:ont:AVaSGN1ugQJBS7R7ZcVwAoWLVK6onBgfyg",
+		MinInitStake:         10000,
+		VrfValue:             "1c9810aa9822e511d5804a9c4db9dd08497c31087b0daafa34d768a3253441fa20515e2f30f81741102af0ca3cefc4818fef16adb825fbaa8cad78647f3afb590e",
+		VrfProof:             "c57741f934042cb8d8b087b44b161db56fc3ffd4ffb675d36cd09f83935be853d8729f3f5298d12d6fd28d45dde515a4b9d7f67682d182ba5118abf451ff1988",
+		Peers: []*VBFTPeerStakeInfo{
+			{
+				Index:      1,
+				PeerPubkey: "12020345912e9e3a8cb57228017003f2683364dbc59eb37e61518a6c9a2cf53f466404",
+				Address:    "AUsS7pqfHbRkvxnJRM9oSbeSe3MqTEY1HG",
+				InitPos:    10000,
+			},
+			{
+				Index:      2,
+				PeerPubkey: "1202033a76bcbcc77f2eec9645d3b337a707b02d23733e128e8e69139a4ea72fd05fa4",
+				Address:    "APctqKc7EQnGQuz7MQpWAYmzDLR1heLNkL",
+				InitPos:    20000,
+			},
+			{
+				Index:      3,
+				PeerPubkey: "12020360434d718213d977c43619167e3360cd65c02db493079493a8affe612bd8b9a3",
+				Address:    "ATG2JaS4tJ2fcfRxPaCGrd84HU2G9eV7yZ",
+				InitPos:    30000,
+			},
+			{
+				Index:      4,
+				PeerPubkey: "1202035cf8427ba77ab0b765ceef9ac496c9dc24375eb7e124a6abd9dcb670ff5ee2ca",
+				Address:    "AZppss5D5DjWjX1xCZAUbAs35t5bPMCCkv",
+				InitPos:    40000,
+			},
+			{
+				Index:      5,
+				PeerPubkey: "12020205acb1727236ada7a10cb4b72fa96de2493f51a1d3f0bf10a1eac48737b373ff",
+				Address:    "AQyg1SBdKpWeHf1Rt1xEsugZun5HwptDtC",
+				InitPos:    30000,
+			},
+			{
+				Index:      6,
+				PeerPubkey: "120202b54e2093e26d06208fcc7423b34f0a575f0645ce1712effe478c17c2ae0d7635",
+				Address:    "AJSzmGy79uHRgkq4aXrzoCa76LrPgmn9Xx",
+				InitPos:    20000,
+			},
+			{
+				Index:      7,
+				PeerPubkey: "12020251a276e4e25c440307910ab7c1371c606d33ca47a44067d2d6253fa46cb15be0",
+				Address:    "AXKnzkMNZ7o3wkbyh3hg3auBy2U1boFPkg",
+				InitPos:    10000,
+			},
+		},
 	},
+	DBFT: &DBFTConfig{},
 	SOLO: &SOLOConfig{},
 }
 
@@ -164,7 +214,7 @@ func (this *VBFTConfig) Serialize(w io.Writer) error {
 	}
 	for _, peer := range this.Peers {
 		if err := peer.Serialize(w); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize peer error!")
+			return errors.NewDetailErr(err, errors.ErrNoCode, "serialize peer error!")
 		}
 	}
 	return nil
@@ -209,15 +259,15 @@ func (this *VBFTConfig) Deserialize(r io.Reader) error {
 	}
 	adminOntID, err := serialization.ReadString(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize adminOntID error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize adminOntID error!")
 	}
 	vrfValue, err := serialization.ReadString(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize vrfValue error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize vrfValue error!")
 	}
 	vrfProof, err := serialization.ReadString(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize vrfProof error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize vrfProof error!")
 	}
 	length, err := serialization.ReadVarUint(r, 0)
 	if err != nil {
@@ -228,7 +278,7 @@ func (this *VBFTConfig) Deserialize(r io.Reader) error {
 		peer := new(VBFTPeerStakeInfo)
 		err = peer.Deserialize(r)
 		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peer error!")
+			return errors.NewDetailErr(err, errors.ErrNoCode, "deserialize peer error!")
 		}
 		peers = append(peers, peer)
 	}

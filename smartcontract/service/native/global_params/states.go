@@ -25,6 +25,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 type Param struct {
@@ -34,7 +35,7 @@ type Param struct {
 
 type Params []*Param
 
-type Admin common.Address
+type Role common.Address
 
 type ParamNameList []string
 
@@ -59,7 +60,7 @@ func (params *Params) GetParam(key string) (int, *Param) {
 
 func (params *Params) Serialize(w io.Writer) error {
 	paramNum := len(*params)
-	if err := serialization.WriteVarUint(w, uint64(paramNum)); err != nil {
+	if err := utils.WriteVarUint(w, uint64(paramNum)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, serialize params length error!")
 	}
 	for _, param := range *params {
@@ -74,7 +75,7 @@ func (params *Params) Serialize(w io.Writer) error {
 }
 
 func (params *Params) Deserialize(r io.Reader) error {
-	paramNum, err := serialization.ReadVarUint(r, 0)
+	paramNum, err := utils.ReadVarUint(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, deserialize params length error!")
 	}
@@ -93,25 +94,26 @@ func (params *Params) Deserialize(r io.Reader) error {
 	return nil
 }
 
-func (admin *Admin) Serialize(w io.Writer) error {
-	_, err := w.Write(admin[:])
+func (role *Role) Serialize(w io.Writer) error {
+	err := serialization.WriteVarBytes(w, role[:])
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, serialize admin error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, serialize role error!")
 	}
 	return nil
 }
 
-func (admin *Admin) Deserialize(r io.Reader) error {
-	_, err := io.ReadFull(r, admin[:])
+func (role *Role) Deserialize(r io.Reader) error {
+	address, err := utils.ReadAddress(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, deserialize admin error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, deserialize role error!")
 	}
+	copy((*role)[:], address[:])
 	return nil
 }
 
 func (nameList *ParamNameList) Serialize(w io.Writer) error {
 	nameNum := len(*nameList)
-	if err := serialization.WriteVarUint(w, uint64(nameNum)); err != nil {
+	if err := utils.WriteVarUint(w, uint64(nameNum)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, serialize param name list length error!")
 	}
 	for _, value := range *nameList {
@@ -123,7 +125,7 @@ func (nameList *ParamNameList) Serialize(w io.Writer) error {
 }
 
 func (nameList *ParamNameList) Deserialize(r io.Reader) error {
-	nameNum, err := serialization.ReadVarUint(r, 0)
+	nameNum, err := utils.ReadVarUint(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, deserialize param name list length error!")
 	}

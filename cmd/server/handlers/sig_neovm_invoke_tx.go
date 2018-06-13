@@ -27,6 +27,7 @@ import (
 	cliutil "github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	httpcom "github.com/ontio/ontology/http/base/common"
 )
 
 type SigNeoVMInvokeTxReq struct {
@@ -34,7 +35,6 @@ type SigNeoVMInvokeTxReq struct {
 	GasLimit uint64        `json:"gas_limit"`
 	Address  string        `json:"address"`
 	Params   []interface{} `json:"params"`
-	Version  byte          `json:"version"`
 }
 
 type SigNeoVMInvokeTxRsp struct {
@@ -55,18 +55,13 @@ func SigNeoVMInvokeTx(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRespon
 		resp.ErrorInfo = fmt.Sprintf("ParseNeoVMInvokeParams error:%s", err)
 		return
 	}
-	addrData, err := hex.DecodeString(rawReq.Address)
-	if err != nil {
-		log.Infof("Cli Qid:%s SigNeoVMInvokeTx hex.DecodeString address:%s error:%s", rawReq.Address, err)
-		return
-	}
-	contAddr, err := common.AddressParseFromBytes(addrData)
+	contAddr, err := common.AddressFromHexString(rawReq.Address)
 	if err != nil {
 		log.Infof("Cli Qid:%s SigNeoVMInvokeTx AddressParseFromBytes:%s error:%s", req.Qid, rawReq.Address, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
 		return
 	}
-	tx, err := cliutil.InvokeNeoVMContractTx(rawReq.GasPrice, rawReq.GasLimit, rawReq.Version, contAddr, params)
+	tx, err := httpcom.NewNeovmInvokeTransaction(rawReq.GasPrice, rawReq.GasLimit, contAddr, params)
 	if err != nil {
 		log.Infof("Cli Qid:%s SigNeoVMInvokeTx InvokeNeoVMContractTx error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS

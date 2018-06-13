@@ -22,15 +22,17 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"sort"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/constants"
+	"github.com/ontio/ontology/common/serialization"
 	cstates "github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -41,7 +43,6 @@ const (
 	ConsensusStatus
 	QuitConsensusStatus
 	QuitingStatus
-	BlackConsensusStatus
 	BlackStatus
 )
 
@@ -60,7 +61,9 @@ const (
 	COMMIT_DPOS         = "commitDpos"
 	UPDATE_CONFIG       = "updateConfig"
 	UPDATE_GLOBAL_PARAM = "updateGlobalParam"
+	UPDATE_SPLIT_CURVE  = "updateSplitCurve"
 	CALL_SPLIT          = "callSplit"
+	TRANSFER_PENALTY    = "transferPenalty"
 
 	//key prefix
 	GLOBAL_PARAM    = "globalParam"
@@ -72,10 +75,15 @@ const (
 	PEER_INDEX      = "peerIndex"
 	BLACK_LIST      = "blackList"
 	TOTAL_STAKE     = "totalStake"
+	PENALTY_STAKE   = "penaltyStake"
+	SPLIT_CURVE     = "splitCurve"
 
 	//global
 	PRECISE = 1000000
 )
+
+// candidate fee must >= 1 ONG
+var MinCandidateFee = uint64(math.Pow(10, constants.ONG_DECIMALS))
 
 var Xi = []uint64{
 	0, 100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000, 1000000, 1100000, 1200000, 1300000, 1400000,
@@ -88,40 +96,37 @@ var Xi = []uint64{
 	9300000, 9400000, 9500000, 9600000, 9700000, 9800000, 9900000, 10000000,
 }
 
-var Yi = []uint64{
-	0, 95123, 180968, 258213, 327493, 389401, 444491, 493282, 536257, 573866, 606531, 634645, 658574, 678660, 695220, 708550,
-	718927, 726606, 731826, 734808, 735759, 734870, 732317, 728265, 722867, 716262, 708583, 699949, 690472, 680254, 669391,
-	657969, 646069, 633765, 621124, 608209, 595076, 581778, 568361, 554869, 541342, 527814, 514317, 500882, 487534, 474297,
-	461191, 448236, 435447, 422839, 410425, 398217, 386223, 374452, 362910, 351604, 340537, 329713, 319135, 308805, 298723,
-	288890, 279306, 269969, 260879, 252033, 243429, 235066, 226939, 219045, 211382, 203945, 196731, 189736, 182955, 176384,
-	170018, 163854, 157887, 152113, 146526, 141122, 135896, 130845, 125963, 121246, 116690, 112290, 108041, 103940, 99981,
-	96162, 92477, 88923, 85496, 82192, 79006, 75936, 72977, 70126, 67380,
-}
-
 func InitGovernance() {
 	native.Contracts[utils.GovernanceContractAddress] = RegisterGovernanceContract
 }
 
 func RegisterGovernanceContract(native *native.NativeService) {
-	native.Register(INIT_CONFIG, InitConfig)
 	native.Register(REGISTER_CANDIDATE, RegisterCandidate)
+	native.Register(VOTE_FOR_PEER, VoteForPeer)
+	native.Register(UNVOTE_FOR_PEER, UnVoteForPeer)
+	native.Register(WITHDRAW, Withdraw)
+	native.Register(QUIT_NODE, QuitNode)
+
+	native.Register(INIT_CONFIG, InitConfig)
 	native.Register(APPROVE_CANDIDATE, ApproveCandidate)
 	native.Register(REJECT_CANDIDATE, RejectCandidate)
 	native.Register(BLACK_NODE, BlackNode)
 	native.Register(WHITE_NODE, WhiteNode)
-	native.Register(QUIT_NODE, QuitNode)
-	native.Register(VOTE_FOR_PEER, VoteForPeer)
-	native.Register(UNVOTE_FOR_PEER, UnVoteForPeer)
-	native.Register(WITHDRAW, Withdraw)
 	native.Register(COMMIT_DPOS, CommitDpos)
 	native.Register(UPDATE_CONFIG, UpdateConfig)
 	native.Register(UPDATE_GLOBAL_PARAM, UpdateGlobalParam)
+	native.Register(UPDATE_SPLIT_CURVE, UpdateSplitCurve)
 	native.Register(CALL_SPLIT, CallSplit)
+	native.Register(TRANSFER_PENALTY, TransferPenalty)
 }
 
 func InitConfig(native *native.NativeService) ([]byte, error) {
 	configuration := new(config.VBFTConfig)
-	if err := configuration.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	buf, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarBytes, contract params deserialize error!")
+	}
+	if err := configuration.Deserialize(bytes.NewBuffer(buf)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
@@ -135,30 +140,31 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("initConfig. initConfig is already executed!")
 	}
 
-	//init globalParam
-	globalParam := &GlobalParam{
-		CandidateFee: 500,
-		MinInitStake: configuration.MinInitStake,
-		CandidateNum: 7 * 7,
-		A:            50,
-		B:            50,
-		Yita:         5,
-	}
-	bf := new(bytes.Buffer)
-	if err := globalParam.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize globalParam error!")
-	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(GLOBAL_PARAM)), &cstates.StorageItem{Value: bf.Bytes()})
-
 	//check the configuration
 	err = CheckVBFTConfig(configuration)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewErr("checkVBFTConfig failed!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "checkVBFTConfig failed!")
+	}
+
+	//init globalParam
+	globalParam := &GlobalParam{
+		CandidateFee: 500000000000,
+		MinInitStake: uint64(configuration.MinInitStake),
+		CandidateNum: 7 * 7,
+		PosLimit:     20,
+		A:            50,
+		B:            50,
+		Yita:         5,
+		Penalty:      5,
+	}
+	err = putGlobalParam(native, contract, globalParam)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putGlobalParam, put globalParam error!")
 	}
 
 	var view uint32 = 1
 	var maxId uint32
-	//peers := []*PeerStakeInfo{}
+
 	peerPoolMap := &PeerPoolMap{
 		PeerPoolMap: make(map[string]*PeerPoolItem),
 	}
@@ -192,38 +198,21 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_INDEX), peerPubkeyPrefix), &cstates.StorageItem{Value: indexBytes})
 
 		//update total stake
-		totalStake := &TotalStake{
-			Address: address,
-			Stake:   peer.InitPos,
+		err = depositTotalStake(native, contract, address, peerPoolItem.InitPos)
+		if err != nil {
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "depositTotalStake, depositTotalStake error!")
 		}
-		bf := new(bytes.Buffer)
-		if err := totalStake.Serialize(bf); err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize totalStake error!")
-		}
-		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(TOTAL_STAKE), address[:]), &cstates.StorageItem{Value: bf.Bytes()})
-
-		//peers = append(peers, &PeerStakeInfo{
-		//	Index:      peerPoolItem.Index,
-		//	PeerPubkey: peerPoolItem.PeerPubkey,
-		//	Stake:      peerPoolItem.InitPos,
-		//})
 	}
 
 	//init peer pool
-	bf = new(bytes.Buffer)
-	if err := peerPoolMap.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize peerPoolMap error!")
-	}
-	viewBytes, err := GetUint32Bytes(0)
+	err = putPeerPoolMap(native, contract, 0, peerPoolMap)
 	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "getUint32Bytes, get viewBytes error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putPeerPoolMap, put peerPoolMap error!")
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_POOL), viewBytes), &cstates.StorageItem{Value: bf.Bytes()})
-	viewBytes, err = GetUint32Bytes(view)
+	err = putPeerPoolMap(native, contract, view, peerPoolMap)
 	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "getUint32Bytes, get viewBytes error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putPeerPoolMap, put peerPoolMap error!")
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_POOL), viewBytes), &cstates.StorageItem{Value: bf.Bytes()})
 	indexBytes, err := GetUint32Bytes(maxId + 1)
 	if err != nil {
 		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "getUint32Bytes, get indexBytes error!")
@@ -236,11 +225,10 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 		Height: native.Height,
 		TxHash: native.Tx.Hash(),
 	}
-	bf = new(bytes.Buffer)
-	if err := governanceView.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize governanceView error!")
+	err = putGovernanceView(native, contract, governanceView)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putGovernanceView, put governanceView error!")
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(GOVERNANCE_VIEW)), &cstates.StorageItem{Value: bf.Bytes()})
 
 	//init config
 	config := &Configuration{
@@ -253,13 +241,33 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 		PeerHandshakeTimeout: configuration.PeerHandshakeTimeout,
 		MaxBlockChangeView:   configuration.MaxBlockChangeView,
 	}
-	bf = new(bytes.Buffer)
-	if err := config.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize config error!")
+	err = putConfig(native, contract, config)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putConfig, put config error!")
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VBFT_CONFIG)), &cstates.StorageItem{Value: bf.Bytes()})
 
-	//posTable, chainPeers, err := calDposTable(native, config, peers)
+	//init splitCurve
+	splitCurve := &SplitCurve{
+		Yi: []uint64{
+			0, 95123, 180968, 258213, 327493, 389401, 444491, 493282, 536257, 573866, 606531, 634645, 658574, 678660, 695220, 708550,
+			718927, 726606, 731826, 734808, 735759, 734870, 732317, 728265, 722867, 716262, 708583, 699949, 690472, 680254, 669391,
+			657969, 646069, 633765, 621124, 608209, 595076, 581778, 568361, 554869, 541342, 527814, 514317, 500882, 487534, 474297,
+			461191, 448236, 435447, 422839, 410425, 398217, 386223, 374452, 362910, 351604, 340537, 329713, 319135, 308805, 298723,
+			288890, 279306, 269969, 260879, 252033, 243429, 235066, 226939, 219045, 211382, 203945, 196731, 189736, 182955, 176384,
+			170018, 163854, 157887, 152113, 146526, 141122, 135896, 130845, 125963, 121246, 116690, 112290, 108041, 103940, 99981,
+			96162, 92477, 88923, 85496, 82192, 79006, 75936, 72977, 70126, 67380,
+		},
+	}
+	err = putSplitCurve(native, contract, splitCurve)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putSplitCurve, put splitCurve error!")
+	}
+
+	//init admin OntID
+	err = appCallInitContractAdmin(native, []byte(configuration.AdminOntID))
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallInitContractAdmin error!")
+	}
 
 	return utils.BYTE_TRUE, nil
 }
@@ -270,13 +278,19 @@ func RegisterCandidate(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
 	}
 	address := params.Address
+	contract := native.ContextRef.CurrentContext().ContractAddress
+
+	//check auth of OntID
+	err := appCallVerifyToken(native, contract, params.Caller, REGISTER_CANDIDATE, params.KeyNo)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallVerifyToken, verifyToken failed!")
+	}
 
 	//check witness
-	err := utils.ValidateOwner(native, address)
+	err = utils.ValidateOwner(native, address)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "validateOwner, checkWitness error!")
 	}
-	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	//get current view
 	view, err := GetView(native, contract)
@@ -285,14 +299,14 @@ func RegisterCandidate(native *native.NativeService) ([]byte, error) {
 	}
 
 	//get globalParam
-	globalParam, err := GetGlobalParam(native, contract)
+	globalParam, err := getGlobalParam(native, contract)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getGlobalParam, getGlobalParam error!")
 	}
 
 	//check initPos
 	if params.InitPos < globalParam.MinInitStake {
-		return utils.BYTE_FALSE, errors.NewErr(fmt.Sprintf("registerCandidate, initPos must >= %v!", globalParam.MinInitStake))
+		return utils.BYTE_FALSE, fmt.Errorf("registerCandidate, initPos must >= %v", globalParam.MinInitStake)
 	}
 
 	//check peerPubkey
@@ -328,49 +342,30 @@ func RegisterCandidate(native *native.NativeService) ([]byte, error) {
 	peerPoolItem := &PeerPoolItem{
 		PeerPubkey: params.PeerPubkey,
 		Address:    address,
-		InitPos:    uint64(params.InitPos),
+		InitPos:    params.InitPos,
 		Status:     RegisterCandidateStatus,
 	}
 	peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPoolItem
-	bf := new(bytes.Buffer)
-	if err := peerPoolMap.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize peerPoolMap error!")
-	}
-	viewBytes, err := GetUint32Bytes(view)
+	err = putPeerPoolMap(native, contract, view, peerPoolMap)
 	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "getUint32Bytes, get viewBytes error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putPeerPoolMap, put peerPoolMap error!")
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_POOL), viewBytes), &cstates.StorageItem{Value: bf.Bytes()})
-
-	//update total stake
-	totalStakeBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(TOTAL_STAKE), address[:]))
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "native.CloneCache.Get, get indexBytes error!")
-	}
-	totalStake := &TotalStake{
-		Address: address,
-	}
-	if totalStakeBytes != nil {
-		if err := totalStake.Deserialize(bytes.NewBuffer(totalStakeBytes.(*cstates.StorageItem).Value)); err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize totalStake error!")
-		}
-	}
-	totalStake.Stake = totalStake.Stake + uint64(params.InitPos)
-	bf = new(bytes.Buffer)
-	if err := totalStake.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize totalStake error!")
-	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(TOTAL_STAKE), address[:]), &cstates.StorageItem{Value: bf.Bytes()})
 
 	//ont transfer
-	err = AppCallTransferOnt(native, address, utils.GovernanceContractAddress, uint64(params.InitPos))
+	err = appCallTransferOnt(native, address, utils.GovernanceContractAddress, params.InitPos)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
 	}
 	//ong transfer
-	err = AppCallTransferOng(native, address, utils.GovernanceContractAddress, uint64(globalParam.CandidateFee))
+	err = appCallTransferOng(native, address, utils.GovernanceContractAddress, globalParam.CandidateFee)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOng, ong transfer error!")
+	}
+
+	//update total stake
+	err = depositTotalStake(native, contract, address, params.InitPos)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "depositTotalStake, depositTotalStake error!")
 	}
 
 	return utils.BYTE_TRUE, nil
@@ -383,13 +378,13 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 	}
 
 	// get admin from database
-	adminAddress := new(common.Address)
-	admin, err := global_params.GetStorageAdmin(native, global_params.GenerateAdminKey(utils.ParamContractAddress, false))
+	adminAddress, err := getAdmin(native)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getStorageAdmin, get admin error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getAdmin, get admin error!")
 	}
-	copy(adminAddress[:], admin[:])
-	err = utils.ValidateOwner(native, *adminAddress)
+
+	//check witness
+	err = utils.ValidateOwner(native, adminAddress)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "approveCandidate, checkWitness error!")
 	}
@@ -402,7 +397,7 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 	}
 
 	//get globalParam
-	globalParam, err := GetGlobalParam(native, contract)
+	globalParam, err := getGlobalParam(native, contract)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getGlobalParam, getGlobalParam error!")
 	}
@@ -453,32 +448,19 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 		}
 		peerPoolItem.Index = index
 	} else {
-		//get index
-		candidateIndexBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(CANDIDITE_INDEX)))
+		//get candidate index
+		candidateIndex, err := getCandidateIndex(native, contract)
 		if err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "native.CloneCache.Get, get candidateIndex error!")
+			return nil, errors.NewDetailErr(err, errors.ErrNoCode, "getCandidateIndex, get candidateIndex error!")
 		}
-		var candidateIndex uint32
-		if candidateIndexBytes == nil {
-			return utils.BYTE_FALSE, errors.NewErr("approveCandidate, candidateIndex is not init!")
-		} else {
-			candidateIndexStore, _ := candidateIndexBytes.(*cstates.StorageItem)
-			index, err := GetBytesUint32(candidateIndexStore.Value)
-			if err != nil {
-				return nil, errors.NewDetailErr(err, errors.ErrNoCode, "GetBytesUint32, get index error!")
-			}
-			candidateIndex = index
-		}
-		peerPoolItem.Index = uint32(candidateIndex)
+		peerPoolItem.Index = candidateIndex
 
 		//update candidateIndex
 		newCandidateIndex := candidateIndex + 1
-		newCandidateIndexBytes, err := GetUint32Bytes(newCandidateIndex)
+		err = putCandidateIndex(native, contract, newCandidateIndex)
 		if err != nil {
-			return nil, errors.NewDetailErr(err, errors.ErrNoCode, "GetUint32Bytes, get newCandidateIndexBytes error!")
+			return nil, errors.NewDetailErr(err, errors.ErrNoCode, "putCandidateIndex, put candidateIndex error!")
 		}
-		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(CANDIDITE_INDEX)),
-			&cstates.StorageItem{Value: newCandidateIndexBytes})
 
 		indexBytes, err := GetUint32Bytes(peerPoolItem.Index)
 		if err != nil {
@@ -487,15 +469,10 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_INDEX), peerPubkeyPrefix), &cstates.StorageItem{Value: indexBytes})
 	}
 	peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPoolItem
-	bf := new(bytes.Buffer)
-	if err := peerPoolMap.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize peerPoolMap error!")
-	}
-	viewBytes, err := GetUint32Bytes(view)
+	err = putPeerPoolMap(native, contract, view, peerPoolMap)
 	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "GetUint32Bytes, get viewBytes error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putPeerPoolMap, put peerPoolMap error!")
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_POOL), viewBytes), &cstates.StorageItem{Value: bf.Bytes()})
 
 	return utils.BYTE_TRUE, nil
 }
@@ -507,13 +484,13 @@ func RejectCandidate(native *native.NativeService) ([]byte, error) {
 	}
 
 	// get admin from database
-	adminAddress := new(common.Address)
-	admin, err := global_params.GetStorageAdmin(native, global_params.GenerateAdminKey(utils.ParamContractAddress, false))
+	adminAddress, err := getAdmin(native)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getStorageAdmin, get admin error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getAdmin, get admin error!")
 	}
-	copy(adminAddress[:], admin[:])
-	err = utils.ValidateOwner(native, *adminAddress)
+
+	//check witness
+	err = utils.ValidateOwner(native, adminAddress)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "approveCandidate, checkWitness error!")
 	}
@@ -532,46 +509,30 @@ func RejectCandidate(native *native.NativeService) ([]byte, error) {
 	}
 
 	//draw back init pos
-	peerPubkeyPrefix, err := hex.DecodeString(params.PeerPubkey)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, peerPubkey format error!")
-	}
 	peerPoolItem, ok := peerPoolMap.PeerPoolMap[params.PeerPubkey]
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("rejectCandidate, peerPubkey is not in peerPoolMap!")
 	}
-	address := peerPoolItem.Address
-	voteInfoBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL),
-		peerPubkeyPrefix, address[:]))
-	voteInfo := &VoteInfo{
-		PeerPubkey: params.PeerPubkey,
-		Address:    address,
+	if peerPoolItem.Status != RegisterCandidateStatus {
+		return utils.BYTE_FALSE, errors.NewErr("rejectCandidate, peerPubkey is not RegisterCandidateStatus!")
 	}
-	if voteInfoBytes != nil {
-		voteInfoStore, _ := voteInfoBytes.(*cstates.StorageItem)
-		if err := voteInfo.Deserialize(bytes.NewBuffer(voteInfoStore.Value)); err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfo error!")
-		}
+	address := peerPoolItem.Address
+	voteInfo, err := getVoteInfo(native, contract, params.PeerPubkey, address)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getVoteInfo, get voteInfo error!")
 	}
 	voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos + peerPoolItem.InitPos
-	bf := new(bytes.Buffer)
-	if err := voteInfo.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize voteInfo error!")
+	err = putVoteInfo(native, contract, voteInfo)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putVoteInfo, put voteInfo error!")
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL), peerPubkeyPrefix,
-		address[:]), &cstates.StorageItem{Value: bf.Bytes()})
 
 	//remove peerPubkey from peerPool
 	delete(peerPoolMap.PeerPoolMap, params.PeerPubkey)
-	bf = new(bytes.Buffer)
-	if err := peerPoolMap.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize peerPoolMap error!")
-	}
-	viewBytes, err := GetUint32Bytes(view)
+	err = putPeerPoolMap(native, contract, view, peerPoolMap)
 	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "GetUint32Bytes, get viewBytes error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putPeerPoolMap, put peerPoolMap error!")
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_POOL), viewBytes), &cstates.StorageItem{Value: bf.Bytes()})
 
 	return utils.BYTE_TRUE, nil
 }
@@ -583,22 +544,17 @@ func BlackNode(native *native.NativeService) ([]byte, error) {
 	}
 
 	// get admin from database
-	adminAddress := new(common.Address)
-	admin, err := global_params.GetStorageAdmin(native, global_params.GenerateAdminKey(utils.ParamContractAddress, false))
+	adminAddress, err := getAdmin(native)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getStorageAdmin, get admin error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getAdmin, get admin error!")
 	}
-	copy(adminAddress[:], admin[:])
-	err = utils.ValidateOwner(native, *adminAddress)
+
+	//check witness
+	err = utils.ValidateOwner(native, adminAddress)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "blackNode, checkWitness error!")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-
-	peerPubkeyPrefix, err := hex.DecodeString(params.PeerPubkey)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, peerPubkey format error!")
-	}
 
 	//get current view
 	view, err := GetView(native, contract)
@@ -610,69 +566,58 @@ func BlackNode(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getPeerPoolMap, get peerPoolMap error!")
 	}
-
-	peerPoolItem, ok := peerPoolMap.PeerPoolMap[params.PeerPubkey]
-	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("blackNode, peerPubkey is not in peerPoolMap!")
-	}
-
-	blackListItem := &BlackListItem{
-		PeerPubkey: peerPoolItem.PeerPubkey,
-		Address:    peerPoolItem.Address,
-		InitPos:    peerPoolItem.InitPos,
-	}
-	bf := new(bytes.Buffer)
-	if err := blackListItem.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize blackListItem error!")
-	}
-	//put peer into black list
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(BLACK_LIST), peerPubkeyPrefix), &cstates.StorageItem{Value: bf.Bytes()})
-	//change peerPool status
-	if peerPoolItem.Status == ConsensusStatus {
-		peerPoolItem.Status = BlackConsensusStatus
-		peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPoolItem
-		bf = new(bytes.Buffer)
-		if err := peerPoolMap.Serialize(bf); err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize peerPoolMap error!")
-		}
-		viewBytes, err := GetUint32Bytes(view)
+	commit := false
+	for _, peerPubkey := range params.PeerPubkeyList {
+		peerPubkeyPrefix, err := hex.DecodeString(peerPubkey)
 		if err != nil {
-			return nil, errors.NewDetailErr(err, errors.ErrNoCode, "GetUint32Bytes, get viewBytes error!")
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, peerPubkey format error!")
 		}
-		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_POOL), viewBytes), &cstates.StorageItem{Value: bf.Bytes()})
+		peerPoolItem, ok := peerPoolMap.PeerPoolMap[peerPubkey]
+		if !ok {
+			return utils.BYTE_FALSE, errors.NewErr("blackNode, peerPubkey is not in peerPoolMap!")
+		}
 
-		//commitDpos
+		blackListItem := &BlackListItem{
+			PeerPubkey: peerPoolItem.PeerPubkey,
+			Address:    peerPoolItem.Address,
+			InitPos:    peerPoolItem.InitPos,
+		}
+		bf := new(bytes.Buffer)
+		if err := blackListItem.Serialize(bf); err != nil {
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize blackListItem error!")
+		}
+		//put peer into black list
+		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(BLACK_LIST), peerPubkeyPrefix), &cstates.StorageItem{Value: bf.Bytes()})
+		//change peerPool status
+		if peerPoolItem.Status == ConsensusStatus {
+			peerPoolItem.Status = BlackStatus
+			peerPoolMap.PeerPoolMap[peerPubkey] = peerPoolItem
+			err = putPeerPoolMap(native, contract, view, peerPoolMap)
+			if err != nil {
+				return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putPeerPoolMap, put peerPoolMap error!")
+			}
+			commit = true
+		} else {
+			peerPoolItem.Status = BlackStatus
+			peerPoolMap.PeerPoolMap[peerPubkey] = peerPoolItem
+			err = putPeerPoolMap(native, contract, view, peerPoolMap)
+			if err != nil {
+				return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putPeerPoolMap, put peerPoolMap error!")
+			}
+		}
+	}
+	//commitDpos
+	if commit {
 		// get config
-		config := new(Configuration)
-		configBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VBFT_CONFIG)))
+		config, err := getConfig(native, contract)
 		if err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "native.CloneCache.Get, get configBytes error!")
-		}
-		if configBytes == nil {
-			return utils.BYTE_FALSE, errors.NewErr("blackNode, configBytes is nil!")
-		}
-		configStore, _ := configBytes.(*cstates.StorageItem)
-		if err := config.Deserialize(bytes.NewBuffer(configStore.Value)); err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize config error!")
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getConfig, get config error!")
 		}
 		err = executeCommitDpos(native, contract, config)
 		if err != nil {
 			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "executeCommitDpos, executeCommitDpos error!")
 		}
-	} else {
-		peerPoolItem.Status = BlackStatus
-		peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPoolItem
-		bf = new(bytes.Buffer)
-		if err := peerPoolMap.Serialize(bf); err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize peerPoolMap error!")
-		}
-		viewBytes, err := GetUint32Bytes(view)
-		if err != nil {
-			return nil, errors.NewDetailErr(err, errors.ErrNoCode, "GetUint32Bytes, get viewBytes error!")
-		}
-		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_POOL), viewBytes), &cstates.StorageItem{Value: bf.Bytes()})
 	}
-
 	return utils.BYTE_TRUE, nil
 }
 
@@ -683,13 +628,13 @@ func WhiteNode(native *native.NativeService) ([]byte, error) {
 	}
 
 	// get admin from database
-	adminAddress := new(common.Address)
-	admin, err := global_params.GetStorageAdmin(native, global_params.GenerateAdminKey(utils.ParamContractAddress, false))
+	adminAddress, err := getAdmin(native)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getStorageAdmin, get admin error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getAdmin, get admin error!")
 	}
-	copy(adminAddress[:], admin[:])
-	err = utils.ValidateOwner(native, *adminAddress)
+
+	//check witness
+	err = utils.ValidateOwner(native, adminAddress)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "whiteNode, checkWitness error!")
 	}
@@ -700,8 +645,7 @@ func WhiteNode(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, peerPubkey format error!")
 	}
 
-	//get black list
-	blackList := new(BlackListItem)
+	//check black list
 	blackListBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(BLACK_LIST), peerPubkeyPrefix))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "native.CloneCache.Get, get BlackList error!")
@@ -709,32 +653,6 @@ func WhiteNode(native *native.NativeService) ([]byte, error) {
 	if blackListBytes == nil {
 		return utils.BYTE_FALSE, errors.NewErr("whiteNode, this Peer is not in BlackList!")
 	}
-	blackListStore, _ := blackListBytes.(*cstates.StorageItem)
-	if err := blackList.Deserialize(bytes.NewBuffer(blackListStore.Value)); err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize blackList error!")
-	}
-
-	//draw back init pos
-	address := blackList.Address
-	voteInfoBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL),
-		peerPubkeyPrefix, address[:]))
-	voteInfo := &VoteInfo{
-		PeerPubkey: blackList.PeerPubkey,
-		Address:    address,
-	}
-	if voteInfoBytes != nil {
-		voteInfoStore, _ := voteInfoBytes.(*cstates.StorageItem)
-		if err := voteInfo.Deserialize(bytes.NewBuffer(voteInfoStore.Value)); err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfo error!")
-		}
-	}
-	voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos + blackList.InitPos
-	bf := new(bytes.Buffer)
-	if err := voteInfo.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize voteInfo error!")
-	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL), peerPubkeyPrefix,
-		address[:]), &cstates.StorageItem{Value: bf.Bytes()})
 
 	//remove peer from black list
 	native.CloneCache.Delete(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(BLACK_LIST), peerPubkeyPrefix))
@@ -785,15 +703,10 @@ func QuitNode(native *native.NativeService) ([]byte, error) {
 	}
 
 	peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPoolItem
-	bf := new(bytes.Buffer)
-	if err := peerPoolMap.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize peerPoolMap error!")
-	}
-	viewBytes, err := GetUint32Bytes(view)
+	err = putPeerPoolMap(native, contract, view, peerPoolMap)
 	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "GetUint32Bytes, get viewBytes error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putPeerPoolMap, put peerPoolMap error!")
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_POOL), viewBytes), &cstates.StorageItem{Value: bf.Bytes()})
 
 	return utils.BYTE_TRUE, nil
 }
@@ -801,7 +714,7 @@ func QuitNode(native *native.NativeService) ([]byte, error) {
 func VoteForPeer(native *native.NativeService) ([]byte, error) {
 	params := &VoteForPeerParam{
 		PeerPubkeyList: make([]string, 0),
-		PosList:        make([]uint32, 0),
+		PosList:        make([]uint64, 0),
 	}
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
@@ -827,14 +740,16 @@ func VoteForPeer(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getPeerPoolMap, get peerPoolMap error!")
 	}
 
+	//get globalParam
+	globalParam, err := getGlobalParam(native, contract)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getGlobalParam, getGlobalParam error!")
+	}
+
 	var total uint64
 	for i := 0; i < len(params.PeerPubkeyList); i++ {
 		peerPubkey := params.PeerPubkeyList[i]
-		pos := uint64(params.PosList[i])
-		peerPubkeyPrefix, err := hex.DecodeString(peerPubkey)
-		if err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, peerPubkey format error!")
-		}
+		pos := params.PosList[i]
 
 		peerPoolItem, ok := peerPoolMap.PeerPoolMap[peerPubkey]
 		if !ok {
@@ -845,66 +760,38 @@ func VoteForPeer(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, errors.NewErr("voteForPeer, peerPubkey is not candidate and can not be voted!")
 		}
 
-		voteInfoBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL),
-			peerPubkeyPrefix, address[:]))
-		voteInfo := &VoteInfo{
-			PeerPubkey: peerPubkey,
-			Address:    address,
+		voteInfo, err := getVoteInfo(native, contract, peerPubkey, address)
+		if err != nil {
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getVoteInfo, get voteInfo error!")
 		}
-		if voteInfoBytes != nil {
-			voteInfoStore, _ := voteInfoBytes.(*cstates.StorageItem)
-			if err := voteInfo.Deserialize(bytes.NewBuffer(voteInfoStore.Value)); err != nil {
-				return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfo error!")
-			}
-			voteInfo.NewPos = voteInfo.NewPos + pos
-		} else {
-			voteInfo.NewPos = pos
-		}
+		voteInfo.NewPos = voteInfo.NewPos + pos
 		total = total + pos
 		peerPoolItem.TotalPos = peerPoolItem.TotalPos + pos
+		if peerPoolItem.TotalPos > globalParam.PosLimit*peerPoolItem.InitPos {
+			return utils.BYTE_FALSE, errors.NewErr("voteForPeer, pos of this peer is full!")
+		}
 
 		peerPoolMap.PeerPoolMap[peerPubkey] = peerPoolItem
-		bf := new(bytes.Buffer)
-		if err := voteInfo.Serialize(bf); err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize voteInfo error!")
-		}
-		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL), peerPubkeyPrefix,
-			address[:]), &cstates.StorageItem{Value: bf.Bytes()})
-	}
-	bf := new(bytes.Buffer)
-	if err := peerPoolMap.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize peerPoolMap error!")
-	}
-	viewBytes, err := GetUint32Bytes(view)
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "GetUint32Bytes, get viewBytes error!")
-	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_POOL), viewBytes), &cstates.StorageItem{Value: bf.Bytes()})
-
-	//update total stake
-	totalStakeBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(TOTAL_STAKE), address[:]))
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "native.CloneCache.Get, get indexBytes error!")
-	}
-	totalStake := &TotalStake{
-		Address: address,
-	}
-	if totalStakeBytes != nil {
-		if err := totalStake.Deserialize(bytes.NewBuffer(totalStakeBytes.(*cstates.StorageItem).Value)); err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize totalStake error!")
+		err = putVoteInfo(native, contract, voteInfo)
+		if err != nil {
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putVoteInfo, put voteInfo error!")
 		}
 	}
-	totalStake.Stake = totalStake.Stake + total
-	bf = new(bytes.Buffer)
-	if err := totalStake.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize totalStake error!")
+	err = putPeerPoolMap(native, contract, view, peerPoolMap)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putPeerPoolMap, put peerPoolMap error!")
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(TOTAL_STAKE), address[:]), &cstates.StorageItem{Value: bf.Bytes()})
 
 	//ont transfer
-	err = AppCallTransferOnt(native, address, utils.GovernanceContractAddress, total)
+	err = appCallTransferOnt(native, address, utils.GovernanceContractAddress, total)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
+	}
+
+	//update total stake
+	err = depositTotalStake(native, contract, address, total)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "depositTotalStake, depositTotalStake error!")
 	}
 
 	return utils.BYTE_TRUE, nil
@@ -913,7 +800,7 @@ func VoteForPeer(native *native.NativeService) ([]byte, error) {
 func UnVoteForPeer(native *native.NativeService) ([]byte, error) {
 	params := &VoteForPeerParam{
 		PeerPubkeyList: make([]string, 0),
-		PosList:        make([]uint32, 0),
+		PosList:        make([]uint64, 0),
 	}
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
@@ -941,84 +828,63 @@ func UnVoteForPeer(native *native.NativeService) ([]byte, error) {
 
 	for i := 0; i < len(params.PeerPubkeyList); i++ {
 		peerPubkey := params.PeerPubkeyList[i]
-		pos := uint64(params.PosList[i])
-		peerPubkeyPrefix, err := hex.DecodeString(peerPubkey)
-		if err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, peerPubkey format error!")
-		}
+		pos := params.PosList[i]
 
 		peerPoolItem, ok := peerPoolMap.PeerPoolMap[peerPubkey]
 		if !ok {
-			return utils.BYTE_FALSE, errors.NewErr("voteForPeer, peerPubkey is not in peerPoolMap!")
+			return utils.BYTE_FALSE, errors.NewErr("unVoteForPeer, peerPubkey is not in peerPoolMap!")
 		}
 
 		if peerPoolItem.Status != CandidateStatus && peerPoolItem.Status != ConsensusStatus {
-			return utils.BYTE_FALSE, errors.NewErr("voteForPeer, peerPubkey is not candidate and can not be voted!")
+			return utils.BYTE_FALSE, errors.NewErr("unVoteForPeer, peerPubkey is not candidate and can not be voted!")
 		}
 
-		voteInfoBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL),
-			peerPubkeyPrefix, address[:]))
-		voteInfo := &VoteInfo{
-			PeerPubkey: peerPubkey,
-			Address:    address,
+		voteInfo, err := getVoteInfo(native, contract, peerPubkey, address)
+		if err != nil {
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getVoteInfo, get voteInfo error!")
 		}
-		if voteInfoBytes != nil {
-			voteInfoStore, _ := voteInfoBytes.(*cstates.StorageItem)
-			if err := voteInfo.Deserialize(bytes.NewBuffer(voteInfoStore.Value)); err != nil {
-				return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfo error!")
+		if voteInfo.NewPos < pos {
+			if peerPoolItem.Status == ConsensusStatus {
+				if voteInfo.ConsensusPos < (pos - voteInfo.NewPos) {
+					return utils.BYTE_FALSE, errors.NewErr("unVoteForPeer, your pos of this peerPubkey is not enough!")
+				}
+				consensusPos := voteInfo.ConsensusPos + voteInfo.NewPos - pos
+				newPos := voteInfo.NewPos
+				voteInfo.NewPos = 0
+				voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos + newPos
+				voteInfo.ConsensusPos = consensusPos
+				voteInfo.WithdrawPos = voteInfo.WithdrawPos + pos - voteInfo.NewPos
+				peerPoolItem.TotalPos = peerPoolItem.TotalPos - pos
 			}
-			if voteInfo.NewPos < pos {
-				if peerPoolItem.Status == ConsensusStatus {
-					if voteInfo.ConsensusPos < (pos - voteInfo.NewPos) {
-						return utils.BYTE_FALSE, errors.NewErr("voteForPeer, your pos of this peerPubkey is not enough!")
-					}
-					consensusPos := voteInfo.ConsensusPos + voteInfo.NewPos - pos
-					newPos := voteInfo.NewPos
-					voteInfo.NewPos = 0
-					voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos + newPos
-					voteInfo.ConsensusPos = consensusPos
-					voteInfo.WithdrawPos = voteInfo.WithdrawPos + pos - voteInfo.NewPos
-					peerPoolItem.TotalPos = peerPoolItem.TotalPos - pos
+			if peerPoolItem.Status == CandidateStatus {
+				if voteInfo.FreezePos < (pos - voteInfo.NewPos) {
+					return utils.BYTE_FALSE, errors.NewErr("unVoteForPeer, your pos of this peerPubkey is not enough!")
 				}
-				if peerPoolItem.Status == CandidateStatus {
-					if voteInfo.FreezePos < (pos - voteInfo.NewPos) {
-						return utils.BYTE_FALSE, errors.NewErr("voteForPeer, your pos of this peerPubkey is not enough!")
-					}
-					freezePos := voteInfo.FreezePos + voteInfo.NewPos - pos
-					newPos := voteInfo.NewPos
-					voteInfo.NewPos = 0
-					voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos + newPos
-					voteInfo.FreezePos = uint64(freezePos)
-					voteInfo.WithdrawFreezePos = voteInfo.WithdrawFreezePos + pos - voteInfo.NewPos
-					peerPoolItem.TotalPos = peerPoolItem.TotalPos - pos
-				}
-			} else {
-				temp := voteInfo.NewPos - pos
-				voteInfo.NewPos = temp
-				voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos + pos
+				freezePos := voteInfo.FreezePos + voteInfo.NewPos - pos
+				newPos := voteInfo.NewPos
+				voteInfo.NewPos = 0
+				voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos + newPos
+				voteInfo.FreezePos = freezePos
+				voteInfo.WithdrawFreezePos = voteInfo.WithdrawFreezePos + pos - voteInfo.NewPos
 				peerPoolItem.TotalPos = peerPoolItem.TotalPos - pos
 			}
 		} else {
-			return utils.BYTE_FALSE, errors.NewErr("voteForPeer, your pos of this peerPubkey is not enough!")
+			temp := voteInfo.NewPos - pos
+			voteInfo.NewPos = temp
+			voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos + pos
+			peerPoolItem.TotalPos = peerPoolItem.TotalPos - pos
 		}
 
 		peerPoolMap.PeerPoolMap[peerPubkey] = peerPoolItem
-		bf := new(bytes.Buffer)
-		if err := voteInfo.Serialize(bf); err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize voteInfo error!")
+		err = putVoteInfo(native, contract, voteInfo)
+		if err != nil {
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putVoteInfo, put voteInfo error!")
 		}
-		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL), peerPubkeyPrefix,
-			address[:]), &cstates.StorageItem{Value: bf.Bytes()})
 	}
-	bf := new(bytes.Buffer)
-	if err := peerPoolMap.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize peerPoolMap error!")
-	}
-	viewBytes, err := GetUint32Bytes(view)
+	err = putPeerPoolMap(native, contract, view, peerPoolMap)
 	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "GetUint32Bytes, get viewBytes error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putPeerPoolMap, put peerPoolMap error!")
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_POOL), viewBytes), &cstates.StorageItem{Value: bf.Bytes()})
 
 	return utils.BYTE_TRUE, nil
 }
@@ -1026,7 +892,7 @@ func UnVoteForPeer(native *native.NativeService) ([]byte, error) {
 func Withdraw(native *native.NativeService) ([]byte, error) {
 	params := &WithdrawParam{
 		PeerPubkeyList: make([]string, 0),
-		WithdrawList:   make([]uint32, 0),
+		WithdrawList:   make([]uint64, 0),
 	}
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
@@ -1039,18 +905,6 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "validateOwner, checkWitness error!")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-
-	//get current view
-	view, err := GetView(native, contract)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getView, get view error!")
-	}
-
-	//get peerPoolMap
-	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getPeerPoolMap, get peerPoolMap error!")
-	}
 
 	var total uint64
 	for i := 0; i < len(params.PeerPubkeyList); i++ {
@@ -1061,37 +915,19 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, peerPubkey format error!")
 		}
 
-		peerPoolItem, ok := peerPoolMap.PeerPoolMap[peerPubkey]
-		if !ok {
-			return utils.BYTE_FALSE, errors.NewErr("withdraw, peerPubkey is not in peerPoolMap!")
+		voteInfo, err := getVoteInfo(native, contract, peerPubkey, address)
+		if err != nil {
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getVoteInfo, get voteInfo error!")
 		}
-
-		if peerPoolItem.Status != CandidateStatus && peerPoolItem.Status != ConsensusStatus {
-			return utils.BYTE_FALSE, errors.NewErr("withdraw, peerPubkey is not candidate and can not withdraw!")
-		}
-
-		voteInfoBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL),
-			peerPubkeyPrefix, address[:]))
-		voteInfo := new(VoteInfo)
-		if voteInfoBytes != nil {
-			voteInfoStore, _ := voteInfoBytes.(*cstates.StorageItem)
-			if err := voteInfo.Deserialize(bytes.NewBuffer(voteInfoStore.Value)); err != nil {
-				return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfo error!")
-			}
-			if voteInfo.WithdrawUnfreezePos < uint64(pos) {
-				return utils.BYTE_FALSE, errors.NewErr("withdraw, your unfreeze withdraw pos of this peerPubkey is not enough!")
-			} else {
-				voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos - uint64(pos)
-				total = total + uint64(pos)
-				bf := new(bytes.Buffer)
-				if err := voteInfo.Serialize(bf); err != nil {
-					return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize voteInfo error!")
-				}
-				native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL), peerPubkeyPrefix,
-					address[:]), &cstates.StorageItem{Value: bf.Bytes()})
-			}
+		if voteInfo.WithdrawUnfreezePos < pos {
+			return utils.BYTE_FALSE, errors.NewErr("withdraw, your unfreeze withdraw pos of this peerPubkey is not enough!")
 		} else {
-			return utils.BYTE_FALSE, errors.NewErr("withdraw, your withdraw pos of this peerPubkey is not enough!")
+			voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos - pos
+			total = total + pos
+			err = putVoteInfo(native, contract, voteInfo)
+			if err != nil {
+				return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putVoteInfo, put voteInfo error!")
+			}
 		}
 		if voteInfo.ConsensusPos == 0 && voteInfo.FreezePos == 0 && voteInfo.NewPos == 0 &&
 			voteInfo.WithdrawPos == 0 && voteInfo.WithdrawFreezePos == 0 && voteInfo.WithdrawUnfreezePos == 0 {
@@ -1100,30 +936,13 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 	}
 
 	//update total stake
-	totalStakeBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(TOTAL_STAKE), address[:]))
+	err = withdrawTotalStake(native, contract, address, total)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "native.CloneCache.Get, get indexBytes error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "withdrawTotalStake, withdrawTotalStake error!")
 	}
-	totalStake := &TotalStake{
-		Address: address,
-	}
-	if totalStakeBytes != nil {
-		if err := totalStake.Deserialize(bytes.NewBuffer(totalStakeBytes.(*cstates.StorageItem).Value)); err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize totalStake error!")
-		}
-	}
-	if totalStake.Stake < total {
-		return utils.BYTE_FALSE, errors.NewErr("withdraw, ont deposit is not enough!")
-	}
-	totalStake.Stake = totalStake.Stake - total
-	bf := new(bytes.Buffer)
-	if err := totalStake.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize totalStake error!")
-	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(TOTAL_STAKE), address[:]), &cstates.StorageItem{Value: bf.Bytes()})
 
 	//ont transfer
-	err = AppCallTransferOnt(native, utils.GovernanceContractAddress, address, total)
+	err = appCallTransferOnt(native, utils.GovernanceContractAddress, address, total)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
 	}
@@ -1135,17 +954,9 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	// get config
-	config := new(Configuration)
-	configBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VBFT_CONFIG)))
+	config, err := getConfig(native, contract)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "native.CloneCache.Get, get configBytes error!")
-	}
-	if configBytes == nil {
-		return utils.BYTE_FALSE, errors.NewErr("commitDpos, configBytes is nil!")
-	}
-	configStore, _ := configBytes.(*cstates.StorageItem)
-	if err := config.Deserialize(bytes.NewBuffer(configStore.Value)); err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize config error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getConfig, get config error!")
 	}
 
 	//get governace view
@@ -1155,13 +966,13 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	}
 
 	// get admin from database
-	adminAddress := new(common.Address)
-	admin, err := global_params.GetStorageAdmin(native, global_params.GenerateAdminKey(utils.ParamContractAddress, false))
+	adminAddress, err := getAdmin(native)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getStorageAdmin, get admin error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getAdmin, get admin error!")
 	}
-	copy(adminAddress[:], admin[:])
-	err = utils.ValidateOwner(native, *adminAddress)
+
+	//check witness
+	err = utils.ValidateOwner(native, adminAddress)
 	if err != nil {
 		cycle := (native.Height - governanceView.Height) >= config.MaxBlockChangeView
 		if !cycle {
@@ -1189,15 +1000,21 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 	newView := view + 1
 
 	//get peerPoolMap
-	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	peerPoolMapSplit, err := GetPeerPoolMap(native, contract, view-1)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "getPeerPoolMap, get peerPoolMap error!")
 	}
 
 	//feeSplit first
-	err = executeSplit(native, contract, peerPoolMap)
+	err = executeSplit(native, contract, peerPoolMapSplit)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "executeSplit, executeSplit error!")
+	}
+
+	//get peerPoolMap
+	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "getPeerPoolMap, get peerPoolMap error!")
 	}
 
 	peers := []*PeerStakeInfo{}
@@ -1218,10 +1035,6 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 		}
 		if peerPoolItem.Status == QuitConsensusStatus {
 			peerPoolItem.Status = QuitingStatus
-			peerPoolMap.PeerPoolMap[peerPoolItem.PeerPubkey] = peerPoolItem
-		}
-		if peerPoolItem.Status == BlackConsensusStatus {
-			peerPoolItem.Status = BlackStatus
 			peerPoolMap.PeerPoolMap[peerPoolItem.PeerPubkey] = peerPoolItem
 		}
 
@@ -1283,15 +1096,10 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 		peerPoolItem.Status = CandidateStatus
 		peerPoolMap.PeerPoolMap[peers[i].PeerPubkey] = peerPoolItem
 	}
-	bf := new(bytes.Buffer)
-	if err := peerPoolMap.Serialize(bf); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize peerPoolMap error!")
-	}
-	newViewBytes, err := GetUint32Bytes(newView)
+	err = putPeerPoolMap(native, contract, newView, peerPoolMap)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "GetUint32Bytes, get newViewBytes error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "putPeerPoolMap, put peerPoolMap error!")
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_POOL), newViewBytes), &cstates.StorageItem{Value: bf.Bytes()})
 	oldView := view - 1
 	oldViewBytes, err := GetUint32Bytes(oldView)
 	if err != nil {
@@ -1305,35 +1113,38 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 		Height: native.Height,
 		TxHash: native.Tx.Hash(),
 	}
-	bf = new(bytes.Buffer)
-	if err := governanceView.Serialize(bf); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize governanceView error!")
+	err = putGovernanceView(native, contract, governanceView)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "putGovernanceView, put governanceView error!")
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(GOVERNANCE_VIEW)), &cstates.StorageItem{Value: bf.Bytes()})
-
-	//posTable, chainPeers, err := calDposTable(native, config, peers)
 
 	return nil
 }
 
 func UpdateConfig(native *native.NativeService) ([]byte, error) {
 	// get admin from database
-	adminAddress := new(common.Address)
-	admin, err := global_params.GetStorageAdmin(native, global_params.GenerateAdminKey(utils.ParamContractAddress, false))
+	adminAddress, err := getAdmin(native)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getStorageAdmin, get admin error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getAdmin, get admin error!")
 	}
-	copy(adminAddress[:], admin[:])
-	err = utils.ValidateOwner(native, *adminAddress)
+
+	//check witness
+	err = utils.ValidateOwner(native, adminAddress)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "updateConfig, checkWitness error!")
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+
+	//get globalParam
+	globalParam, err := getGlobalParam(native, contract)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getGlobalParam, getGlobalParam error!")
 	}
 
 	configuration := new(Configuration)
 	if err := configuration.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize configuration error!")
 	}
-	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	//get current view
 	view, err := GetView(native, contract)
@@ -1365,37 +1176,44 @@ func UpdateConfig(native *native.NativeService) ([]byte, error) {
 	if configuration.K < 2*configuration.C+1 {
 		return utils.BYTE_FALSE, errors.NewErr("updateConfig. K can not be less than 2*C+1 in config!")
 	}
+	if uint64(4*configuration.K) > globalParam.CandidateNum {
+		return utils.BYTE_FALSE, errors.NewErr("updateConfig. 4*K can not be more than candidateNum!")
+	}
 	if configuration.N < configuration.K || configuration.K < 7 {
 		return utils.BYTE_FALSE, errors.NewErr("updateConfig. config not match N >= K >= 7!")
 	}
-
-	bf := new(bytes.Buffer)
-	if err := configuration.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize configuration error!")
+	err = putConfig(native, contract, configuration)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putConfig, put config error!")
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VBFT_CONFIG)), &cstates.StorageItem{Value: bf.Bytes()})
 
 	return utils.BYTE_TRUE, nil
 }
 
 func UpdateGlobalParam(native *native.NativeService) ([]byte, error) {
 	// get admin from database
-	adminAddress := new(common.Address)
-	admin, err := global_params.GetStorageAdmin(native, global_params.GenerateAdminKey(utils.ParamContractAddress, false))
+	adminAddress, err := getAdmin(native)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getStorageAdmin, get admin error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getAdmin, get admin error!")
 	}
-	copy(adminAddress[:], admin[:])
-	err = utils.ValidateOwner(native, *adminAddress)
+
+	//check witness
+	err = utils.ValidateOwner(native, adminAddress)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "updateGlobalParam, checkWitness error!")
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+
+	// get config
+	config, err := getConfig(native, contract)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getConfig, get config error!")
 	}
 
 	globalParam := new(GlobalParam)
 	if err := globalParam.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize globalParam error!")
 	}
-	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	//check the globalParam
 	if (globalParam.A + globalParam.B) != 100 {
@@ -1404,30 +1222,67 @@ func UpdateGlobalParam(native *native.NativeService) ([]byte, error) {
 	if globalParam.Yita == 0 {
 		return utils.BYTE_FALSE, errors.NewErr("updateGlobalParam. Yita must > 0!")
 	}
-
-	bf := new(bytes.Buffer)
-	if err := globalParam.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize globalParam error!")
+	if globalParam.Penalty > 100 {
+		return utils.BYTE_FALSE, errors.NewErr("updateGlobalParam. Penalty must <= 100!")
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(GLOBAL_PARAM)), &cstates.StorageItem{Value: bf.Bytes()})
+	if globalParam.PosLimit < 1 {
+		return utils.BYTE_FALSE, errors.NewErr("updateGlobalParam. PosLimit must >= 1!")
+	}
+	if globalParam.CandidateNum < uint64(4*config.K) {
+		return utils.BYTE_FALSE, errors.NewErr("updateGlobalParam. CandidateNum must >= 4*K!")
+	}
+	if globalParam.CandidateFee != 0 && globalParam.CandidateFee < MinCandidateFee {
+		return utils.BYTE_FALSE, fmt.Errorf("updateGlobalParam. CandidateFee must >= %d", MinCandidateFee)
+	}
+	err = putGlobalParam(native, contract, globalParam)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putGlobalParam, put globalParam error!")
+	}
+
+	return utils.BYTE_TRUE, nil
+}
+
+func UpdateSplitCurve(native *native.NativeService) ([]byte, error) {
+	// get admin from database
+	adminAddress, err := getAdmin(native)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getAdmin, get admin error!")
+	}
+
+	//check witness
+	err = utils.ValidateOwner(native, adminAddress)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "updateSplitCurve, checkWitness error!")
+	}
+
+	splitCurve := new(SplitCurve)
+	if err := splitCurve.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize splitCurve error!")
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+
+	err = putSplitCurve(native, contract, splitCurve)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putSplitCurve, put splitCurve error!")
+	}
 
 	return utils.BYTE_TRUE, nil
 }
 
 func CallSplit(native *native.NativeService) ([]byte, error) {
 	// get admin from database
-	adminAddress := new(common.Address)
-	admin, err := global_params.GetStorageAdmin(native, global_params.GenerateAdminKey(utils.ParamContractAddress, false))
+	adminAddress, err := getAdmin(native)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getStorageAdmin, get admin error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getAdmin, get admin error!")
 	}
-	copy(adminAddress[:], admin[:])
-	err = utils.ValidateOwner(native, *adminAddress)
+
+	//check witness
+	err = utils.ValidateOwner(native, adminAddress)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "callSplit, checkWitness error!")
 	}
 
-	contract := utils.GovernanceContractAddress
+	contract := native.ContextRef.CurrentContext().ContractAddress
 	//get current view
 	cView, err := GetView(native, contract)
 	if err != nil {
@@ -1450,12 +1305,12 @@ func CallSplit(native *native.NativeService) ([]byte, error) {
 }
 
 func executeSplit(native *native.NativeService, contract common.Address, peerPoolMap *PeerPoolMap) error {
-	balance, err := GetOngBalance(native, utils.GovernanceContractAddress)
+	balance, err := getOngBalance(native, utils.GovernanceContractAddress)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "executeSplit, getOngBalance error!")
 	}
 	//get globalParam
-	globalParam, err := GetGlobalParam(native, contract)
+	globalParam, err := getGlobalParam(native, contract)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "getGlobalParam, getGlobalParam error!")
 	}
@@ -1475,17 +1330,9 @@ func executeSplit(native *native.NativeService, contract common.Address, peerPoo
 	}
 
 	// get config
-	config := new(Configuration)
-	configBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VBFT_CONFIG)))
+	config, err := getConfig(native, contract)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "executeSplit, get configBytes error!")
-	}
-	if configBytes == nil {
-		return errors.NewErr("executeSplit, configBytes is nil!")
-	}
-	configStore, _ := configBytes.(*cstates.StorageItem)
-	if err := config.Deserialize(bytes.NewBuffer(configStore.Value)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize config error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "getConfig, get config error!")
 	}
 
 	// sort peers by stake
@@ -1501,20 +1348,21 @@ func executeSplit(native *native.NativeService, contract common.Address, peerPoo
 	avg := sum / uint64(config.K)
 	var sumS uint64
 	for i := 0; i < int(config.K); i++ {
-		peersCandidate[i].S = splitCurve(peersCandidate[i].Stake, avg, globalParam.Yita)
+		peersCandidate[i].S, err = splitCurve(native, contract, peersCandidate[i].Stake, avg, globalParam.Yita)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "splitCurve, calculate splitCurve error!")
+		}
 		sumS += peersCandidate[i].S
 	}
 
 	//fee split of consensus peer
-	var splitAmount uint64
 	for i := int(config.K) - 1; i >= 0; i-- {
-		nodeAmount := balance * uint64(globalParam.A) / 100 * peersCandidate[i].S / sumS
+		nodeAmount := balance * globalParam.A / 100 * peersCandidate[i].S / sumS
 		address := peersCandidate[i].Address
-		err = AppCallApproveOng(native, utils.GovernanceContractAddress, address, nodeAmount)
+		err = appCallApproveOng(native, utils.GovernanceContractAddress, address, nodeAmount)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "executeSplit, ong transfer error!")
 		}
-		splitAmount += nodeAmount
 	}
 
 	//fee split of candidate peer
@@ -1523,18 +1371,43 @@ func executeSplit(native *native.NativeService, contract common.Address, peerPoo
 	for i := int(config.K); i < len(peersCandidate); i++ {
 		sum += peersCandidate[i].Stake
 	}
-	splitAmount = 0
 	for i := int(config.K); i < len(peersCandidate); i++ {
-		nodeAmount := balance * uint64(globalParam.B) / 100 * peersCandidate[i].Stake / sum
+		nodeAmount := balance * globalParam.B / 100 * peersCandidate[i].Stake / sum
 		address := peersCandidate[i].Address
-		err = AppCallApproveOng(native, utils.GovernanceContractAddress, address, nodeAmount)
+		err = appCallApproveOng(native, utils.GovernanceContractAddress, address, nodeAmount)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "executeSplit, ong transfer error!")
 		}
-		splitAmount += nodeAmount
 	}
 
 	return nil
+}
+
+func TransferPenalty(native *native.NativeService) ([]byte, error) {
+	// get admin from database
+	adminAddress, err := getAdmin(native)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getAdmin, get admin error!")
+	}
+
+	//check witness
+	err = utils.ValidateOwner(native, adminAddress)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "transferPenalty, checkWitness error!")
+	}
+
+	param := new(TransferPenaltyParam)
+	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize transferPenaltyParam error!")
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+
+	err = withdrawPenaltyStake(native, contract, param.PeerPubkey, param.Address)
+	if err != nil {
+		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "withdrawPenaltyStake, withdraw penaltyStake error!")
+	}
+
+	return utils.BYTE_TRUE, nil
 }
 
 func normalQuit(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem) error {
@@ -1550,7 +1423,10 @@ func normalQuit(native *native.NativeService, contract common.Address, peerPoolI
 	}
 	voteInfo := new(VoteInfo)
 	for _, v := range stateValues {
-		voteInfoStore, _ := v.Value.(*cstates.StorageItem)
+		voteInfoStore, ok := v.Value.(*cstates.StorageItem)
+		if !ok {
+			return errors.NewErr("voteInfoStore is not available!")
+		}
 		if err := voteInfo.Deserialize(bytes.NewBuffer(voteInfoStore.Value)); err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfo error!")
 		}
@@ -1565,12 +1441,10 @@ func normalQuit(native *native.NativeService, contract common.Address, peerPoolI
 			flag = true
 			voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos + peerPoolItem.InitPos
 		}
-		bf := new(bytes.Buffer)
-		if err := voteInfo.Serialize(bf); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize voteInfo error!")
+		err = putVoteInfo(native, contract, voteInfo)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "putVoteInfo, put voteInfo error!")
 		}
-		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL), peerPubkeyPrefix,
-			voteInfo.Address[:]), &cstates.StorageItem{Value: bf.Bytes()})
 	}
 	if flag == false {
 		voteInfo := &VoteInfo{
@@ -1578,17 +1452,30 @@ func normalQuit(native *native.NativeService, contract common.Address, peerPoolI
 			Address:             peerPoolItem.Address,
 			WithdrawUnfreezePos: peerPoolItem.InitPos,
 		}
-		bf := new(bytes.Buffer)
-		if err := voteInfo.Serialize(bf); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize voteInfo error!")
+		err = putVoteInfo(native, contract, voteInfo)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "putVoteInfo, put voteInfo error!")
 		}
-		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL), peerPubkeyPrefix,
-			peerPoolItem.Address[:]), &cstates.StorageItem{Value: bf.Bytes()})
 	}
 	return nil
 }
 
 func blackQuit(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem) error {
+	//update total stake
+	err := withdrawTotalStake(native, contract, peerPoolItem.Address, peerPoolItem.InitPos)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "withdrawTotalStake, withdrawTotalStake error!")
+	}
+
+	initPos := peerPoolItem.InitPos
+	var votePos uint64
+
+	//get globalParam
+	globalParam, err := getGlobalParam(native, contract)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "getGlobalParam, getGlobalParam error!")
+	}
+
 	peerPubkeyPrefix, err := hex.DecodeString(peerPoolItem.PeerPubkey)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, peerPubkey format error!")
@@ -1600,24 +1487,40 @@ func blackQuit(native *native.NativeService, contract common.Address, peerPoolIt
 	}
 	voteInfo := new(VoteInfo)
 	for _, v := range stateValues {
-		voteInfoStore, _ := v.Value.(*cstates.StorageItem)
+		voteInfoStore, ok := v.Value.(*cstates.StorageItem)
+		if !ok {
+			return errors.NewErr("voteInfoStore is not available!")
+		}
 		if err := voteInfo.Deserialize(bytes.NewBuffer(voteInfoStore.Value)); err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfo error!")
 		}
-		voteInfo.WithdrawUnfreezePos = voteInfo.ConsensusPos + voteInfo.FreezePos + voteInfo.NewPos + voteInfo.WithdrawPos +
+		total := voteInfo.ConsensusPos + voteInfo.FreezePos + voteInfo.NewPos + voteInfo.WithdrawPos +
 			voteInfo.WithdrawFreezePos + voteInfo.WithdrawUnfreezePos
+		penalty := (globalParam.Penalty*total + 99) / 100
+		voteInfo.WithdrawUnfreezePos = total - penalty
 		voteInfo.ConsensusPos = 0
 		voteInfo.FreezePos = 0
 		voteInfo.NewPos = 0
 		voteInfo.WithdrawPos = 0
 		voteInfo.WithdrawFreezePos = 0
 		address := voteInfo.Address
-		bf := new(bytes.Buffer)
-		if err := voteInfo.Serialize(bf); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize voteInfo error!")
+		err = putVoteInfo(native, contract, voteInfo)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "putVoteInfo, put voteInfo error!")
 		}
-		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL), peerPubkeyPrefix,
-			address[:]), &cstates.StorageItem{Value: bf.Bytes()})
+
+		//update total stake
+		err = withdrawTotalStake(native, contract, address, penalty)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "withdrawTotalStake, withdrawTotalStake error!")
+		}
+		votePos = votePos + penalty
+	}
+
+	//add penalty stake
+	err = depositPenaltyStake(native, contract, peerPoolItem.PeerPubkey, initPos, votePos)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "depositPenaltyStake, deposit penaltyStake error!")
 	}
 	return nil
 }
@@ -1634,11 +1537,13 @@ func consensusToConsensus(native *native.NativeService, contract common.Address,
 	}
 	voteInfo := new(VoteInfo)
 	for _, v := range stateValues {
-		voteInfoStore, _ := v.Value.(*cstates.StorageItem)
+		voteInfoStore, ok := v.Value.(*cstates.StorageItem)
+		if !ok {
+			return errors.NewErr("voteInfoStore is not available!")
+		}
 		if err := voteInfo.Deserialize(bytes.NewBuffer(voteInfoStore.Value)); err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfo error!")
 		}
-		address := voteInfo.Address
 		if voteInfo.FreezePos != 0 {
 			return errors.NewErr("commitPos, freezePos should be 0!")
 		}
@@ -1651,12 +1556,10 @@ func consensusToConsensus(native *native.NativeService, contract common.Address,
 		voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos + withdrawFreezePos
 		voteInfo.WithdrawPos = 0
 
-		bf := new(bytes.Buffer)
-		if err := voteInfo.Serialize(bf); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize voteInfo error!")
+		err = putVoteInfo(native, contract, voteInfo)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "putVoteInfo, put voteInfo error!")
 		}
-		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL), peerPubkeyPrefix,
-			address[:]), &cstates.StorageItem{Value: bf.Bytes()})
 	}
 	return nil
 }
@@ -1673,11 +1576,13 @@ func unConsensusToConsensus(native *native.NativeService, contract common.Addres
 	}
 	voteInfo := new(VoteInfo)
 	for _, v := range stateValues {
-		voteInfoStore, _ := v.Value.(*cstates.StorageItem)
+		voteInfoStore, ok := v.Value.(*cstates.StorageItem)
+		if !ok {
+			return errors.NewErr("voteInfoStore is not available!")
+		}
 		if err := voteInfo.Deserialize(bytes.NewBuffer(voteInfoStore.Value)); err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfo error!")
 		}
-		address := voteInfo.Address
 		if voteInfo.ConsensusPos != 0 {
 			return errors.NewErr("consensusPos, freezePos should be 0!")
 		}
@@ -1691,12 +1596,10 @@ func unConsensusToConsensus(native *native.NativeService, contract common.Addres
 		voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos + withdrawFreezePos
 		voteInfo.WithdrawPos = 0
 
-		bf := new(bytes.Buffer)
-		if err := voteInfo.Serialize(bf); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize voteInfo error!")
+		err = putVoteInfo(native, contract, voteInfo)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "putVoteInfo, put voteInfo error!")
 		}
-		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL), peerPubkeyPrefix,
-			address[:]), &cstates.StorageItem{Value: bf.Bytes()})
 	}
 	return nil
 }
@@ -1713,14 +1616,17 @@ func consensusToUnConsensus(native *native.NativeService, contract common.Addres
 	}
 	voteInfo := new(VoteInfo)
 	for _, v := range stateValues {
-		voteInfoStore, _ := v.Value.(*cstates.StorageItem)
+		voteInfoStore, ok := v.Value.(*cstates.StorageItem)
+		if !ok {
+			return errors.NewErr("voteInfoStore is not available!")
+		}
 		if err := voteInfo.Deserialize(bytes.NewBuffer(voteInfoStore.Value)); err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfo error!")
 		}
-		address := voteInfo.Address
 		if voteInfo.FreezePos != 0 {
 			return errors.NewErr("commitPos, freezePos should be 0!")
 		}
+
 		voteInfo.FreezePos = voteInfo.ConsensusPos + voteInfo.NewPos
 		voteInfo.NewPos = 0
 		voteInfo.ConsensusPos = 0
@@ -1730,12 +1636,10 @@ func consensusToUnConsensus(native *native.NativeService, contract common.Addres
 		voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos + withdrawFreezePos
 		voteInfo.WithdrawPos = 0
 
-		bf := new(bytes.Buffer)
-		if err := voteInfo.Serialize(bf); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize voteInfo error!")
+		err = putVoteInfo(native, contract, voteInfo)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "putVoteInfo, put voteInfo error!")
 		}
-		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL), peerPubkeyPrefix,
-			address[:]), &cstates.StorageItem{Value: bf.Bytes()})
 	}
 	return nil
 }
@@ -1752,11 +1656,13 @@ func unConsensusToUnConsensus(native *native.NativeService, contract common.Addr
 	}
 	voteInfo := new(VoteInfo)
 	for _, v := range stateValues {
-		voteInfoStore, _ := v.Value.(*cstates.StorageItem)
+		voteInfoStore, ok := v.Value.(*cstates.StorageItem)
+		if !ok {
+			return errors.NewErr("voteInfoStore is not available!")
+		}
 		if err := voteInfo.Deserialize(bytes.NewBuffer(voteInfoStore.Value)); err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfo error!")
 		}
-		address := voteInfo.Address
 		if voteInfo.ConsensusPos != 0 {
 			return errors.NewErr("consensusPos, freezePos should be 0!")
 		}
@@ -1771,12 +1677,124 @@ func unConsensusToUnConsensus(native *native.NativeService, contract common.Addr
 		voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos + withdrawFreezePos
 		voteInfo.WithdrawPos = 0
 
-		bf := new(bytes.Buffer)
-		if err := voteInfo.Serialize(bf); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize voteInfo error!")
+		err = putVoteInfo(native, contract, voteInfo)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "putVoteInfo, put voteInfo error!")
 		}
-		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL), peerPubkeyPrefix,
-			address[:]), &cstates.StorageItem{Value: bf.Bytes()})
 	}
+	return nil
+}
+
+func depositTotalStake(native *native.NativeService, contract common.Address, address common.Address, stake uint64) error {
+	totalStake, err := getTotalStake(native, contract, address)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "getTotalStake, get totalStake error!")
+	}
+
+	preStake := totalStake.Stake
+	preTimestamp := totalStake.TimeOffset
+	timeOffset := native.Time - constants.GENESIS_BLOCK_TIMESTAMP
+
+	amount := utils.CalcUnbindOng(preStake, preTimestamp, timeOffset)
+	err = appCallTransferFromOng(native, utils.GovernanceContractAddress, utils.OntContractAddress, totalStake.Address, amount)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferFromOng, transfer from ong error!")
+	}
+
+	totalStake.Stake = preStake + stake
+	totalStake.TimeOffset = timeOffset
+
+	err = putTotalStake(native, contract, totalStake)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "putTotalStake, put totalStake error!")
+	}
+	return nil
+}
+
+func withdrawTotalStake(native *native.NativeService, contract common.Address, address common.Address, stake uint64) error {
+	totalStake, err := getTotalStake(native, contract, address)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "getTotalStake, get totalStake error!")
+	}
+	if totalStake.Stake < stake {
+		return errors.NewErr("withdraw, ont deposit is not enough!")
+	}
+
+	preStake := totalStake.Stake
+	preTimestamp := totalStake.TimeOffset
+	timeOffset := native.Time - constants.GENESIS_BLOCK_TIMESTAMP
+
+	amount := utils.CalcUnbindOng(preStake, preTimestamp, timeOffset)
+	err = appCallTransferFromOng(native, utils.GovernanceContractAddress, utils.OntContractAddress, totalStake.Address, amount)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferFromOng, transfer from ong error!")
+	}
+
+	totalStake.Stake = preStake - stake
+	totalStake.TimeOffset = timeOffset
+
+	err = putTotalStake(native, contract, totalStake)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "putTotalStake, put totalStake error!")
+	}
+	return nil
+}
+
+func depositPenaltyStake(native *native.NativeService, contract common.Address, peerPubkey string, initPos uint64, votePos uint64) error {
+	penaltyStake, err := getPenaltyStake(native, contract, peerPubkey)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "getPenaltyStake, get penaltyStake error!")
+	}
+
+	preInitPos := penaltyStake.InitPos
+	preVotePos := penaltyStake.VotePos
+	preStake := preInitPos + preVotePos
+	preTimestamp := penaltyStake.TimeOffset
+	preAmount := penaltyStake.Amount
+	timeOffset := native.Time - constants.GENESIS_BLOCK_TIMESTAMP
+
+	amount := utils.CalcUnbindOng(preStake, preTimestamp, timeOffset)
+
+	penaltyStake.Amount = preAmount + amount
+	penaltyStake.InitPos = preInitPos + initPos
+	penaltyStake.VotePos = preVotePos + votePos
+	penaltyStake.TimeOffset = timeOffset
+
+	err = putPenaltyStake(native, contract, penaltyStake)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "putPenaltyStake, put penaltyStake error!")
+	}
+	return nil
+}
+
+func withdrawPenaltyStake(native *native.NativeService, contract common.Address, peerPubkey string, address common.Address) error {
+	penaltyStake, err := getPenaltyStake(native, contract, peerPubkey)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "getPenaltyStake, get penaltyStake error!")
+	}
+
+	preStake := penaltyStake.InitPos + penaltyStake.VotePos
+	preTimestamp := penaltyStake.TimeOffset
+	preAmount := penaltyStake.Amount
+	timeOffset := native.Time - constants.GENESIS_BLOCK_TIMESTAMP
+
+	amount := utils.CalcUnbindOng(preStake, preTimestamp, timeOffset)
+
+	//ont transfer
+	err = appCallTransferOnt(native, utils.GovernanceContractAddress, address, preStake)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
+	}
+	//ong approve
+	err = appCallTransferFromOng(native, utils.GovernanceContractAddress, utils.OntContractAddress, address, amount+preAmount)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferFromOng, transfer from ong error!")
+	}
+
+	peerPubkeyPrefix, err := hex.DecodeString(peerPubkey)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, peerPubkey format error!")
+	}
+	native.CloneCache.Delete(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PENALTY_STAKE), peerPubkeyPrefix))
 	return nil
 }

@@ -19,12 +19,13 @@
 package cmd
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	cmdcom "github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/types"
+	httpcom "github.com/ontio/ontology/http/base/common"
 	"github.com/urfave/cli"
 	"io/ioutil"
 	"strings"
@@ -84,6 +85,7 @@ var (
 					utils.TransactionGasPriceFlag,
 					utils.TransactionGasLimitFlag,
 					utils.WalletFileFlag,
+					utils.ContractPrepareInvokeFlag,
 					utils.AccountAddressFlag,
 				},
 			},
@@ -129,9 +131,9 @@ func deployContract(ctx *cli.Context) error {
 		return fmt.Errorf("DeployContract error:%s", err)
 	}
 	c, _ := common.HexToBytes(code)
-	address := utils.GetContractAddress(c)
+	address := types.AddressFromVmCode(c)
 	fmt.Printf("Deploy contract:\n")
-	fmt.Printf("  Contract Address:%x\n", address[:])
+	fmt.Printf("  Contract Address:%s\n", address.ToHexString())
 	fmt.Printf("  TxHash:%s\n", txHash)
 	fmt.Printf("\nTip:\n")
 	fmt.Printf("  Using './ontology info status %s' to query transaction status\n", txHash)
@@ -140,7 +142,7 @@ func deployContract(ctx *cli.Context) error {
 
 func invokeCodeContract(ctx *cli.Context) error {
 	if !ctx.IsSet(utils.GetFlagName(utils.ContractCodeFileFlag)) {
-		fmt.Errorf("Missing code or name argument\n")
+		fmt.Printf("Missing code or name argument\n")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
@@ -161,9 +163,41 @@ func invokeCodeContract(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("hex to bytes error:%s", err)
 	}
+
+	if ctx.IsSet(utils.GetFlagName(utils.ContractPrepareInvokeFlag)) {
+		preResult, err := utils.PrepareInvokeCodeNeoVMContract(c)
+		if err != nil {
+			return fmt.Errorf("PrepareInvokeCodeNeoVMContract error:%s", err)
+		}
+		if preResult.State == 0 {
+			return fmt.Errorf("Contract invoke failed\n")
+		}
+		fmt.Printf("Contract invoke successfully\n")
+		fmt.Printf("Gas consumed:%d\n", preResult.Gas)
+
+		rawReturnTypes := ctx.String(utils.GetFlagName(utils.ContranctReturnTypeFlag))
+		if rawReturnTypes == "" {
+			fmt.Printf("Return:%s (raw value)\n", preResult.Result)
+			return nil
+		}
+		values, err := utils.ParseReturnValue(preResult.Result, rawReturnTypes)
+		if err != nil {
+			return fmt.Errorf("parseReturnValue values:%+v types:%s error:%s", values, rawReturnTypes, err)
+		}
+		switch len(values) {
+		case 0:
+			fmt.Printf("Return: nil\n")
+		case 1:
+			fmt.Printf("Return:%+v\n", values[0])
+		default:
+			fmt.Printf("Return:%+v\n", values)
+		}
+		return nil
+	}
 	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
 	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
-	invokeTx := utils.NewInvokeTransaction(gasLimit, gasPrice, c)
+
+	invokeTx, err := httpcom.NewSmartContractTransaction(gasPrice, gasLimit, c)
 	if err != nil {
 		return err
 	}
@@ -175,6 +209,7 @@ func invokeCodeContract(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("SendTransaction error:%s", err)
 	}
+
 	fmt.Printf("TxHash:%s\n", txHash)
 	fmt.Printf("\nTip:\n")
 	fmt.Printf("  Using './ontology info status %s' to query transaction status\n", txHash)
@@ -183,21 +218,16 @@ func invokeCodeContract(ctx *cli.Context) error {
 
 func invokeContract(ctx *cli.Context) error {
 	if !ctx.IsSet(utils.GetFlagName(utils.ContractAddrFlag)) {
-		fmt.Errorf("Missing contract address argument.\n")
+		fmt.Printf("Missing contract address argument.\n")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
 	contractAddrStr := ctx.String(utils.GetFlagName(utils.ContractAddrFlag))
-	addrData, err := hex.DecodeString(contractAddrStr)
-	if err != nil {
-		return fmt.Errorf("Invalid contract address error:%s", err)
-	}
-	contractAddr, err := common.AddressParseFromBytes(addrData)
+	contractAddr, err := common.AddressFromHexString(contractAddrStr)
 	if err != nil {
 		return fmt.Errorf("Invalid contract address error:%s", err)
 	}
 
-	cversion := byte(ctx.Int(utils.GetFlagName(utils.ContractVersionFlag)))
 	paramsStr := ctx.String(utils.GetFlagName(utils.ContractParamsFlag))
 	params, err := utils.ParseParams(paramsStr)
 	if err != nil {
@@ -208,7 +238,7 @@ func invokeContract(ctx *cli.Context) error {
 	fmt.Printf("Invoke:%x Params:%s\n", contractAddr[:], paramData)
 
 	if ctx.IsSet(utils.GetFlagName(utils.ContractPrepareInvokeFlag)) {
-		preResult, err := utils.PrepareInvokeNeoVMContract(cversion, contractAddr, params)
+		preResult, err := utils.PrepareInvokeNeoVMContract(contractAddr, params)
 		if err != nil {
 			return fmt.Errorf("PrepareInvokeNeoVMSmartContact error:%s", err)
 		}
@@ -244,7 +274,7 @@ func invokeContract(ctx *cli.Context) error {
 	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
 	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
 
-	txHash, err := utils.InvokeNeoVMContract(gasPrice, gasLimit, signer, cversion, contractAddr, params)
+	txHash, err := utils.InvokeNeoVMContract(gasPrice, gasLimit, signer, contractAddr, params)
 	if err != nil {
 		return fmt.Errorf("Invoke NeoVM contract error:%s", err)
 	}

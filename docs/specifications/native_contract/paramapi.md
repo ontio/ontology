@@ -75,9 +75,34 @@ return: bool
 		Args:    adminBuffer.Bytes(),
 	}
 ```
+### SetOperator
+Administrator set operator of the contract.
+
+method: setOperator
+
+args: smartcontract/service/native/global_params.Admin
+
+return: bool
+#### example
+```
+    var destinationOperator global_params.Admin
+	address, _ := common.AddressFromBase58("TA4knXiWFZ8K4W3e5fAnoNntdc5G3qMT7C")
+	copy(destinationOperator[:], address[:])
+	adminBuffer := new(bytes.Buffer)
+	if err := destinationOperator.Serialize(adminBuffer); err != nil {
+		fmt.Println("Serialize admin struct error.")
+		os.Exit(1)
+	}
+
+	contract := &sstates.Contract{
+		Address: genesis.ParamContractAddress,
+		Method:  "acceptAdmin",
+		Args:    adminBuffer.Bytes(),
+	}
+```
 
 ### SetGlobalParam
-Administrator set global parameter, is prepare value, won't take effect immediately.
+Operator set global parameter, is prepare value, won't take effect immediately.
 
 method: setGlobalParam
 
@@ -136,7 +161,7 @@ return: array
 ```
 
 ### CreateSnapshot
-Administrator make prepare parameter effective.
+Operator make prepare parameter effective.
 
 method: createSnapshot
 

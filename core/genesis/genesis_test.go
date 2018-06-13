@@ -21,9 +21,17 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
 	"github.com/stretchr/testify/assert"
+	"os"
 	"testing"
 )
+
+func TestMain(m *testing.M) {
+	log.InitLog(0, log.Stdout)
+	m.Run()
+	os.RemoveAll("./ActorLog")
+}
 
 func TestGenesisBlockInit(t *testing.T) {
 	_, pub, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)

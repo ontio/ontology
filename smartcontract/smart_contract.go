@@ -137,6 +137,7 @@ func (this *SmartContract) NewNativeService() (*native.NativeService, error) {
 		Tx:         this.Config.Tx,
 		Time:       this.Config.Time,
 		Height:     this.Config.Height,
+		ServiceMap: make(map[string]native.Handler),
 	}
 	return service, nil
 }

@@ -122,7 +122,7 @@ func getPk(srvc *native.NativeService, encID []byte, index uint32) (*owner, erro
 		return nil, err
 	}
 	if index < 1 || index > uint32(len(owners)) {
-		return nil, nil
+		return nil, errors.New("invalid key index")
 	}
 	return owners[index-1], nil
 }
@@ -150,8 +150,11 @@ func revokePk(srvc *native.NativeService, encID, pub []byte) (uint32, error) {
 	var index uint32 = 0
 	for i, v := range owners {
 		if bytes.Equal(pub, v.key) {
+			index = uint32(i + 1)
+			if v.revoked {
+				return index, errors.New("public key has already been revoked")
+			}
 			v.revoked = true
-			index = uint32(i)
 		}
 	}
 	if index == 0 {

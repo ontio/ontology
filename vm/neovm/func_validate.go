@@ -23,6 +23,7 @@ import (
 	"encoding/binary"
 	"math/big"
 
+	"fmt"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/vm/neovm/errors"
 	"github.com/ontio/ontology/vm/neovm/types"
@@ -383,7 +384,7 @@ func validatePickItem(e *ExecutionEngine) error {
 			return errors.ERR_OVER_MAX_ARRAY_SIZE
 		}
 	default:
-		return errors.ERR_NOT_SUPPORT_TYPE
+		return fmt.Errorf("validatePickItem error: %s", errors.ERR_NOT_SUPPORT_TYPE)
 	}
 	return nil
 }
@@ -424,7 +425,7 @@ func validatorSetItem(e *ExecutionEngine) error {
 			return errors.ERR_OVER_MAX_ARRAY_SIZE
 		}
 	} else {
-		return errors.ERR_NOT_SUPPORT_TYPE
+		return fmt.Errorf("validatorSetItem error: %s", errors.ERR_NOT_SUPPORT_TYPE)
 	}
 	return nil
 }
@@ -467,7 +468,7 @@ func validateAppend(e *ExecutionEngine) error {
 	_, ok1 := arrItem.(*types.Array)
 	_, ok2 := arrItem.(*types.Struct)
 	if !ok1 && !ok2 {
-		return errors.ERR_NOT_SUPPORT_TYPE
+		return fmt.Errorf("validateAppend error: %s", errors.ERR_NOT_SUPPORT_TYPE)
 	}
 	return nil
 }
@@ -480,7 +481,7 @@ func validatorReverse(e *ExecutionEngine) error {
 	_, ok1 := arrItem.(*types.Array)
 	_, ok2 := arrItem.(*types.Struct)
 	if !ok1 && !ok2 {
-		return errors.ERR_NOT_SUPPORT_TYPE
+		return fmt.Errorf("validatorReverse error: %s", errors.ERR_NOT_SUPPORT_TYPE)
 	}
 	return nil
 }

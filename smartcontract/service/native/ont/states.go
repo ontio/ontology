@@ -23,7 +23,6 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -34,7 +33,7 @@ type Transfers struct {
 }
 
 func (this *Transfers) Serialize(w io.Writer) error {
-	if err := serialization.WriteVarUint(w, uint64(len(this.States))); err != nil {
+	if err := utils.WriteVarUint(w, uint64(len(this.States))); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TokenTransfer] Serialize States length error!")
 	}
 	for _, v := range this.States {
@@ -46,7 +45,7 @@ func (this *Transfers) Serialize(w io.Writer) error {
 }
 
 func (this *Transfers) Deserialize(r io.Reader) error {
-	n, err := serialization.ReadVarUint(r, 0)
+	n, err := utils.ReadVarUint(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TokenTransfer] Deserialize states length error!")
 	}
@@ -67,10 +66,10 @@ type State struct {
 }
 
 func (this *State) Serialize(w io.Writer) error {
-	if err := serialization.WriteVarBytes(w, this.From[:]); err != nil {
+	if err := utils.WriteAddress(w, this.From); err != nil {
 		return fmt.Errorf("[State] serialize from error:%v", err)
 	}
-	if err := serialization.WriteVarBytes(w, this.To[:]); err != nil {
+	if err := utils.WriteAddress(w, this.To); err != nil {
 		return fmt.Errorf("[State] serialize to error:%v", err)
 	}
 	if err := utils.WriteVarUint(w, this.Value); err != nil {
@@ -105,13 +104,13 @@ type TransferFrom struct {
 }
 
 func (this *TransferFrom) Serialize(w io.Writer) error {
-	if err := serialization.WriteVarBytes(w, this.Sender[:]); err != nil {
+	if err := utils.WriteAddress(w, this.Sender); err != nil {
 		return fmt.Errorf("[TransferFrom] serialize sender error:%v", err)
 	}
-	if err := serialization.WriteVarBytes(w, this.From[:]); err != nil {
+	if err := utils.WriteAddress(w, this.From); err != nil {
 		return fmt.Errorf("[TransferFrom] serialize from error:%v", err)
 	}
-	if err := serialization.WriteVarBytes(w, this.To[:]); err != nil {
+	if err := utils.WriteAddress(w, this.To); err != nil {
 		return fmt.Errorf("[TransferFrom] serialize to error:%v", err)
 	}
 	if err := utils.WriteVarUint(w, this.Value); err != nil {

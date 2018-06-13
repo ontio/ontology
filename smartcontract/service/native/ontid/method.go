@@ -24,7 +24,6 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology-crypto/keypair"
-	com "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/states"
@@ -57,6 +56,10 @@ func regIdWithPublicKey(srvc *native.NativeService) ([]byte, error) {
 
 	if len(arg0) == 0 || len(arg1) == 0 {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: invalid argument")
+	}
+
+	if !verifyID(arg0) {
+		return utils.BYTE_FALSE, errors.New("register ONT ID error: invalid ID")
 	}
 
 	key, err := encodeID(arg0)
@@ -101,6 +104,10 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 	} else if len(arg0) == 0 {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: argument 0 error, invalid length")
 	}
+	if !verifyID(arg0) {
+		return utils.BYTE_FALSE, errors.New("register ONT ID error: invalid ID")
+	}
+
 	// arg1: public key
 	arg1, err := serialization.ReadVarBytes(args)
 	if err != nil {
@@ -108,7 +115,7 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 	}
 	// arg2: attributes
 	// first get number
-	num, err := serialization.ReadVarUint(args, 0xFFFFFFFF)
+	num, err := utils.ReadVarUint(args)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: argument 2 error, " + err.Error())
 	}
@@ -274,9 +281,8 @@ func addRecovery(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add recovery failed: argument 0 error")
 	}
-	var arg1 com.Address
 	// arg1: recovery address
-	err = arg1.Deserialize(args)
+	arg1, err := utils.ReadAddress(args)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add recovery failed: argument 1 error")
 	}
@@ -325,14 +331,12 @@ func changeRecovery(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: argument 0 error")
 	}
 	// arg1: new recovery address
-	var arg1 com.Address
-	err = arg1.Deserialize(args)
+	arg1, err := utils.ReadAddress(args)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: argument 1 error")
 	}
 	// arg2: operator's address, who should be the old recovery
-	var arg2 com.Address
-	err = arg2.Deserialize(args)
+	arg2, err := utils.ReadAddress(args)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: argument 2 error")
 	}
@@ -373,7 +377,7 @@ func addAttributes(srvc *native.NativeService) ([]byte, error) {
 	}
 	// arg1: attributes
 	// first get number
-	num, err := serialization.ReadVarUint(args, 0xFFFFFFFF)
+	num, err := utils.ReadVarUint(args)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, argument 1 error: %s", err)
 	}
@@ -474,7 +478,7 @@ func verifySignature(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("verify signature error: argument 0 error, " + err.Error())
 	}
 	// arg1: index of public key
-	arg1, err := serialization.ReadVarUint(args, 0xFFFFFFFF)
+	arg1, err := utils.ReadVarUint(args)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("verify signature error: argument 1 error, " + err.Error())
 	}

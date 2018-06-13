@@ -162,7 +162,19 @@ func newUtilityInit() *types.Transaction {
 }
 
 func newParamInit() *types.Transaction {
-	return utils.BuildNativeTransaction(nutils.ParamContractAddress, global_params.INIT_NAME, []byte{})
+	params := new(global_params.Params)
+	for k, v := range INIT_PARAM {
+		params.SetParam(&global_params.Param{k, v})
+	}
+	bf := new(bytes.Buffer)
+	params.Serialize(bf)
+
+	admin := new(global_params.Role)
+	bookkeepers, _ := config.DefConfig.GetBookkeepers()
+	address := types.AddressFromPubKey(bookkeepers[0])
+	copy((*admin)[:], address[:])
+	admin.Serialize(bf)
+	return utils.BuildNativeTransaction(nutils.ParamContractAddress, global_params.INIT_NAME, bf.Bytes())
 }
 
 func newGoverConfigInit(config []byte) *types.Transaction {

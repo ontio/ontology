@@ -31,11 +31,12 @@ const (
 	PARAM    = "param"
 	TRANSFER = "transfer"
 	ADMIN    = "admin"
+	OPERATOR = "operator"
 )
 
-func getAdminStorageItem(admin *Admin) *cstates.StorageItem {
+func getRoleStorageItem(role *Role) *cstates.StorageItem {
 	bf := new(bytes.Buffer)
-	admin.Serialize(bf)
+	role.Serialize(bf)
 	return &cstates.StorageItem{Value: bf.Bytes()}
 }
 
@@ -51,12 +52,16 @@ func generateParamKey(contract common.Address, valueType paramType) []byte {
 	return key
 }
 
-func GenerateAdminKey(contract common.Address, isTransferAdmin bool) []byte {
+func generateAdminKey(contract common.Address, isTransferAdmin bool) []byte {
 	if isTransferAdmin {
 		return append(contract[:], TRANSFER...)
 	} else {
 		return append(contract[:], ADMIN...)
 	}
+}
+
+func GenerateOperatorKey(contract common.Address) []byte {
+	return append(contract[:], OPERATOR...)
 }
 
 func getStorageParam(native *native.NativeService, key []byte) (*Params, error) {
@@ -73,7 +78,7 @@ func getStorageParam(native *native.NativeService, key []byte) (*Params, error) 
 	return params, nil
 }
 
-func GetStorageAdmin(native *native.NativeService, key []byte) (*Admin, error) {
+func GetStorageRole(native *native.NativeService, key []byte) (*Role, error) {
 	item, err := utils.GetStorageItem(native, key)
 	if err != nil {
 		return nil, err
@@ -81,8 +86,8 @@ func GetStorageAdmin(native *native.NativeService, key []byte) (*Admin, error) {
 	if item == nil {
 		return nil, nil
 	}
-	admin := new(Admin)
+	role := new(Role)
 	bf := bytes.NewBuffer(item.Value)
-	admin.Deserialize(bf)
-	return admin, nil
+	role.Deserialize(bf)
+	return role, nil
 }

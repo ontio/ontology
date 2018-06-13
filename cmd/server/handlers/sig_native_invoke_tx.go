@@ -22,7 +22,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"github.com/ontio/ontology/cmd/abi"
 	clisvrcom "github.com/ontio/ontology/cmd/server/common"
 	cliutil "github.com/ontio/ontology/cmd/utils"
@@ -51,12 +50,7 @@ func SigNativeInvokeTx(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRespo
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
 		return
 	}
-	addrData, err := hex.DecodeString(rawReq.Address)
-	if err != nil {
-		log.Infof("Cli Qid:%s SigNativeInvokeTx hex.DecodeString address:%s error:%s", rawReq.Address, err)
-		return
-	}
-	contractAddr, err := common.AddressParseFromBytes(addrData)
+	contractAddr, err := common.AddressFromHexString(rawReq.Address)
 	if err != nil {
 		log.Infof("Cli Qid:%s SigNativeInvokeTx AddressParseFromBytes:%s error:%s", req.Qid, rawReq.Address, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
@@ -72,13 +66,12 @@ func SigNativeInvokeTx(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRespo
 		resp.ErrorCode = clisvrcom.CLIERR_ABI_NOT_FOUND
 		return
 	}
-	data, err := cliutil.ParseNativeParam(rawReq.Params, funcAbi.Parameters)
+	tx, err := cliutil.NewNativeInvokeTransaction(rawReq.GasPrice, rawReq.GasLimit, contractAddr, rawReq.Version, rawReq.Params, funcAbi)
 	if err != nil {
-		resp.ErrorCode = clisvrcom.CLIERR_ABI_UNMATCH
-		resp.ErrorInfo = fmt.Sprintf("Parse param error:%s", err)
+		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
+		resp.ErrorInfo = err.Error()
 		return
 	}
-	tx, err := cliutil.InvokeNativeContractTx(rawReq.GasPrice, rawReq.GasLimit, rawReq.Version, contractAddr, rawReq.Method, data)
 	if err != nil {
 		log.Infof("Cli Qid:%s SigNativeInvokeTx InvokeNativeContractTx error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR

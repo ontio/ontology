@@ -1,7 +1,5 @@
 package: github.com/ontio/ontology
 import:
-- package: github.com/bitly/go-simplejson
-  version: v0.5.0
 - package: github.com/howeyc/gopass
 - package: github.com/gorilla/websocket
   version: v1.2.0
@@ -18,31 +16,11 @@ import:
   - leveldb/util
 - package: github.com/urfave/cli
   version: v1.20.0
-- package: github.com/orcaman/concurrent-map
-- package: github.com/whyrusleeping/tar-utils
 - package: golang.org/x/text
   repo: https://github.com/golang/text.git
 - package: golang.org/x/crypto
   repo: https://github.com/golang/crypto.git
   subpackages:
   - ripemd160
-- package: github.com/Workiva/go-datastructures
-- package: github.com/AsynkronIT/goconsole
-- package: golang.org/x/sys
-  repo: https://github.com/golang/sys.git
-  subpackages:
-  - unix
-- package: golang.org/x/net
-  repo: https://github.com/golang/net.git
-  subpackages:
-  - context
-- package: google.golang.org/grpc
-  repo: https://github.com/grpc/grpc-go.git
 - package: github.com/hashicorp/golang-lru
-- package: github.com/ontio/ontology-go-sdk
-- package: google.golang.org/genproto
-  repo: https://github.com/google/go-genproto.git
-- package: github.com/ontio/ontology-crypto
 - package: github.com/gosuri/uiprogress
-ignore:
-  - golang.org/x/sys/unix
