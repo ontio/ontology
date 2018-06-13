@@ -83,6 +83,35 @@ func (this *RegisterCandidateParam) Deserialize(r io.Reader) error {
 	return nil
 }
 
+type UnRegisterCandidateParam struct {
+	PeerPubkey string
+	Address    common.Address
+}
+
+func (this *UnRegisterCandidateParam) Serialize(w io.Writer) error {
+	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, request peerPubkey error!")
+	}
+	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarBytes, address address error!")
+	}
+	return nil
+}
+
+func (this *UnRegisterCandidateParam) Deserialize(r io.Reader) error {
+	peerPubkey, err := serialization.ReadString(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peerPubkey error!")
+	}
+	address, err := utils.ReadAddress(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadAddress, deserialize address error!")
+	}
+	this.PeerPubkey = peerPubkey
+	this.Address = address
+	return nil
+}
+
 type QuitNodeParam struct {
 	PeerPubkey string
 	Address    common.Address
@@ -531,6 +560,9 @@ func (this *SplitCurve) Serialize(w io.Writer) error {
 	if len(this.Yi) != 101 {
 		return errors.NewErr("length of split curve != 101!")
 	}
+	if err := utils.WriteVarUint(w, uint64(len(this.Yi))); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize Yi length error!")
+	}
 	for _, v := range this.Yi {
 		if err := utils.WriteVarUint(w, v); err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize splitCurve error!")
@@ -540,8 +572,12 @@ func (this *SplitCurve) Serialize(w io.Writer) error {
 }
 
 func (this *SplitCurve) Deserialize(r io.Reader) error {
+	n, err := utils.ReadVarUint(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize Yi length error!")
+	}
 	yi := make([]uint64, 0)
-	for i := 0; i < 101; i++ {
+	for i := 0; uint64(i) < n; i++ {
 		k, err := utils.ReadVarUint(r)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize splitCurve error!")
