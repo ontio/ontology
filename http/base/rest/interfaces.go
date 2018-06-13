@@ -20,18 +20,18 @@ package rest
 
 import (
 	"bytes"
-	"strconv"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/payload"
+	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
 	bactor "github.com/ontio/ontology/http/base/actor"
 	bcomn "github.com/ontio/ontology/http/base/common"
 	berr "github.com/ontio/ontology/http/base/error"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"strconv"
 )
 
 const TLS_PORT int = 443
@@ -279,6 +279,9 @@ func GetSmartCodeEventTxsByHeight(cmd map[string]interface{}) map[string]interfa
 	index := uint32(height)
 	eventInfos, err := bactor.GetEventNotifyByHeight(index)
 	if err != nil {
+		if scom.ErrNotFound == err {
+			return ResponsePack(berr.SUCCESS)
+		}
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	eInfos := make([]*bcomn.ExecuteNotify, 0, len(eventInfos))
