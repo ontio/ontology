@@ -238,7 +238,7 @@ func (self *Server) EndEmergency(height uint32) {
 			log.Errorf("failed to add peer %d: %s", p.Index, err)
 			return
 		}
-		publickey, err :=vconfig.Pubkey(p.ID)
+		publickey, err := vconfig.Pubkey(p.ID)
 		if err != nil {
 			log.Errorf("Pubkey failed: %v", err)
 			return

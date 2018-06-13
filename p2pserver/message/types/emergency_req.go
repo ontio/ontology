@@ -73,7 +73,10 @@ func (this *EmergencyActionRequest) Serialize(w io.Writer) error {
 			err, this.ProposalBlkNum)
 	}
 
-	this.ProposalBlk.Serialize(w)
+	err = this.ProposalBlk.Serialize(w)
+	if err != nil {
+		return fmt.Errorf("failed to serialize proposer block %v", err)
+	}
 
 	err = serialization.WriteVarBytes(w, keypair.SerializePublicKey(this.ProposerPK))
 	if err != nil {
@@ -118,7 +121,10 @@ func (this *EmergencyActionRequest) Serialize(w io.Writer) error {
 func (this *EmergencyActionRequest) Deserialize(r io.Reader) error {
 	var tempByte [2]byte
 	var err error
-	r.Read(tempByte[:])
+	_, err = io.ReadFull(r, tempByte[:])
+	if err != nil {
+		return err
+	}
 	this.Reason = EmergencyReason(tempByte[0])
 	this.Evidence = EmergencyEvidence(tempByte[1])
 
@@ -130,7 +136,10 @@ func (this *EmergencyActionRequest) Deserialize(r io.Reader) error {
 	if this.ProposalBlk == nil {
 		this.ProposalBlk = new(types.Block)
 	}
-	this.ProposalBlk.Deserialize(r)
+	err = this.ProposalBlk.Deserialize(r)
+	if err != nil {
+		return fmt.Errorf("failed to deserialize block %v", err)
+	}
 
 	buf, err := serialization.ReadVarBytes(r)
 	if err != nil {

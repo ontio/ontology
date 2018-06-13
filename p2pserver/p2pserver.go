@@ -31,7 +31,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ontio/ontology-crypto/keypair"
 	evtActor "github.com/ontio/ontology-eventbus/actor"
 	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -143,11 +142,6 @@ func (this *P2PServer) GetVersion() uint32 {
 //GetNeighborAddrs return all nbr`s address
 func (this *P2PServer) GetNeighborAddrs() []common.PeerAddr {
 	return this.network.GetNeighborAddrs()
-}
-
-// GetPubKey return local public key
-func (this *P2PServer) GetPubKey() keypair.PublicKey {
-	return this.network.GetPubKey()
 }
 
 // notifyEmergencyGovCmd notify block sync mgr of pause/recover block sync

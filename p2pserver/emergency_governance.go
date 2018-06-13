@@ -181,11 +181,14 @@ func (this *emergencyGov) EmergencyActionResponseReceived(msg *mt.EmergencyActio
 		return
 	}
 
-	rspHash := msg.Hash()
-	err = signature.Verify(msg.PubKey, rspHash[:], msg.RspSig)
+	buf := new(bytes.Buffer)
+	serialization.WriteVarBytes(buf, keypair.SerializePublicKey(msg.PubKey))
+	serialization.WriteVarBytes(buf, msg.SigOnBlk)
+
+	err = signature.Verify(msg.PubKey, buf.Bytes(), msg.RspSig)
 	if err != nil {
-		log.Errorf("failed to verify response signature %v. PubKey %v rspHash %x rspSig %x",
-			err, msg.PubKey, rspHash, msg.RspSig)
+		log.Errorf("failed to verify response signature %v. PubKey %v buf %x rspSig %x",
+			err, msg.PubKey, buf.Bytes(), msg.RspSig)
 		return
 	}
 	if this.context.EmergencyReqCache == nil {
@@ -340,6 +343,18 @@ func (this *emergencyGov) checkReqSignature(msg *mt.EmergencyActionRequest) bool
 	return true
 }
 
+// checkProposerSignature checks if proposer signature is ok
+func (this *emergencyGov) checkProposerSignature(msg *mt.EmergencyActionRequest) bool {
+	hash := msg.ProposalBlk.Hash()
+
+	err := signature.Verify(msg.ProposerPK, hash[:], msg.ProposerSigOnBlk)
+	if err != nil {
+		log.Errorf("signature verification failed. %v", err)
+		return false
+	}
+	return true
+}
+
 // checkAdmin checks if admin in msg is valid
 func (this *emergencyGov) checkAdmin(msg *mt.EmergencyActionRequest) bool {
 	admin, err := getAdmin()
@@ -378,6 +393,7 @@ func (this *emergencyGov) validatePendingRspMsg() {
 	for id, msg := range this.context.EmergencyRspCache {
 		err := signature.Verify(msg.PubKey, blockHash[:], msg.SigOnBlk)
 		if err != nil {
+			log.Errorf("signature verify failed %v", err)
 			continue
 		}
 
@@ -413,13 +429,19 @@ func (this *emergencyGov) EmergencyActionRequestReceived(msg *mt.EmergencyAction
 		return
 	}
 
-	// 3. Validate admin signature
+	// 3. Validate proposer signature
+	if !this.checkProposerSignature(msg) {
+		log.Errorf("EmergencyActionRequestReceived: checkProposerSignature failed")
+		return
+	}
+
+	// 4. Validate admin signature
 	if !this.checkReqSignature(msg) {
 		log.Errorf("EmergencyActionRequestReceived: checkSignature failed")
 		return
 	}
 
-	// 4. Validate admin pubkey
+	// 5. Validate admin pubkey
 	if !this.checkAdmin(msg) {
 		log.Errorf("EmergencyActionRequestReceived: checkAdmin failed")
 		return
@@ -452,7 +474,7 @@ func (this *emergencyGov) EmergencyActionRequestReceived(msg *mt.EmergencyAction
 		return
 	}
 
-	pubkey := this.server.GetPubKey()
+	pubkey := this.account.PubKey()
 	id, _ := vconfig.PubkeyID(pubkey)
 	this.context.setSig(id, response.SigOnBlk)
 
@@ -480,8 +502,11 @@ func (this *emergencyGov) constructEmergencyActionResponse(block *types.Block) (
 	}
 	rsp.SigOnBlk = this.signBlock(block)
 
-	hash := rsp.Hash()
-	rsp.RspSig, _ = signature.Sign(this.account, hash[:])
+	buf := new(bytes.Buffer)
+	serialization.WriteVarBytes(buf, keypair.SerializePublicKey(rsp.PubKey))
+	serialization.WriteVarBytes(buf, rsp.SigOnBlk)
+
+	rsp.RspSig, _ = signature.Sign(this.account, buf.Bytes())
 	return rsp, nil
 }
 
@@ -505,13 +530,19 @@ func (this *emergencyGov) startEmergencyGov(msg *mt.EmergencyActionRequest) {
 		return
 	}
 
-	// 3. Validate admin signature
+	// 3. Validate proposer signature
+	if !this.checkProposerSignature(msg) {
+		log.Errorf("EmergencyActionRequestReceived: checkProposerSignature failed")
+		return
+	}
+
+	// 4. Validate admin signature
 	if !this.checkReqSignature(msg) {
 		log.Errorf("startEmergencyGov: checkSignature failed")
 		return
 	}
 
-	// 4. Validate admin pubkey
+	// 5. Validate admin pubkey
 	if !this.checkAdmin(msg) {
 		log.Errorf("startEmergencyGov: checkAdmin failed")
 		return
@@ -535,7 +566,7 @@ func (this *emergencyGov) startEmergencyGov(msg *mt.EmergencyActionRequest) {
 	this.context.setPeers(peers)
 
 	sig := this.signBlock(msg.ProposalBlk)
-	pubkey := this.server.GetPubKey()
+	pubkey := this.account.PubKey()
 	id, _ := vconfig.PubkeyID(pubkey)
 	this.context.setSig(id, sig)
 

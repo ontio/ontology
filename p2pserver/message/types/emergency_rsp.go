@@ -20,23 +20,21 @@ package types
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"fmt"
 	"io"
 
 	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
-	pc	"github.com/ontio/ontology/p2pserver/common"
+	pc "github.com/ontio/ontology/p2pserver/common"
 )
 
 type EmergencyActionResponse struct {
 	PubKey   keypair.PublicKey
 	SigOnBlk []byte
 	RspSig   []byte
-	hash     *common.Uint256
 }
 
+// Serialize the EmergencyActionResponse
 func (this *EmergencyActionResponse) Serialize(w io.Writer) error {
 	var err error
 	err = serialization.WriteVarBytes(w, keypair.SerializePublicKey(this.PubKey))
@@ -56,6 +54,7 @@ func (this *EmergencyActionResponse) Serialize(w io.Writer) error {
 	return nil
 }
 
+// Deserialize the EmergencyActionResponse
 func (this *EmergencyActionResponse) Deserialize(r io.Reader) error {
 	buf, err := serialization.ReadVarBytes(r)
 	if err != nil {
@@ -78,21 +77,6 @@ func (this *EmergencyActionResponse) Deserialize(r io.Reader) error {
 	}
 	this.RspSig = rspSig
 	return nil
-}
-
-func (this *EmergencyActionResponse) Hash() common.Uint256 {
-	if this.hash != nil {
-		return *this.hash
-	}
-
-	buf := new(bytes.Buffer)
-	serialization.WriteVarBytes(buf, keypair.SerializePublicKey(this.PubKey))
-	serialization.WriteVarBytes(buf, this.SigOnBlk)
-
-	temp := sha256.Sum256(buf.Bytes())
-	hash := common.Uint256(sha256.Sum256(temp[:]))
-	this.hash = &hash
-	return *this.hash
 }
 
 type EmergencyRspMsg struct {

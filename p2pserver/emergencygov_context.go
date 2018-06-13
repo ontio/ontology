@@ -21,16 +21,14 @@ package p2pserver
 import (
 	"time"
 
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	mt "github.com/ontio/ontology/p2pserver/message/types"
 	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
 )
 
 type EmergencyGovPeer struct {
-	PubKey  string
-	Address common.Address
-	Status  gov.Status
+	PubKey string
+	Status gov.Status
 }
 
 type EmergencyGovStatus uint8

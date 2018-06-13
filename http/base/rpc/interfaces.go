@@ -583,7 +583,7 @@ func SendEmergencyGovReq(params []interface{}) map[string]interface{} {
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
-	return responseSuccess(common.ToHexString(hash.ToArray()))
+	return responseSuccess(hash.ToHexString())
 }
 
 func GetBlockRootWithNewTxRoot(params []interface{}) map[string]interface{} {
@@ -602,7 +602,7 @@ func GetBlockRootWithNewTxRoot(params []interface{}) map[string]interface{} {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
 		blkRoot := bactor.GetBlockRootWithNewTxRoot(txRoot)
-		return responseSuccess(common.ToHexString(blkRoot.ToArray()))
+		return responseSuccess(blkRoot.ToHexString())
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
