@@ -64,6 +64,7 @@ func ParseNativeFuncParam(builder *neovm.ParamsBuilder, funName string, params [
 			Type:    abi.NATIVE_PARAM_TYPE_STRUCT,
 			SubType: paramsAbi,
 		}
+		params = []interface{}{params}
 		paramsAbi = []*abi.NativeContractParamAbi{paramRoot}
 	}
 	return ParseNativeParams(builder, params, paramsAbi)
