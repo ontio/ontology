@@ -1,137 +1,154 @@
 {
-    "hash": "0200000000000000000000000000000000000000",
-    "functions": [
+    "hash":"0200000000000000000000000000000000000000",
+    "functions":
+    [
         {
-            "name": "init",
-            "parameters": [],
-            "returntype": "Bool"
+            "name":"init",
+            "parameters":
+            [
+            ],
+            "returntype":"Bool"
         },
         {
-            "name": "transfer",
-            "parameters": [
+            "name":"transfer",
+            "parameters":
+            [
                 {
                     "name": "transfers",
-                    "type": "Array",
-                    "subType": [
+                    "type": "Struct",
+                    "subType":
+                    [
                         {
-                            "name": "",
-                            "type": "Struct",
-                            "subType": [
-                                {
-                                    "name": "from",
-                                    "type": "Address"
-                                },
-                                {
-                                    "name": "to",
-                                    "type": "Address"
-                                },
-                                {
-                                    "name": "value",
-                                    "type": "Int"
-                                }
-                            ]
+                            "name":"from",
+                            "type":"Address"
+                        },
+                        {
+                            "name":"to",
+                            "type":"Address"
+                        },
+                        {
+                            "name":"value",
+                            "type":"Int"
                         }
                     ]
                 }
             ],
-            "returntype": "Bool"
+            "returntype":"Bool"
         },
         {
-            "name": "approve",
-            "parameters": [
+            "name":"approve",
+            "parameters":
+            [
                 {
-                    "name": "from",
-                    "type": "Address"
+                    "name":"from",
+                    "type":"Address"
                 },
                 {
-                    "name": "to",
-                    "type": "Address"
+                    "name":"to",
+                    "type":"Address"
                 },
                 {
-                    "name": "value",
-                    "type": "Int"
+                    "name":"value",
+                    "type":"Int"
                 }
             ],
-            "returntype": "Bool"
+            "returntype":"Bool"
         },
         {
-            "name": "transferFrom",
-            "parameters": [
+            "name":"transferFrom",
+            "parameters":
+            [
                 {
-                    "name": "sender",
-                    "type": "Address"
+                    "name":"sender",
+                    "type":"Address"
                 },
                 {
-                    "name": "from",
-                    "type": "Address"
+                    "name":"from",
+                    "type":"Address"
                 },
                 {
-                    "name": "to",
-                    "type": "Address"
+                    "name":"to",
+                    "type":"Address"
                 },
                 {
-                    "name": "value",
-                    "type": "Int"
+                    "name":"value",
+                    "type":"Int"
                 }
             ],
-            "returntype": "Bool"
+            "returntype":"Bool"
         },
         {
-            "name": "name",
-            "parameters": [],
-            "returntype": "String"
+            "name":"name",
+            "parameters":
+            [
+            ],
+            "returntype":"String"
         },
         {
-            "name": "symbol",
-            "parameters": [],
-            "returntype": "String"
+            "name":"symbol",
+            "parameters":
+            [
+            ],
+            "returntype":"String"
         },
         {
-            "name": "decimals",
-            "parameters": [],
-            "returntype": "Int"
+            "name":"decimals",
+            "parameters":
+            [
+            ],
+            "returntype":"Int"
         },
         {
-            "name": "totalSupply",
-            "parameters": [],
-            "returntype": "Int"
+            "name":"totalSupply",
+            "parameters":
+            [
+            ],
+            "returntype":"Int"
         },
         {
-            "name": "balanceOf",
-            "parameters": [
+            "name":"balanceOf",
+            "parameters":
+            [
                 {
-                    "name": "account",
-                    "type": "Address"
+                    "name":"account",
+                    "type":"Address"
                 }
             ],
-            "returntype": "Int"
+            "returntype":"Int"
         },
         {
-            "name": "allowance",
-            "parameters": [
+            "name":"allowance",
+            "parameters":
+            [
                 {
-                    "name": "account",
-                    "type": "Address"
+                    "name":"from",
+                    "type":"Address"
+                },
+                {
+                    "name":"to",
+                    "type":"Address"
                 }
             ],
-            "returntype": "Int"
+            "returntype":"Int"
         }
     ],
-    "events": [
+    "events":
+    [
         {
-            "name": "transfer",
-            "parameters": [
+            "name":"transfer",
+            "parameters":
+            [
                 {
-                    "name": "from",
-                    "type": "Address"
+                    "name":"from",
+                    "type":"Address"
                 },
                 {
-                    "name": "to",
-                    "type": "Address"
+                    "name":"to",
+                    "type":"Address"
                 },
                 {
-                    "name": "value",
-                    "type": "Int"
+                    "name":"value",
+                    "type":"Int"
                 }
             ]
         }

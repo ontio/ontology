@@ -20,11 +20,13 @@ package vconfig
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
 	"time"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 )
 
@@ -130,4 +132,11 @@ func (pc *PeerConfig) Deserialize(r io.Reader) error {
 	nodeid, _ := serialization.ReadString(r)
 	pc.ID = nodeid
 	return nil
+}
+
+func (cc *ChainConfig) Hash() common.Uint256 {
+	buf := new(bytes.Buffer)
+	cc.Serialize(buf)
+	hash := sha256.Sum256(buf.Bytes())
+	return hash
 }
