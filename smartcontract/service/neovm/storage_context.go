@@ -19,22 +19,40 @@
 package neovm
 
 import (
+	"fmt"
 	"github.com/ontio/ontology/common"
+	vm "github.com/ontio/ontology/vm/neovm"
 )
 
 // StorageContext store smart contract address
 type StorageContext struct {
-	address common.Address
+	Address    common.Address
+	IsReadOnly bool
 }
 
 // NewStorageContext return a new smart contract storage context
 func NewStorageContext(address common.Address) *StorageContext {
 	var storageContext StorageContext
-	storageContext.address = address
+	storageContext.Address = address
+	storageContext.IsReadOnly = false
 	return &storageContext
 }
 
 // ToArray return address byte array
 func (this *StorageContext) ToArray() []byte {
-	return this.address[:]
+	return this.Address[:]
+}
+
+func StorageContextAsReadOnly(service *NeoVmService, engine *vm.ExecutionEngine) error {
+	data := vm.PopInteropInterface(engine)
+	context, ok := data.(*StorageContext)
+	if !ok {
+		return fmt.Errorf("%s", "pop storage context type invalid")
+	}
+	if !context.IsReadOnly {
+		context = NewStorageContext(context.Address)
+		context.IsReadOnly = true
+	}
+	vm.PushData(engine, context)
+	return nil
 }

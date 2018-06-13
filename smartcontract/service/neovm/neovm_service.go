@@ -78,6 +78,8 @@ var (
 		STORAGE_PUT_NAME:                     {Execute: StoragePut},
 		STORAGE_DELETE_NAME:                  {Execute: StorageDelete},
 		STORAGE_GETCONTEXT_NAME:              {Execute: StorageGetContext},
+		STORAGE_GETREADONLYCONTEXT_NAME:      {Execute: StorageGetReadOnlyContext},
+		STORAGECONTEXT_ASREADONLY_NAME:       {Execute: StorageContextAsReadOnly},
 		GETSCRIPTCONTAINER_NAME:              {Execute: GetCodeContainer},
 		GETEXECUTINGSCRIPTHASH_NAME:          {Execute: GetExecutingAddress},
 		GETCALLINGSCRIPTHASH_NAME:            {Execute: GetCallingAddress},
