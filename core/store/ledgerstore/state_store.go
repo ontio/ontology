@@ -30,7 +30,6 @@ import (
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/store/statestore"
 	"github.com/ontio/ontology/merkle"
-	"github.com/syndtr/goleveldb/leveldb"
 )
 
 var (
@@ -59,7 +58,7 @@ func NewStateStore(dbDir, merklePath string) (*StateStore, error) {
 		merklePath: merklePath,
 	}
 	_, height, err := stateStore.GetCurrentBlock()
-	if err != nil {
+	if err != nil && err != scom.ErrNotFound {
 		return nil, fmt.Errorf("GetCurrentBlock error %s", err)
 	}
 	err = stateStore.init(height)
@@ -76,7 +75,7 @@ func (self *StateStore) NewBatch() {
 
 func (self *StateStore) init(currBlockHeight uint32) error {
 	treeSize, hashes, err := self.GetMerkleTree()
-	if err != nil {
+	if err != nil && err != scom.ErrNotFound {
 		return err
 	}
 	if treeSize > 0 && treeSize != currBlockHeight+1 {
@@ -95,9 +94,6 @@ func (self *StateStore) GetMerkleTree() (uint32, []common.Uint256, error) {
 	key := self.getMerkleTreeKey()
 	data, err := self.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return 0, nil, nil
-		}
 		return 0, nil, err
 	}
 	value := bytes.NewBuffer(data)
@@ -168,9 +164,6 @@ func (self *StateStore) GetContractState(contractHash common.Address) (*payload.
 
 	value, err := self.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return nil, nil
-		}
 		return nil, err
 	}
 	reader := bytes.NewReader(value)
@@ -191,9 +184,6 @@ func (self *StateStore) GetBookkeeperState() (*states.BookkeeperState, error) {
 
 	value, err := self.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return nil, nil
-		}
 		return nil, err
 	}
 	reader := bytes.NewReader(value)
@@ -229,9 +219,6 @@ func (self *StateStore) GetStorageState(key *states.StorageKey) (*states.Storage
 
 	data, err := self.store.Get(storeKey)
 	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return nil, nil
-		}
 		return nil, err
 	}
 	reader := bytes.NewReader(data)
@@ -274,9 +261,6 @@ func (self *StateStore) GetCurrentBlock() (common.Uint256, uint32, error) {
 	key := self.getCurrentBlockKey()
 	data, err := self.store.Get(key)
 	if err != nil {
-		if err == leveldb.ErrNotFound {
-			return common.Uint256{}, 0, nil
-		}
 		return common.Uint256{}, 0, err
 	}
 	reader := bytes.NewReader(data)
