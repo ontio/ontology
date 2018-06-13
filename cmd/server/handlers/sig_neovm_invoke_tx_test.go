@@ -22,14 +22,17 @@ import (
 	"encoding/json"
 	clisvrcom "github.com/ontio/ontology/cmd/server/common"
 	"github.com/ontio/ontology/cmd/utils"
+	"github.com/ontio/ontology/common"
 	"testing"
 )
 
 func TestSigNeoVMInvokeTx(t *testing.T) {
+	addr1 := common.Address([20]byte{1})
+	address1 := addr1.ToHexString()
 	invokeReq := &SigNeoVMInvokeTxReq{
 		GasPrice: 0,
 		GasLimit: 0,
-		Address:  "TA6PCtD9qEvN6Rk7i4EGY6u1cWQBWZTr5A",
+		Address:  address1,
 		Params: []interface{}{
 			&utils.NeoVMInvokeParam{
 				Type:  "string",
