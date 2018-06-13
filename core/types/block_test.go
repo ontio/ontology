@@ -44,7 +44,7 @@ func genTestBlock() (*Block, error) {
 	block := new(Block)
 	block.Header = genTestHeader()
 	block.Transactions = make([]*Transaction, 0)
-	testTx , err := genTestTx(Invoke)
+	testTx, err := genTestTx(Invoke)
 	block.Transactions = append(block.Transactions, testTx)
 	block.RebuildMerkleRoot()
 	return block, err
