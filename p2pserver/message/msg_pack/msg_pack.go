@@ -81,10 +81,9 @@ func NewConsensus(cp *mt.ConsensusPayload) mt.Message {
 }
 
 //InvPayload
-func NewInvPayload(invType common.InventoryType, count uint32, msg []byte) *mt.InvPayload {
+func NewInvPayload(invType common.InventoryType, msg []common.Uint256) *mt.InvPayload {
 	return &mt.InvPayload{
 		InvType: invType,
-		Cnt:     count,
 		Blk:     msg,
 	}
 }
@@ -94,7 +93,6 @@ func NewInv(invPayload *mt.InvPayload) mt.Message {
 	var inv mt.Inv
 	inv.P.Blk = invPayload.Blk
 	inv.P.InvType = invPayload.InvType
-	inv.P.Cnt = invPayload.Cnt
 
 	return &inv
 }

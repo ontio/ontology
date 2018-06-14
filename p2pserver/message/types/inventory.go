@@ -33,8 +33,7 @@ var LastInvHash common.Uint256
 
 type InvPayload struct {
 	InvType common.InventoryType
-	Cnt     uint32
-	Blk     []byte
+	Blk     []common.Uint256
 }
 
 type Inv struct {
@@ -56,9 +55,10 @@ func (this Inv) Serialization() ([]byte, error) {
 	if err != nil {
 		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. InvType:%v", this.P.InvType))
 	}
-	err = serialization.WriteUint32(p, this.P.Cnt)
+	blkCnt := uint32(len(this.P.Blk))
+	err = serialization.WriteUint32(p, blkCnt)
 	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. Cnt:%v", this.P.Cnt))
+		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. Cnt:%v", blkCnt))
 	}
 	err = binary.Write(p, binary.LittleEndian, this.P.Blk)
 	if err != nil {
@@ -76,17 +76,20 @@ func (this *Inv) Deserialization(p []byte) error {
 		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read invType error. buf:%v", buf))
 	}
 	this.P.InvType = common.InventoryType(invType)
-	this.P.Cnt, err = serialization.ReadUint32(buf)
+	blkCnt, err := serialization.ReadUint32(buf)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read Cnt error. buf:%v", buf))
 	}
-	if this.P.Cnt > p2pCommon.MAX_INV_BLK_CNT {
-		this.P.Cnt = p2pCommon.MAX_INV_BLK_CNT
+	if blkCnt > p2pCommon.MAX_INV_BLK_CNT {
+		blkCnt = p2pCommon.MAX_INV_BLK_CNT
 	}
-	this.P.Blk = make([]byte, this.P.Cnt*p2pCommon.HASH_LEN)
-	err = binary.Read(buf, binary.LittleEndian, &(this.P.Blk))
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read Blk error. buf:%v", buf))
+	for i := 0; i < int(blkCnt); i++ {
+		var blk common.Uint256
+		err := binary.Read(buf, binary.LittleEndian, &blk)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read inv blk error. buf:%v", buf))
+		}
+		this.P.Blk = append(this.P.Blk, blk)
 	}
 	return nil
 }

@@ -19,7 +19,6 @@
 package p2pserver
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -162,10 +161,8 @@ func (this *P2PServer) Xmit(message interface{}) error {
 	case comm.Uint256:
 		log.Debug("TX block hash message")
 		hash := message.(comm.Uint256)
-		buf := bytes.NewBuffer([]byte{})
-		hash.Serialize(buf)
 		// construct inv message
-		invPayload := msgpack.NewInvPayload(comm.BLOCK, 1, buf.Bytes())
+		invPayload := msgpack.NewInvPayload(comm.BLOCK, []comm.Uint256{hash})
 		msg = msgpack.NewInv(invPayload)
 	default:
 		log.Warnf("Unknown Xmit message %v , type %v", message,

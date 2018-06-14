@@ -19,8 +19,6 @@
 package utils
 
 import (
-	"bytes"
-	"encoding/hex"
 	"errors"
 	"net"
 	"strconv"
@@ -502,21 +500,21 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args .
 		log.Error("remotePeer invalid in InvHandle")
 		return
 	}
+	if len(inv.P.Blk) == 0 {
+		log.Error("empty inv payload in InvHandle")
+		return
+	}
 	var id common.Uint256
-	str := hex.EncodeToString(inv.P.Blk)
+	str := inv.P.Blk[0].ToHexString()
 	log.Debugf("the inv type: 0x%x block len: %d, %s\n",
 		inv.P.InvType, len(inv.P.Blk), str)
 
 	invType := common.InventoryType(inv.P.InvType)
 	switch invType {
 	case common.TRANSACTION:
-		log.Debug("receive transaction message")
+		log.Debug("receive transaction message", id)
 		// TODO check the ID queue
-		err := id.Deserialize(bytes.NewReader(inv.P.Blk[:32]))
-		if err != nil {
-			log.Error(err)
-			return
-		}
+		id = inv.P.Blk[0]
 		trn, err := ledger.DefLedger.GetTransaction(id)
 		if trn == nil || err != nil {
 			msg := msgpack.NewTxnDataReq(id)
@@ -528,11 +526,8 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args .
 		}
 	case common.BLOCK:
 		log.Debug("receive block message")
-		var i uint32
-		count := inv.P.Cnt
-		log.Debug("receive inv-block message, hash is ", inv.P.Blk)
-		for i = 0; i < count; i++ {
-			id.Deserialize(bytes.NewReader(inv.P.Blk[msgCommon.HASH_LEN*i:]))
+		for _, id = range inv.P.Blk {
+			log.Debug("receive inv-block message, hash is ", id)
 			// TODO check the ID queue
 			isContainBlock, err := ledger.DefLedger.IsContainBlock(id)
 			if err != nil {
@@ -553,7 +548,7 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args .
 		}
 	case common.CONSENSUS:
 		log.Debug("receive consensus message")
-		id.Deserialize(bytes.NewReader(inv.P.Blk[:32]))
+		id = inv.P.Blk[0]
 		msg := msgpack.NewConsensusDataReq(id)
 		err := p2p.Send(remotePeer, msg, true)
 		if err != nil {
