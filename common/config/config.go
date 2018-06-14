@@ -21,13 +21,13 @@ package config
 import (
 	"encoding/hex"
 	"fmt"
-	"io"
-	"sort"
-
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
+	"io"
+	"sort"
 )
 
 const (
@@ -45,7 +45,6 @@ const (
 
 	DEFAULT_LOG_LEVEL        = 1
 	DEFAULT_MAX_LOG_SIZE     = 100 //MByte
-	DEFAULT_NET_MAGIC        = 0x74746e41
 	DEFAULT_NODE_PORT        = uint(20338)
 	DEFAULT_CONSENSUS_PORT   = uint(20339)
 	DEFAULT_RPC_PORT         = uint(20336)
@@ -63,6 +62,43 @@ const (
 
 	DEFAULT_DATA_DIR = "./Chain"
 )
+
+const (
+	NETWORK_ID_MAIN_NET      = 1
+	NETWORK_ID_POLARIS_NET   = 2
+	NETWORK_ID_SOLO_NET      = 3
+	NETWORK_NAME_MAIN_NET    = "ontology"
+	NETWORK_NAME_POLARIS_NET = "polaris"
+	NETWORK_NAME_SOLO_NET    = "testmode"
+)
+
+var NETWORK_MAGIC = map[uint32]uint32{
+	NETWORK_ID_MAIN_NET:    constants.NETWORK_MAIGIC_MAINNET, //Network main
+	NETWORK_ID_POLARIS_NET: constants.NETWORK_MAIGIC_POLARIS, //Network polaris
+	NETWORK_ID_SOLO_NET:    0,                                //Network solo
+}
+
+var NETWORK_NAME = map[uint32]string{
+	NETWORK_ID_MAIN_NET:    NETWORK_NAME_MAIN_NET,
+	NETWORK_ID_POLARIS_NET: NETWORK_NAME_POLARIS_NET,
+	NETWORK_ID_SOLO_NET:    NETWORK_NAME_SOLO_NET,
+}
+
+func GetNetworkMagic(id uint32) uint32 {
+	nid, ok := NETWORK_MAGIC[id]
+	if ok {
+		return nid
+	}
+	return id
+}
+
+func GetNetworkName(id uint32) string {
+	name, ok := NETWORK_NAME[id]
+	if ok {
+		return name
+	}
+	return fmt.Sprintf("%d", id)
+}
 
 var PolarisConfig = &GenesisConfig{
 	SeedList: []string{
@@ -375,7 +411,9 @@ type ConsensusConfig struct {
 }
 
 type P2PNodeConfig struct {
+	NetworkMaigc      uint32
 	NetworkId         uint32
+	NetworkName       string
 	NodePort          uint
 	NodeConsensusPort uint
 	DualPortSupport   bool
@@ -437,7 +475,9 @@ func NewOntologyConfig() *OntologyConfig {
 			MaxTxInBlock:    DEFAULT_MAX_TX_IN_BLOCK,
 		},
 		P2PNode: &P2PNodeConfig{
-			NetworkId:         DEFAULT_NET_MAGIC,
+			NetworkId:         NETWORK_ID_MAIN_NET,
+			NetworkName:       GetNetworkName(NETWORK_ID_POLARIS_NET),
+			NetworkMaigc:      GetNetworkMagic(NETWORK_ID_POLARIS_NET),
 			NodePort:          DEFAULT_NODE_PORT,
 			NodeConsensusPort: DEFAULT_CONSENSUS_PORT,
 			DualPortSupport:   true,

@@ -62,7 +62,7 @@ func writeMessageHeader(writer io.Writer, msgh messageHeader) error {
 
 func newMessageHeader(cmd string, length uint32, checksum [common.CHECKSUM_LEN]byte) messageHeader {
 	msgh := messageHeader{}
-	msgh.Magic = uint32(config.DefConfig.P2PNode.NetworkId)
+	msgh.Magic = config.DefConfig.P2PNode.NetworkMaigc
 	copy(msgh.CMD[:], cmd)
 	msgh.Checksum = checksum
 	msgh.Length = length
@@ -93,7 +93,7 @@ func ReadMessage(reader io.Reader) (Message, error) {
 		return nil, err
 	}
 
-	magic := config.DefConfig.P2PNode.NetworkId
+	magic := config.DefConfig.P2PNode.NetworkMaigc
 	if hdr.Magic != magic {
 		return nil, fmt.Errorf("unmatched magic number %d, expected %d", hdr.Magic, magic)
 	}

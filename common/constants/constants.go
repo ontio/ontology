@@ -18,7 +18,9 @@
 
 package constants
 
-import "time"
+import (
+	"time"
+)
 
 // genesis constants
 var (
@@ -67,3 +69,8 @@ var UNBOUND_DEADLINE = (func() uint32 {
 
 // multi-sig constants
 const MULTI_SIG_MAX_PUBKEY_SIZE = 1024
+
+const (
+	NETWORK_MAIGIC_MAINNET = 0x74746e41
+	NETWORK_MAIGIC_POLARIS = 0x01015401
+)

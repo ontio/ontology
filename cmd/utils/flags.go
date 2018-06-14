@@ -103,8 +103,8 @@ var (
 	//P2P setting
 	NetworkIdFlag = cli.UintFlag{
 		Name:  "networkid",
-		Usage: "P2P network id",
-		Value: config.DEFAULT_NET_MAGIC,
+		Usage: "P2P network id. 1=main net, 2=polaris test net, 3=testmode, and other for custom network",
+		Value: config.NETWORK_ID_POLARIS_NET,
 	}
 	NodePortFlag = cli.UintFlag{
 		Name:  "nodeport",
