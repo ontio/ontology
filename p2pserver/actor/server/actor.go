@@ -21,7 +21,6 @@ package server
 import (
 	"reflect"
 
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver"
@@ -85,8 +84,6 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		this.handleGetRelayStateReq(ctx, msg)
 	case *GetNodeTypeReq:
 		this.handleGetNodeTypeReq(ctx, msg)
-	case *TransmitConsensusMsgReq:
-		this.handleTransmitConsensusMsgReq(ctx, msg)
 	case *common.AppendPeerID:
 		this.server.OnAddNode(msg.ID)
 	case *common.RemovePeerID:
@@ -233,14 +230,5 @@ func (this *P2PActor) handleGetNodeTypeReq(ctx actor.Context, req *GetNodeTypeRe
 			NodeType: ret,
 		}
 		ctx.Sender().Request(resp, ctx.Self())
-	}
-}
-
-//handle vbft msg request
-func (this *P2PActor) handleTransmitConsensusMsgReq(ctx actor.Context, req *TransmitConsensusMsgReq) {
-	for _, peer := range this.server.GetNetWork().GetNeighbors() {
-		if keypair.ComparePublicKey(req.Target, peer.GetPubKey()) {
-			this.server.Send(peer, req.Msg, true)
-		}
 	}
 }

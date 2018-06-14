@@ -21,7 +21,6 @@ package msgpack
 import (
 	"time"
 
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -144,9 +143,10 @@ func NewVerAck(isConsensus bool) mt.Message {
 	return &verAck
 }
 
-//VersionPayload package
-func NewVersionPayload(n p2pnet.P2P, isCons bool, height uint32) mt.VersionPayload {
-	vpl := mt.VersionPayload{
+//Version package
+func NewVersion(n p2pnet.P2P, isCons bool, height uint32) mt.Message {
+	var version mt.Version
+	version.P = mt.VersionPayload{
 		Version:      n.GetVersion(),
 		Services:     n.GetServices(),
 		SyncPort:     n.GetSyncPort(),
@@ -154,33 +154,20 @@ func NewVersionPayload(n p2pnet.P2P, isCons bool, height uint32) mt.VersionPaylo
 		Nonce:        n.GetID(),
 		IsConsensus:  isCons,
 		HttpInfoPort: n.GetHttpInfoPort(),
+		StartHeight:  uint64(height),
+		TimeStamp:    time.Now().UnixNano(),
 	}
 
-	vpl.StartHeight = uint64(height)
 	if n.GetRelay() {
-		vpl.Relay = 1
+		version.P.Relay = 1
 	} else {
-		vpl.Relay = 0
+		version.P.Relay = 0
 	}
 	if config.DefConfig.P2PNode.HttpInfoPort > 0 {
-		vpl.Cap[msgCommon.HTTP_INFO_FLAG] = 0x01
+		version.P.Cap[msgCommon.HTTP_INFO_FLAG] = 0x01
 	} else {
-		vpl.Cap[msgCommon.HTTP_INFO_FLAG] = 0x00
+		version.P.Cap[msgCommon.HTTP_INFO_FLAG] = 0x00
 	}
-
-	vpl.UserAgent = 0x00
-	vpl.TimeStamp = uint32(time.Now().UTC().UnixNano())
-
-	return vpl
-}
-
-//version msg package
-func NewVersion(vpl mt.VersionPayload, pk keypair.PublicKey) mt.Message {
-	var version mt.Version
-	version.P = vpl
-	version.PK = pk
-	log.Debug("new version msg.pk is ", version.PK)
-
 	return &version
 }
 

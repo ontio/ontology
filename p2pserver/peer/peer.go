@@ -23,11 +23,9 @@ import (
 	"fmt"
 	"net"
 	"runtime"
-	"strings"
 	"sync/atomic"
 	"time"
 
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	conn "github.com/ontio/ontology/p2pserver/link"
@@ -44,7 +42,6 @@ type PeerCom struct {
 	syncPort     uint16
 	consPort     uint16
 	height       uint64
-	publicKey    keypair.PublicKey
 }
 
 // SetID sets a peer's id
@@ -127,16 +124,6 @@ func (this *PeerCom) GetHeight() uint64 {
 	return this.height
 }
 
-// SetPubKey sets a peer's public key
-func (this *PeerCom) SetPubKey(pubKey keypair.PublicKey) {
-	this.publicKey = pubKey
-}
-
-// GetPubKey returns a peer's public key
-func (this *PeerCom) GetPubKey() keypair.PublicKey {
-	return this.publicKey
-}
-
 //Peer represent the node in p2p
 type Peer struct {
 	base      PeerCom
@@ -163,7 +150,7 @@ func NewPeer() *Peer {
 
 //rmPeer print a debug log when peer be finalized by system
 func rmPeer(p *Peer) {
-	log.Debug(fmt.Sprintf("Remove unused peer: 0x%0x", p.GetID()))
+	log.Debug(fmt.Sprintf("Remove unused peer: %d", p.GetID()))
 }
 
 //DumpInfo print all information of peer
@@ -171,7 +158,7 @@ func (this *Peer) DumpInfo() {
 	log.Info("Node info:")
 	log.Info("\t syncState = ", this.syncState)
 	log.Info("\t consState = ", this.consState)
-	log.Info("\t id = 0x%x", this.GetID())
+	log.Info("\t id = ", this.GetID())
 	log.Info("\t addr = ", this.SyncLink.GetAddr())
 	log.Info("\t cap = ", this.cap)
 	log.Info("\t version = ", this.GetVersion())
@@ -180,16 +167,6 @@ func (this *Peer) DumpInfo() {
 	log.Info("\t consPort = ", this.GetConsPort())
 	log.Info("\t relay = ", this.GetRelay())
 	log.Info("\t height = ", this.GetHeight())
-}
-
-//SetBookKeeperAddr set pubKey to peer
-func (this *Peer) SetBookKeeperAddr(pubKey keypair.PublicKey) {
-	this.base.SetPubKey(pubKey)
-}
-
-//GetPubKey return publickey of peer
-func (this *Peer) GetPubKey() keypair.PublicKey {
-	return this.base.GetPubKey()
 }
 
 //GetVersion return peer`s version
@@ -319,7 +296,7 @@ func (this *Peer) GetAddr() string {
 //GetAddr16 return peer`s sync link address in []byte
 func (this *Peer) GetAddr16() ([16]byte, error) {
 	var result [16]byte
-	addrIp, err := parseIPAddr(this.GetAddr())
+	addrIp, err := common.ParseIPAddr(this.GetAddr())
 	if err != nil {
 		return result, err
 	}
@@ -393,14 +370,4 @@ func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
 		this.base.SetRelay(true)
 	}
 	this.SetHeight(uint64(height))
-}
-
-//parseIPAddr return ip address
-func parseIPAddr(s string) (string, error) {
-	i := strings.Index(s, ":")
-	if i < 0 {
-		log.Warn("split ip address error")
-		return s, errors.New("split ip address error")
-	}
-	return s[:i], nil
 }

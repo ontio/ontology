@@ -22,6 +22,10 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"net"
+	"strconv"
+	"time"
+
 	evtActor "github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -33,10 +37,6 @@ import (
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	msgTypes "github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/net/protocol"
-	"net"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // AddrReqHandle hadnles the neighbor address request from peer
@@ -236,8 +236,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		var msg msgTypes.Message
 		if s == msgCommon.INIT {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKE)
-			vpl := msgpack.NewVersionPayload(p2p, true, ledger.DefLedger.GetCurrentBlockHeight())
-			msg = msgpack.NewVersion(vpl, p2p.GetPubKey())
+			msg = msgpack.NewVersion(p2p, true, ledger.DefLedger.GetCurrentBlockHeight())
 		} else if s == msgCommon.HAND {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKED)
 			msg = msgpack.NewVerAck(true)
@@ -264,28 +263,48 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		}
 
 		// Obsolete node
-		n, ret := p2p.DelNbrNode(version.P.Nonce)
-		if ret == true {
-			log.Infof("peer reconnect 0x%x", version.P.Nonce)
-			// Close the connection and release the node source
-			n.CloseSync()
-			n.CloseCons()
-			if pid != nil {
-				input := &msgCommon.RemovePeerID{
-					ID: version.P.Nonce,
+		p := p2p.GetPeer(version.P.Nonce)
+		if p != nil {
+			ipOld, err := msgCommon.ParseIPAddr(p.GetAddr())
+			if err != nil {
+				log.Warn("exist peer %d ip format is wrong %s", version.P.Nonce, p.GetAddr())
+				return
+			}
+			ipNew, err := msgCommon.ParseIPAddr(data.Addr)
+			if err != nil {
+				remotePeer.CloseSync()
+				log.Warn("connecting peer %d ip format is wrong %s, close", version.P.Nonce, data.Addr)
+				return
+			}
+			if ipNew == ipOld {
+				//same id and same ip
+				n, ret := p2p.DelNbrNode(version.P.Nonce)
+				if ret == true {
+					log.Infof("peer reconnect %d", version.P.Nonce)
+					// Close the connection and release the node source
+					n.CloseSync()
+					n.CloseCons()
+					if pid != nil {
+						input := &msgCommon.RemovePeerID{
+							ID: version.P.Nonce,
+						}
+						pid.Tell(input)
+					}
 				}
-				pid.Tell(input)
+			} else {
+				log.Infof("same peer id from different addr: %s, %s close latest one", ipOld, ipNew)
+				remotePeer.CloseSync()
+				return
+
 			}
 		}
 
-		log.Debug("handle version version.pk is ", version.PK)
 		if version.P.Cap[msgCommon.HTTP_INFO_FLAG] == 0x01 {
 			remotePeer.SetHttpInfoState(true)
 		} else {
 			remotePeer.SetHttpInfoState(false)
 		}
 		remotePeer.SetHttpInfoPort(version.P.HttpInfoPort)
-		remotePeer.SetBookKeeperAddr(version.PK)
 
 		remotePeer.UpdateInfo(time.Now(), version.P.Version,
 			version.P.Services, version.P.SyncPort,
@@ -304,8 +323,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		var msg msgTypes.Message
 		if s == msgCommon.INIT {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKE)
-			vpl := msgpack.NewVersionPayload(p2p, false, ledger.DefLedger.GetCurrentBlockHeight())
-			msg = msgpack.NewVersion(vpl, p2p.GetPubKey())
+			msg = msgpack.NewVersion(p2p, false, ledger.DefLedger.GetCurrentBlockHeight())
 		} else if s == msgCommon.HAND {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKED)
 			msg = msgpack.NewVerAck(false)
@@ -368,12 +386,12 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, arg
 		} else {
 			//consensus port connect
 			if config.DefConfig.P2PNode.DualPortSupport && remotePeer.GetConsPort() > 0 {
-				i := strings.Index(addr, ":")
-				if i < 0 {
-					log.Warn("split IP address error", addr)
+				addrIp, err := msgCommon.ParseIPAddr(addr)
+				if err != nil {
+					log.Warn(err)
 					return
 				}
-				nodeConsensusAddr := addr[:i] + ":" +
+				nodeConsensusAddr := addrIp + ":" +
 					strconv.Itoa(int(remotePeer.GetConsPort()))
 				go p2p.Connect(nodeConsensusAddr, true)
 			}
