@@ -171,10 +171,18 @@ func (self *Server) Receive(context actor.Context) {
 	case *actor.Restart:
 		log.Info("vbft actor restart")
 	case *actormsg.StartConsensus:
-		self.startConsensus()
+		sender := context.Sender()
+		res := self.startConsensus()
+		if sender != nil {
+			sender.Request(res, context.Self())
+		}
 		log.Info("vbft actor start consensus")
 	case *actormsg.StopConsensus:
-		self.stop()
+		sender := context.Sender()
+		res := self.stop()
+		if sender != nil {
+			sender.Request(res, context.Self())
+		}
 	case *message.SaveBlockCompleteMsg:
 		log.Infof("vbft actor receives block complete event. block height=%d, numtx=%d",
 			msg.Block.Header.Height, len(msg.Block.Transactions))
@@ -195,7 +203,12 @@ func (self *Server) Start() error {
 }
 
 func (self *Server) Halt() error {
-	self.pid.Tell(&actormsg.StopConsensus{})
+	future := self.pid.RequestFuture(&actormsg.StopConsensus{}, time.Second*10)
+	_, err := future.Result()
+	if err != nil {
+		log.Errorf("Halt consensus %s", err)
+		return err
+	}
 	return nil
 }
 
@@ -466,7 +479,7 @@ func (self *Server) initialize() error {
 				log.Errorf("server %d: %s", self.Index, err)
 			}
 			if self.quit {
-				log.Infof("initialize quit:%d", self.Index)
+				log.Infof("server %d quit", self.Index)
 				break
 			}
 		}
@@ -511,18 +524,19 @@ func (self *Server) start() error {
 	return nil
 }
 
-func (self *Server) startConsensus() {
+func (self *Server) startConsensus() error {
 	self.stateMgr = newStateMgr(self)
 	if err := self.initialize(); err != nil {
 		log.Fatal("startConsensus failed")
-		return
+		return err
 	}
 	err := self.start()
 	if err != nil {
 		log.Errorf("startConsensus failed %s", err)
-		return
+		return err
 	}
 	log.Info("startConsensus")
+	return nil
 }
 
 func (self *Server) stop() error {
@@ -541,7 +555,7 @@ func (self *Server) stop() error {
 	self.chainStore.close()
 	self.peerPool.clean()
 	self.stateMgr.clean()
-
+	log.Info("stopConsensus")
 	return nil
 }
 

@@ -19,7 +19,10 @@
 package req
 
 import (
+	"time"
+
 	"github.com/ontio/ontology-eventbus/actor"
+	cactor "github.com/ontio/ontology/consensus/actor/msg"
 )
 
 var ConsensusPid *actor.PID
@@ -32,4 +35,21 @@ func NotifyEmergencyGovCmd(cmd interface{}) {
 	if ConsensusPid != nil {
 		ConsensusPid.Tell(cmd)
 	}
+}
+
+func ConsensusSrvStart() error {
+	future := ConsensusPid.RequestFuture(&cactor.StartConsensus{}, time.Second*10)
+	_, err := future.Result()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func ConsensusSrvHalt() error {
+	future := ConsensusPid.RequestFuture(&cactor.StopConsensus{}, time.Second*10)
+	_, err := future.Result()
+	if err != nil {
+		return err
+	}
+	return nil
 }

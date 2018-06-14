@@ -50,7 +50,6 @@ type ChainConfig struct {
 	Peers                []*PeerConfig `json:"peers"`
 	PosTable             []uint32      `json:"pos_table"`
 	MaxBlockChangeView   uint32        `json:"MaxBlockChangeView"`
-	LastUpdateBlockNum   uint32
 }
 
 //

@@ -27,7 +27,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
-	actormsg "github.com/ontio/ontology/consensus/actor/msg"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
@@ -119,8 +118,11 @@ func (this *emergencyGov) handleEmergencyGovTimeout() {
 		Cmd:    msgCom.EmgGovEnd,
 		Height: this.context.getEmergencyGovHeight(),
 	}
-	actor.NotifyEmergencyGovCmd(&actormsg.StartConsensus{})
-
+	err := actor.ConsensusSrvStart()
+	if err != nil {
+		log.Errorf("failed to start consensus:%s", err)
+		return
+	}
 	this.server.notifyEmergencyGovCmd(cmd)
 }
 
@@ -155,7 +157,11 @@ func (this *emergencyGov) handleEmergencyBlockCompletedEvt() {
 		Cmd:    msgCom.EmgGovEnd,
 		Height: this.context.getEmergencyGovHeight(),
 	}
-	actor.NotifyEmergencyGovCmd(&actormsg.StartConsensus{})
+	err := actor.ConsensusSrvStart()
+	if err != nil {
+		log.Infof("failed to start consensus:%s", err)
+		return
+	}
 	this.server.notifyEmergencyGovCmd(cmd)
 
 	if !this.context.timer.Stop() {
@@ -252,7 +258,11 @@ func (this *emergencyGov) checkSignatures() bool {
 			Cmd:    msgCom.EmgGovEnd,
 			Height: block.Header.Height,
 		}
-		actor.NotifyEmergencyGovCmd(&actormsg.StartConsensus{})
+		err = actor.ConsensusSrvStart()
+		if err != nil {
+			log.Errorf("failed to start consensus:%s", err)
+			return false
+		}
 		this.server.notifyEmergencyGovCmd(cmd)
 
 		if !this.context.timer.Stop() {
@@ -466,7 +476,11 @@ func (this *emergencyGov) EmergencyActionRequestReceived(msg *mt.EmergencyAction
 		Cmd:    msgCom.EmgGovStart,
 		Height: msg.ProposalBlkNum,
 	}
-	actor.NotifyEmergencyGovCmd(&actormsg.StopConsensus{})
+	err = actor.ConsensusSrvHalt()
+	if err != nil {
+		log.Errorf("failed to stop consensus:%s", err)
+		return
+	}
 	this.server.notifyEmergencyGovCmd(cmd)
 
 	// Broadcast the response
@@ -556,7 +570,11 @@ func (this *emergencyGov) startEmergencyGov(msg *mt.EmergencyActionRequest) {
 		Height: msg.ProposalBlkNum,
 	}
 
-	actor.NotifyEmergencyGovCmd(&actormsg.StopConsensus{})
+	err := actor.ConsensusSrvHalt()
+	if err != nil {
+		log.Errorf("failed to stop consensus:%s", err)
+		return
+	}
 	this.server.notifyEmergencyGovCmd(cmd)
 
 	this.context.reset()
