@@ -20,7 +20,6 @@ package utils
 
 import (
 	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/urfave/cli"
 	"strings"
@@ -105,7 +104,7 @@ var (
 	NetworkIdFlag = cli.UintFlag{
 		Name:  "networkid",
 		Usage: "P2P network id. 1=main net, 2=polaris test net, 3=testmode, and other for custom network",
-		Value: constants.NETWORK_ID_POLARIS_NET,
+		Value: config.NETWORK_ID_POLARIS_NET,
 	}
 	NodePortFlag = cli.UintFlag{
 		Name:  "nodeport",

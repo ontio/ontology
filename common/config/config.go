@@ -63,6 +63,43 @@ const (
 	DEFAULT_DATA_DIR = "./Chain"
 )
 
+const (
+	NETWORK_ID_MAIN_NET      = 1
+	NETWORK_ID_POLARIS_NET   = 2
+	NETWORK_ID_SOLO_NET      = 3
+	NETWORK_NAME_MAIN_NET    = "ontology"
+	NETWORK_NAME_POLARIS_NET = "polaris"
+	NETWORK_NAME_SOLO_NET    = "testmode"
+)
+
+var NETWORK_MAGIC = map[uint32]uint32{
+	NETWORK_ID_MAIN_NET:    constants.NETWORK_MAIGIC_MAINNET, //Network main
+	NETWORK_ID_POLARIS_NET: constants.NETWORK_MAIGIC_POLARIS, //Network polaris
+	NETWORK_ID_SOLO_NET:    0,                                //Network solo
+}
+
+var NETWORK_NAME = map[uint32]string{
+	NETWORK_ID_MAIN_NET:    NETWORK_NAME_MAIN_NET,
+	NETWORK_ID_POLARIS_NET: NETWORK_NAME_POLARIS_NET,
+	NETWORK_ID_SOLO_NET:    NETWORK_NAME_SOLO_NET,
+}
+
+func GetNetworkMagic(id uint32) uint32 {
+	nid, ok := NETWORK_MAGIC[id]
+	if ok {
+		return nid
+	}
+	return id
+}
+
+func GetNetworkName(id uint32) string {
+	name, ok := NETWORK_NAME[id]
+	if ok {
+		return name
+	}
+	return fmt.Sprintf("%d", id)
+}
+
 var PolarisConfig = &GenesisConfig{
 	SeedList: []string{
 		"polaris1.ont.io:20338",
@@ -438,9 +475,9 @@ func NewOntologyConfig() *OntologyConfig {
 			MaxTxInBlock:    DEFAULT_MAX_TX_IN_BLOCK,
 		},
 		P2PNode: &P2PNodeConfig{
-			NetworkId:         constants.NETWORK_ID_MAIN_NET,
-			NetworkName:       constants.GetNetworkName(constants.NETWORK_ID_POLARIS_NET),
-			NetworkMaigc:      constants.GetNetworkMagic(constants.NETWORK_ID_POLARIS_NET),
+			NetworkId:         NETWORK_ID_MAIN_NET,
+			NetworkName:       GetNetworkName(NETWORK_ID_POLARIS_NET),
+			NetworkMaigc:      GetNetworkMagic(NETWORK_ID_POLARIS_NET),
 			NodePort:          DEFAULT_NODE_PORT,
 			NodeConsensusPort: DEFAULT_CONSENSUS_PORT,
 			DualPortSupport:   true,

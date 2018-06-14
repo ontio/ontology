@@ -19,7 +19,6 @@
 package constants
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -72,38 +71,6 @@ var UNBOUND_DEADLINE = (func() uint32 {
 const MULTI_SIG_MAX_PUBKEY_SIZE = 1024
 
 const (
-	NETWORK_ID_MAIN_NET      = 1
-	NETWORK_ID_POLARIS_NET   = 2
-	NETWORK_ID_SOLO_NET      = 3
-	NETWORK_NAME_MAIN_NET    = "ontology"
-	NETWORK_NAME_POLARIS_NET = "polaris"
-	NETWORK_NAME_SOLO_NET    = "testmode"
+	NETWORK_MAIGIC_MAINNET = 0x74746e41
+	NETWORK_MAIGIC_POLARIS = 0x01015401
 )
-
-var NETWORK_MAGIC = map[uint32]uint32{
-	NETWORK_ID_MAIN_NET:    0x74746e41, //Network main
-	NETWORK_ID_POLARIS_NET: 0x01015401, //Network polaris
-	NETWORK_ID_SOLO_NET:    0x00000000, //Network solo
-}
-
-var NETWORK_NAME = map[uint32]string{
-	NETWORK_ID_MAIN_NET:    NETWORK_NAME_MAIN_NET,
-	NETWORK_ID_POLARIS_NET: NETWORK_NAME_POLARIS_NET,
-	NETWORK_ID_SOLO_NET:    NETWORK_NAME_SOLO_NET,
-}
-
-func GetNetworkMagic(id uint32) uint32 {
-	nid, ok := NETWORK_MAGIC[id]
-	if ok {
-		return nid
-	}
-	return id
-}
-
-func GetNetworkName(id uint32) string {
-	name, ok := NETWORK_NAME[id]
-	if ok {
-		return name
-	}
-	return fmt.Sprintf("%d", id)
-}
