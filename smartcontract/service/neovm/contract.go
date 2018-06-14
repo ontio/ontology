@@ -56,13 +56,19 @@ func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if err := isContractExist(service, contractAddress); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractMigrate] contract invalid!")
 	}
+	context := service.ContextRef.CurrentContext()
 
 	service.CloneCache.Add(scommon.ST_CONTRACT, contractAddress[:], contract)
-	if err := storeMigration(service, contractAddress); err != nil {
+	items, err := storeMigration(service, context.ContractAddress)
+	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractMigrate] contract store migration error!")
 	}
+	service.CloneCache.Delete(scommon.ST_CONTRACT, context.ContractAddress[:])
+	for _, v := range items {
+		service.CloneCache.Delete(scommon.ST_STORAGE, []byte(v.Key))
+	}
 	vm.PushData(engine, contract)
-	return ContractDestory(service, engine)
+	return nil
 }
 
 // ContractDestory destroy a contract
@@ -169,23 +175,23 @@ func isContractExist(service *NeoVmService, contractAddress common.Address) erro
 	return nil
 }
 
-func storeMigration(service *NeoVmService, contractAddress common.Address) error {
+func storeMigration(service *NeoVmService, contractAddress common.Address) ([]*scommon.StateItem, error) {
 	stateValues, err := service.CloneCache.Store.Find(scommon.ST_CONTRACT, contractAddress[:])
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[Contract] Find error!")
+		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[Contract] Find error!")
 	}
 	for _, v := range stateValues {
 		key := new(states.StorageKey)
 		bf := bytes.NewBuffer([]byte(v.Key))
 		if err := key.Deserialize(bf); err != nil {
-			return errors.NewErr("[Contract] Key deserialize error!")
+			return nil, errors.NewErr("[Contract] Key deserialize error!")
 		}
 		key = &states.StorageKey{CodeHash: contractAddress, Key: key.Key}
 		b := new(bytes.Buffer)
 		if _, err := key.Serialize(b); err != nil {
-			return errors.NewErr("[Contract] Key Serialize error!")
+			return nil, errors.NewErr("[Contract] Key Serialize error!")
 		}
 		service.CloneCache.Add(scommon.ST_STORAGE, key.ToArray(), v.Value)
 	}
-	return nil
+	return stateValues, nil
 }
