@@ -412,7 +412,7 @@ func AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 		var ip net.IP
 		ip = v.IpAddr[:]
 		address := ip.To16().String() + ":" + strconv.Itoa(int(v.Port))
-		log.Infof("the ip address is %s id is 0x%x", address, v.ID)
+		log.Infof("the ip address is %s id is %d", address, v.ID)
 
 		if v.ID == p2p.GetID() {
 			continue
