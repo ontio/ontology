@@ -204,11 +204,8 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 	return trans
 }
 
-func SendEmergencyGovReq(msg *mt.EmergencyActionRequest) ontErrors.ErrCode {
-	if errCode := bactor.SendEmergencyGovReq(msg); errCode != ontErrors.ErrNoError {
-		return errCode
-	}
-	return ontErrors.ErrNoError
+func SendEmergencyGovReq(msg *mt.EmergencyActionRequest) {
+	bactor.SendEmergencyGovReq(msg)
 }
 
 func VerifyAndSendTx(txn *types.Transaction) ontErrors.ErrCode {

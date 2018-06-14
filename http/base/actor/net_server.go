@@ -24,7 +24,6 @@ import (
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"
-	ontErrors "github.com/ontio/ontology/errors"
 	ac "github.com/ontio/ontology/p2pserver/actor/server"
 	"github.com/ontio/ontology/p2pserver/common"
 )
@@ -196,12 +195,10 @@ func GetNodeType() (uint64, error) {
 	return r.NodeType, nil
 }
 
-func SendEmergencyGovReq(msg interface{}) ontErrors.ErrCode {
+func SendEmergencyGovReq(msg interface{}) {
 	input := &common.EmergencyMsg{
 		MsgType: common.EmergencyAdminStart,
 		Content: msg,
 	}
 	netServerPid.Tell(input)
-
-	return ontErrors.ErrNoError
 }

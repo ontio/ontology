@@ -96,7 +96,7 @@ func (this *emergencyGov) Start() {
 // Stop stops an emergency governance
 func (this *emergencyGov) Stop() {
 	if this.stopCh != nil {
-		this.stopCh <- struct{}{}
+		close(this.stopCh)
 	}
 
 	if this.emergencyMsgCh != nil {

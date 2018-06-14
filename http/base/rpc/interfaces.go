@@ -577,9 +577,7 @@ func SendEmergencyGovReq(params []interface{}) map[string]interface{} {
 		}
 
 		hash = emergencyActionRequest.Hash()
-		if errCode := bcomn.SendEmergencyGovReq(&emergencyActionRequest); errCode != ontErrors.ErrNoError {
-			return responseSuccess(errCode.Error())
-		}
+		bcomn.SendEmergencyGovReq(&emergencyActionRequest)
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
