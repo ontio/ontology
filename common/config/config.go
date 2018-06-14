@@ -361,6 +361,7 @@ type SOLOConfig struct {
 }
 
 type CommonConfig struct {
+	LogLevel       uint
 	NodeType       string
 	EnableEventLog bool
 	SystemFee      map[string]int64
@@ -427,6 +428,7 @@ func NewOntologyConfig() *OntologyConfig {
 	return &OntologyConfig{
 		Genesis: PolarisConfig,
 		Common: &CommonConfig{
+			LogLevel:       DEFAULT_LOG_LEVEL,
 			EnableEventLog: DEFAULT_ENABLE_EVENT_LOG,
 			SystemFee:      make(map[string]int64),
 			GasLimit:       DEFAULT_GAS_LIMIT,
