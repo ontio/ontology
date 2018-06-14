@@ -27,23 +27,20 @@ import (
 )
 
 type StorageKey struct {
-	Address common.Address
-	Key      []byte
+	ContractAddress common.Address
+	Key             []byte
 }
 
 func (this *StorageKey) Serialize(w io.Writer) (int, error) {
-	this.Address.Serialize(w)
+	this.ContractAddress.Serialize(w)
 	serialization.WriteVarBytes(w, this.Key)
 	return 0, nil
 }
 
 func (this *StorageKey) Deserialize(r io.Reader) error {
-	u := new(common.Address)
-	err := u.Deserialize(r)
-	if err != nil {
+	if err := this.ContractAddress.Deserialize(r); err != nil {
 		return err
 	}
-	this.Address = *u
 	key, err := serialization.ReadVarBytes(r)
 	if err != nil {
 		return err

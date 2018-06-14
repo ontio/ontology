@@ -230,32 +230,6 @@ func (self *StateStore) GetStorageState(key *states.StorageKey) (*states.Storage
 	return storageState, nil
 }
 
-//GetVoteStates return vote states
-func (self *StateStore) GetVoteStates() (map[common.Address]*states.VoteState, error) {
-	votes := make(map[common.Address]*states.VoteState)
-	iter := self.store.NewIterator([]byte{byte(scom.ST_VOTE)})
-	defer iter.Release()
-	for iter.Next() {
-		rk := bytes.NewReader(iter.Key())
-		// read prefix
-		_, err := serialization.ReadBytes(rk, 1)
-		if err != nil {
-			return nil, fmt.Errorf("ReadBytes error %s", err)
-		}
-		var programHash common.Address
-		if err := programHash.Deserialize(rk); err != nil {
-			return nil, err
-		}
-		vote := new(states.VoteState)
-		r := bytes.NewReader(iter.Value())
-		if err := vote.Deserialize(r); err != nil {
-			return nil, err
-		}
-		votes[programHash] = vote
-	}
-	return votes, nil
-}
-
 //GetCurrentBlock return current block height and current hash in state store
 func (self *StateStore) GetCurrentBlock() (common.Uint256, uint32, error) {
 	key := self.getCurrentBlockKey()
@@ -308,7 +282,7 @@ func (self *StateStore) getContractStateKey(contractHash common.Address) ([]byte
 func (self *StateStore) getStorageKey(key *states.StorageKey) ([]byte, error) {
 	buf := bytes.NewBuffer(nil)
 	buf.WriteByte(byte(scom.ST_STORAGE))
-	buf.Write(key.CodeHash[:])
+	buf.Write(key.ContractAddress[:])
 	buf.Write(key.Key)
 	return buf.Bytes(), nil
 }

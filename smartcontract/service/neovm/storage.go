@@ -126,9 +126,9 @@ func getContext(engine *vm.ExecutionEngine) (*StorageContext, error) {
 	return context, nil
 }
 
-func getStorageKey(codeHash common.Address, key []byte) []byte {
+func getStorageKey(address common.Address, key []byte) []byte {
 	buf := bytes.NewBuffer(nil)
-	buf.Write(codeHash[:])
+	buf.Write(address[:])
 	buf.Write(key)
 	return buf.Bytes()
 }

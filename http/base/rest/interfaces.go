@@ -326,17 +326,17 @@ func GetContractState(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	var codeHash common.Address
+	var address common.Address
 	var err error
 	if len(str) == common.ADDR_LEN*2 {
-		codeHash, err = common.AddressFromHexString(str)
+		address, err = common.AddressFromHexString(str)
 	} else {
-		codeHash, err = common.AddressFromBase58(str)
+		address, err = common.AddressFromBase58(str)
 	}
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	contract, err := bactor.GetContractStateFromStore(codeHash)
+	contract, err := bactor.GetContractStateFromStore(address)
 	if err != nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
@@ -359,12 +359,12 @@ func GetStorage(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	var codeHash common.Address
+	var address common.Address
 	var err error
 	if len(str) == common.ADDR_LEN*2 {
-		codeHash, err = common.AddressFromHexString(str)
+		address, err = common.AddressFromHexString(str)
 	} else {
-		codeHash, err = common.AddressFromBase58(str)
+		address, err = common.AddressFromBase58(str)
 	}
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
@@ -374,7 +374,7 @@ func GetStorage(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	value, err := bactor.GetStorageItem(codeHash, item)
+	value, err := bactor.GetStorageItem(address, item)
 	if err != nil || value == nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}

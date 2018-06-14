@@ -175,8 +175,8 @@ func isContractExist(service *NeoVmService, contractAddress common.Address) erro
 	return nil
 }
 
-func storeMigration(service *NeoVmService, old common.Address, new common.Address) ([]*scommon.StateItem, error) {
-	stateValues, err := service.CloneCache.Store.Find(scommon.ST_CONTRACT, old[:])
+func storeMigration(service *NeoVmService, oldAddr common.Address, newAddr common.Address) ([]*scommon.StateItem, error) {
+	stateValues, err := service.CloneCache.Store.Find(scommon.ST_CONTRACT, oldAddr[:])
 	if err != nil {
 		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[Contract] Find error!")
 	}
@@ -186,7 +186,7 @@ func storeMigration(service *NeoVmService, old common.Address, new common.Addres
 		if err := key.Deserialize(bf); err != nil {
 			return nil, errors.NewErr("[Contract] Key deserialize error!")
 		}
-		key = &states.StorageKey{Address: new, Key: key.Key}
+		key = &states.StorageKey{ContractAddress: newAddr, Key: key.Key}
 		b := new(bytes.Buffer)
 		if _, err := key.Serialize(b); err != nil {
 			return nil, errors.NewErr("[Contract] Key Serialize error!")
