@@ -25,6 +25,7 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/payload"
+	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
 	bactor "github.com/ontio/ontology/http/base/actor"
@@ -354,6 +355,9 @@ func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 		height := uint32(params[0].(float64))
 		eventInfos, err := bactor.GetEventNotifyByHeight(height)
 		if err != nil {
+			if err == scom.ErrNotFound {
+				return responseSuccess(nil)
+			}
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
 		eInfos := make([]*bcomn.ExecuteNotify, 0, len(eventInfos))

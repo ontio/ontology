@@ -1,130 +1,116 @@
 {
-  "address":"0400000000000000000000000000000000000000",
-  "functions":
-  [
+  "address": "0400000000000000000000000000000000000000",
+  "functions": [
     {
-      "name":"init",
-      "parameters":
-      [
+      "name": "init",
+      "parameters": [
         {
-          "name":"initParams",
-          "type":"Array",
-          "subType":
-          [
+          "name": "initParams",
+          "type": "Array",
+          "subType": [
             {
-              "name":"",
-              "type":"Struct",
-              "subType":
-              [
+              "name": "",
+              "type": "Struct",
+              "subType": [
                 {
-                  "name":"Key",
-                  "type":"String"
+                  "name": "Key",
+                  "type": "String"
                 },
                 {
-                  "name":"Value",
-                  "type":"String"
+                  "name": "Value",
+                  "type": "String"
                 }
               ]
             }
           ]
         },
         {
-          "name":"adminAddress",
-          "type":"Address"
+          "name": "adminAddress",
+          "type": "Address"
         }
       ],
-      "returntype":"Bool"
+      "returntype": "Bool"
     },
     {
-      "name":"acceptAdmin",
-      "parameters":
-      [
+      "name": "acceptAdmin",
+      "parameters": [
         {
-          "name":"adminAddress",
-          "type":"Address"
+          "name": "adminAddress",
+          "type": "Address"
         }
       ],
-      "returntype":"Bool"
+      "returntype": "Bool"
     },
     {
-      "name":"transferAdmin",
-      "parameters":
-      [
+      "name": "transferAdmin",
+      "parameters": [
         {
-          "name":"adminAddress",
-          "type":"Address"
+          "name": "adminAddress",
+          "type": "Address"
         }
       ],
-      "returntype":"Bool"
+      "returntype": "Bool"
     },
     {
-      "name":"setOperator",
-      "parameters":
-      [
+      "name": "setOperator",
+      "parameters": [
         {
-          "name":"operatorAddress",
-          "type":"Address"
+          "name": "operatorAddress",
+          "type": "Address"
         }
       ],
-      "returntype":"Bool"
+      "returntype": "Bool"
     },
     {
-      "name":"setGlobalParam",
-      "parameters":
-      [
+      "name": "setGlobalParam",
+      "parameters": [
         {
-          "name":"params",
-          "type":"Array",
-          "subType":
-          [
+          "name": "params",
+          "type": "Array",
+          "subType": [
             {
-              "name":"",
-              "type":"Struct",
-              "subType":
-              [
+              "name": "",
+              "type": "Struct",
+              "subType": [
                 {
-                  "name":"Key",
-                  "type":"String"
+                  "name": "Key",
+                  "type": "String"
                 },
                 {
-                  "name":"Value",
-                  "type":"String"
+                  "name": "Value",
+                  "type": "String"
                 }
               ]
             }
           ]
         }
       ],
-      "returntype":"Bool"
+      "returntype": "Bool"
     },
     {
-      "name":"getGlobalParam",
-      "parameters":
-      [
+      "name": "getGlobalParam",
+      "parameters": [
         {
-          "name":"paramNameList",
-          "type":"Array",
-          "subType":"String"
+          "name": "paramNameList",
+          "type": "Array",
+          "subType": "String"
         }
       ],
-      "returntype":"Array",
-      "subType":
-      {
-        "type":"Struct",
-        "subType":
-        [
+      "returntype": "Array",
+      "subType": {
+        "type": "Struct",
+        "subType": [
           {
-            "name":"",
-            "type":"Struct",
-            "subType":
-            [
+            "name": "",
+            "type": "Struct",
+            "subType": [
               {
-                "name":"Key",
-                "type":"String"
+                "name": "Key",
+                "type": "String"
               },
               {
-                "name":"Value",
-                "type":"String"
+                "name": "Value",
+                "type": "String"
               }
             ]
           }
@@ -132,11 +118,9 @@
       }
     },
     {
-      "name":"createSnapshot",
-      "parameters":
-      [
-      ],
-      "returntype":"Bool"
+      "name": "createSnapshot",
+      "parameters": [],
+      "returntype": "Bool"
     }
   ]
 }

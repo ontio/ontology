@@ -97,7 +97,7 @@ func TestParseNativeParam(t *testing.T) {
 		[]interface{}{"bar", "10"},
 	}
 	builder := neovm.NewParamsBuilder(new(bytes.Buffer))
-	err := ParseNativeFuncParam(builder, "", []interface{}{params}, paramAbi)
+	err := ParseNativeFuncParam(builder, "", params, paramAbi)
 	if err != nil {
 		t.Errorf("ParseNativeParam error:%s", err)
 		return
