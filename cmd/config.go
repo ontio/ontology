@@ -147,3 +147,9 @@ func setCliConfig(ctx *cli.Context, cfg *config.CliConfig) {
 	cfg.EnableCliRpcServer = ctx.GlobalBool(utils.GetFlagName(utils.CliEnableRpcFlag))
 	cfg.CliRpcPort = ctx.GlobalUint(utils.GetFlagName(utils.CliRpcPortFlag))
 }
+
+func SetRpcPort(ctx *cli.Context) {
+	if ctx.IsSet(utils.GetFlagName(utils.RPCPortFlag)) {
+		config.DefConfig.Rpc.HttpJsonPort = ctx.Uint(utils.GetFlagName(utils.RPCPortFlag))
+	}
+}

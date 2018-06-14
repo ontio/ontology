@@ -45,6 +45,7 @@ var (
 				Usage:     "Deploy a smart contract to ontolgoy",
 				ArgsUsage: " ",
 				Flags: []cli.Flag{
+					utils.RPCPortFlag,
 					utils.TransactionGasPriceFlag,
 					utils.TransactionGasLimitFlag,
 					utils.ContractStorageFlag,
@@ -64,6 +65,7 @@ var (
 				Usage:     "Invoke smart contract",
 				ArgsUsage: " ",
 				Flags: []cli.Flag{
+					utils.RPCPortFlag,
 					utils.TransactionGasPriceFlag,
 					utils.TransactionGasLimitFlag,
 					utils.ContractAddrFlag,
@@ -81,6 +83,7 @@ var (
 				Usage:     "Invoke smart contract by code",
 				ArgsUsage: " ",
 				Flags: []cli.Flag{
+					utils.RPCPortFlag,
 					utils.ContractCodeFileFlag,
 					utils.TransactionGasPriceFlag,
 					utils.TransactionGasLimitFlag,
@@ -94,6 +97,7 @@ var (
 )
 
 func deployContract(ctx *cli.Context) error {
+	SetRpcPort(ctx)
 	if !ctx.IsSet(utils.GetFlagName(utils.ContractCodeFileFlag)) ||
 		!ctx.IsSet(utils.GetFlagName(utils.ContractNameFlag)) {
 		fmt.Errorf("Missing code or name argument\n")
@@ -141,6 +145,7 @@ func deployContract(ctx *cli.Context) error {
 }
 
 func invokeCodeContract(ctx *cli.Context) error {
+	SetRpcPort(ctx)
 	if !ctx.IsSet(utils.GetFlagName(utils.ContractCodeFileFlag)) {
 		fmt.Printf("Missing code or name argument\n")
 		cli.ShowSubcommandHelp(ctx)
@@ -217,6 +222,7 @@ func invokeCodeContract(ctx *cli.Context) error {
 }
 
 func invokeContract(ctx *cli.Context) error {
+	SetRpcPort(ctx)
 	if !ctx.IsSet(utils.GetFlagName(utils.ContractAddrFlag)) {
 		fmt.Printf("Missing contract address argument.\n")
 		cli.ShowSubcommandHelp(ctx)
