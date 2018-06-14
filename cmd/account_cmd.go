@@ -22,16 +22,16 @@ import (
 	"bufio"
 	"encoding/hex"
 	"fmt"
-	"os"
-
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/cmd/utils"
+	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/password"
 	"github.com/ontio/ontology/core/types"
 	"github.com/urfave/cli"
+	"os"
 	"strings"
 )
 
@@ -147,7 +147,7 @@ var (
 			},
 			{
 				Action:    genMultiAddress,
-				Name:      "multiaddr",
+				Name:      "multisigaddr",
 				Usage:     "Gen multi-signature address",
 				ArgsUsage: "",
 				Flags: []cli.Flag{
@@ -560,7 +560,9 @@ func genMultiAddress(ctx *cli.Context) error {
 	pkstr := strings.TrimSpace(strings.Trim(ctx.String(utils.GetFlagName(utils.AccountMultiPubKeyFlag)), ","))
 	m := ctx.Uint(utils.GetFlagName(utils.AccountMultiMFlag))
 	if pkstr == "" || m == 0 {
-		fmt.Printf("Missing argument. %s or %s expected.\n", utils.GetFlagName(utils.AccountMultiMFlag), utils.GetFlagName(utils.AccountMultiPubKeyFlag))
+		fmt.Printf("Missing argument. %s or %s expected.\n",
+			utils.GetFlagName(utils.AccountMultiMFlag),
+			utils.GetFlagName(utils.AccountMultiPubKeyFlag))
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
@@ -596,9 +598,12 @@ func genMultiAddress(ctx *cli.Context) error {
 		pubKeys = append(pubKeys, pubKey)
 	}
 	pkSize := len(pubKeys)
-	if pkSize == 0 || pkSize > MAX_PUBLIC_KEY_SIZE ||
+	if pkSize == 0 || pkSize > constants.MULTI_SIG_MAX_PUBKEY_SIZE ||
 		m == 0 || int(m) > pkSize {
-		fmt.Printf("Invaid argument. %s and %s must > 0 and <= %d, and m must < number of pubkey.\n", utils.GetFlagName(utils.AccountMultiMFlag), utils.GetFlagName(utils.AccountMultiPubKeyFlag), MAX_PUBLIC_KEY_SIZE)
+		fmt.Printf("Invaid argument. %s and %s must > 0 and <= %d, and m must < number of pubkey.\n",
+			utils.GetFlagName(utils.AccountMultiMFlag),
+			utils.GetFlagName(utils.AccountMultiPubKeyFlag),
+			constants.MULTI_SIG_MAX_PUBKEY_SIZE)
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
@@ -612,6 +617,6 @@ func genMultiAddress(ctx *cli.Context) error {
 		addr := types.AddressFromPubKey(pubKey)
 		fmt.Printf("  Index %d Pubkey:%x Address:%s\n", i+1, keypair.SerializePublicKey(pubKey), addr.ToBase58())
 	}
-	fmt.Printf("\n  MultiAddress:%s\n", addr.ToBase58())
+	fmt.Printf("\n  MultiSigAddress:%s\n", addr.ToBase58())
 	return nil
 }
