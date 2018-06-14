@@ -514,12 +514,7 @@ func GetMemPoolTxState(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	bys, err := common.HexToBytes(str)
-	if err != nil {
-		return ResponsePack(berr.INVALID_PARAMS)
-	}
-	var hash common.Uint256
-	err = hash.Deserialize(bytes.NewReader(bys))
+	hash, err := common.Uint256FromHexString(str)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
