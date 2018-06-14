@@ -21,7 +21,7 @@ package handlers
 import (
 	"encoding/json"
 	"github.com/ontio/ontology/cmd/abi"
-	clisvrcom "github.com/ontio/ontology/cmd/server/common"
+	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 	"github.com/ontio/ontology/common"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"testing"

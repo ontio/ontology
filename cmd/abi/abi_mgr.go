@@ -26,7 +26,7 @@ import (
 	"strings"
 )
 
-const DefAbiPath = "./cmd/abi"
+const DefAbiPath = "./abi"
 
 var DefAbiMgr = NewAbiMgr(DefAbiPath)
 

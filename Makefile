@@ -11,10 +11,22 @@ DOCKER_TAG=$(ARCH)-$(VERSION)
 ONT_CFG_IN_DOCKER=config-solo.json
 WALLET_FILE=wallet.dat
 
-all:
-	$(GC)  $(BUILD_NODE_PAR) -o ontology main.go
-	$(GC)  $(BUILD_NODE_PAR) -o sigsvr sigsvr.go
+SRC_FILES = $(shell git ls-files | grep -e .go$ | grep -v _test.go)
+TOOLS=./tools
+NATIVE_ABI=$(TOOLS)/abi/native
 
+ontology: $(SRC_FILES)
+	$(GC)  $(BUILD_NODE_PAR) -o ontology main.go
+
+tools: $(SRC_FILES)
+	$(GC)  $(BUILD_NODE_PAR) -o sigsvr sigsvr.go
+	@if [ ! -d $(TOOLS) ];then mkdir $(TOOLS) ;fi
+	@mv sigsvr $(TOOLS)
+	@if [ ! -d $(NATIVE_ABI) ];then mkdir -p $(NATIVE_ABI) ;fi
+	@cp ./cmd/abi/native/*.json $(NATIVE_ABI)
+
+all: ontology tools
+	
 format:
 	$(GOFMT) -w main.go
 
@@ -51,5 +63,5 @@ docker: Makefile docker/payload docker/Dockerfile
 
 clean:
 	rm -rf *.8 *.o *.out *.6
-	rm -rf ontology sigsvr docker/payload docker/build
+	rm -rf ontology tools docker/payload docker/build
 
