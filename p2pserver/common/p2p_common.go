@@ -47,7 +47,8 @@ const (
 
 //msg type const
 const (
-	MAX_ADDR_NODE_CNT = 128 //the maximum peer address from msg
+	MAX_ADDR_NODE_CNT = 64 //the maximum peer address from msg
+	MAX_INV_BLK_CNT   = 64 //the maximum blk hash cnt of inv msg
 )
 
 //info update const

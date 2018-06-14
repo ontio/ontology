@@ -80,7 +80,9 @@ func (this *Inv) Deserialization(p []byte) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read Cnt error. buf:%v", buf))
 	}
-
+	if this.P.Cnt > p2pCommon.MAX_INV_BLK_CNT {
+		this.P.Cnt = p2pCommon.MAX_INV_BLK_CNT
+	}
 	this.P.Blk = make([]byte, this.P.Cnt*p2pCommon.HASH_LEN)
 	err = binary.Read(buf, binary.LittleEndian, &(this.P.Blk))
 	if err != nil {
