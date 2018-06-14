@@ -109,7 +109,7 @@ func ContractGetStorageContext(service *NeoVmService, engine *vm.ExecutionEngine
 	if address != service.ContextRef.CurrentContext().ContractAddress {
 		return errors.NewErr("[GetStorageContext] CodeHash not equal!")
 	}
-	vm.PushData(engine, &StorageContext{address: address})
+	vm.PushData(engine, NewStorageContext(address))
 	return nil
 }
 

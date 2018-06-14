@@ -21,6 +21,7 @@ package neovm
 import (
 	"bytes"
 
+	"fmt"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
@@ -34,6 +35,9 @@ func StoragePut(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StoragePut] get pop context error!")
 	}
+	if !context.IsReadOnly {
+		return fmt.Errorf("%s", "[StoragePut] storage read only!")
+	}
 	if err := checkStorageContext(service, context); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StoragePut] check context error!")
 	}
@@ -44,7 +48,7 @@ func StoragePut(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	}
 
 	value := vm.PopByteArray(engine)
-	service.CloneCache.Add(scommon.ST_STORAGE, getStorageKey(context.address, key), &states.StorageItem{Value: value})
+	service.CloneCache.Add(scommon.ST_STORAGE, getStorageKey(context.Address, key), &states.StorageItem{Value: value})
 	return nil
 }
 
@@ -54,11 +58,14 @@ func StorageDelete(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StorageDelete] get pop context error!")
 	}
+	if !context.IsReadOnly {
+		return fmt.Errorf("%s", "[StorageDelete] storage read only!")
+	}
 	if err := checkStorageContext(service, context); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StorageDelete] check context error!")
 	}
 
-	service.CloneCache.Delete(scommon.ST_STORAGE, getStorageKey(context.address, vm.PopByteArray(engine)))
+	service.CloneCache.Delete(scommon.ST_STORAGE, getStorageKey(context.Address, vm.PopByteArray(engine)))
 
 	return nil
 }
@@ -70,7 +77,7 @@ func StorageGet(service *NeoVmService, engine *vm.ExecutionEngine) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StorageGet] get pop context error!")
 	}
 
-	item, err := service.CloneCache.Get(scommon.ST_STORAGE, getStorageKey(context.address, vm.PopByteArray(engine)))
+	item, err := service.CloneCache.Get(scommon.ST_STORAGE, getStorageKey(context.Address, vm.PopByteArray(engine)))
 	if err != nil {
 		return err
 	}
@@ -89,8 +96,15 @@ func StorageGetContext(service *NeoVmService, engine *vm.ExecutionEngine) error 
 	return nil
 }
 
+func StorageGetReadOnlyContext(service *NeoVmService, engine *vm.ExecutionEngine) error {
+	context := NewStorageContext(service.ContextRef.CurrentContext().ContractAddress)
+	context.IsReadOnly = true
+	vm.PushData(engine, context)
+	return nil
+}
+
 func checkStorageContext(service *NeoVmService, context *StorageContext) error {
-	item, err := service.CloneCache.Get(scommon.ST_CONTRACT, context.address[:])
+	item, err := service.CloneCache.Get(scommon.ST_CONTRACT, context.Address[:])
 	if err != nil || item == nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[CheckStorageContext] get context fail!")
 	}
