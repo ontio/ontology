@@ -22,21 +22,27 @@ import (
 	"encoding/json"
 	"github.com/ontio/ontology/cmd/abi"
 	clisvrcom "github.com/ontio/ontology/cmd/server/common"
+	"github.com/ontio/ontology/common"
+	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"testing"
 )
 
 func TestSigNativeInvokeTx(t *testing.T) {
+	addr1 := common.Address([20]byte{1})
+	address1 := addr1.ToBase58()
+	addr2 := common.Address([20]byte{2})
+	address2 := addr2.ToBase58()
 	invokeReq := &SigNativeInvokeTxReq{
 		GasPrice: 0,
 		GasLimit: 40000,
-		Address:  "0000000000000000000000000000000000000002",
+		Address:  nutils.OntContractAddress.ToHexString(),
 		Method:   "transfer",
 		Version:  0,
 		Params: []interface{}{
 			[]interface{}{
 				[]interface{}{
-					"TA587BCw7HFwuUuzY1wg2HXCN7cHBPaXSe",
-					"TA5gYXCSiUq9ejGCa54M3yoj9kfMv3ir4j",
+					address1,
+					address2,
 					"10000000000",
 				},
 			},
