@@ -111,6 +111,7 @@ func setGenesis(ctx *cli.Context, cfg *config.GenesisConfig) error {
 }
 
 func setCommonConfig(ctx *cli.Context, cfg *config.CommonConfig) {
+	cfg.LogLevel = ctx.GlobalUint(utils.GetFlagName(utils.LogLevelFlag))
 	cfg.EnableEventLog = !ctx.GlobalBool(utils.GetFlagName(utils.DisableEventLogFlag))
 	cfg.GasLimit = ctx.GlobalUint64(utils.GetFlagName(utils.GasLimitFlag))
 	cfg.GasPrice = ctx.GlobalUint64(utils.GetFlagName(utils.GasPriceFlag))

@@ -430,7 +430,7 @@ func logCurrBlockHeight() {
 			isNeedNewFile := log.CheckIfNeedNewFile()
 			if isNeedNewFile {
 				log.ClosePrintLog()
-				log.Init(log.PATH, os.Stdout)
+				log.InitLog(int(config.DefConfig.Common.LogLevel), log.PATH, log.Stdout)
 			}
 		}
 	}
