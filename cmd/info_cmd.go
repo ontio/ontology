@@ -32,17 +32,21 @@ var InfoCommand = cli.Command{
 	Usage: "Display informations about the chain",
 	Subcommands: []cli.Command{
 		{
-			Action:      txInfo,
-			Name:        "tx",
-			Usage:       "Display transaction information",
-			Flags:       []cli.Flag{},
+			Action: txInfo,
+			Name:   "tx",
+			Usage:  "Display transaction information",
+			Flags: []cli.Flag{
+				utils.RPCPortFlag,
+			},
 			Description: "Display transaction information",
 		},
 		{
-			Action:      blockInfo,
-			Name:        "block",
-			Usage:       "Display block information",
-			Flags:       []cli.Flag{},
+			Action: blockInfo,
+			Name:   "block",
+			Usage:  "Display block information",
+			Flags: []cli.Flag{
+				utils.RPCPortFlag,
+			},
 			Description: "Display block information",
 		},
 		{
@@ -51,7 +55,9 @@ var InfoCommand = cli.Command{
 			Usage:       "Display transaction status",
 			ArgsUsage:   "<txhash>",
 			Description: `Display status of transaction.`,
-			Flags:       []cli.Flag{},
+			Flags: []cli.Flag{
+				utils.RPCPortFlag,
+			},
 		},
 		{
 			Action:      curBlockHeight,
@@ -59,13 +65,16 @@ var InfoCommand = cli.Command{
 			Usage:       "Display the current block height",
 			ArgsUsage:   "",
 			Description: `Display the current block height.`,
-			Flags:       []cli.Flag{},
+			Flags: []cli.Flag{
+				utils.RPCPortFlag,
+			},
 		},
 	},
 	Description: ``,
 }
 
 func blockInfo(ctx *cli.Context) error {
+	SetRpcPort(ctx)
 	if ctx.NArg() < 1 {
 		fmt.Println("Missing argument. BlockHash or height expected.\n")
 		cli.ShowSubcommandHelp(ctx)
@@ -98,6 +107,7 @@ func blockInfo(ctx *cli.Context) error {
 }
 
 func txInfo(ctx *cli.Context) error {
+	SetRpcPort(ctx)
 	if ctx.NArg() < 1 {
 		fmt.Println("Missing argument. TxHash expected.\n")
 		cli.ShowSubcommandHelp(ctx)
@@ -118,6 +128,7 @@ func txInfo(ctx *cli.Context) error {
 }
 
 func txStatus(ctx *cli.Context) error {
+	SetRpcPort(ctx)
 	if ctx.NArg() < 1 {
 		fmt.Println("Missing argument. TxHash expected.\n")
 		cli.ShowSubcommandHelp(ctx)
@@ -140,6 +151,7 @@ func txStatus(ctx *cli.Context) error {
 }
 
 func curBlockHeight(ctx *cli.Context) error {
+	SetRpcPort(ctx)
 	count, err := utils.GetBlockCount()
 	if err != nil {
 		return err

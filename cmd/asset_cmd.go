@@ -41,6 +41,7 @@ var AssetCommand = cli.Command{
 			ArgsUsage:   " ",
 			Description: "Transfer ont or ong to another account. If from address does not specified, using default account",
 			Flags: []cli.Flag{
+				utils.RPCPortFlag,
 				utils.TransactionGasPriceFlag,
 				utils.TransactionGasLimitFlag,
 				utils.TransactionAssetFlag,
@@ -56,6 +57,7 @@ var AssetCommand = cli.Command{
 			ArgsUsage: " ",
 			Usage:     "Approve another user can transfer asset",
 			Flags: []cli.Flag{
+				utils.RPCPortFlag,
 				utils.TransactionGasPriceFlag,
 				utils.TransactionGasLimitFlag,
 				utils.ApproveAssetFlag,
@@ -71,6 +73,7 @@ var AssetCommand = cli.Command{
 			ArgsUsage: " ",
 			Usage:     "Using to transfer asset after approve",
 			Flags: []cli.Flag{
+				utils.RPCPortFlag,
 				utils.TransactionGasPriceFlag,
 				utils.TransactionGasLimitFlag,
 				utils.ApproveAssetFlag,
@@ -87,6 +90,7 @@ var AssetCommand = cli.Command{
 			Usage:     "Show balance of ont and ong of specified account",
 			ArgsUsage: "<address|label|index>",
 			Flags: []cli.Flag{
+				utils.RPCPortFlag,
 				utils.WalletFileFlag,
 			},
 		},
@@ -95,6 +99,7 @@ var AssetCommand = cli.Command{
 			Name:   "allowance",
 			Usage:  "Show approve balance of ont or ong of specified account",
 			Flags: []cli.Flag{
+				utils.RPCPortFlag,
 				utils.ApproveAssetFlag,
 				utils.ApproveAssetFromFlag,
 				utils.ApproveAssetToFlag,
@@ -107,6 +112,7 @@ var AssetCommand = cli.Command{
 			Usage:     "Show the balance of unbound ONG",
 			ArgsUsage: "<address|label|index>",
 			Flags: []cli.Flag{
+				utils.RPCPortFlag,
 				utils.WalletFileFlag,
 			},
 		},
@@ -116,6 +122,7 @@ var AssetCommand = cli.Command{
 			Usage:     "Withdraw ONG",
 			ArgsUsage: "<address|label|index>",
 			Flags: []cli.Flag{
+				utils.RPCPortFlag,
 				utils.TransactionGasPriceFlag,
 				utils.TransactionGasLimitFlag,
 				utils.WalletFileFlag,
@@ -125,6 +132,7 @@ var AssetCommand = cli.Command{
 }
 
 func transfer(ctx *cli.Context) error {
+	SetRpcPort(ctx)
 	if !ctx.IsSet(utils.GetFlagName(utils.TransactionToFlag)) ||
 		!ctx.IsSet(utils.GetFlagName(utils.TransactionFromFlag)) ||
 		!ctx.IsSet(utils.GetFlagName(utils.TransactionAmountFlag)) {
@@ -184,6 +192,7 @@ func transfer(ctx *cli.Context) error {
 }
 
 func getBalance(ctx *cli.Context) error {
+	SetRpcPort(ctx)
 	if ctx.NArg() < 1 {
 		fmt.Println("Missing argument. Account address, label or index expected.\n")
 		cli.ShowSubcommandHelp(ctx)
@@ -211,6 +220,7 @@ func getBalance(ctx *cli.Context) error {
 }
 
 func getAllowance(ctx *cli.Context) error {
+	SetRpcPort(ctx)
 	from := ctx.String(utils.GetFlagName(utils.ApproveAssetFromFlag))
 	to := ctx.String(utils.GetFlagName(utils.ApproveAssetToFlag))
 	if from == "" || to == "" {
@@ -253,6 +263,7 @@ func getAllowance(ctx *cli.Context) error {
 }
 
 func approve(ctx *cli.Context) error {
+	SetRpcPort(ctx)
 	asset := ctx.String(utils.GetFlagName(utils.ApproveAssetFlag))
 	from := ctx.String(utils.GetFlagName(utils.ApproveAssetFromFlag))
 	to := ctx.String(utils.GetFlagName(utils.ApproveAssetToFlag))
@@ -311,6 +322,7 @@ func approve(ctx *cli.Context) error {
 }
 
 func transferFrom(ctx *cli.Context) error {
+	SetRpcPort(ctx)
 	asset := ctx.String(utils.GetFlagName(utils.ApproveAssetFlag))
 	from := ctx.String(utils.GetFlagName(utils.ApproveAssetFromFlag))
 	to := ctx.String(utils.GetFlagName(utils.ApproveAssetToFlag))
@@ -381,6 +393,7 @@ func transferFrom(ctx *cli.Context) error {
 }
 
 func unboundOng(ctx *cli.Context) error {
+	SetRpcPort(ctx)
 	if ctx.NArg() < 1 {
 		fmt.Println("Missing argument. Account address, label or index expected.\n")
 		cli.ShowSubcommandHelp(ctx)
@@ -408,6 +421,7 @@ func unboundOng(ctx *cli.Context) error {
 }
 
 func withdrawOng(ctx *cli.Context) error {
+	SetRpcPort(ctx)
 	if ctx.NArg() < 1 {
 		fmt.Println("Missing argument. Account address, label or index expected.\n")
 		cli.ShowSubcommandHelp(ctx)

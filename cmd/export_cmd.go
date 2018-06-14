@@ -36,6 +36,7 @@ var ExportCommand = cli.Command{
 	ArgsUsage: "",
 	Action:    exportBlocks,
 	Flags: []cli.Flag{
+		utils.RPCPortFlag,
 		utils.ExportFileFlag,
 		utils.ExportHeightFlag,
 		utils.ExportSpeedFlag,
@@ -44,6 +45,7 @@ var ExportCommand = cli.Command{
 }
 
 func exportBlocks(ctx *cli.Context) error {
+	SetRpcPort(ctx)
 	exportFile := ctx.String(utils.GetFlagName(utils.ExportFileFlag))
 	if exportFile == "" {
 		fmt.Printf("Missing file argumen\n")
