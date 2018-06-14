@@ -28,3 +28,9 @@ import:
   - ripemd160
 - package: github.com/hashicorp/golang-lru
 - package: github.com/gosuri/uiprogress
+- package: golang.org/x/sys
+  repo: https://github.com/golang/sys.git
+  subpackages:
+  - unix
+ignore:
+  - golang.org/x/sys/unix
