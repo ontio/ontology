@@ -664,9 +664,39 @@ Response:
   "error":0,
   "jsonrpc": "2.0",
   "id": 3,
-  "result": {
-
-  }
+  "result": [
+       {
+            "TxHash": "7e8c19fdd4f9ba67f95659833e336eac37116f74ea8bf7be4541ada05b13503e",
+            "State": 1,
+            "GasConsumed": 0,
+            "Notify": [
+                {
+                    "ContractAddress": "0200000000000000000000000000000000000000",
+                    "States": [
+                        "transfer",
+                        "AFmseVrdL9f9oyCzZefL9tG6UbvhPbdYzM",
+                        "AFmseVrdL9f9oyCzZefL9tG6UbvhUMqNMV",
+                        1000000000000000000
+                    ]
+                }
+            ]
+        },
+        {
+            "TxHash": "fc82cd363271729367098fbabcfd0c02cf6ded1e535700d04658b596d53cf07d",
+            "State": 1,
+            "GasConsumed": 0,
+            "Notify": [
+                {
+                    "ContractAddress": "0200000000000000000000000000000000000000",
+                    "States": [
+                        "transfer",
+                        "AFmseVrdL9f9oyCzZefL9tG6UbvhPbdYzM",
+                        "AFmseVrdL9f9oyCzZefL9tG6UbvhUMqNMV",
+                        1000000000000000000
+                    ]
+                }
+        }
+  ]
 }
 ```
 
