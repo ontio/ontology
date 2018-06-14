@@ -27,12 +27,12 @@ import (
 )
 
 type StorageKey struct {
-	CodeHash common.Address
+	Address common.Address
 	Key      []byte
 }
 
 func (this *StorageKey) Serialize(w io.Writer) (int, error) {
-	this.CodeHash.Serialize(w)
+	this.Address.Serialize(w)
 	serialization.WriteVarBytes(w, this.Key)
 	return 0, nil
 }
@@ -43,7 +43,7 @@ func (this *StorageKey) Deserialize(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	this.CodeHash = *u
+	this.Address = *u
 	key, err := serialization.ReadVarBytes(r)
 	if err != nil {
 		return err

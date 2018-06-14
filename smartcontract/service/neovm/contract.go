@@ -59,7 +59,7 @@ func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	context := service.ContextRef.CurrentContext()
 
 	service.CloneCache.Add(scommon.ST_CONTRACT, contractAddress[:], contract)
-	items, err := storeMigration(service, context.ContractAddress)
+	items, err := storeMigration(service, context.ContractAddress, contractAddress)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractMigrate] contract store migration error!")
 	}
@@ -175,8 +175,8 @@ func isContractExist(service *NeoVmService, contractAddress common.Address) erro
 	return nil
 }
 
-func storeMigration(service *NeoVmService, contractAddress common.Address) ([]*scommon.StateItem, error) {
-	stateValues, err := service.CloneCache.Store.Find(scommon.ST_CONTRACT, contractAddress[:])
+func storeMigration(service *NeoVmService, old common.Address, new common.Address) ([]*scommon.StateItem, error) {
+	stateValues, err := service.CloneCache.Store.Find(scommon.ST_CONTRACT, old[:])
 	if err != nil {
 		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[Contract] Find error!")
 	}
@@ -186,7 +186,7 @@ func storeMigration(service *NeoVmService, contractAddress common.Address) ([]*s
 		if err := key.Deserialize(bf); err != nil {
 			return nil, errors.NewErr("[Contract] Key deserialize error!")
 		}
-		key = &states.StorageKey{CodeHash: contractAddress, Key: key.Key}
+		key = &states.StorageKey{Address: new, Key: key.Key}
 		b := new(bytes.Buffer)
 		if _, err := key.Serialize(b); err != nil {
 			return nil, errors.NewErr("[Contract] Key Serialize error!")
