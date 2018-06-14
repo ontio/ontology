@@ -40,13 +40,14 @@ func getAdmin() (common.Address, error) {
 	if err != nil {
 		return common.Address{}, err
 	}
-	adminAddress := new(common.Address)
-	err = adminAddress.Deserialize(bytes.NewBuffer(data))
+	admin := new(params.Role)
+	err = admin.Deserialize(bytes.NewBuffer(data))
 	if err != nil {
 		return common.Address{}, err
 	}
-
-	return *adminAddress, nil
+	address := new(common.Address)
+	copy((*address)[:], admin[:])
+	return *address, nil
 }
 
 // getGovernanceView returns current governance view
