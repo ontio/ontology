@@ -998,16 +998,16 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 		}
 	}
 
-	//update total stake
-	err = withdrawTotalStake(native, contract, address, total)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "withdrawTotalStake, withdrawTotalStake error!")
-	}
-
 	//ont transfer
 	err = appCallTransferOnt(native, utils.GovernanceContractAddress, address, total)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
+	}
+
+	//update total stake
+	err = withdrawTotalStake(native, contract, address, total)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "withdrawTotalStake, withdrawTotalStake error!")
 	}
 
 	return utils.BYTE_TRUE, nil
