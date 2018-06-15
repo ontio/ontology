@@ -102,6 +102,8 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.AccountSourceFileFlag,
 			utils.AccountWIFFlag,
 			utils.AccountLowSecurityFlag,
+			utils.AccountMultiMFlag,
+			utils.AccountMultiPubKeyFlag,
 		},
 	},
 	{
