@@ -121,6 +121,8 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name: "P2P NODE",
 		Flags: []cli.Flag{
+			utils.ReservedPeersOnlyFlag,
+			utils.ReservedPeersFileFlag,
 			utils.NetworkIdFlag,
 			utils.NodePortFlag,
 			utils.DualPortSupportFlag,

@@ -252,6 +252,10 @@ func (this *NetServer) IsPeerEstablished(p *peer.Peer) bool {
 
 //Connect used to connect net address under sync or cons mode
 func (this *NetServer) Connect(addr string, isConsensus bool) error {
+	if !this.AddrValid(addr) {
+		return nil
+	}
+
 	if this.IsNbrPeerAddr(addr, isConsensus) {
 		return nil
 	}
@@ -411,6 +415,10 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 			log.Error("error accepting ", err.Error())
 			return
 		}
+		if !this.AddrValid(conn.RemoteAddr().String()) {
+			log.Infof("remote %s not in reserved list close it ", conn.RemoteAddr())
+			conn.Close()
+		}
 		log.Info("remote sync node connect with ",
 			conn.RemoteAddr(), conn.LocalAddr())
 
@@ -435,6 +443,10 @@ func (this *NetServer) startConsAccept(listener net.Listener) {
 		if err != nil {
 			log.Error("error accepting ", err.Error())
 			return
+		}
+		if !this.AddrValid(conn.RemoteAddr().String()) {
+			log.Infof("remote %s not in reserved list close it ", conn.RemoteAddr())
+			conn.Close()
 		}
 		log.Info("remote cons node connect with ",
 			conn.RemoteAddr(), conn.LocalAddr())
@@ -547,4 +559,19 @@ func (this *NetServer) RemovePeerConsAddress(addr string) {
 	if _, ok := this.PeerConsAddress[addr]; ok {
 		delete(this.PeerConsAddress, addr)
 	}
+}
+
+//AddrValid whether the addr could be connect or accept
+func (this *NetServer) AddrValid(addr string) bool {
+	if config.DefConfig.P2PNode.ReservedPeersOnly && len(config.DefConfig.P2PNode.ReservedPeers) > 0 {
+		for _, ip := range config.DefConfig.P2PNode.ReservedPeers {
+			if strings.HasPrefix(addr, ip) {
+				log.Info("found reserved peer :", addr)
+				return true
+			}
+		}
+		return false
+	}
+	return true
+
 }
