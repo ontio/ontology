@@ -154,6 +154,9 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 		}
 		switch this.Engine.OpCode {
 		case vm.VERIFY:
+			if vm.EvaluationStackCount(this.Engine) < 3 {
+				return nil, errors.NewErr("[VERIFY] Too few input parameters ")
+			}
 			pubKey := vm.PopByteArray(this.Engine)
 			key, err := keypair.DeserializePublicKey(pubKey)
 			if err != nil {
