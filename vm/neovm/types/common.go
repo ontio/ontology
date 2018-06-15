@@ -30,11 +30,10 @@ func bytesReverse(u []byte) []byte {
 }
 
 func BigIntToBytes(data *big.Int) []byte {
-	if data.Int64() == 0 {
+	bs := data.Bytes()
+	if len(bs) == 0 {
 		return []byte{}
 	}
-
-	bs := data.Bytes()
 	b := bs[0]
 	if data.Sign() < 0 {
 		for i, b := range bs {
