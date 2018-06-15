@@ -117,10 +117,10 @@ func GenesisChainConfig(config *config.VBFTConfig, peersinfo []*config.VBFTPeerS
 
 	peerRanks := make([]uint64, 0)
 	for i := 0; i < int(config.K); i++ {
-		if peers[i].InitPos == 0 {
-			return nil, fmt.Errorf("peers rank %d, has zero stake", i)
+		var s uint64 = 1
+		if sum > 0 {
+			s = uint64(math.Ceil(float64(peers[i].InitPos) * float64(scale) * float64(config.K) / float64(sum)))
 		}
-		s := uint64(math.Ceil(float64(peers[i].InitPos) * float64(scale) * float64(config.K) / float64(sum)))
 		peerRanks = append(peerRanks, s)
 	}
 

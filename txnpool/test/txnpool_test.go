@@ -85,12 +85,12 @@ func Test_RCV(t *testing.T) {
 	genesisConfig := config.DefConfig.Genesis
 	genesisBlock, err := genesis.BuildGenesisBlock(bookKeepers, genesisConfig)
 	if err != nil {
-		t.Error("failed to build genesis block")
+		t.Error("failed to build genesis block", err)
 		return
 	}
 	err = ledger.DefLedger.Init(bookKeepers, genesisBlock)
 	if err != nil {
-		t.Error("failed to initialize default ledger")
+		t.Error("failed to initialize default ledger", err)
 		return
 	}
 

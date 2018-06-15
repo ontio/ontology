@@ -210,6 +210,9 @@ func getOngBalance(native *native.NativeService, address common.Address) (uint64
 }
 
 func splitCurve(native *native.NativeService, contract common.Address, pos uint64, avg uint64, yita uint64) (uint64, error) {
+	if avg == 0 {
+		return 0, errors.NewErr("splitCurve, avg stake is 0!")
+	}
 	xi := PRECISE * yita * 2 * pos / (avg * 10)
 	index := xi / (PRECISE / 10)
 	if index > uint64(len(Xi)-2) {
