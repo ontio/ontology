@@ -40,7 +40,11 @@ func opJmp(e *ExecutionEngine) (VMState, error) {
 		if EvaluationStackCount(e) < 1 {
 			return FAULT, errors.ERR_UNDER_STACK_LEN
 		}
-		fValue = PopBoolean(e)
+		var err error
+		fValue, err = PopBoolean(e)
+		if err != nil {
+			return FAULT, err
+		}
 		if e.OpCode == JMPIFNOT {
 			fValue = !fValue
 		}

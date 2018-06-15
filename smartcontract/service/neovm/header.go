@@ -26,7 +26,10 @@ import (
 
 // HeaderGetHash put header's hash to vm stack
 func HeaderGetHash(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	d := vm.PopInteropInterface(engine)
+	d, err := vm.PopInteropInterface(engine)
+	if err != nil {
+		return err
+	}
 	var data *types.Header
 	if b, ok := d.(*types.Block); ok {
 		data = b.Header
@@ -42,7 +45,10 @@ func HeaderGetHash(service *NeoVmService, engine *vm.ExecutionEngine) error {
 
 // HeaderGetVersion put header's version to vm stack
 func HeaderGetVersion(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	d := vm.PopInteropInterface(engine)
+	d, err := vm.PopInteropInterface(engine)
+	if err != nil {
+		return err
+	}
 	var data *types.Header
 	if b, ok := d.(*types.Block); ok {
 		data = b.Header
@@ -57,7 +63,10 @@ func HeaderGetVersion(service *NeoVmService, engine *vm.ExecutionEngine) error {
 
 // HeaderGetPrevHash put header's prevblockhash to vm stack
 func HeaderGetPrevHash(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	d := vm.PopInteropInterface(engine)
+	d, err := vm.PopInteropInterface(engine)
+	if err != nil {
+		return err
+	}
 	var data *types.Header
 	if b, ok := d.(*types.Block); ok {
 		data = b.Header
@@ -72,7 +81,10 @@ func HeaderGetPrevHash(service *NeoVmService, engine *vm.ExecutionEngine) error 
 
 // HeaderGetMerkleRoot put header's merkleroot to vm stack
 func HeaderGetMerkleRoot(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	d := vm.PopInteropInterface(engine)
+	d, err := vm.PopInteropInterface(engine)
+	if err != nil {
+		return err
+	}
 	var data *types.Header
 	if b, ok := d.(*types.Block); ok {
 		data = b.Header
@@ -87,7 +99,10 @@ func HeaderGetMerkleRoot(service *NeoVmService, engine *vm.ExecutionEngine) erro
 
 // HeaderGetIndex put header's height to vm stack
 func HeaderGetIndex(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	d := vm.PopInteropInterface(engine)
+	d, err := vm.PopInteropInterface(engine)
+	if err != nil {
+		return err
+	}
 	var data *types.Header
 	if b, ok := d.(*types.Block); ok {
 		data = b.Header
@@ -102,7 +117,10 @@ func HeaderGetIndex(service *NeoVmService, engine *vm.ExecutionEngine) error {
 
 // HeaderGetTimestamp put header's timestamp to vm stack
 func HeaderGetTimestamp(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	d := vm.PopInteropInterface(engine)
+	d, err := vm.PopInteropInterface(engine)
+	if err != nil {
+		return err
+	}
 	var data *types.Header
 	if b, ok := d.(*types.Block); ok {
 		data = b.Header
@@ -117,7 +135,10 @@ func HeaderGetTimestamp(service *NeoVmService, engine *vm.ExecutionEngine) error
 
 // HeaderGetConsensusData put header's consensus data to vm stack
 func HeaderGetConsensusData(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	d := vm.PopInteropInterface(engine)
+	d, err := vm.PopInteropInterface(engine)
+	if err != nil {
+		return err
+	}
 	var data *types.Header
 	if b, ok := d.(*types.Block); ok {
 		data = b.Header
@@ -132,7 +153,10 @@ func HeaderGetConsensusData(service *NeoVmService, engine *vm.ExecutionEngine) e
 
 // HeaderGetNextConsensus put header's consensus to vm stack
 func HeaderGetNextConsensus(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	d := vm.PopInteropInterface(engine)
+	d, err := vm.PopInteropInterface(engine)
+	if err != nil {
+		return err
+	}
 	var data *types.Header
 	if b, ok := d.(*types.Block); ok {
 		data = b.Header

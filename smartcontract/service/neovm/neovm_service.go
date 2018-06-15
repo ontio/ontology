@@ -34,6 +34,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vm "github.com/ontio/ontology/vm/neovm"
+	ntypes "github.com/ontio/ontology/vm/neovm/types"
 )
 
 var (
@@ -148,7 +149,11 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 			if err := this.Engine.ValidateOp(); err != nil {
 				return nil, err
 			}
-			if !this.ContextRef.CheckUseGas(GasPrice(this.Engine, this.Engine.OpExec.Name)) {
+			price, err := GasPrice(this.Engine, this.Engine.OpExec.Name)
+			if err != nil {
+				return nil, err
+			}
+			if !this.ContextRef.CheckUseGas(price) {
 				return nil, ERR_GAS_INSUFFICIENT
 			}
 		}
@@ -157,13 +162,22 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 			if vm.EvaluationStackCount(this.Engine) < 3 {
 				return nil, errors.NewErr("[VERIFY] Too few input parameters ")
 			}
-			pubKey := vm.PopByteArray(this.Engine)
+			pubKey, err := vm.PopByteArray(this.Engine)
+			if err != nil {
+				return nil, err
+			}
 			key, err := keypair.DeserializePublicKey(pubKey)
 			if err != nil {
 				return nil, err
 			}
-			sig := vm.PopByteArray(this.Engine)
-			data := vm.PopByteArray(this.Engine)
+			sig, err := vm.PopByteArray(this.Engine)
+			if err != nil {
+				return nil, err
+			}
+			data, err := vm.PopByteArray(this.Engine)
+			if err != nil {
+				return nil, err
+			}
 			if err := signature.Verify(key, data, sig); err != nil {
 				vm.PushData(this.Engine, false)
 			} else {
@@ -212,7 +226,11 @@ func (this *NeoVmService) SystemCall(engine *vm.ExecutionEngine) error {
 	if !ok {
 		return errors.NewErr(fmt.Sprintf("[SystemCall] service not support: %s", serviceName))
 	}
-	if !this.ContextRef.CheckUseGas(GasPrice(engine, serviceName)) {
+	price, err := GasPrice(engine, serviceName)
+	if err != nil {
+		return err
+	}
+	if !this.ContextRef.CheckUseGas(price) {
 		return ERR_GAS_INSUFFICIENT
 	}
 	if service.Validator != nil {
@@ -255,7 +273,13 @@ func checkStackSize(engine *vm.ExecutionEngine) bool {
 			if engine.EvaluationStack.Count() == 0 {
 				return false
 			}
-			size = len(vm.PeekStackItem(engine).GetArray())
+			item := vm.PeekStackItem(engine)
+			if a, ok := item.(*ntypes.Array); ok {
+				size = a.Count()
+			}
+			if a, ok := item.(*ntypes.Struct); ok {
+				size = a.Count()
+			}
 		}
 	}
 	size += engine.EvaluationStack.Count() + engine.AltStack.Count()

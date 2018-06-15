@@ -44,7 +44,10 @@ func (this *StorageContext) ToArray() []byte {
 }
 
 func StorageContextAsReadOnly(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	data := vm.PopInteropInterface(engine)
+	data, err := vm.PopInteropInterface(engine)
+	if err != nil {
+		return err
+	}
 	context, ok := data.(*StorageContext)
 	if !ok {
 		return fmt.Errorf("%s", "pop storage context type invalid")

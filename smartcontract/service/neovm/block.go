@@ -25,13 +25,21 @@ import (
 
 // BlockGetTransactionCount put block's transactions count to vm stack
 func BlockGetTransactionCount(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	vm.PushData(engine, len(vm.PopInteropInterface(engine).(*types.Block).Transactions))
+	i, err := vm.PopInteropInterface(engine)
+	if err != nil {
+		return err
+	}
+	vm.PushData(engine, len(i.(*types.Block).Transactions))
 	return nil
 }
 
 // BlockGetTransactions put block's transactions to vm stack
 func BlockGetTransactions(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	transactions := vm.PopInteropInterface(engine).(*types.Block).Transactions
+	i, err := vm.PopInteropInterface(engine)
+	if err != nil {
+		return err
+	}
+	transactions := i.(*types.Block).Transactions
 	transactionList := make([]vmtypes.StackItems, 0)
 	for _, v := range transactions {
 		transactionList = append(transactionList, vmtypes.NewInteropInterface(v))
@@ -42,6 +50,14 @@ func BlockGetTransactions(service *NeoVmService, engine *vm.ExecutionEngine) err
 
 // BlockGetTransaction put block's transaction to vm stack
 func BlockGetTransaction(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	vm.PushData(engine, vm.PopInteropInterface(engine).(*types.Block).Transactions[vm.PopInt(engine)])
+	i, err := vm.PopInteropInterface(engine)
+	if err != nil {
+		return err
+	}
+	index, err := vm.PopInt(engine)
+	if err != nil {
+		return err
+	}
+	vm.PushData(engine, i.(*types.Block).Transactions[index])
 	return nil
 }

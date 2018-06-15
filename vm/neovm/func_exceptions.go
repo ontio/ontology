@@ -23,7 +23,11 @@ func opThrow(e *ExecutionEngine) (VMState, error) {
 }
 
 func opThrowIfNot(e *ExecutionEngine) (VMState, error) {
-	if !PopBoolean(e) {
+	b, err := PopBoolean(e)
+	if err != nil {
+		return FAULT, err
+	}
+	if !b {
 		return FAULT, nil
 	}
 	return NONE, nil

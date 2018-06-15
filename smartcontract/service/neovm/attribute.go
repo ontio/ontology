@@ -25,12 +25,20 @@ import (
 
 // AttributeGetUsage put attribute's usage to vm stack
 func AttributeGetUsage(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	vm.PushData(engine, int(vm.PopInteropInterface(engine).(*types.TxAttribute).Usage))
+	i, err := vm.PopInteropInterface(engine)
+	if err != nil {
+		return err
+	}
+	vm.PushData(engine, int(i.(*types.TxAttribute).Usage))
 	return nil
 }
 
 // AttributeGetData put attribute's data to vm stack
 func AttributeGetData(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	vm.PushData(engine, vm.PopInteropInterface(engine).(*types.TxAttribute).Data)
+	i, err := vm.PopInteropInterface(engine)
+	if err != nil {
+		return err
+	}
+	vm.PushData(engine, i.(*types.TxAttribute).Data)
 	return nil
 }

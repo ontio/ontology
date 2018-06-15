@@ -20,6 +20,7 @@ package types
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 
 	"github.com/ontio/ontology/vm/neovm/interfaces"
@@ -39,39 +40,43 @@ func (this *Interop) Equals(other StackItems) bool {
 	if _, ok := other.(*Interop); !ok {
 		return false
 	}
-	if !bytes.Equal(this._object.ToArray(), other.GetInterface().ToArray()) {
+	v, err := other.GetInterface()
+	if err != nil {
+		return false
+	}
+	if !bytes.Equal(this._object.ToArray(), v.ToArray()) {
 		return false
 	}
 	return true
 }
 
-func (this *Interop) GetBigInteger() *big.Int {
-	return big.NewInt(0)
+func (this *Interop) GetBigInteger() (*big.Int, error) {
+	return big.NewInt(0), nil
 }
 
-func (this *Interop) GetBoolean() bool {
+func (this *Interop) GetBoolean() (bool, error) {
 	if this._object == nil {
-		return false
+		return false, nil
 	}
-	return true
+	return true, nil
 }
 
-func (this *Interop) GetByteArray() []byte {
-	return nil
+func (this *Interop) GetByteArray() ([]byte, error) {
+	return nil, fmt.Errorf("%s", "Not support interface to byte array")
 }
 
-func (this *Interop) GetInterface() interfaces.Interop {
-	return this._object
+func (this *Interop) GetInterface() (interfaces.Interop, error) {
+	return this._object, nil
 }
 
-func (this *Interop) GetArray() []StackItems {
-	return nil
+func (this *Interop) GetArray() ([]StackItems, error) {
+	return nil, fmt.Errorf("%s", "Not support interface to array")
 }
 
-func (this *Interop) GetStruct() []StackItems {
-	return nil
+func (this *Interop) GetStruct() ([]StackItems, error) {
+	return nil, fmt.Errorf("%s", "Not support interface to struct")
 }
 
-func (this *Interop) GetMap() map[StackItems]StackItems {
-	return nil
+func (this *Interop) GetMap() (map[StackItems]StackItems, error) {
+	return nil, fmt.Errorf("%s", "Not support interface to map")
 }

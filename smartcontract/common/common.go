@@ -33,68 +33,39 @@ func ConvertNeoVmTypeHexString(item interface{}) interface{} {
 	}
 	switch v := item.(type) {
 	case *types.ByteArray:
-		return common.ToHexString(v.GetByteArray())
+		arr, _ := v.GetByteArray()
+		return common.ToHexString(arr)
 	case *types.Integer:
-		if v.GetBigInteger().Sign() == 0 {
+		i, _ := v.GetBigInteger()
+		if i.Sign() == 0 {
 			return common.ToHexString([]byte{0})
 		} else {
-			return common.ToHexString(common.BigIntToNeoBytes(v.GetBigInteger()))
+			return common.ToHexString(common.BigIntToNeoBytes(i))
 		}
 	case *types.Boolean:
-		if v.GetBoolean() {
+		b, _ := v.GetBoolean()
+		if b {
 			return common.ToHexString([]byte{1})
 		} else {
 			return common.ToHexString([]byte{0})
 		}
 	case *types.Array:
 		var arr []interface{}
-		for _, val := range v.GetArray() {
+		ar, _ := v.GetArray()
+		for _, val := range ar {
 			arr = append(arr, ConvertNeoVmTypeHexString(val))
 		}
 		return arr
 	case *types.Struct:
 		var arr []interface{}
-		for _, val := range v.GetStruct() {
+		ar, _ := v.GetStruct()
+		for _, val := range ar {
 			arr = append(arr, ConvertNeoVmTypeHexString(val))
 		}
 		return arr
 	case *types.Interop:
-		return common.ToHexString(v.GetInterface().ToArray())
-	default:
-		log.Error("[ConvertTypes] Invalid Types!")
-		return nil
-	}
-}
-
-func ConvertNeoVmReturnTypes(item interface{}) interface{} {
-	if item == nil {
-		return nil
-	}
-	switch v := item.(type) {
-	case *types.ByteArray:
-		return v.GetByteArray()
-	case *types.Integer:
-		return common.BigIntToNeoBytes(v.GetBigInteger())
-	case *types.Boolean:
-		if v.GetBoolean() {
-			return []byte{1}
-		} else {
-			return []byte{0}
-		}
-	case *types.Array:
-		var arr []interface{}
-		for _, val := range v.GetArray() {
-			arr = append(arr, ConvertNeoVmReturnTypes(val))
-		}
-		return arr
-	case *types.Struct:
-		var arr []interface{}
-		for _, val := range v.GetStruct() {
-			arr = append(arr, ConvertNeoVmReturnTypes(val))
-		}
-		return arr
-	case *types.Interop:
-		return v.GetInterface().ToArray()
+		it, _ := v.GetInterface()
+		return common.ToHexString(it.ToArray())
 	default:
 		log.Error("[ConvertTypes] Invalid Types!")
 		return nil

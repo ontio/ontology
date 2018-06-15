@@ -237,43 +237,36 @@ func Hash(b []byte, e *ExecutionEngine) []byte {
 	return bt
 }
 
-func PopBigInt(e *ExecutionEngine) *big.Int {
+func PopBigInt(e *ExecutionEngine) (*big.Int, error) {
 	x := PopStackItem(e)
 	return x.GetBigInteger()
 }
 
-func PopInt(e *ExecutionEngine) int {
-	x := PopBigInt(e)
+func PopInt(e *ExecutionEngine) (int, error) {
+	x, err := PopBigInt(e)
+	if err != nil {
+		return 0, err
+	}
 	n := int(x.Int64())
-	return n
+	return n, nil
 }
 
-func PopBoolean(e *ExecutionEngine) bool {
+func PopBoolean(e *ExecutionEngine) (bool, error) {
 	x := PopStackItem(e)
 	return x.GetBoolean()
 }
 
-func PopArray(e *ExecutionEngine) []types.StackItems {
+func PopArray(e *ExecutionEngine) ([]types.StackItems, error) {
 	x := PopStackItem(e)
 	return x.GetArray()
 }
 
-func PopMap(e *ExecutionEngine) map[types.StackItems]types.StackItems {
-	x := PopStackItem(e)
-	return x.GetMap()
-}
-
-func Pop(e *ExecutionEngine) []types.StackItems {
-	x := PopStackItem(e)
-	return x.GetArray()
-}
-
-func PopInteropInterface(e *ExecutionEngine) interfaces.Interop {
+func PopInteropInterface(e *ExecutionEngine) (interfaces.Interop, error) {
 	x := PopStackItem(e)
 	return x.GetInterface()
 }
 
-func PopByteArray(e *ExecutionEngine) []byte {
+func PopByteArray(e *ExecutionEngine) ([]byte, error) {
 	x := PopStackItem(e)
 	return x.GetByteArray()
 }
@@ -282,23 +275,26 @@ func PopStackItem(e *ExecutionEngine) types.StackItems {
 	return e.EvaluationStack.Pop()
 }
 
-func PeekArray(e *ExecutionEngine) []types.StackItems {
+func PeekArray(e *ExecutionEngine) ([]types.StackItems, error) {
 	x := PeekStackItem(e)
 	return x.GetArray()
 }
 
-func PeekInteropInterface(e *ExecutionEngine) interfaces.Interop {
+func PeekInteropInterface(e *ExecutionEngine) (interfaces.Interop, error) {
 	x := PeekStackItem(e)
 	return x.GetInterface()
 }
 
-func PeekInt(e *ExecutionEngine) int {
-	x := PeekBigInteger(e)
+func PeekInt(e *ExecutionEngine) (int, error) {
+	x, err := PeekBigInteger(e)
+	if err != nil {
+		return 0, err
+	}
 	n := int(x.Int64())
-	return n
+	return n, nil
 }
 
-func PeekBigInteger(e *ExecutionEngine) *big.Int {
+func PeekBigInteger(e *ExecutionEngine) (*big.Int, error) {
 	x := PeekStackItem(e)
 	return x.GetBigInteger()
 }
@@ -307,18 +303,12 @@ func PeekStackItem(e *ExecutionEngine) types.StackItems {
 	return e.EvaluationStack.Peek(0)
 }
 
-func PeekNInt(i int, e *ExecutionEngine) int {
-	x := PeekNBigInt(i, e)
-	n := int(x.Int64())
-	return n
-}
-
-func PeekNBigInt(i int, e *ExecutionEngine) *big.Int {
+func PeekNBigInt(i int, e *ExecutionEngine) (*big.Int, error) {
 	x := PeekNStackItem(i, e)
 	return x.GetBigInteger()
 }
 
-func PeekNByteArray(i int, e *ExecutionEngine) []byte {
+func PeekNByteArray(i int, e *ExecutionEngine) ([]byte, error) {
 	x := PeekNStackItem(i, e)
 	return x.GetByteArray()
 }

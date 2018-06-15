@@ -26,13 +26,13 @@ import (
 
 type StackItems interface {
 	Equals(other StackItems) bool
-	GetBigInteger() *big.Int
-	GetBoolean() bool
-	GetByteArray() []byte
-	GetInterface() interfaces.Interop
-	GetArray() []StackItems
-	GetStruct() []StackItems
-	GetMap() map[StackItems]StackItems
+	GetBigInteger() (*big.Int, error)
+	GetBoolean() (bool, error)
+	GetByteArray() ([]byte, error)
+	GetInterface() (interfaces.Interop, error)
+	GetArray() ([]StackItems, error)
+	GetStruct() ([]StackItems, error)
+	GetMap() (map[StackItems]StackItems, error)
 }
 
 const (

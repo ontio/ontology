@@ -34,13 +34,19 @@ func opFromAltStack(e *ExecutionEngine) (VMState, error) {
 }
 
 func opXDrop(e *ExecutionEngine) (VMState, error) {
-	n := PopInt(e)
+	n, err := PopInt(e)
+	if err != nil {
+		return FAULT, err
+	}
 	e.EvaluationStack.Remove(n)
 	return NONE, nil
 }
 
 func opXSwap(e *ExecutionEngine) (VMState, error) {
-	n := PopInt(e)
+	n, err := PopInt(e)
+	if err != nil {
+		return FAULT, err
+	}
 	if n == 0 {
 		return NONE, nil
 	}
@@ -49,7 +55,10 @@ func opXSwap(e *ExecutionEngine) (VMState, error) {
 }
 
 func opXTuck(e *ExecutionEngine) (VMState, error) {
-	n := PopInt(e)
+	n, err := PopInt(e)
+	if err != nil {
+		return FAULT, err
+	}
 	e.EvaluationStack.Insert(n, PeekStackItem(e))
 	return NONE, nil
 }
@@ -86,13 +95,19 @@ func opOver(e *ExecutionEngine) (VMState, error) {
 }
 
 func opPick(e *ExecutionEngine) (VMState, error) {
-	n := PopInt(e)
+	n, err := PopInt(e)
+	if err != nil {
+		return FAULT, err
+	}
 	Push(e, e.EvaluationStack.Peek(n))
 	return NONE, nil
 }
 
 func opRoll(e *ExecutionEngine) (VMState, error) {
-	n := PopInt(e)
+	n, err := PopInt(e)
+	if err != nil {
+		return FAULT, err
+	}
 	if n == 0 {
 		return NONE, nil
 	}

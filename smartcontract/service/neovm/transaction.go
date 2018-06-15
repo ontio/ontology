@@ -26,22 +26,24 @@ import (
 
 // GetExecutingAddress push transaction's hash to vm stack
 func TransactionGetHash(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	txn := vm.PopInteropInterface(engine).(*types.Transaction)
-	txHash := txn.Hash()
+	txn, _ := vm.PopInteropInterface(engine)
+	tx := txn.(*types.Transaction)
+	txHash := tx.Hash()
 	vm.PushData(engine, txHash.ToArray())
 	return nil
 }
 
 // TransactionGetType push transaction's type to vm stack
 func TransactionGetType(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	txn := vm.PopInteropInterface(engine).(*types.Transaction)
-	vm.PushData(engine, int(txn.TxType))
+	txn, _ := vm.PopInteropInterface(engine)
+	tx := txn.(*types.Transaction)
+	vm.PushData(engine, int(tx.TxType))
 	return nil
 }
 
 // TransactionGetAttributes push transaction's attributes to vm stack
 func TransactionGetAttributes(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	_ = vm.PopInteropInterface(engine).(*types.Transaction)
+	vm.PopInteropInterface(engine)
 	attributList := make([]vmtypes.StackItems, 0)
 	vm.PushData(engine, attributList)
 	return nil
