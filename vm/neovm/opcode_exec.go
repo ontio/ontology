@@ -72,7 +72,7 @@ var (
 		XTUCK:           {Opcode: XTUCK, Name: "XTUCK", Exec: opXTuck, Validator: validateXTuck},
 		DEPTH:           {Opcode: DEPTH, Name: "DEPTH", Exec: opDepth},
 		DROP:            {Opcode: DROP, Name: "DROP", Exec: opDrop, Validator: validateCount1},
-		DUP:             {Opcode: DUP, Name: "DUP", Exec: opDup},
+		DUP:             {Opcode: DUP, Name: "DUP", Exec: opDup, Validator: validateCount1},
 		NIP:             {Opcode: NIP, Name: "NIP", Exec: opNip, Validator: validateCount2},
 		OVER:            {Opcode: OVER, Name: "OVER", Exec: opOver, Validator: validateCount2},
 		PICK:            {Opcode: PICK, Name: "PICK", Exec: opPick, Validator: validatePick},
