@@ -19,7 +19,6 @@
 package p2pserver
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -162,10 +161,8 @@ func (this *P2PServer) Xmit(message interface{}) error {
 	case comm.Uint256:
 		log.Debug("TX block hash message")
 		hash := message.(comm.Uint256)
-		buf := bytes.NewBuffer([]byte{})
-		hash.Serialize(buf)
 		// construct inv message
-		invPayload := msgpack.NewInvPayload(comm.BLOCK, 1, buf.Bytes())
+		invPayload := msgpack.NewInvPayload(comm.BLOCK, []comm.Uint256{hash})
 		msg = msgpack.NewInv(invPayload)
 	default:
 		log.Warnf("Unknown Xmit message %v , type %v", message,
@@ -182,7 +179,7 @@ func (this *P2PServer) Send(p *peer.Peer, msg msgtypes.Message,
 	if this.network.IsPeerEstablished(p) {
 		return this.network.Send(p, msg, isConsensus)
 	}
-	log.Errorf("P2PServer send to a not ESTABLISH peer 0x%x",
+	log.Errorf("P2PServer send to a not ESTABLISH peer %d",
 		p.GetID())
 	return errors.New("send to a not ESTABLISH peer")
 }
@@ -456,7 +453,7 @@ func (this *P2PServer) timeout() {
 			t := p.GetContactTime()
 			if t.Before(time.Now().Add(-1 * time.Second *
 				time.Duration(periodTime) * common.KEEPALIVE_TIMEOUT)) {
-				log.Warnf("keep alive timeout!!!lost remote peer 0x%x - %s from %s", p.GetID(), p.SyncLink.GetAddr(), t.String())
+				log.Warnf("keep alive timeout!!!lost remote peer %d - %s from %s", p.GetID(), p.SyncLink.GetAddr(), t.String())
 				p.CloseSync()
 				p.CloseCons()
 			}

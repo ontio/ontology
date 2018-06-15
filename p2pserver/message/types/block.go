@@ -51,7 +51,7 @@ func (this *Block) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 	err := this.Blk.Deserialize(buf)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprint("read Blk error. buf:%v", buf))
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read Blk error. buf:%v", buf))
 	}
 
 	return nil

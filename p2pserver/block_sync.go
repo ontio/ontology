@@ -222,7 +222,7 @@ func (this *BlockSyncMgr) checkTimeout() {
 		}
 
 		if err != nil {
-			log.Errorf("checkTimeout reqNode ID:0x%x Send error:%s", reqNode.GetID(), err)
+			log.Errorf("checkTimeout reqNode ID:%d Send error:%s", reqNode.GetID(), err)
 			continue
 		}
 	}
