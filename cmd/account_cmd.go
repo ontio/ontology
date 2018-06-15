@@ -391,7 +391,8 @@ func accountImport(ctx *cli.Context) error {
 	}
 
 	target := ctx.String(utils.GetFlagName(utils.WalletFileFlag))
-	wallet, err := common.OpenWallet(ctx)
+	fn := checkFileName(ctx)
+	wallet, err := account.Open(fn)
 	if err != nil {
 		return err
 	}
