@@ -21,13 +21,14 @@ package config
 import (
 	"encoding/hex"
 	"fmt"
+	"io"
+	"sort"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
-	"io"
-	"sort"
 )
 
 const (
@@ -60,7 +61,8 @@ const (
 	DEFAULT_GAS_LIMIT        = 30000
 	DEFAULT_GAS_PRICE        = 0
 
-	DEFAULT_DATA_DIR = "./Chain"
+	DEFAULT_DATA_DIR      = "./Chain"
+	DEFAULT_RESERVED_FILE = "./peers.rsv"
 )
 
 const (
@@ -412,6 +414,8 @@ type ConsensusConfig struct {
 }
 
 type P2PNodeConfig struct {
+	ReservedPeers     []string
+	ReservedPeersOnly bool
 	NetworkMaigc      uint32
 	NetworkId         uint32
 	NetworkName       string
@@ -477,6 +481,8 @@ func NewOntologyConfig() *OntologyConfig {
 			MaxTxInBlock:    DEFAULT_MAX_TX_IN_BLOCK,
 		},
 		P2PNode: &P2PNodeConfig{
+			ReservedPeers:     make([]string, 0),
+			ReservedPeersOnly: false,
 			NetworkId:         NETWORK_ID_MAIN_NET,
 			NetworkName:       GetNetworkName(NETWORK_ID_POLARIS_NET),
 			NetworkMaigc:      GetNetworkMagic(NETWORK_ID_POLARIS_NET),

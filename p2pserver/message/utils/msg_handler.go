@@ -22,6 +22,7 @@ import (
 	"errors"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 
 	evtActor "github.com/ontio/ontology-eventbus/actor"
@@ -37,7 +38,7 @@ import (
 	"github.com/ontio/ontology/p2pserver/net/protocol"
 )
 
-// AddrReqHandle hadnles the neighbor address request from peer
+// AddrReqHandle handles the neighbor address request from peer
 func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
 	log.Debug("receive addr request message", data.Addr, data.Id)
 	remotePeer := p2p.GetPeer(data.Id)
@@ -188,6 +189,24 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		//peer not exist,just remove list and return
 		p2p.RemoveFromConnectingList(data.Addr)
 		return
+	}
+
+	if config.DefConfig.P2PNode.ReservedPeersOnly && len(config.DefConfig.P2PNode.ReservedPeers) > 0 {
+		found := false
+		for _, addr := range config.DefConfig.P2PNode.ReservedPeers {
+			if strings.HasPrefix(data.Addr, addr) {
+				log.Info("peer in reserved list")
+				found = true
+				break
+			}
+		}
+		if !found {
+			remotePeer.CloseSync()
+			remotePeer.CloseCons()
+			log.Info("peer not in reserved list,close")
+			return
+		}
+
 	}
 
 	if version.P.IsConsensus == true {

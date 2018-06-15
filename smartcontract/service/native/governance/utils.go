@@ -21,7 +21,6 @@ package governance
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"math/big"
 
 	"github.com/ontio/ontology-crypto/vrf"
@@ -336,9 +335,6 @@ func CheckVBFTConfig(configuration *config.VBFTConfig) error {
 
 		if peer.Index <= 0 {
 			return errors.NewErr("initConfig, peer index in config must > 0!")
-		}
-		if peer.InitPos < uint64(configuration.MinInitStake) {
-			return errors.NewErr(fmt.Sprintf("initConfig, initPos must >= %v!", configuration.MinInitStake))
 		}
 		//check peerPubkey
 		if err := validatePeerPubKeyFormat(peer.PeerPubkey); err != nil {
