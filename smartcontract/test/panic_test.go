@@ -32,6 +32,13 @@ func TestRandomCodeCrash(t *testing.T) {
 		Tx:     &types.Transaction{},
 	}
 
+	var code []byte
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Printf("code %x \n", code)
+		}
+	}()
+
 	for i := 1; i < 100; i++ {
 		fmt.Print("test round ", i)
 		code := make([]byte, i)

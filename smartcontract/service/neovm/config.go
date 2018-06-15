@@ -41,9 +41,7 @@ var (
 	OPCODE_GAS                    uint64 = 1
 
 	METHOD_LENGTH_LIMIT int = 1024
-	ARGS_LENGTH_LIMIT   int = 65536
 	MAX_STACK_SIZE      int = 1024
-	MAX_ARRAY_SIZE      int = 1024
 
 	// API Name
 	ATTRIBUTE_GETUSAGE_NAME = "Ontology.Attribute.GetUsage"
