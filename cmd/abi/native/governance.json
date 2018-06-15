@@ -37,6 +37,21 @@
       "returnType":"Bool"
     },
     {
+      "name":"unRegisterCandidate",
+      "parameters":
+      [
+        {
+          "name":"PeerPubkey",
+          "type":"String"
+        },
+        {
+          "name":"Address",
+          "type":"Address"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
       "name":"approveCandidate",
       "parameters":
       [
