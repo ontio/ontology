@@ -139,8 +139,8 @@ func (self *Ledger) GetBookkeeperState() (*states.BookkeeperState, error) {
 
 func (self *Ledger) GetStorageItem(codeHash common.Address, key []byte) ([]byte, error) {
 	storageKey := &states.StorageKey{
-		CodeHash: codeHash,
-		Key:      key,
+		ContractAddress: codeHash,
+		Key:             key,
 	}
 	storageItem, err := self.ldgStore.GetStorageItem(storageKey)
 	if err != nil {

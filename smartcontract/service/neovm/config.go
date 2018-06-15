@@ -77,10 +77,10 @@ var (
 	CONTRACT_DESTROY_NAME           = "System.Contract.Destroy"
 	CONTRACT_GETSCRIPT_NAME         = "Ontology.Contract.GetScript"
 
-	STORAGE_GET_NAME                = "Neo.Storage.Get"
-	STORAGE_PUT_NAME                = "Neo.Storage.Put"
-	STORAGE_DELETE_NAME             = "Neo.Storage.Delete"
-	STORAGE_GETCONTEXT_NAME         = "Neo.Storage.GetContext"
+	STORAGE_GET_NAME                = "System.Storage.Get"
+	STORAGE_PUT_NAME                = "System.Storage.Put"
+	STORAGE_DELETE_NAME             = "System.Storage.Delete"
+	STORAGE_GETCONTEXT_NAME         = "System.Storage.GetContext"
 	STORAGE_GETREADONLYCONTEXT_NAME = "System.Storage.GetReadOnlyContext"
 
 	STORAGECONTEXT_ASREADONLY_NAME = "System.StorageContext.AsReadOnly"
