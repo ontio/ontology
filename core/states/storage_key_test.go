@@ -33,7 +33,7 @@ func TestStorageKey_Deserialize_Serialize(t *testing.T) {
 
 	storage := StorageKey{
 		ContractAddress: addr,
-		Key:      []byte{1, 2, 3},
+		Key:             []byte{1, 2, 3},
 	}
 
 	buf := bytes.NewBuffer(nil)

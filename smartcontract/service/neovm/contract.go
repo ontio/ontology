@@ -180,7 +180,7 @@ func storeMigration(service *NeoVmService, oldAddr common.Address, newAddr commo
 		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[Contract] Find error!")
 	}
 	for _, v := range stateValues {
-		service.CloneCache.Add(scommon.ST_STORAGE, getStorageKey(newAddr,  []byte(v.Key)[20:]), v.Value)
+		service.CloneCache.Add(scommon.ST_STORAGE, getStorageKey(newAddr, []byte(v.Key)[20:]), v.Value)
 	}
 	return stateValues, nil
 }
