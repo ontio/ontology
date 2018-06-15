@@ -48,10 +48,10 @@ func TestContractState(t *testing.T) {
 		Description: "",
 	}
 
-	codeHash := types.AddressFromVmCode(testCode)
+	address := types.AddressFromVmCode(testCode)
 	err = batch.TryGetOrAdd(
 		scommon.ST_CONTRACT,
-		codeHash[:],
+		address[:],
 		deploy)
 	if err != nil {
 		t.Errorf("TryGetOrAdd contract error %s", err)
@@ -68,7 +68,7 @@ func TestContractState(t *testing.T) {
 		t.Errorf("testStateStore.CommitTo error %s", err)
 		return
 	}
-	contractState1, err := testStateStore.GetContractState(codeHash)
+	contractState1, err := testStateStore.GetContractState(address)
 	if err != nil {
 		t.Errorf("GetContractState error %s", err)
 		return

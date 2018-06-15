@@ -130,7 +130,7 @@ func (this *WasmVmService) deletestore(engine *exec.ExecutionEngine) (bool, erro
 
 func serializeStorageKey(contractAddress common.Address, key []byte) ([]byte, error) {
 	bf := new(bytes.Buffer)
-	storageKey := &states.StorageKey{CodeHash: contractAddress, Key: key}
+	storageKey := &states.StorageKey{ContractAddress: contractAddress, Key: key}
 	if _, err := storageKey.Serialize(bf); err != nil {
 		return []byte{}, errors.NewErr("[serializeStorageKey] StorageKey serialize error!")
 	}

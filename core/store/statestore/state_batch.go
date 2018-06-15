@@ -48,15 +48,15 @@ func (self *StateBatch) Find(prefix common.DataEntryPrefix, key []byte) ([]*comm
 	iter := self.store.NewIterator(append(bp, key...))
 	defer iter.Release()
 	for iter.Next() {
-		key := iter.Key()
-		keyV := key[1:]
-		if self.memoryStore.Get(byte(prefix), keyV) == nil {
+		k := iter.Key()
+		kv := k[1:]
+		if self.memoryStore.Get(byte(prefix), kv) == nil {
 			value := iter.Value()
 			state, err := getStateObject(prefix, value)
 			if err != nil {
 				return nil, err
 			}
-			sts = append(sts, &common.StateItem{Key: string(keyV), Value: state})
+			sts = append(sts, &common.StateItem{Key: string(kv), Value: state})
 		}
 	}
 	keyP := string(append(bp, key...))

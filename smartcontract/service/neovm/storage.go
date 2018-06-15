@@ -35,7 +35,7 @@ func StoragePut(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StoragePut] get pop context error!")
 	}
-	if !context.IsReadOnly {
+	if context.IsReadOnly {
 		return fmt.Errorf("%s", "[StoragePut] storage read only!")
 	}
 	if err := checkStorageContext(service, context); err != nil {
@@ -58,7 +58,7 @@ func StorageDelete(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StorageDelete] get pop context error!")
 	}
-	if !context.IsReadOnly {
+	if context.IsReadOnly {
 		return fmt.Errorf("%s", "[StorageDelete] storage read only!")
 	}
 	if err := checkStorageContext(service, context); err != nil {
@@ -126,9 +126,9 @@ func getContext(engine *vm.ExecutionEngine) (*StorageContext, error) {
 	return context, nil
 }
 
-func getStorageKey(codeHash common.Address, key []byte) []byte {
+func getStorageKey(address common.Address, key []byte) []byte {
 	buf := bytes.NewBuffer(nil)
-	buf.Write(codeHash[:])
+	buf.Write(address[:])
 	buf.Write(key)
 	return buf.Bytes()
 }

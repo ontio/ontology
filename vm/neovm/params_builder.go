@@ -85,9 +85,9 @@ func (p *ParamsBuilder) EmitPushByteArray(data []byte) {
 	p.buffer.Write(data)
 }
 
-func (p *ParamsBuilder) EmitPushCall(codeHash []byte) {
+func (p *ParamsBuilder) EmitPushCall(address []byte) {
 	p.Emit(APPCALL)
-	p.buffer.Write(codeHash)
+	p.buffer.Write(address)
 }
 
 func (p *ParamsBuilder) ToArray() []byte {

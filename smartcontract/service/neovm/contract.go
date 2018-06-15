@@ -19,11 +19,10 @@
 package neovm
 
 import (
-	"bytes"
+	"fmt"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
-	"github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -56,13 +55,19 @@ func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if err := isContractExist(service, contractAddress); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractMigrate] contract invalid!")
 	}
+	context := service.ContextRef.CurrentContext()
 
 	service.CloneCache.Add(scommon.ST_CONTRACT, contractAddress[:], contract)
-	if err := storeMigration(service, contractAddress); err != nil {
+	items, err := storeMigration(service, context.ContractAddress, contractAddress)
+	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractMigrate] contract store migration error!")
 	}
+	service.CloneCache.Delete(scommon.ST_CONTRACT, context.ContractAddress[:])
+	for _, v := range items {
+		service.CloneCache.Delete(scommon.ST_STORAGE, []byte(v.Key))
+	}
 	vm.PushData(engine, contract)
-	return ContractDestory(service, engine)
+	return nil
 }
 
 // ContractDestory destroy a contract
@@ -164,28 +169,18 @@ func isContractExist(service *NeoVmService, contractAddress common.Address) erro
 	item, err := service.CloneCache.Get(scommon.ST_CONTRACT, contractAddress[:])
 
 	if err != nil || item != nil {
-		return errors.NewErr("[Contract] Get contract error or contract exist!")
+		return fmt.Errorf("[Contract] Get contract %x error or contract exist!", contractAddress)
 	}
 	return nil
 }
 
-func storeMigration(service *NeoVmService, contractAddress common.Address) error {
-	stateValues, err := service.CloneCache.Store.Find(scommon.ST_CONTRACT, contractAddress[:])
+func storeMigration(service *NeoVmService, oldAddr common.Address, newAddr common.Address) ([]*scommon.StateItem, error) {
+	stateValues, err := service.CloneCache.Store.Find(scommon.ST_STORAGE, oldAddr[:])
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[Contract] Find error!")
+		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[Contract] Find error!")
 	}
 	for _, v := range stateValues {
-		key := new(states.StorageKey)
-		bf := bytes.NewBuffer([]byte(v.Key))
-		if err := key.Deserialize(bf); err != nil {
-			return errors.NewErr("[Contract] Key deserialize error!")
-		}
-		key = &states.StorageKey{CodeHash: contractAddress, Key: key.Key}
-		b := new(bytes.Buffer)
-		if _, err := key.Serialize(b); err != nil {
-			return errors.NewErr("[Contract] Key Serialize error!")
-		}
-		service.CloneCache.Add(scommon.ST_STORAGE, key.ToArray(), v.Value)
+		service.CloneCache.Add(scommon.ST_STORAGE, getStorageKey(newAddr, []byte(v.Key)[20:]), v.Value)
 	}
-	return nil
+	return stateValues, nil
 }
