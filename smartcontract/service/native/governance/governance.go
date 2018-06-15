@@ -1113,7 +1113,12 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 
 	// sort peers by stake
 	sort.Slice(peers, func(i, j int) bool {
-		return peers[i].Stake > peers[j].Stake
+		if peers[i].Stake > peers[j].Stake {
+			return true
+		} else if peers[i].Stake == peers[j].Stake {
+			return peers[i].PeerPubkey > peers[j].PeerPubkey
+		}
+		return false
 	})
 
 	// consensus peers
@@ -1442,7 +1447,7 @@ func executeSplit(native *native.NativeService, contract common.Address, peerPoo
 		sum += peersCandidate[i].Stake
 	}
 	if sum == 0 {
-		return errors.NewErr("executeSplit, sum is 0!")
+		return nil
 	}
 	for i := int(config.K); i < len(peersCandidate); i++ {
 		nodeAmount := balance * globalParam.B / 100 * peersCandidate[i].Stake / sum
@@ -1534,8 +1539,14 @@ func normalQuit(native *native.NativeService, contract common.Address, peerPoolI
 }
 
 func blackQuit(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem) error {
+	// 0 ont transfer to trigger unboundong
+	err := appCallTransferOnt(native, utils.GovernanceContractAddress, utils.GovernanceContractAddress, peerPoolItem.InitPos)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
+	}
+
 	//update total stake
-	err := withdrawTotalStake(native, contract, peerPoolItem.Address, peerPoolItem.InitPos)
+	err = withdrawTotalStake(native, contract, peerPoolItem.Address, peerPoolItem.InitPos)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "withdrawTotalStake, withdrawTotalStake error!")
 	}
