@@ -83,11 +83,11 @@ func setGenesis(ctx *cli.Context, cfg *config.GenesisConfig) error {
 	// Remove the UTF-8 Byte Order Mark
 	data = bytes.TrimPrefix(data, []byte("\xef\xbb\xbf"))
 
+	cfg.VBFT = new(config.VBFTConfig)
 	err = json.Unmarshal(data, cfg)
 	if err != nil {
 		return fmt.Errorf("json.Unmarshal GenesisConfig:%s error:%s", data, err)
 	}
-
 	switch cfg.ConsensusType {
 	case config.CONSENSUS_TYPE_DBFT:
 		if len(cfg.DBFT.Bookkeepers) < config.DBFT_MIN_NODE_NUM {

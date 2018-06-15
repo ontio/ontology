@@ -58,8 +58,8 @@ func GetTransaction(hash common.Uint256) (*types.Transaction, error) {
 	return ledger.DefLedger.GetTransaction(hash)
 }
 
-func GetStorageItem(codeHash common.Address, key []byte) ([]byte, error) {
-	return ledger.DefLedger.GetStorageItem(codeHash, key)
+func GetStorageItem(address common.Address, key []byte) ([]byte, error) {
+	return ledger.DefLedger.GetStorageItem(address, key)
 }
 
 func GetContractStateFromStore(hash common.Address) (*payload.DeployCode, error) {

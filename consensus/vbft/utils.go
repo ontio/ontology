@@ -127,10 +127,10 @@ func verifyVrf(pk keypair.PublicKey, blkNum uint32, prevVrf, newVrf, proof []byt
 }
 func GetVbftConfigInfo() (*config.VBFTConfig, error) {
 	storageKey := &states.StorageKey{
-		CodeHash: nutils.GovernanceContractAddress,
-		Key:      append([]byte(gov.VBFT_CONFIG)),
+		ContractAddress: nutils.GovernanceContractAddress,
+		Key:             append([]byte(gov.VBFT_CONFIG)),
 	}
-	data, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
+	data, err := ledger.DefLedger.GetStorageItem(storageKey.ContractAddress, storageKey.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -162,10 +162,10 @@ func GetPeersConfig() ([]*config.VBFTPeerStakeInfo, error) {
 		return nil, err
 	}
 	storageKey := &states.StorageKey{
-		CodeHash: nutils.GovernanceContractAddress,
-		Key:      append([]byte(gov.PEER_POOL), viewBytes...),
+		ContractAddress: nutils.GovernanceContractAddress,
+		Key:             append([]byte(gov.PEER_POOL), viewBytes...),
 	}
-	data, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
+	data, err := ledger.DefLedger.GetStorageItem(storageKey.ContractAddress, storageKey.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -203,10 +203,10 @@ func isUpdate(view uint32) (bool, error) {
 
 func GetGovernanceView() (*gov.GovernanceView, error) {
 	storageKey := &states.StorageKey{
-		CodeHash: nutils.GovernanceContractAddress,
-		Key:      append([]byte(gov.GOVERNANCE_VIEW)),
+		ContractAddress: nutils.GovernanceContractAddress,
+		Key:             append([]byte(gov.GOVERNANCE_VIEW)),
 	}
-	data, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
+	data, err := ledger.DefLedger.GetStorageItem(storageKey.ContractAddress, storageKey.Key)
 	if err != nil {
 		return nil, err
 	}

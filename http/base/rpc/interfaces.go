@@ -214,16 +214,16 @@ func GetStorage(params []interface{}) map[string]interface{} {
 		return responsePack(berr.INVALID_PARAMS, nil)
 	}
 
-	var codeHash common.Address
+	var address common.Address
 	var key []byte
 	switch params[0].(type) {
 	case string:
 		str := params[0].(string)
 		var err error
 		if len(str) == common.ADDR_LEN*2 {
-			codeHash, err = common.AddressFromHexString(str)
+			address, err = common.AddressFromHexString(str)
 		} else {
-			codeHash, err = common.AddressFromBase58(str)
+			address, err = common.AddressFromBase58(str)
 		}
 		if err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
@@ -243,7 +243,7 @@ func GetStorage(params []interface{}) map[string]interface{} {
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
-	value, err := bactor.GetStorageItem(codeHash, key)
+	value, err := bactor.GetStorageItem(address, key)
 	if err != nil {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
@@ -307,17 +307,17 @@ func GetContractState(params []interface{}) map[string]interface{} {
 	switch params[0].(type) {
 	case string:
 		str := params[0].(string)
-		var codeHash common.Address
+		var address common.Address
 		var err error
 		if len(str) == (common.ADDR_LEN * 2) {
-			codeHash, err = common.AddressFromHexString(str)
+			address, err = common.AddressFromHexString(str)
 		} else {
-			codeHash, err = common.AddressFromBase58(str)
+			address, err = common.AddressFromBase58(str)
 		}
 		if err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
-		c, err := bactor.GetContractStateFromStore(codeHash)
+		c, err := bactor.GetContractStateFromStore(address)
 		if err != nil {
 			return responsePack(berr.UNKNOWN_CONTRACT, "unknow contract")
 		}

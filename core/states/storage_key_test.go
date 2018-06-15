@@ -32,8 +32,8 @@ func TestStorageKey_Deserialize_Serialize(t *testing.T) {
 	rand.Read(addr[:])
 
 	storage := StorageKey{
-		CodeHash: addr,
-		Key:      []byte{1, 2, 3},
+		ContractAddress: addr,
+		Key:             []byte{1, 2, 3},
 	}
 
 	buf := bytes.NewBuffer(nil)

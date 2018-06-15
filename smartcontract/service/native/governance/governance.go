@@ -1408,6 +1408,10 @@ func executeSplit(native *native.NativeService, contract common.Address, peerPoo
 	for i := 0; i < int(config.K); i++ {
 		sum += peersCandidate[i].Stake
 	}
+	// if sum = 0, means consensus peer in config, do not split
+	if sum < uint64(config.K) {
+		return nil
+	}
 	avg := sum / uint64(config.K)
 	var sumS uint64
 	for i := 0; i < int(config.K); i++ {
@@ -1416,6 +1420,9 @@ func executeSplit(native *native.NativeService, contract common.Address, peerPoo
 			return errors.NewDetailErr(err, errors.ErrNoCode, "splitCurve, calculate splitCurve error!")
 		}
 		sumS += peersCandidate[i].S
+	}
+	if sumS == 0 {
+		return errors.NewErr("executeSplit, sumS is 0!")
 	}
 
 	//fee split of consensus peer
@@ -1433,6 +1440,9 @@ func executeSplit(native *native.NativeService, contract common.Address, peerPoo
 	sum = 0
 	for i := int(config.K); i < len(peersCandidate); i++ {
 		sum += peersCandidate[i].Stake
+	}
+	if sum == 0 {
+		return errors.NewErr("executeSplit, sum is 0!")
 	}
 	for i := int(config.K); i < len(peersCandidate); i++ {
 		nodeAmount := balance * globalParam.B / 100 * peersCandidate[i].Stake / sum

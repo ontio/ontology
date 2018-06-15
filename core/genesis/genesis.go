@@ -19,7 +19,6 @@
 package genesis
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -63,7 +62,7 @@ func BuildGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig *con
 	GenesisBookkeepers = defaultBookkeeper
 	nextBookkeeper, err := types.AddressFromBookkeepers(defaultBookkeeper)
 	if err != nil {
-		return nil, errors.New("[Block],BuildGenesisBlock err with GetBookkeeperAddress")
+		return nil, fmt.Errorf("[Block],BuildGenesisBlock err with GetBookkeeperAddress: %s", err)
 	}
 	conf := bytes.NewBuffer(nil)
 	if genesisConfig.VBFT != nil {
