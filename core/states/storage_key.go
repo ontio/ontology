@@ -32,8 +32,12 @@ type StorageKey struct {
 }
 
 func (this *StorageKey) Serialize(w io.Writer) (int, error) {
-	this.ContractAddress.Serialize(w)
-	serialization.WriteVarBytes(w, this.Key)
+	if err := this.ContractAddress.Serialize(w); err != nil {
+		return 0, err
+	}
+	if err := serialization.WriteVarBytes(w, this.Key); err != nil {
+		return 0, err
+	}
 	return 0, nil
 }
 
