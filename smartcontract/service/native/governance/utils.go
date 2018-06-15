@@ -21,7 +21,6 @@ package governance
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"math/big"
 
 	"github.com/ontio/ontology-crypto/vrf"
