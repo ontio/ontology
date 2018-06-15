@@ -42,4 +42,3 @@ func TestInfiniteLoopCrash(t *testing.T) {
 		t.Fatal(err)
 	}
 }
-

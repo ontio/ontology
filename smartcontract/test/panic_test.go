@@ -2,6 +2,7 @@ package test
 
 import (
 	"crypto/rand"
+	"fmt"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/store/statestore"
@@ -10,7 +11,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/storage"
 	"os"
 	"testing"
-	"fmt"
 )
 
 func TestRandomCodeCrash(t *testing.T) {
