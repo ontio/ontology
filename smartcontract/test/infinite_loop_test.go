@@ -19,9 +19,6 @@
 package test
 
 import (
-	"crypto/rand"
-	"fmt"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/store/statestore"
 	"github.com/ontio/ontology/core/types"
@@ -31,9 +28,9 @@ import (
 	"testing"
 )
 
-func TestRandomCodeCrash(t *testing.T) {
+func TestInfiniteLoopCrash(t *testing.T) {
+	evilBytecode := []byte(" e\xff\u007f\xffhm\xb7%\xa7AAAAAAAAAAAAAAAC\xef\xed\x04INVERT\x95ve")
 	dbFile := "test"
-	log.InitLog(4)
 	defer func() {
 		os.RemoveAll(dbFile)
 	}()
@@ -42,35 +39,24 @@ func TestRandomCodeCrash(t *testing.T) {
 		t.Fatal(err)
 	}
 	store := statestore.NewMemDatabase()
-
 	testBatch := statestore.NewStateStoreBatch(store, testLevelDB)
 	config := &Config{
 		Time:   10,
 		Height: 10,
 		Tx:     &types.Transaction{},
 	}
-
-	var code []byte
-	defer func() {
-		if err := recover(); err != nil {
-			fmt.Printf("code %x \n", code)
-		}
-	}()
-
-	for i := 1; i < 100; i++ {
-		fmt.Print("test round ", i)
-		code := make([]byte, i)
-		for j := 0; j < 100000; j++ {
-			rand.Read(code)
-
-			cache := storage.NewCloneCache(testBatch)
-			sc := SmartContract{
-				Config:     config,
-				Gas:        10000,
-				CloneCache: cache,
-			}
-			engine, _ := sc.NewExecuteEngine(code)
-			engine.Invoke()
-		}
+	cache := storage.NewCloneCache(testBatch)
+	sc := SmartContract{
+		Config:     config,
+		Gas:        10000,
+		CloneCache: cache,
+	}
+	engine, err := sc.NewExecuteEngine(evilBytecode)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = engine.Invoke()
+	if err != nil {
+		t.Fatal(err)
 	}
 }
