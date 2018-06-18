@@ -61,7 +61,7 @@ type NetServer struct {
 	ConsChan     chan *types.MsgPayload
 	ConnectingNodes
 	PeerAddrMap
-	Np *peer.NbrPeers
+	Np          *peer.NbrPeers
 	connectLock sync.Mutex
 }
 
@@ -259,9 +259,9 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	defer this.connectLock.Unlock()
 	connCount := this.GetOutConnectingListLen() + uint(this.GetConnectionCnt())
 	if connCount > config.DefConfig.P2PNode.MaxConnOutBound {
-		log.Warnf("out connections(%d) reach the max limit(%d)", connCount,
+		log.Warnf("Connect: out connections(%d) reach the max limit(%d)", connCount,
 			config.DefConfig.P2PNode.MaxConnOutBound)
-		return errors.New("out connections reach the max limit")
+		return errors.New("connect: out connections reach the max limit")
 	}
 	if this.IsNbrPeerAddr(addr, isConsensus) {
 		return nil
@@ -430,8 +430,22 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 
 		syncAddrCount := this.GetPeerSyncAddressCount()
 		if syncAddrCount >= config.DefConfig.P2PNode.MaxConnInBound {
-			log.Errorf("accept connections(%d) reach the max limit(%d), conn closed",
+			log.Errorf("SyncAccept: total connections(%d) reach the max limit(%d), conn closed",
 				syncAddrCount, config.DefConfig.P2PNode.MaxConnInBound)
+			conn.Close()
+			continue
+		}
+
+		remoteAddr := conn.RemoteAddr().String()
+		colonPos := strings.LastIndex(remoteAddr, ":")
+		if colonPos == -1 {
+			colonPos = len(remoteAddr)
+		}
+		remoteIp := remoteAddr[:colonPos]
+		connNum := this.GetPeerSyncCountWithSingleIp(remoteIp)
+		if connNum >= config.DefConfig.P2PNode.MaxConnInBoundForSingleIP {
+			log.Errorf("SyncAccept: connections(%d) with ip(%s) has reach the max limit(%d), "+
+				"conn closed", connNum, remoteIp, config.DefConfig.P2PNode.MaxConnInBoundForSingleIP)
 			conn.Close()
 			continue
 		}
@@ -475,8 +489,8 @@ func (this *NetServer) startConsAccept(listener net.Listener) {
 
 //record the peer which is going to be dialed and sent version message but not in establish state
 func (this *NetServer) AddOutConnectingList(addr string) (added bool) {
-	this.ConnectingNodes.Lock()
-	defer this.ConnectingNodes.Unlock()
+	this.ConnectingNodes.RLock()
+	defer this.ConnectingNodes.RUnlock()
 	for _, a := range this.ConnectingAddrs {
 		if strings.Compare(a, addr) == 0 {
 			return false
@@ -488,8 +502,8 @@ func (this *NetServer) AddOutConnectingList(addr string) (added bool) {
 
 //Remove the peer from connecting list if the connection is established
 func (this *NetServer) RemoveFromConnectingList(addr string) {
-	this.ConnectingNodes.Lock()
-	defer this.ConnectingNodes.Unlock()
+	this.ConnectingNodes.RLock()
+	defer this.ConnectingNodes.RUnlock()
 	addrs := []string{}
 	for i, a := range this.ConnectingAddrs {
 		if strings.Compare(a, addr) == 0 {
@@ -501,16 +515,16 @@ func (this *NetServer) RemoveFromConnectingList(addr string) {
 
 //record the peer which is going to be dialed and sent version message but not in establish state
 func (this *NetServer) GetOutConnectingListLen() (count uint) {
-	this.ConnectingNodes.Lock()
-	defer this.ConnectingNodes.Unlock()
+	this.ConnectingNodes.RLock()
+	defer this.ConnectingNodes.RUnlock()
 	return uint(len(this.ConnectingAddrs))
 }
 
 //find exist peer from addr map
 func (this *NetServer) GetPeerFromAddr(addr string) *peer.Peer {
 	var p *peer.Peer
-	this.PeerAddrMap.Lock()
-	defer this.PeerAddrMap.Unlock()
+	this.PeerAddrMap.RLock()
+	defer this.PeerAddrMap.RUnlock()
 
 	p, ok := this.PeerSyncAddress[addr]
 	if ok {
@@ -546,22 +560,22 @@ func (this *NetServer) IsNbrPeerAddr(addr string, isConsensus bool) bool {
 
 //AddPeerSyncAddress add sync addr to peer-addr map
 func (this *NetServer) AddPeerSyncAddress(addr string, p *peer.Peer) {
-	this.PeerAddrMap.Lock()
-	defer this.PeerAddrMap.Unlock()
+	this.PeerAddrMap.RLock()
+	defer this.PeerAddrMap.RUnlock()
 	this.PeerSyncAddress[addr] = p
 }
 
 //AddPeerConsAddress add cons addr to peer-addr map
 func (this *NetServer) AddPeerConsAddress(addr string, p *peer.Peer) {
-	this.PeerAddrMap.Lock()
-	defer this.PeerAddrMap.Unlock()
+	this.PeerAddrMap.RLock()
+	defer this.PeerAddrMap.RUnlock()
 	this.PeerConsAddress[addr] = p
 }
 
 //RemovePeerSyncAddress remove sync addr from peer-addr map
 func (this *NetServer) RemovePeerSyncAddress(addr string) {
-	this.PeerAddrMap.Lock()
-	defer this.PeerAddrMap.Unlock()
+	this.PeerAddrMap.RLock()
+	defer this.PeerAddrMap.RUnlock()
 	if _, ok := this.PeerSyncAddress[addr]; ok {
 		delete(this.PeerSyncAddress, addr)
 	}
@@ -569,8 +583,8 @@ func (this *NetServer) RemovePeerSyncAddress(addr string) {
 
 //RemovePeerConsAddress remove cons addr from peer-addr map
 func (this *NetServer) RemovePeerConsAddress(addr string) {
-	this.PeerAddrMap.Lock()
-	defer this.PeerAddrMap.Unlock()
+	this.PeerAddrMap.RLock()
+	defer this.PeerAddrMap.RUnlock()
 	if _, ok := this.PeerConsAddress[addr]; ok {
 		delete(this.PeerConsAddress, addr)
 	}
@@ -578,9 +592,23 @@ func (this *NetServer) RemovePeerConsAddress(addr string) {
 
 //GetPeerSyncAddressCount return length of cons addr from peer-addr map
 func (this *NetServer) GetPeerSyncAddressCount()(count uint) {
-	this.PeerAddrMap.Lock()
-	defer this.PeerAddrMap.Unlock()
+	this.PeerAddrMap.RLock()
+	defer this.PeerAddrMap.RUnlock()
 	return uint(len(this.PeerSyncAddress))
+}
+
+//GetPeerSyncCountWithSingleIp return count of cons with single ip
+func (this *NetServer) GetPeerSyncCountWithSingleIp(ip string) uint {
+	this.PeerAddrMap.RLock()
+	defer this.PeerAddrMap.RUnlock()
+	var count uint
+	for _, peerAddr := range this.PeerSyncAddress {
+		addr := peerAddr.GetAddr()
+		if strings.Contains(addr, ip) {
+			count++
+		}
+	}
+	return count
 }
 
 //AddrValid whether the addr could be connect or accept

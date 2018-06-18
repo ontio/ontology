@@ -52,8 +52,9 @@ const (
 	DEFAULT_RPC_LOCAL_PORT   = uint(20337)
 	DEFAULT_REST_PORT        = uint(20334)
 	DEFAULT_WS_PORT          = uint(20335)
-	DEFAULT_MAX_CONN_IN_BOUND        = uint(128)
-	DEFAULT_MAX_CONN_OUT_BOUND       = uint(128)
+	DEFAULT_MAX_CONN_IN_BOUND               = uint(128)
+	DEFAULT_MAX_CONN_OUT_BOUND              = uint(128)
+	DEFAULT_MAX_CONN_IN_BOUND_FOR_SINGLE_IP = uint(128)
 	DEFAULT_HTTP_INFO_PORT   = uint(0)
 	DEFAULT_MAX_TX_IN_BLOCK  = 60000
 	DEFAULT_MAX_SYNC_HEADER  = 500
@@ -432,6 +433,7 @@ type P2PNodeConfig struct {
 	MaxHdrSyncReqs    uint
 	MaxConnInBound    uint
 	MaxConnOutBound   uint
+	MaxConnInBoundForSingleIP uint
 }
 
 type RpcConfig struct {
@@ -501,6 +503,7 @@ func NewOntologyConfig() *OntologyConfig {
 			MaxHdrSyncReqs:    DEFAULT_MAX_SYNC_HEADER,
 			MaxConnInBound:    DEFAULT_MAX_CONN_IN_BOUND,
 			MaxConnOutBound:   DEFAULT_MAX_CONN_OUT_BOUND,
+			MaxConnInBoundForSingleIP: DEFAULT_MAX_CONN_IN_BOUND_FOR_SINGLE_IP,
 		},
 		Rpc: &RpcConfig{
 			EnableHttpJsonRpc: true,

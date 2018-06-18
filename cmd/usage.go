@@ -131,6 +131,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.ConsensusPortFlag,
 			utils.MaxConnInBoundFlag,
 			utils.MaxConnOutBoundFlag,
+			utils.MaxConnInBoundForSingleIPFlag,
 		},
 	},
 	{
