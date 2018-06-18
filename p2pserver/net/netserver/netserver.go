@@ -275,7 +275,6 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	if connCount >= config.DefConfig.P2PNode.MaxConnOutBound {
 		log.Warnf("Connect: out connections(%d) reach the max limit(%d)", connCount,
 			config.DefConfig.P2PNode.MaxConnOutBound)
-		this.PrintOutConnRecord()
 		return errors.New("connect: out connections reach the max limit")
 	}
 	if this.IsNbrPeerAddr(addr, isConsensus) {
@@ -456,7 +455,6 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 			log.Warnf("SyncAccept: total connections(%d) reach the max limit(%d), conn closed",
 				syncAddrCount, config.DefConfig.P2PNode.MaxConnInBound)
 			conn.Close()
-			this.PrintInConnRecord()
 			continue
 		}
 
@@ -501,6 +499,16 @@ func (this *NetServer) startConsAccept(listener net.Listener) {
 		}
 		log.Info("remote cons node connect with ",
 			conn.RemoteAddr(), conn.LocalAddr())
+
+		remoteIp, err := common.ParseIPAddr(conn.RemoteAddr().String())
+		if err != nil {
+			log.Error("parse ip error ", err.Error())
+			continue
+		}
+		if !this.IsIPInInConnRecord(remoteIp) {
+			conn.Close()
+			return
+		}
 
 		remotePeer := peer.NewPeer()
 		addr := conn.RemoteAddr().String()
@@ -635,7 +643,7 @@ func (this *NetServer) AddInConnRecord(addr string) {
 	this.inConnRecord.InConnectingAddrs = append(this.inConnRecord.InConnectingAddrs, addr)
 }
 
-//IsAddrInInConnRecord return result whether addr is in inConnRecord
+//IsAddrInInConnRecord return result whether addr is in inConnRecordList
 func (this *NetServer) IsAddrInInConnRecord(addr string) bool {
 	this.inConnRecord.RLock()
 	defer this.inConnRecord.RUnlock()
@@ -647,7 +655,21 @@ func (this *NetServer) IsAddrInInConnRecord(addr string) bool {
 	return false
 }
 
-//RemoveInConnRecord remove in connection from inConnRecord
+//IsIPInInConnRecord return result whether the IP is in inConnRecordList
+func (this *NetServer) IsIPInInConnRecord(ip string) bool {
+	this.inConnRecord.RLock()
+	defer this.inConnRecord.RUnlock()
+	var ipRecord string
+	for _, addr := range this.inConnRecord.InConnectingAddrs {
+		ipRecord, _= common.ParseIPAddr(addr)
+		if 0 == strings.Compare(ipRecord, ip) {
+			return true
+		}
+	}
+	return false
+}
+
+//RemoveInConnRecord remove in connection from inConnRecordList
 func (this *NetServer) RemoveFromInConnRecord(addr string) {
 	this.inConnRecord.RLock()
 	defer this.inConnRecord.RUnlock()
@@ -661,7 +683,7 @@ func (this *NetServer) RemoveFromInConnRecord(addr string) {
 	this.inConnRecord.InConnectingAddrs = addrs
 }
 
-//GetInConnRecordLen return length of inConnRecord
+//GetInConnRecordLen return length of inConnRecordList
 func (this *NetServer) GetInConnRecordLen() int {
 	this.inConnRecord.RLock()
 	defer this.inConnRecord.RUnlock()
@@ -673,24 +695,15 @@ func (this *NetServer) GetIpCountInInConnRecord(ip string) uint {
 	this.inConnRecord.RLock()
 	defer this.inConnRecord.RUnlock()
 	var count uint
+	var ipRecord string
 	for _, addr := range this.inConnRecord.InConnectingAddrs {
-		if strings.Contains(addr, ip) {
+		ipRecord, _= common.ParseIPAddr(addr)
+		if 0 == strings.Compare(ipRecord, ip) {
 			count++
 		}
 	}
 	return count
 }
-
-func (this *NetServer) PrintInConnRecord() {
-	this.inConnRecord.RLock()
-	defer this.inConnRecord.RUnlock()
-	log.Warn("---------------PrintInConnRecord---Bgn---------------")
-	for _, addr := range this.inConnRecord.InConnectingAddrs {
-		log.Warn(addr)
-	}
-	log.Warn("---------------PrintInConnRecord---End---------------")
-}
-//--------------------------------------------------------------------------
 
 //AddOutConnRecord add out connection to outConnRecord
 func (this *NetServer) AddOutConnRecord(addr string, status int) {
@@ -723,16 +736,6 @@ func (this *NetServer) GetOutConnRecordLen() int {
 	this.outConnRecord.RLock()
 	defer this.outConnRecord.RUnlock()
 	return len(this.outConnRecord.OutConnectingAddrs)
-}
-
-func (this *NetServer) PrintOutConnRecord() {
-	this.outConnRecord.RLock()
-	defer this.outConnRecord.RUnlock()
-	log.Warn("---------------PrintOutConnRecord---Bgn---------------")
-	for k, v := range this.outConnRecord.OutConnectingAddrs {
-		log.Warn(k, v)
-	}
-	log.Warn("---------------PrintOutConnRecord---End---------------")
 }
 
 //AddrValid whether the addr could be connect or accept
