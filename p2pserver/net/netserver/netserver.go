@@ -459,21 +459,21 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 			this.PrintInConnRecord()
 			continue
 		}
-/*
+
 		remoteAddr := conn.RemoteAddr().String()
 		colonPos := strings.LastIndex(remoteAddr, ":")
 		if colonPos == -1 {
 			colonPos = len(remoteAddr)
 		}
 		remoteIp := remoteAddr[:colonPos]
-		connNum := this.GetInConnCountWithSingleIp(remoteIp)
+		connNum := this.GetIpCountInInConnRecord(remoteIp)
 		if connNum >= config.DefConfig.P2PNode.MaxConnInBoundForSingleIP {
 			log.Warnf("SyncAccept: connections(%d) with ip(%s) has reach the max limit(%d), "+
 				"conn closed", connNum, remoteIp, config.DefConfig.P2PNode.MaxConnInBoundForSingleIP)
 			conn.Close()
 			continue
 		}
-*/
+
 		remotePeer := peer.NewPeer()
 		addr := conn.RemoteAddr().String()
 		this.AddInConnRecord(addr)
@@ -623,8 +623,6 @@ func (this *NetServer) GetPeerSyncAddressCount()(count uint) {
 	return uint(len(this.PeerSyncAddress))
 }
 
-//--------------------------------------------------------------------------
-
 //AddInConnRecord add in connection to inConnRecord
 func (this *NetServer) AddInConnRecord(addr string) {
 	this.inConnRecord.RLock()
@@ -668,6 +666,19 @@ func (this *NetServer) GetInConnRecordLen() int {
 	this.inConnRecord.RLock()
 	defer this.inConnRecord.RUnlock()
 	return len(this.inConnRecord.InConnectingAddrs)
+}
+
+//GetIpCountInInConnRecord return count of in connections with single ip
+func (this *NetServer) GetIpCountInInConnRecord(ip string) uint {
+	this.inConnRecord.RLock()
+	defer this.inConnRecord.RUnlock()
+	var count uint
+	for _, addr := range this.inConnRecord.InConnectingAddrs {
+		if strings.Contains(addr, ip) {
+			count++
+		}
+	}
+	return count
 }
 
 func (this *NetServer) PrintInConnRecord() {
@@ -722,21 +733,6 @@ func (this *NetServer) PrintOutConnRecord() {
 		log.Warn(k, v)
 	}
 	log.Warn("---------------PrintOutConnRecord---End---------------")
-}
-
-//--------------------------------------------------------------------------
-
-//GetInConnCountWithSingleIp return count of cons with single ip
-func (this *NetServer) GetInConnCountWithSingleIp(ip string) uint {
-	this.inConnRecord.RLock()
-	defer this.inConnRecord.RUnlock()
-	var count uint
-	for _, addr := range this.inConnRecord.InConnectingAddrs {
-		if strings.Contains(addr, ip) {
-			count++
-		}
-	}
-	return count
 }
 
 //AddrValid whether the addr could be connect or accept
