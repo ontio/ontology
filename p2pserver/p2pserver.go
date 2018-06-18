@@ -365,10 +365,11 @@ func (this *P2PServer) retryInactivePeer() {
 	np.List = neighborPeers
 	np.Unlock()
 
-	connCount := this.network.GetOutConnectingListLen()
-	if connCount > config.DefConfig.P2PNode.MaxConnOutBound {
-		log.Infof("retryInactivePeer: out connections(%d) reach the max limit(%d)", connCount,
+	connCount := uint(this.network.GetOutConnRecordLen())
+	if connCount >= config.DefConfig.P2PNode.MaxConnOutBound {
+		log.Warnf("Connect: out connections(%d) reach the max limit(%d)", connCount,
 			config.DefConfig.P2PNode.MaxConnOutBound)
+		this.network.PrintOutConnRecord()
 		return
 	}
 
@@ -406,6 +407,9 @@ func (this *P2PServer) keepOnlineService() {
 		case <-t.C:
 			this.connectSeeds()
 			this.retryInactivePeer()
+			this.network.PrintOutConnRecord()
+			this.network.PrintInConnRecord()
+			log.Warn("===================================\n\n\n\n")
 			t.Stop()
 			t.Reset(time.Second * common.CONN_MONITOR)
 		case <-this.quitOnline:

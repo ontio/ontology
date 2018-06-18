@@ -50,7 +50,12 @@ type P2P interface {
 	GetMsgChan(isConsensus bool) chan *types.MsgPayload
 	GetPeerFromAddr(addr string) *peer.Peer
 	AddOutConnectingList(addr string) (added bool)
+	GetOutConnRecordLen() int
 	RemoveFromConnectingList(addr string)
+	RemoveFromOutConnRecord(addr string)
+	RemoveFromInConnRecord(addr string)
+	PrintOutConnRecord()
+	PrintInConnRecord()
 	AddPeerSyncAddress(addr string, p *peer.Peer)
 	AddPeerConsAddress(addr string, p *peer.Peer)
 	GetOutConnectingListLen() (count uint)

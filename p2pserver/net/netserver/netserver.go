@@ -39,7 +39,6 @@ import (
 
 //NewNetServer return the net object in p2p
 func NewNetServer() p2p.P2P {
-
 	n := &NetServer{
 		SyncChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 		ConsChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
@@ -47,6 +46,7 @@ func NewNetServer() p2p.P2P {
 
 	n.PeerAddrMap.PeerSyncAddress = make(map[string]*peer.Peer)
 	n.PeerAddrMap.PeerConsAddress = make(map[string]*peer.Peer)
+	n.outConnRecord.OutConnectingAddrs = make(map[string]int)
 
 	n.init()
 	return n
@@ -61,8 +61,22 @@ type NetServer struct {
 	ConsChan     chan *types.MsgPayload
 	ConnectingNodes
 	PeerAddrMap
-	Np          *peer.NbrPeers
-	connectLock sync.Mutex
+	Np            *peer.NbrPeers
+	connectLock   sync.Mutex
+	inConnRecord  InConnectionRecord
+	outConnRecord OutConnectionRecord
+}
+
+//InConnectionRecord include all addr connected
+type InConnectionRecord struct {
+	sync.RWMutex
+	InConnectingAddrs []string
+}
+
+//OutConnectionRecord include all addr accepted
+type OutConnectionRecord struct {
+	sync.RWMutex
+	OutConnectingAddrs map[string]int
 }
 
 //ConnectingNodes include all addr in connecting state
@@ -257,10 +271,11 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	}
 	this.connectLock.Lock()
 	defer this.connectLock.Unlock()
-	connCount := this.GetOutConnectingListLen() + uint(this.GetConnectionCnt())
-	if connCount > config.DefConfig.P2PNode.MaxConnOutBound {
+	connCount := uint(this.GetOutConnRecordLen())
+	if connCount >= config.DefConfig.P2PNode.MaxConnOutBound {
 		log.Warnf("Connect: out connections(%d) reach the max limit(%d)", connCount,
 			config.DefConfig.P2PNode.MaxConnOutBound)
+		this.PrintOutConnRecord()
 		return errors.New("connect: out connections reach the max limit")
 	}
 	if this.IsNbrPeerAddr(addr, isConsensus) {
@@ -276,6 +291,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		}
 		this.RemoveFromConnectingList(addr)
 	}
+	this.AddOutConnRecord(addr, common.HAND)
 
 	isTls := config.DefConfig.P2PNode.IsTLS
 	var conn net.Conn
@@ -284,6 +300,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	if isTls {
 		conn, err = TLSDial(addr)
 		if err != nil {
+			this.RemoveFromOutConnRecord(addr)
 			this.RemoveFromConnectingList(addr)
 			log.Error("connect failed: ", err)
 			return err
@@ -291,6 +308,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	} else {
 		conn, err = nonTLSDial(addr)
 		if err != nil {
+			this.RemoveFromOutConnRecord(addr)
 			this.RemoveFromConnectingList(addr)
 			log.Error("connect failed: ", err)
 			return err
@@ -313,6 +331,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		version := msgpack.NewVersion(this, false, ledger.DefLedger.GetCurrentBlockHeight())
 		err := remotePeer.SyncLink.Tx(version)
 		if err != nil {
+			this.RemoveFromOutConnRecord(addr)
 			log.Error(err)
 			return err
 		}
@@ -428,30 +447,37 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 		log.Info("remote sync node connect with ",
 			conn.RemoteAddr(), conn.LocalAddr())
 
-		syncAddrCount := this.GetPeerSyncAddressCount()
-		if syncAddrCount >= config.DefConfig.P2PNode.MaxConnInBound {
-			log.Errorf("SyncAccept: total connections(%d) reach the max limit(%d), conn closed",
-				syncAddrCount, config.DefConfig.P2PNode.MaxConnInBound)
-			conn.Close()
-			continue
+		if this.IsAddrInInConnRecord(conn.RemoteAddr().String()) {
+			return
 		}
 
+		syncAddrCount := uint(this.GetInConnRecordLen())
+		if syncAddrCount >= config.DefConfig.P2PNode.MaxConnInBound {
+			log.Warnf("SyncAccept: total connections(%d) reach the max limit(%d), conn closed",
+				syncAddrCount, config.DefConfig.P2PNode.MaxConnInBound)
+			conn.Close()
+			this.PrintInConnRecord()
+			continue
+		}
+/*
 		remoteAddr := conn.RemoteAddr().String()
 		colonPos := strings.LastIndex(remoteAddr, ":")
 		if colonPos == -1 {
 			colonPos = len(remoteAddr)
 		}
 		remoteIp := remoteAddr[:colonPos]
-		connNum := this.GetPeerSyncCountWithSingleIp(remoteIp)
+		connNum := this.GetInConnCountWithSingleIp(remoteIp)
 		if connNum >= config.DefConfig.P2PNode.MaxConnInBoundForSingleIP {
-			log.Errorf("SyncAccept: connections(%d) with ip(%s) has reach the max limit(%d), "+
+			log.Warnf("SyncAccept: connections(%d) with ip(%s) has reach the max limit(%d), "+
 				"conn closed", connNum, remoteIp, config.DefConfig.P2PNode.MaxConnInBoundForSingleIP)
 			conn.Close()
 			continue
 		}
-
+*/
 		remotePeer := peer.NewPeer()
 		addr := conn.RemoteAddr().String()
+		this.AddInConnRecord(addr)
+
 		this.AddPeerSyncAddress(addr, remotePeer)
 
 		remotePeer.SyncLink.SetAddr(addr)
@@ -597,13 +623,115 @@ func (this *NetServer) GetPeerSyncAddressCount()(count uint) {
 	return uint(len(this.PeerSyncAddress))
 }
 
-//GetPeerSyncCountWithSingleIp return count of cons with single ip
-func (this *NetServer) GetPeerSyncCountWithSingleIp(ip string) uint {
-	this.PeerAddrMap.RLock()
-	defer this.PeerAddrMap.RUnlock()
+//--------------------------------------------------------------------------
+
+//AddInConnRecord add in connection to inConnRecord
+func (this *NetServer) AddInConnRecord(addr string) {
+	this.inConnRecord.RLock()
+	defer this.inConnRecord.RUnlock()
+	for _, a := range this.inConnRecord.InConnectingAddrs {
+		if strings.Compare(a, addr) == 0 {
+			return
+		}
+	}
+	this.inConnRecord.InConnectingAddrs = append(this.inConnRecord.InConnectingAddrs, addr)
+}
+
+//IsAddrInInConnRecord return result whether addr is in inConnRecord
+func (this *NetServer) IsAddrInInConnRecord(addr string) bool {
+	this.inConnRecord.RLock()
+	defer this.inConnRecord.RUnlock()
+	for _, a := range this.inConnRecord.InConnectingAddrs {
+		if strings.Compare(a, addr) == 0 {
+			return true
+		}
+	}
+	return false
+}
+
+//RemoveInConnRecord remove in connection from inConnRecord
+func (this *NetServer) RemoveFromInConnRecord(addr string) {
+	this.inConnRecord.RLock()
+	defer this.inConnRecord.RUnlock()
+	addrs := []string{}
+	for i, a := range this.inConnRecord.InConnectingAddrs {
+		if strings.Compare(a, addr) == 0 {
+			addrs = append(this.inConnRecord.InConnectingAddrs[:i],
+				this.inConnRecord.InConnectingAddrs[i+1:]...)
+		}
+	}
+	this.inConnRecord.InConnectingAddrs = addrs
+}
+
+//GetInConnRecordLen return length of inConnRecord
+func (this *NetServer) GetInConnRecordLen() int {
+	this.inConnRecord.RLock()
+	defer this.inConnRecord.RUnlock()
+	return len(this.inConnRecord.InConnectingAddrs)
+}
+
+func (this *NetServer) PrintInConnRecord() {
+	this.inConnRecord.RLock()
+	defer this.inConnRecord.RUnlock()
+	log.Warn("---------------PrintInConnRecord---Bgn---------------")
+	for _, addr := range this.inConnRecord.InConnectingAddrs {
+		log.Warn(addr)
+	}
+	log.Warn("---------------PrintInConnRecord---End---------------")
+}
+//--------------------------------------------------------------------------
+
+//AddOutConnRecord add out connection to outConnRecord
+func (this *NetServer) AddOutConnRecord(addr string, status int) {
+	this.outConnRecord.RLock()
+	defer this.outConnRecord.RUnlock()
+	if _, ok := this.outConnRecord.OutConnectingAddrs[addr]; !ok {
+		this.outConnRecord.OutConnectingAddrs[addr] = status
+	}
+}
+
+//IsAddrInOutConnRecord return result whether addr is in outConnRecord
+func (this *NetServer) IsAddrInOutConnRecord(addr string) bool {
+	this.outConnRecord.RLock()
+	defer this.outConnRecord.RUnlock()
+	_, ok := this.outConnRecord.OutConnectingAddrs[addr]
+	return ok
+}
+
+//RemoveOutConnRecord remove out connection from outConnRecord
+func (this *NetServer) RemoveFromOutConnRecord(addr string) {
+	this.outConnRecord.RLock()
+	defer this.outConnRecord.RUnlock()
+	if _, ok := this.outConnRecord.OutConnectingAddrs[addr]; ok {
+		delete(this.outConnRecord.OutConnectingAddrs, addr)
+	}
+}
+
+//GetOutConnRecordLen return length of outConnRecord
+func (this *NetServer) GetOutConnRecordLen() int {
+	this.outConnRecord.RLock()
+	defer this.outConnRecord.RUnlock()
+	return len(this.outConnRecord.OutConnectingAddrs)
+}
+
+func (this *NetServer) PrintOutConnRecord() {
+	this.outConnRecord.RLock()
+	defer this.outConnRecord.RUnlock()
+	log.Warn("---------------PrintOutConnRecord---Bgn---------------")
+	for k, v := range this.outConnRecord.OutConnectingAddrs {
+		log.Warn(k, v)
+	}
+	log.Warn("---------------PrintOutConnRecord---End---------------")
+}
+
+//--------------------------------------------------------------------------
+
+//GetInConnCountWithSingleIp return count of cons with single ip
+func (this *NetServer) GetInConnCountWithSingleIp(ip string) uint {
+	this.inConnRecord.RLock()
+	defer this.inConnRecord.RUnlock()
 	var count uint
-	for _, peerAddr := range this.PeerSyncAddress {
-		addr := peerAddr.GetAddr()
+	for _, addr := range this.inConnRecord.InConnectingAddrs {
 		if strings.Contains(addr, ip) {
 			count++
 		}

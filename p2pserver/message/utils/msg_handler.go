@@ -239,6 +239,8 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		}
 		if version.P.Nonce == p2p.GetID() {
 			log.Warn("the node handshake with itself")
+			p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
+			p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
 			remotePeer.CloseCons()
 			return
 		}
@@ -273,6 +275,8 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 
 	} else {
 		if version.P.Nonce == p2p.GetID() {
+			p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
+			p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
 			log.Warn("the node handshake with itself")
 			remotePeer.CloseSync()
 			return
@@ -588,11 +592,12 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args .
 
 // DisconnectHandle handles the disconnect events
 func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	p2p.RemoveFromInConnRecord(data.Addr)
+	p2p.RemoveFromOutConnRecord(data.Addr)
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
 		return
 	}
-
 	p2p.RemoveFromConnectingList(data.Addr)
 
 	if remotePeer.SyncLink.GetAddr() == data.Addr {

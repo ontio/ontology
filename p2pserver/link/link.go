@@ -134,7 +134,6 @@ func (this *Link) disconnectNotify() {
 	this.CloseConn()
 
 	msg, _ := types.MakeEmptyMessage(common.DISCONNECT_TYPE)
-
 	discMsg := &types.MsgPayload{
 		Id:      this.id,
 		Addr:    this.addr,
