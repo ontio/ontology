@@ -57,7 +57,7 @@ func TestMap(t *testing.T) {
 		}...)
 
 	// count faults vs successful executions
-	N := 10240000
+	N := 1024
 	faults := 0
 
 	dbFile := "/tmp/test"
