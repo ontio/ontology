@@ -19,11 +19,8 @@
 package test
 
 import (
-	"github.com/ontio/ontology/core/store/leveldbstore"
-	"github.com/ontio/ontology/core/store/statestore"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract"
-	"github.com/ontio/ontology/smartcontract/storage"
 	"github.com/ontio/ontology/vm/neovm"
 	"os"
 	"testing"
@@ -49,22 +46,22 @@ func TestPackCrash(t *testing.T) {
 	// setup VM
 	dbFile := "test"
 	os.RemoveAll(dbFile)
-	testLevelDB, err := leveldbstore.NewLevelDBStore(dbFile)
-	if err != nil {
-		panic(err)
-	}
-	store := statestore.NewMemDatabase()
-	testBatch := statestore.NewStateStoreBatch(store, testLevelDB)
+	//testLevelDB, err := leveldbstore.NewLevelDBStore(dbFile)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//store := statestore.NewMemDatabase()
+	//testBatch := statestore.NewStateStoreBatch(store, testLevelDB)
 	config := &smartcontract.Config{
 		Time:   10,
 		Height: 10,
 		Tx:     &types.Transaction{},
 	}
-	cache := storage.NewCloneCache(testBatch)
+	//cache := storage.NewCloneCache(testBatch)
 	sc := smartcontract.SmartContract{
 		Config:     config,
 		Gas:        200,
-		CloneCache: cache,
+		CloneCache: nil,
 	}
 	engine, err := sc.NewExecuteEngine(byteCode)
 	if err != nil {
