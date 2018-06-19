@@ -92,13 +92,7 @@ func opPickItem(e *ExecutionEngine) (VMState, error) {
 		}
 		PushData(e, s[i])
 	case *types.Map:
-		value := items.(*types.Map).TryGetValue(index)
-		//TODO should return a nil type when not exist?
-		if value == nil {
-			return FAULT, errors.NewErr("opPickItem map element not exist.")
-		}
-		PushData(e, value)
-
+		PushData(e, items.(*types.Map).TryGetValue(index))
 	default:
 		return FAULT, errors.NewErr("opPickItem unknown item type.")
 	}
@@ -117,11 +111,8 @@ func opSetItem(e *ExecutionEngine) (VMState, error) {
 
 	switch item.(type) {
 	case *types.Map:
-		m, err := item.GetMap()
-		if err != nil {
-			return FAULT, err
-		}
-		m[index] = newItem
+		m := item.(*types.Map)
+		m.Add(index, newItem)
 	case *types.Array:
 		items, _ := item.GetArray()
 		bi, _ := index.GetBigInteger()

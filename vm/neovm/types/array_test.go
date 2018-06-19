@@ -21,7 +21,7 @@ package types
 import (
 	"testing"
 
-	"github.com/ipfs/go-ipfs/thirdparty/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSelfArray(t *testing.T) {
@@ -30,5 +30,5 @@ func TestSelfArray(t *testing.T) {
 	a.Add(b)
 
 	equ := a.Equals(b)
-	assert.True(equ, t)
+	assert.True(t, equ)
 }

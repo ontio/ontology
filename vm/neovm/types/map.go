@@ -21,10 +21,9 @@ package types
 import (
 	"fmt"
 	"math/big"
+	"reflect"
 
 	"github.com/ontio/ontology/vm/neovm/interfaces"
-
-	"reflect"
 )
 
 type Map struct {
@@ -37,9 +36,14 @@ func NewMap() *Map {
 	return &mp
 }
 
-func (this *Map) Add(key StackItems, value StackItems) error {
+func (this *Map) Add(key StackItems, value StackItems) {
+	for k, _ := range this._map {
+		if k.Equals(key) {
+			delete(this._map, k)
+			break
+		}
+	}
 	this._map[key] = value
-	return nil
 }
 
 func (this *Map) Clear() {
@@ -65,7 +69,6 @@ func (this *Map) GetBoolean() (bool, error) {
 
 func (this *Map) GetByteArray() ([]byte, error) {
 	return nil, fmt.Errorf("%s", "Not support map to byte array")
-	//return this.ToArray()
 }
 
 func (this *Map) GetBigInteger() (*big.Int, error) {
