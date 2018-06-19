@@ -34,8 +34,12 @@ func TestOpCat(t *testing.T) {
 	e.EvaluationStack = stack
 
 	opCat(&e)
-	if Count(&e) != 1 || !bytes.Equal(PeekNByteArray(0, &e), []byte("aaabbb")) {
-		t.Fatalf("NeoVM OpCat test failed, expect aaabbb, got %s.", string(PeekNByteArray(0, &e)))
+	v, err := PeekNByteArray(0, &e)
+	if err != nil {
+		t.Fatal("NeoVM OpCat test failed.")
+	}
+	if Count(&e) != 1 || !bytes.Equal(v, []byte("aaabbb")) {
+		t.Fatalf("NeoVM OpCat test failed, expect aaabbb, got %s.", string(v))
 	}
 }
 
@@ -48,8 +52,12 @@ func TestOpSubStr(t *testing.T) {
 	e.EvaluationStack = stack
 
 	opSubStr(&e)
-	if !bytes.Equal(PeekNByteArray(0, &e), []byte("2345")) {
-		t.Fatalf("NeoVM OpSubStr test failed, expect 234, got %s.", string(PeekNByteArray(0, &e)))
+	v, err := PeekNByteArray(0, &e)
+	if err != nil {
+		t.Fatal("NeoVM OpSubStr test failed.")
+	}
+	if !bytes.Equal(v, []byte("2345")) {
+		t.Fatalf("NeoVM OpSubStr test failed, expect 234, got %s.", string(v))
 	}
 }
 
@@ -61,8 +69,12 @@ func TestOpLeft(t *testing.T) {
 	e.EvaluationStack = stack
 
 	opLeft(&e)
-	if !bytes.Equal(PeekNByteArray(0, &e), []byte("1234")) {
-		t.Fatalf("NeoVM OpLeft test failed, expect 1234, got %s.", string(PeekNByteArray(0, &e)))
+	v, err := PeekNByteArray(0, &e)
+	if err != nil {
+		t.Fatal("NeoVM OpLeft test failed.")
+	}
+	if !bytes.Equal(v, []byte("1234")) {
+		t.Fatalf("NeoVM OpLeft test failed, expect 1234, got %s.", string(v))
 	}
 }
 
@@ -74,8 +86,12 @@ func TestOpRight(t *testing.T) {
 	e.EvaluationStack = stack
 
 	opRight(&e)
-	if !bytes.Equal(PeekNByteArray(0, &e), []byte("345")) {
-		t.Fatalf("NeoVM OpRight test failed, expect 345, got %s.", string(PeekNByteArray(0, &e)))
+	v, err := PeekNByteArray(0, &e)
+	if err != nil {
+		t.Fatal("NeoVM OpRight test failed.")
+	}
+	if !bytes.Equal(v, []byte("345")) {
+		t.Fatalf("NeoVM OpRight test failed, expect 345, got %s.", string(v))
 	}
 }
 
@@ -86,7 +102,11 @@ func TestOpSize(t *testing.T) {
 	e.EvaluationStack = stack
 
 	opSize(&e)
-	if PeekInt(&e) != 5 {
-		t.Fatalf("NeoVM OpSize test failed, expect 5, got %d.", PeekInt(&e))
+	v, err := PeekInt(&e)
+	if err != nil {
+		t.Fatal("NeoVM OpSize test failed.")
+	}
+	if v != 5 {
+		t.Fatalf("NeoVM OpSize test failed, expect 5, got %d.", v)
 	}
 }

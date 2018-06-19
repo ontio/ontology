@@ -34,7 +34,11 @@ func TestOpInvert(t *testing.T) {
 	opInvert(&e)
 	i := big.NewInt(123456789)
 
-	if PeekBigInteger(&e).Cmp(i.Not(i)) != 0 {
+	v, err := PeekBigInteger(&e)
+	if err != nil {
+		t.Fatal("NeoVM OpInvert test failed.")
+	}
+	if v.Cmp(i.Not(i)) != 0 {
 		t.Fatal("NeoVM OpInvert test failed.")
 	}
 }
@@ -47,7 +51,11 @@ func TestOpEqual(t *testing.T) {
 	e.EvaluationStack = stack
 
 	opEqual(&e)
-	if !PopBoolean(&e) {
+	v, err := PopBoolean(&e)
+	if err != nil {
+		t.Fatal("NeoVM OpEqual test failed.")
+	}
+	if !v {
 		t.Fatal("NeoVM OpEqual test failed.")
 	}
 }
