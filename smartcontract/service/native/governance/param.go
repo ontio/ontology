@@ -616,3 +616,23 @@ func (this *TransferPenaltyParam) Deserialize(r io.Reader) error {
 	this.Address = address
 	return nil
 }
+
+type WithdrawOngParam struct {
+	Address common.Address
+}
+
+func (this *WithdrawOngParam) Serialize(w io.Writer) error {
+	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarBytes, address address error!")
+	}
+	return nil
+}
+
+func (this *WithdrawOngParam) Deserialize(r io.Reader) error {
+	address, err := utils.ReadAddress(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadAddress, deserialize address error!")
+	}
+	this.Address = address
+	return nil
+}

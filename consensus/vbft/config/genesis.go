@@ -96,8 +96,13 @@ func genConsensusPayload(cfg *config.VBFTConfig, txhash common.Uint256, height u
 func GenesisChainConfig(config *config.VBFTConfig, peersinfo []*config.VBFTPeerStakeInfo, txhash common.Uint256, height uint32) (*ChainConfig, error) {
 
 	peers := peersinfo
-	sort.Slice(peers, func(i, j int) bool {
-		return peers[i].InitPos > peers[j].InitPos
+	sort.SliceStable(peers, func(i, j int) bool {
+		if peers[i].InitPos > peers[j].InitPos {
+			return true
+		} else if peers[i].InitPos == peers[j].InitPos {
+			return peers[i].PeerPubkey > peers[j].PeerPubkey
+		}
+		return false
 	})
 	log.Debugf("sorted peers: %v", peers)
 	// get stake sum of top-k peers
@@ -118,7 +123,7 @@ func GenesisChainConfig(config *config.VBFTConfig, peersinfo []*config.VBFTPeerS
 	peerRanks := make([]uint64, 0)
 	for i := 0; i < int(config.K); i++ {
 		var s uint64 = 1
-		if sum > 0 {
+		if sum > 0 && peers[i].InitPos > 0 {
 			s = uint64(math.Ceil(float64(peers[i].InitPos) * float64(scale) * float64(config.K) / float64(sum)))
 		}
 		peerRanks = append(peerRanks, s)
