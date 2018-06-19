@@ -159,6 +159,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.EnableTestModeFlag,
 			utils.TestModeGenBlockTimeFlag,
+			utils.ClearTestModeDataFlag,
 		},
 	},
 	{
