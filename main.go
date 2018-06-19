@@ -90,8 +90,9 @@ func setupAPP() *cli.App {
 		//consensus setting
 		utils.DisableConsensusFlag,
 		utils.MaxTxInBlockFlag,
-		utils.TransactionGasPriceFlag,
-		utils.TransactionGasLimitFlag,
+		//txpool setting
+		utils.GasPriceFlag,
+		utils.GasLimitFlag,
 		//p2p setting
 		utils.ReservedPeersOnlyFlag,
 		utils.ReservedPeersFileFlag,
