@@ -482,9 +482,9 @@ func (this *NetServer) AddInConnectingList(addr string) (added bool) {
 func (this *NetServer) RemoveFromConnectingList(addr string) {
 	this.ConnectingNodes.Lock()
 	defer this.ConnectingNodes.Unlock()
-	addrs := []string{}
+	addrs := this.ConnectingAddrs[:0]
 	for _, a := range this.ConnectingAddrs {
-		if strings.Compare(a, addr) != 0 {
+		if a != addr {
 			addrs = append(addrs, a)
 		}
 	}
