@@ -96,7 +96,7 @@ func genConsensusPayload(cfg *config.VBFTConfig, txhash common.Uint256, height u
 func GenesisChainConfig(config *config.VBFTConfig, peersinfo []*config.VBFTPeerStakeInfo, txhash common.Uint256, height uint32) (*ChainConfig, error) {
 
 	peers := peersinfo
-	sort.Slice(peers, func(i, j int) bool {
+	sort.SliceStable(peers, func(i, j int) bool {
 		if peers[i].InitPos > peers[j].InitPos {
 			return true
 		} else if peers[i].InitPos == peers[j].InitPos {

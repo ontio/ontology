@@ -1114,7 +1114,7 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 	}
 
 	// sort peers by stake
-	sort.Slice(peers, func(i, j int) bool {
+	sort.SliceStable(peers, func(i, j int) bool {
 		if peers[i].Stake > peers[j].Stake {
 			return true
 		} else if peers[i].Stake == peers[j].Stake {
@@ -1406,8 +1406,13 @@ func executeSplit(native *native.NativeService, contract common.Address, peerPoo
 	}
 
 	// sort peers by stake
-	sort.Slice(peersCandidate, func(i, j int) bool {
-		return peersCandidate[i].Stake > peersCandidate[j].Stake
+	sort.SliceStable(peersCandidate, func(i, j int) bool {
+		if peersCandidate[i].Stake > peersCandidate[j].Stake {
+			return true
+		} else if peersCandidate[i].Stake == peersCandidate[j].Stake {
+			return peersCandidate[i].PeerPubkey > peersCandidate[j].PeerPubkey
+		}
+		return false
 	})
 
 	// cal s of each consensus node
