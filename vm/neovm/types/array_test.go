@@ -21,7 +21,7 @@ package types
 import (
 	"testing"
 
-	"github.com/ipfs/go-ipfs/thirdparty/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSelfArray(t *testing.T) {
