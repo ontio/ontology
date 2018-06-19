@@ -101,6 +101,10 @@ var (
 		Usage: "Interval of generate block in test mode, unit(s)",
 		Value: config.DEFAULT_GEN_BLOCK_TIME,
 	}
+	ClearTestModeDataFlag = cli.BoolFlag{
+		Name:  "cleartestmodedata",
+		Usage: "Clear test mode block data",
+	}
 
 	//P2P setting
 	ReservedPeersOnlyFlag = cli.BoolFlag{
