@@ -32,6 +32,7 @@ import (
 	"time"
 
 	evtActor "github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology/account"
 	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -75,7 +76,7 @@ func NewServer() *P2PServer {
 		network: n,
 		ledger:  ledger.DefLedger,
 	}
-	p.emergencyGov = NewEmergencyGov(p, acc)
+	p.emergencyGov = NewEmergencyGov(p)
 
 	p.msgRouter = utils.NewMsgRouter(p.network)
 	p.blockSync = NewBlockSyncMgr(p)
@@ -142,6 +143,11 @@ func (this *P2PServer) GetVersion() uint32 {
 //GetNeighborAddrs return all nbr`s address
 func (this *P2PServer) GetNeighborAddrs() []common.PeerAddr {
 	return this.network.GetNeighborAddrs()
+}
+
+//SetEmgGovAccount sets account to emergency governance
+func (this *P2PServer) SetEmgGovAccount(acc *account.Account) {
+	this.emergencyGov.setAccount(acc)
 }
 
 // notifyEmergencyGovCmd notify block sync mgr of pause/recover block sync

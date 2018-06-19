@@ -53,9 +53,8 @@ type emergencyGov struct {
 }
 
 // NewEmergencyGov returns a new instance of emergency governance
-func NewEmergencyGov(server *P2PServer, account *account.Account) *emergencyGov {
+func NewEmergencyGov(server *P2PServer) *emergencyGov {
 	emergencyGov := &emergencyGov{
-		account: account,
 		context: &emergencyGovContext{},
 		server:  server,
 	}
@@ -71,6 +70,11 @@ func (this *emergencyGov) init() {
 	this.stopCh = make(chan struct{})
 	this.timerEvt = make(chan struct{}, 1)
 	this.emgBlkCompletedEvt = make(chan struct{}, 1)
+}
+
+// setAccount sets account
+func (this *emergencyGov) setAccount(account *account.Account) {
+	this.account = account
 }
 
 // Start starts an emergency governance loop

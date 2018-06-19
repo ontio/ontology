@@ -32,11 +32,11 @@ import (
 // getAdmin returns current admin
 func getAdmin() (common.Address, error) {
 	storageKey := &states.StorageKey{
-		CodeHash: nutils.ParamContractAddress,
-		Key:      append([]byte(params.ADMIN)),
+		ContractAddress: nutils.ParamContractAddress,
+		Key:             append([]byte(params.ADMIN)),
 	}
 
-	data, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
+	data, err := ledger.DefLedger.GetStorageItem(storageKey.ContractAddress, storageKey.Key)
 	if err != nil {
 		return common.Address{}, err
 	}
@@ -53,10 +53,10 @@ func getAdmin() (common.Address, error) {
 // getGovernanceView returns current governance view
 func getGovernanceView() (*gov.GovernanceView, error) {
 	storageKey := &states.StorageKey{
-		CodeHash: nutils.GovernanceContractAddress,
-		Key:      append([]byte(gov.GOVERNANCE_VIEW)),
+		ContractAddress: nutils.GovernanceContractAddress,
+		Key:             append([]byte(gov.GOVERNANCE_VIEW)),
 	}
-	data, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
+	data, err := ledger.DefLedger.GetStorageItem(storageKey.ContractAddress, storageKey.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -81,10 +81,10 @@ func getPeers() ([]*EmergencyGovPeer, error) {
 	}
 
 	storageKey := &states.StorageKey{
-		CodeHash: nutils.GovernanceContractAddress,
-		Key:      append([]byte(gov.PEER_POOL), viewBytes...),
+		ContractAddress: nutils.GovernanceContractAddress,
+		Key:             append([]byte(gov.PEER_POOL), viewBytes...),
 	}
-	data, err := ledger.DefLedger.GetStorageItem(storageKey.CodeHash, storageKey.Key)
+	data, err := ledger.DefLedger.GetStorageItem(storageKey.ContractAddress, storageKey.Key)
 	if err != nil {
 		return nil, err
 	}
