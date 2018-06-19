@@ -1441,7 +1441,7 @@ func executeSplit(native *native.NativeService, contract common.Address, peerPoo
 	for i := int(config.K) - 1; i >= 0; i-- {
 		nodeAmount := balance * globalParam.A / 100 * peersCandidate[i].S / sumS
 		address := peersCandidate[i].Address
-		err = appCallApproveOng(native, utils.GovernanceContractAddress, address, nodeAmount)
+		err = appCallTransferOng(native, utils.GovernanceContractAddress, address, nodeAmount)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "executeSplit, ong transfer error!")
 		}
@@ -1459,7 +1459,7 @@ func executeSplit(native *native.NativeService, contract common.Address, peerPoo
 	for i := int(config.K); i < len(peersCandidate); i++ {
 		nodeAmount := balance * globalParam.B / 100 * peersCandidate[i].Stake / sum
 		address := peersCandidate[i].Address
-		err = appCallApproveOng(native, utils.GovernanceContractAddress, address, nodeAmount)
+		err = appCallTransferOng(native, utils.GovernanceContractAddress, address, nodeAmount)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "executeSplit, ong transfer error!")
 		}
