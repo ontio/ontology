@@ -19,6 +19,7 @@
 package types
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 
@@ -45,17 +46,8 @@ func (this *ByteArray) Equals(other StackItems) bool {
 	if err != nil {
 		return false
 	}
-	l1 := len(a1)
-	l2 := len(a2)
-	if l1 != l2 {
-		return false
-	}
-	for i := 0; i < l1; i++ {
-		if a1[i] != a2[i] {
-			return false
-		}
-	}
-	return true
+
+	return bytes.Equal(a1, a2)
 }
 
 func (this *ByteArray) GetBigInteger() (*big.Int, error) {
