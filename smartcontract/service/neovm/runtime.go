@@ -44,7 +44,10 @@ func RuntimeGetTime(service *NeoVmService, engine *vm.ExecutionEngine) error {
 // RuntimeCheckWitness provide check permissions service
 // If param address isn't exist in authorization list, check fail
 func RuntimeCheckWitness(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	data := vm.PopByteArray(engine)
+	data, err := vm.PopByteArray(engine)
+	if err != nil {
+		return err
+	}
 	var result bool
 	if len(data) == 20 {
 		address, err := common.AddressParseFromBytes(data)
@@ -76,7 +79,10 @@ func RuntimeSerialize(service *NeoVmService, engine *vm.ExecutionEngine) error {
 }
 
 func RuntimeDeserialize(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	data := vm.PopByteArray(engine)
+	data, err := vm.PopByteArray(engine)
+	if err != nil {
+		return err
+	}
 	bf := bytes.NewBuffer(data)
 	item, err := DeserializeStackItem(bf)
 	if err != nil {
@@ -100,7 +106,10 @@ func RuntimeNotify(service *NeoVmService, engine *vm.ExecutionEngine) error {
 
 // RuntimeLog push smart contract execute event log to client
 func RuntimeLog(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	item := vm.PopByteArray(engine)
+	item, err := vm.PopByteArray(engine)
+	if err != nil {
+		return err
+	}
 	context := service.ContextRef.CurrentContext()
 	txHash := service.Tx.Hash()
 	event.PushSmartCodeEvent(txHash, 0, event.EVENT_LOG, &event.LogEventArgs{TxHash: txHash, ContractAddress: context.ContractAddress, Message: string(item)})
@@ -118,7 +127,8 @@ func SerializeStackItem(item vmtypes.StackItems, w io.Writer) error {
 		if err := serialization.WriteByte(w, vmtypes.ByteArrayType); err != nil {
 			return errors.NewErr("Serialize ByteArray stackItems error: " + err.Error())
 		}
-		if err := serialization.WriteVarBytes(w, item.GetByteArray()); err != nil {
+		ba, _ := item.GetByteArray()
+		if err := serialization.WriteVarBytes(w, ba); err != nil {
 			return errors.NewErr("Serialize ByteArray stackItems error: " + err.Error())
 		}
 
@@ -126,7 +136,8 @@ func SerializeStackItem(item vmtypes.StackItems, w io.Writer) error {
 		if err := serialization.WriteByte(w, vmtypes.BooleanType); err != nil {
 			return errors.NewErr("Serialize Boolean StackItems error: " + err.Error())
 		}
-		if err := serialization.WriteBool(w, item.GetBoolean()); err != nil {
+		b, _ := item.GetBoolean()
+		if err := serialization.WriteBool(w, b); err != nil {
 			return errors.NewErr("Serialize Boolean stackItems error: " + err.Error())
 		}
 
@@ -134,7 +145,8 @@ func SerializeStackItem(item vmtypes.StackItems, w io.Writer) error {
 		if err := serialization.WriteByte(w, vmtypes.IntegerType); err != nil {
 			return errors.NewErr("Serialize Integer stackItems error: " + err.Error())
 		}
-		if err := serialization.WriteVarBytes(w, item.GetByteArray()); err != nil {
+		i, _ := item.GetByteArray()
+		if err := serialization.WriteVarBytes(w, i); err != nil {
 			return errors.NewErr("Serialize Integer stackItems error: " + err.Error())
 		}
 
@@ -142,12 +154,12 @@ func SerializeStackItem(item vmtypes.StackItems, w io.Writer) error {
 		if err := serialization.WriteByte(w, vmtypes.ArrayType); err != nil {
 			return errors.NewErr("Serialize Array stackItems error: " + err.Error())
 		}
-
-		if err := serialization.WriteVarUint(w, uint64(len(item.GetArray()))); err != nil {
+		a, _ := item.GetArray()
+		if err := serialization.WriteVarUint(w, uint64(len(a))); err != nil {
 			return errors.NewErr("Serialize Array stackItems error: " + err.Error())
 		}
 
-		for _, v := range item.GetArray() {
+		for _, v := range a {
 			SerializeStackItem(v, w)
 		}
 
@@ -155,18 +167,18 @@ func SerializeStackItem(item vmtypes.StackItems, w io.Writer) error {
 		if err := serialization.WriteByte(w, vmtypes.StructType); err != nil {
 			return errors.NewErr("Serialize Struct stackItems error: " + err.Error())
 		}
-
-		if err := serialization.WriteVarUint(w, uint64(len(item.GetStruct()))); err != nil {
+		s, _ := item.GetStruct()
+		if err := serialization.WriteVarUint(w, uint64(len(s))); err != nil {
 			return errors.NewErr("Serialize Struct stackItems error: " + err.Error())
 		}
 
-		for _, v := range item.GetArray() {
+		for _, v := range s {
 			SerializeStackItem(v, w)
 		}
 
 	case *vmtypes.Map:
 		var unsortKey []string
-		mp := item.(*vmtypes.Map).GetMap()
+		mp, _ := item.GetMap()
 		keyMap := make(map[string]vmtypes.StackItems, 0)
 
 		if err := serialization.WriteByte(w, vmtypes.MapType); err != nil {
@@ -179,7 +191,8 @@ func SerializeStackItem(item vmtypes.StackItems, w io.Writer) error {
 		for k, _ := range mp {
 			switch k.(type) {
 			case *vmtypes.ByteArray, *vmtypes.Integer:
-				key := string(k.GetByteArray())
+				ba, _ := k.GetByteArray()
+				key := string(ba)
 				if key == "" {
 					return errors.NewErr("Serialize Map error: invalid key type")
 				}
@@ -272,7 +285,8 @@ func DeserializeStackItem(r io.Reader) (items vmtypes.StackItems, err error) {
 			if err != nil {
 				return nil, err
 			}
-			mp.GetMap()[key] = value
+			m, _ := mp.GetMap()
+			m[key] = value
 			count--
 		}
 		return mp, nil

@@ -34,15 +34,19 @@ func TestOpBigInt(t *testing.T) {
 		e.EvaluationStack.Push(NewStackItem(types.NewInteger(big.NewInt(-10))))
 		e.OpCode = code
 		opBigInt(&e)
-		if code == INC && !(PopBigInt(&e).Cmp(big.NewInt(-9)) == 0) {
+		v, err := PopBigInt(&e)
+		if err != nil {
 			t.Fatal("NeoVM OpBigInt test failed.")
-		} else if code == DEC && !(PopBigInt(&e).Cmp(big.NewInt(-11)) == 0) {
+		}
+		if code == INC && !(v.Cmp(big.NewInt(-9)) == 0) {
 			t.Fatal("NeoVM OpBigInt test failed.")
-		} else if code == NEGATE && !(PopBigInt(&e).Cmp(big.NewInt(10)) == 0) {
+		} else if code == DEC && !(v.Cmp(big.NewInt(-11)) == 0) {
 			t.Fatal("NeoVM OpBigInt test failed.")
-		} else if code == ABS && !(PopBigInt(&e).Cmp(big.NewInt(10)) == 0) {
+		} else if code == NEGATE && !(v.Cmp(big.NewInt(10)) == 0) {
 			t.Fatal("NeoVM OpBigInt test failed.")
-		} else if code == PUSH0 && !(PopBigInt(&e).Cmp(big.NewInt(-10)) == 0) {
+		} else if code == ABS && !(v.Cmp(big.NewInt(10)) == 0) {
+			t.Fatal("NeoVM OpBigInt test failed.")
+		} else if code == PUSH0 && !(v.Cmp(big.NewInt(-10)) == 0) {
 			t.Fatal("NeoVM OpBigInt test failed.")
 		}
 	}
@@ -55,7 +59,11 @@ func TestOpSign(t *testing.T) {
 	e.EvaluationStack.Push(NewStackItem(types.NewInteger(i)))
 
 	opSign(&e)
-	if !(PopInt(&e) == i.Sign()) {
+	v, err := PopInt(&e)
+	if err != nil {
+		t.Fatal("NeoVM OpSign test failed.")
+	}
+	if !(v == i.Sign()) {
 		t.Fatal("NeoVM OpSign test failed.")
 	}
 }
@@ -66,7 +74,11 @@ func TestOpNot(t *testing.T) {
 	e.EvaluationStack.Push(NewStackItem(types.NewBoolean(true)))
 
 	opNot(&e)
-	if !(PopBoolean(&e) == false) {
+	v, err := PopBoolean(&e)
+	if err != nil {
+		t.Fatal("NeoVM OpNot test failed.")
+	}
+	if !(v == false) {
 		t.Fatal("NeoVM OpNot test failed.")
 	}
 }
@@ -78,19 +90,32 @@ func TestOpNz(t *testing.T) {
 	e.EvaluationStack.Push(NewStackItem(types.NewInteger(big.NewInt(0))))
 	e.OpCode = NZ
 	opNz(&e)
-
-	if PopBoolean(&e) == true {
+	v, err := PopBoolean(&e)
+	if err != nil {
+		t.Fatal("NeoVM OpNz test failed.")
+	}
+	if v == true {
 		t.Fatal("NeoVM OpNz test failed.")
 	}
 	e.EvaluationStack.Push(NewStackItem(types.NewInteger(big.NewInt(10))))
 	opNz(&e)
-	if PopBoolean(&e) == false {
+
+	v, err = PopBoolean(&e)
+	if err != nil {
+		t.Fatal("NeoVM OpNz test failed.")
+	}
+	if v == false {
 		t.Fatal("NeoVM OpNz test failed.")
 	}
 	e.EvaluationStack.Push(NewStackItem(types.NewInteger(big.NewInt(0))))
 	e.OpCode = PUSH0
 	opNz(&e)
-	if PopBoolean(&e) == true {
+
+	v, err = PopBoolean(&e)
+	if err != nil {
+		t.Fatal("NeoVM OpNz test failed.")
+	}
+	if v == true {
 		t.Fatal("NeoVM OpNz test failed.")
 	}
 }

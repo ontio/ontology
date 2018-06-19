@@ -37,13 +37,22 @@ func NativeInvoke(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if count < 4 {
 		return fmt.Errorf("invoke native contract invalid parameters %d < 4 ", count)
 	}
-	version := vm.PopInt(engine)
-	address := vm.PopByteArray(engine)
+	version, err := vm.PopInt(engine)
+	if err != nil {
+		return err
+	}
+	address, err := vm.PopByteArray(engine)
+	if err != nil {
+		return err
+	}
 	addr, err := common.AddressParseFromBytes(address)
 	if err != nil {
 		return fmt.Errorf("invoke native contract:%s, address invalid", address)
 	}
-	method := vm.PopByteArray(engine)
+	method, err := vm.PopByteArray(engine)
+	if err != nil {
+		return err
+	}
 	if len(method) > METHOD_LENGTH_LIMIT {
 		return fmt.Errorf("invoke native contract:%s method:%s too long, over max length 1024 limit", address, method)
 	}
@@ -87,19 +96,22 @@ func NativeInvoke(service *NeoVmService, engine *vm.ExecutionEngine) error {
 func BuildParamToNative(bf *bytes.Buffer, item types.StackItems) error {
 	switch item.(type) {
 	case *types.ByteArray:
-		if err := serialization.WriteVarBytes(bf, item.GetByteArray()); err != nil {
+		a, _ := item.GetByteArray()
+		if err := serialization.WriteVarBytes(bf, a); err != nil {
 			return err
 		}
 	case *types.Integer:
-		if err := serialization.WriteVarBytes(bf, item.GetByteArray()); err != nil {
+		i, _ := item.GetByteArray()
+		if err := serialization.WriteVarBytes(bf, i); err != nil {
 			return err
 		}
 	case *types.Boolean:
-		if err := serialization.WriteBool(bf, item.GetBoolean()); err != nil {
+		b, _ := item.GetBoolean()
+		if err := serialization.WriteBool(bf, b); err != nil {
 			return err
 		}
 	case *types.Array:
-		arr := item.GetArray()
+		arr, _ := item.GetArray()
 		if err := serialization.WriteVarBytes(bf, types.BigIntToBytes(big.NewInt(int64(len(arr))))); err != nil {
 			return err
 		}
@@ -109,7 +121,7 @@ func BuildParamToNative(bf *bytes.Buffer, item types.StackItems) error {
 			}
 		}
 	case *types.Struct:
-		st := item.GetStruct()
+		st, _ := item.GetStruct()
 		for _, v := range st {
 			if err := BuildParamToNative(bf, v); err != nil {
 				return err

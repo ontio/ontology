@@ -29,7 +29,10 @@ func validatorAttribute(engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[validatorAttribute] Too few input parameters ")
 	}
-	d := vm.PeekInteropInterface(engine)
+	d, err := vm.PeekInteropInterface(engine)
+	if err != nil {
+		return err
+	}
 	if d == nil {
 		return errors.NewErr("[validatorAttribute] Pop txAttribute nil!")
 	}
@@ -58,7 +61,10 @@ func validatorBlockTransaction(engine *vm.ExecutionEngine) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[validatorBlockTransaction] Validate block fail!")
 	}
-	index := vm.PeekInt(engine)
+	index, err := vm.PeekInt(engine)
+	if err != nil {
+		return err
+	}
 	if index < 0 {
 		return errors.NewErr("[validatorBlockTransaction] Pop index invalid!")
 	}
@@ -100,7 +106,10 @@ func validatorHeader(engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[validatorHeader] Too few input parameters ")
 	}
-	item := vm.PeekInteropInterface(engine)
+	item, err := vm.PeekInteropInterface(engine)
+	if err != nil {
+		return err
+	}
 	if item == nil {
 		return errors.NewErr("[validatorHeader] Blockdata is nil!")
 	}
@@ -111,7 +120,10 @@ func validatorTransaction(engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[validatorTransaction] Too few input parameters ")
 	}
-	item := vm.PeekInteropInterface(engine)
+	item, err := vm.PeekInteropInterface(engine)
+	if err != nil {
+		return err
+	}
 	if item == nil {
 		return errors.NewErr("[validatorTransaction] Blockdata is nil!")
 	}
@@ -126,7 +138,10 @@ func validatorGetCode(engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[validatorGetCode] Too few input parameters ")
 	}
-	item := vm.PeekInteropInterface(engine)
+	item, err := vm.PeekInteropInterface(engine)
+	if err != nil {
+		return err
+	}
 	if item == nil {
 		return errors.NewErr("[validatorGetCode] Contract is nil!")
 	}
@@ -173,7 +188,10 @@ func validatorDeserialize(engine *vm.ExecutionEngine) error {
 }
 
 func peekBlock(engine *vm.ExecutionEngine) (*types.Block, error) {
-	d := vm.PeekInteropInterface(engine)
+	d, err := vm.PeekInteropInterface(engine)
+	if err != nil {
+		return nil, err
+	}
 	if d == nil {
 		return nil, errors.NewErr("[Block] Pop blockdata nil!")
 	}

@@ -19,6 +19,7 @@
 package types
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/ontio/ontology/vm/neovm/interfaces"
@@ -38,42 +39,46 @@ func (this *Boolean) Equals(other StackItems) bool {
 	if _, ok := other.(*Boolean); !ok {
 		return false
 	}
-	if this.value != other.GetBoolean() {
+	b, err := other.GetBoolean()
+	if err != nil {
+		return false
+	}
+	if this.value != b {
 		return false
 	}
 	return true
 }
 
-func (this *Boolean) GetBigInteger() *big.Int {
+func (this *Boolean) GetBigInteger() (*big.Int, error) {
 	if this.value {
-		return big.NewInt(1)
+		return big.NewInt(1), nil
 	}
-	return big.NewInt(0)
+	return big.NewInt(0), nil
 }
 
-func (this *Boolean) GetBoolean() bool {
-	return this.value
+func (this *Boolean) GetBoolean() (bool, error) {
+	return this.value, nil
 }
 
-func (this *Boolean) GetByteArray() []byte {
+func (this *Boolean) GetByteArray() ([]byte, error) {
 	if this.value {
-		return []byte{1}
+		return []byte{1}, nil
 	}
-	return []byte{0}
+	return []byte{0}, nil
 }
 
-func (this *Boolean) GetInterface() interfaces.Interop {
-	return nil
+func (this *Boolean) GetInterface() (interfaces.Interop, error) {
+	return nil, fmt.Errorf("%s", "Not support boolean to interface")
 }
 
-func (this *Boolean) GetArray() []StackItems {
-	return nil
+func (this *Boolean) GetArray() ([]StackItems, error) {
+	return nil, fmt.Errorf("%s", "Not support boolean to array")
 }
 
-func (this *Boolean) GetStruct() []StackItems {
-	return nil
+func (this *Boolean) GetStruct() ([]StackItems, error) {
+	return nil, fmt.Errorf("%s", "Not support boolean to struct")
 }
 
-func (this *Boolean) GetMap() map[StackItems]StackItems {
-	return nil
+func (this *Boolean) GetMap() (map[StackItems]StackItems, error) {
+	return nil, fmt.Errorf("%s", "Not support boolean to map")
 }

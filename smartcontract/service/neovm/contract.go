@@ -98,7 +98,10 @@ func ContractGetStorageContext(service *NeoVmService, engine *vm.ExecutionEngine
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[GetStorageContext] Too few input parameter!")
 	}
-	opInterface := vm.PopInteropInterface(engine)
+	opInterface, err := vm.PopInteropInterface(engine)
+	if err != nil {
+		return err
+	}
 	if opInterface == nil {
 		return errors.NewErr("[GetStorageContext] Pop data nil!")
 	}
@@ -120,7 +123,11 @@ func ContractGetStorageContext(service *NeoVmService, engine *vm.ExecutionEngine
 
 // ContractGetCode put contract to vm stack
 func ContractGetCode(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	vm.PushData(engine, vm.PopInteropInterface(engine).(*payload.DeployCode).Code)
+	i, err := vm.PopInteropInterface(engine)
+	if err != nil {
+		return err
+	}
+	vm.PushData(engine, i.(*payload.DeployCode).Code)
 	return nil
 }
 
@@ -128,28 +135,49 @@ func isContractParamValid(engine *vm.ExecutionEngine) (*payload.DeployCode, erro
 	if vm.EvaluationStackCount(engine) < 7 {
 		return nil, errors.NewErr("[Contract] Too few input parameters")
 	}
-	code := vm.PopByteArray(engine)
+	code, err := vm.PopByteArray(engine)
+	if err != nil {
+		return nil, err
+	}
 	if len(code) > 1024*1024 {
 		return nil, errors.NewErr("[Contract] Code too long!")
 	}
-	needStorage := vm.PopBoolean(engine)
-	name := vm.PopByteArray(engine)
+	needStorage, err := vm.PopBoolean(engine)
+	if err != nil {
+		return nil, err
+	}
+	name, err := vm.PopByteArray(engine)
+	if err != nil {
+		return nil, err
+	}
 	if len(name) > 252 {
 		return nil, errors.NewErr("[Contract] Name too long!")
 	}
-	version := vm.PopByteArray(engine)
+	version, err := vm.PopByteArray(engine)
+	if err != nil {
+		return nil, err
+	}
 	if len(version) > 252 {
 		return nil, errors.NewErr("[Contract] Version too long!")
 	}
-	author := vm.PopByteArray(engine)
+	author, err := vm.PopByteArray(engine)
+	if err != nil {
+		return nil, err
+	}
 	if len(author) > 252 {
 		return nil, errors.NewErr("[Contract] Author too long!")
 	}
-	email := vm.PopByteArray(engine)
+	email, err := vm.PopByteArray(engine)
+	if err != nil {
+		return nil, err
+	}
 	if len(email) > 252 {
 		return nil, errors.NewErr("[Contract] Email too long!")
 	}
-	desc := vm.PopByteArray(engine)
+	desc, err := vm.PopByteArray(engine)
+	if err != nil {
+		return nil, err
+	}
 	if len(desc) > 65536 {
 		return nil, errors.NewErr("[Contract] Desc too long!")
 	}

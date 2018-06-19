@@ -19,6 +19,7 @@
 package types
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/ontio/ontology/vm/neovm/interfaces"
@@ -58,33 +59,33 @@ func (this *Map) Equals(that StackItems) bool {
 	return reflect.DeepEqual(this, that)
 }
 
-func (this *Map) GetBoolean() bool {
-	return true
+func (this *Map) GetBoolean() (bool, error) {
+	return false, fmt.Errorf("%s", "Not support map to boolean")
 }
 
-func (this *Map) GetByteArray() []byte {
-	return nil
+func (this *Map) GetByteArray() ([]byte, error) {
+	return nil, fmt.Errorf("%s", "Not support map to byte array")
 	//return this.ToArray()
 }
 
-func (this *Map) GetBigInteger() *big.Int {
-	return nil
+func (this *Map) GetBigInteger() (*big.Int, error) {
+	return nil, fmt.Errorf("%s", "Not support map to integer")
 }
 
-func (this *Map) GetInterface() interfaces.Interop {
-	return nil
+func (this *Map) GetInterface() (interfaces.Interop, error) {
+	return nil, fmt.Errorf("%s", "Not support map to interface")
 }
 
-func (this *Map) GetArray() []StackItems {
-	return nil
+func (this *Map) GetArray() ([]StackItems, error) {
+	return nil, fmt.Errorf("%s", "Not support map to array")
 }
 
-func (this *Map) GetStruct() []StackItems {
-	return nil
+func (this *Map) GetStruct() ([]StackItems, error) {
+	return nil, fmt.Errorf("%s", "Not support map to struct")
 }
 
-func (this *Map) GetMap() map[StackItems]StackItems {
-	return this._map
+func (this *Map) GetMap() (map[StackItems]StackItems, error) {
+	return this._map, nil
 }
 
 func (this *Map) TryGetValue(key StackItems) StackItems {
@@ -94,5 +95,4 @@ func (this *Map) TryGetValue(key StackItems) StackItems {
 		}
 	}
 	return nil
-	//return this._map[key]
 }

@@ -21,6 +21,7 @@ package types
 import (
 	"math/big"
 
+	"fmt"
 	"github.com/ontio/ontology/vm/neovm/interfaces"
 )
 
@@ -39,7 +40,10 @@ func (this *Array) Equals(other StackItems) bool {
 		return false
 	}
 	a1 := this._array
-	a2 := other.GetArray()
+	a2, err := other.GetArray()
+	if err != nil {
+		return false
+	}
 	l1 := len(a1)
 	l2 := len(a2)
 	if l1 != l2 {
@@ -53,34 +57,38 @@ func (this *Array) Equals(other StackItems) bool {
 	return true
 }
 
-func (this *Array) GetBigInteger() *big.Int {
-	return big.NewInt(0)
+func (this *Array) GetBigInteger() (*big.Int, error) {
+	return nil, fmt.Errorf("%s", "Not support array to integer")
 }
 
-func (this *Array) GetBoolean() bool {
-	return true
+func (this *Array) GetBoolean() (bool, error) {
+	return false, fmt.Errorf("%s", "Not support array to boolean")
 }
 
-func (this *Array) GetByteArray() []byte {
-	return nil
+func (this *Array) GetByteArray() ([]byte, error) {
+	return nil, fmt.Errorf("%s", "Not support array to byte array")
 }
 
-func (this *Array) GetInterface() interfaces.Interop {
-	return nil
+func (this *Array) GetInterface() (interfaces.Interop, error) {
+	return nil, fmt.Errorf("%s", "Not support array to interface")
 }
 
-func (this *Array) GetArray() []StackItems {
-	return this._array
+func (this *Array) GetArray() ([]StackItems, error) {
+	return this._array, nil
 }
 
-func (this *Array) GetStruct() []StackItems {
-	return this._array
+func (this *Array) GetStruct() ([]StackItems, error) {
+	return this._array, nil
 }
 
-func (this *Array) GetMap() map[StackItems]StackItems {
-	return nil
+func (this *Array) GetMap() (map[StackItems]StackItems, error) {
+	return nil, fmt.Errorf("%s", "Not support array to map")
 }
 
 func (this *Array) Add(item StackItems) {
 	this._array = append(this._array, item)
+}
+
+func (this *Array) Count() int {
+	return len(this._array)
 }

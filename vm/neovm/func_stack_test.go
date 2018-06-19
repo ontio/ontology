@@ -32,7 +32,11 @@ func TestOpToDupFromAltStack(t *testing.T) {
 	e.AltStack.Push(types.NewInteger(big.NewInt(9999)))
 
 	opToDupFromAltStack(&e)
-	ret := e.EvaluationStack.Pop().GetBigInteger().Int64()
+	v, err := e.EvaluationStack.Pop().GetBigInteger()
+	if err != nil {
+		t.Fatal("NeoVM opToDupFromAltStack test failed.")
+	}
+	ret := v.Int64()
 
 	if ret != 9999 {
 		t.Fatal("NeoVM opToDupFromAltStack test failed.")
@@ -47,7 +51,11 @@ func TestOpToAltStack(t *testing.T) {
 	e.EvaluationStack.Push(types.NewInteger(big.NewInt(9999)))
 
 	opToAltStack(&e)
-	alt := e.AltStack.Peek(0).GetBigInteger().Int64()
+	v, err := e.AltStack.Peek(0).GetBigInteger()
+	if err != nil {
+		t.Fatal("NeoVM opToDupFromAltStack test failed.")
+	}
+	alt := v.Int64()
 	eval := e.EvaluationStack.Peek(0)
 
 	if eval != nil || alt != 9999 {
@@ -63,7 +71,11 @@ func TestOpFromAltStack(t *testing.T) {
 
 	opFromAltStack(&e)
 	alt := e.AltStack.Peek(0)
-	eval := e.EvaluationStack.Peek(0).GetBigInteger().Int64()
+	v, err := e.EvaluationStack.Peek(0).GetBigInteger()
+	if err != nil {
+		t.Fatal("NeoVM opToDupFromAltStack test failed.")
+	}
+	eval := v.Int64()
 
 	if alt != nil || eval != 9999 {
 		t.Fatal("NeoVM opFromAltStack test failed.")
@@ -80,8 +92,16 @@ func TestOpXDrop(t *testing.T) {
 	e.EvaluationStack = stack
 
 	opXDrop(&e)
-	e1 := stack.Peek(0).GetBigInteger().Int64()
-	e2 := stack.Peek(1).GetBigInteger().Int64()
+	v1, err := stack.Peek(0).GetBigInteger()
+	if err != nil {
+		t.Fatal("NeoVM OpXDrop test failed.")
+	}
+	v2, err := stack.Peek(1).GetBigInteger()
+	if err != nil {
+		t.Fatal("NeoVM OpXDrop test failed.")
+	}
+	e1 := v1.Int64()
+	e2 := v2.Int64()
 
 	if stack.Count() != 2 || e1 != 7777 || e2 != 9999 {
 		t.Fatal("NeoVM OpXDrop test failed.")
@@ -98,8 +118,16 @@ func TestOpXSwap(t *testing.T) {
 	e.EvaluationStack = stack
 
 	opXSwap(&e)
-	e1 := stack.Peek(0).GetBigInteger().Int64()
-	e2 := stack.Peek(1).GetBigInteger().Int64()
+	v1, err := stack.Peek(0).GetBigInteger()
+	if err != nil {
+		t.Fatal("NeoVM OpXSwap test failed.")
+	}
+	v2, err := stack.Peek(1).GetBigInteger()
+	if err != nil {
+		t.Fatal("NeoVM OpXSwap test failed.")
+	}
+	e1 := v1.Int64()
+	e2 := v2.Int64()
 
 	if stack.Count() != 3 || e1 != 8888 || e2 != 7777 {
 		t.Fatal("NeoVM OpXSwap test failed.")
@@ -117,8 +145,16 @@ func TestOpXTuck(t *testing.T) {
 	e.EvaluationStack = stack
 
 	opXSwap(&e)
-	e1 := stack.Peek(0).GetBigInteger().Int64()
-	e2 := stack.Peek(2).GetBigInteger().Int64()
+	v1, err := stack.Peek(0).GetBigInteger()
+	if err != nil {
+		t.Fatal("NeoVM OpXTuck test failed.")
+	}
+	v2, err := stack.Peek(2).GetBigInteger()
+	if err != nil {
+		t.Fatal("NeoVM OpXTuck test failed.")
+	}
+	e1 := v1.Int64()
+	e2 := v2.Int64()
 
 	if stack.Count() != 3 || e1 != 9999 || e2 != 7777 {
 		t.Fatal("NeoVM OpXTuck test failed.")
@@ -133,7 +169,11 @@ func TestOpDepth(t *testing.T) {
 	e.EvaluationStack = stack
 
 	opDepth(&e)
-	if e.EvaluationStack.Count() != 3 || PeekBigInteger(&e).Int64() != 2 {
+	v, err := PeekBigInteger(&e)
+	if err != nil {
+		t.Fatal("NeoVM OpDepth test failed.")
+	}
+	if e.EvaluationStack.Count() != 3 || v.Int64() != 2 {
 		t.Fatal("NeoVM OpDepth test failed.")
 	}
 }
@@ -157,8 +197,16 @@ func TestOpDup(t *testing.T) {
 	e.EvaluationStack = stack
 
 	opDup(&e)
-	e1 := stack.Peek(0).GetBigInteger().Int64()
-	e2 := stack.Peek(1).GetBigInteger().Int64()
+	v1, err := stack.Peek(0).GetBigInteger()
+	if err != nil {
+		t.Fatal("NeoVM OpDup test failed.")
+	}
+	v2, err := stack.Peek(1).GetBigInteger()
+	if err != nil {
+		t.Fatal("NeoVM OpDup test failed.")
+	}
+	e1 := v1.Int64()
+	e2 := v2.Int64()
 
 	if stack.Count() != 2 || e1 != 9999 || e2 != 9999 {
 		t.Fatal("NeoVM OpDup test failed.")
@@ -173,7 +221,11 @@ func TestOpNip(t *testing.T) {
 	e.EvaluationStack = stack
 
 	opNip(&e)
-	e1 := stack.Peek(0).GetBigInteger().Int64()
+	v, err := stack.Peek(0).GetBigInteger()
+	if err != nil {
+		t.Fatal("NeoVM OpNip test failed.")
+	}
+	e1 := v.Int64()
 
 	if stack.Count() != 1 || e1 != 8888 {
 		t.Fatal("NeoVM OpNip test failed.")
@@ -188,8 +240,16 @@ func TestOpOver(t *testing.T) {
 	e.EvaluationStack = stack
 
 	opOver(&e)
-	e1 := stack.Peek(0).GetBigInteger().Int64()
-	e2 := stack.Peek(1).GetBigInteger().Int64()
+	v1, err := stack.Peek(0).GetBigInteger()
+	if err != nil {
+		t.Fatal("NeoVM OpOver test failed.")
+	}
+	v2, err := stack.Peek(1).GetBigInteger()
+	if err != nil {
+		t.Fatal("NeoVM OpOver test failed.")
+	}
+	e1 := v1.Int64()
+	e2 := v2.Int64()
 
 	if stack.Count() != 3 || e1 != 9999 || e2 != 8888 {
 		t.Fatal("NeoVM OpOver test failed.")
@@ -208,8 +268,16 @@ func TestOpPick(t *testing.T) {
 	e.EvaluationStack = stack
 
 	opPick(&e)
-	e1 := stack.Peek(0).GetBigInteger().Int64()
-	e2 := stack.Peek(1).GetBigInteger().Int64()
+	v1, err := stack.Peek(0).GetBigInteger()
+	if err != nil {
+		t.Fatal("NeoVM OpPick test failed.")
+	}
+	v2, err := stack.Peek(1).GetBigInteger()
+	if err != nil {
+		t.Fatal("NeoVM OpPick test failed.")
+	}
+	e1 := v1.Int64()
+	e2 := v2.Int64()
 
 	if stack.Count() != 5 || e1 != 9999 || e2 != 6666 {
 		t.Fatal("NeoVM OpPick test failed.")
@@ -225,9 +293,21 @@ func TestOpRot(t *testing.T) {
 	e.EvaluationStack = stack
 
 	opRot(&e)
-	e1 := stack.Peek(0).GetBigInteger().Int64()
-	e2 := stack.Peek(1).GetBigInteger().Int64()
-	e3 := stack.Peek(2).GetBigInteger().Int64()
+	v1, err := stack.Peek(0).GetBigInteger()
+	if err != nil {
+		t.Fatal("NeoVM OpRot test failed.")
+	}
+	v2, err := stack.Peek(1).GetBigInteger()
+	if err != nil {
+		t.Fatal("NeoVM OpRot test failed.")
+	}
+	v3, err := stack.Peek(2).GetBigInteger()
+	if err != nil {
+		t.Fatal("NeoVM OpRot test failed.")
+	}
+	e1 := v1.Int64()
+	e2 := v2.Int64()
+	e3 := v3.Int64()
 
 	if stack.Count() != 3 || e1 != 9999 || e2 != 7777 || e3 != 8888 {
 		t.Fatal("NeoVM OpRot test failed.")
@@ -242,8 +322,16 @@ func TestOpSwap(t *testing.T) {
 	e.EvaluationStack = stack
 
 	opSwap(&e)
-	e1 := stack.Peek(0).GetBigInteger().Int64()
-	e2 := stack.Peek(1).GetBigInteger().Int64()
+	v1, err := stack.Peek(0).GetBigInteger()
+	if err != nil {
+		t.Fatal("NeoVM OpSwap test failed.")
+	}
+	v2, err := stack.Peek(1).GetBigInteger()
+	if err != nil {
+		t.Fatal("NeoVM OpSwap test failed.")
+	}
+	e1 := v1.Int64()
+	e2 := v2.Int64()
 
 	if stack.Count() != 2 || e1 != 9999 || e2 != 8888 {
 		t.Fatal("NeoVM OpSwap test failed.")
@@ -258,9 +346,21 @@ func TestOpTuck(t *testing.T) {
 	e.EvaluationStack = stack
 
 	opTuck(&e)
-	e1 := stack.Peek(0).GetBigInteger().Int64()
-	e2 := stack.Peek(1).GetBigInteger().Int64()
-	e3 := stack.Peek(2).GetBigInteger().Int64()
+	v1, err := stack.Peek(0).GetBigInteger()
+	if err != nil {
+		t.Fatal("NeoVM OpTuck test failed.")
+	}
+	v2, err := stack.Peek(1).GetBigInteger()
+	if err != nil {
+		t.Fatal("NeoVM OpTuck test failed.")
+	}
+	v3, err := stack.Peek(2).GetBigInteger()
+	if err != nil {
+		t.Fatal("NeoVM OpTuck test failed.")
+	}
+	e1 := v1.Int64()
+	e2 := v2.Int64()
+	e3 := v3.Int64()
 
 	if stack.Count() != 3 || e1 != 8888 || e2 != 9999 || e3 != 8888 {
 		t.Fatal("NeoVM OpTuck test failed.")

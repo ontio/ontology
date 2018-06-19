@@ -28,16 +28,27 @@ import (
 func opArraySize(e *ExecutionEngine) (VMState, error) {
 	item := PopStackItem(e)
 	if _, ok := item.(*types.Array); ok {
-		PushData(e, len(item.GetArray()))
+		a, err := item.GetArray()
+		if err != nil {
+			return FAULT, err
+		}
+		PushData(e, len(a))
 	} else {
-		PushData(e, len(item.GetByteArray()))
+		b, err := item.GetByteArray()
+		if err != nil {
+			return FAULT, err
+		}
+		PushData(e, len(b))
 	}
 
 	return NONE, nil
 }
 
 func opPack(e *ExecutionEngine) (VMState, error) {
-	size := PopInt(e)
+	size, err := PopInt(e)
+	if err != nil {
+		return FAULT, err
+	}
 	var items []types.StackItems
 	for i := 0; i < size; i++ {
 		items = append(items, PopStackItem(e))
@@ -47,7 +58,10 @@ func opPack(e *ExecutionEngine) (VMState, error) {
 }
 
 func opUnpack(e *ExecutionEngine) (VMState, error) {
-	arr := PopArray(e)
+	arr, err := PopArray(e)
+	if err != nil {
+		return FAULT, err
+	}
 	l := len(arr)
 	for i := l - 1; i >= 0; i-- {
 		Push(e, arr[i])
@@ -62,17 +76,21 @@ func opPickItem(e *ExecutionEngine) (VMState, error) {
 
 	switch items.(type) {
 	case *types.Array:
-		i := int(index.GetBigInteger().Int64())
-		if i < 0 || i >= len(items.GetArray()) {
+		bi, _ := index.GetBigInteger()
+		i := int(bi.Int64())
+		a, _ := items.GetArray()
+		if i < 0 || i >= len(a) {
 			return FAULT, errors.NewErr("opPickItem invalid array.")
 		}
-		PushData(e, items.GetArray()[i])
+		PushData(e, a[i])
 	case *types.Struct:
-		i := int(index.GetBigInteger().Int64())
-		if i < 0 || i >= len(items.GetStruct()) {
+		bi, _ := index.GetBigInteger()
+		i := int(bi.Int64())
+		s, _ := items.GetStruct()
+		if i < 0 || i >= len(s) {
 			return FAULT, errors.NewErr("opPickItem invalid array.")
 		}
-		PushData(e, items.GetStruct()[i])
+		PushData(e, s[i])
 	case *types.Map:
 		value := items.(*types.Map).TryGetValue(index)
 		//TODO should return a nil type when not exist?
@@ -99,17 +117,23 @@ func opSetItem(e *ExecutionEngine) (VMState, error) {
 
 	switch item.(type) {
 	case *types.Map:
-		item.GetMap()[index] = newItem
+		m, err := item.GetMap()
+		if err != nil {
+			return FAULT, err
+		}
+		m[index] = newItem
 	case *types.Array:
-		items := item.GetArray()
-		i := int(index.GetBigInteger().Int64())
+		items, _ := item.GetArray()
+		bi, _ := index.GetBigInteger()
+		i := int(bi.Int64())
 		if i < 0 || i >= len(items) {
 			return FAULT, errors.NewErr("opSetItem invalid array.")
 		}
 		items[i] = newItem
 	case *types.Struct:
-		items := item.GetStruct()
-		i := int(index.GetBigInteger().Int64())
+		items, _ := item.GetStruct()
+		bi, _ := index.GetBigInteger()
+		i := int(bi.Int64())
 		if i < 0 || i >= len(items) {
 			return FAULT, errors.NewErr("opSetItem invalid array.")
 		}
@@ -122,7 +146,7 @@ func opSetItem(e *ExecutionEngine) (VMState, error) {
 }
 
 func opNewArray(e *ExecutionEngine) (VMState, error) {
-	count := PopInt(e)
+	count, _ := PopInt(e)
 	var items []types.StackItems
 	for i := 0; i < count; i++ {
 		items = append(items, types.NewBoolean(false))
@@ -132,7 +156,7 @@ func opNewArray(e *ExecutionEngine) (VMState, error) {
 }
 
 func opNewStruct(e *ExecutionEngine) (VMState, error) {
-	count := PopBigInt(e)
+	count, _ := PopBigInt(e)
 	var items []types.StackItems
 	for i := 0; count.Cmp(big.NewInt(int64(i))) > 0; i++ {
 		items = append(items, types.NewBoolean(false))
@@ -162,7 +186,7 @@ func opAppend(e *ExecutionEngine) (VMState, error) {
 }
 
 func opReverse(e *ExecutionEngine) (VMState, error) {
-	itemArr := PopArray(e)
+	itemArr, _ := PopArray(e)
 	for i, j := 0, len(itemArr)-1; i < j; i, j = i+1, j-1 {
 		itemArr[i], itemArr[j] = itemArr[j], itemArr[i]
 	}

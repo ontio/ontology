@@ -19,6 +19,7 @@
 package types
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/ontio/ontology/common"
@@ -39,39 +40,43 @@ func (this *Integer) Equals(other StackItems) bool {
 	if _, ok := other.(*Integer); !ok {
 		return false
 	}
-	if this.value.Cmp(other.GetBigInteger()) != 0 {
+	v, err := other.GetBigInteger()
+	if err != nil {
+		return false
+	}
+	if this.value.Cmp(v) != 0 {
 		return false
 	}
 	return true
 }
 
-func (this *Integer) GetBigInteger() *big.Int {
-	return this.value
+func (this *Integer) GetBigInteger() (*big.Int, error) {
+	return this.value, nil
 }
 
-func (this *Integer) GetBoolean() bool {
+func (this *Integer) GetBoolean() (bool, error) {
 	if this.value.Cmp(big.NewInt(0)) == 0 {
-		return false
+		return false, nil
 	}
-	return true
+	return true, nil
 }
 
-func (this *Integer) GetByteArray() []byte {
-	return common.BigIntToNeoBytes(this.value)
+func (this *Integer) GetByteArray() ([]byte, error) {
+	return common.BigIntToNeoBytes(this.value), nil
 }
 
-func (this *Integer) GetInterface() interfaces.Interop {
-	return nil
+func (this *Integer) GetInterface() (interfaces.Interop, error) {
+	return nil, fmt.Errorf("%s", "Not support integer to interface")
 }
 
-func (this *Integer) GetArray() []StackItems {
-	return nil
+func (this *Integer) GetArray() ([]StackItems, error) {
+	return nil, fmt.Errorf("%s", "Not support integer to array")
 }
 
-func (this *Integer) GetStruct() []StackItems {
-	return nil
+func (this *Integer) GetStruct() ([]StackItems, error) {
+	return nil, fmt.Errorf("%s", "Not support integer to struct")
 }
 
-func (this *Integer) GetMap() map[StackItems]StackItems {
-	return nil
+func (this *Integer) GetMap() (map[StackItems]StackItems, error) {
+	return nil, fmt.Errorf("%s", "Not support integer to map")
 }

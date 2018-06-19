@@ -34,8 +34,12 @@ func TestOpArraySize(t *testing.T) {
 	e.EvaluationStack = stack
 
 	opArraySize(&e)
-	if PeekInt(&e) != 5 {
-		t.Fatalf("NeoVM OpArraySize test failed, expect 5, got %d.", PeekInt(&e))
+	v, err := PeekInt(&e)
+	if err != nil {
+		t.Fatalf("NeoVM OpArraySize test failed.")
+	}
+	if v != 5 {
+		t.Fatalf("NeoVM OpArraySize test failed, expect 5, got %d.", v)
 	}
 }
 
@@ -58,13 +62,21 @@ func TestOpPack(t *testing.T) {
 	items = append(items, vtypes.NewByteArray([]byte("bbb")))
 	items = append(items, vtypes.NewByteArray([]byte("aaa")))
 
-	arr := PeekArray(&e)
+	arr, err := PeekArray(&e)
+	if err != nil {
+		t.Fatalf("NeoVM OpPack test failed.")
+	}
 	if len(arr) != 3 {
 		t.Fatalf("NeoVM OpPack test failed, expect 3, got %d.", len(arr))
 	}
 
 	for i := 0; i < 3; i++ {
-		if !bytes.Equal(arr[i].GetByteArray(), items[i].GetByteArray()) {
+		v1, arrErr := arr[i].GetByteArray()
+		v2, itemErr := items[i].GetByteArray()
+		if arrErr != nil || itemErr != nil {
+			t.Fatal("NeoVM OpPack test failed.")
+		}
+		if !bytes.Equal(v1, v2) {
 			t.Fatal("NeoVM OpPack test failed")
 		}
 	}
@@ -82,12 +94,21 @@ func TestOpUnpack(t *testing.T) {
 	PushData(&e, items)
 
 	opUnpack(&e)
-	if stack.Count() != 4 || PopInt(&e) != 3 {
+	v, err := PopInt(&e)
+	if err != nil {
+		t.Fatalf("NeoVM OpUnpack test failed.")
+	}
+	if stack.Count() != 3 || v != 3 {
 		t.Fatalf("NeoVM OpUnpack test failed, expect 3, got %d.", stack.Count())
 	}
 
 	for i := 0; i < 3; i++ {
-		if !bytes.Equal(PopStackItem(&e).GetByteArray(), items[i].GetByteArray()) {
+		v1, err1 := PopStackItem(&e).GetByteArray()
+		v2, err2 := items[i].GetByteArray()
+		if err1 != nil || err2 != nil {
+			t.Fatal("NeoVM OpUnpack test failed.")
+		}
+		if !bytes.Equal(v1, v2) {
 			t.Fatal("NeoVM OpUnpack test failed")
 		}
 	}
@@ -106,7 +127,11 @@ func TestOpPickItem(t *testing.T) {
 	stack.Push(NewStackItem(vtypes.NewInteger(big.NewInt(0))))
 
 	opPickItem(&e)
-	if stack.Count() != 1 || !bytes.Equal(PeekStackItem(&e).GetByteArray(), []byte("aaa")) {
+	v, err := PeekStackItem(&e).GetByteArray()
+	if err != nil {
+		t.Fatal("NeoVM OpPickItem test failed.")
+	}
+	if stack.Count() != 1 || !bytes.Equal(v, []byte("aaa")) {
 		t.Fatal("NeoVM OpPickItem test failed.")
 	}
 }
@@ -124,20 +149,17 @@ func TestOpReverse(t *testing.T) {
 	PushData(&e1, items)
 	PushData(&e2, items)
 
-	t.Log("=======Before===========")
-
-	t.Log(string(PeekArray(&e2)[0].GetByteArray()))
-	t.Log(string(PeekArray(&e2)[1].GetByteArray()))
-	t.Log(string(PeekArray(&e2)[2].GetByteArray()))
-
 	opReverse(&e1)
+	arr, err := PeekArray(&e2)
+	if err != nil {
+		t.Fatal("NeoVM OpReverse test failed.")
+	}
+	v, err := arr[0].GetByteArray()
+	if err != nil {
+		t.Fatal("NeoVM OpReverse test failed.")
+	}
 
-	t.Log("=======After===========")
-	t.Log(string(PeekArray(&e2)[0].GetByteArray()))
-	t.Log(string(PeekArray(&e2)[1].GetByteArray()))
-	t.Log(string(PeekArray(&e2)[2].GetByteArray()))
-
-	if string(PeekArray(&e2)[0].GetByteArray()) != "ccc" {
-		t.Fatalf("NeoVM OpReverse test failed, expect ccc, get %s.", string(PeekArray(&e2)[0].GetByteArray()))
+	if string(v) != "ccc" {
+		t.Fatalf("NeoVM OpReverse test failed, expect ccc, get %s.", string(v))
 	}
 }
