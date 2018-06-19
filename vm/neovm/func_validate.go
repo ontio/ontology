@@ -452,7 +452,7 @@ func validatePickItem(e *ExecutionEngine) error {
 		if key == nil {
 			return errors.ERR_BAD_VALUE
 		}
-		if item.(*types.Map).TryGetValue(key) == nil {
+		if v := item.(*types.Map).TryGetValue(key); v == nil {
 			return errors.ERR_MAP_NOT_EXIST
 		}
 	default:
