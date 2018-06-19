@@ -65,6 +65,7 @@ const (
 	UPDATE_SPLIT_CURVE   = "updateSplitCurve"
 	CALL_SPLIT           = "callSplit"
 	TRANSFER_PENALTY     = "transferPenalty"
+	WITHDRAW_ONG         = "withdrawOng"
 
 	//key prefix
 	GLOBAL_PARAM    = "globalParam"
@@ -108,6 +109,7 @@ func RegisterGovernanceContract(native *native.NativeService) {
 	native.Register(UNVOTE_FOR_PEER, UnVoteForPeer)
 	native.Register(WITHDRAW, Withdraw)
 	native.Register(QUIT_NODE, QuitNode)
+	native.Register(WITHDRAW_ONG, WithdrawOng)
 
 	native.Register(INIT_CONFIG, InitConfig)
 	native.Register(APPROVE_CANDIDATE, ApproveCandidate)
@@ -1488,6 +1490,48 @@ func TransferPenalty(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+func WithdrawOng(native *native.NativeService) ([]byte, error) {
+	param := new(WithdrawOngParam)
+	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize transferPenaltyParam error!")
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+
+	//check witness
+	err := utils.ValidateOwner(native, param.Address)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "withdrawOng, checkWitness error!")
+	}
+
+	// ont transfer to trigger unboundong
+	err = appCallTransferOnt(native, utils.GovernanceContractAddress, utils.GovernanceContractAddress, 1)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
+	}
+
+	totalStake, err := getTotalStake(native, contract, param.Address)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getTotalStake, get totalStake error!")
+	}
+
+	preTimeOffset := totalStake.TimeOffset
+	timeOffset := native.Time - constants.GENESIS_BLOCK_TIMESTAMP
+
+	amount := utils.CalcUnbindOng(totalStake.Stake, preTimeOffset, timeOffset)
+	err = appCallTransferFromOng(native, utils.GovernanceContractAddress, utils.OntContractAddress, totalStake.Address, amount)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferFromOng, transfer from ong error!")
+	}
+
+	totalStake.TimeOffset = timeOffset
+
+	err = putTotalStake(native, contract, totalStake)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putTotalStake, put totalStake error!")
+	}
+	return utils.BYTE_TRUE, nil
+}
+
 func normalQuit(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem) error {
 	peerPubkeyPrefix, err := hex.DecodeString(peerPoolItem.PeerPubkey)
 	if err != nil {
@@ -1539,7 +1583,7 @@ func normalQuit(native *native.NativeService, contract common.Address, peerPoolI
 }
 
 func blackQuit(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem) error {
-	// 0 ont transfer to trigger unboundong
+	// ont transfer to trigger unboundong
 	err := appCallTransferOnt(native, utils.GovernanceContractAddress, utils.GovernanceContractAddress, peerPoolItem.InitPos)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, ont transfer error!")
@@ -1776,10 +1820,10 @@ func depositTotalStake(native *native.NativeService, contract common.Address, ad
 	}
 
 	preStake := totalStake.Stake
-	preTimestamp := totalStake.TimeOffset
+	preTimeOffset := totalStake.TimeOffset
 	timeOffset := native.Time - constants.GENESIS_BLOCK_TIMESTAMP
 
-	amount := utils.CalcUnbindOng(preStake, preTimestamp, timeOffset)
+	amount := utils.CalcUnbindOng(preStake, preTimeOffset, timeOffset)
 	err = appCallTransferFromOng(native, utils.GovernanceContractAddress, utils.OntContractAddress, totalStake.Address, amount)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferFromOng, transfer from ong error!")
@@ -1805,10 +1849,10 @@ func withdrawTotalStake(native *native.NativeService, contract common.Address, a
 	}
 
 	preStake := totalStake.Stake
-	preTimestamp := totalStake.TimeOffset
+	preTimeOffset := totalStake.TimeOffset
 	timeOffset := native.Time - constants.GENESIS_BLOCK_TIMESTAMP
 
-	amount := utils.CalcUnbindOng(preStake, preTimestamp, timeOffset)
+	amount := utils.CalcUnbindOng(preStake, preTimeOffset, timeOffset)
 	err = appCallTransferFromOng(native, utils.GovernanceContractAddress, utils.OntContractAddress, totalStake.Address, amount)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferFromOng, transfer from ong error!")
@@ -1833,11 +1877,11 @@ func depositPenaltyStake(native *native.NativeService, contract common.Address, 
 	preInitPos := penaltyStake.InitPos
 	preVotePos := penaltyStake.VotePos
 	preStake := preInitPos + preVotePos
-	preTimestamp := penaltyStake.TimeOffset
+	preTimeOffset := penaltyStake.TimeOffset
 	preAmount := penaltyStake.Amount
 	timeOffset := native.Time - constants.GENESIS_BLOCK_TIMESTAMP
 
-	amount := utils.CalcUnbindOng(preStake, preTimestamp, timeOffset)
+	amount := utils.CalcUnbindOng(preStake, preTimeOffset, timeOffset)
 
 	penaltyStake.Amount = preAmount + amount
 	penaltyStake.InitPos = preInitPos + initPos
@@ -1858,11 +1902,11 @@ func withdrawPenaltyStake(native *native.NativeService, contract common.Address,
 	}
 
 	preStake := penaltyStake.InitPos + penaltyStake.VotePos
-	preTimestamp := penaltyStake.TimeOffset
+	preTimeOffset := penaltyStake.TimeOffset
 	preAmount := penaltyStake.Amount
 	timeOffset := native.Time - constants.GENESIS_BLOCK_TIMESTAMP
 
-	amount := utils.CalcUnbindOng(preStake, preTimestamp, timeOffset)
+	amount := utils.CalcUnbindOng(preStake, preTimeOffset, timeOffset)
 
 	//ont transfer
 	err = appCallTransferOnt(native, utils.GovernanceContractAddress, address, preStake)
