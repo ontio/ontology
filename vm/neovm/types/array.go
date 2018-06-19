@@ -23,6 +23,7 @@ import (
 
 	"fmt"
 	"github.com/ontio/ontology/vm/neovm/interfaces"
+	"reflect"
 )
 
 type Array struct {
@@ -36,25 +37,7 @@ func NewArray(value []StackItems) *Array {
 }
 
 func (this *Array) Equals(other StackItems) bool {
-	if _, ok := other.(*Array); !ok {
-		return false
-	}
-	a1 := this._array
-	a2, err := other.GetArray()
-	if err != nil {
-		return false
-	}
-	l1 := len(a1)
-	l2 := len(a2)
-	if l1 != l2 {
-		return false
-	}
-	for i := 0; i < l1; i++ {
-		if !a1[i].Equals(a2[i]) {
-			return false
-		}
-	}
-	return true
+	return reflect.DeepEqual(this, other)
 }
 
 func (this *Array) GetBigInteger() (*big.Int, error) {
