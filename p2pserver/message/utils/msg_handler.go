@@ -48,10 +48,10 @@ func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 	}
 
 	var addrStr []msgCommon.PeerAddr
-	addrStr = p2p.GetNeighborAddrs()
-	for i, peer := range addrStr {
-		if remotePeer.GetID() == peer.ID {
-			addrStr = append(addrStr[:i], addrStr[i+1:]...)
+	neighborAddrs := p2p.GetNeighborAddrs()
+	for _, peer := range neighborAddrs {
+		if remotePeer.GetID() != peer.ID {
+			addrStr = append(addrStr, peer)
 		}
 	}
 
