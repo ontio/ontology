@@ -60,7 +60,7 @@ maxtxinblock 参数用于设置区块最大的交易数量。默认值是50000�
 #### 1.1.4 P2P网络参数
 
 --networkid
-networkid 参数用于指定网络ID，networkid不同将无法连接到区块链网络中。
+networkid 参数用于指定网络ID，networkid不同将无法连接到区块链网络中。1:主网, 2:polaris测试网络, 3:testmode测试网, 其他的是用户自定义网络。
 
 --nodeport
 nodeport 参数用于指定P2P网络端口号，默认值为20338。
