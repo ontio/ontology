@@ -51,7 +51,7 @@ func (this *Interop) Equals(other StackItems) bool {
 }
 
 func (this *Interop) GetBigInteger() (*big.Int, error) {
-	return big.NewInt(0), nil
+	return nil, fmt.Errorf("%s", "Not support interface to biginteger")
 }
 
 func (this *Interop) GetBoolean() (bool, error) {
@@ -62,7 +62,7 @@ func (this *Interop) GetBoolean() (bool, error) {
 }
 
 func (this *Interop) GetByteArray() ([]byte, error) {
-	return nil, fmt.Errorf("%s", "Not support interface to byte array")
+	return this._object.ToArray(), nil
 }
 
 func (this *Interop) GetInterface() (interfaces.Interop, error) {

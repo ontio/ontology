@@ -64,7 +64,7 @@ func (this *Map) Equals(that StackItems) bool {
 }
 
 func (this *Map) GetBoolean() (bool, error) {
-	return false, fmt.Errorf("%s", "Not support map to boolean")
+	return true, nil
 }
 
 func (this *Map) GetByteArray() ([]byte, error) {
