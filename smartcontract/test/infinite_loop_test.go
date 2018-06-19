@@ -26,6 +26,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/storage"
 	"os"
 	"testing"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInfiniteLoopCrash(t *testing.T) {
@@ -56,7 +57,5 @@ func TestInfiniteLoopCrash(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = engine.Invoke()
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Equal(t, "[NeoVmService] vm execute error!: the biginteger over max size 32bit", err.Error())
 }
