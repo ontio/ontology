@@ -45,7 +45,7 @@ func (this *Struct) GetBigInteger() (*big.Int, error) {
 }
 
 func (this *Struct) GetBoolean() (bool, error) {
-	return false, fmt.Errorf("%s", "Not support struct to boolean")
+	return true, nil
 }
 
 func (this *Struct) GetByteArray() ([]byte, error) {
