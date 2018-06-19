@@ -35,6 +35,7 @@ func TestMap(t *testing.T) {
 		byte(neovm.NEWMAP),
 		byte(neovm.DUP),   // dup map
 		byte(neovm.PUSH0), // key (index)
+		byte(neovm.PUSH0), // key (index)
 		byte(neovm.SETITEM),
 
 		byte(neovm.DUP),   // dup map
@@ -50,10 +51,6 @@ func TestMap(t *testing.T) {
 			byte(neovm.PUSH0), // key (index)
 
 			byte(neovm.PICKITEM),
-			byte(neovm.JMPIF), // dup map (items)
-			0x04, 0x00,        // skip a drop?
-			byte(neovm.DROP),
-			byte(neovm.DROP),
 		}...)
 
 	// count faults vs successful executions
@@ -83,13 +80,13 @@ func TestMap(t *testing.T) {
 			CloneCache: cache,
 		}
 		engine, err := sc.NewExecuteEngine(byteCode)
+
+		_, err = engine.Invoke()
 		if err != nil {
-			panic(err) // Run Code
-			_, err = engine.Invoke()
-			if err != nil {
-				faults += 1
-			}
+			fmt.Println("err:", err)
+			faults += 1
 		}
+
 	}
 	fmt.Println("Ran code", N, "times, experienced", faults, "faults")
 }
