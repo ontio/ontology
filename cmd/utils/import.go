@@ -26,6 +26,7 @@ import (
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
+	"io"
 	"os"
 )
 
@@ -64,12 +65,18 @@ func ImportBlocks(importFile string, targetHeight uint32) error {
 	log.Infof("Current block height:%d TotalBlocks:%d", currBlockHeight, endBlockHeight-currBlockHeight)
 
 	for i := uint32(0); i <= endBlockHeight; i++ {
-		size, err := serialization.ReadUint32(fReader)
+		sizeData := make([]byte, 4)
+		_, err := io.ReadFull(fReader, sizeData)
+		if err != nil {
+			return fmt.Errorf("Read block height:%d data size error:%s ", i, err)
+		}
+		size, err := serialization.ReadUint32(bytes.NewReader(sizeData))
 		if err != nil {
 			return fmt.Errorf("Read block height:%d error:%s", i, err)
 		}
 		compressData := make([]byte, size)
-		_, err = fReader.Read(compressData)
+
+		_, err = io.ReadFull(fReader, compressData)
 		if err != nil {
 			return fmt.Errorf("Read block data height:%d error:%s", i, err)
 		}
