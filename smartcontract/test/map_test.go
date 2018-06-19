@@ -57,27 +57,27 @@ func TestMap(t *testing.T) {
 	N := 1024
 	faults := 0
 
-	dbFile := "/tmp/test"
-	os.RemoveAll(dbFile)
-	testLevelDB, err := leveldbstore.NewLevelDBStore(dbFile)
-	if err != nil {
-		panic(err)
-	}
+	//dbFile := "/tmp/test"
+	//os.RemoveAll(dbFile)
+	//testLevelDB, err := leveldbstore.NewLevelDBStore(dbFile)
+	//if err != nil {
+	//	panic(err)
+	//}
 
 	for n := 0; n < N; n++ {
 		// Setup Execution Enviroment
-		store := statestore.NewMemDatabase()
-		testBatch := statestore.NewStateStoreBatch(store, testLevelDB)
+		//store := statestore.NewMemDatabase()
+		//testBatch := statestore.NewStateStoreBatch(store, testLevelDB)
 		config := &smartcontract.Config{
 			Time:   10,
 			Height: 10,
 			Tx:     &types.Transaction{},
 		}
-		cache := storage.NewCloneCache(testBatch)
+		//cache := storage.NewCloneCache(testBatch)
 		sc := smartcontract.SmartContract{
 			Config:     config,
 			Gas:        100,
-			CloneCache: cache,
+			CloneCache: nil,
 		}
 		engine, err := sc.NewExecuteEngine(byteCode)
 
