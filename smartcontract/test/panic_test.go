@@ -57,10 +57,10 @@ func TestRandomCodeCrash(t *testing.T) {
 		}
 	}()
 
-	for i := 1; i < 100; i++ {
-		fmt.Print("test round ", i)
+	for i := 1; i < 10; i++ {
+		fmt.Printf("test round:%d \n", i)
 		code := make([]byte, i)
-		for j := 0; j < 100000; j++ {
+		for j := 0; j < 10; j++ {
 			rand.Read(code)
 
 			cache := storage.NewCloneCache(testBatch)
