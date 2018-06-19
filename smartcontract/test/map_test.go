@@ -20,13 +20,10 @@ package test
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/core/store/leveldbstore"
-	"github.com/ontio/ontology/core/store/statestore"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract"
-	"github.com/ontio/ontology/smartcontract/storage"
 	"github.com/ontio/ontology/vm/neovm"
-	"os"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -51,6 +48,9 @@ func TestMap(t *testing.T) {
 			byte(neovm.PUSH0), // key (index)
 
 			byte(neovm.PICKITEM),
+			byte(neovm.JMPIF), // dup map (items)
+			0x04, 0x00,        // skip a drop?
+			byte(neovm.DROP),
 		}...)
 
 	// count faults vs successful executions
@@ -86,7 +86,7 @@ func TestMap(t *testing.T) {
 			fmt.Println("err:", err)
 			faults += 1
 		}
-
 	}
-	fmt.Println("Ran code", N, "times, experienced", faults, "faults")
+	assert.Equal(t, faults, 0)
+
 }
