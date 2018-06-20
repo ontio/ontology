@@ -245,6 +245,9 @@ func GetStorage(params []interface{}) map[string]interface{} {
 	}
 	value, err := bactor.GetStorageItem(address, key)
 	if err != nil {
+		if err == scom.ErrNotFound {
+			return responseSuccess(nil)
+		}
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
 	return responseSuccess(common.ToHexString(value))

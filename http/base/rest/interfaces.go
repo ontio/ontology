@@ -375,7 +375,10 @@ func GetStorage(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	value, err := bactor.GetStorageItem(address, item)
-	if err != nil || value == nil {
+	if err != nil {
+		if err == scom.ErrNotFound {
+			return ResponsePack(berr.SUCCESS)
+		}
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
 	resp["Result"] = common.ToHexString(value)
