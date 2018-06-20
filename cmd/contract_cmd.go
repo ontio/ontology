@@ -37,7 +37,7 @@ var (
 		Action:      cli.ShowSubcommandHelp,
 		Usage:       "Deploy or invoke smart contract",
 		ArgsUsage:   " ",
-		Description: `Deploy or invoke smart contract`,
+		Description: `Smart contract operations support the deployment of NeoVM smart contract, and the pre-execution and execution of NeoVM smart contract.`,
 		Subcommands: []cli.Command{
 			{
 				Action:    deployContract,
