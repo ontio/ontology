@@ -272,7 +272,6 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 			log.Error(err)
 			return
 		}
-
 	} else {
 		if version.P.Nonce == p2p.GetID() {
 			p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
