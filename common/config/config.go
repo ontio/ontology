@@ -456,11 +456,6 @@ type WebSocketConfig struct {
 	HttpKeyPath  string
 }
 
-type CliConfig struct {
-	EnableCliRpcServer bool
-	CliRpcPort         uint
-}
-
 type OntologyConfig struct {
 	Genesis   *GenesisConfig
 	Common    *CommonConfig
@@ -469,7 +464,6 @@ type OntologyConfig struct {
 	Rpc       *RpcConfig
 	Restful   *RestfulConfig
 	Ws        *WebSocketConfig
-	Cli       *CliConfig
 }
 
 func NewOntologyConfig() *OntologyConfig {
@@ -517,10 +511,6 @@ func NewOntologyConfig() *OntologyConfig {
 		Ws: &WebSocketConfig{
 			EnableHttpWs: true,
 			HttpWsPort:   DEFAULT_WS_PORT,
-		},
-		Cli: &CliConfig{
-			EnableCliRpcServer: false,
-			CliRpcPort:         DEFAULT_CLI_RPC_PORT,
 		},
 	}
 }

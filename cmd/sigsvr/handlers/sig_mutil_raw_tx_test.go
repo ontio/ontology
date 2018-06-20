@@ -23,7 +23,7 @@ import (
 	"encoding/json"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
-	clisvrcom "github.com/ontio/ontology/cmd/server/common"
+	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/core/types"
 	"testing"
