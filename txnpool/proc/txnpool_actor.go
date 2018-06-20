@@ -23,6 +23,7 @@ import (
 
 	"github.com/ontio/ontology-eventbus/actor"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	tx "github.com/ontio/ontology/core/types"
@@ -75,6 +76,13 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 
 		ta.server.increaseStats(tc.FailureStats)
 	} else {
+
+		if _, overflow := common.SafeMul(txn.GasLimit, txn.GasPrice); overflow {
+			log.Debugf("handleTransaction: gasLimit %v, gasPrice %v overflow",
+				txn.GasLimit, txn.GasPrice)
+			return
+		}
+
 		if txn.GasLimit < config.DefConfig.Common.GasLimit ||
 			txn.GasPrice < ta.server.getGasPrice() {
 			log.Debugf("handleTransaction: invalid gasLimit %v, gasPrice %v",
