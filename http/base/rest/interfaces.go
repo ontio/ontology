@@ -244,7 +244,7 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 			if _, ok := txn.Payload.(*payload.InvokeCode); ok {
 				resp["Result"], err = bactor.PreExecuteContract(&txn)
 				if err != nil {
-					log.Error(err)
+					log.Infof("PreExec: ", err)
 					return ResponsePack(berr.SMARTCODE_ERROR)
 				}
 				return resp
@@ -483,7 +483,7 @@ func GetAllowance(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-func GetUnclaimOng(cmd map[string]interface{}) map[string]interface{} {
+func GetUnboundOng(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	toAddrStr, ok := cmd["Addr"].(string)
 	if !ok {
