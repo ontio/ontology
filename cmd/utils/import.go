@@ -65,12 +65,7 @@ func ImportBlocks(importFile string, targetHeight uint32) error {
 	log.Infof("Current block height:%d TotalBlocks:%d", currBlockHeight, endBlockHeight-currBlockHeight)
 
 	for i := uint32(0); i <= endBlockHeight; i++ {
-		sizeData := make([]byte, 4)
-		_, err := io.ReadFull(fReader, sizeData)
-		if err != nil {
-			return fmt.Errorf("Read block height:%d data size error:%s ", i, err)
-		}
-		size, err := serialization.ReadUint32(bytes.NewReader(sizeData))
+		size, err := serialization.ReadUint32(fReader)
 		if err != nil {
 			return fmt.Errorf("Read block height:%d error:%s", i, err)
 		}
