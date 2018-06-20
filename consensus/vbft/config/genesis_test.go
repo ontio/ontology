@@ -21,6 +21,7 @@ package vconfig
 import (
 	"testing"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 )
@@ -28,9 +29,9 @@ import (
 func constructConfig() (*config.VBFTConfig, error) {
 	conf := &config.VBFTConfig{
 		N:                    7,
-		C:                    1,
-		K:                    4,
-		L:                    64,
+		C:                    2,
+		K:                    7,
+		L:                    112,
 		BlockMsgDelay:        10000,
 		HashMsgDelay:         10000,
 		PeerHandshakeTimeout: 10,
@@ -38,28 +39,43 @@ func constructConfig() (*config.VBFTConfig, error) {
 	}
 	var peersinfo []*config.VBFTPeerStakeInfo
 	peer1 := &config.VBFTPeerStakeInfo{
-		Index:      0,
-		PeerPubkey: "120202c924ed1a67fd1719020ce599d723d09d48362376836e04b0be72dfe825e24d810000",
-		InitPos:    1000,
+		Index:      1,
+		PeerPubkey: "0253ccfd439b29eca0fe90ca7c6eaa1f98572a054aa2d1d56e72ad96c466107a85",
+		InitPos:    0,
 	}
 	peer2 := &config.VBFTPeerStakeInfo{
-		Index:      1,
-		PeerPubkey: "120202935fb8d28b70706de6014a937402a30ae74a56987ed951abbe1ac9eeda56f0160000",
-		InitPos:    2000,
+		Index:      2,
+		PeerPubkey: "035eb654bad6c6409894b9b42289a43614874c7984bde6b03aaf6fc1d0486d9d45",
+		InitPos:    0,
 	}
 
 	peer3 := &config.VBFTPeerStakeInfo{
-		Index:      2,
-		PeerPubkey: "120202172f290c6d63b8014573c7722a72ccf778dd36272519fe0ff0b8b1281ec56b880000",
-		InitPos:    3000,
+		Index:      3,
+		PeerPubkey: "0281d198c0dd3737a9c39191bc2d1af7d65a44261a8a64d6ef74d63f27cfb5ed92",
+		InitPos:    0,
 	}
 
 	peer4 := &config.VBFTPeerStakeInfo{
-		Index:      3,
-		PeerPubkey: "1202036db3da9deb8bea20b1024944946ef3e6fcb71367faa096c63ad5ae97fc7af7a10000",
-		InitPos:    4000,
+		Index:      4,
+		PeerPubkey: "023967bba3060bf8ade06d9bad45d02853f6c623e4d4f52d767eb56df4d364a99f",
+		InitPos:    0,
 	}
-	peersinfo = append(peersinfo, peer1, peer2, peer3, peer4)
+	peer5 := &config.VBFTPeerStakeInfo{
+		Index:      5,
+		PeerPubkey: "038bfc50b0e3f0e5df6d451069065cbfa7ab5d382a5839cce82e0c963edb026e94",
+		InitPos:    0,
+	}
+	peer6 := &config.VBFTPeerStakeInfo{
+		Index:      6,
+		PeerPubkey: "03f1095289e7fddb882f1cb3e158acc1c30d9de606af21c97ba851821e8b6ea535",
+		InitPos:    0,
+	}
+	peer7 := &config.VBFTPeerStakeInfo{
+		Index:      8,
+		PeerPubkey: "0215865baab70607f4a2413a7a9ba95ab2c3c0202d5b7731c6824eef48e899fc90",
+		InitPos:    5000,
+	}
+	peersinfo = append(peersinfo, peer1, peer2, peer3, peer4, peer5, peer6, peer7)
 	conf.Peers = peersinfo
 	return conf, nil
 }
@@ -71,7 +87,7 @@ func TestGenConsensusPayload(t *testing.T) {
 		t.Errorf("constructConfig failed:%s", err)
 		return
 	}
-	res, err := genConsensusPayload(config)
+	res, err := genConsensusPayload(config, common.Uint256{}, 3)
 	if err != nil {
 		t.Errorf("test failed: %v", err)
 	} else {
@@ -86,7 +102,7 @@ func TestGenesisChainConfig(t *testing.T) {
 		t.Errorf("constructConfig failed:%s", err)
 		return
 	}
-	chainconfig, err := GenesisChainConfig(config, config.Peers)
+	chainconfig, err := GenesisChainConfig(config, config.Peers, common.Uint256{}, 1)
 	if err != nil {
 		t.Errorf("TestGenesisChainConfig failed:%s", err)
 		return
