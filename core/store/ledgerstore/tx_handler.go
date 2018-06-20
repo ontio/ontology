@@ -54,7 +54,9 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, stateBa
 	)
 
 	if tx.GasPrice != 0 {
-		gas := tx.GasLimit * tx.GasPrice
+		gas, ok := common.SafeMul(tx.GasLimit, tx.GasPrice); if ok {
+			return fmt.Errorf("gaslimit:%d*gasprice:%d overflow!", tx.GasLimit, tx.GasPrice)
+		}
 
 		if err := isBalanceSufficient(tx.Payer, stateBatch, gas); err != nil {
 			return err
@@ -97,8 +99,9 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 
 	isCharge := !sysTransFlag && tx.GasPrice != 0
 
-	gas := tx.GasLimit * tx.GasPrice
-
+	gas, ok := common.SafeMul(tx.GasLimit, tx.GasPrice); if ok {
+		return fmt.Errorf("gaslimit:%d*gasprice:%d overflow!", tx.GasLimit, tx.GasPrice)
+	}
 	if isCharge {
 		if err := isBalanceSufficient(tx.Payer, stateBatch, gas); err != nil {
 			return err
