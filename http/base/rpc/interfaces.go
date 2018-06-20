@@ -277,7 +277,7 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 				if _, ok := txn.Payload.(*payload.InvokeCode); ok {
 					result, err := bactor.PreExecuteContract(&txn)
 					if err != nil {
-						log.Error(err)
+						log.Infof("PreExec: ", err)
 						return responsePack(berr.SMARTCODE_ERROR, "")
 					}
 					return responseSuccess(result)
@@ -529,7 +529,7 @@ func GetGasPrice(params []interface{}) map[string]interface{} {
 	return responseSuccess(result)
 }
 
-func GetUnclaimOng(params []interface{}) map[string]interface{} {
+func GetUnboundOng(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
