@@ -54,7 +54,12 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, stateBa
 	)
 
 	if tx.GasPrice != 0 {
-		if err := isBalanceSufficient(tx, stateBatch); err != nil {
+		gas, overflow := common.SafeMul(tx.GasLimit, tx.GasPrice)
+		if overflow {
+			return fmt.Errorf("gaslimit:%d*gasprice:%d overflow!", tx.GasLimit, tx.GasPrice)
+		}
+
+		if err := isBalanceSufficient(tx.Payer, stateBatch, gas); err != nil {
 			return err
 		}
 
@@ -67,7 +72,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, stateBa
 			Tx:     tx,
 		}
 
-		notifies, err = costGas(tx.Payer, tx.GasLimit*tx.GasPrice, config, cache, store)
+		notifies, err = costGas(tx.Payer, gas, config, cache, store)
 		if err != nil {
 			return err
 		}
@@ -94,8 +99,13 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	sysTransFlag := bytes.Compare(code, ninit.COMMIT_DPOS_BYTES) == 0 || block.Header.Height == 0
 
 	isCharge := !sysTransFlag && tx.GasPrice != 0
+
+	gas, overflow := common.SafeMul(tx.GasLimit, tx.GasPrice)
+	if overflow {
+		return fmt.Errorf("gaslimit:%d*gasprice:%d overflow!", tx.GasLimit, tx.GasPrice)
+	}
 	if isCharge {
-		if err := isBalanceSufficient(tx, stateBatch); err != nil {
+		if err := isBalanceSufficient(tx.Payer, stateBatch, gas); err != nil {
 			return err
 		}
 	}
@@ -133,7 +143,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 		if totalGas < neovm.TRANSACTION_GAS {
 			totalGas = neovm.TRANSACTION_GAS
 		}
-		notifies, err = costGas(tx.Payer, totalGas*tx.GasPrice, config, sc.CloneCache, store)
+		notifies, err = costGas(tx.Payer, gas, config, sc.CloneCache, store)
 		if err != nil {
 			return err
 		}
@@ -171,13 +181,13 @@ func genNativeTransferCode(from, to common.Address, value uint64) []byte {
 }
 
 // check whether payer ong balance sufficient
-func isBalanceSufficient(tx *types.Transaction, stateBatch *statestore.StateBatch) error {
-	balance, err := getBalance(stateBatch, tx.Payer, utils.OngContractAddress)
+func isBalanceSufficient(payer common.Address, stateBatch *statestore.StateBatch, gas uint64) error {
+	balance, err := getBalance(stateBatch, payer, utils.OngContractAddress)
 	if err != nil {
 		return err
 	}
-	if balance < tx.GasLimit*tx.GasPrice {
-		return fmt.Errorf("payer gas insufficient, need %d , only have %d", tx.GasLimit*tx.GasPrice, balance)
+	if balance < gas {
+		return fmt.Errorf("payer gas insufficient, need %d , only have %d", gas, balance)
 	}
 	return nil
 }
