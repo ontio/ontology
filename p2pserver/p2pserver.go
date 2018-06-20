@@ -364,6 +364,14 @@ func (this *P2PServer) retryInactivePeer() {
 
 	np.List = neighborPeers
 	np.Unlock()
+
+	connCount := uint(this.network.GetOutConnRecordLen())
+	if connCount >= config.DefConfig.P2PNode.MaxConnOutBound {
+		log.Warnf("Connect: out connections(%d) reach the max limit(%d)", connCount,
+			config.DefConfig.P2PNode.MaxConnOutBound)
+		return
+	}
+
 	//try connect
 	if len(this.RetryAddrs) > 0 {
 		this.ReconnectAddrs.Lock()

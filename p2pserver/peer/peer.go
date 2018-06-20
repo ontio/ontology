@@ -260,6 +260,7 @@ func (this *Peer) CloseCons() {
 	conn := this.ConsLink.GetConn()
 	if conn != nil {
 		conn.Close()
+
 	}
 }
 
