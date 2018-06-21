@@ -126,10 +126,7 @@ func RegisterGovernanceContract(native *native.NativeService) {
 
 func InitConfig(native *native.NativeService) ([]byte, error) {
 	//check if account
-	ok, err := CheckIfAccount(native)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "checkIfAccount, checkIfAccount error!")
-	}
+	ok := CheckIfAccount(native)
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
 	}
@@ -287,10 +284,7 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 
 func RegisterCandidate(native *native.NativeService) ([]byte, error) {
 	//check if account
-	ok, err := CheckIfAccount(native)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "checkIfAccount, checkIfAccount error!")
-	}
+	ok := CheckIfAccount(native)
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
 	}
@@ -303,7 +297,7 @@ func RegisterCandidate(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	//check auth of OntID
-	err = appCallVerifyToken(native, contract, params.Caller, REGISTER_CANDIDATE, params.KeyNo)
+	err := appCallVerifyToken(native, contract, params.Caller, REGISTER_CANDIDATE, params.KeyNo)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "appCallVerifyToken, verifyToken failed!")
 	}
@@ -390,10 +384,7 @@ func RegisterCandidate(native *native.NativeService) ([]byte, error) {
 
 func UnRegisterCandidate(native *native.NativeService) ([]byte, error) {
 	//check if account
-	ok, err := CheckIfAccount(native)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "checkIfAccount, checkIfAccount error!")
-	}
+	ok := CheckIfAccount(native)
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
 	}
@@ -406,7 +397,7 @@ func UnRegisterCandidate(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	//check witness
-	err = utils.ValidateOwner(native, address)
+	err := utils.ValidateOwner(native, address)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "validateOwner, checkWitness error!")
 	}
@@ -460,10 +451,7 @@ func UnRegisterCandidate(native *native.NativeService) ([]byte, error) {
 
 func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 	//check if account
-	ok, err := CheckIfAccount(native)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "checkIfAccount, checkIfAccount error!")
-	}
+	ok := CheckIfAccount(native)
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
 	}
@@ -580,10 +568,7 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 
 func RejectCandidate(native *native.NativeService) ([]byte, error) {
 	//check if account
-	ok, err := CheckIfAccount(native)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "checkIfAccount, checkIfAccount error!")
-	}
+	ok := CheckIfAccount(native)
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
 	}
@@ -649,10 +634,7 @@ func RejectCandidate(native *native.NativeService) ([]byte, error) {
 
 func BlackNode(native *native.NativeService) ([]byte, error) {
 	//check if account
-	ok, err := CheckIfAccount(native)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "checkIfAccount, checkIfAccount error!")
-	}
+	ok := CheckIfAccount(native)
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
 	}
@@ -742,10 +724,7 @@ func BlackNode(native *native.NativeService) ([]byte, error) {
 
 func WhiteNode(native *native.NativeService) ([]byte, error) {
 	//check if account
-	ok, err := CheckIfAccount(native)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "checkIfAccount, checkIfAccount error!")
-	}
+	ok := CheckIfAccount(native)
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
 	}
@@ -790,10 +769,7 @@ func WhiteNode(native *native.NativeService) ([]byte, error) {
 
 func QuitNode(native *native.NativeService) ([]byte, error) {
 	//check if account
-	ok, err := CheckIfAccount(native)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "checkIfAccount, checkIfAccount error!")
-	}
+	ok := CheckIfAccount(native)
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
 	}
@@ -805,7 +781,7 @@ func QuitNode(native *native.NativeService) ([]byte, error) {
 	address := params.Address
 
 	//check witness
-	err = utils.ValidateOwner(native, address)
+	err := utils.ValidateOwner(native, address)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "validateOwner, checkWitness error!")
 	}
@@ -870,10 +846,7 @@ func QuitNode(native *native.NativeService) ([]byte, error) {
 
 func VoteForPeer(native *native.NativeService) ([]byte, error) {
 	//check if account
-	ok, err := CheckIfAccount(native)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "checkIfAccount, checkIfAccount error!")
-	}
+	ok := CheckIfAccount(native)
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
 	}
@@ -888,7 +861,7 @@ func VoteForPeer(native *native.NativeService) ([]byte, error) {
 	address := params.Address
 
 	//check witness
-	err = utils.ValidateOwner(native, address)
+	err := utils.ValidateOwner(native, address)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "validateOwner, checkWitness error!")
 	}
@@ -965,10 +938,7 @@ func VoteForPeer(native *native.NativeService) ([]byte, error) {
 
 func UnVoteForPeer(native *native.NativeService) ([]byte, error) {
 	//check if account
-	ok, err := CheckIfAccount(native)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "checkIfAccount, checkIfAccount error!")
-	}
+	ok := CheckIfAccount(native)
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
 	}
@@ -983,7 +953,7 @@ func UnVoteForPeer(native *native.NativeService) ([]byte, error) {
 	address := params.Address
 
 	//check witness
-	err = utils.ValidateOwner(native, address)
+	err := utils.ValidateOwner(native, address)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "validateOwner, checkWitness error!")
 	}
@@ -1066,10 +1036,7 @@ func UnVoteForPeer(native *native.NativeService) ([]byte, error) {
 
 func Withdraw(native *native.NativeService) ([]byte, error) {
 	//check if account
-	ok, err := CheckIfAccount(native)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "checkIfAccount, checkIfAccount error!")
-	}
+	ok := CheckIfAccount(native)
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
 	}
@@ -1084,7 +1051,7 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 	address := params.Address
 
 	//check witness
-	err = utils.ValidateOwner(native, address)
+	err := utils.ValidateOwner(native, address)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "validateOwner, checkWitness error!")
 	}
@@ -1136,10 +1103,7 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 
 func CommitDpos(native *native.NativeService) ([]byte, error) {
 	//check if account
-	ok, err := CheckIfAccount(native)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "checkIfAccount, checkIfAccount error!")
-	}
+	ok := CheckIfAccount(native)
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
 	}
@@ -1324,10 +1288,7 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 
 func UpdateConfig(native *native.NativeService) ([]byte, error) {
 	//check if account
-	ok, err := CheckIfAccount(native)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "checkIfAccount, checkIfAccount error!")
-	}
+	ok := CheckIfAccount(native)
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
 	}
@@ -1402,10 +1363,7 @@ func UpdateConfig(native *native.NativeService) ([]byte, error) {
 
 func UpdateGlobalParam(native *native.NativeService) ([]byte, error) {
 	//check if account
-	ok, err := CheckIfAccount(native)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "checkIfAccount, checkIfAccount error!")
-	}
+	ok := CheckIfAccount(native)
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
 	}
@@ -1463,10 +1421,7 @@ func UpdateGlobalParam(native *native.NativeService) ([]byte, error) {
 
 func UpdateSplitCurve(native *native.NativeService) ([]byte, error) {
 	//check if account
-	ok, err := CheckIfAccount(native)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "checkIfAccount, checkIfAccount error!")
-	}
+	ok := CheckIfAccount(native)
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
 	}
@@ -1499,10 +1454,7 @@ func UpdateSplitCurve(native *native.NativeService) ([]byte, error) {
 
 func CallSplit(native *native.NativeService) ([]byte, error) {
 	//check if account
-	ok, err := CheckIfAccount(native)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "checkIfAccount, checkIfAccount error!")
-	}
+	ok := CheckIfAccount(native)
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
 	}
@@ -1637,10 +1589,7 @@ func executeSplit(native *native.NativeService, contract common.Address, peerPoo
 
 func TransferPenalty(native *native.NativeService) ([]byte, error) {
 	//check if account
-	ok, err := CheckIfAccount(native)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "checkIfAccount, checkIfAccount error!")
-	}
+	ok := CheckIfAccount(native)
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
 	}
@@ -1673,10 +1622,7 @@ func TransferPenalty(native *native.NativeService) ([]byte, error) {
 
 func WithdrawOng(native *native.NativeService) ([]byte, error) {
 	//check if account
-	ok, err := CheckIfAccount(native)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "checkIfAccount, checkIfAccount error!")
-	}
+	ok := CheckIfAccount(native)
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
 	}
@@ -1688,7 +1634,7 @@ func WithdrawOng(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	//check witness
-	err = utils.ValidateOwner(native, param.Address)
+	err := utils.ValidateOwner(native, param.Address)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "withdrawOng, checkWitness error!")
 	}
