@@ -15,17 +15,34 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
+package handlers
 
-package sigsvr
+import (
+	"encoding/hex"
+	"encoding/json"
+	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
+	"testing"
+)
 
-import "github.com/ontio/ontology/cmd/sigsvr/handlers"
-
-func init() {
-	DefCliRpcSvr.RegHandler("sigdata", handlers.SigData)
-	DefCliRpcSvr.RegHandler("sigrawtx", handlers.SigRawTransaction)
-	DefCliRpcSvr.RegHandler("sigmutilrawtx", handlers.SigMutilRawTransaction)
-	DefCliRpcSvr.RegHandler("sigtransfertx", handlers.SigTransferTransaction)
-	DefCliRpcSvr.RegHandler("signeovminvoketx", handlers.SigNeoVMInvokeTx)
-	DefCliRpcSvr.RegHandler("signeovminvokeabitx", handlers.SigNeoVMInvokeAbiTx)
-	DefCliRpcSvr.RegHandler("signativeinvoketx", handlers.SigNativeInvokeTx)
+func TestSigData(t *testing.T) {
+	rawData := []byte("HelloWorld")
+	rawReq := &SigDataReq{
+		RawData: hex.EncodeToString(rawData),
+	}
+	data, err := json.Marshal(rawReq)
+	if err != nil {
+		t.Errorf("json.Marshal SigDataReq error:%s", err)
+		return
+	}
+	req := &clisvrcom.CliRpcRequest{
+		Qid:    "t",
+		Method: "sigdata",
+		Params: data,
+	}
+	resp := &clisvrcom.CliRpcResponse{}
+	SigData(req, resp)
+	if resp.ErrorCode != 0 {
+		t.Errorf("SigData failed. ErrorCode:%d", resp.ErrorCode)
+		return
+	}
 }

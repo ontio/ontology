@@ -40,6 +40,7 @@ func TestMain(m *testing.M) {
 	clisvrcom.DefAccount = account.NewAccount("")
 	m.Run()
 	os.RemoveAll("./ActorLog")
+	os.RemoveAll("./Log")
 }
 
 func TestSigRawTx(t *testing.T) {
