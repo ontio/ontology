@@ -43,6 +43,7 @@ type SmartContract struct {
 	Config        *Config
 	Notifications []*event.NotifyEventInfo // all execute smart contract event notify info
 	Gas           uint64
+	ExecStep      int
 }
 
 // Config describe smart contract need parameters configuration
@@ -91,6 +92,14 @@ func (this *SmartContract) PopContext() {
 // PushNotifications push smart contract event info
 func (this *SmartContract) PushNotifications(notifications []*event.NotifyEventInfo) {
 	this.Notifications = append(this.Notifications, notifications...)
+}
+
+func (this *SmartContract) CheckExecStep() bool {
+	if this.ExecStep >= neovm.VM_STEP_LIMIT {
+		return false
+	}
+	this.ExecStep += 1
+	return true
 }
 
 func (this *SmartContract) CheckUseGas(gas uint64) bool {

@@ -126,10 +126,9 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 	}
 	this.ContextRef.PushContext(&context.Context{ContractAddress: types.AddressFromVmCode(this.Code), Code: this.Code})
 	this.Engine.PushContext(vm.NewExecutionContext(this.Engine, this.Code))
-	step := 1
 	for {
 		//check the execution step count
-		if step > VM_STEP_LIMIT {
+		if !this.ContextRef.CheckExecStep() {
 			break
 		}
 		if len(this.Engine.Contexts) == 0 || this.Engine.Context == nil {
@@ -215,7 +214,6 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 				return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] vm execute error!")
 			}
 		}
-		step += 1
 	}
 
 	this.ContextRef.PopContext()
