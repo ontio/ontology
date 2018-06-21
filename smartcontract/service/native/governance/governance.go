@@ -125,10 +125,10 @@ func RegisterGovernanceContract(native *native.NativeService) {
 }
 
 func InitConfig(native *native.NativeService) ([]byte, error) {
-	//check if account
-	ok := CheckIfAccount(native)
+	//check if direct call
+	ok := CheckDirectCall(native)
 	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
 	}
 
 	configuration := new(config.VBFTConfig)
@@ -283,10 +283,10 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 }
 
 func RegisterCandidate(native *native.NativeService) ([]byte, error) {
-	//check if account
-	ok := CheckIfAccount(native)
+	//check if direct call
+	ok := CheckDirectCall(native)
 	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
 	}
 
 	params := new(RegisterCandidateParam)
@@ -383,10 +383,10 @@ func RegisterCandidate(native *native.NativeService) ([]byte, error) {
 }
 
 func UnRegisterCandidate(native *native.NativeService) ([]byte, error) {
-	//check if account
-	ok := CheckIfAccount(native)
+	//check if direct call
+	ok := CheckDirectCall(native)
 	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
 	}
 
 	params := new(UnRegisterCandidateParam)
@@ -450,10 +450,10 @@ func UnRegisterCandidate(native *native.NativeService) ([]byte, error) {
 }
 
 func ApproveCandidate(native *native.NativeService) ([]byte, error) {
-	//check if account
-	ok := CheckIfAccount(native)
+	//check if direct call
+	ok := CheckDirectCall(native)
 	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
 	}
 
 	params := new(ApproveCandidateParam)
@@ -567,10 +567,10 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 }
 
 func RejectCandidate(native *native.NativeService) ([]byte, error) {
-	//check if account
-	ok := CheckIfAccount(native)
+	//check if direct call
+	ok := CheckDirectCall(native)
 	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
 	}
 
 	params := new(RejectCandidateParam)
@@ -633,10 +633,10 @@ func RejectCandidate(native *native.NativeService) ([]byte, error) {
 }
 
 func BlackNode(native *native.NativeService) ([]byte, error) {
-	//check if account
-	ok := CheckIfAccount(native)
+	//check if direct call
+	ok := CheckDirectCall(native)
 	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
 	}
 
 	params := new(BlackNodeParam)
@@ -723,10 +723,10 @@ func BlackNode(native *native.NativeService) ([]byte, error) {
 }
 
 func WhiteNode(native *native.NativeService) ([]byte, error) {
-	//check if account
-	ok := CheckIfAccount(native)
+	//check if direct call
+	ok := CheckDirectCall(native)
 	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
 	}
 
 	params := new(WhiteNodeParam)
@@ -768,10 +768,10 @@ func WhiteNode(native *native.NativeService) ([]byte, error) {
 }
 
 func QuitNode(native *native.NativeService) ([]byte, error) {
-	//check if account
-	ok := CheckIfAccount(native)
+	//check if direct call
+	ok := CheckDirectCall(native)
 	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
 	}
 
 	params := new(QuitNodeParam)
@@ -845,10 +845,10 @@ func QuitNode(native *native.NativeService) ([]byte, error) {
 }
 
 func VoteForPeer(native *native.NativeService) ([]byte, error) {
-	//check if account
-	ok := CheckIfAccount(native)
+	//check if direct call
+	ok := CheckDirectCall(native)
 	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
 	}
 
 	params := &VoteForPeerParam{
@@ -937,10 +937,10 @@ func VoteForPeer(native *native.NativeService) ([]byte, error) {
 }
 
 func UnVoteForPeer(native *native.NativeService) ([]byte, error) {
-	//check if account
-	ok := CheckIfAccount(native)
+	//check if direct call
+	ok := CheckDirectCall(native)
 	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
 	}
 
 	params := &VoteForPeerParam{
@@ -1035,10 +1035,10 @@ func UnVoteForPeer(native *native.NativeService) ([]byte, error) {
 }
 
 func Withdraw(native *native.NativeService) ([]byte, error) {
-	//check if account
-	ok := CheckIfAccount(native)
+	//check if direct call
+	ok := CheckDirectCall(native)
 	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
 	}
 
 	params := &WithdrawParam{
@@ -1102,10 +1102,10 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 }
 
 func CommitDpos(native *native.NativeService) ([]byte, error) {
-	//check if account
-	ok := CheckIfAccount(native)
+	//check if direct call
+	ok := CheckDirectCall(native)
 	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
@@ -1287,10 +1287,10 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 }
 
 func UpdateConfig(native *native.NativeService) ([]byte, error) {
-	//check if account
-	ok := CheckIfAccount(native)
+	//check if direct call
+	ok := CheckDirectCall(native)
 	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
 	}
 
 	// get admin from database
@@ -1362,10 +1362,10 @@ func UpdateConfig(native *native.NativeService) ([]byte, error) {
 }
 
 func UpdateGlobalParam(native *native.NativeService) ([]byte, error) {
-	//check if account
-	ok := CheckIfAccount(native)
+	//check if direct call
+	ok := CheckDirectCall(native)
 	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
 	}
 
 	// get admin from database
@@ -1420,10 +1420,10 @@ func UpdateGlobalParam(native *native.NativeService) ([]byte, error) {
 }
 
 func UpdateSplitCurve(native *native.NativeService) ([]byte, error) {
-	//check if account
-	ok := CheckIfAccount(native)
+	//check if direct call
+	ok := CheckDirectCall(native)
 	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
 	}
 
 	// get admin from database
@@ -1453,10 +1453,10 @@ func UpdateSplitCurve(native *native.NativeService) ([]byte, error) {
 }
 
 func CallSplit(native *native.NativeService) ([]byte, error) {
-	//check if account
-	ok := CheckIfAccount(native)
+	//check if direct call
+	ok := CheckDirectCall(native)
 	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
 	}
 
 	// get admin from database
@@ -1588,10 +1588,10 @@ func executeSplit(native *native.NativeService, contract common.Address, peerPoo
 }
 
 func TransferPenalty(native *native.NativeService) ([]byte, error) {
-	//check if account
-	ok := CheckIfAccount(native)
+	//check if direct call
+	ok := CheckDirectCall(native)
 	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
 	}
 
 	// get admin from database
@@ -1621,10 +1621,10 @@ func TransferPenalty(native *native.NativeService) ([]byte, error) {
 }
 
 func WithdrawOng(native *native.NativeService) ([]byte, error) {
-	//check if account
-	ok := CheckIfAccount(native)
+	//check if direct call
+	ok := CheckDirectCall(native)
 	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkIfAccount, caller is not a account!")
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
 	}
 
 	param := new(WithdrawOngParam)
