@@ -157,24 +157,6 @@ func appCallTransferOnt(native *native.NativeService, from common.Address, to co
 	return nil
 }
 
-func appCallApproveOng(native *native.NativeService, from common.Address, to common.Address, amount uint64) error {
-	bf := new(bytes.Buffer)
-	sts := &ont.State{
-		From:  from,
-		To:    to,
-		Value: amount,
-	}
-	err := sts.Serialize(bf)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallApproveOng, transfers.Serialize error!")
-	}
-
-	if _, err := native.NativeCall(utils.OngContractAddress, "approve", bf.Bytes()); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallApproveOng, appCall error!")
-	}
-	return nil
-}
-
 func appCallTransferFromOng(native *native.NativeService, sender common.Address, from common.Address, to common.Address, amount uint64) error {
 	bf := new(bytes.Buffer)
 	params := &ont.TransferFrom{
@@ -595,4 +577,13 @@ func appCallVerifyToken(native *native.NativeService, contract common.Address, c
 		return errors.NewErr("appCallVerifyToken, verifyToken failed!")
 	}
 	return nil
+}
+
+func CheckDirectCall(nativeService *native.NativeService) bool {
+	callingAddress := nativeService.ContextRef.CallingContext().ContractAddress
+	entryAddress := nativeService.ContextRef.EntryContext().ContractAddress
+	if callingAddress == entryAddress {
+		return true
+	}
+	return false
 }

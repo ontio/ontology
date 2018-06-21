@@ -26,7 +26,7 @@ import (
 	"strings"
 )
 
-const DefAbiPath = "./cmd/abi"
+const DefAbiPath = "./abi"
 
 var DefAbiMgr = NewAbiMgr(DefAbiPath)
 
@@ -81,5 +81,6 @@ func (this *AbiMgr) loadNativeAbi() {
 			continue
 		}
 		this.nativeAbis[nativeAbi.Address] = nativeAbi
+		log.Infof("Native contract name:%s address:%s abi load success", fileName, nativeAbi.Address)
 	}
 }

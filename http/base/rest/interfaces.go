@@ -41,6 +41,12 @@ type ApiServer interface {
 	Stop()
 }
 
+func GetNodeVersion(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(berr.SUCCESS)
+	resp["Result"] = config.Version
+	return resp
+}
+
 //Node
 func GetGenerateBlockTime(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
@@ -244,7 +250,7 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 			if _, ok := txn.Payload.(*payload.InvokeCode); ok {
 				resp["Result"], err = bactor.PreExecuteContract(&txn)
 				if err != nil {
-					log.Error(err)
+					log.Infof("PreExec: ", err)
 					return ResponsePack(berr.SMARTCODE_ERROR)
 				}
 				return resp
@@ -375,7 +381,10 @@ func GetStorage(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	value, err := bactor.GetStorageItem(address, item)
-	if err != nil || value == nil {
+	if err != nil {
+		if err == scom.ErrNotFound {
+			return ResponsePack(berr.SUCCESS)
+		}
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
 	resp["Result"] = common.ToHexString(value)
@@ -480,7 +489,7 @@ func GetAllowance(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-func GetUnclaimOng(cmd map[string]interface{}) map[string]interface{} {
+func GetUnboundOng(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	toAddrStr, ok := cmd["Addr"].(string)
 	if !ok {

@@ -45,7 +45,6 @@ func StartRPCServer() error {
 	rpc.HandleFunc("getstorage", rpc.GetStorage)
 	rpc.HandleFunc("getversion", rpc.GetNodeVersion)
 
-	rpc.HandleFunc("getblocksysfee", rpc.GetSystemFee)
 	rpc.HandleFunc("getcontractstate", rpc.GetContractState)
 	rpc.HandleFunc("getmempooltxcount", rpc.GetMemPoolTxCount)
 	rpc.HandleFunc("getmempooltxstate", rpc.GetMemPoolTxState)
@@ -57,7 +56,7 @@ func StartRPCServer() error {
 	rpc.HandleFunc("getmerkleproof", rpc.GetMerkleProof)
 	rpc.HandleFunc("getblocktxsbyheight", rpc.GetBlockTxsByHeight)
 	rpc.HandleFunc("getgasprice", rpc.GetGasPrice)
-	rpc.HandleFunc("getunclaimong", rpc.GetUnclaimOng)
+	rpc.HandleFunc("getunboundong", rpc.GetUnboundOng)
 
 	err := http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.HttpJsonPort)), nil)
 	if err != nil {

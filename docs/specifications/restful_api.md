@@ -25,9 +25,10 @@ Restful Api List
 | get_merkle_proof | GET /api/v1/merkleproof/:hash|
 | get_gasprice | GET /api/v1/gasprice|
 | get_allowance | GET /api/v1/allowance/:asset/:from/:to |
-| get_unclaimong | GET /api/v1/unclaimong/:addr |
+| get_unboundong | GET /api/v1/unboundong/:addr |
 | get_mempooltxcount | GET /api/v1/mempool/txcount |
 | get_mempooltxstate | GET /api/v1/mempool/txstate/:hash |
+| get_version |  GET /api/v1/version |
 | post_raw_tx | post /api/v1/transaction?preExec=0 |
 
 
@@ -809,22 +810,22 @@ curl -i http://localhost:20334/api/v1/allowance/:asset/:from/:to
 }
 ```
 
-### 18 get_unclaimong
+### 18 get_unboundong
 
-Get unclaimong
+Get unboundong
 
 GET
 ```
-/api/v1/unclaimong
+/api/v1/unboundong
 ```
 #### Request Example:
 ```
-curl -i http://localhost:20334/api/v1/unclaimong/:addr
+curl -i http://localhost:20334/api/v1/unboundong/:addr
 ```
 #### Response
 ```
 {
-    "Action": "getunclaimong",
+    "Action": "getunboundong",
     "Desc": "SUCCESS",
     "Error": 0,
     "Result": "204957950400000",
@@ -889,6 +890,28 @@ curl -i http://localhost:20334/api/v1/mempool/txcount
 }
 ```
 
+### 21 get_version
+
+Get the version information of the node.
+
+GET
+```
+/api/v1/version
+```
+#### Request Example:
+```
+curl -i http://localhost:20334/api/v1/version
+```
+#### Response
+```
+{
+    "Action": "getversion",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Version": "1.0.0",
+    "Result": "0.9"
+}
+```
 
 ## Error Code
 

@@ -651,6 +651,7 @@ func (self *Server) startNewRound() error {
 	blkNum := self.GetCurrentBlockNo()
 
 	if err := self.updateParticipantConfig(); err != nil {
+		log.Errorf("startNewRound error:%s", err)
 		return err
 	}
 	// check proposals in msgpool

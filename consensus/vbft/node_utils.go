@@ -210,11 +210,19 @@ func (self *Server) buildParticipantConfig(blkNum uint32, block *Block, chainCfg
 
 	s := 0
 	cfg.Proposers = calcParticipantPeers(cfg, chainCfg, s, s+vconfig.MAX_PROPOSER_COUNT)
+	if uint32(len(cfg.Proposers)) < chainCfg.C {
+		return nil, fmt.Errorf("cfg Proposers length less than chainCfg.C:%d,%d", uint32(len(cfg.Proposers)), chainCfg.C)
+	}
 	s += vconfig.MAX_PROPOSER_COUNT
 	cfg.Endorsers = calcParticipantPeers(cfg, chainCfg, s, s+vconfig.MAX_ENDORSER_COUNT)
+	if uint32(len(cfg.Endorsers)) < 2*chainCfg.C {
+		return nil, fmt.Errorf("cfg.Endorsers length less than double chainCfg.C:%d,%d", uint32(len(cfg.Endorsers)), chainCfg.C)
+	}
 	s += vconfig.MAX_ENDORSER_COUNT
 	cfg.Committers = calcParticipantPeers(cfg, chainCfg, s, s+vconfig.MAX_COMMITTER_COUNT)
-
+	if uint32(len(cfg.Committers)) < 2*chainCfg.C {
+		return nil, fmt.Errorf("cfg.Committers length less than double chainCfg.C:%d,%d", uint32(len(cfg.Committers)), chainCfg.C)
+	}
 	log.Infof("server %d, blkNum: %d, state: %d, participants config: %v, %v, %v", self.Index, blkNum,
 		self.getState(), cfg.Proposers, cfg.Endorsers, cfg.Committers)
 
@@ -227,20 +235,32 @@ func calcParticipantPeers(cfg *BlockParticipantConfig, chain *vconfig.ChainConfi
 	peerMap := make(map[uint32]bool)
 	var cnt uint32
 
-	for i := start; i < end; i++ {
+	for i := start; ; i++ {
 		peerId := calcParticipant(cfg.Vrf, chain.PosTable, uint32(i))
+		if peerId == math.MaxUint32 {
+			return []uint32{}
+		}
 		if _, present := peerMap[peerId]; !present {
 			// got new peer
 			peers = append(peers, peerId)
 			peerMap[peerId] = true
 			cnt++
-
 			if cnt >= chain.N {
 				return peers
 			}
 		}
+		if end == vconfig.MAX_PROPOSER_COUNT {
+			if i >= end && uint32(len(peers)) > chain.C {
+				return peers
+			}
+		}
+		if end == vconfig.MAX_ENDORSER_COUNT+vconfig.MAX_PROPOSER_COUNT ||
+			end == vconfig.MAX_PROPOSER_COUNT+vconfig.MAX_ENDORSER_COUNT+vconfig.MAX_COMMITTER_COUNT {
+			if uint32(len(peers)) > chain.C*2 {
+				return peers
+			}
+		}
 	}
-
 	return peers
 }
 
@@ -249,11 +269,12 @@ func calcParticipant(vrf vconfig.VRFValue, dposTable []uint32, k uint32) uint32 
 	bIdx := k / 8
 	bits1 := k % 8
 	bits2 := 8 + bits1 // L - 8 + bits1
-
+	if k >= 512 {
+		return math.MaxUint32
+	}
 	// FIXME:
 	// take 16bits random variable from vrf, if len(dposTable) is not power of 2,
 	// this algorithm will break the fairness of vrf. to be fixed
-
 	v1 = uint32(vrf[bIdx]) >> bits1
 	if bIdx+1 < uint32(len(vrf)) {
 		v2 = uint32(vrf[bIdx+1])

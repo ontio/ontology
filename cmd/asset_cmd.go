@@ -32,7 +32,7 @@ import (
 var AssetCommand = cli.Command{
 	Name:        "asset",
 	Usage:       "Handle assets",
-	Description: `asset control`,
+	Description: "Asset management commands can check account balance, ONT/ONG transfers, extract ONGs, and view unbound ONGs, and so on.",
 	Subcommands: []cli.Command{
 		{
 			Action:      transfer,

@@ -245,6 +245,9 @@ func GetStorage(params []interface{}) map[string]interface{} {
 	}
 	value, err := bactor.GetStorageItem(address, key)
 	if err != nil {
+		if err == scom.ErrNotFound {
+			return responseSuccess(nil)
+		}
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
 	return responseSuccess(common.ToHexString(value))
@@ -274,7 +277,7 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 				if _, ok := txn.Payload.(*payload.InvokeCode); ok {
 					result, err := bactor.PreExecuteContract(&txn)
 					if err != nil {
-						log.Error(err)
+						log.Infof("PreExec: ", err)
 						return responsePack(berr.SMARTCODE_ERROR, "")
 					}
 					return responseSuccess(result)
@@ -293,10 +296,6 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 
 func GetNodeVersion(params []interface{}) map[string]interface{} {
 	return responseSuccess(config.Version)
-}
-
-func GetSystemFee(params []interface{}) map[string]interface{} {
-	return responseSuccess(config.DefConfig.Common.SystemFee)
 }
 
 func GetContractState(params []interface{}) map[string]interface{} {
@@ -526,7 +525,7 @@ func GetGasPrice(params []interface{}) map[string]interface{} {
 	return responseSuccess(result)
 }
 
-func GetUnclaimOng(params []interface{}) map[string]interface{} {
+func GetUnboundOng(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}

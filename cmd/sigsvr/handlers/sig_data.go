@@ -15,62 +15,45 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package handlers
 
 import (
-	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	clisvrcom "github.com/ontio/ontology/cmd/server/common"
+	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 	cliutil "github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common/log"
 )
 
-type SigTransferTransactionReq struct {
-	GasPrice uint64 `json:"gas_price"`
-	GasLimit uint64 `json:"gas_limit"`
-	Asset    string `json:"asset"`
-	From     string `json:"from"`
-	To       string `json:"to"`
-	Amount   uint64 `json:"amount"`
+type SigDataReq struct {
+	RawData string `json:"raw_data"`
 }
 
-type SinTransferTransactionRsp struct {
-	SignedTx string `json:"signed_tx"`
+type SigDataRsp struct {
+	SignedData string `json:"signed_data"`
 }
 
-func SigTransferTransaction(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcResponse) {
-	rawReq := &SigTransferTransactionReq{}
+func SigData(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcResponse) {
+	rawReq := &SigDataReq{}
 	err := json.Unmarshal(req.Params, rawReq)
 	if err != nil {
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
 		return
 	}
-	transferTx, err := cliutil.TransferTx(rawReq.GasPrice, rawReq.GasLimit, rawReq.Asset, rawReq.From, rawReq.To, rawReq.Amount)
+	rawData, err := hex.DecodeString(rawReq.RawData)
 	if err != nil {
+		log.Infof("Cli Qid:%s SigData hex.DecodeString error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
 		return
 	}
 	signer := clisvrcom.DefAccount
-	if signer == nil {
-		resp.ErrorCode = clisvrcom.CLIERR_ACCOUNT_UNLOCK
-		return
-	}
-	err = cliutil.SignTransaction(signer, transferTx)
+	sigData, err := cliutil.Sign(rawData, signer)
 	if err != nil {
-		log.Infof("Cli Qid:%s SigTransferTransaction SignTransaction error:%s", req.Qid, err)
+		log.Infof("Cli Qid:%s SigData Sign error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
 		return
 	}
-	buf := bytes.NewBuffer(nil)
-	err = transferTx.Serialize(buf)
-	if err != nil {
-		log.Infof("Cli Qid:%s SigTransferTransaction tx Serialize error:%s", req.Qid, err)
-		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
-		return
-	}
-	resp.Result = &SinTransferTransactionRsp{
-		SignedTx: hex.EncodeToString(buf.Bytes()),
+	resp.Result = &SigDataRsp{
+		SignedData: hex.EncodeToString(sigData),
 	}
 }

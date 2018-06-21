@@ -61,8 +61,13 @@ func OpenWallet(ctx *cli.Context) (account.Client, error) {
 func GetAccountMulti(wallet account.Client, passwd []byte, accAddr string) (*account.Account, error) {
 	//Address maybe address in base58, label or index
 	if accAddr == "" {
-		fmt.Printf("Using default account:%s\n", accAddr)
-		return wallet.GetDefaultAccount(passwd)
+		defAcc, err := wallet.GetDefaultAccount(passwd)
+		if err != nil {
+			return nil, err
+		}
+
+		fmt.Printf("Using default account:%s\n", defAcc.Address.ToBase58())
+		return defAcc, nil
 	}
 	acc, err := wallet.GetAccountByAddress(accAddr, passwd)
 	if err != nil {

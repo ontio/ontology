@@ -70,9 +70,14 @@ func RegisterParamContract(native *native.NativeService) {
 }
 
 func ParamInit(native *native.NativeService) ([]byte, error) {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	storageAdmin, _ := GetStorageRole(native, generateAdminKey(contract, false))
+	storageOperator, _ := GetStorageRole(native, generateAdminKey(contract, false))
+	if storageAdmin != nil || storageOperator != nil {
+		return utils.BYTE_FALSE, errors.NewErr("init param, admin or operator has already existed!")
+	}
 	paramCache = new(ParamCache)
 	paramCache.Params = make([]*Param, 0)
-	contract := native.ContextRef.CurrentContext().ContractAddress
 	initParams := new(Params)
 	args, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
 	if err != nil {

@@ -15,32 +15,38 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 package handlers
 
 import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
-	clisvrcom "github.com/ontio/ontology/cmd/server/common"
+	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 	"github.com/ontio/ontology/cmd/utils"
-	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/common/log"
+	"os"
 	"testing"
 )
 
-func TestSigMutilRawTransaction(t *testing.T) {
-	acc1 := account.NewAccount("")
-	acc2 := account.NewAccount("")
-	pubKeys := []keypair.PublicKey{acc1.PublicKey, acc2.PublicKey}
-	m := 2
-	fromAddr, err := types.AddressFromMultiPubKeys(pubKeys, m)
-	if err != nil {
-		t.Errorf("TestSigMutilRawTransaction AddressFromMultiPubKeys error:%s", err)
-		return
-	}
+var (
+	wallet *account.ClientImpl
+	passwd = []byte("123456")
+)
+
+func TestMain(m *testing.M) {
+	log.InitLog(0, os.Stdout)
+	clisvrcom.DefAccount = account.NewAccount("")
+	m.Run()
+	os.RemoveAll("./ActorLog")
+	os.RemoveAll("./Log")
+}
+
+func TestSigRawTx(t *testing.T) {
+	acc := account.NewAccount("")
 	defAcc := clisvrcom.DefAccount
-	tx, err := utils.TransferTx(0, 0, "ont", fromAddr.ToBase58(), defAcc.Address.ToBase58(), 10)
+	tx, err := utils.TransferTx(0, 0, "ont", defAcc.Address.ToBase58(), acc.Address.ToBase58(), 10)
 	if err != nil {
 		t.Errorf("TransferTx error:%s", err)
 		return
@@ -51,11 +57,8 @@ func TestSigMutilRawTransaction(t *testing.T) {
 		t.Errorf("tx.Serialize error:%s", err)
 		return
 	}
-
-	rawReq := &SigMutilRawTransactionReq{
-		RawTx:   hex.EncodeToString(buf.Bytes()),
-		M:       m,
-		PubKeys: []string{hex.EncodeToString(keypair.SerializePublicKey(acc1.PublicKey)), hex.EncodeToString(keypair.SerializePublicKey(acc2.PublicKey))},
+	rawReq := &SigRawTransactionReq{
+		RawTx: hex.EncodeToString(buf.Bytes()),
 	}
 	data, err := json.Marshal(rawReq)
 	if err != nil {
@@ -64,21 +67,13 @@ func TestSigMutilRawTransaction(t *testing.T) {
 	}
 	req := &clisvrcom.CliRpcRequest{
 		Qid:    "t",
-		Method: "sigmutilrawtx",
+		Method: "sigrawtx",
 		Params: data,
 	}
 	resp := &clisvrcom.CliRpcResponse{}
-	clisvrcom.DefAccount = acc1
-	SigMutilRawTransaction(req, resp)
-	if resp.ErrorCode != clisvrcom.CLIERR_OK {
-		t.Errorf("SigMutilRawTransaction failed,ErrorCode:%d ErrorString:%s", resp.ErrorCode, resp.ErrorInfo)
-		return
-	}
-
-	clisvrcom.DefAccount = acc2
-	SigMutilRawTransaction(req, resp)
-	if resp.ErrorCode != clisvrcom.CLIERR_OK {
-		t.Errorf("SigMutilRawTransaction failed,ErrorCode:%d ErrorString:%s", resp.ErrorCode, resp.ErrorInfo)
+	SigRawTransaction(req, resp)
+	if resp.ErrorCode != 0 {
+		t.Errorf("SigRawTransaction failed. ErrorCode:%d", resp.ErrorCode)
 		return
 	}
 }

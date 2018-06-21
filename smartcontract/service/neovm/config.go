@@ -125,4 +125,6 @@ var (
 		HASH160_NAME:                   HASH160_GAS,
 		HASH256_NAME:                   HASH256_GAS,
 	}
+
+	VM_STEP_LIMIT = 400000
 )

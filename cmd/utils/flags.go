@@ -35,7 +35,7 @@ var (
 	//Ontology setting
 	ConfigFlag = cli.StringFlag{
 		Name:  "config",
-		Usage: "Use `<filename>` as the genesis config file. Using Polaris config with VBFT consensus as default, if not set config flag.",
+		Usage: "Use `<filename>` to specifies the genesis block config file. If doesn't specifies the genesis block config, Ontology will use Polaris config with VBFT consensus as default.",
 	}
 	LogLevelFlag = cli.UintFlag{
 		Name:  "loglevel",
@@ -44,7 +44,7 @@ var (
 	}
 	DisableEventLogFlag = cli.BoolFlag{
 		Name:  "disableeventlog",
-		Usage: "If set disableeventlog flag, will not record event log output by smart contract",
+		Usage: "If set disableeventlog flag, Ontology will not record event log output by smart contract",
 	}
 	WalletFileFlag = cli.StringFlag{
 		Name:  "wallet,w",
@@ -62,11 +62,11 @@ var (
 	}
 	ImportHeightFlag = cli.UintFlag{
 		Name:  "importheight",
-		Usage: "Import target block height, if not specified, import all of blocks in files",
+		Usage: "Using to specifies the height of the imported target block. If the block height specified by importheight is less than the maximum height of the block file, it will only be imported to the height specified by importheight and the rest blocks will stop importing. The default value is 0, which means import all the blocks",
 	}
 	DataDirFlag = cli.StringFlag{
 		Name:  "datadir",
-		Usage: "Using dir `<path>` to save block data",
+		Usage: "Using dir `<path>` to storage block data",
 		Value: config.DEFAULT_DATA_DIR,
 	}
 
@@ -77,28 +77,28 @@ var (
 	}
 	MaxTxInBlockFlag = cli.IntFlag{
 		Name:  "maxtxinblock",
-		Usage: "Max transaction number in block",
+		Usage: "Using maxtxinblock to set the max transaction number in block",
 		Value: config.DEFAULT_MAX_TX_IN_BLOCK,
 	}
 	GasLimitFlag = cli.Uint64Flag{
 		Name:  "gaslimit",
-		Usage: "The gas limit required by the transaction pool for a new transaction",
+		Usage: "Using to set the gaslimit of the current node transaction pool to accept transactions. Transactions below this gaslimit will be discarded",
 		Value: config.DEFAULT_GAS_LIMIT,
 	}
 	GasPriceFlag = cli.Uint64Flag{
 		Name:  "gasprice",
-		Usage: "The gas price enforced by the transaction pool for a new transaction",
+		Usage: "Using to set the lowest gasprice of the current node transaction pool to accept transactions. Transactions below this gasprice will be discarded",
 		Value: config.DEFAULT_GAS_PRICE,
 	}
 
 	//Test Mode setting
 	EnableTestModeFlag = cli.BoolFlag{
 		Name:  "testmode",
-		Usage: "Runin test mode will start solo consensus. If enable testmode flag, ontology will ignore the consensus type config in genesis",
+		Usage: "Using to start a single node test network for ease of development and debug. In testmode, Ontology will start rpc, rest and web socket server",
 	}
 	TestModeGenBlockTimeFlag = cli.UintFlag{
 		Name:  "testmodegenblocktime",
-		Usage: "Interval of generate block in test mode, unit(s)",
+		Usage: "Using to set the block-out time in test mode. The time unit is in seconds, and the minimum block-out time is 2 seconds.",
 		Value: config.DEFAULT_GEN_BLOCK_TIME,
 	}
 	ClearTestModeDataFlag = cli.BoolFlag{
@@ -118,21 +118,21 @@ var (
 	}
 	NetworkIdFlag = cli.UintFlag{
 		Name:  "networkid",
-		Usage: "P2P network id. 1=main net, 2=polaris test net, 3=testmode, and other for custom network",
+		Usage: "Using to specify the network ID. Different networkids cannot connect to the blockchain network. 1=main net, 2=polaris test net, 3=testmode, and other for custom network",
 		Value: config.NETWORK_ID_POLARIS_NET,
 	}
 	NodePortFlag = cli.UintFlag{
 		Name:  "nodeport",
-		Usage: "P2P node listening port",
+		Usage: "Using to specify the P2P network port number",
 		Value: config.DEFAULT_NODE_PORT,
 	}
 	DualPortSupportFlag = cli.BoolFlag{
 		Name:  "dualport",
-		Usage: "Enable dual port support. Means p2p node port difference with consensus port",
+		Usage: "Using to initiates a dual network, i.e. a P2P network for processing transaction messages and a consensus network for consensus messages. ",
 	}
 	ConsensusPortFlag = cli.UintFlag{
 		Name:  "consensusport",
-		Usage: "Consensus listening port",
+		Usage: "Using to specifies the consensus network port number. By default, the consensus network reuses the P2P network, so it is not necessary to specify a consensus network port. After the dual network is enabled with the --dualport parameter, the consensus network port number must be set separately.",
 		Value: config.DEFAULT_CONSENSUS_PORT,
 	}
 	MaxConnInBoundFlag = cli.UintFlag{
@@ -153,7 +153,7 @@ var (
 	// RPC settings
 	RPCDisabledFlag = cli.BoolFlag{
 		Name:  "disablerpc",
-		Usage: "Disable Json rpc server",
+		Usage: "Using to shut down the rpc server. The Ontology node starts the rpc server by default at startup.",
 	}
 	RPCPortFlag = cli.UintFlag{
 		Name:  "rpcport",
@@ -196,15 +196,15 @@ var (
 	AccountPassFlag = cli.StringFlag{
 		Name:   "password,p",
 		Hidden: true,
-		Usage:  "Specifies `<password>` for the account",
+		Usage:  "Using to specify the account `<password>` when Ontology node starts. Because the account password entered in the command line is saved in the log, it is easy to leak the password. Therefore, it is not recommended to use this parameter in a production environment.",
 	}
 	AccountAddressFlag = cli.StringFlag{
 		Name:  "account,a",
-		Usage: "Address of account. Address can be `<address>` in base58 code , label or index. if not specific, will use default account",
+		Usage: "Using to specify the account `<address|label|index>` when the Ontology node starts. If the account is null, it uses the wallet default account",
 	}
 	AccountDefaultFlag = cli.BoolFlag{
 		Name:  "default,d",
-		Usage: "Use default settings (equal to '-t ecdsa -b 256 -s SHA256withECDSA')",
+		Usage: "Use default settings to create a new account (equal to '-t ecdsa -b 256 -s SHA256withECDSA')",
 	}
 	AccountTypeFlag = cli.StringFlag{
 		Name:  "type,t",
@@ -220,7 +220,7 @@ var (
 	}
 	AccountSetDefaultFlag = cli.BoolFlag{
 		Name:  "as-default,d",
-		Usage: "Set the specified account to default",
+		Usage: "Set the specified account to default account",
 	}
 	AccountQuantityFlag = cli.UintFlag{
 		Name:  "number,n",
@@ -233,7 +233,7 @@ var (
 	}
 	AccountLabelFlag = cli.StringFlag{
 		Name:  "label,l",
-		Usage: "Use `<label>` for the account",
+		Usage: "Use `<label>` for newly created accounts for easy and fast use of accounts. Note that duplicate label names cannot appear in the same wallet file. An account with no label is an empty string.",
 	}
 	AccountKeyFlag = cli.StringFlag{
 		Name:  "key,k",
@@ -271,7 +271,7 @@ var (
 	}
 	ContractStorageFlag = cli.BoolFlag{
 		Name:  "needstore",
-		Usage: "Is need use store in contract",
+		Usage: "Is need use storage in contract",
 	}
 	ContractCodeFileFlag = cli.StringFlag{
 		Name:  "code",
@@ -281,7 +281,7 @@ var (
 		Name:  "name",
 		Usage: "Specifies contract name to `<name>`",
 	}
-	ContractVersionFlag = cli.IntFlag{
+	ContractVersionFlag = cli.StringFlag{
 		Name:  "version",
 		Usage: "Specifies contract version to `<ver>`",
 	}
@@ -326,20 +326,20 @@ var (
 	//Transfer setting
 	TransactionAssetFlag = cli.StringFlag{
 		Name:  "asset",
-		Usage: "Asset to transfer `<ont|ong>`",
+		Usage: "Using to specifies the transfer asset `<ont|ong>`",
 		Value: ASSET_ONT,
 	}
 	TransactionFromFlag = cli.StringFlag{
 		Name:  "from",
-		Usage: "`<address>` which sends the asset. address also can be index, label",
+		Usage: "Using to specifies the transfer-out account `<address|label|index>`",
 	}
 	TransactionToFlag = cli.StringFlag{
 		Name:  "to",
-		Usage: "`<address>` which receives the asset",
+		Usage: "Using to specifies the transfer-in account `<address|label|index>`",
 	}
 	TransactionAmountFlag = cli.StringFlag{
 		Name:  "amount",
-		Usage: "Specifies `<amount>` as the transferred amount",
+		Usage: "Using to specifies the transfer amount",
 	}
 	TransactionHashFlag = cli.StringFlag{
 		Name:  "hash",
@@ -347,47 +347,43 @@ var (
 	}
 	TransactionGasPriceFlag = cli.Uint64Flag{
 		Name:  "gasprice",
-		Usage: "Gas price of transaction",
+		Usage: "Using to specifies the gas price of transaction. The gas price of the transaction cannot be less than the lowest gas price set by node's transaction pool, otherwise the transaction will be rejected. When there are transactions that are queued for packing into the block in the transaction pool, the transaction pool will deal with transactions according to the gas price and transactions with high gas prices will be prioritized",
 		Value: 0,
 	}
 	TransactionGasLimitFlag = cli.Uint64Flag{
 		Name:  "gaslimit",
-		Usage: "Gas limit of tansaction",
+		Usage: "Using to specifies the gas limit of the transaction. The gas limit of the transaction cannot be less than the minimum gas limit set by the node's transaction pool, otherwise the transaction will be rejected. Gasprice * gaslimit is actual ONG costs.",
 		Value: neovm.TRANSACTION_GAS,
 	}
 
 	//Asset setting
 	ApproveAssetFromFlag = cli.StringFlag{
 		Name:  "from",
-		Usage: "Approve from address",
+		Usage: "Using to specifies the transfer-out account `<address|label|index>`",
 	}
 	ApproveAssetToFlag = cli.StringFlag{
 		Name:  "to",
-		Usage: "Approve to address",
+		Usage: "Using to specifies the transfer-in account `<address|label|index>`",
 	}
 	ApproveAssetFlag = cli.StringFlag{
 		Name:  "asset",
-		Usage: "Approve asset <ont|ong>",
+		Usage: "Using to specifies the transfer asset <ont|ong> for approve",
 		Value: "ont",
 	}
 	ApproveAmountFlag = cli.StringFlag{
 		Name:  "amount",
-		Usage: "Approve amount",
+		Usage: "Using to specifies the transfer amount for approve",
 	}
 	TransferFromAmountFlag = cli.StringFlag{
 		Name:  "amount",
-		Usage: "Transfer from amount",
+		Usage: "Using to specifies the transfer from amount",
 	}
 	TransferFromSenderFlag = cli.StringFlag{
 		Name:  "sender",
-		Usage: "Sender of transfer from transaction, if empty sender is to address",
+		Usage: "Using to specifies the sender account `<address|label|index>` of transfer from transaction, if empty sender is to account",
 	}
 
 	//Cli setting
-	CliEnableRpcFlag = cli.BoolFlag{
-		Name:  "clirpc",
-		Usage: "Enable cli rpc",
-	}
 	CliRpcPortFlag = cli.UintFlag{
 		Name:  "cliport",
 		Usage: "Cli rpc port",
@@ -402,12 +398,12 @@ var (
 	}
 	ExportHeightFlag = cli.UintFlag{
 		Name:  "height",
-		Usage: "End block height to export, if height equal 0, mean export all block in current DB",
+		Usage: "Using to specifies the height of the exported block. When height of the local node's current block is greater than the height required for export, the greater part will not be exported. Height is equal to 0, which means exporting all the blocks of the current node.",
 		Value: 0,
 	}
 	ExportSpeedFlag = cli.StringFlag{
 		Name:  "speed",
-		Usage: "Export block speed, <h|m|l>",
+		Usage: "Export block speed, `<h|m|l>` h for high speed, m for middle speed and l for low speed",
 		Value: "m",
 	}
 

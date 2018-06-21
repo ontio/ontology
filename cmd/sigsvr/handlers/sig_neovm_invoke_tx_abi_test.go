@@ -15,43 +15,61 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package handlers
 
 import (
 	"encoding/json"
-	clisvrcom "github.com/ontio/ontology/cmd/server/common"
-	"github.com/ontio/ontology/cmd/utils"
-	"github.com/ontio/ontology/common"
+	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 	"testing"
 )
 
-func TestSigNeoVMInvokeTx(t *testing.T) {
-	addr1 := common.Address([20]byte{1})
-	address1 := addr1.ToHexString()
-	invokeReq := &SigNeoVMInvokeTxReq{
+var testNeovmAbi = `{
+  "hash": "e827bf96529b5780ad0702757b8bad315e2bb8ce",
+  "entrypoint": "Main",
+  "functions": [
+    {
+      "name": "Main",
+      "parameters": [
+        {
+          "name": "operation",
+          "type": "String"
+        },
+        {
+          "name": "args",
+          "type": "Array"
+        }
+      ],
+      "returntype": "Any"
+    },
+    {
+      "name": "Add",
+      "parameters": [
+        {
+          "name": "a",
+          "type": "Integer"
+        },
+        {
+          "name": "b",
+          "type": "Integer"
+        }
+      ],
+      "returntype": "Integer"
+    }
+  ],
+  "events": []
+}`
+
+func TestSigNeoVMInvokeAbiTx(t *testing.T) {
+	invokeReq := &SigNeoVMInvokeTxAbiReq{
 		GasPrice: 0,
 		GasLimit: 0,
-		Address:  address1,
-		Params: []interface{}{
-			&utils.NeoVMInvokeParam{
-				Type:  "string",
-				Value: "foo",
-			},
-			&utils.NeoVMInvokeParam{
-				Type: "array",
-				Value: []interface{}{
-					&utils.NeoVMInvokeParam{
-						Type:  "int",
-						Value: "0",
-					},
-					&utils.NeoVMInvokeParam{
-						Type:  "bool",
-						Value: "true",
-					},
-				},
-			},
+		Address:  "e827bf96529b5780ad0702757b8bad315e2bb8ce",
+		Method:   "Add",
+		Params: []string{
+			"12",
+			"13",
 		},
+		ContractAbi: []byte(testNeovmAbi),
 	}
 	data, err := json.Marshal(invokeReq)
 	if err != nil {
@@ -60,13 +78,13 @@ func TestSigNeoVMInvokeTx(t *testing.T) {
 	}
 	req := &clisvrcom.CliRpcRequest{
 		Qid:    "t",
-		Method: "signeovminvoketx",
+		Method: "signeovminvokeabitx",
 		Params: data,
 	}
 	rsp := &clisvrcom.CliRpcResponse{}
-	SigNeoVMInvokeTx(req, rsp)
+	SigNeoVMInvokeAbiTx(req, rsp)
 	if rsp.ErrorCode != 0 {
-		t.Errorf("SigNeoVMInvokeTx failed. ErrorCode:%d ErrorInfo:%s", rsp.ErrorCode, rsp.ErrorInfo)
+		t.Errorf("SigNeoVMInvokeAbiTx failed. ErrorCode:%d ErrorInfo:%s", rsp.ErrorCode, rsp.ErrorInfo)
 		return
 	}
 }

@@ -30,12 +30,10 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
+	alog "github.com/ontio/ontology-eventbus/log"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd"
-	"github.com/ontio/ontology/cmd/abi"
 	cmdcom "github.com/ontio/ontology/cmd/common"
-	cmdsvr "github.com/ontio/ontology/cmd/server"
-	cmdsvrcom "github.com/ontio/ontology/cmd/server/common"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -90,8 +88,9 @@ func setupAPP() *cli.App {
 		//consensus setting
 		utils.DisableConsensusFlag,
 		utils.MaxTxInBlockFlag,
-		utils.TransactionGasPriceFlag,
-		utils.TransactionGasLimitFlag,
+		//txpool setting
+		utils.GasPriceFlag,
+		utils.GasLimitFlag,
 		//p2p setting
 		utils.ReservedPeersOnlyFlag,
 		utils.ReservedPeersFileFlag,
@@ -117,9 +116,6 @@ func setupAPP() *cli.App {
 		//ws setting
 		utils.WsEnabledFlag,
 		utils.WsPortFlag,
-		//cli setting
-		utils.CliEnableRpcFlag,
-		utils.CliRpcPortFlag,
 	}
 	app.Before = func(context *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
@@ -187,7 +183,7 @@ func startOntology(ctx *cli.Context) {
 	initRestful(ctx)
 	initWs(ctx)
 	initNodeInfo(ctx, p2pSvr)
-	initCliSvr(ctx, acc)
+	//initCliSvr(ctx, acc)
 
 	go logCurrBlockHeight()
 	waitToExit()
@@ -196,6 +192,7 @@ func startOntology(ctx *cli.Context) {
 func initLog(ctx *cli.Context) {
 	//init log module
 	logLevel := ctx.GlobalInt(utils.GetFlagName(utils.LogLevelFlag))
+	alog.InitLog(log.PATH)
 	log.InitLog(logLevel, log.PATH, log.Stdout)
 }
 
@@ -403,16 +400,6 @@ func initNodeInfo(ctx *cli.Context, p2pSvr *p2pserver.P2PServer) {
 	go nodeinfo.StartServer(p2pSvr.GetNetWork())
 
 	log.Infof("Nodeinfo init success")
-}
-
-func initCliSvr(ctx *cli.Context, acc *account.Account) {
-	if !config.DefConfig.Cli.EnableCliRpcServer {
-		return
-	}
-	cmdsvrcom.DefAccount = acc
-	go cmdsvr.DefCliRpcSvr.Start(config.DefConfig.Cli.CliRpcPort)
-	abi.DefAbiMgr.Init()
-	log.Infof("Cli rpc server init success")
 }
 
 func importBlocks(ctx *cli.Context) error {

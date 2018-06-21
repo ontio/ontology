@@ -21,14 +21,12 @@ package config
 import (
 	"encoding/hex"
 	"fmt"
-	"io"
-	"sort"
-
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
+	"io"
 )
 
 const (
@@ -456,11 +454,6 @@ type WebSocketConfig struct {
 	HttpKeyPath  string
 }
 
-type CliConfig struct {
-	EnableCliRpcServer bool
-	CliRpcPort         uint
-}
-
 type OntologyConfig struct {
 	Genesis   *GenesisConfig
 	Common    *CommonConfig
@@ -469,7 +462,6 @@ type OntologyConfig struct {
 	Rpc       *RpcConfig
 	Restful   *RestfulConfig
 	Ws        *WebSocketConfig
-	Cli       *CliConfig
 }
 
 func NewOntologyConfig() *OntologyConfig {
@@ -518,10 +510,6 @@ func NewOntologyConfig() *OntologyConfig {
 			EnableHttpWs: true,
 			HttpWsPort:   DEFAULT_WS_PORT,
 		},
-		Cli: &CliConfig{
-			EnableCliRpcServer: false,
-			CliRpcPort:         DEFAULT_CLI_RPC_PORT,
-		},
 	}
 }
 
@@ -540,7 +528,6 @@ func (this *OntologyConfig) GetBookkeepers() ([]keypair.PublicKey, error) {
 		return nil, fmt.Errorf("Does not support %s consensus", this.Genesis.ConsensusType)
 	}
 
-	sort.Strings(bookKeepers)
 	pubKeys := make([]keypair.PublicKey, 0, len(bookKeepers))
 	for _, key := range bookKeepers {
 		pubKey, err := hex.DecodeString(key)
@@ -550,6 +537,7 @@ func (this *OntologyConfig) GetBookkeepers() ([]keypair.PublicKey, error) {
 		}
 		pubKeys = append(pubKeys, k)
 	}
+	keypair.SortPublicKeys(pubKeys)
 	return pubKeys, nil
 }
 

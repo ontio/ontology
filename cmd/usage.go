@@ -29,6 +29,9 @@ var (
 	AppHelpTemplate = `NAME:
    {{.App.Name}} - {{.App.Usage}}
 
+	Ontology CLI is an Ontology node command line Client for starting and managing Ontology nodes, 
+	managing user wallets, sending transactions, deploying and invoking contract, and so on.
+
 USAGE:
 	{{.App.HelpName}} [options]{{if .App.Commands}} command [command options] {{end}}{{if .App.ArgsUsage}}{{.App.ArgsUsage}}{{else}}[arguments...]{{end}}
 	{{if .App.Version}}
@@ -107,17 +110,17 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
-		Name: "CLI",
-		Flags: []cli.Flag{
-			utils.CliEnableRpcFlag,
-			utils.CliRpcPortFlag,
-		},
-	},
-	{
 		Name: "CONSENSUS",
 		Flags: []cli.Flag{
 			utils.DisableConsensusFlag,
 			utils.MaxTxInBlockFlag,
+		},
+	},
+	{
+		Name: "TXPOOL",
+		Flags: []cli.Flag{
+			utils.GasPriceFlag,
+			utils.GasLimitFlag,
 		},
 	},
 	{

@@ -37,11 +37,12 @@ import (
 
 var (
 	AccountCommand = cli.Command{
-		Action:      cli.ShowSubcommandHelp,
-		Name:        "account",
-		Usage:       "Manage accounts",
-		ArgsUsage:   "[arguments...]",
-		Description: `Manage accounts stored in the wallet`,
+		Action:    cli.ShowSubcommandHelp,
+		Name:      "account",
+		Usage:     "Manage accounts",
+		ArgsUsage: "[arguments...]",
+		Description: `Wallet management commands can be used to add, view, modify, delete, import account, and so on.
+You can use ./Ontology account --help command to view help information of wallet management command.`,
 		Subcommands: []cli.Command{
 			{
 				Action:    accountCreate,
