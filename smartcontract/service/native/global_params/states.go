@@ -95,7 +95,7 @@ func (params *Params) Deserialize(r io.Reader) error {
 }
 
 func (role *Role) Serialize(w io.Writer) error {
-	err := serialization.WriteVarBytes(w, role[:])
+	err := utils.WriteAddress(w,  common.Address(*role))
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, serialize role error!")
 	}
@@ -107,7 +107,7 @@ func (role *Role) Deserialize(r io.Reader) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, deserialize role error!")
 	}
-	copy((*role)[:], address[:])
+	*role = Role(address)
 	return nil
 }
 

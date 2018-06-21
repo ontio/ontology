@@ -76,6 +76,10 @@ func ParamInit(native *native.NativeService) ([]byte, error) {
 	if storageAdmin != nil || storageOperator != nil {
 		return utils.BYTE_FALSE, errors.NewErr("init param, admin or operator has already existed!")
 	}
+	if !utils.CheckDirectCall(native) {
+		return utils.BYTE_FALSE, errors.NewErr("init param checkDirectCall, caller is not a account!")
+	}
+
 	paramCache = new(ParamCache)
 	paramCache.Params = make([]*Param, 0)
 	initParams := new(Params)
@@ -101,6 +105,10 @@ func ParamInit(native *native.NativeService) ([]byte, error) {
 }
 
 func AcceptAdmin(native *native.NativeService) ([]byte, error) {
+	if !utils.CheckDirectCall(native) {
+		return utils.BYTE_FALSE, errors.NewErr("init param checkDirectCall, caller is not a account!")
+	}
+
 	destinationAdmin := new(Role)
 	if err := destinationAdmin.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewErr("accept admin, deserialize admin failed!")
@@ -122,9 +130,13 @@ func AcceptAdmin(native *native.NativeService) ([]byte, error) {
 }
 
 func TransferAdmin(native *native.NativeService) ([]byte, error) {
+	if !utils.CheckDirectCall(native) {
+		return utils.BYTE_FALSE, errors.NewErr("init param checkDirectCall, caller is not a account!")
+	}
+
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	admin, err := GetStorageRole(native, generateAdminKey(contract, false))
-	if err != nil {
+	if err != nil || admin == nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "transfer admin, admin doesn't exist!")
 	}
 	if !native.ContextRef.CheckWitness(common.Address(*admin)) {
@@ -140,9 +152,13 @@ func TransferAdmin(native *native.NativeService) ([]byte, error) {
 }
 
 func SetOperator(native *native.NativeService) ([]byte, error) {
+	if !utils.CheckDirectCall(native) {
+		return utils.BYTE_FALSE, errors.NewErr("init param checkDirectCall, caller is not a account!")
+	}
+
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	admin, err := GetStorageRole(native, generateAdminKey(contract, false))
-	if err != nil {
+	if err != nil || admin == nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "set operator, admin doesn't exist!")
 	}
 	if !native.ContextRef.CheckWitness(common.Address(*admin)) {
@@ -157,9 +173,13 @@ func SetOperator(native *native.NativeService) ([]byte, error) {
 }
 
 func SetGlobalParam(native *native.NativeService) ([]byte, error) {
+	if !utils.CheckDirectCall(native) {
+		return utils.BYTE_FALSE, errors.NewErr("init param checkDirectCall, caller is not a account!")
+	}
+
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	operator, err := GetStorageRole(native, GenerateOperatorKey(contract))
-	if err != nil {
+	if err != nil || operator == nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "set param, operator doesn't exist!")
 	}
 	if !native.ContextRef.CheckWitness(common.Address(*operator)) {
@@ -230,9 +250,13 @@ func GetGlobalParam(native *native.NativeService) ([]byte, error) {
 }
 
 func CreateSnapshot(native *native.NativeService) ([]byte, error) {
+	if !utils.CheckDirectCall(native) {
+		return utils.BYTE_FALSE, errors.NewErr("init param checkDirectCall, caller is not a account!")
+	}
+
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	operator, err := GetStorageRole(native, GenerateOperatorKey(contract))
-	if err != nil {
+	if err != nil || operator == nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "create snapshot, operator doesn't exist!")
 	}
 	if !native.ContextRef.CheckWitness(common.Address(*operator)) {
