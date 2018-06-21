@@ -92,6 +92,7 @@ var (
 	ERR_CHECK_STACK_SIZE  = errors.NewErr("[NeoVmService] vm over max stack size!")
 	ERR_EXECUTE_CODE      = errors.NewErr("[NeoVmService] vm execute code invalid!")
 	ERR_GAS_INSUFFICIENT  = errors.NewErr("[NeoVmService] gas insufficient")
+	VM_EXEC_STEP_EXCEED   = errors.NewErr("[NeoVmService] vm execute step exceed!")
 	CONTRACT_NOT_EXIST    = errors.NewErr("[NeoVmService] Get contract code from db fail")
 	DEPLOYCODE_TYPE_ERROR = errors.NewErr("[NeoVmService] DeployCode type error!")
 )
@@ -127,6 +128,10 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 	this.ContextRef.PushContext(&context.Context{ContractAddress: types.AddressFromVmCode(this.Code), Code: this.Code})
 	this.Engine.PushContext(vm.NewExecutionContext(this.Engine, this.Code))
 	for {
+		//check the execution step count
+		if !this.ContextRef.CheckExecStep() {
+			return nil, VM_EXEC_STEP_EXCEED
+		}
 		if len(this.Engine.Contexts) == 0 || this.Engine.Context == nil {
 			break
 		}
