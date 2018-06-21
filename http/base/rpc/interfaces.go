@@ -298,10 +298,6 @@ func GetNodeVersion(params []interface{}) map[string]interface{} {
 	return responseSuccess(config.Version)
 }
 
-func GetSystemFee(params []interface{}) map[string]interface{} {
-	return responseSuccess(config.DefConfig.Common.SystemFee)
-}
-
 func GetContractState(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return responsePack(berr.INVALID_PARAMS, nil)

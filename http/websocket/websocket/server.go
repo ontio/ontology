@@ -195,6 +195,7 @@ func (self *WsServer) registryMethod() {
 		"getunboundong":             {handler: rest.GetUnboundOng},
 		"getmempooltxcount":         {handler: rest.GetMemPoolTxCount},
 		"getmempooltxstate":         {handler: rest.GetMemPoolTxState},
+		"getversion":                {handler: rest.GetNodeVersion},
 
 		"getsessioncount": {handler: getsessioncount},
 	}

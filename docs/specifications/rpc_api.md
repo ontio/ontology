@@ -78,8 +78,7 @@ Transaction field description
 | getrawtransaction | transactionhash | Returns the corresponding transaction information based on the specified hash value. |  |
 | sendrawtransaction | hex,preExec | Broadcast transaction. | Serialized signed transactions constructed in the program into hexadecimal strings |
 | getstorage | script_hash | Returns the stored value according to the contract script hashes and stored key. |  |
-| getversion |  | Get the version information of the query node |  |
-| getblocksysfee |  | According to the specified index, return the system fee before the block. |  |
+| getversion |  | Get the version information of the node |  |
 | getcontractstate | script_hash,[verbose] | According to the contract script hash, query the contract information. |  |
 | getmempooltxcount |         | Query the transaction count in the memory pool. |  |
 | getmempooltxstate | tx_hash | Query the transaction state in the memory pool. |  |
@@ -594,7 +593,7 @@ Response:
 
 #### 10. getversion
 
-Get the version information of the query node.
+Get the version information of the node.
 
 #### Example
 
@@ -729,44 +728,8 @@ or
 
 > Note: If params is a number, the response result will be the txhash list. If params is txhash, the response result will be smartcode event.
 
-#### 12. getblocksysfee
 
-According to the specified index, return the system fee before the block.
-
-#### Parameter instruction
-
-Index: Block index
-
-#### Example
-
-Request:
-
-```
-{
-  "jsonrpc": "2.0",
-  "method": "getblocksysfee",
-  "params": [1005434],
-  "id": 1
-}
-```
-
-Response:
-
-```
-{
-    "desc":"SUCCESS",
-    "error":0,
-    "jsonrpc": "2.0",
-    "id": 1,
-    "result": "195500"
-}
-```
-
-Response instruction:
-
-Result: The system fee before the block and the unit is OntGas.
-
-#### 13. getcontractstate
+#### 12. getcontractstate
 
 According to the contract script hash, query the contract information.
 
@@ -809,7 +772,7 @@ Response:
 }
 ```
 
-#### 14. getmempooltxstate
+#### 13. getmempooltxstate
 
 Query the transaction state in the memory pool.
 
@@ -852,7 +815,7 @@ Response:
 }
 ```
 
-#### 15. getmempooltxcount
+#### 14. getmempooltxcount
 
 Query the transaction count in the memory pool.
 
@@ -882,7 +845,7 @@ Response:
 ```
 
 
-#### 16. getblockheightbytxhash
+#### 15. getblockheightbytxhash
 get blockheight by txhash
 #### Parameter instruction
 txhash: transaction hash
@@ -910,7 +873,7 @@ Response:
 }
 ```
 
-#### 17. getbalance
+#### 16. getbalance
 
 return balance of base58 account address.
 
@@ -947,7 +910,7 @@ Response:
 }
 ```
 
-#### 18. getmerkleproof
+#### 17. getmerkleproof
 
 return merkle proof
 
@@ -1001,7 +964,7 @@ Response:
 }
 ```
 
-#### 19. getgasprice
+#### 18. getgasprice
 
 return gasprice.
 
@@ -1034,7 +997,7 @@ Response:
 }
 ```
 
-#### 20. getallowance
+#### 19. getallowance
 
 return allowance.
 
@@ -1064,7 +1027,7 @@ Response:
 }
 ```
 
-#### 21. getunboundong
+#### 20. getunboundong
 
 return unboundong.
 
@@ -1094,7 +1057,7 @@ Response:
 }
 ```
 
-#### 22 getblocktxsbyheight
+#### 21 getblocktxsbyheight
 
 Get transactions by block height
 return all transaction hash contained in the block corresponding to this height
