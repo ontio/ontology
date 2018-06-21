@@ -29,6 +29,7 @@ import (
 
 const (
 	DEFAULT_EXPORT_FILE = "./blocks.dat"
+	DEFAULT_ABI_PATH    = "../abi"
 )
 
 var (
@@ -388,6 +389,11 @@ var (
 		Name:  "cliport",
 		Usage: "Cli rpc port",
 		Value: config.DEFAULT_CLI_RPC_PORT,
+	}
+	CliABIPathFlag = cli.StringFlag{
+		Name:  "abi",
+		Usage: "Abi path",
+		Value: DEFAULT_ABI_PATH,
 	}
 
 	//Export setting

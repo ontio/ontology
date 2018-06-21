@@ -31,6 +31,8 @@ import (
 	"github.com/ontio/ontology/errors"
 )
 
+var Version = "" //Set value when build project
+
 const (
 	DEFAULT_CONFIG_FILE_NAME = "./config.json"
 	DEFAULT_WALLET_FILE_NAME = "./wallet.dat"
@@ -542,5 +544,3 @@ func (this *OntologyConfig) GetBookkeepers() ([]keypair.PublicKey, error) {
 	}
 	return pubKeys, nil
 }
-
-var Version = ""

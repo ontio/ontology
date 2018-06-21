@@ -61,7 +61,7 @@ func setupAPP() *cli.App {
 	app := cli.NewApp()
 	app.Usage = "Ontology CLI"
 	app.Action = startOntology
-	app.Version = "0.9"
+	app.Version = config.Version
 	app.Copyright = "Copyright in 2018 The Ontology Authors"
 	app.Commands = []cli.Command{
 		cmd.AccountCommand,
@@ -181,7 +181,6 @@ func startOntology(ctx *cli.Context) {
 	initRestful(ctx)
 	initWs(ctx)
 	initNodeInfo(ctx, p2pSvr)
-	//initCliSvr(ctx, acc)
 
 	go logCurrBlockHeight()
 	waitToExit()
@@ -216,6 +215,7 @@ func initAccount(ctx *cli.Context) (*account.Account, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get account error:%s", err)
 	}
+	log.Infof("Using account:%s", acc.Address.ToBase58())
 
 	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
 		curPk := hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey))
