@@ -578,3 +578,16 @@ func appCallVerifyToken(native *native.NativeService, contract common.Address, c
 	}
 	return nil
 }
+
+func CheckIfAccount(nativeService *native.NativeService) (bool, error) {
+	address := nativeService.ContextRef.CallingContext().ContractAddress
+	item, err := nativeService.CloneCache.Store.TryGet(scommon.ST_CONTRACT, address[:])
+	if err != nil {
+		return false, err
+	}
+	_, ok := native.Contracts[address]
+	if item == nil && !ok {
+		return true, nil
+	}
+	return false, nil
+}
