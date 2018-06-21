@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"io"
 	"math/big"
+	"reflect"
 	"sort"
 
 	"github.com/ontio/ontology-crypto/keypair"
@@ -69,12 +70,12 @@ func RuntimeCheckWitness(service *NeoVmService, engine *vm.ExecutionEngine) erro
 
 func RuntimeSerialize(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	item := vm.PopStackItem(engine)
-	bf := new(bytes.Buffer)
-	err := SerializeStackItem(item, bf)
+
+	buf, err := SerializeStackItem(item)
 	if err != nil {
 		return err
 	}
-	vm.PushData(engine, bf.Bytes())
+	vm.PushData(engine, buf)
 	return nil
 }
 
@@ -121,7 +122,21 @@ func RuntimeGetTrigger(service *NeoVmService, engine *vm.ExecutionEngine) error 
 	return nil
 }
 
-func SerializeStackItem(item vmtypes.StackItems, w io.Writer) error {
+func SerializeStackItem(item vmtypes.StackItems) ([]byte, error) {
+	if CircularRefDetection(item) {
+		return nil, errors.NewErr("runtime serialize: can not serialize circular reference data")
+	}
+
+	bf := new(bytes.Buffer)
+	err := serializeStackItem(item, bf)
+	if err != nil {
+		return nil, err
+	}
+
+	return bf.Bytes(), nil
+}
+
+func serializeStackItem(item vmtypes.StackItems, w io.Writer) error {
 	switch item.(type) {
 	case *vmtypes.ByteArray:
 		if err := serialization.WriteByte(w, vmtypes.ByteArrayType); err != nil {
@@ -160,7 +175,7 @@ func SerializeStackItem(item vmtypes.StackItems, w io.Writer) error {
 		}
 
 		for _, v := range a {
-			SerializeStackItem(v, w)
+			serializeStackItem(v, w)
 		}
 
 	case *vmtypes.Struct:
@@ -173,7 +188,7 @@ func SerializeStackItem(item vmtypes.StackItems, w io.Writer) error {
 		}
 
 		for _, v := range s {
-			SerializeStackItem(v, w)
+			serializeStackItem(v, w)
 		}
 
 	case *vmtypes.Map:
@@ -207,8 +222,8 @@ func SerializeStackItem(item vmtypes.StackItems, w io.Writer) error {
 		sort.Strings(unsortKey)
 		for _, v := range unsortKey {
 			key := keyMap[v]
-			SerializeStackItem(key, w)
-			SerializeStackItem(mp[key], w)
+			serializeStackItem(key, w)
+			serializeStackItem(mp[key], w)
 		}
 
 	default:
@@ -296,4 +311,77 @@ func DeserializeStackItem(r io.Reader) (items vmtypes.StackItems, err error) {
 	}
 
 	return nil, nil
+}
+
+func CircularRefDetection(value vmtypes.StackItems) bool {
+	return circularRefDetection(value, make(map[uintptr]bool), 0)
+}
+
+func circularRefDetection(value vmtypes.StackItems, visited map[uintptr]bool, depth int) bool {
+	switch value.(type) {
+	case *vmtypes.Array:
+		a, _ := value.GetArray()
+		if len(a) == 0 {
+			return false
+		}
+
+		p := reflect.ValueOf(a).Pointer()
+		if visited[p] {
+			return true
+		}
+		visited[p] = true
+
+		for _, v := range a {
+			if circularRefDetection(v, visited, depth+1) {
+				return true
+			}
+		}
+
+		delete(visited, p)
+		return false
+	case *vmtypes.Struct:
+		s, _ := value.GetStruct()
+		if len(s) == 0 {
+			return false
+		}
+
+		p := reflect.ValueOf(s).Pointer()
+		if visited[p] {
+			return true
+		}
+		visited[p] = true
+
+		for _, v := range s {
+			if circularRefDetection(v, visited, depth+1) {
+				return true
+			}
+		}
+
+		delete(visited, p)
+		return false
+	case *vmtypes.Map:
+		mp, _ := value.GetMap()
+
+		p := reflect.ValueOf(mp).Pointer()
+		if visited[p] {
+			return true
+		}
+		visited[p] = true
+
+		for k, v := range mp {
+			if circularRefDetection(k, visited, depth+1) {
+				return true
+			}
+			if circularRefDetection(v, visited, depth+1) {
+				return true
+			}
+		}
+
+		delete(visited, p)
+		return false
+	default:
+		return false
+	}
+
+	return false
 }
