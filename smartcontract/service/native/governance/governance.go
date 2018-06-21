@@ -125,6 +125,12 @@ func RegisterGovernanceContract(native *native.NativeService) {
 }
 
 func InitConfig(native *native.NativeService) ([]byte, error) {
+	//check if direct call
+	ok := CheckDirectCall(native)
+	if !ok {
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
+	}
+
 	configuration := new(config.VBFTConfig)
 	buf, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
 	if err != nil {
@@ -277,6 +283,12 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 }
 
 func RegisterCandidate(native *native.NativeService) ([]byte, error) {
+	//check if direct call
+	ok := CheckDirectCall(native)
+	if !ok {
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
+	}
+
 	params := new(RegisterCandidateParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
@@ -333,7 +345,7 @@ func RegisterCandidate(native *native.NativeService) ([]byte, error) {
 	}
 
 	//check if exist in PeerPool
-	_, ok := peerPoolMap.PeerPoolMap[params.PeerPubkey]
+	_, ok = peerPoolMap.PeerPoolMap[params.PeerPubkey]
 	if ok {
 		return utils.BYTE_FALSE, errors.NewErr("registerCandidate, peerPubkey is already in peerPoolMap!")
 	}
@@ -371,6 +383,12 @@ func RegisterCandidate(native *native.NativeService) ([]byte, error) {
 }
 
 func UnRegisterCandidate(native *native.NativeService) ([]byte, error) {
+	//check if direct call
+	ok := CheckDirectCall(native)
+	if !ok {
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
+	}
+
 	params := new(UnRegisterCandidateParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
@@ -432,6 +450,12 @@ func UnRegisterCandidate(native *native.NativeService) ([]byte, error) {
 }
 
 func ApproveCandidate(native *native.NativeService) ([]byte, error) {
+	//check if direct call
+	ok := CheckDirectCall(native)
+	if !ok {
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
+	}
+
 	params := new(ApproveCandidateParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
@@ -543,6 +567,12 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 }
 
 func RejectCandidate(native *native.NativeService) ([]byte, error) {
+	//check if direct call
+	ok := CheckDirectCall(native)
+	if !ok {
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
+	}
+
 	params := new(RejectCandidateParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
@@ -603,6 +633,12 @@ func RejectCandidate(native *native.NativeService) ([]byte, error) {
 }
 
 func BlackNode(native *native.NativeService) ([]byte, error) {
+	//check if direct call
+	ok := CheckDirectCall(native)
+	if !ok {
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
+	}
+
 	params := new(BlackNodeParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
@@ -687,6 +723,12 @@ func BlackNode(native *native.NativeService) ([]byte, error) {
 }
 
 func WhiteNode(native *native.NativeService) ([]byte, error) {
+	//check if direct call
+	ok := CheckDirectCall(native)
+	if !ok {
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
+	}
+
 	params := new(WhiteNodeParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
@@ -726,6 +768,12 @@ func WhiteNode(native *native.NativeService) ([]byte, error) {
 }
 
 func QuitNode(native *native.NativeService) ([]byte, error) {
+	//check if direct call
+	ok := CheckDirectCall(native)
+	if !ok {
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
+	}
+
 	params := new(QuitNodeParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
@@ -751,6 +799,12 @@ func QuitNode(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getPeerPoolMap, get peerPoolMap error!")
 	}
 
+	//get config
+	config, err := getConfig(native, contract)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getConfig, get config error!")
+	}
+
 	peerPoolItem, ok := peerPoolMap.PeerPoolMap[params.PeerPubkey]
 	if !ok {
 		return utils.BYTE_FALSE, errors.NewErr("quitNode, peerPubkey is not in peerPoolMap!")
@@ -758,6 +812,20 @@ func QuitNode(native *native.NativeService) ([]byte, error) {
 
 	if address != peerPoolItem.Address {
 		return utils.BYTE_FALSE, errors.NewErr("quitNode, peerPubkey is not registered by this address!")
+	}
+	if peerPoolItem.Status != ConsensusStatus && peerPoolItem.Status != CandidateStatus {
+		return utils.BYTE_FALSE, errors.NewErr("quitNode, peerPubkey is not CandidateStatus or ConsensusStatus!")
+	}
+
+	//check peers num
+	num := 0
+	for _, peerPoolItem := range peerPoolMap.PeerPoolMap {
+		if peerPoolItem.Status == CandidateStatus || peerPoolItem.Status == ConsensusStatus {
+			num = num + 1
+		}
+	}
+	if num <= int(config.K) {
+		return utils.BYTE_FALSE, errors.NewErr("quitNode, num of peers is less than K!")
 	}
 
 	//change peerPool status
@@ -777,6 +845,12 @@ func QuitNode(native *native.NativeService) ([]byte, error) {
 }
 
 func VoteForPeer(native *native.NativeService) ([]byte, error) {
+	//check if direct call
+	ok := CheckDirectCall(native)
+	if !ok {
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
+	}
+
 	params := &VoteForPeerParam{
 		PeerPubkeyList: make([]string, 0),
 		PosList:        make([]uint64, 0),
@@ -863,6 +937,12 @@ func VoteForPeer(native *native.NativeService) ([]byte, error) {
 }
 
 func UnVoteForPeer(native *native.NativeService) ([]byte, error) {
+	//check if direct call
+	ok := CheckDirectCall(native)
+	if !ok {
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
+	}
+
 	params := &VoteForPeerParam{
 		PeerPubkeyList: make([]string, 0),
 		PosList:        make([]uint64, 0),
@@ -955,6 +1035,12 @@ func UnVoteForPeer(native *native.NativeService) ([]byte, error) {
 }
 
 func Withdraw(native *native.NativeService) ([]byte, error) {
+	//check if direct call
+	ok := CheckDirectCall(native)
+	if !ok {
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
+	}
+
 	params := &WithdrawParam{
 		PeerPubkeyList: make([]string, 0),
 		WithdrawList:   make([]uint64, 0),
@@ -1016,6 +1102,12 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 }
 
 func CommitDpos(native *native.NativeService) ([]byte, error) {
+	//check if direct call
+	ok := CheckDirectCall(native)
+	if !ok {
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
+	}
+
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	// get config
@@ -1112,6 +1204,9 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 			})
 		}
 	}
+	if len(peers) < int(config.K) {
+		return errors.NewErr("commitDpos, num of peers is less than K!")
+	}
 
 	// sort peers by stake
 	sort.SliceStable(peers, func(i, j int) bool {
@@ -1127,7 +1222,7 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 	for i := 0; i < int(config.K); i++ {
 		peerPoolItem, ok := peerPoolMap.PeerPoolMap[peers[i].PeerPubkey]
 		if !ok {
-			return errors.NewErr("voteForPeer, peerPubkey is not in peerPoolMap!")
+			return errors.NewErr("commitDpos, peerPubkey is not in peerPoolMap!")
 		}
 
 		if peerPoolItem.Status == ConsensusStatus {
@@ -1179,7 +1274,7 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 
 	//update view
 	governanceView = &GovernanceView{
-		View:   governanceView.View + 1,
+		View:   newView,
 		Height: native.Height,
 		TxHash: native.Tx.Hash(),
 	}
@@ -1192,6 +1287,12 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 }
 
 func UpdateConfig(native *native.NativeService) ([]byte, error) {
+	//check if direct call
+	ok := CheckDirectCall(native)
+	if !ok {
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
+	}
+
 	// get admin from database
 	adminAddress, err := getAdmin(native)
 	if err != nil {
@@ -1261,6 +1362,12 @@ func UpdateConfig(native *native.NativeService) ([]byte, error) {
 }
 
 func UpdateGlobalParam(native *native.NativeService) ([]byte, error) {
+	//check if direct call
+	ok := CheckDirectCall(native)
+	if !ok {
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
+	}
+
 	// get admin from database
 	adminAddress, err := getAdmin(native)
 	if err != nil {
@@ -1313,6 +1420,12 @@ func UpdateGlobalParam(native *native.NativeService) ([]byte, error) {
 }
 
 func UpdateSplitCurve(native *native.NativeService) ([]byte, error) {
+	//check if direct call
+	ok := CheckDirectCall(native)
+	if !ok {
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
+	}
+
 	// get admin from database
 	adminAddress, err := getAdmin(native)
 	if err != nil {
@@ -1340,6 +1453,12 @@ func UpdateSplitCurve(native *native.NativeService) ([]byte, error) {
 }
 
 func CallSplit(native *native.NativeService) ([]byte, error) {
+	//check if direct call
+	ok := CheckDirectCall(native)
+	if !ok {
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
+	}
+
 	// get admin from database
 	adminAddress, err := getAdmin(native)
 	if err != nil {
@@ -1469,6 +1588,12 @@ func executeSplit(native *native.NativeService, contract common.Address, peerPoo
 }
 
 func TransferPenalty(native *native.NativeService) ([]byte, error) {
+	//check if direct call
+	ok := CheckDirectCall(native)
+	if !ok {
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
+	}
+
 	// get admin from database
 	adminAddress, err := getAdmin(native)
 	if err != nil {
@@ -1496,6 +1621,12 @@ func TransferPenalty(native *native.NativeService) ([]byte, error) {
 }
 
 func WithdrawOng(native *native.NativeService) ([]byte, error) {
+	//check if direct call
+	ok := CheckDirectCall(native)
+	if !ok {
+		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
+	}
+
 	param := new(WithdrawOngParam)
 	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize transferPenaltyParam error!")
