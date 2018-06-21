@@ -188,23 +188,27 @@ func SerializeStackItem(item vmtypes.StackItems, w io.Writer) error {
 			return errors.NewErr("Serialize Map stackItems error: " + err.Error())
 		}
 
-		for k, _ := range mp {
+		for k := range mp {
+			typepostfix := ""
 			switch k.(type) {
-			case *vmtypes.ByteArray, *vmtypes.Integer:
-				ba, _ := k.GetByteArray()
-				key := string(ba)
-				if key == "" {
-					return errors.NewErr("Serialize Map error: invalid key type")
-				}
-				unsortKey = append(unsortKey, key)
-				keyMap[key] = k
-
+			case *vmtypes.ByteArray:
+				typepostfix = "b"
+			case *vmtypes.Integer:
+				typepostfix = "i"
 			default:
 				return errors.NewErr("Unsupport map key type.")
 			}
+			ba, _ := k.GetByteArray()
+			key := string(ba)
+			if key == "" {
+				return errors.NewErr("Serialize Map error: invalid key type")
+			}
+			key += typepostfix
+			unsortKey = append(unsortKey, key)
+			keyMap[key] = k
 		}
 
-		sort.Strings(unsortKey)
+		sort.Stable(sort.StringSlice(unsortKey))
 		for _, v := range unsortKey {
 			key := keyMap[v]
 			SerializeStackItem(key, w)
