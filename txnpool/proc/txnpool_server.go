@@ -83,6 +83,7 @@ type TXPoolServer struct {
 	slots         chan struct{}                       // The limited slots for the new transaction
 	height        uint32                              // The current block height
 	gasPrice      uint64                              // Gas price to enforce for acceptance into the pool
+	upperGasLimit uint64                              // Upper gas limit for a transaction
 }
 
 // NewTxPoolServer creates a new tx pool server to schedule workers to
@@ -93,53 +94,66 @@ func NewTxPoolServer(num uint8) *TXPoolServer {
 	return s
 }
 
-// getGlobalGasPrice returns a global gas price
-func getGlobalGasPrice() (uint64, error) {
-	tx, err := httpcom.NewNativeInvokeTransaction(0, 0, nutils.ParamContractAddress, 0, "getGlobalParam", []interface{}{[]interface{}{"gasPrice"}})
+// getGlobalGasPriceAndUpperLimit returns global gas price and upper gas limit
+func getGlobalGasPriceAndUpperLimit() (uint64, uint64, error) {
+	tx, err := httpcom.NewNativeInvokeTransaction(0, 0,
+		nutils.ParamContractAddress, 0, "getGlobalParam",
+		[]interface{}{[]interface{}{"gasPrice", "upperGasLimit"}})
 	if err != nil {
-		return 0, fmt.Errorf("NewNativeInvokeTransaction error:%s", err)
+		return 0, 0, fmt.Errorf("NewNativeInvokeTransaction error:%s", err)
 	}
 	result, err := ledger.DefLedger.PreExecuteContract(tx)
 	if err != nil {
-		return 0, fmt.Errorf("PreExecuteContract failed %v", err)
+		return 0, 0, fmt.Errorf("PreExecuteContract failed %v", err)
 	}
 
 	queriedParams := new(params.Params)
 	data, err := hex.DecodeString(result.Result.(string))
 	if err != nil {
-		return 0, fmt.Errorf("decode result error %v", err)
+		return 0, 0, fmt.Errorf("decode result error %v", err)
 	}
 
 	err = queriedParams.Deserialize(bytes.NewBuffer([]byte(data)))
 	if err != nil {
-		return 0, fmt.Errorf("deserialize result error %v", err)
+		return 0, 0, fmt.Errorf("deserialize result error %v", err)
 	}
 	_, param := queriedParams.GetParam("gasPrice")
 	if param == nil {
-		return 0, fmt.Errorf("failed to get param for gasPrice")
+		return 0, 0, fmt.Errorf("failed to get param for gasPrice")
 	}
 
 	gasPrice, err := strconv.ParseUint(param.Value, 10, 64)
 	if err != nil {
-		return 0, fmt.Errorf("failed to parse uint %v", err)
+		return 0, 0, fmt.Errorf("failed to parse uint %v", err)
 	}
-	return gasPrice, err
+
+	_, param = queriedParams.GetParam("upperGasLimit")
+	if param == nil {
+		return 0, 0, fmt.Errorf("failed to get param for gasPrice")
+	}
+
+	upperGasLimit, err := strconv.ParseUint(param.Value, 10, 64)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to parse uint %v", err)
+	}
+	return gasPrice, upperGasLimit, nil
 }
 
-// getGasPriceConfig returns the bigger one between global and cmd configured
-func getGasPriceConfig() uint64 {
-	globalGasPrice, err := getGlobalGasPrice()
+// getGasPriceLimitConfig returns gasPrice and upperGasLimit.
+func getGasPriceAndUpperLimitConfig() (uint64, uint64) {
+	globalGasPrice, globalUpperGasLimit, err := getGlobalGasPriceAndUpperLimit()
 	if err != nil {
 		log.Info(err)
-		return 0
+		return 0, 0
 	}
-	log.Infof("getGasPriceConfig: gasPrice %d configure %d", globalGasPrice,
+	log.Infof("getGasPriceLimitConfig: gasPrice %d, upperGasLimit %d configure %d",
+		globalGasPrice, globalUpperGasLimit,
 		config.DefConfig.Common.GasPrice)
 
 	if globalGasPrice < config.DefConfig.Common.GasPrice {
-		return config.DefConfig.Common.GasPrice
+		return config.DefConfig.Common.GasPrice, globalUpperGasLimit
 	}
-	return globalGasPrice
+	return globalGasPrice, globalUpperGasLimit
 }
 
 // init initializes the server with the configured settings
@@ -169,7 +183,7 @@ func (s *TXPoolServer) init(num uint8) {
 		s.slots <- struct{}{}
 	}
 
-	s.gasPrice = getGasPriceConfig()
+	s.gasPrice, s.upperGasLimit = getGasPriceAndUpperLimitConfig()
 
 	// Create the given concurrent workers
 	s.workers = make([]txPoolWorker, num)
@@ -240,6 +254,13 @@ func (s *TXPoolServer) getGasPrice() uint64 {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.gasPrice
+}
+
+// getUpperGasLimit returns the current upper gas limit enforced by the transaction pool
+func (s *TXPoolServer) getUpperGasLimit() uint64 {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.upperGasLimit
 }
 
 // removePendingTx removes a transaction from the pending list
@@ -513,10 +534,11 @@ func (s *TXPoolServer) cleanTransactionList(txs []*tx.Transaction, height uint32
 	// Check whether to update the gas price and remove txs below the
 	// threshold
 	if height%tc.UPDATE_FREQUENCY == 0 {
-		gasPrice := getGasPriceConfig()
+		gasPrice, upperGasLimit := getGasPriceAndUpperLimitConfig()
 		s.mu.Lock()
 		oldGasPrice := s.gasPrice
 		s.gasPrice = gasPrice
+		s.upperGasLimit = upperGasLimit
 		s.mu.Unlock()
 		if oldGasPrice < gasPrice {
 			s.txPool.RemoveTxsBelowGasPrice(gasPrice)

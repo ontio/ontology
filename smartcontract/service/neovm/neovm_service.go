@@ -127,6 +127,10 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 	this.ContextRef.PushContext(&context.Context{ContractAddress: types.AddressFromVmCode(this.Code), Code: this.Code})
 	this.Engine.PushContext(vm.NewExecutionContext(this.Engine, this.Code))
 	for {
+		//check the execution step count
+		if !this.ContextRef.CheckExecStep() {
+			break
+		}
 		if len(this.Engine.Contexts) == 0 || this.Engine.Context == nil {
 			break
 		}
@@ -211,6 +215,7 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 			}
 		}
 	}
+
 	this.ContextRef.PopContext()
 	this.ContextRef.PushNotifications(this.Notifications)
 	if this.Engine.EvaluationStack.Count() != 0 {
