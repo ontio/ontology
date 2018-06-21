@@ -21,7 +21,6 @@ package program
 import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/stretchr/testify/assert"
-	"sort"
 	"testing"
 )
 
@@ -47,12 +46,8 @@ func TestGetProgramInfo(t *testing.T) {
 		_, key, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
 		pubkeys = append(pubkeys, key)
 	}
-	list := keypair.NewPublicList(pubkeys)
-	sort.Sort(list)
-	for i := 0; i < N; i++ {
-		pubkeys[i], _ = keypair.DeserializePublicKey(list[i])
-	}
 
+	pubkeys = keypair.SortPublicKeys(pubkeys)
 	progInfo := ProgramInfo{PubKeys: pubkeys, M: uint16(M)}
 	prog, err := ProgramFromMultiPubKey(progInfo.PubKeys, int(progInfo.M))
 	assert.Nil(t, err)

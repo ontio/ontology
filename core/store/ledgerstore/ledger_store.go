@@ -121,7 +121,7 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 		if err != nil {
 			return fmt.Errorf("eventStore.ClearAll error %s", err)
 		}
-		sort.Sort(keypair.NewPublicList(defaultBookkeeper))
+		defaultBookkeeper = keypair.SortPublicKeys(defaultBookkeeper)
 		bookkeeperState := &states.BookkeeperState{
 			CurrBookkeeper: defaultBookkeeper,
 			NextBookkeeper: defaultBookkeeper,
