@@ -25,5 +25,6 @@ func init() {
 	DefCliRpcSvr.RegHandler("sigmutilrawtx", handlers.SigMutilRawTransaction)
 	DefCliRpcSvr.RegHandler("sigtransfertx", handlers.SigTransferTransaction)
 	DefCliRpcSvr.RegHandler("signeovminvoketx", handlers.SigNeoVMInvokeTx)
+	DefCliRpcSvr.RegHandler("signeovminvokeabitx", handlers.SigNeoVMInvokeAbiTx)
 	DefCliRpcSvr.RegHandler("signativeinvoketx", handlers.SigNativeInvokeTx)
 }

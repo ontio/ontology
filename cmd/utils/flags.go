@@ -281,7 +281,7 @@ var (
 		Name:  "name",
 		Usage: "Specifies contract name to `<name>`",
 	}
-	ContractVersionFlag = cli.IntFlag{
+	ContractVersionFlag = cli.StringFlag{
 		Name:  "version",
 		Usage: "Specifies contract version to `<ver>`",
 	}
