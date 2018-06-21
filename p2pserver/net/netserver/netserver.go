@@ -325,13 +325,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		remotePeer.AttachSyncChan(this.SyncChan)
 		go remotePeer.SyncLink.Rx()
 		remotePeer.SetSyncState(common.HAND)
-		version := msgpack.NewVersion(this, false, ledger.DefLedger.GetCurrentBlockHeight())
-		err := remotePeer.SyncLink.Tx(version)
-		if err != nil {
-			this.RemoveFromOutConnRecord(addr)
-			log.Error(err)
-			return err
-		}
+
 	} else {
 		remotePeer = peer.NewPeer() //would merge with a exist peer in versionhandle
 		this.AddPeerConsAddress(addr, remotePeer)
@@ -340,14 +334,16 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		remotePeer.AttachConsChan(this.ConsChan)
 		go remotePeer.ConsLink.Rx()
 		remotePeer.SetConsState(common.HAND)
-		version := msgpack.NewVersion(this, true, ledger.DefLedger.GetCurrentBlockHeight())
-		err := remotePeer.ConsLink.Tx(version)
-		if err != nil {
-			log.Error(err)
-			return err
-		}
 	}
-
+	version := msgpack.NewVersion(this, isConsensus, ledger.DefLedger.GetCurrentBlockHeight())
+	err = remotePeer.Send(version, isConsensus)
+	if err != nil {
+		if !isConsensus {
+			this.RemoveFromOutConnRecord(addr)
+		}
+		log.Error(err)
+		return err
+	}
 	return nil
 }
 
