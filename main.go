@@ -21,8 +21,16 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
+	"os"
+	"os/signal"
+	"runtime"
+	"strings"
+	"syscall"
+	"time"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
+	alog "github.com/ontio/ontology-eventbus/log"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd"
 	cmdcom "github.com/ontio/ontology/cmd/common"
@@ -49,12 +57,6 @@ import (
 	"github.com/ontio/ontology/validator/stateful"
 	"github.com/ontio/ontology/validator/stateless"
 	"github.com/urfave/cli"
-	"os"
-	"os/signal"
-	"runtime"
-	"strings"
-	"syscall"
-	"time"
 )
 
 func setupAPP() *cli.App {
@@ -190,6 +192,7 @@ func startOntology(ctx *cli.Context) {
 func initLog(ctx *cli.Context) {
 	//init log module
 	logLevel := ctx.GlobalInt(utils.GetFlagName(utils.LogLevelFlag))
+	alog.InitLog(log.PATH)
 	log.InitLog(logLevel, log.PATH, log.Stdout)
 }
 

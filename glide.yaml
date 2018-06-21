@@ -1,7 +1,7 @@
 package: github.com/ontio/ontology
 import:
 - package: github.com/ontio/ontology-eventbus
-  version: v0.9
+  version: v0.9.1
 - package: github.com/ontio/ontology-crypto
   version: v0.9
 - package: github.com/howeyc/gopass
