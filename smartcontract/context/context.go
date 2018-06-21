@@ -39,6 +39,7 @@ type ContextRef interface {
 	PushNotifications(notifications []*event.NotifyEventInfo)
 	NewExecuteEngine(code []byte) (Engine, error)
 	CheckUseGas(gas uint64) bool
+	CheckExecStep() bool
 }
 
 type Engine interface {
