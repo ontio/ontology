@@ -41,6 +41,12 @@ type ApiServer interface {
 	Stop()
 }
 
+func GetNodeVersion(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(berr.SUCCESS)
+	resp["Result"] = config.Version
+	return resp
+}
+
 //Node
 func GetGenerateBlockTime(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)

@@ -838,6 +838,28 @@ Query the transaction count in the memory pool.
 ```
 
 
+### 25. Get version
+Get the version information of the node.
+
+#### Request Example:
+```
+{
+    "Action": "getversion",
+    "Version": "1.0.0"
+}
+```
+#### Response
+```
+{
+    "Action": "getversion",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Version": "1.0.0",
+    "Result": "0.9"
+}
+```
+
+
 ## Error Code
 
 | Field | Type | Description |
