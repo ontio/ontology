@@ -578,3 +578,12 @@ func appCallVerifyToken(native *native.NativeService, contract common.Address, c
 	}
 	return nil
 }
+
+func CheckDirectCall(nativeService *native.NativeService) bool {
+	callingAddress := nativeService.ContextRef.CallingContext().ContractAddress
+	entryAddress := nativeService.ContextRef.EntryContext().ContractAddress
+	if callingAddress == entryAddress {
+		return true
+	}
+	return false
+}
