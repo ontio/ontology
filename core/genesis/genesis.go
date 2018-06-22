@@ -154,19 +154,18 @@ func deployOntIDContract() *types.Transaction {
 
 func newGoverningInit() *types.Transaction {
 	bookkeepers, _ := config.DefConfig.GetBookkeepers()
-	assign := constants.ONT_TOTAL_SUPPLY / uint64(len(bookkeepers))
+	addr := types.AddressFromPubKey(bookkeepers[0])
+
+	distribute := []struct {
+		addr  common.Address
+		value uint64
+	}{{addr, constants.ONT_TOTAL_SUPPLY}}
+
 	args := bytes.NewBuffer(nil)
-	left := constants.ONT_TOTAL_SUPPLY
-	nutils.WriteVarUint(args, uint64(len(bookkeepers)))
-	for i, pubkey := range bookkeepers {
-		addr := types.AddressFromPubKey(pubkey)
-		nutils.WriteAddress(args, addr)
-		if i == len(bookkeepers) {
-			nutils.WriteVarUint(args, left)
-		} else {
-			nutils.WriteVarUint(args, assign)
-		}
-		left -= assign
+	nutils.WriteVarUint(args, uint64(len(distribute)))
+	for _, part := range distribute {
+		nutils.WriteAddress(args, part.addr)
+		nutils.WriteVarUint(args, part.value)
 	}
 
 	return utils.BuildNativeTransaction(nutils.OntContractAddress, ont.INIT_NAME, args.Bytes())
