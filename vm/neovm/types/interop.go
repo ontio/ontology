@@ -62,7 +62,7 @@ func (this *Interop) GetBoolean() (bool, error) {
 }
 
 func (this *Interop) GetByteArray() ([]byte, error) {
-	return this._object.ToArray(), nil
+	return nil, fmt.Errorf("%s", "Not support interface to bytearray")
 }
 
 func (this *Interop) GetInterface() (interfaces.Interop, error) {

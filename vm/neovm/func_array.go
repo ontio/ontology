@@ -23,6 +23,7 @@ import (
 
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/vm/neovm/types"
+	"fmt"
 )
 
 func opArraySize(e *ExecutionEngine) (VMState, error) {
@@ -103,7 +104,11 @@ func opPickItem(e *ExecutionEngine) (VMState, error) {
 func opSetItem(e *ExecutionEngine) (VMState, error) {
 	newItem := PopStackItem(e)
 	if value, ok := newItem.(*types.Struct); ok {
-		newItem = value.Clone()
+		var err error
+		newItem, err = value.Clone()
+		if err != nil {
+			return FAULT, err
+		}
 	}
 
 	index := PopStackItem(e)
@@ -163,10 +168,16 @@ func opNewMap(e *ExecutionEngine) (VMState, error) {
 
 func opAppend(e *ExecutionEngine) (VMState, error) {
 	newItem := PopStackItem(e)
+	fmt.Println("newItem:", newItem)
 	if value, ok := newItem.(*types.Struct); ok {
-		newItem = value.Clone()
+		var err error
+		newItem, err = value.Clone()
+		if err != nil {
+			return FAULT, err
+		}
 	}
 	items := PopStackItem(e)
+	fmt.Println("items:", items)
 	if item, ok := items.(*types.Array); ok {
 		item.Add(newItem)
 	}
