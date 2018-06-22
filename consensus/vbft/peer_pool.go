@@ -43,6 +43,7 @@ type PeerPool struct {
 	server  *Server
 	configs map[uint32]*vconfig.PeerConfig // peer index to peer
 	IDMap   map[string]uint32
+	P2pMap  map[uint32]uint64 //value: p2p random id
 
 	peers                  map[uint32]*Peer
 	peerConnectionWaitings map[uint32]chan struct{}
@@ -54,6 +55,7 @@ func NewPeerPool(maxSize int, server *Server) *PeerPool {
 		server:  server,
 		configs: make(map[uint32]*vconfig.PeerConfig),
 		IDMap:   make(map[string]uint32),
+		P2pMap:  make(map[uint32]uint64),
 		peers:   make(map[uint32]*Peer),
 		peerConnectionWaitings: make(map[uint32]chan struct{}),
 	}
@@ -65,6 +67,7 @@ func (pool *PeerPool) clean() {
 
 	pool.configs = make(map[uint32]*vconfig.PeerConfig)
 	pool.IDMap = make(map[string]uint32)
+	pool.P2pMap = make(map[uint32]uint64)
 	pool.peers = make(map[uint32]*Peer)
 }
 
@@ -265,4 +268,19 @@ func (pool *PeerPool) getPeer(idx uint32) *Peer {
 	}
 
 	return nil
+}
+
+func (pool *PeerPool) addP2pId(peerIdx uint32, p2pId uint64) {
+	pool.lock.Lock()
+	defer pool.lock.Unlock()
+
+	pool.P2pMap[peerIdx] = p2pId
+}
+
+func (pool *PeerPool) getP2pId(peerIdx uint32) (uint64, bool) {
+	pool.lock.RLock()
+	defer pool.lock.RUnlock()
+
+	p2pid, present := pool.P2pMap[peerIdx]
+	return p2pid, present
 }

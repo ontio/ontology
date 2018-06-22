@@ -231,6 +231,10 @@ func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 	if self.peerPool.isNewPeer(peerIdx) {
 		self.peerPool.peerConnected(peerIdx)
 	}
+	p2pid, present := self.peerPool.getP2pId(peerIdx)
+	if !present || p2pid != payload.PeerId {
+		self.peerPool.addP2pId(peerIdx, payload.PeerId)
+	}
 
 	if C, present := self.msgRecvC[peerIdx]; present {
 		C <- &p2pMsgPayload{
@@ -558,7 +562,6 @@ func (self *Server) run(peerPubKey keypair.PublicKey) error {
 
 	defer func() {
 		// TODO: handle peer disconnection here
-
 		log.Warnf("server %d: disconnected with peer %d", self.Index, peerIdx)
 		close(self.msgRecvC[peerIdx])
 		delete(self.msgRecvC, peerIdx)
@@ -1547,7 +1550,8 @@ func (self *Server) actionLoop() {
 			}
 
 		case <-self.quitC:
-			break
+			log.Infof("server %d actionLoop quit", self.Index)
+			return
 		}
 	}
 }
@@ -1564,7 +1568,8 @@ func (self *Server) timerLoop() {
 			}
 
 		case <-self.quitC:
-			break
+			log.Infof("server %d timerLoop quit", self.Index)
+			return
 		}
 	}
 }
@@ -2033,8 +2038,8 @@ func (self *Server) msgSendLoop() {
 			}
 
 		case <-self.quitC:
-			log.Infof("server %d msg send loop quit", self.Index)
-			break
+			log.Infof("server %d msgSendLoop quit", self.Index)
+			return
 		}
 	}
 }
@@ -2282,70 +2287,6 @@ func (self *Server) handleProposalTimeout(evt *TimerEvent) error {
 		log.Errorf("server: %d, blkNum: %d, failed get better proposal, first proposal: %d, %d",
 			self.Index, evt.blockNum, proposals[0].Block.getProposer(), proposals[0].Block.getBlockNum())
 	}
-	return nil
-}
-
-func (self *Server) initHandshake(peerIdx uint32, peerPubKey keypair.PublicKey) error {
-	msg, err := self.constructHandshakeMsg()
-	if err != nil {
-		return fmt.Errorf("build handshake msg: %s", err)
-	}
-
-	msgPayload, err := SerializeVbftMsg(msg)
-	if err != nil {
-		return fmt.Errorf("marshal handshake msg: %s", err)
-	}
-
-	errC := make(chan error)
-	msgC := make(chan *peerHandshakeMsg)
-	go func() {
-		for {
-			// FIXME: peer receive with timeout
-			fromPeer, msgData, err := self.receiveFromPeer(peerIdx)
-			if err != nil {
-				errC <- fmt.Errorf("read initHandshake msg from peer: %s", err)
-				break
-			}
-			if fromPeer != peerIdx {
-				// skip msg not from peeIdx
-				continue
-			}
-			msg, err := DeserializeVbftMsg(msgData)
-			if err != nil {
-				log.Errorf("unmarshal msg failed: %s", err)
-				errC <- fmt.Errorf("unmarshal msg failed: %s", err)
-			}
-			if err := msg.Verify(peerPubKey); err != nil {
-				log.Errorf("msg verify failed in initHandshake: %s", err)
-				errC <- fmt.Errorf("msg verify failed in initHandshake: %s", err)
-			}
-			if msg.Type() == PeerHandshakeMessage {
-				if shakeMsg, ok := msg.(*peerHandshakeMsg); ok {
-					self.sendToPeer(peerIdx, msgPayload)
-					msgC <- shakeMsg
-				}
-				break
-			}
-		}
-	}()
-	if err := self.sendToPeer(peerIdx, msgPayload); err != nil {
-		return fmt.Errorf("send initHandshake msg: %s", err)
-	}
-
-	// removed handshake time
-	// when peer reconnected, remote peer may be busy with ledger syncing,
-	// so init handshake timeout is hard to predicate.  If remote peer failed
-	// when initHandshake, receiving error will handle it.
-
-	select {
-	case msg := <-msgC:
-		if err := self.processHandshakeMsg(peerIdx, msg); err != nil {
-			return fmt.Errorf("process initHandshake msg failed: %s", err)
-		}
-	case err := <-errC:
-		return fmt.Errorf("peer initHandshake failed: %s", err)
-	}
-
 	return nil
 }
 
