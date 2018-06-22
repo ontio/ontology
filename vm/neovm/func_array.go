@@ -103,7 +103,11 @@ func opPickItem(e *ExecutionEngine) (VMState, error) {
 func opSetItem(e *ExecutionEngine) (VMState, error) {
 	newItem := PopStackItem(e)
 	if value, ok := newItem.(*types.Struct); ok {
-		newItem = value.Clone()
+		var err error
+		newItem, err = value.Clone()
+		if err != nil {
+			return FAULT, err
+		}
 	}
 
 	index := PopStackItem(e)
@@ -164,7 +168,11 @@ func opNewMap(e *ExecutionEngine) (VMState, error) {
 func opAppend(e *ExecutionEngine) (VMState, error) {
 	newItem := PopStackItem(e)
 	if value, ok := newItem.(*types.Struct); ok {
-		newItem = value.Clone()
+		var err error
+		newItem, err = value.Clone()
+		if err != nil {
+			return FAULT, err
+		}
 	}
 	items := PopStackItem(e)
 	if item, ok := items.(*types.Array); ok {

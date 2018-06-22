@@ -26,6 +26,10 @@ import (
 	"github.com/ontio/ontology/vm/neovm/interfaces"
 )
 
+const (
+	MAX_STRCUT_DEPTH = 1024
+)
+
 type Struct struct {
 	_array []StackItems
 }
@@ -64,16 +68,51 @@ func (s *Struct) GetStruct() ([]StackItems, error) {
 	return s._array, nil
 }
 
-func (s *Struct) Clone() StackItems {
+func (s *Struct) Clone() (StackItems, error) {
+	if checkStructRef(s, make(map[uintptr]bool), 0) {
+		return nil, fmt.Errorf("%s", "struct contain self reference or over max depth!")
+	}
+	return clone(s)
+}
+
+func clone(s *Struct) (StackItems, error) {
 	var arr []StackItems
 	for _, v := range s._array {
 		if value, ok := v.(*Struct); ok {
-			arr = append(arr, value.Clone())
+			vc, err := clone(value)
+			if err != nil {
+				return nil, err
+			}
+			arr = append(arr, vc)
 		} else {
 			arr = append(arr, v)
 		}
 	}
-	return &Struct{arr}
+	return &Struct{arr}, nil
+}
+
+func checkStructRef(item StackItems, visited map[uintptr]bool, depth int) bool {
+	if depth > MAX_STRCUT_DEPTH {
+		return true
+	}
+	switch item.(type) {
+	case *Struct:
+		p := reflect.ValueOf(item).Pointer()
+		if visited[p] {
+			return true
+		}
+		visited[p] = true
+		st, _ := item.GetStruct()
+		for _, v := range st {
+			if checkStructRef(v, visited, depth+1) {
+				return true
+			}
+		}
+		delete(visited, p)
+		return false
+	default:
+		return false
+	}
 }
 
 func (this *Struct) GetMap() (map[StackItems]StackItems, error) {
