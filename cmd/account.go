@@ -100,7 +100,8 @@ var schemeMap = map[string]schemeInfo{
 	"SHA3-512withECDSA":  {"SHA3-512withECDSA", s.SHA3_512withECDSA},
 	"RIPEMD160withECDSA": {"RIPEMD160withECDSA", s.RIPEMD160withECDSA},
 
-	"SM3withSM2": {"SM3withSM2", s.SM3withSM2},
+	"SM3withSM2":      {"SM3withSM2", s.SM3withSM2},
+	"SHA512withEdDSA": {"SHA512withEdDSA", s.SHA512withEDDSA},
 }
 
 // wait for user to choose options
@@ -251,7 +252,7 @@ func checkScheme(ctx *cli.Context, reader *bufio.Reader, t *string) string {
 		sch = "SM3withSM2"
 		break
 	case "ed25519":
-		fmt.Println("Use Ed25519 as the signature scheme.")
+		fmt.Println("Use SHA512withEdDSA as the signature scheme.")
 		sch = "SHA512withEdDSA"
 		break
 	default:
