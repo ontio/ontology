@@ -23,6 +23,7 @@ import (
 
 	"github.com/ontio/ontology/vm/neovm/types"
 	"github.com/stretchr/testify/assert"
+	"math/big"
 )
 
 func TestRuntimeSerialize(t *testing.T) {
@@ -30,7 +31,7 @@ func TestRuntimeSerialize(t *testing.T) {
 	b := types.NewArray([]types.StackItems{a})
 	a.Add(b)
 
-	_, err := SerializeStackItem(a)
+	_, err := SerializeStackItem(a, &NeoVmService{})
 	assert.NotNil(t, err)
 }
 
@@ -103,4 +104,80 @@ func TestStructRef(t *testing.T) {
 	map8.Add(ba1, map7)
 
 	assert.False(t, CircularRefDetection(map8))
+}
+
+func TestNestedRef(t *testing.T) {
+	i := types.NewInteger(big.NewInt(int64(0)))
+	j := types.NewInteger(big.NewInt(int64(1)))
+	k := types.NewInteger(big.NewInt(int64(2)))
+
+	arr1 := types.NewArray([]types.StackItems{i, j})
+	arr2 := types.NewArray([]types.StackItems{j, k})
+
+	struc := types.NewStruct([]types.StackItems{arr1, arr2})
+	assert.False(t, CircularRefDetection(struc))
+
+	struc1 := types.NewStruct([]types.StackItems{i, j, k})
+	struc2 := types.NewStruct([]types.StackItems{i, struc1})
+	assert.False(t, CircularRefDetection(struc2))
+
+	struc3 := types.NewStruct([]types.StackItems{struc1, struc2})
+	assert.False(t, CircularRefDetection(struc3))
+
+	struc4 := types.NewStruct([]types.StackItems{struc3, struc1})
+	struc5 := types.NewArray([]types.StackItems{i, struc4})
+	struc4.Add(struc5)
+
+	assert.True(t, CircularRefDetection(struc4))
+
+	//check depth
+	n := VM_SERIALIZE_DEPTH
+	arrNest := makeNestedArr(n, arr1)
+	assert.True(t, CircularRefDetection(arrNest))
+
+	n = VM_SERIALIZE_DEPTH - 1
+	arrNest = makeNestedArr(n, arr1)
+	assert.False(t, CircularRefDetection(arrNest))
+
+}
+
+func TestMaxLenght(t *testing.T) {
+
+	//OOM when 	cap := 100000000000
+	cap := 1024 * 10
+	b := make([]byte, cap)
+	//for i:=0;i<cap;i++{
+	//	b[i] = byte('a')
+	//}
+
+	s := types.NewByteArray(b)
+
+	_, err := SerializeStackItem(s, &NeoVmService{})
+	assert.Error(t, err, "")
+
+}
+
+func TestMapLength(t *testing.T) {
+	m := types.NewMap()
+	key1 := types.NewByteArray([]byte("key1"))
+	key2 := types.NewByteArray([]byte("key2"))
+
+	val1 := types.NewByteArray([]byte("val1"))
+	val2 := types.NewByteArray([]byte("val2"))
+
+	m.Add(key1, val1)
+	m.Add(key2, val2)
+
+	res, _ := SerializeStackItem(m, &NeoVmService{})
+
+	assert.NotNil(t, res, "")
+
+}
+
+func makeNestedArr(n int, arr types.StackItems) types.StackItems {
+	if n == 1 {
+		return arr
+	}
+	tmp := types.NewArray([]types.StackItems{arr})
+	return makeNestedArr(n-1, tmp)
 }
