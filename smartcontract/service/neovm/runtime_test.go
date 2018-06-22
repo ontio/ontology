@@ -31,7 +31,7 @@ func TestRuntimeSerialize(t *testing.T) {
 	b := types.NewArray([]types.StackItems{a})
 	a.Add(b)
 
-	_, err := SerializeStackItem(a, &NeoVmService{})
+	_, err := SerializeStackItem(a)
 	assert.NotNil(t, err)
 }
 
@@ -144,7 +144,7 @@ func TestNestedRef(t *testing.T) {
 func TestMaxLenght(t *testing.T) {
 
 	//OOM when 	cap := 100000000000
-	cap := 1024 * 10
+	cap := 1024 * 1000 * 10
 	b := make([]byte, cap)
 	//for i:=0;i<cap;i++{
 	//	b[i] = byte('a')
@@ -152,7 +152,7 @@ func TestMaxLenght(t *testing.T) {
 
 	s := types.NewByteArray(b)
 
-	_, err := SerializeStackItem(s, &NeoVmService{})
+	_, err := SerializeStackItem(s)
 	assert.Error(t, err, "")
 
 }
@@ -168,7 +168,7 @@ func TestMapLength(t *testing.T) {
 	m.Add(key1, val1)
 	m.Add(key2, val2)
 
-	res, _ := SerializeStackItem(m, &NeoVmService{})
+	res, _ := SerializeStackItem(m)
 
 	assert.NotNil(t, res, "")
 

@@ -71,10 +71,16 @@ func RuntimeCheckWitness(service *NeoVmService, engine *vm.ExecutionEngine) erro
 func RuntimeSerialize(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	item := vm.PopStackItem(engine)
 
-	buf, err := SerializeStackItem(item, service)
+	buf, err := SerializeStackItem(item)
 	if err != nil {
 		return err
 	}
+
+	serializeGas := CalculateSerializeGas(len(buf))
+	if !service.ContextRef.CheckUseGas(serializeGas) {
+		return errors.NewErr("[NeoVmService] gas insufficient")
+	}
+
 	vm.PushData(engine, buf)
 	return nil
 }
@@ -122,14 +128,14 @@ func RuntimeGetTrigger(service *NeoVmService, engine *vm.ExecutionEngine) error 
 	return nil
 }
 
-func SerializeStackItem(item vmtypes.StackItems, service *NeoVmService) ([]byte, error) {
-	service.SerializeLen = 0
+func SerializeStackItem(item vmtypes.StackItems) ([]byte, error) {
+	serializeLen := 0
 	if CircularRefDetection(item) {
 		return nil, errors.NewErr("runtime serialize: can not serialize circular reference data")
 	}
 
 	bf := new(bytes.Buffer)
-	err := serializeStackItem(item, bf, service)
+	err := serializeStackItem(item, bf, &serializeLen)
 	if err != nil {
 		return nil, err
 	}
@@ -137,10 +143,10 @@ func SerializeStackItem(item vmtypes.StackItems, service *NeoVmService) ([]byte,
 	return bf.Bytes(), nil
 }
 
-func serializeStackItem(item vmtypes.StackItems, w io.Writer, service *NeoVmService) error {
+func serializeStackItem(item vmtypes.StackItems, w io.Writer, serializeLen *int) error {
 
-	service.SerializeLen += 1 //add the write of vm types
-	if checkWroteBytesLen(service.SerializeLen) {
+	*serializeLen += 1 //add the write of vm types
+	if checkWroteBytesLen(*serializeLen) {
 		return errors.NewErr("Serialize ByteArray stackItems error: byte array length exceed the limitation.")
 	}
 
@@ -150,9 +156,9 @@ func serializeStackItem(item vmtypes.StackItems, w io.Writer, service *NeoVmServ
 			return errors.NewErr("Serialize ByteArray stackItems error: " + err.Error())
 		}
 		ba, _ := item.GetByteArray()
-		service.SerializeLen += len(ba)
+		*serializeLen += len(ba)
 		//check byte length
-		if checkWroteBytesLen(service.SerializeLen) {
+		if checkWroteBytesLen(*serializeLen) {
 			return errors.NewErr("Serialize ByteArray stackItems error: byte array length exceed the limitation.")
 		}
 		if err := serialization.WriteVarBytes(w, ba); err != nil {
@@ -164,8 +170,8 @@ func serializeStackItem(item vmtypes.StackItems, w io.Writer, service *NeoVmServ
 			return errors.NewErr("Serialize Boolean StackItems error: " + err.Error())
 		}
 		b, _ := item.GetBoolean()
-		service.SerializeLen += 1
-		if checkWroteBytesLen(service.SerializeLen) {
+		*serializeLen += 1
+		if checkWroteBytesLen(*serializeLen) {
 			return errors.NewErr("Serialize ByteArray stackItems error: byte array length exceed the limitation.")
 		}
 		if err := serialization.WriteBool(w, b); err != nil {
@@ -177,8 +183,8 @@ func serializeStackItem(item vmtypes.StackItems, w io.Writer, service *NeoVmServ
 			return errors.NewErr("Serialize Integer stackItems error: " + err.Error())
 		}
 		i, _ := item.GetByteArray()
-		service.SerializeLen += len(i)
-		if checkWroteBytesLen(service.SerializeLen) {
+		*serializeLen += len(i)
+		if checkWroteBytesLen(*serializeLen) {
 			return errors.NewErr("Serialize ByteArray stackItems error: byte array length exceed the limitation.")
 		}
 		if err := serialization.WriteVarBytes(w, i); err != nil {
@@ -190,8 +196,8 @@ func serializeStackItem(item vmtypes.StackItems, w io.Writer, service *NeoVmServ
 			return errors.NewErr("Serialize Array stackItems error: " + err.Error())
 		}
 		a, _ := item.GetArray()
-		service.SerializeLen += getUintLength(uint64(len(a)))
-		if checkWroteBytesLen(service.SerializeLen) {
+		*serializeLen += getUintLength(uint64(len(a)))
+		if checkWroteBytesLen(*serializeLen) {
 			return errors.NewErr("Serialize ByteArray stackItems error: byte array length exceed the limitation.")
 		}
 
@@ -200,7 +206,7 @@ func serializeStackItem(item vmtypes.StackItems, w io.Writer, service *NeoVmServ
 		}
 
 		for _, v := range a {
-			serializeStackItem(v, w, service)
+			serializeStackItem(v, w, serializeLen)
 		}
 
 	case *vmtypes.Struct:
@@ -209,8 +215,8 @@ func serializeStackItem(item vmtypes.StackItems, w io.Writer, service *NeoVmServ
 		}
 		s, _ := item.GetStruct()
 
-		service.SerializeLen += getUintLength(uint64(len(s)))
-		if checkWroteBytesLen(service.SerializeLen) {
+		*serializeLen += getUintLength(uint64(len(s)))
+		if checkWroteBytesLen(*serializeLen) {
 			return errors.NewErr("Serialize ByteArray stackItems error: byte array length exceed the limitation.")
 		}
 
@@ -219,7 +225,7 @@ func serializeStackItem(item vmtypes.StackItems, w io.Writer, service *NeoVmServ
 		}
 
 		for _, v := range s {
-			serializeStackItem(v, w, service)
+			serializeStackItem(v, w, serializeLen)
 		}
 
 	case *vmtypes.Map:
@@ -231,8 +237,8 @@ func serializeStackItem(item vmtypes.StackItems, w io.Writer, service *NeoVmServ
 			return errors.NewErr("Serialize Map stackItems error: " + err.Error())
 		}
 
-		service.SerializeLen += getUintLength(uint64(len(mp)))
-		if checkWroteBytesLen(service.SerializeLen) {
+		*serializeLen += getUintLength(uint64(len(mp)))
+		if checkWroteBytesLen(*serializeLen) {
 			return errors.NewErr("Serialize ByteArray stackItems error: byte array length exceed the limitation.")
 		}
 
@@ -259,8 +265,8 @@ func serializeStackItem(item vmtypes.StackItems, w io.Writer, service *NeoVmServ
 		sort.Strings(unsortKey)
 		for _, v := range unsortKey {
 			key := keyMap[v]
-			serializeStackItem(key, w, service)
-			serializeStackItem(mp[key], w, service)
+			serializeStackItem(key, w, serializeLen)
+			serializeStackItem(mp[key], w, serializeLen)
 		}
 
 	default:

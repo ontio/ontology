@@ -118,7 +118,6 @@ type NeoVmService struct {
 	Time          uint32
 	Height        uint32
 	Engine        *vm.ExecutionEngine
-	SerializeLen  int
 }
 
 // Invoke a smart contract
