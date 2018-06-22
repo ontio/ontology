@@ -84,6 +84,7 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 		}
 
 		if txn.GasLimit < config.DefConfig.Common.GasLimit ||
+			txn.GasLimit > ta.server.getUpperGasLimit() ||
 			txn.GasPrice < ta.server.getGasPrice() {
 			log.Debugf("handleTransaction: invalid gasLimit %v, gasPrice %v",
 				txn.GasLimit, txn.GasPrice)

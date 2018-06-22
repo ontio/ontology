@@ -114,6 +114,12 @@ func Transfer(native *native.NativeService) ([]byte, error) {
 		return nil, err
 	}
 
+	//restrict the calling context
+	cxt := native.ContextRef.CallingContext()
+	if cxt != nil && cxt.ContractAddress != param.ContractAddr {
+		return utils.BYTE_FALSE, nil
+	}
+
 	//prepare event msg
 	contract := param.ContractAddr.ToHexString()
 
@@ -139,6 +145,11 @@ func AssignFuncsToRole(native *native.NativeService) ([]byte, error) {
 		return nil, fmt.Errorf("deserialize param failed, caused by %v", err)
 	}
 
+	//restrict the calling context
+	cxt := native.ContextRef.CallingContext()
+	if cxt != nil && cxt.ContractAddress != param.ContractAddr {
+		return utils.BYTE_FALSE, nil
+	}
 	//prepare event msg
 	contract := param.ContractAddr.ToHexString()
 	failState := []interface{}{"assignFuncsToRole", contract, false}
@@ -254,6 +265,12 @@ func AssignOntIDsToRole(native *native.NativeService) ([]byte, error) {
 	}
 	if param.Role == nil {
 		return nil, errors.NewErr("role is null")
+	}
+
+	//restrict the calling context
+	cxt := native.ContextRef.CallingContext()
+	if cxt != nil && cxt.ContractAddress != param.ContractAddr {
+		return utils.BYTE_FALSE, nil
 	}
 
 	ret, err := assignToRole(native, param)
@@ -432,6 +449,12 @@ func Delegate(native *native.NativeService) ([]byte, error) {
 		return nil, fmt.Errorf("period or level is too large")
 	}
 
+	//restrict the calling context
+	cxt := native.ContextRef.CallingContext()
+	if cxt != nil && cxt.ContractAddress != param.ContractAddr {
+		return utils.BYTE_FALSE, nil
+	}
+
 	//prepare event msg
 	contract := param.ContractAddr.ToHexString()
 	failState := []interface{}{"delegate", contract, param.From, param.To, false}
@@ -502,6 +525,12 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 	err := param.Deserialize(rd)
 	if err != nil {
 		return nil, err
+	}
+
+	//restrict the calling context
+	cxt := native.ContextRef.CallingContext()
+	if cxt != nil && cxt.ContractAddress != param.ContractAddr {
+		return utils.BYTE_FALSE, nil
 	}
 
 	//prepare event msg
