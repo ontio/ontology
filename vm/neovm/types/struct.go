@@ -108,6 +108,7 @@ func checkStructRef(item StackItems, visited map[uintptr]bool, depth int) bool {
 				return true
 			}
 		}
+		delete(visited, p)
 		return false
 	default:
 		return false
