@@ -1,9 +1,9 @@
 package main
 
 import (
-	"testing"
-	"github.com/ontio/ontology/smartcontract"
 	"fmt"
+	"github.com/ontio/ontology/smartcontract"
+	"testing"
 )
 
 func TestStructClone(t *testing.T) {

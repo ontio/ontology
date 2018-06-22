@@ -23,7 +23,6 @@ import (
 
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/vm/neovm/types"
-	"fmt"
 )
 
 func opArraySize(e *ExecutionEngine) (VMState, error) {
