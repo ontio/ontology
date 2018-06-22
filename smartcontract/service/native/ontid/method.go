@@ -58,7 +58,7 @@ func regIdWithPublicKey(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: invalid argument")
 	}
 
-	if !verifyID(arg0) {
+	if !VerifyID(arg0) {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: invalid ID")
 	}
 
@@ -104,7 +104,7 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 	} else if len(arg0) == 0 {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: argument 0 error, invalid length")
 	}
-	if !verifyID(arg0) {
+	if !VerifyID(arg0) {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: invalid ID")
 	}
 

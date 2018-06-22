@@ -72,7 +72,7 @@ func decodeID(data []byte) ([]byte, error) {
 	return data[1:], nil
 }
 
-func verifyID(id []byte) bool {
+func VerifyID(id []byte) bool {
 	if len(id) < 9 {
 		return false
 	}

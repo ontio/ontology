@@ -28,6 +28,7 @@ import (
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/ontid"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -70,6 +71,9 @@ func InitContractAdmin(native *native.NativeService) ([]byte, error) {
 	}
 	invokeAddr := cxt.ContractAddress
 
+	if !ontid.VerifyID(param.AdminOntID) {
+		return utils.BYTE_FALSE, nil
+	}
 	ret, err := initContractAdmin(native, invokeAddr, param.AdminOntID)
 	if err != nil {
 		return nil, err
@@ -114,9 +118,11 @@ func Transfer(native *native.NativeService) ([]byte, error) {
 		return nil, err
 	}
 
+	if !ontid.VerifyID(param.NewAdminOntID) {
+		return utils.BYTE_FALSE, nil
+	}
 	//prepare event msg
 	contract := param.ContractAddr.ToHexString()
-
 	failState := []interface{}{"transfer", contract, false}
 	sucState := []interface{}{"transfer", contract, true}
 
@@ -256,6 +262,12 @@ func AssignOntIDsToRole(native *native.NativeService) ([]byte, error) {
 		return nil, errors.NewErr("role is null")
 	}
 
+	for _, ontID := range param.Persons {
+		if !ontid.VerifyID(ontID) {
+			return utils.BYTE_FALSE, nil
+		}
+	}
+
 	ret, err := assignToRole(native, param)
 	if err != nil {
 		return nil, err
@@ -348,6 +360,10 @@ func delegate(native *native.NativeService, contractAddr common.Address, from []
 		return false, err
 	}
 	if !ret {
+		return false, nil
+	}
+
+	if !ontid.VerifyID(to) {
 		return false, nil
 	}
 
