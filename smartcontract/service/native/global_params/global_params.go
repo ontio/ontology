@@ -56,7 +56,7 @@ var paramCache *ParamCache
 func InitGlobalParams() {
 	native.Contracts[utils.ParamContractAddress] = RegisterParamContract
 	paramCache = new(ParamCache)
-	paramCache.Params = make([]*Param, 0)
+	paramCache.Params = make([]Param, 0)
 }
 
 func RegisterParamContract(native *native.NativeService) {
@@ -73,7 +73,7 @@ func ParamInit(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	storageAdmin, _ := GetStorageRole(native, generateAdminKey(contract, false))
 	storageOperator, _ := GetStorageRole(native, generateAdminKey(contract, false))
-	if storageAdmin != nil || storageOperator != nil {
+	if storageAdmin != common.ADDRESS_EMPTY || storageOperator != common.ADDRESS_EMPTY {
 		return utils.BYTE_FALSE, errors.NewErr("init param, admin or operator has already existed!")
 	}
 	if !utils.CheckDirectCall(native) {
@@ -81,7 +81,7 @@ func ParamInit(native *native.NativeService) ([]byte, error) {
 	}
 
 	paramCache = new(ParamCache)
-	paramCache.Params = make([]*Param, 0)
+	paramCache.Params = make([]Param, 0)
 	initParams := new(Params)
 	args, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
 	if err != nil {
@@ -94,8 +94,8 @@ func ParamInit(native *native.NativeService) ([]byte, error) {
 	native.CloneCache.Add(scommon.ST_STORAGE, generateParamKey(contract, CURRENT_VALUE), getParamStorageItem(initParams))
 	native.CloneCache.Add(scommon.ST_STORAGE, generateParamKey(contract, PREPARE_VALUE), getParamStorageItem(initParams))
 
-	admin := new(Role)
-	if err := admin.Deserialize(argsBuffer); err != nil {
+	var admin common.Address
+	if admin, err = utils.ReadAddress(argsBuffer); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "init param, deserialize admin failed!")
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, generateAdminKey(contract, false), getRoleStorageItem(admin))
@@ -109,16 +109,17 @@ func AcceptAdmin(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("init param checkDirectCall, caller is not a account!")
 	}
 
-	destinationAdmin := new(Role)
-	if err := destinationAdmin.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	var destinationAdmin common.Address
+	destinationAdmin, err := utils.ReadAddress(bytes.NewBuffer(native.Input))
+	if err != nil {
 		return utils.BYTE_FALSE, errors.NewErr("accept admin, deserialize admin failed!")
 	}
-	if !native.ContextRef.CheckWitness(common.Address(*destinationAdmin)) {
+	if !native.ContextRef.CheckWitness(destinationAdmin) {
 		return utils.BYTE_FALSE, errors.NewErr("accept admin, authentication failed!")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	transferAdmin, err := GetStorageRole(native, generateAdminKey(contract, true))
-	if err != nil || transferAdmin == nil || *transferAdmin != *destinationAdmin {
+	if err != nil || transferAdmin == common.ADDRESS_EMPTY || transferAdmin != destinationAdmin {
 		return utils.BYTE_FALSE, fmt.Errorf("accept admin, destination account hasn't been approved, casused by %v", err)
 	}
 	// delete transfer admin item
@@ -136,14 +137,14 @@ func TransferAdmin(native *native.NativeService) ([]byte, error) {
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	admin, err := GetStorageRole(native, generateAdminKey(contract, false))
-	if err != nil || admin == nil {
+	if err != nil || admin == common.ADDRESS_EMPTY {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "transfer admin, admin doesn't exist!")
 	}
-	if !native.ContextRef.CheckWitness(common.Address(*admin)) {
+	if !native.ContextRef.CheckWitness(admin) {
 		return utils.BYTE_FALSE, errors.NewErr("transfer admin, authentication failed!")
 	}
-	destinationAdmin := new(Role)
-	if err := destinationAdmin.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	destinationAdmin, err := utils.ReadAddress(bytes.NewBuffer(native.Input))
+	if err != nil {
 		return utils.BYTE_FALSE, errors.NewErr("transfer admin, deserialize admin failed!")
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, generateAdminKey(contract, true),
@@ -158,14 +159,14 @@ func SetOperator(native *native.NativeService) ([]byte, error) {
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	admin, err := GetStorageRole(native, generateAdminKey(contract, false))
-	if err != nil || admin == nil {
+	if err != nil || admin == common.ADDRESS_EMPTY {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "set operator, admin doesn't exist!")
 	}
-	if !native.ContextRef.CheckWitness(common.Address(*admin)) {
+	if !native.ContextRef.CheckWitness(admin) {
 		return utils.BYTE_FALSE, errors.NewErr("set operator, authentication failed!")
 	}
-	destinationOperator := new(Role)
-	if err := destinationOperator.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	destinationOperator, err := utils.ReadAddress(bytes.NewBuffer(native.Input))
+	if err != nil {
 		return utils.BYTE_FALSE, errors.NewErr("set operator, deserialize operator failed!")
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, GenerateOperatorKey(contract), getRoleStorageItem(destinationOperator))
@@ -179,10 +180,10 @@ func SetGlobalParam(native *native.NativeService) ([]byte, error) {
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	operator, err := GetStorageRole(native, GenerateOperatorKey(contract))
-	if err != nil || operator == nil {
+	if err != nil || operator == common.ADDRESS_EMPTY {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "set param, operator doesn't exist!")
 	}
-	if !native.ContextRef.CheckWitness(common.Address(*operator)) {
+	if !native.ContextRef.CheckWitness(operator) {
 		return utils.BYTE_FALSE, errors.NewErr("set param, authentication failed!")
 	}
 	params := new(Params)
@@ -256,10 +257,10 @@ func CreateSnapshot(native *native.NativeService) ([]byte, error) {
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	operator, err := GetStorageRole(native, GenerateOperatorKey(contract))
-	if err != nil || operator == nil {
+	if err != nil || operator == common.ADDRESS_EMPTY {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "create snapshot, operator doesn't exist!")
 	}
-	if !native.ContextRef.CheckWitness(common.Address(*operator)) {
+	if !native.ContextRef.CheckWitness(operator) {
 		return utils.BYTE_FALSE, errors.NewErr("create snapshot, authentication failed!")
 	}
 	// read prepare param
@@ -280,7 +281,7 @@ func CreateSnapshot(native *native.NativeService) ([]byte, error) {
 func clearCache() {
 	paramCache.lock.Lock()
 	defer paramCache.lock.Unlock()
-	paramCache.Params = make([]*Param, 0)
+	paramCache.Params = make([]Param, 0)
 }
 
 func setCache(params *Params) {
@@ -289,7 +290,7 @@ func setCache(params *Params) {
 	paramCache.Params = *params
 }
 
-func getParamFromCache(key string) (int, *Param) {
+func getParamFromCache(key string) (int, Param) {
 	paramCache.lock.RLock()
 	defer paramCache.lock.RUnlock()
 	return paramCache.Params.GetParam(key)

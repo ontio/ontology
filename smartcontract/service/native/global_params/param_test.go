@@ -23,7 +23,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,7 +31,7 @@ func TestParams_Serialize_Deserialize(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		k := "key" + strconv.Itoa(i)
 		v := "value" + strconv.Itoa(i)
-		params.SetParam(&Param{k, v})
+		params.SetParam(Param{k, v})
 	}
 	bf := new(bytes.Buffer)
 	if err := params.Serialize(bf); err != nil {
@@ -49,20 +48,6 @@ func TestParams_Serialize_Deserialize(t *testing.T) {
 			t.Fatal("params deserialize error")
 		}
 	}
-}
-
-func TestAdmin_Serialize_Deserialize(t *testing.T) {
-	admin := new(Role)
-	copy((*admin)[:], utils.ParamContractAddress[:])
-	bf := new(bytes.Buffer)
-	if err := admin.Serialize(bf); err != nil {
-		t.Fatalf("admin serialize error: %v", err)
-	}
-	deserializeAdmin := new(Role)
-	if err := deserializeAdmin.Deserialize(bf); err != nil {
-		t.Fatal("admin version deserialize error")
-	}
-	assert.Equal(t, admin, deserializeAdmin)
 }
 
 func TestParamNameList_Serialize_Deserialize(t *testing.T) {

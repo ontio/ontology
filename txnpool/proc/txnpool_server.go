@@ -116,7 +116,7 @@ func getGlobalGasPrice() (uint64, error) {
 		return 0, fmt.Errorf("deserialize result error %v", err)
 	}
 	_, param := queriedParams.GetParam("gasPrice")
-	if param == nil {
+	if param.Key == "" {
 		return 0, fmt.Errorf("failed to get param for gasPrice")
 	}
 
