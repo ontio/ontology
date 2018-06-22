@@ -168,7 +168,6 @@ func opNewMap(e *ExecutionEngine) (VMState, error) {
 
 func opAppend(e *ExecutionEngine) (VMState, error) {
 	newItem := PopStackItem(e)
-	fmt.Println("newItem:", newItem)
 	if value, ok := newItem.(*types.Struct); ok {
 		var err error
 		newItem, err = value.Clone()
@@ -177,7 +176,6 @@ func opAppend(e *ExecutionEngine) (VMState, error) {
 		}
 	}
 	items := PopStackItem(e)
-	fmt.Println("items:", items)
 	if item, ok := items.(*types.Array); ok {
 		item.Add(newItem)
 	}
