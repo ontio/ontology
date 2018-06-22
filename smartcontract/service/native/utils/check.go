@@ -20,12 +20,28 @@ package utils
 
 import (
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/smartcontract/service/native"
 )
 
-func ConcatKey(contract common.Address, args ...[]byte) []byte {
-	temp := contract[:]
-	for _, arg := range args {
-		temp = append(temp, arg...)
+func CheckDirectCall(nativeService *native.NativeService) bool {
+	if nativeService.ContextRef.CallingContext() == nil {
+		return false
 	}
-	return temp
+	if nativeService.ContextRef.EntryContext() == nil {
+		return false
+	}
+	callingAddress := nativeService.ContextRef.CallingContext().ContractAddress
+	entryAddress := nativeService.ContextRef.EntryContext().ContractAddress
+	if callingAddress == entryAddress {
+		return true
+	}
+	return false
+}
+
+func ValidateOwner(native *native.NativeService, address common.Address) error {
+	if native.ContextRef.CheckWitness(address) == false {
+		return errors.NewErr("validateOwner, authentication failed!")
+	}
+	return nil
 }
