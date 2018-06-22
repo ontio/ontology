@@ -519,14 +519,14 @@ Command:
 ```
 $ ./ontology set --debuglevel 1
 When setting succeed, the result will show as follow:
-map[desc:SUCCESS error:0 id:0 jsonpc:2.0 result:true]
+map[desc:SUCCESS error:0 id:0 jsonrpc:2.0 result:true]
 ```
 
 ### Example for setting consensus
 ```
 $ ./ontology set --consensus on
 When setting succeed, the result will show as follow:
-map[desc:SUCCESS error:0 id:0 jsonpc:2.0 result:true]
+map[desc:SUCCESS error:0 id:0 jsonrpc:2.0 result:true]
 ```
 ---
 
