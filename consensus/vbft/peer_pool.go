@@ -266,3 +266,9 @@ func (pool *PeerPool) getPeer(idx uint32) *Peer {
 
 	return nil
 }
+
+func (pool *PeerPool) RemovePeerIndex(nodeId string) {
+	pool.lock.RLock()
+	defer pool.lock.RUnlock()
+	delete(pool.IDMap, nodeId)
+}
