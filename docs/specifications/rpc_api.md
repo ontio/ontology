@@ -178,7 +178,7 @@ Response when verbose = 1:
     "desc": "SUCCESS",
     "error": 0,
     "id": 1,
-    "jsonpc": "2.0",
+    "jsonrpc": "2.0",
     "result": {
         "Hash": "95555da65d6feaa7cde13d6bf12131f750b670569d98c63813441cf24a99c0d2",
         "Header": {
@@ -394,7 +394,7 @@ or
     "desc": "SUCCESS",
     "error": 0,
     "id": 1,
-    "jsonpc": "2.0",
+    "jsonrpc": "2.0",
     "result": {
         "Version": 0,
         "Nonce": 3377520203,
@@ -548,7 +548,7 @@ Reponse
     "desc": "SUCCESS",
     "error": 0,
     "id": 1,
-    "jsonpc": "2.0",
+    "jsonrpc": "2.0",
     "result": "498db60e96828581eff991c58fa46abbfd97d2f4a4f9915a11f85c54f2a2fedf"
 }
 ```
@@ -706,7 +706,7 @@ or
     "desc": "SUCCESS",
     "error": 0,
     "id": 1,
-    "jsonpc": "2.0",
+    "jsonrpc": "2.0",
     "result": {
              "TxHash": "20046da68ef6a91f6959caa798a5ac7660cc80cf4098921bc63604d93208a8ac",
              "State": 1,
@@ -758,7 +758,7 @@ Response:
     "desc": "SUCCESS",
     "error": 0,
     "id": 1,
-    "jsonpc": "2.0",
+    "jsonrpc": "2.0",
     "result": {
         "VmType": 255,
         "Code": "4f4e5420546f6b656e",
@@ -868,7 +868,7 @@ Response:
     "desc": "SUCCESS",
     "error": 0,
     "id": 1,
-    "jsonpc": "2.0",
+    "jsonrpc": "2.0",
     "result": 10
 }
 ```
@@ -901,7 +901,7 @@ Response:
    "desc":"SUCCESS",
    "error":0,
    "id":1,
-   "jsonpc":"2.0",
+   "jsonrpc":"2.0",
    "result":{
         "ont": "2500",
         "ong": "0",
@@ -938,7 +938,7 @@ Response:
    "desc":"SUCCESS",
    "error":0,
    "id":1,
-   "jsonpc":"2.0",
+   "jsonrpc":"2.0",
    "result":{
         "Type": "MerkleProof",
         "TransactionsRoot": "fe3a4ee8a44e3e588de55de1b8fe08f08b6184d9c062cf7316fb9481eb57b9e6",
@@ -989,7 +989,7 @@ Response:
    "desc":"SUCCESS",
    "error":0,
    "id":1,
-   "jsonpc":"2.0",
+   "jsonrpc":"2.0",
    "result":{
         "gasprice": 0,
         "height": 1
@@ -1022,7 +1022,7 @@ Response:
    "desc":"SUCCESS",
    "error":0,
    "id":1,
-   "jsonpc":"2.0",
+   "jsonrpc":"2.0",
    "result": "10"
 }
 ```
@@ -1052,7 +1052,7 @@ Response:
    "desc":"SUCCESS",
    "error":0,
    "id":1,
-   "jsonpc":"2.0",
+   "jsonrpc":"2.0",
    "result": "204957950400000"
 }
 ```
@@ -1082,7 +1082,7 @@ Response:
    "desc":"SUCCESS",
    "error":0,
    "id":1,
-   "jsonpc":"2.0",
+   "jsonrpc":"2.0",
    "result": {
         "Hash": "ea5e5219d2f1591f4feef89885c3f38c83d3a3474a5622cf8cd3de1b93849603",
         "Height": 100,
