@@ -31,6 +31,13 @@ const (
 	SERVICE_NODE = 2 //peer only sync with consensus peer
 )
 
+//link and concurrent const
+const (
+	PER_SEND_LEN   = 1024 * 256 //byte len per conn write
+	MAX_BUF_LEN    = 1024 * 256 //the maximum buffer to receive message
+	WRITE_DEADLINE = 5          //deadline of conn write
+)
+
 //msg cmd const
 const (
 	MSG_CMD_LEN      = 12               //msg type length in byte
@@ -53,16 +60,15 @@ const (
 
 //info update const
 const (
-	PROTOCOL_VERSION      = 0         //protocol version
-	MAX_BUF_LEN           = 1024 * 16 //the maximum buffer to receive message
-	UPDATE_RATE_PER_BLOCK = 2         //info update rate in one generate block period
-	KEEPALIVE_TIMEOUT     = 15        //contact timeout in sec
-	DIAL_TIMEOUT          = 6         //connect timeout in sec
-	CONN_MONITOR          = 6         //time to retry connect in sec
-	CONN_MAX_BACK         = 4000      //max backoff time in micro sec
-	MAX_RETRY_COUNT       = 3         //max reconnect time of remote peer
-	CHAN_CAPABILITY       = 10000     //channel capability of recv link
-	SYNC_BLK_WAIT         = 2         //timespan for blk sync check
+	PROTOCOL_VERSION      = 0     //protocol version
+	UPDATE_RATE_PER_BLOCK = 2     //info update rate in one generate block period
+	KEEPALIVE_TIMEOUT     = 15    //contact timeout in sec
+	DIAL_TIMEOUT          = 6     //connect timeout in sec
+	CONN_MONITOR          = 6     //time to retry connect in sec
+	CONN_MAX_BACK         = 4000  //max backoff time in micro sec
+	MAX_RETRY_COUNT       = 3     //max reconnect time of remote peer
+	CHAN_CAPABILITY       = 10000 //channel capability of recv link
+	SYNC_BLK_WAIT         = 2     //timespan for blk sync check
 )
 
 // The peer state
