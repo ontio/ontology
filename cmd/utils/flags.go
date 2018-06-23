@@ -353,7 +353,7 @@ var (
 	TransactionGasLimitFlag = cli.Uint64Flag{
 		Name:  "gaslimit",
 		Usage: "Using to specifies the gas limit of the transaction. The gas limit of the transaction cannot be less than the minimum gas limit set by the node's transaction pool, otherwise the transaction will be rejected. Gasprice * gaslimit is actual ONG costs.",
-		Value: neovm.TRANSACTION_GAS,
+		Value: neovm.GAS_TABLE[neovm.MIN_TRANSACTION_GAS_NAME],
 	}
 
 	//Asset setting

@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"strconv"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -35,6 +36,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	ninit "github.com/ontio/ontology/smartcontract/service/native/init"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -118,6 +120,11 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	}
 
 	cache := storage.NewCloneCache(stateBatch)
+
+	if err := refreshGlobalParam(config, cache, store); err != nil {
+		return err
+	}
+
 	//init smart contract info
 	sc := smartcontract.SmartContract{
 		Config:     config,
@@ -140,8 +147,9 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	var notifies []*event.NotifyEventInfo
 	if isCharge {
 		totalGas := tx.GasLimit - sc.Gas
-		if totalGas < neovm.TRANSACTION_GAS {
-			totalGas = neovm.TRANSACTION_GAS
+		mixGas := neovm.GAS_TABLE[neovm.MIN_TRANSACTION_GAS_NAME]
+		if totalGas < mixGas {
+			totalGas = mixGas
 		}
 		notifies, err = costGas(tx.Payer, gas, config, sc.CloneCache, store)
 		if err != nil {
@@ -210,6 +218,47 @@ func costGas(payer common.Address, gas uint64, config *smartcontract.Config,
 		return nil, err
 	}
 	return sc.Notifications, nil
+}
+
+func refreshGlobalParam(config *smartcontract.Config, cache *storage.CloneCache, store store.LedgerStore) error {
+	bf := new(bytes.Buffer)
+	if err := utils.WriteVarUint(bf, uint64(len(neovm.GAS_TABLE_KEYS))); err != nil {
+		return fmt.Errorf("write gas_table_keys length error:%s", err)
+	}
+	for _, value := range neovm.GAS_TABLE_KEYS {
+		if err := serialization.WriteString(bf, value); err != nil {
+			return fmt.Errorf("serialize param name error:%s", value)
+		}
+	}
+
+	sc := smartcontract.SmartContract{
+		Config:     config,
+		CloneCache: cache,
+		Store:      store,
+		Gas:        math.MaxUint64,
+	}
+
+	service, _ := sc.NewNativeService()
+	result, err := service.NativeCall(utils.ParamContractAddress, "getGlobalParam", bf.Bytes())
+	if err != nil {
+		return err
+	}
+	params := new(global_params.Params)
+	if err := params.Deserialize(bytes.NewBuffer(result.([]byte))); err != nil {
+		fmt.Errorf("deserialize global params error:%s", err)
+	}
+
+	for k, _ := range neovm.GAS_TABLE {
+		n, ps := params.GetParam(k)
+		if n != -1 {
+			pu, err := strconv.ParseUint(ps.Value, 10, 64)
+			if err != nil {
+				return fmt.Errorf("failed to parse uint %v", err)
+			}
+			neovm.GAS_TABLE[k] = pu
+		}
+	}
+	return nil
 }
 
 func getBalance(stateBatch *statestore.StateBatch, address, contract common.Address) (uint64, error) {
