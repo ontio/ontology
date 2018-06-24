@@ -132,7 +132,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 		Store:      store,
 		Gas:        tx.GasLimit,
 	}
-	
+
 	//start the smart contract executive function
 	engine, err := sc.NewExecuteEngine(invoke.Code)
 	if err != nil {
