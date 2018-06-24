@@ -132,7 +132,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 		Store:      store,
 		Gas:        tx.GasLimit,
 	}
-
+	
 	//start the smart contract executive function
 	engine, err := sc.NewExecuteEngine(invoke.Code)
 	if err != nil {
@@ -250,7 +250,7 @@ func refreshGlobalParam(config *smartcontract.Config, cache *storage.CloneCache,
 
 	for k, _ := range neovm.GAS_TABLE {
 		n, ps := params.GetParam(k)
-		if n != -1 {
+		if n != -1 && ps.Value != "" {
 			pu, err := strconv.ParseUint(ps.Value, 10, 64)
 			if err != nil {
 				return fmt.Errorf("failed to parse uint %v", err)

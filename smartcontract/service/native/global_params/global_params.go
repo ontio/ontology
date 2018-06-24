@@ -219,7 +219,7 @@ func GetGlobalParam(native *native.NativeService) ([]byte, error) {
 		if index, value := storageParams.GetParam(paramName); index >= 0 {
 			params.SetParam(value)
 		} else {
-			return utils.BYTE_FALSE, errors.NewErr(fmt.Sprintf("get param, param %v doesn't exist!", paramName))
+			params.SetParam(&Param{Key: paramName, Value: ""})
 		}
 	}
 	err = params.Serialize(result)
