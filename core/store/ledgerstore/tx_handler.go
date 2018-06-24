@@ -121,8 +121,10 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 
 	cache := storage.NewCloneCache(stateBatch)
 
-	if err := refreshGlobalParam(config, cache, store); err != nil {
-		return err
+	if block.Header.Height != 0 {
+		if err := refreshGlobalParam(config, cache, store); err != nil {
+			return err
+		}
 	}
 
 	//init smart contract info
