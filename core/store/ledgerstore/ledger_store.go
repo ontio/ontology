@@ -803,7 +803,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 		return nil, err
 	}
 	gasCost := math.MaxUint64 - sc.Gas
-	mixGas := neovm.GAS_TABLE[neovm.MIN_TRANSACTION_GAS_NAME]
+	mixGas := neovm.MIN_TRANSACTION_GAS
 	if gasCost < mixGas {
 		gasCost = mixGas
 	}

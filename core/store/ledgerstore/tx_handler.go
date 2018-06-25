@@ -143,7 +143,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	var notifies []*event.NotifyEventInfo
 	if isCharge {
 		totalGas := tx.GasLimit - sc.Gas
-		mixGas := neovm.GAS_TABLE[neovm.MIN_TRANSACTION_GAS_NAME]
+		mixGas := neovm.MIN_TRANSACTION_GAS
 		if totalGas < mixGas {
 			totalGas = mixGas
 		}

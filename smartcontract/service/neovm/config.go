@@ -100,13 +100,12 @@ var (
 	GETCALLINGSCRIPTHASH_NAME   = "System.ExecutionEngine.GetCallingScriptHash"
 	GETENTRYSCRIPTHASH_NAME     = "System.ExecutionEngine.GetEntryScriptHash"
 
-	APPCALL_NAME             = "APPCALL"
-	TAILCALL_NAME            = "TAILCALL"
-	SHA1_NAME                = "SHA1"
-	SHA256_NAME              = "SHA256"
-	HASH160_NAME             = "HASH160"
-	HASH256_NAME             = "HASH256"
-	MIN_TRANSACTION_GAS_NAME = "Min.Transaction.Gas"
+	APPCALL_NAME  = "APPCALL"
+	TAILCALL_NAME = "TAILCALL"
+	SHA1_NAME     = "SHA1"
+	SHA256_NAME   = "SHA256"
+	HASH160_NAME  = "HASH160"
+	HASH256_NAME  = "HASH256"
 
 	GAS_TABLE = map[string]uint64{
 		BLOCKCHAIN_GETHEADER_NAME:      BLOCKCHAIN_GETHEADER_GAS,
@@ -126,7 +125,6 @@ var (
 		SHA256_NAME:                    SHA256_GAS,
 		HASH160_NAME:                   HASH160_GAS,
 		HASH256_NAME:                   HASH256_GAS,
-		MIN_TRANSACTION_GAS_NAME:       MIN_TRANSACTION_GAS,
 	}
 
 	GAS_TABLE_KEYS = []string{
@@ -148,6 +146,5 @@ var (
 		SHA256_NAME,
 		HASH160_NAME,
 		HASH256_NAME,
-		MIN_TRANSACTION_GAS_NAME,
 	}
 )
