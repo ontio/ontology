@@ -19,10 +19,11 @@
 package genesis
 
 import (
+	"bytes"
 	"fmt"
+	"strconv"
 	"time"
 
-	"bytes"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -182,7 +183,7 @@ func newParamInit() *types.Transaction {
 		params.SetParam(&global_params.Param{k, v})
 	}
 	for k, v := range neovm.GAS_TABLE {
-		params.SetParam(&global_params.Param{k, string(v)})
+		params.SetParam(&global_params.Param{k, strconv.Itoa(int(v))})
 	}
 	bf := new(bytes.Buffer)
 	params.Serialize(bf)
