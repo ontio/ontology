@@ -31,6 +31,9 @@ import (
 
 // StoragePut put smart contract storage item to cache
 func StoragePut(service *NeoVmService, engine *vm.ExecutionEngine) error {
+	if vm.EvaluationStackCount(engine) < 3 {
+		return errors.NewErr("[Context] Too few input parameters ")
+	}
 	context, err := getContext(engine)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StoragePut] get pop context error!")
@@ -60,6 +63,9 @@ func StoragePut(service *NeoVmService, engine *vm.ExecutionEngine) error {
 
 // StorageDelete delete smart contract storage item from cache
 func StorageDelete(service *NeoVmService, engine *vm.ExecutionEngine) error {
+	if vm.EvaluationStackCount(engine) < 2 {
+		return errors.NewErr("[Context] Too few input parameters ")
+	}
 	context, err := getContext(engine)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StorageDelete] get pop context error!")
@@ -81,6 +87,9 @@ func StorageDelete(service *NeoVmService, engine *vm.ExecutionEngine) error {
 
 // StorageGet push smart contract storage item from cache to vm stack
 func StorageGet(service *NeoVmService, engine *vm.ExecutionEngine) error {
+	if vm.EvaluationStackCount(engine) < 2 {
+		return errors.NewErr("[Context] Too few input parameters ")
+	}
 	context, err := getContext(engine)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StorageGet] get pop context error!")
@@ -124,9 +133,6 @@ func checkStorageContext(service *NeoVmService, context *StorageContext) error {
 }
 
 func getContext(engine *vm.ExecutionEngine) (*StorageContext, error) {
-	if vm.EvaluationStackCount(engine) < 2 {
-		return nil, errors.NewErr("[Context] Too few input parameters ")
-	}
 	opInterface, err := vm.PopInteropInterface(engine)
 	if err != nil {
 		return nil, err
