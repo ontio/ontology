@@ -78,9 +78,9 @@ const (
 )
 
 var NETWORK_MAGIC = map[uint32]uint32{
-	NETWORK_ID_MAIN_NET:    constants.NETWORK_MAIGIC_MAINNET, //Network main
-	NETWORK_ID_POLARIS_NET: constants.NETWORK_MAIGIC_POLARIS, //Network polaris
-	NETWORK_ID_SOLO_NET:    0,                                //Network solo
+	NETWORK_ID_MAIN_NET:    constants.NETWORK_MAGIC_MAINNET, //Network main
+	NETWORK_ID_POLARIS_NET: constants.NETWORK_MAGIC_POLARIS, //Network polaris
+	NETWORK_ID_SOLO_NET:    0,                               //Network solo
 }
 
 var NETWORK_NAME = map[uint32]string{
