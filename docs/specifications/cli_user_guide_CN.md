@@ -4,7 +4,7 @@ Ontology cli 是Ontology命令行客户端，用于启动和管理Ontology节点
 
 ## 1、启动和管理Ontology节点
 
-Ontology cli有很多启动参数，用于配置很管理Ontology节点的一些行为。如果不带任何参数启动ontolgy cli时，默认会作为一个同步节点的接入Ontology的polaris测试网络。
+Ontology cli有很多启动参数，用于配置很管理Ontology节点的一些行为。如果不带任何参数启动Ontology cli时，默认会作为一个同步节点的接入Ontology的polaris测试网络。
 
 ```
 ./ontology
@@ -18,7 +18,7 @@ Ontology cli有很多启动参数，用于配置很管理Ontology节点的一些
 #### 1.1.1 Ontology 系统参数
 
 --config
-config 参数用于指定当前Ontolgy节点创世区块配置文件的路径。如果不指定，将使用Polaris测试网的创世块配置。注意，同一个网络所有节点的创世区块配置必须一致，否则会因为区块数据不兼容导致无法启动节点或同步区块数据。
+config 参数用于指定当前Ontology节点创世区块配置文件的路径。如果不指定，将使用Polaris测试网的创世块配置。注意，同一个网络所有节点的创世区块配置必须一致，否则会因为区块数据不兼容导致无法启动节点或同步区块数据。
 
 --loglevel
 loglevel 参数用于设置Ontology输出的日志级别。Ontology支持从0:Debug 1:Info 2:Warn 3:Error 4:Fatal 5:Trace 6:MaxLevel 的7级日志，日志等级由低到高，输出的日志量由多到少。默认值是1，即只输出info级及其之上级别的日志。
