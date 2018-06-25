@@ -119,9 +119,20 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 				log.Debugf("handleTransaction: failed to preExecuteContract tx %x err %v",
 					txn.Hash(), err)
 			}
-			if !isBalanceEnough(txn.Payer, result.Gas) {
+			if txn.GasLimit < result.Gas {
+				log.Debugf("handleTransaction: transaction's gasLimit %d is less than preExec gasLimit %d",
+					txn.GasLimit, result.Gas)
+				return
+			}
+			gas, overflow := common.SafeMul(txn.GasPrice, result.Gas)
+			if overflow {
+				log.Debugf("handleTransaction: gasPrice %d preExec gasLimit %d overflow",
+					txn.GasPrice, result.Gas)
+				return
+			}
+			if !isBalanceEnough(txn.Payer, gas) {
 				log.Debugf("handleTransaction: transactor %s has no balance enough to cover gas cost %d",
-					txn.Payer.ToHexString(), result.Gas)
+					txn.Payer.ToHexString(), gas)
 				return
 			}
 		}
