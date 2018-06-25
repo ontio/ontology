@@ -434,8 +434,9 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 			return
 		}
 		if !this.AddrValid(conn.RemoteAddr().String()) {
-			log.Infof("remote %s not in reserved list close it ", conn.RemoteAddr())
+			log.Warnf("remote %s not in reserved list, close it ", conn.RemoteAddr())
 			conn.Close()
+			continue
 		}
 		log.Info("remote sync node connect with ",
 			conn.RemoteAddr(), conn.LocalAddr())
@@ -489,8 +490,9 @@ func (this *NetServer) startConsAccept(listener net.Listener) {
 			return
 		}
 		if !this.AddrValid(conn.RemoteAddr().String()) {
-			log.Infof("remote %s not in reserved list close it ", conn.RemoteAddr())
+			log.Warnf("remote %s not in reserved list, close it ", conn.RemoteAddr())
 			conn.Close()
+			continue
 		}
 		log.Info("remote cons node connect with ",
 			conn.RemoteAddr(), conn.LocalAddr())
@@ -746,8 +748,8 @@ func (this *NetServer) GetOutConnRecordLen() int {
 
 //AddrValid whether the addr could be connect or accept
 func (this *NetServer) AddrValid(addr string) bool {
-	if config.DefConfig.P2PNode.ReservedPeersOnly && len(config.DefConfig.P2PNode.ReservedPeers) > 0 {
-		for _, ip := range config.DefConfig.P2PNode.ReservedPeers {
+	if config.DefConfig.P2PNode.ReservedPeersOnly && len(config.DefConfig.P2PNode.ReservedCfg.ReservedPeers) > 0 {
+		for _, ip := range config.DefConfig.P2PNode.ReservedCfg.ReservedPeers {
 			if strings.HasPrefix(addr, ip) {
 				log.Info("found reserved peer :", addr)
 				return true

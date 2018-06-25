@@ -23,11 +23,11 @@ import (
 )
 
 func StoreGasCost(engine *vm.ExecutionEngine) (uint64, error) {
-	key, err := vm.PeekNByteArray(0, engine)
+	key, err := vm.PeekNByteArray(1, engine)
 	if err != nil {
 		return 0, err
 	}
-	value, err := vm.PeekNByteArray(1, engine)
+	value, err := vm.PeekNByteArray(2, engine)
 	if err != nil {
 		return 0, err
 	}
