@@ -26,6 +26,7 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/program"
@@ -209,6 +210,10 @@ func (tx *Transaction) Deserialize(r io.Reader) error {
 	length, err := serialization.ReadVarUint(r, 0)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[Deserialize], Transaction sigs length deserialize error.")
+	}
+
+	if length > constants.TX_MAX_SIG_SIZE {
+		return fmt.Errorf("transaction signature number %d execced %d", length, constants.TX_MAX_SIG_SIZE)
 	}
 
 	for i := 0; i < int(length); i++ {

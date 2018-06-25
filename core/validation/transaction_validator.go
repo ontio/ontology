@@ -54,6 +54,12 @@ func VerifyTransactionWithLedger(tx *types.Transaction, ledger *ledger.Ledger) o
 
 func checkTransactionSignatures(tx *types.Transaction) error {
 	hash := tx.Hash()
+
+	lensig := len(tx.Sigs)
+	if lensig > constants.TX_MAX_SIG_SIZE {
+		return fmt.Errorf("transaction signature number %d execced %d", lensig, constants.TX_MAX_SIG_SIZE)
+	}
+
 	address := make(map[common.Address]bool, len(tx.Sigs))
 	for _, sig := range tx.Sigs {
 		m := int(sig.M)
