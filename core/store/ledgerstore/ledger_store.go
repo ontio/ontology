@@ -488,6 +488,18 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block) error {
 
 	stateBatch := this.stateStore.NewStateBatch()
 
+	if block.Header.Height != 0 {
+		config := &smartcontract.Config{
+			Time:   block.Header.Timestamp,
+			Height: block.Header.Height,
+			Tx:     &types.Transaction{},
+		}
+
+		if err := refreshGlobalParam(config, storage.NewCloneCache(this.stateStore.NewStateBatch()), this); err != nil {
+			return err
+		}
+	}
+
 	for _, tx := range block.Transactions {
 		err := this.handleTransaction(stateBatch, block, tx)
 		if err != nil {
