@@ -116,10 +116,12 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 		if ta.server.preExec {
 			result, err := ledger.DefLedger.PreExecuteContract(txn)
 			if err != nil {
-				log.Infof("handleTransaction: failed to preExecuteContract tx %x err %v",
+				log.Debugf("handleTransaction: failed to preExecuteContract tx %x err %v",
 					txn.Hash(), err)
 			}
 			if !isBalanceEnough(txn.Payer, result.Gas) {
+				log.Debugf("handleTransaction: transactor %s has no balance enough to cover gas cost %d",
+					txn.Payer.ToHexString(), result.Gas)
 				return
 			}
 		}
