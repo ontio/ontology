@@ -65,8 +65,6 @@ func GetAccountMulti(wallet account.Client, passwd []byte, accAddr string) (*acc
 		if err != nil {
 			return nil, err
 		}
-
-		fmt.Printf("Using default account:%s\n", defAcc.Address.ToBase58())
 		return defAcc, nil
 	}
 	acc, err := wallet.GetAccountByAddress(accAddr, passwd)

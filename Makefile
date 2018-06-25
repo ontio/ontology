@@ -1,6 +1,6 @@
 GOFMT=gofmt
 GC=go build
-VERSION := $(shell git describe --abbrev=4 --dirty --always --tags)
+VERSION := $(shell git describe --abbrev=4 --always --tags)
 BUILD_NODE_PAR = -ldflags "-X github.com/ontio/ontology/common/config.Version=$(VERSION)" #-race
 
 ARCH=$(shell uname -m)
@@ -18,15 +18,53 @@ NATIVE_ABI=$(TOOLS)/abi/native
 ontology: $(SRC_FILES)
 	$(GC)  $(BUILD_NODE_PAR) -o ontology main.go
 
-tools: $(SRC_FILES)
+sigsvr: $(SRC_FILES)
 	$(GC)  $(BUILD_NODE_PAR) -o sigsvr sigsvr.go
-	@if [ ! -d $(TOOLS) ];then mkdir $(TOOLS) ;fi
-	@mv sigsvr $(TOOLS)
+	@if [ ! -d $(TOOLS)/sigsvr ];then mkdir -p $(TOOLS)/sigsvr ;fi
+	@mv sigsvr $(TOOLS)/sigsvr
 	@if [ ! -d $(NATIVE_ABI) ];then mkdir -p $(NATIVE_ABI) ;fi
 	@cp ./cmd/abi/native/*.json $(NATIVE_ABI)
 
+tools: sigsvr
+
 all: ontology tools
-	
+
+ontology-cross: ontology-windows ontology-linux ontology-darwin
+
+ontology-windows:
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o ontology-windows-amd64.exe main.go
+
+ontology-linux:
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o ontology-linux-amd64 main.go
+
+ontology-darwin:
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o ontology-darwin-amd64 main.go
+
+tools-cross: tools-windows tools-linux tools-darwin
+
+tools-windows:
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o sigsvr-windows-amd64.exe sigsvr.go
+	@if [ ! -d $(TOOLS)/sigsvr ];then mkdir -p $(TOOLS)/sigsvr ;fi
+	@mv sigsvr-windows-amd64.exe $(TOOLS)/sigsvr
+	@if [ ! -d $(NATIVE_ABI) ];then mkdir -p $(NATIVE_ABI) ;fi
+	@cp ./cmd/abi/native/*.json $(NATIVE_ABI)
+
+tools-linux:
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o sigsvr-linux-amd64 sigsvr.go
+	@if [ ! -d $(TOOLS)/sigsvr ];then mkdir -p $(TOOLS)/sigsvr ;fi
+	@mv sigsvr-linux-amd64 $(TOOLS)/sigsvr
+	@if [ ! -d $(NATIVE_ABI) ];then mkdir -p $(NATIVE_ABI) ;fi
+	@cp ./cmd/abi/native/*.json $(NATIVE_ABI)
+
+tools-darwin:
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o sigsvr-darwin-amd64 sigsvr.go
+	@if [ ! -d $(TOOLS)/sigsvr ];then mkdir -p $(TOOLS)/sigsvr ;fi
+	@mv sigsvr-darwin-amd64 $(TOOLS)/sigsvr
+	@if [ ! -d $(NATIVE_ABI) ];then mkdir -p $(NATIVE_ABI) ;fi
+	@cp ./cmd/abi/native/*.json $(NATIVE_ABI)
+
+all-cross: ontology-cross tools-cross
+
 format:
 	$(GOFMT) -w main.go
 
@@ -62,6 +100,6 @@ docker: Makefile docker/payload docker/Dockerfile
 	@touch $@
 
 clean:
-	rm -rf *.8 *.o *.out *.6
-	rm -rf ontology tools docker/payload docker/build
+	rm -rf *.8 *.o *.out *.6 *exe
+	rm -rf ontology ontology-* tools docker/payload docker/build
 
