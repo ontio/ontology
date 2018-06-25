@@ -76,9 +76,6 @@ func ParamInit(native *native.NativeService) ([]byte, error) {
 	if storageAdmin != common.ADDRESS_EMPTY || storageOperator != common.ADDRESS_EMPTY {
 		return utils.BYTE_FALSE, errors.NewErr("init param, admin or operator has already existed!")
 	}
-	if !utils.CheckDirectCall(native) {
-		return utils.BYTE_FALSE, errors.NewErr("init param checkDirectCall, caller is not a account!")
-	}
 
 	paramCache = new(ParamCache)
 	paramCache.Params = make([]Param, 0)
@@ -105,10 +102,6 @@ func ParamInit(native *native.NativeService) ([]byte, error) {
 }
 
 func AcceptAdmin(native *native.NativeService) ([]byte, error) {
-	if !utils.CheckDirectCall(native) {
-		return utils.BYTE_FALSE, errors.NewErr("init param checkDirectCall, caller is not a account!")
-	}
-
 	var destinationAdmin common.Address
 	destinationAdmin, err := utils.ReadAddress(bytes.NewBuffer(native.Input))
 	if err != nil {
@@ -120,7 +113,7 @@ func AcceptAdmin(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	transferAdmin, err := GetStorageRole(native, generateAdminKey(contract, true))
 	if err != nil || transferAdmin == common.ADDRESS_EMPTY || transferAdmin != destinationAdmin {
-		return utils.BYTE_FALSE, fmt.Errorf("accept admin, destination account hasn't been approved, casused by %v", err)
+		return utils.BYTE_FALSE, fmt.Errorf("accept admin, destination account hasn't been approved, caused by %v", err)
 	}
 	// delete transfer admin item
 	native.CloneCache.Delete(scommon.ST_STORAGE, generateAdminKey(contract, true))
@@ -131,14 +124,10 @@ func AcceptAdmin(native *native.NativeService) ([]byte, error) {
 }
 
 func TransferAdmin(native *native.NativeService) ([]byte, error) {
-	if !utils.CheckDirectCall(native) {
-		return utils.BYTE_FALSE, errors.NewErr("init param checkDirectCall, caller is not a account!")
-	}
-
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	admin, err := GetStorageRole(native, generateAdminKey(contract, false))
 	if err != nil || admin == common.ADDRESS_EMPTY {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "transfer admin, admin doesn't exist!")
+		return utils.BYTE_FALSE, fmt.Errorf("transfer admin, admin doesn't exist, caused by %v", err)
 	}
 	if !native.ContextRef.CheckWitness(admin) {
 		return utils.BYTE_FALSE, errors.NewErr("transfer admin, authentication failed!")
@@ -153,14 +142,10 @@ func TransferAdmin(native *native.NativeService) ([]byte, error) {
 }
 
 func SetOperator(native *native.NativeService) ([]byte, error) {
-	if !utils.CheckDirectCall(native) {
-		return utils.BYTE_FALSE, errors.NewErr("init param checkDirectCall, caller is not a account!")
-	}
-
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	admin, err := GetStorageRole(native, generateAdminKey(contract, false))
 	if err != nil || admin == common.ADDRESS_EMPTY {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "set operator, admin doesn't exist!")
+		return utils.BYTE_FALSE, fmt.Errorf("set operator, admin doesn't exist, caused by %v", err)
 	}
 	if !native.ContextRef.CheckWitness(admin) {
 		return utils.BYTE_FALSE, errors.NewErr("set operator, authentication failed!")
@@ -174,14 +159,10 @@ func SetOperator(native *native.NativeService) ([]byte, error) {
 }
 
 func SetGlobalParam(native *native.NativeService) ([]byte, error) {
-	if !utils.CheckDirectCall(native) {
-		return utils.BYTE_FALSE, errors.NewErr("init param checkDirectCall, caller is not a account!")
-	}
-
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	operator, err := GetStorageRole(native, GenerateOperatorKey(contract))
 	if err != nil || operator == common.ADDRESS_EMPTY {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "set param, operator doesn't exist!")
+		return utils.BYTE_FALSE, fmt.Errorf("set param, operator doesn't exist, caused by %v", err)
 	}
 	if !native.ContextRef.CheckWitness(operator) {
 		return utils.BYTE_FALSE, errors.NewErr("set param, authentication failed!")
@@ -240,7 +221,7 @@ func GetGlobalParam(native *native.NativeService) ([]byte, error) {
 		if index, value := storageParams.GetParam(paramName); index >= 0 {
 			params.SetParam(value)
 		} else {
-			params.SetParam(&Param{Key: paramName, Value: ""})
+			params.SetParam(Param{Key: paramName, Value: ""})
 		}
 	}
 	err = params.Serialize(result)
@@ -251,14 +232,10 @@ func GetGlobalParam(native *native.NativeService) ([]byte, error) {
 }
 
 func CreateSnapshot(native *native.NativeService) ([]byte, error) {
-	if !utils.CheckDirectCall(native) {
-		return utils.BYTE_FALSE, errors.NewErr("init param checkDirectCall, caller is not a account!")
-	}
-
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	operator, err := GetStorageRole(native, GenerateOperatorKey(contract))
 	if err != nil || operator == common.ADDRESS_EMPTY {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "create snapshot, operator doesn't exist!")
+		return utils.BYTE_FALSE, fmt.Errorf("create snapshot, operator doesn't exist, caused by %v", err)
 	}
 	if !native.ContextRef.CheckWitness(operator) {
 		return utils.BYTE_FALSE, errors.NewErr("create snapshot, authentication failed!")

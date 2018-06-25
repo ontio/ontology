@@ -183,7 +183,7 @@ func newParamInit() *types.Transaction {
 		params.SetParam(global_params.Param{k, v})
 	}
 	for k, v := range neovm.GAS_TABLE {
-		params.SetParam(&global_params.Param{k, strconv.Itoa(int(v))})
+		params.SetParam(global_params.Param{k, strconv.FormatUint(v, 10)})
 	}
 	bf := new(bytes.Buffer)
 	params.Serialize(bf)
