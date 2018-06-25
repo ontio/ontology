@@ -36,6 +36,7 @@ const (
 	VERIFY_MASK      = STATELESS_MASK | STATEFUL_MASK   // The mask that indicates tx valid
 	MAX_LIMITATION   = 10000                            // The length of pending tx from net and http
 	UPDATE_FREQUENCY = 100                              // The frequency to update gas price from global params
+	MAX_TX_SIZE      = 1024 * 1024                      // The max size of a transaction to prevent DOS attacks
 )
 
 // ActorType enumerates the kind of actor

@@ -264,7 +264,12 @@ func initLedger(ctx *cli.Context) (*ledger.Ledger, error) {
 }
 
 func initTxPool(ctx *cli.Context) (*proc.TXPoolServer, error) {
-	txPoolServer, err := txnpool.StartTxnPoolServer()
+	preExec := false
+	if !config.DefConfig.Consensus.EnableConsensus {
+		preExec = true
+	}
+
+	txPoolServer, err := txnpool.StartTxnPoolServer(preExec)
 	if err != nil {
 		return nil, fmt.Errorf("Init txpool error:%s", err)
 	}

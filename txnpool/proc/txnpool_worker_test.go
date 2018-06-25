@@ -34,7 +34,7 @@ import (
 
 func TestWorker(t *testing.T) {
 	t.Log("Starting worker test")
-	s := NewTxPoolServer(tc.MAX_WORKER_NUM)
+	s := NewTxPoolServer(tc.MAX_WORKER_NUM, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -86,7 +86,7 @@ func TestWorker(t *testing.T) {
 	 * pending list with the log
 	 */
 	time.Sleep(1 * time.Second)
-	worker.server.cleanTransactionList([]*types.Transaction{txn})
+	worker.server.cleanTransactionList([]*types.Transaction{txn}, 0)
 
 	worker.rcvTXCh <- txn
 	time.Sleep(1 * time.Second)
@@ -108,11 +108,6 @@ func TestWorker(t *testing.T) {
 	}
 	worker.rspCh <- statelessRsp
 	worker.rspCh <- statefulRsp
-
-	time.Sleep(1 * time.Second)
-	txStatus := worker.GetTxStatus(txn.Hash())
-	t.Log(txStatus)
-	assert.Nil(t, txStatus)
 
 	/* Case 4: valdiators reply with invalid tx hash or invalid work id,
 	 * worker should reject it
@@ -144,7 +139,7 @@ func TestWorker(t *testing.T) {
 	worker.rcvTXCh <- txn
 
 	time.Sleep(15 * time.Second)
-	txStatus = worker.GetTxStatus(txn.Hash())
+	txStatus := worker.GetTxStatus(txn.Hash())
 	t.Log(txStatus)
 	assert.Nil(t, txStatus)
 

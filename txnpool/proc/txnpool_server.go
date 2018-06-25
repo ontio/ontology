@@ -83,13 +83,14 @@ type TXPoolServer struct {
 	slots         chan struct{}                       // The limited slots for the new transaction
 	height        uint32                              // The current block height
 	gasPrice      uint64                              // Gas price to enforce for acceptance into the pool
+	preExec       bool                                // PreExecute a transaction
 }
 
 // NewTxPoolServer creates a new tx pool server to schedule workers to
 // handle and filter inbound transactions from the network, http, and consensus.
-func NewTxPoolServer(num uint8) *TXPoolServer {
+func NewTxPoolServer(num uint8, preExec bool) *TXPoolServer {
 	s := &TXPoolServer{}
-	s.init(num)
+	s.init(num, preExec)
 	return s
 }
 
@@ -123,7 +124,8 @@ func getGlobalGasPrice() (uint64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("failed to parse uint %v", err)
 	}
-	return gasPrice, err
+
+	return gasPrice, nil
 }
 
 // getGasPriceConfig returns the bigger one between global and cmd configured
@@ -133,7 +135,7 @@ func getGasPriceConfig() uint64 {
 		log.Info(err)
 		return 0
 	}
-	log.Infof("getGasPriceConfig: gasPrice %d configure %d", globalGasPrice,
+	log.Infof("getGasPriceLimitConfig: gasPrice %d, configure %d", globalGasPrice,
 		config.DefConfig.Common.GasPrice)
 
 	if globalGasPrice < config.DefConfig.Common.GasPrice {
@@ -143,7 +145,7 @@ func getGasPriceConfig() uint64 {
 }
 
 // init initializes the server with the configured settings
-func (s *TXPoolServer) init(num uint8) {
+func (s *TXPoolServer) init(num uint8, preExec bool) {
 	// Initial txnPool
 	s.txPool = &tc.TXPool{}
 	s.txPool.Init()
@@ -171,6 +173,7 @@ func (s *TXPoolServer) init(num uint8) {
 
 	s.gasPrice = getGasPriceConfig()
 
+	s.preExec = preExec
 	// Create the given concurrent workers
 	s.workers = make([]txPoolWorker, num)
 	// Initial and start the workers

@@ -26,8 +26,11 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/ledger"
 	tx "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events/message"
+	hComm "github.com/ontio/ontology/http/base/common"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	tc "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology/validator/types"
@@ -55,6 +58,17 @@ func NewVerifyRspActor(s *TXPoolServer) *VerifyRspActor {
 	return a
 }
 
+// isBalanceEnough checks if the tranactor has enough to cover gas cost
+func isBalanceEnough(address common.Address, gas uint64) bool {
+	balance, err := hComm.GetContractBalance(0, utils.OngContractAddress, address)
+	if err != nil {
+		log.Debugf("failed to get contract balance %s err %v",
+			address.ToHexString(), err)
+		return false
+	}
+	return balance >= gas
+}
+
 // TxnActor: Handle the low priority msg from P2P and API
 type TxActor struct {
 	server *TXPoolServer
@@ -64,6 +78,10 @@ type TxActor struct {
 func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 	txn *tx.Transaction) {
 	ta.server.increaseStats(tc.RcvStats)
+	if len(txn.ToArray()) > tc.MAX_TX_SIZE {
+		log.Debugf("handleTransaction: reject a transaction due to size over 1M")
+		return
+	}
 
 	if ta.server.getTransaction(txn.Hash()) != nil {
 		log.Debugf("handleTransaction: transaction %x already in the txn pool",
@@ -76,7 +94,6 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 
 		ta.server.increaseStats(tc.FailureStats)
 	} else {
-
 		if _, overflow := common.SafeMul(txn.GasLimit, txn.GasPrice); overflow {
 			log.Debugf("handleTransaction: gasLimit %v, gasPrice %v overflow",
 				txn.GasLimit, txn.GasPrice)
@@ -96,6 +113,16 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 			return
 		}
 
+		if ta.server.preExec {
+			result, err := ledger.DefLedger.PreExecuteContract(txn)
+			if err != nil {
+				log.Infof("handleTransaction: failed to preExecuteContract tx %x err %v",
+					txn.Hash(), err)
+			}
+			if !isBalanceEnough(txn.Payer, result.Gas) {
+				return
+			}
+		}
 		<-ta.server.slots
 		ta.server.assignTxToWorker(txn, sender)
 	}
