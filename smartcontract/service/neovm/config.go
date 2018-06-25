@@ -39,6 +39,7 @@ var (
 	HASH160_GAS                   uint64 = 20
 	HASH256_GAS                   uint64 = 20
 	OPCODE_GAS                    uint64 = 1
+	SERIALIZE_GAS                 uint64 = 10 // serialized bytes per K bytes
 
 	METHOD_LENGTH_LIMIT int = 1024
 	MAX_STACK_SIZE      int = 1024
@@ -99,12 +100,13 @@ var (
 	GETCALLINGSCRIPTHASH_NAME   = "System.ExecutionEngine.GetCallingScriptHash"
 	GETENTRYSCRIPTHASH_NAME     = "System.ExecutionEngine.GetEntryScriptHash"
 
-	APPCALL_NAME  = "APPCALL"
-	TAILCALL_NAME = "TAILCALL"
-	SHA1_NAME     = "SHA1"
-	SHA256_NAME   = "SHA256"
-	HASH160_NAME  = "HASH160"
-	HASH256_NAME  = "HASH256"
+	APPCALL_NAME        = "APPCALL"
+	TAILCALL_NAME       = "TAILCALL"
+	SHA1_NAME           = "SHA1"
+	SHA256_NAME         = "SHA256"
+	HASH160_NAME        = "HASH160"
+	HASH256_NAME        = "HASH256"
+	SERIALIZE_SIZE_NAME = "SERIALIZE_SIZE_NAME"
 
 	GAS_TABLE = map[string]uint64{
 		BLOCKCHAIN_GETHEADER_NAME:      BLOCKCHAIN_GETHEADER_GAS,
@@ -124,7 +126,10 @@ var (
 		SHA256_NAME:                    SHA256_GAS,
 		HASH160_NAME:                   HASH160_GAS,
 		HASH256_NAME:                   HASH256_GAS,
+		SERIALIZE_SIZE_NAME:            SERIALIZE_GAS,
 	}
 
-	VM_STEP_LIMIT = 400000
+	VM_STEP_LIMIT        = 400000
+	VM_SERIALIZE_DEPTH   = 1024
+	VM_SERIALIZE_MAX_LEN = 1024 * 1000 * 10 //10M
 )

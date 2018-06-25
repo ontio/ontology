@@ -45,3 +45,7 @@ func GasPrice(engine *vm.ExecutionEngine, name string) (uint64, error) {
 		return OPCODE_GAS, nil
 	}
 }
+
+func CalculateSerializeGas(length int) uint64 {
+	return uint64(length/1024+1) * GAS_TABLE[SERIALIZE_SIZE_NAME]
+}
