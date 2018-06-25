@@ -22,7 +22,6 @@ import (
 	"io"
 
 	"fmt"
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -33,13 +32,11 @@ type Param struct {
 	Value string
 }
 
-type Params []*Param
-
-type Role common.Address
+type Params []Param
 
 type ParamNameList []string
 
-func (params *Params) SetParam(value *Param) {
+func (params *Params) SetParam(value Param) {
 	for index, param := range *params {
 		if param.Key == value.Key {
 			(*params)[index] = value
@@ -49,13 +46,13 @@ func (params *Params) SetParam(value *Param) {
 	*params = append(*params, value)
 }
 
-func (params *Params) GetParam(key string) (int, *Param) {
+func (params *Params) GetParam(key string) (int, Param) {
 	for index, param := range *params {
 		if param.Key == key {
 			return index, param
 		}
 	}
-	return -1, nil
+	return -1, Param{}
 }
 
 func (params *Params) Serialize(w io.Writer) error {
@@ -80,7 +77,7 @@ func (params *Params) Deserialize(r io.Reader) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, deserialize params length error!")
 	}
 	for i := 0; uint64(i) < paramNum; i++ {
-		param := new(Param)
+		param := Param{}
 		param.Key, err = serialization.ReadString(r)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, fmt.Sprintf("param config, deserialize param key %v error!", param.Key))
@@ -91,23 +88,6 @@ func (params *Params) Deserialize(r io.Reader) error {
 		}
 		*params = append(*params, param)
 	}
-	return nil
-}
-
-func (role *Role) Serialize(w io.Writer) error {
-	err := serialization.WriteVarBytes(w, role[:])
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, serialize role error!")
-	}
-	return nil
-}
-
-func (role *Role) Deserialize(r io.Reader) error {
-	address, err := utils.ReadAddress(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, deserialize role error!")
-	}
-	copy((*role)[:], address[:])
 	return nil
 }
 

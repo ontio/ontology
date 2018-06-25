@@ -33,7 +33,6 @@ import (
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/auth"
-	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -499,16 +498,6 @@ func putTotalStake(native *native.NativeService, contract common.Address, totalS
 	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(TOTAL_STAKE), totalStake.Address[:]),
 		&cstates.StorageItem{Value: bf.Bytes()})
 	return nil
-}
-
-func getAdmin(native *native.NativeService) (common.Address, error) {
-	adminAddress := new(common.Address)
-	admin, err := global_params.GetStorageRole(native, global_params.GenerateOperatorKey(utils.ParamContractAddress))
-	if err != nil {
-		return common.Address{}, errors.NewDetailErr(err, errors.ErrNoCode, "getStorageAdmin, get admin error!")
-	}
-	copy(adminAddress[:], admin[:])
-	return *adminAddress, nil
 }
 
 func getSplitCurve(native *native.NativeService, contract common.Address) (*SplitCurve, error) {
