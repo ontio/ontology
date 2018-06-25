@@ -384,7 +384,22 @@ func (this *P2PServer) retryInactivePeer() {
 			if v < common.MAX_RETRY_COUNT {
 				list[addr] = v
 			}
+			if v >= common.MAX_RETRY_COUNT {
+				this.network.RemoveFromConnectingList(addr)
+				remotePeer := this.network.GetPeerFromAddr(addr)
+				if remotePeer != nil {
+					if remotePeer.SyncLink.GetAddr() == addr {
+						this.network.RemovePeerSyncAddress(addr)
+						this.network.RemovePeerConsAddress(addr)
+					}
+					if remotePeer.ConsLink.GetAddr() == addr {
+						this.network.RemovePeerConsAddress(addr)
+					}
+					this.network.DelNbrNode(remotePeer.GetID())
+				}
+			}
 		}
+
 		this.RetryAddrs = list
 		this.ReconnectAddrs.Unlock()
 		for _, addr := range addrs {
