@@ -21,6 +21,7 @@ package genesis
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strconv"
 	"time"
 
@@ -179,11 +180,17 @@ func newUtilityInit() *types.Transaction {
 
 func newParamInit() *types.Transaction {
 	params := new(global_params.Params)
-	for k, v := range INIT_PARAM {
-		params.SetParam(global_params.Param{k, v})
+	var s []string
+	for k, _ := range INIT_PARAM {
+		s = append(s, k)
 	}
 	for k, v := range neovm.GAS_TABLE {
-		params.SetParam(global_params.Param{k, strconv.FormatUint(v, 10)})
+		INIT_PARAM[k] = strconv.FormatUint(v, 10)
+		s = append(s, k)
+	}
+	sort.Strings(s)
+	for _, v := range s {
+		params.SetParam(&global_params.Param{v, INIT_PARAM[v]})
 	}
 	bf := new(bytes.Buffer)
 	params.Serialize(bf)
