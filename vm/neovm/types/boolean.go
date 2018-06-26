@@ -36,6 +36,9 @@ func NewBoolean(value bool) *Boolean {
 }
 
 func (this *Boolean) Equals(other StackItems) bool {
+	if this == other{
+		return true
+	}
 	b, err := other.GetBoolean()
 	if err != nil {
 		return false

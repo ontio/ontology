@@ -56,16 +56,16 @@ func TestRandomCodeCrash(t *testing.T) {
 		}
 	}()
 
-	for i := 1; i < 10; i++ {
+	for i := 1; i < 10000; i++ {
 		fmt.Printf("test round:%d \n", i)
 		code := make([]byte, i)
-		for j := 0; j < 10; j++ {
+		for j := 0; j < 10000; j++ {
 			rand.Read(code)
 
 			//cache := storage.NewCloneCache(testBatch)
 			sc := SmartContract{
 				Config:     config,
-				Gas:        10000,
+				Gas:        0,
 				CloneCache: nil,
 			}
 			engine, _ := sc.NewExecuteEngine(code)
