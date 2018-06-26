@@ -37,9 +37,6 @@ func NewInteger(value *big.Int) *Integer {
 }
 
 func (this *Integer) Equals(other StackItems) bool {
-	if _, ok := other.(*Integer); !ok {
-		return false
-	}
 	v, err := other.GetBigInteger()
 	if err != nil {
 		return false
