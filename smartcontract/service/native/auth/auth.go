@@ -24,12 +24,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/ontid"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -73,7 +73,7 @@ func InitContractAdmin(native *native.NativeService) ([]byte, error) {
 	}
 	invokeAddr := cxt.ContractAddress
 
-	if !ontid.VerifyID(param.AdminOntID) {
+	if !account.VerifyID(string(param.AdminOntID)) {
 		return nil, fmt.Errorf("[initContractAdmin] invalid param: adminOntID is %x", param.AdminOntID)
 	}
 	ret, err := initContractAdmin(native, invokeAddr, param.AdminOntID)
@@ -122,7 +122,7 @@ func Transfer(native *native.NativeService) ([]byte, error) {
 		return nil, fmt.Errorf("[transfer] deserialize param failed: %v", err)
 	}
 
-	if !ontid.VerifyID(param.NewAdminOntID) {
+	if !account.VerifyID(string(param.NewAdminOntID)) {
 		return nil, fmt.Errorf("[transfer] invalid param: newAdminOntID is %x", param.NewAdminOntID)
 	}
 	//prepare event msg
@@ -281,7 +281,7 @@ func AssignOntIDsToRole(native *native.NativeService) ([]byte, error) {
 		return nil, fmt.Errorf("[assignOntIDsToRole] invalid param: role is nil")
 	}
 	for i, ontID := range param.Persons {
-		if !ontid.VerifyID(ontID) {
+		if !account.VerifyID(string(ontID)) {
 			return nil, fmt.Errorf("[assignOntIDsToRole] invalid param: param.Persons[%d]=%s",
 				i, string(ontID))
 		}
@@ -384,7 +384,7 @@ func delegate(native *native.NativeService, contractAddr common.Address, from []
 		return false, nil
 	}
 
-	if !ontid.VerifyID(to) {
+	if !account.VerifyID(string(to)) {
 		return false, fmt.Errorf("can not pass OntID validity test: to=%s", string(to))
 	}
 
