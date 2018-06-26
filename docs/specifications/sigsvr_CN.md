@@ -18,6 +18,9 @@ account 参数用于指定sigsvr启动时加载的账户地址。不填则使用
 --cliport
 签名服务器绑定的端口号。默认值为20000。
 
+--abi
+abi 参数用于指定签名服务所使用的native合约abi目录，默认值为./abi
+
 ### 1.2 启动
 
 ```
@@ -249,8 +252,8 @@ http://localhost:20000/cli
 		"gas_price":0,
 		"gas_limit":30000,
 		"asset":"ont",
-		"from":"TADPWFL3yHoHeNN3Bx1RUCrrXjU35EmeXp",
-		"to":"TA5gYXCSiUq9ejGCa54M3yoj9kfMv3ir4j",
+		"from":"ATACcJPZ8eECdWS4ashaMdqzhywpRTq3oN",
+		"to":"AeoBhZtS8AmGp3Zt4LxvCqhdU4eSGiK44M",
 		"amount":10
 	}
 }
@@ -263,7 +266,7 @@ http://localhost:20000/cli
     "qid": "t",
     "method": "sigtransfertx",
     "result": {
-        "signed_tx": "00d1184a175b000000000000000050c3000000000000011e68f7bf0aaba1f18213639591f932556eb674ff4a0000ff00000000000000000000000000000000000001087472616e736665722a0102ae97551187192cdae14052c503b5e64b32013d01397cafa8cc71ae9e555e439fc0f0a5ded12a2a0a000101231202026940ba3dba0a385c44e4a187af75a34e281b96200430db2cbc688a907e5fb545010141016a0097dbe272fd61384d95aaeb02e9460e18078c9f4cd524d67ba431033b10d20de72d1bc819bf6e71c6c17116f4a7a9dfc9b395738893425d684faa30efea9c"
+        "signed_tx": "00d177b8315b00000000000000003075000000000000084c8f4060607444fc95033bd0a9046976d3a9f57100c66b147ce25d11becca9aa8f157e24e2a14fe100db73466a7cc814fc8a60f9a7ab04241a983817b04de95a8b2d4fb86a7cc85a6a7cc86c51c1087472616e736665721400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b6500014140115fbc5ab7e2260ea5c7093f7fd93bdb0e874654e5b04b9b1539f1a40fde9f459a5844dfd280df02e3092e6967bfa88025456ec637ac4bbe20b1a3cf71be98262321035f363567ff82be6f70ece8e16378871128788d5a067267e1ec119eedc408ea58ac"
     },
     "error_code": 0,
     "error_info": ""
@@ -275,7 +278,7 @@ http://localhost:20000/cli
 Native合约调用交易根据ABI构造，并签名。
 
 注意：
-sigsvr启动时，会在当前目录下查找"./cmd/abi/native"下的native合约abi。如果naitve目录下没有该合约的abi，怎会返回1007错误。
+sigsvr启动时，默认会在当前目录下查找"./abi"下的native合约abi。如果naitve目录下没有该合约的abi，会返回1007错误。Native 合约abi的查询路径可以通过--abi参数设定。
 
 方法名称：signativeinvoketx
 请求参数：
@@ -309,14 +312,14 @@ sigsvr启动时，会在当前目录下查找"./cmd/abi/native"下的native合�
 	"Params":{
 		"gas_price":0,
 		"gas_limit":50000,
-		"address":"ff00000000000000000000000000000000000001",
+		"address":"0100000000000000000000000000000000000000",
 		"method":"transfer",
 		"version":0,
 		"params":[
 			[
 				[
-				"TA587BCw7HFwuUuzY1wg2HXCN7cHBPaXSe",
-				"TA5gYXCSiUq9ejGCa54M3yoj9kfMv3ir4j",
+				"ATACcJPZ8eECdWS4ashaMdqzhywpRTq3oN",
+				"AeoBhZtS8AmGp3Zt4LxvCqhdU4eSGiK44M",
 				"1000"
 				]
 			]
@@ -328,10 +331,10 @@ sigsvr启动时，会在当前目录下查找"./cmd/abi/native"下的native合�
 
 ```
 {
-    "qid": "1",
+    "qid": "t",
     "method": "signativeinvoketx",
     "result": {
-        "signed_tx": "00d1a55b175b00000000000000003075000000000000011e68f7bf0aaba1f18213639591f932556eb674ff4c0000ff00000000000000000000000000000000000001087472616e736665722c01011e68f7bf0aaba1f18213639591f932556eb67401397cafa8cc71ae9e555e439fc0f0a5ded12a2afde803000101231202026940ba3dba0a385c44e4a187af75a34e281b96200430db2cbc688a907e5fb545010141013eaf77601c847c4244b5b5a1b22153d6231c29853838b8a963c34834987f86cb6f63a8e5b454899457ee0be56eec16339efdbc4876649c72f313f04c5fa2ba11"
+        "signed_tx": "00d161b7315b000000000000000050c3000000000000084c8f4060607444fc95033bd0a9046976d3a9f57300c66b147ce25d11becca9aa8f157e24e2a14fe100db73466a7cc814fc8a60f9a7ab04241a983817b04de95a8b2d4fb86a7cc802e8036a7cc86c51c1087472616e736665721400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b6500014140c4142d9e066fea8a68303acd7193cb315662131da3bab25bc1c6f8118746f955855896cfb433208148fddc0bed5a99dfde519fe063bbf1ff5e730f7ae6616ee02321035f363567ff82be6f70ece8e16378871128788d5a067267e1ec119eedc408ea58ac"
     },
     "error_code": 0,
     "error_info": ""
