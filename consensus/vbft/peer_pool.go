@@ -270,6 +270,13 @@ func (pool *PeerPool) getPeer(idx uint32) *Peer {
 	return nil
 }
 
+
+func (pool *PeerPool) RemovePeerIndex(nodeId string) {
+  pool.lock.Lock()
+	defer pool.lock.Unlock()
+  
+	delete(pool.IDMap, nodeId)
+}
 func (pool *PeerPool) addP2pId(peerIdx uint32, p2pId uint64) {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
@@ -283,4 +290,5 @@ func (pool *PeerPool) getP2pId(peerIdx uint32) (uint64, bool) {
 
 	p2pid, present := pool.P2pMap[peerIdx]
 	return p2pid, present
+
 }

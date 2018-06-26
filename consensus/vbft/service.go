@@ -334,9 +334,14 @@ func (self *Server) updateChainConfig() error {
 	// 2. remove nonparticipation consensus node
 	// 3. update statemgr peers
 	// 4. reset remove peer connections, create new connections with new peers
-	peermap := make(map[string]uint32)
+	pubkey, _ := vconfig.PubkeyID(self.account.PublicKey)
+	peermap := make(map[uint32]string)
 	for _, p := range self.config.Peers {
-		peermap[p.ID] = p.Index
+		peermap[p.Index] = p.ID
+		if self.Index == math.MaxUint32 && pubkey == p.ID {
+			self.Index = p.Index
+			log.Infof("updateChainConfig add index :%d", self.Index)
+		}
 		_, present := self.peerPool.GetPeerIndex(p.ID)
 		if !present {
 			// check if peer pubkey support VRF
@@ -358,39 +363,29 @@ func (self *Server) updateChainConfig() error {
 			if _, present := self.msgRecvC[peerIdx]; !present {
 				self.msgRecvC[peerIdx] = make(chan *p2pMsgPayload, 1024)
 			}
-
 			go func() {
 				if err := self.run(publickey); err != nil {
 					log.Errorf("server %d, processor on peer %d failed: %s",
 						self.Index, peerIdx, err)
 				}
 			}()
-			log.Infof("updateChainConfig add peer index%v,id:%v", p.ID, p.Index)
+			log.Infof("updateChainConfig add peer index:%v,id:%v", p.ID, p.Index)
 		}
 	}
-
-	if self.Index == math.MaxUint32 {
-		id, _ := vconfig.PubkeyID(self.account.PublicKey)
-		index, present := self.peerPool.GetPeerIndex(id)
-		if present {
-			self.Index = index
-			log.Infof("updateChainConfig add index :%d", index)
-		}
-	}
-
-	for id, index := range self.peerPool.IDMap {
-		_, present := peermap[id]
+	for index, peer := range self.peerPool.peers {
+		_, present := peermap[index]
 		if !present {
 			if index == self.Index {
 				self.Index = math.MaxUint32
 				log.Infof("updateChainConfig remove index :%d", index)
 			} else {
-				log.Info("updateChainConfig remove consensus")
 				if C, present := self.msgRecvC[index]; present {
+					pubkey, _ := vconfig.PubkeyID(peer.PubKey)
+					self.peerPool.RemovePeerIndex(pubkey)
+					log.Infof("updateChainConfig remove consensus:index:%d,id:%v", index, pubkey)
 					C <- nil
 				}
 			}
-			log.Infof("updateChainConfig remove nonparticipation node: index:%v,nodeid:%v len:%d", index, id, len(self.peerPool.IDMap))
 		}
 	}
 	return nil
