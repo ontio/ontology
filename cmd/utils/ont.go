@@ -403,6 +403,37 @@ func DeployContract(
 	return txHash, nil
 }
 
+func PrepareDeployContract(
+	needStorage bool,
+	code,
+	cname,
+	cversion,
+	cauthor,
+	cemail,
+	cdesc string) (*cstates.PreExecResult, error) {
+	c, err := hex.DecodeString(code)
+	if err != nil {
+		return nil, fmt.Errorf("hex.DecodeString error:%s", err)
+	}
+	tx := NewDeployCodeTransaction(0, 0, c, needStorage, cname, cversion, cauthor, cemail, cdesc)
+	var buffer bytes.Buffer
+	err = tx.Serialize(&buffer)
+	if err != nil {
+		return nil, fmt.Errorf("Serialize error:%s", err)
+	}
+	txData := hex.EncodeToString(buffer.Bytes())
+	data, err := sendRpcRequest("sendrawtransaction", []interface{}{txData, 1})
+	if err != nil {
+		return nil, err
+	}
+	preResult := &cstates.PreExecResult{}
+	err = json.Unmarshal(data, &preResult)
+	if err != nil {
+		return nil, fmt.Errorf("json.Unmarshal PreExecResult:%s error:%s", data, err)
+	}
+	return preResult, nil
+}
+
 func InvokeNativeContract(
 	gasPrice,
 	gasLimit uint64,

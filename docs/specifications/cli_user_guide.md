@@ -645,6 +645,9 @@ The email parameter specifies the contact email of a smart contract.
 --desc
 The desc parameter specifies the description of a smart contract.
 
+--prepare, -p
+The prepare parameter indicates that the current deploy is a pre-deploy contract. The transactions executed will not be packaged into blocks, nor will they consume any ONG. Via pre-deploy contract, user can known the the gas limit required for the current deploy.
+
 **Smart Contract Deployment**
 
 ```
