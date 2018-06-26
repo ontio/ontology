@@ -35,10 +35,7 @@ func TestPubkeyID(t *testing.T) {
 	if err != nil {
 		t.Errorf("DeserializePublicKey failed: %v", err)
 	}
-	nodeID, err := PubkeyID(k)
-	if err != nil {
-		t.Errorf("PubkeyID failed: %v", err)
-	}
+	nodeID := PubkeyID(k)
 	t.Logf("res: %v\n", nodeID)
 }
 
@@ -52,10 +49,7 @@ func TestPubkey(t *testing.T) {
 	if err != nil {
 		t.Errorf("DeserializePublicKey failed: %v", err)
 	}
-	nodeID, err := PubkeyID(k)
-	if err != nil {
-		t.Errorf("PubkeyID failed: %v", err)
-	}
+	nodeID := PubkeyID(k)
 	publickey, err := Pubkey(nodeID)
 	if err != nil {
 		t.Errorf("Pubkey failed: %v", err)

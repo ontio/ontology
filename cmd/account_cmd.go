@@ -56,6 +56,7 @@ You can use ./Ontology account --help command to view help information of wallet
 					utils.AccountSigSchemeFlag,
 					utils.AccountDefaultFlag,
 					utils.AccountLabelFlag,
+					utils.IdentityFlag,
 					utils.WalletFileFlag,
 				},
 				Description: ` Add a new account to wallet.
@@ -190,6 +191,23 @@ func accountCreate(ctx *cli.Context) error {
 		return fmt.Errorf("Open wallet error:%s", err)
 	}
 	defer common.ClearPasswd(pass)
+	if ctx.Bool(utils.IdentityFlag.Name) {
+		// create ONT ID
+		wd := wallet.GetWalletData()
+		id, err := account.NewIdentity(optionLabel, keyType, curve, pass)
+		if err != nil {
+			return fmt.Errorf("Create ONT ID error: %s", err)
+		}
+		wd.AddIdentity(id)
+		err = wd.Save(optionFile)
+		if err != nil {
+			return fmt.Errorf("Save to %s error: %s", optionFile, err)
+		}
+		fmt.Println("")
+		fmt.Println("ONT ID created:", id.ID)
+		fmt.Println("Bind public key:", id.Control[0].Public)
+		return nil
+	}
 	for i := 0; i < optionNumber; i++ {
 		label := optionLabel
 		if label != "" && optionNumber > 1 {

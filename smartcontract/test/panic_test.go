@@ -24,6 +24,8 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/types"
 	. "github.com/ontio/ontology/smartcontract"
+	"github.com/ontio/ontology/vm/neovm"
+	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
 )
@@ -70,4 +72,30 @@ func TestRandomCodeCrash(t *testing.T) {
 			engine.Invoke()
 		}
 	}
+}
+
+func TestOpCodeDUP(t *testing.T) {
+	log.InitLog(4)
+	defer func() {
+		os.RemoveAll("Log")
+	}()
+
+	config := &Config{
+		Time:   10,
+		Height: 10,
+		Tx:     &types.Transaction{},
+	}
+
+	var code = []byte{byte(neovm.DUP)}
+
+	sc := SmartContract{
+		Config:     config,
+		Gas:        10000,
+		CloneCache: nil,
+	}
+	engine, _ := sc.NewExecuteEngine(code)
+	_, err := engine.Invoke()
+
+	assert.NotNil(t, err)
+
 }

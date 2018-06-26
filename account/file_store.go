@@ -70,9 +70,9 @@ type WalletData struct {
 	Name       string               `json:"name"`
 	Version    string               `json:"version"`
 	Scrypt     *keypair.ScryptParam `json:"scrypt"`
-	Identities []Identity           `json:"identities"`
-	Accounts   []*AccountData       `json:"accounts"`
-	Extra      string               `json:"extra"`
+	Identities []Identity           `json:"identities,omitempty"`
+	Accounts   []*AccountData       `json:"accounts,omitempty"`
+	Extra      string               `json:"extra,omitempty"`
 }
 
 func NewWalletData() *WalletData {
@@ -203,5 +203,6 @@ func (this *WalletData) reencrypt(passwords [][]byte, param *keypair.ScryptParam
 	return nil
 }
 
-//TODO:: determine identity structure
-type Identity struct{}
+func (this *WalletData) AddIdentity(id *Identity) {
+	this.Identities = append(this.Identities, *id)
+}
