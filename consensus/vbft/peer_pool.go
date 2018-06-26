@@ -284,3 +284,10 @@ func (pool *PeerPool) getP2pId(peerIdx uint32) (uint64, bool) {
 	p2pid, present := pool.P2pMap[peerIdx]
 	return p2pid, present
 }
+
+func (pool *PeerPool) RemovePeerIndex(nodeId string) {
+	pool.lock.Lock()
+	defer pool.lock.Unlock()
+
+	delete(pool.IDMap, nodeId)
+}

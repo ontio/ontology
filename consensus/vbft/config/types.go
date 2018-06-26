@@ -26,9 +26,9 @@ import (
 )
 
 // PubkeyID returns a marshaled representation of the given public key.
-func PubkeyID(pub keypair.PublicKey) (string, error) {
+func PubkeyID(pub keypair.PublicKey) string {
 	nodeid := hex.EncodeToString(keypair.SerializePublicKey(pub))
-	return nodeid, nil
+	return nodeid
 }
 
 func Pubkey(nodeid string) (keypair.PublicKey, error) {
