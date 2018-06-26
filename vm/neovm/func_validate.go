@@ -102,7 +102,7 @@ func validatorPushData4(e *ExecutionEngine) error {
 	bytesBuffer := bytes.NewBuffer(e.Context.Code[index : index+4])
 	var l uint32
 	binary.Read(bytesBuffer, binary.LittleEndian, &l)
-	if l > MAX_ITEM_SIZE {
+	if l > MAX_BYTEARRAY_SIZE {
 		return errors.ERR_OVER_MAX_ITEM_SIZE
 	}
 	return nil
@@ -172,7 +172,7 @@ func validateCat(e *ExecutionEngine) error {
 		return err
 	}
 	l := len(p0) + len(p1)
-	if uint32(l) > MAX_ITEM_SIZE {
+	if uint32(l) > MAX_BYTEARRAY_SIZE {
 		return errors.ERR_OVER_MAX_ITEM_SIZE
 	}
 	return nil
