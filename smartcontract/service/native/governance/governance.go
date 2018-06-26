@@ -1108,7 +1108,7 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 		return errors.NewDetailErr(err, errors.ErrNoCode, "getPeerPoolMap, get peerPoolMap error!")
 	}
 
-	peers := []*PeerStakeInfo{}
+	var peers []*PeerStakeInfo
 	for _, peerPoolItem := range peerPoolMap.PeerPoolMap {
 		if peerPoolItem.Status == QuitingStatus {
 			err = normalQuit(native, contract, peerPoolItem)

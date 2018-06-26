@@ -180,7 +180,7 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 	trans.Nonce = ptx.Nonce
 	trans.GasLimit = ptx.GasLimit
 	trans.GasPrice = ptx.GasPrice
-	trans.Payer = ptx.Payer.ToHexString()
+	trans.Payer = ptx.Payer.ToBase58()
 	trans.Payload = TransPayloadToHex(ptx.Payload)
 
 	trans.Attributes = make([]TxAttributeInfo, 0)

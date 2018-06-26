@@ -16,29 +16,45 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package vconfig
+package account
 
 import (
 	"encoding/hex"
-	"fmt"
-
-	"github.com/ontio/ontology-crypto/keypair"
+	"testing"
 )
 
-// PubkeyID returns a marshaled representation of the given public key.
-func PubkeyID(pub keypair.PublicKey) string {
-	nodeid := hex.EncodeToString(keypair.SerializePublicKey(pub))
-	return nodeid
+var id = "did:ont:TSS6S4Xhzt5wtvRBTm4y3QCTRqB4BnU7vT"
+
+func TestCreate(t *testing.T) {
+	nonce, _ := hex.DecodeString("4c6b58adc6b8c6774eee0eb07dac4e198df87aae28f8932db3982edf3ff026e4")
+	id1, err := CreateID(nonce)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("result ID:", id1)
+	if id != id1 {
+		t.Fatal("expected ID:", id)
+	}
 }
 
-func Pubkey(nodeid string) (keypair.PublicKey, error) {
-	pubKey, err := hex.DecodeString(nodeid)
-	if err != nil {
-		return nil, err
+func TestVerify(t *testing.T) {
+	t.Log("verify", id)
+	if !VerifyID(id) {
+		t.Error("error: failed")
 	}
-	pk, err := keypair.DeserializePublicKey(pubKey)
-	if err != nil {
-		return nil, fmt.Errorf("deserialize failed: %s", err)
+
+	invalid := []string{
+		"did:ont:",
+		"did:else:TSS6S4Xhzt5wtvRBTm4y3QCTRqB4BnU7vT",
+		"TSS6S4Xhzt5wtvRBTm4y3QCTRqB4BnU7vT",
+		"did:else:TSS6S4Xhzt5wtvRBTm4y3QCT",
+		"did:ont:TSS6S4Xhzt5wtvRBTm4y3QCTRqB4BnU7vt",
 	}
-	return pk, err
+
+	for _, v := range invalid {
+		t.Log("verify", v)
+		if VerifyID(v) {
+			t.Error("error: passed")
+		}
+	}
 }
