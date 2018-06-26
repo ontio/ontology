@@ -190,7 +190,7 @@ func newParamInit() *types.Transaction {
 	}
 	sort.Strings(s)
 	for _, v := range s {
-		params.SetParam(&global_params.Param{v, INIT_PARAM[v]})
+		params.SetParam(global_params.Param{Key: v, Value: INIT_PARAM[v]})
 	}
 	bf := new(bytes.Buffer)
 	params.Serialize(bf)
