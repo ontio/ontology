@@ -305,11 +305,15 @@ var (
 		Name:  "params",
 		Usage: "Invoke contract parameters list. use comma ',' to split params, and must add type prefix to params. Param type support bytearray(hexstring), string, integer, boolean,For example: string:foo,int:0,bool:true; If parameter is an object array, enclose array with '[]'. For example:  string:foo,[int:0,bool:true]",
 	}
+	ContractPrepareDeployFlag = cli.BoolFlag{
+		Name:  "prepare,p",
+		Usage: "Prepare deploy contract without commit to ledger",
+	}
 	ContractPrepareInvokeFlag = cli.BoolFlag{
 		Name:  "prepare,p",
 		Usage: "Prepare invoke contract without commit to ledger",
 	}
-	ContranctReturnTypeFlag = cli.StringFlag{
+	ContractReturnTypeFlag = cli.StringFlag{
 		Name:  "return",
 		Usage: "Return type of contract.Return type support bytearray(hexstring), string, integer, boolean. If return type is object array, enclose array with '[]'. For example [string,int,bool,string]. Only prepare invoke need this flag.",
 	}

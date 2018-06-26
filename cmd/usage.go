@@ -169,6 +169,23 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
+		Name: "CONTRACT",
+		Flags: []cli.Flag{
+			utils.ContractPrepareDeployFlag,
+			utils.ContractAddrFlag,
+			utils.ContractAuthorFlag,
+			utils.ContractCodeFileFlag,
+			utils.ContractDescFlag,
+			utils.ContractEmailFlag,
+			utils.ContractNameFlag,
+			utils.ContractVersionFlag,
+			utils.ContractStorageFlag,
+			utils.ContractPrepareInvokeFlag,
+			utils.ContractParamsFlag,
+			utils.ContractReturnTypeFlag,
+		},
+	},
+	{
 		Name: "TRANSACTION",
 		Flags: []cli.Flag{
 			utils.TransactionGasLimitFlag,
