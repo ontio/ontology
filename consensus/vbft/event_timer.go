@@ -71,7 +71,6 @@ type EventTimer struct {
 	lock   sync.Mutex
 	server *Server
 	C      chan *TimerEvent
-	stopC  chan interface{}
 	//timerQueue TimerQueue
 
 	// bft timers
@@ -87,7 +86,6 @@ func NewEventTimer(server *Server) *EventTimer {
 	timer := &EventTimer{
 		server:       server,
 		C:            make(chan *TimerEvent, 64),
-		stopC:        make(chan interface{}),
 		eventTimers:  make(map[TimerEventType]perBlockTimer),
 		peerTickers:  make(map[uint32]*time.Timer),
 		normalTimers: make(map[uint32]*time.Timer),
@@ -119,8 +117,6 @@ func (self *EventTimer) stop() {
 	// clear normal timers
 	stopAllTimers(self.normalTimers)
 	self.normalTimers = make(map[uint32]*time.Timer)
-
-	self.stopC <- struct{}{}
 }
 
 func (self *EventTimer) StartTimer(Idx uint32, timeout time.Duration) error {

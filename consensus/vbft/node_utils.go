@@ -394,7 +394,12 @@ func (self *Server) sendToPeer(peerIdx uint32, data []byte) error {
 	msg.Signature, _ = signature.Sign(self.account, buf.Bytes())
 
 	cons := msgpack.NewConsensus(msg)
-	self.p2p.Transmit(peer.PubKey, cons)
+	p2pid, present := self.peerPool.getP2pId(peerIdx)
+	if present {
+		self.p2p.Transmit(p2pid, cons)
+	} else {
+		log.Errorf("sendToPeer transmit failed index:%d", peerIdx)
+	}
 	return nil
 }
 
