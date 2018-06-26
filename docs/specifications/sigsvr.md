@@ -255,8 +255,8 @@ Request:
 		"gas_price":0,
 		"gas_limit":30000,
 		"asset":"ont",
-		"from":"TADPWFL3yHoHeNN3Bx1RUCrrXjU35EmeXp",
-		"to":"TA5gYXCSiUq9ejGCa54M3yoj9kfMv3ir4j",
+		"from":"ATACcJPZ8eECdWS4ashaMdqzhywpRTq3oN",
+		"to":"AeoBhZtS8AmGp3Zt4LxvCqhdU4eSGiK44M",
 		"amount":10
 	}
 }
@@ -282,7 +282,7 @@ The Native contract invocation transaction is constructed and signed according t
 
 
 Note:
-When sigsvr starts, it will seek the native contract abi under "./cmd/abi/native" in the current directory. If there is no abi for this contract in the naitve directory, then it will return a 1007 error.
+When sigsvr starts, it will seek the native contract abi under "../abi/native" in the current directory. If there is no abi for this contract in the naitve directory, then it will return a 1007 error.
 
 
 Method Name: signativeinvoketx
@@ -319,14 +319,14 @@ Request:
 	"Params":{
 		"gas_price":0,
 		"gas_limit":50000,
-		"address":"ff00000000000000000000000000000000000001",
+		"address":"0100000000000000000000000000000000000000",
 		"method":"transfer",
 		"version":0,
 		"params":[
 			[
 				[
-				"TA587BCw7HFwuUuzY1wg2HXCN7cHBPaXSe",
-				"TA5gYXCSiUq9ejGCa54M3yoj9kfMv3ir4j",
+				"ATACcJPZ8eECdWS4ashaMdqzhywpRTq3oN",
+				"AeoBhZtS8AmGp3Zt4LxvCqhdU4eSGiK44M",
 				"1000"
 				]
 			]
@@ -338,10 +338,10 @@ Response:
 
 ```
 {
-    "qid": "1",
+    "qid": "t",
     "method": "signativeinvoketx",
     "result": {
-        "signed_tx": "00d1a55b175b00000000000000003075000000000000011e68f7bf0aaba1f18213639591f932556eb674ff4c0000ff00000000000000000000000000000000000001087472616e736665722c01011e68f7bf0aaba1f18213639591f932556eb67401397cafa8cc71ae9e555e439fc0f0a5ded12a2afde803000101231202026940ba3dba0a385c44e4a187af75a34e281b96200430db2cbc688a907e5fb545010141013eaf77601c847c4244b5b5a1b22153d6231c29853838b8a963c34834987f86cb6f63a8e5b454899457ee0be56eec16339efdbc4876649c72f313f04c5fa2ba11"
+        "signed_tx": "00d161b7315b000000000000000050c3000000000000084c8f4060607444fc95033bd0a9046976d3a9f57300c66b147ce25d11becca9aa8f157e24e2a14fe100db73466a7cc814fc8a60f9a7ab04241a983817b04de95a8b2d4fb86a7cc802e8036a7cc86c51c1087472616e736665721400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b6500014140c4142d9e066fea8a68303acd7193cb315662131da3bab25bc1c6f8118746f955855896cfb433208148fddc0bed5a99dfde519fe063bbf1ff5e730f7ae6616ee02321035f363567ff82be6f70ece8e16378871128788d5a067267e1ec119eedc408ea58ac"
     },
     "error_code": 0,
     "error_info": ""
