@@ -283,9 +283,6 @@ func (this *P2PServer) WaitForPeersStart() {
 
 //connectSeeds connect the seeds in seedlist and call for nbr list
 func (this *P2PServer) connectSeeds() {
-	if this.reachMinConnection() {
-		return
-	}
 	seedNodes := config.DefConfig.Genesis.SeedList
 	for _, nodeAddr := range seedNodes {
 		found := false
