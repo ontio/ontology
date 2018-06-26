@@ -529,7 +529,8 @@ func GetMemPoolTxState(cmd map[string]interface{}) map[string]interface{} {
 	}
 	txEntry, err := bactor.GetTxFromPool(hash)
 	if err != nil {
-		return ResponsePack(berr.UNKNOWN_TRANSACTION)
+		resp["Result"] = nil
+		return resp
 	}
 	attrs := []bcomn.TXNAttrInfo{}
 	for _, t := range txEntry.Attrs {
