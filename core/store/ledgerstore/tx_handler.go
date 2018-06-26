@@ -56,9 +56,13 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, stateBa
 	)
 
 	if tx.GasPrice != 0 {
-		gas, overflow := common.SafeMul(tx.GasLimit, tx.GasPrice)
+		gasLimit := calcDeployGasByCodeLen(len(deploy.Code), neovm.GAS_TABLE[neovm.CONTRACT_CREATE_NAME], neovm.GAS_TABLE[neovm.UINT_DEPLOY_CODE_LEN_NAME])
+		if gasLimit > tx.GasLimit {
+			return fmt.Errorf("gasLimit insufficient, need:%d actual:%d", gasLimit, tx.GasLimit)
+		}
+		gas, overflow := common.SafeMul(gasLimit, tx.GasPrice)
 		if overflow {
-			return fmt.Errorf("gaslimit:%d*gasprice:%d overflow!", tx.GasLimit, tx.GasPrice)
+			return fmt.Errorf("gaslimit:%d*gasprice:%d overflow!", gasLimit, tx.GasPrice)
 		}
 
 		if err := isBalanceSufficient(tx.Payer, stateBatch, gas); err != nil {
@@ -102,11 +106,14 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 
 	isCharge := !sysTransFlag && tx.GasPrice != 0
 
-	gas, overflow := common.SafeMul(tx.GasLimit, tx.GasPrice)
-	if overflow {
-		return fmt.Errorf("gaslimit:%d*gasprice:%d overflow!", tx.GasLimit, tx.GasPrice)
-	}
 	if isCharge {
+		if tx.GasLimit < neovm.MIN_TRANSACTION_GAS {
+			return fmt.Errorf("transaction gas:%d less than minimum limit:%d", tx.GasLimit, neovm.MIN_TRANSACTION_GAS)
+		}
+		gas, overflow := common.SafeMul(tx.GasLimit, tx.GasPrice)
+		if overflow {
+			return fmt.Errorf("gaslimit:%d*gasprice:%d overflow!", tx.GasLimit, tx.GasPrice)
+		}
 		if err := isBalanceSufficient(tx.Payer, stateBatch, gas); err != nil {
 			return err
 		}
@@ -142,12 +149,16 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 
 	var notifies []*event.NotifyEventInfo
 	if isCharge {
-		totalGas := tx.GasLimit - sc.Gas
+		gasLimit := tx.GasLimit - sc.Gas
 		mixGas := neovm.MIN_TRANSACTION_GAS
-		if totalGas < mixGas {
-			totalGas = mixGas
+		gasLimit = calcInvokeGasByCodeLen(len(invoke.Code), gasLimit, neovm.GAS_TABLE[neovm.UINT_INVOKE_CODE_LEN_NAME])
+		if gasLimit < mixGas {
+			gasLimit = mixGas
 		}
-		notifies, err = costGas(tx.Payer, gas, config, sc.CloneCache, store)
+		if gasLimit > tx.GasLimit {
+			return fmt.Errorf("gasLimit insufficient, need:%d actual:%d", gasLimit, tx.GasLimit)
+		}
+		notifies, err = costGas(tx.Payer, gasLimit*tx.GasPrice, config, sc.CloneCache, store)
 		if err != nil {
 			return err
 		}
@@ -241,7 +252,7 @@ func refreshGlobalParam(config *smartcontract.Config, cache *storage.CloneCache,
 	}
 	params := new(global_params.Params)
 	if err := params.Deserialize(bytes.NewBuffer(result.([]byte))); err != nil {
-		fmt.Errorf("deserialize global params error:%s", err)
+		return fmt.Errorf("deserialize global params error:%s", err)
 	}
 
 	for k, _ := range neovm.GAS_TABLE {
@@ -274,4 +285,18 @@ func getBalance(stateBatch *statestore.StateBatch, address, contract common.Addr
 		return 0, fmt.Errorf("read balance error:%s", err)
 	}
 	return balance, nil
+}
+
+func calcInvokeGasByCodeLen(codeLen int, gasCost uint64, invokeCodeGas uint64) uint64 {
+	if codeLen < neovm.PER_UNIT_CODE_LEN {
+		return gasCost
+	}
+	return gasCost + uint64((codeLen/neovm.PER_UNIT_CODE_LEN+1))*invokeCodeGas
+}
+
+func calcDeployGasByCodeLen(codeLen int, gasCost uint64, deployCodeGas uint64) uint64 {
+	if codeLen < neovm.PER_UNIT_CODE_LEN {
+		return gasCost
+	}
+	return gasCost + uint64((codeLen/neovm.PER_UNIT_CODE_LEN+1))*deployCodeGas
 }

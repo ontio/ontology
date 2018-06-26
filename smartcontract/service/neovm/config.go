@@ -27,9 +27,11 @@ var (
 	BLOCKCHAIN_GETCONTRACT_GAS    uint64 = 100
 	CONTRACT_CREATE_GAS           uint64 = 20000000
 	CONTRACT_MIGRATE_GAS          uint64 = 20000000
-	NATIVE_INVOKE_GAS             uint64 = 10000
-	STORAGE_GET_GAS               uint64 = 100
-	STORAGE_PUT_GAS               uint64 = 1000
+	UINT_DEPLOY_CODE_LEN_GAS      uint64 = 200000
+	UINT_INVOKE_CODE_LEN_GAS      uint64 = 20000
+	NATIVE_INVOKE_GAS             uint64 = 1000
+	STORAGE_GET_GAS               uint64 = 200
+	STORAGE_PUT_GAS               uint64 = 4000
 	STORAGE_DELETE_GAS            uint64 = 100
 	RUNTIME_CHECKWITNESS_GAS      uint64 = 200
 	APPCALL_GAS                   uint64 = 10
@@ -40,6 +42,7 @@ var (
 	HASH256_GAS                   uint64 = 20
 	OPCODE_GAS                    uint64 = 1
 
+	PER_UNIT_CODE_LEN   int = 1024
 	METHOD_LENGTH_LIMIT int = 1024
 	MAX_STACK_SIZE      int = 1024
 	VM_STEP_LIMIT       int = 400000
@@ -106,6 +109,8 @@ var (
 	SHA256_NAME   = "SHA256"
 	HASH160_NAME  = "HASH160"
 	HASH256_NAME  = "HASH256"
+	UINT_DEPLOY_CODE_LEN_NAME = "Deploy.Code.Gas"
+	UINT_INVOKE_CODE_LEN_NAME = "Invoke.Code.Gas"
 
 	GAS_TABLE = map[string]uint64{
 		BLOCKCHAIN_GETHEADER_NAME:      BLOCKCHAIN_GETHEADER_GAS,
@@ -125,6 +130,8 @@ var (
 		SHA256_NAME:                    SHA256_GAS,
 		HASH160_NAME:                   HASH160_GAS,
 		HASH256_NAME:                   HASH256_GAS,
+		UINT_DEPLOY_CODE_LEN_NAME:      UINT_DEPLOY_CODE_LEN_GAS,
+		UINT_INVOKE_CODE_LEN_NAME:	UINT_INVOKE_CODE_LEN_GAS,
 	}
 
 	GAS_TABLE_KEYS = []string{
@@ -146,5 +153,7 @@ var (
 		SHA256_NAME,
 		HASH160_NAME,
 		HASH256_NAME,
+		UINT_DEPLOY_CODE_LEN_NAME,
+		UINT_INVOKE_CODE_LEN_NAME,
 	}
 )

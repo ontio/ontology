@@ -271,17 +271,15 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 		if err := txn.Deserialize(bytes.NewReader(hex)); err != nil {
 			return responsePack(berr.INVALID_TRANSACTION, "")
 		}
-		if txn.TxType == types.Invoke && len(params) > 1 {
+		if len(params) > 1 {
 			preExec, ok := params[1].(float64)
 			if ok && preExec == 1 {
-				if _, ok := txn.Payload.(*payload.InvokeCode); ok {
-					result, err := bactor.PreExecuteContract(&txn)
-					if err != nil {
-						log.Infof("PreExec: ", err)
-						return responsePack(berr.SMARTCODE_ERROR, "")
-					}
-					return responseSuccess(result)
+				result, err := bactor.PreExecuteContract(&txn)
+				if err != nil {
+					log.Infof("PreExec: ", err)
+					return responsePack(berr.SMARTCODE_ERROR, "")
 				}
+				return responseSuccess(result)
 			}
 		}
 		hash = txn.Hash()

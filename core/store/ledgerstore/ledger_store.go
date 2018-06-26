@@ -19,11 +19,19 @@
 package ledgerstore
 
 import (
+	"bytes"
 	"fmt"
+	"math"
+	"os"
+	"sort"
+	"strings"
+	"sync"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/states"
@@ -36,14 +44,12 @@ import (
 	"github.com/ontio/ontology/smartcontract"
 	scommon "github.com/ontio/ontology/smartcontract/common"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/native/global_params"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	sstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
-	"math"
-	"os"
-	"sort"
-	"strings"
-	"sync"
+	"strconv"
 )
 
 const (
@@ -765,52 +771,105 @@ func (this *LedgerStoreImp) GetEventNotifyByBlock(height uint32) ([]*event.Execu
 
 //PreExecuteContract return the result of smart contract execution without commit to store
 func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.PreExecResult, error) {
-	if tx.TxType != types.Invoke {
-		return nil, errors.NewErr("transaction type error")
-	}
-
-	invoke, ok := tx.Payload.(*payload.InvokeCode)
-	if !ok {
-		return nil, errors.NewErr("transaction type error")
-	}
-
 	header, err := this.GetHeaderByHeight(this.GetCurrentBlockHeight())
 	if err != nil {
 		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[PreExecuteContract] Get current block error!")
 	}
-	// init smart contract configuration info
+
 	config := &smartcontract.Config{
 		Time:   header.Timestamp,
 		Height: header.Height,
 		Tx:     tx,
 	}
 
-	//init smart contract info
+	cache := storage.NewCloneCache(this.stateStore.NewStateBatch())
+	preGas, err := this.getPreGas(config, cache)
+	if err != nil {
+		return nil, err
+	}
+
+	if tx.TxType == types.Invoke {
+		invoke, ok := tx.Payload.(*payload.InvokeCode)
+		if !ok {
+			return nil, errors.NewErr("transaction payload not invokeCode!")
+		}
+
+		sc := smartcontract.SmartContract{
+			Config:     config,
+			Store:      this,
+			CloneCache: cache,
+			Gas:        math.MaxUint64,
+		}
+
+		//start the smart contract executive function
+		engine, err := sc.NewExecuteEngine(invoke.Code)
+		if err != nil {
+			return nil, err
+		}
+		result, err := engine.Invoke()
+		if err != nil {
+			return nil, err
+		}
+		gasCost := math.MaxUint64 - sc.Gas
+		mixGas := neovm.MIN_TRANSACTION_GAS
+		gasCost = calcInvokeGasByCodeLen(len(invoke.Code), gasCost, preGas[neovm.UINT_INVOKE_CODE_LEN_NAME])
+		if gasCost < mixGas {
+			gasCost = mixGas
+		}
+		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasCost, Result: scommon.ConvertNeoVmTypeHexString(result)}, nil
+	} else if tx.TxType == types.Deploy {
+		deploy, ok := tx.Payload.(*payload.DeployCode)
+		if !ok {
+			return nil, errors.NewErr("transaction payload not deployCode!")
+		}
+
+		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: calcDeployGasByCodeLen(len(deploy.Code),  preGas[neovm.CONTRACT_CREATE_NAME], preGas[neovm.UINT_DEPLOY_CODE_LEN_NAME]), Result: nil}, nil
+	} else {
+		return nil, errors.NewErr("transaction type error")
+	}
+}
+
+func (this *LedgerStoreImp) getPreGas(config *smartcontract.Config, cache *storage.CloneCache) (map[string]uint64, error) {
+	bf := new(bytes.Buffer)
+	names := []string{neovm.CONTRACT_CREATE_NAME, neovm.UINT_INVOKE_CODE_LEN_NAME, neovm.UINT_DEPLOY_CODE_LEN_NAME}
+	if err := utils.WriteVarUint(bf, uint64(len(names))); err != nil {
+		return nil, fmt.Errorf("write gas_table_keys length error:%s", err)
+	}
+
+	for _, v := range names {
+		if err := serialization.WriteString(bf, v); err != nil {
+			return nil, fmt.Errorf("serialize param name error:%s", err)
+		}
+	}
+
 	sc := smartcontract.SmartContract{
 		Config:     config,
+		CloneCache: cache,
 		Store:      this,
-		CloneCache: storage.NewCloneCache(this.stateStore.NewStateBatch()),
 		Gas:        math.MaxUint64,
 	}
 
-	//start the smart contract executive function
-	engine, err := sc.NewExecuteEngine(invoke.Code)
+	service, _ := sc.NewNativeService()
+	result, err := service.NativeCall(utils.ParamContractAddress, "getGlobalParam", bf.Bytes())
 	if err != nil {
 		return nil, err
 	}
-	result, err := engine.Invoke()
-	if err != nil {
-		return nil, err
+	params := new(global_params.Params)
+	if err := params.Deserialize(bytes.NewBuffer(result.([]byte))); err != nil {
+		return nil, fmt.Errorf("deserialize global params error:%s", err)
 	}
-	gasCost := math.MaxUint64 - sc.Gas
-	mixGas := neovm.MIN_TRANSACTION_GAS
-	if gasCost < mixGas {
-		gasCost = mixGas
+	m := make(map[string]uint64, 0)
+	for _, v := range names {
+		n, ps := params.GetParam(v)
+		if n != -1 && ps.Value != "" {
+			pu, err := strconv.ParseUint(ps.Value, 10, 64)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse uint %v", err)
+			}
+			m[v] = pu
+		}
 	}
-	if err != nil {
-		return &sstate.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: gasCost, Result: nil}, err
-	}
-	return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasCost, Result: scommon.ConvertNeoVmTypeHexString(result)}, nil
+	return m, nil
 }
 
 //Close ledger store.
