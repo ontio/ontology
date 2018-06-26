@@ -83,6 +83,7 @@ func startSigSvr(ctx *cli.Context) {
 		return
 	}
 	cmdsvrcom.DefAccount = acc
+	log.Infof("Sig server will listing on: %d", rpcPort)
 	go cmdsvr.DefCliRpcSvr.Start(rpcPort)
 
 	abiPath := ctx.GlobalString(utils.GetFlagName(utils.CliABIPathFlag))
