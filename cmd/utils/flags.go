@@ -29,7 +29,7 @@ import (
 
 const (
 	DEFAULT_EXPORT_FILE = "./blocks.dat"
-	DEFAULT_ABI_PATH    = "../abi"
+	DEFAULT_ABI_PATH    = "./abi"
 )
 
 var (

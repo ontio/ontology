@@ -93,29 +93,15 @@
         {
           "name": "paramNameList",
           "type": "Array",
-          "subType": "String"
+          "subType": [
+            {
+              "name": "",
+              "type": "String"
+            }
+          ]
         }
       ],
-      "returntype": "Array",
-      "subType": {
-        "type": "Struct",
-        "subType": [
-          {
-            "name": "",
-            "type": "Struct",
-            "subType": [
-              {
-                "name": "Key",
-                "type": "String"
-              },
-              {
-                "name": "Value",
-                "type": "String"
-              }
-            ]
-          }
-        ]
-      }
+      "returntype": "Array"
     },
     {
       "name": "createSnapshot",
