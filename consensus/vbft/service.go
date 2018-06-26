@@ -20,7 +20,6 @@ package vbft
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"math"
 	"reflect"
@@ -218,11 +217,7 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 }
 
 func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
-	peerID, err := vconfig.PubkeyID(payload.Owner)
-	if err != nil {
-		log.Errorf("failed to get peer ID for pubKey: %v", payload.Owner)
-		return
-	}
+	peerID := vconfig.PubkeyID(payload.Owner)
 	peerIdx, present := self.peerPool.GetPeerIndex(peerID)
 	if !present {
 		log.Errorf("invalid consensus node: %s", peerID)
@@ -334,9 +329,14 @@ func (self *Server) updateChainConfig() error {
 	// 2. remove nonparticipation consensus node
 	// 3. update statemgr peers
 	// 4. reset remove peer connections, create new connections with new peers
-	peermap := make(map[string]uint32)
+	pubkey := vconfig.PubkeyID(self.account.PublicKey)
+	peermap := make(map[uint32]string)
 	for _, p := range self.config.Peers {
-		peermap[p.ID] = p.Index
+		peermap[p.Index] = p.ID
+		if self.Index == math.MaxUint32 && pubkey == p.ID {
+			self.Index = p.Index
+			log.Infof("updateChainConfig add index :%d", self.Index)
+		}
 		_, present := self.peerPool.GetPeerIndex(p.ID)
 		if !present {
 			// check if peer pubkey support VRF
@@ -358,39 +358,29 @@ func (self *Server) updateChainConfig() error {
 			if _, present := self.msgRecvC[peerIdx]; !present {
 				self.msgRecvC[peerIdx] = make(chan *p2pMsgPayload, 1024)
 			}
-
 			go func() {
 				if err := self.run(publickey); err != nil {
 					log.Errorf("server %d, processor on peer %d failed: %s",
 						self.Index, peerIdx, err)
 				}
 			}()
-			log.Infof("updateChainConfig add peer index%v,id:%v", p.ID, p.Index)
+			log.Infof("updateChainConfig add peer index:%v,id:%v", p.ID, p.Index)
 		}
 	}
-
-	if self.Index == math.MaxUint32 {
-		id, _ := vconfig.PubkeyID(self.account.PublicKey)
-		index, present := self.peerPool.GetPeerIndex(id)
-		if present {
-			self.Index = index
-			log.Infof("updateChainConfig add index :%d", index)
-		}
-	}
-
-	for id, index := range self.peerPool.IDMap {
-		_, present := peermap[id]
+	for index, peer := range self.peerPool.peers {
+		_, present := peermap[index]
 		if !present {
 			if index == self.Index {
 				self.Index = math.MaxUint32
 				log.Infof("updateChainConfig remove index :%d", index)
 			} else {
-				log.Info("updateChainConfig remove consensus")
 				if C, present := self.msgRecvC[index]; present {
+					pubkey := vconfig.PubkeyID(peer.PubKey)
+					self.peerPool.RemovePeerIndex(pubkey)
+					log.Infof("updateChainConfig remove consensus:index:%d,id:%v", index, pubkey)
 					C <- nil
 				}
 			}
-			log.Infof("updateChainConfig remove nonparticipation node: index:%v,nodeid:%v len:%d", index, id, len(self.peerPool.IDMap))
 		}
 	}
 	return nil
@@ -400,10 +390,7 @@ func (self *Server) initialize() error {
 	// TODO: load config from chain
 
 	// TODO: configurable log
-	selfNodeId, err := vconfig.PubkeyID(self.account.PublicKey)
-	if err != nil {
-		return fmt.Errorf("faied to get account pubkey: %s", err)
-	}
+	selfNodeId := vconfig.PubkeyID(self.account.PublicKey)
 	log.Infof("server: %s starting", selfNodeId)
 
 	store, err := OpenBlockStore(self.ledger)
@@ -452,7 +439,7 @@ func (self *Server) initialize() error {
 	}
 
 	//index equal math.MaxUint32  is noconsensus node
-	id, _ := vconfig.PubkeyID(self.account.PublicKey)
+	id := vconfig.PubkeyID(self.account.PublicKey)
 	index, present := self.peerPool.GetPeerIndex(id)
 	if present {
 		self.Index = index
@@ -543,10 +530,7 @@ func (self *Server) stop() error {
 // go routine per net connection
 //
 func (self *Server) run(peerPubKey keypair.PublicKey) error {
-	peerID, err := vconfig.PubkeyID(peerPubKey)
-	if err != nil {
-		return fmt.Errorf("failed to get peer ID for pubKey: %v", peerPubKey)
-	}
+	peerID := vconfig.PubkeyID(peerPubKey)
 	peerIdx, present := self.peerPool.GetPeerIndex(peerID)
 	if !present {
 		return fmt.Errorf("invalid consensus node: %s", peerID)
@@ -1058,7 +1042,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 
 	msgPrevBlkHash := msg.Block.getPrevBlockHash()
 	if prevBlkHash != msgPrevBlkHash {
-		log.Errorf("BlockPrposalMessage check blocknum:%d,prevhash:%s,msg prevhash:%s", msg.GetBlockNum(), hex.EncodeToString(prevBlkHash[:4]), hex.EncodeToString(msgPrevBlkHash[:4]))
+		log.Errorf("BlockPrposalMessage check blocknum:%d,prevhash:%s,msg prevhash:%s", msg.GetBlockNum(), prevBlkHash.ToHexString(), msgPrevBlkHash.ToHexString())
 		return
 	}
 	cfg := vconfig.ChainConfig{}
@@ -1994,8 +1978,7 @@ func (self *Server) sealBlock(block *Block, empty bool) error {
 	_, h := self.blockPool.getSealedBlock(sealedBlkNum)
 	prevBlkHash := block.getPrevBlockHash()
 	log.Infof("server %d, sealed block %d, proposer %d, prevhash: %s, hash: %s", self.Index,
-		sealedBlkNum, block.getProposer(),
-		hex.EncodeToString(prevBlkHash.ToArray()[:4]), hex.EncodeToString(h[:4]))
+		sealedBlkNum, block.getProposer(), prevBlkHash.ToHexString(), h.ToHexString())
 
 	// broadcast to other modules
 	// TODO: block committed, update tx pool, notify block-listeners
@@ -2388,11 +2371,11 @@ func (self *Server) verifyPrevBlockHash(blkNum uint32, proposal *blockProposalMs
 		return fmt.Errorf("failed to get prevBlock of current round (%d)", blkNum)
 	}
 	prevBlkHash2 := proposal.Block.getPrevBlockHash()
-	if bytes.Compare(prevBlkHash.ToArray(), prevBlkHash2.ToArray()) != 0 {
+	if prevBlkHash != prevBlkHash2 {
 		// continue waiting for more proposals
 		// FIXME
 		return fmt.Errorf("inconsistent prev-block hash %s vs %s (blk %d)",
-			hex.EncodeToString(prevBlkHash[:4]), hex.EncodeToString(prevBlkHash2[:4]), blkNum)
+			prevBlkHash.ToHexString(), prevBlkHash2.ToHexString(), blkNum)
 	}
 
 	return nil
