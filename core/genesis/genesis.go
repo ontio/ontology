@@ -19,10 +19,11 @@
 package genesis
 
 import (
+	"bytes"
 	"fmt"
+	"strconv"
 	"time"
 
-	"bytes"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -34,6 +35,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/smartcontract/service/neovm"
 )
 
 const (
@@ -153,7 +155,22 @@ func deployOntIDContract() *types.Transaction {
 }
 
 func newGoverningInit() *types.Transaction {
-	return utils.BuildNativeTransaction(nutils.OntContractAddress, ont.INIT_NAME, nil)
+	bookkeepers, _ := config.DefConfig.GetBookkeepers()
+	addr := types.AddressFromPubKey(bookkeepers[0])
+
+	distribute := []struct {
+		addr  common.Address
+		value uint64
+	}{{addr, constants.ONT_TOTAL_SUPPLY}}
+
+	args := bytes.NewBuffer(nil)
+	nutils.WriteVarUint(args, uint64(len(distribute)))
+	for _, part := range distribute {
+		nutils.WriteAddress(args, part.addr)
+		nutils.WriteVarUint(args, part.value)
+	}
+
+	return utils.BuildNativeTransaction(nutils.OntContractAddress, ont.INIT_NAME, args.Bytes())
 }
 
 func newUtilityInit() *types.Transaction {
@@ -163,16 +180,17 @@ func newUtilityInit() *types.Transaction {
 func newParamInit() *types.Transaction {
 	params := new(global_params.Params)
 	for k, v := range INIT_PARAM {
-		params.SetParam(&global_params.Param{k, v})
+		params.SetParam(global_params.Param{k, v})
+	}
+	for k, v := range neovm.GAS_TABLE {
+		params.SetParam(global_params.Param{k, strconv.FormatUint(v, 10)})
 	}
 	bf := new(bytes.Buffer)
 	params.Serialize(bf)
 
-	admin := new(global_params.Role)
 	bookkeepers, _ := config.DefConfig.GetBookkeepers()
 	address := types.AddressFromPubKey(bookkeepers[0])
-	copy((*admin)[:], address[:])
-	admin.Serialize(bf)
+	nutils.WriteAddress(bf, address)
 	return utils.BuildNativeTransaction(nutils.ParamContractAddress, global_params.INIT_NAME, bf.Bytes())
 }
 

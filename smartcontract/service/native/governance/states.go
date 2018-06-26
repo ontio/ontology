@@ -20,6 +20,7 @@ package governance
 
 import (
 	"io"
+	"sort"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
@@ -95,7 +96,14 @@ func (this *PeerPoolMap) Serialize(w io.Writer) error {
 	if err := serialization.WriteUint32(w, uint32(len(this.PeerPoolMap))); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize PeerPoolMap length error!")
 	}
+	var peerPoolItemList []*PeerPoolItem
 	for _, v := range this.PeerPoolMap {
+		peerPoolItemList = append(peerPoolItemList, v)
+	}
+	sort.SliceStable(peerPoolItemList, func(i, j int) bool {
+		return peerPoolItemList[i].PeerPubkey > peerPoolItemList[j].PeerPubkey
+	})
+	for _, v := range peerPoolItemList {
 		if err := v.Serialize(w); err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "serialize peerPool error!")
 		}

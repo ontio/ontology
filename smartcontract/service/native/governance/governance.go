@@ -33,6 +33,7 @@ import (
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -125,12 +126,6 @@ func RegisterGovernanceContract(native *native.NativeService) {
 }
 
 func InitConfig(native *native.NativeService) ([]byte, error) {
-	//check if direct call
-	ok := CheckDirectCall(native)
-	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
-	}
-
 	configuration := new(config.VBFTConfig)
 	buf, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
 	if err != nil {
@@ -283,12 +278,6 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 }
 
 func RegisterCandidate(native *native.NativeService) ([]byte, error) {
-	//check if direct call
-	ok := CheckDirectCall(native)
-	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
-	}
-
 	params := new(RegisterCandidateParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
@@ -345,7 +334,7 @@ func RegisterCandidate(native *native.NativeService) ([]byte, error) {
 	}
 
 	//check if exist in PeerPool
-	_, ok = peerPoolMap.PeerPoolMap[params.PeerPubkey]
+	_, ok := peerPoolMap.PeerPoolMap[params.PeerPubkey]
 	if ok {
 		return utils.BYTE_FALSE, errors.NewErr("registerCandidate, peerPubkey is already in peerPoolMap!")
 	}
@@ -383,12 +372,6 @@ func RegisterCandidate(native *native.NativeService) ([]byte, error) {
 }
 
 func UnRegisterCandidate(native *native.NativeService) ([]byte, error) {
-	//check if direct call
-	ok := CheckDirectCall(native)
-	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
-	}
-
 	params := new(UnRegisterCandidateParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
@@ -450,19 +433,14 @@ func UnRegisterCandidate(native *native.NativeService) ([]byte, error) {
 }
 
 func ApproveCandidate(native *native.NativeService) ([]byte, error) {
-	//check if direct call
-	ok := CheckDirectCall(native)
-	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
-	}
-
 	params := new(ApproveCandidateParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
 	}
 
 	// get admin from database
-	adminAddress, err := getAdmin(native)
+	adminAddress, err := global_params.GetStorageRole(native,
+		global_params.GenerateOperatorKey(utils.ParamContractAddress))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getAdmin, get admin error!")
 	}
@@ -567,19 +545,14 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 }
 
 func RejectCandidate(native *native.NativeService) ([]byte, error) {
-	//check if direct call
-	ok := CheckDirectCall(native)
-	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
-	}
-
 	params := new(RejectCandidateParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
 	}
 
 	// get admin from database
-	adminAddress, err := getAdmin(native)
+	adminAddress, err := global_params.GetStorageRole(native,
+		global_params.GenerateOperatorKey(utils.ParamContractAddress))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getAdmin, get admin error!")
 	}
@@ -633,19 +606,14 @@ func RejectCandidate(native *native.NativeService) ([]byte, error) {
 }
 
 func BlackNode(native *native.NativeService) ([]byte, error) {
-	//check if direct call
-	ok := CheckDirectCall(native)
-	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
-	}
-
 	params := new(BlackNodeParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
 	}
 
 	// get admin from database
-	adminAddress, err := getAdmin(native)
+	adminAddress, err := global_params.GetStorageRole(native,
+		global_params.GenerateOperatorKey(utils.ParamContractAddress))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getAdmin, get admin error!")
 	}
@@ -723,19 +691,14 @@ func BlackNode(native *native.NativeService) ([]byte, error) {
 }
 
 func WhiteNode(native *native.NativeService) ([]byte, error) {
-	//check if direct call
-	ok := CheckDirectCall(native)
-	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
-	}
-
 	params := new(WhiteNodeParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
 	}
 
 	// get admin from database
-	adminAddress, err := getAdmin(native)
+	adminAddress, err := global_params.GetStorageRole(native,
+		global_params.GenerateOperatorKey(utils.ParamContractAddress))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getAdmin, get admin error!")
 	}
@@ -768,12 +731,6 @@ func WhiteNode(native *native.NativeService) ([]byte, error) {
 }
 
 func QuitNode(native *native.NativeService) ([]byte, error) {
-	//check if direct call
-	ok := CheckDirectCall(native)
-	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
-	}
-
 	params := new(QuitNodeParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
@@ -845,12 +802,6 @@ func QuitNode(native *native.NativeService) ([]byte, error) {
 }
 
 func VoteForPeer(native *native.NativeService) ([]byte, error) {
-	//check if direct call
-	ok := CheckDirectCall(native)
-	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
-	}
-
 	params := &VoteForPeerParam{
 		PeerPubkeyList: make([]string, 0),
 		PosList:        make([]uint64, 0),
@@ -937,12 +888,6 @@ func VoteForPeer(native *native.NativeService) ([]byte, error) {
 }
 
 func UnVoteForPeer(native *native.NativeService) ([]byte, error) {
-	//check if direct call
-	ok := CheckDirectCall(native)
-	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
-	}
-
 	params := &VoteForPeerParam{
 		PeerPubkeyList: make([]string, 0),
 		PosList:        make([]uint64, 0),
@@ -1035,12 +980,6 @@ func UnVoteForPeer(native *native.NativeService) ([]byte, error) {
 }
 
 func Withdraw(native *native.NativeService) ([]byte, error) {
-	//check if direct call
-	ok := CheckDirectCall(native)
-	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
-	}
-
 	params := &WithdrawParam{
 		PeerPubkeyList: make([]string, 0),
 		WithdrawList:   make([]uint64, 0),
@@ -1102,12 +1041,6 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 }
 
 func CommitDpos(native *native.NativeService) ([]byte, error) {
-	//check if direct call
-	ok := CheckDirectCall(native)
-	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
-	}
-
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	// get config
@@ -1123,7 +1056,8 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	}
 
 	// get admin from database
-	adminAddress, err := getAdmin(native)
+	adminAddress, err := global_params.GetStorageRole(native,
+		global_params.GenerateOperatorKey(utils.ParamContractAddress))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getAdmin, get admin error!")
 	}
@@ -1174,7 +1108,7 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 		return errors.NewDetailErr(err, errors.ErrNoCode, "getPeerPoolMap, get peerPoolMap error!")
 	}
 
-	peers := []*PeerStakeInfo{}
+	var peers []*PeerStakeInfo
 	for _, peerPoolItem := range peerPoolMap.PeerPoolMap {
 		if peerPoolItem.Status == QuitingStatus {
 			err = normalQuit(native, contract, peerPoolItem)
@@ -1287,14 +1221,9 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 }
 
 func UpdateConfig(native *native.NativeService) ([]byte, error) {
-	//check if direct call
-	ok := CheckDirectCall(native)
-	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
-	}
-
 	// get admin from database
-	adminAddress, err := getAdmin(native)
+	adminAddress, err := global_params.GetStorageRole(native,
+		global_params.GenerateOperatorKey(utils.ParamContractAddress))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getAdmin, get admin error!")
 	}
@@ -1362,14 +1291,9 @@ func UpdateConfig(native *native.NativeService) ([]byte, error) {
 }
 
 func UpdateGlobalParam(native *native.NativeService) ([]byte, error) {
-	//check if direct call
-	ok := CheckDirectCall(native)
-	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
-	}
-
 	// get admin from database
-	adminAddress, err := getAdmin(native)
+	adminAddress, err := global_params.GetStorageRole(native,
+		global_params.GenerateOperatorKey(utils.ParamContractAddress))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getAdmin, get admin error!")
 	}
@@ -1420,14 +1344,9 @@ func UpdateGlobalParam(native *native.NativeService) ([]byte, error) {
 }
 
 func UpdateSplitCurve(native *native.NativeService) ([]byte, error) {
-	//check if direct call
-	ok := CheckDirectCall(native)
-	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
-	}
-
 	// get admin from database
-	adminAddress, err := getAdmin(native)
+	adminAddress, err := global_params.GetStorageRole(native,
+		global_params.GenerateOperatorKey(utils.ParamContractAddress))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getAdmin, get admin error!")
 	}
@@ -1453,14 +1372,9 @@ func UpdateSplitCurve(native *native.NativeService) ([]byte, error) {
 }
 
 func CallSplit(native *native.NativeService) ([]byte, error) {
-	//check if direct call
-	ok := CheckDirectCall(native)
-	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
-	}
-
 	// get admin from database
-	adminAddress, err := getAdmin(native)
+	adminAddress, err := global_params.GetStorageRole(native,
+		global_params.GenerateOperatorKey(utils.ParamContractAddress))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getAdmin, get admin error!")
 	}
@@ -1588,14 +1502,9 @@ func executeSplit(native *native.NativeService, contract common.Address, peerPoo
 }
 
 func TransferPenalty(native *native.NativeService) ([]byte, error) {
-	//check if direct call
-	ok := CheckDirectCall(native)
-	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
-	}
-
 	// get admin from database
-	adminAddress, err := getAdmin(native)
+	adminAddress, err := global_params.GetStorageRole(native,
+		global_params.GenerateOperatorKey(utils.ParamContractAddress))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getAdmin, get admin error!")
 	}
@@ -1621,12 +1530,6 @@ func TransferPenalty(native *native.NativeService) ([]byte, error) {
 }
 
 func WithdrawOng(native *native.NativeService) ([]byte, error) {
-	//check if direct call
-	ok := CheckDirectCall(native)
-	if !ok {
-		return utils.BYTE_FALSE, errors.NewErr("checkDirectCall, caller is not a account!")
-	}
-
 	param := new(WithdrawOngParam)
 	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize transferPenaltyParam error!")

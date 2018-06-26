@@ -48,13 +48,24 @@ func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 	}
 
 	var addrStr []msgCommon.PeerAddr
-	neighborAddrs := p2p.GetNeighborAddrs()
-	for _, peer := range neighborAddrs {
-		if remotePeer.GetID() != peer.ID {
-			addrStr = append(addrStr, peer)
+	addrStr = p2p.GetNeighborAddrs()
+	//check mask peers
+	mskPeers := config.DefConfig.P2PNode.ReservedCfg.MaskPeers
+	if config.DefConfig.P2PNode.ReservedPeersOnly && len(mskPeers) > 0 {
+		for i := 0; i < len(addrStr); i++ {
+			var ip net.IP
+			ip = addrStr[i].IpAddr[:]
+			address := ip.To16().String()
+			for j := 0; j < len(mskPeers); j++ {
+				if address == mskPeers[j] {
+					addrStr = append(addrStr[:i], addrStr[i+1:]...)
+					i--
+					break
+				}
+			}
 		}
-	}
 
+	}
 	msg := msgpack.NewAddrs(addrStr)
 	err := p2p.Send(remotePeer, msg, false)
 	if err != nil {
@@ -155,7 +166,7 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 
 // ConsensusHandle handles the consensus message from peer
 func ConsensusHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-	log.Debug("receive consensus message", data.Addr, data.Id)
+	log.Debugf("receive consensus message:%v,%d", data.Addr, data.Id)
 
 	if actor.ConsensusPid != nil {
 		var consensus = data.Payload.(*msgTypes.Consensus)
@@ -163,6 +174,7 @@ func ConsensusHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, 
 			log.Error(err)
 			return
 		}
+		consensus.Cons.PeerId = data.Id
 		actor.ConsensusPid.Tell(&consensus.Cons)
 	}
 }
@@ -197,9 +209,9 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		return
 	}
 
-	if config.DefConfig.P2PNode.ReservedPeersOnly && len(config.DefConfig.P2PNode.ReservedPeers) > 0 {
+	if config.DefConfig.P2PNode.ReservedPeersOnly && len(config.DefConfig.P2PNode.ReservedCfg.ReservedPeers) > 0 {
 		found := false
-		for _, addr := range config.DefConfig.P2PNode.ReservedPeers {
+		for _, addr := range config.DefConfig.P2PNode.ReservedCfg.ReservedPeers {
 			if strings.HasPrefix(data.Addr, addr) {
 				log.Info("peer in reserved list")
 				found = true

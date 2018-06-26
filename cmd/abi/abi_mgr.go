@@ -26,18 +26,15 @@ import (
 	"strings"
 )
 
-const DefAbiPath = "./abi"
-
-var DefAbiMgr = NewAbiMgr(DefAbiPath)
+var DefAbiMgr = NewAbiMgr()
 
 type AbiMgr struct {
 	Path       string
 	nativeAbis map[string]*NativeContractAbi
 }
 
-func NewAbiMgr(path string) *AbiMgr {
+func NewAbiMgr() *AbiMgr {
 	return &AbiMgr{
-		Path:       path,
 		nativeAbis: make(map[string]*NativeContractAbi),
 	}
 }
@@ -50,7 +47,8 @@ func (this *AbiMgr) GetNativeAbi(address string) *NativeContractAbi {
 	return nil
 }
 
-func (this *AbiMgr) Init() {
+func (this *AbiMgr) Init(path string) {
+	this.Path = path
 	this.loadNativeAbi()
 }
 

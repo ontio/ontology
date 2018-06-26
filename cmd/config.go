@@ -148,13 +148,16 @@ func setP2PNodeConfig(ctx *cli.Context, cfg *config.P2PNodeConfig) {
 		}
 		peers = bytes.TrimPrefix(peers, []byte("\xef\xbb\xbf"))
 
-		err = json.Unmarshal(peers, &cfg.ReservedPeers)
+		err = json.Unmarshal(peers, &cfg.ReservedCfg)
 		if err != nil {
 			log.Errorf("json.Unmarshal reserved peers:%s error:%s", peers, err)
 			return
 		}
-		for i := 0; i < len(cfg.ReservedPeers); i++ {
-			log.Info("reserved addr: " + cfg.ReservedPeers[i])
+		for i := 0; i < len(cfg.ReservedCfg.ReservedPeers); i++ {
+			log.Info("reserved addr: " + cfg.ReservedCfg.ReservedPeers[i])
+		}
+		for i := 0; i < len(cfg.ReservedCfg.MaskPeers); i++ {
+			log.Info("mask addr: " + cfg.ReservedCfg.MaskPeers[i])
 		}
 	}
 

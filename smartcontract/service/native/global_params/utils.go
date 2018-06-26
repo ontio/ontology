@@ -34,9 +34,9 @@ const (
 	OPERATOR = "operator"
 )
 
-func getRoleStorageItem(role *Role) *cstates.StorageItem {
+func getRoleStorageItem(role common.Address) *cstates.StorageItem {
 	bf := new(bytes.Buffer)
-	role.Serialize(bf)
+	utils.WriteAddress(bf, role)
 	return &cstates.StorageItem{Value: bf.Bytes()}
 }
 
@@ -78,16 +78,13 @@ func getStorageParam(native *native.NativeService, key []byte) (*Params, error) 
 	return params, nil
 }
 
-func GetStorageRole(native *native.NativeService, key []byte) (*Role, error) {
+func GetStorageRole(native *native.NativeService, key []byte) (common.Address, error) {
 	item, err := utils.GetStorageItem(native, key)
-	if err != nil {
-		return nil, err
+	var role common.Address
+	if err != nil || item == nil {
+		return role, err
 	}
-	if item == nil {
-		return nil, nil
-	}
-	role := new(Role)
 	bf := bytes.NewBuffer(item.Value)
-	role.Deserialize(bf)
-	return role, nil
+	role, err = utils.ReadAddress(bf)
+	return role, err
 }

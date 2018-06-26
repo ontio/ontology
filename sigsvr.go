@@ -48,6 +48,7 @@ func setupSigSvr() *cli.App {
 		utils.AccountPassFlag,
 		//cli setting
 		utils.CliRpcPortFlag,
+		utils.CliABIPathFlag,
 	}
 	app.Before = func(context *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
@@ -62,26 +63,30 @@ func startSigSvr(ctx *cli.Context) {
 
 	walletFile := ctx.GlobalString(utils.GetFlagName(utils.WalletFileFlag))
 	if walletFile == "" {
-		fmt.Printf("Please specificed wallet file using --wallet flag\n")
+		log.Infof("Please specificed wallet file using --wallet flag")
 		return
 	}
 	if !common.FileExisted(walletFile) {
-		fmt.Printf("Cannot find wallet file:%s. Please create wallet first", walletFile)
+		log.Infof("Cannot find wallet file:%s. Please create wallet first", walletFile)
 		return
 	}
 	acc, err := cmdcom.GetAccount(ctx)
 	if err != nil {
-		fmt.Printf("GetAccount error:%s\n", err)
+		log.Infof("GetAccount error:%s", err)
 		return
 	}
+	log.Infof("Using account:%s", acc.Address.ToBase58())
+
 	rpcPort := ctx.Uint(utils.GetFlagName(utils.CliRpcPortFlag))
 	if rpcPort == 0 {
-		fmt.Printf("Please using sig server port by --%s flag\n", utils.GetFlagName(utils.CliRpcPortFlag))
+		log.Infof("Please using sig server port by --%s flag", utils.GetFlagName(utils.CliRpcPortFlag))
 		return
 	}
 	cmdsvrcom.DefAccount = acc
 	go cmdsvr.DefCliRpcSvr.Start(rpcPort)
-	abi.DefAbiMgr.Init()
+
+	abiPath := ctx.GlobalString(utils.GetFlagName(utils.CliABIPathFlag))
+	abi.DefAbiMgr.Init(abiPath)
 
 	log.Infof("Sig server init success")
 	exit := make(chan bool, 0)

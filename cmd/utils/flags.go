@@ -29,6 +29,7 @@ import (
 
 const (
 	DEFAULT_EXPORT_FILE = "./blocks.dat"
+	DEFAULT_ABI_PATH    = "../abi"
 )
 
 var (
@@ -353,7 +354,7 @@ var (
 	TransactionGasLimitFlag = cli.Uint64Flag{
 		Name:  "gaslimit",
 		Usage: "Using to specifies the gas limit of the transaction. The gas limit of the transaction cannot be less than the minimum gas limit set by the node's transaction pool, otherwise the transaction will be rejected. Gasprice * gaslimit is actual ONG costs.",
-		Value: neovm.TRANSACTION_GAS,
+		Value: neovm.MIN_TRANSACTION_GAS,
 	}
 
 	//Asset setting
@@ -388,6 +389,11 @@ var (
 		Name:  "cliport",
 		Usage: "Cli rpc port",
 		Value: config.DEFAULT_CLI_RPC_PORT,
+	}
+	CliABIPathFlag = cli.StringFlag{
+		Name:  "abi",
+		Usage: "Abi path",
+		Value: DEFAULT_ABI_PATH,
 	}
 
 	//Export setting

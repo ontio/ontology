@@ -33,7 +33,6 @@ import (
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/auth"
-	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -501,16 +500,6 @@ func putTotalStake(native *native.NativeService, contract common.Address, totalS
 	return nil
 }
 
-func getAdmin(native *native.NativeService) (common.Address, error) {
-	adminAddress := new(common.Address)
-	admin, err := global_params.GetStorageRole(native, global_params.GenerateOperatorKey(utils.ParamContractAddress))
-	if err != nil {
-		return common.Address{}, errors.NewDetailErr(err, errors.ErrNoCode, "getStorageAdmin, get admin error!")
-	}
-	copy(adminAddress[:], admin[:])
-	return *adminAddress, nil
-}
-
 func getSplitCurve(native *native.NativeService, contract common.Address) (*SplitCurve, error) {
 	splitCurveBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(SPLIT_CURVE)))
 	if err != nil {
@@ -577,13 +566,4 @@ func appCallVerifyToken(native *native.NativeService, contract common.Address, c
 		return errors.NewErr("appCallVerifyToken, verifyToken failed!")
 	}
 	return nil
-}
-
-func CheckDirectCall(nativeService *native.NativeService) bool {
-	callingAddress := nativeService.ContextRef.CallingContext().ContractAddress
-	entryAddress := nativeService.ContextRef.EntryContext().ContractAddress
-	if callingAddress == entryAddress {
-		return true
-	}
-	return false
 }

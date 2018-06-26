@@ -4,7 +4,7 @@ Ontology Signature Server - sigsvr is a rpc server for signing transactions. The
 
 ## 1. Signature Service Startup
 
-### The Parameters of Signature Service Startup
+### 1.1 The Parameters of Signature Service Startup
 
 --loglevel
 The loglevel parameter is used to set the log level for the sigsvr output. Sigsvr supports 7 different log levels - 0:Debug 1:Info 2:Warn 3:Error 4:Fatal 5:Trace 6:MaxLevel. The log level is from low to high, and the output log volume is from high to low. The default value is 1, which means that only output logs at the info level or higher level.
@@ -18,9 +18,15 @@ The account parameter specifies the account address when sigsvr starts. If the a
 --cliport
 The port number to which the signature server is bound. The default value is 20000.
 
+### 1.2 Startup
+
+```
+./sigsvr
+```
+
 ## 2. Signature Service Method
 
-The signature service currently supports single signature and multi-signatures for raw transactions, constructing ONT/ONG transfer transactions and signing, constructing transactions that Native contracts can invoke and signing, and constructing transactions that NeoVM contracts can invoke and signing.
+The signature service currently supports signature for data, single signature and multi-signatures for raw transactions, constructing ONT/ONG transfer transactions and signing, constructing transactions that Native contracts can invoke and signing, and constructing transactions that NeoVM contracts can invoke and signing, and so on.
 
 ### 2.1  Signature Service Calling Method
 
@@ -68,9 +74,56 @@ Error code  | Error description
 1008 | ABI is not matched
 9999 | Unknown error
 
-### 2.2 Signature for Raw Transactions
+### 2.2 Signature for Data
 
-Method Name：sigrawtx
+SigSvr can signature for any data. Note that data must be encode by hex string.
+
+Method Name: sigdata
+
+Request parameters:
+
+```
+{
+    "raw_data":"XXX"      //Unsigned data, Note that data must be encode by hex string.
+}
+```
+Response result:
+
+```
+{
+    "signed_data":"XXX"   //Signed data, Note that data was encoded by hex string.
+}
+```
+Examples:
+
+Request: 
+
+```
+{
+	"qid":"t",
+	"method":"sigdata",
+	"params":{
+		"raw_data":"48656C6C6F20776F726C64" //Hello world
+	}
+}
+```
+Response: 
+
+```
+{
+    "qid": "t",
+    "method": "sigdata",
+    "result": {
+        "signed_data": "cab96ef92419df915902817b2c9ed3f6c1c4956b3115737f7c787b03eed3f49e56547f3117867db64217b84cd6c6541d7b248f23ceeef3266a9a0bd6497260cb"
+    },
+    "error_code": 0,
+    "error_info": ""
+}
+```
+
+### 2.3 Signature for Raw Transactions
+
+Method Name: sigrawtx
 
 Request parameters:
 
@@ -112,11 +165,11 @@ Response:
 }
 ```
 
-### 2.3 Multiple Signature for Raw Transactions
+### 2.4 Multiple Signature for Raw Transactions
 
 Since the private key is in the hands of different people, the multi-signature method needs to be called multiple times.
 
-Method Name：sigmutilrawtx
+Method Name: sigmutilrawtx
 
 Request parameters:
 ```
@@ -167,11 +220,11 @@ Response:
     "error_info": ""
 }
 ```
-### 2.4 Signature of Transfer Transaction
+### 2.5 Signature of Transfer Transaction
 
 In order to simplify the signature process of transfer transaction, a transfer transaction structure function is provided. When transferring, only the transfer parameters need to be provided.
 
-Method Name：sigtransfertx
+Method Name: sigtransfertx
 Request parameters:
 ```
 {
@@ -223,7 +276,7 @@ Response:
 }
 ```
 
-### 2.5 Native Contract Invokes Signature
+### 2.6 Native Contract Invokes Signature
 
 The Native contract invocation transaction is constructed and signed according to the ABI.
 
@@ -232,7 +285,7 @@ Note:
 When sigsvr starts, it will seek the native contract abi under "./cmd/abi/native" in the current directory. If there is no abi for this contract in the naitve directory, then it will return a 1007 error.
 
 
-Method Name：signativeinvoketx
+Method Name: signativeinvoketx
 
 Request parameters:
 
@@ -295,11 +348,11 @@ Response:
 }
 ```
 
-### 2.6 Neovm Contract Invokes Signature
+### 2.7 NeoVM Contract Invokes Signature
 
-The Neovm parameter contract supports array, bytearray, string, int, and bool types. When constructing parameters, it is necessary to provide parameter types and parameter values. The parameter values ​​use string types. Array is an array of objects and supports all types and quantities of Neovm supported parameters.
+The NeoVM parameter contract supports array, bytearray, string, int, and bool types. When constructing parameters, it is necessary to provide parameter types and parameter values. The parameter values ​​use string types. Array is an array of objects and supports all types and quantities of NeoVM supported parameters.
 
-Method Name：signeovminvoketx
+Method Name: signeovminvoketx
 
 Request parameters:
 ```
@@ -357,6 +410,96 @@ Response:
     "method": "signeovminvoketx",
     "result": {
         "signed_tx": "00d18f5e175b000000000000000050c3000000000000011e68f7bf0aaba1f18213639591f932556eb67480216700008074775331499ebc81ff785e299d406f55224a4c00080051c10454696d65000101231202026940ba3dba0a385c44e4a187af75a34e281b96200430db2cbc688a907e5fb54501014101b93bef619b4d7900b57f91e1810b268f9e10eb39fd563f23ce01323cde6273518000dc77d2d2231bc39428f1fa35d294990676015dbf6b4dfd2e6c9856034cc1"
+    },
+    "error_code": 0,
+    "error_info": ""
+}
+```
+
+### 2.8 NeoVM Contract Invokes By ABI Signature
+
+NeoVM contract invoke by abi transaction is constructed and signed according to the ABI, need the ABI of contract and invoke parameters.
+Note that all value of parameters are string type.
+
+Method Name: signativeinvoketx
+
+Request parameters: signeovminvokeabitx
+
+```
+{
+    "gas_price":XXX,    //gasprice
+    "gas_limit":XXX,    //gaslimit
+    "address":"XXX",    //The NeoVM contract address
+    "params":[XXX],     //The parameters of the NeoVM contract are constructed according to the ABI of calling method. All values ​​are string type.
+    "contract_abi":XXX, //The ABI of contract
+}
+```
+Response result:
+```
+{
+    "signed_tx":XXX     //Signed Transaction
+}
+```
+
+Examples:
+Request:
+
+```
+{
+  "qid": "t",
+  "method": "signeovminvokeabitx",
+  "params": {
+    "gas_price": 0,
+    "gas_limit": 50000,
+    "address": "80b82b5e31ad8b7b750207ad80579b5296bf27e8",
+    "method": "add",
+    "params": ["10","10"],
+    "contract_abi": {
+      "hash": "0xe827bf96529b5780ad0702757b8bad315e2bb8ce",
+      "entrypoint": "Main",
+      "functions": [
+        {
+          "name": "Main",
+          "parameters": [
+            {
+              "name": "operation",
+              "type": "String"
+            },
+            {
+              "name": "args",
+              "type": "Array"
+            }
+          ],
+          "returntype": "Any"
+        },
+        {
+          "name": "Add",
+          "parameters": [
+            {
+              "name": "a",
+              "type": "Integer"
+            },
+            {
+              "name": "b",
+              "type": "Integer"
+            }
+          ],
+          "returntype": "Integer"
+        }
+      ],
+      "events": []
+    }
+  }
+}
+```
+
+Response:
+```
+{
+    "qid": "t",
+    "method": "signeovminvokeabitx",
+    "result": {
+        "signed_tx": "00d16acd295b000000000000000050c3000000000000691871639356419d911f2e0df2f5e015ef5672041d5a5a52c10361646467e827bf96529b5780ad0702757b8bad315e2bb88000014140fb04a7792ffac8d8c777dbf7bce6c016f8d8e732338dbe117bec03d7f6dd1ddf1b508a387aff93c1cf075467c1d0e04b00eb9f3d08976e02758081cc8937f38f232102fb608eb6d1067c2a0186221fab7669a7e99aa374b94a72f3fc000e5f1f5c335eac"
     },
     "error_code": 0,
     "error_info": ""

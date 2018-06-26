@@ -68,9 +68,13 @@ var UNBOUND_DEADLINE = (func() uint32 {
 })()
 
 // multi-sig constants
-const MULTI_SIG_MAX_PUBKEY_SIZE = 1024
+const MULTI_SIG_MAX_PUBKEY_SIZE = 16
 
+// transaction constants
+const TX_MAX_SIG_SIZE = 16
+
+// network magic number
 const (
-	NETWORK_MAIGIC_MAINNET = 0x74746e41
-	NETWORK_MAIGIC_POLARIS = 0x74746e41
+	NETWORK_MAGIC_MAINNET = 0x74746e41
+	NETWORK_MAGIC_POLARIS = 0x74746e41
 )

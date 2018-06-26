@@ -29,6 +29,8 @@ import (
 	"io"
 )
 
+var Version = "" //Set value when build project
+
 const (
 	DEFAULT_CONFIG_FILE_NAME = "./config.json"
 	DEFAULT_WALLET_FILE_NAME = "./wallet.dat"
@@ -76,9 +78,9 @@ const (
 )
 
 var NETWORK_MAGIC = map[uint32]uint32{
-	NETWORK_ID_MAIN_NET:    constants.NETWORK_MAIGIC_MAINNET, //Network main
-	NETWORK_ID_POLARIS_NET: constants.NETWORK_MAIGIC_POLARIS, //Network polaris
-	NETWORK_ID_SOLO_NET:    0,                                //Network solo
+	NETWORK_ID_MAIN_NET:    constants.NETWORK_MAGIC_MAINNET, //Network main
+	NETWORK_ID_POLARIS_NET: constants.NETWORK_MAGIC_POLARIS, //Network polaris
+	NETWORK_ID_SOLO_NET:    0,                               //Network solo
 }
 
 var NETWORK_NAME = map[uint32]string{
@@ -414,9 +416,14 @@ type ConsensusConfig struct {
 	MaxTxInBlock    uint
 }
 
+type P2PRsvConfig struct {
+	ReservedPeers []string `json:"reserved"`
+	MaskPeers     []string `json:"mask"`
+}
+
 type P2PNodeConfig struct {
-	ReservedPeers             []string
 	ReservedPeersOnly         bool
+	ReservedCfg               *P2PRsvConfig
 	NetworkMaigc              uint32
 	NetworkId                 uint32
 	NetworkName               string
@@ -479,7 +486,7 @@ func NewOntologyConfig() *OntologyConfig {
 			MaxTxInBlock:    DEFAULT_MAX_TX_IN_BLOCK,
 		},
 		P2PNode: &P2PNodeConfig{
-			ReservedPeers:             make([]string, 0),
+			ReservedCfg:               &P2PRsvConfig{},
 			ReservedPeersOnly:         false,
 			NetworkId:                 NETWORK_ID_MAIN_NET,
 			NetworkName:               GetNetworkName(NETWORK_ID_POLARIS_NET),
@@ -540,5 +547,3 @@ func (this *OntologyConfig) GetBookkeepers() ([]keypair.PublicKey, error) {
 	keypair.SortPublicKeys(pubKeys)
 	return pubKeys, nil
 }
-
-var Version = ""

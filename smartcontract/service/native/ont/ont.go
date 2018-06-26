@@ -24,11 +24,10 @@ import (
 	"math/big"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/common/serialization"
 	scommon "github.com/ontio/ontology/core/store/common"
-	ctypes "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -57,10 +56,6 @@ func RegisterOntContract(native *native.NativeService) {
 }
 
 func OntInit(native *native.NativeService) ([]byte, error) {
-	bookkeepers, err := config.DefConfig.GetBookkeepers()
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("GetBookkeepers error:%s", err)
-	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	amount, err := utils.GetStorageUInt64(native, GenTotalSupplyKey(contract))
 	if err != nil {
@@ -71,13 +66,42 @@ func OntInit(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("Init ont has been completed!")
 	}
 
-	assign := constants.ONT_TOTAL_SUPPLY / uint64(len(bookkeepers))
-	item := utils.GenUInt64StorageItem(assign)
-	for _, v := range bookkeepers {
-		address := ctypes.AddressFromPubKey(v)
-		balanceKey := GenBalanceKey(contract, address)
+	distribute := make(map[common.Address]uint64)
+	buf, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarBytes, contract params deserialize error!")
+	}
+	input := bytes.NewBuffer(buf)
+	num, err := utils.ReadVarUint(input)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("read number error:%v", err)
+	}
+	sum := uint64(0)
+	overflow := false
+	for i := uint64(0); i < num; i++ {
+		addr, err := utils.ReadAddress(input)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("read address error:%v", err)
+		}
+		value, err := utils.ReadVarUint(input)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("read value error:%v", err)
+		}
+		sum, overflow = common.SafeAdd(sum, value)
+		if overflow {
+			return utils.BYTE_FALSE, errors.NewErr("wrong config. overflow detected")
+		}
+		distribute[addr] += value
+	}
+	if sum != constants.ONT_TOTAL_SUPPLY {
+		return utils.BYTE_FALSE, fmt.Errorf("wrong config. total supply %d != %d", sum, constants.ONT_TOTAL_SUPPLY)
+	}
+
+	for addr, val := range distribute {
+		balanceKey := GenBalanceKey(contract, addr)
+		item := utils.GenUInt64StorageItem(val)
 		native.CloneCache.Add(scommon.ST_STORAGE, balanceKey, item)
-		AddNotifications(native, contract, &State{To: address, Value: assign})
+		AddNotifications(native, contract, &State{To: addr, Value: val})
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, GenTotalSupplyKey(contract), utils.GenUInt64StorageItem(constants.ONT_TOTAL_SUPPLY))
 
