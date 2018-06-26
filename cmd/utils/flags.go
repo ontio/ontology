@@ -29,7 +29,7 @@ import (
 
 const (
 	DEFAULT_EXPORT_FILE = "./blocks.dat"
-	DEFAULT_ABI_PATH    = "../abi"
+	DEFAULT_ABI_PATH    = "./abi"
 )
 
 var (
@@ -263,6 +263,10 @@ var (
 	AccountMultiPubKeyFlag = cli.StringFlag{
 		Name:  "pubkey",
 		Usage: fmt.Sprintf("Pub key list of multi address, split pub key with `,`. Number of pub key must > 0 and <= %d", constants.MULTI_SIG_MAX_PUBKEY_SIZE),
+	}
+	IdentityFlag = cli.BoolFlag{
+		Name:  "ontid",
+		Usage: "create an ONT ID instead of account",
 	}
 
 	//SmartContract setting

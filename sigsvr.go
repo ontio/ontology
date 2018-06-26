@@ -89,6 +89,8 @@ func startSigSvr(ctx *cli.Context) {
 	abi.DefAbiMgr.Init(abiPath)
 
 	log.Infof("Sig server init success")
+	log.Infof("Sig server listing on: %d", rpcPort)
+
 	exit := make(chan bool, 0)
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
