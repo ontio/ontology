@@ -30,6 +30,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	conn "github.com/ontio/ontology/p2pserver/link"
+	"github.com/ontio/ontology/p2pserver/message/count"
 	"github.com/ontio/ontology/p2pserver/message/types"
 )
 
@@ -127,15 +128,17 @@ func (this *PeerCom) GetHeight() uint64 {
 
 //Peer represent the node in p2p
 type Peer struct {
-	base      PeerCom
-	cap       [32]byte
-	SyncLink  *conn.Link
-	ConsLink  *conn.Link
-	syncState uint32
-	consState uint32
-	txnCnt    uint64
-	rxTxnCnt  uint64
-	connLock  sync.RWMutex
+	base         PeerCom
+	cap          [32]byte
+	SyncLink     *conn.Link
+	ConsLink     *conn.Link
+	syncState    uint32
+	consState    uint32
+	txnCnt       uint64
+	rxTxnCnt     uint64
+	connLock     sync.RWMutex
+	prevMsgCount msgcount.MsgCount
+	curMsgCount  msgcount.MsgCount
 }
 
 //NewPeer return new peer without publickey initial
@@ -377,4 +380,37 @@ func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
 		this.base.SetRelay(true)
 	}
 	this.SetHeight(uint64(height))
+}
+
+//NewMsgCountRound copy current msg count to previous msg count and clean curent msg count
+func (this *Peer) ChangeMsgCountRound() {
+	this.prevMsgCount.Copy(&this.curMsgCount)
+	this.curMsgCount.Clean()
+}
+
+//IncreCurMsgCount increase message count of message type
+func (this *Peer) IncreCurMsgCount(cmdType string) {
+	this.curMsgCount.IncreCount(cmdType)
+}
+
+//GetPerMsgCount get previous message count
+func (this *Peer) GetPrevMsgCount(cmdType string) uint32 {
+	return this.prevMsgCount.GetCount(cmdType)
+}
+
+//GetPerMsgCount get current message count
+func (this *Peer) GetCurMsgCount(cmdType string) uint32 {
+	return this.curMsgCount.GetCount(cmdType)
+}
+
+//CurMsgCountString return the current msg count string
+func (this *Peer) CurMsgCountString() string {
+	if this.curMsgCount.IsEmpty() {
+		return ""
+	}
+	buf, err := this.curMsgCount.Serialization()
+	if err != nil {
+		return ""
+	}
+	return string(buf)
 }

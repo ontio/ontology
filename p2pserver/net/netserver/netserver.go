@@ -31,6 +31,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/p2pserver/message/count"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	"github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/net/protocol"
@@ -66,6 +67,8 @@ type NetServer struct {
 	InConnRecord  InConnectionRecord
 	OutConnRecord OutConnectionRecord
 	OwnAddress    string //network`s own address(ip : sync port),which get from version check
+	prevMsgCount  msgcount.MsgCount
+	curMsgCount   msgcount.MsgCount
 }
 
 //InConnectionRecord include all addr connected
@@ -234,6 +237,26 @@ func (this *NetServer) NodeEstablished(id uint64) bool {
 //Xmit called by actor, broadcast msg
 func (this *NetServer) Xmit(msg types.Message, isCons bool) {
 	this.Np.Broadcast(msg, isCons)
+}
+
+//OnMsgReceived received p2p msg from link, incre the msg count
+func (this *NetServer) OnMsgReceived(id uint64, addr, cmdType string) {
+	if cmdType == common.HEADERS_TYPE || cmdType == common.BLOCK_TYPE ||
+		cmdType == common.CONSENSUS_TYPE || cmdType == common.TX_TYPE {
+		this.curMsgCount.IncreCount(cmdType)
+		return
+	}
+	remotePeer := this.GetPeer(id)
+	if remotePeer == nil {
+		var ok bool
+		if remotePeer, ok = this.PeerSyncAddress[addr]; !ok {
+			if remotePeer, ok = this.PeerConsAddress[addr]; !ok {
+				log.Warnf("can't find msg sender id:%d, addr:%s", id, addr)
+				return
+			}
+		}
+	}
+	remotePeer.IncreCurMsgCount(cmdType)
 }
 
 //GetMsgChan return sync or consensus channel when msgrouter need msg input
@@ -819,5 +842,53 @@ func (this *NetServer) SetOwnAddress(addr string) {
 		log.Infof("set own address %s", addr)
 		this.OwnAddress = addr
 	}
+}
 
+//GetCurMsgTotalCount get total count of a msg
+func (this *NetServer) GetCurMsgTotalCount(cmdType string) uint32 {
+	if cmdType == common.HEADERS_TYPE || cmdType == common.BLOCK_TYPE ||
+		cmdType == common.CONSENSUS_TYPE || cmdType == common.TX_TYPE {
+		return this.curMsgCount.GetCount(cmdType)
+	}
+	this.Np.RLock()
+	defer this.Np.RUnlock()
+	var cnt uint32
+	for _, p := range this.Np.List {
+		cnt += p.GetCurMsgCount(cmdType)
+	}
+	return cnt
+}
+
+//ChangeMsgCountRound clean cur msg count and move it to previous count
+func (this *NetServer) ChangeMsgCountRound() {
+	this.prevMsgCount.Copy(&this.curMsgCount)
+	this.curMsgCount.Clean()
+	this.Np.Lock()
+	defer this.Np.Unlock()
+	for _, p := range this.Np.List {
+		p.ChangeMsgCountRound()
+	}
+}
+
+//SaveMsgCountLog save the message count log to disk for rpc interface
+func (this *NetServer) SaveMsgCountLog() {
+	l := []string{}
+	if !this.curMsgCount.IsEmpty() {
+		buf, _ := this.curMsgCount.Serialization()
+		l = append(l, fmt.Sprintf("net: %s", string(buf)))
+	}
+	this.Np.RLock()
+	for _, p := range this.Np.List {
+		countStr := p.CurMsgCountString()
+		if len(countStr) > 0 {
+			l = append(l, fmt.Sprintf(`"%s": %s`, p.GetAddr(), countStr))
+		}
+	}
+	this.Np.RUnlock()
+	if len(l) != 0 {
+		err := msgcount.SaveMsgCountLog(fmt.Sprintf("%s: %s\n", time.Now().Format("2006-01-02 15.04.05"), strings.Join(l, ",")))
+		if err != nil {
+			log.Errorf("save msg count log err:%s", err)
+		}
+	}
 }

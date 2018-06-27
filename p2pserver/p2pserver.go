@@ -481,6 +481,7 @@ func (this *P2PServer) heartBeatService() {
 	for {
 		select {
 		case <-t.C:
+			this.changeMsgCountRound()
 			this.ping()
 			this.timeout()
 		case <-this.quitHeartBeat:
@@ -518,6 +519,12 @@ func (this *P2PServer) timeout() {
 			}
 		}
 	}
+}
+
+//changeMsgCountRound move the current message map to previous
+func (this *P2PServer) changeMsgCountRound() {
+	go this.network.SaveMsgCountLog()
+	this.network.ChangeMsgCountRound()
 }
 
 //addToRetryList add retry address to ReconnectAddrs

@@ -129,6 +129,12 @@ const (
 	DISCONNECT_TYPE  = "disconnect" //peer disconnect info raise by link
 )
 
+//const message count
+const (
+	MSG_COUNT_LOG_DIR      = "./Log/MsgCountLog/" //message count log files folder
+	MAX_MSG_COUNT_LOG_SIZE = 10 * 1024 * 1024     //max log file size of message count
+)
+
 type AppendPeerID struct {
 	ID uint64 // The peer id
 }

@@ -107,6 +107,7 @@ func (this *MessageRouter) hookChan(channel chan *types.MsgPayload,
 		case data, ok := <-channel:
 			if ok {
 				msgType := data.Payload.CmdType()
+				this.p2p.OnMsgReceived(data.Id, data.Addr, msgType)
 				handler, ok := this.msgHandlers[msgType]
 				if ok {
 					if msgType == msgCommon.VERSION_TYPE || msgType ==
