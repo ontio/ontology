@@ -128,7 +128,7 @@ func SerializeStackItem(item vmtypes.StackItems) ([]byte, error) {
 	}
 
 	bf := new(bytes.Buffer)
-	err := serializeStackItem(item, common.NewLimitedWriter(bf, uint64(vm.MAX_ITEM_SIZE)))
+	err := serializeStackItem(item, common.NewLimitedWriter(bf, uint64(vm.MAX_BYTEARRAY_SIZE)))
 	if err != nil {
 		return nil, err
 	}
