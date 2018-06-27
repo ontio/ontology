@@ -629,7 +629,6 @@ func (this *LedgerStoreImp) handleTransaction(stateBatch *statestore.StateBatch,
 		if err != nil {
 			if stateBatch.Error() == nil {
 				log.Debugf("HandleDeployTransaction tx %x error %s", txHash, err)
-				SaveNotify(this.eventStore, txHash, []*event.NotifyEventInfo{}, false)
 			} else {
 				return fmt.Errorf("HandleDeployTransaction tx %x error %s", txHash, stateBatch.Error())
 			}
@@ -639,7 +638,6 @@ func (this *LedgerStoreImp) handleTransaction(stateBatch *statestore.StateBatch,
 		if err != nil {
 			if stateBatch.Error() == nil {
 				log.Debugf("HandleInvokeTransaction tx %x error %s", txHash, err)
-				SaveNotify(this.eventStore, txHash, []*event.NotifyEventInfo{}, false)
 			} else {
 				return fmt.Errorf("HandleInvokeTransaction tx %x error %s", txHash, stateBatch.Error())
 			}
