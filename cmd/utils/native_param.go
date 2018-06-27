@@ -28,6 +28,7 @@ import (
 	httpcom "github.com/ontio/ontology/http/base/common"
 	svrneovm "github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/vm/neovm"
+	"math"
 	"math/big"
 	"strconv"
 	"strings"
@@ -90,6 +91,7 @@ func ParseNativeParams(builder *neovm.ParamsBuilder, params []interface{}, param
 			if !ok {
 				return fmt.Errorf("param:%v assert to string failed", param)
 			}
+			rawParam = strings.TrimSpace(rawParam)
 			switch strings.ToLower(paramAbi.Type) {
 			case abi.NATIVE_PARAM_TYPE_ADDRESS:
 				err = ParseNativeParamAddress(builder, rawParam)
@@ -165,9 +167,15 @@ func ParseNativeParamArray(builder *neovm.ParamsBuilder, param interface{}, arra
 }
 
 func ParseNativeParamByte(builder *neovm.ParamsBuilder, param string) error {
+	if param == "" {
+		return fmt.Errorf("invalid byte")
+	}
 	i, err := strconv.ParseInt(param, 10, 32)
 	if err != nil {
 		return fmt.Errorf("parse int error:%s", err)
+	}
+	if i > math.MaxUint8 {
+		return fmt.Errorf("invalid byte value")
 	}
 	builder.EmitPushInteger(new(big.Int).SetInt64(i))
 	return nil
@@ -183,6 +191,9 @@ func ParseNativeParamByteArray(builder *neovm.ParamsBuilder, param string) error
 }
 
 func ParseNativeParamUint256(builder *neovm.ParamsBuilder, param string) error {
+	if param == "" {
+		return fmt.Errorf("invalid uint256")
+	}
 	uint256, err := common.Uint256FromHexString(param)
 	if err != nil {
 		return fmt.Errorf("invalid uint256")
@@ -197,6 +208,9 @@ func ParseNativeParamString(builder *neovm.ParamsBuilder, param string) error {
 }
 
 func ParseNativeParamInteger(builder *neovm.ParamsBuilder, param string) error {
+	if param == "" {
+		return fmt.Errorf("invalid integer")
+	}
 	i, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
 		return fmt.Errorf("parse int error:%s", err)
@@ -220,6 +234,9 @@ func ParseNativeParamBool(builder *neovm.ParamsBuilder, param string) error {
 }
 
 func ParseNativeParamAddress(builder *neovm.ParamsBuilder, param string) error {
+	if param == "" {
+		return fmt.Errorf("invalid address")
+	}
 	var addr common.Address
 	var err error
 	//Maybe param is a contract address

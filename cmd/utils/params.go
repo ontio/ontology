@@ -151,6 +151,9 @@ func parseRawParamValue(pType string, pValue string) (interface{}, error) {
 	case PARAM_TYPE_STRING:
 		return pValue, nil
 	case PARAM_TYPE_INTEGER:
+		if pValue == "" {
+			return nil, fmt.Errorf("invalid integer")
+		}
 		value, err := strconv.ParseInt(pValue, 10, 64)
 		if err != nil {
 			return nil, fmt.Errorf("parse integer param:%s error:%s", pValue, err)
@@ -290,6 +293,7 @@ func ParseNeoVMInvokeParams(rawParams []interface{}) ([]interface{}, error) {
 		}
 		switch pv := pValue.(type) {
 		case string:
+			pv = strings.TrimSpace(pv)
 			param, err := parseRawParamValue(pt, pv)
 			if err != nil {
 				return nil, fmt.Errorf("Parse Param type:%s value:%s error:%s", pType, pv, err)

@@ -64,6 +64,7 @@ func ParseNeovmParam(params []string, paramsAbi []*abi.NeovmContractParamsAbi) (
 	val := make([]interface{}, 0)
 	for i, rawParam := range params {
 		paramAbi := paramsAbi[i]
+		rawParam = strings.TrimSpace(rawParam)
 		var res interface{}
 		var err error
 		switch strings.ToLower(paramAbi.Type) {
@@ -91,6 +92,9 @@ func ParseNeovmParamString(param string) (interface{}, error) {
 }
 
 func ParseNeovmParamInteger(param string) (interface{}, error) {
+	if param == "" {
+		return nil, fmt.Errorf("invalid integer")
+	}
 	value, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("parse integer param:%s error:%s", param, err)
