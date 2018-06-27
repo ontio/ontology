@@ -208,7 +208,13 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		p2p.RemoveFromConnectingList(data.Addr)
 		return
 	}
-
+	addrIp, err := msgCommon.ParseIPAddr(data.Addr)
+	if err != nil {
+		log.Warn(err)
+		return
+	}
+	nodeAddr := addrIp + ":" +
+		strconv.Itoa(int(version.P.SyncPort))
 	if config.DefConfig.P2PNode.ReservedPeersOnly && len(config.DefConfig.P2PNode.ReservedCfg.ReservedPeers) > 0 {
 		found := false
 		for _, addr := range config.DefConfig.P2PNode.ReservedCfg.ReservedPeers {
@@ -251,6 +257,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		}
 		if version.P.Nonce == p2p.GetID() {
 			log.Warn("the node handshake with itself")
+			p2p.SetOwnAddress(nodeAddr)
 			p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
 			p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
 			remotePeer.CloseCons()
@@ -289,6 +296,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 			p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
 			p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
 			log.Warn("the node handshake with itself")
+			p2p.SetOwnAddress(nodeAddr)
 			remotePeer.CloseSync()
 			return
 		}

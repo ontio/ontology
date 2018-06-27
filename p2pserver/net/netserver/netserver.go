@@ -64,6 +64,7 @@ type NetServer struct {
 	connectLock   sync.Mutex
 	inConnRecord  InConnectionRecord
 	outConnRecord OutConnectionRecord
+	OwnAddress    string //network`s own address(ip : sync port),which get from version check
 }
 
 //InConnectionRecord include all addr connected
@@ -267,6 +268,9 @@ func (this *NetServer) IsPeerEstablished(p *peer.Peer) bool {
 func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	this.connectLock.Lock()
 	defer this.connectLock.Unlock()
+	if this.IsOwnAddress(addr) {
+		return nil
+	}
 	if !this.AddrValid(addr) {
 		return nil
 	}
@@ -758,4 +762,20 @@ func (this *NetServer) AddrValid(addr string) bool {
 		return false
 	}
 	return true
+}
+
+func (this *NetServer) IsOwnAddress(addr string) bool {
+	if addr == this.OwnAddress {
+		log.Infof("found own address %s, skip", addr)
+		return true
+	}
+	return false
+}
+
+func (this *NetServer) SetOwnAddress(addr string) {
+	if addr != this.OwnAddress {
+		log.Infof("set own address %s", addr)
+		this.OwnAddress = addr
+	}
+
 }
