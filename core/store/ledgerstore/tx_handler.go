@@ -56,7 +56,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, stateBa
 	)
 
 	if tx.GasPrice != 0 {
-		gasLimit := calcDeployGasByCodeLen(len(deploy.Code), neovm.GAS_TABLE[neovm.CONTRACT_CREATE_NAME], neovm.GAS_TABLE[neovm.UINT_DEPLOY_CODE_LEN_NAME])
+		gasLimit := calcGasByCodeLen(len(deploy.Code), neovm.GAS_TABLE[neovm.CONTRACT_CREATE_NAME], neovm.GAS_TABLE[neovm.UINT_DEPLOY_CODE_LEN_NAME])
 		if gasLimit > tx.GasLimit {
 			return fmt.Errorf("gasLimit insufficient, need:%d actual:%d", gasLimit, tx.GasLimit)
 		}
@@ -151,7 +151,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	if isCharge {
 		gasLimit := tx.GasLimit - sc.Gas
 		mixGas := neovm.MIN_TRANSACTION_GAS
-		gasLimit = calcInvokeGasByCodeLen(len(invoke.Code), gasLimit, neovm.GAS_TABLE[neovm.UINT_INVOKE_CODE_LEN_NAME])
+		gasLimit = calcGasByCodeLen(len(invoke.Code), gasLimit, neovm.GAS_TABLE[neovm.UINT_INVOKE_CODE_LEN_NAME])
 		if gasLimit < mixGas {
 			gasLimit = mixGas
 		}
@@ -287,16 +287,6 @@ func getBalance(stateBatch *statestore.StateBatch, address, contract common.Addr
 	return balance, nil
 }
 
-func calcInvokeGasByCodeLen(codeLen int, gasCost uint64, invokeCodeGas uint64) uint64 {
-	if codeLen < neovm.PER_UNIT_CODE_LEN {
-		return gasCost
-	}
-	return gasCost + uint64((codeLen/neovm.PER_UNIT_CODE_LEN+1))*invokeCodeGas
-}
-
-func calcDeployGasByCodeLen(codeLen int, gasCost uint64, deployCodeGas uint64) uint64 {
-	if codeLen < neovm.PER_UNIT_CODE_LEN {
-		return gasCost
-	}
-	return gasCost + uint64((codeLen/neovm.PER_UNIT_CODE_LEN+1))*deployCodeGas
+func calcGasByCodeLen(codeLen int, gasCost uint64, codeGas uint64) uint64 {
+	return gasCost + uint64(codeLen/neovm.PER_UNIT_CODE_LEN)*codeGas
 }
