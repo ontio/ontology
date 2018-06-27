@@ -123,7 +123,7 @@ func TestInterop_Equals(t *testing.T) {
 	a := NewInteropInterface(nil)
 	b := NewInteropInterface(nil)
 
-	assert.True(t, a.Equals(b))
+	assert.False(t, a.Equals(b))
 
 }
 
