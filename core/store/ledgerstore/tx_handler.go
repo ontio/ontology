@@ -56,7 +56,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, stateBa
 	)
 
 	if tx.GasPrice != 0 {
-		gasLimit := calcGasByCodeLen(len(deploy.Code), neovm.GAS_TABLE[neovm.CONTRACT_CREATE_NAME], neovm.GAS_TABLE[neovm.UINT_DEPLOY_CODE_LEN_NAME])
+		gasLimit := neovm.GAS_TABLE[neovm.CONTRACT_CREATE_NAME] + calcGasByCodeLen(len(deploy.Code), neovm.GAS_TABLE[neovm.UINT_DEPLOY_CODE_LEN_NAME])
 		if gasLimit > tx.GasLimit {
 			return fmt.Errorf("gasLimit insufficient, need:%d actual:%d", gasLimit, tx.GasLimit)
 		}
@@ -106,7 +106,13 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 
 	isCharge := !sysTransFlag && tx.GasPrice != 0
 
+	var codeLenGas uint64
+
 	if isCharge {
+		codeLenGas = calcGasByCodeLen(len(invoke.Code), neovm.GAS_TABLE[neovm.UINT_INVOKE_CODE_LEN_NAME])
+		if tx.GasLimit < codeLenGas {
+			return fmt.Errorf("transaction gas:%d less than code len gas :%d", tx.GasLimit, codeLenGas)
+		}
 		if tx.GasLimit < neovm.MIN_TRANSACTION_GAS {
 			return fmt.Errorf("transaction gas:%d less than minimum limit:%d", tx.GasLimit, neovm.MIN_TRANSACTION_GAS)
 		}
@@ -133,7 +139,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 		Config:     config,
 		CloneCache: cache,
 		Store:      store,
-		Gas:        tx.GasLimit,
+		Gas:        tx.GasLimit - codeLenGas,
 	}
 
 	//start the smart contract executive function
@@ -151,12 +157,8 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	if isCharge {
 		gasLimit := tx.GasLimit - sc.Gas
 		mixGas := neovm.MIN_TRANSACTION_GAS
-		gasLimit = calcGasByCodeLen(len(invoke.Code), gasLimit, neovm.GAS_TABLE[neovm.UINT_INVOKE_CODE_LEN_NAME])
 		if gasLimit < mixGas {
 			gasLimit = mixGas
-		}
-		if gasLimit > tx.GasLimit {
-			return fmt.Errorf("gasLimit insufficient, need:%d actual:%d", gasLimit, tx.GasLimit)
 		}
 		notifies, err = costGas(tx.Payer, gasLimit*tx.GasPrice, config, sc.CloneCache, store)
 		if err != nil {
@@ -287,6 +289,6 @@ func getBalance(stateBatch *statestore.StateBatch, address, contract common.Addr
 	return balance, nil
 }
 
-func calcGasByCodeLen(codeLen int, gasCost uint64, codeGas uint64) uint64 {
-	return gasCost + uint64(codeLen/neovm.PER_UNIT_CODE_LEN)*codeGas
+func calcGasByCodeLen(codeLen int, codeGas uint64) uint64 {
+	return uint64(codeLen/neovm.PER_UNIT_CODE_LEN) * codeGas
 }

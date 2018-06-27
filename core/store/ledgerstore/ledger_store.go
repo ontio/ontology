@@ -798,7 +798,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 			Config:     config,
 			Store:      this,
 			CloneCache: cache,
-			Gas:        math.MaxUint64,
+			Gas:        math.MaxUint64 - calcGasByCodeLen(len(invoke.Code), preGas[neovm.UINT_INVOKE_CODE_LEN_NAME]),
 		}
 
 		//start the smart contract executive function
@@ -812,7 +812,6 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 		}
 		gasCost := math.MaxUint64 - sc.Gas
 		mixGas := neovm.MIN_TRANSACTION_GAS
-		gasCost = calcGasByCodeLen(len(invoke.Code), gasCost, preGas[neovm.UINT_INVOKE_CODE_LEN_NAME])
 		if gasCost < mixGas {
 			gasCost = mixGas
 		}
@@ -823,7 +822,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 			return nil, errors.NewErr("transaction payload not deployCode!")
 		}
 
-		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: calcGasByCodeLen(len(deploy.Code), preGas[neovm.CONTRACT_CREATE_NAME], preGas[neovm.UINT_DEPLOY_CODE_LEN_NAME]), Result: nil}, nil
+		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: preGas[neovm.CONTRACT_CREATE_NAME] + calcGasByCodeLen(len(deploy.Code), preGas[neovm.UINT_DEPLOY_CODE_LEN_NAME]), Result: nil}, nil
 	} else {
 		return nil, errors.NewErr("transaction type error")
 	}
