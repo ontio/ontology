@@ -21,7 +21,6 @@ package types
 import (
 	"fmt"
 	"math/big"
-	"reflect"
 
 	"github.com/ontio/ontology/vm/neovm/interfaces"
 )
@@ -60,7 +59,7 @@ func (this *Map) Remove(key StackItems) {
 }
 
 func (this *Map) Equals(that StackItems) bool {
-	return reflect.DeepEqual(this, that)
+	return this == that
 }
 
 func (this *Map) GetBoolean() (bool, error) {

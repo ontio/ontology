@@ -30,5 +30,5 @@ func TestSelfArray(t *testing.T) {
 	a.Add(b)
 
 	equ := a.Equals(b)
-	assert.True(t, equ)
+	assert.False(t, equ)
 }
