@@ -103,12 +103,12 @@ var (
 	GETCALLINGSCRIPTHASH_NAME   = "System.ExecutionEngine.GetCallingScriptHash"
 	GETENTRYSCRIPTHASH_NAME     = "System.ExecutionEngine.GetEntryScriptHash"
 
-	APPCALL_NAME  = "APPCALL"
-	TAILCALL_NAME = "TAILCALL"
-	SHA1_NAME     = "SHA1"
-	SHA256_NAME   = "SHA256"
-	HASH160_NAME  = "HASH160"
-	HASH256_NAME  = "HASH256"
+	APPCALL_NAME              = "APPCALL"
+	TAILCALL_NAME             = "TAILCALL"
+	SHA1_NAME                 = "SHA1"
+	SHA256_NAME               = "SHA256"
+	HASH160_NAME              = "HASH160"
+	HASH256_NAME              = "HASH256"
 	UINT_DEPLOY_CODE_LEN_NAME = "Deploy.Code.Gas"
 	UINT_INVOKE_CODE_LEN_NAME = "Invoke.Code.Gas"
 
@@ -131,7 +131,7 @@ var (
 		HASH160_NAME:                   HASH160_GAS,
 		HASH256_NAME:                   HASH256_GAS,
 		UINT_DEPLOY_CODE_LEN_NAME:      UINT_DEPLOY_CODE_LEN_GAS,
-		UINT_INVOKE_CODE_LEN_NAME:	UINT_INVOKE_CODE_LEN_GAS,
+		UINT_INVOKE_CODE_LEN_NAME:      UINT_INVOKE_CODE_LEN_GAS,
 	}
 
 	GAS_TABLE_KEYS = []string{
