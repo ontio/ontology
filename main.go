@@ -91,6 +91,7 @@ func setupAPP() *cli.App {
 		//txpool setting
 		utils.GasPriceFlag,
 		utils.GasLimitFlag,
+		utils.PreExecEnableFlag,
 		//p2p setting
 		utils.ReservedPeersOnlyFlag,
 		utils.ReservedPeersFileFlag,
@@ -264,11 +265,7 @@ func initLedger(ctx *cli.Context) (*ledger.Ledger, error) {
 }
 
 func initTxPool(ctx *cli.Context) (*proc.TXPoolServer, error) {
-	preExec := false
-	if !config.DefConfig.Consensus.EnableConsensus {
-		preExec = true
-	}
-
+	preExec := ctx.GlobalBool(utils.GetFlagName(utils.PreExecEnableFlag))
 	txPoolServer, err := txnpool.StartTxnPoolServer(preExec)
 	if err != nil {
 		return nil, fmt.Errorf("Init txpool error:%s", err)
