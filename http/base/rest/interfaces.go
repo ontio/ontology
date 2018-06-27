@@ -50,7 +50,13 @@ func GetNodeVersion(cmd map[string]interface{}) map[string]interface{} {
 //Node
 func GetGenerateBlockTime(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	resp["Result"] = config.DEFAULT_GEN_BLOCK_TIME
+	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_DBFT {
+		resp["Result"] = config.DefConfig.Genesis.DBFT.GenBlockTime
+	} else if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
+		resp["Result"] = config.DefConfig.Genesis.SOLO.GenBlockTime
+	} else {
+		resp["Result"] = nil
+	}
 	return resp
 }
 func GetConnectionCount(cmd map[string]interface{}) map[string]interface{} {

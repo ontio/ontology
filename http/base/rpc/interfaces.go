@@ -35,7 +35,15 @@ import (
 )
 
 func GetGenerateBlockTime(params []interface{}) map[string]interface{} {
-	return responseSuccess(config.DEFAULT_GEN_BLOCK_TIME)
+	var genBlockTime interface{}
+	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_DBFT {
+		genBlockTime = config.DefConfig.Genesis.DBFT.GenBlockTime
+	} else if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
+		genBlockTime = config.DefConfig.Genesis.SOLO.GenBlockTime
+	} else {
+		genBlockTime = nil
+	}
+	return responseSuccess(genBlockTime)
 }
 
 func GetBestBlockHash(params []interface{}) map[string]interface{} {
