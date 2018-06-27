@@ -153,7 +153,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 
 	if isCharge {
 		gasLimit = tx.GasLimit - sc.Gas
-		gas = gasLimit*tx.GasPrice
+		gas = gasLimit * tx.GasPrice
 		balance, err = getBalance(config, cache, store, tx.Payer)
 		if err != nil {
 			return err
