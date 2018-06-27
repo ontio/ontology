@@ -41,8 +41,8 @@ func (this *Interop) Equals(other StackItems) bool {
 	if err != nil {
 		return false
 	}
-	if this._object == nil && v == nil {
-		return true
+	if this._object == nil || v == nil {
+		return false
 	}
 	if !bytes.Equal(this._object.ToArray(), v.ToArray()) {
 		return false
