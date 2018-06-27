@@ -157,7 +157,12 @@ func deployOntIDContract() *types.Transaction {
 
 func newGoverningInit() *types.Transaction {
 	bookkeepers, _ := config.DefConfig.GetBookkeepers()
-	addr := types.AddressFromPubKey(bookkeepers[0])
+	m := (5*len(bookkeepers) + 6) / 7
+
+	addr, err := types.AddressFromMultiPubKeys(bookkeepers, m)
+	if err != nil {
+		panic(fmt.Sprint("wrong bookkeeper config, caused by", err))
+	}
 
 	distribute := []struct {
 		addr  common.Address
@@ -196,8 +201,13 @@ func newParamInit() *types.Transaction {
 	params.Serialize(bf)
 
 	bookkeepers, _ := config.DefConfig.GetBookkeepers()
-	address := types.AddressFromPubKey(bookkeepers[0])
-	nutils.WriteAddress(bf, address)
+	m := (5*len(bookkeepers) + 6) / 7
+	addr, err := types.AddressFromMultiPubKeys(bookkeepers, m)
+	if err != nil {
+		panic(fmt.Sprint("wrong bookkeeper config, caused by", err))
+	}
+	nutils.WriteAddress(bf, addr)
+
 	return utils.BuildNativeTransaction(nutils.ParamContractAddress, global_params.INIT_NAME, bf.Bytes())
 }
 
