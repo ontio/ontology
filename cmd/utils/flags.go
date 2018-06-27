@@ -421,6 +421,12 @@ var (
 		Value: "m",
 	}
 
+	//PreExecute switcher
+	PreExecEnableFlag = cli.BoolFlag{
+		Name:  "preexec",
+		Usage: "Enable preExecute in tx pool",
+	}
+
 	NonOptionFlag = cli.StringFlag{
 		Name:  "option",
 		Usage: "this command does not need option, please run directly",
