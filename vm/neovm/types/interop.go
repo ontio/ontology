@@ -37,11 +37,11 @@ func NewInteropInterface(value interfaces.Interop) *Interop {
 }
 
 func (this *Interop) Equals(other StackItems) bool {
-	if _, ok := other.(*Interop); !ok {
-		return false
-	}
 	v, err := other.GetInterface()
 	if err != nil {
+		return false
+	}
+	if this._object == nil || v == nil {
 		return false
 	}
 	if !bytes.Equal(this._object.ToArray(), v.ToArray()) {

@@ -122,6 +122,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.GasPriceFlag,
 			utils.GasLimitFlag,
+			utils.PreExecEnableFlag,
 		},
 	},
 	{
@@ -167,6 +168,23 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.EnableTestModeFlag,
 			utils.TestModeGenBlockTimeFlag,
 			utils.ClearTestModeDataFlag,
+		},
+	},
+	{
+		Name: "CONTRACT",
+		Flags: []cli.Flag{
+			utils.ContractPrepareDeployFlag,
+			utils.ContractAddrFlag,
+			utils.ContractAuthorFlag,
+			utils.ContractCodeFileFlag,
+			utils.ContractDescFlag,
+			utils.ContractEmailFlag,
+			utils.ContractNameFlag,
+			utils.ContractVersionFlag,
+			utils.ContractStorageFlag,
+			utils.ContractPrepareInvokeFlag,
+			utils.ContractParamsFlag,
+			utils.ContractReturnTypeFlag,
 		},
 	},
 	{

@@ -41,7 +41,17 @@ func NewStruct(value []StackItems) *Struct {
 }
 
 func (this *Struct) Equals(other StackItems) bool {
-	return reflect.DeepEqual(this, other)
+
+	if this == other {
+		return true
+	}
+
+	oa, err := other.GetStruct()
+	if err != nil {
+		return false
+	}
+
+	return reflect.DeepEqual(this._array, oa)
 }
 
 func (this *Struct) GetBigInteger() (*big.Int, error) {
