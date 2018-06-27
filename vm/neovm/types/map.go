@@ -20,8 +20,8 @@ package types
 
 import (
 	"fmt"
-	"math/big"
 	"github.com/ontio/ontology/vm/neovm/interfaces"
+	"math/big"
 )
 
 type Map struct {

@@ -65,7 +65,7 @@ func TestStruct_Equals(t *testing.T) {
 	a := NewStruct(nil)
 	b := NewStruct(nil)
 
-	assert.False(t, a.Equals(b))
+	assert.True(t, a.Equals(b))
 	assert.True(t, a.Equals(a))
 
 	i := NewInteger(big.NewInt(int64(0)))
@@ -75,7 +75,7 @@ func TestStruct_Equals(t *testing.T) {
 	m1 := NewStruct([]StackItems{i, j, k})
 	m2 := NewStruct([]StackItems{i, j, k})
 
-	assert.False(t, m1.Equals(m2))
+	assert.True(t, m1.Equals(m2))
 	assert.True(t, m1.Equals(m1))
 
 }
@@ -114,8 +114,8 @@ func TestCmp(t *testing.T) {
 	b := NewInteger(big.NewInt(0))
 	c := NewBoolean(true)
 	d := NewInteger(big.NewInt(1))
-	assert.True(t, a.Equals(b)) //????
-	assert.True(t, c.Equals(d)) //????
+	assert.False(t, a.Equals(b)) //????
+	assert.True(t, c.Equals(d))  //????
 
 	arr := NewArray(nil)
 	stt := NewStruct(nil)
@@ -127,7 +127,7 @@ func TestCmp(t *testing.T) {
 	ba := NewByteArray(common.BigIntToNeoBytes(big.NewInt(0)))
 	assert.True(t, ba.Equals(b))
 
-	k := NewByteArray([]byte{'a', 'b'})
-	assert.True(t, c.Equals(k))
+	k := NewByteArray(nil)
+	assert.False(t, c.Equals(k))
 
 }

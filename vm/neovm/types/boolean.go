@@ -19,10 +19,10 @@
 package types
 
 import (
+	"bytes"
 	"fmt"
-	"math/big"
-
 	"github.com/ontio/ontology/vm/neovm/interfaces"
+	"math/big"
 )
 
 type Boolean struct {
@@ -36,17 +36,20 @@ func NewBoolean(value bool) *Boolean {
 }
 
 func (this *Boolean) Equals(other StackItems) bool {
-	if this == other{
+	if this == other {
 		return true
 	}
-	b, err := other.GetBoolean()
+	b, err := other.GetByteArray()
 	if err != nil {
 		return false
 	}
-	if this.value != b {
+
+	tb, err := this.GetByteArray()
+	if err != nil {
 		return false
 	}
-	return true
+
+	return bytes.Equal(tb, b)
 }
 
 func (this *Boolean) GetBigInteger() (*big.Int, error) {

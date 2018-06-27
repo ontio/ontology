@@ -38,7 +38,7 @@ func NewByteArray(value []byte) *ByteArray {
 }
 
 func (this *ByteArray) Equals(other StackItems) bool {
-	if this == other{
+	if this == other {
 		return true
 	}
 
