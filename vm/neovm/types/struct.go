@@ -52,7 +52,6 @@ func (this *Struct) Equals(other StackItems) bool {
 	}
 
 	return reflect.DeepEqual(this._array, oa)
-	//return reflect.DeepEqual(this, other)
 }
 
 func (this *Struct) GetBigInteger() (*big.Int, error) {

@@ -21,8 +21,9 @@ package types
 import (
 	"bytes"
 	"fmt"
-	"github.com/ontio/ontology/vm/neovm/interfaces"
 	"math/big"
+	"github.com/ontio/ontology/vm/neovm/interfaces"
+
 )
 
 type Boolean struct {
