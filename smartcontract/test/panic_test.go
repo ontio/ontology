@@ -65,7 +65,7 @@ func TestRandomCodeCrash(t *testing.T) {
 			//cache := storage.NewCloneCache(testBatch)
 			sc := SmartContract{
 				Config:     config,
-				Gas:        0,
+				Gas:        10000,
 				CloneCache: nil,
 			}
 			engine, _ := sc.NewExecuteEngine(code)

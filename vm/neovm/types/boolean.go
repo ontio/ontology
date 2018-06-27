@@ -22,8 +22,8 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
-	"github.com/ontio/ontology/vm/neovm/interfaces"
 
+	"github.com/ontio/ontology/vm/neovm/interfaces"
 )
 
 type Boolean struct {
