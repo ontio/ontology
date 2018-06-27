@@ -63,17 +63,17 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, stateBa
 			Tx:     tx,
 		}
 		cache := storage.NewCloneCache(stateBatch)
-		balance, err := isBalanceSufficient(tx.Payer, stateBatch, tx.GasLimit * tx.GasPrice)
+		gasLimit := neovm.GAS_TABLE[neovm.CONTRACT_CREATE_NAME] + calcGasByCodeLen(len(deploy.Code), neovm.GAS_TABLE[neovm.UINT_DEPLOY_CODE_LEN_NAME])
+		balance, err := isBalanceSufficient(tx.Payer, stateBatch, gasLimit * tx.GasPrice)
 		if err != nil {
 			if err := costInvalidGas(tx.Payer, balance, config, cache, store, eventStore, txHash); err != nil {
 				return err
 			}
 			return err
 		}
-		gasLimit := neovm.GAS_TABLE[neovm.CONTRACT_CREATE_NAME] + calcGasByCodeLen(len(deploy.Code), neovm.GAS_TABLE[neovm.UINT_DEPLOY_CODE_LEN_NAME])
-		if gasLimit > tx.GasLimit {
+		if tx.GasLimit < gasLimit {
 			log.Errorf("gasLimit insufficient, need:%d actual:%d", gasLimit, tx.GasLimit)
-			if err := costInvalidGas(tx.Payer, balance, config, cache, store, eventStore, txHash); err != nil {
+			if err := costInvalidGas(tx.Payer, tx.GasLimit * tx.GasPrice, config, cache, store, eventStore, txHash); err != nil {
 				return err
 			}
 		}
@@ -115,14 +115,15 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	cache := storage.NewCloneCache(stateBatch)
 	var codeLenGas uint64
 	if isCharge {
-		balance, err := isBalanceSufficient(tx.Payer, stateBatch, tx.GasLimit*tx.GasPrice)
+		codeLenGas = calcGasByCodeLen(len(invoke.Code), neovm.GAS_TABLE[neovm.UINT_INVOKE_CODE_LEN_NAME])
+		balance, err := isBalanceSufficient(tx.Payer, stateBatch, codeLenGas * tx.GasPrice)
 		if err != nil {
 			if err := costInvalidGas(tx.Payer, balance, config, cache, store, eventStore, txHash); err != nil {
 				return err
 			}
 			return err
 		}
-		codeLenGas = calcGasByCodeLen(len(invoke.Code), neovm.GAS_TABLE[neovm.UINT_INVOKE_CODE_LEN_NAME])
+
 		if tx.GasLimit < codeLenGas {
 			if err := costInvalidGas(tx.Payer, tx.GasLimit*tx.GasPrice, config, cache, store, eventStore, txHash); err != nil {
 				return err
