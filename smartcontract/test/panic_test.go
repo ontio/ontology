@@ -19,30 +19,27 @@
 package test
 
 import (
+	"bytes"
 	"crypto/rand"
 	"fmt"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/types"
-	. "github.com/ontio/ontology/smartcontract"
-	"github.com/ontio/ontology/vm/neovm"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/types"
+	. "github.com/ontio/ontology/smartcontract"
+	neovm2 "github.com/ontio/ontology/smartcontract/service/neovm"
+	"github.com/ontio/ontology/vm/neovm"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRandomCodeCrash(t *testing.T) {
-	dbFile := "test"
 	log.InitLog(4)
 	defer func() {
-		os.RemoveAll(dbFile)
+		os.RemoveAll("Log")
 	}()
-	//testLevelDB, err := leveldbstore.NewLevelDBStore(dbFile)
-	//if err != nil {
-	//	t.Fatal(err)
-	//}
-	//store := statestore.NewMemDatabase()
-	//
-	//testBatch := statestore.NewStateStoreBatch(store, testLevelDB)
+
 	config := &Config{
 		Time:   10,
 		Height: 10,
@@ -94,6 +91,39 @@ func TestOpCodeDUP(t *testing.T) {
 		CloneCache: nil,
 	}
 	engine, _ := sc.NewExecuteEngine(code)
+	_, err := engine.Invoke()
+
+	assert.NotNil(t, err)
+}
+
+func TestOpReadMemAttack(t *testing.T) {
+	log.InitLog(4)
+	defer func() {
+		os.RemoveAll("Log")
+	}()
+
+	config := &Config{
+		Time:   10,
+		Height: 10,
+		Tx:     &types.Transaction{},
+	}
+
+	bf := new(bytes.Buffer)
+	builder := neovm.NewParamsBuilder(bf)
+	builder.Emit(neovm.SYSCALL)
+	bs := bytes.NewBuffer(builder.ToArray())
+	builder.EmitPushByteArray([]byte(neovm2.NATIVE_INVOKE_NAME))
+	l := 0X7fffffc7 - 1
+	serialization.WriteVarUint(bs, uint64(l))
+	b := make([]byte, 4)
+	bs.Write(b)
+
+	sc := SmartContract{
+		Config:     config,
+		Gas:        100000,
+		CloneCache: nil,
+	}
+	engine, _ := sc.NewExecuteEngine(bs.Bytes())
 	_, err := engine.Invoke()
 
 	assert.NotNil(t, err)

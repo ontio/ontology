@@ -94,7 +94,7 @@ func (r *VmReader) Seek(offset int64, whence int) (int64, error) {
 	return r.reader.Seek(offset, whence)
 }
 
-func (r *VmReader) ReadVarBytes(max int) []byte {
+func (r *VmReader) ReadVarBytes(max uint32) []byte {
 	n := int(r.ReadVarInt(uint64(max)))
 	return r.ReadBytes(n)
 }
@@ -119,7 +119,7 @@ func (r *VmReader) ReadVarInt(max uint64) uint64 {
 	return value
 }
 
-func (r *VmReader) ReadVarString() string {
-	bs := r.ReadVarBytes(0X7fffffc7)
+func (r *VmReader) ReadVarString(maxlen uint32) string {
+	bs := r.ReadVarBytes(maxlen)
 	return string(bs)
 }
