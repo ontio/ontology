@@ -38,12 +38,12 @@ func TestArrayRef(t *testing.T) {
 	a := types.NewArray(nil)
 	b := types.NewArray([]types.StackItems{a})
 
-	assert.False(t, CircularRefDetection(a))
-	assert.False(t, CircularRefDetection(b))
+	assert.False(t, CircularRefAndDepthDetection(a))
+	assert.False(t, CircularRefAndDepthDetection(b))
 
 	a.Add(b)
-	assert.True(t, CircularRefDetection(a))
-	assert.True(t, CircularRefDetection(b))
+	assert.True(t, CircularRefAndDepthDetection(a))
+	assert.True(t, CircularRefAndDepthDetection(b))
 }
 
 func TestStructRef(t *testing.T) {
@@ -52,38 +52,38 @@ func TestStructRef(t *testing.T) {
 	bf := types.NewBoolean(false)
 	bt := types.NewBoolean(true)
 
-	assert.False(t, CircularRefDetection(ba1))
-	assert.False(t, CircularRefDetection(ba2))
-	assert.False(t, CircularRefDetection(bf))
-	assert.False(t, CircularRefDetection(bt))
+	assert.False(t, CircularRefAndDepthDetection(ba1))
+	assert.False(t, CircularRefAndDepthDetection(ba2))
+	assert.False(t, CircularRefAndDepthDetection(bf))
+	assert.False(t, CircularRefAndDepthDetection(bt))
 
 	array1 := types.NewArray([]types.StackItems{ba1, bf})
 	array2 := types.NewArray([]types.StackItems{ba2, bf})
 	struc := types.NewStruct([]types.StackItems{ba1, bf})
 
-	assert.False(t, CircularRefDetection(struc))
-	assert.False(t, CircularRefDetection(array1))
-	assert.False(t, CircularRefDetection(array2))
+	assert.False(t, CircularRefAndDepthDetection(struc))
+	assert.False(t, CircularRefAndDepthDetection(array1))
+	assert.False(t, CircularRefAndDepthDetection(array2))
 
 	array1.Add(struc)
-	assert.False(t, CircularRefDetection(array1))
+	assert.False(t, CircularRefAndDepthDetection(array1))
 
 	struc.Add(array2)
-	assert.False(t, CircularRefDetection(array1))
+	assert.False(t, CircularRefAndDepthDetection(array1))
 
 	array2.Add(array1)
-	assert.True(t, CircularRefDetection(array1))
-	assert.True(t, CircularRefDetection(struc))
-	assert.True(t, CircularRefDetection(array2))
+	assert.True(t, CircularRefAndDepthDetection(array1))
+	assert.True(t, CircularRefAndDepthDetection(struc))
+	assert.True(t, CircularRefAndDepthDetection(array2))
 
 	map1 := types.NewMap()
-	assert.False(t, CircularRefDetection(map1))
+	assert.False(t, CircularRefAndDepthDetection(map1))
 	map1.Add(array1, bf)
-	assert.True(t, CircularRefDetection(map1))
+	assert.True(t, CircularRefAndDepthDetection(map1))
 
 	map2 := types.NewMap()
 	map2.Add(bf, array2)
-	assert.True(t, CircularRefDetection(map2))
+	assert.True(t, CircularRefAndDepthDetection(map2))
 
 	map3 := types.NewMap()
 	map4 := types.NewMap()
@@ -91,7 +91,7 @@ func TestStructRef(t *testing.T) {
 	map3.Add(map4, map5)
 	map3.Add(map5, map4)
 
-	assert.False(t, CircularRefDetection(map3))
+	assert.False(t, CircularRefAndDepthDetection(map3))
 
 	map6 := types.NewMap()
 	map7 := types.NewMap()
@@ -102,5 +102,5 @@ func TestStructRef(t *testing.T) {
 	map8.Add(bt, map7)
 	map8.Add(ba1, map7)
 
-	assert.False(t, CircularRefDetection(map8))
+	assert.False(t, CircularRefAndDepthDetection(map8))
 }
