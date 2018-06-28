@@ -84,7 +84,7 @@ var (
 	GasLimitFlag = cli.Uint64Flag{
 		Name:  "gaslimit",
 		Usage: "Using to set the gaslimit of the current node transaction pool to accept transactions. Transactions below this gaslimit will be discarded",
-		Value: config.DEFAULT_GAS_LIMIT,
+		Value: neovm.MIN_TRANSACTION_GAS,
 	}
 	GasPriceFlag = cli.Uint64Flag{
 		Name:  "gasprice",

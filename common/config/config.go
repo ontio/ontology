@@ -61,7 +61,7 @@ const (
 	DEFAULT_ENABLE_CONSENSUS                = true
 	DEFAULT_ENABLE_EVENT_LOG                = true
 	DEFAULT_CLI_RPC_PORT                    = uint(20000)
-	DEFAULT_GAS_LIMIT                       = 30000
+	DEFAULT_GAS_LIMIT                       = 20000
 	DEFAULT_GAS_PRICE                       = 0
 
 	DEFAULT_DATA_DIR      = "./Chain"
