@@ -125,6 +125,7 @@ type BlockHead struct {
 
 type BlockInfo struct {
 	Hash         string
+	Size         int
 	Header       *BlockHead
 	Transactions []*Transactions
 }
@@ -247,6 +248,7 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 
 	b := BlockInfo{
 		Hash:         hash.ToHexString(),
+		Size:         len(block.ToArray()),
 		Header:       blockHead,
 		Transactions: trans,
 	}
