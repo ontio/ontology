@@ -312,7 +312,7 @@ func refreshGlobalParam(config *smartcontract.Config, cache *storage.CloneCache,
 		return true
 	})
 
-	if cnt != len(neovm.GAS_TABLE_KEYS){
+	if cnt != len(neovm.GAS_TABLE_KEYS) {
 		return errors.NewErr("[refreshGlobalParam] failed to parse uint")
 	}
 
