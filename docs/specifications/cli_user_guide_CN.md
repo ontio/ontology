@@ -51,8 +51,8 @@ password 参数用于指定Ontology节点启动的账户密码。因为在命令
 
 #### 1.1.3 共识参数
 
---disableconsensus
-disableconsensus 参数用于关闭网络共识。在启动同步节点的情况下，建议开启该参数，关闭网络共识。默认是开启网络共识的。
+--enableconsensus
+enableconsensus 参数用于启动网络共识。如果当前节点是作为记账节点的，请开启此参数。默认是关闭网络共识的。
 
 --maxtxinblock
 maxtxinblock 参数用于设置区块最大的交易数量。默认值是50000。
@@ -213,33 +213,31 @@ Ontology支持VBFT和dBFT共识算法，一个区块链网络必须使用同一�
 
 #### 1.2.2 记账节点部署
 
-按照角色不同，节点可以分为记账节点和同步节点，记账节点参与网络共识，而同步节点只同步记账节点生成的区块。Ontology节点默认会启动Rpc服务器，同时会输出智能合约输出的Event Log，因此如果没有特殊要求，可以使用--disablerpc和--disableeventlog命令行参数关闭rpc和eventlog模块。
+按照角色不同，节点可以分为记账节点和同步节点，记账节点参与网络共识，而同步节点只同步记账节点生成的区块。由于Ontology默认是不启动共识模块的，因此部署记账节点需要通过--enableconsensus命令行参数开启共。此外，Ontology节点默认会启动Rpc服务器，同时会输出智能合约输出的Event Log，因此如果没有特殊要求，可以使用--disablerpc和--disableeventlog命令行参数关闭rpc和eventlog模块。
 
 推荐记账节点启动参数：
 
 ```
-./ontology --disablerpc --disableeventlog
+./ontology --enableconsensus --disablerpc --disableeventlog
 ```
 如果节点没有使用默认的创世块配置文件和钱包账户，可以通过--config参数和--wallet、--account参数指定。
 同时，如果记账节点需要修改交易池默认的最低gas price和gas limit，可以通过--gasprice和--gaslimit参数来设定。
 
 #### 1.2.3 同步节点部署
 
-由于同步节点只同步记账节点生成的区块，并不参与网络共识，因此可以通过--disableconsensus参数关闭网络共识模块。
-
-推荐同步节点启动参数：
+由于同步节点只同步记账节点生成的区块，并不参与网络共识。
 
 ```
-./ontology --disableconsensus
+./ontology
 ```
-如果节点没有使用默认的创世块配置文件和钱包账户，可以通过--config参数和--wallet、--account参数指定。
+如果节点没有使用默认的创世块配置文件，可以通过--config参数指定。同时由于没有启动共识模块，因此不需要钱包。
 
 #### 1.2.4 在单机上部署多节点测试网络
 
 可以在同一台机器上部署Ontology的测试网络，本质上与在多台机器上部署多节点没有什么不同，但是注意使用不同的端口号：
 
 ```
-./ontology --nodeport=XXX --rpcport=XXX
+./ontology --enableconsensus --nodeport=XXX --rpcport=XXX
 ```
 #### 1.2.5 单节点测试网络部署
 
@@ -250,6 +248,8 @@ Ontology支持单节点网络部署，用于开发测试环境搭建。启动单
 ```
 如果节点没有使用默认的创世块配置文件和钱包账户，可以通过--config参数和--wallet、--account参数指定。
 同时，如果记账节点需要修改交易池默认的最低gas price和gas limit，可以通过--gasprice和--gaslimit参数来设定。
+
+启动单节点测试网络时，会同时启动共识、rpc、rest以及WebSocket模块。
 
 ## 2、钱包管理
 

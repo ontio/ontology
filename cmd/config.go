@@ -47,6 +47,7 @@ func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
 	if cfg.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
 		cfg.Ws.EnableHttpWs = true
 		cfg.Restful.EnableHttpRestful = true
+		cfg.Consensus.EnableConsensus = true
 		cfg.P2PNode.NetworkId = config.NETWORK_ID_SOLO_NET
 		cfg.P2PNode.NetworkName = config.GetNetworkName(cfg.P2PNode.NetworkId)
 		cfg.P2PNode.NetworkMaigc = config.GetNetworkMagic(cfg.P2PNode.NetworkId)
@@ -119,7 +120,7 @@ func setCommonConfig(ctx *cli.Context, cfg *config.CommonConfig) {
 }
 
 func setConsensusConfig(ctx *cli.Context, cfg *config.ConsensusConfig) {
-	cfg.EnableConsensus = !ctx.GlobalBool(utils.GetFlagName(utils.DisableConsensusFlag))
+	cfg.EnableConsensus = ctx.GlobalBool(utils.GetFlagName(utils.EnableConsensusFlag))
 	cfg.MaxTxInBlock = ctx.GlobalUint(utils.GetFlagName(utils.MaxTxInBlockFlag))
 }
 
