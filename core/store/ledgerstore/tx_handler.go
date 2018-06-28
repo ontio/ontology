@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"math/big"
 	"strconv"
 
 	"github.com/ontio/ontology/common"
@@ -33,6 +34,7 @@ import (
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/statestore"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
@@ -41,8 +43,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/storage"
-	"math/big"
-	"github.com/ontio/ontology/errors"
 )
 
 //HandleDeployTransaction deal with smart contract deploy transaction
@@ -64,13 +64,13 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, stateBa
 			Tx:     tx,
 		}
 		cache := storage.NewCloneCache(stateBatch)
-		createGas,ok := neovm.GAS_TABLE.Load(neovm.CONTRACT_CREATE_NAME)
-		if !ok{
+		createGas, ok := neovm.GAS_TABLE.Load(neovm.CONTRACT_CREATE_NAME)
+		if !ok {
 			return errors.NewErr("[HandleDeployTransaction] get CONTRACT_CREATE_NAME gas failed")
 		}
 
-		deployGas,ok := neovm.GAS_TABLE.Load(neovm.UINT_DEPLOY_CODE_LEN_NAME)
-		if !ok{
+		deployGas, ok := neovm.GAS_TABLE.Load(neovm.UINT_DEPLOY_CODE_LEN_NAME)
+		if !ok {
 			return errors.NewErr("[HandleDeployTransaction] get UINT_DEPLOY_CODE_LEN_NAME gas failed")
 		}
 
@@ -132,8 +132,8 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	)
 	cache := storage.NewCloneCache(stateBatch)
 	if isCharge {
-		deployGas,ok := neovm.GAS_TABLE.Load(neovm.UINT_INVOKE_CODE_LEN_NAME)
-		if !ok{
+		deployGas, ok := neovm.GAS_TABLE.Load(neovm.UINT_INVOKE_CODE_LEN_NAME)
+		if !ok {
 			return errors.NewErr("[HandleInvokeTransaction] get UINT_INVOKE_CODE_LEN_NAME gas failed")
 		}
 
@@ -306,7 +306,7 @@ func refreshGlobalParam(config *smartcontract.Config, cache *storage.CloneCache,
 			if err != nil {
 				return false
 			}
-			neovm.GAS_TABLE.Store(key,pu)
+			neovm.GAS_TABLE.Store(key, pu)
 		}
 		return true
 	})

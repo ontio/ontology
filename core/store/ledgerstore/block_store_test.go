@@ -273,6 +273,7 @@ func TestSaveHeader(t *testing.T) {
 		return
 	}
 }
+
 /*
 func TestBlock(t *testing.T) {
 	acc1 := account.NewAccount("")

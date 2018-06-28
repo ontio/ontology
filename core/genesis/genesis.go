@@ -202,7 +202,6 @@ func newParamInit() *types.Transaction {
 		return true
 	})
 
-
 	sort.Strings(s)
 	for _, v := range s {
 		params.SetParam(global_params.Param{Key: v, Value: INIT_PARAM[v]})

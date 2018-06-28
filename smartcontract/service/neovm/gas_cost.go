@@ -19,8 +19,8 @@
 package neovm
 
 import (
-	vm "github.com/ontio/ontology/vm/neovm"
 	"github.com/ontio/ontology/errors"
+	vm "github.com/ontio/ontology/vm/neovm"
 )
 
 func StoreGasCost(engine *vm.ExecutionEngine) (uint64, error) {
@@ -32,10 +32,10 @@ func StoreGasCost(engine *vm.ExecutionEngine) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	if putCost,ok:=GAS_TABLE.Load(STORAGE_PUT_NAME);ok{
-		return  uint64(((len(key)+len(value)-1)/1024 + 1)) * putCost.(uint64), nil
-	}else{
-		return uint64(0),errors.NewErr("[StoreGasCost] get STORAGE_PUT_NAME gas failed")
+	if putCost, ok := GAS_TABLE.Load(STORAGE_PUT_NAME); ok {
+		return uint64(((len(key)+len(value)-1)/1024 + 1)) * putCost.(uint64), nil
+	} else {
+		return uint64(0), errors.NewErr("[StoreGasCost] get STORAGE_PUT_NAME gas failed")
 	}
 }
 
