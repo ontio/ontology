@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"net"
 	"runtime"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -134,6 +135,7 @@ type Peer struct {
 	consState uint32
 	txnCnt    uint64
 	rxTxnCnt  uint64
+	connLock  sync.RWMutex
 }
 
 //NewPeer return new peer without publickey initial
@@ -249,20 +251,23 @@ func (this *Peer) SendToCons(msg types.Message) error {
 func (this *Peer) CloseSync() {
 	this.SetSyncState(common.INACTIVITY)
 	conn := this.SyncLink.GetConn()
+	this.connLock.Lock()
 	if conn != nil {
 		conn.Close()
 	}
-
+	this.connLock.Unlock()
 }
 
 //CloseCons halt consensus connection
 func (this *Peer) CloseCons() {
 	this.SetConsState(common.INACTIVITY)
 	conn := this.ConsLink.GetConn()
+	this.connLock.Lock()
 	if conn != nil {
 		conn.Close()
 
 	}
+	this.connLock.Unlock()
 }
 
 //GetID return peer`s id

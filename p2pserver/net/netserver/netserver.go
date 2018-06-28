@@ -266,8 +266,10 @@ func (this *NetServer) IsPeerEstablished(p *peer.Peer) bool {
 
 //Connect used to connect net address under sync or cons mode
 func (this *NetServer) Connect(addr string, isConsensus bool) error {
-	this.connectLock.Lock()
-	defer this.connectLock.Unlock()
+	if this.IsAddrInOutConnRecord(addr) {
+		log.Error("Addr is in OutConnectionRecord")
+		return nil
+	}
 	if this.IsOwnAddress(addr) {
 		return nil
 	}
@@ -275,25 +277,32 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		return nil
 	}
 
+	this.connectLock.Lock()
 	connCount := uint(this.GetOutConnRecordLen())
 	if connCount >= config.DefConfig.P2PNode.MaxConnOutBound {
 		log.Warnf("Connect: out connections(%d) reach the max limit(%d)", connCount,
 			config.DefConfig.P2PNode.MaxConnOutBound)
+		this.connectLock.Unlock()
 		return errors.New("connect: out connections reach the max limit")
 	}
+	this.connectLock.Unlock()
+
 	if this.IsNbrPeerAddr(addr, isConsensus) {
 		return nil
 	}
+	this.connectLock.Lock()
 	if added := this.AddOutConnectingList(addr); added == false {
 		p := this.GetPeerFromAddr(addr)
 		if p != nil {
 			if p.SyncLink.Valid() {
 				log.Info("node exist in connecting list", addr)
+				this.connectLock.Unlock()
 				return errors.New("node exist in connecting list")
 			}
 		}
 		this.RemoveFromConnectingList(addr)
 	}
+	this.connectLock.Unlock()
 
 	isTls := config.DefConfig.P2PNode.IsTLS
 	var conn net.Conn
@@ -556,6 +565,18 @@ func (this *NetServer) GetOutConnectingListLen() (count uint) {
 	return uint(len(this.ConnectingAddrs))
 }
 
+//check  peer from connecting list
+func (this *NetServer) IsAddrFromConnecting(addr string) bool {
+	this.ConnectingNodes.Lock()
+	defer this.ConnectingNodes.Unlock()
+	for _, a := range this.ConnectingAddrs {
+		if strings.Compare(a, addr) == 0 {
+			return true
+		}
+	}
+	return false
+}
+
 //find exist peer from addr map
 func (this *NetServer) GetPeerFromAddr(addr string) *peer.Peer {
 	var p *peer.Peer
@@ -764,14 +785,15 @@ func (this *NetServer) AddrValid(addr string) bool {
 	return true
 }
 
+//check own network address
 func (this *NetServer) IsOwnAddress(addr string) bool {
 	if addr == this.OwnAddress {
-		log.Infof("found own address %s, skip", addr)
 		return true
 	}
 	return false
 }
 
+//Set own network address
 func (this *NetServer) SetOwnAddress(addr string) {
 	if addr != this.OwnAddress {
 		log.Infof("set own address %s", addr)

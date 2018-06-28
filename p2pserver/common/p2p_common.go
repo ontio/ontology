@@ -152,3 +152,12 @@ func ParseIPAddr(s string) (string, error) {
 	}
 	return s[:i], nil
 }
+
+//ParseIPPort return ip port
+func ParseIPPort(s string) (string, error) {
+	i := strings.Index(s, ":")
+	if i < 0 {
+		return s, errors.New("split ip port error")
+	}
+	return s[i:], nil
+}

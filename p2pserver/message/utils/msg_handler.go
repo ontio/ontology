@@ -385,7 +385,6 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 // VerAckHandle handles the version ack from peer
 func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
 	log.Debug("receive verAck message from ", data.Addr, data.Id)
-	p2p.RemoveFromConnectingList(data.Addr)
 
 	verAck := data.Payload.(*msgTypes.VerACK)
 	remotePeer := p2p.GetPeer(data.Id)
@@ -407,6 +406,7 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, arg
 		}
 
 		remotePeer.SetConsState(msgCommon.ESTABLISH)
+		p2p.RemoveFromConnectingList(data.Addr)
 		remotePeer.SetConsConn(remotePeer.GetConsConn())
 
 		if s == msgCommon.HAND_SHAKE {
@@ -421,7 +421,7 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, arg
 		}
 
 		remotePeer.SetSyncState(msgCommon.ESTABLISH)
-
+		p2p.RemoveFromConnectingList(data.Addr)
 		remotePeer.DumpInfo()
 
 		addr := remotePeer.SyncLink.GetAddr()
@@ -472,6 +472,9 @@ func AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 		}
 
 		if v.Port == 0 {
+			continue
+		}
+		if p2p.IsAddrFromConnecting(address) {
 			continue
 		}
 		log.Info("connect ip address ：", address)
