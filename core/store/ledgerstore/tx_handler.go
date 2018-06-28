@@ -89,7 +89,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, stateBa
 				return err
 			}
 		}
-		gasConsumed = gasLimit*tx.GasPrice
+		gasConsumed = gasLimit * tx.GasPrice
 		notifies, err = costGas(tx.Payer, gasConsumed, config, cache, store)
 		if err != nil {
 			return err
