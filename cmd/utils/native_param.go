@@ -174,7 +174,7 @@ func ParseNativeParamByte(builder *neovm.ParamsBuilder, param string) error {
 	if err != nil {
 		return fmt.Errorf("parse int error:%s", err)
 	}
-	if i > math.MaxUint8 {
+	if i > math.MaxUint8 || i < 0 {
 		return fmt.Errorf("invalid byte value")
 	}
 	builder.EmitPushInteger(new(big.Int).SetInt64(i))
