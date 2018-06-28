@@ -46,3 +46,32 @@ func TestSyncMapRange(t *testing.T) {
 	fmt.Println(cnt)
 
 }
+
+//panic
+//func TestMapRange(t *testing.T) {
+//	m := make(map[string]int)
+//
+//	m["key"] = 10
+//
+//	for i := 0; i < 1000; i++ {
+//		go add(m, i)
+//	}
+//
+//}
+
+func add(m map[string]int, va int) {
+	m["key"] = va
+}
+
+func TestSyncMapRW(t *testing.T) {
+	m := &sync.Map{}
+	m.Store("key", 10)
+	for i := 0; i < 100000; i++ {
+		go addsync(m, i)
+	}
+
+}
+
+func addsync(m *sync.Map, va int) {
+	m.Store("key", va)
+}
