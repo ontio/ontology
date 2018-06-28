@@ -77,19 +77,20 @@ $ glide install
 用make编译源码
 
 ```shell
-$ make
+$ make all
 ```
 
 成功编译后会生成两个可以执行程序
 
 * `ontology`: 节点程序/以命令行方式提供的节点控制程序
+* `tools/sigsvr`: (可选)签名服务 - sigsvr是一个签名服务的server以满足一些特殊的需求。详细的文档可以在[这里](./docs/specifications/sigsvr_CN.md)参考
 
 ### 从release获取
 You can download at [release page](https://github.com/ontio/ontology/releases).
 
 ## 服务器部署
 ### 选择网络
-ontology的运行支持以下3种方式
+ontology的运行支持以下三种方式
 
 * 公开测试网Polaris同步节点部署
 * 单机部署
