@@ -52,8 +52,9 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, stateBa
 	txHash := tx.Hash()
 	address := types.AddressFromVmCode(deploy.Code)
 	var (
-		notifies []*event.NotifyEventInfo
-		err      error
+		notifies    []*event.NotifyEventInfo
+		gasConsumed uint64
+		err         error
 	)
 
 	if tx.GasPrice != 0 {
@@ -88,7 +89,8 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, stateBa
 				return err
 			}
 		}
-		notifies, err = costGas(tx.Payer, gasLimit*tx.GasPrice, config, cache, store)
+		gasConsumed = gasLimit*tx.GasPrice
+		notifies, err = costGas(tx.Payer, gasConsumed, config, cache, store)
 		if err != nil {
 			return err
 		}
@@ -102,7 +104,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, stateBa
 		return err
 	}
 
-	SaveNotify(eventStore, txHash, notifies, true)
+	SaveNotify(eventStore, txHash, notifies, gasConsumed, true)
 	return nil
 }
 
@@ -208,22 +210,22 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 
 	}
 
-	SaveNotify(eventStore, txHash, append(sc.Notifications, notifies...), true)
+	SaveNotify(eventStore, txHash, append(sc.Notifications, notifies...), gas, true)
 	sc.CloneCache.Commit()
 	return nil
 }
 
-func SaveNotify(eventStore scommon.EventStore, txHash common.Uint256, notifies []*event.NotifyEventInfo, execSucc bool) error {
+func SaveNotify(eventStore scommon.EventStore, txHash common.Uint256, notifies []*event.NotifyEventInfo, gasConsumed uint64, execSucc bool) error {
 	if !config.DefConfig.Common.EnableEventLog {
 		return nil
 	}
 	var notifyInfo *event.ExecuteNotify
 	if execSucc {
 		notifyInfo = &event.ExecuteNotify{TxHash: txHash,
-			State: event.CONTRACT_STATE_SUCCESS, Notify: notifies}
+			State: event.CONTRACT_STATE_SUCCESS, GasConsumed: gasConsumed, Notify: notifies}
 	} else {
 		notifyInfo = &event.ExecuteNotify{TxHash: txHash,
-			State: event.CONTRACT_STATE_FAIL, Notify: notifies}
+			State: event.CONTRACT_STATE_FAIL, GasConsumed: gasConsumed, Notify: notifies}
 	}
 	if err := eventStore.SaveEventNotifyByTx(txHash, notifyInfo); err != nil {
 		return fmt.Errorf("SaveEventNotifyByTx error %s", err)
@@ -342,7 +344,7 @@ func costInvalidGas(address common.Address, gas uint64, config *smartcontract.Co
 		return err
 	}
 	cache.Commit()
-	SaveNotify(eventStore, txHash, notifies, false)
+	SaveNotify(eventStore, txHash, notifies, gas, false)
 	return nil
 }
 
