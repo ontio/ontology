@@ -17,12 +17,15 @@ func TestSyncMapRange(t *testing.T) {
 
 	m.Range(func(key, value interface{}) bool {
 		fmt.Printf("key :%s, val :%s\n", key, value)
-		cnt += 1
+
 		if key == "k5" {
 			return false
 		}
+		cnt += 1
 		return true
 	})
+
+	fmt.Println(cnt)
 
 }
 

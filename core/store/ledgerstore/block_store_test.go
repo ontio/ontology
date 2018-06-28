@@ -19,13 +19,17 @@
 package ledgerstore
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	cstates "github.com/ontio/ontology/smartcontract/states"
 	"testing"
 	"time"
 )
@@ -274,7 +278,6 @@ func TestSaveHeader(t *testing.T) {
 	}
 }
 
-/*
 func TestBlock(t *testing.T) {
 	acc1 := account.NewAccount("")
 	acc2 := account.NewAccount("")
@@ -348,8 +351,8 @@ func TestBlock(t *testing.T) {
 		t.Errorf("TestBlock failed transaction1 hash %x != %x", b.Transactions[0].Hash(), tx1Hash)
 		return
 	}
-}*/
-/*
+}
+
 func transferTx(from, to common.Address, amount uint64) (*types.Transaction, error) {
 	buf := bytes.NewBuffer(nil)
 	var sts []*ont.State
@@ -412,4 +415,3 @@ func newInvokeTransaction(gasPirce, gasLimit uint64, vmType vmtypes.VmType, code
 	}
 	return tx
 }
-*/

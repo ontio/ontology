@@ -298,7 +298,7 @@ func refreshGlobalParam(config *smartcontract.Config, cache *storage.CloneCache,
 	if err := params.Deserialize(bytes.NewBuffer(result.([]byte))); err != nil {
 		return fmt.Errorf("deserialize global params error:%s", err)
 	}
-
+	cnt := 0
 	neovm.GAS_TABLE.Range(func(key, value interface{}) bool {
 		n, ps := params.GetParam(key.(string))
 		if n != -1 && ps.Value != "" {
@@ -308,8 +308,13 @@ func refreshGlobalParam(config *smartcontract.Config, cache *storage.CloneCache,
 			}
 			neovm.GAS_TABLE.Store(key, pu)
 		}
+		cnt += 1
 		return true
 	})
+
+	if cnt != len(neovm.GAS_TABLE_KEYS){
+		return errors.NewErr("[refreshGlobalParam] failed to parse uint")
+	}
 
 	return nil
 }
