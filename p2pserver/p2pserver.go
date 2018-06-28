@@ -102,6 +102,7 @@ func (this *P2PServer) Start() error {
 		return errors.New("p2p msg router invalid")
 	}
 	this.tryRecentPeers()
+	go this.connectSeedService()
 	go this.syncUpRecentPeers()
 	go this.keepOnlineService()
 	go this.heartBeatService()
@@ -283,10 +284,28 @@ func (this *P2PServer) WaitForPeersStart() {
 
 //connectSeeds connect the seeds in seedlist and call for nbr list
 func (this *P2PServer) connectSeeds() {
-	seedNodes := config.DefConfig.Genesis.SeedList
+	seedNodes := make([]string, 0)
+	pList := make([]*peer.Peer, 0)
+	for _, n := range config.DefConfig.Genesis.SeedList {
+		ip, err := common.ParseIPAddr(n)
+		if err != nil {
+			log.Warnf("seed peer %s address format is wrong", n)
+			continue
+		}
+		ns, err := net.LookupHost(ip)
+		if err != nil {
+			log.Warnf("resolve err: %s", err.Error())
+			continue
+		}
+		port, err := common.ParseIPPort(n)
+		if err != nil {
+			log.Warnf("seed peer %s address format is wrong", n)
+			continue
+		}
+		seedNodes = append(seedNodes, ns[0]+port)
+	}
+
 	for _, nodeAddr := range seedNodes {
-		found := false
-		var p *peer.Peer
 		var ip net.IP
 		np := this.network.GetNp()
 		np.Lock()
@@ -295,18 +314,18 @@ func (this *P2PServer) connectSeeds() {
 			ip = ipAddr[:]
 			addrString := ip.To16().String() + ":" +
 				strconv.Itoa(int(tn.GetSyncPort()))
-			if nodeAddr == addrString {
-				p = tn
-				found = true
-				break
+			if nodeAddr == addrString && tn.GetSyncState() == common.ESTABLISH {
+				pList = append(pList, tn)
 			}
 		}
 		np.Unlock()
-		if found {
-			if p.GetSyncState() == common.ESTABLISH {
-				this.reqNbrList(p)
-			}
-		} else { //not found
+	}
+	if len(pList) > 0 {
+		rand.Seed(time.Now().UnixNano())
+		index := rand.Intn(len(pList))
+		this.reqNbrList(pList[index])
+	} else { //not found
+		for _, nodeAddr := range seedNodes {
 			go this.network.Connect(nodeAddr, false)
 		}
 	}
@@ -410,13 +429,32 @@ func (this *P2PServer) retryInactivePeer() {
 	}
 }
 
-//keepOnline make sure seed peer be connected and try connect lost peer
-func (this *P2PServer) keepOnlineService() {
+//connectSeedService make sure seed peer be connected
+func (this *P2PServer) connectSeedService() {
 	t := time.NewTimer(time.Second * common.CONN_MONITOR)
 	for {
 		select {
 		case <-t.C:
 			this.connectSeeds()
+			t.Stop()
+			if this.reachMinConnection() {
+				t.Reset(time.Second * time.Duration(10*common.CONN_MONITOR))
+			} else {
+				t.Reset(time.Second * common.CONN_MONITOR)
+			}
+		case <-this.quitOnline:
+			t.Stop()
+			break
+		}
+	}
+}
+
+//keepOnline try connect lost peer
+func (this *P2PServer) keepOnlineService() {
+	t := time.NewTimer(time.Second * common.CONN_MONITOR)
+	for {
+		select {
+		case <-t.C:
 			this.retryInactivePeer()
 			t.Stop()
 			t.Reset(time.Second * common.CONN_MONITOR)
