@@ -156,6 +156,25 @@ func appCallTransferOnt(native *native.NativeService, from common.Address, to co
 	return nil
 }
 
+func appCallTransferFromOnt(native *native.NativeService, sender common.Address, from common.Address, to common.Address, amount uint64) error {
+	bf := new(bytes.Buffer)
+	params := &ont.TransferFrom{
+		Sender: sender,
+		From:   from,
+		To:     to,
+		Value:  amount,
+	}
+	err := params.Serialize(bf)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferFromOnt, params serialize error!")
+	}
+
+	if _, err := native.NativeCall(utils.OntContractAddress, "transferFrom", bf.Bytes()); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferFromOnt, appCall error!")
+	}
+	return nil
+}
+
 func appCallTransferFromOng(native *native.NativeService, sender common.Address, from common.Address, to common.Address, amount uint64) error {
 	bf := new(bytes.Buffer)
 	params := &ont.TransferFrom{
