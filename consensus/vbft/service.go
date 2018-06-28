@@ -220,7 +220,7 @@ func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 	peerID := vconfig.PubkeyID(payload.Owner)
 	peerIdx, present := self.peerPool.GetPeerIndex(peerID)
 	if !present {
-		log.Errorf("invalid consensus node: %s", peerID)
+		log.Debugf("invalid consensus node: %s", peerID)
 		return
 	}
 	if self.peerPool.isNewPeer(peerIdx) {
