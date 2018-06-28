@@ -157,11 +157,17 @@ func deployOntIDContract() *types.Transaction {
 
 func newGoverningInit() *types.Transaction {
 	bookkeepers, _ := config.DefConfig.GetBookkeepers()
-	m := (5*len(bookkeepers) + 6) / 7
 
-	addr, err := types.AddressFromMultiPubKeys(bookkeepers, m)
-	if err != nil {
-		panic(fmt.Sprint("wrong bookkeeper config, caused by", err))
+	var addr common.Address
+	if len(bookkeepers) == 1 {
+		addr = types.AddressFromPubKey(bookkeepers[0])
+	} else {
+		m := (5*len(bookkeepers) + 6) / 7
+		temp, err := types.AddressFromMultiPubKeys(bookkeepers, m)
+		if err != nil {
+			panic(fmt.Sprint("wrong bookkeeper config, caused by", err))
+		}
+		addr = temp
 	}
 
 	distribute := []struct {
@@ -201,10 +207,16 @@ func newParamInit() *types.Transaction {
 	params.Serialize(bf)
 
 	bookkeepers, _ := config.DefConfig.GetBookkeepers()
-	m := (5*len(bookkeepers) + 6) / 7
-	addr, err := types.AddressFromMultiPubKeys(bookkeepers, m)
-	if err != nil {
-		panic(fmt.Sprint("wrong bookkeeper config, caused by", err))
+	var addr common.Address
+	if len(bookkeepers) == 1 {
+		addr = types.AddressFromPubKey(bookkeepers[0])
+	} else {
+		m := (5*len(bookkeepers) + 6) / 7
+		temp, err := types.AddressFromMultiPubKeys(bookkeepers, m)
+		if err != nil {
+			panic(fmt.Sprint("wrong bookkeeper config, caused by", err))
+		}
+		addr = temp
 	}
 	nutils.WriteAddress(bf, addr)
 
