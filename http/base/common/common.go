@@ -303,7 +303,8 @@ func GetContractBalance(cVersion byte, contractAddr, accAddr common.Address) (ui
 	if err != nil {
 		return 0, fmt.Errorf("hex.DecodeString error:%s", err)
 	}
-	balance := new(big.Int).SetBytes(data)
+
+	balance := common.BigIntFromNeoBytes(data)
 	return balance.Uint64(), nil
 }
 
@@ -331,7 +332,7 @@ func GetContractAllowance(cVersion byte, contractAddr, fromAddr, toAddr common.A
 	if err != nil {
 		return 0, fmt.Errorf("hex.DecodeString error:%s", err)
 	}
-	allowance := new(big.Int).SetBytes(data)
+	allowance := common.BigIntFromNeoBytes(data)
 	return allowance.Uint64(), nil
 }
 
