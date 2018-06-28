@@ -72,9 +72,9 @@ var (
 	}
 
 	//Consensus setting
-	DisableConsensusFlag = cli.BoolFlag{
-		Name:  "disableconsensus",
-		Usage: "If set disableconsensus, will not start consensus module",
+	EnableConsensusFlag = cli.BoolFlag{
+		Name:  "enableconsensus",
+		Usage: "If set enableconsensus, will start consensus module",
 	}
 	MaxTxInBlockFlag = cli.IntFlag{
 		Name:  "maxtxinblock",

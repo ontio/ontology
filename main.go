@@ -86,7 +86,7 @@ func setupAPP() *cli.App {
 		utils.AccountAddressFlag,
 		utils.AccountPassFlag,
 		//consensus setting
-		utils.DisableConsensusFlag,
+		utils.EnableConsensusFlag,
 		utils.MaxTxInBlockFlag,
 		//txpool setting
 		utils.GasPriceFlag,
@@ -207,6 +207,9 @@ func initConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
 }
 
 func initAccount(ctx *cli.Context) (*account.Account, error) {
+	if !config.DefConfig.Consensus.EnableConsensus {
+		return nil, nil
+	}
 	walletFile := ctx.GlobalString(utils.GetFlagName(utils.WalletFileFlag))
 	if walletFile == "" {
 		return nil, fmt.Errorf("Please config wallet file using --wallet flag")
