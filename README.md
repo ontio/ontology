@@ -78,19 +78,20 @@ $ glide install
 Build the source code with make.
 
 ```
-$ make
+$ make all
 ```
 
 After building the source code sucessfully, you should see two executable programs:
 
 - `ontology`: the node program/command line program for node control
+- `tools/sigsvr`: (optional)Ontology Signature Server - sigsvr is a rpc server for signing transactions for some special requirement.detail docs can be reference at [link](./docs/specifications/sigsvr.md)
 
 ### get from release
 You can download at [release page](https://github.com/ontio/ontology/releases).
 
 ## Server deployment
 ### Select network
-To run Ontology successfully,  nodes can be deployed by two ways:
+To run Ontology successfully,  nodes can be deployed by three ways:
 
 - Public test network Polaris sync node deployment
 - Single-host deployment
