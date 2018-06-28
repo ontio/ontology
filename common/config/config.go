@@ -121,7 +121,7 @@ var PolarisConfig = &GenesisConfig{
 		HashMsgDelay:         10000,
 		PeerHandshakeTimeout: 10,
 		MaxBlockChangeView:   3000,
-		AdminOntID:           "did:ont:AVaSGN1ugQJBS7R7ZcVwAoWLVK6onBgfyg",
+		AdminOntID:           "did:ont:AMAx993nE6NEqZjwBssUfopxnnvTdob9ij",
 		MinInitStake:         10000,
 		VrfValue:             "1c9810aa9822e511d5804a9c4db9dd08497c31087b0daafa34d768a3253441fa20515e2f30f81741102af0ca3cefc4818fef16adb825fbaa8cad78647f3afb590e",
 		VrfProof:             "c57741f934042cb8d8b087b44b161db56fc3ffd4ffb675d36cd09f83935be853d8729f3f5298d12d6fd28d45dde515a4b9d7f67682d182ba5118abf451ff1988",
