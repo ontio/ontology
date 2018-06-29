@@ -294,7 +294,7 @@ func GetSmartCodeEventTxsByHeight(cmd map[string]interface{}) map[string]interfa
 		if scom.ErrNotFound == err {
 			return ResponsePack(berr.SUCCESS)
 		}
-		return ResponsePack(berr.INVALID_PARAMS)
+		return ResponsePack(berr.INTERNAL_ERROR)
 	}
 	eInfos := make([]*bcomn.ExecuteNotify, 0, len(eventInfos))
 	for _, eventInfo := range eventInfos {
@@ -322,7 +322,10 @@ func GetSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{
 	}
 	eventInfo, err := bactor.GetEventNotifyByTxHash(hash)
 	if err != nil {
-		return ResponsePack(berr.INVALID_PARAMS)
+		if scom.ErrNotFound == err {
+			return ResponsePack(berr.SUCCESS)
+		}
+		return ResponsePack(berr.INTERNAL_ERROR)
 	}
 	if eventInfo == nil {
 		return ResponsePack(berr.INVALID_TRANSACTION)
