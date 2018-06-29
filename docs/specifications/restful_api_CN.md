@@ -1,56 +1,56 @@
 # Ontology Restful API
 
-English|[中文](restful_api_CN.md)
+[English](restful_api.md)|中文
 
-* [Introduction](#introduction)
-* [Restful Api List](#restful-api-list)
-* [Error Code](#error-code)
+* [介绍](#介绍)
+* [Restful接口列表](#restful接口列表)
+* [错误代码](#错误代码)
 
-## Introduction
+## 介绍
 
-This document describes the restful api format for the http/https used in the Onchain Ontology.
+本文档是Ontology的REST接口文档，详细定义了各个接口所需的参数与返回值。
 
-### Response parameters description
+### 响应参数定义
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| Action | string | action name |
-| Desc | string | description |
-| Error | int64 | error code |
-| Result | object | execute result |
-| Version | string | version information |
+| Action | string | 响应动作名称 |
+| Desc | string | 响应结果描述 |
+| Error | int64 | 错误代码 |
+| Result | object | 执行结果 |
+| Version | string | 版本号 |
 
-## Restful Api List
+## Restful接口列表
 
 | Method | URL | Description |
 | :---| :---| :---|
-| [get_gen_blk_time](#1-get_gen_blk_time) | GET /api/v1/node/generateblocktime | return time required to create a new block |
-| [get_conn_count](#2-get_conn_count) | GET /api/v1/node/connectioncount | return the number of node connect to the network |
-| [get_blk_txs_by_height](#3-get_blk_txs_by_height) | GET /api/v1/block/transactions/height/:height | return whole transaction hash of the block |
-| [get_blk_by_height](#4-get_blk_by_height) | GET /api/v1/block/details/height/:height?raw=0 | return block info of the height |
-| [get_blk_by_hash](#5-get_blk_by_hash) | GET /api/v1/block/details/hash/:hash?raw=1 | return block info of the block hash |
-| [get_blk_height](#6-get_blk_height) | GET /api/v1/block/height | return current block height of main net |
-| [get_blk_hash](#7-get_blk_hash) | GET /api/v1/block/hash/:height | return block hash of the height |
-| [get_tx](#8-get_tx) | GET /api/v1/transaction/:hash | return transaction info by transaction hash |
-| [get_storage](#9-get_storage) | GET /api/v1/storage/:hash/:key| return the stored value according to the contract address hash and stored key|
-| [get_balance](#10-get_balance) | GET /api/v1/balance/:addr | return balance of the account address |
-| [get_contract_state](#11-get_contract_state) | GET /api/v1/contract/:hash | return contract state according to the contract address hash |
-| [get_smtcode_evt_txs](#12-get_smtcode_evt_txs) | GET /api/v1/smartcode/event/transactions/:height | return the smartcode event in the block at the height |
-| [get_smtcode_evts](#13-get_smtcode_evts) | GET /api/v1/smartcode/event/txhash/:hash | return smartcode event by transaction hash |
-| [get_blk_hgt_by_txhash](#14-get_blk_hgt_by_txhash) | GET /api/v1/block/height/txhash/:hash | return the block height where transaction at |
-| [get_merkle_proof](#15-get_merkle_proof) | GET /api/v1/merkleproof/:hash| return merkle proof of the transaction |
-| [get_gasprice](#16-get_gasprice) | GET /api/v1/gasprice| return gas price |
-| [get_allowance](#17-get_allowance) | GET /api/v1/allowance/:asset/:from/:to | return the allowance from transfer-from accout to transfer-to account |
-| [get_unboundong](#18-get_unboundong) | GET /api/v1/unboundong/:addr | return the number of unbound ong of given address |
-| [get_mempooltxcount](#19-get_mempooltxcount) | GET /api/v1/mempool/txcount | return the number of transaction locate in memory |
-| [get_mempooltxstate](#20-get_mempooltxstate) | GET /api/v1/mempool/txstate/:hash | return the state of transaction locate in memory |
-| [get_version](#21-get_version) |  GET /api/v1/version | return the version of ontology |
-| [post_raw_tx](#22-post_raw_tx) | post /api/v1/transaction?preExec=0 | send transaction to ontology network |
+| [get_gen_blk_time](#1-get_gen_blk_time) | GET /api/v1/node/generateblocktime | 得到区块生成间隔 |
+| [get_conn_count](#2-get_conn_count) | GET /api/v1/node/connectioncount | 得到当前连接的节点数量 |
+| [get_blk_txs_by_height](#3-get_blk_txs_by_height) | GET /api/v1/block/transactions/height/:height | 得到该高度的区块的所有交易哈希 |
+| [get_blk_by_height](#4-get_blk_by_height) | GET /api/v1/block/details/height/:height?raw=0 | 得到该高度的区块信息 |
+| [get_blk_by_hash](#5-get_blk_by_hash) | GET /api/v1/block/details/hash/:hash?raw=1 | 通过区块哈希得到区块信息 |
+| [get_blk_height](#6-get_blk_height) | GET /api/v1/block/height | 得到当前网络上的区块高度 |
+| [get_blk_hash](#7-get_blk_hash) | GET /api/v1/block/hash/:height | 得到该高度的区块哈希 |
+| [get_tx](#8-get_tx) | GET /api/v1/transaction/:hash | 通过交易哈希得到该交易的信息 |
+| [get_storage](#9-get_storage) | GET /api/v1/storage/:hash/:key| 通过合约地址哈希和键得到对应的值 |
+| [get_balance](#10-get_balance) | GET /api/v1/balance/:addr | 得到该地址的账户的余额 |
+| [get_contract_state](#11-get_contract_state) | GET /api/v1/contract/:hash | 得到合约状态 |
+| [get_smtcode_evt_txs](#12-get_smtcode_evt_txs) | GET /api/v1/smartcode/event/transactions/:height | 得到该高度区块上的智能合约执行结果 |
+| [get_smtcode_evts](#13-get_smtcode_evts) | GET /api/v1/smartcode/event/txhash/:hash | 通过交易哈希得到该交易的执行结果 |
+| [get_blk_hgt_by_txhash](#14-get_blk_hgt_by_txhash) | GET /api/v1/block/height/txhash/:hash | 通过交易哈希得到该交易落账的区块高度 |
+| [get_merkle_proof](#15-get_merkle_proof) | GET /api/v1/merkleproof/:hash| 通过交易哈希得到该交易的merkle证明 |
+| [get_gasprice](#16-get_gasprice) | GET /api/v1/gasprice| 得到gas的价格 |
+| [get_allowance](#17-get_allowance) | GET /api/v1/allowance/:asset/:from/:to | 返回允许从from账户转出到to账户的额度 |
+| [get_unboundong](#18-get_unboundong) | GET /api/v1/unboundong/:addr | 返回该账户未提取的ong数量 |
+| [get_mempooltxcount](#19-get_mempooltxcount) | GET /api/v1/mempool/txcount | 得到内存中的交易的数量 |
+| [get_mempooltxstate](#20-get_mempooltxstate) | GET /api/v1/mempool/txstate/:hash | 通过交易哈希得到内存中该交易的状态 |
+| [get_version](#21-get_version) |  GET /api/v1/version | 得到版本信息 |
+| [post_raw_tx](#22-post_raw_tx) | post /api/v1/transaction?preExec=0 | 向ontology网络发送交易 |
 
 
 ### 1. get_gen_blk_time
 
-Get the generate block time.
+得到区块生成间隔。
 
 ##### GET
 
@@ -76,7 +76,7 @@ curl -i http://server:port/api/v1/node/generateblocktime
 ```
 ### 2 get_conn_count
 
-Get the number of connected node.
+得到当前连接的节点数量。
 
 
 GET
@@ -104,9 +104,7 @@ curl -i http://server:port/api/v1/node/connectioncount
 ```
 ### 3 get_blk_txs_by_height
 
-Get transactions by block height.
-
-Return all transaction hash contained in the block corresponding to this height.
+得到该高度的区块的所有交易哈希。
 
 GET
 
@@ -139,11 +137,10 @@ curl -i http://server:port/api/v1/block/transactions/height/100
 ```
 ### 4 get_blk_by_height
 
-Get the block by block height.
+得到该高度的详细的区块信息。
 
-Return block details based on block height.
-
-raw: Optional parameter, the default value of raw is 0. When raw is 0, it returns the block serialized information, which is represented by a hexadecimal string. To get detailed information from it, you need to call the SDK to deserialize. When raw is 1, the detailed information of the corresponding block is returned, which is represented by a JSON format string.
+raw：可选参数，默认值为零，不设置时为默认值。当值为0时，接口返回区块序列化后的信息，该信息以十六进制字符串表示。如果要得到区块的具体信息，需要调用
+ SDK中的方法对该字符串进行反序列化。当值为1时，将以json格式返回对应区块的详细信息。
 
 GET
 
@@ -214,9 +211,10 @@ curl -i http://server:port/api/v1/block/details/height/22
 ```
 ### 5 get_blk_by_hash
 
-Get block by blockhash.
+通过区块哈希得到区块信息。
 
-raw: Optional parameter, the default value of raw is 0. When raw is 0, it returns the block serialized information, which is represented by a hexadecimal string. To get detailed information from it, you need to call the SDK to deserialize. When raw is 1, the detailed information of the corresponding block is returned, which is represented by a JSON format string.
+raw：可选参数，默认值为零，不设置时为默认值。当值为0时，接口返回区块序列化后的信息，该信息以十六进制字符串表示。如果要得到区块的具体信息，需要调用
+ SDK中的方法对该字符串进行反序列化。当值为1时，将以json格式返回对应区块的详细信息。
 
 GET
 
@@ -288,7 +286,7 @@ curl -i http://server:port/api/v1/block/details/hash/ea5e5219d2f1591f4feef89885c
 
 ### 6 get_blk_height
 
-Get the current block height.
+得到当前网络上的区块高度。
 
 
 GET
@@ -318,7 +316,7 @@ curl -i http://server:port/api/v1/block/height
 
 ### 7 get_blk_hash
 
-Get blockhash by block height.
+得到该高度的区块哈希。
 
 GET
 
@@ -346,10 +344,10 @@ curl -i http://server:port/api/v1/block/hash/100
 
 ### 8 get_tx
 
-Get transaction by transaction hash.
+通过交易哈希得到该交易的信息。
 
-raw: Optional parameter, the default value of raw is 0. When raw is 0, it returns the transaction serialized information, which is represented by a hexadecimal string. To get detailed information from it, you need to call the SDK to deserialize. When raw is 1, the detailed information of the corresponding transaction is returned, which is represented by a JSON format string.
-
+raw：可选参数，默认值为零，不设置时为默认值。当值为0时，接口返回交易序列化后的信息，该信息以十六进制字符串表示。如果要得到交易的具体信息，需要调用
+ SDK中的方法对该字符串进行反序列化。当值为1时，将以json格式返回对应交易的详细信息。
 
 GET
 
@@ -398,15 +396,16 @@ curl -i http://server:port/api/v1/transaction/c5e0d387c6a97aef12f1750840d24b53d9
 
 ### 9 get_storage
 
-Returns the stored value according to the contract address hash and stored key.
+通过合约地址哈希和键得到对应的值。
 
-contract address hash could be generated by follow function
+合约地址哈希的生成方式如下：
 
 ```
     addr := types.AddressFromVmCode([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04})
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04})
     fmt.Println(addr.ToHexString())
 ```
+
 
 GET
 ```
@@ -426,17 +425,17 @@ curl -i http://localhost:20334/api/v1/storage/ff00000000000000000000000000000000
     "Version": "1.0.0"
 }
 ```
-> Note: result and key are hex code string.
+> 注意: 返回的值和传入的key参数均是十六进制。
 
 ### 10 get_balance
 
-Return balance of base58 account address.
+得到该地址的账户的余额。
 
 GET
 ```
 /api/v1/balance/:addr
 ```
-> addr: Base58 encoded account address
+> addr: Base58编码后的账户地址
 
 #### Request Example
 ```
@@ -459,7 +458,7 @@ curl -i http://localhost:20334/api/v1/balance/TA5uYzLU2vBvvfCMxyV2sdzc9kPqJzGZWq
 ```
 ### 11 get_contract_state
 
-According to the contract address hash, query the contract information.
+根据合约地址哈希得到合约信息。
 
 GET
 
@@ -496,9 +495,7 @@ curl -i http://server:port/api/v1/contract/fff49c809d302a2956e9dc0012619a452d4b8
 
 #### 12 get_smtcode_evt_txs
 
-Get smart contract event list by height.
-
-Get a list of transaction with smarte contract event based on height.
+得到该高度区块上的智能合约执行结果。
 
 GET
 
@@ -555,11 +552,11 @@ curl -i http://localhost:20334/api/v1/smartcode/event/transactions/900
     "Version": "1.0.0"
 }
 ```
-> Note: result is the smart contract event list.
+> 注意: 返回的结果是交易简略信息的集合，并不是完整的交易信息。
 
 ### 13 get_smtcode_evts
 
-Get contract event by transaction hash.
+通过交易哈希得到该交易的执行结果。
 
 GET
 ```
@@ -596,7 +593,7 @@ curl -i http://localhost:20334/api/v1/smartcode/event/txhash/20046da68ef6a91f695
 ```
 ### 14 get_blk_hgt_by_txhash
 
-Get block height by transaction hash.
+通过交易哈希得到该交易落账的区块高度。
 
 GET
 ```
@@ -619,7 +616,7 @@ curl -i http://localhost:20334/api/v1/block/height/txhash/3e23cf222a47739d414125
 
 ### 15 get_merkle_proof
 
-Get merkle proof.
+通过交易哈希得到该交易的merkle证明。
 
 GET
 ```
@@ -663,7 +660,7 @@ curl -i http://localhost:20334/api/v1/merkleproof/3e23cf222a47739d4141255da617cd
 
 ### 16 get_gasprice
 
-Get gas price.
+得到gas的价格。
 
 GET
 ```
@@ -689,7 +686,7 @@ curl -i http://localhost:20334/api/v1/block/height/txhash/3e23cf222a47739d414125
 
 ### 17 get_allowance
 
-Get allowance.
+得到允许从from账户转出到to账户的额度。
 
 GET
 ```
@@ -712,7 +709,7 @@ curl -i http://localhost:20334/api/v1/allowance/:asset/:from/:to
 
 ### 18 get_unboundong
 
-Get unbound ong.
+得到该账户未提取的ong数量。
 
 GET
 ```
@@ -735,7 +732,7 @@ curl -i http://localhost:20334/api/v1/unboundong/:addr
 
 ### 19 get_mempooltxcount
 
-Query the transaction count in the memory pool.
+得到内存中的交易的数量。
 
 GET
 ```
@@ -758,7 +755,7 @@ curl -i http://localhost:20334/api/v1/mempool/txcount
 
 ### 20 get_mempooltxstate
 
-Query the transaction state in the memory pool.
+通过交易哈希得到内存中该交易的状态。
 
 GET
 ```
@@ -791,7 +788,7 @@ curl -i http://localhost:20334/api/v1/mempool/txstate/:hash
 
 ### 21 get_version
 
-Get the version information of the node.
+得到版本信息。
 
 GET
 ```
@@ -814,7 +811,9 @@ curl -i http://localhost:20334/api/v1/version
 
 ### 22 post_raw_tx
 
-Send transaction. Set preExec=1 if want prepare exec smartcontract.
+向ontology网络发送交易。
+
+如果 preExec=1，则交易为预执行。
 
 POST
 
@@ -837,7 +836,7 @@ curl  -H "Content-Type: application/json"  -X POST -d '{"Action":"sendrawtransac
     "Data":"80000001195876cb34364dc38b730077156c6bc3a7fc570044a66fbfeeea56f71327e8ab0000029b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc500c65eaf440000000f9a23e06f74cf86b8827a9108ec2e0f89ad956c9b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc50092e14b5e00000030aab52ad93f6ce17ca07fa88fc191828c58cb71014140915467ecd359684b2dc358024ca750609591aa731a0b309c7fb3cab5cd0836ad3992aa0a24da431f43b68883ea5651d548feb6bd3c8e16376e6e426f91f84c58232103322f35c7819267e721335948d385fae5be66e7ba8c748ac15467dcca0693692dac"
 }
 ```
-You can use the ontology-go-sdk to generate hex code, reference to [example](rpc_api.md#8-sendrawtransaction)
+可以使用ontology-go-sdk生成十六进制数据，参考这个[例子](rpc_api_CN.md#8-sendrawtransaction)
 
 #### Response
 ```
@@ -849,24 +848,24 @@ You can use the ontology-go-sdk to generate hex code, reference to [example](rpc
     "Version": "1.0.0"
 }
 ```
-> Result: transaction hash
+> Result: 交易哈希
 
-## Error Code
+## 错误代码
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
 | 0 | int64 | SUCCESS |
-| 41001 | int64 | SESSION\_EXPIRED: invalided or expired session |
-| 41002 | int64 | SERVICE\_CEILING: reach service limit |
-| 41003 | int64 | ILLEGAL\_DATAFORMAT: illegal dataformat |
-| 41004 | int64 | INVALID\_VERSION: invalid version |
-| 42001 | int64 | INVALID\_METHOD: invalid method |
-| 42002 | int64 | INVALID\_PARAMS: invalid params |
-| 43001 | int64 | INVALID\_TRANSACTION: invalid transaction |
-| 43002 | int64 | INVALID\_ASSET: invalid asset |
-| 43003 | int64 | INVALID\_BLOCK: invalid block |
-| 44001 | int64 | UNKNOWN\_TRANSACTION: unknown transaction |
-| 44002 | int64 | UNKNOWN\_ASSET: unknown asset |
-| 44003 | int64 | UNKNOWN\_BLOCK: unknown block |
-| 45001 | int64 | INTERNAL\_ERROR: internel error |
-| 47001 | int64 | SMARTCODE\_ERROR: smartcode error |
+| 41001 | int64 | SESSION\_EXPIRED: 无效或超时的会话 |
+| 41002 | int64 | SERVICE\_CEILING: 达到服务上限 |
+| 41003 | int64 | ILLEGAL\_DATAFORMAT: 不合法的数据格式 |
+| 41004 | int64 | INVALID\_VERSION: 无效的版本号 |
+| 42001 | int64 | INVALID\_METHOD: 无效的方法 |
+| 42002 | int64 | INVALID\_PARAMS: 无效的参数 |
+| 43001 | int64 | INVALID\_TRANSACTION: 无效的交易 |
+| 43002 | int64 | INVALID\_ASSET: 无效的资源 |
+| 43003 | int64 | INVALID\_BLOCK: 无效的区块 |
+| 44001 | int64 | UNKNOWN\_TRANSACTION: 未知的交易 |
+| 44002 | int64 | UNKNOWN\_ASSET: 未知的资源 |
+| 44003 | int64 | UNKNOWN\_BLOCK: 未知的区块 |
+| 45001 | int64 | INTERNAL\_ERROR: 内部错误 |
+| 47001 | int64 | SMARTCODE\_ERROR: 智能合约执行错误 |
