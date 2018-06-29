@@ -47,7 +47,7 @@ import (
 
 //HandleDeployTransaction deal with smart contract deploy transaction
 func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, stateBatch *statestore.StateBatch,
-	tx *types.Transaction, block *types.Block, eventStore scommon.EventStore, notify *event.ExecuteNotify) error {
+	tx *types.Transaction, block *types.Block, notify *event.ExecuteNotify) error {
 	deploy := tx.Payload.(*payload.DeployCode)
 	address := types.AddressFromVmCode(deploy.Code)
 	var (
@@ -110,7 +110,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, stateBa
 
 //HandleInvokeTransaction deal with smart contract invoke transaction
 func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBatch *statestore.StateBatch,
-	tx *types.Transaction, block *types.Block, eventStore scommon.EventStore, notify *event.ExecuteNotify) error {
+	tx *types.Transaction, block *types.Block, notify *event.ExecuteNotify) error {
 	invoke := tx.Payload.(*payload.InvokeCode)
 	code := invoke.Code
 	sysTransFlag := bytes.Compare(code, ninit.COMMIT_DPOS_BYTES) == 0 || block.Header.Height == 0

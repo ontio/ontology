@@ -626,23 +626,21 @@ func (this *LedgerStoreImp) handleTransaction(stateBatch *statestore.StateBatch,
 	notify := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_SUCCESS}
 	switch tx.TxType {
 	case types.Deploy:
-		err := this.stateStore.HandleDeployTransaction(this, stateBatch, tx, block, this.eventStore, notify)
+		err := this.stateStore.HandleDeployTransaction(this, stateBatch, tx, block, notify)
 		if err != nil {
-			if stateBatch.Error() == nil {
-				log.Debugf("HandleDeployTransaction tx %x error %s", txHash, err)
-			} else {
+			if stateBatch.Error() != nil {
 				return fmt.Errorf("HandleDeployTransaction tx %x error %s", txHash, stateBatch.Error())
 			}
+			log.Debugf("HandleDeployTransaction tx %x error %s", txHash, err)
 		}
 		SaveNotify(this.eventStore, txHash, notify)
 	case types.Invoke:
-		err := this.stateStore.HandleInvokeTransaction(this, stateBatch, tx, block, this.eventStore, notify)
+		err := this.stateStore.HandleInvokeTransaction(this, stateBatch, tx, block, notify)
 		if err != nil {
-			if stateBatch.Error() == nil {
-				log.Debugf("HandleInvokeTransaction tx %x error %s", txHash, err)
-			} else {
+			if stateBatch.Error() != nil {
 				return fmt.Errorf("HandleInvokeTransaction tx %x error %s", txHash, stateBatch.Error())
 			}
+			log.Debugf("HandleInvokeTransaction tx %x error %s", txHash, err)
 		}
 		SaveNotify(this.eventStore, txHash, notify)
 	}
