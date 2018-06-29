@@ -244,7 +244,6 @@ func (this *NetServer) OnMsgReceived(id uint64, addr, cmdType string) {
 	if cmdType == common.HEADERS_TYPE || cmdType == common.BLOCK_TYPE ||
 		cmdType == common.CONSENSUS_TYPE || cmdType == common.TX_TYPE {
 		this.curMsgCount.IncreCount(cmdType)
-		return
 	}
 	remotePeer := this.GetPeer(id)
 	if remotePeer == nil {
