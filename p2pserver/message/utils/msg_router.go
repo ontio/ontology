@@ -107,10 +107,28 @@ func (this *MessageRouter) hookChan(channel chan *types.MsgPayload,
 		case data, ok := <-channel:
 			if ok {
 				msgType := data.Payload.CmdType()
-
 				handler, ok := this.msgHandlers[msgType]
 				if ok {
-					go handler(data, this.p2p, this.pid)
+					if msgType == msgCommon.VERSION_TYPE || msgType ==
+						msgCommon.VERACK_TYPE || msgType == msgCommon.DISCONNECT_TYPE {
+						handler(data, this.p2p, this.pid)
+					} else {
+						remotePeer := this.p2p.GetPeerFromAddr(data.Addr)
+						if remotePeer != nil && remotePeer.GetSyncState() == msgCommon.ESTABLISH {
+							go handler(data, this.p2p, this.pid)
+						} else {
+							this.p2p.RemoveFromInConnRecord(data.Addr)
+							this.p2p.RemoveFromOutConnRecord(data.Addr)
+							this.p2p.RemoveFromConnectingList(data.Addr)
+							this.p2p.RemovePeerSyncAddress(data.Addr)
+							this.p2p.RemovePeerConsAddress(data.Addr)
+							if remotePeer != nil {
+								remotePeer.CloseSync()
+								remotePeer.CloseCons()
+								log.Warnf("receive unrecognize (%s) peer`s msg (%s), close it", data.Addr, msgType)
+							}
+						}
+					}
 				} else {
 					log.Info("unknown message handler for the msg: ",
 						msgType)
