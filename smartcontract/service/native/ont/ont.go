@@ -35,8 +35,9 @@ import (
 )
 
 const (
-	TRANSFER_FLAG byte = 1
-	APPROVE_FLAG  byte = 2
+	TRANSFER_FLAG    byte   = 1
+	APPROVE_FLAG     byte   = 2
+	ONT_TOTAL_SUPPLY uint64 = 1000000000
 )
 
 func InitOnt() {
@@ -119,6 +120,9 @@ func OntTransfer(native *native.NativeService) ([]byte, error) {
 		if v.Value == 0 {
 			continue
 		}
+		if v.Value > ONT_TOTAL_SUPPLY {
+			return utils.BYTE_FALSE, fmt.Errorf("transfer ont amount:%d over totalSupply:%d", v.Value, ONT_TOTAL_SUPPLY)
+		}
 		fromBalance, toBalance, err := Transfer(native, contract, v)
 		if err != nil {
 			return utils.BYTE_FALSE, err
@@ -145,6 +149,9 @@ func OntTransferFrom(native *native.NativeService) ([]byte, error) {
 	if state.Value == 0 {
 		return utils.BYTE_FALSE, nil
 	}
+	if state.Value > ONT_TOTAL_SUPPLY {
+		return utils.BYTE_FALSE, fmt.Errorf("transferFrom ont amount:%d over totalSupply:%d", state.Value, ONT_TOTAL_SUPPLY)
+	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	fromBalance, toBalance, err := TransferedFrom(native, contract, state)
 	if err != nil {
@@ -167,6 +174,9 @@ func OntApprove(native *native.NativeService) ([]byte, error) {
 	}
 	if state.Value == 0 {
 		return utils.BYTE_FALSE, nil
+	}
+	if state.Value > ONT_TOTAL_SUPPLY {
+		return utils.BYTE_FALSE, fmt.Errorf("approve ont amount:%d over totalSupply:%d", state.Value, ONT_TOTAL_SUPPLY)
 	}
 	if native.ContextRef.CheckWitness(state.From) == false {
 		return utils.BYTE_FALSE, errors.NewErr("authentication failed!")
