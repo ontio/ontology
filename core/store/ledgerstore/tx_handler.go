@@ -137,6 +137,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 		err               error
 	)
 	cache := storage.NewCloneCache(stateBatch)
+	availableGasLimit = tx.GasLimit
 	if isCharge {
 		uintCodeGasPrice, ok := neovm.GAS_TABLE.Load(neovm.UINT_INVOKE_CODE_LEN_NAME)
 		if !ok {
@@ -174,7 +175,6 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 		}
 
 		maxAvaGasLimit := oldBalance / tx.GasPrice
-		availableGasLimit = tx.GasLimit
 		if availableGasLimit > maxAvaGasLimit {
 			availableGasLimit = maxAvaGasLimit
 		}
@@ -197,6 +197,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	if costGasLimit < neovm.MIN_TRANSACTION_GAS {
 		costGasLimit = neovm.MIN_TRANSACTION_GAS
 	}
+
 	costGas = costGasLimit * tx.GasPrice
 	if err != nil {
 		if isCharge {
