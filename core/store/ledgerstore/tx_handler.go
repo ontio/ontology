@@ -132,7 +132,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 		oldBalance      uint64
 		newBalance      uint64
 		codeLenGasLimit uint64
-		maxAvaGasLimit  uint64
+		availableGasLimit  uint64
 		minGas          uint64
 		err             error
 	)
@@ -173,10 +173,10 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 			return fmt.Errorf("invoke transaction gasLimit insufficient: need%d actual:%d", tx.GasLimit, codeLenGasLimit)
 		}
 
-		maxAvaGasLimit = oldBalance / tx.GasPrice
-
-		if tx.GasLimit > maxAvaGasLimit {
-			tx.GasLimit = maxAvaGasLimit
+		maxAvaGasLimit := oldBalance / tx.GasPrice
+		availableGasLimit = tx.GasLimit
+		if availableGasLimit > maxAvaGasLimit {
+			availableGasLimit = maxAvaGasLimit
 		}
 	}
 
@@ -185,7 +185,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 		Config:     config,
 		CloneCache: cache,
 		Store:      store,
-		Gas:        tx.GasLimit - codeLenGasLimit,
+		Gas:        availableGasLimit - codeLenGasLimit,
 	}
 
 	//start the smart contract executive function
