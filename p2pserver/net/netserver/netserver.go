@@ -267,7 +267,7 @@ func (this *NetServer) IsPeerEstablished(p *peer.Peer) bool {
 //Connect used to connect net address under sync or cons mode
 func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	if this.IsAddrInOutConnRecord(addr) {
-		log.Error("Addr is in OutConnectionRecord")
+		log.Errorf("Address: %s Consensus: %v is in OutConnectionRecord,", addr, isConsensus)
 		return nil
 	}
 	if this.IsOwnAddress(addr) {
