@@ -35,8 +35,8 @@ import (
 )
 
 const (
-	TRANSFER_FLAG    byte   = 1
-	APPROVE_FLAG     byte   = 2
+	TRANSFER_FLAG byte = 1
+	APPROVE_FLAG  byte = 2
 )
 
 func InitOnt() {
