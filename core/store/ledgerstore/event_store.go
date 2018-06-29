@@ -126,7 +126,7 @@ func (this *EventStore) GetEventNotifyByBlock(height uint32) ([]*event.ExecuteNo
 		}
 		evtNotify, err := this.GetEventNotifyByTx(txHash)
 		if err != nil {
-			return nil, fmt.Errorf("getEventNotifyByTx by txhash:%x error:%s", txHash, err)
+			return nil, fmt.Errorf("getEventNotifyByTx by txhash:%s error:%s", txHash.ToHexString(), err)
 		}
 		evtNotifies = append(evtNotifies, evtNotify)
 	}

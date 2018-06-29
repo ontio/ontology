@@ -144,7 +144,8 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 		if err != nil {
 			return fmt.Errorf("init error %s", err)
 		}
-		log.Infof("GenesisBlock init success. GenesisBlock hash:%x\n", genesisBlock.Hash())
+		genHash := genesisBlock.Hash()
+		log.Infof("GenesisBlock init success. GenesisBlock hash:%s\n", genHash.ToHexString())
 	} else {
 		genesisHash := genesisBlock.Hash()
 		exist, err := this.blockStore.ContainBlock(genesisHash)
@@ -195,7 +196,7 @@ func (this *LedgerStoreImp) initCurrentBlock() error {
 	if err != nil {
 		return fmt.Errorf("LoadCurrentBlock error %s", err)
 	}
-	log.Infof("InitCurrentBlock currentBlockHash %x currentBlockHeight %d", currentBlockHash, currentBlockHeight)
+	log.Infof("InitCurrentBlock currentBlockHash %s currentBlockHeight %d", currentBlockHash.ToHexString(), currentBlockHeight)
 	this.currBlockHash = currentBlockHash
 	this.currBlockHeight = currentBlockHeight
 	return nil
@@ -381,7 +382,7 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header) error {
 		return fmt.Errorf("get prev header error %s", err)
 	}
 	if prevHeader == nil {
-		return fmt.Errorf("cannot find pre header by blockHash %x", prevHeaderHash)
+		return fmt.Errorf("cannot find pre header by blockHash %s", prevHeaderHash.ToHexString())
 	}
 
 	if prevHeader.Height+1 != header.Height {
@@ -483,7 +484,7 @@ func (this *LedgerStoreImp) saveBlockToBlockStore(block *types.Block) error {
 	this.blockStore.SaveBlockHash(blockHeight, blockHash)
 	err = this.blockStore.SaveBlock(block)
 	if err != nil {
-		return fmt.Errorf("SaveBlock height %d hash %x error %s", blockHeight, blockHash, err)
+		return fmt.Errorf("SaveBlock height %d hash %s error %s", blockHeight, blockHash.ToHexString(), err)
 	}
 	return nil
 }
@@ -629,18 +630,18 @@ func (this *LedgerStoreImp) handleTransaction(stateBatch *statestore.StateBatch,
 		err := this.stateStore.HandleDeployTransaction(this, stateBatch, tx, block, notify)
 		if err != nil {
 			if stateBatch.Error() != nil {
-				return fmt.Errorf("HandleDeployTransaction tx %x error %s", txHash, stateBatch.Error())
+				return fmt.Errorf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), stateBatch.Error())
 			}
-			log.Debugf("HandleDeployTransaction tx %x error %s", txHash, err)
+			log.Debugf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
 		SaveNotify(this.eventStore, txHash, notify)
 	case types.Invoke:
 		err := this.stateStore.HandleInvokeTransaction(this, stateBatch, tx, block, notify)
 		if err != nil {
 			if stateBatch.Error() != nil {
-				return fmt.Errorf("HandleInvokeTransaction tx %x error %s", txHash, stateBatch.Error())
+				return fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), stateBatch.Error())
 			}
-			log.Debugf("HandleInvokeTransaction tx %x error %s", txHash, err)
+			log.Debugf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
 		SaveNotify(this.eventStore, txHash, notify)
 	}

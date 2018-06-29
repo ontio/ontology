@@ -81,7 +81,8 @@ func (this *BlockStore) SaveBlock(block *types.Block) error {
 	for _, tx := range block.Transactions {
 		err = this.SaveTransaction(tx, blockHeight)
 		if err != nil {
-			return fmt.Errorf("SaveTransaction block height %d tx %x err %s", blockHeight, tx.Hash(), err)
+			txHash := tx.Hash()
+			return fmt.Errorf("SaveTransaction block height %d tx %s err %s", blockHeight, txHash.ToHexString(), err)
 		}
 	}
 	return nil
@@ -122,10 +123,10 @@ func (this *BlockStore) GetBlock(blockHash common.Uint256) (*types.Block, error)
 	for _, txHash := range txHashes {
 		tx, _, err := this.GetTransaction(txHash)
 		if err != nil {
-			return nil, fmt.Errorf("GetTransaction %x error %s", txHash, err)
+			return nil, fmt.Errorf("GetTransaction %s error %s", txHash.ToHexString(), err)
 		}
 		if tx == nil {
-			return nil, fmt.Errorf("cannot get transaction %x", txHash)
+			return nil, fmt.Errorf("cannot get transaction %s", txHash.ToHexString())
 		}
 		txList = append(txList, tx)
 	}
