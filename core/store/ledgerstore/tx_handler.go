@@ -105,6 +105,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, stateBa
 	}
 	notify.Notify = append(notify.Notify, notifies...)
 	notify.GasConsumed = gasConsumed
+	notify.State = event.CONTRACT_STATE_SUCCESS
 	return nil
 }
 
@@ -228,6 +229,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	notify.Notify = append(notify.Notify, sc.Notifications...)
 	notify.Notify = append(notify.Notify, notifies...)
 	notify.GasConsumed = costGas
+	notify.State = event.CONTRACT_STATE_SUCCESS
 	sc.CloneCache.Commit()
 	return nil
 }
@@ -353,7 +355,6 @@ func costInvalidGas(address common.Address, gas uint64, config *smartcontract.Co
 		return err
 	}
 	cache.Commit()
-	notify.State = event.CONTRACT_STATE_FAIL
 	notify.GasConsumed = gas
 	notify.Notify = append(notify.Notify, notifies...)
 	return nil
