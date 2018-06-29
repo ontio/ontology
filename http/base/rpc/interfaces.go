@@ -363,7 +363,7 @@ func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 			if err == scom.ErrNotFound {
 				return responseSuccess(nil)
 			}
-			return responsePack(berr.INVALID_PARAMS, "")
+			return responsePack(berr.INTERNAL_ERROR, "")
 		}
 		eInfos := make([]*bcomn.ExecuteNotify, 0, len(eventInfos))
 		for _, eventInfo := range eventInfos {
@@ -380,7 +380,10 @@ func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 		}
 		eventInfo, err := bactor.GetEventNotifyByTxHash(hash)
 		if err != nil {
-			return responsePack(berr.INVALID_TRANSACTION, "")
+			if scom.ErrNotFound == err {
+				return responseSuccess(nil)
+			}
+			return responsePack(berr.INTERNAL_ERROR, "")
 		}
 		_, notify := bcomn.GetExecuteNotify(eventInfo)
 		return responseSuccess(notify)
