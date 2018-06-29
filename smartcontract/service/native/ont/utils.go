@@ -150,7 +150,8 @@ func fromTransfer(native *native.NativeService, fromKey []byte, value uint64) (u
 		return 0, err
 	}
 	if fromBalance < value {
-		return 0, errors.NewErr("[Transfer] balance insufficient!")
+		return 0, fmt.Errorf("[Transfer] balance insufficient. contract:%s, account:%x,balance:%d, transfer amount:%d",
+			native.ContextRef.CurrentContext().ContractAddress.ToHexString(), fromKey, fromBalance, value)
 	} else if fromBalance == value {
 		native.CloneCache.Delete(scommon.ST_STORAGE, fromKey)
 	} else {
