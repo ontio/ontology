@@ -169,6 +169,11 @@ func transfer(ctx *cli.Context) error {
 		return fmt.Errorf("unsupport asset:%s", asset)
 	}
 
+	err = utils.CheckAssetAmount(asset, amount)
+	if err != nil {
+		return err
+	}
+
 	gasPrice := ctx.Uint64(utils.TransactionGasPriceFlag.Name)
 	gasLimit := ctx.Uint64(utils.TransactionGasLimitFlag.Name)
 
@@ -296,6 +301,11 @@ func approve(ctx *cli.Context) error {
 		return fmt.Errorf("unsupport asset:%s", asset)
 	}
 
+	err = utils.CheckAssetAmount(asset, amount)
+	if err != nil {
+		return err
+	}
+
 	gasPrice := ctx.Uint64(utils.TransactionGasPriceFlag.Name)
 	gasLimit := ctx.Uint64(utils.TransactionGasLimitFlag.Name)
 
@@ -372,6 +382,12 @@ func transferFrom(ctx *cli.Context) error {
 	default:
 		return fmt.Errorf("unsupport asset:%s", asset)
 	}
+
+	err = utils.CheckAssetAmount(asset, amount)
+	if err != nil {
+		return err
+	}
+
 	gasPrice := ctx.Uint64(utils.TransactionGasPriceFlag.Name)
 	gasLimit := ctx.Uint64(utils.TransactionGasLimitFlag.Name)
 
