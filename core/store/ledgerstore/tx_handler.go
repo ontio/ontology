@@ -194,11 +194,13 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	_, err = engine.Invoke()
 
 	costGasLimit = availableGasLimit - sc.Gas
+	if costGasLimit < neovm.MIN_TRANSACTION_GAS {
+		costGasLimit = neovm.MIN_TRANSACTION_GAS
+	}
 	costGas = costGasLimit * tx.GasPrice
-
 	if err != nil {
 		if isCharge {
-			if err := costInvalidGas(tx.Payer, minGas, config, stateBatch, store, eventStore, txHash); err != nil {
+			if err := costInvalidGas(tx.Payer, costGas, config, stateBatch, store, eventStore, txHash); err != nil {
 				return err
 			}
 		}
@@ -213,27 +215,16 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 		}
 
 		if newBalance < costGas {
-			if err := costInvalidGas(tx.Payer, minGas, config, stateBatch, store, eventStore, txHash); err != nil {
+			if err := costInvalidGas(tx.Payer, costGas, config, stateBatch, store, eventStore, txHash); err != nil {
 				return err
 			}
-			return fmt.Errorf("flag 1:gas insufficient, balance:%d < costGas:%d", newBalance, costGas)
-		}
-
-		if costGasLimit < neovm.MIN_TRANSACTION_GAS {
-			if newBalance < minGas {
-				if err := costInvalidGas(tx.Payer, minGas, config, stateBatch, store, eventStore, txHash); err != nil {
-					return err
-				}
-				return fmt.Errorf("flag 2:gas insufficient, balance:%d < costGas:%d", newBalance, minGas)
-			}
-			costGas = minGas
+			return fmt.Errorf("gas insufficient, balance:%d < costGas:%d", newBalance, costGas)
 		}
 
 		notifies, err = chargeCostGas(tx.Payer, costGas, config, sc.CloneCache, store)
 		if err != nil {
 			return err
 		}
-
 	}
 
 	SaveNotify(eventStore, txHash, append(sc.Notifications, notifies...), costGas, true)
