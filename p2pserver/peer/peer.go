@@ -403,6 +403,11 @@ func (this *Peer) GetCurMsgCount(cmdType string) uint32 {
 	return this.curMsgCount.GetCount(cmdType)
 }
 
+//GetCurAllMsgCount get cur message count of all types
+func (this *Peer) GetCurAllMsgCount() uint32 {
+	return this.curMsgCount.GetAllCount()
+}
+
 //CurMsgCountString return the current msg count string
 func (this *Peer) CurMsgCountString() string {
 	if this.curMsgCount.IsEmpty() {

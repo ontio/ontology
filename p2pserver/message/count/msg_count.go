@@ -50,6 +50,20 @@ func (this *MsgCount) GetCount(msgType string) uint32 {
 	return this.countMap[msgType]
 }
 
+//GetCount get the total message count of all the type
+func (this *MsgCount) GetAllCount() uint32 {
+	this.RLock()
+	defer this.RUnlock()
+	if this.countMap == nil {
+		return 0
+	}
+	var cnt uint32
+	for k := range this.countMap {
+		cnt += this.countMap[k]
+	}
+	return cnt
+}
+
 //Clean clean all the message count
 func (this *MsgCount) Clean() {
 	this.Lock()

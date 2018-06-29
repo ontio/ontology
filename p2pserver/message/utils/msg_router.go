@@ -107,15 +107,16 @@ func (this *MessageRouter) hookChan(channel chan *types.MsgPayload,
 		case data, ok := <-channel:
 			if ok {
 				msgType := data.Payload.CmdType()
-				this.p2p.OnMsgReceived(data.Id, data.Addr, msgType)
 				handler, ok := this.msgHandlers[msgType]
 				if ok {
 					if msgType == msgCommon.VERSION_TYPE || msgType ==
 						msgCommon.VERACK_TYPE || msgType == msgCommon.DISCONNECT_TYPE {
-						handler(data, this.p2p, this.pid)
+						if this.p2p.CanHandleMsg(data.Id, data.Addr, msgType) {
+							handler(data, this.p2p, this.pid)
+						}
 					} else {
 						remotePeer := this.p2p.GetPeerFromAddr(data.Addr)
-						if remotePeer != nil && remotePeer.GetSyncState() == msgCommon.ESTABLISH {
+						if remotePeer != nil && remotePeer.GetSyncState() == msgCommon.ESTABLISH && this.p2p.CanHandleMsg(data.Id, data.Addr, msgType) {
 							go handler(data, this.p2p, this.pid)
 						} else {
 							this.p2p.RemoveFromInConnRecord(data.Addr)

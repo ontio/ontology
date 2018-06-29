@@ -131,8 +131,26 @@ const (
 
 //const message count
 const (
-	MSG_COUNT_LOG_DIR      = "./Log/MsgCountLog/" //message count log files folder
-	MAX_MSG_COUNT_LOG_SIZE = 10 * 1024 * 1024     //max log file size of message count
+	MSG_COUNT_LOG_DIR              = "./Log/MsgCountLog/" //message count log files folder
+	MAX_MSG_COUNT_LOG_SIZE         = 10 * 1024 * 1024     //max log file size of message count
+	MAX_MSG_DEFAULT_CNT_ONETIME    = 4                    //max default msg received one time
+	MAX_VERSION_MSG_CNT_ONETIME    = 4                    //max version msg received one time
+	MAX_VERACK_MSG_CNT_ONETIME     = 4                    //max verack msg received one time
+	MAX_GETADDR_MSG_CNT_ONETIME    = 4                    //max getaddr msg received one time
+	MAX_ADDR_MSG_CNT_ONETIME       = 4                    //max addr msg received one time
+	MAX_PING_MSG_CNT_ONETIME       = 2                    //max ping msg received one time
+	MAX_PONG_MSG_CNT_ONETIME       = 2                    //max pong msg received one time
+	MAX_GETHEADERS_MSG_CNT_ONETIME = 10                   //max getheaders msg received one time
+	MAX_HEADERS_MSG_CNT_ONETIME    = 1000                 //max headers msg received one time
+	MAX_INV_MSG_CNT_ONETIME        = 40                   //max inv msg received one time
+	MAX_GETDATA_MSG_CNT_ONETIME    = 500                  //max getdata msg received one time
+	MAX_BLOCK_MSG_CNT_ONETIME      = 1000                 //max block msg received one time
+	MAX_TX_MSG_CNT_ONETIME         = 5000                 //max tx msg received one time
+	MAX_GETBLOCKS_CNT_ONETIME      = 500                  //max getblocks msg received one time
+	MAX_CONSENSUS_MSG_CNT_ONETIME  = 100                  //max consensus msg received one time
+	MAX_NOTFOUND_MSG_CNT_ONETIME   = 4                    //max notfound msg received one time
+	MAX_DISCONNECT_MSG_CNT_ONETIME = 4                    //max disconnect msg received one time
+	MAX_ALL_MSG_CNT_ONETIME        = 6000                 //all msgtype max msg received one time
 )
 
 type AppendPeerID struct {

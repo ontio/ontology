@@ -240,22 +240,34 @@ func (this *NetServer) Xmit(msg types.Message, isCons bool) {
 }
 
 //OnMsgReceived received p2p msg from link, incre the msg count
-func (this *NetServer) OnMsgReceived(id uint64, addr, cmdType string) {
+func (this *NetServer) CanHandleMsg(id uint64, addr, cmdType string) bool {
+	remotePeer := this.GetPeer(id)
+	if remotePeer == nil {
+		remotePeer = this.GetPeerFromAddr(addr)
+		if remotePeer == nil {
+			log.Warnf("can't find msg sender id:%d, addr:%s, cmdType:%s", id, addr, cmdType)
+			return false
+		}
+	}
+	remotePeer.IncreCurMsgCount(cmdType)
 	if cmdType == common.HEADERS_TYPE || cmdType == common.BLOCK_TYPE ||
 		cmdType == common.CONSENSUS_TYPE || cmdType == common.TX_TYPE {
 		this.curMsgCount.IncreCount(cmdType)
 	}
-	remotePeer := this.GetPeer(id)
-	if remotePeer == nil {
-		var ok bool
-		if remotePeer, ok = this.PeerSyncAddress[addr]; !ok {
-			if remotePeer, ok = this.PeerConsAddress[addr]; !ok {
-				log.Warnf("can't find msg sender id:%d, addr:%s", id, addr)
-				return
-			}
-		}
+	cnt := remotePeer.GetCurMsgCount(cmdType)
+	if cnt > this.maxMsgCountSinglePeer(cmdType) || remotePeer.GetCurAllMsgCount() > common.MAX_ALL_MSG_CNT_ONETIME {
+		log.Infof("disconnect peer:%d for msg:%s count:%d or total count:%d exceed limit", id, cmdType, cnt, remotePeer.GetCurAllMsgCount())
+		this.RemoveFromInConnRecord(remotePeer.GetAddr())
+		this.RemoveFromOutConnRecord(remotePeer.GetAddr())
+		this.RemoveFromConnectingList(remotePeer.GetAddr())
+		this.RemovePeerSyncAddress(remotePeer.GetAddr())
+		this.RemovePeerConsAddress(remotePeer.GetAddr())
+		remotePeer.CloseSync()
+		remotePeer.CloseCons()
+		return false
 	}
-	remotePeer.IncreCurMsgCount(cmdType)
+	//TODO: netserver stop rx when all peers msg count reach max limit
+	return true
 }
 
 //GetMsgChan return sync or consensus channel when msgrouter need msg input
@@ -890,4 +902,47 @@ func (this *NetServer) SaveMsgCountLog() {
 			log.Errorf("save msg count log err:%s", err)
 		}
 	}
+}
+
+//maxMsgCountSinglePeer get max msg count of one single in period
+func (this *NetServer) maxMsgCountSinglePeer(cmdType string) uint32 {
+	var periodTime, cnt uint32
+	periodTime = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
+	switch cmdType {
+	case common.VERSION_TYPE:
+		cnt = common.MAX_VERSION_MSG_CNT_ONETIME
+	case common.VERACK_TYPE:
+		cnt = common.MAX_VERACK_MSG_CNT_ONETIME
+	case common.GetADDR_TYPE:
+		cnt = common.MAX_GETADDR_MSG_CNT_ONETIME
+	case common.ADDR_TYPE:
+		cnt = common.MAX_ADDR_MSG_CNT_ONETIME
+	case common.PING_TYPE:
+		cnt = common.MAX_PING_MSG_CNT_ONETIME
+	case common.PONG_TYPE:
+		cnt = common.MAX_PONG_MSG_CNT_ONETIME
+	case common.GET_HEADERS_TYPE:
+		cnt = common.MAX_GETHEADERS_MSG_CNT_ONETIME
+	case common.HEADERS_TYPE:
+		cnt = common.MAX_HEADERS_MSG_CNT_ONETIME
+	case common.INV_TYPE:
+		cnt = common.MAX_INV_MSG_CNT_ONETIME
+	case common.GET_DATA_TYPE:
+		cnt = common.MAX_GETDATA_MSG_CNT_ONETIME
+	case common.BLOCK_TYPE:
+		cnt = common.MAX_BLOCK_MSG_CNT_ONETIME
+	case common.TX_TYPE:
+		cnt = common.MAX_TX_MSG_CNT_ONETIME
+	case common.CONSENSUS_TYPE:
+		cnt = common.MAX_CONSENSUS_MSG_CNT_ONETIME
+	case common.GET_BLOCKS_TYPE:
+		cnt = common.MAX_GETBLOCKS_CNT_ONETIME
+	case common.NOT_FOUND_TYPE:
+		cnt = common.MAX_NOTFOUND_MSG_CNT_ONETIME
+	case common.DISCONNECT_TYPE:
+		cnt = common.MAX_DISCONNECT_MSG_CNT_ONETIME
+	default:
+		cnt = common.MAX_MSG_DEFAULT_CNT_ONETIME
+	}
+	return cnt * periodTime
 }

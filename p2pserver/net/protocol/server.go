@@ -66,7 +66,7 @@ type P2P interface {
 	Xmit(msg types.Message, isCons bool)
 	SetOwnAddress(addr string)
 	IsAddrFromConnecting(addr string) bool
-	OnMsgReceived(uint64, string, string)
+	CanHandleMsg(uint64, string, string) bool
 	ChangeMsgCountRound()
 	SaveMsgCountLog()
 }
