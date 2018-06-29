@@ -86,7 +86,7 @@ func (self *StateBatch) TryGetOrAdd(prefix common.DataEntryPrefix, key []byte, v
 	item, err := self.store.Get(append(aPrefix, key...))
 	if err != nil && err != common.ErrNotFound {
 		errs := errors.NewDetailErr(err, errors.ErrNoCode, "[TryGetOrAdd], store get data failed.")
-		self.setError(errs)
+		self.SetError(errs)
 		return errs
 	}
 
@@ -115,7 +115,7 @@ func (self *StateBatch) TryGet(prefix common.DataEntryPrefix, key []byte) (*comm
 			return nil, nil
 		}
 		errs := errors.NewDetailErr(err, errors.ErrNoCode, "[TryGet], store get data failed.")
-		self.setError(errs)
+		self.SetError(errs)
 		return nil, errs
 	}
 
@@ -151,7 +151,7 @@ func (self *StateBatch) setStateObject(prefix byte, key []byte, value states.Sta
 	self.memoryStore.Put(prefix, key, value, state)
 }
 
-func (self *StateBatch) setError(err error) {
+func (self *StateBatch) SetError(err error) {
 	if self.dbErr == nil {
 		self.dbErr = err
 	}

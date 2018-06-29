@@ -626,19 +626,19 @@ func (this *LedgerStoreImp) handleTransaction(stateBatch *statestore.StateBatch,
 	switch tx.TxType {
 	case types.Deploy:
 		err := this.stateStore.HandleDeployTransaction(this, stateBatch, tx, block, notify)
+		if stateBatch.Error() != nil {
+			return fmt.Errorf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), stateBatch.Error())
+		}
 		if err != nil {
-			if stateBatch.Error() != nil {
-				return fmt.Errorf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), stateBatch.Error())
-			}
 			log.Debugf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
 		SaveNotify(this.eventStore, txHash, notify)
 	case types.Invoke:
 		err := this.stateStore.HandleInvokeTransaction(this, stateBatch, tx, block, notify)
+		if stateBatch.Error() != nil {
+			return fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), stateBatch.Error())
+		}
 		if err != nil {
-			if stateBatch.Error() != nil {
-				return fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), stateBatch.Error())
-			}
 			log.Debugf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
 		SaveNotify(this.eventStore, txHash, notify)
