@@ -21,6 +21,7 @@ package governance
 import (
 	"bytes"
 	"encoding/hex"
+
 	"github.com/ontio/ontology-crypto/vrf"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -111,29 +112,23 @@ func GetView(native *native.NativeService, contract common.Address) (uint32, err
 	return governanceView.View, nil
 }
 
-func appCallTransferOng(native *native.NativeService, from common.Address, to common.Address, amount uint64) error {
-	bf := new(bytes.Buffer)
-	var sts []*ont.State
-	sts = append(sts, &ont.State{
-		From:  from,
-		To:    to,
-		Value: amount,
-	})
-	transfers := &ont.Transfers{
-		States: sts,
-	}
-	err := transfers.Serialize(bf)
+func appCallTransferOnt(native *native.NativeService, from common.Address, to common.Address, amount uint64) error {
+	err := appCallTransfer(native, utils.OntContractAddress, from, to, amount)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOng, transfers.Serialize error!")
-	}
-
-	if _, err := native.NativeCall(utils.OngContractAddress, "transfer", bf.Bytes()); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOng, appCall error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, appCallTransfer error!")
 	}
 	return nil
 }
 
-func appCallTransferOnt(native *native.NativeService, from common.Address, to common.Address, amount uint64) error {
+func appCallTransferOng(native *native.NativeService, from common.Address, to common.Address, amount uint64) error {
+	err := appCallTransfer(native, utils.OngContractAddress, from, to, amount)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOng, appCallTransfer error!")
+	}
+	return nil
+}
+
+func appCallTransfer(native *native.NativeService, contract common.Address, from common.Address, to common.Address, amount uint64) error {
 	bf := new(bytes.Buffer)
 	var sts []*ont.State
 	sts = append(sts, &ont.State{
@@ -146,35 +141,32 @@ func appCallTransferOnt(native *native.NativeService, from common.Address, to co
 	}
 	err := transfers.Serialize(bf)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, transfers.Serialize error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransfer, transfers.Serialize error!")
 	}
 
-	if _, err := native.NativeCall(utils.OntContractAddress, "transfer", bf.Bytes()); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferOnt, appCall error!")
+	if _, err := native.NativeCall(contract, "transfer", bf.Bytes()); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransfer, appCall error!")
 	}
 	return nil
 }
 
 func appCallTransferFromOnt(native *native.NativeService, sender common.Address, from common.Address, to common.Address, amount uint64) error {
-	bf := new(bytes.Buffer)
-	params := &ont.TransferFrom{
-		Sender: sender,
-		From:   from,
-		To:     to,
-		Value:  amount,
-	}
-	err := params.Serialize(bf)
+	err := appCallTransferFrom(native, utils.OntContractAddress, sender, from, to, amount)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferFromOnt, params serialize error!")
-	}
-
-	if _, err := native.NativeCall(utils.OntContractAddress, "transferFrom", bf.Bytes()); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferFromOnt, appCall error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferFromOnt, appCallTransferFrom error!")
 	}
 	return nil
 }
 
 func appCallTransferFromOng(native *native.NativeService, sender common.Address, from common.Address, to common.Address, amount uint64) error {
+	err := appCallTransferFrom(native, utils.OngContractAddress, sender, from, to, amount)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferFromOng, appCallTransferFrom error!")
+	}
+	return nil
+}
+
+func appCallTransferFrom(native *native.NativeService, contract common.Address, sender common.Address, from common.Address, to common.Address, amount uint64) error {
 	bf := new(bytes.Buffer)
 	params := &ont.TransferFrom{
 		Sender: sender,
@@ -184,11 +176,11 @@ func appCallTransferFromOng(native *native.NativeService, sender common.Address,
 	}
 	err := params.Serialize(bf)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferFromOng, params serialize error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferFrom, params serialize error!")
 	}
 
-	if _, err := native.NativeCall(utils.OngContractAddress, "transferFrom", bf.Bytes()); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferFromOng, appCall error!")
+	if _, err := native.NativeCall(contract, "transferFrom", bf.Bytes()); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferFrom, appCall error!")
 	}
 	return nil
 }
@@ -289,17 +281,14 @@ func CheckVBFTConfig(configuration *config.VBFTConfig) error {
 	if int(configuration.K) != len(configuration.Peers) {
 		return errors.NewErr("initConfig. K must equal to length of peer in config!")
 	}
-	if configuration.L < 16*configuration.K {
-		return errors.NewErr("initConfig. L can not be less than 16*K in config!")
+	if configuration.L < 16*configuration.K || configuration.L%configuration.K != 0 {
+		return errors.NewErr("initConfig. L can not be less than 16*K and K must be times of L in config!")
 	}
 	if configuration.K < 2*configuration.C+1 {
 		return errors.NewErr("initConfig. K can not be less than 2*C+1 in config!")
 	}
 	if configuration.N < configuration.K || configuration.K < 7 {
 		return errors.NewErr("initConfig. config not match N >= K >= 7!")
-	}
-	if int(configuration.K) != len(configuration.Peers) {
-		return errors.NewErr("initConfig. K must equal to length of peers!")
 	}
 	if configuration.BlockMsgDelay < 5000 {
 		return errors.NewErr("initConfig. BlockMsgDelay must >= 5000!")
