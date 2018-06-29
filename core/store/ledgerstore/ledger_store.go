@@ -622,7 +622,7 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block) error {
 
 func (this *LedgerStoreImp) handleTransaction(stateBatch *statestore.StateBatch, block *types.Block, tx *types.Transaction) error {
 	txHash := tx.Hash()
-	notify := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_SUCCESS}
+	notify := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_FAIL}
 	switch tx.TxType {
 	case types.Deploy:
 		err := this.stateStore.HandleDeployTransaction(this, stateBatch, tx, block, notify)
