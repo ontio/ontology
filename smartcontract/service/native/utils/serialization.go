@@ -40,7 +40,11 @@ func ReadVarUint(r io.Reader) (uint64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("deserialize value error:%v", err)
 	}
-	return types.BigIntFromBytes(value).Uint64(), nil
+	v := types.BigIntFromBytes(value)
+	if v.Cmp(big.NewInt(0)) < 0 {
+		return 0, fmt.Errorf("%s", "value should not be a negative number.")
+	}
+	return v.Uint64(), nil
 }
 
 func WriteAddress(w io.Writer, address common.Address) error {
