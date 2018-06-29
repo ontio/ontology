@@ -46,7 +46,8 @@ func NewNetServer() p2p.P2P {
 
 	n.PeerAddrMap.PeerSyncAddress = make(map[string]*peer.Peer)
 	n.PeerAddrMap.PeerConsAddress = make(map[string]*peer.Peer)
-
+	n.InConnRecord.InConnectingAddrs = make(map[string]int64)
+	n.OutConnRecord.OutConnectingAddrs = make(map[string]int64)
 	n.init()
 	return n
 }
@@ -62,21 +63,21 @@ type NetServer struct {
 	PeerAddrMap
 	Np            *peer.NbrPeers
 	connectLock   sync.Mutex
-	inConnRecord  InConnectionRecord
-	outConnRecord OutConnectionRecord
+	InConnRecord  InConnectionRecord
+	OutConnRecord OutConnectionRecord
 	OwnAddress    string //network`s own address(ip : sync port),which get from version check
 }
 
 //InConnectionRecord include all addr connected
 type InConnectionRecord struct {
 	sync.RWMutex
-	InConnectingAddrs []string
+	InConnectingAddrs map[string]int64
 }
 
 //OutConnectionRecord include all addr accepted
 type OutConnectionRecord struct {
 	sync.RWMutex
-	OutConnectingAddrs []string
+	OutConnectingAddrs map[string]int64
 }
 
 //ConnectingNodes include all addr in connecting state
@@ -330,7 +331,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		conn.RemoteAddr().Network()))
 
 	if !isConsensus {
-		this.AddOutConnRecord(addr)
+		this.AddOutConnRecord(addr, time.Now().Unix())
 		remotePeer = peer.NewPeer()
 		this.AddPeerSyncAddress(addr, remotePeer)
 		remotePeer.SyncLink.SetAddr(addr)
@@ -483,8 +484,7 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 
 		remotePeer := peer.NewPeer()
 		addr := conn.RemoteAddr().String()
-		this.AddInConnRecord(addr)
-
+		this.AddInConnRecord(addr, time.Now().Unix())
 		this.AddPeerSyncAddress(addr, remotePeer)
 
 		remotePeer.SyncLink.SetAddr(addr)
@@ -654,36 +654,68 @@ func (this *NetServer) GetPeerSyncAddressCount() (count uint) {
 	return uint(len(this.PeerSyncAddress))
 }
 
-//AddInConnRecord add in connection to inConnRecord
-func (this *NetServer) AddInConnRecord(addr string) {
-	this.inConnRecord.Lock()
-	defer this.inConnRecord.Unlock()
-	for _, a := range this.inConnRecord.InConnectingAddrs {
-		if strings.Compare(a, addr) == 0 {
-			return
+//CleanNoHandShakeConn close connection connected over DEFAULT_NO_HANDSHAKE_TIMEOUT but not handshake
+func (this *NetServer) CleanNoHandShakeConn() {
+	this.InConnRecord.RLock()
+	for addr, connTime := range this.InConnRecord.InConnectingAddrs {
+		if !this.IsNbrPeerAddr(addr, false) && time.Now().Unix()-connTime > config.DEFAULT_NO_HANDSHAKE_TIMEOUT {
+			peer := this.GetPeerFromAddr(addr)
+			if peer != nil {
+				peer.CloseSync()
+				peer.CloseCons()
+			}
+			this.RemoveFromInConnRecord(addr)
+			this.RemoveFromConnectingList(addr)
+			this.RemovePeerSyncAddress(addr)
+			this.RemovePeerConsAddress(addr)
+			log.Warnf("Connection with (%s) no handshake over (%d)s, disconnect")
 		}
 	}
-	this.inConnRecord.InConnectingAddrs = append(this.inConnRecord.InConnectingAddrs, addr)
+	this.InConnRecord.RUnlock()
+
+	this.OutConnRecord.RLock()
+	for addr, connTime := range this.OutConnRecord.OutConnectingAddrs {
+		if !this.IsNbrPeerAddr(addr, false) && time.Now().Unix()-connTime > config.DEFAULT_NO_HANDSHAKE_TIMEOUT {
+			peer := this.GetPeerFromAddr(addr)
+			if peer != nil {
+				peer.CloseSync()
+				peer.CloseCons()
+			}
+			this.RemoveFromOutConnRecord(addr)
+			this.RemoveFromConnectingList(addr)
+			this.RemovePeerSyncAddress(addr)
+			this.RemovePeerConsAddress(addr)
+			log.Warnf("Connection with (%s) no handshake over (%d)s, disconnect")
+		}
+	}
+	this.OutConnRecord.RUnlock()
+}
+
+//AddInConnRecord add in connection to InConnRecord
+func (this *NetServer) AddInConnRecord(addr string, connTime int64) {
+	this.InConnRecord.Lock()
+	defer this.InConnRecord.Unlock()
+	if _, ok := this.InConnRecord.InConnectingAddrs[addr]; !ok {
+		this.InConnRecord.InConnectingAddrs[addr] = connTime
+	}
 }
 
 //IsAddrInInConnRecord return result whether addr is in inConnRecordList
 func (this *NetServer) IsAddrInInConnRecord(addr string) bool {
-	this.inConnRecord.RLock()
-	defer this.inConnRecord.RUnlock()
-	for _, a := range this.inConnRecord.InConnectingAddrs {
-		if strings.Compare(a, addr) == 0 {
-			return true
-		}
+	this.InConnRecord.RLock()
+	defer this.InConnRecord.RUnlock()
+	if _, ok := this.InConnRecord.InConnectingAddrs[addr]; ok {
+		return true
 	}
 	return false
 }
 
 //IsIPInInConnRecord return result whether the IP is in inConnRecordList
 func (this *NetServer) IsIPInInConnRecord(ip string) bool {
-	this.inConnRecord.RLock()
-	defer this.inConnRecord.RUnlock()
+	this.InConnRecord.RLock()
+	defer this.InConnRecord.RUnlock()
 	var ipRecord string
-	for _, addr := range this.inConnRecord.InConnectingAddrs {
+	for addr, _ := range this.InConnRecord.InConnectingAddrs {
 		ipRecord, _ = common.ParseIPAddr(addr)
 		if 0 == strings.Compare(ipRecord, ip) {
 			return true
@@ -694,31 +726,27 @@ func (this *NetServer) IsIPInInConnRecord(ip string) bool {
 
 //RemoveInConnRecord remove in connection from inConnRecordList
 func (this *NetServer) RemoveFromInConnRecord(addr string) {
-	this.inConnRecord.Lock()
-	defer this.inConnRecord.Unlock()
-	addrs := []string{}
-	for _, a := range this.inConnRecord.InConnectingAddrs {
-		if strings.Compare(a, addr) != 0 {
-			addrs = append(addrs, a)
-		}
+	this.InConnRecord.Lock()
+	defer this.InConnRecord.Unlock()
+	if _, ok := this.InConnRecord.InConnectingAddrs[addr]; ok {
+		delete(this.InConnRecord.InConnectingAddrs, addr)
 	}
-	this.inConnRecord.InConnectingAddrs = addrs
 }
 
 //GetInConnRecordLen return length of inConnRecordList
 func (this *NetServer) GetInConnRecordLen() int {
-	this.inConnRecord.RLock()
-	defer this.inConnRecord.RUnlock()
-	return len(this.inConnRecord.InConnectingAddrs)
+	this.InConnRecord.RLock()
+	defer this.InConnRecord.RUnlock()
+	return len(this.InConnRecord.InConnectingAddrs)
 }
 
 //GetIpCountInInConnRecord return count of in connections with single ip
 func (this *NetServer) GetIpCountInInConnRecord(ip string) uint {
-	this.inConnRecord.RLock()
-	defer this.inConnRecord.RUnlock()
+	this.InConnRecord.RLock()
+	defer this.InConnRecord.RUnlock()
 	var count uint
 	var ipRecord string
-	for _, addr := range this.inConnRecord.InConnectingAddrs {
+	for addr, _ := range this.InConnRecord.InConnectingAddrs {
 		ipRecord, _ = common.ParseIPAddr(addr)
 		if 0 == strings.Compare(ipRecord, ip) {
 			count++
@@ -727,48 +755,40 @@ func (this *NetServer) GetIpCountInInConnRecord(ip string) uint {
 	return count
 }
 
-//AddOutConnRecord add out connection to outConnRecord
-func (this *NetServer) AddOutConnRecord(addr string) {
-	this.outConnRecord.Lock()
-	defer this.outConnRecord.Unlock()
-	for _, a := range this.outConnRecord.OutConnectingAddrs {
-		if strings.Compare(a, addr) == 0 {
-			return
-		}
+//AddOutConnRecord add out connection to OutConnRecord
+func (this *NetServer) AddOutConnRecord(addr string, connTime int64) {
+	this.OutConnRecord.Lock()
+	defer this.OutConnRecord.Unlock()
+	if _, ok := this.OutConnRecord.OutConnectingAddrs[addr]; !ok {
+		this.OutConnRecord.OutConnectingAddrs[addr] = connTime
 	}
-	this.outConnRecord.OutConnectingAddrs = append(this.outConnRecord.OutConnectingAddrs, addr)
 }
 
-//IsAddrInOutConnRecord return result whether addr is in outConnRecord
+//IsAddrInOutConnRecord return result whether addr is in OutConnRecord
 func (this *NetServer) IsAddrInOutConnRecord(addr string) bool {
-	this.outConnRecord.RLock()
-	defer this.outConnRecord.RUnlock()
-	for _, a := range this.outConnRecord.OutConnectingAddrs {
-		if strings.Compare(a, addr) == 0 {
-			return true
-		}
+	this.OutConnRecord.RLock()
+	defer this.OutConnRecord.RUnlock()
+	if _, ok := this.OutConnRecord.OutConnectingAddrs[addr]; ok {
+		return true
 	}
 	return false
 }
 
-//RemoveOutConnRecord remove out connection from outConnRecord
+//RemoveOutConnRecord remove out connection from OutConnRecord
 func (this *NetServer) RemoveFromOutConnRecord(addr string) {
-	this.outConnRecord.Lock()
-	defer this.outConnRecord.Unlock()
-	addrs := []string{}
-	for _, a := range this.outConnRecord.OutConnectingAddrs {
-		if strings.Compare(a, addr) != 0 {
-			addrs = append(addrs, a)
-		}
+	this.OutConnRecord.Lock()
+	defer this.OutConnRecord.Unlock()
+	if _, ok := this.OutConnRecord.OutConnectingAddrs[addr]; ok {
+		delete(this.OutConnRecord.OutConnectingAddrs, addr)
 	}
-	this.outConnRecord.OutConnectingAddrs = addrs
+
 }
 
-//GetOutConnRecordLen return length of outConnRecord
+//GetOutConnRecordLen return length of OutConnRecord
 func (this *NetServer) GetOutConnRecordLen() int {
-	this.outConnRecord.RLock()
-	defer this.outConnRecord.RUnlock()
-	return len(this.outConnRecord.OutConnectingAddrs)
+	this.OutConnRecord.RLock()
+	defer this.OutConnRecord.RUnlock()
+	return len(this.OutConnRecord.OutConnectingAddrs)
 }
 
 //AddrValid whether the addr could be connect or accept

@@ -63,9 +63,9 @@ const (
 	DEFAULT_CLI_RPC_PORT                    = uint(20000)
 	DEFAULT_GAS_LIMIT                       = 20000
 	DEFAULT_GAS_PRICE                       = 0
-
-	DEFAULT_DATA_DIR      = "./Chain"
-	DEFAULT_RESERVED_FILE = "./peers.rsv"
+	DEFAULT_NO_HANDSHAKE_TIMEOUT            = 6
+	DEFAULT_DATA_DIR                        = "./Chain"
+	DEFAULT_RESERVED_FILE                   = "./peers.rsv"
 )
 
 const (
