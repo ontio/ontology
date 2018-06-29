@@ -456,6 +456,7 @@ func (this *P2PServer) keepOnlineService() {
 		select {
 		case <-t.C:
 			this.retryInactivePeer()
+			this.network.CleanNoHandShakeConn()
 			t.Stop()
 			t.Reset(time.Second * common.CONN_MONITOR)
 		case <-this.quitOnline:
