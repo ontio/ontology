@@ -21,8 +21,6 @@ package governance
 import (
 	"bytes"
 	"encoding/hex"
-	"math/big"
-
 	"github.com/ontio/ontology-crypto/vrf"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -35,6 +33,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/auth"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/vm/neovm/types"
 )
 
 func GetPeerPoolMap(native *native.NativeService, contract common.Address, view uint32) (*PeerPoolMap, error) {
@@ -205,7 +204,7 @@ func getOngBalance(native *native.NativeService, address common.Address) (uint64
 	if err != nil {
 		return 0, errors.NewDetailErr(err, errors.ErrNoCode, "getOngBalance, appCall error!")
 	}
-	balance := new(big.Int).SetBytes(value.([]byte)).Uint64()
+	balance := types.BigIntFromBytes(value.([]byte)).Uint64()
 	return balance, nil
 }
 
