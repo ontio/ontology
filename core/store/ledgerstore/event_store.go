@@ -23,8 +23,8 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
@@ -126,7 +126,8 @@ func (this *EventStore) GetEventNotifyByBlock(height uint32) ([]*event.ExecuteNo
 		}
 		evtNotify, err := this.GetEventNotifyByTx(txHash)
 		if err != nil {
-			return nil, fmt.Errorf("getEventNotifyByTx by txhash:%s error:%s", txHash.ToHexString(), err)
+			log.Errorf("getEventNotifyByTx Height:%d by txhash:%s error:%s", height, txHash.ToHexString(), err)
+			continue
 		}
 		evtNotifies = append(evtNotifies, evtNotify)
 	}

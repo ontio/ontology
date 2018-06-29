@@ -533,15 +533,13 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block) error {
 func (this *LedgerStoreImp) saveBlockToEventStore(block *types.Block) error {
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
-	invokeTxs := make([]common.Uint256, 0)
+	txs := make([]common.Uint256, 0)
 	for _, tx := range block.Transactions {
 		txHash := tx.Hash()
-		if tx.TxType == types.Invoke {
-			invokeTxs = append(invokeTxs, txHash)
-		}
+		txs = append(txs, txHash)
 	}
-	if len(invokeTxs) > 0 {
-		err := this.eventStore.SaveEventNotifyByBlock(block.Header.Height, invokeTxs)
+	if len(txs) > 0 {
+		err := this.eventStore.SaveEventNotifyByBlock(block.Header.Height, txs)
 		if err != nil {
 			return fmt.Errorf("SaveEventNotifyByBlock error %s", err)
 		}
