@@ -32,10 +32,6 @@ import (
 	"github.com/ontio/ontology/vm/neovm/types"
 )
 
-const (
-	ONG_TOTAL_SUPPLY uint64 = 1000000000000000000
-)
-
 func InitOng() {
 	native.Contracts[utils.OngContractAddress] = RegisterOngContract
 }
@@ -81,8 +77,8 @@ func OngTransfer(native *native.NativeService) ([]byte, error) {
 		if v.Value == 0 {
 			continue
 		}
-		if v.Value > ONG_TOTAL_SUPPLY {
-			return utils.BYTE_FALSE, fmt.Errorf("transfer ong amount:%d over totalSupply:%d", v.Value, ONG_TOTAL_SUPPLY)
+		if v.Value > constants.ONG_TOTAL_SUPPLY {
+			return utils.BYTE_FALSE, fmt.Errorf("transfer ong amount:%d over totalSupply:%d", v.Value, constants.ONG_TOTAL_SUPPLY)
 		}
 		if _, _, err := ont.Transfer(native, contract, v); err != nil {
 			return utils.BYTE_FALSE, err
@@ -100,8 +96,8 @@ func OngApprove(native *native.NativeService) ([]byte, error) {
 	if state.Value == 0 {
 		return utils.BYTE_FALSE, nil
 	}
-	if state.Value > ONG_TOTAL_SUPPLY {
-		return utils.BYTE_FALSE, fmt.Errorf("approve ong amount:%d over totalSupply:%d", state.Value, ONG_TOTAL_SUPPLY)
+	if state.Value > constants.ONG_TOTAL_SUPPLY {
+		return utils.BYTE_FALSE, fmt.Errorf("approve ong amount:%d over totalSupply:%d", state.Value, constants.ONG_TOTAL_SUPPLY)
 	}
 	if native.ContextRef.CheckWitness(state.From) == false {
 		return utils.BYTE_FALSE, errors.NewErr("authentication failed!")
@@ -119,8 +115,8 @@ func OngTransferFrom(native *native.NativeService) ([]byte, error) {
 	if state.Value == 0 {
 		return utils.BYTE_FALSE, nil
 	}
-	if state.Value > ONG_TOTAL_SUPPLY {
-		return utils.BYTE_FALSE, fmt.Errorf("approve ong amount:%d over totalSupply:%d", state.Value, ONG_TOTAL_SUPPLY)
+	if state.Value > constants.ONG_TOTAL_SUPPLY {
+		return utils.BYTE_FALSE, fmt.Errorf("approve ong amount:%d over totalSupply:%d", state.Value, constants.ONG_TOTAL_SUPPLY)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	if _, _, err := ont.TransferedFrom(native, contract, state); err != nil {
