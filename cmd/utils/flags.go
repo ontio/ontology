@@ -119,8 +119,8 @@ var (
 	}
 	NetworkIdFlag = cli.UintFlag{
 		Name:  "networkid",
-		Usage: "Using to specify the network ID. Different networkids cannot connect to the blockchain network. 1=main net, 2=polaris test net, 3=testmode, and other for custom network",
-		Value: config.NETWORK_ID_POLARIS_NET,
+		Usage: "Using to specify the network ID. Different networkids cannot connect to the blockchain network. 1=ontology main net, 2=polaris test net, 3=testmode, and other for custom network",
+		Value: config.NETWORK_ID_MAIN_NET,
 	}
 	NodePortFlag = cli.UintFlag{
 		Name:  "nodeport",
