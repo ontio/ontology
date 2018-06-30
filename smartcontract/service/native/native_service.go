@@ -77,6 +77,7 @@ func (this *NativeService) Invoke() (interface{}, error) {
 	}
 	this.Input = contract.Args
 	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address})
+	notifications := this.Notifications
 	this.Notifications = []*event.NotifyEventInfo{}
 	result, err := service(this)
 	if err != nil {
@@ -84,6 +85,7 @@ func (this *NativeService) Invoke() (interface{}, error) {
 	}
 	this.ContextRef.PopContext()
 	this.ContextRef.PushNotifications(this.Notifications)
+	this.Notifications = notifications
 	return result, nil
 }
 
