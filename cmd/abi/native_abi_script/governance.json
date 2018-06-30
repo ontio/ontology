@@ -269,7 +269,7 @@
           [
             {
               "name": "",
-              "type": "String"
+              "type": "Int"
             }
           ]
         }
