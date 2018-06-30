@@ -87,12 +87,12 @@ func HeadersReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 
 	headers, err := GetHeadersFromHash(startHash, stopHash)
 	if err != nil {
-		log.Error(err)
+		log.Errorf("get headers in HeadersReqHandle error: %s,startHash:%x,stopHash:%x", err.Error(), common.ToArrayReverse(startHash[:]), common.ToArrayReverse(stopHash[:]))
 		return
 	}
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
-		log.Error("remotePeer invalid in HeadersReqHandle()")
+		log.Errorf("remotePeer invalid in HeadersReqHandle, peer id: %d", data.Id)
 		return
 	}
 	msg := msgpack.NewHeaders(headers)
@@ -477,7 +477,7 @@ func AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 		if p2p.IsAddrFromConnecting(address) {
 			continue
 		}
-		log.Info("connect ip address ：", address)
+		log.Info("connect ip address:", address)
 		go p2p.Connect(address, false)
 	}
 }
