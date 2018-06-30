@@ -102,7 +102,7 @@ We can perform a quick deployment by modifying the default configuration file `c
 
 1. Copy related file into target host, including:
   
-     - Default configuration file`config.json`
+     - Default configuration file`config-dbft.json`
      - Node program`ontology`
      
 2. Set the network connection port number for each node (recommend using the default port configuration, instead of modifying)
