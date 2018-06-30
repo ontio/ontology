@@ -214,7 +214,7 @@ func splitCurve(native *native.NativeService, contract common.Address, pos uint6
 		return 0, errors.NewDetailErr(err, errors.ErrNoCode, "getSplitCurve, get splitCurve error!")
 	}
 	Yi := splitCurve.Yi
-	s := ((Yi[index+1]-Yi[index])*xi + Yi[index]*Xi[index+1] - Yi[index+1]*Xi[index]) / (Xi[index+1] - Xi[index])
+	s := ((uint64(Yi[index+1])-uint64(Yi[index]))*xi + uint64(Yi[index])*uint64(Xi[index+1]) - uint64(Yi[index+1])*uint64(Xi[index])) / (uint64(Xi[index+1]) - uint64(Xi[index]))
 	return s, nil
 }
 

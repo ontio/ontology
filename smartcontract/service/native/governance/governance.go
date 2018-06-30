@@ -89,7 +89,7 @@ const (
 // candidate fee must >= 1 ONG
 var MinCandidateFee = uint64(math.Pow(10, constants.ONG_DECIMALS))
 
-var Xi = []uint64{
+var Xi = []uint32{
 	0, 100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000, 1000000, 1100000, 1200000, 1300000, 1400000,
 	1500000, 1600000, 1700000, 1800000, 1900000, 2000000, 2100000, 2200000, 2300000, 2400000, 2500000, 2600000, 2700000,
 	2800000, 2900000, 3000000, 3100000, 3200000, 3300000, 3400000, 3500000, 3600000, 3700000, 3800000, 3900000, 4000000,
@@ -157,7 +157,7 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 	//init globalParam
 	globalParam := &GlobalParam{
 		CandidateFee: 500000000000,
-		MinInitStake: uint64(configuration.MinInitStake),
+		MinInitStake: configuration.MinInitStake,
 		CandidateNum: 7 * 7,
 		PosLimit:     20,
 		A:            50,
@@ -256,7 +256,7 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 
 	//init splitCurve
 	splitCurve := &SplitCurve{
-		Yi: []uint64{
+		Yi: []uint32{
 			0, 95123, 180968, 258213, 327493, 389401, 444491, 493282, 536257, 573866, 606531, 634645, 658574, 678660, 695220, 708550,
 			718927, 726606, 731826, 734808, 735759, 734870, 732317, 728265, 722867, 716262, 708583, 699949, 690472, 680254, 669391,
 			657969, 646069, 633765, 621124, 608209, 595076, 581778, 568361, 554869, 541342, 527814, 514317, 500882, 487534, 474297,
@@ -413,7 +413,7 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 	}
 
 	//check initPos
-	if peerPoolItem.InitPos < globalParam.MinInitStake {
+	if peerPoolItem.InitPos < uint64(globalParam.MinInitStake) {
 		return utils.BYTE_FALSE, fmt.Errorf("approveCandidate, initPos must >= %v", globalParam.MinInitStake)
 	}
 
@@ -745,7 +745,7 @@ func VoteForPeerTransferFrom(native *native.NativeService) ([]byte, error) {
 func UnVoteForPeer(native *native.NativeService) ([]byte, error) {
 	params := &VoteForPeerParam{
 		PeerPubkeyList: make([]string, 0),
-		PosList:        make([]uint64, 0),
+		PosList:        make([]uint32, 0),
 	}
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
@@ -788,36 +788,36 @@ func UnVoteForPeer(native *native.NativeService) ([]byte, error) {
 		if err != nil {
 			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getVoteInfo, get voteInfo error!")
 		}
-		if voteInfo.NewPos < pos {
+		if voteInfo.NewPos < uint64(pos) {
 			if peerPoolItem.Status == ConsensusStatus {
-				if voteInfo.ConsensusPos < (pos - voteInfo.NewPos) {
+				if voteInfo.ConsensusPos < (uint64(pos) - voteInfo.NewPos) {
 					return utils.BYTE_FALSE, errors.NewErr("unVoteForPeer, your pos of this peerPubkey is not enough!")
 				}
-				consensusPos := voteInfo.ConsensusPos + voteInfo.NewPos - pos
+				consensusPos := voteInfo.ConsensusPos + voteInfo.NewPos - uint64(pos)
 				newPos := voteInfo.NewPos
 				voteInfo.NewPos = 0
 				voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos + newPos
 				voteInfo.ConsensusPos = consensusPos
-				voteInfo.WithdrawPos = voteInfo.WithdrawPos + pos - voteInfo.NewPos
-				peerPoolItem.TotalPos = peerPoolItem.TotalPos - pos
+				voteInfo.WithdrawPos = voteInfo.WithdrawPos + uint64(pos) - voteInfo.NewPos
+				peerPoolItem.TotalPos = peerPoolItem.TotalPos - uint64(pos)
 			}
 			if peerPoolItem.Status == CandidateStatus {
-				if voteInfo.FreezePos < (pos - voteInfo.NewPos) {
+				if voteInfo.FreezePos < (uint64(pos) - voteInfo.NewPos) {
 					return utils.BYTE_FALSE, errors.NewErr("unVoteForPeer, your pos of this peerPubkey is not enough!")
 				}
-				freezePos := voteInfo.FreezePos + voteInfo.NewPos - pos
+				freezePos := voteInfo.FreezePos + voteInfo.NewPos - uint64(pos)
 				newPos := voteInfo.NewPos
 				voteInfo.NewPos = 0
 				voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos + newPos
 				voteInfo.FreezePos = freezePos
-				voteInfo.WithdrawFreezePos = voteInfo.WithdrawFreezePos + pos - voteInfo.NewPos
-				peerPoolItem.TotalPos = peerPoolItem.TotalPos - pos
+				voteInfo.WithdrawFreezePos = voteInfo.WithdrawFreezePos + uint64(pos) - voteInfo.NewPos
+				peerPoolItem.TotalPos = peerPoolItem.TotalPos - uint64(pos)
 			}
 		} else {
-			temp := voteInfo.NewPos - pos
+			temp := voteInfo.NewPos - uint64(pos)
 			voteInfo.NewPos = temp
-			voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos + pos
-			peerPoolItem.TotalPos = peerPoolItem.TotalPos - pos
+			voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos + uint64(pos)
+			peerPoolItem.TotalPos = peerPoolItem.TotalPos - uint64(pos)
 		}
 
 		peerPoolMap.PeerPoolMap[peerPubkey] = peerPoolItem
@@ -837,7 +837,7 @@ func UnVoteForPeer(native *native.NativeService) ([]byte, error) {
 func Withdraw(native *native.NativeService) ([]byte, error) {
 	params := &WithdrawParam{
 		PeerPubkeyList: make([]string, 0),
-		WithdrawList:   make([]uint64, 0),
+		WithdrawList:   make([]uint32, 0),
 	}
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, contract params deserialize error!")
@@ -864,11 +864,11 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 		if err != nil {
 			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getVoteInfo, get voteInfo error!")
 		}
-		if voteInfo.WithdrawUnfreezePos < pos {
+		if voteInfo.WithdrawUnfreezePos < uint64(pos) {
 			return utils.BYTE_FALSE, errors.NewErr("withdraw, your unfreeze withdraw pos of this peerPubkey is not enough!")
 		} else {
-			voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos - pos
-			total = total + pos
+			voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos - uint64(pos)
+			total = total + uint64(pos)
 			err = putVoteInfo(native, contract, voteInfo)
 			if err != nil {
 				return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putVoteInfo, put voteInfo error!")
@@ -990,7 +990,7 @@ func UpdateConfig(native *native.NativeService) ([]byte, error) {
 	if configuration.K < 2*configuration.C+1 {
 		return utils.BYTE_FALSE, errors.NewErr("updateConfig. K can not be less than 2*C+1 in config!")
 	}
-	if uint64(4*configuration.K) > globalParam.CandidateNum {
+	if 4*configuration.K > globalParam.CandidateNum {
 		return utils.BYTE_FALSE, errors.NewErr("updateConfig. 4*K can not be more than candidateNum!")
 	}
 	if configuration.N < configuration.K || configuration.K < 7 {
@@ -1052,7 +1052,7 @@ func UpdateGlobalParam(native *native.NativeService) ([]byte, error) {
 	if globalParam.PosLimit < 1 {
 		return utils.BYTE_FALSE, errors.NewErr("updateGlobalParam. PosLimit must >= 1!")
 	}
-	if globalParam.CandidateNum < uint64(4*config.K) {
+	if globalParam.CandidateNum < 4*config.K {
 		return utils.BYTE_FALSE, errors.NewErr("updateGlobalParam. CandidateNum must >= 4*K!")
 	}
 	if globalParam.CandidateFee != 0 && globalParam.CandidateFee < MinCandidateFee {
