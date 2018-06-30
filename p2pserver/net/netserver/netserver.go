@@ -268,7 +268,7 @@ func (this *NetServer) IsPeerEstablished(p *peer.Peer) bool {
 //Connect used to connect net address under sync or cons mode
 func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	if this.IsAddrInOutConnRecord(addr) {
-		log.Errorf("Address: %s Consensus: %v is in OutConnectionRecord,", addr, isConsensus)
+		log.Debugf("Address: %s Consensus: %v is in OutConnectionRecord,", addr, isConsensus)
 		return nil
 	}
 	if this.IsOwnAddress(addr) {
@@ -668,7 +668,7 @@ func (this *NetServer) CleanNoHandShakeConn() {
 			this.RemoveFromConnectingList(addr)
 			this.RemovePeerSyncAddress(addr)
 			this.RemovePeerConsAddress(addr)
-			log.Warnf("Connection with (%s) no handshake over (%d)s, disconnect")
+			log.Warnf("Connection with (%s) no handshake over (%d)s, disconnect", addr, config.DEFAULT_NO_HANDSHAKE_TIMEOUT)
 		}
 	}
 	this.InConnRecord.RUnlock()
@@ -685,7 +685,7 @@ func (this *NetServer) CleanNoHandShakeConn() {
 			this.RemoveFromConnectingList(addr)
 			this.RemovePeerSyncAddress(addr)
 			this.RemovePeerConsAddress(addr)
-			log.Warnf("Connection with (%s) no handshake over (%d)s, disconnect")
+			log.Warnf("Connection with (%s) no handshake over (%d)s, disconnect", addr, config.DEFAULT_NO_HANDSHAKE_TIMEOUT)
 		}
 	}
 	this.OutConnRecord.RUnlock()
