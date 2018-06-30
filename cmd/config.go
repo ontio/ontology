@@ -34,6 +34,14 @@ import (
 
 func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
 	cfg := config.DefConfig
+	netWorkId := ctx.GlobalInt(utils.GetFlagName(utils.NetworkIdFlag))
+	switch netWorkId {
+	case config.NETWORK_ID_MAIN_NET:
+		cfg.Genesis = config.MainNetConfig
+	case config.NETWORK_ID_POLARIS_NET:
+		cfg.Genesis = config.PolarisConfig
+	}
+
 	err := setGenesis(ctx, cfg.Genesis)
 	if err != nil {
 		return nil, fmt.Errorf("setGenesis error:%s", err)
@@ -66,7 +74,6 @@ func setGenesis(ctx *cli.Context, cfg *config.GenesisConfig) error {
 	}
 
 	if !ctx.IsSet(utils.GetFlagName(utils.ConfigFlag)) {
-		//Using Polaris config
 		return nil
 	}
 
@@ -83,7 +90,7 @@ func setGenesis(ctx *cli.Context, cfg *config.GenesisConfig) error {
 	// Remove the UTF-8 Byte Order Mark
 	data = bytes.TrimPrefix(data, []byte("\xef\xbb\xbf"))
 
-	cfg.VBFT = new(config.VBFTConfig)
+	cfg.Reset()
 	err = json.Unmarshal(data, cfg)
 	if err != nil {
 		return fmt.Errorf("json.Unmarshal GenesisConfig:%s error:%s", data, err)
