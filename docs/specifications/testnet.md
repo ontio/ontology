@@ -13,16 +13,27 @@ English | [中文](testnet_CN.md)
 ### Select network
 To run Ontology successfully,  nodes can be deployed by two ways:
 
+- Mainnet sync node deployment
 - Public test network(Polaris) sync node deployment
 - Single-host deployment
 - Multi-hosts deployment
+
+#### Mainnet sync node deployment
+
+Run ontology straightly
+
+   ```
+	./ontology --networkid 1
+   ```
+
+PS: There is no need of config.json file, will use the default setting.
 
 #### Public test network(Polaris) sync node deployment   
      
 Run ontology straightly
 
    ```
-	./ontology
+	./ontology --networkid 2
    ```
 
 PS: There is no need of config.json file, will use the default setting.
@@ -47,7 +58,7 @@ Here's a example of single-host configuration:
 Run ontology
 
    ```
-	./ontology --testmode
+	./ontology --testmode --networkid 3
    ```
 #### Multi-hosts deployment configuration
 
@@ -178,7 +189,7 @@ Run `./ontology --help` for details.
 ### ONT transfer sample
 --asset: asset type ["ont"|"ong"] ； - from: transfer from； - to: transfer to； - amount: amount；
 ```shell
-  ./ontology asset transfer --amount=500 --from  AYiToLDT2yZuNs3PZieXcdTpyC5VWQmfaN  --to AeoBhZtS8AmGp3Zt4LxvCqhdU4eSGiK44M  --password=xxx
+  ./ontology asset transfer --amount=500 --from  AYiToLDT2yZuNs3PZieXcdTpyC5VWQmfaN  --to AeoBhZtS8AmGp3Zt4LxvCqhdU4eSGiK44M
 ```
 If transfer asset successd, the result will show as follow:
 ```
