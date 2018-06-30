@@ -367,7 +367,7 @@ func delegate(native *native.NativeService, contractAddr common.Address, from []
 	var fromExpireTime uint32
 
 	//check input param
-	expireTime := uint32(time.Now().Unix())
+	expireTime := native.Time
 	if period+expireTime < period {
 		//invalid period param, causing overflow
 		return false, fmt.Errorf("[delegate] invalid param: overflow, period=%d", period)
