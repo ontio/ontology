@@ -91,14 +91,27 @@ func GetStorageRole(native *native.NativeService, key []byte) (common.Address, e
 	return role, err
 }
 
-func NotifyRoleChange(native *native.NativeService, contract common.Address, functionName string, addr common.Address) {
+func NotifyRoleChange(native *native.NativeService, contract common.Address, functionName string,
+	newAddr common.Address) {
 	if !config.DefConfig.Common.EnableEventLog {
 		return
 	}
 	native.Notifications = append(native.Notifications,
 		&event.NotifyEventInfo{
 			ContractAddress: contract,
-			States:          []interface{}{functionName, addr.ToBase58()},
+			States:          []interface{}{functionName, newAddr.ToBase58()},
+		})
+}
+
+func NotifyTransferAdmin(native *native.NativeService, contract common.Address, functionName string,
+	originAdmin, newAdmin common.Address) {
+	if !config.DefConfig.Common.EnableEventLog {
+		return
+	}
+	native.Notifications = append(native.Notifications,
+		&event.NotifyEventInfo{
+			ContractAddress: contract,
+			States:          []interface{}{functionName, originAdmin.ToBase58(), newAdmin.ToBase58()},
 		})
 }
 

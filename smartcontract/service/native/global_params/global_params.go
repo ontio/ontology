@@ -140,7 +140,7 @@ func TransferAdmin(native *native.NativeService) ([]byte, error) {
 	native.CloneCache.Add(scommon.ST_STORAGE, generateAdminKey(contract, true),
 		getRoleStorageItem(destinationAdmin))
 
-	NotifyRoleChange(native, contract, TRANSFER_ADMIN_NAME, destinationAdmin)
+	NotifyTransferAdmin(native, contract, TRANSFER_ADMIN_NAME, admin, destinationAdmin)
 	return utils.BYTE_TRUE, nil
 }
 
@@ -207,17 +207,15 @@ func GetGlobalParam(native *native.NativeService) ([]byte, error) {
 			paramNotInCache = append(paramNotInCache, paramName)
 		}
 	}
-	contract := native.ContextRef.CurrentContext().ContractAddress
 	result := new(bytes.Buffer)
 	if len(paramNotInCache) == 0 { // all request param exist in cache
 		if err := params.Serialize(result); err != nil {
 			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "get param, results seriealize error!")
 		}
-
-		NotifyParamChange(native, contract, GET_GLOBAL_PARAM_NAME, params)
 		return result.Bytes(), nil
 	}
 	// read from db
+	contract := native.ContextRef.CurrentContext().ContractAddress
 	storageParams, err := getStorageParam(native, generateParamKey(contract, CURRENT_VALUE))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "get param, storage error!")
@@ -237,8 +235,6 @@ func GetGlobalParam(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "get param, results to json error!")
 	}
-
-	NotifyParamChange(native, contract, GET_GLOBAL_PARAM_NAME, params)
 	return result.Bytes(), nil
 }
 
