@@ -77,6 +77,7 @@ func (this *NativeService) Invoke() (interface{}, error) {
 	}
 	this.Input = contract.Args
 	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address})
+	this.Notifications = []*event.NotifyEventInfo{}
 	result, err := service(this)
 	if err != nil {
 		return result, errors.NewDetailErr(err, errors.ErrNoCode, "[Invoke] Native serivce function execute error!")
