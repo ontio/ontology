@@ -1,6 +1,6 @@
 
 <h1 align="center">Ontology </h1>
-<p align="center" class="version">Version 0.7.0 </p>
+<p align="center" class="version">Version 1.0.0 </p>
 
 [![GoDoc](https://godoc.org/github.com/ontio/ontology?status.svg)](https://godoc.org/github.com/ontio/ontology)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ontio/ontology)](https://goreportcard.com/report/github.com/ontio/ontology)
@@ -48,4 +48,4 @@ $ make all
 * `tools/sigsvr`: (可选)签名服务 - sigsvr是一个签名服务的server以满足一些特殊的需求。详细的文档可以在[这里](./docs/specifications/sigsvr_CN.md)参考
 
 ### 从release获取
-You can download at [release page](https://github.com/ontio/ontology/releases).
+你可以从[下载页面](https://github.com/ontio/ontology/releases)获取.

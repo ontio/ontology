@@ -201,7 +201,7 @@ Return all transaction hash contained in the block corresponding to this height.
 
 Return block details based on block height.
 
-raw: Optional parameter, the default value of raw is 0. When raw is 0, it returns the block serialized information, which is represented by a hexadecimal string. To get detailed information from it, you need to call the SDK to deserialize. When raw is 1, the detailed information of the corresponding block is returned, which is represented by a JSON format string.
+raw: Optional parameter, the default value of raw is 0. When raw is 1, it returns the block serialized information, which is represented by a hexadecimal string. To get detailed information from it, you need to call the SDK to deserialize. When raw is 0, the detailed information of the corresponding block is returned, which is represented by a JSON format string.
 
 #### Request Example:
 
@@ -273,7 +273,7 @@ raw: Optional parameter, the default value of raw is 0. When raw is 0, it return
 
 Return block details based on block hash.
 
-raw: Optional parameter, the default value of raw is 0. When raw is 0, it returns the block serialized information, which is represented by a hexadecimal string. To get detailed information from it, you need to call the SDK to deserialize. When raw is 1, the detailed information of the corresponding block is returned, which is represented by a JSON format string.
+raw: Optional parameter, the default value of raw is 0. When raw is 1, it returns the block serialized information, which is represented by a hexadecimal string. To get detailed information from it, you need to call the SDK to deserialize. When raw is 0, the detailed information of the corresponding block is returned, which is represented by a JSON format string.
 
 #### Request Example:
 
@@ -400,7 +400,7 @@ Return block hash based on block height.
 
 Get transaction details based on transaction hash.
 
-raw: Optional parameter, the default value of raw is 0. When raw is 0, it returns the transaction serialized information, which is represented by a hexadecimal string. To get detailed information from it, you need to call the SDK to deserialize. When raw is 1, the detailed information of the corresponding transaction is returned, which is represented by a JSON format string.
+raw: Optional parameter, the default value of raw is 0. When raw is 1, it returns the transaction serialized information, which is represented by a hexadecimal string. To get detailed information from it, you need to call the SDK to deserialize. When raw is 0, the detailed information of the corresponding transaction is returned, which is represented by a JSON format string.
 
 #### Request Example:
 
