@@ -92,16 +92,25 @@ You can download at [release page](https://github.com/ontio/ontology/releases).
 ### 选择网络
 ontology的运行支持以下三种方式
 
+* 主网同步节点部署
 * 公开测试网Polaris同步节点部署
 * 单机部署
 * 多机部署
+
+#### 主网同步节点部署
+
+直接启动Ontology，不需要钱包文件，也不需要配置文件
+
+   ```
+	./ontology --networkid 1
+   ```
 
 #### 公开测试网Polaris同步节点部署
 
 直接启动Ontology，不需要钱包文件，也不需要配置文件
 
    ```
-	./ontology
+	./ontology --networkid 2
    ```
 
 #### 单机部署配置
@@ -110,7 +119,7 @@ ontology的运行支持以下三种方式
 - 节点程序 + 节点控制程序 `ontology`
 - 钱包文件`wallet.dat`
 
-使用命令 `$ ./ontology --testmode` 即可启动单机版的测试网络。
+使用命令 `$ ./ontology --testmode --networkid 3` 即可启动单机版的测试网络。
 
 单机配置的例子如下：
 - 目录结构

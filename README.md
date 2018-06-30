@@ -93,16 +93,27 @@ You can download at [release page](https://github.com/ontio/ontology/releases).
 ### Select network
 To run Ontology successfully,  nodes can be deployed by three ways:
 
+- Mainnet sync node deployment
 - Public test network Polaris sync node deployment
 - Single-host deployment
 - Multi-hosts deployment
+
+#### Mainnet sync node deployment
+
+Run ontology straightly
+
+   ```
+	./ontology --networkid 1
+   ```
+
+PS: There is no need of config.json file, will use the default setting.
 
 #### Public test network Polaris sync node deployment
 
 Run ontology straightly
 
    ```
-	./ontology
+	./ontology --networkid 2
    ```
 
 PS: There is no need of config.json file, will use the default setting.
@@ -113,7 +124,7 @@ Create a directory on the host and store the following files in the directory:
 - Node program + Node control program  `ontology`
 - Wallet file`wallet.dat`
 
-Run command `$ ./ontology --testmode` can start single-host test net.
+Run command `$ ./ontology --testmode --networkid 3` can start single-host test net.
 
 Here's a example of single-host configuration:
 
