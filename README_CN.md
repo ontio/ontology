@@ -1,6 +1,6 @@
 
 <h1 align="center">Ontology </h1>
-<h4 align="center">Version 0.9 </h4>
+<h4 align="center">Version 1.0 </h4>
 
 [![GoDoc](https://godoc.org/github.com/ontio/ontology?status.svg)](https://godoc.org/github.com/ontio/ontology)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ontio/ontology)](https://goreportcard.com/report/github.com/ontio/ontology)
@@ -97,33 +97,12 @@ ontology的运行支持以下三种方式
 * 多机部署
 
 #### 公开测试网Polaris同步节点部署
-1.创建钱包
-- 通过命令行程序，分别创建节点运行所需的钱包文件wallet.dat
-    ```
-    $ ./ontology account add -d
-    use default value for all options
-    Enter a password for encrypting the private key:
-    Re-enter password:
 
-    Create account successfully.
-    Address:  TA9TVuR4Ynn4VotfpExY5SaEy8a99obFPr
-    Public key: 120202a1cfbe3a0a04183d6c25ceff1e34957ace6e4899e4361c2e1a2bc3c817f90936
-    Signature scheme: SHA256withECDSA
-    ```
-    配置的例子如下：
-    - 目录结构
+直接启动Ontology，不需要钱包文件，也不需要配置文件
 
-    ```shell
-    $ tree
-    └── ontology
-        ├── ontology
-        └── wallet.dat
-    ```
-
-2.启动./ontology节点
-  * 不需要config.json文件，会使用默认配置启动节点
-
-**注意**：钱包文件的格式有变化，旧文件无法继续使用，请重新生成新的钱包文件。
+   ```
+	./ontology
+   ```
 
 #### 单机部署配置
 
@@ -145,63 +124,112 @@ ontology的运行支持以下三种方式
 
 #### 多机部署配置
 
-网络环境下，最少需要4个节点（共识节点）完成部署。
+##### VBFT部署方法
+
+多机环境下，根据VBFT共识算法的要求，最少需要7个节点（共识节点）完成部署。
+
 我们可以通过修改默认的配置文件`config.json`进行快速部署。
 
-1. 将相关文件复制到目标主机，包括：
+1. 生成七个钱包文件，每个钱包文件包含一个账户，共七个账户，分别作为每个节点的记账人。生成账户和钱包的命令为：
+	```
+	./ontology account add -d -w wallet.dat
+	Use default setting '-t ecdsa -b 256 -s SHA256withECDSA' 
+		signature algorithm: ecdsa 
+		curve: P-256 
+		signature scheme: SHA256withECDSA 
+	Password:
+	Re-enter Password:
+
+	Index: 1
+	Label: 
+	Address: AXkDGfr9thEqWmCKpTtQYaazJRwQzH48eC
+	Public key: 03d7d8c0c4ca2d2bc88209db018dc0c6db28380d8674aff86011b2a6ca32b512f9
+	Signature scheme: SHA256withECDSA
+
+	Create account successfully.
+	```
+	使用-w参数指定生成的钱包文件名
+
+2. 修改config.json，将上一步生成的七个账户的公钥、address分别填入`config.json`中的peers配置的1-7项
+
+3. 将相关文件复制到目标主机，包括：
     - 默认配置文件`config.json`
     - 节点程序`ontology`
+    - 钱包文件
 
-2. 种子节点配置
+4. 设置每个节点网络连接的端口号（推荐不做修改，使用默认端口配置）
+    - `NodePort`为的P2P连接端口号（默认20338）
+    - `HttpJsonPort`和`HttpLocalPort`为RPC端口号（默认为20336，20337）
+
+5. 种子节点配置
+    - 在7个主机中选出至少一个做种子节点，并将种子节点地址分别填写到每个配置文件的`SeelList`中，格式为`种子节点IP地址 + 种子节点NodePort`
+
+##### DBFT部署方法
+
+多机环境下，最少需要4个节点（共识节点）完成部署。
+我们可以通过修改默认的配置文件`config-dbft.json`进行快速部署。
+
+1. 将相关文件复制到目标主机，包括：
+    - 默认配置文件`config-dbft.json`
+    - 节点程序`ontology`
+
+2. 设置每个节点网络连接的端口号（推荐不做修改，使用默认端口配置）
+    - `NodePort`为的P2P连接端口号（默认20338）
+    - `HttpJsonPort`和`HttpLocalPort`为RPC端口号（默认为20336，20337）
+
+3. 种子节点配置
     - 在4个主机中选出至少一个做种子节点，并将种子节点地址分别填写到每个配置文件的`SeelList`中，格式为`种子节点IP地址 + 种子节点NodePort`
 
-3. 创建钱包文件
-    - 通过命令行程序，在每个主机上分别创建节点运行所需的钱包文件wallet.dat
+4. 创建钱包文件
+    - 通过命令行程序，在每个主机上分别创建节点运行所需的钱包文件wallet.dat 
+        ```
+        $ ./ontology account add -d
+        Use default setting '-t ecdsa -b 256 -s SHA256withECDSA' 
+		signature algorithm: ecdsa 
+		curve: P-256 
+		signature scheme: SHA256withECDSA 
+		Password:
+		Re-enter Password:
 
-    ```shell
-    $ ./ontology account add -d
-    use default value for all options
-    Enter a password for encrypting the private key:
-    Re-enter password:
+		Index: 1
+		Label: 
+		Address: AXkDGfr9thEqWmCKpTtQYaazJRwQzH48eC
+		Public key: 03d7d8c0c4ca2d2bc88209db018dc0c6db28380d8674aff86011b2a6ca32b512f9
+		Signature scheme: SHA256withECDSA
 
-    Create account successfully.
-    Address:  TA9TVuR4Ynn4VotfpExY5SaEy8a99obFPr
-    Public key: 120202a1cfbe3a0a04183d6c25ceff1e34957ace6e4899e4361c2e1a2bc3c817f90936
-    Signature scheme: SHA256withECDSA
-   ```
+		Create account successfully.
+        ```
 
-4. 记账人配置
+5. 记账人配置
     - 为每个节点创建钱包时会显示钱包的公钥信息，将所有节点的公钥信息分别填写到每个节点的配置文件的`Bookkeepers`项中
+    
+        注：每个节点的钱包公钥信息也可以通过命令行程序查看：
+    
+        ```
+        1	AYiToLDT2yZuNs3PZieXcdTpyC5VWQmfaN (default)
+        	Label: 
+        	Signature algorithm: ECDSA
+        	Curve: P-256
+        	Key length: 384 bits
+        	Public key: 030e5d50bf585ff5c73464114244b93f04b231862d6bbdfd846be890093b2c1c17
+        	Signature scheme: SHA256withECDSA
+        ```
+6. 修改配置文件名
+	- 修改每个节点的`config-dbft.json`为`config.json`
+	
+#### 多机部署配置完成，每个节点目录结构如下
 
-    注：每个节点的钱包公钥信息也可以通过命令行程序查看：
-
-    ```shell
-    $ ./ontology account list -v
-    * 1     TA9TVuR4Ynn4VotfpExY5SaEy8a99obFPr
-            Signature algorithm: ECDSA
-            Curve: P-256
-            Key length: 256 bit
-            Public key: 120202a1cfbe3a0a04183d6c25ceff1e34957ace6e4899e4361c2e1a2bc3c817f90936 bit
-            Signature scheme: SHA256withECDSA
-    ```
-
-
-多机部署配置完成，每个节点目录结构如下
-
-```shell
-$ ls
-config.json ontology wallet.dat
-```
-
-一个配置文件片段可以参考根目录下的config-dbft.json文件。
-
+   ```shell
+	$ ls
+	config.json ontology wallet.dat
+   ```
 ### 运行
-以任意顺序运行每个节点node程序，并在出现`Password:`提示后输入节点的钱包密码
+以任意顺序运行每个节点node程序（如果是VBFT，则需要在启动时使用--enableConsensus）， 并在出现`Password:`提示后输入节点的钱包密码
 
-```shell
-$ ./ontology --nodeport=20338 --rpcport=20336
-$ - 输入你的钱包口令
-```
+	```shell
+	$ ./ontology
+	$ - 输入你的钱包口令
+	```
 
 了解更多请运行 `./ontology --help`.
 
