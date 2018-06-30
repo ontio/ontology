@@ -65,7 +65,7 @@ func TestMap(t *testing.T) {
 	//}
 
 	for n := 0; n < N; n++ {
-		// Setup Execution Enviroment
+		// Setup Execution Environment
 		//store := statestore.NewMemDatabase()
 		//testBatch := statestore.NewStateStoreBatch(store, testLevelDB)
 		config := &smartcontract.Config{
