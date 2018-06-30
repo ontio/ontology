@@ -174,6 +174,69 @@ var PolarisConfig = &GenesisConfig{
 	SOLO: &SOLOConfig{},
 }
 
+var MainNetConfig = &GenesisConfig{
+	SeedList: []string{
+		"seed1.ont.io:20338",
+		"seed2.ont.io:20338",
+		"seed3.ont.io:20338",
+		"seed4.ont.io:20338",
+		"seed5.ont.io:20338"},
+	ConsensusType: CONSENSUS_TYPE_VBFT,
+	VBFT: &VBFTConfig{
+		N:                    7,
+		C:                    2,
+		K:                    7,
+		L:                    112,
+		BlockMsgDelay:        10000,
+		HashMsgDelay:         10000,
+		PeerHandshakeTimeout: 10,
+		MaxBlockChangeView:   120000,
+		AdminOntID:           "did:ont:AdjfcJgwru2FD8kotCPvLDXYzRjqFjc9Tb",
+		MinInitStake:         100000,
+		VrfValue:             "1c9810aa9822e511d5804a9c4db9dd08497c31087b0daafa34d768a3253441fa20515e2f30f81741102af0ca3cefc4818fef16adb825fbaa8cad78647f3afb590e",
+		VrfProof:             "c57741f934042cb8d8b087b44b161db56fc3ffd4ffb675d36cd09f83935be853d8729f3f5298d12d6fd28d45dde515a4b9d7f67682d182ba5118abf451ff1988",
+		Peers: []*VBFTPeerStakeInfo{
+			{
+				Index:      1,
+				PeerPubkey: "03348c8fe64e1defb408676b6e320038bd2e592c802e27c3d7e88e68270076c2f7",
+				Address:    "AZavFr7sQ4em2NmqWDjLMY34tHMQzATWgx",
+			},
+			{
+				Index:      2,
+				PeerPubkey: "03afd920a3b4ce2e7175a32c0d092153d1a11ef5e0dcc14e71c85101b95518d5d7",
+				Address:    "AM9jHMV7xY4HWH2dWmzyxrtnbi6ErNt7oL",
+			},
+			{
+				Index:      3,
+				PeerPubkey: "03e818b65a66d983a99497e06c6552ee5067229e85ba1cec60c5477dc3d568ed43",
+				Address:    "ATECwFPNRZFydFR1yUjb6RTLfVcKGKWRmp",
+			},
+			{
+				Index:      4,
+				PeerPubkey: "02375e44e500f9cfe8bd2f4afa4a016a8a902567996c919b9d1ce4f5d4f930f145",
+				Address:    "AKMxTuHQtt5YspXNPwkQNP5ZY66c4LY5BR",
+			},
+			{
+				Index:      5,
+				PeerPubkey: "03af040c09af5e06cf966f73fc99e8f4372f1510fe6e4376824452a99b85695a9c",
+				Address:    "AT4fXp36Ui22Lbh5ZJUCRBFDJ7axkLyUFM",
+			},
+			{
+				Index:      6,
+				PeerPubkey: "034ee2a4368e999fc7c04e7e3a9073162d47712382f1690d6a67e7e1c475cd0ff3",
+				Address:    "ANLRokqieUtrUMave66FcNy2cxV7Whf4UN",
+			},
+			{
+				Index:      7,
+				PeerPubkey: "0327f9e0fb3b894027c52caf3d31d9ac5f676d3cf892c933ac107ed7447fb6e65b",
+				Address:    "AVRD9QmkYNq8n8DXc9AqpZnUEYhjg1aq5L",
+			},
+		},
+	},
+	DBFT: &DBFTConfig{},
+	SOLO: &SOLOConfig{},
+}
+
 var DefConfig = NewOntologyConfig()
 
 type GenesisConfig struct {
@@ -473,7 +536,7 @@ type OntologyConfig struct {
 
 func NewOntologyConfig() *OntologyConfig {
 	return &OntologyConfig{
-		Genesis: PolarisConfig,
+		Genesis: MainNetConfig,
 		Common: &CommonConfig{
 			LogLevel:       DEFAULT_LOG_LEVEL,
 			EnableEventLog: DEFAULT_ENABLE_EVENT_LOG,
