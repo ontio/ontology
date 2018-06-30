@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	MAX_STRCUT_DEPTH = 1024
+	MAX_STRCUT_DEPTH = 10
 )
 
 type Struct struct {
