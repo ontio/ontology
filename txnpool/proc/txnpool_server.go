@@ -260,7 +260,7 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256,
 		return
 	}
 
-	if err == errors.ErrNoError && pt.sender == tc.HttpSender {
+	if err == errors.ErrNoError {
 		pid := s.GetPID(tc.NetActor)
 		if pid != nil {
 			pid.Tell(pt.tx)

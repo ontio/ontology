@@ -135,6 +135,7 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 					txn.Payer.ToHexString(), gas)
 				return
 			}
+			log.Debugf("handleTransaction: tx %x preExec success", txn.Hash())
 		}
 		<-ta.server.slots
 		ta.server.assignTxToWorker(txn, sender)
