@@ -25,7 +25,7 @@ import (
 // genesis constants
 var (
 	//TODO: modify this when on mainnet
-	GENESIS_BLOCK_TIMESTAMP = uint32(time.Date(2018, time.June, 12, 0, 0, 0, 0, time.UTC).Unix())
+	GENESIS_BLOCK_TIMESTAMP = uint32(time.Date(2018, time.June, 30, 0, 0, 0, 0, time.UTC).Unix())
 )
 
 // ont constants

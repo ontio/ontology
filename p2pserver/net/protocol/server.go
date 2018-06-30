@@ -51,7 +51,6 @@ type P2P interface {
 	GetPeerFromAddr(addr string) *peer.Peer
 	AddOutConnectingList(addr string) (added bool)
 	GetOutConnRecordLen() int
-	CleanNoHandShakeConn()
 	RemoveFromConnectingList(addr string)
 	RemoveFromOutConnRecord(addr string)
 	RemoveFromInConnRecord(addr string)
