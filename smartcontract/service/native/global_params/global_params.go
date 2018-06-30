@@ -120,6 +120,7 @@ func AcceptAdmin(native *native.NativeService) ([]byte, error) {
 	// modify admin in database
 	native.CloneCache.Add(scommon.ST_STORAGE, generateAdminKey(contract, false), getRoleStorageItem(destinationAdmin))
 
+	NotifyRoleChange(native, contract, ACCEPT_ADMIN_NAME, destinationAdmin)
 	return utils.BYTE_TRUE, nil
 }
 
@@ -138,6 +139,8 @@ func TransferAdmin(native *native.NativeService) ([]byte, error) {
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, generateAdminKey(contract, true),
 		getRoleStorageItem(destinationAdmin))
+
+	NotifyRoleChange(native, contract, TRANSFER_ADMIN_NAME, destinationAdmin)
 	return utils.BYTE_TRUE, nil
 }
 
@@ -155,6 +158,8 @@ func SetOperator(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("set operator, deserialize operator failed!")
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, GenerateOperatorKey(contract), getRoleStorageItem(destinationOperator))
+
+	NotifyRoleChange(native, contract, SET_OPERATOR, destinationOperator)
 	return utils.BYTE_TRUE, nil
 }
 
@@ -182,6 +187,8 @@ func SetGlobalParam(native *native.NativeService) ([]byte, error) {
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, generateParamKey(contract, PREPARE_VALUE),
 		getParamStorageItem(storageParams))
+
+	NotifyParamChange(native, contract, SET_GLOBAL_PARAM_NAME, params)
 	return utils.BYTE_TRUE, nil
 }
 
@@ -200,15 +207,17 @@ func GetGlobalParam(native *native.NativeService) ([]byte, error) {
 			paramNotInCache = append(paramNotInCache, paramName)
 		}
 	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
 	result := new(bytes.Buffer)
 	if len(paramNotInCache) == 0 { // all request param exist in cache
 		if err := params.Serialize(result); err != nil {
 			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "get param, results seriealize error!")
 		}
+
+		NotifyParamChange(native, contract, GET_GLOBAL_PARAM_NAME, params)
 		return result.Bytes(), nil
 	}
 	// read from db
-	contract := native.ContextRef.CurrentContext().ContractAddress
 	storageParams, err := getStorageParam(native, generateParamKey(contract, CURRENT_VALUE))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "get param, storage error!")
@@ -228,6 +237,8 @@ func GetGlobalParam(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "get param, results to json error!")
 	}
+
+	NotifyParamChange(native, contract, GET_GLOBAL_PARAM_NAME, params)
 	return result.Bytes(), nil
 }
 
@@ -252,6 +263,8 @@ func CreateSnapshot(native *native.NativeService) ([]byte, error) {
 	native.CloneCache.Add(scommon.ST_STORAGE, generateParamKey(contract, CURRENT_VALUE), getParamStorageItem(prepareParam))
 	// clear memory cache
 	clearCache()
+
+	NotifyParamChange(native, contract, CREATE_SNAPSHOT_NAME, prepareParam)
 	return utils.BYTE_TRUE, nil
 }
 
