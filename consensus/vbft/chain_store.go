@@ -48,6 +48,23 @@ func (self *ChainStore) GetChainedBlockNum() uint32 {
 	return self.chainedBlockNum
 }
 
+func (self *ChainStore) ReloadFromLedger() {
+	height := self.db.GetCurrentBlockHeight()
+	if height > self.chainedBlockNum {
+		// update chainstore height
+		self.chainedBlockNum = height
+		// remove persisted pending blocks
+		newPending := make(map[uint32]*Block)
+		for blkNum, blk := range self.pendingBlocks {
+			if blkNum > height {
+				newPending[blkNum] = blk
+			}
+		}
+		// update pending blocks
+		self.pendingBlocks = newPending
+	}
+}
+
 func (self *ChainStore) AddBlock(block *Block) error {
 	if block == nil {
 		return fmt.Errorf("try add nil block")

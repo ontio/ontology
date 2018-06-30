@@ -380,6 +380,10 @@ func (self *StateMgr) setSyncedReady() error {
 
 func (self *StateMgr) checkStartSyncing(startBlkNum uint32, forceSync bool) error {
 
+	if self.server.nonConsensusNode() {
+		// non-consensus node, block-syncer do the syncing
+		return nil
+	}
 	var maxCommitted uint32
 	peers := make(map[uint32][]uint32)
 	for _, p := range self.peers {
