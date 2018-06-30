@@ -22,7 +22,9 @@ import (
 	"bytes"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	cstates "github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -87,4 +89,44 @@ func GetStorageRole(native *native.NativeService, key []byte) (common.Address, e
 	bf := bytes.NewBuffer(item.Value)
 	role, err = utils.ReadAddress(bf)
 	return role, err
+}
+
+func NotifyRoleChange(native *native.NativeService, contract common.Address, functionName string,
+	newAddr common.Address) {
+	if !config.DefConfig.Common.EnableEventLog {
+		return
+	}
+	native.Notifications = append(native.Notifications,
+		&event.NotifyEventInfo{
+			ContractAddress: contract,
+			States:          []interface{}{functionName, newAddr.ToBase58()},
+		})
+}
+
+func NotifyTransferAdmin(native *native.NativeService, contract common.Address, functionName string,
+	originAdmin, newAdmin common.Address) {
+	if !config.DefConfig.Common.EnableEventLog {
+		return
+	}
+	native.Notifications = append(native.Notifications,
+		&event.NotifyEventInfo{
+			ContractAddress: contract,
+			States:          []interface{}{functionName, originAdmin.ToBase58(), newAdmin.ToBase58()},
+		})
+}
+
+func NotifyParamChange(native *native.NativeService, contract common.Address, functionName string, params *Params) {
+	if !config.DefConfig.Common.EnableEventLog {
+		return
+	}
+	paramsString := ""
+	for _, param := range *params {
+		paramsString += param.Key + "," + param.Value + ";"
+	}
+	paramsString = paramsString[:len(paramsString)-1]
+	native.Notifications = append(native.Notifications,
+		&event.NotifyEventInfo{
+			ContractAddress: contract,
+			States:          []interface{}{functionName, paramsString},
+		})
 }
