@@ -42,7 +42,7 @@ type Transaction struct {
 	Payer    common.Address
 	Payload  Payload
 	//Attributes []*TxAttribute
-	attributes byte //this must be 0 now, Attribute Array length use VarUint encoding, so byte is enough for extention
+	attributes byte //this must be 0 now, Attribute Array length use VarUint encoding, so byte is enough for extension
 	Sigs       []*Sig
 
 	hash *common.Uint256

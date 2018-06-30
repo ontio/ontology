@@ -495,7 +495,7 @@ type P2PRsvConfig struct {
 type P2PNodeConfig struct {
 	ReservedPeersOnly         bool
 	ReservedCfg               *P2PRsvConfig
-	NetworkMaigc              uint32
+	NetworkMagic              uint32
 	NetworkId                 uint32
 	NetworkName               string
 	NodePort                  uint
@@ -561,7 +561,7 @@ func NewOntologyConfig() *OntologyConfig {
 			ReservedPeersOnly:         false,
 			NetworkId:                 NETWORK_ID_MAIN_NET,
 			NetworkName:               GetNetworkName(NETWORK_ID_POLARIS_NET),
-			NetworkMaigc:              GetNetworkMagic(NETWORK_ID_POLARIS_NET),
+			NetworkMagic:              GetNetworkMagic(NETWORK_ID_POLARIS_NET),
 			NodePort:                  DEFAULT_NODE_PORT,
 			NodeConsensusPort:         DEFAULT_CONSENSUS_PORT,
 			DualPortSupport:           true,
