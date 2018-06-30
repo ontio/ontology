@@ -75,6 +75,7 @@ func (this *NativeService) Invoke() (interface{}, error) {
 		return false, fmt.Errorf("Native contract %x doesn't support this function %s.",
 			contract.Address, contract.Method)
 	}
+	args := this.Input
 	this.Input = contract.Args
 	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address})
 	notifications := this.Notifications
@@ -86,6 +87,7 @@ func (this *NativeService) Invoke() (interface{}, error) {
 	this.ContextRef.PopContext()
 	this.ContextRef.PushNotifications(this.Notifications)
 	this.Notifications = notifications
+	this.Input = args
 	return result, nil
 }
 
