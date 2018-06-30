@@ -1,6 +1,6 @@
 
 <h1 align="center">Ontology </h1>
-<p align="center" class="version">Version 0.7.0 </p>
+<p align="center" class="version">Version 1.0.0 </p>
 
 [![GoDoc](https://godoc.org/github.com/ontio/ontology?status.svg)](https://godoc.org/github.com/ontio/ontology)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ontio/ontology)](https://goreportcard.com/report/github.com/ontio/ontology)
@@ -45,7 +45,7 @@ $ make all
 After building the source code sucessfully, you should see two executable programs:
 
 - `ontology`: the node program/command line program for node control
-- `tools/sigsvr`: (optional)Ontology Signature Server - sigsvr is a rpc server for signing transactions for some special requirement.detail docs can be reference at [link](./docs/specifications/sigsvr.md)
+- `tools/sigsvr`: (optional)Ontology Signature Server - sigsvr is a rpc server for signing transactions for some special requirement. Detail docs can be reference at [link](./docs/specifications/sigsvr.md)
 
 ### get from release
 You can download at [release page](https://github.com/ontio/ontology/releases).
