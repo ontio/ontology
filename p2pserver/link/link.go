@@ -159,6 +159,7 @@ func (this *Link) Tx(msg types.Message) error {
 	err := types.WriteMessage(buf, msg)
 	if err != nil {
 		log.Error("error serialize messge ", err.Error())
+		return err
 	}
 
 	payload := buf.Bytes()
