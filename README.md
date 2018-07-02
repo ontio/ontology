@@ -257,7 +257,7 @@ A configuration file fragment can refer to the config-dbft.json file in the root
 
 Run each node program in any order and enter the node's wallet password after the `Password:` prompt appears.
   
-If you wish to run a consensus node (such as in a privatenet), the --enableconsensus argument must be used.
+If you want to participate in consensus, must use --enableconsensus argument to run ontology
    ```
     $ ./ontology
     $ - Input your wallet password
