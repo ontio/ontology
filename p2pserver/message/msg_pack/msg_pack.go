@@ -32,6 +32,7 @@ import (
 
 //Peer address package
 func NewAddrs(nodeAddrs []msgCommon.PeerAddr) mt.Message {
+	log.Debug()
 	var addr mt.Addr
 	addr.NodeAddrs = nodeAddrs
 
@@ -40,6 +41,7 @@ func NewAddrs(nodeAddrs []msgCommon.PeerAddr) mt.Message {
 
 //Peer address request package
 func NewAddrReq() mt.Message {
+	log.Debug()
 	var msg mt.AddrReq
 	return &msg
 }
@@ -55,6 +57,7 @@ func NewBlock(bk *ct.Block) mt.Message {
 
 //blk hdr package
 func NewHeaders(headers []*ct.Header) mt.Message {
+	log.Debug()
 	var blkHdr mt.BlkHeader
 	blkHdr.BlkHdr = headers
 
@@ -63,6 +66,7 @@ func NewHeaders(headers []*ct.Header) mt.Message {
 
 //blk hdr req package
 func NewHeadersReq(curHdrHash common.Uint256) mt.Message {
+	log.Debug()
 	var h mt.HeadersReq
 	h.Len = 1
 	h.HashEnd = curHdrHash
@@ -81,6 +85,7 @@ func NewConsensus(cp *mt.ConsensusPayload) mt.Message {
 
 //InvPayload
 func NewInvPayload(invType common.InventoryType, msg []common.Uint256) *mt.InvPayload {
+	log.Debug()
 	return &mt.InvPayload{
 		InvType: invType,
 		Blk:     msg,
@@ -89,6 +94,7 @@ func NewInvPayload(invType common.InventoryType, msg []common.Uint256) *mt.InvPa
 
 //Inv request package
 func NewInv(invPayload *mt.InvPayload) mt.Message {
+	log.Debug()
 	var inv mt.Inv
 	inv.P.Blk = invPayload.Blk
 	inv.P.InvType = invPayload.InvType
@@ -134,6 +140,7 @@ func NewTxn(txn *ct.Transaction) mt.Message {
 
 //version ack package
 func NewVerAck(isConsensus bool) mt.Message {
+	log.Debug()
 	var verAck mt.VerACK
 	verAck.IsConsensus = isConsensus
 
@@ -142,6 +149,7 @@ func NewVerAck(isConsensus bool) mt.Message {
 
 //Version package
 func NewVersion(n p2pnet.P2P, isCons bool, height uint32) mt.Message {
+	log.Debug()
 	var version mt.Version
 	version.P = mt.VersionPayload{
 		Version:      n.GetVersion(),
@@ -170,6 +178,7 @@ func NewVersion(n p2pnet.P2P, isCons bool, height uint32) mt.Message {
 
 //transaction request package
 func NewTxnDataReq(hash common.Uint256) mt.Message {
+	log.Debug()
 	var dataReq mt.DataReq
 	dataReq.DataType = common.TRANSACTION
 	dataReq.Hash = hash
@@ -179,6 +188,7 @@ func NewTxnDataReq(hash common.Uint256) mt.Message {
 
 //block request package
 func NewBlkDataReq(hash common.Uint256) mt.Message {
+	log.Debug()
 	var dataReq mt.DataReq
 	dataReq.DataType = common.BLOCK
 	dataReq.Hash = hash
@@ -188,6 +198,7 @@ func NewBlkDataReq(hash common.Uint256) mt.Message {
 
 //consensus request package
 func NewConsensusDataReq(hash common.Uint256) mt.Message {
+	log.Debug()
 	var dataReq mt.DataReq
 	dataReq.DataType = common.CONSENSUS
 	dataReq.Hash = hash
