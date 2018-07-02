@@ -1,5 +1,7 @@
 # Ontology CLI Instruction
 
+[English|[中文](cli_user_guide_CN.md)]
+
 Ontology CLI is an Ontology node command line Client for starting and managing Ontology nodes, managing user wallets, sending transactions, and deploying and invoking contracts.
 
 ## 1. Start and Manage Ontology Nodes
@@ -294,6 +296,9 @@ The wallet parameter specifies the wallet file path. If the wallet file does not
 
 --number
 The number parameter specifies the number of accounts that need to be created. You can batch create accounts by number parameter. The default value is 1.
+
+--ontid
+The parameter is used to create ONT ID instead of account.
 
 **Add account**
 
