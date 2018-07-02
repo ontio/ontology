@@ -251,7 +251,7 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	if err := txn.Deserialize(bytes.NewReader(bys)); err != nil {
 		return ResponsePack(berr.INVALID_TRANSACTION)
 	}
-	if txn.TxType == types.Invoke {
+	if txn.TxType == types.Invoke || txn.TxType == types.Deploy {
 		if preExec, ok := cmd["PreExec"].(string); ok && preExec == "1" {
 			if _, ok := txn.Payload.(*payload.InvokeCode); ok {
 				resp["Result"], err = bactor.PreExecuteContract(&txn)
