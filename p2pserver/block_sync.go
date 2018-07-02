@@ -37,8 +37,8 @@ const (
 	SYNC_MAX_FLIGHT_HEADER_SIZE  = 1    //Number of headers on flight
 	SYNC_MAX_FLIGHT_BLOCK_SIZE   = 50   //Number of blocks on flight
 	SYNC_MAX_BLOCK_CACHE_SIZE    = 500  //Cache size of block wait to commit to ledger
-	SYNC_HEADER_REQUEST_TIMEOUT  = 10   //s, Request header timeout time. If header haven't receive after SYNC_HEADER_REQUEST_TIMEOUT second, retry
-	SYNC_BLOCK_REQUEST_TIMEOUT   = 15   //s, Request block timeout time. If block haven't received after SYNC_BLOCK_REQUEST_TIMEOUT second, retry
+	SYNC_HEADER_REQUEST_TIMEOUT  = 2    //s, Request header timeout time. If header haven't receive after SYNC_HEADER_REQUEST_TIMEOUT second, retry
+	SYNC_BLOCK_REQUEST_TIMEOUT   = 2    //s, Request block timeout time. If block haven't received after SYNC_BLOCK_REQUEST_TIMEOUT second, retry
 )
 
 //SyncFlightInfo record the info of fight object(header or block)
@@ -208,7 +208,7 @@ func (this *BlockSyncMgr) checkTimeout() {
 		}
 		flightInfo.ResetStartTime()
 		flightInfo.MarkFailedNode()
-		log.Infof("checkTimeout sync height:%d block:0x%x timeout after:%d s times:%d", flightInfo.Height, blockHash, SYNC_BLOCK_REQUEST_TIMEOUT, flightInfo.GetTotalFailedTimes())
+		log.Debugf("checkTimeout sync height:%d block:0x%x timeout after:%d s times:%d", flightInfo.Height, blockHash, SYNC_BLOCK_REQUEST_TIMEOUT, flightInfo.GetTotalFailedTimes())
 		reqNode := this.getNodeWithMinFailedTimes(flightInfo, curBlockHeight)
 		if reqNode == nil {
 			break
