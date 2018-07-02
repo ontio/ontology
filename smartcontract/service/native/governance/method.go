@@ -324,10 +324,9 @@ func blackQuit(native *native.NativeService, contract common.Address, peerPoolIt
 		if err := voteInfo.Deserialize(bytes.NewBuffer(voteInfoStore.Value)); err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfo error!")
 		}
-		total := voteInfo.ConsensusPos + voteInfo.FreezePos + voteInfo.NewPos + voteInfo.WithdrawPos +
-			voteInfo.WithdrawFreezePos + voteInfo.WithdrawUnfreezePos
+		total := voteInfo.ConsensusPos + voteInfo.FreezePos + voteInfo.NewPos + voteInfo.WithdrawPos + voteInfo.WithdrawFreezePos
 		penalty := (uint64(globalParam.Penalty)*total + 99) / 100
-		voteInfo.WithdrawUnfreezePos = total - penalty
+		voteInfo.WithdrawUnfreezePos = total - penalty + voteInfo.WithdrawUnfreezePos
 		voteInfo.ConsensusPos = 0
 		voteInfo.FreezePos = 0
 		voteInfo.NewPos = 0
