@@ -1,5 +1,7 @@
 # Ontology Config File Instruction
 
+[English | [中文](config_CN.md)]
+
 Ontology would support multiple consensus algorithm(VBFT/DBFT/RBFT/SBFT/PoW)，and provide a pluggable consensus switching mechanism. Ontology has 
 supported VBFT and DBFT, they have different config method. It is mainly embodied in the configuration file.
 
@@ -46,8 +48,8 @@ DBFT: DBFT consensus configuration，as follows：
 
 ## VBFT Configuration
 
-VBFTis the default consensus mechanism for ontology at present, with [`config-vbft.json`] (../../config-vbft.json) or 
-[`config.json`] (../../config.json) configuration files, as follows:
+VBFTis the default consensus mechanism for ontology at present, with [`config-vbft.json`](../../config-vbft.json) or 
+[`config.json`](../../config.json) configuration files, as follows:
 
 ```json
 {
