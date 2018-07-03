@@ -20,7 +20,7 @@ ontology的运行支持以下3钟方式
 
 #### 主网同步节点部署
 
-直接启动Ontology，不需要钱包文件，也不需要配置文件
+直接启动Ontology
 
    ```
 	./ontology --networkid 1
@@ -28,7 +28,7 @@ ontology的运行支持以下3钟方式
 
 #### 公开测试网Polaris同步节点部署
 
-直接启动Ontology，不需要钱包文件，也不需要配置文件
+直接启动Ontology
 
    ```
 	./ontology --networkid 2

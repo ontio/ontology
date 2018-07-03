@@ -26,8 +26,6 @@ Run ontology straightly
 	./ontology --networkid 1
    ```
 
-PS: There is no need of config.json file, will use the default setting.
-
 #### Public test network(Polaris) sync node deployment   
      
 Run ontology straightly
@@ -35,8 +33,6 @@ Run ontology straightly
    ```
 	./ontology --networkid 2
    ```
-
-PS: There is no need of config.json file, will use the default setting.
 
 #### Single-host deployment configuration
 

@@ -37,6 +37,7 @@ The public test network is described below. We sincerely welcome and hope more d
 	* [get from release](#get-from-release)
 * [Server deployment](#server-deployment)
 	* [Select network](#select-network)
+		* [Mainnet sync node deployment](#mainnet-sync-node-deployment)
 		* [Public test network Polaris sync node deployment](#public-test-network-polaris-sync-node-deployment)
 		* [Single-host deployment configuration](#single-host-deployment-configuration)
 		* [Multi-hosts deployment configuration](#multi-hosts-deployment-configuration)
@@ -106,7 +107,6 @@ Run ontology straightly
 	./ontology --networkid 1
    ```
 
-PS: There is no need of config.json file, will use the default setting.
 
 #### Public test network Polaris sync node deployment
 
@@ -116,7 +116,6 @@ Run ontology straightly
 	./ontology --networkid 2
    ```
 
-PS: There is no need of config.json file, will use the default setting.
 
 #### Single-host deployment configuration
 
