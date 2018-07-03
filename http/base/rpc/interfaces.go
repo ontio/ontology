@@ -114,7 +114,7 @@ func GetBlockHash(params []interface{}) map[string]interface{} {
 		height := uint32(params[0].(float64))
 		hash := bactor.GetBlockHashFromStore(height)
 		if hash == common.UINT256_EMPTY {
-			return responsePack(berr.INVALID_PARAMS, "")
+			return responsePack(berr.UNKNOWN_BLOCK, "")
 		}
 		return responseSuccess(hash.ToHexString())
 	default:
