@@ -114,7 +114,7 @@ func GetBlockHash(params []interface{}) map[string]interface{} {
 		height := uint32(params[0].(float64))
 		hash := bactor.GetBlockHashFromStore(height)
 		if hash == common.UINT256_EMPTY {
-			return responsePack(berr.INVALID_PARAMS, "")
+			return responsePack(berr.UNKNOWN_BLOCK, "")
 		}
 		return responseSuccess(hash.ToHexString())
 	default:
@@ -281,13 +281,15 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 		}
 		if len(params) > 1 {
 			preExec, ok := params[1].(float64)
-			if ok && preExec == 1 {
-				result, err := bactor.PreExecuteContract(&txn)
-				if err != nil {
-					log.Infof("PreExec: ", err)
-					return responsePack(berr.SMARTCODE_ERROR, "")
+			if txn.TxType == types.Invoke || txn.TxType == types.Deploy {
+				if ok && preExec == 1 {
+					result, err := bactor.PreExecuteContract(&txn)
+					if err != nil {
+						log.Infof("PreExec: ", err)
+						return responsePack(berr.SMARTCODE_ERROR, "")
+					}
+					return responseSuccess(result)
 				}
-				return responseSuccess(result)
 			}
 		}
 		hash = txn.Hash()

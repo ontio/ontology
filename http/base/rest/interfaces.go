@@ -87,6 +87,9 @@ func GetBlockHash(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	hash := bactor.GetBlockHashFromStore(uint32(height))
+	if hash == common.UINT256_EMPTY {
+		return ResponsePack(berr.UNKNOWN_BLOCK)
+	}
 	resp["Result"] = hash.ToHexString()
 	return resp
 }
@@ -251,7 +254,7 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	if err := txn.Deserialize(bytes.NewReader(bys)); err != nil {
 		return ResponsePack(berr.INVALID_TRANSACTION)
 	}
-	if txn.TxType == types.Invoke {
+	if txn.TxType == types.Invoke || txn.TxType == types.Deploy {
 		if preExec, ok := cmd["PreExec"].(string); ok && preExec == "1" {
 			if _, ok := txn.Payload.(*payload.InvokeCode); ok {
 				resp["Result"], err = bactor.PreExecuteContract(&txn)
