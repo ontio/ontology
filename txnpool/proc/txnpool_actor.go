@@ -26,11 +26,8 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/ledger"
 	tx "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events/message"
-	hComm "github.com/ontio/ontology/http/base/common"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	tc "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology/validator/types"
@@ -56,17 +53,6 @@ func NewVerifyRspActor(s *TXPoolServer) *VerifyRspActor {
 	a := &VerifyRspActor{}
 	a.setServer(s)
 	return a
-}
-
-// isBalanceEnough checks if the tranactor has enough to cover gas cost
-func isBalanceEnough(address common.Address, gas uint64) bool {
-	balance, err := hComm.GetContractBalance(0, utils.OngContractAddress, address)
-	if err != nil {
-		log.Debugf("failed to get contract balance %s err %v",
-			address.ToHexString(), err)
-		return false
-	}
-	return balance >= gas
 }
 
 // TxnActor: Handle the low priority msg from P2P and API
@@ -113,30 +99,6 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 			return
 		}
 
-		if ta.server.preExec {
-			result, err := ledger.DefLedger.PreExecuteContract(txn)
-			if err != nil {
-				log.Debugf("handleTransaction: failed to preExecuteContract tx %x err %v",
-					txn.Hash(), err)
-			}
-			if txn.GasLimit < result.Gas {
-				log.Debugf("handleTransaction: transaction's gasLimit %d is less than preExec gasLimit %d",
-					txn.GasLimit, result.Gas)
-				return
-			}
-			gas, overflow := common.SafeMul(txn.GasPrice, result.Gas)
-			if overflow {
-				log.Debugf("handleTransaction: gasPrice %d preExec gasLimit %d overflow",
-					txn.GasPrice, result.Gas)
-				return
-			}
-			if !isBalanceEnough(txn.Payer, gas) {
-				log.Debugf("handleTransaction: transactor %s has no balance enough to cover gas cost %d",
-					txn.Payer.ToHexString(), gas)
-				return
-			}
-			log.Debugf("handleTransaction: tx %x preExec success", txn.Hash())
-		}
 		<-ta.server.slots
 		ta.server.assignTxToWorker(txn, sender)
 	}
