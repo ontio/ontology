@@ -29,12 +29,15 @@ func SetConsensusPid(actr *actor.PID) {
 	consensusSrvPid = actr
 }
 
+//start consensus to consensus actor
 func ConsensusSrvStart() error {
 	if consensusSrvPid != nil {
 		consensusSrvPid.Tell(&cactor.StartConsensus{})
 	}
 	return nil
 }
+
+//halt consensus to consensus actor
 func ConsensusSrvHalt() error {
 	if consensusSrvPid != nil {
 		consensusSrvPid.Tell(&cactor.StopConsensus{})

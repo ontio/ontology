@@ -16,6 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Package nodeinfo privides functions for nodeinfo server
 package nodeinfo
 
 import (

@@ -34,6 +34,7 @@ func SetNetServerPID(actr *actor.PID) {
 	netServerPid = actr
 }
 
+//Xmit to netSever actor
 func Xmit(msg interface{}) error {
 	if netServerPid == nil {
 		return nil
@@ -42,6 +43,7 @@ func Xmit(msg interface{}) error {
 	return nil
 }
 
+//GetConnectionCnt from netSever actor
 func GetConnectionCnt() (uint32, error) {
 	if netServerPid == nil {
 		return 1, nil
@@ -59,6 +61,7 @@ func GetConnectionCnt() (uint32, error) {
 	return r.Cnt, nil
 }
 
+//GetNeighborAddrs from netSever actor
 func GetNeighborAddrs() []common.PeerAddr {
 	if netServerPid == nil {
 		return []common.PeerAddr{}
@@ -76,6 +79,7 @@ func GetNeighborAddrs() []common.PeerAddr {
 	return r.Addrs
 }
 
+//GetConnectionState from netSever actor
 func GetConnectionState() (uint32, error) {
 	if netServerPid == nil {
 		return 0, nil
@@ -93,6 +97,7 @@ func GetConnectionState() (uint32, error) {
 	return r.State, nil
 }
 
+//GetNodeTime from netSever actor
 func GetNodeTime() (int64, error) {
 	if netServerPid == nil {
 		return 0, nil
@@ -110,6 +115,7 @@ func GetNodeTime() (int64, error) {
 	return r.Time, nil
 }
 
+//GetNodePort from netSever actor
 func GetNodePort() (uint16, error) {
 	if netServerPid == nil {
 		return 0, nil
@@ -127,6 +133,7 @@ func GetNodePort() (uint16, error) {
 	return r.SyncPort, nil
 }
 
+//GetID from netSever actor
 func GetID() (uint64, error) {
 	if netServerPid == nil {
 		return 0, nil
@@ -144,6 +151,7 @@ func GetID() (uint64, error) {
 	return r.Id, nil
 }
 
+//GetRelayState from netSever actor
 func GetRelayState() (bool, error) {
 	if netServerPid == nil {
 		return false, nil
@@ -161,6 +169,7 @@ func GetRelayState() (bool, error) {
 	return r.Relay, nil
 }
 
+//GetVersion from netSever actor
 func GetVersion() (uint32, error) {
 	if netServerPid == nil {
 		return 0, nil
@@ -178,6 +187,7 @@ func GetVersion() (uint32, error) {
 	return r.Version, nil
 }
 
+//GetNodeType from netSever actor
 func GetNodeType() (uint64, error) {
 	if netServerPid == nil {
 		return 0, nil

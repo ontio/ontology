@@ -16,6 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Package actor privides communication with other actor
 package actor
 
 import (
@@ -39,6 +40,8 @@ func SetTxPid(actr *actor.PID) {
 func SetTxnPoolPid(actr *actor.PID) {
 	txnPoolPid = actr
 }
+
+//append transaction to pool to txpool actor
 func AppendTxToPool(txn *types.Transaction) ontErrors.ErrCode {
 	txReq := &tcomn.TxReq{
 		Tx:     txn,
@@ -48,6 +51,7 @@ func AppendTxToPool(txn *types.Transaction) ontErrors.ErrCode {
 	return ontErrors.ErrNoError
 }
 
+//GetTxsFromPool from txpool actor
 func GetTxsFromPool(byCount bool) map[common.Uint256]*types.Transaction {
 	future := txnPoolPid.RequestFuture(&tcomn.GetTxnPoolReq{ByCount: byCount}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
@@ -67,6 +71,7 @@ func GetTxsFromPool(byCount bool) map[common.Uint256]*types.Transaction {
 
 }
 
+//GetTxFromPool from txpool actor
 func GetTxFromPool(hash common.Uint256) (tcomn.TXEntry, error) {
 
 	future := txnPid.RequestFuture(&tcomn.GetTxnReq{hash}, REQ_TIMEOUT*time.Second)
@@ -97,6 +102,7 @@ func GetTxFromPool(hash common.Uint256) (tcomn.TXEntry, error) {
 	return txnEntry, nil
 }
 
+//GetTxnCount from txpool actor
 func GetTxnCount() ([]uint32, error) {
 	future := txnPid.RequestFuture(&tcomn.GetTxnCountReq{}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()

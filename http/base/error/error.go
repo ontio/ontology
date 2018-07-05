@@ -16,6 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Package error privides error code for http
 package error
 
 import ontErrors "github.com/ontio/ontology/errors"

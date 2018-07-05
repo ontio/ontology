@@ -16,6 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Package rest privides functions to for restful server call
 package rest
 
 func ResponsePack(errCode int64) map[string]interface{} {
