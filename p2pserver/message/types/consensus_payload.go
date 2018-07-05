@@ -50,8 +50,8 @@ func (this *ConsensusPayload) Hash() common.Uint256 {
 	if this.hash != nil {
 		return *this.hash
 	}
-	buf := new(bytes.Buffer)
-	this.SerializeUnsigned(buf)
+	sink := comm.NewZeroCopySink(nil)
+	this.serializeUnsigned(sink)
 	temp := sha256.Sum256(buf.Bytes())
 	hash := common.Uint256(sha256.Sum256(temp[:]))
 

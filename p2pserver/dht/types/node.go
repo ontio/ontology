@@ -20,16 +20,15 @@ package types
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"hash/crc64"
 	"strconv"
 	"strings"
-
-	"github.com/ontio/ontology/common"
+	//"github.com/ontio/ontology/common"
 )
 
-const NODE_ID_BITS = 256
+const NODE_ID_BITS = 64
 
 // NodeID is a unique identifier for each node.
 // The node identifier is a marshaled elliptic curve public key.
@@ -64,15 +63,13 @@ func StringID(in string) (NodeID, error) {
 }
 
 // ConstructID returns a marshaled representation of the given address:port.
-func ConstructID(ip string, port uint16) NodeID {
+func ConstructID(ip string, port uint16) uint64 {
 	var buffer bytes.Buffer
 	buffer.WriteString(ip)
 	buffer.WriteString(":")
 	buffer.WriteString(strconv.Itoa(int(port)))
 
-	temp := sha256.Sum256(buffer.Bytes())
-	hash := common.Uint256(sha256.Sum256(temp[:]))
-	var id NodeID
-	copy(id[:], hash[:])
+	crcTable := crc64.MakeTable(crc64.ECMA)
+	id := crc64.Checksum(buffer.Bytes(), crcTable)
 	return id
 }

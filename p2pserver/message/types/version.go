@@ -32,6 +32,7 @@ type VersionPayload struct {
 	SyncPort     uint16
 	HttpInfoPort uint16
 	ConsPort     uint16
+	UDPPort      uint16
 	Cap          [32]byte
 	Nonce        uint64
 	StartHeight  uint64

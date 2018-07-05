@@ -62,6 +62,7 @@ const (
 const (
 	MAX_ADDR_NODE_CNT = 64 //the maximum peer address from msg
 	MAX_INV_BLK_CNT   = 64 //the maximum blk hash cnt of inv msg
+	MAX_HOP           = 16 //time to live for a packet by hop count
 )
 
 //info update const

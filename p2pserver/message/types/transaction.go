@@ -27,11 +27,17 @@ import (
 // Transaction message
 type Trn struct {
 	Txn *types.Transaction
+	Hop uint8
 }
 
 //Serialize message payload
 func (this Trn) Serialization(sink *comm.ZeroCopySink) error {
-	return this.Txn.Serialization(sink)
+	err := this.Txn.Serialization(sink)
+	if err != nil {
+		return err
+	}
+	sink.WriteUint8(this.Hop)
+	return nil
 }
 
 func (this *Trn) CmdType() string {
@@ -47,5 +53,11 @@ func (this *Trn) Deserialization(source *comm.ZeroCopySource) error {
 	}
 
 	this.Txn = tx
+
+	var eof bool
+	this.Hop, eof = source.NextUint8()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	return nil
 }

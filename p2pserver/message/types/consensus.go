@@ -25,11 +25,17 @@ import (
 
 type Consensus struct {
 	Cons ConsensusPayload
+	Hop  uint8
 }
 
 //Serialize message payload
 func (this *Consensus) Serialization(sink *comm.ZeroCopySink) error {
-	return this.Cons.Serialization(sink)
+	err := this.Cons.Serialization(sink)
+	if err != nil {
+		return err
+	}
+	sink.WriteUint8(this.Hop)
+	return nil
 }
 
 func (this *Consensus) CmdType() string {
@@ -38,5 +44,14 @@ func (this *Consensus) CmdType() string {
 
 //Deserialize message payload
 func (this *Consensus) Deserialization(source *comm.ZeroCopySource) error {
-	return this.Cons.Deserialization(source)
+	err := this.Cons.Deserialization(source)
+	if err != nil {
+		return err
+	}
+	var eof bool
+	this.Hop, eof = source.NextUint8()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }

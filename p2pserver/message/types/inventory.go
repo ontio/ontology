@@ -33,7 +33,8 @@ type InvPayload struct {
 }
 
 type Inv struct {
-	P InvPayload
+	P   InvPayload
+	Hop uint8
 }
 
 func (this Inv) invType() common.InventoryType {
@@ -54,6 +55,7 @@ func (this Inv) Serialization(sink *common.ZeroCopySink) error {
 		sink.WriteHash(hash)
 	}
 
+	sink.WriteUint8(this.Hop)
 	return nil
 }
 
@@ -79,6 +81,13 @@ func (this *Inv) Deserialization(source *common.ZeroCopySource) error {
 	if blkCnt > p2pCommon.MAX_INV_BLK_CNT {
 		blkCnt = p2pCommon.MAX_INV_BLK_CNT
 	}
+
 	this.P.Blk = this.P.Blk[:blkCnt]
+
+	this.Hop, eof = source.NextUint8()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
 	return nil
 }

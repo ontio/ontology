@@ -81,6 +81,7 @@ func NewConsensus(cp *mt.ConsensusPayload) mt.Message {
 	log.Trace()
 	var cons mt.Consensus
 	cons.Cons = *cp
+	cons.Hop = msgCommon.MAX_HOP
 
 	return &cons
 }
@@ -100,6 +101,7 @@ func NewInv(invPayload *mt.InvPayload) mt.Message {
 	var inv mt.Inv
 	inv.P.Blk = invPayload.Blk
 	inv.P.InvType = invPayload.InvType
+	inv.Hop = msgCommon.MAX_HOP
 
 	return &inv
 }
@@ -136,6 +138,7 @@ func NewTxn(txn *ct.Transaction) mt.Message {
 	log.Trace()
 	var trn mt.Trn
 	trn.Txn = txn
+	trn.Hop = msgCommon.MAX_HOP
 
 	return &trn
 }
@@ -158,6 +161,7 @@ func NewVersion(n p2pnet.P2P, isCons bool, height uint32) mt.Message {
 		Services:     n.GetServices(),
 		SyncPort:     n.GetSyncPort(),
 		ConsPort:     n.GetConsPort(),
+		UDPPort:      n.GetUDPPort(),
 		Nonce:        n.GetID(),
 		IsConsensus:  isCons,
 		HttpInfoPort: n.GetHttpInfoPort(),

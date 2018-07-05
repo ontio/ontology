@@ -21,6 +21,7 @@ package netserver
 import (
 	"errors"
 	"math/rand"
+	"fmt"
 	"net"
 	"strconv"
 	"strings"
@@ -40,7 +41,7 @@ import (
 )
 
 //NewNetServer return the net object in p2p
-func NewNetServer() p2p.P2P {
+func NewNetServer(id uint64) p2p.P2P {
 	n := &NetServer{
 		SyncChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 		ConsChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
@@ -50,7 +51,7 @@ func NewNetServer() p2p.P2P {
 	n.PeerAddrMap.PeerConsAddress = make(map[string]*peer.Peer)
 
 	n.stopLoop = make(chan struct{}, 1)
-	n.init()
+	n.init(id)
 	return n
 }
 
@@ -98,7 +99,7 @@ type PeerAddrMap struct {
 }
 
 //init initializes attribute of network server
-func (this *NetServer) init() error {
+func (this *NetServer) init(id uint64) error {
 	this.base.SetVersion(common.PROTOCOL_VERSION)
 
 	if config.DefConfig.Consensus.EnableConsensus {
@@ -125,10 +126,11 @@ func (this *NetServer) init() error {
 		this.base.SetConsPort(0)
 	}
 
+	this.base.SetUDPPort(config.DefConfig.Genesis.DHT.UDPPort)
 	this.base.SetRelay(true)
 
-	rand.Seed(time.Now().UnixNano())
-	id := rand.Uint64()
+	/*rand.Seed(time.Now().UnixNano())
+	id := rand.Uint64()*/
 
 	this.base.SetID(id)
 
@@ -231,6 +233,10 @@ func (this *NetServer) GetSyncPort() uint16 {
 //GetConsPort return the cons port
 func (this *NetServer) GetConsPort() uint16 {
 	return this.base.GetConsPort()
+}
+
+func (this *NetServer) GetUDPPort() uint16 {
+	return this.base.GetUDPPort()
 }
 
 //GetHttpInfoPort return the port support info via http

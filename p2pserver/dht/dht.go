@@ -20,6 +20,7 @@ package dht
 
 import (
 	"crypto/rand"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"net"
@@ -39,41 +40,53 @@ import (
 // DHT manage the DHT/Kad protocol resource, mainly including
 // route table, the channel to netserver, the udp message queue
 type DHT struct {
-	mu           sync.Mutex
-	version      uint16                 // Local DHT version
-	nodeID       types.NodeID           // Local DHT id
-	routingTable *routingTable          // The k buckets
-	addr         string                 // Local Address
-	udpPort      uint16                 // Local UDP port
-	tcpPort      uint16                 // Local TCP port
-	conn         *net.UDPConn           // UDP listen fd
-	messagePool  *types.DHTMessagePool  // Manage the request msgs(ping, findNode)
-	recvCh       chan *types.DHTMessage // The queue to receive msg from UDP network
-	seeds        []*types.Node          // Hold seed nodes from configure
-	feedCh       chan *types.FeedEvent  // Notify netserver of add/del a remote peer
-	stopCh       chan struct{}          // Stop DHT module
+	mu             sync.Mutex
+	version        uint16                       // Local DHT version
+	nodeID         types.NodeID                 // Local DHT id
+	routingTable   *routingTable                // The k buckets
+	addr           string                       // Local Address
+	udpPort        uint16                       // Local UDP port
+	tcpPort        uint16                       // Local TCP port
+	conn           *net.UDPConn                 // UDP listen fd
+	messagePool    *types.DHTMessagePool        // Manage the request msgs(ping, findNode)
+	recvCh         chan *types.DHTMessage       // The queue to receive msg from UDP network
+	bootstrapNodes map[types.NodeID]*types.Node // Hold inital nodes from configure and peer file to contact
+	feedCh         chan *types.FeedEvent        // Notify netserver of add/del a remote peer
+	stopCh         chan struct{}                // Stop DHT module
 }
 
-// NewDHT returns an instance of DHT with the given id and seed nodes
-func NewDHT(id types.NodeID, seeds []*types.Node) *DHT {
-	if len(seeds) == 0 {
-		log.Error("failed to create dht. seeds is nil, please specify seeds")
-		return nil
+// NewDHT returns an instance of DHT with the given id
+func NewDHT(id types.NodeID) *DHT {
+	dht := &DHT{
+		nodeID:         id,
+		addr:           config.DefConfig.Genesis.DHT.IP,
+		udpPort:        uint16(config.DefConfig.Genesis.DHT.UDPPort),
+		tcpPort:        uint16(config.DefConfig.P2PNode.NodePort),
+		routingTable:   &routingTable{},
+		bootstrapNodes: make(map[types.NodeID]*types.Node, 0),
 	}
 
-	dht := &DHT{
-		nodeID:       id,
-		addr:         config.DefConfig.Genesis.DHT.IP,
-		udpPort:      uint16(config.DefConfig.Genesis.DHT.UDPPort),
-		tcpPort:      uint16(config.DefConfig.P2PNode.NodePort),
-		routingTable: &routingTable{},
-		seeds:        make([]*types.Node, 0, len(seeds)),
-	}
-	for _, seed := range seeds {
-		dht.seeds = append(dht.seeds, seed)
-	}
 	dht.init()
 	return dht
+}
+
+func loadSeeds() []*types.Node {
+	seeds := make([]*types.Node, 0, len(config.DefConfig.Genesis.DHT.Seeds))
+	for i := 0; i < len(config.DefConfig.Genesis.DHT.Seeds); i++ {
+		node := config.DefConfig.Genesis.DHT.Seeds[i]
+		seed := &types.Node{
+			IP:      node.IP,
+			UDPPort: node.UDPPort,
+			TCPPort: node.TCPPort,
+		}
+		log.Infof("loadSeeds: ip %s port %d", seed.IP, seed.UDPPort)
+		id := types.ConstructID(seed.IP, seed.UDPPort)
+		b := make([]byte, 8)
+		binary.LittleEndian.PutUint64(b, id)
+		copy(seed.ID[:], b[:])
+		seeds = append(seeds, seed)
+	}
+	return seeds
 }
 
 func (this *DHT) SetPort(tcpPort uint16, udpPort uint16) {
@@ -92,6 +105,11 @@ func (this *DHT) init() {
 
 // Start starts DHT service
 func (this *DHT) Start() {
+	seeds := loadSeeds()
+	for _, seed := range seeds {
+		this.bootstrapNodes[seed.ID] = seed
+	}
+
 	go this.loop()
 
 	err := this.listenUDP(":" + strconv.Itoa(int(this.udpPort)))
@@ -112,10 +130,17 @@ func (this *DHT) Stop() {
 	}
 }
 
-// bootstrap loads seed node and setup k bucket
+//SetFallbackNodes appends recent connected peers
+func (this *DHT) SetFallbackNodes(nodes []types.Node) {
+	for _, n := range nodes {
+		this.bootstrapNodes[n.ID] = &n
+	}
+}
+
+// bootstrap loads initial node and setup k bucket
 func (this *DHT) bootstrap() {
 	// Todo:
-	this.syncAddNodes(this.seeds)
+	this.syncAddNodes(this.bootstrapNodes)
 	this.DisplayRoutingTable()
 
 	log.Info("start lookup")
@@ -123,15 +148,15 @@ func (this *DHT) bootstrap() {
 }
 
 // add node to routing table in synchronize
-func (this *DHT) syncAddNodes(nodes []*types.Node) {
+func (this *DHT) syncAddNodes(nodes map[types.NodeID]*types.Node) {
 	waitRequestIds := make([]types.RequestId, 0)
-	for _, seed := range nodes {
-		addr, err := getNodeUDPAddr(seed)
+	for _, n := range nodes {
+		addr, err := getNodeUDPAddr(n)
 		if err != nil {
-			log.Infof("seed node %s address is error!", seed.ID)
+			log.Infof("node %s address is error!", n.ID)
 			continue
 		}
-		requestId, isNewRequest := this.messagePool.AddRequest(seed,
+		requestId, isNewRequest := this.messagePool.AddRequest(n,
 			types.DHT_PING_REQUEST, nil, true)
 		if isNewRequest {
 			this.ping(addr)
@@ -167,7 +192,7 @@ func (this *DHT) loop() {
 func (this *DHT) refreshRoutingTable() {
 	log.Info("refreshRoutingTable start")
 	// Todo:
-	this.syncAddNodes(this.seeds)
+	this.syncAddNodes(this.bootstrapNodes)
 	results := this.lookup(this.nodeID)
 	if results != nil && len(results) > 0 {
 		return
@@ -462,7 +487,7 @@ func (this *DHT) DisplayRoutingTable() {
 		}
 		fmt.Println("[", bucketIndex, "]: ")
 		for i := 0; i < this.routingTable.getTotalNodeNumInBukcet(bucketIndex); i++ {
-			fmt.Printf("%x %s %d %d\n", bucket.entries[i].ID[25:], bucket.entries[i].IP,
+			fmt.Printf("%x %s %d %d\n", bucket.entries[i].ID[:], bucket.entries[i].IP,
 				bucket.entries[i].UDPPort, bucket.entries[i].TCPPort)
 		}
 	}

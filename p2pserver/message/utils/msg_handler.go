@@ -196,6 +196,10 @@ func ConsensusHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, 
 		consensus.Cons.PeerId = data.Id
 		actor.ConsensusPid.Tell(&consensus.Cons)
 		remotePeer.MarkHashAsSeen(consensus.Cons.Hash())
+		consensus.Hop--
+		if consensus.Hop > 0 {
+			p2p.Xmit(consensus, consensus.Cons.Hash(), true)
+		}
 	}
 }
 
@@ -219,6 +223,10 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID
 		return
 	}
 	remotePeer.MarkHashAsSeen(trn.Txn.Hash())
+	trn.Hop--
+	if trn.Hop > 0 {
+		p2p.Xmit(trn, trn.Txn.Hash(), false)
+	}
 }
 
 // VersionHandle handles version handshake protocol from peer
@@ -300,8 +308,9 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		// Todo: change the method of input parameters
 		remotePeer.UpdateInfo(time.Now(), version.P.Version,
 			version.P.Services, version.P.SyncPort,
-			version.P.ConsPort, version.P.Nonce,
-			version.P.Relay, version.P.StartHeight)
+			version.P.ConsPort, version.P.UDPPort,
+			version.P.Nonce, version.P.Relay,
+			version.P.StartHeight)
 
 		var msg msgTypes.Message
 		if s == msgCommon.INIT {
@@ -380,8 +389,9 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 
 		remotePeer.UpdateInfo(time.Now(), version.P.Version,
 			version.P.Services, version.P.SyncPort,
-			version.P.ConsPort, version.P.Nonce,
-			version.P.Relay, version.P.StartHeight)
+			version.P.ConsPort, version.P.UDPPort,
+			version.P.Nonce, version.P.Relay,
+			version.P.StartHeight)
 		remotePeer.SyncLink.SetID(version.P.Nonce)
 		p2p.AddNbrNode(remotePeer)
 
@@ -618,6 +628,7 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args .
 		for _, id = range inv.P.Blk {
 			log.Debug("[p2p]receive inv-block message, hash is ", id)
 			remotePeer.MarkHashAsSeen(id)
+
 			// TODO check the ID queue
 			isContainBlock, err := ledger.DefLedger.IsContainBlock(id)
 			if err != nil {
@@ -636,6 +647,11 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args .
 				}
 			}
 		}
+		inv.Hop--
+		if inv.Hop > 0 {
+			p2p.Xmit(inv, inv.P.Blk[0], false)
+		}
+
 	case common.CONSENSUS:
 		log.Debug("[p2p]receive consensus message")
 		id = inv.P.Blk[0]
