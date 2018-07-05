@@ -68,16 +68,13 @@ func GenerateOperatorKey(contract common.Address) []byte {
 
 func getStorageParam(native *native.NativeService, key []byte) (*Params, error) {
 	item, err := utils.GetStorageItem(native, key)
-	if err != nil {
-		return nil, err
-	}
-	if item == nil {
-		return nil, nil
-	}
 	params := new(Params)
+	if err != nil {
+		return params, err
+	}
 	bf := bytes.NewBuffer(item.Value)
-	params.Deserialize(bf)
-	return params, nil
+	err = params.Deserialize(bf)
+	return params, err
 }
 
 func GetStorageRole(native *native.NativeService, key []byte) (common.Address, error) {

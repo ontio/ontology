@@ -179,7 +179,8 @@ func SetGlobalParam(native *native.NativeService) ([]byte, error) {
 	// read old param from database
 	storageParams, err := getStorageParam(native, generateParamKey(contract, PREPARE_VALUE))
 	if err != nil {
-		return utils.BYTE_FALSE, err
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode,
+			"set param, read storage prepare param error!")
 	}
 	// update param
 	for _, param := range *params {
@@ -218,7 +219,8 @@ func GetGlobalParam(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	storageParams, err := getStorageParam(native, generateParamKey(contract, CURRENT_VALUE))
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "get param, storage error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode,
+			"get param, read storage current param error!")
 	}
 	if len(*storageParams) == 0 {
 		return utils.BYTE_FALSE, errors.NewErr("get param, there are no params!")
@@ -250,7 +252,8 @@ func CreateSnapshot(native *native.NativeService) ([]byte, error) {
 	// read prepare param
 	prepareParam, err := getStorageParam(native, generateParamKey(contract, PREPARE_VALUE))
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "create snapshot, storage error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode,
+			"create snapshot, read storage prepare param error!")
 	}
 	if len(*prepareParam) == 0 {
 		return utils.BYTE_FALSE, errors.NewErr("create snapshot, prepare param doesn't exist!")
