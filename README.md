@@ -138,6 +138,8 @@ Here's a example of single-host configuration:
 
 #### Multi-hosts deployment configuration
 
+Note: When using --networkid with a custom value, you must also use the --config=config.json (or the name of your config file) argument otherwise the node will default to Mainnet.
+
 ##### VBFT Deployment
 
 In the multi-hosts enviroment, we need 7 nodes to run ontology at least in VBFT.
@@ -255,7 +257,7 @@ A configuration file fragment can refer to the config-dbft.json file in the root
 
 Run each node program in any order and enter the node's wallet password after the `Password:` prompt appears.
   
-If consensus alrogithm is VBFT, must use --enableconsensus argument to run ontology
+If you wish to run a consensus node (such as in a privatenet), the --enableconsensus argument must be used.
    ```
     $ ./ontology
     $ - Input your wallet password
@@ -266,7 +268,7 @@ Run `./ontology --help` for details.
 ### ONT transfer sample
  -- from: transfer from； -- to: transfer to； -- amount: ont amount；
 ```shell
-  ./ontology asset transfer  --to=TA4Xe9j8VbU4m3T1zEa1uRiMTauiAT88op --amount=10
+  ./ontology asset transfer  --to=AXkDGfr9thEqWmCKpTtQYaazJRwQzH48eC --amount=10
 ```
 If transfer asset successd, the result will show as follow:
 
@@ -289,8 +291,8 @@ Because of generate block time, the transfer transaction will not execute befer 
 result：
 ```shell
 Transaction:transfer success
-From:TA6edvwgNy3c1nBHgmFj8KrgQ1JCJNhM3o
-To:TA4Xe9j8VbU4m3T1zEa1uRiMTauiAT88op
+From:AXkDGfr9thEqWmCKpTtQYaazJRwQzH48eC
+To:AYiToLDT2yZuNs3PZieXcdTpyC5VWQmfaN
 Amount:10
 ```
 
@@ -299,11 +301,11 @@ Amount:10
 --address: account address
 
 ```shell
-./ontology asset balance --address=TA4Xe9j8VbU4m3T1zEa1uRiMTauiAT88op
+./ontology asset balance --address=AYiToLDT2yZuNs3PZieXcdTpyC5VWQmfaN
 ```
 result：
 ```shell
-BalanceOf:TA4Xe9j8VbU4m3T1zEa1uRiMTauiAT88op
+BalanceOf:AYiToLDT2yZuNs3PZieXcdTpyC5VWQmfaN
 ONT:10
 ONG:0
 ONGApprove:0
