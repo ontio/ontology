@@ -61,10 +61,11 @@ func validatorBlockTransaction(engine *vm.ExecutionEngine) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[validatorBlockTransaction] Validate block fail!")
 	}
-	index, err := vm.PeekInt(engine)
+	item, err := vm.PeekNBigInt(1, engine)
 	if err != nil {
 		return err
 	}
+	index := int(item.Int64())
 	if index < 0 {
 		return errors.NewErr("[validatorBlockTransaction] Pop index invalid!")
 	}
