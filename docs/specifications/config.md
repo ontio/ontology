@@ -11,7 +11,7 @@ supported VBFT and DBFT, they have different config method. It is mainly embodie
 
 ## DBFT Configuration
 
-DBFT configure file is [`config-dbft.json`](../../config-dbft.json)，as follows:
+DBFT configure file is [`config-dbft.json`](config-dbft.json)，as follows:
 
 ```json
 {
@@ -48,8 +48,7 @@ DBFT: DBFT consensus configuration，as follows：
 
 ## VBFT Configuration
 
-VBFTis the default consensus mechanism for ontology at present, with [`config-vbft.json`](../../config-vbft.json) or 
-[`config.json`](../../config.json) configuration files, as follows:
+VBFTis the default consensus mechanism for ontology at present, with [`config-vbft.json`](config-vbft.json) configuration files, as follows:
 
 ```json
 {
