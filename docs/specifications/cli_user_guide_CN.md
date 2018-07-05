@@ -1,5 +1,7 @@
 # Ontology cli 使用说明
 
+[[English](cli_user_guide.md)|中文]
+
 Ontology cli 是Ontology命令行客户端，用于启动和管理Ontology节点，管理钱包 账户，发送交易以及部署和调用智能合约等。
 
 ## 1、启动和管理Ontology节点
@@ -292,6 +294,9 @@ wallet 参数用于指定钱包文件路径。如果钱包文件不存在，则�
 
 --number
 number参数用于需要创建的账户数量。可以通过number来批量创建账户。number默认值为1。
+
+--ontid
+ontid参数用来创建ONT ID，而不是普通账户。
 
 **添加账户**
 
