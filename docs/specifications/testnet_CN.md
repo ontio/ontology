@@ -155,7 +155,7 @@ ontology的运行支持以下3钟方式
 	config.json ontology wallet.dat
    ```
 ### 运行
-以任意顺序运行每个节点node程序（如果是VBFT，则需要在启动时使用--enableConsensus）， 并在出现`Password:`提示后输入节点的钱包密码
+以任意顺序运行每个节点node程序（如果要参与共识，则需要在启动时设置--enableconsensus参数）， 并在出现`Password:`提示后输入节点的钱包密码
 
 	```shell
 	$ ./ontology

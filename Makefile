@@ -8,7 +8,7 @@ DBUILD=docker build
 DRUN=docker run
 DOCKER_NS ?= ontio
 DOCKER_TAG=$(ARCH)-$(VERSION)
-ONT_CFG_IN_DOCKER=config-solo.json
+ONT_CFG_IN_DOCKER=config.json
 WALLET_FILE=wallet.dat
 
 SRC_FILES = $(shell git ls-files | grep -e .go$ | grep -v _test.go)

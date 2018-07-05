@@ -234,14 +234,33 @@ ontology的运行支持以下三种方式
 	config.json ontology wallet.dat
    ```
 ### 运行
-以任意顺序运行每个节点node程序（如果是VBFT，则需要在启动时使用--enableConsensus）， 并在出现`Password:`提示后输入节点的钱包密码
+以任意顺序运行每个节点node程序（如果要参与共识，则需要在启动时设置--enableconsensus参数）， 并在出现`Password:`提示后输入节点的钱包密码
 
-	```shell
-	$ ./ontology
-	$ - 输入你的钱包口令
-	```
+   ```shell
+	 $ ./ontology
+	 $ - 输入你的钱包口令
+   ```
 
 了解更多请运行 `./ontology --help`.
+
+#### 使用docker运行
+
+请确保机器上已安装有docker环境。
+
+1. 编译docker镜像
+
+    - 在下载好的源码根目录下，运行`make docker`命令，这将编译好ontology的docker镜像
+
+2. 运行ontology镜像
+
+    - 使用命令`docker run ontio/ontology`运行ontology；
+
+    - 如果需要使镜像运行时接受交互式键盘输入，则使用`docker -ti run ontio/ontology`命令启动镜像即可；
+
+    - 如果需要保留镜像每次运行时的数据，可以参考docker的数据持久化功能（例如 valume）；
+
+    - 如果需要使用ontology参数，则在`docker run ontio/ontology`后面直接加参数即可，例如`docker run ontio/ontology --networkid 2`，具体的ontology命令
+    行参数可以参考[这里](./docs/specifications/cli_user_guide_CN.md)。
 
 ### ONT转账调用示例
    - from: 转出地址； - to: 转入地址； - amount: 资产转移数量；
