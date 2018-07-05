@@ -42,7 +42,7 @@ func getRoleStorageItem(role common.Address) *cstates.StorageItem {
 	return &cstates.StorageItem{Value: bf.Bytes()}
 }
 
-func getParamStorageItem(params *Params) *cstates.StorageItem {
+func getParamStorageItem(params Params) *cstates.StorageItem {
 	bf := new(bytes.Buffer)
 	params.Serialize(bf)
 	return &cstates.StorageItem{Value: bf.Bytes()}
@@ -66,18 +66,15 @@ func GenerateOperatorKey(contract common.Address) []byte {
 	return append(contract[:], OPERATOR...)
 }
 
-func getStorageParam(native *native.NativeService, key []byte) (*Params, error) {
+func getStorageParam(native *native.NativeService, key []byte) (Params, error) {
 	item, err := utils.GetStorageItem(native, key)
-	if err != nil {
-		return nil, err
+	params := Params{}
+	if err != nil || item == nil {
+		return params, err
 	}
-	if item == nil {
-		return nil, nil
-	}
-	params := new(Params)
 	bf := bytes.NewBuffer(item.Value)
-	params.Deserialize(bf)
-	return params, nil
+	err = params.Deserialize(bf)
+	return params, err
 }
 
 func GetStorageRole(native *native.NativeService, key []byte) (common.Address, error) {
@@ -115,12 +112,12 @@ func NotifyTransferAdmin(native *native.NativeService, contract common.Address, 
 		})
 }
 
-func NotifyParamChange(native *native.NativeService, contract common.Address, functionName string, params *Params) {
+func NotifyParamChange(native *native.NativeService, contract common.Address, functionName string, params Params) {
 	if !config.DefConfig.Common.EnableEventLog {
 		return
 	}
 	paramsString := ""
-	for _, param := range *params {
+	for _, param := range params {
 		paramsString += param.Key + "," + param.Value + ";"
 	}
 	paramsString = paramsString[:len(paramsString)-1]
