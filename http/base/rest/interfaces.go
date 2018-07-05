@@ -218,7 +218,7 @@ func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	tx, err := bactor.GetTransaction(hash)
+	height, tx, err := bactor.GetTxnWithHeightByTxHash(hash)
 	if tx == nil {
 		return ResponsePack(berr.UNKNOWN_TRANSACTION)
 	}
@@ -235,6 +235,7 @@ func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
 		return resp
 	}
 	tran := bcomn.TransArryByteToHexString(tx)
+	tran.Height = height
 	resp["Result"] = tran
 	return resp
 }

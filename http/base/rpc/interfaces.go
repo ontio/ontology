@@ -184,6 +184,7 @@ func GetRawTransaction(params []interface{}) map[string]interface{} {
 		return responsePack(berr.INVALID_PARAMS, nil)
 	}
 	var tx *types.Transaction
+	var height uint32
 	switch params[0].(type) {
 	case string:
 		str := params[0].(string)
@@ -191,10 +192,11 @@ func GetRawTransaction(params []interface{}) map[string]interface{} {
 		if err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
-		t, err := bactor.GetTransaction(hash)
+		h, t, err := bactor.GetTxnWithHeightByTxHash(hash)
 		if err != nil {
 			return responsePack(berr.UNKNOWN_TRANSACTION, "unknown transaction")
 		}
+		height = h
 		tx = t
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")
@@ -205,7 +207,9 @@ func GetRawTransaction(params []interface{}) map[string]interface{} {
 		case float64:
 			json := uint32(params[1].(float64))
 			if json == 1 {
-				return responseSuccess(bcomn.TransArryByteToHexString(tx))
+				txinfo := bcomn.TransArryByteToHexString(tx)
+				txinfo.Height = height
+				return responseSuccess(txinfo)
 			}
 		default:
 			return responsePack(berr.INVALID_PARAMS, "")

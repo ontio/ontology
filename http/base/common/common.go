@@ -108,6 +108,7 @@ type Transactions struct {
 	Attributes []TxAttributeInfo
 	Sigs       []Sig
 	Hash       string
+	Height     uint32
 }
 
 type BlockHead struct {
