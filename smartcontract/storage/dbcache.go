@@ -23,106 +23,74 @@ import (
 	"github.com/ontio/ontology/core/store/common"
 )
 
-// StateItem describe smart contract cache item element
-type StateItem struct {
-	Prefix common.DataEntryPrefix
-	Key    string
-	Value  states.StateValue
-	State  common.ItemState
-}
-
-type Memory map[string]*StateItem
-
 // CloneCache is smart contract execute cache, it contain transaction cache and block cache
 // When smart contract execute finish, need to commit transaction cache to block cache
 type CloneCache struct {
-	Memory Memory
-	Store  common.StateStore
+	ReadSet []string
+	Cache   map[string]states.StateValue
+	Store   common.StateStore
 }
 
 // NewCloneCache return a new contract cache
 func NewCloneCache(store common.StateStore) *CloneCache {
 	return &CloneCache{
-		Memory: make(Memory),
-		Store:  store,
+		Cache: make(map[string]states.StateValue),
+		Store: store,
 	}
 }
 
 // Commit current transaction cache to block cache
-func (this *CloneCache) Commit() {
-	for _, v := range this.Memory {
-		vk := []byte(v.Key)
-		if v.State == common.Deleted {
-			this.Store.TryDelete(v.Prefix, vk)
-		} else if v.State == common.Changed {
-			this.Store.TryAdd(v.Prefix, vk, v.Value)
+func (cloneCache *CloneCache) Commit() {
+	for k, v := range cloneCache.Cache {
+		key := []byte(k)
+		if v == nil {
+			cloneCache.Store.TryDelete(common.DataEntryPrefix(key[0]), key[1:])
+		} else {
+			cloneCache.Store.TryAdd(common.DataEntryPrefix(key[0]), key[1:], v)
 		}
 	}
 }
 
 // Add item to cache
-func (this *CloneCache) Add(prefix common.DataEntryPrefix, key []byte, value states.StateValue) {
-	pk := string(append([]byte{byte(prefix)}, key...))
-	this.Memory[pk] = &StateItem{
-		Prefix: prefix,
-		Key:    string(key),
-		Value:  value,
-		State:  common.Changed,
-	}
+func (cloneCache *CloneCache) Add(prefix common.DataEntryPrefix, key []byte, value states.StateValue) {
+	k := string(append([]byte{byte(prefix)}, key...))
+	cloneCache.Cache[k] = value
 }
 
 // GetOrAdd item
 // If item has existed, return it
 // Else add it to cache
-func (this *CloneCache) GetOrAdd(prefix common.DataEntryPrefix, key []byte, value states.StateValue) (states.StateValue, error) {
-	pk := string(append([]byte{byte(prefix)}, key...))
-	if v, ok := this.Memory[pk]; ok {
-		if v.State == common.Deleted {
-			this.Memory[pk] = &StateItem{Prefix: prefix, Key: string(key), Value: value, State: common.Changed}
-			return value, nil
-		}
-		return v.Value, nil
-	}
-	item, err := this.Store.TryGet(prefix, key)
+func (cloneCache *CloneCache) GetOrAdd(prefix common.DataEntryPrefix, key []byte, value states.StateValue) (states.StateValue, error) {
+	item, err := cloneCache.Get(prefix, key)
 	if err != nil {
 		return nil, err
 	}
-	if item != nil && item.State != common.Deleted {
-		return item.Value, nil
+	if item != nil {
+		return item, nil
 	}
-	this.Memory[pk] = &StateItem{Prefix: prefix, Key: string(key), Value: value, State: common.Changed}
+
+	k := string(append([]byte{byte(prefix)}, key...))
+	cloneCache.Cache[k] = value
 	return value, nil
 }
 
 // Get item by key
-func (this *CloneCache) Get(prefix common.DataEntryPrefix, key []byte) (states.StateValue, error) {
-	pk := string(append([]byte{byte(prefix)}, key...))
-	if v, ok := this.Memory[pk]; ok {
-		if v.State == common.Deleted {
-			return nil, nil
-		}
-		return v.Value, nil
+func (cloneCache *CloneCache) Get(prefix common.DataEntryPrefix, key []byte) (states.StateValue, error) {
+	k := string(append([]byte{byte(prefix)}, key...))
+	if v, ok := cloneCache.Cache[k]; ok {
+		return v, nil
 	}
-	item, err := this.Store.TryGet(prefix, key)
-	if err != nil {
+
+	cloneCache.ReadSet = append(cloneCache.ReadSet, k)
+	item, err := cloneCache.Store.TryGet(prefix, key)
+	if item == nil || err != nil {
 		return nil, err
 	}
-	if item == nil || item.State == common.Deleted {
-		return nil, nil
-	}
-	return item.Value, nil
+	return item.Value, err
 }
 
 // Delete item from cache
-func (this *CloneCache) Delete(prefix common.DataEntryPrefix, key []byte) {
-	pk := string(append([]byte{byte(prefix)}, key...))
-	if v, ok := this.Memory[pk]; ok {
-		v.State = common.Deleted
-	} else {
-		this.Memory[pk] = &StateItem{
-			Prefix: prefix,
-			Key:    string(key),
-			State:  common.Deleted,
-		}
-	}
+func (cloneCache *CloneCache) Delete(prefix common.DataEntryPrefix, key []byte) {
+	k := string(append([]byte{byte(prefix)}, key...))
+	cloneCache.Cache[k] = nil
 }
