@@ -11,7 +11,7 @@ Ontology计划支持多种共识算法，并提供可插拔式的共识切换机
 
 ## DBFT 配置
 
-DBFT配置文件为[`config-dbft.json`](../../config-dbft.json)，如下：
+DBFT配置文件为[`config-dbft.json`](config-dbft.json)，如下：
 
 ```json
 {
@@ -46,7 +46,7 @@ DBFT: DBFT共识配置，内容如下：
 
 ## VBFT 配置
 
-VBFT是目前ontology的默认共识机制，配置文件为[`config-vbft.json`](../../config-vbft.json)或者[`config.json`](../../config.json)，如下：
+VBFT是目前ontology的默认共识机制，配置文件为[`config-vbft.json`](config-vbft.json)，如下：
 
 ```json
 {

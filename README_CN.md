@@ -91,7 +91,7 @@ You can download at [release page](https://github.com/ontio/ontology/releases).
 
 ## 服务器部署
 ### 选择网络
-ontology的运行支持以下三种方式
+ontology的运行支持以下4种方式
 
 * 主网同步节点部署
 * 公开测试网Polaris同步节点部署
@@ -100,7 +100,7 @@ ontology的运行支持以下三种方式
 
 #### 主网同步节点部署
 
-直接启动Ontology，不需要钱包文件，也不需要配置文件
+直接启动Ontology
 
    ```
 	./ontology --networkid 1
@@ -108,7 +108,7 @@ ontology的运行支持以下三种方式
 
 #### 公开测试网Polaris同步节点部署
 
-直接启动Ontology，不需要钱包文件，也不需要配置文件
+直接启动Ontology
 
    ```
 	./ontology --networkid 2
@@ -134,11 +134,14 @@ ontology的运行支持以下三种方式
 
 #### 多机部署配置
 
+注意：当你想搭建一个私网去运行DBFT或者VBFT模式的ontology时，你必须要使用 --config参数去指定一个具体的配置文件，并且要使用 --networkid去定义一个
+网络标识（不能等于1/2/3），否则，ontology节点将会自动连接到主网上。
+
 ##### VBFT部署方法
 
 多机环境下，根据VBFT共识算法的要求，最少需要7个节点（共识节点）完成部署。
 
-我们可以通过修改默认的配置文件`config.json`进行快速部署，配置文件的说明请点击[这里](./docs/specifications/config_CN.md)。
+我们可以通过修改配置文件[`config-vbft.json`](./docs/specifications/config-vbft.json)进行快速部署，配置文件的说明请点击[这里](./docs/specifications/config_CN.md)。
 
 1. 生成七个钱包文件，每个钱包文件包含一个账户，共七个账户，分别作为每个节点的记账人。生成账户和钱包的命令为：
 	```
@@ -160,10 +163,10 @@ ontology的运行支持以下三种方式
 	```
 	使用-w参数指定生成的钱包文件名
 
-2. 修改config.json，将上一步生成的七个账户的公钥、address分别填入`config.json`中的peers配置的1-7项
+2. 修改`config-vbft.json`，将上一步生成的七个账户的公钥、address分别填入`config-vbft.json`中的peers配置的1-7项
 
 3. 将相关文件复制到目标主机，包括：
-    - 默认配置文件`config.json`
+    - 配置文件`config-vbft.json`
     - 节点程序`ontology`
     - 钱包文件
 
@@ -177,10 +180,10 @@ ontology的运行支持以下三种方式
 ##### DBFT部署方法
 
 多机环境下，最少需要4个节点（共识节点）完成部署。
-我们可以通过修改默认的配置文件`config-dbft.json`进行快速部署，配置文件的说明请点击[这里](./docs/specifications/config_CN.md)。
+我们可以通过修改默认的配置文件[`config-dbft.json`](./docs/specifications/config-dbft.json)进行快速部署，配置文件的说明请点击[这里](./docs/specifications/config_CN.md)。
 
 1. 将相关文件复制到目标主机，包括：
-    - 默认配置文件`config-dbft.json`
+    - 配置文件`config-dbft.json`
     - 节点程序`ontology`
 
 2. 设置每个节点网络连接的端口号（推荐不做修改，使用默认端口配置）
@@ -224,24 +227,48 @@ ontology的运行支持以下三种方式
         	Public key: 030e5d50bf585ff5c73464114244b93f04b231862d6bbdfd846be890093b2c1c17
         	Signature scheme: SHA256withECDSA
         ```
-6. 修改配置文件名
-	- 修改每个节点的`config-dbft.json`为`config.json`
 	
-#### 多机部署配置完成，每个节点目录结构如下
+#### 部署完成
+
+多机部署配置完成，每个节点目录结构如下:
 
    ```shell
 	$ ls
 	config.json ontology wallet.dat
    ```
 ### 运行
-以任意顺序运行每个节点node程序（如果是VBFT，则需要在启动时使用--enableConsensus）， 并在出现`Password:`提示后输入节点的钱包密码
 
-	```shell
-	$ ./ontology
-	$ - 输入你的钱包口令
-	```
+以任意顺序运行每个节点node程序， 并在出现`Password:`提示后输入节点的钱包密码。
 
-了解更多请运行 `./ontology --help`.
+如果你想启动一个共识节点（比如在自己的私网上），必须使用 --enableconsensus参数。如果你想自己运行一个私网，需要使用 --networkid参数指定私网节
+点之间通信的网络id（不能等于1/2/3），并且要使用 --config参数指定配置文件。
+
+例如:
+   ```
+    $ ./ontology --enableconsensus --networkid 4 --config ./config.json
+    $ - Input your wallet password
+   ```
+
+了解更多请运行 `./ontology --help`，你也可以参考[Ontology CLI 用户指引](./docs/specifications/cli_user_guide_CN.md)获得更多信息。
+
+#### 使用docker运行
+
+请确保机器上已安装有docker环境。
+
+1. 编译docker镜像
+
+    - 在下载好的源码根目录下，运行`make docker`命令，这将编译好ontology的docker镜像
+
+2. 运行ontology镜像
+
+    - 使用命令`docker run ontio/ontology`运行ontology；
+
+    - 如果需要使镜像运行时接受交互式键盘输入，则使用`docker -ti run ontio/ontology`命令启动镜像即可；
+
+    - 如果需要保留镜像每次运行时的数据，可以参考docker的数据持久化功能（例如 valume）；
+
+    - 如果需要使用ontology参数，则在`docker run ontio/ontology`后面直接加参数即可，例如`docker run ontio/ontology --networkid 2`，具体的ontology命令
+    行参数可以参考[这里](./docs/specifications/cli_user_guide_CN.md)。
 
 ### ONT转账调用示例
    - from: 转出地址； - to: 转入地址； - amount: 资产转移数量；
