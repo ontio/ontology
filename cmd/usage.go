@@ -123,6 +123,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.GasPriceFlag,
 			utils.GasLimitFlag,
 			utils.PreExecEnableFlag,
+			utils.LocalPreExecDisableFlag,
 		},
 	},
 	{

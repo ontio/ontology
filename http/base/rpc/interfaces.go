@@ -307,9 +307,11 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 				}
 			}
 			//prepare execution check
-			err = bcomn.PreExecCheck(&txn)
-			if err != nil {
-				return responsePack(berr.PRE_EXEC_ERROR, err.Error())
+			if !bcomn.DisableLocalPreExec {
+				err = bcomn.PreExecCheck(&txn)
+				if err != nil {
+					return responsePack(berr.PRE_EXEC_ERROR, err.Error())
+				}
 			}
 		}
 

@@ -278,10 +278,12 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 			return resp
 		}
 		//prepare execution check
-		err := bcomn.PreExecCheck(&txn)
-		if err != nil {
-			resp["Result"] = err.Error()
-			return ResponsePack(berr.PRE_EXEC_ERROR)
+		if !bcomn.DisableLocalPreExec {
+			err := bcomn.PreExecCheck(&txn)
+			if err != nil {
+				resp["Result"] = err.Error()
+				return ResponsePack(berr.PRE_EXEC_ERROR)
+			}
 		}
 	}
 	var hash common.Uint256

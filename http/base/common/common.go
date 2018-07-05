@@ -46,6 +46,8 @@ import (
 
 const MAX_SEARCH_HEIGHT uint32 = 100
 
+var DisableLocalPreExec = false
+
 type BalanceOfRsp struct {
 	Ont string `json:"ont"`
 	Ong string `json:"ong"`
