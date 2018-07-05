@@ -279,9 +279,9 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 		if err := txn.Deserialize(bytes.NewReader(hex)); err != nil {
 			return responsePack(berr.INVALID_TRANSACTION, "")
 		}
-		if len(params) > 1 {
-			preExec, ok := params[1].(float64)
-			if txn.TxType == types.Invoke || txn.TxType == types.Deploy {
+		if txn.TxType == types.Invoke || txn.TxType == types.Deploy {
+			if len(params) > 1 {
+				preExec, ok := params[1].(float64)
 				if ok && preExec == 1 {
 					result, err := bactor.PreExecuteContract(&txn)
 					if err != nil {
@@ -291,7 +291,13 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 					return responseSuccess(result)
 				}
 			}
+			//prepare execution check
+			err = bcomn.PreExecCheck(&txn)
+			if err != nil {
+				return responsePack(berr.PRE_EXEC_ERROR, err.Error())
+			}
 		}
+
 		hash = txn.Hash()
 		if errCode := bcomn.VerifyAndSendTx(&txn); errCode != ontErrors.ErrNoError {
 			return responseSuccess(errCode.Error())

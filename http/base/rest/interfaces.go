@@ -23,7 +23,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/payload"
 	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
@@ -256,14 +255,18 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	}
 	if txn.TxType == types.Invoke || txn.TxType == types.Deploy {
 		if preExec, ok := cmd["PreExec"].(string); ok && preExec == "1" {
-			if _, ok := txn.Payload.(*payload.InvokeCode); ok {
-				resp["Result"], err = bactor.PreExecuteContract(&txn)
-				if err != nil {
-					log.Infof("PreExec: ", err)
-					return ResponsePack(berr.SMARTCODE_ERROR)
-				}
-				return resp
+			resp["Result"], err = bactor.PreExecuteContract(&txn)
+			if err != nil {
+				log.Infof("PreExec: ", err)
+				return ResponsePack(berr.SMARTCODE_ERROR)
 			}
+			return resp
+		}
+		//prepare execution check
+		err := bcomn.PreExecCheck(&txn)
+		if err != nil {
+			resp["Result"] = err.Error()
+			return ResponsePack(berr.PRE_EXEC_ERROR)
 		}
 	}
 	var hash common.Uint256
