@@ -111,6 +111,8 @@ gasprice 参数用于设定当前节点交易池接受交易的最低gasprice，
 --gaslimit
 gaslimit 参数用于设置当前节点交易池接受交易的最低gaslimit，低于这个gaslimit的交易将被丢弃。默认值为30000。
 
+--preexec
+preexec 参数用于在交易池中打开预执行，对来自网络的交易检查付款方账户余额，余额不足的交易将被丢弃。Ontology节点在启动时交易池默认关闭预执行。
 
 ### 1.2 节点部署
 
