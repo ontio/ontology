@@ -182,12 +182,7 @@ func (this *emergencyGov) EmergencyActionResponseReceived(msg *mt.EmergencyActio
 		return
 	}
 
-	id, err := vconfig.PubkeyID(msg.PubKey)
-	if err != nil {
-		log.Errorf("failed to get id from public key: %v", msg.PubKey)
-		return
-	}
-
+	id := vconfig.PubkeyID(msg.PubKey)
 	if this.context.getSig(id) != nil {
 		log.Infof("already received signature from id %s", id)
 		return
@@ -197,7 +192,7 @@ func (this *emergencyGov) EmergencyActionResponseReceived(msg *mt.EmergencyActio
 	serialization.WriteVarBytes(buf, keypair.SerializePublicKey(msg.PubKey))
 	serialization.WriteVarBytes(buf, msg.SigOnBlk)
 
-	err = signature.Verify(msg.PubKey, buf.Bytes(), msg.RspSig)
+	err := signature.Verify(msg.PubKey, buf.Bytes(), msg.RspSig)
 	if err != nil {
 		log.Errorf("failed to verify response signature %v. PubKey %v buf %x rspSig %x",
 			err, msg.PubKey, buf.Bytes(), msg.RspSig)
@@ -495,7 +490,7 @@ func (this *emergencyGov) EmergencyActionRequestReceived(msg *mt.EmergencyAction
 	}
 
 	pubkey := this.account.PubKey()
-	id, _ := vconfig.PubkeyID(pubkey)
+	id := vconfig.PubkeyID(pubkey)
 	this.context.setSig(id, response.SigOnBlk)
 
 	this.server.Xmit(response)
@@ -591,7 +586,7 @@ func (this *emergencyGov) startEmergencyGov(msg *mt.EmergencyActionRequest) {
 
 	sig := this.signBlock(msg.ProposalBlk)
 	pubkey := this.account.PubKey()
-	id, _ := vconfig.PubkeyID(pubkey)
+	id := vconfig.PubkeyID(pubkey)
 	this.context.setSig(id, sig)
 
 	hash := msg.Hash()
