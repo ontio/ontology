@@ -263,7 +263,7 @@ func (this *NeoVmService) getContract(address []byte) ([]byte, error) {
 	if item == nil {
 		return nil, CONTRACT_NOT_EXIST
 	}
-	contract, ok := item.Value.(*payload.DeployCode)
+	contract, ok := item.(*payload.DeployCode)
 	if !ok {
 		return nil, DEPLOYCODE_TYPE_ERROR
 	}

@@ -86,7 +86,7 @@ func (cloneCache *CloneCache) Get(prefix common.DataEntryPrefix, key []byte) (st
 	if item == nil || err != nil {
 		return nil, err
 	}
-	return item.Value, err
+	return item, err
 }
 
 // Delete item from cache

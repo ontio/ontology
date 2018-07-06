@@ -147,7 +147,7 @@ func (self *StateStore) GetMerkleProof(proofHeight, rootHeight uint32) ([]common
 
 //NewStateBatch return state commit bathe. Usually using in smart contract execution
 func (self *StateStore) NewStateBatch() *statestore.StateBatch {
-	return statestore.NewStateStoreBatch(statestore.NewMemDatabase(), self.store)
+	return statestore.NewStateStoreBatch(self.store)
 }
 
 //CommitTo commit state batch to state store

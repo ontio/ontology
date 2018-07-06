@@ -57,28 +57,12 @@ type PersistStore interface {
 type StateStore interface {
 	//Add key-value pair to store
 	TryAdd(prefix DataEntryPrefix, key []byte, value states.StateValue)
-	//Get key from state store, if not exist, add it to store
-	TryGetOrAdd(prefix DataEntryPrefix, key []byte, value states.StateValue) error
 	//Get key from state store
-	TryGet(prefix DataEntryPrefix, key []byte) (*StateItem, error)
+	TryGet(prefix DataEntryPrefix, key []byte) (states.StateValue, error)
 	//Delete key in store
 	TryDelete(prefix DataEntryPrefix, key []byte)
 	//iterator key in store
 	Find(prefix DataEntryPrefix, key []byte) ([]*StateItem, error)
-}
-
-//MemoryCacheStore
-type MemoryCacheStore interface {
-	//Put the key-value pair to store
-	Put(prefix byte, key []byte, value states.StateValue, state ItemState)
-	//Get the value if key in store
-	Get(prefix byte, key []byte) *StateItem
-	//Delete the key in store
-	Delete(prefix byte, key []byte)
-	//Get all updated key-value set
-	GetChangeSet() map[string]*StateItem
-	// Get all key-value in store
-	Find() []*StateItem
 }
 
 //EventStore save event notify

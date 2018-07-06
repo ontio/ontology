@@ -39,7 +39,7 @@ func TestMain(m *testing.M) {
 		fmt.Printf("NewLevelDBStore:%s error:%s", dbFile, err)
 		return
 	}
-	testBatch = NewStateStoreBatch(NewMemDatabase(), testLevelDB)
+	testBatch = NewStateStoreBatch(testLevelDB)
 	m.Run()
 	testLevelDB.Close()
 	os.RemoveAll(dbFile)
@@ -63,7 +63,7 @@ func TestStateBatch_TryGetOrAdd(t *testing.T) {
 		return
 	}
 
-	storeItem := v.Value.(*states.StorageItem)
+	storeItem := v.(*states.StorageItem)
 	if string(storeItem.Value) != string(value.Value) {
 		t.Errorf("TestStateBatch_TryGetOrAdd value:%s != %s", storeItem.Value, value.Value)
 		return
@@ -87,7 +87,7 @@ func TestStateBatch_TryAdd(t *testing.T) {
 		return
 	}
 
-	storeItem := v.Value.(*states.StorageItem)
+	storeItem := v.(*states.StorageItem)
 	if string(storeItem.Value) != string(value.Value) {
 		t.Errorf("TestStateBatch_TryGetOrAdd value:%s != %s", storeItem.Value, value.Value)
 		return
@@ -124,9 +124,9 @@ func TestStateBatch_CommitTo(t *testing.T) {
 		return
 	}
 
-	item, err := getStateObject(prefix, data)
+	item, err := decodeStateObject(prefix, data)
 	if err != nil {
-		t.Errorf("TestStateBatch_TryGetOrAdd getStateObject eror:%s", err)
+		t.Errorf("TestStateBatch_TryGetOrAdd decodeStateObject eror:%s", err)
 		return
 	}
 
