@@ -61,5 +61,8 @@ func AddressFromVmCode(code []byte) common.Address {
 }
 
 func AddressFromBookkeepers(bookkeepers []keypair.PublicKey) (common.Address, error) {
+	if len(bookkeepers) == 1 {
+		return AddressFromPubKey(bookkeepers[0]), nil
+	}
 	return AddressFromMultiPubKeys(bookkeepers, len(bookkeepers)-(len(bookkeepers)-1)/3)
 }
