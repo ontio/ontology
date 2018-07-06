@@ -144,42 +144,6 @@ func getGasPriceConfig() uint64 {
 	return globalGasPrice
 }
 
-// checkBalanceEnough checks if the tranactor has enough to cover gas cost
-func checkBalanceEnough(txn *tx.Transaction) bool {
-	result, err := ledger.DefLedger.PreExecuteContract(txn)
-	if err != nil {
-		log.Debugf("checkBalanceEnough: failed to preExecuteContract tx %x err %v",
-			txn.Hash(), err)
-	}
-	if txn.GasLimit < result.Gas {
-		log.Debugf("checkBalanceEnough: transaction's gasLimit %d is less than preExec gasLimit %d",
-			txn.GasLimit, result.Gas)
-		return false
-	}
-	gas, overflow := common.SafeMul(txn.GasPrice, result.Gas)
-	if overflow {
-		log.Debugf("checkBalanceEnough: gasPrice %d preExec gasLimit %d overflow",
-			txn.GasPrice, result.Gas)
-		return false
-	}
-
-	balance, err := httpcom.GetContractBalance(0, nutils.OngContractAddress, txn.Payer)
-	if err != nil {
-		log.Debugf("checkBalanceEnough: failed to get contract balance %s err %v",
-			txn.Payer.ToHexString(), err)
-		return false
-	}
-
-	if balance < gas {
-		log.Debugf("checkBalanceEnough: transactor %s has no balance enough to cover gas cost %d",
-			txn.Payer.ToHexString(), gas)
-		return false
-	}
-
-	log.Debugf("checkBalanceEnough: tx %x preExec success", txn.Hash())
-	return true
-}
-
 // init initializes the server with the configured settings
 func (s *TXPoolServer) init(num uint8, preExec bool) {
 	// Initial txnPool
@@ -569,31 +533,12 @@ func (s *TXPoolServer) delTransaction(t *tx.Transaction) {
 }
 
 // addTxList adds a valid transaction to the tx pool.
-func (s *TXPoolServer) addTxList(txEntry *tc.TXEntry) errors.ErrCode {
-	s.mu.RLock()
-	pt, ok := s.allPendingTxs[txEntry.Tx.Hash()]
-	if !ok {
-		s.mu.RUnlock()
-		return errors.ErrUnknown
-	}
-	s.mu.RUnlock()
-
-	if s.preExec && pt.sender != tc.HttpSender {
-
-		if ret := checkBalanceEnough(pt.tx); !ret {
-			return errors.ErrInsufficientBalance
-		}
-	}
-
+func (s *TXPoolServer) addTxList(txEntry *tc.TXEntry) bool {
 	ret := s.txPool.AddTxList(txEntry)
 	if !ret {
 		s.increaseStats(tc.DuplicateStats)
 	}
-
-	if ret == false {
-		return errors.ErrDuplicateInput
-	}
-	return errors.ErrNoError
+	return ret
 }
 
 // increaseStats increases the count with the stats type
