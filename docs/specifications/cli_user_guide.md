@@ -4,6 +4,66 @@
 
 Ontology CLI is an Ontology node command line Client for starting and managing Ontology nodes, managing user wallets, sending transactions, and deploying and invoking contracts.
 
+* [Ontology CLI Instruction](#ontology-cli-instruction)
+	* [1. Start and Manage Ontology Nodes](#1-start-and-manage-ontology-nodes)
+		* [1.1 Startup Parameters](#11-startup-parameters)
+			* [1.1.1 Ontology System Parameters](#111-ontology-system-parameters)
+			* [1.1.2 Account Parameters](#112-account-parameters)
+			* [1.1.3 Consensus Parameters](#113-consensus-parameters)
+			* [1.1.4 P2P Network Parameters](#114-p2p-network-parameters)
+			* [1.1.5 RPC Server Parameters](#115-rpc-server-parameters)
+			* [1.1.6 Restful Server Parameters](#116-restful-server-parameters)
+			* [1.1.7 Web Socket Server Parameters](#117-web-socket-server-parameters)
+			* [1.1.8 Test Mode Parameters](#118-test-mode-parameters)
+			* [1.1.9 Transaction Parameter](#119-transaction-parameter)
+		* [1.2 Node Deployment](#12-node-deployment)
+			* [1.2.1 Genesis Block Configuration File](#121-genesis-block-configuration-file)
+				* [1.2.1.1 VBFT Configuration File](#1211-vbft-configuration-file)
+				* [1.2.1.2 dBFT Configuration File](#1212-dbft-configuration-file)
+			* [1.2.2 Bookkeeping Node Deployment](#122-bookkeeping-node-deployment)
+			* [1.2.3 Synchronization Node Deployment](#123-synchronization-node-deployment)
+			* [1.2.4 Deploying a Multi-node Test Network on a Single Computer](#124-deploying-a-multi-node-test-network-on-a-single-computer)
+			* [1.2.5 Single-Node Test Network Deployment](#125-single-node-test-network-deployment)
+	* [2. Wallet Management](#2-wallet-management)
+		* [2.1. Add Account](#21-add-account)
+			* [2.1.1 Add Account Parameters](#211-add-account-parameters)
+		* [2.2. View Account](#22-view-account)
+		* [2.3 Modify Account](#23-modify-account)
+			* [2.3.1 Modifying Account Parameters](#231-modifying-account-parameters)
+		* [2.4 Delete Account](#24-delete-account)
+		* [2.5 Import Account](#25-import-account)
+			* [2.5.1 Import Account Parameters](#251-import-account-parameters)
+			* [2.5.2 WIF account import](#252-wif-account-import)
+	* [3. Asset Management](#3-asset-management)
+		* [3.1 Check Your Account Balance](#31-check-your-account-balance)
+		* [3.2 ONT/ONG Transfers](#32-ontong-transfers)
+			* [3.2.1 Transfer Arguments](#321-transfer-arguments)
+		* [3.3 Authorize Transfer](#33-authorize-transfer)
+			* [3.3.1 Authorize Transfer Parameter](#331-authorize-transfer-parameter)
+		* [3.4 View Authorized Transfer Balance](#34-view-authorized-transfer-balance)
+			* [3.4.1 View Authorized Transfer Balance Parameters](#341-view-authorized-transfer-balance-parameters)
+		* [3.5 Transferring Fund from Authorized Accounts](#35-transferring-fund-from-authorized-accounts)
+			* [3.5.1 Transferring Fund from Authorized Accounts Parameters](#351-transferring-fund-from-authorized-accounts-parameters)
+		* [3.6 View Unlocked ONG Balance](#36-view-unlocked-ong-balance)
+		* [3.7 Extract Unlocked ONG](#37-extract-unlocked-ong)
+			* [3.7.1 Extracting Unlocked ONG Parameters](#371-extracting-unlocked-ong-parameters)
+	* [4 Query Information](#4-query-information)
+		* [4.1 Query Block Information](#41-query-block-information)
+		* [4.2 Query Transaction Information](#42-query-transaction-information)
+		* [4.3 Query Transaction Execution Information](#43-query-transaction-execution-information)
+	* [5. Smart Contract](#5-smart-contract)
+		* [5.1 Smart Contract Deployment](#51-smart-contract-deployment)
+			* [5.1.1 Smart Contract Deployment Parameters](#511-smart-contract-deployment-parameters)
+		* [5.2 Smart Contract Execution](#52-smart-contract-execution)
+			* [5.2.1 Smart Contract Execution Parameters](#521-smart-contract-execution-parameters)
+		* [5.3 Smart Contract Code Execution Directly](#53-smart-contract-code-execution-directly)
+			* [5.3.1 Smart Contract Code Execution Directly Parameters](#531-smart-contract-code-execution-directly-parameters)
+	* [6、Block Import and Export](#6-block-import-and-export)
+		* [6.1 Export Blocks](#61-export-blocks)
+			* [6.1.1 Export Block Parameters](#611-export-block-parameters)
+		* [6.2 Import Blocks](#62-import-blocks)
+			* [6.2.1 Importing Block Parameters](#621-importing-block-parameters)
+
 ## 1. Start and Manage Ontology Nodes
 
 Ontology CLI has a lot of startup parameters for configuring some of the Ontology node's behavior. Use ./Ontology -help to see all startup parameters supported by the Ontology CLI node. If Ontology CLI is started without any parameters, it will access the Ontology Polaris test network as a synchronous node by default.
@@ -394,6 +454,10 @@ The source parameter specifies the imported wallet path
 ```
 ./Ontology account import -s=./source_wallet.dat
 ```
+
+#### 2.5.2 Import Account by WIF
+fill the WIF into a text file, and use the cmd below to import the key
+ontology account import --wif --source key.txt
 
 ## 3. Asset Management
 
