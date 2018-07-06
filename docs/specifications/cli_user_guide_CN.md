@@ -120,6 +120,9 @@ enableconsensus 参数用于启动网络共识。如果当前节点是作为记�
 --maxtxinblock
 maxtxinblock 参数用于设置区块最大的交易数量。默认值是50000。
 
+--disablelocalpreexec
+disablelocalpreexec 参数用于关闭rpc、restful、websocket中发送交易接口的预执行校验
+
 #### 1.1.4 P2P网络参数
 
 --networkid

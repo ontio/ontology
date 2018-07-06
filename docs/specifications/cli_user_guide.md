@@ -116,6 +116,9 @@ The enableconsensus parameter is used to turn the consensus on. If the current n
 --maxtxinblock
 The maxtxinblock parameter is used to set the maximum transaction number of a block. The default value is 50000.
 
+--disablelocalpreexec
+The disablelocalpreexec is used to disable prepare execution in send transaction,include rpc restful websocket.
+
 #### 1.1.4 P2P Network Parameters
 
 --networkid
