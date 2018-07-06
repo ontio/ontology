@@ -266,7 +266,7 @@ http://localhost:20000/cli
 	"method":"sigtransfertx",
 	"params":{
 		"gas_price":0,
-		"gas_limit":30000,
+		"gas_limit":20000,
 		"asset":"ont",
 		"from":"ATACcJPZ8eECdWS4ashaMdqzhywpRTq3oN",
 		"to":"AeoBhZtS8AmGp3Zt4LxvCqhdU4eSGiK44M",
@@ -327,7 +327,7 @@ sigsvr启动时，默认会在当前目录下查找"./abi"下的native合约abi�
 	"Method":"signativeinvoketx",
 	"Params":{
 		"gas_price":0,
-		"gas_limit":50000,
+		"gas_limit":20000,
 		"address":"0100000000000000000000000000000000000000",
 		"method":"transfer",
 		"version":0,
