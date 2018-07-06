@@ -13,10 +13,10 @@ English | [中文](testnet_CN.md)
 ### Select network
 To run Ontology successfully,  nodes can be deployed by four ways:
 
-- Mainnet sync node deployment
-- Public test network(Polaris) sync node deployment
-- Single-host deployment
-- Multi-hosts deployment
+- [Mainnet sync node deployment](#mainnet-sync-node-deployment)
+- [Public test network(Polaris) sync node deployment](#public-test-network(polaris)-sync-node-deployment)
+- [Single-host deployment](#single-host-deployment-configuration)
+- [Multi-hosts deployment](#multi-hosts-deployment-configuration)
 
 #### Mainnet sync node deployment
 

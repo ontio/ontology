@@ -33,7 +33,7 @@ Ontology CLI is an Ontology node command line Client for starting and managing O
 		* [2.4 Delete Account](#24-delete-account)
 		* [2.5 Import Account](#25-import-account)
 			* [2.5.1 Import Account Parameters](#251-import-account-parameters)
-			* [2.5.2 WIF account import](#252-wif-account-import)
+			* [2.5.2 WIF account import](#252-import-account-by-wif)
 	* [3. Asset Management](#3-asset-management)
 		* [3.1 Check Your Account Balance](#31-check-your-account-balance)
 		* [3.2 ONT/ONG Transfers](#32-ontong-transfers)
@@ -47,7 +47,7 @@ Ontology CLI is an Ontology node command line Client for starting and managing O
 		* [3.6 View Unlocked ONG Balance](#36-view-unlocked-ong-balance)
 		* [3.7 Extract Unlocked ONG](#37-extract-unlocked-ong)
 			* [3.7.1 Extracting Unlocked ONG Parameters](#371-extracting-unlocked-ong-parameters)
-	* [4 Query Information](#4-query-information)
+	* [4. Query Information](#4-query-information)
 		* [4.1 Query Block Information](#41-query-block-information)
 		* [4.2 Query Transaction Information](#42-query-transaction-information)
 		* [4.3 Query Transaction Execution Information](#43-query-transaction-execution-information)
@@ -58,7 +58,7 @@ Ontology CLI is an Ontology node command line Client for starting and managing O
 			* [5.2.1 Smart Contract Execution Parameters](#521-smart-contract-execution-parameters)
 		* [5.3 Smart Contract Code Execution Directly](#53-smart-contract-code-execution-directly)
 			* [5.3.1 Smart Contract Code Execution Directly Parameters](#531-smart-contract-code-execution-directly-parameters)
-	* [6、Block Import and Export](#6-block-import-and-export)
+	* [6. Block Import and Export](#6-block-import-and-export)
 		* [6.1 Export Blocks](#61-export-blocks)
 			* [6.1.1 Export Block Parameters](#611-export-block-parameters)
 		* [6.2 Import Blocks](#62-import-blocks)
@@ -66,7 +66,7 @@ Ontology CLI is an Ontology node command line Client for starting and managing O
 
 ## 1. Start and Manage Ontology Nodes
 
-Ontology CLI has a lot of startup parameters for configuring some of the Ontology node's behavior. Use ./Ontology -help to see all startup parameters supported by the Ontology CLI node. If Ontology CLI is started without any parameters, it will access the Ontology Polaris test network as a synchronous node by default.
+Ontology CLI has a lot of startup parameters for configuring some of the Ontology node's behavior. Use ./Ontology -help to see all startup parameters supported by the Ontology CLI node. If Ontology CLI is started without any parameters, it will access the Ontology main network as a synchronous node by default.
 
 ### 1.1 Startup Parameters
 
@@ -836,7 +836,7 @@ The code parameter specifies the code path of a smart contract.
 ./Ontology contract invokeCode --code=XXX --gaslimit=XXX
 ```
 
-## 6、Block Import and Export
+## 6. Block Import and Export
 
 Ontology CLI supports exporting the local node's block data to a compressed file. The generated compressed file can be imported into the Ontology node. For security reasons, the imported block data file must be obtained from a trusted source.
 
