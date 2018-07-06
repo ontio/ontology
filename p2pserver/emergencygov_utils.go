@@ -40,13 +40,10 @@ func getAdmin() (common.Address, error) {
 	if err != nil {
 		return common.Address{}, err
 	}
-	admin := new(common.Address)
-	err = admin.Deserialize(bytes.NewBuffer(data))
-	if err != nil {
-		return common.Address{}, err
-	}
 
-	return *admin, nil
+	bf := bytes.NewBuffer(data)
+	admin, _ := nutils.ReadAddress(bf)
+	return admin, nil
 }
 
 // getGovernanceView returns current governance view
