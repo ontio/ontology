@@ -255,7 +255,7 @@ func (this *NeoVmService) getContract(address []byte) ([]byte, error) {
 	if err != nil {
 		return nil, errors.NewErr("[getContract] Get contract context error!")
 	}
-	log.Infof("invoke contract address:%x", scommon.ToArrayReverse(address))
+	log.Debugf("invoke contract address:%x", scommon.ToArrayReverse(address))
 	if item == nil {
 		return nil, CONTRACT_NOT_EXIST
 	}
