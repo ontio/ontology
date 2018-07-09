@@ -16,6 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Package error privides error code for http
 package error
 
 import ontErrors "github.com/ontio/ontology/errors"
@@ -41,6 +42,7 @@ const (
 
 	INTERNAL_ERROR  int64 = 45001
 	SMARTCODE_ERROR int64 = 47001
+	PRE_EXEC_ERROR  int64 = 47002
 )
 
 var ErrMap = map[int64]string{
@@ -64,6 +66,7 @@ var ErrMap = map[int64]string{
 
 	INTERNAL_ERROR:                           "INTERNAL ERROR",
 	SMARTCODE_ERROR:                          "SMARTCODE EXEC ERROR",
+	PRE_EXEC_ERROR:                           "SMARTCODE PREPARE EXEC ERROR",
 	int64(ontErrors.ErrDuplicatedTx):         "INTERNAL ERROR, ErrDuplicatedTx",
 	int64(ontErrors.ErrDuplicateInput):       "INTERNAL ERROR, ErrDuplicateInput",
 	int64(ontErrors.ErrAssetPrecision):       "INTERNAL ERROR, ErrAssetPrecision",
