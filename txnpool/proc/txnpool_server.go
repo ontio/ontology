@@ -135,8 +135,6 @@ func getGasPriceConfig() uint64 {
 		log.Info(err)
 		return 0
 	}
-	log.Infof("getGasPriceLimitConfig: gasPrice %d, configure %d", globalGasPrice,
-		config.DefConfig.Common.GasPrice)
 
 	if globalGasPrice < config.DefConfig.Common.GasPrice {
 		return config.DefConfig.Common.GasPrice
@@ -172,6 +170,7 @@ func (s *TXPoolServer) init(num uint8, preExec bool) {
 	}
 
 	s.gasPrice = getGasPriceConfig()
+	log.Infof("tx pool: the current local gas price is %d", s.gasPrice)
 
 	s.preExec = preExec
 	// Create the given concurrent workers
@@ -521,6 +520,11 @@ func (s *TXPoolServer) cleanTransactionList(txs []*tx.Transaction, height uint32
 		oldGasPrice := s.gasPrice
 		s.gasPrice = gasPrice
 		s.mu.Unlock()
+		if oldGasPrice != gasPrice {
+			log.Infof("Transaction pool price threshold updated from %d to %d",
+				oldGasPrice, gasPrice)
+		}
+
 		if oldGasPrice < gasPrice {
 			s.txPool.RemoveTxsBelowGasPrice(gasPrice)
 		}
