@@ -618,10 +618,8 @@ func genMultiAddress(ctx *cli.Context) error {
 		pubKeys = append(pubKeys, pubKey)
 	}
 	pkSize := len(pubKeys)
-	if pkSize == 0 || pkSize > constants.MULTI_SIG_MAX_PUBKEY_SIZE ||
-		m == 0 || int(m) > pkSize {
-		fmt.Printf("Invaid argument. %s and %s must > 0 and <= %d, and m must < number of pubkey.\n",
-			utils.GetFlagName(utils.AccountMultiMFlag),
+	if !(1 <= m && int(m) <= pkSize && pkSize > 1 && pkSize <= constants.MULTI_SIG_MAX_PUBKEY_SIZE) {
+		fmt.Printf("Invaid argument. %s must > 1 and <= %d, and m must > 0 and < number of pubkey.\n",
 			utils.GetFlagName(utils.AccountMultiPubKeyFlag),
 			constants.MULTI_SIG_MAX_PUBKEY_SIZE)
 		cli.ShowSubcommandHelp(ctx)
