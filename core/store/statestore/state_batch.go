@@ -21,12 +21,12 @@ package statestore
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
-	"strings"
 )
 
 type StateBatch struct {
@@ -73,6 +73,7 @@ func (self *StateBatch) Find(prefix common.DataEntryPrefix, key []byte) ([]*comm
 func (self *StateBatch) TryAdd(prefix common.DataEntryPrefix, key []byte, value states.StateValue) {
 	pkey := append([]byte{byte(prefix)}, key...)
 	self.memory[string(pkey)] = value
+	delete(self.readCache, string(pkey))
 }
 
 func (self *StateBatch) TryGetOrAdd(prefix common.DataEntryPrefix, key []byte, value states.StateValue) error {
