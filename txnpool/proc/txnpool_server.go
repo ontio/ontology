@@ -170,7 +170,7 @@ func (s *TXPoolServer) init(num uint8, preExec bool) {
 	}
 
 	s.gasPrice = getGasPriceConfig()
-	log.Infof("tx pool: initial enforced gas price %d", s.gasPrice)
+	log.Infof("tx pool: the current local gas price is %d", s.gasPrice)
 
 	s.preExec = preExec
 	// Create the given concurrent workers
