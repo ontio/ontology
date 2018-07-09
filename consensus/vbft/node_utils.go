@@ -377,14 +377,15 @@ func (self *Server) receiveFromPeer(peerIdx uint32) (uint32, []byte, error) {
 	return 0, nil, fmt.Errorf("nil consensus payload")
 }
 
-func (self *Server) sendToPeer(peerIdx uint32, data []byte) error {
+func (self *Server) sendToPeer(peerIdx uint32, data []byte, msgType MsgType) error {
 	peer := self.peerPool.getPeer(peerIdx)
 	if peer == nil {
 		return fmt.Errorf("send peer failed: failed to get peer %d", peerIdx)
 	}
 	msg := &p2pmsg.ConsensusPayload{
-		Data:  data,
-		Owner: self.account.PublicKey,
+		Data:     data,
+		Owner:    self.account.PublicKey,
+		DataType: uint8(msgType),
 	}
 
 	buf := new(bytes.Buffer)
@@ -411,10 +412,11 @@ func (self *Server) broadcast(msg ConsensusMsg) error {
 	return nil
 }
 
-func (self *Server) broadcastToAll(data []byte) error {
+func (self *Server) broadcastToAll(data []byte, msgType MsgType) error {
 	msg := &p2pmsg.ConsensusPayload{
-		Data:  data,
-		Owner: self.account.PublicKey,
+		Data:     data,
+		Owner:    self.account.PublicKey,
+		DataType: uint8(msgType),
 	}
 
 	buf := new(bytes.Buffer)

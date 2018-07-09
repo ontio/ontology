@@ -32,6 +32,23 @@ import (
 	"github.com/ontio/ontology/errors"
 )
 
+type Datatype uint8
+
+const (
+	BlockProposalMessage Datatype = iota
+	BlockEndorseMessage
+	BlockCommitMessage
+
+	PeerHandshakeMessage
+	PeerHeartbeatMessage
+
+	BlockInfoFetchMessage
+	BlockInfoFetchRespMessage
+	ProposalFetchMessage
+	BlockFetchMessage
+	BlockFetchRespMessage
+)
+
 type ConsensusPayload struct {
 	Version         uint32
 	PrevHash        common.Uint256
@@ -39,6 +56,7 @@ type ConsensusPayload struct {
 	BookkeeperIndex uint16
 	Timestamp       uint32
 	Data            []byte
+	DataType        uint8
 	Owner           keypair.PublicKey
 	Signature       []byte
 	PeerId          uint64
@@ -93,6 +111,10 @@ func (this *ConsensusPayload) GetMessage() []byte {
 	//TODO: GetMessage
 	//return sig.GetHashData(cp)
 	return []byte{}
+}
+
+func (this *ConsensusPayload) GetDataType() uint8 {
+	return this.DataType
 }
 
 func (this *ConsensusPayload) Type() common.InventoryType {
@@ -227,6 +249,10 @@ func (this *ConsensusPayload) SerializeUnsigned(w io.Writer) error {
 
 		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. Data:%v", this.Data))
 	}
+	err = serialization.WriteUint8(w, this.DataType)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. DataType:%v", this.DataType))
+	}
 	return nil
 }
 
@@ -289,5 +315,9 @@ func (this *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
 		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read Data error")
 	}
 
+	this.DataType, err = serialization.ReadUint8(r)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read DataType error")
+	}
 	return nil
 }

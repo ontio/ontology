@@ -196,9 +196,21 @@ func ConsensusHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, 
 		consensus.Cons.PeerId = data.Id
 		actor.ConsensusPid.Tell(&consensus.Cons)
 		remotePeer.MarkHashAsSeen(consensus.Cons.Hash())
+
 		consensus.Hop--
+		// Relay msg to other remote peers
 		if consensus.Hop > 0 {
-			p2p.Xmit(consensus, consensus.Cons.Hash(), true)
+			np := p2p.GetNp()
+			np.RLock()
+			defer np.RUnlock()
+			for _, node := range np.List {
+				if node.GetSyncState() == msgCommon.ESTABLISH && node.GetRelay() == true {
+					if !node.IsHashContained(consensus.Cons.Hash()) {
+						node.MarkHashAsSeen(consensus.Cons.Hash())
+						node.Send(consensus, true)
+					}
+				}
+			}
 		}
 	}
 }

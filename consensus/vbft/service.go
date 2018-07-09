@@ -2025,14 +2025,16 @@ func (self *Server) msgSendLoop() {
 				log.Errorf("server %d failed to serialized msg (type: %d): %s", self.Index, evt.Msg.Type(), err)
 				continue
 			}
+			msgType := evt.Msg.Type()
+
 			if evt.ToPeer == math.MaxUint32 {
 				// broadcast
-				if err := self.broadcastToAll(payload); err != nil {
+				if err := self.broadcastToAll(payload, msgType); err != nil {
 					log.Errorf("server %d xmit msg (type %d): %s",
 						self.Index, evt.Msg.Type(), err)
 				}
 			} else {
-				if err := self.sendToPeer(evt.ToPeer, payload); err != nil {
+				if err := self.sendToPeer(evt.ToPeer, payload, msgType); err != nil {
 					log.Errorf("server %d xmit to peer %d failed: %s", self.Index, evt.ToPeer, err)
 				}
 			}
