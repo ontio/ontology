@@ -116,9 +116,6 @@ The enableconsensus parameter is used to turn the consensus on. If the current n
 --maxtxinblock
 The maxtxinblock parameter is used to set the maximum transaction number of a block. The default value is 50000.
 
---disablelocalpreexec
-The disablelocalpreexec is used to disable prepare execution in send transaction,include rpc restful websocket.
-
 #### 1.1.4 P2P Network Parameters
 
 --networkid
@@ -174,8 +171,11 @@ The gasprice parameter is used to set the lowest gasprice of the current node tr
 --gaslimit
 The gaslimit parameter is used to set the gaslimit of the current node transaction pool to accept transactions. Transactions below this gaslimit will be discarded. The default value is 30000.
 
---preexec
-The preexec parameter is used to enable preExecute in the transaction pool, which checks whether a transactor has sufficient balance to cover transaction cost. For those who have insufficient balance, the transactions from network will be discarded by the transaction pool. By default, preExecute is disabled when ontology bootstrap.
+--enabletxpoolpreexec
+The enabletxpoolpreexec parameter is used to enable preExecute in the transaction pool, which checks whether a transactor has sufficient balance to cover transaction cost. For those who have insufficient balance, the transactions from network will be discarded by the transaction pool. By default, preExecute is disabled when ontology bootstrap.
+
+--disablelocalpreexec
+The disablelocalpreexec is used to disable prepare execution in send transaction,include rpc restful websocket.
 
 ### 1.2 Node Deployment
 
