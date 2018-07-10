@@ -32,9 +32,13 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/dht/types"
-	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	mt "github.com/ontio/ontology/p2pserver/message/types"
 	"strconv"
+)
+
+const (
+	DHT_BLACK_LIST_FILE = "./dht_black_list"
+	DHT_WHITE_LIST_FILE = "./dht_white_list"
 )
 
 // DHT manage the DHT/Kad protocol resource, mainly including
@@ -53,6 +57,9 @@ type DHT struct {
 	bootstrapNodes map[types.NodeID]*types.Node // Hold inital nodes from configure and peer file to contact
 	feedCh         chan *types.FeedEvent        // Notify netserver of add/del a remote peer
 	stopCh         chan struct{}                // Stop DHT module
+
+	whiteList []string
+	blackList []string
 }
 
 // NewDHT returns an instance of DHT with the given id
@@ -101,6 +108,10 @@ func (this *DHT) init() {
 	this.messagePool = types.NewRequestPool(this.onRequestTimeOut)
 	this.feedCh = make(chan *types.FeedEvent, types.MSG_CACHE)
 	this.routingTable.init(this.nodeID, this.feedCh)
+
+	// load white list and black list
+	this.loadWhiteList()
+	this.loadBlackList(DHT_BLACK_LIST_FILE)
 }
 
 // Start starts DHT service
@@ -116,6 +127,7 @@ func (this *DHT) Start() {
 	if err != nil {
 		log.Errorf("listen udp failed.")
 	}
+
 	this.bootstrap()
 }
 
@@ -128,6 +140,8 @@ func (this *DHT) Stop() {
 	if this.feedCh != nil {
 		close(this.feedCh)
 	}
+	// close udp connect
+	this.conn.Close()
 }
 
 //SetFallbackNodes appends recent connected peers
@@ -150,20 +164,21 @@ func (this *DHT) bootstrap() {
 // add node to routing table in synchronize
 func (this *DHT) syncAddNodes(nodes map[types.NodeID]*types.Node) {
 	waitRequestIds := make([]types.RequestId, 0)
-	for _, n := range nodes {
-		addr, err := getNodeUDPAddr(n)
+	waitGroup := new(sync.WaitGroup)
+	for _, node := range nodes {
+		addr, err := getNodeUDPAddr(node)
 		if err != nil {
-			log.Infof("node %s address is error!", n.ID)
+			log.Infof("node %s address is error!", node.ID)
 			continue
 		}
-		requestId, isNewRequest := this.messagePool.AddRequest(n,
-			types.DHT_PING_REQUEST, nil, true)
+		requestId, isNewRequest := this.messagePool.AddRequest(node,
+			types.DHT_PING_REQUEST, nil, waitGroup)
 		if isNewRequest {
 			this.ping(addr)
 		}
 		waitRequestIds = append(waitRequestIds, requestId)
 	}
-	this.messagePool.Wait(waitRequestIds)
+	waitGroup.Wait()
 }
 
 // GetFeecCh returns the feed event channel
@@ -188,7 +203,7 @@ func (this *DHT) loop() {
 	}
 }
 
-// refreshRoutingTable refreshs k bucket
+// refreshRoutingTable refresh k bucket
 func (this *DHT) refreshRoutingTable() {
 	log.Info("refreshRoutingTable start")
 	// Todo:
@@ -235,7 +250,7 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 			pendingQueries++
 			go func() {
 				this.findNode(node, targetID)
-				this.messagePool.AddRequest(node, types.DHT_FIND_NODE_REQUEST, nil, false)
+				this.messagePool.AddRequest(node, types.DHT_FIND_NODE_REQUEST, nil, nil)
 			}()
 		}
 
@@ -250,7 +265,8 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 }
 
 // waitAndHandleResponse waits for the result
-func (this *DHT) waitAndHandleResponse(knownNode map[types.NodeID]bool, closestNodes []*types.Node, targetID types.NodeID) {
+func (this *DHT) waitAndHandleResponse(knownNode map[types.NodeID]bool, closestNodes []*types.Node,
+	targetID types.NodeID) {
 	responseCh := this.messagePool.GetResultChan()
 	select {
 	case entries, ok := <-responseCh:
@@ -286,41 +302,16 @@ func (this *DHT) waitAndHandleResponse(knownNode map[types.NodeID]bool, closestN
 
 }
 
-// onRequestTimeOut handles a timeout event of request
-func (this *DHT) onRequestTimeOut(requestId types.RequestId) {
-	reqType := types.GetReqTypeFromReqId(requestId)
-	this.messagePool.DeleteRequest(requestId)
-	log.Info("request ", requestId, "timeout!")
-	if reqType == types.DHT_FIND_NODE_REQUEST {
-		results := make([]*types.Node, 0)
-		this.messagePool.SetResults(results)
-	} else if reqType == types.DHT_PING_REQUEST {
-		pendingNode, ok := this.messagePool.GetSupportData(requestId)
-		if ok && pendingNode != nil {
-			bucketIndex, _ := this.routingTable.locateBucket(pendingNode.ID)
-			this.routingTable.addNode(pendingNode, bucketIndex)
-		}
-	}
-}
-
-// findNode sends findNode to remote node to get the closest nodes to target
-func (this *DHT) findNode(remotePeer *types.Node, targetID types.NodeID) error {
-	addr, err := getNodeUDPAddr(remotePeer)
-	if err != nil {
-		return err
-	}
-	findNodeMsg := msgpack.NewFindNode(this.nodeID, targetID)
-	bf := new(bytes.Buffer)
-	mt.WriteMessage(bf, findNodeMsg)
-	this.send(addr, bf.Bytes())
-	return nil
-}
-
 // addNode adds a node to the K bucket.
 // remotePeer: added node
 // shouldWait: if ping the lastNode located in the same k bucket of remotePeer, the request should be wait or not
 func (this *DHT) addNode(remotePeer *types.Node) {
 	if remotePeer == nil || remotePeer.ID == this.nodeID {
+		return
+	}
+
+	nodeAddress := remotePeer.IP + ":" + strconv.Itoa(int(remotePeer.UDPPort))
+	if !this.isInWhiteList(nodeAddress) {
 		return
 	}
 
@@ -344,59 +335,12 @@ func (this *DHT) addNode(remotePeer *types.Node) {
 				return
 			}
 			if _, isNewRequest := this.messagePool.AddRequest(lastNode,
-				types.DHT_PING_REQUEST, remotePeer, false); isNewRequest {
+				types.DHT_PING_REQUEST, remoteNode, nil); isNewRequest {
 				this.ping(addr)
 			}
 		}
 	}
 	return
-}
-
-// ping the remote node
-func (this *DHT) ping(addr *net.UDPAddr) error {
-	ip := net.ParseIP(this.addr).To16()
-	if ip == nil {
-		log.Error("Parse IP address error\n", this.addr)
-		return errors.New("Parse IP address error")
-	}
-	pingMsg := msgpack.NewDHTPing(this.nodeID, this.udpPort, this.tcpPort, ip, addr)
-	bf := new(bytes.Buffer)
-	err := mt.WriteMessage(bf, pingMsg)
-	if err != nil {
-		log.Info(err)
-		return err
-	}
-	this.send(addr, bf.Bytes())
-	return nil
-}
-
-// pong reply remote node when receiving ping
-func (this *DHT) pong(addr *net.UDPAddr) error {
-
-	ip := net.ParseIP(this.addr).To16()
-	if ip == nil {
-		log.Error("Parse IP address error\n", this.addr)
-		return errors.New("Parse IP address error")
-	}
-
-	pongMsg := msgpack.NewDHTPong(this.nodeID, this.udpPort, this.tcpPort, ip, addr)
-	bf := new(bytes.Buffer)
-	mt.WriteMessage(bf, pongMsg)
-	this.send(addr, bf.Bytes())
-	return nil
-}
-
-// findNodeReply reply remote node when receiving find node
-func (this *DHT) findNodeReply(addr *net.UDPAddr, targetId types.NodeID) error {
-	// query routing table
-	nodes := this.routingTable.getClosestNodes(types.BUCKET_SIZE, targetId)
-
-	neighborsMsg := msgpack.NewNeighbors(this.nodeID, nodes)
-	bf := new(bytes.Buffer)
-	mt.WriteMessage(bf, neighborsMsg)
-	this.send(addr, bf.Bytes())
-
-	return nil
 }
 
 // processPacket invokes the related handler to process the packet
@@ -469,6 +413,22 @@ func (this *DHT) send(addr *net.UDPAddr, msg []byte) error {
 	return nil
 }
 
+func (this *DHT) AddBlackList(addr string) {
+	this.blackList = append(this.blackList, addr)
+}
+
+func (this *DHT) AddWhiteList(addr string) {
+	this.whiteList = append(this.whiteList, addr)
+}
+
+func (this *DHT) SaveBlackListToFile() {
+	this.saveListToFile(this.blackList, DHT_BLACK_LIST_FILE)
+}
+
+func (this *DHT) SaveWhiteListToFile() {
+	this.saveListToFile(this.whiteList, DHT_WHITE_LIST_FILE)
+}
+
 func getNodeUDPAddr(node *types.Node) (*net.UDPAddr, error) {
 	addr := new(net.UDPAddr)
 	addr.IP = net.ParseIP(node.IP).To16()
@@ -487,7 +447,7 @@ func (this *DHT) DisplayRoutingTable() {
 		}
 		fmt.Println("[", bucketIndex, "]: ")
 		for i := 0; i < this.routingTable.getTotalNodeNumInBukcet(bucketIndex); i++ {
-			fmt.Printf("%x %s %d %d\n", bucket.entries[i].ID[:], bucket.entries[i].IP,
+			fmt.Printf("%s %d %d\n", bucket.entries[i].IP,
 				bucket.entries[i].UDPPort, bucket.entries[i].TCPPort)
 		}
 	}

@@ -25,11 +25,11 @@ import (
 
 const (
 	BUCKET_NUM        = NODE_ID_BITS
-	BUCKET_SIZE       = 2
+	BUCKET_SIZE       = 8
 	FACTOR            = 3
 	MSG_CACHE         = 10240
 	PING_TIMEOUT      = 10 * time.Second
-	FIND_NODE_TIMEOUT = 60 * time.Second
+	FIND_NODE_TIMEOUT = 20 * time.Second
 	DEFAULT_TIMEOUT   = 10 * time.Second
 	REFRESH_INTERVAL  = 1 * time.Hour
 )

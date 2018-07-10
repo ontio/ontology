@@ -90,7 +90,7 @@ func NewServer() *P2PServer {
 
 	p.msgRouter = utils.NewMsgRouter(p.network)
 	p.blockSync = NewBlockSyncMgr(p)
-	p.recentPeers = make([]dt.Node, common.RECENT_LIMIT)
+	p.recentPeers = make([]dt.Node, 0, common.RECENT_LIMIT)
 	p.quitSyncRecent = make(chan bool)
 	p.quitOnline = make(chan bool)
 	p.quitHeartBeat = make(chan bool)

@@ -14,7 +14,7 @@ const (
 	DHT_PING_REQUEST      DHTRequestType = "ping"
 )
 
-const MESSAGE_POOL_BUFFER_SIZE int = 4
+const MESSAGE_POOL_BUFFER_SIZE = 4
 
 type RequestId string
 
@@ -26,8 +26,8 @@ func ConstructRequestId(nodeId NodeID, reqType DHTRequestType) RequestId {
 }
 
 func GetReqTypeFromReqId(reqId RequestId) DHTRequestType {
-	temp := reqId[len(NodeID{}):]
-	return DHTRequestType(temp)
+	nodeIdLength := len(NodeID{}.String())
+	return DHTRequestType(reqId[nodeIdLength:])
 }
 
 type DHTMessagePool struct {
@@ -37,12 +37,11 @@ type DHTMessagePool struct {
 	timeoutListener   chan RequestId
 	onTimeOut         func(id RequestId) // time out event should be handled by dht
 
-	resultChan         chan []*Node
-	requestPool        map[RequestId]*Node
-	requestSupportData map[RequestId]*Node
+	resultChan  chan []*Node
+	requestPool map[RequestId]*Node
+	replaceNode map[RequestId]*Node
 
-	syncChan  chan RequestId     // used to synchronize
-	waitQueue map[RequestId]bool // if one request should be wait, push it to waitQueue, and don't forget call Wait func
+	waitGroup map[RequestId]*sync.WaitGroup // used to synchronize
 }
 
 func NewRequestPool(onTimeOut func(id RequestId)) *DHTMessagePool {
@@ -52,9 +51,8 @@ func NewRequestPool(onTimeOut func(id RequestId)) *DHTMessagePool {
 	msgPool.onTimeOut = onTimeOut
 	msgPool.resultChan = make(chan []*Node, MESSAGE_POOL_BUFFER_SIZE)
 	msgPool.requestPool = make(map[RequestId]*Node)
-	msgPool.syncChan = make(chan RequestId, MESSAGE_POOL_BUFFER_SIZE)
-	msgPool.requestSupportData = make(map[RequestId]*Node)
-	msgPool.waitQueue = make(map[RequestId]bool, 0)
+	msgPool.replaceNode = make(map[RequestId]*Node)
+	msgPool.waitGroup = make(map[RequestId]*sync.WaitGroup)
 	go msgPool.start()
 	return msgPool
 }
@@ -73,9 +71,9 @@ func (this *DHTMessagePool) start() {
 // destinateNode: request to the node
 // reqType: request type
 // supportData: store some data to support this request
-// shouldWait: the request should be waited or not, if is true, master call Wait func
-func (this *DHTMessagePool) AddRequest(destinateNode *Node, reqType DHTRequestType, supportData *Node,
-	shouldWait bool) (id RequestId, isNewRequest bool) {
+// shouldWait: the request should be waited or not, if is true, must call Wait func
+func (this *DHTMessagePool) AddRequest(destinateNode *Node, reqType DHTRequestType, replaceNode *Node,
+	waitGroup *sync.WaitGroup) (id RequestId, isNewRequest bool) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
@@ -90,13 +88,16 @@ func (this *DHTMessagePool) AddRequest(destinateNode *Node, reqType DHTRequestTy
 	}
 	_, ok := this.requestPool[requestId]
 	if ok { // if request already exist, reset timer
-		log.Info("reset old request: ", requestId)
+		log.Info("reset old request:", requestId)
 		this.requestTimerQueue[requestId].Reset(timeout)
 	} else { // add a new request to pool
-		log.Info("send new request: ", requestId)
+		log.Info("send new request:", requestId)
 		this.requestPool[requestId] = destinateNode
-		this.requestSupportData[requestId] = supportData
-		this.waitQueue[requestId] = shouldWait
+		this.replaceNode[requestId] = replaceNode
+		if waitGroup != nil {
+			this.waitGroup[requestId] = waitGroup
+			waitGroup.Add(1)
+		}
 
 		timer := time.AfterFunc(timeout, func() {
 			this.timeoutListener <- requestId
@@ -109,11 +110,11 @@ func (this *DHTMessagePool) AddRequest(destinateNode *Node, reqType DHTRequestTy
 	return requestId, !ok
 }
 
-func (this *DHTMessagePool) GetSupportData(id RequestId) (*Node, bool) {
+func (this *DHTMessagePool) GetReplaceNode(id RequestId) (*Node, bool) {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 
-	node, ok := this.requestSupportData[id]
+	node, ok := this.replaceNode[id]
 	return node, ok
 }
 
@@ -132,17 +133,14 @@ func (this *DHTMessagePool) DeleteRequest(requestId RequestId) {
 	_, ok := this.requestPool[requestId]
 	if ok {
 		delete(this.requestPool, requestId)
-		delete(this.requestSupportData, requestId)
+		delete(this.replaceNode, requestId)
+		// is synchronized request
+		if _, ok := this.waitGroup[requestId]; ok {
+			this.waitGroup[requestId].Done()
+			delete(this.waitGroup, requestId)
+		}
 	} else {
 		return
-	}
-	shouldWait, ok := this.waitQueue[requestId]
-	if ok {
-		delete(this.waitQueue, requestId)
-		// if the request should be wait, notify waiting channel
-		if shouldWait {
-			this.syncChan <- requestId
-		}
 	}
 	timer, ok := this.requestTimerQueue[requestId]
 	if ok {
@@ -161,32 +159,4 @@ func (this *DHTMessagePool) SetResults(results []*Node) {
 // get results channel
 func (this *DHTMessagePool) GetResultChan() <-chan []*Node {
 	return this.resultChan
-}
-
-// wait for finish of specific request
-func (this *DHTMessagePool) Wait(reqIds []RequestId) {
-	waitNum := len(reqIds)
-	if waitNum == 0 {
-		return
-	}
-
-	for {
-		select {
-		case notifyId := <-this.syncChan:
-			isContained := false
-			for i, reqId := range reqIds {
-				if notifyId == reqId {
-					reqIds = append(reqIds[:i], reqIds[i+1:]...)
-					isContained = true
-					break
-				}
-			}
-			if !isContained {
-				this.syncChan <- notifyId
-			}
-		}
-		if len(reqIds) == 0 {
-			return
-		}
-	}
 }
